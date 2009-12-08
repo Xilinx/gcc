@@ -1,3 +1,26 @@
+2009-12-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* configure.ac (net/if.h check): Include sys/socket.h if present.
+	* configure: Regenerate.
+
+2009-12-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in: Regenerate.
+	* configure: Regenerate.
+	* gcj/Makefile.in: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2009-12-02  Ben Elliston  <bje@au.ibm.com>
+
+	* java/net/natVMURLConnection.cc (guessContentTypeFromBuffer):
+	Mark `bytes' and `valid' parameters as potentially unused.
+
+2009-11-30  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* testsuite/lib/libjava.exp (libjava_init):  Add host-dependent
+	settings for LC_ALL and LANG.
+
 2009-11-30  Ben Elliston  <bje@au.ibm.com>
 
 	* jni.cc (_Jv_JNI_GetObjectRefType): Mark `object' parameter as

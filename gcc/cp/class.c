@@ -4254,7 +4254,12 @@ remove_zero_width_bit_fields (tree t)
     {
       if (TREE_CODE (*fieldsp) == FIELD_DECL
 	  && DECL_C_BIT_FIELD (*fieldsp)
-	  && DECL_INITIAL (*fieldsp))
+          /* We should not be confused by the fact that grokbitfield
+	     temporarily sets the width of the bit field into
+	     DECL_INITIAL (*fieldsp).
+	     check_bitfield_decl eventually sets DECL_SIZE (*fieldsp)
+	     to that width.  */
+	  && integer_zerop (DECL_SIZE (*fieldsp)))
 	*fieldsp = TREE_CHAIN (*fieldsp);
       else
 	fieldsp = &TREE_CHAIN (*fieldsp);
@@ -6059,7 +6064,6 @@ resolve_address_of_overloaded_function (tree target_type,
        selected function.  */
 
   int is_ptrmem = 0;
-  int is_reference = 0;
   /* We store the matches in a TREE_LIST rooted here.  The functions
      are the TREE_PURPOSE, not the TREE_VALUE, in this list, for easy
      interoperability with most_specialized_instantiation.  */
@@ -6082,12 +6086,9 @@ resolve_address_of_overloaded_function (tree target_type,
     /* This is OK, too.  */
     is_ptrmem = 1;
   else if (TREE_CODE (target_type) == FUNCTION_TYPE)
-    {
-      /* This is OK, too.  This comes from a conversion to reference
-	 type.  */
-      target_type = build_reference_type (target_type);
-      is_reference = 1;
-    }
+    /* This is OK, too.  This comes from a conversion to reference
+       type.  */
+    target_type = build_reference_type (target_type);
   else
     {
       if (flags & tf_error)
@@ -8043,12 +8044,10 @@ build_rtti_vtbl_entries (tree binfo, vtbl_init_data* vid)
 {
   tree b;
   tree t;
-  tree basetype;
   tree offset;
   tree decl;
   tree init;
 
-  basetype = BINFO_TYPE (binfo);
   t = BINFO_TYPE (vid->rtti_binfo);
 
   /* To find the complete object, we will first convert to our most

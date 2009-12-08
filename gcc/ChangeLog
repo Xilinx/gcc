@@ -1,3 +1,550 @@
+2009-12-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/40302
+	* configure.ac (HAVE_mpc): Don't define.
+	* config.in, configure: Regenerate.
+
+	PR other/40302
+	* builtins.c: Remove HAVE_mpc* checks throughout.
+	* fold-const.c: Likewise.
+	* real.h: Likewise.
+	* toplev.c: Likewise.
+
+2009-12-07  Edmar Wienskoski  <edmar@freescale.com>
+
+	* config.gcc (cpu_is_64bit): Add new core e500mc64.
+	(powerpc*-*-*): Add new core e500mc64.
+	* config/rs6000/e500mc64.md: New file.
+	* config/rs6000/rs6000.c (processor_costs): Add new costs for
+	e500mc64.
+	(rs6000_override_options): Add e500mc64 case to
+	processor_target_table. Altivec and Spe options not allowed with
+	e500mc64. Disable string instructions for e500mc64. Enable branch
+	targets alignment for both e500mc and e500mc64. Initialize
+	rs6000_cost for e500mc64.
+	(rs6000_emit_sISEL): New function.
+	(rs6000_emit_sCOND): Call rs6000_emit_sISEL for isel targets.
+	(rs6000_emit_int_cmove): Fix mode of 64 bit isel pattern
+	generation.
+	(rs6000_issue_rate): Set issue rate for e500mc64.
+	(rs6000_rtx_costs): Set more accurate cost for mfcr instruction
+	on architectures with isel.
+	* config/rs6000/rs6000-protos.h (rs6000_emit_sISEL): Declare.
+	* config/rs6000/rs6000.h (processor_type): Add
+	PROCESSOR_PPCE500MC64.
+	(ASM_CPU_SPEC): Add e500mc64.
+	* config/rs6000/rs6000.md (define_attr "cpu"): Add ppce500mc64.
+	Include e500mc64.md.
+	(abssi2_isel): Expand pattern to handle DImode.
+	(nabs<mode>2_isel): New pattern.
+	(absdi2): Change pattern to handle 64 bit isel targets.
+	(absdi2_internal): Exclude ISEL targets.
+	(nabsdi2): Exclude ISEL targets.
+	* doc/invoke.texi: Add e500mc64 to list of cpus.
+
+2009-12-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (any_or): New code iterator.
+	(any_logic): Rename from plogic code iterator.
+	(logicprefix): Rename from plogicprefix code attribute.
+	(<code><mode>3): Macroize expander from {ior,xor}<mode>3 using
+	any_or code iterator.
+	(*<code><mode>_1): Macroize insn from *{ior,xor}<mode>_1 using
+	any_or code iterator.
+	(*<code><mode>_2): Ditto from *{ior,xor}<mode>_2.
+	(*<code><mode>_3): Ditto from *{ior,xor}<mode>_3.
+	(ior and xor splitters): Ditto.
+	* config/i386/mmx.md: Updated for rename.
+	* config/i386/sse.md: Ditto.
+
+2009-12-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (float<SSEMODEI24:mode><X87MODEF:mode>2):
+	Remove quotes around condition logic code.
+
+2009-12-06  Richard Henderson  <rth@redhat.com>
+
+	PR debug/42234
+	* tree-ssa-dom.c (degenerate_phi_result): Check for NULL phi
+	argument earlier.
+
+2009-12-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* doc/install.texi: Document MPC is required.
+
+2009-12-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (g): Add HImode and QImode.
+	(general_szext_operand): New mode attribute.
+	(*test<mode>_1): Macroize insn from *test{qi,hi,si}_1 using
+	SWI124 mode iterator.
+	(and<mode>3): Macroize expander from and{qi,hi,si,di}3 using
+	SWIM mode iterator.
+	(*and<mode>_2): Macroize insn from *and{qi,hi,si}_2 using
+	SWI124 mode iterator.
+	(ior<mode>3): Macroize expander from ior{qi,hi,si,di}3 using
+	SWIM mode iterator.
+	(*ior<mode>_1): Macroize insn from *ior{hi,si,di}_1 using
+	SWI248 mode iterator.
+	(*ior<mode>_2): Macroize insn from *ior{qi,hi,si,di}_2 using
+	SWI mode iterator.
+	(*ior<mode>_3): Macroize insn from *ior{qi,hi,si,di}_3 using
+	SWI mode iterator.
+	(xor<mode>3): Macroize expander from xor{qi,hi,si,di}3 using
+	SWIM mode iterator.
+	(*xor<mode>_1): Macroize insn from *xor{hi,si,di}_1 using
+	SWI248 mode iterator.
+	(*xor<mode>_2): Macroize insn from *xor{qi,hi,si,di}_2 using
+	SWI mode iterator.
+	(*xor<mode>_3): Macroize insn from *xor{qi,hi,si,di}_3 using
+	SWI mode iterator.
+
+2009-12-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/i386.c (TARGET_DEFAULT_TARGET_FLAGS): Add
+	MASK_FUSED_MADD.
+	* config/i386/i386.h (CC1_CPU_SPEC_1): Remove
+	"'-mfused-madd' was removed".
+	* config/i386/i386.opt (mfused-madd): New.
+	* config/i386/sse.md: Add TARGET_FUSED_MADD to FMA4 insns.
+	* doc/invoke.texi (-mfused-madd, -mno-fused-madd): Document.
+
+2009-12-05  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa64-hpux.h (LIB_SPEC): Handle -rdynamic.
+	* pa-hpux10.h (LIB_SPEC): Likewise.
+	* pa-hpux11.h (LIB_SPEC): Likewise.
+
+	PR ada/41912
+	* pa/linux-unwind.h (pa32_fallback_frame_state): Set fs->signal_frame
+	for signal frames.
+	* pa/hpux-unwind.h (pa32_fallback_frame_state): Likewise.
+
+2009-12-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2009-12-05  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm/thumb2.md (thumb2_mulsi_short_compare0): Use a low-register
+	for the scratch.
+
+2009-12-04  David Daney  <ddaney@caviumnetworks.com>
+
+	PR rtl-optimization/42164
+	* combine.c (combine_simplify_rtx): Handle truncation of integer
+	constants.
+
+2009-12-04  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer-out.c (pack_ts_decl_common_value_fields):
+	Revert previous change.
+	(lto_output_ts_decl_common_tree_pointers): Stream DECL_VALUE_EXPR.
+	* lto-streamer-in.c (lto_input_ts_decl_common_tree_pointers):
+	Likewise.
+
+2009-12-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Handle
+	BUILT_IN_MALLOC.
+	(call_may_clobber_ref_p_1): Likewise.
+
+2009-12-04  Matthias Klose  <doko@ubuntu.com>
+	    John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/40134
+	* config.gcc (hppa*-*-linux*): Use config/t-slibgcc-libgcc.
+	* config/pa/pa-linux.h (LIB_SPEC): Remove.
+
+2009-12-03  Sebastian Pop  <sebastian.pop@amd.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386-protos.h (ix86_fma4_valid_op_p): Remove.
+	* config/i386/i386.c (ix86_fma4_valid_op_p): Remove.
+	* config/i386/i386.md: Do not use ix86_fma4_valid_op_p.
+	* config/i386/sse.md (fma4_*): Remove alternative with operand 1
+	matching a memory access.  Do not use ix86_fma4_valid_op_p.
+	(xop_*): Same.
+	Do not use ix86_fma4_valid_op_p in FMA4 and XOP splitters.
+
+2009-12-03  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (ix86_fixup_binary_operands): For FMA4, force
+	all operands into registers.
+
+2009-12-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/i386.c (ix86_expand_fma4_multiple_memory): Remove unused
+	parameter.
+	* config/i386/i386-protos.h (ix86_expand_fma4_multiple_memory): Same.
+	* config/i386/sse.md: Same.
+
+2009-12-03  Richard Guenther  <rguenther@suse.de>
+
+	* cgraphunit.c (assemble_thunk): Use DECL_ASSEMBLER_NAME
+	instead of DECL_NAME for the entry point.
+
+2009-12-03  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm/linux-atomic.c (SYNC_LOCK_RELEASE): Place memory barrier
+	before the lock release.
+
+2009-12-03  Michael Matz  <matz@suse.de>
+
+	PR middle-end/38474
+	* cfgexpand.c (struct stack_var): Add conflicts member.
+	(stack_vars_conflict, stack_vars_conflict_alloc,
+	n_stack_vars_conflict): Remove.
+	(add_stack_var): Initialize conflicts member.
+	(triangular_index, resize_stack_vars_conflict): Remove.
+	(add_stack_var_conflict, stack_var_conflict_p): Rewrite in
+	terms of new member.
+	(union_stack_vars): Only run over the conflicts.
+	(partition_stack_vars): Remove special case.
+	(expand_used_vars_for_block): Don't call resize_stack_vars_conflict,
+	don't create self-conflicts.
+	(account_used_vars_for_block): Don't create any conflicts.
+	(fini_vars_expansion): Free bitmaps, don't free or clear removed
+	globals.
+
+2009-12-03  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	PR middle-end/42202
+	* regrename.c (live_in_chains): New variable.
+	(verify_reg_tracked): New static function.
+	(scan_rtx_reg): Update live_in_chains.
+	(scan_rtx): Only promote sets in COND_EXEC to OP_INOUT if
+	we're already tracking the reg.
+	(build_def_use): Likewise.  Initialize live_in_chains.
+
+2009-12-03  Ken Werner  <ken.werner@de.ibm.com>
+
+	* config/spu/spu-elf.h (STARTFILE_SPEC): Add support for gprof
+	startup files.
+	* config/spu/spu-protos.h (spu_function_profiler): Add prototype.
+	* config/spu/spu.c (spu_function_profiler): New function.
+	* config/spu/spu.h (FUNCTION_PROFILER): Invoke
+	spu_function_profiler.
+	(NO_PROFILE_COUNTERS): Define.
+	(PROFILE_BEFORE_PROLOGUE): Likewise.
+
+2009-12-03  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* ggc-page.c (struct free_object): Pull definition out ...
+	(struct globals): .. from here.
+
+2009-12-02  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (div_if_zero_remainder): Honor that sizetypes
+	are sign-extending.  Simplify.
+
+2009-12-02  Richard Henderson  <rth@redhat.com>
+
+	PR tree-opt/42215
+	* tree-loop-distribution.c (build_size_arg_loc): Tidy.
+	(generate_memset_zero): Convert to sizetype properly.  Tidy.
+
+2009-12-02  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer-out.c (pack_ts_decl_common_value_fields):
+	Do not pretend we have value exprs.
+
+2009-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41491
+	* fold-const.c (try_move_mult_to_index): Do not leak
+	domain types into the IL.
+
+2009-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42088
+	* tree.c (free_lang_data): Disable if not using LTO.
+
+2009-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42229
+	* cfgloopmanip.c (remove_path): Avoid cancelling loops twice.
+
+2009-12-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR middle-end/42224
+	* tree.h (int_or_pointer_precision): Remove.
+	* tree.c (int_or_pointer_precision): Remove.
+	(integer_pow2p): Use TYPE_PRECISION instead.
+	(tree_log2): Likewise.
+	(tree_floor_log2): Likewise.
+	(signed_or_unsigned_type_for): Likewise.
+	* fold-const.c (fit_double_type): Likewise.
+	* varasm.c (initializer_constant_valid_p): Likewise.
+
+2009-12-02  Ira Rosen  <irar@il.ibm.com>
+
+	* doc/invoke.texi (-fdump-tree-slp): Document.
+	(-ftree-vectorizer-verbose): Update.
+	(-ftree-slp-vectorize): Document.
+
+2009-12-02  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.c (rx_conditional_register_usage): Do not warn if
+	no fixed registers are available for interrupt handlers.  Do not
+	fix normal registers.
+	(MUST_SAVE_ACC_REGISTER): New macro.
+	(rx_get_stack_layout): Create a stack frame for fast interrupt
+	handlers, if necessary.  Push extra registers if needed in order
+	to save the accumulator.
+	(rx_expand_prologue): Create a stack frame for fast interrupt
+	handlers, if necessary.
+	(rx_expand_builtin_mvfc): Handle the case where there is no target.
+
+2009-12-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/abmintrin.h (__lzcnt16): New.
+	(__lzcnt): New.
+	(__lzcnt64): New.
+	* config/i386/i386-builtin-types.def (UINT16_FTYPE_UINT16): New.
+	* config/i386/i386.c (IX86_BUILTIN_CLZS): New.
+	(bdesc_special_args): Add __builtin_clzs.
+	(ix86_expand_args_builtin): Handle UINT16_FTYPE_UINT16.
+
+2009-12-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/abmintrin.h (_mm_popcnt_u32): New.
+	(_mm_popcnt_u64): New.
+
+2009-12-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/abmintrin.h: New.
+	* config/i386/i386-c.c (ix86_target_macros_internal): Defined __ABM__.
+	* config/i386/x86intrin.h: Include abmintrin.h when __ABM__ is defined.
+
+2009-12-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (SWI124): Rename from CRC32MODE.
+	(crc32modesuffix): Remove.
+	(crc32modeconstraint): Ditto.
+	(sse4_2_crc32<mode>): Update for renamed mode iterator.  Use
+	imodesuffix instead of crc32modesuffix and <r>m instead of
+	crc32modeconstraint.
+
+2009-12-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42234
+	* tree-cfgcleanup.c (cleanup_omp_return): Don't ICE if control_bb
+	contains no statements.
+
+2009-12-01  Grigori Fursin  <grigori.fursin@inria.fr>
+	    Joern Rennecke  <amylaar@spamcop.net>
+
+	* cgraphunit.c (plugin.h): Include.
+	(ipa_passes): Invoke PLUGIN_ALL_IPA_PASSES_START /
+	PLUGIN_ALL_IPA_PASSES_END at start / end of processing.
+	* gcc-plugin.h (highlev-plugin-common.h, hashtab.h): Include.
+	(enum plugin_event): Define by including plugin.def.
+	Last enumerator is now called PLUGIN_EVENT_FIRST_DYNAMIC.
+	(plugin_event_name): Change type to const char **.
+	(get_event_last, get_named_event_id, unregister_callback): Declare.
+	(register_callback): Change type of event argument to int.
+	(highlev-plugin-common.h): New file.
+	* Makefile.in (GCC_PLUGIN_H): Add highlev-plugin-common.h and
+	$(HASHTAB_H)
+	(tree-optimize.o passes.o): Depend on $(PLUGIN_H).
+	(PLUGIN_HEADERS): Add opts.h, $(PARAMS_H) and plugin.def.
+	(s-header-vars): New rule.
+	(install-plugin): Depend on s-header-vars.  Install b-header-vars.
+	* params.c (get_num_compiler_params): New function.
+	* params.h (get_num_compiler_params): Declare.
+	* passes.c (plugin.h): Include.
+	(make_pass_instance): Invoke PLUGIN_NEW_PASS.
+	(do_per_function_toporder, pass_init_dump_file): No longer static.
+	(pass_fini_dump_file): Likewise.
+	(execute_one_pass): Likewise.  Invoke PLUGIN_OVERRIDE_GATE and
+	PLUGIN_PASS_EXECUTION.
+	(execute_ipa_pass_list): Invoke PLUGIN_EARLY_GIMPLE_PASSES_START and
+	PLUGIN_EARLY_GIMPLE_PASSES_END.
+	* plugin.c (plugin_event_name_init): New array, defined by
+	including plugin.def.
+	(FMT_FOR_PLUGIN_EVENT): Update.
+	(plugin_event_name): Change type to const char ** and initialize
+	to plugin_event_name_init.
+	(event_tab, event_last, event_horizon): New variable.
+	(get_event_last): New function.
+	(plugin_callbacks_init): New array.
+	(plugin_callbacks: Change type to struct callback_info **.
+	Initialize to plugin_callbacks_init.
+	(htab_event_eq, get_named_event_id, unregister_callback): New function.
+	(invoke_plugin_va_callbacks): Likewise.
+	(register_callback): Change type of event argument to int.
+	Handle new events.  Allow dynamic events.
+	(invoke_plugin_callbacks): Likewise.  Return success status.
+	(plugins_active_p): Allow dynamic callbacks.
+	* plugin.def: New file.
+	* plugin.h (invoke_plugin_callbacks): Update prototype.
+	(invoke_plugin_va_callbacks): Declare.
+	* tree-optimize.c (plugin.h): Include.
+	(tree_rest_of_compilation): Invoke PLUGIN_ALL_PASSES_START and
+	PLUGIN_ALL_PASSES_END.
+	* tree-pass.h (execute_one_pass, pass_init_dump_file): Declare.
+	(pass_fini_dump_file, do_per_function_toporder): Likewise.
+	* doc/plugin.texi: Document new event types.
+
+2009-12-01  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42237
+	* tree-sra.c (sra_ipa_modify_assign): Split gimple_reg_type assignments
+	in between references into two.
+
+2009-12-01  Richard Guenther  <rguenther@suse.de>
+
+	* tree-inline.c (copy_tree_body_r): Do not set TREE_BLOCK
+	to the block of the call when remapping a type.
+
+2009-12-01  Martin Jambor  <mjambor@suse.cz>
+
+	* cgraph.h (struct cgraph_edge): Reorder fields.  Make loop_nest
+	unsigned short int.
+	* ipa-prop.h (struct ipa_param_call_note): Likewise.
+	* ipa-prop.c (ipa_note_param_call): Initialize note->loop_nest.
+
+2009-12-01  Richard Guenther  <rguenther@suse.de>
+
+	* final.c (rest_of_clean_state): If -fcompare-debug is
+	given dump final insns without UIDs.
+	* tree-ssa-live.c (remove_unused_scope_block_p): Remove
+	after_inlining checks.
+
+2009-11-30  Chao-ying Fu  <fu@mips.com>
+
+	* config/mips/mips-dsp.md (mips_lhx_<mode>): Use sign_extend.
+
+2009-11-30  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* configure.ac (USE_CYGWIN_LIBSTDCXX_WRAPPERS): Define to reflect
+	status of AC_CHECK_FUNC for Cygwin DLL libstdc++ support wrappers.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+
+	* config/i386/cygwin.h (CXX_WRAP_SPEC_LIST): Define list of --wrap
+	options for Cygwin DLL libstdc++ support wrappers.
+	(CXX_WRAP_SPEC_OPT): Define spec to use wrappers or not by default
+	according to defined value of USE_CYGWIN_LIBSTDCXX_WRAPPERS.
+	(CXX_WRAP_SPEC): Define entire wrapper spec in or out according to
+	whether USE_CYGWIN_LIBSTDCXX_WRAPPERS is even defined or not.
+	(LINK_SPEC): Include CXX_WRAP_SPEC.
+	* gcc/config/i386/winnt.c (wrapper_strcmp): New qsort helper function.
+	(i386_find_on_wrapper_list): Check if a function is found on the list
+	of libstdc++ wrapper options.
+	(i386_pe_file_end): If we are importing a wrapped function, also emit
+	an external declaration for the real version.
+	* config/i386/cygming.opt (muse-libstdc-wrappers): New option for
+	Cygwin targets. Update copyright year.
+
+2009-11-30  Steve Ellcey  <sje@cup.hp.com>
+	    Jakub Jelinek <jakub@redhat.com>
+
+	* function.c (instantiate_virtual_regs_in_insn): Copy to new reg
+	before forcing mode.
+
+2009-11-30  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/sh/sh.c (sh_promote_prototypes): Make static.
+	(sh_function_value, sh_libcall_value, sh_function_value_regno_p): New
+	functions.
+	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE): Declare.
+	* config/sh/sh.h (FUNCTION_VALUE_REGNO_P): Redefine, use
+	sh_function_value_regno_p.
+	(FUNCTION_VALUE, LIBCALL_VALUE): Remove.
+	* config/sh/sh-protos.h (sh_function_value_regno_p): Declare.
+	(sh_promote_prototypes) : Remove.
+
+2009-11-30  Julian Brown  <julian@codesourcery.com>
+
+	* config/arm/arm.h (PREFERRED_RELOAD_CLASS): Don't restrict Thumb-2
+	reloads to LO_REGS.
+
+2009-11-30  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (ix86_vec_interleave_v2df_operator_ok): New.
+	(bdesc_special_args): Update insn codes.
+	(avx_vpermilp_parallel): Correct range check.
+	(ix86_rtx_costs): Handle vector permutation rtx codes.
+	(struct expand_vec_perm_d): Move earlier.
+	(get_mode_wider_vector): New.
+	(expand_vec_perm_broadcast_1): New.
+	(ix86_expand_vector_init_duplicate): Use it.  Tidy AVX modes.
+	(expand_vec_perm_broadcast): New.
+	(ix86_expand_vec_perm_builtin_1): Use it.
+	* config/i386/i386-protos.h: Update.
+	* config/i386/predicates.md (avx_vbroadcast_operand): New.
+	* config/i386/sse.md (AVX256MODE24P): New.
+	(ssescalarmodesuffix2s): New.
+	(avxhalfvecmode, avxscalarmode): Fill out to all modes.
+	(avxmodesuffixf2c): Add V8SI, V4DI.
+	(vec_dupv4sf): New expander.
+	(*vec_dupv4sf_avx): Add vbroadcastss alternative.
+	(*vec_set<mode>_0_avx, **vec_set<mode>_0_sse4_1): Macro-ize for
+	V4SF and V4SI.  Move C alternatives to front.  Add insertps and
+	pinsrd alternatives.
+	(*vec_set<mode>_0_sse2): Split out from ...
+	(vec_set<mode>_0): Macro-ize for V4SF and V4SI.
+	(vec_interleave_highv2df, vec_interleave_lowv2df): Require register
+	destination; use ix86_vec_interleave_v2df_operator_ok, instead of
+	ix86_fixup_binary_operands.
+	(*avx_interleave_highv2df, avx_interleave_lowv2df): Add movddup.
+	(*sse3_interleave_highv2df, sse3_interleave_lowv2df): New.
+	(*avx_movddup, *sse3_movddup): Remove.  New splitter from
+	vec_select form to vec_duplicate form.
+	(*sse2_interleave_highv2df, sse2_interleave_lowv2df): Use
+	ix86_vec_interleave_v2df_operator_ok.
+	(avx_movddup256, avx_unpcklpd256): Change to expanders, merge into ...
+	(*avx_unpcklpd256): ... here.
+	(*vec_dupv4si_avx): New.
+	(*vec_dupv2di_avx): Add movddup alternative.
+	(*vec_dupv2di_sse3): New.
+	(vec_dup<AVX256MODE24P>): Replace avx_vbroadcasts<AVXMODEF4P> and
+	avx_vbroadcastss256; represent with vec_duplicate instead of
+	nested vec_concat operations.
+	(avx_vbroadcastf128_<mode>): Rename from
+	avx_vbroadcastf128_p<avxmodesuffixf2c>256.
+	(*avx_vperm_broadcast_v4sf): New.
+	(*avx_vperm_broadcast_<AVX256MODEF2P>): New.
+
+2009-11-30  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/42196
+	* tree-sra.c (struct access): New field grp_different_types.
+	(dump_access): Dump grp_different_types.
+	(compare_access_positions): Prefer scalars and vectors over other
+	scalar types.
+	(sort_and_splice_var_accesses): Set grp_different_types if appropriate.
+	(sra_modify_expr): Use the original also when dealing with a complex
+	 or vector group accessed as multiple types.
+
+2009-11-30  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (avx_vperm2f128_parallel): New.
+	* config/i386/i386-protos.h: Declare it.
+	* config/i386/predicates.md (avx_vperm2f128_v8sf_operand,
+	avx_vperm2f128_v8si_operand, avx_vperm2f128_v4df_operand): New.
+	* config/i386/sse.md (avx_vperm2f128<mode>3): Change to expander.
+	(*avx_vperm2f128<mode>_full): Renamed from avx_vperm2f128<mode>3.
+	(*avx_vperm2f128<mode>_nozero): New.
+
+2009-11-30  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386-builtin-types.def (V4DF_FTYPE_V4DF_V4DF_V4DI): New.
+	(V8SF_FTYPE_V8SF_V8SF_V8SI): New.
+	* config/i386/i386.c (ix86_vectorize_builtin_vec_perm): Support
+	V4DF and V8SF for AVX; relax constraint on V4SF to SSE1 from SSE2.
+	(IX86_BUILTIN_VEC_PERM_V4DF, IX86_BUILTIN_VEC_PERM_V8SF): New.
+	(bdesc_args): Add them.
+	(ix86_expand_builtin): Expand them.
+	(expand_vec_perm_pshufb2): Only operate on 16-byte vectors.
+
+2009-11-30  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/42206
+	* ipa-prop.c (ipa_write_node_info): Initialize note_count to zero.
+
 2009-11-30  Jakub Jelinek  <jakub@redhat.com>
 
 	* ipa-reference.c (propagate): Only dump bitmaps if computed.
@@ -126,7 +673,8 @@
 	(cgraph_expand_function): Handle thunks.
 	(thunk_adjust): New.
 	(init_lowered_empty_function): New.
-	* cp-objcp-common.h (LANG_HOOKS_CALLGRAPH_EMIT_ASSOCIATED_THUNKS): Remove.
+	* cp-objcp-common.h (LANG_HOOKS_CALLGRAPH_EMIT_ASSOCIATED_THUNKS):
+	Remove.
 	* lto-cgraph.c (lto_output_node): Stream thunk info.
 	(input_node): Likewise.
 	* langhooks.h (lang_hooks_for_callgraph): Remove emit_associated_thunks.
@@ -240,7 +788,7 @@
 
 2009-11-28  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
 
-	* config/avr/avr.h (ASM_OUTPUT_EXTERNAL): Add. 
+	* config/avr/avr.h (ASM_OUTPUT_EXTERNAL): Add.
 
 2009-11-28  David Binderman  <dcb314@hotmail.com>
 
@@ -260,9 +808,8 @@
 
 2009-11-27  Nick Clifton  <nickc@redhat.com>
 
-	* longlong.h (count_leading_zeros): Define macro for stormy16
-	target.
-	(COUNT_LEADING_ZEROS_0): Likewise.	
+	* longlong.h (count_leading_zeros): Define macro for stormy16 target.
+	(COUNT_LEADING_ZEROS_0): Likewise.
 	* config/stormy16/stormy16-lib2.c: Arrange for separate
 	compilation of each function.
 	(__ffshi2): New function.
@@ -314,8 +861,7 @@
 	[SUPPORTS_WEAK && GTHREAD_USE_WEAK] (__gthread_active_p): Use
 	__extension__ to allow cast from function pointer to object
 	pointer in C++.
-	* doc/install.texi (--enable-threads): Clarify use of Solaris
-	threads.
+	* doc/install.texi (--enable-threads): Clarify use of Solaris threads.
 
 2009-11-27  Steven Bosscher  <steven@gcc.gnu.org>
 
@@ -354,8 +900,7 @@
 
 2009-11-27  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
 
-	* emit-rtl.c (next_active_insn, prev_active_insn): Correct
-	comment.
+	* emit-rtl.c (next_active_insn, prev_active_insn): Correct comment.
 
 2009-11-27  Jakub Jelinek  <jakub@redhat.com>
 
@@ -562,7 +1107,7 @@
 	(struct builtin_description) <CODE_FOR_avx_vzeroupper_rex64>:
 	Remove initailization.
 	<CODE_FOR_avx_vzeroupper>: Unconditionally initialize here.
-	
+
 2009-11-25  Paul Brook  <paul@codesourcery.com>
 
 	* config/arm/arm.md (consttable_4): Handle (high ...).

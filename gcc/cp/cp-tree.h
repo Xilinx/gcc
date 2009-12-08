@@ -415,6 +415,19 @@ typedef enum composite_pointer_operation
   CPO_CONDITIONAL_EXPR
 } composite_pointer_operation;
 
+/* The various readonly error string used by readonly_error.  */
+typedef enum readonly_error_kind
+{
+  /* assignment */
+  REK_ASSIGNMENT,
+  /* assignment (via 'asm' output) */
+  REK_ASSIGNMENT_ASM,
+  /* increment */
+  REK_INCREMENT,
+  /* decrement */
+  REK_DECREMENT
+} readonly_error_kind;
+
 /* Macros for access to language-specific slots in an identifier.  */
 
 #define IDENTIFIER_NAMESPACE_BINDINGS(NODE)	\
@@ -2038,6 +2051,10 @@ struct GTY(()) lang_decl {
 
 /* Discriminator for name mangling.  */
 #define DECL_DISCRIMINATOR(NODE) (LANG_DECL_U2_CHECK (NODE, 1)->discriminator)
+
+/* True iff DECL_DISCRIMINATOR is set for a DECL_DISCRIMINATOR_P decl.  */
+#define DECL_DISCRIMINATOR_SET_P(NODE) \
+  (DECL_LANG_SPECIFIC (NODE) && DECL_LANG_SPECIFIC (NODE)->u.base.u2sel == 1)
 
 /* The index of a user-declared parameter in its function, starting at 1.
    All artificial parameters will have index 0.  */
@@ -5360,7 +5377,7 @@ extern void cxx_incomplete_type_error		(const_tree, const_tree);
   (cxx_incomplete_type_diagnostic ((V), (T), DK_ERROR))
 extern tree error_not_base_type			(tree, tree);
 extern tree binfo_or_else			(tree, tree);
-extern void readonly_error			(tree, const char *);
+extern void readonly_error			(tree, readonly_error_kind);
 extern void complete_type_check_abstract	(tree);
 extern int abstract_virtuals_error		(tree, tree);
 

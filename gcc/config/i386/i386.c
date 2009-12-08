@@ -13384,6 +13384,16 @@ ix86_fixup_binary_operands (enum rtx_code code, enum machine_mode mode,
   if (MEM_P (src1) && !rtx_equal_p (dst, src1))
     src1 = force_reg (mode, src1);
 
+  /* In order for the multiply-add patterns to get matched, we need
+     to aid combine by forcing all operands into registers to start.  */
+  if (optimize && TARGET_FMA4)
+    {
+      if (MEM_P (src2))
+	src2 = force_reg (GET_MODE (src2), src2);
+      else if (MEM_P (src1))
+	src1 = force_reg (GET_MODE (src1), src1);
+    }
+
   operands[1] = src1;
   operands[2] = src2;
   return dst;
@@ -13847,6 +13857,19 @@ ix86_unary_operator_ok (enum rtx_code code ATTRIBUTE_UNUSED,
       && ! rtx_equal_p (operands[0], operands[1]))
     return FALSE;
   return TRUE;
+}
+
+/* Return TRUE if the operands to a vec_interleave_{high,low}v2df
+   are ok, keeping in mind the possible movddup alternative.  */
+
+bool
+ix86_vec_interleave_v2df_operator_ok (rtx operands[3], bool high)
+{
+  if (MEM_P (operands[0]))
+    return rtx_equal_p (operands[0], operands[1 + high]);
+  if (MEM_P (operands[1]) && MEM_P (operands[2]))
+    return TARGET_SSE3 && rtx_equal_p (operands[1], operands[2]);
+  return true;
 }
 
 /* Post-reload splitter for converting an SF or DFmode value in an
@@ -21047,6 +21070,8 @@ enum ix86_builtins
   IX86_BUILTIN_VEC_PERM_V4SI_U,
   IX86_BUILTIN_VEC_PERM_V8HI_U,
   IX86_BUILTIN_VEC_PERM_V16QI_U,
+  IX86_BUILTIN_VEC_PERM_V4DF,
+  IX86_BUILTIN_VEC_PERM_V8SF,
 
   /* FMA4 and XOP instructions.  */
   IX86_BUILTIN_VFMADDSS,
@@ -21238,6 +21263,8 @@ enum ix86_builtins
   IX86_BUILTIN_LWPINS16,
   IX86_BUILTIN_LWPINS32,
   IX86_BUILTIN_LWPINS64,
+
+  IX86_BUILTIN_CLZS,
 
   IX86_BUILTIN_MAX
 };
@@ -21478,11 +21505,11 @@ static const struct builtin_description bdesc_special_args[] =
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vzeroall, "__builtin_ia32_vzeroall", IX86_BUILTIN_VZEROALL, UNKNOWN, (int) VOID_FTYPE_VOID },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vzeroupper, "__builtin_ia32_vzeroupper", IX86_BUILTIN_VZEROUPPER, UNKNOWN, (int) VOID_FTYPE_VOID },
 
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vbroadcastss, "__builtin_ia32_vbroadcastss", IX86_BUILTIN_VBROADCASTSS, UNKNOWN, (int) V4SF_FTYPE_PCFLOAT },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vbroadcastsd256, "__builtin_ia32_vbroadcastsd256", IX86_BUILTIN_VBROADCASTSD256, UNKNOWN, (int) V4DF_FTYPE_PCDOUBLE },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vbroadcastss256, "__builtin_ia32_vbroadcastss256", IX86_BUILTIN_VBROADCASTSS256, UNKNOWN, (int) V8SF_FTYPE_PCFLOAT },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vbroadcastf128_pd256, "__builtin_ia32_vbroadcastf128_pd256", IX86_BUILTIN_VBROADCASTPD256, UNKNOWN, (int) V4DF_FTYPE_PCV2DF },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vbroadcastf128_ps256, "__builtin_ia32_vbroadcastf128_ps256", IX86_BUILTIN_VBROADCASTPS256, UNKNOWN, (int) V8SF_FTYPE_PCV4SF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_vec_dupv4sf, "__builtin_ia32_vbroadcastss", IX86_BUILTIN_VBROADCASTSS, UNKNOWN, (int) V4SF_FTYPE_PCFLOAT },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_vec_dupv4df, "__builtin_ia32_vbroadcastsd256", IX86_BUILTIN_VBROADCASTSD256, UNKNOWN, (int) V4DF_FTYPE_PCDOUBLE },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_vec_dupv8sf, "__builtin_ia32_vbroadcastss256", IX86_BUILTIN_VBROADCASTSS256, UNKNOWN, (int) V8SF_FTYPE_PCFLOAT },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vbroadcastf128_v4df, "__builtin_ia32_vbroadcastf128_pd256", IX86_BUILTIN_VBROADCASTPD256, UNKNOWN, (int) V4DF_FTYPE_PCV2DF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vbroadcastf128_v8sf, "__builtin_ia32_vbroadcastf128_ps256", IX86_BUILTIN_VBROADCASTPS256, UNKNOWN, (int) V8SF_FTYPE_PCV4SF },
 
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movupd256, "__builtin_ia32_loadupd256", IX86_BUILTIN_LOADUPD256, UNKNOWN, (int) V4DF_FTYPE_PCDOUBLE },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movups256, "__builtin_ia32_loadups256", IX86_BUILTIN_LOADUPS256, UNKNOWN, (int) V8SF_FTYPE_PCFLOAT },
@@ -21519,6 +21546,8 @@ static const struct builtin_description bdesc_special_args[] =
   { OPTION_MASK_ISA_LWP, CODE_FOR_lwp_lwpinshi3,   "__builtin_ia32_lwpins16", IX86_BUILTIN_LWPINS16,  UNKNOWN,     (int) UCHAR_FTYPE_USHORT_UINT_USHORT },
   { OPTION_MASK_ISA_LWP, CODE_FOR_lwp_lwpinssi3,   "__builtin_ia32_lwpins32", IX86_BUILTIN_LWPINS64,  UNKNOWN,     (int) UCHAR_FTYPE_UINT_UINT_UINT },
   { OPTION_MASK_ISA_LWP, CODE_FOR_lwp_lwpinsdi3,   "__builtin_ia32_lwpins64", IX86_BUILTIN_LWPINS64,  UNKNOWN,     (int) UCHAR_FTYPE_UINT64_UINT_UINT },
+
+  { OPTION_MASK_ISA_ABM, CODE_FOR_clzhi2_abm,   "__builtin_clzs",   IX86_BUILTIN_CLZS,    UNKNOWN,     (int) UINT16_FTYPE_UINT16 },
 
 };
 
@@ -21722,7 +21751,7 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_shufpd, "__builtin_ia32_shufpd", IX86_BUILTIN_SHUFPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF_INT },
 
   { OPTION_MASK_ISA_SSE2, CODE_FOR_nothing, "__builtin_ia32_vec_perm_v2df", IX86_BUILTIN_VEC_PERM_V2DF, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF_V2DI },
-  { OPTION_MASK_ISA_SSE2, CODE_FOR_nothing, "__builtin_ia32_vec_perm_v4sf", IX86_BUILTIN_VEC_PERM_V4SF, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF_V4SI },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_nothing, "__builtin_ia32_vec_perm_v4sf", IX86_BUILTIN_VEC_PERM_V4SF, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF_V4SI },
   { OPTION_MASK_ISA_SSE2, CODE_FOR_nothing, "__builtin_ia32_vec_perm_v2di", IX86_BUILTIN_VEC_PERM_V2DI, UNKNOWN, (int) V2DI_FTYPE_V2DI_V2DI_V2DI },
   { OPTION_MASK_ISA_SSE2, CODE_FOR_nothing, "__builtin_ia32_vec_perm_v4si", IX86_BUILTIN_VEC_PERM_V4SI, UNKNOWN, (int) V4SI_FTYPE_V4SI_V4SI_V4SI },
   { OPTION_MASK_ISA_SSE2, CODE_FOR_nothing, "__builtin_ia32_vec_perm_v8hi", IX86_BUILTIN_VEC_PERM_V8HI, UNKNOWN, (int) V8HI_FTYPE_V8HI_V8HI_V8HI },
@@ -21731,6 +21760,8 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_SSE2, CODE_FOR_nothing, "__builtin_ia32_vec_perm_v4si_u", IX86_BUILTIN_VEC_PERM_V4SI_U, UNKNOWN, (int) V4USI_FTYPE_V4USI_V4USI_V4USI },
   { OPTION_MASK_ISA_SSE2, CODE_FOR_nothing, "__builtin_ia32_vec_perm_v8hi_u", IX86_BUILTIN_VEC_PERM_V8HI_U, UNKNOWN, (int) V8UHI_FTYPE_V8UHI_V8UHI_V8UHI },
   { OPTION_MASK_ISA_SSE2, CODE_FOR_nothing, "__builtin_ia32_vec_perm_v16qi_u", IX86_BUILTIN_VEC_PERM_V16QI_U, UNKNOWN, (int) V16UQI_FTYPE_V16UQI_V16UQI_V16UQI },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin_ia32_vec_perm_v4df", IX86_BUILTIN_VEC_PERM_V4DF, UNKNOWN, (int) V4DF_FTYPE_V4DF_V4DF_V4DI },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin_ia32_vec_perm_v8sf", IX86_BUILTIN_VEC_PERM_V8SF, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SF_V8SI },
 
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_movmskpd, "__builtin_ia32_movmskpd", IX86_BUILTIN_MOVMSKPD, UNKNOWN, (int) INT_FTYPE_V2DF  },
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_pmovmskb, "__builtin_ia32_pmovmskb128", IX86_BUILTIN_PMOVMSKB128, UNKNOWN, (int) INT_FTYPE_V16QI },
@@ -23342,6 +23373,7 @@ ix86_expand_args_builtin (const struct builtin_description *d,
     case FLOAT_FTYPE_FLOAT:
     case INT_FTYPE_INT:
     case UINT64_FTYPE_INT:
+    case UINT16_FTYPE_UINT16:
     case INT64_FTYPE_INT64:
     case INT64_FTYPE_V4SF:
     case INT64_FTYPE_V2DF:
@@ -24151,6 +24183,8 @@ ix86_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
     case IX86_BUILTIN_VEC_PERM_V4SI_U:
     case IX86_BUILTIN_VEC_PERM_V8HI_U:
     case IX86_BUILTIN_VEC_PERM_V16QI_U:
+    case IX86_BUILTIN_VEC_PERM_V4DF:
+    case IX86_BUILTIN_VEC_PERM_V8SF:
       return ix86_expand_vec_perm_builtin (exp);
 
     case IX86_BUILTIN_INFQ:
@@ -24591,7 +24625,7 @@ avx_vpermilp_parallel (rtx par, enum machine_mode mode)
       if (!CONST_INT_P (er))
 	return 0;
       ei = INTVAL (er);
-      if (ei >= nelt)
+      if (ei >= 2 * nelt)
 	return 0;
       ipar[i] = ei;
     }
@@ -24635,6 +24669,58 @@ avx_vpermilp_parallel (rtx par, enum machine_mode mode)
 
     default:
       gcc_unreachable ();
+    }
+
+  /* Make sure success has a non-zero value by adding one.  */
+  return mask + 1;
+}
+
+/* Helper for avx_vperm2f128_v4df_operand et al.  This is also used by
+   the expansion functions to turn the parallel back into a mask.
+   The return value is 0 for no match and the imm8+1 for a match.  */
+
+int
+avx_vperm2f128_parallel (rtx par, enum machine_mode mode)
+{
+  unsigned i, nelt = GET_MODE_NUNITS (mode), nelt2 = nelt / 2;
+  unsigned mask = 0;
+  unsigned char ipar[8];
+
+  if (XVECLEN (par, 0) != (int) nelt)
+    return 0;
+
+  /* Validate that all of the elements are constants, and not totally
+     out of range.  Copy the data into an integral array to make the
+     subsequent checks easier.  */
+  for (i = 0; i < nelt; ++i)
+    {
+      rtx er = XVECEXP (par, 0, i);
+      unsigned HOST_WIDE_INT ei;
+
+      if (!CONST_INT_P (er))
+	return 0;
+      ei = INTVAL (er);
+      if (ei >= 2 * nelt)
+	return 0;
+      ipar[i] = ei;
+    }
+
+  /* Validate that the halves of the permute are halves.  */
+  for (i = 0; i < nelt2 - 1; ++i)
+    if (ipar[i] + 1 != ipar[i + 1])
+      return 0;
+  for (i = nelt2; i < nelt - 1; ++i)
+    if (ipar[i] + 1 != ipar[i + 1])
+      return 0;
+
+  /* Reconstruct the mask.  */
+  for (i = 0; i < 2; ++i)
+    {
+      unsigned e = ipar[i * nelt2];
+      if (e % nelt2)
+	return 0;
+      e /= nelt2;
+      mask |= e << (i * 4);
     }
 
   /* Make sure success has a non-zero value by adding one.  */
@@ -25655,6 +25741,16 @@ ix86_rtx_costs (rtx x, int code, int outer_code_i, int *total, bool speed)
 	*total = 0;
       return false;
 
+    case VEC_SELECT:
+    case VEC_CONCAT:
+    case VEC_MERGE:
+    case VEC_DUPLICATE:
+      /* ??? Assume all of these vector manipulation patterns are
+	 recognizable.  In which case they all pretty much have the
+	 same cost.  */
+     *total = COSTS_N_INSNS (1);
+     return true;
+
     default:
       return false;
     }
@@ -26489,16 +26585,43 @@ x86_emit_floatuns (rtx operands[2])
   emit_label (donelab);
 }
 
+/* AVX does not support 32-byte integer vector operations,
+   thus the longest vector we are faced with is V16QImode.  */
+#define MAX_VECT_LEN	16
+
+struct expand_vec_perm_d
+{
+  rtx target, op0, op1;
+  unsigned char perm[MAX_VECT_LEN];
+  enum machine_mode vmode;
+  unsigned char nelt;
+  bool testing_p;
+};
+
+static bool expand_vec_perm_1 (struct expand_vec_perm_d *d);
+static bool expand_vec_perm_broadcast_1 (struct expand_vec_perm_d *d);
+
+/* Get a vector mode of the same size as the original but with elements
+   twice as wide.  This is only guaranteed to apply to integral vectors.  */
+
+static inline enum machine_mode
+get_mode_wider_vector (enum machine_mode o)
+{
+  /* ??? Rely on the ordering that genmodes.c gives to vectors.  */
+  enum machine_mode n = GET_MODE_WIDER_MODE (o);
+  gcc_assert (GET_MODE_NUNITS (o) == GET_MODE_NUNITS (n) * 2);
+  gcc_assert (GET_MODE_SIZE (o) == GET_MODE_SIZE (n));
+  return n;
+}
+
 /* A subroutine of ix86_expand_vector_init.  Store into TARGET a vector
    with all elements equal to VAR.  Return true if successful.  */
-/* ??? Call into the vec_perm support to implement the broadcast.  */
 
 static bool
 ix86_expand_vector_init_duplicate (bool mmx_ok, enum machine_mode mode,
 				   rtx target, rtx val)
 {
-  enum machine_mode hmode, smode, wsmode, wvmode;
-  rtx x;
+  bool ok;
 
   switch (mode)
     {
@@ -26508,13 +26631,28 @@ ix86_expand_vector_init_duplicate (bool mmx_ok, enum machine_mode mode,
 	return false;
       /* FALLTHRU */
 
+    case V4DFmode:
+    case V4DImode:
+    case V8SFmode:
+    case V8SImode:
     case V2DFmode:
     case V2DImode:
     case V4SFmode:
     case V4SImode:
-      val = force_reg (GET_MODE_INNER (mode), val);
-      x = gen_rtx_VEC_DUPLICATE (mode, val);
-      emit_insn (gen_rtx_SET (VOIDmode, target, x));
+      {
+	rtx insn, dup;
+
+	/* First attempt to recognize VAL as-is.  */
+	dup = gen_rtx_VEC_DUPLICATE (mode, val);
+	insn = emit_insn (gen_rtx_SET (VOIDmode, target, dup));
+	if (recog_memoized (insn) < 0)
+	  {
+	    /* If that fails, force VAL into a register.  */
+	    XEXP (dup, 0) = force_reg (GET_MODE_INNER (mode), val);
+	    ok = recog_memoized (insn) >= 0;
+	    gcc_assert (ok);
+	  }
+      }
       return true;
 
     case V4HImode:
@@ -26522,130 +26660,87 @@ ix86_expand_vector_init_duplicate (bool mmx_ok, enum machine_mode mode,
 	return false;
       if (TARGET_SSE || TARGET_3DNOW_A)
 	{
+	  rtx x;
+
 	  val = gen_lowpart (SImode, val);
 	  x = gen_rtx_TRUNCATE (HImode, val);
 	  x = gen_rtx_VEC_DUPLICATE (mode, x);
 	  emit_insn (gen_rtx_SET (VOIDmode, target, x));
 	  return true;
 	}
-      else
-	{
-	  smode = HImode;
-	  wsmode = SImode;
-	  wvmode = V2SImode;
-	  goto widen;
-	}
+      goto widen;
 
     case V8QImode:
       if (!mmx_ok)
 	return false;
-      smode = QImode;
-      wsmode = HImode;
-      wvmode = V4HImode;
       goto widen;
+
     case V8HImode:
       if (TARGET_SSE2)
 	{
+	  struct expand_vec_perm_d dperm;
 	  rtx tmp1, tmp2;
-	  /* Extend HImode to SImode using a paradoxical SUBREG.  */
+
+	permute:
+	  memset (&dperm, 0, sizeof (dperm));
+	  dperm.target = target;
+	  dperm.vmode = mode;
+	  dperm.nelt = GET_MODE_NUNITS (mode);
+	  dperm.op0 = dperm.op1 = gen_reg_rtx (mode);
+
+	  /* Extend to SImode using a paradoxical SUBREG.  */
 	  tmp1 = gen_reg_rtx (SImode);
 	  emit_move_insn (tmp1, gen_lowpart (SImode, val));
-	  /* Insert the SImode value as low element of V4SImode vector. */
-	  tmp2 = gen_reg_rtx (V4SImode);
-	  tmp1 = gen_rtx_VEC_MERGE (V4SImode,
-				    gen_rtx_VEC_DUPLICATE (V4SImode, tmp1),
-				    CONST0_RTX (V4SImode),
-				    const1_rtx);
-	  emit_insn (gen_rtx_SET (VOIDmode, tmp2, tmp1));
-	  /* Cast the V4SImode vector back to a V8HImode vector.  */
-	  tmp1 = gen_reg_rtx (V8HImode);
-	  emit_move_insn (tmp1, gen_lowpart (V8HImode, tmp2));
-	  /* Duplicate the low short through the whole low SImode word.  */
-	  emit_insn (gen_vec_interleave_lowv8hi (tmp1, tmp1, tmp1));
-	  /* Cast the V8HImode vector back to a V4SImode vector.  */
-	  tmp2 = gen_reg_rtx (V4SImode);
-	  emit_move_insn (tmp2, gen_lowpart (V4SImode, tmp1));
-	  /* Replicate the low element of the V4SImode vector.  */
-	  emit_insn (gen_sse2_pshufd (tmp2, tmp2, const0_rtx));
-	  /* Cast the V2SImode back to V8HImode, and store in target.  */
-	  emit_move_insn (target, gen_lowpart (V8HImode, tmp2));
-	  return true;
+
+	  /* Insert the SImode value as low element of a V4SImode vector. */
+	  tmp2 = gen_lowpart (V4SImode, dperm.op0);
+	  emit_insn (gen_vec_setv4si_0 (tmp2, CONST0_RTX (V4SImode), tmp1));
+
+	  ok = (expand_vec_perm_1 (&dperm)
+		|| expand_vec_perm_broadcast_1 (&dperm));
+	  gcc_assert (ok);
+	  return ok;
 	}
-      smode = HImode;
-      wsmode = SImode;
-      wvmode = V4SImode;
       goto widen;
+
     case V16QImode:
       if (TARGET_SSE2)
-	{
-	  rtx tmp1, tmp2;
-	  /* Extend QImode to SImode using a paradoxical SUBREG.  */
-	  tmp1 = gen_reg_rtx (SImode);
-	  emit_move_insn (tmp1, gen_lowpart (SImode, val));
-	  /* Insert the SImode value as low element of V4SImode vector. */
-	  tmp2 = gen_reg_rtx (V4SImode);
-	  tmp1 = gen_rtx_VEC_MERGE (V4SImode,
-				    gen_rtx_VEC_DUPLICATE (V4SImode, tmp1),
-				    CONST0_RTX (V4SImode),
-				    const1_rtx);
-	  emit_insn (gen_rtx_SET (VOIDmode, tmp2, tmp1));
-	  /* Cast the V4SImode vector back to a V16QImode vector.  */
-	  tmp1 = gen_reg_rtx (V16QImode);
-	  emit_move_insn (tmp1, gen_lowpart (V16QImode, tmp2));
-	  /* Duplicate the low byte through the whole low SImode word.  */
-	  emit_insn (gen_vec_interleave_lowv16qi (tmp1, tmp1, tmp1));
-	  emit_insn (gen_vec_interleave_lowv16qi (tmp1, tmp1, tmp1));
-	  /* Cast the V16QImode vector back to a V4SImode vector.  */
-	  tmp2 = gen_reg_rtx (V4SImode);
-	  emit_move_insn (tmp2, gen_lowpart (V4SImode, tmp1));
-	  /* Replicate the low element of the V4SImode vector.  */
-	  emit_insn (gen_sse2_pshufd (tmp2, tmp2, const0_rtx));
-	  /* Cast the V2SImode back to V16QImode, and store in target.  */
-	  emit_move_insn (target, gen_lowpart (V16QImode, tmp2));
-	  return true;
-	}
-      smode = QImode;
-      wsmode = HImode;
-      wvmode = V8HImode;
+	goto permute;
       goto widen;
+
     widen:
       /* Replicate the value once into the next wider mode and recurse.  */
-      val = convert_modes (wsmode, smode, val, true);
-      x = expand_simple_binop (wsmode, ASHIFT, val,
-			       GEN_INT (GET_MODE_BITSIZE (smode)),
-			       NULL_RTX, 1, OPTAB_LIB_WIDEN);
-      val = expand_simple_binop (wsmode, IOR, val, x, x, 1, OPTAB_LIB_WIDEN);
-
-      x = gen_reg_rtx (wvmode);
-      if (!ix86_expand_vector_init_duplicate (mmx_ok, wvmode, x, val))
-	gcc_unreachable ();
-      emit_move_insn (target, gen_lowpart (mode, x));
-      return true;
-
-    case V4DFmode:
-      hmode = V2DFmode;
-      goto half;
-    case V4DImode:
-      hmode = V2DImode;
-      goto half;
-    case V8SFmode:
-      hmode = V4SFmode;
-      goto half;
-    case V8SImode:
-      hmode = V4SImode;
-      goto half;
-    case V16HImode:
-      hmode = V8HImode;
-      goto half;
-    case V32QImode:
-      hmode = V16QImode;
-      goto half;
-half:
       {
-	rtx tmp = gen_reg_rtx (hmode);
-	ix86_expand_vector_init_duplicate (mmx_ok, hmode, tmp, val);
-	emit_insn (gen_rtx_SET (VOIDmode, target,
-				gen_rtx_VEC_CONCAT (mode, tmp, tmp)));
+	enum machine_mode smode, wsmode, wvmode;
+	rtx x;
+
+	smode = GET_MODE_INNER (mode);
+	wvmode = get_mode_wider_vector (mode);
+	wsmode = GET_MODE_INNER (wvmode);
+
+	val = convert_modes (wsmode, smode, val, true);
+	x = expand_simple_binop (wsmode, ASHIFT, val,
+				 GEN_INT (GET_MODE_BITSIZE (smode)),
+				 NULL_RTX, 1, OPTAB_LIB_WIDEN);
+	val = expand_simple_binop (wsmode, IOR, val, x, x, 1, OPTAB_LIB_WIDEN);
+
+	x = gen_lowpart (wvmode, target);
+	ok = ix86_expand_vector_init_duplicate (mmx_ok, wvmode, x, val);
+	gcc_assert (ok);
+	return ok;
+      }
+
+    case V16HImode:
+    case V32QImode:
+      {
+	enum machine_mode hvmode = (mode == V16HImode ? V8HImode : V16QImode);
+	rtx x = gen_reg_rtx (hvmode);
+
+	ok = ix86_expand_vector_init_duplicate (false, hvmode, x, val);
+	gcc_assert (ok);
+
+	x = gen_rtx_VEC_CONCAT (mode, x, x);
+	emit_insn (gen_rtx_SET (VOIDmode, target, x));
       }
       return true;
 
@@ -28712,198 +28807,35 @@ ix86_expand_round (rtx operand0, rtx operand1)
   emit_move_insn (operand0, res);
 }
 
-/* Validate whether a FMA4 instruction is valid or not.
-   OPERANDS is the array of operands.
-   NUM is the number of operands.
-   USES_OC0 is true if the instruction uses OC0 and provides 4 variants.
-   NUM_MEMORY is the maximum number of memory operands to accept.
-   NUM_MEMORY less than zero is a special case to allow an operand
-   of an instruction to be memory operation.
-   when COMMUTATIVE is set, operand 1 and 2 can be swapped.  */
+
+/* Fixup an FMA4 or XOP instruction that has 2 memory input references
+   into a form the hardware will allow by using the destination
+   register to load one of the memory operations.  Presently this is
+   used by the multiply/add routines to allow 2 memory references.  */
 
 bool
-ix86_fma4_valid_op_p (rtx operands[], rtx insn ATTRIBUTE_UNUSED, int num,
-		      bool uses_oc0, int num_memory, bool commutative)
-{
-  int mem_mask;
-  int mem_count;
-  int i;
-
-  /* Count the number of memory arguments */
-  mem_mask = 0;
-  mem_count = 0;
-  for (i = 0; i < num; i++)
-    {
-      enum machine_mode mode = GET_MODE (operands[i]);
-      if (register_operand (operands[i], mode))
-	;
-
-      else if (memory_operand (operands[i], mode))
-	{
-	  mem_mask |= (1 << i);
-	  mem_count++;
-	}
-
-      else
-	{
-	  rtx pattern = PATTERN (insn);
-
-	  /* allow 0 for pcmov */
-	  if (GET_CODE (pattern) != SET
-	      || GET_CODE (SET_SRC (pattern)) != IF_THEN_ELSE
-	      || i < 2
-	      || operands[i] != CONST0_RTX (mode))
-	    return false;
-	}
-    }
-
-  /* Special case pmacsdq{l,h} where we allow the 3rd argument to be
-     a memory operation.  */
-  if (num_memory < 0)
-    {
-      num_memory = -num_memory;
-      if ((mem_mask & (1 << (num-1))) != 0)
-	{
-	  mem_mask &= ~(1 << (num-1));
-	  mem_count--;
-	}
-    }
-
-  /* If there were no memory operations, allow the insn */
-  if (mem_mask == 0)
-    return true;
-
-  /* Do not allow the destination register to be a memory operand.  */
-  else if (mem_mask & (1 << 0))
-    return false;
-
-  /* If there are too many memory operations, disallow the instruction.  While
-     the hardware only allows 1 memory reference, before register allocation
-     for some insns, we allow two memory operations sometimes in order to allow
-     code like the following to be optimized:
-
-	float fmadd (float *a, float *b, float *c) { return (*a * *b) + *c; }
-
-    or similar cases that are vectorized into using the vfmaddss
-    instruction.  */
-  else if (mem_count > num_memory)
-    return false;
-
-  /* Don't allow more than one memory operation if not optimizing.  */
-  else if (mem_count > 1 && !optimize)
-    return false;
-
-  else if (num == 4 && mem_count == 1)
-    {
-      /* formats (destination is the first argument), example vfmaddss:
-	 xmm1, xmm1, xmm2, xmm3/mem
-	 xmm1, xmm1, xmm2/mem, xmm3
-	 xmm1, xmm2, xmm3/mem, xmm1
-	 xmm1, xmm2/mem, xmm3, xmm1 */
-      if (uses_oc0)
-	return ((mem_mask == (1 << 1))
-		|| (mem_mask == (1 << 2))
-		|| (mem_mask == (1 << 3)));
-
-      /* format, example vpmacsdd:
-	 xmm1, xmm2, xmm3/mem, xmm1 */
-      if (commutative)
-	return (mem_mask == (1 << 2) || mem_mask == (1 << 1));
-      else
-	return (mem_mask == (1 << 2));
-    }
-
-  else if (num == 4 && num_memory == 2)
-    {
-      /* If there are two memory operations, we can load one of the memory ops
-	 into the destination register.  This is for optimizing the
-	 multiply/add ops, which the combiner has optimized both the multiply
-	 and the add insns to have a memory operation.  We have to be careful
-	 that the destination doesn't overlap with the inputs.  */
-      rtx op0 = operands[0];
-
-      if (reg_mentioned_p (op0, operands[1])
-	  || reg_mentioned_p (op0, operands[2])
-	  || reg_mentioned_p (op0, operands[3]))
-	return false;
-
-      /* formats (destination is the first argument), example vfmaddss:
-	 xmm1, xmm1, xmm2, xmm3/mem
-	 xmm1, xmm1, xmm2/mem, xmm3
-	 xmm1, xmm2, xmm3/mem, xmm1
-	 xmm1, xmm2/mem, xmm3, xmm1
-
-         For the oc0 case, we will load either operands[1] or operands[3] into
-         operands[0], so any combination of 2 memory operands is ok.  */
-      if (uses_oc0)
-	return true;
-
-      /* format, example vpmacsdd:
-	 xmm1, xmm2, xmm3/mem, xmm1
-
-         For the integer multiply/add instructions be more restrictive and
-         require operands[2] and operands[3] to be the memory operands.  */
-      if (commutative)
-	return (mem_mask == ((1 << 1) | (1 << 3)) || ((1 << 2) | (1 << 3)));
-      else
-	return (mem_mask == ((1 << 2) | (1 << 3)));
-    }
-
-  else if (num == 3 && num_memory == 1)
-    {
-      /* formats, example vprotb:
-	 xmm1, xmm2, xmm3/mem
-	 xmm1, xmm2/mem, xmm3 */
-      if (uses_oc0)
-	return ((mem_mask == (1 << 1)) || (mem_mask == (1 << 2)));
-
-      /* format, example vpcomeq:
-	 xmm1, xmm2, xmm3/mem */
-      else
-	return (mem_mask == (1 << 2));
-    }
-
-  else
-    gcc_unreachable ();
-
-  return false;
-}
-
-
-/* Fixup an FMA4 instruction that has 2 memory input references into a form the
-   hardware will allow by using the destination register to load one of the
-   memory operations.  Presently this is used by the multiply/add routines to
-   allow 2 memory references.  */
-
-void
 ix86_expand_fma4_multiple_memory (rtx operands[],
-				  int num,
 				  enum machine_mode mode)
 {
-  rtx op0 = operands[0];
-  if (num != 4
-      || memory_operand (op0, mode)
-      || reg_mentioned_p (op0, operands[1])
-      || reg_mentioned_p (op0, operands[2])
-      || reg_mentioned_p (op0, operands[3]))
-    gcc_unreachable ();
+  rtx scratch = operands[0];
 
-  /* For 2 memory operands, pick either operands[1] or operands[3] to move into
-     the destination register.  */
-  if (memory_operand (operands[1], mode))
+  gcc_assert (register_operand (operands[0], mode));
+  gcc_assert (register_operand (operands[1], mode));
+  gcc_assert (MEM_P (operands[2]) && MEM_P (operands[3]));
+
+  if (reg_mentioned_p (scratch, operands[1]))
     {
-      emit_move_insn (op0, operands[1]);
-      operands[1] = op0;
+      if (!can_create_pseudo_p ())
+	return false;
+      scratch = gen_reg_rtx (mode);
     }
-  else if (memory_operand (operands[3], mode))
-    {
-      emit_move_insn (op0, operands[3]);
-      operands[3] = op0;
-    }
+
+  emit_move_insn (scratch, operands[3]);
+  if (rtx_equal_p (operands[2], operands[3]))
+    operands[2] = operands[3] = scratch;
   else
-    gcc_unreachable ();
-
-  return;
+    operands[3] = scratch;
+  return true;
 }
 
 /* Table of valid machine attributes.  */
@@ -28976,21 +28908,33 @@ ix86_vectorize_builtin_vec_perm (tree vec_type, tree *mask_type)
 {
   tree itype = TREE_TYPE (vec_type);
   bool u = TYPE_UNSIGNED (itype);
+  enum machine_mode vmode = TYPE_MODE (vec_type);
   enum ix86_builtins fcode;
+  bool ok = TARGET_SSE2;
 
-  if (!TARGET_SSE2)
-    return NULL_TREE;
-
-  switch (TYPE_MODE (vec_type))
+  switch (vmode)
     {
+    case V4DFmode:
+      ok = TARGET_AVX;
+      fcode = IX86_BUILTIN_VEC_PERM_V4DF;
+      goto get_di;
     case V2DFmode:
-      itype = ix86_get_builtin_type (IX86_BT_DI);
       fcode = IX86_BUILTIN_VEC_PERM_V2DF;
+    get_di:
+      itype = ix86_get_builtin_type (IX86_BT_DI);
       break;
+
+    case V8SFmode:
+      ok = TARGET_AVX;
+      fcode = IX86_BUILTIN_VEC_PERM_V8SF;
+      goto get_si;
     case V4SFmode:
-      itype = ix86_get_builtin_type (IX86_BT_SI);
+      ok = TARGET_SSE;
       fcode = IX86_BUILTIN_VEC_PERM_V4SF;
+    get_si:
+      itype = ix86_get_builtin_type (IX86_BT_SI);
       break;
+
     case V2DImode:
       fcode = u ? IX86_BUILTIN_VEC_PERM_V2DI_U : IX86_BUILTIN_VEC_PERM_V2DI;
       break;
@@ -29004,25 +28948,16 @@ ix86_vectorize_builtin_vec_perm (tree vec_type, tree *mask_type)
       fcode = u ? IX86_BUILTIN_VEC_PERM_V16QI_U : IX86_BUILTIN_VEC_PERM_V16QI;
       break;
     default:
-      return NULL_TREE;
+      ok = false;
+      break;
     }
+
+  if (!ok)
+    return NULL_TREE;
 
   *mask_type = itype;
   return ix86_builtins[(int) fcode];
 }
-
-/* AVX does not support 32-byte integer vector operations,
-   thus the longest vector we are faced with is V16QImode.  */
-#define MAX_VECT_LEN	16
-
-struct expand_vec_perm_d
-{
-  rtx target, op0, op1;
-  unsigned char perm[MAX_VECT_LEN];
-  enum machine_mode vmode;
-  unsigned char nelt;
-  bool testing_p;
-};
 
 /* Return a vector mode with twice as many elements as VMODE.  */
 /* ??? Consider moving this to a table generated by genmodes.c.  */
@@ -29619,8 +29554,9 @@ expand_vec_perm_pshufb2 (struct expand_vec_perm_d *d)
   rtx rperm[2][16], vperm, l, h, op, m128;
   unsigned int i, nelt, eltsz;
 
-  if (!TARGET_SSSE3)
+  if (!TARGET_SSSE3 || GET_MODE_SIZE (d->vmode) != 16)
     return false;
+  gcc_assert (d->op0 != d->op1);
 
   nelt = d->nelt;
   eltsz = GET_MODE_SIZE (GET_MODE_INNER (d->vmode));
@@ -29664,8 +29600,8 @@ expand_vec_perm_pshufb2 (struct expand_vec_perm_d *d)
   return true;
 }
 
-/* A subroutine of ix86_expand_vec_perm_builtin_1.  Pattern match
-   extract-even and extract-odd permutations.  */
+/* A subroutine of ix86_expand_vec_perm_builtin_1.  Implement extract-even
+   and extract-odd permutations.  */
 
 static bool
 expand_vec_perm_even_odd_1 (struct expand_vec_perm_d *d, unsigned odd)
@@ -29780,6 +29716,9 @@ expand_vec_perm_even_odd_1 (struct expand_vec_perm_d *d, unsigned odd)
   return true;
 }
 
+/* A subroutine of ix86_expand_vec_perm_builtin_1.  Pattern match
+   extract-even and extract-odd permutations.  */
+
 static bool
 expand_vec_perm_even_odd (struct expand_vec_perm_d *d)
 {
@@ -29796,6 +29735,84 @@ expand_vec_perm_even_odd (struct expand_vec_perm_d *d)
   return expand_vec_perm_even_odd_1 (d, odd);
 }
 
+/* A subroutine of ix86_expand_vec_perm_builtin_1.  Implement broadcast
+   permutations.  We assume that expand_vec_perm_1 has already failed.  */
+
+static bool
+expand_vec_perm_broadcast_1 (struct expand_vec_perm_d *d)
+{
+  unsigned elt = d->perm[0], nelt2 = d->nelt / 2;
+  enum machine_mode vmode = d->vmode;
+  unsigned char perm2[4];
+  rtx op0 = d->op0;
+  bool ok;
+
+  switch (vmode)
+    {
+    case V4DFmode:
+    case V8SFmode:
+      /* These are special-cased in sse.md so that we can optionally
+	 use the vbroadcast instruction.  They expand to two insns
+	 if the input happens to be in a register.  */
+      gcc_unreachable ();
+
+    case V2DFmode:
+    case V2DImode:
+    case V4SFmode:
+    case V4SImode:
+      /* These are always implementable using standard shuffle patterns.  */
+      gcc_unreachable ();
+
+    case V8HImode:
+    case V16QImode:
+      /* These can be implemented via interleave.  We save one insn by
+	 stopping once we have promoted to V4SImode and then use pshufd.  */
+      do
+	{
+	  optab otab = vec_interleave_low_optab;
+
+	  if (elt >= nelt2)
+	    {
+	      otab = vec_interleave_high_optab;
+	      elt -= nelt2;
+	    }
+	  nelt2 /= 2;
+
+	  op0 = expand_binop (vmode, otab, op0, op0, NULL, 0, OPTAB_DIRECT);
+	  vmode = get_mode_wider_vector (vmode);
+	  op0 = gen_lowpart (vmode, op0);
+	}
+      while (vmode != V4SImode);
+
+      memset (perm2, elt, 4);
+      ok = expand_vselect (gen_lowpart (V4SImode, d->target), op0, perm2, 4);
+      gcc_assert (ok);
+      return true;
+
+    default:
+      gcc_unreachable ();
+    }
+}
+
+/* A subroutine of ix86_expand_vec_perm_builtin_1.  Pattern match
+   broadcast permutations.  */
+
+static bool
+expand_vec_perm_broadcast (struct expand_vec_perm_d *d)
+{
+  unsigned i, elt, nelt = d->nelt;
+
+  if (d->op0 != d->op1)
+    return false;
+
+  elt = d->perm[0];
+  for (i = 1; i < nelt; ++i)
+    if (d->perm[i] != elt)
+      return false;
+
+  return expand_vec_perm_broadcast_1 (d);
+}
+
 /* The guts of ix86_expand_vec_perm_builtin, also used by the ok hook.
    With all of the interface bits taken care of, perform the expansion
    in D and return true on success.  */
@@ -29803,8 +29820,7 @@ expand_vec_perm_even_odd (struct expand_vec_perm_d *d)
 static bool
 ix86_expand_vec_perm_builtin_1 (struct expand_vec_perm_d *d)
 {
-  /* First things first -- check if the instruction is implementable
-     with a single instruction.  */
+  /* Try a single instruction expansion.  */
   if (expand_vec_perm_1 (d))
     return true;
 
@@ -29819,13 +29835,16 @@ ix86_expand_vec_perm_builtin_1 (struct expand_vec_perm_d *d)
   if (expand_vec_perm_interleave2 (d))
     return true;
 
+  if (expand_vec_perm_broadcast (d))
+    return true;
+
   /* Try sequences of three instructions.  */
 
   if (expand_vec_perm_pshufb2 (d))
     return true;
 
   /* ??? Look for narrow permutations whose element orderings would
-     allow the promition to a wider mode.  */
+     allow the promotion to a wider mode.  */
 
   /* ??? Look for sequences of interleave or a wider permute that place
      the data into the correct lanes for a half-vector shuffle like
@@ -29836,8 +29855,6 @@ ix86_expand_vec_perm_builtin_1 (struct expand_vec_perm_d *d)
 
   if (expand_vec_perm_even_odd (d))
     return true;
-
-  /* ??? Pattern match broadcast.  */
 
   return false;
 }
@@ -30290,7 +30307,8 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 #define TARGET_DEFAULT_TARGET_FLAGS	\
   (TARGET_DEFAULT			\
    | TARGET_SUBTARGET_DEFAULT		\
-   | TARGET_TLS_DIRECT_SEG_REFS_DEFAULT)
+   | TARGET_TLS_DIRECT_SEG_REFS_DEFAULT \
+   | MASK_FUSED_MADD)
 
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION ix86_handle_option

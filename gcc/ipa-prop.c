@@ -754,6 +754,7 @@ ipa_note_param_call (struct ipa_node_params *info, int formal_id,
   note->lto_stmt_uid = gimple_uid (stmt);
   note->count = bb->count;
   note->frequency = compute_call_stmt_bb_frequency (current_function_decl, bb);
+  note->loop_nest = bb->loop_depth;
 
   note->next = info->param_calls;
   info->param_calls = note;
@@ -2008,7 +2009,7 @@ ipa_write_node_info (struct output_block *ob, struct cgraph_node *node)
   int j;
   struct cgraph_edge *e;
   struct bitpack_d *bp;
-  int note_count;
+  int note_count = 0;
   struct ipa_param_call_note *note;
 
   encoder = ob->decl_state->cgraph_node_encoder;

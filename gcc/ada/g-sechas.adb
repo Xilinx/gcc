@@ -2,7 +2,7 @@
 --                                                                          --
 --                         GNAT LIBRARY COMPONENTS                          --
 --                                                                          --
---                 S Y S T E M . S E C U R E _ H A S H E S                  --
+--                   G N A T . S E C U R E _ H A S H E S                    --
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
@@ -32,13 +32,12 @@
 with System;     use System;
 with Interfaces; use Interfaces;
 
-package body System.Secure_Hashes is
+package body GNAT.Secure_Hashes is
 
    use Ada.Streams;
 
    Hex_Digit : constant array (Stream_Element range 0 .. 15) of Character :=
-                 ('0', '1', '2', '3', '4', '5', '6', '7',
-                  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
+                 "0123456789abcdef";
 
    type Fill_Buffer_Access is
      access procedure
@@ -364,4 +363,4 @@ package body System.Secure_Hashes is
 
    end Hash_Function_State;
 
-end System.Secure_Hashes;
+end GNAT.Secure_Hashes;

@@ -1685,7 +1685,7 @@ integer_pow2p (const_tree expr)
   if (TREE_CODE (expr) != INTEGER_CST)
     return 0;
 
-  prec = int_or_pointer_precision (TREE_TYPE (expr));
+  prec = TYPE_PRECISION (TREE_TYPE (expr));
   high = TREE_INT_CST_HIGH (expr);
   low = TREE_INT_CST_LOW (expr);
 
@@ -1749,7 +1749,7 @@ tree_log2 (const_tree expr)
   if (TREE_CODE (expr) == COMPLEX_CST)
     return tree_log2 (TREE_REALPART (expr));
 
-  prec = int_or_pointer_precision (TREE_TYPE (expr));
+  prec = TYPE_PRECISION (TREE_TYPE (expr));
   high = TREE_INT_CST_HIGH (expr);
   low = TREE_INT_CST_LOW (expr);
 
@@ -1785,7 +1785,7 @@ tree_floor_log2 (const_tree expr)
   if (TREE_CODE (expr) == COMPLEX_CST)
     return tree_log2 (TREE_REALPART (expr));
 
-  prec = int_or_pointer_precision (TREE_TYPE (expr));
+  prec = TYPE_PRECISION (TREE_TYPE (expr));
   high = TREE_INT_CST_HIGH (expr);
   low = TREE_INT_CST_LOW (expr);
 
@@ -4923,7 +4923,8 @@ free_lang_data (void)
   unsigned i;
 
   /* If we are the LTO frontend we have freed lang-specific data already.  */
-  if (in_lto_p)
+  if (in_lto_p
+      || !flag_generate_lto)
     return 0;
 
   /* Allocate and assign alias sets to the standard integer types
@@ -4931,11 +4932,6 @@ free_lang_data (void)
   for (i = 0; i < itk_none; ++i)
     if (integer_types[i])
       TYPE_ALIAS_SET (integer_types[i]) = get_alias_set (integer_types[i]);
-
-  /* FIXME.  Remove after save_debug_info is working.  */
-  if (!(flag_generate_lto
-	|| (!flag_gtoggle && debug_info_level == DINFO_LEVEL_NONE)))
-    return 0;
 
   /* Traverse the IL resetting language specific information for
      operands, expressions, etc.  */
@@ -9685,12 +9681,8 @@ signed_or_unsigned_type_for (int unsignedp, tree type)
 	 based on the named address space it points to.  */
       if (!TYPE_ADDR_SPACE (TREE_TYPE (t)))
 	t = size_type_node;
-
       else
-	{
-	  int prec = int_or_pointer_precision (t);
-	  return lang_hooks.types.type_for_size (prec, unsignedp);
-	}
+	return lang_hooks.types.type_for_size (TYPE_PRECISION (t), unsignedp);
     }
 
   if (!INTEGRAL_TYPE_P (t) || TYPE_UNSIGNED (t) == unsignedp)
@@ -10563,41 +10555,6 @@ build_target_option_node (void)
     }
 
   return t;
-}
-
-/* Return the size in bits of an integer or pointer type.  TYPE_PRECISION
-   contains the bits, but in the past it was not set in some cases and there
-   was special purpose code that checked for POINTER_TYPE_P or OFFSET_TYPE, so
-   check that it is consitant when assertion checking is used.  */
-
-unsigned int
-int_or_pointer_precision (const_tree type)
-{
-#if ENABLE_ASSERT_CHECKING
-  unsigned int prec;
-
-  if (POINTER_TYPE_P (type))
-    {
-      addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (type));
-      prec = GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (as));
-      gcc_assert (prec == TYPE_PRECISION (type));
-    }
-  else if (TREE_CODE (type) == OFFSET_TYPE)
-    {
-      prec = POINTER_SIZE;
-      gcc_assert (prec == TYPE_PRECISION (type));
-    }
-  else
-    {
-      prec = TYPE_PRECISION (type);
-      gcc_assert (prec != 0);
-    }
-
-  return prec;
-
-#else
-  return TYPE_PRECISION (type);
-#endif
 }
 
 /* Determine the "ultimate origin" of a block.  The block may be an inlined

@@ -1,3 +1,213 @@
+2009-12-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (add_decl_expr): At toplevel, mark the
+	TYPE_ADA_SIZE field of records and unions.
+
+	* gcc-interface/trans.c (Attribute_to_gnu) <Attr_Length>: Set the
+	source location of the node onto the comparison expression if it
+	is not cached.
+
+2009-12-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* exp_util.adb (Make_CW_Equivalent_Type): Set the
+	Is_Class_Wide_Equivalent_Type flag here in lieu of...
+	(Make_Subtype_From_Expr): ...here.
+	* exp_ch3.adb (Expand_Freeze_Record_Type): Do not set
+	Has_Controlled_Component on class-wide equivalent types.
+	* freeze.adb (Freeze_Record_Type): Likewise.
+	* sem_ch3.adb (Record_Type_Definition): Likewise.
+
+2009-12-01  Pascal Obry  <obry@adacore.com>
+
+	* s-osprim-mingw.adb (Get_Base_Time): Make sure that the base time is
+	taken at a clock tick boundary.
+
+2009-12-01  Thomas Quinot  <quinot@adacore.com>
+
+	* g-sechas.ads (GNAT.Secure_Hashes.H."=" on Context): Make abstract.
+
+2009-12-01  Matthew Gingell  <gingell@adacore.com>
+
+	* adadecode.c: Allow compilation when building the run time in the gnat
+	runtime.
+	(__gnat_decode): Strip the .nnnn suffix from names of nested functions.
+
+	* gcc-interface/Makefile.in: Ada adadecode to LIBGNAT_SRCS and
+	LIBGNAT_OBJS.
+
+2009-12-01  Vincent Celier  <celier@adacore.com>
+
+	* gnatcmd.adb (Check_Files): Quote the path names as they may include
+	spaces.
+
+2009-12-01  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch3.adb (Analyze_Object_Declaration): If the defining identifier
+	has already been declared, it may have been rewritten as a renaming
+	declaration.
+
+2009-12-01  Ed Schonberg  <schonberg@adacore.com>
+
+	* einfo.ads: Clarify use of Is_Private_Primitive.
+	* sem_ch6.adb (Analyze_Subprogram_Declaration): An operation is a
+	private primitive operation only if it is declared in the scope of the
+	private controlling type.
+	* exp_ch9.adb (Build_Wrapper_Spec): Build wrappers for private
+	protected operations as well.
+
+2009-12-01  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat1drv.adb (Adjust_Global_Switches): Disable front-end
+	optimizations in CodePeer mode, to keep the tree as close to the source
+	code as possible, and also to avoid inconsistencies between trees when
+	using different optimization switches.
+
+2009-12-01  Thomas Quinot  <quinot@adacore.com>
+
+	* scos.ads: Updated specification of source coverage obligation
+	information.
+
+2009-12-01  Thomas Quinot  <quinot@adacore.com>
+
+	* g-sercom.ads, g-sercom-mingw.adb, g-sercom-linux.adb,
+	a-ststio.adb, s-commun.adb, s-commun.ads, g-socket.adb,
+	g-socket.ads (System.Communications.Last_Index): For the case where no
+	element has been transferred and Item'First =
+	Stream_Element_Offset'First, raise CONSTRAINT_ERROR.
+
+2009-12-01  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch10.adb (Install_Siblings): A private with_clause on some child
+	unit U in an ancestor of the current unit must be ignored if the
+	current unit has a regular with_clause on U.
+
+2009-11-30  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* s-oscons-tmplt.c [__mips && __sgi]: Only define _XOPEN5, IOV_MAX
+	if _XOPEN_IOV_MAX is defined.
+
+2009-11-30  Vasiliy Fofanov  <fofanov@adacore.com>
+
+	* vms_data.ads: Add new VMS qualifiers,
+	REVERSE_BIT_ORDER/NOREVERSE_BIT_ORDER, to support warnings on bit order
+	effects.
+
+2009-11-30  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_ch9.adb, exp_ch9.ads, sem_util.ads: Minor reformatting.
+
+2009-11-30  Gary Dismukes  <dismukes@adacore.com>
+
+	* sem_prag.adb: Fix spelling error.
+
+2009-11-30  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch9.ads (Build_Private_Protected_Declaration): For a protected
+	operation that is only declared in a protected body, create a
+	corresponding subprogram declaration.
+	* exp_ch9.adb (Expand_N_Protected_Body): Create protected body of
+	operation in all cases, including for an operation that is only
+	declared in the body.
+	* sem_ch6.adb: Call Build_Private_Protected_Declaration
+	* exp_ch6.adb (Expand_N_Subprogram_Declaration): For an operation
+	declared in a protected body, create the declaration for the
+	corresponding protected version of the operation.
+
+2009-11-30  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat1drv.adb (Adjust_Global_Switches): Disable specific expansions
+	for Restrictions pragmas, to avoid tree inconsistencies between
+	compilations with different pragmas.
+
+2009-11-30  Jerome Lambourg  <lambourg@adacore.com>
+
+	* sem_prag.adb (Check_Duplicated_Export_Name): Allow entities exported
+	to CIL to have duplicated export name.
+
+2009-11-30  Robert Dewar  <dewar@adacore.com>
+
+	* a-tiinio.adb: Remove extraneous pragma Warnings (Off).
+
+2009-11-30  Thomas Quinot  <quinot@adacore.com>
+
+	* par_sco.adb: Minor reformatting
+
+2009-11-30  Ed Falis  <falis@adacore.com>
+
+	* s-vxwext.ad[s,b], system-vxworks-ppc.ads, s-stchop-vxworks.adb:
+	Comment update.
+
+2009-11-30  Ed Schonberg  <schonberg@adacore.com>
+
+	* par_sco.adb (Traverse_Handled_Statement_Sequence): Do not emit SCO's
+	for null statements that do not come from source.
+	* sinfo.ads: Clarify documentation of Comes_From_Source
+
+2009-11-30  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Add_Source): Use Display_Name for both projects when
+	displaying the paths in error message.
+
+2009-11-30  Emmanuel Briot  <briot@adacore.com>
+
+	* adaint.h, adaint.c (file_attributes): force the use of unsigned char.
+ 	On some platforms, "char" is signed, on others unsigned, so we
+ 	explicitly specify the one we expect
+
+2009-11-30  Matthew Heaney  <heaney@adacore.com>
+
+	* a-coinve.adb (Insert): Move exception handler closer to point where
+	exception can occur.
+	Minor reformatting & comment additions.
+
+2009-11-30  Arnaud Charlet  <charlet@adacore.com>
+
+	* freeze.adb (Freeze_Entity): Disable warning on 'Foreign caller must
+	pass bounds' for VM targets, not relevant.
+
+2009-11-30  Robert Dewar  <dewar@adacore.com>
+
+	* sem_util.adb (Wrong_Type): Diagnose additional case of modular
+	missing parens.
+	* a-tiinio.adb, a-wtinio.adb, a-ztinio.adb: Minor reformatting
+
+	* exp_util.adb (Kill_Dead_Code): Suppress warning for some additional
+	cases.
+
+	* sem_warn.adb (Set_Warning_Flag): Clean up gnatwA list and ensure
+	completeness.
+	(Set_Dot_Warning_Flag): Ditto for -gnatw.e
+	(Set_Dot_Warning_Flag): Implement -gnbatw.v/w.V
+	* usage.adb: Add lines for -gnatw.v/w.V
+
+2009-11-30  Emmanuel Briot  <briot@adacore.com>
+
+	* make.adb (Check_Standard_Library): use Full_Source_Name instead of
+	direct call to Find_File. The former provides caching of the results, so
+	might be more efficient
+	(Start_Compile_If_Necessary): Add comment on possible optimization,
+	not done for now.
+
+2009-11-30  Thomas Quinot  <quinot@adacore.com>
+
+	* g-sechas.adb: Minor reformatting
+
+2009-11-30  Matthew Heaney  <heaney@adacore.com>
+
+	* a-crbtgo.adb (Delete_Fixup): Add comments explaining why predicates
+	were removed.
+	* a-cdlili.adb (Vet): Remove always-true predicates.
+
+2009-11-30  Thomas Quinot  <quinot@adacore.com>
+
+	* s-sechas.adb, s-sechas.ads, s-shshco.adb, s-shshco.ads, s-shsh64.adb,
+	s-shsh64.ads, s-sehamd.adb, s-sehamd.ads, s-shsh32.adb, s-shsh32.ads,
+	s-sehash.adb, s-sehash.ads, g-sechas.adb, g-sechas.ads, g-shshco.adb,
+	g-shshco.ads, g-md5.ads, g-sha256.ads, g-shsh64.adb, g-shsh64.ads,
+	g-sehamd.adb, g-sehamd.ads, g-sha512.ads, g-sha1.ads, Makefile.rtl,
+	g-sha224.ads, g-shsh32.adb, g-shsh32.ads, g-sha384.ads, g-sehash.adb,
+	g-sehash.ads: Rename System.Secure_Hashes to GNAT.Secure_Hashes.
+
 2009-11-30  Robert Dewar  <dewar@adacore.com>
 
 	* osint.ads: Minor comment update.

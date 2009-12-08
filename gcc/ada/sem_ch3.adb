@@ -9725,11 +9725,12 @@ package body Sem_Ch3 is
          New_T := Any_Type;
       end if;
 
-      --  If previous full declaration exists, or if a homograph is present,
-      --  let Enter_Name handle it, either with an error, or with the removal
-      --  of an overridden implicit subprogram.
+      --  If previous full declaration or a renaming declaration exists, or if
+      --  a homograph is present, let Enter_Name handle it, either with an
+      --  error or with the removal of an overridden implicit subprogram.
 
       if Ekind (Prev) /= E_Constant
+        or else Nkind (Parent (Prev)) = N_Object_Renaming_Declaration
         or else Present (Expression (Parent (Prev)))
         or else Present (Full_View (Prev))
       then
@@ -18027,9 +18028,13 @@ package body Sem_Ch3 is
          if Ekind (Component) /= E_Component then
             null;
 
-         elsif Has_Controlled_Component (Etype (Component))
-           or else (Chars (Component) /= Name_uParent
-                     and then Is_Controlled (Etype (Component)))
+         --  Do not set Has_Controlled_Component on a class-wide equivalent
+         --  type. See Make_CW_Equivalent_Type.
+
+         elsif not Is_Class_Wide_Equivalent_Type (T)
+           and then (Has_Controlled_Component (Etype (Component))
+                      or else (Chars (Component) /= Name_uParent
+                                and then Is_Controlled (Etype (Component))))
          then
             Set_Has_Controlled_Component (T, True);
             Final_Storage_Only :=
