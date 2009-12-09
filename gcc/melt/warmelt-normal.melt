@@ -2686,7 +2686,6 @@ routine procedures.}#
 		      (normal_exp sclasym env ncx sloc)))
 	 (bindlist (make_list discr_list))
 	 )
-    (compile_warning "perhaps should factor out the common behavior for letrec instance & normexp_instance")
     (if (not (is_a cladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in (INSTANCE ..)" (unsafe_get_field :named_name sclass))
@@ -3647,15 +3646,56 @@ routine procedures.}#
     )
   )
 (install_method class_source_instance prepare_constructor_binding prepcons_instance)
+
 ;;;;
 
 (defun normletrec_instance  (cexpr symb cbind env ncx sloc)
   (debug_msg cexpr "normletrec_instance cexpr")
   (debug_msg symb "normletrec_instance symb")
   (debug_msg cbind "normletrec_instance cbind")
-  (compile_warning "unimplemented normletrec_instance")
-  (assert_msg "@$@unimplemented normletrec_instance" ())
-)
+  (let ( (loc (or (unsafe_get_field :loca_location cexpr) sloc))
+	 (bcomp (get_field :ntupb_comp cbind))
+	 (nletrec (get_field :nconsb_nletrec cbind))
+	 (nrecbinds (get_field :nletrec_bindings nletrec))
+	 (sclass (unsafe_get_field :smins_class cexpr))
+	 (sclabind (unsafe_get_field :smins_clabind cexpr))
+	 (sfields (unsafe_get_field :smins_fields cexpr))
+	 (sclasym (if (is_a sclabind class_any_binding) (unsafe_get_field :binder sclabind)))
+	 (cladata (if (is_a sclasym class_symbol) 
+		      (normal_exp sclasym env ncx sloc)))
+	 (bindlist (make_list discr_list))
+	 )
+    (debug_msg nletrec "normletrec_instance nletrec")
+    (if (not (is_a cladata class_nrep))
+	(progn
+	  (error_strv sloc "invalid class in (INSTANCE ..)" (unsafe_get_field :named_name sclass))
+	  (return ())))
+    (let ( (nfields 
+	    (multiple_map 
+	     sfields 
+	     (lambda (curflda :long curk)
+	       (assert_msg "check curflda" (is_a curflda class_source_fieldassign))
+	       (let ( (curfloc (unsafe_get_field :loca_location curflda))
+		      (curfield (unsafe_get_field :sfla_field curflda))
+		      (curexp (unsafe_get_field :sfla_expr curflda)) )
+		 (if (null curfloc) (setq curfloc sloc))
+		 (multicall
+		  (nexp nbind)
+		  (normal_exp curexp env ncx curfloc)
+		  (debug_msg nexp "normletrec_instance nexp")
+		  (assert_msg "check nbind" (is_list_or_null nbind))
+		  (list_append2list bindlist  nbind)
+		  (instance class_nrep_fieldassign
+			    :nrep_loc curfloc
+			    :nfla_field curfield
+			    :nfla_val nexp)
+		  )))))
+	   )
+      (debug_msg nfields "normletrec_instance nfields")
+      (compile_warning "unimplemented normletrec_instance")
+      (assert_msg "@$@unimplemented normletrec_instance" ())
+      )
+    ))
 (install_method class_source_instance normal_letrec_constructive normletrec_instance)
 
 ;;;;;;;;;;;;;;;;

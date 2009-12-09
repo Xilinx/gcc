@@ -30,9 +30,6 @@
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(debug_msg class_symbol "at start of warmelt-outobj Class_Symbol")
-(debug_msg (fetch_predefined CLASS_SYMBOL) "start of warmelt-outobj predefined Class_Symbol")
-
 (defun outdeclinit_root (recv sbuf)
   (debug_msg recv "outdeclinit_root recv")
   (assert_msg "outdeclinit_root unimplemented catchall" ())

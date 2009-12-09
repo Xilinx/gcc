@@ -1,4 +1,8 @@
 2009-12-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt: normletrec_instance still incomplete...
+	* melt/warmelt-outobj.melt: removed toplevel debug print...
+
+2009-12-09  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-normal.melt: normletrec_list should be ok.
 	* testsuite/melt/tletrec.melt: uncommented bigger test.
