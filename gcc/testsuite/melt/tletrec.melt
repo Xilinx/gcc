@@ -9,7 +9,8 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 
-;; a useless function w
+;; a useless function 
+#|
 (defun testminiletrec (xx yy kk)
   (letrec (
 	   (f
@@ -26,8 +27,8 @@
 	   )
 	  t))
 ;;
+|#
 
-#|
 (defun testletrec (u :long j)
   (letrec (
 	   (fa (lambda (x :long n)
@@ -50,5 +51,4 @@
 	  (fa u j)
 	  ))
 
-|#       
 ;; eof tletrec.melt

@@ -3491,17 +3491,17 @@ routine procedures.}#
     (multicall
      (nargs nbinds)
      (normalize_tuple sargs env ncx loc)
-     (debug_msg nargs "normalize_tuple nargs")
-     (debug_msg nbinds "normalize_tuple nbinds")
+     (debug_msg nargs "normletrec_tuple nargs")
+     (debug_msg nbinds "normletrec_tuple nbinds")
      (assert_msg "check nargs & bcomp samelength" (==i (multiple_length bcomp) (multiple_length nargs)))
      (assert_msg "check nbinds" (is_list_or_null nbinds))
      (foreach_in_multiple 
       (nargs)
       (curnarg :long nix)
       (multiple_put_nth bcomp nix curnarg))
-     (debug_msg bcomp "normalize_tuple updated bcomp")
+     (debug_msg bcomp "normletrec_tuple updated bcomp")
      (list_append2list nrecbinds nbinds)
-     (debug_msg nrecbinds "normalize_tuple updated nrecbinds")
+     (debug_msg nrecbinds "normletrec_tuple updated nrecbinds")
      (shortbacktrace_dbg "normletrec_tuple ended" 15)
      )))
 (install_method class_source_tuple normal_letrec_constructive normletrec_tuple)
@@ -3550,13 +3550,74 @@ routine procedures.}#
 (install_method class_source_list prepare_constructor_binding prepcons_list)
 ;;;;
 
+
+
 (defun normletrec_list  (cexpr symb cbind env ncx sloc)
   (debug_msg cexpr "normletrec_list cexpr")
   (debug_msg symb "normletrec_list symb")
   (debug_msg cbind "normletrec_list cbind")
-  (compile_warning "unimplemented normletrec_list")
-  (assert_msg "@$@unimplemented normletrec_list" ())
-)
+  (assert_msg "check cexpr" (is_a cexpr class_source_list))
+  ;; here cbind is a tuple of constructor bindings -for all the pairs
+  ;; & the list
+  (assert_msg "check cbind is tuple" (is_multiple cbind))
+  (let ( (loc (or (get_field :loca_location cexpr) sloc))
+	 (sargs (get_field :sargop_args cexpr))
+	 (conslibind (multiple_nth cbind -1))
+	 (nletrec (get_field :nconsb_nletrec conslibind))
+	 (nrecbinds (get_field :nletrec_bindings nletrec))
+	 (firstpairbind (multiple_nth cbind 0))
+	 (lastpairbind (multiple_nth cbind -2))
+	 )
+    (debug_msg conslibind "normletrec_list conslibind")
+    (assert_msg "check conslibind"
+		(is_a conslibind class_normal_constructed_list_binding))
+    (debug_msg sargs "normletrec_list sargs")
+    (debug_msg nletrec "normletrec_list nletrec")
+    (debug_msg nrecbinds "normletrec_list nrecbinds")
+    (assert_msg "check nletrec" (is_a nletrec class_nrep_letrec))
+    (assert_msg "check nrecbinds" (is_list nrecbinds))
+    (multicall
+     (nargs nbinds)
+     (normalize_tuple sargs env ncx loc)
+     (debug_msg nargs "normletrec_list nargs")
+     (debug_msg nbinds "normletrec_list nbinds")
+     (assert_msg "check nbinds" (is_list_or_null nbinds))
+     (assert_msg "check nargs's length vs cbind's length"
+		 (== (multiple_length nargs) (-i (multiple_length cbind) 1)))
+     (foreach_in_multiple
+      (nargs)
+      (curnarg :long nix)
+      (debug_msg curnarg "normletrec_list curnarg")
+      (let ( (curcbind  (multiple_nth cbind nix)) 
+	     (nextcbind  (multiple_nth cbind (+i 1 nix)))
+	     (nextpairsymb (if (is_a nextcbind class_normal_constructed_list_binding)
+			    (get_field :binder nextcbind)))
+	     )
+	(debug_msg curcbind "normletrec_list curcbind")
+	(debug_msg nextcbind "normletrec_list nextcbind")
+	(debug_msg nextpairsymb "normletrec_list nextpairsymb")
+	(assert_msg "check curcbind" (is_a curcbind class_normal_constructed_pair_binding))
+	(put_fields curcbind
+	 :npairb_head curnarg
+	 :npairb_tail nextpairsymb)
+	))
+     (debug_msg firstpairbind "normletrec_list firstpairbind")
+     (debug_msg lastpairbind "normletrec_list lastpairbind")
+     (debug_msg conslibind "normletrec_list conslibind again")
+     (and (is_a firstpairbind class_normal_constructed_pair_binding)
+	  (is_a lastpairbind class_normal_constructed_pair_binding)
+	  (let ( (firstpairsymb (get_field :binder firstpairbind))
+		 (lastpairsymb (get_field :binder lastpairbind))
+		 )
+	    (put_fields conslibind
+			:nlistb_first firstpairbind
+			:nlistb_last lastpairbind)
+	    (debug_msg conslibind "normletrec_list updated conslibind")
+	    (void)
+	    ))
+     (list_append2list nrecbinds nbinds)
+     (debug_msg nrecbinds "normletrec_list ended updated nrecbinds")
+     )))
 (install_method class_source_list normal_letrec_constructive normletrec_list)
 
 
