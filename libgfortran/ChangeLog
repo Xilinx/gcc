@@ -1,3 +1,172 @@
+2009-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41711
+	* io/read.c (set_integer): Support kind=10 for reading
+	real/complex BOZ.
+
+2009-12-06  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41478
+	PR fortran/42268
+	* intrinsics/pack_generic.c (pack): Add safety checks for the case that
+	'vector' is NULL.
+
+2009-12-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in: Regenerate.
+	* configure: Regenerate.
+
+2009-12-04  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/40812
+	* libgfortran.h: typedef gfc_offset differently for MinGW.
+	* io/unix.h (struct stream): Change function pointers to use
+	gfc_offset instead of off_t.
+	(sseek): Change prototype to use gfc_offset instead of off_t.
+	(stell): Likewise.
+	(struncate): Likewise.
+	* io/unix.c: Redefine lseek() for mingw.
+	(raw_seek): Use gfc_offset instead of off_t.
+	(raw_tell): Likewise.
+	(buf_seek): Likewise.
+	(buf_tell): Likewise.
+	(buf_truncate): Likewise.
+	(mem_seek): Likewise.
+	(mem_tell): Likewise.
+	(mem_truncate): Likewise.
+	(fd_to_stream): Likewise.
+	(file_length): Likewise.
+	(raw_truncate): Use gfc_offset instead of off_t, add large file
+	capable implementation for MinGW.
+
+2009-11-30  Janus Weil  <janus@gcc.gnu.org>
+
+	* gfortran.map: Add _gfortran_is_extension_of.
+	* Makefile.am: Add intrinsics/extends_type_of.c.
+	* Makefile.in: Regenerated.
+	* intrinsics/extends_type_of.c: New file. 
+
+2009-11-30  Kai Tietz  <Kai.Tietz@onevision.com>
+
+	* io/unix.c (find_file): Add variable id conditionally for
+	mingw targets.
+
+2009-11-28  Jakub Jelinek  <jakub@redhat.com>
+
+	* intrinsics/pack_generic.c (pack_internal): Remove unused
+	zero_sized variable.
+	* intrinsics/unpack_generic.c (unpack0): Remove unused size
+	variable.
+	* io/write.c (namelist_write_newline): Remove unused length
+	variable.
+	* io/unix.c (find_file): Remove unused id variable.
+	* m4/ifunction.m4 (SCALAR_ARRAY_FUNCTION): Remove unused sstride
+	variable.
+	* generated/maxloc1_16_i1.c: Regenerated.
+	* generated/maxloc1_16_i16.c: Regenerated.
+	* generated/maxloc1_16_i2.c: Regenerated.
+	* generated/maxloc1_16_i4.c: Regenerated.
+	* generated/maxloc1_16_i8.c: Regenerated.
+	* generated/maxloc1_16_r10.c: Regenerated.
+	* generated/maxloc1_16_r16.c: Regenerated.
+	* generated/maxloc1_16_r4.c: Regenerated.
+	* generated/maxloc1_16_r8.c: Regenerated.
+	* generated/maxloc1_4_i1.c: Regenerated.
+	* generated/maxloc1_4_i16.c: Regenerated.
+	* generated/maxloc1_4_i2.c: Regenerated.
+	* generated/maxloc1_4_i4.c: Regenerated.
+	* generated/maxloc1_4_i8.c: Regenerated.
+	* generated/maxloc1_4_r10.c: Regenerated.
+	* generated/maxloc1_4_r16.c: Regenerated.
+	* generated/maxloc1_4_r4.c: Regenerated.
+	* generated/maxloc1_4_r8.c: Regenerated.
+	* generated/maxloc1_8_i1.c: Regenerated.
+	* generated/maxloc1_8_i16.c: Regenerated.
+	* generated/maxloc1_8_i2.c: Regenerated.
+	* generated/maxloc1_8_i4.c: Regenerated.
+	* generated/maxloc1_8_i8.c: Regenerated.
+	* generated/maxloc1_8_r10.c: Regenerated.
+	* generated/maxloc1_8_r16.c: Regenerated.
+	* generated/maxloc1_8_r4.c: Regenerated.
+	* generated/maxloc1_8_r8.c: Regenerated.
+	* generated/maxval_i1.c: Regenerated.
+	* generated/maxval_i16.c: Regenerated.
+	* generated/maxval_i2.c: Regenerated.
+	* generated/maxval_i4.c: Regenerated.
+	* generated/maxval_i8.c: Regenerated.
+	* generated/maxval_r10.c: Regenerated.
+	* generated/maxval_r16.c: Regenerated.
+	* generated/maxval_r4.c: Regenerated.
+	* generated/maxval_r8.c: Regenerated.
+	* generated/minloc1_16_i1.c: Regenerated.
+	* generated/minloc1_16_i16.c: Regenerated.
+	* generated/minloc1_16_i2.c: Regenerated.
+	* generated/minloc1_16_i4.c: Regenerated.
+	* generated/minloc1_16_i8.c: Regenerated.
+	* generated/minloc1_16_r10.c: Regenerated.
+	* generated/minloc1_16_r16.c: Regenerated.
+	* generated/minloc1_16_r4.c: Regenerated.
+	* generated/minloc1_16_r8.c: Regenerated.
+	* generated/minloc1_4_i1.c: Regenerated.
+	* generated/minloc1_4_i16.c: Regenerated.
+	* generated/minloc1_4_i2.c: Regenerated.
+	* generated/minloc1_4_i4.c: Regenerated.
+	* generated/minloc1_4_i8.c: Regenerated.
+	* generated/minloc1_4_r10.c: Regenerated.
+	* generated/minloc1_4_r16.c: Regenerated.
+	* generated/minloc1_4_r4.c: Regenerated.
+	* generated/minloc1_4_r8.c: Regenerated.
+	* generated/minloc1_8_i1.c: Regenerated.
+	* generated/minloc1_8_i16.c: Regenerated.
+	* generated/minloc1_8_i2.c: Regenerated.
+	* generated/minloc1_8_i4.c: Regenerated.
+	* generated/minloc1_8_i8.c: Regenerated.
+	* generated/minloc1_8_r10.c: Regenerated.
+	* generated/minloc1_8_r16.c: Regenerated.
+	* generated/minloc1_8_r4.c: Regenerated.
+	* generated/minloc1_8_r8.c: Regenerated.
+	* generated/minval_i1.c: Regenerated.
+	* generated/minval_i16.c: Regenerated.
+	* generated/minval_i2.c: Regenerated.
+	* generated/minval_i4.c: Regenerated.
+	* generated/minval_i8.c: Regenerated.
+	* generated/minval_r10.c: Regenerated.
+	* generated/minval_r16.c: Regenerated.
+	* generated/minval_r4.c: Regenerated.
+	* generated/minval_r8.c: Regenerated.
+	* generated/product_c10.c: Regenerated.
+	* generated/product_c16.c: Regenerated.
+	* generated/product_c4.c: Regenerated.
+	* generated/product_c8.c: Regenerated.
+	* generated/product_i1.c: Regenerated.
+	* generated/product_i16.c: Regenerated.
+	* generated/product_i2.c: Regenerated.
+	* generated/product_i4.c: Regenerated.
+	* generated/product_i8.c: Regenerated.
+	* generated/product_r10.c: Regenerated.
+	* generated/product_r16.c: Regenerated.
+	* generated/product_r4.c: Regenerated.
+	* generated/product_r8.c: Regenerated.
+	* generated/sum_c10.c: Regenerated.
+	* generated/sum_c16.c: Regenerated.
+	* generated/sum_c4.c: Regenerated.
+	* generated/sum_c8.c: Regenerated.
+	* generated/sum_i1.c: Regenerated.
+	* generated/sum_i16.c: Regenerated.
+	* generated/sum_i2.c: Regenerated.
+	* generated/sum_i4.c: Regenerated.
+	* generated/sum_i8.c: Regenerated.
+	* generated/sum_r10.c: Regenerated.
+	* generated/sum_r16.c: Regenerated.
+	* generated/sum_r4.c: Regenerated.
+	* generated/sum_r8.c: Regenerated.
+
+2009-11-19  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* io/fbuf.h: Move includes after include guard.
+	* io/format.h: Likewise.
+	* io/unix.h: Likewise.
+
 2009-11-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libgfortran/42090

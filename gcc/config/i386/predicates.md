@@ -1056,11 +1056,6 @@
   enum machine_mode inmode = GET_MODE (XEXP (op, 0));
   enum rtx_code code = GET_CODE (op);
 
-  if (!REG_P (XEXP (op, 0))
-      || REGNO (XEXP (op, 0)) != FLAGS_REG
-      || XEXP (op, 1) != const0_rtx)
-    return 0;
-
   if (inmode == CCFPmode || inmode == CCFPUmode)
     {
       if (!ix86_trivial_fp_comparison_operator (op, mode))
@@ -1137,14 +1132,129 @@
   (and (match_code "mem")
        (match_test "MEM_ALIGN (op) < GET_MODE_ALIGNMENT (mode)")))
 
+;; Return 1 if OP is a emms operation, known to be a PARALLEL.
+(define_predicate "emms_operation"
+  (match_code "parallel")
+{
+  unsigned i;
+
+  if (XVECLEN (op, 0) != 17)
+    return 0;
+
+  for (i = 0; i < 8; i++)
+    {
+      rtx elt = XVECEXP (op, 0, i+1);
+
+      if (GET_CODE (elt) != CLOBBER
+	  || GET_CODE (SET_DEST (elt)) != REG
+	  || GET_MODE (SET_DEST (elt)) != XFmode
+	  || REGNO (SET_DEST (elt)) != FIRST_STACK_REG + i)
+        return 0;
+
+      elt = XVECEXP (op, 0, i+9);
+
+      if (GET_CODE (elt) != CLOBBER
+	  || GET_CODE (SET_DEST (elt)) != REG
+	  || GET_MODE (SET_DEST (elt)) != DImode
+	  || REGNO (SET_DEST (elt)) != FIRST_MMX_REG + i)
+	return 0;
+    }
+  return 1;
+})
+
 ;; Return 1 if OP is a vzeroall operation, known to be a PARALLEL.
 (define_predicate "vzeroall_operation"
   (match_code "parallel")
 {
-  int nregs = TARGET_64BIT ? 16 : 8;
+  unsigned i, nregs = TARGET_64BIT ? 16 : 8;
 
-  if (XVECLEN (op, 0) != nregs + 1)
+  if ((unsigned) XVECLEN (op, 0) != 1 + nregs)
     return 0;
 
+  for (i = 0; i < nregs; i++)
+    {
+      rtx elt = XVECEXP (op, 0, i+1);
+
+      if (GET_CODE (elt) != SET
+	  || GET_CODE (SET_DEST (elt)) != REG
+	  || GET_MODE (SET_DEST (elt)) != V8SImode
+	  || REGNO (SET_DEST (elt)) != SSE_REGNO (i)
+	  || SET_SRC (elt) != CONST0_RTX (V8SImode))
+	return 0;
+    }
   return 1;
+})
+
+;; Return 1 if OP is a vzeroupper operation, known to be a PARALLEL.
+(define_predicate "vzeroupper_operation"
+  (match_code "parallel")
+{
+  unsigned i, nregs = TARGET_64BIT ? 16 : 8;
+ 
+  if ((unsigned) XVECLEN (op, 0) != 1 + nregs)
+    return 0;
+
+  for (i = 0; i < nregs; i++)
+    {
+      rtx elt = XVECEXP (op, 0, i+1);
+
+      if (GET_CODE (elt) != CLOBBER
+	  || GET_CODE (SET_DEST (elt)) != REG
+	  || GET_MODE (SET_DEST (elt)) != V8SImode
+	  || REGNO (SET_DEST (elt)) != SSE_REGNO (i))
+	return 0;
+    }
+  return 1;
+})
+
+;; Return 1 if OP is a parallel for a vpermilp[ds] permute.
+;; ??? It would be much easier if the PARALLEL for a VEC_SELECT
+;; had a mode, but it doesn't.  So we have 4 copies and install
+;; the mode by hand.
+
+(define_predicate "avx_vpermilp_v8sf_operand"
+  (and (match_code "parallel")
+       (match_test "avx_vpermilp_parallel (op, V8SFmode)")))
+
+(define_predicate "avx_vpermilp_v4df_operand"
+  (and (match_code "parallel")
+       (match_test "avx_vpermilp_parallel (op, V4DFmode)")))
+
+(define_predicate "avx_vpermilp_v4sf_operand"
+  (and (match_code "parallel")
+       (match_test "avx_vpermilp_parallel (op, V4SFmode)")))
+
+(define_predicate "avx_vpermilp_v2df_operand"
+  (and (match_code "parallel")
+       (match_test "avx_vpermilp_parallel (op, V2DFmode)")))
+
+;; Return 1 if OP is a parallel for a vperm2f128 permute.
+
+(define_predicate "avx_vperm2f128_v8sf_operand"
+  (and (match_code "parallel")
+       (match_test "avx_vperm2f128_parallel (op, V8SFmode)")))
+
+(define_predicate "avx_vperm2f128_v8si_operand"
+  (and (match_code "parallel")
+       (match_test "avx_vperm2f128_parallel (op, V8SImode)")))
+
+(define_predicate "avx_vperm2f128_v4df_operand"
+  (and (match_code "parallel")
+       (match_test "avx_vperm2f128_parallel (op, V4DFmode)")))
+
+;; Return 1 if OP is a parallel for a vbroadcast permute.
+
+(define_predicate "avx_vbroadcast_operand"
+  (and (match_code "parallel")
+       (match_code "const_int" "a"))
+{
+  rtx elt = XVECEXP (op, 0, 0);
+  int i, nelt = XVECLEN (op, 0);
+
+  /* Don't bother checking there are the right number of operands,
+     merely that they're all identical.  */
+  for (i = 1; i < nelt; ++i)
+    if (XVECEXP (op, 0, i) != elt)
+      return false;
+  return true;
 })

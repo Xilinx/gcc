@@ -42,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "diagnostic.h"
 #include "cselib.h"
+#include "tree-pass.h"
 #endif
 
 static FILE *outfile;
@@ -78,7 +79,7 @@ void
 print_mem_expr (FILE *outfile, const_tree expr)
 {
   fputc (' ', outfile);
-  print_generic_expr (outfile, CONST_CAST_TREE (expr), 0);
+  print_generic_expr (outfile, CONST_CAST_TREE (expr), dump_flags);
 }
 #endif
 
@@ -109,7 +110,8 @@ print_rtx (const_rtx in_rtx)
     }
   else if (GET_CODE (in_rtx) > NUM_RTX_CODE)
     {
-       fprintf (outfile, "(??? bad code %d\n)", GET_CODE (in_rtx));
+       fprintf (outfile, "(??? bad code %d\n%s%*s)", GET_CODE (in_rtx),
+		print_rtx_head, indent * 2, "");
        sawclose = 1;
        return;
     }
@@ -240,7 +242,7 @@ print_rtx (const_rtx in_rtx)
 	  {
 	    tree decl = SYMBOL_REF_DECL (in_rtx);
 	    if (decl)
-	      print_node_brief (outfile, "", decl, 0);
+	      print_node_brief (outfile, "", decl, dump_flags);
 	  }
 #endif
 	else if (i == 4 && NOTE_P (in_rtx))
@@ -293,7 +295,7 @@ print_rtx (const_rtx in_rtx)
 #endif
 		  break;
 		}
-		
+
 	      case NOTE_INSN_VAR_LOCATION:
 #ifndef GENERATOR_FILE
 		fputc (' ', outfile);
@@ -307,7 +309,8 @@ print_rtx (const_rtx in_rtx)
 	  }
 	else if (i == 8 && JUMP_P (in_rtx) && JUMP_LABEL (in_rtx) != NULL)
 	  /* Output the JUMP_LABEL reference.  */
-	  fprintf (outfile, "\n -> %d", INSN_UID (JUMP_LABEL (in_rtx)));
+	  fprintf (outfile, "\n%s%*s -> %d", print_rtx_head, indent * 2, "",
+		   INSN_UID (JUMP_LABEL (in_rtx)));
 	else if (i == 0 && GET_CODE (in_rtx) == VALUE)
 	  {
 #ifndef GENERATOR_FILE

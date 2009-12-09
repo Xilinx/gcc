@@ -49,6 +49,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "graph.h"
 #include "cfgloop.h"
 #include "except.h"
+#include "plugin.h"
 
 
 /* Gate: execute, or not, all of the non-trivial optimizations.  */
@@ -57,7 +58,7 @@ static bool
 gate_all_optimizations (void)
 {
   return (optimize >= 1
-	  /* Don't bother doing anything if the program has errors. 
+	  /* Don't bother doing anything if the program has errors.
 	     We have to pass down the queue if we already went into SSA */
 	  && (!(errorcount || sorrycount) || gimple_in_ssa_p (cfun)));
 }
@@ -255,6 +256,10 @@ execute_fixup_cfg (void)
   else
     count_scale = REG_BR_PROB_BASE;
 
+  ENTRY_BLOCK_PTR->count = cgraph_node (current_function_decl)->count;
+  EXIT_BLOCK_PTR->count = (EXIT_BLOCK_PTR->count * count_scale
+  			   + REG_BR_PROB_BASE / 2) / REG_BR_PROB_BASE;
+
   FOR_EACH_BB (bb)
     {
       bb->count = (bb->count * count_scale
@@ -268,7 +273,7 @@ execute_fixup_cfg (void)
 
 	  if (decl
 	      && gimple_call_flags (stmt) & (ECF_CONST
-					     | ECF_PURE 
+					     | ECF_PURE
 					     | ECF_LOOPING_CONST_OR_PURE))
 	    {
 	      if (gimple_in_ssa_p (cfun))
@@ -374,13 +379,10 @@ void
 tree_rest_of_compilation (tree fndecl)
 {
   location_t saved_loc;
-  struct cgraph_node *node;
 
   timevar_push (TV_EXPAND);
 
   gcc_assert (cgraph_global_info_ready);
-
-  node = cgraph_node (fndecl);
 
   /* Initialize the default bitmap obstack.  */
   bitmap_obstack_initialize (NULL);
@@ -396,7 +398,7 @@ tree_rest_of_compilation (tree fndecl)
      We haven't necessarily assigned RTL to all variables yet, so it's
      not safe to try to expand expressions involving them.  */
   cfun->dont_save_pending_sizes_p = 1;
-  
+
   gimple_register_cfg_hooks ();
 
   bitmap_obstack_initialize (&reg_obstack); /* FIXME, only at RTL generation*/
@@ -404,13 +406,20 @@ tree_rest_of_compilation (tree fndecl)
   execute_all_ipa_transforms ();
 
   /* Perform all tree transforms and optimizations.  */
+
+  /* Signal the start of passes.  */
+  invoke_plugin_callbacks (PLUGIN_ALL_PASSES_START, NULL);
+
   execute_pass_list (all_passes);
-  
+
+  /* Signal the end of passes.  */
+  invoke_plugin_callbacks (PLUGIN_ALL_PASSES_END, NULL);
+
   bitmap_obstack_release (&reg_obstack);
 
   /* Release the default bitmap obstack.  */
   bitmap_obstack_release (NULL);
-  
+
   set_cfun (NULL);
 
   /* If requested, warn about function definitions where the function will

@@ -1,3 +1,51 @@
+2009-12-07  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-12-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR middle-end/30447
+	PR middle-end/30789
+	PR other/40302
+
+	* configure.ac: Require MPC.
+	* configure: Regenerate.
+
+2009-12-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR target/38384
+	PR bootstrap/40972
+	* libtool.m4: Sync from git Libtool.
+	* ltoptions.m4: Likewise.
+	* ltversion.m4: Likewise.
+	* lt~obsolete.m4: Likewise.
+	* ltmain.sh: Likewise.
+
+2009-11-30  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* configure.ac: Update minimum MPC version to 0.8.
+	* configure: Regenerate.
+
+2009-11-21  Sebastian Pop  <sebpop@gmail.com>
+
+	* configure.ac: Check for version 0.15.5 or later revision of CLooG.
+	* configure: Regenerated.
+
+2009-11-21  Ian Lance Taylor  <iant@google.com>
+
+	* configure.ac: Change default of poststage1_ldflags to be empty if
+	poststage1_libs is set.  When poststage1_libs is empty, and
+	ENABLE_BUILD_WITH_CXX is set, add -static-libgcc.
+	* configure: Rebuild.
+
+2009-11-21  Adam Nemet  <adambnmet@gmail.com>
+
+	* MAINTAINERS (Write After Approval): Update my email address.
+
+2009-11-20  Ben Elliston  <bje@au.ibm.com>
+
+	* config.guess: Update from upstream sources.
+
 2009-11-16  Alexandre Oliva  <aoliva@redhat.com>
 
 	* Makefile.def: Restore host and target settings for gmp.

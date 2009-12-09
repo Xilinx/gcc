@@ -1156,7 +1156,7 @@ fully_constant_expression (pre_expr e)
 	    }
 	  case tcc_reference:
 	    if (nary->opcode != REALPART_EXPR
-		&& nary->opcode != IMAGPART_EXPR 
+		&& nary->opcode != IMAGPART_EXPR
 		&& nary->opcode != VIEW_CONVERT_EXPR)
 	      return e;
 	    /* Fallthrough.  */
@@ -1490,10 +1490,17 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	      continue;
 	    else
 	      {
+                pre_expr leader, result;
+                bitmap temp = BITMAP_ALLOC (&grand_bitmap_obstack);
 		unsigned int op_val_id = VN_INFO (newnary.op[i])->value_id;
-		pre_expr leader = find_leader_in_sets (op_val_id, set1, set2);
-		pre_expr result = phi_translate_1 (leader, set1, set2,
+
+                bitmap_copy (temp, seen);
+		leader = find_leader_in_sets (op_val_id, set1, set2);
+                result = phi_translate_1 (leader, set1, set2,
 						   pred, phiblock, seen);
+                bitmap_copy (seen, temp);
+                BITMAP_FREE (temp);
+
 		if (result && result != leader)
 		  {
 		    tree name = get_representative_for (result);
@@ -2998,7 +3005,7 @@ create_expression_by_pieces (basic_block block, pre_expr expr,
 		genop2 = fold_convert (sizetype, genop2);
 	      else
 		genop2 = fold_convert (TREE_TYPE (nary->op[1]), genop2);
-	      
+
 	      folded = fold_build2 (nary->opcode, nary->type,
 				    genop1, genop2);
 	    }
@@ -3257,7 +3264,7 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
 	  if (!useless_type_conversion_p (type, TREE_TYPE (constant)))
 	    {
 	      tree builtexpr = fold_convert (type, constant);
-	      if (!is_gimple_min_invariant (builtexpr)) 
+	      if (!is_gimple_min_invariant (builtexpr))
 		{
 		  tree forcedexpr = force_gimple_operand (builtexpr,
 							  &stmts, true,
@@ -4462,8 +4469,10 @@ remove_dead_inserted_code (void)
 	  if (gimple_code (t) == GIMPLE_PHI)
 	    remove_phi_node (&gsi, true);
 	  else
-	    gsi_remove (&gsi, true);
-	  release_defs (t);
+	    {
+	      gsi_remove (&gsi, true);
+	      release_defs (t);
+	    }
 	}
     }
   VEC_free (gimple, heap, worklist);
@@ -4587,7 +4596,7 @@ execute_pre (bool do_fre)
 	  remove_dead_inserted_code ();
 	  loop_optimizer_finalize ();
 	}
-      
+
       return 0;
     }
   init_pre (do_fre);

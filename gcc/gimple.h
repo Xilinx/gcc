@@ -584,13 +584,13 @@ struct GTY(()) gimple_omp_for_iter {
 
   /* Index variable.  */
   tree index;
-    
+
   /* Initial value.  */
   tree initial;
 
   /* Final value.  */
   tree final;
-                                 
+
   /* Increment.  */
   tree incr;
 };
@@ -700,7 +700,7 @@ struct GTY(()) gimple_statement_omp_single {
 };
 
 
-/* GIMPLE_OMP_ATOMIC_LOAD.  
+/* GIMPLE_OMP_ATOMIC_LOAD.
    Note: This is based on gimple_statement_base, not g_s_omp, because g_s_omp
    contains a sequence, which we don't need here.  */
 
@@ -768,6 +768,10 @@ extern size_t const gimple_ops_offset_[];
 
 /* Map GIMPLE codes to GSS codes.  */
 extern enum gimple_statement_structure_enum const gss_for_code_[];
+
+/* This variable holds the currently expanded gimple statement for purposes
+   of comminucating the profile info to the builtin expanders.  */
+extern gimple currently_expanding_gimple_stmt;
 
 gimple gimple_build_return (tree);
 
@@ -843,6 +847,7 @@ void gimple_assign_set_rhs_with_ops (gimple_stmt_iterator *, enum tree_code,
 				     tree, tree);
 tree gimple_get_lhs (const_gimple);
 void gimple_set_lhs (gimple, tree);
+void gimple_replace_lhs (gimple, tree);
 gimple gimple_copy (gimple);
 bool is_gimple_operand (const_tree);
 void gimple_set_modified (gimple, bool);
@@ -981,7 +986,7 @@ struct gimplify_ctx
   gimple_seq conditional_cleanups;
   tree exit_label;
   tree return_temp;
-  
+
   VEC(tree,heap) *case_labels;
   /* The formal temporary table.  Should this be persistent?  */
   htab_t temp_htab;
@@ -1097,7 +1102,7 @@ gimple_has_substatements (gimple g)
       return false;
     }
 }
-	  
+
 
 /* Return the basic block holding statement G.  */
 
@@ -2488,7 +2493,7 @@ gimple_goto_dest (const_gimple gs)
 
 /* Set DEST to be the destination of the unconditonal jump GS.  */
 
-static inline void 
+static inline void
 gimple_goto_set_dest (gimple gs, tree dest)
 {
   GIMPLE_CHECK (gs, GIMPLE_GOTO);
@@ -3363,7 +3368,7 @@ gimple_debug_bind_has_value_p (gimple dbg)
 
 /* Return the body for the OMP statement GS.  */
 
-static inline gimple_seq 
+static inline gimple_seq
 gimple_omp_body (gimple gs)
 {
   return gs->omp.body;
@@ -4429,7 +4434,7 @@ gsi_start_bb (basic_block bb)
 {
   gimple_stmt_iterator i;
   gimple_seq seq;
-  
+
   seq = bb_seq (bb);
   i.ptr = gimple_seq_first (seq);
   i.seq = seq;
@@ -4580,7 +4585,7 @@ gsi_last_nondebug_bb (basic_block bb)
 }
 
 /* Return a pointer to the current stmt.
-   
+
   NOTE: You may want to use gsi_replace on the iterator itself,
   as this performs additional bookkeeping that will not be done
   if you simply assign through a pointer returned by gsi_stmt_ptr.  */

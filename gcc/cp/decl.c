@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "tree-inline.h"
 #include "decl.h"
+#include "intl.h"
 #include "output.h"
 #include "except.h"
 #include "toplev.h"
@@ -520,8 +521,6 @@ poplevel (int keep, int reverse, int functionbody)
   /* The chain of decls was accumulated in reverse order.
      Put it into forward order, just for cleanliness.  */
   tree decls;
-  int tmp = functionbody;
-  int real_functionbody;
   tree subblocks;
   tree block;
   tree decl;
@@ -535,8 +534,8 @@ poplevel (int keep, int reverse, int functionbody)
 
   gcc_assert (current_binding_level->kind != sk_class);
 
-  real_functionbody = (current_binding_level->kind == sk_cleanup
-		       ? ((functionbody = 0), tmp) : functionbody);
+  if (current_binding_level->kind == sk_cleanup)
+    functionbody = 0;
   subblocks = functionbody >= 0 ? current_binding_level->blocks : 0;
 
   gcc_assert (!VEC_length(cp_class_binding,
@@ -1049,8 +1048,6 @@ decls_match (tree newdecl, tree olddecl)
 void
 warn_extern_redeclared_static (tree newdecl, tree olddecl)
 {
-  tree name;
-
   if (TREE_CODE (newdecl) == TYPE_DECL
       || TREE_CODE (newdecl) == TEMPLATE_DECL
       || TREE_CODE (newdecl) == CONST_DECL
@@ -1073,7 +1070,6 @@ warn_extern_redeclared_static (tree newdecl, tree olddecl)
       && DECL_ARTIFICIAL (olddecl))
     return;
 
-  name = DECL_ASSEMBLER_NAME (newdecl);
   permerror (input_location, "%qD was declared %<extern%> and later %<static%>", newdecl);
   permerror (input_location, "previous declaration of %q+D", olddecl);
 }
@@ -3122,6 +3118,11 @@ make_typename_type (tree context, tree name, enum tag_types tag_type,
   if (complain & tf_error)
     perform_or_defer_access_check (TYPE_BINFO (context), t, t);
 
+  /* If we are currently parsing a template and if T is a typedef accessed
+     through CONTEXT then we need to remember and check access of T at
+     template instantiation time.  */
+  add_typedef_to_current_template_for_access_check (t, context, input_location);
+
   if (want_template)
     return lookup_template_class (t, TREE_OPERAND (fullname, 1),
 				  NULL_TREE, context,
@@ -4099,7 +4100,6 @@ start_decl (const cp_declarator *declarator,
 	    tree *pushed_scope_p)
 {
   tree decl;
-  tree type;
   tree context;
   bool was_public;
   int flags;
@@ -4121,8 +4121,6 @@ start_decl (const cp_declarator *declarator,
   if (decl == NULL_TREE || TREE_CODE (decl) == VOID_TYPE
       || decl == error_mark_node)
     return error_mark_node;
-
-  type = TREE_TYPE (decl);
 
   context = DECL_CONTEXT (decl);
 
@@ -6746,7 +6744,7 @@ grokfndecl (tree ctype,
 	    }
 	  gcc_assert (TREE_CODE (fns) == IDENTIFIER_NODE
 		      || TREE_CODE (fns) == OVERLOAD);
-	  DECL_TEMPLATE_INFO (decl) = tree_cons (fns, args, NULL_TREE);
+	  DECL_TEMPLATE_INFO (decl) = build_template_info (fns, args);
 
 	  for (t = TYPE_ARG_TYPES (TREE_TYPE (decl)); t; t = TREE_CHAIN (t))
 	    if (TREE_PURPOSE (t)
@@ -7467,38 +7465,44 @@ create_array_type_for_decl (tree name, tree type, tree size)
   /* Assume that everything will go OK.  */
   error_msg = NULL;
 
-  /* There are some types which cannot be array elements.  */
+  /* If there are some types which cannot be array elements,
+     issue an error-message and return.  */
   switch (TREE_CODE (type))
     {
     case VOID_TYPE:
-      error_msg = "array of void";
+      if (name)
+        error ("declaration of %qD as array of void", name);
+      else
+        error ("creating array of void");
+      return error_mark_node;
       break;
 
     case FUNCTION_TYPE:
-      error_msg = "array of functions";
+      if (name)
+        error ("declaration of %qD as array of functions", name);
+      else
+        error ("creating array of functions");
+      return error_mark_node;
       break;
 
     case REFERENCE_TYPE:
-      error_msg = "array of references";
+      if (name)
+        error ("declaration of %qD as array of references", name);
+      else
+        error ("creating array of references");
+      return error_mark_node;
       break;
 
     case METHOD_TYPE:
-      error_msg = "array of function members";
+      if (name)
+        error ("declaration of %qD as array of function members", name);
+      else
+        error ("creating array of function members");
+      return error_mark_node;
       break;
 
     default:
       break;
-    }
-
-  /* If something went wrong, issue an error-message and return.  */
-  if (error_msg)
-    {
-      if (name)
-	error ("declaration of %qD as %s", name, error_msg);
-      else
-	error ("creating %s", error_msg);
-
-      return error_mark_node;
     }
 
   /* [dcl.array]
@@ -8827,7 +8831,7 @@ grokdeclarator (const cp_declarator *declarator,
              membership class as `constexpr'.  */
           if (constexpr_p)
             error ("a constexpr function cannot be defined "
-                   "outside of its class.");
+                   "outside of its class");
 
 	  if (TREE_CODE (sname) == IDENTIFIER_NODE
 	      && NEW_DELETE_OPNAME_P (sname))
@@ -9820,6 +9824,10 @@ type_is_deprecated (tree type)
       && TREE_DEPRECATED (TYPE_NAME (type)))
     return type;
 
+  /* Do warn about using typedefs to a deprecated class.  */
+  if (TAGGED_TYPE_P (type) && type != TYPE_MAIN_VARIANT (type))
+    return type_is_deprecated (TYPE_MAIN_VARIANT (type));
+
   code = TREE_CODE (type);
 
   if (code == POINTER_TYPE || code == REFERENCE_TYPE
@@ -9936,9 +9944,12 @@ grokparms (tree parmlist, tree *parms)
 		  t = TREE_TYPE (t);
 		}
 	      if (TREE_CODE (t) == ARRAY_TYPE)
-		error ("parameter %qD includes %s to array of unknown "
-		       "bound %qT",
-		       decl, ptr ? "pointer" : "reference", t);
+		error (ptr
+                       ? G_("parameter %qD includes pointer to array of "
+                            "unknown bound %qT")
+                       : G_("parameter %qD includes reference to array of "
+                            "unknown bound %qT"),
+                       decl, t);
 	    }
 
 	  if (any_error)
@@ -10385,28 +10396,38 @@ grok_op_properties (tree decl, bool complain)
 	{
 	  tree t = TREE_TYPE (name);
 	  int ref = (TREE_CODE (t) == REFERENCE_TYPE);
-	  const char *what = 0;
 
 	  if (ref)
 	    t = TYPE_MAIN_VARIANT (TREE_TYPE (t));
 
 	  if (TREE_CODE (t) == VOID_TYPE)
-	    what = "void";
+            warning (OPT_Wconversion,
+                     ref
+                     ? G_("conversion to a reference to void "
+                          "will never use a type conversion operator")
+                     : G_("conversion to void "
+                          "will never use a type conversion operator"));
 	  else if (class_type)
 	    {
 	      if (t == class_type)
-		what = "the same type";
+                warning (OPT_Wconversion,
+                     ref
+                     ? G_("conversion to a reference to the same type "
+                          "will never use a type conversion operator")
+                     : G_("conversion to the same type "
+                          "will never use a type conversion operator"));		
 	      /* Don't force t to be complete here.  */
 	      else if (MAYBE_CLASS_TYPE_P (t)
 		       && COMPLETE_TYPE_P (t)
 		       && DERIVED_FROM_P (t, class_type))
-		what = "a base class";
+                 warning (OPT_Wconversion,
+                          ref
+                          ? G_("conversion to a reference to a base class "
+                               "will never use a type conversion operator")
+                          : G_("conversion to a base class "
+                               "will never use a type conversion operator"));		
 	    }
 
-	  if (what)
-	    warning (OPT_Wconversion, "conversion to %s%s will never use a type "
-		     "conversion operator",
-		     ref ? "a reference to " : "", what);
 	}
 
       if (operator_code == COND_EXPR)
@@ -10641,6 +10662,7 @@ check_elaborated_type_specifier (enum tag_types tag_code,
      elaborated type specifier is the implicit typedef created when
      the type is declared.  */
   else if (!DECL_IMPLICIT_TYPEDEF_P (decl)
+	   && !DECL_SELF_REFERENCE_P (decl)
 	   && tag_code != typename_type)
     {
       error ("using typedef-name %qD after %qs", decl, tag_name (tag_code));
@@ -12921,6 +12943,7 @@ cp_tree_node_structure (union lang_tree_node * t)
     case ARGUMENT_PACK_SELECT:  return TS_CP_ARGUMENT_PACK_SELECT;
     case TRAIT_EXPR:		return TS_CP_TRAIT_EXPR;
     case LAMBDA_EXPR:		return TS_CP_LAMBDA_EXPR;
+    case TEMPLATE_INFO:		return TS_CP_TEMPLATE_INFO;
     default:			return TS_CP_GENERIC;
     }
 }

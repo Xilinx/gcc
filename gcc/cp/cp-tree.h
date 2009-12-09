@@ -403,6 +403,30 @@ typedef enum cpp0x_warn_str
   CPP0X_DEFAULTED_DELETED
 } cpp0x_warn_str;
   
+/* The various kinds of operation used by composite_pointer_type. */
+
+typedef enum composite_pointer_operation
+{
+  /* comparison */
+  CPO_COMPARISON,
+  /* conversion */
+  CPO_CONVERSION,
+  /* conditional expression */
+  CPO_CONDITIONAL_EXPR
+} composite_pointer_operation;
+
+/* The various readonly error string used by readonly_error.  */
+typedef enum readonly_error_kind
+{
+  /* assignment */
+  REK_ASSIGNMENT,
+  /* assignment (via 'asm' output) */
+  REK_ASSIGNMENT_ASM,
+  /* increment */
+  REK_INCREMENT,
+  /* decrement */
+  REK_DECREMENT
+} readonly_error_kind;
 
 /* Macros for access to language-specific slots in an identifier.  */
 
@@ -622,6 +646,34 @@ struct GTY (()) tree_lambda_expr
   int discriminator;
 };
 
+/* A (typedef,context,usage location) triplet.
+   It represents a typedef used through a
+   context at a given source location.
+   e.g.
+   struct foo {
+     typedef int myint;
+   };
+
+   struct bar {
+    foo::myint v; // #1<-- this location.
+   };
+
+   In bar, the triplet will be (myint, foo, #1).
+   */
+struct GTY(()) qualified_typedef_usage_s {
+  tree typedef_decl;
+  tree context;
+  location_t locus;
+};
+typedef struct qualified_typedef_usage_s qualified_typedef_usage_t;
+DEF_VEC_O (qualified_typedef_usage_t);
+DEF_VEC_ALLOC_O (qualified_typedef_usage_t,gc);
+
+struct GTY(()) tree_template_info {
+  struct tree_common common;
+  VEC(qualified_typedef_usage_t,gc) *typedefs_needing_access_checking;
+};
+
 enum cp_tree_node_structure_enum {
   TS_CP_GENERIC,
   TS_CP_IDENTIFIER,
@@ -636,6 +688,7 @@ enum cp_tree_node_structure_enum {
   TS_CP_ARGUMENT_PACK_SELECT,
   TS_CP_TRAIT_EXPR,
   TS_CP_LAMBDA_EXPR,
+  TS_CP_TEMPLATE_INFO,
   LAST_TS_CP_ENUM
 };
 
@@ -658,6 +711,8 @@ union GTY((desc ("cp_tree_node_structure (&%h)"),
     trait_expression;
   struct tree_lambda_expr GTY ((tag ("TS_CP_LAMBDA_EXPR")))
     lambda_expression;
+  struct tree_template_info GTY ((tag ("TS_CP_TEMPLATE_INFO")))
+    template_info;
 };
 
 
@@ -1997,6 +2052,10 @@ struct GTY(()) lang_decl {
 /* Discriminator for name mangling.  */
 #define DECL_DISCRIMINATOR(NODE) (LANG_DECL_U2_CHECK (NODE, 1)->discriminator)
 
+/* True iff DECL_DISCRIMINATOR is set for a DECL_DISCRIMINATOR_P decl.  */
+#define DECL_DISCRIMINATOR_SET_P(NODE) \
+  (DECL_LANG_SPECIFIC (NODE) && DECL_LANG_SPECIFIC (NODE)->u.base.u2sel == 1)
+
 /* The index of a user-declared parameter in its function, starting at 1.
    All artificial parameters will have index 0.  */
 #define DECL_PARM_INDEX(NODE) \
@@ -2430,12 +2489,14 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    ? (ENUM_TEMPLATE_INFO (NODE) = (VAL))	\
    : (CLASSTYPE_TEMPLATE_INFO (NODE) = (VAL)))
 
-#define TI_TEMPLATE(NODE) (TREE_PURPOSE (NODE))
-#define TI_ARGS(NODE) (TREE_VALUE (NODE))
+#define TI_TEMPLATE(NODE) TREE_TYPE (TEMPLATE_INFO_CHECK (NODE))
+#define TI_ARGS(NODE) TREE_CHAIN (TEMPLATE_INFO_CHECK (NODE))
 #define TI_PENDING_TEMPLATE_FLAG(NODE) TREE_LANG_FLAG_1 (NODE)
 /* The list of typedefs - used in the template - that need
    access checking at template instantiation time.  */
-#define TI_TYPEDEFS_NEEDING_ACCESS_CHECKING(NODE) (TREE_CHAIN (NODE))
+#define TI_TYPEDEFS_NEEDING_ACCESS_CHECKING(NODE) \
+  ((struct tree_template_info*)TEMPLATE_INFO_CHECK \
+     (NODE))->typedefs_needing_access_checking
 
 /* We use TREE_VECs to hold template arguments.  If there is only one
    level of template arguments, then the TREE_VEC contains the
@@ -4804,7 +4865,8 @@ extern tree check_explicit_specialization	(tree, tree, int, int);
 extern tree make_auto				(void);
 extern tree do_auto_deduction			(tree, tree, tree);
 extern tree type_uses_auto			(tree);
-extern void append_type_to_template_for_access_check (tree, tree, tree);
+extern void append_type_to_template_for_access_check (tree, tree, tree,
+						      location_t);
 extern tree splice_late_return_type		(tree, tree);
 extern bool is_auto				(const_tree);
 extern tree process_template_parm		(tree, location_t, tree, 
@@ -4838,8 +4900,9 @@ extern bool function_parameter_pack_p		(const_tree);
 extern bool function_parameter_expanded_from_pack_p (tree, tree);
 extern tree make_pack_expansion                 (tree);
 extern bool check_for_bare_parameter_packs      (tree);
+extern tree build_template_info			(tree, tree);
 extern tree get_template_info			(const_tree);
-extern tree get_types_needing_access_check	(tree);
+extern VEC(qualified_typedef_usage_t,gc)* get_types_needing_access_check (tree);
 extern int template_class_depth			(tree);
 extern int is_specialization_of			(tree, tree);
 extern bool is_specialization_of_friend		(tree, tree);
@@ -5034,6 +5097,7 @@ extern tree begin_stmt_expr			(void);
 extern tree finish_stmt_expr_expr		(tree, tree);
 extern tree finish_stmt_expr			(tree, bool);
 extern tree stmt_expr_value_expr		(tree);
+bool empty_expr_stmt_p				(tree);
 extern tree perform_koenig_lookup		(tree, VEC(tree,gc) *);
 extern tree finish_call_expr			(tree, VEC(tree,gc) **, bool,
 						 bool, tsubst_flags_t);
@@ -5068,6 +5132,8 @@ extern void finish_mem_initializers		(tree);
 extern tree check_template_template_default_arg (tree);
 extern bool expand_or_defer_fn_1		(tree);
 extern void expand_or_defer_fn			(tree);
+extern void add_typedef_to_current_template_for_access_check (tree, tree,
+							      location_t);
 extern void check_accessibility_of_qualified_id (tree, tree, tree);
 extern tree finish_qualified_id_expr		(tree, tree, bool, bool,
 						 bool, bool);
@@ -5287,7 +5353,8 @@ extern void expand_ptrmemfunc_cst		(tree, tree *, tree *);
 extern tree type_after_usual_arithmetic_conversions (tree, tree);
 extern tree common_pointer_type                 (tree, tree);
 extern tree composite_pointer_type		(tree, tree, tree, tree,
-						 const char*, tsubst_flags_t);
+						 composite_pointer_operation, 
+						 tsubst_flags_t);
 extern tree merge_types				(tree, tree);
 extern tree check_return_expr			(tree, bool *);
 extern tree cp_build_binary_op                  (location_t,
@@ -5316,7 +5383,7 @@ extern void cxx_incomplete_type_error		(const_tree, const_tree);
   (cxx_incomplete_type_diagnostic ((V), (T), DK_ERROR))
 extern tree error_not_base_type			(tree, tree);
 extern tree binfo_or_else			(tree, tree);
-extern void readonly_error			(tree, const char *);
+extern void readonly_error			(tree, readonly_error_kind);
 extern void complete_type_check_abstract	(tree);
 extern int abstract_virtuals_error		(tree, tree);
 

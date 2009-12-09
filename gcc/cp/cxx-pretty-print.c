@@ -203,7 +203,8 @@ pp_cxx_unqualified_id (cxx_pretty_printer *pp, tree t)
       if (CLASS_TYPE_P (t) && CLASSTYPE_USE_TEMPLATE (t))
 	{
 	  pp_cxx_begin_template_argument_list (pp);
-	  pp_cxx_template_argument_list (pp, CLASSTYPE_TI_ARGS (t));
+	  pp_cxx_template_argument_list (pp, INNERMOST_TEMPLATE_ARGS
+                                                 (CLASSTYPE_TI_ARGS (t)));
 	  pp_cxx_end_template_argument_list (pp);
 	}
       break;
@@ -1090,6 +1091,10 @@ pp_cxx_expression (cxx_pretty_printer *pp, tree t)
     case EXPR_PACK_EXPANSION:
       pp_cxx_expression (pp, PACK_EXPANSION_PATTERN (t));
       pp_cxx_ws_string (pp, "...");
+      break;
+
+    case TEMPLATE_ID_EXPR:
+      pp_cxx_template_id (pp, t);
       break;
 
     case NONTYPE_ARGUMENT_PACK:

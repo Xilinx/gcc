@@ -189,7 +189,8 @@ static tree tsubst_copy	(tree, tree, tsubst_flags_t, tree);
 static tree tsubst_pack_expansion (tree, tree, tsubst_flags_t, tree);
 static tree tsubst_decl (tree, tree, tsubst_flags_t);
 static void perform_typedefs_access_check (tree tmpl, tree targs);
-static void append_type_to_template_for_access_check_1 (tree, tree, tree);
+static void append_type_to_template_for_access_check_1 (tree, tree, tree,
+							location_t);
 static hashval_t iterative_hash_template_arg (tree arg, hashval_t val);
 static tree listify (tree);
 static tree listify_autos (tree, tree);
@@ -284,6 +285,17 @@ finish_member_template_decl (tree decl)
     error ("invalid member template declaration %qD", decl);
 
   return error_mark_node;
+}
+
+/* Create a template info node.  */
+
+tree
+build_template_info (tree template_decl, tree template_args)
+{
+  tree result = make_node (TEMPLATE_INFO);
+  TI_TEMPLATE (result) = template_decl;
+  TI_ARGS (result) = template_args;
+  return result;
 }
 
 /* Return the template info node corresponding to T, whatever T is.  */
@@ -1634,29 +1646,36 @@ explicit_class_specialization_p (tree type)
   return !uses_template_parms (CLASSTYPE_TI_ARGS (type));
 }
 
+/* Print the list of overloaded FNS in an error message.   */
+
+static void
+print_overloaded_functions (tree fns, const char **str)
+{
+  tree fn;
+  for (fn = fns; fn; fn = OVL_NEXT (fn))
+    {
+      if (TREE_CODE (fn) == TREE_LIST)
+	print_candidates (fn);
+      else
+	error ("%s %+#D", *str, OVL_CURRENT (fn));
+      *str = "               ";
+    }
+}
+
 /* Print the list of candidate FNS in an error message.  */
 
 void
 print_candidates (tree fns)
 {
-  tree fn;
-  tree f;
-
   const char *str = "candidates are:";
 
   if (is_overloaded_fn (fns))
+    print_overloaded_functions (fns, &str);
+  else
     {
-      for (f = fns; f; f = OVL_NEXT (f))
-	{
-	  error ("%s %+#D", str, OVL_CURRENT (f));
-	  str = "               ";
-	}
-    }
-  else for (fn = fns; fn != NULL_TREE; fn = TREE_CHAIN (fn))
-    {
-      for (f = TREE_VALUE (fn); f; f = OVL_NEXT (f))
-	error ("%s %+#D", str, OVL_CURRENT (f));
-      str = "               ";
+      tree fn;
+      for (fn = fns; fn != NULL_TREE; fn = TREE_CHAIN (fn))
+	print_overloaded_functions (TREE_VALUE (fn), &str);
     }
 }
 
@@ -1933,6 +1952,10 @@ determine_specialization (tree template_id,
     {
       error ("template-id %qD for %q+D does not match any template "
 	     "declaration", template_id, decl);
+      if (header_count && header_count != template_count + 1)
+	inform (input_location, "saw %d %<template<>%>, need %d for "
+		"specializing a member function template",
+		header_count, template_count + 1);
       return error_mark_node;
     }
   else if ((templates && TREE_CHAIN (templates))
@@ -2492,7 +2515,7 @@ check_explicit_specialization (tree declarator,
 	    }
 
 	  /* Set up the DECL_TEMPLATE_INFO for DECL.  */
-	  DECL_TEMPLATE_INFO (decl) = tree_cons (tmpl, targs, NULL_TREE);
+	  DECL_TEMPLATE_INFO (decl) = build_template_info (tmpl, targs);
 
 	  /* Inherit default function arguments from the template
 	     DECL is specializing.  */
@@ -2900,7 +2923,7 @@ find_parameter_packs_r (tree *tp, int *walk_subtrees, void* data)
     case UNION_TYPE:
     case ENUMERAL_TYPE:
       if (TYPE_TEMPLATE_INFO (t))
-	cp_walk_tree (&TREE_VALUE (TYPE_TEMPLATE_INFO (t)), 
+	cp_walk_tree (&TI_ARGS (TYPE_TEMPLATE_INFO (t)),
 		      &find_parameter_packs_r, ppd, ppd->visited);
 
       *walk_subtrees = 0;
@@ -3795,12 +3818,11 @@ process_partial_specialization (tree decl)
                   || (!packed_args && i < nargs - 1))
                 {
                   if (TREE_CODE (arg) == EXPR_PACK_EXPANSION)
-                    error ("parameter pack argument %qE must be at the end of the template argument list", arg);
+                    error ("parameter pack argument %qE must be at the "
+			   "end of the template argument list", arg);
                   else
-                    error ("parameter pack argument %qT must be at the end of the template argument list", arg);
-
-		  if (packed_args)
-		    TREE_VEC_ELT (packed_args, j) = error_mark_node;
+                    error ("parameter pack argument %qT must be at the "
+			   "end of the template argument list", arg);
                 }
             }
 
@@ -4352,7 +4374,7 @@ push_template_decl_real (tree decl, bool is_friend)
 	  DECL_TI_TEMPLATE (decl) = new_tmpl;
 	  SET_DECL_TEMPLATE_SPECIALIZATION (new_tmpl);
 	  DECL_TEMPLATE_INFO (new_tmpl)
-	    = tree_cons (tmpl, args, NULL_TREE);
+	    = build_template_info (tmpl, args);
 
 	  register_specialization (new_tmpl,
 				   most_general_template (tmpl),
@@ -4471,7 +4493,7 @@ template arguments to %qD do not match original template %qD",
   if (DECL_TEMPLATE_INFO (tmpl))
     args = add_outermost_template_args (DECL_TI_ARGS (tmpl), args);
 
-  info = tree_cons (tmpl, args, NULL_TREE);
+  info = build_template_info (tmpl, args);
 
   if (DECL_IMPLICIT_TYPEDEF_P (decl))
     SET_TYPE_TEMPLATE_INFO (TREE_TYPE (tmpl), info);
@@ -5370,6 +5392,22 @@ convert_template_argument (tree parm,
   if (TREE_CODE (arg) == TYPE_PACK_EXPANSION)
     arg = PACK_EXPANSION_PATTERN (arg);
 
+  /* Deal with an injected-class-name used as a template template arg.  */
+  if (requires_tmpl_type && CLASS_TYPE_P (arg))
+    {
+      tree t = maybe_get_template_decl_from_type_decl (TYPE_NAME (arg));
+      if (TREE_CODE (t) == TEMPLATE_DECL)
+	{
+	  if (complain & tf_warning_or_error)
+	    pedwarn (input_location, OPT_pedantic, "injected-class-name %qD"
+		     " used as template template argument", TYPE_NAME (arg));
+	  else if (flag_pedantic_errors)
+	    t = arg;
+
+	  arg = t;
+	}
+    }
+
   is_tmpl_type = 
     ((TREE_CODE (arg) == TEMPLATE_DECL
       && TREE_CODE (DECL_TEMPLATE_RESULT (arg)) == TYPE_DECL)
@@ -5487,6 +5525,13 @@ convert_template_argument (tree parm,
 	 themselves also use the typedef.  */
       if (TYPE_P (val))
 	val = strip_typedefs (val);
+    }
+  else if (TREE_CODE (orig_arg) == SCOPE_REF)
+    {
+      /* Strip typedefs from the SCOPE_REF.  */
+      tree type = strip_typedefs (TREE_TYPE (orig_arg));
+      tree scope = strip_typedefs (TREE_OPERAND (orig_arg, 0));
+      val = build2 (SCOPE_REF, type, scope, TREE_OPERAND (orig_arg, 1));
     }
   else
     {
@@ -6433,7 +6478,7 @@ lookup_template_class (tree d1,
 	  found = CLASSTYPE_TI_TEMPLATE (found);
 	}
 
-      SET_TYPE_TEMPLATE_INFO (t, tree_cons (found, arglist, NULL_TREE));
+      SET_TYPE_TEMPLATE_INFO (t, build_template_info (found, arglist));
 
       elt.spec = t;
       slot = (spec_entry **) htab_find_slot_with_hash (type_specializations,
@@ -6509,7 +6554,7 @@ for_each_template_parm_r (tree *tp, int *walk_subtrees, void *d)
     case ENUMERAL_TYPE:
       if (!TYPE_TEMPLATE_INFO (t))
 	*walk_subtrees = 0;
-      else if (for_each_template_parm (TREE_VALUE (TYPE_TEMPLATE_INFO (t)),
+      else if (for_each_template_parm (TI_ARGS (TYPE_TEMPLATE_INFO (t)),
 				       fn, data, pfd->visited, 
 				       pfd->include_nondeduced_p))
 	return error_mark_node;
@@ -7365,17 +7410,24 @@ apply_late_template_attributes (tree *decl_p, tree attributes, int attr_flags,
 static void
 perform_typedefs_access_check (tree tmpl, tree targs)
 {
-  tree t;
+  location_t saved_location;
+  int i;
+  qualified_typedef_usage_t *iter;
 
   if (!tmpl
       || (!CLASS_TYPE_P (tmpl)
 	  && TREE_CODE (tmpl) != FUNCTION_DECL))
     return;
 
-  for (t = get_types_needing_access_check (tmpl); t; t = TREE_CHAIN (t))
+  saved_location = input_location;
+  for (i = 0;
+       VEC_iterate (qualified_typedef_usage_t,
+		    get_types_needing_access_check (tmpl),
+		    i, iter);
+	++i)
     {
-      tree type_decl = TREE_PURPOSE (t);
-      tree type_scope = TREE_VALUE (t);
+      tree type_decl = iter->typedef_decl;
+      tree type_scope = iter->context;
 
       if (!type_decl || !type_scope || !CLASS_TYPE_P (type_scope))
 	continue;
@@ -7385,9 +7437,13 @@ perform_typedefs_access_check (tree tmpl, tree targs)
       if (uses_template_parms (type_scope))
 	type_scope = tsubst (type_scope, targs, tf_error, NULL_TREE);
 
+      /* Make access check error messages point to the location
+         of the use of the typedef.  */
+      input_location = iter->locus;
       perform_or_defer_access_check (TYPE_BINFO (type_scope),
 				     type_decl, type_decl);
     }
+    input_location = saved_location;
 }
 
 tree
@@ -7951,7 +8007,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
 {
   tree pattern;
   tree pack, packs = NULL_TREE, unsubstituted_packs = NULL_TREE;
-  tree first_arg_pack; int i, len = -1;
+  int i, len = -1;
   tree result;
   int incomplete = 0;
   bool very_local_specializations = false;
@@ -8035,10 +8091,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
             incomplete = 1;
 
           if (len < 0)
-            {
-              len = my_len;
-              first_arg_pack = arg_pack;
-            }
+	    len = my_len;
           else if (len != my_len)
             {
 	      if (incomplete)
@@ -8639,7 +8692,7 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	gcc_assert (DECL_LANG_SPECIFIC (r) != 0);
 	TREE_CHAIN (r) = NULL_TREE;
 
-	DECL_TEMPLATE_INFO (r) = build_tree_list (t, args);
+	DECL_TEMPLATE_INFO (r) = build_template_info (t, args);
 
 	if (TREE_CODE (decl) == TYPE_DECL)
 	  {
@@ -8868,7 +8921,7 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	if (gen_tmpl)
 	  {
 	    DECL_TEMPLATE_INFO (r)
-	      = tree_cons (gen_tmpl, argvec, NULL_TREE);
+	      = build_template_info (gen_tmpl, argvec);
 	    SET_DECL_IMPLICIT_INSTANTIATION (r);
 	    register_specialization (r, gen_tmpl, argvec, false, hash);
 
@@ -9282,7 +9335,7 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	    DECL_EXTERNAL (r) = 1;
 
 	    register_specialization (r, gen_tmpl, argvec, false, hash);
-	    DECL_TEMPLATE_INFO (r) = tree_cons (tmpl, argvec, NULL_TREE);
+	    DECL_TEMPLATE_INFO (r) = build_template_info (tmpl, argvec);
 	    SET_DECL_IMPLICIT_INSTANTIATION (r);
 	  }
 	else if (cp_unevaluated_operand)
@@ -9891,7 +9944,7 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 		      return error_mark_node;
 
 		    TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (r)
-		      = tree_cons (TYPE_TI_TEMPLATE (t), argvec, NULL_TREE);
+		      = build_template_info (TYPE_TI_TEMPLATE (t), argvec);
 		  }
 	      }
 	    break;
@@ -9988,10 +10041,10 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	      {
 		if (TREE_CODE (type) == VOID_TYPE)
 		  error ("forming reference to void");
-		else
-		  error ("forming %s to reference type %qT",
-			 (code == POINTER_TYPE) ? "pointer" : "reference",
-			 type);
+               else if (code == POINTER_TYPE)
+                 error ("forming pointer to reference type %qT", type);
+               else
+		  error ("forming reference to reference type %qT", type);
 		last_loc = input_location;
 	      }
 
@@ -12494,6 +12547,11 @@ tsubst_copy_and_build (tree t,
 		     integral_constant_expression_p);
 	stmt_expr = finish_stmt_expr (stmt_expr, false);
 	cur_stmt_expr = old_stmt_expr;
+
+	/* If the resulting list of expression statement is empty,
+	   fold it further into void_zero_node.  */
+	if (empty_expr_stmt_p (stmt_expr))
+	  stmt_expr = void_zero_node;
 
 	return stmt_expr;
       }
@@ -18064,28 +18122,29 @@ type_uses_auto (tree type)
   return NULL_TREE;
 }
 
-/* For a given template T, return the list of typedefs referenced
+/* For a given template T, return the vector of typedefs referenced
    in T for which access check is needed at T instantiation time.
    T is either  a FUNCTION_DECL or a RECORD_TYPE.
    Those typedefs were added to T by the function
    append_type_to_template_for_access_check.  */
 
-tree
+VEC(qualified_typedef_usage_t,gc)*
 get_types_needing_access_check (tree t)
 {
-  tree ti, result = NULL_TREE;
+  tree ti;
+  VEC(qualified_typedef_usage_t,gc) *result = NULL;
 
   if (!t || t == error_mark_node)
-    return t;
+    return NULL;
 
   if (!(ti = get_template_info (t)))
-    return NULL_TREE;
+    return NULL;
 
   if (CLASS_TYPE_P (t)
       || TREE_CODE (t) == FUNCTION_DECL)
     {
       if (!TI_TEMPLATE (ti))
-	return NULL_TREE;
+	return NULL;
 
       result = TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (ti);
     }
@@ -18099,6 +18158,7 @@ get_types_needing_access_check (tree t)
    T is either a FUNCTION_DECL or a RECORD_TYPE.
    TYPE_DECL is a TYPE_DECL node representing a typedef.
    SCOPE is the scope through which TYPE_DECL is accessed.
+   LOCATION is the location of the usage point of TYPE_DECL.
 
    This function is a subroutine of
    append_type_to_template_for_access_check.  */
@@ -18106,8 +18166,10 @@ get_types_needing_access_check (tree t)
 static void
 append_type_to_template_for_access_check_1 (tree t,
 					    tree type_decl,
-					    tree scope)
+					    tree scope,
+					    location_t location)
 {
+  qualified_typedef_usage_t typedef_usage;
   tree ti;
 
   if (!t || t == error_mark_node)
@@ -18124,14 +18186,20 @@ append_type_to_template_for_access_check_1 (tree t,
 
   gcc_assert (TI_TEMPLATE (ti));
 
-  TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (ti) =
-    tree_cons (type_decl, scope, TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (ti));
+  typedef_usage.typedef_decl = type_decl;
+  typedef_usage.context = scope;
+  typedef_usage.locus = location;
+
+  VEC_safe_push (qualified_typedef_usage_t, gc,
+		 TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (ti),
+		 &typedef_usage);
 }
 
 /* Append TYPE_DECL to the template TEMPL.
    TEMPL is either a class type, a FUNCTION_DECL or a a TEMPLATE_DECL.
    At TEMPL instanciation time, TYPE_DECL will be checked to see
    if it can be accessed through SCOPE.
+   LOCATION is the location of the usage point of TYPE_DECL.
 
    e.g. consider the following code snippet:
 
@@ -18142,7 +18210,7 @@ append_type_to_template_for_access_check_1 (tree t,
 
      template<class U> struct S
      {
-       C::myint mi;
+       C::myint mi; // <-- usage point of the typedef C::myint
      };
 
      S<char> s;
@@ -18159,25 +18227,25 @@ append_type_to_template_for_access_check_1 (tree t,
 void
 append_type_to_template_for_access_check (tree templ,
                                           tree type_decl,
-					  tree scope)
+					  tree scope,
+					  location_t location)
 {
-  tree node;
+  qualified_typedef_usage_t *iter;
+  int i;
 
   gcc_assert (type_decl && (TREE_CODE (type_decl) == TYPE_DECL));
 
   /* Make sure we don't append the type to the template twice.  */
-  for (node = get_types_needing_access_check (templ);
-       node;
-       node = TREE_CHAIN (node))
-    {
-      tree decl = TREE_PURPOSE (node);
-      tree type_scope = TREE_VALUE (node);
+  for (i = 0;
+       VEC_iterate (qualified_typedef_usage_t,
+		    get_types_needing_access_check (templ),
+		    i, iter);
+       ++i)
+    if (iter->typedef_decl == type_decl && scope == iter->context)
+      return;
 
-      if (decl == type_decl && type_scope == scope)
-	return;
-    }
-
-  append_type_to_template_for_access_check_1 (templ, type_decl, scope);
+  append_type_to_template_for_access_check_1 (templ, type_decl,
+					      scope, location);
 }
 
 /* Set up the hash tables for template instantiations.  */

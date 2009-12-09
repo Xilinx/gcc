@@ -279,7 +279,7 @@ find_released_ssa_name (tree *tp, int *walk_subtrees, void *data_)
 {
   struct walk_stmt_info *wi = (struct walk_stmt_info *) data_;
 
-  if (wi->is_lhs)
+  if (wi && wi->is_lhs)
     return NULL_TREE;
 
   if (TREE_CODE (*tp) == SSA_NAME)
@@ -312,9 +312,13 @@ insert_debug_temp_for_var_def (gimple_stmt_iterator *gsi, tree var)
   if (!MAY_HAVE_DEBUG_STMTS)
     return;
 
-  /* First of all, check whether there are debug stmts that reference
-     this variable and, if there are, decide whether we should use a
-     debug temp.  */
+  /* If this name has already been registered for replacement, do nothing
+     as anything that uses this name isn't in SSA form.  */
+  if (name_registered_for_update_p (var))
+    return;
+
+  /* Check whether there are debug stmts that reference this variable and,
+     if there are, decide whether we should use a debug temp.  */
   FOR_EACH_IMM_USE_FAST (use_p, imm_iter, var)
     {
       stmt = USE_STMT (use_p);
@@ -346,7 +350,13 @@ insert_debug_temp_for_var_def (gimple_stmt_iterator *gsi, tree var)
   /* If we didn't get an insertion point, and the stmt has already
      been removed, we won't be able to insert the debug bind stmt, so
      we'll have to drop debug information.  */
-  if (is_gimple_assign (def_stmt))
+  if (gimple_code (def_stmt) == GIMPLE_PHI)
+    {
+      value = degenerate_phi_result (def_stmt);
+      if (value && walk_tree (&value, find_released_ssa_name, NULL, NULL))
+	value = NULL;
+    }
+  else if (is_gimple_assign (def_stmt))
     {
       bool no_value = false;
 
@@ -408,6 +418,7 @@ insert_debug_temp_for_var_def (gimple_stmt_iterator *gsi, tree var)
 	 at the expense of duplication of expressions.  */
 
       if (CONSTANT_CLASS_P (value)
+	  || gimple_code (def_stmt) == GIMPLE_PHI
 	  || (usecount == 1
 	      && (!gimple_assign_single_p (def_stmt)
 		  || is_gimple_min_invariant (value)))
@@ -478,7 +489,7 @@ insert_debug_temps_for_defs (gimple_stmt_iterator *gsi)
 
   stmt = gsi_stmt (*gsi);
 
-  FOR_EACH_SSA_DEF_OPERAND (def_p, stmt, op_iter, SSA_OP_DEF)
+  FOR_EACH_PHI_OR_STMT_DEF (def_p, stmt, op_iter, SSA_OP_DEF)
     {
       tree var = DEF_FROM_PTR (def_p);
 
@@ -718,7 +729,7 @@ verify_use (basic_block bb, basic_block def_bb, use_operand_p use_p,
       err = true;
     }
 
-  /* Make sure the use is in an appropriate list by checking the previous 
+  /* Make sure the use is in an appropriate list by checking the previous
      element to make sure it's the same.  */
   if (use_p->prev == NULL)
     {
@@ -1037,7 +1048,7 @@ verify_ssa (bool check_modified_stmt)
     free_dominance_info (CDI_DOMINATORS);
   else
     set_dom_info_availability (CDI_DOMINATORS, orig_dom_state);
-  
+
   BITMAP_FREE (names_defined_in_bb);
   timevar_pop (TV_TREE_SSA_VERIFY);
   return;
@@ -1107,9 +1118,9 @@ void
 init_tree_ssa (struct function *fn)
 {
   fn->gimple_df = GGC_CNEW (struct gimple_df);
-  fn->gimple_df->referenced_vars = htab_create_ggc (20, uid_decl_map_hash, 
+  fn->gimple_df->referenced_vars = htab_create_ggc (20, uid_decl_map_hash,
 				     		    uid_decl_map_eq, NULL);
-  fn->gimple_df->default_defs = htab_create_ggc (20, uid_ssaname_map_hash, 
+  fn->gimple_df->default_defs = htab_create_ggc (20, uid_ssaname_map_hash,
 				                 uid_ssaname_map_eq, NULL);
   pt_solution_reset (&fn->gimple_df->escaped);
   pt_solution_reset (&fn->gimple_df->callused);
@@ -1131,9 +1142,11 @@ delete_tree_ssa (void)
     {
       if (is_global_var (var))
 	continue;
-      if (var->base.ann)
-        ggc_free (var->base.ann);
-      var->base.ann = NULL;
+      if (var_ann (var))
+	{
+	  ggc_free (var_ann (var));
+	  *DECL_VAR_ANN_PTR (var) = NULL;
+	}
     }
   htab_delete (gimple_referenced_vars (cfun));
   cfun->gimple_df->referenced_vars = NULL;
@@ -1435,7 +1448,7 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
   else if (AGGREGATE_TYPE_P (inner_type)
 	   && TREE_CODE (inner_type) == TREE_CODE (outer_type))
     return false;
-  
+
   return false;
 }
 
@@ -1485,7 +1498,7 @@ tree_ssa_strip_useless_type_conversions (tree exp)
 
 /* Internal helper for walk_use_def_chains.  VAR, FN and DATA are as
    described in walk_use_def_chains.
-   
+
    VISITED is a pointer set used to mark visited SSA_NAMEs to avoid
       infinite loops.  We used to have a bitmap for this to just mark
       SSA versions we had visited.  But non-sparse bitmaps are way too
@@ -1543,10 +1556,10 @@ walk_use_def_chains_1 (tree var, walk_use_def_chains_fn fn, void *data,
 	  if (fn (gimple_phi_arg_def (def_stmt, i), def_stmt, data))
 	    return true;
     }
-  
+
   return false;
 }
-  
+
 
 
 /* Walk use-def chains starting at the SSA variable VAR.  Call
@@ -1554,7 +1567,7 @@ walk_use_def_chains_1 (tree var, walk_use_def_chains_fn fn, void *data,
    arguments: VAR, its defining statement (DEF_STMT) and a generic
    pointer to whatever state information that FN may want to maintain
    (DATA).  FN is able to stop the walk by returning true, otherwise
-   in order to continue the walk, FN should return false.  
+   in order to continue the walk, FN should return false.
 
    Note, that if DEF_STMT is a PHI node, the semantics are slightly
    different.  The first argument to FN is no longer the original
@@ -1648,7 +1661,7 @@ warn_uninit (tree t, const char *gmsgid, void *data)
   /* Do not warn if it can be initialized outside this module.  */
   if (is_global_var (var))
     return;
-  
+
   location = (context != NULL && gimple_has_location (context))
 	     ? gimple_location (context)
 	     : DECL_SOURCE_LOCATION (var);
@@ -1705,7 +1718,7 @@ warn_uninitialized_var (tree *tp, int *walk_subtrees, void *data_)
 	use_operand_p vuse;
 	tree op;
 
-	/* If there is not gimple stmt, 
+	/* If there is not gimple stmt,
 	   or alias information has not been computed,
 	   then we cannot check VUSE ops.  */
 	if (data->stmt == NULL)
@@ -1720,7 +1733,7 @@ warn_uninitialized_var (tree *tp, int *walk_subtrees, void *data_)
 	  return NULL_TREE;
 
 	op = USE_FROM_PTR (vuse);
-	if (t != SSA_NAME_VAR (op) 
+	if (t != SSA_NAME_VAR (op)
 	    || !SSA_NAME_IS_DEFAULT_DEF (op))
 	  return NULL_TREE;
 	/* If this is a VUSE of t and it is the default definition,
@@ -1919,7 +1932,7 @@ execute_update_addresses_taken (bool do_optimize)
 	  if (code == GIMPLE_ASSIGN || code == GIMPLE_CALL)
 	    {
               tree lhs = gimple_get_lhs (stmt);
-              
+
               /* We may not rewrite TMR_SYMBOL to SSA.  */
               if (lhs && TREE_CODE (lhs) == TARGET_MEM_REF
                   && TMR_SYMBOL (lhs))

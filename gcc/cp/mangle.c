@@ -1577,11 +1577,11 @@ discriminator_for_local_entity (tree entity)
 {
   if (DECL_DISCRIMINATOR_P (entity))
     {
-      if (DECL_LANG_SPECIFIC (entity))
+      if (DECL_DISCRIMINATOR_SET_P (entity))
 	return DECL_DISCRIMINATOR (entity);
       else
 	/* The first entity with a particular name doesn't get
-	   DECL_LANG_SPECIFIC/DECL_DISCRIMINATOR.  */
+	   DECL_DISCRIMINATOR set up.  */
 	return 0;
     }
   else if (TREE_CODE (entity) == TYPE_DECL)
@@ -2809,8 +2809,6 @@ static void
 write_template_param (const tree parm)
 {
   int parm_index;
-  int parm_level;
-  tree parm_type = NULL_TREE;
 
   MANGLE_TRACE_TREE ("template-parm", parm);
 
@@ -2820,13 +2818,10 @@ write_template_param (const tree parm)
     case TEMPLATE_TEMPLATE_PARM:
     case BOUND_TEMPLATE_TEMPLATE_PARM:
       parm_index = TEMPLATE_TYPE_IDX (parm);
-      parm_level = TEMPLATE_TYPE_LEVEL (parm);
       break;
 
     case TEMPLATE_PARM_INDEX:
       parm_index = TEMPLATE_PARM_IDX (parm);
-      parm_level = TEMPLATE_PARM_LEVEL (parm);
-      parm_type = TREE_TYPE (TEMPLATE_PARM_DECL (parm));
       break;
 
     default:
