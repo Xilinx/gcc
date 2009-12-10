@@ -3564,6 +3564,7 @@ routine procedures.}#
 	 (conslibind (multiple_nth cbind -1))
 	 (nletrec (get_field :nconsb_nletrec conslibind))
 	 (nrecbinds (get_field :nletrec_bindings nletrec))
+	 (nlocsyms (get_field :nletrec_locsyms nletrec))
 	 (firstpairbind (multiple_nth cbind 0))
 	 (lastpairbind (multiple_nth cbind -2))
 	 )
@@ -3590,16 +3591,28 @@ routine procedures.}#
       (let ( (curcbind  (multiple_nth cbind nix)) 
 	     (nextcbind  (multiple_nth cbind (+i 1 nix)))
 	     (nextpairsymb (if (is_a nextcbind class_normal_constructed_list_binding)
-			    (get_field :binder nextcbind)))
+			       (get_field :binder nextcbind)))
 	     )
 	(debug_msg curcbind "normletrec_list curcbind")
 	(debug_msg nextcbind "normletrec_list nextcbind")
 	(debug_msg nextpairsymb "normletrec_list nextpairsymb")
 	(assert_msg "check curcbind" (is_a curcbind class_normal_constructed_pair_binding))
-	(put_fields curcbind
-	 :npairb_head curnarg
-	 :npairb_tail nextpairsymb)
-	))
+	(if nextpairsymb
+	    (let ( (nextpairloc ()) )
+	      ;; find in nlocsyms the locsymocc bound to nextpairsymb
+	      (foreach_in_multiple
+	       (nlocsyms)
+	       (curlocsym :long locsymix)
+	       (if (== (get_field :nocc_symb curlocsym) nextpairsymb)
+		   (progn 
+		     (setq locsymix -1)
+		     (setq nextpairloc curlocsym))))
+	      (debug_msg nextpairloc "normletrec_list got nextpairloc")
+	      (put_fields curcbind
+			  :npairb_head curnarg
+			  :npairb_tail nextpairloc)
+	      (debug_msg curcbind "normletrec_list updated curcbind")
+	      ))))
      (debug_msg firstpairbind "normletrec_list firstpairbind")
      (debug_msg lastpairbind "normletrec_list lastpairbind")
      (debug_msg conslibind "normletrec_list conslibind again")
@@ -3654,7 +3667,7 @@ routine procedures.}#
   (debug_msg symb "normletrec_instance symb")
   (debug_msg cbind "normletrec_instance cbind")
   (let ( (loc (or (unsafe_get_field :loca_location cexpr) sloc))
-	 (bcomp (get_field :ntupb_comp cbind))
+	 (bslots (get_field :ninstb_slots cbind))
 	 (nletrec (get_field :nconsb_nletrec cbind))
 	 (nrecbinds (get_field :nletrec_bindings nletrec))
 	 (sclass (unsafe_get_field :smins_class cexpr))
@@ -3692,11 +3705,24 @@ routine procedures.}#
 		  )))))
 	   )
       (debug_msg nfields "normletrec_instance nfields")
-      (compile_warning "unimplemented normletrec_instance")
-      (assert_msg "@$@unimplemented normletrec_instance" ())
+      (foreach_in_multiple
+       (nfields)
+       (curnfieldass :long fldix)
+       (debug_msg curnfieldass "normletrec_instance curnfieldass")
+       (let ( (curfield (get_field :nfla_field curnfieldass)) 
+	      (curfval (get_field :nfla_val curnfieldass))
+	      (:long curfoff (get_int curfield))
+	      )
+	 (assert_msg "check curfield " (is_a curfield class_field))
+	 (multiple_put_nth bslots curfoff curfval)
+       ))
+      (list_append2list nrecbinds bindlist)
+      (debug_msg nrecbinds "normletrec_instance ended updated nrecbinds")
       )
     ))
 (install_method class_source_instance normal_letrec_constructive normletrec_instance)
+
+
 
 ;;;;;;;;;;;;;;;;
 (defun normexp_letrec (recv env ncx psloc)

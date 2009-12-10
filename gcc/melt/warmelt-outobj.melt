@@ -214,12 +214,6 @@
       (add2sbuf_longdec sbuf (multiple_length odslots))
       (add2sbuf_strconst sbuf ";")
       (add2sbuf_indentnl sbuf depth)
-      (add2sbuf_strconst sbuf "melt_object_set_serial((meltobject_ptr_t) (&")
-      (add2sbuf_string sbuf ptrstr)
-      (add2sbuf_strconst sbuf "->")
-      (add2sbuf_string sbuf oname)
-      (add2sbuf_strconst sbuf "));")
-      (add2sbuf_indentnl sbuf depth)
       ;; output the fill
       )
     )
@@ -630,6 +624,42 @@
 
 
 
+;;;; pairs
+(defun outdeclinit_objinitpair (recv sbuf)
+  (add2sbuf_strconst sbuf " struct meltpair_st ")
+  (add2sbuf_string sbuf (unsafe_get_field :named_name recv))
+  (add2sbuf_strconst sbuf ";")
+  )
+(install_method class_objinitpair output_c_declinit outdeclinit_objinitpair)
+
+(defun outcinitfill_objinitpair (recv sbuf ptrstr :long depth)
+  (assert_msg "outcinitfill_objinitpair check recv" (is_a recv class_objinitpair))
+  (debug_msg recv "outcinitfill_objinitpair recv")
+  (debug_msg ptrstr "outcinitfill_objinitpair ptrstr")
+  (assert_msg "outcinitfill_objinitpair check ptrstr" (is_string ptrstr))
+  (compile_warning "outcinitfill_objinitpair unimplemented")
+  (assert_msg "$@$unimplemented outcinitfill_objinitpair" ())
+)
+(install_method class_objinitpair output_c_initial_fill outcinitfill_objinitpair)
+;;;;;;;;;;;;;;;;
+
+;;;; lists
+(defun outdeclinit_objinitlist (recv sbuf)
+  (add2sbuf_strconst sbuf " struct meltlist_st ")
+  (add2sbuf_string sbuf (unsafe_get_field :named_name recv))
+  (add2sbuf_strconst sbuf ";")
+  )
+(install_method class_objinitlist output_c_declinit outdeclinit_objinitlist)
+
+(defun outcinitfill_objinitlist (recv sbuf ptrstr :long depth)
+  (assert_msg "outcinitfill_objinitlist check recv" (is_a recv class_objinitlist))
+  (debug_msg recv "outcinitfill_objinitlist recv")
+  (debug_msg ptrstr "outcinitfill_objinitlist ptrstr")
+  (assert_msg "outcinitfill_objinitlist check ptrstr" (is_string ptrstr))
+  (compile_warning "outcinitfill_objinitlist unimplemented")
+  (assert_msg "$@$unimplemented outcinitfill_objinitlist" ())
+)
+(install_method class_objinitlist output_c_initial_fill outcinitfill_objinitlist)
 ;;;;;;;;;;;;;;;;
 
 (defun outpucod_anydiscr (any declbuf implbuf :long depth)

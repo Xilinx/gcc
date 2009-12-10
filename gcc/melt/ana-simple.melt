@@ -256,7 +256,6 @@
   (assert_msg "check self" (is_a self class_smallabstractenv))
   (let ( (dis (discrim self)) 
 	 (out (unsafe_get_field :dbgi_out dbgi)) 
-	 (:long oserial (obj_serial self))
 	 (:long onum (obj_num self)) 
 	 ) 
     (add2sbuf_strconst out "|")
@@ -267,10 +266,6 @@
 	(progn
 	  (add2sbuf_strconst out "#")
 	  (add2sbuf_longdec out onum)))
-    (if oserial
-	(progn
-	  (add2sbuf_strconst out "##")
-	  (add2sbuf_longdec out oserial)))
     (add2sbuf_strconst out "{")
     (let ( (:long offpar (get_int abenv_parenv)) 
 	   (:long offvnam (get_int abenv_vectrees)) 

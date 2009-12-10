@@ -878,9 +878,6 @@ forwarded_copy (melt_ptr_t p)
 	dst->obj_hash = src->obj_hash;
 	dst->obj_num = src->obj_num;
 	dst->obj_len = src->obj_len;
-#if ENABLE_CHECKING
-	dst->obj_serial = src->obj_serial;
-#endif
 	if (oblen > 0)
 	  for (ix = (int) oblen - 1; ix >= 0; ix--)
 	    dst->obj_vartab[ix] = src->obj_vartab[ix];
@@ -2525,39 +2522,7 @@ melt_output_strbuf_to_file (melt_ptr_t sbuf, const char*filnam)
 
 /***************/
 
-#if ENABLE_CHECKING
 
-/* just for debugging */
-unsigned long melt_serial_1, melt_serial_2, melt_serial_3;
-unsigned long melt_countserial;
-
-void
-melt_object_set_serial (meltobject_ptr_t ob)
-{
-  if (ob && ob->obj_serial == 0)
-    ob->obj_serial = ++melt_countserial;
-  else
-    return;
-  if (melt_serial_1 > 0 && melt_countserial == melt_serial_1)
-    {
-      debugeprintf ("set serial_1 ob=%p ##%ld", (void *) ob,
-		    melt_countserial);
-      gcc_assert (ob);
-    }
-  else if (melt_serial_2 > 0 && melt_countserial == melt_serial_1)
-    {
-      debugeprintf ("set serial_2 ob=%p ##%ld", (void *) ob,
-		    melt_countserial);
-      gcc_assert (ob);
-    }
-  else if (melt_serial_3 > 0 && melt_countserial == melt_serial_3)
-    {
-      debugeprintf ("set serial_3 ob=%p ##%ld", (void *) ob,
-		    melt_countserial);
-      gcc_assert (ob);
-    }
-}
-#endif
 
 meltobject_ptr_t
 meltgc_new_raw_object (meltobject_ptr_t klass_p, unsigned len)
@@ -8562,10 +8527,6 @@ melt_debug_out (struct debugprint_melt_st *dp,
 	fprintf (dp->dfil, "/L%dH%d", p->obj_len, p->obj_hash);
 	if (p->obj_num)
 	  fprintf (dp->dfil, "N%d", p->obj_num);
-#if ENABLE_CHECKING
-	if (p->obj_serial)
-	  fprintf (dp->dfil, "S##%ld", p->obj_serial);
-#endif
 	if (named)
 	  fprintf (dp->dfil, "<#%s>",
 		   ((struct meltstring_st *) (p->obj_vartab

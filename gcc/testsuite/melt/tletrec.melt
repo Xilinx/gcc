@@ -44,7 +44,7 @@
 		   (fa y 
 		       (/i p 2)))))
 	   (tu (tuple ii 'zz ll))
-	   (ll (list ii '2))
+	   (ll (list ii '"string" tu))
 	   (ii (instance class_container 
 			 :container_value ll))
 	   )

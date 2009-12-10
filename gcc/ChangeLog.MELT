@@ -1,3 +1,26 @@
+2009-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tletrec.melt: added a quoted string...
+	* melt-runtime.h (struct meltobject_st): removed obj_serial.
+	(melt_obj_serial, melt_object_set_serial): trivial deprecated
+	functions.
+	(MELT_OBJECT_STRUCT): removed obj_serial inside it.
+	* melt-runtime.c (forwarded_copy, melt_serial_1, melt_serial_2)
+	(melt_serial_3, melt_countserial, melt_object_set_serial):
+	removed.
+	(meltgc_new_raw_object): removed obj_serial inside it.
+	* melt/warmelt-first.melt: removed or trivialized all serial
+	related code.
+	* melt/warmelt-normal.melt: updated normletrec_list,
+	normletrec_pair, normletrec_instance
+	* melt/warmelt-genobj.melt: added compilobj_conspairbind,
+	compilobj_conslistbind, compilobj_consinstancebind functions as
+	methods for compile_obj of constructive bindings. added
+	class_objinitlist class_objinitpair.
+	* melt/warmelt-outobj.melt: added output_c_declinit &
+	output_c_initial_fill methods of class_objinitlist &
+	class_objinitpair.
+	* melt/ana-simple.melt: removed obj_serial...
+
 2009-12-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: normletrec_instance still incomplete...
 	* melt/warmelt-outobj.melt: removed toplevel debug print...

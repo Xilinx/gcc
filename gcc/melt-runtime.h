@@ -394,26 +394,9 @@ meltobject_st
 /* discriminate the melt_un containing it as discr */
 #define object_magic obj_num
   unsigned short obj_len;
-#if ENABLE_CHECKING
-  unsigned long obj_serial;
-#endif
   melt_ptr_t GTY ((length ("%h.obj_len"))) obj_vartab[FLEXIBLE_DIM];
 };
 
-#if ENABLE_CHECKING
-
-#define MELT_OBJECT_STRUCT(N) {		\
-  meltobject_ptr_t obj_class;		\
-  unsigned obj_hash;				\
-  unsigned short obj_num;			\
-  unsigned short obj_len;			\
-  unsigned long obj_serial;                     \
-  melt_ptr_t* obj_vartab[N];			\
-  long _gap; }
-
-void melt_object_set_serial(meltobject_ptr_t ob);
-
-#else /*!ENABLE_CHECKING*/
 
 #define MELT_OBJECT_STRUCT(N) {		\
   meltobject_ptr_t obj_class;		\
@@ -423,9 +406,9 @@ void melt_object_set_serial(meltobject_ptr_t ob);
   melt_ptr_t* obj_vartab[N];			\
   long _gap; }
 
-/* set serial is a nop */
-static inline void melt_object_set_serial(meltobject_ptr_t ob) {}
-#endif
+/* set serial is an obsolete  nop */
+static inline void melt_object_set_serial(meltobject_ptr_t ob ATTRIBUTE_UNUSED) {}
+
 
 /* some types, including objects, strbuf, stringmaps, objectmaps, all
    the other *maps, contain a pointer to a non value; this pointer
@@ -493,7 +476,7 @@ meltclosure_st
   meltobject_ptr_t discr;			\
   meltroutine_ptr_t rout;			\
   unsigned nbval;				\
-  melt_ptr_t tabval[N];			\
+  melt_ptr_t tabval[N];				\
   long _gap; }
 
 /* when OBMAG_ROUTINE */
@@ -1545,13 +1528,10 @@ melt_obj_hash (melt_ptr_t v)
   return 0;
 }
 
+/* obsolete function */
 static inline unsigned long
-melt_obj_serial (melt_ptr_t v)
+melt_obj_serial (melt_ptr_t v ATTRIBUTE_UNUSED)
 {
-#if ENABLE_CHECKING
-  if (melt_magic_discr (v) == OBMAG_OBJECT)
-    return ((meltobject_ptr_t) (v))->obj_serial;
-#endif
   return 0;
 }
 

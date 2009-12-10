@@ -841,10 +841,9 @@ compiled C abstract syntax trees (that is @code{:tree} and
 (defprimitive obj_num (v) :long
   :doc #{Safely gives the number of object $V or else 0.}#
   #{(melt_obj_num((melt_ptr_t)($v)))}#)
-;; primitive to get the serial of an object (or 0 when ENABLE_CHECKING is not set)
+;; obsolete primitive to get the serial of an object (or 0 when ENABLE_CHECKING is not set)
 (defprimitive obj_serial (v):long
-  :doc #{Safely gives the serial when ENABLE_CHECKING of object $V or else 0.}#
-  #{(melt_obj_serial((melt_ptr_t)($v)))}#)
+  #{0}#)
 
 ;; primitive to compute a nonzero hash
 (defprimitive nonzero_hash () :long
@@ -4317,16 +4316,11 @@ given object map $MAPO}#
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longhex sbuf (obj_hash self))
     (let ( (:long onum (obj_num self)) 
-	   (:long oserial (obj_serial self))
 	   )
       (if onum
 	  (progn
 	    (add2sbuf_strconst sbuf "#")
 	    (add2sbuf_longdec sbuf onum)))
-      (if oserial
-	  (progn
-	    (add2sbuf_strconst sbuf "##")
-	    (add2sbuf_longdec sbuf oserial)))
       )
     (add2sbuf_strconst sbuf "{")
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
@@ -4353,7 +4347,6 @@ given object map $MAPO}#
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) 
 	 (:long onum (obj_num self)) 
-	 (:long oserial (obj_serial self))
 	 )  
     (add2sbuf_strconst sbuf " ^^|")
     (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
@@ -4363,11 +4356,6 @@ given object map $MAPO}#
 	(progn
 	  (add2sbuf_strconst sbuf "#")
 	  (add2sbuf_longdec sbuf onum)))
-    (if oserial 
-	(progn
-	  (add2sbuf_strconst sbuf "##")
-	  (add2sbuf_longdec sbuf oserial)
-	  ))
     ))
 (install_method class_root  dbg_outputagain dbgoutagain_anyobject_method)
 
@@ -4388,15 +4376,11 @@ given object map $MAPO}#
     (add2out_longhex out (obj_hash self))
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(let ( (:long onum (obj_num self)) 
-	       (:long oserial (obj_serial self)) )
+	       )
 	  (if onum
 	      (progn
 		(add2out_strconst out "#")
 		(add2out_longdec out onum)))
-	  (if oserial
-	      (progn
-		(add2out_strconst out "##")
-		(add2out_longdec out oserial)))
 	  (add2out_strconst out "{")
 	  (if oprop
 	      (progn 
@@ -4416,7 +4400,6 @@ given object map $MAPO}#
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 (onam (unsafe_get_field :named_name self)) 
-	 (:long oserial (obj_serial self))
 	 )
     (add2out_strconst out " ^^`")
     (add2out_string out onam)
@@ -4424,11 +4407,6 @@ given object map $MAPO}#
     (add2out_string out (unsafe_get_field :named_name dis))
     (add2out_strconst out "/")
     (add2out_longhex out (obj_hash self))
-    (if oserial
-	(progn
-	  (add2out_strconst out "##")
-	  (add2out_longdec out oserial)
-	  ))
     ))
 (install_method class_named dbg_outputagain dbgoutagain_namedobject_method)
 
@@ -4446,17 +4424,11 @@ given object map $MAPO}#
   (assert_msg "check self" (is_a self class_symbol))
   (let ( (out  (unsafe_get_field :dbgi_out dbgi))
 	 (onam (unsafe_get_field :named_name self))
-	 (:long oserial (obj_serial self))
 	 )	
     (add2out_strconst out " $")
     (add2out_string out onam)
     (add2out_strconst out "/")
     (add2out_longhex out (obj_hash self))
-    (if oserial
-	(progn
-	  (add2out_strconst out "##")
-	  (add2out_longdec out oserial)
-	  ))
     ))
 (install_method class_symbol dbg_outputagain dbgoutagain_symbol_method)
 
@@ -4483,17 +4455,11 @@ given object map $MAPO}#
   (assert_msg "check self" (is_a self class_keyword))
   (let ( (out  (unsafe_get_field :dbgi_out dbgi))
 	 (onam (unsafe_get_field :named_name self))
-	 (:long oserial (obj_serial self))
 	 )	
     (add2out_strconst out " $:")
     (add2out_string out onam)
     (add2out_strconst out "/")
     (add2out_longhex out (obj_hash self))
-    (if oserial
-	(progn
-	  (add2out_strconst out "##")
-	  (add2out_longdec out oserial)
-	  ))
     ))
 (install_method class_keyword dbg_outputagain dbgoutagain_keyword_method)
 
@@ -4512,7 +4478,6 @@ given object map $MAPO}#
 	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 (ourank (unsafe_get_field :csym_urank self))
 	 (:long lrk (get_int ourank))
-	 (:long oserial (obj_serial self))
 	 (onam (unsafe_get_field :named_name self)) )
     (add2out_strconst out " $$")
     (add2out_string out onam)
@@ -4520,11 +4485,6 @@ given object map $MAPO}#
     (add2out_longdec out lrk)
     (add2out_strconst out "/")
     (add2out_longhex out (obj_hash self))
-    (if oserial
-	(progn
-	  (add2out_strconst out "##")
-	  (add2out_longdec out oserial)
-	  ))
     ))
 (install_method class_cloned_symbol dbg_outputagain dbgoutagain_cloned_symbol_method)
 
@@ -4535,7 +4495,6 @@ given object map $MAPO}#
   (assert_msg "check self" (is_a self class_environment))
   (let ( (dis (discrim self)) 
 	 (out (unsafe_get_field :dbgi_out dbgi)) 
-	 (:long oserial (obj_serial self))
 	 (:long onum (obj_num self)) 
 	 )  
     (if (== dis class_environment)
@@ -4550,10 +4509,6 @@ given object map $MAPO}#
 	(progn
 	  (add2out_strconst out "#")
 	  (add2out_longdec out onum)))
-    (if oserial
-	(progn
-	  (add2out_strconst out "##")
-	  (add2out_longdec out oserial)))
     (add2out_strconst out "{")
     (let ( (:long offprev (get_int env_prev)) 
 	   (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
@@ -4588,17 +4543,11 @@ given object map $MAPO}#
 (defun dbgoutagain_ctype_method (self dbgi :long depth)
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi))
-	 (:long oserial (obj_serial self))
 	 (onam (unsafe_get_field :named_name self)) )
     (add2out_strconst out " $!")
     (add2out_string out onam)
     (add2out_strconst out "!/")
     (add2out_longhex out (obj_hash self))
-    (if oserial
-	(progn
-	  (add2out_strconst out "##")
-	  (add2out_longdec out oserial)
-	  ))
     ))
 (install_method class_ctype dbg_outputagain dbgoutagain_ctype_method)
 

@@ -124,6 +124,17 @@
   :fields (
 	   ))
 
+;;; initial pair - see struct meltpair_st in melt-runtime.h
+(defclass class_objinitpair
+  :super class_objinitelem
+  :fields ())
+
+;;; initial list - see struct meltlist_st in melt-runtime.h
+(defclass class_objinitlist
+  :super class_objinitelem
+  :fields ())
+
+
 ;;; initial boxed int - see struct meltint_st in melt-runtime.h
 (defclass class_objinitboxinteger
   :super class_objinitelem
@@ -495,8 +506,10 @@
  class_objinitboxinteger
  class_objinitclosure
  class_objinitelem
+ class_objinitlist
  class_objinitmultiple
  class_objinitobject
+ class_objinitpair
  class_objinitroutine
  class_objinitstring
  class_objinstr
@@ -2004,6 +2017,39 @@ $SBUF.}#
     (debug_msg obodl "compiletrec_tuple final obodl")
     ))
 (install_method class_normal_constructed_tuple_binding compile_letrec_fill compiletrec_tuple)
+;; generate inside the body list the code for filling pair in letrecs
+(defun compiletrec_pair (recv obva obodl gcx sloc)
+  (debug_msg recv "compiletrec_pair recv")
+  (debug_msg obva "compiletrec_pair obva")
+  (assert_msg "check recv" (is_a recv class_normal_constructed_pair_binding))
+  (assert_msg "check obva" (is_a obva class_objlocv))
+  (assert_msg "check obodl" (is_list obodl))
+  (assert_msg "@$@unimplemented compiletrec_pair" ())
+)
+(install_method class_normal_constructed_pair_binding compile_letrec_fill compiletrec_pair)
+
+;; generate inside the body list the code for filling pair in letrecs
+(defun compiletrec_list (recv obva obodl gcx sloc)
+  (debug_msg recv "compiletrec_list recv")
+  (debug_msg obva "compiletrec_list obva")
+  (assert_msg "check recv" (is_a recv class_normal_constructed_list_binding))
+  (assert_msg "check obva" (is_a obva class_objlocv))
+  (assert_msg "check obodl" (is_list obodl))
+  (assert_msg "@$@unimplemented compiletrec_list" ())
+)
+(install_method class_normal_constructed_list_binding compile_letrec_fill compiletrec_list)
+
+;; generate inside the body list the code for filling instance in letrecs
+(defun compiletrec_instance (recv obva obodl gcx sloc)
+  (debug_msg recv "compiletrec_instance recv")
+  (debug_msg obva "compiletrec_instance obva")
+  (assert_msg "check recv" (is_a recv class_normal_constructed_instance_binding))
+  (assert_msg "check obva" (is_a obva class_objlocv))
+  (assert_msg "check obodl" (is_list obodl))
+  (assert_msg "@$@unimplemented compiletrec_instance" ())
+)
+(install_method class_normal_constructed_instance_binding compile_letrec_fill compiletrec_instance)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile of LETREC
 (defun compilobj_nrep_letrec (rlet gcx)
@@ -2811,12 +2857,11 @@ $SBUF.}#
   (assert_msg "check bind" (is_a bind class_any_binding))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg bind "compilobj_any_binding bind")
-  (display_debug_message bind "class_bind compile_obj recv")
   (outcstring_err "* compilobj unimplemented reciever binding class ")
   (let ( (discr (discrim bind)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
-  (assert_msg "@@compile_obj should be implemented in anybinding-s subclasses" ())
-  )
+  (assert_msg "@@compile_obj should be implemented in anybinding-s subclasses" ()))
+  
 (install_method class_any_binding compile_obj compilobj_any_binding)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2934,6 +2979,90 @@ $SBUF.}#
 	)
     ))
 (install_method class_normal_constructed_tuple_binding compile_obj compilobj_constuplebind)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_conspairbind (bind gcx)
+  (debug_msg bind "compilobj_conspairbind bind")
+  (assert_msg "check bind" (is_a bind class_normal_constructed_pair_binding))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (let ( (symb (unsafe_get_field :binder bind))
+	 (nloc (unsafe_get_field :nconsb_loc bind))
+	 (ndiscr (unsafe_get_field :nconsb_discr bind))
+	 (nletrec (unsafe_get_field :nconsb_nletrec bind))
+	 (nhead (unsafe_get_field :npairb_head bind))
+	 (ntail (unsafe_get_field :npairb_tail bind))
+	 (nlocsyms (get_field :nletrec_locsyms nletrec))
+	 (odiscr (compile_obj ndiscr gcx))
+	 (nambuf (make_strbuf discr_strbuf))
+	 (:long bindnum (get_int bind))
+	 (locsymocc (multiple_nth nlocsyms bindnum))
+	 )
+    (add2sbuf_strconst nambuf "rpair_")
+    (add2sbuf_longdec nambuf bindnum)
+    (add2sbuf_strconst nambuf "__")
+    (add2sbuf_cident nambuf (unsafe_get_field :named_name symb))
+    (let ( 
+	  (oloc (compile_obj locsymocc gcx))
+	  (inipair (instance class_objinitpair
+			     :obv_type ctype_value
+			     :oie_discr odiscr
+			     :oie_locvar oloc
+			     :oie_cname (strbuf2string discr_string nambuf)))
+	  )
+      (debug_msg oloc "compilobj_conspairbind oloc")
+      (debug_msg inipair "compilobj_conspairbind return inipair")
+      (return inipair)
+      )))
+(install_method class_normal_constructed_pair_binding compile_obj compilobj_conspairbind)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_conslistbind (bind gcx)
+  (debug_msg bind "compilobj_conslistbind bind")
+  (assert_msg "check bind" (is_a bind class_normal_constructed_list_binding))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (let ( (symb (unsafe_get_field :binder bind))
+	 (nloc (unsafe_get_field :nconsb_loc bind))
+	 (ndiscr (unsafe_get_field :nconsb_discr bind))
+	 (nletrec (unsafe_get_field :nconsb_nletrec bind))
+	 (nfirst (unsafe_get_field :nlistb_first bind))
+	 (nlast (unsafe_get_field :nlistb_last bind))
+	 (nlocsyms (get_field :nletrec_locsyms nletrec))
+	 (odiscr (compile_obj ndiscr gcx))
+	 (nambuf (make_strbuf discr_strbuf))
+	 (:long bindnum (get_int bind))
+	 (locsymocc (multiple_nth nlocsyms bindnum))
+	 )
+    (add2sbuf_strconst nambuf "rlist_")
+    (let ( 
+	  (oloc (compile_obj locsymocc gcx))
+	  (inilist (instance class_objinitlist
+			     :obv_type ctype_value
+			     :oie_discr odiscr
+			     :oie_locvar oloc
+			     :oie_cname (strbuf2string discr_string nambuf)
+			     ))
+	  )
+      (debug_msg oloc "compilobj_conslistbind oloc")
+      (debug_msg inilist "compilobj_conslistbind return inilist")
+      (return inilist)
+      )))
+(install_method class_normal_constructed_list_binding compile_obj compilobj_conslistbind)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_consinstancebind (bind gcx)
+  (debug_msg bind "compilobj_consinstancebind bind")
+  (assert_msg "check bind" (is_a bind class_normal_constructed_instance_binding))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (let ( (symb (unsafe_get_field :binder bind))
+	 (nloc (unsafe_get_field :nconsb_loc bind))
+	 (ndiscr (unsafe_get_field :nconsb_discr bind))
+	 (nletrec (unsafe_get_field :nconsb_nletrec bind))
+	 )
+    (assert_msg "$@$unimplemented compilobj_consinstancebind" ())
+    (compile_warning "compilobj_consinstancebind unimplemented")
+    ))
+(install_method class_normal_constructed_instance_binding compile_obj compilobj_consinstancebind)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objvalue (recv desto)
