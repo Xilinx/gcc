@@ -4781,12 +4781,6 @@ update_compcall_arglist (gfc_expr* e)
   if (!po)
     return FAILURE;
 
-  if (po->rank > 0)
-    {
-      gfc_error ("Passed-object at %L must be scalar", &e->where);
-      return FAILURE;
-    }
-
   if (tbp->nopass || e->value.compcall.ignore_pass)
     {
       gfc_free_expr (po);
@@ -4886,6 +4880,22 @@ check_typebound_baseobject (gfc_expr* e)
     {
       gfc_error ("Base object for type-bound procedure call at %L is of"
 		 " ABSTRACT type '%s'", &e->where, base->ts.u.derived->name);
+      return FAILURE;
+    }
+
+  /* If the procedure called is NOPASS, the base object must be scalar.  */
+  if (e->value.compcall.tbp->nopass && base->rank > 0)
+    {
+      gfc_error ("Base object for NOPASS type-bound procedure call at %L must"
+		 " be scalar", &e->where);
+      return FAILURE;
+    }
+
+  /* FIXME: Remove once PR 41177 (this problem) is fixed completely.  */
+  if (base->rank > 0)
+    {
+      gfc_error ("Non-scalar base object at %L currently not implemented",
+		 &e->where);
       return FAILURE;
     }
 
@@ -8649,12 +8659,7 @@ build_default_init_expr (gfc_symbol *sym)
       break;
 	  
     case BT_COMPLEX:
-#ifdef HAVE_mpc
       mpc_init2 (init_expr->value.complex, mpfr_get_default_prec());
-#else
-      mpfr_init (init_expr->value.complex.r);
-      mpfr_init (init_expr->value.complex.i);
-#endif
       switch (gfc_option.flag_init_real)
 	{
 	case GFC_INIT_REAL_SNAN:
@@ -8676,12 +8681,7 @@ build_default_init_expr (gfc_symbol *sym)
 	  break;
 
 	case GFC_INIT_REAL_ZERO:
-#ifdef HAVE_mpc
 	  mpc_set_ui (init_expr->value.complex, 0, GFC_MPC_RND_MODE);
-#else
-	  mpfr_set_ui (init_expr->value.complex.r, 0.0, GFC_RND_MODE);
-	  mpfr_set_ui (init_expr->value.complex.i, 0.0, GFC_RND_MODE);
-#endif
 	  break;
 
 	default:
@@ -10048,8 +10048,11 @@ resolve_typebound_procedure (gfc_symtree* stree)
 	  me_arg = proc->formal->sym;
 	}
 
-      /* Now check that the argument-type matches.  */
+      /* Now check that the argument-type matches and the passed-object
+	 dummy argument is generally fine.  */
+
       gcc_assert (me_arg);
+
       if (me_arg->ts.type != BT_CLASS)
 	{
 	  gfc_error ("Non-polymorphic passed-object dummy argument of '%s'"
@@ -10065,7 +10068,27 @@ resolve_typebound_procedure (gfc_symtree* stree)
 		     me_arg->name, &where, resolve_bindings_derived->name);
 	  goto error;
 	}
-
+  
+      gcc_assert (me_arg->ts.type == BT_CLASS);
+      if (me_arg->ts.u.derived->components->as
+	  && me_arg->ts.u.derived->components->as->rank > 0)
+	{
+	  gfc_error ("Passed-object dummy argument of '%s' at %L must be"
+		     " scalar", proc->name, &where);
+	  goto error;
+	}
+      if (me_arg->ts.u.derived->components->attr.allocatable)
+	{
+	  gfc_error ("Passed-object dummy argument of '%s' at %L must not"
+		     " be ALLOCATABLE", proc->name, &where);
+	  goto error;
+	}
+      if (me_arg->ts.u.derived->components->attr.class_pointer)
+	{
+	  gfc_error ("Passed-object dummy argument of '%s' at %L must not"
+		     " be POINTER", proc->name, &where);
+	  goto error;
+	}
     }
 
   /* If we are extending some type, check that we don't override a procedure

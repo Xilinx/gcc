@@ -1,3 +1,235 @@
+2009-12-10  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	PR rtl-opt/42216
+	* regrename.c: Error out if MAX_RECOG_OPERANDS is larger than
+	HOST_BITS_PER_WIDE_INT.
+	(verify_reg_in_set): New function, broken out of verify_reg_tracked.
+	(verify_reg_tracked): Use it.
+	(scan_rtx_reg): When seeing a use involving a superset of the
+	registers in an existing chain, enlarge that chain.  Otherwise,
+	allow subsets and set fail_current_block for all other kinds of
+	overlap.
+	(hide_operands): New argument UNTRACKED_OPERANDS; callers changed.
+	Do not modify operands when the bit with the corresponding number
+	is set in that bitmap.
+	(build_def_use): When we see matching operands with different
+	modes, don't set fail_current_block, but keep track of such
+	operands in a bitmap if their registers aren't already tracked
+	in an open chain.  Pass this bitmap to all hide_operands calls.
+
+2009-12-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42337
+	* tree-ssa-pre.c (seen_during_translate): Remove.
+	(phi_translate_1): Collapse into ...
+	(phi_translate): ... this.  Remove seen parameter and
+	adjust recursive calls.
+
+2009-12-10  Richard Guenther  <rguenther@suse.de>
+	Allan Sandfeld Jensen  <linux@carewolf.com>
+
+	* tree-vectorizer.c (vectorize_loops): Properly guard
+	vectorizer verboseness.
+
+2009-12-10  Ben Elliston  <bje@au.ibm.com>
+
+	* fwprop.c (free_load_extend): Initialise `use'.
+
+2009-12-09  David Edelsohn  <edelsohn@gnu.org>
+
+	* builtins.c (do_mpc_ckconv): Pass the component type to
+	real_from_mpfr().
+	
+2009-12-09  Xinliang David Li  <davidxl@google.com>
+
+	PR tree-optimization/42337
+	* tree-ssa-pre.c (phi_translate_1): Push and Pop SEEN set.
+
+2009-12-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/vector.md (absv2sf2, negv2sf2, addv2sf3, subv2sf3,
+	mulv2sf3, divv2sf3): New expanders.
+	* config/rs6000/spe.md (spe_evabs, spe_evand, spe_evaddw, spe_evsubfw,
+	spe_evdivws): Rename to use standard GCC names.
+	* config/rs6000/paired.md (negv2sf, absv2sf2, addv2sf3, subv2sf3,
+	mulv2sf3, divv2sf3): Rename to avoid conflict with the new expanders.
+	* config/rs6000/rs6000.c (bdesc_2arg, bdesc_1arg): Use new CODE_FOR_
+	names for renamed patterns.
+
+2009-12-09  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.md ("copysign<mode>3"): Pattern removed.
+
+2009-12-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* configure.ac: Compute ld_ver, ld_vers, ld_date, ld_vers_major,
+	ld_vers_minor and ld_vers_path always, not just when gcc_cv_ld_hidden
+	isn't cached.
+	* configure: Regenerated.
+
+2009-12-08  Richard Henderson  <rth@redhat.com>
+
+	* combine.c (setup_incoming_promotions): Fix sign-extend of
+	zero-extend case; tidy conditions.
+
+2009-12-08  Michael Matz  <matz@suse.de>
+
+	PR middle-end/38474
+	* function.c (free_temp_slots): Only walk the temp slot
+	addresses and combine slots if we actually changes something.
+	(pop_temp_slots): Ditto.
+
+2009-12-08  Olga Golovanevsky  <olga@il.ibm.com>
+
+	PR middle-end/41843
+	* ipa-struct-reorg.c (compare_fields): New function.
+	(find_field_in_struct_1): Use compare_fields function.
+	(is_equal_types): Likewise.
+
+2009-12-07  DJ Delorie  <dj@redhat.com>
+
+	PR c/42312
+	* config/mep/mep.c (mep_expand_prologue): Set
+	really_need_stack_frame after frame_size is set.
+
+2009-12-07  Richard Henderson  <rth@redhat.com>
+
+	PR rtl-opt/42269
+	* combine.c (setup_incoming_promotions): Improve the conditions
+	under which we respect the promotions applied.
+
+2009-12-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/linux.h (ASM_SPEC): Pass -K PIC if -findirect-dispatch.
+	* config/sparc/linux64.h (ASM_SPEC): Likewise.
+
+2009-12-07  Richard Henderson  <rth@redhat.com>
+
+	PR debug/42299
+	PR debug/42166
+	* tree-ssa.c (insert_debug_temp_for_var_def): Skip propagation
+	for ssa names already registered for update.
+
+2009-12-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/42244
+	* ddg.c (add_inter_loop_mem_dep): Use ANTI_DEP if from or to
+	is a DEBUG_INSN.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/driver-i386.c (host_detect_local_cpu): Add -mlwp to the
+	options when bit_LWP is set.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/cpuid.h (bit_ABM): New.
+	* config/i386/driver-i386.c (host_detect_local_cpu): Add -mabm to the
+	options when bit_ABM is set.
+
+2009-12-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (bdesc_special_args): Move __builtin_clzs from
+	this array ...
+	(bdesc_args): ... here.
+	* config.gcc (i[34567]86-*-*): Include abmintrin.h.
+	(x86_64-*-*): Likewise.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config.gcc (i[34567]86-*-*, x86_64-*-*): Add popcntintrin.h.
+	* config/i386/abmintrin.h (_mm_popcnt_u32, _mm_popcnt_u64): Moved...
+	* config/i386/i386-c.c (__POPCNT__): Defined.
+	* config/i386/popcntintrin.h: ...here.  New file.
+	* config/i386/smmintrin.h (_mm_popcnt_u32, _mm_popcnt_u64): Moved...
+	Include popcntintrin.h.
+	* config/i386/x86intrin.h: Include popcntintrin.h when __POPCNT__
+	is defined.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/i386-protos.h (ix86_expand_fma4_multiple_memory):
+	Removed.
+	* config/i386/i386.c (ix86_expand_fma4_multiple_memory): Removed.
+	* config/i386/sse.md: Remove all XOP splitters.
+	Allow the second and fourth operands of XOP multiply-add insns
+	to be nonimmediate.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/sse.md: Remove all FMA4 splitters.
+	Allow the second operand of FMA4 insns to be a nonimmediate.
+	Fix comments punctuation.
+
+2009-12-07  Julian Brown  <julian@codesourcery.com>
+
+	* config/arm/constraints.md (Ps, Pt): New constraint letters.
+	* config/arm/thumb2.md (*thumb2_addsi_short): Tighten constraints.
+
+2009-12-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/40302
+	* configure.ac (HAVE_mpc): Don't define.
+	* config.in, configure: Regenerate.
+
+	PR other/40302
+	* builtins.c: Remove HAVE_mpc* checks throughout.
+	* fold-const.c: Likewise.
+	* real.h: Likewise.
+	* toplev.c: Likewise.
+
+2009-12-07  Edmar Wienskoski  <edmar@freescale.com>
+
+	* config.gcc (cpu_is_64bit): Add new core e500mc64.
+	(powerpc*-*-*): Add new core e500mc64.
+	* config/rs6000/e500mc64.md: New file.
+	* config/rs6000/rs6000.c (processor_costs): Add new costs for
+	e500mc64.
+	(rs6000_override_options): Add e500mc64 case to
+	processor_target_table. Altivec and Spe options not allowed with
+	e500mc64. Disable string instructions for e500mc64. Enable branch
+	targets alignment for both e500mc and e500mc64. Initialize
+	rs6000_cost for e500mc64.
+	(rs6000_emit_sISEL): New function.
+	(rs6000_emit_sCOND): Call rs6000_emit_sISEL for isel targets.
+	(rs6000_emit_int_cmove): Fix mode of 64 bit isel pattern
+	generation.
+	(rs6000_issue_rate): Set issue rate for e500mc64.
+	(rs6000_rtx_costs): Set more accurate cost for mfcr instruction
+	on architectures with isel.
+	* config/rs6000/rs6000-protos.h (rs6000_emit_sISEL): Declare.
+	* config/rs6000/rs6000.h (processor_type): Add
+	PROCESSOR_PPCE500MC64.
+	(ASM_CPU_SPEC): Add e500mc64.
+	* config/rs6000/rs6000.md (define_attr "cpu"): Add ppce500mc64.
+	Include e500mc64.md.
+	(abssi2_isel): Expand pattern to handle DImode.
+	(nabs<mode>2_isel): New pattern.
+	(absdi2): Change pattern to handle 64 bit isel targets.
+	(absdi2_internal): Exclude ISEL targets.
+	(nabsdi2): Exclude ISEL targets.
+	* doc/invoke.texi: Add e500mc64 to list of cpus.
+
+2009-12-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (any_or): New code iterator.
+	(any_logic): Rename from plogic code iterator.
+	(logicprefix): Rename from plogicprefix code attribute.
+	(<code><mode>3): Macroize expander from {ior,xor}<mode>3 using
+	any_or code iterator.
+	(*<code><mode>_1): Macroize insn from *{ior,xor}<mode>_1 using
+	any_or code iterator.
+	(*<code><mode>_2): Ditto from *{ior,xor}<mode>_2.
+	(*<code><mode>_3): Ditto from *{ior,xor}<mode>_3.
+	(ior and xor splitters): Ditto.
+	* config/i386/mmx.md: Updated for rename.
+	* config/i386/sse.md: Ditto.
+
+2009-12-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (float<SSEMODEI24:mode><X87MODEF:mode>2):
+	Remove quotes around condition logic code.
+
 2009-12-06  Richard Henderson  <rth@redhat.com>
 
 	PR debug/42234
@@ -10,7 +242,7 @@
 
 2009-12-06  Uros Bizjak  <ubizjak@gmail.com>
 
-	* config/i386/i386-md (g): Add HImode and QImode.
+	* config/i386/i386.md (g): Add HImode and QImode.
 	(general_szext_operand): New mode attribute.
 	(*test<mode>_1): Macroize insn from *test{qi,hi,si}_1 using
 	SWI124 mode iterator.
@@ -89,7 +321,7 @@
 	    John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	PR target/40134
-        * config.gcc (hppa*-*-linux*): Use config/t-slibgcc-libgcc.
+	* config.gcc (hppa*-*-linux*): Use config/t-slibgcc-libgcc.
 	* config/pa/pa-linux.h (LIB_SPEC): Remove.
 
 2009-12-03  Sebastian Pop  <sebastian.pop@amd.com>
@@ -199,8 +431,7 @@
 2009-12-02  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/42229
-	* cfgloopmanip.c (remove_path): Avoid cancelling loops
-	twice.
+	* cfgloopmanip.c (remove_path): Avoid cancelling loops twice.
 
 2009-12-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
@@ -231,8 +462,7 @@
 	to save the accumulator.
 	(rx_expand_prologue): Create a stack frame for fast interrupt
 	handlers, if necessary.
-	(rx_expand_builtin_mvfc): Handle the case where there is no
-	target.
+	(rx_expand_builtin_mvfc): Handle the case where there is no target.
 
 2009-12-01  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -388,7 +618,7 @@
 	(sh_function_value, sh_libcall_value, sh_function_value_regno_p): New
 	functions.
 	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE): Declare.
-	* config/sh/sh.h: (FUNCTION_VALUE_REGNO_P): Redefine, use
+	* config/sh/sh.h (FUNCTION_VALUE_REGNO_P): Redefine, use
 	sh_function_value_regno_p.
 	(FUNCTION_VALUE, LIBCALL_VALUE): Remove.
 	* config/sh/sh-protos.h (sh_function_value_regno_p): Declare.

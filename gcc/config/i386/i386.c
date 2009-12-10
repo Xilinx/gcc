@@ -21547,8 +21547,6 @@ static const struct builtin_description bdesc_special_args[] =
   { OPTION_MASK_ISA_LWP, CODE_FOR_lwp_lwpinssi3,   "__builtin_ia32_lwpins32", IX86_BUILTIN_LWPINS64,  UNKNOWN,     (int) UCHAR_FTYPE_UINT_UINT_UINT },
   { OPTION_MASK_ISA_LWP, CODE_FOR_lwp_lwpinsdi3,   "__builtin_ia32_lwpins64", IX86_BUILTIN_LWPINS64,  UNKNOWN,     (int) UCHAR_FTYPE_UINT64_UINT_UINT },
 
-  { OPTION_MASK_ISA_ABM, CODE_FOR_clzhi2_abm,   "__builtin_clzs",   IX86_BUILTIN_CLZS,    UNKNOWN,     (int) UINT16_FTYPE_UINT16 },
-
 };
 
 /* Builtins with variable number of arguments.  */
@@ -22173,6 +22171,8 @@ static const struct builtin_description bdesc_args[] =
 
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movmskpd256, "__builtin_ia32_movmskpd256", IX86_BUILTIN_MOVMSKPD256, UNKNOWN, (int) INT_FTYPE_V4DF  },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movmskps256, "__builtin_ia32_movmskps256", IX86_BUILTIN_MOVMSKPS256, UNKNOWN, (int) INT_FTYPE_V8SF },
+
+  { OPTION_MASK_ISA_ABM, CODE_FOR_clzhi2_abm,   "__builtin_clzs",   IX86_BUILTIN_CLZS,    UNKNOWN,     (int) UINT16_FTYPE_UINT16 },
 };
 
 /* FMA4 and XOP.  */
@@ -28807,36 +28807,6 @@ ix86_expand_round (rtx operand0, rtx operand1)
   emit_move_insn (operand0, res);
 }
 
-
-/* Fixup an FMA4 or XOP instruction that has 2 memory input references
-   into a form the hardware will allow by using the destination
-   register to load one of the memory operations.  Presently this is
-   used by the multiply/add routines to allow 2 memory references.  */
-
-bool
-ix86_expand_fma4_multiple_memory (rtx operands[],
-				  enum machine_mode mode)
-{
-  rtx scratch = operands[0];
-
-  gcc_assert (register_operand (operands[0], mode));
-  gcc_assert (register_operand (operands[1], mode));
-  gcc_assert (MEM_P (operands[2]) && MEM_P (operands[3]));
-
-  if (reg_mentioned_p (scratch, operands[1]))
-    {
-      if (!can_create_pseudo_p ())
-	return false;
-      scratch = gen_reg_rtx (mode);
-    }
-
-  emit_move_insn (scratch, operands[3]);
-  if (rtx_equal_p (operands[2], operands[3]))
-    operands[2] = operands[3] = scratch;
-  else
-    operands[3] = scratch;
-  return true;
-}
 
 /* Table of valid machine attributes.  */
 static const struct attribute_spec ix86_attribute_table[] =

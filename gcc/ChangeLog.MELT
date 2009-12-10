@@ -1,4 +1,11 @@
 2009-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{while merging with trunk, avoiding warnings...}}
+	* melt-runtime.c (meltgc_out_printf): FIXME - vasprintf is a GNU
+	extension!
+	(meltgc_load_modulelist) check fgets.
+	(melt_output_cfile_decl_impl_secondary): check getcwd.
+
+2009-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tletrec.melt: added a quoted string...
 	* melt-runtime.h (struct meltobject_st): removed obj_serial.
 	(melt_obj_serial, melt_object_set_serial): trivial deprecated

@@ -1,3 +1,40 @@
+2008-12-08  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/41177
+	* gfortran.h (struct symbol_attribute): New flag `class_pointer'.
+	* symbol.c (gfc_build_class_symbol): Set the new flag.
+	* resolve.c (update_compcall_arglist): Remove wrong check for
+	non-scalar base-object.
+	(check_typebound_baseobject): Add the correct version here as well
+	as some 'not implemented' message check in the old case.
+	(resolve_typebound_procedure): Check that the passed-object dummy
+	argument is scalar, non-pointer and non-allocatable as it should be.
+
+2009-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40961
+	PR fortran/40377
+	* gfortran.texi (Non-Fortran Main Program): Add
+	_gfortran_set_fpe documentation.
+	(Interoperability with C): Mention array storage order.
+
+2009-12-07  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/41940
+	* match.c (gfc_match_allocate): Improved error message for
+	allocatable scalars that are allocated with a shape.
+
+2009-12-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/40302
+	* arith.c: Remove HAVE_mpc* checks throughout.
+	* expr.c: Likewise.
+	* gfortran.h: Likewise.
+	* resolve.c: Likewise.
+	* simplify.c: Likewise.
+	* target-memory.c: Likewise.
+	* target-memory.h: Likewise.
+
 2009-12-06  Daniel Franke  <franke.daniel@gmail.com>
 
 	PR fortran/40904

@@ -1,3 +1,56 @@
+2009-12-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert:
+        2009-12-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/42261
+	* include/bits/basic_string.h (_S_construct_aux(_Integer, _Integer,
+	const _Alloc&, __true_type)): Cast the second argument to value_type.
+	* include/ext/sso_string_base.h (_M_construct_aux(_Integer, _Integer,
+	std::__true_type)): Likewise.
+	* include/ext/rc_string_base.h (_S_construct_aux(_Integer, _Integer,
+	const _Alloc&, std::__true_type)): Likewise.
+	* testsuite/21_strings/basic_string/cons/char/42261.cc: New.
+	* testsuite/21_strings/basic_string/cons/wchar_t/42261.cc: Likewise.
+
+2009-12-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/util/testsuite_containers.h (populate<>::populate(_Tp&)):
+	Avoid used uninitialized warning.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	constructor_destructor_fn_imps.hpp: Fix typo causing sequence point
+	warning.
+
+2009-12-09  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/profile/impl/profiler_container_size.h: Fix include
+	guard, formatting fixes.
+	* include/profile/impl/profiler_vector_size.h: Same.
+	* include/profile/impl/profiler_hash_func.h: Same.
+	* include/profile/impl/profiler_trace.h: Same.
+	* include/profile/impl/profiler_vector_to_list.h: Same.
+	* include/profile/impl/profiler.h: Same.
+	* include/profile/impl/profiler_state.h: Same.
+	* include/profile/impl/profiler_map_to_unordered_map.h: Same.
+	* include/profile/impl/profiler_hashtable_size.h: Same.
+	* include/profile/impl/profiler_node.h: Same.
+
+2009-12-09  Roman Odaisky  <to.roma.from.bugcc@qwertty.com>
+
+	PR libstdc++/42273
+	* include/bits/atomic_2.h: Fix typo.
+
+2009-12-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/42319
+	* include/parallel/losertree.h: Include bits/stl_function.h instead
+	of the whole <functional>.
+	* include/parallel/base.h: Likewise.
+	* include/parallel/numeric: Likewise.
+	* include/parallel/balanced_quicksort.h: Likewise.
+	* include/parallel/checkers.h: Likewise.
+	* testsuite/17_intro/headers/c++200x/42319.cc: New.
+
 2009-12-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* Makefile.in: Regenerate.

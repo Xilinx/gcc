@@ -889,6 +889,9 @@ case "${host}" in
         SYSTEMSPEC="-lunicows $SYSTEMSPEC"
       fi
     ;;
+    *-*-darwin[[912]]*)
+      SYSTEMSPEC="-allow_stack_execute"
+    ;;
     *)
       SYSTEMSPEC=
     ;;
@@ -919,9 +922,6 @@ case "${host}" in
     # on Darwin -single_module speeds up loading of the dynamic libraries.
     extra_ldflags_libjava=-Wl,-single_module
     ;;
-*-*-darwin[[912]]*)
-    extra_gij_ldflags=-Wl,-allow_stack_execute
-    ;;
 arm*linux*eabi)
     # Some of the ARM unwinder code is actually in libstdc++.  We
     # could in principle replicate it in libgcj, but it's better to
@@ -935,7 +935,6 @@ arm*linux*eabi)
     ;;
 esac
 AC_SUBST(extra_ldflags_libjava)
-AC_SUBST(extra_gij_ldflags)
 AC_SUBST(extra_ldflags)
 AC_SUBST(LIBSTDCXXSPEC)
 
@@ -1568,9 +1567,17 @@ TL_AC_GXX_INCLUDE_DIR
 # for now.  If you change this, you also must update natFile.cc.
 AC_CHECK_HEADERS([unistd.h bstring.h sys/time.h sys/types.h fcntl.h \
 		  sys/ioctl.h sys/filio.h sys/stat.h sys/select.h \
-		  sys/socket.h netinet/in.h arpa/inet.h netdb.h net/if.h \
+		  sys/socket.h netinet/in.h arpa/inet.h netdb.h \
 		  pwd.h sys/config.h stdint.h langinfo.h locale.h \
 		  dirent.h sys/rw_lock.h magic.h ifaddrs.h])
+
+# sys/socket.h is a prerequisite for net/if.h on Solaris.
+AC_CHECK_HEADERS(net/if.h, [], [], [
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+])
+
 AC_CHECK_HEADERS(inttypes.h, [
     AC_DEFINE(HAVE_INTTYPES_H, 1, [Define if <inttypes.h> is available])
     AC_DEFINE(JV_HAVE_INTTYPES_H, 1, [Define if <inttypes.h> is available])

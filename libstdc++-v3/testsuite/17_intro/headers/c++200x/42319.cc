@@ -1,3 +1,6 @@
+// { dg-do compile }
+// { dg-options "-std=gnu++0x" }
+
 // Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -15,21 +18,5 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-#include <string>
-#include <testsuite_hooks.h>
-
-// libstdc++/42261
-void test01()
-{
-  bool test __attribute__((unused)) = true;
-  using namespace std;
-
-  const wstring s(wstring::size_type(6), wstring::size_type(L'f'));
-  VERIFY( s == L"ffffff" );
-}
-
-int main()
-{
-  test01();
-  return 0;
-}
+// libstdc++/42319
+#include <bits/char_traits.h>

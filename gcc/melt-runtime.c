@@ -2427,7 +2427,9 @@ meltgc_out_printf (melt_ptr_t outbuf_p,
       return;
     }
   va_start (ap, fmt);
-  vasprintf (&cstr, fmt, ap);
+  /* FIXME: vasprintf is a GNU function */
+  if (vasprintf (&cstr, fmt, ap) > l)
+    gcc_unreachable ();
   va_end (ap);
   meltgc_add_out_raw (outbuf_p, cstr);
   free (cstr);
@@ -6061,7 +6063,8 @@ loadit:
     {
       char *pc = 0;
       memset (linbuf, 0, sizeof (linbuf));
-      fgets (linbuf, sizeof (linbuf) - 1, filmod);
+      if (!fgets (linbuf, sizeof (linbuf) - 1, filmod) && !feof(filmod))
+	fatal_error ("MELT failed to read from module list %s - %m", modlistpath);
       pc = strchr (linbuf, '\n');
       if (pc)
 	*pc = (char) 0;
@@ -10024,8 +10027,9 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
   FILE *cfil = NULL;
   FILE *oldfil = NULL;
   static char pwdbuf[500];
-  memset(pwdbuf, 0, sizeof(pwdbuf));
-  getcwd(pwdbuf, sizeof(pwdbuf)-1);
+  memset (pwdbuf, 0, sizeof(pwdbuf));
+  if (!getcwd (pwdbuf, sizeof(pwdbuf)-1)) 
+    fatal_error ("getcwd failure %m");
   gcc_assert (melt_magic_discr (unitnam) == OBMAG_STRING);
   gcc_assert (melt_magic_discr (declbuf) == OBMAG_STRBUF);
   gcc_assert (melt_magic_discr (implbuf) == OBMAG_STRBUF);
