@@ -1,3 +1,10 @@
+2009-12-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt: in normletrec_list use ==i not ==.
+	* melt/warmelt-genobj.melt: added class_objputlist
+	class_objputpairclass_objputpairhead class_objputpairtail & partly
+	coded compilobj_consinstancebind compiletrec_pair
+	compilobj_consinstancebind
+
 2009-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{while merging with trunk, avoiding warnings...}}
 	* melt-runtime.c (meltgc_out_printf): FIXME - vasprintf is a GNU

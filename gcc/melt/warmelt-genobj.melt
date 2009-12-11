@@ -377,6 +377,31 @@
 	   oputu_value			;the new value
 	   ))
 
+
+;; put inside a pair
+(defclass class_objputpair
+  :super class_objinstr
+  :fields (oputp_pair 			;the pair to update
+	   ))
+
+(defclass class_objputpairhead
+  :super class_objputpair
+  :fields (oputp_head			;the head to put
+	   ))
+
+(defclass class_objputpairtail
+  :super class_objputpair
+  :fields (oputp_tail			;the tail to put
+	   ))
+
+;; put the first and last inside a list
+(defclass class_objputlist
+  :super class_objinstr
+  :fields (oputl_list			;the list to update
+	   oputl_first			;the first pair
+	   oputl_last			;the last pair
+	   ))
+
 ;; put a slot inside an object
 (defclass class_objputslot
   :super class_objinstr
@@ -532,6 +557,10 @@
  class_objputclosednotnullv
  class_objputclosedv
  class_objputclosurout
+ class_objputlist
+ class_objputpair
+ class_objputpairhead
+ class_objputpairtail
  class_objputroutconst
  class_objputroutconstnotnull
  class_objputslot
@@ -2017,6 +2046,8 @@ $SBUF.}#
     (debug_msg obodl "compiletrec_tuple final obodl")
     ))
 (install_method class_normal_constructed_tuple_binding compile_letrec_fill compiletrec_tuple)
+
+
 ;; generate inside the body list the code for filling pair in letrecs
 (defun compiletrec_pair (recv obva obodl gcx sloc)
   (debug_msg recv "compiletrec_pair recv")
@@ -2024,8 +2055,32 @@ $SBUF.}#
   (assert_msg "check recv" (is_a recv class_normal_constructed_pair_binding))
   (assert_msg "check obva" (is_a obva class_objlocv))
   (assert_msg "check obodl" (is_list obodl))
-  (assert_msg "@$@unimplemented compiletrec_pair" ())
-)
+  (let ( (loc (or (get_field :nconsb_loc recv) sloc))
+	 (nhead (get_field :npairb_head recv))
+	 (ntail (get_field :npairb_tail recv))
+	 (ohead (compile_obj nhead gcx))
+	 (otail (if ntail (compile_obj ntail gcx)))
+	 (oputhead (instance class_objputpairhead
+			     :obi_loc loc
+			     :oputp_pair obva
+			     :oputp_head ohead))
+	 (oputtail (if otail (instance class_objputpairtail
+				       :obi_loc loc
+				       :oputp_pair obva
+				       :oputp_head otail)))
+	 (otouch (instance class_objtouch
+			   :obi_loc loc
+			   :otouch_val obva
+			   ))
+	 )
+    (if (is_not_a ohead class_objpurevalue)
+	(list_append obodl ohead))
+    (if (and otail (is_not_a otail class_objpurevalue))
+	(list_append obodl otail))
+    (list_append obodl oputhead)
+    (if oputtail (list_append obodl oputtail))
+    (list_append obodl otouch)
+    ))
 (install_method class_normal_constructed_pair_binding compile_letrec_fill compiletrec_pair)
 
 ;; generate inside the body list the code for filling pair in letrecs
@@ -2035,8 +2090,10 @@ $SBUF.}#
   (assert_msg "check recv" (is_a recv class_normal_constructed_list_binding))
   (assert_msg "check obva" (is_a obva class_objlocv))
   (assert_msg "check obodl" (is_list obodl))
-  (assert_msg "@$@unimplemented compiletrec_list" ())
-)
+  (let ( (loc (or (get_field :nconsb_loc recv) sloc))
+	 )
+    (assert_msg "@$@unimplemented compiletrec_list" ())
+    ))
 (install_method class_normal_constructed_list_binding compile_letrec_fill compiletrec_list)
 
 ;; generate inside the body list the code for filling instance in letrecs
@@ -3033,6 +3090,9 @@ $SBUF.}#
 	 (locsymocc (multiple_nth nlocsyms bindnum))
 	 )
     (add2sbuf_strconst nambuf "rlist_")
+    (add2sbuf_longdec nambuf bindnum)
+    (add2sbuf_strconst nambuf "__")
+    (add2sbuf_cident nambuf (unsafe_get_field :named_name symb))
     (let ( 
 	  (oloc (compile_obj locsymocc gcx))
 	  (inilist (instance class_objinitlist
@@ -3058,10 +3118,30 @@ $SBUF.}#
 	 (nloc (unsafe_get_field :nconsb_loc bind))
 	 (ndiscr (unsafe_get_field :nconsb_discr bind))
 	 (nletrec (unsafe_get_field :nconsb_nletrec bind))
+	 (nslots (unsafe_get_field :ninstb_slots bind))
+	 (nambuf (make_strbuf discr_strbuf))
+	 (odiscr (compile_obj ndiscr gcx))
+	 (nlocsyms (get_field :nletrec_locsyms nletrec))
+	 (:long bindnum (get_int bind))
+	 (locsymocc (multiple_nth nlocsyms bindnum))
 	 )
-    (assert_msg "$@$unimplemented compilobj_consinstancebind" ())
-    (compile_warning "compilobj_consinstancebind unimplemented")
-    ))
+    (add2sbuf_strconst nambuf "rinst_")
+    (add2sbuf_longdec nambuf bindnum)
+    (add2sbuf_strconst nambuf "__")
+    (add2sbuf_cident nambuf (unsafe_get_field :named_name symb))
+    (let ( 
+	  (oloc (compile_obj locsymocc gcx))
+	  (ininst (instance class_objinitobject
+			    :obv_type ctype_value
+			    :oie_discr odiscr
+			    :oie_locvar oloc
+			    :oie_cname (strbuf2string discr_string nambuf)
+			    ))
+	  )
+      (debug_msg oloc "compilobj_consinstancebind oloc")
+      (debug_msg ininst "compilobj_consinstancebind return ininst")
+      (return ininst)
+      )))
 (install_method class_normal_constructed_instance_binding compile_obj compilobj_consinstancebind)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

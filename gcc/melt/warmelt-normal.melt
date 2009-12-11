@@ -3583,7 +3583,7 @@ routine procedures.}#
      (debug_msg nbinds "normletrec_list nbinds")
      (assert_msg "check nbinds" (is_list_or_null nbinds))
      (assert_msg "check nargs's length vs cbind's length"
-		 (== (multiple_length nargs) (-i (multiple_length cbind) 1)))
+		 (==i (multiple_length nargs) (-i (multiple_length cbind) 1)))
      (foreach_in_multiple
       (nargs)
       (curnarg :long nix)
