@@ -1,5 +1,16 @@
 2009-12-07  Aldy Hernandez  <aldyh@redhat.com>
 
+	* trans-mem.c: New thread_memory_type enum.
+	(struct tm_new_mem_map): Change field type.
+	(transaction_invariant_address_p): Exclude self.
+	Look inside INDIRECT_REF.
+	(transaction_local_new_memory_p): Rename to...
+	(thread_private_new_memory): Handle thread-local and phi nodes.
+	Return enum.
+	(requires_barrier): Log if requested.
+
+2009-12-07  Aldy Hernandez  <aldyh@redhat.com>
+
 	* trans-mem.c: (tm_new_mem_hash): Declare.
 	(tm_new_mem_map): Declare.
 	(tm_log_init): Initialize tm_new_mem_hash.

@@ -774,13 +774,19 @@ static VEC(tree,heap) *tm_log_save_addresses;
    of memory (malloc, alloc, etc).  */
 static htab_t tm_new_mem_hash;
 
+enum thread_memory_type
+  {
+    mem_non_local = 0,
+    mem_thread_local,
+    mem_transaction_local,
+    mem_max
+  };
+
 typedef struct tm_new_mem_map
 {
   /* SSA_NAME being dereferenced.  */
   tree val;
-  /* True if dereferenced memory is a non aliased new piece of
-     memory.  */
-  bool local_new_memory_p;
+  enum thread_memory_type local_new_memory;
 } tm_new_mem_map_t;
 
 /* Htab support.  Return hash value for a `tm_log_entry'.  */
@@ -832,10 +838,15 @@ tm_log_delete (void)
 static bool
 transaction_invariant_address_p (const_tree mem, basic_block region_entry_block)
 {
-  if (TREE_CODE (mem) == SSA_NAME)
-    return dominated_by_p (CDI_DOMINATORS,
-			   region_entry_block,
-			   gimple_bb (SSA_NAME_DEF_STMT (mem)));
+  if (TREE_CODE (mem) == INDIRECT_REF
+      && TREE_CODE (TREE_OPERAND (mem, 0)) == SSA_NAME)
+    {
+      basic_block def_bb;
+
+      def_bb = gimple_bb (SSA_NAME_DEF_STMT (TREE_OPERAND (mem, 0)));
+      return def_bb != region_entry_block
+	&& dominated_by_p (CDI_DOMINATORS, region_entry_block, def_bb);
+    }
 
   mem = strip_invariant_refs (mem);
   return mem && (CONSTANT_CLASS_P (mem) || decl_address_invariant_p (mem));
@@ -1145,59 +1156,57 @@ static tree lower_sequence_tm (gimple_stmt_iterator *, bool *,
 static tree lower_sequence_no_tm (gimple_stmt_iterator *, bool *,
 				  struct walk_stmt_info *);
 
-/* Given an address that is being dereferenced, return TRUE if we can
-   prove that the memory being dereferenced is a non aliased new chunk
-   of memory local to the transaction (malloc, alloca, etc), which
-   therefore requires no instrumentation.
+/* Evaluate an address X being dereferenced and determine if it
+   originally points to a non aliased new chunk of memory (malloc,
+   alloca, etc).
+
+   Return MEM_THREAD_LOCAL if it points to a thread-local address.
+   Return MEM_TRANSACTION_LOCAL if it points to a transaction-local address.
+   Return MEM_NON_LOCAL otherwise.
 
    ENTRY_BLOCK is the entry block to the transaction containing the
    dereference of X.  */
-static bool
-transaction_local_new_memory_p (basic_block entry_block, tree x)
+static enum thread_memory_type
+thread_private_new_memory (basic_block entry_block, tree x)
 {
   gimple stmt = NULL;
   enum tree_code code;
   void **slot;
   tm_new_mem_map_t elt, *elt_p;
+  tree val = x;
+  enum thread_memory_type retval = mem_transaction_local;
 
-  if (!entry_block)
-    return false;
-
-  if (TREE_CODE (x) != SSA_NAME)
-    return false;
+  if (!entry_block
+      || TREE_CODE (x) != SSA_NAME
+      /* Possible uninitialized use, or a function argument.  In
+	 either case, we don't care.  */
+      || SSA_NAME_IS_DEFAULT_DEF (x))
+    return mem_non_local;
 
   /* Look in cache first.  */
   elt.val = x;
   slot = htab_find_slot (tm_new_mem_hash, &elt, INSERT);
   elt_p = (tm_new_mem_map_t *) *slot;
   if (elt_p)
-    return elt_p->local_new_memory_p;
-  else
-    {
-      elt_p = XNEW (tm_new_mem_map_t);
-      elt_p->val = x;
-      elt_p->local_new_memory_p = false;
-      *slot = elt_p;
-    }
+    return elt_p->local_new_memory;
 
-  /* Search back through the DEF chain to find the original definition
-     of this address.  */
+  /* Search DEF chain to find the original definition of this address.  */
   do
     {
       if (ptr_deref_may_alias_global_p (x))
 	{
-	  /* Pointed to address escapes.  This is not thread-private.  */
-	  return false;
+	  /* Address escapes.  This is not thread-private.  */
+	  retval = mem_non_local;
+	  goto new_memory_ret;
 	}
 
       stmt = SSA_NAME_DEF_STMT (x);
 
-      /* Bail if the malloc call is outside the transaction.  We only
-	 care about transaction local mallocs.  There are no edges
-	 into a transaction from without, so a simple dominance test
-	 will do.  */
-      if (!dominated_by_p (CDI_DOMINATORS, gimple_bb (stmt), entry_block))
-	return false;
+      /* If the malloc call is outside the transaction, this is
+	 thread-local.  */
+      if (retval != mem_thread_local
+	  && !dominated_by_p (CDI_DOMINATORS, gimple_bb (stmt), entry_block))
+	retval = mem_thread_local;
 
       if (is_gimple_assign (stmt))
 	{
@@ -1212,23 +1221,58 @@ transaction_local_new_memory_p (basic_block entry_block, tree x)
 	  else if (code == VIEW_CONVERT_EXPR || code == NOP_EXPR)
 	    x = gimple_assign_rhs1 (stmt);
 	  else
-	    return false;
+	    {
+	      retval = mem_non_local;
+	      goto new_memory_ret;
+	    }
 	}
       else
-	break;
+	{
+	  if (gimple_code (stmt) == GIMPLE_PHI)
+	    {
+	      unsigned int i;
+	      enum thread_memory_type mem;
+	      tree phi_result = gimple_phi_result (stmt);
+
+	      /* If any of the ancestors are non-local, we are sure to
+		 be non-local.  Otherwise we can avoid doing anything
+		 and inherit what has already been generated.  */
+	      retval = mem_max;
+	      for (i = 0; i < gimple_phi_num_args (stmt); ++i)
+		{
+		  tree op = PHI_ARG_DEF (stmt, i);
+
+		  /* Exclude self-assignment.  */
+		  if (phi_result == op)
+		    continue;
+
+		  mem = thread_private_new_memory (entry_block, op);
+		  if (mem == mem_non_local)
+		    {
+		      retval = mem;
+		      goto new_memory_ret;
+		    }
+		  retval = MIN (retval, mem);
+		}
+	      goto new_memory_ret;
+	    }
+	  break;
+	}
     }
   while (TREE_CODE (x) == SSA_NAME);
 
   if (stmt && is_gimple_call (stmt) && gimple_call_flags (stmt) & ECF_MALLOC)
-    {
-      /* No logging to do.  For alloca, the stack pointer gets reset
-	 by the retry and we reallocate.  For malloc, a transaction
-	 restart frees the memory and we reallocate.  Similarly for
-	 user-defined malloc type routines, which should release the
-	 memory on a transaction restart.  */
-      return elt_p->local_new_memory_p = true;
-    }
-  return false;
+    /* Thread-local or transaction-local.  */
+    ;
+  else
+    retval = mem_non_local;
+
+ new_memory_ret:
+  elt_p = XNEW (tm_new_mem_map_t);
+  elt_p->val = val;
+  elt_p->local_new_memory = retval;
+  *slot = elt_p;
+  return retval;
 }
 
 /* Determine whether X has to be instrumented using a read
@@ -1250,9 +1294,22 @@ requires_barrier (basic_block entry_block, tree x, gimple stmt)
   switch (TREE_CODE (x))
     {
     case INDIRECT_REF:
-      if (transaction_local_new_memory_p (entry_block, TREE_OPERAND (x, 0)))
+      {
+	enum thread_memory_type ret;
+
+	ret = thread_private_new_memory (entry_block, TREE_OPERAND (x, 0));
+	if (ret == mem_non_local)
+	  return true;
+	if (stmt && ret == mem_thread_local)
+	  /* ?? Should we pass `orig', or the INDIRECT_REF X.  ?? */
+	  tm_log_add (entry_block, orig, stmt);
+
+	/* Transaction-locals require nothing at all.  For malloc, a
+	   transaction restart frees the memory and we reallocate.
+	   For alloca, the stack pointer gets reset by the retry and
+	   we reallocate.  */
 	return false;
-      return true;
+      }
 
     case ALIGN_INDIRECT_REF:
     case MISALIGNED_INDIRECT_REF:
