@@ -55,6 +55,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 #include "sese.h"
 #include "predict.h"
+#include "dbgcnt.h"
 
 #ifdef HAVE_cloog
 
@@ -270,7 +271,7 @@ graphite_transform_loops (void)
     {
       bool transform_done = false;
 
-      if (!build_poly_scop (scop))
+      if (!dbg_cnt (graphite_scop) || !build_poly_scop (scop))
 	continue;
 
       if (apply_poly_transforms (scop))
