@@ -1,3 +1,7 @@
+2009-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt: compiletrec_list coded, but
+	compiletrec_instance is still missing.
+
 2009-12-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: in normletrec_list use ==i not ==.
 	* melt/warmelt-genobj.melt: added class_objputlist

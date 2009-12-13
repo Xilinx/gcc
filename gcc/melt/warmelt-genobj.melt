@@ -2091,8 +2091,31 @@ $SBUF.}#
   (assert_msg "check obva" (is_a obva class_objlocv))
   (assert_msg "check obodl" (is_list obodl))
   (let ( (loc (or (get_field :nconsb_loc recv) sloc))
+	 (nfirst (get_field :nlistb_first recv))
+	 (nlast (get_field :nlistb_last recv))
+	 (ofirst (if nfirst (compile_obj nfirst gcx)))
+	 (olast (if nlast (compile_obj nlast gcx)))
+	 (oputl (if (or ofirst olast)
+		    (instance class_objputlist
+			      :obi_loc loc
+			      :oputl_list obva
+			      :oputl_first ofirst
+			      :oputl_last olast
+			      )))
+	 (otouch (instance class_objtouch
+			   :obi_loc loc
+			   :otouch_val obva
+			   ))
 	 )
-    (assert_msg "@$@unimplemented compiletrec_list" ())
+    (if (and ofirst (is_not_a ofirst class_objpurevalue))
+	(list_append obodl ofirst))
+    (if (and olast (is_not_a olast class_objpurevalue))
+	(list_append obodl olast))
+    (if oputl 
+	(progn 
+	  (list_append obodl oputl)
+	  (list_append obodl otouch)
+	  ))
     ))
 (install_method class_normal_constructed_list_binding compile_letrec_fill compiletrec_list)
 
@@ -2103,6 +2126,7 @@ $SBUF.}#
   (assert_msg "check recv" (is_a recv class_normal_constructed_instance_binding))
   (assert_msg "check obva" (is_a obva class_objlocv))
   (assert_msg "check obodl" (is_list obodl))
+  (compile_warning "unimplemented compiletrec_instance")
   (assert_msg "@$@unimplemented compiletrec_instance" ())
 )
 (install_method class_normal_constructed_instance_binding compile_letrec_fill compiletrec_instance)
