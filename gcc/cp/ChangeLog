@@ -1,3 +1,36 @@
+2009-12-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42219
+	* typeck.c (error_type_p): New.
+	(ptr_reasonably_similar): Use it.
+	* cp-tree.h: Declare it.
+
+2009-12-11  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42225
+	* typeck.c (incompatible_dependent_typedefs_p): New function.
+	(structural_comptypes): Use it.
+	* cp-tree.h (cp_set_underlying_type): Declare ...
+	* tree.c (cp_set_underlying_type): ... new function.
+	* class.c (build_self_reference): Use cp_set_underlying_type
+	instead of set_underlying_type.
+	* decl2.c (grokfield): Likewise.
+	* name-lookup.c (pushdecl_maybe_friend): Likewise.
+
+2009-12-11  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42251
+	* pt.c (convert_template_argument): Avoid missing folding of SCOPE_REFs.
+
+2009-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42317
+	* decl2.c (cp_write_global_declarations): Clear DECL_EXTERNAL
+	also on all other functions in the same comdat group.
+	* optimize.c (maybe_clone_body): Also optimize virtual implicit
+	dtors.  For virtual comdat dtors tell cgraph that base and deleting
+	dtor are in the same comdat group.
+
 2009-12-04  Jason Merrill  <jason@redhat.com>
 
 	PR c++/42010

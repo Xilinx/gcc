@@ -1,3 +1,63 @@
+2009-12-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42357
+	* g++.dg/torture/pr42357.C: New testcase.
+
+2009-12-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42257
+	* gfortran.dg/extends_9.f03: New test.
+
+2009-12-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42219
+	* g++.dg/conversion/err-recover1.C: New.
+
+2009-12-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42335
+	* gfortran.dg/select_type_11.f03: New test.
+
+2009-12-11  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42225
+	* g++.dg/template/typedef24.C: New test.
+	* g++.dg/template/typedef25.C: New test.
+
+2009-12-11  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42251
+	* g++.dg/template/const3.C: New test.
+
+2009-12-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42320
+	* g++.dg/lto/20091210-1_0.h: New testcase.
+	* g++.dg/lto/20091210-1_0.C: Likewise.
+	* g++.dg/lto/20091210-1_1.C: Likewise.
+
+2009-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42317
+	* g++.dg/opt/dtor2.C: New test.
+	* g++.dg/opt/dtor2.h: New file.
+	* g++.dg/opt/dtor2-aux.cc: New file.
+
+2009-12-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/41369
+	* gfortran.dg/func_derived_5.f90: New.
+
+2009-12-10  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/42110
+	* g++.dg/torture/pr42110.C: new file.
+
+2009-12-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/34402
+	* gfortran.dg/alloc_comp_init_expr.f03: New.
+
 2009-12-09  David Edelsohn  <edelsohn@gnu.org>
 
 	* gcc.target/powerpc/bswap64-4.c: Disable on AIX.
@@ -25,6 +85,19 @@
 	PR midle-end/41843
 	* gcc.dg/struct/wo_prof_empty_str.c: New testcase.
 
+2009-12-07  Richard Henderson  <rth@redhat.com>
+
+	PR rtl-opt/42269
+	* gcc.c-torture/execute/pr42269-2.c: New.
+	* gcc.target/alpha/pr42269-1.c: Likewise.
+
+2009-12-07  Richard Henderson  <rth@redhat.com>
+
+	PR debug/42299
+	PR debug/42166
+	* gcc.c-torture/compile/pr42299.c: New.
+	* gfortran.dg/pr42166.f90: Likewise.
+
 2009-12-07  Jakub Jelinek  <jakub@redhat.com>
 
 	PR debug/42244
@@ -38,8 +111,8 @@
 
 2009-12-07  Daniel Franke  <franke.daniel@gmail.com>
 
-        PR fortran/41940
-        * gfortran.dg/allocate_scalar_with_shape.f90: New.
+	PR fortran/41940
+	* gfortran.dg/allocate_scalar_with_shape.f90: New.
 
 2009-12-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
@@ -62,6 +135,11 @@
 
 	* gcc.c-torture/execute/vla-dealloc-1.c: Use lower loop count
 	for 16bit int targets.
+
+2009-12-06  Richard Henderson  <rth@redhat.com>
+
+	PR debug/42234
+	* gcc.c-torture/compile/pr42234.c: New.
 
 2009-12-06  Janus Weil  <janus@gcc.gnu.org>
 
@@ -124,6 +202,11 @@
 	* g++.dg/inherit/thunk11.C: New test.
 	* g++.dg/inherit/thunk11.h: New file.
 	* g++.dg/inherit/thunk11-aux.cc: New file.
+
+2009-12-02  Richard Henderson  <rth@redhat.com>
+
+	PR tree-opt/42215
+	* gcc.dg/pr42215.c: New.
 
 2009-12-02  Richard Guenther  <rguenther@suse.de>
 

@@ -200,6 +200,8 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   /* For normal nodes pointer to the list of alias and thunk nodes,
      in alias/thunk nodes pointer to the normal node.  */
   struct cgraph_node *same_body;
+  /* Circular list of nodes in the same comdat group if non-NULL.  */
+  struct cgraph_node *same_comdat_group;
   /* For functions with many calls sites it holds map from call expression
      to the edge to speed up cgraph_edge function.  */
   htab_t GTY((param_is (struct cgraph_edge))) call_site_hash;
@@ -445,7 +447,7 @@ void cgraph_set_call_stmt (struct cgraph_edge *, gimple);
 void cgraph_set_call_stmt_including_clones (struct cgraph_node *, gimple, gimple);
 void cgraph_create_edge_including_clones (struct cgraph_node *,
 					  struct cgraph_node *,
-					  gimple, gcov_type, int, int,
+					  gimple, gimple, gcov_type, int, int,
 					  cgraph_inline_failed_t);
 void cgraph_update_edges_for_call_stmt (gimple, tree, gimple);
 struct cgraph_local_info *cgraph_local_info (tree);
