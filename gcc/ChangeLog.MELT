@@ -1,4 +1,10 @@
 2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tletrec2.melt translated ok}}
+	* melt/warmelt-genobj.melt: (compilobj_nrep_letrec) normal
+	bindings can be void, so recobva could be nil and should be
+	ignored.
+
+2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tletrec2.melt is failing, so normexp_tuple don't work yet}}
 	* gcc/testsuite/melt/tletrec2.melt: added new file.
 	* melt/warmelt-normal.melt: exporting normal_predef. normexp_tuple

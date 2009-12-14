@@ -2240,6 +2240,7 @@ $SBUF.}#
     ;;
     (debug_msg locmap "compilobj_nrep_letrec locmap")
     (debug_msg oblock "compilobj_nrep_letrec incomplete oblock")
+    (debug_msg ofreelocs "compilobj_nrep_letrec incomplete ofreelocs")
     (debug_msg bnds "compilobj_nrep_letrec compiling each of bnds")
     (foreach_in_multiple
      (bnds)
@@ -2267,18 +2268,24 @@ $SBUF.}#
 	    (rcty (unsafe_get_field :letbind_type curecbnd))
 	    (rloc (unsafe_get_field :letbind_loc curecbnd))
 	    (recobva (get_free_objloctyped gcx rbder rcty))
-	    (oreclear (instance class_objclear
-				:obi_loc (or rloc loc)
-				:oclr_vloc recobva
-				))
 	    )
        (debug_msg recobva "compilobj_nrep_letrec current normbinding recobva")
-       (mapobject_put locmap curecbnd recobva)
-       (debug_msg oreclear "compilobj_nrep_letrec oreclear")
-       (list_append oepil oreclear)
-       (list_append ofreelocs recobva)
-       ))
+       ;; recobva can be nil when rcty is :void
+       (if recobva
+	   (let (
+		 (oreclear (instance class_objclear
+				     :obi_loc (or rloc loc)
+				     :oclr_vloc recobva
+				     ))
+		 )
+	     (assert_msg "check recobva" (is_a recobva class_objlocv))
+	     (mapobject_put locmap curecbnd recobva)
+	     (debug_msg oreclear "compilobj_nrep_letrec oreclear")
+	     (list_append oepil oreclear)
+	     (list_append ofreelocs recobva)
+	     ))))
     (debug_msg locmap "compilobj_nrep_letrec locmap again")
+    (debug_msg ofreelocs "compilobj_nrep_letrec ofreelocs again")
     ;; second loop to compile the recbindings
     (foreach_in_list
      (recbnds)
@@ -2322,11 +2329,13 @@ $SBUF.}#
        (debug_msg ocurb "compilobj_nrep_letrec ocurb")
        (list_append obodl ocurb)))
     (debug_msg obodl "compilobj_nrep_letrec final obodl")
+    (debug_msg ofreelocs "compilobj_nrep_letrec final ofreelocs")
     ;; should clear and free our objlocs...
     (foreach_in_list
      (ofreelocs)
      (curlpair curlocva)
      (debug_msg curlocva "compilobj_nrep_letrec disposing curlocva")
+     (assert_msg "check curlocva" (is_a curlocva class_objlocv))
      (let ( (oclear (instance class_objclear
 			      :obi_loc loc
 			      :oclr_vloc curlocva))
@@ -2379,6 +2388,7 @@ $SBUF.}#
 			    ))
 	 (locmap  (unsafe_get_field  :gncx_locmap gcx))
 	 )
+    (debug_msg ostat "compilobj_nrep_citeration ostat")
     (debug_msg nlocbind "compilobj_nrep_citeration nlocbind")
     (assert_msg "check citer" (is_a citer class_citerator))
     (assert_msg "check locmap" (is_mapobject locmap))
