@@ -3877,8 +3877,10 @@ routine procedures.}#
        (debug_msg nbodbindings "normexp_letrec nbodbindings")
        (put_fields nletrec 
 		   :nlet_body nbody)
+       (list_append2list recbindings nbodbindings)
+       (list_append2list bindlist nbodbindings)
        (debug_msg nletrec "normexp_letrec updated nletrec")
-       (list_append2list bindlist  nbodbindings)
+       (debug_msg bindlist "normexp_letrec updated bindlist")
        (assert_msg "normexp_letrec check bindlist" (is_list_or_null bindlist))
        (list_every
 	bindlist
@@ -3914,7 +3916,6 @@ routine procedures.}#
 	 (debug_msg resbinds "normexp_letrec result resbinds")
 	 (shortbacktrace_dbg "normexp_letrec ending" 15)
 	 (return clocc resbinds)
-	 (compile_warning "normexp_letrec incomplete - perhaps need a normal_letrec selector?")
 	 )))))
 (install_method class_source_letrec normal_exp normexp_letrec)
 

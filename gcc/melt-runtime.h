@@ -122,6 +122,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 typedef struct meltmultiple_st *meltmultiple_ptr_t;
 typedef struct meltbox_st *meltbox_ptr_t;
 typedef struct meltpair_st *meltpair_ptr_t;
+typedef struct meltlist_st *meltlist_ptr_t;
 
 struct debugprint_melt_st
 {

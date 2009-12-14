@@ -1,4 +1,14 @@
 2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tletrec.melt fully translated}}
+	* melt-runtime.h (meltlist_ptr_t): added new typedef.
+	* melt/warmelt-normal.melt: normexp_letrec append the body
+	bindings into the recbindings.
+	* melt/warmelt-genobj.melt: added field oio_class in
+	class_objinitobject.
+	* melt/warmelt-outobj.melt: coded outpucod_objputpairhead,
+	outpucod_objputpairtail, outpucod_objputlist methods.
+
+2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt: coded compiletrec_instance, but
 	tletrec.melt test fails.
 

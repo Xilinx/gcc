@@ -93,6 +93,7 @@
   :super class_objinitelem
   :fields (
 	   oio_predef			;the predef name or number to contain this object
+	   oio_class			;the class of the object
 	   ))
 
 
@@ -3190,6 +3191,7 @@ $SBUF.}#
 	 (nlocsyms (get_field :nletrec_locsyms nletrec))
 	 (:long bindnum (get_int bind))
 	 (locsymocc (multiple_nth nlocsyms bindnum))
+	 (nclabind (get_field :ninstb_clabind bind))
 	 )
     (add2sbuf_strconst nambuf "rinst_")
     (add2sbuf_longdec nambuf bindnum)
@@ -3197,11 +3199,19 @@ $SBUF.}#
     (add2sbuf_cident nambuf (unsafe_get_field :named_name symb))
     (let ( 
 	  (oloc (compile_obj locsymocc gcx))
+	  (clas (cond ( (is_a nclabind class_value_binding)
+		       (unsafe_get_field :vbind_value nclabind))
+		     ( (is_a nclabind class_class_binding)
+		       (unsafe_get_field :cbind_class nclabind))
+		     (:else
+		      (debug_msg nclabind "compilobj_consinstancebind bad nclabind")
+		      (assert_msg "unexpected class binding" ()))))
 	  (ininst (instance class_objinitobject
 			    :obv_type ctype_value
 			    :oie_discr odiscr
 			    :oie_locvar oloc
 			    :oie_cname (strbuf2string discr_string nambuf)
+			    :oio_class clas
 			    ))
 	  )
       (debug_msg oloc "compilobj_consinstancebind oloc")
@@ -3945,6 +3955,7 @@ $SBUF.}#
 		     :obv_type ctype_value
 		     :oie_data syv
 		     :oie_discr odiscr
+		     :oio_class ()
 		     )) 
 	  )
       (mapobject_put compicache syv obsym)
@@ -4017,6 +4028,7 @@ $SBUF.}#
 			      :oie_data dai
 			      :oie_discr cdisx
 			      :oio_predef dpredef
+			      :oio_class ()
 			      ))
 	      (nambuf (make_strbuf discr_strbuf))
 	      (:long drk (get_int drank))
