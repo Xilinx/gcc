@@ -1030,7 +1030,7 @@ dot_lst (lst_p lst)
   x = system ("dotty /tmp/lst.dot");
 #else
   fputs ("digraph all {\n", stderr);
-  dot_deps_1 (stderr, lst);
+  dot_lst_1 (stderr, lst);
   fputs ("}\n\n", stderr);
 
 #endif
