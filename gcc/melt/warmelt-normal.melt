@@ -3322,14 +3322,44 @@ routine procedures.}#
   (debug_msg recv "normexp_tuple recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sargs (unsafe_get_field :sargop_args recv))
+	 (csym (clone_symbol 'tuple_))
+	 (nlr ())
 	 )
     (multicall
      (nargs nbindings)
      (normalize_tuple sargs env ncx sloc)
      (debug_msg nargs "normexp_tuple nargs")
      (debug_msg nbindings "normexp_tuple nbindings")
-     ;; insght: normalize (tuple x1 x2) exactly as 
+     ;; insight: normalize (tuple x1 x2) exactly as 
      ;; as an anonymous letrec
+     ;; don't work yet
+     #|
+     (letrec ( (nletrec (instance class_nrep_letrec
+     :nrep_loc sloc
+     :nlet_bindings tup1bind
+     ))
+     (constupbind (instance class_normal_constructed_tuple_binding
+     :binder csym
+     :nconsb_loc sloc
+     :nconsb_discr (normal_predef discr_multiple ncx sloc "discr_multiple")
+     :ntupb_comp nargs
+     :nletrec_bindings ()
+     :nletrec_locsyms tup1loc
+     ))
+     (clocc (instance class_nrep_locsymocc
+     :nrep_loc sloc
+     :nocc_ctyp ctype_value
+     :nocc_symb csym
+     :nocc_bind constupbind))
+     (tup1bind (tuple constupbind))
+     (tup1loc (tuple clocc))
+     )
+     (setq nlr nletrec)
+     (compile_warning "normexp_tuple incomplete")
+     (error_plain sloc "unimplemented TUPLE normalization")
+     (assert_msg "@$@unimplemented TUPLE" ())
+     )
+     |#
      (compile_warning "normexp_tuple incomplete")
      (error_plain sloc "unimplemented TUPLE normalization")
      (assert_msg "@$@unimplemented TUPLE" ())
@@ -6027,6 +6057,7 @@ routine procedures.}#
  get_ctype
  normal_exp
  normal_letrec_constructive
+ normal_predef
  normalize_tuple
  prepare_constructor_binding
  wrap_normal_let1

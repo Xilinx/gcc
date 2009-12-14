@@ -1,0 +1,58 @@
+; -*- lisp -*-
+;; file tletrec2.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=runfile  -fmelt-module-path=.    \
+    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tletrec2.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+(defun badnormexptuple (recv env ncx psloc)
+  (assert_msg "check tuple recv" (is_a recv class_source_tuple))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (debug_msg recv "normexp_tuple recv")
+  (let ( (sloc (unsafe_get_field :loca_location recv))
+	 (sargs (unsafe_get_field :sargop_args recv))
+	 (csym (clone_symbol 'tuple_))
+	 (nlr ())
+	 )
+    (multicall
+     (nargs nbindings)
+     (normalize_tuple sargs env ncx sloc)
+     (debug_msg nargs "normexp_tuple nargs")
+     (debug_msg nbindings "normexp_tuple nbindings")
+     ;; insight: normalize (tuple x1 x2) exactly as 
+     ;; as an anonymous letrec
+     (letrec ( (nletrec (instance class_nrep_letrec
+				  :nrep_loc sloc
+				  :nlet_bindings tup1bind
+				  ))
+	       (constupbind (instance class_normal_constructed_tuple_binding
+				      :binder csym
+				      :nconsb_loc sloc
+				      :nconsb_discr (normal_predef discr_multiple ncx sloc "discr_multiple")
+				      :ntupb_comp nargs
+				      :nletrec_bindings ()
+				      :nletrec_locsyms tup1loc
+				      ))
+	       (clocc (instance class_nrep_locsymocc
+				:nrep_loc sloc
+				:nocc_ctyp ctype_value
+				:nocc_symb csym
+				:nocc_bind constupbind))
+	       (tup1bind (tuple constupbind))
+	       (tup1loc (tuple clocc))
+	       )
+	     (setq nlr nletrec)
+	     (compile_warning "normexp_tuple incomplete")
+	     (error_plain sloc "unimplemented TUPLE normalization")
+	     (assert_msg "@$@unimplemented TUPLE" ())
+	     )
+     (compile_warning "normexp_tuple incomplete")
+     (error_plain sloc "unimplemented TUPLE normalization")
+     (assert_msg "@$@unimplemented TUPLE" ())
+     )))
+;; eof tletrec2.melt
