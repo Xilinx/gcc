@@ -1,3 +1,7 @@
+2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt: coded compiletrec_instance, but
+	tletrec.melt test fails.
+
 2009-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt: compiletrec_list coded, but
 	compiletrec_instance is still missing.

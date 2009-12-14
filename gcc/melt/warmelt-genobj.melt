@@ -2119,6 +2119,7 @@ $SBUF.}#
     ))
 (install_method class_normal_constructed_list_binding compile_letrec_fill compiletrec_list)
 
+
 ;; generate inside the body list the code for filling instance in letrecs
 (defun compiletrec_instance (recv obva obodl gcx sloc)
   (debug_msg recv "compiletrec_instance recv")
@@ -2126,9 +2127,50 @@ $SBUF.}#
   (assert_msg "check recv" (is_a recv class_normal_constructed_instance_binding))
   (assert_msg "check obva" (is_a obva class_objlocv))
   (assert_msg "check obodl" (is_list obodl))
-  (compile_warning "unimplemented compiletrec_instance")
-  (assert_msg "@$@unimplemented compiletrec_instance" ())
-)
+  (let ( (loc (or (get_field :nconsb_loc recv) sloc))
+	 (nslots (get_field :ninstb_slots recv))
+	 (nclabind (get_field :ninstb_clabind recv))
+	 (otouch (instance class_objtouch
+			   :obi_loc loc
+			   :otouch_val obva
+			   ))
+	 (clas (cond ( (is_a nclabind class_value_binding)
+		       (unsafe_get_field :vbind_value nclabind))
+		     ( (is_a nclabind class_class_binding)
+		       (unsafe_get_field :cbind_class nclabind))
+		     (:else
+		      (debug_msg nclabind "compiletrec_instance bad nclabind")
+		      (assert_msg "unexpected class binding" ()))))
+	 (flds (get_field :class_fields clas))
+	 )
+    (debug_msg clas "compiletrec_instance clas")
+    (assert_msg "check clas" (is_a clas class_class))
+    (debug_msg nslots "compiletrec_instance nslots")
+    (foreach_in_multiple
+     (nslots)
+     (curnslot :long slix)
+     (debug_msg curnslot "compiletrec_instance curnslot")
+     (if curnslot
+	 (let ( (curfld (multiple_nth flds slix)) 
+		(oslot (compile_obj curnslot gcx))
+		)
+	   (debug_msg curfld "compiletrec_instance curfld")
+	   (debug_msg oslot "compiletrec_instance oslot")
+	   (if (is_not_a oslot class_objpurevalue)
+	       (progn
+		 (if (>i slix 0) (list_append obodl otouch))
+		 (list_append obodl oslot)))
+	   (let ( (oputs (instance class_objputslot
+				   :obi_loc loc
+				   :oslot_odata obva
+				   :oslot_offset (make_integerbox discr_integer slix)
+				   :oslot_field curfld
+				   :oslot_value oslot))
+		  )
+	     (list_append obodl oputs)
+	     )))) 
+    (list_append obodl otouch)
+    ))
 (install_method class_normal_constructed_instance_binding compile_letrec_fill compiletrec_instance)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
