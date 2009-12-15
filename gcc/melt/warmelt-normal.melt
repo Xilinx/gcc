@@ -3332,37 +3332,36 @@ routine procedures.}#
      (debug_msg nbindings "normexp_tuple nbindings")
      ;; insight: normalize (tuple x1 x2) exactly as 
      ;; as an anonymous letrec
-     ;; don't work yet
-     #|
+     (compile_warning "normexp_tuple DONT COMPILE YET WITH THIS CODE")
+#|
      (letrec ( (nletrec (instance class_nrep_letrec
-     :nrep_loc sloc
-     :nlet_bindings tup1bind
-     ))
-     (constupbind (instance class_normal_constructed_tuple_binding
-     :binder csym
-     :nconsb_loc sloc
-     :nconsb_discr (normal_predef discr_multiple ncx sloc "discr_multiple")
-     :ntupb_comp nargs
-     :nletrec_bindings ()
-     :nletrec_locsyms tup1loc
-     ))
-     (clocc (instance class_nrep_locsymocc
-     :nrep_loc sloc
-     :nocc_ctyp ctype_value
-     :nocc_symb csym
-     :nocc_bind constupbind))
-     (tup1bind (tuple constupbind))
-     (tup1loc (tuple clocc))
-     )
-     (setq nlr nletrec)
-     (compile_warning "normexp_tuple incomplete")
-     (error_plain sloc "unimplemented TUPLE normalization")
-     (assert_msg "@$@unimplemented TUPLE" ())
-     )
-     |#
-     (compile_warning "normexp_tuple incomplete")
-     (error_plain sloc "unimplemented TUPLE normalization")
-     (assert_msg "@$@unimplemented TUPLE" ())
+				  :nrep_loc sloc
+				  :nlet_bindings tup1bind
+				  ))
+	       (constupbind (instance class_normal_constructed_tuple_binding
+				      :binder csym
+				      :nconsb_loc sloc
+				      :nconsb_discr (normal_predef discr_multiple ncx sloc "discr_multiple")
+				      :ntupb_comp nargs
+				      :nletrec_bindings ()
+				      :nletrec_locsyms tup1loc
+				      ))
+	       (clocc (instance class_nrep_locsymocc
+				:nrep_loc sloc
+				:nocc_ctyp ctype_value
+				:nocc_symb csym
+				:nocc_bind constupbind))
+	       (tup1bind (tuple constupbind))
+	       (tup1loc (tuple clocc))
+	       )
+	     (setq nlr nletrec)
+	     (compile_warning "normexp_tuple incomplete")
+	     (error_plain sloc "unimplemented TUPLE normalization")
+	     (assert_msg "@$@unimplemented TUPLE" ())
+	     )
+|#
+;;
+	     (assert_msg "@$@unimplemented normexp_TUPLE" ())
      )))
 (install_method class_source_tuple normal_exp normexp_tuple)
 
@@ -3580,8 +3579,26 @@ routine procedures.}#
 ;;;;
 
 
+;; auxiliary function to find a symbol in the locsym of a nletrec
+(defun nreclist_find_locsym (symb nletrec)
+  (debug_msg symb "nreclist_find_locsym symb")
+  (assert_msg "check symb" (is_a symb class_symbol))
+  (assert_msg "check nletrec" (is_a nletrec class_nrep_letrec))
+  (let ( (nlocsyms (get_field :nletrec_locsyms nletrec)) 
+	 )
+    (foreach_in_multiple
+     (nlocsyms)
+     (curlocsym :long locsymix)
+     (if (== (get_field :nocc_symb curlocsym) symb)
+	 (progn
+	   (debug_msg curlocsym "nreclist_find_locsym found curlocsym")
+	   (return curlocsym))))
+    (debug_msg () "nreclist_find_locsym not found")
+    (return)
+    ))
 
-(defun normletrec_list  (cexpr symb cbind env ncx sloc)
+
+(defun normletrec_list (cexpr symb cbind env ncx sloc)
   (debug_msg cexpr "normletrec_list cexpr")
   (debug_msg symb "normletrec_list symb")
   (debug_msg cbind "normletrec_list cbind")
@@ -3620,29 +3637,21 @@ routine procedures.}#
       (debug_msg curnarg "normletrec_list curnarg")
       (let ( (curcbind  (multiple_nth cbind nix)) 
 	     (nextcbind  (multiple_nth cbind (+i 1 nix)))
-	     (nextpairsymb (if (is_a nextcbind class_normal_constructed_list_binding)
+	     (nextpairsymb (if (is_a nextcbind class_normal_constructed_pair_binding)
 			       (get_field :binder nextcbind)))
 	     )
 	(debug_msg curcbind "normletrec_list curcbind")
 	(debug_msg nextcbind "normletrec_list nextcbind")
 	(debug_msg nextpairsymb "normletrec_list nextpairsymb")
 	(assert_msg "check curcbind" (is_a curcbind class_normal_constructed_pair_binding))
-	(if nextpairsymb
-	    (let ( (nextpairloc ()) )
-	      ;; find in nlocsyms the locsymocc bound to nextpairsymb
-	      (foreach_in_multiple
-	       (nlocsyms)
-	       (curlocsym :long locsymix)
-	       (if (== (get_field :nocc_symb curlocsym) nextpairsymb)
-		   (progn 
-		     (setq locsymix -1)
-		     (setq nextpairloc curlocsym))))
-	      (debug_msg nextpairloc "normletrec_list got nextpairloc")
-	      (put_fields curcbind
-			  :npairb_head curnarg
-			  :npairb_tail nextpairloc)
-	      (debug_msg curcbind "normletrec_list updated curcbind")
-	      ))))
+	(let ( (nextpairloc	(if nextpairsymb (nreclist_find_locsym nextpairsymb nletrec))) )
+	  (debug_msg nextpairloc "normletrec_list got nextpairloc")
+	  (put_fields curcbind
+		      :npairb_head curnarg
+		      :npairb_tail nextpairloc)
+	  (debug_msg curcbind "normletrec_list updated curcbind")
+	  (assert_msg "check curcbind" (is_a curcbind class_normal_constructed_pair_binding))
+	  )))
      (debug_msg firstpairbind "normletrec_list firstpairbind")
      (debug_msg lastpairbind "normletrec_list lastpairbind")
      (debug_msg conslibind "normletrec_list conslibind again")
@@ -3650,13 +3659,18 @@ routine procedures.}#
 	  (is_a lastpairbind class_normal_constructed_pair_binding)
 	  (let ( (firstpairsymb (get_field :binder firstpairbind))
 		 (lastpairsymb (get_field :binder lastpairbind))
+		 (firstpairlocsy (nreclist_find_locsym firstpairsymb nletrec))
+		 (lastpairlocsy (nreclist_find_locsym lastpairsymb nletrec))
 		 )
+	    (debug_msg firstpairlocsy "normletrec_list firstpairlocsy")
+	    (debug_msg lastpairlocsy "normletrec_list lastpairlocsy")
 	    (put_fields conslibind
-			:nlistb_first firstpairbind
-			:nlistb_last lastpairbind)
+			:nlistb_first firstpairlocsy
+			:nlistb_last lastpairlocsy)
 	    (debug_msg conslibind "normletrec_list updated conslibind")
 	    (void)
 	    ))
+     (debug_msg nbinds "normletrec_list appending nbinds")
      (list_append2list nrecbinds nbinds)
      (debug_msg nrecbinds "normletrec_list ended updated nrecbinds")
      )))
@@ -3790,10 +3804,12 @@ routine procedures.}#
 	      )
 	 (debug_msg curconsbind "normexp_letrec curconsbind")
 	 (cond ( (is_a curconsbind class_normal_constructor_binding)
+		 (debug_msg curconsbind "normexp_letrec curconsbind plain consbind")
 		 (list_append consbindlist curconsbind)
 		 (mapobject_put symbindmap cursymb curconsbind)
 		 )
 	       ( (is_multiple curconsbind)
+		 (debug_msg curconsbind "normexp_letrec curconsbind multiple")
 		 (foreach_in_multiple 
 		  (curconsbind)
 		  (subconsbind :long subix)
@@ -3803,6 +3819,7 @@ routine procedures.}#
 		 (mapobject_put symbindmap cursymb curconsbind)
 		 )
 	       ( (is_list curconsbind)
+		 (debug_msg curconsbind "normexp_letrec curconsbind list")
 		 (foreach_in_list
 		  (curconsbind)
 		  (subconspair subconsbind)
@@ -3905,6 +3922,7 @@ routine procedures.}#
        (normalize_tuple sbody newenv ncx sloc)
        (debug_msg nbody "normexp_letrec nbody")
        (debug_msg nbodbindings "normexp_letrec nbodbindings")
+       (assert_msg "normexp_letrec check nbodbindings" (is_list_or_null nbodbindings))
        (put_fields nletrec 
 		   :nlet_body nbody)
        (list_append2list recbindings nbodbindings)

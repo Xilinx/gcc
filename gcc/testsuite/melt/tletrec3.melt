@@ -1,0 +1,40 @@
+; -*- lisp -*-
+;; file tletrec3.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=runfile  -fmelt-module-path=.    \
+    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tletrec3.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+(defun testlist (x y z)
+  (letrec ( (li (list x y z)) 
+	    )
+	  li))
+
+(debug_msg (testlist 'xx 'yy 'zz) "testlist")
+
+(defun testtuple (x y z)
+  (letrec ( (tu (tuple x y z)) 
+	    )
+	  tu))
+
+(debug_msg (testtuple 'xx 'yy 'zz) "testtuple")
+
+(defun testletrec3 (x y)
+  (debug_msg x "testletrec3 x")
+  (debug_msg y "testletrec3 y")
+  (letrec ( (tu (tuple x y li 
+		       (make_integerbox discr_integer 123)))
+	    (li (list x y 
+		      (make_box discr_box tu)))
+	    )
+	  (debug_msg tu "testletrec3 tu")
+	  (debug_msg li "testletrec3 li")
+	  ))
+
+(testletrec3 'xxx 'yyy)
+
+;; eof tletrec3.melt

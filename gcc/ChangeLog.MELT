@@ -1,4 +1,18 @@
 2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{new tletrec3.melt translated, but runs badly}}
+	* testsuite/melt/tletrec3.melt: added new file.
+	* testsuite/melt/ttuplist.melt: added new file.
+	* melt/warmelt-normal.melt: normexp_tuple DONT COMPILE YET so
+	commented out.
+	added nreclist_find_locsym.
+	normletrec_list works better, but still don't handle expressions
+	inside the constructed tuples or lists...
+	* melt/warmelt-genobj.melt: compilobj_nrep_letrec works almost...
+	* melt/warmelt-outobj.melt: outcinitfill_objinitobject emit
+	asserts done only when melt_prohibit_garbcoll is false.
+	typo in outpucod_objputpairhead.
+
+2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tletrec2.melt translated ok}}
 	* melt/warmelt-genobj.melt: (compilobj_nrep_letrec) normal
 	bindings can be void, so recobva could be nil and should be

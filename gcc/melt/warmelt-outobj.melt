@@ -179,13 +179,24 @@
 	  (add2sbuf_strconst sbuf ";")
 	  (add2sbuf_indentnl sbuf depth)
 	  ))
-      ;;generate the check that odiscr is non-null 
-      (add2sbuf_strconst sbuf " melt_assertmsg(\"iniobj checkdiscr ")
+      ;; Generate the check that odiscr is an object.  We generate a
+      ;; test for melt_prohibit_garbcoll because code generated for
+      ;; warmelt-first.melt temporarily violate the check, since all
+      ;; major classes are not initialized at that time.
+      (add2sbuf_strconst sbuf " if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg(\"iniobj check.discr isobj ")
       (add2sbuf_string sbuf oname)
-      (add2sbuf_strconst sbuf "\", NULL != (void*)")
+      (add2sbuf_strconst sbuf "\", melt_magic_discr (")
       (output_c_code odiscr () sbuf depth)
-      (add2sbuf_strconst sbuf ");")
+      (add2sbuf_strconst sbuf ") == OBMAG_OBJECT);")
+      (add2sbuf_indentnl sbuf (+i depth 1)) 
+      ;; generate the check of the objnum of odiscr
+      (add2sbuf_strconst sbuf " if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg(\"iniobj check.discr objmagic ")
+      (add2sbuf_string sbuf oname)
+      (add2sbuf_strconst sbuf "\", ((meltobject_ptr_t) (")
+      (output_c_code odiscr () sbuf depth)
+      (add2sbuf_strconst sbuf "))->object_magic == OBMAG_OBJECT);")
       (add2sbuf_indentnl sbuf (+i depth 1))
+      ;; generate the initialization of the class
       (add2sbuf_string sbuf ptrstr)
       (add2sbuf_strconst sbuf "->")
       (add2sbuf_string sbuf oname)
@@ -2709,7 +2720,7 @@
     (output_location oloc implbuf depth "putpairhead")
     (add2sbuf_strconst implbuf "/*putpairhead*/")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "melt_assertmsg(\"putpairphead checkpair\", melt_magic_discr((melt_ptr_t)(")
+    (add2sbuf_strconst implbuf "melt_assertmsg(\"putpairhead checkpair\", melt_magic_discr((melt_ptr_t)(")
     (output_c_code opair declbuf implbuf depth)
     (add2sbuf_strconst implbuf "))== OBMAG_PAIR);")
     (add2sbuf_indentnl implbuf depth)

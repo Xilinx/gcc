@@ -1,0 +1,18 @@
+; -*- lisp -*-
+;; file ttuplist.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=runfile  -fmelt-module-path=.    \
+    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/ttuplist.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+(defun ftuple (x y z)
+       (tuple x y z))
+
+(defun flist (u v w)
+       (list u v w))
+
+;;eof ttuplist

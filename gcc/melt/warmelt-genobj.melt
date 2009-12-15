@@ -2069,12 +2069,16 @@ $SBUF.}#
 	 (oputtail (if otail (instance class_objputpairtail
 				       :obi_loc loc
 				       :oputp_pair obva
-				       :oputp_head otail)))
+				       :oputp_tail otail)))
 	 (otouch (instance class_objtouch
 			   :obi_loc loc
 			   :otouch_val obva
 			   ))
 	 )
+    (debug_msg nhead "compiletrec_pair nhead")
+    (debug_msg ohead "compiletrec_pair ohead")
+    (debug_msg ntail "compiletrec_pair ntail")
+    (debug_msg otail "compiletrec_pair otail")
     (if (is_not_a ohead class_objpurevalue)
 	(list_append obodl ohead))
     (if (and otail (is_not_a otail class_objpurevalue))
@@ -2185,7 +2189,6 @@ $SBUF.}#
 	 (bnds (unsafe_get_field :nlet_bindings rlet))
 	 (recbnds (unsafe_get_field :nletrec_bindings rlet))
 	 (:long nbbnds (multiple_length bnds))
-	 (:long nbrecbnds (multiple_length recbnds))
 	 (nlocsyms (unsafe_get_field :nletrec_locsyms rlet))
 	 (:long nblocsym (multiple_length nlocsyms))
 	 (tuploc (make_multiple discr_multiple nblocsym))
@@ -2214,6 +2217,8 @@ $SBUF.}#
 	 )
     (debug_msg loc "compilobj_nrep_letrec initial loc")
     (debug_msg nlocsyms "compilobj_nrep_letrec initial nlocsyms")
+    (debug_msg recbnds "compilobj_nrep_letrec initial recbnds")
+    (assert_msg "check recbnds is list" (is_list_or_null recbnds))
     (put_int obcntletrec cntletrec)
     (debug_msg obcntletrec "compilobj_nrep_letrec updated obcntletrec")
     (foreach_in_multiple
@@ -2286,24 +2291,6 @@ $SBUF.}#
 	     ))))
     (debug_msg locmap "compilobj_nrep_letrec locmap again")
     (debug_msg ofreelocs "compilobj_nrep_letrec ofreelocs again")
-    ;; second loop to compile the recbindings
-    (foreach_in_list
-     (recbnds)
-     (curecpair curecbnd)
-     (debug_msg curecbnd "compilobj_nrep_letrec curecbnd compil")
-     (assert_msg "check curecbnd" (is_a curecbnd class_normal_let_binding))
-     (let ( (rbder (unsafe_get_field :binder curecbnd))
-	    (rcty (unsafe_get_field :letbind_type curecbnd))
-	    (nrecexp (unsafe_get_field :letbind_expr curecbnd))
-	    )
-       (debug_msg nrecexp "compilobj_nrep_letrec current recbinding nrecexp")
-       (let ( (robnx (compile_obj nrecexp gcx)) )
-	 (debug_msg robnx "compilobj_nrep_letrec robnx")
-	 ))
-     )
-    ;;
-    (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
-    (debug_msg bnds "compilobj_nrep_letrec filling each of bnds")
 ;;; generate the fill
     (foreach_in_multiple
      (bnds)
@@ -2317,6 +2304,29 @@ $SBUF.}#
        ))
     ;;
     (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
+    ;;
+    ;; loop to compile the recbindings
+    (foreach_in_list
+     (recbnds)
+     (curecpair curecbnd)
+     (debug_msg curecbnd "compilobj_nrep_letrec curecbnd compil")
+     (assert_msg "check curecbnd" (is_a curecbnd class_normal_let_binding))
+     (let ( (rbder (unsafe_get_field :binder curecbnd))
+	    (rcty (unsafe_get_field :letbind_type curecbnd))
+	    (nrecexp (unsafe_get_field :letbind_expr curecbnd))
+	    )
+       (debug_msg nrecexp "compilobj_nrep_letrec current recbinding nrecexp")
+       (let ( (robnx (compile_obj nrecexp gcx)) )
+	 (debug_msg robnx "compilobj_nrep_letrec robnx")
+	 (if (is_not_a robnx class_objpurevalue)
+	     (list_append obodl robnx))
+	 ))
+     )
+    ;;
+    (debug_msg obodl "compilobj_nrep_letrec obodl")
+    (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
+    (debug_msg bnds "compilobj_nrep_letrec filling each of bnds")
+    ;;
     ;; compile the body
     (debug_msg nbdy "compilobj_nrep_letrec nbdy")
     ;; compile the body
