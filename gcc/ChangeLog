@@ -1,3 +1,364 @@
+2009-12-15  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR graphite/42185
+	* graphite-sese-to-poly.c (is_reduction_operation_p): Assert that
+	we are a GIMPLE_ASSIGN.  Do not calculate rhs code twice.
+	(follow_ssa_with_commutative_ops): Return NULL on non assignment.
+
+2009-12-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/rs6000/rs6000.md (probe_stack): Use an enclosing SET.
+
+2009-12-15  Richard Guenther  <rguenther@suse.de>
+
+	* gimple.h (compare_field_offset): Declare.
+	* gimple.c (compare_field_offset): Export.
+	* lto-streamer-in.c (input_gimple_stmt): Use compare_field_offset.
+
+2009-12-15  Richard Guenther  <rguenther@suse.de>
+
+	* lto-cgraph.c (lto_output_node): Also stream the alias
+	for regular aliases.
+	(input_node): Likewise.
+
+2009-12-15  Paolo Bonzini  <bonzini@gnu.org>
+	    Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* intl.c (get_spaces): New.
+	* intl.h (get_spaces): New.
+
+2009-12-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/42369
+	* config/i386/i386.c (ix86_expand_special_args_builtin): Avoid
+	using switch with CODE_FOR_lwp_lwp* cases.
+
+	* config/i386/i386-builtin-types.def (PVOID_FTYPE_VOID): Use
+	DEF_FUNCTION_TYPE (PVOID) instead of DEF_FUNCTION_TYPE (PVOID, VOID).
+
+2009-12-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cfgexpand.c (expand_debug_expr) <INDIRECT_REF>: Remove overzealous
+	assertion and useless code.
+	<TARGET_MEM_REF>: Likewise.
+
+2009-12-14  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41473
+	* dwarf2out.c (AT_loc_list_ptr): New.
+	(resolve_addr): Remove unresolved attributes and loc_list entries.
+
+	PR debug/41473
+	* dwarf2out.c (add_var_loc_to_decl): Don't drop initial empty
+	locations.
+	(new_loc_list): Drop gensym arg.  Move generation of ll_symbol...
+	(gen_llsym): ... here.  New function.
+	(add_loc_descr_to_loc_list): Removed.
+	(loc_descriptor): Infer mode from CONST_DOUBLEs and CONST_VECTORs.
+	(single_element_loc_list): Removed.
+	(dw_loc_list): Don't create entries without a location.  Don't
+	special-case the first node of the list, only single nodes.
+	(single_element_loc_list_p): Simplify.
+	(loc_list_from_tree): Don't use DECL_RTL if loc_list is nonempty.
+	(add_location_or_const_value_attribute): Test var loc for NULL.
+	(convert_cfa_to_fb_loc_list): Adjust calls to new new_loc_list,
+	call gen_llsym if needed.
+
+2009-12-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* cgraph.h (cgraph_set_nothrow_flag, cgraph_set_readonly_flag,
+	cgraph_set_pure_flag, cgraph_set_looping_const_or_pure_flag): New
+	prototypes.
+	* cgraph.c (cgraph_set_nothrow_flag, cgraph_set_readonly_flag,
+	cgraph_set_pure_flag, cgraph_set_looping_const_or_pure_flag): New
+	functions.
+	* except.h (set_nothrow_function_flags): Remove prototype.
+	* except.c (set_nothrow_function_flags): Use cgraph_set_nothrow_flag.
+	Make static.
+	* ipa-pure-const.c (propagate): Use cgraph_set_nothrow_flag,
+	cgraph_set_readonly_flag, cgraph_set_pure_flag
+	and cgraph_set_looping_const_or_pure_flag.
+	(local_pure_const): Likewise.
+
+2009-12-14  Jakub Jelinek  <jakub@redhat.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/i386-builtin-types.def (PVOID): Declared.
+	(VOID_FTYPE_PVOID): Declared.
+	(PVOID_FTYPE_VOID): Declared.
+	(UCHAR_FTYPE_USHORT_UINT_USHORT): Removed.
+	(VOID_FTYPE_USHORT_UINT_USHORT): Removed.
+	* config/i386/i386.c (IX86_BUILTIN_LLWPCB16, IX86_BUILTIN_LLWPCB32,
+	IX86_BUILTIN_LLWPCB64, IX86_BUILTIN_SLWPCB16, IX86_BUILTIN_SLWPCB32,
+	IX86_BUILTIN_SLWPCB64, IX86_BUILTIN_LWPVAL16, IX86_BUILTIN_LWPINS16):
+	Removed.
+	(IX86_BUILTIN_LLWPCB, IX86_BUILTIN_SLWPCB): New.
+	(bdesc_special_args): Adjust declaration of __builtin_ia32_llwpcb,
+	__builtin_ia32_slwpcb, __builtin_ia32_lwpval32,
+	__builtin_ia32_lwpval64, __builtin_ia32_lwpins32, and
+	__builtin_ia32_lwpins64.
+	(ix86_expand_special_args_builtin): Handle VOID_FTYPE_PVOID.
+	Do not handle VOID_FTYPE_USHORT_UINT_USHORT and
+	UCHAR_FTYPE_USHORT_UINT_USHORT.  Warn when the third operand is
+	not an immediate.  Also handle builtin functions with 3 arguments.
+	(ix86_expand_builtin): Handle IX86_BUILTIN_LLWPCB and
+	IX86_BUILTIN_SLWPCB.
+	* config/i386/i386.md (UNSPEC_LLWP_INTRINSIC, UNSPEC_SLWP_INTRINSIC):
+	Renamed UNSPECV_LLWP_INTRINSIC and UNSPECV_SLWP_INTRINSIC.
+	(memory attribute): Handle lwp.
+	(lwp*): Rewrite all the insn patterns for LWP.
+	* config/i386/lwpintrin.h (__llwpcb16, __llwpcb32, __llwpcb64,
+	__slwpcb16, __slwpcb32, __slwpcb64, __lwpval16, __lwpins16): Removed.
+	(__llwpcb, __slwpcb): New.
+
+2009-12-14  Dmitry Gorbachev  <d.g.gorbachev@gmail.com>
+
+	* dominance.c (set_immediate_dominator): Don't mark as inline.
+
+2009-12-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* doc/tm.texi (STACK_CHECK_PROTECT): Document alternate default.
+	* doc/md.texi (check_stack): Clarify.
+	(probe_stack): Likewise.
+	* config/rs6000/rs6000.md (UNSPEC_PROBE_STACK): New constant.
+	(probe_stack): New insn.
+
+2009-12-14  Ben Elliston  <bje@au.ibm.com>
+
+	* lto-streamer-in.c (lto_get_builtin_tree): fclass can only be a
+	BUILT_IN_NORMAL or BUILT_IN_MD.
+
+2009-12-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* doc/tm.texi (STACK_CHECK_PROBE_LOAD): Delete.
+	* expr.h (STACK_CHECK_PROBE_LOAD): Likewise.
+	* explow.c (emit_stack_probe): Do not test STACK_CHECK_PROBE_LOAD.
+	* system.h (STACK_CHECK_PROBE_LOAD): Poison.
+
+2009-12-13  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/42027
+	* dojump.c (do_jump <TRUTH_AND_EXPR, TRUTH_OR_EXPR>): Go to
+	TRUTH_ANDIF_EXPR resp. TRUTH_ORIF_EXPR expander, instead of
+	falling through.
+
+2009-12-13  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	PR target/23726
+	* config/avr/predicates.md (pseudo_register_operand): New predicate
+	for pseudos.
+	* config/avr/avr.md (divmodqi4): Replace with define_insn_and_split
+	to allow div/mod optimization.
+	(udivmodqi4): Ditto.
+	(divmodhi4): Ditto.
+	(udivmodhi4): Ditto.
+	(divmodsi4): Ditto.
+	(udivmodsi4): Ditto.
+
+2009-12-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42357
+	* tree-sra.c (sra_modify_assign): Do not tear apart struct copies.
+
+2009-12-12  Richard Guenther  <rguenther@suse.de>
+
+	* tree.c (need_assembler_name_p): Abstract decls do not need
+	an assembler name.
+	* dwarf2out.c (dwarf2out_abstract_function): Preserve
+	DECL_ABSTRACT properly.
+
+2009-12-11  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer-in.c (lto_input_tree_ref): Do not register
+	DEBUG_EXPR_DECLs with the varpool.
+
+2009-12-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/linux-unwind.h (MD_FROB_UPDATE_CONTEXT, 64-bit): Define.
+	(sparc64_frob_update_context): New function.
+
+2009-12-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41658
+	PR lto/41657
+	* lto-streamer-out.c (write_global_stream): Do not make decls
+	weak but resort to TREE_ASM_WRITTEN to avoid multiple definitions.
+	Make sure to mark all decls that we have written.
+
+2009-12-11  Sebastian Andrzej Siewior  <bigeasy@linutronix.de>
+
+	PR target/36047
+
+	* config/m68k/linux.h: Remove LABELNO from the mcount statement. It is
+	not used by glibc/uclibc and does not work with large binaries.
+
+2009-12-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41662
+	* lto-streamer-in.c (lto_init_eh): Move eh_initialized_p
+	handling here.
+	(input_eh_regions): Adjust.
+	(lto_input_ts_function_decl_tree_pointers): Initialize EH
+	if a non-NULL DECL_FUNCTION_PERSONALITY was read in.
+
+2009-12-11  Duncan Sands  <baldrick@free.fr>
+
+	* passes.c (make_pass_instance): Allocate and copy the right amount of
+	memory for ipa passes, which are not the same size as other passes.
+
+2009-12-11  Joern Rennecke  <amylaar@spamcop.net>
+
+	* plugin.c (get_named_event_id): Fix hash table rebuild to include
+	dynamically allocated events.
+
+2009-12-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42320
+	* lto-symtab.c (lto_symtab_resolve_can_prevail_p): Properly
+	detect non-prevailing decls.
+
+2009-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42317
+	* cgraph.h (struct cgraph_node): Add same_comdat_group field.
+	* cgraph.c (cgraph_remove_node): Unchain node from same_comdat_group
+	circular list.
+	(cgraph_node_can_be_local_p): Return false for DECL_COMDAT with
+	node->same_comdat_group.
+	* ipa.c (cgraph_remove_unreachable_nodes): For any reachable node
+	mark all its same_comdat_group nodes as also reachable.
+	(cgraph_externally_visible_p): Return true even if any of
+	same_comdat_group nodes has address taken.
+	* lto-cgraph.c (lto_output_node): Stream out same_comdat_group.
+	(output_cgraph): Ensure other same_comdat_group nodes are also
+	included.
+	(input_node): Stream in same_comdat_group.
+	(input_cgraph_1): Fix up same_comdat_group fields from references
+	to pointers.
+	* cgraphunit.c (cgraph_analyze_functions): Mark all other
+	same_comdat_group nodes as reachable.
+	(cgraph_mark_functions_to_output): For each node->process process
+	also other same_comdat_group nodes.
+	* ipa-inline.c (cgraph_clone_inlined_nodes): Don't reuse nodes
+	with same_comdat_group non-NULL.
+	(cgraph_mark_inline_edge): Likewise.
+
+2009-12-10  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/42228
+	PR middle-end/42110
+	* cgraph.c (cgraph_create_edge_including_clones): Add old_stmt
+	parameter; update edge if it already exists.
+	(cgraph_remove_node): Handle correctly cases where we are removing
+	node having clones.
+	* cgraph.h (cgraph_create_edge_including_clones): Declare.
+	(verify_cgraph_node): Add missing error_found = true code.
+	(cgraph_materialize_all_clones): Remove call edges of dead nodes.
+	* ipa.c (cgraph_remove_unreachable_nodes): Correctly look for master
+	clone; fix double linked list removal.
+	* tree-inline.c (copy_bb): Update cgraph_create_edge_including_clones
+	call; fix frequency of newly created edge.
+
+2009-12-10  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	PR rtl-opt/42216
+	* regrename.c: Error out if MAX_RECOG_OPERANDS is larger than
+	HOST_BITS_PER_WIDE_INT.
+	(verify_reg_in_set): New function, broken out of verify_reg_tracked.
+	(verify_reg_tracked): Use it.
+	(scan_rtx_reg): When seeing a use involving a superset of the
+	registers in an existing chain, enlarge that chain.  Otherwise,
+	allow subsets and set fail_current_block for all other kinds of
+	overlap.
+	(hide_operands): New argument UNTRACKED_OPERANDS; callers changed.
+	Do not modify operands when the bit with the corresponding number
+	is set in that bitmap.
+	(build_def_use): When we see matching operands with different
+	modes, don't set fail_current_block, but keep track of such
+	operands in a bitmap if their registers aren't already tracked
+	in an open chain.  Pass this bitmap to all hide_operands calls.
+
+2009-12-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42337
+	* tree-ssa-pre.c (seen_during_translate): Remove.
+	(phi_translate_1): Collapse into ...
+	(phi_translate): ... this.  Remove seen parameter and
+	adjust recursive calls.
+
+2009-12-10  Richard Guenther  <rguenther@suse.de>
+	Allan Sandfeld Jensen  <linux@carewolf.com>
+
+	* tree-vectorizer.c (vectorize_loops): Properly guard
+	vectorizer verboseness.
+
+2009-12-10  Ben Elliston  <bje@au.ibm.com>
+
+	* fwprop.c (free_load_extend): Initialise `use'.
+
+2009-12-09  David Edelsohn  <edelsohn@gnu.org>
+
+	* builtins.c (do_mpc_ckconv): Pass the component type to
+	real_from_mpfr().
+
+2009-12-09  Xinliang David Li  <davidxl@google.com>
+
+	PR tree-optimization/42337
+	* tree-ssa-pre.c (phi_translate_1): Push and Pop SEEN set.
+
+2009-12-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/vector.md (absv2sf2, negv2sf2, addv2sf3, subv2sf3,
+	mulv2sf3, divv2sf3): New expanders.
+	* config/rs6000/spe.md (spe_evabs, spe_evand, spe_evaddw, spe_evsubfw,
+	spe_evdivws): Rename to use standard GCC names.
+	* config/rs6000/paired.md (negv2sf, absv2sf2, addv2sf3, subv2sf3,
+	mulv2sf3, divv2sf3): Rename to avoid conflict with the new expanders.
+	* config/rs6000/rs6000.c (bdesc_2arg, bdesc_1arg): Use new CODE_FOR_
+	names for renamed patterns.
+
+2009-12-09  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.md ("copysign<mode>3"): Pattern removed.
+
+2009-12-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* configure.ac: Compute ld_ver, ld_vers, ld_date, ld_vers_major,
+	ld_vers_minor and ld_vers_path always, not just when gcc_cv_ld_hidden
+	isn't cached.
+	* configure: Regenerated.
+
+2009-12-08  Richard Henderson  <rth@redhat.com>
+
+	* combine.c (setup_incoming_promotions): Fix sign-extend of
+	zero-extend case; tidy conditions.
+
+2009-12-08  Michael Matz  <matz@suse.de>
+
+	PR middle-end/38474
+	* function.c (free_temp_slots): Only walk the temp slot
+	addresses and combine slots if we actually changes something.
+	(pop_temp_slots): Ditto.
+
+2009-12-08  Olga Golovanevsky  <olga@il.ibm.com>
+
+	PR middle-end/41843
+	* ipa-struct-reorg.c (compare_fields): New function.
+	(find_field_in_struct_1): Use compare_fields function.
+	(is_equal_types): Likewise.
+
+2009-12-07  DJ Delorie  <dj@redhat.com>
+
+	PR c/42312
+	* config/mep/mep.c (mep_expand_prologue): Set
+	really_need_stack_frame after frame_size is set.
+
+2009-12-07  Richard Henderson  <rth@redhat.com>
+
+	PR rtl-opt/42269
+	* combine.c (setup_incoming_promotions): Improve the conditions
+	under which we respect the promotions applied.
+
 2009-12-07  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* config/sparc/linux.h (ASM_SPEC): Pass -K PIC if -findirect-dispatch.

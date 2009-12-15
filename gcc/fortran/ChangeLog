@@ -1,8 +1,83 @@
+2009-12-15  Tobias Burnus  <burnus@net-b.de>
+	    Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/41235
+	* resolve.c (resolve_global_procedure): Add check for
+	presence of an explicit interface for nonconstant,
+	nonassumed character-length functions.
+	(resolve_fl_procedure): Remove check for nonconstant
+	character-length functions.
+
+2009-12-14  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/42354
+	* expr.c (check_init_expr): Do not check for specification functions.
+
+2009-12-11 Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42257
+	* module.c (write_dt_extensions): Check for accessibility.
+
+2009-12-11  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/40290
+	* expr.c (gfc_type_convert_binary): Added warn-on-conversion flag,
+	passed on to gfc_convert_type_warn() instead of gfc_convert_type();
+	enabled warnings on all callers but ...
+	* arith.c (eval_intrinsic): Disabled warnings on implicit type
+	conversion.
+	* gfortran.h gfc_type_convert_binary): Adjusted prototype.
+
+2009-12-11 Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42335
+	* symbol.c (select_type_insert_tmp): Add an extra check for
+	error recovery.
+
+2009-12-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/40287
+	* iresolve.c (resolve_mask_arg): Disabled warning on conversion
+	to LOGICAL(1).
+
+2009-12-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/41369
+	* parse.c (match_deferred_characteristics): Removed check for empty
+	types in function return values.
+
+2009-12-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/34402
+	* expr.c (check_alloc_comp_init): New.
+	(check_init_expr): Verify that allocatable components
+	are not data-initalized.
+
+2008-12-08  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/41177
+	* gfortran.h (struct symbol_attribute): New flag `class_pointer'.
+	* symbol.c (gfc_build_class_symbol): Set the new flag.
+	* resolve.c (update_compcall_arglist): Remove wrong check for
+	non-scalar base-object.
+	(check_typebound_baseobject): Add the correct version here as well
+	as some 'not implemented' message check in the old case.
+	(resolve_typebound_procedure): Check that the passed-object dummy
+	argument is scalar, non-pointer and non-allocatable as it should be.
+
+2009-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40961
+	PR fortran/40377
+	* gfortran.texi (Non-Fortran Main Program): Add
+	_gfortran_set_fpe documentation.
+	(Interoperability with C): Mention array storage order.
+
 2009-12-07  Daniel Franke  <franke.daniel@gmail.com>
 
-        PR fortran/41940
-        * match.c (gfc_match_allocate): Improved error message for
-        allocatable scalars that are allocated with a shape.
+	PR fortran/41940
+	* match.c (gfc_match_allocate): Improved error message for
+	allocatable scalars that are allocated with a shape.
 
 2009-12-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 

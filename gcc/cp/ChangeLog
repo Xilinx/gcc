@@ -1,3 +1,63 @@
+2009-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/41183
+	* cp-tree.h (current_class_ptr): Give NULL even when cfun
+	has NULL cfun->language.
+
+2009-12-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42364
+	* pt.c (function_parameter_expanded_from_pack_p): Don't require
+	a pack to have a name.
+	(tsubst_decl): Do typedef magic after applying attributes.
+
+2009-12-15  Paolo Bonzini  <bonzini@gnu.org>
+	    Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* Makefile.in (cp/pt.o): Depend on intl.h
+	* call.c (print_z_candidates): Make loop more compact,
+	choose head string depending on number of candidates,
+	extract creation of spaces string to intl.c.
+	* pt.c (print_overloaded_functions): Replace with...
+	(print_candidates_1): ... this rewrite.
+	(print_candidates): Rewrite to call print_candidates_1.
+	(most_specialized_class): Make loop more compact,
+	choose head string depending on number of candidates,
+	and size indents depending on translations.
+
+2009-12-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42219
+	* typeck.c (error_type_p): New.
+	(ptr_reasonably_similar): Use it.
+	* cp-tree.h: Declare it.
+
+2009-12-11  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42225
+	* typeck.c (incompatible_dependent_typedefs_p): New function.
+	(structural_comptypes): Use it.
+	* cp-tree.h (cp_set_underlying_type): Declare ...
+	* tree.c (cp_set_underlying_type): ... new function.
+	* class.c (build_self_reference): Use cp_set_underlying_type
+	instead of set_underlying_type.
+	* decl2.c (grokfield): Likewise.
+	* name-lookup.c (pushdecl_maybe_friend): Likewise.
+
+2009-12-11  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42251
+	* pt.c (convert_template_argument): Avoid missing folding of SCOPE_REFs.
+
+2009-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42317
+	* decl2.c (cp_write_global_declarations): Clear DECL_EXTERNAL
+	also on all other functions in the same comdat group.
+	* optimize.c (maybe_clone_body): Also optimize virtual implicit
+	dtors.  For virtual comdat dtors tell cgraph that base and deleting
+	dtor are in the same comdat group.
+
 2009-12-04  Jason Merrill  <jason@redhat.com>
 
 	PR c++/42010
