@@ -686,16 +686,14 @@ lst_try_interchange (scop_p scop, lst_p outer_father, lst_p inner_father,
   if (nest)
     {
       res |= lst_interchange_select_inner (scop, outer_father, nest, outer, 0);
-      (*outer)++;
+      if (after)
+	(*outer)++;
     }
   else
     res |= lst_interchange_select_inner (scop, outer_father, loop2, outer, 0);
 
   if (after)
-    {
-      res |= lst_interchange_select_inner (scop, outer_father, after, outer, 0);
-      (*outer)++;
-    }
+    res |= lst_interchange_select_inner (scop, outer_father, after, outer, 0);
 
   return res;
 }
@@ -715,7 +713,8 @@ lst_interchange_select_inner (scop_p scop, lst_p outer_father,
 	      && inner_father && LST_LOOP_P (inner_father));
 
   for (; !res && VEC_iterate (lst_p, LST_SEQ (inner_father), inner, l); inner++)
-    res |= lst_try_interchange (scop, outer_father, inner_father, outer, inner);
+    if (LST_LOOP_P (l))
+      res |= lst_try_interchange (scop, outer_father, inner_father, outer, inner);
 
   return res;
 }
@@ -726,7 +725,7 @@ lst_interchange_select_inner (scop_p scop, lst_p outer_father,
    points to the next outer loop to be considered for interchange.  */
 
 static bool
-lst_interchange_select_outer (scop_p scop, lst_p loop, int *outer)
+lst_interchange_select_outer (scop_p scop, lst_p loop, int outer)
 {
   lst_p l;
   bool res = false;
@@ -739,19 +738,19 @@ lst_interchange_select_outer (scop_p scop, lst_p loop, int *outer)
   father = LST_LOOP_FATHER (loop);
   if (father)
     {
-      res = lst_interchange_select_inner (scop, father, loop, outer, 0);
+      int selected = outer;
+      res = lst_interchange_select_inner (scop, father, loop, &selected, 0);
 
-      if (VEC_length (lst_p, LST_SEQ (father)) <= (unsigned) *outer)
+      if (VEC_length (lst_p, LST_SEQ (father)) <= (unsigned) outer)
 	return res;
 
-      if (res)
-	loop = VEC_index (lst_p, LST_SEQ (father), *outer);
+      loop = VEC_index (lst_p, LST_SEQ (father), outer);
     }
 
   if (LST_LOOP_P (loop))
     for (i = 0; VEC_iterate (lst_p, LST_SEQ (loop), i, l); i++)
       if (LST_LOOP_P (l))
-	res |= lst_interchange_select_outer (scop, l, &i);
+	res |= lst_interchange_select_outer (scop, l, i);
 
   return res;
 }
@@ -761,9 +760,8 @@ lst_interchange_select_outer (scop_p scop, lst_p loop, int *outer)
 bool
 scop_do_interchange (scop_p scop)
 {
-  int i = 0;
   bool res = lst_interchange_select_outer
-    (scop, SCOP_TRANSFORMED_SCHEDULE (scop), &i);
+    (scop, SCOP_TRANSFORMED_SCHEDULE (scop), 0);
 
   lst_update_scattering (SCOP_TRANSFORMED_SCHEDULE (scop));
 
