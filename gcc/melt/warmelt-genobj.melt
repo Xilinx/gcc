@@ -109,7 +109,9 @@
 ;;; initial closure - see MELT_CLOSURE_STRUCT in melt-runtime.h
 (defclass class_objinitclosure 
   :super  class_objinitelem
-  :fields (
+  :fields (oiclo_rout			;the compiled routine of the
+					;closure, useful for lambda-s
+					;in letrec-s
 	   ))
 
 ;;; initial routine - see  MELT_ROUTINE_STRUCT in melt-runtime.h
@@ -1986,7 +1988,8 @@ $SBUF.}#
      (let ( (oclosed (compile_obj curclosed gcx)) 
 	    )
        (debug_msg oclosed "compiletrec_lambda oclosed")
-       (cond ( (is_not_a oclosed class_objpurevalue)
+       (cond ( (or (is_not_a oclosed class_objpurevalue)
+		   (is_a oclosed class_objinstr))
 	       (if (>i curix 0)
 		   (list_append obodl otouch))
 	       (list_append obodl oclosed) 
@@ -2037,7 +2040,8 @@ $SBUF.}#
 			     ))
 	    )
        (debug_msg ocomp "compiletrec_tuple ocomp")
-       (cond ( (is_not_a ocomp class_objpurevalue)
+       (cond ( (or (is_not_a ocomp class_objpurevalue)
+		   (is_a ocomp class_objinstr))
 	       (list_append obodl otouch)
 	       (list_append obodl ocomp)
 	       )
@@ -2079,9 +2083,11 @@ $SBUF.}#
     (debug_msg ohead "compiletrec_pair ohead")
     (debug_msg ntail "compiletrec_pair ntail")
     (debug_msg otail "compiletrec_pair otail")
-    (if (is_not_a ohead class_objpurevalue)
+    (if (or (is_not_a ohead class_objpurevalue) 
+	    (is_a ohead class_objinstr))
 	(list_append obodl ohead))
-    (if (and otail (is_not_a otail class_objpurevalue))
+    (if (and otail (or (is_not_a otail class_objpurevalue) 
+		       (is_a otail class_objinstr)))
 	(list_append obodl otail))
     (list_append obodl oputhead)
     (if oputtail (list_append obodl oputtail))
@@ -2113,9 +2119,9 @@ $SBUF.}#
 			   :otouch_val obva
 			   ))
 	 )
-    (if (and ofirst (is_not_a ofirst class_objpurevalue))
+    (if (and ofirst (or (is_not_a ofirst class_objpurevalue) (is_a ofirst class_objinstr)))
 	(list_append obodl ofirst))
-    (if (and olast (is_not_a olast class_objpurevalue))
+    (if (and olast (or  (is_not_a olast class_objpurevalue) (is_a olast class_objinstr)))
 	(list_append obodl olast))
     (if oputl 
 	(progn 
@@ -2162,7 +2168,8 @@ $SBUF.}#
 		)
 	   (debug_msg curfld "compiletrec_instance curfld")
 	   (debug_msg oslot "compiletrec_instance oslot")
-	   (if (is_not_a oslot class_objpurevalue)
+	   (if (or (is_not_a oslot class_objpurevalue)
+		   (is_a oslot class_objinstr))
 	       (progn
 		 (if (>i slix 0) (list_append obodl otouch))
 		 (list_append obodl oslot)))
@@ -2291,6 +2298,31 @@ $SBUF.}#
 	     ))))
     (debug_msg locmap "compilobj_nrep_letrec locmap again")
     (debug_msg ofreelocs "compilobj_nrep_letrec ofreelocs again")
+    ;;
+    ;; loop to compile the recbindings
+    (foreach_in_list
+     (recbnds)
+     (curecpair curecbnd)
+     (debug_msg curecbnd "compilobj_nrep_letrec curecbnd compil")
+     (assert_msg "check curecbnd" (is_a curecbnd class_normal_let_binding))
+     (let ( (rbder (unsafe_get_field :binder curecbnd))
+	    (rcty (unsafe_get_field :letbind_type curecbnd))
+	    (nrecexp (unsafe_get_field :letbind_expr curecbnd))
+	    (recobva (mapobject_get locmap curecbnd))
+	    )
+       (debug_msg nrecexp "compilobj_nrep_letrec current recbinding nrecexp")
+       (let ( (robnx (compile_obj nrecexp gcx)) 
+	      (rnewob ())
+	      )
+	 (if recobva
+	     (setq rnewob (put_objdest robnx recobva))
+	   (setq rnewob robnx))
+	 (debug_msg rnewob "compilobj_nrep_letrec rnewob")
+	 (if (or (is_not_a rnewob class_objpurevalue)
+		 (is_a rnewob class_objinstr))
+	     (list_append obodl rnewob))
+	 ))
+     )
 ;;; generate the fill
     (foreach_in_multiple
      (bnds)
@@ -2304,24 +2336,6 @@ $SBUF.}#
        ))
     ;;
     (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
-    ;;
-    ;; loop to compile the recbindings
-    (foreach_in_list
-     (recbnds)
-     (curecpair curecbnd)
-     (debug_msg curecbnd "compilobj_nrep_letrec curecbnd compil")
-     (assert_msg "check curecbnd" (is_a curecbnd class_normal_let_binding))
-     (let ( (rbder (unsafe_get_field :binder curecbnd))
-	    (rcty (unsafe_get_field :letbind_type curecbnd))
-	    (nrecexp (unsafe_get_field :letbind_expr curecbnd))
-	    )
-       (debug_msg nrecexp "compilobj_nrep_letrec current recbinding nrecexp")
-       (let ( (robnx (compile_obj nrecexp gcx)) )
-	 (debug_msg robnx "compilobj_nrep_letrec robnx")
-	 (if (is_not_a robnx class_objpurevalue)
-	     (list_append obodl robnx))
-	 ))
-     )
     ;;
     (debug_msg obodl "compilobj_nrep_letrec obodl")
     (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
@@ -2835,7 +2849,7 @@ $SBUF.}#
      oargs
      (lambda (ocurarg :long ix)
        (debug_msg ocurarg "compilobj_nrep_multiapply ocurarg")
-       (if (and ocurarg (is_not_a ocurarg class_objpurevalue))
+       (if (and ocurarg (or (is_not_a ocurarg class_objpurevalue) (is_a ocurarg class_objinstr)))
 	   (list_append obodl ocurarg))))
     ;; add the multiapply to the block
     (list_append obodl omapp)
@@ -2969,7 +2983,7 @@ $SBUF.}#
      oargs
      (lambda (ocurarg :long ix)
        (debug_msg ocurarg "compilobj_nrep_multimsend ocurarg")
-       (if (and ocurarg (is_not_a ocurarg class_objpurevalue))
+       (if (and ocurarg (or (is_not_a ocurarg class_objpurevalue) (is_a ocurarg class_objinstr)))
 	   (list_append obodl ocurarg))))
     ;; add the multisend to the block
     (list_append obodl omsend)
@@ -3040,6 +3054,22 @@ $SBUF.}#
 (install_method class_fixed_binding compile_obj compilobj_fixed_binding)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_normal_let_binding (bind gcx)
+  (assert_msg "check bind" (is_a bind class_normal_let_binding))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (debug_msg bind "compilobj_normal_let_binding bind")
+  (let ( (nexpr (unsafe_get_field :letbind_expr bind)) 
+	 (ctyp (unsafe_get_field :letbind_type bind))
+	 (bnder (unsafe_get_field :binder bind))
+	 (oexpr (compile_obj nexpr gcx)) )
+    (debug_msg oexpr "compilobj_normal_let_binding oexpr")
+    (assert_msg "compilobj_normal_let_binding got here" ())
+    (return oexpr)
+    )
+  )
+(install_method class_normal_let_binding compile_obj compilobj_normal_let_binding)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_conslambdabind (bind gcx)
   (assert_msg "check bind" (is_a bind class_normal_constructed_lambda_binding))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
@@ -3074,6 +3104,7 @@ $SBUF.}#
 				:oie_discr odiscr
 				:oie_locvar oloc
 				:oie_cname (strbuf2string discr_string nambuf)
+				:oiclo_rout orout
 				))
 	     )
 	(put_int iniclos nbclosed)

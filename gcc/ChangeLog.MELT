@@ -1,4 +1,46 @@
 2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tletrec3.melt runs ok}}
+	* testsuite/melt/tletrec3.melt: added primitives inside letrec
+	bindings..
+
+	* melt/warmelt-first.melt: fixed typo.
+
+	* melt/warmelt-normal.melt: normexp_letrec checking bindlist while
+	handling it.
+	normexp_tuple is still incomplete.
+
+	* melt/warmelt-genobj.melt: added oiclo_rout field to
+	class_objinitclosure. compilobj_nrep_letrec seems to work.
+	in compiletrec_lambda all tests for is_not_a class_objpurevalue
+	also test for is_a class_objinstr.
+	compilobj_nrep_letrec generates the fill a bit after the
+	recbindings.
+
+	* melt/warmelt-outobj.melt: outcinitfill_objinitclosure
+	handles oiclo_rout
+
+	{{regenerated all files several times}}
+	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0+02.c: regenerated.
+	* melt/generated/warmelt-first.0.c: regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: regenerated.
+	* melt/generated/warmelt-genobj.0.c: regenerated.
+	* melt/generated/warmelt-infixsyntax.0.c: regenerated.
+	* melt/generated/warmelt-macro.0+01.c: regenerated.
+	* melt/generated/warmelt-macro.0+02.c: regenerated.
+	* melt/generated/warmelt-macro.0.c: regenerated.
+	* melt/generated/warmelt-normal.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0.c: regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: regenerated.
+	* melt/generated/warmelt-outobj.0.c: regenerated.
+
+2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{new tletrec3.melt translated, but runs badly}}
 	* testsuite/melt/tletrec3.melt: added new file.
 	* testsuite/melt/ttuplist.melt: added new file.

@@ -525,7 +525,7 @@ $FMBIND_FUNMATCHER and its definition in $FMBIND_DEFUNMATCHER.}#)
   :doc #{The internal $CLASS_LET_BINDING is for internal let
   bindings. See The $LET macro and also the
   $CLASS_NORMAL_LET_BINDING. The c-type of the bound valus is
-  $LETBIND_TYPE, the expression is $LETNIND_EXPR, the source location
+  $LETBIND_TYPE, the expression is $LETBIND_EXPR, the source location
   if any is $LEBIND_LOC.}# )
 
 ;; letrec binding

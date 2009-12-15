@@ -3323,7 +3323,6 @@ routine procedures.}#
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sargs (unsafe_get_field :sargop_args recv))
 	 (csym (clone_symbol 'tuple_))
-	 (nlr ())
 	 )
     (multicall
      (nargs nbindings)
@@ -3332,19 +3331,19 @@ routine procedures.}#
      (debug_msg nbindings "normexp_tuple nbindings")
      ;; insight: normalize (tuple x1 x2) exactly as 
      ;; as an anonymous letrec
-     (compile_warning "normexp_tuple DONT COMPILE YET WITH THIS CODE")
-#|
+					;(compile_warning "normexp_tuple DONT COMPILE YET WITH THIS CODE")
      (letrec ( (nletrec (instance class_nrep_letrec
 				  :nrep_loc sloc
 				  :nlet_bindings tup1bind
+				  :nlet_body nbdy
+				  :nletrec_bindings ()
+				  :nletrec_locsyms tup1loc
 				  ))
 	       (constupbind (instance class_normal_constructed_tuple_binding
 				      :binder csym
 				      :nconsb_loc sloc
 				      :nconsb_discr (normal_predef discr_multiple ncx sloc "discr_multiple")
 				      :ntupb_comp nargs
-				      :nletrec_bindings ()
-				      :nletrec_locsyms tup1loc
 				      ))
 	       (clocc (instance class_nrep_locsymocc
 				:nrep_loc sloc
@@ -3353,15 +3352,16 @@ routine procedures.}#
 				:nocc_bind constupbind))
 	       (tup1bind (tuple constupbind))
 	       (tup1loc (tuple clocc))
+	       (nbdy (tuple clocc))
 	       )
-	     (setq nlr nletrec)
-	     (compile_warning "normexp_tuple incomplete")
-	     (error_plain sloc "unimplemented TUPLE normalization")
-	     (assert_msg "@$@unimplemented TUPLE" ())
+	     (compile_warning "normexp_tuple perhaps incomplete")
+	     ;; perhaps we need to make an extra binding to return just a localsymocc...
+	     (warning_plain sloc "perhaps TUPLE not implemented - see normexp_tuple")
+	     (debug_msg nletrec "normexp_tuple return nletrec")
+	     (debug_msg nbindings "normexp_tuple return nbindings")
+	     (return nletrec nbindings)
 	     )
-|#
-;;
-	     (assert_msg "@$@unimplemented normexp_TUPLE" ())
+     ;;
      )))
 (install_method class_source_tuple normal_exp normexp_tuple)
 
@@ -3914,6 +3914,7 @@ routine procedures.}#
 	 (debug_msg curexpr "normexp_letrec thirdloop done curexpr")
 	 )
        )
+      (debug_msg recbindings "normexp_letrec recbindings before normalizing the body")
 ;;;
 ;;; normalize the body
       (debug_msg sbody "normexp_letrec normalizing sbody")
@@ -3930,16 +3931,13 @@ routine procedures.}#
        (debug_msg nletrec "normexp_letrec updated nletrec")
        (debug_msg bindlist "normexp_letrec updated bindlist")
        (assert_msg "normexp_letrec check bindlist" (is_list_or_null bindlist))
-       (list_every
-	bindlist
-	(lambda (cbnd) 
-	  (assert_msg "normexp_letrec check cbnd" (is_a cbnd class_normal_let_binding))))
 ;;; remove every locally bound symbol from the symbol cache map
        (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx)) )
 	 (foreach_in_list
 	  (bindlist)
 	  (curpair bnd)
-	  (debug_msg bnd "normexp_letrec remobing from sycmap bnd")
+	  (debug_msg bnd "normexp_letrec removing from sycmap bnd")
+	  (assert_msg "normexp_letrec check bnd" (is_a bnd class_normal_let_binding))
 	  (mapobject_remove sycmap (unsafe_get_field :binder bnd))
 	  ))
 ;;;; make the result

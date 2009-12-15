@@ -9,6 +9,7 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 
+
 (defun testlist (x y z)
   (letrec ( (li (list x y z)) 
 	    )
@@ -16,25 +17,24 @@
 
 (debug_msg (testlist 'xx 'yy 'zz) "testlist")
 
+
 (defun testtuple (x y z)
-  (letrec ( (tu (tuple x y z)) 
+  (letrec ( (tu (tuple x y z (make_box discr_box tu))) 
 	    )
 	  tu))
 
 (debug_msg (testtuple 'xx 'yy 'zz) "testtuple")
 
+
 (defun testletrec3 (x y)
-  (debug_msg x "testletrec3 x")
-  (debug_msg y "testletrec3 y")
   (letrec ( (tu (tuple x y li 
 		       (make_integerbox discr_integer 123)))
 	    (li (list x y 
 		      (make_box discr_box tu)))
 	    )
-	  (debug_msg tu "testletrec3 tu")
-	  (debug_msg li "testletrec3 li")
+	  (instance class_container :container_value li)
 	  ))
 
-(testletrec3 'xxx 'yyy)
+(debug_msg (testletrec3 'xxx 'yyy) "testletrec3")
 
 ;; eof tletrec3.melt
