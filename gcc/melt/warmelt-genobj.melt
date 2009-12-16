@@ -3266,6 +3266,8 @@ $SBUF.}#
 			    :oio_class clas
 			    ))
 	  )
+      ;; set the length of the instance
+      (put_int ininst (multiple_length (get_field :class_fields clas)))
       (debug_msg oloc "compilobj_consinstancebind oloc")
       (debug_msg ininst "compilobj_consinstancebind return ininst")
       (return ininst)

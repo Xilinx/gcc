@@ -1,4 +1,11 @@
 2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{generated code was wrong for letrec of instances; should
+	regenerate!}}
+	* melt/warmelt-genobj.melt: (compilobj_consinstancebind) sets the
+	length of the generated instance!
+	* testsuite/melt/ttuplist.melt: commented the list example.
+
+2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tletrec3.melt runs ok}}
 	* testsuite/melt/tletrec3.melt: added primitives inside letrec
 	bindings..

@@ -11,8 +11,9 @@
 
 (defun ftuple (x y z)
        (tuple x y z))
+(debug_msg (ftuple 'xx 'yy 'zz) "test ftuple")
 
-(defun flist (u v w)
-       (list u v w))
+;(defun flist (u v w)
+;       (list u v w))
 
 ;;eof ttuplist
