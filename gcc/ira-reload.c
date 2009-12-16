@@ -368,7 +368,8 @@ emit_localizing_stores (rtx dest, rtx insn, rtx tail)
 	 with its equivalent memory location.  */
       if (nuses
 	  && nsets == 1
-	  && occurrences == nuses
+	  && (occurrences == nuses
+	      || (occurrences == 1 && nuses == 2 && ! no_uses_after_this_set (dest, insn, tail)))
 	  && validate_replace_rtx (dest, mem, insn))
 	{
 	  pseudo_nsets[REGNO (dest)]--;

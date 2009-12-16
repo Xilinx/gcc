@@ -1,3 +1,8 @@
+2009-12-16  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (emit_localizing_stores): Use MEM directly in more
+	read-modify-write insns.
+
 2009-12-04  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (build_conflicts_for_new_allocnos): Look for
