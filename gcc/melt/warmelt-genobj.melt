@@ -96,7 +96,14 @@
 	   oio_class			;the class of the object
 	   ))
 
+;;; some initial objects, such as existing symbols, should not be
+;;; recreated if they already exist. Use this class for them.
+(defclass class_objinituniqueobject
+  :super class_objinitobject
+  :fields (
+	   ))
 
+  
 ;;; initial multiple - see MELT_MULTIPLE_STRUCT in melt-runtime.h
 (defclass class_objinitmultiple
   :super class_objinitelem
@@ -540,6 +547,7 @@
  class_objinitpair
  class_objinitroutine
  class_objinitstring
+ class_objinituniqueobject
  class_objinstr
  class_objinterncommon
  class_objinternkeyword
@@ -2136,6 +2144,7 @@ $SBUF.}#
 (defun compiletrec_instance (recv obva obodl gcx sloc)
   (debug_msg recv "compiletrec_instance recv")
   (debug_msg obva "compiletrec_instance obva")
+  (debug_msg obodl "compiletrec_instance initial obodl")
   (assert_msg "check recv" (is_a recv class_normal_constructed_instance_binding))
   (assert_msg "check obva" (is_a obva class_objlocv))
   (assert_msg "check obodl" (is_list obodl))
@@ -2180,9 +2189,11 @@ $SBUF.}#
 				   :oslot_field curfld
 				   :oslot_value oslot))
 		  )
+	     (debug_msg oputs "compiletrec_instance oputs")
 	     (list_append obodl oputs)
 	     )))) 
     (list_append obodl otouch)
+    (debug_msg obodl "compiletrec_instance final obodl")
     ))
 (install_method class_normal_constructed_instance_binding compile_letrec_fill compiletrec_instance)
 
@@ -2336,8 +2347,8 @@ $SBUF.}#
        ))
     ;;
     (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
+    (debug_msg obodl "compilobj_nrep_letrec afterfill obodl")
     ;;
-    (debug_msg obodl "compilobj_nrep_letrec obodl")
     (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
     (debug_msg bnds "compilobj_nrep_letrec filling each of bnds")
     ;;
@@ -4005,7 +4016,9 @@ $SBUF.}#
     (let (
 	  (odiscr  (compile_obj (unsafe_get_field :ndata_discrx syv) gcx))
 	  (obsym 
-	   (instance class_objinitobject
+	   ;;; symbols should be unique objects, to avoir recreating
+	   ;;; them when they already exist.
+	   (instance class_objinituniqueobject
 		     :obv_type ctype_value
 		     :oie_data syv
 		     :oie_discr odiscr
@@ -4077,13 +4090,23 @@ $SBUF.}#
 					;(debug_msg cdisx "compilobj_datainstance cdisx")
 	(let (
 	      ;; make a cname
-	      (oini (instance class_objinitobject
+	      (oini (if dpredef ;; if predefined, make it unique!
+			(instance class_objinituniqueobject
 			      :obv_type ctype_value
 			      :oie_data dai
 			      :oie_discr cdisx
 			      :oio_predef dpredef
 			      :oio_class ()
-			      ))
+			      )
+		      ;; othewise, don't bother make it unique
+			(instance class_objinitobject
+			      :obv_type ctype_value
+			      :oie_data dai
+			      :oie_discr cdisx
+			      :oio_predef dpredef
+			      :oio_class ()
+			      )
+		      ))
 	      (nambuf (make_strbuf discr_strbuf))
 	      (:long drk (get_int drank))
 	      )

@@ -356,10 +356,15 @@ fmelt-module-make-command=
 Common Report Var(melt_module_make_command_string) RejectNegative Joined 
 Command (a GNU make utility) used to build MELT module with a Makefile
 
-; debug flag for above analysis
+; debug flag for MELT
 fmelt-debug
 Common Report Var(flag_melt_debug)
 Gives lots of debugging stuff for -fmelt analysis
+
+; debug depth for MELT
+fmelt-debug-depth=
+Common Report Var(melt_debug_depth_string) RejectNegative Joined
+Depth of melt debug printing (should be between 2 and 20)
 
 ; debug skip for above analysis
 fmelt-debugskip=

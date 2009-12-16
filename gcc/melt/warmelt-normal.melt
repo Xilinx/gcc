@@ -3323,7 +3323,9 @@ routine procedures.}#
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sargs (unsafe_get_field :sargop_args recv))
 	 (csym (clone_symbol 'tuple_))
+	 (normdiscrmult (normal_predef discr_multiple ncx sloc "discr_multiple"))
 	 )
+    (debug_msg csym "normexp_tuple csym")
     (multicall
      (nargs nbindings)
      (normalize_tuple sargs env ncx sloc)
@@ -3331,18 +3333,13 @@ routine procedures.}#
      (debug_msg nbindings "normexp_tuple nbindings")
      ;; insight: normalize (tuple x1 x2) exactly as 
      ;; as an anonymous letrec
-					;(compile_warning "normexp_tuple DONT COMPILE YET WITH THIS CODE")
-     (letrec ( (nletrec (instance class_nrep_letrec
-				  :nrep_loc sloc
-				  :nlet_bindings tup1bind
-				  :nlet_body nbdy
-				  :nletrec_bindings ()
-				  :nletrec_locsyms tup1loc
-				  ))
+     ;;(compile_warning "normexp_tuple DONT COMPILE YET WITH THIS CODE")
+     (letrec (
 	       (constupbind (instance class_normal_constructed_tuple_binding
 				      :binder csym
 				      :nconsb_loc sloc
-				      :nconsb_discr (normal_predef discr_multiple ncx sloc "discr_multiple")
+				      :nconsb_discr normdiscrmult
+				      :nconsb_nletrec nletrec
 				      :ntupb_comp nargs
 				      ))
 	       (clocc (instance class_nrep_locsymocc
@@ -3353,10 +3350,20 @@ routine procedures.}#
 	       (tup1bind (tuple constupbind))
 	       (tup1loc (tuple clocc))
 	       (nbdy (tuple clocc))
+	       (nletrec (instance class_nrep_letrec
+				  :nrep_loc sloc
+				  :nlet_bindings tup1bind
+				  :nlet_body nbdy
+				  :nletrec_bindings ()
+				  :nletrec_locsyms tup1loc
+				  ))
 	       )
 	     (compile_warning "normexp_tuple perhaps incomplete")
 	     ;; perhaps we need to make an extra binding to return just a localsymocc...
 	     (warning_plain sloc "perhaps TUPLE not implemented - see normexp_tuple")
+	     (debug_msg constupbind "normexp_tuple constupbind")
+	     (debug_msg clocc "normexp_tuple clocc")
+	     (debug_msg nbdy "normexp_tuple nbdy")
 	     (debug_msg nletrec "normexp_tuple return nletrec")
 	     (debug_msg nbindings "normexp_tuple return nbindings")
 	     (return nletrec nbindings)

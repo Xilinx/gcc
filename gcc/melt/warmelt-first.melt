@@ -3073,6 +3073,15 @@ end of compilation unit in last place}#
     ))
 
 
+(defprimitive debug_depth () :long 
+  :doc #{The default MELT debug depth, as passed by -fmelt-debug-depth
+or -fplugin-arg-melt-debug-depth program argument.}#
+#{(long) (melt_debug_depth ())}#)
+
+(defprimitive melt_error_counter () :long 
+  :doc #{The MELT error counter.}#
+#{(long) (melt_error_counter)}#)
+
 ;;;;
 ;; this function is inside INITIAL_SYSTEM_DATA and is internally used by the debug_msg macro
 (defun debugmsg (val :cstring msgstr :long count)
@@ -3080,7 +3089,7 @@ end of compilation unit in last place}#
       (let ( (:long dbgcounter 0)
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_map_objects 53))
-	     (boxedmaxdepth (make_integerbox discr_integer 10)) ;;;; @@@ DEBUGDEPTH
+	     (boxedmaxdepth (make_integerbox discr_integer (debug_depth))) ;;;; @@@ DEBUGDEPTH
 	     (dbgi (instance class_debug_information
 			     :dbgi_out sbuf
 			     :dbgi_occmap occmap
@@ -4178,8 +4187,8 @@ $TORANK}#
 		   (add2out_indent out (+i nextdepth 1))
 		   (dbg_out elva dbgi (+i nextdepth 2))
 		   (add2out_strconst out "; ")
-		   )))))
-	  (add2out_strconst out "}")))))
+		   )))))))
+    (add2out_strconst out "}")))
 (install_method discr_map_objects dbg_output dbgout_mapobject_method)
 
 
@@ -4703,7 +4712,7 @@ $FILENAM and $LINENO}#
       (let ( (:long dbgcounter 0)
 	     (out (get_field :sysdata_dumpfile initial_system_data)) 
 	     (occmap (make_mapobject discr_map_objects 50))
-	     (boxedmaxdepth (make_integerbox discr_integer 17)) ;;;; @@@ DEBUGDEPTH
+	     (boxedmaxdepth (make_integerbox discr_integer (debug_depth))) ;;;; @@@ DEBUGDEPTH
 	     )
 	(code_chunk getdbgcounter #{$dbgcounter = melt_dbgcounter}#)
 	;; it may happen that OUT is null, e.g. because the dumpfile
@@ -5067,6 +5076,7 @@ $FILENAM and $LINENO}#
  message_dbg
  messagenum_dbg
  messageval_dbg
+ melt_error_counter
  minor_garbcoll
  mixbigint_val
  mixint_val
@@ -5157,6 +5167,7 @@ $FILENAM and $LINENO}#
  ctype_void  
  dbg_output
  dbg_outputagain
+ debug_depth
  discr_any_receiver                        
  discr_basic_block   
  discr_box 

@@ -1,3 +1,43 @@
+2009-12-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tletrec3.melt hence normalization of tuple still badly
+	translated.}}
+	* common.opt (-fmelt-debug-depth): added flag.
+	* melt-runtime.h (melt_debug_depth, melt_error_counter): added new
+	declaration.
+	* melt-runtime.c (melt_argument): handle debug-depth.
+	(melt_debug_depth): added new function.
+	* melt/warmelt-first.melt: added debug_depth & use it in debugmsg
+	& debug_msg_fun. dbgout_mapobject_method closes correctly the
+	brace!
+	* melt/warmelt-normal.melt: normexp_tuple still bad.
+	* melt/warmelt-genobj.melt: added class_objinituniqueobject and
+	use it in compilobj_datasymbol. compiletrec_instance &
+	compilobj_nrep_letrec has more debug messages
+	* melt/warmelt-outobj.melt: outcinitfill_objinitobject handles
+	class_objinituniqueobject. compile_list_sexpr checks several times
+	the melt_error_counter.
+	{{regenerated all files several times}}
+	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0+02.c: regenerated.
+	* melt/generated/warmelt-first.0.c: regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: regenerated.
+	* melt/generated/warmelt-genobj.0.c: regenerated.
+	* melt/generated/warmelt-infixsyntax.0.c: regenerated.
+	* melt/generated/warmelt-macro.0+01.c: regenerated.
+	* melt/generated/warmelt-macro.0+02.c: regenerated.
+	* melt/generated/warmelt-macro.0.c: regenerated.
+	* melt/generated/warmelt-normal.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0.c: regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: regenerated.
+	* melt/generated/warmelt-outobj.0.c: regenerated.
+
+
 2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{generated code was wrong for letrec of instances; should
 	regenerate!}}

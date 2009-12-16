@@ -179,6 +179,8 @@ bool melt_prohibit_garbcoll;
 long melt_dbgcounter;
 long melt_debugskipcount;
 
+long melt_error_counter;
+				      
 
 /* an strdup-ed version string of gcc */
 char* melt_gccversionstr;
@@ -267,6 +269,8 @@ melt_argument (const char* argname)
     return flag_melt_debug?"yes":NULL;
   else if (!strcmp (argname, "debugskip"))
     return count_melt_debugskip_string;
+  else if (!strcmp (argname, "debug-depth"))
+    return melt_debug_depth_string;
   else if (!strcmp (argname, "module-path"))
     return melt_dynmodpath_string;
   else if (!strcmp (argname, "module-cflags"))
@@ -313,6 +317,35 @@ melt_argument (const char* argname)
 #pragma GCC poison melt_dynmodpath_string melt_gdbmstate_string melt_srcpath_string
 #pragma GCC poison melt_init_string melt_secondargument_string melt_tempdir_string
 #endif
+
+/* the debug depth for MELT debug_msg .... */
+int melt_debug_depth (void)
+{
+  static int d;
+  if (!flag_melt_debug)
+    return 0;
+  if (!d) 
+    {
+      d = atoi (melt_debug_depth_string);
+      if (d == 0)
+	{
+	  d = 7;
+	  warning (0, "MELT debug depth [-fmelt-debug-depth= or -fplugin-arg-melt-debug-depth= ] defaulted to %d", d);
+	}
+      
+      if (d < 2)
+	{
+	  warning (0, "MELT debug depth [-fmelt-debug-depth= or -fplugin-arg-melt-debug-depth= ] increased to 2 but was %d ", d);
+	  d = 2;
+	}
+      else if (d > 24)
+	{
+	  warning (0,  "MELT debug depth [-fmelt-debug-depth= or -fplugin-arg-melt-debug-depth= ] decreased to 24 but was %d ", d);
+	  d = 24;
+	}
+    }
+  return d;
+}
 
 
 static inline void
@@ -7338,6 +7371,7 @@ melt_error_str (melt_ptr_t mixloc_p, const char *msg,
 #define strv       curfram__.varptr[1]
 #define finamv     curfram__.varptr[2]
   gcc_assert (msg && msg[0]);
+  melt_error_counter ++;
   mixlocv = mixloc_p;
   strv = str_p;
   mixmag = melt_magic_discr ((melt_ptr_t) mixlocv);

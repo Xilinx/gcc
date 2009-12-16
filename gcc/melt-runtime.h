@@ -66,6 +66,12 @@ extern char* melt_gccversionstr;
 extern long melt_dbgcounter;
 extern long melt_debugskipcount;
 
+extern long melt_error_counter;
+
+
+/* the MELT debug depth for debug_msg ... can be set with -fmelt-debug-depth= */
+int melt_debug_depth(void);
+
 #ifdef MELT_IS_PLUGIN
 extern int flag_melt_debug;
 #endif

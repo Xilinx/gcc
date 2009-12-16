@@ -31,8 +31,9 @@
 		       (make_integerbox discr_integer 123)))
 	    (li (list x y 
 		      (make_box discr_box tu)))
+	    (ob (instance class_container :container_value li))
 	    )
-	  (instance class_container :container_value li)
+	  ob
 	  ))
 
 (debug_msg (testletrec3 'xxx 'yyy) "testletrec3")

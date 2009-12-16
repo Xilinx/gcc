@@ -105,6 +105,8 @@
 (install_method class_objinitobject output_c_declinit outdeclinit_objinitobject)
 
 
+
+;; initial fill for both objinitobject & its objinituniqueobject subclass
 (defun outcinitfill_objinitobject (recv sbuf ptrstr :long depth)
   (assert_msg "outcinitfill_objinitobject check recv" (is_a recv class_objinitobject))
   (debug_msg recv "outcinitfill_objinitobject recv")
@@ -167,10 +169,13 @@
 	    (add2sbuf_indentnl sbuf depth)
 	    )
 	(progn
-	  ;; only set locvar if it was not set; hence already existing symbols are not recreated
-	  (add2sbuf_strconst sbuf "if (!")
-	  (output_c_code olocvar () sbuf depth)
-	  (add2sbuf_strconst sbuf ") ")
+	  ;; for unique objects, only set locvar if it was not set;
+	  ;; hence already existing symbols are not recreated
+	  (if (is_a recv class_objinituniqueobject)
+	      (progn
+		(add2sbuf_strconst sbuf "/*uniqueobj*/ if (!")
+		(output_c_code olocvar () sbuf depth)
+		(add2sbuf_strconst sbuf ") ")))
 	  (output_c_code olocvar () sbuf (+i depth 1))
 	  (add2sbuf_strconst sbuf " = (void*)&")
 	  (add2sbuf_string sbuf ptrstr)
@@ -3348,6 +3353,7 @@
       (debug_msg inienv "after macroexpansion compile_list_sexpr inienv")
       (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
       (assert_msg "check xlist" (is_list xlist))
+      ;;
       (list_every
        xlist
        (lambda (sexp :long ix)
@@ -3380,6 +3386,13 @@
 		    (list_append (unsafe_get_field :ninit_topl iniproc) 
 				 wnexp)
 		    )))))))
+      ;;
+      (code_chunk 
+         check_errors_after_normalization
+	 #{ 
+	 if (melt_error_counter>0) 
+	    fatal_error ("MELT translation of %s halted after normalization: got %ld MELT errors", melt_string_str($modnamstr), melt_error_counter);
+	 }#)
       (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
 	     (objlist (make_list discr_list))
 	     (compicache (make_mapobject discr_map_objects (+i 10 (*i 20 (list_length xlist)))))
@@ -3399,6 +3412,14 @@
 	     (list_append objlist objpro)
 	     ;;(debug_msg compicache "compile_list_sexpr compicache")
 	     )))
+	;;
+      (code_chunk 
+         check_errors_after_compilation
+	 #{ 
+	 if (melt_error_counter>0) 
+	    fatal_error ("MELT translation of %s halted after MELT compilation: got %ld MELT errors",  melt_string_str($modnamstr), melt_error_counter);
+	 }#)
+      ;;
 	(debug_msg objlist "compile_list_sexpr objlist")  
 	(assert_msg "check objlist" (is_list objlist))
 	(let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
@@ -3475,6 +3496,14 @@
 			   ;(informsg_strv "warmelt generated secondary C file" secfilpath)
 			   ))
 		     )))))))))
+	;;
+      (code_chunk 
+         check_errors_after_generation
+	 #{ 
+	 if (melt_error_counter>0) 
+	    fatal_error ("MELT translation of %s halted after generation: got %ld MELT errors",  
+			 melt_string_str($modnamstr), melt_error_counter);
+	 }#)
   (message_dbg "ended compile_list_sexpr")
   )
 
