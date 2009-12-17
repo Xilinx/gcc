@@ -1,3 +1,53 @@
+2009-12-17  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* call.c (build_over_call, build_java_interface_fn_ref): Update
+	cp_build_indirect_ref calls.
+	* typeck2.c (build_m_component_ref): Likewise.
+
+2009-12-17  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* typeck.c (build_indirect_ref): Update the argument.
+	(build_x_indirect_ref): Likewise.
+	(cp_build_indirect_ref): Update the argument and emit the diagnostics
+	for easy translation.
+	(build_class_member_access_expr, build_array_ref,
+	get_member_function_from_ptrfunc): Update calls.
+	* cp-tree.h (build_x_indirect_ref, cp_build_indirect_ref): Update
+	prototypes.
+	* call.c (build_new_op, convert_like_real, build_x_va_arg,
+	build_over_call): Update calls.
+	* class.c (build_base_path, build_simple_base_path, build_vfn_ref):
+	Likewise.
+	* decl.c (start_preparsed_function): Likewise.
+	* except.c (expand_start_catch_block, build_throw): Likewise.
+	* init.c (emit_mem_initializers, expand_virtual_init,
+	expand_virtual_init, build_new_1, build_vec_init, build_delete,
+	build_vec_delete): Likewise.
+	* parser.c (cp_parser_unary_expression): Likewise.
+	* pt.c (tsubst_copy_and_build): Likewise.
+	* rtti.c (build_headof, get_tinfo_decl_dynamic, get_typeid): Likewise.
+	* semantics.c (finish_non_static_data_member, thisify_lambda_field):
+	Likewise.
+	* tree.c (build_dummy_object, stabilize_expr): Likewise.
+	* typeck2.c (build_x_arrow): Likewise.
+
+2009-12-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42387
+	* decl.c (compute_array_index_type): Mark a VLA as dependent.
+
+2009-12-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42358
+	* pt.c (iterative_hash_template_arg): Completely ignore
+	ARGUMENT_PACK_SELECT.
+
+2009-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/41183
+	* cp-tree.h (current_class_ptr): Give NULL even when cfun
+	has NULL cfun->language.
+
 2009-12-14  Jason Merrill  <jason@redhat.com>
 
 	PR c++/42364

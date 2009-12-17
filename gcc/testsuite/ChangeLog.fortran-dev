@@ -3,6 +3,6 @@
 
 	PR fortran/41829
 	* gfortran.dg/dynamic_dispatch_5.f03 : Change to "run".
-	* gfortran.dg/dynamic_dispatch_6.f03 : New test.
 	* gfortran.dg/dynamic_dispatch_7.f03 : New test.
+	* gfortran.dg/dynamic_dispatch_8.f03 : New test.
 

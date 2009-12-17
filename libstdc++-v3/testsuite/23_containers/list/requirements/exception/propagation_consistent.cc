@@ -1,6 +1,9 @@
-// 2007-05-29 Benjamin Kosnik  <bkoz@redhat.com>
+// { dg-options "-std=gnu++0x" }
+// { dg-require-cstdint "" }
 
-// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
+// 2009-09-09  Benjamin Kosnik  <benjamin@redhat.com>
+
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -17,14 +20,15 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-// { dg-require-time "" }
+#include <list>
+#include <exception/safety.h>
 
-#include <ext/throw_allocator.h>
-#include <testsuite_api.h>
-
+// Container requirement testing, exceptional behavior
 int main()
 {
-  typedef __gnu_cxx::forced_exception_error test_type;
-  __gnu_test::diamond_derivation<test_type, true>::test();
+  typedef __gnu_cxx::throw_value_limit value_type;
+  typedef __gnu_cxx::throw_allocator_limit<value_type> allocator_type;
+  typedef std::list<value_type, allocator_type> test_type;
+  __gnu_test::propagation_consistent<test_type> test;
   return 0;
 }
