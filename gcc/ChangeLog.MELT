@@ -1,3 +1,9 @@
+2009-12-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_debug_depth): test if
+	melt_debug_depth_string is null to avoid crash.
+	* testsuite/melt/tletrec3.melt: added class_abc & class_abcde &
+	instance in the test..
+
 2009-12-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tletrec3.melt hence normalization of tuple still badly
 	translated.}}

@@ -326,7 +326,7 @@ int melt_debug_depth (void)
     return 0;
   if (!d) 
     {
-      d = atoi (melt_debug_depth_string);
+      d = melt_debug_depth_string?(atoi (melt_debug_depth_string)):0;
       if (d == 0)
 	{
 	  d = 7;

@@ -26,12 +26,26 @@
 (debug_msg (testtuple 'xx 'yy 'zz) "testtuple")
 
 
+(defclass class_abc
+  :super class_root
+  :fields (aa bb cc))
+
+(defclass class_abcde
+  :super class_abc
+  :fields (dd ee))
+
 (defun testletrec3 (x y)
   (letrec ( (tu (tuple x y li 
 		       (make_integerbox discr_integer 123)))
 	    (li (list x y 
 		      (make_box discr_box tu)))
-	    (ob (instance class_container :container_value li))
+	    (ob (instance class_abcde
+			  :aa tu 
+			  :bb 'zzzz
+			  :cc ob
+			  :dd (instance class_container :container_value x)
+			  :ee obcont))
+	    (obcont (instance class_container :container_value ob))
 	    )
 	  ob
 	  ))
