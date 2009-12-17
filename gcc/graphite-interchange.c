@@ -657,64 +657,55 @@ lst_try_interchange_loops (scop_p scop, lst_p loop1, lst_p loop2,
   return false;
 }
 
-static bool lst_interchange_select_inner (scop_p, lst_p, lst_p, int *, int);
+static bool lst_interchange_select_inner (scop_p, lst_p, int, lst_p);
 
-/* Try to interchange LOOP with all the loops contained in the body of
-   LST.  Return true if it did interchanged some loops.  OUTER is the
-   index of the next element selected by lst_interchange_select_outer.  */
+/* Try to interchange loop OUTER of LST_SEQ (OUTER_FATHER) with all
+   the loop INNER and with all the loops contained in the body of
+   INNER.  Return true if it did interchanged some loops.  */
 
 static bool
-lst_try_interchange (scop_p scop, lst_p outer_father, lst_p inner_father,
-		     int *outer, int inner)
+lst_try_interchange (scop_p scop, lst_p outer_father, int outer, lst_p inner)
 {
   lst_p before, nest, after;
   bool res;
-  lst_p loop1 = VEC_index (lst_p, LST_SEQ (outer_father), *outer);
-  lst_p loop2 = VEC_index (lst_p, LST_SEQ (inner_father), inner);
+  lst_p loop1 = VEC_index (lst_p, LST_SEQ (outer_father), outer);
+  lst_p loop2 = inner;
 
-  if (!LST_LOOP_P (loop2))
-    return false;
+  gcc_assert (LST_LOOP_P (loop1)
+	      && LST_LOOP_P (loop2));
 
   res = lst_try_interchange_loops (scop, loop1, loop2, &before, &nest, &after);
 
   if (before)
-    {
-      res |= lst_interchange_select_inner (scop, outer_father, before, outer, 0);
-      (*outer)++;
-    }
-
-  if (nest)
-    {
-      res |= lst_interchange_select_inner (scop, outer_father, nest, outer, 0);
-      if (after)
-	(*outer)++;
-    }
+    res |= lst_interchange_select_inner (scop, outer_father, outer, before);
+  else if (nest)
+    res |= lst_interchange_select_inner (scop, outer_father, outer, nest);
   else
-    res |= lst_interchange_select_inner (scop, outer_father, loop2, outer, 0);
-
-  if (after)
-    res |= lst_interchange_select_inner (scop, outer_father, after, outer, 0);
+    res |= lst_interchange_select_inner (scop, outer_father, outer, loop2);
 
   return res;
 }
 
-/* Selects the inner loop at index INNER in LST_SEQ (INNER_FATHER) to
-   be interchanged with the loop OUTER in LST_SEQ (OUTER_FATHER).  */
+/* Selects the inner loop in LST_SEQ (INNER_FATHER) to be interchanged
+   with the loop OUTER in LST_SEQ (OUTER_FATHER).  */
 
 static bool
-lst_interchange_select_inner (scop_p scop, lst_p outer_father,
-			      lst_p inner_father, int *outer, int inner)
+lst_interchange_select_inner (scop_p scop, lst_p outer_father, int outer,
+			      lst_p inner_father)
 {
   lst_p l;
   bool res = false;
+  int inner;
 
-  gcc_assert (outer_father && LST_LOOP_P (outer_father)
-	      && LST_LOOP_P (VEC_index (lst_p, LST_SEQ (outer_father), *outer))
-	      && inner_father && LST_LOOP_P (inner_father));
+  gcc_assert (outer_father
+	      && LST_LOOP_P (outer_father)
+	      && LST_LOOP_P (VEC_index (lst_p, LST_SEQ (outer_father), outer))
+	      && inner_father
+	      && LST_LOOP_P (inner_father));
 
-  for (; !res && VEC_iterate (lst_p, LST_SEQ (inner_father), inner, l); inner++)
+  for (inner = 0; VEC_iterate (lst_p, LST_SEQ (inner_father), inner, l); inner++)
     if (LST_LOOP_P (l))
-      res |= lst_try_interchange (scop, outer_father, inner_father, outer, inner);
+      res |= lst_try_interchange (scop, outer_father, outer, l);
 
   return res;
 }
@@ -738,8 +729,7 @@ lst_interchange_select_outer (scop_p scop, lst_p loop, int outer)
   father = LST_LOOP_FATHER (loop);
   if (father)
     {
-      int selected = outer;
-      res = lst_interchange_select_inner (scop, father, loop, &selected, 0);
+      res = lst_interchange_select_inner (scop, father, outer, loop);
 
       if (VEC_length (lst_p, LST_SEQ (father)) <= (unsigned) outer)
 	return res;
