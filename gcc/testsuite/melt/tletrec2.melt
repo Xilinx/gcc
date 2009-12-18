@@ -13,46 +13,50 @@
   (assert_msg "check tuple recv" (is_a recv class_source_tuple))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug_msg recv "normexp_tuple recv")
+  (debug_msg recv "badnormexptuple recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sargs (unsafe_get_field :sargop_args recv))
 	 (csym (clone_symbol 'tuple_))
-	 (nlr ())
+	 (normdiscrmult (normal_predef discr_multiple ncx sloc "discr_multiple"))
 	 )
     (multicall
      (nargs nbindings)
      (normalize_tuple sargs env ncx sloc)
-     (debug_msg nargs "normexp_tuple nargs")
-     (debug_msg nbindings "normexp_tuple nbindings")
+     (debug_msg nargs "badnormexptuple nargs")
+     (debug_msg nbindings "badnormexptuple nbindings")
      ;; insight: normalize (tuple x1 x2) exactly as 
      ;; as an anonymous letrec
-     (letrec ( (nletrec (instance class_nrep_letrec
-				  :nrep_loc sloc
-				  :nlet_bindings tup1bind
-				  ))
-	       (constupbind (instance class_normal_constructed_tuple_binding
-				      :binder csym
-				      :nconsb_loc sloc
-				      :nconsb_discr (normal_predef discr_multiple ncx sloc "discr_multiple")
-				      :ntupb_comp nargs
-				      :nletrec_bindings ()
-				      :nletrec_locsyms tup1loc
-				      ))
-	       (clocc (instance class_nrep_locsymocc
-				:nrep_loc sloc
-				:nocc_ctyp ctype_value
-				:nocc_symb csym
-				:nocc_bind constupbind))
-	       (tup1bind (tuple constupbind))
-	       (tup1loc (tuple clocc))
-	       )
-	     (setq nlr nletrec)
-	     (compile_warning "normexp_tuple incomplete")
-	     (error_plain sloc "unimplemented TUPLE normalization")
-	     (assert_msg "@$@unimplemented TUPLE" ())
-	     )
-     (compile_warning "normexp_tuple incomplete")
-     (error_plain sloc "unimplemented TUPLE normalization")
-     (assert_msg "@$@unimplemented TUPLE" ())
+     (letrec 
+      (
+       (constupbind (instance class_normal_constructed_tuple_binding
+			      :binder csym
+			      :nconsb_loc sloc
+			      :nconsb_discr normdiscrmult
+			      :nconsb_nletrec nletrec
+			      :ntupb_comp nargs
+			      ))
+       (clocc (instance class_nrep_locsymocc
+			:nrep_loc sloc
+			:nocc_ctyp ctype_value
+			:nocc_symb csym
+			:nocc_bind constupbind))
+       (tup1bind (tuple constupbind))
+       (tup1loc (tuple clocc))
+       (nbdy (tuple clocc))
+       (nletrec (instance class_nrep_letrec
+			  :nrep_loc sloc
+			  :nlet_bindings tup1bind
+			  :nlet_body nbdy
+			  :nletrec_bindings ()
+			  :nletrec_locsyms tup1loc
+			  ))
+       )
+      (compile_warning "badnormexptuple perhaps incomplete")
+      (debug_msg nletrec "badnormexptuple return nletrec")
+      (assert_msg "check nletrec's body" 
+		  (== (get_field :nlet_body nletrec) nbdy))
+      (debug_msg nbindings "badnormexptuple return nbindings")
+      (return nletrec nbindings)
+      )
      )))
 ;; eof tletrec2.melt

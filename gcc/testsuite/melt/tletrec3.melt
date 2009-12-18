@@ -47,6 +47,9 @@
 			  :ee obcont))
 	    (obcont (instance class_container :container_value ob))
 	    )
+	  (debug_msg obcont "testletrec3 obcont")
+	  (assert_msg "check aa in ob" (unsafe_get_field :aa ob))
+	  (assert_msg "check dd in ob" (unsafe_get_field :dd ob))
 	  ob
 	  ))
 

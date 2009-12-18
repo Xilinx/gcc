@@ -1,3 +1,16 @@
+2009-12-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tletrec3.melt test still fails but shouldn't!}}
+	* testsuite/melt/tletrec2.melt: changed to follow warmelt-normal's
+	normexp_tuple.
+	* testsuite/melt/tletrec3.melt: added asserts about object
+	content.. [[the test fails, but it should not]]
+
+	* melt/warmelt-first.melt: commented most calls do checkcallstack_msg!
+	* melt/warmelt-normal.melt: added debug_msg & asserts on content
+	of letrec-ed instance!
+	* melt/warmelt-genobj.melt: added lots of debug_msg... replaced
+	some multiple_every with foreach_in_multiple!
+
 2009-12-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_debug_depth): test if
 	melt_debug_depth_string is null to avoid crash.

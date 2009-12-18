@@ -1975,9 +1975,9 @@ $SBUF.}#
 	 (nclosed (get_field :nlambdab_nclosed recv))
 	 (nconstrout (get_field :nlambdab_constrout recv))
 	 (otouch (instance class_objtouch
-		    :obi_loc loc
-		    :otouch_val obva
-		    ))
+			   :obi_loc loc
+			   :otouch_val obva
+			   ))
 	 (ocrout (compile_obj nconstrout gcx))
 	 (oputrout (instance class_objputclosurout
 			     :obi_loc loc
@@ -2002,15 +2002,17 @@ $SBUF.}#
 		   (list_append obodl otouch))
 	       (list_append obodl oclosed) 
 	       )
+	     (:else
+	      (debug_msg oclosed "compiletrec_lambda ignored generated code"))
 	     )
        (let ( 	    
 	     (oputclo (instance class_objputclosedv
-				 :obi_loc loc
-				 :opclov_clos obva
-				 :opclov_off (make_integerbox discr_integer curix)
-				 :opclov_cval oclosed
-				 )) 
-	      )
+				:obi_loc loc
+				:opclov_clos obva
+				:opclov_off (make_integerbox discr_integer curix)
+				:opclov_cval oclosed
+				)) 
+	     )
 	 (debug_msg oputclo "compiletrec_lambda oputclo")
 	 (list_append obodl oputclo)
 	 ))
@@ -2053,6 +2055,8 @@ $SBUF.}#
 	       (list_append obodl otouch)
 	       (list_append obodl ocomp)
 	       )
+	     (:else 
+	      (debug_msg ocomp "compiletrec_tuple ignored generated code"))
 	     )
        (list_append obodl oputn)
        ))
@@ -2093,10 +2097,12 @@ $SBUF.}#
     (debug_msg otail "compiletrec_pair otail")
     (if (or (is_not_a ohead class_objpurevalue) 
 	    (is_a ohead class_objinstr))
-	(list_append obodl ohead))
+	(list_append obodl ohead)
+      (debug_msg ohead "compiletrec_pair ohead ignored generated code"))
     (if (and otail (or (is_not_a otail class_objpurevalue) 
 		       (is_a otail class_objinstr)))
-	(list_append obodl otail))
+	(list_append obodl otail)
+      (debug_msg otail "compiletrec_pair otail ignored generated code"))
     (list_append obodl oputhead)
     (if oputtail (list_append obodl oputtail))
     (list_append obodl otouch)
@@ -2128,9 +2134,14 @@ $SBUF.}#
 			   ))
 	 )
     (if (and ofirst (or (is_not_a ofirst class_objpurevalue) (is_a ofirst class_objinstr)))
-	(list_append obodl ofirst))
-    (if (and olast (or  (is_not_a olast class_objpurevalue) (is_a olast class_objinstr)))
-	(list_append obodl olast))
+	(list_append obodl ofirst)
+      (debug_msg ofirst "compiletrec_list ofirst ignored generated code")
+      )
+    (if (and olast (or  (is_not_a olast class_objpurevalue)
+			(is_a olast class_objinstr)))
+	(list_append obodl olast)
+      (debug_msg olast "compiletrec_list olast ignored generated code")
+      )
     (if oputl 
 	(progn 
 	  (list_append obodl oputl)
@@ -2181,7 +2192,8 @@ $SBUF.}#
 		   (is_a oslot class_objinstr))
 	       (progn
 		 (if (>i slix 0) (list_append obodl otouch))
-		 (list_append obodl oslot)))
+		 (list_append obodl oslot))
+	     (debug_msg oslot "compiletrec_instance oslot ignored generated code"))
 	   (let ( (oputs (instance class_objputslot
 				   :obi_loc loc
 				   :oslot_odata obva
@@ -2193,6 +2205,7 @@ $SBUF.}#
 	     (list_append obodl oputs)
 	     )))) 
     (list_append obodl otouch)
+    (shortbacktrace_dbg "compiletrec_instance ending" 14)
     (debug_msg obodl "compiletrec_instance final obodl")
     ))
 (install_method class_normal_constructed_instance_binding compile_letrec_fill compiletrec_instance)
@@ -2331,9 +2344,14 @@ $SBUF.}#
 	 (debug_msg rnewob "compilobj_nrep_letrec rnewob")
 	 (if (or (is_not_a rnewob class_objpurevalue)
 		 (is_a rnewob class_objinstr))
-	     (list_append obodl rnewob))
+	     (list_append obodl rnewob)
+	   (debug_msg rnewob "compilobj_nrep_letrec rnewob ignored generated code")
+	   )
 	 ))
      )
+;;;
+     (debug_msg obodl "compilobj_nrep_letrec obodl after recbinding")
+;;;
 ;;; generate the fill
     (foreach_in_multiple
      (bnds)
@@ -2347,14 +2365,13 @@ $SBUF.}#
        ))
     ;;
     (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
-    (debug_msg obodl "compilobj_nrep_letrec afterfill obodl")
+    (debug_msg obodl "compilobj_nrep_letrec obodl after fill")
     ;;
     (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
     (debug_msg bnds "compilobj_nrep_letrec filling each of bnds")
     ;;
     ;; compile the body
     (debug_msg nbdy "compilobj_nrep_letrec nbdy")
-    ;; compile the body
     (assert_msg "check nbdy" (is_multiple_or_null nbdy))
     (foreach_in_multiple
      (nbdy)
@@ -2861,7 +2878,8 @@ $SBUF.}#
      (lambda (ocurarg :long ix)
        (debug_msg ocurarg "compilobj_nrep_multiapply ocurarg")
        (if (and ocurarg (or (is_not_a ocurarg class_objpurevalue) (is_a ocurarg class_objinstr)))
-	   (list_append obodl ocurarg))))
+	   (list_append obodl ocurarg)
+	 (debug_msg ocurarg "compilobj_nrep_multiapply ocurarg ignored generated code"))))
     ;; add the multiapply to the block
     (list_append obodl omapp)
     ;; add the compiled body to the block
@@ -2990,12 +3008,13 @@ $SBUF.}#
     (assert_msg "check orecv" (is_object orecv))
     (if firstres (list_append reslist firstres))
     ;; add every compiled argument to the resulting block unless it is a pure value
-    (multiple_every 
-     oargs
-     (lambda (ocurarg :long ix)
+    (foreach_in_multiple 
+     (oargs)
+     (ocurarg :long ix)
        (debug_msg ocurarg "compilobj_nrep_multimsend ocurarg")
        (if (and ocurarg (or (is_not_a ocurarg class_objpurevalue) (is_a ocurarg class_objinstr)))
-	   (list_append obodl ocurarg))))
+	   (list_append obodl ocurarg)
+	 (debug_msg ocurarg "compilobj_nrep_multimsend ocurarg ignored generated code")))
     ;; add the multisend to the block
     (list_append obodl omsend)
     ;; add the compiled body to the block
