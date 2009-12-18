@@ -2496,7 +2496,8 @@ follow_ssa_with_commutative_ops (tree arg, tree lhs)
 
   stmt = SSA_NAME_DEF_STMT (arg);
 
-  if (gimple_code (stmt) == GIMPLE_NOP)
+  if (gimple_code (stmt) == GIMPLE_NOP
+      || gimple_code (stmt) == GIMPLE_CALL)
     return NULL;
 
   if (gimple_code (stmt) == GIMPLE_PHI)
