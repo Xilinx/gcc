@@ -1,3 +1,322 @@
+2009-12-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (loc_descriptor): For SYMBOL_REFs and LABEL_REFs
+	use DW_OP_addr+DW_OP_stack_value instead of DW_OP_implicit_value.
+	(add_const_value_attribute): For CONST_STRING, SYMBOL_REFs and
+	LABEL_REFs use DW_OP_addr+DW_OP_stack_value DW_AT_location instead of
+	DW_AT_const_value.
+
+2009-12-17  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41679
+	* var-tracking.c (count_uses): Count MO_VAL_USE of original
+	MO_VAL_SET value for COND_EXEC.
+	(add_stores): Handle conditional stores.
+
+	PR debug/41679
+	* var-tracking.c (use_type): Remove indirection from loc.
+	(count_uses): Dereference incoming loc early.
+	(add_uses): Dereference incoming loc early.
+
+	PR debug/41679
+	* var-tracking.c (add_stores): Avoid value mode mismatch for
+	promoted declarations.
+
+2009-12-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42386
+	* ipa.c (function_and_variable_visibility): Clear same_comdat_group
+	links of DECL_EXTERNAL nodes.
+
+2009-12-17  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/rtl.texi (Vector Operations): Clarify vec_select result mode.
+
+2009-12-17  Julian Brown  <julian@codesourcery.com>
+
+	* config/arm/bpabi-v6m.S (test_div_by_zero): New macro.
+	(aeabi_ldivmod, aeabi_uldivmod): Use above macro.
+	* config/arm/bpabi.S (test_div_by_zero): New macro.
+	(aeabi_ldivmod, aeabi_uldivmod): Use above macro.
+	* config/arm/lib1funcs.asm (ARM_LDIV0): Tail-call int div-by-zero
+	handler for EABI. Add signed/unsigned argument, pass correct value
+	to that handler.
+	(THUMB_LDIV0): Same, for Thumb.
+	(DIV_FUNC_END): Add signed argument.
+	(WEAK): New macro (for EABI).
+	(__udivsi3, __umodsi3): Add unsigned argument to DIV_FUNC_END. For
+	__udivsi3, add entry point which skips division-by-zero test.
+	(__divsi3, __modsi3): Add signed argument to DIV_FUNC_END.
+	(__aeabi_uidivmod, __aeabi_idivmod): Check for division by zero.
+	Call __udivsi3 or __divsi3 via entry points which skip
+	division-by-zero tests.
+	(__div0): Rename to __aeabi_idiv0, __aeabi_ldiv0 for EABI, and
+	declare those names weak.
+
+2009-12-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42397
+	* builtins.c (get_object_alignment): Properly deal with
+	a CONST_DECL base.
+	* expr.c (emit_block_move_hints): Assert the alignment makes
+	sense.
+
+2009-12-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/32280
+	* config/i386/i386-modes.def (V1TI): New vector mode.
+	* config/i386/i386.h (VALID_SSE_REG_MODE): Add V1TImode.
+	(SSE_REG_MODE_P): Ditto.
+	* config/i386/sse.md (SSEMODE16): New mode iterator.
+	(AVXMODE16): Ditto.
+	(avxvecmode): Handle V1TI mode.
+	(*avx_mov<mode>_internal): Use AVXMODE16 instead of AVXMODE.
+	(mov<mode>): Use SSEMODE16 instead of SSEMODE.
+	(*mov<mode>_internal): Ditto.
+	(push<mode>1): Ditto.
+	(movmisalign<mode>): Ditto.
+	(sse2_ashlv1ti): Rename from sse2_ashlti.
+	(sse2_lshrv1ti): Rename from sse2_lshrti.
+	(*avx_ashlv1ti): Rename from *avx_ashlti and move from i386.md.
+	(*avx_lshrv1ti): Rename from *avx_lshrti and move from i386.md.
+	(vec_shl_<mode>): Convert operands to V1TImode and use V1TI shift.
+	(vec_shr_<mode>): Ditto.
+	(*sse2_mulv4si3): Update for renamed sse2_ashlv1ti3.
+	(udot_prodv4si): Ditto.
+	* config/i386/i386.c (classify_argument): Handle V1TImode.
+	(function_arg_advance_32): Ditto.
+	(function_arg_32): Ditto.
+	(ix86_expand_sse4_unpack): Convert operands to V1TImode and update
+	for renamed gen_sse2_lshrv1ti3.
+	(ix86_expand_args_builtin) <V2DI_FTYPE_V2DI_INT_CONVERT>: Set rmode
+	to V1TImode.
+	(struct builtin_description) <__builtin_ia32_pslldqi128>: Update
+	for renamed sse2_ashlv1ti3.
+	<__builtin_ia32_psrldqi128>: Update for renamed sse2_lshrv1ti3.
+	
+	Revert:
+	2007-06-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/32280
+	* config/i386/sse.md ("sse2_ashlti", "sse2_lshrti3"): Move ...
+	* config/i386/i386.md ("sse2_ashlti", "sse2_lshrti3"): ... to here.
+
+2009-12-17  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/42372
+	* arm.md (pic_add_dot_plus_eight): Change output constraint from
+	update to write.
+
+2009-12-17  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* config/rs6000/rs6000-c.c (altivec_resolve_overloaded_builtin):
+	Update build_indirect_ref calls.	
+
+2009-12-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sync.md (IMODE): Remove mode iterator.
+	(modesuffix): Remove mode attribute.
+	(modeconstraint): Ditto.
+	(immconstraint): Ditto.
+	(*sync_compare_and_swap<mode>): Use SWI mode iterator instead of
+	IMODE mode iterator, imodesuffix mode attribute instead of modesuffix,
+	<r> mode attribute instead of modeconstraint and <i> mode attribute
+	instead of immconstraint.
+	(sync_double_compare_and_swap<mode>): Ditto.
+	(sync_old_add<mode>): Ditto.
+	(sync_lock_test_and_set<mode>): Ditto.
+	(sync_add<mode>): Ditto.
+	(sync_sub<mode>): Ditto.
+	(sync_and<mode>): Ditto.
+	(sync_ior<mode>): Ditto.
+	(sync_xor<mode>): Ditto.
+	(sync_<code><mode>): Macroize insn pattern from
+	sync_{and,ior,xor}<mode> using any_logic code iterator.
+
+2009-12-17  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c/40885
+	* c-common.h (ref_operator): New type.
+	(build_indirect_ref): Adjust prototype with new argument.
+	* c-typeck.c (build_indirect_ref): Accept ref_operator as argument and
+	emit the diagnostics for easy translation.
+	(build_array_ref): Update calls to build_indirect_ref.
+	* c-omp.c (c_finish_omp_atomic): Likewise.
+	* c-parser.c (c_parser_unary_expression,
+	c_parser_postfix_expression_after_primary): Likewise.
+
+2009-12-16  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42392
+	* langhooks.c (lhd_begin_section): Make sure to switch back
+	to the text section, not some random one.
+
+2009-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-chrec.c (chrec_convert_1): Only fold (T2)(t +- x) to
+	(T2)t +- (T2)x if only integer types are involved.
+
+2009-12-16  Ben Elliston  <bje@au.ibm.com>
+
+	* tree-data-ref.h (dot_rdg): Remove prototype.
+	* tree-data-ref.c (dog_rdg_1, dot_rdg): Remove.
+
+2009-12-16  Kazu Hirata  <kazu@codesourcery.com>
+
+	* doc/invoke.texi, doc/options.texi, doc/plugins.texi,
+	doc/tm.texi: Fix typos.
+
+2009-12-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/extend.texi (Function Attributes, Extended Asm):
+	Replace TABs with spaces.
+	* doc/md.texi (Standard Names): Likewise.
+	* doc/plugins.texi (Plugins): Likewise.
+
+	* doc/c-tree.texi (Expression trees): Use @itemx for all but
+	the first item for merged items.
+	* doc/extend.texi (Variable Attributes): Likewise.
+	* doc/install.texi (Configuration): Likewise.
+	* doc/invoke.texi (RS/6000 and PowerPC Options, RX Options):
+	Likewise.
+
+2009-12-15  Richard Guenther  <rguenther@suse.de>
+
+	* tree.c (free_lang_data_in_binfo): Do not free BINFO_OFFSET
+	and BINFO_VPTR_FIELD.
+	(free_lang_data_in_type): Do not free TYPE_STUB_DECL if we
+	generate debug information.
+	(free_lang_data_in_decl): Do not free DECL_SIZE_UNIT,
+	DECL_SIZE, DECL_FIELD_OFFSET and DECL_FCONTEXT.
+	(free_lang_data): Do not disable debuginfo.
+	* lto-streamer-out.c (write_symbol_vec): Deal with
+	non-constant DECL_SIZE.
+	(pack_ts_base_value_fields): Write types with false
+	TREE_ASM_WRITTEN.
+	(lto_output_ts_type_tree_pointers): Stream TYPE_STUB_DECL.
+	* lto-streamer-in.c (lto_input_ts_type_tree_pointers): Stream
+	TYPE_STUB_DECL.
+	* dwarf2out.c (add_pure_or_virtual_attribute): Check for
+	DECL_CONTEXT.
+	(gen_type_die_for_member): Test for TYPE_STUB_DECL.
+	* opts.c (decode_options): Do not disable var-tracking for lto.
+	* doc/invoke.texi (-flto): Document -flto vs. -g experimental
+	status.
+	(-fwhopr): Document experimental status.
+
+2009-12-15  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR graphite/42185
+	* graphite-sese-to-poly.c (is_reduction_operation_p): Assert that
+	we are a GIMPLE_ASSIGN.  Do not calculate rhs code twice.
+	(follow_ssa_with_commutative_ops): Return NULL on non assignment.
+
+2009-12-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/rs6000/rs6000.md (probe_stack): Use an enclosing SET.
+
+2009-12-15  Richard Guenther  <rguenther@suse.de>
+
+	* gimple.h (compare_field_offset): Declare.
+	* gimple.c (compare_field_offset): Export.
+	* lto-streamer-in.c (input_gimple_stmt): Use compare_field_offset.
+
+2009-12-15  Richard Guenther  <rguenther@suse.de>
+
+	* lto-cgraph.c (lto_output_node): Also stream the alias
+	for regular aliases.
+	(input_node): Likewise.
+
+2009-12-15  Paolo Bonzini  <bonzini@gnu.org>
+	    Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* intl.c (get_spaces): New.
+	* intl.h (get_spaces): New.
+
+2009-12-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/42369
+	* config/i386/i386.c (ix86_expand_special_args_builtin): Avoid
+	using switch with CODE_FOR_lwp_lwp* cases.
+
+	* config/i386/i386-builtin-types.def (PVOID_FTYPE_VOID): Use
+	DEF_FUNCTION_TYPE (PVOID) instead of DEF_FUNCTION_TYPE (PVOID, VOID).
+
+2009-12-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cfgexpand.c (expand_debug_expr) <INDIRECT_REF>: Remove overzealous
+	assertion and useless code.
+	<TARGET_MEM_REF>: Likewise.
+
+2009-12-14  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41473
+	* dwarf2out.c (AT_loc_list_ptr): New.
+	(resolve_addr): Remove unresolved attributes and loc_list entries.
+
+	PR debug/41473
+	* dwarf2out.c (add_var_loc_to_decl): Don't drop initial empty
+	locations.
+	(new_loc_list): Drop gensym arg.  Move generation of ll_symbol...
+	(gen_llsym): ... here.  New function.
+	(add_loc_descr_to_loc_list): Removed.
+	(loc_descriptor): Infer mode from CONST_DOUBLEs and CONST_VECTORs.
+	(single_element_loc_list): Removed.
+	(dw_loc_list): Don't create entries without a location.  Don't
+	special-case the first node of the list, only single nodes.
+	(single_element_loc_list_p): Simplify.
+	(loc_list_from_tree): Don't use DECL_RTL if loc_list is nonempty.
+	(add_location_or_const_value_attribute): Test var loc for NULL.
+	(convert_cfa_to_fb_loc_list): Adjust calls to new new_loc_list,
+	call gen_llsym if needed.
+
+2009-12-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* cgraph.h (cgraph_set_nothrow_flag, cgraph_set_readonly_flag,
+	cgraph_set_pure_flag, cgraph_set_looping_const_or_pure_flag): New
+	prototypes.
+	* cgraph.c (cgraph_set_nothrow_flag, cgraph_set_readonly_flag,
+	cgraph_set_pure_flag, cgraph_set_looping_const_or_pure_flag): New
+	functions.
+	* except.h (set_nothrow_function_flags): Remove prototype.
+	* except.c (set_nothrow_function_flags): Use cgraph_set_nothrow_flag.
+	Make static.
+	* ipa-pure-const.c (propagate): Use cgraph_set_nothrow_flag,
+	cgraph_set_readonly_flag, cgraph_set_pure_flag
+	and cgraph_set_looping_const_or_pure_flag.
+	(local_pure_const): Likewise.
+
+2009-12-14  Jakub Jelinek  <jakub@redhat.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/i386-builtin-types.def (PVOID): Declared.
+	(VOID_FTYPE_PVOID): Declared.
+	(PVOID_FTYPE_VOID): Declared.
+	(UCHAR_FTYPE_USHORT_UINT_USHORT): Removed.
+	(VOID_FTYPE_USHORT_UINT_USHORT): Removed.
+	* config/i386/i386.c (IX86_BUILTIN_LLWPCB16, IX86_BUILTIN_LLWPCB32,
+	IX86_BUILTIN_LLWPCB64, IX86_BUILTIN_SLWPCB16, IX86_BUILTIN_SLWPCB32,
+	IX86_BUILTIN_SLWPCB64, IX86_BUILTIN_LWPVAL16, IX86_BUILTIN_LWPINS16):
+	Removed.
+	(IX86_BUILTIN_LLWPCB, IX86_BUILTIN_SLWPCB): New.
+	(bdesc_special_args): Adjust declaration of __builtin_ia32_llwpcb,
+	__builtin_ia32_slwpcb, __builtin_ia32_lwpval32,
+	__builtin_ia32_lwpval64, __builtin_ia32_lwpins32, and
+	__builtin_ia32_lwpins64.
+	(ix86_expand_special_args_builtin): Handle VOID_FTYPE_PVOID.
+	Do not handle VOID_FTYPE_USHORT_UINT_USHORT and
+	UCHAR_FTYPE_USHORT_UINT_USHORT.  Warn when the third operand is
+	not an immediate.  Also handle builtin functions with 3 arguments.
+	(ix86_expand_builtin): Handle IX86_BUILTIN_LLWPCB and
+	IX86_BUILTIN_SLWPCB.
+	* config/i386/i386.md (UNSPEC_LLWP_INTRINSIC, UNSPEC_SLWP_INTRINSIC):
+	Renamed UNSPECV_LLWP_INTRINSIC and UNSPECV_SLWP_INTRINSIC.
+	(memory attribute): Handle lwp.
+	(lwp*): Rewrite all the insn patterns for LWP.
+	* config/i386/lwpintrin.h (__llwpcb16, __llwpcb32, __llwpcb64,
+	__slwpcb16, __slwpcb32, __slwpcb64, __lwpval16, __lwpins16): Removed.
+	(__llwpcb, __slwpcb): New.
+
 2009-12-14  Dmitry Gorbachev  <d.g.gorbachev@gmail.com>
 
 	* dominance.c (set_immediate_dominator): Don't mark as inline.
@@ -40,7 +359,7 @@
 	(divmodhi4): Ditto.
 	(udivmodhi4): Ditto.
 	(divmodsi4): Ditto.
-	(udivmodsi4): Ditto. 
+	(udivmodsi4): Ditto.
 
 2009-12-13  Richard Guenther  <rguenther@suse.de>
 
@@ -187,7 +506,7 @@
 
 	* builtins.c (do_mpc_ckconv): Pass the component type to
 	real_from_mpfr().
-	
+
 2009-12-09  Xinliang David Li  <davidxl@google.com>
 
 	PR tree-optimization/42337

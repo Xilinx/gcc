@@ -1082,12 +1082,7 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 		    {
 		      if (tem == field
 			  || (TREE_TYPE (tem) == TREE_TYPE (field)
-			      && (DECL_FIELD_OFFSET (tem)
-				  == DECL_FIELD_OFFSET (field))
-			      && (DECL_FIELD_BIT_OFFSET (tem)
-				  == DECL_FIELD_BIT_OFFSET (field))
-			      && (DECL_OFFSET_ALIGN (tem)
-				  == DECL_OFFSET_ALIGN (field))))
+			      && compare_field_offset (tem, field)))
 			break;
 		    }
 		  /* In case of type mismatches across units we can fail
@@ -2167,6 +2162,7 @@ lto_input_ts_type_tree_pointers (struct lto_input_block *ib,
     TYPE_BINFO (expr) = lto_input_tree (ib, data_in);
   TYPE_CONTEXT (expr) = lto_input_tree (ib, data_in);
   TYPE_CANONICAL (expr) = lto_input_tree (ib, data_in);
+  TYPE_STUB_DECL (expr) = lto_input_tree (ib, data_in);
 }
 
 

@@ -1,3 +1,172 @@
+2009-12-18  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* g++.old-deja/g++.brendan/misc6.C: Make expected dg-error strings
+	explicit.
+
+2009-12-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/debug/dwarf2/const-1.c: Don't expect DW_AT_const_value,
+	but instead DW_AT_location with DW_OP_addr+DW_OP_stack_value.  Add
+	-gno-strict-dwarf -fno-merge-debug-strings to dg-options.
+	* g++.dg/debug/dwarf2/const1.C: Likewise.
+	* g++.dg/debug/dwarf2/template-params-3.C: Likewise.
+	* g++.dg/debug/dwarf2/template-func-params-3.C: Likewise.
+
+2009-12-17  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41679
+	* gcc.target/arm/pr41679.c: New.
+
+2009-12-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42386
+	* g++.dg/opt/dtor3.C: New test.
+
+2009-12-17  Arnaud Charlet  <charlet@adacore.com>
+
+	* ada/acats/run_all.sh: Strip comments from norun.lst
+
+2009-12-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/32280
+	* gcc.target/i386/pr32280-1.c: New test.
+
+2009-12-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* objc/execute/forward-1.x: XFAIL for -fgnu-runtime on
+	x86_64-*-darwin*, powerpc*-*-darwin* and alpha*-*-linux* targets.
+
+2009-12-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42144
+	* gfortran.dg/dynamic_dispatch_6.f03: New test.
+
+2009-12-17  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* g++.old-deja/g++.mike/net31.C: Make expected dg-error strings
+	explicit.
+	* g++.old-deja/g++.bugs/900213_02.C: Likewise.
+	* g++.old-deja/g++.bugs/900215_02.C: Likewise.
+
+2009-12-16  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42392
+	* gcc.dg/lto/20091216-1_0.c: New testcase.
+
+2009-12-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42387
+	* g++.dg/ext/vla8.C: New.
+
+2009-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.c-torture/compile/20091215-1.c: New test.
+
+	* gcc.dg/debug/tls-1.c: New test.
+
+2009-12-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42358
+	* g++.dg/cpp0x/variadic98.C: New.
+
+2009-12-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42373
+	* g++.dg/cpp0x/lambda/lambda-mangle.C: Adjust regexps for darwin.
+
+2009-12-15  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* ada/acats/norun.lst: Sort.
+
+2009-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/41183
+	* g++.dg/torture/pr41183.C: New test.
+
+2009-12-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41235
+	* gfortran.dg/auto_char_len_1.f90: New test.
+	* gfortran.dg/auto_char_len_2.f90: New test.
+	* gfortran.dg/auto_char_len_4.f90: Correct test.
+
+2009-12-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42364
+	* g++.dg/cpp0x/variadic31.C: Compile with -g.
+	* g++.dg/ext/attrib33.C: Likewise.
+
+2009-12-15  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* g++.dg/other/error20.C: Adjust dg-message strings.
+	* g++.dg/other/error31.C: Likewise.
+	* g++.dg/rtti/typeid6.C: Likewise.
+	* g++.dg/ext/ms-1.C: Likewise.
+	* g++.dg/parse/error19.C: Likewise.
+	* g++.dg/parse/crash5.C: Likewise.
+	* g++.dg/cpp0x/explicit4.C: Likewise.
+	* g++.dg/template/ptrmem4.C: Likewise.
+	* g++.dg/template/crash37.C: Likewise.
+	* g++.dg/template/qualttp5.C: Likewise.
+	* g++.dg/template/local6.C: Likewise.
+	* g++.dg/template/instantiate5.C: Likewise.
+	* g++.old-deja/g++.brendan/overload1.C: Likewise.
+	* g++.old-deja/g++.brendan/cvt3.C: Likewise.
+	* g++.old-deja/g++.brendan/overload4.C: Likewise.
+	* g++.old-deja/g++.jason/conversion11.C: Likewise.
+	* g++.old-deja/g++.jason/scoping10.C: Likewise.
+	* g++.old-deja/g++.other/expr1.C: Likewise.
+	* g++.old-deja/g++.other/pmf3.C: Likewise.
+	* g++.old-deja/g++.other/crash24.C: Likewise.
+	* g++.old-deja/g++.niklas/t120.C: Likewise.
+	* g++.old-deja/g++.niklas/t121.C: Likewise.
+	* g++.old-deja/g++.law/operators9.C: Likewise.
+	* g++.old-deja/g++.law/arm9.C: Likewise.
+	* g++.old-deja/g++.law/enum4.C: Likewise.
+	* g++.old-deja/g++.law/arg11.C: Likewise.
+	* g++.old-deja/g++.benjamin/15800-1.C: Likewise.
+	* g++.old-deja/g++.mike/p2431.C: Likewise.
+	* g++.old-deja/g++.mike/p438.C: Likewise.
+	* g++.old-deja/g++.mike/p9068.C: Likewise.
+	* g++.old-deja/g++.mike/p11110.C: Likewise.
+	* g++.old-deja/g++.bugs/900330_02.C: Likewise.
+
+2009-12-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* g++.dg/other/i386-2.C: Add -mpopcnt -mabm -mlwp to dg-options.
+	* g++.dg/other/i386-3.C: Ditto.
+	* g++.dg/other/i386-5.C: Remove duplicated test.
+	* g++.dg/other/i386-6.C: Ditto.
+
+2009-12-14  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/42354
+	* gfortran.dg/iso_c_binding_init_expr.f03: New.
+	* gfortran.dg/intrinsic_std_1.f90: Fixed expected error message.
+	* gfortran.dg/function_kinds_5.f90: Likewise.
+	* gfortran.dg/selected_char_kind_3.f90: Likewise.
+
+2009-12-14  Dominique d'Humieres  <dominiq@lps.ens.fr>
+
+	* gfortran.dg/boz_15.f90: Fix typos.
+
+2009-12-14  Jakub Jelinek  <jakub@redhat.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.target/i386/sse-12.c: Add -mpopcnt and -mlwp.
+	* gcc.target/i386/sse-13.c: Same.
+	(__builtin_ia32_lwpval32, __builtin_ia32_lwpval64,
+	__builtin_ia32_lwpins32, __builtin_ia32_lwpins64): Added testcases.
+	* gcc.target/i386/sse-14.c: Add -mpopcnt -mabm -mlwp.
+	Added tests for __lwpval32, __lwpins32, __lwpval64, and __lwpins64.
+	* gcc.target/i386/sse-22.c: Added tests for popcnt, abm, and lwp.
+	* gcc.target/i386/sse-23.c: Same.
+
+2009-12-14  Sebastian Pop  <sebpop@gmail.com>
+
+	PR middle-end/42284
+	* testsuite/gcc.dg/graphite/pr42284.c: New.
+
 2009-12-13  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/42357
@@ -80,7 +249,7 @@
 	* gfortran.dg/typebound_proc_13.f03: New test.
 
 2009-12-08  Olga Golovanevsky  <olga@il.ibm.com>
-	    Jakub Jelinek <jakub@redhat.com>	
+	    Jakub Jelinek <jakub@redhat.com>
 
 	PR midle-end/41843
 	* gcc.dg/struct/wo_prof_empty_str.c: New testcase.
@@ -224,7 +393,7 @@
 	PR c++/41611
 	* g++.dg/abi/guard1.C: New.
 
-2009-12-91  Uros Bizjak  <ubizjak@gmail.com>
+2009-12-01  Uros Bizjak  <ubizjak@gmail.com>
 
 	* gcc.target/i386/vperm-v4sf-1.c (dg-options): Use -msse.
 
@@ -538,7 +707,7 @@
 	* gcc-dg/raw-string-2.c: Ditto.
 	* gcc-dg/utf-array-short-wchar.c: Ditto.
 	* gcc-dg/utf-array.c: Ditto.
-	* gcc-dg/utf8-2.c: Ditto. 
+	* gcc-dg/utf8-2.c: Ditto.
 
 2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
 
@@ -764,7 +933,7 @@
 	* gcc.misc-tests/linkage.exp: Also check -m32 for i*86-*-linux*.
 
 2009-11-18  Nick Clifton  <nickc@redhat.com>
-	
+
 	* g++.dg/lto/20091002-1_0.C: Replace -shared with -r -nostlib.
 	* g++.dg/lto/20081120-1_0.C: Likewise.
 	* g++.dg/lto/20091002-2_0.C: Likewise.
@@ -1179,7 +1348,7 @@
 	* g++.dg/other/i386-3.C: Ditto.
 	* g++.dg/other/i386-5.C: Ditto.
 	* g++.dg/other/i386-6.C: Ditto.
-	
+
 2009-11-04  Wei Guozhi  <carrot@google.com>
 
 	PR target/40835

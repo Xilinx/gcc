@@ -6177,10 +6177,7 @@ static void gen_generic_params_dies (tree);
 static void splice_child_die (dw_die_ref, dw_die_ref);
 static int file_info_cmp (const void *, const void *);
 static dw_loc_list_ref new_loc_list (dw_loc_descr_ref, const char *,
-				     const char *, const char *, unsigned);
-static void add_loc_descr_to_loc_list (dw_loc_list_ref *, dw_loc_descr_ref,
-				       const char *, const char *,
-				       const char *);
+				     const char *, const char *);
 static void output_loc_list (dw_loc_list_ref);
 static char *gen_internal_sym (const char *);
 
@@ -7214,6 +7211,13 @@ AT_loc_list (dw_attr_ref a)
   return a->dw_attr_val.v.val_loc_list;
 }
 
+static inline dw_loc_list_ref *
+AT_loc_list_ptr (dw_attr_ref a)
+{
+  gcc_assert (a && AT_class (a) == dw_val_class_loc_list);
+  return &a->dw_attr_val.v.val_loc_list;
+}
+
 /* Add an address constant attribute value to a DIE.  */
 
 static inline void
@@ -7793,8 +7797,7 @@ add_var_loc_to_decl (tree decl, struct var_loc_node *loc)
 	  temp->last = loc;
 	}
     }
-  /* Do not add empty location to the beginning of the list.  */
-  else if (NOTE_VAR_LOCATION_LOC (loc->var_loc_note) != NULL_RTX)
+  else
     {
       temp->first = loc;
       temp->last = loc;
@@ -10302,12 +10305,11 @@ output_die_symbol (dw_die_ref die)
 }
 
 /* Return a new location list, given the begin and end range, and the
-   expression. gensym tells us whether to generate a new internal symbol for
-   this location list node, which is done for the head of the list only.  */
+   expression.  */
 
 static inline dw_loc_list_ref
 new_loc_list (dw_loc_descr_ref expr, const char *begin, const char *end,
-	      const char *section, unsigned int gensym)
+	      const char *section)
 {
   dw_loc_list_ref retlist = GGC_CNEW (dw_loc_list_node);
 
@@ -10315,27 +10317,18 @@ new_loc_list (dw_loc_descr_ref expr, const char *begin, const char *end,
   retlist->end = end;
   retlist->expr = expr;
   retlist->section = section;
-  if (gensym)
-    retlist->ll_symbol = gen_internal_sym ("LLST");
 
   return retlist;
 }
 
-/* Add a location description expression to a location list.  */
+/* Generate a new internal symbol for this location list node, if it
+   hasn't got one yet.  */
 
 static inline void
-add_loc_descr_to_loc_list (dw_loc_list_ref *list_head, dw_loc_descr_ref descr,
-			   const char *begin, const char *end,
-			   const char *section)
+gen_llsym (dw_loc_list_ref list)
 {
-  dw_loc_list_ref *d;
-
-  /* Find the end of the chain.  */
-  for (d = list_head; (*d) != NULL; d = &(*d)->dw_loc_next)
-    ;
-
-  /* Add a new location list node to the list.  */
-  *d = new_loc_list (descr, begin, end, section, 0);
+  gcc_assert (!list->ll_symbol);
+  list->ll_symbol = gen_internal_sym ("LLST");
 }
 
 /* Output the location list given to us.  */
@@ -13653,15 +13646,17 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
       break;
 
     case CONST_DOUBLE:
+      if (mode == VOIDmode)
+	mode = GET_MODE (rtl);
+
       if (mode != VOIDmode && (dwarf_version >= 4 || !dwarf_strict))
 	{
+	  gcc_assert (mode == GET_MODE (rtl) || VOIDmode == GET_MODE (rtl));
+
 	  /* Note that a CONST_DOUBLE rtx could represent either an integer
 	     or a floating-point constant.  A CONST_DOUBLE is used whenever
 	     the constant requires more than one word in order to be
 	     adequately represented.  We output CONST_DOUBLEs as blocks.  */
-	  if (GET_MODE (rtl) != VOIDmode)
-	    mode = GET_MODE (rtl);
-
 	  loc_result = new_loc_descr (DW_OP_implicit_value,
 				      GET_MODE_SIZE (mode), 0);
 	  if (SCALAR_FLOAT_MODE_P (mode))
@@ -13687,6 +13682,9 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
       break;
 
     case CONST_VECTOR:
+      if (mode == VOIDmode)
+	mode = GET_MODE (rtl);
+
       if (mode != VOIDmode && (dwarf_version >= 4 || !dwarf_strict))
 	{
 	  unsigned int elt_size = GET_MODE_UNIT_SIZE (GET_MODE (rtl));
@@ -13695,7 +13693,7 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	  unsigned int i;
 	  unsigned char *p;
 
-	  mode = GET_MODE (rtl);
+	  gcc_assert (mode == GET_MODE (rtl) || VOIDmode == GET_MODE (rtl));
 	  switch (GET_MODE_CLASS (mode))
 	    {
 	    case MODE_VECTOR_INT:
@@ -13777,10 +13775,10 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
       if (mode != VOIDmode && GET_MODE_SIZE (mode) == DWARF2_ADDR_SIZE
 	  && (dwarf_version >= 4 || !dwarf_strict))
 	{
-	  loc_result = new_loc_descr (DW_OP_implicit_value,
-				      DWARF2_ADDR_SIZE, 0);
-	  loc_result->dw_loc_oprnd2.val_class = dw_val_class_addr;
-	  loc_result->dw_loc_oprnd2.v.val_addr = rtl;
+	  loc_result = new_loc_descr (DW_OP_addr, 0, 0);
+	  loc_result->dw_loc_oprnd1.val_class = dw_val_class_addr;
+	  loc_result->dw_loc_oprnd1.v.val_addr = rtl;
+	  add_loc_descr (&loc_result, new_loc_descr (DW_OP_stack_value, 0, 0));
 	  VEC_safe_push (rtx, gc, used_rtx_array, rtl);
 	}
       break;
@@ -13840,14 +13838,6 @@ decl_by_reference_p (tree decl)
   return ((TREE_CODE (decl) == PARM_DECL || TREE_CODE (decl) == RESULT_DECL
   	   || TREE_CODE (decl) == VAR_DECL)
 	  && DECL_BY_REFERENCE (decl));
-}
-
-/* Return single element location list containing loc descr REF.  */
-
-static dw_loc_list_ref
-single_element_loc_list (dw_loc_descr_ref ref)
-{
-  return new_loc_list (ref, NULL, NULL, NULL, 0);
 }
 
 /* Helper function for dw_loc_list.  Compute proper Dwarf location descriptor
@@ -13931,20 +13921,21 @@ dw_loc_list_1 (tree loc, rtx varloc, int want_address,
   return descr;
 }
 
-/* Return dwarf representation of location list representing for
-   LOC_LIST of DECL.  WANT_ADDRESS has the same meaning as in
-   loc_list_from_tree function.  */
+/* Return the dwarf representation of the location list LOC_LIST of
+   DECL.  WANT_ADDRESS has the same meaning as in loc_list_from_tree
+   function.  */
 
 static dw_loc_list_ref
-dw_loc_list (var_loc_list * loc_list, tree decl, int want_address)
+dw_loc_list (var_loc_list *loc_list, tree decl, int want_address)
 {
   const char *endname, *secname;
-  dw_loc_list_ref list;
   rtx varloc;
   enum var_init_status initialized;
   struct var_loc_node *node;
   dw_loc_descr_ref descr;
   char label_id[MAX_ARTIFICIAL_LABEL_BYTES];
+  dw_loc_list_ref list = NULL;
+  dw_loc_list_ref *listp = &list;
 
   /* Now that we know what section we are using for a base,
      actually construct the list of locations.
@@ -13957,26 +13948,9 @@ dw_loc_list (var_loc_list * loc_list, tree decl, int want_address)
      This means we have to special case the last node, and generate
      a range of [last location start, end of function label].  */
 
-  node = loc_list->first;
   secname = secname_for_decl (decl);
 
-  if (NOTE_VAR_LOCATION_LOC (node->var_loc_note))
-    initialized = NOTE_VAR_LOCATION_STATUS (node->var_loc_note);
-  else
-    initialized = VAR_INIT_STATUS_INITIALIZED;
-  varloc = NOTE_VAR_LOCATION (node->var_loc_note);
-  descr = dw_loc_list_1 (decl, varloc, want_address, initialized);
-
-  if (loc_list && loc_list->first != loc_list->last)
-    list = new_loc_list (descr, node->label, node->next->label, secname, 1);
-  else
-    return single_element_loc_list (descr);
-  node = node->next;
-
-  if (!node)
-    return NULL;
-
-  for (; node->next; node = node->next)
+  for (node = loc_list->first; node->next; node = node->next)
     if (NOTE_VAR_LOCATION_LOC (node->var_loc_note) != NULL_RTX)
       {
 	/* The variable has a location between NODE->LABEL and
@@ -13984,28 +13958,46 @@ dw_loc_list (var_loc_list * loc_list, tree decl, int want_address)
 	initialized = NOTE_VAR_LOCATION_STATUS (node->var_loc_note);
 	varloc = NOTE_VAR_LOCATION (node->var_loc_note);
 	descr = dw_loc_list_1 (decl, varloc, want_address, initialized);
-	add_loc_descr_to_loc_list (&list, descr,
-				   node->label, node->next->label, secname);
+	if (descr)
+	  {
+	    *listp = new_loc_list (descr, node->label, node->next->label,
+				   secname);
+	    listp = &(*listp)->dw_loc_next;
+	  }
       }
 
   /* If the variable has a location at the last label
      it keeps its location until the end of function.  */
   if (NOTE_VAR_LOCATION_LOC (node->var_loc_note) != NULL_RTX)
     {
-      if (!current_function_decl)
-	endname = text_end_label;
-      else
-	{
-	  ASM_GENERATE_INTERNAL_LABEL (label_id, FUNC_END_LABEL,
-				       current_function_funcdef_no);
-	  endname = ggc_strdup (label_id);
-	}
-
       initialized = NOTE_VAR_LOCATION_STATUS (node->var_loc_note);
       varloc = NOTE_VAR_LOCATION (node->var_loc_note);
       descr = dw_loc_list_1 (decl, varloc, want_address, initialized);
-      add_loc_descr_to_loc_list (&list, descr, node->label, endname, secname);
+      if (descr)
+	{
+	  if (!current_function_decl)
+	    endname = text_end_label;
+	  else
+	    {
+	      ASM_GENERATE_INTERNAL_LABEL (label_id, FUNC_END_LABEL,
+					   current_function_funcdef_no);
+	      endname = ggc_strdup (label_id);
+	    }
+
+	  *listp = new_loc_list (descr, node->label, endname, secname);
+	  listp = &(*listp)->dw_loc_next;
+	}
     }
+
+  /* Try to avoid the overhead of a location list emitting a location
+     expression instead, but only if we didn't have more than one
+     location entry in the first place.  If some entries were not
+     representable, we don't want to pretend a single entry that was
+     applies to the entire scope in which the variable is
+     available.  */
+  if (list && loc_list->first->next)
+    gen_llsym (list);
+
   return list;
 }
 
@@ -14015,7 +14007,8 @@ dw_loc_list (var_loc_list * loc_list, tree decl, int want_address)
 static bool
 single_element_loc_list_p (dw_loc_list_ref list)
 {
-  return (!list->dw_loc_next && !list->begin && !list->end);
+  gcc_assert (!list->dw_loc_next || list->ll_symbol);
+  return !list->ll_symbol;
 }
 
 /* To each location in list LIST add loc descr REF.  */
@@ -14315,9 +14308,9 @@ loc_list_from_tree (tree loc, int want_address)
 	rtx rtl;
 	var_loc_list *loc_list = lookup_decl_loc (loc);
 
-	if (loc_list && loc_list->first
-	    && (list_ret = dw_loc_list (loc_list, loc, want_address)))
+	if (loc_list && loc_list->first)
 	  {
+	    list_ret = dw_loc_list (loc_list, loc, want_address);
 	    have_address = want_address != 0;
 	    break;
 	  }
@@ -14728,7 +14721,7 @@ loc_list_from_tree (tree loc, int want_address)
 	add_loc_descr_to_each (list_ret, new_loc_descr (op, size, 0));
     }
   if (ret)
-    list_ret = single_element_loc_list (ret);
+    list_ret = new_loc_list (ret, NULL, NULL, NULL);
 
   return list_ret;
 }
@@ -15230,10 +15223,20 @@ add_const_value_attribute (dw_die_ref die, rtx rtl)
       return true;
 
     case CONST_STRING:
-      resolve_one_addr (&rtl, NULL);
-      add_AT_addr (die, DW_AT_const_value, rtl);
-      VEC_safe_push (rtx, gc, used_rtx_array, rtl);
-      return true;
+      if (dwarf_version >= 4 || !dwarf_strict)
+	{
+	  dw_loc_descr_ref loc_result;
+	  resolve_one_addr (&rtl, NULL);
+	rtl_addr:
+	  loc_result = new_loc_descr (DW_OP_addr, 0, 0);
+	  loc_result->dw_loc_oprnd1.val_class = dw_val_class_addr;
+	  loc_result->dw_loc_oprnd1.v.val_addr = rtl;
+	  add_loc_descr (&loc_result, new_loc_descr (DW_OP_stack_value, 0, 0));
+	  add_AT_loc (die, DW_AT_location, loc_result);
+	  VEC_safe_push (rtx, gc, used_rtx_array, rtl);
+	  return true;
+	}
+      return false;
 
     case CONST:
       if (CONSTANT_P (XEXP (rtl, 0)))
@@ -15243,9 +15246,9 @@ add_const_value_attribute (dw_die_ref die, rtx rtl)
       if (!const_ok_for_output (rtl))
 	return false;
     case LABEL_REF:
-      add_AT_addr (die, DW_AT_const_value, rtl);
-      VEC_safe_push (rtx, gc, used_rtx_array, rtl);
-      return true;
+      if (dwarf_version >= 4 || !dwarf_strict)
+	goto rtl_addr;
+      return false;
 
     case PLUS:
       /* In cases where an inlined instance of an inline function is passed
@@ -15722,15 +15725,18 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
      a constant value.  That way we are better to use add_const_value_attribute
      rather than expanding constant value equivalent.  */
   loc_list = lookup_decl_loc (decl);
-  if (loc_list && loc_list->first && loc_list->first == loc_list->last)
+  if (loc_list
+      && loc_list->first
+      && loc_list->first == loc_list->last
+      && NOTE_VAR_LOCATION (loc_list->first->var_loc_note)
+      && NOTE_VAR_LOCATION_LOC (loc_list->first->var_loc_note))
     {
       struct var_loc_node *node;
 
       node = loc_list->first;
-      rtl = NOTE_VAR_LOCATION (node->var_loc_note);
-      if (GET_CODE (rtl) == VAR_LOCATION
-	  && GET_CODE (XEXP (rtl, 1)) != PARALLEL)
-	rtl = XEXP (XEXP (rtl, 1), 0);
+      rtl = NOTE_VAR_LOCATION_LOC (node->var_loc_note);
+      if (GET_CODE (rtl) != PARALLEL)
+	rtl = XEXP (rtl, 0);
       if ((CONSTANT_P (rtl) || GET_CODE (rtl) == CONST_STRING)
 	  && add_const_value_attribute (die, rtl))
 	 return true;
@@ -16017,8 +16023,7 @@ convert_cfa_to_fb_loc_list (HOST_WIDE_INT offset)
 	if (!cfa_equal_p (&last_cfa, &next_cfa))
 	  {
 	    *list_tail = new_loc_list (build_cfa_loc (&last_cfa, offset),
-				       start_label, last_label, section,
-				       list == NULL);
+				       start_label, last_label, section);
 
 	    list_tail = &(*list_tail)->dw_loc_next;
 	    last_cfa = next_cfa;
@@ -16039,14 +16044,16 @@ convert_cfa_to_fb_loc_list (HOST_WIDE_INT offset)
   if (!cfa_equal_p (&last_cfa, &next_cfa))
     {
       *list_tail = new_loc_list (build_cfa_loc (&last_cfa, offset),
-				 start_label, last_label, section,
-				 list == NULL);
+				 start_label, last_label, section);
       list_tail = &(*list_tail)->dw_loc_next;
       start_label = last_label;
     }
+
   *list_tail = new_loc_list (build_cfa_loc (&next_cfa, offset),
-			     start_label, fde->dw_fde_end, section,
-			     list == NULL);
+			     start_label, fde->dw_fde_end, section);
+
+  if (list && list->dw_loc_next)
+    gen_llsym (list);
 
   return list;
 }
@@ -16476,7 +16483,8 @@ add_pure_or_virtual_attribute (dw_die_ref die, tree func_decl)
 				   0));
 
       /* GNU extension: Record what type this method came from originally.  */
-      if (debug_info_level > DINFO_LEVEL_TERSE)
+      if (debug_info_level > DINFO_LEVEL_TERSE
+	  && DECL_CONTEXT (func_decl))
 	add_AT_die_ref (die, DW_AT_containing_type,
 			lookup_type_die (DECL_CONTEXT (func_decl)));
     }
@@ -17396,7 +17404,8 @@ gen_type_die_for_member (tree type, tree member, dw_die_ref context_die)
 
   /* If we're trying to avoid duplicate debug info, we may not have
      emitted the member decl for this function.  Emit it now.  */
-  if (TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type))
+  if (TYPE_STUB_DECL (type)
+      && TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type))
       && ! lookup_decl_die (member))
     {
       dw_die_ref type_die;
@@ -20978,28 +20987,48 @@ resolve_addr (dw_die_ref die)
 {
   dw_die_ref c;
   dw_attr_ref a;
-  dw_loc_list_ref curr;
+  dw_loc_list_ref *curr;
   unsigned ix;
 
   for (ix = 0; VEC_iterate (dw_attr_node, die->die_attr, ix, a); ix++)
     switch (AT_class (a))
       {
       case dw_val_class_loc_list:
-	for (curr = AT_loc_list (a); curr != NULL; curr = curr->dw_loc_next)
-	  if (!resolve_addr_in_expr (curr->expr))
-	    curr->expr = NULL;
+	curr = AT_loc_list_ptr (a);
+	while (*curr)
+	  {
+	    if (!resolve_addr_in_expr ((*curr)->expr))
+	      {
+		dw_loc_list_ref next = (*curr)->dw_loc_next;
+		if (next && (*curr)->ll_symbol)
+		  {
+		    gcc_assert (!next->ll_symbol);
+		    next->ll_symbol = (*curr)->ll_symbol;
+		  }
+		*curr = next;
+	      }
+	    else
+	      curr = &(*curr)->dw_loc_next;
+	  }
+	if (!AT_loc_list (a))
+	  {
+	    remove_AT (die, a->dw_attr);
+	    ix--;
+	  }
 	break;
       case dw_val_class_loc:
 	if (!resolve_addr_in_expr (AT_loc (a)))
-	  a->dw_attr_val.v.val_loc = NULL;
+	  {
+	    remove_AT (die, a->dw_attr);
+	    ix--;
+	  }
 	break;
       case dw_val_class_addr:
 	if (a->dw_attr == DW_AT_const_value
 	    && resolve_one_addr (&a->dw_attr_val.v.val_addr, NULL))
 	  {
-	    a->dw_attr = DW_AT_location;
-	    a->dw_attr_val.val_class = dw_val_class_loc;
-	    a->dw_attr_val.v.val_loc = NULL;
+	    remove_AT (die, a->dw_attr);
+	    ix--;
 	  }
 	break;
       default:

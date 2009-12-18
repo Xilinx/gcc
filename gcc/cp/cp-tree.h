@@ -1026,7 +1026,8 @@ struct GTY(()) language_function {
    expression for `*this'.  */
 
 #define current_class_ptr \
-  (cfun ? cp_function_chain->x_current_class_ptr : NULL_TREE)
+  (cfun && cp_function_chain					\
+   ? cp_function_chain->x_current_class_ptr : NULL_TREE)
 #define current_class_ref \
   (cfun ? cp_function_chain->x_current_class_ref : NULL_TREE)
 
@@ -5296,9 +5297,9 @@ extern tree build_class_member_access_expr      (tree, tree, tree, bool,
 						 tsubst_flags_t);
 extern tree finish_class_member_access_expr     (tree, tree, bool, 
 						 tsubst_flags_t);
-extern tree build_x_indirect_ref		(tree, const char *, 
+extern tree build_x_indirect_ref		(tree, ref_operator, 
                                                  tsubst_flags_t);
-extern tree cp_build_indirect_ref		(tree, const char *,
+extern tree cp_build_indirect_ref		(tree, ref_operator,
                                                  tsubst_flags_t);
 extern tree build_array_ref			(location_t, tree, tree);
 extern tree get_member_function_from_ptrfunc	(tree *, tree);
