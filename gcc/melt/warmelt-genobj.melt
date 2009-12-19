@@ -2218,7 +2218,8 @@ $SBUF.}#
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (loc (unsafe_get_field :nrep_loc rlet))
 	 (bnds (unsafe_get_field :nlet_bindings rlet))
-	 (recbnds (unsafe_get_field :nletrec_bindings rlet))
+	 (fillbnds (unsafe_get_field :nletrec_fill_bindings rlet))
+	 (bodybnds (unsafe_get_field :nletrec_body_bindings rlet))
 	 (:long nbbnds (multiple_length bnds))
 	 (nlocsyms (unsafe_get_field :nletrec_locsyms rlet))
 	 (:long nblocsym (multiple_length nlocsyms))
@@ -2248,8 +2249,10 @@ $SBUF.}#
 	 )
     (debug_msg loc "compilobj_nrep_letrec initial loc")
     (debug_msg nlocsyms "compilobj_nrep_letrec initial nlocsyms")
-    (debug_msg recbnds "compilobj_nrep_letrec initial recbnds")
-    (assert_msg "check recbnds is list" (is_list_or_null recbnds))
+    (debug_msg fillbnds "compilobj_nrep_letrec initial fillbnds")
+    (debug_msg bodybnds "compilobj_nrep_letrec initial bodybnds")
+    (assert_msg "check fillbnds is list" (is_list_or_null fillbnds))
+    (assert_msg "check bodybnds is list" (is_list_or_null bodybnds))
     (put_int obcntletrec cntletrec)
     (debug_msg obcntletrec "compilobj_nrep_letrec updated obcntletrec")
     (foreach_in_multiple
@@ -2292,11 +2295,11 @@ $SBUF.}#
      )
     ;; 
     ;; maybe we should reserve the recobva before compiling nrecexp
-    (debug_msg recbnds "compilobj_nrep_letrec recbnds")
-    (assert_msg "check recbnds" (is_list_or_null recbnds))
+    (debug_msg fillbnds "compilobj_nrep_letrec fillbnds")
+    (assert_msg "check fillbnds" (is_list_or_null fillbnds))
     ;; first loop to reserve the recobva
     (foreach_in_list
-     (recbnds)
+     (fillbnds)
      (curecpair curecbnd)
      (debug_msg curecbnd "compilobj_nrep_letrec curecbnd getfreeobjloc")
      (assert_msg "check curecbnd" (is_a curecbnd class_normal_let_binding))
@@ -2323,16 +2326,16 @@ $SBUF.}#
     (debug_msg locmap "compilobj_nrep_letrec locmap again")
     (debug_msg ofreelocs "compilobj_nrep_letrec ofreelocs again")
     ;;
-    ;; loop to compile the recbindings
+    ;; loop to compile the fillbindings
     (foreach_in_list
-     (recbnds)
-     (curecpair curecbnd)
-     (debug_msg curecbnd "compilobj_nrep_letrec curecbnd compil")
-     (assert_msg "check curecbnd" (is_a curecbnd class_normal_let_binding))
-     (let ( (rbder (unsafe_get_field :binder curecbnd))
-	    (rcty (unsafe_get_field :letbind_type curecbnd))
-	    (nrecexp (unsafe_get_field :letbind_expr curecbnd))
-	    (recobva (mapobject_get locmap curecbnd))
+     (fillbnds)
+     (curecpair curfilbnd)
+     (debug_msg curfilbnd "compilobj_nrep_letrec curfilbnd compil")
+     (assert_msg "check curfilbnd" (is_a curfilbnd class_normal_let_binding))
+     (let ( (rbder (unsafe_get_field :binder curfilbnd))
+	    (rcty (unsafe_get_field :letbind_type curfilbnd))
+	    (nrecexp (unsafe_get_field :letbind_expr curfilbnd))
+	    (recobva (mapobject_get locmap curfilbnd))
 	    )
        (debug_msg nrecexp "compilobj_nrep_letrec current recbinding nrecexp")
        (let ( (robnx (compile_obj nrecexp gcx)) 
@@ -2350,9 +2353,9 @@ $SBUF.}#
 	 ))
      )
 ;;;
-     (debug_msg obodl "compilobj_nrep_letrec obodl after recbinding")
+     (debug_msg obodl "compilobj_nrep_letrec obodl after fillbinding")
 ;;;
-;;; generate the fill
+;;; generate the fill of the letrec-ed constructions
     (foreach_in_multiple
      (bnds)
      (curbnd :long bndix)
@@ -2366,9 +2369,38 @@ $SBUF.}#
     ;;
     (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
     (debug_msg obodl "compilobj_nrep_letrec obodl after fill")
-    ;;
-    (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
-    (debug_msg bnds "compilobj_nrep_letrec filling each of bnds")
+    ;; loop to compile the bodybindings
+    (foreach_in_list
+     (bodybnds)
+     (cubdypair curbdybnd)
+     (debug_msg curbdybnd "compilobj_nrep_letrec curbdybnd compil")
+     (assert_msg "check curbdybnd" (is_a curbdybnd class_normal_let_binding))
+     (let ( (rbder (unsafe_get_field :binder curbdybnd))
+	    (rcty (unsafe_get_field :letbind_type curbdybnd))
+	    (nbdyexp (unsafe_get_field :letbind_expr curbdybnd))
+	    (bdyobva (get_free_objloctyped gcx rbder rcty))
+	    (rloc (unsafe_get_field :letbind_loc curbdybnd))
+	    )
+       (debug_msg bdyobva "compilobj_nrep_letrec body bdyobva")
+       (debug_msg nbdyexp "compilobj_nrep_letrec current bodybinding nbdyexp")
+       (mapobject_put locmap curbdybnd bdyobva)
+       (let ( (robnx (compile_obj nbdyexp gcx)) 
+	      (rnewob ())
+	      )
+	 (if (and bdyobva rcty (!= rcty ctype_void))
+	     (progn
+	       (list_append ofreelocs bdyobva)
+	       (setq rnewob (put_objdest robnx bdyobva))
+	       )
+	   (setq rnewob robnx))
+	 (debug_msg rnewob "compilobj_nrep_letrec rnewob")
+	 (if (or (is_not_a rnewob class_objpurevalue)
+		 (is_a rnewob class_objinstr))
+	     (list_append obodl rnewob)
+	   (debug_msg rnewob "compilobj_nrep_letrec rnewob ignored generated code")
+	   )
+	 ))
+     )
     ;;
     ;; compile the body
     (debug_msg nbdy "compilobj_nrep_letrec nbdy")
@@ -2400,7 +2432,6 @@ $SBUF.}#
     (debug_msg oblock "compilobj_nrep_letrec final oblock")
     (debug_msg oallstruct "compilobj_nrep_letrec final oallstruct")
     (debug_msg gcx "compilobj_nrep_letrec final gcx")
-    (compile_warning "maybe incomplete compilobj_nrep_letrec; is oallstruct filled ok?")
     oblock
     ))
 (install_method class_nrep_letrec compile_obj compilobj_nrep_letrec)

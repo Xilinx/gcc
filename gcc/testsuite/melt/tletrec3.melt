@@ -9,6 +9,20 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 
+(defclass class_abc
+  :super class_root
+  :fields (aa bb cc))
+
+(defclass class_abcde
+  :super class_abc
+  :fields (dd ee))
+
+
+(defprimitive checknonull (:cstring msg :value va) :void 
+#{ int lin=__LINE__; 
+   if (!$va) fatal_error(" [%s:%d] checknonull failed: %s",
+			  lbasename(__FILE__),lin, $msg); }#)
+
 
 (defun testlist (x y z)
   (letrec ( (li (list x y z)) 
@@ -26,13 +40,16 @@
 (debug_msg (testtuple 'xx 'yy 'zz) "testtuple")
 
 
-(defclass class_abc
-  :super class_root
-  :fields (aa bb cc))
+(defun testinstance1 (x y z)
+  (letrec 
+   ( (ob1 (instance class_abcde 
+		   :aa x :bb ob1 :cc y :dd z
+		   :ee (make_box discr_box x))) )
+   (checknonull "check aa in ob1" (unsafe_get_field :aa ob1))
+   ob1))
 
-(defclass class_abcde
-  :super class_abc
-  :fields (dd ee))
+(debug_msg (testinstance1 'xx 'yy 'zz) "testinstance1")
+
 
 (defun testletrec3 (x y)
   (letrec ( (tu (tuple x y li 
@@ -48,8 +65,8 @@
 	    (obcont (instance class_container :container_value ob))
 	    )
 	  (debug_msg obcont "testletrec3 obcont")
-	  (assert_msg "check aa in ob" (unsafe_get_field :aa ob))
-	  (assert_msg "check dd in ob" (unsafe_get_field :dd ob))
+	  (checknonull "check aa in ob" (unsafe_get_field :aa ob))
+	  (checknonull "check dd in ob" (unsafe_get_field :dd ob))
 	  ob
 	  ))
 

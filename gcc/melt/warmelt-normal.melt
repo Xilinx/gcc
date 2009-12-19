@@ -154,12 +154,15 @@ process introduce many such normal lets.}#
 ;; normal letrec 
 (defclass class_nrep_letrec
   :doc #{The $CLASS_NREP_LETREC is for normalized letrec. The field
-$NLETREC_BINDINGS is the list of internal normal bindings. 
-The field $NLETREC_LOCSYMS is the tuple of local symbol occurrences.}#
+$NLETREC_FILL_BINDINGS is the list of internal normal bindings to fill
+the letrec-ed constructions. The field $NLETREC_BODY_BINDINGS is the
+tuple of internal normal bindings for the body.  The field
+$NLETREC_LOCSYMS is the tuple of local symbol occurrences.}#
   :super class_nrep_let
   :fields (
 	   ;; the nlet_bindings is a tuple of constructive bindings
-	   nletrec_bindings 
+	   nletrec_fill_bindings 
+	   nletrec_body_bindings 
 	   nletrec_locsyms
 ))
 
@@ -3334,7 +3337,7 @@ routine procedures.}#
      (debug_msg nbindings "normexp_tuple nbindings")
      ;; insight: normalize (tuple x1 x2) exactly as 
      ;; as an anonymous letrec
-     ;;(compile_warning "normexp_tuple DONT COMPILE YET WITH THIS CODE")
+     (compile_warning "normexp_tuple incomplete")
      (letrec (
 	       (constupbind (instance class_normal_constructed_tuple_binding
 				      :binder csym
@@ -3355,7 +3358,8 @@ routine procedures.}#
 				  :nrep_loc sloc
 				  :nlet_bindings tup1bind
 				  :nlet_body nbdy
-				  :nletrec_bindings ()
+				  :nletrec_fill_bindings ()
+				  :nletrec_body_bindings ()
 				  :nletrec_locsyms tup1loc
 				  ))
 	       )
@@ -3366,8 +3370,7 @@ routine procedures.}#
 	     (debug_msg clocc "normexp_tuple clocc")
 	     (debug_msg nbdy "normexp_tuple nbdy")
 	     (debug_msg nletrec "normexp_tuple return nletrec")
-	     (assert_msg "check nletrec's body" 
-			 (== (get_field :nlet_body nletrec) nbdy))
+	     (assert_msg  "@$@incomplete normexp_tuple" ())
 	     (debug_msg nbindings "normexp_tuple return nbindings")
 	     (return nletrec nbindings)
 	     )
@@ -3518,7 +3521,7 @@ routine procedures.}#
 	(sargs (unsafe_get_field :sargop_args cexpr))
 	(bcomp (get_field :ntupb_comp cbind))
 	(nletrec (get_field :nconsb_nletrec cbind))
-	(nrecbinds (get_field :nletrec_bindings nletrec))
+	(nrecbinds (get_field :nletrec_fill_bindings nletrec))
 	)
     (debug_msg sargs "normletrec_tuple sargs")
     (debug_msg bcomp "normletrec_tuple bcomp")
@@ -3620,7 +3623,7 @@ routine procedures.}#
 	 (sargs (get_field :sargop_args cexpr))
 	 (conslibind (multiple_nth cbind -1))
 	 (nletrec (get_field :nconsb_nletrec conslibind))
-	 (nrecbinds (get_field :nletrec_bindings nletrec))
+	 (nrecbinds (get_field :nletrec_fill_bindings nletrec))
 	 (nlocsyms (get_field :nletrec_locsyms nletrec))
 	 (firstpairbind (multiple_nth cbind 0))
 	 (lastpairbind (multiple_nth cbind -2))
@@ -3723,7 +3726,7 @@ routine procedures.}#
   (let ( (loc (or (unsafe_get_field :loca_location cexpr) sloc))
 	 (bslots (get_field :ninstb_slots cbind))
 	 (nletrec (get_field :nconsb_nletrec cbind))
-	 (nrecbinds (get_field :nletrec_bindings nletrec))
+	 (nrecbinds (get_field :nletrec_fill_bindings nletrec))
 	 (sclass (unsafe_get_field :smins_class cexpr))
 	 (sclabind (unsafe_get_field :smins_clabind cexpr))
 	 (sfields (unsafe_get_field :smins_fields cexpr))
@@ -3850,14 +3853,15 @@ routine procedures.}#
 	  (:long curcix 0)
 	  (nlocsyms (make_multiple discr_multiple nbconsbind))
 	  (ncbindtup (make_multiple discr_multiple nbconsbind))
-	  (recbindings (make_list discr_list))
+	  (recfillbindings (make_list discr_list))
 	  (nletrec (instance class_nrep_letrec
 			     :nrep_loc sloc
 			     :nlet_bindings ncbindtup
-			     :nletrec_bindings recbindings 
+			     :nletrec_fill_bindings recfillbindings 
 			     :nletrec_locsyms nlocsyms 
-			     ;; nlet_body is put after
+			     ;; nlet_body & nletrec_body_bindings is set after
 			     :nlet_body ()
+			     :nletrec_body_bindings ()
 			     )) 
 	  )
       (debug_msg nletrec "normexp_letrec unfilled nletrec")
@@ -3924,7 +3928,7 @@ routine procedures.}#
 	 (debug_msg curexpr "normexp_letrec thirdloop done curexpr")
 	 )
        )
-      (debug_msg recbindings "normexp_letrec recbindings before normalizing the body")
+      (debug_msg recfillbindings "normexp_letrec recfillbindings before normalizing the body")
 ;;;
 ;;; normalize the body
       (debug_msg sbody "normexp_letrec normalizing sbody")
@@ -3935,11 +3939,9 @@ routine procedures.}#
        (debug_msg nbodbindings "normexp_letrec nbodbindings")
        (assert_msg "normexp_letrec check nbodbindings" (is_list_or_null nbodbindings))
        (put_fields nletrec 
-		   :nlet_body nbody)
-       (list_append2list recbindings nbodbindings)
-       (list_append2list bindlist nbodbindings)
+		   :nlet_body nbody
+		   :nletrec_body_bindings nbodbindings)
        (debug_msg nletrec "normexp_letrec updated nletrec")
-       (debug_msg bindlist "normexp_letrec updated bindlist")
        (assert_msg "normexp_letrec check bindlist" (is_list_or_null bindlist))
 ;;; remove every locally bound symbol from the symbol cache map
        (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx)) )

@@ -3,7 +3,7 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[]=
- "4.5.0 20091214 (experimental) [melt-branch revision 155284]";
+ "4.5.0 20091218 (experimental) [melt-branch revision 155348]";
 #endif
 
 #include "run-melt.h"
