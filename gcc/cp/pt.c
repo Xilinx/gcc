@@ -742,6 +742,12 @@ check_specialization_namespace (tree tmpl)
      function, member class or static data member of a class template
      shall be declared in the namespace of which the class template is
      a member.  */
+  if (current_scope() != DECL_CONTEXT (tmpl)
+      && !at_namespace_scope_p ())
+    {
+      error ("specialization of %qD must appear at namespace scope", tmpl);
+      return false;
+    }
   if (is_associated_namespace (current_namespace, tpl_ns))
     /* Same or super-using namespace.  */
     return true;
@@ -1457,6 +1463,11 @@ iterative_hash_template_arg (tree arg, hashval_t val)
   if (!TYPE_P (arg))
     STRIP_NOPS (arg);
 
+  if (TREE_CODE (arg) == ARGUMENT_PACK_SELECT)
+    /* We can get one of these when re-hashing a previous entry in the middle
+       of substituting into a pack expansion.  Just look through it.  */
+    arg = ARGUMENT_PACK_SELECT_FROM_PACK (arg);
+
   code = TREE_CODE (arg);
   tclass = TREE_CODE_CLASS (code);
 
@@ -1482,11 +1493,6 @@ iterative_hash_template_arg (tree arg, hashval_t val)
     case EXPR_PACK_EXPANSION:
       return iterative_hash_template_arg (PACK_EXPANSION_PATTERN (arg), val);
 
-    case ARGUMENT_PACK_SELECT:
-      /* We can get one of these when re-hashing a previous entry in the middle
-         of substituting into a pack expansion.  Just look through it...  */
-      arg = ARGUMENT_PACK_SELECT_FROM_PACK (arg);
-      /* ...and fall through.  */
     case TYPE_ARGUMENT_PACK:
     case NONTYPE_ARGUMENT_PACK:
       return iterative_hash_template_arg (ARGUMENT_PACK_ARGS (arg), val);
@@ -4508,6 +4514,9 @@ template arguments to %qD do not match original template %qD",
 	  tree parm = TREE_VALUE (TREE_VEC_ELT (parms, i));
 	  if (TREE_CODE (parm) == TEMPLATE_DECL)
 	    DECL_CONTEXT (parm) = tmpl;
+
+	  if (TREE_CODE (TREE_TYPE (parm)) == TEMPLATE_TYPE_PARM)
+	    DECL_CONTEXT (TYPE_NAME (TREE_TYPE (parm))) = tmpl;
 	}
     }
 
@@ -11858,7 +11867,7 @@ tsubst_copy_and_build (tree t,
 	      r = convert_from_reference (r);
 	  }
 	else
-	  r = build_x_indirect_ref (r, "unary *", complain);
+	  r = build_x_indirect_ref (r, RO_UNARY_STAR, complain);
 	return r;
       }
 

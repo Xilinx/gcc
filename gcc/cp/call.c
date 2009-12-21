@@ -4464,7 +4464,7 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
       return cp_build_modify_expr (arg1, code2, arg2, complain);
 
     case INDIRECT_REF:
-      return cp_build_indirect_ref (arg1, "unary *", complain);
+      return cp_build_indirect_ref (arg1, RO_UNARY_STAR, complain);
 
     case TRUTH_ANDIF_EXPR:
     case TRUTH_ORIF_EXPR:
@@ -4509,7 +4509,7 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
       return build_array_ref (input_location, arg1, arg2);
 
     case MEMBER_REF:
-      return build_m_component_ref (cp_build_indirect_ref (arg1, NULL, 
+      return build_m_component_ref (cp_build_indirect_ref (arg1, RO_NULL, 
                                                            complain), 
                                     arg2);
 
@@ -5024,7 +5024,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  expr = cp_build_unary_op (ADDR_EXPR, expr, 0, complain);
 	  expr = convert_to_base (expr, build_pointer_type (totype),
 				  !c_cast_p, /*nonnull=*/true);
-	  expr = cp_build_indirect_ref (expr, "implicit conversion", complain);
+	  expr = cp_build_indirect_ref (expr, RO_IMPLICIT_CONVERSION, complain);
 	  return expr;
 	}
 
@@ -5242,7 +5242,7 @@ build_x_va_arg (tree expr, tree type)
       error ("cannot receive objects of non-trivially-copyable type %q#T "
 	     "through %<...%>; ", type);
       expr = convert (build_pointer_type (type1), null_node);
-      expr = cp_build_indirect_ref (expr, NULL, tf_warning_or_error);
+      expr = cp_build_indirect_ref (expr, RO_NULL, tf_warning_or_error);
       return expr;
     }
 
@@ -5739,7 +5739,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       if (targ)
 	arg = targ;
       else
-	arg = cp_build_indirect_ref (arg, 0, complain);
+	arg = cp_build_indirect_ref (arg, RO_NULL, complain);
 
       if (TREE_CODE (arg) == TARGET_EXPR
 	  && TARGET_EXPR_LIST_INIT_P (arg))
@@ -5774,7 +5774,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	       || (TYPE_HAS_TRIVIAL_INIT_REF (DECL_CONTEXT (fn))
 		   && !move_fn_p (fn)))
 	{
-	  tree to = stabilize_reference (cp_build_indirect_ref (fa, 0,
+	  tree to = stabilize_reference (cp_build_indirect_ref (fa, RO_NULL,
 								complain));
 
 	  val = build2 (INIT_EXPR, DECL_CONTEXT (fn), to, arg);
@@ -5786,14 +5786,14 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	   && TYPE_HAS_TRIVIAL_ASSIGN_REF (DECL_CONTEXT (fn)))
     {
       tree to = stabilize_reference
-	(cp_build_indirect_ref (argarray[0], 0, complain));
+	(cp_build_indirect_ref (argarray[0], RO_NULL, complain));
       tree type = TREE_TYPE (to);
       tree as_base = CLASSTYPE_AS_BASE (type);
       tree arg = argarray[1];
 
       if (tree_int_cst_equal (TYPE_SIZE (type), TYPE_SIZE (as_base)))
 	{
-	  arg = cp_build_indirect_ref (arg, 0, complain);
+	  arg = cp_build_indirect_ref (arg, RO_NULL, complain);
 	  val = build2 (MODIFY_EXPR, TREE_TYPE (to), to, arg);
 	}
       else
@@ -5826,7 +5826,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	  t = convert (TREE_TYPE (arg0), t);
 	  if (test)
 	    t = build3 (COND_EXPR, TREE_TYPE (t), test, arg0, t);
-	  val = cp_build_indirect_ref (t, 0, complain);
+	  val = cp_build_indirect_ref (t, RO_NULL, complain);
           TREE_NO_WARNING (val) = 1;
 	}
 
@@ -5934,7 +5934,7 @@ build_java_interface_fn_ref (tree fn, tree instance)
 
   /* Look up the pointer to the runtime java.lang.Class object for `instance'.
      This is the first entry in the vtable.  */
-  klass_ref = build_vtbl_ref (cp_build_indirect_ref (instance, 0, 
+  klass_ref = build_vtbl_ref (cp_build_indirect_ref (instance, RO_NULL, 
                                                      tf_warning_or_error),
 			      integer_zero_node);
 
@@ -6239,6 +6239,25 @@ build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
 	make_args_non_dependent (*args);
     }
 
+  user_args = args == NULL ? NULL : *args;
+  /* Under DR 147 A::A() is an invalid constructor call,
+     not a functional cast.  */
+  if (DECL_MAYBE_IN_CHARGE_CONSTRUCTOR_P (fn))
+    {
+      if (! (complain & tf_error))
+	return error_mark_node;
+
+      permerror (input_location,
+		 "cannot call constructor %<%T::%D%> directly",
+		 basetype, name);
+      inform (input_location, "for a function-style cast, remove the "
+	      "redundant %<::%D%>", name);
+      call = build_functional_cast (basetype, build_tree_list_vec (user_args),
+				    complain);
+      release_tree_vector (user_args);
+      return call;
+    }
+
   /* Figure out whether to skip the first argument for the error
      message we will display to users if an error occurs.  We don't
      want to display any compiler-generated arguments.  The "this"
@@ -6246,7 +6265,6 @@ build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
      pointer if this is a call to a base-class constructor or
      destructor.  */
   skip_first_for_error = false;
-  user_args = args == NULL ? NULL : *args;
   if (IDENTIFIER_CTOR_OR_DTOR_P (name))
     {
       /* Callers should explicitly indicate whether they want to construct

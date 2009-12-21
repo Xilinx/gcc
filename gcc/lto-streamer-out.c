@@ -342,7 +342,8 @@ pack_ts_base_value_fields (struct bitpack_d *bp, tree expr)
     bp_pack_value (bp, DECL_UNSIGNED (expr), 1);
   else if (TYPE_P (expr))
     bp_pack_value (bp, TYPE_UNSIGNED (expr), 1);
-  bp_pack_value (bp, TREE_ASM_WRITTEN (expr), 1);
+  /* We write debug info two times, do not confuse the second one.  */
+  bp_pack_value (bp, TYPE_P (expr) ? 0 : TREE_ASM_WRITTEN (expr), 1);
   bp_pack_value (bp, TREE_NO_WARNING (expr), 1);
   bp_pack_value (bp, TREE_USED (expr), 1);
   bp_pack_value (bp, TREE_NOTHROW (expr), 1);
@@ -637,7 +638,8 @@ tree_is_indexable (tree t)
 {
   if (TREE_CODE (t) == PARM_DECL)
     return false;
-  else if (TREE_CODE (t) == VAR_DECL && decl_function_context (t))
+  else if (TREE_CODE (t) == VAR_DECL && decl_function_context (t)
+	   && !TREE_STATIC (t))
     return false;
   else
     return (TYPE_P (t) || DECL_P (t) || TREE_CODE (t) == SSA_NAME);
@@ -693,7 +695,8 @@ lto_output_tree_ref (struct output_block *ob, tree expr)
 
     case VAR_DECL:
     case DEBUG_EXPR_DECL:
-      gcc_assert (decl_function_context (expr) == NULL);
+      gcc_assert (decl_function_context (expr) == NULL
+		  || TREE_STATIC (expr));
       output_record_start (ob, LTO_global_decl_ref);
       lto_output_var_decl_index (ob->decl_state, ob->main_stream, expr);
       break;
@@ -966,6 +969,7 @@ lto_output_ts_type_tree_pointers (struct output_block *ob, tree expr,
     lto_output_tree_or_ref (ob, TYPE_BINFO (expr), ref_p);
   lto_output_tree_or_ref (ob, TYPE_CONTEXT (expr), ref_p);
   lto_output_tree_or_ref (ob, TYPE_CANONICAL (expr), ref_p);
+  lto_output_tree_or_ref (ob, TYPE_STUB_DECL (expr), ref_p);
 }
 
 
@@ -2335,7 +2339,9 @@ write_symbol_vec (struct lto_streamer_cache_d *cache,
 	  break;
 	}
 
-      if (kind == GCCPK_COMMON && DECL_SIZE (t))
+      if (kind == GCCPK_COMMON
+	  && DECL_SIZE (t)
+	  && TREE_CODE (DECL_SIZE (t)) == INTEGER_CST)
 	size = (((uint64_t) TREE_INT_CST_HIGH (DECL_SIZE (t))) << 32)
 	  | TREE_INT_CST_LOW (DECL_SIZE (t));
       else
