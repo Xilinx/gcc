@@ -1,6 +1,7 @@
-// 2007-05-29 Benjamin Kosnik  <bkoz@redhat.com>
+// { dg-options "-std=gnu++0x" }
+// { dg-do compile }
 
-// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -13,18 +14,12 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING3.  If not see
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-// { dg-require-time "" }
+// This file tests explicit instantiation of library containers.
 
-#include <ext/throw_allocator.h>
-#include <testsuite_api.h>
+#include <bitset>
 
-int main()
-{
-  typedef __gnu_cxx::forced_exception_error test_type;
-  __gnu_test::diamond_derivation<test_type, true>::test();
-  return 0;
-}
+template class std::bitset<10>;

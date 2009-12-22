@@ -1,3 +1,68 @@
+2009-12-17 Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42144
+	* trans-expr.c (select_class_proc): Skip abstract base types.
+
+2009-12-16  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gfc-internals.texi, gfortran.texi, invoke.texi: Fix typos.
+	Follow spelling conventions.
+
+2009-12-15  Tobias Burnus  <burnus@net-b.de>
+	    Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/41235
+	* resolve.c (resolve_global_procedure): Add check for
+	presence of an explicit interface for nonconstant,
+	nonassumed character-length functions.
+	(resolve_fl_procedure): Remove check for nonconstant
+	character-length functions.
+
+2009-12-14  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/42354
+	* expr.c (check_init_expr): Do not check for specification functions.
+
+2009-12-11 Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42257
+	* module.c (write_dt_extensions): Check for accessibility.
+
+2009-12-11  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/40290
+	* expr.c (gfc_type_convert_binary): Added warn-on-conversion flag,
+	passed on to gfc_convert_type_warn() instead of gfc_convert_type();
+	enabled warnings on all callers but ...
+	* arith.c (eval_intrinsic): Disabled warnings on implicit type
+	conversion.
+	* gfortran.h gfc_type_convert_binary): Adjusted prototype.
+
+2009-12-11 Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42335
+	* symbol.c (select_type_insert_tmp): Add an extra check for
+	error recovery.
+
+2009-12-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/40287
+	* iresolve.c (resolve_mask_arg): Disabled warning on conversion
+	to LOGICAL(1).
+
+2009-12-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/41369
+	* parse.c (match_deferred_characteristics): Removed check for empty
+	types in function return values.
+
+2009-12-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/34402
+	* expr.c (check_alloc_comp_init): New.
+	(check_init_expr): Verify that allocatable components
+	are not data-initalized.
+
 2008-12-08  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/41177

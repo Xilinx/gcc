@@ -984,6 +984,8 @@ vn_reference_lookup_1 (vn_reference_t vr, vn_reference_t *vnresult)
   return NULL_TREE;
 }
 
+static tree *last_vuse_ptr;
+
 /* Callback for walk_non_aliased_vuses.  Adjusts the vn_reference_t VR_
    with the current VUSE and performs the expression lookup.  */
 
@@ -993,6 +995,9 @@ vn_reference_lookup_2 (ao_ref *op ATTRIBUTE_UNUSED, tree vuse, void *vr_)
   vn_reference_t vr = (vn_reference_t)vr_;
   void **slot;
   hashval_t hash;
+
+  if (last_vuse_ptr)
+    *last_vuse_ptr = vuse;
 
   /* Fixup vuse and hash.  */
   vr->hashcode = vr->hashcode - iterative_hash_expr (vr->vuse, 0);
@@ -1160,6 +1165,9 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
       if (ref->size != r.size)
 	return (void *)-1;
       *ref = r;
+
+      /* Do not update last seen VUSE after translating.  */
+      last_vuse_ptr = NULL;
 
       /* Keep looking for the adjusted *REF / VR pair.  */
       return NULL;
@@ -1961,7 +1969,13 @@ static bool
 visit_reference_op_load (tree lhs, tree op, gimple stmt)
 {
   bool changed = false;
-  tree result = vn_reference_lookup (op, gimple_vuse (stmt), true, NULL);
+  tree last_vuse;
+  tree result;
+
+  last_vuse = gimple_vuse (stmt);
+  last_vuse_ptr = &last_vuse;
+  result = vn_reference_lookup (op, gimple_vuse (stmt), true, NULL);
+  last_vuse_ptr = NULL;
 
   /* If we have a VCE, try looking up its operand as it might be stored in
      a different type.  */
@@ -2045,7 +2059,7 @@ visit_reference_op_load (tree lhs, tree op, gimple stmt)
   else
     {
       changed = set_ssa_val_to (lhs, lhs);
-      vn_reference_insert (op, lhs, gimple_vuse (stmt));
+      vn_reference_insert (op, lhs, last_vuse);
     }
 
   return changed;
@@ -2737,6 +2751,60 @@ sort_scc (VEC (tree, heap) *scc)
 	 compare_ops);
 }
 
+/* Insert the no longer used nary *ENTRY to the current hash.  */
+
+static int
+copy_nary (void **entry, void *data ATTRIBUTE_UNUSED)
+{
+  vn_nary_op_t onary = (vn_nary_op_t) *entry;
+  size_t size = (sizeof (struct vn_nary_op_s)
+		 - sizeof (tree) * (4 - onary->length));
+  vn_nary_op_t nary = (vn_nary_op_t) obstack_alloc (&current_info->nary_obstack,
+						    size);
+  void **slot;
+  memcpy (nary, onary, size);
+  slot = htab_find_slot_with_hash (current_info->nary, nary, nary->hashcode,
+				   INSERT);
+  gcc_assert (!*slot);
+  *slot = nary;
+  return 1;
+}
+
+/* Insert the no longer used phi *ENTRY to the current hash.  */
+
+static int
+copy_phis (void **entry, void *data ATTRIBUTE_UNUSED)
+{
+  vn_phi_t ophi = (vn_phi_t) *entry;
+  vn_phi_t phi = (vn_phi_t) pool_alloc (current_info->phis_pool);
+  void **slot;
+  memcpy (phi, ophi, sizeof (*phi));
+  ophi->phiargs = NULL;
+  slot = htab_find_slot_with_hash (current_info->phis, phi, phi->hashcode,
+				   INSERT);
+  *slot = phi;
+  return 1;
+}
+
+/* Insert the no longer used reference *ENTRY to the current hash.  */
+
+static int
+copy_references (void **entry, void *data ATTRIBUTE_UNUSED)
+{
+  vn_reference_t oref = (vn_reference_t) *entry;
+  vn_reference_t ref;
+  void **slot;
+  ref = (vn_reference_t) pool_alloc (current_info->references_pool);
+  memcpy (ref, oref, sizeof (*ref));
+  oref->operands = NULL;
+  slot = htab_find_slot_with_hash (current_info->references, ref, ref->hashcode,
+				   INSERT);
+  if (*slot)
+    free_reference (*slot);
+  *slot = ref;
+  return 1;
+}
+
 /* Process a strongly connected component in the SSA graph.  */
 
 static void
@@ -2782,10 +2850,12 @@ process_scc (VEC (tree, heap) *scc)
 
       statistics_histogram_event (cfun, "SCC iterations", iterations);
 
-      /* Finally, visit the SCC once using the valid table.  */
+      /* Finally, copy the contents of the no longer used optimistic
+	 table to the valid table.  */
       current_info = valid_info;
-      for (i = 0; VEC_iterate (tree, scc, i, var); i++)
-	visit_use (var);
+      htab_traverse (optimistic_info->nary, copy_nary, NULL);
+      htab_traverse (optimistic_info->phis, copy_phis, NULL);
+      htab_traverse (optimistic_info->references, copy_references, NULL);
     }
 }
 

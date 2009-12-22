@@ -1026,7 +1026,8 @@ struct GTY(()) language_function {
    expression for `*this'.  */
 
 #define current_class_ptr \
-  (cfun ? cp_function_chain->x_current_class_ptr : NULL_TREE)
+  (cfun && cp_function_chain					\
+   ? cp_function_chain->x_current_class_ptr : NULL_TREE)
 #define current_class_ref \
   (cfun ? cp_function_chain->x_current_class_ref : NULL_TREE)
 
@@ -5195,6 +5196,7 @@ extern bool class_tmpl_impl_spec_p		(const_tree);
 extern int zero_init_p				(const_tree);
 extern tree strip_typedefs			(tree);
 extern bool typedef_variant_p			(tree);
+extern void cp_set_underlying_type		(tree);
 extern tree copy_binfo				(tree, tree, tree,
 						 tree *, int);
 extern int member_p				(const_tree);
@@ -5301,9 +5303,9 @@ extern tree build_class_member_access_expr      (tree, tree, tree, bool,
 						 tsubst_flags_t);
 extern tree finish_class_member_access_expr     (tree, tree, bool, 
 						 tsubst_flags_t);
-extern tree build_x_indirect_ref		(tree, const char *, 
+extern tree build_x_indirect_ref		(tree, ref_operator, 
                                                  tsubst_flags_t);
-extern tree cp_build_indirect_ref		(tree, const char *,
+extern tree cp_build_indirect_ref		(tree, ref_operator,
                                                  tsubst_flags_t);
 extern tree build_array_ref			(location_t, tree, tree);
 extern tree get_member_function_from_ptrfunc	(tree *, tree);
@@ -5341,6 +5343,7 @@ extern tree convert_for_initialization		(tree, tree, tree, int,
                                                  tsubst_flags_t);
 extern int comp_ptr_ttypes			(tree, tree);
 extern bool comp_ptr_ttypes_const		(tree, tree);
+extern bool error_type_p			(const_tree);
 extern int ptr_reasonably_similar		(const_tree, const_tree);
 extern tree build_ptrmemfunc			(tree, tree, int, bool);
 extern int cp_type_quals			(const_tree);

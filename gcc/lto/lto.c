@@ -344,7 +344,7 @@ lto_resolution_read (FILE *resolution, lto_file *file)
 	internal_error ("Invalid resolution in the resolution file.");
 
       VEC_safe_grow_cleared (ld_plugin_symbol_resolution_t, heap, ret,
-			     index + 1);
+			     max_index + 1);
       VEC_replace (ld_plugin_symbol_resolution_t, ret, index, r);
     }
 
@@ -1376,7 +1376,7 @@ static void
 lto_fixup_field_decl (tree t, void *data)
 {
   lto_fixup_decl_common (t, data);
-  gcc_assert (no_fixup_p (DECL_FIELD_OFFSET (t)));
+  LTO_FIXUP_SUBTREE (DECL_FIELD_OFFSET (t));
   LTO_FIXUP_SUBTREE (DECL_BIT_FIELD_TYPE (t));
   LTO_FIXUP_SUBTREE (DECL_QUALIFIER (t));
   gcc_assert (no_fixup_p (DECL_FIELD_BIT_OFFSET (t)));
