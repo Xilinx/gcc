@@ -585,6 +585,8 @@ dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
 	pp_string (buffer, "exceptionBlock ");
       if (props & PR_HASELSE)
 	pp_string (buffer, "hasElse ");
+      if (props & PR_READONLY)
+	pp_string (buffer, "readOnly ");
 
       pp_string (buffer, "]");
     }

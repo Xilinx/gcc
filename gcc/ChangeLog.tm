@@ -1,3 +1,10 @@
+2009-12-21  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gimple-pretty-print.c (dump_gimple_call): Handle PR_READONLY.
+	* trans-mem.c (expand_transaction): Set PR_READONLY.
+	(expand_call_tm): Set GTMA_HAVE_STORE more aggressively.
+	* trans-mem.h (PR_READONLY): New.
+
 2009-12-07  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c: New thread_memory_type enum.

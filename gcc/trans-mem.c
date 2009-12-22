@@ -1963,11 +1963,20 @@ expand_call_tm (struct tm_region *region,
   tree lhs = gimple_call_lhs (stmt);
   tree fn_decl;
   struct cgraph_node *node;
+  bool retval = false;
 
   if (is_tm_pure_call (stmt))
     return false;
 
   fn_decl = gimple_call_fndecl (stmt);
+  if (fn_decl)
+    retval = is_tm_ending_fndecl (fn_decl);
+  if (!retval)
+    {
+      /* Assume all non-const/pure calls write to memory, except
+	 transaction ending builtins.  */
+      transaction_subcode_ior (region, GTMA_HAVE_STORE);
+    }
 
   /* For indirect calls, we already generated a call into the runtime.  */
   if (!fn_decl)
@@ -1994,10 +2003,10 @@ expand_call_tm (struct tm_region *region,
       return true;
     }
 
-  if (lhs && requires_barrier (region->entry_block, lhs, stmt))
-    transaction_subcode_ior (region, GTMA_HAVE_STORE);
+  if (lhs)
+    (void) requires_barrier (region->entry_block, lhs, stmt);
 
-  return is_tm_ending_fndecl (fn_decl);
+  return retval;
 }
 
 
@@ -2217,6 +2226,8 @@ expand_transaction (struct tm_region *region)
     flags |= PR_HASNOIRREVOCABLE;
   if ((subcode & GTMA_HAVE_ABORT) == 0)
     flags |= PR_HASNOABORT;
+  if ((subcode & GTMA_HAVE_STORE) == 0)
+    flags |= PR_READONLY;
   t2 = build_int_cst (TREE_TYPE (status), flags);
   g = gimple_build_call (tm_start, 1, t2);
   gimple_call_set_lhs (g, status);
