@@ -931,7 +931,7 @@ translate_clast_guard (sese region, struct clast_guard *stmt, edge next_e,
 static edge
 translate_clast (sese region, struct clast_stmt *stmt,
 		 edge next_e, htab_t rename_map, VEC (tree, heap) **newivs,
-		 htab_t newivs_index, htab_t bb_pbb_mapping,
+		 htab_t newivs_index, htab_t bb_pbb_mapping, 
 		 htab_t params_index)
 {
   if (!stmt)

@@ -1,5 +1,9 @@
 2009-12-18  Sebastian Pop  <sebastian.pop@amd.com>
 
+	Revert patch fixing PR middle-end/42221.
+
+2009-12-18  Sebastian Pop  <sebastian.pop@amd.com>
+
 	PR middle-end/42180
 	* graphite-sese-to-poly.c (follow_ssa_with_commutative_ops): Handle
 	GIMPLE_CALL.
