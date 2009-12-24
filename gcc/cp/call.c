@@ -1009,7 +1009,7 @@ convert_class_to_reference (tree reference_type, tree s, tree expr, int flags)
   struct z_candidate *cand;
   bool any_viable_p;
 
-  conversions = lookup_conversions (s);
+  conversions = lookup_conversions (s, /*lookup_template_convs_p=*/true);
   if (!conversions)
     return NULL;
 
@@ -2362,7 +2362,8 @@ add_builtin_candidates (struct z_candidate **candidates, enum tree_code code,
 	  if (i == 0 && code == MODIFY_EXPR && code2 == NOP_EXPR)
 	    return;
 
-	  convs = lookup_conversions (argtypes[i]);
+	  convs = lookup_conversions (argtypes[i],
+				      /*lookup_template_convs_p=*/false);
 
 	  if (code == COND_EXPR)
 	    {
@@ -2851,7 +2852,8 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
 	     reference to it)...  */
 	}
       else
-	conv_fns = lookup_conversions (fromtype);
+	conv_fns = lookup_conversions (fromtype,
+				       /*lookup_template_convs_p=*/true);
     }
 
   candidates = 0;
@@ -3399,7 +3401,7 @@ build_op_call (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
   if (LAMBDA_TYPE_P (type))
     convs = NULL_TREE;
   else
-    convs = lookup_conversions (type);
+    convs = lookup_conversions (type, /*lookup_template_convs_p=*/true);
 
   for (; convs; convs = TREE_CHAIN (convs))
     {
@@ -6239,6 +6241,25 @@ build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
 	make_args_non_dependent (*args);
     }
 
+  user_args = args == NULL ? NULL : *args;
+  /* Under DR 147 A::A() is an invalid constructor call,
+     not a functional cast.  */
+  if (DECL_MAYBE_IN_CHARGE_CONSTRUCTOR_P (fn))
+    {
+      if (! (complain & tf_error))
+	return error_mark_node;
+
+      permerror (input_location,
+		 "cannot call constructor %<%T::%D%> directly",
+		 basetype, name);
+      inform (input_location, "for a function-style cast, remove the "
+	      "redundant %<::%D%>", name);
+      call = build_functional_cast (basetype, build_tree_list_vec (user_args),
+				    complain);
+      release_tree_vector (user_args);
+      return call;
+    }
+
   /* Figure out whether to skip the first argument for the error
      message we will display to users if an error occurs.  We don't
      want to display any compiler-generated arguments.  The "this"
@@ -6246,7 +6267,6 @@ build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
      pointer if this is a call to a base-class constructor or
      destructor.  */
   skip_first_for_error = false;
-  user_args = args == NULL ? NULL : *args;
   if (IDENTIFIER_CTOR_OR_DTOR_P (name))
     {
       /* Callers should explicitly indicate whether they want to construct

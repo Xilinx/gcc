@@ -1,3 +1,126 @@
+2009-12-24  Julian Brown  <julian@codesourcery.com>
+            Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+        PR target/40887
+        * config/arm/arm.c (output_call_mem): Remove armv5 support.
+        * config/arm/arm.md (*call_mem): Disable for armv5. Add note.
+        (*call_value_mem): Likewise.
+
+2009-12-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/42475
+	* combine.c (make_compound_operation) <case SUBREG>: Use mode of
+	SUBREG_REG (x) instead of tem's mode.
+
+2009-12-23  Jakub Jelinek  <jakub@redhat.com>
+	    Cary Coutant  <ccoutant@google.com>
+
+	PR debug/42454
+	* dwarf2out.c (add_ranges_by_labels): Conditionally Add DW_AT_ranges
+	attribute.
+	(dwarf2out_finish): Change calls to add_ranges_by_labels.
+
+2009-12-23  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+        PR target/42093
+        * config/arm/arm.h (CASE_VECTOR_PC_RELATIVE): Fix macro usage
+        to TARGET_THUMB1.
+        (CASE_VECTOR_SHORTEN_MODE): Allow signed offsets
+        only for TARGET_THUMB1.
+
+2009-12-23  Ramana Radhakrishnan  <ramrad01@arm.com>
+
+	PR target/40670
+	* config/arm/arm.md: Split for Thumb1 as well.
+
+2009-12-22  Cary Coutant  <ccoutant@google.com>
+
+	PR debug/42454
+	* dwarf2out.c (dwarf2out_finish): Don't output range for .text
+	section unless .text section was used.  Likewise for cold.
+
+2009-12-22  Brian Hackett  <bhackett1024@gmail.com>
+
+	* doc/plugins.texi: Rename pre-genericize event.
+
+2009-12-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR driver/42463
+	* params.def ([PARAM_PREDICTABLE_BRANCH_OUTCOME]): Fix typo in
+	help string.
+
+	* doc/invoke.texi: Fix typo.
+
+2009-12-22  Paul Brook <paul@codesourcery.com>
+
+	* doc/tm.texi (ARG_POINTER_CFA_OFFSET): Document new default.
+	* defaults.h (ARG_POINTER_CFA_OFFSET): Add pretend_args_size.
+	* config/spu/spu.h (ARG_POINTER_CFA_OFFSET): Add pretend_args_size.
+
+2009-12-21  Brian Hackett  <bhackett1024@gmail.com>
+
+	* plugin.def: Rename pre-genericize event.
+	* plugin.c (register_callback, invoke_plugin_callbacks): Same.
+	* c-decl.c (finish_function): Invoke callbacks on above event.
+
+2009-12-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/42429
+	* reload.c (find_reloads_subreg_address): When adjusting mode of
+	MEM, update also MEM_SIZE if it is set.
+
+2009-12-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/42345
+	* acinclude.m4 (gcc_GAS_FLAGS): New.
+	(gcc_GAS_CHECK_FEATURE): Use gcc_GAS_FLAGS.
+	* configure: Regenerated.
+
+2009-12-20  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/42027
+	* cfgexpand.c (expand_gimple_cond): Use jumpy sequence for &, &&, |
+	and || if jumps are cheap.
+
+2009-12-19  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42401
+	* lto-streamer-out.c (tree_is_indexable): Local statics
+	are indexable.
+	(lto_output_tree_ref): Adjust assert.
+
+2009-12-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42108
+	* tree-ssa-sccvn.c (last_vuse_ptr): New variable.
+	(vn_reference_lookup_2): Update last seen VUSE.
+	(vn_reference_lookup_3): Avoid updating last seen VUSE after
+	translating.
+	(visit_reference_op_load): Use last seen VUSE from the first
+	lookup when entering into the table.
+
+2009-12-19  Joern Rennecke  <amylaar@spamcop.net>
+
+	* Makefile.in (PLUGIN_HEADERS): Add more headers.
+
+	* tree-pass.h (GCC_PASS_LISTS): Define.
+	(PASS_LIST_NO_all_lowering_passes): New enumeration value.
+	(PASS_LIST_NO_all_small_ipa_passes): Likewise.
+	(PASS_LIST_NO_all_regular_ipa_passes): Likewise.
+	(PASS_LIST_NO_all_lto_gen_passes): Likewise.
+	(PASS_LIST_NO_all_passes): Likewise.
+	(PASS_LIST_NUM): Likewise.
+	(gcc_pass_lists): Declare.
+	* passes.c (gcc_pass_lists): Define.
+
+2009-12-18  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-sccvn.c (copy_nary): New function.
+	(copy_phis): Likewise.
+	(copy_references): Likewise.
+	(process_scc): Avoid last iteration by copying the
+	optimistic table to the valid table.
+
 2009-12-17  Jakub Jelinek  <jakub@redhat.com>
 
 	* dwarf2out.c (loc_descriptor): For SYMBOL_REFs and LABEL_REFs

@@ -2450,6 +2450,9 @@ split_reduction_stmt (gimple stmt)
 
   split_block (bb, stmt);
 
+  if (gsi_one_before_end_p (gsi_start_bb (bb)))
+    return bb;
+
   gsi = gsi_last_bb (bb);
   gsi_prev (&gsi);
   e = split_block (bb, gsi_stmt (gsi));
@@ -2497,6 +2500,10 @@ follow_ssa_with_commutative_ops (tree arg, tree lhs)
     return NULL;
 
   stmt = SSA_NAME_DEF_STMT (arg);
+
+  if (gimple_code (stmt) == GIMPLE_NOP
+      || gimple_code (stmt) == GIMPLE_CALL)
+    return NULL;
 
   if (gimple_code (stmt) == GIMPLE_PHI)
     {
@@ -2674,13 +2681,13 @@ static void
 translate_scalar_reduction_to_array_for_stmt (tree red, gimple stmt,
 					      gimple loop_phi)
 {
-  basic_block bb = gimple_bb (stmt);
-  gimple_stmt_iterator insert_gsi = gsi_after_labels (bb);
+  gimple_stmt_iterator insert_gsi = gsi_after_labels (gimple_bb (loop_phi));
   tree res = gimple_phi_result (loop_phi);
   gimple assign = gimple_build_assign (res, red);
 
   gsi_insert_before (&insert_gsi, assign, GSI_SAME_STMT);
 
+  insert_gsi = gsi_after_labels (gimple_bb (stmt));
   assign = gimple_build_assign (red, gimple_assign_lhs (stmt));
   insert_gsi = gsi_for_stmt (stmt);
   gsi_insert_after (&insert_gsi, assign, GSI_SAME_STMT);
