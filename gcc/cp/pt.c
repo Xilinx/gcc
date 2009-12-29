@@ -742,6 +742,12 @@ check_specialization_namespace (tree tmpl)
      function, member class or static data member of a class template
      shall be declared in the namespace of which the class template is
      a member.  */
+  if (current_scope() != DECL_CONTEXT (tmpl)
+      && !at_namespace_scope_p ())
+    {
+      error ("specialization of %qD must appear at namespace scope", tmpl);
+      return false;
+    }
   if (is_associated_namespace (current_namespace, tpl_ns))
     /* Same or super-using namespace.  */
     return true;
@@ -1546,6 +1552,13 @@ iterative_hash_template_arg (tree arg, hashval_t val)
       code = TREE_CODE (TREE_OPERAND (arg, 1));
       val = iterative_hash_object (code, val);
       return iterative_hash_template_arg (TREE_OPERAND (arg, 2), val);
+
+    case ARRAY_TYPE:
+      /* layout_type sets structural equality for arrays of
+	 incomplete type, so we can't rely on the canonical type
+	 for hashing.  */
+      val = iterative_hash_template_arg (TREE_TYPE (arg), val);
+      return iterative_hash_template_arg (TYPE_DOMAIN (arg), val);
 
     default:
       switch (tclass)
@@ -3350,7 +3363,8 @@ reduce_template_parm_level (tree index, tree type, int levels, tree args,
 {
   if (TEMPLATE_PARM_DESCENDANTS (index) == NULL_TREE
       || (TEMPLATE_PARM_LEVEL (TEMPLATE_PARM_DESCENDANTS (index))
-	  != TEMPLATE_PARM_LEVEL (index) - levels))
+	  != TEMPLATE_PARM_LEVEL (index) - levels)
+      || !same_type_p (type, TREE_TYPE (TEMPLATE_PARM_DESCENDANTS (index))))
     {
       tree orig_decl = TEMPLATE_PARM_DECL (index);
       tree decl, t;
@@ -4508,6 +4522,9 @@ template arguments to %qD do not match original template %qD",
 	  tree parm = TREE_VALUE (TREE_VEC_ELT (parms, i));
 	  if (TREE_CODE (parm) == TEMPLATE_DECL)
 	    DECL_CONTEXT (parm) = tmpl;
+
+	  if (TREE_CODE (TREE_TYPE (parm)) == TEMPLATE_TYPE_PARM)
+	    DECL_CONTEXT (TYPE_NAME (TREE_TYPE (parm))) = tmpl;
 	}
     }
 

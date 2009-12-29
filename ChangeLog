@@ -1,3 +1,11 @@
+2009-12-27  Christopher Faylor  <me+cygwin@cgf.cx>
+
+	* MAINTAINERS: Change my email address.
+
+2009-12-18  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
 2009-12-07  Shujing Zhao  <pearly.zhao@oracle.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.

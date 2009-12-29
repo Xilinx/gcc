@@ -1,3 +1,243 @@
+2009-12-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_expand_int_vcond): Reformat.
+
+2009-12-29  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	2009-10-06 Iain Sandoe <iain.sandoe@sandoe-acoustics.co.uk>
+
+	PR objective-c++/41595
+	* config/darwin.c (darwin_label_is_anonymous_local_objc_name):
+	New function to recognize objective c/c++ internal symbols,
+	including mangled ones.
+	* config/darwin.h (ASM_OUTPUT_LABELREF): Use
+	darwin_label_is_anonymous_local_objc_name to detect both
+	mangled and clear ObjC internal symbols.
+
+2009-12-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/41344
+	* omp-low.c (diagnose_sb_2): Handle GIMPLE_COND.
+
+2009-12-24  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	PR target/42457
+	* config/avr/avr.c (avr_extra_arch_macro): Remove static.
+	(avr_cpu_cpp_builtins): Remove.
+	* config/avr/avr.h (avr_extra_arch_macro): Add prototype.
+	* config/avr/avr-c.c: New File.
+	(avr_cpu_cpp_builtins) : Add.
+	* config/avr/t-avr: Add make information for avr-c.
+	* config.gcc (avr-*-*): Include avr-c.o as c and cpp object. 
+
+2009-12-24  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	PR target/35013, 27192
+	* config/avr/avr.c (print_operand_address): Print correct program
+	memory address.
+	Add warning for large device offset addresses.
+	(avr_assemble_integer): Ditto.
+	(print_operand): Add warnings for incorrect addressing.
+	(out_movqi_r_mr): Tag assembler with new address codes.
+	(out_movhi_r_mr): Ditto.
+	(out_movsi_r_mr): Ditto.
+	(out_movqi_mr_r): Ditto.
+	(out_movhi_mr_r): Ditto.
+	(out_movsi_mr_r): Ditto.
+	* config/avr/predicates.md (text_segment_operand): New predicate.
+	* config/avr/avr.md (jump): Tag assembler with new address codes.
+	(call_insn): Ditto.
+	(call_value_insn): Ditto.
+	(*tablejump_lib): Ditto.
+	(*cbi): Ditto.
+	(*sbi): Ditto.
+	(indirect_jump): New define_expand.
+	(jcindirect_jump): New pattern for constant expression jump.
+	(njcindirect_jump): Renamed old indirect_jump.
+
+2009-12-24  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* store-motion.c (build_store_vectors): Clear regs_set_in_block at
+	the start of a loop over basic blocks.
+
+2009-12-24  Julian Brown  <julian@codesourcery.com>
+	    Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/40887
+	* config/arm/arm.c (output_call_mem): Remove armv5 support.
+	* config/arm/arm.md (*call_mem): Disable for armv5. Add note.
+	(*call_value_mem): Likewise.
+
+2009-12-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/42475
+	* combine.c (make_compound_operation) <case SUBREG>: Use mode of
+	SUBREG_REG (x) instead of tem's mode.
+
+2009-12-23  Jakub Jelinek  <jakub@redhat.com>
+	    Cary Coutant  <ccoutant@google.com>
+
+	PR debug/42454
+	* dwarf2out.c (add_ranges_by_labels): Conditionally Add DW_AT_ranges
+	attribute.
+	(dwarf2out_finish): Change calls to add_ranges_by_labels.
+
+2009-12-23  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/42093
+	* config/arm/arm.h (CASE_VECTOR_PC_RELATIVE): Fix macro usage
+	to TARGET_THUMB1.
+	(CASE_VECTOR_SHORTEN_MODE): Allow signed offsets
+	only for TARGET_THUMB1.
+
+2009-12-23  Ramana Radhakrishnan  <ramrad01@arm.com>
+
+	PR target/40670
+	* config/arm/arm.md: Split for Thumb1 as well.
+
+2009-12-22  Cary Coutant  <ccoutant@google.com>
+
+	PR debug/42454
+	* dwarf2out.c (dwarf2out_finish): Don't output range for .text
+	section unless .text section was used.  Likewise for cold.
+
+2009-12-22  Brian Hackett  <bhackett1024@gmail.com>
+
+	* doc/plugins.texi: Rename pre-genericize event.
+
+2009-12-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR driver/42463
+	* params.def ([PARAM_PREDICTABLE_BRANCH_OUTCOME]): Fix typo in
+	help string.
+
+	* doc/invoke.texi: Fix typo.
+
+2009-12-22  Paul Brook <paul@codesourcery.com>
+
+	* doc/tm.texi (ARG_POINTER_CFA_OFFSET): Document new default.
+	* defaults.h (ARG_POINTER_CFA_OFFSET): Add pretend_args_size.
+	* config/spu/spu.h (ARG_POINTER_CFA_OFFSET): Add pretend_args_size.
+
+2009-12-21  Brian Hackett  <bhackett1024@gmail.com>
+
+	* plugin.def: Rename pre-genericize event.
+	* plugin.c (register_callback, invoke_plugin_callbacks): Same.
+	* c-decl.c (finish_function): Invoke callbacks on above event.
+
+2009-12-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/42429
+	* reload.c (find_reloads_subreg_address): When adjusting mode of
+	MEM, update also MEM_SIZE if it is set.
+
+2009-12-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/42345
+	* acinclude.m4 (gcc_GAS_FLAGS): New.
+	(gcc_GAS_CHECK_FEATURE): Use gcc_GAS_FLAGS.
+	* configure: Regenerated.
+
+2009-12-20  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/42027
+	* cfgexpand.c (expand_gimple_cond): Use jumpy sequence for &, &&, |
+	and || if jumps are cheap.
+
+2009-12-19  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42401
+	* lto-streamer-out.c (tree_is_indexable): Local statics
+	are indexable.
+	(lto_output_tree_ref): Adjust assert.
+
+2009-12-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42108
+	* tree-ssa-sccvn.c (last_vuse_ptr): New variable.
+	(vn_reference_lookup_2): Update last seen VUSE.
+	(vn_reference_lookup_3): Avoid updating last seen VUSE after
+	translating.
+	(visit_reference_op_load): Use last seen VUSE from the first
+	lookup when entering into the table.
+
+2009-12-19  Joern Rennecke  <amylaar@spamcop.net>
+
+	* Makefile.in (PLUGIN_HEADERS): Add more headers.
+
+	* tree-pass.h (GCC_PASS_LISTS): Define.
+	(PASS_LIST_NO_all_lowering_passes): New enumeration value.
+	(PASS_LIST_NO_all_small_ipa_passes): Likewise.
+	(PASS_LIST_NO_all_regular_ipa_passes): Likewise.
+	(PASS_LIST_NO_all_lto_gen_passes): Likewise.
+	(PASS_LIST_NO_all_passes): Likewise.
+	(PASS_LIST_NUM): Likewise.
+	(gcc_pass_lists): Declare.
+	* passes.c (gcc_pass_lists): Define.
+
+2009-12-18  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-sccvn.c (copy_nary): New function.
+	(copy_phis): Likewise.
+	(copy_references): Likewise.
+	(process_scc): Avoid last iteration by copying the
+	optimistic table to the valid table.
+
+2009-12-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (loc_descriptor): For SYMBOL_REFs and LABEL_REFs
+	use DW_OP_addr+DW_OP_stack_value instead of DW_OP_implicit_value.
+	(add_const_value_attribute): For CONST_STRING, SYMBOL_REFs and
+	LABEL_REFs use DW_OP_addr+DW_OP_stack_value DW_AT_location instead of
+	DW_AT_const_value.
+
+2009-12-17  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41679
+	* var-tracking.c (count_uses): Count MO_VAL_USE of original
+	MO_VAL_SET value for COND_EXEC.
+	(add_stores): Handle conditional stores.
+
+	PR debug/41679
+	* var-tracking.c (use_type): Remove indirection from loc.
+	(count_uses): Dereference incoming loc early.
+	(add_uses): Dereference incoming loc early.
+
+	PR debug/41679
+	* var-tracking.c (add_stores): Avoid value mode mismatch for
+	promoted declarations.
+
+2009-12-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42386
+	* ipa.c (function_and_variable_visibility): Clear same_comdat_group
+	links of DECL_EXTERNAL nodes.
+
+2009-12-17  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/rtl.texi (Vector Operations): Clarify vec_select result mode.
+
+2009-12-17  Julian Brown  <julian@codesourcery.com>
+
+	* config/arm/bpabi-v6m.S (test_div_by_zero): New macro.
+	(aeabi_ldivmod, aeabi_uldivmod): Use above macro.
+	* config/arm/bpabi.S (test_div_by_zero): New macro.
+	(aeabi_ldivmod, aeabi_uldivmod): Use above macro.
+	* config/arm/lib1funcs.asm (ARM_LDIV0): Tail-call int div-by-zero
+	handler for EABI. Add signed/unsigned argument, pass correct value
+	to that handler.
+	(THUMB_LDIV0): Same, for Thumb.
+	(DIV_FUNC_END): Add signed argument.
+	(WEAK): New macro (for EABI).
+	(__udivsi3, __umodsi3): Add unsigned argument to DIV_FUNC_END. For
+	__udivsi3, add entry point which skips division-by-zero test.
+	(__divsi3, __modsi3): Add signed argument to DIV_FUNC_END.
+	(__aeabi_uidivmod, __aeabi_idivmod): Check for division by zero.
+	Call __udivsi3 or __divsi3 via entry points which skip
+	division-by-zero tests.
+	(__div0): Rename to __aeabi_idiv0, __aeabi_ldiv0 for EABI, and
+	declare those names weak.
+
 2009-12-17  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/42397

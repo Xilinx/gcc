@@ -1,7 +1,8 @@
-// { dg-do compile }
-// { dg-options "-std=gnu++98" }
+// { dg-options "-std=gnu++0x" }
 
-// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+// 2009-12-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -18,9 +19,26 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-#include <cstdatomic>  // { dg-excess-errors "In file included from" }
+#include <bitset>
+#include <testsuite_hooks.h>
 
-// { dg-error "upcoming ISO" "" { target *-*-* } 31 } 
+void test01()
+{
+  bool test __attribute__((unused)) = true;
 
+  std::bitset<0> bs0;
+  VERIFY( bs0.to_ullong() == 0 );
 
+  std::bitset<64> bs1("11010111");
+  VERIFY( bs1.to_ullong() == 215 );
 
+  std::bitset<64> bs2("10110100100010000100000101111111"
+		      "01111110011111110001110001100011");
+  VERIFY( bs2.to_ullong() == 13008719539498589283ULL );
+}
+
+int main()
+{
+  test01();
+  return 0;
+}

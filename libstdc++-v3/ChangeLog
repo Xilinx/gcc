@@ -1,3 +1,193 @@
+2009-12-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/bitset (bitset<>::to_ullong, _M_do_to_ullong): Add.
+	(_Base_bitset<>::_M_do_to_ullong): Add.
+	* include/debug/bitset (bitset<>): Add using _Base::to_ullong.
+	* include/profile/bitset (bitset<>): Likewise.
+	* testsuite/23_containers/bitset/to_ullong/1.cc: New.
+
+2009-12-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/bitset (bitset<>::bitset(const char*)): Add.
+	* include/profile/bitset (bitset<>::bitset(const char*)): Likewise.
+
+2009-12-24  Edward Smith-Rowland  <3dw4rd@verizon.net>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/bitset (bitset<>::bitset(const char*)): Add.
+
+2009-12-24  Jonathan Wakely  <jwakely.gcc@gmail.com>
+	    Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+	* testsuite/23_containers/bitset/cons/2.cc: New.
+
+2009-12-24  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/functional (bind): Avoid invalid instantiations
+	for bind<void>.
+	* testsuite/20_util/bind/conv_result.cc: New.
+
+2009-12-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_deque.h (copy_backward(_Deque_iterator,
+	_Deque_iterator, _Deque_iterator), move_backward(_Deque_iterator,
+	_Deque_iterator, _Deque_iterator)): Declare.
+	* include/bits/deque.tcc: Implement the latter.
+	* testsuite/performance/25_algorithms/
+	copy_backward_deque_iterators.cc: New.
+	* testsuite/25_algorithms/move_backward/deque_iterators/1.cc: Likewise.
+	* testsuite/25_algorithms/copy_backward/deque_iterators/1.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/23_containers/deque/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2009-12-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/25_algorithms/copy/5.cc: Move...
+	* testsuite/25_algorithms/copy/deque_iterators/1.cc: ... here.
+	* testsuite/25_algorithms/move/2.cc: Move...
+	* testsuite/25_algorithms/move/deque_iterators/1.cc: ... here.
+
+2009-12-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_deque.h (copy(_Deque_iterator, _Deque_iterator,
+	_Deque_iterator), move(_Deque_iterator, _Deque_iterator,
+	_Deque_iterator)): Declare.
+	* include/bits/deque.tcc: Implement the latter.
+	* testsuite/performance/25_algorithms/copy_deque_iterators.cc: New.
+	* testsuite/25_algorithms/move/2.cc: Likewise.
+	* testsuite/25_algorithms/copy/5.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/23_containers/deque/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2009-12-22  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	PR target/41605
+	* testsuite/libstdc++-abi/abi.exp: Provide -B options to allow for
+	link spec %s substitutions for static libraries.
+	* testsuite/lib/libstdc++.exp: Ditto
+
+2009-12-22  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/mutex (call_once(once_flag&, _Callable, _Args&&...)):
+	Explicitly qualify with std:: bind calls.
+
+2009-12-21  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/42456
+	* src/atomic.cc: Move _GLIBCXX_ASM_SYMVER define within guard.
+	* config/abi/pre/gnu.ver: Add non-volatile exports.
+
+2009-12-21  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* scripts/run_doxygen: Update nested namespace exceptions.
+
+2009-12-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/atomic: Update to N3000.
+	* include/bits/atomic_0.h: Same.
+	* include/bits/atomic_2.h: Same.
+	* include/c_global/cstdatomic: Move...
+	* include/bits/atomic_base.h: ...here.
+	* include/c_compatibility/stdatomic.h: Just include atomic_base.h.
+	* include/precompiled/stdc++.h: Adjust includes.
+	* include/Makefile.am: Adjust files.
+	* include/Makefile.in: Regenerate.
+	* include/std/future: Adjust.
+	* src/atomic.cc: Adjust, adjust exports for compatibility.
+	* src/compatibility.cc: Move C++0x stuff...
+	* src/compatibility-c++0x.cc: ...here.
+
+	* doc/xml/manual/using.xml: Update.
+	* doc/xml/manual/status_cxx200x.xml: Update.
+	* doc/doxygen/user.cfg.in: Update.
+
+	* testsuite/29_atomics/atomic_address/cons/assign_neg.cc: Same.
+	* testsuite/29_atomics/atomic_address/cons/single_value.cc: Same.
+	* testsuite/29_atomics/atomic_address/cons/copy_neg.cc: Same.
+	* testsuite/29_atomics/atomic_address/cons/default.cc: Same.
+	* testsuite/29_atomics/atomic_address/cons/aggregate.cc: Same.
+	* testsuite/29_atomics/atomic_address/requirements/
+	standard_layout.cc: Same.
+	* testsuite/29_atomics/atomic_address/requirements/trivial.cc: Same.
+	* testsuite/29_atomics/atomic_integral/cons/assign_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/cons/single_value.cc: Same.
+	* testsuite/29_atomics/atomic_integral/cons/copy_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/cons/default.cc: Same.
+	* testsuite/29_atomics/atomic_integral/cons/copy_list.cc: Same.
+	* testsuite/29_atomics/atomic_integral/cons/direct_list.cc: Same.
+	* testsuite/29_atomics/atomic_integral/requirements/
+	standard_layout.cc: Same.
+	* testsuite/29_atomics/atomic_integral/requirements/trivial.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/increment_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/
+	integral_assignment.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/bitwise_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/decrement_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/increment.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/bitwise.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/decrement.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/
+	integral_conversion.cc: Same.
+	* testsuite/29_atomics/atomic_flag/cons/assign_neg.cc: Same.
+	* testsuite/29_atomics/atomic_flag/cons/copy_neg.cc: Same.
+	* testsuite/29_atomics/atomic_flag/cons/default.cc: Same.
+	* testsuite/29_atomics/atomic_flag/cons/aggregate.cc: Same.
+	* testsuite/29_atomics/atomic_flag/requirements/
+	standard_layout.cc: Same.
+	* testsuite/29_atomics/atomic_flag/requirements/trivial.cc: Same.
+	* testsuite/29_atomics/atomic_flag/clear/1.cc: Same.
+	* testsuite/29_atomics/atomic_flag/test_and_set/explicit.c
+	* testsuite/29_atomics/atomic_flag/test_and_set/explicit.cc: Same.
+	* testsuite/29_atomics/atomic_flag/test_and_set/implicit.c
+	* testsuite/29_atomics/atomic_flag/test_and_set/implicit.cc: Same.
+	* testsuite/29_atomics/headers/stdatomic.h/functions.c
+	* testsuite/29_atomics/atomic/cons/assign_neg.cc: Same.
+	* testsuite/29_atomics/atomic/cons/single_value.cc: Same.
+	* testsuite/29_atomics/atomic/cons/copy_neg.cc: Same.
+	* testsuite/29_atomics/atomic/cons/default.cc: Same.
+	* testsuite/29_atomics/atomic/cons/copy_list.cc: Same.
+	* testsuite/29_atomics/atomic/cons/direct_list.cc: Same.
+	* testsuite/29_atomics/atomic/requirements/explicit_instantiation/
+	1.cc: Same.
+	* testsuite/29_atomics/atomic/requirements/base_classes.cc: Same.
+	* testsuite/29_atomics/atomic/operators/integral_assignment.cc: Same.
+	* testsuite/29_atomics/atomic/operators/integral_conversion.cc: Same.
+	* testsuite/util/testsuite_common_types.h: Adjust.
+
+	* testsuite/29_atomics/headers/cstdatomic: Move and adjust...
+	* testsuite/29_atomics/headers/atomic: ...here.
+	* testsuite/29_atomics/headers/atomic/types_std_c++0x.cc: Same.
+	* testsuite/29_atomics/headers/atomic/functions_std_c++0x.cc: Same.
+	* testsuite/29_atomics/headers/atomic/std_c++0x_neg.cc: Same.
+	* testsuite/29_atomics/headers/atomic/macros.cc: Same.
+
+	* testsuite/29_atomics/headers/atomic/types_std_c++0x_neg.cc: Add.
+	* testsuite/29_atomics/atomic/cons/user_pod.cc: Add.
+
+2009-12-18  Jimmy Guo  <jguo@yahoo-inc.com>
+
+	PR libstdc++/40088
+	* src/locale_init.cc (locale::locale()): Optimize the common case
+	where _S_global still points to _S_classic.
+
+2009-12-17  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR target/42377
+	* config/abi/pre/gnu.ver: Adjust mangled function signatures to permit
+	LLP64 sizetypes throughout.
+
 2009-12-17  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/42198

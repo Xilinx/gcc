@@ -1,45 +1,49 @@
 // { dg-options "-std=gnu++0x" }
-// { dg-do compile }
-
-// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
 // Free Software Foundation; either version 3, or (at your option)
 // any later version.
-
+//
 // This library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-
+//
 // You should have received a copy of the GNU General Public License along
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-#include <cstdatomic>
+// 20.7.11 Function template bind
 
-namespace gnu
+#include <functional>
+#include <testsuite_hooks.h>
+
+struct X
 {
-#ifndef ATOMIC_INTEGRAL_LOCK_FREE
-# error "ATOMIC_INTEGRAL_LOCK_FREE must be a macro"
-#else
-# if ATOMIC_INTEGRAL_LOCK_FREE != 0 \
-    && ATOMIC_INTEGRAL_LOCK_FREE != 1 && ATOMIC_INTEGRAL_LOCK_FREE != 2
-# error "ATOMIC_INTEGRAL_LOCK_FREE must be 0, 1, or 2"
-# endif
-#endif
+  typedef int result_type;
+  int operator()(int i) const { return i+1; }
+  bool b;
+};
 
-#ifndef ATOMIC_ADDRESS_LOCK_FREE
-# error "ATOMIC_ADDRESS_LOCK_FREE must be a macro"
-# if ATOMIC_INTEGRAL_LOCK_FREE != 0 \
-    && ATOMIC_INTEGRAL_LOCK_FREE != 1 && ATOMIC_INTEGRAL_LOCK_FREE != 2
-# error "ATOMIC_INTEGRAL_LOCK_FREE must be 0, 1, or 2"
-# endif
-#endif
+void test01()
+{
+  bool test __attribute__((unused)) = true;
+  using std::bind;
+  using std::ref;
+  ::X x = { true };
 
-#ifndef ATOMIC_FLAG_INIT
-    #error "ATOMIC_FLAG_INIT_must_be_a_macro"
-#endif
+  // test bind<R> form
+  bind<void>(ref(x), 1)();
+  VERIFY( bind<long>(ref(x), 1)() == 2 );
+  bind<void>(&::X::b, ref(x))();
+  VERIFY( bind<int>(&::X::b, ref(x))() == 1 );
+}
+
+int main()
+{
+  test01();
+  return 0;
 }

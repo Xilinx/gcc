@@ -1,3 +1,206 @@
+2009-12-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42517
+	* gfortran.dg/gomp/recursion1.f90: New test.
+
+2009-12-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/test_raise_from_pure.adb: XFAIL for the ARM.
+	* gnat.dg/warn5.adb: Expect warning on the ARM.
+
+2009-12-28  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42447
+	* g++.dg/template/array21.C: New.
+
+2009-12-28  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42353
+	* gfortran.dg/class_13.f03: New test.
+
+2009-12-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/41344
+	* gfortran.dg/gomp/pr41344.f: New.
+
+2009-12-27  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42231
+	* gcc.c-torture/execute/pr42231.c: New test.
+	
+2009-12-27  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+	    Daniel Kraft  <d@domob.eu>
+
+	PR fortran/22552
+	* gfortran.dg/warn_implicit_procedure_1.f90: New test.
+
+2009-12-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41305
+	* g++.dg/lookup/koenig9.C: New test.
+	* g++.dg/lookup/koenig10.C: New test.
+	* g++.dg/lookup/koenig11.C: New test.
+	* g++.dg/lookup/koenig12.C: New test.
+
+2009-12-24  Julian Brown  <julian@codesourcery.com>
+	    Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/40887
+	* gcc.target/arm/pr40887.c: New test.
+
+2009-12-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/42475
+	* gcc.dg/pr42475.c: New test.
+
+2009-12-23  Jakub Jelinek  <jakub@redhat.com>
+	    Cary Coutant  <ccoutant@google.com>
+
+	PR debug/42454
+	* gcc.dg/debug/dwarf2/aranges-fnsec-1.c: Add check for .debug_ranges.
+
+2009-12-23  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/42093
+	* gcc.target/arm/pr42093.c: New test.
+
+2009-12-23  Ramana Radhakrishnan  <ramrad01@arm.com>
+
+	PR target/40670
+	* gcc.target/arm/pr40670.c: New test.
+	
+2009-12-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/alpha/20000715-1.c: Remove target selector.
+	* gcc.target/alpha/20011018-1.c: Ditto.
+	* gcc.target/alpha/980217-1.c: Ditto.
+	* gcc.target/alpha/asm-1.c: Ditto.
+	* gcc.target/alpha/base-1.c: Ditto.
+	* gcc.target/alpha/base-2.c: Ditto.
+	* gcc.target/alpha/cix-1.c: Ditto.
+	* gcc.target/alpha/cix-2.c: Ditto.
+	* gcc.target/alpha/max-1.c: Ditto.
+	* gcc.target/alpha/max-2.c: Ditto.
+
+2009-12-23  Sebastian Pop  <sebpop@gmail.com>
+
+	* g++.dg/graphite/id-1.C: New.
+	* g++.dg/graphite/pr41305.C: New.
+	* gcc.dg/graphite/id-16.c: New.
+	* gcc.dg/graphite/interchange-10.c: New.
+	* gcc.dg/graphite/interchange-11.c: New.
+	* gcc.dg/graphite/interchange-mvt.c: New.
+	* gcc.dg/graphite/pr40281.c: New.
+	* gcc.dg/graphite/run-id-2.c: New.
+	* gcc.dg/graphite/scop-dsyr2k.c: New.
+	* gcc.dg/graphite/scop-dsyrk.c: New.
+	* gcc.dg/graphite/scop-mvt.c: New.
+	* gcc.dg/graphite/scop-sor.c: New.
+	* gfortran.dg/graphite/id-18.f90: New.
+	* gfortran.dg/graphite/interchange-3.f90: New.
+	* gfortran.dg/graphite/pr42050.f90: New.
+
+2009-12-23  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42260
+	* g++.dg/conversion/cast2.C: New test.
+
+2009-12-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42466
+	* g++.dg/template/nontype19.C: New.
+
+	PR c++/42331
+	* g++.dg/cpp0x/initlist29.C: New.
+
+2009-12-22  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	PR target/41605
+	* lib/g++.exp: Provide -B options to allow for link spec %s
+	substitutions for static libraries.
+
+2009-12-22  Brian Hackett  <bhackett1024@gmail.com>
+
+	* g++.dg/plugin/attribute_plugin.c: Rename pre-genericize event.
+	* g++.dg/plugin/dumb_plugin.c: Same.
+
+2009-12-21  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/abi/mangle14.C: Add expected mangling.
+
+2009-12-21  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc.dg/pr36901.h: AVR must support address zero.
+
+2009-12-21  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	PR testsuite/36903
+	* gcc.dg/tree-ssa/gen-vect-11.c : Disable for avr target. It will
+	not vectorize.
+	* gcc.dg/tree-ssa/gen-vect-11a.c: Ditto.
+	* gcc.dg/tree-ssa/gen-vect-2.c: Ditto.
+	* gcc.dg/tree-ssa/gen-vect-25.c: Ditto.
+	* gcc.dg/tree-ssa/gen-vect-26.c: Ditto.
+	* gcc.dg/tree-ssa/gen-vect-28.c: Ditto.
+	* gcc.dg/tree-ssa/gen-vect-32.c: Ditto.
+	* gcc.dg/tree-ssa/pr23455.c: Test for 4 eliminations on avr target.
+	* gcc.dg/tree-ssa/ssa-fre-26.c: XFAIL test for avr.
+	* gcc.dg/tree-ssa/vrp47.c: Skip test for avr target due to low
+	branch cost.
+
+2009-12-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/PR42422
+	* gfortran.dg/list_read_10.f90:  New test.
+
+2009-12-19  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42225
+	* g++.dg/template/typedef26.C: New test.
+
+2009-12-19  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42401
+	* g++.dg/lto/20091219_0.C: New testcase.
+
+2009-12-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42108
+	* gfortran.dg/pr42108.f90: New testcase.
+
+2009-12-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28300
+	* g++.dg/template/spec37.C: New.
+
+	PR c++/42415
+	* g++.dg/tc1/dr147.C: Add test.
+	* g++.old-deja/g++.jason/temporary5.C: Adjust.
+
+2009-12-18  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* g++.old-deja/g++.brendan/misc6.C: Make expected dg-error strings
+	explicit.
+
+2009-12-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/debug/dwarf2/const-1.c: Don't expect DW_AT_const_value,
+	but instead DW_AT_location with DW_OP_addr+DW_OP_stack_value.  Add
+	-gno-strict-dwarf -fno-merge-debug-strings to dg-options.
+	* g++.dg/debug/dwarf2/const1.C: Likewise.
+	* g++.dg/debug/dwarf2/template-params-3.C: Likewise.
+	* g++.dg/debug/dwarf2/template-func-params-3.C: Likewise.
+
+2009-12-17  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41679
+	* gcc.target/arm/pr41679.c: New.
+
+2009-12-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42386
+	* g++.dg/opt/dtor3.C: New test.
+
 2009-12-17  Arnaud Charlet  <charlet@adacore.com>
 
 	* ada/acats/run_all.sh: Strip comments from norun.lst
