@@ -1,7 +1,7 @@
 ;; file warmelt-normal.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -3326,10 +3326,11 @@ routine procedures.}#
   (debug_msg recv "normexp_tuple recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sargs (unsafe_get_field :sargop_args recv))
-	 (csym (clone_symbol 'tuple_))
+	 (csymrec (clone_symbol 'tuplrec_))
+	 (csymtup (clone_symbol 'tuple_))
 	 (normdiscrmult (normal_predef discr_multiple ncx sloc "discr_multiple"))
 	 )
-    (debug_msg csym "normexp_tuple csym")
+    (debug_msg csymrec "normexp_tuple csymrec")
     (multicall
      (nargs nbindings)
      (normalize_tuple sargs env ncx sloc)
@@ -3340,7 +3341,7 @@ routine procedures.}#
      (compile_warning "normexp_tuple incomplete")
      (letrec (
 	       (constupbind (instance class_normal_constructed_tuple_binding
-				      :binder csym
+				      :binder csymrec
 				      :nconsb_loc sloc
 				      :nconsb_discr normdiscrmult
 				      :nconsb_nletrec nletrec
@@ -3349,7 +3350,7 @@ routine procedures.}#
 	       (clocc (instance class_nrep_locsymocc
 				:nrep_loc sloc
 				:nocc_ctyp ctype_value
-				:nocc_symb csym
+				:nocc_symb csymrec
 				:nocc_bind constupbind))
 	       (tup1bind (tuple constupbind))
 	       (tup1loc (tuple clocc))
@@ -3362,17 +3363,25 @@ routine procedures.}#
 				  :nletrec_body_bindings ()
 				  :nletrec_locsyms tup1loc
 				  ))
+	       (ctupbind (instance class_normal_let_binding
+				   :binder csymtup
+				   :letbind_loc sloc
+				   :letbind_type ctype_value
+				   :letbind_expr nletrec))
+	       (ctuplocc (instance class_nrep_locsymocc
+				   :nrep_loc sloc
+				   :nocc_ctyp ctype_value
+				   :nocc_symb csymtup
+				   :nocc_bind ctupbind))
+	       (ctupbindlist (list ctupbind))
 	       )
-	     (compile_warning "normexp_tuple perhaps incomplete")
-	     ;; perhaps we need to make an extra binding to return just a localsymocc...
-	     (warning_plain sloc "perhaps TUPLE not implemented - see normexp_tuple")
 	     (debug_msg constupbind "normexp_tuple constupbind")
+	     (debug_msg ctupbind "normexp_tuple ctupbind")
 	     (debug_msg clocc "normexp_tuple clocc")
 	     (debug_msg nbdy "normexp_tuple nbdy")
-	     (debug_msg nletrec "normexp_tuple return nletrec")
-	     (assert_msg  "@$@incomplete normexp_tuple" ())
-	     (debug_msg nbindings "normexp_tuple return nbindings")
-	     (return nletrec nbindings)
+	     (debug_msg ctuplocc "normexp_tuple return ctuplocc")
+	     (debug_msg ctupbindlist "normexp_tuple return ctupbindlist")
+	     (return ctuplocc ctupbindlist)
 	     )
      ;;
      )))

@@ -1,3 +1,8 @@
+2010-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{ttuplist.melt test passes for (tuple..)}}
+	* melt/warmelt-normal.melt: normexp_tuple is working. Updated
+	copyright year.
+
 2009-12-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tletrec3.melt test passes}}
 	* testsuite/melt/tletrec3.melt: added checknonull primitive to
