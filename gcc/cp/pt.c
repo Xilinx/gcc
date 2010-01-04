@@ -1553,6 +1553,13 @@ iterative_hash_template_arg (tree arg, hashval_t val)
       val = iterative_hash_object (code, val);
       return iterative_hash_template_arg (TREE_OPERAND (arg, 2), val);
 
+    case ARRAY_TYPE:
+      /* layout_type sets structural equality for arrays of
+	 incomplete type, so we can't rely on the canonical type
+	 for hashing.  */
+      val = iterative_hash_template_arg (TREE_TYPE (arg), val);
+      return iterative_hash_template_arg (TYPE_DOMAIN (arg), val);
+
     default:
       switch (tclass)
 	{
@@ -3356,7 +3363,8 @@ reduce_template_parm_level (tree index, tree type, int levels, tree args,
 {
   if (TEMPLATE_PARM_DESCENDANTS (index) == NULL_TREE
       || (TEMPLATE_PARM_LEVEL (TEMPLATE_PARM_DESCENDANTS (index))
-	  != TEMPLATE_PARM_LEVEL (index) - levels))
+	  != TEMPLATE_PARM_LEVEL (index) - levels)
+      || !same_type_p (type, TREE_TYPE (TEMPLATE_PARM_DESCENDANTS (index))))
     {
       tree orig_decl = TEMPLATE_PARM_DECL (index);
       tree decl, t;
