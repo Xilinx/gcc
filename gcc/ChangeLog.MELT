@@ -1,4 +1,14 @@
 2010-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt: updated copyright year. Check that
+	letrec body is non-empty.
+
+	* melt/warmelt-normal.melt: normexp_list still unimplemented.
+	normexp_tuple handles correctly internal bindings.
+
+	* testsuite/melt/ttuplist.melt: more complex, but commented out
+	some code.
+
+2010-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{ttuplist.melt test passes for (tuple..)}}
 	* melt/warmelt-normal.melt: normexp_tuple is working. Updated
 	copyright year.

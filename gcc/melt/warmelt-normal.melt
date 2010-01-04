@@ -3338,7 +3338,6 @@ routine procedures.}#
      (debug_msg nbindings "normexp_tuple nbindings")
      ;; insight: normalize (tuple x1 x2) exactly as 
      ;; as an anonymous letrec
-     (compile_warning "normexp_tuple incomplete")
      (letrec (
 	       (constupbind (instance class_normal_constructed_tuple_binding
 				      :binder csymrec
@@ -3361,6 +3360,8 @@ routine procedures.}#
 				  :nlet_body nbdy
 				  :nletrec_fill_bindings ()
 				  :nletrec_body_bindings ()
+;; perhaps we should avoid having tup1loc to share the same location
+;; for the letrec and the tuple result?
 				  :nletrec_locsyms tup1loc
 				  ))
 	       (ctupbind (instance class_normal_let_binding
@@ -3375,13 +3376,16 @@ routine procedures.}#
 				   :nocc_bind ctupbind))
 	       (ctupbindlist (list ctupbind))
 	       )
-	     (debug_msg constupbind "normexp_tuple constupbind")
+	     (if (null nbindings)
+		 (setq nbindings ctupbindlist)
+	       (list_append nbindings ctupbind)
+	       )
 	     (debug_msg ctupbind "normexp_tuple ctupbind")
 	     (debug_msg clocc "normexp_tuple clocc")
 	     (debug_msg nbdy "normexp_tuple nbdy")
 	     (debug_msg ctuplocc "normexp_tuple return ctuplocc")
-	     (debug_msg ctupbindlist "normexp_tuple return ctupbindlist")
-	     (return ctuplocc ctupbindlist)
+	     (debug_msg nbindings "normexp_tuple return final nbindings")
+	     (return ctuplocc nbindings)
 	     )
      ;;
      )))
@@ -3397,11 +3401,52 @@ routine procedures.}#
   (debug_msg recv "normexp_list recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sargs (unsafe_get_field :sargop_args recv))
+	 (csymrec (clone_symbol 'listrec_))
+	 (csymlis (clone_symbol 'list_))
+	 (normdiscrpair (normal_predef discr_pair ncx sloc "discr_pair"))
+	 (normdiscrlist (normal_predef discr_pair ncx sloc "discr_list"))
+	 (:long nbargs (multiple_length sargs))
+	 (consbindtup (make_multiple discr_multiple (+i nbargs 1)))
+	 (resbindings (make_list discr_list))
 	 )
-    (compile_warning "normexp_list incomplete")
-    (error_plain sloc "unimplemented LIST normalization")
-    (assert_msg "@$@unimplemented LIST" ())
-    ))
+    (debug_msg csymrec "normexp_list csymrec")
+    (multicall
+     (nargs nbindings)
+     (normalize_tuple sargs env ncx sloc)
+     (debug_msg nargs "normexp_list nargs")
+     (debug_msg nbindings "normexp_list nbindings")
+     (assert_msg "check nbindings" (is_list_or_null nbindings))
+     (list_append2list resbindings nbindings)
+     (letrec (
+	      (conslistbind (instance class_normal_constructed_list_binding
+				      :binder csymrec
+				      :nconsb_loc sloc
+				      :nconsb_discr normdiscrlist
+				      ))
+	      (creclocc (instance class_nrep_locsymocc
+				:nrep_loc sloc
+				:nocc_ctyp ctype_value
+				:nocc_symb csymrec
+				:nocc_bind conslistbind))
+	       (nbdy (tuple creclocc))
+	       (tup1loc (tuple creclocc))
+	       (nletrec (instance class_nrep_letrec
+				  :nrep_loc sloc
+				  :nlet_bindings consbindtup
+				  :nlet_body nbdy
+				  :nletrec_fill_bindings ()
+				  :nletrec_body_bindings ()
+				  :nletrec_locsyms tup1loc
+				  ))
+	      )
+	     (foreach_in_multiple
+	      (nargs)
+	      (curarg :long ix)
+	     ))
+     (compile_warning "normexp_list incomplete")
+     (error_plain sloc "unimplemented LIST normalization")
+     (assert_msg "@$@unimplemented LIST" ())
+     )))
 (install_method class_source_list normal_exp normexp_list)
 ;;;;;;;;;;;;;;;;
 

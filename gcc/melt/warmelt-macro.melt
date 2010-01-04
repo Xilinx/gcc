@@ -1,7 +1,7 @@
 ;; file warmelt-macro.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -4196,7 +4196,9 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
     (debug_msg srcbindtup "mexpand_letrec srcbindtup")
     (setq bodytup (pairlist_to_multiple restpair discr_multiple 
 					(lambda (e) (macroexpand_1 e newenv mexpander))))
-    (let ( (letr
+    (if (<=i (multiple_length bodytup) 0)
+	(error_plain loc "emptyy body in LETREC"))
+	     (let ( (letr
 	    (instance class_source_letrec
 		      :loca_location loc
 		      :slet_bindings srcbindtup

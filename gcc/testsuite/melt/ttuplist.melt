@@ -10,10 +10,11 @@
 |#
 
 (defun ftuple (x y z)
-       (tuple x y z))
+       (tuple x y (make_box discr_box z)))
 (debug_msg (ftuple 'xx 'yy 'zz) "test ftuple")
 
 ;(defun flist (u v w)
 ;       (list u v w))
+;(debug_msg (flist 'uu 'vv 'ww) "test flist")
 
-;;eof ttuplist
+;;eof ttuplist.melt
