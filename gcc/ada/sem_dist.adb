@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,6 +35,7 @@ with Namet;    use Namet;
 with Opt;      use Opt;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Disp; use Sem_Disp;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
@@ -349,9 +350,7 @@ package body Sem_Dist is
 
       --  Build the function call which will replace the attribute
 
-      if Is_Remote_Call_Interface (Ety)
-        or else Is_Shared_Passive (Ety)
-      then
+      if Is_Remote_Call_Interface (Ety) or else Is_Shared_Passive (Ety) then
          Get_Pt_Id_Call :=
            Make_Function_Call (Loc,
              Name => Get_Pt_Id,

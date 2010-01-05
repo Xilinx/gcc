@@ -158,18 +158,19 @@ encode_integer (int kind, mpz_t integer, unsigned char *buffer,
 static int
 encode_float (int kind, mpfr_t real, unsigned char *buffer, size_t buffer_size)
 {
-  return native_encode_expr (gfc_conv_mpfr_to_tree (real, kind), buffer,
+  return native_encode_expr (gfc_conv_mpfr_to_tree (real, kind, 0), buffer,
 			     buffer_size);
 }
 
 
 static int
-encode_complex (int kind, mpfr_t real, mpfr_t imaginary, unsigned char *buffer,
-		size_t buffer_size)
+encode_complex (int kind, mpc_t cmplx,
+		unsigned char *buffer, size_t buffer_size)
 {
   int size;
-  size = encode_float (kind, real, &buffer[0], buffer_size);
-  size += encode_float (kind, imaginary, &buffer[size], buffer_size - size);
+  size = encode_float (kind, mpc_realref (cmplx), &buffer[0], buffer_size);
+  size += encode_float (kind, mpc_imagref (cmplx),
+			&buffer[size], buffer_size - size);
   return size;
 }
 
@@ -212,7 +213,7 @@ encode_derived (gfc_expr *source, unsigned char *buffer, size_t buffer_size)
   type = gfc_typenode_for_spec (&source->ts);
 
   ctr = source->value.constructor;
-  cmp = source->ts.derived->components;
+  cmp = source->ts.u.derived->components;
   for (;ctr; ctr = ctr->next, cmp = cmp->next)
     {
       gcc_assert (cmp);
@@ -266,8 +267,8 @@ gfc_target_encode_expr (gfc_expr *source, unsigned char *buffer,
       return encode_float (source->ts.kind, source->value.real, buffer,
 			   buffer_size);
     case BT_COMPLEX:
-      return encode_complex (source->ts.kind, source->value.complex.r,
-			     source->value.complex.i, buffer, buffer_size);
+      return encode_complex (source->ts.kind, source->value.complex,
+			     buffer, buffer_size);
     case BT_LOGICAL:
       return encode_logical (source->ts.kind, source->value.logical, buffer,
 			     buffer_size);
@@ -368,12 +369,13 @@ gfc_interpret_float (int kind, unsigned char *buffer, size_t buffer_size,
 
 int
 gfc_interpret_complex (int kind, unsigned char *buffer, size_t buffer_size,
-		   mpfr_t real, mpfr_t imaginary)
+		       mpc_t complex)
 {
   int size;
-  size = gfc_interpret_float (kind, &buffer[0], buffer_size, real);
+  size = gfc_interpret_float (kind, &buffer[0], buffer_size,
+			      mpc_realref (complex));
   size += gfc_interpret_float (kind, &buffer[size], buffer_size - size,
-			       imaginary);
+			       mpc_imagref (complex));
   return size;
 }
 
@@ -396,9 +398,9 @@ gfc_interpret_character (unsigned char *buffer, size_t buffer_size,
 {
   int i;
 
-  if (result->ts.cl && result->ts.cl->length)
+  if (result->ts.u.cl && result->ts.u.cl->length)
     result->value.character.length =
-      (int) mpz_get_ui (result->ts.cl->length->value.integer);
+      (int) mpz_get_ui (result->ts.u.cl->length->value.integer);
 
   gcc_assert (buffer_size >= size_character (result->value.character.length,
 					     result->ts.kind));
@@ -445,7 +447,7 @@ gfc_interpret_derived (unsigned char *buffer, size_t buffer_size, gfc_expr *resu
   result->expr_type = EXPR_STRUCTURE;
 
   type = gfc_typenode_for_spec (&result->ts);
-  cmp = result->ts.derived->components;
+  cmp = result->ts.u.derived->components;
 
   /* Run through the derived type components.  */
   for (;cmp; cmp = cmp->next)
@@ -520,8 +522,7 @@ gfc_target_interpret_expr (unsigned char *buffer, size_t buffer_size,
     case BT_COMPLEX:
       result->representation.length = 
         gfc_interpret_complex (result->ts.kind, buffer, buffer_size,
-			       result->value.complex.r,
-			       result->value.complex.i);
+			       result->value.complex);
       break;
 
     case BT_LOGICAL:
@@ -589,7 +590,7 @@ expr_to_char (gfc_expr *e, unsigned char *data, unsigned char *chk, size_t len)
   if (e->ts.type == BT_DERIVED)
     {
       ctr = e->value.constructor;
-      cmp = e->ts.derived->components;
+      cmp = e->ts.u.derived->components;
       for (;ctr; ctr = ctr->next, cmp = cmp->next)
 	{
 	  gcc_assert (cmp && cmp->backend_decl);
@@ -722,10 +723,9 @@ gfc_convert_boz (gfc_expr *expr, gfc_typespec *ts)
     }
   else
     {
-      mpfr_init (expr->value.complex.r);
-      mpfr_init (expr->value.complex.i);
+      mpc_init2 (expr->value.complex, mpfr_get_default_prec());
       gfc_interpret_complex (ts->kind, buffer, buffer_size,
-			     expr->value.complex.r, expr->value.complex.i);
+			     expr->value.complex);
     }
   expr->is_boz = 0;  
   expr->ts.type = ts->type;

@@ -75,14 +75,18 @@
 #include "version.h"
 #endif
 
+#if defined (__MINGW32__)
+
 #if defined (RTX)
 #include <windows.h>
 #include <Rtapi.h>
-#include <sys/utime.h>
-
-#elif defined (__MINGW32__)
-
+#else
 #include "mingw32.h"
+
+/* Current code page to use, set in initialize.c.  */
+UINT CurrentCodePage;
+#endif
+
 #include <sys/utime.h>
 
 /* For isalpha-like tests in the compiler, we're expected to resort to
@@ -184,6 +188,7 @@ struct vstring
 #endif
 
 #if defined (_WIN32)
+
 #include <dir.h>
 #include <windows.h>
 #include <accctrl.h>
@@ -233,9 +238,11 @@ struct vstring
 #endif
 
 /* Check for cross-compilation */
-#ifdef CROSS_DIRECTORY_STRUCTURE
+#if defined (CROSS_COMPILE) || defined (CROSS_DIRECTORY_STRUCTURE)
+#define IS_CROSS 1
 int __gnat_is_cross_compiler = 1;
 #else
+#undef IS_CROSS
 int __gnat_is_cross_compiler = 0;
 #endif
 
@@ -317,6 +324,12 @@ const int __gnat_vmsp = 0;
 
 #endif
 
+/* Used for Ada bindings */
+const int __gnat_size_of_file_attributes = sizeof (struct file_attributes);
+
+/* Reset the file attributes as if no system call had been performed */
+void __gnat_stat_to_attr (int fd, char* name, struct file_attributes* attr);
+
 /* The __gnat_max_path_len variable is used to export the maximum
    length of a path name to Ada code. max_path_len is also provided
    for compatibility with older GNAT versions, please do not use
@@ -324,6 +337,10 @@ const int __gnat_vmsp = 0;
 
 int __gnat_max_path_len = GNAT_MAX_PATH_LEN;
 int max_path_len = GNAT_MAX_PATH_LEN;
+
+/* Control whether we can use ACL on Windows.  */
+
+int __gnat_use_acl = 1;
 
 /* The following macro HAVE_READDIR_R should be defined if the
    system provides the routine readdir_r.  */
@@ -359,6 +376,26 @@ to_ptr32 (char **ptr64)
 #else
 #define MAYBE_TO_PTR32(argv) argv
 #endif
+
+const char ATTR_UNSET = 127;
+
+void
+__gnat_reset_attributes
+  (struct file_attributes* attr)
+{
+  attr->exists     = ATTR_UNSET;
+
+  attr->writable   = ATTR_UNSET;
+  attr->readable   = ATTR_UNSET;
+  attr->executable = ATTR_UNSET;
+
+  attr->regular    = ATTR_UNSET;
+  attr->symbolic_link = ATTR_UNSET;
+  attr->directory = ATTR_UNSET;
+
+  attr->timestamp = (OS_Time)-2;
+  attr->file_length = -1;
+}
 
 OS_Time
 __gnat_current_time
@@ -468,7 +505,7 @@ __gnat_symlink (char *oldpath ATTRIBUTE_UNUSED,
 /* Try to lock a file, return 1 if success.  */
 
 #if defined (__vxworks) || defined (__nucleus__) || defined (MSDOS) \
-  || defined (_WIN32)
+  || defined (_WIN32) || defined (__EMX__) || defined (VMS)
 
 /* Version that does not use link. */
 
@@ -481,8 +518,8 @@ __gnat_try_lock (char *dir, char *file)
   TCHAR wfile[GNAT_MAX_PATH_LEN];
   TCHAR wdir[GNAT_MAX_PATH_LEN];
 
-  S2WSU (wdir, dir, GNAT_MAX_PATH_LEN);
-  S2WSU (wfile, file, GNAT_MAX_PATH_LEN);
+  S2WSC (wdir, dir, GNAT_MAX_PATH_LEN);
+  S2WSC (wfile, file, GNAT_MAX_PATH_LEN);
 
   _stprintf (wfull_path, _T("%s%c%s"), wdir, _T(DIR_SEPARATOR), wfile);
   fd = _topen (wfull_path, O_CREAT | O_EXCL, 0600);
@@ -492,27 +529,6 @@ __gnat_try_lock (char *dir, char *file)
   sprintf (full_path, "%s%c%s", dir, DIR_SEPARATOR, file);
   fd = open (full_path, O_CREAT | O_EXCL, 0600);
 #endif
-
-  if (fd < 0)
-    return 0;
-
-  close (fd);
-  return 1;
-}
-
-#elif defined (__EMX__) || defined (VMS)
-
-/* More cases that do not use link; identical code, to solve too long
-   line problem ??? */
-
-int
-__gnat_try_lock (char *dir, char *file)
-{
-  char full_path[256];
-  int fd;
-
-  sprintf (full_path, "%s%c%s", dir, DIR_SEPARATOR, file);
-  fd = open (full_path, O_CREAT | O_EXCL, 0600);
 
   if (fd < 0)
     return 0;
@@ -531,7 +547,7 @@ __gnat_try_lock (char *dir, char *file)
 {
   char full_path[256];
   char temp_file[256];
-  struct stat stat_result;
+  GNAT_STRUCT_STAT stat_result;
   int fd;
 
   sprintf (full_path, "%s%c%s", dir, DIR_SEPARATOR, file);
@@ -605,7 +621,7 @@ __gnat_get_current_dir (char *dir, int *length)
 
   _tgetcwd (wdir, *length);
 
-  WS2SU (dir, wdir, GNAT_MAX_PATH_LEN);
+  WS2SC (dir, wdir, GNAT_MAX_PATH_LEN);
 
 #elif defined (VMS)
    /* Force Unix style, which is what GNAT uses internally.  */
@@ -677,12 +693,13 @@ __gnat_get_debuggable_suffix_ptr (int *len, const char **value)
 /* Returns the OS filename and corresponding encoding.  */
 
 void
-__gnat_os_filename (char *filename, char *w_filename ATTRIBUTE_UNUSED,
+__gnat_os_filename (char *filename ATTRIBUTE_UNUSED,
+		    char *w_filename ATTRIBUTE_UNUSED,
 		    char *os_name, int *o_length,
 		    char *encoding ATTRIBUTE_UNUSED, int *e_length)
 {
-#if defined (_WIN32) && ! defined (__vxworks) && ! defined (CROSS_DIRECTORY_STRUCTURE)
-  WS2SU (os_name, (TCHAR *)w_filename, o_length);
+#if defined (_WIN32) && ! defined (__vxworks) && ! defined (IS_CROSS)
+  WS2SC (os_name, (TCHAR *)w_filename, (DWORD)*o_length);
   *o_length = strlen (os_name);
   strcpy (encoding, "encoding=utf8");
   *e_length = strlen (encoding);
@@ -693,16 +710,90 @@ __gnat_os_filename (char *filename, char *w_filename ATTRIBUTE_UNUSED,
 #endif
 }
 
+/* Delete a file.  */
+
+int
+__gnat_unlink (char *path)
+{
+#if defined (__MINGW32__) && ! defined (__vxworks) && ! defined (IS_CROSS)
+  {
+    TCHAR wpath[GNAT_MAX_PATH_LEN];
+
+    S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
+    return _tunlink (wpath);
+  }
+#else
+  return unlink (path);
+#endif
+}
+
+/* Rename a file.  */
+
+int
+__gnat_rename (char *from, char *to)
+{
+#if defined (__MINGW32__) && ! defined (__vxworks) && ! defined (IS_CROSS)
+  {
+    TCHAR wfrom[GNAT_MAX_PATH_LEN], wto[GNAT_MAX_PATH_LEN];
+
+    S2WSC (wfrom, from, GNAT_MAX_PATH_LEN);
+    S2WSC (wto, to, GNAT_MAX_PATH_LEN);
+    return _trename (wfrom, wto);
+  }
+#else
+  return rename (from, to);
+#endif
+}
+
+/* Changing directory.  */
+
+int
+__gnat_chdir (char *path)
+{
+#if defined (__MINGW32__) && ! defined (__vxworks) && ! defined (IS_CROSS)
+  {
+    TCHAR wpath[GNAT_MAX_PATH_LEN];
+
+    S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
+    return _tchdir (wpath);
+  }
+#else
+  return chdir (path);
+#endif
+}
+
+/* Removing a directory.  */
+
+int
+__gnat_rmdir (char *path)
+{
+#if defined (__MINGW32__) && ! defined (__vxworks) && ! defined (IS_CROSS)
+  {
+    TCHAR wpath[GNAT_MAX_PATH_LEN];
+
+    S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
+    return _trmdir (wpath);
+  }
+#elif defined (VTHREADS)
+  /* rmdir not available */
+  return -1;
+#else
+  return rmdir (path);
+#endif
+}
+
 FILE *
 __gnat_fopen (char *path, char *mode, int encoding ATTRIBUTE_UNUSED)
 {
-#if defined (_WIN32) && ! defined (__vxworks) && ! defined (CROSS_DIRECTORY_STRUCTURE)
+#if defined (_WIN32) && ! defined (__vxworks) && ! defined (IS_CROSS)
   TCHAR wpath[GNAT_MAX_PATH_LEN];
   TCHAR wmode[10];
 
   S2WS (wmode, mode, 10);
 
-  if (encoding == Encoding_UTF8)
+  if (encoding == Encoding_Unspecified)
+    S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
+  else if (encoding == Encoding_UTF8)
     S2WSU (wpath, path, GNAT_MAX_PATH_LEN);
   else
     S2WS (wpath, path, GNAT_MAX_PATH_LEN);
@@ -711,20 +802,22 @@ __gnat_fopen (char *path, char *mode, int encoding ATTRIBUTE_UNUSED)
 #elif defined (VMS)
   return decc$fopen (path, mode);
 #else
-  return fopen (path, mode);
+  return GNAT_FOPEN (path, mode);
 #endif
 }
 
 FILE *
 __gnat_freopen (char *path, char *mode, FILE *stream, int encoding ATTRIBUTE_UNUSED)
 {
-#if defined (_WIN32) && ! defined (__vxworks) && ! defined (CROSS_DIRECTORY_STRUCTURE)
+#if defined (_WIN32) && ! defined (__vxworks) && ! defined (IS_CROSS)
   TCHAR wpath[GNAT_MAX_PATH_LEN];
   TCHAR wmode[10];
 
   S2WS (wmode, mode, 10);
 
-  if (encoding == Encoding_UTF8)
+  if (encoding == Encoding_Unspecified)
+    S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
+  else if (encoding == Encoding_UTF8)
     S2WSU (wpath, path, GNAT_MAX_PATH_LEN);
   else
     S2WS (wpath, path, GNAT_MAX_PATH_LEN);
@@ -756,7 +849,7 @@ __gnat_open_read (char *path, int fmode)
  {
    TCHAR wpath[GNAT_MAX_PATH_LEN];
 
-   S2WSU (wpath, path, GNAT_MAX_PATH_LEN);
+   S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
    fd = _topen (wpath, O_RDONLY | o_fmode, 0444);
  }
 #else
@@ -797,7 +890,7 @@ __gnat_open_rw (char *path, int fmode)
   {
     TCHAR wpath[GNAT_MAX_PATH_LEN];
 
-    S2WSU (wpath, path, GNAT_MAX_PATH_LEN);
+    S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
     fd = _topen (wpath, O_RDWR | o_fmode, PERM);
   }
 #else
@@ -823,7 +916,7 @@ __gnat_open_create (char *path, int fmode)
   {
     TCHAR wpath[GNAT_MAX_PATH_LEN];
 
-    S2WSU (wpath, path, GNAT_MAX_PATH_LEN);
+    S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
     fd = _topen (wpath, O_WRONLY | O_CREAT | O_TRUNC | o_fmode, PERM);
   }
 #else
@@ -845,11 +938,33 @@ __gnat_create_output_file (char *path)
   {
     TCHAR wpath[GNAT_MAX_PATH_LEN];
 
-    S2WSU (wpath, path, GNAT_MAX_PATH_LEN);
+    S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
     fd = _topen (wpath, O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, PERM);
   }
 #else
   fd = open (path, O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, PERM);
+#endif
+
+  return fd < 0 ? -1 : fd;
+}
+
+int
+__gnat_create_output_file_new (char *path)
+{
+  int fd;
+#if defined (VMS)
+  fd = open (path, O_WRONLY | O_CREAT | O_TRUNC | O_TEXT | O_EXCL, PERM,
+             "rfm=stmlf", "ctx=rec", "rat=none", "rop=nlk",
+             "shr=del,get,put,upd");
+#elif defined (__MINGW32__)
+  {
+    TCHAR wpath[GNAT_MAX_PATH_LEN];
+
+    S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
+    fd = _topen (wpath, O_WRONLY | O_CREAT | O_TRUNC | O_TEXT | O_EXCL, PERM);
+  }
+#else
+  fd = open (path, O_WRONLY | O_CREAT | O_TRUNC | O_TEXT | O_EXCL, PERM);
 #endif
 
   return fd < 0 ? -1 : fd;
@@ -871,7 +986,7 @@ __gnat_open_append (char *path, int fmode)
   {
     TCHAR wpath[GNAT_MAX_PATH_LEN];
 
-    S2WSU (wpath, path, GNAT_MAX_PATH_LEN);
+    S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
     fd = _topen (wpath, O_WRONLY | O_CREAT | O_APPEND | o_fmode, PERM);
   }
 #else
@@ -899,7 +1014,7 @@ __gnat_open_new (char *path, int fmode)
   {
     TCHAR wpath[GNAT_MAX_PATH_LEN];
 
-    S2WSU (wpath, path, GNAT_MAX_PATH_LEN);
+    S2WSC (wpath, path, GNAT_MAX_PATH_LEN);
     fd = _topen (wpath, O_WRONLY | O_CREAT | O_EXCL | o_fmode, PERM);
   }
 #else
@@ -947,34 +1062,89 @@ __gnat_open_new_temp (char *path, int fmode)
   return fd < 0 ? -1 : fd;
 }
 
-/* Return the number of bytes in the specified file.  */
+/****************************************************************
+ ** Perform a call to GNAT_STAT or GNAT_FSTAT, and extract as much information
+ ** as possible from it, storing the result in a cache for later reuse
+ ****************************************************************/
+
+void
+__gnat_stat_to_attr (int fd, char* name, struct file_attributes* attr)
+{
+  GNAT_STRUCT_STAT statbuf;
+  int ret;
+
+  if (fd != -1)
+    ret = GNAT_FSTAT (fd, &statbuf);
+  else
+    ret = __gnat_stat (name, &statbuf);
+
+  attr->regular   = (!ret && S_ISREG (statbuf.st_mode));
+  attr->directory = (!ret && S_ISDIR (statbuf.st_mode));
+
+  if (!attr->regular)
+    attr->file_length = 0;
+  else
+    /* st_size may be 32 bits, or 64 bits which is converted to long. We
+       don't return a useful value for files larger than 2 gigabytes in
+       either case. */
+    attr->file_length = statbuf.st_size;  /* all systems */
+
+#ifndef __MINGW32__
+  /* on Windows requires extra system call, see comment in __gnat_file_exists_attr */
+  attr->exists = !ret;
+#endif
+
+#if !defined (_WIN32) || defined (RTX)
+  /* on Windows requires extra system call, see __gnat_is_readable_file_attr */
+  attr->readable   = (!ret && (statbuf.st_mode & S_IRUSR));
+  attr->writable   = (!ret && (statbuf.st_mode & S_IWUSR));
+  attr->executable = (!ret && (statbuf.st_mode & S_IXUSR));
+#endif
+
+#if !defined (__EMX__) && !defined (MSDOS) && (!defined (_WIN32) || defined (RTX))
+  /* on Windows requires extra system call, see __gnat_file_time_name_attr */
+  if (ret != 0) {
+     attr->timestamp = (OS_Time)-1;
+  } else {
+#ifdef VMS
+     /* VMS has file versioning.  */
+     attr->timestamp = (OS_Time)statbuf.st_ctime;
+#else
+     attr->timestamp = (OS_Time)statbuf.st_mtime;
+#endif
+  }
+#endif
+
+}
+
+/****************************************************************
+ ** Return the number of bytes in the specified file
+ ****************************************************************/
+
+long
+__gnat_file_length_attr (int fd, char* name, struct file_attributes* attr)
+{
+  if (attr->file_length == -1) {
+    __gnat_stat_to_attr (fd, name, attr);
+  }
+
+  return attr->file_length;
+}
 
 long
 __gnat_file_length (int fd)
 {
-  int ret;
-  struct stat statbuf;
-
-  ret = fstat (fd, &statbuf);
-  if (ret || !S_ISREG (statbuf.st_mode))
-    return 0;
-
-  return (statbuf.st_size);
+  struct file_attributes attr;
+  __gnat_reset_attributes (&attr);
+  return __gnat_file_length_attr (fd, NULL, &attr);
 }
-
-/* Return the number of bytes in the specified named file.  */
 
 long
 __gnat_named_file_length (char *name)
 {
-  int ret;
-  struct stat statbuf;
-
-  ret = __gnat_stat (name, &statbuf);
-  if (ret || !S_ISREG (statbuf.st_mode))
-    return 0;
-
-  return (statbuf.st_size);
+  struct file_attributes attr;
+  __gnat_reset_attributes (&attr);
+  return __gnat_file_length_attr (-1, name, &attr);
 }
 
 /* Create a temporary filename and put it in string pointed to by
@@ -1052,7 +1222,7 @@ DIR* __gnat_opendir (char *name)
 #elif defined (__MINGW32__)
   TCHAR wname[GNAT_MAX_PATH_LEN];
 
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN);
+  S2WSC (wname, name, GNAT_MAX_PATH_LEN);
   return (DIR*)_topendir (wname);
 
 #else
@@ -1076,7 +1246,7 @@ __gnat_readdir (DIR *dirp, char *buffer, int *len)
 
   if (dirent != NULL)
     {
-      WS2SU (buffer, dirent->d_name, GNAT_MAX_PATH_LEN);
+      WS2SC (buffer, dirent->d_name, GNAT_MAX_PATH_LEN);
       *len = strlen (buffer);
 
       return buffer;
@@ -1169,137 +1339,136 @@ win32_filetime (HANDLE h)
 /* Return a GNAT time stamp given a file name.  */
 
 OS_Time
-__gnat_file_time_name (char *name)
+__gnat_file_time_name_attr (char* name, struct file_attributes* attr)
 {
-
+   if (attr->timestamp == (OS_Time)-2) {
 #if defined (__EMX__) || defined (MSDOS)
-  int fd = open (name, O_RDONLY | O_BINARY);
-  time_t ret = __gnat_file_time_fd (fd);
-  close (fd);
-  return (OS_Time)ret;
+      int fd = open (name, O_RDONLY | O_BINARY);
+      time_t ret = __gnat_file_time_fd (fd);
+      close (fd);
+      attr->timestamp = (OS_Time)ret;
 
 #elif defined (_WIN32) && !defined (RTX)
-  time_t ret = -1;
-  TCHAR wname[GNAT_MAX_PATH_LEN];
+      time_t ret = -1;
+      TCHAR wname[GNAT_MAX_PATH_LEN];
+      S2WSC (wname, name, GNAT_MAX_PATH_LEN);
 
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN);
+      HANDLE h = CreateFile
+        (wname, GENERIC_READ, FILE_SHARE_READ, 0,
+         OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0);
 
-  HANDLE h = CreateFile
-    (wname, GENERIC_READ, FILE_SHARE_READ, 0,
-     OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0);
-
-  if (h != INVALID_HANDLE_VALUE)
-    {
-      ret = win32_filetime (h);
-      CloseHandle (h);
-    }
-  return (OS_Time) ret;
+      if (h != INVALID_HANDLE_VALUE) {
+         ret = win32_filetime (h);
+         CloseHandle (h);
+      }
+      attr->timestamp = (OS_Time) ret;
 #else
-  struct stat statbuf;
-  if (__gnat_stat (name, &statbuf) != 0) {
-     return (OS_Time)-1;
-  } else {
-#ifdef VMS
-     /* VMS has file versioning.  */
-     return (OS_Time)statbuf.st_ctime;
-#else
-     return (OS_Time)statbuf.st_mtime;
+      __gnat_stat_to_attr (-1, name, attr);
 #endif
   }
-#endif
+  return attr->timestamp;
+}
+
+OS_Time
+__gnat_file_time_name (char *name)
+{
+   struct file_attributes attr;
+   __gnat_reset_attributes (&attr);
+   return __gnat_file_time_name_attr (name, &attr);
 }
 
 /* Return a GNAT time stamp given a file descriptor.  */
 
 OS_Time
-__gnat_file_time_fd (int fd)
+__gnat_file_time_fd_attr (int fd, struct file_attributes* attr)
 {
-  /* The following workaround code is due to the fact that under EMX and
-     DJGPP fstat attempts to convert time values to GMT rather than keep the
-     actual OS timestamp of the file. By using the OS2/DOS functions directly
-     the GNAT timestamp are independent of this behavior, which is desired to
-     facilitate the distribution of GNAT compiled libraries.  */
+   if (attr->timestamp == (OS_Time)-2) {
+     /* The following workaround code is due to the fact that under EMX and
+        DJGPP fstat attempts to convert time values to GMT rather than keep the
+        actual OS timestamp of the file. By using the OS2/DOS functions directly
+        the GNAT timestamp are independent of this behavior, which is desired to
+        facilitate the distribution of GNAT compiled libraries.  */
 
 #if defined (__EMX__) || defined (MSDOS)
 #ifdef __EMX__
 
-  FILESTATUS fs;
-  int ret = DosQueryFileInfo (fd, 1, (unsigned char *) &fs,
-                                sizeof (FILESTATUS));
+     FILESTATUS fs;
+     int ret = DosQueryFileInfo (fd, 1, (unsigned char *) &fs,
+                                   sizeof (FILESTATUS));
 
-  unsigned file_year  = fs.fdateLastWrite.year;
-  unsigned file_month = fs.fdateLastWrite.month;
-  unsigned file_day   = fs.fdateLastWrite.day;
-  unsigned file_hour  = fs.ftimeLastWrite.hours;
-  unsigned file_min   = fs.ftimeLastWrite.minutes;
-  unsigned file_tsec  = fs.ftimeLastWrite.twosecs;
+     unsigned file_year  = fs.fdateLastWrite.year;
+     unsigned file_month = fs.fdateLastWrite.month;
+     unsigned file_day   = fs.fdateLastWrite.day;
+     unsigned file_hour  = fs.ftimeLastWrite.hours;
+     unsigned file_min   = fs.ftimeLastWrite.minutes;
+     unsigned file_tsec  = fs.ftimeLastWrite.twosecs;
 
 #else
-  struct ftime fs;
-  int ret = getftime (fd, &fs);
+     struct ftime fs;
+     int ret = getftime (fd, &fs);
 
-  unsigned file_year  = fs.ft_year;
-  unsigned file_month = fs.ft_month;
-  unsigned file_day   = fs.ft_day;
-  unsigned file_hour  = fs.ft_hour;
-  unsigned file_min   = fs.ft_min;
-  unsigned file_tsec  = fs.ft_tsec;
+     unsigned file_year  = fs.ft_year;
+     unsigned file_month = fs.ft_month;
+     unsigned file_day   = fs.ft_day;
+     unsigned file_hour  = fs.ft_hour;
+     unsigned file_min   = fs.ft_min;
+     unsigned file_tsec  = fs.ft_tsec;
 #endif
 
-  /* Calculate the seconds since epoch from the time components. First count
-     the whole days passed.  The value for years returned by the DOS and OS2
-     functions count years from 1980, so to compensate for the UNIX epoch which
-     begins in 1970 start with 10 years worth of days and add days for each
-     four year period since then.  */
+     /* Calculate the seconds since epoch from the time components. First count
+        the whole days passed.  The value for years returned by the DOS and OS2
+        functions count years from 1980, so to compensate for the UNIX epoch which
+        begins in 1970 start with 10 years worth of days and add days for each
+        four year period since then.  */
 
-  time_t tot_secs;
-  int cum_days[12] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
-  int days_passed = 3652 + (file_year / 4) * 1461;
-  int years_since_leap = file_year % 4;
+     time_t tot_secs;
+     int cum_days[12] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+     int days_passed = 3652 + (file_year / 4) * 1461;
+     int years_since_leap = file_year % 4;
 
-  if (years_since_leap == 1)
-    days_passed += 366;
-  else if (years_since_leap == 2)
-    days_passed += 731;
-  else if (years_since_leap == 3)
-    days_passed += 1096;
+     if (years_since_leap == 1)
+       days_passed += 366;
+     else if (years_since_leap == 2)
+       days_passed += 731;
+     else if (years_since_leap == 3)
+       days_passed += 1096;
 
-  if (file_year > 20)
-    days_passed -= 1;
+     if (file_year > 20)
+       days_passed -= 1;
 
-  days_passed += cum_days[file_month - 1];
-  if (years_since_leap == 0 && file_year != 20 && file_month > 2)
-    days_passed++;
+     days_passed += cum_days[file_month - 1];
+     if (years_since_leap == 0 && file_year != 20 && file_month > 2)
+       days_passed++;
 
-  days_passed += file_day - 1;
+     days_passed += file_day - 1;
 
-  /* OK - have whole days.  Multiply -- then add in other parts.  */
+     /* OK - have whole days.  Multiply -- then add in other parts.  */
 
-  tot_secs  = days_passed * 86400;
-  tot_secs += file_hour * 3600;
-  tot_secs += file_min * 60;
-  tot_secs += file_tsec * 2;
-  return (OS_Time) tot_secs;
+     tot_secs  = days_passed * 86400;
+     tot_secs += file_hour * 3600;
+     tot_secs += file_min * 60;
+     tot_secs += file_tsec * 2;
+     attr->timestamp = (OS_Time) tot_secs;
 
 #elif defined (_WIN32) && !defined (RTX)
-  HANDLE h = (HANDLE) _get_osfhandle (fd);
-  time_t ret = win32_filetime (h);
-  return (OS_Time) ret;
+     HANDLE h = (HANDLE) _get_osfhandle (fd);
+     time_t ret = win32_filetime (h);
+     attr->timestamp = (OS_Time) ret;
 
 #else
-  struct stat statbuf;
+     __gnat_stat_to_attr (fd, NULL, attr);
+#endif
+   }
 
-  if (fstat (fd, &statbuf) != 0) {
-     return (OS_Time) -1;
-  } else {
-#ifdef VMS
-     /* VMS has file versioning.  */
-     return (OS_Time) statbuf.st_ctime;
-#else
-     return (OS_Time) statbuf.st_mtime;
-#endif
-  }
-#endif
+   return attr->timestamp;
+}
+
+OS_Time
+__gnat_file_time_fd (int fd)
+{
+   struct file_attributes attr;
+   __gnat_reset_attributes (&attr);
+   return __gnat_file_time_fd_attr (fd, &attr);
 }
 
 /* Set the file time stamp.  */
@@ -1319,7 +1488,7 @@ __gnat_set_file_time_name (char *name, time_t time_stamp)
   } t_write;
   TCHAR wname[GNAT_MAX_PATH_LEN];
 
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN);
+  S2WSC (wname, name, GNAT_MAX_PATH_LEN);
 
   HANDLE h  = CreateFile
     (wname, GENERIC_WRITE, FILE_SHARE_WRITE, NULL,
@@ -1520,9 +1689,12 @@ __gnat_set_file_time_name (char *name, time_t time_stamp)
 char *
 __gnat_get_libraries_from_registry (void)
 {
-  char *result = (char *) "";
+  char *result = (char *) xmalloc (1);
 
-#if defined (_WIN32) && ! defined (__vxworks) && ! defined (CROSS_DIRECTORY_STRUCTURE) && ! defined (RTX)
+  result[0] = '\0';
+
+#if defined (_WIN32) && ! defined (__vxworks) && ! defined (IS_CROSS) \
+  && ! defined (RTX)
 
   HKEY reg_key;
   DWORD name_size, value_size;
@@ -1550,7 +1722,7 @@ __gnat_get_libraries_from_registry (void)
   for (index = 0; res == ERROR_SUCCESS; index++)
     {
       value_size = name_size = 256;
-      res = RegEnumValueA (reg_key, index, (TCHAR*)name, &name_size, 0,
+      res = RegEnumValueA (reg_key, index, name, &name_size, 0,
                            &type, (LPBYTE)value, &value_size);
 
       if (res == ERROR_SUCCESS && type == REG_SZ)
@@ -1561,6 +1733,7 @@ __gnat_get_libraries_from_registry (void)
           strcpy (result, old_result);
           strcat (result, value);
           strcat (result, ";");
+          free (old_result);
         }
     }
 
@@ -1573,16 +1746,20 @@ __gnat_get_libraries_from_registry (void)
 }
 
 int
-__gnat_stat (char *name, struct stat *statbuf)
+__gnat_stat (char *name, GNAT_STRUCT_STAT *statbuf)
 {
 #ifdef __MINGW32__
   /* Under Windows the directory name for the stat function must not be
-     terminated by a directory separator except if just after a drive name.  */
-  TCHAR wname [GNAT_MAX_PATH_LEN + 2];
-  int name_len;
-  TCHAR last_char;
+     terminated by a directory separator except if just after a drive name
+     or with UNC path without directory (only the name of the shared
+     resource), for example: \\computer\share\  */
 
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
+  TCHAR wname [GNAT_MAX_PATH_LEN + 2];
+  int name_len, k;
+  TCHAR last_char;
+  int dirsep_count = 0;
+
+  S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
   name_len = _tcslen (wname);
 
   if (name_len > GNAT_MAX_PATH_LEN)
@@ -1597,35 +1774,60 @@ __gnat_stat (char *name, struct stat *statbuf)
       last_char = wname[name_len - 1];
     }
 
+  /* Count back-slashes.  */
+
+  for (k=0; k<name_len; k++)
+    if (wname[k] == _T('\\') || wname[k] == _T('/'))
+      dirsep_count++;
+
   /* Only a drive letter followed by ':', we must add a directory separator
      for the stat routine to work properly.  */
-  if (name_len == 2 && wname[1] == _T(':'))
+  if ((name_len == 2 && wname[1] == _T(':'))
+      || (name_len > 3 && wname[0] == _T('\\') && wname[1] == _T('\\')
+	  && dirsep_count == 3))
     _tcscat (wname, _T("\\"));
 
-  return _tstat (wname, statbuf);
+  return _tstat (wname, (struct _stat *)statbuf);
 
 #else
-  return stat (name, statbuf);
+  return GNAT_STAT (name, statbuf);
 #endif
+}
+
+/*************************************************************************
+ ** Check whether a file exists
+ *************************************************************************/
+
+int
+__gnat_file_exists_attr (char* name, struct file_attributes* attr)
+{
+   if (attr->exists == ATTR_UNSET) {
+#ifdef __MINGW32__
+      /*  On Windows do not use __gnat_stat() because of a bug in Microsoft
+         _stat() routine. When the system time-zone is set with a negative
+         offset the _stat() routine fails on specific files like CON:  */
+      TCHAR wname [GNAT_MAX_PATH_LEN + 2];
+      S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
+      attr->exists = GetFileAttributes (wname) != INVALID_FILE_ATTRIBUTES;
+#else
+      __gnat_stat_to_attr (-1, name, attr);
+#endif
+   }
+
+   return attr->exists;
 }
 
 int
 __gnat_file_exists (char *name)
 {
-#ifdef __MINGW32__
-  /*  On Windows do not use __gnat_stat() because a bug in Microsoft
-  _stat() routine. When the system time-zone is set with a negative
-  offset the _stat() routine fails on specific files like CON:  */
-  TCHAR wname [GNAT_MAX_PATH_LEN + 2];
-
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
-  return GetFileAttributes (wname) != INVALID_FILE_ATTRIBUTES;
-#else
-  struct stat statbuf;
-
-  return !__gnat_stat (name, &statbuf);
-#endif
+   struct file_attributes attr;
+   __gnat_reset_attributes (&attr);
+   return __gnat_file_exists_attr (name, &attr);
 }
+
+/**********************************************************************
+ ** Whether name is an absolute path
+ **********************************************************************/
 
 int
 __gnat_is_absolute_path (char *name, int length)
@@ -1663,26 +1865,101 @@ __gnat_is_absolute_path (char *name, int length)
 }
 
 int
+__gnat_is_regular_file_attr (char* name, struct file_attributes* attr)
+{
+   if (attr->regular == ATTR_UNSET) {
+      __gnat_stat_to_attr (-1, name, attr);
+   }
+
+   return attr->regular;
+}
+
+int
 __gnat_is_regular_file (char *name)
 {
-  int ret;
-  struct stat statbuf;
+   struct file_attributes attr;
+   __gnat_reset_attributes (&attr);
+   return __gnat_is_regular_file_attr (name, &attr);
+}
 
-  ret = __gnat_stat (name, &statbuf);
-  return (!ret && S_ISREG (statbuf.st_mode));
+int
+__gnat_is_directory_attr (char* name, struct file_attributes* attr)
+{
+   if (attr->directory == ATTR_UNSET) {
+      __gnat_stat_to_attr (-1, name, attr);
+   }
+
+   return attr->directory;
 }
 
 int
 __gnat_is_directory (char *name)
 {
-  int ret;
-  struct stat statbuf;
-
-  ret = __gnat_stat (name, &statbuf);
-  return (!ret && S_ISDIR (statbuf.st_mode));
+   struct file_attributes attr;
+   __gnat_reset_attributes (&attr);
+   return __gnat_is_directory_attr (name, &attr);
 }
 
 #if defined (_WIN32) && !defined (RTX)
+
+/* Returns the same constant as GetDriveType but takes a pathname as
+   argument. */
+
+static UINT
+GetDriveTypeFromPath (TCHAR *wfullpath)
+{
+  TCHAR wdrv[MAX_PATH];
+  TCHAR wpath[MAX_PATH];
+  TCHAR wfilename[MAX_PATH];
+  TCHAR wext[MAX_PATH];
+
+  _tsplitpath (wfullpath, wdrv, wpath, wfilename, wext);
+
+  if (_tcslen (wdrv) != 0)
+    {
+      /* we have a drive specified. */
+      _tcscat (wdrv, _T("\\"));
+      return GetDriveType (wdrv);
+    }
+  else
+    {
+      /* No drive specified. */
+
+      /* Is this a relative path, if so get current drive type. */
+      if (wpath[0] != _T('\\') ||
+	  (_tcslen (wpath) > 2 && wpath[0] == _T('\\') && wpath[1] != _T('\\')))
+	return GetDriveType (NULL);
+
+      UINT result = GetDriveType (wpath);
+
+      /* Cannot guess the drive type, is this \\.\ ? */
+
+      if (result == DRIVE_NO_ROOT_DIR &&
+	 _tcslen (wpath) >= 4 && wpath[0] == _T('\\') && wpath[1] == _T('\\')
+	  && wpath[2] == _T('.') && wpath[3] == _T('\\'))
+	{
+	  if (_tcslen (wpath) == 4)
+	    _tcscat (wpath, wfilename);
+
+	  LPTSTR p = &wpath[4];
+	  LPTSTR b = _tcschr (p, _T('\\'));
+
+	  if (b != NULL)
+	    { /* logical drive \\.\c\dir\file */
+	      *b++ = _T(':');
+	      *b++ = _T('\\');
+	      *b = _T('\0');
+	    }
+	  else
+	    _tcscat (p, _T(":\\"));
+
+	  return GetDriveType (p);
+	}
+
+      return result;
+    }
+}
+
 /*  This MingW section contains code to work with ACL. */
 static int
 __gnat_check_OWNER_ACL
@@ -1694,8 +1971,8 @@ __gnat_check_OWNER_ACL
   PRIVILEGE_SET PrivilegeSet;
   DWORD dwPrivSetSize = sizeof (PRIVILEGE_SET);
   BOOL fAccessGranted = FALSE;
-  HANDLE hToken;
-  DWORD nLength;
+  HANDLE hToken = NULL;
+  DWORD nLength = 0;
   SECURITY_DESCRIPTOR* pSD = NULL;
 
   GetFileSecurity
@@ -1713,14 +1990,14 @@ __gnat_check_OWNER_ACL
       (wname, OWNER_SECURITY_INFORMATION |
        GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION,
        pSD, nLength, &nLength))
-    return 0;
+    goto error;
 
   if (!ImpersonateSelf (SecurityImpersonation))
-    return 0;
+    goto error;
 
   if (!OpenThreadToken
       (GetCurrentThread(), TOKEN_DUPLICATE | TOKEN_QUERY, FALSE, &hToken))
-    return 0;
+    goto error;
 
   /*  Undoes the effect of ImpersonateSelf. */
 
@@ -1741,9 +2018,17 @@ __gnat_check_OWNER_ACL
        &dwPrivSetSize,       /* size of PrivilegeSet buffer */
        &dwAccessAllowed,     /* receives mask of allowed access rights */
        &fAccessGranted))
-    return 0;
+    goto error;
 
+  CloseHandle (hToken);
+  HeapFree (GetProcessHeap (), 0, pSD);
   return fAccessGranted;
+
+ error:
+  if (hToken)
+    CloseHandle (hToken);
+  HeapFree (GetProcessHeap (), 0, pSD);
+  return 0;
 }
 
 static void
@@ -1752,9 +2037,9 @@ __gnat_set_OWNER_ACL
  DWORD AccessMode,
  DWORD AccessPermissions)
 {
-  ACL* pOldDACL = NULL;
-  ACL* pNewDACL = NULL;
-  SECURITY_DESCRIPTOR* pSD = NULL;
+  PACL pOldDACL = NULL;
+  PACL pNewDACL = NULL;
+  PSECURITY_DESCRIPTOR pSD = NULL;
   EXPLICIT_ACCESS ea;
   TCHAR username [100];
   DWORD unsize = 100;
@@ -1793,80 +2078,124 @@ __gnat_set_OWNER_ACL
   LocalFree (pSD);
   LocalFree (pNewDACL);
 }
+
+/* Check if it is possible to use ACL for wname, the file must not be on a
+   network drive. */
+
+static int
+__gnat_can_use_acl (TCHAR *wname)
+{
+  return __gnat_use_acl && GetDriveTypeFromPath (wname) != DRIVE_REMOTE;
+}
+
 #endif /* defined (_WIN32) && !defined (RTX) */
+
+int
+__gnat_is_readable_file_attr (char* name, struct file_attributes* attr)
+{
+   if (attr->readable == ATTR_UNSET) {
+#if defined (_WIN32) && !defined (RTX)
+     TCHAR wname [GNAT_MAX_PATH_LEN + 2];
+     GENERIC_MAPPING GenericMapping;
+
+     S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
+
+     if (__gnat_can_use_acl (wname))
+     {
+        ZeroMemory (&GenericMapping, sizeof (GENERIC_MAPPING));
+        GenericMapping.GenericRead = GENERIC_READ;
+        attr->readable = __gnat_check_OWNER_ACL (wname, FILE_READ_DATA, GenericMapping);
+     }
+     else
+        attr->readable = GetFileAttributes (wname) != INVALID_FILE_ATTRIBUTES;
+#else
+     __gnat_stat_to_attr (-1, name, attr);
+#endif
+   }
+
+   return attr->readable;
+}
 
 int
 __gnat_is_readable_file (char *name)
 {
+   struct file_attributes attr;
+   __gnat_reset_attributes (&attr);
+   return __gnat_is_readable_file_attr (name, &attr);
+}
+
+int
+__gnat_is_writable_file_attr (char* name, struct file_attributes* attr)
+{
+   if (attr->writable == ATTR_UNSET) {
 #if defined (_WIN32) && !defined (RTX)
-  TCHAR wname [GNAT_MAX_PATH_LEN + 2];
-  GENERIC_MAPPING GenericMapping;
+     TCHAR wname [GNAT_MAX_PATH_LEN + 2];
+     GENERIC_MAPPING GenericMapping;
 
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
+     S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
 
-  ZeroMemory (&GenericMapping, sizeof (GENERIC_MAPPING));
-  GenericMapping.GenericRead = GENERIC_READ;
+     if (__gnat_can_use_acl (wname))
+       {
+         ZeroMemory (&GenericMapping, sizeof (GENERIC_MAPPING));
+         GenericMapping.GenericWrite = GENERIC_WRITE;
 
-  return __gnat_check_OWNER_ACL (wname, FILE_READ_DATA, GenericMapping);
+         attr->writable = __gnat_check_OWNER_ACL
+   	     (wname, FILE_WRITE_DATA | FILE_APPEND_DATA, GenericMapping)
+   	     && !(GetFileAttributes (wname) & FILE_ATTRIBUTE_READONLY);
+       }
+     else
+       attr->writable = !(GetFileAttributes (wname) & FILE_ATTRIBUTE_READONLY);
+
 #else
-  int ret;
-  int mode;
-  struct stat statbuf;
-
-  ret = stat (name, &statbuf);
-  mode = statbuf.st_mode & S_IRUSR;
-  return (!ret && mode);
+     __gnat_stat_to_attr (-1, name, attr);
 #endif
+   }
+
+   return attr->writable;
 }
 
 int
 __gnat_is_writable_file (char *name)
 {
+   struct file_attributes attr;
+   __gnat_reset_attributes (&attr);
+   return __gnat_is_writable_file_attr (name, &attr);
+}
+
+int
+__gnat_is_executable_file_attr (char* name, struct file_attributes* attr)
+{
+   if (attr->executable == ATTR_UNSET) {
 #if defined (_WIN32) && !defined (RTX)
-  TCHAR wname [GNAT_MAX_PATH_LEN + 2];
-  GENERIC_MAPPING GenericMapping;
+     TCHAR wname [GNAT_MAX_PATH_LEN + 2];
+     GENERIC_MAPPING GenericMapping;
 
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
+     S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
 
-  ZeroMemory (&GenericMapping, sizeof (GENERIC_MAPPING));
-  GenericMapping.GenericWrite = GENERIC_WRITE;
+     if (__gnat_can_use_acl (wname))
+       {
+         ZeroMemory (&GenericMapping, sizeof (GENERIC_MAPPING));
+         GenericMapping.GenericExecute = GENERIC_EXECUTE;
 
-  return __gnat_check_OWNER_ACL
-    (wname, FILE_WRITE_DATA | FILE_APPEND_DATA, GenericMapping)
-    && !(GetFileAttributes (wname) & FILE_ATTRIBUTE_READONLY);
+         attr->executable = __gnat_check_OWNER_ACL (wname, FILE_EXECUTE, GenericMapping);
+       }
+     else
+       attr->executable = GetFileAttributes (wname) != INVALID_FILE_ATTRIBUTES
+         && _tcsstr (wname, _T(".exe")) - wname == (int) (_tcslen (wname) - 4);
 #else
-  int ret;
-  int mode;
-  struct stat statbuf;
-
-  ret = stat (name, &statbuf);
-  mode = statbuf.st_mode & S_IWUSR;
-  return (!ret && mode);
+     __gnat_stat_to_attr (-1, name, attr);
 #endif
+   }
+
+   return attr->executable;
 }
 
 int
 __gnat_is_executable_file (char *name)
 {
-#if defined (_WIN32) && !defined (RTX)
-  TCHAR wname [GNAT_MAX_PATH_LEN + 2];
-  GENERIC_MAPPING GenericMapping;
-
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
-
-  ZeroMemory (&GenericMapping, sizeof (GENERIC_MAPPING));
-  GenericMapping.GenericExecute = GENERIC_EXECUTE;
-
-  return __gnat_check_OWNER_ACL (wname, FILE_EXECUTE, GenericMapping);
-#else
-  int ret;
-  int mode;
-  struct stat statbuf;
-
-  ret = stat (name, &statbuf);
-  mode = statbuf.st_mode & S_IXUSR;
-  return (!ret && mode);
-#endif
+   struct file_attributes attr;
+   __gnat_reset_attributes (&attr);
+   return __gnat_is_executable_file_attr (name, &attr);
 }
 
 void
@@ -1875,15 +2204,17 @@ __gnat_set_writable (char *name)
 #if defined (_WIN32) && !defined (RTX)
   TCHAR wname [GNAT_MAX_PATH_LEN + 2];
 
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
+  S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
 
-  __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_WRITE);
+  if (__gnat_can_use_acl (wname))
+    __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_WRITE);
+
   SetFileAttributes
     (wname, GetFileAttributes (wname) & ~FILE_ATTRIBUTE_READONLY);
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (GNAT_STAT (name, &statbuf) == 0)
     {
       statbuf.st_mode = statbuf.st_mode | S_IWUSR;
       chmod (name, statbuf.st_mode);
@@ -1897,13 +2228,15 @@ __gnat_set_executable (char *name)
 #if defined (_WIN32) && !defined (RTX)
   TCHAR wname [GNAT_MAX_PATH_LEN + 2];
 
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
+  S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
 
-  __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_EXECUTE);
+  if (__gnat_can_use_acl (wname))
+    __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_EXECUTE);
+
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (GNAT_STAT (name, &statbuf) == 0)
     {
       statbuf.st_mode = statbuf.st_mode | S_IXUSR;
       chmod (name, statbuf.st_mode);
@@ -1917,18 +2250,20 @@ __gnat_set_non_writable (char *name)
 #if defined (_WIN32) && !defined (RTX)
   TCHAR wname [GNAT_MAX_PATH_LEN + 2];
 
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
+  S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
 
-  __gnat_set_OWNER_ACL
-    (wname, DENY_ACCESS,
-     FILE_WRITE_DATA | FILE_APPEND_DATA |
-     FILE_WRITE_EA | FILE_WRITE_ATTRIBUTES);
+  if (__gnat_can_use_acl (wname))
+    __gnat_set_OWNER_ACL
+      (wname, DENY_ACCESS,
+       FILE_WRITE_DATA | FILE_APPEND_DATA |
+       FILE_WRITE_EA | FILE_WRITE_ATTRIBUTES);
+
   SetFileAttributes
     (wname, GetFileAttributes (wname) | FILE_ATTRIBUTE_READONLY);
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (GNAT_STAT (name, &statbuf) == 0)
     {
       statbuf.st_mode = statbuf.st_mode & 07577;
       chmod (name, statbuf.st_mode);
@@ -1942,13 +2277,15 @@ __gnat_set_readable (char *name)
 #if defined (_WIN32) && !defined (RTX)
   TCHAR wname [GNAT_MAX_PATH_LEN + 2];
 
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
+  S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
 
-  __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_READ);
+  if (__gnat_can_use_acl (wname))
+    __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_READ);
+
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (GNAT_STAT (name, &statbuf) == 0)
     {
       chmod (name, statbuf.st_mode | S_IREAD);
     }
@@ -1961,13 +2298,15 @@ __gnat_set_non_readable (char *name)
 #if defined (_WIN32) && !defined (RTX)
   TCHAR wname [GNAT_MAX_PATH_LEN + 2];
 
-  S2WSU (wname, name, GNAT_MAX_PATH_LEN + 2);
+  S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
 
-  __gnat_set_OWNER_ACL (wname, DENY_ACCESS, FILE_GENERIC_READ);
+  if (__gnat_can_use_acl (wname))
+    __gnat_set_OWNER_ACL (wname, DENY_ACCESS, FILE_GENERIC_READ);
+
 #elif ! defined (__vxworks) && ! defined(__nucleus__)
-  struct stat statbuf;
+  GNAT_STRUCT_STAT statbuf;
 
-  if (stat (name, &statbuf) == 0)
+  if (GNAT_STAT (name, &statbuf) == 0)
     {
       chmod (name, statbuf.st_mode & (~S_IREAD));
     }
@@ -1975,21 +2314,31 @@ __gnat_set_non_readable (char *name)
 }
 
 int
-__gnat_is_symbolic_link (char *name ATTRIBUTE_UNUSED)
+__gnat_is_symbolic_link_attr (char* name, struct file_attributes* attr)
 {
+   if (attr->symbolic_link == ATTR_UNSET) {
 #if defined (__vxworks) || defined (__nucleus__)
-  return 0;
+      attr->symbolic_link = 0;
 
 #elif defined (_AIX) || defined (__APPLE__) || defined (__unix__)
-  int ret;
-  struct stat statbuf;
-
-  ret = lstat (name, &statbuf);
-  return (!ret && S_ISLNK (statbuf.st_mode));
-
+      int ret;
+      GNAT_STRUCT_STAT statbuf;
+      ret = GNAT_LSTAT (name, &statbuf);
+      attr->symbolic_link = (!ret && S_ISLNK (statbuf.st_mode));
 #else
-  return 0;
+      attr->symbolic_link = 0;
 #endif
+   }
+   return attr->symbolic_link;
+}
+
+int
+__gnat_is_symbolic_link (char *name ATTRIBUTE_UNUSED)
+{
+   struct file_attributes attr;
+   __gnat_reset_attributes (&attr);
+   return __gnat_is_symbolic_link_attr (name, &attr);
+
 }
 
 #if defined (sun) && defined (__SVR4)
@@ -2121,70 +2470,58 @@ extern void (*Unlock_Task) (void);
 
 #endif
 
-typedef struct _process_list
-{
-  HANDLE h;
-  struct _process_list *next;
-} Process_List;
-
-static Process_List *PLIST = NULL;
-
-static int plist_length = 0;
+static HANDLE *HANDLES_LIST = NULL;
+static int *PID_LIST = NULL, plist_length = 0, plist_max_length = 0;
 
 static void
 add_handle (HANDLE h)
 {
-  Process_List *pl;
-
-  pl = (Process_List *) xmalloc (sizeof (Process_List));
 
   /* -------------------- critical section -------------------- */
   (*Lock_Task) ();
 
-  pl->h = h;
-  pl->next = PLIST;
-  PLIST = pl;
+  if (plist_length == plist_max_length)
+    {
+      plist_max_length += 1000;
+      HANDLES_LIST =
+        xrealloc (HANDLES_LIST, sizeof (HANDLE) * plist_max_length);
+      PID_LIST =
+        xrealloc (PID_LIST, sizeof (int) * plist_max_length);
+    }
+
+  HANDLES_LIST[plist_length] = h;
+  PID_LIST[plist_length] = GetProcessId (h);
   ++plist_length;
 
   (*Unlock_Task) ();
   /* -------------------- critical section -------------------- */
 }
 
-static void
-remove_handle (HANDLE h)
+void
+__gnat_win32_remove_handle (HANDLE h, int pid)
 {
-  Process_List *pl;
-  Process_List *prev = NULL;
+  int j;
 
   /* -------------------- critical section -------------------- */
   (*Lock_Task) ();
 
-  pl = PLIST;
-  while (pl)
+  for (j = 0; j < plist_length; j++)
     {
-      if (pl->h == h)
+      if ((HANDLES_LIST[j] == h) || (PID_LIST[j] == pid))
         {
-          if (pl == PLIST)
-	    PLIST = pl->next;
-          else
-	    prev->next = pl->next;
-          free (pl);
+          CloseHandle (h);
+          --plist_length;
+          HANDLES_LIST[j] = HANDLES_LIST[plist_length];
+          PID_LIST[j] = PID_LIST[plist_length];
           break;
         }
-      else
-        {
-          prev = pl;
-          pl = pl->next;
-        }
     }
-
-  --plist_length;
 
   (*Unlock_Task) ();
   /* -------------------- critical section -------------------- */
 }
 
-static int
+static HANDLE
 win32_no_block_spawn (char *command, char *args[])
 {
   BOOL result;
@@ -2236,7 +2573,7 @@ win32_no_block_spawn (char *command, char *args[])
     int wsize = csize * 2;
     TCHAR *wcommand = (TCHAR *) xmalloc (wsize);
 
-    S2WSU (wcommand, full_command, wsize);
+    S2WSC (wcommand, full_command, wsize);
 
     free (full_command);
 
@@ -2249,23 +2586,21 @@ win32_no_block_spawn (char *command, char *args[])
 
   if (result == TRUE)
     {
-      add_handle (PI.hProcess);
       CloseHandle (PI.hThread);
-      return (int) PI.hProcess;
+      return PI.hProcess;
     }
   else
-    return -1;
+    return NULL;
 }
 
 static int
 win32_wait (int *status)
 {
-  DWORD exitcode;
+  DWORD exitcode, pid;
   HANDLE *hl;
   HANDLE h;
   DWORD res;
   int k;
-  Process_List *pl;
   int hl_len;
 
   if (plist_length == 0)
@@ -2283,27 +2618,22 @@ win32_wait (int *status)
 
   hl = (HANDLE *) xmalloc (sizeof (HANDLE) * hl_len);
 
-  pl = PLIST;
-  while (pl)
-    {
-      hl[k++] = pl->h;
-      pl = pl->next;
-    }
+  memmove (hl, HANDLES_LIST, sizeof (HANDLE) * hl_len);
 
   (*Unlock_Task) ();
   /* -------------------- critical section -------------------- */
 
   res = WaitForMultipleObjects (hl_len, hl, FALSE, INFINITE);
   h = hl[res - WAIT_OBJECT_0];
-  free (hl);
-
-  remove_handle (h);
 
   GetExitCodeProcess (h, &exitcode);
-  CloseHandle (h);
+  pid = GetProcessId (h);
+  __gnat_win32_remove_handle (h, -1);
+
+  free (hl);
 
   *status = (int) exitcode;
-  return (int) h;
+  return (int) pid;
 }
 
 #endif
@@ -2311,7 +2641,6 @@ win32_wait (int *status)
 int
 __gnat_portable_no_block_spawn (char *args[])
 {
-  int pid = 0;
 
 #if defined (__vxworks) || defined (__nucleus__) || defined (RTX)
   return -1;
@@ -2331,11 +2660,20 @@ __gnat_portable_no_block_spawn (char *args[])
 
 #elif defined (_WIN32)
 
-  pid = win32_no_block_spawn (args[0], args);
-  return pid;
+  HANDLE h = NULL;
+
+  h = win32_no_block_spawn (args[0], args);
+  if (h != NULL)
+    {
+      add_handle (h);
+      return GetProcessId (h);
+    }
+  else
+    return -1;
 
 #else
-  pid = fork ();
+
+  int pid = fork ();
 
   if (pid == 0)
     {
@@ -2348,9 +2686,9 @@ __gnat_portable_no_block_spawn (char *args[])
 #endif
     }
 
-#endif
-
   return pid;
+
+  #endif
 }
 
 int
@@ -2532,7 +2870,7 @@ __gnat_locate_exec_on_path (char *exec_name)
 
   apath_val = alloca (EXPAND_BUFFER_SIZE);
 
-  WS2SU (apath_val, wapath_val, EXPAND_BUFFER_SIZE);
+  WS2SC (apath_val, wapath_val, EXPAND_BUFFER_SIZE);
   return __gnat_locate_exec (exec_name, apath_val);
 
 #else
@@ -3061,7 +3399,8 @@ __gnat_to_canonical_file_list_init
 char *
 __gnat_to_canonical_file_list_next (void)
 {
-  return (char *) "";
+  static char *empty = "";
+  return empty;
 }
 
 void
@@ -3122,13 +3461,14 @@ _flush_cache()
 }
 #endif
 
-#if defined (CROSS_DIRECTORY_STRUCTURE)  \
+#if defined (IS_CROSS)  \
   || (! ((defined (sparc) || defined (i386)) && defined (sun) \
       && defined (__SVR4)) \
       && ! (defined (linux) && (defined (i386) || defined (__x86_64__))) \
       && ! (defined (linux) && defined (__ia64__)) \
       && ! (defined (linux) && defined (powerpc)) \
       && ! defined (__FreeBSD__) \
+      && ! defined (__Lynx__) \
       && ! defined (__hpux__) \
       && ! defined (__APPLE__) \
       && ! defined (_AIX) \
@@ -3193,11 +3533,68 @@ __gnat_copy_attribs (char *from, char *to, int mode)
 {
 #if defined (VMS) || defined (__vxworks) || defined (__nucleus__)
   return -1;
+
+#elif defined (_WIN32) && !defined (RTX)
+  TCHAR wfrom [GNAT_MAX_PATH_LEN + 2];
+  TCHAR wto [GNAT_MAX_PATH_LEN + 2];
+  BOOL res;
+  FILETIME fct, flat, flwt;
+  HANDLE hfrom, hto;
+
+  S2WSC (wfrom, from, GNAT_MAX_PATH_LEN + 2);
+  S2WSC (wto, to, GNAT_MAX_PATH_LEN + 2);
+
+  /* retrieve from times */
+
+  hfrom = CreateFile
+    (wfrom, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+  if (hfrom == INVALID_HANDLE_VALUE)
+    return -1;
+
+  res = GetFileTime (hfrom, &fct, &flat, &flwt);
+
+  CloseHandle (hfrom);
+
+  if (res == 0)
+    return -1;
+
+  /* retrieve from times */
+
+  hto = CreateFile
+    (wto, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+  if (hto == INVALID_HANDLE_VALUE)
+    return -1;
+
+  res = SetFileTime (hto, NULL, &flat, &flwt);
+
+  CloseHandle (hto);
+
+  if (res == 0)
+    return -1;
+
+  /* Set file attributes in full mode. */
+
+  if (mode == 1)
+    {
+      DWORD attribs = GetFileAttributes (wfrom);
+
+      if (attribs == INVALID_FILE_ATTRIBUTES)
+	return -1;
+
+      res = SetFileAttributes (wto, attribs);
+      if (res == 0)
+	return -1;
+    }
+
+  return 0;
+
 #else
-  struct stat fbuf;
+  GNAT_STRUCT_STAT fbuf;
   struct utimbuf tbuf;
 
-  if (stat (from, &fbuf) == -1)
+  if (GNAT_STAT (from, &fbuf) == -1)
     {
       return -1;
     }
@@ -3258,7 +3655,7 @@ __gnat_set_close_on_exec (int fd ATTRIBUTE_UNUSED,
     return -1;
   if (close_on_exec_p)
     return ! SetHandleInformation (h, HANDLE_FLAG_INHERIT, 0);
-  return ! SetHandleInformation (h, HANDLE_FLAG_INHERIT, 
+  return ! SetHandleInformation (h, HANDLE_FLAG_INHERIT,
     HANDLE_FLAG_INHERIT);
 #else
   /* TODO: Unimplemented. */
@@ -3269,7 +3666,7 @@ __gnat_set_close_on_exec (int fd ATTRIBUTE_UNUSED,
 /* Indicates if platforms supports automatic initialization through the
    constructor mechanism */
 int
-__gnat_binder_supports_auto_init ()
+__gnat_binder_supports_auto_init (void)
 {
 #ifdef VMS
    return 0;
@@ -3281,7 +3678,7 @@ __gnat_binder_supports_auto_init ()
 /* Indicates that Stand-Alone Libraries are automatically initialized through
    the constructor mechanism */
 int
-__gnat_sals_init_using_constructors ()
+__gnat_sals_init_using_constructors (void)
 {
 #if defined (__vxworks) || defined (__Lynx__) || defined (VMS)
    return 0;
@@ -3344,4 +3741,15 @@ __gnat_pthread_setaffinity_np (pthread_t th ATTRIBUTE_UNUSED,
   return 0;
 }
 #endif
+#endif
+
+#if defined (linux)
+/* There is no function in the glibc to retrieve the LWP of the current
+   thread. We need to do a system call in order to retrieve this
+   information. */
+#include <sys/syscall.h>
+void *__gnat_lwp_self (void)
+{
+   return (void *) syscall (__NR_gettid);
+}
 #endif

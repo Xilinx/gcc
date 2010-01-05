@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,6 +31,10 @@ with Sinfo.CN; use Sinfo.CN;
 
 separate (Par)
 
+---------
+-- Ch3 --
+---------
+
 package body Ch3 is
 
    -----------------------
@@ -54,6 +58,24 @@ package body Ch3 is
    function P_Modular_Type_Definition                      return Node_Id;
    function P_Variant                                      return Node_Id;
    function P_Variant_Part                                 return Node_Id;
+
+   procedure Check_Restricted_Expression (N : Node_Id);
+   --  Check that the expression N meets the Restricted_Expression syntax.
+   --  The syntax is as follows:
+   --
+   --    RESTRICTED_EXPRESSION ::=
+   --        RESTRICTED_RELATION {and RESTRICTED_RELATION}
+   --      | RESTRICTED_RELATION {and then RESTRICTED_RELATION}
+   --      | RESTRICTED_RELATION {or RESTRICTED_RELATION}
+   --      | RESTRICTED_RELATION {or else RESTRICTED_RELATION}
+   --      | RESTRICTED_RELATION {xor RESTRICTED_RELATION}
+   --
+   --    RESTRICTED_RELATION ::=
+   --       SIMPLE_EXPRESSION [RELATIONAL_OPERATOR SIMPLE_EXPRESSION]
+   --
+   --  This syntax is used for choices when extensions (and set notations)
+   --  are enabled, to remove the ambiguity of "when X in A | B". We consider
+   --  it very unlikely that this will ever arise in practice.
 
    procedure P_Declarative_Items
      (Decls   : List_Id;
@@ -88,6 +110,27 @@ package body Ch3 is
    --  Posts a "declaration expected" error messages at the start of the
    --  current token, and if this is the first such message issued, saves
    --  the message id in Missing_Begin_Msg, for possible later replacement.
+
+
+   ---------------------------------
+   -- Check_Restricted_Expression --
+   ---------------------------------
+
+   procedure Check_Restricted_Expression (N : Node_Id) is
+   begin
+      if Nkind_In (N, N_Op_And, N_Op_Or, N_Op_Xor, N_And_Then, N_Or_Else) then
+         Check_Restricted_Expression (Left_Opnd (N));
+         Check_Restricted_Expression (Right_Opnd (N));
+
+      elsif Nkind_In (N, N_In, N_Not_In)
+        and then Paren_Count (N) = 0
+      then
+         Error_Msg_N
+           ("|this expression must be parenthesized!", N);
+         Error_Msg_N
+           ("\|since extensions (and set notation) are allowed", N);
+      end if;
+   end Check_Restricted_Expression;
 
    -------------------
    -- Init_Expr_Opt --
@@ -541,7 +584,8 @@ package body Ch3 is
                end if;
 
                if Token = Tok_Abstract then
-                  Error_Msg_SC ("ABSTRACT must come before TAGGED");
+                  Error_Msg_SC -- CODEFIX
+                    ("ABSTRACT must come before TAGGED");
                   Abstract_Present := True;
                   Abstract_Loc := Token_Ptr;
                   Scan; -- past ABSTRACT
@@ -606,11 +650,13 @@ package body Ch3 is
 
                loop
                   if Token = Tok_Tagged then
-                     Error_Msg_SC ("TAGGED must come before LIMITED");
+                     Error_Msg_SC -- CODEFIX
+                       ("TAGGED must come before LIMITED");
                      Scan; -- past TAGGED
 
                   elsif Token = Tok_Abstract then
-                     Error_Msg_SC ("ABSTRACT must come before LIMITED");
+                     Error_Msg_SC -- CODEFIX
+                       ("ABSTRACT must come before LIMITED");
                      Scan; -- past ABSTRACT
 
                   else
@@ -763,7 +809,16 @@ package body Ch3 is
                      Typedef_Node := P_Derived_Type_Def_Or_Private_Ext_Decl;
 
                      if Saved_Token = Tok_Synchronized then
-                        Set_Synchronized_Present (Typedef_Node);
+                        if Nkind (Typedef_Node) =
+                          N_Derived_Type_Definition
+                        then
+                           Error_Msg_N
+                             ("SYNCHRONIZED not allowed for record extension",
+                              Typedef_Node);
+                        else
+                           Set_Synchronized_Present (Typedef_Node);
+                        end if;
+
                      else
                         Error_Msg_SC ("invalid kind of private extension");
                      end if;
@@ -1517,7 +1572,8 @@ package body Ch3 is
                end if;
 
                if Token = Tok_Aliased then
-                  Error_Msg_SC ("ALIASED should be before CONSTANT");
+                  Error_Msg_SC -- CODEFIX
+                    ("ALIASED should be before CONSTANT");
                   Scan; -- past ALIASED
                   Set_Aliased_Present (Decl_Node, True);
                end if;
@@ -1879,7 +1935,8 @@ package body Ch3 is
       end if;
 
       if Token = Tok_Abstract then
-         Error_Msg_SC ("ABSTRACT must come before NEW, not after");
+         Error_Msg_SC -- CODEFIX
+           ("ABSTRACT must come before NEW, not after");
          Scan;
       end if;
 
@@ -2043,10 +2100,13 @@ package body Ch3 is
 
    --  Error recovery: cannot raise Error_Resync
 
-   function P_Range_Or_Subtype_Mark return Node_Id is
+   function P_Range_Or_Subtype_Mark
+     (Allow_Simple_Expression : Boolean := False) return Node_Id
+   is
       Expr_Node  : Node_Id;
       Range_Node : Node_Id;
       Save_Loc   : Source_Ptr;
+
 
    --  Start of processing for P_Range_Or_Subtype_Mark
 
@@ -2057,7 +2117,8 @@ package body Ch3 is
 
       --  Scan out either a simple expression or a range (this accepts more
       --  than is legal here, but as explained above, we like to allow more
-      --  with a proper diagnostic.
+      --  with a proper diagnostic, and in the case of a membership operation
+      --  where sets are allowed, a simple expression is permissible anyway.
 
       Expr_Node := P_Simple_Expression_Or_Range_Attribute;
 
@@ -2297,7 +2358,8 @@ package body Ch3 is
       --  Handle decimal fixed-point defn with DIGITS/DELTA in wrong order
 
       if Token = Tok_Delta then
-         Error_Msg_SC ("|DELTA must come before DIGITS");
+         Error_Msg_SC -- CODEFIX
+           ("|DELTA must come before DIGITS");
          Def_Node := New_Node (N_Decimal_Fixed_Point_Definition, Digits_Loc);
          Scan; -- past DELTA
          Set_Delta_Expression (Def_Node, P_Expression_No_Right_Paren);
@@ -3540,7 +3602,6 @@ package body Ch3 is
 
    begin
       Choices := New_List;
-
       loop
          if Token = Tok_Others then
             Append (New_Node (N_Others_Choice, Token_Ptr), Choices);
@@ -3548,6 +3609,8 @@ package body Ch3 is
 
          else
             begin
+               --  Scan out expression or range attribute
+
                Expr_Node := P_Expression_Or_Range_Attribute;
                Ignore (Tok_Right_Paren);
 
@@ -3557,8 +3620,12 @@ package body Ch3 is
                   Error_Msg_SP ("label not permitted in this context");
                   Scan; -- past colon
 
+               --  Range attribute
+
                elsif Expr_Form = EF_Range_Attr then
                   Append (Expr_Node, Choices);
+
+               --  Explicit range
 
                elsif Token = Tok_Dot_Dot then
                   Check_Simple_Expression (Expr_Node);
@@ -3570,14 +3637,16 @@ package body Ch3 is
                   Set_High_Bound (Choice_Node, Expr_Node);
                   Append (Choice_Node, Choices);
 
+               --  Simple name, must be subtype, so range allowed
+
                elsif Expr_Form = EF_Simple_Name then
                   if Token = Tok_Range then
                      Append (P_Subtype_Indication (Expr_Node), Choices);
 
                   elsif Token in Token_Class_Consk then
                      Error_Msg_SC
-                        ("the only constraint allowed here " &
-                         "is a range constraint");
+                       ("the only constraint allowed here " &
+                        "is a range constraint");
                      Discard_Junk_Node (P_Constraint_Opt);
                      Append (Expr_Node, Choices);
 
@@ -3585,8 +3654,39 @@ package body Ch3 is
                      Append (Expr_Node, Choices);
                   end if;
 
+               --  Expression
+
                else
-                  Check_Simple_Expression_In_Ada_83 (Expr_Node);
+                  --  If extensions are permitted then the expression must be a
+                  --  simple expression. The resaon for this restriction (i.e.
+                  --  going back to the Ada 83 rule) is to avoid ambiguities
+                  --  when set membership operations are allowed, consider the
+                  --  following:
+
+                  --     when A in 1 .. 10 | 12 =>
+
+                  --  This is ambiguous without parentheses, so we require one
+                  --  of the following two parenthesized forms to disambuguate:
+
+                  --  one of the following:
+
+                  --     when (A in 1 .. 10 | 12) =>
+                  --     when (A in 1 .. 10) | 12 =>
+
+                  --  To solve this, if extensins are enabled, we disallow
+                  --  the use of membership operations in expressions in
+                  --  choices. Technically in the grammar, the expression
+                  --  must match the grammar for restricted expression.
+
+                  if Extensions_Allowed then
+                     Check_Restricted_Expression (Expr_Node);
+
+                  --  In Ada 83 mode, the syntax required a simple expression
+
+                  else
+                     Check_Simple_Expression_In_Ada_83 (Expr_Node);
+                  end if;
+
                   Append (Expr_Node, Choices);
                end if;
 
@@ -3782,7 +3882,8 @@ package body Ch3 is
          Scan; -- past PROTECTED
 
          if Token /= Tok_Procedure and then Token /= Tok_Function then
-            Error_Msg_SC ("FUNCTION or PROCEDURE expected");
+            Error_Msg_SC -- CODEFIX
+              ("FUNCTION or PROCEDURE expected");
          end if;
       end if;
 
@@ -3827,13 +3928,14 @@ package body Ch3 is
          else
             Result_Node := P_Subtype_Mark;
             No_Constraint;
-         end if;
 
-         --  Note: A null exclusion given on the result type needs to
-         --  be coded by a distinct flag, since Null_Exclusion_Present
-         --  on an access-to-function type pertains to a null exclusion
-         --  on the access type itself (as set above). ???
-         --  Set_Null_Exclusion_Present??? (Type_Def_Node, Result_Not_Null);
+            --  A null exclusion on the result type must be recorded in a flag
+            --  distinct from the one used for the access-to-subprogram type's
+            --  null exclusion.
+
+            Set_Null_Exclusion_In_Return_Present
+              (Type_Def_Node, Result_Not_Null);
+         end if;
 
          Set_Result_Definition (Type_Def_Node, Result_Node);
 

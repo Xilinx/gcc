@@ -149,6 +149,10 @@ for (i = 0; i < n_opts; i++) {
 		flags[i + 1] = flags[i] " " flags[i + 1];
 		if (help[i + 1] == "")
 			help[i + 1] = help[i]
+		else if (help[i] != "" && help[i + 1] != help[i])
+			print "warning: multiple different help strings for " \
+				opts[i] ":\n\t" help[i] "\n\t" help[i + 1] \
+				| "cat 1>&2"
 		i++;
 		back_chain[i] = "N_OPTS";
 		indices[opts[i]] = j;
@@ -323,6 +327,7 @@ for (i = 0; i < n_opt_char; i++) {
 	print "  " var_opt_char[i] " = ptr->" var_opt_char[i] ";";
 }
 
+print "  targetm.override_options_after_change ();";
 print "}";
 
 print "";

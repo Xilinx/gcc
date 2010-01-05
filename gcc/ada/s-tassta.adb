@@ -36,6 +36,7 @@ pragma Polling (Off);
 with Ada.Exceptions;
 with Ada.Unchecked_Deallocation;
 
+with System.Interrupt_Management;
 with System.Tasking.Debug;
 with System.Address_Image;
 with System.Task_Primitives;
@@ -282,11 +283,10 @@ package body System.Tasking.Stages is
             Write_Lock (P);
             Write_Lock (C);
 
-            if C.Common.Base_Priority < Get_Priority (Self_ID) then
-               Activate_Prio := Get_Priority (Self_ID);
-            else
-               Activate_Prio := C.Common.Base_Priority;
-            end if;
+            Activate_Prio :=
+              (if C.Common.Base_Priority < Get_Priority (Self_ID)
+               then Get_Priority (Self_ID)
+               else C.Common.Base_Priority);
 
             System.Task_Primitives.Operations.Create_Task
               (C, Task_Wrapper'Address,
@@ -300,7 +300,7 @@ package body System.Tasking.Stages is
             --  racing ahead.
 
             if Success then
-               C.Common.State := Runnable;
+               C.Common.State := Activating;
                C.Awake_Count := 1;
                C.Alive_Count := 1;
                P.Awake_Count := P.Awake_Count + 1;
@@ -312,6 +312,21 @@ package body System.Tasking.Stages is
                   pragma Assert (Self_ID /= P);
                   P.Common.Wait_Count := P.Common.Wait_Count + 1;
                end if;
+
+               for J in System.Tasking.Debug.Known_Tasks'Range loop
+                  if System.Tasking.Debug.Known_Tasks (J) = null then
+                     System.Tasking.Debug.Known_Tasks (J) := C;
+                     C.Known_Tasks_Index := J;
+                     exit;
+                  end if;
+               end loop;
+
+               if Global_Task_Debug_Event_Set then
+                  Debug.Signal_Debug_Event
+                   (Debug.Debug_Event_Activating, C);
+               end if;
+
+               C.Common.State := Runnable;
 
                Unlock (C);
                Unlock (P);
@@ -500,14 +515,12 @@ package body System.Tasking.Stages is
          raise Program_Error with "potentially blocking operation";
       end if;
 
-      pragma Debug
-        (Debug.Trace (Self_ID, "Create_Task", 'C'));
+      pragma Debug (Debug.Trace (Self_ID, "Create_Task", 'C'));
 
-      if Priority = Unspecified_Priority then
-         Base_Priority := Self_ID.Common.Base_Priority;
-      else
-         Base_Priority := System.Any_Priority (Priority);
-      end if;
+      Base_Priority :=
+        (if Priority = Unspecified_Priority
+         then Self_ID.Common.Base_Priority
+         else System.Any_Priority (Priority));
 
       --  Find parent P of new Task, via master level number
 
@@ -575,6 +588,7 @@ package body System.Tasking.Stages is
          --  confused when waiting for these tasks to terminate.
 
          T.Master_of_Task := Library_Task_Level;
+
       else
          T.Master_of_Task := Master;
       end if;
@@ -607,13 +621,17 @@ package body System.Tasking.Stages is
          T.Common.Task_Image_Len := Len;
       end if;
 
+      Unlock (Self_ID);
+      Unlock_RTS;
+
+      --  Note: we should not call 'new' while holding locks since new
+      --  may use locks (e.g. RTS_Lock under Windows) itself and cause a
+      --  deadlock.
+
       if Build_Entry_Names then
          T.Entry_Names :=
            new Entry_Names_Array (1 .. Entry_Index (Num_Entries));
       end if;
-
-      Unlock (Self_ID);
-      Unlock_RTS;
 
       --  Create TSD as early as possible in the creation of a task, since it
       --  may be used by the operation of Ada code within the task.
@@ -722,6 +740,15 @@ package body System.Tasking.Stages is
       Ignore  : Boolean;
       pragma Unreferenced (Ignore);
 
+      function State
+        (Int : System.Interrupt_Management.Interrupt_ID) return Character;
+      pragma Import (C, State, "__gnat_get_interrupt_state");
+      --  Get interrupt state for interrupt number Int. Defined in init.c
+
+      Default : constant Character := 's';
+      --    's'   Interrupt_State pragma set state to System (use "default"
+      --           system handler)
+
    begin
       if Self_ID.Deferral_Level = 0 then
          --  ???
@@ -764,17 +791,26 @@ package body System.Tasking.Stages is
 
       Write_Lock (Self_ID);
 
-      loop
-         exit when Utilities.Independent_Task_Count = 0;
+      --  If the Abort_Task signal is set to system, it means that we may not
+      --  have been able to abort all independent tasks (in particular
+      --  Server_Task may be blocked, waiting for a signal), in which case,
+      --  do not wait for Independent_Task_Count to go down to 0.
 
-         --  We used to yield here, but this did not take into account low
-         --  priority tasks that would cause dead lock in some cases (true
-         --  FIFO scheduling).
+      if State
+          (System.Interrupt_Management.Abort_Task_Interrupt) /= Default
+      then
+         loop
+            exit when Utilities.Independent_Task_Count = 0;
 
-         Timed_Sleep
-           (Self_ID, 0.01, System.OS_Primitives.Relative,
-            Self_ID.Common.State, Ignore, Ignore);
-      end loop;
+            --  We used to yield here, but this did not take into account low
+            --  priority tasks that would cause dead lock in some cases (true
+            --  FIFO scheduling).
+
+            Timed_Sleep
+              (Self_ID, 0.01, System.OS_Primitives.Relative,
+               Self_ID.Common.State, Ignore, Ignore);
+         end loop;
+      end if;
 
       --  ??? On multi-processor environments, it seems that the above loop
       --  isn't sufficient, so we need to add an additional delay.
@@ -923,7 +959,7 @@ package body System.Tasking.Stages is
       Initialization.Undefer_Abort (Self_ID);
    end Move_Activation_Chain;
 
-   --  Compiler interface only. Do not call from within the RTS.
+   --  Compiler interface only. Do not call from within the RTS
 
    --------------------
    -- Set_Entry_Name --
@@ -1057,11 +1093,10 @@ package body System.Tasking.Stages is
 
       --  Assume a size of the stack taken at this stage
 
-      if Size < Small_Stack_Limit then
-         Overflow_Guard := Small_Overflow_Guard;
-      else
-         Overflow_Guard := Big_Overflow_Guard;
-      end if;
+      Overflow_Guard :=
+        (if Size < Small_Stack_Limit
+         then Small_Overflow_Guard
+         else Big_Overflow_Guard);
 
       if not Parameters.Sec_Stack_Dynamic then
          Self_ID.Common.Compiler_Data.Sec_Stack_Addr :=
@@ -1096,8 +1131,7 @@ package body System.Tasking.Stages is
       Stack_Guard (Self_ID, True);
 
       --  Initialize low-level TCB components, that cannot be initialized by
-      --  the creator. Enter_Task sets Self_ID.Known_Tasks_Index and also
-      --  Self_ID.LL.Thread
+      --  the creator. Enter_Task sets Self_ID.LL.Thread
 
       Enter_Task (Self_ID);
 
@@ -1128,6 +1162,11 @@ package body System.Tasking.Stages is
          --  proceed successfully.
 
          Self_ID.Deferral_Level := 0;
+      end if;
+
+      if Global_Task_Debug_Event_Set then
+         Debug.Signal_Debug_Event
+          (Debug.Debug_Event_Run, Self_ID);
       end if;
 
       begin
@@ -1168,8 +1207,18 @@ package body System.Tasking.Stages is
 
             if Self_ID.Terminate_Alternative then
                Cause := Normal;
+
+               if Global_Task_Debug_Event_Set then
+                  Debug.Signal_Debug_Event
+                   (Debug.Debug_Event_Terminated, Self_ID);
+               end if;
             else
                Cause := Abnormal;
+
+               if Global_Task_Debug_Event_Set then
+                  Debug.Signal_Debug_Event
+                   (Debug.Debug_Event_Abort_Terminated, Self_ID);
+               end if;
             end if;
          when others =>
             --  ??? Using an E : others here causes CD2C11A to fail on Tru64
@@ -1194,7 +1243,13 @@ package body System.Tasking.Stages is
             --  procedure, as well as the associated Exception_Occurrence.
 
             Cause := Unhandled_Exception;
+
             Save_Occurrence (EO, SSL.Get_Current_Excep.all.all);
+
+            if Global_Task_Debug_Event_Set then
+               Debug.Signal_Debug_Event
+                 (Debug.Debug_Event_Exception_Terminated, Self_ID);
+            end if;
       end;
 
       --  Look for a task termination handler. This code is for all tasks but
@@ -1388,6 +1443,9 @@ package body System.Tasking.Stages is
       --  unwound. The common notification routine has been called at the
       --  raise point already.
 
+      --  Lock to prevent unsynchronized output
+
+      Initialization.Task_Lock (Self_Id);
       To_Stderr ("task ");
 
       if Self_Id.Common.Task_Image_Len /= 0 then
@@ -1400,6 +1458,7 @@ package body System.Tasking.Stages is
       To_Stderr (" terminated by unhandled exception");
       To_Stderr ((1 => ASCII.LF));
       To_Stderr (Tailored_Exception_Information (Excep.all));
+      Initialization.Task_Unlock (Self_Id);
    end Trace_Unhandled_Exception_In_Task;
 
    ------------------------------------
@@ -1767,10 +1826,10 @@ package body System.Tasking.Stages is
          T := To_Be_Freed;
          To_Be_Freed := T.Common.All_Tasks_Link;
 
-         --  ??? On SGI there is currently no Interrupt_Manager, that's
-         --  why we need to check if the Interrupt_Manager_ID is null
+         --  ??? On SGI there is currently no Interrupt_Manager, that's why we
+         --  need to check if the Interrupt_Manager_ID is null.
 
-         if T.Interrupt_Entry and Interrupt_Manager_ID /= null then
+         if T.Interrupt_Entry and then Interrupt_Manager_ID /= null then
             declare
                Detach_Interrupt_Entries_Index : constant Task_Entry_Index := 1;
                --  Corresponds to the entry index of System.Interrupts.

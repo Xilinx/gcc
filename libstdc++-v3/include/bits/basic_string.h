@@ -197,12 +197,17 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 	void
 	_M_set_length_and_sharable(size_type __n)
-	{ 
-	  this->_M_set_sharable();  // One reference.
-	  this->_M_length = __n;
-	  traits_type::assign(this->_M_refdata()[__n], _S_terminal);
-	  // grrr. (per 21.3.4)
-	  // You cannot leave those LWG people alone for a second.
+	{
+#ifndef _GLIBCXX_FULLY_DYNAMIC_STRING
+	  if (__builtin_expect(this != &_S_empty_rep(), false))
+#endif
+	    {
+	      this->_M_set_sharable();  // One reference.
+	      this->_M_length = __n;
+	      traits_type::assign(this->_M_refdata()[__n], _S_terminal);
+	      // grrr. (per 21.3.4)
+	      // You cannot leave those LWG people alone for a second.
+	    }
 	}
 
 	_CharT*
@@ -535,7 +540,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       basic_string&
       operator=(initializer_list<_CharT> __l)
       {
-	this->assign (__l.begin(), __l.end());
+	this->assign(__l.begin(), __l.size());
 	return *this;
       }
 #endif // __GXX_EXPERIMENTAL_CXX0X__
@@ -614,6 +619,42 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       const_reverse_iterator
       rend() const
       { return const_reverse_iterator(this->begin()); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  Returns a read-only (constant) iterator that points to the first
+       *  character in the %string.
+       */
+      const_iterator
+      cbegin() const
+      { return const_iterator(this->_M_data()); }
+
+      /**
+       *  Returns a read-only (constant) iterator that points one past the
+       *  last character in the %string.
+       */
+      const_iterator
+      cend() const
+      { return const_iterator(this->_M_data() + this->size()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to the last character in the %string.  Iteration is done in
+       *  reverse element order.
+       */
+      const_reverse_iterator
+      crbegin() const
+      { return const_reverse_iterator(this->end()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to one before the first character in the %string.  Iteration
+       *  is done in reverse element order.
+       */
+      const_reverse_iterator
+      crend() const
+      { return const_reverse_iterator(this->begin()); }
+#endif
 
     public:
       // Capacity:
@@ -819,7 +860,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        */
       basic_string&
       operator+=(initializer_list<_CharT> __l)
-      { return this->append(__l.begin(), __l.end()); }
+      { return this->append(__l.begin(), __l.size()); }
 #endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
@@ -885,7 +926,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        */
       basic_string&
       append(initializer_list<_CharT> __l)
-      { return this->append(__l.begin(), __l.end()); }
+      { return this->append(__l.begin(), __l.size()); }
 #endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
@@ -1004,7 +1045,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        */
       basic_string&
       assign(initializer_list<_CharT> __l)
-      { return this->assign(__l.begin(), __l.end()); }
+      { return this->assign(__l.begin(), __l.size()); }
 #endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
@@ -1048,7 +1089,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        */
       void
       insert(iterator __p, initializer_list<_CharT> __l)
-      { this->insert(__p, __l.begin(), __l.end()); }
+      {
+	_GLIBCXX_DEBUG_PEDASSERT(__p >= _M_ibegin() && __p <= _M_iend());
+	this->insert(__p - _M_ibegin(), __l.begin(), __l.size());
+      }
 #endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
@@ -1226,16 +1270,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  The value of the string doesn't change if an error is thrown.
       */
       iterator
-      erase(iterator __first, iterator __last)
-      {
-	_GLIBCXX_DEBUG_PEDASSERT(__first >= _M_ibegin() && __first <= __last
-				 && __last <= _M_iend());
-        const size_type __pos = __first - _M_ibegin();
-	_M_mutate(__pos, __last - __first, size_type(0));
-	_M_rep()->_M_set_leaked();
-	return iterator(_M_data() + __pos);
-      }
-
+      erase(iterator __first, iterator __last);
+ 
       /**
        *  @brief  Replace characters with value from another string.
        *  @param pos  Index of first character to replace.
@@ -1552,7 +1588,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         static _CharT*
         _S_construct_aux(_Integer __beg, _Integer __end,
 			 const _Alloc& __a, __true_type)
-        { return _S_construct(static_cast<size_type>(__beg), __end, __a); }
+        { return _S_construct_aux_2(static_cast<size_type>(__beg),
+				    __end, __a); }
+
+      static _CharT*
+      _S_construct_aux_2(size_type __req, _CharT __c, const _Alloc& __a)
+      { return _S_construct(__req, __c, __a); }
 
       template<class _InIterator>
         static _CharT*
@@ -2603,6 +2644,30 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   { return __gnu_cxx::__stoa(&std::strtold, "stold", __str.c_str(), __idx); }
 
   // NB: (v)snprintf vs sprintf.
+
+  // DR 1261.
+  inline string
+  to_string(int __val)
+  { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf, 4 * sizeof(int),
+					   "%d", __val); }
+
+  inline string
+  to_string(unsigned __val)
+  { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf,
+					   4 * sizeof(unsigned),
+					   "%u", __val); }
+
+  inline string
+  to_string(long __val)
+  { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf, 4 * sizeof(long),
+					   "%ld", __val); }
+
+  inline string
+  to_string(unsigned long __val)
+  { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf,
+					   4 * sizeof(unsigned long),
+					   "%lu", __val); }
+
   inline string
   to_string(long long __val)
   { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf,
@@ -2614,6 +2679,24 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf,
 					   4 * sizeof(unsigned long long),
 					   "%llu", __val); }
+
+  inline string
+  to_string(float __val)
+  {
+    const int __n = 
+      __gnu_cxx::__numeric_traits<float>::__max_exponent10 + 20;
+    return __gnu_cxx::__to_xstring<string>(&std::vsnprintf, __n,
+					   "%f", __val);
+  }
+
+  inline string
+  to_string(double __val)
+  {
+    const int __n = 
+      __gnu_cxx::__numeric_traits<double>::__max_exponent10 + 20;
+    return __gnu_cxx::__to_xstring<string>(&std::vsnprintf, __n,
+					   "%f", __val);
+  }
 
   inline string
   to_string(long double __val)
@@ -2663,6 +2746,29 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   stold(const wstring& __str, size_t* __idx = 0)
   { return __gnu_cxx::__stoa(&std::wcstold, "stold", __str.c_str(), __idx); }
 
+  // DR 1261.
+  inline wstring
+  to_wstring(int __val)
+  { return __gnu_cxx::__to_xstring<wstring>(&std::vswprintf, 4 * sizeof(int),
+					    L"%d", __val); }
+
+  inline wstring
+  to_wstring(unsigned __val)
+  { return __gnu_cxx::__to_xstring<wstring>(&std::vswprintf,
+					    4 * sizeof(unsigned),
+					    L"%u", __val); }
+
+  inline wstring
+  to_wstring(long __val)
+  { return __gnu_cxx::__to_xstring<wstring>(&std::vswprintf, 4 * sizeof(long),
+					    L"%ld", __val); }
+
+  inline wstring
+  to_wstring(unsigned long __val)
+  { return __gnu_cxx::__to_xstring<wstring>(&std::vswprintf,
+					    4 * sizeof(unsigned long),
+					    L"%lu", __val); }
+
   inline wstring
   to_wstring(long long __val)
   { return __gnu_cxx::__to_xstring<wstring>(&std::vswprintf,
@@ -2674,6 +2780,24 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   { return __gnu_cxx::__to_xstring<wstring>(&std::vswprintf,
 					    4 * sizeof(unsigned long long),
 					    L"%llu", __val); }
+
+  inline wstring
+  to_wstring(float __val)
+  {
+    const int __n =
+      __gnu_cxx::__numeric_traits<float>::__max_exponent10 + 20;
+    return __gnu_cxx::__to_xstring<wstring>(&std::vswprintf, __n,
+					    L"%f", __val);
+  }
+
+  inline wstring
+  to_wstring(double __val)
+  {
+    const int __n =
+      __gnu_cxx::__numeric_traits<double>::__max_exponent10 + 20;
+    return __gnu_cxx::__to_xstring<wstring>(&std::vswprintf, __n,
+					    L"%f", __val);
+  }
 
   inline wstring
   to_wstring(long double __val)

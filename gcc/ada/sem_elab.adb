@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1997-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1997-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -47,6 +47,7 @@ with Sem_Cat;  use Sem_Cat;
 with Sem_Ch7;  use Sem_Ch7;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Res;  use Sem_Res;
+with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
@@ -939,9 +940,7 @@ package body Sem_Elab is
                Insert_Elab_Check (N,
                  Make_Attribute_Reference (Loc,
                    Attribute_Name => Name_Elaborated,
-                   Prefix =>
-                     New_Occurrence_Of
-                       (Spec_Entity (E_Scope), Loc)));
+                   Prefix => New_Occurrence_Of (Spec_Entity (E_Scope), Loc)));
             end if;
 
          --  Case of static elaboration model
@@ -1460,18 +1459,18 @@ package body Sem_Elab is
          Process_Init_Proc : declare
             Unit_Decl : constant Node_Id := Unit_Declaration_Node (Ent);
 
-            function Find_Init_Call (Nod : Node_Id) return Traverse_Result;
+            function Check_Init_Call (Nod : Node_Id) return Traverse_Result;
             --  Find subprogram calls within body of Init_Proc for Traverse
             --  instantiation below.
 
-            procedure Traverse_Body is new Traverse_Proc (Find_Init_Call);
+            procedure Traverse_Body is new Traverse_Proc (Check_Init_Call);
             --  Traversal procedure to find all calls with body of Init_Proc
 
-            --------------------
-            -- Find_Init_Call --
-            --------------------
+            ---------------------
+            -- Check_Init_Call --
+            ---------------------
 
-            function Find_Init_Call (Nod : Node_Id) return Traverse_Result is
+            function Check_Init_Call (Nod : Node_Id) return Traverse_Result is
                Func : Entity_Id;
 
             begin
@@ -1491,7 +1490,7 @@ package body Sem_Elab is
                else
                   return OK;
                end if;
-            end Find_Init_Call;
+            end Check_Init_Call;
 
          --  Start of processing for Process_Init_Proc
 
@@ -2415,8 +2414,7 @@ package body Sem_Elab is
                  Make_Attribute_Reference (Loc,
                    Attribute_Name => Name_Elaborated,
                    Prefix =>
-                     New_Occurrence_Of
-                       (Spec_Entity (Task_Scope), Loc)));
+                     New_Occurrence_Of (Spec_Entity (Task_Scope), Loc)));
             end if;
 
          else
@@ -2852,6 +2850,8 @@ package body Sem_Elab is
                        Make_Raise_Program_Error (Loc,
                          Reason => PE_Access_Before_Elaboration);
 
+               Reloc_N : Node_Id;
+
             begin
                Set_Etype (R, Typ);
 
@@ -2859,9 +2859,11 @@ package body Sem_Elab is
                   Rewrite (N, R);
 
                else
+                  Reloc_N := Relocate_Node (N);
+                  Save_Interps (N, Reloc_N);
                   Rewrite (N,
                     Make_Conditional_Expression (Loc,
-                      Expressions => New_List (C, Relocate_Node (N), R)));
+                      Expressions => New_List (C, Reloc_N, R)));
                end if;
 
                Analyze_And_Resolve (N, Typ);

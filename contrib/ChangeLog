@@ -1,20 +1,41 @@
-2009-10-15  Release Manager
+2009-10-03  H.J. Lu  <hongjiu.lu@intel.com>
+	    Richard Guenther  <rguenther@suse.de>
 
-	* GCC 4.4.2 released.
+	PR lto/39216
+	* gcc_update: Adjust file timestamps for lto-plugin.
+
+2009-09-10  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	PR bootstrap/41245
+	* compare-debug: Handle stripping of dwarf debug sections from darwin
+	mach-o objects.
+
+2009-09-04  Alexandre Oliva  <aoliva@redhat.com>
+
+	* compare-debug: Grep for blank before dash to avoid grep -e.
+
+2009-09-01  Alexandre Oliva  <aoliva@redhat.com>
+
+	* compare-debug: Look for .gkd files and compare them.
+
+2009-08-27  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR testsuite/41166
+	* test_summary: Invoke config.status, rather than trying to
+	parse it.  Adjust awk script.
 
 2009-08-18  Alexandre Oliva  <aoliva@redhat.com>
 
-	* compare-debug: Don't fail just because of .eh_frame
-	differences.  Drop .eh_frame relocations too.
+	* compare-debug: Drop .eh_frame relocations too.
 
-2009-07-22  Release Manager
+2009-08-18  H.J. Lu  <hongjiu.lu@intel.com>
 
-	* GCC 4.4.1 released.
+	PR testsuite/40704
+	* test_summary: Filter out "\r". 
 
-2009-06-20  Gerald Pfeifer  <gerald@pfeifer.com>
+2009-06-02  Alexandre Oliva  <aoliva@redhat.com>
 
-	* test_summary: Only include LAST_UPDATED if it exists.
-	Complete copyright years.
+	* compare-debug: Don't fail just because of .eh_frame differences.
 
 2009-04-27  Jakub Jelinek  <jakub@redhat.com>
 
@@ -25,9 +46,14 @@
 	by curfile variable rather than concatenated strings to workaround
 	Solaris nawk bug.
 
-2009-04-21  Release Manager
+2009-04-25  Gerald Pfeifer  <gerald@pfeifer.com>
 
-	* GCC 4.4.0 released.
+	* test_summary: Only include LAST_UPDATED if it exists.
+	Complete copyright years.
+
+2009-04-16  Paolo Bonzini  <bonzini@gnu.org>
+
+	* compare-all-tests: New.
 
 2009-04-14  Jakub Jelinek  <jakub@redhat.com>
 

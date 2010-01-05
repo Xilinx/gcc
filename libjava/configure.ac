@@ -1,5 +1,5 @@
 dnl # Process this with autoconf to create configure
-AC_PREREQ(2.59)
+AC_PREREQ(2.64)
 # Still use "libjava" here to placate dejagnu.
 AC_INIT([libjava], [version-unused],, [libjava])
 
@@ -55,15 +55,15 @@ AC_ARG_ENABLE(version-specific-runtime-libs,
     [version_specific_libs=no]
 )
 
-AC_ARG_ENABLE(plugin,
-  AS_HELP_STRING([--enable-plugin],
+AC_ARG_ENABLE(browser-plugin,
+  AS_HELP_STRING([--enable-browser-plugin],
                  [build gcjwebplugin web browser plugin]),
     [case "$enableval" in
-      yes) plugin_enabled=yes ;;
-      no)  plugin_enabled=no ;;
-      *)   AC_MSG_ERROR([Unknown argument to enable/disable plugin]);;
+      yes) browser_plugin_enabled=yes ;;
+      no)  browser_plugin_enabled=no ;;
+      *)   AC_MSG_ERROR([Unknown argument to enable/disable browser plugin]);;
      esac],
-    [plugin_enabled=no]
+    [browser_plugin_enabled=no]
 )
 
 AC_ARG_ENABLE(gconf-peer,
@@ -142,27 +142,14 @@ AM_CONDITIONAL(JAVA_MAINTAINER_MODE, test "$enable_java_maintainer_mode" = yes)
 # It may not be safe to run linking tests in AC_PROG_CC/AC_PROG_CXX.
 GCC_NO_EXECUTABLES
 
-# (1) We use an abnormal CXX (without library references), so we
-# must cache it under a different name.
-# (2) CC, CFLAGS, CXX, CXXFLAGS, LDFLAGS must not be 'precious', or
-# the non-multilib-adjusted value will be used in multilibs.
-# (3) As a side effect, we must SUBST CXXFLAGS, CFLAGS, and LDFLAGS ourselves.
-# (4) As another side effect, automake doesn't automatically include them
-# in Makefile.in.
-# (5) For libstdc++-v3, -fno-builtin must be present here so that a
+# For libstdc++-v3, -fno-builtin must be present here so that a
 # non-conflicting form of std::exit can be guessed by AC_PROG_CXX, and
 # used in later tests.  This may not be necessary in libjava; I don't know.
-m4_rename([_AC_ARG_VAR_PRECIOUS],[glibcxx_PRECIOUS])
-m4_define([_AC_ARG_VAR_PRECIOUS],[])
 save_CXXFLAGS="$CXXFLAGS"
 CXXFLAGS="$CXXFLAGS -fno-builtin"
 AC_PROG_CC
 AC_PROG_CXX
 CXXFLAGS="$save_CXXFLAGS"
-m4_rename([glibcxx_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
-AC_SUBST(CFLAGS)
-AC_SUBST(CXXFLAGS)
-AC_SUBST(LDFLAGS)
 
 AM_INIT_AUTOMAKE([1.9.0])
 
@@ -206,10 +193,14 @@ AC_EXEEXT
 #	libgcj_cflags    - host specific C compiler flags
 #	libgcj_cxxflags  - host specific C++ compiler flags
 #	libgcj_javaflags - host specific Java compiler flags
+#	libgcj_sublib_ltflags - host specific Libtool flags 
+#                          (only used when building sublibs)
+# and a number of others; see the list at the start of the file.
 
 libgcj_cflags=
 libgcj_cxxflags=
 libgcj_javaflags=
+libgcj_sublib_ltflags=
 
 . ${srcdir}/configure.host
 
@@ -222,11 +213,13 @@ fi
 LIBGCJ_CFLAGS="${libgcj_cflags}"
 LIBGCJ_CXXFLAGS="${libgcj_cxxflags}"
 LIBGCJ_JAVAFLAGS="${libgcj_javaflags}"
+LIBGCJ_SUBLIB_LTFLAGS="${libgcj_sublib_ltflags}"
 LIBGCJ_LD_SYMBOLIC="${libgcj_ld_symbolic}"
 LIBGCJ_LD_SYMBOLIC_FUNCTIONS="${libgcj_ld_symbolic_functions}"
 AC_SUBST(LIBGCJ_CFLAGS)
 AC_SUBST(LIBGCJ_CXXFLAGS)
 AC_SUBST(LIBGCJ_JAVAFLAGS)
+AC_SUBST(LIBGCJ_SUBLIB_LTFLAGS)
 AC_SUBST(LIBGCJ_LD_SYMBOLIC)
 AC_SUBST(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
 
@@ -237,6 +230,26 @@ fi
 
 AC_CONFIG_HEADERS([include/config.h gcj/libgcj-config.h])
 
+# Possibly build libgcj as many sub-libraries.
+AC_ARG_ENABLE(libgcj-sublibs,
+  AS_HELP_STRING([--enable-libgcj-sublibs],
+                 [build libgcj as many sub-libraries]))
+
+if test -z "$enable_libgcj_sublibs"; then
+   enable_libgcj_sublibs=$enable_libgcj_sublibs_default
+fi
+AM_CONDITIONAL(BUILD_SUBLIBS, test "$enable_libgcj_sublibs" = yes)
+if test "$enable_libgcj_sublibs" = yes ; then
+  # In theory we could make do with only one override and simply
+  # tag "_bc" onto the end of it when we use it to generate the
+  # spec, but that's an ugly thing to do when there are multiple
+  # words in the string and you're relying on the ordering to
+  # append the correct one.
+  libgcj_spec_lgcj_override="-lgcj-noncore -lgcj"
+  libgcj_spec_lgcj_bc_override="-lgcj-noncore -lgcj_bc"
+fi
+
+
 # See if the user has requested runtime debugging.
 LIBGCJDEBUG="disable"
 AC_SUBST(LIBGCJDEBUG)
@@ -244,7 +257,7 @@ AC_ARG_ENABLE(libgcj-debug,
   AS_HELP_STRING([--enable-libgcj-debug],
                  [enable runtime debugging code]),
   [if test "$enable_libgcj_debug" = yes; then
-    AC_DEFINE(DEBUG, 1, [Define this if you want runtime debugging enabled.])
+    AC_DEFINE(__GCJ_DEBUG, 1, [Define this if you want runtime debugging enabled.])
     LIBGCJDEBUG="enable"
   fi])
 
@@ -340,7 +353,12 @@ AM_CONDITIONAL(X_AWT, test "$use_x_awt" = yes)
 
 AC_DEFINE_UNQUOTED(AWT_TOOLKIT, "$TOOLKIT", [Name of default AWT toolkit])
 
-AC_DEFINE_UNQUOTED(LIBGCJ_PREFIX, "$prefix", [Installation prefix])
+expanded_prefix=$prefix
+if test "X$prefix" = XNONE; then
+  expanded_prefix=${ac_default_prefix}
+fi
+
+AC_DEFINE_UNQUOTED(LIBGCJ_PREFIX, "$expanded_prefix", [Installation prefix])
 
 # Create standard.omit based on decisions we just made.
 cp $srcdir/standard.omit.in standard.omit
@@ -409,23 +427,33 @@ else
      which_gcj=path
   fi
 fi
+libgcjdir=`${PWDCMD-pwd}`
+case $GCJ in
+*" -B"*)
+  # Just in case there is a comma in the build dir, quote it for the
+  # sed command below.
+  case $libgcjdir in
+  *[[,\\]]*) qlibgcjdir=`echo "$libgcjdir" | sed 's:[[,\\]]:\\&:g'`;;
+  *) qlibgcjdir=$libgcjdir;;
+  esac
+  GCJ=`echo "$GCJ" | sed "s, -B, -B$qlibgcjdir/&,"`
+  ;;
+*)
+  GCJ=$GCJ" -B$libgcjdir/"
+  ;;
+esac
 case "${which_gcj}" in
    built)
-      GCJ="$built_gcc_dir/gcj -B`${PWDCMD-pwd}`/ -B$built_gcc_dir/"
       GCJH='$(top_builddir)/$(MULTIBUILDTOP)../../$(host_subdir)/gcc/gcjh'
    ;;
    cross)
       if test "x${with_newlib}" = "xyes"; then
          # FIXME (comment): Why is this needed?
          GCC_UNWIND_INCLUDE=
-         GCJ="${target_noncanonical}-gcj"
-      else
-         GCJ="${target_noncanonical}-gcj -B`${PWDCMD-pwd}`/"
       fi
       GCJH='$(target_noncanonical)-gcjh'
    ;;
    path)
-      GCJ="gcj -B`${PWDCMD-pwd}`/"
       GCJH=gcjh
    ;;
 esac
@@ -455,8 +483,10 @@ ac_configure_args="$ac_configure_args --disable-core-jni"
 dnl FIXME?
 ac_configure_args="$ac_configure_args --disable-examples"
 ac_configure_args="$ac_configure_args --with-glibj=build"
-if test "$plugin_enabled" != yes; then
+if test "$browser_plugin_enabled" != yes; then
   ac_configure_args="$ac_configure_args --disable-plugin"
+else
+  ac_configure_args="$ac_configure_args --enable-plugin"
 fi
 if test "$gconf_enabled" != yes; then
   ac_configure_args="$ac_configure_args --disable-gconf-peer"
@@ -846,6 +876,9 @@ case "${host}" in
         SYSTEMSPEC="-lunicows $SYSTEMSPEC"
       fi
     ;;
+    *-*-darwin[[912]]*)
+      SYSTEMSPEC="-allow_stack_execute"
+    ;;
     *)
       SYSTEMSPEC=
     ;;
@@ -876,9 +909,6 @@ case "${host}" in
     # on Darwin -single_module speeds up loading of the dynamic libraries.
     extra_ldflags_libjava=-Wl,-single_module
     ;;
-*-*-darwin[[912]]*)
-    extra_gij_ldflags=-Wl,-allow_stack_execute
-    ;;
 arm*linux*eabi)
     # Some of the ARM unwinder code is actually in libstdc++.  We
     # could in principle replicate it in libgcj, but it's better to
@@ -887,9 +917,11 @@ arm*linux*eabi)
     LIBSTDCXXSPEC=-lstdc++
     LIBGCJTESTSPEC="-L`${PWDCMD-pwd}`/.libs -L`${PWDCMD-pwd}`/../libstdc++-v3/src/.libs -rpath `${PWDCMD-pwd}`/.libs:`${PWDCMD-pwd}`/../libstdc++-v3/src/.libs -lstdc++"
     ;;
+*-*-cygwin)
+    extra_ldflags_libjava=-liconv
+    ;;
 esac
 AC_SUBST(extra_ldflags_libjava)
-AC_SUBST(extra_gij_ldflags)
 AC_SUBST(extra_ldflags)
 AC_SUBST(LIBSTDCXXSPEC)
 
@@ -1065,11 +1097,21 @@ AC_CONFIG_LINKS(sysdep/locks.h:sysdep/$sysdeps_dir/locks.h)
 AC_CONFIG_LINKS(sysdep/backtrace.h:$fallback_backtrace_h)
 AC_CONFIG_LINKS(sysdep/descriptor.h:$descriptor_h)
 
-LIBGCJ_SPEC="%{s-bc-abi:} -lgcj"
+LIBGCJ_SPEC_LGCJ=-lgcj
+LIBGCJ_SPEC_LGCJ_BC=-lgcj_bc
+if test x"$libgcj_spec_lgcj_override" != x ; then
+  LIBGCJ_SPEC_LGCJ=$libgcj_spec_lgcj_override
+fi
+if test x"$libgcj_spec_lgcj_bc_override" != x ; then
+  LIBGCJ_SPEC_LGCJ_BC=$libgcj_spec_lgcj_bc_override
+fi
+LIBGCJ_SPEC="%{s-bc-abi:} $LIBGCJ_SPEC_LGCJ"
 if test "$use_libgcj_bc" = yes; then
-  LIBGCJ_SPEC="%{static|static-libgcj|!s-bc-abi:-lgcj;:-lgcj_bc}"
+  LIBGCJ_SPEC="%{static|static-libgcj|!s-bc-abi:$LIBGCJ_SPEC_LGCJ;:$LIBGCJ_SPEC_LGCJ_BC}"
+  LIBGCJ_BC_SPEC="%{findirect-dispatch:-fPIC}"
 fi
 AC_SUBST(LIBGCJ_SPEC)
+AC_SUBST(LIBGCJ_BC_SPEC)
 
 HASH_SYNC_SPEC=
 # Hash synchronization is only useful with posix threads right now.
@@ -1386,7 +1428,7 @@ if test ! -f gnu/classpath/Configuration.java; then
   test -d gnu || mkdir gnu
   test -d gnu/classpath || mkdir gnu/classpath
   # Note that it is not crucial that all the values here be correct.
-  sed -e "s,@prefix@,$prefix," \
+  sed -e "s,@prefix@,$expanded_prefix," \
       -e "s,@VERSION@,$VERSION," \
       -e "s,@LIBDEBUG@,false," \
       -e "s,@INIT_LOAD_LIBRARY@,false," \
@@ -1437,6 +1479,7 @@ AC_SUBST(CHECKREFSPEC)
 AC_SUBST(EXCEPTIONSPEC)
 AC_SUBST(BACKTRACESPEC)
 AC_SUBST(IEEESPEC)
+AC_SUBST(ATOMICSPEC)
 
 AM_CONDITIONAL(NATIVE, test "$NATIVE" = yes)
 AM_CONDITIONAL(ENABLE_SHARED, test "$enable_shared" = yes)
@@ -1511,9 +1554,17 @@ TL_AC_GXX_INCLUDE_DIR
 # for now.  If you change this, you also must update natFile.cc.
 AC_CHECK_HEADERS([unistd.h bstring.h sys/time.h sys/types.h fcntl.h \
 		  sys/ioctl.h sys/filio.h sys/stat.h sys/select.h \
-		  sys/socket.h netinet/in.h arpa/inet.h netdb.h net/if.h \
+		  sys/socket.h netinet/in.h arpa/inet.h netdb.h \
 		  pwd.h sys/config.h stdint.h langinfo.h locale.h \
 		  dirent.h sys/rw_lock.h magic.h ifaddrs.h])
+
+# sys/socket.h is a prerequisite for net/if.h on Solaris.
+AC_CHECK_HEADERS(net/if.h, [], [], [
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+])
+
 AC_CHECK_HEADERS(inttypes.h, [
     AC_DEFINE(HAVE_INTTYPES_H, 1, [Define if <inttypes.h> is available])
     AC_DEFINE(JV_HAVE_INTTYPES_H, 1, [Define if <inttypes.h> is available])
@@ -1723,10 +1774,10 @@ then
   # Needed for installing Python modules during make install.
   python_mod_dir="\${prefix}/share/python"
   # Needed for substituting into aot-compile*
-  python_mod_dir_expanded="${prefix}/share/python"
+  python_mod_dir_expanded="${expanded_prefix}/share/python"
 else
   python_mod_dir="\${prefix}${with_python_dir}"
-  python_mod_dir_expanded="${prefix}${with_python_dir}"
+  python_mod_dir_expanded="${expanded_prefix}${with_python_dir}"
 fi
 AC_MSG_RESULT(Python modules dir: ${python_mod_dir_expanded});
 AC_SUBST(python_mod_dir)
@@ -1904,7 +1955,7 @@ then
   LIBDIR=$libdir
   if test "x${exec_prefix}" = "xNONE"
   then
-      lib_exec_prefix=$prefix
+      lib_exec_prefix=$expanded_prefix
   else
       lib_exec_prefix=$exec_prefix
   fi

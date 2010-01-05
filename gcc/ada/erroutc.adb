@@ -115,7 +115,7 @@ package body Erroutc is
 
             --  Adjust error message count
 
-            if Errors.Table (D).Warn or Errors.Table (D).Style then
+            if Errors.Table (D).Warn or else Errors.Table (D).Style then
                Warnings_Detected := Warnings_Detected - 1;
 
             else
@@ -561,7 +561,7 @@ package body Erroutc is
            and then Errors.Table (E).Sptr > From
            and then Errors.Table (E).Sptr < To
          then
-            if Errors.Table (E).Warn or Errors.Table (E).Style then
+            if Errors.Table (E).Warn or else Errors.Table (E).Style then
                Warnings_Detected := Warnings_Detected - 1;
 
             else
@@ -926,8 +926,7 @@ package body Erroutc is
       Name_Len := 0;
 
       while J <= Text'Last and then Text (J) in 'A' .. 'Z' loop
-         Name_Len := Name_Len + 1;
-         Name_Buffer (Name_Len) := Text (J);
+         Add_Char_To_Name_Buffer (Text (J));
          J := J + 1;
       end loop;
 
@@ -1340,6 +1339,10 @@ package body Erroutc is
 
    function Warnings_Suppressed (Loc : Source_Ptr) return Boolean is
    begin
+      if Warning_Mode = Suppress then
+         return True;
+      end if;
+
       --  Loop through table of ON/OFF warnings
 
       for J in Warnings.First .. Warnings.Last loop

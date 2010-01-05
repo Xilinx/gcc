@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -39,6 +39,7 @@ with Freeze;   use Freeze;
 with Namet;    use Namet;
 with Nmake;    use Nmake;
 with Nlists;   use Nlists;
+with Opt;      use Opt;
 with Restrict; use Restrict;
 with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
@@ -52,7 +53,6 @@ with Sinput;   use Sinput;
 with Snames;   use Snames;
 with Stand;    use Stand;
 with Stringt;  use Stringt;
-with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 with Urealp;   use Urealp;
@@ -219,7 +219,7 @@ package body Exp_Intr is
       --  checks are suppressed for the result type or VM_Target /= No_VM
 
       if Tag_Checks_Suppressed (Etype (Result_Typ))
-        or else VM_Target /= No_VM
+        or else not Tagged_Type_Expansion
       then
          null;
 
@@ -234,19 +234,28 @@ package body Exp_Intr is
       --  the tag in the table of ancestor tags.
 
       elsif not Is_Interface (Result_Typ) then
-         Insert_Action (N,
-           Make_Implicit_If_Statement (N,
-             Condition =>
-               Make_Op_Not (Loc,
-                 Build_CW_Membership (Loc,
-                   Obj_Tag_Node => Duplicate_Subexpr (Tag_Arg),
-                   Typ_Tag_Node =>
-                     New_Reference_To (
-                        Node (First_Elmt (Access_Disp_Table (
-                                            Root_Type (Result_Typ)))), Loc))),
-             Then_Statements =>
-               New_List (Make_Raise_Statement (Loc,
-                           New_Occurrence_Of (RTE (RE_Tag_Error), Loc)))));
+         declare
+            Obj_Tag_Node : Node_Id := Duplicate_Subexpr (Tag_Arg);
+            CW_Test_Node : Node_Id;
+
+         begin
+            Build_CW_Membership (Loc,
+              Obj_Tag_Node => Obj_Tag_Node,
+              Typ_Tag_Node =>
+                New_Reference_To (
+                   Node (First_Elmt (Access_Disp_Table (
+                                       Root_Type (Result_Typ)))), Loc),
+              Related_Nod => N,
+              New_Node    => CW_Test_Node);
+
+            Insert_Action (N,
+              Make_Implicit_If_Statement (N,
+                Condition =>
+                  Make_Op_Not (Loc, CW_Test_Node),
+                Then_Statements =>
+                  New_List (Make_Raise_Statement (Loc,
+                              New_Occurrence_Of (RTE (RE_Tag_Error), Loc)))));
+         end;
 
       --  Call IW_Membership test if the Result_Type is an abstract interface
       --  to look for the tag in the table of interface tags.
@@ -394,6 +403,13 @@ package body Exp_Intr is
       Nam : Name_Id;
 
    begin
+      --  If an external name is specified for the intrinsic, it is handled
+      --  by the back-end: leave the call node unchanged for now.
+
+      if Present (Interface_Name (E)) then
+         return;
+      end if;
+
       --  If the intrinsic subprogram is generic, gets its original name
 
       if Present (Parent (E))
@@ -1011,13 +1027,18 @@ package body Exp_Intr is
                else
                   D_Type := Make_Defining_Identifier (Loc,
                               New_Internal_Name ('A'));
-                  Insert_Action (N,
+                  Insert_Action (Deref,
                     Make_Subtype_Declaration (Loc,
                       Defining_Identifier => D_Type,
                       Subtype_Indication  => D_Subtyp));
-                  Freeze_Itype (D_Type, N);
 
                end if;
+
+               --  Force freezing at the point of the dereference. For the
+               --  class wide case, this avoids having the subtype frozen
+               --  before the equivalent type.
+
+               Freeze_Itype (D_Type, Deref);
 
                Set_Actual_Designated_Subtype (Free_Node, D_Type);
             end;
@@ -1034,7 +1055,7 @@ package body Exp_Intr is
       --    free (Base_Address (Obj_Ptr))
 
       if Is_Interface (Directly_Designated_Type (Typ))
-        and then VM_Target = No_VM
+        and then Tagged_Type_Expansion
       then
          Set_Expression (Free_Node,
            Unchecked_Convert_To (Typ,

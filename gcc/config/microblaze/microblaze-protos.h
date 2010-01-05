@@ -36,8 +36,12 @@ extern void override_options (void);
 extern int microblaze_expand_shift (enum shift_type, rtx *);
 extern bool microblaze_expand_move (enum machine_mode, rtx *);
 extern bool microblaze_expand_block_move (rtx, rtx, rtx, rtx);
+extern void microblaze_expand_divide (rtx *);
+extern void microblaze_expand_conditional_branch (enum machine_mode, rtx *); 
+extern void microblaze_expand_conditional_branch_sf (rtx *); 
+extern void microblaze_expand_scc (enum machine_mode, rtx *);
 extern int microblaze_can_use_return_insn (void);
-extern rtx  microblaze_legitimize_address (rtx, rtx, enum machine_mode);
+// extern rtx  microblaze_legitimize_address (rtx, rtx, enum machine_mode);
 extern int microblaze_const_double_ok (rtx, enum machine_mode);
 extern void print_operand (FILE *, rtx, int);
 extern void print_operand_address (FILE *, rtx);
@@ -59,6 +63,7 @@ extern void microblaze_output_filename (FILE*, const char*);
 extern void microblaze_declare_object (FILE *, const char *, const char *,
    const char *, int);
 extern void microblaze_asm_output_ident (FILE *, const char *);
+extern rtx microblaze_gen_compare_reg (enum rtx_code, rtx, rtx);
 #endif  /* RTX_CODE */
 
 #ifdef TREE_CODE

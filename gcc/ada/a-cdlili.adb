@@ -561,15 +561,9 @@ package body Ada.Containers.Doubly_Linked_Lists is
          ----------
 
          procedure Sort (Front, Back : Node_Access) is
-            Pivot : Node_Access;
-
+            Pivot : constant Node_Access :=
+                      (if Front = null then Container.First else Front.Next);
          begin
-            if Front = null then
-               Pivot := Container.First;
-            else
-               Pivot := Front.Next;
-            end if;
-
             if Pivot /= Back then
                Partition (Pivot, Back);
                Sort (Front, Pivot);
@@ -1717,11 +1711,17 @@ package body Ada.Containers.Doubly_Linked_Lists is
             return False;
          end if;
 
+         --  If we get here, we know that this disjunction is true:
+         --  Position.Node.Prev /= null or else Position.Node = L.First
+
          if Position.Node.Next = null
            and then Position.Node /= L.Last
          then
             return False;
          end if;
+
+         --  If we get here, we know that this disjunction is true:
+         --  Position.Node.Next /= null or else Position.Node = L.Last
 
          if L.Length = 1 then
             return L.First = L.Last;
@@ -1767,21 +1767,21 @@ package body Ada.Containers.Doubly_Linked_Lists is
             return False;
          end if;
 
-         if Position.Node = L.First then
+         if Position.Node = L.First then  -- eliminates ealier disjunct
             return True;
          end if;
 
-         if Position.Node = L.Last then
+         --  If we get here, we know, per disjunctive syllogism (modus
+         --  tollendo ponens), that this predicate is true:
+         --  Position.Node.Prev /= null
+
+         if Position.Node = L.Last then  -- eliminates earlier disjunct
             return True;
          end if;
 
-         if Position.Node.Next = null then
-            return False;
-         end if;
-
-         if Position.Node.Prev = null then
-            return False;
-         end if;
+         --  If we get here, we know, per disjunctive syllogism (modus
+         --  tollendo ponens), that this predicate is true:
+         --  Position.Node.Next /= null
 
          if Position.Node.Next.Prev /= Position.Node then
             return False;

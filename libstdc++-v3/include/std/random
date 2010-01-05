@@ -35,10 +35,6 @@
 # include <c++0x_warning.h>
 #else
 
-#if defined(_GLIBCXX_INCLUDE_AS_TR1)
-#  error C++0x header cannot be included from TR1 header
-#endif
-
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -47,23 +43,20 @@
 #include <limits>
 #include <ext/type_traits.h>
 #include <ext/numeric_traits.h>
-#include <bits/concept_check.h>
 #include <debug/debug.h>
 #include <type_traits>
 
-#if defined(_GLIBCXX_INCLUDE_AS_CXX0X)
-#  include <tr1_impl/random>
-#else
-#  define _GLIBCXX_INCLUDE_AS_CXX0X
-#  define _GLIBCXX_BEGIN_NAMESPACE_TR1
-#  define _GLIBCXX_END_NAMESPACE_TR1
-#  define _GLIBCXX_TR1
-#  include <tr1_impl/random>
-#  undef _GLIBCXX_TR1
-#  undef _GLIBCXX_END_NAMESPACE_TR1
-#  undef _GLIBCXX_BEGIN_NAMESPACE_TR1
-#  undef _GLIBCXX_INCLUDE_AS_CXX0X
+#ifdef _GLIBCXX_USE_C99_STDINT_TR1
+
+#include <cstdint> // For uint_fast32_t, uint_fast64_t, uint_least32_t
+
+#include <bits/random.h>
+
+#ifndef _GLIBCXX_EXPORT_TEMPLATE
+# include <bits/random.tcc>
 #endif
+
+#endif // _GLIBCXX_USE_C99_STDINT_TR1
 
 #endif // __GXX_EXPERIMENTAL_CXX0X__
 

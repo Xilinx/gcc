@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1995-2008, AdaCore                     --
+--                     Copyright (C) 1995-2009, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -39,9 +39,7 @@
 --  The Static_HTable package provides a more complex interface that allows
 --  complete control over allocation.
 
-pragma Warnings (Off);
 pragma Compiler_Unit;
-pragma Warnings (On);
 
 package System.HTable is
    pragma Preelaborate;
@@ -90,7 +88,7 @@ package System.HTable is
 
       function Get_First return Element;
       --  Returns No_Element if the HTable is empty, otherwise returns one
-      --  non specified element. There is no guarantee that 2 calls to this
+      --  non specified element. There is no guarantee that two calls to this
       --  function will return the same element.
 
       function Get_Next return Element;
@@ -177,7 +175,7 @@ package System.HTable is
 
       function Get_First return Elmt_Ptr;
       --  Returns Null_Ptr if the HTable is empty, otherwise returns one
-      --  non specified element. There is no guarantee that 2 calls to this
+      --  non specified element. There is no guarantee that two calls to this
       --  function will return the same element.
 
       function Get_Next return Elmt_Ptr;

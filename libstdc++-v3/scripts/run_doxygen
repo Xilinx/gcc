@@ -218,12 +218,6 @@ rm -rf ext
 # File names with embedded spaces (EVIL!) need to be....?  renamed or removed?
 find . -name "* *" -print0 | xargs -0r rm        # requires GNU tools
 
-# Cleanups before tr1* files get killed.
-mv tr1_random_distributions.3 random_distributions.3
-mv tr1_random_distributions_continuous.3 random_distributions_continuous.3
-mv tr1_random_distributions_discrete.3 random_distributions_discrete.3
-mv tr1_random_generators.3 random_generators.3
-
 # man pages are for functions/types/other entities, not source files
 # directly.  who the heck would type "man foo.h" anyhow?
 find . -name "[a-z]*" -a ! -name "std_*" -print | xargs rm

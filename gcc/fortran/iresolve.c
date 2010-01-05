@@ -1,5 +1,5 @@
 /* Intrinsic function resolution.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -62,20 +62,16 @@ gfc_get_string (const char *format, ...)
 static void
 check_charlen_present (gfc_expr *source)
 {
-  if (source->ts.cl == NULL)
-    {
-      source->ts.cl = gfc_get_charlen ();
-      source->ts.cl->next = gfc_current_ns->cl_list;
-      gfc_current_ns->cl_list = source->ts.cl;
-    }
+  if (source->ts.u.cl == NULL)
+    source->ts.u.cl = gfc_new_charlen (gfc_current_ns, NULL);
 
   if (source->expr_type == EXPR_CONSTANT)
     {
-      source->ts.cl->length = gfc_int_expr (source->value.character.length);
+      source->ts.u.cl->length = gfc_int_expr (source->value.character.length);
       source->rank = 0;
     }
   else if (source->expr_type == EXPR_ARRAY)
-    source->ts.cl->length =
+    source->ts.u.cl->length =
 	gfc_int_expr (source->value.constructor->expr->value.character.length);
 }
 
@@ -110,7 +106,7 @@ resolve_mask_arg (gfc_expr *mask)
 	{
 	  ts.type = BT_LOGICAL;
 	  ts.kind = 1;
-	  gfc_convert_type (mask, &ts, 2);
+	  gfc_convert_type_warn (mask, &ts, 2, 0);
 	}
     }
 }
@@ -165,10 +161,8 @@ gfc_resolve_char_achar (gfc_expr *f, gfc_expr *x, gfc_expr *kind,
   f->ts.type = BT_CHARACTER;
   f->ts.kind = (kind == NULL)
 	     ? gfc_default_character_kind : mpz_get_si (kind->value.integer);
-  f->ts.cl = gfc_get_charlen ();
-  f->ts.cl->next = gfc_current_ns->cl_list;
-  gfc_current_ns->cl_list = f->ts.cl;
-  f->ts.cl->length = gfc_int_expr (1);
+  f->ts.u.cl = gfc_new_charlen (gfc_current_ns, NULL);
+  f->ts.u.cl->length = gfc_int_expr (1);
 
   f->value.function.name = gfc_get_string (name, f->ts.kind,
 					   gfc_type_letter (x->ts.type),
@@ -657,8 +651,8 @@ gfc_resolve_ctime (gfc_expr *f, gfc_expr *time)
     {
       ts.type = BT_INTEGER;
       ts.kind = 8;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (time, &ts, 2);
     }
 
@@ -708,7 +702,7 @@ gfc_resolve_dot_product (gfc_expr *f, gfc_expr *a, gfc_expr *b)
   temp.value.op.op = INTRINSIC_NONE;
   temp.value.op.op1 = a;
   temp.value.op.op2 = b;
-  gfc_type_convert_binary (&temp);
+  gfc_type_convert_binary (&temp, 1);
   f->ts = temp.ts;
   f->value.function.name
     = gfc_get_string (PREFIX ("dot_product_%c%d"),
@@ -809,6 +803,57 @@ gfc_resolve_exponent (gfc_expr *f, gfc_expr *x)
   f->ts.type = BT_INTEGER;
   f->ts.kind = gfc_default_integer_kind;
   f->value.function.name = gfc_get_string ("__exponent_%d", x->ts.kind);
+}
+
+
+/* Resolve the EXTENDS_TYPE_OF intrinsic function.  */
+
+void
+gfc_resolve_extends_type_of (gfc_expr *f, gfc_expr *a, gfc_expr *mo)
+{
+  gfc_symbol *vtab;
+  gfc_symtree *st;
+
+  /* Prevent double resolution.  */
+  if (f->ts.type == BT_LOGICAL)
+    return;
+
+  /* Replace the first argument with the corresponding vtab.  */
+  if (a->ts.type == BT_CLASS)
+    gfc_add_component_ref (a, "$vptr");
+  else if (a->ts.type == BT_DERIVED)
+    {
+      vtab = gfc_find_derived_vtab (a->ts.u.derived);
+      /* Clear the old expr.  */
+      gfc_free_ref_list (a->ref);
+      memset (a, '\0', sizeof (gfc_expr));
+      /* Construct a new one.  */
+      a->expr_type = EXPR_VARIABLE;
+      st = gfc_find_symtree (vtab->ns->sym_root, vtab->name);
+      a->symtree = st;
+      a->ts = vtab->ts;
+    }
+
+  /* Replace the second argument with the corresponding vtab.  */
+  if (mo->ts.type == BT_CLASS)
+    gfc_add_component_ref (mo, "$vptr");
+  else if (mo->ts.type == BT_DERIVED)
+    {
+      vtab = gfc_find_derived_vtab (mo->ts.u.derived);
+      /* Clear the old expr.  */
+      gfc_free_ref_list (mo->ref);
+      memset (mo, '\0', sizeof (gfc_expr));
+      /* Construct a new one.  */
+      mo->expr_type = EXPR_VARIABLE;
+      st = gfc_find_symtree (vtab->ns->sym_root, vtab->name);
+      mo->symtree = st;
+      mo->ts = vtab->ts;
+    }
+
+  f->ts.type = BT_LOGICAL;
+  f->ts.kind = 4;
+  /* Call library function.  */
+  f->value.function.name = gfc_get_string (PREFIX ("is_extension_of"));
 }
 
 
@@ -1064,8 +1109,8 @@ gfc_resolve_index_func (gfc_expr *f, gfc_expr *str,
     {
       ts.type = BT_LOGICAL;
       ts.kind = gfc_default_integer_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (back, &ts, 2);
     }
 
@@ -1131,8 +1176,8 @@ gfc_resolve_isatty (gfc_expr *f, gfc_expr *u)
     {
       ts.type = BT_INTEGER;
       ts.kind = gfc_c_int_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (u, &ts, 2);
     }
 
@@ -1335,7 +1380,7 @@ gfc_resolve_matmul (gfc_expr *f, gfc_expr *a, gfc_expr *b)
       temp.value.op.op = INTRINSIC_NONE;
       temp.value.op.op1 = a;
       temp.value.op.op2 = b;
-      gfc_type_convert_binary (&temp);
+      gfc_type_convert_binary (&temp, 1);
       f->ts = temp.ts;
     }
 
@@ -2181,8 +2226,8 @@ gfc_resolve_fgetc (gfc_expr *f, gfc_expr *u, gfc_expr *c ATTRIBUTE_UNUSED)
     {
       ts.type = BT_INTEGER;
       ts.kind = gfc_c_int_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (u, &ts, 2);
     }
 
@@ -2211,8 +2256,8 @@ gfc_resolve_fputc (gfc_expr *f, gfc_expr *u, gfc_expr *c ATTRIBUTE_UNUSED)
     {
       ts.type = BT_INTEGER;
       ts.kind = gfc_c_int_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (u, &ts, 2);
     }
 
@@ -2241,8 +2286,8 @@ gfc_resolve_ftell (gfc_expr *f, gfc_expr *u)
     {
       ts.type = BT_INTEGER;
       ts.kind = gfc_c_int_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (u, &ts, 2);
     }
 
@@ -2347,16 +2392,16 @@ gfc_resolve_transfer (gfc_expr *f, gfc_expr *source ATTRIBUTE_UNUSED,
   static char transfer0[] = "__transfer0", transfer1[] = "__transfer1";
 
   if (mold->ts.type == BT_CHARACTER
-	&& !mold->ts.cl->length
+	&& !mold->ts.u.cl->length
 	&& gfc_is_constant_expr (mold))
     {
       int len;
       if (mold->expr_type == EXPR_CONSTANT)
-	mold->ts.cl->length = gfc_int_expr (mold->value.character.length);
+	mold->ts.u.cl->length = gfc_int_expr (mold->value.character.length);
       else
 	{
 	  len = mold->value.constructor->expr->value.character.length;
-	  mold->ts.cl->length = gfc_int_expr (len);
+	  mold->ts.u.cl->length = gfc_int_expr (len);
 	}
     }
 
@@ -2504,8 +2549,8 @@ gfc_resolve_ttynam (gfc_expr *f, gfc_expr *unit)
     {
       ts.type = BT_INTEGER;
       ts.kind = gfc_c_int_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (unit, &ts, 2);
     }
 
@@ -2579,13 +2624,12 @@ void
 gfc_resolve_alarm_sub (gfc_code *c)
 {
   const char *name;
-  gfc_expr *seconds, *handler, *status;
+  gfc_expr *seconds, *handler;
   gfc_typespec ts;
   gfc_clear_ts (&ts);
 
   seconds = c->ext.actual->expr;
   handler = c->ext.actual->next->expr;
-  status = c->ext.actual->next->next->expr;
   ts.type = BT_INTEGER;
   ts.kind = gfc_c_int_kind;
 
@@ -3083,8 +3127,8 @@ gfc_resolve_ctime_sub (gfc_code *c)
     {
       ts.type = BT_INTEGER;
       ts.kind = 8;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (c->ext.actual->expr, &ts, 2);
     }
 
@@ -3186,8 +3230,8 @@ gfc_resolve_fgetc_sub (gfc_code *c)
     {
       ts.type = BT_INTEGER;
       ts.kind = gfc_c_int_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (u, &ts, 2);
     }
 
@@ -3231,8 +3275,8 @@ gfc_resolve_fputc_sub (gfc_code *c)
     {
       ts.type = BT_INTEGER;
       ts.kind = gfc_c_int_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (u, &ts, 2);
     }
 
@@ -3267,21 +3311,19 @@ gfc_resolve_fseek_sub (gfc_code *c)
   gfc_expr *unit;
   gfc_expr *offset;
   gfc_expr *whence;
-  gfc_expr *status;
   gfc_typespec ts;
   gfc_clear_ts (&ts);
 
   unit   = c->ext.actual->expr;
   offset = c->ext.actual->next->expr;
   whence = c->ext.actual->next->next->expr;
-  status = c->ext.actual->next->next->next->expr;
 
   if (unit->ts.kind != gfc_c_int_kind)
     {
       ts.type = BT_INTEGER;
       ts.kind = gfc_c_int_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (unit, &ts, 2);
     }
 
@@ -3289,8 +3331,8 @@ gfc_resolve_fseek_sub (gfc_code *c)
     {
       ts.type = BT_INTEGER;
       ts.kind = gfc_intio_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (offset, &ts, 2);
     }
 
@@ -3298,8 +3340,8 @@ gfc_resolve_fseek_sub (gfc_code *c)
     {
       ts.type = BT_INTEGER;
       ts.kind = gfc_c_int_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (whence, &ts, 2);
     }
 
@@ -3322,8 +3364,8 @@ gfc_resolve_ftell_sub (gfc_code *c)
     {
       ts.type = BT_INTEGER;
       ts.kind = gfc_c_int_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (unit, &ts, 2);
     }
 
@@ -3342,8 +3384,8 @@ gfc_resolve_ttynam_sub (gfc_code *c)
     {
       ts.type = BT_INTEGER;
       ts.kind = gfc_c_int_kind;
-      ts.derived = NULL;
-      ts.cl = NULL;
+      ts.u.derived = NULL;
+      ts.u.cl = NULL;
       gfc_convert_type (c->ext.actual->expr, &ts, 2);
     }
 

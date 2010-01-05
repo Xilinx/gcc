@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -38,6 +38,7 @@ with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Case; use Sem_Case;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch8;  use Sem_Ch8;
@@ -45,6 +46,7 @@ with Sem_Disp; use Sem_Disp;
 with Sem_Elab; use Sem_Elab;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
+with Sem_SCIL; use Sem_SCIL;
 with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
 with Sem_Warn; use Sem_Warn;
@@ -87,8 +89,8 @@ package body Sem_Ch5 is
       Decl : Node_Id;
 
       procedure Diagnose_Non_Variable_Lhs (N : Node_Id);
-      --  N is the node for the left hand side of an assignment, and it
-      --  is not a variable. This routine issues an appropriate diagnostic.
+      --  N is the node for the left hand side of an assignment, and it is not
+      --  a variable. This routine issues an appropriate diagnostic.
 
       procedure Kill_Lhs;
       --  This is called to kill current value settings of a simple variable
@@ -435,9 +437,15 @@ package body Sem_Ch5 is
         and then not Assignment_OK (Original_Node (Lhs))
         and then not Is_Value_Type (T1)
       then
-         Error_Msg_N
-           ("left hand of assignment must not be limited type", Lhs);
-         Explain_Limited_Type (T1, Lhs);
+         --  CPP constructors can only be called in declarations
+
+         if Is_CPP_Constructor_Call (Rhs) then
+            Error_Msg_N ("invalid use of 'C'P'P constructor", Rhs);
+         else
+            Error_Msg_N
+              ("left hand of assignment must not be limited type", Lhs);
+            Explain_Limited_Type (T1, Lhs);
+         end if;
          return;
 
       --  Enforce RM 3.9.3 (8): left-hand side cannot be abstract
@@ -1200,6 +1208,13 @@ package body Sem_Ch5 is
          Analyze_And_Resolve (Cond, Any_Boolean);
          Check_Unset_Reference (Cond);
       end if;
+
+      --  Since the exit may take us out of a loop, any previous assignment
+      --  statement is not useless, so clear last assignment indications. It
+      --  is OK to keep other current values, since if the exit statement
+      --  does not exit, then the current values are still valid.
+
+      Kill_Current_Values (Last_Assignment_Only => True);
    end Analyze_Exit_Statement;
 
    ----------------------------
@@ -1556,6 +1571,15 @@ package body Sem_Ch5 is
                 Name        => New_Occurrence_Of (Id, Loc),
                 Expression  => Relocate_Node (Original_Bound));
 
+            --  If the relocated node is a function call then check if some
+            --  SCIL node references it and needs readjustment.
+
+            if Generate_SCIL
+              and then Nkind (Original_Bound) = N_Function_Call
+            then
+               Adjust_SCIL_Node (Original_Bound, Expression (Assign));
+            end if;
+
             Insert_Before (Parent (N), Assign);
             Analyze (Assign);
 
@@ -1818,6 +1842,11 @@ package body Sem_Ch5 is
 
                   Set_Ekind          (Id, E_Loop_Parameter);
                   Set_Etype          (Id, Etype (DS));
+
+                  --  Treat a range as an implicit reference to the type, to
+                  --  inhibit spurious warnings.
+
+                  Generate_Reference (Base_Type (Etype (DS)), N, ' ');
                   Set_Is_Known_Valid (Id, True);
 
                   --  The loop is not a declarative part, so the only entity
@@ -1843,23 +1872,12 @@ package body Sem_Ch5 is
                         L : constant Node_Id := Low_Bound  (DS);
                         H : constant Node_Id := High_Bound (DS);
 
-                        Llo : Uint;
-                        Lhi : Uint;
-                        LOK : Boolean;
-                        Hlo : Uint;
-                        Hhi : Uint;
-                        HOK : Boolean;
-
-                        pragma Warnings (Off, Hlo);
-
                      begin
-                        Determine_Range (L, LOK, Llo, Lhi);
-                        Determine_Range (H, HOK, Hlo, Hhi);
-
                         --  If range of loop is null, issue warning
 
-                        if (LOK and HOK) and then Llo > Hhi then
-
+                        if Compile_Time_Compare
+                            (L, H, Assume_Valid => True) = GT
+                        then
                            --  Suppress the warning if inside a generic
                            --  template or instance, since in practice
                            --  they tend to be dubious in these cases since
@@ -1868,21 +1886,46 @@ package body Sem_Ch5 is
                            if not Inside_A_Generic
                               and then not In_Instance
                            then
-                              Error_Msg_N
-                                ("?loop range is null, loop will not execute",
-                                 DS);
+                              --  Specialize msg if invalid values could make
+                              --  the loop non-null after all.
+
+                              if Compile_Time_Compare
+                                   (L, H, Assume_Valid => False) = GT
+                              then
+                                 Error_Msg_N
+                                   ("?loop range is null, "
+                                    & "loop will not execute",
+                                    DS);
+
+                                 --  Since we know the range of the loop is
+                                 --  null, set the appropriate flag to remove
+                                 --  the loop entirely during expansion.
+
+                                 Set_Is_Null_Loop (Parent (N));
+
+                              --  Here is where the loop could execute because
+                              --  of invalid values, so issue appropriate
+                              --  message and in this case we do not set the
+                              --  Is_Null_Loop flag since the loop may execute.
+
+                              else
+                                 Error_Msg_N
+                                   ("?loop range may be null, "
+                                    & "loop may not execute",
+                                    DS);
+                                 Error_Msg_N
+                                   ("?can only execute if invalid values "
+                                    & "are present",
+                                    DS);
+                              end if;
                            end if;
 
-                           --  Since we know the range of the loop is null,
-                           --  set the appropriate flag to suppress any
-                           --  warnings that would otherwise be issued in
-                           --  the body of the loop that will not execute.
-                           --  We do this even in the generic case, since
-                           --  if it is dubious to warn on the null loop
-                           --  itself, it is certainly dubious to warn for
-                           --  conditions that occur inside it!
+                           --  In either case, suppress warnings in the body of
+                           --  the loop, since it is likely that these warnings
+                           --  will be inappropriate if the loop never actually
+                           --  executes, which is unlikely.
 
-                           Set_Is_Null_Loop (Parent (N));
+                           Set_Suppress_Loop_Warnings (Parent (N));
 
                         --  The other case for a warning is a reverse loop
                         --  where the upper bound is the integer literal
@@ -1898,10 +1941,9 @@ package body Sem_Ch5 is
                         elsif Reverse_Present (LP)
                           and then Nkind (Original_Node (H)) =
                                                           N_Integer_Literal
-                          and then (Intval (H) = Uint_0
+                          and then (Intval (Original_Node (H)) = Uint_0
                                       or else
-                                    Intval (H) = Uint_1)
-                          and then Lhi > Hhi
+                                    Intval (Original_Node (H)) = Uint_1)
                         then
                            Error_Msg_N ("?loop range may be null", DS);
                            Error_Msg_N ("\?bounds may be wrong way round", DS);
@@ -2017,7 +2059,13 @@ package body Sem_Ch5 is
       Process_End_Label (Loop_Statement, 'e', Ent);
       End_Scope;
       Kill_Current_Values;
-      Check_Infinite_Loop_Warning (N);
+
+      --  Check for infinite loop. We skip this check for generated code, since
+      --  it justs waste time and makes debugging the routine called harder.
+
+      if Comes_From_Source (N) then
+         Check_Infinite_Loop_Warning (N);
+      end if;
 
       --  Code after loop is unreachable if the loop has no WHILE or FOR
       --  and contains no EXIT statements within the body of the loop.

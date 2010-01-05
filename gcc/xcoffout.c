@@ -145,7 +145,7 @@ static const struct xcoff_type_number xcoff_type_numbers[] = {
 
   /* ??? Should also handle built-in C++ and Obj-C types.  There perhaps
      aren't any that C doesn't already have.  */
-};    
+};
 
 /* Returns an XCOFF fundamental type number for DECL (assumed to be a
    TYPE_DECL), or 0 if dbxout.c should assign a type number normally.  */
@@ -321,7 +321,9 @@ xcoffout_source_file (FILE *file, const char *filename, int inline_p)
 /* Output a line number symbol entry for location (FILENAME, LINE).  */
 
 void
-xcoffout_source_line (unsigned int line, const char *filename)
+xcoffout_source_line (unsigned int line, const char *filename,
+                      int discriminator ATTRIBUTE_UNUSED,
+                      bool is_stmt ATTRIBUTE_UNUSED)
 {
   bool inline_p = (strcmp (xcoff_current_function_file, filename) != 0
 		   || (int) line < xcoff_begin_function_line);

@@ -70,7 +70,7 @@ package body Ada.Directories is
 
    type Search_Data is record
       Is_Valid      : Boolean := False;
-      Name          : Ada.Strings.Unbounded.Unbounded_String;
+      Name          : Unbounded_String;
       Pattern       : Regexp;
       Filter        : Filter_Type;
       Dir           : Dir_Type_Value := No_Dir;
@@ -93,20 +93,15 @@ package body Ada.Directories is
    --  Get the next entry in a directory, setting Entry_Fetched if successful
    --  or resetting Is_Valid if not.
 
-   procedure To_Lower_If_Case_Insensitive (S : in out String);
-   --  Put S in lower case if file and path names are case-insensitive
-
    ---------------
    -- Base_Name --
    ---------------
 
    function Base_Name (Name : String) return String is
-      Simple : String := Simple_Name (Name);
+      Simple : constant String := Simple_Name (Name);
       --  Simple'First is guaranteed to be 1
 
    begin
-      To_Lower_If_Case_Insensitive (Simple);
-
       --  Look for the last dot in the file name and return the part of the
       --  file name preceding this last dot. If the first dot is the first
       --  character of the file name, the base name is the empty string.
@@ -198,7 +193,6 @@ package body Ada.Directories is
             Last := Last + Extension'Length;
          end if;
 
-         To_Lower_If_Case_Insensitive (Result (1 .. Last));
          return Result (1 .. Last);
       end if;
    end Compose;
@@ -216,6 +210,9 @@ package body Ada.Directories is
 
       else
          declare
+            --  We need to resolve links because of A.16(47), since we must not
+            --  return alternative names for files.
+
             Norm    : constant String := Normalize_Pathname (Name);
             Last_DS : constant Natural :=
                         Strings.Fixed.Index
@@ -287,7 +284,6 @@ package body Ada.Directories is
                      return Containing_Directory (Current_Directory);
 
                   else
-                     To_Lower_If_Case_Insensitive (Result (1 .. Last));
                      return Result (1 .. Last);
                   end if;
                end;
@@ -448,11 +444,11 @@ package body Ada.Directories is
       Local_Get_Current_Dir (Buffer'Address, Path_Len'Address);
 
       declare
-         Cur : String := Normalize_Pathname (Buffer (1 .. Path_Len));
+         --  We need to resolve links because of A.16(47), since we must not
+         --  return alternative names for files
+         Cur : constant String := Normalize_Pathname (Buffer (1 .. Path_Len));
 
       begin
-         To_Lower_If_Case_Insensitive (Cur);
-
          if Cur'Length > 1 and then Cur (Cur'Last) = Dir_Separator then
             return Cur (1 .. Cur'Last - 1);
          else
@@ -481,9 +477,7 @@ package body Ada.Directories is
             C_Dir_Name : constant String := Directory & ASCII.NUL;
 
          begin
-            rmdir (C_Dir_Name);
-
-            if System.OS_Lib.Is_Directory (Directory) then
+            if rmdir (C_Dir_Name) /= 0 then
                raise Use_Error with
                  "deletion of directory """ & Directory & """ failed";
             end if;
@@ -565,9 +559,7 @@ package body Ada.Directories is
             C_Dir_Name : constant String := Directory & ASCII.NUL;
 
          begin
-            rmdir (C_Dir_Name);
-
-            if System.OS_Lib.Is_Directory (Directory) then
+            if rmdir (C_Dir_Name) /= 0 then
                raise Use_Error with
                  "directory tree rooted at """ &
                    Directory & """ could not be deleted";
@@ -794,10 +786,11 @@ package body Ada.Directories is
          --  Use System.OS_Lib.Normalize_Pathname
 
          declare
-            Value : String := Normalize_Pathname (Name);
+            --  We need to resolve links because of A.16(47), since we must not
+            --  return alternative names for files
+            Value : constant String := Normalize_Pathname (Name);
             subtype Result is String (1 .. Value'Length);
          begin
-            To_Lower_If_Case_Insensitive (Value);
             return Result (Value);
          end;
       end if;
@@ -996,7 +989,7 @@ package body Ada.Directories is
       then
          raise Name_Error with "old file """ & Old_Name & """ does not exist";
 
-      elsif Is_Regular_File (New_Name) or Is_Directory (New_Name) then
+      elsif Is_Regular_File (New_Name) or else Is_Directory (New_Name) then
          raise Use_Error with
            "new name """ & New_Name
            & """ designates a file that already exists";
@@ -1044,10 +1037,6 @@ package body Ada.Directories is
 
    procedure Set_Directory (Directory : String) is
       C_Dir_Name : constant String := Directory & ASCII.NUL;
-
-      function chdir (Dir_Name : String) return Integer;
-      pragma Import (C, chdir, "chdir");
-
    begin
       if not Is_Valid_Path_Name (Directory) then
          raise Name_Error with
@@ -1069,43 +1058,30 @@ package body Ada.Directories is
 
    function Simple_Name (Name : String) return String is
 
-      function Simple_Name_CI (Path : String) return String;
-      --  This function does the job. The difference between Simple_Name_CI
-      --  and Simple_Name (the parent function) is that the former is case
-      --  sensitive, while the latter is not. Path and Suffix are adjusted
-      --  appropriately before calling Simple_Name_CI under platforms where
-      --  the file system is not case sensitive.
+      function Simple_Name_Internal (Path : String) return String;
+      --  This function does the job
 
-      --------------------
-      -- Simple_Name_CI --
-      --------------------
+      --------------------------
+      -- Simple_Name_Internal --
+      --------------------------
 
-      function Simple_Name_CI (Path : String) return String is
+      function Simple_Name_Internal (Path : String) return String is
          Cut_Start : Natural :=
                        Strings.Fixed.Index
                          (Path, Dir_Seps, Going => Strings.Backward);
          Cut_End   : Natural;
 
       begin
-         --  Cut_Start point to the first simple name character
+         --  Cut_Start pointS to the first simple name character
 
-         if Cut_Start = 0 then
-            Cut_Start := Path'First;
-
-         else
-            Cut_Start := Cut_Start + 1;
-         end if;
+         Cut_Start := (if Cut_Start = 0 then Path'First else Cut_Start + 1);
 
          --  Cut_End point to the last simple name character
 
          Cut_End := Path'Last;
 
          Check_For_Standard_Dirs : declare
-            Offset : constant Integer := Path'First - Name'First;
-            BN     : constant String  :=
-                       Name (Cut_Start - Offset .. Cut_End - Offset);
-            --  Here we use Simple_Name.Name to keep the original casing
-
+            BN               : constant String := Path (Cut_Start .. Cut_End);
             Has_Drive_Letter : constant Boolean :=
                                  System.OS_Lib.Path_Separator /= ':';
             --  If Path separator is not ':' then we are on a DOS based OS
@@ -1128,7 +1104,7 @@ package body Ada.Directories is
                return BN;
             end if;
          end Check_For_Standard_Dirs;
-      end Simple_Name_CI;
+      end Simple_Name_Internal;
 
    --  Start of processing for Simple_Name
 
@@ -1141,29 +1117,17 @@ package body Ada.Directories is
       else
          --  Build the value to return with lower bound 1
 
-         if Is_Path_Name_Case_Sensitive then
-            declare
-               Value : constant String := Simple_Name_CI (Name);
-               subtype Result is String (1 .. Value'Length);
-            begin
-               return Result (Value);
-            end;
-
-         else
-            declare
-               Value : constant String :=
-                         Simple_Name_CI (Characters.Handling.To_Lower (Name));
-               subtype Result is String (1 .. Value'Length);
-            begin
-               return Result (Value);
-            end;
-         end if;
+         declare
+            Value : constant String := Simple_Name_Internal (Name);
+            subtype Result is String (1 .. Value'Length);
+         begin
+            return Result (Value);
+         end;
       end if;
    end Simple_Name;
 
    function Simple_Name
-     (Directory_Entry : Directory_Entry_Type) return String
-   is
+     (Directory_Entry : Directory_Entry_Type) return String is
    begin
       --  First, the invalid case
 
@@ -1242,7 +1206,10 @@ package body Ada.Directories is
       --  Check the pattern
 
       begin
-         Pat := Compile (Pattern, Glob => True);
+         Pat := Compile
+           (Pattern,
+            Glob           => True,
+            Case_Sensitive => Is_Path_Name_Case_Sensitive);
       exception
          when Error_In_Regexp =>
             Free (Search.Value);
@@ -1272,18 +1239,5 @@ package body Ada.Directories is
       Search.Value.Dir      := Dir;
       Search.Value.Is_Valid := True;
    end Start_Search;
-
-   ----------------------------------
-   -- To_Lower_If_Case_Insensitive --
-   ----------------------------------
-
-   procedure To_Lower_If_Case_Insensitive (S : in out String) is
-   begin
-      if not Is_Path_Name_Case_Sensitive then
-         for J in S'Range loop
-            S (J) := To_Lower (S (J));
-         end loop;
-      end if;
-   end To_Lower_If_Case_Insensitive;
 
 end Ada.Directories;

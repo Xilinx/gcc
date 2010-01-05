@@ -1,3 +1,21 @@
+;; Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+;;
+;; This file is part of GCC.
+;;
+;; GCC is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3, or (at your option)
+;; any later version.
+;;
+;; GCC is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
+
 (define_constants
   [(CCDSP_PO_REGNUM	182)
    (CCDSP_SC_REGNUM	183)
@@ -1048,7 +1066,7 @@
 
 (define_insn "mips_lhx_<mode>"
   [(set (match_operand:SI 0 "register_operand" "=d")
-	(zero_extend:SI
+	(sign_extend:SI
 	  (mem:HI (plus:P (match_operand:P 1 "register_operand" "d")
 			  (match_operand:P 2 "register_operand" "d")))))]
   "ISA_HAS_DSP"
@@ -1084,11 +1102,10 @@
 (define_insn "mips_bposge"
   [(set (pc)
 	(if_then_else (ge (reg:CCDSP CCDSP_PO_REGNUM)
-			  (match_operand:SI 0 "immediate_operand" "I"))
-		      (label_ref (match_operand 1 "" ""))
+			  (match_operand:SI 1 "immediate_operand" "I"))
+		      (label_ref (match_operand 0 "" ""))
 		      (pc)))]
   "ISA_HAS_DSP"
-  "%*bposge%0\t%1%/"
-  [(set_attr "type"	"branch")
-   (set_attr "mode"	"none")])
+  "%*bposge%1\t%0%/"
+  [(set_attr "type"	"branch")])
 

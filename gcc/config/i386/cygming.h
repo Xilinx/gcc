@@ -34,7 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 #undef TARGET_64BIT_MS_ABI
-#define TARGET_64BIT_MS_ABI (!cfun ? DEFAULT_ABI == MS_ABI : TARGET_64BIT && cfun->machine->call_abi == MS_ABI)
+#define TARGET_64BIT_MS_ABI (!cfun ? ix86_abi == MS_ABI : TARGET_64BIT && cfun->machine->call_abi == MS_ABI)
 
 #undef DEFAULT_ABI
 #define DEFAULT_ABI (TARGET_64BIT ? MS_ABI : SYSV_ABI)
@@ -49,8 +49,9 @@ along with GCC; see the file COPYING3.  If not see
    target, always use the svr4_dbx_register_map for DWARF .eh_frame
    even if we don't use DWARF .debug_frame. */
 #undef DWARF_FRAME_REGNUM
-#define DWARF_FRAME_REGNUM(n) TARGET_64BIT \
-	? dbx64_register_map[(n)] : svr4_dbx_register_map[(n)] 
+#define DWARF_FRAME_REGNUM(n)				\
+  (TARGET_64BIT ? dbx64_register_map[(n)]		\
+		: svr4_dbx_register_map[(n)])
 
 #ifdef HAVE_GAS_PE_SECREL32_RELOC
 /* Use section relative relocations for debugging offsets.  Unlike
@@ -126,8 +127,6 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Enable parsing of #pragma pack(push,<n>) and #pragma pack(pop).  */
 #define HANDLE_PRAGMA_PACK_PUSH_POP 1
-/* Enable push_macro & pop_macro */
-#define HANDLE_PRAGMA_PUSH_POP_MACRO 1
 
 union tree_node;
 #define TREE union tree_node *
@@ -203,7 +202,7 @@ do {						\
 #define CHECK_STACK_LIMIT 4000
 
 #undef STACK_BOUNDARY
-#define STACK_BOUNDARY	(DEFAULT_ABI == MS_ABI ? 128 : BITS_PER_WORD)
+#define STACK_BOUNDARY	(ix86_abi == MS_ABI ? 128 : BITS_PER_WORD)
 
 /* By default, target has a 80387, uses IEEE compatible arithmetic,
    returns float values in the 387 and needs stack probes.
@@ -287,6 +286,10 @@ do {						\
 /* The logic of this #if must be kept synchronised with the logic
    for selecting the tmake_eh_file fragment in config.gcc.  */
 #define DWARF2_UNWIND_INFO 1
+/* If multilib is selected break build as sjlj is required.  */
+#if defined (TARGET_BI_ARCH)
+#error For 64-bit windows and 32-bit based multilib version of gcc just SJLJ exceptions are supported.
+#endif
 #else
 #define DWARF2_UNWIND_INFO 0
 #endif
@@ -379,7 +382,7 @@ do {						\
 /* FIXME: SUPPORTS_WEAK && TARGET_HAVE_NAMED_SECTIONS is true,
    but for .jcr section to work we also need crtbegin and crtend
    objects.  */
-#define TARGET_USE_JCR_SECTION 0
+#define TARGET_USE_JCR_SECTION 1
 
 /* Decide whether it is safe to use a local alias for a virtual function
    when constructing thunks.  */

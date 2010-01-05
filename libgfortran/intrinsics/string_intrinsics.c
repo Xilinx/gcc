@@ -34,6 +34,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 
 /* Helper function to set parts of wide strings to a constant (usually

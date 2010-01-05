@@ -1,14 +1,36 @@
-2009-10-15  Release Manager
+2009-12-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
-	* GCC 4.4.2 released.
+	* configure: Regenerate.
 
-2009-07-22  Release Manager
+2009-11-28  Jakub Jelinek  <jakub@redhat.com>
 
-	* GCC 4.4.1 released.
+	* sarray.c (sarray_free): Use old_buckets variable.
+	* encoding.c (objc_layout_structure_next_member): Remove unused
+	bfld_type_size variable.
 
-2009-04-21  Release Manager
+2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
-	* GCC 4.4.0 released.
+	* configure.ac (AC_PREREQ): Bump to 2.64.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+	* config.h.in: Regenerate.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in (LIBTOOL): Add $(LIBTOOLFLAGS).
+
+2009-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in (AUTOCONF, ACLOCAL, ACLOCAL_AMFLAGS, aclocal_deps):
+	New variables.
+	($(srcdir)/configure, $(srcdir)/aclocal.m4): New rules.
+
+2009-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (_AC_ARG_VAR_PRECIOUS): Use m4_rename_force.
 
 2009-04-09  Nick Clifton  <nickc@redhat.com>
 

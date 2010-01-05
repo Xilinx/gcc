@@ -84,23 +84,21 @@ package body Ada.Containers.Indefinite_Hashed_Maps is
    -- Local Instantiations --
    --------------------------
 
-   package HT_Ops is
-      new Ada.Containers.Hash_Tables.Generic_Operations
-        (HT_Types          => HT_Types,
-         Hash_Node         => Hash_Node,
-         Next              => Next,
-         Set_Next          => Set_Next,
-         Copy_Node         => Copy_Node,
-         Free              => Free);
+   package HT_Ops is new Ada.Containers.Hash_Tables.Generic_Operations
+     (HT_Types  => HT_Types,
+      Hash_Node => Hash_Node,
+      Next      => Next,
+      Set_Next  => Set_Next,
+      Copy_Node => Copy_Node,
+      Free      => Free);
 
-   package Key_Ops is
-      new Hash_Tables.Generic_Keys
-       (HT_Types  => HT_Types,
-        Next      => Next,
-        Set_Next  => Set_Next,
-        Key_Type  => Key_Type,
-        Hash      => Hash,
-        Equivalent_Keys => Equivalent_Key_Node);
+   package Key_Ops is new Hash_Tables.Generic_Keys
+     (HT_Types        => HT_Types,
+      Next            => Next,
+      Set_Next        => Set_Next,
+      Key_Type        => Key_Type,
+      Hash            => Hash,
+      Equivalent_Keys => Equivalent_Key_Node);
 
    ---------
    -- "=" --
@@ -108,7 +106,7 @@ package body Ada.Containers.Indefinite_Hashed_Maps is
 
    function Is_Equal is new HT_Ops.Generic_Equal (Find_Equal_Key);
 
-   function "=" (Left, Right : Map) return Boolean is
+   overriding function "=" (Left, Right : Map) return Boolean is
    begin
       return Is_Equal (Left.HT, Right.HT);
    end "=";

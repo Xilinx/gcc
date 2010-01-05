@@ -73,6 +73,7 @@ static const char jvgenmain_spec[] =
 		   %<fclasspath* %<fCLASSPATH* %<fbootclasspath*\
 		   %<fextdirs*\
 		   %<fuse-divide-subroutine %<fno-use-divide-subroutine\
+		   %<fuse-atomic-builtins %<fno-use-atomic-builtins\
 		   %<fcheck-references %<fno-check-references\
 		   %<ffilelist-file %<fsaw-java-file %<fsource* %<ftarget*\
 		   %{f*} -fdollars-in-identifiers\
@@ -145,9 +146,6 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 		      int *in_added_libraries)
 {
   int i, j;
-
-  /* If nonzero, the user gave us the `-v' flag.  */
-  int saw_verbose_flag = 0;
 
   int saw_save_temps = 0;
 
@@ -265,7 +263,6 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	    want_spec_file = 0;
 	  else if (strcmp (argv[i], "-v") == 0)
 	    {
-	      saw_verbose_flag = 1;
 	      if (argc == 2)
 		{
 		  /* If they only gave us `-v', don't try to link

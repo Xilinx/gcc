@@ -138,12 +138,12 @@ proc gnat_target_compile { source dest type options } {
     # If we detect a change of target we need to recompute
     # the appropriate RTS by calling get_multilibs.
     if { $gnat_target_current!="[current_target_name]" } {
-       set gnat_target_current "[current_target_name]"
-       if [info exists TOOL_OPTIONS] {
-           set gnat_rts_opt "--RTS=[get_multilibs ${TOOL_OPTIONS}]/libada"
-       } else {
-           set gnat_rts_opt "--RTS=[get_multilibs]/libada"
-       }
+	set gnat_target_current "[current_target_name]"
+	if [info exists TOOL_OPTIONS] {
+	    set gnat_rts_opt "--RTS=[get_multilibs ${TOOL_OPTIONS}]/libada"
+	} else {
+	    set gnat_rts_opt "--RTS=[get_multilibs]/libada"
+	}
         set GNAT_UNDER_TEST "$GNAT_UNDER_TEST_ORIG $gnat_rts_opt"
     }
 

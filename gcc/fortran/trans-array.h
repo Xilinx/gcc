@@ -1,5 +1,5 @@
 /* Header for array handling functions
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Paul Brook
 
@@ -84,6 +84,8 @@ void gfc_copy_loopinfo_to_se (gfc_se *, gfc_loopinfo *);
 
 /* Marks the start of a scalarized expression, and declares loop variables.  */
 void gfc_start_scalarized_body (gfc_loopinfo *, stmtblock_t *);
+/* Generates one actual loop for a scalarized expression.  */
+void  gfc_trans_scalarized_loop_end (gfc_loopinfo *, int, stmtblock_t *);
 /* Generates the actual loops for a scalarized expression.  */
 void gfc_trans_scalarizing_loops (gfc_loopinfo *, stmtblock_t *);
 /* Mark the end of the main loop body and the start of the copying loop.  */
@@ -106,7 +108,7 @@ void gfc_conv_tmp_ref (gfc_se *);
 void gfc_conv_expr_descriptor (gfc_se *, gfc_expr *, gfc_ss *);
 /* Convert an array for passing as an actual function parameter.  */
 void gfc_conv_array_parameter (gfc_se *, gfc_expr *, gfc_ss *, int,
-			       const gfc_symbol *, const char *);
+			       const gfc_symbol *, const char *, tree *);
 /* Evaluate and transpose a matrix expression.  */
 void gfc_conv_array_transpose (gfc_se *, gfc_expr *);
 
@@ -120,13 +122,18 @@ tree gfc_conv_array_ubound (tree, int);
 
 /* Build expressions for accessing components of an array descriptor.  */
 tree gfc_conv_descriptor_data_get (tree);
-void gfc_conv_descriptor_data_set (stmtblock_t *, tree, tree);
 tree gfc_conv_descriptor_data_addr (tree);
-tree gfc_conv_descriptor_offset (tree);
+tree gfc_conv_descriptor_offset_get (tree);
 tree gfc_conv_descriptor_dtype (tree);
-tree gfc_conv_descriptor_stride (tree, tree);
-tree gfc_conv_descriptor_lbound (tree, tree);
-tree gfc_conv_descriptor_ubound (tree, tree);
+tree gfc_conv_descriptor_stride_get (tree, tree);
+tree gfc_conv_descriptor_lbound_get (tree, tree);
+tree gfc_conv_descriptor_ubound_get (tree, tree);
+
+void gfc_conv_descriptor_data_set (stmtblock_t *, tree, tree);
+void gfc_conv_descriptor_offset_set (stmtblock_t *, tree, tree);
+void gfc_conv_descriptor_stride_set (stmtblock_t *, tree, tree, tree);
+void gfc_conv_descriptor_lbound_set (stmtblock_t *, tree, tree, tree);
+void gfc_conv_descriptor_ubound_set (stmtblock_t *, tree, tree, tree);
 
 /* Add pre-loop scalarization code for intrinsic functions which require
    special handling.  */

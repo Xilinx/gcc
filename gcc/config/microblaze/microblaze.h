@@ -601,12 +601,14 @@ extern char microblaze_hard_regno_mode_ok[][FIRST_PSEUDO_REGISTER];
 #define FRAME_POINTER_REGNUM 		FRP_REG_NUM
 #define HARD_FRAME_POINTER_REGNUM       \
         (GP_REG_FIRST + MB_ABI_FRAME_POINTER_REGNUM)
-#define FRAME_POINTER_REQUIRED 		cfun->calls_alloca
 #define ARG_POINTER_REGNUM		AP_REG_NUM
 #define RETURN_ADDRESS_POINTER_REGNUM	RAP_REG_NUM
 #define STATIC_CHAIN_REGNUM             \
         (GP_REG_FIRST + MB_ABI_STATIC_CHAIN_REGNUM)
 #define STRUCT_VALUE    0
+
+/* MicroBlaze may require this -- branching is similar to MIPS.  */
+#define EH_USES(REGNO) 0        /* FIXME */
 
 /* registers used in prologue/epilogue code when the stack frame
    is larger than 32K bytes.  These registers must come from the
@@ -689,18 +691,6 @@ extern enum reg_class microblaze_regno_to_class[];
 
 #define GR_REG_CLASS_P(CLASS) ((CLASS) == GR_REGS)
 
-/* REG_ALLOC_ORDER is to order in which to allocate registers.  This
-   is the default value (allocate the registers in numeric order).  We
-   define it just so that we can override it if necessary in
-   ORDER_REGS_FOR_LOCAL_ALLOC.  */
-#define REG_ALLOC_ORDER							\
-{  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 16,	\
-  17, 18, 19, 20, 21, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 15,	\
-  32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43			\
-}
-
-#define ORDER_REGS_FOR_LOCAL_ALLOC microblaze_order_regs_for_local_alloc ()
-
 /* REGISTER AND CONSTANT CLASSES */
 
 /* Get reg_class from a letter such as appears in the machine
@@ -757,8 +747,8 @@ actually contain (16 bits signed integers).
 #define CONST_OK_FOR_LETTER_P(VALUE, C)					\
   ((C) == 'I' ? ((unsigned HOST_WIDE_INT) ((VALUE) + 0x8000) < 0x10000)	\
    : (C) == 'J' ? ((VALUE) == 0)					\
-   : (C) == 'K' ? ((VALUE) > 0)					\
-   : (C) == 'L' ? ((VALUE) < 0)					\
+   : (C) == 'K' ? ((VALUE) > 0)						\
+   : (C) == 'L' ? ((VALUE) < 0)						\
    : (C) == 'M' ? ((((VALUE) & ~0x0000ffff) != 0)			\
 		   && (((VALUE) & ~0x0000ffff) != ~0x0000ffff)		\
 		   && (((VALUE) & 0x0000ffff) != 0			\
@@ -824,9 +814,11 @@ actually contain (16 bits signed integers).
 
 #define STACK_GROWS_DOWNWARD
 
+// #define FRAME_GROWS_DOWNWARD 1
+
 /* Changed the starting frame offset to including the new link stuff */
 #define STARTING_FRAME_OFFSET						\
-  (crtl->outgoing_args_size + FIRST_PARM_OFFSET(FNDECL))
+   (crtl->outgoing_args_size + FIRST_PARM_OFFSET(FNDECL))
 
 /* The return address for the current frame is in r31 if this is a leaf
    function.  Otherwise, it is on the stack.  It is at a variable offset
@@ -845,25 +837,6 @@ actually contain (16 bits signed integers).
 #define RETURN_ADDR_RTX(count, frame)			\
   microblaze_return_addr(count,frame)
 
-/* Structure to be filled in by compute_frame_size with register
-   save masks, and offsets for the current function.  */
-
-struct microblaze_frame_info
-{
-  long total_size;		/* # bytes that the entire frame takes up */
-  long var_size;		/* # bytes that variables take up */
-  long args_size;		/* # bytes that outgoing arguments take up */
-  int link_debug_size;		/* # bytes for the link reg and back pointer */
-  int gp_reg_size;		/* # bytes needed to store gp regs */
-  long gp_offset;		/* offset from new sp to store gp registers */
-  long mask;			/* mask of saved gp registers */
-  int initialized;		/* != 0 if frame size already calculated */
-  int num_gp;			/* number of gp registers saved */
-  long insns_len;		/* length of insns */
-  int alloc_stack;		/* Flag to indicate if the current function 
-				   must not create stack space. (As an optimization) */
-};
-
 extern struct microblaze_frame_info current_frame_info;
 
 #define ELIMINABLE_REGS							\
@@ -876,17 +849,6 @@ extern struct microblaze_frame_info current_frame_info;
    GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM},			\
  { FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM},				\
  { FRAME_POINTER_REGNUM, GP_REG_FIRST + MB_ABI_FRAME_POINTER_REGNUM}}
-
-/* We can always eliminate to the frame pointer.  We can eliminate 
-   the stack pointer unless a frame pointer is needed.  */
-
-#define CAN_ELIMINATE(FROM, TO)						\
-  (((FROM) == RETURN_ADDRESS_POINTER_REGNUM && (! leaf_function_p()	\
-   || (TO == GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM 		\
-       && leaf_function_p()))) 						\
-  || ((FROM) != RETURN_ADDRESS_POINTER_REGNUM				\
-   && ((TO) == HARD_FRAME_POINTER_REGNUM 				\
-   || ((TO) == STACK_POINTER_REGNUM && ! frame_pointer_needed))))
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			 \
         (OFFSET) = microblaze_initial_elimination_offset ((FROM), (TO))
@@ -983,30 +945,9 @@ typedef struct microblaze_args
 
 #define EXIT_IGNORE_STACK 1
 
-#define TRAMPOLINE_TEMPLATE(STREAM)					 \
-{									 \
-  fprintf (STREAM, "\t.word\t0x03e00821\t\t# move   $1,$31\n");		\
-  fprintf (STREAM, "\t.word\t0x04110001\t\t# bgezal $0,.+8\n");		\
-  fprintf (STREAM, "\t.word\t0x00000000\t\t# nop\n");			\
-  fprintf (STREAM, "\t.word\t0x8fe30014\t\t# lw     $3,20($31)\n");	\
-  fprintf (STREAM, "\t.word\t0x8fe20018\t\t# lw     $2,24($31)\n");	\
-  fprintf (STREAM, "\t.word\t0x0060c821\t\t# move   $25,$3 (abicalls)\n"); \
-  fprintf (STREAM, "\t.word\t0x00600008\t\t# jr     $3\n");		\
-  fprintf (STREAM, "\t.word\t0x0020f821\t\t# move   $31,$1\n");		\
-  fprintf (STREAM, "\t.word\t0x00000000\t\t# <function address>\n"); \
-  fprintf (STREAM, "\t.word\t0x00000000\t\t# <static chain value>\n"); \
-}
-
 #define TRAMPOLINE_SIZE (32 + (8))
 
 #define TRAMPOLINE_ALIGNMENT    32
-
-#define INITIALIZE_TRAMPOLINE(ADDR, FUNC, CHAIN)			    \
-{									    \
-  rtx addr = ADDR;							    \
-  emit_move_insn (gen_rtx_MEM (SImode, plus_constant (addr, 32)), FUNC);   \
-  emit_move_insn (gen_rtx_MEM (SImode, plus_constant (addr, 36)), CHAIN);  \
-}
 
 #define REGNO_OK_FOR_BASE_P(regno)   \
   microblaze_regno_ok_for_base_p ((regno), 1)
@@ -1027,14 +968,6 @@ typedef struct microblaze_args
   microblaze_regno_ok_for_base_p (REGNO (X), REG_STRICT_FLAG)
 
 #define MAX_REGS_PER_ADDRESS 2
-
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)                     \
-{                                                                   \
-  if (microblaze_legitimate_address_p (MODE, X, REG_STRICT_FLAG))   \
-    goto ADDR;                                                      \
-}
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL) {}
 
 #if 1
 #define GO_PRINTF(x)	trace(x, 0, 0)
@@ -1067,14 +1000,6 @@ typedef struct microblaze_args
 #define LEGITIMATE_CONSTANT_P(X)				\
   (GET_CODE (X) != CONST_DOUBLE					\
     || microblaze_const_double_ok (X, GET_MODE (X)))
-
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)			\
-{  rtx result = microblaze_legitimize_address (X, OLDX, MODE);	\
-   if (result != NULL_RTX) {					\
-       (X) = result;						\
-       goto WIN;						\
-     }								\
-}
 
 /* If you are changing this macro, you should look at
    microblaze_select_section and see if it needs a similar change.  */

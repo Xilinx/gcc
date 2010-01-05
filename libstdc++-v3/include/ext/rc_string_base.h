@@ -231,7 +231,12 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
         static _CharT*
         _S_construct_aux(_Integer __beg, _Integer __end,
 			 const _Alloc& __a, std::__true_type)
-	{ return _S_construct(static_cast<size_type>(__beg), __end, __a); }
+	{ return _S_construct_aux_2(static_cast<size_type>(__beg),
+				    __end, __a); }
+
+      static _CharT*
+      _S_construct_aux_2(size_type __req, _CharT __c, const _Alloc& __a)
+      { return _S_construct(__req, __c, __a); }
 
       template<typename _InIterator>
         static _CharT*
@@ -546,7 +551,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	  return _S_empty_rep._M_refcopy();
 
 	// NB: Not required, but considered best practice.
-	if (__builtin_expect(__is_null_pointer(__beg) && __beg != __end, 0))
+	if (__is_null_pointer(__beg) && __beg != __end)
 	  std::__throw_logic_error(__N("__rc_string_base::"
 				       "_S_construct NULL not valid"));
 

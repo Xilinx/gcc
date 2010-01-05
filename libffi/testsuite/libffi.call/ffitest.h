@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <ffi.h>
 #include "fficonfig.h"
 
@@ -41,6 +43,29 @@
 # endif
 # define USING_MMAP
 
+#endif
+
+/* MinGW kludge.  */
+#ifdef WIN64
+#define PRIdLL "PRId64"
+#define PRIuLL "PRIu64"
+#else
+#define PRIdLL "lld"
+#define PRIuLL "llu"
+#endif
+
+/* PA HP-UX kludge.  */
+#if defined(__hppa__) && defined(__hpux__) && !defined(PRIuPTR)
+#define PRIuPTR "lu"
+#endif
+
+/* Solaris < 10 kludge.  */
+#if defined(__sun__) && defined(__svr4__) && !defined(PRIuPTR)
+#if defined(__arch64__) || defined (__x86_64__)
+#define PRIuPTR "lu"
+#else
+#define PRIuPTR "u"
+#endif
 #endif
 
 #ifdef USING_MMAP

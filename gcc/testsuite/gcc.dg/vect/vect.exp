@@ -51,6 +51,10 @@ if  [istarget "powerpc-*paired*"]  {
     }
 
     lappend DEFAULT_VECTCFLAGS "-maltivec"
+    if [check_vsx_hw_available]  {
+      lappend DEFAULT_VECTCFLAGS "-mvsx" "-mno-allow-movmisalign"
+    }
+
     if [check_vmx_hw_available] {
 	set dg-do-what-default run
     } else {
@@ -121,7 +125,10 @@ lappend DEFAULT_VECTCFLAGS "-O2"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/nodump-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 
+set VECT_SLP_CFLAGS $DEFAULT_VECTCFLAGS
+
 lappend DEFAULT_VECTCFLAGS "-fdump-tree-vect-details" 
+lappend VECT_SLP_CFLAGS "-fdump-tree-slp-details"
 
 # Main loop.
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/pr*.\[cS\]]]  \
@@ -130,10 +137,14 @@ dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/vect-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/slp-*.\[cS\]]]  \
         "" $DEFAULT_VECTCFLAGS
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/bb-slp*.\[cS\]]]  \
+        "" $VECT_SLP_CFLAGS
+
 
 #### Tests with special options
 global SAVED_DEFAULT_VECTCFLAGS
 set SAVED_DEFAULT_VECTCFLAGS $DEFAULT_VECTCFLAGS
+set SAVED_VECT_SLP_CFLAGS $VECT_SLP_CFLAGS
 
 # --param vect-max-version-for-alias-checks=0 tests
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
@@ -181,6 +192,12 @@ dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-tree-dce-*.\[cS\]]]  \
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-fsection-anchors"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/section-anchors-*.\[cS\]]]  \
+	"" $DEFAULT_VECTCFLAGS
+
+# alignment-sensitive -fsection-anchors tests
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fsection-anchors" "-fdump-ipa-increase_alignment"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/aligned-section-anchors-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 
 # -fno-section-anchors tests
@@ -249,9 +266,10 @@ lappend DEFAULT_VECTCFLAGS "--param" "ggc-min-expand=0" "--param" "ggc-min-heaps
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/ggc-*.\[cS\]]]  \
         "" $DEFAULT_VECTCFLAGS
 
-# With -O3
+# With -O3.
+# Don't allow IPA cloning, because it throws our counts out of whack.
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
-lappend DEFAULT_VECTCFLAGS "-O3"
+lappend DEFAULT_VECTCFLAGS "-O3" "-fno-ipa-cp-clone"
 if  [istarget "spu-*-*"] {
   lappend DEFAULT_VECTCFLAGS "-funroll-loops"
 }
@@ -262,6 +280,11 @@ dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/O3-*.\[cS\]]]  \
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/O1-*.\[cS\]]]  \
         "" $O1_VECTCFLAGS
 
+# -fno-tree-reassoc
+set VECT_SLP_CFLAGS $SAVED_VECT_SLP_CFLAGS
+lappend VECT_SLP_CFLAGS "-fno-tree-reassoc"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-tree-reassoc-bb-slp-*.\[cS\]]]  \
+        "" $VECT_SLP_CFLAGS
 
 # Clean up.
 set dg-do-what-default ${save-dg-do-what-default}

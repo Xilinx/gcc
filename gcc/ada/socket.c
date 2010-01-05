@@ -32,6 +32,28 @@
 /*  This file provides a portable binding to the sockets API                */
 
 #include "gsocket.h"
+#ifdef VMS
+/*
+ * For VMS, gsocket.h can't include sockets-related DEC C header files
+ * when building the runtime (because these files are in a DEC C text library
+ * (DECC$RTLDEF.TLB) not accessable to GCC). So, we generate a separate header
+ * file along with s-oscons.ads and include it here.
+ */
+# include "s-oscons.h"
+
+/*
+ * We also need the declaration of struct servent, which s-oscons can't
+ * provide, so we copy it manually here. This needs to be kept in synch
+ * with the definition of that structure in the DEC C headers, which
+ * hopefully won't change frequently.
+ */
+struct servent {
+  char *s_name;     /* official service name */
+  char **s_aliases; /* alias list */
+  int  s_port;      /* port # */
+  char *s_proto;    /* protocol to use */
+};
+#endif
 
 #if defined(HAVE_SOCKETS)
 
@@ -56,14 +78,26 @@ extern int  __gnat_create_signalling_fds (int *fds);
 extern int  __gnat_read_signalling_fd (int rsig);
 extern int  __gnat_write_signalling_fd (int wsig);
 extern void  __gnat_close_signalling_fd (int sig);
-extern void __gnat_free_socket_set (fd_set *);
 extern void __gnat_last_socket_in_set (fd_set *, int *);
 extern void __gnat_get_socket_from_set (fd_set *, int *, int *);
 extern void __gnat_insert_socket_in_set (fd_set *, int);
 extern int __gnat_is_socket_in_set (fd_set *, int);
 extern fd_set *__gnat_new_socket_set (fd_set *);
 extern void __gnat_remove_socket_from_set (fd_set *, int);
+extern void __gnat_reset_socket_set (fd_set *);
 extern int  __gnat_get_h_errno (void);
+extern int  __gnat_socket_ioctl (int, int, int *);
+extern char * __gnat_servent_s_name (struct servent *);
+extern char ** __gnat_servent_s_aliases (struct servent *);
+extern int __gnat_servent_s_port (struct servent *);
+extern char * __gnat_servent_s_proto (struct servent *);
+extern void __gnat_servent_set_s_name (struct servent *, char *);
+extern void __gnat_servent_set_s_aliases (struct servent *, char **);
+extern void __gnat_servent_set_s_port (struct servent *, int);
+extern void __gnat_servent_set_s_proto (struct servent *, char *);
+#if defined (__vxworks) || defined (_WIN32)
+extern int  __gnat_inet_pton (int, const char *, void *);
+#endif
 
 /* Disable the sending of SIGPIPE for writes on a broken stream */
 
@@ -265,14 +299,6 @@ __gnat_safe_getservbyport (int port, const char *proto,
 }
 #endif
 
-/* Free socket set. */
-
-void
-__gnat_free_socket_set (fd_set *set)
-{
-  __gnat_free (set);
-}
-
 /* Find the largest socket in the socket set SET. This is needed for
    `select'.  LAST is the maximum value for the largest socket. This hint is
    used to avoid scanning very large socket sets.  On return, LAST is the
@@ -333,34 +359,19 @@ __gnat_is_socket_in_set (fd_set *set, int socket)
   return FD_ISSET (socket, set);
 }
 
-/* Allocate a new socket set and set it as empty.  */
-
-fd_set *
-__gnat_new_socket_set (fd_set *set)
-{
-  fd_set *new;
-
-#ifdef VMS
-extern void *__gnat_malloc32 (__SIZE_TYPE__);
-  new = (fd_set *) __gnat_malloc32 (sizeof (fd_set));
-#else
-  new = (fd_set *) __gnat_malloc (sizeof (fd_set));
-#endif
-
-  if (set)
-    memcpy (new, set, sizeof (fd_set));
-  else
-    FD_ZERO (new);
-
-  return new;
-}
-
 /* Remove SOCKET from the socket set SET. */
 
 void
 __gnat_remove_socket_from_set (fd_set *set, int socket)
 {
   FD_CLR (socket, set);
+}
+
+/* Reset SET */
+void
+__gnat_reset_socket_set (fd_set *set)
+{
+  FD_ZERO (set);
 }
 
 /* Get the value of the last host error */
@@ -374,22 +385,25 @@ __gnat_get_h_errno (void) {
     case 0:
       return 0;
 
-    case S_resolvLib_HOST_NOT_FOUND:
+#ifdef S_hostLib_HOST_NOT_FOUND
+    case S_hostLib_HOST_NOT_FOUND:
+#endif
     case S_hostLib_UNKNOWN_HOST:
       return HOST_NOT_FOUND;
 
-    case S_resolvLib_TRY_AGAIN:
+#ifdef S_hostLib_TRY_AGAIN
+    case S_hostLib_TRY_AGAIN:
       return TRY_AGAIN;
+#endif
 
-    case S_resolvLib_NO_RECOVERY:
-    case S_resolvLib_BUFFER_2_SMALL:
-    case S_resolvLib_INVALID_PARAMETER:
-    case S_resolvLib_INVALID_ADDRESS:
+#ifdef S_hostLib_NO_RECOVERY
+    case S_hostLib_NO_RECOVERY:
+#endif
+#ifdef S_hostLib_NETDB_INTERNAL
+    case S_hostLib_NETDB_INTERNAL:
+#endif
     case S_hostLib_INVALID_PARAMETER:
       return NO_RECOVERY;
-
-    case S_resolvLib_NO_DATA:
-      return NO_DATA;
 
     default:
       return -1;
@@ -417,6 +431,166 @@ __gnat_get_h_errno (void) {
 #endif
 }
 
+/* Wrapper for ioctl(2), which is a variadic function */
+
+int
+__gnat_socket_ioctl (int fd, int req, int *arg) {
+#if defined (_WIN32)
+  return ioctlsocket (fd, req, arg);
 #else
-#warning Sockets are not supported on this platform
+  return ioctl (fd, req, arg);
+#endif
+}
+
+#ifndef HAVE_INET_PTON
+
+#ifdef VMS
+# define in_addr_t int
+# define inet_addr decc$inet_addr
+#endif
+
+int
+__gnat_inet_pton (int af, const char *src, void *dst) {
+  switch (af) {
+#if defined (_WIN32) && defined (AF_INET6)
+    case AF_INET6:
+#endif
+    case AF_INET:
+      break;
+    default:
+      errno = EAFNOSUPPORT;
+      return -1;
+  }
+
+#if defined (__vxworks)
+  return (inet_aton (src, dst) == OK);
+
+#elif defined (_WIN32)
+  struct sockaddr_storage ss;
+  int sslen = sizeof ss;
+  int rc;
+
+  ss.ss_family = af;
+  rc = WSAStringToAddressA (src, af, NULL, (struct sockaddr *)&ss, &sslen);
+  if (rc == 0) {
+    switch (af) {
+      case AF_INET:
+        *(struct in_addr *)dst = ((struct sockaddr_in *)&ss)->sin_addr;
+        break;
+#ifdef AF_INET6
+      case AF_INET6:
+        *(struct in6_addr *)dst = ((struct sockaddr_in6 *)&ss)->sin6_addr;
+        break;
+#endif
+    }
+  }
+  return (rc == 0);
+
+#elif defined (__hpux__) || defined (VMS)
+  in_addr_t addr;
+  int rc = -1;
+
+  if (src == NULL || dst == NULL) {
+    errno = EINVAL;
+
+  } else if (!strcmp (src, "255.255.255.255")) {
+    addr = 0xffffffff;
+    rc = 1;
+
+  } else {
+    addr = inet_addr (src);
+    rc = (addr != 0xffffffff);
+  }
+  if (rc == 1) {
+    *(in_addr_t *)dst = addr;
+  }
+  return rc;
+#endif
+}
+#endif
+
+/*
+ * Accessor functions for struct servent.
+ *
+ * These are needed because servent has different representations on different
+ * platforms, and we don't want to deal with that on the Ada side. For example,
+ * on Linux, we have (see /usr/include netdb.h):
+ *
+ *   struct servent
+ *   {
+ *     char *s_name;
+ *     char **s_aliases;
+ *     int s_port;
+ *     char *s_proto;
+ *   };
+ *
+ * and on Windows (see mingw's socket.h):
+ *
+ *   struct servent {
+ *     char *s_name;
+ *     char **s_aliases;
+ *   #ifdef _WIN64
+ *     char *s_proto;
+ *     short s_port;
+ *   #else
+ *     short s_port;
+ *     char *s_proto;
+ *   #endif
+ *   };
+ */
+
+/* Getters */
+
+char *
+__gnat_servent_s_name (struct servent * s)
+{
+  return s->s_name;
+}
+
+char **
+__gnat_servent_s_aliases (struct servent * s)
+{
+  return s->s_aliases;
+}
+
+int
+__gnat_servent_s_port (struct servent * s)
+{
+  return s->s_port;
+}
+
+char *
+__gnat_servent_s_proto (struct servent * s)
+{
+  return s->s_proto;
+}
+
+/* Setters */
+
+void
+__gnat_servent_set_s_name (struct servent * s, char * s_name)
+{
+  s->s_name = s_name;
+}
+
+void
+__gnat_servent_set_s_aliases (struct servent * s, char ** s_aliases)
+{
+  s->s_aliases = s_aliases;
+}
+
+void
+__gnat_servent_set_s_port (struct servent * s, int s_port)
+{
+  s->s_port = s_port;
+}
+
+void
+__gnat_servent_set_s_proto (struct servent * s, char * s_proto)
+{
+  s->s_proto = s_proto;
+}
+
+#else
+# warning Sockets are not supported on this platform
 #endif /* defined(HAVE_SOCKETS) */

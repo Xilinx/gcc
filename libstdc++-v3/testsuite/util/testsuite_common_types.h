@@ -387,8 +387,8 @@ namespace __gnu_test
     void
     bitwise_operators()
     {
-      _Tp a; 
-      _Tp b;
+      _Tp a = _Tp();
+      _Tp b = _Tp();
       a | b;
       a & b;
       a ^ b;
@@ -399,8 +399,8 @@ namespace __gnu_test
     void
     bitwise_assignment_operators()
     {
-      _Tp a; 
-      _Tp b;
+      _Tp a = _Tp();
+      _Tp b = _Tp();
       a |= b; // set
       a &= ~b; // clear
       a ^= b;
@@ -426,7 +426,11 @@ namespace __gnu_test
 	{
 	  void __constraint()
 	  {
-	    bitwise_assignment_operators<_Tp>();
+	    _Tp a;
+	    _Tp b;
+	    a |= b; // set
+	    a &= ~b; // clear
+	    a ^= b;
 	  }
 	};
 
@@ -470,12 +474,8 @@ namespace __gnu_test
 	{
 	  void __constraint()
 	  {
-	    // libstdc++/37907
-	    // typedef std::is_standard_layout<_Tp> standard_layout_p;
-	    // static_assert(standard_layout_p::value, "not standard_layout");
-
-	    typedef std::has_virtual_destructor<_Tp> ctor_p;
-	    static_assert(!ctor_p::value, "has virtual destructor");
+	    typedef std::is_standard_layout<_Tp> standard_layout_p;
+	    static_assert(standard_layout_p::value, "not standard_layout");
 	  }
 	};
 

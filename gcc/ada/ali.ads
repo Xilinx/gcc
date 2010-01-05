@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -42,9 +42,9 @@ package ALI is
    -- Id Types --
    --------------
 
-   --  The various entries are stored in tables with distinct subscript
-   --  ranges. The following type definitions indicate the ranges used
-   --  for the subscripts (Id values) for the various tables.
+   --  The various entries are stored in tables with distinct subscript ranges.
+   --  The following type definitions show the ranges used for the subscripts
+   --  (Id values) for the various tables.
 
    type ALI_Id is range 0 .. 999_999;
    --  Id values used for ALIs table entries
@@ -103,8 +103,8 @@ package ALI is
       --  V lines are ignored as a result of the Ignore_Lines parameter.
 
       Ver_Len : Natural;
-      --  Length of characters stored in Ver. Not set if V lines are
-      --  ignored as a result of the Ignore_Lines parameter.
+      --  Length of characters stored in Ver. Not set if V lines are ignored as
+      --  a result of the Ignore_Lines parameter.
 
       SAL_Interface : Boolean;
       --  Set True when this is an interface to a standalone library
@@ -970,17 +970,15 @@ package ALI is
    --    (unit) lines are always read regardless of the value of this
    --    parameter.
    --
-   --    Note: either Ignore_Lines or Read_Lines should be non-null.
-   --    but not both. If both are given then only the Read_Lines
-   --    value is processed, and the Ignore_Lines parameter is
-   --    not processed.
+   --    Note: either Ignore_Lines or Read_Lines should be non-null, but not
+   --    both. If both are provided then only the Read_Lines value is used,
+   --    and the Ignore_Lines parameter is ignored.
    --
    --    Read_XREF is set True to read and acquire the cross-reference
-   --    information. If Read_XREF is set to True, then the effect is
-   --    to ignore all lines other than U, W, D and X lines and the
-   --    Ignore_Lines and Read_Lines parameters are ignored (i.e. the
-   --    use of True for Read_XREF is equivalent to specifying an
-   --    argument of "UWDX" for Read_Lines.
+   --    information. If Read_XREF is set to True, then the effect is to ignore
+   --    all lines other than U, W, D and X lines and the Ignore_Lines and
+   --    Read_Lines parameters are ignored (i.e. the use of True for Read_XREF
+   --    is equivalent to specifying an argument of "UWDX" for Read_Lines.
    --
    --    Ignore_Errors is normally False. If it is set True, then Scan_ALI
    --    will do its best to scan through a file and extract all information

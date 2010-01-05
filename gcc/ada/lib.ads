@@ -295,7 +295,7 @@ package Lib is
    --      order. The number is ones origin, so a value of 2 refers to the
    --      second generated D line. The Dependency_Number values are set
    --      as the D lines are generated, and are used to generate proper
-   --      unit references in the generated xref information.
+   --      unit references in the generated xref information and SCO output.
 
    --    Dynamic_Elab
    --      A flag indicating if this unit was compiled with dynamic elaboration
@@ -734,9 +734,9 @@ private
      Table_Name           => "Linker_Option_Lines");
 
    --  The following table records the compilation switches used to compile
-   --  the main unit. The table includes only switches and excludes -quiet,
-   --  -dumpbase, and -o switches, since the latter are typically artifacts
-   --  of the gcc/gnat1 interface.
+   --  the main unit. The table includes only switches. It excludes -o
+   --  switches as well as artifacts of the gcc/gnat1 interface such as
+   --  -quiet, -dumpbase, or -auxbase.
 
    --  This table is set as part of the compiler argument scanning in
    --  Back_End. It can also be reset in -gnatc mode from the data in an

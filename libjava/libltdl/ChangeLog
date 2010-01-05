@@ -1,14 +1,40 @@
-2009-10-15  Release Manager
+2009-12-07  Jakub Jelinek  <jakub@redhat.com>
 
-	* GCC 4.4.2 released.
+	* acinclude.m4: Regenerated to pick:
+	2007-06-22 Ralf Wildenhues <Ralf.Wildenhues@gmx.de>
 
-2009-07-22  Release Manager
+	* libtool.m4 (AC_LIBTOOL_SYS_DYNAMIC_LINKER) [linux]:
+	Ignore lines in ld.so.conf starting with 'hwcap '.
 
-	* GCC 4.4.1 released.
+	* configure: Regenerated.
 
-2009-04-21  Release Manager
+	2009-11-24  Peter O'Gorman  <peter@pogma.com>
 
-	* GCC 4.4.0 released.
+	Backport of libltdl changes from the 2.2.6b release.
+	* ltdl.c: Backport changes.
+
+2009-09-22  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* ltdl.h (LT_SCOPE): Change conditional to avoid breaking
+	auto-export during libgcj DLL linking.
+	* Makefile.am (libltdl_la_LDFLAGS): Remove -bindir switch.
+	* Makefile.in: Regenerate.
+
+2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (AC_PREREQ): Bump to 2.64.  Remove FIXME.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in: Regenerate.
+	* aclocal.m4: Regenerate.
+	* config-h.in: Regenerate.
+	* configure: Regenerate.
+
+2009-08-20  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* Makefile.am (libltdl_la_LDFLAGS): Add -bindir flag.
+	* Makefile.in: Regenerate.
 
 2008-06-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 

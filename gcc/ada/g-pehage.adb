@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2002-2008, AdaCore                     --
+--                     Copyright (C) 2002-2009, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1146,9 +1146,10 @@ package body GNAT.Perfect_Hash_Generators is
       --  words already there because a previous computation failed. We are
       --  currently retrying and the reduced words have to be deallocated.
 
-      for W in NK .. WT.Last loop
+      for W in Reduced (0) .. WT.Last loop
          Free_Word (WT.Table (W));
       end loop;
+
       IT.Init;
 
       --  Initialize of computation variables
@@ -1969,11 +1970,7 @@ package body GNAT.Perfect_Hash_Generators is
       Q := Seed / 127773;
       X := 16807 * R - 2836 * Q;
 
-      if X < 0 then
-         Seed := X + 2147483647;
-      else
-         Seed := X;
-      end if;
+      Seed := (if X < 0 then X + 2147483647 else X);
    end Random;
 
    -------------
@@ -2232,11 +2229,8 @@ package body GNAT.Perfect_Hash_Generators is
             --  The first position should not exceed the minimum key length.
             --  Otherwise, we may end up with an empty word once reduced.
 
-            if Last_Sel_Pos = 0 then
-               Max_Sel_Pos := Min_Key_Len;
-            else
-               Max_Sel_Pos := Max_Key_Len;
-            end if;
+            Max_Sel_Pos :=
+              (if Last_Sel_Pos = 0 then Min_Key_Len else Max_Key_Len);
 
             --  Find which position increases more the number of differences
 

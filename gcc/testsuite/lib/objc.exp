@@ -95,10 +95,19 @@ proc objc_init { args } {
     global OBJC_UNDER_TEST
     global TOOL_EXECUTABLE
     global objc_libgcc_s_path
+    global gcc_warning_prefix
+    global gcc_error_prefix
 
     # We set LC_ALL and LANG to C so that we get the same error messages as expected.
     setenv LC_ALL C
     setenv LANG C
+
+    # Many hosts now default to a non-ASCII C locale, however, so
+    # they can set a charset encoding here if they need.
+    if { [ishost "*-*-cygwin*"] } {
+      setenv LC_ALL C.ASCII
+      setenv LANG C.ASCII
+    }
 
     if { $objc_initialized == 1 } { return; }
 
@@ -113,6 +122,9 @@ proc objc_init { args } {
     if ![info exists tmpdir] then {
 	set tmpdir /tmp
     }
+
+    set gcc_warning_prefix "warning:"
+    set gcc_error_prefix "error:"
 
     objc_maybe_build_wrapper "${tmpdir}/objc-testglue.o"
 

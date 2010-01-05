@@ -1,7 +1,7 @@
 /* Subroutines for insn-output.c for Windows NT.
    Contributed by Douglas Rupp (drupp@cs.washington.edu)
    Copyright (C) 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -56,8 +56,8 @@ ix86_handle_shared_attribute (tree *node, tree name,
 {
   if (TREE_CODE (*node) != VAR_DECL)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to variables",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to variables",
+	       name);
       *no_add_attrs = true;
     }
 
@@ -78,8 +78,8 @@ ix86_handle_selectany_attribute (tree *node, tree name,
      initialization later in encode_section_info.  */
   if (TREE_CODE (*node) != VAR_DECL || !TREE_PUBLIC (*node))
     {	
-      error ("%qs attribute applies only to initialized variables"
-       	     " with external linkage",  IDENTIFIER_POINTER (name));
+      error ("%qE attribute applies only to initialized variables"
+       	     " with external linkage", name);
       *no_add_attrs = true;
     }
 
@@ -102,18 +102,15 @@ associated_type (tree decl)
 static bool
 i386_pe_determine_dllexport_p (tree decl)
 {
-  tree assoc;
-
   if (TREE_CODE (decl) != VAR_DECL && TREE_CODE (decl) != FUNCTION_DECL)
+    return false;
+
+  /* Don't export local clones of dllexports.  */
+  if (!TREE_PUBLIC (decl))
     return false;
 
   if (lookup_attribute ("dllexport", DECL_ATTRIBUTES (decl)))
     return true;
-
-  /* Also mark class members of exported classes with dllexport.  */
-  assoc = associated_type (decl);
-  if (assoc && lookup_attribute ("dllexport", TYPE_ATTRIBUTES (assoc)))
-    return i386_pe_type_dllexport_p (decl);
 
   return false;
 }
@@ -128,18 +125,23 @@ i386_pe_determine_dllimport_p (tree decl)
   if (TREE_CODE (decl) != VAR_DECL && TREE_CODE (decl) != FUNCTION_DECL)
     return false;
 
-  /* Lookup the attribute in addition to checking the DECL_DLLIMPORT_P flag.
-     We may need to override an earlier decision.  */
   if (DECL_DLLIMPORT_P (decl))
     return true;
 
   /* The DECL_DLLIMPORT_P flag was set for decls in the class definition
      by  targetm.cxx.adjust_class_at_definition.  Check again to emit
-     warnings if the class attribute has been overridden by an
-     out-of-class definition.  */
+     error message if the class attribute has been overridden by an
+     out-of-class definition of static data.  */
   assoc = associated_type (decl);
-  if (assoc && lookup_attribute ("dllimport", TYPE_ATTRIBUTES (assoc)))
-    return i386_pe_type_dllimport_p (decl);
+  if (assoc && lookup_attribute ("dllimport", TYPE_ATTRIBUTES (assoc))
+      && TREE_CODE (decl) == VAR_DECL
+      && TREE_STATIC (decl) && TREE_PUBLIC (decl)
+      && !DECL_EXTERNAL (decl)
+      /* vtable's are linkonce constants, so defining a vtable is not
+	 an error as long as we don't try to import it too.  */
+      && !DECL_VIRTUAL_P (decl))
+	error ("definition of static data member %q+D of "
+	       "dllimport'd class", decl);
 
   return false;
 }
@@ -285,7 +287,7 @@ i386_pe_encode_section_info (tree decl, rtx rtl, int first)
 		 ctor is protected by a link-once guard variable, so that
 		 the object still has link-once semantics,  */
 	      || TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (decl)))
-	    make_decl_one_only (decl);
+	    make_decl_one_only (decl, DECL_ASSEMBLER_NAME (decl));
 	  else
 	    error ("%q+D:'selectany' attribute applies only to "
 		   "initialized objects", decl);
@@ -304,17 +306,8 @@ i386_pe_encode_section_info (tree decl, rtx rtl, int first)
   if (i386_pe_determine_dllexport_p (decl))
     flags |= SYMBOL_FLAG_DLLEXPORT;
   else if (i386_pe_determine_dllimport_p (decl))
-    {
-      flags |= SYMBOL_FLAG_DLLIMPORT;
-      /* If we went through the associated_type path, this won't already
-	 be set.  Though, frankly, this seems wrong, and should be fixed
-	 elsewhere.  */
-      if (!DECL_DLLIMPORT_P (decl))
-	{
-	  DECL_DLLIMPORT_P (decl) = 1;
-	  flags &= ~SYMBOL_FLAG_LOCAL;
-	}
-    }
+    flags |= SYMBOL_FLAG_DLLIMPORT;
+ 
   SYMBOL_REF_FLAGS (symbol) = flags;
 }
 
@@ -499,8 +492,11 @@ i386_pe_asm_output_aligned_decl_common (FILE *stream, tree decl,
 {
   HOST_WIDE_INT rounded;
 
-  /* Compute as in assemble_noswitch_variable, since we don't actually
-     support aligned common.  */
+  /* Compute as in assemble_noswitch_variable, since we don't have
+     support for aligned common on older binutils.  We must also
+     avoid emitting a common symbol of size zero, as this is the
+     overloaded representation that indicates an undefined external
+     symbol in the PE object file format.  */
   rounded = size ? size : 1;
   rounded += (BIGGEST_ALIGNMENT / BITS_PER_UNIT) - 1;
   rounded = (rounded / (BIGGEST_ALIGNMENT / BITS_PER_UNIT)
@@ -510,9 +506,13 @@ i386_pe_asm_output_aligned_decl_common (FILE *stream, tree decl,
 
   fprintf (stream, "\t.comm\t");
   assemble_name (stream, name);
-  fprintf (stream, ", " HOST_WIDE_INT_PRINT_DEC "\t" ASM_COMMENT_START
-	   " " HOST_WIDE_INT_PRINT_DEC "\n",
-	   rounded, size);
+  if (use_pe_aligned_common)
+    fprintf (stream, ", " HOST_WIDE_INT_PRINT_DEC ", %d\n",
+	   size ? size : (HOST_WIDE_INT) 1,
+	   exact_log2 (align) - exact_log2 (CHAR_BIT));
+  else
+    fprintf (stream, ", " HOST_WIDE_INT_PRINT_DEC "\t" ASM_COMMENT_START
+	   " " HOST_WIDE_INT_PRINT_DEC "\n", rounded, size);
 }
 
 /* The Microsoft linker requires that every function be marked as
@@ -539,7 +539,7 @@ i386_pe_declare_function_type (FILE *file, const char *name, int pub)
 
 /* Keep a list of external functions.  */
 
-struct extern_list GTY(())
+struct GTY(()) extern_list
 {
   struct extern_list *next;
   tree decl;
@@ -568,7 +568,7 @@ i386_pe_record_external_function (tree decl, const char *name)
 
 /* Keep a list of exported symbols.  */
 
-struct export_list GTY(())
+struct GTY(()) export_list
 {
   struct export_list *next;
   const char *name;
@@ -594,12 +594,72 @@ i386_pe_maybe_record_exported_symbol (tree decl, const char *name, int is_data)
   if (!SYMBOL_REF_DLLEXPORT_P (symbol))
     return;
 
+  gcc_assert (TREE_PUBLIC (decl));
+
   p = (struct export_list *) ggc_alloc (sizeof *p);
   p->next = export_head;
   p->name = name;
   p->is_data = is_data;
   export_head = p;
 }
+
+#ifdef CXX_WRAP_SPEC_LIST
+
+/*  Hash table equality helper function.  */
+
+static int
+wrapper_strcmp (const void *x, const void *y)
+{
+  return !strcmp ((const char *) x, (const char *) y);
+}
+
+/* Search for a function named TARGET in the list of library wrappers
+   we are using, returning a pointer to it if found or NULL if not.
+   This function might be called on quite a few symbols, and we only
+   have the list of names of wrapped functions available to us as a
+   spec string, so first time round we lazily initialise a hash table
+   to make things quicker.  */
+
+static const char *
+i386_find_on_wrapper_list (const char *target)
+{
+  static char first_time = 1;
+  static htab_t wrappers;
+
+  if (first_time)
+    {
+      /* Beware that this is not a complicated parser, it assumes
+         that any sequence of non-whitespace beginning with an
+	 underscore is one of the wrapped symbols.  For now that's
+	 adequate to distinguish symbols from spec substitutions
+	 and command-line options.  */
+      static char wrapper_list_buffer[] = CXX_WRAP_SPEC_LIST;
+      char *bufptr;
+      /* Breaks up the char array into separated strings
+         strings and enter them into the hash table.  */
+      wrappers = htab_create_alloc (8, htab_hash_string, wrapper_strcmp,
+	0, xcalloc, free);
+      for (bufptr = wrapper_list_buffer; *bufptr; ++bufptr)
+	{
+	  char *found = NULL;
+	  if (ISSPACE (*bufptr))
+	    continue;
+	  if (*bufptr == '_')
+	    found = bufptr;
+	  while (*bufptr && !ISSPACE (*bufptr))
+	    ++bufptr;
+	  if (*bufptr)
+	    *bufptr = 0;
+	  if (found)
+	    *htab_find_slot (wrappers, found, INSERT) = found;
+	}
+      first_time = 0;
+    }
+
+  return (const char *) htab_find (wrappers, target);
+}
+
+#endif /* CXX_WRAP_SPEC_LIST */
 
 /* This is called at the end of assembly.  For each external function
    which has not been defined, we output a declaration now.  We also
@@ -622,6 +682,15 @@ i386_pe_file_end (void)
       if (! TREE_ASM_WRITTEN (decl)
 	  && TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)))
 	{
+#ifdef CXX_WRAP_SPEC_LIST
+	  /* To ensure the DLL that provides the corresponding real
+	     functions is still loaded at runtime, we must reference
+	     the real function so that an (unused) import is created.  */
+	  const char *realsym = i386_find_on_wrapper_list (p->name);
+	  if (realsym)
+	    i386_pe_declare_function_type (asm_out_file,
+		concat ("__real_", realsym, NULL), TREE_PUBLIC (decl));
+#endif /* CXX_WRAP_SPEC_LIST */
 	  TREE_ASM_WRITTEN (decl) = 1;
 	  i386_pe_declare_function_type (asm_out_file, p->name,
 					 TREE_PUBLIC (decl));

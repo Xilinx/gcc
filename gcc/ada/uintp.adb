@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009  Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -129,7 +129,7 @@ package body Uintp is
    --  This procedure puts the value of UI into the vector in canonical
    --  multiple precision format. The parameter should be of the correct size
    --  as determined by a previous call to N_Digits (UI). The first digit of
-   --  Vec contains the sign, all other digits are always non- negative. Note
+   --  Vec contains the sign, all other digits are always non-negative. Note
    --  that the input may be directly represented, and in this case Vec will
    --  contain the corresponding one or two digit value. The low bound of Vec
    --  is always 1.
@@ -759,7 +759,7 @@ package body Uintp is
 
    function Sum_Digits (Left : Uint; Sign : Int) return Int is
    begin
-      pragma Assert (Sign = Int_1 or Sign = Int (-1));
+      pragma Assert (Sign = Int_1 or else Sign = Int (-1));
 
       --  First try simple case;
 
@@ -858,7 +858,7 @@ package body Uintp is
    begin
       --  First try simple case;
 
-      pragma Assert (Sign = Int_1 or Sign = Int (-1));
+      pragma Assert (Sign = Int_1 or else Sign = Int (-1));
 
       if Direct (Left) then
          return Direct_Val (Left);

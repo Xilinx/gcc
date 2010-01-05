@@ -463,7 +463,7 @@ build_constant_data_ref (bool indirect)
 	     thinks the type is incomplete.  */
 	  layout_type (type);
 
-	  decl = build_decl (VAR_DECL, decl_name, type);
+	  decl = build_decl (input_location, VAR_DECL, decl_name, type);
 	  TREE_STATIC (decl) = 1;
 	  IDENTIFIER_GLOBAL_VALUE (decl_name) = decl;
 	}
@@ -557,13 +557,22 @@ build_constants_constructor (void)
       tree data_decl, tags_decl, tags_type;
       tree max_index = build_int_cst (sizetype, outgoing_cpool->count - 1);
       tree index_type = build_index_type (max_index);
+      tree tem;
 
       /* Add dummy 0'th element of constant pool. */
       tags_list = tree_cons (NULL_TREE, get_tag_node (0), tags_list);
       data_list = tree_cons (NULL_TREE, null_pointer_node, data_list);
   
+      /* Change the type of the decl to have the proper array size.
+         ???  Make sure to transition the old type-pointer-to list to this
+	 new type to not invalidate all build address expressions.  */
       data_decl = build_constant_data_ref (false);
+      tem = TYPE_POINTER_TO (TREE_TYPE (data_decl));
+      if (!tem)
+	tem = build_pointer_type (TREE_TYPE (data_decl));
+      TYPE_POINTER_TO (TREE_TYPE (data_decl)) = NULL_TREE;
       TREE_TYPE (data_decl) = build_array_type (ptr_type_node, index_type);
+      TYPE_POINTER_TO (TREE_TYPE (data_decl)) = tem;
       DECL_INITIAL (data_decl) = build_constructor_from_list
 				  (TREE_TYPE (data_decl), data_list);
       DECL_SIZE (data_decl) = TYPE_SIZE (TREE_TYPE (data_decl));
@@ -572,7 +581,8 @@ build_constants_constructor (void)
       data_value = build_address_of (data_decl);
 
       tags_type = build_array_type (unsigned_byte_type_node, index_type);
-      tags_decl = build_decl (VAR_DECL, mangled_classname ("_CT_", 
+      tags_decl = build_decl (input_location, 
+      			      VAR_DECL, mangled_classname ("_CT_", 
 							   current_class),
 			      tags_type);
       TREE_STATIC (tags_decl) = 1;

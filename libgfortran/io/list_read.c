@@ -27,6 +27,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 
 #include "io.h"
+#include "fbuf.h"
+#include "unix.h"
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -287,10 +289,10 @@ static void
 eat_line (st_parameter_dt *dtp)
 {
   char c;
-  if (!is_internal_unit (dtp))
-    do
-      c = next_char (dtp);
-    while (c != '\n');
+
+  do
+    c = next_char (dtp);
+  while (c != '\n');
 }
 
 
@@ -1687,11 +1689,11 @@ list_formatted_read_scalar (st_parameter_dt *dtp, volatile bt type, void *p,
   if (setjmp (eof_jump))
     {
       generate_error (&dtp->common, LIBERROR_END, NULL);
-    if (!is_internal_unit (dtp))
-      {
-        dtp->u.p.current_unit->endfile = AFTER_ENDFILE;
-        dtp->u.p.current_unit->current_record = 0;
-      }
+      if (!is_internal_unit (dtp))
+	{
+	  dtp->u.p.current_unit->endfile = AFTER_ENDFILE;
+	  dtp->u.p.current_unit->current_record = 0;
+	}
       goto cleanup;
     }
 
@@ -2093,10 +2095,10 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 	}
 
       /* Check the values of the triplet indices.  */
-      if ((ls[dim].start > (ssize_t)ad[dim].ubound)
-	  || (ls[dim].start < (ssize_t)ad[dim].lbound)
-	  || (ls[dim].end > (ssize_t)ad[dim].ubound)
-	  || (ls[dim].end < (ssize_t)ad[dim].lbound))
+      if ((ls[dim].start > (ssize_t) GFC_DIMENSION_UBOUND(ad[dim]))
+	   || (ls[dim].start < (ssize_t) GFC_DIMENSION_LBOUND(ad[dim]))
+	   || (ls[dim].end > (ssize_t) GFC_DIMENSION_UBOUND(ad[dim]))
+	   || (ls[dim].end < (ssize_t) GFC_DIMENSION_LBOUND(ad[dim])))
 	{
 	  if (is_char)
 	    sprintf (parse_err_msg, "Substring out of range");
@@ -2160,8 +2162,8 @@ nml_touch_nodes (namelist_info * nl)
 	  for (dim=0; dim < nl->var_rank; dim++)
 	    {
 	      nl->ls[dim].step = 1;
-	      nl->ls[dim].end = nl->dim[dim].ubound;
-	      nl->ls[dim].start = nl->dim[dim].lbound;
+	      nl->ls[dim].end = GFC_DESCRIPTOR_UBOUND(nl,dim);
+	      nl->ls[dim].start = GFC_DESCRIPTOR_LBOUND(nl,dim);
 	      nl->ls[dim].idx = nl->ls[dim].start;
 	    }
 	}
@@ -2356,8 +2358,9 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 
       pdata = (void*)(nl->mem_pos + offset);
       for (dim = 0; dim < nl->var_rank; dim++)
-	pdata = (void*)(pdata + (nl->ls[dim].idx - nl->dim[dim].lbound) *
-		 nl->dim[dim].stride * nl->size);
+	pdata = (void*)(pdata + (nl->ls[dim].idx
+				 - GFC_DESCRIPTOR_LBOUND(nl,dim))
+			* GFC_DESCRIPTOR_STRIDE(nl,dim) * nl->size);
 
       /* Reset the error flag and try to read next value, if
 	 dtp->u.p.repeat_count=0  */
@@ -2373,10 +2376,10 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 	  if (dtp->u.p.input_complete)
 	    return SUCCESS;
 
-	  /* GFC_TYPE_UNKNOWN through for nulls and is detected
-	     after the switch block.  */
+	  /* BT_NULL (equivalent to GFC_DTYPE_UNKNOWN) falls through
+	     for nulls and is detected at default: of switch block.  */
 
-	  dtp->u.p.saved_type = GFC_DTYPE_UNKNOWN;
+	  dtp->u.p.saved_type = BT_NULL;
 	  free_saved (dtp);
 
           switch (nl->type)
@@ -2466,7 +2469,7 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 	  return SUCCESS;
 	}
 
-      if (dtp->u.p.saved_type == GFC_DTYPE_UNKNOWN)
+      if (dtp->u.p.saved_type == BT_NULL)
 	{
 	  dtp->u.p.expanded_read = 0;
 	  goto incr_idx;
@@ -2679,8 +2682,8 @@ get_name:
   for (dim=0; dim < nl->var_rank; dim++)
     {
       nl->ls[dim].step = 1;
-      nl->ls[dim].end = nl->dim[dim].ubound;
-      nl->ls[dim].start = nl->dim[dim].lbound;
+      nl->ls[dim].end = GFC_DESCRIPTOR_UBOUND(nl,dim);
+      nl->ls[dim].start = GFC_DESCRIPTOR_LBOUND(nl,dim);
       nl->ls[dim].idx = nl->ls[dim].start;
     }
 

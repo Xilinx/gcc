@@ -86,10 +86,6 @@
 #include "tree-pass.h"
 #include "df.h"
 
-#ifndef HAVE_conditional_execution
-#define HAVE_conditional_execution 0
-#endif
-
 /* The number of rounds.  In most cases there will only be 4 rounds, but
    when partitioning hot and cold basic blocks into separate sections of
    the .o file there will be an extra round.*/
@@ -1378,7 +1374,7 @@ fix_up_fall_thru_edges (void)
         edge_iterator ei;
 
         /* Find EDGE_CAN_FALLTHRU edge.  */
-        FOR_EACH_EDGE (e, ei, cur_bb->succs) 
+        FOR_EACH_EDGE (e, ei, cur_bb->succs)
           if (e->flags & EDGE_CAN_FALLTHRU)
           {
             fall_thru = e;
@@ -1420,7 +1416,7 @@ fix_up_fall_thru_edges (void)
 
 		      fall_thru_label = block_label (fall_thru->dest);
 
-		      if (old_jump && fall_thru_label)
+		      if (old_jump && JUMP_P (old_jump) && fall_thru_label)
 			invert_worked = invert_jump (old_jump,
 						     fall_thru_label,0);
 		      if (invert_worked)
@@ -1442,7 +1438,7 @@ fix_up_fall_thru_edges (void)
 		  /* This is the case where both edges out of the basic
 		     block are crossing edges. Here we will fix up the
 		     fall through edge. The jump edge will be taken care
-		     of later.  The EDGE_CROSSING flag of fall_thru edge 
+		     of later.  The EDGE_CROSSING flag of fall_thru edge
                      is unset before the call to force_nonfallthru
                      function because if a new basic-block is created
                      this edge remains in the current section boundary
@@ -2177,7 +2173,6 @@ struct rtl_opt_pass pass_duplicate_computed_gotos =
 static void
 partition_hot_cold_basic_blocks (void)
 {
-  basic_block cur_bb;
   edge *crossing_edges;
   int n_crossing_edges;
   int max_edges = 2 * last_basic_block;
@@ -2187,13 +2182,6 @@ partition_hot_cold_basic_blocks (void)
 
   crossing_edges = XCNEWVEC (edge, max_edges);
 
-  cfg_layout_initialize (0);
-
-  FOR_EACH_BB (cur_bb)
-    if (cur_bb->index >= NUM_FIXED_BLOCKS
-	&& cur_bb->next_bb->index >= NUM_FIXED_BLOCKS)
-      cur_bb->aux = cur_bb->next_bb;
-
   find_rarely_executed_basic_blocks_and_crossing_edges (&crossing_edges,
 							&n_crossing_edges,
 							&max_edges);
@@ -2202,8 +2190,6 @@ partition_hot_cold_basic_blocks (void)
     fix_edges_for_rarely_executed_code (crossing_edges, n_crossing_edges);
 
   free (crossing_edges);
-
-  cfg_layout_finalize ();
 }
 
 static bool
@@ -2300,12 +2286,10 @@ struct rtl_opt_pass pass_partition_blocks =
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
   TV_REORDER_BLOCKS,                    /* tv_id */
-  0,                                    /* properties_required */
+  PROP_cfglayout,                       /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_dump_func | TODO_verify_rtl_sharing/* todo_flags_finish */
  }
 };
-
-

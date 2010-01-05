@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -190,7 +190,8 @@ package body Bcheck is
 
                else
                   ALI_Path_Id :=
-                    Osint.Find_File ((ALIs.Table (A).Afile), Osint.Library);
+                    Osint.Full_Lib_File_Name (ALIs.Table (A).Afile);
+
                   if Osint.Is_Readonly_Library (ALI_Path_Id) then
                      if Tolerate_Consistency_Errors then
                         Error_Msg ("?{ should be recompiled");
@@ -471,7 +472,7 @@ package body Bcheck is
 
                               --  Case 3. With'ed unit is Preelaborate or Pure
 
-                              elsif WU.Preelab or WU.Pure then
+                              elsif WU.Preelab or else WU.Pure then
                                  null;
 
                               --  Case 4. With'ed unit is internal file
@@ -634,7 +635,8 @@ package body Bcheck is
 
             begin
                for A2 in A1 + 1 .. ALIs.Last loop
-                  if ALIs.Table (A2).Locking_Policy /= ' ' and
+                  if ALIs.Table (A2).Locking_Policy /= ' '
+                       and then
                      ALIs.Table (A2).Locking_Policy /= Policy
                   then
                      Error_Msg_File_1 := ALIs.Table (A1).Sfile;

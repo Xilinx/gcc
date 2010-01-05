@@ -43,6 +43,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic.h"
 #include "tree-dump.h"
 #include "cgraph.h"
+/* For gfc_maybe_initialize_eh.  */
+#include "libfuncs.h"
+#include "expr.h"
+#include "except.h"
 
 #include "gfortran.h"
 #include "cpp.h"
@@ -52,19 +56,17 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Language-dependent contents of an identifier.  */
 
-struct lang_identifier
-GTY(())
-{
+struct GTY(())
+lang_identifier {
   struct tree_identifier common;
 };
 
 /* The resulting tree type.  */
 
-union lang_tree_node
-GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
+union GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
      chain_next ("(union lang_tree_node *)TREE_CHAIN (&%h.generic)")))
 
-{
+lang_tree_node {
   union tree_node GTY((tag ("0"),
 		       desc ("tree_node_structure (&%h)"))) generic;
   struct lang_identifier GTY((tag ("1"))) identifier;
@@ -74,9 +76,8 @@ GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
    that keep track of the progress of compilation of the current function.
    Used for nested functions.  */
 
-struct language_function
-GTY(())
-{
+struct GTY(())
+language_function {
   /* struct gfc_language_function base; */
   struct binding_level *binding_level;
 };
@@ -93,7 +94,6 @@ static void gfc_init_builtin_functions (void);
 static bool gfc_init (void);
 static void gfc_finish (void);
 static void gfc_print_identifier (FILE *, tree, int);
-static bool gfc_mark_addressable (tree);
 void do_function_end (void);
 int global_bindings_p (void);
 static void clear_binding_stack (void);
@@ -136,7 +136,6 @@ static void gfc_init_ts (void);
 #define LANG_HOOKS_POST_OPTIONS		gfc_post_options
 #define LANG_HOOKS_PRINT_IDENTIFIER     gfc_print_identifier
 #define LANG_HOOKS_PARSE_FILE           gfc_be_parse_file
-#define LANG_HOOKS_MARK_ADDRESSABLE	gfc_mark_addressable
 #define LANG_HOOKS_TYPE_FOR_MODE	gfc_type_for_mode
 #define LANG_HOOKS_TYPE_FOR_SIZE	gfc_type_for_size
 #define LANG_HOOKS_GET_ALIAS_SET	gfc_get_alias_set
@@ -155,7 +154,7 @@ static void gfc_init_ts (void);
 #define LANG_HOOKS_BUILTIN_FUNCTION          gfc_builtin_function
 #define LANG_HOOKS_GET_ARRAY_DESCR_INFO	     gfc_get_array_descr_info
 
-const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
+struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 #define NULL_BINDING_LEVEL (struct binding_level *) NULL
 
@@ -167,6 +166,10 @@ static GTY(()) struct binding_level *free_binding_level;
    for the reserved type names and storage classes.
    It is indexed by a RID_... value.  */
 tree *ridpointers = NULL;
+
+/* True means we've initialized exception handling.  */
+bool gfc_eh_initialized_p;
+
 
 /* Prepare expr to be an argument of a TRUTH_NOT_EXPR,
    or validate its data type for an `if' or `while' statement or ?..: exp.
@@ -235,9 +238,6 @@ gfc_be_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
   gfc_create_decls ();
   gfc_parse_file ();
   gfc_generate_constructors ();
-
-  cgraph_finalize_compilation_unit ();
-  cgraph_optimize ();
 
   /* Tell the frontend about any errors.  */
   gfc_get_errors (&warnings, &errors);
@@ -309,9 +309,8 @@ gfc_print_identifier (FILE * file ATTRIBUTE_UNUSED,
 
    Binding contours are used to create GCC tree BLOCK nodes.  */
 
-struct binding_level
-GTY(())
-{
+struct GTY(())
+binding_level {
   /* A chain of ..._DECL nodes for all variables, constants, functions,
      parameters and type declarations.  These ..._DECL nodes are chained
      through the TREE_CHAIN field. Note that these ..._DECL nodes are stored
@@ -559,84 +558,6 @@ gfc_init_decl_processing (void)
   /* Set up F95 type nodes.  */
   gfc_init_kinds ();
   gfc_init_types ();
-}
-
-
-/* Mark EXP saying that we need to be able to take the
-   address of it; it should not be allocated in a register.
-   In Fortran 95 this is only the case for variables with
-   the TARGET attribute, but we implement it here for a
-   likely future Cray pointer extension.
-   Value is 1 if successful.  */
-/* TODO: Check/fix mark_addressable.  */
-
-bool
-gfc_mark_addressable (tree exp)
-{
-  register tree x = exp;
-  while (1)
-    switch (TREE_CODE (x))
-      {
-      case COMPONENT_REF:
-      case ADDR_EXPR:
-      case ARRAY_REF:
-      case REALPART_EXPR:
-      case IMAGPART_EXPR:
-	x = TREE_OPERAND (x, 0);
-	break;
-
-      case CONSTRUCTOR:
-	TREE_ADDRESSABLE (x) = 1;
-	return true;
-
-      case VAR_DECL:
-      case CONST_DECL:
-      case PARM_DECL:
-      case RESULT_DECL:
-	if (DECL_REGISTER (x) && !TREE_ADDRESSABLE (x) && DECL_NONLOCAL (x))
-	  {
-	    if (TREE_PUBLIC (x))
-	      {
-		error ("global register variable %qs used in nested function",
-		       IDENTIFIER_POINTER (DECL_NAME (x)));
-		return false;
-	      }
-	    pedwarn (input_location, 0, "register variable %qs used in nested function",
-		     IDENTIFIER_POINTER (DECL_NAME (x)));
-	  }
-	else if (DECL_REGISTER (x) && !TREE_ADDRESSABLE (x))
-	  {
-	    if (TREE_PUBLIC (x))
-	      {
-		error ("address of global register variable %qs requested",
-		       IDENTIFIER_POINTER (DECL_NAME (x)));
-		return true;
-	      }
-
-#if 0
-	    /* If we are making this addressable due to its having
-	       volatile components, give a different error message.  Also
-	       handle the case of an unnamed parameter by not trying
-	       to give the name.  */
-
-	    else if (C_TYPE_FIELDS_VOLATILE (TREE_TYPE (x)))
-	      {
-		error ("cannot put object with volatile field into register");
-		return false;
-	      }
-#endif
-
-	    pedwarn (input_location, 0, "address of register variable %qs requested",
-		     IDENTIFIER_POINTER (DECL_NAME (x)));
-	  }
-
-	/* drops in */
-      case FUNCTION_DECL:
-	TREE_ADDRESSABLE (x) = 1;
-
-      default:
-	return true;
-      }
 }
 
 
@@ -1226,6 +1147,17 @@ gfc_init_ts (void)
   tree_contains_struct[NAMESPACE_DECL][TS_DECL_COMMON] = 1;
   tree_contains_struct[NAMESPACE_DECL][TS_DECL_MINIMAL] = 1;
 }
+
+void
+gfc_maybe_initialize_eh (void)
+{
+  if (!flag_exceptions || gfc_eh_initialized_p)
+    return;
+
+  gfc_eh_initialized_p = true;
+  using_eh_for_cleanups ();
+}
+
 
 #include "gt-fortran-f95-lang.h"
 #include "gtype-fortran.h"

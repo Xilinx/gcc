@@ -1,12 +1,14 @@
 /* { dg-do compile } */
-/* { dg-options "-O2 -Werror-implicit-function-declaration -march=k8 -m3dnow -mavx -msse5 -maes -mpclmul" } */
+/* { dg-options "-O2 -Werror-implicit-function-declaration -march=k8 -m3dnow -mavx -mxop -maes -mpclmul -mpopcnt -mabm -mlwp" } */
 
 #include <mm_malloc.h>
 
-/* Test that the intrinsics compile with optimization.  All of them are
-   defined as inline functions in {,x,e,p,t,s,w,a,b,i}mmintrin.h and mm3dnow.h
-   that reference the proper builtin functions.  Defining away "extern" and
-   "__inline" results in all of them being compiled as proper functions.  */
+/* Test that the intrinsics compile with optimization.  All of them
+   are defined as inline functions in {,x,e,p,t,s,w,a,b,i}mmintrin.h,
+   xopintrin.h, abmintrin.h, lwpintrin.h, popcntintrin.h and mm3dnow.h
+   that reference the proper builtin functions.  Defining away
+   "extern" and "__inline" results in all of them being compiled as
+   proper functions.  */
 
 #define extern
 #define __inline
@@ -53,13 +55,12 @@
 #define __builtin_ia32_aeskeygenassist128(X, C) __builtin_ia32_aeskeygenassist128(X, 1)
 #define __builtin_ia32_pclmulqdq128(X, Y, I) __builtin_ia32_pclmulqdq128(X, Y, 1)
 
-/* mmintrin-common.h */
+/* smmintrin.h */
 #define __builtin_ia32_roundpd(V, M) __builtin_ia32_roundpd(V, 1)
 #define __builtin_ia32_roundsd(D, V, M) __builtin_ia32_roundsd(D, V, 1)
 #define __builtin_ia32_roundps(V, M) __builtin_ia32_roundps(V, 1)
 #define __builtin_ia32_roundss(D, V, M) __builtin_ia32_roundss(D, V, 1)
 
-/* smmintrin.h */
 #define __builtin_ia32_pblendw128(X, Y, M) __builtin_ia32_pblendw128 (X, Y, 1)
 #define __builtin_ia32_blendps(X, Y, M) __builtin_ia32_blendps(X, Y, 1)
 #define __builtin_ia32_blendpd(X, Y, M) __builtin_ia32_blendpd(X, Y, 1)
@@ -126,10 +127,16 @@
 #define __builtin_ia32_vec_ext_v4hi(A, N) __builtin_ia32_vec_ext_v4hi(A, 0)
 #define __builtin_ia32_shufps(A, B, N) __builtin_ia32_shufps(A, B, 0)
 
-/* bmmintrin.h */
-#define __builtin_ia32_protbi(A, B) __builtin_ia32_protbi(A,1)
-#define __builtin_ia32_protwi(A, B) __builtin_ia32_protwi(A,1)
-#define __builtin_ia32_protdi(A, B) __builtin_ia32_protdi(A,1)
-#define __builtin_ia32_protqi(A, B) __builtin_ia32_protqi(A,1)
+/* xopintrin.h */
+#define __builtin_ia32_vprotbi(A, N) __builtin_ia32_vprotbi (A,1)
+#define __builtin_ia32_vprotwi(A, N) __builtin_ia32_vprotwi (A,1)
+#define __builtin_ia32_vprotdi(A, N) __builtin_ia32_vprotdi (A,1)
+#define __builtin_ia32_vprotqi(A, N) __builtin_ia32_vprotqi (A,1)
+
+/* lwpintrin.h */
+#define __builtin_ia32_lwpval32(D2, D1, F) __builtin_ia32_lwpval32 (D2, D1, 1)
+#define __builtin_ia32_lwpval64(D2, D1, F) __builtin_ia32_lwpval64 (D2, D1, 1)
+#define __builtin_ia32_lwpins32(D2, D1, F) __builtin_ia32_lwpins32 (D2, D1, 1)
+#define __builtin_ia32_lwpins64(D2, D1, F) __builtin_ia32_lwpins64 (D2, D1, 1)
 
 #include <x86intrin.h>

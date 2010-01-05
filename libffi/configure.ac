@@ -1,8 +1,8 @@
 dnl Process this with autoconf to create configure
 
-AC_PREREQ(2.59)
+AC_PREREQ(2.64)
 
-AC_INIT([libffi], [2.1], [http://gcc.gnu.org/bugs.html])
+AC_INIT([libffi], [3.0.8], [http://gcc.gnu.org/bugs.html])
 AC_CONFIG_HEADERS([fficonfig.h])
 
 AM_ENABLE_MULTILIB(, ..)
@@ -22,7 +22,7 @@ AM_INIT_AUTOMAKE
 m4_rename([_AC_ARG_VAR_PRECIOUS],[real_PRECIOUS])
 m4_define([_AC_ARG_VAR_PRECIOUS],[])
 AC_PROG_CC
-m4_rename([real_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
+m4_rename_force([real_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
 
 AC_SUBST(CFLAGS)
 
@@ -63,7 +63,7 @@ case "$host" in
 	TARGET=FRV; TARGETDIR=frv
 	;;
 
-  hppa*-*-linux*)
+  hppa*-*-linux* | parisc*-*-linux*)
 	TARGET=PA_LINUX; TARGETDIR=pa
 	;;
   hppa*64-*-hpux*)
@@ -73,6 +73,9 @@ case "$host" in
 	TARGET=PA_HPUX; TARGETDIR=pa
 	;;
 
+  i386-*-freebsd* | i386-*-openbsd*)
+	TARGET=X86_FREEBSD; TARGETDIR=x86
+	;;
   i?86-win32* | i?86-*-cygwin* | i?86-*-mingw*)
 	TARGET=X86_WIN32; TARGETDIR=x86
 	;;
@@ -105,7 +108,10 @@ case "$host" in
 	TARGET=MIPS; TARGETDIR=mips
 	;;
 
-  powerpc*-*-linux*)
+  powerpc*-*-linux* | powerpc-*-sysv*)
+	TARGET=POWERPC; TARGETDIR=powerpc
+	;;
+  powerpc-*-beos*)
 	TARGET=POWERPC; TARGETDIR=powerpc
 	;;
   powerpc-*-darwin*)
@@ -139,8 +145,11 @@ case "$host" in
   x86_64-*-darwin*)
 	TARGET=X86_DARWIN; TARGETDIR=x86
 	;;
+
   x86_64-*-cygwin* | x86_64-*-mingw*)
+	TARGET=X86_WIN64; TARGETDIR=x86
 	;;
+
   x86_64-*-*)
 	TARGET=X86_64; TARGETDIR=x86
 	;;
@@ -155,7 +164,9 @@ fi
 AM_CONDITIONAL(MIPS, test x$TARGET = xMIPS)
 AM_CONDITIONAL(SPARC, test x$TARGET = xSPARC)
 AM_CONDITIONAL(X86, test x$TARGET = xX86)
+AM_CONDITIONAL(X86_FREEBSD, test x$TARGET = xX86_FREEBSD)
 AM_CONDITIONAL(X86_WIN32, test x$TARGET = xX86_WIN32)
+AM_CONDITIONAL(X86_WIN64, test x$TARGET = xX86_WIN64)
 AM_CONDITIONAL(X86_DARWIN, test x$TARGET = xX86_DARWIN)
 AM_CONDITIONAL(ALPHA, test x$TARGET = xALPHA)
 AM_CONDITIONAL(IA64, test x$TARGET = xIA64)
@@ -240,7 +251,7 @@ if test x$TARGET = xSPARC; then
     fi
 fi
 
-if test x$TARGET = xX86 || test x$TARGET = xX86_64; then
+if test x$TARGET = xX86 || test x$TARGET = xX86_WIN32 || test x$TARGET = xX86_64; then
     AC_CACHE_CHECK([assembler supports pc related relocs],
 	libffi_cv_as_x86_pcrel, [
 	libffi_cv_as_x86_pcrel=yes
@@ -370,6 +381,6 @@ test -d src/$TARGETDIR || mkdir src/$TARGETDIR
 
 AC_CONFIG_LINKS(include/ffitarget.h:src/$TARGETDIR/ffitarget.h)
 
-AC_CONFIG_FILES(include/Makefile include/ffi.h Makefile testsuite/Makefile)
+AC_CONFIG_FILES(include/Makefile include/ffi.h Makefile testsuite/Makefile man/Makefile)
 
 AC_OUTPUT

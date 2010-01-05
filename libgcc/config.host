@@ -84,6 +84,8 @@ fido-*-*)
 	;;
 frv*)	cpu_type=frv
 	;;
+moxie*)	cpu_type=moxie
+	;;
 i[34567]86-*-*)
 	cpu_type=i386
 	;;
@@ -95,6 +97,9 @@ ia64-*-*)
 hppa*-*-*)
 	cpu_type=pa
 	;;
+lm32*-*-*)
+	cpu_type=lm32
+	;;
 m32r*-*-*)
         cpu_type=m32r
         ;;
@@ -102,6 +107,8 @@ m68k-*-*)
 	;;
 microblaze*-*-*)
 	cpu_type=microblaze
+	;;
+mep*-*-*)
 	;;
 mips*-*-*)
 	cpu_type=mips
@@ -188,14 +195,12 @@ alpha*-*-openbsd*)
 alpha*-dec-osf[45]*)
 	;;
 alpha64-dec-*vms*)
+	tmake_file="vms/t-vms vms/t-vms64 alpha/t-vms"
 	;;
 alpha*-dec-*vms*)
+	tmake_file="vms/t-vms alpha/t-vms"
 	;;
 arc-*-elf*)
-	;;
-arm-*-coff* | armel-*-coff*)
-	;;
-arm-semi-aof | armel-semi-aof)
 	;;
 arm-wrs-vxworks)
 	;;
@@ -257,8 +262,6 @@ h8300-*-rtems*)
 	;;
 h8300-*-elf*)
 	;;
-h8300-*-*)
-	;;
 hppa*64*-*-linux*)
 	;;
 hppa*-*-linux*)
@@ -278,8 +281,6 @@ i[34567]86-*-elf*)
 	;;
 x86_64-*-elf*)
 	;;
-i[34567]86-*-aout*)
-	;;
 i[34567]86-*-freebsd*)
 	;;
 x86_64-*-freebsd*)
@@ -293,8 +294,6 @@ x86_64-*-netbsd*)
 i[34567]86-*-openbsd2.*|i[34567]86-*openbsd3.[0123])
 	;;
 i[34567]86-*-openbsd*)
-	;;
-i[34567]86-*-coff*)
 	;;
 i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i[34567]86-*-gnu*)
 	extra_parts="$extra_parts crtprec32.o crtprec64.o crtprec80.o crtfastmath.o"
@@ -356,8 +355,19 @@ ia64*-*-linux*)
 	;;
 ia64*-*-hpux*)
 	;;
+ia64-hp-*vms*)
+	tmake_file="vms/t-vms vms/t-vms64 ia64/t-vms"
+	;;
 iq2000*-*-elf*)
         ;;
+lm32-*-elf*)
+        extra_parts="crtbegin.o crtend.o crti.o crtn.o"
+        tmake_file="lm32/t-lm32 lm32/t-elf t-softfp"
+	;;
+lm32-*-uclinux*)
+        extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtbeginT.o"
+        tmake_file="lm32/t-lm32 lm32/t-uclinux t-softfp"
+	;;	
 m32r-*-elf*|m32r-*-rtems*)
  	;;
 m32rle-*-elf*)
@@ -370,10 +380,6 @@ m68hc11-*-*|m6811-*-*)
         ;;
 m68hc12-*-*|m6812-*-*)
         ;;
-m68k-*-aout*)
-	;;
-m68k-*-coff*)
-	;;
 m68k-*-elf*)
 	;;
 m68k*-*-netbsdelf*)
@@ -434,18 +440,14 @@ mmix-knuth-mmixware)
 	;;
 mn10300-*-*)
 	;;
-pdp11-*-bsd)
-        ;;
+moxie-*-*)
+	tmake_file=${cpu_type}/t-moxie
+	extra_parts="crtbegin.o crtend.o crti.o crtn.o"
+	;;
 pdp11-*-*)
 	;;
 picochip-*-*)
         ;;
-powerpc64-*-linux*)
-	tmake_file="${tmake_file} rs6000/t-ppccomm rs6000/t-ldbl128 t-softfp"
-	;;
-powerpc64-*-gnu*)
-	tmake_file="${tmake_file} rs6000/t-ldbl128 t-softfp"
-	;;
 powerpc-*-darwin*)
 	;;
 powerpc64-*-darwin*)
@@ -468,14 +470,11 @@ powerpc-*-eabi*)
 	;;
 powerpc-*-rtems*)
 	;;
-powerpc-*-linux*altivec*)
-	tmake_file="${tmake_file} rs6000/t-ppccomm rs6000/t-ldbl128"
-	;;
-powerpc-*-linux*spe*)
+powerpc-*-linux* | powerpc64-*-linux*)
 	tmake_file="${tmake_file} rs6000/t-ppccomm rs6000/t-ldbl128 t-softfp"
 	;;
-powerpc-*-linux*)
-	tmake_file="${tmake_file} rs6000/t-ppccomm rs6000/t-ldbl128 t-softfp"
+powerpc64-*-gnu*)
+	tmake_file="${tmake_file} rs6000/t-ldbl128 t-softfp"
 	;;
 powerpc-*-gnu-gnualtivec*)
 	tmake_file="${tmake_file} rs6000/t-ldbl128"
@@ -493,19 +492,24 @@ powerpcle-*-eabisim*)
 	;;
 powerpcle-*-eabi*)
 	;;
-rs6000-ibm-aix4.[12]* | powerpc-ibm-aix4.[12]*)
-	;;
 rs6000-ibm-aix4.[3456789]* | powerpc-ibm-aix4.[3456789]*)
 	;;
 rs6000-ibm-aix5.1.* | powerpc-ibm-aix5.1.*)
 	;;
 rs6000-ibm-aix[56789].* | powerpc-ibm-aix[56789].*)
 	;;
+rx-*-elf)
+	extra_parts="crtbegin.o crtend.o"
+	tmake_file="rx/t-rx"
+	;;
 s390-*-linux*)
+	tmake_file="${tmake_file} s390/t-crtstuff s390/t-linux s390/32/t-floattodi"
 	;;
 s390x-*-linux*)
+	tmake_file="${tmake_file} s390/t-crtstuff s390/t-linux"
 	;;
 s390x-ibm-tpf*)
+	tmake_file="${tmake_file} s390/t-crtstuff s390/t-tpf"
 	;;
 score-*-elf)
         ;;
@@ -523,8 +527,6 @@ sh-*-symbianelf* | sh[12346l]*-*-symbianelf* | \
 sh-*-rtems*)
 	;;
 sh-wrs-vxworks)
-	;;
-sh-*-*)
 	;;
 sparc-*-netbsdelf*)
 	;;
@@ -562,6 +564,8 @@ v850e-*-*)
 	;;
 v850-*-*)
 	;;
+vax-*-linux*)
+	;;
 vax-*-netbsdelf*)
 	;;
 vax-*-netbsd*)
@@ -579,6 +583,8 @@ am33_2.0-*-linux*)
 	;;
 m32c-*-elf*|m32c-*-rtems*)
  	;;
+mep*-*-*)
+	;;
 *)
 	echo "*** Configuration ${host} not supported" 1>&2
 	exit 1
@@ -596,7 +602,8 @@ esac
 case ${host} in
 i[34567]86-*-darwin* | x86_64-*-darwin* | \
   i[34567]86-*-kfreebsd*-gnu | x86_64-*-kfreebsd*-gnu | \
-  i[34567]86-*-linux* | x86_64-*-linux*)
+  i[34567]86-*-linux* | x86_64-*-linux* | \
+  i[34567]86-*-cygwin* | i[34567]86-*-mingw* | x86_64-*-mingw*)
 	if test "${host_address}" = 32; then
 		tmake_file="${tmake_file} t-softfp i386/${host_address}/t-fprules-softfp"
 	fi

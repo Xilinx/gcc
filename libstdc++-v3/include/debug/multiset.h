@@ -38,6 +38,7 @@ namespace std
 {
 namespace __debug
 {
+  /// Class std::multiset with safety/checking/debug instrumentation.
   template<typename _Key, typename _Compare = std::less<_Key>,
 	   typename _Allocator = std::allocator<_Key> >
     class multiset
@@ -245,11 +246,7 @@ namespace __debug
       }
 
       void
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-      swap(multiset&& __x)
-#else
       swap(multiset& __x)
-#endif
       {
 	_Base::swap(__x);
 	this->_M_swap(__x);
@@ -375,20 +372,6 @@ namespace __debug
     swap(multiset<_Key, _Compare, _Allocator>& __x,
 	 multiset<_Key, _Compare, _Allocator>& __y)
     { return __x.swap(__y); }
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-  template<typename _Key, typename _Compare, typename _Allocator>
-    void
-    swap(multiset<_Key, _Compare, _Allocator>&& __x,
-	 multiset<_Key, _Compare, _Allocator>& __y)
-    { return __x.swap(__y); }
-
-  template<typename _Key, typename _Compare, typename _Allocator>
-    void
-    swap(multiset<_Key, _Compare, _Allocator>& __x,
-	 multiset<_Key, _Compare, _Allocator>&& __y)
-    { return __x.swap(__y); }
-#endif
 
 } // namespace __debug
 } // namespace std

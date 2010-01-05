@@ -1,18 +1,18 @@
 /* Predictive commoning.
-   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
-   
+   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
+
 This file is part of GCC.
-   
+
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
 Free Software Foundation; either version 3, or (at your option) any
 later version.
-   
+
 GCC is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
-   
+
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
@@ -29,7 +29,7 @@ along with GCC; see the file COPYING3.  If not see
    and if needed, we could also take register pressure into account.
 
    Let us demonstrate what is done on an example:
-   
+
    for (i = 0; i < 100; i++)
      {
        a[i+2] = a[i] + a[i+1];
@@ -63,7 +63,7 @@ along with GCC; see the file COPYING3.  If not see
       making the further transformations simpler.  Also, the shorter chains
       need the same number of registers, but may require lower unrolling
       factor in order to get rid of the copies on the loop latch.
-      
+
       In our example, we get the following chains (the chain for c is invalid).
 
       a[i]{read,+0}, a[i+1]{read,-1}, a[i+2]{write,-2}
@@ -76,7 +76,7 @@ along with GCC; see the file COPYING3.  If not see
       with the smallest positive distance to the read.  Then, we remove
       the references that are not used in any of these chains, discard the
       empty groups, and propagate all the links so that they point to the
-      single root reference of the chain (adjusting their distance 
+      single root reference of the chain (adjusting their distance
       appropriately).  Some extra care needs to be taken for references with
       step 0.  In our example (the numbers indicate the distance of the
       reuse),
@@ -132,7 +132,7 @@ along with GCC; see the file COPYING3.  If not see
       times.  The stores to RN (R0) in the copies of the loop body are
       periodically replaced with R0, R1, ... (R1, R2, ...), so that they can
       be coalesced and the copies can be eliminated.
-      
+
       TODO -- copy propagation and other optimizations may change the live
       ranges of the temporary registers and prevent them from being coalesced;
       this may increase the register pressure.
@@ -206,11 +206,11 @@ along with GCC; see the file COPYING3.  If not see
    references.  */
 
 #define MAX_DISTANCE (target_avail_regs < 16 ? 4 : 8)
-   
+
 /* Data references (or phi nodes that carry data reference values across
    loop iterations).  */
 
-typedef struct dref
+typedef struct dref_d
 {
   /* The reference itself.  */
   struct data_reference *ref;
@@ -704,7 +704,7 @@ split_data_refs_to_components (struct loop *loop,
   struct component *comp_list = NULL, *comp;
   dref dataref;
   basic_block last_always_executed = last_always_executed_block (loop);
- 
+
   for (i = 0; VEC_iterate (data_reference_p, datarefs, i, dr); i++)
     {
       if (!DR_REF (dr))
@@ -754,7 +754,7 @@ split_data_refs_to_components (struct loop *loop,
 	  && (ia == bad || ib == bad
 	      || !determine_offset (dra, drb, &dummy_off)))
 	continue;
-	  
+
       merge_comps (comp_father, comp_size, ia, ib);
     }
 
@@ -775,7 +775,7 @@ split_data_refs_to_components (struct loop *loop,
 	  comps[ca] = comp;
 	}
 
-      dataref = XCNEW (struct dref);
+      dataref = XCNEW (struct dref_d);
       dataref->ref = dr;
       dataref->stmt = DR_STMT (dr);
       dataref->offset = double_int_zero;
@@ -808,7 +808,7 @@ end:
 /* Returns true if the component COMP satisfies the conditions
    described in 2) at the beginning of this file.  LOOP is the current
    loop.  */
-      
+
 static bool
 suitable_component_p (struct loop *loop, struct component *comp)
 {
@@ -859,7 +859,7 @@ suitable_component_p (struct loop *loop, struct component *comp)
 
   return true;
 }
-      
+
 /* Check the conditions on references inside each of components COMPS,
    and remove the unsuitable components from the list.  The new list
    of components is returned.  The conditions are described in 2) at
@@ -1126,7 +1126,7 @@ find_looparound_phi (struct loop *loop, dref ref, dref root)
 static void
 insert_looparound_copy (chain_p chain, dref ref, gimple phi)
 {
-  dref nw = XCNEW (struct dref), aref;
+  dref nw = XCNEW (struct dref_d), aref;
   unsigned i;
 
   nw->stmt = phi;
@@ -1255,7 +1255,7 @@ replace_ref_with (gimple stmt, tree new_tree, bool set, bool in_lhs)
       gsi_insert_before (&bsi, new_stmt, GSI_NEW_STMT);
       return;
     }
-      
+
   /* Since the reference is of gimple_reg type, it should only
      appear as lhs or rhs of modify statement.  */
   gcc_assert (is_gimple_assign (stmt));
@@ -1275,7 +1275,7 @@ replace_ref_with (gimple stmt, tree new_tree, bool set, bool in_lhs)
   if (in_lhs)
     {
       /* We have statement
-	 
+
 	 OLD = VAL
 
 	 If OLD is a memory reference, then VAL is gimple_val, and we transform
@@ -1284,7 +1284,7 @@ replace_ref_with (gimple stmt, tree new_tree, bool set, bool in_lhs)
 	 OLD = VAL
 	 NEW = VAL
 
-	 Otherwise, we are replacing a combination chain, 
+	 Otherwise, we are replacing a combination chain,
 	 VAL is the expression that performs the combination, and OLD is an
 	 SSA name.  In this case, we transform the assignment to
 
@@ -1423,7 +1423,6 @@ get_init_expr (chain_p chain, unsigned index)
 void
 mark_virtual_ops_for_renaming (gimple stmt)
 {
-  ssa_op_iter iter;
   tree var;
 
   if (gimple_code (stmt) == GIMPLE_PHI)
@@ -1439,24 +1438,8 @@ mark_virtual_ops_for_renaming (gimple stmt)
     }
 
   update_stmt (stmt);
-
-  FOR_EACH_SSA_TREE_OPERAND (var, stmt, iter, SSA_OP_ALL_VIRTUALS)
-    {
-      if (TREE_CODE (var) == SSA_NAME)
-	var = SSA_NAME_VAR (var);
-      mark_sym_for_renaming (var);
-    }
-}
-
-/* Calls mark_virtual_ops_for_renaming for all members of LIST.  */
-
-static void
-mark_virtual_ops_for_renaming_list (gimple_seq list)
-{
-  gimple_stmt_iterator gsi;
-
-  for (gsi = gsi_start (list); !gsi_end_p (gsi); gsi_next (&gsi))
-    mark_virtual_ops_for_renaming (gsi_stmt (gsi));
+  if (gimple_vuse (stmt))
+    mark_sym_for_renaming (gimple_vop (cfun));
 }
 
 /* Returns a new temporary variable used for the I-th variable carrying
@@ -1513,7 +1496,7 @@ initialize_root_vars (struct loop *loop, chain_p chain, bitmap tmp_vars)
     }
   if (reuse_first)
     VEC_quick_push (tree, chain->vars, VEC_index (tree, chain->vars, 0));
-  
+
   for (i = 0; VEC_iterate (tree, chain->vars, i, var); i++)
     VEC_replace (tree, chain->vars, i, make_ssa_name (var, NULL));
 
@@ -1525,15 +1508,12 @@ initialize_root_vars (struct loop *loop, chain_p chain, bitmap tmp_vars)
 
       init = force_gimple_operand (init, &stmts, true, NULL_TREE);
       if (stmts)
-	{
-	  mark_virtual_ops_for_renaming_list (stmts);
-	  gsi_insert_seq_on_edge_immediate (entry, stmts);
-	}
+	gsi_insert_seq_on_edge_immediate (entry, stmts);
 
       phi = create_phi_node (var, loop->header);
       SSA_NAME_DEF_STMT (var) = phi;
-      add_phi_arg (phi, init, entry);
-      add_phi_arg (phi, next, latch);
+      add_phi_arg (phi, init, entry, UNKNOWN_LOCATION);
+      add_phi_arg (phi, next, latch, UNKNOWN_LOCATION);
     }
 }
 
@@ -1581,26 +1561,23 @@ initialize_root_vars_lm (struct loop *loop, dref root, bool written,
   VEC_quick_push (tree, *vars, var);
   if (written)
     VEC_quick_push (tree, *vars, VEC_index (tree, *vars, 0));
-  
+
   for (i = 0; VEC_iterate (tree, *vars, i, var); i++)
     VEC_replace (tree, *vars, i, make_ssa_name (var, NULL));
 
   var = VEC_index (tree, *vars, 0);
-      
+
   init = force_gimple_operand (init, &stmts, written, NULL_TREE);
   if (stmts)
-    {
-      mark_virtual_ops_for_renaming_list (stmts);
-      gsi_insert_seq_on_edge_immediate (entry, stmts);
-    }
+    gsi_insert_seq_on_edge_immediate (entry, stmts);
 
   if (written)
     {
       next = VEC_index (tree, *vars, 1);
       phi = create_phi_node (var, loop->header);
       SSA_NAME_DEF_STMT (var) = phi;
-      add_phi_arg (phi, init, entry);
-      add_phi_arg (phi, next, latch);
+      add_phi_arg (phi, init, entry, UNKNOWN_LOCATION);
+      add_phi_arg (phi, next, latch, UNKNOWN_LOCATION);
     }
   else
     {
@@ -1627,7 +1604,7 @@ execute_load_motion (struct loop *loop, chain_p chain, bitmap tmp_vars)
   for (i = 0; VEC_iterate (dref, chain->refs, i, a); i++)
     if (!DR_IS_READ (a->ref))
       n_writes++;
-  
+
   /* If there are no reads in the loop, there is nothing to do.  */
   if (n_writes == VEC_length (dref, chain->refs))
     return;
@@ -1653,7 +1630,7 @@ execute_load_motion (struct loop *loop, chain_p chain, bitmap tmp_vars)
 	  else
 	    ridx = 1;
 	}
-	  
+
       replace_ref_with (a->stmt, VEC_index (tree, vars, ridx),
 			!is_read, !is_read);
     }
@@ -1723,7 +1700,7 @@ remove_stmt (gimple stmt)
   while (1)
     {
       gimple_stmt_iterator bsi;
-    
+
       bsi = gsi_for_stmt (stmt);
 
       name = gimple_assign_lhs (stmt);
@@ -1827,7 +1804,7 @@ execute_pred_commoning (struct loop *loop, VEC (chain_p, heap) *chains,
       else
 	execute_pred_commoning_chain (loop, chain, tmp_vars);
     }
-  
+
   update_ssa (TODO_update_ssa_only_virtuals);
 }
 
@@ -1891,43 +1868,6 @@ execute_pred_commoning_cbck (struct loop *loop, void *data)
      tree_predictive_commoning_loop).  */
   replace_names_by_phis (dta->chains);
   execute_pred_commoning (loop, dta->chains, dta->tmp_vars);
-}
-
-/* Returns true if we can and should unroll LOOP FACTOR times.  Number
-   of iterations of the loop is returned in NITER.  */
-
-static bool
-should_unroll_loop_p (struct loop *loop, unsigned factor,
-		      struct tree_niter_desc *niter)
-{
-  edge exit;
-
-  if (factor == 1)
-    return false;
-
-  /* Check whether unrolling is possible.  We only want to unroll loops
-     for that we are able to determine number of iterations.  We also
-     want to split the extra iterations of the loop from its end,
-     therefore we require that the loop has precisely one
-     exit.  */
-
-  exit = single_dom_exit (loop);
-  if (!exit)
-    return false;
-
-  if (!number_of_iterations_exit (loop, exit, niter, false))
-    return false;
-
-  /* And of course, we must be able to duplicate the loop.  */
-  if (!can_duplicate_loop_p (loop))
-    return false;
-
-  /* The final loop should be small enough.  */
-  if (tree_num_loop_insns (loop, &eni_size_weights) * factor
-      > (unsigned) PARAM_VALUE (PARAM_MAX_UNROLLED_INSNS))
-    return false;
-
-  return true;
 }
 
 /* Base NAME and all the names in the chain of phi nodes that use it
@@ -2362,7 +2302,7 @@ combine_chains (chain_p ch1, chain_p ch2)
   for (i = 0; (VEC_iterate (dref, ch1->refs, i, r1)
 	       && VEC_iterate (dref, ch2->refs, i, r2)); i++)
     {
-      nw = XCNEW (struct dref);
+      nw = XCNEW (struct dref_d);
       nw->stmt = stmt_combining_refs (r1, r2);
       nw->distance = r1->distance;
 
@@ -2421,31 +2361,6 @@ try_combine_chains (VEC (chain_p, heap) **chains)
     }
 }
 
-/* Sets alias information based on data reference DR for REF,
-   if necessary.  */
-
-static void
-set_alias_info (tree ref, struct data_reference *dr)
-{
-  tree var;
-  tree tag = DR_SYMBOL_TAG (dr);
-
-  gcc_assert (tag != NULL_TREE);
-
-  ref = get_base_address (ref);
-  if (!ref || !INDIRECT_REF_P (ref))
-    return;
-
-  var = SSA_NAME_VAR (TREE_OPERAND (ref, 0));
-  if (var_ann (var)->symbol_mem_tag)
-    return;
-
-  if (!MTAG_P (tag))
-    new_type_alias (var, tag, ref);
-  else
-    var_ann (var)->symbol_mem_tag = tag;
-}
-
 /* Prepare initializers for CHAIN in LOOP.  Returns false if this is
    impossible because one of these initializers may trap, true otherwise.  */
 
@@ -2485,17 +2400,13 @@ prepare_initializers_chain (struct loop *loop, chain_p chain)
       init = ref_at_iteration (loop, DR_REF (dr), (int) i - n);
       if (!init)
 	return false;
-      
+
       if (!chain->all_always_accessed && tree_could_trap_p (init))
 	return false;
 
       init = force_gimple_operand (init, &stmts, false, NULL_TREE);
       if (stmts)
-	{
-	  mark_virtual_ops_for_renaming_list (stmts);
-	  gsi_insert_seq_on_edge_immediate (entry, stmts);
-	}
-      set_alias_info (init, dr);
+	gsi_insert_seq_on_edge_immediate (entry, stmts);
 
       VEC_replace (tree, chain->inits, i, init);
     }
@@ -2596,7 +2507,8 @@ tree_predictive_commoning_loop (struct loop *loop)
      that its number of iterations is divisible by the factor.  */
   unroll_factor = determine_unroll_factor (chains);
   scev_reset ();
-  unroll = should_unroll_loop_p (loop, unroll_factor, &desc);
+  unroll = (unroll_factor > 1
+	    && can_unroll_loop_p (loop, unroll_factor, &desc));
   exit = single_dom_exit (loop);
 
   /* Execute the predictive commoning transformations, and possibly unroll the
@@ -2610,7 +2522,7 @@ tree_predictive_commoning_loop (struct loop *loop)
 
       dta.chains = chains;
       dta.tmp_vars = tmp_vars;
-      
+
       update_ssa (TODO_update_ssa_only_virtuals);
 
       /* Cfg manipulations performed in tree_transform_and_unroll_loop before

@@ -39,18 +39,6 @@
   (and (match_code "const_int")
        (match_test "SMALL_INT (op)")))
 
-;; Return if the code of this rtx pattern is EQ or NE.
-(define_predicate "equality_operator"
-  (match_code "eq,ne"))
-
-;; Return if the code of this rtx pattern is LT or LTU.
-(define_predicate "lessthan_operator"
-  (match_code "lt,ltu"))
-
-;; Return if the code of this rtx pattern is a comparison.
-(define_predicate "cmp_op"
-  (match_code "eq,ne,gt,ge,gtu,geu,lt,le,ltu,leu"))
-
 ;; Return if the code of this rtx pattern is a signed comparison.
 (define_predicate "signed_cmp_op"
   (match_code "eq,ne,gt,ge,lt,le"))

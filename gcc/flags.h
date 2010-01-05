@@ -111,14 +111,20 @@ extern int optimize;
 
 extern int optimize_size;
 
-/* Do print extra warnings (such as for uninitialized variables).
-   -W/-Wextra.  */
+/* True if this is the LTO front end (lto1).  This is used to disable
+   gimple generation and lowering passes that are normally run on the
+   output of a front end.  These passes must be bypassed for lto since
+   they have already been done before the gimple was written.  */
 
-extern bool extra_warnings;
+extern bool in_lto_p;
 
-/* Used to set the level of -Wstrict-aliasing, when no level is specified.  
+/* Nonzero if we should write GIMPLE bytecode for link-time optimization.  */
+
+extern int flag_generate_lto;
+
+/* Used to set the level of -Wstrict-aliasing, when no level is specified.
    The external way to set the default level is to use
-   -Wstrict-aliasing=level.  
+   -Wstrict-aliasing=level.
    ONOFF is assumed to take value 1 when -Wstrict-aliasing is specified,
    and 0 otherwise.  After calling this function, wstrict_aliasing will be
    set to the default value of -Wstrict_aliasing=level.  */
@@ -227,6 +233,21 @@ extern enum ira_region flag_ira_region;
 
 extern unsigned int flag_ira_verbose;
 
+/* The options for excess precision.  */
+enum excess_precision
+{
+  EXCESS_PRECISION_DEFAULT,
+  EXCESS_PRECISION_FAST,
+  EXCESS_PRECISION_STANDARD
+};
+
+/* The excess precision specified on the command line, or defaulted by
+   the front end.  */
+extern enum excess_precision flag_excess_precision_cmdline;
+
+/* The excess precision currently in effect.  */
+extern enum excess_precision flag_excess_precision;
+
 
 /* Other basic status info about current function.  */
 
@@ -240,8 +261,11 @@ extern bool g_switch_set;
 /* Same for selective scheduling.  */
 extern bool sel_sched_switch_set;
 
-/* Values of the -falign-* flags: how much to align labels in code. 
-   0 means `use default', 1 means `don't align'.  
+/* Whether to run the warn_unused_result attribute pass.  */
+extern bool flag_warn_unused_result;
+
+/* Values of the -falign-* flags: how much to align labels in code.
+   0 means `use default', 1 means `don't align'.
    For each variable, there is an _log variant which is the power
    of two not less than the variable, for .align output.  */
 

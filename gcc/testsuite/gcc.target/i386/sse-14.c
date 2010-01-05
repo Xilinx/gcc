@@ -1,12 +1,13 @@
 /* { dg-do compile } */
-/* { dg-options "-O0 -Werror-implicit-function-declaration -march=k8 -m3dnow -mavx -msse5 -maes -mpclmul" } */
+/* { dg-options "-O0 -Werror-implicit-function-declaration -march=k8 -m3dnow -mavx -mxop -msse4a -maes -mpclmul -mpopcnt -mabm -mlwp" } */
 
 #include <mm_malloc.h>
 
 /* Test that the intrinsics compile without optimization.  All of them are
-   defined as inline functions in {,x,e,p,t,s,w,a,b}mmintrin.h  and mm3dnow.h
-   that reference the proper builtin functions.  Defining away "extern" and
-   "__inline" results in all of them being compiled as proper functions.  */
+   defined as inline functions in {,x,e,p,t,s,w,a}mmintrin.h, xopintrin.h,
+   lwpintrin.h and mm3dnow.h that reference the proper builtin functions.
+   Defining away "extern" and "__inline" results in all of them being compiled
+   as proper functions.  */
 
 #define extern
 #define __inline
@@ -93,13 +94,12 @@ test_1 (_mm256_round_ps, __m256, __m256, 1)
 test_1 (_mm_aeskeygenassist_si128, __m128i, __m128i, 1)
 test_2 (_mm_clmulepi64_si128, __m128i, __m128i, __m128i, 1)
 
-/* mmintrin-common.h */
+/* smmintrin.h */
 test_1 (_mm_round_pd, __m128d, __m128d, 1)
 test_1 (_mm_round_ps, __m128, __m128, 1)
 test_2 (_mm_round_sd, __m128d, __m128d, __m128d, 1)
 test_2 (_mm_round_ss, __m128, __m128, __m128, 1)
 
-/* smmintrin.h */
 test_2 (_mm_blend_epi16, __m128i, __m128i, __m128i, 1)
 test_2 (_mm_blend_ps, __m128, __m128, __m128, 1)
 test_2 (_mm_blend_pd, __m128d, __m128d, __m128d, 1)
@@ -157,8 +157,16 @@ test_1 (_mm_shuffle_pi16, __m64, __m64, 1)
 test_1 (_m_pshufw, __m64, __m64, 1)
 test_1 (_mm_prefetch, void, void *, _MM_HINT_NTA)
 
-/* bmmintrin.h */
-test_1 (_mm_roti_epi8, __m128i, __m128i, 1)
-test_1 (_mm_roti_epi16, __m128i, __m128i, 1)
-test_1 (_mm_roti_epi32, __m128i, __m128i, 1)
-test_1 (_mm_roti_epi64, __m128i, __m128i, 1)
+/* xopintrin.h */
+test_1 ( _mm_roti_epi8, __m128i, __m128i, 1)
+test_1 ( _mm_roti_epi16, __m128i, __m128i, 1)
+test_1 ( _mm_roti_epi32, __m128i, __m128i, 1)
+test_1 ( _mm_roti_epi64, __m128i, __m128i, 1)
+
+/* lwpintrin.h */
+test_2 ( __lwpval32, void, unsigned int, unsigned int, 1)
+test_2 ( __lwpins32, unsigned char, unsigned int, unsigned int, 1)
+#ifdef __x86_64__
+test_2 ( __lwpval64, void, unsigned long long, unsigned int, 1)
+test_2 ( __lwpins64, unsigned char, unsigned long long, unsigned int, 1)
+#endif

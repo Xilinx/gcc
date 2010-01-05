@@ -29,6 +29,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* transfer.c -- Top level handling of data transfer statements.  */
 
 #include "io.h"
+#include "fbuf.h"
+#include "format.h"
+#include "unix.h"
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -98,6 +101,16 @@ static const st_option advance_opt[] = {
 static const st_option decimal_opt[] = {
   {"point", DECIMAL_POINT},
   {"comma", DECIMAL_COMMA},
+  {NULL, 0}
+};
+
+static const st_option round_opt[] = {
+  {"up", ROUND_UP},
+  {"down", ROUND_DOWN},
+  {"zero", ROUND_ZERO},
+  {"nearest", ROUND_NEAREST},
+  {"compatible", ROUND_COMPATIBLE},
+  {"processor_defined", ROUND_PROCDEFINED},
   {NULL, 0}
 };
 
@@ -1202,6 +1215,36 @@ formatted_transfer_scalar_read (st_parameter_dt *dtp, bt type, void *p, int kind
 	  consume_data_flag = 0;
 	  dtp->u.p.current_unit->decimal_status = DECIMAL_POINT;
 	  break;
+	
+	case FMT_RC:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_COMPATIBLE;
+	  break;
+
+	case FMT_RD:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_DOWN;
+	  break;
+
+	case FMT_RN:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_NEAREST;
+	  break;
+
+	case FMT_RP:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_PROCDEFINED;
+	  break;
+
+	case FMT_RU:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_UP;
+	  break;
+
+	case FMT_RZ:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_ZERO;
+	  break;
 
 	case FMT_P:
 	  consume_data_flag = 0;
@@ -1566,6 +1609,36 @@ formatted_transfer_scalar_write (st_parameter_dt *dtp, bt type, void *p, int kin
 	  dtp->u.p.current_unit->decimal_status = DECIMAL_POINT;
 	  break;
 
+	case FMT_RC:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_COMPATIBLE;
+	  break;
+
+	case FMT_RD:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_DOWN;
+	  break;
+
+	case FMT_RN:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_NEAREST;
+	  break;
+
+	case FMT_RP:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_PROCDEFINED;
+	  break;
+
+	case FMT_RU:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_UP;
+	  break;
+
+	case FMT_RZ:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_ZERO;
+	  break;
+
 	case FMT_P:
 	  consume_data_flag = 0;
 	  dtp->u.p.scale_factor = f->u.k;
@@ -1783,10 +1856,8 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
   for (n = 0; n < rank; n++)
     {
       count[n] = 0;
-      stride[n] = iotype == BT_CHARACTER ?
-		  desc->dim[n].stride * GFC_SIZE_OF_CHAR_KIND(kind) :
-		  desc->dim[n].stride;
-      extent[n] = desc->dim[n].ubound + 1 - desc->dim[n].lbound;
+      stride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(desc,n);
+      extent[n] = GFC_DESCRIPTOR_EXTENT(desc,n);
 
       /* If the extent of even one dimension is zero, then the entire
 	 array section contains zero elements, so we return after writing
@@ -1802,9 +1873,9 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
 
   stride0 = stride[0];
 
-  /* If the innermost dimension has stride 1, we can do the transfer
+  /* If the innermost dimension has a stride of 1, we can do the transfer
      in contiguous chunks.  */
-  if (stride0 == 1)
+  if (stride0 == size)
     tsize = extent[0];
   else
     tsize = 1;
@@ -1814,13 +1885,13 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
   while (data)
     {
       dtp->u.p.transfer (dtp, iotype, data, kind, size, tsize);
-      data += stride0 * size * tsize;
+      data += stride0 * tsize;
       count[0] += tsize;
       n = 0;
       while (count[n] == extent[n])
 	{
 	  count[n] = 0;
-	  data -= stride[n] * extent[n] * size;
+	  data -= stride[n] * extent[n];
 	  n++;
 	  if (n == rank)
 	    {
@@ -1830,7 +1901,7 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
 	  else
 	    {
 	      count[n]++;
-	      data += stride[n] * size;
+	      data += stride[n];
 	    }
 	}
     }
@@ -2025,7 +2096,7 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
 	close_unit (dtp->u.p.current_unit);
 	dtp->u.p.current_unit = NULL;
 	generate_error (&dtp->common, LIBERROR_BAD_OPTION,
-			"Bad unit number in OPEN statement");
+			"Bad unit number in statement");
 	return;
       }
     memset (&u_flags, '\0', sizeof (u_flags));
@@ -2253,6 +2324,16 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
 
   if (dtp->u.p.current_unit->decimal_status == DECIMAL_UNSPECIFIED)
 	dtp->u.p.current_unit->decimal_status = dtp->u.p.current_unit->flags.decimal;
+
+  /* Check the round mode.  */
+  dtp->u.p.current_unit->round_status
+	= !(cf & IOPARM_DT_HAS_ROUND) ? ROUND_UNSPECIFIED :
+	  find_option (&dtp->common, dtp->round, dtp->round_len,
+			round_opt, "Bad ROUND parameter in data transfer "
+			"statement");
+
+  if (dtp->u.p.current_unit->round_status == ROUND_UNSPECIFIED)
+	dtp->u.p.current_unit->round_status = dtp->u.p.current_unit->flags.round;
 
   /* Check the sign mode. */
   dtp->u.p.sign_status
@@ -2495,23 +2576,24 @@ init_loop_spec (gfc_array_char *desc, array_loop_spec *ls,
 
   for (i=0; i<rank; i++)
     {
-      ls[i].idx = desc->dim[i].lbound;
-      ls[i].start = desc->dim[i].lbound;
-      ls[i].end = desc->dim[i].ubound;
-      ls[i].step = desc->dim[i].stride;
-      empty = empty || (desc->dim[i].ubound < desc->dim[i].lbound);
+      ls[i].idx = GFC_DESCRIPTOR_LBOUND(desc,i);
+      ls[i].start = GFC_DESCRIPTOR_LBOUND(desc,i);
+      ls[i].end = GFC_DESCRIPTOR_UBOUND(desc,i);
+      ls[i].step = GFC_DESCRIPTOR_STRIDE(desc,i);
+      empty = empty || (GFC_DESCRIPTOR_UBOUND(desc,i) 
+			< GFC_DESCRIPTOR_LBOUND(desc,i));
 
-      if (desc->dim[i].stride > 0)
+      if (GFC_DESCRIPTOR_STRIDE(desc,i) > 0)
 	{
-	  index += (desc->dim[i].ubound - desc->dim[i].lbound)
-	    * desc->dim[i].stride;
+	  index += (GFC_DESCRIPTOR_EXTENT(desc,i) - 1)
+	    * GFC_DESCRIPTOR_STRIDE(desc,i);
 	}
       else
 	{
-	  index -= (desc->dim[i].ubound - desc->dim[i].lbound)
-	    * desc->dim[i].stride;
-	  *start_record -= (desc->dim[i].ubound - desc->dim[i].lbound)
-	    * desc->dim[i].stride;
+	  index -= (GFC_DESCRIPTOR_EXTENT(desc,i) - 1)
+	    * GFC_DESCRIPTOR_STRIDE(desc,i);
+	  *start_record -= (GFC_DESCRIPTOR_EXTENT(desc,i) - 1)
+	    * GFC_DESCRIPTOR_STRIDE(desc,i);
 	}
     }
 
@@ -2579,6 +2661,8 @@ skip_record (st_parameter_dt *dtp, ssize_t bytes)
       if (sseek (dtp->u.p.current_unit->s, 
 		 dtp->u.p.current_unit->bytes_left_subrecord, SEEK_CUR) < 0)
 	generate_error (&dtp->common, LIBERROR_OS, NULL);
+
+      dtp->u.p.current_unit->bytes_left_subrecord = 0;
     }
   else
     {			/* Seek by reading data.  */
@@ -2659,7 +2743,7 @@ next_record_r (st_parameter_dt *dtp)
 
     case FORMATTED_DIRECT:
     case UNFORMATTED_DIRECT:
-      skip_record (dtp, 0);
+      skip_record (dtp, dtp->u.p.current_unit->bytes_left);
       break;
 
     case FORMATTED_STREAM:
@@ -3261,7 +3345,8 @@ void
 st_read_done (st_parameter_dt *dtp)
 {
   finalize_transfer (dtp);
-  free_format_data (dtp);
+  if (is_internal_unit (dtp) || dtp->u.p.format_not_saved)
+    free_format_data (dtp->u.p.fmt);
   free_ionml (dtp);
   if (dtp->u.p.current_unit != NULL)
     unlock_unit (dtp->u.p.current_unit);
@@ -3312,7 +3397,8 @@ st_write_done (st_parameter_dt *dtp)
 	break;
       }
 
-  free_format_data (dtp);
+  if (is_internal_unit (dtp) || dtp->u.p.format_not_saved)
+    free_format_data (dtp->u.p.fmt);
   free_ionml (dtp);
   if (dtp->u.p.current_unit != NULL)
     unlock_unit (dtp->u.p.current_unit);
@@ -3407,9 +3493,7 @@ st_set_nml_var_dim (st_parameter_dt *dtp, GFC_INTEGER_4 n_dim,
 
   for (nml = dtp->u.p.ionml; nml->next; nml = nml->next);
 
-  nml->dim[n].stride = stride;
-  nml->dim[n].lbound = lbound;
-  nml->dim[n].ubound = ubound;
+  GFC_DIMENSION_SET(nml->dim[n],lbound,ubound,stride);
 }
 
 /* Reverse memcpy - used for byte swapping.  */

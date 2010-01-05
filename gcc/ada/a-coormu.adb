@@ -259,8 +259,7 @@ package body Ada.Containers.Ordered_Multisets is
    -- Adjust --
    ------------
 
-   procedure Adjust is
-      new Tree_Operations.Generic_Adjust (Copy_Tree);
+   procedure Adjust is new Tree_Operations.Generic_Adjust (Copy_Tree);
 
    procedure Adjust (Container : in out Set) is
    begin

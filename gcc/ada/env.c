@@ -29,6 +29,14 @@
  *                                                                          *
  ****************************************************************************/
 
+/* Tru64 UNIX V4.0F <stdlib.h> declares unsetenv() only if AES_SOURCE (which
+   is plain broken, this should be _AES_SOURCE instead as everywhere else;
+   Tru64 UNIX V5.1B declares it only if _BSD.  */
+#if defined (__alpha__) && defined (__osf__)
+#define AES_SOURCE
+#define _BSD
+#endif
+
 #ifdef IN_RTS
 #include "tconfig.h"
 #include "tsystem.h"
@@ -190,7 +198,7 @@ __gnat_setenv (char *name, char *value)
 char **
 __gnat_environ (void)
 {
-#if defined (VMS)
+#if defined (VMS) || defined (RTX) || defined (VTHREADS)
   /* Not implemented */
   return NULL;
 #elif defined (__APPLE__)

@@ -36,6 +36,8 @@
   (UNSPEC_SET_GOT       101)    ;;
   (UNSPEC_GOTOFF        102)    ;; GOT offset
   (UNSPEC_PLT           103)    ;; jump table
+  (UNSPEC_CMP		104)    ;; signed compare
+  (UNSPEC_CMPU		105)    ;; unsigned compare
 ])
 
 
@@ -89,7 +91,6 @@
 ;; whether or not generating calls to position independent functions
 (define_attr "abicalls" "no,yes"
   (const (symbol_ref "microblaze_abicalls_attr")))
-
 
 ;;----------------------------------------------------------------
 ;; Microblaze DFA Pipeline description
@@ -640,58 +641,16 @@
   ]
   "(!TARGET_SOFT_DIV) || (TARGET_BARREL_SHIFT && TARGET_SMALL_DIVIDES)"
   {
-    if (TARGET_SOFT_DIV && TARGET_BARREL_SHIFT && TARGET_SMALL_DIVIDES) { 
-        
-        /* Table lookup software divides. Works for all (nr/dr) where (0 <= nr,dr <= 15) */
-
-        rtx regt1 = gen_reg_rtx (SImode); 
-        rtx reg18 = gen_rtx_REG (SImode, R_TMP);
-        rtx regqi = gen_reg_rtx (QImode);
-        rtx div_label = gen_label_rtx ();
-        rtx div_label_ref = gen_rtx_LABEL_REF (VOIDmode, div_label);
-        rtx div_end_label = gen_label_rtx ();
-        rtx div_table_rtx = gen_rtx_SYMBOL_REF (QImode,"_divsi3_table");
-        rtx mem_rtx;
-        rtx ret;
-        rtx jump, cjump, insn;
-
-        insn = emit_insn (gen_iorsi3 (regt1, operands[1], operands[2]));
-        cjump = emit_jump_insn_after (gen_branch_compare_imm_uns (
-					gen_rtx_GTU (SImode, regt1, GEN_INT (15)), 
-					regt1, GEN_INT (15), div_label_ref, pc_rtx),
-				      insn);
-        LABEL_NUSES (div_label) = 1; 
-        JUMP_LABEL (cjump) = div_label;
-        emit_insn (gen_rtx_CLOBBER (SImode, reg18));
-
-        emit_insn (gen_ashlsi3_bshift (regt1, operands[1], GEN_INT(4)));
-        emit_insn (gen_addsi3 (regt1, regt1, operands[2]));
-        mem_rtx = gen_rtx_MEM (QImode,
-                            gen_rtx_PLUS (Pmode, regt1, div_table_rtx));
-
-        insn = emit_insn (gen_movqi (regqi, mem_rtx)); 
-        insn = emit_insn (gen_movsi (operands[0], gen_rtx_SUBREG (SImode, regqi, 0)));
-        jump = emit_jump_insn_after (gen_jump (div_end_label), insn); 
-        JUMP_LABEL (jump) = div_end_label;
-        LABEL_NUSES (div_end_label) = 1; 
-        emit_barrier ();
-
-        emit_label (div_label);
-        ret = emit_library_call_value (gen_rtx_SYMBOL_REF (Pmode, "__divsi3"), 
-				       operands[0], LCT_NORMAL, 
-				       GET_MODE (operands[0]), 2, operands[1], 
-				       GET_MODE (operands[1]), operands[2], 
-				       GET_MODE (operands[2]));
-        if (ret != operands[0])
-                emit_move_insn (operands[0], ret);    
-
-        emit_label (div_end_label);
-        emit_insn (gen_blockage ());
+    if (TARGET_SOFT_DIV && TARGET_BARREL_SHIFT && TARGET_SMALL_DIVIDES) 
+      { 
+        microblaze_expand_divide (operands);
         DONE;
-    } else if (!TARGET_SOFT_DIV) {
+      } 
+    else if (!TARGET_SOFT_DIV) 
+      {
         emit_insn (gen_divsi3_internal (operands[0], operands[1], operands[2]));
         DONE;
-    }
+      }
   }     
 )
 
@@ -1074,7 +1033,7 @@
   ""
   {
     /* If operands[1] is a constant address illegal for pic, then we need to
-       handle it just like LEGITIMIZE_ADDRESS does.  */
+       handle it just like microblaze_legitimize_address does.  */
     if (flag_pic && pic_address_needs_scratch (operands[1]))
     {
         rtx temp = force_reg (DImode, XEXP (XEXP (operands[1], 0), 0));
@@ -1800,143 +1759,25 @@
   (set_attr "length"   "28")]
 )
 
-
 ;;----------------------------------------------------------------
-;; Comparisons
+;; Setting a register from an integer comparison. 
 ;;----------------------------------------------------------------
-;; Flow here is rather complex:
-;;
-;;  1)	The cmp{si,di,sf,df} routine is called.  It deposits the
-;;	arguments into the branch_cmp array, and the type into
-;;	branch_type.  No RTL is generated.
-;;
-;;  2)	The appropriate branch define_expand is called, which then
-;;	creates the appropriate RTL for the comparison and branch.
-;;	Different CC modes are used, based on what type of branch is
-;;	done, so that we can constrain things appropriately.  There
-;;	are assumptions in the rest of GCC that break if we fold the
-;;	operands into the branchs for integer operations, and use cc0
-;;	for floating point, so we use the fp status register instead.
-;;	If needed, an appropriate temporary is created to hold the
-;;	of the integer compare.
-
-
-(define_expand "cmpsi"
-  [(set (cc0)
-	(compare:CC (match_operand:SI 0 "register_operand" "")
-		    (match_operand:SI 1 "arith_operand" "")))]
-  ""
-  {
-    if (operands[0])		/* avoid unused code message */
-    {
-        branch_cmp[0] = operands[0];
-        branch_cmp[1] = operands[1];
-        branch_type = CMP_SI;
-        DONE;
-    }
-  }
+(define_expand "cstoresi4"
+   [(set (match_operand:SI 0 "register_operand")
+        (match_operator:SI 1 "ordered_comparison_operator"
+	      [(match_operand:SI 2 "register_operand")
+	       (match_operand:SI 3 "register_operand")]))]
+  "TARGET_PATTERN_COMPARE"
+  "if (GET_CODE (operand1) != EQ && GET_CODE (operand1) != NE) 
+     FAIL;
+  "
 )
 
-
-(define_expand "tstsi"
-  [(set (cc0)
-	(match_operand:SI 0 "register_operand" ""))]
-  ""
-  {
-    if (operands[0])		/* avoid unused code message */
-    {
-        /*	fprintf(stderr,"In tstsi \n");*/
-        branch_cmp[0] = operands[0];
-        branch_cmp[1] = const0_rtx;
-        branch_type = CMP_SI;
-        DONE;
-    }
-  }
-)
-
-
-(define_expand "cmpsf"
-  [(set (cc0)
-        (compare:CC (match_operand:SF 0 "register_operand" "")
-                    (match_operand:SF 1 "register_operand" "")))]
-  "TARGET_HARD_FLOAT"
-  {
-    if (operands[0])              /* avoid unused code message */
-    {
-      branch_cmp[0] = operands[0];
-      branch_cmp[1] = operands[1];
-      branch_type = CMP_SF;
-      DONE;
-    }
-  }
-)
-
-;;----------------------------------------------------------------
-;; Setting a register from an integer point comparison. 
-;;----------------------------------------------------------------
-(define_expand "seq"
+(define_insn "seq_internal_pat" 
   [(set (match_operand:SI 0 "register_operand" "=d")
-	(eq:SI (match_dup 1)
-	       (match_dup 2)))]
-  ""
-  {
-    /* Setup operands */
-    operands[1] = branch_cmp[0];
-    operands[2] = branch_cmp[1];
-
-    /* Find some other way for soft floating point */
-    if ((GET_MODE (operands[1]) == SFmode || GET_MODE (operands[2]) == SFmode)
-        && !TARGET_HARD_FLOAT)
-        FAIL;
-
-    if (!TARGET_PATTERN_COMPARE)
-        FAIL;
-
-    if (GET_CODE (operands[2]) == CONST_INT) {
-        if (INTVAL (operands[2]) == 0)
-            operands[2] = gen_rtx_REG (SImode, 0);
-        else
-            operands[2] = force_reg (SImode, operands[2]);
-    } 
-
-    /* Fall through */
-  }
-)
-
-(define_expand "sne"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-	(ne:SI (match_dup 1)
-	       (match_dup 2)))]
-  ""
-  {
-    /* Setup operands */
-    operands[1] = branch_cmp[0];
-    operands[2] = branch_cmp[1];
-
-    /* Find some other way for soft floating point */
-    if ((GET_MODE (operands[1]) == SFmode || GET_MODE (operands[2]) == SFmode) 
-        && !TARGET_HARD_FLOAT)
-        FAIL;
-
-    if (!TARGET_PATTERN_COMPARE)
-        FAIL;
-
-    if (GET_CODE (operands[2]) == CONST_INT) {
-        if (INTVAL (operands[2]) == 0)
-            operands[2] = gen_rtx_REG (SImode, 0);
-        else
-            operands[2] = force_reg (SImode, operands[2]);
-    }
-
-    /* Fall through */
-  }
-)
-
-(define_insn "seq_internal" 
-  [(set (match_operand:SI 0 "register_operand" "=d")
-        (eq:SI (match_operand:SI 1 "register_operand" "d")
-               (match_operand:SI 2 "register_operand" "d")))
-  ]
+	(eq:SI 
+	       (match_operand:SI 1 "register_operand" "d")
+	       (match_operand:SI 2 "register_operand" "d")))]
   "TARGET_PATTERN_COMPARE"
   "pcmpeq\t%0,%1,%2"
   [(set_attr "type"	"arith")
@@ -1944,11 +1785,11 @@
    (set_attr "length"	"4")]
 )              
 
-(define_insn "sne_internal" 
+(define_insn "sne_internal_pat" 
   [(set (match_operand:SI 0 "register_operand" "=d")
-        (ne:SI (match_operand:SI 1 "register_operand" "d")
-               (match_operand:SI 2 "register_operand" "d")))
-  ]
+	(ne:SI 
+	       (match_operand:SI 1 "register_operand" "d")
+	       (match_operand:SI 2 "register_operand" "d")))]
   "TARGET_PATTERN_COMPARE"
   "pcmpne\t%0,%1,%2"
   [(set_attr "type"	"arith")
@@ -1956,172 +1797,38 @@
   (set_attr "length"	"4")]
 )              
 
-(define_insn ""
-  [(set (match_operand:SI 0 "register_operand" "=d,d")
-        (eq:SI (match_operand:SI 1 "register_operand" "%d,d")
-               (match_operand:SI 2 "arith_operand" "d,i")))
-  (clobber (match_scratch:SI 3 "=d,d"))]
-  "!(TARGET_PATTERN_COMPARE)"
-  "@
-    xor\t%0,%1,%2\;rsubi\t%3,%0,0\;addc\t%0,%3,%0
-    xori\t%0,%1,%2\;rsubi\t%3,%0,0\;addc\t%0,%3,%0"
-  [(set_attr "length"   "12,12")
-   (set_attr "type"     "multi, multi")
-   (set_attr "mode"     "SI,SI")]
-)
+(define_insn "signed_compare"
+  [(set (match_operand:SI 0 "register_operand" "=d")
+	(unspec
+		[(match_operand:SI 1 "register_operand" "d")
+		 (match_operand:SI 2 "register_operand" "d")] UNSPEC_CMP))]
+  ""
+  "cmp\t%0,%1,%2"
+  [(set_attr "type"	"arith")
+  (set_attr "mode"	"SI")
+  (set_attr "length"	"4")])
 
+(define_insn "unsigned_compare"
+  [(set (match_operand:SI 0 "register_operand" "=d")
+	(unspec 
+		[(match_operand:SI 1 "register_operand" "d")
+		 (match_operand:SI 2 "register_operand" "d")] UNSPEC_CMPU))]
+  ""
+  "cmpu\t%0,%1,%2"
+  [(set_attr "type"	"arith")
+  (set_attr "mode"	"SI")
+  (set_attr "length"	"4")])
 
 ;;----------------------------------------------------------------
-;; Setting a register from a floating point comparison. 
-;; These s<cond> patterns are for hardware floating point 
-;; compares only
+;; Setting a register from an floating point comparison. 
 ;;----------------------------------------------------------------
-(define_expand "slt"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-        (lt:SI (match_dup 1)
-               (match_dup 2)))]
+(define_insn "cstoresf4"
+   [(set (match_operand:SI 0 "register_operand")
+        (match_operator:SI 1 "ordered_comparison_operator"
+	      [(match_operand:SF 2 "register_operand")
+	       (match_operand:SF 3 "register_operand")]))]
   "TARGET_HARD_FLOAT"
-  {               
-    /* Setup operands */
-    operands[1] = branch_cmp[0];
-    operands[2] = branch_cmp[1];
-
-    /* Only for floating point compares */
-    if ((GET_MODE (operands[1]) != SFmode) || (GET_MODE (operands[2]) != SFmode))
-        FAIL;
-
-    if (GET_CODE (operands[2]) == CONST_DOUBLE)
-        force_reg (SFmode, operands[2]);
-
-    /* Fall through */
-  }
-)
-
-(define_expand "sle"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-        (le:SI (match_dup 1)
-               (match_dup 2)))]
-  "TARGET_HARD_FLOAT"
-  {               
-    /* Setup operands */
-    operands[1] = branch_cmp[0];
-    operands[2] = branch_cmp[1];
-
-    /* Only for floating point compares */
-    if ((GET_MODE (operands[1]) != SFmode) || (GET_MODE (operands[2]) != SFmode))
-        FAIL;
-
-    if (GET_CODE (operands[2]) == CONST_DOUBLE)
-        force_reg (SFmode, operands[2]);
-
-    /* Fall through */
-  }
-)
-
-(define_expand "sgt"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-        (gt:SI (match_dup 1)
-               (match_dup 2)))]
-  "TARGET_HARD_FLOAT"
-  {               
-    /* Setup operands */
-    operands[1] = branch_cmp[0];
-    operands[2] = branch_cmp[1];
-
-    /* Only for floating point compares */
-    if ((GET_MODE (operands[1]) != SFmode) || (GET_MODE (operands[2]) != SFmode))
-        FAIL;
-
-    if (GET_CODE (operands[2]) == CONST_DOUBLE)
-        force_reg (SFmode, operands[2]);
-
-    /* Fall through */
-  }
-)
-
-(define_expand "sge"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-        (ge:SI (match_dup 1)
-               (match_dup 2)))]
-  "TARGET_HARD_FLOAT"
-  {               
-    /* Setup operands */
-    operands[1] = branch_cmp[0];
-    operands[2] = branch_cmp[1];
-
-    /* Only for floating point compares */
-    if ((GET_MODE (operands[1]) != SFmode) || (GET_MODE (operands[2]) != SFmode))
-        FAIL;
-
-    if (GET_CODE (operands[2]) == CONST_DOUBLE)
-        force_reg (SFmode, operands[2]);
-
-    /* Fall through */
-  }
-)
-
-(define_insn "seq_sf"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-        (eq:SI (match_operand:SF 1 "register_operand" "d")
-               (match_operand:SF 2 "register_operand" "d")))]
-  "TARGET_HARD_FLOAT"
-  {
-        return "fcmp.eq\t%0,%2,%1";
-  }
-  [(set_attr "type"     "fcmp")
-   (set_attr "mode"      "SF")
-   (set_attr "length"    "4")]
-)
-
-(define_insn "sne_sf"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-        (ne:SI (match_operand:SF 1 "register_operand" "d")
-               (match_operand:SF 2 "register_operand" "d")))]
-  "TARGET_HARD_FLOAT"
-  "fcmp.ne\t%0,%2,%1"
-  [(set_attr "type"     "fcmp")
-   (set_attr "mode"      "SF")
-   (set_attr "length"    "4")]
-)
-
-(define_insn "slt_sf"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-        (lt:SI (match_operand:SF 1 "register_operand" "d")
-               (match_operand:SF 2 "register_operand" "d")))]
-  "TARGET_HARD_FLOAT"
-  "fcmp.lt\t%0,%2,%1"
-  [(set_attr "type"     "fcmp")
-   (set_attr "mode"      "SF")
-   (set_attr "length"    "4")]
-)
-
-(define_insn "sle_sf"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-        (le:SI (match_operand:SF 1 "register_operand" "d")
-               (match_operand:SF 2 "register_operand" "d")))]
-  "TARGET_HARD_FLOAT"
-  "fcmp.le\t%0,%2,%1"
-  [(set_attr "type"     "fcmp")
-   (set_attr "mode"      "SF")
-   (set_attr "length"    "4")]
-)
-
-(define_insn "sgt_sf"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-        (gt:SI (match_operand:SF 1 "register_operand" "d")
-               (match_operand:SF 2 "register_operand" "d")))]
-  "TARGET_HARD_FLOAT"
-  "fcmp.gt\t%0,%2,%1"
-  [(set_attr "type"     "fcmp")
-  (set_attr "mode"      "SF")
-  (set_attr "length"    "4")])
-
-(define_insn "sge_sf"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-        (ge:SI (match_operand:SF 1 "register_operand" "d")
-               (match_operand:SF 2 "register_operand" "d")))]
-  "TARGET_HARD_FLOAT"
-  "fcmp.ge\t%0,%2,%1"
+  "fcmp.%C1\t%0,%3,%2"
   [(set_attr "type"     "fcmp")
    (set_attr "mode"      "SF")
    (set_attr "length"    "4")]
@@ -2131,338 +1838,64 @@
 ;; Conditional branches
 ;;----------------------------------------------------------------
 
-(define_expand "beq"
+(define_expand "cbranchsi4"
   [(set (pc)
-	(if_then_else (eq:CC (cc0)
-			     (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
+	(if_then_else (match_operator 0 "ordered_comparison_operator"
+		       [(match_operand:SI 1 "register_operand")
+		        (match_operand:SI 2 "arith_operand")])
+		      (label_ref (match_operand 3 ""))
 		      (pc)))]
   ""
-  {
-    microblaze_gen_conditional_branch (operands, EQ);
-    DONE;
-  }
-)
+{
+  microblaze_expand_conditional_branch (SImode, operands);
+  DONE;
+})
 
-(define_expand "bne"
+(define_expand "cbranchsf4"
   [(set (pc)
-	(if_then_else (ne:CC (cc0)
-			     (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
+	(if_then_else (match_operator:SI 0 "ordered_comparison_operator"
+		       [(match_operand:SF 1 "register_operand")
+		        (match_operand:SF 2 "register_operand")])
+		      (label_ref (match_operand 3 ""))
 		      (pc)))]
-  ""
-  {
-    microblaze_gen_conditional_branch (operands, NE);
-    DONE;
-  }
-)
+  "TARGET_HARD_FLOAT"
+{
+  microblaze_expand_conditional_branch_sf (operands);
+  DONE;
 
-(define_expand "bgt"
+})
+
+;; Used to implement comparison instructions
+(define_expand "condjump"
   [(set (pc)
-	(if_then_else (gt:CC (cc0)
-			     (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  {
-    microblaze_gen_conditional_branch (operands, GT);
-    DONE;
-  }
-)
+	(if_then_else (match_operand 0)
+		      (label_ref (match_operand 1))
+		      (pc)))])
 
-(define_expand "bge"
+(define_expand "condjump_inv"
   [(set (pc)
-	(if_then_else (ge:CC (cc0)
-			     (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  {
-    microblaze_gen_conditional_branch (operands, GE);
-    DONE;
-  }
-)
-
-(define_expand "blt"
-  [(set (pc)
-	(if_then_else (lt:CC (cc0)
-			     (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  {
-    microblaze_gen_conditional_branch (operands, LT);
-    DONE;
-  }
-)
-
-(define_expand "ble"
-  [(set (pc)
-	(if_then_else (le:CC (cc0)
-			     (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  {
-    microblaze_gen_conditional_branch (operands, LE);
-    DONE;
-  }
-)
-
-(define_expand "bgtu"
-  [(set (pc)
-	(if_then_else (gtu:CC (cc0)
-			      (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  {
-    microblaze_gen_conditional_branch (operands, GTU);
-    DONE;
-  }
-)
-
-(define_expand "bgeu"
-  [(set (pc)
-	(if_then_else (geu:CC (cc0)
-			      (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  {
-    microblaze_gen_conditional_branch (operands, GEU);
-    DONE;
-  }
-)
-
-
-(define_expand "bltu"
-  [(set (pc)
-	(if_then_else (ltu:CC (cc0)
-			      (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  {
-    microblaze_gen_conditional_branch (operands, LTU);
-    DONE;
-  }
-)
-
-(define_expand "bleu"
-  [(set (pc)
-	(if_then_else (leu:CC (cc0)
-			      (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  {
-    microblaze_gen_conditional_branch (operands, LEU);
-    DONE;
-  }
-)
+	(if_then_else (match_operand 0)
+		      (pc)
+		      (label_ref (match_operand 1))))])
 
 (define_insn "branch_zero"
   [(set (pc)
-	(if_then_else (match_operator:SI 0 "cmp_op"
-  					 [(match_operand:SI 1 "register_operand" "d")
-                                          (const_int 0)])
+	(if_then_else (match_operator:SI 0 "ordered_comparison_operator"
+  				 [(match_operand:SI 1 "register_operand" "d")
+                                  (const_int 0)])
                       (match_operand:SI 2 "pc_or_label_operand" "")
                       (match_operand:SI 3 "pc_or_label_operand" "")))
   ]
   ""
   {
-    if (operands[2] != pc_rtx)           /* normal jump */
-    {				
-        switch (GET_CODE (operands[0]))
-	{
-            case EQ:  return "beqi%?\t%z1,%2";
-	    case NE:  return "bnei%?\t%z1,%2";
-            case GT:  return "bgti%?\t%z1,%2";
-	    case LE:  return "blei%?\t%z1,%2";
-	    case GE:  return "bgei%?\t%z1,%2";
-	    case LT:  return "blti%?\t%z1,%2";
-	    case GTU: return "bnei%?\t%z1,%2";
-	    case LEU: return "beqi%?\t%z1,%2";
-	    case GEU: return "bri%?\t%2";
-	    case LTU: return "# Always false LTU comparison";
-	    default:
-	       break;
-        }
-        return "b%C0i%?\t%z1,%2";
-    } else {                             /* inverted jump */
-
-        switch (GET_CODE (operands[0]))
-        {
-            case EQ:  return "bnei%?\t%z1,%3";
-	    case NE:  return "beqi%?\t%z1,%3";
-	    case GT:  return "blei%?\t%z1,%3";
-	    case LE:  return "bgti%?\t%z1,%3";
-	    case GE:  return "blti%?\t%z1,%3";
-	    case LT:  return "bgei%?\t%z1,%3";
-	    case GTU: return "beqi%?\t%z1,%3";
-	    case LEU: return "bnei%?\t%z1,%3";
-	    case GEU: return "# Always false GEU comparison";
-	    case LTU: return "bri%?\t%3";
-	    default:
-	       break;
-        }
-
-        return "b%N0i%?\t%z1,%3";
-    }
+    if (operands[3] == pc_rtx) 
+      return "b%C0i%?\t%z1,%2";
+    else 
+      return "b%N0i%?\t%z1,%3";
   }
   [(set_attr "type"	"branch")
    (set_attr "mode"	"none")
    (set_attr "length"	"4")]
-)
-
-
-
-(define_insn "branch_compare_imm_uns"
-  [(set (pc)
-	(if_then_else (match_operator:SI 0 "unsigned_cmp_op"
-					 [(match_operand:SI 1 "register_operand" "d")
-                                          (match_operand:SI 2 "immediate_operand" "i")])
-                      (match_operand:SI 3 "pc_or_label_operand" "")
-                      (match_operand:SI 4 "pc_or_label_operand" "")))
-  (clobber(reg:SI R_TMP))]
-  "(flag_pic != 2 || GET_CODE (operands[2]) == CONST_INT)"
-  {
-    if (operands[3] != pc_rtx)                                  /* normal jump */
-    {                               
-        switch (GET_CODE (operands[0]))
-        {
-            case GTU: return  "addi\tr18,r0,%2\;cmpu\tr18,%z1,r18\;blti%?\tr18,%3";
-            case LEU: return  "addi\tr18,r0,%2\;cmpu\tr18,%z1,r18\;bgei%?\tr18,%3";
-            case GEU: return  "addi\tr18,r0,%2\;cmpu\tr18,r18,%z1\;bgei%?\tr18,%3";
-            case LTU: return  "addi\tr18,r0,%2\;cmpu\tr18,r18,%z1\;blti%?\tr18,%3";
-            default:
-                break;
-        }
-
-        fatal_insn ("branch_compare_imm_uns: ", operands[0]);
-   }
-   else {                                                       /* inverted jump */
-        switch (GET_CODE (operands[0]))
-        {
-            case GTU: return "addi\tr18,r0,%2\;cmpu\tr18,%z1,r18\;bgei%?\tr18,%3";
-            case LEU: return "addi\tr18,r0,%2\;cmpu\tr18,%z1,r18\;blti%?\tr18,%3";
-            case GEU: return "addi\tr18,r0,%2\;cmpu\tr18,r18,%z1\;blti%?\tr18,%3";
-            case LTU: return "addi\tr18,r0,%2\;cmpu\tr18,r18,%z1\;bgei%?\tr18,%3";
-            default:
-                break;
-        }
-
-        fatal_insn ("branch_compare_imm_uns: ", operands[0]);
-    }
-  }
-  ;; Bit of a hack here. It's a multi rather than a branch, yet, we want delay 
-  ;; slot optimization to occur on this.
-  [(set_attr "type"	"branch")
-   (set_attr "mode"	"none")
-   (set_attr "length"	"12")]
-)
-
-
-(define_insn "branch_compare_imm"
-  [(set (pc)
-	(if_then_else (match_operator:SI 0 "signed_cmp_op"
-					 [(match_operand:SI 1 "register_operand" "d")
-                                          (match_operand:SI 2 "immediate_operand" "i")])
-                      (match_operand:SI 3 "pc_or_label_operand" "")
-                      (match_operand:SI 4 "pc_or_label_operand" "")))
-  (clobber(reg:SI R_TMP))]
-  "(flag_pic != 2 || GET_CODE (operands[2]) == CONST_INT)"
-  {
-    if (operands[3] != pc_rtx) {                                /* normal jump */
-        switch (GET_CODE (operands[0]))
-        {
-            case GT: return  "addik\tr18,r0,%2\;cmp\tr18,%z1,r18\;blti%?\tr18,%3" ;
-            case LE: return  "addik\tr18,r0,%2\;cmp\tr18,%z1,r18\;bgei%?\tr18,%3" ;
-            case GE: return  "addik\tr18,r0,%2\;cmp\tr18,r18,%z1\;bgei%?\tr18,%3" ;
-            case LT: return  "addik\tr18,r0,%2\;cmp\tr18,r18,%z1\;blti%?\tr18,%3" ;
-            default:
-                break;
-        }
-        if ((GET_CODE(operands[0]) != NE) && (GET_CODE(operands[0]) != EQ)) 
-             fatal_insn ("branch_compare_imm: ", operands[0]);
-
-        return  "xori\tr18,%z1,%2\;b%C0i%?\tr18,%3";            /* Handle NE, EQ */
-    }
-    else {                                                      /* inverted jump */
-        switch (GET_CODE (operands[0]))
-        {
-            case GT: return  "addik\tr18,r0,%2\;cmp\tr18,%z1,r18\;bgei%?\tr18,%4";
-            case LE: return  "addik\tr18,r0,%2\;cmp\tr18,%z1,r18\;blti%?\tr18,%4";
-            case GE: return  "addik\tr18,r0,%2\;cmp\tr18,r18,%z1\;blti%?\tr18,%4";
-            case LT: return  "addik\tr18,r0,%2\;cmp\tr18,r18,%z1\;bgei%?\tr18,%4";
-            default:
-                break;
-        }
-        if ((GET_CODE(operands[0]) != NE) && (GET_CODE(operands[0]) != EQ))
-             fatal_insn ("branch_compare_imm: ", operands[0]);
-
-        return  "xori\tr18,%z1,%2\;b%N0i%?\tr18,%4";            /* Handle NE, EQ */
-    }
-  }
-  ;; Bit of a hack here. It's a multi rather than a branch, yet, we want delay
-  ;; slot optimization to occur on this.
-  [(set_attr "type"	"branch")
-   (set_attr "mode"	"none")
-   (set_attr "length"	"12")]
-)
-
-
-(define_insn "branch_compare"
-  [(set (pc)
-        (if_then_else (match_operator:SI 0 "cmp_op"
-                                         [(match_operand:SI 1 "register_operand" "d")
-                                          (match_operand:SI 2 "register_operand" "d")
-                                         ])
-                      (match_operand:SI 3 "pc_or_label_operand" "")
-                      (match_operand:SI 4 "pc_or_label_operand" "")))
-  (clobber(reg:SI R_TMP))]
-  ""
-  {
-    if (operands[3] != pc_rtx)
-    {                                                           /* normal jump */
-        switch (GET_CODE (operands[0]))
-        {
-            case GT: return  "cmp\tr18,%z1,%z2\;blti%?\tr18,%3";
-            case LE: return  "cmp\tr18,%z1,%z2\;bgei%?\tr18,%3";
-            case GE: return  "cmp\tr18,%z2,%z1\;bgei%?\tr18,%3";
-            case LT: return  "cmp\tr18,%z2,%z1\;blti%?\tr18,%3";
-            case GTU:return  "cmpu\tr18,%z1,%z2\;blti%?\tr18,%3";
-            case LEU:return  "cmpu\tr18,%z1,%z2\;bgei%?\tr18,%3";
-            case GEU:return  "cmpu\tr18,%z2,%z1\;bgei%?\tr18,%3";
-            case LTU:return  "cmpu\tr18,%z2,%z1\;blti%?\tr18,%3";
-            default:
-                break;
-        }
-        return  "rsubk\tr18,%z2,%z1\;b%C0i%?\tr18,%3";
-    }
-    else
-    {                                                           /* inverted jump */
-        switch (GET_CODE (operands[0]))
-        {
-            case GT: return  "cmp\tr18,%z1,%z2\;bgei%?\tr18,%3" ;
-            case LE: return  "cmp\tr18,%z1,%z2\;blti%?\tr18,%3" ;
-            case GE: return  "cmp\tr18,%z2,%z1\;blti%?\tr18,%3" ;
-            case LT: return  "cmp\tr18,%z2,%z1\;bgei%?\tr18,%3" ;
-            case GTU:return  "cmpu\tr18,%z1,%z2\;bgei%?\tr18,%3";
-            case LEU:return  "cmpu\tr18,%z1,%z2\;blti%?\tr18,%3";
-            case GEU:return  "cmpu\tr18,%z2,%z1\;blti%?\tr18,%3";
-            case LTU:return  "cmpu\tr18,%z2,%z1\;bgei%?\tr18,%3";
-            default:
-                break;
-        }
-
-        return  "cmp\tr18,%z1,%z2\;b%N0i%?\tr18,%4 ";
-    }
-  }
-  [(set_attr "type"	"branch")
-   (set_attr "mode"	"none")
-   (set_attr "length"	"12")]
 )
 
 ;;----------------------------------------------------------------
@@ -2958,7 +2391,7 @@
 
 (define_insn "call_value_intern"
   [(set (match_operand:VOID 0 "register_operand" "=df")
-        (call (mem:VOID (match_operand:VOID 1 "call_insn_operand" "ri"))
+        (call (mem (match_operand:VOID 1 "call_insn_operand" "ri"))
               (match_operand:SI 2 "" "i")))
    (clobber (match_operand:SI 3 "register_operand" "=d"))]
   ""

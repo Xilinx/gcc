@@ -72,9 +72,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *
    *  This function tries to obtain storage for @c len adjacent Tp
    *  objects.  The objects themselves are not constructed, of course.
-   *  A pair<> is returned containing "the buffer s address and
+   *  A pair<> is returned containing 'the buffer s address and
    *  capacity (in the units of sizeof(Tp)), or a pair of 0 values if
-   *  no storage can be obtained."  Note that the capacity obtained
+   *  no storage can be obtained.'  Note that the capacity obtained
    *  may be less than that requested if the memory is unavailable;
    *  you should compare len with the .second return value.
    *
@@ -188,8 +188,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 					    value_type>(_M_original_len));
 	  _M_buffer = __p.first;
 	  _M_len = __p.second;
-	  if (!__is_pod(_Tp) && _M_len > 0)
-	    std::uninitialized_fill_n(_M_buffer, _M_len, *__first);
+	  if(_M_buffer)
+	    std::__uninitialized_construct_range(_M_buffer, _M_buffer + _M_len,
+						 *__first);
 	}
       __catch(...)
 	{

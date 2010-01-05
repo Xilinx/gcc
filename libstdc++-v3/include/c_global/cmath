@@ -25,7 +25,7 @@
 // <http://www.gnu.org/licenses/>.
 
 /** @file include/cmath
- *  This is a Standard C++ Library file.  You should @c #include this file
+ *  This is a Standard C++ Library file.  You should @c \#include this file
  *  in your programs, rather than any of the "*.h" implementation files.
  *
  *  This is the C++ version of the Standard C Library header @c math.h,
@@ -101,6 +101,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   inline long double
   abs(long double __x)
   { return __builtin_fabsl(__x); }
+
+  template<typename _Tp>
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
+    abs(_Tp __x)
+    { return __builtin_fabs(__x); }
 
   using ::acos;
 

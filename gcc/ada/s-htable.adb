@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                    Copyright (C) 1995-2007, AdaCore                      --
+--                    Copyright (C) 1995-2009, AdaCore                      --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,11 +31,10 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-pragma Warnings (Off);
 pragma Compiler_Unit;
-pragma Warnings (On);
 
 with Ada.Unchecked_Deallocation;
+with System.String_Hash;
 
 package body System.HTable is
 
@@ -342,22 +341,14 @@ package body System.HTable is
    ----------
 
    function Hash (Key : String) return Header_Num is
-
       type Uns is mod 2 ** 32;
 
-      function Rotate_Left (Value : Uns; Amount : Natural) return Uns;
-      pragma Import (Intrinsic, Rotate_Left);
-
-      Hash_Value : Uns;
+      function Hash_Fun is
+         new System.String_Hash.Hash (Character, String, Uns);
 
    begin
-      Hash_Value := 0;
-      for J in Key'Range loop
-         Hash_Value := Rotate_Left (Hash_Value, 3) + Character'Pos (Key (J));
-      end loop;
-
       return Header_Num'First +
-               Header_Num'Base (Hash_Value mod Header_Num'Range_Length);
+        Header_Num'Base (Hash_Fun (Key) mod Header_Num'Range_Length);
    end Hash;
 
 end System.HTable;

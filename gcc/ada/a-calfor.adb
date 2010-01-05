@@ -156,21 +156,17 @@ package body Ada.Calendar.Formatting is
       --  Determine the two slice bounds for the result string depending on
       --  whether the input is negative and whether fractions are requested.
 
-      if Elapsed_Time < 0.0 then
-         Low := 1;
-      else
-         Low := 2;
-      end if;
-
-      if Include_Time_Fraction then
-         High := 12;
-      else
-         High := 9;
-      end if;
+      Low  := (if Elapsed_Time < 0.0 then 1 else 2);
+      High := (if Include_Time_Fraction then 12 else 9);
 
       --  Prevent rounding when converting to natural
 
-      Sub_Second := Sub_Second * 100.0 - 0.5;
+      Sub_Second := Sub_Second * 100.0;
+
+      if Sub_Second > 0.0 then
+         Sub_Second := Sub_Second - 0.5;
+      end if;
+
       SS_Nat := Natural (Sub_Second);
 
       declare
@@ -249,7 +245,12 @@ package body Ada.Calendar.Formatting is
 
       --  Prevent rounding when converting to natural
 
-      Sub_Second := Sub_Second * 100.0 - 0.5;
+      Sub_Second := Sub_Second * 100.0;
+
+      if Sub_Second > 0.0 then
+         Sub_Second := Sub_Second - 0.5;
+      end if;
+
       SS_Nat := Natural (Sub_Second);
 
       declare
@@ -447,11 +448,7 @@ package body Ada.Calendar.Formatting is
          raise Constraint_Error;
       end if;
 
-      if Seconds = 0.0 then
-         Secs := 0;
-      else
-         Secs := Natural (Seconds - 0.5);
-      end if;
+      Secs := (if Seconds = 0.0 then 0 else Natural (Seconds - 0.5));
 
       Sub_Second := Second_Duration (Seconds - Day_Duration (Secs));
       Hour       := Hour_Number (Secs / 3_600);

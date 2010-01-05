@@ -312,18 +312,17 @@ package body System.Task_Primitives.Operations is
       Unlock (L, Global_Lock => True);
 
       --  No problem if we are interrupted here: if the condition is signaled,
-      --  WaitForSingleObject will simply not block
+      --  WaitForSingleObject will simply not block.
 
       if Rel_Time <= 0.0 then
          Timed_Out := True;
          Wait_Result := 0;
 
       else
-         if Rel_Time >= Duration (Time_Out_Max) / 1000 then
-            Time_Out := Time_Out_Max;
-         else
-            Time_Out := DWORD (Rel_Time * 1000);
-         end if;
+         Time_Out :=
+           (if Rel_Time >= Duration (Time_Out_Max) / 1000
+            then Time_Out_Max
+            else DWORD (Rel_Time * 1000));
 
          Wait_Result := WaitForSingleObject (HANDLE (Cond.all), Time_Out);
 
@@ -807,18 +806,6 @@ package body System.Task_Primitives.Operations is
       end if;
 
       Self_ID.Common.LL.Thread_Id := GetCurrentThreadId;
-
-      Lock_RTS;
-
-      for J in Known_Tasks'Range loop
-         if Known_Tasks (J) = null then
-            Known_Tasks (J) := Self_ID;
-            Self_ID.Known_Tasks_Index := J;
-            exit;
-         end if;
-      end loop;
-
-      Unlock_RTS;
    end Enter_Task;
 
    --------------
@@ -1081,6 +1068,13 @@ package body System.Task_Primitives.Operations is
       Initialize_Lock (Single_RTS_Lock'Access, RTS_Lock_Level);
 
       Environment_Task.Common.LL.Thread := GetCurrentThread;
+
+      --  Make environment task known here because it doesn't go through
+      --  Activate_Tasks, which does it for all other tasks.
+
+      Known_Tasks (Known_Tasks'First) := Environment_Task;
+      Environment_Task.Known_Tasks_Index := Known_Tasks'First;
+
       Enter_Task (Environment_Task);
    end Initialize;
 

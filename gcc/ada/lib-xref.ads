@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1998-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1998-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -42,7 +42,7 @@ package Lib.Xref is
    --     X  dependency-number  filename
 
    --        This header precedes xref information (entities/references from
-   --        the unit, identified by dependency number and file name. The
+   --        the unit), identified by dependency number and file name. The
    --        dependency number is the index into the generated D lines and
    --        is ones origin (i.e. 2 = reference to second generated D line).
 
@@ -177,6 +177,7 @@ package Lib.Xref is
    --              k = implicit reference to parent unit in child unit
    --              l = label on END line
    --              m = modification
+   --              o = own variable reference (SPARK only)
    --              p = primitive operation
    --              P = overriding primitive operation
    --              r = reference
@@ -270,6 +271,10 @@ package Lib.Xref is
    --           which can be ignored for semantic purposes (such as call
    --           graph construction). Again, in the case of an accept there
    --           can be multiple l lines.
+
+   --           o is used for variables referenced from a SPARK 'own'
+   --           definition. In the SPARK language, it is allowed to use a
+   --           variable before its actual declaration.
 
    --           p is used to mark a primitive operation of the given entity.
    --           For example, if we have a type Tx, and a primitive operation

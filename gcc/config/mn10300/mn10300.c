@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for Matsushita MN10300 series
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
 This file is part of GCC.
@@ -69,6 +69,7 @@ enum processor_type mn10300_processor = PROCESSOR_DEFAULT;
 
 
 static bool mn10300_handle_option (size_t, const char *, int);
+static bool mn10300_legitimate_address_p (enum machine_mode, rtx, bool);
 static int mn10300_address_cost_1 (rtx, int *);
 static int mn10300_address_cost (rtx, bool);
 static bool mn10300_rtx_costs (rtx, int, int, int *, bool);
@@ -76,14 +77,24 @@ static void mn10300_file_start (void);
 static bool mn10300_return_in_memory (const_tree, const_tree);
 static rtx mn10300_builtin_saveregs (void);
 static void mn10300_va_start (tree, rtx);
+static rtx mn10300_legitimize_address (rtx, rtx, enum machine_mode);
 static bool mn10300_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 				       const_tree, bool);
 static int mn10300_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				      tree, bool);
+static unsigned int mn10300_case_values_threshold (void);
+static void mn10300_encode_section_info (tree, rtx, int);
+static void mn10300_asm_trampoline_template (FILE *);
+static void mn10300_trampoline_init (rtx, tree, rtx);
+static rtx mn10300_function_value (const_tree, const_tree, bool);
+static rtx mn10300_libcall_value (enum machine_mode, const_rtx);
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.hword\t"
+
+#undef TARGET_LEGITIMIZE_ADDRESS
+#define TARGET_LEGITIMIZE_ADDRESS mn10300_legitimize_address
 
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS mn10300_rtx_costs
@@ -119,7 +130,22 @@ static int mn10300_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 #undef TARGET_EXPAND_BUILTIN_VA_START
 #define TARGET_EXPAND_BUILTIN_VA_START mn10300_va_start
 
-static void mn10300_encode_section_info (tree, rtx, int);
+#undef TARGET_CASE_VALUES_THRESHOLD
+#define TARGET_CASE_VALUES_THRESHOLD mn10300_case_values_threshold
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P	mn10300_legitimate_address_p
+
+#undef TARGET_ASM_TRAMPOLINE_TEMPLATE
+#define TARGET_ASM_TRAMPOLINE_TEMPLATE mn10300_asm_trampoline_template
+#undef TARGET_TRAMPOLINE_INIT
+#define TARGET_TRAMPOLINE_INIT mn10300_trampoline_init
+
+#undef TARGET_FUNCTION_VALUE
+#define TARGET_FUNCTION_VALUE mn10300_function_value
+#undef TARGET_LIBCALL_VALUE
+#define TARGET_LIBCALL_VALUE mn10300_libcall_value
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 /* Implement TARGET_HANDLE_OPTION.  */
@@ -1605,8 +1631,10 @@ mn10300_arg_partial_bytes (CUMULATIVE_ARGS *cum, enum machine_mode mode,
    we only return the PARALLEL for outgoing values; we do not want
    callers relying on this extra copy.  */
 
-rtx
-mn10300_function_value (const_tree valtype, const_tree func, int outgoing)
+static rtx
+mn10300_function_value (const_tree valtype,
+			const_tree fn_decl_or_type ATTRIBUTE_UNUSED,
+			bool outgoing)
 {
   rtx rv;
   enum machine_mode mode = TYPE_MODE (valtype);
@@ -1628,6 +1656,23 @@ mn10300_function_value (const_tree valtype, const_tree func, int outgoing)
 			 gen_rtx_REG (mode, FIRST_DATA_REGNUM),
 			 GEN_INT (0));
   return rv;
+}
+
+/* Implements TARGET_LIBCALL_VALUE.  */
+
+static rtx
+mn10300_libcall_value (enum machine_mode mode,
+		       const_rtx fun ATTRIBUTE_UNUSED)
+{
+  return gen_rtx_REG (mode, FIRST_DATA_REGNUM);
+}
+
+/* Implements FUNCTION_VALUE_REGNO_P.  */
+
+bool
+mn10300_function_value_regno_p (const unsigned int regno)
+{
+ return (regno == FIRST_DATA_REGNUM || regno == FIRST_ADDRESS_REGNUM);
 }
 
 /* Output a tst insn.  */
@@ -1782,17 +1827,14 @@ symbolic_operand (register rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
    OLDX is the address as it was before break_out_memory_refs was called.
    In some cases it is useful to look at this to decide what needs to be done.
 
-   MODE and WIN are passed so that this macro can use
-   GO_IF_LEGITIMATE_ADDRESS.
-
    Normally it is always safe for this macro to do nothing.  It exists to
    recognize opportunities to optimize the output.
 
    But on a few ports with segmented architectures and indexed addressing
    (mn10300, hppa) it is used to rewrite certain problematical addresses.  */
 rtx
-legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
-		    enum machine_mode mode ATTRIBUTE_UNUSED)
+mn10300_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
+			    enum machine_mode mode ATTRIBUTE_UNUSED)
 {
   if (flag_pic && ! legitimate_pic_operand_p (x))
     x = legitimize_pic_address (oldx, NULL_RTX);
@@ -1892,9 +1934,21 @@ legitimate_pic_operand_p (rtx x)
 }
 
 /* Return TRUE if the address X, taken from a (MEM:MODE X) rtx, is
-   legitimate, and FALSE otherwise.  */
+   legitimate, and FALSE otherwise.
+
+   On the mn10300, the value in the address register must be
+   in the same memory space/segment as the effective address.
+
+   This is problematical for reload since it does not understand
+   that base+index != index+base in a memory reference.
+
+   Note it is still possible to use reg+reg addressing modes,
+   it's just much more difficult.  For a discussion of a possible
+   workaround and solution, see the comments in pa.c before the
+   function record_unscaled_index_insn_codes.  */
+
 bool
-legitimate_address_p (enum machine_mode mode, rtx x, int strict)
+mn10300_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   if (CONSTANT_ADDRESS_P (x)
       && (! flag_pic || legitimate_pic_operand_p (x)))
@@ -2022,7 +2076,7 @@ mn10300_rtx_costs (rtx x, int code, int outer_code, int *total, bool speed ATTRI
     {
     case CONST_INT:
       /* Zeros are extremely cheap.  */
-      if (INTVAL (x) == 0 && outer_code == SET)
+      if (INTVAL (x) == 0 && (outer_code == SET || outer_code == COMPARE))
 	*total = 0;
       /* If it fits in 8 bits, then it's still relatively cheap.  */
       else if (INT_8_BITS (INTVAL (x)))
@@ -2050,6 +2104,12 @@ mn10300_rtx_costs (rtx x, int code, int outer_code, int *total, bool speed ATTRI
 	 so their cost is very high.  */
       *total = 8;
       return true;
+
+    case ZERO_EXTRACT:
+      /* This is cheap, we can use btst.  */
+      if (outer_code == COMPARE)
+	*total = 0;
+      return false;
 
    /* ??? This probably needs more work.  */
     case MOD:
@@ -2125,4 +2185,49 @@ mn10300_encode_section_info (tree decl, rtx rtl, int first ATTRIBUTE_UNUSED)
 
   if (flag_pic)
     SYMBOL_REF_FLAG (symbol) = (*targetm.binds_local_p) (decl);
+}
+
+/* Dispatch tables on the mn10300 are extremely expensive in terms of code
+   and readonly data size.  So we crank up the case threshold value to
+   encourage a series of if/else comparisons to implement many small switch
+   statements.  In theory, this value could be increased much more if we
+   were solely optimizing for space, but we keep it "reasonable" to avoid
+   serious code efficiency lossage.  */
+
+unsigned int mn10300_case_values_threshold (void)
+{
+  return 6;
+}
+
+/* Worker function for TARGET_ASM_TRAMPOLINE_TEMPLATE.  */
+
+static void
+mn10300_asm_trampoline_template (FILE *f)
+{
+  fprintf (f, "\tadd -4,sp\n");
+  fprintf (f, "\t.long 0x0004fffa\n");
+  fprintf (f, "\tmov (0,sp),a0\n");
+  fprintf (f, "\tadd 4,sp\n");
+  fprintf (f, "\tmov (13,a0),a1\n");	
+  fprintf (f, "\tmov (17,a0),a0\n");
+  fprintf (f, "\tjmp (a0)\n");
+  fprintf (f, "\t.long 0\n");
+  fprintf (f, "\t.long 0\n");
+}
+
+/* Worker function for TARGET_TRAMPOLINE_INIT.  */
+
+static void
+mn10300_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
+{
+  rtx fnaddr = XEXP (DECL_RTL (fndecl), 0);
+  rtx mem;
+
+  emit_block_move (m_tramp, assemble_trampoline_template (),
+		   GEN_INT (TRAMPOLINE_SIZE), BLOCK_OP_NORMAL);
+
+  mem = adjust_address (m_tramp, SImode, 0x14);
+  emit_move_insn (mem, chain_value);
+  mem = adjust_address (m_tramp, SImode, 0x18);
+  emit_move_insn (mem, fnaddr);
 }

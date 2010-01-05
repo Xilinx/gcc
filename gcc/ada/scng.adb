@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -377,19 +377,19 @@ package body Scng is
 
          if Source (Scan_Ptr) = '_' then
             if Source (Scan_Ptr - 1) = '_' then
-               Error_Msg_S
+               Error_Msg_S -- CODEFIX
                  ("two consecutive underlines not permitted");
             else
-               Error_Msg_S
+               Error_Msg_S -- CODEFIX???
                  ("underline cannot follow punctuation character");
             end if;
 
          else
             if Source (Scan_Ptr - 1) = '_' then
-               Error_Msg_S
+               Error_Msg_S -- CODEFIX???
                  ("punctuation character cannot follow underline");
             else
-               Error_Msg_S
+               Error_Msg_S -- CODEFIX???
                  ("two consecutive punctuation characters not permitted");
             end if;
          end if;
@@ -785,12 +785,12 @@ package body Scng is
 
          procedure Set_String;
          --  Procedure used to distinguish between string and operator symbol.
-         --  On entry the string has been scanned out, and its characters
-         --  start at Token_Ptr and end one character before Scan_Ptr. On exit
-         --  Token is set to Tok_String_Literal or Tok_Operator_Symbol as
-         --  appropriate, and Token_Node is appropriately initialized. In
-         --  addition, in the operator symbol case, Token_Name is
-         --  appropriately set.
+         --  On entry the string has been scanned out, and its characters start
+         --  at Token_Ptr and end one character before Scan_Ptr. On exit Token
+         --  is set to Tok_String_Literal/Tok_Operator_Symbol as appropriate,
+         --  and Token_Node is appropriately initialized. In addition, in the
+         --  operator symbol case, Token_Name is appropriately set, and the
+         --  flags [Wide_]Wide_Character_Found are set appropriately.
 
          ---------------------------
          -- Error_Bad_String_Char --
@@ -875,7 +875,8 @@ package body Scng is
                end if;
             end if;
 
-            Error_Msg_S ("missing string quote");
+            Error_Msg_S --  CODEFIX
+              ("missing string quote");
          end Error_Unterminated_String;
 
          ----------------
@@ -1015,7 +1016,10 @@ package body Scng is
 
          Delimiter := Source (Scan_Ptr);
          Accumulate_Checksum (Delimiter);
+
          Start_String;
+         Wide_Character_Found      := False;
+         Wide_Wide_Character_Found := False;
          Scan_Ptr := Scan_Ptr + 1;
 
          --  Loop to scan out characters of string literal
@@ -1095,7 +1099,11 @@ package body Scng is
             Store_String_Char (Code);
 
             if not In_Character_Range (Code) then
-               Wide_Character_Found := True;
+               if In_Wide_Character_Range (Code) then
+                  Wide_Character_Found := True;
+               else
+                  Wide_Wide_Character_Found := True;
+               end if;
             end if;
          end loop;
 
@@ -2411,11 +2419,16 @@ package body Scng is
                   Style.Non_Lower_Case_Keyword;
                end if;
 
+               --  Check THEN/ELSE style rules. These do not apply to AND THEN
+               --  or OR ELSE, and do not apply in conditional expressions.
+
                if (Token = Tok_Then and then Prev_Token /= Tok_And)
                     or else
                   (Token = Tok_Else and then Prev_Token /= Tok_Or)
                then
-                  Style.Check_Separate_Stmt_Lines;
+                  if Inside_Conditional_Expression = 0 then
+                     Style.Check_Separate_Stmt_Lines;
+                  end if;
                end if;
             end if;
 
@@ -2549,7 +2562,6 @@ package body Scng is
          else
             exit Tabs_Loop;
          end if;
-
       end loop Tabs_Loop;
 
       return Start_Column;

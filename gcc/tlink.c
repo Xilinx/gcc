@@ -283,7 +283,7 @@ tlink_execute (const char *prog, char **argv, const char *outname,
 {
   struct pex_obj *pex;
 
-  pex = collect_execute (prog, argv, outname, errname);
+  pex = collect_execute (prog, argv, outname, errname, PEX_LAST | PEX_SEARCH);
   return collect_wait (prog, pex);
 }
 
@@ -729,7 +729,7 @@ scan_linker_output (const char *fname)
       if (sym && sym->tweaked)
 	{
 	  error ("'%s' was assigned to '%s', but was not defined "
-		 "during recompilation, or vice versa", 
+		 "during recompilation, or vice versa",
 		 sym->key, sym->file->key);
 	  fclose (stream);
 	  return 0;

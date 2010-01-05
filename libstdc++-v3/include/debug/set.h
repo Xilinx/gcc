@@ -38,6 +38,7 @@ namespace std
 {
 namespace __debug
 {
+  /// Class std::set with safety/checking/debug instrumentation.
   template<typename _Key, typename _Compare = std::less<_Key>,
 	   typename _Allocator = std::allocator<_Key> >
     class set
@@ -250,11 +251,7 @@ namespace __debug
       }
 
       void
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-      swap(set&& __x)
-#else
       swap(set& __x)
-#endif
       {
 	_Base::swap(__x);
 	this->_M_swap(__x);
@@ -380,20 +377,6 @@ namespace __debug
     swap(set<_Key, _Compare, _Allocator>& __x,
 	 set<_Key, _Compare, _Allocator>& __y)
     { return __x.swap(__y); }
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-  template<typename _Key, typename _Compare, typename _Allocator>
-    void
-    swap(set<_Key, _Compare, _Allocator>&& __x,
-	 set<_Key, _Compare, _Allocator>& __y)
-    { return __x.swap(__y); }
-
-  template<typename _Key, typename _Compare, typename _Allocator>
-    void
-    swap(set<_Key, _Compare, _Allocator>& __x,
-	 set<_Key, _Compare, _Allocator>&& __y)
-    { return __x.swap(__y); }
-#endif
 
 } // namespace __debug
 } // namespace std

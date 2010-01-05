@@ -32,11 +32,14 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 static int
 compare0 (const char *s1, gfc_charlen_type s1_len, const char *s2)
 {
-  size_t len;
+  gfc_charlen_type len;
 
   /* Strip trailing blanks from the Fortran string.  */
   len = fstrlen (s1, s1_len);
-  if (len != strlen(s2)) return 0; /* don't match */
+
+  if ((size_t) len != strlen(s2))
+    return 0; /* don't match */
+
   return strncasecmp (s1, s2, len) == 0;
 }
 

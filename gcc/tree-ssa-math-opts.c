@@ -1,18 +1,18 @@
 /* Global, SSA-based optimizations using mathematical identities.
-   Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
-   
+   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+
 This file is part of GCC.
-   
+
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
 Free Software Foundation; either version 3, or (at your option) any
 later version.
-   
+
 GCC is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
-   
+
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
@@ -97,7 +97,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 #include "basic-block.h"
 #include "target.h"
-
+#include "diagnostic.h"
+#include "rtl.h"
+#include "expr.h"
+#include "optabs.h"
 
 /* This structure represents one basic block that either computes a
    division, or is a common dominator for basic block that compute a
@@ -309,7 +312,7 @@ insert_reciprocals (gimple_stmt_iterator *def_gsi, struct occurrence *occ,
       recip_def = make_rename_temp (type, "reciptmp");
       new_stmt = gimple_build_assign_with_ops (RDIV_EXPR, recip_def,
 					       build_one_cst (type), def);
-  
+
       if (occ->bb_has_division)
         {
           /* Case 1: insert before an existing division.  */
@@ -415,7 +418,7 @@ execute_cse_reciprocals_1 (gimple_stmt_iterator *def_gsi, tree def)
 	  count++;
 	}
     }
-  
+
   /* Do the expensive part only if we can hope to optimize something.  */
   threshold = targetm.min_divisions_for_recip_mul (TYPE_MODE (TREE_TYPE (def)));
   if (count >= threshold)
@@ -528,7 +531,9 @@ execute_cse_reciprocals (void)
 		      || DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD))
 		{
 		  enum built_in_function code;
-		  bool md_code;
+		  bool md_code, fail;
+		  imm_use_iterator ui;
+		  use_operand_p use_p;
 
 		  code = DECL_FUNCTION_CODE (fndecl);
 		  md_code = DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD;
@@ -537,12 +542,37 @@ execute_cse_reciprocals (void)
 		  if (!fndecl)
 		    continue;
 
+		  /* Check that all uses of the SSA name are divisions,
+		     otherwise replacing the defining statement will do
+		     the wrong thing.  */
+		  fail = false;
+		  FOR_EACH_IMM_USE_FAST (use_p, ui, arg1)
+		    {
+		      gimple stmt2 = USE_STMT (use_p);
+		      if (is_gimple_debug (stmt2))
+			continue;
+		      if (!is_gimple_assign (stmt2)
+			  || gimple_assign_rhs_code (stmt2) != RDIV_EXPR
+			  || gimple_assign_rhs1 (stmt2) == arg1
+			  || gimple_assign_rhs2 (stmt2) != arg1)
+			{
+			  fail = true;
+			  break;
+			}
+		    }
+		  if (fail)
+		    continue;
+
+		  gimple_replace_lhs (stmt1, arg1);
 		  gimple_call_set_fndecl (stmt1, fndecl);
 		  update_stmt (stmt1);
 
-		  gimple_assign_set_rhs_code (stmt, MULT_EXPR);
-		  fold_stmt_inplace (stmt);
-		  update_stmt (stmt);
+		  FOR_EACH_IMM_USE_STMT (stmt, ui, arg1)
+		    {
+		      gimple_assign_set_rhs_code (stmt, MULT_EXPR);
+		      fold_stmt_inplace (stmt);
+		      update_stmt (stmt);
+		    }
 		}
 	    }
 	}
@@ -564,7 +594,7 @@ struct gimple_opt_pass pass_cse_reciprocals =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_ssa,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -707,7 +737,7 @@ execute_cse_sincos_1 (tree name)
 
 	gsi = gsi_for_stmt (use_stmt);
 	gsi_insert_after (&gsi, stmt, GSI_SAME_STMT);
-	gsi_remove (&gsi, true); 
+	gsi_remove (&gsi, true);
     }
 
   VEC_free(gimple, heap, stmts);
@@ -778,7 +808,7 @@ struct gimple_opt_pass pass_cse_sincos =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_ssa,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -788,13 +818,318 @@ struct gimple_opt_pass pass_cse_sincos =
  }
 };
 
-/* Find all expressions in the form of sqrt(a/b) and
-   convert them to rsqrt(b/a).  */
+/* A symbolic number is used to detect byte permutation and selection
+   patterns.  Therefore the field N contains an artificial number
+   consisting of byte size markers:
+
+   0    - byte has the value 0
+   1..size - byte contains the content of the byte
+   number indexed with that value minus one  */
+
+struct symbolic_number {
+  unsigned HOST_WIDEST_INT n;
+  int size;
+};
+
+/* Perform a SHIFT or ROTATE operation by COUNT bits on symbolic
+   number N.  Return false if the requested operation is not permitted
+   on a symbolic number.  */
+
+static inline bool
+do_shift_rotate (enum tree_code code,
+		 struct symbolic_number *n,
+		 int count)
+{
+  if (count % 8 != 0)
+    return false;
+
+  /* Zero out the extra bits of N in order to avoid them being shifted
+     into the significant bits.  */
+  if (n->size < (int)sizeof (HOST_WIDEST_INT))
+    n->n &= ((unsigned HOST_WIDEST_INT)1 << (n->size * BITS_PER_UNIT)) - 1;
+
+  switch (code)
+    {
+    case LSHIFT_EXPR:
+      n->n <<= count;
+      break;
+    case RSHIFT_EXPR:
+      n->n >>= count;
+      break;
+    case LROTATE_EXPR:
+      n->n = (n->n << count) | (n->n >> ((n->size * BITS_PER_UNIT) - count));
+      break;
+    case RROTATE_EXPR:
+      n->n = (n->n >> count) | (n->n << ((n->size * BITS_PER_UNIT) - count));
+      break;
+    default:
+      return false;
+    }
+  return true;
+}
+
+/* Perform sanity checking for the symbolic number N and the gimple
+   statement STMT.  */
+
+static inline bool
+verify_symbolic_number_p (struct symbolic_number *n, gimple stmt)
+{
+  tree lhs_type;
+
+  lhs_type = gimple_expr_type (stmt);
+
+  if (TREE_CODE (lhs_type) != INTEGER_TYPE)
+    return false;
+
+  if (TYPE_PRECISION (lhs_type) != n->size * BITS_PER_UNIT)
+    return false;
+
+  return true;
+}
+
+/* find_bswap_1 invokes itself recursively with N and tries to perform
+   the operation given by the rhs of STMT on the result.  If the
+   operation could successfully be executed the function returns the
+   tree expression of the source operand and NULL otherwise.  */
+
+static tree
+find_bswap_1 (gimple stmt, struct symbolic_number *n, int limit)
+{
+  enum tree_code code;
+  tree rhs1, rhs2 = NULL;
+  gimple rhs1_stmt, rhs2_stmt;
+  tree source_expr1;
+  enum gimple_rhs_class rhs_class;
+
+  if (!limit || !is_gimple_assign (stmt))
+    return NULL_TREE;
+
+  rhs1 = gimple_assign_rhs1 (stmt);
+
+  if (TREE_CODE (rhs1) != SSA_NAME)
+    return NULL_TREE;
+
+  code = gimple_assign_rhs_code (stmt);
+  rhs_class = gimple_assign_rhs_class (stmt);
+  rhs1_stmt = SSA_NAME_DEF_STMT (rhs1);
+
+  if (rhs_class == GIMPLE_BINARY_RHS)
+    rhs2 = gimple_assign_rhs2 (stmt);
+
+  /* Handle unary rhs and binary rhs with integer constants as second
+     operand.  */
+
+  if (rhs_class == GIMPLE_UNARY_RHS
+      || (rhs_class == GIMPLE_BINARY_RHS
+	  && TREE_CODE (rhs2) == INTEGER_CST))
+    {
+      if (code != BIT_AND_EXPR
+	  && code != LSHIFT_EXPR
+	  && code != RSHIFT_EXPR
+	  && code != LROTATE_EXPR
+	  && code != RROTATE_EXPR
+	  && code != NOP_EXPR
+	  && code != CONVERT_EXPR)
+	return NULL_TREE;
+
+      source_expr1 = find_bswap_1 (rhs1_stmt, n, limit - 1);
+
+      /* If find_bswap_1 returned NULL STMT is a leaf node and we have
+	 to initialize the symbolic number.  */
+      if (!source_expr1)
+	{
+	  /* Set up the symbolic number N by setting each byte to a
+	     value between 1 and the byte size of rhs1.  The highest
+	     order byte is set to 1 and the lowest order byte to
+	     n.size.  */
+	  n->size = TYPE_PRECISION (TREE_TYPE (rhs1));
+	  if (n->size % BITS_PER_UNIT != 0)
+	    return NULL_TREE;
+	  n->size /= BITS_PER_UNIT;
+	  n->n = (sizeof (HOST_WIDEST_INT) < 8 ? 0 :
+		  (unsigned HOST_WIDEST_INT)0x01020304 << 32 | 0x05060708);
+	  n->n >>= (sizeof (HOST_WIDEST_INT) - n->size) * BITS_PER_UNIT;
+
+	  source_expr1 = rhs1;
+	}
+
+      switch (code)
+	{
+	case BIT_AND_EXPR:
+	  {
+	    int i;
+	    unsigned HOST_WIDEST_INT val = widest_int_cst_value (rhs2);
+	    unsigned HOST_WIDEST_INT tmp = val;
+
+	    /* Only constants masking full bytes are allowed.  */
+	    for (i = 0; i < n->size; i++, tmp >>= BITS_PER_UNIT)
+	      if ((tmp & 0xff) != 0 && (tmp & 0xff) != 0xff)
+		return NULL_TREE;
+
+	    n->n &= val;
+	  }
+	  break;
+	case LSHIFT_EXPR:
+	case RSHIFT_EXPR:
+	case LROTATE_EXPR:
+	case RROTATE_EXPR:
+	  if (!do_shift_rotate (code, n, (int)TREE_INT_CST_LOW (rhs2)))
+	    return NULL_TREE;
+	  break;
+	CASE_CONVERT:
+	  {
+	    int type_size;
+
+	    type_size = TYPE_PRECISION (gimple_expr_type (stmt));
+	    if (type_size % BITS_PER_UNIT != 0)
+	      return NULL_TREE;
+
+	    if (type_size / BITS_PER_UNIT < (int)(sizeof (HOST_WIDEST_INT)))
+	      {
+		/* If STMT casts to a smaller type mask out the bits not
+		   belonging to the target type.  */
+		n->size = type_size / BITS_PER_UNIT;
+		n->n &= ((unsigned HOST_WIDEST_INT)1 << type_size) - 1;
+	      }
+	  }
+	  break;
+	default:
+	  return NULL_TREE;
+	};
+      return verify_symbolic_number_p (n, stmt) ? source_expr1 : NULL;
+    }
+
+  /* Handle binary rhs.  */
+
+  if (rhs_class == GIMPLE_BINARY_RHS)
+    {
+      struct symbolic_number n1, n2;
+      tree source_expr2;
+
+      if (code != BIT_IOR_EXPR)
+	return NULL_TREE;
+
+      if (TREE_CODE (rhs2) != SSA_NAME)
+	return NULL_TREE;
+
+      rhs2_stmt = SSA_NAME_DEF_STMT (rhs2);
+
+      switch (code)
+	{
+	case BIT_IOR_EXPR:
+	  source_expr1 = find_bswap_1 (rhs1_stmt, &n1, limit - 1);
+
+	  if (!source_expr1)
+	    return NULL_TREE;
+
+	  source_expr2 = find_bswap_1 (rhs2_stmt, &n2, limit - 1);
+
+	  if (source_expr1 != source_expr2
+	      || n1.size != n2.size)
+	    return NULL_TREE;
+
+	  n->size = n1.size;
+	  n->n = n1.n | n2.n;
+
+	  if (!verify_symbolic_number_p (n, stmt))
+	    return NULL_TREE;
+
+	  break;
+	default:
+	  return NULL_TREE;
+	}
+      return source_expr1;
+    }
+  return NULL_TREE;
+}
+
+/* Check if STMT completes a bswap implementation consisting of ORs,
+   SHIFTs and ANDs.  Return the source tree expression on which the
+   byte swap is performed and NULL if no bswap was found.  */
+
+static tree
+find_bswap (gimple stmt)
+{
+/* The number which the find_bswap result should match in order to
+   have a full byte swap.  The insignificant bytes are masked out
+   before using it.  */
+  unsigned HOST_WIDEST_INT cmp =
+    sizeof (HOST_WIDEST_INT) < 8 ? 0 :
+    (unsigned HOST_WIDEST_INT)0x08070605 << 32 | 0x04030201;
+
+  struct symbolic_number n;
+  tree source_expr;
+
+  /* The last parameter determines the depth search limit.  It usually
+     correlates directly to the number of bytes to be touched.  We
+     increase that number by one here in order to also cover signed ->
+     unsigned conversions of the src operand as can be seen in
+     libgcc.  */
+  source_expr =  find_bswap_1 (stmt, &n,
+			       TREE_INT_CST_LOW (
+				 TYPE_SIZE_UNIT (gimple_expr_type (stmt))) + 1);
+
+  if (!source_expr)
+    return NULL_TREE;
+
+  /* Zero out the extra bits of N and CMP.  */
+  if (n.size < (int)sizeof (HOST_WIDEST_INT))
+    {
+      unsigned HOST_WIDEST_INT mask =
+	((unsigned HOST_WIDEST_INT)1 << (n.size * BITS_PER_UNIT)) - 1;
+
+      n.n &= mask;
+      cmp &= mask;
+    }
+
+  /* A complete byte swap should make the symbolic number to start
+     with the largest digit in the highest order byte.  */
+  if (cmp != n.n)
+    return NULL_TREE;
+
+  return source_expr;
+}
+
+/* Find manual byte swap implementations and turn them into a bswap
+   builtin invokation.  */
 
 static unsigned int
-execute_convert_to_rsqrt (void)
+execute_optimize_bswap (void)
 {
   basic_block bb;
+  bool bswap32_p, bswap64_p;
+  bool changed = false;
+  tree bswap32_type = NULL_TREE, bswap64_type = NULL_TREE;
+
+  if (BITS_PER_UNIT != 8)
+    return 0;
+
+  if (sizeof (HOST_WIDEST_INT) < 8)
+    return 0;
+
+  bswap32_p = (built_in_decls[BUILT_IN_BSWAP32]
+	       && optab_handler (bswap_optab, SImode)->insn_code !=
+	       CODE_FOR_nothing);
+  bswap64_p = (built_in_decls[BUILT_IN_BSWAP64]
+	       && optab_handler (bswap_optab, DImode)->insn_code !=
+	       CODE_FOR_nothing);
+
+  if (!bswap32_p && !bswap64_p)
+    return 0;
+
+  /* Determine the argument type of the builtins.  The code later on
+     assumes that the return and argument type are the same.  */
+  if (bswap32_p)
+    {
+      tree fndecl = built_in_decls[BUILT_IN_BSWAP32];
+      bswap32_type = TREE_VALUE (TYPE_ARG_TYPES (TREE_TYPE (fndecl)));
+    }
+
+  if (bswap64_p)
+    {
+      tree fndecl = built_in_decls[BUILT_IN_BSWAP64];
+      bswap64_type = TREE_VALUE (TYPE_ARG_TYPES (TREE_TYPE (fndecl)));
+    }
 
   FOR_EACH_BB (bb)
     {
@@ -803,79 +1138,120 @@ execute_convert_to_rsqrt (void)
       for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi); gsi_next (&gsi))
         {
 	  gimple stmt = gsi_stmt (gsi);
-	  tree fndecl;
+	  tree bswap_src, bswap_type;
+	  tree bswap_tmp;
+	  tree fndecl = NULL_TREE;
+	  int type_size;
+	  gimple call;
 
-	  if (is_gimple_call (stmt)
-	      && gimple_call_lhs (stmt)
-	      && (fndecl = gimple_call_fndecl (stmt))
-	      && (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
-		  || DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD))
+	  if (!is_gimple_assign (stmt)
+	      || gimple_assign_rhs_code (stmt) != BIT_IOR_EXPR)
+	    continue;
+
+	  type_size = TYPE_PRECISION (gimple_expr_type (stmt));
+
+	  switch (type_size)
 	    {
-	      enum built_in_function code;
-	      bool md_code;
-	      tree arg1;
-	      gimple stmt1;
-
-	      code = DECL_FUNCTION_CODE (fndecl);
-	      md_code = DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD;
-
-	      fndecl = targetm.builtin_reciprocal (code, md_code, true);
-	      if (!fndecl)
-		continue;
-
-	      arg1 = gimple_call_arg (stmt, 0);
-
-	      if (TREE_CODE (arg1) != SSA_NAME)
-		continue;
-
-	      stmt1 = SSA_NAME_DEF_STMT (arg1);
-
-	      if (is_gimple_assign (stmt1)
-		  && gimple_assign_rhs_code (stmt1) == RDIV_EXPR)
+	    case 32:
+	      if (bswap32_p)
 		{
-		  tree arg10, arg11;
-
-		  arg10 = gimple_assign_rhs1 (stmt1);
-		  arg11 = gimple_assign_rhs2 (stmt1);
-
-		  /* Swap operands of RDIV_EXPR.  */
-		  gimple_assign_set_rhs1 (stmt1, arg11);
-		  gimple_assign_set_rhs2 (stmt1, arg10);
-		  fold_stmt_inplace (stmt1);
-		  update_stmt (stmt1);
-
-		  gimple_call_set_fndecl (stmt, fndecl);
-		  update_stmt (stmt);
+		  fndecl = built_in_decls[BUILT_IN_BSWAP32];
+		  bswap_type = bswap32_type;
 		}
+	      break;
+	    case 64:
+	      if (bswap64_p)
+		{
+		  fndecl = built_in_decls[BUILT_IN_BSWAP64];
+		  bswap_type = bswap64_type;
+		}
+	      break;
+	    default:
+	      continue;
 	    }
+
+	  if (!fndecl)
+	    continue;
+
+	  bswap_src = find_bswap (stmt);
+
+	  if (!bswap_src)
+	    continue;
+
+	  changed = true;
+
+	  bswap_tmp = bswap_src;
+
+	  /* Convert the src expression if necessary.  */
+	  if (!useless_type_conversion_p (TREE_TYPE (bswap_tmp), bswap_type))
+	    {
+	      gimple convert_stmt;
+
+	      bswap_tmp = create_tmp_var (bswap_type, "bswapsrc");
+	      add_referenced_var (bswap_tmp);
+	      bswap_tmp = make_ssa_name (bswap_tmp, NULL);
+
+	      convert_stmt = gimple_build_assign_with_ops (
+			       CONVERT_EXPR, bswap_tmp, bswap_src, NULL);
+	      gsi_insert_before (&gsi, convert_stmt, GSI_SAME_STMT);
+	    }
+
+	  call = gimple_build_call (fndecl, 1, bswap_tmp);
+
+	  bswap_tmp = gimple_assign_lhs (stmt);
+
+	  /* Convert the result if necessary.  */
+	  if (!useless_type_conversion_p (TREE_TYPE (bswap_tmp), bswap_type))
+	    {
+	      gimple convert_stmt;
+
+	      bswap_tmp = create_tmp_var (bswap_type, "bswapdst");
+	      add_referenced_var (bswap_tmp);
+	      bswap_tmp = make_ssa_name (bswap_tmp, NULL);
+	      convert_stmt = gimple_build_assign_with_ops (
+		               CONVERT_EXPR, gimple_assign_lhs (stmt), bswap_tmp, NULL);
+	      gsi_insert_after (&gsi, convert_stmt, GSI_SAME_STMT);
+	    }
+
+	  gimple_call_set_lhs (call, bswap_tmp);
+
+	  if (dump_file)
+	    {
+	      fprintf (dump_file, "%d bit bswap implementation found at: ",
+		       (int)type_size);
+	      print_gimple_stmt (dump_file, stmt, 0, 0);
+	    }
+
+	  gsi_insert_after (&gsi, call, GSI_SAME_STMT);
+	  gsi_remove (&gsi, true);
 	}
     }
 
-  return 0;
+  return (changed ? TODO_dump_func | TODO_update_ssa | TODO_verify_ssa
+	  | TODO_verify_stmts : 0);
 }
 
 static bool
-gate_convert_to_rsqrt (void)
+gate_optimize_bswap (void)
 {
-  return flag_unsafe_math_optimizations && optimize;
+  return flag_expensive_optimizations && optimize;
 }
 
-struct gimple_opt_pass pass_convert_to_rsqrt =
+struct gimple_opt_pass pass_optimize_bswap =
 {
  {
   GIMPLE_PASS,
-  "rsqrt",				/* name */
-  gate_convert_to_rsqrt,		/* gate */
-  execute_convert_to_rsqrt,		/* execute */
+  "bswap",				/* name */
+  gate_optimize_bswap,                  /* gate */
+  execute_optimize_bswap,		/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_ssa,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_update_ssa | TODO_verify_ssa
-    | TODO_verify_stmts                 /* todo_flags_finish */
+  0                                     /* todo_flags_finish */
  }
 };

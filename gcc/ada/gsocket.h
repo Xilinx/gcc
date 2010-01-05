@@ -29,9 +29,9 @@
  *                                                                          *
  ****************************************************************************/
 
-#if defined(__nucleus__)
+#if defined(__nucleus__) || defined(VTHREADS)
 
-#warning Sockets not supported on this platform
+#warning Sockets not supported on these platforms
 #undef HAVE_SOCKETS
 
 #else
@@ -65,7 +65,6 @@
 #include <vxWorks.h>
 #include <ioLib.h>
 #include <hostLib.h>
-#include <resolvLib.h>
 #define SHUT_RD		0
 #define SHUT_WR		1
 #define SHUT_RDWR	2
@@ -173,7 +172,7 @@
 
 #endif
 
-#ifdef __vxworks
+#if defined (__vxworks) && ! defined (__RTP__)
 #include <sys/times.h>
 #else
 #include <sys/time.h>
@@ -229,6 +228,10 @@
 # define Has_Sockaddr_Len 1
 #else
 # define Has_Sockaddr_Len 0
+#endif
+
+#if !(defined (__vxworks) || defined (_WIN32) || defined (__hpux__) || defined (VMS))
+# define HAVE_INET_PTON
 #endif
 
 #endif /* defined(__nucleus__) */

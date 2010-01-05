@@ -38,6 +38,7 @@ namespace std
 {
 namespace __debug
 {
+  /// Class std::multimap with safety/checking/debug instrumentation.
   template<typename _Key, typename _Tp, typename _Compare = std::less<_Key>,
 	   typename _Allocator = std::allocator<std::pair<const _Key, _Tp> > >
     class multimap
@@ -248,11 +249,7 @@ namespace __debug
       }
 
       void
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-      swap(multimap&& __x)
-#else
       swap(multimap& __x)
-#endif
       {
 	_Base::swap(__x);
 	this->_M_swap(__x);
@@ -377,22 +374,6 @@ namespace __debug
     swap(multimap<_Key, _Tp, _Compare, _Allocator>& __lhs,
 	 multimap<_Key, _Tp, _Compare, _Allocator>& __rhs)
     { __lhs.swap(__rhs); }
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-  template<typename _Key, typename _Tp,
-	   typename _Compare, typename _Allocator>
-    inline void
-    swap(multimap<_Key, _Tp, _Compare, _Allocator>&& __lhs,
-	 multimap<_Key, _Tp, _Compare, _Allocator>& __rhs)
-    { __lhs.swap(__rhs); }
-
-  template<typename _Key, typename _Tp,
-	   typename _Compare, typename _Allocator>
-    inline void
-    swap(multimap<_Key, _Tp, _Compare, _Allocator>& __lhs,
-	 multimap<_Key, _Tp, _Compare, _Allocator>&& __rhs)
-    { __lhs.swap(__rhs); }
-#endif
 
 } // namespace __debug
 } // namespace std

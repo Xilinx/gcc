@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -46,6 +46,7 @@ with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sinfo;    use Sinfo;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch13; use Sem_Ch13;
@@ -100,7 +101,9 @@ package body Exp_Ch5 is
    --  N is an assignment of a non-tagged record value. This routine handles
    --  the case where the assignment must be made component by component,
    --  either because the target is not byte aligned, or there is a change
-   --  of representation.
+   --  of representation, or when we have a tagged type with a representation
+   --  clause (this last case is required because holes in the tagged type
+   --  might be filled with components from child types).
 
    procedure Expand_Non_Function_Return (N : Node_Id);
    --  Called by Expand_N_Simple_Return_Statement in case we're returning from
@@ -113,11 +116,11 @@ package body Exp_Ch5 is
    --  from a function body this is called by Expand_N_Simple_Return_Statement.
 
    function Make_Tag_Ctrl_Assignment (N : Node_Id) return List_Id;
-   --  Generate the necessary code for controlled and tagged assignment,
-   --  that is to say, finalization of the target before, adjustment of
-   --  the target after and save and restore of the tag and finalization
-   --  pointers which are not 'part of the value' and must not be changed
-   --  upon assignment. N is the original Assignment node.
+   --  Generate the necessary code for controlled and tagged assignment, that
+   --  is to say, finalization of the target before, adjustment of the target
+   --  after and save and restore of the tag and finalization pointers which
+   --  are not 'part of the value' and must not be changed upon assignment. N
+   --  is the original Assignment node.
 
    ------------------------------
    -- Change_Of_Representation --
@@ -307,6 +310,18 @@ package body Exp_Ch5 is
          --  can be performed directly.
       end if;
 
+      --  If either operand has an address clause clear Backwards_OK and
+      --  Forwards_OK, since we cannot tell if the operands overlap. We
+      --  exclude this treatment when Rhs is an aggregate, since we know
+      --  that overlap can't occur.
+
+      if (Has_Address_Clause (Lhs) and then Nkind (Rhs) /= N_Aggregate)
+        or else Has_Address_Clause (Rhs)
+      then
+         Set_Forwards_OK  (N, False);
+         Set_Backwards_OK (N, False);
+      end if;
+
       --  We certainly must use a loop for change of representation and also
       --  we use the operand of the conversion on the right hand side as the
       --  effective right hand side (the component types must match in this
@@ -363,8 +378,8 @@ package body Exp_Ch5 is
          --  do this, we get the wrong length computed for the array to be
          --  moved. The two cases we need to worry about are:
 
-         --  Explicit deference of an unconstrained packed array type as in the
-         --  following example:
+         --  Explicit dereference of an unconstrained packed array type as in
+         --  the following example:
 
          --    procedure C52 is
          --       type BITS is array(INTEGER range <>) of BOOLEAN;
@@ -633,16 +648,21 @@ package body Exp_Ch5 is
             end if;
          end if;
 
-         --  If after that analysis, Forwards_OK is still True, and
-         --  Loop_Required is False, meaning that we have not discovered some
-         --  non-overlap reason for requiring a loop, then we can still let
-         --  gigi handle it.
+         --  If after that analysis Loop_Required is False, meaning that we
+         --  have not discovered some non-overlap reason for requiring a loop,
+         --  then the outcome depends on the capabilities of the back end.
 
          if not Loop_Required then
 
-            --  Assume gigi can handle it if Forwards_OK is set
+            --  The GCC back end can deal with all cases of overlap by falling
+            --  back to memmove if it cannot use a more efficient approach.
 
-            if Forwards_OK (N) then
+            if VM_Target = No_VM and not AAMP_On_Target then
+               return;
+
+            --  Assume other back ends can handle it if Forwards_OK is set
+
+            elsif Forwards_OK (N) then
                return;
 
             --  If Forwards_OK is not set, the back end will need something
@@ -851,12 +871,23 @@ package body Exp_Ch5 is
             --  conversions ???
 
             else
-               --  Copy the bounds and reset the Analyzed flag, because the
-               --  bounds of the index type itself may be universal, and must
-               --  must be reaanalyzed to acquire the proper type for Gigi.
+               --  Copy the bounds
 
                Cleft_Lo  := New_Copy_Tree (Left_Lo);
                Cright_Lo := New_Copy_Tree (Right_Lo);
+
+               --  If the types do not match we add an implicit conversion
+               --  here to ensure proper match
+
+               if Etype (Left_Lo) /= Etype (Right_Lo) then
+                  Cright_Lo :=
+                    Unchecked_Convert_To (Etype (Left_Lo), Cright_Lo);
+               end if;
+
+               --  Reset the Analyzed flag, because the bounds of the index
+               --  type itself may be universal, and must must be reaanalyzed
+               --  to acquire the proper type for the back end.
+
                Set_Analyzed (Cleft_Lo, False);
                Set_Analyzed (Cright_Lo, False);
 
@@ -1099,13 +1130,10 @@ package body Exp_Ch5 is
    -- Expand_Assign_Record --
    --------------------------
 
-   --  The only processing required is in the change of representation case,
-   --  where we must expand the assignment to a series of field by field
-   --  assignments.
-
    procedure Expand_Assign_Record (N : Node_Id) is
-      Lhs : constant Node_Id := Name (N);
-      Rhs : Node_Id          := Expression (N);
+      Lhs   : constant Node_Id    := Name (N);
+      Rhs   : Node_Id             := Expression (N);
+      L_Typ : constant Entity_Id  := Base_Type (Etype (Lhs));
 
    begin
       --  If change of representation, then extract the real right hand side
@@ -1127,6 +1155,14 @@ package body Exp_Ch5 is
       then
          null;
 
+      --  If we have a tagged type that has a complete record representation
+      --  clause, we must do we must do component-wise assignments, since child
+      --  types may have used gaps for their components, and we might be
+      --  dealing with a view conversion.
+
+      elsif Is_Fully_Repped_Tagged_Type (L_Typ) then
+         null;
+
       --  If neither condition met, then nothing special to do, the back end
       --  can handle assignment of the entire component as a single entity.
 
@@ -1139,7 +1175,6 @@ package body Exp_Ch5 is
       declare
          Loc   : constant Source_Ptr := Sloc (N);
          R_Typ : constant Entity_Id  := Base_Type (Etype (Rhs));
-         L_Typ : constant Entity_Id  := Base_Type (Etype (Lhs));
          Decl  : constant Node_Id    := Declaration_Node (R_Typ);
          RDef  : Node_Id;
          F     : Entity_Id;
@@ -1185,11 +1220,11 @@ package body Exp_Ch5 is
 
          begin
             C := First_Entity (Utyp);
-
             while Present (C) loop
                if Chars (C) = Chars (Comp) then
                   return C;
                end if;
+
                Next_Entity (C);
             end loop;
 
@@ -1218,11 +1253,9 @@ package body Exp_Ch5 is
             Result := Make_Field_Assigns (CI);
 
             if Present (VP) then
-
                V := First_Non_Pragma (Variants (VP));
                Alts := New_List;
                while Present (V) loop
-
                   DCH := New_List;
                   DC := First (Discrete_Choices (V));
                   while Present (DC) loop
@@ -1305,6 +1338,14 @@ package body Exp_Ch5 is
             --  Set Assignment_OK, so discriminants can be assigned
 
             Set_Assignment_OK (Name (A), True);
+
+            if Componentwise_Assignment (N)
+              and then Nkind (Name (A)) = N_Selected_Component
+              and then Chars (Selector_Name (Name (A))) = Name_uParent
+            then
+               Set_Componentwise_Assignment (A);
+            end if;
+
             return A;
          end Make_Field_Assign;
 
@@ -1320,7 +1361,14 @@ package body Exp_Ch5 is
             Item := First (CI);
             Result := New_List;
             while Present (Item) loop
-               if Nkind (Item) = N_Component_Declaration then
+
+               --  Look for components, but exclude _tag field assignment if
+               --  the special Componentwise_Assignment flag is set.
+
+               if Nkind (Item) = N_Component_Declaration
+                 and then not (Is_Tag (Defining_Identifier (Item))
+                                and then Componentwise_Assignment (N))
+               then
                   Append_To
                     (Result, Make_Field_Assign (Defining_Identifier (Item)));
                end if;
@@ -1379,7 +1427,8 @@ package body Exp_Ch5 is
          --  We know the underlying type is a record, but its current view
          --  may be private. We must retrieve the usable record declaration.
 
-         if Nkind (Decl) = N_Private_Type_Declaration
+         if Nkind_In (Decl, N_Private_Type_Declaration,
+                            N_Private_Extension_Declaration)
            and then Present (Full_View (R_Typ))
          then
             RDef := Type_Definition (Declaration_Node (Full_View (R_Typ)));
@@ -1387,10 +1436,13 @@ package body Exp_Ch5 is
             RDef := Type_Definition (Decl);
          end if;
 
+         if Nkind (RDef) = N_Derived_Type_Definition then
+            RDef := Record_Extension_Part (RDef);
+         end if;
+
          if Nkind (RDef) = N_Record_Definition
            and then Present (Component_List (RDef))
          then
-
             if Is_Unchecked_Union (R_Typ) then
                Insert_Actions (N,
                  Make_Component_List_Assign (Component_List (RDef), True));
@@ -1401,7 +1453,6 @@ package body Exp_Ch5 is
 
             Rewrite (N, Make_Null_Statement (Loc));
          end if;
-
       end;
    end Expand_Assign_Record;
 
@@ -1420,6 +1471,32 @@ package body Exp_Ch5 is
       Exp  : Node_Id;
 
    begin
+      --  Special case to check right away, if the Componentwise_Assignment
+      --  flag is set, this is a reanalysis from the expansion of the primitive
+      --  assignment procedure for a tagged type, and all we need to do is to
+      --  expand to assignment of components, because otherwise, we would get
+      --  infinite recursion (since this looks like a tagged assignment which
+      --  would normally try to *call* the primitive assignment procedure).
+
+      if Componentwise_Assignment (N) then
+         Expand_Assign_Record (N);
+         return;
+      end if;
+
+      --  Defend against invalid subscripts on left side if we are in standard
+      --  validity checking mode. No need to do this if we are checking all
+      --  subscripts.
+
+      --  Note that we do this right away, because there are some early return
+      --  paths in this procedure, and this is required on all paths.
+
+      if Validity_Checks_On
+        and then Validity_Check_Default
+        and then not Validity_Check_Subscripts
+      then
+         Check_Valid_Lvalue_Subscripts (Lhs);
+      end if;
+
       --  Ada 2005 (AI-327): Handle assignment to priority of protected object
 
       --  Rewrite an assignment to X'Priority into a run-time call
@@ -1501,12 +1578,9 @@ package body Exp_Ch5 is
          end;
       end if;
 
-      --  First deal with generation of range check if required. For now we do
-      --  this only for discrete types.
+      --  First deal with generation of range check if required
 
-      if Do_Range_Check (Rhs)
-        and then Is_Discrete_Type (Typ)
-      then
+      if Do_Range_Check (Rhs) then
          Set_Do_Range_Check (Rhs, False);
          Generate_Range_Check (Rhs, Typ, CE_Range_Check_Failed);
       end if;
@@ -1786,10 +1860,9 @@ package body Exp_Ch5 is
             Expand_Ctrl_Actions : constant Boolean := not No_Ctrl_Actions (N);
 
          begin
-            --  In the controlled case, we need to make sure that function
-            --  calls are evaluated before finalizing the target. In all cases,
-            --  it makes the expansion easier if the side-effects are removed
-            --  first.
+            --  In the controlled case, we ensure that function calls are
+            --  evaluated before finalizing the target. In all cases, it makes
+            --  the expansion easier if the side-effects are removed first.
 
             Remove_Side_Effects (Lhs);
             Remove_Side_Effects (Rhs);
@@ -1816,15 +1889,14 @@ package body Exp_Ch5 is
                --  is set True in this case).
 
                or else (Is_Tagged_Type (Typ)
-                          and then not Is_Value_Type (Etype (Lhs))
-                          and then Chars (Current_Scope) /= Name_uAssign
-                          and then Expand_Ctrl_Actions
-                          and then not Discriminant_Checks_Suppressed (Empty))
+                         and then not Is_Value_Type (Etype (Lhs))
+                         and then Chars (Current_Scope) /= Name_uAssign
+                         and then Expand_Ctrl_Actions
+                         and then not Discriminant_Checks_Suppressed (Empty))
             then
                --  Fetch the primitive op _assign and proper type to call it.
-               --  Because of possible conflicts between private and full view
-               --  the proper type is fetched directly from the operation
-               --  profile.
+               --  Because of possible conflicts between private and full view,
+               --  fetch the proper type directly from the operation profile.
 
                declare
                   Op    : constant Entity_Id :=
@@ -2007,14 +2079,31 @@ package body Exp_Ch5 is
             --  Here the right side is valid, so it is fine. The case to deal
             --  with is when the left side is a local variable reference whose
             --  value is not currently known to be valid. If this is the case,
-            --  and the assignment appears in an unconditional context, then we
-            --  can mark the left side as now being valid.
+            --  and the assignment appears in an unconditional context, then
+            --  we can mark the left side as now being valid if one of these
+            --  conditions holds:
+
+            --    The expression of the right side has Do_Range_Check set so
+            --    that we know a range check will be performed. Note that it
+            --    can be the case that a range check is omitted because we
+            --    make the assumption that we can assume validity for operands
+            --    appearing in the right side in determining whether a range
+            --    check is required
+
+            --    The subtype of the right side matches the subtype of the
+            --    left side. In this case, even though we have not checked
+            --    the range of the right side, we know it is in range of its
+            --    subtype if the expression is valid.
 
             if Is_Local_Variable_Reference (Lhs)
               and then not Is_Known_Valid (Entity (Lhs))
               and then In_Unconditional_Context (N)
             then
-               Set_Is_Known_Valid (Entity (Lhs), True);
+               if Do_Range_Check (Rhs)
+                 or else Etype (Lhs) = Etype (Rhs)
+               then
+                  Set_Is_Known_Valid (Entity (Lhs), True);
+               end if;
             end if;
 
          --  Case where right side may be invalid in the sense of the RM
@@ -2085,17 +2174,6 @@ package body Exp_Ch5 is
                null;
             end if;
          end if;
-      end if;
-
-      --  Defend against invalid subscripts on left side if we are in standard
-      --  validity checking mode. No need to do this if we are checking all
-      --  subscripts.
-
-      if Validity_Checks_On
-        and then Validity_Check_Default
-        and then not Validity_Check_Subscripts
-      then
-         Check_Valid_Lvalue_Subscripts (Lhs);
       end if;
 
    exception
@@ -2611,6 +2689,11 @@ package body Exp_Ch5 is
            and then
              Nkind (Return_Object_Decl) = N_Object_Renaming_Declaration
          then
+            pragma Assert (Nkind (Original_Node (Return_Object_Decl)) =
+                            N_Object_Declaration
+              and then Is_Build_In_Place_Function_Call
+                         (Expression (Original_Node (Return_Object_Decl))));
+
             Set_By_Ref (Return_Stm);  -- Return build-in-place results by ref
 
          elsif Is_Build_In_Place then
@@ -2665,10 +2748,21 @@ package body Exp_Ch5 is
                --  and the declaration isn't marked as No_Initialization, then
                --  we need to generate an assignment to the object and insert
                --  it after the declaration before rewriting it as a renaming
-               --  (otherwise we'll lose the initialization).
+               --  (otherwise we'll lose the initialization). The case where
+               --  the result type is an interface (or class-wide interface)
+               --  is also excluded because the context of the function call
+               --  must be unconstrained, so the initialization will always
+               --  be done as part of an allocator evaluation (storage pool
+               --  or secondary stack), never to a constrained target object
+               --  passed in by the caller. Besides the assignment being
+               --  unneeded in this case, it avoids problems with trying to
+               --  generate a dispatching assignment when the return expression
+               --  is a nonlimited descendant of a limited interface (the
+               --  interface has no assignment operation).
 
                if Present (Return_Obj_Expr)
                  and then not No_Initialization (Return_Object_Decl)
+                 and then not Is_Interface (Return_Obj_Typ)
                then
                   Init_Assignment :=
                     Make_Assignment_Statement (Loc,
@@ -2793,16 +2887,23 @@ package body Exp_Ch5 is
                      if Present (Return_Obj_Expr)
                        and then not No_Initialization (Return_Object_Decl)
                      then
+                        --  Always use the type of the expression for the
+                        --  qualified expression, rather than the result type.
+                        --  In general we cannot always use the result type
+                        --  for the allocator, because the expression might be
+                        --  of a specific type, such as in the case of an
+                        --  aggregate or even a nonlimited object when the
+                        --  result type is a limited class-wide interface type.
+
                         Heap_Allocator :=
                           Make_Allocator (Loc,
                             Expression =>
                               Make_Qualified_Expression (Loc,
                                 Subtype_Mark =>
-                                  New_Reference_To (Return_Obj_Typ, Loc),
+                                  New_Reference_To
+                                    (Etype (Return_Obj_Expr), Loc),
                                 Expression =>
                                   New_Copy_Tree (Return_Obj_Expr)));
-
-                        SS_Allocator := New_Copy_Tree (Heap_Allocator);
 
                      else
                         --  If the function returns a class-wide type we cannot
@@ -2813,12 +2914,14 @@ package body Exp_Ch5 is
                         if Is_Class_Wide_Type (Return_Obj_Typ) then
                            Heap_Allocator :=
                              Make_Allocator (Loc,
-                               New_Reference_To
-                                 (Etype (Return_Obj_Expr), Loc));
+                               Expression =>
+                                 New_Reference_To
+                                   (Etype (Return_Obj_Expr), Loc));
                         else
                            Heap_Allocator :=
                              Make_Allocator (Loc,
-                               New_Reference_To (Return_Obj_Typ, Loc));
+                               Expression =>
+                                 New_Reference_To (Return_Obj_Typ, Loc));
                         end if;
 
                         --  If the object requires default initialization then
@@ -2827,19 +2930,20 @@ package body Exp_Ch5 is
                         --  then the object will be default initialized twice.
 
                         Set_No_Initialization (Heap_Allocator);
-
-                        SS_Allocator := New_Copy_Tree (Heap_Allocator);
                      end if;
 
                      --  If the No_Allocators restriction is active, then only
                      --  an allocator for secondary stack allocation is needed.
+                     --  It's OK for such allocators to have Comes_From_Source
+                     --  set to False, because gigi knows not to flag them as
+                     --  being a violation of No_Implicit_Heap_Allocations.
 
                      if Restriction_Active (No_Allocators) then
                         SS_Allocator   := Heap_Allocator;
                         Heap_Allocator := Make_Null (Loc);
 
-                     --  Otherwise the heap allocator may be needed, so we
-                     --  make another allocator for secondary stack allocation.
+                     --  Otherwise the heap allocator may be needed, so we make
+                     --  another allocator for secondary stack allocation.
 
                      else
                         SS_Allocator := New_Copy_Tree (Heap_Allocator);
@@ -2849,7 +2953,7 @@ package body Exp_Ch5 is
                         --  allocator (that is, it will only be executed on
                         --  behalf of callers that call the function as
                         --  initialization for such an allocator). This
-                        --  prevents errors when No_Implicit_Heap_Allocation
+                        --  prevents errors when No_Implicit_Heap_Allocations
                         --  is in force.
 
                         Set_Comes_From_Source (Heap_Allocator, True);
@@ -3038,8 +3142,8 @@ package body Exp_Ch5 is
    --  Second, we deal with the obvious rewriting for the cases where the
    --  condition of the IF is known at compile time to be True or False.
 
-   --  Third, we remove elsif parts which have non-empty Condition_Actions
-   --  and rewrite as independent if statements. For example:
+   --  Third, we remove elsif parts which have non-empty Condition_Actions and
+   --  rewrite as independent if statements. For example:
 
    --     if x then xs
    --     elsif y then ys
@@ -3246,9 +3350,12 @@ package body Exp_Ch5 is
 
       --     return not (expression);
 
-      --  Only do these optimizations if we are at least at -O1 level
+      --  Only do these optimizations if we are at least at -O1 level and
+      --  do not do them if control flow optimizations are suppressed.
 
-      if Optimization_Level > 0 then
+      if Optimization_Level > 0
+        and then not Opt.Suppress_Control_Flow_Optimizations
+      then
          if Nkind (N) = N_If_Statement
            and then No (Elsif_Parts (N))
            and then Present (Else_Statements (N))
@@ -3306,19 +3413,31 @@ package body Exp_Ch5 is
    -- Expand_N_Loop_Statement --
    -----------------------------
 
-   --  1. Deal with while condition for C/Fortran boolean
-   --  2. Deal with loops with a non-standard enumeration type range
-   --  3. Deal with while loops where Condition_Actions is set
-   --  4. Insert polling call if required
+   --  1. Remove null loop entirely
+   --  2. Deal with while condition for C/Fortran boolean
+   --  3. Deal with loops with a non-standard enumeration type range
+   --  4. Deal with while loops where Condition_Actions is set
+   --  5. Insert polling call if required
 
    procedure Expand_N_Loop_Statement (N : Node_Id) is
       Loc  : constant Source_Ptr := Sloc (N);
       Isc  : constant Node_Id    := Iteration_Scheme (N);
 
    begin
+      --  Delete null loop
+
+      if Is_Null_Loop (N) then
+         Rewrite (N, Make_Null_Statement (Loc));
+         return;
+      end if;
+
+      --  Deal with condition for C/Fortran Boolean
+
       if Present (Isc) then
          Adjust_Condition (Condition (Isc));
       end if;
+
+      --  Generate polling call
 
       if Is_Non_Empty_List (Statements (N)) then
          Generate_Poll_Call (First (Statements (N)));
@@ -3557,14 +3676,21 @@ package body Exp_Ch5 is
       Lab_Node    : Node_Id;
 
    begin
-      --  Call postconditions procedure if procedure with active postconditions
+      --  Call _Postconditions procedure if procedure with active
+      --  postconditions. Here, we use the Postcondition_Proc attribute, which
+      --  is needed for implicitly-generated returns. Functions never
+      --  have implicitly-generated returns, and there's no room for
+      --  Postcondition_Proc in E_Function, so we look up the identifier
+      --  Name_uPostconditions for function returns (see
+      --  Expand_Simple_Function_Return).
 
       if Ekind (Scope_Id) = E_Procedure
         and then Has_Postconditions (Scope_Id)
       then
+         pragma Assert (Present (Postcondition_Proc (Scope_Id)));
          Insert_Action (N,
            Make_Procedure_Call_Statement (Loc,
-             Name => Make_Identifier (Loc, Name_uPostconditions)));
+             Name => New_Reference_To (Postcondition_Proc (Scope_Id), Loc)));
       end if;
 
       --  If it is a return from a procedure do no extra steps
@@ -3606,8 +3732,7 @@ package body Exp_Ch5 is
 
          Call :=
            Make_Procedure_Call_Statement (Loc,
-             Name => New_Reference_To
-                       (RTE (RE_Complete_Rendezvous), Loc));
+             Name => New_Reference_To (RTE (RE_Complete_Rendezvous), Loc));
          Insert_Before (N, Call);
          --  why not insert actions here???
          Analyze (Call);
@@ -3782,7 +3907,11 @@ package body Exp_Ch5 is
 
       if Is_Scalar_Type (Exptyp) then
          Rewrite (Exp, Convert_To (R_Type, Exp));
-         Analyze (Exp);
+
+         --  The expression is resolved to ensure that the conversion gets
+         --  expanded to generate a possible constraint check.
+
+         Analyze_And_Resolve (Exp, R_Type);
       end if;
 
       --  Deal with returning variable length objects and controlled types
@@ -3892,6 +4021,10 @@ package body Exp_Ch5 is
                Set_Ekind (Acc_Typ, E_Access_Type);
 
                Set_Associated_Storage_Pool (Acc_Typ, RTE (RE_SS_Pool));
+
+               --  This is an allocator for the secondary stack, and it's fine
+               --  to have Comes_From_Source set False on it, as gigi knows not
+               --  to flag it as a violation of No_Implicit_Heap_Allocations.
 
                Alloc_Node :=
                  Make_Allocator (Loc,
@@ -4020,7 +4153,7 @@ package body Exp_Ch5 is
       --  does not seem to be any practical way to implement this check.
 
       elsif Ada_Version >= Ada_05
-        and then VM_Target = No_VM
+        and then Tagged_Type_Expansion
         and then Is_Class_Wide_Type (R_Type)
         and then not Scope_Suppress (Accessibility_Check)
         and then
@@ -4228,9 +4361,13 @@ package body Exp_Ch5 is
       Ctrl_Act : constant Boolean := Needs_Finalization (T)
                                        and then not No_Ctrl_Actions (N);
 
+      Component_Assign : constant Boolean :=
+                           Is_Fully_Repped_Tagged_Type (T);
+
       Save_Tag : constant Boolean := Is_Tagged_Type (T)
+                                       and then not Component_Assign
                                        and then not No_Ctrl_Actions (N)
-                                       and then VM_Target = No_VM;
+                                       and then Tagged_Type_Expansion;
       --  Tags are not saved and restored when VM_Target because VM tags are
       --  represented implicitly in objects.
 
@@ -4244,11 +4381,12 @@ package body Exp_Ch5 is
    begin
       Res := New_List;
 
-      --  Finalize the target of the assignment when controlled.
+      --  Finalize the target of the assignment when controlled
+
       --  We have two exceptions here:
 
-      --   1. If we are in an init proc since it is an initialization
-      --      more than an assignment
+      --   1. If we are in an init proc since it is an initialization more
+      --      than an assignment.
 
       --   2. If the left-hand side is a temporary that was not initialized
       --      (or the parent part of a temporary since it is the case in
@@ -4266,18 +4404,18 @@ package body Exp_Ch5 is
 
       elsif Nkind (L) = N_Type_Conversion
         and then Is_Entity_Name (Expression (L))
-        and then Nkind (Parent (Entity (Expression (L))))
-                   = N_Object_Declaration
+        and then Nkind (Parent (Entity (Expression (L)))) =
+                                              N_Object_Declaration
         and then No_Initialization (Parent (Entity (Expression (L))))
       then
          null;
 
       else
          Append_List_To (Res,
-           Make_Final_Call (
-             Ref         => Duplicate_Subexpr_No_Checks (L),
-             Typ         => Etype (L),
-             With_Detach => New_Reference_To (Standard_False, Loc)));
+           Make_Final_Call
+             (Ref         => Duplicate_Subexpr_No_Checks (L),
+              Typ         => Etype (L),
+              With_Detach => New_Reference_To (Standard_False, Loc)));
       end if;
 
       --  Save the Tag in a local variable Tag_Tmp
@@ -4552,8 +4690,7 @@ package body Exp_Ch5 is
 
                First_After_Root := Make_Integer_Literal (Loc, 1);
 
-               --  For the case of a controlled object, skip the
-               --  Root_Controlled part.
+               --  For controlled object, skip Root_Controlled part
 
                if Is_Controlled (T) then
                   First_After_Root :=
@@ -4568,9 +4705,8 @@ package body Exp_Ch5 is
                end if;
 
                --  For the case of a record with controlled components, skip
-               --  the Prev and Next components of the record controller.
-               --  These components constitute a 'hole' in the middle of the
-               --  data to be copied.
+               --  record controller Prev/Next components. These components
+               --  constitute a 'hole' in the middle of the data to be copied.
 
                if Has_Controlled_Component (T) then
                   Prev_Ref :=
@@ -4582,8 +4718,8 @@ package body Exp_Ch5 is
                             New_Reference_To (Controller_Component (T), Loc)),
                       Selector_Name =>  Make_Identifier (Loc, Name_Prev));
 
-                  --  Last index before hole: determined by position of
-                  --  the _Controller.Prev component.
+                  --  Last index before hole: determined by position of the
+                  --  _Controller.Prev component.
 
                   Last_Before_Hole :=
                     Make_Defining_Identifier (Loc,
@@ -4679,8 +4815,26 @@ package body Exp_Ch5 is
             end Controlled_Actions;
          end if;
 
+      --  Not controlled case
+
       else
-         Append_To (Res, Relocate_Node (N));
+         declare
+            Asn : constant Node_Id := Relocate_Node (N);
+
+         begin
+            --  If this is the case of a tagged type with a full rep clause,
+            --  we must expand it into component assignments, so we mark the
+            --  node as unanalyzed, to get it reanalyzed, but flag it has
+            --  requiring component-wise assignment so we don't get infinite
+            --  recursion.
+
+            if Component_Assign then
+               Set_Analyzed (Asn, False);
+               Set_Componentwise_Assignment (Asn, True);
+            end if;
+
+            Append_To (Res, Asn);
+         end;
       end if;
 
       --  Restore the tag

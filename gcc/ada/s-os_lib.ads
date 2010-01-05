@@ -48,9 +48,7 @@
 --  be used by other predefined packages. User access to this package is via
 --  a renaming of this package in GNAT.OS_Lib (file g-os_lib.ads).
 
-pragma Warnings (Off);
 pragma Compiler_Unit;
-pragma Warnings (On);
 
 with System;
 with System.Strings;
@@ -247,9 +245,26 @@ package System.OS_Lib is
       Name : out String_Access);
    --  Create and open for writing a temporary file in the current working
    --  directory. The name of the file and the File Descriptor are returned.
-   --  No mode parameter is provided. Since this is a temporary file, there is
-   --  no point in doing text translation on it. It is the responsibility of
-   --  the caller to deallocate the access value returned in Name.
+   --  It is the responsibility of the caller to deallocate the access value
+   --  returned in Name.
+   --
+   --  The file is opened in binary mode (no text translation).
+   --
+   --  This procedure will always succeed if the current working directory is
+   --  writable. If the current working directory is not writable, then
+   --  Invalid_FD is returned for the file descriptor and null for the Name.
+   --  There is no race condition problem between processes trying to create
+   --  temp files at the same time in the same directory.
+
+   procedure Create_Temp_Output_File
+     (FD   : out File_Descriptor;
+      Name : out String_Access);
+   --  Create and open for writing a temporary file in the current working
+   --  directory suitable to redirect standard output. The name of the file and
+   --  the File Descriptor are returned. It is the responsibility of the caller
+   --  to deallocate the access value returned in Name.
+   --
+   --  The file is opened in text mode
    --
    --  This procedure will always succeed if the current working directory is
    --  writable. If the current working directory is not writable, then
@@ -881,7 +896,9 @@ private
    pragma Import (C, Directory_Separator, "__gnat_dir_separator");
    pragma Import (C, Current_Time, "__gnat_current_time");
 
-   type OS_Time is new Long_Integer;
+   type OS_Time is
+     range -(2 ** (Standard'Address_Size - Integer'(1))) ..
+           +(2 ** (Standard'Address_Size - Integer'(1)) - 1);
    --  Type used for timestamps in the compiler. This type is used to hold
    --  time stamps, but may have a different representation than C's time_t.
    --  This type needs to match the declaration of OS_Time in adaint.h.

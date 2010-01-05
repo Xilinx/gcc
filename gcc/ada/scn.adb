@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -43,6 +43,10 @@ with System.WCh_Con; use System.WCh_Con;
 package body Scn is
 
    use ASCII;
+
+   Obsolescent_Check_Flag : Boolean := True;
+   --  Obsolescent check activation. Set to False during integrated
+   --  preprocessing.
 
    Used_As_Identifier : array (Token_Type) of Boolean;
    --  Flags set True if a given keyword is used as an identifier (used to
@@ -342,12 +346,15 @@ package body Scn is
 
    procedure Obsolescent_Check (S : Source_Ptr) is
    begin
-      --  This is a pain in the neck case, since we normally need a node to
-      --  call Check_Restrictions, and all we have is a source pointer. The
-      --  easiest thing is to construct a dummy node. A bit kludgy, but this
-      --  is a marginal case. It's not worth trying to do things more cleanly.
+      if Obsolescent_Check_Flag then
+         --  This is a pain in the neck case, since we normally need a node to
+         --  call Check_Restrictions, and all we have is a source pointer. The
+         --  easiest thing is to construct a dummy node. A bit kludgy, but this
+         --  is a marginal case. It's not worth trying to do things more
+         --  cleanly.
 
-      Check_Restriction (No_Obsolescent_Features, New_Node (N_Empty, S));
+         Check_Restriction (No_Obsolescent_Features, New_Node (N_Empty, S));
+      end if;
    end Obsolescent_Check;
 
    ---------------
@@ -376,7 +383,10 @@ package body Scn is
 
          when Tok_String_Literal =>
             Token_Node := New_Node (N_String_Literal, Token_Ptr);
-            Set_Has_Wide_Character (Token_Node, Wide_Character_Found);
+            Set_Has_Wide_Character
+              (Token_Node, Wide_Character_Found);
+            Set_Has_Wide_Wide_Character
+              (Token_Node, Wide_Wide_Character_Found);
             Set_Strval (Token_Node, String_Literal_Id);
 
          when Tok_Operator_Symbol =>
@@ -419,5 +429,14 @@ package body Scn is
       Token_Node := New_Node (N_Identifier, Token_Ptr);
       Set_Chars (Token_Node, Token_Name);
    end Scan_Reserved_Identifier;
+
+   ---------------------------
+   -- Set_Obsolescent_Check --
+   ---------------------------
+
+   procedure Set_Obsolescent_Check (Value : Boolean) is
+   begin
+      Obsolescent_Check_Flag := Value;
+   end Set_Obsolescent_Check;
 
 end Scn;

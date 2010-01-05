@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1998-2008, AdaCore                     --
+--                     Copyright (C) 1998-2009, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -97,12 +97,7 @@ package body GNAT.Directory_Operations is
       begin
          --  Cut_Start point to the first basename character
 
-         if Cut_Start = 0 then
-            Cut_Start := Path'First;
-
-         else
-            Cut_Start := Cut_Start + 1;
-         end if;
+         Cut_Start := (if Cut_Start = 0 then Path'First else Cut_Start + 1);
 
          --  Cut_End point to the last basename character
 
@@ -146,7 +141,7 @@ package body GNAT.Directory_Operations is
          end Check_For_Standard_Dirs;
       end Basename;
 
-   --  Start processing for Base_Name
+   --  Start of processing for Base_Name
 
    begin
       if Path'Length <= Suffix'Length then
@@ -168,10 +163,6 @@ package body GNAT.Directory_Operations is
 
    procedure Change_Dir (Dir_Name : Dir_Name_Str) is
       C_Dir_Name : constant String := Dir_Name & ASCII.NUL;
-
-      function chdir (Dir_Name : String) return Integer;
-      pragma Import (C, chdir, "chdir");
-
    begin
       if chdir (C_Dir_Name) /= 0 then
          raise Directory_Error;
@@ -584,11 +575,8 @@ package body GNAT.Directory_Operations is
    begin
       Local_Get_Current_Dir (Buffer'Address, Path_Len'Address);
 
-      if Dir'Length > Path_Len then
-         Last := Dir'First + Path_Len - 1;
-      else
-         Last := Dir'Last;
-      end if;
+      Last :=
+        (if Dir'Length > Path_Len then Dir'First + Path_Len - 1 else Dir'Last);
 
       Dir (Buffer'First .. Last) := Buffer (Buffer'First .. Last);
 
@@ -687,11 +675,9 @@ package body GNAT.Directory_Operations is
          return;
       end if;
 
-      if Str'Length > Filename_Len then
-         Last := Str'First + Filename_Len - 1;
-      else
-         Last := Str'Last;
-      end if;
+      Last :=
+        (if Str'Length > Filename_Len then Str'First + Filename_Len - 1
+         else Str'Last);
 
       declare
          subtype Path_String is String (1 .. Filename_Len);
@@ -743,9 +729,7 @@ package body GNAT.Directory_Operations is
       --  Remove the directory only if it is empty
 
       if not Recursive then
-         rmdir (C_Dir_Name);
-
-         if GNAT.OS_Lib.Is_Directory (Dir_Name) then
+         if rmdir (C_Dir_Name) /= 0 then
             raise Directory_Error;
          end if;
 
@@ -768,7 +752,6 @@ package body GNAT.Directory_Operations is
                      Str (1 .. Last) /= ".."
                   then
                      Remove_Dir (Str (1 .. Last), True);
-                     Remove_Dir (Str (1 .. Last));
                   end if;
 
                else

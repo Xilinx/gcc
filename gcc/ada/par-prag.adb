@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -264,7 +264,6 @@ begin
 
    if Present (Pragma_Argument_Associations (Pragma_Node)) then
       Arg_Node := Arg1;
-
       while Arg_Node /= Empty loop
          Arg_Count := Arg_Count + 1;
 
@@ -819,7 +818,7 @@ begin
            and then Num_SRef_Pragmas (Current_Source_File) = 0
            and then Operating_Mode /= Check_Syntax
          then
-            Error_Msg
+            Error_Msg -- CODEFIX
               ("first % pragma must be first line of file", Pragma_Sloc);
             raise Error_Resync;
          end if;
@@ -975,10 +974,11 @@ begin
       --  The one argument ON/OFF case is processed by the parser, since it may
       --  control parser warnings as well as semantic warnings, and in any case
       --  we want to be absolutely sure that the range in the warnings table is
-      --  set well before any semantic analysis is performed.
+      --  set well before any semantic analysis is performed. Note that we
+      --  ignore this pragma if debug flag -gnatd.i is set.
 
       when Pragma_Warnings =>
-         if Arg_Count = 1 then
+         if Arg_Count = 1 and then not Debug_Flag_Dot_I then
             Check_No_Identifier (Arg1);
 
             declare
@@ -1172,6 +1172,7 @@ begin
            Pragma_Share_Generic                 |
            Pragma_Shared                        |
            Pragma_Shared_Passive                |
+           Pragma_Short_Circuit_And_Or          |
            Pragma_Storage_Size                  |
            Pragma_Storage_Unit                  |
            Pragma_Static_Elaboration_Desired    |
@@ -1187,6 +1188,7 @@ begin
            Pragma_Task_Info                     |
            Pragma_Task_Name                     |
            Pragma_Task_Storage                  |
+           Pragma_Thread_Local_Storage          |
            Pragma_Time_Slice                    |
            Pragma_Title                         |
            Pragma_Unchecked_Union               |

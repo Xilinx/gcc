@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for Renesas H8/300.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Steve Chamberlain (sac@cygnus.com),
    Jim Wilson (wilson@cygnus.com), and Doug Evans (dje@cygnus.com).
@@ -507,6 +507,32 @@ byte_reg (rtx x, int b)
 	   && call_used_regs[regno]					\
 	   && !current_function_is_leaf)))
 
+/* We use this to wrap all emitted insns in the prologue.  */
+static rtx
+F (rtx x)
+{
+  RTX_FRAME_RELATED_P (x) = 1;
+  return x;
+}
+
+/* Mark all the subexpressions of the PARALLEL rtx PAR as
+   frame-related.  Return PAR.
+
+   dwarf2out.c:dwarf2out_frame_debug_expr ignores sub-expressions of a
+   PARALLEL rtx other than the first if they do not have the
+   FRAME_RELATED flag set on them.  */
+static rtx
+Fpa (rtx par)
+{
+  int len = XVECLEN (par, 0);
+  int i;
+
+  for (i = 0; i < len; i++)
+    F (XVECEXP (par, 0, i));
+
+  return par;
+}
+
 /* Output assembly language to FILE for the operation OP with operand size
    SIZE to adjust the stack pointer.  */
 
@@ -526,22 +552,27 @@ h8300_emit_stack_adjustment (int sign, HOST_WIDE_INT size)
       && !(cfun->static_chain_decl != NULL && sign < 0))
     {
       rtx r3 = gen_rtx_REG (Pmode, 3);
-      emit_insn (gen_movhi (r3, GEN_INT (sign * size)));
-      emit_insn (gen_addhi3 (stack_pointer_rtx,
-			     stack_pointer_rtx, r3));
+      F (emit_insn (gen_movhi (r3, GEN_INT (sign * size))));
+      F (emit_insn (gen_addhi3 (stack_pointer_rtx,
+				stack_pointer_rtx, r3)));
     }
   else
     {
       /* The stack adjustment made here is further optimized by the
 	 splitter.  In case of H8/300, the splitter always splits the
-	 addition emitted here to make the adjustment
-	 interrupt-safe.  */
+	 addition emitted here to make the adjustment interrupt-safe.
+	 FIXME: We don't always tag those, because we don't know what
+	 the splitter will do.  */
       if (Pmode == HImode)
-	emit_insn (gen_addhi3 (stack_pointer_rtx,
-			       stack_pointer_rtx, GEN_INT (sign * size)));
+	{
+	  rtx x = emit_insn (gen_addhi3 (stack_pointer_rtx,
+					 stack_pointer_rtx, GEN_INT (sign * size)));
+	  if (size < 4)
+	    F (x);
+	}
       else
-	emit_insn (gen_addsi3 (stack_pointer_rtx,
-			       stack_pointer_rtx, GEN_INT (sign * size)));
+	F (emit_insn (gen_addsi3 (stack_pointer_rtx,
+				  stack_pointer_rtx, GEN_INT (sign * size))));
     }
 }
 
@@ -591,7 +622,7 @@ push (int rn)
     x = gen_push_h8300hs_advanced (reg);
   else
     x = gen_push_h8300hs_normal (reg);
-  x = emit_insn (x);
+  x = F (emit_insn (x));
   REG_NOTES (x) = gen_rtx_EXPR_LIST (REG_INC, stack_pointer_rtx, 0);
 }
 
@@ -634,7 +665,7 @@ h8300_push_pop (int regno, int nregs, int pop_p, int return_p)
 {
   int i, j;
   rtvec vec;
-  rtx sp, offset;
+  rtx sp, offset, x;
 
   /* See whether we can use a simple push or pop.  */
   if (!return_p && nregs == 1)
@@ -685,7 +716,10 @@ h8300_push_pop (int regno, int nregs, int pop_p, int return_p)
   RTVEC_ELT (vec, i + j) = gen_rtx_SET (VOIDmode, sp,
 					gen_rtx_PLUS (Pmode, sp, offset));
 
-  emit_insn (gen_rtx_PARALLEL (VOIDmode, vec));
+  x = gen_rtx_PARALLEL (VOIDmode, vec);
+  if (!pop_p)
+    x = Fpa (x);
+  emit_insn (x);
 }
 
 /* Return true if X has the value sp + OFFSET.  */
@@ -820,7 +854,7 @@ h8300_expand_prologue (void)
     {
       /* Push fp.  */
       push (HARD_FRAME_POINTER_REGNUM);
-      emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx);
+      F (emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx));
     }
 
   /* Push the rest of the registers in ascending order.  */
@@ -1225,6 +1259,11 @@ h8300_rtx_costs (rtx x, int code, int outer_code, int *total, bool speed)
     case CONST_DOUBLE:
       *total = 20;
       return true;
+
+    case COMPARE:
+      if (XEXP (x, 1) == const0_rtx)
+	*total = 0;
+      return false;
 
     case AND:
       if (!h8300_dst_operand (XEXP (x, 0), VOIDmode)
@@ -1818,6 +1857,20 @@ h8300_expand_movsi (rtx operands[])
 	}
     }
   return 0;
+}
+
+/* Given FROM and TO register numbers, say whether this elimination is allowed.
+   Frame pointer elimination is automatically handled.
+
+   For the h8300, if frame pointer elimination is being done, we would like to
+   convert ap and rp into sp, not fp.
+
+   All other eliminations are valid.  */
+
+static bool
+h8300_can_eliminate (const int from ATTRIBUTE_UNUSED, const int to)
+{
+  return (to == STACK_POINTER_REGNUM ? ! frame_pointer_needed : true);
 }
 
 /* Function for INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET).
@@ -3503,15 +3556,41 @@ compute_logical_op_cc (enum machine_mode mode, rtx *operands)
 /* Expand a conditional branch.  */
 
 void
-h8300_expand_branch (enum rtx_code code, rtx label)
+h8300_expand_branch (rtx operands[])
 {
+  enum rtx_code code = GET_CODE (operands[0]);
+  rtx op0 = operands[1];
+  rtx op1 = operands[2];
+  rtx label = operands[3];
   rtx tmp;
+
+  tmp = gen_rtx_COMPARE (VOIDmode, op0, op1);
+  emit_insn (gen_rtx_SET (VOIDmode, cc0_rtx, tmp));
 
   tmp = gen_rtx_fmt_ee (code, VOIDmode, cc0_rtx, const0_rtx);
   tmp = gen_rtx_IF_THEN_ELSE (VOIDmode, tmp,
 			      gen_rtx_LABEL_REF (VOIDmode, label),
 			      pc_rtx);
   emit_jump_insn (gen_rtx_SET (VOIDmode, pc_rtx, tmp));
+}
+
+
+/* Expand a conditional store.  */
+
+void
+h8300_expand_store (rtx operands[])
+{
+  rtx dest = operands[0];
+  enum rtx_code code = GET_CODE (operands[1]);
+  rtx op0 = operands[2];
+  rtx op1 = operands[3];
+  rtx tmp;
+
+  tmp = gen_rtx_COMPARE (VOIDmode, op0, op1);
+  emit_insn (gen_rtx_SET (VOIDmode, cc0_rtx, tmp));
+
+  tmp = gen_rtx_fmt_ee (code, GET_MODE (dest), cc0_rtx, const0_rtx);
+  emit_insn (gen_rtx_SET (VOIDmode, dest, tmp));
 }
 
 /* Shifts.
@@ -5232,7 +5311,7 @@ h8300_insert_attributes (tree node, tree *attributes)
    tiny_data: This variable lives in the tiny data area and can be
    referenced with 16-bit absolute memory references.  */
 
-const struct attribute_spec h8300_attribute_table[] =
+static const struct attribute_spec h8300_attribute_table[] =
 {
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
   { "interrupt_handler", 0, 0, true,  false, false, h8300_handle_fndecl_attribute },
@@ -5256,8 +5335,8 @@ h8300_handle_fndecl_attribute (tree *node, tree name,
 {
   if (TREE_CODE (*node) != FUNCTION_DECL)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to functions",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to functions",
+	       name);
       *no_add_attrs = true;
     }
 
@@ -5280,8 +5359,8 @@ h8300_handle_eightbit_data_attribute (tree *node, tree name,
     }
   else
     {
-      warning (OPT_Wattributes, "%qs attribute ignored",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute ignored",
+	       name);
       *no_add_attrs = true;
     }
 
@@ -5304,8 +5383,8 @@ h8300_handle_tiny_data_attribute (tree *node, tree name,
     }
   else
     {
-      warning (OPT_Wattributes, "%qs attribute ignored",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute ignored",
+	       name);
       *no_add_attrs = true;
     }
 
@@ -5655,8 +5734,8 @@ h8300_rtx_ok_for_base_p (rtx x, int strict)
    legitimate address has the form REG, REG+CONSTANT_ADDRESS or
    CONSTANT_ADDRESS.  */
 
-int
-h8300_legitimate_address_p (enum machine_mode mode, rtx x, int strict)
+static bool
+h8300_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   /* The register indirect addresses like @er0 is always valid.  */
   if (h8300_rtx_ok_for_base_p (x, strict))
@@ -5728,6 +5807,56 @@ h8300_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 	  || GET_MODE_SIZE (TYPE_MODE (type)) > (TARGET_H8300 ? 4 : 8));
 }
 
+/* We emit the entire trampoline here.  Depending on the pointer size,
+   we use a different trampoline.
+
+   Pmode == HImode
+	      vvvv context
+   1 0000 7903xxxx		mov.w	#0x1234,r3
+   2 0004 5A00xxxx		jmp	@0x1234
+	      ^^^^ function
+
+   Pmode == SImode
+	      vvvvvvvv context
+   2 0000 7A03xxxxxxxx		mov.l	#0x12345678,er3
+   3 0006 5Axxxxxx		jmp	@0x123456
+	    ^^^^^^ function
+*/
+
+static void
+h8300_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
+{
+  rtx fnaddr = XEXP (DECL_RTL (fndecl), 0);
+  rtx mem;
+
+  if (Pmode == HImode)
+    {
+      mem = adjust_address (m_tramp, HImode, 0);
+      emit_move_insn (mem, GEN_INT (0x7903));
+      mem = adjust_address (m_tramp, Pmode, 2);
+      emit_move_insn (mem, cxt);
+      mem = adjust_address (m_tramp, HImode, 4);
+      emit_move_insn (mem, GEN_INT (0x5a00));
+      mem = adjust_address (m_tramp, Pmode, 6);
+      emit_move_insn (mem, fnaddr);
+    }
+  else
+    {
+      rtx tem;
+
+      mem = adjust_address (m_tramp, HImode, 0);
+      emit_move_insn (mem, GEN_INT (0x7a03));
+      mem = adjust_address (m_tramp, Pmode, 2);
+      emit_move_insn (mem, cxt);
+
+      tem = copy_to_reg (fnaddr);
+      emit_insn (gen_andsi3 (tem, tem, GEN_INT (0x00ffffff)));
+      emit_insn (gen_iorsi3 (tem, tem, GEN_INT (0x5a000000)));
+      mem = adjust_address (m_tramp, SImode, 6);
+      emit_move_insn (mem, tem);
+    }
+}
+
 /* Initialize the GCC target structure.  */
 #undef TARGET_ATTRIBUTE_TABLE
 #define TARGET_ATTRIBUTE_TABLE h8300_attribute_table
@@ -5764,7 +5893,16 @@ h8300_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 #undef TARGET_HARD_REGNO_SCRATCH_OK
 #define TARGET_HARD_REGNO_SCRATCH_OK h8300_hard_regno_scratch_ok
 
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P	h8300_legitimate_address_p
+
 #undef TARGET_DEFAULT_TARGET_FLAGS
 #define TARGET_DEFAULT_TARGET_FLAGS TARGET_DEFAULT
+
+#undef TARGET_CAN_ELIMINATE
+#define TARGET_CAN_ELIMINATE h8300_can_eliminate
+
+#undef TARGET_TRAMPOLINE_INIT
+#define TARGET_TRAMPOLINE_INIT h8300_trampoline_init
 
 struct gcc_target targetm = TARGET_INITIALIZER;

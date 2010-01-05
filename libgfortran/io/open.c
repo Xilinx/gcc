@@ -25,6 +25,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 #include "io.h"
+#include "fbuf.h"
+#include "unix.h"
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -775,7 +777,7 @@ st_open (st_parameter_open *opp)
     find_option (&opp->common, opp->status, opp->status_len,
 		 status_opt, "Bad STATUS parameter in OPEN statement");
 
-  /* First, we check whether the convert flag has been set via environment
+  /* First, we check wether the convert flag has been set via environment
      variable.  This overrides the convert tag in the open statement.  */
 
   conv = get_unformatted_convert (opp->common.unit);
@@ -814,7 +816,7 @@ st_open (st_parameter_open *opp)
 
   flags.convert = conv;
 
-  if (opp->common.unit < 0)
+  if (!(opp->common.flags & IOPARM_OPEN_HAS_NEWUNIT) && opp->common.unit < 0)
     generate_error (&opp->common, LIBERROR_BAD_OPTION,
 		    "Bad unit number in OPEN statement");
 
@@ -842,8 +844,13 @@ st_open (st_parameter_open *opp)
 
   if ((opp->common.flags & IOPARM_LIBRETURN_MASK) == IOPARM_LIBRETURN_OK)
     {
-      u = find_or_create_unit (opp->common.unit);
+      if ((opp->common.flags & IOPARM_OPEN_HAS_NEWUNIT))
+	{
+	  *opp->newunit = get_unique_unit_number(opp);
+	  opp->common.unit = *opp->newunit;
+	}
 
+      u = find_or_create_unit (opp->common.unit);
       if (u->s == NULL)
 	{
 	  u = new_unit (opp, u, &flags);

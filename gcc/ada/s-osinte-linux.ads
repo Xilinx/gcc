@@ -228,19 +228,6 @@ package System.OS_Interface is
    function To_Timespec (D : Duration) return timespec;
    pragma Inline (To_Timespec);
 
-   type struct_timeval is private;
-
-   function To_Duration (TV : struct_timeval) return Duration;
-   pragma Inline (To_Duration);
-
-   function To_Timeval (D : Duration) return struct_timeval;
-   pragma Inline (To_Timeval);
-
-   function gettimeofday
-     (tv : access struct_timeval;
-      tz : System.Address := System.Null_Address) return int;
-   pragma Import (C, gettimeofday, "gettimeofday");
-
    function sysconf (name : int) return long;
    pragma Import (C, sysconf);
 
@@ -464,6 +451,9 @@ package System.OS_Interface is
    function pthread_self return pthread_t;
    pragma Import (C, pthread_self, "pthread_self");
 
+   function lwp_self return System.Address;
+   pragma Import (C, lwp_self, "__gnat_lwp_self");
+
    --------------------------
    -- POSIX.1c  Section 17 --
    --------------------------
@@ -510,9 +500,9 @@ private
 
    pragma Warnings (Off);
    for struct_sigaction use record
-      sa_handler at                  0 range 0 .. Standard'Address_Size - 1;
-      sa_mask    at Linux.sa_mask_pos  range 0 .. 1023;
-      sa_flags   at Linux.sa_flags_pos range 0 .. Standard'Address_Size - 1;
+      sa_handler at Linux.sa_handler_pos range 0 .. Standard'Address_Size - 1;
+      sa_mask    at Linux.sa_mask_pos    range 0 .. 1023;
+      sa_flags   at Linux.sa_flags_pos   range 0 .. Standard'Address_Size - 1;
    end record;
    --  We intentionally leave sa_restorer unspecified and let the compiler
    --  append it after the last field, so disable corresponding warning.
@@ -527,12 +517,6 @@ private
       tv_nsec : long;
    end record;
    pragma Convention (C, timespec);
-
-   type struct_timeval is record
-      tv_sec  : time_t;
-      tv_usec : time_t;
-   end record;
-   pragma Convention (C, struct_timeval);
 
    type pthread_attr_t is record
       detachstate   : int;
