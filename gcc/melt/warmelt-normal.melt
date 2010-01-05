@@ -3399,17 +3399,34 @@ routine procedures.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (debug_msg recv "normexp_list recv")
-  (let ( (sloc (unsafe_get_field :loca_location recv))
+  (let ( (sloc (or (unsafe_get_field :loca_location recv) psloc))
 	 (sargs (unsafe_get_field :sargop_args recv))
 	 (csymrec (clone_symbol 'listrec_))
-	 (csymlis (clone_symbol 'list_))
+	 (csymlist (clone_symbol 'list_))
 	 (normdiscrpair (normal_predef discr_pair ncx sloc "discr_pair"))
 	 (normdiscrlist (normal_predef discr_pair ncx sloc "discr_list"))
 	 (:long nbargs (multiple_length sargs))
-	 (consbindtup (make_multiple discr_multiple (+i nbargs 1)))
+	 (consbindtup (list_to_multiple (prepare_constructor_binding recv csymlist ncx sloc)))
 	 (resbindings (make_list discr_list))
+	 (conslistbind (multiple_nth consbindtup -1))
+	 (tuprecloc (multiple_map
+		     consbindtup
+		     (lambda (curbind :long bindix)
+		       (debug_msg curbind "normexp_list curbind")
+		       (assert_msg "check curbind" (is_a curbind class_normal_constructor_binding))
+		       (instance class_nrep_locsymocc
+				 :nrep_loc (or  (get_field :nconsb_loc curbind) sloc)
+				 :nocc_ctyp ctype_value
+				 :nocc_symb (get_field :binder curbind)
+				 :nocc_bind curbind)
+		       )
+		     ))
 	 )
     (debug_msg csymrec "normexp_list csymrec")
+    (debug_msg consbindtup "normexp_list consbindtup")
+    (debug_msg conslistbind "normexp_list conslistbind")
+    (debug_msg tuprecloc "normexp_list tuprecloc")
+    (assert_msg "check conslistbind" (is_a conslistbind class_normal_constructed_list_binding))
     (multicall
      (nargs nbindings)
      (normalize_tuple sargs env ncx sloc)
@@ -3418,35 +3435,87 @@ routine procedures.}#
      (assert_msg "check nbindings" (is_list_or_null nbindings))
      (list_append2list resbindings nbindings)
      (letrec (
-	      (conslistbind (instance class_normal_constructed_list_binding
-				      :binder csymrec
-				      :nconsb_loc sloc
-				      :nconsb_discr normdiscrlist
-				      ))
 	      (creclocc (instance class_nrep_locsymocc
-				:nrep_loc sloc
-				:nocc_ctyp ctype_value
-				:nocc_symb csymrec
-				:nocc_bind conslistbind))
-	       (nbdy (tuple creclocc))
-	       (tup1loc (tuple creclocc))
-	       (nletrec (instance class_nrep_letrec
 				  :nrep_loc sloc
-				  :nlet_bindings consbindtup
-				  :nlet_body nbdy
-				  :nletrec_fill_bindings ()
-				  :nletrec_body_bindings ()
-				  :nletrec_locsyms tup1loc
-				  ))
+				  :nocc_ctyp ctype_value
+				  :nocc_symb csymrec
+				  :nocc_bind conslistbind))
+	      (nbdy (tuple creclocc))
+	      (nletrec (instance class_nrep_letrec
+				 :nrep_loc sloc
+				 :nlet_bindings consbindtup
+				 :nlet_body nbdy
+				 :nletrec_fill_bindings ()
+				 :nletrec_body_bindings ()
+				 :nletrec_locsyms tuprecloc
+				 ))
+	      (clistbind (instance class_normal_let_binding
+				   :binder csymlist
+				   :letbind_loc sloc
+				   :letbind_type ctype_value
+				   :letbind_expr nletrec))
+	      (clistlocc (instance class_nrep_locsymocc
+				   :nrep_loc sloc
+				   :nocc_ctyp ctype_value
+				   :nocc_symb csymlist
+				   :nocc_bind clistbind))
+	      (clistbindlist (list clistbind))
 	      )
 	     (foreach_in_multiple
 	      (nargs)
-	      (curarg :long ix)
-	     ))
-     (compile_warning "normexp_list incomplete")
-     (error_plain sloc "unimplemented LIST normalization")
-     (assert_msg "@$@unimplemented LIST" ())
-     )))
+	      (curnarg :long nix)
+	      (let ( (curpairb (multiple_nth consbindtup nix)) 
+		     (nextb (multiple_nth consbindtup (+i nix 1)))
+		     )
+		(put_int curpairb nix)
+		(debug_msg curnarg "normexp_list curnarg")
+		(debug_msg nextb "normexp_list nextb")
+		(assert_msg "check nextb" (is_a nextb class_normal_constructor_binding))
+		(let ( (nextsym (get_field :binder nextb))
+		       (nextloc (if (is_a nextb class_normal_constructed_pair_binding)
+				    (nreclist_find_locsym nextsym nletrec)))
+		       )
+		  (put_fields curpairb :npairb_head curnarg :npairb_tail nextloc)
+		  (debug_msg curpairb "normexp_list updated curpairb")
+		  )
+		(assert_msg "check curpairb" (is_a curpairb class_normal_constructed_pair_binding))
+		))
+	     ;;
+	     ;; update the list binding
+	     (let ( (firstpairb (multiple_nth consbindtup 0))
+		    (lastpairb (multiple_nth consbindtup -2))
+		    (firstpairsymb
+		     (if 
+			 (is_a firstpairb class_normal_constructed_pair_binding)
+			 (unsafe_get_field :binder firstpairb)))
+		    (lastpairsymb
+		     (if 
+			 (is_a lastpairb class_normal_constructed_pair_binding)
+			 (unsafe_get_field :binder lastpairb)))
+		    (firstpairloc 
+		     (if firstpairsymb  
+			 (nreclist_find_locsym firstpairsymb  nletrec)))
+		    (lastpairloc 
+		     (if lastpairsymb  
+			 (nreclist_find_locsym lastpairsymb  nletrec)))
+		   )
+	       (put_fields
+		conslistbind
+		:nlistb_first firstpairloc
+		:nlistb_last lastpairloc)
+	       (debug_msg conslistbind "normexp_list updated conslistbind")
+	       )
+	     ;;
+	     (if (null nbindings)
+		 (setq nbindings clistbindlist)
+	       (list_append nbindings clistbind)
+	       )
+	     (debug_msg nletrec "normexp_list final nletrec")
+	     (debug_msg clistlocc "normexp_list final clistlocc")
+	     (debug_msg nbindings "normexp_list final nbindings")
+	     (compile_warning "normexp_list is probably still buggy!!")
+	     (return clistlocc nbindings)
+	     ))))
 (install_method class_source_list normal_exp normexp_list)
 ;;;;;;;;;;;;;;;;
 

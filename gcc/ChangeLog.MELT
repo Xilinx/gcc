@@ -1,5 +1,14 @@
+2010-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{ttuplist.melt fails for lists... the generated pairs are not
+	assigned!}}
+	* melt/warmelt-normal.melt: Coded normexp_list which is probably
+	still buggy.
+	* melt/warmelt-genobj.melt: the field names for letrec should take
+	into account the rank of cloned symbols. Updated copyright year.
+	* testsuite/melt/ttuplist.melt: commented some code.
+
 2010-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt/warmelt-macro.melt: updated copyright year. Check that
+	* melt/warmelt-macro.melt: Updated copyright year. Check that
 	letrec body is non-empty.
 
 	* melt/warmelt-normal.melt: normexp_list still unimplemented.

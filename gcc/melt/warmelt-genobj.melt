@@ -1,7 +1,7 @@
 ;; File warmelt-genobj.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -3160,6 +3160,10 @@ $SBUF.}#
       (add2sbuf_longdec nambuf bindnum)
       (add2sbuf_strconst nambuf "__")
       (add2sbuf_cident nambuf (unsafe_get_field :named_name symb))
+      (if (is_a symb class_cloned_symbol)
+	  (progn
+	    (add2sbuf_strconst nambuf "_x")
+	    (add2sbuf_longdec nambuf (get_int (get_field :csym_urank symb)))))
       (let ( (iniclos (instance class_objinitclosure
 				:obv_type ctype_value
 				:oie_discr odiscr
@@ -3199,6 +3203,10 @@ $SBUF.}#
       (add2sbuf_longdec nambuf bindnum)
       (add2sbuf_strconst nambuf "__")
       (add2sbuf_cident nambuf (unsafe_get_field :named_name symb))
+      (if (is_a symb class_cloned_symbol)
+	  (progn
+	    (add2sbuf_strconst nambuf "_x")
+	    (add2sbuf_longdec nambuf (get_int (get_field :csym_urank symb)))))
       (let ( 
 	    (oloc (compile_obj locsymocc gcx))
 	    (tupval (make_multiple discr_multiple lentup))
@@ -3234,10 +3242,15 @@ $SBUF.}#
 	 (:long bindnum (get_int bind))
 	 (locsymocc (multiple_nth nlocsyms bindnum))
 	 )
+    (debug_msg locsymocc "compilobj_conspairbind locsymocc")
     (add2sbuf_strconst nambuf "rpair_")
     (add2sbuf_longdec nambuf bindnum)
     (add2sbuf_strconst nambuf "__")
     (add2sbuf_cident nambuf (unsafe_get_field :named_name symb))
+    (if (is_a symb class_cloned_symbol)
+	(progn
+	  (add2sbuf_strconst nambuf "_x")
+	  (add2sbuf_longdec nambuf (get_int (get_field :csym_urank symb)))))
     (let ( 
 	  (oloc (compile_obj locsymocc gcx))
 	  (inipair (instance class_objinitpair
