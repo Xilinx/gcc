@@ -3468,6 +3468,9 @@ routine procedures.}#
 		     (nextb (multiple_nth consbindtup (+i nix 1)))
 		     )
 		(put_int curpairb nix)
+		(debug_msg curpairb "normexp_list curpairb")
+		(assert_msg "check curpairb" (is_a curpairb class_normal_constructed_pair_binding))
+		(assert_msg "check curpairb objnum" (==i (get_int curpairb) nix))
 		(debug_msg curnarg "normexp_list curnarg")
 		(debug_msg nextb "normexp_list nextb")
 		(assert_msg "check nextb" (is_a nextb class_normal_constructor_binding))
@@ -3475,10 +3478,11 @@ routine procedures.}#
 		       (nextloc (if (is_a nextb class_normal_constructed_pair_binding)
 				    (nreclist_find_locsym nextsym nletrec)))
 		       )
-		  (put_fields curpairb :npairb_head curnarg :npairb_tail nextloc)
+		  (put_fields curpairb 
+			      :npairb_head curnarg :npairb_tail nextloc
+			      :nconsb_nletrec nletrec)
 		  (debug_msg curpairb "normexp_list updated curpairb")
 		  )
-		(assert_msg "check curpairb" (is_a curpairb class_normal_constructed_pair_binding))
 		))
 	     ;;
 	     ;; update the list binding
@@ -3501,8 +3505,9 @@ routine procedures.}#
 		   )
 	       (put_fields
 		conslistbind
-		:nlistb_first firstpairloc
-		:nlistb_last lastpairloc)
+		:nlistb_first firstpairloc :nlistb_last lastpairloc
+		:nconsb_nletrec nletrec)
+	       (put_int conslistbind nbargs)
 	       (debug_msg conslistbind "normexp_list updated conslistbind")
 	       )
 	     ;;

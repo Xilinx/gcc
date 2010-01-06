@@ -9,17 +9,17 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 
-#|
+
 (defun ftuple (x y z)
        (tuple x y (make_box discr_box z)))
 (debug_msg (ftuple 'xx 'yy 'zz) "test ftuple")
-|#
+
 
 (defun flist3 (x y z) (list x y z))
 (debug_msg (flist3 'xx 'yy 'zz) "test flist3")
 
-;(defun flistu (u v w)
-;       (list u (make_box discr_box v) (tuple u w)))
-;(debug_msg (flistu 'uu 'vv 'ww) "test flistu")
+(defun flistu (u v w)
+       (list u (make_box discr_box v) (tuple u w)))
+(debug_msg (flistu 'uu 'vv 'ww) "test flistu")
 
 ;;eof ttuplist.melt

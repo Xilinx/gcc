@@ -2,7 +2,7 @@
 ;; file warmelt-first.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -4779,12 +4779,17 @@ $FILENAM and $LINENO}#
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi)) 
 	 (binderv (unsafe_get_field :binder self))
+	 (:long bindnum (get_int self))
 	 ) 
     (add2out_indent out depth)
     (add2out_strconst out "[~")
     (add2out_string out (unsafe_get_field :named_name dis))
     (add2out_strconst out "/")
     (add2out_longhex out (obj_hash self))
+    (if bindnum 
+	(progn
+	  (add2out_strconst out "#")
+	  (add2out_longdec out bindnum)))
     (add2out_strconst out ":")
     (dbg_outputagain binderv dbgi (+i depth 2))
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))

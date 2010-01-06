@@ -1,7 +1,7 @@
 ;; file warmelt-outobj.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -2736,7 +2736,9 @@
     (output_location oloc implbuf depth "putpairhead")
     (add2sbuf_strconst implbuf "/*putpairhead*/")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "melt_assertmsg(\"putpairhead checkpair\", melt_magic_discr((melt_ptr_t)(")
+    (add2sbuf_strconst implbuf "melt_assertmsg(\"putpairhead /")
+    (add2sbuf_longhex implbuf (obj_hash oput))
+    (add2sbuf_strconst implbuf " checkpair\", melt_magic_discr((melt_ptr_t)(")
     (output_c_code opair declbuf implbuf depth)
     (add2sbuf_strconst implbuf "))== OBMAG_PAIR);")
     (add2sbuf_indentnl implbuf depth)
@@ -2759,7 +2761,9 @@
     (output_location oloc implbuf depth "putpairtail")
     (add2sbuf_strconst implbuf "/*putpairtail*/")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "melt_assertmsg(\"putpairtail checkpair\", melt_magic_discr((melt_ptr_t)(")
+    (add2sbuf_strconst implbuf "melt_assertmsg(\"putpairtail /")
+    (add2sbuf_longhex implbuf (obj_hash oput))
+    (add2sbuf_strconst implbuf " checkpair\", melt_magic_discr((melt_ptr_t)(")
     (output_c_code opair declbuf implbuf depth)
     (add2sbuf_strconst implbuf "))== OBMAG_PAIR);")
     (add2sbuf_indentnl implbuf depth)
