@@ -1,6 +1,6 @@
 /* Basile's static analysis (should have a better name) melt-runtime.c
    Middle End Lisp Translator = MELT
-   Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
    Indented with GNU indent 
 
@@ -4932,7 +4932,7 @@ meltgc_send (melt_ptr_t recv_p,
 {
   /* NAUGHTY TRICK here: message sending is very common, and we want
      to avoid having the current frame (the frame declared by the
-     B*ENTERFRAME macro call below) to be active when the application
+     MELT_ENTERFRAME macro call below) to be active when the application
      for the sending is performed. This should make our call frames'
      linked list shorter. To do so, we put the closure to apply and
      the reciever in the two variables below. Yes this is dirty, but
@@ -5161,7 +5161,7 @@ obstack_add_escaped_path(struct obstack* obs, const char* path)
     };
   return warn;
 }
-#endif  
+#endif
  
 
 
@@ -5175,8 +5175,8 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
 {
   /* The generated dynamic library should have the following
      constant strings:
-	     const char melt_compiled_timestamp[];
-	     const char melt_md5[];
+     const char melt_compiled_timestamp[];
+     const char melt_md5[];
 
      The melt_compiled_timestamp should contain a human readable
      timestamp the melt_md5 should contain the hexadecimal md5 digest,
@@ -5202,7 +5202,7 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
   debugeprintf ("compile_module_to_binary start srcfile %s binfile %s", srcfile, binfile);
   if (flag_melt_debug) {
     char* cwd = getcwd (pwdbuf, sizeof(pwdbuf)-1);
-    if (!cwd) 
+    if (!cwd)
       fatal_error("Melt: getcwd failed %m");
     debugeprintf ("compile_module_to_binary cwd %s", cwd);
   }
@@ -5229,7 +5229,6 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     ourmakecommand = melt_module_make_command;
   debugeprintf ("compile_module_to_binary ourmakecommand='%s'", ourmakecommand);
   gcc_assert (ourmakecommand[0]);
-  
   ourmakefile = melt_argument ("module-makefile");
   if (!ourmakefile || !ourmakefile[0])
     ourmakefile = melt_module_makefile;
@@ -5239,7 +5238,6 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
   ourcflags = melt_argument ("module-cflags");
   if (!ourcflags || !ourcflags[0]) ourcflags = getenv ("GCCMELT_MODULE_CFLAGS");
   if (!ourcflags || !ourcflags[0]) ourcflags = melt_module_cflags;
-  
   fflush (stdout);
   fflush (stderr);
 
@@ -5254,7 +5252,6 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     int err = 0;
     bool warnescapedchar = false;
     char *cmdstr = NULL;
-    
     struct obstack cmd_obstack;
     memset (&cmd_obstack, 0, sizeof(cmd_obstack));
     obstack_init (&cmd_obstack);
@@ -5262,20 +5259,16 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     /* add ourmakecommand without any quoting trickery! */
     obstack_grow0 (&cmd_obstack, ourmakecommand, strlen(ourmakecommand));
     obstack_1grow (&cmd_obstack, ' ');
-    
     /* silent make if not debugging */
     if (!flag_melt_debug)
       obstack_grow0 (&cmd_obstack, "-s ", 3);
-    
     /* add -f with spaces */
     obstack_grow0 (&cmd_obstack, "-f ", 3);
-
     /* add ourmakefile and escape with backslash every escaped chararacter */
     warnescapedchar = obstack_add_escaped_path (&cmd_obstack, ourmakefile);
     if (warnescapedchar)
       warning (0, "escaped character[s] in MELT module makefile %s", ourmakefile);
     obstack_1grow (&cmd_obstack, ' ');
-    
     /* add the source argument */
     obstack_grow0 (&cmd_obstack, SOURCE_MODULE_ARG, strlen (SOURCE_MODULE_ARG));
     warnescapedchar = obstack_add_escaped_path (&cmd_obstack, srcfile);
@@ -5291,7 +5284,7 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     obstack_1grow (&cmd_obstack, ' ');
 
     /* add the cflag argument if needed */
-    if (ourcflags && ourcflags[0]) 
+    if (ourcflags && ourcflags[0])
       {
 	/* don't warn about escapes for cflags, they contain spaces...*/
 	obstack_grow0 (&cmd_obstack, CFLAGS_ARG, strlen (CFLAGS_ARG));
@@ -5307,7 +5300,6 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
 	memset (&workstat, 0, sizeof(workstat));
 	if (stat (workdir, &workstat) || (!S_ISDIR (workstat.st_mode), (errno = ENOTDIR) != 0))
 	  fatal_error ("invalid MELT module workspace directory %s - %m", workdir);
-	  
 	obstack_grow0 (&cmd_obstack, WORKSPACE_ARG, strlen (WORKSPACE_ARG));
 	warnescapedchar = obstack_add_escaped_path (&cmd_obstack, workdir);
 	if (warnescapedchar)
@@ -5316,17 +5308,15 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
       }
     obstack_1grow (&cmd_obstack, (char) 0);
     cmdstr = XOBFINISH (&cmd_obstack, char *);
-
     debugeprintf("compile_module_to_binary cmdstr= %s", cmdstr);
-
     err = system (cmdstr);
     debugeprintf("compile_module_to_binary command got %d", err);
-    
-    if (err) 
+    if (err)
       fatal_error ("MELT module compilation failed for command %s", cmdstr);
     cmdstr = NULL;
     obstack_free (&cmd_obstack, NULL); /* free all the cmd_obstack */
     return;
+  }
 #else /* not MELT_IS_PLUGIN */
   {
     int argc = 0;
@@ -5343,9 +5333,7 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     memset (&ptime, 0, sizeof (ptime));
     /* compute the ourmakecommand */
     pex = pex_init (PEX_RECORD_TIMES, ourmakecommand, NULL);
-    
     argv[argc++] = ourmakecommand;
-    
     /* silent make if not debugging */
     if (!flag_melt_debug)
       argv[argc++] = "-s";
@@ -5353,7 +5341,6 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     /* the -f argument, and then the makefile */
     argv[argc++] = "-f";
     argv[argc++] = ourmakefile;
-      
     /* the source argument */
     srcarg = concat (SOURCE_MODULE_ARG, srcfile, NULL);
     argv[argc++] = srcarg;
@@ -5367,7 +5354,6 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
 	cflagsarg = concat (CFLAGS_ARG, ourcflags, NULL);
 	argv[argc++] = cflagsarg;
       }
-    
     /* add the workspace argument if needed, that is if workdir is
        provided not as '.' */
     if (workdir && workdir[0] && (workdir[0] != '.' || workdir[1]))
@@ -5379,7 +5365,6 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
 	workarg = concat (WORKSPACE_ARG, workdir, NULL);
 	argv[argc++] = workarg;
       }
-    
     argv[argc] = NULL;
     gcc_assert ((int) argc < (int) (sizeof(argv)/sizeof(*argv)));
     
@@ -5387,7 +5372,7 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
 		 ourmakecommand, ourmakefile, srcarg, binarg,
 		 workarg?workarg:"", cflagsarg?cflagsarg:"");
     errmsg =
-      pex_run (pex, PEX_LAST | PEX_SEARCH, ourmakecommand, 
+      pex_run (pex, PEX_LAST | PEX_SEARCH, ourmakecommand,
 	       CONST_CAST (char**, argv),
 	       NULL, NULL, &err);
     if (errmsg)
@@ -5406,9 +5391,9 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     free (srcarg);
     free (binarg);
     free (workarg);
+    debugeprintf ("compile_module_to_binary done srcfile %s binfile %s", srcfile, binfile);
   }
 #endif
-  debugeprintf ("compile_module_to_binary done srcfile %s binfile %s", srcfile, binfile);
 }
 
 
@@ -6126,7 +6111,6 @@ struct reading_st
   int rcol;			/* current column */
   source_location rsrcloc;	/* current source location */
   melt_ptr_t *rpfilnam;	/* pointer to location of file name string */
-  melt_ptr_t *rpgenv;	/* pointer to location of environment */
 };
 /* Obstack used for reading strings */
 static struct obstack bstring_obstack;
@@ -6147,13 +6131,13 @@ static struct obstack bstring_obstack;
 static melt_ptr_t readval (struct reading_st *rd, bool * pgot);
 
 enum commenthandling_en
-{ COMMENT_SKIP = 0, COMMENT_NO };
+  { COMMENT_SKIP, COMMENT_INFIX, COMMENT_NO };
 static int
 skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
 {
   int c = 0;
   int incomm = 0;
-readagain:
+ readagain:
   if (rdeof ())
     return EOF;
   if (!rd->rcurlin)
@@ -6163,7 +6147,7 @@ readagain:
   readline:
     {
       /* we expect most lines to fit into linbuf, so we don't handle
-         efficiently long lines */
+	 efficiently long lines */
       static char linbuf[400];
       char *mlin = 0;		/* partial mallocated line buffer when
 				   not fitting into linbuf */
@@ -6181,7 +6165,7 @@ readagain:
 	  if (!fgets (linbuf, sizeof (linbuf) - 2, rd->rfil))
 	    {
 	      /* reached eof, so either give mlin or duplicate an empty
-	         line */
+		 line */
 	      if (mlin)
 		rd->rcurlin = mlin;
 	      else
@@ -6220,7 +6204,7 @@ readagain:
       rd->rsrcloc =
 	linemap_line_start (line_table, rd->rlineno, strlen (linbuf) + 1);
       rd->rcol = 0;
-      if (comh == COMMENT_NO) 
+      if (comh == COMMENT_NO)
 	return rdcurc();
       goto readagain;
     }
@@ -6228,9 +6212,9 @@ readagain:
       is handled like #line, inspired by _cpp_do_file_change in
       libcpp/directives.c */
   else if (c == ';' && rdfollowc (1) == ';'
-	   && rdfollowc (2) == '#' && rdfollowc (3) == '#' 
+	   && rdfollowc (2) == '#' && rdfollowc (3) == '#'
 	   && comh == COMMENT_SKIP)
-    { 
+    {
       const struct line_map *map = 0;
       char *endp = 0;
       char *newpath = 0;
@@ -6241,8 +6225,9 @@ readagain:
       if (endp && *endp) newpath=endp;
       if (endp && newpath) endp += strlen(endp) - 1;
       while (newpath && ISSPACE(*endp)) endp--;
-      debugeprintf (";;## directive for line newlineno=%ld newpath=%s", newlineno, newpath);
-      if (newlineno>0 && newpath) 
+      debugeprintf (";;## directive for line newlineno=%ld newpath=%s",
+		    newlineno, newpath);
+      if (newlineno>0 && newpath)
 	{
 	  int ix= 0;
 	  char *curpath=0;
@@ -6250,10 +6235,10 @@ readagain:
 	     there */
 	  for (ix = 0;
 	       VEC_iterate (char_p, parsedmeltfilevect, ix, curpath);
-	       ix++) 
+	       ix++)
 	    {
 	      if (curpath && !strcmp(newpath, curpath))
-		  newpathdup = curpath;
+		newpathdup = curpath;
 	    }
 	  if (!newpathdup)
 	    {
@@ -6270,6 +6255,71 @@ readagain:
     }
   else if (c == ';' && comh == COMMENT_SKIP)
     goto readline;
+  /** In infix mode the comment //## <linenum> [<filename>]
+      is handled like #line, inspired by _cpp_do_file_change in
+      libcpp/directives.c */
+  else if (c == '/' && comh == COMMENT_INFIX && rdfollowc (1) == '/'
+	   && rdfollowc (2) == '#' && rdfollowc (3) == '#'
+	   )
+    {
+      const struct line_map *map = 0;
+      char *endp = 0;
+      char *newpath = 0;
+      char* newpathdup = 0;
+      long newlineno = strtol (&rdfollowc (4), &endp, 10);
+      /* take as filename from the first non-space to the last non-space */
+      while (endp && *endp && ISSPACE(*endp)) endp++;
+      if (endp && *endp) newpath=endp;
+      if (endp && newpath) endp += strlen(endp) - 1;
+      while (newpath && ISSPACE(*endp)) endp--;
+      debugeprintf (";;## directive for line newlineno=%ld newpath=%s",
+		    newlineno, newpath);
+      if (newlineno>0 && newpath)
+	{
+	  int ix= 0;
+	  char *curpath=0;
+	  /* find the newpath in the parsedmeltfilevect or push it
+	     there */
+	  for (ix = 0;
+	       VEC_iterate (char_p, parsedmeltfilevect, ix, curpath);
+	       ix++)
+	    {
+	      if (curpath && !strcmp(newpath, curpath))
+		newpathdup = curpath;
+	    }
+	  if (!newpathdup)
+	    {
+	      newpathdup = xstrdup (newpath);
+	      VEC_safe_push (char_p, heap, parsedmeltfilevect, newpathdup);
+	    }
+	  map = linemap_add(line_table, LC_RENAME_VERBATIM,
+			    false, newpathdup, newlineno);
+	}
+      else if (newlineno>0)
+	{
+	}
+      goto readline;
+    }
+  else if (c == '/' && comh == COMMENT_INFIX && rdfollowc (1) == '/')
+    /* monoline // comment syntax in infix mode */
+    goto readline;
+  else if (c == '/' && comh == COMMENT_INFIX && rdfollowc (1) == '*')
+    {
+      /* parse the multiline slash-star comment syntax in infix mode */
+      incomm = 1;
+      rdnext ();
+      c = rdcurc ();
+      goto readagain;
+    }
+  else if (incomm && comh == COMMENT_INFIX && c == '*' && rdfollowc (1) == '/')
+    {
+      /* end a multiline start-slash comment syntax in infix mode */
+      incomm = 0;
+      rdnext ();
+      rdnext ();
+      c = rdcurc ();
+      goto readagain;
+    }
   else if (c == '#' && comh == COMMENT_SKIP && rdfollowc (1) == '|')
     {
       incomm = 1;
@@ -6296,7 +6346,7 @@ readagain:
 }
 
 
-#define EXTRANAMECHARS "_+-*/<>=!?:%~&@$"
+#define EXTRANAMECHARS "_+-*/<>=!?:%~&@$|"
 /* read a simple name on the bname_obstack */
 static char *
 readsimplename (struct reading_st *rd)
@@ -6313,7 +6363,7 @@ readsimplename (struct reading_st *rd)
 }
 
 
-/* read an integer, like +123, which may also be +%numbername or +|fieldname */
+/* read an integer, like +123, which may also be +%numbername */
 static long
 readsimplelong (struct reading_st *rd)
 {
@@ -6439,12 +6489,13 @@ end:
 
 static melt_ptr_t
 makesexpr (struct reading_st *rd, int lineno, melt_ptr_t contents_p,
-	   location_t loc)
+	   location_t loc, bool ismacrostring)
 {
   MELT_ENTERFRAME (4, NULL);
 #define sexprv  curfram__.varptr[0]
 #define contsv   curfram__.varptr[1]
 #define locmixv curfram__.varptr[2]
+#define sexpclassv curfram__.varptr[3]
   contsv = contents_p;
   gcc_assert (melt_magic_discr ((melt_ptr_t) contsv) == OBMAG_LIST);
   if (loc == 0)
@@ -6453,7 +6504,12 @@ makesexpr (struct reading_st *rd, int lineno, melt_ptr_t contents_p,
   else
     locmixv = meltgc_new_mixloc ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_LOCATION),
 				    *rd->rpfilnam, (long) lineno, loc);
-  sexprv = meltgc_new_raw_object ((meltobject_ptr_t) MELT_PREDEF (CLASS_SEXPR), FSEXPR__LAST);
+  if (ismacrostring && (MELT_PREDEF (CLASS_SEXPR_MACROSTRING)))
+    sexpclassv = MELT_PREDEF (CLASS_SEXPR_MACROSTRING);
+  else
+    sexpclassv = MELT_PREDEF (CLASS_SEXPR);
+  sexprv = meltgc_new_raw_object ((meltobject_ptr_t) (sexpclassv),
+				  FSEXPR__LAST);
   ((meltobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_LOCATION] =
     (melt_ptr_t) locmixv;
   ((meltobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_CONTENTS] =
@@ -6464,6 +6520,7 @@ makesexpr (struct reading_st *rd, int lineno, melt_ptr_t contents_p,
 #undef sexprv
 #undef contsv
 #undef locmixv
+#undef sexpclassv
 }
 
 
@@ -6576,6 +6633,325 @@ end:;
 #undef nstrv
 #undef resv
 #undef obj_symbv
+}
+
+
+enum {MELT_INFIXREAD_MAGIC=0x69fd1769};
+
+struct infixreading_st {
+  int infr_magic; /* always MELT_INFIXREAD_MAGIC */
+  struct reading_st infr_reading;
+  struct infixreading_st* infr_prev;
+};
+static struct infixreading_st* curinfixr;
+
+void
+meltgc_open_infix_file (const char* filnam)
+{
+  struct infixreading_st* previnfix = curinfixr;
+  char* filnamdup = 0;
+  FILE* fil = 0;
+  MELT_ENTERFRAME (4, NULL);
+  gcc_assert (!previnfix || previnfix->infr_magic == MELT_INFIXREAD_MAGIC);
+  curinfixr = (struct infixreading_st*) xcalloc (sizeof(struct infixreading_st), 1);
+  memset (curinfixr, 0, sizeof(curinfixr));
+  filnamdup = xstrdup (filnam);
+  /* Store the filnamdup in the parsedmeltfilevect vector to be able
+     to free them at end; we need to duplicate filnam because
+     linemap_add store pointers to it. */
+  VEC_safe_push (char_p, heap, parsedmeltfilevect, filnamdup);
+  debugeprintf ("meltgc_open_infix_file filnamdup %s", filnamdup);
+  fil = fopen (filnamdup, "rt");
+  if (!fil)
+    fatal_error ("cannot open MELT infix file %s - %m", filnamdup);
+  /* warn if the filename has strange characters in its base name,
+     notably + */
+  {
+    const char* filbase = 0;
+    int warn = 0;
+    for (filbase = lbasename (filnamdup); *filbase; filbase++)
+      {
+	if (ISALNUM (*filbase) || *filbase=='-'
+	    || *filbase=='_' || *filbase=='.')
+	  continue;
+	warn = 1;
+      }
+    if (warn)
+      warning (0, "MELT infix file name %s has strange characters", filnamdup);
+  }
+  curinfixr->infr_magic = MELT_INFIXREAD_MAGIC;
+  curinfixr->infr_reading.rfil = fil;
+  curinfixr->infr_reading.rpath = filnamdup;
+  curinfixr->infr_reading.rlineno = 0;
+  linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
+  curinfixr->infr_prev = previnfix;
+  skipspace_getc (&curinfixr->infr_reading, COMMENT_INFIX);
+  MELT_EXITFRAME ();
+}
+
+
+static melt_ptr_t readstring (struct reading_st *rd);
+static melt_ptr_t readmacrostringsequence (struct reading_st *rd);
+
+
+melt_ptr_t
+meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimap_p)
+{
+  int c = 0;
+  struct reading_st *rd = 0;
+  int lineno = 0;
+  location_t loc = 0;
+  char* nam = 0;
+  char delimbuf[4] = {0};
+  MELT_ENTERFRAME (6, NULL);
+#define locnamv    curfram__.varptr[0]
+#define lexv       curfram__.varptr[1]
+#define delimapv   curfram__.varptr[2]
+#define readv      curfram__.varptr[3]
+#define locmixv    curfram__.varptr[4]
+  locnamv = locnam_p;
+  delimapv = delimap_p;
+  if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
+    melt_dbgshortbacktrace ("unexpected call to MELT infix_lexeme" ,
+			    100);
+    fatal_error ("MELT infix_lexeme called outside of infix parsing.");
+  }
+  if (melt_magic_discr ((melt_ptr_t) locnamv) != OBMAG_STRING)
+    locnamv = 0;
+  curinfixr->infr_reading.rpfilnam = (melt_ptr_t*) (&locnamv);
+  rd = &curinfixr->infr_reading;
+  c = skipspace_getc (rd, COMMENT_INFIX);
+  lineno = rd->rlineno;
+  LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+  /* return nil on EOF */
+  if (c < 0 || !rd->rfil || feof(rd->rfil))
+    goto end;
+  memset (delimbuf, 0, sizeof(delimbuf));
+  if (loc == 0)
+    locmixv = meltgc_new_mixint
+      ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_INTEGER),
+       (melt_ptr_t) locnamv, (long) lineno);
+  else
+    locmixv = meltgc_new_mixloc
+      ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_LOCATION),
+       (melt_ptr_t) locnamv, (long) lineno, loc);
+  if (ISDIGIT (c)
+      || ((c == '-' || c == '+')
+	  && (ISDIGIT (rdfollowc (1)) || rdfollowc (1) == '%'
+	      || rdfollowc (1) == '|')))
+    {
+      long num = 0;
+      gcc_assert (MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL) != 0);
+      num = readsimplelong (rd);
+      readv =
+	meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER),
+			   num);
+      lexv = meltgc_new_raw_object
+	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
+				    FSINFLEX__LAST);
+      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+	= (melt_ptr_t) locmixv;
+      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+	= (melt_ptr_t) readv;
+      meltgc_touch (lexv);
+      goto end;
+    }
+  else if (c== '"')
+    {
+      rdnext ();
+      gcc_assert (MELT_PREDEF (CLASS_INFIX_STRING_LITERAL) != 0);
+      readv = readstring (rd);
+      lexv = meltgc_new_raw_object
+	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_STRING_LITERAL),
+				    FSINFLEX__LAST);
+      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+	= (melt_ptr_t) locmixv;
+      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+	= (melt_ptr_t) readv;
+      meltgc_touch (lexv);
+      goto end;
+    }
+  else if (c=='#' && rdfollowc(1) == '\'') {
+    /* #'a is the character a */
+    rdnext ();
+    rdnext ();
+    c = rdcurc ();
+    if (ISPRINT (c)) {
+      readv =
+	meltgc_new_int
+	((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER),
+	 c);
+      lexv = meltgc_new_raw_object
+	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
+				    FSINFLEX__LAST);
+      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+	= (melt_ptr_t) locmixv;
+      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+	= (melt_ptr_t) readv;
+      meltgc_touch (lexv);
+      goto end;
+    }
+    else
+      READ_ERROR ("MELT INFIX: invalid character endoing #'%.20s", &rdcurc());
+  }
+  else if (c=='#' && rdfollowc(1) == '\\') {
+    /* #\n is the newline, etc */
+    long esc = 0;
+    switch (rdfollowc(2)) {
+    case 'a' : esc = '\a'; break;
+    case 'b' : esc = '\b'; break;
+    case 't' : esc = '\t'; break;
+    case 'n' : esc = '\n'; break;
+    case 'r' : esc = '\r'; break;
+    case 'v' : esc = '\v'; break;
+    case 'f' : esc = '\f'; break;
+    case '"' : esc = '\"'; break;
+    case '\'' : esc = '\''; break;
+    case '\\' : esc = '\\'; break;
+    case ' ' : esc = ' '; break;
+    default:
+      READ_ERROR ("MELT INFIX invalid char escape %.4s", &rdcurc ());
+    }
+    rdnext ();
+    rdnext ();
+      readv =
+	meltgc_new_int
+	((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER),
+	 c);
+      lexv = meltgc_new_raw_object
+	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
+				    FSINFLEX__LAST);
+      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+	= (melt_ptr_t) locmixv;
+      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+	= (melt_ptr_t) readv;
+      meltgc_touch (lexv);
+      goto end;
+  }
+  else if (c=='#' && rdfollowc(1) == '{') {
+    /* #{ starts a macrostring */
+    rdnext ();
+    rdnext ();
+    lexv = readmacrostringsequence (rd);
+    goto end;
+  }
+  /* two characters delimiters found in the map */
+  else if (ISPUNCT(c) && ISPUNCT(rdfollowc(1))
+	   && ((delimbuf[0]=c),(delimbuf[1]=rdfollowc(1)),
+	       (delimbuf[2]=(char)0),
+	       (readv = melt_get_mapstrings
+		((struct meltmapstrings_st*) delimapv, delimbuf)) != 0)) {
+      gcc_assert (MELT_PREDEF (CLASS_INFIX_DELIMITER) != 0);
+      rdnext ();
+      rdnext ();
+      lexv = meltgc_new_raw_object
+	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_DELIMITER),
+				    FSINFLEX__LAST);
+      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+	= (melt_ptr_t) locmixv;
+      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+	= (melt_ptr_t) readv;
+      meltgc_touch (lexv);
+      goto end;
+  }
+  /* single character delimiter found in the map */
+  else if (ISPUNCT(c) 
+	   && ((delimbuf[0]=c),(delimbuf[1]=(char)0),
+	       (readv = melt_get_mapstrings
+		((struct meltmapstrings_st*) delimapv, delimbuf)) != 0)) {
+      gcc_assert (MELT_PREDEF (CLASS_INFIX_DELIMITER) != 0);
+      rdnext ();
+      lexv = meltgc_new_raw_object
+	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_DELIMITER),
+				    FSINFLEX__LAST);
+      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+	= (melt_ptr_t) locmixv;
+      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+	= (melt_ptr_t) readv;
+      meltgc_touch (lexv);
+      goto end;
+  }
+  /* common macro to read symbols */
+#define READ_INFIX_SYMBOL(Claname,Nam,Readv,Lexv)			\
+      Nam = readsimplename (rd);					\
+      Readv = meltgc_named_symbol (Nam, MELT_CREATE);			\
+      gcc_assert (MELT_PREDEF (Claname) != 0);				\
+      Lexv = meltgc_new_raw_object					\
+	((meltobject_ptr_t)MELT_PREDEF (Claname),			\
+				    FSINFLEX__LAST);			\
+      ((meltobject_ptr_t) (Lexv))->obj_vartab[FSINFLEX_LOCATION]	\
+	= (melt_ptr_t) locmixv;						\
+      ((meltobject_ptr_t) (Lexv))->obj_vartab[FSINFLEX_DATA]		\
+	= (melt_ptr_t) Readv;						\
+      meltgc_touch (Lexv);
+
+  /* keywords start with a colon followed by a letter */
+  else if (c==':' && ISALPHA(rdfollowc(1))) {
+    rdnext ();
+    READ_INFIX_SYMBOL (CLASS_INFIX_KEYWORD,nam,readv,lexv);
+    goto end;
+  }
+  
+  else if (ISALPHA(c) || c=='_' || c=='$') {
+    READ_INFIX_SYMBOL (CLASS_INFIX_SYMBOL,nam,readv,lexv);
+    goto end;
+  }
+  else if (c=='+' || c=='-' || c=='|')   {
+    READ_INFIX_SYMBOL (CLASS_INFIX_ADDITIVE_SYMBOL,nam,readv,lexv);
+    goto end;
+  }
+  else if (c=='*' || c=='/' || c=='&' || c=='%')   {
+    READ_INFIX_SYMBOL (CLASS_INFIX_MULTIPLICATIVE_SYMBOL,nam,readv,lexv);
+    goto end;
+  }
+  else if (c=='<' || c=='>' || c=='=' || c=='!' || c=='~' || c=='@') {
+    READ_INFIX_SYMBOL (CLASS_INFIX_RELATIONAL_SYMBOL,nam,readv,lexv);
+      goto end;
+  }
+  else if (c=='\\' && rdfollowc(1)
+	   && (ISALPHA(rdfollowc(1))
+	       || strchr (EXTRANAMECHARS, rdfollowc(1)))) {
+    rdnext ();
+    READ_INFIX_SYMBOL (CLASS_INFIX_SYMBOL,nam,readv,lexv);
+    goto end;
+  }
+  else { /* lexical failure - we abort */
+    READ_ERROR ("MELT INFIX: lexical failure:: got %.20s", &rdcurc ());
+    goto end;
+  }
+end:
+  if (nam)
+    {
+      *nam = 0;
+      obstack_free (&bname_obstack, nam);
+    };
+  curinfixr->infr_reading.rpfilnam = 0;
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) lexv;
+#undef locnamv
+#undef lexv
+#undef delimapv
+#undef readv
+#undef locmixv
+#undef READ_INFIX_SYMBOL
+}
+
+void
+meltgc_close_infix_file (void)
+{
+  struct infixreading_st* previnfix = curinfixr;
+  MELT_ENTERFRAME (4, NULL);
+  if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
+    melt_dbgshortbacktrace ("unexpected call to MELT close_infix_file" ,
+			    100);
+    fatal_error ("MELT close_infix_file called outside of infix parsing.");
+  }
+  if (curinfixr->infr_reading.rfil)
+    fclose (curinfixr->infr_reading.rfil);
+  memset (curinfixr, 0, sizeof (struct infixreading_st));
+  free (curinfixr);
+  curinfixr = previnfix;
+  MELT_EXITFRAME ();
 }
 
 
@@ -6712,7 +7088,7 @@ readsexpr (struct reading_st *rd, int endc)
   c = skipspace_getc (rd, COMMENT_SKIP);
   LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
   contv = readseqlist (rd, endc);
-  sexprv = makesexpr (rd, lineno, (melt_ptr_t) contv, loc);
+  sexprv = makesexpr (rd, lineno, (melt_ptr_t) contv, loc, 0);
   MELT_EXITFRAME ();
   return (melt_ptr_t) sexprv;
 #undef sexprv
@@ -7003,7 +7379,7 @@ readmacrostringsequence (struct reading_st *rd)
       rdnext();
     }
   }
-  readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc);
+  readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 1);
   MELT_EXITFRAME ();
   return (melt_ptr_t) readv;
 #undef readv
@@ -7266,7 +7642,7 @@ readval (struct reading_st *rd, bool * pgot)
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
       LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
-      readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc);
+      readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
       *pgot = TRUE;
       goto end;
     }
@@ -7284,7 +7660,7 @@ readval (struct reading_st *rd, bool * pgot)
       altv = meltgc_named_symbol ("backquote", MELT_CREATE);
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-      readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc);
+      readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
       *pgot = TRUE;
       goto end;
     }
@@ -7301,7 +7677,7 @@ readval (struct reading_st *rd, bool * pgot)
       altv = meltgc_named_symbol ("comma", MELT_CREATE);
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-      readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc);
+      readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
       *pgot = TRUE;
       goto end;
     }
@@ -7318,7 +7694,7 @@ readval (struct reading_st *rd, bool * pgot)
       altv = meltgc_named_symbol ("question", MELT_CREATE);
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-      readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc);
+      readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
       *pgot = TRUE;
       goto end;
     }
@@ -7612,14 +7988,18 @@ meltgc_read_file (const char *filnam, const char *locnam)
   /* warn if the filename has strange characters in its base name,
      notably + */
   {
-    const char* filbase;
+    const char* filbase = 0;
+    int warn = 0;
     for (filbase = lbasename (filnamdup); *filbase; filbase++)
       {
 	if (ISALNUM (*filbase) || *filbase=='-'
 	    || *filbase=='_' || *filbase=='.')
 	  continue;
-	warning (0, "MELT file name %s has strange characters", filnamdup);
+	warn = 1;
       }
+    if (warn)
+	warning (0, "MELT file name %s has strange characters", filnamdup);
+
   }
   /*  debugeprintf ("starting loading file %s", filnamdup); */
   rds.rfil = fil;
@@ -7629,7 +8009,6 @@ meltgc_read_file (const char *filnam, const char *locnam)
   rd = &rds;
   locnamv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), locnam);
   rds.rpfilnam = (melt_ptr_t *) & locnamv;
-  rds.rpgenv = (melt_ptr_t *) & genv;
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   while (!rdeof ())
     {
@@ -7642,6 +8021,9 @@ meltgc_read_file (const char *filnam, const char *locnam)
 	READ_ERROR ("MELT: no value read %.20s", &rdcurc ());
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) valv);
     };
+  if (rds.rfil)
+    fclose (rds.rfil);
+  memset (&rds, 0, sizeof(rds));
   rd = 0;
 end:
   if (!seqv)
@@ -7687,7 +8069,6 @@ meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
     locnamv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), locnam);
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   rds.rpfilnam = (melt_ptr_t *) & locnamv;
-  rds.rpgenv = (melt_ptr_t *) & genv;
   while (rdcurc ())
     {
       bool got = FALSE;
@@ -7757,7 +8138,6 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
   rds.rcurlin = rbuf;
   rd = &rds;
   rds.rpfilnam = (melt_ptr_t *) & locnamv;
-  rds.rpgenv = (melt_ptr_t *) & genv;
   while (rdcurc ())
     {
       bool got = FALSE;

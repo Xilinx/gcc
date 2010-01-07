@@ -1,7 +1,7 @@
 ;; file warmelt-infixsyntax.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2009 Free Software Foundation, Inc.
+    Copyright 2009, 2010 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -34,6 +34,17 @@
 
 ;;****************************************************************
 
-(compile_warning "warmelt-infixsyntax.melt is empty")
+(defprimitive open_infix_file (:cstring filpath) :void
+#{meltgc_open_infix_file($filpath)}#)
+(defprimitive close_infix_file (:cstring filpath) :void
+#{meltgc_close_infix_file($filpath)}#)
+
+(defprimitive infix_lexeme (locnam delimap) :value
+  #{meltgc_infix_lexeme((melt_ptr_t)($locnam), (melt_ptr_t)($delimap))}#)
+
+(defun parse_infix_file (filnam)
+)
+
+(compile_warning "warmelt-infixsyntax.melt is incomplete")
 
 ;; eof warmelt-infixsyntax.melt

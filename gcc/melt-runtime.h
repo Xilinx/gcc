@@ -1,5 +1,5 @@
 /* Basile's static analysis (should have a better name) header melt-runtime.h
-   Copyright (C)  2008, 2009 Free Software Foundation, Inc.
+   Copyright (C)  2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
 This file is part of GCC.
@@ -2721,6 +2721,16 @@ melt_ptr_t meltgc_read_from_rawstring(const char* rawstr, const char* rawlocnam,
    used for locations */
 melt_ptr_t meltgc_read_from_val(melt_ptr_t strv_p, melt_ptr_t locnam_p);
 
+/***** low level routines for infix file parsing *****/
+/* open an infix filepath */
+void meltgc_open_infix_file (const char*filpath);
+/* close an infix file */
+void meltgc_close_infix_file (void);
+/* get a lexeme, giving the location file name value and the delimiter
+   hashtable */
+melt_ptr_t meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimtab_p);
+
+
 /* called from c-common.c in handle_melt_attribute */
 void melt_handle_melt_attribute(tree decl, tree name, const char* attrstr, location_t loch);
 
@@ -2851,6 +2861,13 @@ enum
   FSEXPR_CONTENTS,		/* the contents of the sexpression (as a list) */
   FSEXPR__LAST
 };
+
+/* fields inside an infix lexeme */
+enum
+  { FSINFLEX_LOCATION = FSEXPR_LOCATION,
+    FSINFLEX_DATA,
+    FSINFLEX__LAST
+  };
 
 /* fields inside the system data - keep in sync with the
    class_system_data definition in MELT file warmelt-first.melt;

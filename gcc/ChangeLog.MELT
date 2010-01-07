@@ -1,3 +1,39 @@
+2010-01-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{start adding alternative infix parser}}
+	* melt-predef.list: added CLASS_SEXPR_MACROSTRING, CLASS_INFIX_*
+	and updated copyright.
+
+	* melt-runtime.h (meltgc_open_infix_file, meltgc_open_infix_file)
+	(meltgc_close_infix_file, meltgc_infix_lexeme, FSINFLEX_LOCATION)
+	(FSINFLEX_DATA): added declarations.
+
+	* melt-runtime.c: removed some useless spaces.
+	(meltgc_open_infix_file, meltgc_open_infix_file)
+	(meltgc_close_infix_file, meltgc_infix_lexeme): added new
+	functions.
+	(commenthandling_en): added COMMENT_INFIX.
+	(skipspace_getc): handled COMMENT_INFIX.
+	(EXTRANAMECHARS): added |
+	(struct reading_st): removed rpgenv unused field.
+	(makesexpr): got an extra ismacrostring argument.
+	(MELT_INFIXREAD_MAGIC, struct infixreading_st, curinfixr): added
+	declarations.
+	(readsexpr, readmacrostringsequence, readval): added argument to
+	makesexpr calls.
+	(meltgc_read_file, meltgc_read_from_rawstring)
+	(meltgc_read_from_val): warn only once for a strange file name and
+	don't set rpgenv field in reading_st.
+
+	* melt/warmelt-first.melt: added class_sexpr_macrostring
+	class_infix_lexeme class_infix_string_literal
+	class_infix_integer_literal class_infix_symbol
+	class_infix_additive_symbol class_infix_multiplicative_symbol
+	class_infix_relational_symbol class_infix_delimiter
+	class_infix_keyword & lexeme_data field.
+
+	* melt/warmelt-infixsyntax.melt: added open_infix_file,
+	close_infix_file, infix_lexeme primitives.
+
 2010-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{ttuplist.melt test ok!}}
 	* melt/warmelt-first.melt: Updated copyright year. debugprinting
