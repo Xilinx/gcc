@@ -1,3 +1,16 @@
+2010-01-07  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (build_tm_load): Do not error on unsupported
+	builtins.
+	(build_tm_store): Same.
+	(expand_assign_tm): Call tm_memmove on unsupported load/store
+	builtins.
+	(expand_call_tm): Instrument stores embedded in a call if
+	appropriate.
+
+	* testsuite/gcc.dg/tm/memopt-6.c: Remove unimplemented message.
+	Check for implementation of aggregate instrumentation.
+
 2009-12-21  Aldy Hernandez  <aldyh@redhat.com>
 
 	* gimple-pretty-print.c (dump_gimple_call): Handle PR_READONLY.

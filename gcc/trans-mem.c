@@ -1762,7 +1762,9 @@ transaction_subcode_ior (struct tm_region *region, unsigned flags)
     }
 }
 
-/* Construct a memory load in a transactional context.  */
+/* Construct a memory load in a transactional context.  Return the
+   gimple statement performing the load, or NULL if there is no
+   TM_LOAD builtin of the appropriate size to do the load.  */
 
 static gimple
 build_tm_load (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
@@ -1798,10 +1800,7 @@ build_tm_load (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
     }
 
   if (code == END_BUILTINS)
-    {
-      sorry ("transactional load for %T not supported", type);
-      code = BUILT_IN_TM_LOAD_4;
-    }
+    return NULL;
 
   t = gimplify_addr (gsi, rhs);
   gcall = gimple_build_call (built_in_decls[code], 1, t);
@@ -1866,10 +1865,7 @@ build_tm_store (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
     }
 
   if (code == END_BUILTINS)
-    {
-      sorry ("transactional store for %T not supported", type);
-      code = BUILT_IN_TM_STORE_4;
-    }
+    return NULL;
 
   fn = built_in_decls[code];
   simple_type = TREE_VALUE (TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (fn))));
@@ -1905,7 +1901,7 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
   tree rhs = gimple_assign_rhs1 (stmt);
   bool store_p = requires_barrier (region->entry_block, lhs, NULL);
   bool load_p = requires_barrier (region->entry_block, rhs, NULL);
-  gimple gcall;
+  gimple gcall = NULL;
 
   if (!load_p && !store_p)
     {
@@ -1917,9 +1913,22 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
 
   gsi_remove (gsi, true);
 
-  if (load_p && store_p)
+  if (load_p && !store_p)
     {
-      transaction_subcode_ior (region, GTMA_HAVE_LOAD | GTMA_HAVE_STORE);
+      transaction_subcode_ior (region, GTMA_HAVE_LOAD);
+      gcall = build_tm_load (lhs, rhs, gsi);
+    }
+  else if (store_p && !load_p)
+    {
+      transaction_subcode_ior (region, GTMA_HAVE_STORE);
+      gcall = build_tm_store (lhs, rhs, gsi);
+    }
+  if (!gcall)
+    {
+      if (load_p)
+	transaction_subcode_ior (region, GTMA_HAVE_LOAD);
+      if (store_p)
+	transaction_subcode_ior (region, GTMA_HAVE_STORE);
 
       /* ??? Figure out if there's any possible overlap between the LHS
 	 and the RHS and if not, use MEMCPY.  */
@@ -1928,16 +1937,6 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
 				 build_fold_addr_expr (rhs),
 				 TYPE_SIZE_UNIT (TREE_TYPE (lhs)));
       gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
-    }
-  else if (load_p)
-    {
-      transaction_subcode_ior (region, GTMA_HAVE_LOAD);
-      gcall = build_tm_load (lhs, rhs, gsi);
-    }
-  else
-    {
-      transaction_subcode_ior (region, GTMA_HAVE_STORE);
-      gcall = build_tm_store (lhs, rhs, gsi);
     }
 
   /* Now that we have the load/store in its instrumented form, add
@@ -2003,8 +2002,19 @@ expand_call_tm (struct tm_region *region,
       return true;
     }
 
-  if (lhs)
-    (void) requires_barrier (region->entry_block, lhs, stmt);
+  /* Instrument the LHS load if needed.  */
+  if (lhs && requires_barrier (region->entry_block, lhs, stmt))
+    {
+      tree tmp = make_rename_temp (TREE_TYPE (lhs), NULL);
+
+      gimple_call_set_lhs (stmt, tmp);
+      update_stmt (stmt);
+      stmt = gimple_build_assign (lhs, tmp);
+      gsi_insert_after (gsi, stmt, GSI_CONTINUE_LINKING);
+      expand_assign_tm (region, gsi);
+
+      transaction_subcode_ior (region, GTMA_HAVE_STORE);
+    }
 
   return retval;
 }

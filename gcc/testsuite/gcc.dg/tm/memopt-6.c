@@ -6,13 +6,15 @@ struct large bark();
 extern int test (void) __attribute__((transaction_safe));
 struct large lacopy;
 
-int f() /* { dg-message "unimplemented: transactional load" } */
+int f()
 {
   int i = readint();
   struct large lala = bark();
   __transaction {
     lala.x[55] = 666;
-    lala = lacopy;
+    lala = lacopy;		/* Aggregate instrumentation.  */
   }
   return lala.x[i];
 }
+
+/* { dg-final { scan-tree-dump-times "memmoveRtWt \\\(&lala, &lacopy" 1 "tmedge" } } */
