@@ -1,3 +1,16 @@
+2010-01-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{merged with trunk rev 155725, and minor additions}}
+
+	* melt-runtime.c: removed useless trailing spaces.
+
+	* melt/warmelt-infixsyntax.melt: added more, notably
+	class_infix_parser, class_infix_delimiter some delimiters and our
+	backtrackable getlex & peeklex functions. Still very incomplete.
+
+	* melt/warmelt-outobj.melt: added the translate_macroexpanded_list
+	function to ease factoring out the common translation between
+	infix & lisp syntaxes.
+
 2010-01-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{start adding alternative infix parser}}
 	* melt-predef.list: added CLASS_SEXPR_MACROSTRING, CLASS_INFIX_*

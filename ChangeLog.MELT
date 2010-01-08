@@ -1,4 +1,9 @@
 
+2010-01-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
+        MELT branch merged with trunk rev 155725
+	{{also coded a bit the infix parser in gcc/melt/ etc..}}
+
 2010-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
         MELT branch merged with trunk rev 155603

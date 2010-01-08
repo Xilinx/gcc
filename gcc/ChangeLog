@@ -1,3 +1,320 @@
+2010-01-07  Richard Guenther  <rguenther@suse.de>
+
+	* gimple.h (gss_for_code): Wrap gcc_assert in ENABLE_CHECKING.
+	(gimple_op): Likewise.
+	(gimple_op_ptr): Likewise.
+	(gimple_assign_set_lhs): Remove gcc_assert.
+	(gimple_assign_set_rhs1): Likewise.
+	(gimple_assign_set_rhs2): Likewise.
+	(gimple_call_set_lhs): Likewise.
+	(gimple_call_set_fn): Likewise.
+	(gimple_call_set_fndecl): Likewise.
+	(gimple_call_fndecl): Likewise.
+	(gimple_call_return_type): Likewise.
+	(gimple_call_set_chain): Likewise.
+	(gimple_call_num_args): Likewise.
+	(gimple_call_set_arg): Likewise.
+	(gimple_cond_set_code): Likewise.
+	(gimple_cond_set_lhs): Likewise.
+	(gimple_cond_set_rhs): Likewise.
+	(gimple_cond_set_true_label): Likewise.
+	(gimple_cond_set_false_label): Likewise.
+	(gimple_label_set_label): Likewise.
+	(gimple_goto_set_dest): Likewise.
+	(gimple_debug_bind_get_var): Wrap gcc_assert in ENABLE_CHECKING.
+	(gimple_debug_bind_get_value): Likewise.
+	(gimple_debug_bind_get_value_ptr): Likewise.
+	(gimple_debug_bind_set_var): Likewise.
+	(gimple_debug_bind_set_value): Likewise.
+	(gimple_debug_bind_reset_value): Likewise.
+	(gimple_debug_bind_has_value_p): Likewise.
+	(gimple_return_retval_ptr): Remove gcc_assert.
+	(gimple_return_retval): Likewise.
+	(gimple_return_set_retval): Likewise.
+	* tree-flow.h (struct gimple_df): Remove nonlocal_all member.
+	(safe_referenced_var_iterator): Remove.
+	(FOR_EACH_REFERENCED_VAR_SAFE): Likewise.
+	* tree-flow-inline.h (gimple_nonlocal_all): Remove.
+	(fill_referenced_var_vec): Remove.
+	(first_readonly_imm_use): Remove redundant gcc_assert.
+	(phi_arg_index_from_use): Combine gcc_asserts.
+	(move_use_after_head): Wrap gcc_assert in ENABLE_CHECKING.
+	(first_imm_use_stmt): Remove redundant gcc_assert.
+	* tree-cfg.c (verify_gimple_call): Verify function and chain
+	operands.  Verify arguments.
+	(verify_types_in_gimple_stmt): Verify condition code and labels.
+
+2010-01-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42641
+	* sese.c (rename_map_elt_info): Use the SSA name version, do
+	not hash pointers.
+
+2010-01-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/42625
+	* cgraph.c (cgraph_make_node_local): Clear DECL_COMDAT*,
+	TREE_PUBLIC, DECL_WEAK and DECL_EXTERNAL also for same_body
+	aliases.
+
+2010-01-07  Duncan Sands  <baldrick@free.fr>
+
+	* Makefile.in (PLUGIN_HEADERS): Add version.h.
+
+2010-01-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/42511
+	* ifcvt.c (dead_or_predicable): Also remove REG_EQUAL note when
+	note itself is not function_invariant_p.
+
+2009-01-07  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* gcse.c (execute_rtl_cprop, execute_rtl_pre, execute_rtl_hoist):
+	Do not add the DF_NOTE problem.
+	* store-motion.c (execute_rtl_store_motion): Likewise.
+
+2010-01-07  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42157
+	* tree-sra.c (compare_access_positions): Stabilize sort if both
+	accesses have integer types, return zero immediately if they are the
+	same.
+
+2010-01-06  Richard Henderson  <rth@redhat.com>
+
+	PR middle-end/41883
+	* haifa-sched.c (add_to_note_list): Merge into ...
+	(concat_note_lists): ... here, and ...
+	(unlink_other_notes, rm_other_notes): Merge into...
+	(remove_notes): ... here.  Create REG_SAVE_NOTEs for
+	NOTE_INSN_EPILOGUE_BEG.  
+
+2010-01-06  Richard Guenther  <rguenther@suse.de>
+
+	* ipa-inline.c (cgraph_decide_inlining_incrementally): Do
+	not inline regular functions into always-inline functions.
+
+2010-01-06  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.h (enum rx_cpu_type): Add RX200.
+	(CC1_SPEC): Issue an error message if -mcpu=rx200 and -fpu are
+	used together.
+	(OVERRIDE_OPTIONS): Delete.
+	(OPTIMIZATION_OPTIONS): Define.
+	(ALLOW_RX_FPU_INSNS): Define only in terms of -fpu option.
+	* config/rx/rx.c (rx_handle_option): Issue an error message if
+	-mcpu=rx200 and -fpu are used together.
+	(rx_set_optimization_options): New function.  Issue an error
+	message if an optimization attribute attempts to reset the FPU/
+	math optimization pairing.
+	* config/rx/rx-protos.h (rx_set_optimization_options): Prototype.
+	* config/rx/rx.opt: Set the default to 32-bit doubles.
+	* config/rx/t-rx: Add multilibs for -nofpu option.
+	* doc/invoke.texi: Update documentation of RX options.
+
+2010-01-06  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-pre.c (name_to_id): New global.
+	(alloc_expression_id): Simplify SSA name handling.
+	(lookup_expression_id): Likewise.
+	(init_pre): Zero name_to_id.
+	(fini_pre): Free it.
+
+2010-01-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* ifcvt.c (if_convert): Output slim multiple dumps with TDF_SLIM.
+
+2010-01-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/42542
+	* config/i386/sse.md (smaxv2di3): New.
+	(umaxv2di3): Likewise.
+	(sminv2di3): Likewise.
+	(uminv2di3): Likewise.
+
+2010-01-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/42564
+	* config/sparc/sparc.h (SPARC_SYMBOL_REF_TLS_P): Delete.
+	* config/sparc/sparc-protos.h (legitimize_pic_address): Likewise.
+	(legitimize_tls_address): Likewise.
+	(sparc_tls_referenced_p): Likewise.
+	* config/sparc/sparc.c (sparc_expand_move): Use legitimize_tls_address
+	and adjust calls to legitimize_pic_address.
+	(legitimate_constant_p) Use sparc_tls_referenced_p.
+	(legitimate_pic_operand_p): Likewise.
+	(sparc_legitimate_address_p): Do not use SPARC_SYMBOL_REF_TLS_P.
+	(sparc_tls_symbol_ref_1): Delete.
+	(sparc_tls_referenced_p): Make static, recognize specific patterns.
+	(legitimize_tls_address): Make static, handle CONST patterns.
+	(legitimize_pic_address): Make static, remove unused parameter and
+	adjust recursive calls.
+	(sparc_legitimize_address): Make static, use sparc_tls_referenced_p
+	and adjust call to legitimize_pic_address.
+	(sparc_output_mi_thunk): Likewise.
+
+2010-01-05  Paolo Bonzini  <bonzini@gnu.rg>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/42542
+	* config/i386/i386.c (ix86_expand_int_vcond): Convert GTU to GT
+	for V4SI and V2DI by subtracting (-(INT MAX) - 1) from both
+	operands to make them signed.
+
+	Revert:
+	2010-01-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/42542
+	* config/i386/i386.c (ix86_expand_int_vcond): Don't convert
+	GTU to GT for V4SI and V2DI.
+
+	* config/i386/sse.md (umaxv4si3): Enabled for SSE4.1 and XOP.
+	(umin<mode>3): Removed.
+	(uminv8hi3): New.
+	(uminv4si3): Likewise.
+
+2010-01-05  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42462
+	* ipa-inline.c (compute_inline_parameters): Pass node->decl instead of
+	current_function_decl to helper functions and macros.
+
+2010-01-05  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR bootstrap/41771
+	* flags.h: Don't include real.h.
+	(HONOR_NANS, HONOR_SNANS, HONOR_INFINITIES, HONOR_SIGNED_ZEROS,
+	HONOR_SIGN_DEPENDENT_ROUNDING): Move ...
+	* real.h (HONOR_NANS, HONOR_SNANS, HONOR_INFINITIES,
+	HONOR_SIGNED_ZEROS, HONOR_SIGN_DEPENDENT_ROUNDING): ... here.
+	* dominance.c: Update copyright.
+	* gimple.c (walk_gimple_op): Remove inline.
+	* tree-ssa-reassoc.c: Include real.h.
+	* Makefile.in (FLAGS_H): Remove $(REAL_H).
+	(tree-ssa-reassoc.o): Depend on $(REAL_H).
+
+2010-01-05  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.c (rx_get_stack_layout): Fix allocation of second
+	register to push into the stack frame when the accumulator has to
+	be saved during interrupts.
+
+2010-01-05  Eric Fisher  <joefoxreal@gmail.com>
+
+	* doc/invoke.texi: Remove the documentation about option
+	-Wunreachable-code.
+	* common.opt (Wunreachable-code):  Preserved for backward
+	compatibility.
+	* tree-cfg.c: Remove the implementation of -Wunreachable-code.
+	* opts.c (common_handle_option): Add OPT_Wunreachable_code to
+	the backward compatibility flag section.
+
+2010-01-05  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-pre.c (bitmap_value_insert_into_set): Optimize.
+
+2010-01-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR other/42611
+	* cfgexpand.c (expand_one_var): Diagnose too large variables.
+
+	PR tree-optimization/42508
+	* tree-sra.c (convert_callers): Check for recursive call
+	by comparing cgraph nodes instead of decls.
+	(modify_function): Call ipa_modify_formal_parameters also
+	on all same_body aliases.
+
+	* cgraphunit.c (cgraph_materialize_all_clones): Compare
+	cgraph nodes when checking for same_body aliases.
+
+2010-01-05  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-pre.c (get_or_alloc_expr_for_name): Avoid redundant
+	allocation and lookup.
+	(get_or_alloc_expr_for_constant): Likewise.
+	(phi_translate): Sink allocation.
+
+2010-01-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-sccvn.c (get_or_alloc_constant_value_id): Allocate
+	a new entry only if needed.
+	* tree-ssa-dom.c (lookup_avail_expr): Likewise.
+	* tree-ssa-coalesce.c (find_coalesce_pair): Avoid one
+	hashtable lookup.
+	* tree-ssa-pre.c (sorted_array_from_bitmap_set): Pre-allocate
+	the result array.
+	(phi_translate): Handle CONSTANTs early.
+
+2010-01-04  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42398
+	* tree-sra.c (struct access): Removed flag grp_different_types.
+	(dump_access): Do not dump the removed flag.
+	(sort_and_splice_var_accesses): Do not set the removed flag.
+	(sra_modify_expr): Check for type compatibility directly.
+
+2010-01-04  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42366
+	* ipa-cp.c (ipcp_init_stage): Always call ipa_compute_jump_functions on
+	edges with variable number of parameters.
+	* ipa-prop.c (ipa_write_node_info): Stream out uses_analysis_done
+	flag instead of asserting it.
+	(ipa_read_node_info): Read uses_analysis_done flag.
+
+2010-01-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-sccvn.c (vn_reference_op_compute_hash): Use
+	iterative_hash_* as intended.
+	(vn_reference_compute_hash): Likewise.  Simplify hashing
+	SSA names.
+	(vn_reference_lookup_2): Likewise.
+	(vn_nary_op_compute_hash): Likewise.
+	(vn_phi_compute_hash): Likewise.
+	(expressions_equal_p): Remove strange code.
+	* tree-ssa-pre.c (pre_expr_eq): Use gcc_unreachable ().
+	(pre_expr_hash): Likewise.  Simplify hashing SSA names.
+	(bitmap_insert_into_set_1): Take value-id as parameter.
+	(add_to_value): Pass it.
+	(bitmap_insert_into_set): Likewise.
+	(bitmap_value_insert_into_set): Likewise.  Remove redundant check.
+
+2010-01-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR driver/42442
+	* gcc.c (SWITCH_IGNORE_PERMANENTLY): Define.
+	(do_self_spec): For switches with SWITCH_IGNORE set set also
+	SWITCH_IGNORE_PERMANENTLY.
+	(check_live_switch): Check SWITCH_IGNORE_PERMANENTLY instead
+	of SWITCH_IGNORE.
+
+2010-01-04  Rafael Avila de Espindola  <espindola@google.com>
+
+	* lto-streamer-out.c (output_unreferenced_globals): Output the full
+	tree of an unreferenced global var.
+
+2010-01-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/42542
+	* config/i386/i386.c (ix86_expand_int_vcond): Don't convert
+	GTU to GT for V4SI and V2DI.
+
+	* config/i386/sse.md (umaxv4si3): Enabled for SSE4.1 and XOP.
+	(umin<mode>3): Removed.
+	(uminv8hi3): New.
+	(uminv4si3): Likewise.
+
+2010-01-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR lto/42581
+	* collect2.c (main): Turn on trace in collect2 if -v is passed
+	to gcc with LTO.
+
+2010-01-03  Jerry Quinn  <jlquinn@optonline.net>
+
+	* doc/c-tree.texi (RETURN_STMT): Change to RETURN_EXPR.  Update
+	description of expression operand.
+
 2010-01-03  Andrew Jenner  <andrew@codesourcery.com>
 
 	* configure.ac: Add install-html to target_list for Make-hooks.
@@ -90,7 +407,7 @@
 	* config/sparc/sparc.c: Fix formatting nits.
 
 2010-01-02  Gerald Pfeifer  <gerald@pfeifer.com>
-            Alexander Monakov  <amonakov@ispras.ru>
+	    Alexander Monakov  <amonakov@ispras.ru>
 
 	* doc/invoke.texi (Optimize Options): Reword introduction a bit.
 
@@ -108,65 +425,6 @@
 	* collect2.c (scan_libraries): Add missing argument in call to
 	scan_prog_file.
 
-2010-01-02  Uros Bizjak  <ubizjak@gmail.com>
-
-	PR target/42448
-	* config/alpha/predicates.md (aligned_memory_operand): Return false
-	for CQImode.
-	(unaligned_memory_operand): Return true for CQImode.
-	* config/alpha/alpha.c (get_aligned_mem): Assert that location
-	doesn not cross aligned SImode word boundary.
-
-2010-01-02  Anatoly Sokolov  <aesok@post.ru>
-
-	* config/avr/avr.h (REG_OK_FOR_BASE_P, REG_OK_FOR_INDEX_P, XEXP_):
-	Remove.
-	* config/avr/avr-protos.h (avr_init_once, avr_optimization_options,
-	avr_change_section, avr_reg_class_from_letter) : Remove declaration.
-
-2010-01-02  Richard Guenther  <rguenther@suse.de>
-
-	PR lto/41597
-	* toplev.c (compile_file): Emit LTO marker properly.  Change
-	it to __gnu_lto_v1.
-	* collect2.c (scan_prog_file): Adjust for changed LTO marker.
-
-2010-01-01  Richard Guenther  <rguenther@suse.de>
-
-	PR debug/42455
-	* tree-sra.c (analyze_all_variable_accesses): Work in DECL_UID order.
-
-2010-01-01  Richard Guenther  <rguenther@suse.de>
-
-	PR c/42570
-	* c-decl.c (grokdeclarator): For zero-size arrays force
-	structural equality checks as layout_type does.
-
-2010-01-01  H.J. Lu  <hongjiu.lu@intel.com>
-
-	* builtins.c: Update copyright to 2010.
-
-2010-01-01  H.J. Lu  <hongjiu.lu@intel.com>
-
-	PR lto/42531
-	* lto-streamer-out.c (produce_asm): Revert the last change.
-	(copy_function): Likewise.
-
-	* lto-streamer.c (lto_get_section_name): Skip any leading
-	asterisk in name.
-
-2010-01-01  Richard Guenther  <rguenther@suse.de>
-
-	PR middle-end/42559
-	* builtins.c (get_object_alignment): Do not use DECL_ALIGN
-	for LABEL_DECLs.
-
-
-Copyright (C) 2010 Free Software Foundation, Inc.
-
-Copying and distribution of this file, with or without modification,
-are permitted in any medium without royalty provided the copyright
-notice and this notice are preserved.
 2010-01-02  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/42448

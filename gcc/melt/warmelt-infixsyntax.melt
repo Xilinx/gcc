@@ -42,8 +42,145 @@
 (defprimitive infix_lexeme (locnam delimap) :value
   #{meltgc_infix_lexeme((melt_ptr_t)($locnam), (melt_ptr_t)($delimap))}#)
 
-(defun parse_infix_file (filnam)
+(defclass class_infix_parser
+  :super class_named
+  :doc #{The $CLASS_INFIX_PARSER is an internal class for infix
+  parsing. $IFXP_FILNAM is the parsed file name, $IFXP_ENV is the topmost
+  parsing environment, $IFXP_DELIMAP is the delimiter string map,
+  $IFXP_TOKENLIST is the lexical token list.}#
+  :fields (ifxp_filnam
+	   ifxp_env
+	   ifxp_delimap
+	   ifxp_tokenlist
+	   ))
+
+
+;; peek the next (or (N+1)-th next) lexeme but don't consume it
+(defun peeklex (ipars :long n)
+  (assert_msg "check ipars" (is_a ipars class_infix_parser))
+  (assert_msg "check n" (>=i n 0))
+  (let ( (toklist (unsafe_get_field :ifxp_tokenlist ipars)) 
+	 (:long nbtok (list_length toklist))
+	 )
+    (assert_msg "check toklist" (is_list toklist))
+    (forever getlexloop
+	     (if (>=i nbtok n) 
+		 (exit getlexloop))
+	     (let ( (newtok 
+		     (infix_lexeme (unsafe_get_field :ifxp_filnam ipars)
+				   (unsafe_get_field :ifxp_delimap ipars)))
+		    )
+	       (list_append toklist newtok)
+	       (setq nbtok (+i nbtok 1))
+	     ))
+    (cond ( (==i n 0)
+	    (pair_head (list_first toklist)))
+	  ( (==i n 1)
+	    (pair_head (pair_tail (list_first toklist))))
+	  (:else
+	   (let ( (:long cnt 0) )
+	     (foreach_in_list
+	      (toklist)
+	      (curpair curtok)
+	      (if (>=i cnt n)
+		  (return curtok))
+	      (setq cnt (+i cnt 1))
+	      ))))))
+  
+
+;; return the next lexeme and consume it
+(defun getlex (ipars)
+  (assert_msg "check ipars" (is_a ipars class_infix_parser))
+  (let ( (toklist (unsafe_get_field :ifxp_tokenlist ipars)) 
+	 (token (list_popfirst toklist))
+	 )
+    (if (null token)
+	(let ( (peektok  (peeklex ipars 0))
+	       (poptok (list_popfirst toklist))
+	       )
+	  (assert_msg "check peektop=potok" (== peektok poptok))
+	  (setq token poptok)
+	  (debug_msg token "getlex returns parsed token")
+	  )
+      (debug_msg token "getlex returns buffered token")
+      )
+    (return token)
+  ))
+
+(defclass class_infix_delimiter
+  :super class_named
+  :fields (idelim_string)
+  :doc #{The $CLASS_INFIX_DELIMITER is an internal class for infix delimiters.
+  $IDELIM_STRING is the delimiter.}#
 )
+
+(definstance idelim_leftparen class_infix_delimiter
+  :named_name '"idelim_LEFTPAREN"
+  :idelim_string '"(")
+
+(definstance idelim_rightparen class_infix_delimiter
+  :named_name '"idelim_RIGHTPAREN"
+  :idelim_string '")")
+
+(definstance idelim_leftbrace class_infix_delimiter
+  :named_name '"idelim_LEFTBRACE"
+  :idelim_string '"{")
+
+(definstance idelim_rightbrace class_infix_delimiter
+  :named_name '"idelim_RIGHTBRACE"
+  :idelim_string '"}")
+
+
+(definstance idelim_comma class_infix_delimiter
+  :named_name '"idelim_COMMA"
+  :idelim_string '",")
+
+(definstance idelim_semicolon class_infix_delimiter
+  :named_name '"idelim_SEMICOLON"
+  :idelim_string '";")
+
+(definstance idelim_equal class_infix_delimiter
+  :named_name '"idelim_EQUAL"
+  :idelim_string '"=")
+
+(defun parse_infix_file (filnam env)
+  (debug_msg filnam "parse_infix_file start filnam")
+  (assert_msg "check filnam" (is_string filnam))
+  (assert_msg "check env" (is_a env class_environment))
+  (let (
+	(iparsnam (let ( (buf (make_strbuf discr_strbuf)) )
+		    (add2sbuf_strconst buf "infpars.")
+		    (add2sbuf_string buf filnam)
+		    (strbuf2string discr_string buf)))
+	(delimap  (make_mapstring discr_map_strings 31))
+	(toklist (make_list discr_list))
+	(iparser (instance class_named
+			   :named_name iparsnam
+			   :ifxp_filnam filnam
+			   :ifxp_env env
+			   :ifxp_delimap delimap
+			   :ifxp_tokenlist toklist))
+	)
+    ;; install all our delimiters
+    (foreach_in_multiple
+     ((tuple idelim_leftparen idelim_rightparen
+	    idelim_leftbrace idelim_rightbrace
+	    idelim_comma idelim_semicolon
+	    idelim_equal
+	    ))
+     (idel :long dix)
+     (assert_msg "check idel" (is_a idel class_infix_delimiter))
+     (let ( (idelstr (unsafe_get_field :idelim_string idel)) 
+	    (:long idelstrlen (string_length idelstr))
+	    )
+       (assert_msg "check idelstr" (is_string idelstr))
+       (assert_msg "check idelstrlen" (and
+					(>i idelstrlen 0)
+					(<=i idelstrlen 2)))
+       (mapstring_putstr delimap idelstr idel)))
+    ;;
+    (assert_msg "@$@unimplemented parse_infix_file" ())
+))
 
 (compile_warning "warmelt-infixsyntax.melt is incomplete")
 

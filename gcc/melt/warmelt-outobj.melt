@@ -3313,6 +3313,182 @@
       (return newfile)
   )))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; utility function to translate a macroexpanded list
+(defun translate_macroexpanded_list (xlist modnamstr modctx ncx)
+  (assert_msg "check xlist" (is_list xlist))
+  (assert_msg "check modnamstr" (is_string modnamstr))
+  (assert_msg "check modctx" (is_a modctx class_module_context))
+  (assert_msg "check ncx" (is_a ncx class_normalization_context))
+  (let (
+	(inienv (unsafe_get_field :mocx_initialenv modctx))
+	(firstx (pair_head (list_first xlist)))
+	(firstloc (if (is_a firstx class_source) (unsafe_get_field :loca_location firstx)))
+	(iniproc (unsafe_get_field :nctx_initproc ncx))
+	(declbuf (make_strbuf discr_strbuf))
+	(implbuf (make_strbuf discr_strbuf)) 
+	;; make an update_current_module_environment at the very beginning
+	(ucmeb1 (instance class_source_update_current_module_environment_container
+			  :loca_location firstloc
+			  :sucme_comment '"at very start"
+			  ))
+	)
+    (if (== inienv initial_environment)
+	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 0")
+      (add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 1")
+      )
+    (add2sbuf_indentnl declbuf 0)
+    (list_prepend xlist ucmeb1)
+    (debug_msg xlist "after macroexpansion compile_list_sexpr seq")
+    (debug_msg inienv "after macroexpansion compile_list_sexpr inienv")
+    (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
+    (assert_msg "check xlist" (is_list xlist))
+    ;;
+    (list_every
+     xlist
+     (lambda (sexp :long ix)
+       (debug_msg sexp "compile_list_sexpr sexp")
+       (let (
+	     (psloc (if (is_a sexp class_located) (unsafe_get_field :loca_location sexp)))
+	     )
+	 ;; special hack to handle toplevel comment specially; the generated comment goes into the declbuf
+	 ;; practically useful to copy a copyright notice into the generated C code
+	 (if (is_a sexp class_source_comment)
+	     (let ( (sloc (unsafe_get_field :loca_location sexp))
+		    (scomm (unsafe_get_field :scomm_str sexp)) 
+		    )
+	       (add2sbuf_indentnl declbuf 0)
+	       (add2sbuf_strconst declbuf "/**!!** ")
+	       (add2sbuf_ccomstring declbuf scomm)
+	       (add2sbuf_strconst declbuf "**!!**/")
+	       (add2sbuf_indentnl declbuf 0)
+	       )
+;;; otherwise, normalize etc.
+	   (multicall 
+	    (nexp nbind)
+	    (normal_exp sexp inienv ncx psloc)	    
+	    (debug_msg nexp "compile_list_sexpr nexp")    
+	    (debug_msg nbind "compile_list_sexpr nbind")
+	    (if (and (is_a nexp class_nrep)
+		     (not (is_a nexp class_nrep_anyproc)))
+		(let ( (wnexp (wrap_normal_let1 nexp nbind psloc)) )
+		  (debug_msg wnexp "compile_list_sexpr wnexp")
+		  (list_append (unsafe_get_field :ninit_topl iniproc) 
+			       wnexp)
+		  )))))))
+    ;;
+    (code_chunk 
+     check_errors_after_normalization
+     #{ 
+     if (melt_error_counter>0) 
+     fatal_error ("MELT translation of %s halted after normalization: got %ld MELT errors", melt_string_str($modnamstr), melt_error_counter) ;
+     }#)
+    (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
+	   (objlist (make_list discr_list))
+	   (compicache (make_mapobject discr_map_objects (+i 10 (*i 20 (list_length xlist)))))
+	   (countbox (make_integerbox discr_integer 0))
+	   ) 
+      (debug_msg prolist "compile_list_sexpr prolist")  
+      (assert_msg "check prolist" (is_list prolist))
+      (list_every
+       prolist
+       (lambda (pro)
+	 (assert_msg "check pro" (is_a pro class_nrep_anyproc))
+	 (debug_msg pro "compile_list_sexpr pro")
+	 (put_int countbox (+i (get_int countbox) 1))
+	 (let ( (objpro (compile2obj_procedure pro modctx compicache (get_int countbox))) )
+	   (debug_msg objpro "compile_list_sexpr objpro")
+	   (debug_msg pro "compile_list_sexpr done pro")
+	   (list_append objlist objpro)
+	   ;;(debug_msg compicache "compile_list_sexpr compicache")
+	   )))
+      ;;
+      (code_chunk 
+       check_errors_after_compilation
+       #{ 
+       if (melt_error_counter>0) 
+       fatal_error ("MELT translation of %s halted after MELT compilation: got %ld MELT errors",  melt_string_str($modnamstr), melt_error_counter) ;
+       }#)
+      ;;
+      (debug_msg objlist "compile_list_sexpr objlist")  
+      (assert_msg "check objlist" (is_list objlist))
+      (let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
+	     (inidata (unsafe_get_field :nctx_datalist ncx))
+	     (importvalues (unsafe_get_field :nctx_valuelist ncx))
+	     (procurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
+	     )
+	(assert_msg "check inipro" (is_a inipro class_nrep_initproc))
+	(debug_msg procurmodenvlist "compile_list_sexpr procurmodenvlist")
+	(let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist importvalues)) )
+	  (debug_msg iniobj "compile_list_sexpr iniobj")
+	  (outnum_err "** warmelt generated " (list_length objlist) " routines into ")
+	  (outstr_err modnamstr)
+	  (outnewline_err)
+	  (outcstring_err "** from ")
+	  (out_cplugin_compiled_timestamp_err)
+	  (outnewline_err)
+	  (outcstring_err "** of checksum ")
+	  (out_cplugin_md5_checksum_err)
+	  (outnewline_err)
+;;;
+	  (foreach_in_list
+	   (objlist)
+	   (pairel obel)
+	   (debug_msg obel "compile_list_sexpr obel")
+	   ;; we may want to generate several C files...
+	   (compile_warning "the generation of secondary files don't work yet")
+	   (let ( (:long filnum
+			 (if (is_a obel class_procroutineobj)
+			     (get_int (get_field :oprout_filenum obel))))
+		  (secfil 
+		   (if filnum (nth_secundary_file modctx modnamstr declbuf filnum)))
+		  (outimplbuf 
+		   (if secfil (get_field :secfil_implbuf secfil) implbuf))
+		  )
+	     (output_c_code obel declbuf outimplbuf 0)))
+;;;
+	  (debug_msg modnamstr "compile_list_sexpr final modnamstr") 
+	  (debug_msg iniobj "compile_list_sexpr outputting iniobj")
+	  (output_c_code iniobj declbuf implbuf 0)
+	  (output_exported_offsets modctx declbuf implbuf)
+	  (code_chunk outputcfile
+		      #{ /* $outputcfile: */
+		      melt_output_cfile_decl_impl((melt_ptr_t)($modnamstr),
+						  (melt_ptr_t)($declbuf),
+						  (melt_ptr_t)($implbuf)) ;
+		      }#)
+					;(informsg_strv "warmelt generated module C file" modnamstr)
+	  (if (not (wants_single_c_file))
+	      (let ( (secfiles (get_field :mocx_filetuple modctx)) )
+		(debug_msg secfiles "compile_list_sexpr secfiles")
+		(foreach_in_multiple
+		 (secfiles)
+		 (curfil :long filix)
+		 (debug_msg curfil "compile_list_sexpr curfil")
+		 (if curfil
+		     (progn
+		       (assert_msg "check curfil" 
+				   (is_a curfil class_secondary_c_file))
+		       (assert_msg "check curfil index" 
+				   (==i (get_int curfil) filix))
+		       (let ( (secfilpath (get_field :secfil_path curfil))
+			      (secdeclbuf (get_field :secfil_declbuf curfil))
+			      (secimplbuf (get_field :secfil_implbuf curfil))
+			      )
+			 (code_chunk 
+			  secfilout 
+			  #{ /* $secfilout */
+			  melt_output_cfile_decl_impl_secondary((melt_ptr_t)($secfilpath),
+								(melt_ptr_t)($secdeclbuf),
+								(melt_ptr_t)($secimplbuf),
+								$filix) ;
+			  }#)
+					;(informsg_strv "warmelt generated secondary C file" secfilpath)
+			 ))
+		   ))))))))
+  )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compile a list of sexpressions as a module starting from a given environment
 (defun compile_list_sexpr (lsexp inienv modnamstr)
@@ -3332,174 +3508,14 @@
 			  :mocx_funcount (make_integerbox discr_integer 0)
 			  :mocx_filetuple ()
 			  ))
-	(ncx (create_normcontext modctx)) )
+	(ncx (create_normcontext modctx)) 
+	)
     (debug_msg ncx "compile_list_sexpr initial ncx")
     (assert_msg "check ncx" (is_a ncx class_normalization_context))
     (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
-	   (firstx (pair_head (list_first xlist)))
-	   (firstloc (if (is_a firstx class_source) (unsafe_get_field :loca_location firstx)))
-	   (iniproc (unsafe_get_field :nctx_initproc ncx))
-	   (declbuf (make_strbuf discr_strbuf))
-	   (implbuf (make_strbuf discr_strbuf)) 
-	   ;; make an update_current_module_environment at the very beginning
-	   (ucmeb1 (instance class_source_update_current_module_environment_container
-			     :loca_location firstloc
-			     :sucme_comment '"at very start"
-			     ))
 	   )
-      (if (== inienv initial_environment)
-	  (add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 0")
-	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 1")
-	)
-      (add2sbuf_indentnl declbuf 0)
-      (list_prepend xlist ucmeb1)
-      (debug_msg xlist "after macroexpansion compile_list_sexpr seq")
-      (debug_msg inienv "after macroexpansion compile_list_sexpr inienv")
-      (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
-      (assert_msg "check xlist" (is_list xlist))
-      ;;
-      (list_every
-       xlist
-       (lambda (sexp :long ix)
-	 (debug_msg sexp "compile_list_sexpr sexp")
-	 (let (
-	       (psloc (if (is_a sexp class_located) (unsafe_get_field :loca_location sexp)))
-	       )
-	   ;; special hack to handle toplevel comment specially; the generated comment goes into the declbuf
-	   ;; practically useful to copy a copyright notice into the generated C code
-	   (if (is_a sexp class_source_comment)
-	       (let ( (sloc (unsafe_get_field :loca_location sexp))
-		      (scomm (unsafe_get_field :scomm_str sexp)) 
-		      )
-		 (add2sbuf_indentnl declbuf 0)
-		 (add2sbuf_strconst declbuf "/**!!** ")
-		 (add2sbuf_ccomstring declbuf scomm)
-		 (add2sbuf_strconst declbuf "**!!**/")
-		 (add2sbuf_indentnl declbuf 0)
-		 )
-;;; otherwise, normalize etc.
-	     (multicall 
-	      (nexp nbind)
-	      (normal_exp sexp inienv ncx psloc)	    
-	      (debug_msg nexp "compile_list_sexpr nexp")    
-	      (debug_msg nbind "compile_list_sexpr nbind")
-	      (if (and (is_a nexp class_nrep)
-		       (not (is_a nexp class_nrep_anyproc)))
-		  (let ( (wnexp (wrap_normal_let1 nexp nbind psloc)) )
-		    (debug_msg wnexp "compile_list_sexpr wnexp")
-		    (list_append (unsafe_get_field :ninit_topl iniproc) 
-				 wnexp)
-		    )))))))
-      ;;
-      (code_chunk 
-         check_errors_after_normalization
-	 #{ 
-	 if (melt_error_counter>0) 
-	    fatal_error ("MELT translation of %s halted after normalization: got %ld MELT errors", melt_string_str($modnamstr), melt_error_counter);
-	 }#)
-      (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
-	     (objlist (make_list discr_list))
-	     (compicache (make_mapobject discr_map_objects (+i 10 (*i 20 (list_length xlist)))))
-	     (countbox (make_integerbox discr_integer 0))
-	     ) 
-	(debug_msg prolist "compile_list_sexpr prolist")  
-	(assert_msg "check prolist" (is_list prolist))
-	(list_every
-	 prolist
-	 (lambda (pro)
-	   (assert_msg "check pro" (is_a pro class_nrep_anyproc))
-	   (debug_msg pro "compile_list_sexpr pro")
-	   (put_int countbox (+i (get_int countbox) 1))
-	   (let ( (objpro (compile2obj_procedure pro modctx compicache (get_int countbox))) )
-	     (debug_msg objpro "compile_list_sexpr objpro")
-	     (debug_msg pro "compile_list_sexpr done pro")
-	     (list_append objlist objpro)
-	     ;;(debug_msg compicache "compile_list_sexpr compicache")
-	     )))
-	;;
-      (code_chunk 
-         check_errors_after_compilation
-	 #{ 
-	 if (melt_error_counter>0) 
-	    fatal_error ("MELT translation of %s halted after MELT compilation: got %ld MELT errors",  melt_string_str($modnamstr), melt_error_counter);
-	 }#)
-      ;;
-	(debug_msg objlist "compile_list_sexpr objlist")  
-	(assert_msg "check objlist" (is_list objlist))
-	(let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
-	       (inidata (unsafe_get_field :nctx_datalist ncx))
-	       (importvalues (unsafe_get_field :nctx_valuelist ncx))
-	       (procurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
-	       )
-	  (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
-	  (debug_msg procurmodenvlist "compile_list_sexpr procurmodenvlist")
-	  (let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist importvalues)) )
-	    (debug_msg iniobj "compile_list_sexpr iniobj")
-	    (outnum_err "** warmelt generated " (list_length objlist) " routines into ")
-	    (outstr_err modnamstr)
-	    (outnewline_err)
-	    (outcstring_err "** from ")
-	    (out_cplugin_compiled_timestamp_err)
-	    (outnewline_err)
-	    (outcstring_err "** of checksum ")
-	    (out_cplugin_md5_checksum_err)
-	    (outnewline_err)
-;;;
-	    (foreach_in_list
-	     (objlist)
-	     (pairel obel)
-	     (debug_msg obel "compile_list_sexpr obel")
-	     ;; we may want to generate several C files...
-	     (compile_warning "the generation of secondary files don't work yet")
-	     (let ( (:long filnum
-			   (if (is_a obel class_procroutineobj)
-			       (get_int (get_field :oprout_filenum obel))))
-		    (secfil 
-		     (if filnum (nth_secundary_file modctx modnamstr declbuf filnum)))
-		    (outimplbuf 
-		     (if secfil (get_field :secfil_implbuf secfil) implbuf))
-		    )
-	       (output_c_code obel declbuf outimplbuf 0)))
-;;;
-	    (debug_msg modnamstr "compile_list_sexpr final modnamstr") 
-	    (debug_msg iniobj "compile_list_sexpr outputting iniobj")
-	    (output_c_code iniobj declbuf implbuf 0)
-	    (output_exported_offsets modctx declbuf implbuf)
-	    (code_chunk outputcfile
-			#{ /* $outputcfile: */
-			melt_output_cfile_decl_impl((melt_ptr_t)($modnamstr),
-						    (melt_ptr_t)($declbuf),
-						    (melt_ptr_t)($implbuf)) ;
-			}#)
-	    ;(informsg_strv "warmelt generated module C file" modnamstr)
-	    (if (not (wants_single_c_file))
-		(let ( (secfiles (get_field :mocx_filetuple modctx)) )
-		  (debug_msg secfiles "compile_list_sexpr secfiles")
-		  (foreach_in_multiple
-		   (secfiles)
-		   (curfil :long filix)
-		   (debug_msg curfil "compile_list_sexpr curfil")
-		   (if curfil
-		       (progn
-			 (assert_msg "check curfil" 
-				     (is_a curfil class_secondary_c_file))
-			 (assert_msg "check curfil index" 
-				     (==i (get_int curfil) filix))
-			 (let ( (secfilpath (get_field :secfil_path curfil))
-				(secdeclbuf (get_field :secfil_declbuf curfil))
-				(secimplbuf (get_field :secfil_implbuf curfil))
-				)
-			   (code_chunk 
-			    secfilout 
-			    #{ /* $secfilout */
-			    melt_output_cfile_decl_impl_secondary((melt_ptr_t)($secfilpath),
-							(melt_ptr_t)($secdeclbuf),
-							(melt_ptr_t)($secimplbuf),
-							$filix) ;
-			    }#)
-			   ;(informsg_strv "warmelt generated secondary C file" secfilpath)
-			   ))
-		     )))))))))
+      (translate_macroexpanded_list xlist modnamstr modctx ncx)
+))
 	;;
       (code_chunk 
          check_errors_after_generation

@@ -1,8 +1,8 @@
-/* Basile's static analysis (should have a better name) melt-runtime.c
+/*** file melt-runtime.c
    Middle End Lisp Translator = MELT
    Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
-   Indented with GNU indent 
+   Indented with GNU indent.
 
 This file is part of GCC.
 
@@ -18,8 +18,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.   If not see
-<http://www.gnu.org/licenses/>.   
-  */
+<http://www.gnu.org/licenses/>.
+***/
 
 /* for debugging -fmelt-debug is useful */
 
@@ -53,17 +53,17 @@ along with GCC; see the file COPYING3.   If not see
 
 
 #include "ggc.h"
-#include "cgraph.h" 
-#include "diagnostic.h" 
-#include "flags.h" 
+#include "cgraph.h"
+#include "diagnostic.h"
+#include "flags.h"
 #include "toplev.h"
 #include "options.h"
-#include "params.h" 
-#include "real.h" 
-#include "prefix.h" 
-#include "md5.h" 
-#include "plugin.h" 
-#include "cppdefault.h" 
+#include "params.h"
+#include "real.h"
+#include "prefix.h"
+#include "md5.h"
+#include "plugin.h"
+#include "cppdefault.h"
 
 /* some system or library headers needed to MELT */
 #include <dirent.h>
@@ -161,14 +161,13 @@ DEF_VEC_ALLOC_O (melt_module_info_t, heap);
 
 static VEC (melt_module_info_t, heap) *modinfvec = 0;
 
-struct callframe_melt_st* melt_topframe; 
+struct callframe_melt_st* melt_topframe;
 struct meltlocalsptr_st* melt_localtab;
 
 
 /** special values are linked in a list to permit their explicit deletion */
 struct meltspecial_st* melt_newspeclist;
 struct meltspecial_st* melt_oldspeclist;
-					 
 unsigned long melt_kilowords_sincefull;
 /* number of full & any melt garbage collections */
 unsigned long melt_nb_full_garbcoll;
@@ -180,11 +179,9 @@ long melt_dbgcounter;
 long melt_debugskipcount;
 
 long melt_error_counter;
-				      
 
 /* an strdup-ed version string of gcc */
 char* melt_gccversionstr;
-				      
 
 int melt_last_global_ix = MELTGLOB__LASTGLOB;
 
@@ -192,7 +189,6 @@ int melt_last_global_ix = MELTGLOB__LASTGLOB;
    scan, a la Cheney.  */
 static GTY(()) VEC(melt_ptr_t,gc) *bscanvec;
 
-				  
 
 static void* proghandle;
 
@@ -202,14 +198,13 @@ typedef char *char_p;
 DEF_VEC_P (char_p);
 DEF_VEC_ALLOC_P (char_p, heap);
 static VEC (char_p, heap)* parsedmeltfilevect;
-							   
 /* *INDENT-ON* */
 
 /* to code case ALL_OBMAG_SPECIAL_CASES: */
 #define ALL_OBMAG_SPECIAL_CASES			\
          OBMAG_SPEC_FILE:			\
     case OBMAG_SPEC_RAWFILE:			\
-    case OBMAG_SPECPPL_COEFFICIENT:   		\
+    case OBMAG_SPECPPL_COEFFICIENT:             \
     case OBMAG_SPECPPL_LINEAR_EXPRESSION:	\
     case OBMAG_SPECPPL_CONSTRAINT:		\
     case OBMAG_SPECPPL_CONSTRAINT_SYSTEM:	\
@@ -233,9 +228,9 @@ melt_argument(const char* argname)
   int argix=0;
   if (!argname || !argname[0])
     return NULL;
-  for (argix = 0; argix < melt_plugin_argc; argix ++) 
+  for (argix = 0; argix < melt_plugin_argc; argix ++)
     {
-      if (!strcmp(argname, melt_plugin_argv[argix].key)) 
+      if (!strcmp(argname, melt_plugin_argv[argix].key))
 	{
 	  char* val = melt_plugin_argv[argix].value;
 	  /* never return NULL if the argument is found; return an

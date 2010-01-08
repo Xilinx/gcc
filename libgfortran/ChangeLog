@@ -1,3 +1,7 @@
+2010-01-05  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure: Regenerate.
+
 2010-01-03  Janne Blomqvist  <jb@gcc.gnu.org>
 
 	PR libfortran/42420
@@ -12,3 +16,9 @@
 	(inquire_direct): Likewise.
 	(inquire_formatted): Likewise.
 
+
+Copyright (C) 2010 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

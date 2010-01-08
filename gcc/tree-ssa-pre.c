@@ -204,7 +204,7 @@ pre_expr_eq (const void *p1, const void *p2)
       return vn_reference_eq (PRE_EXPR_REFERENCE (e1),
 			      PRE_EXPR_REFERENCE (e2));
     default:
-      abort();
+      gcc_unreachable ();
     }
 }
 
@@ -217,13 +217,13 @@ pre_expr_hash (const void *p1)
     case CONSTANT:
       return vn_hash_constant_with_type (PRE_EXPR_CONSTANT (e));
     case NAME:
-      return iterative_hash_hashval_t (SSA_NAME_VERSION (PRE_EXPR_NAME (e)), 0);
+      return SSA_NAME_VERSION (PRE_EXPR_NAME (e));
     case NARY:
       return PRE_EXPR_NARY (e)->hashcode;
     case REFERENCE:
       return PRE_EXPR_REFERENCE (e)->hashcode;
     default:
-      abort ();
+      gcc_unreachable ();
     }
 }
 
@@ -236,6 +236,7 @@ DEF_VEC_P (pre_expr);
 DEF_VEC_ALLOC_P (pre_expr, heap);
 static VEC(pre_expr, heap) *expressions;
 static htab_t expression_to_id;
+static VEC(unsigned, heap) *name_to_id;
 
 /* Allocate an expression id for EXPR.  */
 
@@ -247,9 +248,23 @@ alloc_expression_id (pre_expr expr)
   gcc_assert (next_expression_id + 1 > next_expression_id);
   expr->id = next_expression_id++;
   VEC_safe_push (pre_expr, heap, expressions, expr);
-  slot = htab_find_slot (expression_to_id, expr, INSERT);
-  gcc_assert (!*slot);
-  *slot = expr;
+  if (expr->kind == NAME)
+    {
+      unsigned version = SSA_NAME_VERSION (PRE_EXPR_NAME (expr));
+      /* VEC_safe_grow_cleared allocates no headroom.  Avoid frequent
+	 re-allocations by using VEC_reserve upfront.  There is no
+	 VEC_quick_grow_cleared unfortunately.  */
+      VEC_reserve (unsigned, heap, name_to_id, num_ssa_names);
+      VEC_safe_grow_cleared (unsigned, heap, name_to_id, num_ssa_names);
+      gcc_assert (VEC_index (unsigned, name_to_id, version) == 0);
+      VEC_replace (unsigned, name_to_id, version, expr->id);
+    }
+  else
+    {
+      slot = htab_find_slot (expression_to_id, expr, INSERT);
+      gcc_assert (!*slot);
+      *slot = expr;
+    }
   return next_expression_id - 1;
 }
 
@@ -266,10 +281,20 @@ lookup_expression_id (const pre_expr expr)
 {
   void **slot;
 
-  slot = htab_find_slot (expression_to_id, expr, NO_INSERT);
-  if (!slot)
-    return 0;
-  return ((pre_expr)*slot)->id;
+  if (expr->kind == NAME)
+    {
+      unsigned version = SSA_NAME_VERSION (PRE_EXPR_NAME (expr));
+      if (VEC_length (unsigned, name_to_id) <= version)
+	return 0;
+      return VEC_index (unsigned, name_to_id, version);
+    }
+  else
+    {
+      slot = htab_find_slot (expression_to_id, expr, NO_INSERT);
+      if (!slot)
+	return 0;
+      return ((pre_expr)*slot)->id;
+    }
 }
 
 /* Return the existing expression id for EXPR, or create one if one
@@ -308,20 +333,21 @@ static alloc_pool pre_expr_pool;
 static pre_expr
 get_or_alloc_expr_for_name (tree name)
 {
-  pre_expr result = (pre_expr) pool_alloc (pre_expr_pool);
+  struct pre_expr_d expr;
+  pre_expr result;
   unsigned int result_id;
 
-  result->kind = NAME;
-  result->id = 0;
-  PRE_EXPR_NAME (result) = name;
-  result_id = lookup_expression_id (result);
+  expr.kind = NAME;
+  expr.id = 0;
+  PRE_EXPR_NAME (&expr) = name;
+  result_id = lookup_expression_id (&expr);
   if (result_id != 0)
-    {
-      pool_free (pre_expr_pool, result);
-      result = expression_for_id (result_id);
-      return result;
-    }
-  get_or_alloc_expression_id (result);
+    return expression_for_id (result_id);
+
+  result = (pre_expr) pool_alloc (pre_expr_pool);
+  result->kind = NAME;
+  PRE_EXPR_NAME (result) = name;
+  alloc_expression_id (result);
   return result;
 }
 
@@ -436,7 +462,8 @@ static void bitmap_value_replace_in_set (bitmap_set_t, pre_expr);
 static void bitmap_set_copy (bitmap_set_t, bitmap_set_t);
 static bool bitmap_set_contains_value (bitmap_set_t, unsigned int);
 static void bitmap_insert_into_set (bitmap_set_t, pre_expr);
-static void bitmap_insert_into_set_1 (bitmap_set_t, pre_expr, bool);
+static void bitmap_insert_into_set_1 (bitmap_set_t, pre_expr,
+				      unsigned int, bool);
 static bitmap_set_t bitmap_set_new (void);
 static tree create_expression_by_pieces (basic_block, pre_expr, gimple_seq *,
 					 gimple, tree);
@@ -580,7 +607,7 @@ add_to_value (unsigned int v, pre_expr e)
       VEC_replace (bitmap_set_t, value_expressions, v, set);
     }
 
-  bitmap_insert_into_set_1 (set, e, true);
+  bitmap_insert_into_set_1 (set, e, v, true);
 }
 
 /* Create a new bitmap set and return it.  */
@@ -638,9 +665,8 @@ bitmap_remove_from_set (bitmap_set_t set, pre_expr expr)
 
 static void
 bitmap_insert_into_set_1 (bitmap_set_t set, pre_expr expr,
-			  bool allow_constants)
+			  unsigned int val, bool allow_constants)
 {
-  unsigned int val  = get_expr_value_id (expr);
   if (allow_constants || !value_id_constant_p (val))
     {
       /* We specifically expect this and only this function to be able to
@@ -655,7 +681,7 @@ bitmap_insert_into_set_1 (bitmap_set_t set, pre_expr expr,
 static void
 bitmap_insert_into_set (bitmap_set_t set, pre_expr expr)
 {
-  bitmap_insert_into_set_1 (set, expr, false);
+  bitmap_insert_into_set_1 (set, expr, get_expr_value_id (expr), false);
 }
 
 /* Copy a bitmapped set ORIG, into bitmapped set DEST.  */
@@ -684,7 +710,10 @@ sorted_array_from_bitmap_set (bitmap_set_t set)
 {
   unsigned int i, j;
   bitmap_iterator bi, bj;
-  VEC(pre_expr, heap) *result = NULL;
+  VEC(pre_expr, heap) *result;
+
+  /* Pre-allocate roughly enough space for the array.  */
+  result = VEC_alloc (pre_expr, heap, bitmap_count_bits (set->values));
 
   FOR_EACH_VALUE_ID_IN_SET (set, i, bi)
     {
@@ -863,11 +892,17 @@ bitmap_value_insert_into_set (bitmap_set_t set, pre_expr expr)
 {
   unsigned int val = get_expr_value_id (expr);
 
+#ifdef ENABLE_CHECKING
+  gcc_assert (expr->id == get_or_alloc_expression_id (expr));
+#endif
+
+  /* Constant values are always considered to be part of the set.  */
   if (value_id_constant_p (val))
     return;
 
-  if (!bitmap_set_contains_value (set, val))
-    bitmap_insert_into_set (set, expr);
+  /* If the value membership changed, add the expression.  */
+  if (bitmap_set_bit (set->values, val))
+    bitmap_set_bit (set->expressions, expr->id);
 }
 
 /* Print out EXPR to outfile.  */
@@ -1023,18 +1058,20 @@ get_or_alloc_expr_for_constant (tree constant)
 {
   unsigned int result_id;
   unsigned int value_id;
-  pre_expr newexpr = (pre_expr) pool_alloc (pre_expr_pool);
+  struct pre_expr_d expr;
+  pre_expr newexpr;
+
+  expr.kind = CONSTANT;
+  PRE_EXPR_CONSTANT (&expr) = constant;
+  result_id = lookup_expression_id (&expr);
+  if (result_id != 0)
+    return expression_for_id (result_id);
+
+  newexpr = (pre_expr) pool_alloc (pre_expr_pool);
   newexpr->kind = CONSTANT;
   PRE_EXPR_CONSTANT (newexpr) = constant;
-  result_id = lookup_expression_id (newexpr);
-  if (result_id != 0)
-    {
-      pool_free (pre_expr_pool, newexpr);
-      newexpr = expression_for_id (result_id);
-      return newexpr;
-    }
+  alloc_expression_id (newexpr);
   value_id = get_or_alloc_constant_value_id (constant);
-  get_or_alloc_expression_id (newexpr);
   add_to_value (value_id, newexpr);
   return newexpr;
 }
@@ -1449,6 +1486,10 @@ phi_translate (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
   if (!expr)
     return NULL;
 
+  /* Constants contain no values that need translation.  */
+  if (expr->kind == CONSTANT)
+    return expr;
+
   if (value_id_constant_p (get_expr_value_id (expr)))
     return expr;
 
@@ -1458,10 +1499,6 @@ phi_translate (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 
   switch (expr->kind)
     {
-      /* Constants contain no values that need translation.  */
-    case CONSTANT:
-      return expr;
-
     case NARY:
       {
 	unsigned int i;
@@ -1499,6 +1536,7 @@ phi_translate (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	if (changed)
 	  {
 	    pre_expr constant;
+	    unsigned int new_val_id;
 
 	    tree result = vn_nary_op_lookup_pieces (newnary.length,
 						    newnary.opcode,
@@ -1508,15 +1546,12 @@ phi_translate (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 						    newnary.op[2],
 						    newnary.op[3],
 						    &nary);
-	    unsigned int new_val_id;
+	    if (result && is_gimple_min_invariant (result))
+	      return get_or_alloc_expr_for_constant (result);
 
 	    expr = (pre_expr) pool_alloc (pre_expr_pool);
 	    expr->kind = NARY;
 	    expr->id = 0;
-	    if (result && is_gimple_min_invariant (result))
-	      return get_or_alloc_expr_for_constant (result);
-
-
 	    if (nary)
 	      {
 		PRE_EXPR_NARY (expr) = nary;
@@ -4473,6 +4508,7 @@ init_pre (bool do_fre)
   value_expressions = VEC_alloc (bitmap_set_t, heap, get_max_value_id () + 1);
   VEC_safe_grow_cleared (bitmap_set_t, heap, value_expressions,
 			 get_max_value_id() + 1);
+  name_to_id = NULL;
 
   in_fre = do_fre;
 
@@ -4534,6 +4570,7 @@ fini_pre (bool do_fre)
   free_alloc_pool (pre_expr_pool);
   htab_delete (phi_translate_table);
   htab_delete (expression_to_id);
+  VEC_free (unsigned, heap, name_to_id);
 
   FOR_ALL_BB (bb)
     {

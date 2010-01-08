@@ -199,10 +199,6 @@ struct access
      BIT_FIELD_REF?  */
   unsigned grp_partial_lhs : 1;
 
-  /* Does this group contain accesses to different types? (I.e. through a union
-     or a similar mechanism).  */
-  unsigned grp_different_types : 1;
-
   /* Set when a scalar replacement should be created for this variable.  We do
      the decision and creation at different places because create_tmp_var
      cannot be called from within FOR_EACH_REFERENCED_VAR. */
@@ -343,14 +339,12 @@ dump_access (FILE *f, struct access *access, bool grp)
     fprintf (f, ", grp_write = %d, grp_read = %d, grp_hint = %d, "
 	     "grp_covered = %d, grp_unscalarizable_region = %d, "
 	     "grp_unscalarized_data = %d, grp_partial_lhs = %d, "
-	     "grp_different_types = %d, grp_to_be_replaced = %d, "
-	     "grp_maybe_modified = %d, "
+	     "grp_to_be_replaced = %d, grp_maybe_modified = %d, "
 	     "grp_not_necessarilly_dereferenced = %d\n",
 	     access->grp_write, access->grp_read, access->grp_hint,
 	     access->grp_covered, access->grp_unscalarizable_region,
 	     access->grp_unscalarized_data, access->grp_partial_lhs,
-	     access->grp_different_types, access->grp_to_be_replaced,
-	     access->grp_maybe_modified,
+	     access->grp_to_be_replaced, access->grp_maybe_modified,
 	     access->grp_not_necessarilly_dereferenced);
   else
     fprintf (f, ", write = %d, grp_partial_lhs = %d\n", access->write,
@@ -1116,8 +1110,10 @@ compare_access_positions (const void *a, const void *b)
 
   if (f1->size == f2->size)
     {
+      if (f1->type == f2->type)
+	return 0;
       /* Put any non-aggregate type before any aggregate type.  */
-      if (!is_gimple_reg_type (f1->type)
+      else if (!is_gimple_reg_type (f1->type)
 	  && is_gimple_reg_type (f2->type))
 	return 1;
       else if (is_gimple_reg_type (f1->type)
@@ -1137,7 +1133,7 @@ compare_access_positions (const void *a, const void *b)
       /* Put the integral type with the bigger precision first.  */
       else if (INTEGRAL_TYPE_P (f1->type)
 	       && INTEGRAL_TYPE_P (f2->type))
-	return TYPE_PRECISION (f1->type) > TYPE_PRECISION (f2->type) ? -1 : 1;
+	return TYPE_PRECISION (f2->type) - TYPE_PRECISION (f1->type);
       /* Put any integral type with non-full precision last.  */
       else if (INTEGRAL_TYPE_P (f1->type)
 	       && (TREE_INT_CST_LOW (TYPE_SIZE (f1->type))
@@ -1434,7 +1430,6 @@ sort_and_splice_var_accesses (tree var)
       bool grp_read = !access->write;
       bool multiple_reads = false;
       bool grp_partial_lhs = access->grp_partial_lhs;
-      bool grp_different_types = false;
       bool first_scalar = is_gimple_reg_type (access->type);
       bool unscalarizable_region = access->grp_unscalarizable_region;
 
@@ -1466,7 +1461,6 @@ sort_and_splice_var_accesses (tree var)
 		grp_read = true;
 	    }
 	  grp_partial_lhs |= ac2->grp_partial_lhs;
-	  grp_different_types |= !types_compatible_p (access->type, ac2->type);
 	  unscalarizable_region |= ac2->grp_unscalarizable_region;
 	  relink_to_new_repr (access, ac2);
 
@@ -1485,7 +1479,6 @@ sort_and_splice_var_accesses (tree var)
       access->grp_read = grp_read;
       access->grp_hint = multiple_reads;
       access->grp_partial_lhs = grp_partial_lhs;
-      access->grp_different_types = grp_different_types;
       access->grp_unscalarizable_region = unscalarizable_region;
       if (access->first_link)
 	add_access_to_work_queue (access);
@@ -2141,11 +2134,9 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write,
 
          We also want to use this when accessing a complex or vector which can
          be accessed as a different type too, potentially creating a need for
-         type conversion  (see PR42196).  */
-      if (!is_gimple_reg_type (type)
-	  || (access->grp_different_types
-	      && (TREE_CODE (type) == COMPLEX_TYPE
-		  || TREE_CODE (type) == VECTOR_TYPE)))
+         type conversion (see PR42196) and when scalarized unions are involved
+         in assembler statements (see PR42398).  */
+      if (!useless_type_conversion_p (type, access->type))
 	{
 	  tree ref = access->base;
 	  bool ok;
@@ -2176,10 +2167,7 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write,
 	    }
 	}
       else
-	{
-	  gcc_assert (useless_type_conversion_p (type, access->type));
-	  *expr = repl;
-	}
+	*expr = repl;
       sra_stats.exprs++;
     }
 
@@ -3814,8 +3802,11 @@ convert_callers (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
       for (gsi = gsi_start_bb (this_block); !gsi_end_p (gsi); gsi_next (&gsi))
         {
 	  gimple stmt = gsi_stmt (gsi);
-	  if (gimple_code (stmt) == GIMPLE_CALL
-	      && gimple_call_fndecl (stmt) == node->decl)
+	  tree call_fndecl;
+	  if (gimple_code (stmt) != GIMPLE_CALL)
+	    continue;
+	  call_fndecl = gimple_call_fndecl (stmt);
+	  if (call_fndecl && cgraph_get_node (call_fndecl) == node)
 	    {
 	      if (dump_file)
 		fprintf (dump_file, "Adjusting recursive call");
@@ -3833,6 +3824,11 @@ convert_callers (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
 static void
 modify_function (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
 {
+  struct cgraph_node *alias;
+  for (alias = node->same_body; alias; alias = alias->next)
+    ipa_modify_formal_parameters (alias->decl, adjustments, "ISRA");
+  /* current_function_decl must be handled last, after same_body aliases,
+     as following functions will use what it computed.  */
   ipa_modify_formal_parameters (current_function_decl, adjustments, "ISRA");
   scan_function (sra_ipa_modify_expr, sra_ipa_modify_assign,
 		 replace_removed_params_ssa_names, false, adjustments);

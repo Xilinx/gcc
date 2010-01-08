@@ -537,7 +537,7 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
 	 gfortran would typically put them in either the BSS or
 	 initialized data segments, and only mark them as common if
 	 they were part of common blocks.  However, if they are not put
-	 into common space, then C cannot initialize global fortran
+	 into common space, then C cannot initialize global Fortran
 	 variables that it interoperates with and the draft says that
 	 either Fortran or C should be able to initialize it (but not
 	 both, of course.) (J3/04-007, section 15.3).  */
@@ -1349,7 +1349,9 @@ get_proc_pointer_decl (gfc_symbol *sym)
     {
       /* Add static initializer.  */
       DECL_INITIAL (decl) = gfc_conv_initializer (sym->value, &sym->ts,
-	  TREE_TYPE (decl), sym->attr.dimension, sym->attr.proc_pointer);
+	  TREE_TYPE (decl),
+	  sym->attr.proc_pointer ? false : sym->attr.dimension,
+	  sym->attr.proc_pointer);
     }
 
   attributes = add_attributes_to_decl (sym->attr, NULL_TREE);
@@ -3188,28 +3190,38 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, tree fnbody)
 	       || (sym->ts.type == BT_CLASS
 		   && sym->ts.u.derived->components->attr.allocatable))
 	{
-	  /* Automatic deallocatation of allocatable scalars.  */
-	  tree tmp;
-	  gfc_expr *e;
-	  gfc_se se;
-	  stmtblock_t block;
+	  if (!sym->attr.save)
+	    {
+	      /* Nullify and automatic deallocation of allocatable
+		 scalars.  */
+	      tree tmp;
+	      gfc_expr *e;
+	      gfc_se se;
+	      stmtblock_t block;
 
-	  e = gfc_lval_expr_from_sym (sym);
-	  if (sym->ts.type == BT_CLASS)
-	    gfc_add_component_ref (e, "$data");
+	      e = gfc_lval_expr_from_sym (sym);
+	      if (sym->ts.type == BT_CLASS)
+		gfc_add_component_ref (e, "$data");
 
-	  gfc_init_se (&se, NULL);
-	  se.want_pointer = 1;
-	  gfc_conv_expr (&se, e);
-	  gfc_free_expr (e);
+	      gfc_init_se (&se, NULL);
+	      se.want_pointer = 1;
+	      gfc_conv_expr (&se, e);
+	      gfc_free_expr (e);
 
-	  gfc_start_block (&block);
-	  gfc_add_expr_to_block (&block, fnbody);
+	      /* Nullify when entering the scope.  */
+	      gfc_start_block (&block);
+	      gfc_add_modify (&block, se.expr,
+			      fold_convert (TREE_TYPE (se.expr),
+					    null_pointer_node));
+	      gfc_add_expr_to_block (&block, fnbody);
 
-	  /* Note: Nullifying is not needed.  */
-	  tmp = gfc_deallocate_with_status (se.expr, NULL_TREE, true, NULL);
-	  gfc_add_expr_to_block (&block, tmp);
-	  fnbody = gfc_finish_block (&block);
+	      /* Deallocate when leaving the scope. Nullifying is not
+		 needed.  */
+	      tmp = gfc_deallocate_with_status (se.expr, NULL_TREE, true,
+						NULL);
+	      gfc_add_expr_to_block (&block, tmp);
+	      fnbody = gfc_finish_block (&block);
+	    }
 	}
       else if (sym->ts.type == BT_CHARACTER)
 	{
@@ -4319,7 +4331,7 @@ gfc_generate_function_code (gfc_namespace * ns)
 		  || (sym->attr.entry_master
 		      && sym->ns->entries->sym->attr.recursive);
    if ((gfc_option.rtcheck & GFC_RTCHECK_RECURSION) && !is_recursive
-       && !gfc_option.flag_openmp)
+       && !gfc_option.flag_recursive)
      {
        char * msg;
 
@@ -4384,13 +4396,18 @@ gfc_generate_function_code (gfc_namespace * ns)
 	result = sym->result->backend_decl;
 
       if (result != NULL_TREE && sym->attr.function
-	    && sym->ts.type == BT_DERIVED
-	    && sym->ts.u.derived->attr.alloc_comp
-	    && !sym->attr.pointer)
+	  && !sym->attr.pointer)
 	{
-	  rank = sym->as ? sym->as->rank : 0;
-	  tmp2 = gfc_nullify_alloc_comp (sym->ts.u.derived, result, rank);
-	  gfc_add_expr_to_block (&block, tmp2);
+	  if (sym->ts.type == BT_DERIVED
+	      && sym->ts.u.derived->attr.alloc_comp)
+	    {
+	      rank = sym->as ? sym->as->rank : 0;
+	      tmp2 = gfc_nullify_alloc_comp (sym->ts.u.derived, result, rank);
+	      gfc_add_expr_to_block (&block, tmp2);
+	    }
+	  else if (sym->attr.allocatable && sym->attr.dimension == 0)
+	    gfc_add_modify (&block, result, fold_convert (TREE_TYPE (result),
+							  null_pointer_node));
 	}
 
       gfc_add_expr_to_block (&block, tmp);
