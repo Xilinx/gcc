@@ -369,7 +369,8 @@ gfc_compare_derived_types (gfc_symbol *derived1, gfc_symbol *derived2)
   if (derived1 != NULL && derived2 != NULL
       && strcmp (derived1->name, derived2->name) == 0
       && derived1->module != NULL && derived2->module != NULL
-      && strcmp (derived1->module, derived2->module) == 0)
+      && (strcmp (derived1->module, derived2->module) == 0
+	  || derived1->attr.vtype))
     return 1;
 
   /* Compare type via the rules of the standard.  Both types must have

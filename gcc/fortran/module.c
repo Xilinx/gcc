@@ -1671,13 +1671,15 @@ typedef enum
   AB_CRAY_POINTER, AB_CRAY_POINTEE, AB_THREADPRIVATE, AB_ALLOC_COMP,
   AB_POINTER_COMP, AB_PRIVATE_COMP, AB_VALUE, AB_VOLATILE, AB_PROTECTED,
   AB_IS_BIND_C, AB_IS_C_INTEROP, AB_IS_ISO_C, AB_ABSTRACT, AB_ZERO_COMP,
-  AB_IS_CLASS, AB_PROCEDURE, AB_PROC_POINTER, AB_VTYPE
+  AB_IS_CLASS, AB_PROCEDURE, AB_PROC_POINTER, AB_VTYPE, AB_VTAB,
+  AB_ASYNCHRONOUS
 }
 ab_attribute;
 
 static const mstring attr_bits[] =
 {
     minit ("ALLOCATABLE", AB_ALLOCATABLE),
+    minit ("ASYNCHRONOUS", AB_ASYNCHRONOUS),
     minit ("DIMENSION", AB_DIMENSION),
     minit ("EXTERNAL", AB_EXTERNAL),
     minit ("INTRINSIC", AB_INTRINSIC),
@@ -1715,6 +1717,7 @@ static const mstring attr_bits[] =
     minit ("PROCEDURE", AB_PROCEDURE),
     minit ("PROC_POINTER", AB_PROC_POINTER),
     minit ("VTYPE", AB_VTYPE),
+    minit ("VTAB", AB_VTAB),
     minit (NULL, -1)
 };
 
@@ -1793,6 +1796,8 @@ mio_symbol_attribute (symbol_attribute *attr)
     {
       if (attr->allocatable)
 	MIO_NAME (ab_attribute) (AB_ALLOCATABLE, attr_bits);
+      if (attr->asynchronous)
+	MIO_NAME (ab_attribute) (AB_ASYNCHRONOUS, attr_bits);
       if (attr->dimension)
 	MIO_NAME (ab_attribute) (AB_DIMENSION, attr_bits);
       if (attr->external)
@@ -1871,6 +1876,8 @@ mio_symbol_attribute (symbol_attribute *attr)
 	MIO_NAME (ab_attribute) (AB_PROC_POINTER, attr_bits);
       if (attr->vtype)
 	MIO_NAME (ab_attribute) (AB_VTYPE, attr_bits);
+      if (attr->vtab)
+	MIO_NAME (ab_attribute) (AB_VTAB, attr_bits);
 
       mio_rparen ();
 
@@ -1889,6 +1896,9 @@ mio_symbol_attribute (symbol_attribute *attr)
 	    {
 	    case AB_ALLOCATABLE:
 	      attr->allocatable = 1;
+	      break;
+	    case AB_ASYNCHRONOUS:
+	      attr->asynchronous = 1;
 	      break;
 	    case AB_DIMENSION:
 	      attr->dimension = 1;
@@ -2000,6 +2010,9 @@ mio_symbol_attribute (symbol_attribute *attr)
 	      break;
 	    case AB_VTYPE:
 	      attr->vtype = 1;
+	      break;
+	    case AB_VTAB:
+	      attr->vtab = 1;
 	      break;
 	    }
 	}
@@ -4155,6 +4168,9 @@ check_for_ambiguous (gfc_symbol *st_sym, pointer_info *info)
   if (st_sym == rsym)
     return false;
 
+  if (st_sym->attr.vtab || st_sym->attr.vtype)
+    return false;
+
   /* If the existing symbol is generic from a different module and
      the new symbol is generic there can be no ambiguity.  */
   if (st_sym->attr.generic
@@ -5497,9 +5513,9 @@ gfc_use_module (void)
 
 	  if (strcmp (atom_string, MOD_VERSION))
 	    {
-	      gfc_fatal_error ("Wrong module version '%s' (expected '"
-			       MOD_VERSION "') for file '%s' opened"
-			       " at %C", atom_string, filename);
+	      gfc_fatal_error ("Wrong module version '%s' (expected '%s') "
+			       "for file '%s' opened at %C", atom_string,
+			       MOD_VERSION, filename);
 	    }
 	}
 
