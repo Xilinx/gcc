@@ -1,3 +1,13 @@
+2010-01-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42353
+	* interface.c (gfc_compare_derived_types): Add condition for vtype.
+	* symbol.c (gfc_find_derived_vtab): Sey access to private.
+	(gfc_find_derived_vtab): Likewise.
+	* module.c (ab_attribute): Add enumerator AB_VTAB.
+	(mio_symbol_attribute): Use new attribute, AB_VTAB.
+	(check_for_ambiguous): Likewise.
+
 2009-12-03  Paul Thomas  <pault@gcc.gnu.org>
 	    Janus Weil  <janus@gcc.gnu.org>
 
