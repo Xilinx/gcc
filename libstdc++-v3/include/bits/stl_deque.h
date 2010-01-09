@@ -1,6 +1,6 @@
 // Deque implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -352,8 +352,74 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 
   template<typename _Tp>
     void
-    fill(const _Deque_iterator<_Tp, _Tp&, _Tp*>& __first,
-	 const _Deque_iterator<_Tp, _Tp&, _Tp*>& __last, const _Tp& __value);
+    fill(const _Deque_iterator<_Tp, _Tp&, _Tp*>&,
+	 const _Deque_iterator<_Tp, _Tp&, _Tp*>&, const _Tp&);
+
+  template<typename _Tp>
+    _Deque_iterator<_Tp, _Tp&, _Tp*>
+    copy(_Deque_iterator<_Tp, const _Tp&, const _Tp*>,
+	 _Deque_iterator<_Tp, const _Tp&, const _Tp*>,
+	 _Deque_iterator<_Tp, _Tp&, _Tp*>);
+
+  template<typename _Tp>
+    inline _Deque_iterator<_Tp, _Tp&, _Tp*>
+    copy(_Deque_iterator<_Tp, _Tp&, _Tp*> __first,
+	 _Deque_iterator<_Tp, _Tp&, _Tp*> __last,
+	 _Deque_iterator<_Tp, _Tp&, _Tp*> __result)
+    { return std::copy(_Deque_iterator<_Tp, const _Tp&, const _Tp*>(__first),
+		       _Deque_iterator<_Tp, const _Tp&, const _Tp*>(__last),
+		       __result); }
+
+  template<typename _Tp>
+    _Deque_iterator<_Tp, _Tp&, _Tp*>
+    copy_backward(_Deque_iterator<_Tp, const _Tp&, const _Tp*>,
+		  _Deque_iterator<_Tp, const _Tp&, const _Tp*>,
+		  _Deque_iterator<_Tp, _Tp&, _Tp*>);
+
+  template<typename _Tp>
+    inline _Deque_iterator<_Tp, _Tp&, _Tp*>
+    copy_backward(_Deque_iterator<_Tp, _Tp&, _Tp*> __first,
+		  _Deque_iterator<_Tp, _Tp&, _Tp*> __last,
+		  _Deque_iterator<_Tp, _Tp&, _Tp*> __result)
+    { return std::copy_backward(_Deque_iterator<_Tp,
+				const _Tp&, const _Tp*>(__first),
+				_Deque_iterator<_Tp,
+				const _Tp&, const _Tp*>(__last),
+				__result); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp>
+    _Deque_iterator<_Tp, _Tp&, _Tp*>
+    move(_Deque_iterator<_Tp, const _Tp&, const _Tp*>,
+	 _Deque_iterator<_Tp, const _Tp&, const _Tp*>,
+	 _Deque_iterator<_Tp, _Tp&, _Tp*>);
+
+  template<typename _Tp>
+    inline _Deque_iterator<_Tp, _Tp&, _Tp*>
+    move(_Deque_iterator<_Tp, _Tp&, _Tp*> __first,
+	 _Deque_iterator<_Tp, _Tp&, _Tp*> __last,
+	 _Deque_iterator<_Tp, _Tp&, _Tp*> __result)
+    { return std::move(_Deque_iterator<_Tp, const _Tp&, const _Tp*>(__first),
+		       _Deque_iterator<_Tp, const _Tp&, const _Tp*>(__last),
+		       __result); }
+
+  template<typename _Tp>
+    _Deque_iterator<_Tp, _Tp&, _Tp*>
+    move_backward(_Deque_iterator<_Tp, const _Tp&, const _Tp*>,
+		  _Deque_iterator<_Tp, const _Tp&, const _Tp*>,
+		  _Deque_iterator<_Tp, _Tp&, _Tp*>);
+
+  template<typename _Tp>
+    inline _Deque_iterator<_Tp, _Tp&, _Tp*>
+    move_backward(_Deque_iterator<_Tp, _Tp&, _Tp*> __first,
+		  _Deque_iterator<_Tp, _Tp&, _Tp*> __last,
+		  _Deque_iterator<_Tp, _Tp&, _Tp*> __result)
+    { return std::move_backward(_Deque_iterator<_Tp,
+				const _Tp&, const _Tp*>(__first),
+				_Deque_iterator<_Tp,
+				const _Tp&, const _Tp*>(__last),
+				__result); }
+#endif
 
   /**
    *  Deque base class.  This class provides the unified face for %deque's
@@ -818,9 +884,10 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
       deque&
       operator=(deque&& __x)
       {
+	// NB: DR 1204.
 	// NB: DR 675.
 	this->clear();
-	this->swap(__x); 
+	this->swap(__x);
 	return *this;
       }
 
@@ -1038,6 +1105,13 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 	else
 	  insert(this->_M_impl._M_finish, __new_size - __len, __x);
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**  A non-binding request to reduce memory use.  */
+      void
+      shrink_to_fit()
+      { std::__shrink_to_fit<deque>::_S_do_it(*this); }
+#endif
 
       /**
        *  Returns true if the %deque is empty.  (Thus begin() would

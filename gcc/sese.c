@@ -78,7 +78,7 @@ debug_rename_map (htab_t map)
 hashval_t
 rename_map_elt_info (const void *elt)
 {
-  return htab_hash_pointer (((const struct rename_map_elt_s *) elt)->old_name);
+  return SSA_NAME_VERSION (((const struct rename_map_elt_s *) elt)->old_name);
 }
 
 /* Compares database elements E1 and E2.  */
@@ -874,7 +874,20 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
     return expand_scalar_variables_ssa_name (op0, bb, region, map, gsi);
 
   if (code == ADDR_EXPR)
-    return op0;
+    {
+      tree op00 = TREE_OPERAND (op0, 0);
+
+      if (handled_component_p (op00)
+	  && TREE_CODE (op00) == ARRAY_REF)
+	{
+	  tree e = expand_scalar_variables_expr (TREE_TYPE (op00), op00,
+						 TREE_CODE (op00),
+						 NULL, bb, region, map, gsi);
+	  return fold_build1 (code, TREE_TYPE (op0), e);
+	}
+
+      return op0;
+    }
 
   gcc_unreachable ();
   return NULL;

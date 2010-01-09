@@ -1,6 +1,6 @@
 /* Control flow functions for trees.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
-   Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+   2010  Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -1760,7 +1760,6 @@ static void
 remove_bb (basic_block bb)
 {
   gimple_stmt_iterator i;
-  source_location loc = UNKNOWN_LOCATION;
 
   if (dump_file)
     {
@@ -1830,23 +1829,8 @@ remove_bb (basic_block bb)
 	    i = gsi_last_bb (bb);
 	  else
 	    gsi_prev (&i);
-
-	  /* Don't warn for removed gotos.  Gotos are often removed due to
-	     jump threading, thus resulting in bogus warnings.  Not great,
-	     since this way we lose warnings for gotos in the original
-	     program that are indeed unreachable.  */
-	  if (gimple_code (stmt) != GIMPLE_GOTO
-	      && gimple_has_location (stmt))
-	    loc = gimple_location (stmt);
 	}
     }
-
-  /* If requested, give a warning that the first statement in the
-     block is unreachable.  We walk statements backwards in the
-     loop above, so the last statement we process is the first statement
-     in the block.  */
-  if (loc > BUILTINS_LOCATION && LOCATION_LINE (loc) > 0)
-    warning_at (loc, OPT_Wunreachable_code, "will never be executed");
 
   remove_phi_nodes_and_edges_for_unreachable_block (bb);
   bb->il.gimple = NULL;
@@ -2246,7 +2230,7 @@ is_ctrl_altering_stmt (gimple t)
 	  return true;
 
 	/* A call also alters control flow if it does not return.  */
-	if (gimple_call_flags (t) & ECF_NORETURN)
+	if (flags & ECF_NORETURN)
 	  return true;
       }
       break;
@@ -2953,6 +2937,15 @@ verify_gimple_call (gimple stmt)
 {
   tree fn = gimple_call_fn (stmt);
   tree fntype;
+  unsigned i;
+
+  if (TREE_CODE (fn) != OBJ_TYPE_REF
+      && !is_gimple_val (fn))
+    {
+      error ("invalid function in gimple call");
+      debug_generic_stmt (fn);
+      return true;
+    }
 
   if (!POINTER_TYPE_P (TREE_TYPE  (fn))
       || (TREE_CODE (TREE_TYPE (TREE_TYPE (fn))) != FUNCTION_TYPE
@@ -2967,6 +2960,12 @@ verify_gimple_call (gimple stmt)
 	  || verify_types_in_gimple_reference (gimple_call_lhs (stmt), true)))
     {
       error ("invalid LHS in gimple call");
+      return true;
+    }
+
+  if (gimple_call_lhs (stmt) && gimple_call_noreturn_p (stmt))
+    {
+      error ("LHS in noreturn call");
       return true;
     }
 
@@ -2985,6 +2984,14 @@ verify_gimple_call (gimple stmt)
       error ("invalid conversion in gimple call");
       debug_generic_stmt (TREE_TYPE (gimple_call_lhs (stmt)));
       debug_generic_stmt (TREE_TYPE (fntype));
+      return true;
+    }
+
+  if (gimple_call_chain (stmt)
+      && !is_gimple_val (gimple_call_chain (stmt)))
+    {
+      error ("invalid static chain in gimple call");
+      debug_generic_stmt (gimple_call_chain (stmt));
       return true;
     }
 
@@ -3009,8 +3016,18 @@ verify_gimple_call (gimple stmt)
 
   /* ???  The C frontend passes unpromoted arguments in case it
      didn't see a function declaration before the call.  So for now
-     leave the call arguments unverified.  Once we gimplify
+     leave the call arguments mostly unverified.  Once we gimplify
      unit-at-a-time we have a chance to fix this.  */
+
+  for (i = 0; i < gimple_call_num_args (stmt); ++i)
+    {
+      tree arg = gimple_call_arg (stmt, i);
+      if (!is_gimple_operand (arg))
+	{
+	  error ("invalid argument to gimple call");
+	  debug_generic_expr (arg);
+	}
+    }
 
   return false;
 }
@@ -3760,6 +3777,20 @@ verify_types_in_gimple_stmt (gimple stmt)
       return verify_gimple_call (stmt);
 
     case GIMPLE_COND:
+      if (TREE_CODE_CLASS (gimple_cond_code (stmt)) != tcc_comparison)
+	{
+	  error ("invalid comparison code in gimple cond");
+	  return true;
+	}
+      if (!(!gimple_cond_true_label (stmt)
+	    || TREE_CODE (gimple_cond_true_label (stmt)) == LABEL_DECL)
+	  || !(!gimple_cond_false_label (stmt)
+	       || TREE_CODE (gimple_cond_false_label (stmt)) == LABEL_DECL))
+	{
+	  error ("invalid labels in gimple cond");
+	  return true;
+	}
+	  
       return verify_gimple_comparison (boolean_type_node,
 				       gimple_cond_lhs (stmt),
 				       gimple_cond_rhs (stmt));

@@ -1,6 +1,6 @@
 /* Tree lowering pass.  This pass converts the GENERIC functions-as-trees
    tree representation into the GIMPLE form.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Major work done by Sebastian Pop <s.pop@laposte.net>,
    Diego Novillo <dnovillo@redhat.com> and Jason Merrill <jason@redhat.com>.
@@ -4407,7 +4407,8 @@ gimplify_modify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
       /* Since the RHS is a CALL_EXPR, we need to create a GIMPLE_CALL
 	 instead of a GIMPLE_ASSIGN.  */
       assign = gimple_build_call_from_tree (*from_p);
-      gimple_call_set_lhs (assign, *to_p);
+      if (!gimple_call_noreturn_p (assign))
+	gimple_call_set_lhs (assign, *to_p);
     }
   else
     {

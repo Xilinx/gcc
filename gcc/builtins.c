@@ -1,6 +1,6 @@
 /* Expand builtin functions.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -325,7 +325,8 @@ get_object_alignment (tree exp, unsigned int align, unsigned int max_align)
     }
   if (TREE_CODE (exp) == CONST_DECL)
     exp = DECL_INITIAL (exp);
-  if (DECL_P (exp))
+  if (DECL_P (exp)
+      && TREE_CODE (exp) != LABEL_DECL)
     align = MIN (inner, DECL_ALIGN (exp));
 #ifdef CONSTANT_ALIGNMENT
   else if (CONSTANT_CLASS_P (exp))
