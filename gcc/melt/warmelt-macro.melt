@@ -934,9 +934,12 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 	 )
     (if (!=i (multiple_length xargtup)
 	     (multiple_length cmatin))
-	(warning_strv sloc
+	(progn
+	  (debug_msg xargtup "expand_cmatchexpr bad xargtup")
+	  (debug_msg cmatin "expand_cmatchexpr bad cmatin")
+	  (warning_strv sloc
 		      "bad argument number for cmatcher expression"_
-		      (unsafe_get_field :named_name cmat)))
+		      (unsafe_get_field :named_name cmat))))
     (if (null cmatexp)
 	(progn
 	  (error_strv sloc

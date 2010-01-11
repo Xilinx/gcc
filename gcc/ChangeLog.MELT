@@ -1,4 +1,18 @@
 2010-01-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{or patterns probably fail to translate; tmatch-6 test still
+	crashes.}}
+
+	* melt/warmelt-first.melt: added integer_multiple &
+	integer_greater_than cmatchers mostly for tests.
+	* melt/warmelt-macro.melt: added debug messages in
+	expand_cmatchexpr when warning.
+	* melt/warmelt-normatch.melt: updated copyright year.
+	put_tester_then calls set_newtester_lastthen on disjuncts.  added
+	more debug messages.
+	* testsuite/melt/tmatch-6.melt: adding simple or test, and
+	commented the more complex iparse_field.
+
+2010-01-11  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{added new crashing test tmatch-6.melt from commented code in
 	warmelt-infixsyntax.melt}}

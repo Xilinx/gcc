@@ -1,7 +1,7 @@
 ;; file warmelt-normatch.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -102,9 +102,12 @@
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sdisj (unsafe_get_field :orpat_disj recv))
 	 )
+    (debug_msg sdisj "scanpat_srcpator sdisj")
+    (assert_msg "check sdisj" (is_multiple sdisj))
     (foreach_in_multiple
      (sdisj)
      (dis :long ix)
+     (debug_msg dis "scanpat_srcpator dis")
      (scan_pattern dis sloc ctyp pcn)
      )
     (debug_msg recv "scanpat_srcpator end recv")
@@ -121,6 +124,7 @@
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sconj (unsafe_get_field :andpat_conj recv))
 	 )
+    (assert_msg "check sconj" (is_multiple sconj))
     (foreach_in_multiple
      (sconj)
      (dis :long ix)
@@ -176,15 +180,18 @@
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (assert_msg "check recv" (is_a recv class_source_pattern_as))
   (let ( (sloc (unsafe_get_field :loca_location recv))
-	 (asvar (unsafe_get_field :aspat_varpat recv))
+	 (asvarpat (unsafe_get_field :aspat_varpat recv))
+	 (asvar (get_field :spat_var asvarpat))
 	 (asubp (unsafe_get_field :aspat_subpat recv))
 	 (mapvar (unsafe_get_field :pctn_mapatvar pcn))
 	 (mvar (mapobject_get mapvar asvar))
 	 )
+    (debug_msg asvar "scanpat_srcpatas asvar")
+    (assert_msg "check asvar" (is_a asvar class_symbol))
     (if (null mvar)
 	(progn
-	  (mapobject_put mapvar asvar recv)
-	  (debug_msg asvar "scanpat_srcpatasr got new asvar")
+	  (mapobject_put mapvar asvar asvarpat)
+	  (debug_msg asvar "scanpat_srcpatas got new asvar")
 	  ))
     (scan_pattern asubp sloc ctyp pcn)
     ))
@@ -474,11 +481,12 @@
 	(foreach_in_multiple 
 	 (curdisjtuple)
 	 (curdisj :long disjix)
-	 (debug_msg curdisj "set_newtester_lastthen curdisj")
-	 (put_tester_then curdisj thentester)
-	 (debug_msg curdisj "set_newtester_lastthen curdisj done")
+	 (debug_msg curdisj "put_tester_then curdisj")
+	 (let ( (thencont (instance class_container :container_value thentester)) )
+	 (set_newtester_lastthen curdisj thencont)
+	 (debug_msg thencont "put_tester_then thencont done")
 	 ))
-      )
+      ))
   (debug_msg curtester "put_tester_then curtester done")
 )
 
@@ -1487,9 +1495,12 @@
 	      )
 	  ;; I am not entirely sure of this assert! Perhaps there maybe
 	  ;; strange cases where curpat is null...
+	  (debug_msg curpat "normexp_match curpat before scan_pattern")
 	  (assert_msg "normexp_match check curpat" curpat)
 	  (scan_pattern curpat curloc ctyp pcn)
+	  (debug_msg curpat "normexp_match curpat after scan_pattern")
 	  (debug_msg mapvar "normexp_match mapvar")
+	  (debug_msg pvarmap "normexp_match pvarmap")
 	  (debug_msg mapcst "normexp_match mapcst")
 	  (debug_msg bindlist "normexp_match bindlist")
 	  (multiple_put_nth tupvarmap ix mapvar)
@@ -1506,6 +1517,8 @@
 			 (null (unsafe_get_field :container_value ntestcont)))
 	     (put_fields ntestcont :container_value tester))
 	   pcn)
+	  (debug_msg curpat "normexp_match curpat after normal_pattern")
+	  (debug_msg pvarmap "normexp_match pvarmap after normal_pattern")
 	  (debug_msg ntestcont "normexp_match ntestcont after normal_pattern")
 	  ;; 
 	  (let ( (newenv (get_field :pctn_env pcn))
@@ -1606,9 +1619,11 @@
 			     (is_a cursortbind class_normal_let_binding))
 		 (list_append subindlist cursortbind)
 		 )
+		(debug_msg curbody "normexp_match curbody before normalize_tuple")
 		(multicall 
 		 (nbody bindsbody)
 		 (normalize_tuple curbody freshnewenv ncx curloc)
+		 (debug_msg curbody "normexp_match curbody after normalize_tuple")
 		 (debug_msg nbody "normexp_match nbody")
 		 (debug_msg bindsbody "normexp_match bindsbody")
 		 (assert_msg "check bindsbody" (is_list_or_null bindsbody))

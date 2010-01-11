@@ -1071,6 +1071,36 @@ from $IMIN to $IMAX included.}#
    #{ } /*end eachlong */}#
 )
    
+
+;; cmatchers on integers
+
+;;; match an integer i mutiple of a given number n and submatch the quotient
+(defcmatcher integer_multiple
+  (:long i n)				;match & ins
+  (:long q)					;outs
+  intmult				;statesymb
+  :doc #{The $INTEGER_MULTIPLE matcher with input number $N matches an
+integer $I if $N is positive and $I is multiple of $N and the quotient
+matches the subpattern $Q.}#
+  ;; test expansion
+  #{ /*$INTMULT ?*/ ($N>0 && (($I) % ($N))==0) }#
+  ;; fill expansion
+  #{ /*$INTMULT !*/ $Q = ($I) / ($N); }#
+  )
+
+;;; match an integer i greater than a given number n
+(defcmatcher integer_greater_than
+  (:long i n)
+  ()
+  intgreathan
+  :doc #{The $INTEGER_GREATER_THAN matcher with input number $N matches
+an integer $I if $I is greater than $N.}#
+  ;; test expansion
+  #{ /*$INTGREATHAN ?*/ ($I > $N) }#
+  ;; no fill expansion
+)
+
+
 ;;; nullity test (for values)
 (defprimitive null (v) :long :doc #{Test that $V is the null value.}#
   #{(($v) == NULL)}#)
@@ -5391,6 +5421,8 @@ $FILENAM and $LINENO}#
  foreach_in_multiple
  foreach_in_multiple_backward
  foreach_long_upto
+ integer_multiple
+ integer_greater_than
  integerbox_of 
  closure
  )
