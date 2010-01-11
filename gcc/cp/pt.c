@@ -9400,7 +9400,7 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	TREE_CHAIN (r) = NULL_TREE;
 
 	apply_late_template_attributes (&r, DECL_ATTRIBUTES (r),
-					(int) ATTR_FLAG_TYPE_IN_PLACE,
+					/*flags=*/0,
 					args, complain, in_decl);
 
 	/* Preserve a typedef that names a type.  */
@@ -14047,6 +14047,9 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
 
         if (!skip_arg_p)
           {
+	    /* For deduction from an init-list we need the actual list.  */
+	    if (arg_expr && BRACE_ENCLOSED_INITIALIZER_P (arg_expr))
+	      arg = arg_expr;
             if (unify (tparms, targs, parm, arg, arg_strict))
               return 1;
           }
@@ -14071,7 +14074,14 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
       tree old_pack = TREE_VALUE (pack);
       tree new_args = TREE_TYPE (pack);
       int i, len = TREE_VEC_LENGTH (new_args);
+      int idx, level;
       bool nondeduced_p = false;
+
+      /* By default keep the original deduced argument pack.
+	 If necessary, more specific code is going to update the
+	 resulting deduced argument later down in this function.  */
+      template_parm_level_and_index (TREE_PURPOSE (pack), &level, &idx);
+      TMPL_ARG (targs, level, idx) = old_pack;
 
       /* If NEW_ARGS contains any NULL_TREE entries, we didn't
 	 actually deduce anything.  */
@@ -14103,10 +14113,6 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
       if (!old_pack)
         {
           tree result;
-          int idx, level;
-          
-          template_parm_level_and_index (TREE_PURPOSE (pack), &level, &idx);
-
           /* Build the deduced *_ARGUMENT_PACK.  */
           if (TREE_CODE (TREE_PURPOSE (pack)) == TEMPLATE_PARM_INDEX)
             {
@@ -14130,12 +14136,7 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
         {
           /* We only had the explicitly-provided arguments before, but
              now we have a complete set of arguments.  */
-          int idx, level;
           tree explicit_args = ARGUMENT_PACK_EXPLICIT_ARGS (old_pack);
-          template_parm_level_and_index (TREE_PURPOSE (pack), &level, &idx);
-
-          /* Keep the original deduced argument pack.  */
-          TMPL_ARG (targs, level, idx) = old_pack;
 
           SET_ARGUMENT_PACK_ARGS (old_pack, new_args);
           ARGUMENT_PACK_INCOMPLETE_P (old_pack) = 1;
@@ -14145,15 +14146,6 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
                                     new_args))
         /* Inconsistent unification of this parameter pack.  */
         return 1;
-      else
-        {
-          int idx, level;
-          
-          template_parm_level_and_index (TREE_PURPOSE (pack), &level, &idx);
-
-          /* Keep the original deduced argument pack.  */
-          TMPL_ARG (targs, level, idx) = old_pack;
-        }
     }
 
   return 0;

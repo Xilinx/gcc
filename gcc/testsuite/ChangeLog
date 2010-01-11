@@ -1,3 +1,184 @@
+2010-01-10  Rafael Avila de Espindola  <espindola@google.com>
+
+	* gcc.dg/lto/20100108_0.c: New.
+
+2010-01-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/graphite/pr40281.c (dg-options): Add -w.
+	Add -march=i686 -msse for 32bit x86 targets.
+
+2010-01-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42667
+	* gcc.dg/torture/pr42667.c: New testcase.
+
+2010-01-09 Jerry DeLisle <jvdelisle@gcc.gnu.org>
+
+	PR fortran/32489
+	* gfortran.dg/array_constructor_34.f90: New test.
+
+2010-01-09 Jerry DeLisle <jvdelisle@gcc.gnu.org>
+
+	PR fortran/20923
+	* gfortran.dg/array_constructor_33.f90: New test.
+	gfortran.dg/array_function_5.f90: Add credit.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42631
+	* gcc.dg/pr42631.c: New.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42630
+	* gcc.dg/pr42630.c: New.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42629
+	* gcc.dg/pr42629.c: New.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR middle-end/42363
+	* gcc.dg/torture/pr42363.c: New.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42604
+	PR debug/42395
+	* gcc.dg/vect/pr42604.c: New.
+	* gcc.dg/vect/pr42395.c: New.
+
+2010-01-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42512
+	* gcc.c-torture/execute/pr42512.c: New testcase.
+
+2010-01-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41298
+	* gfortran.dg/c_ptr_tests_14.f90: New test.
+
+2010-01-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR ada/41929
+	* gnat.dg/null_pointer_deref1.adb: Don't run on
+	sparc*-sun-solaris2.11.
+
+2010-01-08  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42528
+	* gcc.dg/lto/20100103-1_0.c: New testcase.
+	* gcc.dg/lto/20100103-2_0.c: Likewise.
+
+2010-01-08  Tobias Burnus  <burnus@net-b.de
+
+	PR/fortran 25829
+	* gfortran.dg/asynchronous_1.f90: New test.
+	* gfortran.dg/asynchronous_2.f90: New test.
+	* gfortran.dg/conflicts.f90: Update error message.
+
+2010-01-07  Dodji Seketeli  <dodji@redhat.com>
+
+	c++/40155
+	* g++.dg/cpp0x/variadic-unify-2.C: New test.
+
+2010-01-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/42625
+	* g++.dg/opt/dtor4.C: New test.
+	* g++.dg/opt/dtor4.h: New.
+	* g++.dg/opt/dtor4-aux.cc: New.
+
+2010-01-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/42597
+	* gfortran.dg/proc_ptr_26.f90: New test.
+
+2010-01-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41872
+	* gfortran.dg/allocatable_scalar_7.f90: New test.
+
+2010-01-06  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/compile/pr42632.c: New testcase.
+
+2010-01-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/42542
+	* gcc.target/i386/pr42542-4.c: New.
+	* gcc.target/i386/pr42542-4a.c: Likewise.
+	* gcc.target/i386/pr42542-5.c: Likewise.
+	* gcc.target/i386/pr42542-5a.c: Likewise.
+
+2010-01-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/tls/opt-15.c: New test.
+
+2010-01-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/pr42542-1.c (res): Make it 8 elements.
+
+2010-01-05  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42462
+	* g++.dg/torture/pr42462.C: New test.
+
+2010-01-05  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/initlist30.C: New test.
+
+2010-01-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42614
+	* gcc.c-torture/execute/pr42614.c: New testcase.
+
+2010-01-05  Eric Fisher  <joefoxreal@gmail.com>
+
+	* gcc.dg/pr12603.c: Remove -Wunreachable-code from dg-options.
+	* gcc.dg/Wunreachable-1.c: Remove the testcase of
+	-Wunreachable-code.
+	* gcc.dg/Wunreachable-2.c: Likewise.
+	* gcc.dg/Wunreachable-3.c: Likewise.
+	* gcc.dg/Wunreachable-4.c: Likewise.
+	* gcc.dg/Wunreachable-5.c: Likewise.
+	* gcc.dg/Wunreachable-6.c: Likewise.
+	* gcc.dg/Wunreachable-7.c: Likewise.
+	* gcc.dg/Wunreachable-8.c: Likewise.
+	* gcc.dg/20041231-1.c: Likewise.
+
+2010-01-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR other/42611
+	* gcc.dg/pr42611.c: New test.
+
+	PR tree-optimization/42508
+	* g++.dg/opt/pr42508.C: New test.
+
+2010-01-05  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41872
+	* gfortran.dg/allocatable_scalar_8.f90: New.
+
+2010-01-04  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42398
+	* gcc.c-torture/compile/pr42398.c: New test.
+
+2010-01-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42555
+	* g++.dg/ext/attrib35.C: New.
+
+	PR c++/42567
+	* g++.dg/cpp0x/auto17.C: New.
+
+2010-01-04  Rafael Avila de Espindola  <espindola@google.com>
+
+	* gcc.dg/lto/20100104_0.c: New.
+
 2010-01-04  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/42542

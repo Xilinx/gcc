@@ -1,3 +1,374 @@
+2010-01-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/string (basic_string<>::basic_string(basic_string&&),
+	operator=(basic_string&&), assign(basic_string&&)): Add.
+
+	* include/debug/string: Fully qualify initializer_list with std; fix
+	_Allocator misspellings as _Alloc.
+
+2010-01-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/basic_string.h (basic_string<>::
+	basic_string(basic_string&&), operator=(basic_string&&),
+	assign(basic_string&&)): Add.
+	* config/abi/pre/gnu.ver: Export new symbols.
+	* include/ext/vstring.h (__versa_string<>::assign(__versa_string&&)):
+	Add.
+	(operator=(__versa_string&&)): Don't call clear unnecessarily.
+	* include/ext/rc_string_base.h (__rc_string_base<>::
+	__rc_string_base(__rc_string_base&&)): Simplify a tad.
+	* testsuite/21_strings/basic_string/cons/char/moveable.cc: New.
+	* testsuite/21_strings/basic_string/cons/wchar_t/moveable.cc: Likewise.
+	* testsuite/ext/vstring/assign/move_assign.cc: Likewise.
+	* testsuite/21_strings/basic_string/assign/char/move_assign.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/assign/wchar_t/move_assign.cc:
+	Likewise.
+
+	* testsuite/ext/vstring/cons/moveable.cc: Fix comment nit.
+
+2010-01-10  Silvius Rus  <rus@google.com>
+
+	* configure.ac: Add detection of execinfo.h.
+	* configure: Regenerate.
+	* config.h.in: Likewise.
+	* doc/xml/manual/profile_mode.xml: Add list_to_slist manual.
+	Also, correct user interface mistakes.
+	* include/Makefile.am: Add references to new include files.
+	* include/Makefile.in: Regenerate.
+	* include/backward/hash_map: Remove profile include.
+	* include/backward/hash_set: Likewise.
+	* include/profile/hashtable.h: Delete file.
+	* include/profile/iterator_tracker.h: New file.
+	* include/profile/vector: Add instrumentation for tracked iterator.
+	* include/profile/list: Same.
+	* include/profile/impl/profiler_list_to_slist.h: New file.
+	* include/profile/impl/profiler_list_to_vector.h: Same.
+	* include/profile/impl/profiler.h: Add list_to_slist and
+	list_to_vector instrumentation hook interfaces.  Fixed broken
+	diagnostic disabling mechanism.
+	(_GLIBCXX_PROFILE_DEFINE_DATA,_GLIBCXX_PROFILE_DATA) New macros.
+	(__reentrance_guard) Fix bug.
+	* include/profile/impl/profiler_trace.h: Replace dummy templates
+	with _GLIBCXX_PROFILE_DEFINE_DATA.
+	* include/profile/impl/profiler_container_size.h: Same.
+	* include/profile/impl/profiler_vector_size.h: Same.
+	* include/profile/impl/profiler_hash_func.h: Same.
+	* include/profile/impl/profiler_vector_to_list.h: Same.
+	* include/profile/impl/profiler_map_to_unordered_map.h: Same.
+	* include/profile/impl/profiler_hashtable_size.h: Same.
+	* include/profile/impl/profiler_node.h: Same.
+	* include/profile/impl/profiler_state.h: Same.  Also, remove
+	class __state. Also, use __sync_val_compare_and_swap to set state.
+
+2010-01-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR other/42230
+	* testsuite/abi/pr42230.cc: New.
+
+2010-01-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/set.h: Revert last change, per DR 1204 [Ready];
+	mention the latter in comment.
+	* include/debug/unordered_map: Likewise.
+	* include/debug/multiset.h: Likewise.
+	* include/debug/vector: Likewise.
+	* include/debug/unordered_set: Likewise.
+	* include/debug/deque: Likewise.
+	* include/debug/map.h: Likewise.
+	* include/debug/list: Likewise.
+	* include/debug/multimap.h: Likewise.
+	* include/tr1_impl/unordered_map: Likewise.
+	* include/tr1_impl/unordered_set: Likewise.
+	* include/profile/set.h: Likewise.
+	* include/profile/unordered_map: Likewise.
+	* include/profile/multiset.h: Likewise.
+	* include/profile/unordered_set: Likewise.
+	* include/profile/vector: Likewise.
+	* include/profile/deque: Likewise.
+	* include/profile/map.h: Likewise.
+	* include/profile/list: Likewise.
+	* include/profile/multimap.h: Likewise.
+	* include/ext/vstring.h: Likewise.
+	* include/bits/stl_list.h: Likewise.
+	* include/bits/stl_map.h: Likewise.
+	* include/bits/stl_set.h: Likewise.
+	* include/bits/stl_multimap.h: Likewise.
+	* include/bits/stl_vector.h: Likewise.
+	* include/bits/stl_deque.h: Likewise.
+	* include/bits/stl_multiset.h: Likewise.
+
+	* include/bits/forward_list.h: Remove pre-existing check.
+	* include/ext/vstring.h: Likewise.
+
+	* testsuite/ext/vstring/cons/self_move_assign.cc: Remove.
+	* testsuite/23_containers/unordered_map/cons/self_move_assign.cc:
+	Likewise.
+	* testsuite/23_containers/multimap/cons/self_move_assign.cc: Likewise.
+	* testsuite/23_containers/set/cons/self_move_assign.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/cons/
+	self_move_assign.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/self_move_assign.cc:
+	Likewise.
+	* testsuite/23_containers/unordered_set/cons/self_move_assign.cc:
+	Likewise.
+ 	* testsuite/23_containers/vector/cons/self_move_assign.cc: Likewise.
+	* testsuite/23_containers/deque/cons/self_move_assign.cc: Likewise.
+	* testsuite/23_containers/multiset/cons/self_move_assign.cc: Likewise.
+	* testsuite/23_containers/list/cons/self_move_assign.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/cons/
+	self_move_assign.cc: Likewise.
+	* testsuite/23_containers/map/cons/self_move_assign.cc: Likewise.
+
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line numbers.
+ 	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
+	Likewise.
+ 	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/assign_neg.cc:
+	Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2010-01-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/set.h: Protect move assignment operator vs self
+	assignment.
+	* include/debug/unordered_map: Likewise.
+ 	* include/debug/multiset.h: Likewise.
+ 	* include/debug/vector: Likewise.
+	* include/debug/unordered_set: Likewise.
+	* include/debug/deque: Likewise.
+	* include/debug/map.h: Likewise.
+	* include/debug/list: Likewise.
+	* include/debug/multimap.h: Likewise.
+	* include/tr1_impl/unordered_map: Likewise.
+	* include/tr1_impl/unordered_set: Likewise.
+	* include/profile/set.h: Likewise.
+	* include/profile/unordered_map: Likewise.
+	* include/profile/multiset.h: Likewise.
+	* include/profile/unordered_set: Likewise.
+	* include/profile/vector: Likewise.
+	* include/profile/deque: Likewise.
+	* include/profile/map.h: Likewise.
+	* include/profile/list: Likewise.
+	* include/profile/multimap.h: Likewise.
+	* include/ext/vstring.h: Likewise.
+	* include/bits/stl_list.h: Likewise.
+	* include/bits/stl_map.h: Likewise.
+	* include/bits/stl_set.h: Likewise.
+	* include/bits/stl_multimap.h: Likewise.
+	* include/bits/stl_vector.h: Likewise.
+	* include/bits/stl_deque.h: Likewise.
+	* include/bits/stl_multiset.h: Likewise.
+	* include/ext/vstring.h: Use clear().
+	* testsuite/ext/vstring/cons/self_move_assign.cc: New.
+	* testsuite/23_containers/unordered_map/cons/self_move_assign.cc:
+	Likewise.
+	* testsuite/23_containers/multimap/cons/self_move_assign.cc: Likewise.
+	* testsuite/23_containers/set/cons/self_move_assign.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/cons/
+	self_move_assign.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/self_move_assign.cc:
+	Likewise.
+	* testsuite/23_containers/unordered_set/cons/self_move_assign.cc:
+	Likewise.
+ 	* testsuite/23_containers/vector/cons/self_move_assign.cc: Likewise.
+	* testsuite/23_containers/deque/cons/self_move_assign.cc: Likewise.
+	* testsuite/23_containers/multiset/cons/self_move_assign.cc: Likewise.
+	* testsuite/23_containers/list/cons/self_move_assign.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/cons/
+	self_move_assign.cc: Likewise.
+	* testsuite/23_containers/map/cons/self_move_assign.cc: Likewise.
+
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line numbers.
+ 	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
+	Likewise.
+ 	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/assign_neg.cc:
+	Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+	* testsuite/ext/vstring/moveable.cc: Move to...
+	* testsuite/ext/vstring/cons/moveable.cc: ... here.
+	* testsuite/23_containers/unordered_map/moveable.cc: Move to...
+	* testsuite/23_containers/unordered_map/cons/moveable.cc ... here.
+	* testsuite/23_containers/multimap/moveable.cc: Move to...
+	* testsuite/23_containers/multimap/cons/moveable.cc: ... here.
+	* testsuite/23_containers/set/moveable.cc: Move to...
+	* testsuite/23_containers/set/cons/moveable.cc: ... here.
+	* testsuite/23_containers/unordered_multimap/moveable.cc: Move to...
+	* testsuite/23_containers/unordered_multimap/cons/moveable.cc:
+	... here.
+	* testsuite/23_containers/forward_list/moveable.cc: Move to...
+	* testsuite/23_containers/forward_list/cons/moveable.cc: ... here.
+	* testsuite/23_containers/unordered_set/moveable.cc Move to...
+	* testsuite/23_containers/unordered_set/moveable.cc: ... here.
+	* testsuite/23_containers/vector/cons/moveable.cc Move to...
+	* testsuite/23_containers/vector/cons/moveable2.cc: ... this.
+	* testsuite/23_containers/deque/cons/moveable.cc Move to...
+	* testsuite/23_containers/deque/cons/moveable2.cc: ... this.
+	* testsuite/23_containers/multiset/moveable.cc Move to...
+	* testsuite/23_containers/multiset/cons/moveable.cc: ... here.
+	* testsuite/23_containers/list/moveable.h Move to...
+	* testsuite/23_containers/list/cons/moveable.h: ... here.
+	* testsuite/23_containers/list/moveable.cc Move to...
+	* testsuite/23_containers/list/cons/moveable.cc: ... here.
+	* testsuite/23_containers/unordered_multiset/moveable.cc Move to...
+	* testsuite/23_containers/unordered_multiset/cons/moveable.cc:
+	... here.
+	* testsuite/23_containers/map/moveable.cc Move to...
+	* testsuite/23_containers/map/cons/moveable.cc: ... here.
+	* testsuite/23_containers/vector/moveable.cc: Move to...
+	* testsuite/23_containers/vector/cons/moveable.cc: ... here.
+	* testsuite/23_containers/deque/moveable.cc: Move to...
+	* testsuite/23_containers/deque/cons/moveable.cc: ... here.
+
+2010-01-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/42573
+	* include/bits/allocator.h (struct __shrink_to_fit): Add.
+	* include/bits/stl_deque.h (deque<>::shrink_to_fit): Add.
+	* include/bits/stl_vector.h (vector<>::shrink_to_fit): Likewise.
+	* include/bits/stl_bvector.h (vector<bool>::shrink_to_fit): Likewise.
+	* include/bits/basic_string.h (basic_string<>::shrink_to_fit):
+	Likewise.
+	* include/ext/vstring.h (__versa_string<>::shrink_to_fit): Likewise.
+	* include/debug/deque: Add corresponding using declaration.
+	* include/debug/vector: Likewise.
+	* include/debug/string: Likewise.
+	* include/profile/deque: Likewise.
+	* include/profile/vector: Likewise.
+	* config/abi/pre/gnu.ver: Export new symbols.
+	* testsuite/23_containers/deque/capacity/shrink_to_fit.cc: New.
+	* testsuite/23_containers/vector/capacity/shrink_to_fit.cc: Likewise.
+	* testsuite/21_strings/basic_string/capacity/char/shrink_to_fit.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/capacity/wchar_t/shrink_to_fit.cc:
+	Likewise.
+	* testsuite/ext/vstring/capacity/shrink_to_fit.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/23_containers/deque/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2010-01-07  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/evolution.xml: Fix typos, update.
+
+2010-01-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/locale_facets_nonio.tcc (time_put<>::do_put): Avoid
+	pointless __builtin_alloca use.
+
+2010-01-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/26701
+	* include/bits/locale_facets_nonio.tcc (time_get<>::_M_extract_num):
+	Encode short two digits over four parsings to negative numbers.
+	(time_get<>::_M_extract_via_format): Adjust, accept both two digits
+	and four digits for both 'y' and 'Y'.
+	(time_get<>::do_get_year): Call time_get<>::_M_extract_num.
+	* doc/xml/manual/prerequisites.xml: Add en_GB.
+	* testsuite/lib/libstdc++.exp: Adjust
+	* testsuite/22_locale/time_get/get_date/char/26701.cc: New.
+	* testsuite/22_locale/time_get/get_date/wchar_t/26701.cc: Likewise.
+
+2010-01-06  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/42491
+	* scripts/check_performance (CXX): Add -std=gnu++0x.
+	* testsuite/performance/30_threads/future/polling.cc: Mark up as
+	using threads.
+
+2010-01-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/22_locale/time_get/get_weekday/char/38081-2.cc:
+	Add dg-require-namedlocale.
+
+2010-01-05  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/evolution.xml: Update for 4.4 and 4.5 releases.
+	* doc/html: Regenerate.
+
+2010-01-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38081
+	* include/bits/locale_facets_nonio.h (time_get<>::
+	_M_extract_wday_or_month): New, declare.
+	* include/bits/locale_facets_nonio.tcc (time_get<>::
+	_M_extract_wday_or_month): Define.
+	(time_get<>::do_get_weekday, time_get<>::do_get_monthname): Use it.
+	* config/abi/pre/gnu.ver: Export new symbols.
+	* doc/xml/manual/prerequisites.xml: Add ru_RU.UTF-8 and
+	ru_RU.ISO-8859-5.
+	* testsuite/lib/libstdc++.exp: Adjust.
+	* testsuite/22_locale/time_get/get_weekday/char/38081-1.cc: New.
+	* testsuite/22_locale/time_get/get_weekday/char/38081-2.cc: Likewise.
+
+2010-01-05  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure: Regenerate.
+
+2010-01-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/22_locale/time_get/get_monthname/char/6.cc: New.
+	* testsuite/22_locale/time_get/get_monthname/wchar_t/6.cc: Likewise.
+	* testsuite/22_locale/time_get/get_weekday/char/6.cc: Likewise.
+	* testsuite/22_locale/time_get/get_weekday/wchar_t/6.cc: Likewise.
+
 2010-01-03  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/profile/list: Implement DR 1133 here too.
