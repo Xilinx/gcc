@@ -2954,6 +2954,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	(fldbox (make_box discr_box ())) 
 	(flpat (patternexpand_1 flpsexp env pctx psloc)) 
 	)
+    (debug_msg clafields "parse_field_pattern clafields")
     ;; find the field inside the class
     (multiple_iterate_test
      clafields
@@ -2971,6 +2972,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	   )
       (if (is_not_a fld class_field)
 	  (progn
+	    (debug_msg fld "parse_field_pattern bad fld")
 	    (error_strv psloc "invalid :field in pattern"
 			(unsafe_get_field :named_name fkeyw))
 	    (return)))

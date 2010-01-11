@@ -1,0 +1,50 @@
+; -*- lisp -*-
+;; file tmatch-6.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tmatch-6.melt -fmelt-debug empty-file-for-melt.c
+|#
+
+
+;; iparse_field crash the MELT translator :-(
+(defun iparse_field (iparser env)
+  (assert_msg "check iparser" (is_a iparser class_infix_parser))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (ctok (infix_peeklex iparser 0))
+	 )
+    (match ctok
+	   (?(or
+	      ?(instance class_infix_symbol 
+			 :loca_location ?loc
+			 :lexeme_data ?(as ?sy 
+					   ?(instance class_symbol 
+						      :named_name ?nm)))
+	      ?(instance class_infix_keyword
+			 :loca_location ?loc 
+			 :lexeme_data ?(instance class_keyword 
+						 :named_name ?nm)))
+	     (if (null sy) (setq sy (create_symbolstr nm)))
+	     (let ( (fldbind (find_env env sy)) 
+		    )
+	       (match fldbind
+		      (?(instance class_field_binding
+				  :flbind_field ?fld)
+			(infix_poplex iparser 1)
+			(debug_msg fld "iparse_field got straight field")
+			(return fld))
+		      (?(instance class_value_binding
+				  :vbind_value
+				  ?(as ?fld ?(instance class_field)))
+			(infix_poplex iparser 1)
+			(debug_msg fld "iparse_field got value field")
+			(return fld))
+		      (?_
+		       (error_strv loc "incorrect infix field" nm))))
+	     )
+	   (?(instance class_located :loca_location ?loc)
+	     (error_plain loc "expecting field in infix notation")))))
+
+
+;;; eof tmatch-6.melt

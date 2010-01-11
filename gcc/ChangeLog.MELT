@@ -1,3 +1,24 @@
+2010-01-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{added new crashing test tmatch-6.melt from commented code in
+	warmelt-infixsyntax.melt}}
+	* melt/warmelt-first.melt: added closure cmatcher & corrected typo
+	in foreach_long_upto citerator. added all the class_infix_*.
+
+	* melt/warmelt-macro.melt: added debug messages in
+	parse_field_pattern
+
+	* melt/warmelt-infixsyntax.melt: added more code, but commented
+	part of it which crashes the MELT translator. Exporting classes &
+	values.
+
+	* melt-runtime.c (meltgc_infix_lexeme): accepting #\_ as the space
+	character in MELT infix syntax.
+
+	* testsuite/melt/tmatch-6.melt: added new crashing test case.
+
+
+
 2010-01-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{merged with trunk rev 155725, and minor additions}}
 

@@ -6787,7 +6787,7 @@ meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimap_p)
       goto end;
     }
     else
-      READ_ERROR ("MELT INFIX: invalid character endoing #'%.20s", &rdcurc());
+      READ_ERROR ("MELT INFIX: invalid character end #'%.20s", &rdcurc());
   }
   else if (c=='#' && rdfollowc(1) == '\\') {
     /* #\n is the newline, etc */
@@ -6803,7 +6803,7 @@ meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimap_p)
     case '"' : esc = '\"'; break;
     case '\'' : esc = '\''; break;
     case '\\' : esc = '\\'; break;
-    case ' ' : esc = ' '; break;
+    case ' ' : case '_': esc = ' '; break;
     default:
       READ_ERROR ("MELT INFIX invalid char escape %.4s", &rdcurc ());
     }

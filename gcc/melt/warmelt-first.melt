@@ -247,9 +247,14 @@ literals. $LEXEME_DATA is the parsed string.}# )
   :doc #{The $CLASS_INFIX_INTEGER_LITERAL is for infix integer
 literals. $LEXEME_DATA is the parsed boxed constant integer.}# )
 
+(defclass class_infix_any_symbol
+  :super class_infix_lexeme
+  :doc #{The $CLASS_INFIX_SYMBOL is the superclass of all infix symbol occurrences. $LEXEME_DATA is the parsed symbol.}#
+)
+
 (defclass class_infix_symbol
   :predef CLASS_INFIX_SYMBOL
-  :super class_infix_lexeme
+  :super class_infix_any_symbol
   :fields ()
   :doc #{The $CLASS_INFIX_SYMBOL is for infix symbol
 occurrences. $LEXEME_DATA is the parsed symbol. A symbol starts with a
@@ -258,7 +263,7 @@ ones.}#)
 
 (defclass class_infix_additive_symbol
   :predef CLASS_INFIX_ADDITIVE_SYMBOL
-  :super class_infix_symbol
+  :super class_infix_any_symbol
   :fields ()
   :doc #{The $CLASS_INFIX_ADDITIVE_SYMBOL is for infix additive
 symbols, starting with @code{+} or @code{-} or @code{|}. Prefix them with an
@@ -267,7 +272,7 @@ ignored backslash @code{\} to have them parsed as an ordinary
 
 (defclass class_infix_multiplicative_symbol
   :predef CLASS_INFIX_MULTIPLICATIVE_SYMBOL
-  :super class_infix_symbol
+  :super class_infix_any_symbol
   :fields ()
   :doc #{The $CLASS_INFIX_MULTIPLICATIVE_SYMBOL is for infix
 multiplicative symbols, starting with @code{*} or @code{/} or @code{&}
@@ -276,7 +281,7 @@ them parsed as an ordinary symbol.}#)
 
 (defclass class_infix_relational_symbol
   :predef CLASS_INFIX_RELATIONAL_SYMBOL
-  :super class_infix_symbol
+  :super class_infix_any_symbol
   :fields ()
   :doc #{The $CLASS_INFIX_RELATIONAL_SYMBOL is for infix
 relational symbols, starting with @code{<} @code{>} @code{=} @code{!} @code{~} @code{@@}. Prefix them with an ignored backslash @code{\} to have
@@ -1060,7 +1065,7 @@ from $IMIN to $IMAX included.}#
     for ($eachlong#_cur = $eachlong#_min;
          $eachlong#_cur <= $eachlong#_max;
 	 $eachlong#_cur ++) {
-	    $ix = $eachlong#_cur	    
+	    $ix = $eachlong#_cur;	    
 }#
  					;after expansion
    #{ } /*end eachlong */}#
@@ -1803,6 +1808,16 @@ make a $CURAT string.}#
 (defprimitive closure_nth (clo :long ix) :value
   :doc #{Retrieve in closure value $CLO its component of index $IX.}#
   #{(melt_closure_nth((melt_ptr_t)($clo), (int)($ix)))}#)
+
+(defcmatcher closure
+  (clo)
+  ()
+  closurematch
+  :doc #{The $CLOSURE patterns matches a closure.}#
+  #{ /* $closurematch ? */ $clo && melt_magic_discr($clo) == OBMAG_CLOSURE }#
+  #{ /* $closurematch ! */ }#
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; boxed INTEGERs primitives
 ;; test
@@ -1820,7 +1835,7 @@ make a $CURAT string.}#
   (:value bx)
   (:long ict)
   iboxof
-  :doc #{The $INTEGERBOX_OF matches a boxed integer $BX. If indeed it
+  :doc #{The $INTEGERBOX_OF patern matches a boxed integer $BX. If indeed it
   is a boxed integer, its integer content should match $ICT. The match
   fails if $BX is not a boxed integer (e.g. is the null value or non
   boxed-integer). See also $MAKE_INTEGERBOX $IS_INTEGERBOX.}#
@@ -4980,6 +4995,16 @@ $FILENAM and $LINENO}#
  class_gcc_rtl_pass
  class_gcc_simple_ipa_pass
  class_initial_generation_context
+ class_infix_additive_symbol
+ class_infix_any_symbol
+ class_infix_delimiter
+ class_infix_integer_literal
+ class_infix_keyword
+ class_infix_lexeme 
+ class_infix_multiplicative_symbol
+ class_infix_relational_symbol
+ class_infix_string_literal
+ class_infix_symbol
  class_instance_binding
  class_keyword
  class_label_binding
@@ -5001,6 +5026,7 @@ $FILENAM and $LINENO}#
  class_selector
  class_selector_binding 
  class_sexpr
+ class_sexpr_macrostring
  class_source
  class_symbol
  class_system_data
@@ -5366,6 +5392,7 @@ $FILENAM and $LINENO}#
  foreach_in_multiple_backward
  foreach_long_upto
  integerbox_of 
+ closure
  )
 
 ;; we predefine :true as the TRUE. Currently no handcoded C function
