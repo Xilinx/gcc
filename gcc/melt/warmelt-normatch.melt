@@ -30,7 +30,7 @@
 
 
 ;;; class for the context of normalization of patterns
-(defclass class_patterncontext
+(defclass class_pattern_context
   :super class_root
   :fields (pctn_normctxt		;the class_normalization_context
 	   pctn_src			;the source match expressioon
@@ -66,7 +66,7 @@
 ;;; catch-all for scanning any reciever (by failing)
 (defun scanpat_anyrecv (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_anypattern recv")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) )
     (error_strv psloc 
@@ -82,7 +82,7 @@
 (defun scanpat_anypattern (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_anypattern recv")
   (assert_msg "check recv" (is_a recv class_source_pattern))
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) )
     (debug_msg myclass "scanpat_anypattern myclass [discrim of recv]")
@@ -97,7 +97,7 @@
 ;; scanning or pattern
 (defun scanpat_srcpator (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_srcpator recv")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_or))
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sdisj (unsafe_get_field :orpat_disj recv))
@@ -119,7 +119,7 @@
 ;; scanning and pattern
 (defun scanpat_srcpatand (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_srcpatand recv")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_and))
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sconj (unsafe_get_field :andpat_conj recv))
@@ -139,7 +139,7 @@
 ;; scanning pattern variable
 (defun scanpat_srcpatvar (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_srcpatvar recv")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_variable))
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (svar (unsafe_get_field :spat_var recv))
@@ -163,7 +163,7 @@
 ;; scanning pattern joker
 (defun scanpat_srcpatjoker (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_srcpatjoker recv")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_joker_variable))
   ;; just return
   (return)
@@ -177,7 +177,7 @@
 (defun scanpat_srcpatas (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_srcpatas recv")
   (debug_msg ctyp "scanpat_srcpatas ctyp")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_as))
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (asvarpat (unsafe_get_field :aspat_varpat recv))
@@ -203,7 +203,7 @@
 ;; scanning a pattern constant
 (defun scanpat_srcpatconst (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_srcpatconst recv")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_constant))
   (let ( (sconst (unsafe_get_field :spat_constx recv))
 	 (sloc (unsafe_get_field :loca_location recv))
@@ -250,7 +250,7 @@
 ;; scanning a pattern object or instance
 (defun scanpat_srcpatobject (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_srcpatobject recv")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_object))
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (scla (unsafe_get_field :spat_class recv))
@@ -287,7 +287,7 @@
 ;;;;;;;;;;;;;;;;
 ;; scanning a composite pattern 
 (defun scanpat_srcpatcomposite (recv psloc ctyp pcn)
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (debug_msg recv "scanpat_srcpatcomposite start recv")
   (debug_msg ctyp "scanpat_srcpatcomposite start ctyp")
   (assert_msg "check ctyp" (is_a ctyp class_ctype))
@@ -437,7 +437,7 @@
   (debug_msg ntest "register_new_normtester ntest")
   (debug_msg pcn "register_new_normtester pcn")
   (assert_msg "check ntest" (is_a ntest class_normtester_any))
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (let ( (nmatched (unsafe_get_field :ntest_matched ntest))
 	 (stuffmap (unsafe_get_field :pctn_stuffmap pcn))
 	 )
@@ -582,7 +582,7 @@
 ;;; catch-all for normpat any reciever (by failing)
 (defun normpat_anyrecv (recv nmatch hdler pcn)
   (debug_msg recv "normpat_anyrecv recv")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) 
 	 (psloc (get_field :loca_location (get_field :pctn_src pcn)))
@@ -598,7 +598,7 @@
 ;;; catch-all for normpat any pattern (by failing)
 (defun normpat_anypat (recv nmatch hdler  pcn)
   (debug_msg recv "normpat_anyrecv recv")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern))
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) 
@@ -617,7 +617,7 @@
   (debug_msg recv "normpat_variablepat recv")
   (debug_msg nmatch "normpat_variablepat nmatch")
   (assert_msg "check recv" (is_a recv class_source_pattern_variable))
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (let ( (stuffmap (get_field :pctn_stuffmap pcn))
 	 (pvarmap (get_field :pctn_pvarlocmap pcn)) 
 	 (psloc (get_field :loca_location (get_field :pctn_src pcn)))
@@ -714,7 +714,7 @@
   (debug_msg recv "normpat_jokerpat recv")
   (debug_msg nmatch "normpat_jokerpat nmatch")
   (assert_msg "check recv" (is_a recv class_source_pattern_joker_variable))
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   ;; we need nothing more, a joker pattern is essentially a black hole..
 )
 (install_method class_source_pattern_joker_variable normal_pattern normpat_jokerpat)
@@ -726,7 +726,7 @@
   (debug_msg nmatch "normpat_aspat nmatch")
   (debug_msg hdler "normpat_aspat hdler")
   (assert_msg "check recv" (is_a recv class_source_pattern_as))
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (shortbacktrace_dbg "normpat_aspat start" 15)
   (let (
 	(sloc (get_field :loca_location recv))
@@ -784,7 +784,7 @@
 (defun normpat_instancepat (recv nmatch hdler pcn)
   (debug_msg recv "normpat_instancepat recv start")
   (debug_msg nmatch "normpat_instancepat nmatch")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_instance))
   (let ( (psloc (get_field :loca_location (get_field :pctn_src pcn)))
 	 (sloc (get_field :loca_location recv))
@@ -959,7 +959,7 @@
   (debug_msg recv "normpat_andpat recv")
   (debug_msg nmatch "normpat_andpat nmatch")
   (debug_msg pcn "normpat_andpat pcn")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_and))
   (let (
 	(sloc (get_field :loca_location recv))
@@ -1008,7 +1008,7 @@
   (shortbacktrace_dbg "normpat_orpat called" 16)
   (debug_msg nmatch "normpat_orpat nmatch")
   (debug_msg pcn "normpat_orpat pcn")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_or))
   (let (
 	(sloc (get_field :loca_location recv))
@@ -1084,7 +1084,7 @@
   (debug_msg recv "normpat_anymatchpat recv")
   (debug_msg nmatch "normpat_anymatchpat nmatch")
   (debug_msg pcn "normpat_anymatchpat pcn")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_matcher))
   (shortbacktrace_dbg "normpat_anymatchpat start" 14)
   (let (
@@ -1351,7 +1351,7 @@
   (debug_msg recv "normpat_constpat recv")
   (debug_msg nmatch "normpat_constpat nmatch")
   (debug_msg pcn "normpat_constpat pcn")
-  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_constant))
   (let (
 	(sloc (get_field :loca_location recv))
@@ -1485,7 +1485,7 @@
 	      (mapvar (make_mapobject discr_map_objects 13))
 	      (mapcst (make_mapobject discr_map_objects 11))
 	      (pvarmap (make_mapobject discr_map_objects 23))
-	      (pcn (instance class_patterncontext
+	      (pcn (instance class_pattern_context
 			     :pctn_normctxt ncx
 			     :pctn_src recv
 			     :pctn_env env
@@ -1510,6 +1510,7 @@
 	  (debug_msg bindlist "normexp_match bindlist")
 	  (multiple_put_nth tupvarmap ix mapvar)
 	  (multiple_put_nth tupcstmap ix mapcst)
+	  (compile_warning "this is confusing, why put the samebindlist everywhere...")
 	  (multiple_put_nth tupbindlist ix bindlist)
 	  (debug_msg curpat "normexp_match curpat before normal_pattern")
 	  ;; normalize the current pattern, with the handler storing its topmost tester
@@ -1624,6 +1625,11 @@
 		 (debug_msg cursortbind "normexp_match cursortbind")
 		 (assert_msg "check cursortbind" 
 			     (is_a cursortbind class_normal_let_binding))
+		 ;; the sorted binding should be expelled at the outer
+		 ;; [entire match, not current match-case] level, so
+		 ;; all of them are cleared before any tests...
+		 (compile_warning "we should put the cursortbind upwards... see comment")
+		 
 		 (list_append subindlist cursortbind)
 		 )
 		(debug_msg curbody "normexp_match curbody before normalize_tuple")
@@ -1726,7 +1732,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; export our classes
 (export_class
- class_patterncontext
+ class_pattern_context
  class_normtester_any
  class_normtester_anytester
  class_normtester_disjunction

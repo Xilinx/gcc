@@ -5006,6 +5006,7 @@ $SBUF.}#
 		     (list_append disposablist remstuff))
 		 )))) 
 ;;; dispose all the stuff in the disposablist 
+	  (debug_msg disposablist "compilobj_nrep_match disposablist")
 	  (foreach_in_list
 	   (disposablist)
 	   (dispair dispstuff)

@@ -1,4 +1,12 @@
 2010-01-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tmatch-6 still fails on iparse_field; bug partly identified.}}
+	* melt/warmelt-normatch.melt: apparently the sortedbindings is
+	wrongly handled. Read the comemnts & warnings there. SHOULD BE
+	FIXED. Also renamed class_patterncontext as class_pattern_context.
+	* melt/warmelt-genobj.melt: added debug message.
+	* testsuite/melt/tmatch-6.melt: temporarily comments parts.
+
+2010-01-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{or patterns translated correctly; but tmatch-6 test fails for
 	iparse_field}}
 
