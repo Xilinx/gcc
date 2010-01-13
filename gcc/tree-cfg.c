@@ -1,6 +1,6 @@
 /* Control flow functions for trees.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
-   Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+   2010  Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -2230,7 +2230,7 @@ is_ctrl_altering_stmt (gimple t)
 	  return true;
 
 	/* A call also alters control flow if it does not return.  */
-	if (gimple_call_flags (t) & ECF_NORETURN)
+	if (flags & ECF_NORETURN)
 	  return true;
       }
       break;
@@ -2960,6 +2960,12 @@ verify_gimple_call (gimple stmt)
 	  || verify_types_in_gimple_reference (gimple_call_lhs (stmt), true)))
     {
       error ("invalid LHS in gimple call");
+      return true;
+    }
+
+  if (gimple_call_lhs (stmt) && gimple_call_noreturn_p (stmt))
+    {
+      error ("LHS in noreturn call");
       return true;
     }
 

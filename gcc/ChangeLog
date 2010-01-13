@@ -1,3 +1,200 @@
+2010-01-12  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/42708
+	* c-typeck.c (build_c_cast): Fold value cast to union type before
+	wrapping it in a CONSTRUCTOR.
+
+2010-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/42699
+	* cse.c (cse_insn): Optimize lhs ZERO_EXTRACT if only CONST_INTs are
+	involved.
+
+2010-01-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/mips/iris6.h (SUBTARGET_DONT_WARN_UNUSED_SPEC,
+	SUBTARGET_WARN_UNUSED_SPEC): Move ...
+	config/mips/iris.h (SUBTARGET_DONT_WARN_UNUSED_SPEC,
+	SUBTARGET_WARN_UNUSED_SPEC): ... here
+	* config/mips/iris5.h (LIBGCC_SPEC): Define.
+
+2010-01-12  Julian Brown  <julian@codesourcery.com>
+
+        * config/arm/neon-schedgen.ml (Utils): Don't try to
+	open missing module.
+        (find_with_result): New.
+
+2010-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/42662
+	* simplify-rtx.c (simplify_relational_operation_1): Avoid invalid rtx
+	sharing when canonicalizing ({lt,ge}u (plus a b) b).
+
+	PR tree-optimization/42645
+	* tree-inline.c (processing_debug_stmt): Move earlier.  Make static.
+	(remap_ssa_name): If processing_debug_stmt and name wasn't found in
+	decl_map, set processing_debug_stmt to -1 and return name without
+	any remapping.
+
+2010-01-11  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* doc/install.texi (Specific#x-x-cygwin): Document minimum required
+	binutils version, and reword target configuration description.
+
+2010-01-11  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* config/avr/avr.h (LINKER_NAME): Remove. 
+
+2010-01-11  Janis Johnson  <janis187@us.ibm.com>
+
+	PR target/42416
+	* config/rs6000/rs6000.c (rs6000_override_options): On targets
+	that support VSX, warn for -mno-altivec if vsx is not disabled,
+	and disable vsx.
+
+2010-01-11  Joseph Myers  <joseph@codesourcery.com>
+	    Shujing Zhao  <pearly.zhao@oracle.com>
+	
+	PR translation/42469
+	* common.opt (Wframe-larger-than=, fcompare-debug=, fdbg-cnt=,
+	fira-verbose=, flto-compression-level=, fplugin-arg-): Use tab
+	character between option name and help text.
+	* c.opt (imultilib): Likewise.
+
+2010-01-10  Rafael Avila de Espindola  <espindola@google.com>
+
+	* lto-streamer-out.c (output_unreferenced_globals): Output static
+	variables.
+
+2010-01-10  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR rtl-optimization/42621
+	* bb-reorder.c (gate_duplicated_computed_gotos): Only run if not
+	optimizing for size.
+	(duplicate_computed_gotos): Remove now-redundant check.
+
+2010-01-10  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/37454
+	* configure.ac: Save and restore LDFLAGS and LIBS
+	* configure: Regenerate.
+
+2010-01-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42667
+	* builtins.c (fold_builtin_strlen): Add type argument and
+	convert the resulting length to it.
+	(fold_builtin_1): Adjust.
+
+2010-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/rs6000/rs6000.c (rs6000_emit_set_long_const): Shorten
+	sequence for DImode constants >= 0x80000000UL <= 0xFFFFFFFFUL by
+	1 insn.
+	(num_insns_constant_wide): Adjust for that change.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42631
+	* web.c (union_defs): Add used argument, to combine uses of
+	uninitialized regs.
+	(entry_register): Adjust type and tests of used argument.
+	(web_main): Widen used for new use.  Pass it to union_defs.
+	* df.h (union_defs): Adjust prototype.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42630
+	* loop-unroll.c (referenced_in_one_insn_in_loop_p): Count debug
+	uses in new incoming argument.  Free body.
+	(reset_debug_uses_in_loop): New.
+	(analyze_insn_to_expand_var): Call the latter if the former found
+	anything.  Fix whitespace.  Reject invalid dest overlaps before
+	going through all insns in the loop.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42629
+	* haifa-sched.c (dying_use_p): Debug insns don't count.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR middle-end/42363
+	* gimplify.c (gimplify_modify_expr): Drop lhs on noreturn calls.
+	* tree-cfg.c (is_ctrl_altering_stmt): Don't compute flags twice.
+	(verify_gimple_call): Reject LHS in noreturn calls.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42604
+	PR debug/42395
+	* tree-vect-loop-manip.c (adjust_info): New type.
+	(adjust_vec): New pointer to vector.
+	(adjust_debug_stmts_now, adjust_vec_debug_stmts): New.
+	(adjust_debug_stmts, adjust_phi_and_debug_stmts): New.
+	(slpeel_update_phis_for_duplicate_loop): Use them.
+	(slpeel_update_phi_nodes_for_guard1): Likewise.
+	(slpeel_update_phi_nodes_for_guard2): Likewise.
+	(slpeel_tree_peel_loop_to_edge): Likewise.
+	(vect_update_ivs_after_vectorizer): Likewise.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	* vec.h (DEF_VEC_ALLOC_FUNC_O_STACK): Drop excess paren.
+	(DEF_VEC_ALLOC_FUNC_I_STACK): Likewise.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	* config/i386/i386.c (ix86_vectorize_builtin_vec_perm): Silence
+	bogus uninitialized warning.
+
+2010-01-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42512
+	* tree-scalar-evolution.c (interpret_loop_phi): Make sure
+	the evolution is compatible with the initial condition.
+
+2010-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.c (process_command): Update copyright notice dates.
+	* gcov.c (print_version): Likewise.
+	* gcov-dump.c (print_version): Likewise.
+	* mips-tfile.c (main): Likewise.
+	* mips-tdump.c (main): Likewise.
+
+2010-01-08  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	PR target/41885
+	* config/avr/avr.md (rotlqi3): Add CONST_INT_P check.
+	(rotlhi3): Delete.
+	(rotlhi3_8): Delete.
+	(rotlsi3): Delete.
+	(rotlsi3_8): Delete.
+	(rotlsi3_16): Delete.
+	(rotlsi3_24): Delete.
+	(rotl<mode>3): New.
+	(*rotw<mode>3): New.
+	(*rotb<mode>3): New.
+	* config/avr/avr.c (avr_rotate_bytes): New function.
+	* config/avr/avr-proto.h (avr_rotate_bytes): New function. 
+
+2010-01-08  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/37454
+	* configure.ac: Modify -rdynamic check.
+	* configure: Regenerate.
+
+2010-01-08  DJ Delorie  <dj@redhat.com>
+
+	* config/sh/sh.c (sh_expand_epilogue): Fix interrupt handler
+	register popping order.
+
+2010-01-08  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42528
+	* c.opt (fsigned-char): Also let LTO handle this option.
+	(funsigned-char): Likewise.
+
 2010-01-07  Richard Guenther  <rguenther@suse.de>
 
 	* gimple.h (gss_for_code): Wrap gcc_assert in ENABLE_CHECKING.

@@ -1,6 +1,7 @@
 // { dg-options "-std=gnu++0x" }
+// { dg-require-string-conversions "" }
 
-// Copyright (C) 2005, 2007, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -17,12 +18,11 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-
 // NOTE: This makes use of the fact that we know how moveable
-// is implemented on vector (via swap). If the implementation changed
+// is implemented on string (via swap). If the implementation changed
 // this test may begin to fail.
 
-#include <vector>
+#include <string>
 #include <utility>
 #include <testsuite_hooks.h>
 
@@ -30,33 +30,18 @@ void test01()
 {
   bool test __attribute__((unused)) = true;
 
-  std::vector<int> a,b;
-  a.push_back(1);
+  std::string a, b;
+  a.push_back('1');
   b = std::move(a);
-  VERIFY( b.size() == 1 && b[0] == 1 && a.size() == 0 );
+  VERIFY( b.size() == 1 && b[0] == '1' && a.size() == 0 );
 
-  std::vector<int> c(std::move(b));
-  VERIFY( c.size() == 1 && c[0] == 1 );
+  std::string c(std::move(b));
+  VERIFY( c.size() == 1 && c[0] == '1' );
   VERIFY( b.size() == 0 );
 }
 
-void test02()
-{
-  bool test __attribute__((unused)) = true;
-  
-  std::vector<bool> a,b;
-  a.push_back(1);
-  b = std::move(a);
-  VERIFY( b.size() == 1 && b[0] == 1 && a.size() == 0 );
-
-  std::vector<bool> c(std::move(b));
-  VERIFY( c.size() == 1 && c[0] == 1 );
-  VERIFY( b.size() == 0 );
-}
-
-int main(void)
+int main()
 {
   test01();
-  test02();
   return 0;
 }

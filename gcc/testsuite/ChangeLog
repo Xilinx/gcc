@@ -1,3 +1,109 @@
+2010-01-12  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/42708
+	* gcc.c-torture/compile/pr42708-1.c: New test.
+
+2010-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/42662
+	* gcc.dg/pr42662.c: New test.
+
+	PR tree-optimization/42645
+	* g++.dg/other/pr42645-1.C: New test.
+	* g++.dg/other/pr42645-2.C: New test.
+
+2010-01-11  Janis Johnson  <janis187@us.ibm.com>
+
+	PR target/42416
+	* gcc.target/powerpc/warn-1.c: New test.
+	* gcc.target/powerpc/warn-2.c: New test.
+
+2010-01-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/x86_64/abi/avx/asm-support.S (snapshot_ret): Preserve
+	stack alignment.
+
+2010-01-10  Rafael Avila de Espindola  <espindola@google.com>
+
+	* gcc.dg/lto/20100108_0.c: New.
+
+2010-01-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/graphite/pr40281.c (dg-options): Add -w.
+	Add -march=i686 -msse for 32bit x86 targets.
+
+2010-01-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42667
+	* gcc.dg/torture/pr42667.c: New testcase.
+
+2010-01-09 Jerry DeLisle <jvdelisle@gcc.gnu.org>
+
+	PR fortran/32489
+	* gfortran.dg/array_constructor_34.f90: New test.
+
+2010-01-09 Jerry DeLisle <jvdelisle@gcc.gnu.org>
+
+	PR fortran/20923
+	* gfortran.dg/array_constructor_33.f90: New test.
+	gfortran.dg/array_function_5.f90: Add credit.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42631
+	* gcc.dg/pr42631.c: New.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42630
+	* gcc.dg/pr42630.c: New.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42629
+	* gcc.dg/pr42629.c: New.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR middle-end/42363
+	* gcc.dg/torture/pr42363.c: New.
+
+2010-01-09  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42604
+	PR debug/42395
+	* gcc.dg/vect/pr42604.c: New.
+	* gcc.dg/vect/pr42395.c: New.
+
+2010-01-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42512
+	* gcc.c-torture/execute/pr42512.c: New testcase.
+
+2010-01-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41298
+	* gfortran.dg/c_ptr_tests_14.f90: New test.
+
+2010-01-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR ada/41929
+	* gnat.dg/null_pointer_deref1.adb: Don't run on
+	sparc*-sun-solaris2.11.
+
+2010-01-08  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42528
+	* gcc.dg/lto/20100103-1_0.c: New testcase.
+	* gcc.dg/lto/20100103-2_0.c: Likewise.
+
+2010-01-08  Tobias Burnus  <burnus@net-b.de
+
+	PR/fortran 25829
+	* gfortran.dg/asynchronous_1.f90: New test.
+	* gfortran.dg/asynchronous_2.f90: New test.
+	* gfortran.dg/conflicts.f90: Update error message.
+
 2010-01-07  Dodji Seketeli  <dodji@redhat.com>
 
 	c++/40155
