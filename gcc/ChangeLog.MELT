@@ -1,3 +1,25 @@
+2010-01-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{or patterns translated correctly; but tmatch-6 test fails for
+	iparse_field}}
+
+	* testsuite/melt/tmatch-6.melt: added test_or & uncommented
+	iparse_field.
+
+	* Makefile.in (melt.encap): added explicit warmelt2 make.
+
+	* melt/warmelt-first.melt: improved debug printing methods. Don't
+	dive into object's fields when depth is to deep. Added obj_num in
+	debugprinting of symbols.
+
+	* melt/warmelt-normatch.melt: put_tester_then handles disjunctions
+	correctly.
+	set_newtester_lastthen renamed as set_new_tester_last_then.
+	set_newtester_allelses renamed as set_new_tester_all_elses.
+	added more debug messages & asserts.
+
+	* melt/warmelt-genobj.melt: compiltst_normtester_disjunction
+	compiles correctly a disjunction by jumping to its then..
+
 2010-01-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{or patterns probably fail to translate; tmatch-6 test still
 	crashes.}}

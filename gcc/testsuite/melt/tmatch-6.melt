@@ -10,9 +10,9 @@
 
 (defun test_or (ob :long i)
   (match i
-	 ( (?or ?(integer_multiple 3 ?j)
+	 ( ?(or ?(integer_multiple 3 ?j)
 		?(integer_greater_than 7))
-	   (put_int ob j)
+	    (put_int ob j)
 	   ob)))
 
 (debug_msg (test_or 'firstok 6) "test_or firstok")
@@ -20,7 +20,6 @@
 (debug_msg (test_or 'thirdfail 1) "test_or thirdfail")
 
 ;; iparse_field crash the MELT translator :-(
-#|
 (defun iparse_field (iparser env)
   (assert_msg "check iparser" (is_a iparser class_infix_parser))
   (assert_msg "check env" (is_a env class_environment))
@@ -61,6 +60,5 @@
 	     )
 	   (?(instance class_located :loca_location ?loc)
 	     (error_plain loc "expecting field in infix notation")))))
-|#
 
 ;;; eof tmatch-6.melt

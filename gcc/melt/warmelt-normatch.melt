@@ -474,51 +474,56 @@
   (let ( (thencome (unsafe_get_field :ntest_comefrom thentester)) )
     (assert_msg "check thencome" (is_list thencome))
     (list_append thencome curtester))
+  (assert_msg "check curtester not a normtester success"
+	      (is_not_a curtester class_normtester_success))
   (unsafe_put_fields curtester :ntest_then thentester)
   ;;; propagate into disjunctions
   (if (is_a curtester class_normtester_disjunction)
       (let ( (curdisjtuple (unsafe_get_field :ntdisjuncts curtester)) )
+	(debug_msg curdisjtuple "put_tester_then curdisjtuple")
 	(foreach_in_multiple 
 	 (curdisjtuple)
 	 (curdisj :long disjix)
 	 (debug_msg curdisj "put_tester_then curdisj")
-	 (let ( (thencont (instance class_container :container_value thentester)) )
-	 (set_newtester_lastthen curdisj thencont)
-	 (debug_msg thencont "put_tester_then thencont done")
+	 (let ( (curcont (instance class_container :container_value curdisj)) )
+	 (debug_msg curcont "put_tester_then curcont start")
+	 (set_new_tester_last_then thentester curcont)
+	 (debug_msg curcont "put_tester_then curcont done")
 	 ))
       ))
   (debug_msg curtester "put_tester_then curtester done")
 )
 
 ;; utility to set the newtester to the last of a ntest_then linked list
-(defun set_newtester_lastthen (newtester testercont)
-  (debug_msg newtester "set_newtester_lastthen newtester")
-  (debug_msg testercont "set_newtester_lastthen testercont")
-  (shortbacktrace_dbg "set_newtester_lastthen start" 15)
+(defun set_new_tester_last_then (newtester testercont)
+  (debug_msg newtester "set_new_tester_last_then newtester")
+  (debug_msg testercont "set_new_tester_last_then testercont")
+  (shortbacktrace_dbg "set_new_tester_last_then start" 15)
   (assert_msg "check newtester" (is_a newtester class_normtester_any))
   (assert_msg "check testercont" (is_a testercont class_container))
   (let ( (curtester (get_field :container_value testercont)) )
     (forever 
      lastesterloop
+     (debug_msg curtester "set_new_tester_last_then loop curtester")
      ;; indeed a safe get_field to handle the nil case!
      (let ( (nextester (get_field :ntest_then curtester)) )
        (if (is_a nextester class_normtester_any)
 	   (setq curtester nextester)
 	 (exit lastesterloop))))
-    (debug_msg curtester "set_newtester_lastthen curtester")
-    (assert_msg "check curtester set_newtester_lastthen" curtester)
+    (debug_msg curtester "set_new_tester_last_then final curtester")
+    (assert_msg "check curtester set_new_tester_last_then" curtester)
     (put_fields testercont :container_value curtester)
     (put_tester_then curtester newtester)
-    (debug_msg testercont "set_newtester_lastthen end testercont")
+    (debug_msg testercont "set_new_tester_last_then end testercont")
     ))
 
 
 ;; recursive utility to set a newtester as all the unset else branches
 ;; of a given partester return the list of updated testers, ie the
 ;; updatlist - which should be null initially
-(defun set_newtester_allelses (newtester partester updatlist)
-  (debug_msg newtester "set_newtester_allelses newtester")
-  (debug_msg partester "set_newtester_allelses partester")
+(defun set_new_tester_all_elses (newtester partester updatlist)
+  (debug_msg newtester "set_new_tester_all_elses newtester")
+  (debug_msg partester "set_new_tester_all_elses partester")
   (assert_msg "check newtester" (is_a newtester class_normtester_any))
   (assert_msg "check partester" (is_a partester class_normtester_anytester))
   (if (null updatlist) (setq updatlist (make_list discr_list)))
@@ -556,15 +561,15 @@
 	  (if (== curtest newtester)
 	      (exit allelseloop))
 	  )
-	 (debug_msg thtest "set_newtester_allelses before recursion")
-	 (set_newtester_allelses newtester thtest updatlist)
-	 (debug_msg thtest "set_newtester_allelses after recursion")
+	 (debug_msg thtest "set_new_tester_all_elses before recursion")
+	 (set_new_tester_all_elses newtester thtest updatlist)
+	 (debug_msg thtest "set_new_tester_all_elses after recursion")
 	 )))
      )
     (:else
      (exit allelseloop)))
    )
-  (debug_msg updatlist "set_newtester_allelses return updatlist")
+  (debug_msg updatlist "set_new_tester_all_elses return updatlist")
   (return updatlist)
   )
   
@@ -754,7 +759,7 @@
 	     (debug_msg subtester "normpat_aspat lambda subtester with testvar")
 	     (debug_msg recv "normpat_aspat lambda subtester with testvarrecv")
 	     (shortbacktrace_dbg "normpat_aspat lambda subtester with testvar" 15)
-	     (set_newtester_lastthen subtester testvarcont)
+	     (set_new_tester_last_then subtester testvarcont)
 	     )
 	 (lambda (subtester)
 	   (debug_msg subtester "normpat_aspat lambda subtester without testvar")
@@ -876,7 +881,7 @@
 		 (let ( (prevtester (get_field :container_value testercont)) )
 		   (debug_msg prevtester "normpat_instancepat.subhdler prevtester")
 		   (assert_msg "check prevtester" (is_a prevtester class_normtester_anytester))
-		   (set_newtester_lastthen newsubtester testercont)
+		   (set_new_tester_last_then newsubtester testercont)
 		   )
 		 (debug_msg newsubtester "normpat_instancepat.subhdler end newsubtester")
 		 ))
@@ -968,7 +973,7 @@
 	     (cond
 	      ((is_a prevtester class_normtester_any)
 	       (debug_msg prevtester "normpat_andpat.subhdler prevtester")
-	       (set_newtester_lastthen newtester testercont)
+	       (set_new_tester_last_then newtester testercont)
 	       )
 	      (:else
 	       (debug_msg newtester "normpat_andpat.subhdler before calling hdler")
@@ -1024,7 +1029,7 @@
 	     (cond
 	      ((is_a prevtester class_normtester_anytester)
 	       (debug_msg prevtester "normpat_orpat.subhdler prevtester")
-	       (set_newtester_allelses newtester prevtester)
+	       (set_new_tester_all_elses newtester prevtester)
 	       )) 
 	       (debug_msg newtester "normpat_orpat.subhdler before calling hdler")
 	       (put_fields testercont :container_value newtester)
@@ -1318,7 +1323,7 @@
 		    (lambda (newtester)
 		      (debug_msg newtester "normpat_anymatchpat subhdler newtester")
 		      (shortbacktrace_dbg "normpat_anymatchpat subhdler" 14)
-		      (set_newtester_lastthen newtester testercont)
+		      (set_new_tester_last_then newtester testercont)
 		      ))
 		   )
 	      (debug_msg curout "normpat_anymatchpat curout before normal_pattern")
@@ -1542,6 +1547,7 @@
 			    ))
 		 )
 	    (debug_msg newenv "normexp_match newenv")
+	    (debug_msg newsuctester "normexp_match empty newsuctester")
 	    (debug_msg pvarlocmap "normexp_match pvarlocmap")
 	    (debug_msg curcas "normexp_match curcas after normal_pattern")
 	    (debug_msg curtester "normexp_match curtester after normal_pattern")
@@ -1563,12 +1569,13 @@
 	     ;; else the curtester is not null; it cannot be a success
 	     (:else
 	      (assert_msg "check curtester not success" 
-			  (not (is_a curtester class_normtester_success)))
+			  (is_not_a curtester class_normtester_success))
 ;;; add the newsuctester as the last then of the curtester
 	      (let ( (curtestcont (instance class_container
-						 :container_value curtester)) )
-		(debug_msg curtestcont "normexp_match initial curtestcont")
-		(set_newtester_lastthen newsuctester curtestcont)
+					    :container_value curtester)) )
+		(debug_msg curtestcont "normexp_match our curtestcont")
+		(debug_msg newsuctester "normexp_match our newsuctester")
+		(set_new_tester_last_then newsuctester curtestcont)
 		(debug_msg curtestcont "normexp_match final curtestcont")
 		)
 	      ) ;; end when null curtester
@@ -1579,7 +1586,7 @@
 	    (if (is_a oldtester class_normtester_anytester)
 		(progn
 		  (debug_msg oldtester "normexp_match initial oldtester")
-		  (set_newtester_allelses curtester oldtester)
+		  (set_new_tester_all_elses curtester oldtester)
 		  (debug_msg oldtester "normexp_match final oldtester")
 		  ))
 	    ;; always set the oldtester to the curtester

@@ -5479,7 +5479,7 @@ $SBUF.}#
 
 ;;;;;;;;;;;;;;;;
 
-;; to compile a disjunction, just goto the else case, because the
+;; to compile a disjunction, just goto the then case, because the
 ;; disjunction is only here to redistribute the then case inside the
 ;; disjuncts.
 (defun compiltst_normtester_disjunction (ntdj gcx tcx)
@@ -5489,14 +5489,13 @@ $SBUF.}#
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (let (
 	(nloc (unsafe_get_field :nrep_loc ntdj))
-	(nelse (unsafe_get_field :ntest_else ntdj))
-	(:long ntestix (get_int ntdj))	
+	(nthen (unsafe_get_field :ntest_then ntdj))
 	(normatch (unsafe_get_field :ntest_normatch ntdj))
-	(gotoelse (or (normtester_gotoinstr nelse gcx)
+	(gotothen (or (normtester_gotoinstr nthen gcx)
 		      (endmatch_gotoinstr normatch gcx nloc)))
 	)
-    (debug_msg gotoelse "compiltst_normtester_disjunction gotoelse")
-    (return gotoelse)
+    (debug_msg gotothen "compiltst_normtester_disjunction gotoelse")
+    (return gotothen)
     )
   )
 (install_method class_normtester_disjunction compile_tester compiltst_normtester_disjunction)
