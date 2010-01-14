@@ -1,3 +1,9 @@
+2010-01-14  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (build_conflicts_for_new_allocnos): Avoid unnecessary
+	conflicts between allocnos appearing in a simple copy.
+	(mark_conflicts): Corresponding changes.
+
 2009-12-16  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (emit_localizing_stores): Use MEM directly in more

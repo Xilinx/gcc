@@ -1,5 +1,5 @@
 /* Integrated Register Allocator (IRA) reloading .
-   Copyright (C) 2009
+   Copyright (C) 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -585,7 +585,7 @@ maybe_add_conflict (int reg1, int reg2, int limit)
 }
 
 static void
-mark_conflicts (rtx reg, unsigned int limit)
+mark_conflicts (rtx reg, unsigned int limit, rtx ignore_reg)
 {
   bitmap_iterator bi;
   unsigned int i;
@@ -617,7 +617,11 @@ mark_conflicts (rtx reg, unsigned int limit)
 	  bitmap_clear_bit (live, REGNO (reg) + j);
 	}
       EXECUTE_IF_SET_IN_BITMAP (live, 0, i, bi)
-	maybe_add_conflict (i, REGNO (reg) + j, limit);
+	{
+	  if (ignore_reg && REGNO (ignore_reg) == i)
+	    continue;
+	  maybe_add_conflict (i, REGNO (reg) + j, limit);
+	}
     }
 }
 
@@ -676,7 +680,15 @@ build_conflicts_for_new_allocnos (rtx head, rtx tail,
       /* Mark conflicts for any values defined in this insn.  */
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
 	if (!call_p || !DF_REF_FLAGS_IS_SET (*def_rec, DF_REF_MAY_CLOBBER))
-	  mark_conflicts (DF_REF_REG (*def_rec), orig_max_reg_num);
+	  {
+	    rtx ignore = NULL_RTX;
+	    rtx set = single_set (insn);
+	    if (set
+		&& GET_CODE (SET_SRC (set)) == REG
+		&& GET_CODE (SET_DEST (set)) == REG)
+	     ignore = SET_SRC (set);
+	    mark_conflicts (DF_REF_REG (*def_rec), orig_max_reg_num, ignore);
+	  }
 
       /* Mark each used value as live.  */
       for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
