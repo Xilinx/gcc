@@ -4332,11 +4332,12 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 	 (comstr (pair_head curpair))
 	 )
     (if (pair_tail curpair)
-	(error_plain loc "COMMENT should have only one string argument"_))
+	(warning_plain loc "COMMENT should have only one string argument"_))
     (if (not (is_string comstr))
 	(progn
-	  (error_plain loc "COMMENT should have a string"_)
-	  (setq comstr ()))
+	  (warning_plain loc "COMMENT without string is ignored"_)
+	  (return)
+	  )
       )
     (let ( (scom (instance class_source_comment
 			   :loca_location loc

@@ -2,24 +2,59 @@
 ;; file tmatch-6.melt
 
 #| run in buildir/gcc
- ./cc1 -fmelt=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+ ./cc1 -fmelt=runfile  -fmelt-module-path=.    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
     -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
     -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tmatch-6.melt -fmelt-debug empty-file-for-melt.c
 |#
 
+; this works
+#|
+(defun testnameofsymbol (symb)
+  (match symb (
+	       ?(instance class_symbol :named_name 
+			  ?synam)
+		synam)))
+
+(debug_msg (testnameofsymbol 'asymbol) "testnameofsymbol asymbol")
+
+(defun testnameofclassoffield (fld)
+  (match fld 
+	 (?(instance class_field 
+		     :fld_ownclass ?(instance class_class :named_name ?clanam))
+	   clanam)))
+
+(debug_msg (testnameofclassoffield disc_sender) "testnameofclassoffield disc_sender")
+|#
+
+
+(defun testnameofclassorfield (ob)
+  (match ob
+	 (?(or
+	    ?(instance class_class :named_name ?nam)
+	    ?(instance class_field :named_name ?nam))
+	    nam)))
+
+(debug_msg (testnameofclassorfield class_discriminant) "name of class class_discriminant")
+(debug_msg (testnameofclassorfield fld_ownclass) "name of field fld_ownclass")
+(debug_msg (testnameofclassorfield 'asymbol) "fail name of asymbol")
+
+#|
 (defun test_or (ob :long i)
   (match i
-	 ( ?(or ?(integer_multiple 3 ?j)
+	 ( ?(or ?(integer_multiple 3 ?jj)
 		?(integer_greater_than 7))
-	    (put_int ob j)
+	    (put_int ob jj)
 	   ob)
 ))
 
-#|
+
 (debug_msg (test_or 'firstok 6) "test_or firstok")
 (debug_msg (test_or 'secondok 10) "test_or secondok")
 (debug_msg (test_or 'thirdfail 1) "test_or thirdfail")
 |#
+
+(compile_warning "ignoring rest of file")
+(comment
 
 ;; iparse_field crash the MELT translator :-(
 (defun iparse_field (iparser env)
@@ -72,4 +107,6 @@
 	   (?(instance class_located :loca_location ?fldloc)
 	     (error_plain fldloc "expecting field in infix notation")))))
 
+
+)
 ;;; eof tmatch-6.melt

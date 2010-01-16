@@ -1734,9 +1734,6 @@ unsafe_index_mapobject (struct entryobjectsmelt_st *tab,
 {
   int da = 0, ix = 0, frix = -1;
   unsigned h = 0;
-#if 0 && ENABLE_CHECKING
-  static long samehashcnt;
-#endif
   if (!tab)
     return -1;
   da = attr->obj_class->object_magic;

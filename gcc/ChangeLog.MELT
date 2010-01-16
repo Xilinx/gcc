@@ -1,3 +1,19 @@
+2010-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{or patterns should determine their variables and clear
+	them.. tmatch-6 still fails.}}
+	* melt-runtime.c (unsafe_index_mapobject): removed obsolete #if 0
+	code.
+	* melt/warmelt-macro.melt: a comment macro can take several or
+	non-string arguments to ignore some code with a warning.
+	* melt/warmelt-normatch.melt: adding support for or patterns.
+	added pctn_mapor field to class_pattern_context. Filled that field
+	in scanpat_srcpator. Added class_normal_or_variable and norvar_*
+	fields. Added normvarpat_genreusetest function. Updated
+	normpat_orpat [still incomplete].
+	* melt/warmelt-genobj.melt: added more debug & backtrace messages.
+	* testsuite/melt/tmatch-6.melt: temporarily commented parts and
+	added more tests.
+
 2010-01-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tmatch-6 still fails on iparse_field; bug partly identified.}}
 	* melt/warmelt-normatch.melt: apparently the sortedbindings is
