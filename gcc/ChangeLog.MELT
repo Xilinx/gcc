@@ -1,4 +1,7 @@
 2010-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: adding more for or-variables. Still
+	incomplete!
+2010-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{or patterns should determine their variables and clear
 	them.. tmatch-6 still fails.}}
 	* melt-runtime.c (unsafe_index_mapobject): removed obsolete #if 0

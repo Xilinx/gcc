@@ -743,6 +743,7 @@
     (debug_msg tstuff "normpat_variablepat tstuff")
     (debug_msg lococc "normpat_variablepat lococc")
     (debug_msg patvar "normpat_variablepat patvar")
+    (compile_warning "we need to generate the clear of all or-variables")
     (cond 
      ( (is_a lococc class_nrep_locsymocc)
        ;; patvar already bound, generate or reuse a same test
@@ -750,9 +751,41 @@
        )
      ;; process specially or variables
      ((is_a lococc class_normal_or_variable)
-      (compile_warning "normpat_variablepat unhandled  orvariable")
       (debug_msg lococc "normpat_variablepat lococc orvariable")
-      (assert_msg "$@$unimplemented normpat_variablepat orvariable" ())
+      (compile_warning "normpat_variablepat unhandled  orvariable")
+      (let ( (realococc (unsafe_get_field :norvar_locsym lococc)) 
+	     (patvar (unsafe_get_field :norvar_patvar lococc))
+	     (patsym (get_field :spat_var patvar))
+	     )
+	(if (null realococc)
+	    ;; the or-variable was not bound by the current
+	    ;; disjunct, so bound it...
+	    (let ( 
+		  (ctyp (get_ctype nmatch env))
+		  (cbind (instance class_normal_let_binding
+				   :letbind_loc sloc
+				   :binder patvar
+				   :letbind_type ctyp
+				   :letbind_expr nmatch
+				   ))
+		  (clocc (instance class_nrep_locsymocc
+				   :nrep_loc sloc
+				   :nocc_ctyp ctyp
+				   :nocc_symb patvar
+				   :nocc_bind cbind))
+		  )
+	      (debug_msg clocc "normpat_variablepat fresh orvariable clocc")
+	      (put_fields lococc :norvar_locsym clocc)
+	      )
+	  ;; the or-variable was already bound  generate or reuse a same test
+
+	  (let (
+		)       
+	    (debug_msg realococc "normpat_variablepat bound orvariable realococccc")
+	    (normvarpat_genreusetest sloc nmatch realococc testlist tstuff hdler pcn)
+	    )
+	  )
+      )
       )
      ;; else patvar unbound, so bind it 
      ((null lococc)
@@ -778,7 +811,8 @@
 	(debug_msg patvar "normpat_variablepat updated patvar")
 	(debug_msg clocc "normpat_variablepat updated clocc")
 	(debug_msg pvarmap "normpat_variablepat updated pvarmap")
-	))
+	)
+      )
      (:else
       (assert_msg "normpat_variablepat unexpected lococc" ())
       )
@@ -1153,10 +1187,18 @@
       (debug_msg sortedorvars "normpat_orpat sortedorvars")
       (debug_msg sortednormalvars "normpat_orpat sortednormalvars")
       ;; sortedorvars is a sorted tuple of symbols
-      )
     (foreach_in_multiple 
      (disjpats)
      (subpat :long subix)
+     (foreach_in_multiple
+      (sortednormalvars)
+      (curnorvar :long nix)
+      (let ( (norvar (multiple_nth sortedorvars nix)) )
+	(mapobject_put pvarmap norvar curnorvar)
+	(debug_msg norvar "normpat_orpat presetting norvar")
+	(debug_msg curnorvar "normpat_orpat preset curnorvar")
+	)
+      )
      (debug_msg testercont "normpat_orpat testercont")
      (debug_msg subpat "normpat_orpat subpat before normal_pattern")
      (normal_pattern subpat nmatch subhdler pcn)
@@ -1165,6 +1207,18 @@
      (debug_msg stuffmap "normpat_orpat after normal_pattern stuffmap")
      (debug_msg pvarmap "normpat_orpat after normal_pattern pvarmap")
      )
+    ;; postbind the norvar
+     (foreach_in_multiple
+      (sortednormalvars)
+      (curnorvar :long nix)
+      (let ( (norvar (multiple_nth sortedorvars nix)) 
+	     (norlococc (get_field :norvar_locsym curnorvar))
+	     )
+	(debug_msg norvar "normpat_orpat postbind norvar")
+	(debug_msg norlococc "normpat_orpat postbind norlococc")
+	(assert_msg "check norlococc" (is_a norlococc class_nrep_locsymocc))
+	(mapobject_put pvarmap norvar norlococc)
+	))
     (let  (
 	   (subtesters (list_to_multiple lisubtesters))
 	   (:long nbsubtesters (multiple_length subtesters))
@@ -1182,6 +1236,12 @@
 				     :ntest_comefrom (make_list discr_list)
 				     :ntdisjuncts subtesters
 				     )) )
+	  (foreach_in_multiple
+	   (sortednormalvars)
+	   (curnorvar :long nix)
+	   (put_fields curnorvar :norvar_nrepor disjtester)
+	   (debug_msg curnorvar "normpat_orpat updated curnorvar")
+	   )
 	  (debug_msg disjtester "normpat_orpat disjtester")
 	  (register_new_normtester disjtester pcn)
 	  (hdler disjtester)
@@ -1189,6 +1249,7 @@
 	  (debug_msg disjtester "normpat_orpat handled disjtester")
 	  ))
       )
+    )
     )
   (debug_msg recv "normpat_orpat recv end")
   )
