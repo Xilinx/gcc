@@ -1,3 +1,31 @@
+2010-01-15  Dodji Seketeli  <dodji@redhat.com>
+
+	* error.c (dump_template_parms,count_non_default_template_args):
+	Revert changes of PR c++/42634.
+
+2010-01-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/42674
+	* decl.c (finish_function): Don't emit -Wreturn-type warnings in
+	functions with noreturn attribute.
+
+2010-01-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42701
+	* call.c (build_new_method_call): Don't free the vec here.
+
+	PR c++/42655
+	* call.c (convert_like_real): Do full decay_conversion for ck_rvalue.
+
+2010-01-13  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42634
+	* error.c (dump_template_parms): Use innermost template
+	arguments before calling count_non_default_template_args.
+	(count_non_default_template_args): We are being called with
+	template innermost arguments now. There is no need to ensure
+	that again.
+
 2010-01-07  Dodji Seketeli  <dodji@redhat.com>
 
 	c++/40155
