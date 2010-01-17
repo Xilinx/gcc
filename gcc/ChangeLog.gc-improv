@@ -1,6 +1,33 @@
 2010-01-17  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
-	* config/mips/mips.c (mflip_mips16_use_mips16_p): Use typed GC 
+	* ggc.h (ggc_alloc, ggc_alloc_cleared): Remove.
+	(GGC_NEW, GGC_CNEW): Remove.
+
+2010-01-17  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* config/alpha/alpha.c (alpha_init_machine_status): Use typed GC
+	allocation.
+	(alpha_need_linkage, alpha_use_linkage): Likewise.
+	* config/avr/avr.c (avr_init_machine_status): Likewise.
+	* config/bfin/bfin.c (bfin_init_machine_status): Likewise.
+	* config/cris/cris.c (cris_init_machine_status): Likewise.
+	* config/darwin.c (machopic_indirection_name): Likewise.
+	* config/frv/frv.c (frv_init_machine_status): Likewise.
+	* config/iq2000/iq2000.c (iq2000_init_machine_status): Likewise.
+	* config/mep/mep.c (mep_init_machine_status): Likewise.
+	(mep_note_pragma_flag): Likewise.
+	* config/mmix/mmix.c (mmix_init_machine_status): Likewise.
+	* config/moxie/moxie.c (moxie_init_machine_status): Likewise.
+	* config/rs6000/rs6000.c (builtin_function_type): Likewise.
+	(rs6000_init_machine_status, output_toc): Likewise.
+	* config/s390/s390.c (s390_init_machine_status): Likewise.
+	* config/score/score7.c (score7_output_external): Likewise.
+	* config/score/score3.c (score3_output_external): Likewise.
+	* config/xtensa/xtensa.c (xtensa_init_machine_status): Likewise.
+
+2010-01-17  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* config/mips/mips.c (mflip_mips16_use_mips16_p): Use typed GC
 	allocation.
 	(mips16_local_alias): Likewise.
 	(mips_init_machine_status): Likewise.

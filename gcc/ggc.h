@@ -145,8 +145,6 @@ extern void *ggc_internal_alloc_stat (size_t MEM_STAT_DECL);
 
 #define ggc_internal_alloc(s) ggc_internal_alloc_stat (s MEM_STAT_INFO)
 
-#define ggc_alloc(s) ggc_internal_alloc(s)
-
 /* Allocate an object of the specified type and size.  */
 extern void *ggc_alloc_typed_stat (enum gt_types_enum, size_t MEM_STAT_DECL);
 
@@ -158,8 +156,6 @@ extern void *ggc_internal_cleared_alloc_stat (size_t MEM_STAT_DECL);
 #define ggc_internal_cleared_alloc(s)			\
   ggc_internal_cleared_alloc_stat (s MEM_STAT_INFO)
 
-#define ggc_alloc_cleared(s) ggc_internal_cleared_alloc(s)
-
 /* Resize a block.  */
 extern void *ggc_realloc_stat (void *, size_t MEM_STAT_DECL);
 
@@ -168,11 +164,7 @@ extern void ggc_free (void *);
 
 extern void dump_ggc_loc_statistics (bool);
 
-/* Type-safe, C++-friendly allocators.  */
-#define GGC_NEW(T)		((T *) ggc_internal_alloc (sizeof (T)))
-
-#define GGC_CNEW(T)		((T *) ggc_internal_cleared_alloc (sizeof (T)))
-
+/* Reallocators.  */
 #define GGC_RESIZEVEC(T, P, N)  ((T *) ggc_realloc_stat ((P),	\
 					      (N) * sizeof (T) MEM_STAT_INFO))
 
