@@ -52,6 +52,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "graphite-clast-to-gimple.h"
 #include "graphite-dependences.h"
 
+/* This flag is set when an error occurred during the translation of
+   CLAST to Gimple.  */
+static bool gloog_error;
+
 /* Verifies properties that GRAPHITE should maintain during translation.  */
 
 static inline void
@@ -294,7 +298,11 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
 					       newivs_index, params_index);
 		tree cst = gmp_cst_to_tree (type, t->val);
 		name = fold_convert (type, name);
-		return fold_build2 (MULT_EXPR, type, cst, name);
+		if (!POINTER_TYPE_P (type))
+		  return fold_build2 (MULT_EXPR, type, cst, name);
+
+		gloog_error = true;
+		return cst;
 	      }
 	  }
 	else
@@ -944,7 +952,7 @@ translate_clast (sese region, loop_p context_loop, struct clast_stmt *stmt,
 		 htab_t newivs_index, htab_t bb_pbb_mapping, int level,
 		 htab_t params_index)
 {
-  if (!stmt)
+  if (!stmt || gloog_error)
     return next_e;
 
   if (CLAST_STMT_IS_A (stmt, stmt_root))
@@ -1400,8 +1408,8 @@ debug_generated_program (scop_p scop)
   print_generated_program (stderr, scop);
 }
 
-/* Add CLooG names to parameter index.  The index is used to translate back from
- * CLooG names to GCC trees.  */
+/* Add CLooG names to parameter index.  The index is used to translate
+   back from CLooG names to GCC trees.  */
 
 static void
 create_params_index (htab_t index_table, CloogProgram *prog) {
@@ -1431,6 +1439,7 @@ gloog (scop_p scop, htab_t bb_pbb_mapping)
   cloog_prog_clast pc;
 
   timevar_push (TV_GRAPHITE_CODE_GEN);
+  gloog_error = false;
 
   pc = scop_to_clast (scop);
 
@@ -1471,8 +1480,13 @@ gloog (scop_p scop, htab_t bb_pbb_mapping)
 			    if_region->region->exit->src,
 			    if_region->false_region->exit,
 			    if_region->true_region->exit);
+  scev_reset_htab ();
+  rename_nb_iterations (rename_map);
   recompute_all_dominators ();
   graphite_verify ();
+
+  if (gloog_error)
+    set_ifsese_condition (if_region, integer_zero_node);
 
   free (if_region->true_region);
   free (if_region->region);
@@ -1500,7 +1514,7 @@ gloog (scop_p scop, htab_t bb_pbb_mapping)
 	       num_no_dependency);
     }
 
-  return true;
+  return !gloog_error;
 }
 
 #endif

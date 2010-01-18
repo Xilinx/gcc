@@ -258,6 +258,13 @@ static int func_param_count;
    __builtin_apply_args.  */
 static bool encountered_apply_args;
 
+/* Set by scan_function when it finds a recursive call.  */
+static bool encountered_recursive_call;
+
+/* Set by scan_function when it finds a recursive call with less actual
+   arguments than formal parameters..  */
+static bool encountered_unchangable_recursive_call;
+
 /* This is a table in which for each basic block and parameter there is a
    distance (offset + size) in that parameter which is dereferenced and
    accessed in that BB.  */
@@ -545,6 +552,8 @@ sra_initialize (void)
   base_access_vec = pointer_map_create ();
   memset (&sra_stats, 0, sizeof (sra_stats));
   encountered_apply_args = false;
+  encountered_recursive_call = false;
+  encountered_unchangable_recursive_call = false;
 }
 
 /* Hook fed to pointer_map_traverse, deallocate stored vectors.  */
@@ -944,6 +953,14 @@ asm_visit_addr (gimple stmt ATTRIBUTE_UNUSED, tree op,
   return false;
 }
 
+/* Return true iff callsite CALL has at least as many actual arguments as there
+   are formal parameters of the function currently processed by IPA-SRA.  */
+
+static inline bool
+callsite_has_enough_arguments_p (gimple call)
+{
+  return gimple_call_num_args (call) >= (unsigned) func_param_count;
+}
 
 /* Scan function and look for interesting statements. Return true if any has
    been found or processed, as indicated by callbacks.  SCAN_EXPR is a callback
@@ -1014,15 +1031,24 @@ scan_function (bool (*scan_expr) (tree *, gimple_stmt_iterator *, bool, void *),
 		  any |= scan_expr (argp, &gsi, false, data);
 		}
 
-	      if (analysis_stage)
+	      if (analysis_stage && sra_mode == SRA_MODE_EARLY_IPA)
 		{
 		  tree dest = gimple_call_fndecl (stmt);
 		  int flags = gimple_call_flags (stmt);
 
-		  if (dest
-		      && DECL_BUILT_IN_CLASS (dest) == BUILT_IN_NORMAL
-		      && DECL_FUNCTION_CODE (dest) == BUILT_IN_APPLY_ARGS)
-		    encountered_apply_args = true;
+		  if (dest)
+		    {
+		      if (DECL_BUILT_IN_CLASS (dest) == BUILT_IN_NORMAL
+			  && DECL_FUNCTION_CODE (dest) == BUILT_IN_APPLY_ARGS)
+			encountered_apply_args = true;
+		      if (cgraph_get_node (dest)
+			  == cgraph_get_node (current_function_decl))
+			{
+			  encountered_recursive_call = true;
+			  if (!callsite_has_enough_arguments_p (stmt))
+			    encountered_unchangable_recursive_call = true;
+			}
+		    }
 
 		  if (final_bbs
 		      && (flags & (ECF_CONST | ECF_PURE)) == 0)
@@ -1659,7 +1685,13 @@ analyze_access_subtree (struct access *root, bool allow_replacements,
 
   if (allow_replacements && scalar && !root->first_child
       && (root->grp_hint
-	  || (direct_read && root->grp_write)))
+	  || (direct_read && root->grp_write))
+      /* We must not ICE later on when trying to build an access to the
+	 original data within the aggregate even when it is impossible to do in
+	 a defined way like in the PR 42703 testcase.  Therefore we check
+	 pre-emptively here that we will be able to do that.  */
+      && build_ref_for_offset (NULL, TREE_TYPE (root->base), root->offset,
+			       root->type, false))
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
@@ -2527,7 +2559,9 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi,
 	{
 	  if (access_has_children_p (racc))
 	    {
-	      if (!racc->grp_unscalarized_data)
+	      if (!racc->grp_unscalarized_data
+		  /* Do not remove SSA name definitions (PR 42704).  */
+		  && TREE_CODE (lhs) != SSA_NAME)
 		{
 		  generate_subtree_copies (racc->first_child, lhs,
 					   racc->offset, 0, 0, gsi,
@@ -3704,8 +3738,20 @@ sra_ipa_modify_assign (gimple *stmt_ptr, gimple_stmt_iterator *gsi, void *data)
       tree new_rhs = NULL_TREE;
 
       if (!useless_type_conversion_p (TREE_TYPE (*lhs_p), TREE_TYPE (*rhs_p)))
-	new_rhs = fold_build1_loc (gimple_location (stmt), VIEW_CONVERT_EXPR,
-				   TREE_TYPE (*lhs_p), *rhs_p);
+	{
+	  if (TREE_CODE (*rhs_p) == CONSTRUCTOR)
+	    {
+	      /* V_C_Es of constructors can cause trouble (PR 42714).  */
+	      if (is_gimple_reg_type (TREE_TYPE (*lhs_p)))
+		*rhs_p = fold_convert (TREE_TYPE (*lhs_p), integer_zero_node);
+	      else
+		*rhs_p = build_constructor (TREE_TYPE (*lhs_p), 0);
+	    }
+	  else
+	    new_rhs = fold_build1_loc (gimple_location (stmt),
+				       VIEW_CONVERT_EXPR, TREE_TYPE (*lhs_p),
+				       *rhs_p);
+	}
       else if (REFERENCE_CLASS_P (*rhs_p)
 	       && is_gimple_reg_type (TREE_TYPE (*lhs_p))
 	       && !is_gimple_reg (*lhs_p))
@@ -3760,6 +3806,21 @@ sra_ipa_reset_debug_stmts (ipa_parm_adjustment_vec adjustments)
     }
 }
 
+/* Return true iff all callers have at least as many actual arguments as there
+   are formal parameters in the current function.  */
+
+static bool
+all_callers_have_enough_arguments_p (struct cgraph_node *node)
+{
+  struct cgraph_edge *cs;
+  for (cs = node->callers; cs; cs = cs->next_caller)
+    if (!callsite_has_enough_arguments_p (cs->call_stmt))
+      return false;
+
+  return true;
+}
+
+
 /* Convert all callers of NODE to pass parameters as given in ADJUSTMENTS.  */
 
 static void
@@ -3795,6 +3856,10 @@ convert_callers (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
   BITMAP_FREE (recomputed_callers);
 
   current_function_decl = old_cur_fndecl;
+
+  if (!encountered_recursive_call)
+    return;
+
   FOR_EACH_BB (this_block)
     {
       gimple_stmt_iterator gsi;
@@ -3907,6 +3972,14 @@ ipa_early_sra (void)
       goto simple_out;
     }
 
+  if (!all_callers_have_enough_arguments_p (node))
+    {
+      if (dump_file)
+	fprintf (dump_file, "There are callers with insufficient number of "
+		 "arguments.\n");
+      goto simple_out;
+    }
+
   bb_dereferences = XCNEWVEC (HOST_WIDE_INT,
 				 func_param_count
 				 * last_basic_block_for_function (cfun));
@@ -3918,6 +3991,14 @@ ipa_early_sra (void)
     {
       if (dump_file)
 	fprintf (dump_file, "Function calls  __builtin_apply_args().\n");
+      goto out;
+    }
+
+  if (encountered_unchangable_recursive_call)
+    {
+      if (dump_file)
+	fprintf (dump_file, "Function calls itself with insufficient "
+		 "number of arguments.\n");
       goto out;
     }
 
