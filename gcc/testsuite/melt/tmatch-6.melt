@@ -27,16 +27,19 @@
 |#
 
 
-(defun testnameofclassorfield (ob)
+(defun testnameof (ob)
   (match ob
 	 (?(or
 	    ?(instance class_class :named_name ?nam)
-	    ?(instance class_field :named_name ?nam))
+	    ?(instance class_field :named_name ?nam)
+	    ?(instance class_keyword :named_name ?nam)
+	    )
 	    nam)))
 
-(debug_msg (testnameofclassorfield class_discriminant) "name of class class_discriminant")
-(debug_msg (testnameofclassorfield fld_ownclass) "name of field fld_ownclass")
-(debug_msg (testnameofclassorfield 'asymbol) "fail name of asymbol")
+(debug_msg (testnameof class_discriminant) "name of class class_discriminant")
+(debug_msg (testnameof fld_ownclass) "name of field fld_ownclass")
+(debug_msg (testnameof :else) "name of keyword :else")
+(debug_msg (testnameof 'asymbol) "fail name of asymbol")
 
 #|
 (defun test_or (ob :long i)

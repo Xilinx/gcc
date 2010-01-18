@@ -443,6 +443,12 @@
   :fields (ntsuccess_do		;single expression (usually a normlet)
 	   ))
  
+;; quasi-tester used at end of or branches to clear a list of variables
+(defclass class_normtester_orclear
+  :super class_normtester_any
+  :fields (ntorclear_locsym    ;tuple of symbol occurrences to clear
+	   ))
+
 ;; all real tests share this superclass
 (defclass class_normtester_anytester
   :super class_normtester_any
@@ -585,7 +591,9 @@
   (debug_msg partester "set_new_tester_all_elses partester")
   (assert_msg "check newtester" (is_a newtester class_normtester_any))
   (assert_msg "check partester" (is_a partester class_normtester_anytester))
-  (if (null updatlist) (setq updatlist (make_list discr_list)))
+  (if (null updatlist) 
+      (setq updatlist (make_list discr_list)))
+  (assert_msg "check updatlist" (is_list updatlist))
   (forever
    allelseloop
    (cond
@@ -721,6 +729,7 @@
      )
     )
   )
+
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;; normalize variable pattern
@@ -729,6 +738,7 @@
   (debug_msg nmatch "normpat_variablepat nmatch")
   (assert_msg "check recv" (is_a recv class_source_pattern_variable))
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
+  (shortbacktrace_dbg "normpat_variablepat begin" 15) 
   (let ( (stuffmap (get_field :pctn_stuffmap pcn))
 	 (pvarmap (get_field :pctn_pvarlocmap pcn)) 
 	 (psloc (get_field :loca_location (get_field :pctn_src pcn)))
@@ -747,16 +757,20 @@
     (cond 
      ( (is_a lococc class_nrep_locsymocc)
        ;; patvar already bound, generate or reuse a same test
+       (debug_msg lococc "normpat_variablepat alreadybound lococc")
        (normvarpat_genreusetest sloc nmatch lococc testlist tstuff hdler pcn)
        )
      ;; process specially or variables
      ((is_a lococc class_normal_or_variable)
       (debug_msg lococc "normpat_variablepat lococc orvariable")
-      (compile_warning "normpat_variablepat unhandled  orvariable")
+      (compile_warning "normpat_variablepat unhandled orvariable")
       (let ( (realococc (unsafe_get_field :norvar_locsym lococc)) 
-	     (patvar (unsafe_get_field :norvar_patvar lococc))
-	     (patsym (get_field :spat_var patvar))
+	     (npatvar (unsafe_get_field :norvar_patvar lococc))
+	     (patsym (get_field :spat_var npatvar))
 	     )
+	(debug_msg npatvar "normpat_variablepat orvariable npatvar")
+	(assert_msg "check patsym == patvar" (== patsym patvar))
+	(debug_msg realococc "normpat_variablepat orvariable realococc")
 	(if (null realococc)
 	    ;; the or-variable was not bound by the current
 	    ;; disjunct, so bound it...
@@ -764,28 +778,29 @@
 		  (ctyp (get_ctype nmatch env))
 		  (cbind (instance class_normal_let_binding
 				   :letbind_loc sloc
-				   :binder patvar
+				   :binder patsym
 				   :letbind_type ctyp
 				   :letbind_expr nmatch
 				   ))
 		  (clocc (instance class_nrep_locsymocc
 				   :nrep_loc sloc
 				   :nocc_ctyp ctyp
-				   :nocc_symb patvar
+				   :nocc_symb patsym
 				   :nocc_bind cbind))
 		  )
 	      (debug_msg clocc "normpat_variablepat fresh orvariable clocc")
 	      (put_fields lococc :norvar_locsym clocc)
 	      )
-	  ;; the or-variable was already bound  generate or reuse a same test
-
+;;;
+;;; else the or-variable was already bound generate or reuse
+;;; a same test
 	  (let (
 		)       
 	    (debug_msg realococc "normpat_variablepat bound orvariable realococccc")
 	    (normvarpat_genreusetest sloc nmatch realococc testlist tstuff hdler pcn)
 	    )
 	  )
-      )
+	)
       )
      ;; else patvar unbound, so bind it 
      ((null lococc)
@@ -1131,22 +1146,38 @@
 	(sloc (get_field :loca_location recv))
 	(disjpats (get_field :orpat_disj recv))
 	(testercont (instance class_container))
+	(clrlocbox (make_box discr_box ()))
 	(lisubtesters (make_list discr_list))
+	(freshlist (make_list discr_list))
 	(testlist (get_field :pctn_tests pcn))
 	(stuffmap (get_field :pctn_stuffmap pcn))
 	(pvarmap (get_field :pctn_pvarlocmap pcn)) 
 	(mapor (get_field :pctn_mapor pcn))
+	(ncx (get_field :pctn_normctxt pcn))
 	(orvarmap (mapobject_get mapor recv))
 	(subhdler
 	 (lambda (newtester) 
 	   (debug_msg newtester "normpat_orpat.subhdler newtester")
 	   (debug_msg testercont "normpat_orpat.subhdler testercont")
 	   (shortbacktrace_dbg "normpat_orpat.subhdler labmda newtester" 14)
-	   (if newtester
-	       (progn
-		 (assert_msg "check newtester" (is_a newtester class_normtester_any))
-		 (list_append lisubtesters newtester)))
-	   (let ( (prevtester (get_field :container_value testercont)) )
+	   (let (
+		 (prevtester (get_field :container_value testercont)) 
+		 )
+	     (if newtester
+		 (let (
+		       (orcleartester (instance class_normtester_orclear
+						:nrep_loc sloc
+						:ntest_matched nmatch
+						:ntest_then ()
+						:ntest_else ()
+						:ntest_comefrom (make_list discr_list)
+						:ntorclear_locsym (box_content clrlocbox)
+						))
+		       )
+		   (assert_msg "check newtester" (is_a newtester class_normtester_any))
+		   (set_new_tester_all_elses orcleartester newtester)
+		   (list_append testlist orcleartester)
+		   (list_append lisubtesters newtester)))
 	     (cond
 	      ((is_a prevtester class_normtester_anytester)
 	       (debug_msg prevtester "normpat_orpat.subhdler prevtester")
@@ -1165,91 +1196,142 @@
     (assert_msg "check orvarmap" (is_mapobject orvarmap))
     ;; prebind the or variables
     (let ( (sortedorvars (mapobject_sorted_attribute_tuple orvarmap))
+	   (sortedlococcs (make_multiple discr_multiple (multiple_length sortedorvars)))
 	   (sortednormalvars
 	    (multiple_map
 	     sortedorvars
 	     (lambda (orvar :long orix)
+	       (debug_msg orvar "normpat_orpat.lambda orvar start")
 	       (let (
 		     (curvarpat (mapobject_get orvarmap orvar))
 		     (curnorvar
 		      (instance class_normal_or_variable
-			       :norvar_patvar curvarpat
-			       :norvar_nrepor ()
-			       :norvar_locsym ()))
+				:norvar_patvar curvarpat
+				:norvar_nrepor ()
+				:norvar_locsym ()))
+		     (prevar (mapobject_get pvarmap orvar))
 		     )
 		 (assert_msg "check curvarpat"
 			     (is_a curvarpat class_source_pattern_variable))
+		 (if (null prevar)
+		     (list_append freshlist orvar))
 		 (put_int curnorvar orix)
 		 (mapobject_put pvarmap orvar curnorvar)
 		 curnorvar
-	     ))))
+		 ))))
 	   )
+      (box_put clrlocbox sortedlococcs)
+      (debug_msg freshlist "normpat_orpat freshlist")
       (debug_msg sortedorvars "normpat_orpat sortedorvars")
       (debug_msg sortednormalvars "normpat_orpat sortednormalvars")
+      (debug_msg sortedlococcs "normpat_orpat sortedlococcs")
       ;; sortedorvars is a sorted tuple of symbols
-    (foreach_in_multiple 
-     (disjpats)
-     (subpat :long subix)
-     (foreach_in_multiple
-      (sortednormalvars)
-      (curnorvar :long nix)
-      (let ( (norvar (multiple_nth sortedorvars nix)) )
-	(mapobject_put pvarmap norvar curnorvar)
-	(debug_msg norvar "normpat_orpat presetting norvar")
-	(debug_msg curnorvar "normpat_orpat preset curnorvar")
+      (foreach_in_multiple 
+       (disjpats)
+       (subpat :long subix)
+       (foreach_in_multiple
+	(sortednormalvars)
+	(curnorvar :long nix)
+	(let ( (norvar (multiple_nth sortedorvars nix)) )
+	  (mapobject_put pvarmap norvar curnorvar)
+	  (debug_msg norvar "normpat_orpat presetting norvar")
+	  (debug_msg curnorvar "normpat_orpat preset curnorvar")
+	  )
+	)
+       (debug_msg testercont "normpat_orpat testercont")
+       (debug_msg subpat "normpat_orpat subpat before normal_pattern")
+       (normal_pattern subpat nmatch subhdler pcn)
+       (debug_msg subpat "normpat_orpat subpat after normal_pattern")
+       (debug_msg testercont "normpat_orpat testercont after normal_pattern")
+       (debug_msg stuffmap "normpat_orpat after normal_pattern stuffmap")
+       (debug_msg pvarmap "normpat_orpat after normal_pattern pvarmap")
+       )
+      ;; postbind the norvar
+      (debug_msg sortednormalvars "normpat_orpat sortednormalvars postbind")
+      (debug_msg sortedorvars "normpat_orpat sortedorvars postbind")
+      (foreach_in_multiple
+       (sortednormalvars)
+       (curnorvar :long nix)
+       (let ( (norvar (multiple_nth sortedorvars nix)) 
+	      (norlococc (get_field :norvar_locsym curnorvar))
+	      )
+	 (debug_msg norvar "normpat_orpat postbind norvar")
+	 (debug_msg norlococc "normpat_orpat postbind norlococc")
+	 (assert_msg "check norlococc" (is_a norlococc class_nrep_locsymocc))
+	 (multiple_put_nth sortedlococcs nix norlococc)
+	 (mapobject_put pvarmap norvar norlococc)
+	 ))
+      (debug_msg sortedlococcs "normpat_orpat updated sortedlococcs")
+      (let  (
+	     (subtesters (list_to_multiple lisubtesters))
+	     (:long nbsubtesters (multiple_length subtesters))
+	     )
+	(debug_msg subtesters "normpat_orpat subtesters")
+	(if (<i nbsubtesters 2)
+	    (warning_plain sloc "this OR pattern has less than two tests so is degenerated")
+	  ;; we might check for an equivalent disjunction, but it is
+	  ;; useless in practice...
+	  (let ( (disjtester (instance class_normtester_disjunction 
+				       :nrep_loc sloc
+				       :ntest_matched nmatch
+				       :ntest_then ()
+				       :ntest_else (multiple_nth subtesters 0)
+				       :ntest_comefrom (make_list discr_list)
+				       :ntdisjuncts subtesters
+				       )) )
+	    (foreach_in_multiple
+	     (sortednormalvars)
+	     (curnorvar :long nix)
+	     (put_fields curnorvar :norvar_nrepor disjtester)
+	     (debug_msg curnorvar "normpat_orpat updated curnorvar")
+	     )
+	    ;; scan the freshlist using the sortednormalvars
+	    (let ( (:long fnix 0) 
+		   (:long nbv (multiple_length sortedorvars))
+		   )
+	      (foreach_in_list
+	       (freshlist)
+	       (curpair curfreshsy)
+	       (debug_msg curfreshsy "normpat_orpat curfreshsy")
+	       (let
+		   ( (foundnorvar
+		      (forever 
+		       upvarloop
+		       (assert_msg "check fnix" (<i fnix nbv))
+		       (let ( (curnorvar (multiple_nth sortednormalvars fnix)) )
+			 (if (== (get_field :spat_var 
+					    (get_field :norvar_patvar curnorvar))
+				 curfreshsy)
+			     (exit upvarloop curnorvar))
+			 )
+		       (setq fnix (+i fnix 1))
+		       )
+		      )
+		     )
+		 (debug_msg foundnorvar "normpat_orpat foundnorvar")
+		 (let ( (foundlocc (get_field :norvar_locsym foundnorvar)) 
+			(ctyp (get_field :nocc_ctyp foundlocc))
+			(fsymb (get_field :nocc_symb foundlocc))
+			(cbind (get_field :nocc_bind foundlocc))
+			)
+		   (debug_msg foundlocc "normpat_orpat foundlocc")
+		   (assert_msg "check foundlocc" (is_a foundlocc class_nrep_locsymocc))
+		   ;; put the foundlocc in the symbol cache map
+		   (mapobject_put  (get_field :nctx_symbcachemap ncx) fsymb foundlocc)
+		   (mapobject_put pvarmap fsymb foundlocc)
+		   (debug_msg fsymb "normpat_orpat fsymb")
+		   )
+		 )
+	       )
+	      )
+	    (debug_msg disjtester "normpat_orpat disjtester")
+	    (register_new_normtester disjtester pcn)
+	    (hdler disjtester)
+	    (list_append testlist disjtester)
+	    (debug_msg disjtester "normpat_orpat handled disjtester")
+	    ))
 	)
       )
-     (debug_msg testercont "normpat_orpat testercont")
-     (debug_msg subpat "normpat_orpat subpat before normal_pattern")
-     (normal_pattern subpat nmatch subhdler pcn)
-     (debug_msg subpat "normpat_orpat subpat after normal_pattern")
-     (debug_msg testercont "normpat_orpat testercont after normal_pattern")
-     (debug_msg stuffmap "normpat_orpat after normal_pattern stuffmap")
-     (debug_msg pvarmap "normpat_orpat after normal_pattern pvarmap")
-     )
-    ;; postbind the norvar
-     (foreach_in_multiple
-      (sortednormalvars)
-      (curnorvar :long nix)
-      (let ( (norvar (multiple_nth sortedorvars nix)) 
-	     (norlococc (get_field :norvar_locsym curnorvar))
-	     )
-	(debug_msg norvar "normpat_orpat postbind norvar")
-	(debug_msg norlococc "normpat_orpat postbind norlococc")
-	(assert_msg "check norlococc" (is_a norlococc class_nrep_locsymocc))
-	(mapobject_put pvarmap norvar norlococc)
-	))
-    (let  (
-	   (subtesters (list_to_multiple lisubtesters))
-	   (:long nbsubtesters (multiple_length subtesters))
-	   )
-      (debug_msg subtesters "normpat_orpat subtesters")
-      (if (<i nbsubtesters 2)
-	  (warning_plain sloc "this OR pattern has less than two tests so is degenerated")
-	;; we might check for an equivalent disjunction, but it is
-	;; useless in practice...
-	(let ( (disjtester (instance class_normtester_disjunction 
-				     :nrep_loc sloc
-				     :ntest_matched nmatch
-				     :ntest_then ()
-				     :ntest_else (multiple_nth subtesters 0)
-				     :ntest_comefrom (make_list discr_list)
-				     :ntdisjuncts subtesters
-				     )) )
-	  (foreach_in_multiple
-	   (sortednormalvars)
-	   (curnorvar :long nix)
-	   (put_fields curnorvar :norvar_nrepor disjtester)
-	   (debug_msg curnorvar "normpat_orpat updated curnorvar")
-	   )
-	  (debug_msg disjtester "normpat_orpat disjtester")
-	  (register_new_normtester disjtester pcn)
-	  (hdler disjtester)
-	  (list_append testlist disjtester)
-	  (debug_msg disjtester "normpat_orpat handled disjtester")
-	  ))
-      )
-    )
     )
   (debug_msg recv "normpat_orpat recv end")
   )
@@ -1688,9 +1770,9 @@
 	  (debug_msg mapvar "normexp_match mapvar")
 	  (debug_msg pvarmap "normexp_match pvarmap")
 	  (debug_msg mapcst "normexp_match mapcst")
-	  (debug_msg shabindlist "normexp_match shabindlist")
 	  (multiple_put_nth tupvarmap ix mapvar)
 	  (multiple_put_nth tupcstmap ix mapcst)
+	  (debug_msg shabindlist "normexp_match shabindlist before normal_pattern")
 	  (debug_msg curpat "normexp_match curpat before normal_pattern")
 	  ;; normalize the current pattern, with the handler storing its topmost tester
 	  (normal_pattern 
@@ -1705,6 +1787,7 @@
 	  (debug_msg curpat "normexp_match curpat after normal_pattern")
 	  (debug_msg pvarmap "normexp_match pvarmap after normal_pattern")
 	  (debug_msg ntestcont "normexp_match ntestcont after normal_pattern")
+	  (debug_msg shabindlist "normexp_match shabindlist after normal_pattern")
 	  ;; 
 	  (let ( (newenv (get_field :pctn_env pcn))
 		 (pvarlocmap (get_field :pctn_pvarlocmap pcn))
@@ -1883,6 +1966,7 @@
 	  (debug_msg curtest "normexp_match raw curtest")
 	  (assert_msg "check curtest" (is_a curtest class_normtester_any))
 	  (assert_msg "check tstix" (>=i tstix 0))
+	  (assert_msg "check tstix not too big" (<i tstix 32767))
 	  (messagenum_dbg "normexp_match testindex tstix" tstix)
 	  (put_int curtest tstix)
 	  (put_fields curtest :ntest_normatch nmatch)
@@ -1909,10 +1993,11 @@
  class_normtester_any
  class_normtester_anytester
  class_normtester_disjunction
- class_normtester_success
- class_normtester_same
- class_normtester_matcher
  class_normtester_instance
+ class_normtester_matcher
+ class_normtester_orclear
+ class_normtester_same
+ class_normtester_success
  class_nrep_match
  )
 

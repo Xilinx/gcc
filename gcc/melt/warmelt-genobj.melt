@@ -5482,6 +5482,51 @@ $SBUF.}#
 (install_method class_normtester_success compile_tester compiltst_normtester_success)
 
 ;;;;;;;;;;;;;;;;
+(defun compiltst_normtester_orclear (ntoc gcx tcx)
+  (debug_msg ntoc "compiltst_normtester_orclear ntoc")
+  (assert_msg "check ntoc" (is_a ntoc class_normtester_orclear))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
+  (let ( 
+	(nloc (unsafe_get_field :nrep_loc ntoc))
+	(nmatched (unsafe_get_field :ntest_matched ntoc))
+	(normatch (unsafe_get_field :ntest_normatch ntoc))
+	(nthen (unsafe_get_field :ntest_then ntoc))
+	(nelse (unsafe_get_field :ntest_else ntoc))
+	(nclear (unsafe_get_field :ntorclear_locsym ntoc))
+	(olist (make_list discr_list))
+;;;	(gotothen (or (normtester_gotoinstr nthen gcx)
+;;;		      (endmatch_gotoinstr normatch gcx nloc)))
+	(gotoelse (or (normtester_gotoinstr nelse gcx)
+		      (endmatch_gotoinstr normatch gcx nloc)))
+	)
+    (debug_msg nclear "compiltst_normtester_orclear nclear")
+    (debug_msg nthen "compiltst_normtester_orclear nthen")
+    (debug_msg nelse "compiltst_normtester_orclear nelse")
+    (assert_msg "check nclear" (is_multiple nclear))
+    (foreach_in_multiple
+     (nclear)
+     (curlocs :long cix)
+     (debug_msg curlocs "compiltst_normtester_orclear curlocs")
+     (let ( 
+	   (obva (get_free_objloctyped gcx 
+				       (get_field :nocc_symb curlocs)
+				       (get_field :nocc_ctyp curlocs)))
+	   (oclrloc (instance class_objclear
+			      :obi_loc nloc
+			      :oclr_vloc obva
+			      ))
+	   )
+       (list_append olist oclrloc)
+       )
+     )
+    (list_append olist gotoelse)
+    (debug_msg olist "compiltst_normtester_orclear final olist")
+    (compile_warning "perhaps unimplemented compiltst_normtester_orclear")
+    (return olist)
+    ))
+(install_method class_normtester_orclear compile_tester compiltst_normtester_orclear)
+;;;;;;;;;;;;;;;;
 
 ;; to compile a disjunction, just goto the then case, because the
 ;; disjunction is only here to redistribute the then case inside the
@@ -5498,7 +5543,7 @@ $SBUF.}#
 	(gotothen (or (normtester_gotoinstr nthen gcx)
 		      (endmatch_gotoinstr normatch gcx nloc)))
 	)
-    (debug_msg gotothen "compiltst_normtester_disjunction gotoelse")
+    (debug_msg gotothen "compiltst_normtester_disjunction gotothen")
     (return gotothen)
     )
   )

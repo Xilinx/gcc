@@ -316,27 +316,34 @@ melt_argument (const char* argname)
 /* the debug depth for MELT debug_msg .... */
 int melt_debug_depth (void)
 {
+#define MELT_DEFAULT_DEBUG_DEPTH 7
+#define MELT_MINIMAL_DEBUG_DEPTH 2
+#define MELT_MAXIMAL_DEBUG_DEPTH 25
   static int d;
   if (!flag_melt_debug)
     return 0;
-  if (!d) 
+  if (MELT_UNLIKELY(!d))
     {
       d = melt_debug_depth_string?(atoi (melt_debug_depth_string)):0;
       if (d == 0)
 	{
-	  d = 7;
-	  warning (0, "MELT debug depth [-fmelt-debug-depth= or -fplugin-arg-melt-debug-depth= ] defaulted to %d", d);
+	  d = MELT_DEFAULT_DEBUG_DEPTH;
+	  warning (0,
+		   "MELT debug depth -f[plugin-arg-]melt-debug-depth= defaulted to %d",
+		   d);
 	}
-      
-      if (d < 2)
+      if (d < MELT_MINIMAL_DEBUG_DEPTH)
 	{
-	  warning (0, "MELT debug depth [-fmelt-debug-depth= or -fplugin-arg-melt-debug-depth= ] increased to 2 but was %d ", d);
-	  d = 2;
+	  warning (0,
+		   "MELT debug depth -f[plugin-arg-]melt-debug-depth= increased to %d but was %d ",
+		   MELT_MINIMAL_DEBUG_DEPTH, d);
+	  d = MELT_MINIMAL_DEBUG_DEPTH;
 	}
-      else if (d > 24)
+      else if (d > MELT_MAXIMAL_DEBUG_DEPTH)
 	{
-	  warning (0,  "MELT debug depth [-fmelt-debug-depth= or -fplugin-arg-melt-debug-depth= ] decreased to 24 but was %d ", d);
-	  d = 24;
+	  warning (0,
+		   "MELT debug depth -f[plugin-arg-]melt-debug-depth= decreased to %d but was %d ", MELT_MAXIMAL_DEBUG_DEPTH, d);
+	  d = MELT_MAXIMAL_DEBUG_DEPTH;
 	}
     }
   return d;

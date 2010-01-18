@@ -1,3 +1,14 @@
+2010-01-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tmatch-6 still fails.}}
+	* melt-runtime.c (melt_argument): added MELT_DEFAULT_DEBUG_DEPTH
+	MELT_MINIMAL_DEBUG_DEPTH MELT_MAXIMAL_DEBUG_DEPTH & changed
+	warning message.
+	* testsuite/melt/tmatch-6.melt: added disjunct into renamed
+	testnameof ...
+	* melt/warmelt-normatch.melt: added class_normtester_orclear ...
+	added freshlist in normpat_orpat...
+	* melt/warmelt-genobj.melt: added compiltst_normtester_orclear...
+
 2010-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: adding more for or-variables. Still
 	incomplete!
