@@ -1872,6 +1872,9 @@ output_function (struct cgraph_node *node)
   lto_output_bitpack (ob->main_stream, bp);
   bitpack_delete (bp);
 
+  /* Output current IL state of the function.  */
+  output_uleb128 (ob, fn->curr_properties);
+
   /* Output the static chain and non-local goto save area.  */
   lto_output_tree_ref (ob, fn->static_chain_decl);
   lto_output_tree_ref (ob, fn->nonlocal_goto_save_area);
@@ -1973,12 +1976,15 @@ output_unreferenced_globals (cgraph_node_set set)
     {
       tree var = vnode->decl;
 
-      if (TREE_CODE (var) == VAR_DECL && TREE_PUBLIC (var))
+      if (TREE_CODE (var) == VAR_DECL)
         {
-          /* Outputting just the reference will not output the object itself
-             or references it might have.*/
+          /* Output the object in order to output references used in the
+             initialization. */
           lto_output_tree (ob, var, true);
-          lto_output_tree_ref (ob, var);
+
+          /* If it is public we also need a reference to the object itself. */
+          if (TREE_PUBLIC (var))
+            lto_output_tree_ref (ob, var);
         }
     }
 

@@ -4268,6 +4268,15 @@ gimple_verify_flow_info (void)
 	      err = 1;
 	    }
 
+	  if (prev_stmt && EH_LANDING_PAD_NR (label) != 0)
+	    {
+	      error ("EH landing pad label ");
+	      print_generic_expr (stderr, label, 0);
+	      fprintf (stderr, " is not first in a sequence of labels in bb %d",
+		       bb->index);
+	      err = 1;
+	    }
+
 	  if (label_to_block (label) != bb)
 	    {
 	      error ("label ");
@@ -6928,7 +6937,7 @@ gimple_execute_on_growing_pred (edge e)
 {
   basic_block bb = e->dest;
 
-  if (phi_nodes (bb))
+  if (!gimple_seq_empty_p (phi_nodes (bb)))
     reserve_phi_args_for_new_edge (bb);
 }
 
@@ -6938,7 +6947,7 @@ gimple_execute_on_growing_pred (edge e)
 static void
 gimple_execute_on_shrinking_pred (edge e)
 {
-  if (phi_nodes (e->dest))
+  if (!gimple_seq_empty_p (phi_nodes (e->dest)))
     remove_phi_args (e);
 }
 

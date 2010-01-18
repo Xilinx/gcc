@@ -3326,6 +3326,21 @@ LCF0:
       [ bl __tls_get_addr(x@tlsgd)],,
       [AC_DEFINE(HAVE_AS_TLS_MARKERS, 1,
 	  [Define if your assembler supports arg info for __tls_get_addr.])])
+
+    case $target in
+      *-*-aix*)
+	gcc_GAS_CHECK_FEATURE([.ref support],
+	  gcc_cv_as_aix_ref, [2.21.0],,
+	  [	.csect stuff[[rw]]
+	     stuff:
+		.long 1
+		.extern sym
+		.ref sym
+	  ],,
+	  [AC_DEFINE(HAVE_AS_REF, 1,
+	    [Define if your assembler supports .ref])])
+	;;
+    esac
     ;;
 
   mips*-*-*)
@@ -4314,12 +4329,15 @@ if test x"$enable_plugin" = x"yes"; then
   fi
 
   # Check -ldl
+  saved_LIBS="$LIBS"
   AC_SEARCH_LIBS([dlopen], [dl])
   if test x"$ac_cv_search_dlopen" = x"-ldl"; then
     pluginlibs="$pluginlibs -ldl"
   fi
+  LIBS="$saved_LIBS"
 
   # Check that we can build shared objects with -fPIC -shared
+  saved_LDFLAGS="$LDFLAGS"
   LDFLAGS="$LDFLAGS -fPIC -shared"
   AC_MSG_CHECKING([for -fPIC -shared])
   AC_TRY_LINK(
@@ -4330,6 +4348,7 @@ if test x"$enable_plugin" = x"yes"; then
     pluginlibs=
     enable_plugin=no
   fi
+  LDFLAGS="$saved_LDFLAGS"
 
   # If plugin support had been requested but not available, fail.
   if test x"$enable_plugin" = x"no" ; then

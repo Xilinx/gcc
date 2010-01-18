@@ -1,10 +1,205 @@
+2010-01-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/functional (_Bind<_Functor(_Bound_args...)>::__call):
+	Rename const version to __call_c and remove _Sfinae template
+	parameter.
+	(_Bind<_Functor(_Bound_args...)>::operator()): Adjust.
+
+	* include/std/functional: Pass everywhere temporary tuple<_Args...>
+	arguments by rvalue reference.
+
+	* testsuite/20_util/bind/cv_quals.cc: New.
+
+	* testsuite/20_util/bind/ref2.cc: Add missing test variables.
+
+2010-01-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR libstdc++/35942
+	* configure.ac: Remove -lstdc++ from libtool's postdeps_CXX.
+	* configure: Regenerate.
+
+2010-01-15  Phil Muldoon  <pmuldoon@redhat.com>
+
+	* python/libstdcxx/v6/printers.py (StdStringPrinter.__init__):
+	Remove encoding argument.
+	(StdStringPrinter.to_string): Do not compute or pass encoding.
+	Use lazy_string over string function.
+
+2010-01-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/c_std/cstring (memchr): Forward to the builtin.
+	* include/c_std/cstring: Remove redundant casts; use names consistent
+	with the letter of the Standard.
+	* include/c_global/cstring: Likewise.
+
+2010-01-13  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/profile/iterator_tracker.h: Add copyright.
+
+2010-01-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/Makefile.am (check-debug): Add.
+	* testsuite/Makefile.in: Regenerate.
+	* config.h.in: Likewise.
+
+2010-01-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/17_intro/using_namespace_std_tr1_neg.cc: Do not run
+	in parallel-mode.
+	* testsuite/25_algorithms/inplace_merge/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/rotate/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/stable_partition/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/remove/moveable.c: Likewiwse.
+	* testsuite/25_algorithms/random_shuffle/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/nth_element/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/partial_sort/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/next_permutation/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/partition/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/stable_sort/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/stable_sort/moveable2.cc: Likewiwse.
+	* testsuite/25_algorithms/sort/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/prev_permutation/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/unique/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/remove_if/moveable.cc: Likewiwse.
+	* testsuite/25_algorithms/heap/moveable.cc: Likewiwse.
+
+	* testsuite/25_algorithms/search_n/iterator.cc: Reduce iteration #
+	in parallel-mode.
+
+2010-01-12  Hans-Peter Nilsson  <hp@axis.com>
+
+	* testsuite/ext/profile/all.cc: Pass -D_GLIBCXX_PROFILE_NO_THREADS
+	for non-tls_native targets.
+
+2010-01-12  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* scripts/run_doxygen: Correct nested scope on the man pages.
+	* doc/xml/faq.xml: Edits, linkcheck, doxygen link reassociate.
+	* doc/xml/manual/mt_allocator.xml: Same.
+	* doc/xml/manual/allocator.xml: Same.
+	* doc/xml/manual/codecvt.xml: Same.
+	* doc/xml/manual/backwards_compatibility.xml: Same.
+	* doc/xml/manual/concurrency.xml: Same.
+	* doc/xml/manual/parallel_mode.xml: Same.
+	* doc/xml/manual/io.xml: Same.
+	* doc/xml/manual/support.xml: Same.
+	* doc/xml/manual/evolution.xml: Same.
+	* doc/xml/manual/using.xml: Same.
+	* doc/xml/manual/extensions.xml: Same.
+	* doc/xml/manual/appendix_contributing.xml: Same.
+	* doc/xml/manual/prerequisites.xml: Same.
+	* doc/xml/manual/diagnostics.xml: Same.
+	* doc/xml/manual/spine.xml: Same.
+	* doc/xml/manual/status_cxx200x.xml: Same.
+	* doc/xml/manual/test.xml: Same.
+	* doc/xml/spine.xml: Same.
+	* doc/html/*: Regenerate.
+
+	* include/profile/impl/profiler.h: Remove duplicate markup.
+
+2010-01-12  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/24803
+	PR libstdc++/35569
+	PR libstdc++/42593
+	* include/std/functional (bind): Forward rvalues and detect correct
+	result type of bound function object.
+	* include/std/mutex (call_once): Specify bind result type.
+	* testsuite/20_util/reference_wrapper/invoke.cc: Remove invalid tests.
+	* testsuite/20_util/reference_wrapper/24803.cc: Remove invalid tests
+	and enable FIXME tests.
+	* testsuite/20_util/bind/35569.cc: New.
+	* testsuite/20_util/bind/ref2.cc: New.
+	* testsuite/20_util/bind/38889.cc: New.
+	* testsuite/20_util/bind/ref_neg.cc: New.
+	* testsuite/20_util/bind/42593.cc: New.
+
+2010-01-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/parallel/base.h (decode2): Rename to __decode2.
+	(binder2nd): Likewise to __binder2nd.
+	* include/parallel/quicksort.h: Adjust callers.
+	* include/parallel/balanced_quicksort.h: Likewise.
+	* include/parallel/partition.h: Likewise.
+	* include/parallel/queue.h: Likewise.
+
+	* include/parallel/algo.h: Qualify with std:: binder2nd use.
+
+2010-01-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/string (basic_string<>::basic_string(basic_string&&),
+	operator=(basic_string&&), assign(basic_string&&)): Add.
+
+	* include/debug/string: Fully qualify initializer_list with std; fix
+	_Allocator misspellings as _Alloc.
+
+2010-01-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/basic_string.h (basic_string<>::
+	basic_string(basic_string&&), operator=(basic_string&&),
+	assign(basic_string&&)): Add.
+	* config/abi/pre/gnu.ver: Export new symbols.
+	* include/ext/vstring.h (__versa_string<>::assign(__versa_string&&)):
+	Add.
+	(operator=(__versa_string&&)): Don't call clear unnecessarily.
+	* include/ext/rc_string_base.h (__rc_string_base<>::
+	__rc_string_base(__rc_string_base&&)): Simplify a tad.
+	* testsuite/21_strings/basic_string/cons/char/moveable.cc: New.
+	* testsuite/21_strings/basic_string/cons/wchar_t/moveable.cc: Likewise.
+	* testsuite/ext/vstring/assign/move_assign.cc: Likewise.
+	* testsuite/21_strings/basic_string/assign/char/move_assign.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/assign/wchar_t/move_assign.cc:
+	Likewise.
+
+	* testsuite/ext/vstring/cons/moveable.cc: Fix comment nit.
+
+2010-01-10  Silvius Rus  <rus@google.com>
+
+	* configure.ac: Add detection of execinfo.h.
+	* configure: Regenerate.
+	* config.h.in: Likewise.
+	* doc/xml/manual/profile_mode.xml: Add list_to_slist manual.
+	Also, correct user interface mistakes.
+	* include/Makefile.am: Add references to new include files.
+	* include/Makefile.in: Regenerate.
+	* include/backward/hash_map: Remove profile include.
+	* include/backward/hash_set: Likewise.
+	* include/profile/hashtable.h: Delete file.
+	* include/profile/iterator_tracker.h: New file.
+	* include/profile/vector: Add instrumentation for tracked iterator.
+	* include/profile/list: Same.
+	* include/profile/impl/profiler_list_to_slist.h: New file.
+	* include/profile/impl/profiler_list_to_vector.h: Same.
+	* include/profile/impl/profiler.h: Add list_to_slist and
+	list_to_vector instrumentation hook interfaces.  Fixed broken
+	diagnostic disabling mechanism.
+	(_GLIBCXX_PROFILE_DEFINE_DATA,_GLIBCXX_PROFILE_DATA) New macros.
+	(__reentrance_guard) Fix bug.
+	* include/profile/impl/profiler_trace.h: Replace dummy templates
+	with _GLIBCXX_PROFILE_DEFINE_DATA.
+	* include/profile/impl/profiler_container_size.h: Same.
+	* include/profile/impl/profiler_vector_size.h: Same.
+	* include/profile/impl/profiler_hash_func.h: Same.
+	* include/profile/impl/profiler_vector_to_list.h: Same.
+	* include/profile/impl/profiler_map_to_unordered_map.h: Same.
+	* include/profile/impl/profiler_hashtable_size.h: Same.
+	* include/profile/impl/profiler_node.h: Same.
+	* include/profile/impl/profiler_state.h: Same.  Also, remove
+	class __state. Also, use __sync_val_compare_and_swap to set state.
+
+2010-01-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR other/42230
+	* testsuite/abi/pr42230.cc: New.
+
 2010-01-09  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/debug/set.h: Revert last change, per DR 1204 [Ready];
 	mention the latter in comment.
 	* include/debug/unordered_map: Likewise.
- 	* include/debug/multiset.h: Likewise.
- 	* include/debug/vector: Likewise.
+	* include/debug/multiset.h: Likewise.
+	* include/debug/vector: Likewise.
 	* include/debug/unordered_set: Likewise.
 	* include/debug/deque: Likewise.
 	* include/debug/map.h: Likewise.

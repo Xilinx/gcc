@@ -1,7 +1,7 @@
 // { dg-options "-std=gnu++0x" }
 // { dg-require-string-conversions "" }
 
-// Copyright (C) 2007, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -20,7 +20,7 @@
 
 
 // NOTE: This makes use of the fact that we know how moveable
-// is implemented on deque (via swap). If the implementation changed
+// is implemented on vstring (via swap). If the implementation changes
 // this test may begin to fail.
 
 #include <ext/vstring.h>

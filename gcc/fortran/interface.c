@@ -955,6 +955,8 @@ gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, const char *name2,
 {
   gfc_formal_arglist *f1, *f2;
 
+  gcc_assert (name2 != NULL);
+
   if (s1->attr.function && (s2->attr.subroutine
       || (!s2->attr.function && s2->ts.type == BT_UNKNOWN
 	  && gfc_get_default_type (name2, s2->ns)->type == BT_UNKNOWN)))
@@ -1130,16 +1132,16 @@ check_interface1 (gfc_interface *p, gfc_interface *q0,
 				    0, NULL, 0))
 	  {
 	    if (referenced)
-	      {
-		gfc_error ("Ambiguous interfaces '%s' and '%s' in %s at %L",
-			   p->sym->name, q->sym->name, interface_name,
-			   &p->where);
-	      }
-
-	    if (!p->sym->attr.use_assoc && q->sym->attr.use_assoc)
+	      gfc_error ("Ambiguous interfaces '%s' and '%s' in %s at %L",
+			 p->sym->name, q->sym->name, interface_name,
+			 &p->where);
+	    else if (!p->sym->attr.use_assoc && q->sym->attr.use_assoc)
 	      gfc_warning ("Ambiguous interfaces '%s' and '%s' in %s at %L",
 			   p->sym->name, q->sym->name, interface_name,
 			   &p->where);
+	    else
+	      gfc_warning ("Although not referenced, '%s' has ambiguous "
+			   "interfaces at %L", interface_name, &p->where);
 	    return 1;
 	  }
       }
@@ -1155,7 +1157,6 @@ static void
 check_sym_interfaces (gfc_symbol *sym)
 {
   char interface_name[100];
-  bool k;
   gfc_interface *p;
 
   if (sym->ns != gfc_current_ns)
@@ -1182,9 +1183,8 @@ check_sym_interfaces (gfc_symbol *sym)
       /* Originally, this test was applied to host interfaces too;
 	 this is incorrect since host associated symbols, from any
 	 source, cannot be ambiguous with local symbols.  */
-      k = sym->attr.referenced || !sym->attr.use_assoc;
-      if (check_interface1 (sym->generic, sym->generic, 1, interface_name, k))
-	sym->attr.ambiguous_interfaces = 1;
+      check_interface1 (sym->generic, sym->generic, 1, interface_name,
+			sym->attr.referenced || !sym->attr.use_assoc);
     }
 }
 

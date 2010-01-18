@@ -1,3 +1,696 @@
+2010-01-18  Joern Rennecke  <amylaar@spamcop.net>
+
+	* doc/tm.texi (TARGET_ASM_FUNCTION_EPILOGUE): Update text on where to
+	find number of popped argument bytes.
+
+	(TARGET_INVALID_WITHIN_DOLOOP): Put return value in braces.
+	Fix the text that describes the return value for invalid insns.
+
+	(TARGET_SCHED_NEEDS_BLOCK_P): Fix return type.  Fix argument list.
+
+	(TARGET_SCHED_IS_COSTLY_DEPENDENCE): Fix argument types.
+	Clarify what 'cost of the -dependence' is.  Fix quoting.
+
+2010-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (mem_loc_descriptor): Don't ICE on
+	{S,U}S_{PLUS,MINUS,NEG,ABS,ASHIFT}.
+
+2010-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42248
+	* function.c (split_complex_args): Take a VEC to modify.
+	(assign_parms_augmented_arg_list): Build a VEC instead of
+	a chain of PARM_DECLs.
+	(assign_parms_unsplit_complex): Take a VEC of arguments.
+	Do not fixup unmodified parms.
+	(assign_parms): Deal with the VEC.
+	(gimplify_parameters): Likewise.
+
+2010-01-17  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-uncprop.c (uncprop_into_successor_phis): Fix PHI
+	node existence check.
+	* tree-vect-loop.c (vect_analyze_loop_form): Likewise.
+	* tree-cfgcleanup.c (merge_phi_nodes): Likewise.
+	* tree-ssa-dce.c (forward_edge_to_pdom): Likewise.
+	* tree-cfg.c (gimple_execute_on_growing_pred): Likewise.
+	(gimple_execute_on_growing_pred): Likewise.
+
+2010-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42773
+	* tree-ssa-pre.c (phi_translate_set): Fix check for PHI node existence.
+	(compute_antic_aux): Likewise.
+	(compute_partial_antic_aux): Likewise.
+
+2010-01-17  Jie Zhang  <jie.zhang@analog.com>
+
+	PR debug/42767
+	* dwarf2out.c (mem_loc_descriptor): Handle SS_TRUNCATE
+	and US_TRUNCATE.
+
+2010-01-17  Joern Rennecke  <amylaar@spamcop.net>
+
+	* doc/tm.texi (TARGET_INIT_LIBFUNCS): Put @findex entries in order of
+	appearance.
+
+	(TARGET_LEGITIMATE_ADDRESS_P): Add return type.
+	Fix markup for strict argument.
+
+	(TARGET_SCHED_REORDER2): Fix argument types.
+
+	(TARGET_SCHED_DFA_PRE_CYCLE_INSN): Fix return type.
+	(TARGET_SCHED_DFA_POST_CYCLE_INSN): Likewise.
+
+	(TARGET_SCHED_DFA_PRE_ADVANCE_CYCLE): Fix name.
+	(TARGET_SCHED_DFA_POST_ADVANCE_CYCLE): Likewise.
+
+	(TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD):
+	Add argument name.
+
+	(TARGET_SCHED_ALLOC_SCHED_CONTEXT): Remove duplicate documentation.
+	(TARGET_SCHED_INIT_SCHED_CONTEXT): Likewise.
+	(TARGET_SCHED_SET_SCHED_CONTEXT): Likewise.
+	(TARGET_SCHED_CLEAR_SCHED_CONTEXT): Likewise.
+	(TARGET_SCHED_FREE_SCHED_CONTEXT): Likewise.
+
+	(TARGET_SCHED_SET_SCHED_CONTEXT): Fix typo.
+
+	(TARGET_SCHED_GEN_SPEC_CHECK): Fix name.
+
+	(TARGET_ASM_RELOC_RW_MASK): Add return type.
+	(TARGET_MANGLE_DECL_ASSEMBLER_NAME): Fix return type.
+
+	(TARGET_STRIP_NAME_ENCODING): Fix markup of return type and parameter.
+
+	(TARGET_ASM_FILE_START): Put @findex before paragraph start.
+	Use prototype.
+
+	(TARGET_ASM_NAMED_SECTION): Fix argument list.
+
+	(TARGET_HAVE_NAMED_SECTIONS): Use @deftypevr.
+	(TARGET_HAVE_SWITCHABLE_BSS_SECTIONS): Likewise.
+
+	(TARGET_ASM_RECORD_GCC_SWITCHES_SECTION): Use @deftypevr.
+
+	(TARGET_ASM_ASSEMBLE_VISIBILITY): Fix argument types.
+
+	(TARGET_ASM_MARK_DECL_PRESERVED): Fix argument and markup
+	referring to it.  Fix language.
+
+	(TARGET_HAVE_CTORS_DTORS): Use @deftypevr.
+
+	(TARGET_ASM_FINAL_POSTSCAN_INSN): Adjust name of first argument.
+
+	(TARGET_ASM_EMIT_UNWIND_LABEL): Add argument types.
+
+	(TARGET_ASM_EMIT_EXCEPT_TABLE_LABEL): Add type to argument.
+
+	(TARGET_UNWIND_EMIT): Remove space between 'FILE *' and
+	'@var{stream}.  Remove stray 'and'.
+
+	(TARGET_ARM_EABI_UNWINDER): Use @deftypevr.
+
+	(TARGET_ASM_OUTPUT_DWARF_DTPREL): Adjust name of first argument.
+
+	(TARGET_SET_DEFAULT_TYPE_ATTRIBUTES): Add missing article.
+
+	(TARGET_OPTION_VALID_ATTRIBUTE_P): Fix name, it was 
+	misspelled as TARGET_VALID_OPTION_ATTRIBUTE_P.
+
+	(TARGET_GET_PCH_VALIDITY): Put 'void *' in braces.
+	Fix description of return value.
+	Rename argument "sz" to "len."
+
+	(TARGET_CXX_GUARD_MASK_BIT): Add missing article.
+	Clarify meaning of 'true' return value.
+
+	(TARGET_SHIFT_TRUNCATION_MASK): Fix return type.
+
+	(TARGET_MODE_REP_EXTENDED): Fix two inconsisent uses of
+	rep_mode versus mode_rep.
+
+	(TARGET_HANDLE_PRAGMA_EXTERN_PREFIX): Document.
+
+	(TARGET_BUILTIN_DECL): Fix name.
+
+	(TARGET_COMMUTATIVE_P): Fix type of first argument.
+
+	(TARGET_SET_CURRENT_FUNCTION): Mention possibility of cfun being NULL.
+
+	(TARGET_BRANCH_TARGET_REGISTER_CLASS): Fix return type.
+
+	(TARGET_USE_LOCAL_THUNK_ALIAS_P): Document as macro instead of hook.
+
+	(TARGET_RELAXED_ORDERING): Use @deftypevr.
+
+	(TARGET_GET_DRAP_RTX): Note that this is a hook.
+	Clarify language.
+
+	(TARGET_BUILTIN_RECIPROCAL): Fix argument types.
+	Rename argument tm_fn to md_fn.
+
+	(TARGET_OPTION_PRINT): Fix argument list.
+
+2010-01-16  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	PR target/42664
+	* config/i386/i386.c (ix86_fixup_binary_operands):
+	Revert FMA4 fixup of operands.
+
+2010-01-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR gcc/42525
+	* Makefile.in (write_entries_to_file, install-plugin):
+	Use \012 instead of \n with tr.
+
+2010-01-16  Richard Sandiford  <r.sandiford@uk.ibm.com>
+
+	* configure.ac (HAVE_AS_REF): New C macro.
+	* configure: Regenerate.
+	* config.in: Likewise.
+	* collect2.c (main): Only postpone SCAN_DWEH to the second pass
+	if HAVE_AS_REF.
+	* config/rs6000/aix.h (ASM_OUTPUT_DWARF_TABLE_REF): Only define
+	if HAVE_AS_REF.
+
+2010-01-16  Joern Rennecke  <amylaar@spamcop.net>
+
+	* doc/tm.texi (TARGET_USE_BLOCKS_FOR_CONSTANT_P): Fix argument types.
+
+	(TARGET_SUPPORT_VECTOR_MISALIGNMENT): Fix argument types.
+
+	(TARGET_USE_ANCHORS_FOR_SYMBOL_P): Fix argument types.
+
+	(TARGET_SCHED_ALLOC_SCHED_CONTEXT): Put 'void *' in braces.
+
+	(TARGET_IN_SMALL_DATA_P): Fix argument type.
+
+	(TARGET_BINDS_LOCAL_P): Fix argument type.
+
+	(TARGET_ASM_FILE_END): Use prototype.
+
+	(TARGET_ASM_RECORD_GCC_SWITCHES): Don't put 'int' in braces.
+
+	(TARGET_DWARF_CALLING_CONVENTION): Fix argument type.
+
+	(TARGET_COMP_TYPE_ATTRIBUTES): Fix argument types.
+
+	(TARGET_VALID_DLLIMPORT_ATTRIBUTE_P): Fix argument type.
+
+	(TARGET_EMUTLS_VAR_ALIGN_FIXED): Don't put 'bool' in braces.
+	(TARGET_EMUTLS_DEBUG_FORM_TLS_ADDRESS): Likewise.
+
+	(TARGET_PCH_VALID_P): Put 'const char *' in braces.
+	(TARGET_CHECK_PCH_TARGET_FLAGS): Likewise.
+
+	(TARGET_ADDR_SPACE_LEGITIMATE_ADDRESS_P): Don't put 'bool' in braces.
+	(TARGET_ADDR_SPACE_SUBSET_P): Likewise.
+	(TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS): Don't put 'rtx' in braces.
+	(TARGET_ADDR_SPACE_CONVERT): Likewise.
+
+	(TARGET_CASE_VALUES_THRESHOLD): Put 'unsigned int' in braces.
+
+	(TARGET_MACHINE_DEPENDENT_REORG: Use prototype.
+
+	(TARGET_INIT_BUILTINS): Use prototype.
+
+	(TARGET_INVALID_ARG_FOR_UNPROTOTYPED_FN):
+	Put 'const char *' in braces.  Fix parameter types.
+	(TARGET_INVALID_CONVERSION): Fix parameter types.
+	(TARGET_INVALID_UNARY_OP, TARGET_INVALID_BINARY_OP): Likewise.
+	(TARGET_INVALID_PARAMETER_TYPE, TARGET_INVALID_RETURN_TYPE): Likewise.
+
+	(TARGET_PROMOTED_TYPE): Remove braces around 'tree'.
+	Fix argument type.
+
+	(TARGET_CONVERT_TO_TYPE): Remove braces around 'tree'.
+
+	(TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS): Remove braces around 'bool'.
+
+2010-01-15  Joern Rennecke  <amylaar@spamcop.net>
+
+	* doc/tm.texi (TARGET_HELP): Fix return type.
+
+	(TARGET_PROMOTE_FUNCTION_MODE): Put 'enum machine_mode'
+	in braces.  Fix argument types.
+
+	(TARGET_LIBGCC_CMP_RETURN_MODE): Use prototype.
+
+	(TARGET_LIBGCC_SHIFT_COUNT_MODE): Use prototype.
+
+	(TARGET_MS_BITFIELD_LAYOUT_P): Fix argument type.
+
+	(TARGET_DECIMAL_FLOAT_SUPPORTED_P): Don't put 'bool' in braces.
+	(TARGET_FIXED_POINT_SUPPORTED_P): Likewise.
+
+	(TARGET_MANGLE_TYPE): Fix argument types.
+
+	(TARGET_IRA_COVER_CLASSES): Use prototype.
+
+	(TARGET_BUILTIN_SETJMP_FRAME_VALUE): Fix return type.  Use prototype.
+
+	(TARGET_CAN_ELIMINATE): Use identifiers for argument names.
+
+	(TARGET_PROMOTE_PROTOTYPES): Fix argument type.
+
+	(TARGET_MUST_PASS_IN_STACK): Fix argument type.
+
+	(TARGET_CALLEE_COPIES): Fix argument types.
+
+	(TARGET_SPLIT_COMPLEX_ARG): Fix argument type.
+
+	(TARGET_GIMPLIFY_VA_ARG_EXPR): Fix argument types.
+
+	(TARGET_FUNCTION_VALUE): Fix argument types.
+
+	(TARGET_RETURN_IN_MSB): Fix argument type.
+
+	(TARGET_RETURN_IN_MEMORY): Fix argument types.
+
+	(TARGET_ASM_CAN_OUTPUT_MI_THUNK): Fix argument types.
+
+	(TARGET_EXTRA_LIVE_ON_ENTRY): Fix argument type.
+
+	(TARGET_STRICT_ARGUMENT_NAMING): Make literal in text
+	agree with return type.
+
+	(TARGET_PRETEND_OUTGOING_VARARGS_NAMED): Add Prototype.
+
+2010-01-15  Jing Yu  <jingyu@google.com>
+
+	PR rtl-optimization/42691
+	* combine.c (try_combine): Set changed_i3_dest to 1 when I2 and I3 set
+	a pseudo to a constant and are merged, and adjust comments.
+
+2010-01-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/i386/sse.md (avx_vperm2f128<mode>3): Fix typo.
+
+2010-01-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42739
+	* tree-cfgcleanup.c (remove_forwarder_block): Move destination
+	labels of computed or non-local gotos to the destination.
+	* tree-cfg.c (gimple_verify_flow_info): Verify that a EH
+	landing pad label is the first label.
+
+2010-01-15  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-loop-im.c (gen_lsm_tmp_name): Fix bogus fallthru.
+
+2010-01-14  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/42747
+	* config/rs6000/rs6000.md (sqrtdf2): Split into expander and insn
+	to allow generation of the xssqrtdp instruction on power7.
+	(sqrtdf2_fpr): Ditto.
+
+2010-01-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/42674
+	* c-decl.c (finish_function): Don't emit -Wreturn-type warnings in
+	functions with noreturn attribute.
+
+	PR c++/42608
+	* varasm.c (declare_weak): Add weak attribute to decl if it
+	doesn't have one already.
+	(assemble_external): Only add decls to weak_decls if they also
+	have weak attribute.
+
+2010-01-14  Alexandre Oliva  <aoliva@redhat.com>
+
+	* var-tracking.c (var_reg_delete): Don't delete the association
+	between REGs and values or one-part variables if the register
+	isn't clobbered.
+
+2010-01-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/42657
+	* tree-inline.c (copy_debug_stmt): Don't reset debug stmt just
+	because its first operand is a non-localized variable.
+
+2010-01-14  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42706
+	* tree-sra.c (encountered_recursive_call): New variable.
+	(encountered_unchangable_recursive_call): Likewise.
+	(sra_initialize): Initialize both new variables.
+	(callsite_has_enough_arguments_p): New function.
+	(scan_function): Call decl and flags check only for IPA-SRA, check
+	whether there is a recursive call and whether it has enough arguments.
+	(all_callers_have_enough_arguments_p): New function.
+	(convert_callers): Look for recursive calls only when
+	encountered_recursive_call is set.
+	(ipa_early_sra): Bail out either if
+	!all_callers_have_enough_arguments_p or
+	encountered_unchangable_recursive_call.
+
+2010-01-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	* sel-sched.c: Add 2010 to copyright years.
+	* sel-sched-ir.c: Likewise.
+	* sel-sched-ir.h: Likewise.
+
+2010-01-14  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42714
+	* tree-sra.c (sra_ipa_modify_assign): Handle incompatible-type
+	constructors specially.
+
+2010-01-14  Andi Kleen  <ak@linux.intel.com>
+
+	* config/i386/drivers-i386.c (detect_caches_intel):
+	Add l2sizekb parameter and fill in.
+	(host_detect_local_cpu): Add l2sizekb, fill in.
+	Add Atom small cache heuristic.
+
+2010-01-14  Andi Kleen  <ak@linux.intel.com>
+
+	* config/i386/drivers-i386.c (detect_caches_cpuid4):
+	Add level3 parameter and fill in.
+	(detect_caches_intel): Handle level3 cache.
+
+2010-01-14  Andi Kleen  <ak@linux.intel.com>
+
+	* config/i386/drivers-i386.c (host_detect_local_cpu):
+	Fix core duo detection.
+
+2010-01-14  Andi Kleen  <ak@linux.intel.com>
+
+	* config/i386/drivers-i386.c (host_detect_local_cpu):
+	Fix Atom detection.
+
+2010-01-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	* config/rs6000/rs6000.c (rs6000_variable_issue): Rename to...
+	(rs6000_variable_issue_1): this.  Use...
+	(rs6000_variable_issue): here.  Reimplement.  Print debug info.
+
+2010-01-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	* sel-sched-ir.c (sel_restore_other_notes): Rename to
+	sel_restore_notes.  Update all callers.  Call reemit_notes
+	for all insns.
+
+2010-01-14  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/42246
+	* sel-sched-ir.h (get_all_loop_exits): Include exits from inner
+	loops.
+
+2010-01-14  Andrey Belevantsev  <abel@ispras.ru>
+
+	* sel-sched.c (compute_av_set_at_bb_end): Do not test that number of
+	all successors is the same as number of successors in current region.
+
+2010-01-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	* sel-sched.c (maybe_emit_renaming_copy): Exit early when expression
+	to rename is not separable.  Otherwise check that its LHS is not NULL.
+
+2010-01-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	* sel-sched.c (choose_best_reg_1):  Loop over all regs for mode.
+
+2010-01-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	* sel-sched.c (mark_unavailable_hard_regs): Do not try to search
+	available registers when failed to discover LHS register class.
+	Fix indentation.  Update comment.
+
+2010-01-14  Andrey Belevantsev  <abel@ispras.ru>
+	    Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/42389
+	* sel-sched.c (advance_one_cycle): Set FENCE_ISSUE_MORE
+	to can_issue_more.
+	(advance_state_on_fence): Likewise.
+	(sel_target_adjust_priority): Print debug output only when
+	sched_verbose >= 4, not 2.
+	(get_expr_cost): Do not issue all unique insns on the next cycle.
+	(fill_insns): Initialize can_issue_more from the value saved
+	with the fence.
+	* sel-sched-ir.c (flist_add): New parameter issue_more.
+	Init FENCE_ISSUE_MORE with it.
+	(merge_fences): Likewise.
+	(init_fences): Update call to flist_add.
+	(add_to_fences, add_clean_fence_to_fences)
+	(add_dirty_fence_to_fences): Likewise.
+	(move_fence_to_fences): Update call to merge_fences.
+	(invoke_reorder_hooks): Do not reset can_issue_more on insns from
+	sched groups.
+	* sel-sched-ir.h (struct _fence): New field issue_more.
+	(FENCE_ISSUE_MORE): New accessor macro.
+
+2010-01-14  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/42388
+	* sel-sched-ir.c (maybe_tidy_empty_bb): Do not delete empty blocks
+	that have no predecessors nor successors.  Do not call move_bb_info
+	for empty blocks outside of current region.
+
+2010-01-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/42294
+	* sel-sched-ir.h (struct _sel_insn_data): Update comment.
+	* sel-sched.c (move_exprs_to_boundary): Transitively add all
+	originators' originators.
+
+2010-01-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/39453
+	PR rtl-optimization/42246
+	* sel-sched-ir.c (considered_for_pipelining_p): Do not test
+	for pipelining_p.
+	(sel_add_loop_preheaders): Add preheader to last_added_blocks.
+
+2010-01-14  Andrey Belevantsev  <abel@ispras.ru>
+	    Alexander Monakov  <amonakov@ispras.ru>
+
+	PR middle-end/42245
+	* sel-sched-ir.c (sel_recompute_toporder): New.  Use it...
+	(maybe_tidy_empty_bb): ... here.  Make static.  Add new
+	argument.  Update all callers.
+	(tidy_control_flow): ... and here.  Recompute topological order
+	of basic blocks in region if necessary.
+	(sel_redirect_edge_and_branch): Change return type.  Return true
+	if topological order might have been invalidated.
+	(purge_empty_blocks): Export and move from...
+	* sel-sched.c (purge_empty_blocks): ... here.
+	* sel-sched-ir.h (sel_redirect_edge_and_branch): Update prototype.
+	(maybe_tidy_empty_bb): Delete prototype.
+	(purge_empty_blocks): Declare.
+
+2010-01-14  Andrey Belevantsev <abel@ispras.ru>
+
+	PR rtl-optimization/42249
+	* sel-sched.c (try_replace_dest_reg): When chosen register
+	and original register is the same, do not bail out early, but
+	still check all original insns for validity of replacing destination
+	register.  Set EXPR_TARGET_AVAILABLE to 1 before leaving function
+	in this case.
+
+2010-01-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/42721
+	Port from no-undefined-overflow branch:
+	2009-03-09  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (add_double_with_sign): Fix unsigned overflow detection.
+
+2010-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42665
+	* gimple.c (iterative_hash_gimple_type): Avoid hashing
+	error_mark_node.
+
+2010-01-14  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/42709
+	* tree-vect-slp.c (vect_get_constant_vectors): Use constant's type
+	as scalar type in creation of constant vector operand.
+
+2010-01-14  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR testsuite/42414
+	* Makefile.in ($(TESTSUITEDIR)/site.exp, check-%)
+	(check-parallel-%): Match `testsuite' directory component only
+	at the end.
+
+2010-01-14  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR translation/39521
+	* gcc.c (do_spec_1): Wrapped the error and notice messages of specs
+	strings with _().
+
+2010-01-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42730
+	* tree-ssa-ccp.c (maybe_fold_stmt_indirect): Add shortcut for
+	offset zero.
+
+2010-01-13  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/pr42542
+	* config/ia64/ia64.c (ia64_expand_vecint_compare): Convert GTU to GT
+	for V2SI by subtracting (-(INT MAX) - 1) from both operands to make
+	them signed.
+
+2010-01-13  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/libgcc-bfin.ver: Regenerate based on current
+	libgcc-std.ver.  Add entries for ___smulsi3_highpart and
+	___umulsi3_highpart.
+
+	* config/bfin/bfin.c (bfin_reorg): Call run_selective_scheduling
+	rather than schedule_insns if the pass is enabled.
+
+2010-01-13  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42704
+	* tree-sra.c (sra_modify_assign): Do not delete assignments to
+	SSA_NAMEs.
+
+2010-01-13  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42703
+	* tree-sra.c (analyze_access_subtree): Check that we can build a
+	reference to the original data within the aggregate.
+
+2010-01-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42705
+	* tree-ssa-reassoc.c (build_and_add_sum): Insert stmts after
+	labels.
+
+2010-01-13  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42716
+	* fold-const.c (fold_unary_loc): Fold INDIRECT_REFs.
+
+2010-01-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/41371
+	* var-tracking.c (values_to_unmark): New variable.
+	(find_loc_in_1pdv): Clear VALUE_RECURSED_INTO of values in
+	values_to_unmark vector.  Moved body to...
+	(find_loc_in_1pdv_1): ... this.  Don't clear VALUE_RECURSED_INTO,
+	instead queue it into values_to_unmark vector.
+	(vt_find_locations): Free values_to_unmark vector.
+
+2010-01-13  Wolfgang Gellerich  <gellerich@de.ibm.com>
+
+	* config/s390/s390.c (override_options): Set
+	default of max-pending-list-length to 256
+
+2010-01-13  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42678
+	* tree-pass.h (PROP_gimple_lcx): New.
+	* cfgexpand.c (pass_expand): Require PROP_gimple_lcx.
+	* passes.c (init_optimization_passes): Move pass_lower_complex_O0
+	before the final cleanup_eh.
+	(dump_properties): Dump PROP_gimple_lcx.
+	* tree-complex.c (pass_lower_complex): Provide PROP_gimple_lcx.
+	(tree_lower_complex_O0): Remove.
+	(gate_no_optimization): Run if PROP_gimple_lcx is not set.
+	(pass_lower_complex_O0): Provide PROP_gimple_lcx.  Run
+	tree_lower_complex, schedule TODO_update_ssa.
+	* lto-streamer-out.c (output_function): Stream the functions
+	properties.
+	* lto-streamer-in.c (input_function): Likewise.
+	(lto_read_body): Do not override them here.
+
+2010-01-12  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/42708
+	* c-typeck.c (build_c_cast): Fold value cast to union type before
+	wrapping it in a CONSTRUCTOR.
+
+2010-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/42699
+	* cse.c (cse_insn): Optimize lhs ZERO_EXTRACT if only CONST_INTs are
+	involved.
+
+2010-01-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/mips/iris6.h (SUBTARGET_DONT_WARN_UNUSED_SPEC,
+	SUBTARGET_WARN_UNUSED_SPEC): Move ...
+	config/mips/iris.h (SUBTARGET_DONT_WARN_UNUSED_SPEC,
+	SUBTARGET_WARN_UNUSED_SPEC): ... here
+	* config/mips/iris5.h (LIBGCC_SPEC): Define.
+
+2010-01-12  Julian Brown  <julian@codesourcery.com>
+
+	* config/arm/neon-schedgen.ml (Utils): Don't try to
+	open missing module.
+	(find_with_result): New.
+
+2010-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/42662
+	* simplify-rtx.c (simplify_relational_operation_1): Avoid invalid rtx
+	sharing when canonicalizing ({lt,ge}u (plus a b) b).
+
+	PR tree-optimization/42645
+	* tree-inline.c (processing_debug_stmt): Move earlier.  Make static.
+	(remap_ssa_name): If processing_debug_stmt and name wasn't found in
+	decl_map, set processing_debug_stmt to -1 and return name without
+	any remapping.
+
+2010-01-11  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* doc/install.texi (Specific#x-x-cygwin): Document minimum required
+	binutils version, and reword target configuration description.
+
+2010-01-11  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* config/avr/avr.h (LINKER_NAME): Remove.
+
+2010-01-11  Janis Johnson  <janis187@us.ibm.com>
+
+	PR target/42416
+	* config/rs6000/rs6000.c (rs6000_override_options): On targets
+	that support VSX, warn for -mno-altivec if vsx is not disabled,
+	and disable vsx.
+
+2010-01-11  Joseph Myers  <joseph@codesourcery.com>
+	    Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR translation/42469
+	* common.opt (Wframe-larger-than=, fcompare-debug=, fdbg-cnt=,
+	fira-verbose=, flto-compression-level=, fplugin-arg-): Use tab
+	character between option name and help text.
+	* c.opt (imultilib): Likewise.
+
+2010-01-10  Rafael Avila de Espindola  <espindola@google.com>
+
+	* lto-streamer-out.c (output_unreferenced_globals): Output static
+	variables.
+
+2010-01-10  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR rtl-optimization/42621
+	* bb-reorder.c (gate_duplicated_computed_gotos): Only run if not
+	optimizing for size.
+	(duplicate_computed_gotos): Remove now-redundant check.
+
+2010-01-10  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/37454
+	* configure.ac: Save and restore LDFLAGS and LIBS
+	* configure: Regenerate.
+
+2010-01-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42667
+	* builtins.c (fold_builtin_strlen): Add type argument and
+	convert the resulting length to it.
+	(fold_builtin_1): Adjust.
+
 2010-01-09  Jakub Jelinek  <jakub@redhat.com>
 
 	* config/rs6000/rs6000.c (rs6000_emit_set_long_const): Shorten
@@ -77,7 +770,7 @@
 2010-01-08  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
 
 	PR target/41885
-	* avr.md (rotlqi3): Add CONST_INT_P check.
+	* config/avr/avr.md (rotlqi3): Add CONST_INT_P check.
 	(rotlhi3): Delete.
 	(rotlhi3_8): Delete.
 	(rotlsi3): Delete.
@@ -87,8 +780,8 @@
 	(rotl<mode>3): New.
 	(*rotw<mode>3): New.
 	(*rotb<mode>3): New.
-	* avr.c (avr_rotate_bytes): New function.
-	* avr-proto.h (avr_rotate_bytes): New function. 
+	* config/avr/avr.c (avr_rotate_bytes): New function.
+	* config/avr/avr-proto.h (avr_rotate_bytes): New function.
 
 2010-01-08  Steve Ellcey  <sje@cup.hp.com>
 
@@ -196,7 +889,7 @@
 	(concat_note_lists): ... here, and ...
 	(unlink_other_notes, rm_other_notes): Merge into...
 	(remove_notes): ... here.  Create REG_SAVE_NOTEs for
-	NOTE_INSN_EPILOGUE_BEG.  
+	NOTE_INSN_EPILOGUE_BEG.
 
 2010-01-06  Richard Guenther  <rguenther@suse.de>
 

@@ -1,3 +1,241 @@
+2010-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42248
+	* gcc.c-torture/execute/pr42248.c: New testcase.
+
+2010-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42773
+	* g++.dg/torture/pr42773.C: New testcase.
+
+2010-01-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42677
+	* gfortran.dg/interface_assignment_5.f90: New test.
+
+2010-01-17  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42697
+	* g++.dg/template/crash94.C: Reverted.
+
+2010-01-17  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42697
+
+2010-01-17  Jie Zhang  <jie.zhang@analog.com>
+
+	PR debug/42767
+	* gcc.dg/debug/pr42767.c: New.
+
+2010-01-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42761
+	* g++.dg/cpp0x/decltype22.C: New.
+
+2010-01-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/42760
+	* g++.dg/torture/pr42760.C: New test.
+
+2010-01-15  Jing Yu  <jingyu@google.com>
+
+	PR rtl-optimization/42691
+	* gcc.c-torture/execute/pr42691.c: New.
+
+2010-01-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42739
+	* g++.dg/torture/pr42739.C: New testcase.
+
+2010-01-15  Dodji Seketeli  <dodji@redhat.com>
+
+	* g++.dg/template/error45.C: Revert as part of reverting changes
+	or PR c++/42634.
+
+2010-01-14 Jerry DeLisle <jvdelisle@gcc.gnu.org>
+
+	PR fortran/42684
+	* gfortran.dg/interface_31.f90: New test.
+
+2010-01-14  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/pr42747.c: New file.
+
+2010-01-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/42674
+	* c-c++-common/pr42674.c: New test.
+
+	PR c++/42608
+	* g++.dg/template/instantiate11.C: New test.
+
+2010-01-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42701
+	* g++.dg/overload/error3.C: New.
+
+	PR c++/42655
+	* g++.dg/overload/rvalue1.C: New.
+
+2010-01-14  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42706
+	* gcc.dg/ipa/pr42706.c: New testcase.
+
+2010-01-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* g++.dg/graphite/pr42681.C (size_t): Use __SIZE_TYPE__.
+
+2010-01-14  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42714
+	* g++.dg/torture/pr42714.C: New test.
+
+2010-01-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/42246
+	* gfortran.dg/pr42246-2.f: New.
+
+2010-01-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/42389
+	* gcc.dg/pr42389.c: New.
+
+2010-01-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/42388
+	* gcc.dg/pr42388.c: New.
+
+2010-01-14  Alexander Monakov <amonakov@ispras.ru>
+
+	PR rtl-optimization/42294
+	* gfortran.dg/pr42294.f: New.
+
+2010-01-14  Alexander Monakov <amonakov@ispras.ru>
+
+	PR rtl-optimization/39453
+	PR rtl-optimization/42246
+	* gcc.dg/pr39453.c: New.
+	* gcc.dg/pr42246.c: New.
+
+2010-01-14  Alexander Monakov <amonakov@ispras.ru>
+
+	PR middle-end/42245
+	* gcc.dg/pr42245.c: New.
+	* gcc.dg/pr42245-2.c: New.
+
+2010-01-14  Alexander Monakov <amonakov@ispras.ru>
+
+	PR rtl-optimization/42249
+	* gcc.dg/pr42249.c: New.
+
+2010-01-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/42721
+	* gcc.c-torture/execute/pr42721.c: New test.
+
+2010-01-14  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/42709
+	* gcc.dg/vect/pr42709.c: New test.
+
+2010-01-14  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41478
+	* gfortran.dg/alloc_comp_scalar_1.f90: New test.
+	* gfortran.dg/alloc_comp_transformational_1.f90: New test.
+
+2010-01-14  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/42481
+	* gfortran.dg/generic_19.f90 : New test.
+
+2010-01-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42730
+	* gcc.c-torture/compile/pr42730.c: New testcase.
+
+2010-01-13  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/pr42542
+	* gcc.target/ia64/pr42542-1.c: New.
+	* gcc.target/ia64/pr42542-2.c: New.
+	* gcc.target/ia64/pr42542-3.c: New.
+
+2010-01-13  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42634
+	* g++.dg/template/error45.C: New test.
+
+2010-01-13  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42704
+	* g++.dg/torture/pr42704.C: New test.
+
+2010-01-13  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42703
+	* gcc.c-torture/compile/pr42703.c: New test.
+
+2010-01-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42705
+	* gcc.c-torture/compile/pr42705.c: New testcase.
+
+2010-01-13  Jie Zhang  <jie.zhang@analog.com>
+
+	* gcc.target/bfin/l2.c: New test.
+	* gcc.target/bfin/bfin.exp (dg-bfin-processors): New.
+
+2010-01-13  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42716
+	* gcc.c-torture/compile/pr42716.c: New testcase.
+
+2010-01-13  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42678
+	* gfortran.dg/lto/20100110-1_0.f90: New testcase.
+
+2010-01-12  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/42708
+	* gcc.c-torture/compile/pr42708-1.c: New test.
+
+2010-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/42662
+	* gcc.dg/pr42662.c: New test.
+
+	PR tree-optimization/42645
+	* g++.dg/other/pr42645-1.C: New test.
+	* g++.dg/other/pr42645-2.C: New test.
+
+2010-01-11  Janis Johnson  <janis187@us.ibm.com>
+
+	PR target/42416
+	* gcc.target/powerpc/warn-1.c: New test.
+	* gcc.target/powerpc/warn-2.c: New test.
+
+2010-01-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/x86_64/abi/avx/asm-support.S (snapshot_ret): Preserve
+	stack alignment.
+
+2010-01-10  Rafael Avila de Espindola  <espindola@google.com>
+
+	* gcc.dg/lto/20100108_0.c: New.
+
+2010-01-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/graphite/pr40281.c (dg-options): Add -w.
+	Add -march=i686 -msse for 32bit x86 targets.
+
+2010-01-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42667
+	* gcc.dg/torture/pr42667.c: New testcase.
+
 2010-01-09 Jerry DeLisle <jvdelisle@gcc.gnu.org>
 
 	PR fortran/32489

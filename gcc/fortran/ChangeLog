@@ -1,3 +1,64 @@
+2010-01-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42677
+	* gfortran.h (symbol_attribute): Remove 'ambiguous_interfaces'.
+	* interface.c (check_interface1): Move a warning message here from
+	resolve_fl_procedure.
+	(check_sym_interfaces): Removed 'attr.ambiguous_interfaces'.
+	* module.c (read_module): Remove call to gfc_check_interfaces, since
+	this comes too early here.
+	* resolve.c (resolve_fl_procedure): Move warning message to
+	check_interface1.
+
+2010-01-14 Jerry DeLisle <jvdelisle@gcc.gnu.org>
+
+	PR fortran/42684
+	* interface.c (check_interface1): Pass symbol name rather than NULL to
+	gfc_compare_interfaces.	(gfc_compare_interfaces): Add assert to
+	trap MULL.
+	* resolve.c (check_generic_tbp_ambiguity): Pass symbol name rather
+	than NULL to gfc_compare_interfaces.
+
+2010-01-14  Paul Thomas  <pault@gcc.gnu.org>
+
+        PR fortran/41478
+        * trans-array.c (duplicate_allocatable):  Static version of
+	gfc_duplicate_allocatable with provision to handle scalar
+	components. New boolean argument to switch off call to malloc
+	if true.
+	(gfc_duplicate_allocatable): New function to call above with
+	new argument false.
+	(gfc_copy_allocatable_data): New function to call above with
+	new argument true.
+	(structure_alloc_comps): Do not apply indirect reference to
+	scalar pointers. Add new section to copy allocatable components
+	of arrays. Extend copying of allocatable components to include
+	scalars.
+	(gfc_copy_only_alloc_comp): New function to copy allocatable
+	component derived types, without allocating the base structure.
+	* trans-array.h : Add primitive for gfc_copy_allocatable_data.
+	Add primitive for gfc_copy_only_alloc_comp.
+	* trans-expr.c (gfc_conv_procedure_call): After calls to
+	transformational functions with results that are derived types
+	with allocatable components, copy the components in the result.
+	(gfc_trans_arrayfunc_assign): Deallocate allocatable components
+	of lhs derived types before allocation.
+	
+2010-01-14  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/42481
+	* module.c (load_generic_interfaces): If a procedure that is
+	use associated but not generic is given an interface that
+	includes itself, then make it generic.
+
+2010-01-11  Joseph Myers  <joseph@codesourcery.com>  
+	    Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR translation/42469
+	* lang.opt (fblas-matmul-limit=, finit-character=, finit-integer=,
+	finit-logical=, finit-real=, fmax-array-constructor=): Use tab
+	character between option name and help text.
+
 2010-01-09 Jerry DeLisle <jvdelisle@gcc.gnu.org>
 
 	PR fortran/20923
