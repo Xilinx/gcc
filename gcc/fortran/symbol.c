@@ -4985,7 +4985,7 @@ void add_generic_specifics (gfc_symbol *declared, gfc_symbol *vtab,
 	    {
 	      specific2 = c->ts.interface;
 	      if (gfc_compare_interfaces (specific2, specific1,
-					  NULL, 0, 0, NULL, 0))
+					  specific1->name, 0, 0, NULL, 0))
 		break;
 	    }
 	}

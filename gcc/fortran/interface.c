@@ -369,8 +369,7 @@ gfc_compare_derived_types (gfc_symbol *derived1, gfc_symbol *derived2)
   if (derived1 != NULL && derived2 != NULL
       && strcmp (derived1->name, derived2->name) == 0
       && derived1->module != NULL && derived2->module != NULL
-      && (strcmp (derived1->module, derived2->module) == 0
-	  || derived1->attr.vtype))
+      && strcmp (derived1->module, derived2->module) == 0)
     return 1;
 
   /* Compare type via the rules of the standard.  Both types must have
@@ -1127,8 +1126,8 @@ check_interface1 (gfc_interface *p, gfc_interface *q0,
 	if (p->sym->name == q->sym->name && p->sym->module == q->sym->module)
 	  continue;
 
-	if (gfc_compare_interfaces (p->sym, q->sym, NULL, generic_flag, 0,
-				    NULL, 0))
+	if (gfc_compare_interfaces (p->sym, q->sym, q->sym->name, generic_flag,
+				    0, NULL, 0))
 	  {
 	    if (referenced)
 	      {
