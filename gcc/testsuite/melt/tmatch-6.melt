@@ -26,15 +26,18 @@
 (debug_msg (testnameofclassoffield disc_sender) "testnameofclassoffield disc_sender")
 |#
 
+;; (defun retrievename (nob)
+;;  (match nob (?(instance class_named :named_name ?fnam)
+;;	      fnam)))
 
-(defun testnameof (ob)
-  (match ob
+(defun testnameof (obt)
+  (match obt
 	 (?(or
-	    ?(instance class_class :named_name ?nam)
-	    ?(instance class_field :named_name ?nam)
-	    ?(instance class_keyword :named_name ?nam)
+	    ?(instance class_class :named_name ?name)
+	    ?(instance class_field :named_name ?name)
+	    ?(instance class_keyword :named_name ?name)
 	    )
-	    nam)))
+	    name)))
 
 (debug_msg (testnameof class_discriminant) "name of class class_discriminant")
 (debug_msg (testnameof fld_ownclass) "name of field fld_ownclass")
