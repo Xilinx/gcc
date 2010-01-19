@@ -589,6 +589,7 @@
 (defun set_new_tester_all_elses (newtester partester updatlist)
   (debug_msg newtester "set_new_tester_all_elses newtester")
   (debug_msg partester "set_new_tester_all_elses partester")
+  (shortbacktrace_dbg "set_new_tester_all_elses start" 15)
   (assert_msg "check newtester" (is_a newtester class_normtester_any))
   (assert_msg "check partester" (is_a partester class_normtester_anytester))
   (if (null updatlist) 
@@ -596,6 +597,7 @@
   (assert_msg "check updatlist" (is_list updatlist))
   (forever
    allelseloop
+   (debug_msg partester "set_new_tester_all_elses allelseloop partester")
    (cond
     ((null partester) 
      (exit allelseloop))
@@ -606,6 +608,7 @@
        (cond
 	((null eltest)
 	 (put_fields partester :ntest_else newtester)
+	 (debug_msg partester "set_new_tester_all_elses updated partester")
 	 (list_append updatlist partester)
 	 )
 	(:else
@@ -635,7 +638,7 @@
      )
     (:else
      (exit allelseloop)))
-   )
+   ) ;;;; end forever allelseloop
   (debug_msg updatlist "set_new_tester_all_elses return updatlist")
   (return updatlist)
   )
@@ -1172,40 +1175,44 @@
 	(mapor (get_field :pctn_mapor pcn))
 	(ncx (get_field :pctn_normctxt pcn))
 	(orvarmap (mapobject_get mapor recv))
+	#|
 	(subhdler
-	 (lambda (newtester) 
-	   (debug_msg newtester "normpat_orpat.subhdler newtester")
-	   (debug_msg testercont "normpat_orpat.subhdler testercont")
-	   (shortbacktrace_dbg "normpat_orpat.subhdler labmda newtester" 14)
-	   (let (
-		 (prevtester (get_field :container_value testercont)) 
-		 )
-	     (if newtester
-		 (let (
-		       (orcleartester (instance class_normtester_orclear
-						:nrep_loc sloc
-						:ntest_matched nmatch
-						:ntest_then ()
-						:ntest_else ()
-						:ntest_comefrom (make_list discr_list)
-						:ntorclear_locsym (box_content clrlocbox)
-						))
-		       )
-		   (assert_msg "check newtester" (is_a newtester class_normtester_any))
-		   (set_new_tester_all_elses orcleartester newtester)
-		   (list_append testlist orcleartester)
-		   (list_append lisubtesters newtester)))
-	     (cond
-	      ((is_a prevtester class_normtester_anytester)
-	       (debug_msg prevtester "normpat_orpat.subhdler prevtester")
-	       (set_new_tester_all_elses newtester prevtester)
-	       )) 
-	     (debug_msg newtester "normpat_orpat.subhdler before calling hdler")
-	     (put_fields testercont :container_value newtester)
-	     (debug_msg newtester "normpat_orpat.subhdler after calling hdler")
-	     )
-	   (debug_msg testercont "normpat_orpat.subhdler done testercont")
-	   ))
+	(lambda (newtester) 
+	(debug_msg newtester "normpat_orpat.subhdler newtester")
+	(debug_msg testercont "normpat_orpat.subhdler testercont")
+	(shortbacktrace_dbg "normpat_orpat.subhdler labmda newtester" 14)
+	(let (
+	(prevtester (get_field :container_value testercont)) 
+	)
+	(if newtester
+	(let (
+	(orcleartester (instance class_normtester_orclear
+	:nrep_loc sloc
+	:ntest_matched nmatch
+	:ntest_then ()
+	:ntest_else ()
+	:ntest_comefrom (make_list discr_list)
+	:ntorclear_locsym (box_content clrlocbox)
+	))
+	)
+	(assert_msg "check newtester" (is_a newtester class_normtester_any))
+	(debug_msg newtester "normpat_orpat.subhdler newtester")
+	(debug_msg orcleartester "normpat_orpat.subhdler orcleartester")
+	(set_new_tester_all_elses orcleartester newtester)
+	(list_append testlist orcleartester)
+	(list_append lisubtesters newtester)))
+	(cond
+	((is_a prevtester class_normtester_anytester)
+	(debug_msg prevtester "normpat_orpat.subhdler prevtester")
+	(set_new_tester_all_elses newtester prevtester)
+	)) 
+	(debug_msg newtester "normpat_orpat.subhdler before calling hdler")
+	(put_fields testercont :container_value newtester)
+	(debug_msg newtester "normpat_orpat.subhdler after calling hdler")
+	)
+	(debug_msg testercont "normpat_orpat.subhdler done testercont")
+	))
+	|#
 	) 
     (debug_msg stuffmap "normpat_orpat orig stuffmap")
     (debug_msg pvarmap "normpat_orpat orig pvarmap")
@@ -1245,9 +1252,12 @@
       ;; sortedorvars is a sorted tuple of symbols
       ;;
       ;; normalize each disjunct
+      (let ( (prevtestbox (make_box discr_box ()))
+	    )
       (foreach_in_multiple 
        (disjpats)
        (subpat :long subix)
+       ;; reset all the or- variables to a starting state
        (foreach_in_multiple
 	(sortednormalvars)
 	(curnorvar :long nix)
@@ -1264,14 +1274,60 @@
 	  (debug_msg curnorvar "normpat_orpat preset curnorvar")
 	  )
 	)
+       ;; normalize the current subpattern
        (debug_msg testercont "normpat_orpat testercont")
        (debug_msg subpat "normpat_orpat subpat before normal_pattern")
-       (normal_pattern subpat nmatch subhdler pcn)
-       (debug_msg subpat "normpat_orpat subpat after normal_pattern")
+       (let (
+	     (prevtest (box_content prevtestbox))
+	     (prevloc (get_field :nrep_loc prevtest))
+	     (norclear (instance class_normtester_orclear
+				 :nrep_loc sloc
+				 :ntest_matched nmatch
+				 :ntest_then ()
+				 :ntest_else ()
+				 :ntest_comefrom (make_list discr_list)
+				 :ntorclear_locsym (box_content clrlocbox)
+			))
+	     (subdisjhandler
+	       (lambda (disjntester)
+		 (debug_msg disjntester "normpat_orpat.subdisjhandler disjntester")
+		 (debug_msg subpat "normpat_orpat.subdisjhandler subpat")
+		 (debug_msg prevtest "normpat_orpat.subdisjhandler prevtest")
+		 (cond 
+		  ( (is_a disjntester class_normtester_anytester)
+		    (unsafe_put_fields norclear :ntest_then disjntester)
+		    (box_put prevtestbox disjntester)
+		    (list_append lisubtesters disjntester)
+		    (if prevtest 
+			(progn
+			  (debug_msg prevtest "normpat_orpat.subdisjhandler setelse of prevtest")
+			  (debug_msg norclear "normpat_orpat.subdisjhandler setelse to norclear")
+			  (set_new_tester_all_elses prevtest norclear)
+			  ))
+		    )
+		  ( (and (is_object disjntester) prevtest)
+		    (warning_plain (or (get_field :nrep_loc disjntester) sloc)
+				   "maybe degenerate disjunct in OR pattern")
+		    (debug_msg disjntester "normpat_orpat.subdisjhandler disjntester degenerate")
+		    (debug_msg prevtest "normpat_orpat.subdisjhandler prevtest degenerate")
+		    (set_new_tester_all_elses prevtest disjntester)
+		    )
+		  (:else
+		    (error_plain sloc "bad disjunct in OR pattern")
+		    (debug_msg disjntester "normpat_orpat.subdisjhandler disjntester")
+		     )
+		 )
+		 ))
+	     )
+	 (debug_msg prevtest "normpat_orpat prevtest before normal_pattern")
+	 (debug_msg subpat "normpat_orpat subpat before normal_pattern")
+	 (normal_pattern subpat nmatch subdisjhandler pcn)
+	 (debug_msg subpat "normpat_orpat subpat after normal_pattern")
+       )
        (debug_msg testercont "normpat_orpat testercont after normal_pattern")
        (debug_msg stuffmap "normpat_orpat after normal_pattern stuffmap")
        (debug_msg pvarmap "normpat_orpat after normal_pattern pvarmap")
-       ) ;;;; end foreach_in_multiple disjpats
+       )) ;;;; end foreach_in_multiple disjpats
       ;;
       ;; postbind the norvar
       (debug_msg sortednormalvars "normpat_orpat sortednormalvars postbind")

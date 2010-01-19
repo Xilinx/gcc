@@ -1,4 +1,9 @@
 2010-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tmatch-6 still fails to be translated.}}
+	* melt/warmelt-normatch.melt:simpler subdisjhandler in
+	normpat_orpat
+
+2010-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tmatch-6 is translated but runs incorrectly.}}
 	* melt/warmelt-normatch.melt: in class_normal_or_variable the
 	previous :norvar_locsym is remembered from previous disjunct by
