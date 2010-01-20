@@ -1,3 +1,10 @@
+2010-01-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tmatch-6 is translated but runs incorrectly.}}
+	* melt/warmelt-normatch.melt: normpat_orpat.subdisjhandler append
+	to testlist.
+	* melt/warmelt-genobj.melt: compiltst_normtester_orclear uses the
+	gotothen..
+
 2010-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tmatch-6 still fails to be translated.}}
 	* melt/warmelt-normatch.melt:simpler subdisjhandler in

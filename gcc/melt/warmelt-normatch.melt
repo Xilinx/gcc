@@ -591,7 +591,7 @@
   (debug_msg partester "set_new_tester_all_elses partester")
   (shortbacktrace_dbg "set_new_tester_all_elses start" 15)
   (assert_msg "check newtester" (is_a newtester class_normtester_any))
-  (assert_msg "check partester" (is_a partester class_normtester_anytester))
+  (assert_msg "check partester" (is_a partester class_normtester_any))
   (if (null updatlist) 
       (setq updatlist (make_list discr_list)))
   (assert_msg "check updatlist" (is_list updatlist))
@@ -1302,6 +1302,7 @@
 			(progn
 			  (debug_msg prevtest "normpat_orpat.subdisjhandler setelse of prevtest")
 			  (debug_msg norclear "normpat_orpat.subdisjhandler setelse to norclear")
+			  (list_append testlist norclear)
 			  (set_new_tester_all_elses prevtest norclear)
 			  ))
 		    )
