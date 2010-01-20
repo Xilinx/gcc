@@ -1,5 +1,10 @@
 2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* automatic_tester/run_build.sh: Do not re-exec the script after
+	an update.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* automatic_tester/run_build.sh: Put email address before other
 	option flags to mutt.
 
