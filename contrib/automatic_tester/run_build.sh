@@ -83,8 +83,8 @@ mail_success () {
       ATTACHMENTS="${ATTACHMENTS} -a ${EXTRA_TEST_DIR}/report/${DATE}"
   fi
   echo "BUILD SUCCESSFUL" >> ${LOG_DIR_CURRENT}/info.log
-  ${MUTT_CMD} -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log \
-    $ATTACHMENTS $EMAIL </dev/null
+  ${MUTT_CMD} $EMAIL -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log \
+    $ATTACHMENTS </dev/null
 }
 
 build_git_tag () {
@@ -97,10 +97,10 @@ build_git_tag () {
 
 mail_status () {
   if [ -z "${FIRST_MAIL_SENT}" ]; then
-	${MUTT_CMD} -s "${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log $EMAIL < /dev/null
+	${MUTT_CMD} $EMAIL -s "${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log < /dev/null
 	FIRST_MAIL_SENT="1"
   else
-	${MUTT_CMD} -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log $EMAIL < /dev/null
+	${MUTT_CMD} $EMAIL -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log < /dev/null
   fi
 }
 
@@ -111,8 +111,8 @@ mail_failure () {
     ATTACHMENTS="${ATTACHMENTS} -a ${file}"
   done
   echo "BUILD FAILED" >> ${LOG_DIR_CURRENT}/info.log
-  ${MUTT_CMD} -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log \
-    $ATTACHMENTS $EMAIL </dev/null
+  ${MUTT_CMD} $EMAIL -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log \
+    $ATTACHMENTS </dev/null
 }
 
 log () {
