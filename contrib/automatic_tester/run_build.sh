@@ -1,6 +1,9 @@
 #!/bin/sh
 set -x
 
+# Arrange for the value of $0 to be available for functions
+self=$0
+
 # The user of this script has to source the environment script:
 # . ${BASE_DIR}/graphite_env.sh
 
@@ -173,6 +176,10 @@ update_src () {
 \1\2\3/g'  \
 		| sed -e "s/commit \([0-9a-f]*\)/commit \1\n${GIT_WEB_REPOSITORY}\1/" >> ${LOG_DIR_CURRENT}/info.log
 	fi
+
+	# Whenever we update the tree we may be modifying this script.
+	# By re-execing it, we ensure that the newer version of it will be used.
+	exec /bin/sh $self
 }
 
 delete_src_dir () {

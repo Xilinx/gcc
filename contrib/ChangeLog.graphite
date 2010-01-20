@@ -1,3 +1,7 @@
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* automatic_tester/run_build.sh: Re-exec the script after an update.
+
 2009-12-01  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* automatic_tester/git_run.sh: Push the changes after build.
