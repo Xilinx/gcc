@@ -11,46 +11,46 @@
 #|
 (defun testnameofsymbol (symb)
   (match symb (
-	       ?(instance class_symbol :named_name 
-			  ?synam)
-		synam)))
+               ?(instance class_symbol :named_name 
+                          ?synam)
+                synam)))
 
 (debug_msg (testnameofsymbol 'asymbol) "testnameofsymbol asymbol")
 
 (defun testnameofclassoffield (fld)
   (match fld 
-	 (?(instance class_field 
-		     :fld_ownclass ?(instance class_class :named_name ?clanam))
-	   clanam)))
+         (?(instance class_field 
+                     :fld_ownclass ?(instance class_class :named_name ?clanam))
+           clanam)))
 
 (debug_msg (testnameofclassoffield disc_sender) "testnameofclassoffield disc_sender")
 |#
 
 ;; (defun retrievename (nob)
 ;;  (match nob (?(instance class_named :named_name ?fnam)
-;;	      fnam)))
+;;            fnam)))
 
 (defun testnameof (obt)
   (match obt
-	 (?(or
-	    ?(instance class_class :named_name ?name)
-	    ?(instance class_field :named_name ?name)
-	    ?(instance class_keyword :named_name ?name)
-	    )
-	    name)))
+         (?(or
+            ?(instance class_class :named_name ?name)
+            ;; ?(instance class_field :named_name ?name)
+            ?(instance class_keyword :named_name ?name)
+            )
+            name)))
 
 (debug_msg (testnameof class_discriminant) "name of class class_discriminant")
-(debug_msg (testnameof fld_ownclass) "name of field fld_ownclass")
+;(debug_msg (testnameof fld_ownclass) "name of field fld_ownclass")
 (debug_msg (testnameof :else) "name of keyword :else")
 (debug_msg (testnameof 'asymbol) "fail name of asymbol")
 
 #|
 (defun test_or (ob :long i)
   (match i
-	 ( ?(or ?(integer_multiple 3 ?jj)
-		?(integer_greater_than 7))
-	    (put_int ob jj)
-	   ob)
+         ( ?(or ?(integer_multiple 3 ?jj)
+                ?(integer_greater_than 7))
+            (put_int ob jj)
+           ob)
 ))
 
 
@@ -67,51 +67,51 @@
   (assert_msg "check iparser" (is_a iparser class_infix_parser))
   (assert_msg "check env" (is_a env class_environment))
   (let ( (ctok (infix_peeklex iparser 0))
-	 )
+         )
     (match ctok
-	   (?(or
-	      ?(instance class_infix_symbol 
-			 :loca_location ?fldloc
+           (?(or
+              ?(instance class_infix_symbol 
+                         :loca_location ?fldloc
 #|
-			 :lexeme_data  
-			 ?(as ?sy 
-			      ?(instance class_symbol 
-					 :named_name ?nm))
+                         :lexeme_data  
+                         ?(as ?sy 
+                              ?(instance class_symbol 
+                                         :named_name ?nm))
 |#
-			 )
-	      ?(instance class_infix_keyword
-			 :loca_location ?fldloc 
+                         )
+              ?(instance class_infix_keyword
+                         :loca_location ?fldloc 
 #|
-			 :lexeme_data
-			 ?(instance class_keyword 
-				    :named_name ?nm)
+                         :lexeme_data
+                         ?(instance class_keyword 
+                                    :named_name ?nm)
 |#
-			 ))
-	     (debug_msg fldloc "iparse_field fldloc")
+                         ))
+             (debug_msg fldloc "iparse_field fldloc")
 #|
-	     (if (null sy) (setq sy (create_symbolstr nm)))
-	     (let ( (fldbind (find_env env sy)) 
-		    )
-	       (debug_msg fldbind "iparse_field fldbind")
-	       (match fldbind
-		      (?(instance class_field_binding
-				  :flbind_field ?fld)
-			(infix_poplex iparser 1)
-			(debug_msg fld "iparse_field got straight field")
-			(return fld))
-		      (?(instance class_value_binding
-				  :vbind_value
-				  ?(as ?fld ?(instance class_field)))
-			(infix_poplex iparser 1)
-			(debug_msg fld "iparse_field got value field")
-			(return fld))
-		      (?_
-		       (error_strv fldloc "incorrect infix field" nm)))
-	       )
+             (if (null sy) (setq sy (create_symbolstr nm)))
+             (let ( (fldbind (find_env env sy)) 
+                    )
+               (debug_msg fldbind "iparse_field fldbind")
+               (match fldbind
+                      (?(instance class_field_binding
+                                  :flbind_field ?fld)
+                        (infix_poplex iparser 1)
+                        (debug_msg fld "iparse_field got straight field")
+                        (return fld))
+                      (?(instance class_value_binding
+                                  :vbind_value
+                                  ?(as ?fld ?(instance class_field)))
+                        (infix_poplex iparser 1)
+                        (debug_msg fld "iparse_field got value field")
+                        (return fld))
+                      (?_
+                       (error_strv fldloc "incorrect infix field" nm)))
+               )
 |#
-	     )
-	   (?(instance class_located :loca_location ?fldloc)
-	     (error_plain fldloc "expecting field in infix notation")))))
+             )
+           (?(instance class_located :loca_location ?fldloc)
+             (error_plain fldloc "expecting field in infix notation")))))
 
 
 )

@@ -409,15 +409,17 @@
 (defclass class_normal_or_variable
   :super class_root
   :fields (
+	   norvar_norexp
+	   norvar_locsym 
 	   norvar_patvar		
 	   norvar_nrepor
-	   norvar_locsym 
 	   )
   :doc #{The $CLASS_NORMAL_OR_VARIABLE is an internal class for
   normalization of variables under an $OR pattern. Field
   $NORVAR_PATVAR gives the associated pattern variable, field
   $NORVAR_NREPOR gives the normalized or pattern, and field
-  $NORVAR_LOCSYM gives the local symbol occurrence if any.}#
+  $NORVAR_LOCSYM gives the local symbol occurrence if any.
+  $NORVAR_NOREXP gives the normalized matched expression.}#
   )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -443,11 +445,19 @@
   :fields (ntsuccess_do		;single expression (usually a normlet)
 	   ))
  
-;; quasi-tester used at end of or branches to clear a list of variables
-(defclass class_normtester_orclear
+;; quasi-tester used at failing end of disjuncts to clear a list of variables
+(defclass class_normtester_or_clear
   :super class_normtester_any
   :fields (ntorclear_locsym    ;tuple of symbol occurrences to clear
 	   ))
+
+;; quasi-tester used at succeeding end of disjuncts to transmit a list of variables
+(defclass class_normtester_or_transmit
+  :super class_normtester_any
+  :fields (ntortransmit_dst		;tuple of locsymocc destinations
+	   ntortransmit_src		;tuple of [normal] sources
+))
+
 
 ;; all real tests share this superclass
 (defclass class_normtester_anytester
@@ -792,8 +802,11 @@
 				       :nocc_bind cbind))
 		      )
 		  (debug_msg clocc "normpat_variablepat fresh orvariable clocc")
-		  (put_fields lococc :norvar_locsym clocc)
+		  (put_fields lococc 
+			      :norvar_locsym clocc
+			      :norvar_norexp nmatch)
 		  (debug_msg lococc "normpat_variablepat updated fresh orvariable lococc")
+		  (shortbacktrace_dbg "normpat_variablepat updated fresh orvar" 15)
 		  )
 		)
 	      ;;
@@ -812,8 +825,25 @@
 		      )
 		  (debug_msg bxclocc "normpat_variablepat bxclocc")
 		  (assert_msg "check bxclocc" (is_a bxclocc class_nrep_locsymocc))
-		  (put_fields lococc :norvar_locsym bxclocc)
+		  ;; check ctype compatibility with former occurence
+		  (let (
+			 (prevctyp (unsafe_get_field :nocc_ctyp bxclocc))
+			 )
+		    (if (!= ctyp prevctyp)
+			(let ( (prevsloc (unsafe_get_field :nrep_loc bxclocc)) 
+			       )
+			  (error_strv sloc "incompatible type for pattern variable inside OR pattern"
+				      (get_field :named_name (unsafe_get_field :nocc_symb bxclocc)))
+			  (inform_strv sloc "disjunct pattern variable occurs here with type"
+				       (get_field :named_name (get_field :ctype_keyword ctyp)))
+			  (inform_strv prevsloc "disjunct pattern variable occurs previously with type"
+				       (get_field :named_name (get_field :ctype_keyword prevctyp)))
+			  )))
+		  (put_fields lococc 
+			      :norvar_locsym bxclocc
+			      :norvar_norexp nmatch)
 		  (debug_msg lococc "normpat_variablepat updated reusing orvariable lococc")
+		  (shortbacktrace_dbg "normpat_variablepat updated reused orvar" 15)
 		))
 	      ;; unexpected case
 	      (:else
@@ -1175,44 +1205,6 @@
 	(mapor (get_field :pctn_mapor pcn))
 	(ncx (get_field :pctn_normctxt pcn))
 	(orvarmap (mapobject_get mapor recv))
-	#|
-	(subhdler
-	(lambda (newtester) 
-	(debug_msg newtester "normpat_orpat.subhdler newtester")
-	(debug_msg testercont "normpat_orpat.subhdler testercont")
-	(shortbacktrace_dbg "normpat_orpat.subhdler labmda newtester" 14)
-	(let (
-	(prevtester (get_field :container_value testercont)) 
-	)
-	(if newtester
-	(let (
-	(orcleartester (instance class_normtester_orclear
-	:nrep_loc sloc
-	:ntest_matched nmatch
-	:ntest_then ()
-	:ntest_else ()
-	:ntest_comefrom (make_list discr_list)
-	:ntorclear_locsym (box_content clrlocbox)
-	))
-	)
-	(assert_msg "check newtester" (is_a newtester class_normtester_any))
-	(debug_msg newtester "normpat_orpat.subhdler newtester")
-	(debug_msg orcleartester "normpat_orpat.subhdler orcleartester")
-	(set_new_tester_all_elses orcleartester newtester)
-	(list_append testlist orcleartester)
-	(list_append lisubtesters newtester)))
-	(cond
-	((is_a prevtester class_normtester_anytester)
-	(debug_msg prevtester "normpat_orpat.subhdler prevtester")
-	(set_new_tester_all_elses newtester prevtester)
-	)) 
-	(debug_msg newtester "normpat_orpat.subhdler before calling hdler")
-	(put_fields testercont :container_value newtester)
-	(debug_msg newtester "normpat_orpat.subhdler after calling hdler")
-	)
-	(debug_msg testercont "normpat_orpat.subhdler done testercont")
-	))
-	|#
 	) 
     (debug_msg stuffmap "normpat_orpat orig stuffmap")
     (debug_msg pvarmap "normpat_orpat orig pvarmap")
@@ -1257,6 +1249,7 @@
       (foreach_in_multiple 
        (disjpats)
        (subpat :long subix)
+       (debug_msg subpat "normpat_orpat subpat begin")
        ;; reset all the or- variables to a starting state
        (foreach_in_multiple
 	(sortednormalvars)
@@ -1265,13 +1258,20 @@
 	(let ( (norvar (multiple_nth sortedorvars nix)) 
 	       (norlocc (unsafe_get_field :norvar_locsym curnorvar))
 	       )
+	  (debug_msg norvar "normpat_orpat starting norvar")
 	  ;; if the curnorvar has alrady a locsymocc, box it to reuse
 	  ;; it without generating a same test!
 	  (if (is_a norlocc class_nrep_locsymocc)
-	      (put_fields curnorvar :norvar_locsym (make_box discr_box norlocc)))
+	      (progn
+		(put_fields curnorvar 
+			    :norvar_locsym (make_box discr_box norlocc)
+			    :norvar_norexp ()
+			    )
+		(debug_msg curnorvar "normpat_orpat preset updated curnorvar")
+		(shortbacktrace_dbg "normpat_orpat presetting curnorvar" 16)
+	      ))
 	  (mapobject_put pvarmap norvar curnorvar)
 	  (debug_msg norvar "normpat_orpat presetting norvar")
-	  (debug_msg curnorvar "normpat_orpat preset curnorvar")
 	  )
 	)
        ;; normalize the current subpattern
@@ -1280,7 +1280,7 @@
        (let (
 	     (prevtest (box_content prevtestbox))
 	     (prevloc (get_field :nrep_loc prevtest))
-	     (norclear (instance class_normtester_orclear
+	     (norclear (instance class_normtester_or_clear
 				 :nrep_loc sloc
 				 :ntest_matched nmatch
 				 :ntest_then ()
@@ -1288,35 +1288,99 @@
 				 :ntest_comefrom (make_list discr_list)
 				 :ntorclear_locsym (box_content clrlocbox)
 			))
+	     (nortransmit (instance class_normtester_or_transmit
+				    :nrep_loc sloc
+				    :ntest_matched nmatch
+				    :ntest_then ()
+				    :ntest_else ()
+				    :ntest_comefrom (make_list discr_list)
+				    :ntortransmit_dst ()
+				    :ntortransmit_src ()))
 	     (subdisjhandler
 	       (lambda (disjntester)
 		 (debug_msg disjntester "normpat_orpat.subdisjhandler disjntester")
 		 (debug_msg subpat "normpat_orpat.subdisjhandler subpat")
 		 (debug_msg prevtest "normpat_orpat.subdisjhandler prevtest")
+		 (debug_msg sortednormalvars "normpat_orpat.subdisjhandler sortednormalvars")
+		 (debug_msg sortedorvars "normpat_orpat.subdisjhandler sortedorvars")
+		 (debug_msg sortedlococcs "normpat_orpat.subdisjhandler sortedlococcs")
+		 ;; compute the transmitted destination & source lists
+		 ;; to update the nortransmit & insert it
+		 (let ( (dstlist (make_list discr_list))
+			(srclist (make_list discr_list))
+			(:long nbtransmit 0)
+			)
+		   (foreach_in_multiple
+		    (sortednormalvars)
+		    (curnorvar :long nix)
+		    (debug_msg curnorvar  "normpat_orpat.subdisjhandler curnorvar")
+		    (assert_msg "check curnorvar" (is_a curnorvar class_normal_or_variable))
+		    (let ( (cursrc (unsafe_get_field :norvar_norexp curnorvar))
+			   (curdst (unsafe_get_field :norvar_locsym curnorvar))
+			   )
+		      (if (is_box curdst) (setq curdst (box_content curdst)))
+		      (if cursrc
+			  (progn
+			    (list_append dstlist curdst)
+			    (list_append srclist cursrc)
+			    (setq nbtransmit (+i nbtransmit 1))
+			    ))
+		      )
+		    )
+		   (debug_msg dstlist "normpat_orpat.subdisjhandler dstlist")
+		   (debug_msg srclist "normpat_orpat.subdisjhandler srclist")
+		   (if nbtransmit
+		       (let ( 
+			     (tupdst (list_to_multiple dstlist discr_multiple))
+			     (tupsrc (list_to_multiple srclist discr_multiple))
+			     )
+			 (put_fields nortransmit 
+				    :ntortransmit_dst tupdst 
+				    :ntortransmit_src tupsrc)
+			 (debug_msg nortransmit "normpat_orpat.subdisjhandler updated nortransmit")
+			 ))
 		 (cond 
 		  ( (is_a disjntester class_normtester_anytester)
+		    ;; this is the usual case, the disjunct is indeed a real test...
 		    (unsafe_put_fields norclear :ntest_then disjntester)
-		    (box_put prevtestbox disjntester)
 		    (list_append lisubtesters disjntester)
+		    ; add transmission of or-variables when needed
+		    (if nbtransmit 
+			(let ( (ourcont (instance class_container :container_value nortransmit))
+			       )
+			  (set_new_tester_last_then disjntester ourcont)
+			  (list_append testlist nortransmit)
+			  (debug_msg nortransmit "normpat_orpat.subdisjhandler appended nortransmit")
+			  (debug_msg ourcont "normpat_orpat.subdisjhandler ourcont")
+			  )
+		      (debug_msg nortransmit "normpat_orpat.subdisjhandler empty unused nortransmit")
+		      )
 		    (if prevtest 
 			(progn
 			  (debug_msg prevtest "normpat_orpat.subdisjhandler setelse of prevtest")
 			  (debug_msg norclear "normpat_orpat.subdisjhandler setelse to norclear")
 			  (list_append testlist norclear)
-			  (set_new_tester_all_elses prevtest norclear)
+			  (set_new_tester_all_elses norclear prevtest)
 			  ))
+		    (box_put prevtestbox disjntester)
 		    )
 		  ( (and (is_object disjntester) prevtest)
+		    ;; this happens when disjntester is a success,
+		    ;; that is probably a degenerate disjntester
 		    (warning_plain (or (get_field :nrep_loc disjntester) sloc)
 				   "maybe degenerate disjunct in OR pattern")
 		    (debug_msg disjntester "normpat_orpat.subdisjhandler disjntester degenerate")
 		    (debug_msg prevtest "normpat_orpat.subdisjhandler prevtest degenerate")
-		    (set_new_tester_all_elses prevtest disjntester)
+		    ;; the transmission of or-variables is probably not needed
+		    ;; but I am not sure of that....
+		    (debug_msg nortransmit "normpat_orpat.subdisjhandler useless nortransmit")
+		    (set_new_tester_all_elses disjntester prevtest)
 		    )
 		  (:else
 		    (error_plain sloc "bad disjunct in OR pattern")
 		    (debug_msg disjntester "normpat_orpat.subdisjhandler disjntester")
 		     )
+		  )
 		 )
 		 ))
 	     )
@@ -2091,7 +2155,8 @@
  class_normtester_disjunction
  class_normtester_instance
  class_normtester_matcher
- class_normtester_orclear
+ class_normtester_or_clear
+ class_normtester_or_transmit
  class_normtester_same
  class_normtester_success
  class_nrep_match

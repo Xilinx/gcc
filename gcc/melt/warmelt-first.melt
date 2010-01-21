@@ -3398,6 +3398,9 @@ the $DLIST.}#
 
 ;;; map on a list (list_map lis f) where lis is (e1 ... en) is ((f e1) .... (f en))
 (defun list_map (lis f)
+  :doc #{$LIST_MAP $LIS $F maps $F to each element of list $LIS, so
+returns the list (LIST (F E_1) ...(F E_n)) if $LIS is the (LIST E_1
+... E_n).}#
   (if (is_list lis)
       (if (is_closure f)
 	  (let ( (reslis (make_list discr_list)) 
@@ -3412,6 +3415,8 @@ the $DLIST.}#
 
 ;; find in a list LIS an element E verifying F E X or E == X if F is null
 (defun list_find (lis x f)
+  :doc #{$LIST_FIND find in list $LIS the first element E such
+  that ($F E $X), if $F is null use the identity test.}#
   (if (is_list lis)
       (let ( (curpair (list_first lis)) )
 	(if (is_closure f)

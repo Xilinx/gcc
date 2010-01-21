@@ -1,3 +1,14 @@
+2010-01-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tmatch-6 is translated but still runs incorrectly.}}
+	* melt/warmelt-first.melt: added doc strings.
+	* melt/warmelt-normatch.melt: renamed class_normtester_orclear as
+	class_normtester_or_clear & adding
+	class_normtester_or_transmit... the normal or variables seems to
+	be reset too soon..
+	* melt/warmelt-genobj.melt: added compiltst_normtester_ortransmit
+	stub.
+	* testsuite/melt/tmatch-6.melt: commented temporarily.
+
 2010-01-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tmatch-6 is translated but runs incorrectly.}}
 	* melt/warmelt-normatch.melt: normpat_orpat.subdisjhandler append

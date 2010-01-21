@@ -5484,7 +5484,7 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;
 (defun compiltst_normtester_orclear (ntoc gcx tcx)
   (debug_msg ntoc "compiltst_normtester_orclear ntoc")
-  (assert_msg "check ntoc" (is_a ntoc class_normtester_orclear))
+  (assert_msg "check ntoc" (is_a ntoc class_normtester_or_clear))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (let ( 
@@ -5522,12 +5522,26 @@ $SBUF.}#
      )
     (list_append olist gotothen)
     (debug_msg olist "compiltst_normtester_orclear final olist")
-    (compile_warning "perhaps unimplemented compiltst_normtester_orclear")
     (return olist)
     ))
-(install_method class_normtester_orclear compile_tester compiltst_normtester_orclear)
+(install_method class_normtester_or_clear compile_tester compiltst_normtester_orclear)
 ;;;;;;;;;;;;;;;;
 
+(defun compiltst_normtester_ortransmit (ntot gcx tcx)
+  (debug_msg ntot "compiltst_normtester_ortransmit ntot")
+  (assert_msg "check ntot" (is_a ntot class_normtester_or_transmit))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
+  (let ( 
+	(nloc (unsafe_get_field :nrep_loc ntot))
+	)
+    (error_plain nloc "unimplemented compiltst_normtester_ortransmit")
+    (compile_warning "$@$unimplemented compiltst_normtester_ortransmit")
+    (assert_msg "$@$unimplemented compiltst_normtester_ortransmit" ())
+    ))
+(install_method class_normtester_or_transmit compile_tester compiltst_normtester_ortransmit)
+
+;;;;;;;;;;;;;;;;
 ;; to compile a disjunction, just goto the then case, because the
 ;; disjunction is only here to redistribute the then case inside the
 ;; disjuncts.
