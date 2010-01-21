@@ -2368,6 +2368,18 @@ begin_class_definition (tree t, tree attributes)
       error ("definition of %q#T inside template parameter list", t);
       return error_mark_node;
     }
+
+  /* According to the C++ ABI, decimal classes defined in ISO/IEC TR 24733
+     are passed the same as decimal scalar types.  */
+  if (TREE_CODE (t) == RECORD_TYPE)
+    {
+      const char *n = type_as_string (t, TFF_CLASS_KEY_OR_ENUM);
+      if ((strcmp (n, "class std::decimal::decimal32") == 0)
+	  || (strcmp (n, "class std::decimal::decimal64") == 0)
+	  || (strcmp (n, "class std::decimal::decimal128") == 0))
+	TYPE_TRANSPARENT_AGGR (t) = 1;
+    }
+
   /* A non-implicit typename comes from code like:
 
        template <typename T> struct A {
@@ -4803,6 +4815,7 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
       if (type && !type_uses_auto (type))
 	return type;
 
+    treat_as_dependent:
       type = cxx_make_type (DECLTYPE_TYPE);
       DECLTYPE_TYPE_EXPR (type) = expr;
       DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (type)
@@ -4930,6 +4943,11 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
                   && (TREE_CODE (TREE_TYPE (target_type)) == FUNCTION_TYPE
                       || TREE_CODE (TREE_TYPE (target_type)) == METHOD_TYPE))
                 type = TREE_TYPE (TREE_TYPE (target_type));
+	      else if (processing_template_decl)
+		/* Within a template finish_call_expr doesn't resolve
+		   CALL_EXPR_FN, so even though this decltype isn't really
+		   dependent let's defer resolving it.  */
+		goto treat_as_dependent;
               else
                 sorry ("unable to determine the declared type of expression %<%E%>",
                        expr);
@@ -5401,6 +5419,9 @@ build_lambda_object (tree lambda_expr)
     {
       tree field = TREE_PURPOSE (node);
       tree val = TREE_VALUE (node);
+
+      if (DECL_P (val))
+	mark_used (val);
 
       /* Mere mortals can't copy arrays with aggregate initialization, so
 	 do some magic to make it work here.  */

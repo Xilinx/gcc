@@ -714,9 +714,6 @@ typedef struct
      modification of type or type parameters is permitted.  */
   unsigned referenced:1;
 
-  /* Set if the symbol has ambiguous interfaces.  */
-  unsigned ambiguous_interfaces:1;
-
   /* Set if this is the symbol for the main program.  */
   unsigned is_main_program:1;
 
@@ -1375,8 +1372,9 @@ typedef struct gfc_namespace
   /* Set to 1 if namespace is an interface body with "IMPORT" used.  */
   unsigned has_import_set:1;
 
-  /* Set to 1 if resolved has been called for this namespace.  */
-  unsigned resolved:1;
+  /* Set to 1 if resolved has been called for this namespace.
+     Holds -1 during resolution.  */
+  signed resolved:2;
 
   /* Set to 1 if code has been generated for this namespace.  */
   unsigned translated:1;

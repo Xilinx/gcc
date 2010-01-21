@@ -1,3 +1,377 @@
+2010-01-20  Janis Johnson  <janis187@us.ibm.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	* tree.h (TYPE_TRANSPARENT_UNION): Replace with ...
+	(TYPE_TRANSPARENT_AGGR): this, for union and record.
+	* calls.c (initialize argument_information): Handle it.
+	* c-common.c (handle_transparent_union_attribute): Use new name.
+	* c-decl.c (finish_struct): Ditto.
+	* c-typeck.c (type_lists_compatible_p): Ditto.
+	(convert_for_assignment): Use new name and also handle record.
+	* function.c (aggregate_value_p): Handle it.
+	(pass_by_reference): Ditto.
+	(assign_parm_data_types): Ditto.
+	* print-tree.c (print_node): Ditto.
+	* lto-streamer-in.c (unpack_ts_type_value_fields): Ditto.
+	* lto-streamer-out.c (pack_ts_type_value_fields): Ditto.
+	* tree.c (first_field): New fn.
+
+2010-01-21  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR target/42818
+	* config/i386/cygwin.h (CXX_WRAP_SPEC_LIST): Always apply wrappers,
+	even when linking statically, for now.
+
+2010-01-20  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42715
+	* var-tracking.c (use_type): Choose MO_VAL_SET for REGs set
+	without a cselib val.
+	(count_uses): Accept MO_VAL_SET with no val on stores.
+	(add_stores): Likewise.
+
+2010-01-20  Jakub Jelinek  <jakub@redhat.com>
+
+	* var-tracking.c (check_value_val): Add a compile time assertion.
+	(dv_is_decl_p): Simplify.
+	(dv_as_decl, dv_as_value, dv_from_decl, dv_from_value): Only use
+	gcc_assert if ENABLE_CHECKING.
+
+2010-01-20  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42782
+	* var-tracking.c: Include tree-flow.h.
+	(mem_dies_at_call): New.
+	(dataflow_set_preserve_mem_locs): Use it.
+	(dataflow_set_remove_mem_locs): Likewise.
+	(dump_var): Renamed from dump_variable.  Adjust all callers.
+	(dump_var_slot): Renamed from dump_variable_slot.  Likewise.
+	* Makefile.in (var-tracking.o): Adjust deps.
+
+2010-01-20  Joern Rennecke  <amylaar@spamcop.net>
+
+	* doc/tm.texi (TARGET_SCHED_SET_SCHED_FLAGS): Fix argument list.
+
+2010-01-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42717
+	* tree-ssa-dce.c (get_live_post_dom): Remove.
+	(forward_edge_to_pdom): Take an arbitrary edge to copy
+	degenerate PHI args from.
+	(remove_dead_stmt): Use the first post-dominator even if it
+	does not contain live statements as redirection destination.
+
+2010-01-20  Richard Guenther  <rguenther@suse.de>
+
+	* tree-inline.c (estimate_num_insns): Handle EH builtins.
+
+2010-01-20  Jakub Jelinek  <jakub@redhat.com>
+
+	* sel-sched.c (create_speculation_check): Remove set but not used
+	variable twin.
+	(try_transformation_cache): Remove set but not used variable ds.
+	(calculate_privileged_insns): Remove set but not used variables
+	cur_insn and min_spec_insn.
+	(find_best_expr): Remove set but not used variable avail_n.
+	* tree-predcom.c (base_names_in_chain_on): Remove set but not used
+	variable e.
+	* cgraphunit.c (assemble_thunk): Remove set but not used variable
+	false_label.
+	* haifa-sched.c (remove_notes): Remove set but not used variable prev.
+	* graphite-clast-to-gimple.c (gloog): Remove set but not used variable
+	new_scop_exit_edge.
+
+2010-01-20  Felyza Wishbringer  <fwishbringer@gmail.com>
+
+	PR bootstrap/42786
+	* config.gcc (i[34567]86-*-*): Fix handling of athlon64 and athlon-fx
+	cpu types.  Add support for *-sse3 cpu types.
+	(x86_64-*-*): Ditto.
+
+2010-01-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/42803
+	* varasm.c (narrowing_initializer_constant_valid_p): Add CACHE
+	argument, call initializer_constant_valid_p_1 instead of
+	initializer_constant_valid_p, pass CACHE to it, return NULL
+	immediately if first call returns NULL.
+	(initializer_constant_valid_p_1): New function.
+	(initializer_constant_valid_p): Use it.
+
+2010-01-20  Thomas Quinot  <quinot@adacore.com>
+
+	* tree.def (PLACEHOLDER_EXPR): Fix comment.
+
+2010-01-20  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (mem_loc_descriptor): Use DW_OP_mod for UMOD instead
+	of MOD, handle MOD using DW_OP_{over,over,div,mul,minus}.
+	(loc_list_from_tree): Don't handle unsigned division.  Handle
+	signed modulo using DW_OP_{over,over,div,mul,minus}.
+	* unwind-dw2.c (execute_stack_op): Handle DW_OP_mod using unsigned
+	modulo instead of signed.
+
+2010-01-20  DJ Delorie  <dj@redhat.com>
+
+	* config/h8300/h8300.c (F): Add "in_epilogue" flag.
+	(Fpa): Pass it
+	(h8300_emit_stack_adjustment): Propogate it.
+	(push): Pass it.
+	(h8300_expand_prologue): Likewise.
+	(h8300_expand_epilogue): Likewise.
+
+2010-01-19  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/41783
+	* tree-data-ref.c (toplevel): Include flags.h.
+	(dump_data_dependence_relation):  Also dump the inputs if the
+	result will be unknown.
+	(split_constant_offset_1): Look through some conversions.
+	* tree-predcom.c (determine_roots_comp): Restart a new chain if
+	the offset from last element is too large.
+	(ref_at_iteration): Deal also with MISALIGNED_INDIRECT_REF.
+	(reassociate_to_the_same_stmt): Handle vector registers.
+	* tree-vect-data-refs.c (vect_equal_offsets): Handle unary operations
+	(e.g. conversions).
+	* tree-vect-loop-manip.c (vect_gen_niters_for_prolog_loop): Add 
+	wide_prolog_niters argument, emit widening instructions.
+	(vect_do_peeling_for_alignment): Adjust caller, use widened
+	variant of the iteration cound.
+	* Makefile.in (tree-data-ref.o): Add $(FLAGS_H).
+
+2010-01-19  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/38697
+	* config/arm/neon-testgen.m (emit_automatics): New parameter
+	features. Adjust for Fixed_return_reg feature.
+	(test_intrinsic): Call emit_automatics with new feature.
+	* config/arm/neon.ml: Update copyright years.
+	(features): New Fixed_return_reg feature.
+	(ops): Update feature for Vget_low.
+
+2010-01-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/42719
+	* tree-outof-ssa.c (trivially_conflicts_p): Don't consider debug
+	stmt uses.
+
+	PR debug/42728
+	* fwprop.c (all_uses_available_at): Return false if def_set dest
+	is a REG that is used in def_insn.
+
+2010-01-19  Joern Rennecke  <amylaar@spamcop.net>
+
+	* doc/tm.texi (TARGET_FIXED_CONDITION_CODE_REGS): Add argument names.
+
+	(TARGET_CC_MODES_COMPATIBLE): Put return value in braces.
+	Add argument names.
+
+	(TARGET_SCHED_INIT_SCHED_CONTEXT): Clarify language.
+
+	* target.h (struct gcc_target) <secondary_reload>: Change type
+	of last argument to secondary_reload_info *.
+
+2010-01-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/42774
+	* config/alpha/predicates.md (aligned_memory_operand): Return 0 for
+	memory references with unaligned offsets.  Remove CQImode handling.
+	(unaligned_memory_operand): Return 1 for memory references with
+	unaligned offsets.  Remove CQImode handling.
+
+2010-01-18  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/39954
+	* cfgexpand.c (expand_call_stmt): TER pointer arguments in
+	builtin calls.
+
+2010-01-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42781
+	* tree-ssa-structalias.c (find_what_var_points_to): Skip
+	restrict processing only if the original variable was
+	artificial.
+
+2010-01-18  Joern Rennecke  <amylaar@spamcop.net>
+
+	* doc/tm.texi (TARGET_ASM_FUNCTION_EPILOGUE): Update text on where to
+	find number of popped argument bytes.
+
+	(TARGET_INVALID_WITHIN_DOLOOP): Put return value in braces.
+	Fix the text that describes the return value for invalid insns.
+
+	(TARGET_SCHED_NEEDS_BLOCK_P): Fix return type.  Fix argument list.
+
+	(TARGET_SCHED_IS_COSTLY_DEPENDENCE): Fix argument types.
+	Clarify what 'cost of the -dependence' is.  Fix quoting.
+
+	* toplev.c (default_get_pch_validity): Rename argument to "sz".
+	* doc/tm.texi (TARGET_GET_PCH_VALIDITY): Likewise.
+
+2010-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (mem_loc_descriptor): Don't ICE on
+	{S,U}S_{PLUS,MINUS,NEG,ABS,ASHIFT}.
+
+2010-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42248
+	* function.c (split_complex_args): Take a VEC to modify.
+	(assign_parms_augmented_arg_list): Build a VEC instead of
+	a chain of PARM_DECLs.
+	(assign_parms_unsplit_complex): Take a VEC of arguments.
+	Do not fixup unmodified parms.
+	(assign_parms): Deal with the VEC.
+	(gimplify_parameters): Likewise.
+
+2010-01-17  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-uncprop.c (uncprop_into_successor_phis): Fix PHI
+	node existence check.
+	* tree-vect-loop.c (vect_analyze_loop_form): Likewise.
+	* tree-cfgcleanup.c (merge_phi_nodes): Likewise.
+	* tree-ssa-dce.c (forward_edge_to_pdom): Likewise.
+	* tree-cfg.c (gimple_execute_on_growing_pred): Likewise.
+	(gimple_execute_on_growing_pred): Likewise.
+
+2010-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42773
+	* tree-ssa-pre.c (phi_translate_set): Fix check for PHI node existence.
+	(compute_antic_aux): Likewise.
+	(compute_partial_antic_aux): Likewise.
+
+2010-01-17  Jie Zhang  <jie.zhang@analog.com>
+
+	PR debug/42767
+	* dwarf2out.c (mem_loc_descriptor): Handle SS_TRUNCATE
+	and US_TRUNCATE.
+
+2010-01-17  Joern Rennecke  <amylaar@spamcop.net>
+
+	* doc/tm.texi (TARGET_INIT_LIBFUNCS): Put @findex entries in order of
+	appearance.
+
+	(TARGET_LEGITIMATE_ADDRESS_P): Add return type.
+	Fix markup for strict argument.
+
+	(TARGET_SCHED_REORDER2): Fix argument types.
+
+	(TARGET_SCHED_DFA_PRE_CYCLE_INSN): Fix return type.
+	(TARGET_SCHED_DFA_POST_CYCLE_INSN): Likewise.
+
+	(TARGET_SCHED_DFA_PRE_ADVANCE_CYCLE): Fix name.
+	(TARGET_SCHED_DFA_POST_ADVANCE_CYCLE): Likewise.
+
+	(TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD):
+	Add argument name.
+
+	(TARGET_SCHED_ALLOC_SCHED_CONTEXT): Remove duplicate documentation.
+	(TARGET_SCHED_INIT_SCHED_CONTEXT): Likewise.
+	(TARGET_SCHED_SET_SCHED_CONTEXT): Likewise.
+	(TARGET_SCHED_CLEAR_SCHED_CONTEXT): Likewise.
+	(TARGET_SCHED_FREE_SCHED_CONTEXT): Likewise.
+
+	(TARGET_SCHED_SET_SCHED_CONTEXT): Fix typo.
+
+	(TARGET_SCHED_GEN_SPEC_CHECK): Fix name.
+
+	(TARGET_ASM_RELOC_RW_MASK): Add return type.
+	(TARGET_MANGLE_DECL_ASSEMBLER_NAME): Fix return type.
+
+	(TARGET_STRIP_NAME_ENCODING): Fix markup of return type and parameter.
+
+	(TARGET_ASM_FILE_START): Put @findex before paragraph start.
+	Use prototype.
+
+	(TARGET_ASM_NAMED_SECTION): Fix argument list.
+
+	(TARGET_HAVE_NAMED_SECTIONS): Use @deftypevr.
+	(TARGET_HAVE_SWITCHABLE_BSS_SECTIONS): Likewise.
+
+	(TARGET_ASM_RECORD_GCC_SWITCHES_SECTION): Use @deftypevr.
+
+	(TARGET_ASM_ASSEMBLE_VISIBILITY): Fix argument types.
+
+	(TARGET_ASM_MARK_DECL_PRESERVED): Fix argument and markup
+	referring to it.  Fix language.
+
+	(TARGET_HAVE_CTORS_DTORS): Use @deftypevr.
+
+	(TARGET_ASM_FINAL_POSTSCAN_INSN): Adjust name of first argument.
+
+	(TARGET_ASM_EMIT_UNWIND_LABEL): Add argument types.
+
+	(TARGET_ASM_EMIT_EXCEPT_TABLE_LABEL): Add type to argument.
+
+	(TARGET_UNWIND_EMIT): Remove space between 'FILE *' and
+	'@var{stream}.  Remove stray 'and'.
+
+	(TARGET_ARM_EABI_UNWINDER): Use @deftypevr.
+
+	(TARGET_ASM_OUTPUT_DWARF_DTPREL): Adjust name of first argument.
+
+	(TARGET_SET_DEFAULT_TYPE_ATTRIBUTES): Add missing article.
+
+	(TARGET_OPTION_VALID_ATTRIBUTE_P): Fix name, it was 
+	misspelled as TARGET_VALID_OPTION_ATTRIBUTE_P.
+
+	(TARGET_GET_PCH_VALIDITY): Put 'void *' in braces.
+	Fix description of return value.
+	Rename argument "sz" to "len."
+
+	(TARGET_CXX_GUARD_MASK_BIT): Add missing article.
+	Clarify meaning of 'true' return value.
+
+	(TARGET_SHIFT_TRUNCATION_MASK): Fix return type.
+
+	(TARGET_MODE_REP_EXTENDED): Fix two inconsisent uses of
+	rep_mode versus mode_rep.
+
+	(TARGET_HANDLE_PRAGMA_EXTERN_PREFIX): Document.
+
+	(TARGET_BUILTIN_DECL): Fix name.
+
+	(TARGET_COMMUTATIVE_P): Fix type of first argument.
+
+	(TARGET_SET_CURRENT_FUNCTION): Mention possibility of cfun being NULL.
+
+	(TARGET_BRANCH_TARGET_REGISTER_CLASS): Fix return type.
+
+	(TARGET_USE_LOCAL_THUNK_ALIAS_P): Document as macro instead of hook.
+
+	(TARGET_RELAXED_ORDERING): Use @deftypevr.
+
+	(TARGET_GET_DRAP_RTX): Note that this is a hook.
+	Clarify language.
+
+	(TARGET_BUILTIN_RECIPROCAL): Fix argument types.
+	Rename argument tm_fn to md_fn.
+
+	(TARGET_OPTION_PRINT): Fix argument list.
+
+2010-01-16  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	PR target/42664
+	* config/i386/i386.c (ix86_fixup_binary_operands):
+	Revert FMA4 fixup of operands.
+
+2010-01-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR gcc/42525
+	* Makefile.in (write_entries_to_file, install-plugin):
+	Use \012 instead of \n with tr.
+
+2010-01-16  Richard Sandiford  <r.sandiford@uk.ibm.com>
+
+	* configure.ac (HAVE_AS_REF): New C macro.
+	* configure: Regenerate.
+	* config.in: Likewise.
+	* collect2.c (main): Only postpone SCAN_DWEH to the second pass
+	if HAVE_AS_REF.
+	* config/rs6000/aix.h (ASM_OUTPUT_DWARF_TABLE_REF): Only define
+	if HAVE_AS_REF.
+
 2010-01-16  Joern Rennecke  <amylaar@spamcop.net>
 
 	* doc/tm.texi (TARGET_USE_BLOCKS_FOR_CONSTANT_P): Fix argument types.

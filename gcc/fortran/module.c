@@ -3474,7 +3474,7 @@ mio_f2k_derived (gfc_namespace *f2k)
   else
     while (peek_atom () != ATOM_RPAREN)
       {
-	gfc_intrinsic_op op = 0; /* Silence GCC.  */
+	gfc_intrinsic_op op = GFC_INTRINSIC_BEGIN; /* Silence GCC.  */
 
 	mio_lparen ();
 	mio_intrinsic_op (&op);
@@ -4481,8 +4481,6 @@ read_module (void)
 		 "in module '%s'", gfc_op2string (u->op), &u->where,
 		 module_name);
     }
-
-  gfc_check_interfaces (gfc_current_ns);
 
   /* Now we should be in a position to fill f2k_derived with derived type
      extensions, since everything has been loaded.  */
