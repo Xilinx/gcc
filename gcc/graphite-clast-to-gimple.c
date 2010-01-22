@@ -1331,7 +1331,7 @@ set_cloog_options (void)
 
      XXX: We can not disable optimizations, as loop blocking is not working
      without them.  */
-  if (0)
+  if (!flag_graphite_cloog_opts)
     {
       options->f = -1;
       options->l = INT_MAX;

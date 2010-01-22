@@ -876,6 +876,7 @@ decode_options (unsigned int argc, const char **argv)
   opt2 = (optimize >= 2);
 #ifdef HAVE_cloog
   flag_graphite_identity = opt2;
+  flag_graphite_cloog_opts = opt2;
   flag_loop_strip_mine = opt2;
   flag_loop_interchange = opt2;
   flag_loop_block = opt2;
