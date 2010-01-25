@@ -1,7 +1,99 @@
+2010-01-25  Bob Duff  <duff@adacore.com>
+
+	* sem_aggr.adb (Resolve_Array_Aggregate): Check for the case where this
+	is an internally-generated positional aggregate, and the bounds are
+	already correctly set. We don't want to overwrite those bounds with
+	bounds determined by context.
+
+2010-01-25  Robert Dewar  <dewar@adacore.com>
+
+	* g-sercom.ads, gnatcmd.adb, gnatlink.adb, a-ststio.adb, exp_ch6.adb,
+	exp_ch9.adb, g-sechas.ads: Minor reformatting.
+
+2010-01-25  Thomas Quinot  <quinot@adacore.com>
+
+	* s-commun.adb (Last_Index): Count must be converted to SEO (a signed
+	integer type) before subtracting 1, otherwise the computation may wrap
+	(because size_t is modular) and cause the conversion to fail.
+
+2010-01-25  Ed Falis  <falis@adacore.com>
+
+	* sysdep.c, init.c: Adapt to support full run-time on VxWorks MILS.
+
+2010-01-25  Vincent Celier  <celier@adacore.com>
+
+	* prj-attr.adb: New attribute Run_Path_Origin_Required
+	* prj-nmsc.adb (Process_Project_Level_Simple_Attributes): Process new
+	attribute Run_Path_Origin_Required.
+	* prj.ads (Project_Configuration): New component
+	Run_Path_Origin_Supported.
+	* snames.ads-tmpl: New standard name Run_Path_Origin_Required
+
+2010-01-25  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_aggr.adb (Resolve_Array_Aggregate): If the bounds in a choice
+	have errors, do not continue resolution of the aggregate.
+	* sem_eval.adb (Eval_Indexed_Component): Do not attempt to evaluate if
+	the array type indicates an error.
+
+2010-01-25  Bob Duff  <duff@adacore.com>
+
+	* sinfo.ads: Minor comment fixes.
+
+2010-01-25  Bob Duff  <duff@adacore.com>
+
+	* exp_ch4.adb, exp_aggr.adb: Minor comment fixes and code clean up.
+
+2010-01-25  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnatvsn.ads (Current_Year): Update.
+
+2010-01-25  Florian Villoing  <villoing@adacore.com>
+
+	* gnat_ugn.texi: Fix typo.
+
+2010-01-25  Thomas Quinot  <quinot@adacore.com>
+
+	* scos.ads: Update specification.
+
+2010-01-25  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Process_PPCs): If a postcondition is present and the
+	enclosing subprogram has no previous spec, attach postcondition
+	procedure to the defining entity for the body.
+
+2010-01-25  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_aggr.adb (Build_Record_Aggr_Code); Do not generate call to
+	initialization procedure of the ancestor part of an extension aggregate
+	if it is an interface type.
+
+2010-01-25  Vincent Celier  <celier@adacore.com>
+
+	* gnatlink.adb (Process_Binder_File): The directory for the shared
+	version of libgcc in the run path options is found in the subdirectory
+	indicated by __gnat_default_libgcc_subdir.
+	* link.c: Declare new const char * __gnat_default_libgcc_subdir for
+	each platform.
+
+2010-01-25  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_prag.adb: More flexible pragma Annotate.
+
+2010-01-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* system-linux-armel.ads (Stack_Check_Probes): Set to True.
+	* system-linux-armeb.ads (Stack_Check_Probes): Likewise.
+
+2010-01-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (create_var_decl_1): Fix formatting nits.
+
 2010-01-18  Jan Hubicka  <jh@suse.cz>
 
 	PR middle-end/42068
-	(create_var_decl_1): Do not set COMMON flag for unit local variables.
+	* gcc-interface/utils.c (create_var_decl_1): Do not set COMMON flag for
+	unit local variables.
 
 2010-01-17  Laurent GUERBY  <laurent@guerby.net>
 

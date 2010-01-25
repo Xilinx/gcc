@@ -1936,6 +1936,16 @@ package body Sem_Aggr is
                     and then Compile_Time_Known_Value (Choices_Low)
                     and then Compile_Time_Known_Value (Choices_High)
                   then
+
+                     --  If the bounds have semantic errors, do not attempt
+                     --  further resolution to prevent cascaded errors..
+
+                     if Error_Posted (Choices_Low)
+                       or else Error_Posted (Choices_High)
+                     then
+                        return False;
+                     end if;
+
                      declare
                         ALo : constant Node_Id := Expr_Value_E (Aggr_Low);
                         AHi : constant Node_Id := Expr_Value_E (Aggr_High);
@@ -2161,6 +2171,16 @@ package body Sem_Aggr is
          if Etype (Aggr_High) = Universal_Integer then
             Set_Analyzed (Aggr_High, False);
          end if;
+      end if;
+
+      --  If the aggregate already has bounds attached to it, it means this is
+      --  a positional aggregate created as an optimization by
+      --  Exp_Aggr.Convert_To_Positional, so we don't want to change those
+      --  bounds.
+
+      if Present (Aggregate_Bounds (N)) and then not Others_Allowed then
+         Aggr_Low := Low_Bound (Aggregate_Bounds (N));
+         Aggr_High := High_Bound (Aggregate_Bounds (N));
       end if;
 
       Set_Aggregate_Bounds

@@ -1744,7 +1744,7 @@ fi
 stage1_languages=,c,
 
 # Target libraries that we bootstrap.
-bootstrap_target_libs=,target-libgcc,
+bootstrap_target_libs=,target-libgcc,target-libgomp,
 
 # Figure out what language subdirectories are present.
 # Look if the user specified --enable-languages="..."; if not, use
@@ -3086,6 +3086,7 @@ AC_SUBST(build_configdirs)
 # Host module lists & subconfigure args.
 AC_SUBST(host_configargs)
 AC_SUBST(configdirs)
+AC_SUBST(target_configdirs)
 
 # Target module lists & subconfigure args.
 AC_SUBST(target_configargs)
