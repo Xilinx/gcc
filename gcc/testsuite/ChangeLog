@@ -1,3 +1,44 @@
+2010-01-24  Mark Mitchell  <mark@codesourcery.com>
+
+	PR c++/42748
+	* g++.dg/abi/arm_va_list2.C: New test.
+	* g++.dg/abi/arm_va_list2.h: Companion header file.
+
+2010-01-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41044
+	* gfortran.dg/parameter_array_ref_2.f90 : New test.
+
+	PR fortran/41167
+	* gfortran.dg/char_array_arg_1.f90 : New test.
+
+	* gfortran.dg/pr25923.f90 : Remove XFAIL.
+
+2010-01-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/39304
+	* gfortran.dg/generic_20.f90: New test.
+
+2010-01-22  Michael Matz  <matz@suse.de>
+
+	* gfortran.dg/vect/fast-math-mgrid-resid.f: Limit to x86, add
+	-msse2.
+
+2010-01-21  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/42736
+	* gfortran.dg/dependency_25.f90 : New test.
+
+2010-01-21  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42585
+	* gcc.dg/tree-ssa/pr42585.c: New test.
+
+2010-01-21  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/19988
+	* gcc.dg/pr19988.c: New testcase.
+
 2010-01-20  Janis Johnson  <janis187@us.ibm.com>
 
 	* g++.dg/compat/decimal/compat-common.h: New file.

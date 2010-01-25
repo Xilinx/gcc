@@ -1,3 +1,84 @@
+2010-01-24  David S. Miller  <davem@davemloft.net>
+
+	* gcc/config/sparc/sysv4.h (TARGET_ASM_NAMED_SECTION): Only
+	define if not using GAS.
+	* gcc/config/sparc/sparc.c (sparc_elf_asm_named_section):
+	Likewise.  Delete SECTION_MERGE code, which is only applicable
+	when using GAS.
+
+2010-01-24  Mark Mitchell  <mark@codesourcery.com>
+
+	PR c++/42748
+	* config/arm/arm.c (arm_mangle_type): Do not warn about changes to
+	mangling of va_list in system headers.
+
+2010-01-23  Toon Moene  <toon@moene.org>
+
+	* tree-predcom.c (combine_chains): Return NULL, not false.
+
+2010-01-23  Joern Rennecke  <amylaar@spamcop.net>
+
+	* tree-loop-distribution.c (distribute_loop): Fix declaration and
+	initialization of variable res to agree with return type.
+
+2010-01-22  Steve Ellcey  <sje@cup.hp.com>
+
+	* Makefile.in (tree-sra.o): Add $(EXPR_H) dependency.
+	* tree-sra.c: Add include of expr.h.
+
+2010-01-22  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-into-ssa.c (maybe_register_def): If stmt ends the bb,
+	insert the debug stmt on the single non-EH edge from the stmt.
+
+2010-01-22  Richard Henderson  <rth@redhat.com>
+
+	PR tree-opt/42833
+	* tree-sra.c (sra_modify_assign): Delay re-gimplification of
+	the RHS until after generate_subtree_copies has insertted its
+	code before the current statement.
+
+2010-01-22  Joern Rennecke  <amylaar@spamcop.net>
+
+	* doc/tm.texi (TARGET_MIN_DIVISIONS_FOR_RECIP_MUL): Fix return type.
+
+	* gcc-plugin.h (plugin_init): Use "C" likage for c++.
+
+2010-01-21  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42585
+	* tree-sra.c (struct access): New field grp_total_scalarization.
+	(dump_access): Dump the new field.
+	(should_scalarize_away_bitmap): New variable.
+	(cannot_scalarize_away_bitmap): Likewise.
+	(sra_initialize): Allocate new bitmaps.
+	(sra_deinitialize): Free new bitmaps.
+	(create_access_1): New function.
+	(create_access): Parts moved to create_access_1.
+	(type_consists_of_records_p): New function.
+	(completely_scalarize_record): Likewise.
+	(build_access_from_expr): Set bit in cannot_scalarize_away_bitmap.
+	(build_accesses_from_assign): Set bits in should_scalarize_away_bitmap.
+	(sort_and_splice_var_accesses): Hint groups with a total_scalarization
+	access.
+	(analyze_all_variable_accesses): Completely scalarize small eligible
+	records.
+
+2010-01-21  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (build_ref_for_offset_1): Allow for zero size fields.
+
+2010-01-21  Andrew Haley  <aph@redhat.com>
+
+        * gcc.c (process_command): Move lang_specific_driver before
+        setting cc_libexec_prefix.
+
+2010-01-21  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/19988
+	* fold-const.c (negate_expr_p): Pretend only negative
+	real constants are easily negatable.
+
 2010-01-20  Janis Johnson  <janis187@us.ibm.com>
 	    Jason Merrill  <jason@redhat.com>
 
