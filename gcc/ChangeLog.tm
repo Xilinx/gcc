@@ -1,3 +1,8 @@
+2010-01-25  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_transform_calls): Do not scan past the end
+	of the transaction.
+
 2010-01-07  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (build_tm_load): Do not error on unsupported

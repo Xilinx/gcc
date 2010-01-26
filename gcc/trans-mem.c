@@ -3887,7 +3887,7 @@ ipa_tm_transform_calls (struct cgraph_node *node, struct tm_region *region,
 
       /* Don't scan past the end of the transaction.  */
       if (is_tm_ending_fndecl (fndecl))
-	continue;
+	break;
       e = cgraph_edge (node, stmt);
 
       /* If there is a replacement, use it, otherwise use the clone.  */
