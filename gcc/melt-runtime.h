@@ -1,4 +1,6 @@
-/* Basile's static analysis (should have a better name) header melt-runtime.h
+/**
+   MELT header melt-runtime.h
+   [[middle end lisp translator]]
    Copyright (C)  2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
@@ -15,7 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.   If not see
-<http://www.gnu.org/licenses/>.    */
+<http://www.gnu.org/licenses/>.
+**/
 
 #ifndef MELT_INCLUDED_
 #define MELT_INCLUDED_
@@ -2896,6 +2899,7 @@ enum
   FSYSDAT_DUMPFILE,		/* raw boxed file for dump_file */
   FSYSDAT_UNIT_STARTER,		/* closure for start of compilation unit */
   FSYSDAT_UNIT_FINISHER,        /* closure for start of compilation unit */
+  FSYSDAT_OPTION_SET,		/* closure to set options */
   FSYSDAT__LAST
 };
 

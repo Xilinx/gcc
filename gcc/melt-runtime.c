@@ -8190,9 +8190,10 @@ do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 		   modatav);
       goto end;
     }
-  if (!MELT_PREDEF (INITIAL_SYSTEM_DATA)) 
+  if (!MELT_PREDEF (INITIAL_SYSTEM_DATA))
     {
-      error("MELT cannot execute initial mode mode %s without INITIAL_SYSTEM_DATA", modstr);
+      error ("MELT cannot execute initial mode %s without INITIAL_SYSTEM_DATA",
+	    modstr);
       goto end;
     }
   dictv = melt_get_inisysdata(FSYSDAT_MODE_DICT);
@@ -8203,11 +8204,11 @@ do_initial_mode (melt_ptr_t modata_p, const char* modstr)
       debugeprintf("do_initial_mode invalid dictv %p", dictv);
       goto end;
     };
-  if (strchr (modstr, ',')) 
+  if (strchr (modstr, ','))
     curmodstr = dupmodstr = xstrdup (modstr);
   else
     curmodstr = CONST_CAST (char *, modstr);
-  do 
+  do
     {
       comma = strchr (curmodstr, ',');
       if (comma)
@@ -8291,9 +8292,12 @@ load_melt_modules_and_do_mode (void)
   const char *modstr = 0;
   const char *inistr = 0;
   const char* dbgstr = melt_argument("debug");
-  MELT_ENTERFRAME (3, NULL);
-#define modatv curfram__.varptr[0]
-#define dumpv  curfram__.varptr[1]
+  MELT_ENTERFRAME (7, NULL);
+#define modatv     curfram__.varptr[0]
+#define dumpv      curfram__.varptr[1]
+#define optsetv    curfram__.varptr[2]
+#define optresv    curfram__.varptr[3]
+#define optsymbv   curfram__.varptr[4]
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
   debugeprintf ("load_melt_modules_and_do_mode start init=%s mode=%s",
@@ -8316,7 +8320,6 @@ load_melt_modules_and_do_mode (void)
       fflush (stderr);
       dump_file = stderr;
       fflush (stderr);
-      
     }
 #if ENABLE_CHECKING
   if (dbgstr)
@@ -8380,6 +8383,58 @@ load_melt_modules_and_do_mode (void)
       curmod = nextmod;
     }
   /**
+   * the we set MELT options
+   **/
+  if (melt_option_string && melt_option_string[0]
+      && (optsetv=melt_get_inisysdata (FSYSDAT_OPTION_SET)) != NULL
+      && melt_magic_discr ((melt_ptr_t) optsetv) == OBMAG_CLOSURE) {
+    char *optc = 0;
+    char *optname = 0;
+    char *optvalue = 0;
+    for (optc = CONST_CAST (char *, melt_option_string);
+	 optc && *optc;
+	 )
+      {
+	optname = optvalue = NULL;
+	if (!ISALPHA(*optc))
+	  fatal_error ("invalid MELT option name %s [should start with letter]",
+		       optc);
+	optname = optc;
+	while (*optc && (ISALNUM(*optc) || *optc=='_' || *optc=='-'))
+	  optc++;
+	if (*optc == '=') {
+	  *optc = (char)0;
+	  optc++;
+	  optvalue = optc;
+	  while (*optc && *optc != ',')
+	    optc++;
+	}
+	if (*optc==',') {
+	  *optc = (char)0;
+	  optc++;
+	}
+	optsymbv = meltgc_named_symbol (optname, MELT_CREATE);
+	{
+	  union meltparam_un pararg[1];
+	  memset (&pararg, 0, sizeof (pararg));
+	  pararg[0].bp_cstring = optvalue;
+	  MELT_LOCATION_HERE ("option set before apply");
+	  debugeprintf ("MELT option %s value %s", optname,
+			optvalue?optvalue:"_");
+	  optresv =
+	    melt_apply ((meltclosure_ptr_t) optsetv,
+			(melt_ptr_t) optsymbv,
+			BPARSTR_CSTRING, pararg, "", NULL);
+	  if (!optresv)
+	    warning (0, "unhandled MELT option %s", optname);
+	}
+      }
+    /* after options setting, force a minor collection to ensure
+       nothing is left in young region */
+    MELT_LOCATION_HERE ("option set done");
+    melt_garbcoll (0, MELT_ONLY_MINOR);
+  }
+  /**
    * then we do the mode if needed 
    **/
   if (melt_get_inisysdata (FSYSDAT_MODE_DICT) && modstr
@@ -8425,6 +8480,9 @@ load_melt_modules_and_do_mode (void)
   MELT_EXITFRAME ();
 #undef modatv
 #undef dumpv
+#undef optsetv
+#undef optresv
+#undef optsymbv
 }
 
 
@@ -8752,8 +8810,9 @@ plugin_init (struct plugin_name_args* plugin_info,
 void
 melt_initialize (void)
 {
-  debugeprintf ("start of melt_initialize [builtin MELT] version_string %s", version_string);
-  melt_really_initialize ("/_MELT/_builtin", version_string);
+  debugeprintf ("start of melt_initialize [builtin MELT] version_string %s",
+		version_string);
+  melt_really_initialize ("MELT/_builtin", version_string);
   debugeprintf ("end of melt_initialize [builtin MELT] meltruntime %s", __DATE__);
 }
 #endif
@@ -11352,7 +11411,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
     plugpassinf.pos_op = posop;
     debugeprintf ("meltgc_register_pass name %s RTL_PASS %p refpassname %s",
 		  melt_string_str ((melt_ptr_t) namev), (void*)rtlpass, refpassname);
-    register_callback(melt_plugin_name, PLUGIN_PASS_MANAGER_SETUP, 
+    register_callback(melt_plugin_name, PLUGIN_PASS_MANAGER_SETUP,
 		      NULL, &plugpassinf);
     /* add the pass into the pass dict */
     meltgc_put_mapstrings((struct meltmapstrings_st*) passdictv,
@@ -11360,7 +11419,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
   }
   else if (melt_is_instance_of((melt_ptr_t) passv,
 			       (melt_ptr_t) MELT_PREDEF(CLASS_GCC_SIMPLE_IPA_PASS))) {
-    struct simple_ipa_opt_pass* sipapass = NULL;     
+    struct simple_ipa_opt_pass* sipapass = NULL;
     sipapass = XNEW(struct simple_ipa_opt_pass);
     memset(sipapass, 0, sizeof(struct simple_ipa_opt_pass));
     sipapass->pass.type = SIMPLE_IPA_PASS;

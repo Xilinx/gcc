@@ -1,3 +1,31 @@
+2010-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{adding option machinery & more about or patterns. tmatch-6 still
+	fails...}}
+	* doc/melt.texi (MELT: Middle End Lisp Translator): better intro.
+	(Invoking MELT): added doc about -fmelt-option=
+
+	* melt/warmelt-first.melt: added sysdata_option_set field. added
+	get_raw_symbol primitives. added option_map_container instance and
+	internal class_option_descriptor. Added internal init_optionsetter
+	& option_helper_fun and exported register_option function. Some
+	code still commented temporarily.
+
+	* melt/warmelt-normatch.melt: adding
+	class_normtester_or_initial_clear
+
+	* melt/warmelt-genobj.melt: experimental code in
+	compiltst_normtester_orclear [perhaps wrong] &
+	compiltst_normtester_ortransmit
+
+	* melt-runtime.c (do_initial_mode): typo in error message.
+	(load_melt_modules_and_do_mode): added option handling.
+	(plugin_init): use MELT/_builtin as the builtin "plugin" name.
+
+	* melt-runtime.h: updated initial comment. (FSYSDAT_OPTION_SET):
+	new enum.
+
+	* common.opt (fmelt-option=): added new option.
+
 2010-01-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tmatch-6 is not translated, because a
 	class_normtester_or_transmit is correctly generated, and its

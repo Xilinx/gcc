@@ -5158,6 +5158,7 @@ $SBUF.}#
 	(locmap (unsafe_get_field :gncx_locmap gcx))
 	)
     (debug_msg nloclist "normtester_free_objloc_list nloclist")
+    (shortbacktrace_dbg "normtester_free_objloc_list" 15)
     (let ( (freelist
 	    (list_map 
 	     nloclist 
@@ -5494,6 +5495,7 @@ $SBUF.}#
 	(nthen (unsafe_get_field :ntest_then ntoc))
 	(nelse (unsafe_get_field :ntest_else ntoc))
 	(nclear (unsafe_get_field :ntorclear_locsym ntoc))
+	(locmap (unsafe_get_field :gncx_locmap gcx))
 	(olist (make_list discr_list))
 	(gotothen (or (normtester_gotoinstr nthen gcx)
 		      (endmatch_gotoinstr normatch gcx nloc)))
@@ -5508,7 +5510,16 @@ $SBUF.}#
      (nclear)
      (curlocs :long cix)
      (debug_msg curlocs "compiltst_normtester_orclear curlocs")
+     (shortbacktrace_dbg "compiltst_normtester_orclear curlocs" 14)
+     (compile_warning "perhaps compiltst_normtester_orclear should compile the curlocs")
      (let ( 
+	   ;; TODO: perhaps we should not allocate a new obva but just
+	   ;; compile the curlocs
+	   (ocurl (let ( (oc (compile_obj curlocs gcx)) 
+			 )
+		    (debug_msg oc "compiltst_normtester_orclear ocurl")
+		    oc))
+	   (nlbnd (get_field :nocc_bind curlocs))
 	   (obva (get_free_objloctyped gcx 
 				       (get_field :nocc_symb curlocs)
 				       (get_field :nocc_ctyp curlocs)))
@@ -5517,6 +5528,9 @@ $SBUF.}#
 			      :oclr_vloc obva
 			      ))
 	   )
+       (debug_msg nlbnd "compiltst_normtester_orclear nlbnd")
+       (mapobject_put locmap nlbnd obva)
+       (debug_msg obva "compiltst_normtester_orclear obva")
        (list_append olist oclrloc)
        )
      )
@@ -5534,10 +5548,44 @@ $SBUF.}#
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc ntot))
+	(nmatched (unsafe_get_field :ntest_matched ntot))
+	(normatch (unsafe_get_field :ntest_normatch ntot))
+	(ntupdst (unsafe_get_field :ntortransmit_dst ntot))
+	(ntupsrc (unsafe_get_field :ntortransmit_src ntot))
+	(nthen (unsafe_get_field :ntest_then ntot))
+	(nelse (unsafe_get_field :ntest_else ntot))
+	(olist (make_list discr_list))
+	(gotothen (or (normtester_gotoinstr nthen gcx)
+		      (endmatch_gotoinstr normatch gcx nloc)))
 	)
-    (error_plain nloc "unimplemented compiltst_normtester_ortransmit")
-    (compile_warning "$@$unimplemented compiltst_normtester_ortransmit")
-    (assert_msg "$@$unimplemented compiltst_normtester_ortransmit" ())
+    (assert_msg "check null nelse" (null nelse))
+    (assert_msg "check same size ntupdst ntupsc" 
+		(==i (multiple_length ntupdst) (multiple_length ntupsrc)))
+    (foreach_in_multiple
+     (ntupdst)
+     (ncurdst :long nix)
+     (let ( (ncursrc (multiple_nth ntupsrc nix)) 
+	    )
+       (debug_msg ncursrc "compiltst_normtester_ortransmit ncursrc")
+       (debug_msg ncurdst "compiltst_normtester_ortransmit ncurdst")
+       (let ( 
+	     (osrc (compile_obj ncursrc gcx))
+	     (odst (compile_obj ncurdst gcx))
+	     (dstlist (make_list discr_list))
+	     (ocomp (instance class_objcompute
+		     :obi_loc nloc
+		     :obdi_destlist dstlist
+		     :obcpt_expr osrc))
+	     )
+	 (list_append dstlist odst)
+	 (debug_msg osrc "compiltst_normtester_ortransmit osrc")
+	 (debug_msg odst "compiltst_normtester_ortransmit odst")
+	 (debug_msg ocomp "compiltst_normtester_ortransmit ocomp")
+	 (list_append olist ocomp)
+       )))
+    (list_append olist gotothen)
+    (debug_msg olist "compiltst_normtester_ortransmit final olist")
+    (return olist)
     ))
 (install_method class_normtester_or_transmit compile_tester compiltst_normtester_ortransmit)
 

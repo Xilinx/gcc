@@ -411,6 +411,11 @@ fmelt-secondarg=
 Common Report Var(melt_secondargument_string) RejectNegative Joined
 Second argument for melt analysis 
 
+; extra options to MELT
+fmelt-option=
+Common Report Var(melt_option_string) RejectNegative Joined
+Extra options to MELT, comma separated string of optionname=optionvalue
+
 ; output string for melt
 fmelt-output=
 Common Report Var(melt_output_string) RejectNegative Joined

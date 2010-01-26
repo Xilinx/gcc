@@ -1,4 +1,4 @@
-@c Copyright (c) 2008,2009 Free Software Foundation, Inc.
+@c Copyright (c) 2008,2009,2010 Free Software Foundation, Inc.
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -13,9 +13,9 @@
 @cindex Middle End Lisp Translator
 
 
-The MELT branch introduces a Lisp dialect to express middle-end analysers. 
-This chapter describes the dialect and how to use it.
-A working knowledge of Scheme or Lisp is presupposed.
+The MELT branch introduces a powerful Lisp dialect to express middle-end
+analyzers and passes.  This chapter describes the dialect and how to use
+it.  A working knowledge of Scheme or Lisp is presupposed.
 
 
 See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page}
@@ -28,7 +28,7 @@ See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page}
 * Invoking MELT::                             Invoking MELT.
 * Tutorial about MELT::                       Tutorial describing MELT.
 * Reference on MELT::                         MELT language reference.
-* Writing C code for MELT::                   
+* Writing C code for MELT::                   How to write C code for MELT.
 @end menu
 
 @c ----------------------------------------------------------------
@@ -357,6 +357,16 @@ This flags sets the temporary MELT directory. If specified it is not
 cleaned. If it does not exist, it is mkdir-ed and cleaned. Avoid
 setting it to a non-empty directory which may contain files named like
 MELT modules (such as @file{warmelt-*.so} etc.).
+
+@item -fmelt-option=
+@gccoptlist{-fplugin-arg-melt-option=}
+@opindex fmelt-option=
+This set some options for MELT. the argument is a comma separated
+sequence of options settings, each being an option name possibly
+followed by an equal sign and an option value. For example,
+@code{-fmelt-option=foo,bar=x} set the option @code{foo} and the option
+@code{bar} to @code{x}. An option name is case-insensitive and may
+appear several times.
 
 @end table
 

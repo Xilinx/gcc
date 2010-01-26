@@ -405,6 +405,7 @@ don't instanciate this class!}#
 					;compilation unit start
 	   sysdata_unit_finisher	;closure to be called at
 					;compilation unit end
+	   sysdata_option_set 		;closure to set a MELT option
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -975,6 +976,9 @@ compiled C abstract syntax trees (that is @code{:tree} and
   :doc #{Retrieve an existing symbol of given string value $STRV or
 create it if not found.}# 
   #{meltgc_named_symbol(melt_string_str((melt_ptr_t)($strv)), MELT_CREATE)}#)
+(defprimitive get_raw_symbol (:cstring cstr) :value
+  :doc #{Get an existing symbol of given cstring $CSTR or else null.}#
+#{meltgc_named_symbol((char*) $cstr, MELT_GET)}#)
 
 ;; primitive to get or create a keyword from a string value
 (defprimitive get_keywordstr (strv) :value
@@ -3176,6 +3180,105 @@ end of compilation unit in last place}#
     (if (is_closure fun) (list_append lastlist fun)))
   )
 
+#|
+(definstance option_map_container class_container 
+  :container_value (make_mapobject discr_map_objects 41))
+
+(defclass class_option_descriptor
+  :super class_root
+  :fields (optdesc_name 
+	   optdesc_fun
+	   optdesc_help)
+  :doc #{The internal $CLASS_OPTION_DESCRIPTOR describes MELT
+options. $OPTDESC_NAME is the option symbol name, $OPTDESC_FUN is the
+function, and $OPTDESC_HELP is the help string.}#)
+
+(defun init_optionsetter (optsymb :cstring optval)
+  (debug_msg optsymb "init_optionsetter optsymb")
+  (let ( (optmap (unsafe_get_field :container_value option_map_container)) 
+	 (optdec (mapobject_get optmap optsymb))
+	 (optname (get_field :named_name optsymb))
+	 )
+    (assert_msg "check optsymb" (is_a optsymb class_symbol))
+    (if optdec
+	(let ( (optfun (get_field :optdesc_fun optdec)) 
+	       )
+	  (assert_msg "check optdec" (is_a optdec class_option_descriptor))
+	  (debug_msg optdec "init_optionsetter optdec")
+	  (let ( (optres (optfun optsymb optval)) 
+		 )
+	    (debug_msg optres "init_optionsetter optres")
+	    (return optres)))
+      (progn
+	(code_chunk badoption 
+		    #{ warning (0, "unrecognized MELT option %s. Use -f[plugin-arg-]melt-option=help", 
+				   melt_string_str ($optname)) }#)
+	(return)
+	))))
+	       
+(defun register_option (optsymb opthelp optfun)
+  :doc #{Registers a MELT option of symbol $OPTSYMB helpstring $OPTHELP and 
+function $OPTFUN.}#
+  (and (is_a optsymb class_symbol)
+       (is_string opthelp)
+       (is_closure optfun)
+       (let ( (optmap (unsafe_get_field :container_value option_map_container)) 
+	      (optdesc (instance class_option_descriptor
+				 :optdesc_name optsymb
+				 :optdesc_fun optfun
+				 :optdesc_help opthelp))
+	      )
+	 (mapobject_put optmap optsymb optdesc)
+	 ()
+	 )))
+
+(defun option_helper_fun (helpsymb :cstring helpstr)
+  (let ( (optmap (unsafe_get_field :container_value option_map_container))
+	 (symb (if helpstr (get_raw_symbol helpstr)))
+	 (optd (mapobject_get optmap symb))
+	 )
+    (cond
+     ( (is_a optd class_option_descriptor)
+       (let ( (opthelp (unsafe_get_field :optdesc_help optd)) 
+	      )
+	 (code_chunk givehelp
+		     #{ inform (UNKNOWN_LOCATION, 
+				"MELT help for option %s : %s",
+				$HELPSTR, melt_string_str ((melt_ptr_t) $OPTHELP)) }#)
+	 (return helpsymb)     
+       ))
+     (:else
+      (let ( (sortedsymbtup (mapobject_sorted_attribute_tuple optmap))
+	     (sortednametup (multiple_map sortedsymbtup
+					  (lambda (sy) (get_field :named_name sy)))
+			     )
+	     (:long nbsymb (multiple_length sortedsymbtup))
+	     )
+	(code_chunk 
+	 informoption
+	 #{ int i=0;
+	    inform (UNKNOWN_LOCATION, "There are %d MELT options", $NBSYMB);
+	    for (i=0;
+		 i<$NBSYMB;
+		 i+=2) {
+		 char *n1 = melt_string_str(melt_multiple_nth($SORTEDNAMETUP, i));
+		 char *n2 = melt_string_str(melt_multiple_nth($SORTEDNAMETUP, i));
+		 if (n1 && n2) 
+		   inform (UNKNOWN_LOCATION, "possible MELT options: %-20s & %s", n1, n2);
+		 else
+		   inform (UNKNOWN_LOCATION, "possible MELT option: %s", n1);
+            };
+            inform (UNKNOWN_LOCATION, "Use -f[plugin-arg-]melt-option=help=X for help about MELT option X");
+	  }#)
+	(return helpsymb)
+      )))
+))
+
+(register_option 'help '"Gives help about recognized MELT options" option_helper_fun)
+
+|#	 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;; debug message function
 
 ;; this is a rarely used function
@@ -3260,6 +3363,7 @@ accessed or updated but is intenally useful to many MELT mechanisms.}#
   :sysdata_dumpfile ()			;initialized late
   :sysdata_unit_starter init_unitstarter
   :sysdata_unit_finisher init_unitfinisher
+;  :sysdata_option_set init_optionsetter
   )
 
 
@@ -5155,6 +5259,7 @@ $FILENAM and $LINENO}#
  get_int
  get_keywordstr
  get_symbolstr
+ get_raw_symbol
  ignore
  inform_plain
  inform_strv
