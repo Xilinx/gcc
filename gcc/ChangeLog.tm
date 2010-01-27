@@ -1,3 +1,16 @@
+2010-01-27  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (struct tm_region): Add irr_blocks.
+	(tm_region_init_0): Initialize irr_blocks.
+	(tm_region_init_1): Set irr_blocks.
+	(expand_block_tm): Do not return anything.
+	(get_tm_region_blocks): Move up.  Rewrite to traverse CFG instead
+	of the dominator tree.  Use irr_blocks information.
+	(execute_tm_mark): Use get_tm_region_blocks.
+	(execute_tm_memopt): Pass new argument to get_tm_region_blocks.
+	(execute_tm_edges): Use get_tm_region_blocks.
+	(ipa_tm_diagnose_transaction): Same.  Set cfun temporarily.
+
 2010-01-25  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (ipa_tm_transform_calls): Do not scan past the end

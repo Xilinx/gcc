@@ -1589,6 +1589,9 @@ struct tm_region
 
   /* The set of all blocks that end the region; NULL if only EXIT_BLOCK.  */
   bitmap exit_blocks;
+
+  /* The set of all blocks that have an TM_IRREVOCABLE call.  */
+  bitmap irr_blocks;
 };
 
 static struct tm_region *all_tm_regions;
@@ -1632,6 +1635,7 @@ tm_region_init_0 (struct tm_region *outer, basic_block bb, gimple stmt)
   region->entry_block = FALLTHRU_EDGE (bb)->dest;
 
   region->exit_blocks = BITMAP_ALLOC (&tm_obstack);
+  region->irr_blocks = BITMAP_ALLOC (&tm_obstack);
 
   return region;
 }
@@ -1656,13 +1660,17 @@ tm_region_init_1 (struct tm_region *region, basic_block bb)
 	  if (gimple_code (g) == GIMPLE_CALL)
 	    {
 	      tree fn = gimple_call_fndecl (g);
-	      if (fn && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
-		  && (DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT
-		      || DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT_EH))
+	      if (fn && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL)
 		{
-		  bitmap_set_bit (region->exit_blocks, bb->index);
-		  region = region->outer;
-		  break;
+		  if (DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT
+		      || DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT_EH)
+		    {
+		      bitmap_set_bit (region->exit_blocks, bb->index);
+		      region = region->outer;
+		      break;
+		    }
+		  if (DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_IRREVOCABLE)
+		    bitmap_set_bit (region->irr_blocks, bb->index);
 		}
 	    }
 	}
@@ -2021,10 +2029,9 @@ expand_call_tm (struct tm_region *region,
 
 
 /* Expand all statements in BB as appropriate for being inside
-   a transaction.  Return true if we reach the end of the transaction,
-   or reach an irrevocable state.  */
+   a transaction.  */
 
-static bool
+static void
 expand_block_tm (struct tm_region *region, basic_block bb)
 {
   gimple_stmt_iterator gsi;
@@ -2045,7 +2052,7 @@ expand_block_tm (struct tm_region *region, basic_block bb)
 
 	case GIMPLE_CALL:
 	  if (expand_call_tm (region, &gsi))
-	    return true;
+	    return;
 	  break;
 
 	case GIMPLE_ASM:
@@ -2056,8 +2063,48 @@ expand_block_tm (struct tm_region *region, basic_block bb)
 	}
       gsi_next (&gsi);
     }
+}
 
-  return false;
+/* Return the list of basic-blocks in REGION.
+
+   STOP_AT_IRREVOCABLE_P is true if caller is uninterested in blocks
+   following a TM_IRREVOCABLE call.  */
+
+static VEC (basic_block, heap) *
+get_tm_region_blocks (struct tm_region *region, bool stop_at_irrevocable_p)
+{
+  VEC(basic_block, heap) *bbs = NULL;
+  unsigned i;
+  edge e;
+  edge_iterator ei;
+  bitmap visited_blocks = BITMAP_ALLOC (NULL);
+
+  i = 0;
+  VEC_safe_push (basic_block, heap, bbs, region->entry_block);
+
+  do
+    {
+      basic_block bb = VEC_index (basic_block, bbs, i++);
+
+      bitmap_set_bit (visited_blocks, bb->index);
+
+      if (region->exit_blocks &&
+	  bitmap_bit_p (region->exit_blocks, bb->index))
+	continue;
+
+      if (stop_at_irrevocable_p
+	  && region->irr_blocks
+	  && bitmap_bit_p (region->irr_blocks, bb->index))
+	continue;
+
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (!bitmap_bit_p (visited_blocks, e->dest->index))
+	  VEC_safe_push (basic_block, heap, bbs, e->dest);
+    }
+  while (i < VEC_length (basic_block, bbs));
+
+  BITMAP_FREE (visited_blocks);
+  return bbs;
 }
 
 /* Entry point to the MARK phase of TM expansion.  Here we replace
@@ -2071,6 +2118,7 @@ execute_tm_mark (void)
   struct tm_region *region;
   basic_block bb;
   VEC (basic_block, heap) *queue;
+  size_t i;
 
   queue = VEC_alloc (basic_block, heap, 10);
 
@@ -2090,21 +2138,10 @@ execute_tm_mark (void)
 	    subcode &= GTMA_DECLARATION_MASK;
 	  gimple_transaction_set_subcode (region->transaction_stmt, subcode);
 
-	  VEC_quick_push (basic_block, queue, region->entry_block);
-	  do
-	    {
-	      bb = VEC_pop (basic_block, queue);
-
-	      if (expand_block_tm (region, bb))
-		continue;
-
-	      if (!bitmap_bit_p (region->exit_blocks, bb->index))
-		for (bb = first_dom_son (CDI_DOMINATORS, bb);
-		     bb;
-		     bb = next_dom_son (CDI_DOMINATORS, bb))
-		  VEC_safe_push (basic_block, heap, queue, bb);
-	    }
-	  while (!VEC_empty (basic_block, queue));
+	  queue = get_tm_region_blocks (region, /*stop_at_irr_p=*/true);
+	  for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
+	    expand_block_tm (region, bb);
+	  VEC_free (basic_block, heap, queue);
 	}
       else
 	{
@@ -2113,8 +2150,6 @@ execute_tm_mark (void)
 	}
       tm_log_emit ();
     }
-
-  VEC_free (basic_block, heap, queue);
 
   return 0;
 }
@@ -2325,44 +2360,23 @@ execute_tm_edges (void)
 {
   struct tm_region *region;
   VEC (basic_block, heap) *queue;
-  bitmap blocks;
-
-  queue = VEC_alloc (basic_block, heap, 10);
-  blocks = BITMAP_ALLOC (&tm_obstack);
 
   for (region = all_tm_regions; region ; region = region->next)
     if (region->exit_blocks)
       {
 	unsigned int i;
-	bitmap_iterator iter;
+	basic_block bb;
 
 	/* Collect the set of blocks in this region.  Do this before
 	   splitting edges, so that we don't have to play with the
 	   dominator tree in the middle.  */
-	/* FIXME: Use get_tm_region_blocks.  */
-	bitmap_clear (blocks);
-	VEC_quick_push (basic_block, queue, region->entry_block);
-	do
-	  {
-	    basic_block bb = VEC_pop (basic_block, queue);
-	    bitmap_set_bit (blocks, bb->index);
-	    if (!bitmap_bit_p (region->exit_blocks, bb->index))
-	      for (bb = first_dom_son (CDI_DOMINATORS, bb);
-		   bb;
-		   bb = next_dom_son (CDI_DOMINATORS, bb))
-		VEC_safe_push (basic_block, heap, queue, bb);
-	  }
-	while (!VEC_empty (basic_block, queue));
-
+	queue = get_tm_region_blocks (region, /*stop_at_irr_p=*/false);
 	expand_transaction (region);
-
-	EXECUTE_IF_SET_IN_BITMAP (blocks, 0, i, iter)
-	  expand_block_edges (region, BASIC_BLOCK (i));
+	for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
+	  expand_block_edges (region, bb);
+	VEC_free (basic_block, heap, queue);
       }
   tm_log_delete ();
-
-  VEC_free (basic_block, heap, queue);
-  BITMAP_FREE (blocks);
 
   /* We've got to release the dominance info now, to indicate that it
      must be rebuilt completely.  Otherwise we'll crash trying to update
@@ -2458,35 +2472,6 @@ static htab_t tm_memopt_value_numbers;
   ((struct tm_memopt_bitmaps *) ((BB)->aux))->avail_in_worklist_p
 #define BB_VISITED_P(BB) \
   ((struct tm_memopt_bitmaps *) ((BB)->aux))->visited_p
-
-/* Return the list of basic-blocks in REGION.  */
-
-static VEC (basic_block, heap) *
-get_tm_region_blocks (struct tm_region *region)
-{
-  VEC(basic_block, heap) *bbs = NULL;
-  unsigned i;
-  basic_block bb = region->entry_block;
-
-  i = 0;
-  VEC_safe_push (basic_block, heap, bbs, bb);
-
-  do
-    {
-      basic_block son;
-
-      bb = VEC_index (basic_block, bbs, i++);
-      if (region->exit_blocks == NULL
-	  || !bitmap_bit_p (region->exit_blocks, bb->index))
-	for (son = first_dom_son (CDI_DOMINATORS, bb);
-	     son;
-	     son = next_dom_son (CDI_DOMINATORS, son))
-	  VEC_safe_push (basic_block, heap, bbs, son);
-    }
-  while (i < VEC_length (basic_block, bbs));
-
-  return bbs;
-}
 
 /* Htab support.  Return a hash value for a `tm_memop'.  */
 static hashval_t
@@ -3027,7 +3012,7 @@ execute_tm_memopt (void)
       bitmap_obstack_initialize (&tm_memopt_obstack);
 
       /* Save all BBs for the current region.  */
-      bbs = get_tm_region_blocks (region);
+      bbs = get_tm_region_blocks (region, false);
 
       /* Collect all the memory operations.  */
       for (i = 0; VEC_iterate (basic_block, bbs, i, bb); ++i)
@@ -3610,7 +3595,7 @@ ipa_tm_diagnose_transaction (struct cgraph_node *node,
       }
     else
       {
-	VEC (basic_block, heap) *bbs = get_tm_region_blocks (r);
+	VEC (basic_block, heap) *bbs = get_tm_region_blocks (r, false);
 	gimple_stmt_iterator gsi;
 	basic_block bb;
 	size_t i;
