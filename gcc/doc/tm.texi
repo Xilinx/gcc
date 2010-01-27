@@ -781,7 +781,8 @@ This target hook is called whenever the user specifies one of the
 target-specific C language family options described by the @file{.opt}
 definition files(@pxref{Options}).  It has the opportunity to do some
 option-specific processing and should return true if the option is
-valid.  The default definition does nothing but return false.
+valid.  The arguments are like for @code{TARGET_HANDLE_OPTION}.  The
+default definition does nothing but return false.
 
 In general, you should use @code{TARGET_HANDLE_OPTION} to handle
 options.  However, if processing an option requires routines that are
@@ -5998,7 +5999,7 @@ like:
 @end smallexample
 @end defmac
 
-@deftypefn {Target Hook} bool TARGET_FIXED_CONDITION_CODE_REGS (unsigned int *, unsigned int *)
+@deftypefn {Target Hook} bool TARGET_FIXED_CONDITION_CODE_REGS (unsigned int *@var{p1}, unsigned int *@var{p2})
 On targets which do not use @code{(cc0)}, and which use a hard
 register rather than a pseudo-register to hold condition codes, the
 regular CSE passes are often not able to identify cases in which the
@@ -6007,13 +6008,13 @@ small pass which optimizes such cases.  This hook should return true
 to enable this pass, and it should set the integers to which its
 arguments point to the hard register numbers used for condition codes.
 When there is only one such register, as is true on most systems, the
-integer pointed to by the second argument should be set to
+integer pointed to by @var{p2} should be set to
 @code{INVALID_REGNUM}.
 
 The default version of this hook returns false.
 @end deftypefn
 
-@deftypefn {Target Hook} enum machine_mode TARGET_CC_MODES_COMPATIBLE (enum machine_mode, enum machine_mode)
+@deftypefn {Target Hook} {enum machine_mode} TARGET_CC_MODES_COMPATIBLE (enum machine_mode @var{m1}, enum machine_mode @var{m2})
 On targets which use multiple condition code modes in class
 @code{MODE_CC}, it is sometimes the case that a comparison can be
 validly done in more than one mode.  On such a system, define this
@@ -6599,8 +6600,7 @@ Return a pointer to a store large enough to hold target scheduling context.
 @deftypefn {Target Hook} void TARGET_SCHED_INIT_SCHED_CONTEXT (void *@var{tc}, bool @var{clean_p})
 Initialize store pointed to by @var{tc} to hold target scheduling context.
 It @var{clean_p} is true then initialize @var{tc} as if scheduler is at the
-beginning of the block.  Otherwise, make a copy of the current context in
-@var{tc}.
+beginning of the block.  Otherwise, copy the current context into @var{tc}.
 @end deftypefn
 
 @deftypefn {Target Hook} void TARGET_SCHED_SET_SCHED_CONTEXT (void *@var{tc})
@@ -6654,14 +6654,10 @@ the hook is used to cancel data speculative insns when the ALAT table
 is nearly full.
 @end deftypefn
 
-@deftypefn {Target Hook} void TARGET_SCHED_SET_SCHED_FLAGS (unsigned int *@var{flags}, spec_info_t @var{spec_info})
+@deftypefn {Target Hook} void TARGET_SCHED_SET_SCHED_FLAGS (struct spec_info_def *@var{spec_info})
 This hook is used by the insn scheduler to find out what features should be
-enabled/used.  @var{flags} initially may have either the SCHED_RGN or SCHED_EBB
-bit set.  This denotes the scheduler pass for which the data should be
-provided.  The target backend should modify @var{flags} by modifying
-the bits corresponding to the following features: USE_DEPS_LIST, USE_GLAT,
-DETACH_LIFE_INFO, and DO_SPECULATION@.  For the DO_SPECULATION feature
-an additional structure @var{spec_info} should be filled by the target.
+enabled/used.
+The structure *@var{spec_info} should be filled in by the target.
 The structure describes speculation types that can be used in the scheduler.
 @end deftypefn
 
@@ -9695,10 +9691,10 @@ Default: empty.
 @section Parameters for Precompiled Header Validity Checking
 @cindex parameters, precompiled headers
 
-@deftypefn {Target Hook} {void *} TARGET_GET_PCH_VALIDITY (size_t *@var{len})
+@deftypefn {Target Hook} {void *} TARGET_GET_PCH_VALIDITY (size_t *@var{sz})
 This hook returns a pointer to the data needed by
 @code{TARGET_PCH_VALID_P} and sets
-@samp{*@var{len}} to the size of the data in bytes.
+@samp{*@var{sz}} to the size of the data in bytes.
 @end deftypefn
 
 @deftypefn {Target Hook} {const char *} TARGET_PCH_VALID_P (const void *@var{data}, size_t @var{sz})
@@ -10029,7 +10025,7 @@ point number to a signed fixed point number also convert validly to an
 unsigned one.
 @end defmac
 
-@deftypefn {Target Hook} int TARGET_MIN_DIVISIONS_FOR_RECIP_MUL (enum machine_mode @var{mode})
+@deftypefn {Target Hook} {unsigned int} TARGET_MIN_DIVISIONS_FOR_RECIP_MUL (enum machine_mode @var{mode})
 When @option{-ffast-math} is in effect, GCC tries to optimize
 divisions by the same divisor, by turning them into multiplications by
 the reciprocal.  This target hook specifies the minimum number of divisions
@@ -10655,7 +10651,7 @@ ignored.  This function should return the result of the call to the
 built-in function.
 @end deftypefn
 
-@deftypefn {Target Hook} tree TARGET_RESOLVE_OVERLOADED_BUILTIN (tree @var{fndecl}, tree @var{arglist})
+@deftypefn {Target Hook} tree TARGET_RESOLVE_OVERLOADED_BUILTIN (unsigned int @var{loc}, tree @var{fndecl}, void *@var{arglist})
 
 Select a replacement for a machine specific built-in function that
 was set up by @samp{TARGET_INIT_BUILTINS}.  This is done
@@ -10665,6 +10661,7 @@ declaration of the built-in function.  @var{arglist} is the list of
 arguments passed to the built-in function.  The result is a
 complete expression that implements the operation, usually
 another @code{CALL_EXPR}.
+@var{arglist} really has type @samp{VEC(tree,gc)*}
 @end deftypefn
 
 @deftypefn {Target Hook} tree TARGET_FOLD_BUILTIN (tree @var{fndecl}, tree @var{arglist}, bool @var{ignore})

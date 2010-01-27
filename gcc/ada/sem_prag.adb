@@ -1420,7 +1420,7 @@ package body Sem_Prag is
 
          --  Record whether pragma is enabled
 
-         Set_PPC_Enabled (N, Check_Enabled (Pname));
+         Set_Pragma_Enabled (N, Check_Enabled (Pname));
 
          --  If we are within an inlined body, the legality of the pragma
          --  has been checked already.
@@ -5265,8 +5265,18 @@ package body Sem_Prag is
                      if Is_Entity_Name (Exp) then
                         null;
 
+                     --  For string literals, we assume Standard_String as the
+                     --  type, unless the string contains wide or wide_wide
+                     --  characters.
+
                      elsif Nkind (Exp) = N_String_Literal then
-                        Resolve (Exp, Standard_String);
+                        if Has_Wide_Wide_Character (Exp) then
+                           Resolve (Exp, Standard_Wide_Wide_String);
+                        elsif Has_Wide_Character (Exp) then
+                           Resolve (Exp, Standard_Wide_String);
+                        else
+                           Resolve (Exp, Standard_String);
+                        end if;
 
                      elsif Is_Overloaded (Exp) then
                            Error_Pragma_Arg
@@ -5779,6 +5789,7 @@ package body Sem_Prag is
 
             Check_Arg_Is_Identifier (Arg1);
             Check_On := Check_Enabled (Chars (Get_Pragma_Arg (Arg1)));
+            Set_Pragma_Enabled (N, Check_On);
 
             --  If expansion is active and the check is not enabled then we
             --  rewrite the Check as:

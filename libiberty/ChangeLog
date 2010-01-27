@@ -1,3 +1,14 @@
+2010-01-25  Ian Lance Taylor  <iant@google.com>
+
+	* cp-demangle.c (cplus_demangle_type): Check for invalid type
+	after "DF".
+	* testsuite/demangle-expected: Add test.
+
+2010-01-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42338
+	* cp-demangle.c (d_print_comp): Fix array index printing.
+
 2010-01-11  Tristan Gingold  <gingold@adacore.com>
 
 	* cplus-dem.c (ada_demangle): Remove prototype.
@@ -289,7 +300,7 @@
 	with other than 1 operand.
 	(d_print_comp): Handle function parameters.  Fix bug with
 	function used in type of function.
-	* testsuite/demangle-expected: Upate tests.
+	* testsuite/demangle-expected: Update tests.
 
 2009-02-21  Mark Mitchell  <mark@codesourcery.com>
 
