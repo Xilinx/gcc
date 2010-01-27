@@ -215,9 +215,6 @@ emit_localizing_loads (rtx use, rtx insn)
 
   if (bitmap_bit_p (pseudos_to_localize, REGNO (use)))
     {
-      /* Create a new pseudo and record it in our map.  */
-      if (reg_map [(REGNO (use))] == NULL)
-	reg_map [REGNO (use)] = gen_reg_rtx (GET_MODE (use));
 
 
       /* If this pseudo still needs a load, emit it.  */
@@ -245,6 +242,10 @@ emit_localizing_loads (rtx use, rtx insn)
 	    }
 	  else
 	    {
+	      /* Create a new pseudo and record it in our map.  */
+	      if (reg_map [(REGNO (use))] == NULL)
+		reg_map [REGNO (use)] = gen_reg_rtx (GET_MODE (use));
+
 	      df_clear_flags (DF_NO_INSN_RESCAN);
 	      start_sequence ();
 	      emit_move_insn (reg_map [REGNO (use)], mem);
@@ -262,7 +263,8 @@ emit_localizing_loads (rtx use, rtx insn)
 	}
 
       /* Replace the original pseudo with the new one.  */
-      replace_rtx (insn, use, reg_map [REGNO (use)]);
+      if (reg_map [REGNO (use)])
+	replace_rtx (insn, use, reg_map [REGNO (use)]);
       return 1;
     }
   return 0;
@@ -706,8 +708,8 @@ build_conflicts_for_new_allocnos (rtx head, rtx tail,
       if (GET_CODE (PATTERN (insn)) == SET
 	  && GET_CODE (SET_SRC (PATTERN (insn))) == REG
 	  && GET_CODE (SET_DEST (PATTERN (insn))) == REG
-	  && (REGNO (SET_SRC (PATTERN (insn))) > (unsigned) orig_max_reg_num
-	      || REGNO (SET_DEST (PATTERN (insn))) > (unsigned) orig_max_reg_num))
+	  && (REGNO (SET_SRC (PATTERN (insn))) >= (unsigned) orig_max_reg_num
+	      || REGNO (SET_DEST (PATTERN (insn))) >= (unsigned) orig_max_reg_num))
 	{
 	  rtx reg0 = SET_SRC (PATTERN (insn));
 	  rtx reg1 = SET_DEST (PATTERN (insn));

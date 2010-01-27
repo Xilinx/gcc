@@ -1,3 +1,10 @@
+2010-01-26  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (emit_localizing_loads): Avoid creating unnecessary
+	pseudos.
+
+	* ira-reload.c (build_conflicts_for_new_allocnos): Fix typo.
+
 2010-01-14  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (build_conflicts_for_new_allocnos): Avoid unnecessary
