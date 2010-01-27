@@ -104,25 +104,25 @@ warm%.so: warm%.c  $(melt_module_makefile)
 
 ###
 
-ana%.n.so: ana%.c $(melt_module_makefile)
+xtra%.n.so: xtra%.c $(melt_module_makefile)
 	$(MAKE) -f $(melt_module_makefile) meltmodulerawwithoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
-ana%.d.so: ana%.c $(melt_module_makefile)
+xtra%.d.so: xtra%.c $(melt_module_makefile)
 	$(MAKE) -f $(melt_module_makefile) meltmodulerawdynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
-ana%.so: ana%.c $(melt_module_makefile)
+xtra%.so: xtra%.c $(melt_module_makefile)
 	$(MAKE) -f $(melt_module_makefile) meltmodule \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
 ## the warmelt files - order is important!
 WARMELT_RESTFILES= \
+	 warmelt-debug.melt \
 	 warmelt-macro.melt  \
-	 warmelt-infixsyntax.melt  \
 	 warmelt-normal.melt \
 	 warmelt-normatch.melt \
 	 warmelt-genobj.melt \
@@ -186,23 +186,23 @@ warmelt2: warmelt2.modlis $(WARMELT_BASE2SO)
 warmelt3: warmelt3.modlis $(WARMELT_BASE3SO)
 
 ################
-## the analysis MELT files. They are not needed to bootstrap the MELT
-## translation, but they are needed to make any MELT analysis of a GCC
+## the extra MELT files. They are not needed to bootstrap the MELT
+## translation, but they are useful when using MELT on a GCC
 ## compiled source 
 
 ## order is important
-ANAMELT_FILES= ana-base.melt ana-simple.melt
-ANAMELT_SRCFILES= $(patsubst %.melt, $(melt_make_source_dir)/%.melt, $(ANAMELT_FILES))
-ANAMELT_SRCARGLIST:=$(shell echo $(realpath $(ANAMELT_SRCFILES))|sed 's: :,:g')
-ANAMELT_BASE= $(basename $(ANAMELT_FILES))
-ANAMELT_BASELIST:=$(shell echo $(ANAMELT_BASE)|sed 's: :,:g')
+XTRAMELT_FILES= xtramelt-ana-base.melt xtramelt-ana-simple.melt xtramelt-parse-infix-syntax.melt
+XTRAMELT_SRCFILES= $(patsubst %.melt, $(melt_make_source_dir)/%.melt, $(XTRAMELT_FILES))
+XTRAMELT_SRCARGLIST:=$(shell echo $(realpath $(XTRAMELT_SRCFILES))|sed 's: :,:g')
+XTRAMELT_BASE= $(basename $(XTRAMELT_FILES))
+XTRAMELT_BASELIST:=$(shell echo $(XTRAMELT_BASE)|sed 's: :,:g')
 
-ANAMELT_BASESO= $(patsubst %, %.so, $(ANAMELT_BASE))
-ANAMELT_BASEC= $(patsubst %, %.c, $(ANAMELT_BASE))
-ANAMELT_BASEROW:=$(shell echo $(ANAMELT_BASE)|sed 's/ /:/g')
+XTRAMELT_BASESO= $(patsubst %, %.so, $(XTRAMELT_BASE))
+XTRAMELT_BASEC= $(patsubst %, %.c, $(XTRAMELT_BASE))
+XTRAMELT_BASEROW:=$(shell echo $(XTRAMELT_BASE)|sed 's/ /:/g')
 
 ## keep the generated warm*.c files!
-.SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASE3C) $(ANAMELT_BASEC) $(WARMELT_BASEHC) $(WARMELT_BASEH2C)
+.SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASE3C) $(XTRAMELT_BASEC) $(WARMELT_BASEHC) $(WARMELT_BASEH2C)
 
 warmelt0.modlis: $(WARMELT_BASE0SO)
 	date +"#$@ generated %F" > $@-tmp
@@ -317,85 +317,85 @@ warmelth2.modlis: $(WARMELT_BASEH2SO)
 	for f in  $(WARMELT_BASEH2); do echo $$f.d >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
 
-
-warmelt-macro.1.c: $(melt_make_source_dir)/warmelt-macro.melt $(melt_cc1) \
+warmelt-debug.1.c: $(melt_make_source_dir)/warmelt-debug.melt $(melt_cc1) \
 	 warmelt-first.1.so  \
+	 warmelt-debug.0.d.so  \
 	 warmelt-macro.0.d.so  \
-	 warmelt-infixsyntax.0.d.so \
 	 warmelt-normal.0.d.so \
 	 warmelt-normatch.0.d.so \
 	 warmelt-genobj.0.d.so \
 	 warmelt-outobj.0.d.so   empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=warmelt-first.1:warmelt-macro.0.d:warmelt-infixsyntax.0.d:warmelt-normal.0.d:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
+	$(meltarg_init)=warmelt-first.1:warmelt-debug.0.d:warmelt-macro.0.d:warmelt-normal.0.d:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
-warmelt-infixsyntax.1.c: $(melt_make_source_dir)/warmelt-infixsyntax.melt $(melt_cc1) \
+
+warmelt-macro.1.c: $(melt_make_source_dir)/warmelt-macro.melt $(melt_cc1) \
 	 warmelt-first.1.so  \
+	 warmelt-debug.1.so  \
 	 warmelt-macro.0.d.so  \
-	 warmelt-infixsyntax.0.d.so \
 	 warmelt-normal.0.d.so \
 	 warmelt-normatch.0.d.so \
 	 warmelt-genobj.0.d.so \
 	 warmelt-outobj.0.d.so   empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=warmelt-first.1:warmelt-macro.1.d:warmelt-infixsyntax.0.d:warmelt-normal.0.d:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
+	$(meltarg_init)=warmelt-first.1:warmelt-debug.1:warmelt-macro.0.d:warmelt-normal.0.d:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 warmelt-normal.1.c: $(melt_make_source_dir)/warmelt-normal.melt $(melt_cc1) \
 	 warmelt-first.1.so  \
+	 warmelt-debug.1.so  \
 	 warmelt-macro.1.so  \
-	 warmelt-infixsyntax.1.so  \
 	 warmelt-normal.0.d.so \
 	 warmelt-normatch.0.d.so \
 	 warmelt-genobj.0.d.so \
 	 warmelt-outobj.0.d.so \
 	 warmelt-predef.melt  empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=warmelt-first.1:warmelt-macro.1:warmelt-infixsyntax.1:warmelt-normal.0.d:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
+	$(meltarg_init)=warmelt-first.1:warmelt-debug.1:warmelt-macro.1:warmelt-normal.0.d:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 warmelt-normatch.1.c: $(melt_make_source_dir)/warmelt-normatch.melt $(melt_cc1) \
 	 warmelt-first.1.so  \
+	 warmelt-debug.1.so  \
 	 warmelt-macro.1.so  \
-	 warmelt-infixsyntax.1.so  \
 	 warmelt-normal.1.so \
 	 warmelt-normatch.0.d.so \
 	 warmelt-genobj.0.d.so \
 	 warmelt-outobj.0.d.so  empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=warmelt-first.1:warmelt-macro.1:warmelt-infixsyntax.1:warmelt-normal.1:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
+	$(meltarg_init)=warmelt-first.1:warmelt-debug.1:warmelt-macro.1:warmelt-normal.1:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 warmelt-genobj.1.c: $(melt_make_source_dir)/warmelt-genobj.melt $(melt_cc1) \
 	 warmelt-first.1.so  \
+	 warmelt-debug.1.so  \
 	 warmelt-macro.1.so  \
-	 warmelt-infixsyntax.1.so  \
 	 warmelt-normal.1.so \
 	 warmelt-normatch.1.so \
 	 warmelt-genobj.0.d.so \
 	 warmelt-outobj.0.d.so   empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=warmelt-first.1:warmelt-macro.1:warmelt-infixsyntax.1:warmelt-normal.1:warmelt-normatch.1:warmelt-genobj.0.d:warmelt-outobj.0.d \
+	$(meltarg_init)=warmelt-first.1:warmelt-debug.1:warmelt-macro.1:warmelt-normal.1:warmelt-normatch.1:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24)\
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 warmelt-outobj.1.c: $(melt_make_source_dir)/warmelt-outobj.melt $(melt_cc1) \
 	 warmelt-first.1.so  \
+	 warmelt-debug.1.so  \
 	 warmelt-macro.1.so  \
-	warmelt-infixsyntax.1.so \
 	 warmelt-normal.1.so \
 	 warmelt-normatch.1.so \
 	 warmelt-genobj.1.so \
 	 warmelt-outobj.0.d.so warmelt-predef.melt  empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=warmelt-first.1:warmelt-macro.1:warmelt-infixsyntax.1:warmelt-normal.1:warmelt-normatch.1:warmelt-genobj.1:warmelt-outobj.0.d \
+	$(meltarg_init)=warmelt-first.1:warmelt-debug.1:warmelt-macro.1:warmelt-normal.1:warmelt-normatch.1:warmelt-genobj.1:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24)\
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
@@ -486,7 +486,7 @@ diff-warmelt.2.3: $(WARMELT_BASE3SO)
 
 
 ####
-ana-base.c: $(melt_make_source_dir)/ana-base.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_cc1)   empty-file-for-melt.c
+xtramelt-ana-base.c: $(melt_make_source_dir)/xtramelt-ana-base.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_cc1)   empty-file-for-melt.c
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2" \
@@ -494,7 +494,7 @@ ana-base.c: $(melt_make_source_dir)/ana-base.melt  warmelt2.modlis $(WARMELT_BAS
 	      $(meltarg_output)=$@   empty-file-for-melt.c
 	ls -l $@
 
-ana-simple.c:  $(melt_make_source_dir)/ana-simple.melt  warmelt2.modlis $(WARMELT_BASE2SO)  ana-base.so   $(melt_cc1) 
+xtramelt-ana-simple.c:  $(melt_make_source_dir)/xtramelt-ana-simple.melt  warmelt2.modlis $(WARMELT_BASE2SO)  xtramelt-ana-base.so   $(melt_cc1) 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2:ana-base" \
@@ -502,23 +502,31 @@ ana-simple.c:  $(melt_make_source_dir)/ana-simple.melt  warmelt2.modlis $(WARMEL
 	      $(meltarg_output)=$@   empty-file-for-melt.c
 	ls -l $@
 
+xtramelt-parse-infix-syntax.c:  $(melt_make_source_dir)/xtramelt-parse-infix-syntax.melt  warmelt2.modlis $(WARMELT_BASE2SO)  xtramelt-ana-base.so xtramelt-ana-simple.so  $(melt_cc1) 
+	@echo generating $@ using $(WARMELT_BASE2SO)
+	-rm -f $@
+	$(MELTCCFILE1) $(meltarg_init)="@warmelt2:ana-base:ana-simple" \
+	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	      $(meltarg_output)=$@   empty-file-for-melt.c
+	ls -l $@
+
 ####
 #### the default list of modules
-$(melt_default_modules_list).modlis:  $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
+$(melt_default_modules_list).modlis:  $(WARMELT_BASE3SO) $(XTRAMELT_BASESO)
 	date +"#$@ generated %F" > $@-tmp
 	for f in  $(WARMELT_BASE3); do echo $$f >> $@-tmp; done
-	for f in  $(ANAMELT_BASE); do echo $$f >> $@-tmp; done
+	for f in  $(XTRAMELT_BASE); do echo $$f >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
 
 ### generated melt documentation
-meltgendoc.texi: $(melt_default_modules_list).modlis $(WARMELT_SRCFILES) $(ANAMELT_SRCFILES) empty-file-for-melt.c
+meltgendoc.texi: $(melt_default_modules_list).modlis $(WARMELT_SRCFILES) $(XTRAMELT_SRCFILES) empty-file-for-melt.c
 	$(melt_cc1) $(melt_cc1flags) -Wno-shadow $(meltarg_mode)=makedoc  \
 	      $(meltarg_module_path)=.:$(melt_make_module_dir) \
 	      $(meltarg_source_path)=.:$(melt_make_source_dir):$(melt_source_dir) \
 	      $(meltarg_compile_script)=$(melt_make_compile_script) \
 	      $(meltarg_tempdir)=.  $(MELT_DEBUG) \
 	      $(meltarg_init)="@$(melt_default_modules_list)" \
-	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST),$(ANAMELT_SRCARGLIST)  \
+	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST),$(XTRAMELT_SRCARGLIST)  \
 	      $(meltarg_output)=$@   empty-file-for-melt.c
 
 

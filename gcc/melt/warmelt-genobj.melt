@@ -649,21 +649,24 @@ $SBUF.}#
 ;; called
 (defun compilobj_catchall_nrep (recv gcx)
   (debug_msg gcx "class_rep compile_obj gcx")
-  (display_debug_message recv "class_rep compile_obj recv")
-  (outcstring_err "* compilobj unimplemented reciever class ")
-  (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
-  (outnewline_err)
-  (assert_msg "@@compile_obj should be implemented in nrep-s subclasses" ())
-  )
+  (debug_msg recv "class_rep compile_obj recv")
+  (let ( (discr (discrim recv)) 
+	 (discrname  (unsafe_get_field :named_name discr))
+	 )
+    (errormsg_strv "{Internal Error} COMPILE_OBJ sent to unexpected object of class" discrname)
+    (assert_msg "@@compile_obj should be implemented in nrep-s subclasses" ())
+))
 (install_method class_nrep compile_obj compilobj_catchall_nrep)
 
 (defun putobjdest_catchall_objcode (recv desto)
   (debug_msg recv "putobjdest_catchall_objcode recv@@  " )
   (debug_msg desto "putobjdest_catchall_objcode desto@@  " )
-  (outcstring_err "* putobjdest unimplemented reciever class ")
-  (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
-  (outnewline_err)
-  (assert_msg "@@ unexpected catchall putobjdest objcod" ()))
+  (let ( (discr (discrim recv)) 
+	 (discrname  (unsafe_get_field :named_name discr))
+	 )
+    (errormsg_strv "{Internal Error} PUT_OBJDEST sent to unexpected C-generated object of class" discrname)
+    (assert_msg "@@put_objdest should be implemented in nrep-s subclasses" ())
+    ))
 (install_method class_generated_c_code put_objdest putobjdest_catchall_objcode)
 
 
@@ -671,10 +674,11 @@ $SBUF.}#
   (debug_msg recv "putobjdest_catchall_anydiscr recv@@  " )
   (debug_msg desto "putobjdest_catchall_anydiscr desto@@  " )
   (outcstring_err "* putobjdest unimplemented reciever discriminant ")
-  (let ( (discr (discrim recv)) ) 
-    (outstr_err (unsafe_get_field :named_name discr)))
-  (outnewline_err)
-  (assert_msg "@@ unexpected catchall putobjdest anydiscr" ()))
+  (let ( (discr (discrim recv)) 
+	 (discrname  (unsafe_get_field :named_name discr))
+	 )
+    (errormsg_strv "{Internal Error} PUT_OBJDEST sent to unexpected value of " discrname)
+  (assert_msg "@@ unexpected catchall putobjdest anydiscr" ())))
 (install_method discr_any_receiver put_objdest putobjdest_catchall_anydiscr)
 
 
@@ -692,6 +696,13 @@ $SBUF.}#
   (debug_msg recv "gectyp_objnil recv")
   ctype_value)
 (install_method class_objnil get_ctype gectyp_objnil)
+
+
+;; initstring-s are ctype_value
+(defun gectyp_objinitstring (recv env)
+  (debug_msg recv "gectyp_objinitstring recv")
+  (return ctype_value))
+(install_method class_objinitstring get_ctype gectyp_objinitstring)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; in the debug output routineobj-s make huge output, so print the detail only when at toplevel

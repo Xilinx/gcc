@@ -4682,7 +4682,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		    (let ( (sym  (macroexpand_1 s env mexpander)) )
 		      (if (is_not_a sym class_symbol)
 			  (progn
-			    (debugmsg sym "mexpand_export_values bad sym")
+			    (debug_msg sym "mexpand_export_values bad sym")
 			    (error_plain loc "(EXPORT_VALUES <sym>...) expecting symbol"_)))
 		      sym
 		      ))))
