@@ -5198,6 +5198,8 @@ upgrade-warmelt: $(WARMELT_BASE3SO)
 	  $(SHELL) $(srcdir)/../move-if-change  $(srcdir)/melt/$$f-tmp  $(srcdir)/melt/generated/$$f; \
 	done
 ## build other warmelt-*.0*.c
+# we used to have a move-if-cvhange of the generated files, but an mv
+# is better...
 	for r in $(WARMELT_REST); do \
 	  rm -f $$r.0*.c ; \
 	  echo upgrade-warmelt generating $$r.0 C files; \
@@ -5207,7 +5209,7 @@ upgrade-warmelt: $(WARMELT_BASE3SO)
 	  rm -f $(srcdir)/melt/generated/$$r.0*.c; \
 	  for f in $$r.0*.c ; do \
 	    grep -v '^#line' $$f | unifdef -UMELTGCC_NOLINENUMBERING  > $(srcdir)/melt/$$f-tmp; \
-	    $(SHELL) $(srcdir)/../move-if-change  $(srcdir)/melt/$$f-tmp  $(srcdir)/melt/generated/$$f; \
+	    $(SHELL) mv  $(srcdir)/melt/$$f-tmp  $(srcdir)/melt/generated/$$f; \
           done; \
 	done
 ## rebuild warmelt1 to be sure

@@ -8410,10 +8410,10 @@ meltrout_106_warmelt_macro_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstarg
   struct meltclosure_st *clos;
   struct excepth_melt_st *exh;
   struct callframe_melt_st *prev;
-#define CURFRAM_NBVARPTR 5
-  void* varptr[5];
-#define CURFRAM_NBVARNUM 1
-  long varnum[1];
+#define CURFRAM_NBVARPTR 6
+  void* varptr[6];
+#define CURFRAM_NBVARNUM 2
+  long varnum[2];
 /*others*/
   long _spare_; }
     *framptr_=0,    curfram__;
@@ -8421,13 +8421,13 @@ meltrout_106_warmelt_macro_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstarg
    int ix=0;
    framptr_ = (void*)firstargp_;
    gt_ggc_mx_melt_un (framptr_->clos);
-   for(ix=0; ix<5; ix++)
+   for(ix=0; ix<6; ix++)
     if (framptr_->varptr[ix])
      gt_ggc_mx_melt_un (framptr_->varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&curfram__, 0, sizeof(curfram__));
- curfram__.nbvar = 5;
+ curfram__.nbvar = 6;
   curfram__.clos = closp_;
  curfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &curfram__;
@@ -8463,15 +8463,40 @@ MELT_LOCATION("warmelt-macro.melt:4681:/ block");
   MELT_LOCATION("warmelt-macro.melt:4683:/ cond.then");
   MELT_LOCATION("warmelt-macro.melt:4683:/ block");
    /*block*/{
-    MELT_LOCATION("warmelt-macro.melt:4685:/ apply");
-    /*apply*/{
-     union meltparam_un argtab[1];
-     memset(&argtab, 0, sizeof(argtab));
-     MELT_LOCATION("warmelt-macro.melt:4685:/ apply.arg");
-     argtab[0].bp_cstring =  "mexpand_export_values bad sym";
-     /*_.DEBUGMSG__V5*/ curfptr[4] =  melt_apply ((meltclosure_ptr_t)((/*!DEBUGMSG*/ curfrout->tabval[2])), (melt_ptr_t)(/*_.SYM__V4*/ curfptr[3]), (BPARSTR_CSTRING ""), argtab, "", (union meltparam_un*)0);
-     }
-    ;
+    
+    #if ENABLE_CHECKING
+     MELT_LOCATION("warmelt-macro.melt:4685:/ cppif.then");
+    MELT_LOCATION("warmelt-macro.melt:4685:/ block");
+     /*block*/{
+      /*_#THE_CALLCOUNT__L2*/ curfnum[1] = 
+       callcount;;
+      MELT_LOCATION("warmelt-macro.melt:4685:/ apply");
+      /*apply*/{
+       union meltparam_un argtab[4];
+       memset(&argtab, 0, sizeof(argtab));
+       MELT_LOCATION("warmelt-macro.melt:4685:/ apply.arg");
+       argtab[0].bp_cstring =  "mexpand_export_values bad sym";
+       MELT_LOCATION("warmelt-macro.melt:4685:/ apply.arg");
+       argtab[1].bp_long = /*_#THE_CALLCOUNT__L2*/ curfnum[1];
+       MELT_LOCATION("warmelt-macro.melt:4685:/ apply.arg");
+       argtab[2].bp_cstring =  "warmelt-macro.melt";
+       MELT_LOCATION("warmelt-macro.melt:4685:/ apply.arg");
+       argtab[3].bp_long = 4685;
+       /*_.DEBUG_MSG_FUN__V6*/ curfptr[5] =  melt_apply ((meltclosure_ptr_t)((/*!DEBUG_MSG_FUN*/ curfrout->tabval[2])), (melt_ptr_t)(/*_.SYM__V4*/ curfptr[3]), (BPARSTR_CSTRING BPARSTR_LONG BPARSTR_CSTRING BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+       }
+      ;
+      /*_.IFCPP___V5*/ curfptr[4] = /*_.DEBUG_MSG_FUN__V6*/ curfptr[5];;
+      /*epilog*/
+      MELT_LOCATION("warmelt-macro.melt:4685:/ clear");
+      /*clear*/ /*_#THE_CALLCOUNT__L2*/ curfnum[1] = 0 ;
+      MELT_LOCATION("warmelt-macro.melt:4685:/ clear");
+      /*clear*/ /*_.DEBUG_MSG_FUN__V6*/ curfptr[5] = 0 ;}
+     
+     #else /*ENABLE_CHECKING*/
+     MELT_LOCATION("warmelt-macro.melt:4685:/ cppif.else");
+    /*_.IFCPP___V5*/ curfptr[4] = (/*nil*/NULL);
+     #endif /*ENABLE_CHECKING*/
+     ;
     
     {
     MELT_LOCATION("warmelt-macro.melt:4686:/ locexp");
@@ -8482,7 +8507,7 @@ MELT_LOCATION("warmelt-macro.melt:4681:/ block");
     ;
     /*epilog*/
     MELT_LOCATION("warmelt-macro.melt:4683:/ clear");
-    /*clear*/ /*_.DEBUGMSG__V5*/ curfptr[4] = 0 ;}
+    /*clear*/ /*_.IFCPP___V5*/ curfptr[4] = 0 ;}
    ;
   } /*noelse*/
   ;

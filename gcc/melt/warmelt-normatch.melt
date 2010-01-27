@@ -1860,6 +1860,64 @@
     )
   )
 (install_method class_source_pattern_constant normal_pattern normpat_constpat)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; to ease debugging, we offer the option to generate .dot files
+;;;;; for graphviz (see http://www.graphviz.org/ for more)
+
+;;  the instance containing the string value prefix of the generated
+;;  .dot file, should be something like /tmp/mygr to generated
+;;  /tmp/mygr1.dot /tmp/mygr2.dot etc...
+(definstance match_graphic_dot_prefix class_container
+  :container_value ())
+
+(defun match_graphic_optset (optsymb :cstring prefixs)
+  (debug_msg optsymb "match_graphic_optset optsumb")
+  (let ( (prefstr (make_string discr_string prefixs)) )
+    (put_fields match_graphic_dot_prefix :container_value prefstr)
+    (debug_msg match_graphic_dot_prefix "match_graphic_optset  match_graphic_dot_prefix")
+    (return match_graphic_dot_prefix)
+    ))
+
+(register_option 'match_graphic
+		 '"Prefix for Graphviz .dot files generated about match normalization when debugging" 
+		 match_graphic_optset)
+		 
+
+;;; a private class to help generate dot graphics
+(defclass class_match_graphic
+  :doc #{$CLASS_MATCH_GRAPHIC is a private class to generate graphviz
+  .dot graphics files to debug the MELT translation of matching. Don't
+  use it yourself.}#
+  :super class_root
+  :fields (
+	   mchgx_filename		;the filename
+	   mchgx_nodbuf			;the strbuf for nodes
+	   mchgx_edgbuf			;the strbuf for edges
+	   ))
+
+;; internal function to out the node name for the match graphic
+(defun mg_out_node_name (out ntest)
+  (assert_msg "check out" (is_out out))
+  (assert_msg "check ntest" (is_a ntest class_normtester_any))
+  (let ( (cla (discrim ntest))
+	 (clanam (get_field :named_name cla))
+	 (:long clanamlen (string_length clanam))
+	 (:long ix (get_int ntest))
+	)
+    ;; the classname starts with CLASS_ which has six characters
+    (assert_msg "check clanamlen" (>i clanamlen 6))
+    (code_chunk outchunk
+		#{ /* mg_node_name $OUTCHUNK */
+		meltgc_add_out ((melt_ptr_t) $OUT,
+				melt_string_str ((melt_ptr_t) $CLANAM) +6);
+		meltgc_out_printf ((melt_ptr_t) $OUT, "_%d",
+				   (int) $IX);
+		}#
+		)
+    ))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; normalize a match

@@ -791,13 +791,18 @@
 	(add2sbuf_strconst implbuf "#ifndef MELTGCC_NOLINENUMBERING")
 	(add2sbuf_indentnl implbuf 0)
 	(cond ( (is_mixint loc) 
-		(add2sbuf_strconst implbuf "#line ")
+		;;; we don't output #line in a single draw to make
+		;;; grep -v '#line' work better even without the
+		;;; start-of-line caret...
+		(add2sbuf_strconst implbuf "#")
+		(add2sbuf_strconst implbuf "line ")
 		(add2sbuf_longdec implbuf (get_int loc))
 		(add2sbuf_strconst implbuf " \"")
 		(add2sbuf_string implbuf (mixint_val loc))
 		(add2sbuf_strconst implbuf "\""))
 	      ( (is_mixloc loc)
-		(add2sbuf_strconst implbuf "#line ")
+		(add2sbuf_strconst implbuf "#")
+		(add2sbuf_strconst implbuf "line ")
 		(add2sbuf_longdec implbuf (mixloc_locline loc))
 		(add2sbuf_strconst implbuf " \"")
 		(add2sbuf_strconst implbuf (mixloc_locfile loc))

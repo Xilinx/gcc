@@ -4506,6 +4506,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  pairlist_to_multiple	
  post_initialization
  put_env
+ register_option
  routine_every
  tuple_nth
  tuple_sized

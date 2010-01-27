@@ -1,4 +1,26 @@
 2010-01-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (upgrade-warmelt): use an mv not a move-if-change to
+	always move the generated files.
+	* melt/warmelt-first.melt: export register_option.
+	* melt/warmelt-normatch.melt: start adding match_graphic option to
+	generate a .dot graphic of the match tests when debugging. Adding
+	private class_match_graphic & mg_out_node_name.
+	{{regenerated, but some files remain unchanged}}
+	* gcc/melt/generated/warmelt-debug.0+01.c: added & regenerated.
+	* gcc/melt/generated/warmelt-debug.0.c: regenerated.
+	* gcc/melt/generated/warmelt-first.0.c: regenerated.
+	* gcc/melt/generated/warmelt-first.0+01.c: regenerated.
+	* gcc/melt/generated/warmelt-first.0+02.c: regenerated.
+	* gcc/melt/generated/warmelt-genobj.0.c: regenerated.
+	* gcc/melt/generated/warmelt-macro.0+02.c: regenerated.
+	* gcc/melt/generated/warmelt-macro.0.c: regenerated.
+	* gcc/melt/generated/warmelt-normal.0+01.c: regenerated.
+	* gcc/melt/generated/warmelt-normal.0.c: regenerated.
+	* gcc/melt/generated/warmelt-normatch.0.c: regenerated.
+	* gcc/melt/generated/warmelt-outobj.0.c: regenerated.
+
+
+2010-01-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{split warmelt-first.melt, tmatch-6.melt still fails, added
 	options support...}}
 	* melt/warmelt-first.melt: added code for options, and moved debug
