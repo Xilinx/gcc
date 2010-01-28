@@ -2443,15 +2443,17 @@ meltgc_add_out_dec (melt_ptr_t outbuf_p, long l)
 
 void
 meltgc_out_printf (melt_ptr_t outbuf_p,
-			 const char *fmt, ...)
+		   const char *fmt, ...)
 {
   char *cstr = NULL;
   va_list ap;
   int l = 0;
-  static char tinybuf[100];
+  char tinybuf[120];
   MELT_ENTERFRAME (2, NULL);
 #define outbufv  curfram__.varptr[0]
   outbufv = outbuf_p;
+  if (!melt_is_out (outbufv))
+    goto end;
   memset (tinybuf, 0, sizeof (tinybuf));
   va_start (ap, fmt);
   l = vsnprintf (tinybuf, sizeof (tinybuf) - 1, fmt, ap);

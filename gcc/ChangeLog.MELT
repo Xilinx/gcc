@@ -1,4 +1,12 @@
 2010-01-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{the add2out_mixloc never worked hence crashing, now corrected!
+	the graphiz graph is generated correctly but not pretty...}}
+	* melt/warmelt-first.melt: corrected add2out_mixloc!
+	* melt/warmelt-normatch.melt: missing \n in fprintf for dotfil.
+	* melt-runtime.c (meltgc_out_printf): check the discr of the out
+	to avoid calling printf if out is not appropriate.
+
+2010-01-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{there was a type mismatch in primitives. So this should be an
 	error, not a warning.}}
 	* melt-runtime.c (meltgc_out_printf): use a MELT root and

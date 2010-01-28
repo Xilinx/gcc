@@ -1196,13 +1196,21 @@ an integer $I if $I is greater than $N.}#
 (defprimitive add2sbuf_string (sbuf str) :void 
   :doc #{Add into stringbuffer $SBUF the string value $STR.}#
   #{meltgc_add_strbuf((melt_ptr_t)($sbuf), melt_string_str((melt_ptr_t)($str)))}#)
-;; primitive to add the location info of a mixedloc into a strbuf
+;; primitive to add the location info of a mixedloc into a strbuf we
+;; copy the location file name into a buffer, to avoid crashing if a
+;; GC is called...
 (defprimitive add2sbuf_mixloc (sbuf mixl) :void
   :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL.}#
-  #{/*add2sbufmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC)
-  meltgc_strbuf_printf((melt_ptr_t)($sbuf), "{%s:%d}",
-		       LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mixl)),
-		       LOCATION_LINE(melt_location_mixloc((melt_ptr_t)$mixl))); }#)
+  #{/*add2sbufmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) {
+    char smallbuf[128];
+    int loclineno = 0;
+    location_t loc = melt_location_mixloc ((melt_ptr_t)$mixl);
+    memset (smallbuf, 0, sizeof(smallbuf));
+    snprintf (smallbuf, sizeof (smallbuf)-1, 
+			"{%.120s:%d}",
+			LOCATION_FILE (loc), LOCATION_LINE(loc));
+    meltgc_add_strbuf_raw((melt_ptr_t)($sbuf), smallbuf);
+ } /*end add2sbufmixloc*/  }#)
 
 ;; primitive to add the short location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_short_mixloc (sbuf mixl) :void
@@ -1313,13 +1321,21 @@ an integer $I if $I is greater than $N.}#
 (defprimitive add2out_string (out str) :void 
   :doc #{Add to output $OUT the string value $STR.}#
   #{meltgc_add_out((melt_ptr_t)($out), melt_string_str((melt_ptr_t)($str)))}#)
+
 ;; primitive to add the location info of a mixedloc into a outbuf
 (defprimitive add2out_mixloc (out mixl) :void
   :doc #{Add to output $OUT the mixed location $MIXL.}#
-  #{/*add2outmixloc*/ { if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) 
-  meltgc_out_printf((melt_ptr_t)(" out "), "{%s:%d}", 
-  LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mixl)), 
-  LOCATION_LINE(melt_location_mixloc((melt_ptr_t)$mixl)));}}#)
+  #{/*add2outmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) {
+  char locbuf[128];
+  location_t tloc = melt_location_mixloc((melt_ptr_t)$MIXL);
+  memset (locbuf, 0, sizeof(locbuf));
+  snprintf (locbuf, sizeof(locbuf)-1,
+		    "{%.110s:%d}",
+		    LOCATION_FILE (tloc),
+		    LOCATION_LINE (tloc));
+   meltgc_add_out_raw ((melt_ptr_t) $OUT, locbuf);
+  } /*end add2outmixloc*/
+}#)
 
 ;; primitive to add an indentation or space into a outbuf
 (defprimitive add2out_indent (out :long depth) :void

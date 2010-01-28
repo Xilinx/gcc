@@ -1975,7 +1975,7 @@
 	      (progn
 		(add2out_strconst nodout "#")
 		(add2out_longhex nodout nmarank)))
-	  (add2out_strconst nodout "</td> <td>##")
+	  (add2out_strconst nodout "</font></td> <td>##")
 	  (add2out_longhex nodout (obj_hash nmaloc))
 	  (add2out_strconst nodout "</td></tr>")
 	  (add2out_indentnl nodout 2)
@@ -2394,7 +2394,7 @@
 		      strftime (nowbuf, sizeof(nowbuf)-1,
 					"%Y %b %d %Hh%M",
 					localtime (&nowt));
-		      fprintf (dotfil, "// generated %s", nowbuf);
+		      fprintf (dotfil, "// generated %s\n", nowbuf);
 		      fprintf (dotfil, "digraph meltmatch_%lx {\n",
 				       $HCODNMATCH);
 		      fprintf (dotfil, " graph [ label=\"Melt Match %d #%#x %s\" ];\n",
