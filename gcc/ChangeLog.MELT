@@ -1,3 +1,12 @@
+2010-01-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (upgrade-warmelt): use a direct mv, without
+	$(SHELL).
+	* melt/warmelt-first.melt: added semicolons in some add2out
+	primitives.
+	* melt/warmelt-normatch.melt: added support for generating
+	graphviz .dot files on normal matchers. That support don't work
+	yet but crashes :-(.
+
 2010-01-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (upgrade-warmelt): use an mv not a move-if-change to
 	always move the generated files.

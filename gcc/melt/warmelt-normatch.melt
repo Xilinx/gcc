@@ -1874,15 +1874,17 @@
 
 (defun match_graphic_optset (optsymb :cstring prefixs)
   (debug_msg optsymb "match_graphic_optset optsumb")
-  (let ( (prefstr (make_string discr_string prefixs)) )
+  (let ( (prefstr (make_stringconst discr_string prefixs)) )
     (put_fields match_graphic_dot_prefix :container_value prefstr)
-    (debug_msg match_graphic_dot_prefix "match_graphic_optset  match_graphic_dot_prefix")
+    (debug_msg match_graphic_dot_prefix
+	       "match_graphic_optset match_graphic_dot_prefix")
     (return match_graphic_dot_prefix)
     ))
 
-(register_option 'match_graphic
-		 '"Prefix for Graphviz .dot files generated about match normalization when debugging" 
-		 match_graphic_optset)
+(register_option
+ 'match_graphic
+ '"Prefix for Graphviz .dot files generated about match normalization when debugging" 
+ match_graphic_optset)
 		 
 
 ;;; a private class to help generate dot graphics
@@ -1890,11 +1892,11 @@
   :doc #{$CLASS_MATCH_GRAPHIC is a private class to generate graphviz
   .dot graphics files to debug the MELT translation of matching. Don't
   use it yourself.}#
-  :super class_root
+  :super class_proped
   :fields (
 	   mchgx_filename		;the filename
-	   mchgx_nodbuf			;the strbuf for nodes
-	   mchgx_edgbuf			;the strbuf for edges
+	   mchgx_nodout			;the output strbuf for nodes
+	   mchgx_edgout			;the output strbuf for edges
 	   ))
 
 ;; internal function to out the node name for the match graphic
@@ -1906,7 +1908,8 @@
 	 (:long clanamlen (string_length clanam))
 	 (:long ix (get_int ntest))
 	)
-    ;; the classname starts with CLASS_ which has six characters
+    ;; the classname starts with CLASS_ which has six characters, we
+    ;; skip them for the node name
     (assert_msg "check clanamlen" (>i clanamlen 6))
     (code_chunk outchunk
 		#{ /* mg_node_name $OUTCHUNK */
@@ -1918,6 +1921,117 @@
 		)
     ))
 
+;; internal selector to output the label of a test in "HTML-like"
+;; graphiz format
+(defselector matchgraphic_label class_selector
+)
+
+(defun mglabel_any_test (ntest mg)
+  (assert_msg "check ntest" (is_a ntest class_normtester_any))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (nloc (unsafe_get_field :nrep_loc ntest))
+	 (nmatched (unsafe_get_field :ntest_matched ntest))
+	 (nodout (unsafe_get_field :mchgx_nodout mg))
+	 (edgout (unsafe_get_field :mchgx_edgout mg))
+	 )
+    (debug_msg nloc "mglabel_any_test nloc")
+    (debug_msg nmatched "mglabel_any_test nmatched")
+    ;; first table row: output the node name in blue bold and the hashcode
+    (add2out_strconst nodout "<tr><td>")
+    (add2out_strconst nodout 
+		      "<font color=\"blue\" face=\"Times-Roman Bold\">")
+    (mg_out_node_name nodout ntest)
+    (add2out_strconst nodout "</font></td>")
+    (add2out_strconst nodout "<td><font face=\"Courier\" point-size=\"6\">#")
+    (add2out_longhex nodout (obj_hash ntest))
+    (add2out_strconst nodout "</font></td>")
+    (add2out_strconst nodout "</tr>")
+    (add2out_indentnl nodout 2)
+    ;; if we have a location, it makes a row
+    (cond
+     ( (is_mixloc nloc)
+       (add2out_strconst nodout "<tr><td rowspan=\"2\">")
+       (add2out_strconst nodout "<font face=\"Courier Italic\" point-size=\"6\">")
+       (add2out_mixloc nodout nloc)
+       (add2out_strconst nodout "</font></td></tr>")
+       (add2out_indentnl nodout 2)
+       )
+     )
+    ;; if the matched is a locsymocc [it usually should] display it,
+    ;; that is its symbol and the hashcode of the locsymocc
+    (if (is_a nmatched class_nrep_locsymocc)
+	(let ( (nmaloc (unsafe_get_field :nrep_loc nmatched))
+	       (nmasymb (unsafe_get_field :nocc_symb nmatched))
+	       (:long nmarank
+		      (get_int (get_field :csym_urank nmasymb)))
+	       )
+	  (add2out_strconst nodout "<tr><td>")
+	  (add2out_strconst nodout "<font face=\"Courier Bold\" point-size=\"8\">")
+	  (add2out_string nodout (get_field :named_name nmasymb))
+	  (if (>i nmarank 0)
+	      (progn
+		(add2out_strconst nodout "#")
+		(add2out_longhex nodout nmarank)))
+	  (add2out_strconst nodout "</td> <td>##")
+	  (add2out_longhex nodout (obj_hash nmaloc))
+	  (add2out_strconst nodout "</td></tr>")
+	  (add2out_indentnl nodout 2)
+	  ))
+    ))
+(install_method class_normtester_any matchgraphic_label mglabel_any_test)
+
+;; internal function to out a tuple of test nodes in graphiz format
+(defun matchgraphic_tests (testup mg)
+  (debug_msg testup "matchgraphic_tests testup start")
+  (debug_msg mg "matchgraphic_tests mg start")
+  (assert_msg "check testup" (is_multiple testup))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (nodout (unsafe_get_field :mchgx_nodout mg))
+	 (edgout (unsafe_get_field :mchgx_edgout mg))
+	 )
+    (add2out_indentnl nodout 0)
+    (add2out_indentnl edgout 0)
+    (foreach_in_multiple 
+     testup
+     (curtest :long tix)
+     (assert_msg "check curtest" (is_a curtest class_normtester_any))
+     (debug_msg curtest "matchgraphic_tests curtest")
+     ;; output the node and its label
+     (mg_out_node_name nodout curtest)
+     (add2out_strconst nodout " [ label=<")
+     (add2out_indentnl nodout 1)
+     (add2out_strconst nodout "<table border=\"1\" cellborder=\"1\" cellspacing=\"1\" cellpadding=\"2\">")
+     (add2out_indentnl nodout 1)
+     (matchgraphic_label curtest mg)
+     (add2out_indentnl nodout 1)
+     (add2out_strconst nodout "</table>")
+     (add2out_indentnl nodout 1)
+     (add2out_strconst nodout ">, margin=1")
+     (add2out_strconst nodout " ];")
+     (add2out_indentnl nodout 0)
+     ;; output the outgoing edges 
+     (let ( (nthen (unsafe_get_field :ntest_then curtest))
+	    (nelse (unsafe_get_field :ntest_else curtest))
+	    )
+       (if (is_a nthen class_normtester_any)
+	   (progn
+	     (mg_out_node_name edgout curtest)
+	     (add2out_strconst edgout " -> /*then*/ ")
+	     (mg_out_node_name edgout nthen)
+	     (add2out_strconst edgout " [ arrowhead=normal, color=green ];")
+	     (add2out_indentnl edgout 0)
+	     ))
+       (if (is_a nelse class_normtester_any)
+	   (progn
+	     (mg_out_node_name edgout curtest)
+	     (add2out_strconst edgout " -> /*else*/ ")
+	     (mg_out_node_name edgout nelse)
+	     (add2out_strconst edgout " [ arrowhead=diamond, color=red ];")
+	     (add2out_indentnl edgout 0)
+	     ))
+       )
+     )
+    ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; normalize a match
@@ -2222,6 +2336,73 @@
 	  (put_fields curtest :ntest_normatch nmatch)
 	  (debug_msg curtest "normexp_match indexed curtest")
 	  )
+	 (if (need_dbg 1)
+	     (let ( (dotprefix (get_field :container_value match_graphic_dot_prefix)) )
+	       (debug_msg match_graphic_dot_prefix "normexp_match match_graphic_dot_prefix")
+	       (debug_msg dotprefix "normexp_match dotprefix")
+	       (if (is_string dotprefix)
+		   (let (
+			 (:long hcodnmatch (obj_hash nmatch))
+			 (:long cnt 0)
+			 (:long nbtests (multiple_length teststupl))
+			 (dotfilename
+			  (let ( (sbuf (make_strbuf discr_strbuf)) 
+				 )
+			    (code_chunk 
+			     uniqcnt 
+			     #{  /* normexp_match $UNIQCNT */
+			     static long uniqcounter;
+			     uniqcounter ++;
+			     $CNT = uniqcounter; 
+			     }#)
+			    (assert_msg "check sbuf" (is_strbuf sbuf))
+			    (add2sbuf_string sbuf dotprefix)
+			    (add2sbuf_longdec sbuf cnt)
+			    (add2sbuf_string sbuf ".dot")
+			    (debug_msg sbuf "normexp_match sbuf")
+			    (strbuf2string discr_string sbuf)))
+			 (nodbuf (make_strbuf discr_strbuf))
+			 (edgbuf (make_strbuf discr_strbuf))
+			 (mg (instance class_match_graphic
+				       :mchgx_filename dotfilename
+				       :mchgx_nodout nodbuf
+				       :mchgx_edgout edgbuf
+				       ))
+			 )
+		     (debug_msg mg "normexp_match initial mg")
+		     (matchgraphic_tests teststupl mg)
+		     (debug_msg mg "normexp_match final mg")
+		     (assert_msg "check dotfilename" (is_string dotfilename))
+		     (code_chunk 
+		      outputmg
+		      #{ /*normexp_match $OUTPUTMG */
+		      time_t nowt = 0;
+		      char nowbuf[60];
+		      FILE* dotfil = 
+		        fopen (melt_string_str ((melt_ptr_t) $DOTFILENAME), "w");
+		      if (!dotfil) 
+		        fatal_error("failed to open matchdot file %s - %m", 
+				    melt_string_str ((melt_ptr_t) $DOTFILENAME));
+		      fprintf (dotfil, "// melt matchdot file %s\n", 
+				       melt_string_str ((melt_ptr_t) $DOTFILENAME));
+		      time (&nowt);
+		      memset (nowbuf, 0, sizeof(nowbuf));
+		      strftime (nowbuf, sizeof(nowbuf)-1,
+					"%Y %b %d %Hh%M",
+					localtime (&nowt));
+		      fprintf (dotfil, "// generated %s", nowbuf);
+		      fprintf (dotfil, "digraph meltmatch_%lx {\n",
+				       $HCODNMATCH);
+		      fprintf (dotfil, " graph [ label=\"Melt Match %d #%#x %s\" ];\n",
+				       $CNT, $HCODNMATCH, nowbuf);
+		      fprintf (dotfil, "// %d tests\n", $NBTESTS);
+		      melt_putstrbuf (dotfil, (melt_ptr_t) $NODBUF);
+		      fprintf (dotfil, "\n /// edges\n");
+		      melt_putstrbuf (dotfil, (melt_ptr_t) $EDGBUF);
+		      fprintf (dotfil, "\n} // eof %s\n", melt_string_str ((melt_ptr_t) $DOTFILENAME));
+		      fclose (dotfil);
+		      }#)
+		   ))))
 	 (unsafe_put_fields clocc :nocc_bind cbind)
 	 (debug_msg teststupl "normexp_match final teststupl")
 	 (debug_msg nbindmatx "normexp_match before append nbindmatx")

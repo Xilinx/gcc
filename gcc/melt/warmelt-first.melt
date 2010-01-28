@@ -1319,18 +1319,18 @@ an integer $I if $I is greater than $N.}#
   #{/*add2outmixloc*/ { if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) 
   meltgc_out_printf((melt_ptr_t)(" out "), "{%s:%d}", 
   LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mixl)), 
-  LOCATION_LINE(melt_location_mixloc((melt_ptr_t)$mixl))); }#)
+  LOCATION_LINE(melt_location_mixloc((melt_ptr_t)$mixl)));}}#)
 
 ;; primitive to add an indentation or space into a outbuf
 (defprimitive add2out_indent (out :long depth) :void
   :doc #{Add to output $OUT the indentation $DEPTH or a space.}#
-  #{meltgc_out_add_indent((melt_ptr_t)($out), ($depth), 64)}#)
+  #{meltgc_out_add_indent((melt_ptr_t)($out), ($depth), 64);}#)
 
 
 ;; primitive to add an indented newline into a outbuf
 (defprimitive add2out_indentnl (out :long depth) :void
   :doc #{Add to output $OUT the indented newline of given $DEPTH.}#
-  #{meltgc_out_add_indent((melt_ptr_t)($out), ($depth), 0)}#)
+  #{meltgc_out_add_indent((melt_ptr_t)($out), ($depth), 0);}#)
 
 
 ;; primitive to add a strbuf into a outbuf
