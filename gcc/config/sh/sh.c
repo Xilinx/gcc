@@ -9271,9 +9271,7 @@ sh_insn_length_adjustment (rtx insn)
 	&& GET_CODE (PATTERN (insn)) != USE
 	&& GET_CODE (PATTERN (insn)) != CLOBBER)
        || CALL_P (insn)
-       || (JUMP_P (insn)
-	   && GET_CODE (PATTERN (insn)) != ADDR_DIFF_VEC
-	   && GET_CODE (PATTERN (insn)) != ADDR_VEC))
+       || (JUMP_P (insn) && !JUMP_TABLE_DATA_P (insn)))
       && GET_CODE (PATTERN (NEXT_INSN (PREV_INSN (insn)))) != SEQUENCE
       && get_attr_needs_delay_slot (insn) == NEEDS_DELAY_SLOT_YES)
     return 2;
@@ -9281,9 +9279,7 @@ sh_insn_length_adjustment (rtx insn)
   /* SH2e has a bug that prevents the use of annulled branches, so if
      the delay slot is not filled, we'll have to put a NOP in it.  */
   if (sh_cpu_attr == CPU_SH2E
-      && JUMP_P (insn)
-      && GET_CODE (PATTERN (insn)) != ADDR_DIFF_VEC
-      && GET_CODE (PATTERN (insn)) != ADDR_VEC
+      && JUMP_P (insn) && !JUMP_TABLE_DATA_P (insn)
       && get_attr_type (insn) == TYPE_CBRANCH
       && GET_CODE (PATTERN (NEXT_INSN (PREV_INSN (insn)))) != SEQUENCE)
     return 2;

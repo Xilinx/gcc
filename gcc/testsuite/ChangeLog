@@ -1,3 +1,89 @@
+2010-01-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/42891
+	* gcc.target/i386/pr42891.c: New test.
+
+2010-01-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42871
+	* g++.dg/torture/pr42871.C: New testcase.
+
+2010-01-28  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/Wobjsize-1.h: New testcase.
+	* gcc.dg/Wobjsize-1.c: Likewise.
+
+2010-01-28  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42883
+	* g++.dg/torture/pr42883.C: New testcase.
+
+2010-01-28  Michael Matz  <matz@suse.de>
+
+	* gcc.target/i386/pr42881.c: New test.
+
+2010-01-28  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.misc-tests/linkage.exp: Remove mips-sgi-irix6*o32 support.
+	Add i?86-*-solaris2* support.
+
+2010-01-28  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42713
+	PR c++/42820
+	* g++.dg/template/typedef27.C: New test case.
+	* g++.dg/template/typedef28.C: New test case.
+
+2010-01-27  Stephen Thomas  <stephen.thomas@arm.com>
+
+	* testsuite/gcc.dg/optimize-bswap*.c: Add ARM target
+
+2010-01-27  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42878
+	* gcc.dg/torture/pr42878-1.c: New testcase.
+	* gcc.dg/torture/pr42878-2.c: Likewise.
+
+2010-01-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/42874
+	* gcc.dg/vla-22.c: New test.
+
+2010-01-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* ada/acats/run_all.sh: Make sure norun.lst is sorted using the
+	current collation.
+
+2010-01-26  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/42685
+	* gcc.dg/pr42685.c: New testcase.
+	* g++.dg/other/pr42685.C: Likewise.
+
+2010-01-26  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42806
+	* g++.dg/other/pr42806.C: New testcase.
+
+2010-01-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42250
+	* gcc.dg/pr42250.c: New testcase.
+
+2010-01-25  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/array_bounds_test.adb: New test.
+
+2010-01-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/42858
+	* gfortran.dg/generic_21.f90: New test.
+
+2010-01-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR testsuite/41522
+	* gcc.c-torture/compile/pr38789.c: Change to dg-do compile.
+
 2010-01-24  Mark Mitchell  <mark@codesourcery.com>
 
 	PR c++/42748
