@@ -1225,7 +1225,7 @@ MELT_LOCATION("warmelt-debug.melt:981:/ block");
   
   {
   MELT_LOCATION("warmelt-debug.melt:989:/ locexp");
-  meltgc_out_add_indent((melt_ptr_t)(/*_.OUT__V9*/ curfptr[8]), (/*_#DEPTH__L1*/ curfnum[0]), 64);}
+  meltgc_out_add_indent((melt_ptr_t)(/*_.OUT__V9*/ curfptr[8]), (/*_#DEPTH__L1*/ curfnum[0]), 64);;}
   ;
   
   {

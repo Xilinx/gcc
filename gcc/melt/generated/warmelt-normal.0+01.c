@@ -14344,7 +14344,7 @@ MELT_LOCATION("warmelt-normal.melt:3322:/ block");
      ;
      MELT_LOCATION("warmelt-normal.melt:3377:/ putpairhead");
      /*putpairhead*/
-     melt_assertmsg("putpairhead /2b2e724f checkpair", melt_magic_discr((melt_ptr_t)(/*_.CTUPBIND__V38*/ curfptr[37]))== OBMAG_PAIR);
+     melt_assertmsg("putpairhead /182b2adc checkpair", melt_magic_discr((melt_ptr_t)(/*_.CTUPBIND__V38*/ curfptr[37]))== OBMAG_PAIR);
      ((meltpair_ptr_t)(/*_.CTUPBIND__V38*/ curfptr[37]))->hd = (melt_ptr_t) (/*_.CTUPBIND__V36*/ curfptr[35]);
      ;
      MELT_LOCATION("warmelt-normal.melt:3377:/ touch");
@@ -15512,7 +15512,7 @@ MELT_LOCATION("warmelt-normal.melt:3397:/ block");
      ;
      MELT_LOCATION("warmelt-normal.melt:3462:/ putpairhead");
      /*putpairhead*/
-     melt_assertmsg("putpairhead /3354916d checkpair", melt_magic_discr((melt_ptr_t)(/*_.CLISTBIND__V55*/ curfptr[54]))== OBMAG_PAIR);
+     melt_assertmsg("putpairhead /9850e00 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CLISTBIND__V55*/ curfptr[54]))== OBMAG_PAIR);
      ((meltpair_ptr_t)(/*_.CLISTBIND__V55*/ curfptr[54]))->hd = (melt_ptr_t) (/*_.CLISTBIND__V53*/ curfptr[52]);
      ;
      MELT_LOCATION("warmelt-normal.melt:3462:/ touch");

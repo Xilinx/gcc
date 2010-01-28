@@ -1,4 +1,27 @@
 2010-01-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in (upgrade-warmelt): the warmelt-first.melt should be
+	from srcdir!
+	* melt-make.mk: replaced ana-base with xtramelt-ana-base
+	everywhere!
+	{{ regenerated files, some unchanged, some deleted }}
+        * melt/generated/warmelt-first.0.c: regenerated.
+        * melt/generated/warmelt-normal.0.c: regenerated.
+        * melt/generated/warmelt-macro.0.c: regenerated.
+        * melt/generated/warmelt-debug.0+01.c: regenerated.
+        * melt/generated/warmelt-outobj.0.c: regenerated.
+        * melt/generated/warmelt-first.0+01.c: regenerated.
+        * melt/generated/warmelt-normal.0+01.c: regenerated.
+        * melt/generated/warmelt-genobj.0.c: regenerated.
+        * melt/generated/warmelt-first.0+02.c: removed file.
+        * melt/generated/warmelt-normatch.0.c: regenerated.
+        * melt/generated/warmelt-outobj.0+01.c: regenerated.
+        * melt/generated/warmelt-outobj.0+02.c: regenerated.
+        * melt/generated/warmelt-outobj.0+03.c: regenerated.
+        * melt/generated/warmelt-debug.0.c: regenerated.
+
+
+2010-01-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (upgrade-warmelt): use a direct mv, without
 	$(SHELL).
 	* melt/warmelt-first.melt: added semicolons in some add2out

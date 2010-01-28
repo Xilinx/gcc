@@ -497,7 +497,7 @@ xtramelt-ana-base.c: $(melt_make_source_dir)/xtramelt-ana-base.melt  warmelt2.mo
 xtramelt-ana-simple.c:  $(melt_make_source_dir)/xtramelt-ana-simple.melt  warmelt2.modlis $(WARMELT_BASE2SO)  xtramelt-ana-base.so   $(melt_cc1) 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
-	$(MELTCCFILE1) $(meltarg_init)="@warmelt2:ana-base" \
+	$(MELTCCFILE1) $(meltarg_init)="@warmelt2:xtramelt-ana-base" \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@   empty-file-for-melt.c
 	ls -l $@
@@ -505,7 +505,7 @@ xtramelt-ana-simple.c:  $(melt_make_source_dir)/xtramelt-ana-simple.melt  warmel
 xtramelt-parse-infix-syntax.c:  $(melt_make_source_dir)/xtramelt-parse-infix-syntax.melt  warmelt2.modlis $(WARMELT_BASE2SO)  xtramelt-ana-base.so xtramelt-ana-simple.so  $(melt_cc1) 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
-	$(MELTCCFILE1) $(meltarg_init)="@warmelt2:ana-base:ana-simple" \
+	$(MELTCCFILE1) $(meltarg_init)="@warmelt2:xtramelt-ana-base:xtramelt-ana-simple" \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@   empty-file-for-melt.c
 	ls -l $@
