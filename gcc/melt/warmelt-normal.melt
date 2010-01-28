@@ -1290,7 +1290,7 @@ routine procedures.}#
 		       (is_a actype class_ctype)
 		       (!= fortype actype))
 		  (progn
-		    (warning_strv sloc "type mismatch between formals & actuals in primitive"
+		    (error_strv sloc "type mismatch between formals & actuals in primitive"
 				  sopnamstr)
 		    (inform_strv sloc "mismatched primitive formal name"
 				 (unsafe_get_field :named_name forarg))
@@ -1476,7 +1476,7 @@ routine procedures.}#
 		       (is_a actype class_ctype)
 		       (!= fortype actype))
 		  (progn
-		    (warning_strv sloc "type mismatch between formals & actuals in cmatch oper"
+		    (error_strv sloc "type mismatch between formals & actuals in cmatch oper"
 				  cmanamstr)
 		    (inform_strv sloc "mismatched primitive formal name"
 				 (unsafe_get_field :named_name forarg))

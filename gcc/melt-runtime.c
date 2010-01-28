@@ -2448,23 +2448,30 @@ meltgc_out_printf (melt_ptr_t outbuf_p,
   char *cstr = NULL;
   va_list ap;
   int l = 0;
-  static char tinybuf[80];
+  static char tinybuf[100];
+  MELT_ENTERFRAME (2, NULL);
+#define outbufv  curfram__.varptr[0]
+  outbufv = outbuf_p;
   memset (tinybuf, 0, sizeof (tinybuf));
   va_start (ap, fmt);
   l = vsnprintf (tinybuf, sizeof (tinybuf) - 1, fmt, ap);
   va_end (ap);
   if (l < (int) sizeof (tinybuf) - 3)
     {
-      meltgc_add_strbuf_raw (outbuf_p, tinybuf);
-      return;
+      meltgc_add_strbuf_raw ((melt_ptr_t) outbufv, tinybuf);
+      goto end;
     }
   va_start (ap, fmt);
-  /* FIXME: vasprintf is a GNU function */
-  if (vasprintf (&cstr, fmt, ap) > l)
+  cstr = (char*) xcalloc ((l + 10)|7, 1);
+  memset (cstr, 0, l+2);
+  if (vsprintf (cstr, fmt, ap) > l)
     gcc_unreachable ();
   va_end (ap);
-  meltgc_add_out_raw (outbuf_p, cstr);
+  meltgc_add_out_raw ((melt_ptr_t) outbufv, cstr);
   free (cstr);
+ end:
+  MELT_EXITFRAME ();
+#undef outbufv
 }
 
 

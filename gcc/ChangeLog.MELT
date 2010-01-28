@@ -1,4 +1,14 @@
 2010-01-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{there was a type mismatch in primitives. So this should be an
+	error, not a warning.}}
+	* melt-runtime.c (meltgc_out_printf): use a MELT root and
+	vsnprintf not vasprintf.
+	* melt/warmelt-normal.melt: type mismatch in primitive makes an
+	error!
+	* melt/warmelt-normatch.melt: faulty add2sbuf_string instead of
+	add2sbuf_strcont.
+
+2010-01-28  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in (upgrade-warmelt): the warmelt-first.melt should be
 	from srcdir!
