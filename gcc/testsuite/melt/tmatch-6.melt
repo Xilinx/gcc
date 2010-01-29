@@ -4,6 +4,7 @@
 #| run in buildir/gcc
  ./cc1 -fmelt=runfile  -fmelt-module-path=.    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
     -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-option=match_graphic=/tmp/meltgraph \
     -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tmatch-6.melt -fmelt-debug empty-file-for-melt.c
 |#
 

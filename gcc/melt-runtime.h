@@ -3166,7 +3166,7 @@ melt_puts (FILE * f, const char *str)
 /* output a number with a prefix & suffix message */
 static inline void
 melt_putnum(FILE* f, const char*pref, long l, const char*suff) {
-  if (f) 
+  if (f)
     fprintf(f, "%s%ld%s", pref?pref:"", l, suff?suff:"");
 }
 
@@ -3363,6 +3363,8 @@ melt_get_file(melt_ptr_t file_p)
   return NULL;
 }
 
+/* strangely, gcc/input.h don't define yet that macro. */
+#define LOCATION_COLUMN(LOC) ((expand_location (LOC)).column)
 
 #endif /*MELT_INCLUDED_ */
 /* eof melt-runtime.h */

@@ -2452,7 +2452,7 @@ meltgc_out_printf (melt_ptr_t outbuf_p,
   MELT_ENTERFRAME (2, NULL);
 #define outbufv  curfram__.varptr[0]
   outbufv = outbuf_p;
-  if (!melt_is_out (outbufv))
+  if (!melt_is_out ((melt_ptr_t) outbufv))
     goto end;
   memset (tinybuf, 0, sizeof (tinybuf));
   va_start (ap, fmt);

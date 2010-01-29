@@ -1,3 +1,15 @@
+2010-01-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_out_printf): added cast to melt_ptr_t for
+	C++ compatibility.
+	* melt-runtime.h (LOCATION_COLUMN): added macro which really
+	should be in gcc/input.h.
+	* melt/warmelt-first.melt: display column in add2sbuf_mixloc &
+	add2out_mixloc.
+	* melt/warmelt-normatch.melt: added separate
+	mg_draw_match_graphviz_file function, which gives a little better
+	*.dot file.
+	* testsuite/melt/tmatch-6.melt: updated comment.
+
 2010-01-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{the add2out_mixloc never worked hence crashing, now corrected!
 	the graphiz graph is generated correctly but not pretty...}}

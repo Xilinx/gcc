@@ -1207,26 +1207,30 @@ an integer $I if $I is greater than $N.}#
     location_t loc = melt_location_mixloc ((melt_ptr_t)$mixl);
     memset (smallbuf, 0, sizeof(smallbuf));
     snprintf (smallbuf, sizeof (smallbuf)-1, 
-			"{%.120s:%d}",
-			LOCATION_FILE (loc), LOCATION_LINE(loc));
+			"{%.120s:%d:%d}",
+			LOCATION_FILE (loc), LOCATION_LINE (loc), LOCATION_COLUMN (loc));
     meltgc_add_strbuf_raw((melt_ptr_t)($sbuf), smallbuf);
  } /*end add2sbufmixloc*/  }#)
 
 ;; primitive to add the short location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_short_mixloc (sbuf mixl) :void
   :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL in short form.}#
-  #{/*add2sbufshortmixloc*/ { if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC)
-  meltgc_strbuf_printf((melt_ptr_t)($sbuf), "{%s:%d}", 
-		       lbasename(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mixl))), 
-		       LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mixl "))); }#)
+  #{/*add2sbufshortmixloc*/ { if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) {
+  location_t loc = melt_location_mixloc((melt_ptr_t)$mixl);
+  meltgc_strbuf_printf((melt_ptr_t)($sbuf), "{%s:%d:%d}", 
+		       lbasename(LOCATION_FILE (loc)), 
+		       LOCATION_LINE (loc), LOCATION_COLUMN (loc));
+  } /*end add2sbufshortmixloc*/}#)
 
 ;; primitive to add the texi location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_texi_mixloc (sbuf mixl) :void
   :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL in texinfo form.}#
-  #{/*add2sbufteximixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) 
+  #{/*add2sbufteximixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) {
+  location_t loc = melt_location_mixloc((melt_ptr_t)$mixl);
   meltgc_strbuf_printf((melt_ptr_t)($sbuf), "file @file{%s}, line %d", 
-		       lbasename(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mixl))), 
-		       LOCATION_LINE(melt_location_mixloc((melt_ptr_t)$mixl))); }#)
+		       lbasename (LOCATION_FILE (loc)), 
+		       LOCATION_LINE (loc)); 
+  } /*end add2sbufteximixloc*/}#)
 
 ;; primitive to add an indentation or space into a strbuf
 (defprimitive add2sbuf_indent (sbuf :long depth) :void

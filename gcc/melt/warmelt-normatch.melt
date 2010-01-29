@@ -1945,7 +1945,7 @@
 		      "<font color=\"blue\" face=\"Times-Roman Bold\">")
     (mg_out_node_name nodout ntest)
     (add2out_strconst nodout "</font></td>")
-    (add2out_strconst nodout "<td><font face=\"Courier\" point-size=\"6\">#")
+    (add2out_strconst nodout "<td><font face=\"Courier\" point-size=\"8\">#")
     (add2out_longhex nodout (obj_hash ntest))
     (add2out_strconst nodout "</font></td>")
     (add2out_strconst nodout "</tr>")
@@ -1954,7 +1954,7 @@
     (cond
      ( (is_mixloc nloc)
        (add2out_strconst nodout "<tr><td rowspan=\"2\">")
-       (add2out_strconst nodout "<font face=\"Courier Italic\" point-size=\"6\">")
+       (add2out_strconst nodout "<font face=\"Courier Italic\" point-size=\"8\">")
        (add2out_mixloc nodout nloc)
        (add2out_strconst nodout "</font></td></tr>")
        (add2out_indentnl nodout 2)
@@ -2004,7 +2004,7 @@
      (mg_out_node_name nodout curtest)
      (add2out_strconst nodout " [ label=<")
      (add2out_indentnl nodout 1)
-     (add2out_strconst nodout "<table border=\"1\" cellborder=\"1\" cellspacing=\"1\" cellpadding=\"2\">")
+     (add2out_strconst nodout "<table border=\"1\" cellborder=\"1\" cellspacing=\"1\" cellpadding=\"1\">")
      (add2out_indentnl nodout 1)
      (matchgraphic_label curtest mg)
      (add2out_indentnl nodout 1)
@@ -2036,6 +2036,74 @@
        )
      )
     ))
+
+
+;; utility to out a graphviz .dot file for the tests inside match
+(defun mg_draw_match_graphviz_file (nmatch dotprefix teststupl)
+  (let (
+        (:long hcodnmatch (obj_hash nmatch))
+        (:long cnt 0)
+        (:long nbtests (multiple_length teststupl)) 
+        (pathsbuf (make_strbuf discr_strbuf)) 
+        (dotfilename
+         (progn
+           (code_chunk 
+            uniqcnt 
+            #{  /* normexp_match $UNIQCNT */
+            static long uniqcounter;
+            uniqcounter ++;
+            $CNT = uniqcounter; 
+            }#)
+           (assert_msg "check pathsbuf" (is_strbuf pathsbuf))
+           (add2sbuf_string pathsbuf dotprefix)
+           (add2sbuf_longdec pathsbuf cnt)
+           (add2sbuf_strconst pathsbuf ".dot")
+           (debug_msg pathsbuf "mg_draw_match_graphviz_file pathsbuf")
+           (strbuf2string discr_string pathsbuf)))
+        (nodbuf (make_strbuf discr_strbuf))
+        (edgbuf (make_strbuf discr_strbuf))
+        (mg (instance class_match_graphic
+                      :mchgx_filename dotfilename
+                      :mchgx_nodout nodbuf
+                      :mchgx_edgout edgbuf
+                      ))
+        )
+    (debug_msg mg "mg_draw_match_graphviz_file initial mg")
+    (matchgraphic_tests teststupl mg)
+    (debug_msg mg "mg_draw_match_graphviz_file final mg")
+    (assert_msg "check dotfilename" (is_string dotfilename))
+    (code_chunk 
+     outputmg
+     #{ /*normexp_match $OUTPUTMG */
+     time_t nowt = 0;
+     char nowbuf[60];
+     FILE* dotfil = 
+     fopen (melt_string_str ((melt_ptr_t) $DOTFILENAME), "w");
+     if (!dotfil) 
+     fatal_error("failed to open matchdot file %s - %m", 
+                 melt_string_str ((melt_ptr_t) $DOTFILENAME));
+     fprintf (dotfil, "// melt matchdot file %s\n", 
+                      melt_string_str ((melt_ptr_t) $DOTFILENAME));
+     time (&nowt);
+     memset (nowbuf, 0, sizeof(nowbuf));
+     strftime (nowbuf, sizeof(nowbuf)-1,
+                       "%Y %b %d %Hh%M",
+                       localtime (&nowt));
+     fprintf (dotfil, "// generated %s\n", nowbuf);
+     fprintf (dotfil, "digraph meltmatch_%lx {\n",
+                      $HCODNMATCH);
+     fprintf (dotfil, " graph [ label=\"Melt Match %d #%#x %s\" ];\n",
+                      $CNT, $HCODNMATCH, nowbuf);
+     fprintf (dotfil, " node [ shape=\"box\", fontsize=\"12\" ];\n");
+     fprintf (dotfil, "// %d tests\n", $NBTESTS);
+     melt_putstrbuf (dotfil, (melt_ptr_t) $NODBUF);
+     fprintf (dotfil, "\n /// edges\n");
+     melt_putstrbuf (dotfil, (melt_ptr_t) $EDGBUF);
+     fprintf (dotfil, "\n} // eof %s\n", melt_string_str ((melt_ptr_t) $DOTFILENAME));
+     fclose (dotfil);
+     }#)
+    ))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; normalize a match
@@ -2344,69 +2412,9 @@
 	     (let ( (dotprefix (get_field :container_value match_graphic_dot_prefix)) )
 	       (debug_msg match_graphic_dot_prefix "normexp_match match_graphic_dot_prefix")
 	       (debug_msg dotprefix "normexp_match dotprefix")
-	       (if (is_string dotprefix)
-		   (let (
-			 (:long hcodnmatch (obj_hash nmatch))
-			 (:long cnt 0)
-			 (:long nbtests (multiple_length teststupl)) 
-			 (pathsbuf (make_strbuf discr_strbuf)) 
-			 (dotfilename
-			  (progn
-			    (code_chunk 
-			     uniqcnt 
-			     #{  /* normexp_match $UNIQCNT */
-			     static long uniqcounter;
-			     uniqcounter ++;
-			     $CNT = uniqcounter; 
-			     }#)
-			    (assert_msg "check pathsbuf" (is_strbuf pathsbuf))
-			    (add2sbuf_string pathsbuf dotprefix)
-			    (add2sbuf_longdec pathsbuf cnt)
-			    (add2sbuf_strconst pathsbuf ".dot")
-			    (debug_msg pathsbuf "normexp_match pathsbuf")
-			    (strbuf2string discr_string pathsbuf)))
-			 (nodbuf (make_strbuf discr_strbuf))
-			 (edgbuf (make_strbuf discr_strbuf))
-			 (mg (instance class_match_graphic
-				       :mchgx_filename dotfilename
-				       :mchgx_nodout nodbuf
-				       :mchgx_edgout edgbuf
-				       ))
-			 )
-		     (debug_msg mg "normexp_match initial mg")
-		     (matchgraphic_tests teststupl mg)
-		     (debug_msg mg "normexp_match final mg")
-		     (assert_msg "check dotfilename" (is_string dotfilename))
-		     (code_chunk 
-		      outputmg
-		      #{ /*normexp_match $OUTPUTMG */
-		      time_t nowt = 0;
-		      char nowbuf[60];
-		      FILE* dotfil = 
-		        fopen (melt_string_str ((melt_ptr_t) $DOTFILENAME), "w");
-		      if (!dotfil) 
-		        fatal_error("failed to open matchdot file %s - %m", 
-				    melt_string_str ((melt_ptr_t) $DOTFILENAME));
-		      fprintf (dotfil, "// melt matchdot file %s\n", 
-				       melt_string_str ((melt_ptr_t) $DOTFILENAME));
-		      time (&nowt);
-		      memset (nowbuf, 0, sizeof(nowbuf));
-		      strftime (nowbuf, sizeof(nowbuf)-1,
-					"%Y %b %d %Hh%M",
-					localtime (&nowt));
-		      fprintf (dotfil, "// generated %s\n", nowbuf);
-		      fprintf (dotfil, "digraph meltmatch_%lx {\n",
-				       $HCODNMATCH);
-		      fprintf (dotfil, " graph [ label=\"Melt Match %d #%#x %s\" ];\n",
-				       $CNT, $HCODNMATCH, nowbuf);
-		      fprintf (dotfil, "// %d tests\n", $NBTESTS);
-		      melt_putstrbuf (dotfil, (melt_ptr_t) $NODBUF);
-		      fprintf (dotfil, "\n /// edges\n");
-		      melt_putstrbuf (dotfil, (melt_ptr_t) $EDGBUF);
-		      fprintf (dotfil, "\n} // eof %s\n", melt_string_str ((melt_ptr_t) $DOTFILENAME));
-		      fclose (dotfil);
-		      }#)
-		   ))))
+	       (if (is_string dotprefix) 
+		   (mg_draw_match_graphviz_file nmatch dotprefix teststupl
+		 ))))
 	 (unsafe_put_fields clocc :nocc_bind cbind)
 	 (debug_msg teststupl "normexp_match final teststupl")
 	 (debug_msg nbindmatx "normexp_match before append nbindmatx")
