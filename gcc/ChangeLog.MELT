@@ -1,4 +1,9 @@
 2010-01-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tmatch-6 still fails.}}
+	* melt/warmelt-normatch.melt: the generated .dot graphic seems
+	lookable! The first node is in bold.
+
+2010-01-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_out_printf): added cast to melt_ptr_t for
 	C++ compatibility.
 	* melt-runtime.h (LOCATION_COLUMN): added macro which really

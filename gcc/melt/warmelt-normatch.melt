@@ -1973,10 +1973,12 @@
 	  (add2out_string nodout (get_field :named_name nmasymb))
 	  (if (>i nmarank 0)
 	      (progn
-		(add2out_strconst nodout "#")
-		(add2out_longhex nodout nmarank)))
+		(add2out_strconst nodout " #")
+		(add2out_longhex nodout nmarank)
+		(add2out_strconst nodout " ")
+		))
 	  (add2out_strconst nodout "</font></td> <td>##")
-	  (add2out_longhex nodout (obj_hash nmaloc))
+	  (add2out_longhex nodout (obj_hash nmatched))
 	  (add2out_strconst nodout "</td></tr>")
 	  (add2out_indentnl nodout 2)
 	  ))
@@ -2003,14 +2005,14 @@
      ;; output the node and its label
      (mg_out_node_name nodout curtest)
      (add2out_strconst nodout " [ label=<")
-     (add2out_indentnl nodout 1)
      (add2out_strconst nodout "<table border=\"1\" cellborder=\"1\" cellspacing=\"1\" cellpadding=\"1\">")
      (add2out_indentnl nodout 1)
      (matchgraphic_label curtest mg)
      (add2out_indentnl nodout 1)
      (add2out_strconst nodout "</table>")
-     (add2out_indentnl nodout 1)
-     (add2out_strconst nodout ">, margin=1")
+     (add2out_strconst nodout ">, margin=0")
+     (if (==i tix 0)
+	 (add2out_strconst nodout ", style=\"bold\"")) 
      (add2out_strconst nodout " ];")
      (add2out_indentnl nodout 0)
      ;; output the outgoing edges 
@@ -2092,7 +2094,7 @@
      fprintf (dotfil, "// generated %s\n", nowbuf);
      fprintf (dotfil, "digraph meltmatch_%lx {\n",
                       $HCODNMATCH);
-     fprintf (dotfil, " graph [ label=\"Melt Match %d #%#x %s\" ];\n",
+     fprintf (dotfil, " graph [ label=\"Melt Match %d #%#x %s\", pad=\"0.5\", margin=\"0.3\" ];\n",
                       $CNT, $HCODNMATCH, nowbuf);
      fprintf (dotfil, " node [ shape=\"box\", fontsize=\"12\" ];\n");
      fprintf (dotfil, "// %d tests\n", $NBTESTS);
