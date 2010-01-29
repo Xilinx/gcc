@@ -1606,10 +1606,6 @@ tm_region_init_0 (struct tm_region *outer, basic_block bb, gimple stmt)
 {
   struct tm_region *region;
 
-  /* ??? Verify that the statement (and the block) haven't been deleted.  */
-  gcc_assert (gimple_bb (stmt) == bb);
-  gcc_assert (gimple_code (stmt) == GIMPLE_TRANSACTION);
-
   region = (struct tm_region *)
     obstack_alloc (&tm_obstack.obstack, sizeof (struct tm_region));
 
@@ -1644,10 +1640,13 @@ tm_region_init_0 (struct tm_region *outer, basic_block bb, gimple stmt)
    Record exit blocks for REGION and find nested regions.  */
 
 static void
-tm_region_init_1 (struct tm_region *region, basic_block bb)
+tm_region_init_1 (struct tm_region *region, basic_block bb,
+		  bitmap visited_blocks)
 {
   gimple_stmt_iterator gsi;
   gimple g;
+  edge_iterator ei;
+  edge e;
 
   /* Check to see if this is the end of a region by seeing if it 
      contains a call to __builtin_tm_commit{,_eh}.  Note that the
@@ -1681,10 +1680,13 @@ tm_region_init_1 (struct tm_region *region, basic_block bb)
   if (g && gimple_code (g) == GIMPLE_TRANSACTION)
     region = tm_region_init_0 (region, bb, g);
 
-  /* Process dominated blocks.  */
-  for (bb = first_dom_son (CDI_DOMINATORS, bb); bb;
-       bb = next_dom_son (CDI_DOMINATORS, bb))
-    tm_region_init_1 (region, bb);
+  /* Process subsequent blocks.  */
+  FOR_EACH_EDGE (e, ei, bb->succs)
+    if (!bitmap_bit_p (visited_blocks, e->dest->index))
+      {
+	bitmap_set_bit (visited_blocks, e->dest->index);
+	tm_region_init_1 (region, e->dest, visited_blocks);
+      }
 }
 
 /* Collect all of the transaction regions within the current function
@@ -1694,8 +1696,10 @@ tm_region_init_1 (struct tm_region *region, basic_block bb)
 static void
 tm_region_init (struct tm_region *region)
 {
+  bitmap visited_blocks = BITMAP_ALLOC (NULL);
   all_tm_regions = region;
-  tm_region_init_1 (region, single_succ (ENTRY_BLOCK_PTR));
+  tm_region_init_1 (region, single_succ (ENTRY_BLOCK_PTR), visited_blocks);
+  BITMAP_FREE (visited_blocks);
 }
 
 /* The "gate" function for all transactional memory expansion and optimization

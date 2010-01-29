@@ -1,3 +1,8 @@
+2010-01-28  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (tm_region_init_1): Traverse CFG instead of
+	dominator tree.
+
 2010-01-27  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (struct tm_region): Add irr_blocks.
