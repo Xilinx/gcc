@@ -218,15 +218,20 @@
 
 
 ;; block instruction
-(defclass class_objblock
+(defclass class_objanyblock
   :super class_objinstr
   :fields ( oblo_bodyl			;body list
 	    oblo_epil			;epilogue list
 	    ))
 
+(defclass class_objplainblock
+  :super class_objanyblock
+  :fields (
+	   ))
+
 ;; multi-allocation block instruction, used for letrec compilation
 (defclass class_objmultiallocblock
-  :super class_objblock
+  :super class_objanyblock
   :fields ( omalblo_allstruct		;the allocated structure is a
 					;tuple of class_objinitelem
 	    omalblo_name		;unique name
@@ -234,7 +239,7 @@
 
 ;; a block with a comment string appearing in the generated code
 (defclass class_objcommentedblock
-  :super class_objblock
+  :super class_objanyblock
   :fields ( ocomblo_comment		;the comment string
 	    ))
 
@@ -242,7 +247,7 @@
 ;; a block for compiling matches. We need to redistribute put_objdest
 ;; inside appropriately
 (defclass class_objmultiblock
-  :super class_objblock
+  :super class_objanyblock
   :fields (omulblo_subcomp		;the tuple of subcomponents
 					;into which redistribute
 					;destination
@@ -264,7 +269,7 @@
 
 ;; looping block
 (defclass class_objloop
-  :super class_objblock		 ;the body is looped, not the epilogue
+  :super class_objanyblock		 ;the body is looped, not the epilogue
   :fields (obloop_label		 ;cloned symbol
 	   obloop_resv		 ;the result of the loop
 	   ))
@@ -277,7 +282,7 @@
 
 ;; citeration block
 (defclass class_objciterblock
-  :super class_objblock
+  :super class_objanyblock
   :fields (obciter_citer
 	   obciter_before
 	   obciter_after
@@ -518,7 +523,8 @@
 (export_class				;alphabetical order
  class_initialroutineobj
  class_objapply
- class_objblock
+ class_objanyblock
+ class_objplainblock
  class_objciterblock
  class_objclear
  class_objcloccv
@@ -584,6 +590,8 @@
  class_procroutineobj
  class_routineobj
  )					;end export_class
+
+(export_synonym class_objblock class_objplainblock)
 
 ;;;; selector to generate the declaration of an initial
 ;;; reciever some objinielem
@@ -1817,7 +1825,7 @@ $SBUF.}#
 	  (destlist (make_list discr_list))
 	  (oval (compile_obj nval gcx))
 	  (bxres (unsafe_get_field :labind_res nbindx))
-	  (obloc (instance class_objblock
+	  (obloc (instance class_objplainblock
 			   :obi_loc nloc
 			   :oblo_bodyl inslist
 			   :oblo_epil epilist
@@ -1857,7 +1865,7 @@ $SBUF.}#
 	 (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (obodl (make_list discr_list))
 	 (oepil (make_list discr_list))
-	 (oblock (instance class_objblock
+	 (oblock (instance class_objplainblock
 			   :obi_loc loc
 			   :oblo_bodyl obodl
 			   :oblo_epil oepil))
@@ -2640,7 +2648,7 @@ $SBUF.}#
 	 (nseq (unsafe_get_field :nprogn_seq npro))
 	 (nlast (unsafe_get_field :nprogn_last npro))
 	 (bodyl (make_list discr_list))
-	 (oblock (instance class_objblock
+	 (oblock (instance class_objplainblock
 			   :obi_loc loc
 			   :oblo_bodyl bodyl
 			   ;; :oblo_epil is left null
@@ -2798,7 +2806,7 @@ $SBUF.}#
 	 (nfldass (unsafe_get_field :nuput_fields nupf))
 	 (obodl (make_list discr_list))
 	 (oepil (make_list discr_list))
-	 (oblock (instance class_objblock
+	 (oblock (instance class_objplainblock
 			   :obi_loc loc
 			   :oblo_bodyl obodl
 			   :oblo_epil oepil))
@@ -2897,7 +2905,7 @@ $SBUF.}#
 	       ))))
 	 (obodl (make_list discr_list))
 	 (oepil (make_list discr_list))
-	 (oblock (instance class_objblock
+	 (oblock (instance class_objplainblock
 			   :obi_loc loc
 			   :oblo_bodyl obodl
 			   :oblo_epil oepil))
@@ -3036,7 +3044,7 @@ $SBUF.}#
 	 (obody (compile_obj nbody gcx))
 	 (obodl (make_list discr_list))
 	 (oepil (make_list discr_list))
-	 (oblock (instance class_objblock
+	 (oblock (instance class_objplainblock
 			   :obi_loc loc
 			   :oblo_bodyl obodl
 			   :oblo_epil oepil))
@@ -3381,7 +3389,7 @@ $SBUF.}#
 	 ;; clear of desto
 	 (let ( 
 	       (obodl (make_list discr_list))
-	       (oblk (instance class_objblock
+	       (oblk (instance class_objplainblock
 			       ;; dont fill :obi_loc
 			       :oblo_bodyl obodl
 			       :oblo_epil ()
@@ -3507,8 +3515,8 @@ $SBUF.}#
 (install_method discr_null_receiver put_objdest putobjdest_null)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun putobjdest_objblock (recv desto)
-  (assert_msg "check recv" (is_a recv class_objblock))
+(defun putobjdest_objanyblock (recv desto)
+  (assert_msg "check recv" (is_a recv class_objanyblock))
   (assert_msg "check desto" (is_a desto class_objlocv))
 					;  (debug_msg recv "putobjdest block recv")
 					;  (debug_msg desto "putobjdest block desto")
@@ -3531,7 +3539,7 @@ $SBUF.}#
     recv
     ))
 
-(install_method class_objblock  put_objdest  putobjdest_objblock)
+(install_method class_objanyblock  put_objdest  putobjdest_objanyblock)
 
 
 ;;;;;;;;;;
@@ -3742,7 +3750,7 @@ $SBUF.}#
 	 (retloc (unsafe_get_field :gncx_retloc gcx))
 	 (orout (unsafe_get_field :gncx_objrout gcx))
 	 (olis (make_list discr_list))
-	 (oblock (instance class_objblock
+	 (oblock (instance class_objplainblock
 			   :obi_loc rloc
 			   :oblo_bodyl olis))
 	 (omainv (compile_obj rmain gcx))
@@ -3799,7 +3807,7 @@ $SBUF.}#
 	 (nrou (unsafe_get_field :nlambda_constrout nlam))
 	 (orout (unsafe_get_field :gncx_objrout gcx))
 	 (olis (make_list discr_list))
-	 (oblock (instance class_objblock
+	 (oblock (instance class_objplainblock
 			   :obi_loc nloc
 			   :oblo_bodyl olis))
 	 (destlist (make_list discr_list))
@@ -3856,7 +3864,7 @@ $SBUF.}#
 	   (locv (get_free_objlocptr gcx 'inst))
 	   (olis (make_list discr_list))
 	   (ocladat (compile_obj ncladat gcx))
-	   (oblock (instance class_objblock
+	   (oblock (instance class_objplainblock
 			     :obi_loc nloc
 			     :oblo_bodyl olis))
 	   (orallobj (instance class_objrawallocobj
@@ -5302,11 +5310,11 @@ $SBUF.}#
 	(freelist (normtester_free_objloc_list ntmi gcx tcx))
 	(othenlist (make_list discr_list))
 	(oelselist (make_list discr_list))
-	(othenblock (instance class_objblock
+	(othenblock (instance class_objplainblock
 			      :obi_loc nloc
 			      :oblo_bodyl othenlist
 			      ))
-	(oelseblock (instance class_objblock
+	(oelseblock (instance class_objplainblock
 			      :obi_loc nloc
 			      :oblo_bodyl oelselist))
 	(otest (instance
@@ -5405,11 +5413,11 @@ $SBUF.}#
 	(freelist (normtester_free_objloc_list ntsa gcx tcx))
 	(othenlist (make_list discr_list))
 	(oelselist (make_list discr_list))
-	(othenblock (instance class_objblock
+	(othenblock (instance class_objplainblock
 			      :obi_loc nloc
 			      :oblo_bodyl othenlist
 			      ))
-	(oelseblock (instance class_objblock
+	(oelseblock (instance class_objplainblock
 			      :obi_loc nloc
 			      :oblo_bodyl oelselist))
 	(otest (instance
@@ -5741,12 +5749,12 @@ $SBUF.}#
       (debug_msg fillchunk "compilmatcher_cmatcher fillchunk")
       (let ( 
 	    (othenlist (make_list discr_list))
-	    (othenbody (instance class_objblock
+	    (othenbody (instance class_objplainblock
 				 :obi_loc mloc
 				 :oblo_bodyl othenlist
 				 ))
 	    (oelselist (make_list discr_list))
-	    (oelsebody (instance class_objblock
+	    (oelsebody (instance class_objplainblock
 				 :obi_loc mloc
 				 :oblo_bodyl oelselist
 				 ))
@@ -5857,12 +5865,12 @@ $SBUF.}#
 			      :obmultapp_xres oouts
 			      ))
 	    (othenlist (make_list discr_list))
-	    (othenbody (instance class_objblock
+	    (othenbody (instance class_objplainblock
 				 :obi_loc mloc
 				 :oblo_bodyl othenlist
 				 ))
 	    (oelselist (make_list discr_list))
-	    (oelsebody (instance class_objblock
+	    (oelsebody (instance class_objplainblock
 				 :obi_loc mloc
 				 :oblo_bodyl oelselist
 				 ))

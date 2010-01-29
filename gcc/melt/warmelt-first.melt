@@ -1203,7 +1203,6 @@ an integer $I if $I is greater than $N.}#
   :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL.}#
   #{/*add2sbufmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) {
     char smallbuf[128];
-    int loclineno = 0;
     location_t loc = melt_location_mixloc ((melt_ptr_t)$mixl);
     memset (smallbuf, 0, sizeof(smallbuf));
     snprintf (smallbuf, sizeof (smallbuf)-1, 

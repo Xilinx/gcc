@@ -1,4 +1,39 @@
 2010-01-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{try to avoid generating useless c stuff in code, eg collapse
+	nested blocks into one, avoid too many #line...  tmatch-6 test
+	still fails.}}
+	* melt/warmelt-first.melt: remove useless loclineno in
+	add2sbufmixloc..
+	* melt/warmelt-normatch.melt: added mglabel_success_test and begin
+	cleaning normpat_orpat..
+	* melt/warmelt-genobj.melt: removed class_objblock, added
+	class_objanyblock & class_objplainblock.
+	* melt/warmelt-outobj.melt: don't output used nested plain blocks,
+	just catenate their output... and don't output useless consecutive
+	MELT_LOCATION..
+	{{regenerated}}
+	* melt/generated/warmelt-normatch.0+01.c: added & generated.
+	* melt/generated/warmelt-first.0.c: regenerated.
+	* melt/generated/warmelt-normal.0.c: regenerated.
+	* melt/generated/warmelt-macro.0.c: regenerated.
+	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-debug.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0.c: regenerated.
+	* melt/generated/warmelt-normal.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0+02.c: regenerated.
+	* melt/generated/warmelt-normatch.0.c: regenerated.
+	* melt/generated/warmelt-macro.0+01.c: regenerated.
+	* melt/generated/warmelt-macro.0+02.c: regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: regenerated.
+	* melt/generated/warmelt-debug.0.c: regenerated.
+
+2010-01-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tmatch-6 still fails.}}
 	* melt/warmelt-normatch.melt: the generated .dot graphic seems
 	lookable! The first node is in bold.

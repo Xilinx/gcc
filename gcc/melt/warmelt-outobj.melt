@@ -819,34 +819,80 @@
 	(add2sbuf_indentnl implbuf depth)
 	)))
 
+;; we really want to avoid outputint the same location twice, so we
+;; keep the previous location and implbuf
+
+(definstance prevloc_container class_container)
+(definstance previmplbuf_container class_container)
+
 ;; output the location & set the frame's location
 (defun output_location (loc implbuf :long depth :cstring msg)
-  (cond
-   ( (is_mixint loc) 
-     (add2sbuf_strconst implbuf "MELT_LOCATION(\"")
-     (add2sbuf_string implbuf (mixint_val loc))
-     (add2sbuf_strconst implbuf ":")
-     (add2sbuf_longdec implbuf (get_int loc))
-     (if msg (progn
-	       (add2sbuf_strconst implbuf ":/ ")
-	       (add2sbuf_strconst implbuf msg)
-	       ))
-     (add2sbuf_strconst implbuf "\");")
+  (let ( (prevloc (unsafe_get_field :container_value prevloc_container))
+	 (prevbuf (unsafe_get_field :container_value previmplbuf_container))
+	 )
+    (if (== prevbuf implbuf)
+	(if (or (== prevloc loc)
+		(and (==i (get_int loc) (get_int prevloc))
+		     (== (mixloc_val loc) (mixloc_val prevloc))))
+	    (progn
+	      (if msg (progn 
+			(add2sbuf_strconst implbuf "/*^")
+			(add2sbuf_ccomconst implbuf msg)
+			(add2sbuf_strconst implbuf "*/")
+			))
+	      (add2sbuf_indentnl implbuf 0)
+	      (add2sbuf_strconst implbuf "#ifndef MELTGCC_NOLINENUMBERING")
+	      (add2sbuf_indentnl implbuf 0)
+	      (cond ( (is_mixint loc) 
+		;;; we don't output #line in a single draw to make
+		;;; grep -v '#line' work better even without the
+		;;; start-of-line caret...
+		      (add2sbuf_strconst implbuf "#")
+		      (add2sbuf_strconst implbuf "line ")
+		      (add2sbuf_longdec implbuf (get_int loc))
+		      )
+		    ( (is_mixloc loc)
+		      (add2sbuf_strconst implbuf "#")
+		      (add2sbuf_strconst implbuf "line ")
+		      (add2sbuf_longdec implbuf (mixloc_locline loc))
+		      )
+		    )
+	      (add2sbuf_indentnl implbuf 0)
+	      (add2sbuf_strconst implbuf "#endif")
+	      (add2sbuf_indentnl implbuf depth)
+	      (return)
+	      )
+	  )
+      )
+    (Unsafe_put_fields  prevloc_container :container_value loc)
+    (unsafe_put_fields  previmplbuf_container :container_value implbuf)
+    ;;
+    (cond
+     ( (is_mixint loc) 
+       (add2sbuf_strconst implbuf "MELT_LOCATION(\"")
+       (add2sbuf_string implbuf (mixint_val loc))
+       (add2sbuf_strconst implbuf ":")
+       (add2sbuf_longdec implbuf (get_int loc))
+       (if msg (progn
+		 (add2sbuf_strconst implbuf ":/ ")
+		 (add2sbuf_strconst implbuf msg)
+		 ))
+       (add2sbuf_strconst implbuf "\");")
+       )
+     ( (is_mixloc loc)
+       (add2sbuf_strconst implbuf "MELT_LOCATION(\"")
+       (add2sbuf_string implbuf (mixloc_val loc))
+       (add2sbuf_strconst implbuf ":")
+       (add2sbuf_longdec implbuf (get_int loc))
+       (if msg (progn
+		 (add2sbuf_strconst implbuf ":/ ")
+		 (add2sbuf_strconst implbuf msg)
+		 ))
+       (add2sbuf_strconst implbuf "\");")
+       )
      )
-   ( (is_mixloc loc)
-     (add2sbuf_strconst implbuf "MELT_LOCATION(\"")
-     (add2sbuf_string implbuf (mixloc_val loc))
-     (add2sbuf_strconst implbuf ":")
-     (add2sbuf_longdec implbuf (get_int loc))
-     (if msg (progn
-	       (add2sbuf_strconst implbuf ":/ ")
-	       (add2sbuf_strconst implbuf msg)
-	       ))
-     (add2sbuf_strconst implbuf "\");")
-     )
-   )
-  (output_raw_location loc implbuf depth msg)
-  )
+    (output_raw_location loc implbuf depth msg)
+    ))
 
 
 ;;; output the code for declaring the current frame struct
@@ -1516,29 +1562,43 @@
 (defun output_code_instructions_list (lis declbuf implbuf boxeddepth)
   (assert_msg "check lis" (is_list_or_null lis))
   (assert_msg "check boxeddepth" (is_integerbox boxeddepth))
-  (list_every 
-   lis 
-   (lambda (cur)
-     (let ( (:long depth (get_int boxeddepth)) )
-       (if (and cur (is_not_a cur class_objpurevalue))
-	   (progn
-	     (add2sbuf_indentnl implbuf depth)
-	     (output_c_code cur declbuf implbuf depth)
-	     (add2sbuf_strconst implbuf ";"))))))
+   (let ( (:long depth (get_int boxeddepth)) )
+     (add2sbuf_indentnl implbuf depth)
+     (foreach_in_list
+      (lis) 
+      (pair cur)
+      (cond 
+       ( (is_a cur class_objplainblock)
+	 (add2sbuf_indentnl implbuf depth)
+	 (let ( (bloc (unsafe_get_field :obi_loc cur))
+		(bodyl (unsafe_get_field :oblo_bodyl cur))
+		(epil (unsafe_get_field :oblo_epil cur))
+		)
+	   (if bloc (output_location bloc implbuf depth "quasiblock"))
+	   (if bodyl (output_code_instructions_list bodyl declbuf implbuf boxeddepth))
+	   (if epil (output_code_instructions_list epil declbuf implbuf boxeddepth))
+	)
+	)
+      ( (and cur (is_not_a cur class_objpurevalue))
+	(add2sbuf_indentnl implbuf depth)
+	(output_c_code cur declbuf implbuf depth)
+	(add2sbuf_strconst implbuf ";"))
+      )))
   )
+  
 
 
 
-;; output code for objblock
-(defun outpucod_objblock (oblo declbuf implbuf :long depth)
-  (assert_msg "check oblo" (is_a oblo class_objblock))
+;; output code for objanyblock
+(defun outpucod_objanyblock (oblo declbuf implbuf :long depth)
+  (assert_msg "check oblo" (is_a oblo class_objanyblock))
   (debug_msg oblo "outpucod_objblock oblo")
   (output_location (unsafe_get_field :obi_loc oblo) implbuf depth "block")
   (let ( (bodyl (unsafe_get_field :oblo_bodyl oblo))
 	 (epil (unsafe_get_field :oblo_epil oblo)) 
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
-    (add2sbuf_strconst implbuf "/*block*/{")
+    (add2sbuf_strconst implbuf "/*anyblock*/{")
     (if (is_list bodyl)
 	(output_code_instructions_list bodyl declbuf implbuf boxdepthp1))
     (if (is_list epil)
@@ -1551,7 +1611,7 @@
     )
   (debug_msg oblo "outpucod_objblock done oblo")
   )
-(install_method class_objblock output_c_code outpucod_objblock)
+(install_method class_objanyblock output_c_code outpucod_objanyblock)
 
 ;; output code for objmultiallocblock
 (defun outpucod_objmultiallocblock (oblo declbuf implbuf :long depth)
