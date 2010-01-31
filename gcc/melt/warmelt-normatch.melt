@@ -1253,7 +1253,9 @@
 	   )
       (box_put clrlocbox sortedlococcs)
       (debug_msg freshlist "normpat_orpat freshlist")
+      ;; freshlist is a list of symbols
       (debug_msg freshnorlist "normpat_orpat freshnorlist")
+      ;; freshnorlist is a list of normal-or-variables
       (debug_msg sortedorvars "normpat_orpat sortedorvars")
       (debug_msg sortednormalvars "normpat_orpat sortednormalvars")
       (debug_msg sortedlococcs "normpat_orpat sortedlococcs")
@@ -1272,7 +1274,7 @@
 				  )) 
 	    (prevtestbox (make_box discr_box disjtester))
 	    )
-	;; first register the empty disjtester
+	;; first register and handle the empty disjtester
 	(debug_msg disjtester "normpat_orpat disjtester")
 	(register_new_normtester disjtester pcn)
 	(hdler disjtester)
@@ -1456,6 +1458,9 @@
 	       (:long nbsubtesters (multiple_length subtesters))
 	       )
 	  (debug_msg subtesters "normpat_orpat subtesters")
+	  ;;
+	  (compile_warning "we should use freshnorlist to put the locsymocc inside the disjunction...")
+	  ;;
 	  (if (<i nbsubtesters 2)
 	      (warning_plain sloc "this OR pattern has less than two tests so is degenerated")
 	    ;; we might check for an equivalent disjunction, but it is

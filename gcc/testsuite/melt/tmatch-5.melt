@@ -24,7 +24,7 @@
     (match 
      curexp 
      (?(instance 
-        class_srcdef 
+        class_source_definition 
         :sdef_name ?dnam
         :sdef_doc 
         ?(as ?doc 

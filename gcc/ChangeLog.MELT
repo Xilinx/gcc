@@ -1,3 +1,9 @@
+2010-01-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tmatch-5.melt: updated class to
+	class_source_definition
+	* melt/warmelt-first.melt: added cast for informoption code chunk.
+	* melt/warmelt-normatch.melt: should recode the normpat_orpat...
+
 2010-01-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{try to avoid generating useless c stuff in code, eg collapse
 	nested blocks into one, avoid too many #line...  tmatch-6 test
