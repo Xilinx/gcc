@@ -1343,18 +1343,27 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
   have_gmp=yes
   saved_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $gmpinc"
-  # Check GMP actually works
-  AC_MSG_CHECKING([for correct version of gmp.h])
+  # Check for the recommended and required versions of GMP.
+  AC_MSG_CHECKING([for the correct version of gmp.h])
   AC_TRY_COMPILE([#include "gmp.h"],[
-  #if __GNU_MP_VERSION < 4 || (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR < 2)
+  #define GCC_GMP_VERSION_NUM(a,b,c) (((a) << 16L) | ((b) << 8) | (c))
+  #define GCC_GMP_VERSION GCC_GMP_VERSION_NUM(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL)
+  #if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4,2,0)
   choke me
   #endif
-  ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); have_gmp=no])
+  ], AC_TRY_COMPILE([#include <gmp.h>],[
+  #define GCC_GMP_VERSION_NUM(a,b,c) (((a) << 16L) | ((b) << 8) | (c))
+  #define GCC_GMP_VERSION GCC_GMP_VERSION_NUM(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL)
+  #if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4,3,2)
+  choke me
+  #endif
+  ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([buggy but acceptable])]),
+   [AC_MSG_RESULT([no]); have_gmp=no])
 
   # If we have GMP, check the MPFR version.
   if test x"$have_gmp" = xyes; then
-    dnl MPFR 2.3.1 is acceptable, but MPFR 2.3.2 is better.
-    AC_MSG_CHECKING([for correct version of mpfr.h])
+    # Check for the recommended and required versions of MPFR.
+    AC_MSG_CHECKING([for the correct version of mpfr.h])
     AC_TRY_COMPILE([#include <gmp.h>
     #include <mpfr.h>],[
     #if MPFR_VERSION < MPFR_VERSION_NUM(2,3,1)
@@ -1362,7 +1371,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
     #endif
     ], AC_TRY_COMPILE([#include <gmp.h>
     #include <mpfr.h>],[
-    #if MPFR_VERSION < MPFR_VERSION_NUM(2,3,2)
+    #if MPFR_VERSION < MPFR_VERSION_NUM(2,4,2)
     choke me
     #endif
     ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([buggy but acceptable])]),
@@ -1371,12 +1380,18 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
 
   # Check for the MPC header version.
   if test x"$have_gmp" = xyes ; then
+    # Check for the recommended and required versions of MPC.
     AC_MSG_CHECKING([for the correct version of mpc.h])
     AC_TRY_COMPILE([#include <mpc.h>],[
-    #if MPC_VERSION < MPC_VERSION_NUM (0,8,0)
+    #if MPC_VERSION < MPC_VERSION_NUM(0,8,0)
     choke me
     #endif
-    ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); have_gmp=no])
+    ], AC_TRY_COMPILE([#include <mpc.h>],[
+    #if MPC_VERSION < MPC_VERSION_NUM(0,8,1)
+    choke me
+    #endif
+    ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([buggy but acceptable])]),
+     [AC_MSG_RESULT([no]); have_gmp=no])
   fi
 
   # Now check the MPFR library.
@@ -1408,8 +1423,10 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
 
   CFLAGS="$saved_CFLAGS"
 
+# The library versions listed in the error message below should match
+# the HARD-minimums enforced above.
   if test x$have_gmp != xyes; then
-    AC_MSG_ERROR([Building GCC requires GMP 4.2+, MPFR 2.3.2+ and MPC 0.8.0+.
+    AC_MSG_ERROR([Building GCC requires GMP 4.2+, MPFR 2.3.1+ and MPC 0.8.0+.
 Try the --with-gmp, --with-mpfr and/or --with-mpc options to specify
 their locations.  Source code for these libraries can be found at
 their respective hosting sites as well as at
@@ -1744,7 +1761,7 @@ fi
 stage1_languages=,c,
 
 # Target libraries that we bootstrap.
-bootstrap_target_libs=,target-libgcc,target-libgomp,
+bootstrap_target_libs=,target-libgcc,
 
 # Figure out what language subdirectories are present.
 # Look if the user specified --enable-languages="..."; if not, use
@@ -2539,6 +2556,11 @@ fi
 # build configuration in Makefile.
 target_configdirs=`echo "${target_configdirs}" | sed -e 's/target-//g'`
 build_configdirs=`echo "${build_configdirs}" | sed -e 's/build-//g'`
+
+# If we are building libgomp, bootstrap it.
+if echo " ${target_configdirs} " | grep " libgomp " > /dev/null 2>&1 ; then
+  bootstrap_target_libs=${bootstrap_target_libs}target-libgomp,
+fi
 
 # Determine whether gdb needs tk/tcl or not.
 # Use 'maybe' since enable_gdbtk might be true even if tk isn't available

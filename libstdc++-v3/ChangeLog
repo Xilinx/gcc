@@ -1,3 +1,158 @@
+2010-02-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h (forward_list<>::resize(size_type),
+	forward_list(size_type)): Only declare.
+	* include/bits/forward_list.tcc (forward_list<>::resize(size_type),
+	forward_list(size_type)): Define, don't assume CopyConstructible.
+	* testsuite/23_containers/forward_list/cons/10.cc: New.
+	* testsuite/23_containers/forward_list/modifiers/6.cc: Likewis.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Adjust dg-error line numbers.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+	* include/bits/forward_list.h: Use _M_get_Node_allocator throughout.
+
+2010-01-31  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/array/requirements/exception/
+	generation_prohibited.c: Remove, swap can indeed throw (DR 774).
+
+	* testsuite/util/exception/safety.h (insert_base<__versa_string>): Fix.
+	* testsuite/util/testsuite_container_traits.h
+	(traits<__versa_string>): Enable insert tests.
+
+2010-01-31  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h (forward_list<>::insert_after
+	(const_iterator, size_type, const _Tp&), insert_after(const_iterator,
+	_InputIterator, _InputIterator), insert_after(const_iterator,
+	std::initializer_list<>)): Fix return type per N3000.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/2.cc:
+	Adjust.
+	* testsuite/23_containers/forward_list/modifiers/2.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Adjust dg-error line numbers.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2010-01-31  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert last changes. Also revert, among the previous changes:
+	* include/std/condition_variable (condition_variable_any::
+	wait<>(_Lock&)): Provide definition.
+
+2010-01-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/condition_variable (condition_variable_any::
+	__wait_until_impl): Add.
+	(condition_variable_any::wait_until): Provide definitions.
+	* testsuite/30_threads/condition_variable_any/members/2.cc: New.
+	* testsuite/30_threads/condition_variable_any/cons/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/30_threads/condition_variable_any/cons/copy_neg.cc:
+	Likewise.
+
+	* testsuite/30_threads/condition_variable/members/1.cc: Minor
+	stylistic changes.
+	* testsuite/30_threads/condition_variable/members/1.cc: Likewise.
+
+2010-01-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/condition_variable (enum class cv_status): Add and
+	use it throughout, per N3000.
+	(condition_variable_any::wait<>(_Lock&), wait<>(_Lock&, _Predicate),
+	wait_until<>(_Lock&, const chrono::time_point<>&, _Predicate)):
+	Provide definitions.
+	* src/condition_variable.cc (condition_variable_any::notify_one,
+	condition_variable_any::notify_all): Likewise.
+	* config/abi/pre/gnu.ver: Export.
+	* testsuite/30_threads/condition_variable_any/requirements/
+	typedefs.cc: New.
+	* testsuite/30_threads/condition_variable_any/requirements/
+	standard_layout.cc: Likewise.
+	* testsuite/30_threads/condition_variable/members/1.cc: Adjust.
+	* testsuite/30_threads/condition_variable/members/2.cc: Likewise.
+	* testsuite/30_threads/condition_variable/cons/assign_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/30_threads/condition_variable/cons/copy_neg.cc: Likewise.
+	* testsuite/30_threads/condition_variable_any/cons/assign_neg.cc:
+	Likewise.
+	* testsuite/30_threads/condition_variable_any/cons/copy_neg.cc:
+	Likewise.
+
+2010-01-28  François Dumont  <francois.cppdevs@free.fr>
+
+	* include/bits/stl_algobase.h (struct __iter_base): Add.
+	(__niter_base, __miter_base): Adjust, use the latter.
+
+2010-01-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/21_strings/basic_string/element_access/char/21674.cc:
+	Extend xfail to all systems.
+	* testsuite/21_strings/basic_string/element_access/wchar_T/21674.cc:
+	Likewise.
+	* testsuite/26_numerics/headers/cmath/c99_classification_macros_c.cc:
+	Extend xfail to darwin10 systems.
+
+2010-01-27  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR c++/42346
+	* testsuite/23_containers/unordered_map/requirements/exception/: Remove
+	-O1 workaround.
+	* testsuite/23_containers/multimap/requirements/exception/: Same.
+	* testsuite/23_containers/map/requirements/exception: Same.
+
+2010-01-27  Richard Guenther  <rguenther@suse.de>
+
+	PR libstdc++/42832
+	* include/std/functional (function<>::swap): Perform bytewise
+	swap of _M_functor.
+	* include/tr1/functional (function<>::swap): Likewise.
+
+2010-01-27  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/abi/pre/gnu.ver: Avoid time_get pattern conflicts.
+
+2010-01-26  François Dumont  <francois.cppdevs@free.fr>
+
+	* doc/xml/manual/allocator.xml: Minor updates and fixes.
+	* doc/xml/manual/containers.xml: Likewise.
+	* doc/xml/manual/using.xml: Likewise.
+	* doc/xml/manual/locale.xml: Likewise.
+	* doc/xml/manual/appendix_contributing.xml: Likewise.
+
+2010-01-26  Daniel Frey  <d.frey@gmx.de>
+
+	* include/std/functional: Use enable_if instead of __enable_if
+	throughout, do not include ext/type_traits.h.
+	(is_placeholder, is_bind_expression): Use integral_constant.
+
+2010-01-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/util/testsuite_common_types.h (has_bitwise_operators):
+	Avoid -Wall warnings.
+
+2010-01-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/22_locale/time_get/get_monthname/char/6.cc: Use an int
+	as loop variable, to avoid -Wall warnings.
+	* testsuite/22_locale/time_get/get_monthname/wchar_t/6.cc: Likewise.
+	* testsuite/22_locale/time_get/get_weekday/char/6.cc: Likewise.
+	* testsuite/22_locale/time_get/get_weekday/wchar_t/6.cc: Likewise.
+	* testsuite/22_locale/time_get/get_weekday/char/38081-2.cc: Likewise.
+
+	* testsuite/20_util/reference_wrapper/24803.cc: Remove unused vars.
+	* testsuite/20_util/reference_wrapper/invoke.cc: Likewise.
+
 2010-01-22  Daniel Frey  <d.frey@gmx.de>
 
 	* include/std/functional (_Index_tuple, _Build_index_tuple):
@@ -6,13 +161,13 @@
 2010-01-22  Joern Rennecke  <amylaar@spamcop.net>
 
 	PR libstdc++/36101, PR libstdc++/42813
-	* acinclude.m4: (enable_parallel): Test ${TARGET_CONFIGDIRS} instead of
-	loking for omp.h .
+	* acinclude.m4 (enable_parallel): Test ${TARGET_CONFIGDIRS} instead of
+	looking for omp.h.
 	* configure: Regenerate.
 
 2010-01-21  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
-        PR libstdc++/42201
+	PR libstdc++/42201
 	* include/std/future: Update to latest WP.
 	* src/functexcept.cc (__throw_future_error): Use make_error_code.
 	* testsuite/30_threads/async/any.cc: New.
@@ -47,7 +202,7 @@
 	* testsuite/30_threads/unique_future/cons/copy_neg.cc: Adjust.
 	* testsuite/30_threads/unique_future/cons/move.cc: Adjust.
 	* testsuite/30_threads/unique_future/requirements/
-        explicit_instantiation.cc: Adjust.
+	explicit_instantiation.cc: Adjust.
 	* testsuite/30_threads/unique_future/members/is_ready.cc: Remove.
 	* testsuite/30_threads/unique_future/members/has_value.cc: Remove.
 	* testsuite/30_threads/unique_future/members/has_exception.cc: Remove.

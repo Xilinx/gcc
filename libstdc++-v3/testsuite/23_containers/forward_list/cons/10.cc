@@ -1,10 +1,8 @@
-// { dg-options "-std=gnu++0x -D_GLIBCXX_IS_AGGREGATE" }
-// { dg-require-cstdint "" }
-// { dg-do run { xfail *-*-* } }
+// { dg-options "-std=gnu++0x" }
 
-// 2009-09-09  Benjamin Kosnik  <benjamin@redhat.com>
+// 2010-02-01  Paolo Carlini  <paolo.carlini@oracle.com>
 
-// Copyright (C) 2009 Free Software Foundation, Inc.
+// Copyright (C) 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -21,14 +19,32 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-#include <array>
-#include <exception/safety.h>
+#include <forward_list>
+#include <testsuite_hooks.h>
 
-// Container requirement testing, exceptional behavior
+struct NoCopyConstructor
+{
+  NoCopyConstructor() : num(-1) { }
+  NoCopyConstructor(const NoCopyConstructor&) = delete;
+
+  operator int() { return num; }
+
+private:
+  int num;
+};
+
+void test01()
+{
+  bool test __attribute__((unused)) = true;
+
+  std::forward_list<NoCopyConstructor> fl(5);
+  VERIFY( std::distance(fl.begin(), fl.end()) == 5 );
+  for(auto it = fl.begin(); it != fl.end(); ++it)
+    VERIFY( *it == -1 );
+}
+
 int main()
 {
-  typedef __gnu_cxx::throw_value_random value_type;
-  typedef std::array<value_type, 129> test_type;
-  __gnu_test::generation_prohibited<test_type> test;
+  test01();
   return 0;
 }

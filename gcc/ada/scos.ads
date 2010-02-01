@@ -48,10 +48,6 @@ package SCOs is
    --  Put_SCO reads the internal tables and generates text lines in the ALI
    --  format.
 
-   --  ??? The specification below for the SCO ALI format and the internal
-   --  data structures have been modified, but the implementation has not been
-   --  updated yet to reflect these specification changes.
-
    --------------------
    -- SCO ALI Format --
    --------------------
@@ -109,8 +105,9 @@ package SCOs is
    --    and the following regions of the syntax tree:
 
    --      the part of a case_statement from CASE up to the expression
-   --      the part of a FOR iteration scheme from FOR up to the
+   --      the part of a FOR loop iteration scheme from FOR up to the
    --        loop_parameter_specification
+   --      the part of a WHILE loop up to the condition
    --      the part of an extended_return_statement from RETURN up to the
    --        expression (if present) or to the return_subtype_indication (if
    --        no expression)
@@ -131,7 +128,8 @@ package SCOs is
    --        body or block statement that has a non-empty declarative part
    --      the first statement after a compound statement
    --      the first statement after an EXIT, RAISE or GOTO statement
-   --      any statement with a label
+   --      any statement with a label (the label itself is not part of the
+   --       entry point that is recorded).
 
    --    Each entry point must appear as the first entry on a CS line.
    --    The idea is that if any simple statement on a CS line is known to have
@@ -150,17 +148,28 @@ package SCOs is
    --      o  object declaration
    --      r  renaming declaration
    --      i  generic instantiation
-   --      C  CASE statement
-   --      F  FOR loop statement
+   --      C  CASE statement (includes only the expression)
+   --      E  EXIT statement
+   --      F  FOR loop statement (includes only the iteration scheme)
+   --      I  IF statement (includes only the condition [in the RM sense, which
+   --         is a decision in the SCO sense])
    --      P  PRAGMA
    --      R  extended RETURN statement
+   --      W  WHILE loop statement (includes only the condition)
 
    --    and is omitted for all other cases.
 
    --  Decisions
 
    --    Note: in the following description, logical operator includes only the
-   --    short circuited forms (so can be only of NOT, AND THEN, or OR ELSE).
+   --    short circuited forms and NOT (so can be only NOT, AND THEN, OR ELSE).
+   --    The reason that we can exclude AND/OR/XOR is that we expect SCO's to
+   --    be generated using the restriction No_Direct_Boolean_Operators if we
+   --    are interested in decision coverage, which does not permit the use of
+   --    AND/OR/XOR on boolean operands. These are permitted on modular integer
+   --    types, but such operations do not count as decisions in any case. If
+   --    we are generating SCO's only for simple coverage, then we are not
+   --    interested in decisions in any case.
 
    --    Decisions are either simple or complex. A simple decision is a boolean
    --    expresssion that occurs in the context of a control structure in the
@@ -217,7 +226,7 @@ package SCOs is
    --      expression ::= !sloc term       (if expr is NOT)
 
    --      In the last four cases, sloc is the source location of the AND, OR,
-   --      XOR or NOT token, respectively.
+   --      or NOT token, respectively.
 
    --      term ::= element
    --      term ::= expression
@@ -272,9 +281,7 @@ package SCOs is
 
    --    Statements
    --      C1   = 'S' for entry point, 's' otherwise
-   --      C2   = 't', 's', 'o', 'r', 'i', 'C', 'F', 'P', 'R', ' '
-   --             (type/subtype/object/renaming/instantiation/
-   --              CASE/FOR/PRAGMA/RETURN/other)
+   --      C2   = statement type code to appear on CS line (or ' ' if none)
    --      From = starting source location
    --      To   = ending source location
    --      Last = False for all but the last entry, True for last entry
@@ -286,7 +293,7 @@ package SCOs is
    --    statements on a single CS line.
 
    --    Decision
-   --      C1   = 'I', 'E', 'P', 'W', 'X' (if/exit/pragma/while/expression)
+   --      C1   = decision type code
    --      C2   = ' '
    --      From = location of IF/EXIT/PRAGMA/WHILE token,
    --             No_Source_Location for X
@@ -296,7 +303,7 @@ package SCOs is
    --    Operator
    --      C1   = '!', '^', '&', '|'
    --      C2   = ' '
-   --      From = location of NOT/XOR/AND/OR token
+   --      From = location of NOT/AND/OR token
    --      To   = No_Source_Location
    --      Last = False
 
@@ -309,7 +316,7 @@ package SCOs is
 
    --    Note: the sequence starting with a decision, and continuing with
    --    operators and elements up to and including the first one labeled with
-   --    Last=True, indicate the sequence to be output for a complex decision
+   --    Last = True, indicate the sequence to be output for a complex decision
    --    on a single CD decision line.
 
    ----------------
