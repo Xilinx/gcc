@@ -1636,57 +1636,43 @@ tm_region_init_0 (struct tm_region *outer, basic_block bb, gimple stmt)
   return region;
 }
 
-/* A subroutine of tm_region_init.  Process BB and its dominated blocks.
-   Record exit blocks for REGION and find nested regions.  */
+/* A subroutine of tm_region_init.  Record all the exit and
+   irrevocable blocks in BB into the region's exit_blocks and
+   irr_blocks bitmaps.  Returns the new region being scanned.  */
 
-static void
-tm_region_init_1 (struct tm_region *region, basic_block bb,
-		  bitmap visited_blocks)
+static struct tm_region *
+tm_region_init_1 (struct tm_region *region, basic_block bb)
 {
   gimple_stmt_iterator gsi;
   gimple g;
-  edge_iterator ei;
-  edge e;
+
+  if (!region || !region->exit_blocks)
+    return region;
 
   /* Check to see if this is the end of a region by seeing if it 
      contains a call to __builtin_tm_commit{,_eh}.  Note that the
      outermost region for DECL_IS_TM_CLONE need not collect this.  */
-  if (region && region->exit_blocks)
+  for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
     {
-      for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
+      g = gsi_stmt (gsi);
+      if (gimple_code (g) == GIMPLE_CALL)
 	{
-	  g = gsi_stmt (gsi);
-	  if (gimple_code (g) == GIMPLE_CALL)
+	  tree fn = gimple_call_fndecl (g);
+	  if (fn && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL)
 	    {
-	      tree fn = gimple_call_fndecl (g);
-	      if (fn && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL)
+	      if (DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT
+		  || DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT_EH)
 		{
-		  if (DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT
-		      || DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT_EH)
-		    {
-		      bitmap_set_bit (region->exit_blocks, bb->index);
-		      region = region->outer;
-		      break;
-		    }
-		  if (DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_IRREVOCABLE)
-		    bitmap_set_bit (region->irr_blocks, bb->index);
+		  bitmap_set_bit (region->exit_blocks, bb->index);
+		  region = region->outer;
+		  break;
 		}
+	      if (DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_IRREVOCABLE)
+		bitmap_set_bit (region->irr_blocks, bb->index);
 	    }
 	}
     }
-
-  /* Check for the last statement in the block beginning a new region.  */
-  g = last_stmt (bb);
-  if (g && gimple_code (g) == GIMPLE_TRANSACTION)
-    region = tm_region_init_0 (region, bb, g);
-
-  /* Process subsequent blocks.  */
-  FOR_EACH_EDGE (e, ei, bb->succs)
-    if (!bitmap_bit_p (visited_blocks, e->dest->index))
-      {
-	bitmap_set_bit (visited_blocks, e->dest->index);
-	tm_region_init_1 (region, e->dest, visited_blocks);
-      }
+  return region;
 }
 
 /* Collect all of the transaction regions within the current function
@@ -1696,9 +1682,45 @@ tm_region_init_1 (struct tm_region *region, basic_block bb,
 static void
 tm_region_init (struct tm_region *region)
 {
+  gimple g;
+  edge_iterator ei;
+  edge e;
+  basic_block bb;
+  VEC(basic_block, heap) *queue = NULL;
   bitmap visited_blocks = BITMAP_ALLOC (NULL);
+
   all_tm_regions = region;
-  tm_region_init_1 (region, single_succ (ENTRY_BLOCK_PTR), visited_blocks);
+  bb = single_succ (ENTRY_BLOCK_PTR);
+
+  VEC_safe_push (basic_block, heap, queue, bb);
+  gcc_assert (!bb->aux);	/* FIXME: Remove me.  */
+  bb->aux = region;
+  do
+    {
+      bb = VEC_pop (basic_block, queue);
+      region = (struct tm_region *)bb->aux;
+      bb->aux = NULL;
+
+      /* Record exit and irrevocable blocks.  */
+      region = tm_region_init_1 (region, bb);
+
+      /* Check for the last statement in the block beginning a new region.  */
+      g = last_stmt (bb);
+      if (g && gimple_code (g) == GIMPLE_TRANSACTION)
+	region = tm_region_init_0 (region, bb, g);
+
+      /* Process subsequent blocks.  */
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (!bitmap_bit_p (visited_blocks, e->dest->index))
+	  {
+	    bitmap_set_bit (visited_blocks, e->dest->index);
+	    VEC_safe_push (basic_block, heap, queue, e->dest);
+	    gcc_assert (!e->dest->aux); /* FIXME: Remove me.  */
+	    e->dest->aux = region;
+	  }
+    }
+  while (!VEC_empty (basic_block, queue));
+  VEC_free (basic_block, heap, queue);
   BITMAP_FREE (visited_blocks);
 }
 

@@ -1,3 +1,10 @@
+2010-02-01  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (tm_region_init_1): Rewrite to just record exit and
+	irrevocable blocks in a BB.
+	(tm_region): Rewrite to do what tm_region_init_1 used to do, but
+	without recursion.
+
 2010-01-28  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (tm_region_init_1): Traverse CFG instead of
