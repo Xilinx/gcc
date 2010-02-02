@@ -894,6 +894,7 @@ extern void ira_finish_allocno_live_ranges (void);
 /* ira-conflicts.c */
 extern void ira_debug_conflicts (bool);
 extern void ira_build_conflicts (void);
+extern void ira_add_copies (ira_loop_tree_node_t);
 
 /* ira-color.c */
 extern int ira_loop_edge_freq (ira_loop_tree_node_t, int, bool);

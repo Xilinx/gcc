@@ -381,8 +381,9 @@ process_regs_for_copy (rtx reg1, rtx reg2, bool constraint_p,
       allocno_preferenced_hard_regno = REGNO (reg2) + offset2 - offset1;
       a = ira_curr_regno_allocno_map[REGNO (reg1)];
     }
-  else if (!CONFLICT_ALLOCNO_P (ira_curr_regno_allocno_map[REGNO (reg1)],
-				ira_curr_regno_allocno_map[REGNO (reg2)])
+  else if ((!conflicts
+	   || !CONFLICT_ALLOCNO_P (ira_curr_regno_allocno_map[REGNO (reg1)],
+				   ira_curr_regno_allocno_map[REGNO (reg2)]))
 	   && offset1 == offset2)
     {
       cp = ira_add_allocno_copy (ira_curr_regno_allocno_map[REGNO (reg1)],
@@ -472,10 +473,10 @@ add_insn_allocno_copies (rtx insn)
   if ((set = single_set (insn)) != NULL_RTX
       && REG_SUBREG_P (SET_DEST (set)) && REG_SUBREG_P (SET_SRC (set))
       && ! side_effects_p (set)
-      && find_reg_note (insn, REG_DEAD,
+      && (! conflicts || find_reg_note (insn, REG_DEAD,
 			REG_P (SET_SRC (set))
 			? SET_SRC (set)
-			: SUBREG_REG (SET_SRC (set))) != NULL_RTX)
+			: SUBREG_REG (SET_SRC (set))) != NULL_RTX))
     process_regs_for_copy (SET_DEST (set), SET_SRC (set), false, insn, freq);
   else
     {
@@ -484,9 +485,9 @@ add_insn_allocno_copies (rtx insn)
 	{
 	  operand = recog_data.operand[i];
 	  if (REG_SUBREG_P (operand)
-	      && find_reg_note (insn, REG_DEAD,
+	      && (!conflicts || find_reg_note (insn, REG_DEAD,
 				REG_P (operand)
-				? operand : SUBREG_REG (operand)) != NULL_RTX)
+				? operand : SUBREG_REG (operand)) != NULL_RTX))
 	    {
 	      str = recog_data.constraints[i];
 	      while (*str == ' ' || *str == '\t')
@@ -512,8 +513,8 @@ add_insn_allocno_copies (rtx insn)
 }
 
 /* Add copies originated from BB given by LOOP_TREE_NODE.  */
-static void
-add_copies (ira_loop_tree_node_t loop_tree_node)
+void
+ira_add_copies (ira_loop_tree_node_t loop_tree_node)
 {
   basic_block bb;
   rtx insn;
@@ -775,7 +776,7 @@ ira_build_conflicts (void)
       if (ira_conflicts_p)
 	{
 	  build_conflicts ();
-	  ira_traverse_loop_tree (true, ira_loop_tree_root, NULL, add_copies);
+	  ira_traverse_loop_tree (true, ira_loop_tree_root, NULL, ira_add_copies);
 	  /* We need finished conflict table for the subsequent call.  */
 	  if (flag_ira_region == IRA_REGION_ALL
 	      || flag_ira_region == IRA_REGION_MIXED)
@@ -789,6 +790,7 @@ ira_build_conflicts (void)
 		ira_free (conflicts[ALLOCNO_NUM (a)]);
 	    }
 	  ira_free (conflicts);
+	  conflicts = NULL;
 	}
     }
   if (! CLASS_LIKELY_SPILLED_P (base_reg_class (VOIDmode, ADDRESS, SCRATCH)))

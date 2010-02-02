@@ -180,7 +180,7 @@ more_one_region_p (void)
 
 /* Free the loop tree node of a loop.  */
 static void
-finish_loop_tree_node (ira_loop_tree_node_t loop)
+finish_loop_tree_node (ira_loop_tree_node_t loop, bool delete_regno_allocno_map)
 {
   if (loop->regno_allocno_map != NULL)
     {
@@ -189,8 +189,11 @@ finish_loop_tree_node (ira_loop_tree_node_t loop)
       ira_free_bitmap (loop->border_allocnos);
       ira_free_bitmap (loop->modified_regnos);
       ira_free_bitmap (loop->all_allocnos);
-      ira_free (loop->regno_allocno_map);
-      loop->regno_allocno_map = NULL;
+      if (delete_regno_allocno_map)
+	{
+          ira_free (loop->regno_allocno_map);
+          loop->regno_allocno_map = NULL;
+	}
     }
 }
 
@@ -202,7 +205,7 @@ finish_loop_tree_nodes (void)
   loop_p loop;
 
   for (i = 0; VEC_iterate (loop_p, ira_loops.larray, i, loop); i++)
-    finish_loop_tree_node (&ira_loop_nodes[i]);
+    finish_loop_tree_node (&ira_loop_nodes[i], false);
   ira_free (ira_loop_nodes);
   for (i = 0; i < (unsigned int) last_basic_block_before_change; i++)
     {
@@ -214,8 +217,6 @@ finish_loop_tree_nodes (void)
 	ira_free_bitmap (ira_bb_nodes[i].modified_regnos);
       if (ira_bb_nodes[i].all_allocnos != NULL)
 	ira_free_bitmap (ira_bb_nodes[i].all_allocnos);
-      if (ira_bb_nodes[i].regno_allocno_map != NULL)
-	ira_free (ira_bb_nodes[i].regno_allocno_map);
     }
   ira_free (ira_bb_nodes);
 }
@@ -2140,7 +2141,7 @@ remove_unnecessary_regions (bool all_p)
   else
     remove_unnecessary_allocnos ();
   while (VEC_length (ira_loop_tree_node_t, removed_loop_vec) > 0)
-    finish_loop_tree_node (VEC_pop (ira_loop_tree_node_t, removed_loop_vec));
+    finish_loop_tree_node (VEC_pop (ira_loop_tree_node_t, removed_loop_vec), true);
   VEC_free (ira_loop_tree_node_t, heap, removed_loop_vec);
 }
 

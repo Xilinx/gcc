@@ -1,3 +1,22 @@
+2010-02-02  Jeff Law <law@redhat.com>
+
+	* ira-conflicts.c (process_regs_for_copy): Skip conflicts test if
+	CONFLICTS is NULL.
+	(add_insn_allocno_copies): Similarly for REG_DEAD notes.
+	(ira_add_copies): Renamed from add_copies.
+	(ira_build_conflicts): Corresponding changes.  Clear CONFLICTS after
+	freeing memory.
+	* ira-int.h (ira_add_copies): Prototype.
+	* ira-build.c (finish_loop_tree_node): New argument to control
+	deletion of the regno_allocno_map.
+	(finish_loop_tree_nodes): Pass in new argument to
+	finish_loop_tree_node.  Do not delete regno_allocno_map here.
+	(remove_unnecessary_regions): Pass in new argument to
+	finish_loop_tree_node.
+	* ira-reload.c (fix_allocno_map): New function.
+	(build_conflicts_for_new_allocnos): Remove copy detection.
+	(ira_reload): Call fix_allocno_map and ira_add_copies.
+
 2010-01-26  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (emit_localizing_loads): Avoid creating unnecessary

@@ -644,6 +644,16 @@ mark_live (rtx reg)
 }
 
 static void
+fix_allocno_map ( ira_loop_tree_node_t loop_tree_node)
+{
+  /* Free the old (and inaccurate) map.  */
+  free (loop_tree_node->regno_allocno_map);
+
+  /* Now install the correct map.  */
+  loop_tree_node->regno_allocno_map = ira_regno_allocno_map;
+}
+
+static void
 build_conflicts_for_new_allocnos (rtx head, rtx tail,
 				  bitmap pseudos_to_localize,
 				  int orig_max_reg_num)
@@ -696,47 +706,6 @@ build_conflicts_for_new_allocnos (rtx head, rtx tail,
       for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
 	mark_live (DF_REF_REG (*use_rec));
     }
-
-  /* Now that we have conflicts, walk over the insns again looking for copies.  */
-  for (insn = tail; insn != PREV_INSN (head); insn = PREV_INSN (insn))
-    {
-      if (!NONDEBUG_INSN_P (insn))
-	continue;
-
-      /* If this is a simple copy where one of the two registers is a
-	 newly created pseudo, then we have data structures to update.  */
-      if (GET_CODE (PATTERN (insn)) == SET
-	  && GET_CODE (SET_SRC (PATTERN (insn))) == REG
-	  && GET_CODE (SET_DEST (PATTERN (insn))) == REG
-	  && (REGNO (SET_SRC (PATTERN (insn))) >= (unsigned) orig_max_reg_num
-	      || REGNO (SET_DEST (PATTERN (insn))) >= (unsigned) orig_max_reg_num))
-	{
-	  rtx reg0 = SET_SRC (PATTERN (insn));
-	  rtx reg1 = SET_DEST (PATTERN (insn));
-	  ira_allocno_t a0;
-	  ira_allocno_t a1;
-	  ira_allocno_t conflict_a;
-	  ira_allocno_conflict_iterator aci;
-
-	  /* Temporary.  */
-	  if (REGNO (reg0) < FIRST_PSEUDO_REGISTER
-	      || REGNO (reg1) < FIRST_PSEUDO_REGISTER)
-	    continue;
-	
-	  /* If A0 and A1 do not conflict, then record the copy.  */
-	  a0 = ira_regno_allocno_map[REGNO (reg0)];
-	  a1 = ira_regno_allocno_map[REGNO (reg1)];
-	  FOR_EACH_ALLOCNO_CONFLICT (a0, conflict_a, aci)
-	    if (conflict_a == a1)
-	      break;
-
-	  if (conflict_a != a1)
-	    ira_add_allocno_copy (a0, a1,
-				  REG_FREQ_FROM_BB (BLOCK_FOR_INSN (insn)),
-				  0, insn, NULL);
-	}
-    }
-
 
   BITMAP_FREE (live);
 }
@@ -1083,6 +1052,19 @@ ira_reload (void)
 	    if (!bitmap_bit_p (visited, bb->index))
 	      localize_pseudos (bb, pseudos_to_localize, visited);
 	}
+
+      /* We want to be able to call back into routines to compute costs and
+	 record copies via ira_traverse_loop_tree.  Those routines typically
+	 require the regno->allocno map within the loop tree structures to
+	 be accurate.  So we first traverse the loop tree to free the old
+	 map and set up the correct map.  */
+      ira_traverse_loop_tree (true, ira_loop_tree_root,
+			      fix_allocno_map, NULL);
+  
+      /* We may have replaced the source or destination of a "copy" with a new
+	 pseudo.  Make sure the new "copies" get recorded.  This includes
+	 register shuffles to satisfy constraints.  */
+      ira_traverse_loop_tree (true, ira_loop_tree_root, ira_add_copies, NULL);
 
       /* Now we want to remove each allocnos associated with the pseudos we
 	 localized from the conflicts of every other allocno.  Do this once
