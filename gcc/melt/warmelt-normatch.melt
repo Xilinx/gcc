@@ -1196,7 +1196,9 @@
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;; normalize a disjunction [or of subpatterns]
-(defun normpat_orpat (recv nmatch hdler pcn)
+
+(compile_warning "old obsolete version of normpat_orpat")
+(defun old_normpat_orpat (recv nmatch hdler pcn)
   (debug_msg recv "normpat_orpat recv")
   (shortbacktrace_dbg "normpat_orpat called" 16)
   (debug_msg nmatch "normpat_orpat nmatch")
@@ -1519,6 +1521,144 @@
     )
   (debug_msg recv "normpat_orpat recv end")
   )
+;; above is the obsolete version of normpat_orpat
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun normpat_orpat (recv nmatch hdler pcn)
+  (debug_msg recv "normpat_orpat recv")
+  (shortbacktrace_dbg "normpat_orpat called" 16)
+  (debug_msg nmatch "normpat_orpat nmatch")
+  (debug_msg pcn "normpat_orpat pcn")
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
+  (assert_msg "check recv" (is_a recv class_source_pattern_or))
+  (let (
+	(sloc (get_field :loca_location recv))
+	(disjpats (get_field :orpat_disj recv))
+	(testlist (get_field :pctn_tests pcn))
+	(subtestlist (make_list discr_list));; the list of subtests
+	(stuffmap (get_field :pctn_stuffmap pcn))
+	(pvarmap (get_field :pctn_pvarlocmap pcn)) 
+	(mapor (get_field :pctn_mapor pcn))
+	(ncx (get_field :pctn_normctxt pcn))
+	(orvarmap (mapobject_get mapor recv)) 
+	(sortedorvars (mapobject_sorted_attribute_tuple orvarmap))
+	(disjtester (instance class_normtester_disjunction 
+			      :nrep_loc sloc
+			      :ntest_matched nmatch
+			      :ntest_then ()
+			      :ntest_else ()
+			      :ntest_comefrom (make_list discr_list)
+			      :ntdisjuncts ()
+			      :ntdisj_freshorvar ()
+			      )) 
+	(prevcont (instance class_container
+			    :container_value disjtester))
+	)
+    (debug_msg stuffmap "normpat_orpat orig stuffmap")
+    (debug_msg pvarmap "normpat_orpat orig pvarmap")
+    (debug_msg orvarmap "normpat_orpat orvarmap")
+    (assert_msg "check orvarmap" (is_mapobject orvarmap))
+    (debug_msg sortedorvars "normpat_orpat sortedorvars")
+    ;; first register and handle the empty disjtester
+    (debug_msg disjtester "normpat_orpat disjtester")
+    (register_new_normtester disjtester pcn)
+    (hdler disjtester)
+    (list_append testlist disjtester)
+    (debug_msg disjtester "normpat_orpat handled disjtester")
+    ;;;;;;;;;;;;;;;;
+    ;;;; foreach disjunctive subpattern
+    (foreach_in_multiple
+     (disjpats)
+     (curdisj :long disjix)
+     (let (
+	   (norclear (instance class_normtester_or_clear
+			       :nrep_loc sloc
+			       :ntest_matched nmatch
+			       :ntest_then ()
+			       :ntest_else ()
+			       :ntest_comefrom (make_list discr_list)
+			       :ntorclear_locsym ()
+			       ))
+	   )
+       ;;;;;;;;;;;;;;;;
+       ;; normalize the current disjunct
+       (debug_msg curdisj "normpat_orpat curdisj before normalization")
+       ;; add the norclear
+       (let (
+	     (prevtest (get_field :container_value prevcont))
+	     (prevloc (get_field :nrep_loc prevtest))
+	     )
+	 (debug_msg prevtest "normpat_orpat prevtest")
+	 (debug_msg norclear "normpat_orpat norclear")
+	 (list_append testlist norclear)
+	 (debug_msg norclear "normpat_orclear setallesles norclear")
+	 (debug_msg prevtest "normpat_orclear setallesles prevtest")
+	 (set_new_tester_all_elses norclear prevtest)
+	 (put_fields prevcont :container_value norclear)
+	 (debug_msg prevcont "normpat_orpat prevcont with norclear")
+	 ;;
+	 )
+       (let (
+	     (subdisjbox (make_box discr_box ()))
+	     (subdisjhandler 
+	      (lambda (subtester)
+		(debug_msg subtester "normpat_orpat.lambda subtester")
+		(box_put subdisjbox subtester)
+		(let (
+		      (prevtestsub (unsafe_get_field :container_value prevcont))
+		      )
+		  (list_append subtestlist subtester)
+		  (debug_msg subtester "normpat_orpat.lambda setlastthen subtester")
+		  (debug_msg prevcont "normpat_orpat.lambda setlastthen subtester")
+		  (set_new_tester_last_then subtester prevcont)
+		  (debug_msg subtester "normpat_orpat.lambda done subtester")
+		  (put_fields prevcont :container_value norclear)
+		  (debug_msg prevcont "normpat_orpat prevcont with subtester")
+		  ))
+	      )
+	     )
+	 (normal_pattern curdisj nmatch 
+			 subdisjhandler pcn)       
+	 (debug_msg curdisj "normpat_orpat curdisj after normalization")
+	 (let (
+	       (lastdisj (box_content subdisjbox))
+	       (prevtestrans (unsafe_get_field :container_value prevcont))
+	       (nortransm (instance class_normtester_or_transmit
+				    :nrep_loc sloc
+				    :ntest_matched nmatch
+				    :ntest_then ()
+				    :ntest_else ()
+				    :ntest_comefrom (make_list discr_list)
+				    :ntortransmit_dst ()
+				    :ntortransmit_src ()
+			   ))
+	       )
+	   (debug_msg prevtestrans "normpat_orpat prevtestrans")
+	   (list_append testlist nortransm)
+	   (debug_msg nortransm "normpat_orpat setlasthen nortransm")
+	   (debug_msg prevcont "normpat_orpat setlasthen prevcont")
+	   (set_new_tester_last_then nortransm prevcont)
+	   ;; if no proper disjunct test was generated, add the
+	   ;; ortransmit to the list of tests, so that distributing
+	   ;; the then thru the disjunct still works!
+	   (if (null lastdisj)
+	       (list_append subtestlist nortransm))
+	   (put_fields prevcont :container_value nortransm)
+	   (debug_msg prevcont "normpat_orpat prevcont with nortransm")
+	   )
+	 )
+       (debug_msg curdisj "normpat_orpat done curdisj")
+       )
+     )
+    ;;
+    (debug_msg subtestlist "normpat_orpat final subtestlist")
+    (put_fields disjtester :ntdisjuncts (list_to_multiple subtestlist))
+    (debug_msg disjtester "normpat_orpat final disjtester")
+    ;;
+    (compile_warning "@$@unimplemented normpat_orpat")
+    (debug_msg recv "enf normpat_orpat recv")
+    ))
+
 (install_method class_source_pattern_or normal_pattern normpat_orpat)
 
 
@@ -1944,7 +2084,7 @@
     ;; first table row: output the node name in blue bold and the hashcode
     (add2out_strconst nodout "<tr><td>")
     (add2out_strconst nodout 
-		      "<font color=\"blue\" face=\"Times-Roman Bold\">")
+		      "<font color=\"blue\" face=\"Times-Roman Bold\" point-size=\"10\">")
     (mg_out_node_name nodout ntest)
     (add2out_strconst nodout "</font></td>")
     (add2out_strconst nodout "<td><font face=\"Courier\" point-size=\"8\">#")
@@ -1979,14 +2119,80 @@
 		(add2out_longhex nodout nmarank)
 		(add2out_strconst nodout " ")
 		))
-	  (add2out_strconst nodout "</font></td> <td>##")
+	  (add2out_strconst nodout "</font></td> <td><font point-size=\"8\">##")
 	  (add2out_longhex nodout (obj_hash nmatched))
-	  (add2out_strconst nodout "</td></tr>")
+	  (add2out_strconst nodout "</font></td></tr>")
 	  (add2out_indentnl nodout 2)
 	  ))
     (debug_msg ntest "mglabel_any_test end ntest")
     ))
 (install_method class_normtester_any matchgraphic_label mglabel_any_test)
+
+;; output an instance test
+(defun mglabel_instance_test (ntest mg)
+  (debug_msg ntest "mglabel_instance_test start ntest")
+  (assert_msg "check ntest" (is_a ntest class_normtester_instance))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (nloc (unsafe_get_field :nrep_loc ntest))
+	 (nmatched (unsafe_get_field :ntest_matched ntest))
+	 (nodout (unsafe_get_field :mchgx_nodout mg))
+	 (edgout (unsafe_get_field :mchgx_edgout mg))
+	 )
+    (debug_msg nloc "mglabel_instance_test nloc")
+    (debug_msg nmatched "mglabel_instance_test nmatched")
+    (assert_msg "check nodout" (is_out nodout))
+    (assert_msg "check edgout" (is_out edgout))
+    ;; first table row: output the node name in blue bold and the hashcode and the tested class
+    (add2out_strconst nodout "<tr><td>")
+    (add2out_strconst nodout 
+		      "<font color=\"violet\" face=\"Times-Roman Bold\" point-size=\"10\">")
+    (mg_out_node_name nodout ntest)
+    (add2out_strconst nodout "</font></td>")
+    (add2out_strconst nodout "<td><font face=\"Courier\" point-size=\"8\">#")
+    (add2out_longhex nodout (obj_hash ntest))
+    (add2out_strconst nodout "</font></td>")
+    (add2out_strconst nodout "<td><font face=\"Courier Italic\" point-size=\"8\">")
+    (add2out_string nodout (get_field :named_name
+				      (get_field :nocc_symb 
+						 (get_field :ntinst_class ntest))))
+    (add2out_strconst nodout "</font></td>")
+    (add2out_strconst nodout "</tr>")
+    (add2out_indentnl nodout 2)
+    ;; if we have a location, it makes a row
+    (cond
+     ( (is_mixloc nloc)
+       (add2out_strconst nodout "<tr><td rowspan=\"2\">")
+       (add2out_strconst nodout "<font face=\"Courier Italic\" point-size=\"8\">")
+       (add2out_mixloc nodout nloc)
+       (add2out_strconst nodout "</font></td></tr>")
+       (add2out_indentnl nodout 2)
+       )
+     )
+    ;; if the matched is a locsymocc [it usually should] display it,
+    ;; that is its symbol and the hashcode of the locsymocc
+    (if (is_a nmatched class_nrep_locsymocc)
+	(let ( (nmaloc (unsafe_get_field :nrep_loc nmatched))
+	       (nmasymb (unsafe_get_field :nocc_symb nmatched))
+	       (:long nmarank
+		      (get_int (get_field :csym_urank nmasymb)))
+	       )
+	  (add2out_strconst nodout "<tr><td>")
+	  (add2out_strconst nodout "<font face=\"Courier Bold\" point-size=\"8\">")
+	  (add2out_string nodout (get_field :named_name nmasymb))
+	  (if (>i nmarank 0)
+	      (progn
+		(add2out_strconst nodout " #")
+		(add2out_longhex nodout nmarank)
+		(add2out_strconst nodout " ")
+		))
+	  (add2out_strconst nodout "</font></td> <td><font point-size=\"8\">##")
+	  (add2out_longhex nodout (obj_hash nmatched))
+	  (add2out_strconst nodout "</font></td></tr>")
+	  (add2out_indentnl nodout 2)
+	  ))
+    (debug_msg ntest "mglabel_instance_test end ntest")
+    ))
+(install_method class_normtester_instance matchgraphic_label mglabel_instance_test)
 
 ;;; output a success test
 (defun mglabel_success_test (ntest mg)
@@ -2002,10 +2208,10 @@
     (debug_msg nmatched "mglabel_success_test nmatched")
     (assert_msg "check nodout" (is_out nodout))
     (assert_msg "check edgout" (is_out edgout))
-    ;; first table row: output the node name in blue bold and the hashcode
+    ;; first table row: output the node name and the hashcode
     (add2out_strconst nodout "<tr><td>")
     (add2out_strconst nodout 
-		      "<font color=\"sienna\" face=\"Times-Roman Bold\">")
+		      "<font color=\"sienna\" face=\"Times-Roman Bold\" point-size=\"10\">")
     (mg_out_node_name nodout ntest)
     (add2out_strconst nodout "</font></td>")
     (add2out_strconst nodout "<td><font face=\"Courier\" point-size=\"8\">#")
@@ -2023,8 +2229,6 @@
        (add2out_indentnl nodout 2)
        )
      )
-    ;; if the matched is a locsymocc [it usually should] display it,
-    ;; that is its symbol and the hashcode of the locsymocc
     (debug_msg ntest "mglabel_success_test end ntest")
     ))
 (install_method class_normtester_success matchgraphic_label mglabel_success_test)

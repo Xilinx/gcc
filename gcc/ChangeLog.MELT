@@ -1,3 +1,10 @@
+2010-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tmatch-6 still don't work}}
+	* testsuite/melt/tmatch-6.melt: added an as node to have a
+	or-pattern disjunct with an already tested pattern variables.
+	* melt/warmelt-normatch.melt: recoding normpat_orpat... still
+	incomplete...
+
 2010-01-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmatch-5.melt: updated class to
 	class_source_definition
