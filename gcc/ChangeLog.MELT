@@ -1,4 +1,9 @@
 2010-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: recoding normpat_orpat...
+	* melt/warmelt-genobj.melt: compiltst_normtester_disjunction
+	should handle ndisjlocsy..
+
+2010-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tmatch-6 still don't work}}
 	* testsuite/melt/tmatch-6.melt: added an as node to have a
 	or-pattern disjunct with an already tested pattern variables.
