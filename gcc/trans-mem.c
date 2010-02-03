@@ -3346,15 +3346,18 @@ ipa_tm_scan_irr_block (basic_block bb)
   return false;
 }
 
-/* For each of the blocks seeded witin PQUEUE, walk its dominator tree
-   looking for new irrevocable blocks, marking them in NEW_IRR.  Don't
-   bother scanning past OLD_IRR or EXIT_BLOCKS.  */
+/* For each of the blocks seeded witin PQUEUE, walk the CFG looking
+   for new irrevocable blocks, marking them in NEW_IRR.  Don't bother
+   scanning past OLD_IRR or EXIT_BLOCKS.  */
 
 static bool
 ipa_tm_scan_irr_blocks (VEC (basic_block, heap) **pqueue, bitmap new_irr,
 		        bitmap old_irr, bitmap exit_blocks)
 {
   bool any_new_irr = false;
+  edge e;
+  edge_iterator ei;
+  bitmap visited_blocks = BITMAP_ALLOC (NULL);
 
   do
     {
@@ -3370,11 +3373,18 @@ ipa_tm_scan_irr_blocks (VEC (basic_block, heap) **pqueue, bitmap new_irr,
 	  any_new_irr = true;
 	}
       else if (exit_blocks == NULL || !bitmap_bit_p (exit_blocks, bb->index))
-	for (bb = first_dom_son (CDI_DOMINATORS, bb); bb;
-	     bb = next_dom_son (CDI_DOMINATORS, bb))
-	  VEC_safe_push (basic_block, heap, *pqueue, bb);
+	{
+	  FOR_EACH_EDGE (e, ei, bb->succs)
+	    if (!bitmap_bit_p (visited_blocks, e->dest->index))
+	      {
+		bitmap_set_bit (visited_blocks, e->dest->index);
+		VEC_safe_push (basic_block, heap, *pqueue, e->dest);
+	      }
+	}
     }
   while (!VEC_empty (basic_block, *pqueue));
+
+  BITMAP_FREE (visited_blocks);
 
   return any_new_irr;
 }
@@ -3857,13 +3867,13 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   return safe;
 }
 
-/* Walk the dominator tree for REGION, beginning at BB.  Install calls to
-   tm_irrevocable when IRR_BLOCKS are reached, redirect other calls to the
-   generated transactional clone.  */
+/* Helper function for ipa_tm_transform_calls.  For a given BB,
+   install calls to tm_irrevocable when IRR_BLOCKS are reached,
+   redirect other calls to the generated transactional clone.  */
 
 static bool
-ipa_tm_transform_calls (struct cgraph_node *node, struct tm_region *region,
-			basic_block bb, bitmap irr_blocks)
+ipa_tm_transform_calls_1 (struct cgraph_node *node, struct tm_region *region,
+			  basic_block bb, bitmap irr_blocks)
 {
   gimple_stmt_iterator gsi;
   bool need_ssa_rename = false;
@@ -3945,13 +3955,48 @@ ipa_tm_transform_calls (struct cgraph_node *node, struct tm_region *region,
       gimple_call_set_fndecl (stmt, fndecl);
     }
 
-  if (!region || !bitmap_bit_p (region->exit_blocks, bb->index))
-    for (bb = first_dom_son (CDI_DOMINATORS, bb); bb;
-	 bb = next_dom_son (CDI_DOMINATORS, bb))
-      {
-	need_ssa_rename |=
-	  ipa_tm_transform_calls (node, region, bb, irr_blocks);
-      }
+  return need_ssa_rename;
+}
+
+/* Walk the CFG for REGION, beginning at BB.  Install calls to
+   tm_irrevocable when IRR_BLOCKS are reached, redirect other calls to
+   the generated transactional clone.  */
+
+static bool
+ipa_tm_transform_calls (struct cgraph_node *node, struct tm_region *region,
+			basic_block bb, bitmap irr_blocks)
+{
+  bool need_ssa_rename = false;
+  edge e;
+  edge_iterator ei;
+  VEC(basic_block, heap) *queue = NULL;
+  bitmap visited_blocks = BITMAP_ALLOC (NULL);
+
+  VEC_safe_push (basic_block, heap, queue, bb);
+  do
+    {
+      bb = VEC_pop (basic_block, queue);
+
+      need_ssa_rename |=
+	ipa_tm_transform_calls_1 (node, region, bb, irr_blocks);
+
+      if (irr_blocks && bitmap_bit_p (irr_blocks, bb->index))
+	continue;
+
+      if (region && bitmap_bit_p (region->exit_blocks, bb->index))
+	continue;
+
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (!bitmap_bit_p (visited_blocks, e->dest->index))
+	  {
+	    bitmap_set_bit (visited_blocks, e->dest->index);
+	    VEC_safe_push (basic_block, heap, queue, e->dest);
+	  }
+    }
+  while (!VEC_empty (basic_block, queue));
+
+  VEC_free (basic_block, heap, queue);
+  BITMAP_FREE (visited_blocks);
 
   return need_ssa_rename;
 }

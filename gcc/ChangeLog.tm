@@ -1,3 +1,11 @@
+2010-02-03  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_scan_irr_block): Iterate CFG.
+	(ipa_tm_transform_calls_1): Rename from ipa_tm_transform_calls.
+	Only process one block.
+	(ipa_tm_transform_calls): Iterate through CFG and call helper
+	function.
+
 2010-02-01  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (tm_region_init_1): Rewrite to just record exit and
