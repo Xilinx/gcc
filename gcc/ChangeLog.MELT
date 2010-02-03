@@ -1,3 +1,45 @@
+2010-02-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{added warmelt-base.melt to reduce warmelt-first.melt and
+	warmelt-first*.c}}
+	* melt-make.mk: added warmelt-base module.
+	* melt/warmelt-first.melt: moved many definitions, in particular
+	defprimitive-s, to warmelt-base.melt. Removed make_tuple[1-7]
+	primitives.
+	* melt/warmelt-base.melt: added new file, with content from old
+	warmelt-first.melt.
+	* melt/warmelt-macro.melt: using tuple instead of make_tuple[1-7].
+	* melt/warmelt-debug.melt: likewise.
+	* melt/warmelt-normal.melt: likewise.
+	* melt/warmelt-genobj.melt: likewise. Also, make the main
+	generated file a bit smaller in compile2obj_procedure.
+	* melt/warmelt-outobj.melt: likewise.
+	* melt/xtramelt-ana-base.melt: likewise.
+	{{regenerated everything several times}}
+	* melt/generated/warmelt-first.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0.c: regenerated.
+	* melt/generated/warmelt-macro.0.c: regenerated.
+	* melt/generated/warmelt-debug.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0+02.c: new file.
+	* melt/generated/warmelt-normal.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0.c: regenerated.
+	* melt/generated/warmelt-normal.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0+03.c: new file.
+	* melt/generated/warmelt-base.0.c: new file.
+	* melt/generated/warmelt-normatch.0.c: regenerated.
+	* melt/generated/warmelt-macro.0+01.c: regenerated.
+	* melt/generated/warmelt-macro.0+02.c: regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: regenerated.
+	* melt/generated/warmelt-macro.0+03.c: new file.
+	* melt/generated/warmelt-outobj.0+03.c: regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: regenerated.
+	* melt/generated/warmelt-debug.0.c: regenerated.
+
 2010-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: recoding normpat_orpat...
 	* melt/warmelt-genobj.melt: compiltst_normtester_disjunction

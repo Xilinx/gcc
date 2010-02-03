@@ -3487,22 +3487,12 @@
 	(debug_msg procurmodenvlist "compile_list_sexpr procurmodenvlist")
 	(let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist importvalues)) )
 	  (debug_msg iniobj "compile_list_sexpr iniobj")
-	  (outnum_err "** warmelt generated " (list_length objlist) " routines into ")
-	  (outstr_err modnamstr)
-	  (outnewline_err)
-	  (outcstring_err "** from ")
-	  (out_cplugin_compiled_timestamp_err)
-	  (outnewline_err)
-	  (outcstring_err "** of checksum ")
-	  (out_cplugin_md5_checksum_err)
-	  (outnewline_err)
 ;;;
 	  (foreach_in_list
 	   (objlist)
 	   (pairel obel)
 	   (debug_msg obel "compile_list_sexpr obel")
 	   ;; we may want to generate several C files...
-	   (compile_warning "the generation of secondary files don't work yet")
 	   (let ( (:long filnum
 			 (if (is_a obel class_procroutineobj)
 			     (get_int (get_field :oprout_filenum obel))))

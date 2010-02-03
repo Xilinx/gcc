@@ -598,9 +598,8 @@ $TORANK}#
 	   self
 	   (lambda (at va)
 	     (let ( (:long curcount (get_int countbox)) 
-		    (ent (make_tuple3 discr_multiple 
-				      at va 
-				      (make_integerbox discr_integer curcount)))
+		    (ent (tuple at va 
+				(make_integerbox discr_integer curcount)))
 		    )
 	       (multiple_put_nth tupl curcount ent)
 	       (put_int countbox (+i curcount 1))
@@ -677,9 +676,8 @@ $TORANK}#
 	   self
 	   (lambda (str val)
 	     (let ( (:long curcount (get_int countbox)) 
-		    (ent (make_tuple3 discr_multiple 
-				      str val 
-				      (make_integerbox discr_integer curcount)))
+		    (ent (tuple str val 
+				(make_integerbox discr_integer curcount)))
 		    )
 	       (multiple_put_nth tupl curcount ent)
 	       (put_int countbox (+i curcount 1))

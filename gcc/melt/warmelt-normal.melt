@@ -911,7 +911,7 @@ routine procedures.}#
 	      (instance class_nrep_let
 			:nrep_loc loc
 			:nlet_bindings (list_to_multiple bindlist)
-			:nlet_body (make_tuple1 discr_multiple nexp)))
+			:nlet_body (tuple nexp)))
 	     )
 	wnlet)
     nexp
@@ -2776,8 +2776,8 @@ routine procedures.}#
        (debug_msg (unsafe_get_field :labind_clonsy slbind) "normexp_forever got2 clonsy")
        (assert_msg "check size slbind" (<i (get_int labind_clonsy) (object_length slbind)))
        (let (
-	     (resbody (make_tuple1 discr_multiple 
-				   (wrap_normal_letseq nbody nbodbindings sloc)))
+	     (resbody (tuple 
+		       (wrap_normal_letseq nbody nbodbindings sloc)))
 	     (csym (clone_symbol 'forever_))
 	     (nforever (instance class_nrep_forever
 				 :nrep_loc sloc
@@ -2947,11 +2947,11 @@ routine procedures.}#
 				     :letbind_expr lastcomp
 				     :letbind_loc loc
 				     ))
-		    (rbintup (make_tuple1 discr_multiple rbind))
+		    (rbintup (tuple rbind))
 		    (rlet (instance class_nrep_let
 				    :nrep_loc loc
 				    :nlet_bindings rbintup
-				    :nlet_body (make_tuple1 discr_multiple retn)))
+				    :nlet_body (tuple retn)))
 		    )
 	       (unsafe_put_fields rclocc :nocc_bind rbind)
 	       (multiple_put_nth 
@@ -5515,7 +5515,7 @@ routine procedures.}#
      ;;; if we are not at topevel it has no sense to call the cont_fresh_env!
      (list_append2list bindslist curenvbinds)
      (let (
-	   (argtup  (make_tuple3 discr_multiple symdata nexp ncurenvbox))
+	   (argtup  (tuple symdata nexp ncurenvbox))
 	   (cbind (instance class_normal_let_binding
 			    :letbind_loc psloc
 			    :binder csymexpo
@@ -5802,7 +5802,7 @@ routine procedures.}#
      (debug_msg curenvbinds "normal_exported_macro curenvbinds")
      (if (is_list curenvbinds) (list_append2list bindslist curenvbinds))
      (let (
-	   (argtup (make_tuple3 discr_multiple symdata nexp ncurenvbox))
+	   (argtup (tuple symdata nexp ncurenvbox))
 	   (cbind (instance class_normal_let_binding
 			    :letbind_loc psloc
 			    :binder csymexpo
@@ -5893,7 +5893,7 @@ routine procedures.}#
      (debug_msg curenvbinds "normal_exported_patmacro curenvbinds")
      (if (is_list curenvbinds) (list_append2list bindslist curenvbinds))
      (let (
-	   (argtup  (make_tuple4 discr_multiple symdata nmacroxp npattxp ncurenvbox))
+	   (argtup  (tuple symdata nmacroxp npattxp ncurenvbox))
 	   (cbind (instance class_normal_let_binding
 			    :letbind_loc psloc
 			    :binder csymexpo
@@ -6063,8 +6063,7 @@ routine procedures.}#
 	     class_source_or
 	     :loca_location psloc
 	     :sor_disj 
-	     (make_tuple2
-	      discr_multiple
+	     (tuple
 	      scurenvbox
 	      (instance 
 	       class_source_apply
@@ -6079,7 +6078,7 @@ routine procedures.}#
 				      )
 			  :suget_field sysdata_cont_fresh_env
 			  )
-	       :sargop_args (make_tuple2 discr_multiple
+	       :sargop_args (tuple
 				       (instance class_source_parent_module_environment
 						 :loca_location psloc)
 				       modnam

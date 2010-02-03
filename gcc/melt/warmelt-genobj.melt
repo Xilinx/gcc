@@ -803,8 +803,10 @@ $SBUF.}#
 	  (nargb (if (is_a pro class_nrep_routproc) (unsafe_get_field :nrpro_argb pro)))
 	  (obodylist (make_list discr_list))
 	  ;; the number 32 below is the ratio of number of functions
-	  ;; per secondary generated C file. Change it carefully!
-	  (:long filenum (/iraw funum 32))
+	  ;; per secondary generated C file. Change it carefully!  the
+	  ;; offset 12 helps to make the first file less big, since it
+	  ;; already contains the huge initialization functions. 
+	  (:long filenum (/iraw (+i funum 12) 32))
 	  (:long nbfiles (multiple_length mofiles))
 	  (obrout (instance class_procroutineobj
 			    :named_name (strbuf2string discr_string namsbuf)
@@ -1000,8 +1002,7 @@ $SBUF.}#
 	     (list_append 
 	      bodfel
 	      (instance class_objcompute
-			:obcpt_expr (make_tuple7
-				     discr_multiple
+			:obcpt_expr (tuple
 				     (make_stringconst discr_verbatim_string 
 						       "if ((") 
 				     oprevenv
@@ -1018,7 +1019,7 @@ $SBUF.}#
 	      (instance class_objapply
 			:obdi_destlist (list1 boxloc)
 			:obapp_clos ofreshenv
-			:obapp_args (make_tuple1 discr_multiple oprevenv)))
+			:obapp_args (tuple oprevenv)))
 	     ;; ocomputboxloc is this block
 	     (instance class_objcommentedblock
 		       :oblo_bodyl bodfel
@@ -1031,8 +1032,7 @@ $SBUF.}#
 		     :obcond_test
 		     (instance
 		      class_objexpv 
-		      :obx_cont (make_tuple2 
-				 discr_multiple
+		      :obx_cont (tuple
 				 boxloc
 				 (make_stringconst discr_verbatim_string
 						   " || melt_object_length((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA))<FSYSDAT_BOX_FRESH_ENV"
@@ -1150,7 +1150,7 @@ $SBUF.}#
 			  (oimpappl (instance class_objapply
 					      :obdi_destlist (list1 oimplocv)
 					      :obapp_clos ovalueimporter
-					      :obapp_args (make_tuple4 discr_multiple osymdat oprevenv impsymstr modulstr)))
+					      :obapp_args (tuple osymdat oprevenv impsymstr modulstr)))
 			  )
 		     (list_append oiniprolog oimpappl)
 		     )))
@@ -1200,7 +1200,7 @@ $SBUF.}#
 		 class_objcompute
 		 :obdi_destlist (list1 retinit)
 		 :obcpt_expr
-		 (make_tuple3 discr_multiple
+		 (tuple
 			      (make_stringconst discr_verbatim_string
 						"/*final freshenv get*/ melt_container_value((melt_ptr_t)(")
 			      boxloc	
@@ -1751,8 +1751,7 @@ $SBUF.}#
 	 (ores (instance class_objlocatedexpv
 			 :obv_type ctype_value
 			 :obcx_loc (unsafe_get_field :nrep_loc nqcme)
-			 :obx_cont (make_tuple2 
-				    discr_multiple
+			 :obx_cont (tuple
 				    str
 				    onres
 				    )
@@ -2682,8 +2681,7 @@ $SBUF.}#
 	  (lambda ()
 	    (let (
 		  (tcont 
-		   (make_tuple5 
-		    discr_multiple
+		   (tuple
 		    (make_stringconst discr_verbatim_string "/*multacc*/(melt_multiple_nth((")
 		    cmul
 		    (make_stringconst discr_verbatim_string "), (")
@@ -2736,7 +2734,7 @@ $SBUF.}#
 	  (lambda ()
 	    (let ( 
 		  (tcont 
-		   (make_tuple5 discr_multiple  
+		   (tuple  
 				(make_stringconst discr_verbatim_string "/*fieldacc*/(melt_field_object((melt_ptr_t)(")
 				cobj
 				(make_stringconst discr_verbatim_string "),")
@@ -3640,7 +3638,7 @@ $SBUF.}#
 		      (compile_obj nelse gcx)))
 	   (otest (instance class_objexpv
 			    :obx_cont
-			    (make_tuple5 discr_multiple
+			    (tuple
 					 (make_stringconst discr_verbatim_string
 							   "/*ifisa*/ melt_is_instance_of((melt_ptr_t)(")
 					 oval
@@ -3970,7 +3968,7 @@ $SBUF.}#
 		( (is_a ipredef class_symbol)
 		  (instance 
 		   class_objexpv
-		   :obx_cont (make_tuple3 discr_multiple
+		   :obx_cont (tuple
 					  (make_stringconst discr_verbatim_string 
 							    "MELTPREDEFIX(predefinited,")
 					  (make_string discr_verbatim_string 
@@ -3982,7 +3980,7 @@ $SBUF.}#
 		( (is_integerbox ipredef)
 		  (instance
 		   class_objexpv
-		   :obx_cont (make_tuple3 discr_multiple
+		   :obx_cont (tuple
 					  (make_stringconst discr_verbatim_string 
 							    "predefinited[")
 					  ipredef
@@ -4655,8 +4653,7 @@ $SBUF.}#
 	     (instance class_objcompute
 		       :obi_loc nloc
 		       :obcpt_expr 
-		       (make_tuple5
-			discr_multiple
+		       (tuple
 			(make_stringconst discr_verbatim_string
 					  "MELT_STORE_PREDEF(")
 			(make_string discr_verbatim_string 
@@ -4671,8 +4668,7 @@ $SBUF.}#
 	     (instance class_objcompute
 		       :obi_loc nloc
 		       :obcpt_expr 
-		       (make_tuple5
-			discr_multiple
+		       (tuple
 			(make_stringconst discr_verbatim_string
 					  "melt_store_predefined(")
 			npred
@@ -5320,8 +5316,7 @@ $SBUF.}#
 	(otest (instance
 		class_objlocatedexpv
 		:obcx_loc nloc
-		:obx_cont (make_tuple5
-			   discr_multiple
+		:obx_cont (tuple
 			   (make_stringconst discr_verbatim_string 
 					     "/*normtesterinst*/ (melt_is_instance_of((")
 			   omatched
@@ -5423,8 +5418,7 @@ $SBUF.}#
 	(otest (instance
 		class_objlocatedexpv
 		:obcx_loc nloc
-		:obx_cont (make_tuple5
-			   discr_multiple
+		:obx_cont (tuple
 			   (make_stringconst discr_verbatim_string 
 					     "/*same*/ ((")
 			   omatched

@@ -880,7 +880,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 		     )
 		(setq stargs (expand_pairlist_as_tuple (list_first stacont) env mexpander))
 		)
-	    (setq stargs (if starexp (make_tuple1 discr_multiple 
+	    (setq stargs (if starexp (tuple
 						  (macroexpand_1 starexp env mexpander)
 						  ))))
 	  (setq spair (pair_tail spair))
@@ -3534,9 +3534,9 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		    (cond ( (null curcondrestpairs)
 			    (setq res (instance class_source_or
 						:loca_location curcondloc
-						:sor_disj (make_tuple2 discr_multiple 
-								       (macroexpand_1 curcondtest env mexpander)
-								       res)))
+						:sor_disj (tuple
+							   (macroexpand_1 curcondtest env mexpander)
+							   res)))
 			    (debug_msg res "mexpand_cond res for monoexp cond")
 			    )
 			  ( (null (pair_tail curcondrestpairs))
@@ -3560,7 +3560,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		(:else ;curcond is not a sexpr 
 		 (setq res (instance class_source_or
 				     :loca_location loc
-				     :sor_disj (make_tuple2 discr_multiple curcond res)))
+				     :sor_disj (tuple curcond res)))
 		 (debug_msg res "mexpand_cond res for nonsexp cond")
 		 )
 		)
@@ -4577,10 +4577,10 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		  class_source_primitive
 		  :loca_location loc
 		  :sprim_oper afprim
-		  :sargop_args (make_tuple3 discr_multiple
-					   xmsg
-					   filnam
-					   (make_integerbox discr_integer (get_int loc)))))
+		  :sargop_args (tuple
+				xmsg
+				filnam
+				(make_integerbox discr_integer (get_int loc)))))
 	  (atest (instance
 		  class_source_ifelse
 		  :loca_location loc
@@ -4647,12 +4647,12 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		  class_source_apply
 		  :loca_location loc
 		  :sapp_fun 'debug_msg_fun
-		  :sargop_args (make_tuple5 discr_multiple
-					  xval
-					  xmsg
-					  xcount
-					  dfilnam
-					  (make_integerbox discr_integer (get_int loc)))))
+		  :sargop_args (tuple
+				xval
+				xmsg
+				xcount
+				dfilnam
+				(make_integerbox discr_integer (get_int loc)))))
 	  (dcppif (instance class_source_cppif
 			    :loca_location loc
 			    :sifp_cond 'ENABLE_CHECKING

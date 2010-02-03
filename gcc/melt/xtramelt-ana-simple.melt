@@ -860,10 +860,10 @@
 	     (debugtree "smaninterp_gimple parmdecl" parmdecl)
 	     (debugcstring "smaninterp_gimple parmname" parmname)
 	     (multiple_put_nth tupvarbind argix
-			       (make_tuple3 discr_multiple 
-					    (make_tree discr_tree parmtype)
-					    (make_tree discr_tree parmdecl)
-					    (make_tree discr_tree curarg)))
+			       (tuple 
+				(make_tree discr_tree parmtype)
+				(make_tree discr_tree parmdecl)
+				(make_tree discr_tree curarg)))
 	     )
 	   (?_ 
 	    (assert_msg "inexpected curparamdcl" ())
