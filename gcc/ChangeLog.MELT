@@ -1,3 +1,11 @@
+2010-02-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_named_symbol, meltgc_named_keyword):
+	added test if MELT_PREDEF (INITIAL_SYSTEM_DATA).
+	* melt/warmelt-outobj.melt: the outpucod_objgetnamedkeyword &
+	outpucod_objgetnamedsymbol don't generate the
+	MELT_PREDEF (INITIAL_SYSTEM_DATA) since it happens in
+	meltgc_named_keyword & meltgc_named_symbol.
+
 2010-02-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{added warmelt-base.melt to reduce warmelt-first.melt and
 	warmelt-first*.c}}

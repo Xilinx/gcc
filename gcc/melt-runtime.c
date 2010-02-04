@@ -6547,7 +6547,7 @@ meltgc_named_symbol (const char *nam, int create)
   symbv = NULL;
   dictv = NULL;
   closv = NULL;
-  if (!nam)
+  if (!nam || !MELT_PREDEF (INITIAL_SYSTEM_DATA))
     goto end;
   namlen = strlen (nam);
   memset (tinybuf, 0, sizeof (tinybuf));
@@ -7029,7 +7029,7 @@ meltgc_named_keyword (const char *nam, int create)
   keywv = NULL;
   dictv = NULL;
   closv = NULL;
-  if (!nam)
+  if (!nam || !MELT_PREDEF (INITIAL_SYSTEM_DATA))
     goto end;
   if (nam[0] == ':')
     nam++;
