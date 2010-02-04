@@ -1,4 +1,27 @@
 2010-02-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: removed list[1-6] primitives and moved
+	many definitions to...
+	* melt/warmelt-base.melt: added more here.
+	* melt/warmelt-normal.melt: replaced list[1-9] with list.
+	* melt/warmelt-normatch.melt: ditto.
+	* melt/warmelt-genobj.melt: ditto.
+	{{regenerated}}
+	* melt/generated/warmelt-first.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0.c: regenerated.
+	* melt/generated/warmelt-macro.0.c: regenerated.
+	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0+02.c: removed.
+	* melt/generated/warmelt-genobj.0.c: regenerated.
+	* melt/generated/warmelt-normal.0+01.c: regenerated.
+	* melt/generated/warmelt-base.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0.c: regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: regenerated.
+	* melt/generated/warmelt-debug.0.c: regenerated.
+
+2010-02-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_named_symbol, meltgc_named_keyword):
 	added test if MELT_PREDEF (INITIAL_SYSTEM_DATA).
 	* melt/warmelt-outobj.melt: the outpucod_objgetnamedkeyword &

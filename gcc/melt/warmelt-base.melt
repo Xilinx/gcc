@@ -498,6 +498,39 @@ and whose binary is named after $OUTNAM without any '.so' suffix.}#
  #{ meltgc_new_subseq_multiple((melt_ptr_t)($mul),
 				  (int)($startix), (int)($endix)) }#)
 
+;; is_multiple, make_multiple, multiple_nth, multiple_put_nth are in
+;; warmelt-first
+
+;; cmatcher for the tuple nth argument
+(defcmatcher tuple_nth 
+  (matchedtup :long matchedrk)				;match & ins
+  (outcomp)				;out
+  tupnth				;statesymb
+  :doc #{The $TUPLE_NTH matcher with input number $MATCHEDRK matches a
+tuple of length greater than $MATCHEDRK and retrieve the component
+of that index, and matches it against the sub-pattern.}#
+  ;;test expansion
+   #{/*$TUPNTH ?*/ (melt_is_multiple_at_least(((melt_ptr_t)$matchedtup), 1+ (int)($matchedrk)))}#
+   ;;fill expansion
+  #{/*$TUPNTH !*/ $outcomp = melt_multiple_nth((melt_ptr_t)($matchedtup),(int)($matchedrk));
+   }#
+  ;; no operator expansion 
+)
+
+
+;; cmatcher for a tuple of a given exact size
+(defcmatcher tuple_sized
+  (tup :long ln)			;match & ins
+  () 					;outs
+  tupsiz				;statesymb
+  :doc #{Match a tuple of given exact size.}#
+  ;;test expansion
+   #{(melt_is_multiple_of_length((melt_ptr_t)($tup), (int) ($ln)))}#
+  ;; no fill expansion
+  ;; no operator expansion
+)
+
+
 ;; public comparator for named instances
 (defun compare_named_alpha (n1 n2)
   :doc #{Alphanumerical compare of named instances $N1 and $N2. 
@@ -752,6 +785,131 @@ limited by a small length $PREFLEN.}#
   #{meltgc_add_out((melt_ptr_t)($out), 
 		   melt_routine_descrstr((melt_ptr_t)($rout)))}#)
 
+
+;;; cmatcher for a cstring of a given content
+(defcmatcher cstring_same 
+  (:cstring str cstr)
+  ()
+  strsam
+  :doc #{The $CSTRING_SAME c-matcher match a string $STR and test if
+  it equals to the constant string $CSTR. The match fails if $STR is a
+  null string or different from $CSTR.}# 
+
+#{/*$strsam test*/ ($str && $cstr && !strcmp($str, $cstr)) }#
+  ;; no fill or operator
+)
+
+;; primitive to compute the length of a cstring
+(defprimitive cstring_length
+  (:cstring cstr) :long
+  :doc #{Compute safely the length a C-string $cstr. Gives 0 if null argument. }#
+  #{(($cstr)?strlen($cstr):0)}#)
+
+;;;;;;;;;;;;;;;;
+
+
+
+;;; iterate fully in a map of strings
+(defun mapstring_every (map f)
+  :doc #{For a given hash-map of strings $MAP and a function $F,
+apply $F to every attribute object and [perhaps allocated] string value. Returns
+nil.}#
+  (if (is_mapstring map)
+      (if (is_closure f)
+	  (foreach_in_mapstring
+	   (map)
+	   (curat curval)
+	   (f curat curval)))))
+
+;;; iterate & test over a map of strings - if the called f returns nil the
+;;; iteration is stopped
+(defun mapstring_iterate_test (map f)
+  :doc #{For a given hash-map of strings $MAP and a function $F, apply
+$F to every attribute object and string value. If it returns a null
+value, with an other secundary value, gives the failing attribute, its
+value, and the other.}#
+  (if (is_mapstring map)
+      (if (is_closure f)
+	  (foreach_in_mapstring
+	   (map)
+	   (curat curval)
+	   (multicall 
+	    (test other)
+	    (f curat curval)
+	    (if (null test)
+		(return curat curval other)
+	   ))))))
+
+
+;;;;;; MAPSTRINGs primitive
+
+;; primitive to get the allocated size of a mapstring
+(defprimitive mapstring_size (map) :long 
+  :doc #{Safely return the current allocated size of a string-map $MAP or else 0.}#
+  #{(melt_size_mapstrings((struct meltmapstrings_st*)($map)))}#)
+
+;; primitive to get the attribute count of a mapstring
+(defprimitive mapstring_count (map) :long
+  :doc #{Safely return the current count of a string-map $MAP or else 0.}#
+  #{(melt_count_mapstrings((struct meltmapstrings_st*)($map)))}#)
+
+
+;; get an entry in a mapstring from a C string
+(defprimitive mapstring_rawget (map :cstring cstr) :value
+  :doc #{Safely get in a string-map $MAP the value associated with raw c-string $CSTR or else null.}#
+  #{(melt_get_mapstrings((struct meltmapstrings_st*)($map), ($cstr)))}#)
+
+;; primitive for putting into a map of strings
+(defprimitive mapstring_rawput (map :cstring key :value val) :void
+  :doc #{Safely put into a string-map $MAP the raw c-string $KEY associated to value $VAL.}#
+  #{meltgc_put_mapstrings( (struct meltmapstrings_st *) ($map), ($key), (melt_ptr_t) ($val))}#)
+
+;; primitives for removing from a map of strings
+(defprimitive mapstring_rawremove (map :cstring key) :void
+  :doc #{Safely remove from a string-map $MAP the value associated with raw c-string $KEY.}#
+  #{meltgc_remove_mapstrings((struct meltmapstrings_st*) ($map), ($key))}#)
+
+
+;;; full iterator on tuple - 
+;;; the function is called with the component and its index
+(defun multiple_every (tup f)
+  :doc #{Apply to every component of tuple $TUP and its index the given
+function $F. Return nil.}#
+  (if (is_multiple tup)
+      (if (is_closure f)
+	  (foreach_in_multiple
+	   (tup)
+	   (comp :long ix)
+	   (f comp ix)))))
+
+;; full iterator backward
+(defun multiple_backward_every (tup f)
+  :doc #{Apply to every component (from last to first) of tuple $TUP
+backwards, and its index the given function $F. Return nil.}#
+  (if (is_multiple tup)
+      (if (is_closure f)
+	  (foreach_in_multiple_backward
+	   (tup)
+	   (comp :long ix)
+	   (f comp ix)))))
+
+
+;; iterator on two tuples
+(defun multiple_every_both (tup1 tup2 f)
+  :doc #{Given two tuples $TUP1 and $TUP2, apply function $F to every component of $TUP1 
+with component of $TUP2 and index. Stop when either end is reached. Return nil.}#
+  (if (is_multiple tup1)
+      (if (is_multiple tup2)
+	  (if (is_closure f)
+	      (let ( (:long ln1 (multiple_length tup1))
+		     (:long ln2 (multiple_length tup2))
+		     (:long ix 0) )
+		(forever tuploop
+			 (if (>=i ix ln1) (exit tuploop))
+			 (if (>=i ix ln2) (exit tuploop))
+			 (f (multiple_nth tup1 ix) (multiple_nth tup2 ix) ix)
+			 (setq ix (+i ix 1))))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  ignore
@@ -887,6 +1045,24 @@ limited by a small length $PREFLEN.}#
  add2out_sbuf
  add2out_strconst
  add2out_string
+
+ tuple_nth
+ tuple_sized
+
+ cstring_same
+ cstring_length
+
+ mapstring_every
+ mapstring_iterate_test	
+ mapstring_count
+ mapstring_size
+ mapstring_rawget
+ mapstring_rawput
+ mapstring_rawremove
+		
+ multiple_every_both
+ multiple_every
+ multiple_backward_every
  )
 
 

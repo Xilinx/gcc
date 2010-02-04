@@ -3699,7 +3699,7 @@ lab_endgetargs:;
  
  {
  MELT_LOCATION("warmelt-outobj.melt:2092:/ locexp");
- meltgc_add_strbuf((melt_ptr_t)(/*_.IMPLBUF__V4*/ curfptr[3]), ( "if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_"));}
+ meltgc_add_strbuf((melt_ptr_t)(/*_.IMPLBUF__V4*/ curfptr[3]), ( "{ melt_ptr_t sy_"));}
  ;
  
  {
@@ -4193,7 +4193,7 @@ lab_endgetargs:;
  
  {
  MELT_LOCATION("warmelt-outobj.melt:2129:/ locexp");
- meltgc_add_strbuf((melt_ptr_t)(/*_.IMPLBUF__V4*/ curfptr[3]), ( "if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t kw_"));}
+ meltgc_add_strbuf((melt_ptr_t)(/*_.IMPLBUF__V4*/ curfptr[3]), ( "{ melt_ptr_t kw_"));}
  ;
  
  {

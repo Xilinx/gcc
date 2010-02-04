@@ -1418,7 +1418,7 @@ routine procedures.}#
 	 )
     (debug_msg clocc "normexp_code_chunk clocc")
     (assert_msg "check nchk" (is_multiple nchk))
-    (return clocc (list1 cbind))
+    (return clocc (list cbind))
     ))
 (install_method class_source_codechunk normal_exp normexp_code_chunk)
 

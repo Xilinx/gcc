@@ -2463,7 +2463,7 @@
 	     (assert_msg "check no binding" (null nbindmatx))
 	     ;; put the clocc in the symbol cache map
 	     (mapobject_put (get_field :nctx_symbcachemap ncx) csym clocc)
-	     (setq nbindmatx (list1 cbind))
+	     (setq nbindmatx (list cbind))
 	     (setq nmatx clocc)
 	     ))
        ;; if no binding list, make an empty one

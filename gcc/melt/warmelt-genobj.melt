@@ -995,7 +995,7 @@ $SBUF.}#
 	     ;; retrieve the fresh_env from the systemdata
 	     (list_append bodfel
 			  (instance class_objgetslot
-				    :obdi_destlist (list1 ofreshenv)
+				    :obdi_destlist (list ofreshenv)
 				    :ogetsl_obj initialsystemdata_objpredef 
 				    :ogetsl_field sysdata_cont_fresh_env))
 	     ;; always generate a test for fresh_env being a closure if the oprevenv exists
@@ -1017,7 +1017,7 @@ $SBUF.}#
 	     (list_append
 	      bodfel
 	      (instance class_objapply
-			:obdi_destlist (list1 boxloc)
+			:obdi_destlist (list boxloc)
 			:obapp_clos ofreshenv
 			:obapp_args (tuple oprevenv)))
 	     ;; ocomputboxloc is this block
@@ -1127,7 +1127,7 @@ $SBUF.}#
 		(append_commentconst oiniprolog "get the value importer")
 		(list_append oiniprolog
 			     (instance class_objgetslot
-				       :obdi_destlist (list1 ovalueimporter)
+				       :obdi_destlist (list ovalueimporter)
 				       :ogetsl_obj initialsystemdata_objpredef 
 				       :ogetsl_field sysdata_value_importer))
 		))
@@ -1148,7 +1148,7 @@ $SBUF.}#
 			  (osymdat (compile_obj impsydat gcx))
 			  (oimplocv (mapobject_get importmap impsym))
 			  (oimpappl (instance class_objapply
-					      :obdi_destlist (list1 oimplocv)
+					      :obdi_destlist (list oimplocv)
 					      :obapp_clos ovalueimporter
 					      :obapp_args (tuple osymdat oprevenv impsymstr modulstr)))
 			  )
@@ -1198,7 +1198,7 @@ $SBUF.}#
 	(let ( (osetretinit
 		(instance 
 		 class_objcompute
-		 :obdi_destlist (list1 retinit)
+		 :obdi_destlist (list retinit)
 		 :obcpt_expr
 		 (tuple
 			      (make_stringconst discr_verbatim_string
@@ -4761,7 +4761,7 @@ $SBUF.}#
 						  ))
 			    (ocopy (instance class_objcompute
 					     :obi_loc nloc
-					     :obdi_destlist (list1 ocontenvloc)
+					     :obdi_destlist (list ocontenvloc)
 					     :obcpt_expr oex
 					     ))
 			    )
@@ -5491,7 +5491,7 @@ $SBUF.}#
 	  (progn
 	    (list_append osucc gotoend)
 	    (return osucc (list_last osucc)))
-	(return (list2 osucc gotoend) osucc))
+	(return (list osucc gotoend) osucc))
       )))
 (install_method class_normtester_success compile_tester compiltst_normtester_success)
 
@@ -5851,13 +5851,13 @@ $SBUF.}#
 	    (oargs (make_multiple discr_multiple (+i 2 (multiple_length oins))))
 	    (ogetclos (instance class_objgetslot
 				:obi_loc mloc
-				:obdi_destlist (list1 otestclos)
+				:obdi_destlist (list otestclos)
 				:ogetsl_obj omatdata
 				:ogetsl_field fmatch_matchf
 				))
 	    (omapp (instance class_objmultiapply
 			      :obi_loc mloc
-			      :obdi_destlist (list1 otestres)
+			      :obdi_destlist (list otestres)
 			      :obapp_clos otestclos
 			      :obapp_args oargs
 			      :obmultapp_xres oouts

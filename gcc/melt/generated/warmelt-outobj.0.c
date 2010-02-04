@@ -3,7 +3,7 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[]=
- "4.5.0 20100131 (experimental) [melt-branch revision 156453]";
+ "4.5.0 20100131 (experimental) [melt-branch revision 156490]";
 #endif
 
 #include "run-melt.h"
@@ -9202,7 +9202,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_121__PREVLOC_CONTAINER", melt_magic_discr (/*_.CLASS_CONTAINER__V37*/ curfptr[36]) == OBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_121__PREVLOC_CONTAINER", ((meltobject_ptr_t) (/*_.CLASS_CONTAINER__V37*/ curfptr[36]))->object_magic == OBMAG_OBJECT);
  cdat->dobj_121__PREVLOC_CONTAINER.obj_class = (meltobject_ptr_t)(/*_.CLASS_CONTAINER__V37*/ curfptr[36]);
- cdat->dobj_121__PREVLOC_CONTAINER.obj_hash = 319237268;
+ cdat->dobj_121__PREVLOC_CONTAINER.obj_hash = 177199953;
  cdat->dobj_121__PREVLOC_CONTAINER.obj_len = 1;
 
  /*iniobj dsym_122__PREVIMPLBUF_CONTAINER*/
@@ -9224,7 +9224,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_124__PREVIMPLBUF_CONTAINER", melt_magic_discr (/*_.CLASS_CONTAINER__V37*/ curfptr[36]) == OBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_124__PREVIMPLBUF_CONTAINER", ((meltobject_ptr_t) (/*_.CLASS_CONTAINER__V37*/ curfptr[36]))->object_magic == OBMAG_OBJECT);
  cdat->dobj_124__PREVIMPLBUF_CONTAINER.obj_class = (meltobject_ptr_t)(/*_.CLASS_CONTAINER__V37*/ curfptr[36]);
- cdat->dobj_124__PREVIMPLBUF_CONTAINER.obj_hash = 87610700;
+ cdat->dobj_124__PREVIMPLBUF_CONTAINER.obj_hash = 232841852;
  cdat->dobj_124__PREVIMPLBUF_CONTAINER.obj_len = 1;
 
  /*inirout drout_125__OUTPUT_LOCATION*/
@@ -11192,7 +11192,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_433__CLASS_SECONDARY_C_FILE", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_CLASS)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_433__CLASS_SECONDARY_C_FILE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
  cdat->dobj_433__CLASS_SECONDARY_C_FILE.obj_num = OBMAG_OBJECT;
- cdat->dobj_433__CLASS_SECONDARY_C_FILE.obj_hash = 1058427021;
+ cdat->dobj_433__CLASS_SECONDARY_C_FILE.obj_hash = 177152485;
  cdat->dobj_433__CLASS_SECONDARY_C_FILE.obj_len = 8;
 
  /*inistring dstr_434__CLASS_SECONDARY_*/
@@ -11228,7 +11228,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_439__SECFIL_MODNAM", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_439__SECFIL_MODNAM.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_439__SECFIL_MODNAM.obj_num = 0;
- cdat->dobj_439__SECFIL_MODNAM.obj_hash = 100555526;
+ cdat->dobj_439__SECFIL_MODNAM.obj_hash = 812044496;
  cdat->dobj_439__SECFIL_MODNAM.obj_len = 4;
 
  /*inistring dstr_440__SECFIL_MODNAM*/
@@ -11256,7 +11256,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_443__SECFIL_PATH", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_443__SECFIL_PATH.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_443__SECFIL_PATH.obj_num = 1;
- cdat->dobj_443__SECFIL_PATH.obj_hash = 804723227;
+ cdat->dobj_443__SECFIL_PATH.obj_hash = 486710668;
  cdat->dobj_443__SECFIL_PATH.obj_len = 4;
 
  /*inistring dstr_444__SECFIL_PATH*/
@@ -11284,7 +11284,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_447__SECFIL_DECLBUF", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_447__SECFIL_DECLBUF.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_447__SECFIL_DECLBUF.obj_num = 2;
- cdat->dobj_447__SECFIL_DECLBUF.obj_hash = 80211359;
+ cdat->dobj_447__SECFIL_DECLBUF.obj_hash = 480153484;
  cdat->dobj_447__SECFIL_DECLBUF.obj_len = 4;
 
  /*inistring dstr_448__SECFIL_DECLBUF*/
@@ -11312,7 +11312,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_451__SECFIL_IMPLBUF", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_451__SECFIL_IMPLBUF.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_451__SECFIL_IMPLBUF.obj_num = 3;
- cdat->dobj_451__SECFIL_IMPLBUF.obj_hash = 122132133;
+ cdat->dobj_451__SECFIL_IMPLBUF.obj_hash = 113648232;
  cdat->dobj_451__SECFIL_IMPLBUF.obj_len = 4;
 
  /*inistring dstr_452__SECFIL_IMPLBUF*/
@@ -11339,7 +11339,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_455__GENERATED_C_FILENAME", melt_magic_discr (((void*)(MELT_PREDEF(CLASS_PRIMITIVE)))) == OBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_455__GENERATED_C_FILENAME", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_PRIMITIVE)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_455__GENERATED_C_FILENAME.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_PRIMITIVE))));
- cdat->dobj_455__GENERATED_C_FILENAME.obj_hash = 264240212;
+ cdat->dobj_455__GENERATED_C_FILENAME.obj_hash = 390767500;
  cdat->dobj_455__GENERATED_C_FILENAME.obj_len = 5;
 
  /*inimult dtup_456__GENERATED_C_FILENAME*/
@@ -11370,7 +11370,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_460", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_460.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
  cdat->dobj_460.obj_num = 0;
- cdat->dobj_460.obj_hash = 662757134;
+ cdat->dobj_460.obj_hash = 607786757;
  cdat->dobj_460.obj_len = 2;
 
  /*iniobj dsym_461__BASE*/
@@ -11393,7 +11393,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_463", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_463.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
  cdat->dobj_463.obj_num = 1;
- cdat->dobj_463.obj_hash = 50502224;
+ cdat->dobj_463.obj_hash = 289682274;
  cdat->dobj_463.obj_len = 2;
 
  /*iniobj dsym_464__DIR*/
@@ -11416,7 +11416,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_466", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_466.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
  cdat->dobj_466.obj_num = 2;
- cdat->dobj_466.obj_hash = 349037313;
+ cdat->dobj_466.obj_hash = 361730016;
  cdat->dobj_466.obj_len = 2;
 
  /*iniobj dsym_467__NUM*/
@@ -11439,7 +11439,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_469", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_469.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
  cdat->dobj_469.obj_num = 3;
- cdat->dobj_469.obj_hash = 379675178;
+ cdat->dobj_469.obj_hash = 376537269;
  cdat->dobj_469.obj_len = 2;
 
  /*inistring dstr_470__meltgc_new_strin*/
@@ -11491,7 +11491,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_478__WANTS_SINGLE_C_FILE", melt_magic_discr (((void*)(MELT_PREDEF(CLASS_PRIMITIVE)))) == OBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_478__WANTS_SINGLE_C_FILE", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_PRIMITIVE)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_478__WANTS_SINGLE_C_FILE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_PRIMITIVE))));
- cdat->dobj_478__WANTS_SINGLE_C_FILE.obj_hash = 852848985;
+ cdat->dobj_478__WANTS_SINGLE_C_FILE.obj_hash = 1067268575;
  cdat->dobj_478__WANTS_SINGLE_C_FILE.obj_len = 5;
 
  /*inimult dtup_479__WANTS_SINGLE_C_FILE*/
@@ -11807,7 +11807,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_528__MELT_ARGUMENT", melt_magic_discr (((void*)(MELT_PREDEF(CLASS_PRIMITIVE)))) == OBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_528__MELT_ARGUMENT", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_PRIMITIVE)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_528__MELT_ARGUMENT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_PRIMITIVE))));
- cdat->dobj_528__MELT_ARGUMENT.obj_hash = 1064424292;
+ cdat->dobj_528__MELT_ARGUMENT.obj_hash = 653842753;
  cdat->dobj_528__MELT_ARGUMENT.obj_len = 5;
 
  /*inimult dtup_529__MELT_ARGUMENT*/
@@ -11838,7 +11838,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_533", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_533.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
  cdat->dobj_533.obj_num = 0;
- cdat->dobj_533.obj_hash = 275759190;
+ cdat->dobj_533.obj_hash = 935906013;
  cdat->dobj_533.obj_len = 2;
 
  /*inistring dstr_534__melt_argument_*/
@@ -11963,7 +11963,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_553__TRANSLATEFILE_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V130*/ curfptr[129]) == OBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_553__TRANSLATEFILE_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V130*/ curfptr[129]))->object_magic == OBMAG_OBJECT);
  cdat->dobj_553__TRANSLATEFILE_MODE.obj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V130*/ curfptr[129]);
- cdat->dobj_553__TRANSLATEFILE_MODE.obj_hash = 829719160;
+ cdat->dobj_553__TRANSLATEFILE_MODE.obj_hash = 135774246;
  cdat->dobj_553__TRANSLATEFILE_MODE.obj_len = 5;
 
  /*inistring dstr_554__translatefile*/
@@ -12007,7 +12007,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_560__RUNFILE_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V130*/ curfptr[129]) == OBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_560__RUNFILE_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V130*/ curfptr[129]))->object_magic == OBMAG_OBJECT);
  cdat->dobj_560__RUNFILE_MODE.obj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V130*/ curfptr[129]);
- cdat->dobj_560__RUNFILE_MODE.obj_hash = 429731608;
+ cdat->dobj_560__RUNFILE_MODE.obj_hash = 205080240;
  cdat->dobj_560__RUNFILE_MODE.obj_len = 5;
 
  /*inistring dstr_561__runfile*/
@@ -12058,7 +12058,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_568__TRANSLATEINIT_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V130*/ curfptr[129]) == OBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_568__TRANSLATEINIT_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V130*/ curfptr[129]))->object_magic == OBMAG_OBJECT);
  cdat->dobj_568__TRANSLATEINIT_MODE.obj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V130*/ curfptr[129]);
- cdat->dobj_568__TRANSLATEINIT_MODE.obj_hash = 630487611;
+ cdat->dobj_568__TRANSLATEINIT_MODE.obj_hash = 956169814;
  cdat->dobj_568__TRANSLATEINIT_MODE.obj_len = 5;
 
  /*inistring dstr_569__translateinit*/
@@ -12104,7 +12104,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_575__CLASS_MAKEDOC_INFO", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_CLASS)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_575__CLASS_MAKEDOC_INFO.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
  cdat->dobj_575__CLASS_MAKEDOC_INFO.obj_num = OBMAG_OBJECT;
- cdat->dobj_575__CLASS_MAKEDOC_INFO.obj_hash = 1071664511;
+ cdat->dobj_575__CLASS_MAKEDOC_INFO.obj_hash = 1002813157;
  cdat->dobj_575__CLASS_MAKEDOC_INFO.obj_len = 8;
 
  /*inistring dstr_576__CLASS_MAKEDOC_IN*/
@@ -12140,7 +12140,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_581__MKDOC_PRIMITIVES", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_581__MKDOC_PRIMITIVES.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_581__MKDOC_PRIMITIVES.obj_num = 1;
- cdat->dobj_581__MKDOC_PRIMITIVES.obj_hash = 765744313;
+ cdat->dobj_581__MKDOC_PRIMITIVES.obj_hash = 970234303;
  cdat->dobj_581__MKDOC_PRIMITIVES.obj_len = 4;
 
  /*inistring dstr_582__MKDOC_PRIMITIVES*/
@@ -12168,7 +12168,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_585__MKDOC_FUNCTIONS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_585__MKDOC_FUNCTIONS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_585__MKDOC_FUNCTIONS.obj_num = 2;
- cdat->dobj_585__MKDOC_FUNCTIONS.obj_hash = 322894164;
+ cdat->dobj_585__MKDOC_FUNCTIONS.obj_hash = 417489105;
  cdat->dobj_585__MKDOC_FUNCTIONS.obj_len = 4;
 
  /*inistring dstr_586__MKDOC_FUNCTIONS*/
@@ -12196,7 +12196,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_589__MKDOC_CITERATORS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_589__MKDOC_CITERATORS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_589__MKDOC_CITERATORS.obj_num = 3;
- cdat->dobj_589__MKDOC_CITERATORS.obj_hash = 268080381;
+ cdat->dobj_589__MKDOC_CITERATORS.obj_hash = 279642724;
  cdat->dobj_589__MKDOC_CITERATORS.obj_len = 4;
 
  /*inistring dstr_590__MKDOC_CITERATORS*/
@@ -12224,7 +12224,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_593__MKDOC_CMATCHERS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_593__MKDOC_CMATCHERS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_593__MKDOC_CMATCHERS.obj_num = 4;
- cdat->dobj_593__MKDOC_CMATCHERS.obj_hash = 974781337;
+ cdat->dobj_593__MKDOC_CMATCHERS.obj_hash = 998863729;
  cdat->dobj_593__MKDOC_CMATCHERS.obj_len = 4;
 
  /*inistring dstr_594__MKDOC_CMATCHERS*/
@@ -12252,7 +12252,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_597__MKDOC_SELECTORS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_597__MKDOC_SELECTORS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_597__MKDOC_SELECTORS.obj_num = 5;
- cdat->dobj_597__MKDOC_SELECTORS.obj_hash = 224143169;
+ cdat->dobj_597__MKDOC_SELECTORS.obj_hash = 949733377;
  cdat->dobj_597__MKDOC_SELECTORS.obj_len = 4;
 
  /*inistring dstr_598__MKDOC_SELECTORS*/
@@ -12280,7 +12280,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_601__MKDOC_FIELDS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_601__MKDOC_FIELDS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_601__MKDOC_FIELDS.obj_num = 6;
- cdat->dobj_601__MKDOC_FIELDS.obj_hash = 201027995;
+ cdat->dobj_601__MKDOC_FIELDS.obj_hash = 231610046;
  cdat->dobj_601__MKDOC_FIELDS.obj_len = 4;
 
  /*inistring dstr_602__MKDOC_FIELDS*/
@@ -12308,7 +12308,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_605__MKDOC_CLASSES", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_605__MKDOC_CLASSES.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_605__MKDOC_CLASSES.obj_num = 7;
- cdat->dobj_605__MKDOC_CLASSES.obj_hash = 5229900;
+ cdat->dobj_605__MKDOC_CLASSES.obj_hash = 454801550;
  cdat->dobj_605__MKDOC_CLASSES.obj_len = 4;
 
  /*inistring dstr_606__MKDOC_CLASSES*/
@@ -12336,7 +12336,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_609__MKDOC_INSTANCES", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_609__MKDOC_INSTANCES.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_609__MKDOC_INSTANCES.obj_num = 8;
- cdat->dobj_609__MKDOC_INSTANCES.obj_hash = 624716965;
+ cdat->dobj_609__MKDOC_INSTANCES.obj_hash = 774124681;
  cdat->dobj_609__MKDOC_INSTANCES.obj_len = 4;
 
  /*inistring dstr_610__MKDOC_INSTANCES*/
@@ -12364,7 +12364,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_613__MKDOC_MACROS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_613__MKDOC_MACROS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_613__MKDOC_MACROS.obj_num = 9;
- cdat->dobj_613__MKDOC_MACROS.obj_hash = 432164503;
+ cdat->dobj_613__MKDOC_MACROS.obj_hash = 62765400;
  cdat->dobj_613__MKDOC_MACROS.obj_len = 4;
 
  /*inistring dstr_614__MKDOC_MACROS*/
@@ -12392,7 +12392,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_617__MKDOC_PATMACROS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_617__MKDOC_PATMACROS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_617__MKDOC_PATMACROS.obj_num = 10;
- cdat->dobj_617__MKDOC_PATMACROS.obj_hash = 748891979;
+ cdat->dobj_617__MKDOC_PATMACROS.obj_hash = 645699228;
  cdat->dobj_617__MKDOC_PATMACROS.obj_len = 4;
 
  /*inistring dstr_618__MKDOC_PATMACROS*/
@@ -12420,7 +12420,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_621__MKDOC_FORMALOCCMAP", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_621__MKDOC_FORMALOCCMAP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_621__MKDOC_FORMALOCCMAP.obj_num = 11;
- cdat->dobj_621__MKDOC_FORMALOCCMAP.obj_hash = 554860451;
+ cdat->dobj_621__MKDOC_FORMALOCCMAP.obj_hash = 631776170;
  cdat->dobj_621__MKDOC_FORMALOCCMAP.obj_len = 4;
 
  /*inistring dstr_622__MKDOC_FORMALOCCM*/
@@ -12448,7 +12448,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_625__MKDOC_PREDEFMAP", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_625__MKDOC_PREDEFMAP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_625__MKDOC_PREDEFMAP.obj_num = 12;
- cdat->dobj_625__MKDOC_PREDEFMAP.obj_hash = 442217810;
+ cdat->dobj_625__MKDOC_PREDEFMAP.obj_hash = 113675375;
  cdat->dobj_625__MKDOC_PREDEFMAP.obj_len = 4;
 
  /*inistring dstr_626__MKDOC_PREDEFMAP*/
@@ -12476,7 +12476,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_629__MKDOC_DOCSYMAP", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_629__MKDOC_DOCSYMAP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_629__MKDOC_DOCSYMAP.obj_num = 13;
- cdat->dobj_629__MKDOC_DOCSYMAP.obj_hash = 84944119;
+ cdat->dobj_629__MKDOC_DOCSYMAP.obj_hash = 955974167;
  cdat->dobj_629__MKDOC_DOCSYMAP.obj_len = 4;
 
  /*inistring dstr_630__MKDOC_DOCSYMAP*/
@@ -12504,7 +12504,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_633__MKDOC_SUBCLASSMAP", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->object_magic == OBMAG_OBJECT);
  cdat->dobj_633__MKDOC_SUBCLASSMAP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_633__MKDOC_SUBCLASSMAP.obj_num = 14;
- cdat->dobj_633__MKDOC_SUBCLASSMAP.obj_hash = 186683455;
+ cdat->dobj_633__MKDOC_SUBCLASSMAP.obj_hash = 906228356;
  cdat->dobj_633__MKDOC_SUBCLASSMAP.obj_len = 4;
 
  /*inistring dstr_634__MKDOC_SUBCLASSMA*/
@@ -12996,7 +12996,7 @@ static void initialize_module_meltdata(initial_frame_st *iniframp__, char predef
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_711__MAKEDOC_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V130*/ curfptr[129]) == OBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_711__MAKEDOC_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V130*/ curfptr[129]))->object_magic == OBMAG_OBJECT);
  cdat->dobj_711__MAKEDOC_MODE.obj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V130*/ curfptr[129]);
- cdat->dobj_711__MAKEDOC_MODE.obj_hash = 424558953;
+ cdat->dobj_711__MAKEDOC_MODE.obj_hash = 45731165;
  cdat->dobj_711__MAKEDOC_MODE.obj_len = 5;
 
  /*inistring dstr_712__makedoc*/
@@ -13108,1253 +13108,1253 @@ initial_frame_st     curfram__;
  /*^getnamedsymbol*/
 
  /*getnamedsym:DEBUG_MSG_FUN*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DEBUG_MSG_FUN = meltgc_named_symbol("DEBUG_MSG_FUN", MELT_GET);
+ { melt_ptr_t sy_DEBUG_MSG_FUN = meltgc_named_symbol("DEBUG_MSG_FUN", MELT_GET);
   if (sy_DEBUG_MSG_FUN && NULL == /*_.VALDATA___V152*/ curfptr[151])
   /*_.VALDATA___V152*/ curfptr[151] = (void*) sy_DEBUG_MSG_FUN; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:INSTALL_METHOD*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_INSTALL_METHOD = meltgc_named_symbol("INSTALL_METHOD", MELT_GET);
+ { melt_ptr_t sy_INSTALL_METHOD = meltgc_named_symbol("INSTALL_METHOD", MELT_GET);
   if (sy_INSTALL_METHOD && NULL == /*_.VALDATA___V154*/ curfptr[153])
   /*_.VALDATA___V154*/ curfptr[153] = (void*) sy_INSTALL_METHOD; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_ROOT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_ROOT = meltgc_named_symbol("CLASS_ROOT", MELT_GET);
+ { melt_ptr_t sy_CLASS_ROOT = meltgc_named_symbol("CLASS_ROOT", MELT_GET);
   if (sy_CLASS_ROOT && NULL == /*_.VALDATA___V156*/ curfptr[155])
   /*_.VALDATA___V156*/ curfptr[155] = (void*) sy_CLASS_ROOT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:OUTPUT_C_DECLINIT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_OUTPUT_C_DECLINIT = meltgc_named_symbol("OUTPUT_C_DECLINIT", MELT_GET);
+ { melt_ptr_t sy_OUTPUT_C_DECLINIT = meltgc_named_symbol("OUTPUT_C_DECLINIT", MELT_GET);
   if (sy_OUTPUT_C_DECLINIT && NULL == /*_.VALDATA___V158*/ curfptr[157])
   /*_.VALDATA___V158*/ curfptr[157] = (void*) sy_OUTPUT_C_DECLINIT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINITELEM*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINITELEM = meltgc_named_symbol("CLASS_OBJINITELEM", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINITELEM = meltgc_named_symbol("CLASS_OBJINITELEM", MELT_GET);
   if (sy_CLASS_OBJINITELEM && NULL == /*_.VALDATA___V162*/ curfptr[161])
   /*_.VALDATA___V162*/ curfptr[161] = (void*) sy_CLASS_OBJINITELEM; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:OUTPUT_C_CODE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_OUTPUT_C_CODE = meltgc_named_symbol("OUTPUT_C_CODE", MELT_GET);
+ { melt_ptr_t sy_OUTPUT_C_CODE = meltgc_named_symbol("OUTPUT_C_CODE", MELT_GET);
   if (sy_OUTPUT_C_CODE && NULL == /*_.VALDATA___V164*/ curfptr[163])
   /*_.VALDATA___V164*/ curfptr[163] = (void*) sy_OUTPUT_C_CODE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:OUTPUT_C_INITIAL_FILL*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_OUTPUT_C_INITIAL_FILL = meltgc_named_symbol("OUTPUT_C_INITIAL_FILL", MELT_GET);
+ { melt_ptr_t sy_OUTPUT_C_INITIAL_FILL = meltgc_named_symbol("OUTPUT_C_INITIAL_FILL", MELT_GET);
   if (sy_OUTPUT_C_INITIAL_FILL && NULL == /*_.VALDATA___V168*/ curfptr[167])
   /*_.VALDATA___V168*/ curfptr[167] = (void*) sy_OUTPUT_C_INITIAL_FILL; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:OUTPUT_C_INITIAL_PREDEF*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_OUTPUT_C_INITIAL_PREDEF = meltgc_named_symbol("OUTPUT_C_INITIAL_PREDEF", MELT_GET);
+ { melt_ptr_t sy_OUTPUT_C_INITIAL_PREDEF = meltgc_named_symbol("OUTPUT_C_INITIAL_PREDEF", MELT_GET);
   if (sy_OUTPUT_C_INITIAL_PREDEF && NULL == /*_.VALDATA___V172*/ curfptr[171])
   /*_.VALDATA___V172*/ curfptr[171] = (void*) sy_OUTPUT_C_INITIAL_PREDEF; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SYMBOL*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SYMBOL = meltgc_named_symbol("CLASS_SYMBOL", MELT_GET);
+ { melt_ptr_t sy_CLASS_SYMBOL = meltgc_named_symbol("CLASS_SYMBOL", MELT_GET);
   if (sy_CLASS_SYMBOL && NULL == /*_.VALDATA___V176*/ curfptr[175])
   /*_.VALDATA___V176*/ curfptr[175] = (void*) sy_CLASS_SYMBOL; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:OBPREDEF*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_OBPREDEF = meltgc_named_symbol("OBPREDEF", MELT_GET);
+ { melt_ptr_t sy_OBPREDEF = meltgc_named_symbol("OBPREDEF", MELT_GET);
   if (sy_OBPREDEF && NULL == /*_.VALDATA___V178*/ curfptr[177])
   /*_.VALDATA___V178*/ curfptr[177] = (void*) sy_OBPREDEF; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPREDEF*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPREDEF = meltgc_named_symbol("CLASS_OBJPREDEF", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPREDEF = meltgc_named_symbol("CLASS_OBJPREDEF", MELT_GET);
   if (sy_CLASS_OBJPREDEF && NULL == /*_.VALDATA___V182*/ curfptr[181])
   /*_.VALDATA___V182*/ curfptr[181] = (void*) sy_CLASS_OBJPREDEF; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJNIL*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJNIL = meltgc_named_symbol("CLASS_OBJNIL", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJNIL = meltgc_named_symbol("CLASS_OBJNIL", MELT_GET);
   if (sy_CLASS_OBJNIL && NULL == /*_.VALDATA___V186*/ curfptr[185])
   /*_.VALDATA___V186*/ curfptr[185] = (void*) sy_CLASS_OBJNIL; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINITOBJECT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINITOBJECT = meltgc_named_symbol("CLASS_OBJINITOBJECT", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINITOBJECT = meltgc_named_symbol("CLASS_OBJINITOBJECT", MELT_GET);
   if (sy_CLASS_OBJINITOBJECT && NULL == /*_.VALDATA___V190*/ curfptr[189])
   /*_.VALDATA___V190*/ curfptr[189] = (void*) sy_CLASS_OBJINITOBJECT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_NREP_DATAINSTANCE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_NREP_DATAINSTANCE = meltgc_named_symbol("CLASS_NREP_DATAINSTANCE", MELT_GET);
+ { melt_ptr_t sy_CLASS_NREP_DATAINSTANCE = meltgc_named_symbol("CLASS_NREP_DATAINSTANCE", MELT_GET);
   if (sy_CLASS_NREP_DATAINSTANCE && NULL == /*_.VALDATA___V200*/ curfptr[199])
   /*_.VALDATA___V200*/ curfptr[199] = (void*) sy_CLASS_NREP_DATAINSTANCE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_CLASS*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_CLASS = meltgc_named_symbol("CLASS_CLASS", MELT_GET);
+ { melt_ptr_t sy_CLASS_CLASS = meltgc_named_symbol("CLASS_CLASS", MELT_GET);
   if (sy_CLASS_CLASS && NULL == /*_.VALDATA___V202*/ curfptr[201])
   /*_.VALDATA___V202*/ curfptr[201] = (void*) sy_CLASS_CLASS; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINITUNIQUEOBJECT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINITUNIQUEOBJECT = meltgc_named_symbol("CLASS_OBJINITUNIQUEOBJECT", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINITUNIQUEOBJECT = meltgc_named_symbol("CLASS_OBJINITUNIQUEOBJECT", MELT_GET);
   if (sy_CLASS_OBJINITUNIQUEOBJECT && NULL == /*_.VALDATA___V204*/ curfptr[203])
   /*_.VALDATA___V204*/ curfptr[203] = (void*) sy_CLASS_OBJINITUNIQUEOBJECT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_NREP_NIL*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_NREP_NIL = meltgc_named_symbol("CLASS_NREP_NIL", MELT_GET);
+ { melt_ptr_t sy_CLASS_NREP_NIL = meltgc_named_symbol("CLASS_NREP_NIL", MELT_GET);
   if (sy_CLASS_NREP_NIL && NULL == /*_.VALDATA___V208*/ curfptr[207])
   /*_.VALDATA___V208*/ curfptr[207] = (void*) sy_CLASS_NREP_NIL; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINITMULTIPLE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINITMULTIPLE = meltgc_named_symbol("CLASS_OBJINITMULTIPLE", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINITMULTIPLE = meltgc_named_symbol("CLASS_OBJINITMULTIPLE", MELT_GET);
   if (sy_CLASS_OBJINITMULTIPLE && NULL == /*_.VALDATA___V212*/ curfptr[211])
   /*_.VALDATA___V212*/ curfptr[211] = (void*) sy_CLASS_OBJINITMULTIPLE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINITCLOSURE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINITCLOSURE = meltgc_named_symbol("CLASS_OBJINITCLOSURE", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINITCLOSURE = meltgc_named_symbol("CLASS_OBJINITCLOSURE", MELT_GET);
   if (sy_CLASS_OBJINITCLOSURE && NULL == /*_.VALDATA___V218*/ curfptr[217])
   /*_.VALDATA___V218*/ curfptr[217] = (void*) sy_CLASS_OBJINITCLOSURE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINITROUTINE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINITROUTINE = meltgc_named_symbol("CLASS_OBJINITROUTINE", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINITROUTINE = meltgc_named_symbol("CLASS_OBJINITROUTINE", MELT_GET);
   if (sy_CLASS_OBJINITROUTINE && NULL == /*_.VALDATA___V224*/ curfptr[223])
   /*_.VALDATA___V224*/ curfptr[223] = (void*) sy_CLASS_OBJINITROUTINE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_NREP_DATAROUTINE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_NREP_DATAROUTINE = meltgc_named_symbol("CLASS_NREP_DATAROUTINE", MELT_GET);
+ { melt_ptr_t sy_CLASS_NREP_DATAROUTINE = meltgc_named_symbol("CLASS_NREP_DATAROUTINE", MELT_GET);
   if (sy_CLASS_NREP_DATAROUTINE && NULL == /*_.VALDATA___V228*/ curfptr[227])
   /*_.VALDATA___V228*/ curfptr[227] = (void*) sy_CLASS_NREP_DATAROUTINE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_NAMED*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_NAMED = meltgc_named_symbol("CLASS_NAMED", MELT_GET);
+ { melt_ptr_t sy_CLASS_NAMED = meltgc_named_symbol("CLASS_NAMED", MELT_GET);
   if (sy_CLASS_NAMED && NULL == /*_.VALDATA___V230*/ curfptr[229])
   /*_.VALDATA___V230*/ curfptr[229] = (void*) sy_CLASS_NAMED; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_NREP_ROUTPROC*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_NREP_ROUTPROC = meltgc_named_symbol("CLASS_NREP_ROUTPROC", MELT_GET);
+ { melt_ptr_t sy_CLASS_NREP_ROUTPROC = meltgc_named_symbol("CLASS_NREP_ROUTPROC", MELT_GET);
   if (sy_CLASS_NREP_ROUTPROC && NULL == /*_.VALDATA___V232*/ curfptr[231])
   /*_.VALDATA___V232*/ curfptr[231] = (void*) sy_CLASS_NREP_ROUTPROC; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINITSTRING*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINITSTRING = meltgc_named_symbol("CLASS_OBJINITSTRING", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINITSTRING = meltgc_named_symbol("CLASS_OBJINITSTRING", MELT_GET);
   if (sy_CLASS_OBJINITSTRING && NULL == /*_.VALDATA___V236*/ curfptr[235])
   /*_.VALDATA___V236*/ curfptr[235] = (void*) sy_CLASS_OBJINITSTRING; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINITBOXINTEGER*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINITBOXINTEGER = meltgc_named_symbol("CLASS_OBJINITBOXINTEGER", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINITBOXINTEGER = meltgc_named_symbol("CLASS_OBJINITBOXINTEGER", MELT_GET);
   if (sy_CLASS_OBJINITBOXINTEGER && NULL == /*_.VALDATA___V242*/ curfptr[241])
   /*_.VALDATA___V242*/ curfptr[241] = (void*) sy_CLASS_OBJINITBOXINTEGER; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINITPAIR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINITPAIR = meltgc_named_symbol("CLASS_OBJINITPAIR", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINITPAIR = meltgc_named_symbol("CLASS_OBJINITPAIR", MELT_GET);
   if (sy_CLASS_OBJINITPAIR && NULL == /*_.VALDATA___V248*/ curfptr[247])
   /*_.VALDATA___V248*/ curfptr[247] = (void*) sy_CLASS_OBJINITPAIR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINITLIST*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINITLIST = meltgc_named_symbol("CLASS_OBJINITLIST", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINITLIST = meltgc_named_symbol("CLASS_OBJINITLIST", MELT_GET);
   if (sy_CLASS_OBJINITLIST && NULL == /*_.VALDATA___V254*/ curfptr[253])
   /*_.VALDATA___V254*/ curfptr[253] = (void*) sy_CLASS_OBJINITLIST; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DISCR_ANY_RECEIVER*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DISCR_ANY_RECEIVER = meltgc_named_symbol("DISCR_ANY_RECEIVER", MELT_GET);
+ { melt_ptr_t sy_DISCR_ANY_RECEIVER = meltgc_named_symbol("DISCR_ANY_RECEIVER", MELT_GET);
   if (sy_DISCR_ANY_RECEIVER && NULL == /*_.VALDATA___V260*/ curfptr[259])
   /*_.VALDATA___V260*/ curfptr[259] = (void*) sy_DISCR_ANY_RECEIVER; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DISCR_NULL_RECEIVER*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DISCR_NULL_RECEIVER = meltgc_named_symbol("DISCR_NULL_RECEIVER", MELT_GET);
+ { melt_ptr_t sy_DISCR_NULL_RECEIVER = meltgc_named_symbol("DISCR_NULL_RECEIVER", MELT_GET);
   if (sy_DISCR_NULL_RECEIVER && NULL == /*_.VALDATA___V264*/ curfptr[263])
   /*_.VALDATA___V264*/ curfptr[263] = (void*) sy_DISCR_NULL_RECEIVER; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DISPLAY_DEBUG_MESSAGE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DISPLAY_DEBUG_MESSAGE = meltgc_named_symbol("DISPLAY_DEBUG_MESSAGE", MELT_GET);
+ { melt_ptr_t sy_DISPLAY_DEBUG_MESSAGE = meltgc_named_symbol("DISPLAY_DEBUG_MESSAGE", MELT_GET);
   if (sy_DISPLAY_DEBUG_MESSAGE && NULL == /*_.VALDATA___V268*/ curfptr[267])
   /*_.VALDATA___V268*/ curfptr[267] = (void*) sy_DISPLAY_DEBUG_MESSAGE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:PREVLOC_CONTAINER*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_PREVLOC_CONTAINER = meltgc_named_symbol("PREVLOC_CONTAINER", MELT_GET);
+ { melt_ptr_t sy_PREVLOC_CONTAINER = meltgc_named_symbol("PREVLOC_CONTAINER", MELT_GET);
   if (sy_PREVLOC_CONTAINER && NULL == /*_.VALDATA___V270*/ curfptr[269])
   /*_.VALDATA___V270*/ curfptr[269] = (void*) sy_PREVLOC_CONTAINER; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_CONTAINER*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_CONTAINER = meltgc_named_symbol("CLASS_CONTAINER", MELT_GET);
+ { melt_ptr_t sy_CLASS_CONTAINER = meltgc_named_symbol("CLASS_CONTAINER", MELT_GET);
   if (sy_CLASS_CONTAINER && NULL == /*_.VALDATA___V272*/ curfptr[271])
   /*_.VALDATA___V272*/ curfptr[271] = (void*) sy_CLASS_CONTAINER; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:PREVIMPLBUF_CONTAINER*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_PREVIMPLBUF_CONTAINER = meltgc_named_symbol("PREVIMPLBUF_CONTAINER", MELT_GET);
+ { melt_ptr_t sy_PREVIMPLBUF_CONTAINER = meltgc_named_symbol("PREVIMPLBUF_CONTAINER", MELT_GET);
   if (sy_PREVIMPLBUF_CONTAINER && NULL == /*_.VALDATA___V274*/ curfptr[273])
   /*_.VALDATA___V274*/ curfptr[273] = (void*) sy_PREVIMPLBUF_CONTAINER; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_INITIALROUTINEOBJ*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_INITIALROUTINEOBJ = meltgc_named_symbol("CLASS_INITIALROUTINEOBJ", MELT_GET);
+ { melt_ptr_t sy_CLASS_INITIALROUTINEOBJ = meltgc_named_symbol("CLASS_INITIALROUTINEOBJ", MELT_GET);
   if (sy_CLASS_INITIALROUTINEOBJ && NULL == /*_.VALDATA___V279*/ curfptr[278])
   /*_.VALDATA___V279*/ curfptr[278] = (void*) sy_CLASS_INITIALROUTINEOBJ; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:LIST_EVERY*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_LIST_EVERY = meltgc_named_symbol("LIST_EVERY", MELT_GET);
+ { melt_ptr_t sy_LIST_EVERY = meltgc_named_symbol("LIST_EVERY", MELT_GET);
   if (sy_LIST_EVERY && NULL == /*_.VALDATA___V281*/ curfptr[280])
   /*_.VALDATA___V281*/ curfptr[280] = (void*) sy_LIST_EVERY; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJLOCV*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJLOCV = meltgc_named_symbol("CLASS_OBJLOCV", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJLOCV = meltgc_named_symbol("CLASS_OBJLOCV", MELT_GET);
   if (sy_CLASS_OBJLOCV && NULL == /*_.VALDATA___V283*/ curfptr[282])
   /*_.VALDATA___V283*/ curfptr[282] = (void*) sy_CLASS_OBJLOCV; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_CTYPE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_CTYPE = meltgc_named_symbol("CLASS_CTYPE", MELT_GET);
+ { melt_ptr_t sy_CLASS_CTYPE = meltgc_named_symbol("CLASS_CTYPE", MELT_GET);
   if (sy_CLASS_CTYPE && NULL == /*_.VALDATA___V285*/ curfptr[284])
   /*_.VALDATA___V285*/ curfptr[284] = (void*) sy_CLASS_CTYPE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_ROUTINEOBJ*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_ROUTINEOBJ = meltgc_named_symbol("CLASS_ROUTINEOBJ", MELT_GET);
+ { melt_ptr_t sy_CLASS_ROUTINEOBJ = meltgc_named_symbol("CLASS_ROUTINEOBJ", MELT_GET);
   if (sy_CLASS_ROUTINEOBJ && NULL == /*_.VALDATA___V290*/ curfptr[289])
   /*_.VALDATA___V290*/ curfptr[289] = (void*) sy_CLASS_ROUTINEOBJ; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CTYPE_VALUE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CTYPE_VALUE = meltgc_named_symbol("CTYPE_VALUE", MELT_GET);
+ { melt_ptr_t sy_CTYPE_VALUE = meltgc_named_symbol("CTYPE_VALUE", MELT_GET);
   if (sy_CTYPE_VALUE && NULL == /*_.VALDATA___V292*/ curfptr[291])
   /*_.VALDATA___V292*/ curfptr[291] = (void*) sy_CTYPE_VALUE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJVALUE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJVALUE = meltgc_named_symbol("CLASS_OBJVALUE", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJVALUE = meltgc_named_symbol("CLASS_OBJVALUE", MELT_GET);
   if (sy_CLASS_OBJVALUE && NULL == /*_.VALDATA___V294*/ curfptr[293])
   /*_.VALDATA___V294*/ curfptr[293] = (void*) sy_CLASS_OBJVALUE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_PROCROUTINEOBJ*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_PROCROUTINEOBJ = meltgc_named_symbol("CLASS_PROCROUTINEOBJ", MELT_GET);
+ { melt_ptr_t sy_CLASS_PROCROUTINEOBJ = meltgc_named_symbol("CLASS_PROCROUTINEOBJ", MELT_GET);
   if (sy_CLASS_PROCROUTINEOBJ && NULL == /*_.VALDATA___V303*/ curfptr[302])
   /*_.VALDATA___V303*/ curfptr[302] = (void*) sy_CLASS_PROCROUTINEOBJ; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MULTIPLE_EVERY*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MULTIPLE_EVERY = meltgc_named_symbol("MULTIPLE_EVERY", MELT_GET);
+ { melt_ptr_t sy_MULTIPLE_EVERY = meltgc_named_symbol("MULTIPLE_EVERY", MELT_GET);
   if (sy_MULTIPLE_EVERY && NULL == /*_.VALDATA___V305*/ curfptr[304])
   /*_.VALDATA___V305*/ curfptr[304] = (void*) sy_MULTIPLE_EVERY; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUREVALUE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUREVALUE = meltgc_named_symbol("CLASS_OBJPUREVALUE", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUREVALUE = meltgc_named_symbol("CLASS_OBJPUREVALUE", MELT_GET);
   if (sy_CLASS_OBJPUREVALUE && NULL == /*_.VALDATA___V307*/ curfptr[306])
   /*_.VALDATA___V307*/ curfptr[306] = (void*) sy_CLASS_OBJPUREVALUE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJGETARG*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJGETARG = meltgc_named_symbol("CLASS_OBJGETARG", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJGETARG = meltgc_named_symbol("CLASS_OBJGETARG", MELT_GET);
   if (sy_CLASS_OBJGETARG && NULL == /*_.VALDATA___V323*/ curfptr[322])
   /*_.VALDATA___V323*/ curfptr[322] = (void*) sy_CLASS_OBJGETARG; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_FORMAL_BINDING*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_FORMAL_BINDING = meltgc_named_symbol("CLASS_FORMAL_BINDING", MELT_GET);
+ { melt_ptr_t sy_CLASS_FORMAL_BINDING = meltgc_named_symbol("CLASS_FORMAL_BINDING", MELT_GET);
   if (sy_CLASS_FORMAL_BINDING && NULL == /*_.VALDATA___V325*/ curfptr[324])
   /*_.VALDATA___V325*/ curfptr[324] = (void*) sy_CLASS_FORMAL_BINDING; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CTYPE_LONG*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CTYPE_LONG = meltgc_named_symbol("CTYPE_LONG", MELT_GET);
+ { melt_ptr_t sy_CTYPE_LONG = meltgc_named_symbol("CTYPE_LONG", MELT_GET);
   if (sy_CTYPE_LONG && NULL == /*_.VALDATA___V329*/ curfptr[328])
   /*_.VALDATA___V329*/ curfptr[328] = (void*) sy_CTYPE_LONG; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJCLOCCV*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJCLOCCV = meltgc_named_symbol("CLASS_OBJCLOCCV", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJCLOCCV = meltgc_named_symbol("CLASS_OBJCLOCCV", MELT_GET);
   if (sy_CLASS_OBJCLOCCV && NULL == /*_.VALDATA___V333*/ curfptr[332])
   /*_.VALDATA___V333*/ curfptr[332] = (void*) sy_CLASS_OBJCLOCCV; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJCONSTV*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJCONSTV = meltgc_named_symbol("CLASS_OBJCONSTV", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJCONSTV = meltgc_named_symbol("CLASS_OBJCONSTV", MELT_GET);
   if (sy_CLASS_OBJCONSTV && NULL == /*_.VALDATA___V337*/ curfptr[336])
   /*_.VALDATA___V337*/ curfptr[336] = (void*) sy_CLASS_OBJCONSTV; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPLAINBLOCK*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPLAINBLOCK = meltgc_named_symbol("CLASS_OBJPLAINBLOCK", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPLAINBLOCK = meltgc_named_symbol("CLASS_OBJPLAINBLOCK", MELT_GET);
   if (sy_CLASS_OBJPLAINBLOCK && NULL == /*_.VALDATA___V341*/ curfptr[340])
   /*_.VALDATA___V341*/ curfptr[340] = (void*) sy_CLASS_OBJPLAINBLOCK; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJANYBLOCK*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJANYBLOCK = meltgc_named_symbol("CLASS_OBJANYBLOCK", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJANYBLOCK = meltgc_named_symbol("CLASS_OBJANYBLOCK", MELT_GET);
   if (sy_CLASS_OBJANYBLOCK && NULL == /*_.VALDATA___V345*/ curfptr[344])
   /*_.VALDATA___V345*/ curfptr[344] = (void*) sy_CLASS_OBJANYBLOCK; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DISCR_INTEGER*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DISCR_INTEGER = meltgc_named_symbol("DISCR_INTEGER", MELT_GET);
+ { melt_ptr_t sy_DISCR_INTEGER = meltgc_named_symbol("DISCR_INTEGER", MELT_GET);
   if (sy_DISCR_INTEGER && NULL == /*_.VALDATA___V347*/ curfptr[346])
   /*_.VALDATA___V347*/ curfptr[346] = (void*) sy_DISCR_INTEGER; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJMULTIALLOCBLOCK*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJMULTIALLOCBLOCK = meltgc_named_symbol("CLASS_OBJMULTIALLOCBLOCK", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJMULTIALLOCBLOCK = meltgc_named_symbol("CLASS_OBJMULTIALLOCBLOCK", MELT_GET);
   if (sy_CLASS_OBJMULTIALLOCBLOCK && NULL == /*_.VALDATA___V351*/ curfptr[350])
   /*_.VALDATA___V351*/ curfptr[350] = (void*) sy_CLASS_OBJMULTIALLOCBLOCK; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DISCR_STRBUF*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DISCR_STRBUF = meltgc_named_symbol("DISCR_STRBUF", MELT_GET);
+ { melt_ptr_t sy_DISCR_STRBUF = meltgc_named_symbol("DISCR_STRBUF", MELT_GET);
   if (sy_DISCR_STRBUF && NULL == /*_.VALDATA___V353*/ curfptr[352])
   /*_.VALDATA___V353*/ curfptr[352] = (void*) sy_DISCR_STRBUF; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DISCR_VERBATIM_STRING*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DISCR_VERBATIM_STRING = meltgc_named_symbol("DISCR_VERBATIM_STRING", MELT_GET);
+ { melt_ptr_t sy_DISCR_VERBATIM_STRING = meltgc_named_symbol("DISCR_VERBATIM_STRING", MELT_GET);
   if (sy_DISCR_VERBATIM_STRING && NULL == /*_.VALDATA___V355*/ curfptr[354])
   /*_.VALDATA___V355*/ curfptr[354] = (void*) sy_DISCR_VERBATIM_STRING; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJCITERBLOCK*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJCITERBLOCK = meltgc_named_symbol("CLASS_OBJCITERBLOCK", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJCITERBLOCK = meltgc_named_symbol("CLASS_OBJCITERBLOCK", MELT_GET);
   if (sy_CLASS_OBJCITERBLOCK && NULL == /*_.VALDATA___V361*/ curfptr[360])
   /*_.VALDATA___V361*/ curfptr[360] = (void*) sy_CLASS_OBJCITERBLOCK; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_CITERATOR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_CITERATOR = meltgc_named_symbol("CLASS_CITERATOR", MELT_GET);
+ { melt_ptr_t sy_CLASS_CITERATOR = meltgc_named_symbol("CLASS_CITERATOR", MELT_GET);
   if (sy_CLASS_CITERATOR && NULL == /*_.VALDATA___V363*/ curfptr[362])
   /*_.VALDATA___V363*/ curfptr[362] = (void*) sy_CLASS_CITERATOR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJCOMMENTINSTR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJCOMMENTINSTR = meltgc_named_symbol("CLASS_OBJCOMMENTINSTR", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJCOMMENTINSTR = meltgc_named_symbol("CLASS_OBJCOMMENTINSTR", MELT_GET);
   if (sy_CLASS_OBJCOMMENTINSTR && NULL == /*_.VALDATA___V367*/ curfptr[366])
   /*_.VALDATA___V367*/ curfptr[366] = (void*) sy_CLASS_OBJCOMMENTINSTR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DISCR_STRING*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DISCR_STRING = meltgc_named_symbol("DISCR_STRING", MELT_GET);
+ { melt_ptr_t sy_DISCR_STRING = meltgc_named_symbol("DISCR_STRING", MELT_GET);
   if (sy_DISCR_STRING && NULL == /*_.VALDATA___V369*/ curfptr[368])
   /*_.VALDATA___V369*/ curfptr[368] = (void*) sy_DISCR_STRING; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJCOMMENTEDBLOCK*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJCOMMENTEDBLOCK = meltgc_named_symbol("CLASS_OBJCOMMENTEDBLOCK", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJCOMMENTEDBLOCK = meltgc_named_symbol("CLASS_OBJCOMMENTEDBLOCK", MELT_GET);
   if (sy_CLASS_OBJCOMMENTEDBLOCK && NULL == /*_.VALDATA___V373*/ curfptr[372])
   /*_.VALDATA___V373*/ curfptr[372] = (void*) sy_CLASS_OBJCOMMENTEDBLOCK; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJLABELINSTR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJLABELINSTR = meltgc_named_symbol("CLASS_OBJLABELINSTR", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJLABELINSTR = meltgc_named_symbol("CLASS_OBJLABELINSTR", MELT_GET);
   if (sy_CLASS_OBJLABELINSTR && NULL == /*_.VALDATA___V377*/ curfptr[376])
   /*_.VALDATA___V377*/ curfptr[376] = (void*) sy_CLASS_OBJLABELINSTR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJGOTOINSTR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJGOTOINSTR = meltgc_named_symbol("CLASS_OBJGOTOINSTR", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJGOTOINSTR = meltgc_named_symbol("CLASS_OBJGOTOINSTR", MELT_GET);
   if (sy_CLASS_OBJGOTOINSTR && NULL == /*_.VALDATA___V381*/ curfptr[380])
   /*_.VALDATA___V381*/ curfptr[380] = (void*) sy_CLASS_OBJGOTOINSTR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_CLONED_SYMBOL*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_CLONED_SYMBOL = meltgc_named_symbol("CLASS_CLONED_SYMBOL", MELT_GET);
+ { melt_ptr_t sy_CLASS_CLONED_SYMBOL = meltgc_named_symbol("CLASS_CLONED_SYMBOL", MELT_GET);
   if (sy_CLASS_CLONED_SYMBOL && NULL == /*_.VALDATA___V385*/ curfptr[384])
   /*_.VALDATA___V385*/ curfptr[384] = (void*) sy_CLASS_CLONED_SYMBOL; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJLOOP*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJLOOP = meltgc_named_symbol("CLASS_OBJLOOP", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJLOOP = meltgc_named_symbol("CLASS_OBJLOOP", MELT_GET);
   if (sy_CLASS_OBJLOOP && NULL == /*_.VALDATA___V391*/ curfptr[390])
   /*_.VALDATA___V391*/ curfptr[390] = (void*) sy_CLASS_OBJLOOP; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJEXIT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJEXIT = meltgc_named_symbol("CLASS_OBJEXIT", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJEXIT = meltgc_named_symbol("CLASS_OBJEXIT", MELT_GET);
   if (sy_CLASS_OBJEXIT && NULL == /*_.VALDATA___V395*/ curfptr[394])
   /*_.VALDATA___V395*/ curfptr[394] = (void*) sy_CLASS_OBJEXIT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJCOMPUTE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJCOMPUTE = meltgc_named_symbol("CLASS_OBJCOMPUTE", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJCOMPUTE = meltgc_named_symbol("CLASS_OBJCOMPUTE", MELT_GET);
   if (sy_CLASS_OBJCOMPUTE && NULL == /*_.VALDATA___V402*/ curfptr[401])
   /*_.VALDATA___V402*/ curfptr[401] = (void*) sy_CLASS_OBJCOMPUTE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJCOND*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJCOND = meltgc_named_symbol("CLASS_OBJCOND", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJCOND = meltgc_named_symbol("CLASS_OBJCOND", MELT_GET);
   if (sy_CLASS_OBJCOND && NULL == /*_.VALDATA___V406*/ curfptr[405])
   /*_.VALDATA___V406*/ curfptr[405] = (void*) sy_CLASS_OBJCOND; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJCPPIF*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJCPPIF = meltgc_named_symbol("CLASS_OBJCPPIF", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJCPPIF = meltgc_named_symbol("CLASS_OBJCPPIF", MELT_GET);
   if (sy_CLASS_OBJCPPIF && NULL == /*_.VALDATA___V410*/ curfptr[409])
   /*_.VALDATA___V410*/ curfptr[409] = (void*) sy_CLASS_OBJCPPIF; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINTERNSYMBOL*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINTERNSYMBOL = meltgc_named_symbol("CLASS_OBJINTERNSYMBOL", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINTERNSYMBOL = meltgc_named_symbol("CLASS_OBJINTERNSYMBOL", MELT_GET);
   if (sy_CLASS_OBJINTERNSYMBOL && NULL == /*_.VALDATA___V414*/ curfptr[413])
   /*_.VALDATA___V414*/ curfptr[413] = (void*) sy_CLASS_OBJINTERNSYMBOL; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_NREP_DATASYMBOL*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_NREP_DATASYMBOL = meltgc_named_symbol("CLASS_NREP_DATASYMBOL", MELT_GET);
+ { melt_ptr_t sy_CLASS_NREP_DATASYMBOL = meltgc_named_symbol("CLASS_NREP_DATASYMBOL", MELT_GET);
   if (sy_CLASS_NREP_DATASYMBOL && NULL == /*_.VALDATA___V416*/ curfptr[415])
   /*_.VALDATA___V416*/ curfptr[415] = (void*) sy_CLASS_NREP_DATASYMBOL; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINTERNKEYWORD*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINTERNKEYWORD = meltgc_named_symbol("CLASS_OBJINTERNKEYWORD", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINTERNKEYWORD = meltgc_named_symbol("CLASS_OBJINTERNKEYWORD", MELT_GET);
   if (sy_CLASS_OBJINTERNKEYWORD && NULL == /*_.VALDATA___V420*/ curfptr[419])
   /*_.VALDATA___V420*/ curfptr[419] = (void*) sy_CLASS_OBJINTERNKEYWORD; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_NREP_DATAKEYWORD*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_NREP_DATAKEYWORD = meltgc_named_symbol("CLASS_NREP_DATAKEYWORD", MELT_GET);
+ { melt_ptr_t sy_CLASS_NREP_DATAKEYWORD = meltgc_named_symbol("CLASS_NREP_DATAKEYWORD", MELT_GET);
   if (sy_CLASS_NREP_DATAKEYWORD && NULL == /*_.VALDATA___V422*/ curfptr[421])
   /*_.VALDATA___V422*/ curfptr[421] = (void*) sy_CLASS_NREP_DATAKEYWORD; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJGETNAMEDSYMBOL*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJGETNAMEDSYMBOL = meltgc_named_symbol("CLASS_OBJGETNAMEDSYMBOL", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJGETNAMEDSYMBOL = meltgc_named_symbol("CLASS_OBJGETNAMEDSYMBOL", MELT_GET);
   if (sy_CLASS_OBJGETNAMEDSYMBOL && NULL == /*_.VALDATA___V426*/ curfptr[425])
   /*_.VALDATA___V426*/ curfptr[425] = (void*) sy_CLASS_OBJGETNAMEDSYMBOL; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJGETNAMEDKEYWORD*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJGETNAMEDKEYWORD = meltgc_named_symbol("CLASS_OBJGETNAMEDKEYWORD", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJGETNAMEDKEYWORD = meltgc_named_symbol("CLASS_OBJGETNAMEDKEYWORD", MELT_GET);
   if (sy_CLASS_OBJGETNAMEDKEYWORD && NULL == /*_.VALDATA___V430*/ curfptr[429])
   /*_.VALDATA___V430*/ curfptr[429] = (void*) sy_CLASS_OBJGETNAMEDKEYWORD; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJAPPLY*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJAPPLY = meltgc_named_symbol("CLASS_OBJAPPLY", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJAPPLY = meltgc_named_symbol("CLASS_OBJAPPLY", MELT_GET);
   if (sy_CLASS_OBJAPPLY && NULL == /*_.VALDATA___V437*/ curfptr[436])
   /*_.VALDATA___V437*/ curfptr[436] = (void*) sy_CLASS_OBJAPPLY; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DISCR_LIST*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DISCR_LIST = meltgc_named_symbol("DISCR_LIST", MELT_GET);
+ { melt_ptr_t sy_DISCR_LIST = meltgc_named_symbol("DISCR_LIST", MELT_GET);
   if (sy_DISCR_LIST && NULL == /*_.VALDATA___V439*/ curfptr[438])
   /*_.VALDATA___V439*/ curfptr[438] = (void*) sy_DISCR_LIST; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJINSTR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJINSTR = meltgc_named_symbol("CLASS_OBJINSTR", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJINSTR = meltgc_named_symbol("CLASS_OBJINSTR", MELT_GET);
   if (sy_CLASS_OBJINSTR && NULL == /*_.VALDATA___V441*/ curfptr[440])
   /*_.VALDATA___V441*/ curfptr[440] = (void*) sy_CLASS_OBJINSTR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:GET_CTYPE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_GET_CTYPE = meltgc_named_symbol("GET_CTYPE", MELT_GET);
+ { melt_ptr_t sy_GET_CTYPE = meltgc_named_symbol("GET_CTYPE", MELT_GET);
   if (sy_GET_CTYPE && NULL == /*_.VALDATA___V443*/ curfptr[442])
   /*_.VALDATA___V443*/ curfptr[442] = (void*) sy_GET_CTYPE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJMSEND*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJMSEND = meltgc_named_symbol("CLASS_OBJMSEND", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJMSEND = meltgc_named_symbol("CLASS_OBJMSEND", MELT_GET);
   if (sy_CLASS_OBJMSEND && NULL == /*_.VALDATA___V448*/ curfptr[447])
   /*_.VALDATA___V448*/ curfptr[447] = (void*) sy_CLASS_OBJMSEND; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJMULTIAPPLY*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJMULTIAPPLY = meltgc_named_symbol("CLASS_OBJMULTIAPPLY", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJMULTIAPPLY = meltgc_named_symbol("CLASS_OBJMULTIAPPLY", MELT_GET);
   if (sy_CLASS_OBJMULTIAPPLY && NULL == /*_.VALDATA___V458*/ curfptr[457])
   /*_.VALDATA___V458*/ curfptr[457] = (void*) sy_CLASS_OBJMULTIAPPLY; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJMULTIMSEND*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJMULTIMSEND = meltgc_named_symbol("CLASS_OBJMULTIMSEND", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJMULTIMSEND = meltgc_named_symbol("CLASS_OBJMULTIMSEND", MELT_GET);
   if (sy_CLASS_OBJMULTIMSEND && NULL == /*_.VALDATA___V468*/ curfptr[467])
   /*_.VALDATA___V468*/ curfptr[467] = (void*) sy_CLASS_OBJMULTIMSEND; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJCLEAR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJCLEAR = meltgc_named_symbol("CLASS_OBJCLEAR", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJCLEAR = meltgc_named_symbol("CLASS_OBJCLEAR", MELT_GET);
   if (sy_CLASS_OBJCLEAR && NULL == /*_.VALDATA___V472*/ curfptr[471])
   /*_.VALDATA___V472*/ curfptr[471] = (void*) sy_CLASS_OBJCLEAR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJRAWALLOCOBJ*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJRAWALLOCOBJ = meltgc_named_symbol("CLASS_OBJRAWALLOCOBJ", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJRAWALLOCOBJ = meltgc_named_symbol("CLASS_OBJRAWALLOCOBJ", MELT_GET);
   if (sy_CLASS_OBJRAWALLOCOBJ && NULL == /*_.VALDATA___V477*/ curfptr[476])
   /*_.VALDATA___V477*/ curfptr[476] = (void*) sy_CLASS_OBJRAWALLOCOBJ; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJNEWCLOSURE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJNEWCLOSURE = meltgc_named_symbol("CLASS_OBJNEWCLOSURE", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJNEWCLOSURE = meltgc_named_symbol("CLASS_OBJNEWCLOSURE", MELT_GET);
   if (sy_CLASS_OBJNEWCLOSURE && NULL == /*_.VALDATA___V482*/ curfptr[481])
   /*_.VALDATA___V482*/ curfptr[481] = (void*) sy_CLASS_OBJNEWCLOSURE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJTOUCH*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJTOUCH = meltgc_named_symbol("CLASS_OBJTOUCH", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJTOUCH = meltgc_named_symbol("CLASS_OBJTOUCH", MELT_GET);
   if (sy_CLASS_OBJTOUCH && NULL == /*_.VALDATA___V486*/ curfptr[485])
   /*_.VALDATA___V486*/ curfptr[485] = (void*) sy_CLASS_OBJTOUCH; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUTUPLE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUTUPLE = meltgc_named_symbol("CLASS_OBJPUTUPLE", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUTUPLE = meltgc_named_symbol("CLASS_OBJPUTUPLE", MELT_GET);
   if (sy_CLASS_OBJPUTUPLE && NULL == /*_.VALDATA___V490*/ curfptr[489])
   /*_.VALDATA___V490*/ curfptr[489] = (void*) sy_CLASS_OBJPUTUPLE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUTPAIR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUTPAIR = meltgc_named_symbol("CLASS_OBJPUTPAIR", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUTPAIR = meltgc_named_symbol("CLASS_OBJPUTPAIR", MELT_GET);
   if (sy_CLASS_OBJPUTPAIR && NULL == /*_.VALDATA___V494*/ curfptr[493])
   /*_.VALDATA___V494*/ curfptr[493] = (void*) sy_CLASS_OBJPUTPAIR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUTPAIRHEAD*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUTPAIRHEAD = meltgc_named_symbol("CLASS_OBJPUTPAIRHEAD", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUTPAIRHEAD = meltgc_named_symbol("CLASS_OBJPUTPAIRHEAD", MELT_GET);
   if (sy_CLASS_OBJPUTPAIRHEAD && NULL == /*_.VALDATA___V496*/ curfptr[495])
   /*_.VALDATA___V496*/ curfptr[495] = (void*) sy_CLASS_OBJPUTPAIRHEAD; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUTPAIRTAIL*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUTPAIRTAIL = meltgc_named_symbol("CLASS_OBJPUTPAIRTAIL", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUTPAIRTAIL = meltgc_named_symbol("CLASS_OBJPUTPAIRTAIL", MELT_GET);
   if (sy_CLASS_OBJPUTPAIRTAIL && NULL == /*_.VALDATA___V500*/ curfptr[499])
   /*_.VALDATA___V500*/ curfptr[499] = (void*) sy_CLASS_OBJPUTPAIRTAIL; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUTLIST*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUTLIST = meltgc_named_symbol("CLASS_OBJPUTLIST", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUTLIST = meltgc_named_symbol("CLASS_OBJPUTLIST", MELT_GET);
   if (sy_CLASS_OBJPUTLIST && NULL == /*_.VALDATA___V504*/ curfptr[503])
   /*_.VALDATA___V504*/ curfptr[503] = (void*) sy_CLASS_OBJPUTLIST; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJGETSLOT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJGETSLOT = meltgc_named_symbol("CLASS_OBJGETSLOT", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJGETSLOT = meltgc_named_symbol("CLASS_OBJGETSLOT", MELT_GET);
   if (sy_CLASS_OBJGETSLOT && NULL == /*_.VALDATA___V509*/ curfptr[508])
   /*_.VALDATA___V509*/ curfptr[508] = (void*) sy_CLASS_OBJGETSLOT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_FIELD*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_FIELD = meltgc_named_symbol("CLASS_FIELD", MELT_GET);
+ { melt_ptr_t sy_CLASS_FIELD = meltgc_named_symbol("CLASS_FIELD", MELT_GET);
   if (sy_CLASS_FIELD && NULL == /*_.VALDATA___V511*/ curfptr[510])
   /*_.VALDATA___V511*/ curfptr[510] = (void*) sy_CLASS_FIELD; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUTSLOT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUTSLOT = meltgc_named_symbol("CLASS_OBJPUTSLOT", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUTSLOT = meltgc_named_symbol("CLASS_OBJPUTSLOT", MELT_GET);
   if (sy_CLASS_OBJPUTSLOT && NULL == /*_.VALDATA___V515*/ curfptr[514])
   /*_.VALDATA___V515*/ curfptr[514] = (void*) sy_CLASS_OBJPUTSLOT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_NREP*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_NREP = meltgc_named_symbol("CLASS_NREP", MELT_GET);
+ { melt_ptr_t sy_CLASS_NREP = meltgc_named_symbol("CLASS_NREP", MELT_GET);
   if (sy_CLASS_NREP && NULL == /*_.VALDATA___V517*/ curfptr[516])
   /*_.VALDATA___V517*/ curfptr[516] = (void*) sy_CLASS_NREP; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUTCLOSUROUT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUTCLOSUROUT = meltgc_named_symbol("CLASS_OBJPUTCLOSUROUT", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUTCLOSUROUT = meltgc_named_symbol("CLASS_OBJPUTCLOSUROUT", MELT_GET);
   if (sy_CLASS_OBJPUTCLOSUROUT && NULL == /*_.VALDATA___V521*/ curfptr[520])
   /*_.VALDATA___V521*/ curfptr[520] = (void*) sy_CLASS_OBJPUTCLOSUROUT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUTCLOSEDV*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUTCLOSEDV = meltgc_named_symbol("CLASS_OBJPUTCLOSEDV", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUTCLOSEDV = meltgc_named_symbol("CLASS_OBJPUTCLOSEDV", MELT_GET);
   if (sy_CLASS_OBJPUTCLOSEDV && NULL == /*_.VALDATA___V525*/ curfptr[524])
   /*_.VALDATA___V525*/ curfptr[524] = (void*) sy_CLASS_OBJPUTCLOSEDV; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUTCLOSEDNOTNULLV*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUTCLOSEDNOTNULLV = meltgc_named_symbol("CLASS_OBJPUTCLOSEDNOTNULLV", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUTCLOSEDNOTNULLV = meltgc_named_symbol("CLASS_OBJPUTCLOSEDNOTNULLV", MELT_GET);
   if (sy_CLASS_OBJPUTCLOSEDNOTNULLV && NULL == /*_.VALDATA___V529*/ curfptr[528])
   /*_.VALDATA___V529*/ curfptr[528] = (void*) sy_CLASS_OBJPUTCLOSEDNOTNULLV; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUTROUTCONST*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUTROUTCONST = meltgc_named_symbol("CLASS_OBJPUTROUTCONST", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUTROUTCONST = meltgc_named_symbol("CLASS_OBJPUTROUTCONST", MELT_GET);
   if (sy_CLASS_OBJPUTROUTCONST && NULL == /*_.VALDATA___V533*/ curfptr[532])
   /*_.VALDATA___V533*/ curfptr[532] = (void*) sy_CLASS_OBJPUTROUTCONST; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUTROUTCONSTNOTNULL*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUTROUTCONSTNOTNULL = meltgc_named_symbol("CLASS_OBJPUTROUTCONSTNOTNULL", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUTROUTCONSTNOTNULL = meltgc_named_symbol("CLASS_OBJPUTROUTCONSTNOTNULL", MELT_GET);
   if (sy_CLASS_OBJPUTROUTCONSTNOTNULL && NULL == /*_.VALDATA___V537*/ curfptr[536])
   /*_.VALDATA___V537*/ curfptr[536] = (void*) sy_CLASS_OBJPUTROUTCONSTNOTNULL; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJPUTXTRARESULT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJPUTXTRARESULT = meltgc_named_symbol("CLASS_OBJPUTXTRARESULT", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJPUTXTRARESULT = meltgc_named_symbol("CLASS_OBJPUTXTRARESULT", MELT_GET);
   if (sy_CLASS_OBJPUTXTRARESULT && NULL == /*_.VALDATA___V541*/ curfptr[540])
   /*_.VALDATA___V541*/ curfptr[540] = (void*) sy_CLASS_OBJPUTXTRARESULT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJEXPV*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJEXPV = meltgc_named_symbol("CLASS_OBJEXPV", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJEXPV = meltgc_named_symbol("CLASS_OBJEXPV", MELT_GET);
   if (sy_CLASS_OBJEXPV && NULL == /*_.VALDATA___V545*/ curfptr[544])
   /*_.VALDATA___V545*/ curfptr[544] = (void*) sy_CLASS_OBJEXPV; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJLOCATEDEXPV*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJLOCATEDEXPV = meltgc_named_symbol("CLASS_OBJLOCATEDEXPV", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJLOCATEDEXPV = meltgc_named_symbol("CLASS_OBJLOCATEDEXPV", MELT_GET);
   if (sy_CLASS_OBJLOCATEDEXPV && NULL == /*_.VALDATA___V549*/ curfptr[548])
   /*_.VALDATA___V549*/ curfptr[548] = (void*) sy_CLASS_OBJLOCATEDEXPV; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CTYPE_VOID*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CTYPE_VOID = meltgc_named_symbol("CTYPE_VOID", MELT_GET);
+ { melt_ptr_t sy_CTYPE_VOID = meltgc_named_symbol("CTYPE_VOID", MELT_GET);
   if (sy_CTYPE_VOID && NULL == /*_.VALDATA___V551*/ curfptr[550])
   /*_.VALDATA___V551*/ curfptr[550] = (void*) sy_CTYPE_VOID; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_OBJFINALRETURN*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_OBJFINALRETURN = meltgc_named_symbol("CLASS_OBJFINALRETURN", MELT_GET);
+ { melt_ptr_t sy_CLASS_OBJFINALRETURN = meltgc_named_symbol("CLASS_OBJFINALRETURN", MELT_GET);
   if (sy_CLASS_OBJFINALRETURN && NULL == /*_.VALDATA___V561*/ curfptr[560])
   /*_.VALDATA___V561*/ curfptr[560] = (void*) sy_CLASS_OBJFINALRETURN; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MAPSTRING_EVERY*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MAPSTRING_EVERY = meltgc_named_symbol("MAPSTRING_EVERY", MELT_GET);
+ { melt_ptr_t sy_MAPSTRING_EVERY = meltgc_named_symbol("MAPSTRING_EVERY", MELT_GET);
   if (sy_MAPSTRING_EVERY && NULL == /*_.VALDATA___V566*/ curfptr[565])
   /*_.VALDATA___V566*/ curfptr[565] = (void*) sy_MAPSTRING_EVERY; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:LIST_TO_MULTIPLE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_LIST_TO_MULTIPLE = meltgc_named_symbol("LIST_TO_MULTIPLE", MELT_GET);
+ { melt_ptr_t sy_LIST_TO_MULTIPLE = meltgc_named_symbol("LIST_TO_MULTIPLE", MELT_GET);
   if (sy_LIST_TO_MULTIPLE && NULL == /*_.VALDATA___V568*/ curfptr[567])
   /*_.VALDATA___V568*/ curfptr[567] = (void*) sy_LIST_TO_MULTIPLE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:COMPARE_NAMED_ALPHA*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_COMPARE_NAMED_ALPHA = meltgc_named_symbol("COMPARE_NAMED_ALPHA", MELT_GET);
+ { melt_ptr_t sy_COMPARE_NAMED_ALPHA = meltgc_named_symbol("COMPARE_NAMED_ALPHA", MELT_GET);
   if (sy_COMPARE_NAMED_ALPHA && NULL == /*_.VALDATA___V570*/ curfptr[569])
   /*_.VALDATA___V570*/ curfptr[569] = (void*) sy_COMPARE_NAMED_ALPHA; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DISCR_MULTIPLE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DISCR_MULTIPLE = meltgc_named_symbol("DISCR_MULTIPLE", MELT_GET);
+ { melt_ptr_t sy_DISCR_MULTIPLE = meltgc_named_symbol("DISCR_MULTIPLE", MELT_GET);
   if (sy_DISCR_MULTIPLE && NULL == /*_.VALDATA___V572*/ curfptr[571])
   /*_.VALDATA___V572*/ curfptr[571] = (void*) sy_DISCR_MULTIPLE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_MODULE_CONTEXT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_MODULE_CONTEXT = meltgc_named_symbol("CLASS_MODULE_CONTEXT", MELT_GET);
+ { melt_ptr_t sy_CLASS_MODULE_CONTEXT = meltgc_named_symbol("CLASS_MODULE_CONTEXT", MELT_GET);
   if (sy_CLASS_MODULE_CONTEXT && NULL == /*_.VALDATA___V578*/ curfptr[577])
   /*_.VALDATA___V578*/ curfptr[577] = (void*) sy_CLASS_MODULE_CONTEXT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SECONDARY_C_FILE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SECONDARY_C_FILE = meltgc_named_symbol("CLASS_SECONDARY_C_FILE", MELT_GET);
+ { melt_ptr_t sy_CLASS_SECONDARY_C_FILE = meltgc_named_symbol("CLASS_SECONDARY_C_FILE", MELT_GET);
   if (sy_CLASS_SECONDARY_C_FILE && NULL == /*_.VALDATA___V580*/ curfptr[579])
   /*_.VALDATA___V580*/ curfptr[579] = (void*) sy_CLASS_SECONDARY_C_FILE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:SECFIL_MODNAM*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_SECFIL_MODNAM = meltgc_named_symbol("SECFIL_MODNAM", MELT_GET);
+ { melt_ptr_t sy_SECFIL_MODNAM = meltgc_named_symbol("SECFIL_MODNAM", MELT_GET);
   if (sy_SECFIL_MODNAM && NULL == /*_.VALDATA___V594*/ curfptr[593])
   /*_.VALDATA___V594*/ curfptr[593] = (void*) sy_SECFIL_MODNAM; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:SECFIL_PATH*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_SECFIL_PATH = meltgc_named_symbol("SECFIL_PATH", MELT_GET);
+ { melt_ptr_t sy_SECFIL_PATH = meltgc_named_symbol("SECFIL_PATH", MELT_GET);
   if (sy_SECFIL_PATH && NULL == /*_.VALDATA___V596*/ curfptr[595])
   /*_.VALDATA___V596*/ curfptr[595] = (void*) sy_SECFIL_PATH; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:SECFIL_DECLBUF*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_SECFIL_DECLBUF = meltgc_named_symbol("SECFIL_DECLBUF", MELT_GET);
+ { melt_ptr_t sy_SECFIL_DECLBUF = meltgc_named_symbol("SECFIL_DECLBUF", MELT_GET);
   if (sy_SECFIL_DECLBUF && NULL == /*_.VALDATA___V598*/ curfptr[597])
   /*_.VALDATA___V598*/ curfptr[597] = (void*) sy_SECFIL_DECLBUF; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:SECFIL_IMPLBUF*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_SECFIL_IMPLBUF = meltgc_named_symbol("SECFIL_IMPLBUF", MELT_GET);
+ { melt_ptr_t sy_SECFIL_IMPLBUF = meltgc_named_symbol("SECFIL_IMPLBUF", MELT_GET);
   if (sy_SECFIL_IMPLBUF && NULL == /*_.VALDATA___V600*/ curfptr[599])
   /*_.VALDATA___V600*/ curfptr[599] = (void*) sy_SECFIL_IMPLBUF; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:GENERATED_C_FILENAME*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_GENERATED_C_FILENAME = meltgc_named_symbol("GENERATED_C_FILENAME", MELT_GET);
+ { melt_ptr_t sy_GENERATED_C_FILENAME = meltgc_named_symbol("GENERATED_C_FILENAME", MELT_GET);
   if (sy_GENERATED_C_FILENAME && NULL == /*_.VALDATA___V602*/ curfptr[601])
   /*_.VALDATA___V602*/ curfptr[601] = (void*) sy_GENERATED_C_FILENAME; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DISCR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DISCR = meltgc_named_symbol("DISCR", MELT_GET);
+ { melt_ptr_t sy_DISCR = meltgc_named_symbol("DISCR", MELT_GET);
   if (sy_DISCR && NULL == /*_.VALDATA___V607*/ curfptr[606])
   /*_.VALDATA___V607*/ curfptr[606] = (void*) sy_DISCR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:BASE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_BASE = meltgc_named_symbol("BASE", MELT_GET);
+ { melt_ptr_t sy_BASE = meltgc_named_symbol("BASE", MELT_GET);
   if (sy_BASE && NULL == /*_.VALDATA___V610*/ curfptr[609])
   /*_.VALDATA___V610*/ curfptr[609] = (void*) sy_BASE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DIR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DIR = meltgc_named_symbol("DIR", MELT_GET);
+ { melt_ptr_t sy_DIR = meltgc_named_symbol("DIR", MELT_GET);
   if (sy_DIR && NULL == /*_.VALDATA___V613*/ curfptr[612])
   /*_.VALDATA___V613*/ curfptr[612] = (void*) sy_DIR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:NUM*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_NUM = meltgc_named_symbol("NUM", MELT_GET);
+ { melt_ptr_t sy_NUM = meltgc_named_symbol("NUM", MELT_GET);
   if (sy_NUM && NULL == /*_.VALDATA___V616*/ curfptr[615])
   /*_.VALDATA___V616*/ curfptr[615] = (void*) sy_NUM; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:WANTS_SINGLE_C_FILE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_WANTS_SINGLE_C_FILE = meltgc_named_symbol("WANTS_SINGLE_C_FILE", MELT_GET);
+ { melt_ptr_t sy_WANTS_SINGLE_C_FILE = meltgc_named_symbol("WANTS_SINGLE_C_FILE", MELT_GET);
   if (sy_WANTS_SINGLE_C_FILE && NULL == /*_.VALDATA___V625*/ curfptr[624])
   /*_.VALDATA___V625*/ curfptr[624] = (void*) sy_WANTS_SINGLE_C_FILE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_NORMALIZATION_CONTEXT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_NORMALIZATION_CONTEXT = meltgc_named_symbol("CLASS_NORMALIZATION_CONTEXT", MELT_GET);
+ { melt_ptr_t sy_CLASS_NORMALIZATION_CONTEXT = meltgc_named_symbol("CLASS_NORMALIZATION_CONTEXT", MELT_GET);
   if (sy_CLASS_NORMALIZATION_CONTEXT && NULL == /*_.VALDATA___V639*/ curfptr[638])
   /*_.VALDATA___V639*/ curfptr[638] = (void*) sy_CLASS_NORMALIZATION_CONTEXT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE = meltgc_named_symbol("CLASS_SOURCE", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE = meltgc_named_symbol("CLASS_SOURCE", MELT_GET);
   if (sy_CLASS_SOURCE && NULL == /*_.VALDATA___V641*/ curfptr[640])
   /*_.VALDATA___V641*/ curfptr[640] = (void*) sy_CLASS_SOURCE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER = meltgc_named_symbol("CLASS_SOURCE_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER = meltgc_named_symbol("CLASS_SOURCE_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER", MELT_GET);
   if (sy_CLASS_SOURCE_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER && NULL == /*_.VALDATA___V643*/ curfptr[642])
   /*_.VALDATA___V643*/ curfptr[642] = (void*) sy_CLASS_SOURCE_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:INITIAL_ENVIRONMENT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_INITIAL_ENVIRONMENT = meltgc_named_symbol("INITIAL_ENVIRONMENT", MELT_GET);
+ { melt_ptr_t sy_INITIAL_ENVIRONMENT = meltgc_named_symbol("INITIAL_ENVIRONMENT", MELT_GET);
   if (sy_INITIAL_ENVIRONMENT && NULL == /*_.VALDATA___V645*/ curfptr[644])
   /*_.VALDATA___V645*/ curfptr[644] = (void*) sy_INITIAL_ENVIRONMENT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_NREP_INITPROC*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_NREP_INITPROC = meltgc_named_symbol("CLASS_NREP_INITPROC", MELT_GET);
+ { melt_ptr_t sy_CLASS_NREP_INITPROC = meltgc_named_symbol("CLASS_NREP_INITPROC", MELT_GET);
   if (sy_CLASS_NREP_INITPROC && NULL == /*_.VALDATA___V647*/ curfptr[646])
   /*_.VALDATA___V647*/ curfptr[646] = (void*) sy_CLASS_NREP_INITPROC; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_LOCATED*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_LOCATED = meltgc_named_symbol("CLASS_LOCATED", MELT_GET);
+ { melt_ptr_t sy_CLASS_LOCATED = meltgc_named_symbol("CLASS_LOCATED", MELT_GET);
   if (sy_CLASS_LOCATED && NULL == /*_.VALDATA___V649*/ curfptr[648])
   /*_.VALDATA___V649*/ curfptr[648] = (void*) sy_CLASS_LOCATED; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_COMMENT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_COMMENT = meltgc_named_symbol("CLASS_SOURCE_COMMENT", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_COMMENT = meltgc_named_symbol("CLASS_SOURCE_COMMENT", MELT_GET);
   if (sy_CLASS_SOURCE_COMMENT && NULL == /*_.VALDATA___V651*/ curfptr[650])
   /*_.VALDATA___V651*/ curfptr[650] = (void*) sy_CLASS_SOURCE_COMMENT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:NORMAL_EXP*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_NORMAL_EXP = meltgc_named_symbol("NORMAL_EXP", MELT_GET);
+ { melt_ptr_t sy_NORMAL_EXP = meltgc_named_symbol("NORMAL_EXP", MELT_GET);
   if (sy_NORMAL_EXP && NULL == /*_.VALDATA___V653*/ curfptr[652])
   /*_.VALDATA___V653*/ curfptr[652] = (void*) sy_NORMAL_EXP; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_NREP_ANYPROC*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_NREP_ANYPROC = meltgc_named_symbol("CLASS_NREP_ANYPROC", MELT_GET);
+ { melt_ptr_t sy_CLASS_NREP_ANYPROC = meltgc_named_symbol("CLASS_NREP_ANYPROC", MELT_GET);
   if (sy_CLASS_NREP_ANYPROC && NULL == /*_.VALDATA___V655*/ curfptr[654])
   /*_.VALDATA___V655*/ curfptr[654] = (void*) sy_CLASS_NREP_ANYPROC; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:WRAP_NORMAL_LET1*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_WRAP_NORMAL_LET1 = meltgc_named_symbol("WRAP_NORMAL_LET1", MELT_GET);
+ { melt_ptr_t sy_WRAP_NORMAL_LET1 = meltgc_named_symbol("WRAP_NORMAL_LET1", MELT_GET);
   if (sy_WRAP_NORMAL_LET1 && NULL == /*_.VALDATA___V657*/ curfptr[656])
   /*_.VALDATA___V657*/ curfptr[656] = (void*) sy_WRAP_NORMAL_LET1; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DISCR_MAP_OBJECTS*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DISCR_MAP_OBJECTS = meltgc_named_symbol("DISCR_MAP_OBJECTS", MELT_GET);
+ { melt_ptr_t sy_DISCR_MAP_OBJECTS = meltgc_named_symbol("DISCR_MAP_OBJECTS", MELT_GET);
   if (sy_DISCR_MAP_OBJECTS && NULL == /*_.VALDATA___V659*/ curfptr[658])
   /*_.VALDATA___V659*/ curfptr[658] = (void*) sy_DISCR_MAP_OBJECTS; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:COMPILE2OBJ_PROCEDURE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_COMPILE2OBJ_PROCEDURE = meltgc_named_symbol("COMPILE2OBJ_PROCEDURE", MELT_GET);
+ { melt_ptr_t sy_COMPILE2OBJ_PROCEDURE = meltgc_named_symbol("COMPILE2OBJ_PROCEDURE", MELT_GET);
   if (sy_COMPILE2OBJ_PROCEDURE && NULL == /*_.VALDATA___V661*/ curfptr[660])
   /*_.VALDATA___V661*/ curfptr[660] = (void*) sy_COMPILE2OBJ_PROCEDURE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:COMPILE2OBJ_INITPROC*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_COMPILE2OBJ_INITPROC = meltgc_named_symbol("COMPILE2OBJ_INITPROC", MELT_GET);
+ { melt_ptr_t sy_COMPILE2OBJ_INITPROC = meltgc_named_symbol("COMPILE2OBJ_INITPROC", MELT_GET);
   if (sy_COMPILE2OBJ_INITPROC && NULL == /*_.VALDATA___V663*/ curfptr[662])
   /*_.VALDATA___V663*/ curfptr[662] = (void*) sy_COMPILE2OBJ_INITPROC; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_ENVIRONMENT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_ENVIRONMENT = meltgc_named_symbol("CLASS_ENVIRONMENT", MELT_GET);
+ { melt_ptr_t sy_CLASS_ENVIRONMENT = meltgc_named_symbol("CLASS_ENVIRONMENT", MELT_GET);
   if (sy_CLASS_ENVIRONMENT && NULL == /*_.VALDATA___V667*/ curfptr[666])
   /*_.VALDATA___V667*/ curfptr[666] = (void*) sy_CLASS_ENVIRONMENT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:DISCR_MAP_STRINGS*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_DISCR_MAP_STRINGS = meltgc_named_symbol("DISCR_MAP_STRINGS", MELT_GET);
+ { melt_ptr_t sy_DISCR_MAP_STRINGS = meltgc_named_symbol("DISCR_MAP_STRINGS", MELT_GET);
   if (sy_DISCR_MAP_STRINGS && NULL == /*_.VALDATA___V669*/ curfptr[668])
   /*_.VALDATA___V669*/ curfptr[668] = (void*) sy_DISCR_MAP_STRINGS; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CREATE_NORMCONTEXT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CREATE_NORMCONTEXT = meltgc_named_symbol("CREATE_NORMCONTEXT", MELT_GET);
+ { melt_ptr_t sy_CREATE_NORMCONTEXT = meltgc_named_symbol("CREATE_NORMCONTEXT", MELT_GET);
   if (sy_CREATE_NORMCONTEXT && NULL == /*_.VALDATA___V671*/ curfptr[670])
   /*_.VALDATA___V671*/ curfptr[670] = (void*) sy_CREATE_NORMCONTEXT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MACROEXPAND_TOPLEVEL_LIST*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MACROEXPAND_TOPLEVEL_LIST = meltgc_named_symbol("MACROEXPAND_TOPLEVEL_LIST", MELT_GET);
+ { melt_ptr_t sy_MACROEXPAND_TOPLEVEL_LIST = meltgc_named_symbol("MACROEXPAND_TOPLEVEL_LIST", MELT_GET);
   if (sy_MACROEXPAND_TOPLEVEL_LIST && NULL == /*_.VALDATA___V673*/ curfptr[672])
   /*_.VALDATA___V673*/ curfptr[672] = (void*) sy_MACROEXPAND_TOPLEVEL_LIST; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MELT_ARGUMENT*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MELT_ARGUMENT = meltgc_named_symbol("MELT_ARGUMENT", MELT_GET);
+ { melt_ptr_t sy_MELT_ARGUMENT = meltgc_named_symbol("MELT_ARGUMENT", MELT_GET);
   if (sy_MELT_ARGUMENT && NULL == /*_.VALDATA___V675*/ curfptr[674])
   /*_.VALDATA___V675*/ curfptr[674] = (void*) sy_MELT_ARGUMENT; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:NAM*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_NAM = meltgc_named_symbol("NAM", MELT_GET);
+ { melt_ptr_t sy_NAM = meltgc_named_symbol("NAM", MELT_GET);
   if (sy_NAM && NULL == /*_.VALDATA___V680*/ curfptr[679])
   /*_.VALDATA___V680*/ curfptr[679] = (void*) sy_NAM; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_MELT_MODE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_MELT_MODE = meltgc_named_symbol("CLASS_MELT_MODE", MELT_GET);
+ { melt_ptr_t sy_CLASS_MELT_MODE = meltgc_named_symbol("CLASS_MELT_MODE", MELT_GET);
   if (sy_CLASS_MELT_MODE && NULL == /*_.VALDATA___V688*/ curfptr[687])
   /*_.VALDATA___V688*/ curfptr[687] = (void*) sy_CLASS_MELT_MODE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:INITIAL_SYSTEM_DATA*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_INITIAL_SYSTEM_DATA = meltgc_named_symbol("INITIAL_SYSTEM_DATA", MELT_GET);
+ { melt_ptr_t sy_INITIAL_SYSTEM_DATA = meltgc_named_symbol("INITIAL_SYSTEM_DATA", MELT_GET);
   if (sy_INITIAL_SYSTEM_DATA && NULL == /*_.VALDATA___V690*/ curfptr[689])
   /*_.VALDATA___V690*/ curfptr[689] = (void*) sy_INITIAL_SYSTEM_DATA; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SYSTEM_DATA*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SYSTEM_DATA = meltgc_named_symbol("CLASS_SYSTEM_DATA", MELT_GET);
+ { melt_ptr_t sy_CLASS_SYSTEM_DATA = meltgc_named_symbol("CLASS_SYSTEM_DATA", MELT_GET);
   if (sy_CLASS_SYSTEM_DATA && NULL == /*_.VALDATA___V692*/ curfptr[691])
   /*_.VALDATA___V692*/ curfptr[691] = (void*) sy_CLASS_SYSTEM_DATA; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:LIST_APPEND2LIST*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_LIST_APPEND2LIST = meltgc_named_symbol("LIST_APPEND2LIST", MELT_GET);
+ { melt_ptr_t sy_LIST_APPEND2LIST = meltgc_named_symbol("LIST_APPEND2LIST", MELT_GET);
   if (sy_LIST_APPEND2LIST && NULL == /*_.VALDATA___V696*/ curfptr[695])
   /*_.VALDATA___V696*/ curfptr[695] = (void*) sy_LIST_APPEND2LIST; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:TRANSLATEFILE_MODE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_TRANSLATEFILE_MODE = meltgc_named_symbol("TRANSLATEFILE_MODE", MELT_GET);
+ { melt_ptr_t sy_TRANSLATEFILE_MODE = meltgc_named_symbol("TRANSLATEFILE_MODE", MELT_GET);
   if (sy_TRANSLATEFILE_MODE && NULL == /*_.VALDATA___V700*/ curfptr[699])
   /*_.VALDATA___V700*/ curfptr[699] = (void*) sy_TRANSLATEFILE_MODE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:RUNFILE_MODE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_RUNFILE_MODE = meltgc_named_symbol("RUNFILE_MODE", MELT_GET);
+ { melt_ptr_t sy_RUNFILE_MODE = meltgc_named_symbol("RUNFILE_MODE", MELT_GET);
   if (sy_RUNFILE_MODE && NULL == /*_.VALDATA___V707*/ curfptr[706])
   /*_.VALDATA___V707*/ curfptr[706] = (void*) sy_RUNFILE_MODE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:TRANSLATEINIT_MODE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_TRANSLATEINIT_MODE = meltgc_named_symbol("TRANSLATEINIT_MODE", MELT_GET);
+ { melt_ptr_t sy_TRANSLATEINIT_MODE = meltgc_named_symbol("TRANSLATEINIT_MODE", MELT_GET);
   if (sy_TRANSLATEINIT_MODE && NULL == /*_.VALDATA___V715*/ curfptr[714])
   /*_.VALDATA___V715*/ curfptr[714] = (void*) sy_TRANSLATEINIT_MODE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_MAKEDOC_INFO*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_MAKEDOC_INFO = meltgc_named_symbol("CLASS_MAKEDOC_INFO", MELT_GET);
+ { melt_ptr_t sy_CLASS_MAKEDOC_INFO = meltgc_named_symbol("CLASS_MAKEDOC_INFO", MELT_GET);
   if (sy_CLASS_MAKEDOC_INFO && NULL == /*_.VALDATA___V720*/ curfptr[719])
   /*_.VALDATA___V720*/ curfptr[719] = (void*) sy_CLASS_MAKEDOC_INFO; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_PROPED*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_PROPED = meltgc_named_symbol("CLASS_PROPED", MELT_GET);
+ { melt_ptr_t sy_CLASS_PROPED = meltgc_named_symbol("CLASS_PROPED", MELT_GET);
   if (sy_CLASS_PROPED && NULL == /*_.VALDATA___V722*/ curfptr[721])
   /*_.VALDATA___V722*/ curfptr[721] = (void*) sy_CLASS_PROPED; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_PRIMITIVES*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_PRIMITIVES = meltgc_named_symbol("MKDOC_PRIMITIVES", MELT_GET);
+ { melt_ptr_t sy_MKDOC_PRIMITIVES = meltgc_named_symbol("MKDOC_PRIMITIVES", MELT_GET);
   if (sy_MKDOC_PRIMITIVES && NULL == /*_.VALDATA___V756*/ curfptr[755])
   /*_.VALDATA___V756*/ curfptr[755] = (void*) sy_MKDOC_PRIMITIVES; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_FUNCTIONS*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_FUNCTIONS = meltgc_named_symbol("MKDOC_FUNCTIONS", MELT_GET);
+ { melt_ptr_t sy_MKDOC_FUNCTIONS = meltgc_named_symbol("MKDOC_FUNCTIONS", MELT_GET);
   if (sy_MKDOC_FUNCTIONS && NULL == /*_.VALDATA___V758*/ curfptr[757])
   /*_.VALDATA___V758*/ curfptr[757] = (void*) sy_MKDOC_FUNCTIONS; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_CITERATORS*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_CITERATORS = meltgc_named_symbol("MKDOC_CITERATORS", MELT_GET);
+ { melt_ptr_t sy_MKDOC_CITERATORS = meltgc_named_symbol("MKDOC_CITERATORS", MELT_GET);
   if (sy_MKDOC_CITERATORS && NULL == /*_.VALDATA___V760*/ curfptr[759])
   /*_.VALDATA___V760*/ curfptr[759] = (void*) sy_MKDOC_CITERATORS; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_CMATCHERS*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_CMATCHERS = meltgc_named_symbol("MKDOC_CMATCHERS", MELT_GET);
+ { melt_ptr_t sy_MKDOC_CMATCHERS = meltgc_named_symbol("MKDOC_CMATCHERS", MELT_GET);
   if (sy_MKDOC_CMATCHERS && NULL == /*_.VALDATA___V762*/ curfptr[761])
   /*_.VALDATA___V762*/ curfptr[761] = (void*) sy_MKDOC_CMATCHERS; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_SELECTORS*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_SELECTORS = meltgc_named_symbol("MKDOC_SELECTORS", MELT_GET);
+ { melt_ptr_t sy_MKDOC_SELECTORS = meltgc_named_symbol("MKDOC_SELECTORS", MELT_GET);
   if (sy_MKDOC_SELECTORS && NULL == /*_.VALDATA___V764*/ curfptr[763])
   /*_.VALDATA___V764*/ curfptr[763] = (void*) sy_MKDOC_SELECTORS; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_FIELDS*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_FIELDS = meltgc_named_symbol("MKDOC_FIELDS", MELT_GET);
+ { melt_ptr_t sy_MKDOC_FIELDS = meltgc_named_symbol("MKDOC_FIELDS", MELT_GET);
   if (sy_MKDOC_FIELDS && NULL == /*_.VALDATA___V766*/ curfptr[765])
   /*_.VALDATA___V766*/ curfptr[765] = (void*) sy_MKDOC_FIELDS; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_CLASSES*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_CLASSES = meltgc_named_symbol("MKDOC_CLASSES", MELT_GET);
+ { melt_ptr_t sy_MKDOC_CLASSES = meltgc_named_symbol("MKDOC_CLASSES", MELT_GET);
   if (sy_MKDOC_CLASSES && NULL == /*_.VALDATA___V768*/ curfptr[767])
   /*_.VALDATA___V768*/ curfptr[767] = (void*) sy_MKDOC_CLASSES; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_INSTANCES*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_INSTANCES = meltgc_named_symbol("MKDOC_INSTANCES", MELT_GET);
+ { melt_ptr_t sy_MKDOC_INSTANCES = meltgc_named_symbol("MKDOC_INSTANCES", MELT_GET);
   if (sy_MKDOC_INSTANCES && NULL == /*_.VALDATA___V770*/ curfptr[769])
   /*_.VALDATA___V770*/ curfptr[769] = (void*) sy_MKDOC_INSTANCES; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_MACROS*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_MACROS = meltgc_named_symbol("MKDOC_MACROS", MELT_GET);
+ { melt_ptr_t sy_MKDOC_MACROS = meltgc_named_symbol("MKDOC_MACROS", MELT_GET);
   if (sy_MKDOC_MACROS && NULL == /*_.VALDATA___V772*/ curfptr[771])
   /*_.VALDATA___V772*/ curfptr[771] = (void*) sy_MKDOC_MACROS; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_PATMACROS*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_PATMACROS = meltgc_named_symbol("MKDOC_PATMACROS", MELT_GET);
+ { melt_ptr_t sy_MKDOC_PATMACROS = meltgc_named_symbol("MKDOC_PATMACROS", MELT_GET);
   if (sy_MKDOC_PATMACROS && NULL == /*_.VALDATA___V774*/ curfptr[773])
   /*_.VALDATA___V774*/ curfptr[773] = (void*) sy_MKDOC_PATMACROS; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_FORMALOCCMAP*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_FORMALOCCMAP = meltgc_named_symbol("MKDOC_FORMALOCCMAP", MELT_GET);
+ { melt_ptr_t sy_MKDOC_FORMALOCCMAP = meltgc_named_symbol("MKDOC_FORMALOCCMAP", MELT_GET);
   if (sy_MKDOC_FORMALOCCMAP && NULL == /*_.VALDATA___V776*/ curfptr[775])
   /*_.VALDATA___V776*/ curfptr[775] = (void*) sy_MKDOC_FORMALOCCMAP; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_PREDEFMAP*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_PREDEFMAP = meltgc_named_symbol("MKDOC_PREDEFMAP", MELT_GET);
+ { melt_ptr_t sy_MKDOC_PREDEFMAP = meltgc_named_symbol("MKDOC_PREDEFMAP", MELT_GET);
   if (sy_MKDOC_PREDEFMAP && NULL == /*_.VALDATA___V778*/ curfptr[777])
   /*_.VALDATA___V778*/ curfptr[777] = (void*) sy_MKDOC_PREDEFMAP; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_DOCSYMAP*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_DOCSYMAP = meltgc_named_symbol("MKDOC_DOCSYMAP", MELT_GET);
+ { melt_ptr_t sy_MKDOC_DOCSYMAP = meltgc_named_symbol("MKDOC_DOCSYMAP", MELT_GET);
   if (sy_MKDOC_DOCSYMAP && NULL == /*_.VALDATA___V780*/ curfptr[779])
   /*_.VALDATA___V780*/ curfptr[779] = (void*) sy_MKDOC_DOCSYMAP; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MKDOC_SUBCLASSMAP*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MKDOC_SUBCLASSMAP = meltgc_named_symbol("MKDOC_SUBCLASSMAP", MELT_GET);
+ { melt_ptr_t sy_MKDOC_SUBCLASSMAP = meltgc_named_symbol("MKDOC_SUBCLASSMAP", MELT_GET);
   if (sy_MKDOC_SUBCLASSMAP && NULL == /*_.VALDATA___V782*/ curfptr[781])
   /*_.VALDATA___V782*/ curfptr[781] = (void*) sy_MKDOC_SUBCLASSMAP; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_DEFINITION*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_DEFINITION = meltgc_named_symbol("CLASS_SOURCE_DEFINITION", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_DEFINITION = meltgc_named_symbol("CLASS_SOURCE_DEFINITION", MELT_GET);
   if (sy_CLASS_SOURCE_DEFINITION && NULL == /*_.VALDATA___V790*/ curfptr[789])
   /*_.VALDATA___V790*/ curfptr[789] = (void*) sy_CLASS_SOURCE_DEFINITION; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_ANY_BINDING*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_ANY_BINDING = meltgc_named_symbol("CLASS_ANY_BINDING", MELT_GET);
+ { melt_ptr_t sy_CLASS_ANY_BINDING = meltgc_named_symbol("CLASS_ANY_BINDING", MELT_GET);
   if (sy_CLASS_ANY_BINDING && NULL == /*_.VALDATA___V792*/ curfptr[791])
   /*_.VALDATA___V792*/ curfptr[791] = (void*) sy_CLASS_ANY_BINDING; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_DEFCLASS*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_DEFCLASS = meltgc_named_symbol("CLASS_SOURCE_DEFCLASS", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_DEFCLASS = meltgc_named_symbol("CLASS_SOURCE_DEFCLASS", MELT_GET);
   if (sy_CLASS_SOURCE_DEFCLASS && NULL == /*_.VALDATA___V794*/ curfptr[793])
   /*_.VALDATA___V794*/ curfptr[793] = (void*) sy_CLASS_SOURCE_DEFCLASS; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SEXPR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SEXPR = meltgc_named_symbol("CLASS_SEXPR", MELT_GET);
+ { melt_ptr_t sy_CLASS_SEXPR = meltgc_named_symbol("CLASS_SEXPR", MELT_GET);
   if (sy_CLASS_SEXPR && NULL == /*_.VALDATA___V796*/ curfptr[795])
   /*_.VALDATA___V796*/ curfptr[795] = (void*) sy_CLASS_SEXPR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_CLASS_BINDING*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_CLASS_BINDING = meltgc_named_symbol("CLASS_CLASS_BINDING", MELT_GET);
+ { melt_ptr_t sy_CLASS_CLASS_BINDING = meltgc_named_symbol("CLASS_CLASS_BINDING", MELT_GET);
   if (sy_CLASS_CLASS_BINDING && NULL == /*_.VALDATA___V798*/ curfptr[797])
   /*_.VALDATA___V798*/ curfptr[797] = (void*) sy_CLASS_CLASS_BINDING; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_DEFSELECTOR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_DEFSELECTOR = meltgc_named_symbol("CLASS_SOURCE_DEFSELECTOR", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_DEFSELECTOR = meltgc_named_symbol("CLASS_SOURCE_DEFSELECTOR", MELT_GET);
   if (sy_CLASS_SOURCE_DEFSELECTOR && NULL == /*_.VALDATA___V800*/ curfptr[799])
   /*_.VALDATA___V800*/ curfptr[799] = (void*) sy_CLASS_SOURCE_DEFSELECTOR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_DEFINSTANCE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_DEFINSTANCE = meltgc_named_symbol("CLASS_SOURCE_DEFINSTANCE", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_DEFINSTANCE = meltgc_named_symbol("CLASS_SOURCE_DEFINSTANCE", MELT_GET);
   if (sy_CLASS_SOURCE_DEFINSTANCE && NULL == /*_.VALDATA___V802*/ curfptr[801])
   /*_.VALDATA___V802*/ curfptr[801] = (void*) sy_CLASS_SOURCE_DEFINSTANCE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_DEFPRIMITIVE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_DEFPRIMITIVE = meltgc_named_symbol("CLASS_SOURCE_DEFPRIMITIVE", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_DEFPRIMITIVE = meltgc_named_symbol("CLASS_SOURCE_DEFPRIMITIVE", MELT_GET);
   if (sy_CLASS_SOURCE_DEFPRIMITIVE && NULL == /*_.VALDATA___V804*/ curfptr[803])
   /*_.VALDATA___V804*/ curfptr[803] = (void*) sy_CLASS_SOURCE_DEFPRIMITIVE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_DEFUN*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_DEFUN = meltgc_named_symbol("CLASS_SOURCE_DEFUN", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_DEFUN = meltgc_named_symbol("CLASS_SOURCE_DEFUN", MELT_GET);
   if (sy_CLASS_SOURCE_DEFUN && NULL == /*_.VALDATA___V806*/ curfptr[805])
   /*_.VALDATA___V806*/ curfptr[805] = (void*) sy_CLASS_SOURCE_DEFUN; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_DEFCITERATOR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_DEFCITERATOR = meltgc_named_symbol("CLASS_SOURCE_DEFCITERATOR", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_DEFCITERATOR = meltgc_named_symbol("CLASS_SOURCE_DEFCITERATOR", MELT_GET);
   if (sy_CLASS_SOURCE_DEFCITERATOR && NULL == /*_.VALDATA___V808*/ curfptr[807])
   /*_.VALDATA___V808*/ curfptr[807] = (void*) sy_CLASS_SOURCE_DEFCITERATOR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_DEFCMATCHER*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_DEFCMATCHER = meltgc_named_symbol("CLASS_SOURCE_DEFCMATCHER", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_DEFCMATCHER = meltgc_named_symbol("CLASS_SOURCE_DEFCMATCHER", MELT_GET);
   if (sy_CLASS_SOURCE_DEFCMATCHER && NULL == /*_.VALDATA___V810*/ curfptr[809])
   /*_.VALDATA___V810*/ curfptr[809] = (void*) sy_CLASS_SOURCE_DEFCMATCHER; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_EXPORT_PATMACRO*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_EXPORT_PATMACRO = meltgc_named_symbol("CLASS_SOURCE_EXPORT_PATMACRO", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_EXPORT_PATMACRO = meltgc_named_symbol("CLASS_SOURCE_EXPORT_PATMACRO", MELT_GET);
   if (sy_CLASS_SOURCE_EXPORT_PATMACRO && NULL == /*_.VALDATA___V812*/ curfptr[811])
   /*_.VALDATA___V812*/ curfptr[811] = (void*) sy_CLASS_SOURCE_EXPORT_PATMACRO; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_EXPORT_MACRO*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_EXPORT_MACRO = meltgc_named_symbol("CLASS_SOURCE_EXPORT_MACRO", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_EXPORT_MACRO = meltgc_named_symbol("CLASS_SOURCE_EXPORT_MACRO", MELT_GET);
   if (sy_CLASS_SOURCE_EXPORT_MACRO && NULL == /*_.VALDATA___V814*/ curfptr[813])
   /*_.VALDATA___V814*/ curfptr[813] = (void*) sy_CLASS_SOURCE_EXPORT_MACRO; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_SOURCE_DEFINITION_FORMAL*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_SOURCE_DEFINITION_FORMAL = meltgc_named_symbol("CLASS_SOURCE_DEFINITION_FORMAL", MELT_GET);
+ { melt_ptr_t sy_CLASS_SOURCE_DEFINITION_FORMAL = meltgc_named_symbol("CLASS_SOURCE_DEFINITION_FORMAL", MELT_GET);
   if (sy_CLASS_SOURCE_DEFINITION_FORMAL && NULL == /*_.VALDATA___V839*/ curfptr[838])
   /*_.VALDATA___V839*/ curfptr[838] = (void*) sy_CLASS_SOURCE_DEFINITION_FORMAL; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:CLASS_ANY_MATCHER*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_CLASS_ANY_MATCHER = meltgc_named_symbol("CLASS_ANY_MATCHER", MELT_GET);
+ { melt_ptr_t sy_CLASS_ANY_MATCHER = meltgc_named_symbol("CLASS_ANY_MATCHER", MELT_GET);
   if (sy_CLASS_ANY_MATCHER && NULL == /*_.VALDATA___V851*/ curfptr[850])
   /*_.VALDATA___V851*/ curfptr[850] = (void*) sy_CLASS_ANY_MATCHER; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:MAKEDOC_MODE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_MAKEDOC_MODE = meltgc_named_symbol("MAKEDOC_MODE", MELT_GET);
+ { melt_ptr_t sy_MAKEDOC_MODE = meltgc_named_symbol("MAKEDOC_MODE", MELT_GET);
   if (sy_MAKEDOC_MODE && NULL == /*_.VALDATA___V858*/ curfptr[857])
   /*_.VALDATA___V858*/ curfptr[857] = (void*) sy_MAKEDOC_MODE; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:COMPILE_LIST_SEXPR*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_COMPILE_LIST_SEXPR = meltgc_named_symbol("COMPILE_LIST_SEXPR", MELT_GET);
+ { melt_ptr_t sy_COMPILE_LIST_SEXPR = meltgc_named_symbol("COMPILE_LIST_SEXPR", MELT_GET);
   if (sy_COMPILE_LIST_SEXPR && NULL == /*_.VALDATA___V863*/ curfptr[862])
   /*_.VALDATA___V863*/ curfptr[862] = (void*) sy_COMPILE_LIST_SEXPR; }
  
  /*^getnamedsymbol*/
 
  /*getnamedsym:INSTALL_MELT_MODE*/
- if (MELT_PREDEF(INITIAL_SYSTEM_DATA)) { melt_ptr_t sy_INSTALL_MELT_MODE = meltgc_named_symbol("INSTALL_MELT_MODE", MELT_GET);
+ { melt_ptr_t sy_INSTALL_MELT_MODE = meltgc_named_symbol("INSTALL_MELT_MODE", MELT_GET);
   if (sy_INSTALL_MELT_MODE && NULL == /*_.VALDATA___V865*/ curfptr[864])
   /*_.VALDATA___V865*/ curfptr[864] = (void*) sy_INSTALL_MELT_MODE; }
  
