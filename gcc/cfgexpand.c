@@ -1,5 +1,5 @@
 /* A pass for lowering trees to RTL.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1011,6 +1011,14 @@ expand_one_var (tree var, bool toplevel, bool really_expand)
       if (really_expand)
         expand_one_register_var (origvar);
     }
+  else if (!host_integerp (DECL_SIZE_UNIT (var), 1))
+    {
+      if (really_expand)
+	{
+	  error ("size of variable %q+D is too large", var);
+	  expand_one_error_var (var);
+	}
+    }
   else if (defer_stack_allocation (var, toplevel))
     add_stack_var (origvar);
   else
@@ -1606,13 +1614,35 @@ expand_gimple_cond (basic_block bb, gimple stmt)
       && bitmap_bit_p (SA.values, SSA_NAME_VERSION (op0)))
     {
       gimple second = SSA_NAME_DEF_STMT (op0);
-      if (gimple_code (second) == GIMPLE_ASSIGN
-	  && TREE_CODE_CLASS (gimple_assign_rhs_code (second))
-	     == tcc_comparison)
+      if (gimple_code (second) == GIMPLE_ASSIGN)
 	{
-	  code = gimple_assign_rhs_code (second);
-	  op0 = gimple_assign_rhs1 (second);
-	  op1 = gimple_assign_rhs2 (second);
+	  enum tree_code code2 = gimple_assign_rhs_code (second);
+	  if (TREE_CODE_CLASS (code2) == tcc_comparison)
+	    {
+	      code = code2;
+	      op0 = gimple_assign_rhs1 (second);
+	      op1 = gimple_assign_rhs2 (second);
+	    }
+	  /* If jumps are cheap turn some more codes into
+	     jumpy sequences.  */
+	  else if (BRANCH_COST (optimize_insn_for_speed_p (), false) < 4)
+	    {
+	      if ((code2 == BIT_AND_EXPR
+		   && TYPE_PRECISION (TREE_TYPE (op0)) == 1
+		   && TREE_CODE (gimple_assign_rhs2 (second)) != INTEGER_CST)
+		  || code2 == TRUTH_AND_EXPR)
+		{
+		  code = TRUTH_ANDIF_EXPR;
+		  op0 = gimple_assign_rhs1 (second);
+		  op1 = gimple_assign_rhs2 (second);
+		}
+	      else if (code2 == BIT_IOR_EXPR || code2 == TRUTH_OR_EXPR)
+		{
+		  code = TRUTH_ORIF_EXPR;
+		  op0 = gimple_assign_rhs1 (second);
+		  op1 = gimple_assign_rhs2 (second);
+		}
+	    }
 	}
     }
 
@@ -1716,15 +1746,31 @@ expand_call_stmt (gimple stmt)
   tree exp;
   tree lhs = gimple_call_lhs (stmt);
   size_t i;
+  bool builtin_p;
+  tree decl;
 
   exp = build_vl_exp (CALL_EXPR, gimple_call_num_args (stmt) + 3);
 
   CALL_EXPR_FN (exp) = gimple_call_fn (stmt);
+  decl = gimple_call_fndecl (stmt);
+  builtin_p = decl && DECL_BUILT_IN (decl);
+
   TREE_TYPE (exp) = gimple_call_return_type (stmt);
   CALL_EXPR_STATIC_CHAIN (exp) = gimple_call_chain (stmt);
 
   for (i = 0; i < gimple_call_num_args (stmt); i++)
-    CALL_EXPR_ARG (exp, i) = gimple_call_arg (stmt, i);
+    {
+      tree arg = gimple_call_arg (stmt, i);
+      gimple def;
+      /* TER addresses into arguments of builtin functions so we have a
+	 chance to infer more correct alignment information.  See PR39954.  */
+      if (builtin_p
+	  && TREE_CODE (arg) == SSA_NAME
+	  && (def = get_gimple_for_ssa_name (arg))
+	  && gimple_assign_rhs_code (def) == ADDR_EXPR)
+	arg = gimple_assign_rhs1 (def);
+      CALL_EXPR_ARG (exp, i) = arg;
+    }
 
   if (gimple_has_side_effects (stmt))
     TREE_SIDE_EFFECTS (exp) = 1;
@@ -3713,7 +3759,8 @@ struct rtl_opt_pass pass_expand =
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
   TV_EXPAND,				/* tv_id */
-  PROP_ssa | PROP_gimple_leh | PROP_cfg,/* properties_required */
+  PROP_ssa | PROP_gimple_leh | PROP_cfg
+    | PROP_gimple_lcx,			/* properties_required */
   PROP_rtl,                             /* properties_provided */
   PROP_ssa | PROP_trees,		/* properties_destroyed */
   TODO_verify_ssa | TODO_verify_flow

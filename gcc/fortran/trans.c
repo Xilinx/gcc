@@ -711,6 +711,7 @@ gfc_allocate_with_status (stmtblock_t * block, tree size, tree status)
 	}
 	else
 	  runtime_error ("Attempting to allocate already allocated array");
+      }
     }
     
     expr must be set to the original expression being allocated for its locus
@@ -1097,7 +1098,10 @@ gfc_trans_code (gfc_code * code)
 	  break;
 
 	case EXEC_INIT_ASSIGN:
-	  res = gfc_trans_init_assign (code);
+	  if (code->expr1->ts.type == BT_CLASS)
+	    res = gfc_trans_class_assign (code);
+	  else
+	    res = gfc_trans_init_assign (code);
 	  break;
 
 	case EXEC_CONTINUE:

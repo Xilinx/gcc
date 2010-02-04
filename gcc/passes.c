@@ -337,6 +337,11 @@ struct rtl_opt_pass pass_postreload =
 struct opt_pass *all_passes, *all_small_ipa_passes, *all_lowering_passes,
   *all_regular_ipa_passes, *all_lto_gen_passes;
 
+/* This is used by plugins, and should also be used in register_pass.  */
+#define DEF_PASS_LIST(LIST) &LIST,
+struct opt_pass **gcc_pass_lists[] = { GCC_PASS_LISTS NULL };
+#undef DEF_PASS_LIST
+
 /* A map from static pass id to optimization pass.  */
 struct opt_pass **passes_by_id;
 int passes_by_id_size;
@@ -723,7 +728,6 @@ init_optimization_passes (void)
   NEXT_PASS (pass_refactor_eh);
   NEXT_PASS (pass_lower_eh);
   NEXT_PASS (pass_build_cfg);
-  NEXT_PASS (pass_lower_complex_O0);
   NEXT_PASS (pass_lower_vector);
   NEXT_PASS (pass_warn_function_return);
   NEXT_PASS (pass_build_cgraph_edges);
@@ -938,6 +942,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_uncprop);
       NEXT_PASS (pass_local_pure_const);
     }
+  NEXT_PASS (pass_lower_complex_O0);
   NEXT_PASS (pass_cleanup_eh);
   NEXT_PASS (pass_lower_resx);
   NEXT_PASS (pass_nrv);
@@ -1878,6 +1883,8 @@ dump_properties (FILE *dump, unsigned int props)
     fprintf (dump, "PROP_rtl\n");
   if (props & PROP_gimple_lomp)
     fprintf (dump, "PROP_gimple_lomp\n");
+  if (props & PROP_gimple_lcx)
+    fprintf (dump, "PROP_gimple_lcx\n");
 }
 
 void

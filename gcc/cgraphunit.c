@@ -1,5 +1,5 @@
 /* Callgraph based interprocedural optimizations.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
@@ -1465,7 +1465,7 @@ assemble_thunk (struct cgraph_node *node)
 
       if (restmp && !this_adjusting)
         {
-	  tree true_label = NULL_TREE, false_label = NULL_TREE;
+	  tree true_label = NULL_TREE;
 
 	  if (TREE_CODE (TREE_TYPE (restmp)) == POINTER_TYPE)
 	    {
@@ -1479,7 +1479,6 @@ assemble_thunk (struct cgraph_node *node)
 	      else_bb = create_basic_block (NULL, (void *) 0, else_bb);
 	      remove_edge (single_succ_edge (bb));
 	      true_label = gimple_block_label (then_bb);
-	      false_label = gimple_block_label (else_bb);
 	      stmt = gimple_build_cond (NE_EXPR, restmp,
 	      				fold_convert (TREE_TYPE (restmp),
 						      integer_zero_node),
@@ -2323,20 +2322,9 @@ cgraph_materialize_all_clones (void)
 		gimple new_stmt;
 		gimple_stmt_iterator gsi;
 
-		if (e->callee->same_body)
-		  {
-		    struct cgraph_node *alias;
-
-		    for (alias = e->callee->same_body;
-			 alias;
-			 alias = alias->next)
-		      if (decl == alias->decl)
-			break;
-		    /* Don't update call from same body alias to the real
-		       function.  */
-		    if (alias)
-		      continue;
-		  }
+		if (cgraph_get_node (decl) == cgraph_get_node (e->callee->decl))
+		  /* Don't update call from same body alias to the real function.  */
+		  continue;
 
 		if (cgraph_dump_file)
 		  {

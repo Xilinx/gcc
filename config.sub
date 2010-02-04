@@ -4,7 +4,7 @@
 #   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 #   Free Software Foundation, Inc.
 
-timestamp='2009-11-07'
+timestamp='2009-12-13'
 
 # This file is (in principle) common to ALL GNU software.
 # The presence of a machine in this file suggests that SOME GNU software
@@ -76,7 +76,7 @@ version="\
 GNU config.sub ($timestamp)
 
 Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
@@ -152,7 +152,7 @@ case $os in
 	-convergent* | -ncr* | -news | -32* | -3600* | -3100* | -hitachi* |\
 	-c[123]* | -convex* | -sun | -crds | -omron* | -dg | -ultra | -tti* | \
 	-harris | -dolphin | -highlevel | -gould | -cbm | -ns | -masscomp | \
-	-apple | -axis | -knuth | -cray | -microblaze )
+	-apple | -axis | -knuth | -cray | -microblaze)
 		os=
 		basic_machine=$1
 		;;
@@ -256,13 +256,16 @@ case $basic_machine in
 	| h8300 | h8500 | hppa | hppa1.[01] | hppa2.0 | hppa2.0[nw] | hppa64 \
 	| i370 | i860 | i960 | ia64 \
 	| ip2k | iq2000 \
- 	| m32c | m32r | m32rle | m68000 | m68k | m88k \
- 	| maxq | mb | microblaze | mcore | mep \
+	| lm32 \
+	| m32c | m32r | m32rle | m68000 | m68k | m88k \
+	| maxq | mb | microblaze | mcore | mep | metag \
 	| mips | mipsbe | mipseb | mipsel | mipsle \
 	| mips16 \
 	| mips64 | mips64el \
-	| mips64vr | mips64vrel \
+	| mips64octeon | mips64octeonel \
 	| mips64orion | mips64orionel \
+	| mips64r5900 | mips64r5900el \
+	| mips64vr | mips64vrel \
 	| mips64vr4100 | mips64vr4100el \
 	| mips64vr4300 | mips64vr4300el \
 	| mips64vr5000 | mips64vr5000el \
@@ -339,14 +342,17 @@ case $basic_machine in
 	| hppa-* | hppa1.[01]-* | hppa2.0-* | hppa2.0[nw]-* | hppa64-* \
 	| i*86-* | i860-* | i960-* | ia64-* \
 	| ip2k-* | iq2000-* \
+	| lm32-* \
 	| m32c-* | m32r-* | m32rle-* \
 	| m68000-* | m680[012346]0-* | m68360-* | m683?2-* | m68k-* \
-	| m88110-* | m88k-* | maxq-* | mcore-* | microblaze-* \
+	| m88110-* | m88k-* | maxq-* | mcore-* | metag-* | microblaze-* \
 	| mips-* | mipsbe-* | mipseb-* | mipsel-* | mipsle-* \
 	| mips16-* \
 	| mips64-* | mips64el-* \
-	| mips64vr-* | mips64vrel-* \
+	| mips64octeon-* | mips64octeonel-* \
 	| mips64orion-* | mips64orionel-* \
+	| mips64r5900-* | mips64r5900el-* \
+	| mips64vr-* | mips64vrel-* \
 	| mips64vr4100-* | mips64vr4100el-* \
 	| mips64vr4300-* | mips64vr4300el-* \
 	| mips64vr5000-* | mips64vr5000el-* \
@@ -726,9 +732,9 @@ case $basic_machine in
 		basic_machine=ns32k-utek
 		os=-sysv
 		;;
-	microblaze)
+        microblaze)
 		basic_machine=microblaze-xilinx
-                ;;
+		;;
 	mingw32)
 		basic_machine=i386-pc
 		os=-mingw32
@@ -1250,6 +1256,9 @@ case $os in
         # First match some system type aliases
         # that might get confused with valid system types.
 	# -solaris* is a basic system type, with this one exception.
+        -auroraux)
+	        os=-auroraux
+		;;
 	-solaris1 | -solaris1.*)
 		os=`echo $os | sed -e 's|solaris1|sunos4|'`
 		;;
@@ -1271,8 +1280,8 @@ case $os in
 	# -sysv* is not here because it comes later, after sysvr4.
 	-gnu* | -bsd* | -mach* | -minix* | -genix* | -ultrix* | -irix* \
 	      | -*vms* | -sco* | -esix* | -isc* | -aix* | -cnk* | -sunos | -sunos[34]*\
-	      | -hpux* | -unos* | -osf* | -luna* | -dgux* | -solaris* | -sym* \
-	      | -kopensolaris* \
+	      | -hpux* | -unos* | -osf* | -luna* | -dgux* | -auroraux* | -solaris* \
+	      | -sym* | -kopensolaris* \
 	      | -amigaos* | -amigados* | -msdos* | -newsos* | -unicos* | -aof* \
 	      | -aos* | -aros* \
 	      | -nindy* | -vxsim* | -vxworks* | -ebmon* | -hms* | -mvs* \

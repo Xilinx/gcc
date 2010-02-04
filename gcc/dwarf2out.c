@@ -1,6 +1,6 @@
 /* Output Dwarf2 format symbol table information from GCC.
    Copyright (C) 1992, 1993, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Gary Funck (gary@intrepid.com).
    Derived from DWARF 1 implementation of Ron Guilmette (rfg@monkeys.com).
    Extensively modified by Jason Merrill (jason@cygnus.com).
@@ -6062,7 +6062,8 @@ static void add_arange (tree, dw_die_ref);
 static void output_aranges (void);
 static unsigned int add_ranges_num (int);
 static unsigned int add_ranges (const_tree);
-static unsigned int add_ranges_by_labels (const char *, const char *);
+static void add_ranges_by_labels (dw_die_ref, const char *, const char *,
+				  bool *);
 static void output_ranges (void);
 static void output_line_info (void);
 static void output_file_names (void);
@@ -11021,10 +11022,12 @@ add_ranges (const_tree block)
 /* Add a new entry to .debug_ranges corresponding to a pair of
    labels.  */
 
-static unsigned int
-add_ranges_by_labels (const char *begin, const char *end)
+static void
+add_ranges_by_labels (dw_die_ref die, const char *begin, const char *end,
+		      bool *added)
 {
   unsigned int in_use = ranges_by_label_in_use;
+  unsigned int offset;
 
   if (in_use == ranges_by_label_allocated)
     {
@@ -11041,7 +11044,12 @@ add_ranges_by_labels (const char *begin, const char *end)
   ranges_by_label[in_use].end = end;
   ranges_by_label_in_use = in_use + 1;
 
-  return add_ranges_num (-(int)in_use - 1);
+  offset = add_ranges_num (-(int)in_use - 1);
+  if (!*added)
+    {
+      add_AT_range_list (die, DW_AT_ranges, offset);
+      *added = true;
+    }
 }
 
 static void
@@ -12983,6 +12991,12 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	mem_loc_result = tls_mem_loc_descriptor (rtl);
       if (mem_loc_result != 0)
 	add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_deref, 0, 0));
+      else
+	{
+	  rtx new_rtl = avoid_constant_pool_reference (rtl);
+	  if (new_rtl != rtl)
+	    return mem_loc_descriptor (new_rtl, mode, initialized);
+	}
       break;
 
     case LO_SUM:
@@ -12996,34 +13010,6 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	 pool.  */
     case CONST:
     case SYMBOL_REF:
-      /* Alternatively, the symbol in the constant pool might be referenced
-	 by a different symbol.  */
-      if (GET_CODE (rtl) == SYMBOL_REF && CONSTANT_POOL_ADDRESS_P (rtl))
-	{
-	  bool marked;
-	  rtx tmp = get_pool_constant_mark (rtl, &marked);
-
-	  if (GET_CODE (tmp) == SYMBOL_REF)
-	    {
-	      rtl = tmp;
-	      if (CONSTANT_POOL_ADDRESS_P (tmp))
-		get_pool_constant_mark (tmp, &marked);
-	      else
-		marked = true;
-	    }
-
-	  /* If all references to this pool constant were optimized away,
-	     it was not output and thus we can't represent it.
-	     FIXME: might try to use DW_OP_const_value here, though
-	     DW_OP_piece complicates it.  */
-	  if (!marked)
-	    {
-	      expansion_failed (NULL_TREE, rtl,
-				"Constant was removed from constant pool.\n");
-	      return 0;
-	    }
-	}
-
       if (GET_CODE (rtl) == SYMBOL_REF
 	  && SYMBOL_REF_TLS_MODEL (rtl) != TLS_MODEL_NONE)
 	{
@@ -13121,7 +13107,7 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
       op = DW_OP_div;
       goto do_binop;
 
-    case MOD:
+    case UMOD:
       op = DW_OP_mod;
       goto do_binop;
 
@@ -13161,6 +13147,24 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
       mem_loc_result = op0;
       add_loc_descr (&mem_loc_result, op1);
       add_loc_descr (&mem_loc_result, new_loc_descr (op, 0, 0));
+      break;
+
+    case MOD:
+      op0 = mem_loc_descriptor (XEXP (rtl, 0), mode,
+				VAR_INIT_STATUS_INITIALIZED);
+      op1 = mem_loc_descriptor (XEXP (rtl, 1), mode,
+				VAR_INIT_STATUS_INITIALIZED);
+
+      if (op0 == 0 || op1 == 0)
+	break;
+
+      mem_loc_result = op0;
+      add_loc_descr (&mem_loc_result, op1);
+      add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_over, 0, 0));
+      add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_over, 0, 0));
+      add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_div, 0, 0));
+      add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_mul, 0, 0));
+      add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_minus, 0, 0));
       break;
 
     case NOT:
@@ -13434,8 +13438,18 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
     case US_MULT:
     case SS_DIV:
     case US_DIV:
+    case SS_PLUS:
+    case US_PLUS:
+    case SS_MINUS:
+    case US_MINUS:
+    case SS_NEG:
+    case US_NEG:
+    case SS_ABS:
+    case SS_ASHIFT:
+    case US_ASHIFT:
+    case SS_TRUNCATE:
+    case US_TRUNCATE:
     case UDIV:
-    case UMOD:
     case UNORDERED:
     case ORDERED:
     case UNEQ:
@@ -13587,6 +13601,12 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 				       initialized);
       if (loc_result == NULL)
 	loc_result = tls_mem_loc_descriptor (rtl);
+      if (loc_result == NULL)
+	{
+	  rtx new_rtl = avoid_constant_pool_reference (rtl);
+	  if (new_rtl != rtl)
+	    loc_result = loc_descriptor (new_rtl, mode, initialized);
+	}
       break;
 
     case CONCAT:
@@ -13861,10 +13881,19 @@ dw_loc_list_1 (tree loc, rtx varloc, int want_address,
 	  mode = GET_MODE (varloc);
 	  if (MEM_P (varloc))
 	    {
-	      varloc = XEXP (varloc, 0);
-	      have_address = 1;
+	      rtx addr = XEXP (varloc, 0);
+	      descr = mem_loc_descriptor (addr, mode, initialized);
+	      if (descr)
+		have_address = 1;
+	      else
+		{
+		  rtx x = avoid_constant_pool_reference (varloc);
+		  if (x != varloc)
+		    descr = mem_loc_descriptor (x, mode, initialized);
+		}
 	    }
-	  descr = mem_loc_descriptor (varloc, mode, initialized);
+	  else
+	    descr = mem_loc_descriptor (varloc, mode, initialized);
 	}
       else
 	return 0;
@@ -14489,6 +14518,8 @@ loc_list_from_tree (tree loc, int want_address)
     case CEIL_DIV_EXPR:
     case ROUND_DIV_EXPR:
     case TRUNC_DIV_EXPR:
+      if (TYPE_UNSIGNED (TREE_TYPE (loc)))
+	return 0;
       op = DW_OP_div;
       goto do_binop;
 
@@ -14500,8 +14531,25 @@ loc_list_from_tree (tree loc, int want_address)
     case CEIL_MOD_EXPR:
     case ROUND_MOD_EXPR:
     case TRUNC_MOD_EXPR:
-      op = DW_OP_mod;
-      goto do_binop;
+      if (TYPE_UNSIGNED (TREE_TYPE (loc)))
+	{
+	  op = DW_OP_mod;
+	  goto do_binop;
+	}
+      list_ret = loc_list_from_tree (TREE_OPERAND (loc, 0), 0);
+      list_ret1 = loc_list_from_tree (TREE_OPERAND (loc, 1), 0);
+      if (list_ret == 0 || list_ret1 == 0)
+	return 0;
+
+      add_loc_list (&list_ret, list_ret1);
+      if (list_ret == 0)
+	return 0;
+      add_loc_descr_to_each (list_ret, new_loc_descr (DW_OP_over, 0, 0));
+      add_loc_descr_to_each (list_ret, new_loc_descr (DW_OP_over, 0, 0));
+      add_loc_descr_to_each (list_ret, new_loc_descr (DW_OP_div, 0, 0));
+      add_loc_descr_to_each (list_ret, new_loc_descr (DW_OP_mul, 0, 0));
+      add_loc_descr_to_each (list_ret, new_loc_descr (DW_OP_minus, 0, 0));
+      break;
 
     case MULT_EXPR:
       op = DW_OP_mul;
@@ -21209,6 +21257,7 @@ dwarf2out_finish (const char *filename)
   else
     {
       unsigned fde_idx = 0;
+      bool range_list_added = false;
 
       /* We need to give .debug_loc and .debug_ranges an appropriate
 	 "base address".  Use zero so that these addresses become
@@ -21218,12 +21267,12 @@ dwarf2out_finish (const char *filename)
       add_AT_addr (comp_unit_die, DW_AT_low_pc, const0_rtx);
       add_AT_addr (comp_unit_die, DW_AT_entry_pc, const0_rtx);
 
-      add_AT_range_list (comp_unit_die, DW_AT_ranges,
-			 add_ranges_by_labels (text_section_label,
-					       text_end_label));
-      if (flag_reorder_blocks_and_partition)
-	add_ranges_by_labels (cold_text_section_label,
-			      cold_end_label);
+      if (text_section_used)
+	add_ranges_by_labels (comp_unit_die, text_section_label,
+			      text_end_label, &range_list_added);
+      if (flag_reorder_blocks_and_partition && cold_text_section_used)
+	add_ranges_by_labels (comp_unit_die, cold_text_section_label,
+			      cold_end_label, &range_list_added);
 
       for (fde_idx = 0; fde_idx < fde_table_in_use; fde_idx++)
 	{
@@ -21232,18 +21281,23 @@ dwarf2out_finish (const char *filename)
 	  if (fde->dw_fde_switched_sections)
 	    {
 	      if (!fde->in_std_section)
-		add_ranges_by_labels (fde->dw_fde_hot_section_label,
-				      fde->dw_fde_hot_section_end_label);
+		add_ranges_by_labels (comp_unit_die,
+				      fde->dw_fde_hot_section_label,
+				      fde->dw_fde_hot_section_end_label,
+				      &range_list_added);
 	      if (!fde->cold_in_std_section)
-		add_ranges_by_labels (fde->dw_fde_unlikely_section_label,
-				      fde->dw_fde_unlikely_section_end_label);
+		add_ranges_by_labels (comp_unit_die,
+				      fde->dw_fde_unlikely_section_label,
+				      fde->dw_fde_unlikely_section_end_label,
+				      &range_list_added);
 	    }
 	  else if (!fde->in_std_section)
-	    add_ranges_by_labels (fde->dw_fde_begin,
-				  fde->dw_fde_end);
+	    add_ranges_by_labels (comp_unit_die, fde->dw_fde_begin,
+				  fde->dw_fde_end, &range_list_added);
 	}
 
-      add_ranges (NULL);
+      if (range_list_added)
+	add_ranges (NULL);
     }
 
   /* Output location list section if necessary.  */

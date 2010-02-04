@@ -1735,10 +1735,6 @@ else
     ])
     ;;
 
-  elf*)
-  # if non-hosted, don't bother with dlopen
-    ;;
-
   *)
     AC_CHECK_FUNC([shl_load],
 	  [lt_cv_dlopen="shl_load"],

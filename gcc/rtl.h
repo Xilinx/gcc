@@ -1538,11 +1538,6 @@ do {						\
 #ifndef USE_STORE_PRE_DECREMENT
 #define USE_STORE_PRE_DECREMENT(MODE)   HAVE_PRE_DECREMENT
 #endif
-
-#ifdef MICROBLAZE
-#define VAR_SECTION(RTX) ((RTX)->var_section)
-#define SHIFT_TYPE(RTX) ((RTX)->shift_type)
-#endif
 
 /* Nonzero when we are generating CONCATs.  */
 extern int generating_concat_p;

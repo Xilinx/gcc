@@ -3,7 +3,7 @@
 
 # Copyright (C) 1987, 1988, 1990, 1991, 1992, 1993, 1994, 1995, 1996,
 # 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-# 2008, 2009 Free Software Foundation, Inc.
+# 2008, 2009, 2010 Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -237,7 +237,6 @@ endif
 # -------------------------------------------
 
 SHELL = @SHELL@
-
 # pwd command to use.  Allow user to override default by setting PWDCMD in
 # the environment to account for automounters.  The make variable must not
 # be called PWDCMD, otherwise the value set here is passed to make
@@ -291,7 +290,7 @@ write_entries_to_file = $(shell rm -f $(2) || :) $(shell touch $(2)) \
 	     echo $$i; i=`expr $$i + $(write_entries_to_file_split)`; done), \
 	  $(shell echo "$(wordlist $(range), \
 			  $(shell expr $(range) + $(write_entries_to_file_split) - 1), $(1))" \
-	     | tr ' ' '\n' >> $(2)))
+	     | tr ' ' '\012' >> $(2)))
 
 # --------
 # UNSORTED
@@ -876,7 +875,7 @@ DEMANGLE_H = $(srcdir)/../include/demangle.h
 RECOG_H = recog.h
 ALIAS_H = alias.h coretypes.h
 EMIT_RTL_H = emit-rtl.h
-FLAGS_H = flags.h coretypes.h options.h $(REAL_H)
+FLAGS_H = flags.h coretypes.h options.h
 FUNCTION_H = function.h $(TREE_H) $(HASHTAB_H) vecprim.h
 EXPR_H = expr.h insn-config.h $(FUNCTION_H) $(RTL_H) $(FLAGS_H) $(TREE_H) $(MACHMODE_H) $(EMIT_RTL_H)
 OPTABS_H = optabs.h insn-codes.h
@@ -2502,8 +2501,8 @@ tree-ssa-alias.o : tree-ssa-alias.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
 tree-ssa-reassoc.o : tree-ssa-reassoc.c $(TREE_FLOW_H) $(CONFIG_H) \
    $(SYSTEM_H) $(TREE_H) $(GGC_H) $(DIAGNOSTIC_H) $(TIMEVAR_H) \
    $(TM_H) coretypes.h $(TREE_DUMP_H) $(TREE_PASS_H) $(FLAGS_H) \
-   tree-iterator.h $(BASIC_BLOCK_H) $(GIMPLE_H) $(TREE_INLINE_H) vec.h \
-   langhooks.h alloc-pool.h pointer-set.h $(CFGLOOP_H)
+   tree-iterator.h $(REAL_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(TREE_INLINE_H) \
+   vec.h langhooks.h alloc-pool.h pointer-set.h $(CFGLOOP_H)
 tree-optimize.o : tree-optimize.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    $(RTL_H) $(TREE_H) $(TM_P_H) hard-reg-set.h $(EXPR_H) $(GGC_H) output.h \
    $(DIAGNOSTIC_H) $(BASIC_BLOCK_H) $(FLAGS_H) $(TIMEVAR_H) $(TM_H) \
@@ -2549,7 +2548,7 @@ tree-scalar-evolution.o: tree-scalar-evolution.c $(CONFIG_H) $(SYSTEM_H) \
    $(TIMEVAR_H) $(CFGLOOP_H) $(SCEV_H) $(TREE_PASS_H) $(FLAGS_H) \
    gt-tree-scalar-evolution.h
 tree-data-ref.o: tree-data-ref.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-   $(GGC_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) \
+   $(GGC_H) $(FLAGS_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) \
    $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) \
    $(TREE_DATA_REF_H) $(TREE_PASS_H) langhooks.h
 sese.o: sese.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
@@ -2990,7 +2989,7 @@ tree-ssa-ccp.o : tree-ssa-ccp.c $(TREE_FLOW_H) $(CONFIG_H) \
 tree-sra.o : tree-sra.c $(CONFIG_H) $(SYSTEM_H) coretypes.h alloc-pool.h \
    $(TM_H) $(TREE_H) $(GIMPLE_H) $(CGRAPH_H) $(TREE_FLOW_H) $(IPA_PROP_H) \
    $(DIAGNOSTIC_H) statistics.h $(TREE_DUMP_H) $(TIMEVAR_H) $(PARAMS_H) \
-   $(TARGET_H) $(FLAGS_H)
+   $(TARGET_H) $(FLAGS_H) $(EXPR_H)
 tree-switch-conversion.o : tree-switch-conversion.c $(CONFIG_H) $(SYSTEM_H) \
     $(TREE_H) $(TM_P_H) $(TREE_FLOW_H) $(DIAGNOSTIC_H) $(TREE_INLINE_H) \
     $(TIMEVAR_H) $(TM_H) coretypes.h $(TREE_DUMP_H) $(GIMPLE_H) \
@@ -3025,7 +3024,8 @@ regstat.o : regstat.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
 var-tracking.o : var-tracking.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(RTL_H) $(TREE_H) hard-reg-set.h insn-config.h reload.h $(FLAGS_H) \
    $(BASIC_BLOCK_H) output.h sbitmap.h alloc-pool.h $(FIBHEAP_H) $(HASHTAB_H) \
-   $(REGS_H) $(EXPR_H) $(TIMEVAR_H) $(TREE_PASS_H) cselib.h $(TARGET_H)
+   $(REGS_H) $(EXPR_H) $(TIMEVAR_H) $(TREE_PASS_H) $(TREE_FLOW_H) \
+   cselib.h $(TARGET_H)
 profile.o : profile.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(TREE_H) $(FLAGS_H) output.h $(REGS_H) $(EXPR_H) $(FUNCTION_H) \
    $(TOPLEV_H) $(COVERAGE_H) $(TREE_FLOW_H) value-prof.h cfghooks.h \
@@ -4062,8 +4062,7 @@ doc/gccinstall.pdf: $(TEXI_GCCINSTALL_FILES)
 
 # List the directories or single hmtl files which are installed by
 # install-html. The lang.html file triggers language fragments to build
-# html documentation. Installing language fragment documentation is not
-# yet supported.
+# html documentation.
 HTMLS_INSTALL=$(build_htmldir)/cpp $(build_htmldir)/gcc \
        $(build_htmldir)/gccinstall $(build_htmldir)/gccint \
        $(build_htmldir)/cppinternals
@@ -4276,7 +4275,8 @@ PLUGIN_HEADERS = $(TREE_H) $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   tree-iterator.h $(PLUGIN_H) $(TREE_FLOW_H) langhooks.h incpath.h \
   tree-ssa-sccvn.h real.h output.h $(IPA_UTILS_H) \
   $(C_PRAGMA_H)  $(CPPLIB_H)  $(FUNCTION_H) \
-  cppdefault.h flags.h $(MD5_H) params.def params.h prefix.h tree-inline.h
+  cppdefault.h flags.h $(MD5_H) params.def params.h prefix.h tree-inline.h \
+  $(IPA_PROP_H) $(RTL_H) $(TM_P_H) $(CFGLOOP_H) $(EMIT_RTL_H) version.h
 
 # generate the 'build fragment' b-header-vars
 s-header-vars: Makefile
@@ -4290,7 +4290,7 @@ install-plugin: installdirs lang.install-plugin s-header-vars
 # We keep the directory structure for files in config and .def files. All
 # other files are flattened to a single directory.
 	$(mkinstalldirs) $(DESTDIR)$(plugin_includedir)
-	headers=`echo $(PLUGIN_HEADERS) | tr ' ' '\n' | sort -u`; \
+	headers=`echo $(PLUGIN_HEADERS) | tr ' ' '\012' | sort -u`; \
 	srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`; \
 	for file in $$headers; do \
 	  if [ -f $$file ] ; then \
@@ -4401,7 +4401,7 @@ install-pdf: $(PDFFILES) lang.install-pdf
 
 html__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
 
-install-html: $(HTMLS_BUILD)
+install-html: $(HTMLS_BUILD) lang.install-html
 	@$(NORMAL_INSTALL)
 	test -z "$(htmldir)" || $(mkinstalldirs) "$(DESTDIR)$(htmldir)"
 	@list='$(HTMLS_INSTALL)'; for p in $$list; do \
@@ -4670,7 +4670,7 @@ TESTSUITEDIR = testsuite
 $(TESTSUITEDIR)/site.exp: site.exp
 	-test -d $(TESTSUITEDIR) || mkdir $(TESTSUITEDIR)
 	-rm -f $@
-	sed '/set tmpdir/ s|testsuite|$(TESTSUITEDIR)|' < site.exp > $@
+	sed '/set tmpdir/ s|testsuite$$|$(TESTSUITEDIR)|' < site.exp > $@
 
 # This is only used for check-% targets that aren't parallelized.
 $(filter-out $(lang_checks_parallelized),$(lang_checks)): check-% : site.exp
@@ -4680,7 +4680,7 @@ $(filter-out $(lang_checks_parallelized),$(lang_checks)): check-% : site.exp
 	srcdir=`cd ${srcdir}; ${PWD_COMMAND}` ; export srcdir ; \
 	cd $(TESTSUITEDIR)/$*; \
 	rm -f tmp-site.exp; \
-	sed '/set tmpdir/ s|testsuite|$(TESTSUITEDIR)/$*|' \
+	sed '/set tmpdir/ s|testsuite$$|$(TESTSUITEDIR)/$*|' \
 		< ../../site.exp > tmp-site.exp; \
 	$(SHELL) $${srcdir}/../move-if-change tmp-site.exp site.exp; \
 	EXPECT=${EXPECT} ; export EXPECT ; \
@@ -4767,7 +4767,7 @@ check-parallel-% : site.exp
 	srcdir=`cd ${srcdir}; ${PWD_COMMAND}` ; export srcdir ; \
 	cd $(TESTSUITEDIR)/$(check_p_subdir); \
 	rm -f tmp-site.exp; \
-	sed '/set tmpdir/ s|testsuite|$(TESTSUITEDIR)/$(check_p_subdir)|' \
+	sed '/set tmpdir/ s|testsuite$$|$(TESTSUITEDIR)/$(check_p_subdir)|' \
 		< ../../site.exp > tmp-site.exp; \
 	$(SHELL) $${srcdir}/../move-if-change tmp-site.exp site.exp; \
 	EXPECT=${EXPECT} ; export EXPECT ; \

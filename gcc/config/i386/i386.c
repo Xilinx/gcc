@@ -1,6 +1,6 @@
 /* Subroutines used for code generation on IA-32.
-   Copyright (C) 1988, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1988, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -13387,16 +13387,6 @@ ix86_fixup_binary_operands (enum rtx_code code, enum machine_mode mode,
   if (MEM_P (src1) && !rtx_equal_p (dst, src1))
     src1 = force_reg (mode, src1);
 
-  /* In order for the multiply-add patterns to get matched, we need
-     to aid combine by forcing all operands into registers to start.  */
-  if (optimize && TARGET_FMA4)
-    {
-      if (MEM_P (src2))
-	src2 = force_reg (GET_MODE (src2), src2);
-      else if (MEM_P (src1))
-	src1 = force_reg (GET_MODE (src1), src1);
-    }
-
   operands[1] = src1;
   operands[2] = src2;
   return dst;
@@ -15391,7 +15381,7 @@ ix86_expand_int_movcc (rtx operands[])
   enum rtx_code code = GET_CODE (operands[1]), compare_code;
   rtx compare_seq, compare_op;
   enum machine_mode mode = GET_MODE (operands[0]);
-  bool sign_bit_compare_p = false;;
+  bool sign_bit_compare_p = false;
 
   start_sequence ();
   ix86_compare_op0 = XEXP (operands[1], 0);
@@ -15432,7 +15422,6 @@ ix86_expand_int_movcc (rtx operands[])
           if (!sign_bit_compare_p)
 	    {
 	      rtx flags;
-	      rtx (*insn)(rtx, rtx, rtx);
 	      bool fpcmp = false;
 
 	      compare_code = GET_CODE (compare_op);
@@ -15473,11 +15462,10 @@ ix86_expand_int_movcc (rtx operands[])
 		tmp = gen_reg_rtx (mode);
 
 	      if (mode == DImode)
-		insn = gen_x86_movdicc_0_m1;
+		emit_insn (gen_x86_movdicc_0_m1 (tmp, flags, compare_op));
 	      else
-		insn = gen_x86_movsicc_0_m1;
-
-	      emit_insn (insn (tmp, flags, compare_op));
+		emit_insn (gen_x86_movsicc_0_m1	(gen_lowpart (SImode, tmp),
+						 flags, compare_op));
 	    }
 	  else
 	    {
@@ -16189,116 +16177,110 @@ ix86_expand_int_vcond (rtx operands[])
   /* XOP supports all of the comparisons on all vector int types.  */
   if (!TARGET_XOP)
     {
-  /* Canonicalize the comparison to EQ, GT, GTU.  */
-  switch (code)
-    {
-    case EQ:
-    case GT:
-    case GTU:
-      break;
-
-    case NE:
-    case LE:
-    case LEU:
-      code = reverse_condition (code);
-      negate = true;
-      break;
-
-    case GE:
-    case GEU:
-      code = reverse_condition (code);
-      negate = true;
-      /* FALLTHRU */
-
-    case LT:
-    case LTU:
-      code = swap_condition (code);
-      x = cop0, cop0 = cop1, cop1 = x;
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-
-  /* Only SSE4.1/SSE4.2 supports V2DImode.  */
-  if (mode == V2DImode)
-    {
+      /* Canonicalize the comparison to EQ, GT, GTU.  */
       switch (code)
 	{
 	case EQ:
-	  /* SSE4.1 supports EQ.  */
-	  if (!TARGET_SSE4_1)
-	    return false;
-	  break;
-
 	case GT:
 	case GTU:
-	  /* SSE4.2 supports GT/GTU.  */
-	  if (!TARGET_SSE4_2)
-	    return false;
+	  break;
+
+	case NE:
+	case LE:
+	case LEU:
+	  code = reverse_condition (code);
+	  negate = true;
+	  break;
+
+	case GE:
+	case GEU:
+	  code = reverse_condition (code);
+	  negate = true;
+	  /* FALLTHRU */
+
+	case LT:
+	case LTU:
+	  code = swap_condition (code);
+	  x = cop0, cop0 = cop1, cop1 = x;
 	  break;
 
 	default:
 	  gcc_unreachable ();
 	}
-    }
 
-  /* Unsigned parallel compare is not supported by the hardware.  Play some
-     tricks to turn this into a signed comparison against 0.  */
-  if (code == GTU)
-    {
-      cop0 = force_reg (mode, cop0);
-
-      switch (mode)
+      /* Only SSE4.1/SSE4.2 supports V2DImode.  */
+      if (mode == V2DImode)
 	{
-	case V4SImode:
-	case V2DImode:
-	  {
-	    rtx t1, t2, mask;
+	  switch (code)
+	    {
+	    case EQ:
+	      /* SSE4.1 supports EQ.  */
+	      if (!TARGET_SSE4_1)
+		return false;
+	      break;
 
-	    /* Perform a parallel modulo subtraction.  */
-	    t1 = gen_reg_rtx (mode);
-	    emit_insn ((mode == V4SImode
-			? gen_subv4si3
-			: gen_subv2di3) (t1, cop0, cop1));
+	    case GT:
+	    case GTU:
+	      /* SSE4.2 supports GT/GTU.  */
+	      if (!TARGET_SSE4_2)
+		return false;
+	      break;
 
-	    /* Extract the original sign bit of op0.  */
-	    mask = ix86_build_signbit_mask (GET_MODE_INNER (mode),
-					    true, false);
-	    t2 = gen_reg_rtx (mode);
-	    emit_insn ((mode == V4SImode
-			? gen_andv4si3
-			: gen_andv2di3) (t2, cop0, mask));
-
-	    /* XOR it back into the result of the subtraction.  This results
-	       in the sign bit set iff we saw unsigned underflow.  */
-	    x = gen_reg_rtx (mode);
-	    emit_insn ((mode == V4SImode
-			? gen_xorv4si3
-			: gen_xorv2di3) (x, t1, t2));
-
-	    code = GT;
-	  }
-	  break;
-
-	case V16QImode:
-	case V8HImode:
-	  /* Perform a parallel unsigned saturating subtraction.  */
-	  x = gen_reg_rtx (mode);
-	  emit_insn (gen_rtx_SET (VOIDmode, x,
-				  gen_rtx_US_MINUS (mode, cop0, cop1)));
-
-	  code = EQ;
-	  negate = !negate;
-	  break;
-
-	default:
-	  gcc_unreachable ();
+	    default:
+	      gcc_unreachable ();
+	    }
 	}
 
-      cop0 = x;
-      cop1 = CONST0_RTX (mode);
-    }
+      /* Unsigned parallel compare is not supported by the hardware.
+	 Play some tricks to turn this into a signed comparison
+	 against 0.  */
+      if (code == GTU)
+	{
+	  cop0 = force_reg (mode, cop0);
+
+	  switch (mode)
+	    {
+	    case V4SImode:
+	    case V2DImode:
+		{
+		  rtx t1, t2, mask;
+		  rtx (*gen_sub3) (rtx, rtx, rtx);
+
+		  /* Subtract (-(INT MAX) - 1) from both operands to make
+		     them signed.  */
+		  mask = ix86_build_signbit_mask (GET_MODE_INNER (mode),
+						  true, false);
+		  gen_sub3 = (mode == V4SImode
+			      ? gen_subv4si3 : gen_subv2di3);
+		  t1 = gen_reg_rtx (mode);
+		  emit_insn (gen_sub3 (t1, cop0, mask));
+
+		  t2 = gen_reg_rtx (mode);
+		  emit_insn (gen_sub3 (t2, cop1, mask));
+
+		  cop0 = t1;
+		  cop1 = t2;
+		  code = GT;
+		}
+	      break;
+
+	    case V16QImode:
+	    case V8HImode:
+	      /* Perform a parallel unsigned saturating subtraction.  */
+	      x = gen_reg_rtx (mode);
+	      emit_insn (gen_rtx_SET (VOIDmode, x,
+				      gen_rtx_US_MINUS (mode, cop0, cop1)));
+
+	      cop0 = x;
+	      cop1 = CONST0_RTX (mode);
+	      code = EQ;
+	      negate = !negate;
+	      break;
+
+	    default:
+	      gcc_unreachable ();
+	    }
+	}
     }
 
   x = ix86_expand_sse_cmp (operands[0], code, cop0, cop1,
@@ -26660,8 +26642,16 @@ ix86_expand_vector_init_duplicate (bool mmx_ok, enum machine_mode mode,
 	insn = emit_insn (gen_rtx_SET (VOIDmode, target, dup));
 	if (recog_memoized (insn) < 0)
 	  {
+	    rtx seq;
 	    /* If that fails, force VAL into a register.  */
+
+	    start_sequence ();
 	    XEXP (dup, 0) = force_reg (GET_MODE_INNER (mode), val);
+	    seq = get_insns ();
+	    end_sequence ();
+	    if (seq)
+	      emit_insn_before (seq, insn);
+
 	    ok = recog_memoized (insn) >= 0;
 	    gcc_assert (ok);
 	  }
@@ -28892,7 +28882,7 @@ ix86_vectorize_builtin_vec_perm (tree vec_type, tree *mask_type)
   tree itype = TREE_TYPE (vec_type);
   bool u = TYPE_UNSIGNED (itype);
   enum machine_mode vmode = TYPE_MODE (vec_type);
-  enum ix86_builtins fcode;
+  enum ix86_builtins fcode = fcode; /* Silence bogus warning.  */
   bool ok = TARGET_SSE2;
 
   switch (vmode)

@@ -29,6 +29,7 @@ std_builddir = .
 std_headers = \
 	${std_srcdir}/algorithm \
 	${std_srcdir}/array \
+	${std_srcdir}/atomic \
 	${std_srcdir}/bitset \
 	${std_srcdir}/c++0x_warning.h \
 	${std_srcdir}/chrono \
@@ -78,6 +79,7 @@ bits_builddir = ./bits
 bits_headers = \
         ${bits_srcdir}/algorithmfwd.h \
 	${bits_srcdir}/allocator.h \
+	${bits_srcdir}/atomic_base.h \
 	${bits_srcdir}/atomicfwd_c.h \
 	${bits_srcdir}/atomicfwd_cxx.h \
 	${bits_srcdir}/atomic_0.h \
@@ -641,7 +643,6 @@ c_base_headers = \
 	${c_base_srcdir}/csetjmp \
 	${c_base_srcdir}/csignal \
 	${c_base_srcdir}/cstdarg \
-	${c_base_srcdir}/cstdatomic \
 	${c_base_srcdir}/cstdbool \
 	${c_base_srcdir}/cstddef \
 	${c_base_srcdir}/cstdint \
@@ -792,7 +793,7 @@ profile_headers = \
 	${profile_srcdir}/multiset.h \
 	${profile_srcdir}/set \
 	${profile_srcdir}/set.h \
-	${profile_srcdir}/hashtable.h
+	${profile_srcdir}/iterator_tracker.h
 profile_impl_srcdir = ${glibcxx_srcdir}/include/profile/impl
 profile_impl_builddir = ./profile/impl
 profile_impl_headers = \
@@ -805,7 +806,9 @@ profile_impl_headers = \
 	${profile_impl_srcdir}/profiler_state.h \
 	${profile_impl_srcdir}/profiler_trace.h \
 	${profile_impl_srcdir}/profiler_vector_size.h \
-	${profile_impl_srcdir}/profiler_vector_to_list.h
+	${profile_impl_srcdir}/profiler_vector_to_list.h \
+	${profile_impl_srcdir}/profiler_list_to_vector.h \
+	${profile_impl_srcdir}/profiler_list_to_slist.h
 
 # Some of the different "C" header models need extra files.
 # Some "C" header schemes require the "C" compatibility headers.
