@@ -2906,6 +2906,8 @@ information are.
 @item
 @uref{#mep-x-elf,,mep-*-elf}
 @item
+@uref{#microblaze-x-elf,,microblaze-*-elf}
+@item
 @uref{#mips-x-x,,mips-*-*}
 @item
 @uref{#mips-sgi-irix5,,mips-sgi-irix5}
@@ -3748,12 +3750,18 @@ both of which were ABI changes.  However, you can still use the
 original ABI by configuring for @samp{m68k-uclinuxoldabi} or
 @samp{m68k-@var{vendor}-uclinuxoldabi}.
 
-
 @html
 <hr />
 @end html
 @heading @anchor{mep-x-elf}mep-*-elf
 Toshiba Media embedded Processor.
+This configuration is intended for embedded systems.
+
+@html
+<hr />
+@end html
+@heading @anchor{microblaze-x-elf}microblaze-*-elf
+Xilinx MicroBlaze processor.
 This configuration is intended for embedded systems.
 
 @html

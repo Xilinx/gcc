@@ -238,6 +238,9 @@ architecture, libio maintenance, and early math work.
 Zdenek Dvorak for a new loop unroller and various fixes.
 
 @item
+Michael Eager for his work with the Xilinx MicroBlaze.
+
+@item
 Richard Earnshaw for his ongoing work with the ARM@.
 
 @item

@@ -680,6 +680,13 @@ Objective-C and Objective-C++ Dialects}.
 -mmult -mno-opts -mrepeat -ms -msatur -msdram -msim -msimnovec -mtf @gol
 -mtiny=@var{n}}
 
+@emph{MicroBlaze Options}
+@gccoptlist{-msoft-float -mhard-float -msmall-divides -mcpu=@var{cpu} @gol
+-mmemcpy -mxl-soft-mul -mxl-soft-div -mxl-barrel-shift @gol
+-mxl-pattern-compare -mxl-stack-check -mxl-gp-opt -mno-clearbss @gol
+-mxl-multiply-high -mxl-float-convert -mxl-float-sqrt @gol
+-mxl-mode-@var{app-model}}
+
 @emph{MIPS Options}
 @gccoptlist{-EL  -EB  -march=@var{arch}  -mtune=@var{arch} @gol
 -mips1  -mips2  -mips3  -mips4  -mips32  -mips32r2 @gol
@@ -9541,6 +9548,7 @@ platform.
 * M68hc1x Options::
 * MCore Options::
 * MeP Options::
+* MicroBlaze Options::
 * MIPS Options::
 * MMIX Options::
 * MN10300 Options::
@@ -13446,6 +13454,99 @@ register.  The default for this option is 4, but note that there's a
 
 @end table
 
+@node MicroBlaze Options
+@subsection MicroBlaze Options
+@cindex MicroBlaze Options
+
+@table @gcctabopt
+
+@item -msoft-float
+@opindex msoft-float
+Use software emulation for floating point (default).
+
+@item -mhard-float
+@opindex mhard-float
+Use hardware floating point instructions.
+
+@item -mmemcpy
+@opindex mmemcpy
+Don't optimize block moves, use memcpy.
+
+@item -mno-clearbss
+@opindex mno-clearbss
+Clear the BSS to zero and place zero initialized in BSS.
+
+@item -mcpu=@var{cpu-type}
+@opindex mcpu=
+Use features of and schedule code for given CPU.
+Supported values are in the format vX.YY.Z, where X is a major version, YY 
+is the minor version, and Z is compatiblity code.  Example values are 
+@samp{v3.00.a}, @samp{v4.00.b}, @samp{v5.00.a}, @samp{v5.00.b}, 
+@samp{v5.00.b}, @samp{v6.00.a}. 
+@item -mxl-soft-mul
+@opindex mxl-soft-mul
+Use software multiply emulation (default).
+
+@item -mxl-soft-div
+@opindex mxl-soft-div
+Use software emulation for divides (default).
+
+@item -mxl-barrel-shift
+@opindex mxl-barrel-shift
+Use the hardware barrel shifter.
+
+@item -mxl-pattern-compare
+@opindex mxl-pattern-compare
+Use pattern compare instructions.
+
+@item -msmall-divides
+@opindex msmall-divides
+Use table lookup optimization for small signed integer divisions.
+
+@item -mxl-stack-check
+@opindex mxl-stack-check
+Check for stack overflow at runtime.
+
+@item -mxl-gp-opt
+@opindex mxl-gp-opt
+Use GP relative sdata/sbss sections.
+
+@item -mxl-multiply-high
+@opindex mxl-multiply-high
+Use multiply high instructions for high part of 32x32 multiply.
+
+@item -mxl-float-convert
+@opindex mxl-float-convert
+Use hardware floating point converstion instructions.
+
+@item -mxl-float-sqrt
+@opindex mxl-float-sqrt
+Use hardware floating point square root instruction.
+
+@item -mxl-mode-@var{app-model}
+Select application model @var{app-model}.  Valid models are 
+@table @samp
+@var{executable} -- normal executable (default), uses startup code crt0.o.
+
+@var{xmdstub} -- for use with Xilinx Microprocessor Debugger (XMD) based 
+software intrusive debug agent called xmdstub. This uses startup file 
+crt1.o and sets the start address of the program to be 0x800.
+
+@var{bootstrap} -- for applications that are loaded using a bootloader.
+This model uses startup file crt2.o which does not contain a processor 
+reset vector handler. This is suitable for transferring control on a 
+processor reset to the bootloader rather than the application.
+
+@var{novectors} -- for applications that do not require any of the 
+MicroBlaze vectors. This option may be useful for applications running
+within a monitoring application. This model uses crt3.o as a startup file.
+@end table
+
+Option -xl-mode-@var{app-model} is a deprecated alias for 
+-mxl-mode-@var{app-model}.
+
+@end table
+
 @node MIPS Options
 @subsection MIPS Options
 @cindex MIPS options
@@ -15554,8 +15655,8 @@ circumstances it can be beneficial to restrict the size of constants
 that are used in instructions.  Constants that are too big are instead
 placed into a constant pool and referenced via register indirection.
 
-The value @var{N} can be between 0 and 4.  A value of 0 (the default)
-or 4 means that constants of any size are allowed.
+The value @var{N} can be between 0 and 3.  A value of 0, the default,
+means that constants of any size are allowed.
 
 @item -mrelax
 @opindex mrelax
