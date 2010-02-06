@@ -1,3 +1,206 @@
+2010-02-05  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/42924
+	* config/pa/pa.c (TARGET_DELEGITIMIZE_ADDRESS): Redefine.
+	(pa_delegitimize_address): New function.
+
+2010-02-05  Ozkan Sezer  <sezeroz@gmail.com>
+
+	* config/i386/msformat-c.c (ms_printf_length_specs): Set the
+	scalar_identity_flag for the size_t/ptrdiff_t %Id and %Iu specs.
+
+2010-02-05  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42762
+	* lto-streamer-in.c (get_resolution): Deal with references
+	to undefined functions.
+
+2010-02-05  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-ccp.c (get_symbol_constant_value): Strip all
+	conversions.
+	(fold_const_aggregate_ref): Likewise.
+	(ccp_fold_stmt): Substitute loads.
+	(maybe_fold_reference): Verify types before substituting.
+	Unshare properly.
+	(fold_gimple_assign): Unshare properly.
+	(fold_stmt_1): Insert conversion if necessary before replacing
+	the RHS.
+
+2010-02-05  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/rs6000.c (rs6000_override_options): Invert check
+	for rs6000_gen_cell_microcode.
+
+2010-02-04  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/42952
+	* dse.c (const_or_frame_p): Remove MEM handling.
+
+2010-02-04  Nick Clifton  <nickc@redhat.com>
+
+	* config/mn10300/mn10300.c (TARGET_ASM_OUTPUT_MI_THUNK): Define.
+	(TARGET_ASM_CAN_OUTPUT_MI_THUNK): Define.
+	(function_arg): Use NULL_RTX and FIRST_ARGUMENT_REGNUM.
+	(mn10300_asm_output_mi_thunk): New function.
+	(mn10300_can_output_mu_thunk): New function.
+	* config/mn10300/mn10300.h (FIRST_ARGUMENT_REGNUM): Define.
+	(FUNCTION_ARG_REGNO_P): Fix comment.  Accept d0 and d1.
+	(FUNCTION_ARG): Delete incorrect comment.
+
+2010-02-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/40138
+	* fold-const.c (operand_equal_p): Handle erroneous types.
+
+2010-02-03  Kaushik Phatak  <kaushik.phatak@kpitcummins.com>
+
+	* config/h8300/h8300.md (can_delay): Fix attibute condition.
+
+2010-02-03  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/42941
+	* sched-deps.c (setup_insn_reg_pressure_info): Use xcalloc instead
+	of xmalloc.
+
+2010-02-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35652
+	* builtins.c (c_strlen): Use EXPR_LOCATION in diagnostics.
+
+2010-02-03  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42896
+	* cselib.h (struct cselib_val_struct): Add uid.  Rename value to
+	hash.
+	(cselib_reset_table): Renamed from...
+	(cselib_reset_table_with_next_value): ... this.
+	(cselib_get_next_uid): Renamed from...
+	(cselib_get_next_unknown_value): ... this.
+	* cselib.c (next_uid): Renamed from...
+	(next_unknown_value): ... this.
+	(cselib_clear_table): Adjust.
+	(cselib_reset_table): Adjust.  Renamed from...
+	(cselib_reset_table_with_next_value): ... this.
+	(cselib_get_next_uid): Adjust.  Renamed from...
+	(cselib_get_next_unknown_value): ... this.
+	(get_value_hash): Use hash.
+	(cselib_hash_rtx): Likewise.
+	(new_cselib_val): Adjust.  Set and dump uid.
+	(cselib_lookup_mem): Pass next_uid as hash.
+	(cselib_subst_to_values): Likewise.
+	(cselib_log_lookup): Dump uid.
+	(cselib_lookup): Pass next_uid as hash.  Adjust.
+	(cselib_process_insn): Adjust.
+	(cselib_init): Initialize next_uid.
+	(cselib_finish): Adjust.
+	(dump_cselib_table): Likewise.
+	* dse.c (canon_address): Dump value uid.
+	* print-rtl.c (print_rtx): Print value uid.
+	* var-tracking.c (VARIABLE_HASH_VAL): Dropped.
+	(dvuid): New type.
+	(dv_uid): New function, sort of renamed from...
+	(dv_htab_hash): ... this, reimplemented in terms of it and...
+	(dv_uid2hash): ... this.  New.
+	(variable_htab_eq): Drop excess assertions.
+	(tie_break_pointers): Removed.
+	(canon_value_cmp): Compare uids.
+	(variable_post_merge_New_vals): Print uids.
+	(vt_add_function_parameters): Adjust.
+	(vt_initialize): Reset table.  Adjust.
+
+2010-02-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42944
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Handle
+	calloc.
+	(call_may_clobber_ref_p_1): Likewise.  Properly handle
+	malloc and calloc clobbering errno.
+
+2010-02-03  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* doc/invoke.texi: Fix name of sched1 dump.
+
+	* opts.c (decode_options): Set flag_tree_switch_conversion
+	only conditionally on optimize >= 2.
+
+	* gcse.c: Assorted comment fixes in pass description.
+
+2010-02-03  Anthony Green  <green@moxielogic.com>
+
+	* config/moxie/moxie.c (moxie_asm_trampoline_template): Introduce
+	nop padding in order to maintain alignment of storage location of
+	target function address.
+	(moxie_trampoline_init): Store target function address at newly
+	aligned location.
+	* config/moxie/moxie.h (TRAMPOLINE_ALIGNMENT): Increase alignment
+	to 32.
+	(TRAMPOLINE_SIZE): Increase size by 2 bytes for alignment padding.
+
+2010-02-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42927
+	* tree-cfg.c (verify_gimple_assign_binary): Fix shift verification.
+
+2010-02-03  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.gcc: Reenable check for obsolete targets.
+	Obsolete alpha*-dec-osf4*, alpha*-dec-osf5.0*, mips-sgi-irix5*,
+	mips-sgi-irix6.[0-4]*.
+
+2010-02-02  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.c (rx_is_legitimate_constant): Treat a maximum
+	constant size of 4 as being the same as 0.
+	* doc/invoke.texi (RX Options): Document that -mmax-constant-size
+	can take values in the range 0..4.
+
+2010-02-02  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR java/41991
+	* unwind-dw2-fde-darwin.c: Re-export _Unwind_FindEnclosingFunction()
+	as _darwin10_Unwind_FindEnclosingFunction().
+	* libgcc-libsystem.ver: New.
+
+2010-02-01  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR target/41399
+	* sched-deps.c (sched_analyze_insn): Ignore fixed registers for
+	implicitly set registers.
+
+2010-02-01  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.c (FL_FOR_ARCH_7A): is also a superset of ARMv6K.
+	(arm_override_options): Allow automatic selection of the thread
+	pointer register if thumb2.
+	(legitimize_pic_address): Improve code sequences for Thumb2.
+	(arm_call_tls_get_addr): Likewise.
+	(legitimize_tls_address): Likewise.
+	* arm.md (pic_load_addr_arm): Delete.  Replace with ...
+	(pic_load_addr_32bit): ... this.  New named pattern.
+	* thumb2.md (pic_load_addr_thumb2): Delete.
+	(pic_load_dot_plus_four): Delete.
+	(tls_load_dot_plus_four): New named pattern.
+
+2010-02-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libgomp/29986
+	* doc/install.texi (Specific): Add sparc-sun-solaris2.10 entry.
+	Document fix for TLS bug.
+
+2010-01-31  Richard Guenther  <rguenther@suse.de>
+
+	* tree-sra.c (ptr_parm_has_direct_uses): Rewrite to be
+	conservatively correct.
+
+2010-01-31  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/42850
+	Revert:
+	2010-01-02  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/t-slibgcc-dwarf-ver (SHLIB_SOVERSION): Bump by two.
+
 2010-01-31  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
 	* doc/install.texi: Update recommended GMP/MPFR/MPC versions.
