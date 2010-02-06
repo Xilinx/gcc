@@ -1,3 +1,174 @@
+2010-02-05  Sebastian Pop  <sebastian.pop@amd.com>
+	    Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+	PR middle-end/42637
+	* graphite-dependences.c (build_lexicographical_constraint): Return
+	a union of dependence polyhedra.
+	(dependence_polyhedron_1): Adapt for build_lexicographical_constraint.
+
+	* testsuite/gcc.dg/graphite/block-0.c: Enable runtime check.  XFAILed.
+	* testsuite/gcc.dg/graphite/block-4.c: Same.
+	* testsuite/gcc.dg/graphite/block-7.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-12.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-mvt.c: Same.
+	* testsuite/gfortran.dg/graphite/interchange-1.f: XFAILed.
+	* testsuite/gfortran.dg/graphite/interchange-3.f90: XFAILed.
+	* testsuite/gfortran.dg/graphite/run-id-1.f: New testcase for PR42637.
+
+2010-02-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* testsuite/gcc.dg/graphite/interchange-12.c: Return 0 to avoid
+	the execution check to FAIL.  This testcase is miscompiled by Graphite
+	and the check should be re-enabled.
+	* testsuite/gcc.dg/graphite/interchange-mvt.c: Same.
+	* testsuite/gcc.dg/graphite/block-0.c: Same.
+	* testsuite/gcc.dg/graphite/block-4.c: Same.
+	* testsuite/gcc.dg/graphite/block-7.c: Same.
+
+2010-02-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* testsuite/gcc.dg/graphite/interchange-mvt.c: Un-XFAILed.
+	* testsuite/gcc.dg/graphite/scop-0.c: Fix spaces.
+	* testsuite/gfortran.dg/graphite/block-1.f90: Rewrite expected output.
+	* testsuite/gfortran.dg/graphite/block-2.f: Same.
+	* testsuite/gfortran.dg/graphite/block-3.f90: Same.
+	* testsuite/gfortran.dg/graphite/block-4.f90: Same.
+	* testsuite/gfortran.dg/graphite/interchange-1.f: Un-XFAILed.
+	* testsuite/gfortran.dg/graphite/interchange-3.f90: Un-XFAILed.
+
+2010-02-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (new_poly_ddr): Initialize PDDR_KIND and
+	PDDR_ORIGINAL_SCATTERING_P.
+	(pddr_is_empty): Rewritten.
+	(print_dependence_polyhedron_layout): New.
+	(print_pddr): New.
+	(debug_pddr): New.
+	(build_alias_set_powerset): Moved up.
+	(poly_drs_may_alias_p): Moved up.
+	(lexicographically_gt_p): Removed.
+	(build_lexicographically_gt_constraint): Renamed
+	build_lexicographical_constraint, reimplemented.
+	(dependence_polyhedron_1): Simplified parameters.
+	(dependence_polyhedron): Same.  Keep along empty PDDRs
+	to make efficient use of the cache.
+	(reduction_dr_p): Compute the PBBs don't pass them as parameters.
+	(graphite_legal_transform_dr): Rewritten.
+	(graphite_legal_transform_bb): Pass fewer arguments to
+	graphite_legal_transform_dr.
+	(graphite_carried_dependence_level_k): Simplified implementation.
+	(dot_original_deps_stmt_1): Call dependence_polyhedron.
+	(dot_transformed_deps_stmt_1): Same.
+	(dot_original_deps): Same.
+	(dot_transformed_deps): Same.
+	* graphite-dependences.h (struct poly_ddr): Added a new field
+	original_scattering_p.
+	(PDDR_ORIGINAL_SCATTERING_P): New.
+	(print_pddr): Declared.
+	(debug_pddr): Declared.
+	* graphite-ppl.c: Clarify comment.
+	* sese.h (print_gimple_bb): Removed unused declaration.
+	(debug_gbb): Same.
+
+2010-02-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* testsuite/g++.dg/graphite/graphite.exp: Rewritten.
+	* testsuite/gcc.dg/graphite/graphite.exp: Rewritten.
+	* testsuite/gfortran.dg/graphite/graphite.exp: Rewritten.
+	* gcc/testsuite/gcc.dg/graphite/block-0.c: Added runtime test.
+	* testsuite/gcc.dg/graphite/block-1.c: Same.
+	* testsuite/gcc.dg/graphite/block-3.c: Same.
+	* testsuite/gcc.dg/graphite/block-4.c: Same.
+	* testsuite/gcc.dg/graphite/block-5.c: Same.
+	* testsuite/gcc.dg/graphite/block-6.c: Same.
+	* testsuite/gcc.dg/graphite/block-7.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-0.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-1.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-10.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-11.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-12.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-2.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-3.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-4.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-5.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-6.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-7.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-8.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-9.c: Same.
+	* testsuite/gcc.dg/graphite/interchange-mvt.c: Same.
+	* testsuite/gcc.dg/graphite/run-id-2.c: Remove useless dg-do run.
+
+2010-01-22  Ramakrishna Upadrasta <Ramakrishna.Upadrasta@inria.fr>
+
+	* graphite-scop-detection.c (dot_all_scops): Make calls to dot run in
+	  background.
+
+2010-01-22  Ramakrishna Upadrasta <Ramakrishna.Upadrasta@inria.fr>
+
+	* common.opt: Add -fgraphite-cloog-opts.
+	* graphite-clast-to-gimple.c (set_cloog_options): Same.
+	* opts.c (decode_options): Same.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* testsuite/gcc.dg/graphite/id-17.c: New.
+	* testsuite/gcc.dg/graphite/pr41888.c: New.
+	* testsuite/gcc.dg/graphite/scop-22.c: New.
+	* testsuite/gfortran.dg/graphite/pr40982.f90: New.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c: Clarify comments.
+	(build_pddr): Add an extra parameter direction.
+	(graphite_legal_transform_dr): Use build_pddr.
+	(dot_original_deps_stmt_1): Update use of build_pddr.
+	(dot_transformed_deps_stmt_1): Same.
+	(dot_original_deps): Same.
+	(dot_transformed_deps): Same.
+
+	* testsuite/gcc.dg/graphite/interchange-12.c: New.
+	* testsuite/gcc.dg/graphite/block-7.c: New.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (pddr_original_scattering): Renamed build_pddr.
+	(pddr_transformed_scattering): Removed.
+	(graphite_legal_transform_dr): Use build_pddr.
+	(dot_original_deps_stmt_1): Same.
+	(dot_transformed_deps_stmt_1): Same.
+	(dot_original_deps): Same.
+	(dot_transformed_deps): Same.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (lexicographically_gt_p): Add comments.
+	(build_lexicographically_gt_constraint): Same.
+	(dependence_polyhedron_1): Same.
+	(dependence_polyhedron): Same.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (build_pairwise_scheduling_equality): Removed.
+	(build_pairwise_scheduling_inequality): Renamed build_pairwise_scheduling.
+	(lexicographically_gt_p): Change type of direction to int.
+	(build_lexicographically_gt_constraint): Same.
+	(dependence_polyhedron_1): Same.
+	(dependence_polyhedron): Same.
+	(pddr_original_scattering): Use integers for direction.
+	(pddr_transformed_scattering): Same.
+	(graphite_legal_transform_dr): Same.
+	(graphite_carried_dependence_level_k): Same.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (build_pairwise_constraint): Renamed
+	ppl_build_relation.  Moved...
+	(dr_equality_constraints): Use ppl_build_relation.
+	(build_pairwise_scheduling_equality): Same.
+	(build_pairwise_scheduling_inequality): Same.
+	* graphite-ppl.c (ppl_build_relation): ...here.
+	* graphite-ppl.h (ppl_build_relation): Declared.
+
 2010-01-14  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR middle-end/42681

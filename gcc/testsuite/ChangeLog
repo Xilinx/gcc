@@ -1,3 +1,16 @@
+2010-02-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* gfortran.dg/read_no_eor.f90: New test.
+
+2010-02-05  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/ext/label13.C: Move constructor body out of class.
+
+2010-02-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42870
+	* g++.dg/ext/dllexport3.C: New.
+
 2010-02-05  Ozkan Sezer  <sezeroz@gmail.com>
 
 	* gcc.dg/format/ms-format3.c: New test for specific MS types.
