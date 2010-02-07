@@ -1,3 +1,13 @@
+2010-02-07  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42956
+	* gcc.c-torture/compile/pr42956.c: New testcase.
+
+2010-02-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/42742
+	* gfortran.dg/fmt_cache_2.f: New test.
+
 2010-02-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	* gfortran.dg/read_no_eor.f90: New test.
@@ -22,7 +32,7 @@
 2010-02-05  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/42915
-	g++.dg/other/crash-9.C: New test.
+	* g++.dg/other/crash-9.C: New test.
 
 2010-02-05  Paul Thomas  <pault@gcc.gnu.org>
 
@@ -466,10 +476,6 @@
 
 	PR c++/42697
 	* g++.dg/template/crash94.C: Reverted.
-
-2010-01-17  Dodji Seketeli  <dodji@redhat.com>
-
-	PR c++/42697
 
 2010-01-17  Jie Zhang  <jie.zhang@analog.com>
 
