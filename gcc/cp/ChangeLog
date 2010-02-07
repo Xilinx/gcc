@@ -1,3 +1,86 @@
+2010-02-05  Richard Guenther  <rguenther@suse.de>
+
+	* Make-lang.in (cp/cp-lang.o): Depend on gt-cp-cp-lang.h.
+	* cp-lang.c: Include gt-cp-cp-lang.h.
+	* config-lang.in (gtfiles): Add cp/cp-lang.c.
+
+2010-02-05  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42915
+	* typeck.c (get_template_parms_of_dependent_type): Try getting
+	the template parameters fromt the type itself first.
+
+2010-02-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/4926
+	PR c++/38600
+	* mangle.c (write_unqualified_id): Split out from write_expression.
+	(write_unqualified_name): Call it.
+	(write_member_name): Likewise.
+	(write_expression): Support TEMPLATE_ID_EXPR.
+	Disambiguate operator names.
+
+	PR c++/12909
+	* mangle.c (write_type) [VECTOR_TYPE]: Change mangling with
+	-fabi-version=4.
+
+2010-02-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41090
+	* decl.c (cp_finish_decl): Add local statics to cfun->local_decls.
+	* optimize.c (clone_body): Remap their initializers when making base
+	variants.
+	(maybe_clone_body): Complain if multiple clones aren't safe.
+
+2010-01-29  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42758
+	PR c++/42634
+	PR c++/42336
+	PR c++/42797
+	PR c++/42880
+	* cp-tree.h (NON_DEFAULT_TEMPLATE_ARGS_COUNT,
+	SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT,
+	GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT): New accessor macros.
+	* pt.c (coerce_template_parms, type_unification_real,
+	expand_template_argument_pack, coerce_template_parameter_pack):
+	Set the non default template args count.
+	(current_template_args): Always set non defaulted
+	template args count when compiled with --enable-checking
+	(tsubst_template_args, type_unification_real): Propagate the non
+	defaulted template args count.
+	* error.c (get_non_default_template_args_count): Renamed
+	count_non_default_template_args into this. Don't calculate the
+	non default template argument count anymore. Use the new
+	accessor macros above to get it.
+	(dump_template_argument_list, dump_type, dump_decl,
+	dump_template_parms): Adjust.
+	* parser.c (cp_parser_template_argument_list): Always set defaulted
+	template args count when compiled with --enable-checking.
+
+2010-01-29  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* decl.c (redeclaration_error_message): Wrap the return messages into
+	G_() for easy translation.
+
+2010-01-28  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42880
+	* semantics.c (begin_class_definition): Don't use type_as_string.
+
+2010-01-28  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42713
+	PR c++/42820
+	* typeck.c (get_template_parms_of_dependent_type): Factorized
+	this out of incompatible_template_type_parms_p
+	(incompatible_dependent_types_p): Renamed
+	incompatible_template_type_parms_p into this. Make it detect
+	two incompatible dependent typedefs too.
+	(structural_comptypes): Use incompatible_dependent_types_p.
+	* pt.c (get_template_info):
+	Handle BOUND_TEMPLATE_TEMPLATE_PARAM.
+
 2010-01-20  Janis Johnson  <janis187@us.ibm.com>
 	    Jason Merrill  <jason@redhat.com>
 

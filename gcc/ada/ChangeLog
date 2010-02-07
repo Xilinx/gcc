@@ -1,3 +1,65 @@
+2010-01-28  Pascal Obry  <obry@adacore.com>
+
+	* s-win32.ads: Add some missing constants.
+
+2010-01-28  Vincent Celier  <celier@adacore.com>
+
+	* prj-attr-pm.adb (Add_Attribute): Do nothing if To_Package is
+	Unknown_Package.
+
+2010-01-28  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_rm.texi: Minor correction
+
+2010-01-27  Pascal Obry  <obry@adacore.com>
+
+	* g-awk.adb: ensure that an AWK session is reusable.
+
+2010-01-27  Vasiliy Fofanov  <fofanov@adacore.com>
+
+	* g-regist.adb (For_Every_Key): Fix previous change.
+	Minor reformatting.
+
+2010-01-27  Thomas Quinot  <quinot@adacore.com>
+
+	* lib-writ.ads: Current version of spec for new N (note) ALI lines
+
+2010-01-27  Yannick Moy  <moy@adacore.com>
+
+	* a-cdlili.adb (Insert): Correct exception message when cursor
+	designates wrong list.
+
+2010-01-27  Vincent Celier  <celier@adacore.com>
+
+	* gnatcmd.adb: When there is only one main specified, the package
+	support Switches (<main>) and attribute Switches is specified for the
+	main, use these switches, instead of Default_Switches ("Ada").
+
+2010-01-27  Robert Dewar  <dewar@adacore.com>
+
+	* sem_prag.adb, par-prag.adb, snames.ads-tmpl: pragma Dimension initial
+	implementation.
+	* exp_disp.adb: Minor reformatting
+
+2010-01-27  Tristan Gingold  <gingold@adacore.com>
+
+	* seh_init.c: Use __ImageBase instead of _ImageBase.
+
+2010-01-27  Javier Miranda  <miranda@adacore.com>
+
+	* exp_disp.ads, exp_disp.adb (Expand_Interface_Thunk): Modify the
+	profile of interface thunks. The type of the controlling formal is now
+	the covered interface type (instead of the target tagged type).
+
+2010-01-27  Sergey Rybin  <rybin@adacore.com>
+
+	* gnat_rm.texi, gnat_ugn.texi: Update gnatcheck doc.
+
+2010-01-27  Robert Dewar  <dewar@adacore.com>
+
+	* sinput.ads, sinput.adb (Sloc_Range): Applies to all nodes, formal
+	changed from Expr to N.
+
 2010-01-26  Thomas Quinot  <quinot@adacore.com>
 
 	* gnat_ugn.texi: Adjust documentation of -gnatz switches.

@@ -2164,8 +2164,8 @@ gfc_apply_interface_mapping (gfc_interface_mapping * mapping,
    an actual argument derived type array is copied and then returned
    after the function call.  */
 void
-gfc_conv_subref_array_arg (gfc_se * parmse, gfc_expr * expr,
-			   int g77, sym_intent intent)
+gfc_conv_subref_array_arg (gfc_se * parmse, gfc_expr * expr, int g77,
+			   sym_intent intent, bool formal_ptr)
 {
   gfc_se lse;
   gfc_se rse;
@@ -2178,6 +2178,7 @@ gfc_conv_subref_array_arg (gfc_se * parmse, gfc_expr * expr,
   tree tmp_index;
   tree tmp;
   tree base_type;
+  tree size;
   stmtblock_t body;
   int n;
 
@@ -2370,6 +2371,42 @@ gfc_conv_subref_array_arg (gfc_se * parmse, gfc_expr * expr,
   /* Pass the string length to the argument expression.  */
   if (expr->ts.type == BT_CHARACTER)
     parmse->string_length = expr->ts.u.cl->backend_decl;
+
+  /* Determine the offset for pointer formal arguments and set the
+     lbounds to one.  */
+  if (formal_ptr)
+    {
+      size = gfc_index_one_node;
+      offset = gfc_index_zero_node;  
+      for (n = 0; n < info->dimen; n++)
+	{
+	  tmp = gfc_conv_descriptor_ubound_get (parmse->expr,
+						gfc_rank_cst[n]);
+	  tmp = fold_build2 (PLUS_EXPR, gfc_array_index_type,
+			     tmp, gfc_index_one_node);
+	  gfc_conv_descriptor_ubound_set (&parmse->pre,
+					  parmse->expr,
+					  gfc_rank_cst[n],
+					  tmp);
+	  gfc_conv_descriptor_lbound_set (&parmse->pre,
+					  parmse->expr,
+					  gfc_rank_cst[n],
+					  gfc_index_one_node);
+	  size = gfc_evaluate_now (size, &parmse->pre);
+	  offset = fold_build2 (MINUS_EXPR, gfc_array_index_type,
+				offset, size);
+	  offset = gfc_evaluate_now (offset, &parmse->pre);
+	  tmp = fold_build2 (MINUS_EXPR, gfc_array_index_type,
+			     rse.loop->to[n], rse.loop->from[n]);
+	  tmp = fold_build2 (PLUS_EXPR, gfc_array_index_type,
+			     tmp, gfc_index_one_node);
+	  size = fold_build2 (MULT_EXPR, gfc_array_index_type,
+			      size, tmp);
+	}
+
+      gfc_conv_descriptor_offset_set (&parmse->pre, parmse->expr,
+				      offset);
+    }
 
   /* We want either the address for the data or the address of the descriptor,
      depending on the mode of passing array arguments.  */
@@ -2876,7 +2913,8 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		   is converted to a temporary, which is passed and then
 		   written back after the procedure call.  */
 		gfc_conv_subref_array_arg (&parmse, e, f,
-			fsym ? fsym->attr.intent : INTENT_INOUT);
+				fsym ? fsym->attr.intent : INTENT_INOUT,
+				fsym && fsym->attr.pointer);
 	      else
 	        gfc_conv_array_parameter (&parmse, e, argss, f, fsym,
 					  sym->name, NULL);
@@ -3916,6 +3954,149 @@ gfc_trans_subarray_assign (tree dest, gfc_component * cm, gfc_expr * expr)
 }
 
 
+static tree
+gfc_trans_alloc_subarray_assign (tree dest, gfc_component * cm,
+				 gfc_expr * expr)
+{
+  gfc_se se;
+  gfc_ss *rss;
+  stmtblock_t block;
+  tree offset;
+  int n;
+  tree tmp;
+  tree tmp2;
+  gfc_array_spec *as;
+  gfc_expr *arg = NULL;
+
+  gfc_start_block (&block);
+  gfc_init_se (&se, NULL);
+
+  /* Get the descriptor for the expressions.  */ 
+  rss = gfc_walk_expr (expr);
+  se.want_pointer = 0;
+  gfc_conv_expr_descriptor (&se, expr, rss);
+  gfc_add_block_to_block (&block, &se.pre);
+  gfc_add_modify (&block, dest, se.expr);
+
+  /* Deal with arrays of derived types with allocatable components.  */
+  if (cm->ts.type == BT_DERIVED
+	&& cm->ts.u.derived->attr.alloc_comp)
+    tmp = gfc_copy_alloc_comp (cm->ts.u.derived,
+			       se.expr, dest,
+			       cm->as->rank);
+  else
+    tmp = gfc_duplicate_allocatable (dest, se.expr,
+				     TREE_TYPE(cm->backend_decl),
+				     cm->as->rank);
+
+  gfc_add_expr_to_block (&block, tmp);
+  gfc_add_block_to_block (&block, &se.post);
+
+  if (expr->expr_type != EXPR_VARIABLE)
+    gfc_conv_descriptor_data_set (&block, se.expr,
+				  null_pointer_node);
+
+  /* We need to know if the argument of a conversion function is a
+     variable, so that the correct lower bound can be used.  */
+  if (expr->expr_type == EXPR_FUNCTION
+	&& expr->value.function.isym
+	&& expr->value.function.isym->conversion
+	&& expr->value.function.actual->expr
+	&& expr->value.function.actual->expr->expr_type == EXPR_VARIABLE)
+    arg = expr->value.function.actual->expr;
+
+  /* Obtain the array spec of full array references.  */
+  if (arg)
+    as = gfc_get_full_arrayspec_from_expr (arg);
+  else
+    as = gfc_get_full_arrayspec_from_expr (expr);
+
+  /* Shift the lbound and ubound of temporaries to being unity,
+     rather than zero, based. Always calculate the offset.  */
+  offset = gfc_conv_descriptor_offset_get (dest);
+  gfc_add_modify (&block, offset, gfc_index_zero_node);
+  tmp2 =gfc_create_var (gfc_array_index_type, NULL);
+
+  for (n = 0; n < expr->rank; n++)
+    {
+      tree span;
+      tree lbound;
+
+      /* Obtain the correct lbound - ISO/IEC TR 15581:2001 page 9.
+	 TODO It looks as if gfc_conv_expr_descriptor should return
+	 the correct bounds and that the following should not be
+	 necessary.  This would simplify gfc_conv_intrinsic_bound
+	 as well.  */
+      if (as && as->lower[n])
+	{
+	  gfc_se lbse;
+	  gfc_init_se (&lbse, NULL);
+	  gfc_conv_expr (&lbse, as->lower[n]);
+	  gfc_add_block_to_block (&block, &lbse.pre);
+	  lbound = gfc_evaluate_now (lbse.expr, &block);
+	}
+      else if (as && arg)
+	{
+	  tmp = gfc_get_symbol_decl (arg->symtree->n.sym);
+	  lbound = gfc_conv_descriptor_lbound_get (tmp,
+					gfc_rank_cst[n]);
+	}
+      else if (as)
+	lbound = gfc_conv_descriptor_lbound_get (dest,
+						gfc_rank_cst[n]);
+      else
+	lbound = gfc_index_one_node;
+
+      lbound = fold_convert (gfc_array_index_type, lbound);
+
+      /* Shift the bounds and set the offset accordingly.  */
+      tmp = gfc_conv_descriptor_ubound_get (dest, gfc_rank_cst[n]);
+      span = fold_build2 (MINUS_EXPR, gfc_array_index_type, tmp,
+		gfc_conv_descriptor_lbound_get (dest, gfc_rank_cst[n]));
+      tmp = fold_build2 (PLUS_EXPR, gfc_array_index_type, span, lbound);
+      gfc_conv_descriptor_ubound_set (&block, dest,
+				      gfc_rank_cst[n], tmp);
+      gfc_conv_descriptor_lbound_set (&block, dest,
+				      gfc_rank_cst[n], lbound);
+
+      tmp = fold_build2 (MULT_EXPR, gfc_array_index_type,
+			 gfc_conv_descriptor_lbound_get (dest,
+							 gfc_rank_cst[n]),
+			 gfc_conv_descriptor_stride_get (dest,
+							 gfc_rank_cst[n]));
+      gfc_add_modify (&block, tmp2, tmp);
+      tmp = fold_build2 (MINUS_EXPR, gfc_array_index_type, offset, tmp2);
+      gfc_conv_descriptor_offset_set (&block, dest, tmp);
+    }
+
+  if (arg)
+    {
+      /* If a conversion expression has a null data pointer
+	 argument, nullify the allocatable component.  */
+      tree non_null_expr;
+      tree null_expr;
+
+      if (arg->symtree->n.sym->attr.allocatable
+	    || arg->symtree->n.sym->attr.pointer)
+	{
+	  non_null_expr = gfc_finish_block (&block);
+	  gfc_start_block (&block);
+	  gfc_conv_descriptor_data_set (&block, dest,
+					null_pointer_node);
+	  null_expr = gfc_finish_block (&block);
+	  tmp = gfc_conv_descriptor_data_get (arg->symtree->n.sym->backend_decl);
+	  tmp = build2 (EQ_EXPR, boolean_type_node, tmp,
+			fold_convert (TREE_TYPE (tmp),
+				      null_pointer_node));
+	  return build3_v (COND_EXPR, tmp,
+			   null_expr, non_null_expr);
+	}
+    }
+
+  return gfc_finish_block (&block);
+}
+
+
 /* Assign a single component of a derived type constructor.  */
 
 static tree
@@ -3926,8 +4107,6 @@ gfc_trans_subcomponent_assign (tree dest, gfc_component * cm, gfc_expr * expr)
   gfc_ss *rss;
   stmtblock_t block;
   tree tmp;
-  tree offset;
-  int n;
 
   gfc_start_block (&block);
 
@@ -3974,89 +4153,8 @@ gfc_trans_subcomponent_assign (tree dest, gfc_component * cm, gfc_expr * expr)
  	gfc_conv_descriptor_data_set (&block, dest, null_pointer_node);
       else if (cm->attr.allocatable)
 	{
-	  tree tmp2;
-
-          gfc_init_se (&se, NULL);
- 
-	  rss = gfc_walk_expr (expr);
-	  se.want_pointer = 0;
-	  gfc_conv_expr_descriptor (&se, expr, rss);
-	  gfc_add_block_to_block (&block, &se.pre);
-	  gfc_add_modify (&block, dest, se.expr);
-
-	  if (cm->ts.type == BT_DERIVED && cm->ts.u.derived->attr.alloc_comp)
-	    tmp = gfc_copy_alloc_comp (cm->ts.u.derived, se.expr, dest,
-				       cm->as->rank);
-	  else
-	    tmp = gfc_duplicate_allocatable (dest, se.expr,
-					     TREE_TYPE(cm->backend_decl),
-					     cm->as->rank);
-
+	  tmp = gfc_trans_alloc_subarray_assign (dest, cm, expr);
 	  gfc_add_expr_to_block (&block, tmp);
-	  gfc_add_block_to_block (&block, &se.post);
-
-	  if (expr->expr_type != EXPR_VARIABLE)
-	    gfc_conv_descriptor_data_set (&block, se.expr, null_pointer_node);
-
-	  /* Shift the lbound and ubound of temporaries to being unity, rather
-	     than zero, based.  Calculate the offset for all cases.  */
-	  offset = gfc_conv_descriptor_offset_get (dest);
-	  gfc_add_modify (&block, offset, gfc_index_zero_node);
-	  tmp2 =gfc_create_var (gfc_array_index_type, NULL);
-	  for (n = 0; n < expr->rank; n++)
-	    {
-	      if (expr->expr_type != EXPR_VARIABLE
-		    && expr->expr_type != EXPR_CONSTANT)
-		{
-		  tree span;
-		  tmp = gfc_conv_descriptor_ubound_get (dest, gfc_rank_cst[n]);
-		  span = fold_build2 (MINUS_EXPR, gfc_array_index_type, tmp,
-			    gfc_conv_descriptor_lbound_get (dest, gfc_rank_cst[n]));
-		  tmp = fold_build2 (PLUS_EXPR, gfc_array_index_type,
-				     span, gfc_index_one_node);
-		  gfc_conv_descriptor_ubound_set (&block, dest, gfc_rank_cst[n],
-						  tmp);
-		  gfc_conv_descriptor_lbound_set (&block, dest, gfc_rank_cst[n],
-						  gfc_index_one_node);
-		}
-	      tmp = fold_build2 (MULT_EXPR, gfc_array_index_type,
-				 gfc_conv_descriptor_lbound_get (dest,
-							     gfc_rank_cst[n]),
-				 gfc_conv_descriptor_stride_get (dest,
-							     gfc_rank_cst[n]));
-	      gfc_add_modify (&block, tmp2, tmp);
-	      tmp = fold_build2 (MINUS_EXPR, gfc_array_index_type, offset, tmp2);
-	      gfc_conv_descriptor_offset_set (&block, dest, tmp);
-	    }
-
-	  if (expr->expr_type == EXPR_FUNCTION
-		&& expr->value.function.isym
-		&& expr->value.function.isym->conversion
-		&& expr->value.function.actual->expr
-		&& expr->value.function.actual->expr->expr_type
-						== EXPR_VARIABLE)
-	    {
-	      /* If a conversion expression has a null data pointer
-		 argument, nullify the allocatable component.  */
-	      gfc_symbol *s;
-	      tree non_null_expr;
-	      tree null_expr;
-	      s = expr->value.function.actual->expr->symtree->n.sym;
-	      if (s->attr.allocatable || s->attr.pointer)
-		{
-		  non_null_expr = gfc_finish_block (&block);
-		  gfc_start_block (&block);
-		  gfc_conv_descriptor_data_set (&block, dest,
-						null_pointer_node);
-		  null_expr = gfc_finish_block (&block);
-		  tmp = gfc_conv_descriptor_data_get (s->backend_decl);
-		  tmp = build2 (EQ_EXPR, boolean_type_node, tmp,
-			        fold_convert (TREE_TYPE (tmp),
-					      null_pointer_node));
-		  return build3_v (COND_EXPR, tmp, null_expr,
-				   non_null_expr);
-		}
-	    }
 	}
       else
 	{
@@ -5415,6 +5513,25 @@ gfc_trans_class_assign (gfc_code *code)
   gfc_expr *rhs;
 
   gfc_start_block (&block);
+  
+  if (code->op == EXEC_INIT_ASSIGN)
+    {
+      /* Special case for initializing a CLASS variable on allocation.
+	 A MEMCPY is needed to copy the full data of the dynamic type,
+	 which may be different from the declared type.  */
+      gfc_se dst,src;
+      tree memsz;
+      gfc_init_se (&dst, NULL);
+      gfc_init_se (&src, NULL);
+      gfc_add_component_ref (code->expr1, "$data");
+      gfc_conv_expr (&dst, code->expr1);
+      gfc_conv_expr (&src, code->expr2);
+      gfc_add_block_to_block (&block, &src.pre);
+      memsz = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->expr2->ts));
+      tmp = gfc_build_memcpy_call (dst.expr, src.expr, memsz);
+      gfc_add_expr_to_block (&block, tmp);
+      return gfc_finish_block (&block);
+    }
 
   if (code->expr2->ts.type != BT_CLASS)
     {

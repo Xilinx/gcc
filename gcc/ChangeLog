@@ -1,3 +1,380 @@
+2010-02-06  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/42957
+	* arm.c (arm_override_options): Just return if the user has specified
+	an invalid fpu name.
+
+2010-02-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42870
+	* config/i386/cygming.h (ASM_OUTPUT_DEF_FROM_DECLS): Call
+	i386_pe_maybe_record_exported_symbol.
+
+2010-02-05  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/42924
+	* config/pa/pa.c (TARGET_DELEGITIMIZE_ADDRESS): Redefine.
+	(pa_delegitimize_address): New function.
+
+2010-02-05  Ozkan Sezer  <sezeroz@gmail.com>
+
+	* config/i386/msformat-c.c (ms_printf_length_specs): Set the
+	scalar_identity_flag for the size_t/ptrdiff_t %Id and %Iu specs.
+
+2010-02-05  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42762
+	* lto-streamer-in.c (get_resolution): Deal with references
+	to undefined functions.
+
+2010-02-05  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-ccp.c (get_symbol_constant_value): Strip all
+	conversions.
+	(fold_const_aggregate_ref): Likewise.
+	(ccp_fold_stmt): Substitute loads.
+	(maybe_fold_reference): Verify types before substituting.
+	Unshare properly.
+	(fold_gimple_assign): Unshare properly.
+	(fold_stmt_1): Insert conversion if necessary before replacing
+	the RHS.
+
+2010-02-05  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/rs6000.c (rs6000_override_options): Invert check
+	for rs6000_gen_cell_microcode.
+
+2010-02-04  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/42952
+	* dse.c (const_or_frame_p): Remove MEM handling.
+
+2010-02-04  Nick Clifton  <nickc@redhat.com>
+
+	* config/mn10300/mn10300.c (TARGET_ASM_OUTPUT_MI_THUNK): Define.
+	(TARGET_ASM_CAN_OUTPUT_MI_THUNK): Define.
+	(function_arg): Use NULL_RTX and FIRST_ARGUMENT_REGNUM.
+	(mn10300_asm_output_mi_thunk): New function.
+	(mn10300_can_output_mu_thunk): New function.
+	* config/mn10300/mn10300.h (FIRST_ARGUMENT_REGNUM): Define.
+	(FUNCTION_ARG_REGNO_P): Fix comment.  Accept d0 and d1.
+	(FUNCTION_ARG): Delete incorrect comment.
+
+2010-02-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/40138
+	* fold-const.c (operand_equal_p): Handle erroneous types.
+
+2010-02-03  Kaushik Phatak  <kaushik.phatak@kpitcummins.com>
+
+	* config/h8300/h8300.md (can_delay): Fix attibute condition.
+
+2010-02-03  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/42941
+	* sched-deps.c (setup_insn_reg_pressure_info): Use xcalloc instead
+	of xmalloc.
+
+2010-02-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35652
+	* builtins.c (c_strlen): Use EXPR_LOCATION in diagnostics.
+
+2010-02-03  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42896
+	* cselib.h (struct cselib_val_struct): Add uid.  Rename value to
+	hash.
+	(cselib_reset_table): Renamed from...
+	(cselib_reset_table_with_next_value): ... this.
+	(cselib_get_next_uid): Renamed from...
+	(cselib_get_next_unknown_value): ... this.
+	* cselib.c (next_uid): Renamed from...
+	(next_unknown_value): ... this.
+	(cselib_clear_table): Adjust.
+	(cselib_reset_table): Adjust.  Renamed from...
+	(cselib_reset_table_with_next_value): ... this.
+	(cselib_get_next_uid): Adjust.  Renamed from...
+	(cselib_get_next_unknown_value): ... this.
+	(get_value_hash): Use hash.
+	(cselib_hash_rtx): Likewise.
+	(new_cselib_val): Adjust.  Set and dump uid.
+	(cselib_lookup_mem): Pass next_uid as hash.
+	(cselib_subst_to_values): Likewise.
+	(cselib_log_lookup): Dump uid.
+	(cselib_lookup): Pass next_uid as hash.  Adjust.
+	(cselib_process_insn): Adjust.
+	(cselib_init): Initialize next_uid.
+	(cselib_finish): Adjust.
+	(dump_cselib_table): Likewise.
+	* dse.c (canon_address): Dump value uid.
+	* print-rtl.c (print_rtx): Print value uid.
+	* var-tracking.c (VARIABLE_HASH_VAL): Dropped.
+	(dvuid): New type.
+	(dv_uid): New function, sort of renamed from...
+	(dv_htab_hash): ... this, reimplemented in terms of it and...
+	(dv_uid2hash): ... this.  New.
+	(variable_htab_eq): Drop excess assertions.
+	(tie_break_pointers): Removed.
+	(canon_value_cmp): Compare uids.
+	(variable_post_merge_New_vals): Print uids.
+	(vt_add_function_parameters): Adjust.
+	(vt_initialize): Reset table.  Adjust.
+
+2010-02-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42944
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Handle
+	calloc.
+	(call_may_clobber_ref_p_1): Likewise.  Properly handle
+	malloc and calloc clobbering errno.
+
+2010-02-03  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* doc/invoke.texi: Fix name of sched1 dump.
+
+	* opts.c (decode_options): Set flag_tree_switch_conversion
+	only conditionally on optimize >= 2.
+
+	* gcse.c: Assorted comment fixes in pass description.
+
+2010-02-03  Anthony Green  <green@moxielogic.com>
+
+	* config/moxie/moxie.c (moxie_asm_trampoline_template): Introduce
+	nop padding in order to maintain alignment of storage location of
+	target function address.
+	(moxie_trampoline_init): Store target function address at newly
+	aligned location.
+	* config/moxie/moxie.h (TRAMPOLINE_ALIGNMENT): Increase alignment
+	to 32.
+	(TRAMPOLINE_SIZE): Increase size by 2 bytes for alignment padding.
+
+2010-02-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42927
+	* tree-cfg.c (verify_gimple_assign_binary): Fix shift verification.
+
+2010-02-03  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.gcc: Reenable check for obsolete targets.
+	Obsolete alpha*-dec-osf4*, alpha*-dec-osf5.0*, mips-sgi-irix5*,
+	mips-sgi-irix6.[0-4]*.
+
+2010-02-02  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.c (rx_is_legitimate_constant): Treat a maximum
+	constant size of 4 as being the same as 0.
+	* doc/invoke.texi (RX Options): Document that -mmax-constant-size
+	can take values in the range 0..4.
+
+2010-02-02  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR java/41991
+	* unwind-dw2-fde-darwin.c: Re-export _Unwind_FindEnclosingFunction()
+	as _darwin10_Unwind_FindEnclosingFunction().
+	* libgcc-libsystem.ver: New.
+
+2010-02-01  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR target/41399
+	* sched-deps.c (sched_analyze_insn): Ignore fixed registers for
+	implicitly set registers.
+
+2010-02-01  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.c (FL_FOR_ARCH_7A): is also a superset of ARMv6K.
+	(arm_override_options): Allow automatic selection of the thread
+	pointer register if thumb2.
+	(legitimize_pic_address): Improve code sequences for Thumb2.
+	(arm_call_tls_get_addr): Likewise.
+	(legitimize_tls_address): Likewise.
+	* arm.md (pic_load_addr_arm): Delete.  Replace with ...
+	(pic_load_addr_32bit): ... this.  New named pattern.
+	* thumb2.md (pic_load_addr_thumb2): Delete.
+	(pic_load_dot_plus_four): Delete.
+	(tls_load_dot_plus_four): New named pattern.
+
+2010-02-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libgomp/29986
+	* doc/install.texi (Specific): Add sparc-sun-solaris2.10 entry.
+	Document fix for TLS bug.
+
+2010-01-31  Richard Guenther  <rguenther@suse.de>
+
+	* tree-sra.c (ptr_parm_has_direct_uses): Rewrite to be
+	conservatively correct.
+
+2010-01-31  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/42850
+	Revert:
+	2010-01-02  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/t-slibgcc-dwarf-ver (SHLIB_SOVERSION): Bump by two.
+
+2010-01-31  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* doc/install.texi: Update recommended GMP/MPFR/MPC versions.
+
+2010-01-31  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config.gcc: Adjust order of makefile fragments for mingw targets.
+
+2010-01-31  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42898
+	* gimplify.c (gimplify_init_constructor): For volatile LHS
+	initialize a temporary.
+
+2010-01-31  Matthias Klose  <doko@ubuntu.com>
+
+	* configure.ac: Fix __stack_chk_fail check for cross builds configured
+	--with-headers
+	* configure: Regenerate.
+
+2010-01-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-alias.c (same_type_for_tbaa): Return -1 if the types have
+	the same alias set and their sizes different constantness.
+	(aliasing_component_refs_p): Revert 2009-10-24 change.
+
+2010-01-29  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/sparc/sparc.c (sparc_elf_asm_named_section): Declare decl
+	unused.
+
+2010-01-29  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-ccp.c (ccp_fold_stmt): Unshare values we substitute.
+	Assert we successfully updated the call.
+
+2010-01-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/42889
+	* df.h (df_set_bb_dirty_nonlr): New prototype.
+	* df-core.c (df_set_bb_dirty_nonlr): New function.
+	* df-scan.c (df_insn_rescan): Call it instead of
+	df_set_bb_dirty for DEBUG_INSNs.
+
+2010-01-29  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37448
+	* ipa-inline.c (cgraph_decide_inlining_incrementally): Avoid
+	quadratic behavior in most cases.
+
+2010-01-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/42891
+	* config/i386/i386.c (ix86_expand_int_movcc): Convert tmp to SImode
+	in the call to gen_x86_movsicc_0_m1.
+
+2010-01-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42871
+	* tree-ssa-pre.c (phi_translate_set): Make sure to retain
+	leaders.
+
+2010-01-28  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-ccp.c (ccp_fold_stmt): Fold calls and propagate
+	into call arguments.
+
+2010-01-28  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42883
+	* tree-cfgcleanup.c (remove_forwarder_block): Do not remove
+	the forwarder if the destination is an EH landing pad.
+
+2010-01-28  Razya Ladelsky  <razya@il.ibm.com>
+
+	* tree-parloops.c (transform_to_exit_first_loop): Update the basic
+	block list passed to gimple_duplicate_sese_tail.
+	(parallelize_loops): Avoid parallelization when the function
+	has_nonlocal_label.
+	Avoid parallelization when the preheader is IRREDUCIBLE.
+	Try to optimize when estimated_loop_iterations_int is unresolved.
+	Add the loop's location to the dump file.
+	* tree-cfg.c (add_phi_args_after_redirect): Remove.
+	(gimple_duplicate_sese_tail): Remove the check for the latch.
+	Redirect nexits to the exit block.
+	Remove handling of the incoming edges to the latch.
+	Redirect the backedge from the copied latch to the exit bb.
+
+2010-01-28  Michael Matz  <matz@suse.de>
+
+	PR target/42881
+	* config/i386/i386.c (ix86_expand_vector_init_duplicate):
+	Wrap force_reg into a sequence, emit it before user.
+
+2010-01-28  Stephen Thomas  <stephen.thomas@arm.com>
+
+	* config/arm/arm.md (bswapsi2): Add support for bswapsi2.
+	(arm_rev): New.
+	(arm_legacy_rev): Likewise.
+	(thumb_legacy_rev): Likewise.
+
+2010-01-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (mem_loc_descriptor): Remove special casing of
+	CONSTANT_POOL_ADDRESS_P SYMBOL_REFs.  If for MEM recursive call
+	on MEM's address failed, try avoid_constant_pool_reference and
+	recurse if it returned something different.
+	(loc_descriptor): If for MEM mem_loc_descriptor failed on the
+	address, try avoid_constant_pool_reference and recurse if it
+	returned something different.
+	(dw_loc_list_1): If for MEM mem_loc_descriptor failed on the
+	address and avoid_constant_pool_reference returned something
+	different, don't set have_address.
+
+2010-01-27  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42861
+	* var-tracking.c (val_store): Add modified argument, obey it.
+	Adjust callers.
+	(count_uses): Move down logging of main.
+	(compute_bb_dataflow): Use val_store for MO_VAL_USEs that
+	don't need resolution.
+	(emit_notes_in_bb): Likewise.
+
+2010-01-27  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42878
+	* tree-inline.c (remap_decl): Delay remapping of SSA name
+	default definitions until we need them.
+
+2010-01-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/rs6000/rs6000.c (TARGET_DELEGITIMIZE_ADDRESS): Redefine.
+	(rs6000_delegitimize_address): New function.
+
+	* config/s390/s390.c (s390_delegitimize_address): Call
+	delegitimize_mem_from_attrs.
+
+	PR middle-end/42874
+	* tree-inline.c (cannot_copy_type_1): Removed.
+	(copy_forbidden): Don't forbid copying of functions containing
+	records/unions with variable length fields.
+
+2010-01-27  Christian Bruel  <christian.bruel@st.com>
+
+	Revert:
+	PR target/42841
+	* config/sh/sh.c (find_barrier): Increase length for non delayed
+	conditional branches.
+
+2010-01-27  Matthias Klose  <doko@ubuntu.com>
+
+	* configure.ac (gnu-unique-object): Fix ldd version check.
+	* configure: Regenerate.
+
+2010-01-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/sparc/sparc.c (sparc_elf_asm_named_section): Test for
+	HAVE_GNU_AS value.
+	* config/sparc/sysv4.h [HAVE_GNU_AS] (TARGET_ASM_NAMED_SECTION):
+	Test for HAVE_GNU_AS value.
+
 2010-01-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* config.gcc (mips-sgi-irix[56]*): Set use_gcc_stdint.
@@ -62,9 +439,9 @@
 
 2010-01-24  David S. Miller  <davem@davemloft.net>
 
-	* gcc/config/sparc/sysv4.h (TARGET_ASM_NAMED_SECTION): Only
+	* config/sparc/sysv4.h (TARGET_ASM_NAMED_SECTION): Only
 	define if not using GAS.
-	* gcc/config/sparc/sparc.c (sparc_elf_asm_named_section):
+	* config/sparc/sparc.c (sparc_elf_asm_named_section):
 	Likewise.  Delete SECTION_MERGE code, which is only applicable
 	when using GAS.
 
@@ -132,8 +509,8 @@
 
 2010-01-21  Andrew Haley  <aph@redhat.com>
 
-        * gcc.c (process_command): Move lang_specific_driver before
-        setting cc_libexec_prefix.
+	* gcc.c (process_command): Move lang_specific_driver before
+	setting cc_libexec_prefix.
 
 2010-01-21  Richard Guenther  <rguenther@suse.de>
 
@@ -276,7 +653,7 @@
 	(reassociate_to_the_same_stmt): Handle vector registers.
 	* tree-vect-data-refs.c (vect_equal_offsets): Handle unary operations
 	(e.g. conversions).
-	* tree-vect-loop-manip.c (vect_gen_niters_for_prolog_loop): Add 
+	* tree-vect-loop-manip.c (vect_gen_niters_for_prolog_loop): Add
 	wide_prolog_niters argument, emit widening instructions.
 	(vect_do_peeling_for_alignment): Adjust caller, use widened
 	variant of the iteration cound.
@@ -456,7 +833,7 @@
 
 	(TARGET_SET_DEFAULT_TYPE_ATTRIBUTES): Add missing article.
 
-	(TARGET_OPTION_VALID_ATTRIBUTE_P): Fix name, it was 
+	(TARGET_OPTION_VALID_ATTRIBUTE_P): Fix name, it was
 	misspelled as TARGET_VALID_OPTION_ATTRIBUTE_P.
 
 	(TARGET_GET_PCH_VALIDITY): Put 'void *' in braces.

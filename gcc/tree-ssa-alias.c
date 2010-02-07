@@ -537,11 +537,20 @@ same_type_for_tbaa (tree type1, tree type2)
   if (TYPE_CANONICAL (type1) == TYPE_CANONICAL (type2))
     return 1;
 
-  /* ???  Array types are not properly unified in all cases as we have
+  /* ??? Array types are not properly unified in all cases as we have
      spurious changes in the index types for example.  Removing this
      causes all sorts of problems with the Fortran frontend.  */
   if (TREE_CODE (type1) == ARRAY_TYPE
       && TREE_CODE (type2) == ARRAY_TYPE)
+    return -1;
+
+  /* In Ada, an lvalue of unconstrained type can be used to access an object
+     of one of its constrained subtypes, for example when a function with an
+     unconstrained parameter passed by reference is called on a constrained
+     object and inlined.  In this case, the types have the same alias set.  */
+  if (TYPE_SIZE (type1) && TYPE_SIZE (type2)
+      && TREE_CONSTANT (TYPE_SIZE (type1)) != TREE_CONSTANT (TYPE_SIZE (type2))
+      && get_alias_set (type1) == get_alias_set (type2))
     return -1;
 
   /* The types are known to be not equal.  */
@@ -600,19 +609,9 @@ aliasing_component_refs_p (tree ref1, tree type1,
       offset1 -= offadj;
       return ranges_overlap_p (offset1, max_size1, offset2, max_size2);
     }
-
-  /* We haven't found any common base to apply offset-based disambiguation.
-     There are two cases:
-       1. The base access types have the same alias set.  This can happen
-	  in Ada when a function with an unconstrained parameter passed by
-	  reference is called on a constrained object and inlined: the types
-	  have the same alias set but aren't equivalent.  The references may
-	  alias in this case.
-       2. The base access types don't have the same alias set, i.e. one set
-	  is a subset of the other.  We have proved that B1 is not in the
-	  access path B2.path and that B2 is not in the access path B1.path
-	  so the references may not alias.  */
-  return get_alias_set (type1) == get_alias_set (type2);
+  /* If we have two type access paths B1.path1 and B2.path2 they may
+     only alias if either B1 is in B2.path2 or B2 is in B1.path1.  */
+  return false;
 }
 
 /* Return true if two memory references based on the variables BASE1
@@ -964,6 +963,7 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 	/* The following builtins do not read from memory.  */
 	case BUILT_IN_FREE:
 	case BUILT_IN_MALLOC:
+	case BUILT_IN_CALLOC:
 	case BUILT_IN_MEMSET:
 	case BUILT_IN_FREXP:
 	case BUILT_IN_FREXPF:
@@ -1191,6 +1191,21 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	/* Allocating memory does not have any side-effects apart from
 	   being the definition point for the pointer.  */
 	case BUILT_IN_MALLOC:
+	case BUILT_IN_CALLOC:
+	  /* Unix98 specifies that errno is set on allocation failure.
+	     Until we properly can track the errno location assume it
+	     is not a plain decl but anonymous storage in a different
+	     translation unit.  */
+	  if (flag_errno_math)
+	    {
+	      struct ptr_info_def *pi;
+	      if (DECL_P (base))
+		return false;
+	      if (INDIRECT_REF_P (base)
+		  && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME
+		  && (pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0))))
+		return pi->pt.anything || pi->pt.nonlocal;
+	    }
 	  return false;
 	/* Freeing memory kills the pointed-to memory.  More importantly
 	   the call has to serve as a barrier for moving loads and stores

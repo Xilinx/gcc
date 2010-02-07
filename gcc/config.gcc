@@ -205,16 +205,21 @@ xm_file=
 md_file=
 
 # Obsolete configurations.
-#case ${target} in
-# )
-#    if test "x$enable_obsolete" != xyes; then
-#      echo "*** Configuration ${target} is obsolete." >&2
-#      echo "*** Specify --enable-obsolete to build it anyway." >&2
-#      echo "*** Support will be REMOVED in the next major release of GCC," >&2
-#      echo "*** unless a maintainer comes forward." >&2
-#      exit 1
-#    fi;;
-#esac
+case ${target} in
+   alpha*-dec-osf4*			\
+ | alpha*-dec-osf5.0*			\
+ | mips-sgi-irix5*			\
+ | mips-sgi-irix6.[0-4]5*		\
+ | *-*-solaris2.7*			\
+ )
+    if test "x$enable_obsolete" != xyes; then
+      echo "*** Configuration ${target} is obsolete." >&2
+      echo "*** Specify --enable-obsolete to build it anyway." >&2
+      echo "*** Support will be REMOVED in the next major release of GCC," >&2
+      echo "*** unless a maintainer comes forward." >&2
+      exit 1
+    fi;;
+esac
 
 # Unsupported targets list.  Do not put an entry in this list unless
 # it would otherwise be caught by a more permissive pattern.  The list
@@ -1335,7 +1340,6 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 	case ${target} in
 		*-w64-*)
 			tm_file="${tm_file} i386/mingw-w64.h"
-			tmake_file="${tmake_file} i386/t-mingw-w64"
 			if test x$enable_targets = xall; then
 				tm_defines="${tm_defines} TARGET_BI_ARCH=1"
 				case X"${with_cpu}" in
@@ -1355,7 +1359,6 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 			fi
 			;;
 		*)
-			tmake_file="${tmake_file} i386/t-mingw32"
 			;;
 	esac
 	tm_file="${tm_file} i386/mingw-stdint.h"
@@ -1366,6 +1369,14 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 		tmake_eh_file="i386/t-sjlj-eh"
 	fi
 	tmake_file="${tmake_file} ${tmake_eh_file} i386/t-cygming"
+        case ${target} in
+               *-w64-*)
+               		tmake_file="${tmake_file} i386/t-mingw-w64"
+			;;
+               *)
+               		tmake_file="${tmake_file} i386/t-mingw32"
+                     	;;
+	esac
 	target_gtfiles="\$(srcdir)/config/i386/winnt.c"
 	extra_options="${extra_options} i386/cygming.opt i386/mingw.opt"
 	case ${target} in

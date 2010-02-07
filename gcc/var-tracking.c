@@ -345,9 +345,6 @@ typedef struct value_chain_def
 } *value_chain;
 typedef const struct value_chain_def *const_value_chain;
 
-/* Hash function for DECL for VARIABLE_HTAB.  */
-#define VARIABLE_HASH_VAL(decl) (DECL_UID (decl))
-
 /* Pointer to the BB's information specific to variable tracking pass.  */
 #define VTI(BB) ((variable_tracking_info) (BB)->aux)
 
@@ -820,13 +817,33 @@ dv_from_value (rtx value)
   return dv;
 }
 
+typedef unsigned int dvuid;
+
+/* Return the uid of DV.  */
+
+static inline dvuid
+dv_uid (decl_or_value dv)
+{
+  if (dv_is_value_p (dv))
+    return CSELIB_VAL_PTR (dv_as_value (dv))->uid;
+  else
+    return DECL_UID (dv_as_decl (dv));
+}
+
+/* Compute the hash from the uid.  */
+
+static inline hashval_t
+dv_uid2hash (dvuid uid)
+{
+  return uid;
+}
+
+/* The hash function for a mask table in a shared_htab chain.  */
+
 static inline hashval_t
 dv_htab_hash (decl_or_value dv)
 {
-  if (dv_is_value_p (dv))
-    return -(hashval_t)(CSELIB_VAL_PTR (dv_as_value (dv))->value);
-  else
-    return (VARIABLE_HASH_VAL (dv_as_decl (dv)));
+  return dv_uid2hash (dv_uid (dv));
 }
 
 /* The hash function for variable_htab, computes the hash value
@@ -848,29 +865,7 @@ variable_htab_eq (const void *x, const void *y)
   const_variable const v = (const_variable) x;
   decl_or_value dv = CONST_CAST2 (decl_or_value, const void *, y);
 
-  if (dv_as_opaque (v->dv) == dv_as_opaque (dv))
-    return true;
-
-#if ENABLE_CHECKING
-  {
-    bool visv, dvisv;
-
-    visv = dv_is_value_p (v->dv);
-    dvisv = dv_is_value_p (dv);
-
-    if (visv != dvisv)
-      return false;
-
-    if (visv)
-      gcc_assert (CSELIB_VAL_PTR (dv_as_value (v->dv))
-		  != CSELIB_VAL_PTR (dv_as_value (dv)));
-    else
-      gcc_assert (VARIABLE_HASH_VAL (dv_as_decl (v->dv))
-		  != VARIABLE_HASH_VAL (dv_as_decl (dv)));
-  }
-#endif
-
-  return false;
+  return (dv_as_opaque (v->dv) == dv_as_opaque (dv));
 }
 
 /* Free the element of VARIABLE_HTAB (its type is struct variable_def).  */
@@ -1151,23 +1146,6 @@ shared_hash_find (shared_hash vars, decl_or_value dv)
   return shared_hash_find_1 (vars, dv, dv_htab_hash (dv));
 }
 
-/* Determine a total order between two distinct pointers.  Compare the
-   pointers as integral types if size_t is wide enough, otherwise
-   resort to bitwise memory compare.  The actual order does not
-   matter, we just need to be consistent, so endianness is
-   irrelevant.  */
-
-static int
-tie_break_pointers (const void *p1, const void *p2)
-{
-  gcc_assert (p1 != p2);
-
-  if (sizeof (size_t) >= sizeof (void*))
-    return (size_t)p1 < (size_t)p2 ? -1 : 1;
-  else
-    return memcmp (&p1, &p2, sizeof (p1));
-}
-
 /* Return true if TVAL is better than CVAL as a canonival value.  We
    choose lowest-numbered VALUEs, using the RTX address as a
    tie-breaker.  The idea is to arrange them into a star topology,
@@ -1181,9 +1159,7 @@ static inline bool
 canon_value_cmp (rtx tval, rtx cval)
 {
   return !cval
-    || CSELIB_VAL_PTR (tval)->value < CSELIB_VAL_PTR (cval)->value
-    || (CSELIB_VAL_PTR (tval)->value == CSELIB_VAL_PTR (cval)->value
-	&& tie_break_pointers (tval, cval) < 0);
+    || CSELIB_VAL_PTR (tval)->uid < CSELIB_VAL_PTR (cval)->uid;
 }
 
 static bool dst_can_be_shared;
@@ -1518,10 +1494,12 @@ var_mem_delete (dataflow_set *set, rtx loc, bool clobber)
   delete_variable_part (set, loc, dv_from_decl (decl), offset);
 }
 
-/* Map a value to a location it was just stored in.  */
+/* Bind a value to a location it was just stored in.  If MODIFIED
+   holds, assume the location was modified, detaching it from any
+   values bound to it.  */
 
 static void
-val_store (dataflow_set *set, rtx val, rtx loc, rtx insn)
+val_store (dataflow_set *set, rtx val, rtx loc, rtx insn, bool modified)
 {
   cselib_val *v = CSELIB_VAL_PTR (val);
 
@@ -1547,7 +1525,8 @@ val_store (dataflow_set *set, rtx val, rtx loc, rtx insn)
 
   if (REG_P (loc))
     {
-      var_regno_delete (set, REGNO (loc));
+      if (modified)
+	var_regno_delete (set, REGNO (loc));
       var_reg_decl_set (set, loc, VAR_INIT_STATUS_INITIALIZED,
 			dv_from_value (val), 0, NULL_RTX, INSERT);
     }
@@ -3560,8 +3539,8 @@ variable_post_merge_new_vals (void **slot, void *info)
 		      cdv = dv_from_value (cval);
 		      if (dump_file)
 			fprintf (dump_file,
-				 "Created new value %i for reg %i\n",
-				 v->value, REGNO (node->loc));
+				 "Created new value %u:%u for reg %i\n",
+				 v->uid, v->hash, REGNO (node->loc));
 		    }
 
 		  var_reg_decl_set (*dfpm->permp, node->loc,
@@ -4530,11 +4509,6 @@ count_uses (rtx *ploc, void *cuip)
       cselib_val *val;
       enum machine_mode mode = GET_MODE (loc);
 
-      VTI (cui->bb)->n_mos++;
-
-      if (dump_file && (dump_flags & TDF_DETAILS))
-	log_op_type (loc, cui->bb, cui->insn, mopt, dump_file);
-
       switch (mopt)
 	{
 	case MO_VAL_LOC:
@@ -4550,12 +4524,15 @@ count_uses (rtx *ploc, void *cuip)
 	    {
 	      enum machine_mode address_mode
 		= targetm.addr_space.address_mode (MEM_ADDR_SPACE (loc));
-	      val = cselib_lookup (XEXP (loc, 0), address_mode, false);
+	      val = cselib_lookup (XEXP (loc, 0), address_mode, 0);
 
 	      if (val && !cselib_preserved_value_p (val))
 		{
 		  VTI (cui->bb)->n_mos++;
 		  cselib_preserve_value (val);
+		  if (dump_file && (dump_flags & TDF_DETAILS))
+		    log_op_type (XEXP (loc, 0), cui->bb, cui->insn,
+				 MO_VAL_USE, dump_file);
 		}
 	    }
 
@@ -4578,6 +4555,9 @@ count_uses (rtx *ploc, void *cuip)
 		    {
 		      VTI (cui->bb)->n_mos++;
 		      cselib_preserve_value (oval);
+		      if (dump_file && (dump_flags & TDF_DETAILS))
+			log_op_type (loc, cui->bb, cui->insn,
+				     MO_VAL_USE, dump_file);
 		    }
 		}
 
@@ -4592,6 +4572,10 @@ count_uses (rtx *ploc, void *cuip)
 	default:
 	  break;
 	}
+
+      VTI (cui->bb)->n_mos++;
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	log_op_type (loc, cui->bb, cui->insn, mopt, dump_file);
     }
 
   return 0;
@@ -5331,6 +5315,8 @@ compute_bb_dataflow (basic_block bb)
 
 	      if (VAL_NEEDS_RESOLUTION (loc))
 		val_resolve (out, val, vloc, insn);
+	      else
+		val_store (out, val, uloc, insn, false);
 
 	      if (VAL_HOLDS_TRACK_EXPR (loc))
 		{
@@ -5422,7 +5408,7 @@ compute_bb_dataflow (basic_block bb)
 	      else if (REG_P (uloc))
 		var_regno_delete (out, REGNO (uloc));
 
-	      val_store (out, val, vloc, insn);
+	      val_store (out, val, vloc, insn, true);
 	    }
 	    break;
 
@@ -6951,6 +6937,8 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 
 	      if (VAL_NEEDS_RESOLUTION (loc))
 		val_resolve (set, val, vloc, insn);
+	      else
+		val_store (set, val, uloc, insn, false);
 
 	      if (VAL_HOLDS_TRACK_EXPR (loc))
 		{
@@ -7038,7 +7026,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 	      else if (REG_P (uloc))
 		var_regno_delete (set, REGNO (uloc));
 
-	      val_store (set, val, vloc, insn);
+	      val_store (set, val, vloc, insn, true);
 
 	      emit_notes_for_changes (NEXT_INSN (insn), EMIT_NOTE_BEFORE_INSN,
 				      set->vars);
@@ -7324,7 +7312,7 @@ vt_add_function_parameters (void)
   if (MAY_HAVE_DEBUG_INSNS)
     {
       cselib_preserve_only_values (true);
-      cselib_reset_table_with_next_value (cselib_get_next_unknown_value ());
+      cselib_reset_table (cselib_get_next_uid ());
     }
 
 }
@@ -7357,15 +7345,15 @@ vt_initialize (void)
       rtx insn;
       HOST_WIDE_INT pre, post = 0;
       int count;
-      unsigned int next_value_before = cselib_get_next_unknown_value ();
-      unsigned int next_value_after = next_value_before;
+      unsigned int next_uid_before = cselib_get_next_uid ();
+      unsigned int next_uid_after = next_uid_before;
 
       if (MAY_HAVE_DEBUG_INSNS)
 	{
 	  cselib_record_sets_hook = count_with_sets;
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    fprintf (dump_file, "first value: %i\n",
-		     cselib_get_next_unknown_value ());
+		     cselib_get_next_uid ());
 	}
 
       /* Count the number of micro operations.  */
@@ -7420,12 +7408,12 @@ vt_initialize (void)
       if (MAY_HAVE_DEBUG_INSNS)
 	{
 	  cselib_preserve_only_values (false);
-	  next_value_after = cselib_get_next_unknown_value ();
-	  cselib_reset_table_with_next_value (next_value_before);
+	  next_uid_after = cselib_get_next_uid ();
+	  cselib_reset_table (next_uid_before);
 	  cselib_record_sets_hook = add_with_sets;
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    fprintf (dump_file, "first value: %i\n",
-		     cselib_get_next_unknown_value ());
+		     cselib_get_next_uid ());
 	}
 
       /* Add the micro-operations to the array.  */
@@ -7484,8 +7472,8 @@ vt_initialize (void)
       if (MAY_HAVE_DEBUG_INSNS)
 	{
 	  cselib_preserve_only_values (true);
-	  gcc_assert (next_value_after == cselib_get_next_unknown_value ());
-	  cselib_reset_table_with_next_value (next_value_after);
+	  gcc_assert (next_uid_after == cselib_get_next_uid ());
+	  cselib_reset_table (next_uid_after);
 	  cselib_record_sets_hook = NULL;
 	}
     }

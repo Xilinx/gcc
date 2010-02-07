@@ -15381,7 +15381,7 @@ ix86_expand_int_movcc (rtx operands[])
   enum rtx_code code = GET_CODE (operands[1]), compare_code;
   rtx compare_seq, compare_op;
   enum machine_mode mode = GET_MODE (operands[0]);
-  bool sign_bit_compare_p = false;;
+  bool sign_bit_compare_p = false;
 
   start_sequence ();
   ix86_compare_op0 = XEXP (operands[1], 0);
@@ -15422,7 +15422,6 @@ ix86_expand_int_movcc (rtx operands[])
           if (!sign_bit_compare_p)
 	    {
 	      rtx flags;
-	      rtx (*insn)(rtx, rtx, rtx);
 	      bool fpcmp = false;
 
 	      compare_code = GET_CODE (compare_op);
@@ -15463,11 +15462,10 @@ ix86_expand_int_movcc (rtx operands[])
 		tmp = gen_reg_rtx (mode);
 
 	      if (mode == DImode)
-		insn = gen_x86_movdicc_0_m1;
+		emit_insn (gen_x86_movdicc_0_m1 (tmp, flags, compare_op));
 	      else
-		insn = gen_x86_movsicc_0_m1;
-
-	      emit_insn (insn (tmp, flags, compare_op));
+		emit_insn (gen_x86_movsicc_0_m1	(gen_lowpart (SImode, tmp),
+						 flags, compare_op));
 	    }
 	  else
 	    {
@@ -26644,8 +26642,16 @@ ix86_expand_vector_init_duplicate (bool mmx_ok, enum machine_mode mode,
 	insn = emit_insn (gen_rtx_SET (VOIDmode, target, dup));
 	if (recog_memoized (insn) < 0)
 	  {
+	    rtx seq;
 	    /* If that fails, force VAL into a register.  */
+
+	    start_sequence ();
 	    XEXP (dup, 0) = force_reg (GET_MODE_INNER (mode), val);
+	    seq = get_insns ();
+	    end_sequence ();
+	    if (seq)
+	      emit_insn_before (seq, insn);
+
 	    ok = recog_memoized (insn) >= 0;
 	    gcc_assert (ok);
 	  }
