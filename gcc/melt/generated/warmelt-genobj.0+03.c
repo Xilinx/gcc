@@ -851,6 +851,25 @@ void* start_module_melt(void*);
 void mark_module_melt(void*);
 void* initial_frame_melt;
 
+struct frame_start_module_melt_st;
+static void initial_chunk_0 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_1 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_2 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_3 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_4 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_5 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_6 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_7 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_8 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_9 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_10 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_11 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_12 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_13 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_14 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_15 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_16 (struct frame_start_module_melt_st*, char*);
+
 
 /**** warmelt-genobj.0+03.c implementations ****/
 
@@ -6334,7 +6353,7 @@ lab_endgetargs:;
     
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /3639e5a9 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OCONTENVLOC__V11*/ curfptr[10]))== OBMAG_PAIR);
+    melt_assertmsg("putpairhead /550e5c5 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OCONTENVLOC__V11*/ curfptr[10]))== OBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.OCONTENVLOC__V11*/ curfptr[10]))->hd = (melt_ptr_t) ((/*~OCONTENVLOC*/ curfclos->tabval[4]));
     ;
     /*^touch*/
@@ -16829,12 +16848,12 @@ lab_endgetargs:;
     
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /9fbc108 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OSUCC__V41*/ curfptr[37]))== OBMAG_PAIR);
+    melt_assertmsg("putpairhead /3c385e4a checkpair", melt_magic_discr((melt_ptr_t)(/*_.OSUCC__V41*/ curfptr[37]))== OBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.OSUCC__V41*/ curfptr[37]))->hd = (melt_ptr_t) (/*_.OSUCC__V33*/ curfptr[32]);
     ;
     /*^putpairtail*/
     /*putpairtail*/
-    melt_assertmsg("putpairtail /12536bfd checkpair", melt_magic_discr((melt_ptr_t)(/*_.OSUCC__V41*/ curfptr[37]))== OBMAG_PAIR);
+    melt_assertmsg("putpairtail /30cd39e0 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OSUCC__V41*/ curfptr[37]))== OBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.OSUCC__V41*/ curfptr[37]))->tl = (meltpair_ptr_t) (/*_.GOTOEND__V42*/ curfptr[38]);
     ;
     /*^touch*/
@@ -16842,7 +16861,7 @@ lab_endgetargs:;
     ;
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /11d22845 checkpair", melt_magic_discr((melt_ptr_t)(/*_.GOTOEND__V42*/ curfptr[38]))== OBMAG_PAIR);
+    melt_assertmsg("putpairhead /3f227d94 checkpair", melt_magic_discr((melt_ptr_t)(/*_.GOTOEND__V42*/ curfptr[38]))== OBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.GOTOEND__V42*/ curfptr[38]))->hd = (melt_ptr_t) (/*_.GOTOEND__V23*/ curfptr[22]);
     ;
     /*^touch*/
@@ -22718,7 +22737,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /2614971c checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTCLOS__V69*/ curfptr[68]))== OBMAG_PAIR);
+  melt_assertmsg("putpairhead /3d60dab4 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTCLOS__V69*/ curfptr[68]))== OBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.OTESTCLOS__V69*/ curfptr[68]))->hd = (melt_ptr_t) (/*_.OTESTCLOS__V38*/ curfptr[37]);
   ;
   /*^touch*/
@@ -22793,7 +22812,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /20ee4e0f checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTRES__V74*/ curfptr[73]))== OBMAG_PAIR);
+  melt_assertmsg("putpairhead /a85dabb checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTRES__V74*/ curfptr[73]))== OBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.OTESTRES__V74*/ curfptr[73]))->hd = (melt_ptr_t) (/*_.OTESTRES__V37*/ curfptr[36]);
   ;
   /*^touch*/

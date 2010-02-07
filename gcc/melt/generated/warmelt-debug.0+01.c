@@ -246,6 +246,10 @@ void* start_module_melt(void*);
 void mark_module_melt(void*);
 void* initial_frame_melt;
 
+struct frame_start_module_melt_st;
+static void initial_chunk_0 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_1 (struct frame_start_module_melt_st*, char*);
+
 
 /**** warmelt-debug.0+01.c implementations ****/
 

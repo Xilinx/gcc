@@ -276,6 +276,13 @@ void* start_module_melt(void*);
 void mark_module_melt(void*);
 void* initial_frame_melt;
 
+struct frame_start_module_melt_st;
+static void initial_chunk_0 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_1 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_2 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_3 (struct frame_start_module_melt_st*, char*);
+static void initial_chunk_4 (struct frame_start_module_melt_st*, char*);
+
 
 /**** warmelt-normatch.0+01.c implementations ****/
 
@@ -17293,7 +17300,7 @@ lab_endgetargs:;
     
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /53c9481 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V49*/ curfptr[48]))== OBMAG_PAIR);
+    melt_assertmsg("putpairhead /52e1303 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V49*/ curfptr[48]))== OBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.CBIND__V49*/ curfptr[48]))->hd = (melt_ptr_t) (/*_.CBIND__V41*/ curfptr[40]);
     ;
     /*^touch*/

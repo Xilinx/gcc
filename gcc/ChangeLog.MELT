@@ -1,3 +1,33 @@
+2010-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: added dirty trick to output the
+	initial routine in several chunks, each being a static routine, to
+	avoid generating huge routines which are painful to be compiled by
+	GCC.
+	{{regenerated}}
+	* melt/generated/warmelt-first.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0.c: regenerated.
+	* melt/generated/warmelt-macro.0.c: regenerated.
+	* melt/generated/warmelt-debug.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0.c: regenerated.
+	* melt/generated/warmelt-normal.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0+03.c: regenerated.
+	* melt/generated/warmelt-base.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0.c: regenerated.
+	* melt/generated/warmelt-macro.0+01.c: regenerated.
+	* melt/generated/warmelt-macro.0+02.c: regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: regenerated.
+	* melt/generated/warmelt-macro.0+03.c: regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: regenerated.
+	* melt/generated/warmelt-debug.0.c: regenerated.
+
 2010-02-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: removed list[1-6] primitives and moved
 	many definitions to...
