@@ -1,4 +1,10 @@
 2010-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt: transmit the module name in the
+	class_objinitroutine thru field oirout_modulename.
+	* melt/warmelt-outobj.melt: the initial_chunk_* have line info and
+	their name contains the module name...
+
+2010-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: added dirty trick to output the
 	initial routine in several chunks, each being a static routine, to
 	avoid generating huge routines which are painful to be compiled by

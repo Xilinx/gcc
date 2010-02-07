@@ -516,6 +516,7 @@
 	   oirout_data			;the tuple of initial data
 	   oirout_prolog       ;the prologue (list of instr) before filling the data. Imports should go here!
 	   oirout_fill			;the fill of the data (a list of instr)
+	   oirout_modulename		;the module name
 	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -942,6 +943,7 @@ $SBUF.}#
 		   :obrout_cntletrec (make_integerbox discr_integer 0)
 		   :oirout_fill (make_list discr_list)
 		   :oirout_prolog oiniprolog
+		   :oirout_modulename (get_field :mocx_modulename modctx)
 		   ))
 	(importmap (make_mapobject discr_map_objects 50))
 	(gcx (instance 
