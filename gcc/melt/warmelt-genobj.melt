@@ -861,6 +861,8 @@ $SBUF.}#
 		     )
 		(if (and (<=i ix 0) (!= bctyp ctype_value))
 		    (error_plain nloc "first argument of function should be a value"))
+		(debug_msg bnd "compile2obj_procedure formal bnd")
+		(debug_msg oloc "compile2obj_procedure oloc for formal")
 		(mapobject_put locmap bnd oloc)
 		ogarg
 		))
@@ -1337,8 +1339,9 @@ $SBUF.}#
 	( (== ctyp ctype_void)
 	  (return ()))
 	(:else 
-	 (debug_msg nam "getfreeobjloctyped nam")
-	 (debug_msg ctyp "getfreeobjloctyped ctyp")
+	 (debug_msg nam "get_free_objloctyped otherctyp nam")
+	 (debug_msg ctyp "get_free_objloctyped otherctyp ctyp")
+	 (shortbacktrace_dbg "get_free_objloctyped otherctyp" 15)
 	 (let ( (freemap (unsafe_get_field :gncx_freeothermaps gcx)) 
 		(orout (unsafe_get_field :gncx_objrout gcx))
 		(:long off -1)
@@ -1375,7 +1378,7 @@ $SBUF.}#
 					:obl_proc orout
 					:obl_off (make_integerbox discr_integer off)
 					:obl_cname (strbuf2string discr_string nambuf))) )
-		   (debug_msg nloc "getfreeobjloctyped new nloc")
+		   (debug_msg nloc "get_free_objloctyped new nloc")
 		   (list_append others nloc)
 		   (return nloc)
 		   )
@@ -1387,6 +1390,7 @@ $SBUF.}#
 ;; function to dispose, i.e. mark as free and reusable, an  objlocation
 (defun dispose_objloc (oldloc gcx)
   (debug_msg oldloc "dispose_objloc freeeing oldloc")
+  (shortbacktrace_dbg "dispose_objloc" 15)
   (assert_msg "check oldloc" (is_a oldloc class_objlocv))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   ;; the obl_proc iff it has already been freed
@@ -2324,7 +2328,7 @@ $SBUF.}#
     (foreach_in_list
      (fillbnds)
      (curecpair curecbnd)
-     (debug_msg curecbnd "compilobj_nrep_letrec curecbnd getfreeobjloc")
+     (debug_msg curecbnd "compilobj_nrep_letrec curecbnd get_free_objloc")
      (assert_msg "check curecbnd" (is_a curecbnd class_normal_let_binding))
      (let ( (rbder (unsafe_get_field :binder curecbnd))
 	    (rcty (unsafe_get_field :letbind_type curecbnd))
@@ -5526,7 +5530,6 @@ $SBUF.}#
      (curlocs :long cix)
      (debug_msg curlocs "compiltst_normtester_orclear curlocs")
      (shortbacktrace_dbg "compiltst_normtester_orclear curlocs" 14)
-     (compile_warning "perhaps compiltst_normtester_orclear should compile the curlocs")
      (let ( 
 	   ;; TODO: perhaps we should not allocate a new obva but just
 	   ;; compile the curlocs
@@ -5534,18 +5537,12 @@ $SBUF.}#
 			 )
 		    (debug_msg oc "compiltst_normtester_orclear ocurl")
 		    oc))
-	   (nlbnd (get_field :nocc_bind curlocs))
-	   (obva (get_free_objloctyped gcx 
-				       (get_field :nocc_symb curlocs)
-				       (get_field :nocc_ctyp curlocs)))
 	   (oclrloc (instance class_objclear
 			      :obi_loc nloc
-			      :oclr_vloc obva
+			      :oclr_vloc ocurl
 			      ))
 	   )
-       (debug_msg nlbnd "compiltst_normtester_orclear nlbnd")
-       (mapobject_put locmap nlbnd obva)
-       (debug_msg obva "compiltst_normtester_orclear obva")
+       (debug_msg oclrloc "compiltst_normtester_orclear oclrloc")
        (list_append olist oclrloc)
        )
      )
@@ -5614,17 +5611,36 @@ $SBUF.}#
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (let (
+	(locmap (unsafe_get_field :gncx_locmap gcx))
 	(nloc (unsafe_get_field :nrep_loc ntdj))
 	(nthen (unsafe_get_field :ntest_then ntdj))
 	(normatch (unsafe_get_field :ntest_normatch ntdj))
 	(ndisjlocsy (unsafe_get_field :ntdisj_freshorvar ntdj))
 	(gotothen (or (normtester_gotoinstr nthen gcx)
 		      (endmatch_gotoinstr normatch gcx nloc)))
+	;; not sure that freelist is needed!
+	(freelist (normtester_free_objloc_list ntdj gcx tcx))
 	)
     (debug_msg ndisjlocsy "compiltst_normtester_disjunction ndisjlocsy")
     (debug_msg gotothen "compiltst_normtester_disjunction gotothen")
-    ;; we probably need to let-bind the ndisjlocsy... to make sure they have a stack location
-    (compile_warning "compiltst_normtester_disjunction should handle ndisjlocsy")
+    (compile_warning "do we need the freelist in compiltst_normtester_disjunction?")
+    (debug_msg freelist "compiltst_normtester_disjunction freelist")
+    (foreach_in_multiple
+     (ndisjlocsy)
+     (curdisjloc :long lix)
+     (debug_msg curdisjloc "compiltst_normtester_disjunction curdisjloc")
+     (assert_msg "check curdisjloc" (is_a curdisjloc class_nrep_locsymocc))
+     (let ( (dbind (unsafe_get_field :nocc_bind curdisjloc))
+	    (dsymb (unsafe_get_field :nocc_symb curdisjloc))
+	    (dctyp (unsafe_get_field :nocc_ctyp curdisjloc))
+	    (dobva (get_free_objloctyped gcx
+					 dsymb
+					 dctyp))
+	   )
+       (debug_msg dobva "compiltst_normtester_disjunction dobva")
+       (mapobject_put locmap dbind dobva)
+       )
+     )
     (return gotothen)
     )
   )

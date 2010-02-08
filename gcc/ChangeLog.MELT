@@ -1,3 +1,13 @@
+2010-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tmatch-6 badly translated}}
+	* testsuite/melt/tmatch-6.melt: was incorrectly
+	parenthesised... name was not bound...
+	* melt/warmelt-normatch.melt: normpat_orpat a little better, but
+	or-variables already set are mishandled. removed commented
+	oldnormpatorpat. Perhaps need to add ntdisj_setorvar field.
+	* melt/warmelt-genobj.melt: added debug stmts, coded more of
+	compiltst_normtester_disjunction
+
 2010-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt: transmit the module name in the
 	class_objinitroutine thru field oirout_modulename.

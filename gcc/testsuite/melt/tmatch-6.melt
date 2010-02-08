@@ -41,8 +41,9 @@
 	      ;; ?(instance class_field :named_name ?name)
 	      ?(instance class_keyword :named_name ?name)
 	      ?(instance class_container :container_value ?tob)
-		  )))
-            (return name)))
+	      ))
+	   (return name))))
+
 
 (debug_msg (testnameof class_discriminant) "name of class class_discriminant")
 ;(debug_msg (testnameof fld_ownclass) "name of field fld_ownclass")
