@@ -1,3 +1,33 @@
+2010-02-05  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/42309
+	* trans-expr.c (gfc_conv_subref_array_arg): Add new argument
+	'formal_ptr'. If this is true, give returned descriptor unity
+	lbounds, in all dimensions, and the appropriate offset.
+	(gfc_conv_procedure_call); If formal is a pointer, set the last
+	argument of gfc_conv_subref_array_arg to true.
+	* trans.h : Add last argument for gfc_conv_subref_array_arg.
+	* trans-io.c (set_internal_unit, gfc_trans_transfer): Set the
+	new arg of gfc_conv_subref_array_arg to false.
+	* trans-stmt.c (forall_make_variable_temp): The same.
+
+2010-02-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/42936
+	* interface.c (compare_parameter): Disable rank-checking
+	for NULL().
+
+2010-02-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/42650
+	* parse.c (decode_specification_statement): Use sym->result not sym.
+
+2010-02-01  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/42922
+	* decl.c (variable_decl): Allow default initializer in
+	TYPE declarations in PURE functions.
+
 2010-01-31  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/42888
@@ -12,10 +42,10 @@
 
 2010-01-31  Paul Thomas  <pault@gcc.gnu.org>
 
-        PR fortran/38324
+	PR fortran/38324
 	* expr.c (gfc_get_full_arrayspec_from_expr): New function.
 	* gfortran.h : Add prototype for above.
-        * trans-expr.c (gfc_trans_alloc_subarray_assign): New function.
+	* trans-expr.c (gfc_trans_alloc_subarray_assign): New function.
 	(gfc_trans_subcomponent_assign): Call new function to replace
 	the code to deal with allocatable components.
 	* trans-intrinsic.c (gfc_conv_intrinsic_bound): Call

@@ -1,3 +1,240 @@
+2010-02-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/16896
+	* include/bits/stl_list.h (_List_node_base::transfer): Rename
+	to _M_transfer.
+	(_List_node_base::reverse): Rename to _M_reverse.
+	(_List_node_base::hook): Rename to _M_hook.
+	(_List_node_base::unhook): Rename to _M_unhook; adjust callers.
+	* include/bits/list.tcc: Adjust callers.
+	* src/list.cc: Adjust.
+	* src/compatibility.cc: Likewise.
+	* src/compatibility-list.cc: New.
+	* src/compatibility-debug_list.cc: Likewise.
+	* src/compatibility-parallel_list.cc: Likewise.
+	* src/Makefile.am: Add.
+	* src/Makefile.in: Regenerate.
+	* config/abi/pre/gnu.ver: Export _M_* symbols.
+
+	* src/hash.cc: Rename to hash-aux.cc.
+	* src/compatibility-ldbl.cc: Adjust.
+	* src/compatibility-c++0x.cc: Likewise.
+	* src/hash_tr1.cc: Likewise.
+
+	* src/hashtable.cc: Rename to hashtable-aux.cc.
+	* src/hashtable_c++0x.cc: Adjust.
+	* src/hashtable_tr1.cc: Likewise.
+
+	* src/limits_c++0x.cc: Fold...
+	* src/limits.cc... here.
+
+2010-02-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_pair.h (pair<>::pair(_U1&&, const _T2&),
+	pair<>::pair(const _T1&, _U2&&), pair<>::pair(_U1&&, _U2&&)):
+	Revert to std::is_convertible, basing on DR 811.
+
+2010-02-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/42989
+	* config/abi/pre/gnu.ver: Fix wstring move assignment operator typo.
+
+2010-02-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/27340
+	* include/bits/valarray_before.h: Uglify the structs wrapping
+	cmath functions differently, eg, _Cos instead of __cos.
+	* include/bits/valarray_after.h: Adjust.
+
+2010-02-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/future (swap(packaged_task<>&, packaged_task<>&)): Fix
+	typo in last commit.
+
+2010-02-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/future (swap(packaged_task<>&, packaged_task<>&),
+	swap(promise<>&, promise<>&)): Add; minor formatting fixes.
+	* testsuite/30_threads/packaged_task/cons/assign_neg.cc: Adjust
+	dg-error line number.
+	* testsuite/30_threads/packaged_task/cons/copy_neg.cc: Likewise.
+	* testsuite/30_threads/promise/cons/assign_neg.cc: Likewise.
+	* testsuite/30_threads/promise/cons/copy_neg.cc: Likewise.
+
+2010-02-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_algobase.h (struct __iter_base): Rename to
+	_Iter_base; add iterator_type typedef.
+	(struct __miter_base): Rename to _Miter_base.
+	(struct __niter_base): Rename to _Niter_base.
+	(__miter_base, __niter_base): Add, use the latter; adjust everywhere.
+
+2010-02-04  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/42460
+	* doc/doxygen/user.cfg.in: Update file list.
+	* include/debug/safe_sequence.h: Doxygen markup fixes for '' and "".
+	* include/debug/safe_base.h: Same.
+	* include/debug/macros.h: Same.
+	* include/tr1_impl/regex: Same.
+	* include/std/iostream: Same.
+	* include/std/streambuf: Same.
+	* include/std/bitset: Same.
+	* include/std/iosfwd: Same.
+	* include/std/limits: Same.
+	* include/std/fstream: Same.
+	* include/std/istream: Same.
+	* include/std/ostream: Same.
+	* include/std/sstream: Same.
+	* include/parallel/multiway_merge.h: Same.
+	* include/parallel/for_each.h: Same.
+	* include/parallel/workstealing.h: Same.
+	* include/parallel/omp_loop_static.h: Same.
+	* include/parallel/omp_loop.h: Same.
+	* include/c_std/csignal: Same.
+	* include/c_std/cstdlib: Same.
+	* include/c_std/cstdio: Same.
+	* include/c_std/cstdarg: Same.
+	* include/c_std/cctype: Same.
+	* include/c_std/cerrno: Same.
+	* include/c_std/cmath: Same.
+	* include/c_std/ciso646: Same.
+	* include/c_std/ctime: Same.
+	* include/c_std/clocale: Same.
+	* include/c_std/climits: Same.
+	* include/c_std/cassert: Same.
+	* include/c_std/csetjmp: Same.
+	* include/c_std/cwchar: Same.
+	* include/c_std/cfloat: Same.
+	* include/c_std/cstring: Same.
+	* include/c_std/cstddef: Same.
+	* include/c_std/cwctype: Same.
+	* include/profile/iterator_tracker.h: Same.
+	* include/profile/impl/profiler_trace.h: Same.
+	* include/ext/vstring.h: Same.
+	* include/ext/algorithm: Same.
+	* include/ext/pb_ds/detail/pat_trie_/pat_trie_.h.pp: Same.
+	* include/ext/pb_ds/detail/bin_search_tree_/bin_search_tree_.h.pp: Same.
+	* include/ext/pb_ds/detail/type_utils.hpp: Same.
+	* include/ext/pb_ds/detail/splay_tree_/splay_tree_.hpp: Same
+	* include/ext/pb_ds/detail/rb_tree_map_/rb_tree_.hpp: Same.
+	* include/ext/rc_string_base.h: Same.
+	* include/ext/stdio_sync_filebuf.h: Same.
+	* include/ext/functional: Same.
+	* include/ext/mt_allocator.h: Same.
+	* include/bits/basic_ios.h: Same.
+	* include/bits/stl_map.h: Same.
+	* include/bits/stl_algobase.h: Same.
+	* include/bits/stl_queue.h: Same.
+	* include/bits/locale_classes.h: Same.
+	* include/bits/stl_set.h: Same.
+	* include/bits/locale_facets.h: Same.
+	* include/bits/stl_stack.h: Same.
+	* include/bits/stl_iterator_base_types.h: Same.
+	* include/bits/basic_string.h: Same.
+	* include/bits/stl_multimap.h: Same.
+	* include/bits/ios_base.h: Same.
+	* include/bits/stl_deque.h: Same.
+	* include/bits/stl_multiset.h: Same.
+	* include/bits/stl_iterator_base_funcs.h: Same.
+	* include/bits/char_traits.h: Same.
+	* include/bits/stl_algo.h: Same.
+	* include/bits/stl_iterator.h: Same.
+	* include/bits/stl_tempbuf.h: Same.
+	* include/bits/random.tcc: Same.
+	* include/bits/stl_function.h: Same.
+	* include/bits/cpp_type_traits.h: Same.
+	* include/bits/random.h: Same.
+	* include/bits/allocator.h: Same.
+	* include/bits/locale_facets_nonio.h: Same.
+	* include/c_global/csignal: Same.
+	* include/c_global/cstdlib: Same.
+	* include/c_global/cstdio: Same.
+	* include/c_global/cstdarg: Same.
+	* include/c_global/cctype: Same.
+	* include/c_global/cerrno: Same.
+	* include/c_global/cmath: Same.
+	* include/c_global/ciso646: Same.
+	* include/c_global/ctime: Same.
+	* include/c_global/clocale: Same.
+	* include/c_global/climits: Same.
+	* include/c_global/cassert: Same.
+	* include/c_global/csetjmp: Same.
+	* include/c_global/cwchar: Same.
+	* include/c_global/cfloat: Same.
+	* include/c_global/cstring: Same.
+	* include/c_global/cstddef: Same.
+	* include/c_global/cwctype: Same.
+	* include/tr1/hypergeometric.tcc: Same.
+	* include/tr1/random.tcc: Same.
+	* include/tr1/functional: Same.
+	* include/tr1/random.h: Same.
+	* include/backward/auto_ptr.h: Same.
+	* include/backward/binders.h: Same.
+	* testsuite/23_containers/deque/requirements/dr438/assign_neg.cc:
+	Adjust line numbers.
+	* testsuite/23_containers/deque/requirements/dr438/insert_neg.cc: Same.
+	* testsuite/23_containers/deque/requirements/dr438/constructor_1_neg.cc:
+	Same.
+	* testsuite/23_containers/deque/requirements/dr438/constructor_2_neg.cc:
+	Same.
+
+2010-02-03  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/condition_variable (condition_variable_any): Provide
+	definitions for all members.
+	* src/condition_variable.cc (condition_variable_any): Adjust
+	definitions.
+	* config/abi/pre/gnu.ver: Adjust exports for condition_variable_any.
+	* testsuite/30_threads/condition_variable_any/cons/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/30_threads/condition_variable_any/cons/copy_neg.cc:
+	Likewise.
+	* testsuite/30_threads/condition_variable_any/members/1.cc: New.
+	* testsuite/30_threads/condition_variable_any/members/2.cc: New.
+	* testsuite/30_threads/condition_variable_any/requirements/
+	standard_layout.cc: Remove.
+	* testsuite/30_threads/condition_variable_any/native_handle/
+	typesizes.cc: Remove.
+
+2010-02-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/ext/vstring.h (__versa_string::shrink_to_fit): Fix
+	for -fno-exceptions.
+
+2010-02-02  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/allocator.h: Fix for -fno-exceptions.
+	* include/bits/basic_string.h (basic_string::shrink_to_fit): Same.
+
+2010-02-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/30_threads/unique_future: Rename to /future.
+
+2010-02-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/42408
+	* include/bits/random.h (linear_congruential_engine<>::
+	linear_congruential_engine(seed_seq&),
+	linear_congruential_engine<>::seed(seed_seq&),
+	mersenne_twister<>::mersenne_twister(seed_seq&),
+	mersenne_twister<>::seed(seed_seq&),
+	subtract_with_carry_engine<>::subtract_with_carry_engine(seed_seq&),
+	subtract_with_carry_engine<>::seed(seed_seq&),
+	discard_block_engine<>::discard_block_engine(seed_seq&),
+	discard_block_engine<>::seed(seed_seq&),
+	independent_bits_engine<>::independent_bits_engine(seed_seq&),
+	independent_bits_engine<>::seed(seed_seq&),
+	shuffle_order_engine<>::shuffle_order_engine(seed_seq&),
+	shuffle_order_engine<>::seed(seed_seq&)): Templatize.
+	* include/bits/random.tcc: Adjust.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/cons/
+	seed_seq.cc: New.
+	* testsuite/26_numerics/random/mersenne_twister_engine/cons/
+	seed_seq.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/
+	cons/seed_seq.cc: Likewise.
+
 2010-02-01  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/bits/forward_list.h (forward_list<>::resize(size_type),

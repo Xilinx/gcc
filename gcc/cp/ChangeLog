@@ -1,3 +1,37 @@
+2010-02-05  Richard Guenther  <rguenther@suse.de>
+
+	* Make-lang.in (cp/cp-lang.o): Depend on gt-cp-cp-lang.h.
+	* cp-lang.c: Include gt-cp-cp-lang.h.
+	* config-lang.in (gtfiles): Add cp/cp-lang.c.
+
+2010-02-05  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42915
+	* typeck.c (get_template_parms_of_dependent_type): Try getting
+	the template parameters fromt the type itself first.
+
+2010-02-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/4926
+	PR c++/38600
+	* mangle.c (write_unqualified_id): Split out from write_expression.
+	(write_unqualified_name): Call it.
+	(write_member_name): Likewise.
+	(write_expression): Support TEMPLATE_ID_EXPR.
+	Disambiguate operator names.
+
+	PR c++/12909
+	* mangle.c (write_type) [VECTOR_TYPE]: Change mangling with
+	-fabi-version=4.
+
+2010-02-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41090
+	* decl.c (cp_finish_decl): Add local statics to cfun->local_decls.
+	* optimize.c (clone_body): Remap their initializers when making base
+	variants.
+	(maybe_clone_body): Complain if multiple clones aren't safe.
+
 2010-01-29  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/42758

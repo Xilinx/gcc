@@ -1,7 +1,4 @@
-// { dg-do compile }
-// { dg-options "-std=gnu++0x" }
-// { dg-require-cstdint "" }
-// { dg-require-gthreads "" }
+// Compatibility symbols for previous versions, debug list -*- C++ -*-
 
 // Copyright (C) 2010 Free Software Foundation, Inc.
 //
@@ -16,15 +13,15 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING3.  If not see
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
+
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-#include <condition_variable>
-#include <testsuite_common_types.h>
+#define _GLIBCXX_DEBUG
 
-void test01()
-{
-  __gnu_test::standard_layout test;
-  test.operator()<std::condition_variable_any>();
-}
+#include "compatibility-list.cc"

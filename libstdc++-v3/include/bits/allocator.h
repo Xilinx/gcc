@@ -76,7 +76,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     };
 
   /**
-   * @brief  The "standard" allocator, as per [20.4].
+   * @brief  The @a standard allocator, as per [20.4].
    * @ingroup allocators
    *
    *  Further details:
@@ -194,9 +194,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        static void
        _S_do_it(_Tp& __v)
        {
-	 try
+	 __try
 	   { _Tp(__v).swap(__v); }
-	 catch(...) { }
+	 __catch(...) { }
        }
      };
 #endif
