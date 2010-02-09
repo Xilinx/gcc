@@ -1,3 +1,10 @@
+2010-02-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt: field spat_var in class_source_pattern
+	renamed as spatvar_symb, and added field spatvar_nbocc.
+	* melt/warmelt-normatch.melt: added field ptcn_varhandlers...
+	should really use it to compute the set of used and already set
+	or-variables...
+
 2010-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tmatch-6 badly translated}}
 	* testsuite/melt/tmatch-6.melt: was incorrectly

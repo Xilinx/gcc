@@ -650,10 +650,13 @@ $ASPAT_SUBPAT the subpattern.}#
 ;;; simple source pattern variable
 (defclass class_source_pattern_variable
   :doc #{The internal $CLASS_SOURCE_PATTERN_VARIABLE is for pattern
-variable abstract syntax. The $SPAT_VAR gives the variable symbol.}#
+variable abstract syntax. The field $SPATVAR_SYMB gives the variable symbol. 
+The field $SPATVAR_NBOCC is the boxed occurrence count.}#
   :super class_source_pattern
-  :fields (spat_var
+  :fields (spatvar_symb
+	   spatvar_nbocc
 	   ))
+(export_synonym spat_var spatvar_symb)
 
 ;;; the joker source pattern variable
 (defclass class_source_pattern_joker_variable
@@ -1350,7 +1353,9 @@ the object-map for pattern variables.}#
 	    ((== parg1 '_)		;  ?_ is a joker
 	     (let ( (jokp (instance class_source_pattern_joker_variable
 				    :loca_location sloc
-				    :spat_var parg1)) )
+				    :spatvar_symb parg1
+				    :spatvar_nbocc (make_integerbox discr_integer 0)
+				    )) )
 	       (debug_msg jokp "patternexpand_1 return jokervar")
 	       (return jokp)
 	       ))
@@ -1367,7 +1372,9 @@ the object-map for pattern variables.}#
 		     )
 		 (let ( (newpavr (instance class_source_pattern_variable
 					   :loca_location sloc
-					   :spat_var parg1)) 
+					   :spatvar_symb parg1
+					   :spatvar_nbocc (make_integerbox discr_integer 0)
+					   )) 
 			)
 		   (mapobject_put vamp parg1 newpavr)
 		   (debug_msg newpavr "patternexpand_1 return nexpavr")

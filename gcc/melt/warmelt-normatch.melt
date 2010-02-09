@@ -32,6 +32,19 @@
 ;;; class for the context of normalization of patterns
 (defclass class_pattern_context
   :super class_root
+  :doc #{The $CLASS_PATTERN_CONTEXT is for context of patterns'
+normalization. $PCTN_NORMCTXT is the
+$CLASS_NORMALIZATION_CONTEXT. $PCTN_SRC is the source match
+expression. $PCTN_MAPATVAR is the mapping from symbols to pattern
+variables. $PCTN_MAPATCNST is the mapping from constant objects to
+pattern constants. $PCTN_MAPOR is the mapping from or source patterns
+to their map of symbols to pattern variables. $PCTN_BINDLIST is the
+binding list for input arguments in matcher. $PCTN_STUFFMAP is the
+mapping from a matched stuff to the list of normaltesters matching
+it. $PCTN_PVARLOCMAP maps pattern variable symbols to local
+occurrences. $PCTN_TESTS is the list of normal
+testers. $PCTN_VARHANDERS is a list of pattern variable handler when
+scanning variables.}#
   :fields (pctn_normctxt		;the class_normalization_context
 	   pctn_src			;the source match expressioon
 	   pctn_env			;the current environment
@@ -49,6 +62,8 @@
 	   pctn_pvarlocmap
 	   ;; list of tests
 	   pctn_tests
+	   ;; list of pattern variables handlers when scanning
+	   pctn_varhandlers
 	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -103,19 +118,29 @@
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_variable))
   (let ( (sloc (unsafe_get_field :loca_location recv))
-	 (svar (unsafe_get_field :spat_var recv))
+	 (svar (unsafe_get_field :spatvar_symb recv))
 	 (mapvar (unsafe_get_field :pctn_mapatvar pcn))
+	 (varhdlerlist (unsafe_get_field :pctn_varhandlers pcn))
 	 (mvar (mapobject_get mapvar svar))
 	 )
     (cond ( (null mvar)
 	    (mapobject_put mapvar svar recv)
 	    (debug_msg svar "scanpat_srcpatvar return new svar")
-	    (return)
+	    (setq mvar recv)
 	    )
 	  (:else
 	   (debug_msg mvar "scanpat_srcpatvar return found mvar")
-	   (return)
 	   ))
+    (assert_msg "check mvar" (is_a mvar class_source_pattern_variable))
+    (let ( (nboccbox (unsafe_get_field :spatvar_nbocc mvar)) 
+	   (:long nbocc (get_int nboccbox))
+	   )
+      (put_int nboccbox (+i nbocc 1)))
+    (foreach_in_list
+     (varhdlerlist)
+     (curpair curhdler)
+     (if (is_closure curhdler)
+	 (curhdler mvar pcn recv)))
     ))
 (install_method class_source_pattern_variable scan_pattern scanpat_srcpatvar)
 
@@ -142,7 +167,7 @@
   (assert_msg "check recv" (is_a recv class_source_pattern_as))
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (asvarpat (unsafe_get_field :aspat_varpat recv))
-	 (asvar (get_field :spat_var asvarpat))
+	 (asvar (get_field :spatvar_symb asvarpat))
 	 (asubp (unsafe_get_field :aspat_subpat recv))
 	 (mapvar (unsafe_get_field :pctn_mapatvar pcn))
 	 (mvar (mapobject_get mapvar asvar))
@@ -322,6 +347,16 @@
 	 (sdisj (unsafe_get_field :orpat_disj recv))
 	 (pvarmap (unsafe_get_field :pctn_mapatvar pcn))
 	 (:long cntpvarmap (mapobject_count pvarmap))
+	 (ownvarmap (make_mapobject discr_map_objects (+i 4 (*i cntpvarmap 2))))
+	 (varhdlerlist (unsafe_get_field :pctn_varhandlers pcn))
+	 (ownvarhandler
+	  (lambda (mvar mypcn pvar)
+	    (debug_msg mvar "scanpat_srcpator.ownvarhandler mvar")
+	    (assert_msg "check mvar" (is_a mvar class_source_pattern_variable))
+	    (assert_msg "check mypcn" (== mypcn pcn))
+	    (let ( (msymb (unsafe_get_field :spatvar_symb mvar)) )
+	      (mapobject_put ownvarmap msymb mvar))
+	    ))
 	 (inipvarmap 
 	  (let ( 
 		(inimap (make_mapobject discr_map_objects
@@ -335,19 +370,23 @@
 	 )
     (debug_msg sdisj "scanpat_srcpator sdisj")
     (assert_msg "check sdisj" (is_multiple sdisj))
+    (list_prepend varhdlerlist ownvarhandler)
     (foreach_in_multiple
      (sdisj)
      (dis :long ix)
      (debug_msg dis "scanpat_srcpator dis")
      (scan_pattern dis sloc ctyp pcn)
      )
-    (let ( (:long incrpvarmap (-i (mapobject_count pvarmap)
-				  cntpvarmap))
+    (let ( (:long incrpvarmap 
+		  (-i (mapobject_count pvarmap)
+		      cntpvarmap))
 	   (pmapor (get_field :pctn_mapor pcn))
 	   (orvarmap (make_mapobject discr_map_objects
 				     (+i 3 (/i (*i incrpvarmap 5) 4))))
+	   (oldvarhdler (list_popfirst varhdlerlist))
 	   )
       (assert_msg "check pmapor" (is_mapobject pmapor))
+      (assert_msg "check oldvarhdler" (== oldvarhdler ownvarhandler))
       ;; scan the updated pvarmap for new entries w.r.t. inipvarmap
       (foreach_in_mapobject 
        (pvarmap)
@@ -356,7 +395,7 @@
        (assert_msg "check curpatvar" 
 		   (is_a curpatvar class_source_pattern_variable))
        (assert_msg "good curpatvar"
-		   (== (get_field :spat_var curpatvar) cursym))
+		   (== (get_field :spatvar_symb curpatvar) cursym))
        (if (null (mapobject_get inipvarmap cursym))
 	   (mapobject_put orvarmap cursym curpatvar))
        )
@@ -766,7 +805,7 @@
 	 (pvarlocmap (get_field :pctn_pvarlocmap pcn)) 
 	 (psloc (get_field :loca_location (get_field :pctn_src pcn)))
 	 (sloc (get_field :loca_location recv))
-	 (patvar (get_field :spat_var recv))
+	 (patvar (get_field :spatvar_symb recv))
 	 (tstuff (mapobject_get stuffmap nmatch))
 	 (lococc (mapobject_get pvarlocmap patvar))
 	 (env (get_field :pctn_env pcn))
@@ -789,7 +828,7 @@
       (compile_warning "normpat_variablepat unhandled orvariable")
       (let ( (realococc (unsafe_get_field :norvar_locsym lococc)) 
 	     (npatvar (unsafe_get_field :norvar_patvar lococc))
-	     (patsym (get_field :spat_var npatvar))
+	     (patsym (get_field :spatvar_symb npatvar))
 	     )
 	(debug_msg npatvar "normpat_variablepat orvariable npatvar")
 	(assert_msg "check patsym == patvar" (== patsym patvar))
@@ -1376,7 +1415,7 @@
 	       (assert_msg "check curorvar" (is_a curorvar class_normal_or_variable))
 	       (let ( (orlocsy (unsafe_get_field :norvar_locsym curorvar))
 		      (patvar (unsafe_get_field :norvar_patvar curorvar))
-		      (orsymb (get_field :spat_var patvar))
+		      (orsymb (get_field :spatvar_symb patvar))
 		      )
 		 (if (is_box orlocsy)
 		     (setq orlocsy (box_content orlocsy)))
@@ -2165,6 +2204,7 @@
 	      (mapcst (make_mapobject discr_map_objects 11))
 	      (mapor (make_mapobject discr_map_objects 7))
 	      (pvarlocmap (make_mapobject discr_map_objects 23))
+	      (varhdlerlist (make_list discr_list))
 	      (pcn (instance class_pattern_context
 			     :pctn_normctxt ncx
 			     :pctn_src recv
@@ -2176,6 +2216,7 @@
 			     :pctn_stuffmap stuffmap
 			     :pctn_pvarlocmap pvarlocmap
 			     :pctn_tests testlist
+			     :pctn_varhandlers varhdlerlist
 			     ))
 	      (ntestcont (instance class_container)) ;container for tester
 	      )
@@ -2208,7 +2249,6 @@
 	  (debug_msg shabindlist "normexp_match shabindlist after normal_pattern")
 	  ;; 
 	  (let ( (newenv (get_field :pctn_env pcn))
-		 (pvarlocmap (get_field :pctn_pvarlocmap pcn))
 		 (curtester (get_field :container_value ntestcont))
 		 ;; we need a success. For the last joker case, it
 		 ;; becomes the curtester; for the usual case it is
