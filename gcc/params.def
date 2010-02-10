@@ -707,7 +707,7 @@ DEFPARAM (PARAM_MELT_MINOR_ZONE,
 DEFPARAM (PARAM_MELT_FULL_THRESHOLD,
 	 "melt-full-threshold",
 	 "tuning the frequency of full garbage collection in the specialized melt collector (threshold in kilowords)",
-	  2048, 512, 65536)
+	  4096, 1024, 65536)
 /**** end of Melt stuff */
 
 
