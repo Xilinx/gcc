@@ -1,3 +1,8 @@
+2010-02-11  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (ira_reload): Recompute DF info immediately after
+	localizing pseudos.
+
 2010-02-02  Jeff Law <law@redhat.com>
 
 	* ira-conflicts.c (process_regs_for_copy): Skip conflicts test if

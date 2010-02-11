@@ -1053,6 +1053,16 @@ ira_reload (void)
 	      localize_pseudos (bb, pseudos_to_localize, visited);
 	}
 
+      /* Recompute DF info, primarily to get accurate death notes which
+	 IRA can utilize to give better allocations.
+
+	 We could do this by hand and only in blocks of interest and
+	 probably will in the future.  But for now, go with the
+	 heavyweight, but clearly simple solution.  */
+      df_scan_alloc (NULL);
+      df_scan_blocks ();
+      df_analyze ();
+
       /* We want to be able to call back into routines to compute costs and
 	 record copies via ira_traverse_loop_tree.  Those routines typically
 	 require the regno->allocno map within the loop tree structures to
