@@ -1,6 +1,6 @@
 // random number generation -*- C++ -*-
 
-// Copyright (C) 2009 Free Software Foundation, Inc.
+// Copyright (C) 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -49,8 +49,6 @@ namespace std
 	   typename _UniformRandomNumberGenerator>
     _RealType
     generate_canonical(_UniformRandomNumberGenerator& __g);
-
-  class seed_seq;
 
   /*
    * Implementation-space details.
@@ -154,9 +152,9 @@ namespace std
     class linear_congruential_engine
     {
       static_assert(std::is_unsigned<_UIntType>::value, "template argument "
-		    "_UIntType not an unsigned integral type");
+		    "substituting _UIntType not an unsigned integral type");
       static_assert(__m == 0u || (__a < __m && __c < __m),
-		    "template argument __m out of bounds");
+		    "template argument substituting __m out of bounds");
 
     public:
       /** The type of the generated random value. */
@@ -179,7 +177,7 @@ namespace std
        */
       explicit
       linear_congruential_engine(result_type __s = default_seed)
-      { this->seed(__s); }
+      { seed(__s); }
 
       /**
        * @brief Constructs a %linear_congruential_engine random number
@@ -187,9 +185,11 @@ namespace std
        *
        * @param __q the seed sequence.
        */
-      explicit
-      linear_congruential_engine(seed_seq& __q)
-      { this->seed(__q); }
+      template<typename _Sseq, typename
+	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+        explicit
+        linear_congruential_engine(_Sseq& __q)
+        { seed<_Sseq>(__q); }
 
       /**
        * @brief Reseeds the %linear_congruential_engine random number generator
@@ -207,8 +207,10 @@ namespace std
        *
        * @param __q the seed sequence.
        */
-      void
-      seed(seed_seq& __q);
+      template<typename _Sseq, typename
+	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+        void
+        seed(_Sseq& __q);
 
       /**
        * @brief Gets the smallest possible value in the output range.
@@ -341,26 +343,31 @@ namespace std
     class mersenne_twister_engine
     {
       static_assert(std::is_unsigned<_UIntType>::value, "template argument "
-		    "_UIntType not an unsigned integral type");
+		    "substituting _UIntType not an unsigned integral type");
       static_assert(1u <= __m && __m <= __n,
-		    "template argument __m out of bounds");
-      static_assert(__r <= __w, "template argument __r out of bound");
-      static_assert(__u <= __w, "template argument __u out of bound");
-      static_assert(__s <= __w, "template argument __s out of bound");
-      static_assert(__t <= __w, "template argument __t out of bound");
-      static_assert(__l <= __w, "template argument __l out of bound");
+		    "template argument substituting __m out of bounds");
+      static_assert(__r <= __w, "template argument substituting "
+		    "__r out of bound");
+      static_assert(__u <= __w, "template argument substituting "
+		    "__u out of bound");
+      static_assert(__s <= __w, "template argument substituting "
+		    "__s out of bound");
+      static_assert(__t <= __w, "template argument substituting "
+		    "__t out of bound");
+      static_assert(__l <= __w, "template argument substituting "
+		    "__l out of bound");
       static_assert(__w <= std::numeric_limits<_UIntType>::digits,
-		    "template argument __w out of bound");
+		    "template argument substituting __w out of bound");
       static_assert(__a <= (__detail::_Shift<_UIntType, __w>::__value - 1),
-		    "template argument __a out of bound");
+		    "template argument substituting __a out of bound");
       static_assert(__b <= (__detail::_Shift<_UIntType, __w>::__value - 1),
-		    "template argument __b out of bound");
+		    "template argument substituting __b out of bound");
       static_assert(__c <= (__detail::_Shift<_UIntType, __w>::__value - 1),
-		    "template argument __c out of bound");
+		    "template argument substituting __c out of bound");
       static_assert(__d <= (__detail::_Shift<_UIntType, __w>::__value - 1),
-		    "template argument __d out of bound");
+		    "template argument substituting __d out of bound");
       static_assert(__f <= (__detail::_Shift<_UIntType, __w>::__value - 1),
-		    "template argument __f out of bound");
+		    "template argument substituting __f out of bound");
 
     public:
       /** The type of the generated random value. */
@@ -393,15 +400,19 @@ namespace std
        *
        * @param __q the seed sequence.
        */
-      explicit
-      mersenne_twister_engine(seed_seq& __q)
-      { seed(__q); }
+      template<typename _Sseq, typename
+	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+        explicit
+        mersenne_twister_engine(_Sseq& __q)
+        { seed<_Sseq>(__q); }
 
       void
       seed(result_type __sd = default_seed);
 
-      void
-      seed(seed_seq& __q);
+      template<typename _Sseq, typename
+	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+        void
+        seed(_Sseq& __q);
 
       /**
        * @brief Gets the smallest possible value in the output range.
@@ -530,11 +541,11 @@ namespace std
     class subtract_with_carry_engine
     {
       static_assert(std::is_unsigned<_UIntType>::value, "template argument "
-		    "_UIntType not an unsigned integral type");
+		    "substituting _UIntType not an unsigned integral type");
       static_assert(0u < __s && __s < __r,
-		    "template argument __s out of bounds");
+		    "template argument substituting __s out of bounds");
       static_assert(0u < __w && __w <= std::numeric_limits<_UIntType>::digits,
-		    "template argument __w out of bounds");
+		    "template argument substituting __w out of bounds");
 
     public:
       /** The type of the generated random value. */
@@ -552,7 +563,7 @@ namespace std
        */
       explicit
       subtract_with_carry_engine(result_type __sd = default_seed)
-      { this->seed(__sd); }
+      { seed(__sd); }
 
       /**
        * @brief Constructs a %subtract_with_carry_engine random number engine
@@ -560,9 +571,11 @@ namespace std
        *
        * @param __q the seed sequence.
        */
-      explicit
-      subtract_with_carry_engine(seed_seq& __q)
-      { this->seed(__q); }
+      template<typename _Sseq, typename
+	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+        explicit
+        subtract_with_carry_engine(_Sseq& __q)
+        { seed<_Sseq>(__q); }
 
       /**
        * @brief Seeds the initial state @f$ x_0 @f$ of the random number
@@ -583,8 +596,10 @@ namespace std
        * @brief Seeds the initial state @f$ x_0 @f$ of the
        * % subtract_with_carry_engine random number generator.
        */
-      void
-      seed(seed_seq& __q);
+      template<typename _Sseq, typename
+	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+        void
+        seed(_Sseq& __q);
 
       /**
        * @brief Gets the inclusive minimum value of the range of random
@@ -665,7 +680,8 @@ namespace std
        *        @p __is.
        *
        * @param __is An input stream.
-       * @param __x  A % subtract_with_carry_engine random number generator engine.
+       * @param __x  A % subtract_with_carry_engine random number generator
+       *             engine.
        *
        * @returns The input stream with the state of @p __x extracted or in
        * an error state.
@@ -693,7 +709,7 @@ namespace std
     class discard_block_engine
     {
       static_assert(1 <= __r && __r <= __p,
-		    "template argument __r out of bounds");
+		    "template argument substituting __r out of bounds");
 
     public:
       /** The type of the generated random value. */
@@ -746,10 +762,14 @@ namespace std
        *
        * @param __q A seed sequence.
        */
-      explicit
-      discard_block_engine(seed_seq& __q)
-      : _M_b(__q), _M_n(0)
-      { }
+      template<typename _Sseq, typename
+        = typename std::enable_if<std::is_class<_Sseq>::value
+				  && !std::is_same<_Sseq, _RandomNumberEngine>
+				  ::value>::type>
+        explicit
+        discard_block_engine(_Sseq& __q)
+	: _M_b(__q), _M_n(0)
+        { }
 
       /**
        * @brief Reseeds the %discard_block_engine object with the default
@@ -778,12 +798,14 @@ namespace std
        *        sequence.
        * @param __q A seed generator function.
        */
-      void
-      seed(seed_seq& __q)
-      {
-        _M_b.seed(__q);
-        _M_n = 0;
-      }
+      template<typename _Sseq, typename
+	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+        void
+        seed(_Sseq& __q)
+        {
+	  _M_b.seed<_Sseq>(__q);
+	  _M_n = 0;
+	}
 
       /**
        * @brief Gets a const reference to the underlying generator engine
@@ -893,9 +915,9 @@ namespace std
     class independent_bits_engine
     {
       static_assert(std::is_unsigned<_UIntType>::value, "template argument "
-		    "_UIntType not an unsigned integral type");
+		    "substituting _UIntType not an unsigned integral type");
       static_assert(0u < __w && __w <= std::numeric_limits<_UIntType>::digits,
-		    "template argument __w out of bounds");
+		    "template argument substituting __w out of bounds");
 
     public:
       /** The type of the generated random value. */
@@ -944,10 +966,14 @@ namespace std
        *
        * @param __q A seed sequence.
        */
-      explicit
-      independent_bits_engine(seed_seq& __q)
-      : _M_b(__q)
-      { }
+      template<typename _Sseq, typename
+        = typename std::enable_if<std::is_class<_Sseq>::value
+				  && !std::is_same<_Sseq, _RandomNumberEngine>
+				  ::value>::type>
+        explicit
+        independent_bits_engine(_Sseq& __q)
+        : _M_b(__q)
+        { }
 
       /**
        * @brief Reseeds the %independent_bits_engine object with the default
@@ -970,9 +996,11 @@ namespace std
        *        seed sequence.
        * @param __q A seed generator function.
        */
-      void
-      seed(seed_seq& __q)
-      { _M_b.seed(__q); }
+      template<typename _Sseq, typename
+	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+        void
+        seed(_Sseq& __q)
+        { _M_b.seed<_Sseq>(__q); }
 
       /**
        * @brief Gets a const reference to the underlying generator engine
@@ -1089,7 +1117,8 @@ namespace std
   template<typename _RandomNumberEngine, size_t __k>
     class shuffle_order_engine
     {
-      static_assert(1u <= __k, "template argument __k out of bound");
+      static_assert(1u <= __k, "template argument substituting "
+		    "__k out of bound");
 
     public:
       /** The type of the generated random value. */
@@ -1144,10 +1173,14 @@ namespace std
        *
        * @param __q A seed sequence.
        */
-      explicit
-      shuffle_order_engine(seed_seq& __q)
-      : _M_b(__q)
-      { _M_initialize(); }
+      template<typename _Sseq, typename
+        = typename std::enable_if<std::is_class<_Sseq>::value
+				  && !std::is_same<_Sseq, _RandomNumberEngine>
+				  ::value>::type>
+        explicit
+        shuffle_order_engine(_Sseq& __q)
+        : _M_b(__q)
+        { _M_initialize(); }
 
       /**
        * @brief Reseeds the %shuffle_order_engine object with the default seed
@@ -1176,12 +1209,14 @@ namespace std
        *        sequence.
        * @param __q A seed generator function.
        */
-      void
-      seed(seed_seq& __q)
-      {
-        _M_b.seed(__q);
-        _M_initialize();
-      }
+      template<typename _Sseq, typename
+	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+        void
+        seed(_Sseq& __q)
+        {
+	  _M_b.seed<_Sseq>(__q);
+	  _M_initialize();
+	}
 
       /**
        * Gets a const reference to the underlying generator engine object.
@@ -1305,8 +1340,8 @@ namespace std
    * The classic Mersenne Twister.
    *
    * Reference:
-   * M. Matsumoto and T. Nishimura, "Mersenne Twister: A 623-Dimensionally
-   * Equidistributed Uniform Pseudo-Random Number Generator", ACM Transactions
+   * M. Matsumoto and T. Nishimura, Mersenne Twister: A 623-Dimensionally
+   * Equidistributed Uniform Pseudo-Random Number Generator, ACM Transactions
    * on Modeling and Computer Simulation, Vol. 8, No. 1, January 1998, pp 3-30.
    */
   typedef mersenne_twister_engine<
@@ -3747,8 +3782,8 @@ namespace std
    * @brief A weibull_distribution random number distribution.
    *
    * The formula for the normal probability density function is
-   * @f$ p(x|\alpha,\beta) = \frac{a}{b} (frac{x}{b})^{a-1}
-   *                         \exp{(-(frac{x}{b})^a)} @f$.
+   * @f$ p(x|\alpha,\beta) = \frac{\alpha}{\beta} (\frac{x}{\beta})^{\alpha-1}
+   *                         \exp{(-(\frac{x}{\beta})^\alpha)} @f$.
    */
   template<typename _RealType = double>
     class weibull_distribution

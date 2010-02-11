@@ -561,6 +561,30 @@ ppl_print_polyhedron_matrix (FILE *file, ppl_const_Polyhedron_t ph)
   cloog_matrix_free (mat);
 }
 
+/* Print to FILE the linear expression LE.  */
+
+void
+ppl_print_linear_expr (FILE *file, ppl_Linear_Expression_t le)
+{
+  ppl_Constraint_t c;
+  ppl_Polyhedron_t pol;
+  ppl_dimension_type dim;
+
+  ppl_Linear_Expression_space_dimension (le, &dim);
+  ppl_new_C_Polyhedron_from_space_dimension (&pol, dim, 0);
+  ppl_new_Constraint (&c, le, PPL_CONSTRAINT_TYPE_EQUAL);
+  ppl_Polyhedron_add_constraint (pol, c);
+  ppl_print_polyhedron_matrix (file, pol);
+}
+
+/* Print to STDERR the linear expression LE.  */
+
+void
+debug_ppl_linear_expr (ppl_Linear_Expression_t le)
+{
+  ppl_print_linear_expr (stderr, le);
+}
+
 /* Print to FILE the powerset PS in its PolyLib matrix form.  */
 
 void
@@ -643,6 +667,78 @@ ppl_max_for_le_pointset (ppl_Pointset_Powerset_C_Polyhedron_t ps,
   value_clear (dv);
   ppl_delete_Coefficient (num);
   ppl_delete_Coefficient (denom);
+}
+
+/* Return in RES the maximum of the linear expression LE on the
+   polyhedron POL.  */
+
+void
+ppl_min_for_le_polyhedron (ppl_Polyhedron_t pol,
+			   ppl_Linear_Expression_t le, Value res)
+{
+  ppl_Coefficient_t num, denom;
+  Value dv, nv;
+  int maximum, err;
+
+  value_init (nv);
+  value_init (dv);
+  ppl_new_Coefficient (&num);
+  ppl_new_Coefficient (&denom);
+  err = ppl_Polyhedron_minimize (pol, le, num, denom, &maximum);
+
+  if (err > 0)
+    {
+      ppl_Coefficient_to_mpz_t (num, nv);
+      ppl_Coefficient_to_mpz_t (denom, dv);
+      gcc_assert (value_notzero_p (dv));
+      value_division (res, nv, dv);
+    }
+
+  value_clear (nv);
+  value_clear (dv);
+  ppl_delete_Coefficient (num);
+  ppl_delete_Coefficient (denom);
+}
+
+/* Builds a constraint in dimension DIM relating dimensions POS1 to
+   POS2 as "POS1 - POS2 + C CSTR_TYPE 0" */
+
+ppl_Constraint_t
+ppl_build_relation (int dim, int pos1, int pos2, int c,
+		    enum ppl_enum_Constraint_Type cstr_type)
+{
+  ppl_Linear_Expression_t expr;
+  ppl_Constraint_t cstr;
+  ppl_Coefficient_t coef;
+  Value v, v_op, v_c;
+
+  value_init (v);
+  value_init (v_op);
+  value_init (v_c);
+
+  value_set_si (v, 1);
+  value_set_si (v_op, -1);
+  value_set_si (v_c, c);
+
+  ppl_new_Coefficient (&coef);
+  ppl_new_Linear_Expression_with_dimension (&expr, dim);
+
+  ppl_assign_Coefficient_from_mpz_t (coef, v);
+  ppl_Linear_Expression_add_to_coefficient (expr, pos1, coef);
+  ppl_assign_Coefficient_from_mpz_t (coef, v_op);
+  ppl_Linear_Expression_add_to_coefficient (expr, pos2, coef);
+  ppl_assign_Coefficient_from_mpz_t (coef, v_c);
+  ppl_Linear_Expression_add_to_inhomogeneous (expr, coef);
+
+  ppl_new_Constraint (&cstr, expr, cstr_type);
+
+  ppl_delete_Linear_Expression (expr);
+  ppl_delete_Coefficient (coef);
+  value_clear (v);
+  value_clear (v_op);
+  value_clear (v_c);
+
+  return cstr;
 }
 
 #endif

@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -45,7 +45,7 @@ namespace __gnu_parallel
    *  atomic access.  push_front() and pop_front() must not be called
    *  concurrently to each other, while pop_back() can be called
    *  concurrently at all times.
-   *  @__c empty(), @__c size(), and @__c top() are intentionally not provided.
+   *  @c empty(), @c size(), and @c top() are intentionally not provided.
    *  Calling them would not make sense in a concurrent setting.
    *  @param _Tp Contained element type. */
   template<typename _Tp>
@@ -65,10 +65,10 @@ namespace __gnu_parallel
     public:
       /** @brief Constructor. Not to be called concurrent, of course.
        *  @param _M_max_size Maximal number of elements to be contained. */
-      _RestrictedBoundedConcurrentQueue(_SequenceIndex _M_max_size)
+      _RestrictedBoundedConcurrentQueue(_SequenceIndex __max_size)
       {
-        this->_M_max_size = _M_max_size;
-        _M_base = new _Tp[_M_max_size];
+        _M_max_size = __max_size;
+        _M_base = new _Tp[__max_size];
         _M_borders = __encode2(0, 0);
 #pragma omp flush
       }
@@ -84,7 +84,7 @@ namespace __gnu_parallel
       {
         _CASable __former_borders = _M_borders;
         int __former_front, __former_back;
-        decode2(__former_borders, __former_front, __former_back);
+        __decode2(__former_borders, __former_front, __former_back);
         *(_M_base + __former_front % _M_max_size) = __t;
 #if _GLIBCXX_ASSERTIONS
         // Otherwise: front - back > _M_max_size eventually.
@@ -101,22 +101,22 @@ namespace __gnu_parallel
       {
         int __former_front, __former_back;
 #pragma omp flush
-        decode2(_M_borders, __former_front, __former_back);
+        __decode2(_M_borders, __former_front, __former_back);
         while (__former_front > __former_back)
           {
             // Chance.
-            _CASable
-                __former_borders = __encode2(__former_front, __former_back);
-            _CASable
-                __new_borders = __encode2(__former_front - 1, __former_back);
-            if (__compare_and_swap(
-                  &_M_borders, __former_borders, __new_borders))
+            _CASable __former_borders = __encode2(__former_front,
+						  __former_back);
+            _CASable __new_borders = __encode2(__former_front - 1,
+					       __former_back);
+            if (__compare_and_swap(&_M_borders, __former_borders,
+				   __new_borders))
               {
                 __t = *(_M_base + (__former_front - 1) % _M_max_size);
                 return true;
               }
 #pragma omp flush
-            decode2(_M_borders, __former_front, __former_back);
+            __decode2(_M_borders, __former_front, __former_back);
           }
         return false;
       }
@@ -128,22 +128,22 @@ namespace __gnu_parallel
       {
         int __former_front, __former_back;
 #pragma omp flush
-        decode2(_M_borders, __former_front, __former_back);
+        __decode2(_M_borders, __former_front, __former_back);
         while (__former_front > __former_back)
           {
             // Chance.
-            _CASable
-              __former_borders = __encode2(__former_front, __former_back);
-            _CASable
-              __new_borders = __encode2(__former_front, __former_back + 1);
-            if (__compare_and_swap(
-                  &_M_borders, __former_borders, __new_borders))
+            _CASable __former_borders = __encode2(__former_front,
+						  __former_back);
+            _CASable __new_borders = __encode2(__former_front,
+					       __former_back + 1);
+            if (__compare_and_swap(&_M_borders, __former_borders,
+				   __new_borders))
               {
                 __t = *(_M_base + __former_back % _M_max_size);
                 return true;
               }
 #pragma omp flush
-            decode2(_M_borders, __former_front, __former_back);
+            __decode2(_M_borders, __former_front, __former_back);
           }
         return false;
       }

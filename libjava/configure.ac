@@ -142,27 +142,14 @@ AM_CONDITIONAL(JAVA_MAINTAINER_MODE, test "$enable_java_maintainer_mode" = yes)
 # It may not be safe to run linking tests in AC_PROG_CC/AC_PROG_CXX.
 GCC_NO_EXECUTABLES
 
-# (1) We use an abnormal CXX (without library references), so we
-# must cache it under a different name.
-# (2) CC, CFLAGS, CXX, CXXFLAGS, LDFLAGS must not be 'precious', or
-# the non-multilib-adjusted value will be used in multilibs.
-# (3) As a side effect, we must SUBST CXXFLAGS, CFLAGS, and LDFLAGS ourselves.
-# (4) As another side effect, automake doesn't automatically include them
-# in Makefile.in.
-# (5) For libstdc++-v3, -fno-builtin must be present here so that a
+# For libstdc++-v3, -fno-builtin must be present here so that a
 # non-conflicting form of std::exit can be guessed by AC_PROG_CXX, and
 # used in later tests.  This may not be necessary in libjava; I don't know.
-m4_rename([_AC_ARG_VAR_PRECIOUS],[glibcxx_PRECIOUS])
-m4_define([_AC_ARG_VAR_PRECIOUS],[])
 save_CXXFLAGS="$CXXFLAGS"
 CXXFLAGS="$CXXFLAGS -fno-builtin"
 AC_PROG_CC
 AC_PROG_CXX
 CXXFLAGS="$save_CXXFLAGS"
-m4_rename_force([glibcxx_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
-AC_SUBST(CFLAGS)
-AC_SUBST(CXXFLAGS)
-AC_SUBST(LDFLAGS)
 
 AM_INIT_AUTOMAKE([1.9.0])
 
@@ -366,7 +353,12 @@ AM_CONDITIONAL(X_AWT, test "$use_x_awt" = yes)
 
 AC_DEFINE_UNQUOTED(AWT_TOOLKIT, "$TOOLKIT", [Name of default AWT toolkit])
 
-AC_DEFINE_UNQUOTED(LIBGCJ_PREFIX, "$prefix", [Installation prefix])
+expanded_prefix=$prefix
+if test "X$prefix" = XNONE; then
+  expanded_prefix=${ac_default_prefix}
+fi
+
+AC_DEFINE_UNQUOTED(LIBGCJ_PREFIX, "$expanded_prefix", [Installation prefix])
 
 # Create standard.omit based on decisions we just made.
 cp $srcdir/standard.omit.in standard.omit
@@ -884,6 +876,9 @@ case "${host}" in
         SYSTEMSPEC="-lunicows $SYSTEMSPEC"
       fi
     ;;
+    *-*-darwin[[912]]*)
+      SYSTEMSPEC="-allow_stack_execute"
+    ;;
     *)
       SYSTEMSPEC=
     ;;
@@ -914,9 +909,6 @@ case "${host}" in
     # on Darwin -single_module speeds up loading of the dynamic libraries.
     extra_ldflags_libjava=-Wl,-single_module
     ;;
-*-*-darwin[[912]]*)
-    extra_gij_ldflags=-Wl,-allow_stack_execute
-    ;;
 arm*linux*eabi)
     # Some of the ARM unwinder code is actually in libstdc++.  We
     # could in principle replicate it in libgcj, but it's better to
@@ -930,7 +922,6 @@ arm*linux*eabi)
     ;;
 esac
 AC_SUBST(extra_ldflags_libjava)
-AC_SUBST(extra_gij_ldflags)
 AC_SUBST(extra_ldflags)
 AC_SUBST(LIBSTDCXXSPEC)
 
@@ -1437,7 +1428,7 @@ if test ! -f gnu/classpath/Configuration.java; then
   test -d gnu || mkdir gnu
   test -d gnu/classpath || mkdir gnu/classpath
   # Note that it is not crucial that all the values here be correct.
-  sed -e "s,@prefix@,$prefix," \
+  sed -e "s,@prefix@,$expanded_prefix," \
       -e "s,@VERSION@,$VERSION," \
       -e "s,@LIBDEBUG@,false," \
       -e "s,@INIT_LOAD_LIBRARY@,false," \
@@ -1563,9 +1554,17 @@ TL_AC_GXX_INCLUDE_DIR
 # for now.  If you change this, you also must update natFile.cc.
 AC_CHECK_HEADERS([unistd.h bstring.h sys/time.h sys/types.h fcntl.h \
 		  sys/ioctl.h sys/filio.h sys/stat.h sys/select.h \
-		  sys/socket.h netinet/in.h arpa/inet.h netdb.h net/if.h \
+		  sys/socket.h netinet/in.h arpa/inet.h netdb.h \
 		  pwd.h sys/config.h stdint.h langinfo.h locale.h \
 		  dirent.h sys/rw_lock.h magic.h ifaddrs.h])
+
+# sys/socket.h is a prerequisite for net/if.h on Solaris.
+AC_CHECK_HEADERS(net/if.h, [], [], [
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+])
+
 AC_CHECK_HEADERS(inttypes.h, [
     AC_DEFINE(HAVE_INTTYPES_H, 1, [Define if <inttypes.h> is available])
     AC_DEFINE(JV_HAVE_INTTYPES_H, 1, [Define if <inttypes.h> is available])
@@ -1775,10 +1774,10 @@ then
   # Needed for installing Python modules during make install.
   python_mod_dir="\${prefix}/share/python"
   # Needed for substituting into aot-compile*
-  python_mod_dir_expanded="${prefix}/share/python"
+  python_mod_dir_expanded="${expanded_prefix}/share/python"
 else
   python_mod_dir="\${prefix}${with_python_dir}"
-  python_mod_dir_expanded="${prefix}${with_python_dir}"
+  python_mod_dir_expanded="${expanded_prefix}${with_python_dir}"
 fi
 AC_MSG_RESULT(Python modules dir: ${python_mod_dir_expanded});
 AC_SUBST(python_mod_dir)
@@ -1956,7 +1955,7 @@ then
   LIBDIR=$libdir
   if test "x${exec_prefix}" = "xNONE"
   then
-      lib_exec_prefix=$prefix
+      lib_exec_prefix=$expanded_prefix
   else
       lib_exec_prefix=$exec_prefix
   fi

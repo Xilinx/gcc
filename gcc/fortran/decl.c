@@ -1025,88 +1025,6 @@ verify_c_interop_param (gfc_symbol *sym)
 }
 
 
-/* Build a polymorphic CLASS entity, using the symbol that comes from build_sym.
-   A CLASS entity is represented by an encapsulating type, which contains the
-   declared type as '$data' component, plus an integer component '$vindex'
-   which determines the dynamic type, and another integer '$size', which
-   contains the size of the dynamic type structure.  */
-
-static gfc_try
-encapsulate_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
-			  gfc_array_spec **as)
-{
-  char name[GFC_MAX_SYMBOL_LEN + 5];
-  gfc_symbol *fclass;
-  gfc_component *c;
-
-  /* Determine the name of the encapsulating type.  */
-  if ((*as) && (*as)->rank && attr->allocatable)
-    sprintf (name, ".class.%s.%d.a", ts->u.derived->name, (*as)->rank);
-  else if ((*as) && (*as)->rank)
-    sprintf (name, ".class.%s.%d", ts->u.derived->name, (*as)->rank);
-  else if (attr->allocatable)
-    sprintf (name, ".class.%s.a", ts->u.derived->name);
-  else
-    sprintf (name, ".class.%s", ts->u.derived->name);
-
-  gfc_find_symbol (name, ts->u.derived->ns, 0, &fclass);
-  if (fclass == NULL)
-    {
-      gfc_symtree *st;
-      /* If not there, create a new symbol.  */
-      fclass = gfc_new_symbol (name, ts->u.derived->ns);
-      st = gfc_new_symtree (&ts->u.derived->ns->sym_root, name);
-      st->n.sym = fclass;
-      gfc_set_sym_referenced (fclass);
-      fclass->refs++;
-      fclass->ts.type = BT_UNKNOWN;
-      fclass->vindex = ts->u.derived->vindex;
-      fclass->attr.abstract = ts->u.derived->attr.abstract;
-      if (ts->u.derived->f2k_derived)
-	fclass->f2k_derived = gfc_get_namespace (NULL, 0);
-      if (gfc_add_flavor (&fclass->attr, FL_DERIVED,
-	  NULL, &gfc_current_locus) == FAILURE)
-	return FAILURE;
-
-      /* Add component '$data'.  */
-      if (gfc_add_component (fclass, "$data", &c) == FAILURE)
-   	return FAILURE;
-      c->ts = *ts;
-      c->ts.type = BT_DERIVED;
-      c->attr.access = ACCESS_PRIVATE;
-      c->ts.u.derived = ts->u.derived;
-      c->attr.pointer = attr->pointer || attr->dummy;
-      c->attr.allocatable = attr->allocatable;
-      c->attr.dimension = attr->dimension;
-      c->attr.abstract = ts->u.derived->attr.abstract;
-      c->as = (*as);
-      c->initializer = gfc_get_expr ();
-      c->initializer->expr_type = EXPR_NULL;
-
-      /* Add component '$vindex'.  */
-      if (gfc_add_component (fclass, "$vindex", &c) == FAILURE)
-   	return FAILURE;
-      c->ts.type = BT_INTEGER;
-      c->ts.kind = 4;
-      c->attr.access = ACCESS_PRIVATE;
-      c->initializer = gfc_int_expr (0);
-
-      /* Add component '$size'.  */
-      if (gfc_add_component (fclass, "$size", &c) == FAILURE)
-   	return FAILURE;
-      c->ts.type = BT_INTEGER;
-      c->ts.kind = 4;
-      c->attr.access = ACCESS_PRIVATE;
-      c->initializer = gfc_int_expr (0);
-    }
-
-  fclass->attr.extension = 1;
-  fclass->attr.is_class = 1;
-  ts->u.derived = fclass;
-  attr->allocatable = attr->pointer = attr->dimension = 0;
-  (*as) = NULL;  /* XXX */
-  return SUCCESS;
-}
 
 /* Function called by variable_decl() that adds a name to the symbol table.  */
 
@@ -1185,7 +1103,7 @@ build_sym (const char *name, gfc_charlen *cl,
       sym->attr.class_ok = (sym->attr.dummy
 			      || sym->attr.pointer
 			      || sym->attr.allocatable) ? 1 : 0;
-      encapsulate_class_symbol (&sym->ts, &sym->attr, &sym->as);
+      gfc_build_class_symbol (&sym->ts, &sym->attr, &sym->as);
     }
 
   return SUCCESS;
@@ -1594,7 +1512,7 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 
 scalar:
   if (c->ts.type == BT_CLASS)
-    encapsulate_class_symbol (&c->ts, &c->attr, &c->as);
+    gfc_build_class_symbol (&c->ts, &c->attr, &c->as);
 
   return t;
 }
@@ -1656,12 +1574,10 @@ variable_decl (int elem)
   match m;
   gfc_try t;
   gfc_symbol *sym;
-  locus old_locus;
 
   initializer = NULL;
   as = NULL;
   cp_as = NULL;
-  old_locus = gfc_current_locus;
 
   /* When we get here, we've just matched a list of attributes and
      maybe a type and a double colon.  The next thing we expect to see
@@ -1865,7 +1781,7 @@ variable_decl (int elem)
 	      m = MATCH_ERROR;
 	    }
 
-	  if (gfc_pure (NULL))
+	  if (gfc_pure (NULL) && gfc_state_stack->state != COMP_DERIVED)
 	    {
 	      gfc_error ("Initialization of pointer at %C is not allowed in "
 			 "a PURE procedure");
@@ -1893,7 +1809,8 @@ variable_decl (int elem)
 	      m = MATCH_ERROR;
 	    }
 
-	  if (current_attr.flavor != FL_PARAMETER && gfc_pure (NULL))
+	  if (current_attr.flavor != FL_PARAMETER && gfc_pure (NULL)
+	      && gfc_state_stack->state != COMP_DERIVED)
 	    {
 	      gfc_error ("Initialization of variable at %C is not allowed in "
 			 "a PURE procedure");
@@ -2903,7 +2820,7 @@ match_attr_spec (void)
     DECL_IN, DECL_OUT, DECL_INOUT, DECL_INTRINSIC, DECL_OPTIONAL,
     DECL_PARAMETER, DECL_POINTER, DECL_PROTECTED, DECL_PRIVATE,
     DECL_PUBLIC, DECL_SAVE, DECL_TARGET, DECL_VALUE, DECL_VOLATILE,
-    DECL_IS_BIND_C, DECL_NONE,
+    DECL_IS_BIND_C, DECL_ASYNCHRONOUS, DECL_NONE,
     GFC_DECL_END /* Sentinel */
   }
   decl_types;
@@ -2948,9 +2865,25 @@ match_attr_spec (void)
 	  switch (gfc_peek_ascii_char ())
 	    {
 	    case 'a':
-	      if (match_string_p ("allocatable"))
-		d = DECL_ALLOCATABLE;
-	      break;
+	      gfc_next_ascii_char ();
+	      switch (gfc_next_ascii_char ())
+		{
+		case 'l':
+		  if (match_string_p ("locatable"))
+		    {
+		      /* Matched "allocatable".  */
+		      d = DECL_ALLOCATABLE;
+		    }
+		  break;
+
+		case 's':
+		  if (match_string_p ("ynchronous"))
+		    {
+		      /* Matched "asynchronous".  */
+		      d = DECL_ASYNCHRONOUS;
+		    }
+		  break;
+		}
 
 	    case 'b':
 	      /* Try and match the bind(c).  */
@@ -3131,6 +3064,9 @@ match_attr_spec (void)
 	  case DECL_ALLOCATABLE:
 	    attr = "ALLOCATABLE";
 	    break;
+	  case DECL_ASYNCHRONOUS:
+	    attr = "ASYNCHRONOUS";
+	    break;
 	  case DECL_DIMENSION:
 	    attr = "DIMENSION";
 	    break;
@@ -3255,6 +3191,15 @@ match_attr_spec (void)
 	{
 	case DECL_ALLOCATABLE:
 	  t = gfc_add_allocatable (&current_attr, &seen_at[d]);
+	  break;
+
+	case DECL_ASYNCHRONOUS:
+	  if (gfc_notify_std (GFC_STD_F2003,
+			      "Fortran 2003: ASYNCHRONOUS attribute at %C")
+	      == FAILURE)
+	    t = FAILURE;
+	  else
+	    t = gfc_add_asynchronous (&current_attr, NULL, &seen_at[d]);
 	  break;
 
 	case DECL_DIMENSION:
@@ -6569,6 +6514,59 @@ syntax:
 }
 
 
+match
+gfc_match_asynchronous (void)
+{
+  gfc_symbol *sym;
+  match m;
+
+  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ASYNCHRONOUS statement at %C")
+      == FAILURE)
+    return MATCH_ERROR;
+
+  if (gfc_match (" ::") == MATCH_NO && gfc_match_space () == MATCH_NO)
+    {
+      return MATCH_ERROR;
+    }
+
+  if (gfc_match_eos () == MATCH_YES)
+    goto syntax;
+
+  for(;;)
+    {
+      /* ASYNCHRONOUS is special because it can be added to host-associated 
+	 symbols locally.  */
+      m = gfc_match_symbol (&sym, 1);
+      switch (m)
+	{
+	case MATCH_YES:
+	  if (gfc_add_asynchronous (&sym->attr, sym->name, &gfc_current_locus)
+	      == FAILURE)
+	    return MATCH_ERROR;
+	  goto next_item;
+
+	case MATCH_NO:
+	  break;
+
+	case MATCH_ERROR:
+	  return MATCH_ERROR;
+	}
+
+    next_item:
+      if (gfc_match_eos () == MATCH_YES)
+	break;
+      if (gfc_match_char (',') != MATCH_YES)
+	goto syntax;
+    }
+
+  return MATCH_YES;
+
+syntax:
+  gfc_error ("Syntax error in ASYNCHRONOUS statement at %C");
+  return MATCH_ERROR;
+}
+
+
 /* Match a module procedure statement.  Note that we have to modify
    symbols in the parent's namespace because the current one was there
    to receive symbols that are in an interface's formal argument list.  */
@@ -6928,13 +6926,23 @@ gfc_match_derived_decl (void)
 
       /* Add the extended derived type as the first component.  */
       gfc_add_component (sym, parent, &p);
-      sym->attr.extension = attr.extension;
       extended->refs++;
       gfc_set_sym_referenced (extended);
 
       p->ts.type = BT_DERIVED;
       p->ts.u.derived = extended;
       p->initializer = gfc_default_initializer (&p->ts);
+      
+      /* Set extension level.  */
+      if (extended->attr.extension == 255)
+	{
+	  /* Since the extension field is 8 bit wide, we can only have
+	     up to 255 extension levels.  */
+	  gfc_error ("Maximum extension level reached with type '%s' at %L",
+		     extended->name, &extended->declared_at);
+	  return MATCH_ERROR;
+	}
+      sym->attr.extension = extended->attr.extension + 1;
 
       /* Provide the links between the extended type and its extension.  */
       if (!extended->f2k_derived)
@@ -6943,9 +6951,9 @@ gfc_match_derived_decl (void)
       st->n.sym = sym;
     }
 
-  if (!sym->vindex)
-    /* Set the vindex for this type.  */
-    sym->vindex = hash_value (sym);
+  if (!sym->hash_value)
+    /* Set the hash for the compound name for this type.  */
+    sym->hash_value = hash_value (sym);
 
   /* Take over the ABSTRACT attribute.  */
   sym->attr.abstract = attr.abstract;

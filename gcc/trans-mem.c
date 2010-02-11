@@ -3837,7 +3837,9 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
 
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 
-  cgraph_create_edge (node, cgraph_node (gettm_fn), g, 0, 0, 0);
+  cgraph_create_edge (node, cgraph_node (gettm_fn), g, 0,
+		      compute_call_stmt_bb_frequency (node->decl,
+						      gimple_bb(g)), 0);
 
   /* Cast return value from tm_gettmclone* into appropriate function
      pointer.  */

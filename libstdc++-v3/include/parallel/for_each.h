@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -42,12 +42,12 @@
 
 namespace __gnu_parallel
 {
-  /** @brief Chose the desired algorithm by evaluating @__c __parallelism_tag.
+  /** @brief Chose the desired algorithm by evaluating @c __parallelism_tag.
    *  @param __begin Begin iterator of input sequence.
    *  @param __end End iterator of input sequence.
    *  @param __user_op A user-specified functor (comparator, predicate,
    *  associative operator,...)
-   *  @param __functionality functor to "process" an element with
+   *  @param __functionality functor to @a process an element with
    *  __user_op (depends on desired functionality, e. g. accumulate,
    *  for_each,...
    *  @param __reduction Reduction functor.
@@ -69,31 +69,21 @@ namespace __gnu_parallel
                                       _Parallelism __parallelism_tag)
     {
       if (__parallelism_tag == parallel_unbalanced)
-        return __for_each_template_random_access_ed(__begin, __end, __user_op,
-                                                  __functionality, __reduction,
-                                                  __reduction_start,
-                                                  __output, __bound);
+        return __for_each_template_random_access_ed
+	  (__begin, __end, __user_op, __functionality, __reduction,
+	   __reduction_start, __output, __bound);
       else if (__parallelism_tag == parallel_omp_loop)
-        return __for_each_template_random_access_omp_loop(
-                                                  __begin, __end, __user_op,
-                                                  __functionality,
-                                                  __reduction,
-                                                  __reduction_start,
-                                                  __output, __bound);
+        return __for_each_template_random_access_omp_loop
+	  (__begin, __end, __user_op, __functionality, __reduction,
+	   __reduction_start, __output, __bound);
       else if (__parallelism_tag == parallel_omp_loop_static)
-        return __for_each_template_random_access_omp_loop(
-                                                  __begin, __end, __user_op,
-                                                  __functionality,
-                                                  __reduction,
-                                                  __reduction_start,
-                                                  __output, __bound);
+        return __for_each_template_random_access_omp_loop
+	  (__begin, __end, __user_op, __functionality, __reduction,
+	   __reduction_start, __output, __bound);
       else      //e. g. parallel_balanced
-        return __for_each_template_random_access_workstealing(__begin, __end,
-                                                            __user_op,
-                                                            __functionality,
-                                                            __reduction,
-                                                            __reduction_start,
-                                                            __output, __bound);
+        return __for_each_template_random_access_workstealing
+	  (__begin, __end, __user_op, __functionality, __reduction,
+	   __reduction_start, __output, __bound);
   }
 }
 

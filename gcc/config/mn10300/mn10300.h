@@ -130,6 +130,7 @@ extern enum processor_type mn10300_processor;
 #define LAST_EXTENDED_REGNUM 17
 #define FIRST_FP_REGNUM 18
 #define LAST_FP_REGNUM 49
+#define FIRST_ARGUMENT_REGNUM 0
 
 /* Specify the registers used for certain standard purposes.
    The values of these macros are register numbers.  */
@@ -511,9 +512,9 @@ enum reg_class {
 #define STACK_POINTER_OFFSET 4
 
 /* 1 if N is a possible register number for function argument passing.
-   On the MN10300, no registers are used in this way.  */
+   On the MN10300, d0 and d1 are used in this way.  */
 
-#define FUNCTION_ARG_REGNO_P(N) ((N) <= 1)
+#define FUNCTION_ARG_REGNO_P(N) ((N) <= 2)
 
 
 /* Define a data type for recording info about an argument list
@@ -559,30 +560,10 @@ struct cum_arg {int nbytes; };
    NAMED is nonzero if this argument is a named parameter
     (otherwise it is an extra parameter matching an ellipsis).  */
 
-/* On the MN10300 all args are pushed.  */
-
 #define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
   function_arg (&CUM, MODE, TYPE, NAMED)
 
-/* Define how to find the value returned by a function.
-   VALTYPE is the data type of the value (as a tree).
-   If the precise function being called is known, FUNC is its FUNCTION_DECL;
-   otherwise, FUNC is 0.  */
-
-#define FUNCTION_VALUE(VALTYPE, FUNC) \
-  mn10300_function_value (VALTYPE, FUNC, 0)
-#define FUNCTION_OUTGOING_VALUE(VALTYPE, FUNC) \
-  mn10300_function_value (VALTYPE, FUNC, 1)
-
-/* Define how to find the value returned by a library function
-   assuming the value has mode MODE.  */
-
-#define LIBCALL_VALUE(MODE) gen_rtx_REG (MODE, FIRST_DATA_REGNUM)
-
-/* 1 if N is a possible register number for a function value.  */
-
-#define FUNCTION_VALUE_REGNO_P(N) \
-  ((N) == FIRST_DATA_REGNUM || (N) == FIRST_ADDRESS_REGNUM)
+#define FUNCTION_VALUE_REGNO_P(N)  mn10300_function_value_regno_p (N)
 
 #define DEFAULT_PCC_STRUCT_RETURN 0
 
@@ -618,10 +599,6 @@ struct cum_arg {int nbytes; };
    ? gen_rtx_MEM (Pmode, arg_pointer_rtx) \
    : (rtx) 0)
 
-/* 1 if X is an rtx for a constant that is a valid address.  */
-
-#define CONSTANT_ADDRESS_P(X)   (CONSTANT_P (X) && GET_CODE (X) != CONST_DOUBLE)
-
 /* Maximum number of registers that can appear in a valid memory address.  */
 
 #define MAX_REGS_PER_ADDRESS 2

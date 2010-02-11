@@ -355,13 +355,17 @@ add_inter_loop_mem_dep (ddg_ptr g, ddg_node_ptr from, ddg_node_ptr to)
   if (!insn_alias_sets_conflict_p (from->insn, to->insn))
     /* Do not create edge if memory references have disjoint alias sets.  */
     return;
-    
+
   if (mem_write_insn_p (from->insn))
     {
       if (mem_read_insn_p (to->insn))
-  	create_ddg_dep_no_link (g, from, to, TRUE_DEP, MEM_DEP, 1);
+  	create_ddg_dep_no_link (g, from, to,
+				DEBUG_INSN_P (to->insn)
+				? ANTI_DEP : TRUE_DEP, MEM_DEP, 1);
       else if (from->cuid != to->cuid)
-  	create_ddg_dep_no_link (g, from, to, OUTPUT_DEP, MEM_DEP, 1);
+  	create_ddg_dep_no_link (g, from, to,
+				DEBUG_INSN_P (to->insn)
+				? ANTI_DEP : OUTPUT_DEP, MEM_DEP, 1);
     }
   else
     {
@@ -369,8 +373,11 @@ add_inter_loop_mem_dep (ddg_ptr g, ddg_node_ptr from, ddg_node_ptr to)
 	return;
       else if (from->cuid != to->cuid)
 	{
-  	  create_ddg_dep_no_link (g, from, to, ANTI_DEP, MEM_DEP, 1);
-  	  create_ddg_dep_no_link (g, to, from, TRUE_DEP, MEM_DEP, 1);
+	  create_ddg_dep_no_link (g, from, to, ANTI_DEP, MEM_DEP, 1);
+	  if (DEBUG_INSN_P (from->insn) || DEBUG_INSN_P (to->insn))
+	    create_ddg_dep_no_link (g, to, from, ANTI_DEP, MEM_DEP, 1);
+	  else
+	    create_ddg_dep_no_link (g, to, from, TRUE_DEP, MEM_DEP, 1);
 	}
     }
 
@@ -388,7 +395,7 @@ build_intra_loop_deps (ddg_ptr g)
 
   /* Build the dependence information, using the sched_analyze function.  */
   init_deps_global ();
-  init_deps (&tmp_deps);
+  init_deps (&tmp_deps, false);
 
   /* Do the intra-block data dependence analysis for the given block.  */
   get_ebb_head_tail (g->bb, g->bb, &head, &tail);
@@ -523,10 +530,10 @@ create_ddg (basic_block bb, int closing_branch_deps)
       g->nodes[i++].insn = insn;
       first_note = NULL_RTX;
     }
-  
+
   /* We must have found a branch in DDG.  */
   gcc_assert (g->closing_branch);
-  
+
 
   /* Build the data dependency graph.  */
   build_intra_loop_deps (g);
@@ -869,9 +876,9 @@ static int
 compare_sccs (const void *s1, const void *s2)
 {
   const int rec_l1 = (*(const ddg_scc_ptr *)s1)->recurrence_length;
-  const int rec_l2 = (*(const ddg_scc_ptr *)s2)->recurrence_length; 
+  const int rec_l2 = (*(const ddg_scc_ptr *)s2)->recurrence_length;
   return ((rec_l2 > rec_l1) - (rec_l2 < rec_l1));
-	  
+
 }
 
 /* Order the backarcs in descending recMII order using compare_sccs.  */

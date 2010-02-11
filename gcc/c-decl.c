@@ -1,6 +1,6 @@
 /* Process declarations and variables for C compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1102,7 +1102,7 @@ pop_scope (void)
 	      error ("label %q+D used but not defined", p);
 	      DECL_INITIAL (p) = error_mark_node;
 	    }
-	  else 
+	  else
 	    warn_for_unused_label (p);
 
 	  /* Labels go in BLOCK_VARS.  */
@@ -1897,7 +1897,7 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 	    }
 	  else if (warn_traditional)
 	    {
-	      warned |= warning (OPT_Wtraditional, 
+	      warned |= warning (OPT_Wtraditional,
 				 "non-static declaration of %q+D "
 				 "follows static declaration", newdecl);
 	    }
@@ -1975,7 +1975,7 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 		}
 	      else if (warn_traditional)
 		{
-		  warned |= warning (OPT_Wtraditional, 
+		  warned |= warning (OPT_Wtraditional,
 				     "non-static declaration of %q+D "
 				     "follows static declaration", newdecl);
 		}
@@ -2046,14 +2046,14 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
       if (DECL_DECLARED_INLINE_P (newdecl)
 	  && lookup_attribute ("noinline", DECL_ATTRIBUTES (olddecl)))
 	{
-	  warned |= warning (OPT_Wattributes, 
+	  warned |= warning (OPT_Wattributes,
 			     "inline declaration of %qD follows "
 			     "declaration with attribute noinline", newdecl);
 	}
       else if (DECL_DECLARED_INLINE_P (olddecl)
 	       && lookup_attribute ("noinline", DECL_ATTRIBUTES (newdecl)))
 	{
-	  warned |= warning (OPT_Wattributes, 
+	  warned |= warning (OPT_Wattributes,
 			     "declaration of %q+D with attribute "
 			     "noinline follows inline declaration ", newdecl);
 	}
@@ -2812,8 +2812,8 @@ implicit_decl_warning (tree id, tree olddecl)
       if (flag_isoc99)
 	warned = pedwarn (input_location, OPT_Wimplicit_function_declaration,
 			  "implicit declaration of function %qE", id);
-      else 
-	warned = warning (OPT_Wimplicit_function_declaration, 
+      else
+	warned = warning (OPT_Wimplicit_function_declaration,
 			  G_("implicit declaration of function %qE"), id);
       if (olddecl && warned)
 	locate_old_decl (olddecl);
@@ -3497,10 +3497,10 @@ c_make_fname_decl (location_t loc, tree id, int type_dep)
 
   if (current_function_decl
       /* For invalid programs like this:
-        
+
          void foo()
          const char* p = __FUNCTION__;
-        
+
 	 the __FUNCTION__ is believed to appear in K&R style function
 	 parameter declarator.  In that case we still don't have
 	 function_scope.  */
@@ -4570,14 +4570,26 @@ check_bitfield_type_and_width (tree *type, tree *width, tree orig_name)
 
   /* Detect and ignore out of range field width and process valid
      field widths.  */
-  if (!INTEGRAL_TYPE_P (TREE_TYPE (*width))
-      || TREE_CODE (*width) != INTEGER_CST)
+  if (!INTEGRAL_TYPE_P (TREE_TYPE (*width)))
     {
       error ("bit-field %qs width not an integer constant", name);
       *width = integer_one_node;
     }
   else
     {
+      if (TREE_CODE (*width) != INTEGER_CST)
+	{
+	  *width = c_fully_fold (*width, false, NULL);
+	  if (TREE_CODE (*width) == INTEGER_CST)
+	    pedwarn (input_location, OPT_pedantic,
+		     "bit-field %qs width not an integer constant expression",
+		     name);
+	}
+      if (TREE_CODE (*width) != INTEGER_CST)
+	{
+	  error ("bit-field %qs width not an integer constant", name);
+	  *width = integer_one_node;
+	}
       constant_expression_warning (*width);
       if (tree_int_cst_sgn (*width) < 0)
 	{
@@ -4653,7 +4665,7 @@ warn_variable_length_array (tree name, tree size)
 	}
       else
 	{
-	  if (name) 
+	  if (name)
 	    pedwarn (input_location, OPT_Wvla,
 		     "ISO C90 forbids variable length array %qE",
 		     name);
@@ -4880,11 +4892,11 @@ grokdeclarator (const struct c_declarator *declarator,
       else
 	{
 	  if (name)
-	    pedwarn_c99 (loc, flag_isoc99 ? 0 : OPT_Wimplicit_int, 
+	    pedwarn_c99 (loc, flag_isoc99 ? 0 : OPT_Wimplicit_int,
 			 "type defaults to %<int%> in declaration of %qE",
 			 name);
 	  else
-	    pedwarn_c99 (input_location, flag_isoc99 ? 0 : OPT_Wimplicit_int, 
+	    pedwarn_c99 (input_location, flag_isoc99 ? 0 : OPT_Wimplicit_int,
 			 "type defaults to %<int%> in type name");
 	}
     }
@@ -4946,8 +4958,8 @@ grokdeclarator (const struct c_declarator *declarator,
 	  || storage_class == csc_typedef))
     {
       if (storage_class == csc_auto)
-	pedwarn (loc, 
-		 (current_scope == file_scope) ? 0 : OPT_pedantic, 
+	pedwarn (loc,
+		 (current_scope == file_scope) ? 0 : OPT_pedantic,
 		 "function definition declared %<auto%>");
       if (storage_class == csc_register)
 	error_at (loc, "function definition declared %<register%>");
@@ -5382,6 +5394,7 @@ grokdeclarator (const struct c_declarator *declarator,
 		    gcc_assert (itype);
 		    TYPE_SIZE (type) = bitsize_zero_node;
 		    TYPE_SIZE_UNIT (type) = size_zero_node;
+		    SET_TYPE_STRUCTURAL_EQUALITY (type);
 		  }
 		if (array_parm_vla_unspec_p)
 		  {
@@ -5389,6 +5402,7 @@ grokdeclarator (const struct c_declarator *declarator,
 		    /* The type is complete.  C99 6.7.5.2p4  */
 		    TYPE_SIZE (type) = bitsize_zero_node;
 		    TYPE_SIZE_UNIT (type) = size_zero_node;
+		    SET_TYPE_STRUCTURAL_EQUALITY (type);
 		  }
 	      }
 
@@ -6833,7 +6847,7 @@ finish_struct (location_t loc, tree t, tree fieldlist, tree attributes,
 
       if (pedantic && TREE_CODE (t) == RECORD_TYPE
 	  && flexible_array_type_p (TREE_TYPE (x)))
-	pedwarn (DECL_SOURCE_LOCATION (x), OPT_pedantic, 
+	pedwarn (DECL_SOURCE_LOCATION (x), OPT_pedantic,
 		 "invalid use of structure with flexible array member");
 
       if (DECL_NAME (x))
@@ -6939,10 +6953,10 @@ finish_struct (location_t loc, tree t, tree fieldlist, tree attributes,
   /* If this was supposed to be a transparent union, but we can't
      make it one, warn and turn off the flag.  */
   if (TREE_CODE (t) == UNION_TYPE
-      && TYPE_TRANSPARENT_UNION (t)
+      && TYPE_TRANSPARENT_AGGR (t)
       && (!TYPE_FIELDS (t) || TYPE_MODE (t) != DECL_MODE (TYPE_FIELDS (t))))
     {
-      TYPE_TRANSPARENT_UNION (t) = 0;
+      TYPE_TRANSPARENT_AGGR (t) = 0;
       warning_at (loc, 0, "union cannot be made transparent");
     }
 
@@ -7284,7 +7298,7 @@ build_enumerator (location_t loc,
      (6.4.4.3/2 in the C99 Standard).  GCC allows any integer type as
      an extension.  */
   else if (!int_fits_type_p (value, integer_type_node))
-    pedwarn (loc, OPT_pedantic, 
+    pedwarn (loc, OPT_pedantic,
 	     "ISO C restricts enumerator values to range of %<int%>");
 
   /* The ISO C Standard mandates enumerators to have type int, even
@@ -7396,7 +7410,7 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
     }
 
   if (warn_about_return_type)
-    pedwarn_c99 (loc, flag_isoc99 ? 0 
+    pedwarn_c99 (loc, flag_isoc99 ? 0
 		 : (warn_return_type ? OPT_Wreturn_type : OPT_Wimplicit_int),
 		 "return type defaults to %<int%>");
 
@@ -7693,7 +7707,7 @@ store_parm_decls_oldstyle (tree fndecl, const struct c_arg_info *arg_info)
 	  if (flag_isoc99)
 	    pedwarn (DECL_SOURCE_LOCATION (decl),
 		     0, "type of %qD defaults to %<int%>", decl);
-	  else 
+	  else
 	    warning_at (DECL_SOURCE_LOCATION (decl),
 			OPT_Wmissing_parameter_type,
 			"type of %qD defaults to %<int%>", decl);
@@ -8018,6 +8032,8 @@ finish_function (void)
       && !current_function_returns_value && !current_function_returns_null
       /* Don't complain if we are no-return.  */
       && !current_function_returns_abnormally
+      /* Don't complain if we are declared noreturn.  */
+      && !TREE_THIS_VOLATILE (fndecl)
       /* Don't warn for main().  */
       && !MAIN_NAME_P (DECL_NAME (fndecl))
       /* Or if they didn't actually specify a return type.  */
@@ -8039,7 +8055,7 @@ finish_function (void)
   c_determine_visibility (fndecl);
 
   /* For GNU C extern inline functions disregard inline limits.  */
-  if (DECL_EXTERNAL (fndecl) 
+  if (DECL_EXTERNAL (fndecl)
       && DECL_DECLARED_INLINE_P (fndecl))
     DECL_DISREGARD_INLINE_LIMITS (fndecl) = 1;
 
@@ -8052,6 +8068,7 @@ finish_function (void)
     {
       if (!decl_function_context (fndecl))
 	{
+	  invoke_plugin_callbacks (PLUGIN_PRE_GENERICIZE, fndecl);
 	  c_genericize (fndecl);
 
 	  /* ??? Objc emits functions after finalizing the compilation unit.
@@ -8896,7 +8913,7 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
 	    case RID_DFLOAT32:
 	    case RID_DFLOAT64:
 	    case RID_DFLOAT128:
-	      { 
+	      {
 		const char *str;
 		if (i == RID_DFLOAT32)
 		  str = "_Decimal32";
@@ -9065,7 +9082,7 @@ declspecs_add_scspec (struct c_declspecs *specs, tree scspec)
 	      && C_IS_RESERVED_WORD (scspec));
   i = C_RID_CODE (scspec);
   if (specs->non_sc_seen_p)
-    warning (OPT_Wold_style_declaration, 
+    warning (OPT_Wold_style_declaration,
              "%qE is not at beginning of declaration", scspec);
   switch (i)
     {
@@ -9187,7 +9204,7 @@ finish_declspecs (struct c_declspecs *specs)
       else if (specs->complex_p)
 	{
 	  specs->typespec_word = cts_double;
-	  pedwarn (input_location, OPT_pedantic, 
+	  pedwarn (input_location, OPT_pedantic,
 		   "ISO C does not support plain %<complex%> meaning "
 		   "%<double complex%>");
 	}
@@ -9232,7 +9249,7 @@ finish_declspecs (struct c_declspecs *specs)
 	specs->type = char_type_node;
       if (specs->complex_p)
 	{
-	  pedwarn (input_location, OPT_pedantic, 
+	  pedwarn (input_location, OPT_pedantic,
 		   "ISO C does not support complex integer types");
 	  specs->type = build_complex_type (specs->type);
 	}
@@ -9258,7 +9275,7 @@ finish_declspecs (struct c_declspecs *specs)
 		       : integer_type_node);
       if (specs->complex_p)
 	{
-	  pedwarn (input_location, OPT_pedantic, 
+	  pedwarn (input_location, OPT_pedantic,
 		   "ISO C does not support complex integer types");
 	  specs->type = build_complex_type (specs->type);
 	}

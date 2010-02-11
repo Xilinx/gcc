@@ -194,7 +194,7 @@ init_attributes (void)
 /* Insert a single ATTR into the attribute table.  */
 
 void
-register_attribute (const struct attribute_spec *attr) 
+register_attribute (const struct attribute_spec *attr)
 {
   struct substring str;
   void **slot;

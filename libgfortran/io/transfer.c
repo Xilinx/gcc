@@ -29,6 +29,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* transfer.c -- Top level handling of data transfer statements.  */
 
 #include "io.h"
+#include "fbuf.h"
+#include "format.h"
+#include "unix.h"
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -302,7 +305,20 @@ read_sf (st_parameter_dt *dtp, int * length, int no_error)
   if (lorig > *length && !dtp->u.p.sf_seen_eor && !seen_comma)
     {
       if (n > 0 || no_error)
-        dtp->u.p.at_eof = 1;
+        {
+	  if (dtp->u.p.advance_status == ADVANCE_NO)
+	    {
+	      if (dtp->u.p.current_unit->pad_status == PAD_NO)
+	        {
+		  hit_eof (dtp);
+		  return NULL;
+		}
+	      else
+		dtp->u.p.eor_condition = 1;
+	    }
+	  else
+	    dtp->u.p.at_eof = 1;
+	}
       else
         {
           hit_eof (dtp);
@@ -2658,6 +2674,8 @@ skip_record (st_parameter_dt *dtp, ssize_t bytes)
       if (sseek (dtp->u.p.current_unit->s, 
 		 dtp->u.p.current_unit->bytes_left_subrecord, SEEK_CUR) < 0)
 	generate_error (&dtp->common, LIBERROR_OS, NULL);
+
+      dtp->u.p.current_unit->bytes_left_subrecord = 0;
     }
   else
     {			/* Seek by reading data.  */
@@ -2738,7 +2756,7 @@ next_record_r (st_parameter_dt *dtp)
 
     case FORMATTED_DIRECT:
     case UNFORMATTED_DIRECT:
-      skip_record (dtp, 0);
+      skip_record (dtp, dtp->u.p.current_unit->bytes_left);
       break;
 
     case FORMATTED_STREAM:

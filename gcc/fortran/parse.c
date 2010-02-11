@@ -111,7 +111,7 @@ decode_specification_statement (void)
   match ("import", gfc_match_import, ST_IMPORT);
   match ("use", gfc_match_use, ST_USE);
 
-  if (gfc_current_block ()->ts.type != BT_DERIVED)
+  if (gfc_current_block ()->result->ts.type != BT_DERIVED)
     goto end_of_block;
 
   match (NULL, gfc_match_st_function, ST_STATEMENT_FUNCTION);
@@ -129,6 +129,8 @@ decode_specification_statement (void)
     case 'a':
       match ("abstract% interface", gfc_match_abstract_interface,
 	     ST_INTERFACE);
+      match ("allocatable", gfc_match_asynchronous, ST_ATTR_DECL);
+      match ("asynchronous", gfc_match_asynchronous, ST_ATTR_DECL);
       break;
 
     case 'b':
@@ -328,6 +330,7 @@ decode_statement (void)
       match ("allocate", gfc_match_allocate, ST_ALLOCATE);
       match ("allocatable", gfc_match_allocatable, ST_ATTR_DECL);
       match ("assign", gfc_match_assign, ST_LABEL_ASSIGNMENT);
+      match ("asynchronous", gfc_match_asynchronous, ST_ATTR_DECL);
       break;
 
     case 'b':
@@ -1940,7 +1943,6 @@ parse_derived (void)
   int compiling_type, seen_private, seen_sequence, seen_component, error_flag;
   gfc_statement st;
   gfc_state_data s;
-  gfc_symbol *derived_sym = NULL;
   gfc_symbol *sym;
   gfc_component *c;
 
@@ -2061,8 +2063,6 @@ endType:
   /* need to verify that all fields of the derived type are
    * interoperable with C if the type is declared to be bind(c)
    */
-  derived_sym = gfc_current_block();
-
   sym = gfc_current_block ();
   for (c = sym->components; c; c = c->next)
     {
@@ -2343,7 +2343,7 @@ match_deferred_characteristics (gfc_typespec * ts)
     {
       ts->kind = 0;
 
-      if (!ts->u.derived || !ts->u.derived->components)
+      if (!ts->u.derived)
 	m = MATCH_ERROR;
     }
 

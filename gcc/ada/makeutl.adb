@@ -157,6 +157,47 @@ package body Makeutl is
       end if;
    end Add_Linker_Option;
 
+   -------------------------
+   -- Base_Name_Index_For --
+   -------------------------
+
+   function Base_Name_Index_For
+     (Main            : String;
+      Main_Index      : Int;
+      Index_Separator : Character) return File_Name_Type
+   is
+      Result : File_Name_Type;
+
+   begin
+      Name_Len := 0;
+      Add_Str_To_Name_Buffer (Base_Name (Main));
+
+      --  Remove the extension, if any, that is the last part of the base name
+      --  starting with a dot and following some characters.
+
+      for J in reverse 2 .. Name_Len loop
+         if Name_Buffer (J) = '.' then
+            Name_Len := J - 1;
+            exit;
+         end if;
+      end loop;
+
+      --  Add the index info, if index is different from 0
+
+      if Main_Index > 0 then
+         Add_Char_To_Name_Buffer (Index_Separator);
+
+         declare
+            Img : constant String := Main_Index'Img;
+         begin
+            Add_Str_To_Name_Buffer (Img (2 .. Img'Last));
+         end;
+      end if;
+
+      Result := Name_Find;
+      return Result;
+   end Base_Name_Index_For;
+
    ------------------------------
    -- Check_Source_Info_In_ALI --
    ------------------------------
@@ -231,7 +272,7 @@ package body Makeutl is
                   if not Fname.Is_Internal_File_Name (SD.Sfile)
                     or else
                       (Check_Readonly_Files
-                        and then Find_File (SD.Sfile, Osint.Source) = No_File)
+                        and then Full_Source_Name (SD.Sfile) = No_File)
                   then
                      if Verbose_Mode then
                         Write_Line
@@ -328,7 +369,9 @@ package body Makeutl is
             return "";
          end if;
 
-         return Normalize_Pathname (Exec (Exec'First .. Path_Last - 4))
+         return Normalize_Pathname
+                  (Exec (Exec'First .. Path_Last - 4),
+                   Resolve_Links => Opt.Follow_Links_For_Dirs)
            & Directory_Separator;
       end Get_Install_Dir;
 
@@ -597,6 +640,7 @@ package body Makeutl is
 
       type File_And_Loc is record
          File_Name : File_Name_Type;
+         Index     : Int := 0;
          Location  : Source_Ptr := No_Location;
       end record;
 
@@ -621,7 +665,7 @@ package body Makeutl is
          Name_Len := 0;
          Add_Str_To_Name_Buffer (Name);
          Names.Increment_Last;
-         Names.Table (Names.Last) := (Name_Find, No_Location);
+         Names.Table (Names.Last) := (Name_Find, 0, No_Location);
       end Add_Main;
 
       ------------
@@ -633,6 +677,19 @@ package body Makeutl is
          Names.Set_Last (0);
          Mains.Reset;
       end Delete;
+
+      ---------------
+      -- Get_Index --
+      ---------------
+
+      function Get_Index return Int is
+      begin
+         if Current in Names.First .. Names.Last then
+            return Names.Table (Current).Index;
+         else
+            return 0;
+         end if;
+      end Get_Index;
 
       ------------------
       -- Get_Location --
@@ -678,6 +735,17 @@ package body Makeutl is
       begin
          Current := 0;
       end Reset;
+
+      ---------------
+      -- Set_Index --
+      ---------------
+
+      procedure Set_Index (Index : Int) is
+      begin
+         if Names.Last > 0 then
+            Names.Table (Names.Last).Index := Index;
+         end if;
+      end Set_Index;
 
       ------------------
       -- Set_Location --

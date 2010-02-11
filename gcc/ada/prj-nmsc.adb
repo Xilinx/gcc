@@ -655,7 +655,7 @@ package body Prj.Nmsc is
                   Location, Project);
 
                Error_Msg_Name_1 := Project.Name;
-               Error_Msg_Name_2 := Name_Id (Path.Name);
+               Error_Msg_Name_2 := Name_Id (Path.Display_Name);
                Error_Msg
                  (Data.Flags, "\  project %%, %%", Location, Project);
 
@@ -775,6 +775,10 @@ package body Prj.Nmsc is
       if Path /= No_Path_Information then
          Id.Path := Path;
          Source_Paths_Htable.Set (Data.Tree.Source_Paths_HT, Path.Name, Id);
+      end if;
+
+      if Index /= 0 then
+         Project.Has_Multi_Unit_Sources := True;
       end if;
 
       --  Add the source to the language list
@@ -1431,6 +1435,34 @@ package body Prj.Nmsc is
                                 From_List => Element.Value.Values,
                                 In_Tree   => Data.Tree);
 
+                        when Name_Multi_Unit_Switches =>
+                           Put (Into_List =>
+                                  Lang_Index.Config.Multi_Unit_Switches,
+                                From_List => Element.Value.Values,
+                                In_Tree   => Data.Tree);
+
+                        when Name_Multi_Unit_Object_Separator =>
+                           Get_Name_String (Element.Value.Value);
+
+                           if Name_Len /= 1 then
+                              Error_Msg
+                                (Data.Flags,
+                                 "multi-unit object separator must have " &
+                                 "a single character",
+                                 Element.Value.Location, Project);
+
+                           elsif Name_Buffer (1) = ' ' then
+                              Error_Msg
+                                (Data.Flags,
+                                 "multi-unit object separator cannot be " &
+                                 "a space",
+                                 Element.Value.Location, Project);
+
+                           else
+                              Lang_Index.Config.Multi_Unit_Object_Separator :=
+                                Name_Buffer (1);
+                           end if;
+
                         when Name_Path_Syntax =>
                            begin
                               Lang_Index.Config.Path_Syntax :=
@@ -1552,10 +1584,18 @@ package body Prj.Nmsc is
                            Lang_Index.Config.Config_Body :=
                              Element.Value.Value;
 
+                        when Name_Config_Body_File_Name_Index =>
+
+                           --  Attribute Config_Body_File_Name_Index
+                           --     ( < Language > )
+
+                           Lang_Index.Config.Config_Body_Index :=
+                             Element.Value.Value;
+
                         when Name_Config_Body_File_Name_Pattern =>
 
                            --  Attribute Config_Body_File_Name_Pattern
-                           --  (<language>)
+                           --    (<language>)
 
                            Lang_Index.Config.Config_Body_Pattern :=
                              Element.Value.Value;
@@ -1567,10 +1607,18 @@ package body Prj.Nmsc is
                            Lang_Index.Config.Config_Spec :=
                              Element.Value.Value;
 
+                        when Name_Config_Spec_File_Name_Index =>
+
+                           --  Attribute Config_Spec_File_Name_Index
+                           --    ( < Language > )
+
+                           Lang_Index.Config.Config_Spec_Index :=
+                             Element.Value.Value;
+
                         when Name_Config_Spec_File_Name_Pattern =>
 
                            --  Attribute Config_Spec_File_Name_Pattern
-                           --  (<language>)
+                           --    (<language>)
 
                            Lang_Index.Config.Config_Spec_Pattern :=
                              Element.Value.Value;
@@ -2045,6 +2093,22 @@ package body Prj.Nmsc is
                           In_Tree   => Data.Tree);
                   end if;
 
+               elsif Attribute.Name = Name_Run_Path_Origin then
+                  Get_Name_String (Attribute.Value.Value);
+
+                  if Name_Len = 0 then
+                     Error_Msg
+                       (Data.Flags,
+                        "run path origin cannot be empty",
+                        Attribute.Value.Location, Project);
+                  end if;
+
+                  Project.Config.Run_Path_Origin := Attribute.Value.Value;
+
+               elsif Attribute.Name = Name_Library_Install_Name_Option then
+                  Project.Config.Library_Install_Name_Option :=
+                    Attribute.Value.Value;
+
                elsif Attribute.Name = Name_Separate_Run_Path_Options then
                   declare
                      pragma Unsuppress (All_Checks);
@@ -2472,6 +2536,12 @@ package body Prj.Nmsc is
                         Project.Decl.Attributes,
                         Data.Tree);
 
+      Library_Interface : constant Prj.Variable_Value :=
+                            Prj.Util.Value_Of
+                              (Snames.Name_Library_Interface,
+                               Project.Decl.Attributes,
+                               Data.Tree);
+
       List      : String_List_Id;
       Element   : String_Element;
       Name      : File_Name_Type;
@@ -2556,22 +2626,90 @@ package body Prj.Nmsc is
 
          Project.Interfaces_Defined := True;
 
-      elsif Project.Extends /= No_Project then
-         Project.Interfaces_Defined := Project.Extends.Interfaces_Defined;
+      elsif Project.Library and then not Library_Interface.Default then
 
-         if Project.Interfaces_Defined then
-            Iter := For_Each_Source (Data.Tree, Project);
+         --  Set In_Interfaces to False for all sources. It will be set to True
+         --  later for the sources in the Library_Interface list.
+
+         Project_2 := Project;
+         while Project_2 /= No_Project loop
+            Iter := For_Each_Source (Data.Tree, Project_2);
             loop
                Source := Prj.Element (Iter);
                exit when Source = No_Source;
-
-               if not Source.Declared_In_Interfaces then
-                  Source.In_Interfaces := False;
-               end if;
-
+               Source.In_Interfaces := False;
                Next (Iter);
             end loop;
-         end if;
+
+            Project_2 := Project_2.Extends;
+         end loop;
+
+         List := Library_Interface.Values;
+         while List /= Nil_String loop
+            Element := Data.Tree.String_Elements.Table (List);
+            Get_Name_String (Element.Value);
+            To_Lower (Name_Buffer (1 .. Name_Len));
+            Name := Name_Find;
+
+            Project_2 := Project;
+            Big_Loop_2 :
+            while Project_2 /= No_Project loop
+               Iter := For_Each_Source (Data.Tree, Project_2);
+
+               loop
+                  Source := Prj.Element (Iter);
+                  exit when Source = No_Source;
+
+                  if Source.Unit /= No_Unit_Index and then
+                     Source.Unit.Name = Name_Id (Name)
+                  then
+                     if not Source.Locally_Removed then
+                        Source.In_Interfaces := True;
+                        Source.Declared_In_Interfaces := True;
+
+                        Other := Other_Part (Source);
+
+                        if Other /= No_Source then
+                           Other.In_Interfaces := True;
+                           Other.Declared_In_Interfaces := True;
+                        end if;
+
+                        if Current_Verbosity = High then
+                           Write_Str ("   interface: ");
+                           Write_Line (Get_Name_String (Source.Path.Name));
+                        end if;
+                     end if;
+
+                     exit Big_Loop_2;
+                  end if;
+
+                  Next (Iter);
+               end loop;
+
+               Project_2 := Project_2.Extends;
+            end loop Big_Loop_2;
+
+            List := Element.Next;
+         end loop;
+
+         Project.Interfaces_Defined := True;
+
+      elsif Project.Extends /= No_Project
+        and then Project.Extends.Interfaces_Defined
+      then
+         Project.Interfaces_Defined := True;
+
+         Iter := For_Each_Source (Data.Tree, Project);
+         loop
+            Source := Prj.Element (Iter);
+            exit when Source = No_Source;
+
+            if not Source.Declared_In_Interfaces then
+               Source.In_Interfaces := False;
+            end if;
+
+            Next (Iter);
+         end loop;
       end if;
    end Check_Interfaces;
 
@@ -6785,12 +6923,15 @@ package body Prj.Nmsc is
 
                      exit when Last = 0;
 
-                     --  ??? Duplicate system call here, we just did a a
-                     --  similar one. Maybe Ada.Directories would be more
-                     --  appropriate here.
+                     --  In fast project loading mode (without -eL), the user
+                     --  guarantees that no directory has a name which is a
+                     --  valid source name, so we can avoid doing a system call
+                     --  here. This provides a very significant speed up on
+                     --  slow file systems (remote files for instance).
 
-                     if Is_Regular_File
-                          (Source_Directory & Name (1 .. Last))
+                     if not Opt.Follow_Links_For_Files
+                       or else Is_Regular_File
+                                 (Source_Directory & Name (1 .. Last))
                      then
                         if Current_Verbosity = High then
                            Write_Str  ("   Checking ");

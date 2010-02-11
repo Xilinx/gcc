@@ -1,5 +1,5 @@
 /* Intrinsic function resolution.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -106,7 +106,7 @@ resolve_mask_arg (gfc_expr *mask)
 	{
 	  ts.type = BT_LOGICAL;
 	  ts.kind = 1;
-	  gfc_convert_type (mask, &ts, 2);
+	  gfc_convert_type_warn (mask, &ts, 2, 0);
 	}
     }
 }
@@ -702,7 +702,7 @@ gfc_resolve_dot_product (gfc_expr *f, gfc_expr *a, gfc_expr *b)
   temp.value.op.op = INTRINSIC_NONE;
   temp.value.op.op1 = a;
   temp.value.op.op2 = b;
-  gfc_type_convert_binary (&temp);
+  gfc_type_convert_binary (&temp, 1);
   f->ts = temp.ts;
   f->value.function.name
     = gfc_get_string (PREFIX ("dot_product_%c%d"),
@@ -803,6 +803,57 @@ gfc_resolve_exponent (gfc_expr *f, gfc_expr *x)
   f->ts.type = BT_INTEGER;
   f->ts.kind = gfc_default_integer_kind;
   f->value.function.name = gfc_get_string ("__exponent_%d", x->ts.kind);
+}
+
+
+/* Resolve the EXTENDS_TYPE_OF intrinsic function.  */
+
+void
+gfc_resolve_extends_type_of (gfc_expr *f, gfc_expr *a, gfc_expr *mo)
+{
+  gfc_symbol *vtab;
+  gfc_symtree *st;
+
+  /* Prevent double resolution.  */
+  if (f->ts.type == BT_LOGICAL)
+    return;
+
+  /* Replace the first argument with the corresponding vtab.  */
+  if (a->ts.type == BT_CLASS)
+    gfc_add_component_ref (a, "$vptr");
+  else if (a->ts.type == BT_DERIVED)
+    {
+      vtab = gfc_find_derived_vtab (a->ts.u.derived);
+      /* Clear the old expr.  */
+      gfc_free_ref_list (a->ref);
+      memset (a, '\0', sizeof (gfc_expr));
+      /* Construct a new one.  */
+      a->expr_type = EXPR_VARIABLE;
+      st = gfc_find_symtree (vtab->ns->sym_root, vtab->name);
+      a->symtree = st;
+      a->ts = vtab->ts;
+    }
+
+  /* Replace the second argument with the corresponding vtab.  */
+  if (mo->ts.type == BT_CLASS)
+    gfc_add_component_ref (mo, "$vptr");
+  else if (mo->ts.type == BT_DERIVED)
+    {
+      vtab = gfc_find_derived_vtab (mo->ts.u.derived);
+      /* Clear the old expr.  */
+      gfc_free_ref_list (mo->ref);
+      memset (mo, '\0', sizeof (gfc_expr));
+      /* Construct a new one.  */
+      mo->expr_type = EXPR_VARIABLE;
+      st = gfc_find_symtree (vtab->ns->sym_root, vtab->name);
+      mo->symtree = st;
+      mo->ts = vtab->ts;
+    }
+
+  f->ts.type = BT_LOGICAL;
+  f->ts.kind = 4;
+  /* Call library function.  */
+  f->value.function.name = gfc_get_string (PREFIX ("is_extension_of"));
 }
 
 
@@ -1329,7 +1380,7 @@ gfc_resolve_matmul (gfc_expr *f, gfc_expr *a, gfc_expr *b)
       temp.value.op.op = INTRINSIC_NONE;
       temp.value.op.op1 = a;
       temp.value.op.op2 = b;
-      gfc_type_convert_binary (&temp);
+      gfc_type_convert_binary (&temp, 1);
       f->ts = temp.ts;
     }
 
@@ -2573,13 +2624,12 @@ void
 gfc_resolve_alarm_sub (gfc_code *c)
 {
   const char *name;
-  gfc_expr *seconds, *handler, *status;
+  gfc_expr *seconds, *handler;
   gfc_typespec ts;
   gfc_clear_ts (&ts);
 
   seconds = c->ext.actual->expr;
   handler = c->ext.actual->next->expr;
-  status = c->ext.actual->next->next->expr;
   ts.type = BT_INTEGER;
   ts.kind = gfc_c_int_kind;
 
@@ -3261,14 +3311,12 @@ gfc_resolve_fseek_sub (gfc_code *c)
   gfc_expr *unit;
   gfc_expr *offset;
   gfc_expr *whence;
-  gfc_expr *status;
   gfc_typespec ts;
   gfc_clear_ts (&ts);
 
   unit   = c->ext.actual->expr;
   offset = c->ext.actual->next->expr;
   whence = c->ext.actual->next->next->expr;
-  status = c->ext.actual->next->next->next->expr;
 
   if (unit->ts.kind != gfc_c_int_kind)
     {

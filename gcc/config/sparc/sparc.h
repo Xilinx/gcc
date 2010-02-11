@@ -1068,6 +1068,15 @@ enum reg_class { NO_REGS, FPCC_REGS, I64_REGS, GENERAL_REGS, FP_REGS,
    {-1, -1, -1, 0x20},	/* GENERAL_OR_EXTRA_FP_REGS */	\
    {-1, -1, -1, 0x3f}}	/* ALL_REGS */
 
+/* The same information, inverted:
+   Return the class number of the smallest class containing
+   reg number REGNO.  This could be a conditional expression
+   or could index an array.  */
+
+extern enum reg_class sparc_regno_reg_class[FIRST_PSEUDO_REGISTER];
+
+#define REGNO_REG_CLASS(REGNO) sparc_regno_reg_class[(REGNO)]
+
 /* The following macro defines cover classes for Integrated Register
    Allocator.  Cover classes is a set of non-intersected register
    classes covering all hard registers used for register allocation
@@ -1094,15 +1103,6 @@ enum reg_class { NO_REGS, FPCC_REGS, I64_REGS, GENERAL_REGS, FP_REGS,
    && (FROM) == SImode						\
    && GET_MODE_SIZE (FROM) != GET_MODE_SIZE (TO)		\
    ? reg_classes_intersect_p (CLASS, FP_REGS) : 0)
-
-/* The same information, inverted:
-   Return the class number of the smallest class containing
-   reg number REGNO.  This could be a conditional expression
-   or could index an array.  */
-
-extern enum reg_class sparc_regno_reg_class[FIRST_PSEUDO_REGISTER];
-
-#define REGNO_REG_CLASS(REGNO) sparc_regno_reg_class[(REGNO)]
 
 /* This is the order in which to allocate registers normally.
 
@@ -2212,9 +2212,6 @@ extern int sparc_indent_opcode;
 	sparc_indent_opcode = 0;	\
       }					\
   } while (0)
-
-#define SPARC_SYMBOL_REF_TLS_P(RTX) \
-  (GET_CODE (RTX) == SYMBOL_REF && SYMBOL_REF_TLS_MODEL (RTX) != 0)
 
 #define PRINT_OPERAND_PUNCT_VALID_P(CHAR) \
   ((CHAR) == '#' || (CHAR) == '*' || (CHAR) == '('		\

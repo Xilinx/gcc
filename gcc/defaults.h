@@ -460,11 +460,11 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #ifndef DECIMAL32_TYPE_SIZE
 #define DECIMAL32_TYPE_SIZE 32
-#endif 
+#endif
 
-#ifndef DECIMAL64_TYPE_SIZE 
+#ifndef DECIMAL64_TYPE_SIZE
 #define DECIMAL64_TYPE_SIZE 64
-#endif 
+#endif
 
 #ifndef DECIMAL128_TYPE_SIZE
 #define DECIMAL128_TYPE_SIZE 128
@@ -1086,7 +1086,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 /* On most machines, the CFA coincides with the first incoming parm.  */
 #ifndef ARG_POINTER_CFA_OFFSET
-#define ARG_POINTER_CFA_OFFSET(FNDECL) FIRST_PARM_OFFSET (FNDECL)
+#define ARG_POINTER_CFA_OFFSET(FNDECL) \
+  (FIRST_PARM_OFFSET (FNDECL) + crtl->args.pretend_args_size)
 #endif
 
 /* On most machines, we use the CFA as DW_AT_frame_base.  */
@@ -1152,6 +1153,12 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    in recog.c).  */
 #ifndef GO_IF_MODE_DEPENDENT_ADDRESS
 #define GO_IF_MODE_DEPENDENT_ADDRESS(X, WIN)
+#endif
+
+/* For most ports anything that evaluates to a constant symbolic
+   or integer value is acceptable as a constant address.  */
+#ifndef CONSTANT_ADDRESS_P
+#define CONSTANT_ADDRESS_P(X)   (CONSTANT_P (X) && GET_CODE (X) != CONST_DOUBLE)
 #endif
 
 #endif  /* ! GCC_DEFAULTS_H */

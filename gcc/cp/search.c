@@ -63,7 +63,6 @@ static tree dfs_access_in_type (tree, void *);
 static access_kind access_in_type (tree, tree);
 static int protected_accessible_p (tree, tree, tree);
 static int friend_accessible_p (tree, tree, tree);
-static int template_self_reference_p (tree, tree);
 static tree dfs_get_pure_virtuals (tree, void *);
 
 
@@ -214,9 +213,12 @@ lookup_base (tree t, tree base, base_access access, base_kind *kind_ptr)
       t_binfo = TYPE_BINFO (t);
     }
 
-  base = complete_type (TYPE_MAIN_VARIANT (base));
+  base = TYPE_MAIN_VARIANT (base);
 
-  if (t_binfo)
+  /* If BASE is incomplete, it can't be a base of T--and instantiating it
+     might cause an error.  */
+  if (t_binfo && CLASS_TYPE_P (base)
+      && (COMPLETE_TYPE_P (base) || TYPE_BEING_DEFINED (base)))
     {
       struct lookup_base_data_s data;
 
@@ -952,24 +954,6 @@ struct lookup_field_info {
   const char *errstr;
 };
 
-/* Within the scope of a template class, you can refer to the to the
-   current specialization with the name of the template itself.  For
-   example:
-
-     template <typename T> struct S { S* sp; }
-
-   Returns nonzero if DECL is such a declaration in a class TYPE.  */
-
-static int
-template_self_reference_p (tree type, tree decl)
-{
-  return  (CLASSTYPE_USE_TEMPLATE (type)
-	   && PRIMARY_TEMPLATE_P (CLASSTYPE_TI_TEMPLATE (type))
-	   && TREE_CODE (decl) == TYPE_DECL
-	   && DECL_ARTIFICIAL (decl)
-	   && DECL_NAME (decl) == constructor_name (type));
-}
-
 /* Nonzero for a class member means that it is shared between all objects
    of that class.
 
@@ -1088,11 +1072,6 @@ lookup_field_r (tree binfo, void *data)
 	    goto done;
 	}
     }
-
-  /* You must name a template base class with a template-id.  */
-  if (!same_type_p (type, lfi->type)
-      && template_self_reference_p (type, nval))
-    goto done;
 
   /* If the lookup already found a match, and the new value doesn't
      hide the old one, we might have an ambiguity.  */
@@ -2440,10 +2419,13 @@ lookup_conversions_r (tree binfo,
    functions in this node were selected.  This function is effectively
    performing a set of member lookups as lookup_fnfield does, but
    using the type being converted to as the unique key, rather than the
-   field name.  */
+   field name.
+   If LOOKUP_TEMPLATE_CONVS_P is TRUE, the returned TREE_LIST contains
+   the non-hidden user-defined template conversion functions too.  */
 
 tree
-lookup_conversions (tree type)
+lookup_conversions (tree type,
+		    bool lookup_template_convs_p)
 {
   tree convs, tpl_convs;
   tree list = NULL_TREE;
@@ -2469,6 +2451,9 @@ lookup_conversions (tree type)
 	  list = probe;
 	}
     }
+
+  if (lookup_template_convs_p == false)
+    tpl_convs = NULL_TREE;
 
   for (; tpl_convs; tpl_convs = TREE_CHAIN (tpl_convs))
     {

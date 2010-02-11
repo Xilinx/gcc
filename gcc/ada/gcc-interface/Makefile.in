@@ -1,5 +1,5 @@
 # Makefile for GNU Ada Compiler (GNAT).
-#   Copyright (C) 1994-2009 Free Software Foundation, Inc.
+#   Copyright (C) 1994-2010 Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -190,6 +190,11 @@ TOOLSCASE =
 MULTISUBDIR =
 RTSDIR = rts$(subst /,_,$(MULTISUBDIR))
 
+# Link flags used to build gnat tools.  By default we prefer to statically
+# link with libgcc to avoid a dependency on shared libgcc (which is tricky
+# to deal with as it may conflict with the libgcc provided by the system).
+GCC_LINK_FLAGS=-static-libgcc
+
 # End of variables for you to override.
 
 all: all.indirect
@@ -370,18 +375,6 @@ GNATLIB_SHARED = gnatlib
 # default value for gnatmake's target dependent file
 MLIB_TGT = mlib-tgt
 
-# By default, do not distribute prefix.o (in libgccprefix), since it is only
-# needed by external GNAT tools such as gnatdist and Glide.
-# Override this variable on native platforms when needed.
-PREFIX_OBJS =
-
-# To avoid duplicate code, use this variable to set PREFIX_OBJS when needed:
-PREFIX_REAL_OBJS = ../prefix.o \
-  ../../libiberty/concat.o     \
-  ../../libiberty/xmalloc.o    \
-  ../../libiberty/xstrdup.o    \
-  ../../libiberty/xexit.o
-
 # By default, build socket support units. On platforms that do not support
 # sockets, reset this variable to empty and add DUMMY_SOCKETS_TARGET_PAIRS
 # to LIBGNAT_TARGET_PAIRS.
@@ -543,7 +536,7 @@ ifeq ($(strip $(filter-out powerpc% wrs vxworks,$(targ))),)
   EXTRA_LIBGNAT_OBJS+=vx_stack_info.o
 endif
 
-# vxworksae / vxworks 653
+# vxworks 653
 ifeq ($(strip $(filter-out powerpc% wrs vxworksae,$(targ))),)
   # target pairs for vthreads runtime
   LIBGNAT_TARGET_PAIRS = \
@@ -606,8 +599,59 @@ ifeq ($(strip $(filter-out powerpc% wrs vxworksae,$(targ))),)
   endif
 endif
 
-# vxworksae / vxworks 653 for x86 (vxsim)
-ifeq ($(strip $(filter-out %86 wrs vxworksae,$(targ))),)
+# vxworks MILS
+ifeq ($(strip $(filter-out powerpc% wrs vxworksmils,$(targ))),)
+  # target pairs for vthreads runtime
+  LIBGNAT_TARGET_PAIRS = \
+  a-intnam.ads<a-intnam-vxworks.ads \
+  a-numaux.ads<a-numaux-vxworks.ads \
+  g-io.adb<g-io-vxworks-ppc-cert.adb \
+  g-io.ads<g-io-vxworks-ppc-cert.ads \
+  s-inmaop.adb<s-inmaop-posix.adb \
+  s-interr.adb<s-interr-hwint.adb \
+  s-intman.ads<s-intman-vxworks.ads \
+  s-intman.adb<s-intman-vxworks.adb \
+  s-osinte.adb<s-osinte-vxworks.adb \
+  s-osinte.ads<s-osinte-vxworks.ads \
+  s-osprim.adb<s-osprim-vxworks.adb \
+  s-parame.ads<s-parame-ae653.ads \
+  s-parame.adb<s-parame-vxworks.adb \
+  s-stchop.adb<s-stchop-vxworks.adb \
+  s-stchop.ads<s-stchop-limit.ads \
+  s-taprop.adb<s-taprop-vxworks.adb \
+  s-tasinf.ads<s-tasinf-vxworks.ads \
+  s-taspri.ads<s-taspri-vxworks.ads \
+  s-thread.adb<s-thread-ae653.adb \
+  s-tpopsp.adb<s-tpopsp-vxworks.adb \
+  s-vxwork.ads<s-vxwork-ppc.ads \
+  g-trasym.ads<g-trasym-unimplemented.ads \
+  g-trasym.adb<g-trasym-unimplemented.adb \
+  system.ads<system-vxworks-ppc.ads \
+  $(DUMMY_SOCKETS_TARGET_PAIRS)
+
+  TOOLS_TARGET_PAIRS=\
+  mlib-tgt-specific.adb<mlib-tgt-specific-vxworks.adb \
+  indepsw.adb<indepsw-gnu.adb
+
+  EXTRA_GNATRTL_NONTASKING_OBJS=i-vxwork.o i-vxwoio.o s-thread.o s-vxwexc.o
+  EXTRA_GNATRTL_TASKING_OBJS=s-vxwork.o s-vxwext.o
+
+  EXTRA_LIBGNAT_SRCS+=vx_stack_info.c
+  EXTRA_LIBGNAT_OBJS+=vx_stack_info.o
+  GNATRTL_SOCKETS_OBJS =
+
+  ifeq ($(strip $(filter-out yes,$(TRACE))),)
+    LIBGNAT_TARGET_PAIRS += \
+    s-traces.adb<s-traces-default.adb \
+    s-trafor.adb<s-trafor-default.adb \
+    s-trafor.ads<s-trafor-default.ads \
+    s-tratas.adb<s-tratas-default.adb \
+    s-tfsetr.adb<s-tfsetr-vxworks.adb
+  endif
+endif
+
+# vxworksae / vxworks 653 for x86 (vxsim) - ?? vxworksmils not implemented
+ifeq ($(strip $(filter-out %86 wrs vxworksae vxworksmils,$(targ))),)
   # target pairs for kernel + vthreads runtime
   LIBGNAT_TARGET_PAIRS = \
   a-elchha.adb<a-elchha-vxworks-ppc-full.adb \
@@ -630,7 +674,6 @@ ifeq ($(strip $(filter-out %86 wrs vxworksae,$(targ))),)
   s-taprop.adb<s-taprop-vxworks.adb \
   s-tasinf.ads<s-tasinf-vxworks.ads \
   s-taspri.ads<s-taspri-vxworks.ads \
-  s-thread.adb<s-thread-ae653.adb \
   s-tpopsp.adb<s-tpopsp-vxworks.adb \
   s-vxwext.adb<s-vxwext-noints.adb \
   s-vxwext.ads<s-vxwext-vthreads.ads \
@@ -934,7 +977,6 @@ ifeq ($(strip $(filter-out sparc% sun solaris%,$(targ))),)
   SO_OPTS = -Wl,-h,
   GNATLIB_SHARED = gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 
   ifeq ($(strip $(filter-out pthread PTHREAD,$(THREAD_KIND))),)
@@ -993,7 +1035,6 @@ ifeq ($(strip $(filter-out %86 solaris2%,$(arch) $(osys))),)
   SO_OPTS = -Wl,-h,
   GNATLIB_SHARED = gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1065,7 +1106,6 @@ ifeq ($(strip $(filter-out %86 linux%,$(arch) $(osys))),)
 
   GNATLIB_SHARED = gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1094,7 +1134,6 @@ ifeq ($(strip $(filter-out %86 kfreebsd%,$(arch) $(osys))),)
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1123,7 +1162,6 @@ ifeq ($(strip $(filter-out x86_64 kfreebsd%,$(arch) $(osys))),)
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1150,7 +1188,6 @@ ifeq ($(strip $(filter-out %86 freebsd%,$(arch) $(osys))),)
   EH_MECHANISM=-gcc
   THREADSLIB= -lpthread
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1198,7 +1235,6 @@ ifeq ($(strip $(filter-out s390% linux%,$(arch) $(osys))),)
   EH_MECHANISM=-gcc
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1248,7 +1284,6 @@ ifeq ($(strip $(filter-out mips sgi irix%,$(targ))),)
   TOOLS_TARGET_PAIRS = mlib-tgt-specific.adb<mlib-tgt-specific-irix.adb
   TGT_LIB = -lexc
   MISCLIB = -lexc
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
   GMEM_LIB = gmemlib
 endif
@@ -1270,7 +1305,6 @@ ifeq ($(strip $(filter-out hppa% hp hpux10%,$(targ))),)
   system.ads<system-hpux.ads
 
   EH_MECHANISM=-gcc
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
 endif
 
 ifeq ($(strip $(filter-out hppa% hp hpux11%,$(targ))),)
@@ -1295,7 +1329,6 @@ ifeq ($(strip $(filter-out hppa% hp hpux11%,$(targ))),)
   GMEM_LIB = gmemlib
   soext = .sl
   SO_OPTS = -Wl,+h,
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   GNATLIB_SHARED = gnatlib-shared-dual
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
@@ -1330,7 +1363,6 @@ ifeq ($(strip $(filter-out ibm aix%,$(manu) $(osys))),)
   endif
 
   THREADSLIB = -lpthreads
-  PREFIX_OBJS=$(PREFIX_REAL_OBJS)
 
   TOOLS_TARGET_PAIRS = \
   mlib-tgt-specific.adb<mlib-tgt-specific-aix.adb \
@@ -1364,7 +1396,6 @@ ifeq ($(strip $(filter-out lynxos,$(osys))),)
     g-trasym.adb<g-trasym-unimplemented.adb \
     system.ads<system-lynxos-x86.ads
 
-    PREFIX_OBJS=$(PREFIX_REAL_OBJS)
 
   else
     LIBGNAT_TARGET_PAIRS = \
@@ -1425,7 +1456,6 @@ ifeq ($(strip $(filter-out alpha% dec osf%,$(targ))),)
   EH_MECHANISM=-gcc
   GMEM_LIB=gmemlib
   THREADSLIB = -lpthread -lmach -lexc -lrt
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   GNATLIB_SHARED = gnatlib-shared-default
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
@@ -1503,7 +1533,6 @@ ifeq ($(strip $(filter-out alpha64 ia64 dec hp vms% openvms% alphavms%,$(targ)))
     i-cstrea.adb<i-cstrea-vms.adb \
     memtrack.adb<memtrack-vms_64.adb \
     s-auxdec.ads<s-auxdec-vms_64.ads \
-    s-crtl.ads<s-crtl-vms_64.ads \
     s-inmaop.adb<s-inmaop-vms.adb \
     s-interr.adb<s-interr-vms.adb \
     s-intman.adb<s-intman-vms.adb \
@@ -1640,7 +1669,6 @@ ifeq ($(strip $(filter-out cygwin32% mingw32% pe,$(osys))),)
   indepsw.adb<indepsw-mingw.adb
 
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   EXTRA_GNATTOOLS = ../../gnatdll$(exeext)
   EXTRA_GNATMAKE_OBJS = mdll.o mdll-utl.o mdll-fil.o
   soext = .dll
@@ -1667,7 +1695,6 @@ ifeq ($(strip $(filter-out mips linux%,$(arch) $(osys))),)
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1710,7 +1737,6 @@ ifeq ($(strip $(filter-out mipsel linux%,$(arch) $(osys))),)
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1753,7 +1779,6 @@ ifeq ($(strip $(filter-out mips64el linux%,$(arch) $(osys))),)
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1814,7 +1839,41 @@ ifeq ($(strip $(filter-out powerpc% linux%,$(arch) $(osys))),)
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
+  LIBRARY_VERSION := $(LIB_VERSION)
+endif
+
+ifeq ($(strip $(filter-out arm% linux-gnueabi,$(arch) $(osys)-$(word 4,$(targ)))),)
+  LIBGNAT_TARGET_PAIRS = \
+  a-intnam.ads<a-intnam-linux.ads \
+  s-inmaop.adb<s-inmaop-posix.adb \
+  s-intman.adb<s-intman-posix.adb \
+  s-linux.ads<s-linux.ads \
+  s-osinte.adb<s-osinte-posix.adb \
+  s-osinte.ads<s-osinte-linux.ads \
+  s-osprim.adb<s-osprim-posix.adb \
+  s-taprop.adb<s-taprop-linux.adb \
+  s-tasinf.ads<s-tasinf-linux.ads \
+  s-tasinf.adb<s-tasinf-linux.adb \
+  s-taspri.ads<s-taspri-posix-noaltstack.ads \
+  s-tpopsp.adb<s-tpopsp-posix-foreign.adb
+
+  ifeq ($(strip $(filter-out arm%b,$(arch))),)
+    LIBGNAT_TARGET_PAIRS += \
+    system.ads<system-linux-armeb.ads
+  else
+    LIBGNAT_TARGET_PAIRS += \
+    system.ads<system-linux-armel.ads
+  endif
+
+  TOOLS_TARGET_PAIRS =  \
+    mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb \
+    indepsw.adb<indepsw-gnu.adb
+
+  EXTRA_GNATRTL_TASKING_OBJS=s-linux.o
+  EH_MECHANISM=
+  THREADSLIB = -lpthread
+  GNATLIB_SHARED = gnatlib-shared-dual
+  GMEM_LIB = gmemlib
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1823,7 +1882,7 @@ ifeq ($(strip $(filter-out sparc% linux%,$(arch) $(osys))),)
   a-intnam.ads<a-intnam-linux.ads \
   s-inmaop.adb<s-inmaop-posix.adb \
   s-intman.adb<s-intman-posix.adb \
-  s-linux.ads<s-linux.ads \
+  s-linux.ads<s-linux-sparc.ads \
   s-osinte.adb<s-osinte-posix.adb \
   s-osinte.ads<s-osinte-linux.ads \
   s-osprim.adb<s-osprim-posix.adb \
@@ -1858,7 +1917,6 @@ ifeq ($(strip $(filter-out sparc% linux%,$(arch) $(osys))),)
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1889,7 +1947,6 @@ ifeq ($(strip $(filter-out hppa% linux%,$(arch) $(osys))),)
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1919,7 +1976,6 @@ ifeq ($(strip $(filter-out sh4% linux%,$(arch) $(osys))),)
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS = $(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1951,7 +2007,6 @@ ifeq ($(strip $(filter-out %ia64 linux%,$(arch) $(osys))),)
   THREADSLIB=-lpthread
   GNATLIB_SHARED=gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS=$(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -1977,7 +2032,6 @@ ifeq ($(strip $(filter-out ia64% hp hpux%,$(targ))),)
   GMEM_LIB = gmemlib
   soext = .sl
   SO_OPTS = -Wl,+h,
-  PREFIX_OBJS=$(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -2008,7 +2062,6 @@ ifeq ($(strip $(filter-out alpha% linux%,$(arch) $(osys))),)
   MISCLIB=
   THREADSLIB=-lpthread
   GNATLIB_SHARED=gnatlib-shared-dual
-  PREFIX_OBJS=$(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -2041,7 +2094,6 @@ ifeq ($(strip $(filter-out %x86_64 linux%,$(arch) $(osys))),)
   THREADSLIB=-lpthread
   GNATLIB_SHARED=gnatlib-shared-dual
   GMEM_LIB = gmemlib
-  PREFIX_OBJS=$(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
 endif
 
@@ -2114,9 +2166,9 @@ ifeq ($(strip $(filter-out darwin%,$(osys))),)
   SO_OPTS = -Wl,-flat_namespace -shared-libgcc
   RANLIB = ranlib -c
   GMEM_LIB = gmemlib
-  PREFIX_OBJS=$(PREFIX_REAL_OBJS)
   LIBRARY_VERSION := $(LIB_VERSION)
   soext = .dylib
+  GCC_LINK_FLAGS=
 endif
 
 ifneq ($(EH_MECHANISM),)
@@ -2146,15 +2198,16 @@ endif
 # while GNATRTL_OBJS lists the object files compiled from Ada sources that
 # go into the directory.  The pthreads emulation is built in the threads
 # subdirectory and copied.
-LIBGNAT_SRCS = adaint.c adaint.h argv.c cio.c cstreams.c \
-  errno.c exit.c cal.c ctrl_c.c env.c env.h arit64.c \
-  raise.h raise.c sysdep.c aux-io.c init.c initialize.c seh_init.c \
-  final.c tracebak.c tb-alvms.c tb-alvxw.c tb-gcc.c expect.c mkdir.c \
-  socket.c gsocket.h targext.c $(EXTRA_LIBGNAT_SRCS)
+LIBGNAT_SRCS = adadecode.c adadecode.h adaint.c adaint.h	\
+  argv.c cio.c cstreams.c errno.c exit.c cal.c ctrl_c.c env.c env.h	\
+  arit64.c raise.h raise.c sysdep.c aux-io.c init.c initialize.c	\
+  seh_init.c final.c tracebak.c tb-alvms.c tb-alvxw.c tb-gcc.c		\
+  expect.c mkdir.c socket.c gsocket.h targext.c $(EXTRA_LIBGNAT_SRCS)
 
-LIBGNAT_OBJS = adaint.o argv.o cio.o cstreams.o ctrl_c.o errno.o exit.o env.o \
-  raise.o sysdep.o aux-io.o init.o initialize.o seh_init.o cal.o arit64.o \
-  final.o tracebak.o expect.o mkdir.o socket.o targext.o $(EXTRA_LIBGNAT_OBJS)
+LIBGNAT_OBJS = adadecode.o adaint.o argv.o cio.o cstreams.o ctrl_c.o	\
+  errno.o exit.o env.o raise.o sysdep.o aux-io.o init.o initialize.o	\
+  seh_init.o cal.o arit64.o final.o tracebak.o expect.o mkdir.o		\
+  socket.o targext.o $(EXTRA_LIBGNAT_OBJS)
 
 # NOTE ??? - when the -I option for compiling Ada code is made to work,
 #  the library installation will change and there will be a
@@ -2183,7 +2236,7 @@ ADA_INCLUDE_SRCS =\
 
 LIBGNAT=../$(RTSDIR)/libgnat.a
 
-GCC_LINK=$(CC) -static-libgcc $(ADA_INCLUDES)
+GCC_LINK=$(CC) $(GCC_LINK_FLAGS) $(ADA_INCLUDES)
 
 # when compiling the tools, the runtime has to be first on the path so that
 # it hides the runtime files lying with the rest of the sources
@@ -2400,11 +2453,6 @@ gnatlib: ../stamp-gnatlib1-$(RTSDIR) ../stamp-gnatlib2-$(RTSDIR)
 	$(RM) $(RTSDIR)/libgnat$(arext) $(RTSDIR)/libgnarl$(arext)
 	$(AR_FOR_TARGET) $(AR_FLAGS) $(RTSDIR)/libgnat$(arext) \
 	   $(addprefix $(RTSDIR)/,$(GNATRTL_NONTASKING_OBJS) $(LIBGNAT_OBJS))
-        ifneq ($(PREFIX_OBJS),)
-		$(AR_FOR_TARGET) $(AR_FLAGS) $(RTSDIR)/libgccprefix$(arext) \
-		  $(PREFIX_OBJS);
-		$(RANLIB_FOR_TARGET) $(RTSDIR)/libgccprefix$(arext)
-        endif
 	$(RANLIB_FOR_TARGET) $(RTSDIR)/libgnat$(arext)
 	$(AR_FOR_TARGET) $(AR_FLAGS) $(RTSDIR)/libgnarl$(arext) \
 	   $(addprefix $(RTSDIR)/,$(GNATRTL_TASKING_OBJS))
@@ -2511,7 +2559,7 @@ gnatlib-shared-win32:
 gnatlib-shared-darwin:
 	$(MAKE) $(FLAGS_TO_PASS) \
 	     GNATLIBFLAGS="$(GNATLIBFLAGS)" \
-	     GNATLIBCFLAGS="$(GNATLIBCFLAGS) $(TARGET_LIBGCC2_CFLAGS) \
+	     GNATLIBCFLAGS="$(GNATLIBCFLAGS) $(TARGET_LIBGCC2_CFLAGS)" \
 	     GNATLIBCFLAGS_FOR_C="$(GNATLIBCFLAGS_FOR_C) -fno-common" \
 	     MULTISUBDIR="$(MULTISUBDIR)" \
 	     THREAD_KIND="$(THREAD_KIND)" \

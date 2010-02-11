@@ -506,7 +506,8 @@ convert_to_reference (tree reftype, tree expr, int convtype,
 tree
 convert_from_reference (tree val)
 {
-  if (TREE_CODE (TREE_TYPE (val)) == REFERENCE_TYPE)
+  if (TREE_TYPE (val)
+      && TREE_CODE (TREE_TYPE (val)) == REFERENCE_TYPE)
     {
       tree t = TREE_TYPE (TREE_TYPE (val));
       tree ref = build1 (INDIRECT_REF, t, val);
@@ -1195,11 +1196,14 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
   if (!TYPE_HAS_CONVERSION (basetype))
     return NULL_TREE;
 
-  for (conv = lookup_conversions (basetype); conv; conv = TREE_CHAIN (conv))
+  for (conv = lookup_conversions (basetype, /*lookup_template_convs_p=*/true);
+       conv;
+       conv = TREE_CHAIN (conv))
     {
       int win = 0;
       tree candidate;
       tree cand = TREE_VALUE (conv);
+      cand = OVL_CURRENT (cand);
 
       if (winner && winner == cand)
 	continue;

@@ -626,6 +626,7 @@ gfc_check_operator_interface (gfc_symbol *sym, gfc_intrinsic_op op,
 	 - Types and kinds do not conform, and
 	 - First argument is of derived type.  */
       if (sym->formal->sym->ts.type != BT_DERIVED
+	  && sym->formal->sym->ts.type != BT_CLASS
 	  && (r1 == 0 || r1 == r2)
 	  && (sym->formal->sym->ts.type == sym->formal->next->sym->ts.type
 	      || (gfc_numeric_ts (&sym->formal->sym->ts)
@@ -954,6 +955,8 @@ gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, const char *name2,
 {
   gfc_formal_arglist *f1, *f2;
 
+  gcc_assert (name2 != NULL);
+
   if (s1->attr.function && (s2->attr.subroutine
       || (!s2->attr.function && s2->ts.type == BT_UNKNOWN
 	  && gfc_get_default_type (name2, s2->ns)->type == BT_UNKNOWN)))
@@ -1125,20 +1128,20 @@ check_interface1 (gfc_interface *p, gfc_interface *q0,
 	if (p->sym->name == q->sym->name && p->sym->module == q->sym->module)
 	  continue;
 
-	if (gfc_compare_interfaces (p->sym, q->sym, NULL, generic_flag, 0,
+	if (gfc_compare_interfaces (p->sym, q->sym, q->sym->name, generic_flag, 0,
 				    NULL, 0))
 	  {
 	    if (referenced)
-	      {
-		gfc_error ("Ambiguous interfaces '%s' and '%s' in %s at %L",
-			   p->sym->name, q->sym->name, interface_name,
-			   &p->where);
-	      }
-
-	    if (!p->sym->attr.use_assoc && q->sym->attr.use_assoc)
+	      gfc_error ("Ambiguous interfaces '%s' and '%s' in %s at %L",
+			 p->sym->name, q->sym->name, interface_name,
+			 &p->where);
+	    else if (!p->sym->attr.use_assoc && q->sym->attr.use_assoc)
 	      gfc_warning ("Ambiguous interfaces '%s' and '%s' in %s at %L",
 			   p->sym->name, q->sym->name, interface_name,
 			   &p->where);
+	    else
+	      gfc_warning ("Although not referenced, '%s' has ambiguous "
+			   "interfaces at %L", interface_name, &p->where);
 	    return 1;
 	  }
       }
@@ -1154,7 +1157,6 @@ static void
 check_sym_interfaces (gfc_symbol *sym)
 {
   char interface_name[100];
-  bool k;
   gfc_interface *p;
 
   if (sym->ns != gfc_current_ns)
@@ -1181,9 +1183,8 @@ check_sym_interfaces (gfc_symbol *sym)
       /* Originally, this test was applied to host interfaces too;
 	 this is incorrect since host associated symbols, from any
 	 source, cannot be ambiguous with local symbols.  */
-      k = sym->attr.referenced || !sym->attr.use_assoc;
-      if (check_interface1 (sym->generic, sym->generic, 1, interface_name, k))
-	sym->attr.ambiguous_interfaces = 1;
+      check_interface1 (sym->generic, sym->generic, 1, interface_name,
+			sym->attr.referenced || !sym->attr.use_assoc);
     }
 }
 
@@ -1448,9 +1449,11 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 
   rank_check = where != NULL && !is_elemental && formal->as
 	       && (formal->as->type == AS_ASSUMED_SHAPE
-		   || formal->as->type == AS_DEFERRED);
+		   || formal->as->type == AS_DEFERRED)
+	       && actual->expr_type != EXPR_NULL;
 
-  if (rank_check || ranks_must_agree || formal->attr.pointer
+  if (rank_check || ranks_must_agree
+      || (formal->attr.pointer && actual->expr_type != EXPR_NULL)
       || (actual->rank != 0 && !(is_elemental || formal->attr.dimension))
       || (actual->rank == 0 && formal->as->type == AS_ASSUMED_SHAPE))
     {
@@ -1492,7 +1495,7 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
       else
 	return 1;
     }
-  else if (ref == NULL)
+  else if (ref == NULL && actual->expr_type != EXPR_NULL)
     {
       if (where)
 	gfc_error ("Rank mismatch in argument '%s' at %L (%d and %d)",
@@ -2379,12 +2382,18 @@ gfc_procedure_use (gfc_symbol *sym, gfc_actual_arglist **ap, locus *where)
 
   /* Warn about calls with an implicit interface.  Special case
      for calling a ISO_C_BINDING becase c_loc and c_funloc
-     are pseudo-unknown.  */
-  if (gfc_option.warn_implicit_interface
-      && sym->attr.if_source == IFSRC_UNKNOWN
-      && ! sym->attr.is_iso_c)
-    gfc_warning ("Procedure '%s' called with an implicit interface at %L",
-		 sym->name, where);
+     are pseudo-unknown.  Additionally, warn about procedures not
+     explicitly declared at all if requested.  */
+  if (sym->attr.if_source == IFSRC_UNKNOWN && ! sym->attr.is_iso_c)
+    {
+      if (gfc_option.warn_implicit_interface)
+	gfc_warning ("Procedure '%s' called with an implicit interface at %L",
+		     sym->name, where);
+      else if (gfc_option.warn_implicit_procedure
+	       && sym->attr.proc == PROC_UNKNOWN)
+	gfc_warning ("Procedure '%s' called at %L is not explicitly declared",
+		     sym->name, where);
+    }
 
   if (sym->attr.if_source == IFSRC_UNKNOWN)
     {
@@ -2573,13 +2582,16 @@ matching_typebound_op (gfc_expr** tb_base,
   gfc_actual_arglist* base;
 
   for (base = args; base; base = base->next)
-    if (base->expr->ts.type == BT_DERIVED)
+    if (base->expr->ts.type == BT_DERIVED || base->expr->ts.type == BT_CLASS)
       {
 	gfc_typebound_proc* tb;
 	gfc_symbol* derived;
 	gfc_try result;
 
-	derived = base->expr->ts.u.derived;
+	if (base->expr->ts.type == BT_CLASS)
+	  derived = base->expr->ts.u.derived->components->ts.u.derived;
+	else
+	  derived = base->expr->ts.u.derived;
 
 	if (op == INTRINSIC_USER)
 	  {
@@ -2836,7 +2848,7 @@ gfc_extend_assign (gfc_code *c, gfc_namespace *ns)
   rhs = c->expr2;
 
   /* Don't allow an intrinsic assignment to be replaced.  */
-  if (lhs->ts.type != BT_DERIVED
+  if (lhs->ts.type != BT_DERIVED && lhs->ts.type != BT_CLASS
       && (rhs->rank == 0 || rhs->rank == lhs->rank)
       && (lhs->ts.type == rhs->ts.type
 	  || (gfc_numeric_ts (&lhs->ts) && gfc_numeric_ts (&rhs->ts))))

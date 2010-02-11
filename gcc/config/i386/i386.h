@@ -55,6 +55,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_FMA	OPTION_ISA_FMA
 #define TARGET_SSE4A	OPTION_ISA_SSE4A
 #define TARGET_FMA4	OPTION_ISA_FMA4
+#define TARGET_XOP	OPTION_ISA_XOP
+#define TARGET_LWP	OPTION_ISA_LWP
 #define TARGET_ROUND	OPTION_ISA_ROUND
 #define TARGET_ABM	OPTION_ISA_ABM
 #define TARGET_POPCNT	OPTION_ISA_POPCNT
@@ -544,8 +546,6 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 %n`-mintel-syntax' is deprecated. Use `-masm=intel' instead.\n} \
 %{msse5:-mavx \
 %n'-msse5' was removed.\n} \
-%{mfused-madd:-mavx \
-%n'-mfused-madd' was removed.\n} \
 %{mno-intel-syntax:-masm=att \
 %n`-mno-intel-syntax' is deprecated. Use `-masm=att' instead.\n}"
 
@@ -706,9 +706,7 @@ enum target_cpu_default
    generate an alternate prologue and epilogue that realigns the
    runtime stack if nessary.  This supports mixing codes that keep a
    4-byte aligned stack, as specified by i386 psABI, with codes that
-   need a 16-byte aligned stack, as required by SSE instructions.  If
-   STACK_REALIGN_DEFAULT is 1 and PREFERRED_STACK_BOUNDARY_DEFAULT is
-   128, stacks for all functions may be realigned.  */
+   need a 16-byte aligned stack, as required by SSE instructions.  */
 #define STACK_REALIGN_DEFAULT 0
 
 /* Boundary (in *bits*) on which the incoming stack is aligned.  */
@@ -1015,7 +1013,8 @@ enum target_cpu_default
    || (MODE) == V2DImode || (MODE) == DFmode)
 
 #define VALID_SSE_REG_MODE(MODE)					\
-  ((MODE) == TImode || (MODE) == V4SFmode || (MODE) == V4SImode		\
+  ((MODE) == V1TImode || (MODE) == TImode				\
+   || (MODE) == V4SFmode || (MODE) == V4SImode				\
    || (MODE) == SFmode || (MODE) == TFmode)
 
 #define VALID_MMX_REG_MODE_3DNOW(MODE) \
@@ -1053,11 +1052,11 @@ enum target_cpu_default
 
 /* Return true for modes passed in SSE registers.  */
 #define SSE_REG_MODE_P(MODE)						\
-  ((MODE) == TImode || (MODE) == V16QImode || (MODE) == TFmode		\
-   || (MODE) == V8HImode || (MODE) == V2DFmode || (MODE) == V2DImode	\
-   || (MODE) == V4SFmode || (MODE) == V4SImode || (MODE) == V32QImode	\
-   || (MODE) == V16HImode || (MODE) == V8SImode || (MODE) == V4DImode	\
-   || (MODE) == V8SFmode || (MODE) == V4DFmode)
+  ((MODE) == V1TImode || (MODE) == TImode || (MODE) == V16QImode	\
+   || (MODE) == TFmode || (MODE) == V8HImode || (MODE) == V2DFmode	\
+   || (MODE) == V2DImode || (MODE) == V4SFmode || (MODE) == V4SImode	\
+   || (MODE) == V32QImode || (MODE) == V16HImode || (MODE) == V8SImode	\
+   || (MODE) == V4DImode || (MODE) == V8SFmode || (MODE) == V4DFmode)
 
 /* Value is 1 if hard register REGNO can hold a value of machine-mode MODE.  */
 

@@ -167,6 +167,7 @@ static enum machine_mode pa_promote_function_mode (const_tree,
 static void pa_asm_trampoline_template (FILE *);
 static void pa_trampoline_init (rtx, tree, rtx);
 static rtx pa_trampoline_adjust_address (rtx);
+static rtx pa_delegitimize_address (rtx);
 
 /* The following extra sections are only used for SOM.  */
 static GTY(()) section *som_readonly_data_section;
@@ -339,6 +340,8 @@ static size_t n_deferred_plabels = 0;
 #define TARGET_TRAMPOLINE_INIT pa_trampoline_init
 #undef TARGET_TRAMPOLINE_ADJUST_ADDRESS
 #define TARGET_TRAMPOLINE_ADJUST_ADDRESS pa_trampoline_adjust_address
+#undef TARGET_DELEGITIMIZE_ADDRESS
+#define TARGET_DELEGITIMIZE_ADDRESS pa_delegitimize_address
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -7504,7 +7507,7 @@ attr_length_call (rtx insn, int sibcall)
     {
       length += 20;
 
-      if (!TARGET_PA_20 && !TARGET_NO_SPACE_REGS && flag_pic)
+      if (!TARGET_PA_20 && !TARGET_NO_SPACE_REGS && (!local_call || flag_pic))
 	length += 8;
     }
 
@@ -7524,7 +7527,7 @@ attr_length_call (rtx insn, int sibcall)
 	  if (!sibcall)
 	    length += 8;
 
-	  if (!TARGET_NO_SPACE_REGS && flag_pic)
+	  if (!TARGET_NO_SPACE_REGS && (!local_call || flag_pic))
 	    length += 8;
 	}
     }
@@ -7721,7 +7724,7 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 		  if (!sibcall && !TARGET_PA_20)
 		    {
 		      output_asm_insn ("{bl|b,l} .+8,%%r2", xoperands);
-		      if (TARGET_NO_SPACE_REGS)
+		      if (TARGET_NO_SPACE_REGS || (local_call && !flag_pic))
 			output_asm_insn ("addi 8,%%r2,%%r2", xoperands);
 		      else
 			output_asm_insn ("addi 16,%%r2,%%r2", xoperands);
@@ -7746,20 +7749,20 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 		}
 	      else
 		{
-		  if (!TARGET_NO_SPACE_REGS && flag_pic)
+		  if (!TARGET_NO_SPACE_REGS && (!local_call || flag_pic))
 		    output_asm_insn ("ldsid (%%r1),%%r31\n\tmtsp %%r31,%%sr0",
 				     xoperands);
 
 		  if (sibcall)
 		    {
-		      if (TARGET_NO_SPACE_REGS || !flag_pic)
+		      if (TARGET_NO_SPACE_REGS || (local_call && !flag_pic))
 			output_asm_insn ("be 0(%%sr4,%%r1)", xoperands);
 		      else
 			output_asm_insn ("be 0(%%sr0,%%r1)", xoperands);
 		    }
 		  else
 		    {
-		      if (TARGET_NO_SPACE_REGS || !flag_pic)
+		      if (TARGET_NO_SPACE_REGS || (local_call && !flag_pic))
 			output_asm_insn ("ble 0(%%sr4,%%r1)", xoperands);
 		      else
 			output_asm_insn ("ble 0(%%sr0,%%r1)", xoperands);
@@ -9993,6 +9996,18 @@ pa_trampoline_adjust_address (rtx addr)
   if (!TARGET_64BIT)
     addr = memory_address (Pmode, plus_constant (addr, 46));
   return addr;
+}
+
+static rtx
+pa_delegitimize_address (rtx orig_x)
+{
+  rtx x = delegitimize_mem_from_attrs (orig_x);
+
+  if (GET_CODE (x) == LO_SUM
+      && GET_CODE (XEXP (x, 1)) == UNSPEC
+      && XINT (XEXP (x, 1), 1) == UNSPEC_DLTIND14R)
+    return gen_const_mem (Pmode, XVECEXP (XEXP (x, 1), 0, 0));
+  return x;
 }
 
 #include "gt-pa.h"

@@ -491,11 +491,13 @@ proc check_profiling_available { test_what } {
 	     || [istarget avr-*-*]
 	     || [istarget bfin-*-*]
 	     || [istarget powerpc-*-eabi*]
+	     || [istarget powerpc-*-elf]
 	     || [istarget cris-*-*]
 	     || [istarget crisv32-*-*]
 	     || [istarget fido-*-elf]
 	     || [istarget h8300-*-*]
-	     || [istarget m32c-*-elf]
+             || [istarget lm32-*-*]
+             || [istarget m32c-*-elf]
 	     || [istarget m68k-*-elf]
 	     || [istarget m68k-*-uclinux*]
 	     || [istarget mep-*-elf]
@@ -2560,7 +2562,9 @@ proc check_effective_target_vect_extract_even_odd { } {
         verbose "check_effective_target_vect_extract_even_odd: using cached result" 2
     } else {
         set et_vect_extract_even_odd_saved 0 
-        if { [istarget powerpc*-*-*]
+        if { [istarget powerpc*-*-*] 
+             || [istarget i?86-*-*]
+             || [istarget x86_64-*-*]
              || [istarget spu-*-*] } {
            set et_vect_extract_even_odd_saved 1
         }
@@ -3134,55 +3138,6 @@ proc check_effective_target_correct_iso_cpp_string_wchar_protos { } {
 proc check_effective_target_lto { } {
     global ENABLE_LTO
     return [info exists ENABLE_LTO]
-}
-
-# Return 1 if the MPC library is integrated with GCC, 0 otherwise.
-
-proc check_effective_target_mpc { } {
-    return [check_no_compiler_messages mpc executable {
-	extern void link_error(void);
-	int main ()
-	{
-	  if (__builtin_csin(0) != 0)
-	    link_error();
-	}
-    }]
-}
-
-# Return 1 if the MPC library with mpc_pow is integrated with GCC, 0 otherwise.
-
-proc check_effective_target_mpc_pow { } {
-    return [check_no_compiler_messages mpc_pow executable {
-	extern void link_error(void);
-	int main ()
-	{
-	  if (__builtin_cpow(1,1) != 1)
-	    link_error();
-	}
-    }]
-}
-
-# Return 1 if the MPC library with "arc" functions is integrated with GCC, 0 otherwise.
-
-proc check_effective_target_mpc_arc { } {
-    return [check_no_compiler_messages mpc_arc executable {
-	extern void link_error(void);
-	int main ()
-	{
-	  if (__builtin_cacos(1) != 0)
-	    link_error();
-	  if (__builtin_casin(0) != 0)
-	    link_error();
-	  if (__builtin_catan(0) != 0)
-	    link_error();
-	  if (__builtin_cacosh(1) != 0)
-	    link_error();
-	  if (__builtin_casinh(0) != 0)
-	    link_error();
-	  if (__builtin_catanh(0) != 0)
-	    link_error();
-	}
-    }]
 }
 
 # Return 1 if the language for the compiler under test is C.

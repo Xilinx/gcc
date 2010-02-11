@@ -78,14 +78,12 @@ static void dump_global_iord (tree);
 static void dump_parameters (tree, int);
 static void dump_exception_spec (tree, int);
 static void dump_template_argument (tree, int);
-static void dump_template_argument_list (tree, tree, int);
+static void dump_template_argument_list (tree, int);
 static void dump_template_parameter (tree, int);
 static void dump_template_bindings (tree, tree, VEC(tree,gc) *);
 static void dump_scope (tree, int);
 static void dump_template_parms (tree, int, int);
-
-static int count_non_default_template_args (tree, tree, int);
-
+static int get_non_default_template_args_count (tree, int);
 static const char *function_category (tree);
 static void maybe_print_instantiation_context (diagnostic_context *);
 static void print_instantiation_full_context (diagnostic_context *);
@@ -147,7 +145,7 @@ static void
 dump_template_argument (tree arg, int flags)
 {
   if (ARGUMENT_PACK_P (arg))
-    dump_template_argument_list (ARGUMENT_PACK_ARGS (arg), NULL_TREE, flags);
+    dump_template_argument_list (ARGUMENT_PACK_ARGS (arg), flags);
   else if (TYPE_P (arg) || TREE_CODE (arg) == TEMPLATE_DECL)
     dump_type (arg, flags & ~TFF_CLASS_KEY_OR_ENUM);
   else
@@ -163,52 +161,29 @@ dump_template_argument (tree arg, int flags)
    match the (optional) default template parameter in PARAMS  */
 
 static int
-count_non_default_template_args (tree args, tree params, int flags)
+get_non_default_template_args_count (tree args, int flags)
 {
-  tree inner_args = INNERMOST_TEMPLATE_ARGS (args);
-  int n = TREE_VEC_LENGTH (inner_args);
-  int last;
+  int n = TREE_VEC_LENGTH (INNERMOST_TEMPLATE_ARGS (args));
 
-  if (params == NULL_TREE
-      /* We use this flag when generating debug information.  We don't
+  if (/* We use this flag when generating debug information.  We don't
 	 want to expand templates at this point, for this may generate
 	 new decls, which gets decl counts out of sync, which may in
 	 turn cause codegen differences between compilations with and
 	 without -g.  */
-      || (flags & TFF_NO_OMIT_DEFAULT_TEMPLATE_ARGUMENTS) != 0
+      (flags & TFF_NO_OMIT_DEFAULT_TEMPLATE_ARGUMENTS) != 0
       || !flag_pretty_templates)
     return n;
 
-  for (last = n - 1; last >= 0; --last)
-    {
-      tree param = TREE_VEC_ELT (params, last);
-      tree def = TREE_PURPOSE (param);
-
-      if (!def)
-        break;
-      if (uses_template_parms (def))
-	{
-	  ++processing_template_decl;
-	  /* This speculative substitution must not cause any classes to be
-	     instantiated that otherwise wouldn't be.  */
-	  def = tsubst_copy_and_build (def, args, tf_no_class_instantiations,
-				       NULL_TREE, false, true);
-	  --processing_template_decl;
-	}
-      if (!cp_tree_equal (TREE_VEC_ELT (inner_args, last), def))
-        break;
-    }
-
-  return last + 1;
+  return GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (INNERMOST_TEMPLATE_ARGS (args));
 }
 
 /* Dump a template-argument-list ARGS (always a TREE_VEC) under control
    of FLAGS.  */
 
 static void
-dump_template_argument_list (tree args, tree parms, int flags)
+dump_template_argument_list (tree args, int flags)
 {
-  int n = count_non_default_template_args (args, parms, flags);
+  int n = get_non_default_template_args_count (args, flags);
   int need_comma = 0;
   int i;
 
@@ -422,7 +397,7 @@ dump_type (tree t, int flags)
 	pp_cxx_cv_qualifier_seq (cxx_pp, t);
 	pp_cxx_tree_identifier (cxx_pp, TYPE_IDENTIFIER (t));
 	pp_cxx_begin_template_argument_list (cxx_pp);
-	dump_template_argument_list (args, NULL_TREE, flags);
+	dump_template_argument_list (args, flags);
 	pp_cxx_end_template_argument_list (cxx_pp);
       }
       break;
@@ -466,8 +441,11 @@ dump_type (tree t, int flags)
       break;
 
     case UNBOUND_CLASS_TEMPLATE:
-      dump_type (TYPE_CONTEXT (t), flags);
-      pp_cxx_colon_colon (cxx_pp);
+      if (! (flags & TFF_UNQUALIFIED_NAME))
+	{
+	  dump_type (TYPE_CONTEXT (t), flags);
+	  pp_cxx_colon_colon (cxx_pp);
+	}
       pp_cxx_ws_string (cxx_pp, "template");
       dump_type (DECL_NAME (TYPE_NAME (t)), flags);
       break;
@@ -565,10 +543,11 @@ dump_aggr_type (tree t, int flags)
     {
       typdef = !DECL_ARTIFICIAL (name);
 
-      if (typdef
-	  && ((flags & TFF_CHASE_TYPEDEF)
-	      || (!flag_pretty_templates && DECL_LANG_SPECIFIC (name)
-		  && DECL_TEMPLATE_INFO (name))))
+      if ((typdef
+	   && ((flags & TFF_CHASE_TYPEDEF)
+	       || (!flag_pretty_templates && DECL_LANG_SPECIFIC (name)
+		   && DECL_TEMPLATE_INFO (name))))
+	  || DECL_SELF_REFERENCE_P (name))
 	{
 	  t = TYPE_MAIN_VARIANT (t);
 	  name = TYPE_NAME (t);
@@ -905,7 +884,8 @@ dump_decl (tree t, int flags)
 	  dump_type (TREE_TYPE (t), flags);
 	  break;
 	}
-      if (flags & TFF_DECL_SPECIFIERS)
+      if ((flags & TFF_DECL_SPECIFIERS)
+	  && !DECL_SELF_REFERENCE_P (t))
 	pp_cxx_ws_string (cxx_pp, "typedef");
       dump_simple_decl (t, DECL_ORIGINAL_TYPE (t)
 			? DECL_ORIGINAL_TYPE (t) : TREE_TYPE (t),
@@ -947,7 +927,9 @@ dump_decl (tree t, int flags)
       break;
 
     case SCOPE_REF:
-      pp_expression (cxx_pp, t);
+      dump_type (TREE_OPERAND (t, 0), flags);
+      pp_string (cxx_pp, "::");
+      dump_decl (TREE_OPERAND (t, 1), flags|TFF_UNQUALIFIED_NAME);
       break;
 
     case ARRAY_REF:
@@ -1034,7 +1016,7 @@ dump_decl (tree t, int flags)
 	dump_decl (name, flags);
 	pp_cxx_begin_template_argument_list (cxx_pp);
 	if (TREE_OPERAND (t, 1))
-	  dump_template_argument_list (TREE_OPERAND (t, 1), NULL_TREE, flags);
+	  dump_template_argument_list (TREE_OPERAND (t, 1), flags);
 	pp_cxx_end_template_argument_list (cxx_pp);
       }
       break;
@@ -1480,12 +1462,7 @@ dump_template_parms (tree info, int primary, int flags)
   if (args && !primary)
     {
       int len, ix;
-      /* We don't know the parms for a friend template specialization.  */
-      tree params = (TREE_CODE (TI_TEMPLATE (info)) == TEMPLATE_DECL
-		     ? DECL_INNERMOST_TEMPLATE_PARMS (TI_TEMPLATE (info))
-		     : NULL_TREE);
-
-      len = count_non_default_template_args (args, params, flags);
+      len = get_non_default_template_args_count (args, flags);
 
       args = INNERMOST_TEMPLATE_ARGS (args);
       for (ix = 0; ix != len; ix++)
@@ -2219,6 +2196,9 @@ dump_expr (tree t, int flags)
       break;
 
     case SCOPE_REF:
+      dump_decl (t, flags);
+      break;
+
     case EXPR_PACK_EXPANSION:
     case TYPEID_EXPR:
     case MEMBER_REF:
@@ -2876,20 +2856,57 @@ cp_printer (pretty_printer *pp, text_info *text, const char *spec,
 
 /* Warn about the use of C++0x features when appropriate.  */
 void
-maybe_warn_cpp0x (const char* str)
+maybe_warn_cpp0x (cpp0x_warn_str str)
 {
   if ((cxx_dialect == cxx98) && !in_system_header)
     /* We really want to suppress this warning in system headers,
        because libstdc++ uses variadic templates even when we aren't
        in C++0x mode. */
-    pedwarn (input_location, 0, "%s only available with -std=c++0x or -std=gnu++0x", str);
+    switch (str)
+      {
+      case CPP0X_INITIALIZER_LISTS:
+	pedwarn (input_location, 0, 
+		 "extended initializer lists "
+		 "only available with -std=c++0x or -std=gnu++0x");
+	break;
+      case CPP0X_EXPLICIT_CONVERSION:
+	pedwarn (input_location, 0,
+		 "explicit conversion operators "
+		 "only available with -std=c++0x or -std=gnu++0x"); 
+	break;
+      case CPP0X_VARIADIC_TEMPLATES:
+	pedwarn (input_location, 0,
+		 "variadic templates "
+		 "only available with -std=c++0x or -std=gnu++0x");
+	break;
+      case CPP0X_LAMBDA_EXPR:
+	pedwarn (input_location, 0,
+		 "lambda expressions "
+		  "only available with -std=c++0x or -std=gnu++0x");
+	break;
+      case CPP0X_AUTO:
+	pedwarn (input_location, 0,
+		 "C++0x auto only available with -std=c++0x or -std=gnu++0x");
+	break;
+      case CPP0X_SCOPED_ENUMS:
+	pedwarn (input_location, 0,
+		 "scoped enums only available with -std=c++0x or -std=gnu++0x");
+	break;
+      case CPP0X_DEFAULTED_DELETED:
+	pedwarn (input_location, 0,
+		 "defaulted and deleted functions "
+		 "only available with -std=c++0x or -std=gnu++0x");
+	break;	
+      default:
+	gcc_unreachable();
+      }
 }
 
 /* Warn about the use of variadic templates when appropriate.  */
 void
 maybe_warn_variadic_templates (void)
 {
-  maybe_warn_cpp0x ("variadic templates");
+  maybe_warn_cpp0x (CPP0X_VARIADIC_TEMPLATES);
 }
 
 

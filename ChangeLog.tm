@@ -1,3 +1,7 @@
+2010-02-10  Aldy Hernandez  <aldyh@redhat.com>
+
+	* Merge from mainline rev 156607.
+
 2009-11-13  Richard Henderson  <rth@redhat.com>
 
 	* Makefile.def (lang_env_dependencies): libitm is c++.

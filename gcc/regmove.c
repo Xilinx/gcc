@@ -306,7 +306,7 @@ optimize_reg_copy_1 (rtx insn, rtx dest, rtx src)
 		  if (sregno < FIRST_PSEUDO_REGISTER
 		      && reg_mentioned_p (dest, PATTERN (q)))
 		    failed = 1;
-		  
+
 		  /* Attempt to replace all uses.  */
 		  else if (!validate_replace_rtx (src, dest, q))
 		    failed = 1;
@@ -527,7 +527,7 @@ optimize_reg_copy_3 (rtx insn, rtx dest, rtx src)
   for (p = PREV_INSN (insn); p && ! reg_set_p (src_reg, p); p = PREV_INSN (p))
     if (INSN_P (p) && BLOCK_FOR_INSN (p) != bb)
       break;
-  
+
   if (! p || BLOCK_FOR_INSN (p) != bb)
     return;
 
@@ -605,8 +605,6 @@ copy_src_to_dest (rtx insn, rtx src, rtx dest)
   rtx *p_move_notes;
   int src_regno;
   int dest_regno;
-  int insn_uid;
-  int move_uid;
 
   /* A REG_LIVE_LENGTH of -1 indicates the register is equivalent to a constant
      or memory location and is used infrequently; a REG_LIVE_LENGTH of -2 is
@@ -661,9 +659,6 @@ copy_src_to_dest (rtx insn, rtx src, rtx dest)
 
       *p_move_notes = NULL_RTX;
       *p_insn_notes = NULL_RTX;
-
-      insn_uid = INSN_UID (insn);
-      move_uid = INSN_UID (move_insn);
 
       /* Update the various register tables.  */
       dest_regno = REGNO (dest);
@@ -933,7 +928,7 @@ regmove_backward_pass (void)
   FOR_EACH_BB_REVERSE (bb)
     {
       /* ??? Use the safe iterator because fixup_match_2 can remove
-	     insns via try_auto_increment.  */ 
+	     insns via try_auto_increment.  */
       FOR_BB_INSNS_REVERSE_SAFE (bb, insn, prev)
 	{
 	  struct match match;

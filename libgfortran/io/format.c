@@ -29,6 +29,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
  * interpretation during I/O statements */
 
 #include "io.h"
+#include "format.h"
 #include <ctype.h>
 #include <string.h>
 #include <stdbool.h>
@@ -129,7 +130,7 @@ reset_fnode_counters (st_parameter_dt *dtp)
   /* Clear this pointer at the head so things start at the right place.  */
   fmt->array.array[0].current = NULL;
 
-  for (f = fmt->last->array[0].u.child; f; f = f->next)
+  for (f = fmt->array.array[0].u.child; f; f = f->next)
     reset_node (f);
 }
 
@@ -1217,6 +1218,8 @@ parse_format (st_parameter_dt *dtp)
   format_data *fmt;
   bool format_cache_ok;
 
+  /* Don't cache for internal units and set an arbitrary limit on the size of
+     format strings we will cache.  (Avoids memory issues.)  */
   format_cache_ok = !is_internal_unit (dtp);
 
   /* Lookup format string to see if it has already been parsed.  */

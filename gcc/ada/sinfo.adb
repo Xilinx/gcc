@@ -1481,6 +1481,14 @@ package body Sinfo is
       return Flag11 (N);
    end Has_Wide_Character;
 
+   function Has_Wide_Wide_Character
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_String_Literal);
+      return Flag13 (N);
+   end Has_Wide_Wide_Character;
+
    function Hidden_By_Use_Clause
      (N : Node_Id) return Elist_Id is
    begin
@@ -1588,7 +1596,7 @@ package body Sinfo is
    begin
       pragma Assert (False
         or else NT (N).Nkind = N_Parameter_Association);
-      return Flag12 (N);
+      return Flag13 (N);
    end Is_Accessibility_Actual;
 
    function Is_Asynchronous_Call_Block
@@ -2249,14 +2257,6 @@ package body Sinfo is
       return Node4 (N);
    end Parent_Spec;
 
-   function PPC_Enabled
-     (N : Node_Id) return Boolean is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Pragma);
-      return Flag5 (N);
-   end PPC_Enabled;
-
    function Position
       (N : Node_Id) return Node_Id is
    begin
@@ -2272,6 +2272,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Pragma);
       return List2 (N);
    end Pragma_Argument_Associations;
+
+   function Pragma_Enabled
+     (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Pragma);
+      return Flag5 (N);
+   end Pragma_Enabled;
 
    function Pragma_Identifier
       (N : Node_Id) return Node_Id is
@@ -2556,6 +2564,7 @@ package body Sinfo is
         or else NT (N).Nkind = N_SCIL_Dispatch_Table_Object_Init
         or else NT (N).Nkind = N_SCIL_Dispatch_Table_Tag_Init
         or else NT (N).Nkind = N_SCIL_Dispatching_Call
+        or else NT (N).Nkind = N_SCIL_Membership_Test
         or else NT (N).Nkind = N_SCIL_Tag_Init);
       return Node4 (N);
    end SCIL_Entity;
@@ -2567,9 +2576,18 @@ package body Sinfo is
         or else NT (N).Nkind = N_SCIL_Dispatch_Table_Object_Init
         or else NT (N).Nkind = N_SCIL_Dispatch_Table_Tag_Init
         or else NT (N).Nkind = N_SCIL_Dispatching_Call
+        or else NT (N).Nkind = N_SCIL_Membership_Test
         or else NT (N).Nkind = N_SCIL_Tag_Init);
       return Node1 (N);
    end SCIL_Related_Node;
+
+   function SCIL_Tag_Value
+      (N : Node_Id) return Node_Id is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_SCIL_Membership_Test);
+      return Node5 (N);
+   end SCIL_Tag_Value;
 
    function SCIL_Target_Prim
       (N : Node_Id) return Node_Id is
@@ -4341,6 +4359,14 @@ package body Sinfo is
       Set_Flag11 (N, Val);
    end Set_Has_Wide_Character;
 
+   procedure Set_Has_Wide_Wide_Character
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_String_Literal);
+      Set_Flag13 (N, Val);
+   end Set_Has_Wide_Wide_Character;
+
    procedure Set_Hidden_By_Use_Clause
      (N : Node_Id; Val : Elist_Id) is
    begin
@@ -4448,7 +4474,7 @@ package body Sinfo is
    begin
       pragma Assert (False
         or else NT (N).Nkind = N_Parameter_Association);
-      Set_Flag12 (N, Val);
+      Set_Flag13 (N, Val);
    end Set_Is_Accessibility_Actual;
 
    procedure Set_Is_Asynchronous_Call_Block
@@ -5109,14 +5135,6 @@ package body Sinfo is
       Set_Node4 (N, Val); -- semantic field, no parent set
    end Set_Parent_Spec;
 
-   procedure Set_PPC_Enabled
-     (N : Node_Id; Val : Boolean := True) is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Pragma);
-      Set_Flag5 (N, Val);
-   end Set_PPC_Enabled;
-
    procedure Set_Position
       (N : Node_Id; Val : Node_Id) is
    begin
@@ -5132,6 +5150,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Pragma);
       Set_List2_With_Parent (N, Val);
    end Set_Pragma_Argument_Associations;
+
+   procedure Set_Pragma_Enabled
+     (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Pragma);
+      Set_Flag5 (N, Val);
+   end Set_Pragma_Enabled;
 
    procedure Set_Pragma_Identifier
       (N : Node_Id; Val : Node_Id) is
@@ -5416,6 +5442,7 @@ package body Sinfo is
         or else NT (N).Nkind = N_SCIL_Dispatch_Table_Object_Init
         or else NT (N).Nkind = N_SCIL_Dispatch_Table_Tag_Init
         or else NT (N).Nkind = N_SCIL_Dispatching_Call
+        or else NT (N).Nkind = N_SCIL_Membership_Test
         or else NT (N).Nkind = N_SCIL_Tag_Init);
       Set_Node4 (N, Val); -- semantic field, no parent set
    end Set_SCIL_Entity;
@@ -5427,9 +5454,18 @@ package body Sinfo is
         or else NT (N).Nkind = N_SCIL_Dispatch_Table_Object_Init
         or else NT (N).Nkind = N_SCIL_Dispatch_Table_Tag_Init
         or else NT (N).Nkind = N_SCIL_Dispatching_Call
+        or else NT (N).Nkind = N_SCIL_Membership_Test
         or else NT (N).Nkind = N_SCIL_Tag_Init);
       Set_Node1 (N, Val); -- semantic field, no parent set
    end Set_SCIL_Related_Node;
+
+   procedure Set_SCIL_Tag_Value
+      (N : Node_Id; Val : Node_Id) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_SCIL_Membership_Test);
+      Set_Node5 (N, Val); -- semantic field, no parent set
+   end Set_SCIL_Tag_Value;
 
    procedure Set_SCIL_Target_Prim
       (N : Node_Id; Val : Node_Id) is
