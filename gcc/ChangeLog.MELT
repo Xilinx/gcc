@@ -1,11 +1,15 @@
 2010-02-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_new_string_raw_len): explicitly clear
+	last byte.
+
+2010-02-11  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* testsuite/melt/tmatch-6.melt: is tested with alternate matching.
 
 	* melt/warmelt-macro.melt: documented assert_msg.
 
 	* melt/warmelt-normatch.melt: more in alternate matching.
-	
+
 	* melt/warmelt-outobj.melt: outcinitfill_objinitclosure correctly
 	fills closures, so letrec works on lambda..
 	the initial_chunk routines are declared with MELT_MODULE_VISIBILITY.

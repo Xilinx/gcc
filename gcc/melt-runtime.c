@@ -4575,6 +4575,7 @@ meltgc_new_string_raw_len (meltobject_ptr_t discr_p, const char *str, int slen)
   strv = meltgc_allocate (sizeof (struct meltstring_st), slen + 1);
   str_strv->discr = obj_discrv;
   memcpy (str_strv->val, str, slen);
+  str_strv->val[slen] = (char)0;
 end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) strv;
