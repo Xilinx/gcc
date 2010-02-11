@@ -269,7 +269,8 @@ graphite_transform_loops (void)
   bb_pbb_mapping = htab_create (10, bb_pbb_map_hash, eq_bb_pbb_map, free);
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
-    build_poly_scop (scop);
+    if (dbg_cnt (graphite_scop))
+      build_poly_scop (scop);
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
     if (POLY_SCOP_P (scop)
