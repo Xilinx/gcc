@@ -1,3 +1,11 @@
+2010-02-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt: assert_msg macro can have no condition
+	to also issue a compile-time warning.
+	class_source_pattern_construct is exported.
+
+	* melt/warmelt-normatch.melt: begin adding alternate matching
+	implementation. Added scan_subpatterns selector & methods.
+
 2010-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* params.def (PARAM_MELT_FULL_THRESHOLD): increased to reduce
 	frequency of full GC.

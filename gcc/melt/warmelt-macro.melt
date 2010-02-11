@@ -4550,11 +4550,14 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
     (if (not (is_string xmsg))
 	(error_plain loc "non string message in (ASSERT_MSG <msg> <test>)"_))
     (setq curpair (pair_tail curpair))
-    (if (not (is_pair curpair))
-	(error_plain loc "missing test in (ASSERT_MSG <msg> <test>)"_))
-    (setq xtest (macroexpand_1 (pair_head curpair) env mexpander))
-    (if (pair_tail curpair)
-	(error_plain loc "extra arg for (ASSERT_MSG <msg> <test>)"_))
+    (cond ( (is_pair curpair)
+	    (if (pair_tail curpair)
+		(error_plain loc "extra arg for (ASSERT_MSG <msg> <test>)"_))
+	    (setq xtest (macroexpand_1 (pair_head curpair) env mexpander)))
+	  (:else
+	   (setq xtest ())
+	   (warning_strv loc "empty ASSERT_MSG" xmsg)
+	   ))
     (let (
 	  (afprim 
 	   (cond 
@@ -5050,7 +5053,8 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
  class_source_pattern_as
  class_source_pattern_c_match
  class_source_pattern_composite
- class_source_pattern_constant
+ class_source_pattern_constant 
+ class_source_pattern_construct
  class_source_pattern_instance
  class_source_pattern_joker_variable
  class_source_pattern_matcher

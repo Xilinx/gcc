@@ -2079,7 +2079,7 @@ scanning variables.}#
          (progn
            (code_chunk 
             uniqcnt 
-            #{  /* normexp_match $UNIQCNT */
+            #{  /* mg_draw_match_graphviz_file $UNIQCNT */
             static long uniqcounter;
             uniqcounter ++;
             $CNT = uniqcounter; 
@@ -2104,7 +2104,7 @@ scanning variables.}#
     (assert_msg "check dotfilename" (is_string dotfilename))
     (code_chunk 
      outputmg
-     #{ /*normexp_match $OUTPUTMG */
+     #{ /* mg_draw_match_graphviz_file $OUTPUTMG */
      time_t nowt = 0;
      char nowbuf[60];
      FILE* dotfil = 
@@ -2458,9 +2458,130 @@ scanning variables.}#
 	 (return clocc nbindmatx)
 	 )))))
 
-
+;;;;
 (install_method class_source_match normal_exp normexp_match)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; A L T E R N A T E     I M P L E M E N T A T I O N
+;;;;                   O F 
+;;;;  P A T T E R N  -  M A T C H I N G    
+;;;;;;;;;;;;;;;;
+(defclass class_matching_context
+  :super class_root
+  :doc #{The $CLASS_MATCHING_CONTEXT is a context for normalization of pattern matching. $MXCT_NORMCTXT is the normalization context. $MXCT_SOURCE is the source matching expression. $MXCT_NMATCHED is the normal matched expression.
+}#
+:fields ( mxct_normctxt
+	  mxct_source
+	  mxct_nmatched
+	  ))
+
+(defselector scan_subpatterns class_selector
+  :doc #{Apply a given function $FUN to the subpatterns of reciever
+  $RECV with extra context $CTX.}#
+  :formals (recv fun ctx)
+)
+
+(defun scansubpat_anyrecv (recv fun ctx)
+  (debug_msg recv "scansubpat_anyrecv recv")
+  (let ( (dis (discrim recv)) )
+    (errormsg_strv "unexpected scan_subpatterns for" (unsafe_get_field :named_name dis))
+    (assert_msg "@$@unexpected scansubpat_anyrecv")
+))
+(install_method discr_any_receiver scan_subpatterns scansubpat_anyrecv)
+
+(defun scansubpat_noop (recv fun ctx)
+  ()
+)
+(install_method class_source_pattern_variable scan_subpatterns scansubpat_noop)
+(install_method class_source_pattern_constant scan_subpatterns scansubpat_noop)
+
+(defun scansubpat_or (recv fun ctx)
+  (let ( (disjtup (unsafe_get_field :orpat_disj recv)) )
+    (foreach_in_multiple
+     (disjtup)
+     (curdisj :long dix)
+     (fun curdisj ctx))))
+(install_method class_source_pattern_or scan_subpatterns scansubpat_or)
+
+(defun scansubpat_and (recv fun ctx)
+  (let ( (conjtup (unsafe_get_field :andpat_conj recv)) )
+    (foreach_in_multiple
+     (conjtup)
+     (curconj :long cix)
+     (fun curconj ctx))))
+(install_method class_source_pattern_and scan_subpatterns scansubpat_and)
+
+(defun scansubpat_as (recv fun ctx)
+  (let ( (asvarpat (unsafe_get_field :aspat_varpat recv))
+	 (assubpat (unsafe_get_field :aspat_subpat recv))
+	 )
+    (fun asvarpat ctx)
+    (fun assubpat ctx)))
+(install_method class_source_pattern_as scan_subpatterns scansubpat_as)
+
+(defun scansubpat_construct (recv fun ctx)
+  (let ( (subpatup (unsafe_get_field :ctpat_subpa recv)) )
+    (foreach_in_multiple
+     (subpatup)
+     (curpa :long pix)
+     (fun curpa ctx))))
+(install_method class_source_pattern_construct scan_subpatterns scansubpat_construct)
+
+(defun scansubpat_object (recv fun ctx)
+  (let ( (patfieltup (unsafe_get_field :spat_fields recv)) )
+    (foreach_in_multiple
+     (patfieltup)
+     (curpatfld :long flix)
+     (if (is_a curpatfld class_source_field_pattern)
+	 (fun (unsafe_get_field :spaf_field curpatfld) ctx)))))
+(install_method class_source_pattern_object scan_subpatterns scansubpat_object)
+
+(defun scansubpat_composite (recv fun ctx)
+  (let ( (outup (unsafe_get_field :spac_outargs recv)) )
+    (foreach_in_multiple
+     (outup)
+     (curout :long oix)
+     (fun curout ctx))))
+(install_method class_source_pattern_construct scan_subpatterns scansubpat_composite)
+
+(defun normexp_altmatch (recv env ncx psloc)
+  (assert_msg "check match recv" (is_a recv class_source_match))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (debug_msg recv "normexp_match recv")
+  (let ( (sloc (unsafe_get_field :loca_location recv))
+	 (smatsx (unsafe_get_field :smat_matchedx recv))
+	 (scases (unsafe_get_field :smat_cases recv))
+	 (:long nbcases (multiple_length scases))
+	 )
+    (debug_msg smatsx "normexp_altmatch smatsx")
+    (multicall
+     (nmatx nbindmatx)
+     (normal_exp smatsx env ncx sloc)
+     (debug_msg nmatx "normexp_altmatch nmatx")
+     (debug_msg nbindmatx "normexp_altmatch nbindmatx")
+     (let ( (matctyp (get_ctype nmatx env))
+	    (matctx (instance class_matching_context
+			      :mxct_normctxt ncx
+			      :mxct_source recv
+			      :mxct_nmatched nmatx
+		))	      
+	    )
+       (debug_msg matctyp "normexp_altmatch matctyp")
+       (debug_msg matctx "normexp_altmatch matctx")
+       (assert_msg "$@$unimplemented normexp_altmatch")
+       ))))
+
+(defun alternate_match_optset (optsymb :cstring opts)
+  (debug_msg optsymb "alternate_match_optset optsymb")
+  (informsg_plain "enabling alternate matching implementation")
+  (install_method class_source_match normal_exp normexp_altmatch)
+)
+(register_option
+ 'alternate_match
+ '"Enable alternate pattern-matching implementation"
+ alternate_match_optset)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; export our classes
