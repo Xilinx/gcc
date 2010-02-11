@@ -1,3 +1,129 @@
+2010-02-10  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* ira-conflicts.c (add_insn_allocno_copies): Use find_reg_note
+	instead of loop.
+
+2010-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43017
+	* tree-vrp.c (vrp_int_const_binop): Trust int_const_binop
+	for wrapping signed arithmetic.
+
+2010-02-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43010
+	* dwarf2out.c (retry_incomplete_types): Don't call gen_type_die
+	if no debug info should be emitted for it.
+
+2010-02-10  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (find_barrier): Skip call insn with a REG_EH_REGION
+	note when flag_exceptions is set.
+
+2010-02-10  Duncan Sands  <baldrick@free.fr>
+
+	* Makefile.in (PLUGIN_HEADERS): Add debug.h.
+
+2010-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR c/43007
+	* tree.c (get_unwidened): Handle constants.
+	* convert.c (convert_to_integer): Handle TRUNC_DIV_EXPR.
+
+2010-02-10  Martin Jambor  <mjambor@suse.cz>
+
+	PR lto/42985
+	* ipa-prop.c (ipa_update_after_lto_read): Count parameters and
+	check for variable argument counts independently.
+
+2010-02-10  Christian Bruel  <christian.bruel@st.com>
+
+	PR target/42841
+	* config/sh/sh.c (find_barrier): Increase length for non delayed
+	conditional branches.
+	
+2010-02-10  Christian Bruel  <christian.bruel@st.com>
+
+	* config/sh/sh.c (find_barrier): Don't emit a CP inside the GP setting.
+	
+2010-02-10  Jakub Jelinek  <jakub@redhat.com>
+
+	* builtins.c (set_builtin_user_assembler_name): Also handle
+	ffs if int is smaller than word.
+
+2010-02-09  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR middle-end/42973
+	* ira-conflicts.c (get_dup): Remove.
+	(process_reg_shuffles): Add new parameter.  Use it as an
+	additional guard for copy generation.
+	(add_insn_allocno_copies): Rewrite.
+
+2010-02-09  Alexander Monakov  <amonakov@ispras.ru>
+
+	* common.opt (fsched2-use-traces): Preserved for backward
+	compatibility.
+	* doc/invoke.texi: Remove the documentation about option
+	-fsched2-use-traces.
+	* sched-rgn.c (rest_of_handle_sched2): Remove usage of
+	flag_sched2_use_traces.
+	* opts.c (common_handle_option): Add OPT_fsched2_use_traces to
+	the backward compatibility flag section.
+
+2010-02-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43008
+	* tree-ssa-structalias.c (handle_lhs_call): Pass in the fndecl,
+	make HEAP variables initialized from global memory if they
+	are not known builtin functions.
+	(find_func_aliases): Adjust.
+
+2010-02-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43000
+	* tree-vrp.c (vrp_int_const_binop): Only handle unsigned
+	arithmetic manually.
+
+2010-02-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/42931
+	* tree-loop-linear.c (try_interchange_loops): Don't call
+	double_int_mul if estimated_loop_iterations failed.
+
+2010-02-08  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/42898
+	* tree-sra.c (build_accesses_from_assign): Do not mark in
+	should_scalarize_away_bitmap if stmt has volatile ops.
+	(sra_modify_assign): Do not process assigns piecemeal if if stmt
+	has volatile ops.
+
+2010-02-08  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* doc/tm.texi (TARGET_UNWIND_WORD_MODE): Document.
+
+2010-02-07  Adam Nemet  <adambnmet@gmail.com>
+
+	* config/mips/mips.md (*<optab>_trunc<mode>_exts): Fix comment
+	before the pattern.
+
+2010-02-07  Andrew Pinski  <pinskia@gmail.com>
+
+	PR middle-end/42946
+	* df-core.c (df_finish_pass): Change type of saved_flags to int.
+
+2010-02-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42988
+	* graphite-dependences.c (dependence_polyhedron): Set PDDR_KIND
+	to unknown_dependence.
+	(graphite_legal_transform_dr): Handle the unknown_dependence.
+	(graphite_carried_dependence_level_k): Same.
+
+2010-02-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* ChangeLog.graphite: Remove testsuite/ or gcc/testsuite/.
+
 2010-02-07  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/42991

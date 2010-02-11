@@ -1,3 +1,135 @@
+2010-02-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41896
+	* g++.dg/cpp0x/lambda/lambda-nested3.C: New.
+
+	PR c++/42983, core issue 906
+	* g++.dg/cpp0x/defaulted15.C: Add virtualness test.
+	* g++.dg/cpp0x/defaulted9.C: Move virtual default outside class.
+
+	PR c++/43016
+	* g++.dg/cpp0x/lambda/lambda-conv.C: Test for weakness.
+
+2010-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43017
+	* gcc.dg/torture/pr43017.c: New testcase.
+
+2010-02-10  Tobias Burnus <burnus@net-b.de>
+
+	PR fortran/40823
+	* gfortran.dg/private_type_1.f90: Update error location.
+	* gfortran.dg/invalid_interface_assignment.f90: Ditto.
+	* gfortran.dg/typebound_operator_2.f03: Ditto.
+	* gfortran.dg/assignment_2.f90: Ditto.
+	* gfortran.dg/redefined_intrinsic_assignment.f90: Ditto.
+	* gfortran.dg/binding_label_tests_9.f03: Ditto.
+
+2010-02-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43015
+	* gfortran.dg/bind_c_usage_20.f90: New test.
+
+2010-02-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43010
+	* g++.dg/debug/pr43010.C: New test.
+
+2010-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR c/43007
+	* gcc.c-torture/execute/20100209-1.c: New testcase.
+	* gcc.dg/fold-div-3.c: Likewise.
+
+2010-02-10  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/builtin-ffs-1.c: New test.
+
+2010-02-09  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/42999
+	* gfortran.dg/array_constructor_35.f90: New test.
+
+2010-02-09  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/tree-ssa/inline-4.c: Bind pic locally.
+
+2010-02-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42399
+	* g++.dg/cpp0x/lambda/lambda-errloc2.C: New.
+
+	PR c++/42370
+	* g++.dg/cpp0x/lambda/lambda-warn2.C: New.
+
+2010-02-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41869
+	* gfortran.dg/module_write_1.f90: New test.
+
+2010-02-09  Alexander Monakov  <amonakov@ispras.ru>
+
+	* gcc.dg/pr19340.c: Adjust.
+
+2010-02-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43008
+	* gcc.c-torture/execute/pr43008.c: New testcase.
+
+2010-02-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43000
+	* gcc.dg/torture/pr43000.c: New testcase.
+	* gcc.dg/torture/pr43002.c: Likewise.
+
+2010-02-09  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/39171
+	* gfortran.dg/char_length_2.f90: Change warning expectations accordingly
+	and pass -Wsurprising as necessary.
+
+2010-02-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/42890
+	* g++.dg/torture/pr42890.C: New test.
+
+2010-02-08  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42995
+	* gcc.dg/tree-ssa/inline-4.c: New testcase.
+
+2010-02-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/block-0.c: Call abort for runtime test.  Always
+	return 0 from main.
+	* gcc.dg/graphite/block-1.c: Same.
+	* gcc.dg/graphite/block-3.c: Same.
+	* gcc.dg/graphite/block-4.c: Same.
+	* gcc.dg/graphite/block-5.c: Same.
+	* gcc.dg/graphite/block-6.c: Same.
+	* gcc.dg/graphite/block-7.c: Same.
+	* gcc.dg/graphite/interchange-0.c: Same.
+	* gcc.dg/graphite/interchange-1.c: Same.
+	* gcc.dg/graphite/interchange-10.c: Same.
+	* gcc.dg/graphite/interchange-11.c: Same.
+	* gcc.dg/graphite/interchange-12.c: Same.
+	* gcc.dg/graphite/interchange-2.c: Same.
+	* gcc.dg/graphite/interchange-3.c: Same.
+	* gcc.dg/graphite/interchange-4.c: Same.
+	* gcc.dg/graphite/interchange-5.c: Same.
+	* gcc.dg/graphite/interchange-6.c: Same.
+	* gcc.dg/graphite/interchange-7.c: Same.
+	* gcc.dg/graphite/interchange-8.c: Same.
+	* gcc.dg/graphite/interchange-9.c: Same.
+	* gcc.dg/graphite/interchange-mvt.c: Same.
+
+2010-02-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gfortran.dg/graphite/id-19.f: New.
+	* gfortran.dg/graphite/pr14741.f90: New.
+	* gfortran.dg/graphite/pr41924.f90: New.
+	* gfortran.dg/graphite/run-id-2.f90: New.
+
 2010-02-07  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/42956

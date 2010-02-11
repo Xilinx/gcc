@@ -48,6 +48,7 @@ avr port		Denis Chertykov		chertykov@gmail.com
 avr port		Anatoly Sokolov		aesok@post.ru
 avr port		Eric Weddington		eric.weddington@atmel.com
 bfin port		Bernd Schmidt		bernd.schmidt@analog.com
+bfin port		Jie Zhang		jie.zhang@analog.com
 cris port		Hans-Peter Nilsson	hp@axis.com
 crx port		Pompapathi V Gadad 	Pompapathi.V.Gadad@nsc.com
 fr30 port		Nick Clifton		nickc@redhat.com
@@ -94,7 +95,7 @@ sparc port		David S. Miller		davem@redhat.com
 sparc port		Jakub Jelinek		jakub@redhat.com
 sparc port		Eric Botcazou		ebotcazou@libertysurf.fr
 spu port		Trevor Smigiel		trevor_smigiel@playstation.sony.com
-spu port		Andrew Pinski		andrew_pinski@playstation.sony.com
+spu port		Andrew Pinski		pinskia@gmail.com
 spu port		David Edelsohn		edelsohn@gnu.org
 v850 port		Nick Clifton		nickc@redhat.com
 vax port		Matt Thomas		matt@3am-software.com
@@ -105,7 +106,7 @@ xtensa port		Bob Wilson		bob.wilson@acm.org
 			OS Port Maintainers	(OS alphabetical order)
 
 darwin port		Dale Johannesen		dalej@apple.com
-darwin port		Mike Stump		mrs@apple.com
+darwin port		Mike Stump		mikestump@comcast.net
 darwin port		Eric Christopher	echristo@apple.com
 darwin port		Stan Shebs		stanshebs@earthlink.net
 DJGPP			DJ Delorie		dj@delorie.com
@@ -140,7 +141,7 @@ go			Ian Lance Taylor	ian@airs.com
 java			Per Bothner		per@bothner.com
 java			Andrew Haley		aph@redhat.com
 java			Tom Tromey		tromey@redhat.com
-objective-c/c++		Mike Stump		mrs@apple.com
+objective-c/c++		Mike Stump		mikestump@comcast.net
 objective-c/c++		Stan Shebs		stanshebs@earthlink.net
 
 			Various Maintainers
@@ -470,7 +471,7 @@ Basile Starynkevitch				basile@starynkevitch.net
 Jakub Staszak					kuba@et.pl
 Graham Stott					graham.stott@btinternet.com
 Andrew Stubbs					ams@codesourcery.com
-Mike Stump					mrs@apple.com
+Mike Stump					mikestump@comcast.net
 Jeff Sturm					jsturm@gcc.gnu.org
 Gabriele Svelto					gabriele.svelto@st.com
 Samuel Tardieu					sam@rfc1149.net
@@ -493,7 +494,6 @@ Le-Chun Wu					lcwu@google.com
 Canqun Yang					canqun@nudt.edu.cn
 Joey Ye						joey.ye@intel.com
 Kenneth Zadeck					zadeck@naturalbridge.com
-Jie Zhang					jie.zhang@analog.com
 Shujing Zhao					pearly.zhao@oracle.com
 Jon Ziegler					jonz@apple.com
 Roman Zippel					zippel@linux-m68k.org

@@ -1,3 +1,181 @@
+2010-02-10  Jason Merrill  <jason@redhat.com>
+
+	Core issue 906
+	* include/std/thread (~_Impl_base): Move defaulted dtor out of line.
+	* libsupc++/nested_exception.h (~nested_exception): Likewise.
+	* testsuite/18_support/nested_exception/throw_with_nested.cc: Likewise.
+	* testsuite/18_support/nested_exception/rethrow_if_nested.cc: Likewise.
+
+2010-02-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1/hashtable.h: Fold in include/tr1_impl/hashtable.h
+	contents.
+	* include/tr1_impl/hashtable.h: Remove.
+	* include/tr1_impl/hashtable_policy.h: Move and rename...
+	* include/tr1/hashtable_policy.h: ... here.
+	* include/tr1_impl/unordered_map: Move and rename...
+	* include/tr1/unordered_map.h: ... here.
+	* include/tr1_impl/unordered_set: Move and rename...
+	* include/tr1/unordered_set.h: ... here.
+	* include/tr1_impl/unordered_map: Move and rename...
+	* include/tr1/unordered_map.h: ... here.
+	* include/tr1/unordered_map: Adjust.
+	* include/tr1/unordered_set: Likewise.
+	* include/Makefile.am: Adjust.
+	* include/Makefile.in: Regenerate.
+
+	* include/std/c++0x_warning.h: Move...
+	* include/bits/c++0x_warning.h: ... here.
+	* include/debug/unordered_map: Adjust.
+	* include/debug/unordered_set: Likewise.
+	* include/std/tuple: Likewise.
+	* include/std/system_error: Likewise.
+	* include/std/forward_list: Likewise.
+	* include/std/thread: Likewise.
+	* include/std/type_traits: Likewise.
+	* include/std/future: Likewise.
+	* include/std/regex: Likewise.
+	* include/std/atomic: Likewise.
+	* include/std/ratio: Likewise.
+	* include/std/random: Likewise.
+	* include/std/unordered_map: Likewise.
+	* include/std/chrono: Likewise.: Likewise.
+	* include/std/condition_variable: Likewise.
+	* include/std/mutex: Likewise.
+	* include/std/unordered_set: Likewise.
+	* include/std/array: Likewise.
+	* include/profile/unordered_map: Likewise.
+	* include/profile/unordered_set: Likewise.
+	* include/c_global/cinttypes: Likewise.
+	* include/c_global/ctgmath: Likewise.
+	* include/c_global/cfenv: Likewise.
+	* include/c_global/cstdint: Likewise.
+	* include/c_global/cstdbool: Likewise.
+	* include/c_global/ccomplex: Likewise.
+
+	* include/bits/shared_ptr.h: Do not include <bits/c++0x_warning.h>
+	at all, the file is not meant to be included by the users.
+	* include/bits/functional_hash.h: Likewise.
+	* include/bits/unique_ptr.h: Likewise.
+	* include/bits/forward_list.h: Likewise.
+
+	* testsuite/29_atomics/atomic/cons/assign_neg.cc: Adjust dg-*
+	line numbers.
+	* testsuite/29_atomics/atomic/cons/copy_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/20_util/unique_ptr/modifiers/reset_neg.cc: Likewise.
+	* testsuite/20_util/unique_ptr/assign/assign_neg.cc: Likewise.
+
+2010-02-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/hashtable.h: Fold in include/tr1_impl/hashtable.h
+	for C++0x use.
+	* include/bits/hashtable_policy.h: New, copy and adjust for
+	C++0x use, include/tr1_impl/hashtable_policy.h; fix erase and
+	insert member functions per n3000.
+	* include/bits/unordered_map.h: Likewise for include/tr1_impl/
+	unordered_map.
+	* include/bits/unordered_set.h: Likewise for include/tr1_impl/
+	unordered_set.
+	* include/Makefile.am: Adjust.
+	* include/Makefile.in: Regenerate.
+	* include/tr1/unordered_map: Adjust.
+	* include/tr1/unordered_set: Likewise.
+	* include/tr1_impl/unordered_map: Adjust, now used only by tr1.
+	* include/tr1_impl/hashtable: Likewise.
+	* include/tr1_impl/hashtable_policy.h: Likewise.
+	* include/tr1_impl/unordered_set: Likewise.
+	* include/std/unordered_map: Adjust and simplify includes.
+	* include/std/unordered_set: Likewise.
+	* include/debug/unordered_map: Adjuse erase and insert members.
+	* include/debug/unordered_set: Likewise.
+	* include/profile/unordered_map: Likewise.
+	* include/profile/unordered_set: Likewise.
+	* testsuite/util/exception/safety.h: Fix for the updated erase and
+	insert member functions of the unordered_containers.
+	* testsuite/23_containers/unordered_map/erase/1.cc: New.
+	* testsuite/23_containers/unordered_map/erase/24061-map.cc: Likewise.
+	* testsuite/23_containers/unordered_map/insert/map_single.cc:
+	Likewise.
+	* testsuite/23_containers/unordered_map/insert/array_syntax.cc:
+	Likewise.
+	* testsuite/23_containers/unordered_map/insert/24061-map.cc: Likewise.
+	* testsuite/23_containers/unordered_map/insert/map_range.cc: Likewise.
+	* testsuite/23_containers/set/operators/1_neg.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/erase/1.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/erase/
+	24061-multimap.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/insert/
+	24061-multimap.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/insert/
+	multimap_range.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/insert/
+	multimap_single.cc: Likewise.
+	* testsuite/23_containers/unordered_set/erase/1.cc: Likewise.
+	* testsuite/23_containers/unordered_set/erase/24061-set.cc: Likewise.
+	* testsuite/23_containers/unordered_set/insert/set_single.cc: Likewise.
+	* testsuite/23_containers/unordered_set/insert/24061-set.cc: Likewise.
+	* testsuite/23_containers/unordered_set/insert/set_range.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/erase/1.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/erase/
+	24061-multiset.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/insert/
+	24061-multiset.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/insert/
+	multiset_range.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/insert/
+	multiset_single.cc: Likewise.
+
+	* testsuite/23_containers/set/operators/1_neg.cc: Tweak dg-errors
+	to avoid spurious fails in debug-mode.
+	* testsuite/23_containers/map/operators/1_neg.cc: Likewise.
+
+2010-02-09  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/streambuf: Adjust doxygen group markup.
+	* include/std/functional: Same.
+	* include/ext/vstring.h: Same.
+	* include/ext/pb_ds/assoc_container.hpp: Same.
+	* include/ext/stdio_filebuf.h: Same.
+	* include/ext/stdio_sync_filebuf.h: Same.
+	* include/bits/localefwd.h: Same.
+	* include/bits/functional_hash.h: Same.
+	* include/bits/locale_classes.h: Same.
+	* include/bits/locale_facets.h: Same.
+	* include/bits/ios_base.h: Same.
+	* include/bits/codecvt.h: Same.
+	* include/bits/locale_facets_nonio.h: Same.
+
+	* testsuite/27_io/ios_base/cons/assign_neg.cc: Adjust line numbers.
+	* testsuite/27_io/ios_base/cons/copy_neg.cc: Same.
+
+2010-02-08  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/42460
+	* include/tr1_impl/regex: Fix quoting issues in doxygen markup.
+	* include/bits/random.h: Fix multi-line doxygen function markup.
+
+2010-02-08  Matthias Klose  <doko@debian.org>
+
+	PR libstdc++/42460
+	* include/std/istream: Fix '\' quoting in doxygen markup.
+
+2010-02-08  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/bits/random.tcc (uniform_int_distribution<>::
+	operator()(_UniformRandomNumberGenerator&, const param_type&)):
+	Use make_unsigned instead of __add_unsigned and conditional
+	instead of __conditional_type.
+	* include/std/random: Do not include <ext/type_traits.h> and
+	<ext/numeric_traits.h>.
+
 2010-02-07  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/16896
