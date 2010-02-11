@@ -4608,7 +4608,11 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
       (return acppif)
       )))
 (install_initial_macro 'assert_msg mexpand_assert_msg)
-(export_macro assert_msg mexpand_assert_msg)
+(export_macro assert_msg mexpand_assert_msg
+	      :doc #{$ASSERT_MSG macro with a message cstring and an
+	      optional condition. Generates an assertion -if checking
+	      is enabled- and also issues a compile warning if
+	      condition is missing so false.}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; debug_msg macro is expanded into other src..

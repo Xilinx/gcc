@@ -2469,12 +2469,26 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 (defclass class_matching_context
   :super class_root
-  :doc #{The $CLASS_MATCHING_CONTEXT is a context for normalization of pattern matching. $MXCT_NORMCTXT is the normalization context. $MXCT_SOURCE is the source matching expression. $MXCT_NMATCHED is the normal matched expression.
-}#
-:fields ( mxct_normctxt
-	  mxct_source
-	  mxct_nmatched
-	  ))
+  :doc #{The $CLASS_MATCHING_CONTEXT is a context for normalization of
+pattern matching. $MXCT_NORMCTXT is the normalization
+context. $MXCT_SOURCE is the source matching
+expression. $MXCT_NMATCHED is the normal matched
+expression. $MCXT_CASES is the tuple of cases each of
+$CLASS_MATCH_CASE.}#
+  :fields ( mxct_normctxt mxct_source mxct_nmatched mxct_cases ))
+
+(defclass class_match_case
+  :super class_proped
+  :doc #{The $CLASS_MATCH_CASE describes a case match. Field
+  $MCASE_MCTXT is the matching context. $MCASE_SOURCE is the source
+  case, $MCASE_INDEX is the boxed integer rank. $MCASE_VARMAP is an
+  objectmap from symbols to the list of their pattern variables.}#
+  :fields ( mcase_mctxt 
+	    mcase_source 
+	    mcase_index
+	    mcase_varmap
+	    ))
+
 
 (defselector scan_subpatterns class_selector
   :doc #{Apply a given function $FUN to the subpatterns of reciever
@@ -2545,6 +2559,39 @@ scanning variables.}#
      (fun curout ctx))))
 (install_method class_source_pattern_construct scan_subpatterns scansubpat_composite)
 
+
+(defun fill_matchcase (curmcase sloc)
+  (debug_msg curmcase "fill_matchcase curmcase")
+  (assert_msg "check curmcase" (is_a curmcase class_match_case))
+  (let (
+	(ourpatvarmap (make_mapobject discr_map_objects 17))
+	(curscas (unsafe_get_field :mcase_source curmcase))
+	(curpat (unsafe_get_field :scam_patt curscas))
+	)
+    (letrec (
+	     (varpatscanner 
+	      (lambda (pat patvarmap)
+		(debug_msg pat "fill_matchcase/varpatscanner pat")
+		(if (is_a pat class_source_pattern_variable)
+		    (let (
+			  (pvarsymb (unsafe_get_field :spatvar_symb pat))
+			  (varocclist (mapobject_get patvarmap pvarsymb))
+			  )
+		      (if (null varocclist)
+			  (progn 
+			    (setq varocclist (make_list discr_list))
+			    (mapobject_put patvarmap pvarsymb varocclist)))
+		      (list_append varocclist pat)
+		      ))
+		))
+	     )
+	    (varpatscanner curpat ourpatvarmap)
+	    (scan_subpatterns curpat varpatscanner ourpatvarmap)
+	    )
+    (debug_msg ourpatvarmap "fill_matchcase ourpatvarmap")
+    (unsafe_put_fields curmcase :mcase_varmap ourpatvarmap)
+    ))
+
 (defun normexp_altmatch (recv env ncx psloc)
   (assert_msg "check match recv" (is_a recv class_source_match))
   (assert_msg "check env" (is_a env class_environment))
@@ -2562,14 +2609,33 @@ scanning variables.}#
      (debug_msg nmatx "normexp_altmatch nmatx")
      (debug_msg nbindmatx "normexp_altmatch nbindmatx")
      (let ( (matctyp (get_ctype nmatx env))
+	    (mcasetup (make_multiple discr_multiple nbcases))
 	    (matctx (instance class_matching_context
 			      :mxct_normctxt ncx
 			      :mxct_source recv
 			      :mxct_nmatched nmatx
-		))	      
+			      :mxct_cases mcasetup
+			      ))
 	    )
        (debug_msg matctyp "normexp_altmatch matctyp")
        (debug_msg matctx "normexp_altmatch matctx")
+       (foreach_in_multiple
+	(scases)
+	(curscas :long curix)
+	(debug_msg curscas "normexp_altmatch curscas")
+	(assert_msg "check  curscas" (is_a curscas class_source_match_case))
+	(let ( (curmcase (instance class_match_case
+				  :mcase_mctxt matctx
+				  :mcase_source curscas
+				  :mcase_index 
+				  (make_integerbox discr_integer curix)
+				  )
+			)
+	       )
+	  (fill_matchcase curmcase sloc)
+	  (multiple_put_nth mcasetup curix curmcase)
+	  ))
+       (debug_msg mcasetup "normexp_altmatch mcasetup")
        (assert_msg "$@$unimplemented normexp_altmatch")
        ))))
 
@@ -2586,6 +2652,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; export our classes
 (export_class
+ class_matching_context
  class_pattern_context
  class_normtester_any
  class_normtester_anytester
