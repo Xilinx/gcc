@@ -37,6 +37,7 @@
 	* melt/generated/warmelt-genobj.0+02.c: regenerated.
 	* melt/generated/warmelt-genobj.0+03.c: regenerated.
 	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: new generated file.
 
 2010-02-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_new_string_raw_len): explicitly clear
