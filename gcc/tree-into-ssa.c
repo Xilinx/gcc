@@ -1,5 +1,5 @@
 /* Rewrite a program in Normal form into SSA.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -1151,26 +1151,42 @@ static void
 insert_phi_nodes (bitmap *dfs)
 {
   referenced_var_iterator rvi;
+  bitmap_iterator bi;
   tree var;
+  bitmap vars;
+  unsigned uid;
 
   timevar_push (TV_TREE_INSERT_PHI_NODES);
 
+  /* Do two stages to avoid code generation differences for UID
+     differences but no UID ordering differences.  */
+
+  vars = BITMAP_ALLOC (NULL);
   FOR_EACH_REFERENCED_VAR (var, rvi)
     {
       struct def_blocks_d *def_map;
-      bitmap idf;
 
       def_map = find_def_blocks_for (var);
       if (def_map == NULL)
 	continue;
 
       if (get_phi_state (var) != NEED_PHI_STATE_NO)
-	{
-	  idf = compute_idf (def_map->def_blocks, dfs);
-	  insert_phi_nodes_for (var, idf, false);
-	  BITMAP_FREE (idf);
-	}
+	bitmap_set_bit (vars, DECL_UID (var));
     }
+
+  EXECUTE_IF_SET_IN_BITMAP (vars, 0, uid, bi)
+    {
+      tree var = referenced_var (uid);
+      struct def_blocks_d *def_map;
+      bitmap idf;
+
+      def_map = find_def_blocks_for (var);
+      idf = compute_idf (def_map->def_blocks, dfs);
+      insert_phi_nodes_for (var, idf, false);
+      BITMAP_FREE (idf);
+    }
+
+  BITMAP_FREE (vars);
 
   timevar_pop (TV_TREE_INSERT_PHI_NODES);
 }
@@ -1842,7 +1858,27 @@ maybe_register_def (def_operand_p def_p, gimple stmt,
 	  if (tracked_var)
 	    {
 	      gimple note = gimple_build_debug_bind (tracked_var, def, stmt);
-	      gsi_insert_after (&gsi, note, GSI_SAME_STMT);
+	      /* If stmt ends the bb, insert the debug stmt on the single
+		 non-EH edge from the stmt.  */
+	      if (gsi_one_before_end_p (gsi) && stmt_ends_bb_p (stmt))
+		{
+		  basic_block bb = gsi_bb (gsi);
+		  edge_iterator ei;
+		  edge e, ef = NULL;
+		  FOR_EACH_EDGE (e, ei, bb->succs)
+		    if (!(e->flags & EDGE_EH))
+		      {
+			gcc_assert (!ef);
+			ef = e;
+		      }
+		  gcc_assert (ef
+			      && single_pred_p (ef->dest)
+			      && !phi_nodes (ef->dest)
+			      && ef->dest != EXIT_BLOCK_PTR);
+		  gsi_insert_on_edge_immediate (ef, note);
+		}
+	      else
+		gsi_insert_after (&gsi, note, GSI_SAME_STMT);
 	    }
 	}
 

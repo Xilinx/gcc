@@ -79,6 +79,7 @@ enum tree_dump_index
 #define TDF_EH		(1 << 19)	/* display EH region number
 					   holding this gimple statement.  */
 
+#define TDF_NOUID	(1 << 20)	/* omit UIDs from dumps.  */
 
 /* In tree-dump.c */
 
@@ -225,6 +226,7 @@ struct dump_file_info
 #define PROP_rtl		(1 << 7)
 #define PROP_gimple_lomp	(1 << 8)	/* lowered OpenMP directives */
 #define PROP_cfglayout	 	(1 << 9)	/* cfglayout mode on RTL */
+#define PROP_gimple_lcx		(1 << 10)       /* lowered complex */
 
 #define PROP_trees \
   (PROP_gimple_any | PROP_gimple_lcf | PROP_gimple_leh | PROP_gimple_lomp)
@@ -561,16 +563,41 @@ extern struct gimple_opt_pass pass_convert_switch;
 extern struct opt_pass *all_passes, *all_small_ipa_passes, *all_lowering_passes,
                        *all_regular_ipa_passes, *all_lto_gen_passes;
 
+/* Define a list of pass lists so that both passes.c and plugins can easily
+   find all the pass lists.  */
+#define GCC_PASS_LISTS \
+  DEF_PASS_LIST (all_lowering_passes) \
+  DEF_PASS_LIST (all_small_ipa_passes) \
+  DEF_PASS_LIST (all_regular_ipa_passes) \
+  DEF_PASS_LIST (all_lto_gen_passes) \
+  DEF_PASS_LIST (all_passes)
+
+#define DEF_PASS_LIST(LIST) PASS_LIST_NO_##LIST,
+enum
+{
+  GCC_PASS_LISTS
+  PASS_LIST_NUM
+};
+#undef DEF_PASS_LIST
+
+/* This is used by plugins, and should also be used in
+   passes.c:register_pass.  */
+extern struct opt_pass **gcc_pass_lists[];
+
 /* Current optimization pass.  */
 extern struct opt_pass *current_pass;
 
 extern struct opt_pass * get_pass_for_id (int);
+extern bool execute_one_pass (struct opt_pass *);
 extern void execute_pass_list (struct opt_pass *);
 extern void execute_ipa_pass_list (struct opt_pass *);
 extern void execute_ipa_summary_passes (struct ipa_opt_pass_d *);
 extern void execute_all_ipa_transforms (void);
 extern void execute_all_ipa_stmt_fixups (struct cgraph_node *, gimple *);
+extern bool pass_init_dump_file (struct opt_pass *);
+extern void pass_fini_dump_file (struct opt_pass *);
 
+extern const char *get_current_pass_name (void);
 extern void print_current_pass (FILE *);
 extern void debug_pass (void);
 extern void ipa_write_summaries (void);
@@ -589,5 +616,8 @@ extern void register_pass (struct register_pass_info *);
    throughout the compilation -- we will be able to mark the affected loops
    directly in jump threading, and avoid peeling them next time.  */
 extern bool first_pass_instance;
+
+/* Declare for plugins.  */
+extern void do_per_function_toporder (void (*) (void *), void *);
 
 #endif /* GCC_TREE_PASS_H */

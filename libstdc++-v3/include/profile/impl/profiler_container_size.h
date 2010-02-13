@@ -34,8 +34,8 @@
 
 // Written by Lixia Liu and Silvius Rus.
 
-#ifndef PROFCXX_PROFILER_CONTAINER_SIZE_H__
-#define PROFCXX_PROFILER_CONTAINER_SIZE_H__ 1
+#ifndef _GLIBCXX_PROFILE_PROFILER_CONTAINER_SIZE_H
+#define _GLIBCXX_PROFILE_PROFILER_CONTAINER_SIZE_H 1
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdlib>
@@ -46,6 +46,8 @@
 #include <stdio.h>
 #include <string.h>
 #endif
+
+#include <sstream>
 
 #include "profile/impl/profiler.h"
 #include "profile/impl/profiler_node.h"
@@ -90,22 +92,12 @@ class __container_size_info: public __object_info_base
 
 inline const char* __container_size_info::__advice() const
 {
-  const size_t __max_chars_size_t_printed = 20;
-  const char* __message_pattern = 
-      "change initial container size from %d to %d";
-  size_t __message_size = (strlen(__message_pattern) 
-                           + 2 * __max_chars_size_t_printed
-                           - 2 * 2);
-  char* __message = new char[__message_size + 1];
-
+  std::stringstream __message;
   if (_M_init < _M_item_max)
-    snprintf(__message, __message_size, __message_pattern, _M_init,
-             _M_item_max);
-  else
-    snprintf(__message, __message_size, __message_pattern, _M_init,
-             _M_item_max);
+    __message << "change initial container size from " << _M_init
+              << " to " << _M_item_max;
 
-  return __message;
+  return strdup(__message.str().c_str());
 }
 
 inline void __container_size_info::__destruct(size_t __num, size_t __inum) 
@@ -247,4 +239,4 @@ inline void __trace_container_size::__resize(const void* __obj, int __from,
 }
 
 } // namespace __gnu_profile
-#endif /* PROFCXX_PROFILER_CONTAINER_SIZE_H__ */
+#endif /* _GLIBCXX_PROFILE_PROFILER_CONTAINER_SIZE_H */

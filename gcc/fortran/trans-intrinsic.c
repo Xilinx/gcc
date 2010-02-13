@@ -838,7 +838,6 @@ gfc_conv_intrinsic_bound (gfc_se * se, gfc_expr * expr, int upper)
   gfc_se argse;
   gfc_ss *ss;
   gfc_array_spec * as;
-  gfc_ref *ref;
 
   arg = expr->value.function.actual;
   arg2 = arg->next;
@@ -907,42 +906,7 @@ gfc_conv_intrinsic_bound (gfc_se * se, gfc_expr * expr, int upper)
   ubound = gfc_conv_descriptor_ubound_get (desc, bound);
   lbound = gfc_conv_descriptor_lbound_get (desc, bound);
   
-  /* Follow any component references.  */
-  if (arg->expr->expr_type == EXPR_VARIABLE
-      || arg->expr->expr_type == EXPR_CONSTANT)
-    {
-      as = arg->expr->symtree->n.sym->as;
-      for (ref = arg->expr->ref; ref; ref = ref->next)
-	{
-	  switch (ref->type)
-	    {
-	    case REF_COMPONENT:
-	      as = ref->u.c.component->as;
-	      continue;
-
-	    case REF_SUBSTRING:
-	      continue;
-
-	    case REF_ARRAY:
-	      {
-		switch (ref->u.ar.type)
-		  {
-		  case AR_ELEMENT:
-		  case AR_SECTION:
-		  case AR_UNKNOWN:
-		    as = NULL;
-		    continue;
-
-		  case AR_FULL:
-		    break;
-		  }
-		break;
-	      }
-	    }
-	}
-    }
-  else
-    as = NULL;
+  as = gfc_get_full_arrayspec_from_expr (arg->expr);
 
   /* 13.14.53: Result value for LBOUND
 
@@ -4715,14 +4679,20 @@ gfc_conv_same_type_as (gfc_se *se, gfc_expr *expr)
   b = expr->value.function.actual->next->expr;
 
   if (a->ts.type == BT_CLASS)
-    gfc_add_component_ref (a, "$vindex");
+    {
+      gfc_add_component_ref (a, "$vptr");
+      gfc_add_component_ref (a, "$hash");
+    }
   else if (a->ts.type == BT_DERIVED)
-    a = gfc_int_expr (a->ts.u.derived->vindex);
+    a = gfc_int_expr (a->ts.u.derived->hash_value);
 
   if (b->ts.type == BT_CLASS)
-    gfc_add_component_ref (b, "$vindex");
+    {
+      gfc_add_component_ref (b, "$vptr");
+      gfc_add_component_ref (b, "$hash");
+    }
   else if (b->ts.type == BT_DERIVED)
-    b = gfc_int_expr (b->ts.u.derived->vindex);
+    b = gfc_int_expr (b->ts.u.derived->hash_value);
 
   gfc_conv_expr (&se1, a);
   gfc_conv_expr (&se2, b);
@@ -4730,21 +4700,6 @@ gfc_conv_same_type_as (gfc_se *se, gfc_expr *expr)
   tmp = fold_build2 (EQ_EXPR, boolean_type_node,
 		     se1.expr, fold_convert (TREE_TYPE (se1.expr), se2.expr));
   se->expr = convert (gfc_typenode_for_spec (&expr->ts), tmp);
-}
-
-
-/* Generate code for the EXTENDS_TYPE_OF intrinsic.  */
-
-static void
-gfc_conv_extends_type_of (gfc_se *se, gfc_expr *expr)
-{
-  gfc_expr *e;
-  /* TODO: Implement EXTENDS_TYPE_OF.  */
-  gfc_error ("Intrinsic EXTENDS_TYPE_OF at %L not yet implemented",
-	     &expr->where);
-  /* Just return 'false' for now.  */
-  e = gfc_logical_expr (false, &expr->where);
-  gfc_conv_expr (se, e);
 }
 
 
@@ -5157,10 +5112,6 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       gfc_conv_same_type_as (se, expr);
       break;
 
-    case GFC_ISYM_EXTENDS_TYPE_OF:
-      gfc_conv_extends_type_of (se, expr);
-      break;
-
     case GFC_ISYM_ABS:
       gfc_conv_intrinsic_abs (se, expr);
       break;
@@ -5538,6 +5489,7 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
     case GFC_ISYM_CHMOD:
     case GFC_ISYM_DTIME:
     case GFC_ISYM_ETIME:
+    case GFC_ISYM_EXTENDS_TYPE_OF:
     case GFC_ISYM_FGET:
     case GFC_ISYM_FGETC:
     case GFC_ISYM_FNUM:

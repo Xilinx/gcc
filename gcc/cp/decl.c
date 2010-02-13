@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "tree-inline.h"
 #include "decl.h"
+#include "intl.h"
 #include "output.h"
 #include "except.h"
 #include "toplev.h"
@@ -520,8 +521,6 @@ poplevel (int keep, int reverse, int functionbody)
   /* The chain of decls was accumulated in reverse order.
      Put it into forward order, just for cleanliness.  */
   tree decls;
-  int tmp = functionbody;
-  int real_functionbody;
   tree subblocks;
   tree block;
   tree decl;
@@ -535,8 +534,8 @@ poplevel (int keep, int reverse, int functionbody)
 
   gcc_assert (current_binding_level->kind != sk_class);
 
-  real_functionbody = (current_binding_level->kind == sk_cleanup
-		       ? ((functionbody = 0), tmp) : functionbody);
+  if (current_binding_level->kind == sk_cleanup)
+    functionbody = 0;
   subblocks = functionbody >= 0 ? current_binding_level->blocks : 0;
 
   gcc_assert (!VEC_length(cp_class_binding,
@@ -1035,8 +1034,6 @@ decls_match (tree newdecl, tree olddecl)
 void
 warn_extern_redeclared_static (tree newdecl, tree olddecl)
 {
-  tree name;
-
   if (TREE_CODE (newdecl) == TYPE_DECL
       || TREE_CODE (newdecl) == TEMPLATE_DECL
       || TREE_CODE (newdecl) == CONST_DECL
@@ -1059,7 +1056,6 @@ warn_extern_redeclared_static (tree newdecl, tree olddecl)
       && DECL_ARTIFICIAL (olddecl))
     return;
 
-  name = DECL_ASSEMBLER_NAME (newdecl);
   permerror (input_location, "%qD was declared %<extern%> and later %<static%>", newdecl);
   permerror (input_location, "previous declaration of %q+D", olddecl);
 }
@@ -1184,9 +1180,10 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	     bad choice of name.  */
 	  if (! TREE_PUBLIC (newdecl))
 	    {
-	      warning (OPT_Wshadow, "shadowing %s function %q#D",
-		       DECL_BUILT_IN (olddecl) ? "built-in" : "library",
-		       olddecl);
+	      warning (OPT_Wshadow, 
+                       DECL_BUILT_IN (olddecl)
+                       ? G_("shadowing built-in function %q#D")
+                       : G_("shadowing library function %q#D"), olddecl);
 	      /* Discard the old built-in function.  */
 	      return NULL_TREE;
 	    }
@@ -1257,9 +1254,10 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 			   olddecl);
 		}
 	      else
-		warning (OPT_Wshadow, "shadowing %s function %q#D",
-			 DECL_BUILT_IN (olddecl) ? "built-in" : "library",
-			 olddecl);
+		warning (OPT_Wshadow, 
+                         DECL_BUILT_IN (olddecl)
+                         ? G_("shadowing built-in function %q#D")
+                         : G_("shadowing library function %q#D"), olddecl);
 	    }
 	  else
 	    /* Discard the old built-in function.  */
@@ -2212,7 +2210,7 @@ redeclaration_error_message (tree newdecl, tree olddecl)
       if (same_type_p (TREE_TYPE (newdecl), TREE_TYPE (olddecl)))
 	return NULL;
       else
-	return "redefinition of %q#D";
+	return G_("redefinition of %q#D");
     }
   else if (TREE_CODE (newdecl) == FUNCTION_DECL)
     {
@@ -2228,7 +2226,7 @@ redeclaration_error_message (tree newdecl, tree olddecl)
       if (DECL_NAMESPACE_SCOPE_P (olddecl)
 	  && DECL_CONTEXT (olddecl) != DECL_CONTEXT (newdecl)
 	  && ! decls_match (olddecl, newdecl))
-	return "%qD conflicts with used function";
+	return G_("%qD conflicts with used function");
 
       /* We'll complain about linkage mismatches in
 	 warn_extern_redeclared_static.  */
@@ -2238,10 +2236,10 @@ redeclaration_error_message (tree newdecl, tree olddecl)
 	  && DECL_INITIAL (newdecl) != NULL_TREE)
 	{
 	  if (DECL_NAME (olddecl) == NULL_TREE)
-	    return "%q#D not declared in class";
+	    return G_("%q#D not declared in class");
 	  else if (!GNU_INLINE_P (olddecl)
 		   || GNU_INLINE_P (newdecl))
-	    return "redefinition of %q#D";
+	    return G_("redefinition of %q#D");
 	}
 
       if (DECL_DECLARED_INLINE_P (olddecl) && DECL_DECLARED_INLINE_P (newdecl))
@@ -2252,9 +2250,11 @@ redeclaration_error_message (tree newdecl, tree olddecl)
 	  if (olda != newa)
 	    {
 	      if (newa)
-		return "%q+D redeclared inline with %<gnu_inline%> attribute";
+		return G_("%q+D redeclared inline with "
+			  "%<gnu_inline%> attribute");
 	      else
-		return "%q+D redeclared inline without %<gnu_inline%> attribute";
+		return G_("%q+D redeclared inline without "
+			  "%<gnu_inline%> attribute");
 	    }
 	}
 
@@ -2268,7 +2268,7 @@ redeclaration_error_message (tree newdecl, tree olddecl)
 	{
 	  if (COMPLETE_TYPE_P (TREE_TYPE (newdecl))
 	      && COMPLETE_TYPE_P (TREE_TYPE (olddecl)))
-	    return "redefinition of %q#D";
+	    return G_("redefinition of %q#D");
 	  return NULL;
 	}
 
@@ -2285,7 +2285,7 @@ redeclaration_error_message (tree newdecl, tree olddecl)
 	ot = DECL_TEMPLATE_RESULT (template_for_substitution (ot));
       if (DECL_INITIAL (nt) && DECL_INITIAL (ot)
 	  && (!GNU_INLINE_P (ot) || GNU_INLINE_P (nt)))
-	return "redefinition of %q#D";
+	return G_("redefinition of %q#D");
 
       if (DECL_DECLARED_INLINE_P (ot) && DECL_DECLARED_INLINE_P (nt))
 	{
@@ -2295,9 +2295,11 @@ redeclaration_error_message (tree newdecl, tree olddecl)
 	  if (olda != newa)
 	    {
 	      if (newa)
-		return "%q+D redeclared inline with %<gnu_inline%> attribute";
+		return G_("%q+D redeclared inline with "
+			  "%<gnu_inline%> attribute");
 	      else
-		return "%q+D redeclared inline without %<gnu_inline%> attribute";
+		return G_("%q+D redeclared inline without "
+		     	  "%<gnu_inline%> attribute");
 	    }
 	}
 
@@ -2312,7 +2314,8 @@ redeclaration_error_message (tree newdecl, tree olddecl)
           && !check_default_tmpl_args (nt, DECL_TEMPLATE_PARMS (newdecl), 
                                        /*is_primary=*/1, /*is_partial=*/0,
                                        /*is_friend_decl=*/2))
-        return "redeclaration of friend %q#D may not have default template arguments";
+        return G_("redeclaration of friend %q#D "
+	 	  "may not have default template arguments");
 
       return NULL;
     }
@@ -2325,11 +2328,11 @@ redeclaration_error_message (tree newdecl, tree olddecl)
       /* Only variables can be thread-local, and all declarations must
 	 agree on this property.  */
       if (DECL_THREAD_LOCAL_P (newdecl))
-	return "thread-local declaration of %q#D follows "
-	       "non-thread-local declaration";
+	return G_("thread-local declaration of %q#D follows "
+	          "non-thread-local declaration");
       else
-	return "non-thread-local declaration of %q#D follows "
-	       "thread-local declaration";
+	return G_("non-thread-local declaration of %q#D follows "
+	          "thread-local declaration");
     }
   else if (toplevel_bindings_p () || DECL_NAMESPACE_SCOPE_P (newdecl))
     {
@@ -2343,7 +2346,7 @@ redeclaration_error_message (tree newdecl, tree olddecl)
 	   is invalid.  */
       if ((TREE_CODE (newdecl) == VAR_DECL && DECL_ANON_UNION_VAR_P (newdecl))
 	  || (TREE_CODE (olddecl) == VAR_DECL && DECL_ANON_UNION_VAR_P (olddecl)))
-	return "redeclaration of %q#D";
+	return G_("redeclaration of %q#D");
       /* If at least one declaration is a reference, there is no
 	 conflict.  For example:
 
@@ -2354,7 +2357,7 @@ redeclaration_error_message (tree newdecl, tree olddecl)
       if (DECL_EXTERNAL (newdecl) || DECL_EXTERNAL (olddecl))
 	return NULL;
       /* Reject two definitions.  */
-      return "redefinition of %q#D";
+      return G_("redefinition of %q#D");
     }
   else
     {
@@ -2362,7 +2365,7 @@ redeclaration_error_message (tree newdecl, tree olddecl)
       /* Reject two definitions, and reject a definition
 	 together with an external reference.  */
       if (!(DECL_EXTERNAL (newdecl) && DECL_EXTERNAL (olddecl)))
-	return "redeclaration of %q#D";
+	return G_("redeclaration of %q#D");
       return NULL;
     }
 }
@@ -4071,7 +4074,6 @@ start_decl (const cp_declarator *declarator,
 	    tree *pushed_scope_p)
 {
   tree decl;
-  tree type;
   tree context;
   bool was_public;
   int flags;
@@ -4093,8 +4095,6 @@ start_decl (const cp_declarator *declarator,
   if (decl == NULL_TREE || TREE_CODE (decl) == VOID_TYPE
       || decl == error_mark_node)
     return error_mark_node;
-
-  type = TREE_TYPE (decl);
 
   context = DECL_CONTEXT (decl);
 
@@ -5743,7 +5743,18 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
       if (DECL_FUNCTION_SCOPE_P (decl)
 	  && TREE_STATIC (decl)
 	  && !DECL_ARTIFICIAL (decl))
-	push_local_name (decl);
+	{
+	  push_local_name (decl);
+	  if (DECL_CONSTRUCTOR_P (current_function_decl)
+	      || DECL_DESTRUCTOR_P (current_function_decl))
+	    /* Normally local_decls is populated during GIMPLE lowering,
+	       but [cd]tors are never actually compiled directly.  We need
+	       to put statics on the list so we can deal with the label
+	       address extension.  */
+	    cfun->local_decls = tree_cons (NULL_TREE, decl,
+					   cfun->local_decls);
+	}
+
       /* Convert the initializer to the type of DECL, if we have not
 	 already initialized DECL.  */
       if (!DECL_INITIALIZED_P (decl)
@@ -7277,11 +7288,8 @@ compute_array_index_type (tree name, tree size)
 	 structural equality checks.  */
       itype = build_index_type (build_min (MINUS_EXPR, sizetype,
 					   size, integer_one_node));
-      if (!TREE_SIDE_EFFECTS (size))
-	{
-	  TYPE_DEPENDENT_P (itype) = 1;
-	  TYPE_DEPENDENT_P_VALID (itype) = 1;
-	}
+      TYPE_DEPENDENT_P (itype) = 1;
+      TYPE_DEPENDENT_P_VALID (itype) = 1;
       SET_TYPE_STRUCTURAL_EQUALITY (itype);
       return itype;
     }
@@ -7430,47 +7438,45 @@ static tree
 create_array_type_for_decl (tree name, tree type, tree size)
 {
   tree itype = NULL_TREE;
-  const char* error_msg;
 
   /* If things have already gone awry, bail now.  */
   if (type == error_mark_node || size == error_mark_node)
     return error_mark_node;
 
-  /* Assume that everything will go OK.  */
-  error_msg = NULL;
-
-  /* There are some types which cannot be array elements.  */
+  /* If there are some types which cannot be array elements,
+     issue an error-message and return.  */
   switch (TREE_CODE (type))
     {
     case VOID_TYPE:
-      error_msg = "array of void";
-      break;
+      if (name)
+        error ("declaration of %qD as array of void", name);
+      else
+        error ("creating array of void");
+      return error_mark_node;
 
     case FUNCTION_TYPE:
-      error_msg = "array of functions";
-      break;
+      if (name)
+        error ("declaration of %qD as array of functions", name);
+      else
+        error ("creating array of functions");
+      return error_mark_node;
 
     case REFERENCE_TYPE:
-      error_msg = "array of references";
-      break;
+      if (name)
+        error ("declaration of %qD as array of references", name);
+      else
+        error ("creating array of references");
+      return error_mark_node;
 
     case METHOD_TYPE:
-      error_msg = "array of function members";
-      break;
+      if (name)
+        error ("declaration of %qD as array of function members", name);
+      else
+        error ("creating array of function members");
+      return error_mark_node;
 
     default:
       break;
-    }
-
-  /* If something went wrong, issue an error-message and return.  */
-  if (error_msg)
-    {
-      if (name)
-	error ("declaration of %qD as %s", name, error_msg);
-      else
-	error ("creating %s", error_msg);
-
-      return error_mark_node;
     }
 
   /* [dcl.array]
@@ -8159,7 +8165,7 @@ grokdeclarator (const cp_declarator *declarator,
       /* This was an error in C++98 (cv-qualifiers cannot be added to
 	 a function type), but DR 295 makes the code well-formed by
 	 dropping the extra qualifiers. */
-      if (pedantic)
+      if (pedantic && cxx_dialect == cxx98)
 	{
 	  tree bad_type = build_qualified_type (type, type_quals);
 	  pedwarn (input_location, OPT_pedantic, 
@@ -8620,8 +8626,9 @@ grokdeclarator (const cp_declarator *declarator,
 
 	  if (TREE_CODE (type) == FUNCTION_TYPE
 	      && cp_type_quals (type) != TYPE_UNQUALIFIED)
-	    error ("cannot declare %s to qualified function type %qT",
-		   declarator->kind == cdk_reference ? "reference" : "pointer",
+            error (declarator->kind == cdk_reference
+                   ? G_("cannot declare reference to qualified function type %qT")
+                   : G_("cannot declare pointer to qualified function type %qT"),
 		   type);
 
 	  if (declarator->kind == cdk_reference)
@@ -9055,6 +9062,7 @@ grokdeclarator (const cp_declarator *declarator,
 	  /* The qualifiers on the function type become the qualifiers on
 	     the non-static member function. */
 	  memfn_quals |= cp_type_quals (type);
+	  type_quals = TYPE_UNQUALIFIED;
 	}
     }
 
@@ -9912,9 +9920,12 @@ grokparms (tree parmlist, tree *parms)
 		  t = TREE_TYPE (t);
 		}
 	      if (TREE_CODE (t) == ARRAY_TYPE)
-		error ("parameter %qD includes %s to array of unknown "
-		       "bound %qT",
-		       decl, ptr ? "pointer" : "reference", t);
+		error (ptr
+                       ? G_("parameter %qD includes pointer to array of "
+                            "unknown bound %qT")
+                       : G_("parameter %qD includes reference to array of "
+                            "unknown bound %qT"),
+                       decl, t);
 	    }
 
 	  if (any_error)
@@ -10361,28 +10372,38 @@ grok_op_properties (tree decl, bool complain)
 	{
 	  tree t = TREE_TYPE (name);
 	  int ref = (TREE_CODE (t) == REFERENCE_TYPE);
-	  const char *what = 0;
 
 	  if (ref)
 	    t = TYPE_MAIN_VARIANT (TREE_TYPE (t));
 
 	  if (TREE_CODE (t) == VOID_TYPE)
-	    what = "void";
+            warning (OPT_Wconversion,
+                     ref
+                     ? G_("conversion to a reference to void "
+                          "will never use a type conversion operator")
+                     : G_("conversion to void "
+                          "will never use a type conversion operator"));
 	  else if (class_type)
 	    {
 	      if (t == class_type)
-		what = "the same type";
+                warning (OPT_Wconversion,
+                     ref
+                     ? G_("conversion to a reference to the same type "
+                          "will never use a type conversion operator")
+                     : G_("conversion to the same type "
+                          "will never use a type conversion operator"));		
 	      /* Don't force t to be complete here.  */
 	      else if (MAYBE_CLASS_TYPE_P (t)
 		       && COMPLETE_TYPE_P (t)
 		       && DERIVED_FROM_P (t, class_type))
-		what = "a base class";
+                 warning (OPT_Wconversion,
+                          ref
+                          ? G_("conversion to a reference to a base class "
+                               "will never use a type conversion operator")
+                          : G_("conversion to a base class "
+                               "will never use a type conversion operator"));		
 	    }
 
-	  if (what)
-	    warning (OPT_Wconversion, "conversion to %s%s will never use a type "
-		     "conversion operator",
-		     ref ? "a reference to " : "", what);
 	}
 
       if (operator_code == COND_EXPR)
@@ -11907,7 +11928,7 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
       gcc_assert (TREE_CODE (TREE_TYPE (t)) == POINTER_TYPE);
 
       cp_function_chain->x_current_class_ref
-	= cp_build_indirect_ref (t, NULL, tf_warning_or_error);
+	= cp_build_indirect_ref (t, RO_NULL, tf_warning_or_error);
       cp_function_chain->x_current_class_ptr = t;
 
       /* Constructors and destructors need to know whether they're "in
@@ -12529,6 +12550,8 @@ finish_function (int flags)
       && !current_function_returns_value && !current_function_returns_null
       /* Don't complain if we abort or throw.  */
       && !current_function_returns_abnormally
+      /* Don't complain if we are declared noreturn.  */
+      && !TREE_THIS_VOLATILE (fndecl)
       && !DECL_NAME (DECL_RESULT (fndecl))
       && !TREE_NO_WARNING (fndecl)
       /* Structor return values (if any) are set by the compiler.  */
@@ -12548,7 +12571,7 @@ finish_function (int flags)
   if (!processing_template_decl)
     {
       struct language_function *f = DECL_SAVED_FUNCTION_DATA (fndecl);
-      invoke_plugin_callbacks (PLUGIN_CXX_CP_PRE_GENERICIZE, fndecl);
+      invoke_plugin_callbacks (PLUGIN_PRE_GENERICIZE, fndecl);
       cp_genericize (fndecl);
       /* Clear out the bits we don't need.  */
       f->x_current_class_ptr = NULL;

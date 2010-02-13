@@ -34,74 +34,37 @@
 
 // Written by Lixia Liu and Silvius Rus.
 
-#ifndef PROFCXX_PROFILER_STATE_H__
-#define PROFCXX_PROFILER_STATE_H__ 1
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-#include <cstdio>
-#else
-#include <stdio.h>
-#endif
+#ifndef _GLIBCXX_PROFILE_PROFILER_STATE_H
+#define _GLIBCXX_PROFILE_PROFILER_STATE_H 1
 
 namespace __gnu_profile
 {
 
-/** @brief Profiling mode on/off state.  */
-template <int _Unused=0>
-class __state
+enum __state_type { __ON, __OFF, __INVALID };
+
+_GLIBCXX_PROFILE_DEFINE_DATA(__state_type, __state, __INVALID);
+
+inline bool __turn(__state_type __s)
 {
- public:
+  return (_GLIBCXX_PROFILE_DATA(__state)
+          == __sync_val_compare_and_swap(&_GLIBCXX_PROFILE_DATA(__state),
+                                         __INVALID, __s));
+}
 
-  static __state<_Unused>* _S_diag_state;
+inline bool __turn_on()
+{ return __turn(__ON); }
 
-  __state() : _M_state(__INVALID) {}
-  ~__state() {}
-
-  bool __is_on() { return _M_state == __ON; }
-  bool __is_off() { return _M_state == __OFF; }
-  bool __is_invalid() { return _M_state == __INVALID; }
-  void __turn_on() { _M_state = __ON; }
-  void __turn_off() { _M_state = __OFF; }
-
- private:
-  enum __state_type { __ON, __OFF, __INVALID };
-  __state_type _M_state;
-};
-
-template <int _Unused>
-__state<_Unused>* __state<_Unused>::_S_diag_state = NULL;
+inline bool __turn_off()
+{ return __turn(__OFF); }
 
 inline bool __is_on()
-{
-  return __state<0>::_S_diag_state && __state<0>::_S_diag_state->__is_on();
-}
+{ return _GLIBCXX_PROFILE_DATA(__state) == __ON; }
 
 inline bool __is_off()
-{
-  return __state<0>::_S_diag_state && __state<0>::_S_diag_state->__is_off();
-}
+{ return _GLIBCXX_PROFILE_DATA(__state) == __OFF; }
 
 inline bool __is_invalid()
-{
-  return (!__state<0>::_S_diag_state 
-          || __state<0>::_S_diag_state->__is_invalid());
-}
-
-inline void __turn_on()
-{
-  if (!__state<0>::_S_diag_state) { 
-    __state<0>::_S_diag_state = new __state<0>();
-  }
-  __state<0>::_S_diag_state->__turn_on();
-}
-
-inline void __turn_off()
-{
-  if (!__state<0>::_S_diag_state) { 
-    __state<0>::_S_diag_state = new __state<0>();
-  }
-  __state<0>::_S_diag_state->__turn_off();
-}
+{ return _GLIBCXX_PROFILE_DATA(__state) == __INVALID; }
 
 } // end namespace __gnu_profile
-#endif /* PROFCXX_PROFILER_STATE_H__ */
+#endif /* _GLIBCXX_PROFILE_PROFILER_STATE_H */

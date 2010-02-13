@@ -796,6 +796,7 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
 {
   int i = 0, j, prev = -1, next, k;
   bool supported;
+  sbitmap load_index;
 
   /* FORNOW: permutations are only supported in SLP.  */
   if (!slp_instn)
@@ -816,6 +817,8 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
     return false;
 
   supported = true;
+  load_index = sbitmap_alloc (group_size);
+  sbitmap_zero (load_index);
   for (j = 0; j < group_size; j++)
     {
       for (i = j * group_size, k = 0;
@@ -830,7 +833,17 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
 
          prev = next;
        }
+
+      if (TEST_BIT (load_index, prev))
+        {
+          supported = false;
+          break;
+        }
+
+      SET_BIT (load_index, prev);
     }
+  
+  sbitmap_free (load_index);
 
   if (supported && i == group_size * group_size
       && vect_supported_slp_permutation_p (slp_instn))
@@ -1408,7 +1421,6 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
   VEC (gimple, heap) *stmts = SLP_TREE_SCALAR_STMTS (slp_node);
   gimple stmt = VEC_index (gimple, stmts, 0);
   stmt_vec_info stmt_vinfo = vinfo_for_stmt (stmt);
-  tree vectype = STMT_VINFO_VECTYPE (stmt_vinfo);
   int nunits;
   tree vec_cst;
   tree t = NULL_TREE;
@@ -1433,16 +1445,12 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
     }
 
   if (CONSTANT_CLASS_P (op))
-    {
-      vector_type = vectype;
-      constant_p = true;
-    }
+    constant_p = true;
   else
-    {
-      vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
-      gcc_assert (vector_type);
-      constant_p = false;
-    }
+    constant_p = false;
+
+  vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
+  gcc_assert (vector_type);
 
   nunits = TYPE_VECTOR_SUBPARTS (vector_type);
 

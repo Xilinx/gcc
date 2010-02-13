@@ -754,6 +754,7 @@ ipa_note_param_call (struct ipa_node_params *info, int formal_id,
   note->lto_stmt_uid = gimple_uid (stmt);
   note->count = bb->count;
   note->frequency = compute_call_stmt_bb_frequency (current_function_decl, bb);
+  note->loop_nest = bb->loop_depth;
 
   note->next = info->param_calls;
   info->param_calls = note;
@@ -2008,7 +2009,7 @@ ipa_write_node_info (struct output_block *ob, struct cgraph_node *node)
   int j;
   struct cgraph_edge *e;
   struct bitpack_d *bp;
-  int note_count;
+  int note_count = 0;
   struct ipa_param_call_note *note;
 
   encoder = ob->decl_state->cgraph_node_encoder;
@@ -2017,9 +2018,9 @@ ipa_write_node_info (struct output_block *ob, struct cgraph_node *node)
 
   bp = bitpack_create ();
   bp_pack_value (bp, info->called_with_var_arguments, 1);
+  bp_pack_value (bp, info->uses_analysis_done, 1);
   gcc_assert (info->modification_analysis_done
 	      || ipa_get_param_count (info) == 0);
-  gcc_assert (info->uses_analysis_done || ipa_get_param_count (info) == 0);
   gcc_assert (!info->node_enqueued);
   gcc_assert (!info->ipcp_orig_node);
   for (j = 0; j < ipa_get_param_count (info); j++)
@@ -2062,6 +2063,7 @@ ipa_read_node_info (struct lto_input_block *ib, struct cgraph_node *node,
 
   bp = lto_input_bitpack (ib);
   info->called_with_var_arguments = bp_unpack_value (bp, 1);
+  info->uses_analysis_done = bp_unpack_value (bp, 1);
   if (ipa_get_param_count (info) != 0)
     {
       info->modification_analysis_done = true;
@@ -2204,17 +2206,17 @@ ipa_update_after_lto_read (void)
   ipa_check_create_edge_args ();
 
   for (node = cgraph_nodes; node; node = node->next)
-    {
-      if (!node->analyzed)
-	continue;
+    if (node->analyzed)
       ipa_initialize_node_params (node);
+
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->analyzed)
       for (cs = node->callees; cs; cs = cs->next_callee)
 	{
 	  if (ipa_get_cs_argument_count (IPA_EDGE_REF (cs))
 	      != ipa_get_param_count (IPA_NODE_REF (cs->callee)))
 	    ipa_set_called_with_variable_arg (IPA_NODE_REF (cs->callee));
 	}
-    }
 }
 
 /* Walk param call notes of NODE and set their call statements given the uid

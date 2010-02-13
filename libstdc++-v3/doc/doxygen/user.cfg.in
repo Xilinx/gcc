@@ -580,6 +580,7 @@ INPUT                  = @srcdir@/doc/doxygen/doxygroups.cc \
                          @srcdir@/libsupc++/typeinfo \
                          include/algorithm \
                          include/array \
+                         include/atomic \
                          include/bitset \
                          include/chrono \
                          include/complex \
@@ -635,7 +636,6 @@ INPUT                  = @srcdir@/doc/doxygen/doxygroups.cc \
                          include/csetjmp \
                          include/csignal \
                          include/cstdarg \
-                         include/cstdatomic \
                          include/cstdbool \
                          include/cstddef \
                          include/cstdint \
@@ -704,7 +704,6 @@ INPUT                  = @srcdir@/doc/doxygen/doxygroups.cc \
                          include/tr1_impl/cstdlib \
                          include/tr1_impl/cwchar \
                          include/tr1_impl/cwctype \
-                         include/tr1_impl/functional \
                          include/tr1_impl/hashtable \
                          include/tr1_impl/regex \
                          include/tr1_impl/type_traits \
@@ -1449,6 +1448,7 @@ PREDEFINED             = __cplusplus \
                          _GLIBCXX_ATOMIC_BUILTINS_8 \
                          _GLIBCXX_USE_SCHED_YIELD \
                          _GLIBCXX_USE_NANOSLEEP \
+                         __GXX_RTTI \
                          __glibcxx_function_requires=// \
                          __glibcxx_class_requires=// \
                          __glibcxx_class_requires2=// \

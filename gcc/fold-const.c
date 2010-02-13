@@ -206,7 +206,7 @@ fit_double_type (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
 {
   unsigned HOST_WIDE_INT low0 = l1;
   HOST_WIDE_INT high0 = h1;
-  unsigned int prec = int_or_pointer_precision (type);
+  unsigned int prec = TYPE_PRECISION (type);
   int sign_extended_type;
 
   /* Size types *are* sign extended.  */
@@ -326,13 +326,17 @@ add_double_with_sign (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
   HOST_WIDE_INT h;
 
   l = l1 + l2;
-  h = h1 + h2 + (l < l1);
+  h = (HOST_WIDE_INT) ((unsigned HOST_WIDE_INT) h1
+		       + (unsigned HOST_WIDE_INT) h2
+		       + (l < l1));
 
   *lv = l;
   *hv = h;
 
   if (unsigned_p)
-    return (unsigned HOST_WIDE_INT) h < (unsigned HOST_WIDE_INT) h1;
+    return ((unsigned HOST_WIDE_INT) h < (unsigned HOST_WIDE_INT) h1
+	    || (h == h1
+		&& l < l1));
   else
     return OVERFLOW_SUM_SIGN (h1, h2, h);
 }
@@ -881,22 +885,18 @@ div_if_zero_remainder (enum tree_code code, const_tree arg1, const_tree arg2)
   HOST_WIDE_INT int1h, int2h;
   unsigned HOST_WIDE_INT quol, reml;
   HOST_WIDE_INT quoh, remh;
-  tree type = TREE_TYPE (arg1);
-  int uns = TYPE_UNSIGNED (type);
+  int uns;
+
+  /* The sign of the division is according to operand two, that
+     does the correct thing for POINTER_PLUS_EXPR where we want
+     a signed division.  */
+  uns = TYPE_UNSIGNED (TREE_TYPE (arg2));
+  if (TREE_CODE (TREE_TYPE (arg2)) == INTEGER_TYPE
+      && TYPE_IS_SIZETYPE (TREE_TYPE (arg2)))
+    uns = false;
 
   int1l = TREE_INT_CST_LOW (arg1);
   int1h = TREE_INT_CST_HIGH (arg1);
-  /* &obj[0] + -128 really should be compiled as &obj[-8] rather than
-     &obj[some_exotic_number].  */
-  if (POINTER_TYPE_P (type))
-    {
-      uns = false;
-      type = signed_type_for (type);
-      fit_double_type (int1l, int1h, &int1l, &int1h,
-		       type);
-    }
-  else
-    fit_double_type (int1l, int1h, &int1l, &int1h, type);
   int2l = TREE_INT_CST_LOW (arg2);
   int2h = TREE_INT_CST_HIGH (arg2);
 
@@ -905,7 +905,7 @@ div_if_zero_remainder (enum tree_code code, const_tree arg1, const_tree arg2)
   if (remh != 0 || reml != 0)
     return NULL_TREE;
 
-  return build_int_cst_wide (type, quol, quoh);
+  return build_int_cst_wide (TREE_TYPE (arg1), quol, quoh);
 }
 
 /* This is nonzero if we should defer warnings about undefined
@@ -1129,9 +1129,13 @@ negate_expr_p (tree t)
 	      && TYPE_OVERFLOW_WRAPS (type));
 
     case FIXED_CST:
-    case REAL_CST:
     case NEGATE_EXPR:
       return true;
+
+    case REAL_CST:
+      /* We want to canonicalize to positive real constants.  Pretend
+         that only negative ones can be easily negated.  */
+      return REAL_VALUE_NEGATIVE (TREE_REAL_CST (t));
 
     case COMPLEX_CST:
       return negate_expr_p (TREE_REALPART (t))
@@ -1966,12 +1970,10 @@ const_binop (enum tree_code code, tree arg1, tree arg2, int notrunc)
 	  break;
 
 	case MULT_EXPR:
-#ifdef HAVE_mpc
 	  if (COMPLEX_FLOAT_TYPE_P (type))
 	    return do_mpc_arg2 (arg1, arg2, type,
 				/* do_nonfinite= */ folding_initializer,
 				mpc_mul);
-#endif
 
 	  real = const_binop (MINUS_EXPR,
 			      const_binop (MULT_EXPR, r1, r2, notrunc),
@@ -1984,14 +1986,11 @@ const_binop (enum tree_code code, tree arg1, tree arg2, int notrunc)
 	  break;
 
 	case RDIV_EXPR:
-#ifdef HAVE_mpc
 	  if (COMPLEX_FLOAT_TYPE_P (type))
 	    return do_mpc_arg2 (arg1, arg2, type,
                                 /* do_nonfinite= */ folding_initializer,
 				mpc_div);
 	  /* Fallthru ... */
-#endif
-
 	case TRUNC_DIV_EXPR:
 	case CEIL_DIV_EXPR:
 	case FLOOR_DIV_EXPR:
@@ -3166,7 +3165,9 @@ int
 operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
 {
   /* If either is ERROR_MARK, they aren't equal.  */
-  if (TREE_CODE (arg0) == ERROR_MARK || TREE_CODE (arg1) == ERROR_MARK)
+  if (TREE_CODE (arg0) == ERROR_MARK || TREE_CODE (arg1) == ERROR_MARK
+      || TREE_TYPE (arg0) == error_mark_node
+      || TREE_TYPE (arg1) == error_mark_node)
     return 0;
 
   /* Check equality of integer constants before bailing out due to
@@ -7586,13 +7587,16 @@ try_move_mult_to_index (location_t loc, tree addr, tree op1)
     {
       if (TREE_CODE (ref) == ARRAY_REF)
 	{
+	  tree domain;
+
 	  /* Remember if this was a multi-dimensional array.  */
 	  if (TREE_CODE (TREE_OPERAND (ref, 0)) == ARRAY_REF)
 	    mdim = true;
 
-	  itype = TYPE_DOMAIN (TREE_TYPE (TREE_OPERAND (ref, 0)));
-	  if (! itype)
+	  domain = TYPE_DOMAIN (TREE_TYPE (TREE_OPERAND (ref, 0)));
+	  if (! domain)
 	    continue;
+	  itype = TREE_TYPE (domain);
 
 	  step = array_ref_element_size (ref);
 	  if (TREE_CODE (step) != INTEGER_CST)
@@ -7619,18 +7623,17 @@ try_move_mult_to_index (location_t loc, tree addr, tree op1)
 	      tree tmp;
 
 	      if (TREE_CODE (TREE_OPERAND (ref, 1)) != INTEGER_CST
-		  || !INTEGRAL_TYPE_P (itype)
-		  || !TYPE_MAX_VALUE (itype)
-		  || TREE_CODE (TYPE_MAX_VALUE (itype)) != INTEGER_CST)
+		  || !TYPE_MAX_VALUE (domain)
+		  || TREE_CODE (TYPE_MAX_VALUE (domain)) != INTEGER_CST)
 		continue;
 
 	      tmp = fold_binary_loc (loc, PLUS_EXPR, itype,
-				 fold_convert_loc (loc, itype,
-						   TREE_OPERAND (ref, 1)),
-				 fold_convert_loc (loc, itype, delta));
+				     fold_convert_loc (loc, itype,
+						       TREE_OPERAND (ref, 1)),
+				     fold_convert_loc (loc, itype, delta));
 	      if (!tmp
 		  || TREE_CODE (tmp) != INTEGER_CST
-		  || tree_int_cst_lt (TYPE_MAX_VALUE (itype), tmp))
+		  || tree_int_cst_lt (TYPE_MAX_VALUE (domain), tmp))
 		continue;
 	    }
 
@@ -8946,6 +8949,19 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
 	      default:
 		break;
 	      }
+	}
+      return NULL_TREE;
+
+    case INDIRECT_REF:
+      /* Fold *&X to X if X is an lvalue.  */
+      if (TREE_CODE (op0) == ADDR_EXPR)
+	{
+	  tree op00 = TREE_OPERAND (op0, 0);
+	  if ((TREE_CODE (op00) == VAR_DECL
+	       || TREE_CODE (op00) == PARM_DECL
+	       || TREE_CODE (op00) == RESULT_DECL)
+	      && !TREE_READONLY (op00))
+	    return op00;
 	}
       return NULL_TREE;
 

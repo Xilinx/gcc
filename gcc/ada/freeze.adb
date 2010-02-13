@@ -568,7 +568,7 @@ package body Freeze is
       procedure Set_Small_Size (T : Entity_Id; S : Uint);
       --  Sets the compile time known size (32 bits or less) in the Esize
       --  field, of T checking for a size clause that was given which attempts
-      --  to give a smaller size.
+      --  to give a smaller size, and also checking for an alignment clause.
 
       function Size_Known (T : Entity_Id) return Boolean;
       --  Recursive function that does all the work
@@ -588,6 +588,15 @@ package body Freeze is
       begin
          if S > 32 then
             return;
+
+         --  Don't bother if alignment clause with a value other than 1 is
+         --  present, because size may be padded up to meet back end alignment
+         --  requirements, and only the back end knows the rules!
+
+         elsif Known_Alignment (T) and then Alignment (T) /= 1 then
+            return;
+
+         --  Check for bad size clause given
 
          elsif Has_Size_Clause (T) then
             if RM_Size (T) < S then
@@ -890,12 +899,12 @@ package body Freeze is
 
                      if Is_Elementary_Type (Ctyp)
                        or else (Is_Array_Type (Ctyp)
-                                and then Present (Packed_Array_Type (Ctyp))
-                                and then Is_Modular_Integer_Type
-                                           (Packed_Array_Type (Ctyp)))
+                                 and then Present (Packed_Array_Type (Ctyp))
+                                 and then Is_Modular_Integer_Type
+                                            (Packed_Array_Type (Ctyp)))
                      then
-                        --  If RM_Size is known and static, then we can
-                        --  keep accumulating the packed size.
+                        --  If RM_Size is known and static, then we can keep
+                        --  accumulating the packed size.
 
                         if Known_Static_RM_Size (Ctyp) then
 
@@ -2185,14 +2194,21 @@ package body Freeze is
 
             Comp := First_Component (Rec);
             while Present (Comp) loop
-               if Has_Controlled_Component (Etype (Comp))
-                 or else (Chars (Comp) /= Name_uParent
-                           and then Is_Controlled (Etype (Comp)))
-                 or else (Is_Protected_Type (Etype (Comp))
-                           and then Present
-                             (Corresponding_Record_Type (Etype (Comp)))
-                           and then Has_Controlled_Component
-                             (Corresponding_Record_Type (Etype (Comp))))
+
+               --  Do not set Has_Controlled_Component on a class-wide
+               --  equivalent type. See Make_CW_Equivalent_Type.
+
+               if not Is_Class_Wide_Equivalent_Type (Rec)
+                 and then (Has_Controlled_Component (Etype (Comp))
+                            or else (Chars (Comp) /= Name_uParent
+                                      and then Is_Controlled (Etype (Comp)))
+                            or else (Is_Protected_Type (Etype (Comp))
+                                      and then Present
+                                        (Corresponding_Record_Type
+                                          (Etype (Comp)))
+                                      and then Has_Controlled_Component
+                                        (Corresponding_Record_Type
+                                          (Etype (Comp)))))
                then
                   Set_Has_Controlled_Component (Rec);
                   exit;
@@ -2535,6 +2551,8 @@ package body Freeze is
                        and then not Has_Warnings_Off (F_Type)
                        and then not Has_Warnings_Off (Formal)
                      then
+                        --  Qualify mention of formals with subprogram name
+
                         Error_Msg_Qual_Level := 1;
 
                         --  Check suspicious use of fat C pointer
@@ -2543,8 +2561,8 @@ package body Freeze is
                           and then Esize (F_Type) > Ttypes.System_Address_Size
                         then
                            Error_Msg_N
-                             ("?type of & does not correspond "
-                              & "to C pointer!", Formal);
+                             ("?type of & does not correspond to C pointer!",
+                              Formal);
 
                         --  Check suspicious return of boolean
 
@@ -2552,10 +2570,13 @@ package body Freeze is
                           and then Convention (F_Type) = Convention_Ada
                           and then not Has_Warnings_Off (F_Type)
                           and then not Has_Size_Clause (F_Type)
+                          and then VM_Target = No_VM
                         then
                            Error_Msg_N
-                             ("?& is an 8-bit Ada Boolean, "
-                              & "use char in C!", Formal);
+                             ("& is an 8-bit Ada Boolean?", Formal);
+                           Error_Msg_N
+                             ("\use appropriate corresponding type in C "
+                              & "(e.g. char)?", Formal);
 
                         --  Check suspicious tagged type
 
@@ -2584,6 +2605,8 @@ package body Freeze is
                               Formal, F_Type);
                         end if;
 
+                        --  Turn off name qualification after message output
+
                         Error_Msg_Qual_Level := 0;
                      end if;
 
@@ -2595,6 +2618,11 @@ package body Freeze is
                        and then Is_Array_Type (F_Type)
                        and then not Is_Constrained (F_Type)
                        and then Warn_On_Export_Import
+
+                       --  Exclude VM case, since both .NET and JVM can handle
+                       --  unconstrained arrays without a problem.
+
+                       and then VM_Target = No_VM
                      then
                         Error_Msg_Qual_Level := 1;
 
@@ -2676,13 +2704,22 @@ package body Freeze is
 
                         elsif Root_Type (R_Type) = Standard_Boolean
                           and then Convention (R_Type) = Convention_Ada
+                          and then VM_Target = No_VM
                           and then not Has_Warnings_Off (E)
                           and then not Has_Warnings_Off (R_Type)
                           and then not Has_Size_Clause (R_Type)
                         then
-                           Error_Msg_N
-                             ("?return type of & is an 8-bit "
-                              & "Ada Boolean, use char in C!", E);
+                           declare
+                              N : constant Node_Id :=
+                                    Result_Definition (Declaration_Node (E));
+                           begin
+                              Error_Msg_NE
+                                ("return type of & is an 8-bit Ada Boolean?",
+                                 N, E);
+                              Error_Msg_NE
+                                ("\use appropriate corresponding type in C "
+                                 & "(e.g. char)?", N, E);
+                           end;
 
                         --  Check suspicious return tagged type
 

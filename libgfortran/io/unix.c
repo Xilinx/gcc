@@ -42,11 +42,17 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 /* For mingw, we don't identify files by their inode number, but by a
    64-bit identifier created from a BY_HANDLE_FILE_INFORMATION. */
-#if defined(__MINGW32__) && !HAVE_WORKING_STAT
+#ifdef __MINGW32__
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#define lseek _lseeki64
+#define fstat _fstati64
+#define stat _stati64
+typedef struct _stati64 gfstat_t;
+
+#ifndef HAVE_WORKING_STAT
 static uint64_t
 id_from_handle (HANDLE hFile)
 {
@@ -88,6 +94,10 @@ id_from_fd (const int fd)
   return id_from_handle ((HANDLE) _get_osfhandle (fd));
 }
 
+#endif
+
+#else
+typedef struct stat gfstat_t;
 #endif
 
 #ifndef PATH_MAX
@@ -274,22 +284,53 @@ raw_write (unix_stream * s, const void * buf, ssize_t nbyte)
   return nbyte - bytes_left;
 }
 
-static off_t
-raw_seek (unix_stream * s, off_t offset, int whence)
+static gfc_offset
+raw_seek (unix_stream * s, gfc_offset offset, int whence)
 {
   return lseek (s->fd, offset, whence);
 }
 
-static off_t
+static gfc_offset
 raw_tell (unix_stream * s)
 {
   return lseek (s->fd, 0, SEEK_CUR);
 }
 
 static int
-raw_truncate (unix_stream * s, off_t length)
+raw_truncate (unix_stream * s, gfc_offset length)
 {
-#ifdef HAVE_FTRUNCATE
+#ifdef __MINGW32__
+  HANDLE h;
+  gfc_offset cur;
+
+  if (isatty (s->fd))
+    {
+      errno = EBADF;
+      return -1;
+    }
+  h = _get_osfhandle (s->fd);
+  if (h == INVALID_HANDLE_VALUE)
+    {
+      errno = EBADF;
+      return -1;
+    }
+  cur = lseek (s->fd, 0, SEEK_CUR);
+  if (cur == -1)
+    return -1;
+  if (lseek (s->fd, length, SEEK_SET) == -1)
+    goto error;
+  if (!SetEndOfFile (h))
+    {
+      errno = EBADF;
+      goto error;
+    }
+  if (lseek (s->fd, cur, SEEK_SET) == -1)
+    return -1;
+  return 0;
+ error:
+  lseek (s->fd, cur, SEEK_SET);
+  return -1;
+#elif defined HAVE_FTRUNCATE
   return ftruncate (s->fd, length);
 #elif defined HAVE_CHSIZE
   return chsize (s->fd, length);
@@ -470,8 +511,8 @@ buf_write (unix_stream * s, const void * buf, ssize_t nbyte)
   return nbyte;
 }
 
-static off_t
-buf_seek (unix_stream * s, off_t offset, int whence)
+static gfc_offset
+buf_seek (unix_stream * s, gfc_offset offset, int whence)
 {
   switch (whence)
     {
@@ -495,14 +536,14 @@ buf_seek (unix_stream * s, off_t offset, int whence)
   return offset;
 }
 
-static off_t
+static gfc_offset
 buf_tell (unix_stream * s)
 {
   return s->logical_offset;
 }
 
 static int
-buf_truncate (unix_stream * s, off_t length)
+buf_truncate (unix_stream * s, gfc_offset length)
 {
   int r;
 
@@ -631,8 +672,8 @@ mem_write (stream * s, const void * buf, ssize_t nbytes)
 }
 
 
-static off_t
-mem_seek (stream * strm, off_t offset, int whence)
+static gfc_offset
+mem_seek (stream * strm, gfc_offset offset, int whence)
 {
   unix_stream * s = (unix_stream *) strm;
   switch (whence)
@@ -668,7 +709,7 @@ mem_seek (stream * strm, off_t offset, int whence)
 }
 
 
-static off_t
+static gfc_offset
 mem_tell (stream * s)
 {
   return ((unix_stream *)s)->logical_offset;
@@ -677,7 +718,7 @@ mem_tell (stream * s)
 
 static int
 mem_truncate (unix_stream * s __attribute__ ((unused)), 
-	      off_t length __attribute__ ((unused)))
+	      gfc_offset length __attribute__ ((unused)))
 {
   return 0;
 }
@@ -748,7 +789,7 @@ open_internal (char *base, int length, gfc_offset offset)
 static stream *
 fd_to_stream (int fd, int prot)
 {
-  struct stat statbuf;
+  gfstat_t statbuf;
   unix_stream *s;
 
   s = get_mem (sizeof (unix_stream));
@@ -764,7 +805,7 @@ fd_to_stream (int fd, int prot)
 
   fstat (fd, &statbuf);
 
-  if (lseek (fd, 0, SEEK_CUR) == (off_t) -1)
+  if (lseek (fd, 0, SEEK_CUR) == (gfc_offset) -1)
     s->file_length = -1;
   else
     s->file_length = S_ISREG (statbuf.st_mode) ? statbuf.st_size : -1;
@@ -1187,9 +1228,9 @@ int
 compare_file_filename (gfc_unit *u, const char *name, int len)
 {
   char path[PATH_MAX + 1];
-  struct stat st1;
+  gfstat_t st1;
 #ifdef HAVE_WORKING_STAT
-  struct stat st2;
+  gfstat_t st2;
 #else
 # ifdef __MINGW32__
   uint64_t id1, id2;
@@ -1228,7 +1269,7 @@ compare_file_filename (gfc_unit *u, const char *name, int len)
 
 
 #ifdef HAVE_WORKING_STAT
-# define FIND_FILE0_DECL struct stat *st
+# define FIND_FILE0_DECL gfstat_t *st
 # define FIND_FILE0_ARGS st
 #else
 # define FIND_FILE0_DECL uint64_t id, const char *file, gfc_charlen_type file_len
@@ -1285,8 +1326,11 @@ gfc_unit *
 find_file (const char *file, gfc_charlen_type file_len)
 {
   char path[PATH_MAX + 1];
-  struct stat st[2];
+  gfstat_t st[2];
   gfc_unit *u;
+#if defined(__MINGW32__) && !HAVE_WORKING_STAT
+  uint64_t id = 0ULL;
+#endif
 
   if (unpack_filename (path, file, file_len))
     return NULL;
@@ -1295,7 +1339,7 @@ find_file (const char *file, gfc_charlen_type file_len)
     return NULL;
 
 #if defined(__MINGW32__) && !HAVE_WORKING_STAT
-  id_from_path (path);
+  id = id_from_path (path);
 #endif
 
   __gthread_mutex_lock (&unit_lock);
@@ -1419,7 +1463,7 @@ int
 file_exists (const char *file, gfc_charlen_type file_len)
 {
   char path[PATH_MAX + 1];
-  struct stat statbuf;
+  gfstat_t statbuf;
 
   if (unpack_filename (path, file, file_len))
     return 0;
@@ -1442,7 +1486,7 @@ const char *
 inquire_sequential (const char *string, int len)
 {
   char path[PATH_MAX + 1];
-  struct stat statbuf;
+  gfstat_t statbuf;
 
   if (string == NULL ||
       unpack_filename (path, string, len) || stat (path, &statbuf) < 0)
@@ -1466,7 +1510,7 @@ const char *
 inquire_direct (const char *string, int len)
 {
   char path[PATH_MAX + 1];
-  struct stat statbuf;
+  gfstat_t statbuf;
 
   if (string == NULL ||
       unpack_filename (path, string, len) || stat (path, &statbuf) < 0)
@@ -1490,7 +1534,7 @@ const char *
 inquire_formatted (const char *string, int len)
 {
   char path[PATH_MAX + 1];
-  struct stat statbuf;
+  gfstat_t statbuf;
 
   if (string == NULL ||
       unpack_filename (path, string, len) || stat (path, &statbuf) < 0)
@@ -1599,7 +1643,7 @@ inquire_readwrite (const char *string, int len)
 gfc_offset
 file_length (stream * s)
 {
-  off_t curr, end;
+  gfc_offset curr, end;
   if (!is_seekable (s))
     return -1;
   curr = stell (s);

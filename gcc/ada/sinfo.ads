@@ -462,10 +462,18 @@ package Sinfo is
    --    reasons.
 
    --  Comes_From_Source (Flag2)
-   --    This flag is on for any nodes built by the scanner or parser from the
-   --    source program, and off for any nodes built by the analyzer or
-   --    expander. It indicates that a node comes from the original source.
-   --    This flag is defined in Atree.
+   --    This flag is set if the node comes directly from an explicit construct
+   --    in the source. It is normally on for any nodes built by the scanner or
+   --    parser from the source program, with the exception that in a few cases
+   --    the parser adds nodes to normalize the representation (in particular
+   --    a null statement is added to a package body if there is no begin/end
+   --    initialization section.
+   --
+   --    Most nodes inserted by the analyzer or expander are not considered
+   --    as coming from source, so the flag is off for such nodes. In a few
+   --    cases, the expander constructs nodes closely equivalent to nodes
+   --    from the source program (e.g. the allocator built for build-in-place
+   --    case), and the Comes_From_Source flag is deliberately set.
 
    --  Error_Posted (Flag3)
    --    This flag is used to avoid multiple error messages being posted on or
@@ -568,15 +576,9 @@ package Sinfo is
    --    issues. Used to inhibit multiple redundant messages.
 
    --  Aggregate_Bounds (Node3-Sem)
-   --    Present in array N_Aggregate nodes. If the aggregate contains
-   --    component associations this field points to an N_Range node whose
-   --    bounds give the lowest and highest discrete choice values. If the
-   --    named aggregate contains a dynamic or null choice this field is empty.
-   --    If the aggregate contains positional elements this field points to an
-   --    N_Integer_Literal node giving the number of positional elements. Note
-   --    that if the aggregate contains positional elements and an other choice
-   --    the N_Integer_Literal only accounts for the number of positional
-   --    elements.
+   --    Present in array N_Aggregate nodes. If the bounds of the aggregate are
+   --    known at compile time, this field points to an N_Range node with those
+   --    bounds. Otherwise Empty.
 
    --  All_Others (Flag11-Sem)
    --    Present in an N_Others_Choice node. This flag is set for an others
@@ -1149,7 +1151,13 @@ package Sinfo is
 
    --  Has_Wide_Character (Flag11-Sem)
    --    Present in string literals, set if any wide character (i.e. character
-   --    code outside the Character range) appears in the string.
+   --    code outside the Character range but within Wide_Character range)
+   --    appears in the string. Used to implement pragma preference rules.
+
+   --  Has_Wide_Wide_Character (Flag13-Sem)
+   --    Present in string literals, set if any wide character (i.e. character
+   --    code outside the Wide_Character range) appears in the string. Used to
+   --    implement pragma preference rules.
 
    --  Hidden_By_Use_Clause (Elist4-Sem)
    --     An entity list present in use clauses that appear within
@@ -1518,10 +1526,11 @@ package Sinfo is
    --    package specification. This field is Empty for library bodies (the
    --    parent spec in this case can be found from the corresponding spec).
 
-   --  PPC_Enabled (Flag5-Sem)
-   --    Present in N_Pragma nodes. This flag is relevant only for precondition
-   --    and postcondition nodes. It is true if the check corresponding to the
-   --    pragma type is enabled at the point where the pragma appears.
+   --  Pragma_Enabled (Flag5-Sem)
+   --    Present in N_Pragma nodes. This flag is relevant only for pragmas
+   --    Assert, Check, Precondition, and Postcondition. It is true if the
+   --    check corresponding to the pragma type is enabled at the point where
+   --    the pragma appears.
 
    --  Present_Expr (Uint3-Sem)
    --    Present in an N_Variant node. This has a meaningful value only after
@@ -1607,6 +1616,10 @@ package Sinfo is
    --  SCIL_Controlling_Tag (Node5-Sem)
    --    Present in N_SCIL_Dispatching_Call nodes. Used to reference the
    --    controlling tag of a dispatching call.
+
+   --  SCIL_Tag_Value (Node5-Sem)
+   --    Present in N_SCIL_Membership_Test nodes. Used to reference the tag
+   --    value that is being tested.
 
    --  SCIL_Target_Prim (Node2-Sem)
    --    Present in N_SCIL_Dispatching_Call nodes. Used to reference the tagged
@@ -1933,6 +1946,7 @@ package Sinfo is
       --  Sloc points to literal
       --  Strval (Str3) contains Id of string value
       --  Has_Wide_Character (Flag11-Sem)
+      --  Has_Wide_Wide_Character (Flag13-Sem)
       --  Is_Folded_In_Parser (Flag4)
       --  plus fields for expression
 
@@ -1966,7 +1980,7 @@ package Sinfo is
       --  Debug_Statement (Node3) (set to Empty if not Debug, Assert)
       --  Pragma_Identifier (Node4)
       --  Next_Rep_Item (Node5-Sem)
-      --  PPC_Enabled (Flag5-Sem)
+      --  Pragma_Enabled (Flag5-Sem)
 
       --  Note: we should have a section on what pragmas are passed on to
       --  the back end to be processed. This section should note that pragma
@@ -3283,10 +3297,10 @@ package Sinfo is
       --  are not met, then the front end must translate the aggregate into
       --  an appropriate set of assignments into a temporary.
 
-      --  Note: for the record aggregate case, gigi/gcc can handle all cases
-      --  of record aggregates, including those for packed, and rep-claused
+      --  Note: for the record aggregate case, gigi/gcc can handle all cases of
+      --  record aggregates, including those for packed, and rep-claused
       --  records, and also variant records, providing that there are no
-      --  variable length fields whose size is not known at runtime, and
+      --  variable length fields whose size is not known at compile time, and
       --  providing that the aggregate is presented in fully named form.
 
       ----------------------------------------------
@@ -4457,7 +4471,7 @@ package Sinfo is
       --  Selector_Name (Node2) (always non-Empty)
       --  Explicit_Actual_Parameter (Node3)
       --  Next_Named_Actual (Node4-Sem)
-      --  Is_Accessibility_Actual (Flag12-Sem)
+      --  Is_Accessibility_Actual (Flag13-Sem)
 
       ---------------------------
       -- 6.4  Actual Parameter --
@@ -6886,6 +6900,12 @@ package Sinfo is
       --  SCIL_Entity (Node4-Sem)
       --  SCIL_Controlling_Tag (Node5-Sem)
 
+      --  N_SCIL_Membership_Test
+      --  Sloc references the node of a membership test
+      --  SCIL_Related_Node (Node1-Sem)
+      --  SCIL_Tag_Value (Node5-Sem)
+      --  SCIL_Entity (Node4-Sem)
+
       --  N_SCIL_Tag_Init
       --  Sloc references the node of a tag component initialization
       --  SCIL_Related_Node (Node1-Sem)
@@ -7333,6 +7353,7 @@ package Sinfo is
       N_SCIL_Dispatch_Table_Object_Init,
       N_SCIL_Dispatch_Table_Tag_Init,
       N_SCIL_Dispatching_Call,
+      N_SCIL_Membership_Test,
       N_SCIL_Tag_Init,
 
       --  Other nodes (not part of any subtype class)
@@ -8048,6 +8069,9 @@ package Sinfo is
    function Has_Wide_Character
      (N : Node_Id) return Boolean;    -- Flag11
 
+   function Has_Wide_Wide_Character
+     (N : Node_Id) return Boolean;    -- Flag13
+
    function Hidden_By_Use_Clause
      (N : Node_Id) return Elist_Id;   -- Elist4
 
@@ -8079,7 +8103,7 @@ package Sinfo is
      (N : Node_Id) return Uint;       -- Uint3
 
    function Is_Accessibility_Actual
-     (N : Node_Id) return Boolean;    -- Flag12
+     (N : Node_Id) return Boolean;    -- Flag13
 
    function Is_Asynchronous_Call_Block
      (N : Node_Id) return Boolean;    -- Flag7
@@ -8288,14 +8312,14 @@ package Sinfo is
    function Parent_Spec
      (N : Node_Id) return Node_Id;    -- Node4
 
-   function PPC_Enabled
-     (N : Node_Id) return Boolean;    -- Flag5
-
    function Position
      (N : Node_Id) return Node_Id;    -- Node2
 
    function Pragma_Argument_Associations
      (N : Node_Id) return List_Id;    -- List2
+
+   function Pragma_Enabled
+     (N : Node_Id) return Boolean;    -- Flag5
 
    function Pragma_Identifier
      (N : Node_Id) return Node_Id;    -- Node4
@@ -8389,6 +8413,9 @@ package Sinfo is
 
    function SCIL_Related_Node
      (N : Node_Id) return Node_Id;    -- Node1
+
+   function SCIL_Tag_Value
+     (N : Node_Id) return Node_Id;    -- Node5
 
    function SCIL_Target_Prim
      (N : Node_Id) return Node_Id;    -- Node2
@@ -8960,6 +8987,9 @@ package Sinfo is
    procedure Set_Has_Wide_Character
      (N : Node_Id; Val : Boolean := True);    -- Flag11
 
+   procedure Set_Has_Wide_Wide_Character
+     (N : Node_Id; Val : Boolean := True);    -- Flag13
+
    procedure Set_Hidden_By_Use_Clause
      (N : Node_Id; Val : Elist_Id);           -- Elist4
 
@@ -8991,7 +9021,7 @@ package Sinfo is
      (N : Node_Id; Val : Uint);               -- Uint3
 
    procedure Set_Is_Accessibility_Actual
-     (N : Node_Id; Val : Boolean := True);    -- Flag12
+     (N : Node_Id; Val : Boolean := True);    -- Flag13
 
    procedure Set_Is_Asynchronous_Call_Block
      (N : Node_Id; Val : Boolean := True);    -- Flag7
@@ -9200,14 +9230,14 @@ package Sinfo is
    procedure Set_Parent_Spec
      (N : Node_Id; Val : Node_Id);            -- Node4
 
-   procedure Set_PPC_Enabled
-     (N : Node_Id; Val : Boolean := True);    -- Flag5
-
    procedure Set_Position
      (N : Node_Id; Val : Node_Id);            -- Node2
 
    procedure Set_Pragma_Argument_Associations
      (N : Node_Id; Val : List_Id);            -- List2
+
+   procedure Set_Pragma_Enabled
+     (N : Node_Id; Val : Boolean := True);    -- Flag5
 
    procedure Set_Pragma_Identifier
      (N : Node_Id; Val : Node_Id);            -- Node4
@@ -9301,6 +9331,9 @@ package Sinfo is
 
    procedure Set_SCIL_Related_Node
      (N : Node_Id; Val : Node_Id);            -- Node1
+
+   procedure Set_SCIL_Tag_Value
+     (N : Node_Id; Val : Node_Id);            -- Node5
 
    procedure Set_SCIL_Target_Prim
      (N : Node_Id; Val : Node_Id);            -- Node2
@@ -11056,6 +11089,13 @@ package Sinfo is
         4 => False,   --  SCIL_Entity (Node4-Sem)
         5 => False),  --  SCIL_Controlling_Tag (Node5-Sem)
 
+     N_SCIL_Membership_Test =>
+       (1 => False,   --  SCIL_Related_Node (Node1-Sem)
+        2 => False,   --  unused
+        3 => False,   --  unused
+        4 => False,   --  SCIL_Entity (Node4-Sem)
+        5 => False),  --  SCIL_Tag_Value (Node5-Sem)
+
      N_SCIL_Tag_Init =>
        (1 => False,   --  SCIL_Related_Node (Node1-Sem)
         2 => False,   --  unused
@@ -11250,6 +11290,7 @@ package Sinfo is
    pragma Inline (Has_Task_Info_Pragma);
    pragma Inline (Has_Task_Name_Pragma);
    pragma Inline (Has_Wide_Character);
+   pragma Inline (Has_Wide_Wide_Character);
    pragma Inline (Hidden_By_Use_Clause);
    pragma Inline (High_Bound);
    pragma Inline (Identifier);
@@ -11330,9 +11371,9 @@ package Sinfo is
    pragma Inline (Parameter_List_Truncated);
    pragma Inline (Parameter_Type);
    pragma Inline (Parent_Spec);
-   pragma Inline (PPC_Enabled);
    pragma Inline (Position);
    pragma Inline (Pragma_Argument_Associations);
+   pragma Inline (Pragma_Enabled);
    pragma Inline (Pragma_Identifier);
    pragma Inline (Pragmas_After);
    pragma Inline (Pragmas_Before);
@@ -11364,6 +11405,7 @@ package Sinfo is
    pragma Inline (SCIL_Controlling_Tag);
    pragma Inline (SCIL_Entity);
    pragma Inline (SCIL_Related_Node);
+   pragma Inline (SCIL_Tag_Value);
    pragma Inline (SCIL_Target_Prim);
    pragma Inline (Scope);
    pragma Inline (Select_Alternatives);
@@ -11550,6 +11592,7 @@ package Sinfo is
    pragma Inline (Set_Has_Task_Info_Pragma);
    pragma Inline (Set_Has_Task_Name_Pragma);
    pragma Inline (Set_Has_Wide_Character);
+   pragma Inline (Set_Has_Wide_Wide_Character);
    pragma Inline (Set_Hidden_By_Use_Clause);
    pragma Inline (Set_High_Bound);
    pragma Inline (Set_Identifier);
@@ -11631,9 +11674,9 @@ package Sinfo is
    pragma Inline (Set_Parameter_List_Truncated);
    pragma Inline (Set_Parameter_Type);
    pragma Inline (Set_Parent_Spec);
-   pragma Inline (Set_PPC_Enabled);
    pragma Inline (Set_Position);
    pragma Inline (Set_Pragma_Argument_Associations);
+   pragma Inline (Set_Pragma_Enabled);
    pragma Inline (Set_Pragma_Identifier);
    pragma Inline (Set_Pragmas_After);
    pragma Inline (Set_Pragmas_Before);
@@ -11664,6 +11707,7 @@ package Sinfo is
    pragma Inline (Set_SCIL_Controlling_Tag);
    pragma Inline (Set_SCIL_Entity);
    pragma Inline (Set_SCIL_Related_Node);
+   pragma Inline (Set_SCIL_Tag_Value);
    pragma Inline (Set_SCIL_Target_Prim);
    pragma Inline (Set_Scope);
    pragma Inline (Set_Select_Alternatives);

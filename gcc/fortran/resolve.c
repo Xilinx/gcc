@@ -1,5 +1,5 @@
 /* Perform type resolution on the various structures.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -842,12 +842,19 @@ resolve_structure_cons (gfc_expr *expr)
   /* See if the user is trying to invoke a structure constructor for one of
      the iso_c_binding derived types.  */
   if (expr->ts.type == BT_DERIVED && expr->ts.u.derived
-      && expr->ts.u.derived->ts.is_iso_c && cons && cons->expr != NULL)
+      && expr->ts.u.derived->ts.is_iso_c && cons
+      && (cons->expr == NULL || cons->expr->expr_type != EXPR_NULL))
     {
       gfc_error ("Components of structure constructor '%s' at %L are PRIVATE",
 		 expr->ts.u.derived->name, &(expr->where));
       return FAILURE;
     }
+
+  /* Return if structure constructor is c_null_(fun)prt.  */
+  if (expr->ts.type == BT_DERIVED && expr->ts.u.derived
+      && expr->ts.u.derived->ts.is_iso_c && cons
+      && cons->expr && cons->expr->expr_type == EXPR_NULL)
+    return SUCCESS;
 
   for (; comp; comp = comp->next, cons = cons->next)
     {
@@ -937,7 +944,8 @@ was_declared (gfc_symbol *sym)
 
   if (a.allocatable || a.dimension || a.dummy || a.external || a.intrinsic
       || a.optional || a.pointer || a.save || a.target || a.volatile_
-      || a.value || a.access != ACCESS_UNKNOWN || a.intent != INTENT_UNKNOWN)
+      || a.value || a.access != ACCESS_UNKNOWN || a.intent != INTENT_UNKNOWN
+      || a.asynchronous)
     return 1;
 
   return 0;
@@ -1830,6 +1838,21 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
 	gfc_error ("The reference to function '%s' at %L either needs an "
 		   "explicit INTERFACE or the rank is incorrect", sym->name,
 		   where);
+     
+      /* Non-assumed length character functions.  */
+      if (sym->attr.function && sym->ts.type == BT_CHARACTER
+	  && gsym->ns->proc_name->ts.u.cl->length != NULL)
+	{
+	  gfc_charlen *cl = sym->ts.u.cl;
+
+	  if (!sym->attr.entry_master && sym->attr.if_source == IFSRC_UNKNOWN
+              && cl && cl->length && cl->length->expr_type != EXPR_CONSTANT)
+	    {
+              gfc_error ("Nonconstant character-length function '%s' at %L "
+			 "must have an explicit interface", sym->name,
+			 &sym->declared_at);
+	    }
+	}
 
       if (gfc_option.flag_whole_file == 1
 	    || ((gfc_option.warn_std & GFC_STD_LEGACY)
@@ -3320,7 +3343,7 @@ resolve_operator (gfc_expr *e)
     case INTRINSIC_POWER:
       if (gfc_numeric_ts (&op1->ts) && gfc_numeric_ts (&op2->ts))
 	{
-	  gfc_type_convert_binary (e);
+	  gfc_type_convert_binary (e, 1);
 	  break;
 	}
 
@@ -3407,7 +3430,7 @@ resolve_operator (gfc_expr *e)
 
       if (gfc_numeric_ts (&op1->ts) && gfc_numeric_ts (&op2->ts))
 	{
-	  gfc_type_convert_binary (e);
+	  gfc_type_convert_binary (e, 1);
 
 	  e->ts.type = BT_LOGICAL;
 	  e->ts.kind = gfc_default_logical_kind;
@@ -4754,6 +4777,7 @@ extract_compcall_passed_object (gfc_expr* e)
       po->expr_type = EXPR_VARIABLE;
       po->symtree = e->symtree;
       po->ref = gfc_copy_ref (e->ref);
+      po->where = e->where;
     }
 
   if (gfc_resolve_expr (po) == FAILURE)
@@ -4780,12 +4804,6 @@ update_compcall_arglist (gfc_expr* e)
   po = extract_compcall_passed_object (e);
   if (!po)
     return FAILURE;
-
-  if (po->rank > 0)
-    {
-      gfc_error ("Passed-object at %L must be scalar", &e->where);
-      return FAILURE;
-    }
 
   if (tbp->nopass || e->value.compcall.ignore_pass)
     {
@@ -4814,11 +4832,12 @@ extract_ppc_passed_object (gfc_expr *e)
   po->expr_type = EXPR_VARIABLE;
   po->symtree = e->symtree;
   po->ref = gfc_copy_ref (e->ref);
+  po->where = e->where;
 
   /* Remove PPC reference.  */
   ref = &po->ref;
   while ((*ref)->next)
-    (*ref) = (*ref)->next;
+    ref = &(*ref)->next;
   gfc_free_ref_list (*ref);
   *ref = NULL;
 
@@ -4886,6 +4905,22 @@ check_typebound_baseobject (gfc_expr* e)
     {
       gfc_error ("Base object for type-bound procedure call at %L is of"
 		 " ABSTRACT type '%s'", &e->where, base->ts.u.derived->name);
+      return FAILURE;
+    }
+
+  /* If the procedure called is NOPASS, the base object must be scalar.  */
+  if (e->value.compcall.tbp->nopass && base->rank > 0)
+    {
+      gfc_error ("Base object for NOPASS type-bound procedure call at %L must"
+		 " be scalar", &e->where);
+      return FAILURE;
+    }
+
+  /* FIXME: Remove once PR 41177 (this problem) is fixed completely.  */
+  if (base->rank > 0)
+    {
+      gfc_error ("Non-scalar base object at %L currently not implemented",
+		 &e->where);
       return FAILURE;
     }
 
@@ -5218,41 +5253,35 @@ resolve_class_esym (gfc_expr *e)
 }
 
 
-/* Generate an expression for the vindex, given the reference to
+/* Generate an expression for the hash value, given the reference to
    the class of the final expression (class_ref), the base of the
    full reference list (new_ref), the declared type and the class
    object (st).  */
 static gfc_expr*
-vindex_expr (gfc_ref *class_ref, gfc_ref *new_ref,
-	     gfc_symbol *declared, gfc_symtree *st)
+hash_value_expr (gfc_ref *class_ref, gfc_ref *new_ref, gfc_symtree *st)
 {
-  gfc_expr *vindex;
-  gfc_ref *ref;
+  gfc_expr *hash_value;
 
-  /* Build an expression for the correct vindex; ie. that of the last
+  /* Build an expression for the correct hash_value; ie. that of the last
      CLASS reference.  */
-  ref = gfc_get_ref();
-  ref->type = REF_COMPONENT;
-  ref->u.c.component = declared->components->next;
-  ref->u.c.sym = declared;
-  ref->next = NULL;
   if (class_ref)
     {
-      class_ref->next = ref;
+      class_ref->next = NULL;
     }
   else
     {
       gfc_free_ref_list (new_ref);
-      new_ref = ref;
+      new_ref = NULL;
     }
-  vindex = gfc_get_expr ();
-  vindex->expr_type = EXPR_VARIABLE;
-  vindex->symtree = st;
-  vindex->symtree->n.sym->refs++;
-  vindex->ts = ref->u.c.component->ts;
-  vindex->ref = new_ref;
+  hash_value = gfc_get_expr ();
+  hash_value->expr_type = EXPR_VARIABLE;
+  hash_value->symtree = st;
+  hash_value->symtree->n.sym->refs++;
+  hash_value->ref = new_ref;
+  gfc_add_component_ref (hash_value, "$vptr");
+  gfc_add_component_ref (hash_value, "$hash");
 
-  return vindex;
+  return hash_value;
 }
 
 
@@ -5352,10 +5381,10 @@ resolve_class_compcall (gfc_expr* e)
   resolve_class_esym (e);
 
   /* More than one typebound procedure so transmit an expression for
-     the vindex as the selector.  */
+     the hash_value as the selector.  */
   if (e->value.function.class_esym != NULL)
-    e->value.function.class_esym->vindex
-		= vindex_expr (class_ref, new_ref, declared, st);
+    e->value.function.class_esym->hash_value
+		= hash_value_expr (class_ref, new_ref, st);
 
   return class_try;
 }
@@ -5407,10 +5436,10 @@ resolve_class_typebound_call (gfc_code *code)
   resolve_class_esym (code->expr1);
 
   /* More than one typebound procedure so transmit an expression for
-     the vindex as the selector.  */
+     the hash_value as the selector.  */
   if (code->expr1->value.function.class_esym != NULL)
-    code->expr1->value.function.class_esym->vindex
-		= vindex_expr (class_ref, new_ref, declared, st);
+    code->expr1->value.function.class_esym->hash_value
+		= hash_value_expr (class_ref, new_ref, st);
 
   return class_try;
 }
@@ -5489,6 +5518,32 @@ resolve_expr_ppc (gfc_expr* e)
 }
 
 
+static bool
+gfc_is_expandable_expr (gfc_expr *e)
+{
+  gfc_constructor *con;
+
+  if (e->expr_type == EXPR_ARRAY)
+    {
+      /* Traverse the constructor looking for variables that are flavor
+	 parameter.  Parameters must be expanded since they are fully used at
+	 compile time.  */
+      for (con = e->value.constructor; con; con = con->next)
+	{
+	  if (con->expr->expr_type == EXPR_VARIABLE
+	  && con->expr->symtree
+	  && (con->expr->symtree->n.sym->attr.flavor == FL_PARAMETER
+	      || con->expr->symtree->n.sym->attr.flavor == FL_VARIABLE))
+	    return true;
+	  if (con->expr->expr_type == EXPR_ARRAY
+	    && gfc_is_expandable_expr (con->expr))
+	    return true;
+	}
+    }
+
+  return false;
+}
+
 /* Resolve an expression.  That is, make sure that types of operands agree
    with their operators, intrinsic operators are converted to function calls
    for overloaded types and unresolved function references are resolved.  */
@@ -5555,14 +5610,20 @@ gfc_resolve_expr (gfc_expr *e)
       if (t == SUCCESS)
 	{
 	  expression_rank (e);
-	  gfc_expand_constructor (e);
+	  if (gfc_is_constant_expr (e) || gfc_is_expandable_expr (e))
+	    gfc_expand_constructor (e);
 	}
 
       /* This provides the opportunity for the length of constructors with
 	 character valued function elements to propagate the string length
 	 to the expression.  */
       if (t == SUCCESS && e->ts.type == BT_CHARACTER)
-	t = gfc_resolve_character_array_constructor (e);
+        {
+	  /* For efficiency, we call gfc_expand_constructor for BT_CHARACTER
+	     here rather then add a duplicate test for it above.  */ 
+	  gfc_expand_constructor (e);
+	  t = gfc_resolve_character_array_constructor (e);
+	}
 
       break;
 
@@ -6038,6 +6099,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
   gfc_symbol *sym;
   gfc_alloc *a;
   gfc_component *c;
+  gfc_expr *init_e;
 
   /* Check INTENT(IN), unless the object is a sub-component of a pointer.  */
   check_intent_in = 1;
@@ -6161,6 +6223,36 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
       gfc_error ("Cannot allocate INTENT(IN) variable '%s' at %L",
 		 sym->name, &e->where);
       return FAILURE;
+    }
+    
+  if (!code->expr3)
+    {
+      /* Add default initializer for those derived types that need them.  */
+      if (e->ts.type == BT_DERIVED
+	  && (init_e = gfc_default_initializer (&e->ts)))
+	{
+	  gfc_code *init_st = gfc_get_code ();
+	  init_st->loc = code->loc;
+	  init_st->op = EXEC_INIT_ASSIGN;
+	  init_st->expr1 = gfc_expr_to_initialize (e);
+	  init_st->expr2 = init_e;
+	  init_st->next = code->next;
+	  code->next = init_st;
+	}
+      else if (e->ts.type == BT_CLASS
+	       && ((code->ext.alloc.ts.type == BT_UNKNOWN
+		    && (init_e = gfc_default_initializer (&e->ts.u.derived->components->ts)))
+		   || (code->ext.alloc.ts.type == BT_DERIVED
+		       && (init_e = gfc_default_initializer (&code->ext.alloc.ts)))))
+	{
+	  gfc_code *init_st = gfc_get_code ();
+	  init_st->loc = code->loc;
+	  init_st->op = EXEC_INIT_ASSIGN;
+	  init_st->expr1 = gfc_expr_to_initialize (e);
+	  init_st->expr2 = init_e;
+	  init_st->next = code->next;
+	  code->next = init_st;
+	}
     }
 
   if (pointer || dimension == 0)
@@ -6862,11 +6954,13 @@ static void
 resolve_select_type (gfc_code *code)
 {
   gfc_symbol *selector_type;
-  gfc_code *body, *new_st;
-  gfc_case *c, *default_case;
+  gfc_code *body, *new_st, *if_st, *tail;
+  gfc_code *class_is = NULL, *default_case = NULL;
+  gfc_case *c;
   gfc_symtree *st;
   char name[GFC_MAX_SYMBOL_LEN];
   gfc_namespace *ns;
+  int error = 0;
 
   ns = code->ext.ns;
   gfc_resolve (ns);
@@ -6875,9 +6969,6 @@ resolve_select_type (gfc_code *code)
     selector_type = code->expr2->ts.u.derived->components->ts.u.derived;
   else
     selector_type = code->expr1->ts.u.derived->components->ts.u.derived;
-
-  /* Assume there is no DEFAULT case.  */
-  default_case = NULL;
 
   /* Loop over TYPE IS / CLASS IS cases.  */
   for (body = code->block; body; body = body->block)
@@ -6890,6 +6981,7 @@ resolve_select_type (gfc_code *code)
 	{
 	  gfc_error ("Derived type '%s' at %L must be extensible",
 		     c->ts.u.derived->name, &c->where);
+	  error++;
 	  continue;
 	}
 
@@ -6899,6 +6991,7 @@ resolve_select_type (gfc_code *code)
 	{
 	  gfc_error ("Derived type '%s' at %L must be an extension of '%s'",
 		     c->ts.u.derived->name, &c->where, selector_type->name);
+	  error++;
 	  continue;
 	}
 
@@ -6906,15 +6999,21 @@ resolve_select_type (gfc_code *code)
       if (c->ts.type == BT_UNKNOWN)
 	{
 	  /* Check F03:C818.  */
-	  if (default_case != NULL)
-	    gfc_error ("The DEFAULT CASE at %L cannot be followed "
-		       "by a second DEFAULT CASE at %L",
-		       &default_case->where, &c->where);
+	  if (default_case)
+	    {
+	      gfc_error ("The DEFAULT CASE at %L cannot be followed "
+			 "by a second DEFAULT CASE at %L",
+			 &default_case->ext.case_list->where, &c->where);
+	      error++;
+	      continue;
+	    }
 	  else
-	    default_case = c;
-	  continue;
+	    default_case = body;
 	}
     }
+    
+  if (error>0)
+    return;
 
   if (code->expr2)
     {
@@ -6944,45 +7043,153 @@ resolve_select_type (gfc_code *code)
 
   /* Transform to EXEC_SELECT.  */
   code->op = EXEC_SELECT;
-  gfc_add_component_ref (code->expr1, "$vindex");
+  gfc_add_component_ref (code->expr1, "$vptr");
+  gfc_add_component_ref (code->expr1, "$hash");
 
   /* Loop over TYPE IS / CLASS IS cases.  */
   for (body = code->block; body; body = body->block)
     {
       c = body->ext.case_list;
+      
       if (c->ts.type == BT_DERIVED)
-	c->low = c->high = gfc_int_expr (c->ts.u.derived->vindex);
-      else if (c->ts.type == BT_CLASS)
-	/* Currently IS CLASS blocks are simply ignored.
-	   TODO: Implement IS CLASS.  */
-	c->unreachable = 1;
-
-      if (c->ts.type != BT_DERIVED)
+	c->low = c->high = gfc_int_expr (c->ts.u.derived->hash_value);
+      else if (c->ts.type == BT_UNKNOWN)
 	continue;
+      
       /* Assign temporary to selector.  */
-      sprintf (name, "tmp$%s", c->ts.u.derived->name);
+      if (c->ts.type == BT_CLASS)
+	sprintf (name, "tmp$class$%s", c->ts.u.derived->name);
+      else
+	sprintf (name, "tmp$type$%s", c->ts.u.derived->name);
       st = gfc_find_symtree (ns->sym_root, name);
       new_st = gfc_get_code ();
-      new_st->op = EXEC_POINTER_ASSIGN;
       new_st->expr1 = gfc_get_variable_expr (st);
       new_st->expr2 = gfc_get_variable_expr (code->expr1->symtree);
-      gfc_add_component_ref (new_st->expr2, "$data");
+      if (c->ts.type == BT_DERIVED)
+	{
+	  new_st->op = EXEC_POINTER_ASSIGN;
+	  gfc_add_component_ref (new_st->expr2, "$data");
+	}
+      else
+	new_st->op = EXEC_POINTER_ASSIGN;
       new_st->next = body->next;
       body->next = new_st;
     }
-
-  /* Eliminate dead blocks.  */
-  for (body = code; body && body->block; body = body->block)
+    
+  /* Take out CLASS IS cases for separate treatment.  */
+  body = code;
+  while (body && body->block)
     {
-      if (body->block->ext.case_list->unreachable)
+      if (body->block->ext.case_list->ts.type == BT_CLASS)
 	{
-	  /* Cut the unreachable block from the code chain.  */
-	  gfc_code *cd = body->block;
-	  body->block = cd->block;
-	  /* Kill the dead block, but not the blocks below it.  */
-	  cd->block = NULL;
-	  gfc_free_statements (cd);
+	  /* Add to class_is list.  */
+	  if (class_is == NULL)
+	    { 
+	      class_is = body->block;
+	      tail = class_is;
+	    }
+	  else
+	    {
+	      for (tail = class_is; tail->block; tail = tail->block) ;
+	      tail->block = body->block;
+	      tail = tail->block;
+	    }
+	  /* Remove from EXEC_SELECT list.  */
+	  body->block = body->block->block;
+	  tail->block = NULL;
 	}
+      else
+	body = body->block;
+    }
+
+  if (class_is)
+    {
+      gfc_symbol *vtab;
+      
+      if (!default_case)
+	{
+	  /* Add a default case to hold the CLASS IS cases.  */
+	  for (tail = code; tail->block; tail = tail->block) ;
+	  tail->block = gfc_get_code ();
+	  tail = tail->block;
+	  tail->op = EXEC_SELECT_TYPE;
+	  tail->ext.case_list = gfc_get_case ();
+	  tail->ext.case_list->ts.type = BT_UNKNOWN;
+	  tail->next = NULL;
+	  default_case = tail;
+	}
+      
+      /* More than one CLASS IS block?  */
+      if (class_is->block)
+	{
+	  gfc_code **c1,*c2;
+	  bool swapped;
+	  /* Sort CLASS IS blocks by extension level.  */
+	  do
+	    {
+	      swapped = false;
+	      for (c1 = &class_is; (*c1) && (*c1)->block; c1 = &((*c1)->block))
+		{
+		  c2 = (*c1)->block;
+		  /* F03:C817 (check for doubles).  */
+		  if ((*c1)->ext.case_list->ts.u.derived->hash_value
+		      == c2->ext.case_list->ts.u.derived->hash_value)
+		    {
+		      gfc_error ("Double CLASS IS block in SELECT TYPE "
+				 "statement at %L", &c2->ext.case_list->where);
+		      return;
+		    }
+		  if ((*c1)->ext.case_list->ts.u.derived->attr.extension
+		      < c2->ext.case_list->ts.u.derived->attr.extension)
+		    {
+		      /* Swap.  */
+		      (*c1)->block = c2->block;
+		      c2->block = *c1;
+		      *c1 = c2;
+		      swapped = true;
+		    }
+		}
+	    }
+	  while (swapped);
+	}
+	
+      /* Generate IF chain.  */
+      if_st = gfc_get_code ();
+      if_st->op = EXEC_IF;
+      new_st = if_st;
+      for (body = class_is; body; body = body->block)
+	{
+	  new_st->block = gfc_get_code ();
+	  new_st = new_st->block;
+	  new_st->op = EXEC_IF;
+	  /* Set up IF condition: Call _gfortran_is_extension_of.  */
+	  new_st->expr1 = gfc_get_expr ();
+	  new_st->expr1->expr_type = EXPR_FUNCTION;
+	  new_st->expr1->ts.type = BT_LOGICAL;
+	  new_st->expr1->ts.kind = 4;
+	  new_st->expr1->value.function.name = gfc_get_string (PREFIX ("is_extension_of"));
+	  new_st->expr1->value.function.isym = XCNEW (gfc_intrinsic_sym);
+	  new_st->expr1->value.function.isym->id = GFC_ISYM_EXTENDS_TYPE_OF;
+	  /* Set up arguments.  */
+	  new_st->expr1->value.function.actual = gfc_get_actual_arglist ();
+	  new_st->expr1->value.function.actual->expr = gfc_get_variable_expr (code->expr1->symtree);
+	  gfc_add_component_ref (new_st->expr1->value.function.actual->expr, "$vptr");
+	  vtab = gfc_find_derived_vtab (body->ext.case_list->ts.u.derived);
+	  st = gfc_find_symtree (vtab->ns->sym_root, vtab->name);
+	  new_st->expr1->value.function.actual->next = gfc_get_actual_arglist ();
+	  new_st->expr1->value.function.actual->next->expr = gfc_get_variable_expr (st);
+	  new_st->next = body->next;
+	}
+	if (default_case->next)
+	  {
+	    new_st->block = gfc_get_code ();
+	    new_st = new_st->block;
+	    new_st->op = EXEC_IF;
+	    new_st->next = default_case->next;
+	  }
+	  
+	/* Replace CLASS DEFAULT code by the IF chain.  */
+	default_case->next = if_st;
     }
 
   resolve_select (code);
@@ -8352,8 +8559,10 @@ resolve_charlen (gfc_charlen *cl)
      value, the length of character entities declared is zero."  */
   if (cl->length && !gfc_extract_int (cl->length, &i) && i < 0)
     {
-      gfc_warning_now ("CHARACTER variable has zero length at %L",
-		       &cl->length->where);
+      if (gfc_option.warn_surprising)
+	gfc_warning_now ("CHARACTER variable at %L has negative length %d,"
+			 " the length has been set to zero",
+			 &cl->length->where, i);
       gfc_replace_expr (cl->length, gfc_int_expr (0));
     }
 
@@ -8540,12 +8749,7 @@ build_default_init_expr (gfc_symbol *sym)
       break;
 	  
     case BT_COMPLEX:
-#ifdef HAVE_mpc
       mpc_init2 (init_expr->value.complex, mpfr_get_default_prec());
-#else
-      mpfr_init (init_expr->value.complex.r);
-      mpfr_init (init_expr->value.complex.i);
-#endif
       switch (gfc_option.flag_init_real)
 	{
 	case GFC_INIT_REAL_SNAN:
@@ -8567,12 +8771,7 @@ build_default_init_expr (gfc_symbol *sym)
 	  break;
 
 	case GFC_INIT_REAL_ZERO:
-#ifdef HAVE_mpc
 	  mpc_set_ui (init_expr->value.complex, 0, GFC_MPC_RND_MODE);
-#else
-	  mpfr_set_ui (init_expr->value.complex.r, 0.0, GFC_RND_MODE);
-	  mpfr_set_ui (init_expr->value.complex.i, 0.0, GFC_RND_MODE);
-#endif
 	  break;
 
 	default:
@@ -8751,7 +8950,8 @@ resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
       if (!gfc_type_is_extensible (sym->ts.u.derived->components->ts.u.derived))
 	{
 	  gfc_error ("Type '%s' of CLASS variable '%s' at %L is not extensible",
-		     sym->ts.u.derived->name, sym->name, &sym->declared_at);
+		     sym->ts.u.derived->components->ts.u.derived->name,
+		     sym->name, &sym->declared_at);
 	  return FAILURE;
 	}
 
@@ -8912,10 +9112,6 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
 {
   gfc_formal_arglist *arg;
 
-  if (sym->attr.ambiguous_interfaces && !sym->attr.referenced)
-    gfc_warning ("Although not referenced, '%s' at %L has ambiguous "
-		 "interfaces", sym->name, &sym->declared_at);
-
   if (sym->attr.function
       && resolve_fl_var_and_proc (sym, mp_flag) == FAILURE)
     return FAILURE;
@@ -8928,23 +9124,12 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
 	     && resolve_charlen (cl) == FAILURE)
 	return FAILURE;
 
-      if (!cl || !cl->length || cl->length->expr_type != EXPR_CONSTANT)
+      if ((!cl || !cl->length || cl->length->expr_type != EXPR_CONSTANT)
+	  && sym->attr.proc == PROC_ST_FUNCTION)
 	{
-	  if (sym->attr.proc == PROC_ST_FUNCTION)
-	    {
-	      gfc_error ("Character-valued statement function '%s' at %L must "
-			 "have constant length", sym->name, &sym->declared_at);
-	      return FAILURE;
-	    }
-
-	  if (sym->attr.external && sym->formal == NULL
-	      && cl && cl->length && cl->length->expr_type != EXPR_CONSTANT)
-	    {
-	      gfc_error ("Automatic character length function '%s' at %L must "
-			 "have an explicit interface", sym->name,
-			 &sym->declared_at);
-	      return FAILURE;
-	    }
+	  gfc_error ("Character-valued statement function '%s' at %L must "
+		     "have constant length", sym->name, &sym->declared_at);
+	  return FAILURE;
 	}
     }
 
@@ -9558,7 +9743,7 @@ check_generic_tbp_ambiguity (gfc_tbp_generic* t1, gfc_tbp_generic* t2,
     }
 
   /* Compare the interfaces.  */
-  if (gfc_compare_interfaces (sym1, sym2, NULL, 1, 0, NULL, 0))
+  if (gfc_compare_interfaces (sym1, sym2, sym2->name, 1, 0, NULL, 0))
     {
       gfc_error ("'%s' and '%s' for GENERIC '%s' at %L are ambiguous",
 		 sym1->name, sym2->name, generic_name, &where);
@@ -9938,8 +10123,11 @@ resolve_typebound_procedure (gfc_symtree* stree)
 	  me_arg = proc->formal->sym;
 	}
 
-      /* Now check that the argument-type matches.  */
+      /* Now check that the argument-type matches and the passed-object
+	 dummy argument is generally fine.  */
+
       gcc_assert (me_arg);
+
       if (me_arg->ts.type != BT_CLASS)
 	{
 	  gfc_error ("Non-polymorphic passed-object dummy argument of '%s'"
@@ -9955,7 +10143,27 @@ resolve_typebound_procedure (gfc_symtree* stree)
 		     me_arg->name, &where, resolve_bindings_derived->name);
 	  goto error;
 	}
-
+  
+      gcc_assert (me_arg->ts.type == BT_CLASS);
+      if (me_arg->ts.u.derived->components->as
+	  && me_arg->ts.u.derived->components->as->rank > 0)
+	{
+	  gfc_error ("Passed-object dummy argument of '%s' at %L must be"
+		     " scalar", proc->name, &where);
+	  goto error;
+	}
+      if (me_arg->ts.u.derived->components->attr.allocatable)
+	{
+	  gfc_error ("Passed-object dummy argument of '%s' at %L must not"
+		     " be ALLOCATABLE", proc->name, &where);
+	  goto error;
+	}
+      if (me_arg->ts.u.derived->components->attr.class_pointer)
+	{
+	  gfc_error ("Passed-object dummy argument of '%s' at %L must not"
+		     " be POINTER", proc->name, &where);
+	  goto error;
+	}
     }
 
   /* If we are extending some type, check that we don't override a procedure
@@ -10321,6 +10529,12 @@ resolve_fl_derived (gfc_symbol *sym)
 	  && resolve_typespec_used (&c->ts, &c->loc, c->name) == FAILURE)
 	return FAILURE;
 
+      /* If this type is an extension, set the accessibility of the parent
+	 component.  */
+      if (super_type && c == sym->components
+	  && strcmp (super_type->name, c->name) == 0)
+	c->attr.access = super_type->attr.access;
+      
       /* If this type is an extension, see if this component has the same name
 	 as an inherited type-bound procedure.  */
       if (super_type

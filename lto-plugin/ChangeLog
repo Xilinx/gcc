@@ -1,3 +1,21 @@
+2010-01-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41569
+	* Makefile.am: Disable dependencies.
+	* Makefile.in: Regenerated.
+
+2010-01-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR lto/42520
+	* lto-plugin.c (exec_lto_wrapper): Output lto-wrapper command
+	if -v is passed.
+
+2009-12-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/42306
+	* configure: Regenerated.
+	* Makefile.in: Likewise.
+
 2009-11-19  Rafael Avila de Espindola  <espindola@google.com>
 
 	PR bootstrap/42096

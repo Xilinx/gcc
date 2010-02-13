@@ -9725,11 +9725,12 @@ package body Sem_Ch3 is
          New_T := Any_Type;
       end if;
 
-      --  If previous full declaration exists, or if a homograph is present,
-      --  let Enter_Name handle it, either with an error, or with the removal
-      --  of an overridden implicit subprogram.
+      --  If previous full declaration or a renaming declaration exists, or if
+      --  a homograph is present, let Enter_Name handle it, either with an
+      --  error or with the removal of an overridden implicit subprogram.
 
       if Ekind (Prev) /= E_Constant
+        or else Nkind (Parent (Prev)) = N_Object_Renaming_Declaration
         or else Present (Expression (Parent (Prev)))
         or else Present (Full_View (Prev))
       then
@@ -12418,6 +12419,24 @@ package body Sem_Ch3 is
          Set_Convention (New_Subp, Convention (Parent_Subp));
       end if;
 
+      --  Predefined controlled operations retain their name even if the parent
+      --  is hidden (see above), but they are not primitive operations if the
+      --  ancestor is not visible, for example if the parent is a private
+      --  extension completed with a controlled extension. Note that a full
+      --  type that is controlled can break privacy: the flag Is_Controlled is
+      --  set on both views of the type.
+
+      if Is_Controlled (Parent_Type)
+        and then
+          (Chars (Parent_Subp) = Name_Initialize
+            or else Chars (Parent_Subp) = Name_Adjust
+            or else Chars (Parent_Subp) = Name_Finalize)
+        and then Is_Hidden (Parent_Subp)
+        and then not Is_Visibly_Controlled (Parent_Type)
+      then
+         Set_Is_Hidden (New_Subp);
+      end if;
+
       Set_Is_Imported (New_Subp, Is_Imported (Parent_Subp));
       Set_Is_Exported (New_Subp, Is_Exported (Parent_Subp));
 
@@ -12493,8 +12512,8 @@ package body Sem_Ch3 is
       then
          if No (Actual_Subp) then
             Set_Alias (New_Subp, Visible_Subp);
-            Set_Is_Abstract_Subprogram
-              (New_Subp, True);
+            Set_Is_Abstract_Subprogram (New_Subp, True);
+
          else
             --  If this is a derivation for an instance of a formal derived
             --  type, abstractness comes from the primitive operation of the
@@ -18009,9 +18028,13 @@ package body Sem_Ch3 is
          if Ekind (Component) /= E_Component then
             null;
 
-         elsif Has_Controlled_Component (Etype (Component))
-           or else (Chars (Component) /= Name_uParent
-                     and then Is_Controlled (Etype (Component)))
+         --  Do not set Has_Controlled_Component on a class-wide equivalent
+         --  type. See Make_CW_Equivalent_Type.
+
+         elsif not Is_Class_Wide_Equivalent_Type (T)
+           and then (Has_Controlled_Component (Etype (Component))
+                      or else (Chars (Component) /= Name_uParent
+                                and then Is_Controlled (Etype (Component))))
          then
             Set_Has_Controlled_Component (T, True);
             Final_Storage_Only :=

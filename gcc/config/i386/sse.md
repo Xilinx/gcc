@@ -1,5 +1,5 @@
 ;; GCC machine description for SSE instructions
-;; Copyright (C) 2005, 2006, 2007, 2008, 2009
+;; Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
 ;; Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
@@ -19,12 +19,12 @@
 ;; <http://www.gnu.org/licenses/>.
 
 
-;; 16 byte integral modes handled by SSE, minus TImode, which gets
-;; special-cased for TARGET_64BIT.
+;; 16 byte integral modes handled by SSE
 (define_mode_iterator SSEMODEI [V16QI V8HI V4SI V2DI])
 
 ;; All 16-byte vector modes handled by SSE
 (define_mode_iterator SSEMODE [V16QI V8HI V4SI V2DI V4SF V2DF])
+(define_mode_iterator SSEMODE16 [V16QI V8HI V4SI V2DI V1TI V4SF V2DF])
 
 ;; 32 byte integral vector modes handled by AVX
 (define_mode_iterator AVX256MODEI [V32QI V16HI V8SI V4DI])
@@ -39,7 +39,10 @@
 (define_mode_iterator AVXMODEDI [V4DI V2DI])
 
 ;; All vector modes handled by AVX
-(define_mode_iterator AVXMODE [V16QI V8HI V4SI V2DI V4SF V2DF V32QI V16HI V8SI V4DI V8SF V4DF])
+(define_mode_iterator AVXMODE
+  [V16QI V8HI V4SI V2DI V4SF V2DF V32QI V16HI V8SI V4DI V8SF V4DF])
+(define_mode_iterator AVXMODE16
+  [V16QI V8HI V4SI V2DI V1TI V4SF V2DF V32QI V16HI V8SI V4DI V8SF V4DF])
 
 ;; Mix-n-match
 (define_mode_iterator SSEMODE12 [V16QI V8HI])
@@ -54,6 +57,7 @@
 
 (define_mode_iterator AVX256MODEF2P [V8SF V4DF])
 (define_mode_iterator AVX256MODE2P [V8SI V8SF V4DF])
+(define_mode_iterator AVX256MODE24P [V8SI V8SF V4DI V4DF])
 (define_mode_iterator AVX256MODE4P [V4DI V4DF])
 (define_mode_iterator AVX256MODE8P [V8SI V8SF])
 (define_mode_iterator AVXMODEF2P [V4SF V2DF V8SF V4DF])
@@ -96,6 +100,8 @@
 
 (define_mode_attr ssemodesuffixf2c [(V4SF "s") (V2DF "d")])
 
+(define_mode_attr ssescalarmodesuffix2s [(V4SF "ss") (V4SI "d")])
+
 ;; Mapping of the max integer size for xop rotate immediate constraint
 (define_mode_attr sserotatemax [(V16QI "7") (V8HI "15") (V4SI "31") (V2DI "63")])
 
@@ -118,24 +124,25 @@
 
 ;; Mapping for AVX
 (define_mode_attr avxvecmode
-  [(V16QI "TI") (V8HI "TI") (V4SI "TI") (V2DI "TI") (V4SF "V4SF")
-   (V2DF "V2DF") (V32QI "OI") (V16HI "OI") (V8SI "OI") (V4DI "OI")
-   (V8SF "V8SF") (V4DF "V4DF")])
+  [(V16QI "TI") (V8HI "TI") (V4SI "TI") (V2DI "TI") (V1TI "TI")
+   (V4SF "V4SF") (V8SF "V8SF") (V2DF "V2DF") (V4DF "V4DF")
+   (V32QI "OI") (V16HI "OI") (V8SI "OI") (V4DI "OI")])
 (define_mode_attr avxvecpsmode
   [(V16QI "V4SF") (V8HI "V4SF") (V4SI "V4SF") (V2DI "V4SF")
    (V32QI "V8SF") (V16HI "V8SF") (V8SI "V8SF") (V4DI "V8SF")])
 (define_mode_attr avxhalfvecmode
-  [(V4SF "V2SF") (V32QI "V16QI")  (V16HI "V8HI") (V8SI "V4SI")
-   (V4DI "V2DI") (V8SF "V4SF") (V4DF "V2DF")])
+  [(V32QI "V16QI") (V16HI "V8HI") (V8SI "V4SI") (V4DI "V2DI")
+   (V8SF "V4SF") (V4DF "V2DF")
+   (V16QI  "V8QI") (V8HI  "V4HI") (V4SI "V2SI") (V4SF "V2SF")])
 (define_mode_attr avxscalarmode
-  [(V16QI "QI") (V8HI "HI") (V4SI "SI") (V4SF "SF") (V2DF "DF")
-   (V8SF "SF") (V4DF "DF")])
+  [(V16QI "QI") (V8HI  "HI") (V4SI "SI") (V2DI "DI") (V4SF "SF") (V2DF "DF")
+   (V32QI "QI") (V16HI "HI") (V8SI "SI") (V4DI "DI") (V8SF "SF") (V4DF "DF")])
 (define_mode_attr avxcvtvecmode
   [(V4SF "V4SI") (V8SF "V8SI") (V4SI "V4SF") (V8SI "V8SF")])
 (define_mode_attr avxpermvecmode
   [(V2DF "V2DI") (V4SF "V4SI") (V4DF "V4DI") (V8SF "V8SI")])
 (define_mode_attr avxmodesuffixf2c
-  [(V4SF "s") (V2DF "d") (V8SF "s") (V4DF "d")])
+  [(V4SF "s") (V2DF "d") (V8SI "s") (V8SF "s") (V4DI "d") (V4DF "d")])
 (define_mode_attr avxmodesuffixp
  [(V2DF "pd") (V4SI "si") (V4SF "ps") (V8SF "ps") (V8SI "si")
   (V4DF "pd")])
@@ -168,8 +175,8 @@
 })
 
 (define_insn "*avx_mov<mode>_internal"
-  [(set (match_operand:AVXMODE 0 "nonimmediate_operand" "=x,x ,m")
-	(match_operand:AVXMODE 1 "nonimmediate_or_sse_const_operand"  "C ,xm,x"))]
+  [(set (match_operand:AVXMODE16 0 "nonimmediate_operand" "=x,x ,m")
+	(match_operand:AVXMODE16 1 "nonimmediate_or_sse_const_operand"  "C ,xm,x"))]
   "TARGET_AVX
    && (register_operand (operands[0], <MODE>mode)
        || register_operand (operands[1], <MODE>mode))"
@@ -203,8 +210,8 @@
 ;; This is essential for maintaining stable calling conventions.
 
 (define_expand "mov<mode>"
-  [(set (match_operand:SSEMODE 0 "nonimmediate_operand" "")
-	(match_operand:SSEMODE 1 "nonimmediate_operand" ""))]
+  [(set (match_operand:SSEMODE16 0 "nonimmediate_operand" "")
+	(match_operand:SSEMODE16 1 "nonimmediate_operand" ""))]
   "TARGET_SSE"
 {
   ix86_expand_vector_move (<MODE>mode, operands);
@@ -212,8 +219,8 @@
 })
 
 (define_insn "*mov<mode>_internal"
-  [(set (match_operand:SSEMODE 0 "nonimmediate_operand" "=x,x ,m")
-	(match_operand:SSEMODE 1 "nonimmediate_or_sse_const_operand"  "C ,xm,x"))]
+  [(set (match_operand:SSEMODE16 0 "nonimmediate_operand" "=x,x ,m")
+	(match_operand:SSEMODE16 1 "nonimmediate_or_sse_const_operand"  "C ,xm,x"))]
   "TARGET_SSE
    && (register_operand (operands[0], <MODE>mode)
        || register_operand (operands[1], <MODE>mode))"
@@ -322,7 +329,7 @@
 })
 
 (define_expand "push<mode>1"
-  [(match_operand:SSEMODE 0 "register_operand" "")]
+  [(match_operand:SSEMODE16 0 "register_operand" "")]
   "TARGET_SSE"
 {
   ix86_expand_push (<MODE>mode, operands[0]);
@@ -339,8 +346,8 @@
 })
 
 (define_expand "movmisalign<mode>"
-  [(set (match_operand:SSEMODE 0 "nonimmediate_operand" "")
-	(match_operand:SSEMODE 1 "nonimmediate_operand" ""))]
+  [(set (match_operand:SSEMODE16 0 "nonimmediate_operand" "")
+	(match_operand:SSEMODE16 1 "nonimmediate_operand" ""))]
   "TARGET_SSE"
 {
   ix86_expand_vector_move_misalign (<MODE>mode, operands);
@@ -1576,7 +1583,7 @@
 
 (define_expand "<code><mode>3"
   [(set (match_operand:AVX256MODEF2P 0 "register_operand" "")
-	(plogic:AVX256MODEF2P
+	(any_logic:AVX256MODEF2P
 	  (match_operand:AVX256MODEF2P 1 "nonimmediate_operand" "")
 	  (match_operand:AVX256MODEF2P 2 "nonimmediate_operand" "")))]
   "AVX256_VEC_FLOAT_MODE_P (<MODE>mode)"
@@ -1584,19 +1591,19 @@
 
 (define_insn "*avx_<code><mode>3"
   [(set (match_operand:AVXMODEF2P 0 "register_operand" "=x")
-	(plogic:AVXMODEF2P
+	(any_logic:AVXMODEF2P
 	  (match_operand:AVXMODEF2P 1 "nonimmediate_operand" "%x")
 	  (match_operand:AVXMODEF2P 2 "nonimmediate_operand" "xm")))]
   "AVX_VEC_FLOAT_MODE_P (<MODE>mode)
    && ix86_binary_operator_ok (<CODE>, <MODE>mode, operands)"
-  "v<plogicprefix>p<avxmodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}"
+  "v<logicprefix>p<avxmodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<avxvecmode>")])
 
 (define_expand "<code><mode>3"
   [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
-	(plogic:SSEMODEF2P
+	(any_logic:SSEMODEF2P
 	  (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "")
 	  (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "")))]
   "SSE_VEC_FLOAT_MODE_P (<MODE>mode)"
@@ -1604,12 +1611,12 @@
 
 (define_insn "*<code><mode>3"
   [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x")
-	(plogic:SSEMODEF2P
+	(any_logic:SSEMODEF2P
 	  (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%0")
 	  (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "xm")))]
   "SSE_VEC_FLOAT_MODE_P (<MODE>mode)
    && ix86_binary_operator_ok (<CODE>, <MODE>mode, operands)"
-  "<plogicprefix>p<ssemodesuffixf2c>\t{%2, %0|%0, %2}"
+  "<logicprefix>p<ssemodesuffixf2c>\t{%2, %0|%0, %2}"
   [(set_attr "type" "sselog")
    (set_attr "mode" "<MODE>")])
 
@@ -1661,29 +1668,30 @@
 
 (define_insn "*avx_<code><mode>3"
   [(set (match_operand:MODEF 0 "register_operand" "=x")
-	(plogic:MODEF
+	(any_logic:MODEF
 	  (match_operand:MODEF 1 "register_operand" "x")
 	  (match_operand:MODEF 2 "register_operand" "x")))]
   "AVX_FLOAT_MODE_P (<MODE>mode)"
-  "v<plogicprefix>p<ssemodefsuffix>\t{%2, %1, %0|%0, %1, %2}"
+  "v<logicprefix>p<ssemodefsuffix>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<ssevecmode>")])
 
 (define_insn "*<code><mode>3"
   [(set (match_operand:MODEF 0 "register_operand" "=x")
-	(plogic:MODEF
+	(any_logic:MODEF
 	  (match_operand:MODEF 1 "register_operand" "0")
 	  (match_operand:MODEF 2 "register_operand" "x")))]
   "SSE_FLOAT_MODE_P (<MODE>mode)"
-  "<plogicprefix>p<ssemodefsuffix>\t{%2, %0|%0, %2}"
+  "<logicprefix>p<ssemodefsuffix>\t{%2, %0|%0, %2}"
   [(set_attr "type" "sselog")
    (set_attr "mode" "<ssevecmode>")])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; FMA4 floating point multiply/accumulate instructions This includes the
-;; scalar version of the instructions as well as the vector
+;; FMA4 floating point multiply/accumulate instructions.  This
+;; includes the scalar version of the instructions as well as the
+;; vector.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1699,397 +1707,196 @@
 ;;	(set (reg3) (plus (reg2) (mem (addr3))))
 
 (define_insn "fma4_fmadd<mode>4256"
-  [(set (match_operand:FMA4MODEF4 0 "register_operand" "=x,x,x")
+  [(set (match_operand:FMA4MODEF4 0 "register_operand" "=x,x")
 	(plus:FMA4MODEF4
 	 (mult:FMA4MODEF4
-	  (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "x,x,xm")
-	  (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,xm,x"))
-	 (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "xm,x,x")))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+	  (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "%x,x")
+	  (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,m"))
+	 (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "xm,x")))]
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmadd<fma4modesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
-;; Split fmadd with two memory operands into a load and the fmadd.
-(define_split
-  [(set (match_operand:FMA4MODEF4 0 "register_operand" "")
-	(plus:FMA4MODEF4
-	 (mult:FMA4MODEF4
-	  (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "")
-	  (match_operand:FMA4MODEF4 2 "nonimmediate_operand" ""))
-	 (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "")))]
-  "TARGET_FMA4
-   && !ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_fma4_multiple_memory (operands, 4, <MODE>mode);
-  emit_insn (gen_fma4_fmadd<mode>4256 (operands[0], operands[1],
-				    operands[2], operands[3]));
-  DONE;
-})
-
-;; Floating multiply and subtract
-;; Allow two memory operands the same as fmadd
+;; Floating multiply and subtract.
 (define_insn "fma4_fmsub<mode>4256"
-  [(set (match_operand:FMA4MODEF4 0 "register_operand" "=x,x,x")
+  [(set (match_operand:FMA4MODEF4 0 "register_operand" "=x,x")
 	(minus:FMA4MODEF4
 	 (mult:FMA4MODEF4
-	  (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "x,x,xm")
-	  (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,xm,x"))
-	 (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "xm,x,x")))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+	  (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "%x,x")
+	  (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,m"))
+	 (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "xm,x")))]
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsub<fma4modesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
-;; Split fmsub with two memory operands into a load and the fmsub.
-(define_split
-  [(set (match_operand:FMA4MODEF4 0 "register_operand" "")
-	(minus:FMA4MODEF4
-	 (mult:FMA4MODEF4
-	  (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "")
-	  (match_operand:FMA4MODEF4 2 "nonimmediate_operand" ""))
-	 (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "")))]
-  "TARGET_FMA4
-   && !ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_fma4_multiple_memory (operands, 4, <MODE>mode);
-  emit_insn (gen_fma4_fmsub<mode>4256 (operands[0], operands[1],
-				    operands[2], operands[3]));
-  DONE;
-})
-
-;; Floating point negative multiply and add
-;; Rewrite (- (a * b) + c) into the canonical form: c - (a * b)
-;; Note operands are out of order to simplify call to ix86_fma4_valid_p
-;; Allow two memory operands to help in optimizing.
+;; Floating point negative multiply and add.
+;; Rewrite (- (a * b) + c) into the canonical form: c - (a * b).
 (define_insn "fma4_fnmadd<mode>4256"
-  [(set (match_operand:FMA4MODEF4 0 "register_operand" "=x,x,x")
+  [(set (match_operand:FMA4MODEF4 0 "register_operand" "=x,x")
 	(minus:FMA4MODEF4
-	 (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "xm,x,x")
+	 (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "xm,x")
 	 (mult:FMA4MODEF4
-	  (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "x,x,xm")
-	  (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,xm,x"))))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+	  (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "%x,x")
+	  (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,m"))))]
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfnmadd<fma4modesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
-;; Split fnmadd with two memory operands into a load and the fnmadd.
-(define_split
-  [(set (match_operand:FMA4MODEF4 0 "register_operand" "")
-	(minus:FMA4MODEF4
-	 (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "")
-	 (mult:FMA4MODEF4
-	  (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "")
-	  (match_operand:FMA4MODEF4 2 "nonimmediate_operand" ""))))]
-  "TARGET_FMA4
-   && !ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_fma4_multiple_memory (operands, 4, <MODE>mode);
-  emit_insn (gen_fma4_fnmadd<mode>4256 (operands[0], operands[1],
-				     operands[2], operands[3]));
-  DONE;
-})
-
-;; Floating point negative multiply and subtract
-;; Rewrite (- (a * b) - c) into the canonical form: ((-a) * b) - c
-;; Allow 2 memory operands to help with optimization
+;; Floating point negative multiply and subtract.
 (define_insn "fma4_fnmsub<mode>4256"
   [(set (match_operand:FMA4MODEF4 0 "register_operand" "=x,x")
 	(minus:FMA4MODEF4
 	 (mult:FMA4MODEF4
 	  (neg:FMA4MODEF4
-	   (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "x,x"))
-	  (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,xm"))
+	   (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "%x,x"))
+	  (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,m"))
 	 (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "xm,x")))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, false)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfnmsub<fma4modesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
-;; Split fnmsub with two memory operands into a load and the fmsub.
-(define_split
-  [(set (match_operand:FMA4MODEF4 0 "register_operand" "")
-	(minus:FMA4MODEF4
-	 (mult:FMA4MODEF4
-	  (neg:FMA4MODEF4
-	   (match_operand:FMA4MODEF4 1 "nonimmediate_operand" ""))
-	  (match_operand:FMA4MODEF4 2 "nonimmediate_operand" ""))
-	 (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "")))]
-  "TARGET_FMA4
-   && !ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, false)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_fma4_multiple_memory (operands, 4, <MODE>mode);
-  emit_insn (gen_fma4_fnmsub<mode>4256 (operands[0], operands[1],
-				        operands[2], operands[3]));
-  DONE;
-})
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define_insn "fma4_fmadd<mode>4"
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "=x,x,x")
+  [(set (match_operand:SSEMODEF4 0 "register_operand" "=x,x")
 	(plus:SSEMODEF4
 	 (mult:SSEMODEF4
-	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "x,x,xm")
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" "x,xm,x"))
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "xm,x,x")))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "%x,x")
+	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" "x,m"))
+	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "xm,x")))]
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmadd<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
-;; Split fmadd with two memory operands into a load and the fmadd.
-(define_split
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "")
-	(plus:SSEMODEF4
-	 (mult:SSEMODEF4
-	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "")
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" ""))
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "")))]
-  "TARGET_FMA4
-   && !ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_fma4_multiple_memory (operands, 4, <MODE>mode);
-  emit_insn (gen_fma4_fmadd<mode>4 (operands[0], operands[1],
-				    operands[2], operands[3]));
-  DONE;
-})
-
 ;; For the scalar operations, use operand1 for the upper words that aren't
 ;; modified, so restrict the forms that are generated.
-;; Scalar version of fmadd
+;; Scalar version of fmadd.
 (define_insn "fma4_vmfmadd<mode>4"
   [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
 	(vec_merge:SSEMODEF2P
 	 (plus:SSEMODEF2P
 	  (mult:SSEMODEF2P
-	   (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "x,x")
-	   (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
+	   (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%x,x")
+	   (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,m"))
 	  (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))
 	 (match_dup 0)
 	 (const_int 1)))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmadd<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
-;; Floating multiply and subtract
-;; Allow two memory operands the same as fmadd
+;; Floating multiply and subtract.
+;; Allow two memory operands the same as fmadd.
 (define_insn "fma4_fmsub<mode>4"
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "=x,x,x")
+  [(set (match_operand:SSEMODEF4 0 "register_operand" "=x,x")
 	(minus:SSEMODEF4
 	 (mult:SSEMODEF4
-	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "x,x,xm")
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" "x,xm,x"))
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "xm,x,x")))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "%x,x")
+	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" "x,m"))
+	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "xm,x")))]
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsub<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
-;; Split fmsub with two memory operands into a load and the fmsub.
-(define_split
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "")
-	(minus:SSEMODEF4
-	 (mult:SSEMODEF4
-	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "")
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" ""))
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "")))]
-  "TARGET_FMA4
-   && !ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_fma4_multiple_memory (operands, 4, <MODE>mode);
-  emit_insn (gen_fma4_fmsub<mode>4 (operands[0], operands[1],
-				    operands[2], operands[3]));
-  DONE;
-})
-
 ;; For the scalar operations, use operand1 for the upper words that aren't
 ;; modified, so restrict the forms that are generated.
-;; Scalar version of fmsub
+;; Scalar version of fmsub.
 (define_insn "fma4_vmfmsub<mode>4"
   [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
 	(vec_merge:SSEMODEF2P
 	 (minus:SSEMODEF2P
 	  (mult:SSEMODEF2P
-	   (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "x,x")
-	   (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
+	   (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%x,x")
+	   (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,m"))
 	  (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))
 	 (match_dup 0)
 	 (const_int 1)))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsub<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
-;; Floating point negative multiply and add
-;; Rewrite (- (a * b) + c) into the canonical form: c - (a * b)
-;; Note operands are out of order to simplify call to ix86_fma4_valid_p
-;; Allow two memory operands to help in optimizing.
+;; Floating point negative multiply and add.
+;; Rewrite (- (a * b) + c) into the canonical form: c - (a * b).
 (define_insn "fma4_fnmadd<mode>4"
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "=x,x,x")
+  [(set (match_operand:SSEMODEF4 0 "register_operand" "=x,x")
 	(minus:SSEMODEF4
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "xm,x,x")
+	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "xm,x")
 	 (mult:SSEMODEF4
-	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "x,x,xm")
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" "x,xm,x"))))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "%x,x")
+	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" "x,m"))))]
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfnmadd<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
-;; Split fnmadd with two memory operands into a load and the fnmadd.
-(define_split
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "")
-	(minus:SSEMODEF4
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "")
-	 (mult:SSEMODEF4
-	  (match_operand:SSEMODEF4 1 "nonimmediate_operand" "")
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" ""))))]
-  "TARGET_FMA4
-   && !ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_fma4_multiple_memory (operands, 4, <MODE>mode);
-  emit_insn (gen_fma4_fnmadd<mode>4 (operands[0], operands[1],
-				     operands[2], operands[3]));
-  DONE;
-})
-
 ;; For the scalar operations, use operand1 for the upper words that aren't
 ;; modified, so restrict the forms that are generated.
-;; Scalar version of fnmadd
+;; Scalar version of fnmadd.
 (define_insn "fma4_vmfnmadd<mode>4"
   [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
 	(vec_merge:SSEMODEF2P
 	 (minus:SSEMODEF2P
 	  (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x")
 	  (mult:SSEMODEF2P
-	   (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "x,x")
-	   (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm")))
+	   (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%x,x")
+	   (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,m")))
 	 (match_dup 0)
 	 (const_int 1)))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfnmadd<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
-;; Floating point negative multiply and subtract
-;; Rewrite (- (a * b) - c) into the canonical form: ((-a) * b) - c
-;; Allow 2 memory operands to help with optimization
+;; Floating point negative multiply and subtract.
+;; Rewrite (- (a * b) - c) into the canonical form: ((-a) * b) - c.
 (define_insn "fma4_fnmsub<mode>4"
   [(set (match_operand:SSEMODEF4 0 "register_operand" "=x,x")
 	(minus:SSEMODEF4
 	 (mult:SSEMODEF4
 	  (neg:SSEMODEF4
-	   (match_operand:SSEMODEF4 1 "nonimmediate_operand" "x,x"))
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" "x,xm"))
+	   (match_operand:SSEMODEF4 1 "nonimmediate_operand" "%x,x"))
+	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" "x,m"))
 	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "xm,x")))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, false)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfnmsub<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
-;; Split fnmsub with two memory operands into a load and the fmsub.
-(define_split
-  [(set (match_operand:SSEMODEF4 0 "register_operand" "")
-	(minus:SSEMODEF4
-	 (mult:SSEMODEF4
-	  (neg:SSEMODEF4
-	   (match_operand:SSEMODEF4 1 "nonimmediate_operand" ""))
-	  (match_operand:SSEMODEF4 2 "nonimmediate_operand" ""))
-	 (match_operand:SSEMODEF4 3 "nonimmediate_operand" "")))]
-  "TARGET_FMA4
-   && !ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, false)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_fma4_multiple_memory (operands, 4, <MODE>mode);
-  emit_insn (gen_fma4_fnmsub<mode>4 (operands[0], operands[1],
-				     operands[2], operands[3]));
-  DONE;
-})
-
 ;; For the scalar operations, use operand1 for the upper words that aren't
 ;; modified, so restrict the forms that are generated.
-;; Scalar version of fnmsub
+;; Scalar version of fnmsub.
 (define_insn "fma4_vmfnmsub<mode>4"
   [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
 	(vec_merge:SSEMODEF2P
 	 (minus:SSEMODEF2P
 	  (mult:SSEMODEF2P
 	   (neg:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "x,x"))
-	   (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
+	    (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%x,x"))
+	   (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,m"))
 	  (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))
 	 (match_dup 0)
 	 (const_int 1)))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, false)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfnmsub<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define_insn "fma4i_fmadd<mode>4256"
   [(set (match_operand:FMA4MODEF4 0 "register_operand" "=x,x")
 	(unspec:FMA4MODEF4
 	 [(plus:FMA4MODEF4
 	   (mult:FMA4MODEF4
-	    (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "x,x")
-	    (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,xm"))
+	    (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "%x,x")
+	    (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,m"))
 	   (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "xm,x"))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4 && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmadd<fma4modesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
@@ -2099,11 +1906,11 @@
 	(unspec:FMA4MODEF4
 	 [(minus:FMA4MODEF4
 	   (mult:FMA4MODEF4
-	    (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "x,x")
-	    (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,xm"))
+	    (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "%x,x")
+	    (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,m"))
 	   (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "xm,x"))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4 && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsub<fma4modesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
@@ -2114,10 +1921,10 @@
 	 [(minus:FMA4MODEF4
 	   (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "xm,x")
 	   (mult:FMA4MODEF4
-	    (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "x,x")
-	    (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,xm")))]
+	    (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "%x,x")
+	    (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,m")))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4 && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfnmadd<fma4modesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
@@ -2128,26 +1935,25 @@
 	 [(minus:FMA4MODEF4
 	   (mult:FMA4MODEF4
 	    (neg:FMA4MODEF4
-	     (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "x,x"))
-	    (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,xm"))
+	     (match_operand:FMA4MODEF4 1 "nonimmediate_operand" "%x,x"))
+	    (match_operand:FMA4MODEF4 2 "nonimmediate_operand" "x,m"))
 	   (match_operand:FMA4MODEF4 3 "nonimmediate_operand" "xm,x"))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4 && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfnmsub<fma4modesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define_insn "fma4i_fmadd<mode>4"
   [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
 	(unspec:SSEMODEF2P
 	 [(plus:SSEMODEF2P
 	   (mult:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "x,x")
-	    (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
+	    (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%x,x")
+	    (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,m"))
 	   (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4 && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmadd<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
@@ -2157,11 +1963,11 @@
 	(unspec:SSEMODEF2P
 	 [(minus:SSEMODEF2P
 	   (mult:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "x,x")
-	    (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
+	    (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%x,x")
+	    (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,m"))
 	   (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4 && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsub<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
@@ -2172,10 +1978,10 @@
 	 [(minus:SSEMODEF2P
 	   (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x")
 	   (mult:SSEMODEF2P
-	    (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "x,x")
-	    (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm")))]
+	    (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%x,x")
+	    (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,m")))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4 && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfnmadd<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
@@ -2186,11 +1992,11 @@
 	 [(minus:SSEMODEF2P
 	   (mult:SSEMODEF2P
 	    (neg:SSEMODEF2P
-	     (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "x,x"))
-	    (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
+	     (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%x,x"))
+	    (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,m"))
 	   (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4 && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfnmsub<ssemodesuffixf4>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
@@ -2203,13 +2009,13 @@
 	 [(vec_merge:SSEMODEF2P
 	   (plus:SSEMODEF2P
 	    (mult:SSEMODEF2P
-	     (match_operand:SSEMODEF2P 1 "register_operand" "x,x")
-	     (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
+	     (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%x,x")
+	     (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,m"))
 	    (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))
 	   (match_dup 0)
 	   (const_int 1))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4 && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmadd<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<ssescalarmode>")])
@@ -2220,13 +2026,13 @@
 	 [(vec_merge:SSEMODEF2P
 	   (minus:SSEMODEF2P
 	    (mult:SSEMODEF2P
-	     (match_operand:SSEMODEF2P 1 "register_operand" "x,x")
-	     (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
+	     (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%x,x")
+	     (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,m"))
 	    (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))
 	   (match_dup 0)
 	   (const_int 1))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4 && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsub<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<ssescalarmode>")])
@@ -2238,12 +2044,12 @@
 	   (minus:SSEMODEF2P
 	    (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x")
 	    (mult:SSEMODEF2P
-	     (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "x,x")
-	     (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm")))
+	     (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%x,x")
+	     (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,m")))
 	   (match_dup 0)
 	   (const_int 1))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4 && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfnmadd<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<ssescalarmode>")])
@@ -2255,20 +2061,20 @@
 	   (minus:SSEMODEF2P
 	    (mult:SSEMODEF2P
 	     (neg:SSEMODEF2P
-	      (match_operand:SSEMODEF2P 1 "register_operand" "x,x"))
-	     (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,xm"))
+	      (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "%x,x"))
+	     (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "x,m"))
 	    (match_operand:SSEMODEF2P 3 "nonimmediate_operand" "xm,x"))
 	   (match_dup 0)
 	   (const_int 1))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4 && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfnmsub<ssemodesuffixf2s>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<ssescalarmode>")])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; FMA4 Parallel floating point multiply addsub and subadd operations
+;; FMA4 Parallel floating point multiply addsub and subadd operations.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -2277,8 +2083,8 @@
 	(vec_merge:V8SF
 	  (plus:V8SF
 	    (mult:V8SF
-	      (match_operand:V8SF 1 "nonimmediate_operand" "x,x")
-	      (match_operand:V8SF 2 "nonimmediate_operand" "x,xm"))
+	      (match_operand:V8SF 1 "nonimmediate_operand" "%x,x")
+	      (match_operand:V8SF 2 "nonimmediate_operand" "x,m"))
 	    (match_operand:V8SF 3 "nonimmediate_operand" "xm,x"))
 	  (minus:V8SF
 	    (mult:V8SF
@@ -2286,8 +2092,7 @@
 	      (match_dup 2))
 	    (match_dup 3))
 	  (const_int 170)))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmaddsubps\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V8SF")])
@@ -2297,8 +2102,8 @@
 	(vec_merge:V4DF
 	  (plus:V4DF
 	    (mult:V4DF
-	      (match_operand:V4DF 1 "nonimmediate_operand" "x,x")
-	      (match_operand:V4DF 2 "nonimmediate_operand" "x,xm"))
+	      (match_operand:V4DF 1 "nonimmediate_operand" "%x,x")
+	      (match_operand:V4DF 2 "nonimmediate_operand" "x,m"))
 	    (match_operand:V4DF 3 "nonimmediate_operand" "xm,x"))
 	  (minus:V4DF
 	    (mult:V4DF
@@ -2306,8 +2111,7 @@
 	      (match_dup 2))
 	    (match_dup 3))
 	  (const_int 10)))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmaddsubpd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V4DF")])
@@ -2317,8 +2121,8 @@
 	(vec_merge:V4SF
 	  (plus:V4SF
 	    (mult:V4SF
-	      (match_operand:V4SF 1 "nonimmediate_operand" "x,x")
-	      (match_operand:V4SF 2 "nonimmediate_operand" "x,xm"))
+	      (match_operand:V4SF 1 "nonimmediate_operand" "%x,x")
+	      (match_operand:V4SF 2 "nonimmediate_operand" "x,m"))
 	    (match_operand:V4SF 3 "nonimmediate_operand" "xm,x"))
 	  (minus:V4SF
 	    (mult:V4SF
@@ -2326,8 +2130,7 @@
 	      (match_dup 2))
 	    (match_dup 3))
 	  (const_int 10)))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmaddsubps\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V4SF")])
@@ -2337,8 +2140,8 @@
 	(vec_merge:V2DF
 	  (plus:V2DF
 	    (mult:V2DF
-	      (match_operand:V2DF 1 "nonimmediate_operand" "x,x")
-	      (match_operand:V2DF 2 "nonimmediate_operand" "x,xm"))
+	      (match_operand:V2DF 1 "nonimmediate_operand" "%x,x")
+	      (match_operand:V2DF 2 "nonimmediate_operand" "x,m"))
 	    (match_operand:V2DF 3 "nonimmediate_operand" "xm,x"))
 	  (minus:V2DF
 	    (mult:V2DF
@@ -2346,8 +2149,7 @@
 	      (match_dup 2))
 	    (match_dup 3))
 	  (const_int 2)))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmaddsubpd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V2DF")])
@@ -2357,8 +2159,8 @@
 	(vec_merge:V8SF
 	  (plus:V8SF
 	    (mult:V8SF
-	      (match_operand:V8SF 1 "nonimmediate_operand" "x,x")
-	      (match_operand:V8SF 2 "nonimmediate_operand" "x,xm"))
+	      (match_operand:V8SF 1 "nonimmediate_operand" "%x,x")
+	      (match_operand:V8SF 2 "nonimmediate_operand" "x,m"))
 	    (match_operand:V8SF 3 "nonimmediate_operand" "xm,x"))
 	  (minus:V8SF
 	    (mult:V8SF
@@ -2366,8 +2168,7 @@
 	      (match_dup 2))
 	    (match_dup 3))
 	  (const_int 85)))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsubaddps\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V8SF")])
@@ -2377,8 +2178,8 @@
 	(vec_merge:V4DF
 	  (plus:V4DF
 	    (mult:V4DF
-	      (match_operand:V4DF 1 "nonimmediate_operand" "x,x")
-	      (match_operand:V4DF 2 "nonimmediate_operand" "x,xm"))
+	      (match_operand:V4DF 1 "nonimmediate_operand" "%x,x")
+	      (match_operand:V4DF 2 "nonimmediate_operand" "x,m"))
 	    (match_operand:V4DF 3 "nonimmediate_operand" "xm,x"))
 	  (minus:V4DF
 	    (mult:V4DF
@@ -2386,8 +2187,7 @@
 	      (match_dup 2))
 	    (match_dup 3))
 	  (const_int 5)))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsubaddpd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V4DF")])
@@ -2397,8 +2197,8 @@
 	(vec_merge:V4SF
 	  (plus:V4SF
 	    (mult:V4SF
-	      (match_operand:V4SF 1 "nonimmediate_operand" "x,x")
-	      (match_operand:V4SF 2 "nonimmediate_operand" "x,xm"))
+	      (match_operand:V4SF 1 "nonimmediate_operand" "%x,x")
+	      (match_operand:V4SF 2 "nonimmediate_operand" "x,m"))
 	    (match_operand:V4SF 3 "nonimmediate_operand" "xm,x"))
 	  (minus:V4SF
 	    (mult:V4SF
@@ -2406,8 +2206,7 @@
 	      (match_dup 2))
 	    (match_dup 3))
 	  (const_int 5)))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsubaddps\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V4SF")])
@@ -2417,8 +2216,8 @@
 	(vec_merge:V2DF
 	  (plus:V2DF
 	    (mult:V2DF
-	      (match_operand:V2DF 1 "nonimmediate_operand" "x,x")
-	      (match_operand:V2DF 2 "nonimmediate_operand" "x,xm"))
+	      (match_operand:V2DF 1 "nonimmediate_operand" "%x,x")
+	      (match_operand:V2DF 2 "nonimmediate_operand" "x,m"))
 	    (match_operand:V2DF 3 "nonimmediate_operand" "xm,x"))
 	  (minus:V2DF
 	    (mult:V2DF
@@ -2426,13 +2225,10 @@
 	      (match_dup 2))
 	    (match_dup 3))
 	  (const_int 1)))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsubaddpd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V2DF")])
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define_insn "fma4i_fmaddsubv8sf4"
   [(set (match_operand:V8SF 0 "register_operand" "=x,x")
@@ -2440,8 +2236,8 @@
 	 [(vec_merge:V8SF
 	   (plus:V8SF
 	     (mult:V8SF
-	       (match_operand:V8SF 1 "nonimmediate_operand" "x,x")
-	       (match_operand:V8SF 2 "nonimmediate_operand" "x,xm"))
+	       (match_operand:V8SF 1 "nonimmediate_operand" "%x,x")
+	       (match_operand:V8SF 2 "nonimmediate_operand" "x,m"))
 	     (match_operand:V8SF 3 "nonimmediate_operand" "xm,x"))
 	   (minus:V8SF
 	     (mult:V8SF
@@ -2450,8 +2246,7 @@
 	     (match_dup 3))
 	   (const_int 170))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmaddsubps\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V8SF")])
@@ -2462,8 +2257,8 @@
 	 [(vec_merge:V4DF
 	   (plus:V4DF
 	     (mult:V4DF
-	       (match_operand:V4DF 1 "nonimmediate_operand" "x,x")
-	       (match_operand:V4DF 2 "nonimmediate_operand" "x,xm"))
+	       (match_operand:V4DF 1 "nonimmediate_operand" "%x,x")
+	       (match_operand:V4DF 2 "nonimmediate_operand" "x,m"))
 	     (match_operand:V4DF 3 "nonimmediate_operand" "xm,x"))
 	   (minus:V4DF
 	     (mult:V4DF
@@ -2472,8 +2267,7 @@
 	     (match_dup 3))
 	   (const_int 10))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmaddsubpd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V4DF")])
@@ -2484,8 +2278,8 @@
 	 [(vec_merge:V4SF
 	   (plus:V4SF
 	     (mult:V4SF
-	       (match_operand:V4SF 1 "nonimmediate_operand" "x,x")
-	       (match_operand:V4SF 2 "nonimmediate_operand" "x,xm"))
+	       (match_operand:V4SF 1 "nonimmediate_operand" "%x,x")
+	       (match_operand:V4SF 2 "nonimmediate_operand" "x,m"))
 	     (match_operand:V4SF 3 "nonimmediate_operand" "xm,x"))
 	   (minus:V4SF
 	     (mult:V4SF
@@ -2494,8 +2288,7 @@
 	     (match_dup 3))
 	   (const_int 10))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmaddsubps\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V4SF")])
@@ -2506,8 +2299,8 @@
 	 [(vec_merge:V2DF
 	   (plus:V2DF
 	     (mult:V2DF
-	       (match_operand:V2DF 1 "nonimmediate_operand" "x,x")
-	       (match_operand:V2DF 2 "nonimmediate_operand" "x,xm"))
+	       (match_operand:V2DF 1 "nonimmediate_operand" "%x,x")
+	       (match_operand:V2DF 2 "nonimmediate_operand" "x,m"))
 	     (match_operand:V2DF 3 "nonimmediate_operand" "xm,x"))
 	   (minus:V2DF
 	     (mult:V2DF
@@ -2516,8 +2309,7 @@
 	     (match_dup 3))
 	   (const_int 2))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmaddsubpd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V2DF")])
@@ -2528,8 +2320,8 @@
 	 [(vec_merge:V8SF
 	   (plus:V8SF
 	     (mult:V8SF
-	       (match_operand:V8SF 1 "nonimmediate_operand" "x,x")
-	       (match_operand:V8SF 2 "nonimmediate_operand" "x,xm"))
+	       (match_operand:V8SF 1 "nonimmediate_operand" "%x,x")
+	       (match_operand:V8SF 2 "nonimmediate_operand" "x,m"))
 	     (match_operand:V8SF 3 "nonimmediate_operand" "xm,x"))
 	   (minus:V8SF
 	     (mult:V8SF
@@ -2538,8 +2330,7 @@
 	     (match_dup 3))
 	   (const_int 85))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsubaddps\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V8SF")])
@@ -2550,8 +2341,8 @@
 	 [(vec_merge:V4DF
 	   (plus:V4DF
 	     (mult:V4DF
-	       (match_operand:V4DF 1 "nonimmediate_operand" "x,x")
-	       (match_operand:V4DF 2 "nonimmediate_operand" "x,xm"))
+	       (match_operand:V4DF 1 "nonimmediate_operand" "%x,x")
+	       (match_operand:V4DF 2 "nonimmediate_operand" "x,m"))
 	     (match_operand:V4DF 3 "nonimmediate_operand" "xm,x"))
 	   (minus:V4DF
 	     (mult:V4DF
@@ -2560,8 +2351,7 @@
 	     (match_dup 3))
 	   (const_int 5))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsubaddpd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V4DF")])
@@ -2572,8 +2362,8 @@
 	 [(vec_merge:V4SF
 	   (plus:V4SF
 	     (mult:V4SF
-	       (match_operand:V4SF 1 "nonimmediate_operand" "x,x")
-	       (match_operand:V4SF 2 "nonimmediate_operand" "x,xm"))
+	       (match_operand:V4SF 1 "nonimmediate_operand" "%x,x")
+	       (match_operand:V4SF 2 "nonimmediate_operand" "x,m"))
 	     (match_operand:V4SF 3 "nonimmediate_operand" "xm,x"))
 	   (minus:V4SF
 	     (mult:V4SF
@@ -2582,8 +2372,7 @@
 	     (match_dup 3))
 	   (const_int 5))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsubaddps\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V4SF")])
@@ -2594,8 +2383,8 @@
 	 [(vec_merge:V2DF
 	   (plus:V2DF
 	     (mult:V2DF
-	       (match_operand:V2DF 1 "nonimmediate_operand" "x,x")
-	       (match_operand:V2DF 2 "nonimmediate_operand" "x,xm"))
+	       (match_operand:V2DF 1 "nonimmediate_operand" "%x,x")
+	       (match_operand:V2DF 2 "nonimmediate_operand" "x,m"))
 	     (match_operand:V2DF 3 "nonimmediate_operand" "xm,x"))
 	   (minus:V2DF
 	     (mult:V2DF
@@ -2604,8 +2393,7 @@
 	     (match_dup 3))
 	   (const_int 1))]
 	 UNSPEC_FMA4_INTRINSIC))]
-  "TARGET_FMA4
-   && ix86_fma4_valid_op_p (operands, insn, 4, true, 2, true)"
+  "TARGET_FMA4 && TARGET_FUSED_MADD"
   "vfmsubaddpd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "V2DF")])
@@ -4012,14 +3800,27 @@
   [(set_attr "type" "ssemov")
    (set_attr "mode" "SF")])
 
-(define_insn "*vec_dupv4sf_avx"
-  [(set (match_operand:V4SF 0 "register_operand" "=x")
+(define_expand "vec_dupv4sf"
+  [(set (match_operand:V4SF 0 "register_operand" "")
 	(vec_duplicate:V4SF
-	  (match_operand:SF 1 "register_operand" "x")))]
+	  (match_operand:SF 1 "nonimmediate_operand" "")))]
+  "TARGET_SSE"
+{
+  if (!TARGET_AVX)
+    operands[1] = force_reg (V4SFmode, operands[1]);
+})
+
+(define_insn "*vec_dupv4sf_avx"
+  [(set (match_operand:V4SF 0 "register_operand" "=x,x")
+	(vec_duplicate:V4SF
+	  (match_operand:SF 1 "nonimmediate_operand" "x,m")))]
   "TARGET_AVX"
-  "vshufps\t{$0, %1, %1, %0|%0, %1, %1, 0}"
-  [(set_attr "type" "sselog1")
-   (set_attr "length_immediate" "1")
+  "@
+   vshufps\t{$0, %1, %1, %0|%0, %1, %1, 0}
+   vbroadcastss\t{%1, %0|%0, %1}"
+  [(set_attr "type" "sselog1,ssemov")
+   (set_attr "length_immediate" "1,0")
+   (set_attr "prefix_extra" "0,1")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V4SF")])
 
@@ -4125,35 +3926,78 @@
   DONE;
 })
 
-(define_insn "*vec_setv4sf_0_avx"
-  [(set (match_operand:V4SF 0 "nonimmediate_operand"  "=x,x,x,m")
-	(vec_merge:V4SF
-	  (vec_duplicate:V4SF
-	    (match_operand:SF 2 "general_operand"     " x,m,*r,x*rfF"))
-	  (match_operand:V4SF 1 "vector_move_operand" " x,C,C ,0")
+(define_insn "*vec_set<mode>_0_avx"
+  [(set (match_operand:SSEMODE4S 0 "nonimmediate_operand"  "=x,x, x,x,  x,m")
+	(vec_merge:SSEMODE4S
+	  (vec_duplicate:SSEMODE4S
+	    (match_operand:<ssescalarmode> 2
+	      "general_operand"                            " x,m,*r,x,*rm,x*rfF"))
+	  (match_operand:SSEMODE4S 1 "vector_move_operand" " C,C, C,x,  x,0")
 	  (const_int 1)))]
   "TARGET_AVX"
   "@
-   vmovss\t{%2, %1, %0|%0, %1, %2}
-   vmovss\t{%2, %0|%0, %2}
+   vinsertps\t{$0xe, %2, %2, %0|%0, %2, %2, 0xe}
+   vmov<ssescalarmodesuffix2s>\t{%2, %0|%0, %2}
    vmovd\t{%2, %0|%0, %2}
+   vmovss\t{%2, %1, %0|%0, %1, %2}
+   vpinsrd\t{$0, %2, %1, %0|%0, %1, %2, 0}
+   #"
+  [(set_attr "type" "sselog,ssemov,ssemov,ssemov,sselog,*")
+   (set_attr "prefix_extra" "*,*,*,*,1,*")
+   (set_attr "length_immediate" "*,*,*,*,1,*")
+   (set_attr "prefix" "vex")
+   (set_attr "mode" "SF,<ssescalarmode>,SI,SF,TI,*")])
+
+(define_insn "*vec_set<mode>_0_sse4_1"
+  [(set (match_operand:SSEMODE4S 0 "nonimmediate_operand"  "=x,x, x,x,  x,m")
+	(vec_merge:SSEMODE4S
+	  (vec_duplicate:SSEMODE4S
+	    (match_operand:<ssescalarmode> 2
+	      "general_operand"                            " x,m,*r,x,*rm,*rfF"))
+	  (match_operand:SSEMODE4S 1 "vector_move_operand" " C,C, C,0,  0,0")
+	  (const_int 1)))]
+  "TARGET_SSE4_1"
+  "@
+   insertps\t{$0xe, %2, %0|%0, %2, 0xe}
+   mov<ssescalarmodesuffix2s>\t{%2, %0|%0, %2}
+   movd\t{%2, %0|%0, %2}
+   movss\t{%2, %0|%0, %2}
+   pinsrd\t{$0, %2, %0|%0, %2, 0}
+   #"
+  [(set_attr "type" "sselog,ssemov,ssemov,ssemov,sselog,*")
+   (set_attr "prefix_extra" "*,*,*,*,1,*")
+   (set_attr "length_immediate" "*,*,*,*,1,*")
+   (set_attr "mode" "SF,<ssescalarmode>,SI,SF,TI,*")])
+
+(define_insn "*vec_set<mode>_0_sse2"
+  [(set (match_operand:SSEMODE4S 0 "nonimmediate_operand"  "=x, x,x,m")
+	(vec_merge:SSEMODE4S
+	  (vec_duplicate:SSEMODE4S
+	    (match_operand:<ssescalarmode> 2
+	      "general_operand"                            " m,*r,x,x*rfF"))
+	  (match_operand:SSEMODE4S 1 "vector_move_operand" " C, C,0,0")
+	  (const_int 1)))]
+  "TARGET_SSE2"
+  "@
+   mov<ssescalarmodesuffix2s>\t{%2, %0|%0, %2}
+   movd\t{%2, %0|%0, %2}
+   movss\t{%2, %0|%0, %2}
    #"
   [(set_attr "type" "ssemov")
-   (set_attr "prefix" "vex")
-   (set_attr "mode" "SF")])
+   (set_attr "mode" "<ssescalarmode>,SI,SF,*")])
 
-(define_insn "vec_setv4sf_0"
-  [(set (match_operand:V4SF 0 "nonimmediate_operand"  "=x,x,Y2,m")
-	(vec_merge:V4SF
-	  (vec_duplicate:V4SF
-	    (match_operand:SF 2 "general_operand"     " x,m,*r,x*rfF"))
-	  (match_operand:V4SF 1 "vector_move_operand" " 0,C,C ,0")
+(define_insn "vec_set<mode>_0"
+  [(set (match_operand:SSEMODE4S 0 "nonimmediate_operand"  "=x,x,m")
+	(vec_merge:SSEMODE4S
+	  (vec_duplicate:SSEMODE4S
+	    (match_operand:<ssescalarmode> 2
+	      "general_operand"                            " m,x,x*rfF"))
+	  (match_operand:SSEMODE4S 1 "vector_move_operand" " C,0,0")
 	  (const_int 1)))]
   "TARGET_SSE"
   "@
    movss\t{%2, %0|%0, %2}
    movss\t{%2, %0|%0, %2}
-   movd\t{%2, %0|%0, %2}
    #"
   [(set_attr "type" "ssemov")
    (set_attr "mode" "SF")])
@@ -4484,7 +4328,7 @@
    (set_attr "mode" "V4DF")])
 
 (define_expand "vec_interleave_highv2df"
-  [(set (match_operand:V2DF 0 "nonimmediate_operand" "")
+  [(set (match_operand:V2DF 0 "register_operand" "")
 	(vec_select:V2DF
 	  (vec_concat:V4DF
 	    (match_operand:V2DF 1 "nonimmediate_operand" "")
@@ -4492,24 +4336,46 @@
 	  (parallel [(const_int 1)
 		     (const_int 3)])))]
   "TARGET_SSE2"
-  "ix86_fixup_binary_operands (UNKNOWN, V2DFmode, operands);")
+{
+  if (!ix86_vec_interleave_v2df_operator_ok (operands, 1))
+    operands[2] = force_reg (V2DFmode, operands[2]);
+})
 
 (define_insn "*avx_interleave_highv2df"
-  [(set (match_operand:V2DF 0 "nonimmediate_operand"     "=x,x,m")
+  [(set (match_operand:V2DF 0 "nonimmediate_operand"     "=x,x,x,m")
 	(vec_select:V2DF
 	  (vec_concat:V4DF
-	    (match_operand:V2DF 1 "nonimmediate_operand" " x,o,x")
-	    (match_operand:V2DF 2 "nonimmediate_operand" " x,x,0"))
+	    (match_operand:V2DF 1 "nonimmediate_operand" " x,o,o,x")
+	    (match_operand:V2DF 2 "nonimmediate_operand" " x,1,x,0"))
 	  (parallel [(const_int 1)
 		     (const_int 3)])))]
-  "TARGET_AVX && !(MEM_P (operands[1]) && MEM_P (operands[2]))"
+  "TARGET_AVX && ix86_vec_interleave_v2df_operator_ok (operands, 1)"
   "@
    vunpckhpd\t{%2, %1, %0|%0, %1, %2}
+   vmovddup\t{%H1, %0|%0, %H1}
    vmovlpd\t{%H1, %2, %0|%0, %2, %H1}
    vmovhpd\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sselog,ssemov,ssemov")
+  [(set_attr "type" "sselog,sselog,ssemov,ssemov")
    (set_attr "prefix" "vex")
-   (set_attr "mode" "V2DF,V1DF,V1DF")])
+   (set_attr "mode" "V2DF,V2DF,V1DF,V1DF")])
+
+(define_insn "*sse3_interleave_highv2df"
+  [(set (match_operand:V2DF 0 "nonimmediate_operand"     "=x,x,x,m")
+	(vec_select:V2DF
+	  (vec_concat:V4DF
+	    (match_operand:V2DF 1 "nonimmediate_operand" " 0,o,o,x")
+	    (match_operand:V2DF 2 "nonimmediate_operand" " x,1,0,0"))
+	  (parallel [(const_int 1)
+		     (const_int 3)])))]
+  "TARGET_SSE3 && ix86_vec_interleave_v2df_operator_ok (operands, 1)"
+  "@
+   unpckhpd\t{%2, %0|%0, %2}
+   movddup\t{%H1, %0|%0, %H1}
+   movlpd\t{%H1, %0|%0, %H1}
+   movhpd\t{%1, %0|%0, %1}"
+  [(set_attr "type" "sselog,sselog,ssemov,ssemov")
+   (set_attr "prefix_data16" "*,*,1,1")
+   (set_attr "mode" "V2DF,V2DF,V1DF,V1DF")])
 
 (define_insn "*sse2_interleave_highv2df"
   [(set (match_operand:V2DF 0 "nonimmediate_operand"     "=x,x,m")
@@ -4519,7 +4385,7 @@
 	    (match_operand:V2DF 2 "nonimmediate_operand" " x,0,0"))
 	  (parallel [(const_int 1)
 		     (const_int 3)])))]
-  "TARGET_SSE2 && !(MEM_P (operands[1]) && MEM_P (operands[2]))"
+  "TARGET_SSE2 && ix86_vec_interleave_v2df_operator_ok (operands, 1)"
   "@
    unpckhpd\t{%2, %0|%0, %2}
    movlpd\t{%H1, %0|%0, %H1}
@@ -4528,50 +4394,112 @@
    (set_attr "prefix_data16" "*,1,1")
    (set_attr "mode" "V2DF,V1DF,V1DF")])
 
-(define_insn "avx_movddup256"
-  [(set (match_operand:V4DF 0 "register_operand" "=x")
+;; Recall that the 256-bit unpck insns only shuffle within their lanes.
+(define_expand "avx_movddup256"
+  [(set (match_operand:V4DF 0 "register_operand" "")
 	(vec_select:V4DF
 	  (vec_concat:V8DF
-	    (match_operand:V4DF 1 "nonimmediate_operand" "xm")
+	    (match_operand:V4DF 1 "nonimmediate_operand" "")
 	    (match_dup 1))
-	  (parallel [(const_int 0) (const_int 2)
-		     (const_int 4) (const_int 6)])))]
+	  (parallel [(const_int 0) (const_int 4)
+		     (const_int 2) (const_int 6)])))]
   "TARGET_AVX"
-  "vmovddup\t{%1, %0|%0, %1}"
-  [(set_attr "type" "sselog1")
+  "")
+
+(define_expand "avx_unpcklpd256"
+  [(set (match_operand:V4DF 0 "register_operand" "")
+	(vec_select:V4DF
+	  (vec_concat:V8DF
+	    (match_operand:V4DF 1 "register_operand" "")
+	    (match_operand:V4DF 2 "nonimmediate_operand" ""))
+	  (parallel [(const_int 0) (const_int 4)
+		     (const_int 2) (const_int 6)])))]
+  "TARGET_AVX"
+  "")
+
+(define_insn "*avx_unpcklpd256"
+  [(set (match_operand:V4DF 0 "register_operand"         "=x,x")
+	(vec_select:V4DF
+	  (vec_concat:V8DF
+	    (match_operand:V4DF 1 "nonimmediate_operand" "xm,x")
+	    (match_operand:V4DF 2 "nonimmediate_operand" " 1,xm"))
+	  (parallel [(const_int 0) (const_int 4)
+		     (const_int 2) (const_int 6)])))]
+  "TARGET_AVX
+   && (!MEM_P (operands[1]) || rtx_equal_p (operands[1], operands[2]))"
+  "@
+   vmovddup\t{%1, %0|%0, %1}
+   vunpcklpd\t{%2, %1, %0|%0, %1, %2}"
+  [(set_attr "type" "sselog")
    (set_attr "prefix" "vex")
    (set_attr "mode" "V4DF")])
 
-(define_insn "*avx_movddup"
-  [(set (match_operand:V2DF 0 "nonimmediate_operand"     "=x,o")
+(define_expand "vec_interleave_lowv2df"
+  [(set (match_operand:V2DF 0 "register_operand" "")
 	(vec_select:V2DF
 	  (vec_concat:V4DF
-	    (match_operand:V2DF 1 "nonimmediate_operand" "xm,x")
-	    (match_dup 1))
+	    (match_operand:V2DF 1 "nonimmediate_operand" "")
+	    (match_operand:V2DF 2 "nonimmediate_operand" ""))
 	  (parallel [(const_int 0)
 		     (const_int 2)])))]
-  "TARGET_AVX && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
-  "@
-   vmovddup\t{%1, %0|%0, %1}
-   #"
-  [(set_attr "type" "sselog1,ssemov")
-   (set_attr "prefix" "vex")
-   (set_attr "mode" "V2DF")])
+  "TARGET_SSE2"
+{
+  if (!ix86_vec_interleave_v2df_operator_ok (operands, 0))
+    operands[1] = force_reg (V2DFmode, operands[1]);
+})
 
-(define_insn "*sse3_movddup"
-  [(set (match_operand:V2DF 0 "nonimmediate_operand"     "=x,o")
+(define_insn "*avx_interleave_lowv2df"
+  [(set (match_operand:V2DF 0 "nonimmediate_operand"     "=x,x,x,o")
 	(vec_select:V2DF
 	  (vec_concat:V4DF
-	    (match_operand:V2DF 1 "nonimmediate_operand" "xm,x")
-	    (match_dup 1))
+	    (match_operand:V2DF 1 "nonimmediate_operand" " x,m,x,0")
+	    (match_operand:V2DF 2 "nonimmediate_operand" " x,1,m,x"))
 	  (parallel [(const_int 0)
 		     (const_int 2)])))]
-  "TARGET_SSE3 && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
+  "TARGET_AVX && ix86_vec_interleave_v2df_operator_ok (operands, 0)"
   "@
+   vunpcklpd\t{%2, %1, %0|%0, %1, %2}
+   vmovddup\t{%1, %0|%0, %1}
+   vmovhpd\t{%2, %1, %0|%0, %1, %2}
+   vmovlpd\t{%2, %H0|%H0, %2}"
+  [(set_attr "type" "sselog,sselog,ssemov,ssemov")
+   (set_attr "prefix" "vex")
+   (set_attr "mode" "V2DF,V2DF,V1DF,V1DF")])
+
+(define_insn "*sse3_interleave_lowv2df"
+  [(set (match_operand:V2DF 0 "nonimmediate_operand"     "=x,x,x,o")
+	(vec_select:V2DF
+	  (vec_concat:V4DF
+	    (match_operand:V2DF 1 "nonimmediate_operand" " 0,m,0,0")
+	    (match_operand:V2DF 2 "nonimmediate_operand" " x,1,m,x"))
+	  (parallel [(const_int 0)
+		     (const_int 2)])))]
+  "TARGET_SSE3 && ix86_vec_interleave_v2df_operator_ok (operands, 0)"
+  "@
+   unpcklpd\t{%2, %0|%0, %2}
    movddup\t{%1, %0|%0, %1}
-   #"
-  [(set_attr "type" "sselog1,ssemov")
-   (set_attr "mode" "V2DF")])
+   movhpd\t{%2, %0|%0, %2}
+   movlpd\t{%2, %H0|%H0, %2}"
+  [(set_attr "type" "sselog,sselog,ssemov,ssemov")
+   (set_attr "prefix_data16" "*,*,1,1")
+   (set_attr "mode" "V2DF,V2DF,V1DF,V1DF")])
+
+(define_insn "*sse2_interleave_lowv2df"
+  [(set (match_operand:V2DF 0 "nonimmediate_operand"     "=x,x,o")
+	(vec_select:V2DF
+	  (vec_concat:V4DF
+	    (match_operand:V2DF 1 "nonimmediate_operand" " 0,0,0")
+	    (match_operand:V2DF 2 "nonimmediate_operand" " x,m,x"))
+	  (parallel [(const_int 0)
+		     (const_int 2)])))]
+  "TARGET_SSE2 && ix86_vec_interleave_v2df_operator_ok (operands, 0)"
+  "@
+   unpcklpd\t{%2, %0|%0, %2}
+   movhpd\t{%2, %0|%0, %2}
+   movlpd\t{%2, %H0|%H0, %2}"
+  [(set_attr "type" "sselog,ssemov,ssemov")
+   (set_attr "prefix_data16" "*,1,1")
+   (set_attr "mode" "V2DF,V1DF,V1DF")])
 
 (define_split
   [(set (match_operand:V2DF 0 "memory_operand" "")
@@ -4590,65 +4518,19 @@
   DONE;
 })
 
-;; Recall that the 256-bit unpck insns only shuffle within their lanes.
-(define_insn "avx_unpcklpd256"
-  [(set (match_operand:V4DF 0 "register_operand" "=x")
-	(vec_select:V4DF
-	  (vec_concat:V8DF
-	    (match_operand:V4DF 1 "register_operand" "x")
-	    (match_operand:V4DF 2 "nonimmediate_operand" "xm"))
-	  (parallel [(const_int 0) (const_int 4)
-		     (const_int 2) (const_int 6)])))]
-  "TARGET_AVX"
-  "vunpcklpd\t{%2, %1, %0|%0, %1, %2}"
-  [(set_attr "type" "sselog")
-   (set_attr "prefix" "vex")
-   (set_attr "mode" "V4DF")])
-
-(define_expand "vec_interleave_lowv2df"
-  [(set (match_operand:V2DF 0 "nonimmediate_operand" "")
+(define_split
+  [(set (match_operand:V2DF 0 "register_operand" "")
 	(vec_select:V2DF
 	  (vec_concat:V4DF
-	    (match_operand:V2DF 1 "nonimmediate_operand" "")
-	    (match_operand:V2DF 2 "nonimmediate_operand" ""))
-	  (parallel [(const_int 0)
-		     (const_int 2)])))]
-  "TARGET_SSE2"
-  "ix86_fixup_binary_operands (UNKNOWN, V2DFmode, operands);")
-
-(define_insn "*avx_interleave_lowv2df"
-  [(set (match_operand:V2DF 0 "nonimmediate_operand"     "=x,x,o")
-	(vec_select:V2DF
-	  (vec_concat:V4DF
-	    (match_operand:V2DF 1 "nonimmediate_operand" " x,x,0")
-	    (match_operand:V2DF 2 "nonimmediate_operand" " x,m,x"))
-	  (parallel [(const_int 0)
-		     (const_int 2)])))]
-  "TARGET_AVX && !(MEM_P (operands[1]) && MEM_P (operands[2]))"
-  "@
-   vunpcklpd\t{%2, %1, %0|%0, %1, %2}
-   vmovhpd\t{%2, %1, %0|%0, %1, %2}
-   vmovlpd\t{%2, %H0|%H0, %2}"
-  [(set_attr "type" "sselog,ssemov,ssemov")
-   (set_attr "prefix" "vex")
-   (set_attr "mode" "V2DF,V1DF,V1DF")])
-
-(define_insn "*sse2_interleave_lowv2df"
-  [(set (match_operand:V2DF 0 "nonimmediate_operand"     "=x,x,o")
-	(vec_select:V2DF
-	  (vec_concat:V4DF
-	    (match_operand:V2DF 1 "nonimmediate_operand" " 0,0,0")
-	    (match_operand:V2DF 2 "nonimmediate_operand" " x,m,x"))
-	  (parallel [(const_int 0)
-		     (const_int 2)])))]
-  "TARGET_SSE2 && !(MEM_P (operands[1]) && MEM_P (operands[2]))"
-  "@
-   unpcklpd\t{%2, %0|%0, %2}
-   movhpd\t{%2, %0|%0, %2}
-   movlpd\t{%2, %H0|%H0, %2}"
-  [(set_attr "type" "sselog,ssemov,ssemov")
-   (set_attr "prefix_data16" "*,1,1")
-   (set_attr "mode" "V2DF,V1DF,V1DF")])
+	    (match_operand:V2DF 1 "memory_operand" "")
+	    (match_dup 1))
+	  (parallel [(match_operand:SI 2 "const_0_to_1_operand" "")
+		     (match_operand:SI 3 "const_int_operand" "")])))]
+  "TARGET_SSE3 && INTVAL (operands[2]) + 2 == INTVAL (operands[3])"
+  [(set (match_dup 0) (vec_duplicate:V2DF (match_dup 1)))]
+{
+  operands[1] = adjust_address (operands[1], DFmode, INTVAL (operands[2]) * 8);
+})
 
 (define_expand "avx_shufpd256"
   [(match_operand:V4DF 0 "register_operand" "")
@@ -5658,12 +5540,12 @@
   /* Shift both input vectors down one element, so that elements 3
      and 1 are now in the slots for elements 2 and 0.  For K8, at
      least, this is faster than using a shuffle.  */
-  emit_insn (gen_sse2_lshrti3 (gen_lowpart (TImode, t2),
-			       gen_lowpart (TImode, op1),
-			       thirtytwo));
-  emit_insn (gen_sse2_lshrti3 (gen_lowpart (TImode, t3),
-			       gen_lowpart (TImode, op2),
-			       thirtytwo));
+  emit_insn (gen_sse2_lshrv1ti3 (gen_lowpart (V1TImode, t2),
+				 gen_lowpart (V1TImode, op1),
+				 thirtytwo));
+  emit_insn (gen_sse2_lshrv1ti3 (gen_lowpart (V1TImode, t3),
+				 gen_lowpart (V1TImode, op2),
+				 thirtytwo));
   /* Multiply elements 3 and 1.  */
   emit_insn (gen_sse2_umulv2siv2di3 (gen_lowpart (V2DImode, t4),
 				     t2, t3));
@@ -5958,12 +5840,12 @@
 
   t2 = gen_reg_rtx (V4SImode);
   t3 = gen_reg_rtx (V4SImode);
-  emit_insn (gen_sse2_lshrti3 (gen_lowpart (TImode, t2),
-                               gen_lowpart (TImode, operands[1]),
-                               GEN_INT (32)));
-  emit_insn (gen_sse2_lshrti3 (gen_lowpart (TImode, t3),
-                               gen_lowpart (TImode, operands[2]),
-                               GEN_INT (32)));
+  emit_insn (gen_sse2_lshrv1ti3 (gen_lowpart (V1TImode, t2),
+				 gen_lowpart (V1TImode, operands[1]),
+				 GEN_INT (32)));
+  emit_insn (gen_sse2_lshrv1ti3 (gen_lowpart (V1TImode, t3),
+				 gen_lowpart (V1TImode, operands[2]),
+				 GEN_INT (32)));
 
   t4 = gen_reg_rtx (V2DImode);
   emit_insn (gen_sse2_umulv2siv2di3 (t4, t2, t3));
@@ -6002,6 +5884,21 @@
        (const_string "0")))
    (set_attr "mode" "TI")])
 
+(define_insn "*avx_lshrv1ti3"
+  [(set (match_operand:V1TI 0 "register_operand" "=x")
+ 	(lshiftrt:V1TI
+	 (match_operand:V1TI 1 "register_operand" "x")
+	 (match_operand:SI 2 "const_0_to_255_mul_8_operand" "n")))]
+  "TARGET_AVX"
+{
+  operands[2] = GEN_INT (INTVAL (operands[2]) / 8);
+  return "vpsrldq\t{%2, %1, %0|%0, %1, %2}";
+}
+  [(set_attr "type" "sseishft")
+   (set_attr "prefix" "vex")
+   (set_attr "length_immediate" "1")
+   (set_attr "mode" "TI")])
+
 (define_insn "*avx_lshr<mode>3"
   [(set (match_operand:SSEMODE248 0 "register_operand" "=x")
 	(lshiftrt:SSEMODE248
@@ -6015,6 +5912,21 @@
      (if_then_else (match_operand 2 "const_int_operand" "")
        (const_string "1")
        (const_string "0")))
+   (set_attr "mode" "TI")])
+
+(define_insn "sse2_lshrv1ti3"
+  [(set (match_operand:V1TI 0 "register_operand" "=x")
+ 	(lshiftrt:V1TI
+	 (match_operand:V1TI 1 "register_operand" "0")
+	 (match_operand:SI 2 "const_0_to_255_mul_8_operand" "n")))]
+  "TARGET_SSE2"
+{
+  operands[2] = GEN_INT (INTVAL (operands[2]) / 8);
+  return "psrldq\t{%2, %0|%0, %2}";
+}
+  [(set_attr "type" "sseishft")
+   (set_attr "prefix_data16" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_insn "lshr<mode>3"
@@ -6032,6 +5944,20 @@
        (const_string "0")))
    (set_attr "mode" "TI")])
 
+(define_insn "*avx_ashlv1ti3"
+  [(set (match_operand:V1TI 0 "register_operand" "=x")
+	(ashift:V1TI (match_operand:V1TI 1 "register_operand" "x")
+		     (match_operand:SI 2 "const_0_to_255_mul_8_operand" "n")))]
+  "TARGET_AVX"
+{
+  operands[2] = GEN_INT (INTVAL (operands[2]) / 8);
+  return "vpslldq\t{%2, %1, %0|%0, %1, %2}";
+}
+  [(set_attr "type" "sseishft")
+   (set_attr "prefix" "vex")
+   (set_attr "length_immediate" "1")
+   (set_attr "mode" "TI")])
+
 (define_insn "*avx_ashl<mode>3"
   [(set (match_operand:SSEMODE248 0 "register_operand" "=x")
 	(ashift:SSEMODE248
@@ -6045,6 +5971,20 @@
      (if_then_else (match_operand 2 "const_int_operand" "")
        (const_string "1")
        (const_string "0")))
+   (set_attr "mode" "TI")])
+
+(define_insn "sse2_ashlv1ti3"
+  [(set (match_operand:V1TI 0 "register_operand" "=x")
+	(ashift:V1TI (match_operand:V1TI 1 "register_operand" "0")
+		     (match_operand:SI 2 "const_0_to_255_mul_8_operand" "n")))]
+  "TARGET_SSE2"
+{
+  operands[2] = GEN_INT (INTVAL (operands[2]) / 8);
+  return "pslldq\t{%2, %0|%0, %2}";
+}
+  [(set_attr "type" "sseishft")
+   (set_attr "prefix_data16" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
 
 (define_insn "ashl<mode>3"
@@ -6064,22 +6004,24 @@
 
 (define_expand "vec_shl_<mode>"
   [(set (match_operand:SSEMODEI 0 "register_operand" "")
-        (ashift:TI (match_operand:SSEMODEI 1 "register_operand" "")
-		   (match_operand:SI 2 "const_0_to_255_mul_8_operand" "")))]
+        (ashift:V1TI
+	 (match_operand:SSEMODEI 1 "register_operand" "")
+	 (match_operand:SI 2 "const_0_to_255_mul_8_operand" "")))]
   "TARGET_SSE2"
 {
-  operands[0] = gen_lowpart (TImode, operands[0]);
-  operands[1] = gen_lowpart (TImode, operands[1]);
+  operands[0] = gen_lowpart (V1TImode, operands[0]);
+  operands[1] = gen_lowpart (V1TImode, operands[1]);
 })
 
 (define_expand "vec_shr_<mode>"
   [(set (match_operand:SSEMODEI 0 "register_operand" "")
-        (lshiftrt:TI (match_operand:SSEMODEI 1 "register_operand" "")
-		     (match_operand:SI 2 "const_0_to_255_mul_8_operand" "")))]
+        (lshiftrt:V1TI
+	 (match_operand:SSEMODEI 1 "register_operand" "")
+	 (match_operand:SI 2 "const_0_to_255_mul_8_operand" "")))]
   "TARGET_SSE2"
 {
-  operands[0] = gen_lowpart (TImode, operands[0]);
-  operands[1] = gen_lowpart (TImode, operands[1]);
+  operands[0] = gen_lowpart (V1TImode, operands[0]);
+  operands[1] = gen_lowpart (V1TImode, operands[1]);
 })
 
 (define_insn "*avx_<code><mode>3"
@@ -6192,6 +6134,26 @@
    (set_attr "prefix_extra" "1")
    (set_attr "mode" "TI")])
 
+(define_expand "smaxv2di3"
+  [(set (match_operand:V2DI 0 "register_operand" "")
+	(smax:V2DI (match_operand:V2DI 1 "register_operand" "")
+		   (match_operand:V2DI 2 "register_operand" "")))]
+  "TARGET_SSE4_2"
+{
+  rtx xops[6];
+  bool ok;
+
+  xops[0] = operands[0];
+  xops[1] = operands[1];
+  xops[2] = operands[2];
+  xops[3] = gen_rtx_GT (VOIDmode, operands[1], operands[2]);
+  xops[4] = operands[1];
+  xops[5] = operands[2];
+  ok = ix86_expand_int_vcond (xops);
+  gcc_assert (ok);
+  DONE;
+})
+
 (define_expand "umaxv4si3"
   [(set (match_operand:V4SI 0 "register_operand" "")
 	(umax:V4SI (match_operand:V4SI 1 "register_operand" "")
@@ -6228,6 +6190,26 @@
    (set_attr "prefix_extra" "1")
    (set_attr "mode" "TI")])
 
+(define_expand "umaxv2di3"
+  [(set (match_operand:V2DI 0 "register_operand" "")
+	(umax:V2DI (match_operand:V2DI 1 "register_operand" "")
+		   (match_operand:V2DI 2 "register_operand" "")))]
+  "TARGET_SSE4_2"
+{
+  rtx xops[6];
+  bool ok;
+
+  xops[0] = operands[0];
+  xops[1] = operands[1];
+  xops[2] = operands[2];
+  xops[3] = gen_rtx_GTU (VOIDmode, operands[1], operands[2]);
+  xops[4] = operands[1];
+  xops[5] = operands[2];
+  ok = ix86_expand_int_vcond (xops);
+  gcc_assert (ok);
+  DONE;
+})
+
 (define_expand "smin<mode>3"
   [(set (match_operand:SSEMODE14 0 "register_operand" "")
 	(smin:SSEMODE14 (match_operand:SSEMODE14 1 "register_operand" "")
@@ -6253,6 +6235,26 @@
     }
 })
 
+(define_expand "sminv2di3"
+  [(set (match_operand:V2DI 0 "register_operand" "")
+	(smin:V2DI (match_operand:V2DI 1 "register_operand" "")
+		   (match_operand:V2DI 2 "register_operand" "")))]
+  "TARGET_SSE4_2"
+{
+  rtx xops[6];
+  bool ok;
+
+  xops[0] = operands[0];
+  xops[1] = operands[2];
+  xops[2] = operands[1];
+  xops[3] = gen_rtx_GT (VOIDmode, operands[1], operands[2]);
+  xops[4] = operands[1];
+  xops[5] = operands[2];
+  ok = ix86_expand_int_vcond (xops);
+  gcc_assert (ok);
+  DONE;
+})
+
 (define_expand "umin<mode>3"
   [(set (match_operand:SSEMODE24 0 "register_operand" "")
 	(umin:SSEMODE24 (match_operand:SSEMODE24 1 "register_operand" "")
@@ -6276,6 +6278,26 @@
       gcc_assert (ok);
       DONE;
     }
+})
+
+(define_expand "uminv2di3"
+  [(set (match_operand:V2DI 0 "register_operand" "")
+	(umin:V2DI (match_operand:V2DI 1 "register_operand" "")
+		   (match_operand:V2DI 2 "register_operand" "")))]
+  "TARGET_SSE4_2"
+{
+  rtx xops[6];
+  bool ok;
+
+  xops[0] = operands[0];
+  xops[1] = operands[2];
+  xops[2] = operands[1];
+  xops[3] = gen_rtx_GTU (VOIDmode, operands[1], operands[2]);
+  xops[4] = operands[1];
+  xops[5] = operands[2];
+  ok = ix86_expand_int_vcond (xops);
+  gcc_assert (ok);
+  DONE;
 })
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -6482,7 +6504,7 @@
 
 (define_expand "<code><mode>3"
   [(set (match_operand:SSEMODEI 0 "register_operand" "")
-	(plogic:SSEMODEI
+	(any_logic:SSEMODEI
 	  (match_operand:SSEMODEI 1 "nonimmediate_operand" "")
 	  (match_operand:SSEMODEI 2 "nonimmediate_operand" "")))]
   "TARGET_SSE"
@@ -6490,53 +6512,53 @@
 
 (define_insn "*avx_<code><mode>3"
   [(set (match_operand:AVX256MODEI 0 "register_operand" "=x")
-        (plogic:AVX256MODEI
+        (any_logic:AVX256MODEI
           (match_operand:AVX256MODEI 1 "nonimmediate_operand" "%x")
           (match_operand:AVX256MODEI 2 "nonimmediate_operand" "xm")))]
   "TARGET_AVX
    && ix86_binary_operator_ok (<CODE>, <MODE>mode, operands)"
-  "v<plogicprefix>ps\t{%2, %1, %0|%0, %1, %2}"
+  "v<logicprefix>ps\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
    (set_attr "prefix" "vex")
    (set_attr "mode" "<avxvecpsmode>")])
 
 (define_insn "*sse_<code><mode>3"
   [(set (match_operand:SSEMODEI 0 "register_operand" "=x")
-        (plogic:SSEMODEI
+        (any_logic:SSEMODEI
           (match_operand:SSEMODEI 1 "nonimmediate_operand" "%0")
           (match_operand:SSEMODEI 2 "nonimmediate_operand" "xm")))]
   "(TARGET_SSE && !TARGET_SSE2)
    && ix86_binary_operator_ok (<CODE>, <MODE>mode, operands)"
-  "<plogicprefix>ps\t{%2, %0|%0, %2}"
+  "<logicprefix>ps\t{%2, %0|%0, %2}"
   [(set_attr "type" "sselog")
    (set_attr "mode" "V4SF")])
 
 (define_insn "*avx_<code><mode>3"
   [(set (match_operand:SSEMODEI 0 "register_operand" "=x")
-        (plogic:SSEMODEI
+        (any_logic:SSEMODEI
           (match_operand:SSEMODEI 1 "nonimmediate_operand" "%x")
           (match_operand:SSEMODEI 2 "nonimmediate_operand" "xm")))]
   "TARGET_AVX
    && ix86_binary_operator_ok (<CODE>, <MODE>mode, operands)"
-  "vp<plogicprefix>\t{%2, %1, %0|%0, %1, %2}"
+  "vp<logicprefix>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sselog")
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
 (define_insn "*sse2_<code><mode>3"
   [(set (match_operand:SSEMODEI 0 "register_operand" "=x")
-	(plogic:SSEMODEI
+	(any_logic:SSEMODEI
 	  (match_operand:SSEMODEI 1 "nonimmediate_operand" "%0")
 	  (match_operand:SSEMODEI 2 "nonimmediate_operand" "xm")))]
   "TARGET_SSE2 && ix86_binary_operator_ok (<CODE>, <MODE>mode, operands)"
-  "p<plogicprefix>\t{%2, %0|%0, %2}"
+  "p<logicprefix>\t{%2, %0|%0, %2}"
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
    (set_attr "mode" "TI")])
 
 (define_expand "<code>tf3"
   [(set (match_operand:TF 0 "register_operand" "")
-	(plogic:TF
+	(any_logic:TF
 	  (match_operand:TF 1 "nonimmediate_operand" "")
 	  (match_operand:TF 2 "nonimmediate_operand" "")))]
   "TARGET_SSE2"
@@ -6544,11 +6566,11 @@
 
 (define_insn "*<code>tf3"
   [(set (match_operand:TF 0 "register_operand" "=x")
-	(plogic:TF
+	(any_logic:TF
 	  (match_operand:TF 1 "nonimmediate_operand" "%0")
 	  (match_operand:TF 2 "nonimmediate_operand" "xm")))]
   "TARGET_SSE2 && ix86_binary_operator_ok (<CODE>, TFmode, operands)"
-  "p<plogicprefix>\t{%2, %0|%0, %2}"
+  "p<logicprefix>\t{%2, %0|%0, %2}"
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
    (set_attr "mode" "TI")])
@@ -7408,6 +7430,20 @@
   [(set_attr "type" "ssemov")
    (set_attr "mode" "V2SF,V4SF,V2SF")])
 
+(define_insn "*vec_dupv4si_avx"
+  [(set (match_operand:V4SI 0 "register_operand" "=x,x")
+	(vec_duplicate:V4SI
+	  (match_operand:SI 1 "register_operand" "x,m")))]
+  "TARGET_AVX"
+  "@
+   vpshufd\t{$0, %1, %0|%0, %1, 0}
+   vbroadcastss\t{%1, %0|%0, %1}"
+  [(set_attr "type" "sselog1,ssemov")
+   (set_attr "length_immediate" "1,0")
+   (set_attr "prefix_extra" "0,1")
+   (set_attr "prefix" "vex")
+   (set_attr "mode" "TI,V4SF")])
+
 (define_insn "*vec_dupv4si"
   [(set (match_operand:V4SI 0 "register_operand" "=Y2,x")
 	(vec_duplicate:V4SI
@@ -7417,19 +7453,31 @@
    %vpshufd\t{$0, %1, %0|%0, %1, 0}
    shufps\t{$0, %0, %0|%0, %0, 0}"
   [(set_attr "type" "sselog1")
-   (set_attr "prefix" "maybe_vex,orig")
    (set_attr "length_immediate" "1")
    (set_attr "mode" "TI,V4SF")])
 
 (define_insn "*vec_dupv2di_avx"
-  [(set (match_operand:V2DI 0 "register_operand" "=x")
+  [(set (match_operand:V2DI 0 "register_operand"     "=x,x")
 	(vec_duplicate:V2DI
-	  (match_operand:DI 1 "register_operand" "x")))]
+	  (match_operand:DI 1 "nonimmediate_operand" " x,m")))]
   "TARGET_AVX"
-  "vpunpcklqdq\t{%1, %1, %0|%0, %1, %1}"
+  "@
+   vpunpcklqdq\t{%1, %1, %0|%0, %1, %1}
+   vmovddup\t{%1, %0|%0, %1}"
   [(set_attr "type" "sselog1")
    (set_attr "prefix" "vex")
-   (set_attr "mode" "TI")])
+   (set_attr "mode" "TI,DF")])
+
+(define_insn "*vec_dupv2di_sse3"
+  [(set (match_operand:V2DI 0 "register_operand"     "=x,x")
+	(vec_duplicate:V2DI
+	  (match_operand:DI 1 "nonimmediate_operand" " 0,m")))]
+  "TARGET_SSE3"
+  "@
+   punpcklqdq\t%0, %0
+   movddup\t{%1, %0|%0, %1}"
+  [(set_attr "type" "sselog1")
+   (set_attr "mode" "TI,DF")])
 
 (define_insn "*vec_dupv2di"
   [(set (match_operand:V2DI 0 "register_operand" "=Y2,x")
@@ -10227,209 +10275,113 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; XOP parallel integer multiply/add instructions.
-;; Note the instruction does not allow the value being added to be a memory
-;; operation.  However by pretending via the nonimmediate_operand predicate
-;; that it does and splitting it later allows the following to be recognized:
-;;	a[i] = b[i] * c[i] + d[i];
+;; Note the XOP multiply/add instructions
+;;     a[i] = b[i] * c[i] + d[i];
+;; do not allow the value being added to be a memory operation.
 (define_insn "xop_pmacsww"
-  [(set (match_operand:V8HI 0 "register_operand" "=x,x")
+  [(set (match_operand:V8HI 0 "register_operand" "=x")
         (plus:V8HI
 	 (mult:V8HI
-	  (match_operand:V8HI 1 "nonimmediate_operand" "%x,m")
-	  (match_operand:V8HI 2 "nonimmediate_operand" "xm,x"))
-	 (match_operand:V8HI 3 "register_operand" "x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, 2, true)"
-  "@
-   vpmacsww\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   vpmacsww\t{%3, %1, %2, %0|%0, %2, %1, %3}"
+	  (match_operand:V8HI 1 "nonimmediate_operand" "%x")
+	  (match_operand:V8HI 2 "nonimmediate_operand" "xm"))
+	 (match_operand:V8HI 3 "nonimmediate_operand" "x")))]
+  "TARGET_XOP"
+  "vpmacsww\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "TI")])
-
-;; Split pmacsww with two memory operands into a load and the pmacsww.
-(define_split
-  [(set (match_operand:V8HI 0 "register_operand" "")
-	(plus:V8HI
-	 (mult:V8HI (match_operand:V8HI 1 "nonimmediate_operand" "")
-		    (match_operand:V8HI 2 "nonimmediate_operand" ""))
-	 (match_operand:V8HI 3 "nonimmediate_operand" "")))]
-  "TARGET_XOP
-   && !ix86_fma4_valid_op_p (operands, insn, 4, false, 1, true)
-   && ix86_fma4_valid_op_p (operands, insn, 4, false, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_fma4_multiple_memory (operands, 4, V8HImode);
-  emit_insn (gen_xop_pmacsww (operands[0], operands[1], operands[2],
-			      operands[3]));
-  DONE;
-})
 
 (define_insn "xop_pmacssww"
-  [(set (match_operand:V8HI 0 "register_operand" "=x,x")
+  [(set (match_operand:V8HI 0 "register_operand" "=x")
         (ss_plus:V8HI
-	 (mult:V8HI (match_operand:V8HI 1 "nonimmediate_operand" "%x,m")
-		    (match_operand:V8HI 2 "nonimmediate_operand" "xm,x"))
-	 (match_operand:V8HI 3 "register_operand" "x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   vpmacssww\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   vpmacssww\t{%3, %1, %2, %0|%0, %2, %1, %3}"
+	 (mult:V8HI (match_operand:V8HI 1 "nonimmediate_operand" "%x")
+		    (match_operand:V8HI 2 "nonimmediate_operand" "xm"))
+	 (match_operand:V8HI 3 "nonimmediate_operand" "x")))]
+  "TARGET_XOP"
+  "vpmacssww\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "TI")])
 
-;; Note the instruction does not allow the value being added to be a memory
-;; operation.  However by pretending via the nonimmediate_operand predicate
-;; that it does and splitting it later allows the following to be recognized:
-;;	a[i] = b[i] * c[i] + d[i];
 (define_insn "xop_pmacsdd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x")
+  [(set (match_operand:V4SI 0 "register_operand" "=x")
         (plus:V4SI
 	 (mult:V4SI
-	  (match_operand:V4SI 1 "nonimmediate_operand" "%x,m")
-	  (match_operand:V4SI 2 "nonimmediate_operand" "xm,x"))
-	 (match_operand:V4SI 3 "register_operand" "x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, 2, true)"
-  "@
-   vpmacsdd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   vpmacsdd\t{%3, %1, %2, %0|%0, %2, %1, %3}"
+	  (match_operand:V4SI 1 "nonimmediate_operand" "%x")
+	  (match_operand:V4SI 2 "nonimmediate_operand" "xm"))
+	 (match_operand:V4SI 3 "nonimmediate_operand" "x")))]
+  "TARGET_XOP"
+  "vpmacsdd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "TI")])
 
-;; Split pmacsdd with two memory operands into a load and the pmacsdd.
-(define_split
-  [(set (match_operand:V4SI 0 "register_operand" "")
-	(plus:V4SI
-	 (mult:V4SI (match_operand:V4SI 1 "nonimmediate_operand" "")
-		    (match_operand:V4SI 2 "nonimmediate_operand" ""))
-	 (match_operand:V4SI 3 "nonimmediate_operand" "")))]
-  "TARGET_XOP
-   && !ix86_fma4_valid_op_p (operands, insn, 4, false, 1, true)
-   && ix86_fma4_valid_op_p (operands, insn, 4, false, 2, true)
-   && !reg_mentioned_p (operands[0], operands[1])
-   && !reg_mentioned_p (operands[0], operands[2])
-   && !reg_mentioned_p (operands[0], operands[3])"
-  [(const_int 0)]
-{
-  ix86_expand_fma4_multiple_memory (operands, 4, V4SImode);
-  emit_insn (gen_xop_pmacsdd (operands[0], operands[1], operands[2],
-			      operands[3]));
-  DONE;
-})
-
 (define_insn "xop_pmacssdd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x")
+  [(set (match_operand:V4SI 0 "register_operand" "=x")
         (ss_plus:V4SI
-	 (mult:V4SI (match_operand:V4SI 1 "nonimmediate_operand" "%x,m")
-		    (match_operand:V4SI 2 "nonimmediate_operand" "xm,x"))
-	 (match_operand:V4SI 3 "register_operand" "x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   vpmacssdd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   vpmacssdd\t{%3, %1, %2, %0|%0, %2, %1, %3}"
+	 (mult:V4SI (match_operand:V4SI 1 "nonimmediate_operand" "%x")
+		    (match_operand:V4SI 2 "nonimmediate_operand" "xm"))
+	 (match_operand:V4SI 3 "nonimmediate_operand" "x")))]
+  "TARGET_XOP"
+  "vpmacssdd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "TI")])
 
 (define_insn "xop_pmacssdql"
-  [(set (match_operand:V2DI 0 "register_operand" "=x,x")
+  [(set (match_operand:V2DI 0 "register_operand" "=x")
 	(ss_plus:V2DI
 	 (mult:V2DI
 	  (sign_extend:V2DI
 	   (vec_select:V2SI
-	    (match_operand:V4SI 1 "nonimmediate_operand" "%x,m")
+	    (match_operand:V4SI 1 "nonimmediate_operand" "%x")
 	    (parallel [(const_int 1)
 		       (const_int 3)])))
 	  (vec_select:V2SI
-	   (match_operand:V4SI 2 "nonimmediate_operand" "xm,x")
+	   (match_operand:V4SI 2 "nonimmediate_operand" "xm")
 	   (parallel [(const_int 1)
 		      (const_int 3)])))
-	 (match_operand:V2DI 3 "register_operand" "x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   vpmacssdql\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   vpmacssdql\t{%3, %1, %2, %0|%0, %2, %1, %3}"
+	 (match_operand:V2DI 3 "nonimmediate_operand" "x")))]
+  "TARGET_XOP"
+  "vpmacssdql\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "TI")])
 
 (define_insn "xop_pmacssdqh"
-  [(set (match_operand:V2DI 0 "register_operand" "=x,x")
+  [(set (match_operand:V2DI 0 "register_operand" "=x")
 	(ss_plus:V2DI
 	 (mult:V2DI
 	  (sign_extend:V2DI
 	   (vec_select:V2SI
-	    (match_operand:V4SI 1 "nonimmediate_operand" "%x,m")
+	    (match_operand:V4SI 1 "nonimmediate_operand" "%x")
 	    (parallel [(const_int 0)
 		       (const_int 2)])))
 	  (sign_extend:V2DI
 	   (vec_select:V2SI
-	    (match_operand:V4SI 2 "nonimmediate_operand" "xm,x")
+	    (match_operand:V4SI 2 "nonimmediate_operand" "xm")
 	    (parallel [(const_int 0)
 		       (const_int 2)]))))
-	 (match_operand:V2DI 3 "register_operand" "x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   vpmacssdqh\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   vpmacssdqh\t{%3, %1, %2, %0|%0, %2, %1, %3}"
+	 (match_operand:V2DI 3 "nonimmediate_operand" "x")))]
+  "TARGET_XOP"
+  "vpmacssdqh\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "TI")])
 
 (define_insn "xop_pmacsdql"
-  [(set (match_operand:V2DI 0 "register_operand" "=x,x")
+  [(set (match_operand:V2DI 0 "register_operand" "=x")
 	(plus:V2DI
 	 (mult:V2DI
 	  (sign_extend:V2DI
 	   (vec_select:V2SI
-	    (match_operand:V4SI 1 "nonimmediate_operand" "%x,m")
+	    (match_operand:V4SI 1 "nonimmediate_operand" "%x")
 	    (parallel [(const_int 1)
 		       (const_int 3)])))
 	  (sign_extend:V2DI
 	   (vec_select:V2SI
-	    (match_operand:V4SI 2 "nonimmediate_operand" "xm,x")
+	    (match_operand:V4SI 2 "nonimmediate_operand" "xm")
 	    (parallel [(const_int 1)
 		       (const_int 3)]))))
-	 (match_operand:V2DI 3 "register_operand" "x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   vpmacsdql\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   vpmacsdql\t{%3, %1, %2, %0|%0, %2, %1, %3}"
+	 (match_operand:V2DI 3 "nonimmediate_operand" "x")))]
+  "TARGET_XOP"
+  "vpmacsdql\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "TI")])
-
-(define_insn_and_split "*xop_pmacsdql_mem"
-  [(set (match_operand:V2DI 0 "register_operand" "=&x,&x")
-	(plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 1 "nonimmediate_operand" "%x,m")
-	    (parallel [(const_int 1)
-		       (const_int 3)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 2 "nonimmediate_operand" "xm,x")
-	    (parallel [(const_int 1)
-		       (const_int 3)]))))
-	 (match_operand:V2DI 3 "memory_operand" "m,m")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, -1, true)"
-  "#"
-  "&& reload_completed"
-  [(set (match_dup 0)
-	(match_dup 3))
-   (set (match_dup 0)
-	(plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_dup 1)
-	    (parallel [(const_int 1)
-		       (const_int 3)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_dup 2)
-	    (parallel [(const_int 1)
-		       (const_int 3)]))))
-	 (match_dup 0)))])
 
 ;; We don't have a straight 32-bit parallel multiply and extend on XOP, so
 ;; fake it with a multiply/add.  In general, we expect the define_split to
@@ -10440,7 +10392,7 @@
 	(mult:V2DI
 	  (sign_extend:V2DI
 	    (vec_select:V2SI
-	      (match_operand:V4SI 1 "nonimmediate_operand" "%x")
+	      (match_operand:V4SI 1 "register_operand" "%x")
 	      (parallel [(const_int 1)
 			 (const_int 3)])))
 	  (sign_extend:V2DI
@@ -10474,61 +10426,24 @@
    (set_attr "mode" "TI")])
 
 (define_insn "xop_pmacsdqh"
-  [(set (match_operand:V2DI 0 "register_operand" "=x,x")
+  [(set (match_operand:V2DI 0 "register_operand" "=x")
 	(plus:V2DI
 	 (mult:V2DI
 	  (sign_extend:V2DI
 	   (vec_select:V2SI
-	    (match_operand:V4SI 1 "nonimmediate_operand" "%x,m")
+	    (match_operand:V4SI 1 "nonimmediate_operand" "%x")
 	    (parallel [(const_int 0)
 		       (const_int 2)])))
 	  (sign_extend:V2DI
 	   (vec_select:V2SI
-	    (match_operand:V4SI 2 "nonimmediate_operand" "xm,x")
+	    (match_operand:V4SI 2 "nonimmediate_operand" "xm")
 	    (parallel [(const_int 0)
 		       (const_int 2)]))))
-	 (match_operand:V2DI 3 "register_operand" "x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   vpmacsdqh\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   vpmacsdqh\t{%3, %1, %2, %0|%0, %2, %1, %3}"
+	 (match_operand:V2DI 3 "nonimmediate_operand" "x")))]
+  "TARGET_XOP"
+  "vpmacsdqh\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "TI")])
-
-(define_insn_and_split "*xop_pmacsdqh_mem"
-  [(set (match_operand:V2DI 0 "register_operand" "=&x,&x")
-	(plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 1 "nonimmediate_operand" "%x,m")
-	    (parallel [(const_int 0)
-		       (const_int 2)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_operand:V4SI 2 "nonimmediate_operand" "xm,x")
-	    (parallel [(const_int 0)
-		       (const_int 2)]))))
-	 (match_operand:V2DI 3 "memory_operand" "m,m")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, -1, true)"
-  "#"
-  "&& reload_completed"
-  [(set (match_dup 0)
-	(match_dup 3))
-   (set (match_dup 0)
-	(plus:V2DI
-	 (mult:V2DI
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_dup 1)
-	    (parallel [(const_int 0)
-		       (const_int 2)])))
-	  (sign_extend:V2DI
-	   (vec_select:V2SI
-	    (match_dup 2)
-	    (parallel [(const_int 0)
-		       (const_int 2)]))))
-	 (match_dup 0)))])
 
 ;; We don't have a straight 32-bit parallel multiply and extend on XOP, so
 ;; fake it with a multiply/add.  In general, we expect the define_split to
@@ -10539,7 +10454,7 @@
 	(mult:V2DI
 	  (sign_extend:V2DI
 	    (vec_select:V2SI
-	      (match_operand:V4SI 1 "nonimmediate_operand" "%x")
+	      (match_operand:V4SI 1 "register_operand" "%x")
 	      (parallel [(const_int 0)
 			 (const_int 2)])))
 	  (sign_extend:V2DI
@@ -10574,72 +10489,68 @@
 
 ;; XOP parallel integer multiply/add instructions for the intrinisics
 (define_insn "xop_pmacsswd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x")
+  [(set (match_operand:V4SI 0 "register_operand" "=x")
 	(ss_plus:V4SI
 	 (mult:V4SI
 	  (sign_extend:V4SI
 	   (vec_select:V4HI
-	    (match_operand:V8HI 1 "nonimmediate_operand" "%x,m")
+	    (match_operand:V8HI 1 "nonimmediate_operand" "%x")
 	    (parallel [(const_int 1)
 		       (const_int 3)
 		       (const_int 5)
 		       (const_int 7)])))
 	  (sign_extend:V4SI
 	   (vec_select:V4HI
-	    (match_operand:V8HI 2 "nonimmediate_operand" "xm,x")
+	    (match_operand:V8HI 2 "nonimmediate_operand" "xm")
 	    (parallel [(const_int 1)
 		       (const_int 3)
 		       (const_int 5)
 		       (const_int 7)]))))
-	 (match_operand:V4SI 3 "register_operand" "x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   vpmacsswd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   vpmacsswd\t{%3, %1, %2, %0|%0, %2, %1, %3}"
+	 (match_operand:V4SI 3 "nonimmediate_operand" "x")))]
+  "TARGET_XOP"
+  "vpmacsswd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "TI")])
 
 (define_insn "xop_pmacswd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x")
+  [(set (match_operand:V4SI 0 "register_operand" "=x")
 	(plus:V4SI
 	 (mult:V4SI
 	  (sign_extend:V4SI
 	   (vec_select:V4HI
-	    (match_operand:V8HI 1 "nonimmediate_operand" "%x,m")
+	    (match_operand:V8HI 1 "nonimmediate_operand" "%x")
 	    (parallel [(const_int 1)
 		       (const_int 3)
 		       (const_int 5)
 		       (const_int 7)])))
 	  (sign_extend:V4SI
 	   (vec_select:V4HI
-	    (match_operand:V8HI 2 "nonimmediate_operand" "xm,x")
+	    (match_operand:V8HI 2 "nonimmediate_operand" "xm")
 	    (parallel [(const_int 1)
 		       (const_int 3)
 		       (const_int 5)
 		       (const_int 7)]))))
-	 (match_operand:V4SI 3 "register_operand" "x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   vpmacswd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   vpmacswd\t{%3, %1, %2, %0|%0, %2, %1, %3}"
+	 (match_operand:V4SI 3 "nonimmediate_operand" "x")))]
+  "TARGET_XOP"
+  "vpmacswd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "TI")])
 
 (define_insn "xop_pmadcsswd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x")
+  [(set (match_operand:V4SI 0 "register_operand" "=x")
 	(ss_plus:V4SI
 	 (plus:V4SI
 	  (mult:V4SI
 	   (sign_extend:V4SI
 	    (vec_select:V4HI
-	     (match_operand:V8HI 1 "nonimmediate_operand" "%x,m")
+	     (match_operand:V8HI 1 "nonimmediate_operand" "%x")
 	     (parallel [(const_int 0)
 			(const_int 2)
 			(const_int 4)
 			(const_int 6)])))
 	   (sign_extend:V4SI
 	    (vec_select:V4HI
-	     (match_operand:V8HI 2 "nonimmediate_operand" "xm,x")
+	     (match_operand:V8HI 2 "nonimmediate_operand" "xm")
 	     (parallel [(const_int 0)
 			(const_int 2)
 			(const_int 4)
@@ -10659,29 +10570,27 @@
 			(const_int 3)
 			(const_int 5)
 			(const_int 7)])))))
-	 (match_operand:V4SI 3 "register_operand" "x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   vpmadcsswd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   vpmadcsswd\t{%3, %1, %2, %0|%0, %2, %1, %3}"
+	 (match_operand:V4SI 3 "nonimmediate_operand" "x")))]
+  "TARGET_XOP"
+  "vpmadcsswd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "TI")])
 
 (define_insn "xop_pmadcswd"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x")
+  [(set (match_operand:V4SI 0 "register_operand" "=x")
 	(plus:V4SI
 	 (plus:V4SI
 	  (mult:V4SI
 	   (sign_extend:V4SI
 	    (vec_select:V4HI
-	     (match_operand:V8HI 1 "nonimmediate_operand" "%x,m")
+	     (match_operand:V8HI 1 "nonimmediate_operand" "%x")
 	     (parallel [(const_int 0)
 			(const_int 2)
 			(const_int 4)
 			(const_int 6)])))
 	   (sign_extend:V4SI
 	    (vec_select:V4HI
-	     (match_operand:V8HI 2 "nonimmediate_operand" "xm,x")
+	     (match_operand:V8HI 2 "nonimmediate_operand" "xm")
 	     (parallel [(const_int 0)
 			(const_int 2)
 			(const_int 4)
@@ -10701,32 +10610,30 @@
 			(const_int 3)
 			(const_int 5)
 			(const_int 7)])))))
-	 (match_operand:V4SI 3 "register_operand" "x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, 1, true)"
-  "@
-   vpmadcswd\t{%3, %2, %1, %0|%0, %1, %2, %3}
-   vpmadcswd\t{%3, %1, %2, %0|%0, %2, %1, %3}"
+	 (match_operand:V4SI 3 "nonimmediate_operand" "x")))]
+  "TARGET_XOP"
+  "vpmadcswd\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "TI")])
 
 ;; XOP parallel XMM conditional moves
 (define_insn "xop_pcmov_<mode>"
-  [(set (match_operand:SSEMODE 0 "register_operand" "=x,x,x")
+  [(set (match_operand:SSEMODE 0 "register_operand" "=x,x")
 	(if_then_else:SSEMODE
-	  (match_operand:SSEMODE 3 "nonimmediate_operand" "x,x,m")
-	  (match_operand:SSEMODE 1 "vector_move_operand" "x,m,x")
-	  (match_operand:SSEMODE 2 "vector_move_operand" "xm,x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)"
+	  (match_operand:SSEMODE 3 "nonimmediate_operand" "x,m")
+	  (match_operand:SSEMODE 1 "vector_move_operand" "x,x")
+	  (match_operand:SSEMODE 2 "vector_move_operand" "xm,x")))]
+  "TARGET_XOP"
   "vpcmov\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "sse4arg")])
 
 (define_insn "xop_pcmov_<mode>256"
-  [(set (match_operand:AVX256MODE 0 "register_operand" "=x,x,x")
+  [(set (match_operand:AVX256MODE 0 "register_operand" "=x,x")
 	(if_then_else:AVX256MODE
-	  (match_operand:AVX256MODE 3 "nonimmediate_operand" "x,x,m")
-	  (match_operand:AVX256MODE 1 "vector_move_operand" "x,m,x")
-	  (match_operand:AVX256MODE 2 "vector_move_operand" "xm,x,x")))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)"
+	  (match_operand:AVX256MODE 3 "nonimmediate_operand" "x,m")
+	  (match_operand:AVX256MODE 1 "vector_move_operand" "x,x")
+	  (match_operand:AVX256MODE 2 "vector_move_operand" "xm,x")))]
+  "TARGET_XOP"
   "vpcmov\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "sse4arg")])
 
@@ -11172,53 +11079,53 @@
 
 ;; XOP permute instructions
 (define_insn "xop_pperm"
-  [(set (match_operand:V16QI 0 "register_operand" "=x,x,x")
+  [(set (match_operand:V16QI 0 "register_operand" "=x,x")
 	(unspec:V16QI
-	  [(match_operand:V16QI 1 "nonimmediate_operand" "x,x,m")
-	   (match_operand:V16QI 2 "nonimmediate_operand" "x,m,x")
-	   (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,x")]
+	  [(match_operand:V16QI 1 "register_operand" "x,x")
+	   (match_operand:V16QI 2 "nonimmediate_operand" "x,m")
+	   (match_operand:V16QI 3 "nonimmediate_operand" "xm,x")]
 	  UNSPEC_XOP_PERMUTE))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)"
+  "TARGET_XOP && !(MEM_P (operands[2]) && MEM_P (operands[3]))"
   "vpperm\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "sse4arg")
    (set_attr "mode" "TI")])
 
 ;; XOP pack instructions that combine two vectors into a smaller vector
 (define_insn "xop_pperm_pack_v2di_v4si"
-  [(set (match_operand:V4SI 0 "register_operand" "=x,x,x")
+  [(set (match_operand:V4SI 0 "register_operand" "=x,x")
 	(vec_concat:V4SI
 	 (truncate:V2SI
-	  (match_operand:V2DI 1 "nonimmediate_operand" "x,x,m"))
+	  (match_operand:V2DI 1 "register_operand" "x,x"))
 	 (truncate:V2SI
-	  (match_operand:V2DI 2 "nonimmediate_operand" "x,m,x"))))
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,x"))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)"
+	  (match_operand:V2DI 2 "nonimmediate_operand" "x,m"))))
+   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x"))]
+  "TARGET_XOP && !(MEM_P (operands[2]) && MEM_P (operands[3]))"
   "vpperm\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "sse4arg")
    (set_attr "mode" "TI")])
 
 (define_insn "xop_pperm_pack_v4si_v8hi"
-  [(set (match_operand:V8HI 0 "register_operand" "=x,x,x")
+  [(set (match_operand:V8HI 0 "register_operand" "=x,x")
 	(vec_concat:V8HI
 	 (truncate:V4HI
-	  (match_operand:V4SI 1 "nonimmediate_operand" "x,x,m"))
+	  (match_operand:V4SI 1 "register_operand" "x,x"))
 	 (truncate:V4HI
-	  (match_operand:V4SI 2 "nonimmediate_operand" "x,m,x"))))
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,x"))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)"
+	  (match_operand:V4SI 2 "nonimmediate_operand" "x,m"))))
+   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x"))]
+  "TARGET_XOP && !(MEM_P (operands[2]) && MEM_P (operands[3]))"
   "vpperm\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "sse4arg")
    (set_attr "mode" "TI")])
 
 (define_insn "xop_pperm_pack_v8hi_v16qi"
-  [(set (match_operand:V16QI 0 "register_operand" "=x,x,x")
+  [(set (match_operand:V16QI 0 "register_operand" "=x,x")
 	(vec_concat:V16QI
 	 (truncate:V8QI
-	  (match_operand:V8HI 1 "nonimmediate_operand" "x,x,m"))
+	  (match_operand:V8HI 1 "register_operand" "x,x"))
 	 (truncate:V8QI
-	  (match_operand:V8HI 2 "nonimmediate_operand" "x,m,x"))))
-   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x,x"))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, true, 1, false)"
+	  (match_operand:V8HI 2 "nonimmediate_operand" "x,m"))))
+   (use (match_operand:V16QI 3 "nonimmediate_operand" "xm,x"))]
+  "TARGET_XOP && !(MEM_P (operands[2]) && MEM_P (operands[3]))"
   "vpperm\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "sse4arg")
    (set_attr "mode" "TI")])
@@ -11347,7 +11254,7 @@
 	 (rotatert:SSEMODE1248
 	  (match_dup 1)
 	  (neg:SSEMODE1248 (match_dup 2)))))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 3, true, 1, false)"
+  "TARGET_XOP && !(MEM_P (operands[1]) && MEM_P (operands[2]))"
   "vprot<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseishft")
    (set_attr "prefix_data16" "0")
@@ -11402,7 +11309,7 @@
 	 (ashiftrt:SSEMODE1248
 	  (match_dup 1)
 	  (neg:SSEMODE1248 (match_dup 2)))))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 3, true, 1, false)"
+  "TARGET_XOP && !(MEM_P (operands[1]) && MEM_P (operands[2]))"
   "vpsha<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseishft")
    (set_attr "prefix_data16" "0")
@@ -11421,7 +11328,7 @@
 	 (lshiftrt:SSEMODE1248
 	  (match_dup 1)
 	  (neg:SSEMODE1248 (match_dup 2)))))]
-  "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 3, true, 1, false)"
+  "TARGET_XOP && !(MEM_P (operands[1]) && MEM_P (operands[2]))"
   "vpshl<ssevecsize>\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "sseishft")
    (set_attr "prefix_data16" "0")
@@ -11838,6 +11745,108 @@
    (set_attr "prefix" "vex")
    (set_attr "mode" "OI")])
 
+(define_insn_and_split "vec_dup<mode>"
+  [(set (match_operand:AVX256MODE24P 0 "register_operand" "=x,x")
+	(vec_duplicate:AVX256MODE24P
+	  (match_operand:<avxscalarmode> 1 "nonimmediate_operand" "m,?x")))]
+  "TARGET_AVX"
+  "@
+   vbroadcasts<avxmodesuffixf2c>\t{%1, %0|%0, %1}
+   #"
+  "&& reload_completed && REG_P (operands[1])"
+  [(set (match_dup 2) (vec_duplicate:<avxhalfvecmode> (match_dup 1)))
+   (set (match_dup 0) (vec_concat:AVX256MODE24P (match_dup 2) (match_dup 2)))]
+{
+  operands[2] = gen_rtx_REG (<avxhalfvecmode>mode, REGNO (operands[0]));
+}
+  [(set_attr "type" "ssemov")
+   (set_attr "prefix_extra" "1")
+   (set_attr "prefix" "vex")
+   (set_attr "mode" "V8SF")])
+
+(define_insn "avx_vbroadcastf128_<mode>"
+  [(set (match_operand:AVX256MODE 0 "register_operand" "=x,x,x")
+	(vec_concat:AVX256MODE
+	  (match_operand:<avxhalfvecmode> 1 "nonimmediate_operand" "m,0,?x")
+	  (match_dup 1)))]
+  "TARGET_AVX"
+  "@
+   vbroadcastf128\t{%1, %0|%0, %1}
+   vinsertf128\t{$1, %1, %0, %0|%0, %0, %1, 1}
+   vperm2f128\t{$0, %t1, %t1, %0|%0, %t1, %t1, 0}"
+  [(set_attr "type" "ssemov,sselog1,sselog1")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "0,1,1")
+   (set_attr "prefix" "vex")
+   (set_attr "mode" "V4SF,V8SF,V8SF")])
+
+;; Recognize broadcast as a vec_select as produced by builtin_vec_perm.
+;; If it so happens that the input is in memory, use vbroadcast.
+;; Otherwise use vpermilp (and in the case of 256-bit modes, vperm2f128).
+(define_insn "*avx_vperm_broadcast_v4sf"
+  [(set (match_operand:V4SF 0 "register_operand" "=x,x,x")
+	(vec_select:V4SF
+	  (match_operand:V4SF 1 "nonimmediate_operand" "m,o,x")
+	  (match_parallel 2 "avx_vbroadcast_operand"
+	    [(match_operand 3 "const_int_operand" "C,n,n")])))]
+  "TARGET_AVX"
+{
+  int elt = INTVAL (operands[3]);
+  switch (which_alternative)
+    {
+    case 0:
+    case 1:
+      operands[1] = adjust_address_nv (operands[1], SFmode, elt * 4);
+      return "vbroadcastss\t{%1, %0|%0, %1}";
+    case 2:
+      operands[2] = GEN_INT (elt * 0x55);
+      return "vpermilps\t{%2, %1, %0|%0, %1, %2}";
+    default:
+      gcc_unreachable ();
+    }
+}
+  [(set_attr "type" "ssemov,ssemov,sselog1")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "0,0,1")
+   (set_attr "prefix" "vex")
+   (set_attr "mode" "SF,SF,V4SF")])
+
+(define_insn_and_split "*avx_vperm_broadcast_<mode>"
+  [(set (match_operand:AVX256MODEF2P 0 "register_operand" "=x,x,x")
+	(vec_select:AVX256MODEF2P
+	  (match_operand:AVX256MODEF2P 1 "nonimmediate_operand" "m,o,?x")
+	  (match_parallel 2 "avx_vbroadcast_operand"
+	    [(match_operand 3 "const_int_operand" "C,n,n")])))]
+  "TARGET_AVX"
+  "#"
+  "&& reload_completed"
+  [(set (match_dup 0) (vec_duplicate:AVX256MODEF2P (match_dup 1)))]
+{
+  rtx op0 = operands[0], op1 = operands[1];
+  int elt = INTVAL (operands[3]);
+
+  if (REG_P (op1))
+    {
+      int mask;
+
+      /* Shuffle element we care about into all elements of the 128-bit lane.
+	 The other lane gets shuffled too, but we don't care.  */
+      if (<MODE>mode == V4DFmode)
+	mask = (elt & 1 ? 15 : 0);
+      else
+	mask = (elt & 3) * 0x55;
+      emit_insn (gen_avx_vpermil<mode> (op0, op1, GEN_INT (mask)));
+
+      /* Shuffle the lane we care about into both lanes of the dest.  */
+      mask = (elt / (<ssescalarnum> / 2)) * 0x11;
+      emit_insn (gen_avx_vperm2f128<mode>3 (op0, op0, op0, GEN_INT (mask)));
+      DONE;
+    }
+
+  operands[1] = adjust_address_nv (op1, <avxscalarmode>mode,
+  	      			   elt * GET_MODE_SIZE (<avxscalarmode>mode));
+})
+
 (define_expand "avx_vpermil<mode>"
   [(set (match_operand:AVXMODEFDP 0 "register_operand" "")
 	(vec_select:AVXMODEFDP
@@ -11917,7 +11926,44 @@
    (set_attr "prefix" "vex")
    (set_attr "mode" "<MODE>")])
 
-(define_insn "avx_vperm2f128<mode>3"
+(define_expand "avx_vperm2f128<mode>3"
+  [(set (match_operand:AVX256MODE2P 0 "register_operand" "")
+	(unspec:AVX256MODE2P
+	  [(match_operand:AVX256MODE2P 1 "register_operand" "")
+	   (match_operand:AVX256MODE2P 2 "nonimmediate_operand" "")
+	   (match_operand:SI 3 "const_0_to_255_operand" "")]
+	  UNSPEC_VPERMIL2F128))]
+  "TARGET_AVX"
+{
+  int mask = INTVAL (operands[3]);
+  if ((mask & 0x88) == 0)
+    {
+      rtx perm[<ssescalarnum>], t1, t2;
+      int i, base, nelt = <ssescalarnum>, nelt2 = nelt / 2;
+
+      base = (mask & 3) * nelt2;
+      for (i = 0; i < nelt2; ++i)
+	perm[i] = GEN_INT (base + i);
+
+      base = ((mask >> 4) & 3) * nelt2;
+      for (i = 0; i < nelt2; ++i)
+	perm[i + nelt2] = GEN_INT (base + i);
+
+      t2 = gen_rtx_VEC_CONCAT (<ssedoublesizemode>mode,
+			       operands[1], operands[2]);
+      t1 = gen_rtx_PARALLEL (VOIDmode, gen_rtvec_v (nelt, perm));
+      t2 = gen_rtx_VEC_SELECT (<MODE>mode, t2, t1);
+      t2 = gen_rtx_SET (VOIDmode, operands[0], t2);
+      emit_insn (t2);
+      DONE;
+    }
+})
+
+;; Note that bits 7 and 3 of the imm8 allow lanes to be zeroed, which
+;; means that in order to represent this properly in rtl we'd have to
+;; nest *another* vec_concat with a zero operand and do the select from
+;; a 4x wide vector.  That doesn't seem very nice.
+(define_insn "*avx_vperm2f128<mode>_full"
   [(set (match_operand:AVX256MODE2P 0 "register_operand" "=x")
 	(unspec:AVX256MODE2P
 	  [(match_operand:AVX256MODE2P 1 "register_operand" "x")
@@ -11932,57 +11978,25 @@
    (set_attr "prefix" "vex")
    (set_attr "mode" "V8SF")])
 
-(define_insn "avx_vbroadcasts<avxmodesuffixf2c><avxmodesuffix>"
-  [(set (match_operand:AVXMODEF4P 0 "register_operand" "=x")
-	(vec_concat:AVXMODEF4P
-	  (vec_concat:<avxhalfvecmode>
-	    (match_operand:<avxscalarmode> 1 "memory_operand" "m")
-	    (match_dup 1))
-	  (vec_concat:<avxhalfvecmode>
-	    (match_dup 1)
-	    (match_dup 1))))]
+(define_insn "*avx_vperm2f128<mode>_nozero"
+  [(set (match_operand:AVX256MODE2P 0 "register_operand" "=x")
+	(vec_select:AVX256MODE2P
+	  (vec_concat:<ssedoublesizemode>
+	    (match_operand:AVX256MODE2P 1 "register_operand" "x")
+	    (match_operand:AVX256MODE2P 2 "nonimmediate_operand" "xm"))
+	  (match_parallel 3 "avx_vperm2f128_<mode>_operand"
+	    [(match_operand 4 "const_int_operand" "")])))]
   "TARGET_AVX"
-  "vbroadcasts<avxmodesuffixf2c>\t{%1, %0|%0, %1}"
-  [(set_attr "type" "ssemov")
+{
+  int mask = avx_vperm2f128_parallel (operands[3], <MODE>mode) - 1;
+  operands[3] = GEN_INT (mask);
+  return "vperm2f128\t{%3, %2, %1, %0|%0, %1, %2, %3}";
+}
+  [(set_attr "type" "sselog")
    (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
    (set_attr "prefix" "vex")
-   (set_attr "mode" "<avxscalarmode>")])
-
-(define_insn "avx_vbroadcastss256"
-  [(set (match_operand:V8SF 0 "register_operand" "=x")
-	(vec_concat:V8SF
-	  (vec_concat:V4SF
-	    (vec_concat:V2SF
-	      (match_operand:SF 1 "memory_operand" "m")
-	      (match_dup 1))
-	    (vec_concat:V2SF
-	      (match_dup 1)
-	      (match_dup 1)))
-	  (vec_concat:V4SF
-	    (vec_concat:V2SF
-	      (match_dup 1)
-	      (match_dup 1))
-	    (vec_concat:V2SF
-	      (match_dup 1)
-	      (match_dup 1)))))]
-  "TARGET_AVX"
-  "vbroadcastss\t{%1, %0|%0, %1}"
-  [(set_attr "type" "ssemov")
-   (set_attr "prefix_extra" "1")
-   (set_attr "prefix" "vex")
-   (set_attr "mode" "SF")])
-
-(define_insn "avx_vbroadcastf128_p<avxmodesuffixf2c>256"
-  [(set (match_operand:AVX256MODEF2P 0 "register_operand" "=x")
-	(vec_concat:AVX256MODEF2P
-	  (match_operand:<avxhalfvecmode> 1 "memory_operand" "m")
-	  (match_dup 1)))]
-  "TARGET_AVX"
-  "vbroadcastf128\t{%1, %0|%0, %1}"
-  [(set_attr "type" "ssemov")
-   (set_attr "prefix_extra" "1")
-   (set_attr "prefix" "vex")
-   (set_attr "mode" "V4SF")])
+   (set_attr "mode" "V8SF")])
 
 (define_expand "avx_vinsertf128<mode>"
   [(match_operand:AVX256MODE 0 "register_operand" "")

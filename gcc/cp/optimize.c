@@ -104,6 +104,21 @@ clone_body (tree clone, tree fn, void *arg_map)
 
   stmts = DECL_SAVED_TREE (fn);
   walk_tree (&stmts, copy_tree_body_r, &id, NULL);
+
+  /* Also remap the initializer of any static variables so that they (in
+     particular, any label addresses) correspond to the base variant rather
+     than the abstract one.  */
+  if (DECL_NAME (clone) == base_dtor_identifier
+      || DECL_NAME (clone) == base_ctor_identifier)
+    {
+      tree decls = DECL_STRUCT_FUNCTION (fn)->local_decls;
+      for (; decls; decls = TREE_CHAIN (decls))
+	{
+	  tree decl = TREE_VALUE (decls);
+	  walk_tree (&DECL_INITIAL (decl), copy_tree_body_r, &id, NULL);
+	}
+    }
+
   append_to_statement_list_force (stmts, &DECL_SAVED_TREE (clone));
 }
 
@@ -142,6 +157,46 @@ build_delete_destructor_body (tree delete_dtor, tree complete_dtor)
     }
 }
 
+/* Return name of comdat group for complete and base ctor (or dtor)
+   that have the same body.  If dtor is virtual, deleting dtor goes
+   into this comdat group as well.  */
+
+static tree
+cdtor_comdat_group (tree complete, tree base)
+{
+  tree complete_name = DECL_COMDAT_GROUP (complete);
+  tree base_name = DECL_COMDAT_GROUP (base);
+  char *grp_name;
+  const char *p, *q;
+  bool diff_seen = false;
+  size_t idx;
+  if (complete_name == NULL)
+    complete_name = cxx_comdat_group (complete);
+  if (base_name == NULL)
+    base_name = cxx_comdat_group (base);
+  gcc_assert (IDENTIFIER_LENGTH (complete_name)
+	      == IDENTIFIER_LENGTH (base_name));
+  grp_name = XALLOCAVEC (char, IDENTIFIER_LENGTH (complete_name) + 1);
+  p = IDENTIFIER_POINTER (complete_name);
+  q = IDENTIFIER_POINTER (base_name);
+  for (idx = 0; idx < IDENTIFIER_LENGTH (complete_name); idx++)
+    if (p[idx] == q[idx])
+      grp_name[idx] = p[idx];
+    else
+      {
+	gcc_assert (!diff_seen
+		    && idx > 0
+		    && (p[idx - 1] == 'C' || p[idx - 1] == 'D')
+		    && p[idx] == '1'
+		    && q[idx] == '2');
+	grp_name[idx] = '5';
+	diff_seen = true;
+      }
+  grp_name[idx] = '\0';
+  gcc_assert (diff_seen);
+  return get_identifier (grp_name);
+}
+
 /* FN is a function that has a complete body.  Clone the body as
    necessary.  Returns nonzero if there's no longer any need to
    process the main body.  */
@@ -149,11 +204,13 @@ build_delete_destructor_body (tree delete_dtor, tree complete_dtor)
 bool
 maybe_clone_body (tree fn)
 {
+  tree comdat_group = NULL_TREE;
   tree clone;
   tree fns[3];
   bool first = true;
   bool in_charge_parm_used;
   int idx;
+  bool need_alias = false;
 
   /* We only clone constructors and destructors.  */
   if (!DECL_MAYBE_IN_CHARGE_CONSTRUCTOR_P (fn)
@@ -181,6 +238,11 @@ maybe_clone_body (tree fn)
       fns[2] = clone;
     else
       gcc_unreachable ();
+
+  /* Remember if we can't have multiple clones for some reason.  We need to
+     check this before we remap local static initializers in clone_body.  */
+  if (!tree_versionable_function_p (fn))
+    need_alias = true;
 
   /* We know that any clones immediately follow FN in the TYPE_METHODS
      list.  */
@@ -248,9 +310,22 @@ maybe_clone_body (tree fn)
 	  && idx == 1
 	  && !flag_use_repository
 	  && DECL_INTERFACE_KNOWN (fns[0])
-	  && !DECL_ONE_ONLY (fns[0])
+	  && (SUPPORTS_ONE_ONLY || !DECL_WEAK (fns[0]))
+	  && (!DECL_ONE_ONLY (fns[0])
+	      || (HAVE_COMDAT_GROUP
+		  && DECL_WEAK (fns[0])))
 	  && cgraph_same_body_alias (clone, fns[0]))
-	alias = true;
+	{
+	  alias = true;
+	  if (DECL_ONE_ONLY (fns[0]))
+	    {
+	      /* For comdat base and complete cdtors put them
+		 into the same, *[CD]5* comdat group instead of
+		 *[CD][12]*.  */
+	      comdat_group = cdtor_comdat_group (fns[1], fns[0]);
+	      DECL_COMDAT_GROUP (fns[0]) = comdat_group;
+	    }
+	}
 
       /* Build the delete destructor by calling complete destructor
          and delete function.  */
@@ -260,6 +335,17 @@ maybe_clone_body (tree fn)
 	/* No need to populate body.  */ ;
       else
 	{
+	  /* If we can't have multiple copies of FN (say, because there's a
+	     static local initialized with the address of a label), we need
+	     to use an alias for the complete variant.  */
+	  if (idx == 1 && need_alias)
+	    {
+	      if (DECL_STRUCT_FUNCTION (fn)->cannot_be_copied_set)
+		sorry (DECL_STRUCT_FUNCTION (fn)->cannot_be_copied_reason, fn);
+	      else
+		sorry ("making multiple clones of %qD", fn);
+	    }
+
           /* Remap the parameters.  */
           decl_map = pointer_map_create ();
           for (parmno = 0,
@@ -323,12 +409,33 @@ maybe_clone_body (tree fn)
       finish_function (0);
       BLOCK_ABSTRACT_ORIGIN (DECL_INITIAL (clone)) = DECL_INITIAL (fn);
       if (alias)
-	expand_or_defer_fn_1 (clone);
+	{
+	  if (expand_or_defer_fn_1 (clone))
+	    emit_associated_thunks (clone);
+	}
       else
 	expand_or_defer_fn (clone);
       first = false;
     }
   pop_from_top_level ();
+
+  if (comdat_group)
+    {
+      DECL_COMDAT_GROUP (fns[1]) = comdat_group;
+      if (fns[2])
+	{
+	  struct cgraph_node *base_dtor_node, *deleting_dtor_node;
+	  /* If *[CD][12]* dtors go into the *[CD]5* comdat group and dtor is
+	     virtual, it goes into the same comdat group as well.  */
+	  DECL_COMDAT_GROUP (fns[2]) = comdat_group;
+	  base_dtor_node = cgraph_node (fns[0]);
+	  deleting_dtor_node = cgraph_node (fns[2]);
+	  gcc_assert (base_dtor_node->same_comdat_group == NULL);
+	  gcc_assert (deleting_dtor_node->same_comdat_group == NULL);
+	  base_dtor_node->same_comdat_group = deleting_dtor_node;
+	  deleting_dtor_node->same_comdat_group = base_dtor_node;
+	}
+    }
 
   /* We don't need to process the original function any further.  */
   return 1;

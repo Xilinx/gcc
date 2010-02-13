@@ -2245,7 +2245,7 @@ rewrite_phi_out_of_ssa (gimple_stmt_iterator *psi)
 	 |  end_2
 	 | end_1
 
-	 whereas inserting the copy on the incomming edge is correct
+	 whereas inserting the copy on the incoming edge is correct
 
 	 | a = ...
 	 | loop_1
@@ -2465,9 +2465,14 @@ split_reduction_stmt (gimple stmt)
 static inline bool
 is_reduction_operation_p (gimple stmt)
 {
+  enum tree_code code;
+
+  gcc_assert (is_gimple_assign (stmt));
+  code = gimple_assign_rhs_code (stmt);
+
   return flag_associative_math
-    && commutative_tree_code (gimple_assign_rhs_code (stmt))
-    && associative_tree_code (gimple_assign_rhs_code (stmt));
+    && commutative_tree_code (code)
+    && associative_tree_code (code);
 }
 
 /* Returns true when PHI contains an argument ARG.  */
@@ -2506,6 +2511,9 @@ follow_ssa_with_commutative_ops (tree arg, tree lhs)
 	return stmt;
       return NULL;
     }
+
+  if (!is_gimple_assign (stmt))
+    return NULL;
 
   if (gimple_num_ops (stmt) == 2)
     return follow_ssa_with_commutative_ops (gimple_assign_rhs1 (stmt), lhs);

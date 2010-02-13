@@ -29,6 +29,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "lto-streamer.h"
 
+/* Handle opening elf files on hosts, such as Windows, that may use 
+   text file handling that will break binary access.  */
+
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
+
 
 /* Initialize FILE, an LTO file object for FILENAME.  */
 static void
@@ -556,6 +563,12 @@ lto_elf_file_open (const char *filename, bool writable)
     }
   else
     {
+      /* The file started with '@' is a file containing command line
+	 options.  Stop if it doesn't exist.  */
+      if (offset_p == filename)
+	fatal_error ("command line option file '%s' does not exist",
+		     filename);
+
       fname = (char *) xmalloc (offset_p - filename + 1);
       memcpy (fname, filename, offset_p - filename);
       fname[offset_p - filename] = '\0';
@@ -574,7 +587,8 @@ lto_elf_file_open (const char *filename, bool writable)
   elf_file->fd = -1;
 
   /* Open the file.  */
-  elf_file->fd = open (fname, writable ? O_WRONLY|O_CREAT : O_RDONLY, 0666);
+  elf_file->fd = open (fname, writable ? O_WRONLY|O_CREAT|O_BINARY 
+				       : O_RDONLY|O_BINARY, 0666);
   if (elf_file->fd == -1)
     {
       error ("could not open file %s", fname);

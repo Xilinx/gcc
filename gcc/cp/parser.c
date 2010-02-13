@@ -28,6 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cpplib.h"
 #include "tree.h"
 #include "cp-tree.h"
+#include "intl.h"
 #include "c-pragma.h"
 #include "decl.h"
 #include "flags.h"
@@ -4537,7 +4538,7 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 	/* New types cannot be defined in the cast.  */
 	saved_message = parser->type_definition_forbidden_message;
 	parser->type_definition_forbidden_message
-	  = "types may not be defined in casts";
+	  = G_("types may not be defined in casts");
 
 	/* Look for the opening `<'.  */
 	cp_parser_require (parser, CPP_LESS, "%<<%>");
@@ -4600,7 +4601,7 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 	/* Types cannot be defined in a `typeid' expression.  */
 	saved_message = parser->type_definition_forbidden_message;
 	parser->type_definition_forbidden_message
-	  = "types may not be defined in a %<typeid%> expression";
+	  = G_("types may not be defined in a %<typeid%> expression");
 	/* We can't be sure yet whether we're looking at a type-id or an
 	   expression.  */
 	cp_parser_parse_tentatively (parser);
@@ -5628,7 +5629,7 @@ cp_parser_unary_expression (cp_parser *parser, bool address_p, bool cast_p,
 	{
 	case INDIRECT_REF:
 	  non_constant_p = "%<*%>";
-	  expression = build_x_indirect_ref (cast_expression, "unary *",
+	  expression = build_x_indirect_ref (cast_expression, RO_UNARY_STAR,
                                              tf_warning_or_error);
 	  break;
 
@@ -5837,7 +5838,7 @@ cp_parser_new_type_id (cp_parser* parser, tree *nelts)
      complete.)  */
   saved_message = parser->type_definition_forbidden_message;
   parser->type_definition_forbidden_message
-    = "types may not be defined in a new-type-id";
+    = G_("types may not be defined in a new-type-id");
   /* Parse the type-specifier-seq.  */
   cp_parser_type_specifier_seq (parser, /*is_declaration=*/false,
 				/*is_trailing_return=*/false,
@@ -6150,7 +6151,7 @@ cp_parser_cast_expression (cp_parser *parser, bool address_p, bool cast_p,
       /* Types may not be defined in a cast.  */
       saved_message = parser->type_definition_forbidden_message;
       parser->type_definition_forbidden_message
-	= "types may not be defined in casts";
+	= G_("types may not be defined in casts");
       /* Consume the `('.  */
       cp_lexer_consume_token (parser->lexer);
       /* A very tricky bit is that `(struct S) { 3 }' is a
@@ -7071,6 +7072,8 @@ cp_parser_lambda_expression (cp_parser* parser)
      it now.  */
   push_deferring_access_checks (dk_no_deferred);
 
+  cp_parser_lambda_introducer (parser, lambda_expr);
+
   type = begin_lambda_type (lambda_expr);
 
   record_lambda_scope (lambda_expr);
@@ -7078,14 +7081,16 @@ cp_parser_lambda_expression (cp_parser* parser)
   /* Do this again now that LAMBDA_EXPR_EXTRA_SCOPE is set.  */
   determine_visibility (TYPE_NAME (type));
 
+  /* Now that we've started the type, add the capture fields for any
+     explicit captures.  */
+  register_capture_members (LAMBDA_EXPR_CAPTURE_LIST (lambda_expr));
+
   {
     /* Inside the class, surrounding template-parameter-lists do not apply.  */
     unsigned int saved_num_template_parameter_lists
         = parser->num_template_parameter_lists;
 
     parser->num_template_parameter_lists = 0;
-
-    cp_parser_lambda_introducer (parser, lambda_expr);
 
     /* By virtue of defining a local class, a lambda expression has access to
        the private variables of enclosing classes.  */
@@ -8103,7 +8108,7 @@ cp_parser_condition (cp_parser* parser)
      condition.  */
   saved_message = parser->type_definition_forbidden_message;
   parser->type_definition_forbidden_message
-    = "types may not be defined in conditions";
+    = G_("types may not be defined in conditions");
   /* Parse the type-specifier-seq.  */
   cp_parser_type_specifier_seq (parser, /*is_declaration==*/true,
 				/*is_trailing_return=*/false,
@@ -9513,7 +9518,7 @@ cp_parser_decltype (cp_parser *parser)
 
   /* And create the new one.  */
   parser->type_definition_forbidden_message
-    = "types may not be defined in %<decltype%> expressions";
+    = G_("types may not be defined in %<decltype%> expressions");
 
   /* The restrictions on constant-expressions do not apply inside
      decltype expressions.  */
@@ -10649,14 +10654,13 @@ cp_parser_type_parameter (cp_parser* parser, bool *is_parameter_pack)
 
     case RID_TEMPLATE:
       {
-	tree parameter_list;
 	tree identifier;
 	tree default_argument;
 
 	/* Look for the `<'.  */
 	cp_parser_require (parser, CPP_LESS, "%<<%>");
 	/* Parse the template-parameter-list.  */
-	parameter_list = cp_parser_template_parameter_list (parser);
+	cp_parser_template_parameter_list (parser);
 	/* Look for the `>'.  */
 	cp_parser_require (parser, CPP_GREATER, "%<>%>");
 	/* Look for the `class' keyword.  */
@@ -10790,7 +10794,7 @@ cp_parser_template_id (cp_parser *parser,
   cp_token_position start_of_id = 0;
   deferred_access_check *chk;
   VEC (deferred_access_check,gc) *access_check;
-  cp_token *next_token = NULL, *next_token_2 = NULL, *token = NULL;
+  cp_token *next_token = NULL, *next_token_2 = NULL;
   bool is_identifier;
 
   /* If the next token corresponds to a template-id, there is no need
@@ -10838,7 +10842,6 @@ cp_parser_template_id (cp_parser *parser,
 
   /* Parse the template-name.  */
   is_identifier = false;
-  token = cp_lexer_peek_token (parser->lexer);
   templ = cp_parser_template_name (parser, template_keyword_p,
 				   check_dependency_p,
 				   is_declaration,
@@ -11248,6 +11251,9 @@ cp_parser_template_argument_list (cp_parser* parser)
   parser->non_integral_constant_expression_p = saved_non_ice_p;
   parser->integral_constant_expression_p = saved_ice_p;
   parser->in_template_argument_list_p = saved_in_template_argument_list_p;
+#ifdef ENABLE_CHECKING
+  SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (vec, TREE_VEC_LENGTH (vec));
+#endif
   return vec;
 }
 
@@ -11515,7 +11521,6 @@ cp_parser_explicit_instantiation (cp_parser* parser)
   int declares_class_or_enum;
   cp_decl_specifier_seq decl_specifiers;
   tree extension_specifier = NULL_TREE;
-  cp_token *token;
 
   /* Look for an (optional) storage-class-specifier or
      function-specifier.  */
@@ -11538,7 +11543,6 @@ cp_parser_explicit_instantiation (cp_parser* parser)
      control while processing explicit instantiation directives.  */
   push_deferring_access_checks (dk_no_check);
   /* Parse a decl-specifier-seq.  */
-  token = cp_lexer_peek_token (parser->lexer);
   cp_parser_decl_specifier_seq (parser,
 				CP_PARSER_FLAGS_OPTIONAL,
 				&decl_specifiers,
@@ -11995,8 +11999,6 @@ cp_parser_simple_type_specifier (cp_parser* parser,
   /* If the type-specifier was for a built-in type, we're done.  */
   if (type)
     {
-      tree id;
-
       /* Record the type.  */
       if (decl_specs
 	  && (token->keyword != RID_SIGNED
@@ -12011,7 +12013,7 @@ cp_parser_simple_type_specifier (cp_parser* parser,
 	decl_specs->any_specifiers_p = true;
 
       /* Consume the token.  */
-      id = cp_lexer_consume_token (parser->lexer)->u.value;
+      cp_lexer_consume_token (parser->lexer);
 
       /* There is no valid C++ program where a non-template type is
 	 followed by a "<".  That usually indicates that the user thought
@@ -13799,7 +13801,6 @@ cp_parser_declarator (cp_parser* parser,
 		      bool* parenthesized_p,
 		      bool member_p)
 {
-  cp_token *token;
   cp_declarator *declarator;
   enum tree_code code;
   cp_cv_quals cv_quals;
@@ -13813,9 +13814,6 @@ cp_parser_declarator (cp_parser* parser,
 
   if (cp_parser_allow_gnu_extensions_p (parser))
     attributes = cp_parser_attributes_opt (parser);
-
-  /* Peek at the next token.  */
-  token = cp_lexer_peek_token (parser->lexer);
 
   /* Check for the ptr-operator production.  */
   cp_parser_parse_tentatively (parser);
@@ -15011,7 +15009,6 @@ cp_parser_parameter_declaration (cp_parser *parser,
 				 bool *parenthesized_p)
 {
   int declares_class_or_enum;
-  bool greater_than_is_operator_p;
   cp_decl_specifier_seq decl_specifiers;
   cp_declarator *declarator;
   tree default_argument;
@@ -15026,12 +15023,11 @@ cp_parser_parameter_declaration (cp_parser *parser,
      template-parameter, the first non-nested `>' is taken as the end
      of the template parameter-list rather than a greater-than
      operator.  */
-  greater_than_is_operator_p = !template_parm_p;
 
   /* Type definitions may not appear in parameter types.  */
   saved_message = parser->type_definition_forbidden_message;
   parser->type_definition_forbidden_message
-    = "types may not be defined in parameter types";
+    = G_("types may not be defined in parameter types");
 
   /* Parse the declaration-specifiers.  */
   cp_parser_decl_specifier_seq (parser,
@@ -17221,7 +17217,7 @@ cp_parser_exception_specification_opt (cp_parser* parser)
       /* Types may not be defined in an exception-specification.  */
       saved_message = parser->type_definition_forbidden_message;
       parser->type_definition_forbidden_message
-	= "types may not be defined in an exception-specification";
+	= G_("types may not be defined in an exception-specification");
       /* Parse the type-id-list.  */
       type_id_list = cp_parser_type_id_list (parser);
       /* Restore the saved message.  */
@@ -17402,7 +17398,7 @@ cp_parser_exception_declaration (cp_parser* parser)
   /* Types may not be defined in exception-declarations.  */
   saved_message = parser->type_definition_forbidden_message;
   parser->type_definition_forbidden_message
-    = "types may not be defined in exception-declarations";
+    = G_("types may not be defined in exception-declarations");
 
   /* Parse the type-specifier-seq.  */
   cp_parser_type_specifier_seq (parser, /*is_declaration=*/true,
@@ -18214,10 +18210,8 @@ cp_parser_check_declarator_template_parameters (cp_parser* parser,
       if (declarator->u.id.qualifying_scope)
 	{
 	  tree scope;
-	  tree member;
 
 	  scope = declarator->u.id.qualifying_scope;
-	  member = declarator->u.id.unqualified_name;
 
 	  while (scope && CLASS_TYPE_P (scope))
 	    {
@@ -23116,7 +23110,6 @@ pragma_lex (tree *value)
 void
 c_parse_file (void)
 {
-  bool error_occurred;
   static bool already_called = false;
 
   if (already_called)
@@ -23129,7 +23122,7 @@ c_parse_file (void)
   the_parser = cp_parser_new ();
   push_deferring_access_checks (flag_access_control
 				? dk_no_deferred : dk_no_check);
-  error_occurred = cp_parser_translation_unit (the_parser);
+  cp_parser_translation_unit (the_parser);
   the_parser = NULL;
 }
 

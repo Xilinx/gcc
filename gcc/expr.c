@@ -1194,6 +1194,7 @@ emit_block_move_hints (rtx x, rtx y, rtx size, enum block_op_methods method,
     }
 
   align = MIN (MEM_ALIGN (x), MEM_ALIGN (y));
+  gcc_assert (align >= BITS_PER_UNIT);
 
   gcc_assert (MEM_P (x));
   gcc_assert (MEM_P (y));
@@ -5967,6 +5968,7 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
 
   /* First get the mode, signedness, and size.  We do this from just the
      outermost expression.  */
+  *pbitsize = -1;
   if (TREE_CODE (exp) == COMPONENT_REF)
     {
       tree field = TREE_OPERAND (exp, 1);
@@ -6840,9 +6842,8 @@ expand_expr_addr_expr_1 (tree exp, rtx target, enum machine_mode tmode,
       return expand_expr (TREE_OPERAND (exp, 0), target, tmode, modifier);
 
     case CONST_DECL:
-      /* Recurse and make the output_constant_def clause above handle this.  */
-      return expand_expr_addr_expr_1 (DECL_INITIAL (exp), target,
-				      tmode, modifier, as);
+      /* Expand the initializer like constants above.  */
+      return XEXP (expand_expr_constant (DECL_INITIAL (exp), 0, modifier), 0);
 
     case REALPART_EXPR:
       /* The real part of the complex number is always first, therefore

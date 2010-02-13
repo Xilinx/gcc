@@ -1,3 +1,146 @@
+2010-02-08  Andrew Pinski  <pinskia@gmail.com>
+
+	* MAINTAINERS (spu port): Update my email address.
+
+2010-02-08  Jie Zhang  <jie.zhang@analog.com>
+
+	* MAINTAINERS: Add myself as a maintainer for the bfin port.
+
+2010-01-31  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* configure.ac: Add "recommended" version checks for GMP/MPC.
+	Update recommended GMP/MPFR/MPC versions.
+	* configure: Regenerate.
+
+2010-01-31  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* MAINTAINERS: Move my Embecosm email address into the
+	write-after-approval section.
+
+2010-01-26  Ian Lance Taylor  <iant@google.com>
+
+	* MAINTAINERS: Add myself as Go frontend maintainer.
+
+2010-01-25  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR libstdc++/36101, PR libstdc++/42813
+	* configure.ac (bootstrap_target_libs): Make inclusion of
+	target-libgomp conditional on libgomb being in target_configdirs.
+	* configure: Regenerate.
+
+2010-01-23  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR libstdc++/36101, PR libstdc++/42813
+	* configure.ac (bootstrap_target_libs): Include target-libgomp.
+	* configure: Regenerate.
+
+2010-01-22  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR libstdc++/36101, PR libstdc++/42813
+	* configure.ac (target_configdirs): Substitute.
+	* Makefile.def: Bootstrap target module libgomp.
+	Add dependency of all-target-libstdc++-v3 on configure-target-libgomp.
+	* Makefile.tpl (TARGET_CONFIGDIRS): New makefile variable.
+	(BASE_TARGET_EXPORTS): Export TARGET_CONFIGDIRS.
+	* configure, Makefile.in: Regenerate.
+
+2010-01-21  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* MAINTAINERS: Adjust my details.
+
+2010-01-20  Eric B. Weddington  <eric.weddington@atmel.com>
+
+	* MAINTAINERS (CPU Port Maintainers): Add myself for avr port.
+
+2010-01-18  Thierry Lafage  <thierry.lafage@inria.fr>
+
+	* MAINTAINERS: reindented my entry with tabs instead of spaces.
+
+2010-01-15  Thierry Lafage  <thierry.lafage@inria.fr>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2010-01-15  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2010-01-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41569
+	* Makefile.def (all-lto-plugin): Depend on all-gcc.
+	* Makefile.in: Regenerated.
+
+2010-01-11  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure.ac: Enable libjava build on x86_64-*freebsd*.
+	* configure: Regenerate.
+
+2010-01-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+            Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR bootstrap/42424
+	* configure.ac: Include libtool m4 files.
+        (_LT_CHECK_OBJDIR): Call it.
+	(extra_mpc_mpfr_configure_flags, extra_mpc_gmp_configure_flags,
+	gmplibs, ppllibs, clooglibs): Use $lt_cv_objdir.
+
+	* configure: Regenerate.
+
+2010-01-07  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/41818
+	* Makefile.tpl (BASE_TARGET_EXPORTS): Only add TARGET_LIB_PATH
+	to $(RPATH_ENVVAR) if bootstrapping.  Fix typo in comment.
+	* Makefile.in: Regenerate.
+
+2010-01-02  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41529
+	* configure.ac: Include config/elf.m4.  Disable LTO if not
+	builting for an elf target.
+	* configure: Regenerate.
+
+2009-12-27  Christopher Faylor  <me+cygwin@cgf.cx>
+
+	* MAINTAINERS: Change my email address.
+
+2009-12-18  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2009-12-07  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-12-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR middle-end/30447
+	PR middle-end/30789
+	PR other/40302
+
+	* configure.ac: Require MPC.
+	* configure: Regenerate.
+
+2009-12-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR target/38384
+	PR bootstrap/40972
+	* libtool.m4: Sync from git Libtool.
+	* ltoptions.m4: Likewise.
+	* ltversion.m4: Likewise.
+	* lt~obsolete.m4: Likewise.
+	* ltmain.sh: Likewise.
+
+2009-11-30  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* configure.ac: Update minimum MPC version to 0.8.
+	* configure: Regenerate.
+
+2009-11-21  Sebastian Pop  <sebpop@gmail.com>
+
+	* configure.ac: Check for version 0.15.5 or later revision of CLooG.
+	* configure: Regenerated.
+
 2009-11-21  Ian Lance Taylor  <iant@google.com>
 
 	* configure.ac: Change default of poststage1_ldflags to be empty if

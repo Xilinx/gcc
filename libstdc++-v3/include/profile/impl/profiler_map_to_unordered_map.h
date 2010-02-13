@@ -34,8 +34,8 @@
 
 // Written by Silvius Rus.
 
-#ifndef PROFCXX_PROFILER_MAP_TO_UNORDERED_MAP_H__
-#define PROFCXX_PROFILER_MAP_TO_UNORDERED_MAP_H__ 1
+#ifndef _GLIBCXX_PROFILE_PROFILER_MAP_TO_UNORDERED_MAP_H
+#define _GLIBCXX_PROFILE_PROFILER_MAP_TO_UNORDERED_MAP_H 1
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdlib>
@@ -53,31 +53,10 @@
 namespace __gnu_profile
 {
 
-// Cost model. XXX: this must be taken from the machine model instead.
-//  Map operations:
-//   - insert: 1.5 * log(size)
-//   - erase: 1.5 * log(size)
-//   - find: log(size)
-//   - iterate: 2.3
-//  Unordered map operations:
-//   - insert: 12
-//   - erase: 12
-//   - find: 10
-//   - iterate: 1.7
-
-const float __map_insert_cost_factor = 1.5;
-const float __map_erase_cost_factor = 1.5;
-const float __map_find_cost_factor = 1;
-const float __map_iterate_cost = 2.3;
-
-const float __umap_insert_cost = 12.0;
-const float __umap_erase_cost = 12.0;
-const float __umap_find_cost = 10.0;
-const float __umap_iterate_cost = 1.7;
-
 inline int __log2(size_t __size)
 {
-  for (int __bit_count = sizeof(size_t) - 1; __bit_count >= 0; --__bit_count) {
+  for (int __bit_count = sizeof(size_t) - 1; __bit_count >= 0; -- __bit_count) 
+  {
     if ((2 << __bit_count) & __size) {
       return __bit_count;
     }
@@ -87,17 +66,20 @@ inline int __log2(size_t __size)
 
 inline float __map_insert_cost(size_t __size)
 {
-  return __map_insert_cost_factor * static_cast<float>(__log2(__size));
+  return (_GLIBCXX_PROFILE_DATA(__map_insert_cost_factor).__value 
+          * static_cast<float>(__log2(__size)));
 }
 
 inline float __map_erase_cost(size_t __size)
 {
-  return __map_erase_cost_factor * static_cast<float>(__log2(__size));
+  return (_GLIBCXX_PROFILE_DATA(__map_erase_cost_factor).__value
+          * static_cast<float>(__log2(__size)));
 }
 
 inline float __map_find_cost(size_t __size)
 {
-  return __map_find_cost_factor * static_cast<float>(__log2(__size));
+  return (_GLIBCXX_PROFILE_DATA(__map_find_cost_factor).__value
+          * static_cast<float>(__log2(__size)));
 }
 
 /** @brief A map-to-unordered_map instrumentation line in the object table.  */
@@ -135,7 +117,7 @@ class __map2umap_info: public __object_info_base
 
 inline const char* __map2umap_info::__advice() const
 {
-  return "change std::map to std::unordered_map";
+  return strdup("change std::map to std::unordered_map");
 }
 
 inline __map2umap_info::__map2umap_info(const __map2umap_info& __o)
@@ -163,28 +145,32 @@ inline void __map2umap_info:: __record_insert(size_t __size, size_t __count)
 {
   _M_insert += __count;
   _M_map_cost += __count * __map_insert_cost(__size);
-  _M_umap_cost += __count * __umap_insert_cost;
+  _M_umap_cost += (__count
+                   * _GLIBCXX_PROFILE_DATA(__umap_insert_cost_factor).__value);
 }
 
 inline void __map2umap_info:: __record_erase(size_t __size, size_t __count)
 {
   _M_erase += __count;
   _M_map_cost += __count * __map_erase_cost(__size);
-  _M_umap_cost += __count * __umap_erase_cost;
+  _M_umap_cost += (__count
+                   * _GLIBCXX_PROFILE_DATA(__umap_erase_cost_factor).__value);
 }
 
 inline void __map2umap_info:: __record_find(size_t __size)
 {
   _M_find += 1;
   _M_map_cost += __map_find_cost(__size);
-  _M_umap_cost += __umap_find_cost;
+  _M_umap_cost += _GLIBCXX_PROFILE_DATA(__umap_find_cost_factor).__value;
 }
 
 inline void __map2umap_info:: __record_iterate(size_t __count)
 {
   _M_iterate += __count;
-  _M_map_cost += __count * __map_iterate_cost;
-  _M_umap_cost += __count * __umap_iterate_cost;
+  _M_map_cost += (__count
+                  * _GLIBCXX_PROFILE_DATA(__map_iterate_cost_factor).__value);
+  _M_umap_cost += (
+      __count * _GLIBCXX_PROFILE_DATA(__umap_iterate_cost_factor).__value);
 }
 
 inline void __map2umap_info:: __record_invalidate()
@@ -222,35 +208,31 @@ inline __trace_map2umap::__trace_map2umap()
 
 inline void __trace_map_to_unordered_map_init()
 {
-  __tables<0>::_S_map2umap = new __trace_map2umap();
+  _GLIBCXX_PROFILE_DATA(_S_map2umap) = new __trace_map2umap();
 }
 
 inline void __trace_map_to_unordered_map_report(
     FILE* __f, __warning_vector_t& __warnings)
 {
-  if (__tables<0>::_S_map2umap) {
-    __tables<0>::_S_map2umap->__collect_warnings(__warnings);
-    __tables<0>::_S_map2umap->__write(__f);
+  if (_GLIBCXX_PROFILE_DATA(_S_map2umap)) {
+    _GLIBCXX_PROFILE_DATA(_S_map2umap)->__collect_warnings(__warnings);
+    _GLIBCXX_PROFILE_DATA(_S_map2umap)->__write(__f);
   }
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// Implementations of instrumentation hooks.
-//////////////////////////////////////////////////////////////////////////////
 
 inline void __trace_map_to_unordered_map_construct(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  __tables<0>::_S_map2umap->__add_object(__obj, 
-                                         __map2umap_info(__get_stack()));
+  _GLIBCXX_PROFILE_DATA(_S_map2umap)->__add_object(
+      __obj, __map2umap_info(__get_stack()));
 }
 
 inline void __trace_map_to_unordered_map_destruct(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  __tables<0>::_S_map2umap->__retire_object(__obj);
+  _GLIBCXX_PROFILE_DATA(_S_map2umap)->__retire_object(__obj);
 }
 
 inline void __trace_map_to_unordered_map_insert(const void* __obj, 
@@ -258,7 +240,8 @@ inline void __trace_map_to_unordered_map_insert(const void* __obj,
 {
   if (!__profcxx_init()) return;
 
-  __map2umap_info* __info = __tables<0>::_S_map2umap->__get_object_info(__obj);
+  __map2umap_info* __info =
+      _GLIBCXX_PROFILE_DATA(_S_map2umap)->__get_object_info(__obj);
 
   if (__info) __info->__record_insert(__size, __count);
 }
@@ -268,7 +251,8 @@ inline void __trace_map_to_unordered_map_erase(const void* __obj,
 {
   if (!__profcxx_init()) return;
 
-  __map2umap_info* __info = __tables<0>::_S_map2umap->__get_object_info(__obj);
+  __map2umap_info* __info =
+      _GLIBCXX_PROFILE_DATA(_S_map2umap)->__get_object_info(__obj);
 
   if (__info) __info->__record_erase(__size, __count);
 }
@@ -277,7 +261,8 @@ inline void __trace_map_to_unordered_map_find(const void* __obj, size_t __size)
 {
   if (!__profcxx_init()) return;
 
-  __map2umap_info* __info = __tables<0>::_S_map2umap->__get_object_info(__obj);
+  __map2umap_info* __info =
+      _GLIBCXX_PROFILE_DATA(_S_map2umap)->__get_object_info(__obj);
 
   if (__info) __info->__record_find(__size);
 }
@@ -287,7 +272,8 @@ inline void __trace_map_to_unordered_map_iterate(const void* __obj,
 {
   if (!__profcxx_init()) return;
 
-  __map2umap_info* __info = __tables<0>::_S_map2umap->__get_object_info(__obj);
+  __map2umap_info* __info =
+      _GLIBCXX_PROFILE_DATA(_S_map2umap)->__get_object_info(__obj);
 
   if (__info) __info->__record_iterate(__count);
 }
@@ -296,10 +282,11 @@ inline void __trace_map_to_unordered_map_invalidate(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  __map2umap_info* __info = __tables<0>::_S_map2umap->__get_object_info(__obj);
+  __map2umap_info* __info =
+      _GLIBCXX_PROFILE_DATA(_S_map2umap)->__get_object_info(__obj);
 
   if (__info) __info->__record_invalidate();
 }
 
 } // namespace __gnu_profile
-#endif /* PROFCXX_PROFILER_MAP_TO_UNORDERED_MAP_H__ */
+#endif /* _GLIBCXX_PROFILE_PROFILER_MAP_TO_UNORDERED_MAP_H */

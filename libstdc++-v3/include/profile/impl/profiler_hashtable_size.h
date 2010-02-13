@@ -34,8 +34,8 @@
 
 // Written by Lixia Liu and Silvius Rus.
 
-#ifndef PROFCXX_PROFILER_HASHTABLE_SIZE_H__
-#define PROFCXX_PROFILER_HASHTABLE_SIZE_H__ 1
+#ifndef _GLIBCXX_PROFILE_PROFILER_HASHTABLE_SIZE_H
+#define _GLIBCXX_PROFILE_PROFILER_HASHTABLE_SIZE_H 1
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdlib>
@@ -65,33 +65,26 @@ class __trace_hashtable_size : public __trace_container_size
   }
 };
 
-//////////////////////////////////////////////////////////////////////////////
-// Initialization and report.
-//////////////////////////////////////////////////////////////////////////////
-
 inline void __trace_hashtable_size_init()
 {
-  __tables<0>::_S_hashtable_size = new __trace_hashtable_size();
+  _GLIBCXX_PROFILE_DATA(_S_hashtable_size) = new __trace_hashtable_size();
 }
 
 inline void __trace_hashtable_size_report(FILE* __f, 
                                           __warning_vector_t& __warnings)
 {
-  if (__tables<0>::_S_hashtable_size) {
-    __tables<0>::_S_hashtable_size->__collect_warnings(__warnings);
-    __tables<0>::_S_hashtable_size->__write(__f);
+  if (_GLIBCXX_PROFILE_DATA(_S_hashtable_size)) {
+    _GLIBCXX_PROFILE_DATA(_S_hashtable_size)->__collect_warnings(__warnings);
+    _GLIBCXX_PROFILE_DATA(_S_hashtable_size)->__write(__f);
   }
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// Implementations of instrumentation hooks.
-//////////////////////////////////////////////////////////////////////////////
 
 inline void __trace_hashtable_size_construct(const void* __obj, size_t __num)
 {
   if (!__profcxx_init()) return;
   
-  __tables<0>::_S_hashtable_size->__insert(__obj, __get_stack(), __num);
+  _GLIBCXX_PROFILE_DATA(_S_hashtable_size)->__insert(__obj, __get_stack(),
+                                                     __num);
 }
 
 inline void __trace_hashtable_size_destruct(const void* __obj, size_t __num, 
@@ -99,7 +92,7 @@ inline void __trace_hashtable_size_destruct(const void* __obj, size_t __num,
 {
   if (!__profcxx_init()) return;
 
-  __tables<0>::_S_hashtable_size->__destruct(__obj, __num, __inum);
+  _GLIBCXX_PROFILE_DATA(_S_hashtable_size)->__destruct(__obj, __num, __inum);
 }
 
 inline void __trace_hashtable_size_resize(const void* __obj, size_t __from, 
@@ -107,9 +100,9 @@ inline void __trace_hashtable_size_resize(const void* __obj, size_t __from,
 {
   if (!__profcxx_init()) return;
 
-  __tables<0>::_S_hashtable_size->__resize(__obj, __from, __to);
+  _GLIBCXX_PROFILE_DATA(_S_hashtable_size)->__resize(__obj, __from, __to);
 }
 
 } // namespace __gnu_profile
 
-#endif /* PROFCXX_PROFILER_HASHTABLE_SIZE_H__ */
+#endif /* _GLIBCXX_PROFILE_PROFILER_HASHTABLE_SIZE_H */

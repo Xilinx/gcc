@@ -88,6 +88,46 @@
 
 2010-02-07  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* gcc.dg/graphite/block-0.c: Call abort for runtime test.  Always
+	return 0 from main.
+	* gcc.dg/graphite/block-1.c: Same.
+	* gcc.dg/graphite/block-3.c: Same.
+	* gcc.dg/graphite/block-4.c: Same.
+	* gcc.dg/graphite/block-5.c: Same.
+	* gcc.dg/graphite/block-6.c: Same.
+	* gcc.dg/graphite/block-7.c: Same.
+	* gcc.dg/graphite/interchange-0.c: Same.
+	* gcc.dg/graphite/interchange-1.c: Same.
+	* gcc.dg/graphite/interchange-10.c: Same.
+	* gcc.dg/graphite/interchange-11.c: Same.
+	* gcc.dg/graphite/interchange-12.c: Same.
+	* gcc.dg/graphite/interchange-2.c: Same.
+	* gcc.dg/graphite/interchange-3.c: Same.
+	* gcc.dg/graphite/interchange-4.c: Same.
+	* gcc.dg/graphite/interchange-5.c: Same.
+	* gcc.dg/graphite/interchange-6.c: Same.
+	* gcc.dg/graphite/interchange-7.c: Same.
+	* gcc.dg/graphite/interchange-8.c: Same.
+	* gcc.dg/graphite/interchange-9.c: Same.
+	* gcc.dg/graphite/interchange-mvt.c: Same.
+
+2010-02-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gfortran.dg/graphite/id-19.f: New.
+	* gfortran.dg/graphite/pr14741.f90: New.
+	* gfortran.dg/graphite/pr41924.f90: New.
+	* gfortran.dg/graphite/run-id-2.f90: New.
+
+2010-02-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42988
+	* graphite-dependences.c (dependence_polyhedron): Set PDDR_KIND
+	to unknown_dependence.
+	(graphite_legal_transform_dr): Handle the unknown_dependence.
+	(graphite_carried_dependence_level_k): Same.
+
+2010-02-07  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* ChangeLog.graphite: Remove testsuite/ or gcc/testsuite/.
 
 2010-02-05  Sebastian Pop  <sebastian.pop@amd.com>
@@ -210,6 +250,13 @@
 
 2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* testsuite/gcc.dg/graphite/id-17.c: New.
+	* testsuite/gcc.dg/graphite/pr41888.c: New.
+	* testsuite/gcc.dg/graphite/scop-22.c: New.
+	* testsuite/gfortran.dg/graphite/pr40982.f90: New.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-dependences.c: Clarify comments.
 	(build_pddr): Add an extra parameter direction.
 	(graphite_legal_transform_dr): Use build_pddr.
@@ -278,6 +325,21 @@
 
 2010-01-14  Sebastian Pop  <sebastian.pop@amd.com>
 
+	PR middle-end/42681
+	* graphite-clast-to-gimple.c (gloog_error): New static variable.
+	(clast_to_gcc_expression): Do not build MULT_EXPR of POINTER_TYPE_P.
+	Set gloog_error when such an expression failed to be built.
+	(translate_clast): Early return when gloog_error is set.
+	(gloog): Clear gloog_error.  When gloog_error is set, call
+	set_ifsese_condition to enable the original code.  Return the status
+	of the code generation based on gloog_error.
+	* sese.c (set_ifsese_condition): New.
+	* sese.h (set_ifsese_condition): Declared.
+
+	* testsuite/g++.dg/graphite/pr42681.C: New.
+
+2010-01-14  Sebastian Pop  <sebastian.pop@amd.com>
+
 	PR middle-end/42732
 	* graphite-clast-to-gimple.c (gloog): Call scev_reset_htab and
 	rename_nb_iterations.
@@ -308,6 +370,20 @@
 
 2010-01-08  Sebastian Pop  <sebastian.pop@amd.com>
 
+	PR middle-end/42393
+	* graphite-clast-to-gimple.c: Fix formatting.
+	* sese.c (defined_in_loop_p): Renamed name_defined_in_loop_p.
+	(expr_defined_in_loop_p): New.
+	(add_loop_exit_phis): Also handle full expressions: remove from
+	the rename_map the expressions defined in the loop that we're closing.
+
+	* testsuite/gfortran.dg/graphite/pr42393-1.f90: New.
+	* testsuite/gfortran.dg/graphite/pr42393.f90: Add new flags
+	-fno-loop-block -fno-loop-interchange -fno-loop-strip-mine to also
+	make this testcase useful in the Graphite branch.
+
+2010-01-08  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-scop-detection.c (exclude_component_ref): Removed.
 	(is_simple_operand): Removed.
 	(stmt_simple_for_scop_p): Remove use of is_simple_operand.
@@ -322,12 +398,33 @@
 
 2010-01-07  Sebastian Pop  <sebastian.pop@amd.com>
 
+	PR middle-end/42221
+	* sese.c (expand_scalar_variables_expr): Follow the SSA links into
+	the array indexing of ADDR_EXPRs.
+
+	* testsuite/gcc.dg/graphite/pr42221.c: New.
+
+2010-01-07  Sebastian Pop  <sebastian.pop@amd.com>
+
 	PR middle-end/42521
 	* graphite.c (graphite_finalize): Call scev_reset.
 	(graphite_transform_loops): Do not call scev_reset between the code
 	generation of scops.
 
 	* gcc.dg/graphite/pr42521.c: New.
+
+2010-01-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-interchange.c (memory_stride_in_loop): Renamed
+	pdr_stride_in_loop.
+	(memory_strides_in_loop): Renamed memory_strides_in_loop_1.
+	(memory_strides_in_loop): Memoize the memory strides per loop.
+	(lst_interchange_profitable_p): Do not initialize to zero the memory
+	strides.
+	* graphite-poly.h (struct lst): Add a field memory_strides.
+	(LST_LOOP_MEMORY_STRIDES): New.
+	(new_lst_loop): Initialize LST_LOOP_MEMORY_STRIDES to -1.
+	(free_lst): Clear LST_LOOP_MEMORY_STRIDES.
 
 2010-01-07  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -426,6 +523,11 @@
 
 	PR middle-end/42186
 	* gfortran.dg/graphite/pr42186.f90: New.
+
+2009-12-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42186
+	* testsuite/gfortran.dg/graphite/pr42186.f90: New.
 
 2009-12-17  Sebastian Pop  <sebastian.pop@amd.com>
 

@@ -28,14 +28,14 @@
 // reasons why the executable file might be covered by the GNU General
 // Public License.
 
-/** @file profile/impl/profiler_trace.h
- *  @brief Data structures to represent profiling traces.
+/** @file profile/impl/profiler_vector_to_list.h
+ *  @brief diagnostics for vector to list.
  */
 
 // Written by Lixia Liu and Silvius Rus.
 
-#ifndef PROFCXX_PROFILER_VECTOR_TO_LIST_H__
-#define PROFCXX_PROFILER_VECTOR_TO_LIST_H__ 1
+#ifndef _GLIBCXX_PROFILE_PROFILER_VECTOR_TO_LIST_H
+#define _GLIBCXX_PROFILE_PROFILER_VECTOR_TO_LIST_H 1
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdio>
@@ -68,7 +68,8 @@ class __vector2list_info: public __object_info_base
   void __merge(const __vector2list_info& __o);
   void __write(FILE* __f) const;
   float __magnitude() const { return _M_vector_cost - _M_list_cost; }
-  const char* __advice() const { return "change std::vector to std::list"; }
+  const char* __advice() const 
+  { return strdup("change std::vector to std::list"); }
 
   size_t __shift_count() { return _M_shift_count; }
   size_t __iterate()   { return _M_iterate; }
@@ -80,8 +81,9 @@ class __vector2list_info: public __object_info_base
   void __set_invalid() { _M_valid = false; }
 
   void __opr_insert(size_t __pos, size_t __num);
-  void __opr_iterate(size_t __num) { _M_iterate += __num; }
+  void __opr_iterate(size_t __num);
   void __resize(size_t __from, size_t __to);
+  void __opr_find(size_t __size);
 
 private:
   size_t _M_shift_count;
@@ -123,6 +125,17 @@ inline void __vector2list_info::__resize(size_t __from, size_t __to)
   _M_resize += __from;
 }
 
+inline void __vector2list_info::__opr_iterate(size_t __num)
+{ 
+  _M_iterate += __num; 
+}
+
+inline void __vector2list_info::__opr_find(size_t __size)
+{
+  // Use average case complexity.
+  _M_iterate += 3.0 / 4.0 * __size;
+}
+
 /** @brief A vector-to-list instrumentation line in the stack table.  */
 class __vector2list_stack_info: public __vector2list_info {
  public:
@@ -153,6 +166,7 @@ class __trace_vector_to_list
   void __resize(const void* __obj, size_t __from, size_t __to);
   float __vector_cost(size_t __shift, size_t __iterate, size_t __resize);
   float __list_cost(size_t __shift, size_t __iterate, size_t __resize);
+  void __opr_find(const void* __obj, size_t __size);
 };
 
 inline __trace_vector_to_list::__trace_vector_to_list()
@@ -173,28 +187,25 @@ inline void __vector2list_info::__write(FILE* __f) const
           _M_shift_count, _M_resize, _M_iterate, _M_vector_cost, _M_list_cost);
 }
 
-// Cost model.  XXX: get this from the cost model database instead.
-//  Vector operation cost:
-//   - Cost per shift: 1
-//   - Cost per access: 1
-//   - Cost per resize: 1
-//  List operation cost:
-//   - Cost per shift: 0
-//   - Cost per access: 10
-//   - Cost per resize: 0
-
 inline float __trace_vector_to_list::__vector_cost(size_t __shift, 
                                                    size_t __iterate,
                                                    size_t __resize)
 {
-  return __shift * 1 + __iterate * 1 + __resize * 1; 
+  return (
+      __shift * _GLIBCXX_PROFILE_DATA(__vector_shift_cost_factor).__value
+      + __iterate * _GLIBCXX_PROFILE_DATA(__vector_iterate_cost_factor).__value
+      + __resize * _GLIBCXX_PROFILE_DATA(__vector_resize_cost_factor).__value
+      );
 }
 
 inline float __trace_vector_to_list::__list_cost(size_t __shift, 
                                                  size_t __iterate,
                                                  size_t __resize)
 {
-  return __shift * 0 + __iterate * 10 + __resize * 0; 
+  return (
+      __shift * _GLIBCXX_PROFILE_DATA(__list_shift_cost_factor).__value
+      + __iterate * _GLIBCXX_PROFILE_DATA(__list_iterate_cost_factor).__value
+      + __resize * _GLIBCXX_PROFILE_DATA(__list_resize_cost_factor).__value);
 }
 
 inline void __trace_vector_to_list::__destruct(const void* __obj)
@@ -247,40 +258,40 @@ inline void __trace_vector_to_list::__resize(const void* __obj, size_t __from,
     __res->__resize(__from, __to);
 }
 
-//////////////////////////////////////////////////////////////////////////////
-// Initialization and report.
-//////////////////////////////////////////////////////////////////////////////
+inline void __trace_vector_to_list::__opr_find(const void* __obj,
+                                               size_t __size)
+{
+  __vector2list_info* __res = __get_object_info(__obj);
+  if (__res)
+    __res->__opr_find(__size);
+}
 
 inline void __trace_vector_to_list_init()
 {
-  __tables<0>::_S_vector_to_list = new __trace_vector_to_list();
+  _GLIBCXX_PROFILE_DATA(_S_vector_to_list) = new __trace_vector_to_list();
 }
 
 inline void __trace_vector_to_list_report(FILE* __f, 
                                           __warning_vector_t& __warnings)
 {
-  if (__tables<0>::_S_vector_to_list) {
-    __tables<0>::_S_vector_to_list->__collect_warnings(__warnings);
-    __tables<0>::_S_vector_to_list->__write(__f);
+  if (_GLIBCXX_PROFILE_DATA(_S_vector_to_list)) {
+    _GLIBCXX_PROFILE_DATA(_S_vector_to_list)->__collect_warnings(__warnings);
+    _GLIBCXX_PROFILE_DATA(_S_vector_to_list)->__write(__f);
   }
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// Implementations of instrumentation hooks.
-//////////////////////////////////////////////////////////////////////////////
 
 inline void __trace_vector_to_list_construct(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  __tables<0>::_S_vector_to_list->__insert(__obj, __get_stack());
+  _GLIBCXX_PROFILE_DATA(_S_vector_to_list)->__insert(__obj, __get_stack());
 }
 
 inline void __trace_vector_to_list_destruct(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  __tables<0>::_S_vector_to_list->__destruct(__obj);
+  _GLIBCXX_PROFILE_DATA(_S_vector_to_list)->__destruct(__obj);
 }
 
 inline void __trace_vector_to_list_insert(const void* __obj, 
@@ -288,22 +299,22 @@ inline void __trace_vector_to_list_insert(const void* __obj,
 {
   if (!__profcxx_init()) return;
 
-  __tables<0>::_S_vector_to_list->__opr_insert(__obj, __pos, __num);
+  _GLIBCXX_PROFILE_DATA(_S_vector_to_list)->__opr_insert(__obj, __pos, __num);
 }
 
 
-inline void __trace_vector_to_list_iterate(const void* __obj, size_t __num)
+inline void __trace_vector_to_list_iterate(const void* __obj, size_t __num = 1)
 {
   if (!__profcxx_init()) return;
 
-  __tables<0>::_S_vector_to_list->__opr_iterate(__obj, __num);
+  _GLIBCXX_PROFILE_DATA(_S_vector_to_list)->__opr_iterate(__obj, __num);
 }
 
 inline void __trace_vector_to_list_invalid_operator(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  __tables<0>::_S_vector_to_list->__invalid_operator(__obj);
+  _GLIBCXX_PROFILE_DATA(_S_vector_to_list)->__invalid_operator(__obj);
 }
 
 inline void __trace_vector_to_list_resize(const void* __obj, 
@@ -311,8 +322,15 @@ inline void __trace_vector_to_list_resize(const void* __obj,
 {
   if (!__profcxx_init()) return;
 
-  __tables<0>::_S_vector_to_list->__resize(__obj, __from, __to);
+  _GLIBCXX_PROFILE_DATA(_S_vector_to_list)->__resize(__obj, __from, __to);
+}
+
+inline void __trace_vector_to_list_find(const void* __obj, size_t __size)
+{
+  if (!__profcxx_init()) return;
+
+  _GLIBCXX_PROFILE_DATA(_S_vector_to_list)->__opr_find(__obj, __size);
 }
 
 } // namespace __gnu_profile
-#endif /* PROFCXX_PROFILER_VECTOR_TO_LIST_H__ */
+#endif /* _GLIBCXX_PROFILE_PROFILER_VECTOR_TO_LIST_H */

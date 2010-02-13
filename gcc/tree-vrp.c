@@ -1898,9 +1898,9 @@ vrp_int_const_binop (enum tree_code code, tree val1, tree val2)
 
   res = int_const_binop (code, val1, val2, 0);
 
-  /* If we are not using wrapping arithmetic, operate symbolically
-     on -INF and +INF.  */
-  if (TYPE_OVERFLOW_WRAPS (TREE_TYPE (val1)))
+  /* If we are using unsigned arithmetic, operate symbolically
+     on -INF and +INF as int_const_binop only handles signed overflow.  */
+  if (TYPE_UNSIGNED (TREE_TYPE (val1)))
     {
       int checkz = compare_values (res, val1);
       bool overflow = false;
@@ -1937,6 +1937,10 @@ vrp_int_const_binop (enum tree_code code, tree val1, tree val2)
 	}
 
     }
+  else if (TYPE_OVERFLOW_WRAPS (TREE_TYPE (val1)))
+    /* If the singed operation wraps then int_const_binop has done
+       everything we want.  */
+    ;
   else if ((TREE_OVERFLOW (res)
 	    && !TREE_OVERFLOW (val1)
 	    && !TREE_OVERFLOW (val2))
@@ -5122,36 +5126,16 @@ check_all_array_refs (void)
 
   FOR_EACH_BB (bb)
     {
-      /* Skip bb's that are clearly unreachable.  */
-      if (single_pred_p (bb))
-      {
-	int i;
-	bool reachable = true;
-	edge e2;
-	edge e = EDGE_PRED (bb, 0);
-	basic_block pred_bb = e->src;
-	gimple ls = NULL;
+      edge_iterator ei;
+      edge e;
+      bool executable = false;
 
-	for (i = 0; VEC_iterate (edge, to_remove_edges, i, e2); ++i)
-	  if (e == e2)
-	    {
-	      reachable = false;
-	      break;
-	    }
+      /* Skip blocks that were found to be unreachable.  */
+      FOR_EACH_EDGE (e, ei, bb->preds)
+	executable |= !!(e->flags & EDGE_EXECUTABLE);
+      if (!executable)
+	continue;
 
-	if (!reachable)
-	  continue;
-
-	if (!gsi_end_p (gsi_last_bb (pred_bb)))
-	  ls = gsi_stmt (gsi_last_bb (pred_bb));
-
-	if (ls && gimple_code (ls) == GIMPLE_COND
-	    && ((gimple_cond_false_p (ls)
-		 && (EDGE_PRED (bb, 0)->flags & EDGE_TRUE_VALUE))
-		|| (gimple_cond_true_p (ls)
-		    && (EDGE_PRED (bb, 0)->flags & EDGE_FALSE_VALUE))))
-	  continue;
-      }
       for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
 	{
 	  gimple stmt = gsi_stmt (si);
@@ -6926,6 +6910,7 @@ simplify_switch_using_ranges (gimple stmt)
 	  fprintf (dump_file, "removing unreachable case label\n");
 	}
       VEC_safe_push (edge, heap, to_remove_edges, e);
+      e->flags &= ~EDGE_EXECUTABLE;
     }
 
   /* And queue an update for the stmt.  */
@@ -7255,7 +7240,7 @@ vrp_finalize (void)
   substitute_and_fold (single_val_range, vrp_fold_stmt);
 
   if (warn_array_bounds)
-      check_all_array_refs ();
+    check_all_array_refs ();
 
   /* We must identify jump threading opportunities before we release
      the datastructures built by VRP.  */

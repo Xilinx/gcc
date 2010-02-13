@@ -358,7 +358,7 @@ lto_input_tree_ref (struct lto_input_block *ib, struct data_in *data_in,
     case LTO_label_decl_ref:
       ix_u = lto_input_uleb128 (ib);
       result = lto_file_decl_data_get_var_decl (data_in->file_data, ix_u);
-      if (tag == LTO_global_decl_ref)
+      if (TREE_CODE (result) == VAR_DECL)
 	varpool_mark_needed_node (varpool_node (result));
       break;
 
@@ -578,6 +578,11 @@ fixup_eh_region_pointers (struct function *fn, HOST_WIDE_INT root_region)
 static void
 lto_init_eh (void)
 {
+  static bool eh_initialized_p = false;
+
+  if (eh_initialized_p)
+    return;
+
   /* Contrary to most other FEs, we only initialize EH support when at
      least one of the files in the set contains exception regions in
      it.  Since this happens much later than the call to init_eh in
@@ -593,6 +598,8 @@ lto_init_eh (void)
   if (dwarf2out_do_frame ())
     dwarf2out_frame_init ();
 #endif
+
+  eh_initialized_p = true;
 }
 
 
@@ -605,7 +612,6 @@ input_eh_regions (struct lto_input_block *ib, struct data_in *data_in,
 {
   HOST_WIDE_INT i, root_region, len;
   enum LTO_tags tag;
-  static bool eh_initialized_p = false;
 
   tag = input_record_start (ib);
   if (tag == LTO_null)
@@ -616,11 +622,7 @@ input_eh_regions (struct lto_input_block *ib, struct data_in *data_in,
   /* If the file contains EH regions, then it was compiled with
      -fexceptions.  In that case, initialize the backend EH
      machinery.  */
-  if (!eh_initialized_p)
-    {
-      lto_init_eh ();
-      eh_initialized_p = true;
-    }
+  lto_init_eh ();
 
   gcc_assert (fn->eh);
 
@@ -1080,12 +1082,7 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 		    {
 		      if (tem == field
 			  || (TREE_TYPE (tem) == TREE_TYPE (field)
-			      && (DECL_FIELD_OFFSET (tem)
-				  == DECL_FIELD_OFFSET (field))
-			      && (DECL_FIELD_BIT_OFFSET (tem)
-				  == DECL_FIELD_BIT_OFFSET (field))
-			      && (DECL_OFFSET_ALIGN (tem)
-				  == DECL_OFFSET_ALIGN (field))))
+			      && compare_field_offset (tem, field)))
 			break;
 		    }
 		  /* In case of type mismatches across units we can fail
@@ -1294,6 +1291,9 @@ input_function (tree fn_decl, struct data_in *data_in,
   fn->va_list_gpr_size = bp_unpack_value (bp, 8);
   bitpack_delete (bp);
 
+  /* Input the current IL state of the function.  */
+  fn->curr_properties = lto_input_uleb128 (ib);
+
   /* Read the static chain and non-local goto save area.  */
   fn->static_chain_decl = lto_input_tree (ib, data_in);
   fn->nonlocal_goto_save_area = lto_input_tree (ib, data_in);
@@ -1469,14 +1469,6 @@ lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
       /* We should now be in SSA.  */
       cfun->gimple_df->in_ssa_p = true;
 
-      /* Fill in properties we know hold for the rebuilt CFG.  */
-      cfun->curr_properties = PROP_ssa
-			      | PROP_cfg
-			      | PROP_gimple_any
-			      | PROP_gimple_lcf
-			      | PROP_gimple_leh
-			      | PROP_referenced_vars;
-
       /* Restore decl state */
       file_data->current_decl_state = file_data->global_decl_state;
 
@@ -1523,12 +1515,15 @@ get_resolution (struct data_in *data_in, unsigned index)
   if (data_in->globals_resolution)
     {
       ld_plugin_symbol_resolution_t ret;
-      gcc_assert (index < VEC_length (ld_plugin_symbol_resolution_t,
-				      data_in->globals_resolution));
+      /* We can have references to not emitted functions in
+	 DECL_FUNCTION_PERSONALITY at least.  So we can and have
+	 to indeed return LDPR_UNKNOWN in some cases.   */
+      if (VEC_length (ld_plugin_symbol_resolution_t,
+		      data_in->globals_resolution) <= index)
+	return LDPR_UNKNOWN;
       ret = VEC_index (ld_plugin_symbol_resolution_t,
 		       data_in->globals_resolution,
 		       index);
-      gcc_assert (ret != LDPR_UNKNOWN);
       return ret;
     }
   else
@@ -1750,8 +1745,8 @@ unpack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
   TYPE_STRING_FLAG (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_NO_FORCE_BLK (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_NEEDS_CONSTRUCTING(expr) = (unsigned) bp_unpack_value (bp, 1);
-  if (TREE_CODE (expr) == UNION_TYPE)
-    TYPE_TRANSPARENT_UNION (expr) = (unsigned) bp_unpack_value (bp, 1);
+  if (TREE_CODE (expr) == UNION_TYPE || TREE_CODE (expr) == RECORD_TYPE)
+    TYPE_TRANSPARENT_AGGR (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_PACKED (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_RESTRICT (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_CONTAINS_PLACEHOLDER_INTERNAL (expr)
@@ -2044,6 +2039,11 @@ lto_input_ts_decl_common_tree_pointers (struct lto_input_block *ib,
 
   if (TREE_CODE (expr) == PARM_DECL)
     TREE_CHAIN (expr) = lto_input_chain (ib, data_in);
+
+  if ((TREE_CODE (expr) == VAR_DECL
+       || TREE_CODE (expr) == PARM_DECL)
+      && DECL_HAS_VALUE_EXPR_P (expr))
+    SET_DECL_VALUE_EXPR (expr, lto_input_tree (ib, data_in));
 }
 
 
@@ -2116,6 +2116,12 @@ lto_input_ts_function_decl_tree_pointers (struct lto_input_block *ib,
   DECL_FUNCTION_PERSONALITY (expr) = lto_input_tree (ib, data_in);
   DECL_FUNCTION_SPECIFIC_TARGET (expr) = lto_input_tree (ib, data_in);
   DECL_FUNCTION_SPECIFIC_OPTIMIZATION (expr) = lto_input_tree (ib, data_in);
+
+  /* If the file contains a function with an EH personality set,
+     then it was compiled with -fexceptions.  In that case, initialize
+     the backend EH machinery.  */
+  if (DECL_FUNCTION_PERSONALITY (expr))
+    lto_init_eh ();
 }
 
 
@@ -2154,6 +2160,7 @@ lto_input_ts_type_tree_pointers (struct lto_input_block *ib,
     TYPE_BINFO (expr) = lto_input_tree (ib, data_in);
   TYPE_CONTEXT (expr) = lto_input_tree (ib, data_in);
   TYPE_CANONICAL (expr) = lto_input_tree (ib, data_in);
+  TYPE_STUB_DECL (expr) = lto_input_tree (ib, data_in);
 }
 
 
@@ -2578,6 +2585,8 @@ lto_get_builtin_tree (struct lto_input_block *ib, struct data_in *data_in)
       if (!result || result == error_mark_node)
 	fatal_error ("target specific builtin not available");
     }
+  else
+    gcc_unreachable ();
 
   asmname = input_string (data_in, ib);
   if (asmname)

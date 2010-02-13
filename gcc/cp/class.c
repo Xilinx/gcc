@@ -297,7 +297,7 @@ build_base_path (enum tree_code code,
     {
       expr = build_nop (build_pointer_type (target_type), expr);
       if (!want_pointer)
-	expr = build_indirect_ref (EXPR_LOCATION (expr), expr, NULL);
+	expr = build_indirect_ref (EXPR_LOCATION (expr), expr, RO_NULL);
       return expr;
     }
 
@@ -343,7 +343,7 @@ build_base_path (enum tree_code code,
 	 interesting to the optimizers anyway.  */
       && !has_empty)
     {
-      expr = cp_build_indirect_ref (expr, NULL, tf_warning_or_error);
+      expr = cp_build_indirect_ref (expr, RO_NULL, tf_warning_or_error);
       expr = build_simple_base_path (expr, binfo);
       if (want_pointer)
 	expr = build_address (expr);
@@ -368,11 +368,11 @@ build_base_path (enum tree_code code,
 	  t = TREE_TYPE (TYPE_VFIELD (current_class_type));
 	  t = build_pointer_type (t);
 	  v_offset = convert (t, current_vtt_parm);
-	  v_offset = cp_build_indirect_ref (v_offset, NULL, 
+	  v_offset = cp_build_indirect_ref (v_offset, RO_NULL, 
                                             tf_warning_or_error);
 	}
       else
-	v_offset = build_vfield_ref (cp_build_indirect_ref (expr, NULL,
+	v_offset = build_vfield_ref (cp_build_indirect_ref (expr, RO_NULL,
                                                             tf_warning_or_error),
 				     TREE_TYPE (TREE_TYPE (expr)));
 
@@ -381,7 +381,7 @@ build_base_path (enum tree_code code,
       v_offset = build1 (NOP_EXPR,
 			 build_pointer_type (ptrdiff_type_node),
 			 v_offset);
-      v_offset = cp_build_indirect_ref (v_offset, NULL, tf_warning_or_error);
+      v_offset = cp_build_indirect_ref (v_offset, RO_NULL, tf_warning_or_error);
       TREE_CONSTANT (v_offset) = 1;
 
       offset = convert_to_integer (ptrdiff_type_node,
@@ -424,7 +424,7 @@ build_base_path (enum tree_code code,
     null_test = NULL;
 
   if (!want_pointer)
-    expr = cp_build_indirect_ref (expr, NULL, tf_warning_or_error);
+    expr = cp_build_indirect_ref (expr, RO_NULL, tf_warning_or_error);
 
  out:
   if (null_test)
@@ -458,7 +458,7 @@ build_simple_base_path (tree expr, tree binfo)
 	 in the back end.  */
       temp = unary_complex_lvalue (ADDR_EXPR, expr);
       if (temp)
-	expr = cp_build_indirect_ref (temp, NULL, tf_warning_or_error);
+	expr = cp_build_indirect_ref (temp, RO_NULL, tf_warning_or_error);
 
       return expr;
     }
@@ -646,7 +646,7 @@ build_vfn_ref (tree instance_ptr, tree idx)
 {
   tree aref;
 
-  aref = build_vtbl_ref_1 (cp_build_indirect_ref (instance_ptr, 0,
+  aref = build_vtbl_ref_1 (cp_build_indirect_ref (instance_ptr, RO_NULL,
                                                   tf_warning_or_error), 
                            idx);
 
@@ -4254,7 +4254,12 @@ remove_zero_width_bit_fields (tree t)
     {
       if (TREE_CODE (*fieldsp) == FIELD_DECL
 	  && DECL_C_BIT_FIELD (*fieldsp)
-	  && DECL_INITIAL (*fieldsp))
+          /* We should not be confused by the fact that grokbitfield
+	     temporarily sets the width of the bit field into
+	     DECL_INITIAL (*fieldsp).
+	     check_bitfield_decl eventually sets DECL_SIZE (*fieldsp)
+	     to that width.  */
+	  && integer_zerop (DECL_SIZE (*fieldsp)))
 	*fieldsp = TREE_CHAIN (*fieldsp);
       else
 	fieldsp = &TREE_CHAIN (*fieldsp);
@@ -5211,6 +5216,11 @@ layout_class_type (tree t, tree *virtuals_p)
 		 build_decl (input_location,
 			     FIELD_DECL, NULL_TREE, char_type_node));
 
+  /* If this is a non-POD, declaring it packed makes a difference to how it
+     can be used as a field; don't let finalize_record_size undo it.  */
+  if (TYPE_PACKED (t) && !layout_pod_type_p (t))
+    rli->packed_maybe_necessary = true;
+
   /* Let the back end lay out the type.  */
   finish_record_layout (rli, /*free_p=*/true);
 
@@ -6059,7 +6069,6 @@ resolve_address_of_overloaded_function (tree target_type,
        selected function.  */
 
   int is_ptrmem = 0;
-  int is_reference = 0;
   /* We store the matches in a TREE_LIST rooted here.  The functions
      are the TREE_PURPOSE, not the TREE_VALUE, in this list, for easy
      interoperability with most_specialized_instantiation.  */
@@ -6082,12 +6091,9 @@ resolve_address_of_overloaded_function (tree target_type,
     /* This is OK, too.  */
     is_ptrmem = 1;
   else if (TREE_CODE (target_type) == FUNCTION_TYPE)
-    {
-      /* This is OK, too.  This comes from a conversion to reference
-	 type.  */
-      target_type = build_reference_type (target_type);
-      is_reference = 1;
-    }
+    /* This is OK, too.  This comes from a conversion to reference
+       type.  */
+    target_type = build_reference_type (target_type);
   else
     {
       if (flags & tf_error)
@@ -6513,7 +6519,7 @@ build_self_reference (void)
   DECL_CONTEXT (value) = current_class_type;
   DECL_ARTIFICIAL (value) = 1;
   SET_DECL_SELF_REFERENCE_P (value);
-  set_underlying_type (value);
+  cp_set_underlying_type (value);
 
   if (processing_template_decl)
     value = push_template_decl (value);
@@ -8043,12 +8049,10 @@ build_rtti_vtbl_entries (tree binfo, vtbl_init_data* vid)
 {
   tree b;
   tree t;
-  tree basetype;
   tree offset;
   tree decl;
   tree init;
 
-  basetype = BINFO_TYPE (binfo);
   t = BINFO_TYPE (vid->rtti_binfo);
 
   /* To find the complete object, we will first convert to our most

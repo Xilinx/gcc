@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "cp-tree.h"
+#include "intl.h"
 #include "obstack.h"
 #include "flags.h"
 #include "rtl.h"
@@ -1101,7 +1102,7 @@ lookup_field_r (tree binfo, void *data)
 	  /* Add the new value.  */
 	  lfi->ambiguous = tree_cons (NULL_TREE, nval, lfi->ambiguous);
 	  TREE_TYPE (lfi->ambiguous) = error_mark_node;
-	  lfi->errstr = "request for member %qD is ambiguous";
+	  lfi->errstr = G_("request for member %qD is ambiguous");
 	}
     }
   else
@@ -2419,10 +2420,13 @@ lookup_conversions_r (tree binfo,
    functions in this node were selected.  This function is effectively
    performing a set of member lookups as lookup_fnfield does, but
    using the type being converted to as the unique key, rather than the
-   field name.  */
+   field name.
+   If LOOKUP_TEMPLATE_CONVS_P is TRUE, the returned TREE_LIST contains
+   the non-hidden user-defined template conversion functions too.  */
 
 tree
-lookup_conversions (tree type)
+lookup_conversions (tree type,
+		    bool lookup_template_convs_p)
 {
   tree convs, tpl_convs;
   tree list = NULL_TREE;
@@ -2448,6 +2452,9 @@ lookup_conversions (tree type)
 	  list = probe;
 	}
     }
+
+  if (lookup_template_convs_p == false)
+    tpl_convs = NULL_TREE;
 
   for (; tpl_convs; tpl_convs = TREE_CHAIN (tpl_convs))
     {
