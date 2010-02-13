@@ -68,10 +68,10 @@ along with GCC; see the file COPYING3.   If not see
 #include "melt-runtime.h"
 
 
-#define curfptr curfram__.varptr
-#define curfnum curfram__.varnum
-#define curfclos curfram__.clos
-#define curfrout curfram__.clos->rout
+#define meltfptr  meltfram__.varptr
+#define meltfnum  meltfram__.varnum
+#define meltfclos meltfram__.clos
+#define meltfrout meltfram__.clos->rout
 
 /* these are added by the *melt-cc-script shell script */
 extern const char melt_compiled_timestamp[];

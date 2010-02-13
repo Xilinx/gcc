@@ -2473,22 +2473,69 @@ scanning variables.}#
 pattern matching. $MXCT_NORMCTXT is the normalization
 context. $MXCT_SOURCE is the source matching
 expression. $MXCT_NMATCHED is the normal matched
-expression. $MCXT_CASES is the tuple of cases each of
-$CLASS_MATCH_CASE.}#
-  :fields ( mxct_normctxt mxct_source mxct_nmatched mxct_cases ))
+expression. $MXCT_CASES is the tuple of cases each of
+$CLASS_MATCH_CASE. $MXCT_ENV is the environment of the
+match. $MXCT_MDATA is the initial matched data of $CLASS_MATCHED_DATA.}#
+  :fields ( mxct_normctxt
+	    mxct_source 
+	    mxct_nmatched 
+	    mxct_cases 
+	    mxct_env 
+	    mxct_mdata
+	    ))
 
 (defclass class_match_case
   :super class_proped
   :doc #{The $CLASS_MATCH_CASE describes a case match. Field
-  $MCASE_MCTXT is the matching context. $MCASE_SOURCE is the source
-  case, $MCASE_INDEX is the boxed integer rank. $MCASE_VARMAP is an
-  objectmap from symbols to the list of their pattern variables.}#
+$MCASE_MCTXT is the matching context. $MCASE_SOURCE is the source
+case, $MCASE_INDEX is the boxed integer rank. $MCASE_VARMAP is an
+objectmap from symbols to the list of their pattern variables.}#
   :fields ( mcase_mctxt 
 	    mcase_source 
 	    mcase_index
 	    mcase_varmap
 	    ))
 
+(defclass class_matched_data
+  :super class_proped
+  :doc #{The $CLASS_MATCHED_DATA describes some matched data. Field
+$MDATA_SYMB gives the symbol, $MDATA_CTYPE gives the
+ctype. $MDATA_ORIG is the origin step or data. $MDATA_STEPS is the list of match steps.}#
+  :fields ( mdata_symb
+	    mdata_ctype
+	    mdata_orig
+	    mdata_steps
+	    ))
+
+(defclass class_match_step
+  :super class_located
+  :doc #{The $CLASS_MATCH_STEP describes an elementary step of pattern
+matching, like tests, success, etc... The $MSTEP_DATA is the matched
+data.}#
+  :fields ( mstep_data
+	    ))
+
+(defclass class_match_step_test
+  :super class_match_step
+  :doc #{The $CLASS_MATCH_STEP_TEST is the super-class of elementary tests of pattern matching. The $MSTEP_THEN is the then branch, the $MSTEP_ELSE is the else branch.}#
+  :fields (mstep_then
+	   mstep_else))
+
+(defclass class_match_step_test_group
+  :super class_match_step_test
+  :doc #{The $CLASS_MATCH_STEP_GROUP is used to redirect the then &
+else tests to a list of subtests, ie to the $MSTGROUP_THEN and
+$MSTGROUP_ELSE.}#
+  :fields (mstgroup_then
+	   mstgroup_else))
+
+
+(defclass class_match_step_instance
+  :super class_match_step_test
+  :doc #{The $CLASS_MATCH_STEP_INSTANCE is the class for testing
+instance membership. $MSTINS_CLASS is the tested class. $MSTINS_SLOTS is the tuple of slot matched data.}#
+  :fields (mstins_class
+	   mstins_slots))
 
 (defselector scan_subpatterns class_selector
   :doc #{Apply a given function $FUN to the subpatterns of reciever
@@ -2548,7 +2595,7 @@ $CLASS_MATCH_CASE.}#
      (patfieltup)
      (curpatfld :long flix)
      (if (is_a curpatfld class_source_field_pattern)
-	 (fun (unsafe_get_field :spaf_field curpatfld) ctx)))))
+	 (fun (unsafe_get_field :spaf_pattern curpatfld) ctx)))))
 (install_method class_source_pattern_object scan_subpatterns scansubpat_object)
 
 (defun scansubpat_composite (recv fun ctx)
@@ -2592,6 +2639,315 @@ $CLASS_MATCH_CASE.}#
     (unsafe_put_fields curmcase :mcase_varmap ourpatvarmap)
     ))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;; the selectors to set the then & else part of a match step
+(defselector put_then_match class_selector
+  :doc #{Put the then part of a match test $RECV to $THENSTEP.}#
+  :formals (recv thenstep)
+)
+
+(defun putthen_matchtest (recv thenstep)
+  (debug_msg recv "putthen_matchtest recv")
+  (assert_msg "check recv" (is_a recv class_match_step_test))
+  (debug_msg thenstep "putthen_matchtest thenstep")
+  (assert_msg "check thenstep" (is_a thenstep class_match_step))
+  (unsafe_put_fields recv :mstep_then thenstep)
+)
+(install_method class_match_step_test put_then_match putthen_matchtest)
+
+(defun putthen_matchgroup (recv thenstep)
+  (debug_msg recv "putthen_matchgroup recv")
+  (assert_msg "check recv" (is_a recv class_match_step_test_group))
+  (debug_msg thenstep "putthen_matchgroup thenstep")
+  (assert_msg "check thenstep" (is_a thenstep class_match_step))
+  (unsafe_put_fields recv :mstep_then thenstep)
+  (let ( (thengroup (unsafe_get_field :mstgroup_then recv)) )
+    (cond 
+     ((null thengroup)
+      (return))
+     ((is_a thengroup class_match_step)
+      (put_then_match thengroup thenstep))
+     ((is_list thengroup)
+      (foreach_in_list
+       (thengroup)
+       (curpair curthen)
+       (put_then_match curthen thenstep)))
+     ((is_multiple thengroup)
+      (foreach_in_multiple
+       (thengroup)
+       (curthen :long thix)
+       (put_then_match curthen thenstep)))
+     (:else
+      (debug_msg thengroup "putthen_matchgroup bad thengroup")
+      (assert_msg "bad thengroup" ())))))
+(install_method class_match_step_test_group put_then_match putthen_matchgroup)
+
+
+(defselector put_else_match class_selector
+  :doc #{Put the else part of a match test $RECV to $ELSESTEP.}#
+  :formals (recv elsestep)
+)
+(defun putelse_matchtest (recv elsestep)
+  (debug_msg recv "putelse_matchtest recv")
+  (assert_msg "check recv" (is_a recv class_match_step_test))
+  (debug_msg elsestep "putelse_matchtest elsestep")
+  (assert_msg "check elsestep" (is_a elsestep class_match_step))
+  (unsafe_put_fields recv :mstep_else elsestep)
+)
+(install_method class_match_step_test put_else_match putelse_matchtest)
+
+(defun putelse_matchgroup (recv elsestep)
+  (debug_msg recv "putelse_matchgroup recv")
+  (assert_msg "check recv" (is_a recv class_match_step_test_group))
+  (debug_msg elsestep "putelse_matchgroup elsestep")
+  (assert_msg "check elsestep" (is_a elsestep class_match_step))
+  (unsafe_put_fields recv :mstep_else elsestep)
+  (let ( (elsegroup (unsafe_get_field :mstgroup_else recv)) )
+    (cond 
+     ((null elsegroup)
+      (return))
+     ((is_a elsegroup class_match_step)
+      (put_else_match elsegroup elsestep))
+     ((is_list elsegroup)
+      (foreach_in_list
+       (elsegroup)
+       (curpair curelse)
+       (put_else_match curelse elsestep)))
+     ((is_multiple elsegroup)
+      (foreach_in_multiple
+       (elsegroup)
+       (curelse :long thix)
+       (put_else_match curelse elsestep)))
+     (:else
+      (debug_msg elsegroup "putelse_matchgroup bad elsegroup")
+      (assert_msg "bad elsegroup" ())))))
+(install_method class_match_step_test_group put_else_match putelse_matchgroup)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;; the selector to translate a pattern
+(defselector translate_pattern class_selector
+  :doc #{Translate a pattern into a match step. $RECV is the reciever,
+  $MDATA is the matched data, $MCASE is the match case, and $SLOC is
+  the source location}#
+  :formals (recv mdata mcase varmap sloc))
+
+
+(defun translpat_anyrecv (recv mdata mcase varmap sloc)
+  (debug_msg recv "translpat_anyrecv recv")
+  (debug_msg mdata "translpat_anyrecv mdata")
+  (let ( (dis (discrim recv)) )
+    (debug_msg dis "translpat_anyrecv dis")
+    (error_strv sloc "unexpected TRANSLATE_PATTERN for" (unsafe_get_field :named_name dis))
+    (assert_msg "@$@unexpected translpat_anyrecv")
+))
+(install_method discr_any_receiver translate_pattern translpat_anyrecv)
+
+(defun translpat_jokerpat (recv mdata mcase varmap sloc)
+  (assert_msg "check recv" (is_a recv class_source_pattern_joker_variable))
+  (return)
+)
+(install_method class_source_pattern_joker_variable translate_pattern translpat_jokerpat)
+
+
+(defun translpat_aspat (recv mdata mcase varmap sloc)
+  (debug_msg recv "translpat_aspat recv")
+  (assert_msg "check recv" (is_a recv class_source_pattern_as))
+  (debug_msg mdata "translpat_aspat mdata")
+  (assert_msg "check mdata" (is_a mdata class_matched_data))
+  (debug_msg mcase "translpat_aspat mcase")
+  (assert_msg "check mcase" (is_a mcase class_match_case))
+  (assert_msg "@$@unimplemented translpat_aspat"))
+(install_method class_source_pattern_as translate_pattern translpat_aspat)
+
+
+(defun translpat_inspat (recv mdata mcase varmap psloc)
+  (debug_msg recv "translpat_inspat recv")
+  (assert_msg "check recv" (is_a recv class_source_pattern_instance))
+  (debug_msg mdata "translpat_inspat mdata")
+  (assert_msg "check mdata" (is_a mdata class_matched_data))
+  (debug_msg mcase "translpat_inspat mcase")
+  (assert_msg "check mcase" (is_a mcase class_match_case))
+  (let ( 
+	(pclass (unsafe_get_field :spat_class recv))
+	(pfields (unsafe_get_field :spat_fields recv))
+	(sloc (or (unsafe_get_field :loca_location recv) psloc))
+	)
+    (assert_msg "check pclass" (is_a pclass class_class))
+    (let ( (:long nbfields (multiple_length (unsafe_get_field :class_fields pclass)))
+	   )
+      ;; check that each mentioned field is indeed a field of the class
+      (foreach_in_multiple
+       (pfields)
+       (curpfld :long pix)
+       (assert_msg "check curpfld" (is_a curpfld class_source_field_pattern))
+       (let ( (fsloc (or (unsafe_get_field :loca_location curpfld) sloc))
+	      (curfld (unsafe_get_field :spaf_field curpfld))
+	      (flcla (get_field :fld_ownclass curfld))
+	      )
+	 (assert_msg "check curfld" (is_a curfld class_field))
+	 (cond ( (not (subclass_or_eq pclass flcla))
+		 (error_strv sloc "bad field in object pattern"
+			     (unsafe_get_field :named_name curfld))
+		 (inform_strv sloc "class in pattern is" (get_field :named_name pclass))
+		 (inform_strv sloc "class of field is" (get_field :named_name flcla))
+		 (return)))
+	 ))
+      ;; find our step if its exist or else create it
+      (let ( (istep ())
+	     (steplist (unsafe_get_field :mdata_steps mdata))
+	     )
+	(foreach_in_list
+	 (steplist)
+	 (curpair curstep)
+	 (cond 
+	  ( (and (is_a curstep class_match_step_instance)
+		 (== (unsafe_get_field :mstins_class curstep) pclass))
+	    (setq curpair ())
+	    (setq istep curstep)
+	    )))
+	(if (null istep)
+	    (let 
+		( 
+		 (dslots (make_multiple discr_multiple nbfields))
+		 (newstep (instance class_match_step_instance
+				    :loca_location sloc
+				    :mstep_data mdata
+				    :mstep_then ()
+				    :mstep_else ()
+				    :mstins_class pclass
+				    :mstins_slots dslots
+				    ))
+		 )
+	      (setq istep newstep)
+	      ))
+	;; translate each mentioned non-joker field 
+	(let ( (mslots (unsafe_get_field :mstins_slots istep))
+	       (laststep istep)
+	       (elselist (make_list discr_list))
+	       )
+	  (assert_msg "check mslots" (is_multiple mslots))
+	  (list_append elselist istep)
+	  (foreach_in_multiple
+	   (pfields)
+	   (curpfld :long pix)
+	   (assert_msg "check curpfld" (is_a curpfld class_source_field_pattern))
+	   (let ( (fsloc (or (unsafe_get_field :loca_location curpfld) sloc))
+		  (curfld (unsafe_get_field :spaf_field curpfld))
+		  (curfpat (unsafe_get_field :spaf_pattern curpfld))
+		  )
+	     (if (is_not_a curfpat class_source_pattern_joker_variable)
+		 (let ( (:long curfix (get_int curfld))
+			(curslotdata (multiple_nth mslots curfix))
+			)
+		   (if (null curslotdata)
+		       (let ( (newslot (instance class_matched_data
+						 :mdata_symb (clone_symbol curfld)
+						 :mdata_ctype ctype_value
+						 :mdata_orig istep
+						 :mdata_steps (make_list discr_list)
+						 )) 
+			      )
+			 (debug_msg newslot " translpat_inspat newslot")
+			 (setq curslotdata newslot)
+			 (multiple_put_nth mslots curfix newslot)))
+		   (debug_msg curfpat "translpat_inspat before translation curfpat")
+		   (let ( (flstep (translate_pattern curfpat curslotdata 
+						     mcase varmap psloc)) 
+			  )
+		     (debug_msg flstep "translpat_inspat flstep")
+		     (if flstep 
+			 (progn
+			   (debug_msg laststep "translpat_inspat laststep")
+			   (put_then_match laststep flstep)
+			   (list_append elselist flstep)
+			   (setq laststep flstep)
+			   ))
+		     )))))
+	  (let ( (stepgroup (instance class_match_step_test_group
+				      :loca_location sloc
+				      :mstep_data mdata
+				      :mstep_then ()
+				      :mstep_else ()
+				      :mstgroup_then laststep
+				      :mstgroup_else (list_to_multiple elselist)
+				      ))
+		 )
+	    (debug_msg stepgroup "translpat_inspat return stepgroup")
+	    (return stepgroup)
+	    ))))))
+(install_method class_source_pattern_instance translate_pattern translpat_inspat)
+
+
+(defun translpat_varpat (recv mdata mcase varmap psloc)
+  (debug_msg recv "translpat_varpat recv")
+  (assert_msg "check recv" (is_a recv class_source_pattern_variable))
+  (debug_msg mdata "translpat_varpat mdata")
+  (assert_msg "check mdata" (is_a mdata class_matched_data))
+  (debug_msg mcase "translpat_varpat mcase")
+  (assert_msg "check mcase" (is_a mcase class_match_case))
+  (let ( 
+	(sloc (or (unsafe_get_field :loca_location recv) psloc))
+	(symb (unsafe_get_field :spatvar_symb recv))
+	(symbval (mapobject_get varmap symb))
+	)
+    (debug_msg symb "translpat_varpat symb")
+    (debug_msg symbval "translpat_varpat symbval")
+    (assert_msg "@$@unimplemented translpat_varpat")
+    ))
+(install_method class_source_pattern_variable translate_pattern translpat_varpat)
+
+(defun translpat_patmat (recv mdata mcase varmap psloc)
+  (debug_msg recv "translpat_patmat recv")
+  (assert_msg "check recv" (is_a recv class_source_pattern_matcher))
+  (debug_msg mdata "translpat_patmat mdata")
+  (assert_msg "check mdata" (is_a mdata class_matched_data))
+  (debug_msg mcase "translpat_patmat mcase")
+  (assert_msg "check mcase" (is_a mcase class_match_case))
+  (let (
+	(sloc (or (unsafe_get_field :loca_location recv) psloc))
+	(soper (unsafe_get_field :spac_operbind recv))
+	(sins (unsafe_get_field :spac_inargs recv))
+	(souts (unsafe_get_field :spac_outargs recv))
+	)
+    (debug_msg soper "translpat_patmat soper")
+    (debug_msg sins "translpat_patmat sins")
+    (debug_msg souts "translpat_patmat souts")
+    (compile_warning "should normalize sins")
+    (assert_msg "@$@unimplemented translpat_patmat")
+))
+(install_method class_source_pattern_matcher  translate_pattern translpat_patmat)
+	
+(defun translate_matchcase (curmcase sloc)
+  (debug_msg curmcase "translate_matchcase curmcase")
+  (assert_msg "check curmcase" (is_a curmcase class_match_case))
+  (let ( (matctx (unsafe_get_field  :mcase_mctxt curmcase))
+	 (curscas (unsafe_get_field :mcase_source curmcase))
+	 (mloc (unsafe_get_field :loca_location curscas))
+	 )
+    (assert_msg "check matctx" (is_a matctx class_matching_context))
+    (debug_msg curscas "translate_matchcase curscas")
+    (assert_msg "check curscas" (is_a curscas class_source_match_case))
+    (let (
+	  (curloc (unsafe_get_field :loca_location curscas))
+	  (curpat (unsafe_get_field :scam_patt curscas))
+	  (nmatx (unsafe_get_field :mxct_nmatched matctx))
+	  (mdata (unsafe_get_field :mxct_mdata matctx))
+	  (varmap (make_mapobject discr_map_objects
+				  (+i 12 (*i 2 (mapobject_count (unsafe_get_field :mcase_varmap curscas))))))
+	  )
+      (debug_msg nmatx "translate_matchcase nmatx")
+      (debug_msg curpat "translate_matchcase curpat")
+      (debug_msg mdata "translate_matchcase mdata")
+      (let ( (mstep (translate_pattern curpat mdata curmcase varmap sloc)) 
+	     )
+	(debug_msg mstep "translate_matchcase got mstep")
+      (assert_msg "@$@unimplemented translate_matchcase")
+      ))))
+
+
+
 (defun normexp_altmatch (recv env ncx psloc)
   (assert_msg "check match recv" (is_a recv class_source_match))
   (assert_msg "check env" (is_a env class_environment))
@@ -2610,32 +2966,52 @@ $CLASS_MATCH_CASE.}#
      (debug_msg nbindmatx "normexp_altmatch nbindmatx")
      (let ( (matctyp (get_ctype nmatx env))
 	    (mcasetup (make_multiple discr_multiple nbcases))
+	    (msteplist (make_list discr_list))
+	    (msymb (or (get_field :nocc_symb nmatx) 
+		       (clone_symbol (or (get_field :named_name nmatx)
+					 '_matched_data))))
+	    (mdata (instance class_matched_data
+			     :mdata_symb msymb
+			     :mdata_ctype matctyp
+			     :mdata_orig nmatx
+			     :mdata_steps msteplist
+			     ))
 	    (matctx (instance class_matching_context
 			      :mxct_normctxt ncx
 			      :mxct_source recv
 			      :mxct_nmatched nmatx
 			      :mxct_cases mcasetup
+			      :mxct_env env
+			      :mxct_mdata mdata
 			      ))
 	    )
        (debug_msg matctyp "normexp_altmatch matctyp")
        (debug_msg matctx "normexp_altmatch matctx")
+       ;; build each match case
        (foreach_in_multiple
 	(scases)
 	(curscas :long curix)
 	(debug_msg curscas "normexp_altmatch curscas")
 	(assert_msg "check  curscas" (is_a curscas class_source_match_case))
 	(let ( (curmcase (instance class_match_case
-				  :mcase_mctxt matctx
-				  :mcase_source curscas
-				  :mcase_index 
-				  (make_integerbox discr_integer curix)
-				  )
-			)
+				   :mcase_mctxt matctx
+				   :mcase_source curscas
+				   :mcase_index 
+				   (make_integerbox discr_integer curix)
+				   )
+			 )
 	       )
 	  (fill_matchcase curmcase sloc)
 	  (multiple_put_nth mcasetup curix curmcase)
 	  ))
        (debug_msg mcasetup "normexp_altmatch mcasetup")
+       ;; translate each match case
+       (foreach_in_multiple
+	(mcasetup)
+	(curmcase :long mix)
+	(translate_matchcase curmcase sloc)
+	)
+       ;;
        (assert_msg "$@$unimplemented normexp_altmatch")
        ))))
 

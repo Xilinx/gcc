@@ -3078,29 +3078,29 @@ extern melt_ptr_t melt_jmpval;
   struct excepth_melt_st* exh;               \
   struct callframe_melt_st* prev;		\
   void*  /* a melt_ptr_t */ varptr[NBVAR];	\
-} curfram__
+} meltfram__
 /* initialize the current callframe and link it at top */
 #define MELT_INITFRAME_AT(NBVAR,CLOS,FIL,LIN) do {			\
   static char locbuf_##LIN[64];						\
   if (!locbuf_##LIN[0])							\
     snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d",		\
 	     basename(FIL), (int)LIN);					\
-  memset(&curfram__, 0, sizeof(curfram__));				\
-  curfram__.nbvar = (NBVAR);						\
-  curfram__.flocs = locbuf_##LIN;					\
-  curfram__.prev = (struct callframe_melt_st*) melt_topframe;	\
-  curfram__.clos = (CLOS);						\
-  melt_topframe = ((struct callframe_melt_st*)&curfram__);	\
+  memset(&meltfram__, 0, sizeof(meltfram__));				\
+  meltfram__.nbvar = (NBVAR);						\
+  meltfram__.flocs = locbuf_##LIN;					\
+  meltfram__.prev = (struct callframe_melt_st*) melt_topframe;	\
+  meltfram__.clos = (CLOS);						\
+  melt_topframe = ((struct callframe_melt_st*)&meltfram__);	\
 } while(0)
 #define MELT_INITFRAME(NBVAR,CLOS) MELT_INITFRAME_AT(NBVAR,CLOS,__FILE__,__LINE__)
-#define MELT_LOCATION(LOCS) do{curfram__.flocs= LOCS;}while(0)
+#define MELT_LOCATION(LOCS) do{meltfram__.flocs= LOCS;}while(0)
 
 #define MELT_LOCATION_HERE_AT(FIL,LIN,MSG) do {			\
   static char locbuf_##LIN[72];						\
   if (!locbuf_##LIN[0])							\
     snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d <%s>",	\
 	     basename(FIL), (int)LIN, MSG);				\
-  curfram__.flocs =  locbuf_##LIN;					\
+  meltfram__.flocs =  locbuf_##LIN;					\
 } while(0)
 #define MELT_LOCATION_HERE(MSG)  MELT_LOCATION_HERE_AT(__FILE__,__LINE__,MSG)
 #else
@@ -3110,16 +3110,16 @@ extern melt_ptr_t melt_jmpval;
   struct excepth_melt_st* exh;               \
   struct callframe_melt_st* prev;		\
   void*  /* a melt_ptr_t */ varptr[NBVAR];	\
-} curfram__
+} meltfram__
 #define MELT_LOCATION(LOCS) do{}while(0)
 #define MELT_LOCATION_HERE(MSG) do{}while(0)
 /* initialize the current callframe and link it at top */
 #define MELT_INITFRAME(NBVAR,CLOS) do {				\
-  memset(&curfram__, 0, sizeof(curfram__));				\
-  curfram__.nbvar = (NBVAR);						\
-  curfram__.prev = (struct callframe_melt_st*)melt_topframe;	\
-  curfram__.clos = (CLOS);						\
-  melt_topframe = ((void*)&curfram__);				\
+  memset(&meltfram__, 0, sizeof(meltfram__));				\
+  meltfram__.nbvar = (NBVAR);						\
+  meltfram__.prev = (struct callframe_melt_st*)melt_topframe;	\
+  meltfram__.clos = (CLOS);						\
+  melt_topframe = ((void*)&meltfram__);				\
 } while(0)
 #endif
 
@@ -3130,7 +3130,7 @@ extern melt_ptr_t melt_jmpval;
 
 /* exit the current frame and return */
 #define MELT_EXITFRAME() do {		\
-    melt_topframe = (struct callframe_melt_st*)(curfram__.prev);	\
+    melt_topframe = (struct callframe_melt_st*)(meltfram__.prev);	\
 } while(0)
 
 /****
@@ -3143,7 +3143,7 @@ extern melt_ptr_t melt_jmpval;
   __jcod = setjmp(&__jbuf);
   Vcod = __jcod;
   if (__jcod) {
-    melt_topframe = ((void*)&curfram__);
+    melt_topframe = ((void*)&meltfram__);
     Vptr = melt_jmpval;
   };
 } while(0)

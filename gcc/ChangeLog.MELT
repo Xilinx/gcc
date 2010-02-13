@@ -1,3 +1,43 @@
+2010-02-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* run-melt.h (curfptr, curfnum, curfclos, curfrout): macros
+	deleted and renamed as..
+	(meltfptr, meltfnum, meltfclos, meltfrout): new macros, using
+	meltfram__ instead of curfram__.
+	* melt-runtime.c: using meltfram__ instead of curfram__.
+	* melt-runtime.h (MELT_INITFRAME, MELT_EXITFRAME): likewise
+	* testsuite/melt/tmatch-5.melt: added -fmelt-option=alternate_match.
+	* testsuite/melt/tmatch-6.melt: likewise.
+
+	* melt/warmelt-normatch.melt: more of alternate matching.
+
+	* melt/warmelt-outobj.melt: generating meltfram__ instead of
+	curfram__. meltfptr for curfptr etc...
+
+	{{regenerated all}}
+	* melt/generated/warmelt-normatch.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0.c: regenerated.
+	* melt/generated/warmelt-normal.0.c: regenerated.
+	* melt/generated/warmelt-macro.0.c: regenerated.
+	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-debug.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0.c: regenerated.
+	* melt/generated/warmelt-normal.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0+03.c: regenerated.
+	* melt/generated/warmelt-base.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0.c: regenerated.
+	* melt/generated/warmelt-macro.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: regenerated.
+	* melt/generated/warmelt-macro.0+02.c: regenerated.
+	* melt/generated/warmelt-macro.0+03.c: regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: regenerated.
+	* melt/generated/warmelt-debug.0.c: regenerated.
+
 2010-02-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_new_string_raw_len): explicitly clear
 	last byte.

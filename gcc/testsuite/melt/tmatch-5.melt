@@ -5,7 +5,9 @@
  ./cc1 -fmelt=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
     -fmelt-compile-script=./built-melt-cc-script \
     -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
-    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tmatch-5.melt -fmelt-debug empty-file-for-melt.c
+    -fmelt-option=match_graphic=/tmp/melt5graph,alternate_match \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tmatch-5.melt \
+    -fmelt-debug empty-file-for-melt.c
 |#
 
 
@@ -15,8 +17,8 @@
    ( ?(instance 
        class_container 
        :container_value 
-       ?(integerbox_of ?_))
-      (g x)
+       ?(integerbox_of ?bx))
+      (g x bx)
       )
    ))
 
