@@ -1,3 +1,177 @@
+2010-02-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43068
+	* cgraphunit.c (thunk_adjust): Skip adjusting by fixed_offset
+	if that is zero.
+
+2010-02-15  Nick Clifton  <nickc@redhat.com>
+
+	* config/mn10300/mn10300.h (FUNCTION_ARG_REGNO_P): Revert previous
+	delta.
+
+2010-02-14  Marco Poletti  <poletti.marco@gmail.com>
+
+	* intl.c (fake_ngettext): New function.
+	* intl.h (fake_ngettext): Declare.
+	(ngettext): Define macro.
+	* collect2.c (notice_translated): New function.
+	(main): Use notice_translated and ngettext.
+	* collect2.h (notice_translated): Declare.
+
+2010-02-14  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* reorg.c (delete_computation): Comment fixes.
+	* caller-save.c (setup_save_areas): Idem.
+	* sel-sched-dump.c (dump_lv_set): Idem.
+	* rtl.def: Idem.
+
+2010-02-14  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.c (s390_sched_init): New function.
+	(TARGET_SCHED_INIT): Target hook defined.
+
+2010-02-12  Dave Korn  <dave.korn.cygwin@gmail.com>
+	    Jack Howarth  <howarth@bromo.med.uc.edu>
+	    Iain Sandoe <iain.sandoe@sandoe-acoustics.co.uk>
+
+	PR target/42982
+	Partial revert of unintended change in fix for PR41605.
+	* config/darwin.h: Fix typo.
+	* config/darwin9.h: Same.
+
+2010-02-11  Jakub Jelinek  <jakub@redhat.com>
+
+	* c-pch.c (pch_init): Clear v.
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42930
+	* graphite-scop-detection.c (graphite_can_represent_scev): Call
+	graphite_can_represent_init for MULT_EXPR.
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42914
+	PR middle-end/42530
+	* graphite-sese-to-poly.c (remove_phi): New.
+	(translate_scalar_reduction_to_array): Call remove_phi.
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42771
+	* graphite-clast-to-gimple.c (gloog): Call rename_sese_parameters.
+	* graphite-clast-to-gimple.h (gloog): Update declaration.
+	* graphite-poly.c (new_scop): Clear POLY_SCOP_P.
+	* graphite-poly.h (struct poly_bb): Add missing comments.
+	(struct scop): Add poly_scop_p field.
+	(POLY_SCOP_P): New.
+	* graphite-sese-to-poly.c (build_poly_scop): Set POLY_SCOP_P.
+	* graphite.c (graphite_transform_loops): Build the polyhedral
+	representation for each scop before code generation.
+	* sese.c (rename_variables_in_operand): Removed.
+	(rename_variables_in_expr): Return the renamed expression.
+	(rename_sese_parameters): New.
+	* sese.h (rename_sese_parameters): Declared.
+
+2010-02-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42998
+	* tree-ssa-pre.c (create_expression_by_pieces): Treat
+	POINTER_PLUS_EXPR properly.
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+	    Changpeng Fang  <changpeng.fang@amd.com>
+
+	PR middle-end/40886
+	* tree-ssa-loop-ivopts.c (determine_use_iv_cost_condition): Decrement
+	the cost of an IV candidate when the IV is used in a test against zero.
+
+	* gcc.dg/tree-ssa/ivopts-3.c: New.
+
+2010-02-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41664
+	* tree-ssa-alias.c (refs_may_alias_p_1): Canonicalize
+	pointer-vs-decl case by swapping refs.  Handle some cases
+	of pointer-vs-decl disambiguations more conservatively.
+	* cfgexpand.c (gimple_expand_cfg): Set gimple_df->in_ssa_p
+	to false after expanding.
+
+2010-02-11  Richard Guenther  <rguenther@suse.de>
+
+	PR driver/43021
+	* gcc.c (process_command): Handle LTO file@offset case more
+	appropriately.
+
+2010-02-11  Jakub Jelinek  <jakub@redhat.com>
+
+	* reload1.c (eliminate_regs_1): If insn is DEBUG_INSN, avoid any
+	modifications outside of the DEBUG_INSN.  Accept CLOBBERs inside
+	of DEBUG_INSNs.
+	(eliminate_regs_in_insn): Eliminate regs even in DEBUG_INSNs.
+
+	* dwarf2out.c (mem_loc_descriptor) <case MEM>: Use DW_OP_deref_size
+	if MEM's mode size isn't DWARF2_ADDR_SIZE.
+	(mem_loc_descriptor) <do_scompare>: Allow also VOIDmode arguments.
+	Optimize eq/ne comparisons when both arguments are known to be
+	zero-extended.
+	(mem_loc_descriptor) <do_ucompare>: Allow also VOIDmode arguments.
+	Don't mask operands unnecessarily if they are known to be already
+	zero-extended.
+
+2010-02-10  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* ira-conflicts.c (add_insn_allocno_copies): Use find_reg_note
+	instead of loop.
+
+2010-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43017
+	* tree-vrp.c (vrp_int_const_binop): Trust int_const_binop
+	for wrapping signed arithmetic.
+
+2010-02-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43010
+	* dwarf2out.c (retry_incomplete_types): Don't call gen_type_die
+	if no debug info should be emitted for it.
+
+2010-02-10  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (find_barrier): Skip call insn with a REG_EH_REGION
+	note when flag_exceptions is set.
+
+2010-02-10  Duncan Sands  <baldrick@free.fr>
+
+	* Makefile.in (PLUGIN_HEADERS): Add debug.h.
+
+2010-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR c/43007
+	* tree.c (get_unwidened): Handle constants.
+	* convert.c (convert_to_integer): Handle TRUNC_DIV_EXPR.
+
+2010-02-10  Martin Jambor  <mjambor@suse.cz>
+
+	PR lto/42985
+	* ipa-prop.c (ipa_update_after_lto_read): Count parameters and
+	check for variable argument counts independently.
+
+2010-02-10  Christian Bruel  <christian.bruel@st.com>
+
+	PR target/42841
+	* config/sh/sh.c (find_barrier): Increase length for non delayed
+	conditional branches.
+	
+2010-02-10  Christian Bruel  <christian.bruel@st.com>
+
+	* config/sh/sh.c (find_barrier): Don't emit a CP inside the GP setting.
+	
+2010-02-10  Jakub Jelinek  <jakub@redhat.com>
+
+	* builtins.c (set_builtin_user_assembler_name): Also handle
+	ffs if int is smaller than word.
+
 2010-02-09  Vladimir Makarov  <vmakarov@redhat.com>
 
 	PR middle-end/42973
@@ -5,6 +179,31 @@
 	(process_reg_shuffles): Add new parameter.  Use it as an
 	additional guard for copy generation.
 	(add_insn_allocno_copies): Rewrite.
+
+2010-02-09  Alexander Monakov  <amonakov@ispras.ru>
+
+	* common.opt (fsched2-use-traces): Preserved for backward
+	compatibility.
+	* doc/invoke.texi: Remove the documentation about option
+	-fsched2-use-traces.
+	* sched-rgn.c (rest_of_handle_sched2): Remove usage of
+	flag_sched2_use_traces.
+	* opts.c (common_handle_option): Add OPT_fsched2_use_traces to
+	the backward compatibility flag section.
+
+2010-02-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43008
+	* tree-ssa-structalias.c (handle_lhs_call): Pass in the fndecl,
+	make HEAP variables initialized from global memory if they
+	are not known builtin functions.
+	(find_func_aliases): Adjust.
+
+2010-02-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43000
+	* tree-vrp.c (vrp_int_const_binop): Only handle unsigned
+	arithmetic manually.
 
 2010-02-08  Jakub Jelinek  <jakub@redhat.com>
 

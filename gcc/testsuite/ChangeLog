@@ -1,3 +1,154 @@
+2010-02-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43068
+	* g++.dg/torture/pr43068.C: New testcase.
+
+2010-02-14  Volker Reichelt  <reichelt@gcc.gnu.org>
+
+	PR c++/43024
+	* g++.dg/opt/ice1.C: New.
+
+2010-02-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41997
+	* g++.dg/cpp0x/initlist-opt.C: New.
+
+2010-02-13  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41113
+	PR fortran/41117
+	* gfortran.dg/internal_pack_6.f90: New test.
+
+2010-02-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43054
+	* g++.dg/cpp0x/variadic99.C: New.
+
+2010-02-12  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/guality/guality.h (GUALCVT): Zero extend instead of
+	sign extend pointers to gualchk_t.
+
+	PR c++/43033
+	* g++.dg/other/default3.C: Xfail g4 test.
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43012
+	* gcc.dg/graphite/pr43012.c: New.
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42930
+	* g++.dg/graphite/pr42930.C: New.
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42914
+	PR middle-end/42530
+	* gcc.dg/graphite/pr42530.c: New.
+	* gcc.dg/graphite/pr42914.c: New.
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42771
+	* gcc.dg/graphite/pr42771.c: New.
+
+2010-02-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42998
+	* gcc.c-torture/compile/pr42998.c: New testcase.
+
+2010-02-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41896
+	* g++.dg/cpp0x/lambda/lambda-nested3.C: New.
+
+	PR c++/42983, core issue 906
+	* g++.dg/cpp0x/defaulted15.C: Add virtualness test.
+	* g++.dg/cpp0x/defaulted9.C: Move virtual default outside class.
+
+	PR c++/43016
+	* g++.dg/cpp0x/lambda/lambda-conv.C: Test for weakness.
+
+2010-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43017
+	* gcc.dg/torture/pr43017.c: New testcase.
+
+2010-02-10  Tobias Burnus <burnus@net-b.de>
+
+	PR fortran/40823
+	* gfortran.dg/private_type_1.f90: Update error location.
+	* gfortran.dg/invalid_interface_assignment.f90: Ditto.
+	* gfortran.dg/typebound_operator_2.f03: Ditto.
+	* gfortran.dg/assignment_2.f90: Ditto.
+	* gfortran.dg/redefined_intrinsic_assignment.f90: Ditto.
+	* gfortran.dg/binding_label_tests_9.f03: Ditto.
+
+2010-02-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43015
+	* gfortran.dg/bind_c_usage_20.f90: New test.
+
+2010-02-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43010
+	* g++.dg/debug/pr43010.C: New test.
+
+2010-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR c/43007
+	* gcc.c-torture/execute/20100209-1.c: New testcase.
+	* gcc.dg/fold-div-3.c: Likewise.
+
+2010-02-10  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/builtin-ffs-1.c: New test.
+
+2010-02-09  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/42999
+	* gfortran.dg/array_constructor_35.f90: New test.
+
+2010-02-09  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/tree-ssa/inline-4.c: Bind pic locally.
+
+2010-02-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42399
+	* g++.dg/cpp0x/lambda/lambda-errloc2.C: New.
+
+	PR c++/42370
+	* g++.dg/cpp0x/lambda/lambda-warn2.C: New.
+
+2010-02-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41869
+	* gfortran.dg/module_write_1.f90: New test.
+
+2010-02-09  Alexander Monakov  <amonakov@ispras.ru>
+
+	* gcc.dg/pr19340.c: Adjust.
+
+2010-02-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43008
+	* gcc.c-torture/execute/pr43008.c: New testcase.
+
+2010-02-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43000
+	* gcc.dg/torture/pr43000.c: New testcase.
+	* gcc.dg/torture/pr43002.c: Likewise.
+
+2010-02-09  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/39171
+	* gfortran.dg/char_length_2.f90: Change warning expectations accordingly
+	and pass -Wsurprising as necessary.
+
 2010-02-08  Jakub Jelinek  <jakub@redhat.com>
 
 	PR tree-optimization/42890

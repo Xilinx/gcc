@@ -4732,6 +4732,7 @@ extern tree cxx_maybe_build_cleanup		(tree);
 /* in decl2.c */
 extern bool check_java_method			(tree);
 extern tree build_memfn_type			(tree, tree, cp_cv_quals);
+extern tree change_return_type			(tree, tree);
 extern void maybe_retrofit_in_chrg		(tree);
 extern void maybe_make_one_only			(tree);
 extern bool vague_linkage_fn_p			(tree);
@@ -5192,6 +5193,7 @@ extern tree lambda_function			(tree);
 extern void apply_lambda_return_type            (tree, tree);
 extern tree add_capture                         (tree, tree, tree, bool, bool);
 extern tree add_default_capture                 (tree, tree, tree);
+extern void register_capture_members		(tree);
 extern tree lambda_expr_this_capture            (tree);
 extern void maybe_add_lambda_conv_op            (tree);
 

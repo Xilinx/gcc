@@ -1,3 +1,77 @@
+2010-02-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41997
+	* semantics.c (finish_compound_literal): Use
+	cp_apply_type_quals_to_decl when creating a static variable.
+
+2010-02-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43024
+	* name-lookup.h (current_binding_level): Check for null
+	cp_function_chain.
+
+2010-02-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43054
+	* tree.c (cp_tree_equal): Correct CALL_EXPR logic.
+
+2010-02-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/43033
+	* name-lookup.c (pushdecl_maybe_friend): Check default args of t
+	instead of x.
+
+2010-02-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41896
+	* semantics.c (outer_lambda_capture_p): Revert.
+	(add_capture): Only finish_member_declaration if
+	we're in the lambda class.
+	(register_capture_members): New.
+	* cp-tree.h: Declare it.
+	* parser.c (cp_parser_lambda_expression): Call it.
+
+2010-02-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41896
+	* semantics.c (outer_lambda_capture_p): Use current_function_decl
+	instead of current_class_type.
+
+2010-02-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42983, core issue 906
+	* method.c (defaultable_fn_check): Check virtualness.
+
+2010-02-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43016
+	* semantics.c (maybe_add_lambda_conv_op): Set DECL_INTERFACE_KNOWN.
+
+2010-02-10  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* Make-lang.in (cp/cvt.o, cp/parser.o, cp/search.o): Depend on intl.h.
+	* cvt.c (warn_ref_binding): Wrap the messages into G_() for easy
+	translation.
+	* parser.c (cp_parser_postfix_expression, cp_parser_new_type_id)
+	(cp_parser_cast_expression, cp_parser_condition, cp_parser_decltype)
+	(cp_parser_parameter_declaration)
+	(cp_parser_exception_specification_opt)
+	(cp_parser_exception_declaration): Likewise.
+	* pt.c (check_default_tmpl_args): Likewise.
+	* search.c (lookup_field_r): Likewise.
+
+2010-02-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42399
+	* pt.c (tsubst_copy_and_build): Propagate LAMBDA_EXPR_LOCATION.
+
+2010-02-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42370
+	* decl2.c (change_return_type): New fn.
+	* semantics.c (apply_lambda_return_type): Use it.
+	* cp-tree.h: Declare it.
+
 2010-02-05  Richard Guenther  <rguenther@suse.de>
 
 	* Make-lang.in (cp/cp-lang.o): Depend on gt-cp-cp-lang.h.
