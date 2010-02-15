@@ -407,15 +407,10 @@ is_tm_abort (tree fndecl)
 tree
 build_tm_abort_call (location_t loc, bool is_outer)
 {
-  tree x;
-
-  x = build_call_expr (built_in_decls[BUILT_IN_TM_ABORT], 1,
-		       build_int_cst (integer_type_node,
-				      AR_USERABORT
-				      | (is_outer ? AR_OUTERABORT : 0)));
-  SET_EXPR_LOCATION (x, loc);
-
-  return x;
+  return build_call_expr_loc (loc, built_in_decls[BUILT_IN_TM_ABORT], 1,
+			      build_int_cst (integer_type_node,
+					     AR_USERABORT
+					     | (is_outer ? AR_OUTERABORT : 0)));
 }
 
 /* Common gateing function for several of the TM passes.  */
@@ -1798,10 +1793,12 @@ transaction_subcode_ior (struct tm_region *region, unsigned flags)
 
 /* Construct a memory load in a transactional context.  Return the
    gimple statement performing the load, or NULL if there is no
-   TM_LOAD builtin of the appropriate size to do the load.  */
+   TM_LOAD builtin of the appropriate size to do the load.
+
+   LOC is the location to use for the new statement(s).  */
 
 static gimple
-build_tm_load (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
+build_tm_load (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 {
   enum built_in_function code = END_BUILTINS;
   tree t, type = TREE_TYPE (rhs);
@@ -1838,6 +1835,7 @@ build_tm_load (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 
   t = gimplify_addr (gsi, rhs);
   gcall = gimple_build_call (built_in_decls[code], 1, t);
+  gimple_set_location (gcall, loc);
 
   t = TREE_TYPE (TREE_TYPE (built_in_decls[code]));
   if (useless_type_conversion_p (type, t))
@@ -1866,7 +1864,7 @@ build_tm_load (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 /* Similarly for storing TYPE in a transactional context.  */
 
 static gimple
-build_tm_store (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
+build_tm_store (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 {
   enum built_in_function code = END_BUILTINS;
   tree t, fn, type = TREE_TYPE (rhs), simple_type;
@@ -1912,6 +1910,7 @@ build_tm_store (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
       temp = make_rename_temp (simple_type, NULL);
       t = fold_build1 (VIEW_CONVERT_EXPR, simple_type, rhs);
       g = gimple_build_assign (temp, t);
+      gimple_set_location (g, loc);
       gsi_insert_before (gsi, g, GSI_SAME_STMT);
 
       rhs = temp;
@@ -1919,6 +1918,7 @@ build_tm_store (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 
   t = gimplify_addr (gsi, lhs);
   gcall = gimple_build_call (built_in_decls[code], 2, t, rhs);
+  gimple_set_location (gcall, loc);
   gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
   
   return gcall;
@@ -1931,6 +1931,7 @@ static void
 expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
+  location_t loc = gimple_location (stmt);
   tree lhs = gimple_assign_lhs (stmt);
   tree rhs = gimple_assign_rhs1 (stmt);
   bool store_p = requires_barrier (region->entry_block, lhs, NULL);
@@ -1950,12 +1951,12 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
   if (load_p && !store_p)
     {
       transaction_subcode_ior (region, GTMA_HAVE_LOAD);
-      gcall = build_tm_load (lhs, rhs, gsi);
+      gcall = build_tm_load (loc, lhs, rhs, gsi);
     }
   else if (store_p && !load_p)
     {
       transaction_subcode_ior (region, GTMA_HAVE_STORE);
-      gcall = build_tm_store (lhs, rhs, gsi);
+      gcall = build_tm_store (loc, lhs, rhs, gsi);
     }
   if (!gcall)
     {
@@ -1970,6 +1971,7 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
 				 build_fold_addr_expr (lhs),
 				 build_fold_addr_expr (rhs),
 				 TYPE_SIZE_UNIT (TREE_TYPE (lhs)));
+      gimple_set_location (gcall, loc);
       gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
     }
 
@@ -2040,10 +2042,12 @@ expand_call_tm (struct tm_region *region,
   if (lhs && requires_barrier (region->entry_block, lhs, stmt))
     {
       tree tmp = make_rename_temp (TREE_TYPE (lhs), NULL);
+      location_t loc = gimple_location (stmt);
 
       gimple_call_set_lhs (stmt, tmp);
       update_stmt (stmt);
       stmt = gimple_build_assign (lhs, tmp);
+      gimple_set_location (stmt, loc);
       gsi_insert_after (gsi, stmt, GSI_CONTINUE_LINKING);
       expand_assign_tm (region, gsi);
 
@@ -2302,6 +2306,7 @@ expand_transaction (struct tm_region *region)
   t2 = build_int_cst (TREE_TYPE (status), flags);
   g = gimple_build_call (tm_start, 1, t2);
   gimple_call_set_lhs (g, status);
+  gimple_set_location (g, gimple_location (region->transaction_stmt));
 
   atomic_bb = gimple_bb (region->transaction_stmt);
 

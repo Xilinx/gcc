@@ -1,3 +1,12 @@
+2010-02-15  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (build_tm_abort_call): Use build_call_expr_loc.
+	(build_tm_load): Use new location argument.
+	(build_tm_store): Same.
+	(expand_assign_tm): Pass location to build_tm_{load,store}.
+	(expand_transaction): Set location info.
+	(expand_call_tm): Same.
+
 2010-02-03  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (ipa_tm_scan_irr_block): Iterate CFG.
