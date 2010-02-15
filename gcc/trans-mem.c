@@ -37,6 +37,7 @@
 #include "ggc.h"
 #include "params.h"
 #include "target.h"
+#include "langhooks.h"
 
 
 #define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
@@ -2101,7 +2102,10 @@ expand_block_tm (struct tm_region *region, basic_block bb)
    following a TM_IRREVOCABLE call.  */
 
 static VEC (basic_block, heap) *
-get_tm_region_blocks (struct tm_region *region, bool stop_at_irrevocable_p)
+get_tm_region_blocks (basic_block entry_block,
+		      bitmap exit_blocks,
+		      bitmap irr_blocks,
+		      bool stop_at_irrevocable_p)
 {
   VEC(basic_block, heap) *bbs = NULL;
   unsigned i;
@@ -2110,26 +2114,28 @@ get_tm_region_blocks (struct tm_region *region, bool stop_at_irrevocable_p)
   bitmap visited_blocks = BITMAP_ALLOC (NULL);
 
   i = 0;
-  VEC_safe_push (basic_block, heap, bbs, region->entry_block);
+  VEC_safe_push (basic_block, heap, bbs, entry_block);
+  bitmap_set_bit (visited_blocks, entry_block->index);
 
   do
     {
       basic_block bb = VEC_index (basic_block, bbs, i++);
 
-      bitmap_set_bit (visited_blocks, bb->index);
-
-      if (region->exit_blocks &&
-	  bitmap_bit_p (region->exit_blocks, bb->index))
+      if (exit_blocks &&
+	  bitmap_bit_p (exit_blocks, bb->index))
 	continue;
 
       if (stop_at_irrevocable_p
-	  && region->irr_blocks
-	  && bitmap_bit_p (region->irr_blocks, bb->index))
+	  && irr_blocks
+	  && bitmap_bit_p (irr_blocks, bb->index))
 	continue;
 
       FOR_EACH_EDGE (e, ei, bb->succs)
 	if (!bitmap_bit_p (visited_blocks, e->dest->index))
-	  VEC_safe_push (basic_block, heap, bbs, e->dest);
+	  {
+	    bitmap_set_bit (visited_blocks, e->dest->index);
+	    VEC_safe_push (basic_block, heap, bbs, e->dest);
+	  }
     }
   while (i < VEC_length (basic_block, bbs));
 
@@ -2168,7 +2174,10 @@ execute_tm_mark (void)
 	    subcode &= GTMA_DECLARATION_MASK;
 	  gimple_transaction_set_subcode (region->transaction_stmt, subcode);
 
-	  queue = get_tm_region_blocks (region, /*stop_at_irr_p=*/true);
+	  queue = get_tm_region_blocks (region->entry_block,
+					region->exit_blocks,
+					region->irr_blocks,
+					/*stop_at_irr_p=*/true);
 	  for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
 	    expand_block_tm (region, bb);
 	  VEC_free (basic_block, heap, queue);
@@ -2401,7 +2410,10 @@ execute_tm_edges (void)
 	/* Collect the set of blocks in this region.  Do this before
 	   splitting edges, so that we don't have to play with the
 	   dominator tree in the middle.  */
-	queue = get_tm_region_blocks (region, /*stop_at_irr_p=*/false);
+	queue = get_tm_region_blocks (region->entry_block,
+				      region->exit_blocks,
+				      region->irr_blocks,
+				      /*stop_at_irr_p=*/false);
 	expand_transaction (region);
 	for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
 	  expand_block_edges (region, bb);
@@ -3043,7 +3055,9 @@ execute_tm_memopt (void)
       bitmap_obstack_initialize (&tm_memopt_obstack);
 
       /* Save all BBs for the current region.  */
-      bbs = get_tm_region_blocks (region, false);
+      bbs = get_tm_region_blocks (region->entry_block,
+				  region->exit_blocks,
+				  region->irr_blocks, false);
 
       /* Collect all the memory operations.  */
       for (i = 0; VEC_iterate (basic_block, bbs, i, bb); ++i)
@@ -3400,48 +3414,52 @@ ipa_tm_scan_irr_blocks (VEC (basic_block, heap) **pqueue, bitmap new_irr,
    tree which has been fully propagated; NEW_IRR is the set of new blocks
    which are gaining the irrevocable property during the current scan.  */
 
-static bool
-ipa_tm_propagate_irr (basic_block bb, bitmap new_irr, bitmap old_irr,
-		      bitmap exit_blocks, bool parent_irr)
+static void
+ipa_tm_propagate_irr (basic_block entry_block, bitmap new_irr, bitmap old_irr,
+		      bitmap exit_blocks)
 {
-  bool this_irr;
-  unsigned index = bb->index;
+  VEC (basic_block, heap) *bbs;
 
   /* If this block is in the old set, no need to rescan.  */
-  if (old_irr && bitmap_bit_p (old_irr, index))
-    return true;
+  if (old_irr && bitmap_bit_p (old_irr, entry_block->index))
+    return;
 
-  /* For downward propagation, the block is irrevocable if either 
-     the parent block is irrevocable or a scan of the the block
-     revealed an irrevocable statement.  */
-  this_irr = (parent_irr || bitmap_bit_p (new_irr, index));
-
-  if (!bitmap_bit_p (exit_blocks, index))
+  bbs = get_tm_region_blocks (entry_block, exit_blocks, NULL, false);
+  do
     {
-      basic_block son = first_dom_son (CDI_DOMINATORS, bb);
+      basic_block bb = VEC_pop (basic_block, bbs);
+      bool this_irr = bitmap_bit_p (new_irr, bb->index);
       bool all_son_irr = true;
+      edge_iterator ei;
+      edge e;
 
-      if (son)
+      /* Propagate up.  If my children are, I am too.  */
+      if (!this_irr)
 	{
-	  do
-	    {
-	      if (!ipa_tm_propagate_irr (son, new_irr, old_irr,
-					 exit_blocks, this_irr))
+	  FOR_EACH_EDGE (e, ei, bb->succs)
+	    if (!bitmap_bit_p (new_irr, e->dest->index))
+	      {
 		all_son_irr = false;
-	      son = next_dom_son (CDI_DOMINATORS, son);
+		break;
+	      }
+	  if (all_son_irr)
+	    {
+	      bitmap_set_bit (new_irr, bb->index);
+	      this_irr = true;
 	    }
-	  while (son);
+	}
 
-	  /* For upward propagation, the block is irrevocable if
-	     all dominated blocks are irrevocable.  */
-	  this_irr |= all_son_irr;
+      /* Propagate down to everyone we immediately dominate.  */
+      if (this_irr)
+	{
+	  basic_block son;
+	  for (son = first_dom_son (CDI_DOMINATORS, bb);
+	       son;
+	       son = next_dom_son (CDI_DOMINATORS, son))
+	    bitmap_set_bit (new_irr, son->index);
 	}
     }
-
-  if (this_irr)
-    bitmap_set_bit (new_irr, index);
-
-  return this_irr;
+  while (!VEC_empty (basic_block, bbs));
 }
 
 static void
@@ -3504,8 +3522,11 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
       old_irr = d->irrevocable_blocks_clone;
       VEC_quick_push (basic_block, queue, single_succ (ENTRY_BLOCK_PTR));
       if (ipa_tm_scan_irr_blocks (&queue, new_irr, old_irr, NULL))
-	ret = ipa_tm_propagate_irr (single_succ (ENTRY_BLOCK_PTR), new_irr,
-				    old_irr, NULL, false);
+	{
+	  ipa_tm_propagate_irr (single_succ (ENTRY_BLOCK_PTR), new_irr,
+				old_irr, NULL);
+	  ret = bitmap_bit_p (new_irr, single_succ (ENTRY_BLOCK_PTR)->index);
+	}
     }
   else
     {
@@ -3518,7 +3539,7 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
 	  if (ipa_tm_scan_irr_blocks (&queue, new_irr, old_irr,
 				      region->exit_blocks))
 	    ipa_tm_propagate_irr (region->entry_block, new_irr, old_irr,
-				  region->exit_blocks, false);
+				  region->exit_blocks);
 	}
     }
 
@@ -3545,6 +3566,17 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
     }
   else
     BITMAP_FREE (new_irr);
+
+  if (dump_file)
+    {
+      const char *dname;
+      bitmap_iterator bmi;
+      unsigned i;
+
+      dname = lang_hooks.decl_printable_name (current_function_decl, 2);
+      EXECUTE_IF_SET_IN_BITMAP (new_irr, 0, i, bmi)
+	fprintf (dump_file, "%s: bb %d goes irrevocable\n", dname, i);
+    }
 
   VEC_free (basic_block, heap, queue);
   pop_cfun ();
@@ -3636,10 +3668,13 @@ ipa_tm_diagnose_transaction (struct cgraph_node *node,
       }
     else
       {
-	VEC (basic_block, heap) *bbs = get_tm_region_blocks (r, false);
+	VEC (basic_block, heap) *bbs;
 	gimple_stmt_iterator gsi;
 	basic_block bb;
 	size_t i;
+
+	bbs = get_tm_region_blocks (r->entry_block, r->exit_blocks,
+				    r->irr_blocks, false);
 
 	for (i = 0; VEC_iterate (basic_block, bbs, i, bb); ++i)
 	  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))

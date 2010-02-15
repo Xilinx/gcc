@@ -1,5 +1,20 @@
 2010-02-15  Aldy Hernandez  <aldyh@redhat.com>
 
+	* trans-mem.c: Include langhooks.h.
+	(get_tm_region_blocks): Remove region parameter.  Add exit_blocks
+	and irr_blocks parameters.  Adjust accordingly.
+	(execute_tm_mark): Adjust calls to get_tm_region_blocks.
+	(execute_tm_edges): Same.
+	(execute_tm_memopt): Same.
+	(ipa_tm_diagnose_transaction): Same.
+	(ipa_tm_propagate_irr): Rewrite to walk CFG instead of dominator
+	tree.  Remove parent_irr parameter.
+	(ipa_tm_scan_irr_function): Adjust call to ipa_tm_propagate_irr.
+	Dump irrevocable blocks.
+	* Makefile.in (trans-mem.o): Depend on langhooks.h.
+
+2010-02-15  Aldy Hernandez  <aldyh@redhat.com>
+
 	* trans-mem.c (build_tm_abort_call): Use build_call_expr_loc.
 	(build_tm_load): Use new location argument.
 	(build_tm_store): Same.
