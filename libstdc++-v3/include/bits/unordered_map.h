@@ -1,6 +1,6 @@
-// TR1 unordered_map -*- C++ -*-
+// unordered_map implementation -*- C++ -*-
 
-// Copyright (C) 2007, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -22,14 +22,15 @@
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-/** @file tr1_impl/unordered_map
+/** @file bits/unordered_map.h
  *  This is an internal header file, included by other library headers.
  *  You should not attempt to use it directly.
  */
 
-namespace std
-{
-_GLIBCXX_BEGIN_NAMESPACE_TR1
+#ifndef _UNORDERED_MAP_H
+#define _UNORDERED_MAP_H
+
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 
   // XXX When we get typedef templates these class definitions
   // will be unnecessary.
@@ -81,10 +82,8 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 		__eql, std::_Select1st<std::pair<const _Key, _Tp> >(), __a)
 	{ }
 
-#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
       __unordered_map(__unordered_map&& __x)
       : _Base(std::forward<_Base>(__x)) { }
-#endif
     };
   
   template<class _Key, class _Tp,
@@ -138,10 +137,8 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 		__eql, std::_Select1st<std::pair<const _Key, _Tp> >(), __a)
         { }
 
-#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
       __unordered_multimap(__unordered_multimap&& __x)
       : _Base(std::forward<_Base>(__x)) { }
-#endif
     };
 
   template<class _Key, class _Tp, class _Hash, class _Pred, class _Alloc,
@@ -214,7 +211,6 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	: _Base(__f, __l, __n, __hf, __eql, __a)
         { }
 
-#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
       unordered_map(unordered_map&& __x)
       : _Base(std::forward<_Base>(__x)) { }
 
@@ -243,7 +239,6 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	this->insert(__l.begin(), __l.end());
 	return *this;
       }
-#endif
     };
   
   /**
@@ -298,7 +293,6 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	: _Base(__f, __l, __n, __hf, __eql, __a)
         { }
 
-#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
       unordered_multimap(unordered_multimap&& __x)
       : _Base(std::forward<_Base>(__x)) { }
 
@@ -327,7 +321,6 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	this->insert(__l.begin(), __l.end());
 	return *this;
       }
-#endif
     };
 
   template<class _Key, class _Tp, class _Hash, class _Pred, class _Alloc>
@@ -342,5 +335,6 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	 unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>& __y)
     { __x.swap(__y); }
 
-_GLIBCXX_END_NAMESPACE_TR1
-}
+_GLIBCXX_END_NESTED_NAMESPACE
+
+#endif /* _UNORDERED_MAP_H */
