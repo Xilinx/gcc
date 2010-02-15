@@ -1,3 +1,6 @@
+2010-02-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: more of alternate matching.
+
 2010-02-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* run-melt.h (curfptr, curfnum, curfclos, curfrout): macros
 	deleted and renamed as..

@@ -2475,13 +2475,16 @@ context. $MXCT_SOURCE is the source matching
 expression. $MXCT_NMATCHED is the normal matched
 expression. $MXCT_CASES is the tuple of cases each of
 $CLASS_MATCH_CASE. $MXCT_ENV is the environment of the
-match. $MXCT_MDATA is the initial matched data of $CLASS_MATCHED_DATA.}#
+match. $MXCT_MDATA is the initial matched data of
+$CLASS_MATCHED_DATA. $MXCT_VARHANDLERS is the list of pattern variable
+handlers.}#
   :fields ( mxct_normctxt
 	    mxct_source 
 	    mxct_nmatched 
 	    mxct_cases 
 	    mxct_env 
 	    mxct_mdata
+	    mxct_varhandlers
 	    ))
 
 (defclass class_match_case
@@ -2515,11 +2518,31 @@ data.}#
   :fields ( mstep_data
 	    ))
 
-(defclass class_match_step_test
+(defclass class_match_step_then
   :super class_match_step
-  :doc #{The $CLASS_MATCH_STEP_TEST is the super-class of elementary tests of pattern matching. The $MSTEP_THEN is the then branch, the $MSTEP_ELSE is the else branch.}#
-  :fields (mstep_then
-	   mstep_else))
+  :doc #{The $CLASS_MATCH_STEP_THEN super-class is for steps with a
+then edge $MSTEP_THEN.}#
+  :fields (mstep_then))
+
+(defclass class_match_step_set_variable
+  :super class_match_step_then
+  :doc #{The $CLASS_MATCH_STEP_SET_VARIABLE step sets a variable of
+symbol $MSTEPSETVAR_SYMB to the matched data.}#
+  :fields (mstepsetvar_symb))
+
+
+(defclass class_match_step_test
+  :super class_match_step_then
+  :doc #{The $CLASS_MATCH_STEP_TEST is the super-class of elementary
+tests of pattern matching. The $MSTEP_THEN is the then branch, the
+$MSTEP_ELSE is the else branch.}#
+  :fields (mstep_else))
+
+(defclass class_match_step_test_variable
+  :super class_match_step_test
+  :doc #{The $CLASS_MATCH_STEP_TEST_VARIABLE is for tests if the
+variable $MSTEPTESTVAR_SYMB is the same as the matched data.}#
+  :fields (msteptestvar_symb))
 
 (defclass class_match_step_test_group
   :super class_match_step_test
@@ -2647,14 +2670,14 @@ instance membership. $MSTINS_CLASS is the tested class. $MSTINS_SLOTS is the tup
   :formals (recv thenstep)
 )
 
-(defun putthen_matchtest (recv thenstep)
-  (debug_msg recv "putthen_matchtest recv")
-  (assert_msg "check recv" (is_a recv class_match_step_test))
-  (debug_msg thenstep "putthen_matchtest thenstep")
+(defun putthen_matchthen (recv thenstep)
+  (debug_msg recv "putthen_matchthen recv")
+  (assert_msg "check recv" (is_a recv class_match_step_then))
+  (debug_msg thenstep "putthen_matchthen thenstep")
   (assert_msg "check thenstep" (is_a thenstep class_match_step))
   (unsafe_put_fields recv :mstep_then thenstep)
 )
-(install_method class_match_step_test put_then_match putthen_matchtest)
+(install_method class_match_step_then put_then_match putthen_matchthen)
 
 (defun putthen_matchgroup (recv thenstep)
   (debug_msg recv "putthen_matchgroup recv")
@@ -2890,11 +2913,42 @@ instance membership. $MSTINS_CLASS is the tested class. $MSTINS_SLOTS is the tup
   (let ( 
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
 	(symb (unsafe_get_field :spatvar_symb recv))
+	(matctx (unsafe_get_field  :mcase_mctxt mcase))
 	(symbval (mapobject_get varmap symb))
+	(mhandlers (get_field :mxct_varhandlers matctx))
 	)
     (debug_msg symb "translpat_varpat symb")
     (debug_msg symbval "translpat_varpat symbval")
-    (assert_msg "@$@unimplemented translpat_varpat")
+    (foreach_in_list
+     (mhandlers)
+     (curpair curhandler)
+     (curhandler recv mdata mcase symbval sloc))
+    (cond 
+     ( (null symbval)
+       (mapobject_put varmap symb mdata)
+       (debug_msg varmap "translpat_varpat updated varmap")
+       (let ( (stepset (instance class_match_step_set_variable
+				 :loca_location sloc
+				 :mstep_data mdata
+				 :mstep_then ()
+				 :mstepsetvar_symb symb
+				 ))
+	      )
+	 (debug_msg stepset "translpat_varpat return stepset")
+	 (return stepset)
+	 ))
+     (:else
+      (assert_msg "check symbval" (is_a symbval class_matched_data))
+      (let ( (steptest (instance class_match_step_test_variable
+				 :loca_location sloc
+				 :mstep_data mdata
+				 :mstep_then ()
+				 :msteptestvar_symb symb
+				 ))
+	     )
+	(debug_msg steptest "translpat_varpat return steptest")
+	(return steptest)
+	)))
     ))
 (install_method class_source_pattern_variable translate_pattern translpat_varpat)
 
@@ -2907,16 +2961,32 @@ instance membership. $MSTINS_CLASS is the tested class. $MSTINS_SLOTS is the tup
   (assert_msg "check mcase" (is_a mcase class_match_case))
   (let (
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
-	(soper (unsafe_get_field :spac_operbind recv))
+	(sopbind (unsafe_get_field :spac_operbind recv))
+	(soper (unsafe_get_field :spac_operator recv))
 	(sins (unsafe_get_field :spac_inargs recv))
 	(souts (unsafe_get_field :spac_outargs recv))
+	(matctx (unsafe_get_field  :mcase_mctxt mcase))
+	(env (get_field :mxct_env matctx))
+	(ncx (get_field :mxct_normctxt matctx))
+	(opin (get_field :amatch_in soper))
+	(opout (get_field :amatch_out soper))
 	)
+    (assert_msg "check matctx" (is_a matctx class_matching_context))
+    (assert_msg "check env" (is_a env class_environment))
     (debug_msg soper "translpat_patmat soper")
+    (assert_msg "check soper" (is_a soper class_any_matcher))
     (debug_msg sins "translpat_patmat sins")
     (debug_msg souts "translpat_patmat souts")
-    (compile_warning "should normalize sins")
-    (assert_msg "@$@unimplemented translpat_patmat")
-))
+    (debug_msg sopbind "translpat_patmat sopbind")
+    (multicall
+     (nins inbinds)
+     (normalize_tuple sins env ncx sloc)
+     (debug_msg nins "translpat_patmat nins")
+     (debug_msg inbinds "translpat_patmat inbinds")
+     (if (!=i (multiple_length nins) (multiple_length opin))
+	 (error_strv sloc "bad input arity of matcher in pattern" (get_field :named_name soper)))
+     (assert_msg "@$@unimplemented translpat_patmat")
+     )))
 (install_method class_source_pattern_matcher  translate_pattern translpat_patmat)
 	
 (defun translate_matchcase (curmcase sloc)
@@ -2983,6 +3053,7 @@ instance membership. $MSTINS_CLASS is the tested class. $MSTINS_SLOTS is the tup
 			      :mxct_cases mcasetup
 			      :mxct_env env
 			      :mxct_mdata mdata
+			      :mxct_varhandlers (make_list discr_list)
 			      ))
 	    )
        (debug_msg matctyp "normexp_altmatch matctyp")
