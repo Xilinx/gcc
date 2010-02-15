@@ -1,3 +1,64 @@
+2010-02-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43068
+	* g++.dg/torture/pr43068.C: New testcase.
+
+2010-02-14  Volker Reichelt  <reichelt@gcc.gnu.org>
+
+	PR c++/43024
+	* g++.dg/opt/ice1.C: New.
+
+2010-02-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41997
+	* g++.dg/cpp0x/initlist-opt.C: New.
+
+2010-02-13  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41113
+	PR fortran/41117
+	* gfortran.dg/internal_pack_6.f90: New test.
+
+2010-02-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43054
+	* g++.dg/cpp0x/variadic99.C: New.
+
+2010-02-12  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/guality/guality.h (GUALCVT): Zero extend instead of
+	sign extend pointers to gualchk_t.
+
+	PR c++/43033
+	* g++.dg/other/default3.C: Xfail g4 test.
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43012
+	* gcc.dg/graphite/pr43012.c: New.
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42930
+	* g++.dg/graphite/pr42930.C: New.
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42914
+	PR middle-end/42530
+	* gcc.dg/graphite/pr42530.c: New.
+	* gcc.dg/graphite/pr42914.c: New.
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42771
+	* gcc.dg/graphite/pr42771.c: New.
+
+2010-02-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42998
+	* gcc.c-torture/compile/pr42998.c: New testcase.
+
 2010-02-10  Jason Merrill  <jason@redhat.com>
 
 	PR c++/41896

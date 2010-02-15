@@ -2060,7 +2060,9 @@ cp_tree_equal (tree t1, tree t2)
 	       arg2 = next_call_expr_arg (&iter2))
 	  if (!cp_tree_equal (arg1, arg2))
 	    return false;
-	return (arg1 || arg2);
+	if (arg1 || arg2)
+	  return false;
+	return true;
       }
 
     case TARGET_EXPR:
