@@ -459,7 +459,7 @@
 (define_insn "adddi3"
   [(set (match_operand:DI 0 "register_operand" "=d,d,d")
 	(plus:DI (match_operand:DI 1 "register_operand" "%d,d,d")
-		 (match_operand:DI 2 "arith_operand" "d,K,JL")))]
+		 (match_operand:DI 2 "arith_operand32" "d,P,N")))]
   ""
   "@
   add\t%L0,%L1,%L2\;addc\t%M0,%M1,%M2
@@ -496,7 +496,7 @@
 (define_insn "subdi3"
   [(set (match_operand:DI 0 "register_operand" "=d,d,d,d")
 	(minus:DI (match_operand:DI 1 "register_operand" "d,d,d,d")
-		  (match_operand:DI 2 "arith_operand" "d,P,J,N")))]
+		  (match_operand:DI 2 "arith_operand32" "d,P,J,N")))]
   ""
   "@
    rsub\t%L0,%L2,%L1\;rsubc\t%M0,%M2,%M1
@@ -1035,8 +1035,8 @@
 
 
 (define_insn "*movdi_internal"
-  [(set (match_operand:DI 0 "nonimmediate_operand" "=d,d,d,d,d,d,R,m")
-	(match_operand:DI 1 "general_operand"      " d,F,J,i,R,m,d,d"))]
+  [(set (match_operand:DI 0 "nonimmediate_operand" "=d,d,d,d,d,R,m")
+	(match_operand:DI 1 "general_operand"      " d,i,J,R,m,d,d"))]
   ""
   { 
     switch (which_alternative)
@@ -1048,22 +1048,20 @@
       case 2:
 	  return "addk\t%0,r0,r0\n\taddk\t%D0,r0,r0";
       case 3:
-	  return "addik\t%M0,r0,%s1\n\taddik\t%L0,r0,%1";
       case 4:
-      case 5:
         if (reg_mentioned_p (operands[0], operands[1]))
           return "lwi\t%D0,%o1\n\tlwi\t%0,%1";
 	else
 	  return "lwi\t%0,%1\n\tlwi\t%D0,%o1";
+      case 5:
       case 6:
-      case 7:
         return "swi\t%1,%0\n\tswi\t%D1,%o0";
     }
     return "unreachable";
   }
-  [(set_attr "type"	"no_delay_move,no_delay_arith,no_delay_arith,no_delay_arith,no_delay_load,no_delay_load,no_delay_store,no_delay_store")
+  [(set_attr "type"	"no_delay_move,no_delay_arith,no_delay_arith,no_delay_load,no_delay_load,no_delay_store,no_delay_store")
   (set_attr "mode"	"DI")
-  (set_attr "length"   "8,8,8,8,8,12,8,12")])
+  (set_attr "length"   "8,8,8,8,12,8,12")])
 
 (define_split
   [(set (match_operand:DI 0 "register_operand" "")

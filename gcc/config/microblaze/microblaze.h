@@ -405,6 +405,7 @@ extern enum reg_class microblaze_regno_to_class[];
 /* REGISTER AND CONSTANT CLASSES */
 
 #define SMALL_INT(X) ((unsigned HOST_WIDE_INT) (INTVAL (X) + 0x8000) < 0x10000)
+#define LARGE_INT(X) (INTVAL (X) >= 0x80000000 && INTVAL (X) <= 0xffffffff)
 #define PLT_ADDR_P(X) (GET_CODE (X) == UNSPEC && XINT (X,1) == UNSPEC_PLT)
 /* Test for a valid operand for a call instruction.
    Don't allow the arg pointer register or virtual regs
@@ -794,7 +795,7 @@ do {									\
 #define RODATA_VAR      6
 #define SDATA2_VAR      7
 
-/* These definitions are used in with the shift_type flag in the rtl */
+/* These definitions are used in with the shift_type flag in the rtl.  */
 #define SHIFT_CONST     1
 #define SHIFT_REG       2
 #define USE_ADDK        3

@@ -1685,26 +1685,8 @@ microblaze_initial_elimination_offset (int from, int to)
   return offset;
 }
 
-/* A C compound statement to output to stdio stream STREAM the
-   assembler syntax for an instruction operand X.  X is an RTL
-   expression.
-
-   CODE is a value that can be used to specify one of several ways
-   of printing the operand.  It is used when identical operands
-   must be printed differently depending on the context.  CODE
-   comes from the `%' specification that was used to request
-   printing of the operand.  If the specification was just `%DIGIT'
-   then CODE is 0; if the specification was `%LTR DIGIT' then CODE
-   is the ASCII code for LTR.
-
-   If X is a register, this macro should print the register's name.
-   The names can be found in an array `reg_names' whose type is
-   `char *[]'.  `reg_names' is initialized from `REGISTER_NAMES'.
-
-   When the machine description has a specification `%PUNCT' (a `%'
-   followed by a punctuation character), this macro is called with
-   a null pointer for X and the punctuation character for CODE.
-
+/* Print operands using format code.
+ 
    The MicroBlaze specific codes are:
 
    'X'  X is CONST_INT, prints 32 bits in hexadecimal format = "0x%08x",
@@ -1734,9 +1716,7 @@ microblaze_initial_elimination_offset (int from, int to)
 */
 
 void
-print_operand (FILE * file,	/* file to write to  */
-	       rtx op,		/* operand to print  */
-	       int letter)	/* %<letter> or 0  */
+print_operand (FILE * file, rtx op, int letter)
 {
   register enum rtx_code code;
 
@@ -1898,11 +1878,11 @@ print_operand (FILE * file,	/* file to write to  */
     else
       output_address (XEXP (op, 0));
 
-  else if (code == CONST_DOUBLE)
+  else if (letter == 'h' || letter == 'j')
     {
-      if (letter == 'h' || letter == 'j')
+      long val[2];
+      if (code == CONST_DOUBLE)
 	{
-	  long val[2];
 	  if (GET_MODE (op) == DFmode)
 	    {
 	      REAL_VALUE_TYPE value;
@@ -1914,9 +1894,20 @@ print_operand (FILE * file,	/* file to write to  */
 	      val[0] = CONST_DOUBLE_HIGH (op);
 	      val[1] = CONST_DOUBLE_LOW (op);
 	    }
-	  fprintf (file, "0x%8.8lx", (letter == 'h') ? val[0] : val[1]);
 	}
-      else if (letter == 'F')
+      else if (code == CONST_INT)
+        {
+	  val[0] = (INTVAL (op) & 0xffffffff00000000LL) >> 32;
+	  val[1] = INTVAL (op) & 0x00000000ffffffffLL;
+	  if (val[0] == 0 && val[1] < 0)
+	    val[0] = -1;
+	    
+        }
+      fprintf (file, "0x%8.8lx", (letter == 'h') ? val[0] : val[1]);
+    }
+  else if (code == CONST_DOUBLE)
+    {
+      if (letter == 'F')
 	{
 	  unsigned long value_long;
 	  REAL_VALUE_TYPE value;
