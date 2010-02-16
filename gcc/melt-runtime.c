@@ -10653,6 +10653,7 @@ void
 melt_assert_failed (const char *msg, const char *filnam,
 		       int lineno, const char *fun)
 {
+  time_t nowt = 0;
   static char msgbuf[600];
   if (!msg)
     msg = "??no-msg??";
@@ -10668,8 +10669,9 @@ melt_assert_failed (const char *msg, const char *filnam,
     snprintf (msgbuf, sizeof (msgbuf) - 1, "%s:%d: MELT ASSERT: %s {%s}",
 	      lbasename (filnam), lineno, fun, msg);
   melt_dbgshortbacktrace (msgbuf, 100);
-  fatal_error ("%s:%d: MELT ASSERT FAILED <%s> : %s\n",
-	       lbasename (filnam), lineno, fun, msg);
+  time (&nowt);
+  fatal_error ("%s:%d: MELT ASSERT FAILED <%s> : %s\n @ %s\n",
+	       lbasename (filnam), lineno, fun, msg, ctime (&nowt));
 }
 
 void

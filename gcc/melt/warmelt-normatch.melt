@@ -2556,9 +2556,21 @@ $MSTGROUP_ELSE.}#
 (defclass class_match_step_instance
   :super class_match_step_test
   :doc #{The $CLASS_MATCH_STEP_INSTANCE is the class for testing
-instance membership. $MSTINS_CLASS is the tested class. $MSTINS_SLOTS is the tuple of slot matched data.}#
+instance membership. $MSTINS_CLASS is the tested class. $MSTINS_SLOTS
+is the tuple of slot matched data.}#
   :fields (mstins_class
 	   mstins_slots))
+
+(defclass class_match_step_matcher
+  :super class_match_step_test
+  :doc #{The $CLASS_MATCH_STEP_MATCHER is the class for testing with
+matcher. $MSTMA_MATCHER is the matcher, $MSTMA_BINDS is the local
+binding list for inputs, $MSTMA_INS is the normalized inputs,
+$MSTMA_OUTS is the tuple of output matched data.}#
+  :fields (mstma_matcher
+	   mstma_binds
+	   mstma_ins
+	   mstma_outs))
 
 (defselector scan_subpatterns class_selector
   :doc #{Apply a given function $FUN to the subpatterns of reciever
@@ -2970,6 +2982,9 @@ instance membership. $MSTINS_CLASS is the tested class. $MSTINS_SLOTS is the tup
 	(ncx (get_field :mxct_normctxt matctx))
 	(opin (get_field :amatch_in soper))
 	(opout (get_field :amatch_out soper))
+	(:long nbopout (multiple_length opout))
+	(curstep ())
+	(mdatasteps (unsafe_get_field :mdata_steps mdata))
 	)
     (assert_msg "check matctx" (is_a matctx class_matching_context))
     (assert_msg "check env" (is_a env class_environment))
@@ -2983,19 +2998,145 @@ instance membership. $MSTINS_CLASS is the tested class. $MSTINS_SLOTS is the tup
      (normalize_tuple sins env ncx sloc)
      (debug_msg nins "translpat_patmat nins")
      (debug_msg inbinds "translpat_patmat inbinds")
+     (assert_msg "check inbinds" (is_list_or_null inbinds))
      (if (!=i (multiple_length nins) (multiple_length opin))
-	 (error_strv sloc "bad input arity of matcher in pattern" (get_field :named_name soper)))
+	 (error_strv sloc "bad input arity of matcher in pattern" 
+		     (get_field :named_name soper)))
      (foreach_in_multiple
       (nins)
       (curnin :long nix)
       (let ( (curopin (multiple_nth opin nix))
+	     (curctyp (get_ctype curnin env))
+	     (inctyp (get_field :fbind_type curopin))
 	     )
 	(debug_msg curnin "translpat_patmat curnin")
 	(debug_msg curopin "translpat_patmat curopin")
-	(assert_msg "@$@unimplemented translpat_patmat input processing")
-      ))
-     (assert_msg "@$@unimplemented translpat_patmat")
-     )))
+	(debug_msg curctyp "translpat_patmat curctyp")
+	(assert_msg "check curopin" (is_a curopin class_formal_binding))
+	(assert_msg "check curctyp" (is_a curctyp class_ctype))
+	(if (!= curctyp inctyp)
+	    (progn
+	      (error_strv sloc "bad input type in matcher, expecting"
+			  (get_field :named_name inctyp))
+	      (error_strv sloc
+			  "mistyped formal name in matcher is"
+			  (get_field  :named_name (get_field :binder curopin)))
+	      (error_strv sloc "got input type in matcher" 
+			  (get_field :named_name curctyp))
+	      (return)))
+	))
+     ;; try to find the same test step
+     (foreach_in_list
+      (mdatasteps)
+      (curpairstep curdatastep)
+      (assert_msg "check curdatastep" (is_a curdatastep class_match_step))
+      (if (and
+	   (is_a curdatastep class_match_step_matcher)
+	   (== (unsafe_get_field :mstep_data curdatastep) mdata)
+	   (== (unsafe_get_field :mstma_matcher curdatastep) soper)
+	   (==i (list_length inbinds) 0)
+	   (==i (list_length (unsafe_get_field :mstma_binds curdatastep)) 0)
+	   )
+	  (let ( (similarstep curdatastep)
+		 (curins (unsafe_get_field :mstma_ins curdatastep))
+		 )
+	    (foreach_in_multiple
+	     (curins)
+	     (cursimin :long simix)
+	     (if (!= (multiple_nth nins simix) cursimin)
+		 (progn
+		   (setq simix -1)
+		   (setq cursimin ())
+		   (setq similarstep ())))
+	     )
+	    (debug_msg similarstep "translpat_patmat similiarstep")
+	    (if similarstep 
+		(progn
+		  (setq curstep similarstep)
+		  (setq curpairstep ())
+		  (setq curdatastep ())))
+	    ))
+      )
+     (debug_msg curstep "translpat_patmat custep after seeking")
+     (if (null curstep)
+	 (let ( 
+	       (outdatatup (make_multiple discr_multiple nbopout))
+	       (step (instance class_match_step_matcher
+			       :loca_location sloc
+			       :mstep_data mdata
+			       :mstep_then ()
+			       :mstep_else ()
+			       :mstma_matcher soper
+			       :mstma_binds inbinds
+			       :mstma_ins nins
+			       :mstma_outs outdatatup))
+	       )
+	   (setq curstep step)
+	   (foreach_in_multiple
+	    (opout)
+	    (curoutbind :long outix)
+	    (debug_msg curoutbind "translpat_patmat curoutbind")
+	    (assert_msg "check curoutbind" (is_a curoutbind class_formal_binding))
+	    (let ( (outsymb (get_field :binder curoutbind))
+		   (outctyp (get_field :fbind_type curoutbind))
+		   (newslot (instance class_matched_data
+				      :mdata_symb (clone_symbol outsymb)
+				      :mdata_ctype outctyp
+				      :mdata_orig step
+				      :mdata_steps (make_list discr_list)))
+		   )
+	      (debug_msg outsymb "translpat_patmat outsymb")
+	      (debug_msg newslot "translpat_patmat newslot")
+	      (multiple_put_nth outdatatup outix newslot)
+	      (assert_msg "check outctyp" (is_a outctyp class_ctype))
+	      ))
+	   ))
+     (debug_msg curstep "translpat_patmat curstep after making it")
+     (assert_msg "check curstep" (is_a curstep class_match_step_matcher))
+     (debug_msg souts "translpat_patmat souts again")
+     (let ( 
+	   (outdata (get_field :mstma_outs curstep))
+	   (thenlist (make_list discr_list))
+	   (elselist (make_list discr_list))
+	   (laststep curstep)
+	   (testgroup (instance class_match_step_test_group
+				:loca_location sloc
+				:mstep_data mdata
+				:mstep_then ()
+				:mstep_else ()
+				:mstgroup_then ()
+				:mstgroup_else ()
+				))
+	   )
+       (foreach_in_multiple
+	(outdata)
+	(curoutdata :long dix)
+	(let ( (outpat (multiple_nth souts dix))
+	       )
+	(debug_msg curoutdata "translpat_patmat curoutdata")
+	(debug_msg outpat "translpat_patmat outpat")
+	(let ( (outstep (translate_pattern outpat curoutdata mcase varmap sloc))
+	       )
+	  (debug_msg outstep "translpat_patmat outstep")
+	  (if outstep
+	      (progn
+		(put_then_match laststep outstep)
+		(list_append elselist outstep)
+		(setq laststep outstep)
+		))
+	)))
+       (compile_warning "should update testgroup correctly")
+       (put_fields
+	testgroup
+	:mstgroup_then ()
+	:mstgroup_else ())
+       (debug_msg testgroup "translpat_patmat testgroup")
+       (assert_msg "@$@unimplemented translpat_patmat")
+       )
+	    
+     )
+    )
+  )
 (install_method class_source_pattern_matcher  translate_pattern translpat_patmat)
 	
 (defun translate_matchcase (curmcase sloc)

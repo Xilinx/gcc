@@ -1,3 +1,8 @@
+2010-02-16  Basile Starynkevitch  <basile@starynkevitch.net> 
+	* melt/warmelt-normatch.melt: more of alternate matching.
+	* melt-runtime.c (melt_assert_failed): also shows the time of failure.
+
+
 2010-02-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: renamed normalize_local_binding as
 	normalize_binding. The class_any_binding captures constant
