@@ -1282,10 +1282,6 @@ microblaze_version_to_int (const char *version)
   return iver;
 }
 
-
-/* Set up the threshold for data to go into the small data area, instead
-   of the normal data area, and detect any conflicts in the switches.  */
-
 static bool
 microblaze_handle_option (size_t code,
 			  const char *arg ATTRIBUTE_UNUSED,
@@ -1293,10 +1289,12 @@ microblaze_handle_option (size_t code,
 {
   switch (code)
     {
-      /* Check if we are asked to not clear BSS 
-         If YES, we do not place zero initialized in BSS.   */
     case OPT_mno_clearbss:
       flag_zero_initialized_in_bss = 0;
+      warning (0, "-mno-clearbss is deprecated; use -fno-zero-initialized-in-bss");
+      break;
+    case OPT_mxl_stack_check:
+      warning (0, "-mxl_stack_check is deprecated; use -fstack-check.");
       break;
     }
   return true;
