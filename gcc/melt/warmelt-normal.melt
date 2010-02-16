@@ -931,13 +931,13 @@ routine procedures.}#
      )))
 
 
-(defselector normalize_local_binding class_selector
+(defselector normalize_binding class_selector
   :doc #{Normalize a locally bound symbol. $RECV is the binding, $ENV
 is the environment, $NCX is the normal context, $PSLOC the parent
 source location.}#
-  :formals (recv env ncx psloc))
+  :formals (recv env ncx procs psloc))
 
-(defun normbind_failany (recv env ncx psloc)
+(defun normbind_failany (recv env ncx procs psloc)
   (debug_msg recv "normbind_failany recv")
   (let ( (dis (discrim recv))
 	 )
@@ -945,22 +945,49 @@ source location.}#
     (error_strv psloc "unexpected binding normalization of class" (get_field :named_name dis))
     (assert_msg "@$@unexpected normalize binding" ())
 ))
-(install_method discr_any_receiver normalize_local_binding normbind_failany)
+(install_method discr_any_receiver normalize_binding normbind_failany)
 
-(defun normbind_failanybind (recv env ncx psloc)
-  (debug_msg recv "normbind_failany recv")
-  (let ( (dis (discrim recv))
+(defun normbind_anybind (bind env ncx procs psloc)
+  (debug_msg bind "normbind_anybind bind½")
+  (let ( (dis (discrim bind))
+	 (symb (unsafe_get_field :binder bind)) 
+	 (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
 	 )
-    (debug_msg dis "normbind_failanybind dis")
-    (error_strv psloc "unexpected binding normalization of binding of " (get_field :named_name dis))
-    (error_strv psloc "unexpected binding of symbol" (get_field :named_name (get_field :binder recv)))
-    (assert_msg "@$@unexpected normalize binding" ())
-))
-(install_method class_any_binding normalize_local_binding normbind_failanybind)
+    (warning_strv psloc "bizarre?? constant reference to"
+		  (unsafe_get_field :named_name symb))
+    (debug_msg dis "normbind_anybind dis")
+    (warning_strv psloc "bizarre binding normalization of binding of " (get_field :named_name dis))
+    (let ( (kocc
+	    (instance class_nrep_constocc
+		      :nrep_loc psloc
+		      :nocc_ctyp ctype_value
+		      :nocc_symb symb
+		      :nocc_bind bind) ) )
+      (debug_msg kocc "normbind_anybind kocc" )
+      ;; cache the result & return it
+      (mapobject_put sycmap symb kocc)
+      ;; put the const occurrence if needed in the const list of each proc
+      (foreach_in_list
+       (procs)
+       (curpair curproc)
+       (debug_msg curproc "normbind_anybind const curproc")
+       (assert_msg "check curproc" (is_a curproc class_nrep_anyproc))
+       (let ( (clbox (make_box discr_box kocc))
+	      (constproc (unsafe_get_field :nrpro_const curproc)) )
+	 (foreach_in_list
+	  (constproc)
+	  (curpaircl curcl)
+	  (if (== curcl kocc) (progn (box_put clbox ()) ())))
+	 (let ( (newcl (box_content clbox)) )
+	   (if newcl (list_append constproc newcl))) 
+	 ))
+      (return kocc)
+      )))
+(install_method class_any_binding normalize_binding normbind_anybind)
 
 
 ;; normalize local formal bindings
-(defun normbind_formalbind (bind env ncx psloc)
+(defun normbind_formalbind (bind env ncx procs psloc)
   (assert_msg "check bind" (is_a bind class_formal_binding))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
@@ -977,12 +1004,12 @@ source location.}#
     (mapobject_put sycmap symb syocc)
     syocc
     ))
-(install_method class_formal_binding  normalize_local_binding normbind_formalbind)
+(install_method class_formal_binding  normalize_binding normbind_formalbind)
 
 
 ;; normalize local let binding
 
-(defun normbind_letbind (bind env ncx psloc)
+(defun normbind_letbind (bind env ncx procs psloc)
   (assert_msg "check bind" (is_a bind class_let_binding))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
@@ -999,11 +1026,11 @@ source location.}#
     (mapobject_put sycmap symb syocc)
     syocc
     ))
-(install_method class_let_binding  normalize_local_binding normbind_letbind)
+(install_method class_let_binding  normalize_binding normbind_letbind)
 
 
 ;;; normalize local fixed binding
-(defun normbind_fixbind (bind env ncx psloc)
+(defun normbind_fixbind (bind env ncx procs psloc)
   (assert_msg "check bind" (is_a bind class_fixed_binding))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
@@ -1021,10 +1048,10 @@ source location.}#
 	  ;; cache the result & return it
 	  (mapobject_put sycmap symb fixdat)
 	  fixdat))
-(install_method class_fixed_binding  normalize_local_binding normbind_fixbind)
+(install_method class_fixed_binding  normalize_binding normbind_fixbind)
 
 ;; normalize local constructed binding
-(defun normbind_constructbind (bind env ncx psloc)
+(defun normbind_constructbind (bind env ncx procs psloc)
   (assert_msg "check bind" (is_a bind class_normal_constructor_binding))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
@@ -1054,7 +1081,7 @@ source location.}#
 	    (mapobject_put sycmap symb ourlocsym)
 	    (return ourlocsym)
 )))
-(install_method class_normal_constructor_binding normalize_local_binding normbind_constructbind)
+(install_method class_normal_constructor_binding normalize_binding normbind_constructbind)
 
 ;; for symbols which are imported from a previous environment (this
 ;; only happens when compiling stuff which is not this warmelt-*) we
@@ -1209,51 +1236,14 @@ source location.}#
 		   )))
 	      clocc
 	      ) ) ) ) 
-      ;; formal arg is a local
-      ( (is_a bind class_formal_binding)
-	(normalize_local_binding bind env ncx psloc)
-	)
-      ;; let binding is a local
-      ( (is_a bind class_let_binding)
-	(normalize_local_binding bind env ncx psloc)
-	)
-      ;; handle fixed bindings (like defun definstance defciterator defclass ....)
-      ( (is_a bind class_fixed_binding)
-	(normalize_local_binding bind env ncx psloc)
-	)
-      ;; handle letrec constructed bindings...
-      ( (is_a bind class_normal_constructor_binding)
-	(normalize_local_binding bind env ncx psloc)
-	)
-      ;; all other cases are constants, probably unusual, so we warn
+      ;; dispatch the binding
       (:else 
-       (debug_msg bind "normexp_symbol const? bind")
-       (warning_strv psloc "bizarre?? constant reference to"
-		     (unsafe_get_field :named_name recv))
-       (let ( (kocc
-	       (instance class_nrep_constocc
-			 :nrep_loc psloc
-			 :nocc_ctyp ctype_value
-			 :nocc_symb recv
-			 :nocc_bind bind) ) )
-	 (debug_msg kocc "normexp_symbol kocc" )
-	 ;; cache the result & return it
-	 (mapobject_put sycmap recv kocc)
-	 ;; put the const occurrence if needed in the const list of each proc
-	 (list_every
-	  procs
-	  (lambda (pr)
-	    (debug_msg pr "normexp_symbol const pr")
-	    (assert_msg "check pr" (is_a pr class_nrep_anyproc))
-	    (let ( (clbox (make_box discr_box kocc))
-		   (constproc (unsafe_get_field :nrpro_const pr)) )
-	      (list_every 
-	       constproc
-	       (lambda (cl) (if (== cl kocc) (progn (box_put clbox ()) ()))))
-	      (let ( (newcl (box_content clbox)) )
-		(if newcl (list_append constproc newcl))) 
-	      )))
-	 kocc
+       (debug_msg bind "normexp_symbol dispatching bind")
+       (let ( (resnormbind 
+	       (normalize_binding bind env ncx procs psloc))
+	      )
+	 (debug_msg resnormbind "normalize_binding return resnormbind")
+	 (return resnormbind)
 	 ))))))
 
 (install_method class_symbol normal_exp normexp_symbol)
@@ -6283,7 +6273,7 @@ source location.}#
  normal_exp
  normal_letrec_constructive
  normal_predef
- normalize_local_binding
+ normalize_binding
  normalize_tuple
  prepare_constructor_binding
  wrap_normal_let1

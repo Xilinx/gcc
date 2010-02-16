@@ -1,4 +1,9 @@
 2010-02-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt: renamed normalize_local_binding as
+	normalize_binding. The class_any_binding captures constant
+	occurrences.
+
+2010-02-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: added normalize_local_binding
 	selector and start using it.  
 	* melt/warmelt-normatch.melt: more of alternate matching.
