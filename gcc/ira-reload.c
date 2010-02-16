@@ -470,8 +470,8 @@ create_new_allocno_for_spilling (int nreg, int oreg)
 #endif
   ALLOCNO_NREFS (to) = ALLOCNO_NREFS (from);
   ALLOCNO_FREQ (to) = REG_FREQ (nreg);
-  ALLOCNO_CALL_FREQ (to) = ALLOCNO_CALL_FREQ (from);
-  ALLOCNO_CALLS_CROSSED_NUM (to) = ALLOCNO_CALLS_CROSSED_NUM (from);
+  ALLOCNO_CALL_FREQ (to) = 0;
+  ALLOCNO_CALLS_CROSSED_NUM (to) = 0;
   ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (to)
     = ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (from);
   ALLOCNO_BAD_SPILL_P (to) = ALLOCNO_BAD_SPILL_P (from);
@@ -480,6 +480,7 @@ create_new_allocno_for_spilling (int nreg, int oreg)
   ALLOCNO_COVER_CLASS_COST (to) = ALLOCNO_COVER_CLASS_COST (from);
   ALLOCNO_MEMORY_COST (to) = ALLOCNO_MEMORY_COST (from);
   ALLOCNO_UPDATED_MEMORY_COST (to) = ALLOCNO_UPDATED_MEMORY_COST (from);
+  ALLOCNO_NEXT_REGNO_ALLOCNO (to) = NULL;
   ira_allocate_and_copy_costs (&ALLOCNO_HARD_REG_COSTS (to),
 			       ALLOCNO_COVER_CLASS (to),
 			       ALLOCNO_HARD_REG_COSTS (from));
@@ -664,7 +665,6 @@ build_conflicts_for_new_allocnos (rtx head, rtx tail,
 
   live = BITMAP_ALLOC (NULL);
 
-
   for (insn = tail; insn != PREV_INSN (head); insn = PREV_INSN (insn))
     {
       df_ref *def_rec, *use_rec;
@@ -689,6 +689,24 @@ build_conflicts_for_new_allocnos (rtx head, rtx tail,
 	}
 	
       call_p = CALL_P (insn);
+
+      if (call_p)
+	{
+	  bitmap_iterator bi;
+	  unsigned int i;
+	  int freq;
+
+	  freq = REG_FREQ_FROM_BB (BLOCK_FOR_INSN (insn));
+	  if (freq == 0)
+	    freq = 1;
+	  EXECUTE_IF_SET_IN_BITMAP (live, orig_max_reg_num, i, bi)
+	    {
+	      ira_allocno_t a = ira_regno_allocno_map[i];
+	      ALLOCNO_CALLS_CROSSED_NUM (a)++;
+	      ALLOCNO_CALL_FREQ (a) += freq;
+	    }
+	}
+
       /* Mark conflicts for any values defined in this insn.  */
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
 	if (!call_p || !DF_REF_FLAGS_IS_SET (*def_rec, DF_REF_MAY_CLOBBER))

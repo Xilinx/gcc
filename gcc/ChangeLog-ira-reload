@@ -1,3 +1,10 @@
+2010-02-16  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (create_new_allocno_for_spilling): Zero CALL_FREQ
+	CALLS_CROSSED_NUM and NEXT_REGNO_ALLOCNO fields.
+	(build_conflicts_for_new_allocnos): Update CALL_FREQ and
+	CALLS_CROSSED_NUM for new allocnos as needed.
+
 2010-02-11  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (ira_reload): Recompute DF info immediately after
