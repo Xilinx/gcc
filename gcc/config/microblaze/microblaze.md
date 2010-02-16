@@ -875,16 +875,16 @@
 
 ;; basic Sign Extend Operations
 
-(define_insn "sext8"
+(define_insn "extendqisi2"
   [(set (match_operand:SI 0 "register_operand" "=d")
 	(sign_extend:SI (match_operand:QI 1 "register_operand" "d")))]
-  "(GET_CODE(operands[1]) != MEM)"
+  ""
   "sext8\t%0,%1"
   [(set_attr "type"	"arith")
   (set_attr "mode"	"SI")
   (set_attr "length"	"4")])
 
-(define_insn "sext16"
+(define_insn "extendhisi2"
   [(set (match_operand:SI 0 "register_operand" "=d")
 	(sign_extend:SI (match_operand:HI 1 "register_operand" "d")))]
   ""
@@ -914,72 +914,6 @@
   [(set_attr "type"	"multi,multi,multi")
   (set_attr "mode"	"DI")
   (set_attr "length"	"20,20,20")])
-
-
-;; Sign extension from QI to DI mode
-
-(define_insn "extendqidi2"
-  [(set (match_operand:DI 0 "register_operand" "=d,d,d")
-	(sign_extend:DI (use (match_operand:QI 1 "nonimmediate_operand" "d,R,m"))))]
-  ""
-  { 
-     if (which_alternative == 0)
-       output_asm_insn ("addk\t%D0,r0,%1", operands);
-     else
-       output_asm_insn ("lw%i1\t%D0,%1", operands);
-     output_asm_insn ("sext8\t%D0,%D0", operands);
-     output_asm_insn ("add\t%0,%D0,%D0", operands);
-     output_asm_insn ("addc\t%0,r0,r0", operands);
-     output_asm_insn ("beqi\t%0,.+8", operands);
-     return "addi\t%0,r0,0xffffffff";
-  }
-  [(set_attr "type"	"multi,multi,multi")
-  (set_attr "mode"	"DI")
-  (set_attr "length"	"24,24,24")])
-
-
-;; Sign extension from HI to DI mode
-
-(define_insn "extendhidi2"
-  [(set (match_operand:DI 0 "register_operand" "=d,d,d")
-	(sign_extend:DI (use (match_operand:HI 1 "nonimmediate_operand" "d,R,m"))))]
-   ""
-  { 
-     if (which_alternative == 0)
-       output_asm_insn ("addk\t%D0,r0,%1", operands);
-     else
-       output_asm_insn ("lhu%i1\t%D0,%1", operands);
-     output_asm_insn ("sext16\t%D0,%D0", operands);
-     output_asm_insn ("add\t%0,%D0,%D0", operands);
-     output_asm_insn ("addc\t%0,r0,r0", operands);
-     output_asm_insn ("beqi\t%0,.+8", operands);
-     return "addi\t%0,r0,0xffffffff";
-  }
-  [(set_attr "type"	"multi,multi,multi")
-  (set_attr "mode"	"DI")
-  (set_attr "length"	"24,24,24")])
-
-(define_expand "extendqisi2"
-  [(set (match_operand:SI 0 "register_operand" "")
-	(sign_extend:SI (match_operand:QI 1 "nonimmediate_operand" "")))]
-  ""
-  {
-    if (GET_CODE (operands[1]) == MEM)
-        operands[1] = force_not_mem (operands[1]);
-    emit_insn (gen_sext8 (operands[0], operands[1]));	
-    DONE;
-  }
-)
-
-(define_expand "extendhisi2"
-  [(set (match_operand:SI 0 "register_operand" "")
-	(sign_extend:SI (match_operand:HI 1 "nonimmediate_operand" "")))]
-  ""
-  {
-    if (GET_CODE (operands[1]) == MEM)
-        operands[1] = force_not_mem (operands[1]);
-  }
-)
 
 ;;----------------------------------------------------------------
 ;; Data movement
