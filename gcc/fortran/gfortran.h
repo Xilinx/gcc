@@ -377,7 +377,7 @@ enum gfc_isym_id
   GFC_ISYM_FSEEK,
   GFC_ISYM_FSTAT,
   GFC_ISYM_FTELL,
-  GFC_ISYM_GAMMA,
+  GFC_ISYM_TGAMMA,
   GFC_ISYM_GERROR,
   GFC_ISYM_GETARG,
   GFC_ISYM_GET_COMMAND,
@@ -713,9 +713,6 @@ typedef struct
   /* Set if the symbol has been referenced in an expression.  No further
      modification of type or type parameters is permitted.  */
   unsigned referenced:1;
-
-  /* Set if the symbol has ambiguous interfaces.  */
-  unsigned ambiguous_interfaces:1;
 
   /* Set if this is the symbol for the main program.  */
   unsigned is_main_program:1;
@@ -1375,8 +1372,9 @@ typedef struct gfc_namespace
   /* Set to 1 if namespace is an interface body with "IMPORT" used.  */
   unsigned has_import_set:1;
 
-  /* Set to 1 if resolved has been called for this namespace.  */
-  unsigned resolved:1;
+  /* Set to 1 if resolved has been called for this namespace.
+     Holds -1 during resolution.  */
+  signed resolved:2;
 
   /* Set to 1 if code has been generated for this namespace.  */
   unsigned translated:1;
@@ -2617,6 +2615,8 @@ gfc_try gfc_check_assign_symbol (gfc_symbol *, gfc_expr *);
 
 gfc_expr *gfc_default_initializer (gfc_typespec *);
 gfc_expr *gfc_get_variable_expr (gfc_symtree *);
+
+gfc_array_spec *gfc_get_full_arrayspec_from_expr (gfc_expr *expr);
 
 bool gfc_traverse_expr (gfc_expr *, gfc_symbol *,
 			bool (*)(gfc_expr *, gfc_symbol *, int*),

@@ -430,6 +430,17 @@ notice (const char *cmsgid, ...)
   va_end (ap);
 }
 
+/* Notify user of a non-error, without translating the format string.  */
+void
+notice_translated (const char *cmsgid, ...)
+{
+  va_list ap;
+
+  va_start (ap, cmsgid);
+  vfprintf (stderr, cmsgid, ap);
+  va_end (ap);
+}
+
 /* Die when sys call fails.  */
 
 void
@@ -1677,8 +1688,11 @@ main (int argc, char **argv)
        control whether we need a first pass link later on or not, and what
        will remain to be scanned there.  */
 
-    scanfilter this_filter
-      = shared_obj ? ld1_filter : (ld1_filter & ~SCAN_DWEH);
+    scanfilter this_filter = ld1_filter;
+#if HAVE_AS_REF
+    if (!shared_obj)
+      this_filter &= ~SCAN_DWEH;
+#endif
 
     while (export_object_lst < object)
       scan_prog_file (*export_object_lst++, PASS_OBJ, this_filter);
@@ -1806,9 +1820,18 @@ main (int argc, char **argv)
 
   if (debug)
     {
-      notice ("%d constructor(s) found\n", constructors.number);
-      notice ("%d destructor(s)  found\n", destructors.number);
-      notice ("%d frame table(s) found\n", frame_tables.number);
+      notice_translated (ngettext ("%d constructor found\n",
+                                   "%d constructors found\n",
+                                   constructors.number),
+                         constructors.number);
+      notice_translated (ngettext ("%d destructor found\n",
+                                   "%d destructors found\n",
+                                   destructors.number),
+                         destructors.number);
+      notice_translated (ngettext("%d frame table found\n",
+                                  "%d frame tables found\n",
+                                  frame_tables.number),
+                         frame_tables.number);
     }
 
   /* If the scan exposed nothing of special interest, there's no need to

@@ -13387,16 +13387,6 @@ ix86_fixup_binary_operands (enum rtx_code code, enum machine_mode mode,
   if (MEM_P (src1) && !rtx_equal_p (dst, src1))
     src1 = force_reg (mode, src1);
 
-  /* In order for the multiply-add patterns to get matched, we need
-     to aid combine by forcing all operands into registers to start.  */
-  if (optimize && TARGET_FMA4)
-    {
-      if (MEM_P (src2))
-	src2 = force_reg (GET_MODE (src2), src2);
-      else if (MEM_P (src1))
-	src1 = force_reg (GET_MODE (src1), src1);
-    }
-
   operands[1] = src1;
   operands[2] = src2;
   return dst;
@@ -15391,7 +15381,7 @@ ix86_expand_int_movcc (rtx operands[])
   enum rtx_code code = GET_CODE (operands[1]), compare_code;
   rtx compare_seq, compare_op;
   enum machine_mode mode = GET_MODE (operands[0]);
-  bool sign_bit_compare_p = false;;
+  bool sign_bit_compare_p = false;
 
   start_sequence ();
   ix86_compare_op0 = XEXP (operands[1], 0);
@@ -15432,7 +15422,6 @@ ix86_expand_int_movcc (rtx operands[])
           if (!sign_bit_compare_p)
 	    {
 	      rtx flags;
-	      rtx (*insn)(rtx, rtx, rtx);
 	      bool fpcmp = false;
 
 	      compare_code = GET_CODE (compare_op);
@@ -15473,11 +15462,10 @@ ix86_expand_int_movcc (rtx operands[])
 		tmp = gen_reg_rtx (mode);
 
 	      if (mode == DImode)
-		insn = gen_x86_movdicc_0_m1;
+		emit_insn (gen_x86_movdicc_0_m1 (tmp, flags, compare_op));
 	      else
-		insn = gen_x86_movsicc_0_m1;
-
-	      emit_insn (insn (tmp, flags, compare_op));
+		emit_insn (gen_x86_movsicc_0_m1	(gen_lowpart (SImode, tmp),
+						 flags, compare_op));
 	    }
 	  else
 	    {
@@ -20970,6 +20958,10 @@ enum ix86_builtins
   IX86_BUILTIN_VPERMILPS,
   IX86_BUILTIN_VPERMILPD256,
   IX86_BUILTIN_VPERMILPS256,
+  IX86_BUILTIN_VPERMIL2PD,
+  IX86_BUILTIN_VPERMIL2PS,
+  IX86_BUILTIN_VPERMIL2PD256,
+  IX86_BUILTIN_VPERMIL2PS256,
   IX86_BUILTIN_VPERM2F128PD256,
   IX86_BUILTIN_VPERM2F128PS256,
   IX86_BUILTIN_VPERM2F128SI256,
@@ -22159,6 +22151,10 @@ static const struct builtin_description bdesc_args[] =
 };
 
 /* FMA4 and XOP.  */
+#define MULTI_ARG_4_DF2_DI_I	V2DF_FTYPE_V2DF_V2DF_V2DI_INT
+#define MULTI_ARG_4_DF2_DI_I1	V4DF_FTYPE_V4DF_V4DF_V4DI_INT
+#define MULTI_ARG_4_SF2_SI_I	V4SF_FTYPE_V4SF_V4SF_V4SI_INT
+#define MULTI_ARG_4_SF2_SI_I1	V8SF_FTYPE_V8SF_V8SF_V8SI_INT
 #define MULTI_ARG_3_SF		V4SF_FTYPE_V4SF_V4SF_V4SF
 #define MULTI_ARG_3_DF		V2DF_FTYPE_V2DF_V2DF_V2DF
 #define MULTI_ARG_3_SF2		V8SF_FTYPE_V8SF_V8SF_V8SF
@@ -22400,6 +22396,11 @@ static const struct builtin_description bdesc_multi_arg[] =
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_pcom_tfv8hi3,      "__builtin_ia32_vpcomtrueuw", IX86_BUILTIN_VPCOMTRUEUW, (enum rtx_code) PCOM_TRUE,    (int)MULTI_ARG_2_HI_TF },
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_pcom_tfv4si3,      "__builtin_ia32_vpcomtrueud", IX86_BUILTIN_VPCOMTRUEUD, (enum rtx_code) PCOM_TRUE,    (int)MULTI_ARG_2_SI_TF },
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_pcom_tfv2di3,      "__builtin_ia32_vpcomtrueuq", IX86_BUILTIN_VPCOMTRUEUQ, (enum rtx_code) PCOM_TRUE,    (int)MULTI_ARG_2_DI_TF },
+
+  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v2df3,     "__builtin_ia32_vpermil2pd",  IX86_BUILTIN_VPERMIL2PD, UNKNOWN, (int)MULTI_ARG_4_DF2_DI_I },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v4sf3,     "__builtin_ia32_vpermil2ps",  IX86_BUILTIN_VPERMIL2PS, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v4df3,     "__builtin_ia32_vpermil2pd256", IX86_BUILTIN_VPERMIL2PD256, UNKNOWN, (int)MULTI_ARG_4_DF2_DI_I1 },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v8sf3,     "__builtin_ia32_vpermil2ps256", IX86_BUILTIN_VPERMIL2PS256, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I1 },
 
 };
 
@@ -22781,6 +22782,14 @@ ix86_expand_multi_arg_builtin (enum insn_code icode, tree exp, rtx target,
 
   switch (m_type)
     {
+    case MULTI_ARG_4_DF2_DI_I:
+    case MULTI_ARG_4_DF2_DI_I1:
+    case MULTI_ARG_4_SF2_SI_I:
+    case MULTI_ARG_4_SF2_SI_I1:
+      nargs = 4;
+      last_arg_constant = true;
+      break;
+
     case MULTI_ARG_3_SF:
     case MULTI_ARG_3_DF:
     case MULTI_ARG_3_SF2:
@@ -22922,6 +22931,10 @@ ix86_expand_multi_arg_builtin (enum insn_code icode, tree exp, rtx target,
 
     case 3:
       pat = GEN_FCN (icode) (target, args[0].op, args[1].op, args[2].op);
+      break;
+
+    case 4:
+      pat = GEN_FCN (icode) (target, args[0].op, args[1].op, args[2].op, args[3].op);
       break;
 
     default:
@@ -23542,6 +23555,13 @@ ix86_expand_args_builtin (const struct builtin_description *d,
       nargs = 3;
       nargs_constant = 2;
       break;
+    case MULTI_ARG_4_DF2_DI_I:
+    case MULTI_ARG_4_DF2_DI_I1:
+    case MULTI_ARG_4_SF2_SI_I:
+    case MULTI_ARG_4_SF2_SI_I1:
+      nargs = 4;
+      nargs_constant = 1;
+      break;
     case V2DI_FTYPE_V2DI_V2DI_UINT_UINT:
       nargs = 4;
       nargs_constant = 2;
@@ -23611,6 +23631,10 @@ ix86_expand_args_builtin (const struct builtin_description *d,
 
 	      case CODE_FOR_sse4_1_blendpd:
 	      case CODE_FOR_avx_vpermilv2df:
+	      case CODE_FOR_xop_vpermil2v2df3:
+	      case CODE_FOR_xop_vpermil2v4sf3:
+	      case CODE_FOR_xop_vpermil2v4df3:
+	      case CODE_FOR_xop_vpermil2v8sf3:
 		error ("the last argument must be a 2-bit immediate");
 		return const0_rtx;
 
@@ -26654,8 +26678,16 @@ ix86_expand_vector_init_duplicate (bool mmx_ok, enum machine_mode mode,
 	insn = emit_insn (gen_rtx_SET (VOIDmode, target, dup));
 	if (recog_memoized (insn) < 0)
 	  {
+	    rtx seq;
 	    /* If that fails, force VAL into a register.  */
+
+	    start_sequence ();
 	    XEXP (dup, 0) = force_reg (GET_MODE_INNER (mode), val);
+	    seq = get_insns ();
+	    end_sequence ();
+	    if (seq)
+	      emit_insn_before (seq, insn);
+
 	    ok = recog_memoized (insn) >= 0;
 	    gcc_assert (ok);
 	  }

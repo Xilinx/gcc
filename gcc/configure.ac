@@ -3326,6 +3326,21 @@ LCF0:
       [ bl __tls_get_addr(x@tlsgd)],,
       [AC_DEFINE(HAVE_AS_TLS_MARKERS, 1,
 	  [Define if your assembler supports arg info for __tls_get_addr.])])
+
+    case $target in
+      *-*-aix*)
+	gcc_GAS_CHECK_FEATURE([.ref support],
+	  gcc_cv_as_aix_ref, [2.21.0],,
+	  [	.csect stuff[[rw]]
+	     stuff:
+		.long 1
+		.extern sym
+		.ref sym
+	  ],,
+	  [AC_DEFINE(HAVE_AS_REF, 1,
+	    [Define if your assembler supports .ref])])
+	;;
+    esac
     ;;
 
   mips*-*-*)
@@ -3552,9 +3567,9 @@ Valid choices are 'yes' and 'no'.]) ;;
    [.type foo, @gnu_unique_object],,
 # Also check for ld.so support, i.e. glibc 2.11 or higher.
    [if test x$host = x$build -a x$host = x$target &&
-       glibcver=`ldd --version 2>/dev/null`; then
-      glibcmajor=`expr "$glibcver" : "ldd (GNU libc) \([[0-9]]*\)"`
-      glibcminor=`expr "$glibcver" : "ldd (GNU libc) [[0-9]]*\.\([[0-9]]*\)"`
+       glibcver=`ldd --version 2>/dev/null | sed 's/.* //;q'`; then
+      glibcmajor=`expr "$glibcver" : "\([0-9]*\)"`
+      glibcminor=`expr "$glibcver" : "[2-9]*\.\([0-9]*\)"`
       glibcnum=`expr $glibcmajor \* 1000 + $glibcminor`
       if test "$glibcnum" -ge 2011 ; then
         enable_gnu_unique_object=yes
@@ -3838,7 +3853,9 @@ AC_CACHE_CHECK(__stack_chk_fail in target C library,
     case "$target" in
        *-*-linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu)
       if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x; then
-	if test "x$with_sysroot" = x; then
+	if test "x$with_headers" != x; then
+	  glibc_header_dir=$with_headers
+	elif test "x$with_sysroot" = x; then
 	  glibc_header_dir="${exec_prefix}/${target_noncanonical}/sys-include"
 	elif test "x$with_build_sysroot" != "x"; then
 	  glibc_header_dir="${with_build_sysroot}/usr/include"
@@ -4314,12 +4331,15 @@ if test x"$enable_plugin" = x"yes"; then
   fi
 
   # Check -ldl
+  saved_LIBS="$LIBS"
   AC_SEARCH_LIBS([dlopen], [dl])
   if test x"$ac_cv_search_dlopen" = x"-ldl"; then
     pluginlibs="$pluginlibs -ldl"
   fi
+  LIBS="$saved_LIBS"
 
   # Check that we can build shared objects with -fPIC -shared
+  saved_LDFLAGS="$LDFLAGS"
   LDFLAGS="$LDFLAGS -fPIC -shared"
   AC_MSG_CHECKING([for -fPIC -shared])
   AC_TRY_LINK(
@@ -4330,6 +4350,7 @@ if test x"$enable_plugin" = x"yes"; then
     pluginlibs=
     enable_plugin=no
   fi
+  LDFLAGS="$saved_LDFLAGS"
 
   # If plugin support had been requested but not available, fail.
   if test x"$enable_plugin" = x"no" ; then

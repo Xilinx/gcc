@@ -1,6 +1,7 @@
 /* Handle modules, which amounts to loading and saving symbols and
    their attendant structures.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -2926,12 +2927,27 @@ fix_mio_expr (gfc_expr *e)
     }
   else if (e->expr_type == EXPR_FUNCTION && e->value.function.name)
     {
+      gfc_symbol *sym;
+
       /* In some circumstances, a function used in an initialization
 	 expression, in one use associated module, can fail to be
 	 coupled to its symtree when used in a specification
 	 expression in another module.  */
       fname = e->value.function.esym ? e->value.function.esym->name
 				     : e->value.function.isym->name;
+      e->symtree = gfc_find_symtree (gfc_current_ns->sym_root, fname);
+
+      if (e->symtree)
+	return;
+
+      /* This is probably a reference to a private procedure from another
+	 module.  To prevent a segfault, make a generic with no specific
+	 instances.  If this module is used, without the required
+	 specific coming from somewhere, the appropriate error message
+	 is issued.  */
+      gfc_get_symbol (fname, gfc_current_ns, &sym);
+      sym->attr.flavor = FL_PROCEDURE;
+      sym->attr.generic = 1;
       e->symtree = gfc_find_symtree (gfc_current_ns->sym_root, fname);
     }
 }
@@ -3473,7 +3489,7 @@ mio_f2k_derived (gfc_namespace *f2k)
   else
     while (peek_atom () != ATOM_RPAREN)
       {
-	gfc_intrinsic_op op = 0; /* Silence GCC.  */
+	gfc_intrinsic_op op = GFC_INTRINSIC_BEGIN; /* Silence GCC.  */
 
 	mio_lparen ();
 	mio_intrinsic_op (&op);
@@ -3750,8 +3766,9 @@ load_generic_interfaces (void)
   const char *p;
   char name[GFC_MAX_SYMBOL_LEN + 1], module[GFC_MAX_SYMBOL_LEN + 1];
   gfc_symbol *sym;
-  gfc_interface *generic = NULL;
+  gfc_interface *generic = NULL, *gen = NULL;
   int n, i, renamed;
+  bool ambiguous_set = false;
 
   mio_lparen ();
 
@@ -3836,9 +3853,13 @@ load_generic_interfaces (void)
 	      sym = st->n.sym;
 
 	      if (st && !sym->attr.generic
+		     && !st->ambiguous
 		     && sym->module
 		     && strcmp(module, sym->module))
-		st->ambiguous = 1;
+		{
+		  ambiguous_set = true;
+		  st->ambiguous = 1;
+		}
 	    }
 
 	  sym->attr.use_only = only_flag;
@@ -3854,6 +3875,26 @@ load_generic_interfaces (void)
 	      sym->generic = generic;
 	      sym->attr.generic_copy = 1;
 	    }
+
+	  /* If a procedure that is not generic has generic interfaces
+	     that include itself, it is generic! We need to take care
+	     to retain symbols ambiguous that were already so.  */
+	  if (sym->attr.use_assoc
+		&& !sym->attr.generic
+		&& sym->attr.flavor == FL_PROCEDURE)
+	    {
+	      for (gen = generic; gen; gen = gen->next)
+		{
+		  if (gen->sym == sym)
+		    {
+		      sym->attr.generic = 1;
+		      if (ambiguous_set)
+		        st->ambiguous = 0;
+		      break;
+		    }
+		}
+	    }
+
 	}
     }
 
@@ -4455,8 +4496,6 @@ read_module (void)
 		 "in module '%s'", gfc_op2string (u->op), &u->where,
 		 module_name);
     }
-
-  gfc_check_interfaces (gfc_current_ns);
 
   /* Now we should be in a position to fill f2k_derived with derived type
      extensions, since everything has been loaded.  */

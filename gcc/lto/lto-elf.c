@@ -29,6 +29,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "lto-streamer.h"
 
+/* Handle opening elf files on hosts, such as Windows, that may use 
+   text file handling that will break binary access.  */
+
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
+
 
 /* Initialize FILE, an LTO file object for FILENAME.  */
 static void
@@ -543,34 +550,32 @@ lto_elf_file_open (const char *filename, bool writable)
   lto_elf_file *elf_file;
   lto_file *result = NULL;
   off_t offset;
+  long loffset;
   off_t header_offset;
   const char *offset_p;
   char *fname;
+  int consumed;
 
-  offset_p = strchr (filename, '@');
-  if (!offset_p)
+  offset_p = strrchr (filename, '@');
+  if (offset_p
+      && offset_p != filename
+      && sscanf (offset_p, "@%li%n", &loffset, &consumed) >= 1
+      && strlen (offset_p) == (unsigned int)consumed)
     {
-      fname = xstrdup (filename);
-      offset = 0;
-      header_offset = 0;
-    }
-  else
-    {
-      /* The file started with '@' is a file containing command line
-	 options.  Stop if it doesn't exist.  */
-      if (offset_p == filename)
-	fatal_error ("command line option file '%s' does not exist",
-		     filename);
-
       fname = (char *) xmalloc (offset_p - filename + 1);
       memcpy (fname, filename, offset_p - filename);
       fname[offset_p - filename] = '\0';
-      offset_p += 3; /* skip the @0x */
-      offset = lto_parse_hex (offset_p);
+      offset = (off_t)loffset;
       /* elf_rand expects the offset to point to the ar header, not the
          object itself. Subtract the size of the ar header (60 bytes).
          We don't uses sizeof (struct ar_hd) to avoid including ar.h */
       header_offset = offset - 60;
+    }
+  else
+    {
+      fname = xstrdup (filename);
+      offset = 0;
+      header_offset = 0;
     }
 
   /* Set up.  */
@@ -580,7 +585,8 @@ lto_elf_file_open (const char *filename, bool writable)
   elf_file->fd = -1;
 
   /* Open the file.  */
-  elf_file->fd = open (fname, writable ? O_WRONLY|O_CREAT : O_RDONLY, 0666);
+  elf_file->fd = open (fname, writable ? O_WRONLY|O_CREAT|O_BINARY 
+				       : O_RDONLY|O_BINARY, 0666);
   if (elf_file->fd == -1)
     {
       error ("could not open file %s", fname);

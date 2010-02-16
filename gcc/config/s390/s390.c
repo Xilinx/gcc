@@ -1639,6 +1639,9 @@ override_options (void)
   if (s390_tune == PROCESSOR_2097_Z10
       && !PARAM_SET_P (PARAM_MAX_UNROLLED_INSNS))
     set_param_value ("max-unrolled-insns", 100);
+
+  set_param_value ("max-pending-list-length", 256);
+
 }
 
 /* Map for smallest class containing reg regno.  */
@@ -4759,8 +4762,10 @@ s390_mangle_type (const_tree type)
 static rtx
 s390_delegitimize_address (rtx orig_x)
 {
-  rtx x = orig_x, y;
+  rtx x, y;
 
+  orig_x = delegitimize_mem_from_attrs (orig_x);
+  x = orig_x;
   if (GET_CODE (x) != MEM)
     return orig_x;
 
@@ -10155,6 +10160,14 @@ s390_sched_variable_issue (FILE *file ATTRIBUTE_UNUSED,
     return more;
 }
 
+static void
+s390_sched_init (FILE *file ATTRIBUTE_UNUSED,
+		 int verbose ATTRIBUTE_UNUSED,
+		 int max_ready ATTRIBUTE_UNUSED)
+{
+  last_scheduled_insn = NULL_RTX;
+}
+
 /* Initialize GCC target structure.  */
 
 #undef  TARGET_ASM_ALIGNED_HI_OP
@@ -10215,6 +10228,8 @@ s390_sched_variable_issue (FILE *file ATTRIBUTE_UNUSED,
 #define TARGET_SCHED_VARIABLE_ISSUE s390_sched_variable_issue
 #undef TARGET_SCHED_REORDER
 #define TARGET_SCHED_REORDER s390_sched_reorder
+#undef TARGET_SCHED_INIT
+#define TARGET_SCHED_INIT s390_sched_init
 
 #undef TARGET_CANNOT_COPY_INSN_P
 #define TARGET_CANNOT_COPY_INSN_P s390_cannot_copy_insn_p

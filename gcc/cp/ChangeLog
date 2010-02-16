@@ -1,3 +1,277 @@
+2010-02-16  Jason Merrill  <jason@redhat.com>
+
+	* cp-gimplify.c (cp_gimplify_expr): Fix error recovery.
+
+	PR c++/43031
+	* cp-gimplify.c (cp_gimplify_expr) [MODIFY_EXPR]: Use
+	VIEW_CONVERT_EXPR for conversions between structural equality types
+	that the back end can't tell are the same.
+
+	PR c++/43036
+	* tree.c (build_cplus_array_type): Set TYPE_MAIN_VARIANT to strip
+	cv-quals from element here.
+	(cp_build_qualified_type_real): Not here.  Preserve typedef name.
+
+2010-02-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41997
+	* semantics.c (finish_compound_literal): Use
+	cp_apply_type_quals_to_decl when creating a static variable.
+
+2010-02-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43024
+	* name-lookup.h (current_binding_level): Check for null
+	cp_function_chain.
+
+2010-02-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43054
+	* tree.c (cp_tree_equal): Correct CALL_EXPR logic.
+
+2010-02-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/43033
+	* name-lookup.c (pushdecl_maybe_friend): Check default args of t
+	instead of x.
+
+2010-02-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41896
+	* semantics.c (outer_lambda_capture_p): Revert.
+	(add_capture): Only finish_member_declaration if
+	we're in the lambda class.
+	(register_capture_members): New.
+	* cp-tree.h: Declare it.
+	* parser.c (cp_parser_lambda_expression): Call it.
+
+2010-02-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41896
+	* semantics.c (outer_lambda_capture_p): Use current_function_decl
+	instead of current_class_type.
+
+2010-02-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42983, core issue 906
+	* method.c (defaultable_fn_check): Check virtualness.
+
+2010-02-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43016
+	* semantics.c (maybe_add_lambda_conv_op): Set DECL_INTERFACE_KNOWN.
+
+2010-02-10  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* Make-lang.in (cp/cvt.o, cp/parser.o, cp/search.o): Depend on intl.h.
+	* cvt.c (warn_ref_binding): Wrap the messages into G_() for easy
+	translation.
+	* parser.c (cp_parser_postfix_expression, cp_parser_new_type_id)
+	(cp_parser_cast_expression, cp_parser_condition, cp_parser_decltype)
+	(cp_parser_parameter_declaration)
+	(cp_parser_exception_specification_opt)
+	(cp_parser_exception_declaration): Likewise.
+	* pt.c (check_default_tmpl_args): Likewise.
+	* search.c (lookup_field_r): Likewise.
+
+2010-02-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42399
+	* pt.c (tsubst_copy_and_build): Propagate LAMBDA_EXPR_LOCATION.
+
+2010-02-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42370
+	* decl2.c (change_return_type): New fn.
+	* semantics.c (apply_lambda_return_type): Use it.
+	* cp-tree.h: Declare it.
+
+2010-02-05  Richard Guenther  <rguenther@suse.de>
+
+	* Make-lang.in (cp/cp-lang.o): Depend on gt-cp-cp-lang.h.
+	* cp-lang.c: Include gt-cp-cp-lang.h.
+	* config-lang.in (gtfiles): Add cp/cp-lang.c.
+
+2010-02-05  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42915
+	* typeck.c (get_template_parms_of_dependent_type): Try getting
+	the template parameters fromt the type itself first.
+
+2010-02-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/4926
+	PR c++/38600
+	* mangle.c (write_unqualified_id): Split out from write_expression.
+	(write_unqualified_name): Call it.
+	(write_member_name): Likewise.
+	(write_expression): Support TEMPLATE_ID_EXPR.
+	Disambiguate operator names.
+
+	PR c++/12909
+	* mangle.c (write_type) [VECTOR_TYPE]: Change mangling with
+	-fabi-version=4.
+
+2010-02-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41090
+	* decl.c (cp_finish_decl): Add local statics to cfun->local_decls.
+	* optimize.c (clone_body): Remap their initializers when making base
+	variants.
+	(maybe_clone_body): Complain if multiple clones aren't safe.
+
+2010-01-29  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42758
+	PR c++/42634
+	PR c++/42336
+	PR c++/42797
+	PR c++/42880
+	* cp-tree.h (NON_DEFAULT_TEMPLATE_ARGS_COUNT,
+	SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT,
+	GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT): New accessor macros.
+	* pt.c (coerce_template_parms, type_unification_real,
+	expand_template_argument_pack, coerce_template_parameter_pack):
+	Set the non default template args count.
+	(current_template_args): Always set non defaulted
+	template args count when compiled with --enable-checking
+	(tsubst_template_args, type_unification_real): Propagate the non
+	defaulted template args count.
+	* error.c (get_non_default_template_args_count): Renamed
+	count_non_default_template_args into this. Don't calculate the
+	non default template argument count anymore. Use the new
+	accessor macros above to get it.
+	(dump_template_argument_list, dump_type, dump_decl,
+	dump_template_parms): Adjust.
+	* parser.c (cp_parser_template_argument_list): Always set defaulted
+	template args count when compiled with --enable-checking.
+
+2010-01-29  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* decl.c (redeclaration_error_message): Wrap the return messages into
+	G_() for easy translation.
+
+2010-01-28  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42880
+	* semantics.c (begin_class_definition): Don't use type_as_string.
+
+2010-01-28  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42713
+	PR c++/42820
+	* typeck.c (get_template_parms_of_dependent_type): Factorized
+	this out of incompatible_template_type_parms_p
+	(incompatible_dependent_types_p): Renamed
+	incompatible_template_type_parms_p into this. Make it detect
+	two incompatible dependent typedefs too.
+	(structural_comptypes): Use incompatible_dependent_types_p.
+	* pt.c (get_template_info):
+	Handle BOUND_TEMPLATE_TEMPLATE_PARAM.
+
+2010-01-20  Janis Johnson  <janis187@us.ibm.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	* mangle.c (write_type): Mangle transparent record as member type.
+	* semantics.c (begin_class_definition): Recognize decimal classes
+	and set TYPE_TRANSPARENT_AGGR.
+
+2010-01-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42338
+	* mangle.c (write_expression): Handle tree codes that have extra
+	arguments in the middle-end.
+
+2010-01-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42038
+	* except.c (expand_start_catch_block): Deal correctly with
+	do_begin_catch returning error_mark_node.
+
+2010-01-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41788
+	* class.c (layout_class_type): Set packed_maybe_necessary for packed
+	non-PODs.
+
+	PR c++/41920
+	* semantics.c (build_lambda_object): Call mark_used on captured
+	variables.
+
+	PR c++/40750
+	* decl.c (grokdeclarator): Clear type_quals for a member function
+	declared using a typedef.  Don't complain about adding cv-quals
+	to a function typedef in C++0x mode.
+
+2010-01-20  Jakub Jelinek  <jakub@redhat.com>
+
+	* decl.c (create_array_type_for_decl): Remove set but not used
+	variable error_msg.  Remove break stmts after return stmts.
+
+2010-01-19  Dodji Seketeli  <dodji@redhat.com>
+
+	* error.c (dump_template_parms, count_non_default_template_args):
+	Revert fix of PR c++/42634.
+
+2010-01-18  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42634
+	* error.c (dump_template_parms): Use innermost template
+	arguments before calling count_non_default_template_args.
+	(count_non_default_template_args): We are being called with
+	template innermost arguments now. There is no need to ensure
+	that again.
+
+2010-01-18  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42766
+	* cvt.c (build_expr_type_conversion): Look through OVERLOAD.
+
+2010-01-17  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42697
+	*pt.c (tsubst_decl):  Revert commit for PR c++/42697.
+
+2010-01-17  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42697
+	*pt.c (tsubst_decl): Get the arguments of a specialization from
+	the specialization template, not from the most general template.
+
+2010-01-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42761
+	* semantics.c (finish_decltype_type): Within a template, treat
+	unresolved CALL_EXPR as dependent.
+
+2010-01-15  Dodji Seketeli  <dodji@redhat.com>
+
+	* error.c (dump_template_parms,count_non_default_template_args):
+	Revert changes of PR c++/42634.
+
+2010-01-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/42674
+	* decl.c (finish_function): Don't emit -Wreturn-type warnings in
+	functions with noreturn attribute.
+
+2010-01-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42701
+	* call.c (build_new_method_call): Don't free the vec here.
+
+	PR c++/42655
+	* call.c (convert_like_real): Do full decay_conversion for ck_rvalue.
+
+2010-01-13  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42634
+	* error.c (dump_template_parms): Use innermost template
+	arguments before calling count_non_default_template_args.
+	(count_non_default_template_args): We are being called with
+	template innermost arguments now. There is no need to ensure
+	that again.
+
 2010-01-07  Dodji Seketeli  <dodji@redhat.com>
 
 	c++/40155

@@ -115,7 +115,7 @@ Exit on the first error occurred
 
 Wframe-larger-than=
 Common RejectNegative Joined UInteger
--Wframe-larger-than=<number> Warn if a function's stack frame requires more than <number> bytes
+-Wframe-larger-than=<number>	Warn if a function's stack frame requires more than <number> bytes
 
 Winline
 Common Var(warn_inline) Warning
@@ -266,7 +266,13 @@ Common Separate
 ;
 ; 1: The version of the ABI first used in G++ 3.2.
 ;
-; 2: The version of the ABI first used in G++ 3.4.
+; 2: The version of the ABI first used in G++ 3.4 (and current default).
+;
+; 3: The version of the ABI that fixes the missing underscore
+;    in template non-type arguments of pointer type.
+;
+; 4: The version of the ABI that introduces unambiguous mangling of
+;    vector types.
 ;
 ; Additional positive integers will be assigned as new versions of
 ; the ABI become the default version of the ABI.
@@ -386,7 +392,7 @@ Do not put uninitialized globals in the common section
 
 fcompare-debug=
 Common JoinedOrMissing RejectNegative Var(flag_compare_debug_opt)
--fcompare-debug[=<opts>] Compile with and without e.g. -gtoggle, and compare the final-insns dump
+-fcompare-debug[=<opts>]	Compile with and without e.g. -gtoggle, and compare the final-insns dump
 
 fcompare-debug-second
 Common RejectNegative Var(flag_compare_debug)
@@ -430,7 +436,7 @@ List all available debugging counters with their limits and counts.
 
 fdbg-cnt=
 Common RejectNegative Joined
--fdbg-cnt=<counter>:<limit>[,<counter>:<limit>,...]    Set the debug counter limit.   
+-fdbg-cnt=<counter>:<limit>[,<counter>:<limit>,...]	Set the debug counter limit.   
 
 fdebug-prefix-map=
 Common Joined RejectNegative
@@ -736,7 +742,7 @@ Share stack slots for spilled pseudo-registers.
 
 fira-verbose=
 Common RejectNegative Joined UInteger
--fira-verbose=<number> Control IRA's level of diagnostic messages.
+-fira-verbose=<number>	Control IRA's level of diagnostic messages.
 
 fivopts
 Common Report Var(flag_ivopts) Init(1) Optimization
@@ -769,7 +775,7 @@ Enable link-time optimization.
 ; The initial value of -1 comes from Z_DEFAULT_COMPRESSION in zlib.h.
 flto-compression-level=
 Common Joined UInteger Var(flag_lto_compression_level) Init(-1)
--flto-compression-level=<number> Use zlib compression level <number> for IL
+-flto-compression-level=<number>	Use zlib compression level <number> for IL
 
 flto-report
 Common Report Var(flag_lto_report) Init(0) Optimization
@@ -908,7 +914,7 @@ Specify a plugin to load
 
 fplugin-arg-
 Common Joined RejectNegative
--fplugin-arg-<name>-<key>[=<value>] Specify argument <key>=<value> for plugin <name>
+-fplugin-arg-<name>-<key>[=<value>]	Specify argument <key>=<value> for plugin <name>
 
 fpredictive-commoning
 Common Report Var(flag_predictive_commoning) Optimization
@@ -1037,8 +1043,8 @@ Common Report Var(flag_sched2_use_superblocks) Optimization
 If scheduling post reload, do superblock scheduling
 
 fsched2-use-traces
-Common Report Var(flag_sched2_use_traces) Optimization
-If scheduling post reload, do trace scheduling
+Common
+Does nothing.  Preserved for backward compatibility.
 
 fschedule-insns
 Common Report Var(flag_schedule_insns) Optimization

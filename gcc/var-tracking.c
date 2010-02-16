@@ -1,5 +1,5 @@
 /* Variable tracking routines for the GNU compiler.
-   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -106,8 +106,18 @@
 #include "expr.h"
 #include "timevar.h"
 #include "tree-pass.h"
+#include "tree-flow.h"
 #include "cselib.h"
 #include "target.h"
+#include "toplev.h"
+#include "params.h"
+
+/* var-tracking.c assumes that tree code with the same value as VALUE rtx code
+   has no chance to appear in REG_EXPR/MEM_EXPRs and isn't a decl.
+   Currently the value is the same as IDENTIFIER_NODE, which has such
+   a property.  If this compile time assertion ever fails, make sure that
+   the new tree code that equals (int) VALUE has the same property.  */
+extern char check_value_val[(int) VALUE == (int) IDENTIFIER_NODE ? 1 : -1];
 
 /* Type of micro operation.  */
 enum micro_operation_type
@@ -337,9 +347,6 @@ typedef struct value_chain_def
 } *value_chain;
 typedef const struct value_chain_def *const_value_chain;
 
-/* Hash function for DECL for VARIABLE_HTAB.  */
-#define VARIABLE_HASH_VAL(decl) (DECL_UID (decl))
-
 /* Pointer to the BB's information specific to variable tracking pass.  */
 #define VTI(BB) ((variable_tracking_info) (BB)->aux)
 
@@ -443,11 +450,11 @@ static int add_uses (rtx *, void *);
 static void add_uses_1 (rtx *, void *);
 static void add_stores (rtx, const_rtx, void *);
 static bool compute_bb_dataflow (basic_block);
-static void vt_find_locations (void);
+static bool vt_find_locations (void);
 
 static void dump_attrs_list (attrs);
-static int dump_variable_slot (void **, void *);
-static void dump_variable (variable);
+static int dump_var_slot (void **, void *);
+static void dump_var (variable);
 static void dump_vars (htab_t);
 static void dump_dataflow_set (dataflow_set *);
 static void dump_dataflow_sets (void);
@@ -722,26 +729,7 @@ adjust_stack_reference (rtx mem, HOST_WIDE_INT adjustment)
 static inline bool
 dv_is_decl_p (decl_or_value dv)
 {
-  if (!dv)
-    return true;
-
-  /* Make sure relevant codes don't overlap.  */
-  switch ((int)TREE_CODE ((tree)dv))
-    {
-    case (int)VAR_DECL:
-    case (int)PARM_DECL:
-    case (int)RESULT_DECL:
-    case (int)FUNCTION_DECL:
-    case (int)DEBUG_EXPR_DECL:
-    case (int)COMPONENT_REF:
-      return true;
-
-    case (int)VALUE:
-      return false;
-
-    default:
-      gcc_unreachable ();
-    }
+  return !dv || (int) TREE_CODE ((tree) dv) != (int) VALUE;
 }
 
 /* Return true if a decl_or_value is a VALUE rtl.  */
@@ -755,7 +743,9 @@ dv_is_value_p (decl_or_value dv)
 static inline tree
 dv_as_decl (decl_or_value dv)
 {
+#ifdef ENABLE_CHECKING
   gcc_assert (dv_is_decl_p (dv));
+#endif
   return (tree) dv;
 }
 
@@ -763,7 +753,9 @@ dv_as_decl (decl_or_value dv)
 static inline rtx
 dv_as_value (decl_or_value dv)
 {
+#ifdef ENABLE_CHECKING
   gcc_assert (dv_is_value_p (dv));
+#endif
   return (rtx)dv;
 }
 
@@ -809,7 +801,9 @@ dv_from_decl (tree decl)
 {
   decl_or_value dv;
   dv = decl;
+#ifdef ENABLE_CHECKING
   gcc_assert (dv_is_decl_p (dv));
+#endif
   return dv;
 }
 
@@ -819,17 +813,39 @@ dv_from_value (rtx value)
 {
   decl_or_value dv;
   dv = value;
+#ifdef ENABLE_CHECKING
   gcc_assert (dv_is_value_p (dv));
+#endif
   return dv;
 }
+
+typedef unsigned int dvuid;
+
+/* Return the uid of DV.  */
+
+static inline dvuid
+dv_uid (decl_or_value dv)
+{
+  if (dv_is_value_p (dv))
+    return CSELIB_VAL_PTR (dv_as_value (dv))->uid;
+  else
+    return DECL_UID (dv_as_decl (dv));
+}
+
+/* Compute the hash from the uid.  */
+
+static inline hashval_t
+dv_uid2hash (dvuid uid)
+{
+  return uid;
+}
+
+/* The hash function for a mask table in a shared_htab chain.  */
 
 static inline hashval_t
 dv_htab_hash (decl_or_value dv)
 {
-  if (dv_is_value_p (dv))
-    return -(hashval_t)(CSELIB_VAL_PTR (dv_as_value (dv))->value);
-  else
-    return (VARIABLE_HASH_VAL (dv_as_decl (dv)));
+  return dv_uid2hash (dv_uid (dv));
 }
 
 /* The hash function for variable_htab, computes the hash value
@@ -851,29 +867,7 @@ variable_htab_eq (const void *x, const void *y)
   const_variable const v = (const_variable) x;
   decl_or_value dv = CONST_CAST2 (decl_or_value, const void *, y);
 
-  if (dv_as_opaque (v->dv) == dv_as_opaque (dv))
-    return true;
-
-#if ENABLE_CHECKING
-  {
-    bool visv, dvisv;
-
-    visv = dv_is_value_p (v->dv);
-    dvisv = dv_is_value_p (dv);
-
-    if (visv != dvisv)
-      return false;
-
-    if (visv)
-      gcc_assert (CSELIB_VAL_PTR (dv_as_value (v->dv))
-		  != CSELIB_VAL_PTR (dv_as_value (dv)));
-    else
-      gcc_assert (VARIABLE_HASH_VAL (dv_as_decl (v->dv))
-		  != VARIABLE_HASH_VAL (dv_as_decl (dv)));
-  }
-#endif
-
-  return false;
+  return (dv_as_opaque (v->dv) == dv_as_opaque (dv));
 }
 
 /* Free the element of VARIABLE_HTAB (its type is struct variable_def).  */
@@ -1154,23 +1148,6 @@ shared_hash_find (shared_hash vars, decl_or_value dv)
   return shared_hash_find_1 (vars, dv, dv_htab_hash (dv));
 }
 
-/* Determine a total order between two distinct pointers.  Compare the
-   pointers as integral types if size_t is wide enough, otherwise
-   resort to bitwise memory compare.  The actual order does not
-   matter, we just need to be consistent, so endianness is
-   irrelevant.  */
-
-static int
-tie_break_pointers (const void *p1, const void *p2)
-{
-  gcc_assert (p1 != p2);
-
-  if (sizeof (size_t) >= sizeof (void*))
-    return (size_t)p1 < (size_t)p2 ? -1 : 1;
-  else
-    return memcmp (&p1, &p2, sizeof (p1));
-}
-
 /* Return true if TVAL is better than CVAL as a canonival value.  We
    choose lowest-numbered VALUEs, using the RTX address as a
    tie-breaker.  The idea is to arrange them into a star topology,
@@ -1184,9 +1161,7 @@ static inline bool
 canon_value_cmp (rtx tval, rtx cval)
 {
   return !cval
-    || CSELIB_VAL_PTR (tval)->value < CSELIB_VAL_PTR (cval)->value
-    || (CSELIB_VAL_PTR (tval)->value == CSELIB_VAL_PTR (cval)->value
-	&& tie_break_pointers (tval, cval) < 0);
+    || CSELIB_VAL_PTR (tval)->uid < CSELIB_VAL_PTR (cval)->uid;
 }
 
 static bool dst_can_be_shared;
@@ -1401,14 +1376,15 @@ var_reg_delete_and_set (dataflow_set *set, rtx loc, bool modify,
   var_reg_set (set, loc, initialized, set_src);
 }
 
-/* Delete current content of register LOC in dataflow set SET.  If
-   CLOBBER is true, also delete any other live copies of the same
-   variable part.  */
+/* Delete the association of register LOC in dataflow set SET with any
+   variables that aren't onepart.  If CLOBBER is true, also delete any
+   other live copies of the same variable part, and delete the
+   association with onepart dvs too.  */
 
 static void
 var_reg_delete (dataflow_set *set, rtx loc, bool clobber)
 {
-  attrs *reg = &set->regs[REGNO (loc)];
+  attrs *nextp = &set->regs[REGNO (loc)];
   attrs node, next;
 
   if (clobber)
@@ -1421,13 +1397,18 @@ var_reg_delete (dataflow_set *set, rtx loc, bool clobber)
       clobber_variable_part (set, NULL, dv_from_decl (decl), offset, NULL);
     }
 
-  for (node = *reg; node; node = next)
+  for (node = *nextp; node; node = next)
     {
       next = node->next;
-      delete_variable_part (set, node->loc, node->dv, node->offset);
-      pool_free (attrs_pool, node);
+      if (clobber || !dv_onepart_p (node->dv))
+	{
+	  delete_variable_part (set, node->loc, node->dv, node->offset);
+	  pool_free (attrs_pool, node);
+	  *nextp = next;
+	}
+      else
+	nextp = &node->next;
     }
-  *reg = NULL;
 }
 
 /* Delete content of register with number REGNO in dataflow set SET.  */
@@ -1515,10 +1496,12 @@ var_mem_delete (dataflow_set *set, rtx loc, bool clobber)
   delete_variable_part (set, loc, dv_from_decl (decl), offset);
 }
 
-/* Map a value to a location it was just stored in.  */
+/* Bind a value to a location it was just stored in.  If MODIFIED
+   holds, assume the location was modified, detaching it from any
+   values bound to it.  */
 
 static void
-val_store (dataflow_set *set, rtx val, rtx loc, rtx insn)
+val_store (dataflow_set *set, rtx val, rtx loc, rtx insn, bool modified)
 {
   cselib_val *v = CSELIB_VAL_PTR (val);
 
@@ -1544,7 +1527,8 @@ val_store (dataflow_set *set, rtx val, rtx loc, rtx insn)
 
   if (REG_P (loc))
     {
-      var_regno_delete (set, REGNO (loc));
+      if (modified)
+	var_regno_delete (set, REGNO (loc));
       var_reg_decl_set (set, loc, VAR_INIT_STATUS_INITIALIZED,
 			dv_from_value (val), 0, NULL_RTX, INSERT);
     }
@@ -2252,12 +2236,18 @@ dv_changed_p (decl_or_value dv)
 	  : DECL_CHANGED (dv_as_decl (dv)));
 }
 
-/* Return a location list node whose loc is rtx_equal to LOC, in the
+/* Vector of VALUEs that should have VALUE_RECURSED_INTO bit cleared
+   at the end of find_loc_in_1pdv.  Not a static variable in find_loc_in_1pdv
+   to avoid constant allocation/freeing of it.  */
+static VEC(rtx, heap) *values_to_unmark;
+
+/* Helper function for find_loc_in_1pdv.
+   Return a location list node whose loc is rtx_equal to LOC, in the
    location list of a one-part variable or value VAR, or in that of
    any values recursively mentioned in the location lists.  */
 
 static location_chain
-find_loc_in_1pdv (rtx loc, variable var, htab_t vars)
+find_loc_in_1pdv_1 (rtx loc, variable var, htab_t vars)
 {
   location_chain node;
 
@@ -2285,16 +2275,31 @@ find_loc_in_1pdv (rtx loc, variable var, htab_t vars)
 	  {
 	    location_chain where;
 	    VALUE_RECURSED_INTO (node->loc) = true;
-	    if ((where = find_loc_in_1pdv (loc, var, vars)))
-	      {
-		VALUE_RECURSED_INTO (node->loc) = false;
-		return where;
-	      }
-	    VALUE_RECURSED_INTO (node->loc) = false;
+	    VEC_safe_push (rtx, heap, values_to_unmark, node->loc);
+	    if ((where = find_loc_in_1pdv_1 (loc, var, vars)))
+	      return where;
 	  }
       }
 
   return NULL;
+}
+
+/* Return a location list node whose loc is rtx_equal to LOC, in the
+   location list of a one-part variable or value VAR, or in that of
+   any values recursively mentioned in the location lists.  */
+
+static location_chain
+find_loc_in_1pdv (rtx loc, variable var, htab_t vars)
+{
+  location_chain ret;
+  unsigned int i;
+  rtx value;
+
+  ret = find_loc_in_1pdv_1 (loc, var, vars);
+  for (i = 0; VEC_iterate (rtx, values_to_unmark, i, value); i++)
+    VALUE_RECURSED_INTO (value) = false;
+  VEC_truncate (rtx, values_to_unmark, 0);
+  return ret;
 }
 
 /* Hash table iteration argument passed to variable_merge.  */
@@ -3536,8 +3541,8 @@ variable_post_merge_new_vals (void **slot, void *info)
 		      cdv = dv_from_value (cval);
 		      if (dump_file)
 			fprintf (dump_file,
-				 "Created new value %i for reg %i\n",
-				 v->value, REGNO (node->loc));
+				 "Created new value %u:%u for reg %i\n",
+				 v->uid, v->hash, REGNO (node->loc));
 		    }
 
 		  var_reg_decl_set (*dfpm->permp, node->loc,
@@ -3689,13 +3694,32 @@ find_mem_expr_in_1pdv (tree expr, rtx val, htab_t vars)
   return where;
 }
 
+/* Return TRUE if the value of MEM may vary across a call.  */
+
+static bool
+mem_dies_at_call (rtx mem)
+{
+  tree expr = MEM_EXPR (mem);
+  tree decl;
+
+  if (!expr)
+    return true;
+
+  decl = get_base_address (expr);
+
+  if (!decl)
+    return true;
+
+  if (!DECL_P (decl))
+    return true;
+
+  return (may_be_aliased (decl)
+	  || (!TREE_READONLY (decl) && is_global_var (decl)));
+}
+
 /* Remove all MEMs from the location list of a hash table entry for a
    one-part variable, except those whose MEM attributes map back to
-   the variable itself, directly or within a VALUE.
-
-   ??? We could also preserve MEMs that reference stack slots that are
-   annotated as not addressable.  This is arguably even more reliable
-   than the current heuristic.  */
+   the variable itself, directly or within a VALUE.  */
 
 static int
 dataflow_set_preserve_mem_locs (void **slot, void *data)
@@ -3717,16 +3741,18 @@ dataflow_set_preserve_mem_locs (void **slot, void *data)
 	{
 	  for (loc = var->var_part[0].loc_chain; loc; loc = loc->next)
 	    {
-	      /* We want to remove a MEM that doesn't refer to DECL.  */
+	      /* We want to remove dying MEMs that doesn't refer to
+		 DECL.  */
 	      if (GET_CODE (loc->loc) == MEM
 		  && (MEM_EXPR (loc->loc) != decl
-		      || MEM_OFFSET (loc->loc)))
+		      || MEM_OFFSET (loc->loc))
+		  && !mem_dies_at_call (loc->loc))
 		break;
-	      /* We want to move here a MEM that does refer to DECL.  */
+	      /* We want to move here MEMs that do refer to DECL.  */
 	      else if (GET_CODE (loc->loc) == VALUE
 		       && find_mem_expr_in_1pdv (decl, loc->loc,
 						 shared_hash_htab (set->vars)))
-	      break;
+		break;
 	    }
 
 	  if (!loc)
@@ -3763,7 +3789,8 @@ dataflow_set_preserve_mem_locs (void **slot, void *data)
 
 	  if (GET_CODE (loc->loc) != MEM
 	      || (MEM_EXPR (loc->loc) == decl
-		  && MEM_OFFSET (loc->loc) == 0))
+		  && MEM_OFFSET (loc->loc) == 0)
+	      || !mem_dies_at_call (loc->loc))
 	    {
 	      if (old_loc != loc->loc && emit_notes)
 		{
@@ -3811,7 +3838,8 @@ dataflow_set_remove_mem_locs (void **slot, void *data)
       if (var->refcount > 1 || shared_hash_shared (set->vars))
 	{
 	  for (loc = var->var_part[0].loc_chain; loc; loc = loc->next)
-	    if (GET_CODE (loc->loc) == MEM)
+	    if (GET_CODE (loc->loc) == MEM
+		&& mem_dies_at_call (loc->loc))
 	      break;
 
 	  if (!loc)
@@ -3825,7 +3853,8 @@ dataflow_set_remove_mem_locs (void **slot, void *data)
       for (locp = &var->var_part[0].loc_chain, loc = *locp;
 	   loc; loc = *locp)
 	{
-	  if (GET_CODE (loc->loc) != MEM)
+	  if (GET_CODE (loc->loc) != MEM
+	      || !mem_dies_at_call (loc->loc))
 	    {
 	      locp = &loc->next;
 	      continue;
@@ -4007,7 +4036,7 @@ dataflow_set_different_1 (void **slot, void *data)
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
 	  fprintf (dump_file, "dataflow difference found: removal of:\n");
-	  dump_variable (var1);
+	  dump_var (var1);
 	}
 
       /* Stop traversing the hash table.  */
@@ -4021,8 +4050,8 @@ dataflow_set_different_1 (void **slot, void *data)
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
 	  fprintf (dump_file, "dataflow difference found: old and new follow:\n");
-	  dump_variable (var1);
-	  dump_variable (var2);
+	  dump_var (var1);
+	  dump_var (var2);
 	}
 
       /* Stop traversing the hash table.  */
@@ -4378,7 +4407,6 @@ static enum micro_operation_type
 use_type (rtx loc, struct count_use_info *cui, enum machine_mode *modep)
 {
   tree expr;
-  cselib_val *val;
 
   if (cui && cui->sets)
     {
@@ -4399,19 +4427,24 @@ use_type (rtx loc, struct count_use_info *cui, enum machine_mode *modep)
 	    return MO_CLOBBER;
 	}
 
-      if ((REG_P (loc) || MEM_P (loc))
-	  && (val = find_use_val (loc, GET_MODE (loc), cui)))
+      if (REG_P (loc) || MEM_P (loc))
 	{
 	  if (modep)
 	    *modep = GET_MODE (loc);
 	  if (cui->store_p)
 	    {
 	      if (REG_P (loc)
-		  || cselib_lookup (XEXP (loc, 0), GET_MODE (loc), 0))
+		  || (find_use_val (loc, GET_MODE (loc), cui)
+		      && cselib_lookup (XEXP (loc, 0), GET_MODE (loc), 0)))
 		return MO_VAL_SET;
 	    }
-	  else if (!cselib_preserved_value_p (val))
-	    return MO_VAL_USE;
+	  else
+	    {
+	      cselib_val *val = find_use_val (loc, GET_MODE (loc), cui);
+
+	      if (val && !cselib_preserved_value_p (val))
+		return MO_VAL_USE;
+	    }
 	}
     }
 
@@ -4478,11 +4511,6 @@ count_uses (rtx *ploc, void *cuip)
       cselib_val *val;
       enum machine_mode mode = GET_MODE (loc);
 
-      VTI (cui->bb)->n_mos++;
-
-      if (dump_file && (dump_flags & TDF_DETAILS))
-	log_op_type (loc, cui->bb, cui->insn, mopt, dump_file);
-
       switch (mopt)
 	{
 	case MO_VAL_LOC:
@@ -4498,12 +4526,15 @@ count_uses (rtx *ploc, void *cuip)
 	    {
 	      enum machine_mode address_mode
 		= targetm.addr_space.address_mode (MEM_ADDR_SPACE (loc));
-	      val = cselib_lookup (XEXP (loc, 0), address_mode, false);
+	      val = cselib_lookup (XEXP (loc, 0), address_mode, 0);
 
 	      if (val && !cselib_preserved_value_p (val))
 		{
 		  VTI (cui->bb)->n_mos++;
 		  cselib_preserve_value (val);
+		  if (dump_file && (dump_flags & TDF_DETAILS))
+		    log_op_type (XEXP (loc, 0), cui->bb, cui->insn,
+				 MO_VAL_USE, dump_file);
 		}
 	    }
 
@@ -4526,19 +4557,27 @@ count_uses (rtx *ploc, void *cuip)
 		    {
 		      VTI (cui->bb)->n_mos++;
 		      cselib_preserve_value (oval);
+		      if (dump_file && (dump_flags & TDF_DETAILS))
+			log_op_type (loc, cui->bb, cui->insn,
+				     MO_VAL_USE, dump_file);
 		    }
 		}
 
 	      cselib_preserve_value (val);
 	    }
 	  else
-	    gcc_assert (mopt == MO_VAL_LOC);
+	    gcc_assert (mopt == MO_VAL_LOC
+			|| (mopt == MO_VAL_SET && cui->store_p));
 
 	  break;
 
 	default:
 	  break;
 	}
+
+      VTI (cui->bb)->n_mos++;
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	log_op_type (loc, cui->bb, cui->insn, mopt, dump_file);
     }
 
   return 0;
@@ -4920,6 +4959,9 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 
   v = find_use_val (oloc, mode, cui);
 
+  if (!v)
+    goto log_and_return;
+
   resolve = preserve = !cselib_preserved_value_p (v);
 
   nloc = replace_expr_with_values (oloc);
@@ -5275,6 +5317,8 @@ compute_bb_dataflow (basic_block bb)
 
 	      if (VAL_NEEDS_RESOLUTION (loc))
 		val_resolve (out, val, vloc, insn);
+	      else
+		val_store (out, val, uloc, insn, false);
 
 	      if (VAL_HOLDS_TRACK_EXPR (loc))
 		{
@@ -5366,7 +5410,7 @@ compute_bb_dataflow (basic_block bb)
 	      else if (REG_P (uloc))
 		var_regno_delete (out, REGNO (uloc));
 
-	      val_store (out, val, vloc, insn);
+	      val_store (out, val, vloc, insn, true);
 	    }
 	    break;
 
@@ -5468,7 +5512,7 @@ compute_bb_dataflow (basic_block bb)
 
 /* Find the locations of variables in the whole function.  */
 
-static void
+static bool
 vt_find_locations (void)
 {
   fibheap_t worklist, pending, fibheap_swap;
@@ -5479,6 +5523,8 @@ vt_find_locations (void)
   int *rc_order;
   int i;
   int htabsz = 0;
+  int htabmax = PARAM_VALUE (PARAM_MAX_VARTRACK_SIZE);
+  bool success = true;
 
   /* Compute reverse completion order of depth first search of the CFG
      so that the data-flow runs faster.  */
@@ -5500,7 +5546,7 @@ vt_find_locations (void)
     fibheap_insert (pending, bb_order[bb->index], bb);
   sbitmap_ones (in_pending);
 
-  while (!fibheap_empty (pending))
+  while (success && !fibheap_empty (pending))
     {
       fibheap_swap = pending;
       pending = worklist;
@@ -5523,11 +5569,11 @@ vt_find_locations (void)
 
 	      SET_BIT (visited, bb->index);
 
-	      if (dump_file && VTI (bb)->in.vars)
+	      if (VTI (bb)->in.vars)
 		{
 		  htabsz
-		    -= htab_size (shared_hash_htab (VTI (bb)->in.vars))
-		       + htab_size (shared_hash_htab (VTI (bb)->out.vars));
+		    -= (htab_size (shared_hash_htab (VTI (bb)->in.vars))
+			+ htab_size (shared_hash_htab (VTI (bb)->out.vars)));
 		  oldinsz
 		    = htab_elements (shared_hash_htab (VTI (bb)->in.vars));
 		  oldoutsz
@@ -5591,9 +5637,21 @@ vt_find_locations (void)
 		}
 
 	      changed = compute_bb_dataflow (bb);
-	      if (dump_file)
-		htabsz += htab_size (shared_hash_htab (VTI (bb)->in.vars))
-			  + htab_size (shared_hash_htab (VTI (bb)->out.vars));
+	      htabsz += (htab_size (shared_hash_htab (VTI (bb)->in.vars))
+			 + htab_size (shared_hash_htab (VTI (bb)->out.vars)));
+
+	      if (htabmax && htabsz > htabmax)
+		{
+		  if (MAY_HAVE_DEBUG_INSNS)
+		    inform (DECL_SOURCE_LOCATION (cfun->decl),
+			    "variable tracking size limit exceeded with "
+			    "-fvar-tracking-assignments, retrying without");
+		  else
+		    inform (DECL_SOURCE_LOCATION (cfun->decl),
+			    "variable tracking size limit exceeded");
+		  success = false;
+		  break;
+		}
 
 	      if (changed)
 		{
@@ -5644,16 +5702,19 @@ vt_find_locations (void)
 	}
     }
 
-  if (MAY_HAVE_DEBUG_INSNS)
+  if (success && MAY_HAVE_DEBUG_INSNS)
     FOR_EACH_BB (bb)
       gcc_assert (VTI (bb)->flooded);
 
+  VEC_free (rtx, heap, values_to_unmark);
   free (bb_order);
   fibheap_delete (worklist);
   fibheap_delete (pending);
   sbitmap_free (visited);
   sbitmap_free (in_worklist);
   sbitmap_free (in_pending);
+
+  return success;
 }
 
 /* Print the content of the LIST to dump file.  */
@@ -5675,11 +5736,11 @@ dump_attrs_list (attrs list)
 /* Print the information about variable *SLOT to dump file.  */
 
 static int
-dump_variable_slot (void **slot, void *data ATTRIBUTE_UNUSED)
+dump_var_slot (void **slot, void *data ATTRIBUTE_UNUSED)
 {
   variable var = (variable) *slot;
 
-  dump_variable (var);
+  dump_var (var);
 
   /* Continue traversing the hash table.  */
   return 1;
@@ -5688,7 +5749,7 @@ dump_variable_slot (void **slot, void *data ATTRIBUTE_UNUSED)
 /* Print the information about variable VAR to dump file.  */
 
 static void
-dump_variable (variable var)
+dump_var (variable var)
 {
   int i;
   location_chain node;
@@ -5735,7 +5796,7 @@ dump_vars (htab_t vars)
   if (htab_elements (vars) > 0)
     {
       fprintf (dump_file, "Variables:\n");
-      htab_traverse (vars, dump_variable_slot, NULL);
+      htab_traverse (vars, dump_var_slot, NULL);
     }
 }
 
@@ -6894,6 +6955,8 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 
 	      if (VAL_NEEDS_RESOLUTION (loc))
 		val_resolve (set, val, vloc, insn);
+	      else
+		val_store (set, val, uloc, insn, false);
 
 	      if (VAL_HOLDS_TRACK_EXPR (loc))
 		{
@@ -6981,7 +7044,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 	      else if (REG_P (uloc))
 		var_regno_delete (set, REGNO (uloc));
 
-	      val_store (set, val, vloc, insn);
+	      val_store (set, val, vloc, insn, true);
 
 	      emit_notes_for_changes (NEXT_INSN (insn), EMIT_NOTE_BEFORE_INSN,
 				      set->vars);
@@ -7267,7 +7330,7 @@ vt_add_function_parameters (void)
   if (MAY_HAVE_DEBUG_INSNS)
     {
       cselib_preserve_only_values (true);
-      cselib_reset_table_with_next_value (cselib_get_next_unknown_value ());
+      cselib_reset_table (cselib_get_next_uid ());
     }
 
 }
@@ -7300,15 +7363,15 @@ vt_initialize (void)
       rtx insn;
       HOST_WIDE_INT pre, post = 0;
       int count;
-      unsigned int next_value_before = cselib_get_next_unknown_value ();
-      unsigned int next_value_after = next_value_before;
+      unsigned int next_uid_before = cselib_get_next_uid ();
+      unsigned int next_uid_after = next_uid_before;
 
       if (MAY_HAVE_DEBUG_INSNS)
 	{
 	  cselib_record_sets_hook = count_with_sets;
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    fprintf (dump_file, "first value: %i\n",
-		     cselib_get_next_unknown_value ());
+		     cselib_get_next_uid ());
 	}
 
       /* Count the number of micro operations.  */
@@ -7363,12 +7426,12 @@ vt_initialize (void)
       if (MAY_HAVE_DEBUG_INSNS)
 	{
 	  cselib_preserve_only_values (false);
-	  next_value_after = cselib_get_next_unknown_value ();
-	  cselib_reset_table_with_next_value (next_value_before);
+	  next_uid_after = cselib_get_next_uid ();
+	  cselib_reset_table (next_uid_before);
 	  cselib_record_sets_hook = add_with_sets;
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    fprintf (dump_file, "first value: %i\n",
-		     cselib_get_next_unknown_value ());
+		     cselib_get_next_uid ());
 	}
 
       /* Add the micro-operations to the array.  */
@@ -7427,8 +7490,8 @@ vt_initialize (void)
       if (MAY_HAVE_DEBUG_INSNS)
 	{
 	  cselib_preserve_only_values (true);
-	  gcc_assert (next_value_after == cselib_get_next_unknown_value ());
-	  cselib_reset_table_with_next_value (next_value_after);
+	  gcc_assert (next_uid_after == cselib_get_next_uid ());
+	  cselib_reset_table (next_uid_after);
 	  cselib_record_sets_hook = NULL;
 	}
     }
@@ -7554,9 +7617,11 @@ vt_finalize (void)
 
 /* The entry point to variable tracking pass.  */
 
-unsigned int
-variable_tracking_main (void)
+static inline unsigned int
+variable_tracking_main_1 (void)
 {
+  bool success;
+
   if (flag_var_tracking_assignments < 0)
     {
       delete_debug_insns ();
@@ -7581,7 +7646,31 @@ variable_tracking_main (void)
 	}
     }
 
-  vt_find_locations ();
+  success = vt_find_locations ();
+
+  if (!success && flag_var_tracking_assignments > 0)
+    {
+      vt_finalize ();
+
+      delete_debug_insns ();
+
+      /* This is later restored by our caller.  */
+      flag_var_tracking_assignments = 0;
+
+      vt_initialize ();
+
+      if (!frame_pointer_needed && !vt_stack_adjustments ())
+	gcc_unreachable ();
+
+      success = vt_find_locations ();
+    }
+
+  if (!success)
+    {
+      vt_finalize ();
+      vt_debug_insns_local (false);
+      return 0;
+    }
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -7594,6 +7683,19 @@ variable_tracking_main (void)
   vt_finalize ();
   vt_debug_insns_local (false);
   return 0;
+}
+
+unsigned int
+variable_tracking_main (void)
+{
+  unsigned int ret;
+  int save = flag_var_tracking_assignments;
+
+  ret = variable_tracking_main_1 ();
+
+  flag_var_tracking_assignments = save;
+
+  return ret;
 }
 
 static bool

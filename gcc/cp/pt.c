@@ -317,6 +317,8 @@ get_template_info (const_tree t)
 
   if (TAGGED_TYPE_P (t))
     tinfo = TYPE_TEMPLATE_INFO (t);
+  else if (TREE_CODE (t) == BOUND_TEMPLATE_TEMPLATE_PARM)
+    tinfo = TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (t);
 
   return tinfo;
 }
@@ -3205,6 +3207,7 @@ expand_template_argument_pack (tree args)
   tree result_args = NULL_TREE;
   int in_arg, out_arg = 0, nargs = args ? TREE_VEC_LENGTH (args) : 0;
   int num_result_args = -1;
+  int non_default_args_count = -1;
 
   /* First, determine if we need to expand anything, and the number of
      slots we'll need.  */
@@ -3234,6 +3237,9 @@ expand_template_argument_pack (tree args)
 
   /* Expand arguments.  */
   result_args = make_tree_vec (num_result_args);
+  if (NON_DEFAULT_TEMPLATE_ARGS_COUNT (args))
+    non_default_args_count =
+      GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (args);
   for (in_arg = 0; in_arg < nargs; ++in_arg)
     {
       tree arg = TREE_VEC_ELT (args, in_arg);
@@ -3243,6 +3249,8 @@ expand_template_argument_pack (tree args)
           int i, num_packed = TREE_VEC_LENGTH (packed);
           for (i = 0; i < num_packed; ++i, ++out_arg)
             TREE_VEC_ELT (result_args, out_arg) = TREE_VEC_ELT(packed, i);
+	  if (non_default_args_count > 0)
+	    non_default_args_count += num_packed;
         }
       else
         {
@@ -3250,7 +3258,8 @@ expand_template_argument_pack (tree args)
           ++out_arg;
         }
     }
-
+  if (non_default_args_count >= 0)
+    SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (result_args, non_default_args_count);
   return result_args;
 }
 
@@ -3614,6 +3623,10 @@ current_template_args (void)
                           /* Turn this argument into a TYPE_ARGUMENT_PACK
                              with a single element, which expands T.  */
                           tree vec = make_tree_vec (1);
+#ifdef ENABLE_CHECKING
+			  SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT
+				(vec, TREE_VEC_LENGTH (vec));
+#endif
                           TREE_VEC_ELT (vec, 0) = make_pack_expansion (t);
                           
                           t = cxx_make_type (TYPE_ARGUMENT_PACK);
@@ -3630,6 +3643,10 @@ current_template_args (void)
                              with a single element, which expands T.  */
                           tree vec = make_tree_vec (1);
                           tree type = TREE_TYPE (TEMPLATE_PARM_DECL (t));
+#ifdef ENABLE_CHECKING
+			  SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT
+				(vec, TREE_VEC_LENGTH (vec));
+#endif
                           TREE_VEC_ELT (vec, 0) = make_pack_expansion (t);
                           
                           t  = make_node (NONTYPE_ARGUMENT_PACK);
@@ -3641,6 +3658,10 @@ current_template_args (void)
                 }
 	    }
 	}
+
+#ifdef ENABLE_CHECKING
+      SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (a, TREE_VEC_LENGTH (a));
+#endif
 
       if (length > 1)
 	TREE_VEC_ELT (args, --l) = a;
@@ -4091,16 +4112,19 @@ check_default_tmpl_args (tree decl, tree parms, int is_primary,
 
   /* Figure out what error message to issue.  */
   if (is_friend_decl == 2)
-    msg = "default template arguments may not be used in function template friend re-declaration";
+    msg = G_("default template arguments may not be used in function template "
+	     "friend re-declaration");
   else if (is_friend_decl)
-    msg = "default template arguments may not be used in function template friend declarations";
+    msg = G_("default template arguments may not be used in function template "
+	     "friend declarations");
   else if (TREE_CODE (decl) == FUNCTION_DECL && (cxx_dialect == cxx98))
-    msg = ("default template arguments may not be used in function templates "
-	   "without -std=c++0x or -std=gnu++0x");
+    msg = G_("default template arguments may not be used in function templates "
+	     "without -std=c++0x or -std=gnu++0x");
   else if (is_partial)
-    msg = "default template arguments may not be used in partial specializations";
+    msg = G_("default template arguments may not be used in "
+	     "partial specializations");
   else
-    msg = "default argument for template parameter for class enclosing %qD";
+    msg = G_("default argument for template parameter for class enclosing %qD");
 
   if (current_class_type && TYPE_BEING_DEFINED (current_class_type))
     /* If we're inside a class definition, there's no need to
@@ -4151,7 +4175,8 @@ check_default_tmpl_args (tree decl, tree parms, int is_primary,
       /* At this point, if we're still interested in issuing messages,
 	 they must apply to classes surrounding the object declared.  */
       if (msg)
-	msg = "default argument for template parameter for class enclosing %qD";
+	msg = G_("default argument for template parameter for class "
+		 "enclosing %qD");
     }
 
   return no_errors;
@@ -5734,6 +5759,10 @@ coerce_template_parameter_pack (tree parms,
     }
 
   SET_ARGUMENT_PACK_ARGS (argument_pack, packed_args);
+#ifdef ENABLE_CHECKING
+  SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (packed_args,
+				       TREE_VEC_LENGTH (packed_args));
+#endif
   return argument_pack;
 }
 
@@ -5889,9 +5918,16 @@ coerce_template_parms (tree parms,
             }
         }
       else if (require_all_args)
-        /* There must be a default arg in this case.  */
-        arg = tsubst_template_arg (TREE_PURPOSE (parm), new_args,
-                                   complain, in_decl);
+	{
+	  /* There must be a default arg in this case.  */
+	  arg = tsubst_template_arg (TREE_PURPOSE (parm), new_args,
+				     complain, in_decl);
+	  /* The position of the first default template argument,
+	     is also the number of non-defaulted arguments in NEW_INNER_ARGS.
+	     Record that.  */
+	  if (!NON_DEFAULT_TEMPLATE_ARGS_COUNT (new_inner_args))
+	    SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (new_inner_args, arg_idx);
+	}
       else
 	break;
 
@@ -5921,6 +5957,12 @@ coerce_template_parms (tree parms,
 
   if (lost)
     return error_mark_node;
+
+#ifdef ENABLE_CHECKING
+  if (!NON_DEFAULT_TEMPLATE_ARGS_COUNT (new_inner_args))
+    SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (new_inner_args,
+					 TREE_VEC_LENGTH (new_inner_args));
+#endif
 
   return new_inner_args;
 }
@@ -8390,6 +8432,19 @@ tsubst_template_args (tree t, tree args, tsubst_flags_t complain, tree in_decl)
   /* Make space for the expanded arguments coming from template
      argument packs.  */
   t = make_tree_vec (len + expanded_len_adjust);
+  /* ORIG_T can contain TREE_VECs. That happens if ORIG_T contains the
+     arguments for a member template.
+     In that case each TREE_VEC in ORIG_T represents a level of template
+     arguments, and ORIG_T won't carry any non defaulted argument count.
+     It will rather be the nested TREE_VECs that will carry one.
+     In other words, ORIG_T carries a non defaulted argument count only
+     if it doesn't contain any nested TREE_VEC.  */
+  if (NON_DEFAULT_TEMPLATE_ARGS_COUNT (orig_t))
+    {
+      int count = GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (orig_t);
+      count += expanded_len_adjust;
+      SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (t, count);
+    }
   for (i = 0, out = 0; i < len; i++)
     {
       if ((PACK_EXPANSION_P (TREE_VEC_ELT (orig_t, i))
@@ -12623,6 +12678,8 @@ tsubst_copy_and_build (tree t,
 	TREE_TYPE (r) = type;
 	CLASSTYPE_LAMBDA_EXPR (type) = r;
 
+	LAMBDA_EXPR_LOCATION (r)
+	  = LAMBDA_EXPR_LOCATION (t);
 	LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (r)
 	  = LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (t);
 	LAMBDA_EXPR_MUTABLE_P (r) = LAMBDA_EXPR_MUTABLE_P (t);
@@ -13245,6 +13302,10 @@ type_unification_real (tree tparms,
   gcc_assert (xparms == NULL_TREE || TREE_CODE (xparms) == TREE_LIST);
   gcc_assert (ntparms > 0);
 
+  /* Reset the number of non-defaulted template arguments contained
+     in in TARGS.  */
+  NON_DEFAULT_TEMPLATE_ARGS_COUNT (targs) = NULL_TREE;
+
   switch (strict)
     {
     case DEDUCE_CALL:
@@ -13423,6 +13484,11 @@ type_unification_real (tree tparms,
               else
                 {
                   TREE_VEC_ELT (targs, i) = arg;
+		  /* The position of the first default template argument,
+		     is also the number of non-defaulted arguments in TARGS.
+		     Record that.  */
+		  if (!NON_DEFAULT_TEMPLATE_ARGS_COUNT (targs))
+		    SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (targs, i);
                   continue;
                 }
             }
@@ -13450,6 +13516,10 @@ type_unification_real (tree tparms,
 
 	  return 2;
 	}
+#ifdef ENABLE_CHECKING
+  if (!NON_DEFAULT_TEMPLATE_ARGS_COUNT (targs))
+    SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (targs, TREE_VEC_LENGTH (targs));
+#endif
 
   return 0;
 }

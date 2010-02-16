@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "flags.h"
 #include "cp-tree.h"
+#include "intl.h"
 #include "convert.h"
 #include "toplev.h"
 #include "decl.h"
@@ -367,17 +368,17 @@ warn_ref_binding (tree reftype, tree intype, tree decl)
       const char *msg;
 
       if (CP_TYPE_VOLATILE_P (ttl) && decl)
-	  msg = "initialization of volatile reference type %q#T from"
-	    " rvalue of type %qT";
+	msg = G_("initialization of volatile reference type %q#T from "
+	         "rvalue of type %qT");
       else if (CP_TYPE_VOLATILE_P (ttl))
-	  msg = "conversion to volatile reference type %q#T "
-	    " from rvalue of type %qT";
+	msg = G_("conversion to volatile reference type %q#T "
+	         "from rvalue of type %qT");
       else if (decl)
-	  msg = "initialization of non-const reference type %q#T from"
-	    " rvalue of type %qT";
+	msg = G_("initialization of non-const reference type %q#T from "
+	         "rvalue of type %qT");
       else
-	  msg = "conversion to non-const reference type %q#T from"
-	    " rvalue of type %qT";
+	msg = G_("conversion to non-const reference type %q#T from "
+	         "rvalue of type %qT");
 
       permerror (input_location, msg, reftype, intype);
     }
@@ -1203,6 +1204,7 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
       int win = 0;
       tree candidate;
       tree cand = TREE_VALUE (conv);
+      cand = OVL_CURRENT (cand);
 
       if (winner && winner == cand)
 	continue;

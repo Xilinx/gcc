@@ -1247,7 +1247,8 @@ thunk_adjust (gimple_stmt_iterator * bsi,
   gimple stmt;
   tree ret;
 
-  if (this_adjusting)
+  if (this_adjusting
+      && fixed_offset != 0)
     {
       stmt = gimple_build_assign (ptr,
 				  fold_build2_loc (input_location,
@@ -1332,7 +1333,8 @@ thunk_adjust (gimple_stmt_iterator * bsi,
 			     offsettmp);
     }
 
-  if (!this_adjusting)
+  if (!this_adjusting
+      && fixed_offset != 0)
     /* Adjust the pointer by the constant.  */
     {
       tree ptrtmp;
@@ -1482,7 +1484,7 @@ assemble_thunk (struct cgraph_node *node)
 
       if (restmp && !this_adjusting)
         {
-	  tree true_label = NULL_TREE, false_label = NULL_TREE;
+	  tree true_label = NULL_TREE;
 
 	  if (TREE_CODE (TREE_TYPE (restmp)) == POINTER_TYPE)
 	    {
@@ -1496,7 +1498,6 @@ assemble_thunk (struct cgraph_node *node)
 	      else_bb = create_basic_block (NULL, (void *) 0, else_bb);
 	      remove_edge (single_succ_edge (bb));
 	      true_label = gimple_block_label (then_bb);
-	      false_label = gimple_block_label (else_bb);
 	      stmt = gimple_build_cond (NE_EXPR, restmp,
 	      				fold_convert (TREE_TYPE (restmp),
 						      integer_zero_node),

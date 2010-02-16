@@ -2320,6 +2320,10 @@ struct GTY(()) lang_decl {
 #define TYPE_NAMESPACE_SCOPE_P(NODE) \
   (TREE_CODE (CP_TYPE_CONTEXT (NODE)) == NAMESPACE_DECL)
 
+#define NAMESPACE_SCOPE_P(NODE) \
+  ((DECL_P (NODE) && DECL_NAMESPACE_SCOPE_P (NODE)) \
+   || (TYPE_P (NODE) && TYPE_NAMESPACE_SCOPE_P (NODE)))
+
 /* 1 iff NODE is a class member.  */
 #define DECL_CLASS_SCOPE_P(NODE) \
   (DECL_CONTEXT (NODE) && TYPE_P (DECL_CONTEXT (NODE)))
@@ -2493,6 +2497,23 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 #define TI_TEMPLATE(NODE) TREE_TYPE (TEMPLATE_INFO_CHECK (NODE))
 #define TI_ARGS(NODE) TREE_CHAIN (TEMPLATE_INFO_CHECK (NODE))
 #define TI_PENDING_TEMPLATE_FLAG(NODE) TREE_LANG_FLAG_1 (NODE)
+/* For a given TREE_VEC containing a template argument list,
+   this property contains the number of arguments that are not
+   defaulted.  */
+#define NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE) TREE_CHAIN (TREE_VEC_CHECK (NODE))
+/* Below are the setter and getter of the NON_DEFAULT_TEMPLATE_ARGS_COUNT
+   property.  */
+#define SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE, INT_VALUE) \
+  NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE) = build_int_cst (NULL_TREE, INT_VALUE)
+#ifdef ENABLE_CHECKING
+#define GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE) \
+    int_cst_value (NON_DEFAULT_TEMPLATE_ARGS_COUNT (NODE))
+#else
+#define GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE) \
+  NON_DEFAULT_TEMPLATE_ARGS_COUNT (NODE) \
+  ? int_cst_value (NON_DEFAULT_TEMPLATE_ARGS_COUNT (NODE)) \
+  : TREE_VEC_LENGTH (INNERMOST_TEMPLATE_ARGS (NODE))
+#endif
 /* The list of typedefs - used in the template - that need
    access checking at template instantiation time.  */
 #define TI_TYPEDEFS_NEEDING_ACCESS_CHECKING(NODE) \
@@ -2509,7 +2530,13 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 
    It is incorrect to ever form a template argument vector containing
    only one level of arguments, but which is a TREE_VEC containing as
-   its only entry the TREE_VEC for that level.  */
+   its only entry the TREE_VEC for that level.
+
+   For each TREE_VEC containing the template arguments for a single
+   level, it's possible to get or set the number of non defaulted
+   template arguments by using the accessor macros
+   GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT or
+   SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT.  */
 
 /* Nonzero if the template arguments is actually a vector of vectors,
    rather than just a vector.  */
@@ -4711,6 +4738,7 @@ extern tree cxx_maybe_build_cleanup		(tree);
 /* in decl2.c */
 extern bool check_java_method			(tree);
 extern tree build_memfn_type			(tree, tree, cp_cv_quals);
+extern tree change_return_type			(tree, tree);
 extern void maybe_retrofit_in_chrg		(tree);
 extern void maybe_make_one_only			(tree);
 extern bool vague_linkage_fn_p			(tree);
@@ -5171,6 +5199,7 @@ extern tree lambda_function			(tree);
 extern void apply_lambda_return_type            (tree, tree);
 extern tree add_capture                         (tree, tree, tree, bool, bool);
 extern tree add_default_capture                 (tree, tree, tree);
+extern void register_capture_members		(tree);
 extern tree lambda_expr_this_capture            (tree);
 extern void maybe_add_lambda_conv_op            (tree);
 

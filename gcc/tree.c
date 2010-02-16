@@ -1983,6 +1983,18 @@ fields_length (const_tree type)
   return count;
 }
 
+/* Returns the first FIELD_DECL in the TYPE_FIELDS of the RECORD_TYPE or
+   UNION_TYPE TYPE, or NULL_TREE if none.  */
+
+tree
+first_field (const_tree type)
+{
+  tree t = TYPE_FIELDS (type);
+  while (t && TREE_CODE (t) != FIELD_DECL)
+    t = TREE_CHAIN (t);
+  return t;
+}
+
 /* Concatenate two chains of nodes (chained through TREE_CHAIN)
    by modifying the last node in chain 1 to point to chain 2.
    This is the Lisp primitive `nconc'.  */
@@ -7610,6 +7622,14 @@ get_unwidened (tree op, tree for_type)
 	    }
 	}
     }
+
+  /* If we finally reach a constant see if it fits in for_type and
+     in that case convert it.  */
+  if (for_type
+      && TREE_CODE (win) == INTEGER_CST
+      && TREE_TYPE (win) != for_type
+      && int_fits_type_p (win, for_type))
+    win = fold_convert (for_type, win);
 
   return win;
 }

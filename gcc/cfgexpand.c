@@ -1746,15 +1746,31 @@ expand_call_stmt (gimple stmt)
   tree exp;
   tree lhs = gimple_call_lhs (stmt);
   size_t i;
+  bool builtin_p;
+  tree decl;
 
   exp = build_vl_exp (CALL_EXPR, gimple_call_num_args (stmt) + 3);
 
   CALL_EXPR_FN (exp) = gimple_call_fn (stmt);
+  decl = gimple_call_fndecl (stmt);
+  builtin_p = decl && DECL_BUILT_IN (decl);
+
   TREE_TYPE (exp) = gimple_call_return_type (stmt);
   CALL_EXPR_STATIC_CHAIN (exp) = gimple_call_chain (stmt);
 
   for (i = 0; i < gimple_call_num_args (stmt); i++)
-    CALL_EXPR_ARG (exp, i) = gimple_call_arg (stmt, i);
+    {
+      tree arg = gimple_call_arg (stmt, i);
+      gimple def;
+      /* TER addresses into arguments of builtin functions so we have a
+	 chance to infer more correct alignment information.  See PR39954.  */
+      if (builtin_p
+	  && TREE_CODE (arg) == SSA_NAME
+	  && (def = get_gimple_for_ssa_name (arg))
+	  && gimple_assign_rhs_code (def) == ADDR_EXPR)
+	arg = gimple_assign_rhs1 (def);
+      CALL_EXPR_ARG (exp, i) = arg;
+    }
 
   if (gimple_has_side_effects (stmt))
     TREE_SIDE_EFFECTS (exp) = 1;
@@ -3623,6 +3639,9 @@ gimple_expand_cfg (void)
   execute_free_datastructures ();
   finish_out_of_ssa (&SA);
 
+  /* We are no longer in SSA form.  */
+  cfun->gimple_df->in_ssa_p = false;
+
   /* Expansion is used by optimization passes too, set maybe_hot_insn_p
      conservatively to true until they are all profile aware.  */
   pointer_map_destroy (lab_rtx_for_bb);
@@ -3743,7 +3762,8 @@ struct rtl_opt_pass pass_expand =
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
   TV_EXPAND,				/* tv_id */
-  PROP_ssa | PROP_gimple_leh | PROP_cfg,/* properties_required */
+  PROP_ssa | PROP_gimple_leh | PROP_cfg
+    | PROP_gimple_lcx,			/* properties_required */
   PROP_rtl,                             /* properties_provided */
   PROP_ssa | PROP_trees,		/* properties_destroyed */
   TODO_verify_ssa | TODO_verify_flow

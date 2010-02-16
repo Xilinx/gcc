@@ -135,7 +135,7 @@ static rtx expand_builtin_expect (tree, rtx);
 static tree fold_builtin_constant_p (tree);
 static tree fold_builtin_expect (location_t, tree, tree);
 static tree fold_builtin_classify_type (tree);
-static tree fold_builtin_strlen (location_t, tree);
+static tree fold_builtin_strlen (location_t, tree, tree);
 static tree fold_builtin_inf (location_t, tree, int);
 static tree fold_builtin_nan (tree, tree, int);
 static tree rewrite_call_expr (location_t, tree, int, tree, int, ...);
@@ -433,6 +433,7 @@ c_strlen (tree src, int only_value)
   HOST_WIDE_INT offset;
   int max;
   const char *ptr;
+  location_t loc;
 
   STRIP_NOPS (src);
   if (TREE_CODE (src) == COND_EXPR
@@ -449,6 +450,11 @@ c_strlen (tree src, int only_value)
   if (TREE_CODE (src) == COMPOUND_EXPR
       && (only_value || !TREE_SIDE_EFFECTS (TREE_OPERAND (src, 0))))
     return c_strlen (TREE_OPERAND (src, 1), only_value);
+
+  if (EXPR_HAS_LOCATION (src))
+    loc = EXPR_LOCATION (src);
+  else
+    loc = input_location;
 
   src = string_constant (src, &offset_node);
   if (src == 0)
@@ -475,7 +481,7 @@ c_strlen (tree src, int only_value)
 	 and return that.  This would perhaps not be valid if we were dealing
 	 with named arrays in addition to literal string constants.  */
 
-      return size_diffop_loc (input_location, size_int (max), offset_node);
+      return size_diffop_loc (loc, size_int (max), offset_node);
     }
 
   /* We have a known offset into the string.  Start searching there for
@@ -494,7 +500,7 @@ c_strlen (tree src, int only_value)
      /* Suppress multiple warnings for propagated constant strings.  */
       if (! TREE_NO_WARNING (src))
         {
-          warning (0, "offset outside bounds of constant string");
+          warning_at (loc, 0, "offset outside bounds of constant string");
           TREE_NO_WARNING (src) = 1;
         }
       return NULL_TREE;
@@ -6617,7 +6623,7 @@ fold_builtin_classify_type (tree arg)
 /* Fold a call to __builtin_strlen with argument ARG.  */
 
 static tree
-fold_builtin_strlen (location_t loc, tree arg)
+fold_builtin_strlen (location_t loc, tree type, tree arg)
 {
   if (!validate_arg (arg, POINTER_TYPE))
     return NULL_TREE;
@@ -6626,12 +6632,7 @@ fold_builtin_strlen (location_t loc, tree arg)
       tree len = c_strlen (arg, 0);
 
       if (len)
-	{
-	  /* Convert from the internal "sizetype" type to "size_t".  */
-	  if (size_type_node)
-	    len = fold_convert_loc (loc, size_type_node, len);
-	  return len;
-	}
+	return fold_convert_loc (loc, type, len);
 
       return NULL_TREE;
     }
@@ -9659,7 +9660,7 @@ fold_builtin_1 (location_t loc, tree fndecl, tree arg0, bool ignore)
       return fold_builtin_classify_type (arg0);
 
     case BUILT_IN_STRLEN:
-      return fold_builtin_strlen (loc, arg0);
+      return fold_builtin_strlen (loc, type, arg0);
 
     CASE_FLT_FN (BUILT_IN_FABS):
       return fold_builtin_fabs (loc, arg0, type);
@@ -13592,6 +13593,14 @@ set_builtin_user_assembler_name (tree decl, const char *asmspec)
       break;
     case BUILT_IN_ABORT:
       abort_libfunc = set_user_assembler_libfunc ("abort", asmspec);
+      break;
+    case BUILT_IN_FFS:
+      if (INT_TYPE_SIZE < BITS_PER_WORD)
+	{
+	  set_user_assembler_libfunc ("ffs", asmspec);
+	  set_optab_libfunc (ffs_optab, mode_for_size (INT_TYPE_SIZE,
+						       MODE_INT, 0), "ffs");
+	}
       break;
     default:
       break;

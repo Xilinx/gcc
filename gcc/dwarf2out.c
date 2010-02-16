@@ -1,6 +1,6 @@
 /* Output Dwarf2 format symbol table information from GCC.
    Copyright (C) 1992, 1993, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Gary Funck (gary@intrepid.com).
    Derived from DWARF 1 implementation of Ron Guilmette (rfg@monkeys.com).
    Extensively modified by Jason Merrill (jason@cygnus.com).
@@ -12990,7 +12990,25 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
       if (mem_loc_result == NULL)
 	mem_loc_result = tls_mem_loc_descriptor (rtl);
       if (mem_loc_result != 0)
-	add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_deref, 0, 0));
+	{
+	  if (GET_MODE_SIZE (GET_MODE (rtl)) > DWARF2_ADDR_SIZE)
+	    {
+	      expansion_failed (NULL_TREE, rtl, "DWARF address size mismatch");
+	      return 0;
+	    }
+	  else if (GET_MODE_SIZE (GET_MODE (rtl)) == DWARF2_ADDR_SIZE)
+	    add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_deref, 0, 0));
+	  else
+	    add_loc_descr (&mem_loc_result,
+			   new_loc_descr (DW_OP_deref_size,
+					  GET_MODE_SIZE (GET_MODE (rtl)), 0));
+	}
+      else
+	{
+	  rtx new_rtl = avoid_constant_pool_reference (rtl);
+	  if (new_rtl != rtl)
+	    return mem_loc_descriptor (new_rtl, mode, initialized);
+	}
       break;
 
     case LO_SUM:
@@ -13004,34 +13022,6 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	 pool.  */
     case CONST:
     case SYMBOL_REF:
-      /* Alternatively, the symbol in the constant pool might be referenced
-	 by a different symbol.  */
-      if (GET_CODE (rtl) == SYMBOL_REF && CONSTANT_POOL_ADDRESS_P (rtl))
-	{
-	  bool marked;
-	  rtx tmp = get_pool_constant_mark (rtl, &marked);
-
-	  if (GET_CODE (tmp) == SYMBOL_REF)
-	    {
-	      rtl = tmp;
-	      if (CONSTANT_POOL_ADDRESS_P (tmp))
-		get_pool_constant_mark (tmp, &marked);
-	      else
-		marked = true;
-	    }
-
-	  /* If all references to this pool constant were optimized away,
-	     it was not output and thus we can't represent it.
-	     FIXME: might try to use DW_OP_const_value here, though
-	     DW_OP_piece complicates it.  */
-	  if (!marked)
-	    {
-	      expansion_failed (NULL_TREE, rtl,
-				"Constant was removed from constant pool.\n");
-	      return 0;
-	    }
-	}
-
       if (GET_CODE (rtl) == SYMBOL_REF
 	  && SYMBOL_REF_TLS_MODEL (rtl) != TLS_MODEL_NONE)
 	{
@@ -13129,7 +13119,7 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
       op = DW_OP_div;
       goto do_binop;
 
-    case MOD:
+    case UMOD:
       op = DW_OP_mod;
       goto do_binop;
 
@@ -13169,6 +13159,24 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
       mem_loc_result = op0;
       add_loc_descr (&mem_loc_result, op1);
       add_loc_descr (&mem_loc_result, new_loc_descr (op, 0, 0));
+      break;
+
+    case MOD:
+      op0 = mem_loc_descriptor (XEXP (rtl, 0), mode,
+				VAR_INIT_STATUS_INITIALIZED);
+      op1 = mem_loc_descriptor (XEXP (rtl, 1), mode,
+				VAR_INIT_STATUS_INITIALIZED);
+
+      if (op0 == 0 || op1 == 0)
+	break;
+
+      mem_loc_result = op0;
+      add_loc_descr (&mem_loc_result, op1);
+      add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_over, 0, 0));
+      add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_over, 0, 0));
+      add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_div, 0, 0));
+      add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_mul, 0, 0));
+      add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_minus, 0, 0));
       break;
 
     case NOT:
@@ -13223,32 +13231,72 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
       goto do_scompare;
 
     do_scompare:
-      if (GET_MODE_CLASS (GET_MODE (XEXP (rtl, 0))) != MODE_INT
-	  || GET_MODE_SIZE (GET_MODE (XEXP (rtl, 0))) > DWARF2_ADDR_SIZE
-	  || GET_MODE (XEXP (rtl, 0)) != GET_MODE (XEXP (rtl, 1)))
+      if (GET_MODE_SIZE (GET_MODE (XEXP (rtl, 0))) > DWARF2_ADDR_SIZE
+	  || GET_MODE_SIZE (GET_MODE (XEXP (rtl, 1))) > DWARF2_ADDR_SIZE)
 	break;
-
-      op0 = mem_loc_descriptor (XEXP (rtl, 0), mode,
-				VAR_INIT_STATUS_INITIALIZED);
-      op1 = mem_loc_descriptor (XEXP (rtl, 1), mode,
-				VAR_INIT_STATUS_INITIALIZED);
-
-      if (op0 == 0 || op1 == 0)
-	break;
-
-      if (GET_MODE_SIZE (GET_MODE (XEXP (rtl, 0))) < DWARF2_ADDR_SIZE)
+      else
 	{
-	  int shift = DWARF2_ADDR_SIZE
-		      - GET_MODE_SIZE (GET_MODE (XEXP (rtl, 0)));
-	  shift *= BITS_PER_UNIT;
-	  add_loc_descr (&op0, int_loc_descriptor (shift));
-	  add_loc_descr (&op0, new_loc_descr (DW_OP_shl, 0, 0));
-	  if (CONST_INT_P (XEXP (rtl, 1)))
-	    op1 = int_loc_descriptor (INTVAL (XEXP (rtl, 1)) << shift);
-	  else
+	  enum machine_mode op_mode = GET_MODE (XEXP (rtl, 0));
+
+	  if (op_mode == VOIDmode)
+	    op_mode = GET_MODE (XEXP (rtl, 1));
+	  if (op_mode != VOIDmode && GET_MODE_CLASS (op_mode) != MODE_INT)
+	    break;
+
+	  op0 = mem_loc_descriptor (XEXP (rtl, 0), mode,
+				    VAR_INIT_STATUS_INITIALIZED);
+	  op1 = mem_loc_descriptor (XEXP (rtl, 1), mode,
+				    VAR_INIT_STATUS_INITIALIZED);
+
+	  if (op0 == 0 || op1 == 0)
+	    break;
+
+	  if (op_mode != VOIDmode
+	      && GET_MODE_SIZE (op_mode) < DWARF2_ADDR_SIZE)
 	    {
-	      add_loc_descr (&op1, int_loc_descriptor (shift));
-	      add_loc_descr (&op1, new_loc_descr (DW_OP_shl, 0, 0));
+	      int shift = DWARF2_ADDR_SIZE - GET_MODE_SIZE (op_mode);
+	      shift *= BITS_PER_UNIT;
+	      /* For eq/ne, if the operands are known to be zero-extended,
+		 there is no need to do the fancy shifting up.  */
+	      if (op == DW_OP_eq || op == DW_OP_ne)
+		{
+		  dw_loc_descr_ref last0, last1;
+		  for (last0 = op0;
+		       last0->dw_loc_next != NULL;
+		       last0 = last0->dw_loc_next)
+		    ;
+		  for (last1 = op1;
+		       last1->dw_loc_next != NULL;
+		       last1 = last1->dw_loc_next)
+		    ;
+		  /* deref_size zero extends, and for constants we can check
+		     whether they are zero extended or not.  */
+		  if (((last0->dw_loc_opc == DW_OP_deref_size
+			&& last0->dw_loc_oprnd1.v.val_int
+			   <= GET_MODE_SIZE (op_mode))
+		       || (CONST_INT_P (XEXP (rtl, 0))
+			    && (unsigned HOST_WIDE_INT) INTVAL (XEXP (rtl, 0))
+			       == (INTVAL (XEXP (rtl, 0))
+				   & GET_MODE_MASK (op_mode))))
+		      && ((last1->dw_loc_opc == DW_OP_deref_size
+			   && last1->dw_loc_oprnd1.v.val_int
+			      <= GET_MODE_SIZE (op_mode))
+			  || (CONST_INT_P (XEXP (rtl, 1))
+			      && (unsigned HOST_WIDE_INT)
+				 INTVAL (XEXP (rtl, 1))
+				 == (INTVAL (XEXP (rtl, 1))
+				     & GET_MODE_MASK (op_mode)))))
+		    goto do_compare;
+		}
+	      add_loc_descr (&op0, int_loc_descriptor (shift));
+	      add_loc_descr (&op0, new_loc_descr (DW_OP_shl, 0, 0));
+	      if (CONST_INT_P (XEXP (rtl, 1)))
+		op1 = int_loc_descriptor (INTVAL (XEXP (rtl, 1)) << shift);
+	      else
+		{
+		  add_loc_descr (&op1, int_loc_descriptor (shift));
+		  add_loc_descr (&op1, new_loc_descr (DW_OP_shl, 0, 0));
+		}
 	    }
 	}
 
@@ -13281,42 +13329,72 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
       goto do_ucompare;
 
     do_ucompare:
-      if (GET_MODE_CLASS (GET_MODE (XEXP (rtl, 0))) != MODE_INT
-	  || GET_MODE_SIZE (GET_MODE (XEXP (rtl, 0))) > DWARF2_ADDR_SIZE
-	  || GET_MODE (XEXP (rtl, 0)) != GET_MODE (XEXP (rtl, 1)))
+      if (GET_MODE_SIZE (GET_MODE (XEXP (rtl, 0))) > DWARF2_ADDR_SIZE
+	  || GET_MODE_SIZE (GET_MODE (XEXP (rtl, 1))) > DWARF2_ADDR_SIZE)
 	break;
-
-      op0 = mem_loc_descriptor (XEXP (rtl, 0), mode,
-				VAR_INIT_STATUS_INITIALIZED);
-      op1 = mem_loc_descriptor (XEXP (rtl, 1), mode,
-				VAR_INIT_STATUS_INITIALIZED);
-
-      if (op0 == 0 || op1 == 0)
-	break;
-
-      if (GET_MODE_SIZE (GET_MODE (XEXP (rtl, 0))) < DWARF2_ADDR_SIZE)
-	{
-	  HOST_WIDE_INT mask = GET_MODE_MASK (GET_MODE (XEXP (rtl, 0)));
-	  add_loc_descr (&op0, int_loc_descriptor (mask));
-	  add_loc_descr (&op0, new_loc_descr (DW_OP_and, 0, 0));
-	  if (CONST_INT_P (XEXP (rtl, 1)))
-	    op1 = int_loc_descriptor (INTVAL (XEXP (rtl, 1)) & mask);
-	  else
-	    {
-	      add_loc_descr (&op1, int_loc_descriptor (mask));
-	      add_loc_descr (&op1, new_loc_descr (DW_OP_and, 0, 0));
-	    }
-	}
       else
 	{
-	  HOST_WIDE_INT bias = 1;
-	  bias <<= (DWARF2_ADDR_SIZE * BITS_PER_UNIT - 1);
-	  add_loc_descr (&op0, new_loc_descr (DW_OP_plus_uconst, bias, 0));
-	  if (CONST_INT_P (XEXP (rtl, 1)))
-	    op1 = int_loc_descriptor ((unsigned HOST_WIDE_INT) bias
-				      + INTVAL (XEXP (rtl, 1)));
+	  enum machine_mode op_mode = GET_MODE (XEXP (rtl, 0));
+
+	  if (op_mode == VOIDmode)
+	    op_mode = GET_MODE (XEXP (rtl, 1));
+	  if (op_mode != VOIDmode && GET_MODE_CLASS (op_mode) != MODE_INT)
+	    break;
+
+	  op0 = mem_loc_descriptor (XEXP (rtl, 0), mode,
+				    VAR_INIT_STATUS_INITIALIZED);
+	  op1 = mem_loc_descriptor (XEXP (rtl, 1), mode,
+				    VAR_INIT_STATUS_INITIALIZED);
+
+	  if (op0 == 0 || op1 == 0)
+	    break;
+
+	  if (op_mode != VOIDmode
+	      && GET_MODE_SIZE (op_mode) < DWARF2_ADDR_SIZE)
+	    {
+	      HOST_WIDE_INT mask = GET_MODE_MASK (op_mode);
+	      dw_loc_descr_ref last0, last1;
+	      for (last0 = op0;
+		   last0->dw_loc_next != NULL;
+		   last0 = last0->dw_loc_next)
+		;
+	      for (last1 = op1;
+		   last1->dw_loc_next != NULL;
+		   last1 = last1->dw_loc_next)
+		;
+	      if (CONST_INT_P (XEXP (rtl, 0)))
+		op0 = int_loc_descriptor (INTVAL (XEXP (rtl, 0)) & mask);
+	      /* deref_size zero extends, so no need to mask it again.  */
+	      else if (last0->dw_loc_opc != DW_OP_deref_size
+		       || last0->dw_loc_oprnd1.v.val_int
+			  > GET_MODE_SIZE (op_mode))
+		{
+		  add_loc_descr (&op0, int_loc_descriptor (mask));
+		  add_loc_descr (&op0, new_loc_descr (DW_OP_and, 0, 0));
+		}
+	      if (CONST_INT_P (XEXP (rtl, 1)))
+		op1 = int_loc_descriptor (INTVAL (XEXP (rtl, 1)) & mask);
+	      /* deref_size zero extends, so no need to mask it again.  */
+	      else if (last1->dw_loc_opc != DW_OP_deref_size
+		       || last1->dw_loc_oprnd1.v.val_int
+			  > GET_MODE_SIZE (op_mode))
+		{
+		  add_loc_descr (&op1, int_loc_descriptor (mask));
+		  add_loc_descr (&op1, new_loc_descr (DW_OP_and, 0, 0));
+		}
+	    }
 	  else
-	    add_loc_descr (&op1, new_loc_descr (DW_OP_plus_uconst, bias, 0));
+	    {
+	      HOST_WIDE_INT bias = 1;
+	      bias <<= (DWARF2_ADDR_SIZE * BITS_PER_UNIT - 1);
+	      add_loc_descr (&op0, new_loc_descr (DW_OP_plus_uconst, bias, 0));
+	      if (CONST_INT_P (XEXP (rtl, 1)))
+		op1 = int_loc_descriptor ((unsigned HOST_WIDE_INT) bias
+					  + INTVAL (XEXP (rtl, 1)));
+	      else
+		add_loc_descr (&op1, new_loc_descr (DW_OP_plus_uconst,
+						    bias, 0));
+	    }
 	}
       goto do_compare;
 
@@ -13442,8 +13520,18 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
     case US_MULT:
     case SS_DIV:
     case US_DIV:
+    case SS_PLUS:
+    case US_PLUS:
+    case SS_MINUS:
+    case US_MINUS:
+    case SS_NEG:
+    case US_NEG:
+    case SS_ABS:
+    case SS_ASHIFT:
+    case US_ASHIFT:
+    case SS_TRUNCATE:
+    case US_TRUNCATE:
     case UDIV:
-    case UMOD:
     case UNORDERED:
     case ORDERED:
     case UNEQ:
@@ -13595,6 +13683,12 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 				       initialized);
       if (loc_result == NULL)
 	loc_result = tls_mem_loc_descriptor (rtl);
+      if (loc_result == NULL)
+	{
+	  rtx new_rtl = avoid_constant_pool_reference (rtl);
+	  if (new_rtl != rtl)
+	    loc_result = loc_descriptor (new_rtl, mode, initialized);
+	}
       break;
 
     case CONCAT:
@@ -13869,10 +13963,19 @@ dw_loc_list_1 (tree loc, rtx varloc, int want_address,
 	  mode = GET_MODE (varloc);
 	  if (MEM_P (varloc))
 	    {
-	      varloc = XEXP (varloc, 0);
-	      have_address = 1;
+	      rtx addr = XEXP (varloc, 0);
+	      descr = mem_loc_descriptor (addr, mode, initialized);
+	      if (descr)
+		have_address = 1;
+	      else
+		{
+		  rtx x = avoid_constant_pool_reference (varloc);
+		  if (x != varloc)
+		    descr = mem_loc_descriptor (x, mode, initialized);
+		}
 	    }
-	  descr = mem_loc_descriptor (varloc, mode, initialized);
+	  else
+	    descr = mem_loc_descriptor (varloc, mode, initialized);
 	}
       else
 	return 0;
@@ -14497,6 +14600,8 @@ loc_list_from_tree (tree loc, int want_address)
     case CEIL_DIV_EXPR:
     case ROUND_DIV_EXPR:
     case TRUNC_DIV_EXPR:
+      if (TYPE_UNSIGNED (TREE_TYPE (loc)))
+	return 0;
       op = DW_OP_div;
       goto do_binop;
 
@@ -14508,8 +14613,25 @@ loc_list_from_tree (tree loc, int want_address)
     case CEIL_MOD_EXPR:
     case ROUND_MOD_EXPR:
     case TRUNC_MOD_EXPR:
-      op = DW_OP_mod;
-      goto do_binop;
+      if (TYPE_UNSIGNED (TREE_TYPE (loc)))
+	{
+	  op = DW_OP_mod;
+	  goto do_binop;
+	}
+      list_ret = loc_list_from_tree (TREE_OPERAND (loc, 0), 0);
+      list_ret1 = loc_list_from_tree (TREE_OPERAND (loc, 1), 0);
+      if (list_ret == 0 || list_ret1 == 0)
+	return 0;
+
+      add_loc_list (&list_ret, list_ret1);
+      if (list_ret == 0)
+	return 0;
+      add_loc_descr_to_each (list_ret, new_loc_descr (DW_OP_over, 0, 0));
+      add_loc_descr_to_each (list_ret, new_loc_descr (DW_OP_over, 0, 0));
+      add_loc_descr_to_each (list_ret, new_loc_descr (DW_OP_div, 0, 0));
+      add_loc_descr_to_each (list_ret, new_loc_descr (DW_OP_mul, 0, 0));
+      add_loc_descr_to_each (list_ret, new_loc_descr (DW_OP_minus, 0, 0));
+      break;
 
     case MULT_EXPR:
       op = DW_OP_mul;
@@ -17122,7 +17244,9 @@ retry_incomplete_types (void)
   int i;
 
   for (i = VEC_length (tree, incomplete_types) - 1; i >= 0; i--)
-    gen_type_die (VEC_index (tree, incomplete_types, i), comp_unit_die);
+    if (should_emit_struct_debug (VEC_index (tree, incomplete_types, i),
+				  DINFO_USAGE_DIR_USE))
+      gen_type_die (VEC_index (tree, incomplete_types, i), comp_unit_die);
 }
 
 /* Determine what tag to use for a record type.  */

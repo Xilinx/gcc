@@ -41,10 +41,12 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
   /**
    *  @class __versa_string vstring.h
-   *  @brief  Managing sequences of characters and character-like objects.
+   *  @brief  Template class __versa_string. 
+   *  @ingroup extensions
+   *
+   *  Data structure managing sequences of characters and
+   *  character-like objects. 
    */
-
-  // Template class __versa_string
   template<typename _CharT, typename _Traits, typename _Alloc,
 	   template <typename, typename, typename> class _Base>
     class __versa_string
@@ -261,8 +263,6 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       operator=(__versa_string&& __str)
       {
 	// NB: DR 1204.
-	// NB: DR 675.
-	this->clear();
 	this->swap(__str);
 	return *this;
       }
@@ -463,9 +463,9 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       void
       shrink_to_fit()
       {
-	try
+	__try
 	  { this->reserve(0); }
-	catch(...)
+	__catch(...)
 	  { }
       }
 #endif
@@ -507,7 +507,8 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       { this->_M_clear(); }
 
       /**
-       *  Returns true if the %string is empty.  Equivalent to *this == "".
+       *  Returns true if the %string is empty.  Equivalent to 
+       *  <code>*this == ""</code>.
        */
       bool
       empty() const
@@ -783,6 +784,23 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	this->_M_assign(__str);
 	return *this;
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Set value to contents of another string.
+       *  @param  __str  Source string to use.
+       *  @return  Reference to this string.
+       *
+       *  This function sets this string to the exact contents of @a __str.
+       *  @a __str is a valid, but unspecified string.
+       */
+      __versa_string&
+      assign(__versa_string&& __str)
+      {
+	this->swap(__str);
+	return *this;
+      }
+#endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
        *  @brief  Set value to a substring of a string.
@@ -2012,7 +2030,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
        *  the comparison is nonzero returns it, otherwise the shorter
        *  one is ordered first.
        *
-       *  NB: s must have at least n2 characters, '\\0' has no special
+       *  NB: s must have at least n2 characters, <em>\\0</em> has no special
        *  meaning.
       */
       int
@@ -2417,12 +2435,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @param __str  Buffer to store into.
    *  @return  Reference to the input stream.
    *
-   *  Stores characters from is into @a __str until '\n' is found, the
-   *  end of the stream is encountered, or str.max_size() is reached.
-   *  If is.width() is non-zero, that is the limit on the number of
-   *  characters stored into @a __str.  Any previous contents of @a
-   *  __str are erased.  If end of line was encountered, it is
-   *  extracted but not stored into @a __str.
+   *  Stores characters from is into @a __str until &apos;\n&apos; is
+   *  found, the end of the stream is encountered, or str.max_size()
+   *  is reached.  If is.width() is non-zero, that is the limit on the
+   *  number of characters stored into @a __str.  Any previous
+   *  contents of @a __str are erased.  If end of line was
+   *  encountered, it is extracted but not stored into @a __str.
    */
   template<typename _CharT, typename _Traits, typename _Alloc,
            template <typename, typename, typename> class _Base>

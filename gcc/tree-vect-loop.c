@@ -981,7 +981,7 @@ vect_analyze_loop_form (struct loop *loop)
      before the loop if needed), where the loop header contains all the
      executable statements, and the latch is empty.  */
   if (!empty_block_p (loop->latch)
-        || phi_nodes (loop->latch))
+        || !gimple_seq_empty_p (phi_nodes (loop->latch)))
     {
       if (vect_print_dump_info (REPORT_BAD_FORM_LOOPS))
         fprintf (vect_dump, "not vectorized: unexpected loop form.");
@@ -1184,7 +1184,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo)
 	  if (!vect_analyze_stmt (stmt, &need_to_vectorize, NULL))
 	    return false;
 
-          if (STMT_VINFO_RELEVANT_P (stmt_info) && !PURE_SLP_STMT (stmt_info))
+          if ((STMT_VINFO_RELEVANT_P (stmt_info)
+               || VECTORIZABLE_CYCLE_DEF (STMT_VINFO_DEF_TYPE (stmt_info)))
+              && !PURE_SLP_STMT (stmt_info))
+
             /* STMT needs both SLP and loop-based vectorization.  */
             only_slp_in_loop = false;
         }
