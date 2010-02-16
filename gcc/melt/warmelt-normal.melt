@@ -931,6 +931,130 @@ routine procedures.}#
      )))
 
 
+(defselector normalize_local_binding class_selector
+  :doc #{Normalize a locally bound symbol. $RECV is the binding, $ENV
+is the environment, $NCX is the normal context, $PSLOC the parent
+source location.}#
+  :formals (recv env ncx psloc))
+
+(defun normbind_failany (recv env ncx psloc)
+  (debug_msg recv "normbind_failany recv")
+  (let ( (dis (discrim recv))
+	 )
+    (debug_msg dis "normbind_failany dis")
+    (error_strv psloc "unexpected binding normalization of class" (get_field :named_name dis))
+    (assert_msg "@$@unexpected normalize binding" ())
+))
+(install_method discr_any_receiver normalize_local_binding normbind_failany)
+
+(defun normbind_failanybind (recv env ncx psloc)
+  (debug_msg recv "normbind_failany recv")
+  (let ( (dis (discrim recv))
+	 )
+    (debug_msg dis "normbind_failanybind dis")
+    (error_strv psloc "unexpected binding normalization of binding of " (get_field :named_name dis))
+    (error_strv psloc "unexpected binding of symbol" (get_field :named_name (get_field :binder recv)))
+    (assert_msg "@$@unexpected normalize binding" ())
+))
+(install_method class_any_binding normalize_local_binding normbind_failanybind)
+
+
+;; normalize local formal bindings
+(defun normbind_formalbind (bind env ncx psloc)
+  (assert_msg "check bind" (is_a bind class_formal_binding))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check ncx" (is_a ncx class_normalization_context))
+  (let ( (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
+	 (symb (unsafe_get_field :binder bind))
+	 (syocc
+		(instance class_nrep_locsymocc
+			  :nrep_loc psloc
+			  :nocc_ctyp (unsafe_get_field :fbind_type bind) 
+			  :nocc_symb symb
+			  :nocc_bind bind) ) 
+	 )
+	  ;; cache the result & return it
+    (mapobject_put sycmap symb syocc)
+    syocc
+    ))
+(install_method class_formal_binding  normalize_local_binding normbind_formalbind)
+
+
+;; normalize local let binding
+
+(defun normbind_letbind (bind env ncx psloc)
+  (assert_msg "check bind" (is_a bind class_let_binding))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check ncx" (is_a ncx class_normalization_context))
+  (let ( (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
+	 (symb (unsafe_get_field :binder bind))
+	 (syocc
+		(instance class_nrep_locsymocc
+			  :nrep_loc psloc
+			  :nocc_ctyp (unsafe_get_field :fbind_type bind) 
+			  :nocc_symb symb
+			  :nocc_bind bind) ) 
+	 )
+	  ;; cache the result & return it
+    (mapobject_put sycmap symb syocc)
+    syocc
+    ))
+(install_method class_let_binding  normalize_local_binding normbind_letbind)
+
+
+;;; normalize local fixed binding
+(defun normbind_fixbind (bind env ncx psloc)
+  (assert_msg "check bind" (is_a bind class_fixed_binding))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check ncx" (is_a ncx class_normalization_context))
+  (let ( (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
+	 (symb (unsafe_get_field :binder bind))
+	 (fixdat (unsafe_get_field :fixbind_data bind))
+	 )
+	  (if (null fixdat)
+	      (error_strv psloc "unresolved forward fixed reference to"
+			  (unsafe_get_field :named_name symb)
+			  )
+	    )
+	  (debug_msg fixdat "normexp_symbol fixdat")
+	  (assert_msg "normexp_symbol check fixdat" (is_a fixdat class_nrep_data))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap symb fixdat)
+	  fixdat))
+(install_method class_fixed_binding  normalize_local_binding normbind_fixbind)
+
+;; normalize local constructed binding
+(defun normbind_constructbind (bind env ncx psloc)
+  (assert_msg "check bind" (is_a bind class_normal_constructor_binding))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check ncx" (is_a ncx class_normalization_context))
+  (let ( (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
+	 (symb (unsafe_get_field :binder bind))
+	 (nletrec (get_field :nconsb_nletrec bind))
+	 )
+	  (debug_msg nletrec "normbind_constructbind nletrec")
+	  (assert_msg "normexp_symbol check nletrec" (is_a nletrec class_nrep_letrec))
+	  (let ( (nlocsyms (get_field :nletrec_locsyms nletrec))
+		 (ourlocsym ())
+		 )
+	    (debug_msg nlocsyms "normbind_constructbind nlocsyms")
+	    ;; find the right locsym in nlocsyms and cache it
+	    (foreach_in_multiple
+	     (nlocsyms)
+	     (curlocsym :long syix)
+	     (if (== (get_field :nocc_bind curlocsym) bind)
+		 (progn
+		   (setq syix -99)	;to exit the loop [-1 don't work!]
+		   (setq ourlocsym curlocsym)))
+	     )
+	    (debug_msg ourlocsym "normbind_constructbind ourlocsym")
+	    (assert_msg "normbind_constructbind should have ourlocsym"
+			(is_a ourlocsym class_nrep_locsymocc))
+	    ;; cache the result & return it
+	    (mapobject_put sycmap symb ourlocsym)
+	    (return ourlocsym)
+)))
+(install_method class_normal_constructor_binding normalize_local_binding normbind_constructbind)
 
 ;; for symbols which are imported from a previous environment (this
 ;; only happens when compiling stuff which is not this warmelt-*) we
@@ -1087,74 +1211,20 @@ routine procedures.}#
 	      ) ) ) ) 
       ;; formal arg is a local
       ( (is_a bind class_formal_binding)
-	(let ( (syocc
-		(instance class_nrep_locsymocc
-			  :nrep_loc psloc
-			  :nocc_ctyp (unsafe_get_field :fbind_type bind) 
-			  :nocc_symb recv
-			  :nocc_bind bind) ) )
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv syocc)
-	  syocc
-	  ))
+	(normalize_local_binding bind env ncx psloc)
+	)
       ;; let binding is a local
       ( (is_a bind class_let_binding)
-	(let ( (syocc
-		(instance class_nrep_locsymocc
-			  :nrep_loc psloc
-			  :nocc_ctyp (unsafe_get_field :letbind_type bind)
-			  :nocc_symb recv
-			  :nocc_bind bind) ) )
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv syocc)
-	  syocc
-	  ))
+	(normalize_local_binding bind env ncx psloc)
+	)
       ;; handle fixed bindings (like defun definstance defciterator defclass ....)
       ( (is_a bind class_fixed_binding)
-	(debug_msg bind "normexp_symbol fixed_binding")
-	(let ( (fixdat (unsafe_get_field :fixbind_data bind)) )
-	  (if (null fixdat)
-	      (error_strv psloc "unresolved forward fixed reference to"
-			  (unsafe_get_field :named_name recv)
-			  )
-	    )
-	  (debug_msg fixdat "normexp_symbol fixdat")
-	  (assert_msg "normexp_symbol check fixdat" (is_a fixdat class_nrep_data))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv fixdat)
-	  fixdat)
+	(normalize_local_binding bind env ncx psloc)
 	)
       ;; handle letrec constructed bindings...
       ( (is_a bind class_normal_constructor_binding)
-	(debug_msg bind "normexp_symbol constructed bind")
-	(debug_msg procs "normexp_symbol constructed procs")
-	(debug_msg env "normexp_symbol constructed in env")
-	(debug_msg recv "normexp_symbol constructed for recv")
-	(let ( 
-	      (nletrec (get_field :nconsb_nletrec bind))
-	      )
-	  (debug_msg nletrec "normexp_symbol nletrec")
-	  (assert_msg "normexp_symbol check nletrec" (is_a nletrec class_nrep_letrec))
-	  (let ( (nlocsyms (get_field :nletrec_locsyms nletrec))
-		 (ourlocsym ())
-		 )
-	    (debug_msg nlocsyms "normexp_symbol nlocsyms")
-	    ;; find the right locsym in nlocsyms and cache it
-	    (foreach_in_multiple
-	     (nlocsyms)
-	     (curlocsym :long syix)
-	     (if (== (get_field :nocc_bind curlocsym) bind)
-		 (progn
-		   (setq syix -99)	;to exit the loop [-1 don't work!]
-		   (setq ourlocsym curlocsym)))
-	     )
-	    (debug_msg ourlocsym "normexp_symbol ourlocsym")
-	    (assert_msg "normexp_symbol should have ourlocsym"
-			(is_a ourlocsym class_nrep_locsymocc))
-	    ;; cache the result & return it
-	    (mapobject_put sycmap recv ourlocsym)
-	    (return ourlocsym)
-	    )))
+	(normalize_local_binding bind env ncx psloc)
+	)
       ;; all other cases are constants, probably unusual, so we warn
       (:else 
        (debug_msg bind "normexp_symbol const? bind")
@@ -6213,6 +6283,7 @@ routine procedures.}#
  normal_exp
  normal_letrec_constructive
  normal_predef
+ normalize_local_binding
  normalize_tuple
  prepare_constructor_binding
  wrap_normal_let1
