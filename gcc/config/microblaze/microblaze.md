@@ -661,20 +661,9 @@
   (set_attr "mode"	"SI")
   (set_attr "length"	"4")])
 
-(define_expand "negdi2"
-  [(parallel [(set (match_operand:DI 0 "register_operand" "=d")
-		   (neg:DI (match_operand:DI 1 "register_operand" "d")))
-             (clobber (match_dup 2))])]
-  ""
-  {
-    operands[2] = gen_reg_rtx (SImode);
-  }
-)
-
-(define_insn "*negdi2_internal"
+(define_insn "negdi2"
   [(set (match_operand:DI 0 "register_operand" "=d")
-	(neg:DI (match_operand:DI 1 "register_operand" "d")))
-  (clobber (match_operand:SI 2 "register_operand" "=d"))]
+	(neg:DI (match_operand:DI 1 "register_operand" "d")))]
   ""
   "rsub\t%L0,%L1,r0\;rsubc\t%M0,%M1,r0"
   [(set_attr "type"	"darith")
