@@ -877,7 +877,7 @@ extern void remove_from_all_conflicts (ira_allocno_t to_remove);
 extern void ira_init_costs_once (void);
 extern void ira_init_costs (void);
 extern void ira_finish_costs_once (void);
-extern void ira_costs (void);
+extern void ira_costs (int);
 extern void ira_tune_allocno_costs_and_cover_classes (void);
 
 /* ira-lives.c */

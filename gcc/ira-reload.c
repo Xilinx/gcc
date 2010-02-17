@@ -481,14 +481,6 @@ create_new_allocno_for_spilling (int nreg, int oreg)
   ALLOCNO_MEMORY_COST (to) = ALLOCNO_MEMORY_COST (from);
   ALLOCNO_UPDATED_MEMORY_COST (to) = ALLOCNO_UPDATED_MEMORY_COST (from);
   ALLOCNO_NEXT_REGNO_ALLOCNO (to) = NULL;
-  ira_allocate_and_copy_costs (&ALLOCNO_HARD_REG_COSTS (to),
-			       ALLOCNO_COVER_CLASS (to),
-			       ALLOCNO_HARD_REG_COSTS (from));
-#if 0
-  ira_allocate_and_accumulate_costs (&ALLOCNO_CONFLICT_HARD_REG_COSTS (to),
-				     ALLOCNO_COVER_CLASS (to),
-				     ALLOCNO_CONFLICT_HARD_REG_COSTS (from));
-#endif
 
   /* We recompute these fields after we have localized an entire block.  */
   CLEAR_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (to));
@@ -1003,12 +995,14 @@ ira_reload (void)
      slots for unallocated global pseudos.  */
   record_equivalences_for_reload ();
 
+  /* What to do when this isn't true?  */
   if (ira_conflicts_p)
     {
       unsigned int i;
       bitmap_iterator bi;
       basic_block bb;
       bitmap visited;
+      int orig_max_reg_num = max_reg_num ();
 
       pseudos_to_localize = BITMAP_ALLOC (NULL);
       max_regno = max_reg_num ();
@@ -1093,6 +1087,10 @@ ira_reload (void)
 	 pseudo.  Make sure the new "copies" get recorded.  This includes
 	 register shuffles to satisfy constraints.  */
       ira_traverse_loop_tree (true, ira_loop_tree_root, ira_add_copies, NULL);
+
+      /* Get costing information for any newly created pseudos.  */
+      ira_costs (orig_max_reg_num);
+      ira_tune_allocno_costs_and_cover_classes ();
 
       /* Now we want to remove each allocnos associated with the pseudos we
 	 localized from the conflicts of every other allocno.  Do this once

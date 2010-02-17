@@ -1164,7 +1164,7 @@ process_bb_node_for_costs (ira_loop_tree_node_t loop_tree_node)
    and their best costs.  Set up preferred, alternative and cover
    classes for pseudos.  */
 static void
-find_costs_and_classes (FILE *dump_file)
+find_costs_and_classes (FILE *dump_file, int min_regno)
 {
   int i, k, start;
   int pass;
@@ -1354,7 +1354,8 @@ find_costs_and_classes (FILE *dump_file)
 		best = alt_class = NO_REGS;
 	      else if (best == alt_class)
 		alt_class = NO_REGS;
-	      setup_reg_classes (i, best, alt_class, regno_cover_class[i]);
+	      if (i >= min_regno)
+	        setup_reg_classes (i, best, alt_class, regno_cover_class[i]);
 	      if ((!allocno_p || internal_flag_ira_verbose > 2)
 		  && dump_file != NULL)
 		fprintf (dump_file,
@@ -1529,7 +1530,7 @@ process_bb_node_for_hard_reg_moves (ira_loop_tree_node_t loop_tree_node)
    its cover class and modify hard register cost because insns moving
    allocno to/from hard registers.  */
 static void
-setup_allocno_cover_class_and_costs (void)
+setup_allocno_cover_class_and_costs (int min_regno)
 {
   int i, j, n, regno, num;
   int *reg_costs;
@@ -1540,8 +1541,14 @@ setup_allocno_cover_class_and_costs (void)
   ira_assert (allocno_p);
   FOR_EACH_ALLOCNO (a, ai)
     {
+      if (ALLOCNO_REGNO (a) < min_regno)
+	continue;
+
       i = ALLOCNO_NUM (a);
-      cover_class = regno_cover_class[ALLOCNO_REGNO (a)];
+      if (min_regno == FIRST_PSEUDO_REGISTER)
+	cover_class = regno_cover_class[ALLOCNO_REGNO (a)];
+      else
+	cover_class = ALLOCNO_COVER_CLASS (a);
       ira_assert (pref[i] == NO_REGS || cover_class != NO_REGS);
       ALLOCNO_MEMORY_COST (a) = COSTS (costs, i)->mem_cost;
       ira_set_allocno_cover_class (a, cover_class);
@@ -1687,15 +1694,15 @@ finish_costs (void)
 /* Entry function which defines cover class, memory and hard register
    costs for each allocno.  */
 void
-ira_costs (void)
+ira_costs (int min_regno)
 {
   allocno_p = true;
   cost_elements_num = ira_allocnos_num;
   init_costs ();
   total_allocno_costs = (struct costs *) ira_allocate (max_struct_costs_size
 						       * ira_allocnos_num);
-  find_costs_and_classes (ira_dump_file);
-  setup_allocno_cover_class_and_costs ();
+  find_costs_and_classes (ira_dump_file, min_regno);
+  setup_allocno_cover_class_and_costs (min_regno);
   finish_costs ();
   ira_free (total_allocno_costs);
 }
@@ -1708,7 +1715,7 @@ ira_set_pseudo_classes (FILE *dump_file)
   internal_flag_ira_verbose = flag_ira_verbose;
   cost_elements_num = max_reg_num ();
   init_costs ();
-  find_costs_and_classes (dump_file);
+  find_costs_and_classes (dump_file, FIRST_PSEUDO_REGISTER);
   pseudo_classes_defined_p = true;
   finish_costs ();
 }

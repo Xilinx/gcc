@@ -2856,7 +2856,7 @@ ira_build (bool loops_p)
   create_loop_tree_nodes (loops_p);
   form_loop_tree ();
   create_allocnos ();
-  ira_costs ();
+  ira_costs (FIRST_PSEUDO_REGISTER);
   ira_create_allocno_live_ranges ();
   remove_unnecessary_regions (false);
   ira_compress_allocno_live_ranges ();

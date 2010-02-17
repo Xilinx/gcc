@@ -1,5 +1,19 @@
 2010-02-16  Jeff Law <law@redhat.com>
 
+	* ira-reload.c (create_new_allocno_for_spilling): No longer
+	copy HARD_REG_COSTS from the original allocno.
+	(ira_reload): Call ira_tune_allocno_costs_and_cover_classes and
+	ira_costs.
+	* ira-costs.c (find_costs_and_classes): New argument MIN_REGNO.  Only
+	update reg classes for pseudos larger than MIN_REGNO.
+	(setup_allocno_cover_class_and_costs): Similarly, but for cover
+	classes.
+	(ira_costs): New argument MIN_REGNO.  Pass along to 
+	find_costs_and_classes and setup_allocno_cover_class_and_costs.
+	(ira_set_pseudo_classes): Corresponding changes.
+	* ira-int.h (ira_costs): Update prototype.
+	* ira_build.c (ira_build): Pass in new argument to ira_costs.
+
 	* ira-reload.c (create_new_allocno_for_spilling): Zero CALL_FREQ
 	CALLS_CROSSED_NUM and NEXT_REGNO_ALLOCNO fields.
 	(build_conflicts_for_new_allocnos): Update CALL_FREQ and
