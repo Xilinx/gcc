@@ -1,3 +1,7 @@
+2010-02-17  Basile Starynkevitch  <basile@starynkevitch.net> 
+	* melt/warmelt-normatch.melt: more of alternate matching.
+	Added class_matched_binding.
+
 2010-02-16  Basile Starynkevitch  <basile@starynkevitch.net> 
 	* melt/warmelt-normatch.melt: more of alternate matching.
 	* melt-runtime.c (melt_assert_failed): also shows the time of failure.

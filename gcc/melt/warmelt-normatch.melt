@@ -2510,6 +2510,39 @@ ctype. $MDATA_ORIG is the origin step or data. $MDATA_STEPS is the list of match
 	    mdata_steps
 	    ))
 
+(defclass class_matched_binding
+  :doc #{The $CLASS_MATCHED_BINDING is a binding for matched pattern
+variables.  Field $MATCHBIND_DATA gives the matched data, and field
+$MATCHBIND_NBOCC is the number of occurrences.}#
+  :super class_any_binding
+  :fields (matchbind_data
+	   matchbind_nbocc
+	   ))
+
+(defun normbind_matchbind (bind env ncx procs psloc)
+  (assert_msg "check bind" (is_a bind class_matched_binding))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check ncx" (is_a ncx class_normalization_context))
+  (let ( (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
+	 (symb (unsafe_get_field :binder bind))
+	 (mdata (unsafe_get_field :matchbind_data bind))
+	 (boxnbocc (unsafe_get_field :matchbind_nbocc bind))
+	 (:long nbocc (get_int boxnbocc))
+	 (syocc
+		(instance class_nrep_locsymocc
+			  :nrep_loc psloc
+			  :nocc_ctyp (get_field :mdata_ctype mdata) 
+			  :nocc_symb symb
+			  :nocc_bind bind) ) 
+	 )
+    ;; increment the number of occurrences
+    (put_int boxnbocc (+i nbocc 1))
+    ;; cache the result & return it
+    (mapobject_put sycmap symb syocc)
+    syocc
+    ))
+(install_method class_matched_binding  normalize_binding normbind_matchbind)
+
 (defclass class_match_step
   :super class_located
   :doc #{The $CLASS_MATCH_STEP describes an elementary step of pattern
@@ -3125,13 +3158,12 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 		(setq laststep outstep)
 		))
 	)))
-       (compile_warning "should update testgroup correctly")
        (put_fields
 	testgroup
-	:mstgroup_then ()
-	:mstgroup_else ())
-       (debug_msg testgroup "translpat_patmat testgroup")
-       (assert_msg "@$@unimplemented translpat_patmat")
+	:mstgroup_then curstep
+	:mstgroup_else elselist)
+       (debug_msg testgroup "translpat_patmat return testgroup")
+       (return testgroup)
        )
 	    
      )
@@ -3152,19 +3184,49 @@ $MSTMA_OUTS is the tuple of output matched data.}#
     (let (
 	  (curloc (unsafe_get_field :loca_location curscas))
 	  (curpat (unsafe_get_field :scam_patt curscas))
+	  (curbody (unsafe_get_field :scam_body curscas))
 	  (nmatx (unsafe_get_field :mxct_nmatched matctx))
 	  (mdata (unsafe_get_field :mxct_mdata matctx))
+	  (ncx (unsafe_get_field :mxct_normctxt matctx))
+	  (env (unsafe_get_field :mxct_env matctx))
 	  (varmap (make_mapobject discr_map_objects
 				  (+i 12 (*i 2 (mapobject_count (unsafe_get_field :mcase_varmap curscas))))))
 	  )
       (debug_msg nmatx "translate_matchcase nmatx")
       (debug_msg curpat "translate_matchcase curpat")
       (debug_msg mdata "translate_matchcase mdata")
+      (assert_msg "check ncx" (is_a ncx class_normalization_context))
+      (assert_msg "check env" (is_a env class_environment))
       (let ( (mstep (translate_pattern curpat mdata curmcase varmap sloc)) 
+	     (newenv (fresh_env env))
 	     )
 	(debug_msg mstep "translate_matchcase got mstep")
-      (assert_msg "@$@unimplemented translate_matchcase")
-      ))))
+	(debug_msg curbody "translate_matchcase got curbody")
+	(debug_msg varmap "translate_matchcase got varmap")
+	(foreach_in_mapobject
+	 (varmap)
+	 (cursym curmdata)
+	 (assert_msg "check cursym" (is_a cursym class_symbol))
+	 (assert_msg "check curmdata" (is_a curmdata class_matched_data))
+	 (let ( (matchbind (instance class_matched_binding
+				     :binder cursym
+				     :matchbind_data curmdata
+				     :matchbind_nbocc (make_integerbox discr_integer 0)
+				     ))
+		)
+	   (debug_msg matchbind "translate_matchcase matchbind")
+	   (put_env newenv matchbind)
+	   ))
+	(debug_msg newenv "translate_matchcase updated newenv")
+	(debug_msg curbody "translate_matchcase before normalizing curbody")
+	(multicall
+	 (nbody nbind)
+	 (normalize_tuple curbody newenv ncx sloc)
+	 (debug_msg nbody "translate_matchcase nbody after body normalization")
+	 (debug_msg nbind "translate_matchcase nbind after body normalization")
+	 (assert_msg "translate_matchcase should make a success step")
+	 (return)
+	 )))))
 
 
 
@@ -3233,6 +3295,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	(translate_matchcase curmcase sloc)
 	)
        ;;
+       (compile_warning "should draw the graph")
        (assert_msg "$@$unimplemented normexp_altmatch")
        ))))
 
