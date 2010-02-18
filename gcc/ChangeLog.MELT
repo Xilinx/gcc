@@ -1,8 +1,13 @@
-2010-02-17  Basile Starynkevitch  <basile@starynkevitch.net> 
+2010-02-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: added cast in foreach_in_mapobject to
+	avoid warnings in generated code.
+	* melt/warmelt-normatch.melt: more of alternate matching.
+
+2010-02-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: more of alternate matching.
 	Added class_matched_binding.
 
-2010-02-16  Basile Starynkevitch  <basile@starynkevitch.net> 
+2010-02-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: more of alternate matching.
 	* melt-runtime.c (melt_assert_failed): also shows the time of failure.
 
@@ -14,7 +19,7 @@
 
 2010-02-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: added normalize_local_binding
-	selector and start using it.  
+	selector and start using it.
 	* melt/warmelt-normatch.melt: more of alternate matching.
 
 2010-02-15  Basile Starynkevitch  <basile@starynkevitch.net>

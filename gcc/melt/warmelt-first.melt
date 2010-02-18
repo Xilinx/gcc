@@ -1130,7 +1130,9 @@ an integer $I if $I is greater than $N.}#
   #{ /*$eachobmap :*/ int $eachobmap#_ix=0, $eachobmap#_siz=0;
   for ($eachobmap#_ix=0; 
      /* we retrieve in $eachobmap#_siz the size at each iteration since it could change. */
-       $eachobmap#_ix>=0 && ($eachobmap#_siz= melt_size_mapobjects($objmap))>0
+       $eachobmap#_ix>=0 
+       && ($eachobmap#_siz= 
+	     melt_size_mapobjects((meltmapobjects_ptr_t)$objmap))>0
        && $eachobmap#_ix < $eachobmap#_siz;
        $eachobmap#_ix++) {
     $curat = NULL;

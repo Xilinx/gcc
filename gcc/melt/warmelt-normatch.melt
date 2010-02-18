@@ -2563,6 +2563,15 @@ then edge $MSTEP_THEN.}#
 symbol $MSTEPSETVAR_SYMB to the matched data.}#
   :fields (mstepsetvar_symb))
 
+(defclass class_match_step_success
+  :super class_match_step_then
+  :doc #{The $CLASS_MATCH_STEP_SUCCESS step represents the normalized
+action in a match. $MSTEPSUCCESS_VAROCC is the tuple of pattern
+variable occurrences, $MSTEPSUCCESS_BINDS is the list of local
+binders, and $MSTEPSUCCESS_BODY is the normalized body tuple.}#
+  :fields (mstepsuccess_varocc
+	   mstepsuccess_binds
+	   mstepsuccess_body))
 
 (defclass class_match_step_test
   :super class_match_step_then
@@ -2586,17 +2595,17 @@ $MSTGROUP_ELSE.}#
 	   mstgroup_else))
 
 
-(defclass class_match_step_instance
+(defclass class_match_step_test_instance
   :super class_match_step_test
-  :doc #{The $CLASS_MATCH_STEP_INSTANCE is the class for testing
+  :doc #{The $CLASS_MATCH_STEP_TEST_INSTANCE is the class for testing
 instance membership. $MSTINS_CLASS is the tested class. $MSTINS_SLOTS
 is the tuple of slot matched data.}#
   :fields (mstins_class
 	   mstins_slots))
 
-(defclass class_match_step_matcher
+(defclass class_match_step_test_matcher
   :super class_match_step_test
-  :doc #{The $CLASS_MATCH_STEP_MATCHER is the class for testing with
+  :doc #{The $CLASS_MATCH_STEP_TEST_MATCHER is the class for testing with
 matcher. $MSTMA_MATCHER is the matcher, $MSTMA_BINDS is the local
 binding list for inputs, $MSTMA_INS is the normalized inputs,
 $MSTMA_OUTS is the tuple of output matched data.}#
@@ -2870,7 +2879,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	 (steplist)
 	 (curpair curstep)
 	 (cond 
-	  ( (and (is_a curstep class_match_step_instance)
+	  ( (and (is_a curstep class_match_step_test_instance)
 		 (== (unsafe_get_field :mstins_class curstep) pclass))
 	    (setq curpair ())
 	    (setq istep curstep)
@@ -2879,7 +2888,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	    (let 
 		( 
 		 (dslots (make_multiple discr_multiple nbfields))
-		 (newstep (instance class_match_step_instance
+		 (newstep (instance class_match_step_test_instance
 				    :loca_location sloc
 				    :mstep_data mdata
 				    :mstep_then ()
@@ -2889,6 +2898,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 				    ))
 		 )
 	      (setq istep newstep)
+	      (list_append steplist newstep)
 	      ))
 	;; translate each mentioned non-joker field 
 	(let ( (mslots (unsafe_get_field :mstins_slots istep))
@@ -2961,6 +2971,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	(matctx (unsafe_get_field  :mcase_mctxt mcase))
 	(symbval (mapobject_get varmap symb))
 	(mhandlers (get_field :mxct_varhandlers matctx))
+	(steplist (unsafe_get_field :mdata_steps mdata))
 	)
     (debug_msg symb "translpat_varpat symb")
     (debug_msg symbval "translpat_varpat symbval")
@@ -2972,6 +2983,16 @@ $MSTMA_OUTS is the tuple of output matched data.}#
      ( (null symbval)
        (mapobject_put varmap symb mdata)
        (debug_msg varmap "translpat_varpat updated varmap")
+       (foreach_in_list
+	(steplist)
+	(curpair cursetstep)
+	(if (and (is_a cursetstep class_match_step_set_variable)
+		 (== (unsafe_get_field :mstepsetvar_symb cursetstep) symb)
+		 (== (unsafe_get_field :mstep_data cursetstep) mdata))
+	    (progn
+	      (debug_msg cursetstep "translpat_varpat found cursetstep")
+	      (return cursetstep)))
+	)
        (let ( (stepset (instance class_match_step_set_variable
 				 :loca_location sloc
 				 :mstep_data mdata
@@ -2980,10 +3001,21 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 				 ))
 	      )
 	 (debug_msg stepset "translpat_varpat return stepset")
+	 (list_append steplist stepset)
 	 (return stepset)
 	 ))
      (:else
       (assert_msg "check symbval" (is_a symbval class_matched_data))
+       (foreach_in_list
+	(steplist)
+	(curpair curteststep)
+	(if (and (is_a curteststep class_match_step_test_variable)
+		 (== (unsafe_get_field :msteptestvar_symb curteststep) symb)
+		 (== (unsafe_get_field :mstep_data curteststep) mdata))
+	    (progn
+	      (debug_msg curteststep "translpat_varpat found curteststep")
+	      (return curteststep)))
+	)
       (let ( (steptest (instance class_match_step_test_variable
 				 :loca_location sloc
 				 :mstep_data mdata
@@ -2991,6 +3023,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 				 :msteptestvar_symb symb
 				 ))
 	     )
+	(list_append steplist steptest)
 	(debug_msg steptest "translpat_varpat return steptest")
 	(return steptest)
 	)))
@@ -3064,7 +3097,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
       (curpairstep curdatastep)
       (assert_msg "check curdatastep" (is_a curdatastep class_match_step))
       (if (and
-	   (is_a curdatastep class_match_step_matcher)
+	   (is_a curdatastep class_match_step_test_matcher)
 	   (== (unsafe_get_field :mstep_data curdatastep) mdata)
 	   (== (unsafe_get_field :mstma_matcher curdatastep) soper)
 	   (==i (list_length inbinds) 0)
@@ -3094,7 +3127,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
      (if (null curstep)
 	 (let ( 
 	       (outdatatup (make_multiple discr_multiple nbopout))
-	       (step (instance class_match_step_matcher
+	       (step (instance class_match_step_test_matcher
 			       :loca_location sloc
 			       :mstep_data mdata
 			       :mstep_then ()
@@ -3125,7 +3158,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	      ))
 	   ))
      (debug_msg curstep "translpat_patmat curstep after making it")
-     (assert_msg "check curstep" (is_a curstep class_match_step_matcher))
+     (assert_msg "check curstep" (is_a curstep class_match_step_test_matcher))
      (debug_msg souts "translpat_patmat souts again")
      (let ( 
 	   (outdata (get_field :mstma_outs curstep))
@@ -3190,7 +3223,8 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	  (ncx (unsafe_get_field :mxct_normctxt matctx))
 	  (env (unsafe_get_field :mxct_env matctx))
 	  (varmap (make_mapobject discr_map_objects
-				  (+i 12 (*i 2 (mapobject_count (unsafe_get_field :mcase_varmap curscas))))))
+				  (+i 12 (*i 2 (mapobject_count (unsafe_get_field :mcase_varmap curscas)))))) 
+	  (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
 	  )
       (debug_msg nmatx "translate_matchcase nmatx")
       (debug_msg curpat "translate_matchcase curpat")
@@ -3220,13 +3254,50 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	(debug_msg newenv "translate_matchcase updated newenv")
 	(debug_msg curbody "translate_matchcase before normalizing curbody")
 	(multicall
-	 (nbody nbind)
+	 (nbody nbinds)
 	 (normalize_tuple curbody newenv ncx sloc)
 	 (debug_msg nbody "translate_matchcase nbody after body normalization")
-	 (debug_msg nbind "translate_matchcase nbind after body normalization")
-	 (assert_msg "translate_matchcase should make a success step")
-	 (return)
-	 )))))
+	 (debug_msg nbinds "translate_matchcase nbinds after body normalization")
+	 (let (
+	       (listvarocc (make_list discr_list))
+	       (newbindmap (get_field :env_bind newenv))
+	       (stepsucc (instance class_match_step_success
+				   :loca_location sloc
+				   :mstep_data mdata
+				   :mstep_then ()
+				   :mstepsuccess_varocc ()
+				   :mstepsuccess_binds nbinds
+				   :mstepsuccess_body nbody
+				   ))
+	       )
+	   (foreach_in_mapobject
+	    (newbindmap)
+	    (bsymb binding)
+	    (if (and (is_a binding class_matched_binding)
+		     (>i (get_int (unsafe_get_field :matchbind_nbocc binding)) 0))
+		(let ( (syocc (mapobject_get sycmap bsymb))
+		       )
+		  (debug_msg syocc "translate_matchcase found syocc")
+		  (assert_msg "check syocc" (is_a syocc class_nrep_locsymocc))
+		  (assert_msg "check syocc binding" (== (get_field :nocc_bind syocc) binding))
+		  (list_append listvarocc syocc)
+		  )
+	      ))
+	   (debug_msg listvarocc "translate_matchcase listvarocc")
+	   (let ( (sortedvarocc
+		   (multiple_sort 
+		    (list_to_multiple listvarocc discr_multiple)
+		    (lambda (o1 o2)
+		      (compare_named_alpha (get_field :nocc_symb o1) (get_field :nocc_symb o2)))
+		    discr_multiple))
+		  )
+	     (debug_msg sortedvarocc  "translate_matchcase sortedvarocc")
+	     (put_fields 
+	      stepsucc :mstepsuccess_varocc sortedvarocc))
+	   (put_then_match mstep stepsucc)
+	   (debug_msg stepsucc "translate_matchcase stepsucc")
+	   (return)
+	   ))))))
 
 
 
@@ -3295,7 +3366,13 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	(translate_matchcase curmcase sloc)
 	)
        ;;
-       (compile_warning "should draw the graph")
+       (debug_msg mdata "normexp_altmatch updated mdata")
+	 (if (need_dbg 1)
+	     (let ( (dotprefix (get_field :container_value match_graphic_dot_prefix)) )
+	       (debug_msg match_graphic_dot_prefix "normexp_atmatch match_graphic_dot_prefix")
+	       (debug_msg dotprefix "normexp_match dotprefix")
+	       (if (is_string dotprefix) 
+		   (mg_altdraw_graphviz mdata dotprefix))))
        (assert_msg "$@$unimplemented normexp_altmatch")
        ))))
 
@@ -3309,6 +3386,140 @@ $MSTMA_OUTS is the tuple of output matched data.}#
  '"Enable alternate pattern-matching implementation"
  alternate_match_optset)
 
+
+(defun mg_altdraw_graphviz (mdata dotprefix)
+  (let ( (mapdata (make_mapobject discr_map_objects 43))
+	 (mapstep (make_mapobject discr_map_objects 43))
+	 (nodebuf (make_strbuf discr_strbuf))
+	 (edgebuf (make_strbuf discr_strbuf))
+	 )
+    ;; recursive scan of data & steps to fill the mapdata associating
+    ;; each data with its printable name and mapstep associating each
+    ;; step with its printable name
+    (letrec 
+     ( (scandata 
+	(lambda (data)
+	  (assert_msg "mg_altdraw_graphviz.scandata check data" (is_a data class_matched_data))
+	  (if (mapobject_get mapdata data) (return))
+	  (let ( (nambuf (make_strbuf discr_strbuf))
+		 (msymb (unsafe_get_field :mdata_symb data))
+		 (:long mapcnt (mapobject_count mapdata))
+		 (msteps (unsafe_get_field :mdata_steps data))
+		 )
+	    (add2sbuf_strconst nambuf "mdata_")
+	    (add2sbuf_longdec nambuf (+i mapcnt 1))
+	    (add2sbuf_strconst nambuf "_")
+	    (add2sbuf_cident nambuf (get_field :named_name msymb))
+	    (if (is_a msymb class_cloned_symbol)
+		(progn
+		  (add2sbuf_strconst nambuf "$")
+		  (add2sbuf_longdec nambuf (get_int (unsafe_get_field :csym_urank msymb)))))
+	    (mapobject_put mapdata data (strbuf2string nambuf discr_string))
+	    (foreach_in_list
+	     (msteps)
+	     (curpair curstep)
+	     (scanstep curstep))
+	    )
+	  ))
+       (scanstep 
+	(lambda (step)
+	  (assert_msg "mg_altdraw_graphviz.scanstep check step" (is_a step class_match_step))
+	  (if (mapobject_get mapstep step) (return))
+	  (let ( (nambuf (make_strbuf discr_strbuf))
+		 (:long mapcnt (mapobject_count mapstep))
+		 (disnam (get_field :named_name (discrim step)))
+		 (sdata (unsafe_get_field :mstep_data step))
+		 )
+	    (code_chunk chunkdisnam
+			#{ meltgc_add_strbuf ((melt_ptr_t)$nambuf,
+					      melt_string_str((melt_ptr_t)$disnam)+strlen("CLASS_")) }#)
+	    (add2sbuf_strconst nambuf "$")
+	    (add2sbuf_longdec nambuf (+i mapcnt 1))
+	    (mapobject_put mapstep step (strbuf2string nambuf discr_string))
+	    (if sdata (scandata sdata))
+	    (let (
+		  ;; these are checked get fields!!
+		  (sthen (get_field :mstep_then step))
+		  (selse (get_field :mstep_else step))
+		  )
+	      (if sthen (scanstep sthen))
+	      (if selse (scanstep selse))
+	      ))))
+       )
+     (scandata mdata)
+     )
+    ;;
+    (let (
+	  (:long datacount 0)
+	  (:long stepcount 0)
+	  (tupdata (make_multiple discr_multiple (mapobject_count mapdata)))
+	  (tupstep (make_multiple discr_multiple (mapobject_count mapstep)))
+	  )
+      (foreach_in_mapobject
+       (mapdata)
+       (curdata dataname)
+       (multiple_put_nth tupdata datacount curdata)
+       (setq datacount (+i 1 datacount))
+       )
+      (foreach_in_mapobject
+       (mapstep)
+       (curstep stepname)
+       (multiple_put_nth tupstep stepcount curstep)
+       (setq stepcount (+i 1 stepcount))
+       )
+      (let (
+	    (sortupdata 
+	     (multiple_sort
+	      tupdata
+	      (lambda (d1 d2)
+		(let ( 
+		      (sn1 (mapobject_get mapdata d1))
+		      (sn2 (mapobject_get mapdata d2))
+		      )
+		  (cond 
+		   ( (string< sn1 sn2) 
+		     '-1)
+		   ( (string> sn1 sn2)
+		     '1)
+		   (:else
+		    '0
+		    )))
+		)
+	      discr_multiple
+	      ))
+	    (sortupstep 
+	     (multiple_sort
+	      tupstep
+	      (lambda (s1 s2)
+		(let ( 
+		      (sn1 (mapobject_get mapstep s1))
+		      (sn2 (mapobject_get mapstep s2))
+		      )
+		  (cond 
+		   ( (string< sn1 sn2) 
+		     '-1)
+		   ( (string> sn1 sn2)
+		     '1)
+		   (:else
+		    '0
+		    )))
+		)
+	      discr_multiple
+	      ))
+	    )
+	(debug_msg sortupdata "mg_altdraw_graphviz sortupdata")
+	(foreach_in_multiple
+	 (sortupdata)
+	 (curdata :long dix)
+	 (assert_msg "mg_altdraw_graphviz check curdata" (is_a curdata class_matched_data))
+	 )
+	(debug_msg sortupstep "mg_altdraw_graphviz sortupstep")
+	(foreach_in_multiple
+	 (sortupstep)
+	 (curstep :long dix)
+	 (assert_msg "mg_altdraw_graphviz check curstep" (is_a curstep class_match_step))
+	 )
+	))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; export our classes
 (export_class
