@@ -1,0 +1,42 @@
+; -*- lisp -*-
+;; file tletrec4.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=runfile  -fmelt-module-path=.    \
+    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tletrec4.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+(defun recevenodd (b)
+  (letrec
+   (
+    (even (lambda (x)
+	    (debug_msg x "even x")
+	    (let ( (:long ix (get_int x)) 
+		   )
+	      (if (>i ix 0)
+		  (let ( (px (make_integerbox discr_integer (-i ix 1))) )
+		    (debug_msg px "even calls odd px")
+		    (odd px)))
+	      (debug_msg x "end even x"))))
+    (odd (lambda (y)
+	   (debug_msg y "odd y")
+	   (let ( (:long jy (get_int y))
+		  )
+	     (if (>i jy 0)
+		 (let ( (py  (make_integerbox discr_integer (-i jy 1))) )
+		   (debug_msg py "odd calls even py")
+		   (odd py)))
+	     (debug_msg y "end odd y"))))
+    )
+   (debug_msg even "recevenodd even")
+   (debug_msg odd "recevenodd odd")
+   (debug_msg b "recevenodd b")
+   (even b)
+   (debug_msg b "recevenodd end b")))
+
+(recevenodd '4)
+
+;; eof tletrec4.melt

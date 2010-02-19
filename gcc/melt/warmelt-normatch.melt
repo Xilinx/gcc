@@ -3399,6 +3399,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
     (letrec 
      ( (scandata 
 	(lambda (data)
+	  (debug_msg data "mg_altdraw_graphviz/scandata data")
 	  (assert_msg "mg_altdraw_graphviz.scandata check data" (is_a data class_matched_data))
 	  (if (mapobject_get mapdata data) (return))
 	  (let ( (nambuf (make_strbuf discr_strbuf))
@@ -3423,6 +3424,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	  ))
        (scanstep 
 	(lambda (step)
+	  (debug_msg step "mg_altdraw_graphviz/scanstep step")
 	  (assert_msg "mg_altdraw_graphviz.scanstep check step" (is_a step class_match_step))
 	  (if (mapobject_get mapstep step) (return))
 	  (let ( (nambuf (make_strbuf discr_strbuf))
@@ -3446,7 +3448,12 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	      (if selse (scanstep selse))
 	      ))))
        )
+     (debug_msg mdata "mg_altdraw_graphviz before scandata mdata")
+     (debug_msg scandata "mg_altdraw_graphviz scandata")
      (scandata mdata)
+     (debug_msg mdata "mg_altdraw_graphviz after scandata mdata")
+     (debug_msg mapdata "mg_altdraw_graphviz after scandata mapdata")
+     (debug_msg mapstep "mg_altdraw_graphviz after scandata mapstep")
      )
     ;;
     (let (
@@ -3511,12 +3518,26 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	(foreach_in_multiple
 	 (sortupdata)
 	 (curdata :long dix)
+	 (debug_msg curdata "mg_altdraw_graphviz curdata")
 	 (assert_msg "mg_altdraw_graphviz check curdata" (is_a curdata class_matched_data))
+	 (let ( 
+	       (curdataname (mapobject_get mapdata curdata))
+	       )
+	   (add2out_indentnl nodebuf 0)
+	   (add2out_string nodebuf curdataname)
+	   (add2out_strconst nodebuf " [ margin=0, ")
+	   (add2out_strconst nodebuf "label=<<table border=\"1\" cellborder=\"1\"")
+	   (add2out_strconst nodebuf " cellspacing=\"1\" cellpadding=\"1\">")
+	   (add2out_indentnl nodebuf 0)
+	   (add2out_strconst nodebuf "</table>> ];")
+	   (add2out_indentnl nodebuf 0)
+	   )
 	 )
 	(debug_msg sortupstep "mg_altdraw_graphviz sortupstep")
 	(foreach_in_multiple
 	 (sortupstep)
 	 (curstep :long dix)
+	 (debug_msg curstep "mg_altdraw_graphviz curstep")
 	 (assert_msg "mg_altdraw_graphviz check curstep" (is_a curstep class_match_step))
 	 )
 	))))

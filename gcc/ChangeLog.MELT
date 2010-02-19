@@ -1,3 +1,8 @@
+2010-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tletrec4.melt new case, miscompiled}}
+	* testsuite/melt/tletrec4.melt: added new case.
+	* melt/warmelt-normatch.melt: more of alternate matching.
+
 2010-02-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: added cast in foreach_in_mapobject to
 	avoid warnings in generated code.
