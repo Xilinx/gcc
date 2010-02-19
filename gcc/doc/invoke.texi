@@ -13470,11 +13470,11 @@ Use hardware floating point instructions.
 
 @item -mmemcpy
 @opindex mmemcpy
-Don't optimize block moves, use memcpy.
+Don't optimize block moves, use @code{memcpy}.
 
 @item -mno-clearbss
 @opindex mno-clearbss
-Clear the BSS to zero and place zero initialized in BSS.
+This option is deprecated.  Use -fno-zero-initialized-in-bss instead.
 
 @item -mcpu=@var{cpu-type}
 @opindex mcpu=
@@ -13505,7 +13505,7 @@ Use table lookup optimization for small signed integer divisions.
 
 @item -mxl-stack-check
 @opindex mxl-stack-check
-Check for stack overflow at runtime.
+This option is deprecated.  Use -fstack-check instead.
 
 @item -mxl-gp-opt
 @opindex mxl-gp-opt
@@ -13526,24 +13526,28 @@ Use hardware floating point square root instruction.
 @item -mxl-mode-@var{app-model}
 Select application model @var{app-model}.  Valid models are 
 @table @samp
-@var{executable} -- normal executable (default), uses startup code crt0.o.
+@item executable
+normal executable (default), uses startup code @file{crt0.o}.
 
-@var{xmdstub} -- for use with Xilinx Microprocessor Debugger (XMD) based 
+@item xmdstub
+for use with Xilinx Microprocessor Debugger (XMD) based 
 software intrusive debug agent called xmdstub. This uses startup file 
-crt1.o and sets the start address of the program to be 0x800.
+@file{crt1.o} and sets the start address of the program to be 0x800.
 
-@var{bootstrap} -- for applications that are loaded using a bootloader.
-This model uses startup file crt2.o which does not contain a processor 
+@item bootstrap
+for applications that are loaded using a bootloader.
+This model uses startup file @file{crt2.o} which does not contain a processor 
 reset vector handler. This is suitable for transferring control on a 
 processor reset to the bootloader rather than the application.
 
-@var{novectors} -- for applications that do not require any of the 
+@item novectors
+for applications that do not require any of the 
 MicroBlaze vectors. This option may be useful for applications running
-within a monitoring application. This model uses crt3.o as a startup file.
+within a monitoring application. This model uses @file{crt3.o} as a startup file.
 @end table
 
-Option -xl-mode-@var{app-model} is a deprecated alias for 
--mxl-mode-@var{app-model}.
+Option @option{-xl-mode-@var{app-model}} is a deprecated alias for 
+@option{-mxl-mode-@var{app-model}}.
 
 @end table
 
