@@ -19,8 +19,8 @@
    along with GCC; see the file COPYING3.  If not see
    <http://www.gnu.org/licenses/>.  */
 
-#ifndef __MICROBLAZE_PROTOS__
-#define __MICROBLAZE_PROTOS__
+#ifndef GCC_MICROBLAZE_PROTOS_H
+#define GCC_MICROBLAZE_PROTOS_H
 
 #ifdef RTX_CODE
 extern int pic_address_needs_scratch (rtx);
@@ -44,7 +44,6 @@ extern int microblaze_is_interrupt_handler (void);
 extern rtx microblaze_return_addr (int, rtx);
 extern int simple_memory_operand (rtx, enum machine_mode);
 extern int double_memory_operand (rtx, enum machine_mode);
-extern void microblaze_cpp_define (void); 
 
 extern int microblaze_regno_ok_for_base_p (int, int);
 extern HOST_WIDE_INT microblaze_initial_elimination_offset (int, int);
@@ -59,4 +58,7 @@ extern void function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 extern rtx function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
 #endif /* TREE_CODE */
 
-#endif  /* __MICROBLAZE_PROTOS__ */
+/* Declare functions in microblaze-c.c.  */
+extern void microblaze_cpp_define (struct cpp_reader *); 
+
+#endif  /* GCC_MICROBLAZE_PROTOS_H */

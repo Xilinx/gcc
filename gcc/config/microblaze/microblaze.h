@@ -48,9 +48,6 @@ extern enum pipeline_type microblaze_pipe;
 
 #define OBJECT_FORMAT_ELF
 
-/* Optimize for Sdata/Sbss */
-#define TARGET_XLGP_OPT		(target_flags & MASK_XLGPOPT)
-
 /* This table translates options whose names would interfere
    with normal driver options and adds a 'Z' so that they can get to
    specs processing without interference.
@@ -106,7 +103,7 @@ extern enum pipeline_type microblaze_pipe;
 #endif
 
 /* Names to predefine in the preprocessor for this target machine.  */
-#define TARGET_CPU_CPP_BUILTINS() microblaze_cpp_define()
+#define TARGET_CPU_CPP_BUILTINS() microblaze_cpp_define (pfile)
 
 /* Assembler specs.  */
 
@@ -692,7 +689,7 @@ typedef struct microblaze_args
 #define	ASM_OUTPUT_ALIGNED_COMMON(FILE, NAME, SIZE, ALIGN)		\
 do {									\
   if (SIZE > 0 && SIZE <= microblaze_section_threshold                  \
-      && TARGET_XLGP_OPT)                                               \
+      && TARGET_XLGPOPT)                                               \
     {                                                                   \
       switch_to_section (sbss_section);					\
     }									\
@@ -711,7 +708,7 @@ do {									\
 #define	ASM_OUTPUT_ALIGNED_LOCAL(FILE, NAME, SIZE, ALIGN)		\
 do {									\
   if (SIZE > 0 && SIZE <= microblaze_section_threshold                  \
-      && TARGET_XLGP_OPT)                                               \
+      && TARGET_XLGPOPT)                                               \
     {                                                                   \
       switch_to_section (sbss_section);					\
     }									\

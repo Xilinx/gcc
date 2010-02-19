@@ -49,7 +49,6 @@
 #include "gstab.h"
 #include "df.h"
 #include "optabs.h"
-#include "c-pragma.h"
 
 #define MICROBLAZE_VERSION_COMPARE(VA,VB) strcasecmp (VA, VB)
 
@@ -435,7 +434,7 @@ get_base_reg (rtx x)
   tree decl;
   int base_reg = (flag_pic ? MB_ABI_PIC_ADDR_REGNUM : MB_ABI_BASE_REGNUM);
 
-  if (TARGET_XLGP_OPT
+  if (TARGET_XLGPOPT
       && GET_CODE (x) == SYMBOL_REF
       && SYMBOL_REF_SMALL_P (x) && (decl = SYMBOL_REF_DECL (x)) != NULL)
     {
@@ -2544,7 +2543,7 @@ microblaze_globalize_label (FILE * stream, const char *name)
 static bool
 microblaze_elf_in_small_data_p (tree decl)
 {
-  if (!TARGET_XLGP_OPT)
+  if (!TARGET_XLGPOPT)
     return false;
 
   /* We want to merge strings, so we never consider them small data.  */
@@ -2936,56 +2935,6 @@ microblaze_expand_divide (rtx operands[])
   emit_label (div_end_label);
   emit_insn (gen_blockage ());
 }
-
-/* Define preprocessor symbols for MicroBlaze.  
-   Symbols which do not start with __ are deprecated.  */
-
-void microblaze_cpp_define (void)
-{
-  cpp_assert (parse_in, "cpu=microblaze");
-  cpp_assert (parse_in, "machine=microblaze");
-  cpp_define (parse_in, "__MICROBLAZE__");
-  if (!TARGET_SOFT_MUL) 
-    {
-      cpp_define (parse_in, "HAVE_HW_MUL");
-      cpp_define (parse_in, "__HAVE_HW_MUL__");
-    }
-  if (TARGET_MULTIPLY_HIGH)
-    {
-      cpp_define (parse_in, "HAVE_HW_MUL_HIGH");
-      cpp_define (parse_in, "__HAVE_HW_MUL_HIGH__");
-    }
-  if (!TARGET_SOFT_DIV)
-    {
-      cpp_define (parse_in, "HAVE_HW_DIV");
-      cpp_define (parse_in, "__HAVE_HW_DIV__");
-    }
-  if (TARGET_BARREL_SHIFT)
-    {
-      cpp_define (parse_in, "HAVE_HW_BSHIFT");
-      cpp_define (parse_in, "__HAVE_HW_BSHIFT__");
-    }
-  if (TARGET_PATTERN_COMPARE)
-    {
-      cpp_define (parse_in, "HAVE_HW_PCMP");
-      cpp_define (parse_in, "__HAVE_HW_PCMP__");
-    }
-  if (TARGET_HARD_FLOAT)
-    {
-      cpp_define (parse_in, "HAVE_HW_FPU");
-      cpp_define (parse_in, "__HAVE_HW_FPU__");
-    }
-  if (TARGET_FLOAT_CONVERT)
-    {
-      cpp_define (parse_in, "HAVE_HW_FPU_CONVERT");
-      cpp_define (parse_in, "__HAVE_HW_FPU_CONVERT__");
-    }
-  if (TARGET_FLOAT_SQRT)
-    {
-      cpp_define (parse_in, "HAVE_HW_FPU_SQRT");
-      cpp_define (parse_in, "__HAVE_HW_FPU_SQRT__");
-    }
-}  
 
 /* Implement TARGET_FUNCTION_VALUE.  */
 static rtx
