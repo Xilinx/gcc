@@ -474,19 +474,16 @@
 ;;----------------------------------------------------------------
 
 (define_insn "subsi3"
-  [(set (match_operand:SI 0 "register_operand" "=d,d,d,d,d")
-	(minus:SI (match_operand:SI 1 "arith_operand" "dJ,dJ,dJ,I,i")
-		  (match_operand:SI 2 "arith_operand" "d,I,i,dJ,dJ")))]
+  [(set (match_operand:SI 0 "register_operand" "=d,d")
+	(minus:SI (match_operand:SI 1 "arith_operand" "d,d")
+		  (match_operand:SI 2 "arith_operand" "d,n")))]
   ""
   "@
    rsubk\t%0,%2,%z1
-   addik\t%0,%z1,-%2
-   addik\t%0,%z1,-%2
-   rsubik\t%0,%2,%z1
-   rsubik\t%0,%2,%z1"
-  [(set_attr "type"	"arith,arith,no_delay_arith,arith,no_delay_arith")
+   addik\t%0,%z1,-%2"
+  [(set_attr "type"	"arith,no_delay_arith")
   (set_attr "mode"	"SI")
-  (set_attr "length"	"4,8,8,8,8")])
+  (set_attr "length"	"4,8")])
 
 
 ;;----------------------------------------------------------------
@@ -494,18 +491,15 @@
 ;;----------------------------------------------------------------
 
 (define_insn "subdi3"
-  [(set (match_operand:DI 0 "register_operand" "=d,d,d,d")
-	(minus:DI (match_operand:DI 1 "register_operand" "d,d,d,d")
-		  (match_operand:DI 2 "arith_operand32" "d,P,J,N")))]
+  [(set (match_operand:DI 0 "register_operand" "=&d")
+	(minus:DI (match_operand:DI 1 "register_operand" "d")
+		  (match_operand:DI 2 "arith_operand32" "d")))]
   ""
   "@
-   rsub\t%L0,%L2,%L1\;rsubc\t%M0,%M2,%M1
-   rsub\t%L0,%L2,%L1\;rsubc\t%M0,%M2,%M1
-   add\t%L0,%L1\;add\t%M0,%M1
    rsub\t%L0,%L2,%L1\;rsubc\t%M0,%M2,%M1"
   [(set_attr "type"	"darith")
   (set_attr "mode"	"DI")
-  (set_attr "length"	"8,8,8,8")])
+  (set_attr "length"	"8")])
 
 
 ;;----------------------------------------------------------------
@@ -1319,7 +1313,7 @@
 ;; 32-bit left shifts
 ;;----------------------------------------------------------------
 (define_expand "ashlsi3"
-  [(set (match_operand:SI 0 "register_operand" "=d")
+  [(set (match_operand:SI 0 "register_operand" "=&d")
 	(ashift:SI (match_operand:SI 1 "register_operand" "d")
 		   (match_operand:SI 2 "arith_operand" "")))]
   ""
@@ -1388,7 +1382,7 @@
 )
 
 (define_insn "*ashlsi3_with_size_opt"
-  [(set (match_operand:SI 0 "register_operand" "=d")
+  [(set (match_operand:SI 0 "register_operand" "=&d")
        (ashift:SI (match_operand:SI 1 "register_operand"  "d")
                    (match_operand:SI 2 "immediate_operand" "I")))]
   "(INTVAL (operands[2]) > 5 && optimize_size)"
@@ -1409,7 +1403,7 @@
 )
 
 (define_insn "*ashlsi3_with_rotate"
-  [(set (match_operand:SI 0 "register_operand" "=d")
+  [(set (match_operand:SI 0 "register_operand" "=&d")
        (ashift:SI (match_operand:SI 1 "register_operand"  "d")
                    (match_operand:SI 2 "immediate_operand" "I")))]
   "(INTVAL (operands[2]) > 17 && !optimize_size)"
@@ -1433,7 +1427,7 @@
 )
 
 (define_insn "*ashlsi_inline"
-  [(set (match_operand:SI 0 "register_operand" "=d")
+  [(set (match_operand:SI 0 "register_operand" "=&d")
        (ashift:SI (match_operand:SI 1 "register_operand"  "d")
                    (match_operand:SI 2 "immediate_operand" "I")))]
   ""
@@ -1453,15 +1447,15 @@
 )
 
 (define_insn "*ashlsi_reg"
-  [(set (match_operand:SI 0 "register_operand" "=d")
+  [(set (match_operand:SI 0 "register_operand" "=&d")
        (ashift:SI (match_operand:SI 1 "register_operand"  "d")
                    (match_operand:SI 2 "register_operand" "d")))]
   ""
   {
     operands[3] = gen_rtx_REG (SImode, MB_ABI_ASM_TEMP_REGNUM);
+    output_asm_insn ("andi\t%3,%2,31", operands);
     if (REGNO (operands[0]) != REGNO (operands[1])) 
       output_asm_insn ("addk\t%0,r0,%1", operands);
-    output_asm_insn ("andi\t%3,%2,31", operands);
     /* Exit the loop if zero shift. */
     output_asm_insn ("beqid\t%3,.+20", operands);
     /* Emit the loop.  */
@@ -1480,7 +1474,7 @@
 ;; 32-bit right shifts
 ;;----------------------------------------------------------------
 (define_expand "ashrsi3"
-  [(set (match_operand:SI 0 "register_operand" "=d")
+  [(set (match_operand:SI 0 "register_operand" "=&d")
 	(ashiftrt:SI (match_operand:SI 1 "register_operand" "d")
                      (match_operand:SI 2 "arith_operand" "")))]
   ""
@@ -1522,7 +1516,7 @@
 )
 
 (define_insn "*ashrsi_inline"
-  [(set (match_operand:SI 0 "register_operand" "=d")
+  [(set (match_operand:SI 0 "register_operand" "=&d")
        (ashiftrt:SI (match_operand:SI 1 "register_operand"  "d")
                    (match_operand:SI 2 "immediate_operand" "I")))]
   ""
@@ -1542,15 +1536,15 @@
 )
 
 (define_insn "*ashlri_reg"
-  [(set (match_operand:SI 0 "register_operand" "=d")
+  [(set (match_operand:SI 0 "register_operand" "=&d")
        (ashiftrt:SI (match_operand:SI 1 "register_operand"  "d")
                    (match_operand:SI 2 "register_operand" "d")))]
   ""
   {
     operands[3] = gen_rtx_REG (SImode, MB_ABI_ASM_TEMP_REGNUM);
+    output_asm_insn ("andi\t%3,%2,31", operands);
     if (REGNO (operands[0]) != REGNO (operands[1])) 
       output_asm_insn ("addk\t%0,r0,%1", operands);
-    output_asm_insn ("andi\t%3,%2,31", operands);
     /* Exit the loop if zero shift. */
     output_asm_insn ("beqid\t%3,.+20", operands);
     /* Emit the loop.  */
@@ -1569,7 +1563,7 @@
 ;;----------------------------------------------------------------
 
 (define_expand "lshrsi3"
-  [(set (match_operand:SI 0 "register_operand" "=d")
+  [(set (match_operand:SI 0 "register_operand" "=&d")
 	(lshiftrt:SI (match_operand:SI 1 "register_operand" "d")
                      (match_operand:SI 2 "arith_operand" "")))]
   ""
@@ -1611,7 +1605,7 @@
 )
 
 (define_insn "*lshrsi_inline"
-  [(set (match_operand:SI 0 "register_operand" "=d")
+  [(set (match_operand:SI 0 "register_operand" "=&d")
        (lshiftrt:SI (match_operand:SI 1 "register_operand"  "d")
                    (match_operand:SI 2 "immediate_operand" "I")))]
   ""
@@ -1631,15 +1625,15 @@
 )
 
 (define_insn "*lshlri_reg"
-  [(set (match_operand:SI 0 "register_operand" "=d")
+  [(set (match_operand:SI 0 "register_operand" "=&d")
        (lshiftrt:SI (match_operand:SI 1 "register_operand"  "d")
                    (match_operand:SI 2 "register_operand" "d")))]
   ""
   {
     operands[3] = gen_rtx_REG (SImode, MB_ABI_ASM_TEMP_REGNUM);
+    output_asm_insn ("andi\t%3,%2,31", operands);
     if (REGNO (operands[0]) != REGNO (operands[1])) 
       output_asm_insn ("addk\t%0,r0,%1", operands);
-    output_asm_insn ("andi\t%3,%2,31", operands);
     /* Exit the loop if zero shift. */
     output_asm_insn ("beqid\t%3,.+20", operands);
     /* Emit the loop.  */
