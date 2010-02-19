@@ -1481,6 +1481,8 @@
 	 (add2sbuf_indentnl implbuf 0)
 	 (add2sbuf_strconst implbuf "#define meltfram__ (*meltframptr__)")
 	 (add2sbuf_indentnl implbuf 0)
+	 (add2sbuf_strconst implbuf "#define callcount 0L")
+	 (add2sbuf_indentnl implbuf 0)
 	 (add2sbuf_sbuf implbuf curchunk)
 	 (add2sbuf_indentnl implbuf 0)
 	 (add2sbuf_strconst implbuf "#undef meltfram__")

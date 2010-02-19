@@ -11,7 +11,7 @@
 
 
 ;; 2 useless functions
-#|
+
 (defun testzeroletrec (g)
   (letrec ( (f 
 	     (lambda (x) (g x x)))
@@ -35,7 +35,7 @@
 	  t))
 ;;
 
-|#
+
 
 (defun testletrec (u :long j)
   (letrec (
@@ -48,7 +48,7 @@
 	   (fb (lambda (y :long p) 
 		 (debug_msg y "y inside fb")
 		 (if (<=i p 0) 
-		     (make_tuple2 discr_multiple y tu)
+		     (tuple y tu)
 		   (fa y 
 		       (/i p 2)))))
 	   (tu (tuple ii 'zz ll))

@@ -1,4 +1,16 @@
 2010-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{ all tletrec*.melt test passes }}
+	* testsuite/melt/tletrec.melt: corrected to not use make_tuple2.
+
+	* testsuite/melt/tletrec2.melt: corrected fields.
+	
+	* melt/warmelt-normal.melt: normexp_letrec should call
+	normalize_lambda cexpr env newenv ...
+
+	* melt/warmelt-outobj.melt: should generate a callcount in the
+	initial chunks.. Actually, callcount should be renamed..
+
+2010-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tletrec4.melt new case, miscompiled}}
 	* testsuite/melt/tletrec4.melt: added new case.
 	* melt/warmelt-normatch.melt: more of alternate matching.

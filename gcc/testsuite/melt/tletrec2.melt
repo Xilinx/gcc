@@ -47,7 +47,8 @@
 			  :nrep_loc sloc
 			  :nlet_bindings tup1bind
 			  :nlet_body nbdy
-			  :nletrec_bindings ()
+			  :nletrec_fill_bindings ()
+			  :nletrec_body_bindings ()
 			  :nletrec_locsyms tup1loc
 			  ))
        )

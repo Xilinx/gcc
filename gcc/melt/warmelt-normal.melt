@@ -3653,8 +3653,8 @@ source location.}#
     (assert_msg "check newenv" (is_a newenv class_environment))
     (multicall
      (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
-     (normalize_lambda cexpr newenv newenv ncx psloc)
-     ;;was     (normalize_lambda cexpr env newenv ncx psloc)
+     ;;bad (normalize_lambda cexpr newenv newenv ncx psloc)
+     (normalize_lambda cexpr env newenv ncx psloc)
      (debug_msg csym "normletrec_lambda after normalize_lambda csym")
      (debug_msg clocc "normletrec_lambda after normalize_lambda clocc")
      (debug_msg constrout "normletrec_lambda after normalize_lambda constrout")
@@ -3663,10 +3663,27 @@ source location.}#
      (debug_msg ndatarout  "normletrec_lambda after normalize_lambda ndatarout")
      (if insideflag
 	 (list_append (unsafe_get_field :nrpro_const oldproc) ndatarout))
-     (put_fields cbind 
-		 :nlambdab_nclosed clovtup 
-		 :nlambdab_constrout constrout
-		 :nlambdab_datarout ndatarout)
+     (let ( (nclosedtup 
+#|
+	     (multiple_map
+	      clovtup
+	      (lambda (curclosocc :long cix)
+		(debug_msg curclosocc "normalize_lambda.lambda curclosocc")
+		(assert_msg "normletrec_lambda.lambda check curclosocc" 
+			    (is_a curclosocc class_nrep_closedocc))
+		(assert_msg "@$@unimplemented normletrec_lambda.lambda")
+		)
+	      discr_multiple
+	      )
+|#
+	     (compile_warning "normletrec_lambda using clovtup" clovtup)
+	     )
+	    )
+       (debug_msg nclosedtup "normletrec_lambda nclosedtup")
+       (put_fields cbind 
+		   :nlambdab_nclosed nclosedtup
+		   :nlambdab_constrout constrout
+		   :nlambdab_datarout ndatarout))
      (debug_msg cbind "normletrec_lambda updated cbind")
      (compile_warning "unimplemented normletrec_lambda, maybe store the newenv in the cbind")
      (shortbacktrace_dbg "normletrec_lambda ended" 15)
@@ -4159,6 +4176,7 @@ source location.}#
 	     )
 	 (list_append resbinds cbind)
 	 (debug_msg clocc "normexp_letrec result clocc")
+	 (debug_msg nletrec "normexp_letrec result nletrec")
 	 (debug_msg resbinds "normexp_letrec result resbinds")
 	 (shortbacktrace_dbg "normexp_letrec ending" 15)
 	 (return clocc resbinds)
