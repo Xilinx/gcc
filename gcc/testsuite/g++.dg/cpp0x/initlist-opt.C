@@ -5,7 +5,7 @@
 
 #include <initializer_list>
 
-int max_val(std::initializer_list<int> il)
+inline int max_val(std::initializer_list<int> il)
 {
         int i = *(il.begin());
         int j = *(il.begin() + 1);
