@@ -902,7 +902,8 @@ compiled C abstract syntax trees (that is @code{:tree} and
 
 
 ;;; the call counter - do not redefine the name, it is used by expansion of debug_msg macro!
-(defprimitive the_callcount () :long "callcount")
+(defprimitive the_meltcallcount () :long "meltcallcount")
+(defprimitive the_callcount () :long "meltcallcount")
 ;;; the current frame depth
 (defprimitive the_framedepth () :long "(melt_curframdepth())")
 
@@ -3418,10 +3419,14 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  string<
  string>
  stringconst2val
+ the_meltcallcount
  the_callcount
  the_framedepth
  the_null_cstring
  )
+
+
+
 ;; export the discriminants and instances and selectors defined above
 (export_values				;alphabetical order
  ctype_basic_block

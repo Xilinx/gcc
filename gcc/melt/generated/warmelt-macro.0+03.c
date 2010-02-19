@@ -641,9 +641,11 @@ meltrout_113_warmelt_macro_MEXPAND_PARENT_MODULE_ENVIRONMENT(meltclosure_ptr_t c
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_113_warmelt_macro_MEXPAND_PARENT_MODULE_ENVIRONMENT_st { unsigned nbvar;
@@ -675,7 +677,7 @@ meltrout_113_warmelt_macro_MEXPAND_PARENT_MODULE_ENVIRONMENT(meltclosure_ptr_t c
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("MEXPAND_PARENT_MODULE_ENVIRONMENT", callcount);
+melt_trace_start("MEXPAND_PARENT_MODULE_ENVIRONMENT", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -802,8 +804,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-macro.melt:4900:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -811,7 +813,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "mexpand_parent_module_environment sexpr";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-macro.melt";
     /*^apply.arg*/
@@ -823,7 +825,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-macro.melt:4900:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ meltfptr[9] = 0 ;}
   
@@ -889,8 +891,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L5*/ meltfnum[4] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[4] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-macro.melt:4910:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -898,7 +900,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "mexpand_parent_module_environment return res";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L5*/ meltfnum[4];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[4];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-macro.melt";
     /*^apply.arg*/
@@ -910,7 +912,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-macro.melt:4910:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L5*/ meltfnum[4] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[4] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V19*/ meltfptr[18] = 0 ;}
   
@@ -965,9 +967,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("MEXPAND_PARENT_MODULE_ENVIRONMENT", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("MEXPAND_PARENT_MODULE_ENVIRONMENT", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -984,9 +986,11 @@ meltrout_114_warmelt_macro_MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER(m
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_114_warmelt_macro_MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER_st { unsigned nbvar;
@@ -1018,7 +1022,7 @@ meltrout_114_warmelt_macro_MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER(m
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER", callcount);
+melt_trace_start("MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -1145,8 +1149,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-macro.melt:4923:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -1154,7 +1158,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "mexpand_update_current_module_environment_container sexpr";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-macro.melt";
     /*^apply.arg*/
@@ -1166,7 +1170,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-macro.melt:4923:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ meltfptr[9] = 0 ;}
   
@@ -1232,8 +1236,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L5*/ meltfnum[4] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[4] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-macro.melt:4933:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -1241,7 +1245,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "mexpand_update_current_module_environment_container return res";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L5*/ meltfnum[4];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[4];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-macro.melt";
     /*^apply.arg*/
@@ -1253,7 +1257,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-macro.melt:4933:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L5*/ meltfnum[4] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[4] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V19*/ meltfptr[18] = 0 ;}
   
@@ -1308,9 +1312,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -1327,9 +1331,11 @@ meltrout_115_warmelt_macro_MEXPAND_FETCH_PREDEFINED(meltclosure_ptr_t closp_, me
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_115_warmelt_macro_MEXPAND_FETCH_PREDEFINED_st { unsigned nbvar;
@@ -1361,7 +1367,7 @@ meltrout_115_warmelt_macro_MEXPAND_FETCH_PREDEFINED(meltclosure_ptr_t closp_, me
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("MEXPAND_FETCH_PREDEFINED", callcount);
+melt_trace_start("MEXPAND_FETCH_PREDEFINED", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -1488,8 +1494,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-macro.melt:4947:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -1497,7 +1503,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "mexpand_fetch_predefined sexpr";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-macro.melt";
     /*^apply.arg*/
@@ -1509,7 +1515,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-macro.melt:4947:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ meltfptr[9] = 0 ;}
   
@@ -1659,8 +1665,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L10*/ meltfnum[9] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[9] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-macro.melt:4963:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -1668,7 +1674,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "mexpand_fetch_predefined result";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L10*/ meltfnum[9];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[9];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-macro.melt";
     /*^apply.arg*/
@@ -1680,7 +1686,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-macro.melt:4963:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L10*/ meltfnum[9] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[9] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V23*/ meltfptr[22] = 0 ;}
   
@@ -1753,9 +1759,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("MEXPAND_FETCH_PREDEFINED", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("MEXPAND_FETCH_PREDEFINED", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -1772,9 +1778,11 @@ meltrout_116_warmelt_macro_MEXPAND_STORE_PREDEFINED(meltclosure_ptr_t closp_, me
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_116_warmelt_macro_MEXPAND_STORE_PREDEFINED_st { unsigned nbvar;
@@ -1806,7 +1814,7 @@ meltrout_116_warmelt_macro_MEXPAND_STORE_PREDEFINED(meltclosure_ptr_t closp_, me
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("MEXPAND_STORE_PREDEFINED", callcount);
+melt_trace_start("MEXPAND_STORE_PREDEFINED", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -1933,8 +1941,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-macro.melt:4973:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -1942,7 +1950,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "mexpand_store_predefined sexpr";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-macro.melt";
     /*^apply.arg*/
@@ -1954,7 +1962,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-macro.melt:4973:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V10*/ meltfptr[9] = 0 ;}
   
@@ -2149,8 +2157,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L11*/ meltfnum[10] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L11*/ meltfnum[10] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-macro.melt:4996:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -2158,7 +2166,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "mexpand_store_predefined result";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L11*/ meltfnum[10];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L11*/ meltfnum[10];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-macro.melt";
     /*^apply.arg*/
@@ -2170,7 +2178,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-macro.melt:4996:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L11*/ meltfnum[10] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L11*/ meltfnum[10] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V29*/ meltfptr[28] = 0 ;}
   
@@ -2257,9 +2265,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("MEXPAND_STORE_PREDEFINED", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("MEXPAND_STORE_PREDEFINED", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR

@@ -883,9 +883,11 @@ meltrout_87_warmelt_genobj_COMPILOBJ_VALUE_BINDING(meltclosure_ptr_t closp_, mel
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_87_warmelt_genobj_COMPILOBJ_VALUE_BINDING_st { unsigned nbvar;
@@ -917,7 +919,7 @@ meltrout_87_warmelt_genobj_COMPILOBJ_VALUE_BINDING(meltclosure_ptr_t closp_, mel
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_VALUE_BINDING", callcount);
+melt_trace_start("COMPILOBJ_VALUE_BINDING", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -1037,8 +1039,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3118:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -1046,7 +1048,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_value_binding bind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -1058,7 +1060,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3118:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -1086,8 +1088,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3123:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -1095,7 +1097,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_value_binding olocv";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L4*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -1107,7 +1109,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3123:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V15*/ meltfptr[14] = 0 ;}
   
@@ -1205,9 +1207,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_VALUE_BINDING", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_VALUE_BINDING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -1224,9 +1226,11 @@ meltrout_88_warmelt_genobj_COMPILOBJ_FIXED_BINDING(meltclosure_ptr_t closp_, mel
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_88_warmelt_genobj_COMPILOBJ_FIXED_BINDING_st { unsigned nbvar;
@@ -1258,7 +1262,7 @@ meltrout_88_warmelt_genobj_COMPILOBJ_FIXED_BINDING(meltclosure_ptr_t closp_, mel
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_FIXED_BINDING", callcount);
+melt_trace_start("COMPILOBJ_FIXED_BINDING", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -1378,8 +1382,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3134:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -1387,7 +1391,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_fixed_binding bind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -1399,7 +1403,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3134:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -1430,8 +1434,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3137:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -1439,7 +1443,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_fixed_binding osdata";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L4*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -1451,7 +1455,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3137:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V14*/ meltfptr[13] = 0 ;}
   
@@ -1498,9 +1502,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_FIXED_BINDING", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_FIXED_BINDING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -1517,9 +1521,11 @@ meltrout_89_warmelt_genobj_COMPILOBJ_NORMAL_LET_BINDING(meltclosure_ptr_t closp_
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_89_warmelt_genobj_COMPILOBJ_NORMAL_LET_BINDING_st { unsigned nbvar;
@@ -1551,7 +1557,7 @@ meltrout_89_warmelt_genobj_COMPILOBJ_NORMAL_LET_BINDING(meltclosure_ptr_t closp_
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_NORMAL_LET_BINDING", callcount);
+melt_trace_start("COMPILOBJ_NORMAL_LET_BINDING", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -1671,8 +1677,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3147:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -1680,7 +1686,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_normal_let_binding bind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -1692,7 +1698,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3147:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -1731,8 +1737,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3152:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -1740,7 +1746,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_normal_let_binding oexpr";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L4*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -1752,7 +1758,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3152:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V16*/ meltfptr[15] = 0 ;}
   
@@ -1848,9 +1854,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NORMAL_LET_BINDING", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NORMAL_LET_BINDING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -1867,9 +1873,11 @@ meltrout_90_warmelt_genobj_COMPILOBJ_CONSLAMBDABIND(meltclosure_ptr_t closp_, me
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_90_warmelt_genobj_COMPILOBJ_CONSLAMBDABIND_st { unsigned nbvar;
@@ -1901,7 +1909,7 @@ meltrout_90_warmelt_genobj_COMPILOBJ_CONSLAMBDABIND(meltclosure_ptr_t closp_, me
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_CONSLAMBDABIND", callcount);
+melt_trace_start("COMPILOBJ_CONSLAMBDABIND", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -2021,8 +2029,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3163:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -2030,7 +2038,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conslambdabind bind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -2042,7 +2050,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3163:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -2123,8 +2131,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L6*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3178:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -2132,7 +2140,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conslambdabind nconstrout";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -2144,7 +2152,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3178:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V23*/ meltfptr[22] = 0 ;}
   
@@ -2180,8 +2188,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L7*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3183:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -2189,7 +2197,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conslambdabind orout";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -2201,7 +2209,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3183:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L7*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V28*/ meltfptr[27] = 0 ;}
   
@@ -2216,8 +2224,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L8*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3184:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -2225,7 +2233,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conslambdabind oloc";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L8*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -2237,7 +2245,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3184:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L8*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V30*/ meltfptr[29] = 0 ;}
   
@@ -2367,8 +2375,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L11*/ meltfnum[9] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L11*/ meltfnum[9] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3202:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -2376,7 +2384,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conslambdabind returning for bind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L11*/ meltfnum[9];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L11*/ meltfnum[9];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -2388,7 +2396,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3202:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L11*/ meltfnum[9] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L11*/ meltfnum[9] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V38*/ meltfptr[37] = 0 ;}
   
@@ -2403,8 +2411,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L12*/ meltfnum[9] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L12*/ meltfnum[9] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3203:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -2412,7 +2420,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conslambdabind nletrec";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L12*/ meltfnum[9];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L12*/ meltfnum[9];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -2424,7 +2432,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3203:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L12*/ meltfnum[9] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L12*/ meltfnum[9] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V40*/ meltfptr[39] = 0 ;}
   
@@ -2439,8 +2447,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L13*/ meltfnum[9] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L13*/ meltfnum[9] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3204:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -2448,7 +2456,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conslambdabind locsymocc";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L13*/ meltfnum[9];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L13*/ meltfnum[9];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -2460,7 +2468,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3204:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L13*/ meltfnum[9] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L13*/ meltfnum[9] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V42*/ meltfptr[41] = 0 ;}
   
@@ -2475,8 +2483,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L14*/ meltfnum[9] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L14*/ meltfnum[9] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3205:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -2484,7 +2492,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conslambdabind returning iniclos";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L14*/ meltfnum[9];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L14*/ meltfnum[9];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -2496,7 +2504,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3205:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L14*/ meltfnum[9] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L14*/ meltfnum[9] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V44*/ meltfptr[43] = 0 ;}
   
@@ -2590,9 +2598,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_CONSLAMBDABIND", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_CONSLAMBDABIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -2609,9 +2617,11 @@ meltrout_91_warmelt_genobj_COMPILOBJ_CONSTUPLEBIND(meltclosure_ptr_t closp_, mel
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_91_warmelt_genobj_COMPILOBJ_CONSTUPLEBIND_st { unsigned nbvar;
@@ -2643,7 +2653,7 @@ meltrout_91_warmelt_genobj_COMPILOBJ_CONSTUPLEBIND(meltclosure_ptr_t closp_, mel
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_CONSTUPLEBIND", callcount);
+melt_trace_start("COMPILOBJ_CONSTUPLEBIND", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -2669,8 +2679,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L1*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L1*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3212:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -2678,7 +2688,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_constuplebind bind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L1*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L1*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -2690,7 +2700,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3212:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L1*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L1*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V5*/ meltfptr[4] = 0 ;}
   
@@ -2989,8 +2999,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L8*/ meltfnum[6] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[6] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3248:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -2998,7 +3008,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_constuplebind result initup";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L8*/ meltfnum[6];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[6];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -3010,7 +3020,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3248:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L8*/ meltfnum[6] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[6] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V30*/ meltfptr[29] = 0 ;}
   
@@ -3086,9 +3096,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_CONSTUPLEBIND", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_CONSTUPLEBIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -3105,9 +3115,11 @@ meltrout_92_warmelt_genobj_COMPILOBJ_CONSPAIRBIND(meltclosure_ptr_t closp_, melt
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_92_warmelt_genobj_COMPILOBJ_CONSPAIRBIND_st { unsigned nbvar;
@@ -3139,7 +3151,7 @@ meltrout_92_warmelt_genobj_COMPILOBJ_CONSPAIRBIND(meltclosure_ptr_t closp_, melt
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_CONSPAIRBIND", callcount);
+melt_trace_start("COMPILOBJ_CONSPAIRBIND", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -3165,8 +3177,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L1*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L1*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3256:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -3174,7 +3186,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conspairbind bind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L1*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L1*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -3186,7 +3198,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3256:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L1*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L1*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V5*/ meltfptr[4] = 0 ;}
   
@@ -3353,8 +3365,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L5*/ meltfnum[4] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[4] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3271:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -3362,7 +3374,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conspairbind nletrec";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L5*/ meltfnum[4];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[4];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -3374,7 +3386,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3271:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L5*/ meltfnum[4] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[4] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V22*/ meltfptr[21] = 0 ;}
   
@@ -3432,8 +3444,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L6*/ meltfnum[4] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[4] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3273:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -3441,7 +3453,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conspairbind nlocsyms";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[4];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[4];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -3453,7 +3465,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3273:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[4] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[4] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V26*/ meltfptr[25] = 0 ;}
   
@@ -3468,8 +3480,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L7*/ meltfnum[4] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[4] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3274:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -3477,7 +3489,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conspairbind locsymocc";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ meltfnum[4];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[4];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -3489,7 +3501,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3274:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L7*/ meltfnum[4] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[4] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V28*/ meltfptr[27] = 0 ;}
   
@@ -3618,8 +3630,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L10*/ meltfnum[8] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[8] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3291:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -3627,7 +3639,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conspairbind oloc";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L10*/ meltfnum[8];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[8];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -3639,7 +3651,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3291:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L10*/ meltfnum[8] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[8] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V37*/ meltfptr[36] = 0 ;}
   
@@ -3654,8 +3666,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L11*/ meltfnum[8] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L11*/ meltfnum[8] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3292:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -3663,7 +3675,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conspairbind return inipair";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L11*/ meltfnum[8];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L11*/ meltfnum[8];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -3675,7 +3687,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3292:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L11*/ meltfnum[8] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L11*/ meltfnum[8] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V39*/ meltfptr[38] = 0 ;}
   
@@ -3764,9 +3776,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_CONSPAIRBIND", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_CONSPAIRBIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -3783,9 +3795,11 @@ meltrout_93_warmelt_genobj_COMPILOBJ_CONSLISTBIND(meltclosure_ptr_t closp_, melt
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_93_warmelt_genobj_COMPILOBJ_CONSLISTBIND_st { unsigned nbvar;
@@ -3817,7 +3831,7 @@ meltrout_93_warmelt_genobj_COMPILOBJ_CONSLISTBIND(meltclosure_ptr_t closp_, melt
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_CONSLISTBIND", callcount);
+melt_trace_start("COMPILOBJ_CONSLISTBIND", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -3843,8 +3857,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L1*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L1*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3299:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -3852,7 +3866,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conslistbind bind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L1*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L1*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -3864,7 +3878,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3299:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L1*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L1*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V5*/ meltfptr[4] = 0 ;}
   
@@ -4099,8 +4113,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L5*/ meltfnum[4] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[4] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3327:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -4108,7 +4122,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conslistbind oloc";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L5*/ meltfnum[4];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[4];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -4120,7 +4134,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3327:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L5*/ meltfnum[4] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[4] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V28*/ meltfptr[27] = 0 ;}
   
@@ -4135,8 +4149,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L6*/ meltfnum[4] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[4] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3328:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -4144,7 +4158,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_conslistbind return inilist";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[4];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[4];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -4156,7 +4170,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3328:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[4] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[4] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V30*/ meltfptr[29] = 0 ;}
   
@@ -4235,9 +4249,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_CONSLISTBIND", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_CONSLISTBIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -4254,9 +4268,11 @@ meltrout_94_warmelt_genobj_COMPILOBJ_CONSINSTANCEBIND(meltclosure_ptr_t closp_, 
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_94_warmelt_genobj_COMPILOBJ_CONSINSTANCEBIND_st { unsigned nbvar;
@@ -4288,7 +4304,7 @@ meltrout_94_warmelt_genobj_COMPILOBJ_CONSINSTANCEBIND(meltclosure_ptr_t closp_, 
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_CONSINSTANCEBIND", callcount);
+melt_trace_start("COMPILOBJ_CONSINSTANCEBIND", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -4314,8 +4330,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L1*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L1*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3336:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -4323,7 +4339,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_consinstancebind bind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L1*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L1*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -4335,7 +4351,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3336:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L1*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L1*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V5*/ meltfptr[4] = 0 ;}
   
@@ -4593,8 +4609,8 @@ lab_endgetargs:;
      /*^block*/
       /*anyblock*/{
        
-       /*_#THE_CALLCOUNT__L7*/ meltfnum[6] = 
-        callcount;;
+       /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[6] = 
+        meltcallcount;;
        MELT_LOCATION("warmelt-genobj.melt:3362:/ apply");
        /*apply*/{
         union meltparam_un argtab[4];
@@ -4602,7 +4618,7 @@ lab_endgetargs:;
         /*^apply.arg*/
         argtab[0].bp_cstring =  "compilobj_consinstancebind bad nclabind";
         /*^apply.arg*/
-        argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ meltfnum[6];
+        argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[6];
         /*^apply.arg*/
         argtab[2].bp_cstring =  "warmelt-genobj.melt";
         /*^apply.arg*/
@@ -4614,7 +4630,7 @@ lab_endgetargs:;
        /*epilog*/
        
        MELT_LOCATION("warmelt-genobj.melt:3362:/ clear");
-       /*clear*/ /*_#THE_CALLCOUNT__L7*/ meltfnum[6] = 0 ;
+       /*clear*/ /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[6] = 0 ;
        /*^clear*/
        /*clear*/ /*_.DEBUG_MSG_FUN__V29*/ meltfptr[28] = 0 ;}
       
@@ -4757,8 +4773,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L9*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3374:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -4766,7 +4782,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_consinstancebind oloc";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L9*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -4778,7 +4794,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3374:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L9*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V38*/ meltfptr[37] = 0 ;}
   
@@ -4793,8 +4809,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L10*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3375:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -4802,7 +4818,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_consinstancebind return ininst";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L10*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -4814,7 +4830,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3375:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L10*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V40*/ meltfptr[39] = 0 ;}
   
@@ -4901,9 +4917,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_CONSINSTANCEBIND", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_CONSINSTANCEBIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -4920,9 +4936,11 @@ meltrout_95_warmelt_genobj_PUTOBJDEST_OBJVALUE(meltclosure_ptr_t closp_, melt_pt
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_95_warmelt_genobj_PUTOBJDEST_OBJVALUE_st { unsigned nbvar;
@@ -4954,7 +4972,7 @@ meltrout_95_warmelt_genobj_PUTOBJDEST_OBJVALUE(meltclosure_ptr_t closp_, melt_pt
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("PUTOBJDEST_OBJVALUE", callcount);
+melt_trace_start("PUTOBJDEST_OBJVALUE", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -5341,8 +5359,8 @@ lab_endgetargs:;
      /*^block*/
       /*anyblock*/{
        
-       /*_#THE_CALLCOUNT__L7*/ meltfnum[5] = 
-        callcount;;
+       /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5] = 
+        meltcallcount;;
        MELT_LOCATION("warmelt-genobj.melt:3430:/ apply");
        /*apply*/{
         union meltparam_un argtab[4];
@@ -5350,7 +5368,7 @@ lab_endgetargs:;
         /*^apply.arg*/
         argtab[0].bp_cstring =  "putobjdest_objvalue mismatching recv";
         /*^apply.arg*/
-        argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ meltfnum[5];
+        argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5];
         /*^apply.arg*/
         argtab[2].bp_cstring =  "warmelt-genobj.melt";
         /*^apply.arg*/
@@ -5362,7 +5380,7 @@ lab_endgetargs:;
        /*epilog*/
        
        MELT_LOCATION("warmelt-genobj.melt:3430:/ clear");
-       /*clear*/ /*_#THE_CALLCOUNT__L7*/ meltfnum[5] = 0 ;
+       /*clear*/ /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5] = 0 ;
        /*^clear*/
        /*clear*/ /*_.DEBUG_MSG_FUN__V32*/ meltfptr[17] = 0 ;}
       
@@ -5377,8 +5395,8 @@ lab_endgetargs:;
      /*^block*/
       /*anyblock*/{
        
-       /*_#THE_CALLCOUNT__L8*/ meltfnum[5] = 
-        callcount;;
+       /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[5] = 
+        meltcallcount;;
        MELT_LOCATION("warmelt-genobj.melt:3431:/ apply");
        /*apply*/{
         union meltparam_un argtab[4];
@@ -5386,7 +5404,7 @@ lab_endgetargs:;
         /*^apply.arg*/
         argtab[0].bp_cstring =  "putobjdest_objvalue mismatching typrecv";
         /*^apply.arg*/
-        argtab[1].bp_long = /*_#THE_CALLCOUNT__L8*/ meltfnum[5];
+        argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[5];
         /*^apply.arg*/
         argtab[2].bp_cstring =  "warmelt-genobj.melt";
         /*^apply.arg*/
@@ -5398,7 +5416,7 @@ lab_endgetargs:;
        /*epilog*/
        
        MELT_LOCATION("warmelt-genobj.melt:3431:/ clear");
-       /*clear*/ /*_#THE_CALLCOUNT__L8*/ meltfnum[5] = 0 ;
+       /*clear*/ /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[5] = 0 ;
        /*^clear*/
        /*clear*/ /*_.DEBUG_MSG_FUN__V34*/ meltfptr[15] = 0 ;}
       
@@ -5413,8 +5431,8 @@ lab_endgetargs:;
      /*^block*/
       /*anyblock*/{
        
-       /*_#THE_CALLCOUNT__L9*/ meltfnum[5] = 
-        callcount;;
+       /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[5] = 
+        meltcallcount;;
        MELT_LOCATION("warmelt-genobj.melt:3432:/ apply");
        /*apply*/{
         union meltparam_un argtab[4];
@@ -5422,7 +5440,7 @@ lab_endgetargs:;
         /*^apply.arg*/
         argtab[0].bp_cstring =  "putobjdest_objvalue mismatching desto";
         /*^apply.arg*/
-        argtab[1].bp_long = /*_#THE_CALLCOUNT__L9*/ meltfnum[5];
+        argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[5];
         /*^apply.arg*/
         argtab[2].bp_cstring =  "warmelt-genobj.melt";
         /*^apply.arg*/
@@ -5434,7 +5452,7 @@ lab_endgetargs:;
        /*epilog*/
        
        MELT_LOCATION("warmelt-genobj.melt:3432:/ clear");
-       /*clear*/ /*_#THE_CALLCOUNT__L9*/ meltfnum[5] = 0 ;
+       /*clear*/ /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[5] = 0 ;
        /*^clear*/
        /*clear*/ /*_.DEBUG_MSG_FUN__V36*/ meltfptr[12] = 0 ;}
       
@@ -5449,8 +5467,8 @@ lab_endgetargs:;
      /*^block*/
       /*anyblock*/{
        
-       /*_#THE_CALLCOUNT__L10*/ meltfnum[5] = 
-        callcount;;
+       /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[5] = 
+        meltcallcount;;
        MELT_LOCATION("warmelt-genobj.melt:3433:/ apply");
        /*apply*/{
         union meltparam_un argtab[4];
@@ -5458,7 +5476,7 @@ lab_endgetargs:;
         /*^apply.arg*/
         argtab[0].bp_cstring =  "putobjdest_objvalue mismatching typdesto";
         /*^apply.arg*/
-        argtab[1].bp_long = /*_#THE_CALLCOUNT__L10*/ meltfnum[5];
+        argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[5];
         /*^apply.arg*/
         argtab[2].bp_cstring =  "warmelt-genobj.melt";
         /*^apply.arg*/
@@ -5470,7 +5488,7 @@ lab_endgetargs:;
        /*epilog*/
        
        MELT_LOCATION("warmelt-genobj.melt:3433:/ clear");
-       /*clear*/ /*_#THE_CALLCOUNT__L10*/ meltfnum[5] = 0 ;
+       /*clear*/ /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[5] = 0 ;
        /*^clear*/
        /*clear*/ /*_.DEBUG_MSG_FUN__V38*/ meltfptr[15] = 0 ;}
       
@@ -5652,9 +5670,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJVALUE", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJVALUE", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -5671,9 +5689,11 @@ meltrout_96_warmelt_genobj_PUTOBJDEST_INTEGER(meltclosure_ptr_t closp_, melt_ptr
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_96_warmelt_genobj_PUTOBJDEST_INTEGER_st { unsigned nbvar;
@@ -5705,7 +5725,7 @@ meltrout_96_warmelt_genobj_PUTOBJDEST_INTEGER(meltclosure_ptr_t closp_, melt_ptr
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("PUTOBJDEST_INTEGER", callcount);
+melt_trace_start("PUTOBJDEST_INTEGER", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -5825,8 +5845,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3451:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -5834,7 +5854,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest_integer recv";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -5846,7 +5866,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3451:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -5861,8 +5881,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3452:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -5870,7 +5890,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest_integer desto";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L4*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -5882,7 +5902,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3452:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V11*/ meltfptr[10] = 0 ;}
   
@@ -5986,8 +6006,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L6*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3465:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -5995,7 +6015,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest_integer return obc";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -6007,7 +6027,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3465:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V21*/ meltfptr[20] = 0 ;}
   
@@ -6055,9 +6075,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_INTEGER", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_INTEGER", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -6074,9 +6094,11 @@ meltrout_97_warmelt_genobj_PUTOBJDEST_STRING(meltclosure_ptr_t closp_, melt_ptr_
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_97_warmelt_genobj_PUTOBJDEST_STRING_st { unsigned nbvar;
@@ -6108,7 +6130,7 @@ meltrout_97_warmelt_genobj_PUTOBJDEST_STRING(meltclosure_ptr_t closp_, melt_ptr_
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("PUTOBJDEST_STRING", callcount);
+melt_trace_start("PUTOBJDEST_STRING", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -6228,8 +6250,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3477:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -6237,7 +6259,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest_string recv";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -6249,7 +6271,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3477:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -6264,8 +6286,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3478:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -6273,7 +6295,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest_string desto";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L4*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -6285,7 +6307,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3478:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V11*/ meltfptr[10] = 0 ;}
   
@@ -6389,8 +6411,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L6*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3491:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -6398,7 +6420,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest_string return obc";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -6410,7 +6432,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3491:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V21*/ meltfptr[20] = 0 ;}
   
@@ -6458,9 +6480,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_STRING", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_STRING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -6477,9 +6499,11 @@ meltrout_98_warmelt_genobj_PUTOBJDEST_NULL(meltclosure_ptr_t closp_, melt_ptr_t 
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_98_warmelt_genobj_PUTOBJDEST_NULL_st { unsigned nbvar;
@@ -6511,7 +6535,7 @@ meltrout_98_warmelt_genobj_PUTOBJDEST_NULL(meltclosure_ptr_t closp_, melt_ptr_t 
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("PUTOBJDEST_NULL", callcount);
+melt_trace_start("PUTOBJDEST_NULL", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -6631,8 +6655,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3500:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -6640,7 +6664,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest_null recv";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -6652,7 +6676,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3500:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -6667,8 +6691,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3501:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -6676,7 +6700,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest_null desto";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L4*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -6688,7 +6712,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3501:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V11*/ meltfptr[10] = 0 ;}
   
@@ -6800,8 +6824,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L7*/ meltfnum[6] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[6] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3516:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -6809,7 +6833,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest_null return obc";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ meltfnum[6];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[6];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -6821,7 +6845,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3516:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L7*/ meltfnum[6] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[6] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V20*/ meltfptr[19] = 0 ;}
   
@@ -6871,9 +6895,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_NULL", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_NULL", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -6890,9 +6914,11 @@ meltrout_99_warmelt_genobj_PUTOBJDEST_OBJANYBLOCK(meltclosure_ptr_t closp_, melt
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_99_warmelt_genobj_PUTOBJDEST_OBJANYBLOCK_st { unsigned nbvar;
@@ -6924,7 +6950,7 @@ meltrout_99_warmelt_genobj_PUTOBJDEST_OBJANYBLOCK(meltclosure_ptr_t closp_, melt
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("PUTOBJDEST_OBJANYBLOCK", callcount);
+melt_trace_start("PUTOBJDEST_OBJANYBLOCK", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -7219,9 +7245,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJANYBLOCK", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJANYBLOCK", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -7238,9 +7264,11 @@ meltrout_100_warmelt_genobj_PUTOBJDEST_OBJMULTIBLOCK(meltclosure_ptr_t closp_, m
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_100_warmelt_genobj_PUTOBJDEST_OBJMULTIBLOCK_st { unsigned nbvar;
@@ -7272,7 +7300,7 @@ meltrout_100_warmelt_genobj_PUTOBJDEST_OBJMULTIBLOCK(meltclosure_ptr_t closp_, m
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("PUTOBJDEST_OBJMULTIBLOCK", callcount);
+melt_trace_start("PUTOBJDEST_OBJMULTIBLOCK", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -7345,8 +7373,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L2*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L2*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3552:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -7354,7 +7382,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest_objmultiblock recv";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L2*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L2*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -7366,7 +7394,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3552:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L2*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L2*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V7*/ meltfptr[6] = 0 ;}
   
@@ -7381,8 +7409,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3553:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -7390,7 +7418,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest_objmultiblock recv";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -7402,7 +7430,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3553:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -7481,8 +7509,8 @@ lab_endgetargs:;
   /*^block*/
    /*anyblock*/{
     
-    /*_#THE_CALLCOUNT__L6*/ meltfnum[5] = 
-     callcount;;
+    /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5] = 
+     meltcallcount;;
     MELT_LOCATION("warmelt-genobj.melt:3559:/ apply");
     /*apply*/{
      union meltparam_un argtab[4];
@@ -7490,7 +7518,7 @@ lab_endgetargs:;
      /*^apply.arg*/
      argtab[0].bp_cstring =  "putobjdest_objmultiblock cursubcomp";
      /*^apply.arg*/
-     argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[5];
+     argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5];
      /*^apply.arg*/
      argtab[2].bp_cstring =  "warmelt-genobj.melt";
      /*^apply.arg*/
@@ -7502,7 +7530,7 @@ lab_endgetargs:;
     /*epilog*/
     
     MELT_LOCATION("warmelt-genobj.melt:3559:/ clear");
-    /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[5] = 0 ;
+    /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5] = 0 ;
     /*^clear*/
     /*clear*/ /*_.DEBUG_MSG_FUN__V16*/ meltfptr[15] = 0 ;}
    
@@ -7540,8 +7568,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L7*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3561:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -7549,7 +7577,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest_objmultiblock done recv";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -7561,7 +7589,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3561:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L7*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V19*/ meltfptr[18] = 0 ;}
   
@@ -7601,9 +7629,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJMULTIBLOCK", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJMULTIBLOCK", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -7620,9 +7648,11 @@ meltrout_101_warmelt_genobj_PUTOBJDEST_OBJLOOP(meltclosure_ptr_t closp_, melt_pt
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_101_warmelt_genobj_PUTOBJDEST_OBJLOOP_st { unsigned nbvar;
@@ -7654,7 +7684,7 @@ meltrout_101_warmelt_genobj_PUTOBJDEST_OBJLOOP(meltclosure_ptr_t closp_, melt_pt
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("PUTOBJDEST_OBJLOOP", callcount);
+melt_trace_start("PUTOBJDEST_OBJLOOP", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -7923,8 +7953,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L5*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3582:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -7932,7 +7962,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "putobjdest loop updated recv";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L5*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -7944,7 +7974,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3582:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L5*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V18*/ meltfptr[6] = 0 ;}
   
@@ -7972,9 +8002,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJLOOP", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJLOOP", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -7991,9 +8021,11 @@ meltrout_102_warmelt_genobj_PUTOBJDEST_OBJEXIT(meltclosure_ptr_t closp_, melt_pt
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_102_warmelt_genobj_PUTOBJDEST_OBJEXIT_st { unsigned nbvar;
@@ -8025,7 +8057,7 @@ meltrout_102_warmelt_genobj_PUTOBJDEST_OBJEXIT(meltclosure_ptr_t closp_, melt_pt
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("PUTOBJDEST_OBJEXIT", callcount);
+melt_trace_start("PUTOBJDEST_OBJEXIT", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -8156,9 +8188,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJEXIT", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJEXIT", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -8175,9 +8207,11 @@ meltrout_103_warmelt_genobj_COMPILOBJ_NREP_IF(meltclosure_ptr_t closp_, melt_ptr
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_103_warmelt_genobj_COMPILOBJ_NREP_IF_st { unsigned nbvar;
@@ -8209,7 +8243,7 @@ meltrout_103_warmelt_genobj_COMPILOBJ_NREP_IF(meltclosure_ptr_t closp_, melt_ptr
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_NREP_IF", callcount);
+melt_trace_start("COMPILOBJ_NREP_IF", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -8329,8 +8363,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3602:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -8338,7 +8372,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_if rif";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -8350,7 +8384,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3602:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -8560,8 +8594,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L7*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3621:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -8569,7 +8603,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_if obif";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -8581,7 +8615,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3621:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L7*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V28*/ meltfptr[27] = 0 ;}
   
@@ -8645,9 +8679,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NREP_IF", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NREP_IF", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -8664,9 +8698,11 @@ meltrout_104_warmelt_genobj_COMPILOBJ_NREP_IFISA(meltclosure_ptr_t closp_, melt_
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_104_warmelt_genobj_COMPILOBJ_NREP_IFISA_st { unsigned nbvar;
@@ -8698,7 +8734,7 @@ meltrout_104_warmelt_genobj_COMPILOBJ_NREP_IFISA(meltclosure_ptr_t closp_, melt_
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_NREP_IFISA", callcount);
+melt_trace_start("COMPILOBJ_NREP_IFISA", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -8818,8 +8854,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3631:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -8827,7 +8863,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_ifisa rif";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -8839,7 +8875,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3631:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -9094,8 +9130,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L6*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3663:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -9103,7 +9139,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_ifisa obif";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -9115,7 +9151,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3663:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V35*/ meltfptr[34] = 0 ;}
   
@@ -9191,9 +9227,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NREP_IFISA", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NREP_IFISA", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -9210,9 +9246,11 @@ meltrout_105_warmelt_genobj_PUTOBJDEST_OBJCOND(meltclosure_ptr_t closp_, melt_pt
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_105_warmelt_genobj_PUTOBJDEST_OBJCOND_st { unsigned nbvar;
@@ -9244,7 +9282,7 @@ meltrout_105_warmelt_genobj_PUTOBJDEST_OBJCOND(meltclosure_ptr_t closp_, melt_pt
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("PUTOBJDEST_OBJCOND", callcount);
+melt_trace_start("PUTOBJDEST_OBJCOND", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -9440,9 +9478,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJCOND", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJCOND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -9459,9 +9497,11 @@ meltrout_106_warmelt_genobj_COMPILOBJ_NREP_CPPIF(meltclosure_ptr_t closp_, melt_
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_106_warmelt_genobj_COMPILOBJ_NREP_CPPIF_st { unsigned nbvar;
@@ -9493,7 +9533,7 @@ meltrout_106_warmelt_genobj_COMPILOBJ_NREP_CPPIF(meltclosure_ptr_t closp_, melt_
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_NREP_CPPIF", callcount);
+melt_trace_start("COMPILOBJ_NREP_CPPIF", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -9613,8 +9653,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3697:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -9622,7 +9662,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_cppif pif";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -9634,7 +9674,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3697:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -9822,8 +9862,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L6*/ meltfnum[4] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[4] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3715:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -9831,7 +9871,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_cppif result";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[4];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[4];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -9843,7 +9883,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3715:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[4] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[4] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V27*/ meltfptr[26] = 0 ;}
   
@@ -9906,9 +9946,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NREP_CPPIF", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NREP_CPPIF", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -9925,9 +9965,11 @@ meltrout_107_warmelt_genobj_PUTOBJDEST_OBJCPPIF(meltclosure_ptr_t closp_, melt_p
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_107_warmelt_genobj_PUTOBJDEST_OBJCPPIF_st { unsigned nbvar;
@@ -9959,7 +10001,7 @@ meltrout_107_warmelt_genobj_PUTOBJDEST_OBJCPPIF(meltclosure_ptr_t closp_, melt_p
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("PUTOBJDEST_OBJCPPIF", callcount);
+melt_trace_start("PUTOBJDEST_OBJCPPIF", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -10155,9 +10197,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJCPPIF", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJCPPIF", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -10174,9 +10216,11 @@ meltrout_108_warmelt_genobj_COMPILOBJ_NREP_RETURN(meltclosure_ptr_t closp_, melt
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_108_warmelt_genobj_COMPILOBJ_NREP_RETURN_st { unsigned nbvar;
@@ -10208,7 +10252,7 @@ meltrout_108_warmelt_genobj_COMPILOBJ_NREP_RETURN(meltclosure_ptr_t closp_, melt
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_NREP_RETURN", callcount);
+melt_trace_start("COMPILOBJ_NREP_RETURN", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -10328,8 +10372,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3750:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -10337,7 +10381,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_return nret";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -10349,7 +10393,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3750:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -10464,8 +10508,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L5*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3763:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -10473,7 +10517,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_return rrest";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L5*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -10485,7 +10529,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3763:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L5*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V23*/ meltfptr[22] = 0 ;}
   
@@ -10644,8 +10688,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L8*/ meltfnum[7] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[7] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3783:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -10653,7 +10697,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_return final oblock";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L8*/ meltfnum[7];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[7];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -10665,7 +10709,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3783:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L8*/ meltfnum[7] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[7] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V34*/ meltfptr[33] = 0 ;}
   
@@ -10735,9 +10779,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NREP_RETURN", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NREP_RETURN", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -10754,9 +10798,11 @@ meltrout_109_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_109_warmelt_genobj_LAMBDA__st { unsigned nbvar;
@@ -10788,7 +10834,7 @@ meltrout_109_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("LAMBDA_", callcount);
+melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -10862,9 +10908,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -10881,9 +10927,11 @@ meltrout_110_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_110_warmelt_genobj_LAMBDA__st { unsigned nbvar;
@@ -10915,7 +10963,7 @@ meltrout_110_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("LAMBDA_", callcount);
+melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -10948,9 +10996,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -10967,9 +11015,11 @@ meltrout_111_warmelt_genobj_COMPILOBJ_NREP_LAMBDA(meltclosure_ptr_t closp_, melt
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_111_warmelt_genobj_COMPILOBJ_NREP_LAMBDA_st { unsigned nbvar;
@@ -11001,7 +11051,7 @@ meltrout_111_warmelt_genobj_COMPILOBJ_NREP_LAMBDA(meltclosure_ptr_t closp_, melt
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_NREP_LAMBDA", callcount);
+melt_trace_start("COMPILOBJ_NREP_LAMBDA", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -11121,8 +11171,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3801:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -11130,7 +11180,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_lambda nlam";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -11142,7 +11192,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3801:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -11279,8 +11329,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L6*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3819:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -11288,7 +11338,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_lambda nam";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -11300,7 +11350,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3819:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V27*/ meltfptr[26] = 0 ;}
   
@@ -11315,8 +11365,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L7*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3820:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -11324,7 +11374,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_lambda locv";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -11336,7 +11386,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3820:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L7*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V29*/ meltfptr[28] = 0 ;}
   
@@ -11356,8 +11406,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L8*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3829:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -11365,7 +11415,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_lambda should use nrpro_thunklist nrou";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L8*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -11377,7 +11427,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3829:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L8*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V31*/ meltfptr[30] = 0 ;}
   
@@ -11404,8 +11454,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L9*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3831:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -11413,7 +11463,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_lambda crou";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L9*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -11425,7 +11475,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3831:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L9*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V35*/ meltfptr[34] = 0 ;}
   
@@ -11541,8 +11591,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L10*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3849:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -11550,7 +11600,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_lambda result oblock";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L10*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -11562,7 +11612,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3849:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L10*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V44*/ meltfptr[43] = 0 ;}
   
@@ -11640,9 +11690,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NREP_LAMBDA", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NREP_LAMBDA", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -11659,9 +11709,11 @@ meltrout_112_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_112_warmelt_genobj_LAMBDA__st { unsigned nbvar;
@@ -11693,7 +11745,7 @@ meltrout_112_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("LAMBDA_", callcount);
+melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -11717,8 +11769,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L2*/ meltfnum[1] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L2*/ meltfnum[1] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3839:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -11726,7 +11778,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_lambda clov";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L2*/ meltfnum[1];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L2*/ meltfnum[1];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -11738,7 +11790,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3839:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L2*/ meltfnum[1] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L2*/ meltfnum[1] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V4*/ meltfptr[3] = 0 ;}
   
@@ -11808,9 +11860,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -11827,9 +11879,11 @@ meltrout_113_warmelt_genobj_COMPILOBJ_NREP_MAKEINST(meltclosure_ptr_t closp_, me
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_113_warmelt_genobj_COMPILOBJ_NREP_MAKEINST_st { unsigned nbvar;
@@ -11861,7 +11915,7 @@ meltrout_113_warmelt_genobj_COMPILOBJ_NREP_MAKEINST(meltclosure_ptr_t closp_, me
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_NREP_MAKEINST", callcount);
+melt_trace_start("COMPILOBJ_NREP_MAKEINST", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -11981,8 +12035,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3858:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -11990,7 +12044,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_makeinst nmki";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -12002,7 +12056,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3858:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -12233,8 +12287,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L6*/ meltfnum[5] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3905:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -12242,7 +12296,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_nrep_makeinst result oblock";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[5];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -12254,7 +12308,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3905:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[5] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[5] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V33*/ meltfptr[32] = 0 ;}
   
@@ -12328,9 +12382,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NREP_MAKEINST", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NREP_MAKEINST", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -12347,9 +12401,11 @@ meltrout_114_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_114_warmelt_genobj_LAMBDA__st { unsigned nbvar;
@@ -12381,7 +12437,7 @@ meltrout_114_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("LAMBDA_", callcount);
+melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -12664,9 +12720,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -12683,9 +12739,11 @@ meltrout_115_warmelt_genobj_COMPILOBJ_ROUTPROC(meltclosure_ptr_t closp_, melt_pt
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_115_warmelt_genobj_COMPILOBJ_ROUTPROC_st { unsigned nbvar;
@@ -12717,7 +12775,7 @@ meltrout_115_warmelt_genobj_COMPILOBJ_ROUTPROC(meltclosure_ptr_t closp_, melt_pt
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_ROUTPROC", callcount);
+melt_trace_start("COMPILOBJ_ROUTPROC", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -12837,8 +12895,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3916:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -12846,7 +12904,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_routproc gcx";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -12858,7 +12916,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3916:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -12873,8 +12931,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3917:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -12882,7 +12940,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_routproc npro";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L4*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -12894,7 +12952,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3917:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V11*/ meltfptr[10] = 0 ;}
   
@@ -12969,9 +13027,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_ROUTPROC", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_ROUTPROC", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -12988,9 +13046,11 @@ meltrout_116_warmelt_genobj_COMPILOBJ_PREDEF(meltclosure_ptr_t closp_, melt_ptr_
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_116_warmelt_genobj_COMPILOBJ_PREDEF_st { unsigned nbvar;
@@ -13022,7 +13082,7 @@ meltrout_116_warmelt_genobj_COMPILOBJ_PREDEF(meltclosure_ptr_t closp_, melt_ptr_
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_PREDEF", callcount);
+melt_trace_start("COMPILOBJ_PREDEF", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -13140,9 +13200,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_PREDEF", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_PREDEF", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -13159,9 +13219,11 @@ meltrout_117_warmelt_genobj_COMPIL_DATA_AND_SLOTS_FILL(meltclosure_ptr_t closp_,
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_117_warmelt_genobj_COMPIL_DATA_AND_SLOTS_FILL_st { unsigned nbvar;
@@ -13193,7 +13255,7 @@ meltrout_117_warmelt_genobj_COMPIL_DATA_AND_SLOTS_FILL(meltclosure_ptr_t closp_,
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPIL_DATA_AND_SLOTS_FILL", callcount);
+melt_trace_start("COMPIL_DATA_AND_SLOTS_FILL", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -13475,8 +13537,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L6*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3947:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -13484,7 +13546,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compil_data_and_slots_fill start ndat";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -13496,7 +13558,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3947:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V18*/ meltfptr[17] = 0 ;}
   
@@ -13511,8 +13573,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L7*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3948:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -13520,7 +13582,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compil_data_and_slots_fill start obj";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -13532,7 +13594,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3948:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L7*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V20*/ meltfptr[19] = 0 ;}
   
@@ -13547,8 +13609,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L8*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3949:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -13556,7 +13618,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compil_data_and_slots_fill odiscr";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L8*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -13568,7 +13630,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3949:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L8*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V22*/ meltfptr[21] = 0 ;}
   
@@ -13583,8 +13645,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L9*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:3950:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -13592,7 +13654,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compil_data_and_slots_fill irout un";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L9*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -13604,7 +13666,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:3950:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L9*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V24*/ meltfptr[23] = 0 ;}
   
@@ -14346,8 +14408,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L18*/ meltfnum[16] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L18*/ meltfnum[16] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4075:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -14355,7 +14417,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compil_data_and_slots_fill final dlocbind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L18*/ meltfnum[16];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L18*/ meltfnum[16];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -14367,7 +14429,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4075:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L18*/ meltfnum[16] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L18*/ meltfnum[16] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V83*/ meltfptr[82] = 0 ;}
   
@@ -14481,9 +14543,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPIL_DATA_AND_SLOTS_FILL", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPIL_DATA_AND_SLOTS_FILL", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -14500,9 +14562,11 @@ meltrout_118_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_118_warmelt_genobj_LAMBDA__st { unsigned nbvar;
@@ -14534,7 +14598,7 @@ meltrout_118_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("LAMBDA_", callcount);
+melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -14724,9 +14788,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -14743,9 +14807,11 @@ meltrout_119_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_119_warmelt_genobj_LAMBDA__st { unsigned nbvar;
@@ -14777,7 +14843,7 @@ meltrout_119_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("LAMBDA_", callcount);
+melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -14926,9 +14992,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -14945,9 +15011,11 @@ meltrout_120_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_120_warmelt_genobj_LAMBDA__st { unsigned nbvar;
@@ -14979,7 +15047,7 @@ meltrout_120_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("LAMBDA_", callcount);
+melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -15043,9 +15111,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -15062,9 +15130,11 @@ meltrout_121_warmelt_genobj_DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL(meltclosu
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_121_warmelt_genobj_DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL_st { unsigned nbvar;
@@ -15096,7 +15166,7 @@ meltrout_121_warmelt_genobj_DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL(meltclosu
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL", callcount);
+melt_trace_start("DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -15169,8 +15239,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L2*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L2*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4088:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -15178,7 +15248,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "dispose_dlocbind_after_data_and_slots_fill dlocbind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L2*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L2*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -15190,7 +15260,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4088:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L2*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L2*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V7*/ meltfptr[6] = 0 ;}
   
@@ -15243,9 +15313,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -15262,9 +15332,11 @@ meltrout_122_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_122_warmelt_genobj_LAMBDA__st { unsigned nbvar;
@@ -15296,7 +15368,7 @@ meltrout_122_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("LAMBDA_", callcount);
+melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -15338,9 +15410,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -15357,9 +15429,11 @@ meltrout_123_warmelt_genobj_COMPILOBJ_DATASYMBOL(meltclosure_ptr_t closp_, melt_
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_123_warmelt_genobj_COMPILOBJ_DATASYMBOL_st { unsigned nbvar;
@@ -15391,7 +15465,7 @@ meltrout_123_warmelt_genobj_COMPILOBJ_DATASYMBOL(meltclosure_ptr_t closp_, melt_
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_DATASYMBOL", callcount);
+melt_trace_start("COMPILOBJ_DATASYMBOL", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -15511,8 +15585,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4097:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -15520,7 +15594,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datasymbol syv";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -15532,7 +15606,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4097:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -15613,8 +15687,8 @@ lab_endgetargs:;
    /*^block*/
     /*anyblock*/{
      
-     /*_#THE_CALLCOUNT__L5*/ meltfnum[0] = 
-      callcount;;
+     /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0] = 
+      meltcallcount;;
      MELT_LOCATION("warmelt-genobj.melt:4106:/ apply");
      /*apply*/{
       union meltparam_un argtab[4];
@@ -15622,7 +15696,7 @@ lab_endgetargs:;
       /*^apply.arg*/
       argtab[0].bp_cstring =  "compilobj_datasymbol found chobj";
       /*^apply.arg*/
-      argtab[1].bp_long = /*_#THE_CALLCOUNT__L5*/ meltfnum[0];
+      argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0];
       /*^apply.arg*/
       argtab[2].bp_cstring =  "warmelt-genobj.melt";
       /*^apply.arg*/
@@ -15634,7 +15708,7 @@ lab_endgetargs:;
      /*epilog*/
      
      MELT_LOCATION("warmelt-genobj.melt:4106:/ clear");
-     /*clear*/ /*_#THE_CALLCOUNT__L5*/ meltfnum[0] = 0 ;
+     /*clear*/ /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0] = 0 ;
      /*^clear*/
      /*clear*/ /*_.DEBUG_MSG_FUN__V18*/ meltfptr[17] = 0 ;}
     
@@ -15729,8 +15803,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L6*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4121:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -15738,7 +15812,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datasymbol inirout";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -15750,7 +15824,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4121:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V27*/ meltfptr[26] = 0 ;}
   
@@ -15855,8 +15929,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L9*/ meltfnum[8] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[8] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4137:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -15864,7 +15938,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datasymbol dlocbind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L9*/ meltfnum[8];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[8];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -15876,7 +15950,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4137:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L9*/ meltfnum[8] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[8] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V36*/ meltfptr[35] = 0 ;}
   
@@ -15899,8 +15973,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L10*/ meltfnum[8] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[8] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4140:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -15908,7 +15982,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datasymbol obsym final";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L10*/ meltfnum[8];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[8];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -15920,7 +15994,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4140:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L10*/ meltfnum[8] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[8] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V38*/ meltfptr[29] = 0 ;}
   
@@ -15991,9 +16065,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_DATASYMBOL", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_DATASYMBOL", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -16010,9 +16084,11 @@ meltrout_124_warmelt_genobj_COMPILOBJ_DATAINSTANCE(meltclosure_ptr_t closp_, mel
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_124_warmelt_genobj_COMPILOBJ_DATAINSTANCE_st { unsigned nbvar;
@@ -16044,7 +16120,7 @@ meltrout_124_warmelt_genobj_COMPILOBJ_DATAINSTANCE(meltclosure_ptr_t closp_, mel
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_DATAINSTANCE", callcount);
+melt_trace_start("COMPILOBJ_DATAINSTANCE", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -16117,8 +16193,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L2*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L2*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4151:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -16126,7 +16202,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datainstance dai";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L2*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L2*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -16138,7 +16214,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4151:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L2*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L2*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V7*/ meltfptr[6] = 0 ;}
   
@@ -16219,8 +16295,8 @@ lab_endgetargs:;
    /*^block*/
     /*anyblock*/{
      
-     /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 
-      callcount;;
+     /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 
+      meltcallcount;;
      MELT_LOCATION("warmelt-genobj.melt:4160:/ apply");
      /*apply*/{
       union meltparam_un argtab[4];
@@ -16228,7 +16304,7 @@ lab_endgetargs:;
       /*^apply.arg*/
       argtab[0].bp_cstring =  "compilobj_datainstance return found chobj";
       /*^apply.arg*/
-      argtab[1].bp_long = /*_#THE_CALLCOUNT__L4*/ meltfnum[0];
+      argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0];
       /*^apply.arg*/
       argtab[2].bp_cstring =  "warmelt-genobj.melt";
       /*^apply.arg*/
@@ -16240,7 +16316,7 @@ lab_endgetargs:;
      /*epilog*/
      
      MELT_LOCATION("warmelt-genobj.melt:4160:/ clear");
-     /*clear*/ /*_#THE_CALLCOUNT__L4*/ meltfnum[0] = 0 ;
+     /*clear*/ /*_#THE_MELTCALLCOUNT__L4*/ meltfnum[0] = 0 ;
      /*^clear*/
      /*clear*/ /*_.DEBUG_MSG_FUN__V16*/ meltfptr[15] = 0 ;}
     
@@ -16369,8 +16445,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L6*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4178:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -16378,7 +16454,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datainstance loc before cdisx";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L6*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -16390,7 +16466,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4178:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L6*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L6*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V32*/ meltfptr[31] = 0 ;}
   
@@ -16417,8 +16493,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L7*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4181:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -16426,7 +16502,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datainstance loc after cdisx";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L7*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -16438,7 +16514,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4181:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L7*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L7*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V36*/ meltfptr[35] = 0 ;}
   
@@ -16566,8 +16642,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L9*/ meltfnum[8] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[8] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4206:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -16575,7 +16651,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datainstance loc after put compicache";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L9*/ meltfnum[8];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[8];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -16587,7 +16663,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4206:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L9*/ meltfnum[8] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L9*/ meltfnum[8] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V45*/ meltfptr[44] = 0 ;}
   
@@ -16660,8 +16736,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L10*/ meltfnum[8] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[8] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4214:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -16669,7 +16745,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datainstance cnam";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L10*/ meltfnum[8];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[8];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -16681,7 +16757,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4214:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L10*/ meltfnum[8] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L10*/ meltfnum[8] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V50*/ meltfptr[49] = 0 ;}
   
@@ -16711,8 +16787,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L12*/ meltfnum[11] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L12*/ meltfnum[11] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4218:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -16720,7 +16796,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datainstance oini before data&slots";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L12*/ meltfnum[11];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L12*/ meltfnum[11];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -16732,7 +16808,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4218:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L12*/ meltfnum[11] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L12*/ meltfnum[11] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V52*/ meltfptr[47] = 0 ;}
   
@@ -16747,8 +16823,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L13*/ meltfnum[11] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L13*/ meltfnum[11] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4219:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -16756,7 +16832,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datainstance loc before data&slots";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L13*/ meltfnum[11];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L13*/ meltfnum[11];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -16768,7 +16844,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4219:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L13*/ meltfnum[11] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L13*/ meltfnum[11] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V54*/ meltfptr[47] = 0 ;}
   
@@ -16801,8 +16877,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L14*/ meltfnum[11] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L14*/ meltfnum[11] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4221:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -16810,7 +16886,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datainstance dlocbind";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L14*/ meltfnum[11];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L14*/ meltfnum[11];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -16822,7 +16898,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4221:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L14*/ meltfnum[11] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L14*/ meltfnum[11] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V58*/ meltfptr[57] = 0 ;}
   
@@ -16845,8 +16921,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L15*/ meltfnum[11] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L15*/ meltfnum[11] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4224:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -16854,7 +16930,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datainstance loc after data&slots";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L15*/ meltfnum[11];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L15*/ meltfnum[11];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -16866,7 +16942,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4224:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L15*/ meltfnum[11] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L15*/ meltfnum[11] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V60*/ meltfptr[55] = 0 ;}
   
@@ -16881,8 +16957,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L16*/ meltfnum[11] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L16*/ meltfnum[11] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4225:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -16890,7 +16966,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datainstance final oini";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L16*/ meltfnum[11];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L16*/ meltfnum[11];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -16902,7 +16978,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4225:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L16*/ meltfnum[11] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L16*/ meltfnum[11] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V62*/ meltfptr[55] = 0 ;}
   
@@ -17004,9 +17080,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_DATAINSTANCE", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_DATAINSTANCE", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -17023,9 +17099,11 @@ meltrout_125_warmelt_genobj_COMPILOBJ_DATATUPLE(meltclosure_ptr_t closp_, melt_p
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_125_warmelt_genobj_COMPILOBJ_DATATUPLE_st { unsigned nbvar;
@@ -17057,7 +17135,7 @@ meltrout_125_warmelt_genobj_COMPILOBJ_DATATUPLE(meltclosure_ptr_t closp_, melt_p
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_DATATUPLE", callcount);
+melt_trace_start("COMPILOBJ_DATATUPLE", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -17177,8 +17255,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4241:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -17186,7 +17264,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datatuple nti";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -17198,7 +17276,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4241:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -17279,8 +17357,8 @@ lab_endgetargs:;
    /*^block*/
     /*anyblock*/{
      
-     /*_#THE_CALLCOUNT__L5*/ meltfnum[0] = 
-      callcount;;
+     /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0] = 
+      meltcallcount;;
      MELT_LOCATION("warmelt-genobj.melt:4250:/ apply");
      /*apply*/{
       union meltparam_un argtab[4];
@@ -17288,7 +17366,7 @@ lab_endgetargs:;
       /*^apply.arg*/
       argtab[0].bp_cstring =  "compilobj_datatuple found chobj";
       /*^apply.arg*/
-      argtab[1].bp_long = /*_#THE_CALLCOUNT__L5*/ meltfnum[0];
+      argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0];
       /*^apply.arg*/
       argtab[2].bp_cstring =  "warmelt-genobj.melt";
       /*^apply.arg*/
@@ -17300,7 +17378,7 @@ lab_endgetargs:;
      /*epilog*/
      
      MELT_LOCATION("warmelt-genobj.melt:4250:/ clear");
-     /*clear*/ /*_#THE_CALLCOUNT__L5*/ meltfnum[0] = 0 ;
+     /*clear*/ /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0] = 0 ;
      /*^clear*/
      /*clear*/ /*_.DEBUG_MSG_FUN__V18*/ meltfptr[17] = 0 ;}
     
@@ -17568,8 +17646,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L8*/ meltfnum[7] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[7] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4296:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -17577,7 +17655,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj datatuple otup";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L8*/ meltfnum[7];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[7];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -17589,7 +17667,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4296:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L8*/ meltfnum[7] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[7] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V45*/ meltfptr[44] = 0 ;}
   
@@ -17686,9 +17764,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_DATATUPLE", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_DATATUPLE", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -17705,9 +17783,11 @@ meltrout_126_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_126_warmelt_genobj_LAMBDA__st { unsigned nbvar;
@@ -17739,7 +17819,7 @@ meltrout_126_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("LAMBDA_", callcount);
+melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -17798,9 +17878,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -17817,9 +17897,11 @@ meltrout_127_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_127_warmelt_genobj_LAMBDA__st { unsigned nbvar;
@@ -17851,7 +17933,7 @@ meltrout_127_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("LAMBDA_", callcount);
+melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -17931,9 +18013,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
@@ -17950,9 +18032,11 @@ meltrout_128_warmelt_genobj_COMPILOBJ_DATASTRING(meltclosure_ptr_t closp_, melt_
 #if ENABLE_CHECKING
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
-#define callcount thiscallcounter__
+#undef meltcallcount
+#define meltcallcount thiscallcounter__
 #else
-#define callcount 0L
+#undef meltcallcount
+#define meltcallcount 0L
 #endif
 
  struct frame_meltrout_128_warmelt_genobj_COMPILOBJ_DATASTRING_st { unsigned nbvar;
@@ -17984,7 +18068,7 @@ meltrout_128_warmelt_genobj_COMPILOBJ_DATASTRING(meltclosure_ptr_t closp_, melt_
   meltfram__.clos = closp_;
  meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
-melt_trace_start("COMPILOBJ_DATASTRING", callcount);
+melt_trace_start("COMPILOBJ_DATASTRING", meltcallcount);
 /*getargs*/
 
  /*getarg#0*/
@@ -18104,8 +18188,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4312:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -18113,7 +18197,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datastring nds";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L3*/ meltfnum[0];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -18125,7 +18209,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4312:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L3*/ meltfnum[0] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L3*/ meltfnum[0] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V9*/ meltfptr[8] = 0 ;}
   
@@ -18206,8 +18290,8 @@ lab_endgetargs:;
    /*^block*/
     /*anyblock*/{
      
-     /*_#THE_CALLCOUNT__L5*/ meltfnum[0] = 
-      callcount;;
+     /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0] = 
+      meltcallcount;;
      MELT_LOCATION("warmelt-genobj.melt:4321:/ apply");
      /*apply*/{
       union meltparam_un argtab[4];
@@ -18215,7 +18299,7 @@ lab_endgetargs:;
       /*^apply.arg*/
       argtab[0].bp_cstring =  "compilobj_datastring found chobj";
       /*^apply.arg*/
-      argtab[1].bp_long = /*_#THE_CALLCOUNT__L5*/ meltfnum[0];
+      argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0];
       /*^apply.arg*/
       argtab[2].bp_cstring =  "warmelt-genobj.melt";
       /*^apply.arg*/
@@ -18227,7 +18311,7 @@ lab_endgetargs:;
      /*epilog*/
      
      MELT_LOCATION("warmelt-genobj.melt:4321:/ clear");
-     /*clear*/ /*_#THE_CALLCOUNT__L5*/ meltfnum[0] = 0 ;
+     /*clear*/ /*_#THE_MELTCALLCOUNT__L5*/ meltfnum[0] = 0 ;
      /*^clear*/
      /*clear*/ /*_.DEBUG_MSG_FUN__V18*/ meltfptr[17] = 0 ;}
     
@@ -18414,8 +18498,8 @@ lab_endgetargs:;
  /*^block*/
   /*anyblock*/{
    
-   /*_#THE_CALLCOUNT__L8*/ meltfnum[7] = 
-    callcount;;
+   /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[7] = 
+    meltcallcount;;
    MELT_LOCATION("warmelt-genobj.melt:4349:/ apply");
    /*apply*/{
     union meltparam_un argtab[4];
@@ -18423,7 +18507,7 @@ lab_endgetargs:;
     /*^apply.arg*/
     argtab[0].bp_cstring =  "compilobj_datastring ostr";
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#THE_CALLCOUNT__L8*/ meltfnum[7];
+    argtab[1].bp_long = /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[7];
     /*^apply.arg*/
     argtab[2].bp_cstring =  "warmelt-genobj.melt";
     /*^apply.arg*/
@@ -18435,7 +18519,7 @@ lab_endgetargs:;
    /*epilog*/
    
    MELT_LOCATION("warmelt-genobj.melt:4349:/ clear");
-   /*clear*/ /*_#THE_CALLCOUNT__L8*/ meltfnum[7] = 0 ;
+   /*clear*/ /*_#THE_MELTCALLCOUNT__L8*/ meltfnum[7] = 0 ;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V34*/ meltfptr[33] = 0 ;}
   
@@ -18507,9 +18591,9 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_DATASTRING", callcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_DATASTRING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
-#undef callcount
+#undef meltcallcount
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR

@@ -1,4 +1,38 @@
 2010-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{use meltcallcount everywhere}}
+	* run-melt.h (meltcallcount): added default definition.
+	* melt/warmelt-first.melt: defines the_meltcallcount.
+	* melt/warmelt-macro.melt: uses the_meltcallcount in debug_msg..
+	* melt/warmelt-normal.melt: cleaned up normletrec_lambda.
+	* melt/warmelt-outobj.melt: generates meltcallcount.
+
+	{{regenerated all}}
+	* melt/generated/warmelt-normatch.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0.c: regenerated.
+	* melt/generated/warmelt-normal.0.c: regenerated.
+	* melt/generated/warmelt-macro.0.c: regenerated.
+	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-debug.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0.c: regenerated.
+	* melt/generated/warmelt-normal.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0+03.c: regenerated.
+	* melt/generated/warmelt-base.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0.c: regenerated.
+	* melt/generated/warmelt-macro.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: regenerated.
+	* melt/generated/warmelt-macro.0+02.c: regenerated.
+	* melt/generated/warmelt-macro.0+03.c: regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: regenerated.
+	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: regenerated.
+	
+2010-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{ all tletrec*.melt test passes }}
 	* testsuite/melt/tletrec.melt: corrected to not use make_tuple2.
 

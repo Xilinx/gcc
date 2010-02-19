@@ -1411,7 +1411,7 @@ the object-map for pattern variables.}#
 ;; macro.
 (defun macroexpand_toplevel_list (slist env mexpander)
   ;; (messageval_dbg "macroexpand_toplevel_list Env" env)
-  ;;  (debug_msg  env "macroexpand_toplevel_list env"(the_callcount)) 
+  ;;  (debug_msg  env "macroexpand_toplevel_list env"(the_meltcallcount)) 
   (debug_msg slist "macroexpand_toplevel_list slist") 
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check slist" (is_list slist))
@@ -4619,7 +4619,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 ;;;;;; (debug_msg val msg [count]) 
 ;;; becomes
 ;;;;;; (cppif ENABLE_CHECKING (debug_msg_fun val msg count filename lineno) ())
-;;; where count is (the_callcount) if not given
+;;; where count is (the_meltcallcount) if not given
 
 (defun mexpand_debug_msg (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -4648,7 +4648,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 	(error_plain loc "message argument should be string in DEBUG_MSG"_))
     (if (null xcount)
 	(let ( (conlis (make_list discr_list)) )
-	  (list_append conlis 'the_callcount)
+	  (list_append conlis 'the_meltcallcount)
 	  (setq xcount (macroexpand_1 (instance class_sexpr 
 						:sexp_contents conlis
 						:loca_location loc)

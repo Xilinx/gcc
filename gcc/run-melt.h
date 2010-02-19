@@ -68,6 +68,8 @@ along with GCC; see the file COPYING3.   If not see
 #include "melt-runtime.h"
 
 
+#define meltcallcount -1
+
 #define meltfptr  meltfram__.varptr
 #define meltfnum  meltfram__.varnum
 #define meltfclos meltfram__.clos

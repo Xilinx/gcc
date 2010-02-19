@@ -2165,7 +2165,7 @@ source location.}#
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (debug_msg recv "normexp_or recv")
   (let ( 
-	(boxorcount (make_integerbox discr_integer (the_callcount)))
+	(boxorcount (make_integerbox discr_integer (the_meltcallcount)))
 	(sloc (unsafe_get_field :loca_location recv))
 	(sdisj (unsafe_get_field :sor_disj recv))
 	(:long nbdisj (multiple_length sdisj))
@@ -3663,27 +3663,10 @@ source location.}#
      (debug_msg ndatarout  "normletrec_lambda after normalize_lambda ndatarout")
      (if insideflag
 	 (list_append (unsafe_get_field :nrpro_const oldproc) ndatarout))
-     (let ( (nclosedtup 
-#|
-	     (multiple_map
-	      clovtup
-	      (lambda (curclosocc :long cix)
-		(debug_msg curclosocc "normalize_lambda.lambda curclosocc")
-		(assert_msg "normletrec_lambda.lambda check curclosocc" 
-			    (is_a curclosocc class_nrep_closedocc))
-		(assert_msg "@$@unimplemented normletrec_lambda.lambda")
-		)
-	      discr_multiple
-	      )
-|#
-	     (compile_warning "normletrec_lambda using clovtup" clovtup)
-	     )
-	    )
-       (debug_msg nclosedtup "normletrec_lambda nclosedtup")
-       (put_fields cbind 
-		   :nlambdab_nclosed nclosedtup
-		   :nlambdab_constrout constrout
-		   :nlambdab_datarout ndatarout))
+     (put_fields cbind 
+		 :nlambdab_nclosed clovtup
+		 :nlambdab_constrout constrout
+		 :nlambdab_datarout ndatarout)
      (debug_msg cbind "normletrec_lambda updated cbind")
      (compile_warning "unimplemented normletrec_lambda, maybe store the newenv in the cbind")
      (shortbacktrace_dbg "normletrec_lambda ended" 15)
