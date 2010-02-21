@@ -341,17 +341,6 @@ double_memory_operand (rtx op, enum machine_mode mode)
 			    ? SImode : SFmode), plus_constant (addr, 4));
 }
 
-
-/* This hook is called many times during insn scheduling. If the hook 
-   returns nonzero, the automaton based pipeline description is used 
-   for insn scheduling. Otherwise the traditional pipeline description 
-   is used. The default is usage of the traditional pipeline description.  */
-static int
-microblaze_sched_use_dfa_pipeline_interface (void)
-{
-  return microblaze_sched_use_dfa;
-}
-
 /* Implement REG_OK_FOR_BASE_P -and- REG_OK_FOR_INDEX_P.  */
 int
 microblaze_regno_ok_for_base_p (int regno, int strict)
@@ -593,7 +582,7 @@ microblaze_classify_address (struct microblaze_address_info *info, rtx x,
    is called during reload.  */
 
 bool
-microblaze_legitimate_address_p (enum machine_mode mode, rtx x, int strict)
+microblaze_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   struct microblaze_address_info addr;
 
@@ -869,7 +858,8 @@ microblaze_expand_block_move (rtx dest, rtx src, rtx length, rtx align_rtx)
 }
 
 static bool
-microblaze_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
+microblaze_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total, 
+		      bool speed ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode = GET_MODE (x);
 
@@ -1048,7 +1038,7 @@ microblaze_address_insns (rtx x, enum machine_mode mode)
 /* Provide the costs of an addressing mode that contains ADDR.
    If ADDR is not a valid address, its cost is irrelevant.  */
 static int
-microblaze_address_cost (rtx addr)
+microblaze_address_cost (rtx addr, bool speed ATTRIBUTE_UNUSED)
 {
   return COSTS_N_INSNS (microblaze_address_insns (addr, GET_MODE (addr)));
 }
@@ -1153,8 +1143,8 @@ function_arg_advance (CUMULATIVE_ARGS * cum, enum machine_mode mode,
    or 0 if the argument is to be passed on the stack.  */
 
 rtx
-function_arg (CUMULATIVE_ARGS * cum, enum machine_mode mode, tree type,
-	      int named ATTRIBUTE_UNUSED)
+function_arg (CUMULATIVE_ARGS * cum, enum machine_mode mode, 
+	      tree type ATTRIBUTE_UNUSED, int named ATTRIBUTE_UNUSED)
 {
   rtx ret;
   int regbase = -1;
@@ -1204,7 +1194,7 @@ function_arg (CUMULATIVE_ARGS * cum, enum machine_mode mode, tree type,
 /* Return number of bytes of argument to put in registers. */
 static int
 function_arg_partial_bytes (CUMULATIVE_ARGS * cum, enum machine_mode mode,	
-			    tree type, int named ATTRIBUTE_UNUSED)	
+			    tree type, bool named ATTRIBUTE_UNUSED)	
 {
   if ((mode == BLKmode
        || GET_MODE_CLASS (mode) != MODE_COMPLEX_INT
@@ -2165,7 +2155,7 @@ save_restore_insns (int prologue)
 
 /* Set up the stack and frame (if desired) for the function.  */
 static void
-microblaze_function_prologue (FILE * file, int size ATTRIBUTE_UNUSED)
+microblaze_function_prologue (FILE * file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 {
   const char *fnname;
   long fsiz = current_frame_info.total_size;
@@ -2541,7 +2531,7 @@ microblaze_globalize_label (FILE * stream, const char *name)
 
 /* Returns true if decl should be placed into a "small data" section.  */
 static bool
-microblaze_elf_in_small_data_p (tree decl)
+microblaze_elf_in_small_data_p (const_tree decl)
 {
   if (!TARGET_XLGPOPT)
     return false;
@@ -2986,10 +2976,6 @@ microblaze_adjust_cost (rtx insn ATTRIBUTE_UNUSED, rtx link,
 
 #undef TARGET_HAVE_SRODATA_SECTION
 #define TARGET_HAVE_SRODATA_SECTION     true
-
-#undef TARGET_SCHED_USE_DFA_PIPELINE_INTERFACE
-#define TARGET_SCHED_USE_DFA_PIPELINE_INTERFACE \
-                                    microblaze_sched_use_dfa_pipeline_interface
 
 #undef TARGET_ASM_FUNCTION_END_PROLOGUE
 #define TARGET_ASM_FUNCTION_END_PROLOGUE \
