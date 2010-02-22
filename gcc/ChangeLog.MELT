@@ -1,4 +1,7 @@
 2010-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: added more of alternate matching.
+
+2010-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt-runtime.o): also depends upon the Makefile and
 	passes melt_installed_cflags & (melt_installed_module_makefile.
 	(melt_installed_module_makefile): Added new variable.

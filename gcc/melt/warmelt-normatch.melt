@@ -1818,6 +1818,8 @@ scanning variables.}#
 	   mchgx_filename		;the filename
 	   mchgx_nodout			;the output strbuf for nodes
 	   mchgx_edgout			;the output strbuf for edges
+	   mchgx_datanamemap		;the objmap for name of datas
+	   mchgx_stepnamemap		;the objmap for name of steps
 	   ))
 
 ;; internal function to out the node name for the match graphic
@@ -3204,6 +3206,62 @@ $MSTMA_OUTS is the tuple of output matched data.}#
   )
 (install_method class_source_pattern_matcher  translate_pattern translpat_patmat)
 	
+
+;; internal selector to output the label of a test in "HTML-like"
+;; graphiz format
+(defselector matchgraphic_altstep class_selector
+)
+
+(defun mgaltstep_stepsetvar (step mg)
+  (assert_msg "check step" (is_a step class_match_step))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (loca (unsafe_get_field :loca_location step))
+	 (sthen (unsafe_get_field :mstep_then step))
+	 (setsymb (unsafe_get_field :mstepsetvar_symb step))
+	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
+	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
+	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
+	 (stepmap (unsafe_get_field :mchgx_stepnamemap mg))
+	 (stepname (mapobject_get stepmap step))
+	 (thenname (if sthen (mapobject_get stepmap sthen)))
+	 (:long stephash (obj_hash step))
+	 (dis (discrim step))
+	 (clanam (get_field :named_name dis))
+	 )
+    (add2out_strconst nodebuf "<tr><td><font color=\"saddlebrown\" face=\"Times-Roman Bold\" point-size=\"6\">")
+    (code_chunk 
+     outclanam
+     #{ /* $OUTCLANAM */
+     meltgc_add_out ((melt_ptr_t) $NODEBUF,
+		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
+     }#)
+    (add2out_strconst nodebuf "</font></td><td>#")
+    (add2out_longhex nodebuf stephash)
+    (add2out_strconst nodebuf "</td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (add2out_strconst nodebuf "<tr><td><font face=\"Time-Roman Italics\" point-size=\"6\">")
+    (add2out_string nodebuf (get_field :named_name setsymb))
+    (if (is_a setsymb class_cloned_symbol)
+	(let ( (:long syrank (get_int (get_field :csym_urank setsymb)))
+	      )
+	  (add2out_strconst nodebuf "$")
+	  (add2out_longdec nodebuf syrank)
+	  ))
+    (add2out_strconst nodebuf "</td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (if thenname
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*then*/ -> ")
+	  (add2out_string edgebuf thenname)
+	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
+	  ))
+    ))
+
+(install_method matchgraphic_altstep class_match_step_set_variable mgaltstep_stepsetvar)
+(compile_warning "missing other methods for matchgraphic_altstep on other step classes")
+
 (defun translate_matchcase (curmcase sloc)
   (debug_msg curmcase "translate_matchcase curmcase")
   (assert_msg "check curmcase" (is_a curmcase class_match_case))
@@ -3387,21 +3445,56 @@ $MSTMA_OUTS is the tuple of output matched data.}#
  alternate_match_optset)
 
 
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun mg_altdraw_graphviz (mdata dotprefix)
   (let ( (mapdata (make_mapobject discr_map_objects 43))
 	 (mapstep (make_mapobject discr_map_objects 43))
 	 (nodebuf (make_strbuf discr_strbuf))
 	 (edgebuf (make_strbuf discr_strbuf))
+	 (:long cnt 0) 
+	 (:long mdatahash (obj_hash mdata))
+	 (pathsbuf (make_strbuf discr_strbuf)) 
+	 (dotfilename
+	  (progn
+	    (code_chunk 
+	     uniqcnt 
+	     #{  /* mg_draw_match_graphviz_file $UNIQCNT */
+	     static long uniqcounter	;
+	     uniqcounter ++		;
+	     $CNT = uniqcounter		; 
+	     }#)
+	    (assert_msg "check pathsbuf" (is_strbuf pathsbuf))
+	    (add2sbuf_string pathsbuf dotprefix)
+	    (add2sbuf_strconst pathsbuf "+")
+	    (add2sbuf_longdec pathsbuf cnt)
+	    (add2sbuf_strconst pathsbuf ".dot")
+	    (debug_msg pathsbuf "mg_draw_match_graphviz_file pathsbuf")
+	    (strbuf2string discr_string pathsbuf)))
+	 (mg (instance class_match_graphic
+		       :mchgx_filename dotfilename
+		       :mchgx_nodout nodebuf
+		       :mchgx_edgout edgebuf
+		       :mchgx_datanamemap mapdata
+		       :mchgx_stepnamemap mapstep
+		       ))
 	 )
-    ;; recursive scan of data & steps to fill the mapdata associating
-    ;; each data with its printable name and mapstep associating each
-    ;; step with its printable name
+					;;; recursive scan of data & steps to fill the mapdata associating
+					;;; each data with its printable name and mapstep associating each
+					;;; step with its printable name
     (letrec 
      ( (scandata 
 	(lambda (data)
 	  (debug_msg data "mg_altdraw_graphviz/scandata data")
 	  (assert_msg "mg_altdraw_graphviz.scandata check data" (is_a data class_matched_data))
-	  (if (mapobject_get mapdata data) (return))
+	  (let ( (oldname ( (mapobject_get mapdata data) ))
+		 )
+	    (if oldname
+		(progn 
+		  (debug_msg oldname "mg_altdraw_graphviz/scandata found oldname")
+		  (return oldname))))
 	  (let ( (nambuf (make_strbuf discr_strbuf))
 		 (msymb (unsafe_get_field :mdata_symb data))
 		 (:long mapcnt (mapobject_count mapdata))
@@ -3415,7 +3508,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 		(progn
 		  (add2sbuf_strconst nambuf "$")
 		  (add2sbuf_longdec nambuf (get_int (unsafe_get_field :csym_urank msymb)))))
-	    (mapobject_put mapdata data (strbuf2string nambuf discr_string))
+	    (mapobject_put mapdata data (strbuf2string discr_string nambuf))
 	    (foreach_in_list
 	     (msteps)
 	     (curpair curstep)
@@ -3426,7 +3519,12 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	(lambda (step)
 	  (debug_msg step "mg_altdraw_graphviz/scanstep step")
 	  (assert_msg "mg_altdraw_graphviz.scanstep check step" (is_a step class_match_step))
-	  (if (mapobject_get mapstep step) (return))
+	  (let ( (oldname (mapobject_get mapstep step)) 
+		 )
+	    (if oldname
+		(progn
+		  (debug_msg oldname "mg_altdraw_graphviz.scanstep found oldname")
+		  (return oldname))))
 	  (let ( (nambuf (make_strbuf discr_strbuf))
 		 (:long mapcnt (mapobject_count mapstep))
 		 (disnam (get_field :named_name (discrim step)))
@@ -3437,10 +3535,10 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 					      melt_string_str((melt_ptr_t)$disnam)+strlen("CLASS_")) }#)
 	    (add2sbuf_strconst nambuf "$")
 	    (add2sbuf_longdec nambuf (+i mapcnt 1))
-	    (mapobject_put mapstep step (strbuf2string nambuf discr_string))
+	    (mapobject_put mapstep step (strbuf2string discr_string nambuf))
 	    (if sdata (scandata sdata))
 	    (let (
-		  ;; these are checked get fields!!
+					;; these are checked get fields!!
 		  (sthen (get_field :mstep_then step))
 		  (selse (get_field :mstep_else step))
 		  )
@@ -3455,7 +3553,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
      (debug_msg mapdata "mg_altdraw_graphviz after scandata mapdata")
      (debug_msg mapstep "mg_altdraw_graphviz after scandata mapstep")
      )
-    ;;
+					;;
     (let (
 	  (:long datacount 0)
 	  (:long stepcount 0)
@@ -3514,6 +3612,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	      discr_multiple
 	      ))
 	    )
+					;; draw the data nodes
 	(debug_msg sortupdata "mg_altdraw_graphviz sortupdata")
 	(foreach_in_multiple
 	 (sortupdata)
@@ -3522,25 +3621,119 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	 (assert_msg "mg_altdraw_graphviz check curdata" (is_a curdata class_matched_data))
 	 (let ( 
 	       (curdataname (mapobject_get mapdata curdata))
+	       (datactype (unsafe_get_field :mdata_ctype curdata))
+	       (datasymb (unsafe_get_field :mdata_symb curdata))
+	       (datasteps (unsafe_get_field :mdata_steps curdata))
 	       )
 	   (add2out_indentnl nodebuf 0)
 	   (add2out_string nodebuf curdataname)
 	   (add2out_strconst nodebuf " [ margin=0, ")
+	   (if (== curdata mdata)
+	       (add2out_strconst nodebuf " style=\"bold,dashed,filled,rounded\", bgcolor=\"khahi\", ")
+	     (add2out_strconst nodebuf " style=\"dashed,rounded\", "))
 	   (add2out_strconst nodebuf "label=<<table border=\"1\" cellborder=\"1\"")
 	   (add2out_strconst nodebuf " cellspacing=\"1\" cellpadding=\"1\">")
 	   (add2out_indentnl nodebuf 0)
+	   (add2out_strconst nodebuf "<tr><td><font color=\"green\" face==\"Times-Roman Bold\" point-size=\"7\">")
+	   (add2out_string nodebuf curdataname)
+	   (add2out_strconst nodebuf "</font></td><td>#")
+	   (add2out_longhex nodebuf (obj_hash curdata))
+	   (add2out_strconst nodebuf "</td></tr>")
+	   (add2out_indentnl nodebuf 0)
+	   (add2out_strconst nodebuf "<tr><td><font color=\"green\" face==\"Times-Roman Italic\" point-size=\"6.5\">")
+	   (add2out_string nodebuf (get_field :named_name datasymb))
+	   (if (is_a datasymb class_cloned_symbol)
+	       (let ( (:long clonum (get_int (unsafe_get_field :csym_urank datasymb)))
+		      )
+		 (add2out_strconst nodebuf "<font point-size=\"6\">$")
+		 (add2out_longdec nodebuf clonum)
+		 (add2out_strconst nodebuf "</font>")
+		 ))
+	   (add2out_strconst nodebuf "</td><td>")
+	   (add2out_string nodebuf (get_field :named_name (get_field :ctype_keyword)))
+	   
+	   (add2out_strconst nodebuf "</td></tr>")
 	   (add2out_strconst nodebuf "</table>> ];")
 	   (add2out_indentnl nodebuf 0)
+					;;; output edges to the steps
+	   (foreach_in_list
+	    (datasteps)
+	    (pairstep curstep)
+	    (add2out_indentnl edgebuf 0)
+	    (add2out_string edgebuf curdataname)
+	    (add2out_strconst edgebuf " /*data*/ -> /*step*/ ")
+	    (add2out_string edgebuf (mapobject_get mapstep curstep))
+	    (add2out_strconst edgebuf " [ arrowhead=open, color=blueviolet ];")
+	    )
 	   )
 	 )
+					;; draw the step nodes
 	(debug_msg sortupstep "mg_altdraw_graphviz sortupstep")
 	(foreach_in_multiple
 	 (sortupstep)
 	 (curstep :long dix)
 	 (debug_msg curstep "mg_altdraw_graphviz curstep")
 	 (assert_msg "mg_altdraw_graphviz check curstep" (is_a curstep class_match_step))
+	 (let ( 
+	       (curstepname (mapobject_get mapstep curstep))
+	       )
+	   (add2out_indentnl nodebuf 0)
+	   (add2out_string nodebuf curstepname)
+	   (add2out_strconst nodebuf " [ margin=0, ")
+	   (if (is_a curstep class_match_step_success)
+	       (add2out_strconst nodebuf " style=\"filled\", bgcolor=\"palegreen\", ")
+	     )
+	   (add2out_strconst nodebuf "label=<<table border=\"1\" cellborder=\"1\"")
+	   (add2out_strconst nodebuf " cellspacing=\"1\" cellpadding=\"1\">")
+	   (add2out_indentnl nodebuf 0)
+	   (add2out_strconst nodebuf "<tr><td><font color=\"blue\" face==\"Times-Roman Bold\" point-size=\"7\">")
+	   (add2out_string nodebuf curstepname)
+	   (add2out_strconst nodebuf "</font></td><td>#")
+	   (add2out_longhex nodebuf (obj_hash curstep))
+	   (add2out_strconst nodebuf "</td></tr>")
+	   (add2out_indentnl nodebuf 0)
+	   (matchgraphic_altstep curstep mg)
+	   (add2out_strconst nodebuf "</table>> ];")
+	   (add2out_indentnl nodebuf 0)
+	   )
 	 )
-	))))
+	;; output the file
+	(let (
+	      )
+	  (code_chunk 
+	   outputmgfile
+	   #{ /* $outputmgfile start */
+     time_t nowt = 0;
+     char nowbuf[60];
+     FILE* dotfil = 
+     fopen (melt_string_str ((melt_ptr_t) $DOTFILENAME), "w");
+     if (!dotfil) 
+     fatal_error("failed to open matchdot file %s - %m", 
+                 melt_string_str ((melt_ptr_t) $DOTFILENAME));
+     fprintf (dotfil, "// melt matchdot file %s\n", 
+                      melt_string_str ((melt_ptr_t) $DOTFILENAME));
+     time (&nowt);
+     memset (nowbuf, 0, sizeof(nowbuf));
+     strftime (nowbuf, sizeof(nowbuf)-1,
+                       "%Y %b %d %Hh%M",
+                       localtime (&nowt));
+     fprintf (dotfil, "// generated %s\n", nowbuf);
+     fprintf (dotfil, "digraph meltaltmatch_%lx {", $MDATAHASH);
+     fprintf (dotfil, " graph [ label=\"Melt Alt Match %s %s\",",
+		      melt_string_str ((melt_ptr_t) $DOTFILENAME),
+		      nowbuf);
+     fprintf (dotfil," pad=\"0.5\", margin=\"0.3\" ];\n");
+     fprintf (dotfil, " node [ shape=\"box\", fontsize=\"9\" ];\n");
+     melt_putstrbuf (dotfil, (melt_ptr_t) $NODEBUF);
+     fprintf (dotfil, "\n /// edges\n");
+     melt_putstrbuf (dotfil, (melt_ptr_t) $EDGEBUF);
+     fprintf (dotfil, "\n} // eof %s\n", melt_string_str ((melt_ptr_t) $DOTFILENAME));
+     fclose (dotfil);
+	   /* $outputmgfile end */
+	   }#)
+	)))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; export our classes
 (export_class
