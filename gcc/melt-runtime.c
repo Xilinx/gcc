@@ -216,6 +216,29 @@ static VEC (char_p, heap)* parsedmeltfilevect;
 /* Obstack used for reading names */
 static struct obstack bname_obstack;
 
+			 
+			 
+/* called from toplev.c function print_version */
+void 
+melt_print_version_info (FILE *fil, const char* indent)
+{
+  if (!fil) return;
+  if (!indent) indent="\t";
+  fprintf (fil, "%sMELT built-in source directory: %s\n",
+	   indent, melt_source_dir);
+  fprintf (fil, "%sMELT built-in module directory: %s\n",
+	   indent, melt_module_dir);
+  fprintf (fil, "%sUse -fmelt-source-path= or -fmelt-module-path= to override them with a colon-separated path.\n",
+	   indent);
+  fprintf (fil, "%sMELT built-in module make command [-fmelt-module-make-command=] %s\n",
+	   indent, melt_module_make_command);
+  fprintf (fil, "%sMELT built-in module makefile [-fmelt-module-makefile=] %s\n",
+	   indent, melt_module_makefile);
+  fprintf (fil, "%sMELT built-in module cflags [-fmelt-module-cflags=] %s\n",
+	   indent, melt_module_cflags);
+  fflush (fil);
+}
+
 
 /* retrieve a MELT related program or plugin argument */
 #ifdef MELT_IS_PLUGIN

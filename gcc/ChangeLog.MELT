@@ -1,3 +1,8 @@
+2010-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* toplev.h (melt_print_version_info): Added declaration.
+	* toplev.c (print_version): added call to melt_print_version_info.
+	* melt-runtime.c (melt_print_version_info): Added function.
+
 2010-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{use meltcallcount everywhere}}
 	* run-melt.h (meltcallcount): added default definition.

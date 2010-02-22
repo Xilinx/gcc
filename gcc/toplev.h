@@ -219,4 +219,8 @@ extern bool set_src_pwd		       (const char *);
 extern const char *get_random_seed (bool);
 extern const char *set_random_seed (const char *);
 
+/* Function called from toplev.c 's function print_version and defined in
+   melt-runtime.c .  */
+extern void melt_print_version_info (FILE *fil, const char* indent);
+
 #endif /* ! GCC_TOPLEV_H */

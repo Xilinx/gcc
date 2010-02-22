@@ -1282,6 +1282,11 @@ print_version (FILE *file, const char *indent)
 	   PARAM_VALUE (GGC_MIN_EXPAND), PARAM_VALUE (GGC_MIN_HEAPSIZE));
 
   print_plugins_versions (file, indent);
+  {
+    /* defined in file melt-runtime.c */
+    extern void melt_print_version_info (FILE *fil, const char* indent);
+    melt_print_version_info (file, indent);
+  }
 }
 
 #ifdef ASM_COMMENT_START
