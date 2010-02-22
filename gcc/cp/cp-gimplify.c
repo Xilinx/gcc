@@ -552,7 +552,9 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 	 25979.  */
     case INIT_EXPR:
       cp_gimplify_init_expr (expr_p, pre_p, post_p);
-      /* Fall through.  */
+      if (TREE_CODE (*expr_p) != INIT_EXPR)
+	return GS_OK;
+      /* Otherwise fall through.  */
     case MODIFY_EXPR:
       {
 	/* If the back end isn't clever enough to know that the lhs and rhs
@@ -880,15 +882,6 @@ cp_genericize_r (tree *stmt_p, int *walk_subtrees, void *data)
       /* Using decls inside DECL_EXPRs are just dropped on the floor.  */
       *stmt_p = build1 (NOP_EXPR, void_type_node, integer_zero_node);
       *walk_subtrees = 0;
-    }
-
-  else if (TREE_CODE (stmt) == MODIFY_EXPR
-	   && (integer_zerop (cp_expr_size (TREE_OPERAND (stmt, 0)))
-	       || integer_zerop (cp_expr_size (TREE_OPERAND (stmt, 1)))))
-    {
-      *stmt_p = build2 (COMPOUND_EXPR, TREE_TYPE (stmt),
-			TREE_OPERAND (stmt, 0),
-			TREE_OPERAND (stmt, 1));
     }
 
   pointer_set_insert (p_set, *stmt_p);

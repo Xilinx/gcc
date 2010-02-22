@@ -1,3 +1,70 @@
+2010-02-22  Mike Stump  <mikestump@comcast.net>
+
+	PR c++/43125
+	* decl.c (duplicate_decls): Merge DECL_PRESERVE_P.
+
+2010-02-21  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/23510
+	* error.c (print_instantiation_partial_context_line): New.
+	(print_instantiation_partial_context): Print at most 12 contexts,
+	skip the rest with a message.
+
+2010-02-21  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42824
+	* pt.c (lookup_template_class): Better support of specialization
+	of member of class template implicit instantiation.
+
+2010-02-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/35669
+	* call.c (conversion_null_warnings): Replace -Wconversion with
+	-Wconversion-null.
+	* cvt.c (build_expr_type_conversion): Likewise.
+
+2010-02-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42837
+	* class.c (create_vtable_ptr): Set DECL_PACKED if type is packed.
+
+	PR c++/43108
+	* typeck.c (cp_build_binary_op): Adapt mixed complex/non handling from
+	C build_binary_op.
+	* cp-tree.h (WANT_VECTOR_OR_COMPLEX): Rename from WANT_VECTOR.
+	* cvt.c (build_expr_type_conversion): Allow COMPLEX_TYPE.
+
+	PR c++/43070
+	* semantics.c (finish_goto_stmt): Don't call decay_conversion.
+
+	PR c++/26261
+	PR c++/43101
+	* pt.c (tsubst_qualified_id): Do normal lookup in non-dependent scope.
+	(maybe_update_decl_type): New fn.
+	* parser.c (cp_parser_init_declarator): Use it.
+
+	PR c++/43109
+	* semantics.c (begin_class_definition): Don't crash on unnamed ns.
+
+2010-02-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43075
+	* call.c (build_over_call): Don't create zero-sized assignments.
+	* cp-gimplify.c (cp_genericize_r): Don't remove them here.
+	* cp-objcp-common.c (cp_expr_size): Remove.
+	* cp-tree.h: Remove prototype.
+
+	PR c++/43069
+	* name-lookup.c (set_decl_namespace): Don't copy DECL_CONTEXT if the
+	decl we looked up doesn't match.
+
+	PR c++/43093
+	* cp-gimplify.c (cp_gimplify_expr) [INIT_EXPR]: Return if we don't
+	have an INIT_EXPR anymore.
+
+	PR c++/43079
+	* pt.c (convert_nontype_argument): Change assert to test.
+
 2010-02-16  Jason Merrill  <jason@redhat.com>
 
 	* cp-gimplify.c (cp_gimplify_expr): Fix error recovery.

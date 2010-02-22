@@ -58,29 +58,29 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 # define  _GLIBCXX_NUM_FACETS 14
 #endif
 
-  // Convert string to numeric value of type _Tv and store results.
+  // Convert string to numeric value of type _Tp and store results.
   // NB: This is specialized for all required types, there is no
   // generic definition.
-  template<typename _Tv>
+  template<typename _Tp>
     void
-    __convert_to_v(const char* __in, _Tv& __out, ios_base::iostate& __err,
-		   const __c_locale& __cloc);
+    __convert_to_v(const char*, _Tp&, ios_base::iostate&,
+		   const __c_locale&) throw();
 
   // Explicit specializations for required types.
   template<>
     void
     __convert_to_v(const char*, float&, ios_base::iostate&,
-		   const __c_locale&) throw ();
+		   const __c_locale&) throw();
 
   template<>
     void
     __convert_to_v(const char*, double&, ios_base::iostate&,
-		   const __c_locale&) throw ();
+		   const __c_locale&) throw();
 
   template<>
     void
     __convert_to_v(const char*, long double&, ios_base::iostate&,
-		   const __c_locale&) throw ();
+		   const __c_locale&) throw();
 
   // NB: __pad is a struct, rather than a function, so it can be
   // partially-specialized.
@@ -587,7 +587,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @ingroup locales
    *
    *  This template class defines classification and conversion functions for
-   *  character sets.  It wraps <cctype> functionality.  Ctype gets used by
+   *  character sets.  It wraps cctype functionality.  Ctype gets used by
    *  streams for many I/O operations.
    *
    *  This template provides the protected virtual functions the developer
@@ -1219,7 +1219,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
     protected:
       __wmask_type
-      _M_convert_to_wmask(const mask __m) const throw ();
+      _M_convert_to_wmask(const mask __m) const throw();
 
       /// Destructor
       virtual
@@ -1457,7 +1457,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       // For use at construction time only.
       void
-      _M_initialize_ctype() throw ();
+      _M_initialize_ctype() throw();
     };
 #endif //_GLIBCXX_USE_WCHAR_T
 
@@ -1557,7 +1557,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     // num_put
     // Construct and return valid scanf format for floating point types.
     static void
-    _S_format_float(const ios_base& __io, char* __fptr, char __mod) throw ();
+    _S_format_float(const ios_base& __io, char* __fptr, char __mod) throw();
   };
 
   template<typename _CharT>

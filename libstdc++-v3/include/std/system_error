@@ -103,8 +103,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   inline error_category::error_category() = default;
 
   // DR 890.
-  _GLIBCXX_CONST const error_category& system_category() throw ();
-  _GLIBCXX_CONST const error_category& generic_category() throw ();
+  _GLIBCXX_CONST const error_category& system_category() throw();
+  _GLIBCXX_CONST const error_category& generic_category() throw();
 
   error_code make_error_code(errc);
 
@@ -334,6 +334,30 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   };
 
 _GLIBCXX_END_NAMESPACE
+
+#ifndef _GLIBCXX_COMPATIBILITY_CXX0X
+
+#include <bits/functional_hash.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  // DR 1182.
+  /// std::hash specialization for error_code.
+  template<>
+    struct hash<error_code>
+    : public std::unary_function<error_code, size_t>
+    {
+      size_t
+      operator()(const error_code& __e) const
+      {
+	const char* __p = reinterpret_cast<const char*>(&__e);
+	return _Fnv_hash<>::hash(__p, sizeof(__e));
+      }
+    };
+
+_GLIBCXX_END_NAMESPACE
+
+#endif // _GLIBCXX_COMPATIBILITY_CXX0X
 
 #endif // __GXX_EXPERIMENTAL_CXX0X__
 
