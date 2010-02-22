@@ -136,6 +136,7 @@ static const char melt_module_dir[] = MELT_MODULE_DIR;
 static const char melt_module_make_command[] = MELT_MODULE_MAKE_COMMAND;
 static const char melt_module_makefile[] = MELT_MODULE_MAKEFILE;
 static const char melt_module_cflags[] = MELT_MODULE_CFLAGS;
+static const char melt_default_modlis[] = MELT_DEFAULT_MODLIS;
 
 
 melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB]={0};
@@ -236,6 +237,8 @@ melt_print_version_info (FILE *fil, const char* indent)
 	   indent, melt_module_makefile);
   fprintf (fil, "%sMELT built-in module cflags [-fmelt-module-cflags=] %s\n",
 	   indent, melt_module_cflags);
+  fprintf (fil, "%sMELT built-in default module list [-fmelt-init=@]%s\n",
+	   indent, melt_default_modlis);
   fflush (fil);
 }
 

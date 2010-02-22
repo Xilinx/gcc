@@ -1,4 +1,8 @@
 2010-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_print_version_info): also prints the
+	default module list.
+
+2010-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* toplev.h (melt_print_version_info): Added declaration.
 	* toplev.c (print_version): added call to melt_print_version_info.
 	* melt-runtime.c (melt_print_version_info): Added function.
