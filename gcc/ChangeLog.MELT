@@ -1,4 +1,11 @@
 2010-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt-runtime.o): also depends upon the Makefile and
+	passes melt_installed_cflags & (melt_installed_module_makefile.
+	(melt_installed_module_makefile): Added new variable.
+	(MELTHERE_CFLAGS): Don't remove anymore -O2.
+	(melt_installed_cflags): Added new variable.
+
+2010-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_print_version_info): also prints the
 	default module list.
 
