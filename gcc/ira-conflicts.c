@@ -448,7 +448,7 @@ process_reg_shuffles (rtx reg, int op_num, int freq, bool *bound_p)
 static void
 add_insn_allocno_copies (rtx insn)
 {
-  rtx set, operand, dup;
+  rtx set, operand, dup, link;
   const char *str;
   bool commut_p, bound_p[MAX_RECOG_OPERANDS];
   int i, j, n, freq;
@@ -509,6 +509,51 @@ add_insn_allocno_copies (rtx insn)
 	   smaller.  */
 	process_reg_shuffles (operand, i, freq < 8 ? 1 : freq / 8, bound_p);
     }
+=======
+  for (link = REG_NOTES (insn); link; link = XEXP (link, 1))
+    if (REG_NOTE_KIND (link) == REG_DEAD)
+      break;
+  if (! link)
+    return;
+  extract_insn (insn);
+  for (i = 0; i < recog_data.n_operands; i++)
+    bound_p[i] = false;
+  for (i = 0; i < recog_data.n_operands; i++)
+    {
+      operand = recog_data.operand[i];
+      if (! REG_SUBREG_P (operand))
+	continue;
+      str = recog_data.constraints[i];
+      while (*str == ' ' || *str == '\t')
+	str++;
+      for (j = 0, commut_p = false; j < 2; j++, commut_p = true)
+	if ((n = get_dup_num (i, commut_p)) >= 0)
+	  {
+	    bound_p[n] = true;
+	    dup = recog_data.operand[n];
+	    if (REG_SUBREG_P (dup)
+		&& find_reg_note (insn, REG_DEAD,
+				  REG_P (operand)
+				  ? operand
+				  : SUBREG_REG (operand)) != NULL_RTX)
+	      process_regs_for_copy (operand, dup, true, NULL_RTX, freq);
+	  }
+    }
+  for (i = 0; i < recog_data.n_operands; i++)
+    {
+      operand = recog_data.operand[i];
+      if (REG_SUBREG_P (operand)
+	  && find_reg_note (insn, REG_DEAD,
+			    REG_P (operand)
+			    ? operand : SUBREG_REG (operand)) != NULL_RTX)
+	/* If an operand dies, prefer its hard register for the output
+	   operands by decreasing the hard register cost or creating
+	   the corresponding allocno copies.  The cost will not
+	   correspond to a real move insn cost, so make the frequency
+	   smaller.  */
+	process_reg_shuffles (operand, i, freq < 8 ? 1 : freq / 8, bound_p);
+    }
+>>>>>>> .merge-right.r156641
 }
 
 /* Add copies originated from BB given by LOOP_TREE_NODE.  */

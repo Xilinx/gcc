@@ -546,10 +546,8 @@ finish_goto_stmt (tree destination)
     TREE_USED (destination) = 1;
   else
     {
-      /* The DESTINATION is being used as an rvalue.  */
       if (!processing_template_decl)
 	{
-	  destination = decay_conversion (destination);
 	  destination = cp_convert (ptr_type_node, destination);
 	  if (error_operand_p (destination))
 	    return NULL_TREE;
@@ -2378,6 +2376,7 @@ begin_class_definition (tree t, tree attributes)
       tree ns = TYPE_CONTEXT (t);
       if (ns && TREE_CODE (ns) == NAMESPACE_DECL
 	  && DECL_CONTEXT (ns) == std_node
+	  && DECL_NAME (ns)
 	  && !strcmp (IDENTIFIER_POINTER (DECL_NAME (ns)), "decimal"))
 	{
 	  const char *n = TYPE_NAME_STRING (t);
