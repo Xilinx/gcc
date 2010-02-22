@@ -265,7 +265,7 @@ namespace GTM HIDDEN {
 extern uint64_t gtm_spin_count_var;
 
 extern "C" uint32_t GTM_longjmp (const gtm_jmpbuf *, uint32_t, uint32_t)
-	ITM_NORETURN;
+	ITM_NORETURN ITM_REGPARM;
 
 extern "C" void GTM_LB (const void *, size_t) ITM_REGPARM;
 

@@ -48,9 +48,9 @@ class gtm_rwlock
 
   // All fields must be "int", since they're all given to the futex syscall.
   int summary;
-  int a_readers;
-  int w_readers;
-  int w_writers;
+  int a_readers;		// Number of active readers.
+  int w_readers;		// Number of waiting readers.
+  int w_writers;       		// Number of waiting writers.
 
   int lock_summary ();
 

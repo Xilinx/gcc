@@ -1,3 +1,8 @@
+2010-02-22  Aldy Hernandez  <aldyh@redhat.com>
+
+	* libitm_i.h (GTM_longjmp): Add ITM_REGPARM.
+	* config/linux/rwlock.h (class gtm_rwlock): Add comments.
+
 2010-02-11  Aldy Hernandez  <aldyh@redhat.com>
 
 	* configure: Rebuild.
