@@ -448,7 +448,7 @@ process_reg_shuffles (rtx reg, int op_num, int freq, bool *bound_p)
 static void
 add_insn_allocno_copies (rtx insn)
 {
-  rtx set, operand, dup, link;
+  rtx set, operand, dup;
   const char *str;
   bool commut_p, bound_p[MAX_RECOG_OPERANDS];
   int i, j, n, freq;
