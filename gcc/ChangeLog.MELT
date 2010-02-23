@@ -1,3 +1,8 @@
+
+2010-02-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: added more of alternate matching.
+	better alternate display in .dot files for debugging.
+
 2010-02-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt: Removed extra openbrace in
 	add2sbuf_short_mixloc.

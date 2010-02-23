@@ -2622,6 +2622,11 @@ $MSTMA_OUTS is the tuple of output matched data.}#
   :formals (recv fun ctx)
 )
 
+(defselector scan_step_data class_selector
+  :doc #{Given a reciever $STEP, apply a given function $FUN to all
+the data of the $STEP with an extra context $CTX.}#
+  :formals (step fun ctx))
+
 (defun scansubpat_anyrecv (recv fun ctx)
   (debug_msg recv "scansubpat_anyrecv recv")
   (let ( (dis (discrim recv)) )
@@ -2804,6 +2809,29 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 (install_method class_match_step_test_group put_else_match putelse_matchgroup)
 
 
+
+(defun scanstep_testins (step fun ctx)
+  (assert_msg "check step" (is_a step class_match_step_test_instance))
+  (let ( (slotup (unsafe_get_field :mstins_slots step)) 
+	 )
+    (foreach_in_multiple 
+     (slotup)
+     (curslot :long ix)
+     (if curslot 
+	 (fun curslot ctx)))))
+(install_method class_match_step_test_instance scan_step_data scanstep_testins)
+
+(defun scanstep_testmatcher (step fun ctx)
+  (assert_msg "check step" (is_a step class_match_step_test_matcher))
+  (let ( (outs (unsafe_get_field :mstma_outs step)) 
+	 )
+    (foreach_in_multiple
+     (outs)
+     (curout :long outix)
+     (if curout (fun curout ctx)))
+    ))
+(install_method class_match_step_test_matcher scan_step_data scanstep_testmatcher)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; the selector to translate a pattern
 (defselector translate_pattern class_selector
@@ -2900,7 +2928,9 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 				    ))
 		 )
 	      (setq istep newstep)
+	      (debug_msg newstep "translpat_inspat newstep")
 	      (list_append steplist newstep)
+	      (debug_msg steplist "translpat_inspat updated steplist")
 	      ))
 	;; translate each mentioned non-joker field 
 	(let ( (mslots (unsafe_get_field :mstins_slots istep))
@@ -3129,7 +3159,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
      (if (null curstep)
 	 (let ( 
 	       (outdatatup (make_multiple discr_multiple nbopout))
-	       (step (instance class_match_step_test_matcher
+	       (newstep (instance class_match_step_test_matcher
 			       :loca_location sloc
 			       :mstep_data mdata
 			       :mstep_then ()
@@ -3139,7 +3169,10 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 			       :mstma_ins nins
 			       :mstma_outs outdatatup))
 	       )
-	   (setq curstep step)
+	   (setq curstep newstep)
+	   (debug_msg newstep "translpat_patmat newstep")
+	   (list_append mdatasteps newstep)
+	   (debug_msg mdatasteps "translpat_patmat updated mdatasteps")
 	   (foreach_in_multiple
 	    (opout)
 	    (curoutbind :long outix)
@@ -3150,7 +3183,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 		   (newslot (instance class_matched_data
 				      :mdata_symb (clone_symbol outsymb)
 				      :mdata_ctype outctyp
-				      :mdata_orig step
+				      :mdata_orig newstep
 				      :mdata_steps (make_list discr_list)))
 		   )
 	      (debug_msg outsymb "translpat_patmat outsymb")
@@ -3236,11 +3269,12 @@ $MSTMA_OUTS is the tuple of output matched data.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>#")
-    (add2out_longhex nodebuf stephash)
-    (add2out_strconst nodebuf "</td></tr>")
+    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf loca)
+    (add2out_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
-    (add2out_strconst nodebuf "<tr><td><font face=\"Time-Roman Italics\" point-size=\"6\">")
+    (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font face=\"Time-Roman Italics\" point-size=\"7\">")
     (add2out_string nodebuf (get_field :named_name setsymb))
     (if (is_a setsymb class_cloned_symbol)
 	(let ( (:long syrank (get_int (get_field :csym_urank setsymb)))
@@ -3289,11 +3323,12 @@ $MSTMA_OUTS is the tuple of output matched data.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>#")
-    (add2out_longhex nodebuf stephash)
-    (add2out_strconst nodebuf "</td></tr>")
+    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf loca)
+    (add2out_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
-    (add2out_strconst nodebuf "<tr><td><font face=\"Time-Roman Italics\" point-size=\"6\">")
+    (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font face=\"Time-Roman Italics\" point-size=\"7\" color=\"navy\">")
     (add2out_string nodebuf (get_field :named_name testsymb))
     (if (is_a testsymb class_cloned_symbol)
 	(let ( (:long syrank (get_int (get_field :csym_urank testsymb)))
@@ -3354,6 +3389,10 @@ $MSTMA_OUTS is the tuple of output matched data.}#
     (add2out_strconst nodebuf "</font></td><td>")
     (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
+    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font color=\"salmon\" face=\"Helvetica Oblique\" point-size=\"6\">")
+    (add2out_string nodebuf (get_field :named_name testclass))
     (add2out_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
     (foreach_in_multiple
@@ -3472,18 +3511,19 @@ $MSTMA_OUTS is the tuple of output matched data.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td>")
+    (add2out_strconst nodebuf "</font></td><td>")
     (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
     (add2out_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
-    (add2out_strconst nodebuf "<tr><td><font face=\"Time-Roman Italics\" point-size=\"6\">")
+    (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font color=\"peru\" face=\"Time-Roman Italics\" point-size=\"7\">")
     (add2out_string nodebuf (get_field :named_name smatcher))
     (add2out_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
     (foreach_in_multiple
      (souts)
      (curout :long outix)
+     (debug_msg curout "mgaltstep_steptestmatcher curout")
      (assert_msg "check curout" (is_a curout class_matched_data))
      (add2out_indentnl edgebuf 0)
      (add2out_string edgebuf stepname)
@@ -3495,7 +3535,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	    )
        (if (is_a outsymb class_symbol)
 	   (progn
-	     (add2out_strconst edgebuf " label=<<font point-size=\"6\">")
+	     (add2out_strconst edgebuf " label=<<font face=\"Helvetica\" point-size=\"6\">")
 	     (add2out_string edgebuf (get_field :named_name outsymb))
 	     (add2out_strconst edgebuf "</font>>, "))))
      (add2out_strconst edgebuf " color=violet, style=dotted ];")
@@ -3840,6 +3880,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	    (add2sbuf_longdec nambuf (+i mapcnt 1))
 	    (mapobject_put mapstep step (strbuf2string discr_string nambuf))
 	    (if sdata (scandata sdata))
+	    (scan_step_data step scandata ())
 	    (let (
 					;; these are checked get fields!!
 		  (sthen (get_field :mstep_then step))
@@ -3939,11 +3980,11 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	   (add2out_indentnl nodebuf 0)
 	   (add2out_strconst nodebuf "<tr><td><font color=\"green\" face=\"Times-Roman Bold\" point-size=\"7\">")
 	   (add2out_string nodebuf curdataname)
-	   (add2out_strconst nodebuf "</font></td><td>#")
+	   (add2out_strconst nodebuf "</font></td><td><font face=\"Courier\" point-size=\"6.5\">#")
 	   (add2out_longhex nodebuf (obj_hash curdata))
-	   (add2out_strconst nodebuf "</td></tr>")
+	   (add2out_strconst nodebuf "</font></td></tr>")
 	   (add2out_indentnl nodebuf 0)
-	   (add2out_strconst nodebuf "<tr><td><font color=\"green\" face=\"Times-Roman Italic\" point-size=\"6.5\">")
+	   (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font color=\"darkgreen\" face=\"Times-Roman Italic\" point-size=\"7\">")
 	   (add2out_string nodebuf (get_field :named_name datasymb))
 	   (if (is_a datasymb class_cloned_symbol)
 	       (let ( (:long clonum (get_int (unsafe_get_field :csym_urank datasymb)))
@@ -3991,9 +4032,9 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	   (add2out_indentnl nodebuf 0)
 	   (add2out_strconst nodebuf "<tr><td><font color=\"blue\" face=\"Times-Roman Bold\" point-size=\"7\">")
 	   (add2out_string nodebuf curstepname)
-	   (add2out_strconst nodebuf "</font></td><td>#")
+	   (add2out_strconst nodebuf "</font></td><td><font face=\"Courier\" point-size=\"6\">#")
 	   (add2out_longhex nodebuf (obj_hash curstep))
-	   (add2out_strconst nodebuf "</td></tr>")
+	   (add2out_strconst nodebuf "</font></td></tr>")
 	   (add2out_indentnl nodebuf 0)
 	   (matchgraphic_altstep curstep mg)
 	   (add2out_strconst nodebuf "</table>> ];")
