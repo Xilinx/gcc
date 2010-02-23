@@ -827,7 +827,12 @@ struct gcc_target
                                 unsigned HOST_WIDE_INT last_section_size);
     /* Return true if INSN is a valid insn to break a basic-block.
        Otherwise return false.  */
-    bool (* legal_breakpoint) (rtx insn);
+    bool (* legal_breakpoint) (rtx);
+    /* Add the number of external branches in the
+       last basic-block to number of external branches in the current
+       section to make sure the limit of external branches is not
+       exceeded.  */
+    void (* add_external_branches_to_section) (void);
     /* Return true if jumptable should not be created.  Otherwise return
        false.  */
     bool (* dont_create_jumptable) (unsigned int table_size);

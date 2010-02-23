@@ -1405,23 +1405,23 @@ split_bb (basic_block bb, unsigned HOST_WIDE_INT first_partition_size,
   /* Loop through all of the basic-block's insns.  */
   FOR_BB_INSNS (bb, insn)
     {
-      if (NONDEBUG_INSN_P (insn))
+      if (NONDEBUG_INSN_P (insn) || NOTE_P (insn))
 	{
-	  prev_size = size;
-
-	  /* Retrieve the size of the instruction. */
-	  if (insns_aux[INSN_UID (insn)].insn)
-	    size += insns_aux[INSN_UID (insn)].size;
-	  else
-	    size += get_attr_min_length (insn);
-
-	  if (size > first_partition_size)
+          if (!NOTE_P (insn))
 	    {
-	      if (legal_insn == NULL)
-		return NULL;
-	      break;
+	      /* Retrieve the size of the instruction. */
+	      if (insns_aux[INSN_UID (insn)].insn)
+		size += insns_aux[INSN_UID (insn)].size;
+	      else
+		size += get_attr_min_length (insn);
+	      
+	      if (size > first_partition_size)
+		{
+		  if (legal_insn == NULL)
+		    return NULL;
+		  break;
+		}
 	    }
-
 	  if (((targetm.bb_partitioning.legal_breakpoint != 0)
 	       && targetm.bb_partitioning.legal_breakpoint (insn))
 	      || (targetm.bb_partitioning.legal_breakpoint == 0))
@@ -1823,6 +1823,9 @@ create_sections (void)
 	{
 	  /* The basic-block can be fully added to the last section.  */
 	  last_section_size += bb_size;
+          if (targetm.bb_partitioning.add_external_branches_to_section)
+            targetm.bb_partitioning.add_external_branches_to_section ();
+          
 	  if (dump_file)
 	    fprintf (dump_file,
 		     " ...OK\n\tSection new size: " HOST_WIDE_INT_PRINT_DEC

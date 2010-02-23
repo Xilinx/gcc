@@ -253,7 +253,8 @@ static bool spu_start_new_section (int, unsigned HOST_WIDE_INT,
 				   unsigned HOST_WIDE_INT,
 				   unsigned HOST_WIDE_INT);
 static bool spu_dont_create_jumptable (unsigned int ncases);
-static bool spu_legal_breakpoint (rtx insn);
+static bool spu_legal_breakpoint (rtx);
+static void spu_add_external_branches_to_section (void);
 static void fpart_finalize (void);
 
 extern const char *reg_names[];
@@ -514,6 +515,9 @@ static const struct attribute_spec spu_attribute_table[] =
 
 #undef TARGET_FPART_FINALIZE
 #define TARGET_FPART_FINALIZE fpart_finalize
+
+#undef TARGET_ADD_EXTERNAL_BRANCHES_TO_SECTION
+#define TARGET_ADD_EXTERNAL_BRANCHES_TO_SECTION spu_add_external_branches_to_section
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -2777,6 +2781,9 @@ end_critical_section (rtx insn, enum critical_section_type *type)
   return false;
 }
 
+static unsigned int estimate_number_of_external_branches_in_section = 0;
+static unsigned int number_of_external_branches_in_last_bb = 0;
+
 /* Return true if the INSN is a valid point to break a basic-block.
    Otherwise return false.  */
 static bool
@@ -2785,6 +2792,52 @@ spu_legal_breakpoint (rtx insn)
   int i;
   critical_sections_p crit;
   rtx tmp;
+   if (TARGET_SOFTWARE_ICACHE)
+     {
+       /* Reset the counters if needed.  */
+       if (NOTE_P (insn))
+       {
+         if (NOTE_KIND (insn) == NOTE_INSN_BASIC_BLOCK)
+           {
+             number_of_external_branches_in_last_bb = 0;
+             if (dump_file)
+               {
+                 fprintf (dump_file,
+                          "In spu_legal_breakpoint -- Reset # of "
+                          "external branches in last bb\n");
+                 print_rtl_single (dump_file, insn);
+               }
+           }
+         return false;
+       }
+       if (CALL_P (insn) || JUMP_P (insn))
+       {
+           if (get_stub_size (insn) != 0)
+           {
+             number_of_external_branches_in_last_bb++;
+             if (dump_file)
+               {
+                 fprintf (dump_file,
+                          "In spu_legal_breakpoint -- # of external branches: "
+                          "%d\n", number_of_external_branches_in_last_bb);
+                 print_rtl_single (dump_file, insn);
+               }
+           }
+       }
+
+       if ((estimate_number_of_external_branches_in_section +
+          number_of_external_branches_in_last_bb) >
+         (unsigned) icache_branch_limit)
+       {
+         if (dump_file)
+           {
+             fprintf (dump_file,
+                      "In spu_legal_breakpoint -- # of external branches: "
+                      "exceed threshold\n");
+             return false;
+           }
+       }
+     }
 
   for (i = 0; VEC_iterate (critical_sections_p, critical_sections, i, crit);
        i++)
@@ -2920,15 +2973,13 @@ close_critical_sections (VEC (critical_sections_p, gc) *start_sequence,
 	     bb->index);
 }
 
-static unsigned int estimate_number_of_external_branches_in_section = 0;
-
 /* Free the critical section list.  */
 void
 fpart_finalize (void)
 {
   int i;
   critical_sections_p crit1;
-
+  
   if (critical_sections != NULL)
     {
       for (i = 0;
@@ -2936,6 +2987,23 @@ fpart_finalize (void)
            i++)
         ggc_free (crit1);
       VEC_free (critical_sections_p, gc, critical_sections);
+    }
+}
+
+static void
+spu_add_external_branches_to_section (void)
+{
+  if (number_of_external_branches_in_last_bb == 0)
+    return;
+  
+  estimate_number_of_external_branches_in_section +=
+    number_of_external_branches_in_last_bb;
+  if (dump_file)
+    {
+      fprintf (dump_file, "\n;; Adding %d external branches",
+	       number_of_external_branches_in_last_bb);
+      fprintf (dump_file, "\n;; Current number of external branches: %d\n",
+	       estimate_number_of_external_branches_in_section);
     }
 }
 
@@ -2964,14 +3032,14 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
   /* Estimate the number of external branch limit in the current section.  */
   if (TARGET_SOFTWARE_ICACHE)
     {
+      /* Reset the counters.  */
+      number_of_external_branches_in_last_bb = 0;
       if (last_section_size == 0)
         estimate_number_of_external_branches_in_section = 0;
       if (bb->flags & BB_FIRST_AFTER_SECTION_SWITCH)
 	estimate_number_of_external_branches_in_section = 0;
-      else if (!(single_succ_p (bb) && single_succ_edge (bb)->dest == bb))
-	estimate_number_of_external_branches_in_section++;
     }
-
+  
   /* This bb should be skipped.  */
   if (bb->il.rtl->skip)
     return false;
@@ -2981,6 +3049,21 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
     {
       if (tablejump_p (insn, NULL, NULL) && !bb->il.rtl->skip && !TARGET_SOFTWARE_ICACHE)
 	warning (0, "Unexpected jump-table in basic-block %d.  ", bb->index);
+
+       if (TARGET_SOFTWARE_ICACHE
+         && (CALL_P (insn) || JUMP_P (insn)))
+       {
+           if (get_stub_size (insn) != 0)
+           {
+             number_of_external_branches_in_last_bb++;
+             if (dump_file)
+               {
+                 print_rtl_single (dump_file, insn);
+                 fprintf (dump_file, "number_of_external_branches_in_last_bb: %d\n",
+                          number_of_external_branches_in_last_bb);
+               }
+           }
+       }
 
       /* Check whether this insn can begin a critical sections.  */
       if (begin_critical_section (insn, &type))
@@ -3060,7 +3143,8 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
 
   if (TARGET_SOFTWARE_ICACHE
       && !has_jump_table
-      && (estimate_number_of_external_branches_in_section
+      && ((estimate_number_of_external_branches_in_section
+          + number_of_external_branches_in_last_bb)
 	  > (unsigned)icache_branch_limit))
     {
       gcc_assert (last_section_size != 0);
