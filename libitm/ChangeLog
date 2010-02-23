@@ -1,3 +1,13 @@
+2010-02-23  Aldy Hernandez  <aldyh@redhat.com>
+
+	* Makefile.am: Rename serial.cc to method-serial.cc.
+	* Makefile.in: Regenerate with automake 1.11.1.
+	* testsuite/Makefile.in: Same.
+	* aclocal.m4: Regenerate with aclocal 1.11.1.
+	* method-serial.cc: Rename from serial.cc.
+	* libitm_i.h (struct gtm_transaction): Update comment on
+	serialirr_mode.
+
 2010-02-22  Aldy Hernandez  <aldyh@redhat.com>
 
 	* libitm_i.h (GTM_longjmp): Add ITM_REGPARM.

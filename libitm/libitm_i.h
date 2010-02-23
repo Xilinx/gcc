@@ -244,7 +244,7 @@ struct gtm_transaction
   // In retry.cc
   void decide_retry_strategy (gtm_restart_reason);
 
-  // In serial.cc
+  // In method-serial.cc
   void serialirr_mode ();
 
   // In useraction.cc
