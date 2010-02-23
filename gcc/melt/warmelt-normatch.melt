@@ -3213,7 +3213,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 )
 
 (defun mgaltstep_stepsetvar (step mg)
-  (assert_msg "check step" (is_a step class_match_step))
+  (assert_msg "check step" (is_a step class_match_step_set_variable))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
 	 (sthen (unsafe_get_field :mstep_then step))
@@ -3247,6 +3247,213 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	  (add2out_strconst nodebuf "$")
 	  (add2out_longdec nodebuf syrank)
 	  ))
+    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (if thenname
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*then*/ -> ")
+	  (add2out_string edgebuf thenname)
+	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
+	  ))
+    ))
+(install_method matchgraphic_altstep class_match_step_set_variable mgaltstep_stepsetvar)
+
+
+;;;;;;;;;;;;;;;;
+(defun mgaltstep_steptestvar (step mg)
+  (assert_msg "check step" (is_a step class_match_step_test_variable))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (loca (unsafe_get_field :loca_location step))
+	 (sthen (unsafe_get_field :mstep_then step))
+	 (selse (unsafe_get_field :mstep_else step))
+	 (testsymb (unsafe_get_field :msteptestvar_symb step))
+	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
+	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
+	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
+	 (stepmap (unsafe_get_field :mchgx_stepnamemap mg))
+	 (stepname (mapobject_get stepmap step))
+	 (thenname (if sthen (mapobject_get stepmap sthen)))
+	 (elsename (if selse (mapobject_get stepmap selse)))
+	 (:long stephash (obj_hash step))
+	 (dis (discrim step))
+	 (clanam (get_field :named_name dis))
+	 )
+    (add2out_strconst nodebuf "<tr><td><font color=\"royalblue4\" face=\"Times-Roman Bold\" point-size=\"6\">")
+    (code_chunk 
+     outclanam
+     #{ /* $OUTCLANAM */
+     meltgc_add_out ((melt_ptr_t) $NODEBUF,
+		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
+     }#)
+    (add2out_strconst nodebuf "</font></td><td>#")
+    (add2out_longhex nodebuf stephash)
+    (add2out_strconst nodebuf "</td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (add2out_strconst nodebuf "<tr><td><font face=\"Time-Roman Italics\" point-size=\"6\">")
+    (add2out_string nodebuf (get_field :named_name testsymb))
+    (if (is_a testsymb class_cloned_symbol)
+	(let ( (:long syrank (get_int (get_field :csym_urank testsymb)))
+	      )
+	  (add2out_strconst nodebuf "$")
+	  (add2out_longdec nodebuf syrank)
+	  ))
+    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (if thenname
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*then*/ -> ")
+	  (add2out_string edgebuf thenname)
+	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
+	  ))
+    (if elsename
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*else*/ -> ")
+	  (add2out_string edgebuf elsename)
+	  (add2out_strconst edgebuf " [ arrowhead=diamond, color=red ];")
+	  ))
+    ))
+(install_method matchgraphic_altstep class_match_step_test_variable mgaltstep_steptestvar)
+
+
+;;;;;;;;;;;;;;;;
+(defun mgaltstep_steptestinst (step mg)
+  (assert_msg "check step" (is_a step class_match_step_test_instance))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (loca (unsafe_get_field :loca_location step))
+	 (sthen (unsafe_get_field :mstep_then step))
+	 (selse (unsafe_get_field :mstep_else step))
+	 (testclass (unsafe_get_field :mstins_class step))
+	 (testslots (unsafe_get_field :mstins_slots step))
+	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
+	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
+	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
+	 (stepmap (unsafe_get_field :mchgx_stepnamemap mg))
+	 (stepname (mapobject_get stepmap step))
+	 (thenname (if sthen (mapobject_get stepmap sthen)))
+	 (elsename (if selse (mapobject_get stepmap selse)))
+	 (:long stephash (obj_hash step))
+	 (dis (discrim step))
+	 (clanam (get_field :named_name dis))
+	 )
+    (add2out_strconst nodebuf "<tr><td><font color=\"salmon4\" face=\"Times-Roman Bold\" point-size=\"6\">")
+    (code_chunk 
+     outclanam
+     #{ /* $OUTCLANAM */
+     meltgc_add_out ((melt_ptr_t) $NODEBUF,
+		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
+     }#)
+    (add2out_strconst nodebuf "</font></td><td>#")
+    (add2out_longhex nodebuf stephash)
+    (add2out_strconst nodebuf "</td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (add2out_strconst nodebuf "<tr><td><font face=\"Time-Roman Italics\" point-size=\"6\">")
+    (add2out_string nodebuf (get_field :named_name testclass))
+    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (if thenname
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*then*/ -> ")
+	  (add2out_string edgebuf thenname)
+	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
+	  ))
+    (if elsename
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*else*/ -> ")
+	  (add2out_string edgebuf elsename)
+	  (add2out_strconst edgebuf " [ arrowhead=diamond, color=red ];")
+	  ))
+    ))
+(install_method matchgraphic_altstep class_match_step_test_instance mgaltstep_steptestinst)
+
+;;;;;;;;;;;;;;;;
+(defun mgaltstep_steptestmatcher (step mg)
+  (assert_msg "check step" (is_a step class_match_step_test_matcher))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (loca (unsafe_get_field :loca_location step))
+	 (sthen (unsafe_get_field :mstep_then step))
+	 (selse (unsafe_get_field :mstep_else step))
+	 (smatcher (unsafe_get_field :mstma_matcher step))
+	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
+	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
+	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
+	 (stepmap (unsafe_get_field :mchgx_stepnamemap mg))
+	 (stepname (mapobject_get stepmap step))
+	 (thenname (if sthen (mapobject_get stepmap sthen)))
+	 (elsename (if selse (mapobject_get stepmap selse)))
+	 (:long stephash (obj_hash step))
+	 (dis (discrim step))
+	 (clanam (get_field :named_name dis))
+	 )
+    (add2out_strconst nodebuf "<tr><td><font color=\"peru\" face=\"Times-Roman Bold\" point-size=\"6\">")
+    (code_chunk 
+     outclanam
+     #{ /* $OUTCLANAM */
+     meltgc_add_out ((melt_ptr_t) $NODEBUF,
+		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
+     }#)
+    (add2out_strconst nodebuf "</font></td><td>#")
+    (add2out_longhex nodebuf stephash)
+    (add2out_strconst nodebuf "</td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (add2out_strconst nodebuf "<tr><td><font face=\"Time-Roman Italics\" point-size=\"6\">")
+    (add2out_string nodebuf (get_field :named_name smatcher))
+    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (if thenname
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*then*/ -> ")
+	  (add2out_string edgebuf thenname)
+	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
+	  ))
+    (if elsename
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*else*/ -> ")
+	  (add2out_string edgebuf elsename)
+	  (add2out_strconst edgebuf " [ arrowhead=diamond, color=red ];")
+	  ))
+    ))
+(install_method matchgraphic_altstep class_match_step_test_matcher mgaltstep_steptestmatcher)
+
+
+;;;;;;;;;;;;;;;;
+(defun mgaltstep_stepsuccess (step mg)
+  (assert_msg "check step" (is_a step class_match_step_success))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (loca (unsafe_get_field :loca_location step))
+	 (sthen (unsafe_get_field :mstep_then step))
+	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
+	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
+	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
+	 (stepmap (unsafe_get_field :mchgx_stepnamemap mg))
+	 (stepname (mapobject_get stepmap step))
+	 (thenname (if sthen (mapobject_get stepmap sthen)))
+	 (:long stephash (obj_hash step))
+	 (dis (discrim step))
+	 (clanam (get_field :named_name dis))
+	 )
+    (add2out_strconst nodebuf "<tr><td><font color=\"firebrick\" face=\"Times-Roman Bold\" point-size=\"6\">")
+    (code_chunk 
+     outclanam
+     #{ /* $OUTCLANAM */
+     meltgc_add_out ((melt_ptr_t) $NODEBUF,
+		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
+     }#)
+    (add2out_strconst nodebuf "</font></td><td>#")
+    (add2out_longhex nodebuf stephash)
     (add2out_strconst nodebuf "</td></tr>")
     (add2out_indentnl nodebuf 0)
     (if thenname
@@ -3259,7 +3466,10 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	  ))
     ))
 
-(install_method matchgraphic_altstep class_match_step_set_variable mgaltstep_stepsetvar)
+(install_method matchgraphic_altstep class_match_step_success mgaltstep_stepsuccess)
+;;;;;;;;;;;;;;;;
+
+
 (compile_warning "missing other methods for matchgraphic_altstep on other step classes")
 
 (defun translate_matchcase (curmcase sloc)
@@ -3506,7 +3716,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	    (add2sbuf_cident nambuf (get_field :named_name msymb))
 	    (if (is_a msymb class_cloned_symbol)
 		(progn
-		  (add2sbuf_strconst nambuf "$")
+		  (add2sbuf_strconst nambuf "__")
 		  (add2sbuf_longdec nambuf (get_int (unsafe_get_field :csym_urank msymb)))))
 	    (mapobject_put mapdata data (strbuf2string discr_string nambuf))
 	    (foreach_in_list
@@ -3533,7 +3743,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	    (code_chunk chunkdisnam
 			#{ meltgc_add_strbuf ((melt_ptr_t)$nambuf,
 					      melt_string_str((melt_ptr_t)$disnam)+strlen("CLASS_")) }#)
-	    (add2sbuf_strconst nambuf "$")
+	    (add2sbuf_strconst nambuf "__")
 	    (add2sbuf_longdec nambuf (+i mapcnt 1))
 	    (mapobject_put mapstep step (strbuf2string discr_string nambuf))
 	    (if sdata (scandata sdata))
@@ -3634,13 +3844,13 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	   (add2out_strconst nodebuf "label=<<table border=\"1\" cellborder=\"1\"")
 	   (add2out_strconst nodebuf " cellspacing=\"1\" cellpadding=\"1\">")
 	   (add2out_indentnl nodebuf 0)
-	   (add2out_strconst nodebuf "<tr><td><font color=\"green\" face==\"Times-Roman Bold\" point-size=\"7\">")
+	   (add2out_strconst nodebuf "<tr><td><font color=\"green\" face=\"Times-Roman Bold\" point-size=\"7\">")
 	   (add2out_string nodebuf curdataname)
 	   (add2out_strconst nodebuf "</font></td><td>#")
 	   (add2out_longhex nodebuf (obj_hash curdata))
 	   (add2out_strconst nodebuf "</td></tr>")
 	   (add2out_indentnl nodebuf 0)
-	   (add2out_strconst nodebuf "<tr><td><font color=\"green\" face==\"Times-Roman Italic\" point-size=\"6.5\">")
+	   (add2out_strconst nodebuf "<tr><td><font color=\"green\" face=\"Times-Roman Italic\" point-size=\"6.5\">")
 	   (add2out_string nodebuf (get_field :named_name datasymb))
 	   (if (is_a datasymb class_cloned_symbol)
 	       (let ( (:long clonum (get_int (unsafe_get_field :csym_urank datasymb)))
@@ -3649,7 +3859,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 		 (add2out_longdec nodebuf clonum)
 		 (add2out_strconst nodebuf "</font>")
 		 ))
-	   (add2out_strconst nodebuf "</td><td>")
+	   (add2out_strconst nodebuf "</font></td><td>")
 	   (add2out_string nodebuf (get_field :named_name (get_field :ctype_keyword)))
 	   
 	   (add2out_strconst nodebuf "</td></tr>")
@@ -3686,7 +3896,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	   (add2out_strconst nodebuf "label=<<table border=\"1\" cellborder=\"1\"")
 	   (add2out_strconst nodebuf " cellspacing=\"1\" cellpadding=\"1\">")
 	   (add2out_indentnl nodebuf 0)
-	   (add2out_strconst nodebuf "<tr><td><font color=\"blue\" face==\"Times-Roman Bold\" point-size=\"7\">")
+	   (add2out_strconst nodebuf "<tr><td><font color=\"blue\" face=\"Times-Roman Bold\" point-size=\"7\">")
 	   (add2out_string nodebuf curstepname)
 	   (add2out_strconst nodebuf "</font></td><td>#")
 	   (add2out_longhex nodebuf (obj_hash curstep))
