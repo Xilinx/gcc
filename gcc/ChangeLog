@@ -1,3 +1,178 @@
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43083
+	* graphite-scop-detection.c (create_single_exit_edge): Move
+	the call to find_single_exit_edge to....
+	(create_sese_edges): ...here.  Don't handle multiple edges
+	exiting the function.
+	(build_graphite_scops): Don't handle multiple edges
+	exiting the function.
+
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43097
+	* sese.c (get_rename): Assert that old_name is an SSA_NAME.
+	(rename_variables_in_stmt): Continue when the use is not an SSA_NAME.
+
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43026
+	* sese.c (expand_scalar_variables_expr): Handle COMPONENT_REF.
+
+2010-02-22  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/43126
+	* c-typeck.c (convert_arguments): Print declaration location.
+	* c-common.c (validate_nargs): Rename as
+	builtin_function_validate_nargs.
+	(check_builtin_function_arguments): Update.
+
+2010-02-22  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43045
+	* tree-inline.c (declare_return_variable): Use the type of
+	the call stmt lhs if available.
+
+2010-02-22  Duncan Sands  <baldrick@free.fr>
+
+	* passes.c (register_pass): Always consider all pass lists when
+	ref_pass_instance_number is zero.
+
+2010-02-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42749
+	* tree-tailcall.c (adjust_return_value_with_ops): Drop update
+	parameter.  Do arithmetic in the original type.
+	(update_accumulator_with_ops): Likewise.
+	(adjust_accumulator_values): Adjust.
+
+2010-02-22  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.md ("movqi"): Re-add the mem->mem alternative.
+	(QI to BLKmode splitter): New splitter.
+
+2010-02-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (initial_ix86_tune_features): Turn on
+	X86_TUNE_INTER_UNIT_MOVES for m_ATOM.
+
+2010-02-22  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-slp.c (vect_slp_analyze_bb): Fix typo.
+
+2010-02-22  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	Migrate crti, crtn, crtbegin, crtend build rules to libgcc.
+	* config/mmix/t-mmix (EXTRA_MULTILIB_PARTS): Don't set.
+	($(T)crti.o, $(T)crtn.o): Remove rules.
+
+2010-02-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/35259
+	* doc/invoke.texi (-fassociative-math): Document that this
+	option is automatically enabled for Fortran.
+
+2010-02-20  David S. Miller  <davem@davemloft.net>
+
+	* configure.ac: Test if linker and assembler properly support
+	GOTDATA_OP relocations.
+	* configure: Rebuild.
+	* config.in: Likewise.
+	* config/sparc/sparc.md (UNSPEC_MOVE_GOTDATA): New.
+	(movsi_lo_sum_pic): Use %gdop_*() relocs if available.
+	(movsi_high_pic): Likewise.
+	(movdi_lo_sum_pic): Likewise.
+	(movdi_high_pic): Likewise.
+	(movsi_pic_gotdata_op): New pattern.
+	(movdi_pic_gotdata_op): Likewise.
+	* config/sparc/sparc.c (legitimize_pic_address): If flag_pic is 2,
+	emit gen_mov{si,di}_pic_gotdata_op for the GOT slot load.
+	
+2010-02-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/43067
+	* config/i386/sse.md (xop_mulv2div2di3_low): Change type
+	attribute to ssemul.
+	(xop_mulv2div2di3_high): Ditto.
+
+2010-02-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/35669
+	* c.opt (Wconversion-null): New option.
+	* doc/invoke.texi (Wconversion-null): Document.
+
+2010-02-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* common.opt (Wlarger-than-): Add Undocumented.
+
+2010-02-19  Mike Stump  <mikestump@comcast.net>
+
+	* config/t-darwin (gt-darwin.h): Remove as Makefile now handles it.
+
+2010-02-19  Jason Merrill  <jason@redhat.com>
+
+	PR target/40332
+	* configure.ac (gcc_cv_as_cfi_advance_working): Check 32-bit advance.
+	* configure: Likewise.
+
+2010-02-20  Alan Modra  <amodra@gmail.com>
+
+	PR middle-end/42344
+	* cgraph.h (cgraph_make_decl_local): Declare.
+	* cgraph.c (cgraph_make_decl_local): New function.
+	(cgraph_make_node_local): Use it.
+	* cgraphunit.c (cgraph_function_versioning): Likewise.
+	* ipa.c (function_and_variable_visibility): Likewise.
+
+2010-02-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/43121
+	* except.c (sjlj_emit_function_enter): Don't call
+	add_reg_br_prob_note, instead add REG_BR_PROB note to the last insn
+	directly.
+	* rtl.h (add_reg_br_prob_note): Remove prototype.
+
+2010-02-19  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 41779
+	* c-common.c (conversion_warning): Remove widening conversions
+	before checking the conversion of integers to reals.
+
+2010-02-19  Mike Stump  <mikestump@comcast.net>
+
+	PR middle-end/43125
+	* c-decl.c (merge_decls): Merge DECL_PRESERVE_P.
+
+	PR objc/43061
+	* cgraphunit.c (process_function_and_variable_attributes): Check
+	DECL_PRESERVE_P instead of looking up attribute "used".
+	* ipa-pure-const.c (check_decl): Likewise.
+	* ipa-reference.c (has_proper_scope_for_analysis): Likewise.
+	* ipa-type-escape.c (has_proper_scope_for_analysis): Likewise.
+	* config/sol2.c (solaris_insert_attributes): Set DECL_PRESERVE_P
+	instead of attribute "used".
+	* config/sol2-c.c (solaris_pragma_init): Likewise.
+	(solaris_pragma_fini): Likewise.
+
+2010-02-19  Jakub Jelinek  <jakub@redhat.com>
+
+	* ipa-struct-reorg.c (make_field_acc_node, gen_cluster, peel_field):
+	Use XCNEW instead of xcalloc.
+	(add_access_to_acc_sites, create_new_var_node, add_alloc_site): Use
+	XNEW instead of xmalloc.
+	(get_fields): Use XNEWVEC instead of xmalloc.
+
+	PR debug/43084
+	* ipa-struct-reorg.c (add_access_to_acc_sites): For debug stmts don't
+	populate vars array.
+	(create_new_general_access): For debug stmts just reset value.
+	(get_stmt_accesses): For accesses within debug stmts just record them
+	using add_access_to_acc_sites instead of preventing the peeling or
+	counting them as accesses.
+
+	PR middle-end/42233
+	* dojump.c (do_jump) <case TRUTH_NOT_EXPR>: Invert priority.
+
 2010-02-19  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/42916

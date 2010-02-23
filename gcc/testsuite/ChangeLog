@@ -1,3 +1,131 @@
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43083
+	* gcc.dg/graphite/pr43083.c: New.
+
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43097
+	* gfortran.dg/graphite/pr43097.f: New.
+
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+	    Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR middle-end/43140
+	* g++.dg/graphite/pr41305.C: Add -Wno-conversion-null.
+
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43026
+	* g++.dg/graphite/pr43026.C: New.
+
+2010-02-22  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/43126
+	* gcc.dg/cleanup-1.c: Update.
+	* gcc.dg/func-args-1.c: Update.
+	* gcc.dg/format/sentinel-1.c: Update.
+	* g++.old-deja/g++.jason/scoping10.C: Update.
+	* g++.old-deja/g++.ns/lookup5.C: Update.
+	* g++.dg/ext/cleanup-1.C: Update.
+	* g++.dg/parse/varmod1.C: Update.
+	* g++.dg/parse/error33.C: Update.
+	* g++.dg/expr/call3.C: Update.
+	* g++.dg/func-args-1.C: New.
+
+2010-02-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c/43125
+	* gcc.dg/attr-used-2.c: Moved to ...
+	* c-c++-common/attr-used-2.c: Here.
+
+	* gcc.dg/attr-used.c: Moved to ...
+	* c-c++-common/attr-used.c: Here.
+
+2010-02-22  Ozkan Sezer  <sezeroz@gmail.com>
+
+	* gcc.c-torture/execute/991014-1.c: Use __SIZE_TYPE__ for size types.
+
+2010-02-22  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43045
+	* gfortran.dg/lto/20100222-1_0.f03: New testcase.
+	* gfortran.dg/lto/20100222-1_1.c: Likewise.
+
+2010-02-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42749
+	* gcc.c-torture/compile/pr42749.c: New testcase.
+
+2010-02-22  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/43072
+	* gfortran.dg/internal_pack_6.f90: Number of 'packs' now zero.
+	* gfortran.dg/internal_pack_9.f90: New test.
+
+2010-02-21  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/23510
+	* g++.dg/template/recurse.C: Adjust.
+	* g++.dg/template/pr23510.C: New.
+
+2010-02-21  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42824
+	* g++.dg/template/memclass4.C: New test.
+
+2010-02-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/35259
+	* gfortran.dg/reassoc_5.f90: New test.
+
+2010-02-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/43067
+	* gcc.target/i386/pr43067.c: New test.
+
+2010-02-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/35669
+	* g++.dg/warn/Wconversion2.C: Replace -Wconversion with
+	-Wconversion-null.
+	* g++.dg/warn/Wconversion-null.C: New test.
+	* g++.old-deja/g++.other/null1.C: Move to...
+	* g++.dg/warn/Wconversion-null-2.C: ... here. Remove -Wconversion.
+
+2010-02-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/36932
+	PR fortran/36933
+	* gfortran.dg/dependency_26.f90: New test.
+
+	PR fortran/43072
+	* gfortran.dg/internal_pack_7.f90: New test.
+
+	PR fortran/43111
+	* gfortran.dg/internal_pack_8.f90: New test.
+
+2010-02-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 43128
+	* c-c++-common/pr41779.c: Fix broken testcase.
+
+2010-02-19  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 36513
+	* c-c++-common/pr36513.c: New testcase.
+	* c-c++-common/pr36513-2.c: New testcase.
+
+2010-02-19  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 41779
+	* c-c++-common/pr41779.c: New.
+
+2010-02-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43084
+	* gcc.dg/pr43084.c: New test.
+
 2010-02-19  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/42916

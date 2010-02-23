@@ -1,3 +1,105 @@
+2010-02-22  Janis Johnson  <janis187@us.ibm.com>
+
+	* src/compatibility-ldbl.cc: Include new hash-long-double-aux.cc.
+
+2010-02-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/hash-aux.cc: Rename to...
+	* src/hash-string-aux.cc: ... this.
+	* src/hash-long-double-aux.cc: New.
+	* src/hash_c++0x.cc: Adjust.
+	* src/hash_tr1.cc: Likewise.
+	* src/compatibility-c++0x.cc: Likewise.
+
+2010-02-22  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/class.txml: Adjust biblio markup.
+	* doc/xml/manual/allocator.xml: Same.
+	* doc/xml/manual/ctype.xml: Same.
+	* doc/xml/manual/codecvt.xml: Same.
+	* doc/xml/manual/backwards_compatibility.xml: Same.
+	* doc/xml/manual/abi.xml: Same.
+	* doc/xml/manual/shared_ptr.xml: Same.
+	* doc/xml/manual/profile_mode.xml: Same.
+	* doc/xml/manual/using_exceptions.xml: Same.
+	* doc/xml/manual/locale.xml: Same.
+	* doc/xml/manual/appendix_contributing.xml: Same.
+	* doc/xml/manual/messages.xml: Same.
+	* doc/Makefile.am (DBLATEX_FLAGS): Adjust.
+	* doc/Makefile.in: Regenerate.
+
+2010-02-22  François Dumont  <francois.cppdevs@free.fr>
+
+       * doc/xml/manual/profile_mode.xml: Minor updates and fixes.
+       * doc/xml/manual/debug_mode.xml: Likewise.
+       * doc/xml/manual/test.xml: Likewise.
+
+2010-02-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/complex (arg): Use std::signbit only when
+	available.
+
+2010-02-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/functional_hash.h (hash<string>, hash<wstring>,
+	hash<u16string>, hash<u32string>, hash<error_code>): Move, per
+	DR 1182 to...
+	* include/bits/basic_string.h: ... here.
+	* include/std/system_error: ... and here, respectively.
+	* src/hash-aux.cc (hash<long double>::operator()(long double)):
+	Move definition...
+	* src/hash_c++0x.cc: ... here, new file.
+	* src/hash_tr1.cc: ... and here, tweak includes.
+	* src/compatibility-c++0x.cc (hash, _Fnv_hash): Remove.
+	* src/Makefile.am: Adjust.
+	* src/Makefile.in: Regenerate.
+	* include/std/functional: Include <bits/functexcept.h>.
+	* include/std/unordered_set: Remove redundant include.
+	* include/std/unordered_map: Likewise.
+	* include/tr1/functional_hash.h: Remove spurious trailing semicolon.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Remove
+	dg-excess.
+
+2010-02-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/complex (proj): Change return type per DR 1137.
+	(conj): Copy from tr1_impl, likewise adjust return type.
+	* include/tr1_impl/complex (conj): Remove.
+	* include/tr1/complex (conj): Add both overloads.
+	* testsuite/26_numerics/complex/dr781.cc: Rename to...
+	* testsuite/26_numerics/complex/dr781_dr1137.cc: ... this, and extend.
+
+	* include/tr1_impl/complex (arg): Optimize.
+
+2010-02-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/20_util/is_trivial/requirements/typedefs.cc: New.
+	* testsuite/20_util/is_trivial/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_pod/value.cc: Likewise.
+	* testsuite/20_util/is_pod/requirements/typedefs.cc: Likewise.
+	* testsuite/20_util/is_pod/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_standard_layout/requiremenents/
+	typedefs.cc: Likewise.
+	* testsuite/20_util/is_standard_layout/requiremenents/
+	explicit_instantiation.cc: Likewise.
+
+2010-02-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/35669
+	* testsuite/18_support/headers/cstddef/macros.cc: Add
+	-Wno-conversion-null.
+
+2010-02-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/array (array): Add pointer and const_pointer
+	typedefs in C++0x mode, per DR 1306.
+	* testsuite/util/testsuite_containers.h (basic_types): Add pointer
+	and const_pointer typedefs.
+	(pointer_aware_types): Remove.
+	* testsuite/util/testsuite_container_traits.h: Adjust.
+
 2010-02-19  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/bits/stl_algo.h (for_each): Implement resolution of DR 1110.

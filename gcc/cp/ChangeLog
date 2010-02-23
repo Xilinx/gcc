@@ -1,3 +1,34 @@
+2010-02-22  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/43126
+	* typeck.c (convert_arguments): Update error message.
+	
+
+2010-02-22  Mike Stump  <mikestump@comcast.net>
+
+	PR c++/43125
+	* decl.c (duplicate_decls): Merge DECL_PRESERVE_P.
+
+2010-02-21  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/23510
+	* error.c (print_instantiation_partial_context_line): New.
+	(print_instantiation_partial_context): Print at most 12 contexts,
+	skip the rest with a message.
+
+2010-02-21  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42824
+	* pt.c (lookup_template_class): Better support of specialization
+	of member of class template implicit instantiation.
+
+2010-02-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/35669
+	* call.c (conversion_null_warnings): Replace -Wconversion with
+	-Wconversion-null.
+	* cvt.c (build_expr_type_conversion): Likewise.
+
 2010-02-18  Jason Merrill  <jason@redhat.com>
 
 	PR c++/42837
