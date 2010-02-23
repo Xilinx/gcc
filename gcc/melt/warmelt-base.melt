@@ -583,7 +583,7 @@ Returns a boxed integer.}#
 ;; primitive to add the short location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_short_mixloc (sbuf mixl) :void
   :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL in short form.}#
-  #{/*add2sbufshortmixloc*/ { if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) {
+  #{/*add2sbufshortmixloc*/  if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) {
   location_t loc = melt_location_mixloc((melt_ptr_t)$mixl);
   meltgc_strbuf_printf((melt_ptr_t)($sbuf), "{%s:%d:%d}", 
 		       lbasename(LOCATION_FILE (loc)), 

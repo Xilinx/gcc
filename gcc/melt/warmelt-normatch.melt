@@ -3213,6 +3213,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 )
 
 (defun mgaltstep_stepsetvar (step mg)
+  (debug_msg step "mgaltstep_stepsetvar step")
   (assert_msg "check step" (is_a step class_match_step_set_variable))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -3258,11 +3259,12 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
 	  ))
     ))
-(install_method matchgraphic_altstep class_match_step_set_variable mgaltstep_stepsetvar)
+(install_method class_match_step_set_variable  matchgraphic_altstep mgaltstep_stepsetvar)
 
 
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_steptestvar (step mg)
+  (debug_msg step "mgaltstep_steptestvar step")
   (assert_msg "check step" (is_a step class_match_step_test_variable))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -3318,11 +3320,12 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	  (add2out_strconst edgebuf " [ arrowhead=diamond, color=red ];")
 	  ))
     ))
-(install_method matchgraphic_altstep class_match_step_test_variable mgaltstep_steptestvar)
+(install_method class_match_step_test_variable matchgraphic_altstep mgaltstep_steptestvar)
 
 
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_steptestinst (step mg)
+  (debug_msg step "mgaltstep_steptestinst step")
   (assert_msg "check step" (is_a step class_match_step_test_instance))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -3348,12 +3351,78 @@ $MSTMA_OUTS is the tuple of output matched data.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>#")
-    (add2out_longhex nodebuf stephash)
-    (add2out_strconst nodebuf "</td></tr>")
+    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf loca)
+    (add2out_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
-    (add2out_strconst nodebuf "<tr><td><font face=\"Time-Roman Italics\" point-size=\"6\">")
-    (add2out_string nodebuf (get_field :named_name testclass))
+    (foreach_in_multiple
+     (testslots)
+     (curslot :long slix)
+     (if curslot
+	 (progn
+	   (assert_msg "check curslot" (is_a curslot class_matched_data))
+	   (add2out_indentnl edgebuf 0)
+	   (add2out_string edgebuf stepname)
+	   (add2out_strconst edgebuf " /*testinslot*/ -> /*data*/")
+	   (add2out_string edgebuf (mapobject_get datamap curslot))
+	   (add2out_strconst edgebuf " [ arrowhead=open,")
+	   (let ( (fld (multiple_nth (get_field :class_fields testclass) slix)) )
+	     (assert_msg "check fld" (is_a fld class_field))
+	     (add2out_strconst edgebuf " label=<<font point-size=\"6.5\" color=\"indigo\">")
+	     (add2out_string edgebuf (get_field :named_name fld))
+	     (add2out_strconst edgebuf "</font>>, "))
+	     (add2out_strconst edgebuf " color=violet, style=dotted ];")
+	   ))
+     )
+    (if thenname
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*then*/ -> ")
+	  (add2out_string edgebuf thenname)
+	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
+	  ))
+    (if elsename
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*else*/ -> ")
+	  (add2out_string edgebuf elsename)
+	  (add2out_strconst edgebuf " [ arrowhead=diamond, color=red ];")
+	  ))
+    ))
+(install_method class_match_step_test_instance matchgraphic_altstep mgaltstep_steptestinst)
+
+;;;;;;;;;;;;;;;;
+(defun mgaltstep_steptestgroup (step mg)
+  (debug_msg step "mgaltstep_steptestgroup step")
+  (assert_msg "check step" (is_a step class_match_step_test_group))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (loca (unsafe_get_field :loca_location step))
+	 (sthen (unsafe_get_field :mstep_then step))
+	 (selse (unsafe_get_field :mstep_else step))
+	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
+	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
+	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
+	 (stepmap (unsafe_get_field :mchgx_stepnamemap mg))
+	 (stepname (mapobject_get stepmap step))
+	 (thenname (if sthen (mapobject_get stepmap sthen)))
+	 (elsename (if selse (mapobject_get stepmap selse)))
+	 (:long stephash (obj_hash step))
+	 (dis (discrim step))
+	 (clanam (get_field :named_name dis))
+	 )
+    (add2out_strconst nodebuf "<tr><td><font color=\"hotpink\" face=\"Times-Roman Bold\" point-size=\"6\">")
+    (code_chunk 
+     outclanam
+     #{ /* $OUTCLANAM */
+     meltgc_add_out ((melt_ptr_t) $NODEBUF,
+		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
+     }#)
+    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf loca)
     (add2out_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
     (if thenname
@@ -3373,16 +3442,18 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	  (add2out_strconst edgebuf " [ arrowhead=diamond, color=red ];")
 	  ))
     ))
-(install_method matchgraphic_altstep class_match_step_test_instance mgaltstep_steptestinst)
+(install_method class_match_step_test_group matchgraphic_altstep mgaltstep_steptestgroup)
 
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_steptestmatcher (step mg)
+  (debug_msg step "mgaltstep_steptestmatcher step")
   (assert_msg "check step" (is_a step class_match_step_test_matcher))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
 	 (sthen (unsafe_get_field :mstep_then step))
 	 (selse (unsafe_get_field :mstep_else step))
 	 (smatcher (unsafe_get_field :mstma_matcher step))
+	 (souts (unsafe_get_field :mstma_outs step))
 	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
 	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
 	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
@@ -3401,14 +3472,34 @@ $MSTMA_OUTS is the tuple of output matched data.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>#")
-    (add2out_longhex nodebuf stephash)
-    (add2out_strconst nodebuf "</td></tr>")
+    (add2out_strconst nodebuf "</font></td>")
+    (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf loca)
+    (add2out_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
     (add2out_strconst nodebuf "<tr><td><font face=\"Time-Roman Italics\" point-size=\"6\">")
     (add2out_string nodebuf (get_field :named_name smatcher))
     (add2out_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
+    (foreach_in_multiple
+     (souts)
+     (curout :long outix)
+     (assert_msg "check curout" (is_a curout class_matched_data))
+     (add2out_indentnl edgebuf 0)
+     (add2out_string edgebuf stepname)
+     (add2out_strconst edgebuf " /*matchstep*/ -> /*data*/ ")
+     (add2out_string edgebuf (mapobject_get datamap curout))
+     (add2out_strconst edgebuf " [ arrowhead=open, ")
+     (let ( (outbind (multiple_nth (get_field :amatch_out smatcher) outix))
+	    (outsymb (get_field :binder outbind))
+	    )
+       (if (is_a outsymb class_symbol)
+	   (progn
+	     (add2out_strconst edgebuf " label=<<font point-size=\"6\">")
+	     (add2out_string edgebuf (get_field :named_name outsymb))
+	     (add2out_strconst edgebuf "</font>>, "))))
+     (add2out_strconst edgebuf " color=violet, style=dotted ];")
+     )
     (if thenname
 	(progn
 	  (add2out_indentnl edgebuf 0)
@@ -3426,11 +3517,12 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	  (add2out_strconst edgebuf " [ arrowhead=diamond, color=red ];")
 	  ))
     ))
-(install_method matchgraphic_altstep class_match_step_test_matcher mgaltstep_steptestmatcher)
+(install_method class_match_step_test_matcher matchgraphic_altstep mgaltstep_steptestmatcher)
 
 
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_stepsuccess (step mg)
+  (debug_msg step "mgaltstep_stepsuccess step")
   (assert_msg "check step" (is_a step class_match_step_success))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -3452,9 +3544,10 @@ $MSTMA_OUTS is the tuple of output matched data.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>#")
-    (add2out_longhex nodebuf stephash)
-    (add2out_strconst nodebuf "</td></tr>")
+    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf loca)
+    (add2out_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
     (if thenname
 	(progn
@@ -3466,7 +3559,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	  ))
     ))
 
-(install_method matchgraphic_altstep class_match_step_success mgaltstep_stepsuccess)
+(install_method class_match_step_success  matchgraphic_altstep mgaltstep_stepsuccess)
 ;;;;;;;;;;;;;;;;
 
 
@@ -3841,7 +3934,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	   (if (== curdata mdata)
 	       (add2out_strconst nodebuf " style=\"bold,dashed,filled,rounded\", bgcolor=\"khahi\", ")
 	     (add2out_strconst nodebuf " style=\"dashed,rounded\", "))
-	   (add2out_strconst nodebuf "label=<<table border=\"1\" cellborder=\"1\"")
+	   (add2out_strconst nodebuf "label=<<table border=\"0\" cellborder=\"0\"")
 	   (add2out_strconst nodebuf " cellspacing=\"1\" cellpadding=\"1\">")
 	   (add2out_indentnl nodebuf 0)
 	   (add2out_strconst nodebuf "<tr><td><font color=\"green\" face=\"Times-Roman Bold\" point-size=\"7\">")
@@ -3873,7 +3966,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	    (add2out_string edgebuf curdataname)
 	    (add2out_strconst edgebuf " /*data*/ -> /*step*/ ")
 	    (add2out_string edgebuf (mapobject_get mapstep curstep))
-	    (add2out_strconst edgebuf " [ arrowhead=open, color=blueviolet ];")
+	    (add2out_strconst edgebuf " [ arrowhead=open, color=blueviolet, style=dotted ];")
 	    )
 	   )
 	 )

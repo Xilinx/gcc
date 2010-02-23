@@ -1,4 +1,12 @@
 2010-02-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt: Removed extra openbrace in
+	add2sbuf_short_mixloc.
+
+	* melt/warmelt-normatch.melt: added more of alternate matching.
+
+	* testsuite/melt/tmatch-5.melt: updated command in comment.
+
+2010-02-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: added more of alternate matching.
 
 2010-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
