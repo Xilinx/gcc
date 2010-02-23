@@ -1456,7 +1456,7 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   m_AMD_MULTIPLE,
 
   /* X86_TUNE_INTER_UNIT_MOVES */
-  ~(m_AMD_MULTIPLE | m_ATOM | m_GENERIC),
+  ~(m_AMD_MULTIPLE | m_GENERIC),
 
   /* X86_TUNE_INTER_UNIT_CONVERSIONS */
   ~(m_AMDFAM10),
@@ -2621,6 +2621,7 @@ override_options (bool main_args_p)
 {
   int i;
   unsigned int ix86_arch_mask, ix86_tune_mask;
+  const bool ix86_tune_specified = (ix86_tune_string != NULL); 
   const char *prefix;
   const char *suffix;
   const char *sw;
@@ -2821,8 +2822,12 @@ override_options (bool main_args_p)
 		   || !strcmp (ix86_tune_string, "generic64")))
 	;
       else if (!strncmp (ix86_tune_string, "generic", 7))
-	error ("bad value (%s) for %stune=%s %s",
+        error ("bad value (%s) for %stune=%s %s",
 	       ix86_tune_string, prefix, suffix, sw);
+      else if (!strcmp (ix86_tune_string, "x86-64"))
+        warning (OPT_Wdeprecated, "%stune=x86-64%s is deprecated.  Use "
+                 "%stune=k8%s or %stune=generic%s instead as appropriate.",
+                 prefix, suffix, prefix, suffix, prefix, suffix);
     }
   else
     {
@@ -2846,6 +2851,7 @@ override_options (bool main_args_p)
 	    ix86_tune_string = "generic32";
 	}
     }
+
   if (ix86_stringop_string)
     {
       if (!strcmp (ix86_stringop_string, "rep_byte"))
@@ -2868,22 +2874,11 @@ override_options (bool main_args_p)
 	error ("bad value (%s) for %sstringop-strategy=%s %s",
 	       ix86_stringop_string, prefix, suffix, sw);
     }
-  if (!strcmp (ix86_tune_string, "x86-64"))
-    warning (OPT_Wdeprecated, "%stune=x86-64%s is deprecated.  Use "
-	     "%stune=k8%s or %stune=generic%s instead as appropriate.",
-	     prefix, suffix, prefix, suffix, prefix, suffix);
 
   if (!ix86_arch_string)
     ix86_arch_string = TARGET_64BIT ? "x86-64" : "i386";
   else
     ix86_arch_specified = 1;
-
-  if (!strcmp (ix86_arch_string, "generic"))
-    error ("generic CPU can be used only for %stune=%s %s",
-	   prefix, suffix, sw);
-  if (!strncmp (ix86_arch_string, "generic", 7))
-    error ("bad value (%s) for %sarch=%s %s",
-	   ix86_arch_string, prefix, suffix, sw);
 
   /* Validate -mabi= value.  */
   if (ix86_abi_string)
@@ -3032,7 +3027,10 @@ override_options (bool main_args_p)
 	break;
       }
 
-  if (i == pta_size)
+  if (!strcmp (ix86_arch_string, "generic"))
+    error ("generic CPU can be used only for %stune=%s %s",
+	   prefix, suffix, sw);
+  else if (!strncmp (ix86_arch_string, "generic", 7) || i == pta_size)
     error ("bad value (%s) for %sarch=%s %s",
 	   ix86_arch_string, prefix, suffix, sw);
 
@@ -3071,7 +3069,8 @@ override_options (bool main_args_p)
 	  x86_prefetch_sse = true;
 	break;
       }
-  if (i == pta_size)
+
+  if (ix86_tune_specified && i == pta_size)
     error ("bad value (%s) for %stune=%s %s",
 	   ix86_tune_string, prefix, suffix, sw);
 
@@ -20958,6 +20957,10 @@ enum ix86_builtins
   IX86_BUILTIN_VPERMILPS,
   IX86_BUILTIN_VPERMILPD256,
   IX86_BUILTIN_VPERMILPS256,
+  IX86_BUILTIN_VPERMIL2PD,
+  IX86_BUILTIN_VPERMIL2PS,
+  IX86_BUILTIN_VPERMIL2PD256,
+  IX86_BUILTIN_VPERMIL2PS256,
   IX86_BUILTIN_VPERM2F128PD256,
   IX86_BUILTIN_VPERM2F128PS256,
   IX86_BUILTIN_VPERM2F128SI256,
@@ -22147,6 +22150,10 @@ static const struct builtin_description bdesc_args[] =
 };
 
 /* FMA4 and XOP.  */
+#define MULTI_ARG_4_DF2_DI_I	V2DF_FTYPE_V2DF_V2DF_V2DI_INT
+#define MULTI_ARG_4_DF2_DI_I1	V4DF_FTYPE_V4DF_V4DF_V4DI_INT
+#define MULTI_ARG_4_SF2_SI_I	V4SF_FTYPE_V4SF_V4SF_V4SI_INT
+#define MULTI_ARG_4_SF2_SI_I1	V8SF_FTYPE_V8SF_V8SF_V8SI_INT
 #define MULTI_ARG_3_SF		V4SF_FTYPE_V4SF_V4SF_V4SF
 #define MULTI_ARG_3_DF		V2DF_FTYPE_V2DF_V2DF_V2DF
 #define MULTI_ARG_3_SF2		V8SF_FTYPE_V8SF_V8SF_V8SF
@@ -22388,6 +22395,11 @@ static const struct builtin_description bdesc_multi_arg[] =
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_pcom_tfv8hi3,      "__builtin_ia32_vpcomtrueuw", IX86_BUILTIN_VPCOMTRUEUW, (enum rtx_code) PCOM_TRUE,    (int)MULTI_ARG_2_HI_TF },
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_pcom_tfv4si3,      "__builtin_ia32_vpcomtrueud", IX86_BUILTIN_VPCOMTRUEUD, (enum rtx_code) PCOM_TRUE,    (int)MULTI_ARG_2_SI_TF },
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_pcom_tfv2di3,      "__builtin_ia32_vpcomtrueuq", IX86_BUILTIN_VPCOMTRUEUQ, (enum rtx_code) PCOM_TRUE,    (int)MULTI_ARG_2_DI_TF },
+
+  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v2df3,     "__builtin_ia32_vpermil2pd",  IX86_BUILTIN_VPERMIL2PD, UNKNOWN, (int)MULTI_ARG_4_DF2_DI_I },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v4sf3,     "__builtin_ia32_vpermil2ps",  IX86_BUILTIN_VPERMIL2PS, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v4df3,     "__builtin_ia32_vpermil2pd256", IX86_BUILTIN_VPERMIL2PD256, UNKNOWN, (int)MULTI_ARG_4_DF2_DI_I1 },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v8sf3,     "__builtin_ia32_vpermil2ps256", IX86_BUILTIN_VPERMIL2PS256, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I1 },
 
 };
 
@@ -22769,6 +22781,14 @@ ix86_expand_multi_arg_builtin (enum insn_code icode, tree exp, rtx target,
 
   switch (m_type)
     {
+    case MULTI_ARG_4_DF2_DI_I:
+    case MULTI_ARG_4_DF2_DI_I1:
+    case MULTI_ARG_4_SF2_SI_I:
+    case MULTI_ARG_4_SF2_SI_I1:
+      nargs = 4;
+      last_arg_constant = true;
+      break;
+
     case MULTI_ARG_3_SF:
     case MULTI_ARG_3_DF:
     case MULTI_ARG_3_SF2:
@@ -22910,6 +22930,10 @@ ix86_expand_multi_arg_builtin (enum insn_code icode, tree exp, rtx target,
 
     case 3:
       pat = GEN_FCN (icode) (target, args[0].op, args[1].op, args[2].op);
+      break;
+
+    case 4:
+      pat = GEN_FCN (icode) (target, args[0].op, args[1].op, args[2].op, args[3].op);
       break;
 
     default:
@@ -23530,6 +23554,13 @@ ix86_expand_args_builtin (const struct builtin_description *d,
       nargs = 3;
       nargs_constant = 2;
       break;
+    case MULTI_ARG_4_DF2_DI_I:
+    case MULTI_ARG_4_DF2_DI_I1:
+    case MULTI_ARG_4_SF2_SI_I:
+    case MULTI_ARG_4_SF2_SI_I1:
+      nargs = 4;
+      nargs_constant = 1;
+      break;
     case V2DI_FTYPE_V2DI_V2DI_UINT_UINT:
       nargs = 4;
       nargs_constant = 2;
@@ -23599,6 +23630,10 @@ ix86_expand_args_builtin (const struct builtin_description *d,
 
 	      case CODE_FOR_sse4_1_blendpd:
 	      case CODE_FOR_avx_vpermilv2df:
+	      case CODE_FOR_xop_vpermil2v2df3:
+	      case CODE_FOR_xop_vpermil2v4sf3:
+	      case CODE_FOR_xop_vpermil2v4df3:
+	      case CODE_FOR_xop_vpermil2v8sf3:
 		error ("the last argument must be a 2-bit immediate");
 		return const0_rtx;
 
