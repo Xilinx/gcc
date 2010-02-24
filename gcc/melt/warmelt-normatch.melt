@@ -2740,11 +2740,12 @@ the data of the $STEP with an extra context $CTX.}#
    ( (is_a step class_match_step_test_group)
      (let ( (stastep (unsafe_get_field :mstgroup_start step))
 	    )
-       (debug_msg step "start_step step")
+       (debug_msg step "start_step group step")
        (debug_msg stastep "stastep return stastep")
        (assert_msg "check stastep" (is_a stastep class_match_step))
        (return stastep)))
    (:else
+    (debug_msg step "start_step ordinary step")
     (assert_msg "check step" (is_a step class_match_step))
     (return step))))
 
@@ -2753,8 +2754,17 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "check recv" (is_a recv class_match_step_then))
   (debug_msg thenstep "putthen_matchthen thenstep")
   (assert_msg "check thenstep" (is_a thenstep class_match_step))
-  (unsafe_put_fields recv :mstep_then (start_step thenstep))
-)
+  (let ( (mythen (unsafe_get_field :mstep_then recv)) 
+	 )
+    (if (null mythen)
+	(progn
+	  (unsafe_put_fields recv :mstep_then (start_step thenstep))
+	  (debug_msg recv "putthen_matchthen updated recv"))
+      (progn
+	(debug_msg mythen "putthen_matchthen mythen")
+	(put_then_match mythen thenstep)
+	(debug_msg mythen "putthen_matchthen did mythen"))))
+  )
 (install_method class_match_step_then put_then_match putthen_matchthen)
 
 (defun putthen_matchgroup (recv thenstep)
@@ -2762,7 +2772,7 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "check recv" (is_a recv class_match_step_test_group))
   (debug_msg thenstep "putthen_matchgroup thenstep")
   (assert_msg "check thenstep" (is_a thenstep class_match_step))
-  (unsafe_put_fields recv :mstep_then  (start_step thenstep))
+  (putthen_matchthen recv thenstep)
   (let ( (thengroup (unsafe_get_field :mstgroup_then recv)) )
     (cond 
      ((null thengroup)
@@ -2870,6 +2880,7 @@ the data of the $STEP with an extra context $CTX.}#
 
 (defun translpat_jokerpat (recv mdata mcase varmap sloc)
   (assert_msg "check recv" (is_a recv class_source_pattern_joker_variable))
+  (debug_msg recv "translpat_jokerpat recv")
   (return)
 )
 (install_method class_source_pattern_joker_variable translate_pattern translpat_jokerpat)
@@ -3715,6 +3726,7 @@ the data of the $STEP with an extra context $CTX.}#
 	     (put_fields 
 	      stepsucc :mstepsuccess_varocc sortedvarocc))
 	   (put_then_match mstep stepsucc)
+	   (debug_msg mstep "translate_matchcase updated mstep")
 	   (debug_msg stepsucc "translate_matchcase stepsucc")
 	   (return)
 	   ))))))
@@ -3992,7 +4004,7 @@ the data of the $STEP with an extra context $CTX.}#
 	   (add2out_string nodebuf curdataname)
 	   (add2out_strconst nodebuf " [ margin=0, ")
 	   (if (== curdata mdata)
-	       (add2out_strconst nodebuf " style=\"bold,dashed,filled,rounded\", bgcolor=\"khahi\", ")
+	       (add2out_strconst nodebuf " style=\"bold,dashed,filled,rounded\", fillcolor=\"lightyellow\", ")
 	     (add2out_strconst nodebuf " style=\"dashed,rounded\", "))
 	   (add2out_strconst nodebuf "label=<<table border=\"0\" cellborder=\"0\"")
 	   (add2out_strconst nodebuf " cellspacing=\"1\" cellpadding=\"1\">")
