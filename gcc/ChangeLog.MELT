@@ -1,4 +1,9 @@
 
+2010-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: added more of alternate matching.
+	Added :mstgroup_start field to class_match_step_test_group and
+	using it.
+	
 2010-02-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: added more of alternate matching.
 	better alternate display in .dot files for debugging.

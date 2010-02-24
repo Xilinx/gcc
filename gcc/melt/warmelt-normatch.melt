@@ -2592,8 +2592,9 @@ variable $MSTEPTESTVAR_SYMB is the same as the matched data.}#
   :super class_match_step_test
   :doc #{The $CLASS_MATCH_STEP_GROUP is used to redirect the then &
 else tests to a list of subtests, ie to the $MSTGROUP_THEN and
-$MSTGROUP_ELSE.}#
-  :fields (mstgroup_then
+$MSTGROUP_ELSE. The $MSTGROUP_START is the starting control point (for then & else edges arriving into the group).}#
+  :fields (mstgroup_start
+	   mstgroup_then
 	   mstgroup_else))
 
 
@@ -2731,12 +2732,28 @@ the data of the $STEP with an extra context $CTX.}#
   :formals (recv thenstep)
 )
 
+(defun start_step (step)
+  (cond 
+   ( (null step)
+     (return)
+     )
+   ( (is_a step class_match_step_test_group)
+     (let ( (stastep (unsafe_get_field :mstgroup_start step))
+	    )
+       (debug_msg step "start_step step")
+       (debug_msg stastep "stastep return stastep")
+       (assert_msg "check stastep" (is_a stastep class_match_step))
+       (return stastep)))
+   (:else
+    (assert_msg "check step" (is_a step class_match_step))
+    (return step))))
+
 (defun putthen_matchthen (recv thenstep)
   (debug_msg recv "putthen_matchthen recv")
   (assert_msg "check recv" (is_a recv class_match_step_then))
   (debug_msg thenstep "putthen_matchthen thenstep")
   (assert_msg "check thenstep" (is_a thenstep class_match_step))
-  (unsafe_put_fields recv :mstep_then thenstep)
+  (unsafe_put_fields recv :mstep_then (start_step thenstep))
 )
 (install_method class_match_step_then put_then_match putthen_matchthen)
 
@@ -2745,7 +2762,7 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "check recv" (is_a recv class_match_step_test_group))
   (debug_msg thenstep "putthen_matchgroup thenstep")
   (assert_msg "check thenstep" (is_a thenstep class_match_step))
-  (unsafe_put_fields recv :mstep_then thenstep)
+  (unsafe_put_fields recv :mstep_then  (start_step thenstep))
   (let ( (thengroup (unsafe_get_field :mstgroup_then recv)) )
     (cond 
      ((null thengroup)
@@ -2777,7 +2794,7 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "check recv" (is_a recv class_match_step_test))
   (debug_msg elsestep "putelse_matchtest elsestep")
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
-  (unsafe_put_fields recv :mstep_else elsestep)
+  (unsafe_put_fields recv :mstep_else  (start_step elsestep))
 )
 (install_method class_match_step_test put_else_match putelse_matchtest)
 
@@ -2786,7 +2803,7 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "check recv" (is_a recv class_match_step_test_group))
   (debug_msg elsestep "putelse_matchgroup elsestep")
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
-  (unsafe_put_fields recv :mstep_else elsestep)
+  (unsafe_put_fields recv :mstep_else  (start_step elsestep))
   (let ( (elsegroup (unsafe_get_field :mstgroup_else recv)) )
     (cond 
      ((null elsegroup)
@@ -2980,6 +2997,7 @@ the data of the $STEP with an extra context $CTX.}#
 				      :mstep_data mdata
 				      :mstep_then ()
 				      :mstep_else ()
+				      :mstgroup_start istep
 				      :mstgroup_then laststep
 				      :mstgroup_else (list_to_multiple elselist)
 				      ))
@@ -3205,6 +3223,7 @@ the data of the $STEP with an extra context $CTX.}#
 				:mstep_data mdata
 				:mstep_then ()
 				:mstep_else ()
+				:mstgroup_start curstep
 				:mstgroup_then ()
 				:mstgroup_else ()
 				))
@@ -3984,7 +4003,7 @@ the data of the $STEP with an extra context $CTX.}#
 	   (add2out_longhex nodebuf (obj_hash curdata))
 	   (add2out_strconst nodebuf "</font></td></tr>")
 	   (add2out_indentnl nodebuf 0)
-	   (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font color=\"darkgreen\" face=\"Times-Roman Italic\" point-size=\"7\">")
+	   (add2out_strconst nodebuf "<tr><td><font color=\"darkgreen\" face=\"Times-Roman Italic\" point-size=\"7\">")
 	   (add2out_string nodebuf (get_field :named_name datasymb))
 	   (if (is_a datasymb class_cloned_symbol)
 	       (let ( (:long clonum (get_int (unsafe_get_field :csym_urank datasymb)))
@@ -3993,10 +4012,10 @@ the data of the $STEP with an extra context $CTX.}#
 		 (add2out_longdec nodebuf clonum)
 		 (add2out_strconst nodebuf "</font>")
 		 ))
-	   (add2out_strconst nodebuf "</font></td><td>")
-	   (add2out_string nodebuf (get_field :named_name (get_field :ctype_keyword)))
+	   (add2out_strconst nodebuf "</font></td><td><font color=\"brown\" face=\"Helvetica Oblique\" point-size=\"6\">")
+	   (add2out_string nodebuf (get_field :named_name (get_field :ctype_keyword datactype)))
 	   
-	   (add2out_strconst nodebuf "</td></tr>")
+	   (add2out_strconst nodebuf "</font></td></tr>")
 	   (add2out_strconst nodebuf "</table>> ];")
 	   (add2out_indentnl nodebuf 0)
 					;;; output edges to the steps
