@@ -1,6 +1,10 @@
 
 2010-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: added more of alternate matching.
+	putelse_matchtest is incomplete when an else already exists...
+
+2010-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: added more of alternate matching.
 	putthen_matchthen calls recursively put_then_match on the mythen
 	... so first test graph is ok...
 
