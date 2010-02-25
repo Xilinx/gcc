@@ -21,7 +21,7 @@
       )
    ))
 
-  (defun tmatch5 (curexp)
+(defun tmatch5 (curexp)
     (match 
      curexp 
      (?(instance 

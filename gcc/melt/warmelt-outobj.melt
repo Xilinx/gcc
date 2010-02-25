@@ -4126,8 +4126,8 @@
 	(?(instance class_source_definition 
 		    :sdef_name ?dnam
 		    :sdef_doc 
-		    ?(as ?doc 
-			 ?(instance class_sexpr :loca_location ?loc :sexp_contents ?docl)))
+		    ?(and ?doc 
+			  ?(instance class_sexpr :loca_location ?loc :sexp_contents ?docl)))
 	  (debug_msg dnam "makedoc_docmd dnam")
 	  (debug_msg doc "makedoc_docmd doc")
 	  (inform_strv loc "makedoc: got documented " (get_field :named_name dnam))

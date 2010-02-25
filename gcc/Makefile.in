@@ -5132,7 +5132,7 @@ melt.encap: run-melt.d
 	rm -rf _tempmeltdir*
 	echo melt.encap done
 
-.PHONY: install-all-melt install-melt-headers update-warmelt diff-warm-1-2 diff-warm-2-3  diff-warm-4-5 diff-warmelt-2-3 install-melt-dynlib install-melt-cfiles install-melt-meltfiles
+.PHONY: install-all-melt install-melt-headers update-warmelt diff-warm-1-2 diff-warm-2-3  diff-warm-4-5 diff-warmelt-2-3 install-melt-dynlib install-melt-cfiles install-melt-meltfiles install-melt-otherfiles
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR)
 
@@ -5179,6 +5179,10 @@ install-melt-meltfiles: installdirs $(WARMELT_SRCFILES) $(ANAMELT_SRCFILES)
 	  $(INSTALL_DATA) $(srcdir)/melt/$$meltfile  $(melt_source_dir)/$$meltfile; \
 	done
 
+### install other MELT files, notably *.mk file[s] for make
+
+install-melt-otherfiles: installdirs 
+	$(INSTALL_DATA) $(melt_module_makefile) $(melt_installed_module_makefile)
 
 #### this phony target is given manually to copy the generated
 #### warmelt*.3.c into the source directory it should be only

@@ -222,7 +222,7 @@ meta-linguistic | is an infix binary alternative.
 		       :msend_recv left
 		       :sargop_args (tuple right)))
 	   (?(instance class_value_binding
-		       :vbind_value ?(as ?prim ?(instance class_primitive)))
+		       :vbind_value ?(and ?prim ?(instance class_primitive)))
 	     (instance class_source_primitive
 		       :loca_location loca
 		       :sprim_oper prim
@@ -256,7 +256,7 @@ meta-linguistic | is an infix binary alternative.
 	   (?(or
 	      ?(instance class_infix_symbol 
 			 :loca_location ?loc
-			 :lexeme_data ?(as ?sy 
+			 :lexeme_data ?(and ?sy 
 					   ?(instance class_symbol 
 						     :named_name ?nm)))
 	      ?(instance class_infix_keyword
@@ -274,7 +274,7 @@ meta-linguistic | is an infix binary alternative.
 		       (return fld))
 		      (?(instance class_value_binding
 				  :vbind_value
-				  ?(as ?fld ?(instance class_field)))
+				  ?(and ?fld ?(instance class_field)))
 			(infix_poplex iparser 1)
 			(debug_msg fld "iparse_field got value field")
 			(return fld))

@@ -69,9 +69,9 @@
 	    ;; where stdout.4_2 has been set to stdout!
 	    )
 	  (?(gimple_assign_single  ?lhs 
-				   ?(as ?rhs
-					?(tree_var_decl 
-					  ?(cstring_same "stdout"))))
+				   ?(and ?rhs
+					 ?(tree_var_decl 
+					   ?(cstring_same "stdout"))))
 	    (debugtree "makegreen_transform assign single stdout lhs" lhs)
 	    (debugtree "makegreen_transform assign single stdout rhs" rhs)
 	    (maptree_put (get_field :mkgreen_stdout_ssa	grdata) 
@@ -83,10 +83,10 @@
 	    (debugtree "makegreen_transform assign single plain rhs" rhs)
 	    )
 	  (?(gimple_call_2_more ?lhs 
-				?(as ?callfndcl 
-				     ?(tree_function_decl 
-				      ?(cstring_same "fprintf")
-				      ?_)
+				?(and ?callfndcl 
+				      ?(tree_function_decl 
+					?(cstring_same "fprintf")
+					?_)
 				     )
 				?arg0 ?arg1 ?nbargs)
 	    (debugtree "makegreen_transform call2morefprintf lhs" lhs)
@@ -323,8 +323,8 @@
        (match 
 	argdtree
 	( ?(tree_parm_decl
-	    ?(as ?argdtype 
-		 ?(tree_integer_type ?typname ?bigmin ?bigmax ?isiz)) ?argdcl ?argname)
+	    ?(and ?argdtype 
+		  ?(tree_integer_type ?typname ?bigmin ?bigmax ?isiz)) ?argdcl ?argname)
 	   (debugtree "smallana_cfun_entbb integer argdtype" argdtype)
 	   (debugcstring "smallana_cfun_entbb integer argname" argname)
 	   (debugcstring "smallana_cfun_entbb integer typname" typname)
@@ -488,7 +488,7 @@
   (debugtree "smallana_bb_cfun cfdecl" cfdecl)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (match cfdecl
-	 ( ?(as ?decltree ?(tree_function_decl ?funam ?(tree_block ?treevars ?_)))
+	 ( ?(and ?decltree ?(tree_function_decl ?funam ?(tree_block ?treevars ?_)))
 	    (debugtree "smallana_bb_cfun decltree" decltree)
 	    (debugtree "smallana_bb_cfun treevars of function" treevars)
 	    (debugcstring "smallana_cfun_entrybb funam" funam)
@@ -621,7 +621,7 @@
     (match 
      lhs
      (?(tree_ssa_name 
-	?(as ?ldeclvar ?(tree_decl ?lvar ?lname ?luid)) 
+	?(and ?ldeclvar ?(tree_decl ?lvar ?lname ?luid)) 
 	?lvalu ?lversion ?ldefg)
        (debugtree "sman_add_cmp_constraint ssa_name ldeclvar" ldeclvar)
        (debugtree "sman_add_cmp_constraint ssa_name lvar" lvar)

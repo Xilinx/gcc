@@ -157,32 +157,6 @@ scanning variables.}#
 (install_method class_source_pattern_joker_variable scan_pattern scanpat_srcpatjoker)
 
 
-;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;
-;; scanning an as pattern
-(defun scanpat_srcpatas (recv psloc ctyp pcn)
-  (debug_msg recv "scanpat_srcpatas recv")
-  (debug_msg ctyp "scanpat_srcpatas ctyp")
-  (assert_msg "check pcn" (is_a pcn class_pattern_context))
-  (assert_msg "check recv" (is_a recv class_source_pattern_as))
-  (let ( (sloc (unsafe_get_field :loca_location recv))
-	 (asvarpat (unsafe_get_field :aspat_varpat recv))
-	 (asvar (get_field :spatvar_symb asvarpat))
-	 (asubp (unsafe_get_field :aspat_subpat recv))
-	 (mapvar (unsafe_get_field :pctn_mapatvar pcn))
-	 (mvar (mapobject_get mapvar asvar))
-	 )
-    (debug_msg asvar "scanpat_srcpatas asvar")
-    (assert_msg "check asvar" (is_a asvar class_symbol))
-    (if (null mvar)
-	(progn
-	  (mapobject_put mapvar asvar asvarpat)
-	  (debug_msg asvar "scanpat_srcpatas got new asvar")
-	  ))
-    (scan_pattern asubp sloc ctyp pcn)
-    ))
-(install_method class_source_pattern_as scan_pattern scanpat_srcpatas)
-
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
@@ -952,62 +926,6 @@ scanning variables.}#
   ;; we need nothing more, a joker pattern is essentially a black hole..
 )
 (install_method class_source_pattern_joker_variable normal_pattern normpat_jokerpat)
-;;;;;;;;;;;;;;;;
-
-;;; normalize an as pattern
-(defun normpat_aspat  (recv nmatch hdler pcn)
-  (debug_msg recv "normpat_aspat recv")
-  (debug_msg nmatch "normpat_aspat nmatch")
-  (debug_msg hdler "normpat_aspat hdler")
-  (assert_msg "check recv" (is_a recv class_source_pattern_as))
-  (assert_msg "check pcn" (is_a pcn class_pattern_context))
-  (shortbacktrace_dbg "normpat_aspat start" 15)
-  (let (
-	(sloc (get_field :loca_location recv))
-	(aspat (get_field :aspat_varpat recv))
-	(subpat (get_field :aspat_subpat recv))
-	(testvarcont (instance class_container))
-	)
-    (debug_msg aspat "normpat_aspat before normalizing aspat")
-    (assert_msg "check aspat" (is_a aspat class_source_pattern_variable))
-    (normal_pattern 			;;this is normpat_variablepat
-     aspat nmatch
-     (lambda (tester) 
-       (debug_msg tester "normpat_aspat lambda do tester")
-       (debug_msg recv "normpat_aspat lambda recv")
-       (put_fields testvarcont :container_value tester) 
-       (shortbacktrace_dbg "normpat_aspat lambda" 15)
-       (hdler tester)
-       (debug_msg tester "normpat_aspat lambda did tester")
-       ) 
-     pcn)
-    (debug_msg testvarcont "normpat_aspat testvarcont")
-    (let ( (testvar (unsafe_get_field :container_value testvarcont)) 
-	   )
-      (debug_msg testvar "normpat_aspat testvar")
-      (debug_msg subpat "normpat_aspat subpat")
-      (normal_pattern 
-       subpat nmatch
-       (if testvar
-	   (lambda (subtester) 
-	     (debug_msg subtester "normpat_aspat lambda subtester with testvar")
-	     (debug_msg recv "normpat_aspat lambda subtester with testvarrecv")
-	     (shortbacktrace_dbg "normpat_aspat lambda subtester with testvar" 15)
-	     (set_new_tester_last_then subtester testvarcont)
-	     )
-	 (lambda (subtester)
-	   (debug_msg subtester "normpat_aspat lambda subtester without testvar")
-	   (debug_msg recv "normpat_aspat lambda subtester  without testvar recv")
-	   (debug_msg hdler "normpat_aspat lambda subtester  without testvar hdler")
-	   (shortbacktrace_dbg "normpat_aspat lambda nosubtester" 15)
-	   (hdler subtester)
-	   (debug_msg subtester "normpat_aspat lambda subtester after hdler")
-	   ))
-       pcn)
-      (debug_msg recv "normpat_aspat end recv")
-      )))
-(install_method class_source_pattern_as normal_pattern normpat_aspat)
-
 
 
 
@@ -2658,13 +2576,6 @@ the data of the $STEP with an extra context $CTX.}#
      (fun curconj ctx))))
 (install_method class_source_pattern_and scan_subpatterns scansubpat_and)
 
-(defun scansubpat_as (recv fun ctx)
-  (let ( (asvarpat (unsafe_get_field :aspat_varpat recv))
-	 (assubpat (unsafe_get_field :aspat_subpat recv))
-	 )
-    (fun asvarpat ctx)
-    (fun assubpat ctx)))
-(install_method class_source_pattern_as scan_subpatterns scansubpat_as)
 
 (defun scansubpat_construct (recv fun ctx)
   (let ( (subpatup (unsafe_get_field :ctpat_subpa recv)) )
@@ -2896,15 +2807,6 @@ the data of the $STEP with an extra context $CTX.}#
 (install_method class_source_pattern_joker_variable translate_pattern translpat_jokerpat)
 
 
-(defun translpat_aspat (recv mdata mcase varmap sloc)
-  (debug_msg recv "translpat_aspat recv")
-  (assert_msg "check recv" (is_a recv class_source_pattern_as))
-  (debug_msg mdata "translpat_aspat mdata")
-  (assert_msg "check mdata" (is_a mdata class_matched_data))
-  (debug_msg mcase "translpat_aspat mcase")
-  (assert_msg "check mcase" (is_a mcase class_match_case))
-  (assert_msg "@$@unimplemented translpat_aspat"))
-(install_method class_source_pattern_as translate_pattern translpat_aspat)
 
 
 (defun translpat_inspat (recv mdata mcase varmap psloc)
@@ -3101,6 +3003,47 @@ the data of the $STEP with an extra context $CTX.}#
     ))
 (install_method class_source_pattern_variable translate_pattern translpat_varpat)
 
+
+
+;;;;;;;;;;;;;;;;
+;;; translation of and-patterns
+(defun translpat_andpat (recv  mdata mcase varmap psloc)
+  (debug_msg recv "translpat_andpat recv")
+  (assert_msg "check recv" (is_a recv class_source_pattern_and))
+  (debug_msg mdata "translpat_andpat mdata")
+  (assert_msg "check mdata" (is_a mdata class_matched_data))
+  (debug_msg mcase "translpat_andpat mcase")
+  (assert_msg "check mcase" (is_a mcase class_match_case))
+  (let (
+	(sloc (or (unsafe_get_field :loca_location recv) psloc))
+	)
+    (error_plain sloc "unimplementation translpat_andpat")
+    (assert_msg "@$@unimplemented translpat_andpat")
+    ))
+(install_method class_source_pattern_and translate_pattern translpat_andpat)
+
+
+
+;;; translation of or-patterns
+(defun translpat_orpat (recv  mdata mcase varmap psloc)
+  (debug_msg recv "translpat_orpat recv")
+  (assert_msg "check recv" (is_a recv class_source_pattern_or))
+  (debug_msg mdata "translpat_orpat mdata")
+  (assert_msg "check mdata" (is_a mdata class_matched_data))
+  (debug_msg mcase "translpat_orpat mcase")
+  (assert_msg "check mcase" (is_a mcase class_match_case))
+  (let (
+	(sloc (or (unsafe_get_field :loca_location recv) psloc))
+	)
+    (error_plain sloc "unimplementation translpat_orpat")
+    (assert_msg "@$@unimplemented translpat_orpat")
+    ))
+(install_method class_source_pattern_or translate_pattern translpat_orpat)
+
+
+
+;;;;;;;;;;;;;;;;
+;; translation of pattern matchers (c-matchers or fun-matchers)
 (defun translpat_patmat (recv mdata mcase varmap psloc)
   (debug_msg recv "translpat_patmat recv")
   (assert_msg "check recv" (is_a recv class_source_pattern_matcher))
@@ -3748,7 +3691,7 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (debug_msg recv "normexp_match recv")
-  (let ( (sloc (unsafe_get_field :loca_location recv))
+  (let ( (sloc (or (unsafe_get_field :loca_location recv) psloc))
 	 (smatsx (unsafe_get_field :smat_matchedx recv))
 	 (scases (unsafe_get_field :smat_cases recv))
 	 (:long nbcases (multiple_length scases))
@@ -3809,13 +3752,15 @@ the data of the $STEP with an extra context $CTX.}#
 	)
        ;;
        (debug_msg mdata "normexp_altmatch updated mdata")
-	 (if (need_dbg 1)
-	     (let ( (dotprefix (get_field :container_value match_graphic_dot_prefix)) )
-	       (debug_msg match_graphic_dot_prefix "normexp_atmatch match_graphic_dot_prefix")
-	       (debug_msg dotprefix "normexp_match dotprefix")
-	       (if (is_string dotprefix) 
-		   (mg_altdraw_graphviz mdata dotprefix))))
-       (assert_msg "$@$unimplemented normexp_altmatch")
+       (if (need_dbg 1)
+	   (let ( (dotprefix (get_field :container_value match_graphic_dot_prefix)) )
+	     (debug_msg match_graphic_dot_prefix "normexp_atmatch match_graphic_dot_prefix")
+	     (debug_msg dotprefix "normexp_match dotprefix")
+	     (if (is_string dotprefix) 
+		 (mg_altdraw_graphviz mdata dotprefix))))
+       (error_plain sloc "@@unimplemented normexp_altmatch")
+       (compile_warning "@@unimplemented normexp_altmatch")
+       (return)
        ))))
 
 (defun alternate_match_optset (optsymb :cstring opts)

@@ -1,4 +1,38 @@
 
+2010-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (install-melt-otherfiles): new target, to install
+	melt-module.mk.
+
+	* testsuite/melt/tmatch-5.melt: typo.
+
+	* melt/warmelt-macro.melt: Removed class_source_pattern_as and all
+	class_sourcepattern* obsolete synonyms.
+
+	* melt/warmelt-normatch.melt: Removed class_source_pattern_as 
+	and added stub to alt-translate and & or patterns.
+
+	* melt/warmelt-outobj.melt: Replaced as patterns with and patterns.
+	* melt/xtramelt-ana-simple.melt: ditto.
+	* melt/xtramelt-parse-infix-syntax.melt: ditto.
+	{{regenerated all}}
+	* melt/generated/warmelt-base.0.c: regenerated.
+	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-first.0.c: regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: regenerated.
+	* melt/generated/warmelt-genobj.0.c: regenerated.
+	* melt/generated/warmelt-macro.0+01.c: regenerated.
+	* melt/generated/warmelt-macro.0+02.c: regenerated.
+	* melt/generated/warmelt-macro.0+03.c: regenerated.
+	* melt/generated/warmelt-macro.0.c: regenerated.
+	* melt/generated/warmelt-normal.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: regenerated.
+	* melt/generated/warmelt-normatch.0.c: regenerated.
+	* melt/generated/warmelt-outobj.0.c: regenerated.
+
+	
 2010-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: added more of alternate matching.
 	putelse_matchtest is incomplete when an else already exists...

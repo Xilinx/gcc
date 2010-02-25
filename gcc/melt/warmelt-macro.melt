@@ -635,17 +635,6 @@ of $AND patterns. Field $ANDPAT_CONJ gives the tuple of pattern conjuncts.}#
 ))
 
 
-;;; as pattern
-(defclass class_source_pattern_as
-  :doc #{The internal $CLASS_SOURCE_PATTERN_AS is for abstract syntax
-of $AS patterns. Field $ASPAT_VARPAT gives the pattern variable and
-$ASPAT_SUBPAT the subpattern.}#
-  :super class_source_pattern
-  :fields (aspat_varpat		    ;the pattern variable
-	   aspat_subpat		    ;the sub-pattern
-))
-
-
 
 ;;; simple source pattern variable
 (defclass class_source_pattern_variable
@@ -3650,11 +3639,11 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 	  (progn
 	    (error_plain loc "AS pattern needs a pattern variable as first argument")
 	    (return)))
+      (warning_plain loc "deprecated AS pattern - use AND pattern instead")
       (let (
-	    (res (instance class_source_pattern_as
+	    (res (instance class_source_pattern_and
 			   :loca_location loc
-			   :aspat_varpat argvar
-			   :aspat_subpat argsub))
+			   :andpat_conj (tuple argvar argsub)))
 	    )
 	(debug_msg res "patexpand_as returns res")
 	(return res)
@@ -5054,7 +5043,6 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
  class_source_parent_module_environment
  class_source_pattern
  class_source_pattern_and
- class_source_pattern_as
  class_source_pattern_c_match
  class_source_pattern_composite
  class_source_pattern_constant 
@@ -5094,23 +5082,4 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
  )			  ;end of values for source representations
 
 
-;;; class_source_letbinding is renamed class_source_let_binding
-(export_synonym class_source_letbinding class_source_let_binding)
-;;; class_source_casematch is renamed class_source_match_case
-(export_synonym class_source_casematch class_source_match_case)
-;;; class_sourcepattern_any renamed as class_source_pattern
-(export_synonym class_sourcepattern_any class_source_pattern)
-;;; class_sourcepattern_anymatch renamed as class_source_pattern_matcher
-(export_synonym class_sourcepattern_anymatch class_source_pattern_matcher)
-;; etc
-(export_synonym class_sourcepattern_or class_source_pattern_or)
-(export_synonym class_sourcepattern_as class_source_pattern_as)
-(export_synonym class_sourcepattern_and class_source_pattern_and)
-(export_synonym class_sourcepattern_variable class_source_pattern_variable)
-(export_synonym class_sourcepattern_jokervar class_source_pattern_joker_variable)
-(export_synonym class_sourcepattern_constant class_source_pattern_constant)
-(export_synonym class_sourcepattern_object class_source_pattern_object)
-(export_synonym class_sourcepattern_instance class_source_pattern_instance)
-(export_synonym class_sourcefieldpattern class_source_field_pattern)
-(export_synonym class_sourcepattern_composite class_source_pattern_composite)
 ;; eof
