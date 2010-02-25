@@ -2734,26 +2734,35 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "check recv" (is_a recv class_match_step_test_group))
   (debug_msg elsestep "putelse_matchgroup elsestep")
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
-  (unsafe_put_fields recv :mstep_else  (start_step elsestep))
-  (let ( (elsegroup (unsafe_get_field :mstgroup_else recv)) )
+  (let ( (elsegroup (unsafe_get_field :mstgroup_else recv)) 
+	 (elsestart (start_step elsestep))
+	 )
+    (debug_msg elsestep "putelse_matchgroup elsestart")
+    (unsafe_put_fields recv :mstep_else elsestart)
+    (debug_msg elsegroup "putelse_matchgroup elsegroup")
     (cond 
      ((null elsegroup)
-      (return))
+      ())
      ((is_a elsegroup class_match_step)
-      (put_else_match elsegroup elsestep))
+      (debug_msg elsegroup "putelse_matchgroup elsegroup step")
+      (put_else_match elsegroup elsestart))
      ((is_list elsegroup)
       (foreach_in_list
        (elsegroup)
        (curpair curelse)
-       (put_else_match curelse elsestep)))
+       (debug_msg curelse "putelse_matchgroup curelse from list")
+       (put_else_match curelse elsestart)))
      ((is_multiple elsegroup)
       (foreach_in_multiple
        (elsegroup)
        (curelse :long thix)
-       (put_else_match curelse elsestep)))
+       (debug_msg curelse "putelse_matchgroup curelse from tuple")
+       (put_else_match curelse elsestart)))
      (:else
       (debug_msg elsegroup "putelse_matchgroup bad elsegroup")
-      (assert_msg "bad elsegroup" ())))))
+      (assert_msg "bad elsegroup" ())))
+    (debug_msg recv "putelse_matchgroup end recv")
+    ))
 (install_method class_match_step_test_group put_else_match putelse_matchgroup)
 
 
@@ -2915,6 +2924,7 @@ the data of the $STEP with an extra context $CTX.}#
 			   (setq laststep flstep)
 			   ))
 		     )))))
+	  (debug_msg elselist "translpat_inspat elselist")
 	  (let ( (stepgroup (instance class_match_step_test_group
 				      :loca_location sloc
 				      :mstep_data mdata
@@ -2973,6 +2983,7 @@ the data of the $STEP with an extra context $CTX.}#
 				 :mstepsetvar_symb symb
 				 ))
 	      )
+	 (compile_warning "the step set variable should probably be inserted before any tests on the same data..")
 	 (debug_msg stepset "translpat_varpat return stepset")
 	 (list_append steplist stepset)
 	 (return stepset)
@@ -3007,7 +3018,7 @@ the data of the $STEP with an extra context $CTX.}#
 
 ;;;;;;;;;;;;;;;;
 ;;; translation of and-patterns
-(defun translpat_andpat (recv  mdata mcase varmap psloc)
+(defun translpat_andpat (recv mdata mcase varmap psloc)
   (debug_msg recv "translpat_andpat recv")
   (assert_msg "check recv" (is_a recv class_source_pattern_and))
   (debug_msg mdata "translpat_andpat mdata")
@@ -3016,9 +3027,55 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "check mcase" (is_a mcase class_match_case))
   (let (
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
+	(sconj (unsafe_get_field :andpat_conj recv))
+	(curstep ())
+	(firststep ())
+	(thenlist (make_list discr_list))
+	(elselist (make_list discr_list))
+	(stepgroup (instance class_match_step_test_group
+			     :loca_location sloc
+			     :mstep_data mdata
+			     :mstgroup_start ()
+			     :mstgroup_then ()
+			     :mstgroup_else ()
+			     ))
 	)
-    (error_plain sloc "unimplementation translpat_andpat")
-    (assert_msg "@$@unimplemented translpat_andpat")
+    (assert_msg "check sconj" (is_multiple sconj))
+    (foreach_in_multiple
+     (sconj)
+     (curconj :long conjix)
+     (debug_msg curconj "translpat_andpat curconj")
+     (let ( (conjstep 
+	     (translate_pattern curconj mdata mcase varmap sloc))
+	    )
+       (debug_msg conjstep "translpat_andpat conjstep")
+       (if conjstep
+	   (progn
+	     (if (null curstep)
+		 (progn
+		   (setq firststep conjstep)
+		   (list_append thenlist firststep)
+		   )
+	       (progn
+		 (debug_msg curstep "translpat_andpat curstep")
+		 (put_then_match curstep conjstep)
+		 )
+	       )
+	     (list_append elselist conjstep)
+	     (setq curstep conjstep)
+	     )
+	 )))
+    (unsafe_put_fields stepgroup
+		       :mstgroup_start firststep
+		       :mstgroup_then (list_to_multiple thenlist discr_multiple)
+		       :mstgroup_else (list_to_multiple elselist discr_multiple))
+    (cond ( (null firststep)
+	    ;; this happens only for degenerate conjonctions like ?(and ?_)
+	    (warning_plain sloc "degenerate ?(AND ...) pattern")
+	    (setq stepgroup ()))
+	  )
+    (debug_msg stepgroup "translpat_andpat return stepgroup")
+    (return stepgroup)
     ))
 (install_method class_source_pattern_and translate_pattern translpat_andpat)
 
@@ -3035,7 +3092,7 @@ the data of the $STEP with an extra context $CTX.}#
   (let (
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
 	)
-    (error_plain sloc "unimplementation translpat_orpat")
+    (error_plain sloc "unimplemented translpat_orpat")
     (assert_msg "@$@unimplemented translpat_orpat")
     ))
 (install_method class_source_pattern_or translate_pattern translpat_orpat)
@@ -3588,7 +3645,7 @@ the data of the $STEP with an extra context $CTX.}#
 
 (compile_warning "missing other methods for matchgraphic_altstep on other step classes")
 
-(defun translate_matchcase (curmcase sloc)
+(defun translate_matchcase (curmcase sloc prevstep)
   (debug_msg curmcase "translate_matchcase curmcase")
   (assert_msg "check curmcase" (is_a curmcase class_match_case))
   (let ( (matctx (unsafe_get_field  :mcase_mctxt curmcase))
@@ -3597,6 +3654,7 @@ the data of the $STEP with an extra context $CTX.}#
 	 )
     (assert_msg "check matctx" (is_a matctx class_matching_context))
     (debug_msg curscas "translate_matchcase curscas")
+    (debug_msg prevstep "translate_matchcase prevstep")
     (assert_msg "check curscas" (is_a curscas class_source_match_case))
     (let (
 	  (curloc (unsafe_get_field :loca_location curscas))
@@ -3668,6 +3726,7 @@ the data of the $STEP with an extra context $CTX.}#
 		  )
 	      ))
 	   (debug_msg listvarocc "translate_matchcase listvarocc")
+	   (debug_msg mstep "translate_matchcase have mstep")
 	   (let ( (sortedvarocc
 		   (multiple_sort 
 		    (list_to_multiple listvarocc discr_multiple)
@@ -3680,8 +3739,10 @@ the data of the $STEP with an extra context $CTX.}#
 	      stepsucc :mstepsuccess_varocc sortedvarocc))
 	   (put_then_match mstep stepsucc)
 	   (debug_msg mstep "translate_matchcase updated mstep")
+	   (if prevstep (put_else_match prevstep mstep))
+	   (debug_msg prevstep "translate_matchcase updated prevstep")
 	   (debug_msg stepsucc "translate_matchcase stepsucc")
-	   (return)
+	   (return mstep)
 	   ))))))
 
 
@@ -3745,11 +3806,18 @@ the data of the $STEP with an extra context $CTX.}#
 	  ))
        (debug_msg mcasetup "normexp_altmatch mcasetup")
        ;; translate each match case
+       (let ( (prevstep ()) 
+	      )
        (foreach_in_multiple
 	(mcasetup)
 	(curmcase :long mix)
-	(translate_matchcase curmcase sloc)
-	)
+	(debug_msg curmcase "normexp_altmatch before translate_matchcase curmcase")
+	(debug_msg prevstep "normexp_altmatch before translate_matchcase prevstep")
+	(let ( (curstep (translate_matchcase curmcase sloc prevstep))
+	       )
+	  (debug_msg curstep "normexp_altmatch after translate_matchcase curstep")
+	  (if curstep (setq prevstep curstep))
+	)))
        ;;
        (debug_msg mdata "normexp_altmatch updated mdata")
        (if (need_dbg 1)
@@ -4049,8 +4117,8 @@ the data of the $STEP with an extra context $CTX.}#
                        localtime (&nowt));
      fprintf (dotfil, "// generated %s\n", nowbuf);
      fprintf (dotfil, "digraph meltaltmatch_%lx {", $MDATAHASH);
-     fprintf (dotfil, " graph [ label=\"Melt Alt Match %s %s\",",
-		      melt_string_str ((melt_ptr_t) $DOTFILENAME),
+     fprintf (dotfil, " graph [ label=<<font color='firebrick' point-size='9' face='Helvetica Bold'>Melt Alt Match %s ** %s</font>>,",
+		      lbasename (melt_string_str ((melt_ptr_t) $DOTFILENAME)),
 		      nowbuf);
      fprintf (dotfil," pad=\"0.5\", margin=\"0.3\" ];\n");
      fprintf (dotfil, " node [ shape=\"box\", fontsize=\"9\" ];\n");

@@ -1,5 +1,11 @@
 
 2010-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tmatch-5.melt: added other case.
+
+	* melt/warmelt-normatch.melt: added prevstep argument to
+	translate_matchcase...
+
+2010-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (install-melt-otherfiles): new target, to install
 	melt-module.mk.
 

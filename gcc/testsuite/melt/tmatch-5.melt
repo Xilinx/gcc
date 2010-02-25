@@ -19,6 +19,12 @@
        ?(integerbox_of ?bx))
       (g x bx)
       )
+
+   ( ?(and ?xx
+	   ?(instance class_container 
+		      :container_value ?xx))
+      (g xx))
+
    ))
 
 (defun tmatch5 (curexp)
