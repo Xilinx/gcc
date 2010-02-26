@@ -2387,6 +2387,10 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
     TREE_USED (newdecl) = 1;
   else if (TREE_USED (newdecl))
     TREE_USED (olddecl) = 1;
+  if (DECL_PRESERVE_P (olddecl))
+    DECL_PRESERVE_P (newdecl) = 1;
+  else if (DECL_PRESERVE_P (newdecl))
+    DECL_PRESERVE_P (olddecl) = 1;
 
   /* Copy most of the decl-specific fields of NEWDECL into OLDDECL.
      But preserve OLDDECL's DECL_UID, DECL_CONTEXT and
@@ -2945,11 +2949,10 @@ undeclared_variable (location_t loc, tree id)
   else
     {
       error_at (loc, "%qE undeclared (first use in this function)", id);
-
       if (!already)
 	{
-	  error_at (loc, "(Each undeclared identifier is reported only once");
-	  error_at (loc, "for each function it appears in.)");
+          inform (loc, "each undeclared identifier is reported only"
+                  " once for each function it appears in");
 	  already = true;
 	}
 
