@@ -2477,6 +2477,7 @@ data.}#
 then edge $MSTEP_THEN.}#
   :fields (mstep_then))
 
+(compile_warning "class_match_step_set_variable should be removed")
 (defclass class_match_step_set_variable
   :super class_match_step_then
   :doc #{The $CLASS_MATCH_STEP_SET_VARIABLE step sets a variable of
