@@ -120,3 +120,33 @@ gcc_gettext_width (const char *msgstr)
 #endif
 
 #endif /* ENABLE_NLS */
+
+#ifndef ENABLE_NLS
+
+const char *
+fake_ngettext (const char *singular, const char *plural, unsigned long n)
+{
+  if (n == 1UL)
+    return singular;
+
+  return plural;
+}
+
+#endif
+
+/* Return the indent for successive lines, using the width of
+   the STR.  STR must have been translated already.  The string
+   must be freed by the caller.  */
+
+char *
+get_spaces (const char *str)
+{
+   size_t len = gcc_gettext_width (str);
+   char *spaces = XNEWVEC(char, len + 1);
+   memset (spaces, ' ', len);
+   spaces[len] = '\0';
+   return spaces;
+}
+
+
+

@@ -3253,13 +3253,10 @@ delete_prior_computation (rtx note, rtx insn)
 
 /* Delete INSN and recursively delete insns that compute values used only
    by INSN.  This uses the REG_DEAD notes computed during flow analysis.
-   If we are running before flow.c, we need do nothing since flow.c will
-   delete dead code.  We also can't know if the registers being used are
-   dead or not at this point.
 
-   Otherwise, look at all our REG_DEAD notes.  If a previous insn does
-   nothing other than set a register that dies in this insn, we can delete
-   that insn as well.
+   Look at all our REG_DEAD notes.  If a previous insn does nothing other
+   than set a register that dies in this insn, we can delete that insn
+   as well.
 
    On machines with CC0, if CC0 is used in this insn, we may be able to
    delete the insn that set it.  */
@@ -3506,8 +3503,11 @@ relax_delay_slots (rtx first)
 	    }
 
 	  /* If the first insn at TARGET_LABEL is redundant with a previous
-	     insn, redirect the jump to the following insn process again.  */
-	  trial = next_active_insn (target_label);
+	     insn, redirect the jump to the following insn and process again.
+	     We use next_real_insn instead of next_active_insn so we
+	     don't skip USE-markers, or we'll end up with incorrect
+	     liveness info.  */
+	  trial = next_real_insn (target_label);
 	  if (trial && GET_CODE (PATTERN (trial)) != SEQUENCE
 	      && redundant_insn (trial, insn, 0)
 	      && ! can_throw_internal (trial))

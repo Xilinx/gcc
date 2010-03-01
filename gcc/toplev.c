@@ -1,6 +1,6 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -152,6 +152,10 @@ struct line_maps *line_table;
 
 const char *dump_base_name;
 
+/* Directory used for dump output files.  */
+
+const char *dump_dir_name;
+
 /* Name to use as a base for auxiliary output files.  */
 
 const char *aux_base_name;
@@ -201,7 +205,7 @@ int optimize_size = 0;
 /* True if this is the lto front end.  This is used to disable
    gimple generation and lowering passes that are normally run on the
    output of a front end.  These passes must be bypassed for lto since
-   they have already been done before the gimple was written.  */ 
+   they have already been done before the gimple was written.  */
 
 bool in_lto_p = false;
 
@@ -886,9 +890,9 @@ check_global_declaration_1 (tree decl)
       && ! (TREE_CODE (decl) == VAR_DECL && DECL_REGISTER (decl))
       /* Otherwise, ask the language.  */
       && lang_hooks.decls.warn_unused_global (decl))
-    warning ((TREE_CODE (decl) == FUNCTION_DECL) 
-	     ? OPT_Wunused_function 
-             : OPT_Wunused_variable, 
+    warning ((TREE_CODE (decl) == FUNCTION_DECL)
+	     ? OPT_Wunused_function
+             : OPT_Wunused_variable,
 	     "%q+D defined but not used", decl);
 }
 
@@ -1104,7 +1108,20 @@ compile_file (void)
      link errors if an object file with IL is stored into a shared
      library without invoking lto1.  */
   if (flag_generate_lto)
-    fprintf (asm_out_file,"\t.comm\tgnu_lto_v1,1,1\n");
+    {
+#if defined ASM_OUTPUT_ALIGNED_DECL_COMMON
+      ASM_OUTPUT_ALIGNED_DECL_COMMON (asm_out_file, NULL_TREE,
+				      "__gnu_lto_v1",
+				      (unsigned HOST_WIDE_INT) 1, 8);
+#elif defined ASM_OUTPUT_ALIGNED_COMMON
+      ASM_OUTPUT_ALIGNED_COMMON (asm_out_file, "__gnu_lto_v1",
+				 (unsigned HOST_WIDE_INT) 1, 8);
+#else
+      ASM_OUTPUT_COMMON (asm_out_file, "__gnu_lto_v1",
+			 (unsigned HOST_WIDE_INT) 1,
+			 (unsigned HOST_WIDE_INT) 1);
+#endif
+    }
 
   /* Attach a special .ident directive to the end of the file to identify
      the version of GCC which compiled this code.  The format of the .ident
@@ -1123,7 +1140,7 @@ compile_file (void)
 
   /* Invoke registered plugin callbacks.  */
   invoke_plugin_callbacks (PLUGIN_FINISH_UNIT, NULL);
-  
+
   /* This must be at the end.  Some target ports emit end of file directives
      into the assembly file here, and hence we can not output anything to the
      assembly file after this point.  */
@@ -1198,13 +1215,8 @@ print_version (FILE *file, const char *indent)
     N_("%s%s%s %sversion %s (%s) compiled by CC, ")
 #endif
     ;
-#ifdef HAVE_mpc
   static const char fmt2[] =
     N_("GMP version %s, MPFR version %s, MPC version %s\n");
-#else
-  static const char fmt2[] =
-    N_("GMP version %s, MPFR version %s\n");
-#endif
   static const char fmt3[] =
     N_("%s%swarning: %s header version %s differs from library version %s.\n");
   static const char fmt4[] =
@@ -1236,11 +1248,7 @@ print_version (FILE *file, const char *indent)
 #endif
   fprintf (file,
 	   file == stderr ? _(fmt2) : fmt2,
-	   GCC_GMP_STRINGIFY_VERSION, MPFR_VERSION_STRING
-#ifdef HAVE_mpc
-	   , MPC_VERSION_STRING
-#endif
-	   );
+	   GCC_GMP_STRINGIFY_VERSION, MPFR_VERSION_STRING, MPC_VERSION_STRING);
   if (strcmp (GCC_GMP_STRINGIFY_VERSION, gmp_version))
     fprintf (file,
 	     file == stderr ? _(fmt3) : fmt3,
@@ -1251,13 +1259,11 @@ print_version (FILE *file, const char *indent)
 	     file == stderr ? _(fmt3) : fmt3,
 	     indent, *indent != 0 ? " " : "",
 	     "MPFR", MPFR_VERSION_STRING, mpfr_get_version ());
-#ifdef HAVE_mpc
   if (strcmp (MPC_VERSION_STRING, mpc_get_version ()))
     fprintf (file,
 	     file == stderr ? _(fmt3) : fmt3,
 	     indent, *indent != 0 ? " " : "",
 	     "MPC", MPC_VERSION_STRING, mpc_get_version ());
-#endif
   fprintf (file,
 	   file == stderr ? _(fmt4) : fmt4,
 	   indent, *indent != 0 ? " " : "",
@@ -1312,7 +1318,7 @@ print_to_stderr (print_switch_type type, const char * text)
 
     case SWITCH_TYPE_LINE_START:
       return 0;
-      
+
     case SWITCH_TYPE_PASSED:
     case SWITCH_TYPE_ENABLED:
       fputc (' ', stderr);
@@ -1386,6 +1392,7 @@ print_switch_values (print_switch_fn_type print_fn)
 	  /* Ignore these.  */
 	  if (strcmp (*p, "-o") == 0
 	      || strcmp (*p, "-dumpbase") == 0
+	      || strcmp (*p, "-dumpdir") == 0
 	      || strcmp (*p, "-auxbase") == 0)
 	    {
 	      if (p[1] != NULL)
@@ -1505,20 +1512,20 @@ option_affects_pch_p (int option, struct cl_option_state *state)
    most targets, but completely right for very few.  */
 
 void *
-default_get_pch_validity (size_t *len)
+default_get_pch_validity (size_t *sz)
 {
   struct cl_option_state state;
   size_t i;
   char *result, *r;
 
-  *len = 2;
+  *sz = 2;
   if (targetm.check_pch_target_flags)
-    *len += sizeof (target_flags);
+    *sz += sizeof (target_flags);
   for (i = 0; i < cl_options_count; i++)
     if (option_affects_pch_p (i, &state))
-      *len += state.size;
+      *sz += state.size;
 
-  result = r = XNEWVEC (char, *len);
+  result = r = XNEWVEC (char, *sz);
   r[0] = flag_pic;
   r[1] = flag_pie;
   r += 2;
@@ -1843,11 +1850,12 @@ process_options (void)
 
   /* The loop unrolling code assumes that cse will be run after loop.
      web and rename-registers also help when run after loop unrolling.  */
-
   if (flag_rerun_cse_after_loop == AUTODETECT_VALUE)
     flag_rerun_cse_after_loop = flag_unroll_loops || flag_peel_loops;
+
   if (flag_web == AUTODETECT_VALUE)
     flag_web = flag_unroll_loops || flag_peel_loops;
+
   if (flag_rename_registers == AUTODETECT_VALUE)
     flag_rename_registers = flag_unroll_loops || flag_peel_loops;
 
@@ -1931,7 +1939,7 @@ process_options (void)
 
   /* Unless over-ridden for the target, assume that all DWARF levels
      may be emitted, if DWARF2_DEBUG is selected.  */
-  if (dwarf_strict < 0) 
+  if (dwarf_strict < 0)
     dwarf_strict = 0;
 
   /* A lot of code assumes write_symbols == NO_DEBUG if the debugging
@@ -1991,9 +1999,8 @@ process_options (void)
     error ("target system does not support the \"%s\" debug format",
 	   debug_type_names[write_symbols]);
 
-  /* Now we know which debug output will be used so we can set
-     flag_var_tracking, flag_rename_registers if the user has
-     not specified them.  */
+  /* We know which debug output will be used so we can set flag_var_tracking
+     and flag_var_tracking_uninit if the user has not specified them.  */
   if (debug_info_level < DINFO_LEVEL_NORMAL
       || debug_hooks->var_location == do_nothing_debug_hooks.var_location)
     {
@@ -2033,10 +2040,6 @@ process_options (void)
   if (flag_var_tracking_assignments
       && (flag_selective_scheduling || flag_selective_scheduling2))
     warning (0, "var-tracking-assignments changes selective scheduling");
-
-  if (flag_rename_registers == AUTODETECT_VALUE)
-    flag_rename_registers = default_debug_hooks->var_location
-	    		    != do_nothing_debug_hooks.var_location;
 
   if (flag_tree_cselim == AUTODETECT_VALUE)
 #ifdef HAVE_conditional_move
@@ -2186,13 +2189,7 @@ backend_init_target (void)
 static void
 backend_init (void)
 {
-  init_emit_once (debug_info_level == DINFO_LEVEL_NORMAL
-		  || debug_info_level == DINFO_LEVEL_VERBOSE
-#ifdef VMS_DEBUGGING_INFO
-		    /* Enable line number info for traceback.  */
-		    || debug_info_level > DINFO_LEVEL_NONE
-#endif
-		    || flag_test_coverage);
+  init_emit_once ();
 
   init_rtlanal ();
   init_inline_once ();
@@ -2449,7 +2446,7 @@ toplev_main (int argc, char **argv)
   if (!exit_after_options)
     do_compile ();
 
-  if (warningcount || errorcount) 
+  if (warningcount || errorcount)
     print_ignored_options ();
 
   /* Invoke registered plugin callbacks if any.  */

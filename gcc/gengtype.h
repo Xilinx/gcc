@@ -20,7 +20,7 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_GENGTYPE_H
 #define GCC_GENGTYPE_H
 
-/* A file position, mostly for error messages.  
+/* A file position, mostly for error messages.
    The FILE element may be compared using pointer equality.  */
 struct fileloc {
   const char *file;

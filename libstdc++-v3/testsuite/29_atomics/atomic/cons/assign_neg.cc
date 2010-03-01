@@ -1,7 +1,7 @@
 // { dg-options "-std=gnu++0x" }
 // { dg-do compile }
 
-// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -18,8 +18,7 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-
-#include <cstdatomic>
+#include <atomic>
 #include <testsuite_common_types.h>
 
 int main()
@@ -30,19 +29,19 @@ int main()
 }
 
 // { dg-error "used here" "" { target *-*-* } 521 }
-// { dg-error "deleted function" "" { target *-*-* } 239 }
-// { dg-error "deleted function" "" { target *-*-* } 257 }
-// { dg-error "deleted function" "" { target *-*-* } 275 } 
-// { dg-error "deleted function" "" { target *-*-* } 293 }
-// { dg-error "deleted function" "" { target *-*-* } 311 }
-// { dg-error "deleted function" "" { target *-*-* } 329 }
-// { dg-error "deleted function" "" { target *-*-* } 347 }
-// { dg-error "deleted function" "" { target *-*-* } 365 }
-// { dg-error "deleted function" "" { target *-*-* } 383 }
-// { dg-error "deleted function" "" { target *-*-* } 401 }
-// { dg-error "deleted function" "" { target *-*-* } 419 }
-// { dg-error "deleted function" "" { target *-*-* } 437 }
-// { dg-error "deleted function" "" { target *-*-* } 455 }
-// { dg-error "deleted function" "" { target *-*-* } 473 }
-// { dg-error "deleted function" "" { target *-*-* } 491 }
+// { dg-error "deleted function" "" { target *-*-* } 230 }
+// { dg-error "deleted function" "" { target *-*-* } 248 }
+// { dg-error "deleted function" "" { target *-*-* } 266 }
+// { dg-error "deleted function" "" { target *-*-* } 284 }
+// { dg-error "deleted function" "" { target *-*-* } 302 }
+// { dg-error "deleted function" "" { target *-*-* } 320 }
+// { dg-error "deleted function" "" { target *-*-* } 338 }
+// { dg-error "deleted function" "" { target *-*-* } 356 }
+// { dg-error "deleted function" "" { target *-*-* } 374 }
+// { dg-error "deleted function" "" { target *-*-* } 392 }
+// { dg-error "deleted function" "" { target *-*-* } 410 }
+// { dg-error "deleted function" "" { target *-*-* } 428 }
+// { dg-error "deleted function" "" { target *-*-* } 446 }
+// { dg-error "deleted function" "" { target *-*-* } 464 }
+// { dg-error "deleted function" "" { target *-*-* } 482 }
 // { dg-excess-errors "In member function" }

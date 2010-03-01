@@ -199,7 +199,10 @@ print_graphite_statistics (FILE* file, VEC (scop_p, heap) *scops)
 static bool
 graphite_initialize (void)
 {
-  if (number_of_loops () <= 1)
+  if (number_of_loops () <= 1
+      /* FIXME: This limit on the number of basic blocks of a function
+	 should be removed when the SCOP detection is faster.  */
+      || n_basic_blocks > 100)
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
 	print_global_statistics (dump_file);
@@ -225,6 +228,7 @@ graphite_finalize (bool need_cfg_cleanup_p)
 {
   if (need_cfg_cleanup_p)
     {
+      scev_reset ();
       cleanup_tree_cfg ();
       profile_status = PROFILE_ABSENT;
       release_recorded_exits ();
@@ -233,7 +237,6 @@ graphite_finalize (bool need_cfg_cleanup_p)
 
   cloog_finalize ();
   free_original_copy_tables ();
-  free_aux_in_new_loops ();
 
   if (dump_file && dump_flags)
     print_loops (dump_file, 3);
@@ -265,26 +268,13 @@ graphite_transform_loops (void)
   bb_pbb_mapping = htab_create (10, bb_pbb_map_hash, eq_bb_pbb_map, free);
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
-    {
-      bool transform_done = false;
+    build_poly_scop (scop);
 
-      if (!build_poly_scop (scop))
-	continue;
-
-      if (apply_poly_transforms (scop))
-	transform_done = gloog (scop, bb_pbb_mapping);
-      else
-	check_poly_representation (scop);
-
-      if (transform_done)
-	{
-	  scev_reset ();
-	  need_cfg_cleanup_p = true;
-	}
-    }
-
-  if (flag_loop_parallelize_all)
-    mark_loops_parallel (bb_pbb_mapping);
+  for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
+    if (POLY_SCOP_P (scop)
+	&& apply_poly_transforms (scop)
+	&& gloog (scop, scops, bb_pbb_mapping))
+      need_cfg_cleanup_p = true;
 
   htab_delete (bb_pbb_mapping);
   free_scops (scops);

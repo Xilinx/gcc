@@ -156,7 +156,7 @@ struct GTY(()) eh_region_d
 	 The normal way for this to happen is for there to be a CLEANUP region
 	 contained within this MUST_NOT_THROW region.  Note that if the
 	 runtime handles the MUST_NOT_THROW region, we have no control over
-	 what termination function is called; it will be decided by the 
+	 what termination function is called; it will be decided by the
 	 personality function in effect for this CIE.  */
       tree failure_decl;
       /* The location assigned to the call of FAILURE_DECL, if expanded.  */
@@ -227,9 +227,6 @@ extern int doing_eh (int);
 /* Invokes CALLBACK for every exception handler label.  Only used by old
    loop hackery; should not be used by new code.  */
 extern void for_each_eh_label (void (*) (rtx));
-
-/* Set TREE_NOTHROW and cfun->all_throwers_are_sibcalls.  */
-extern unsigned int set_nothrow_function_flags (void);
 
 extern void init_eh (void);
 extern void init_eh_for_function (void);

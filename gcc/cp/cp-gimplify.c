@@ -429,17 +429,13 @@ cp_gimplify_init_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
   tree from = TREE_OPERAND (*expr_p, 1);
   tree to = TREE_OPERAND (*expr_p, 0);
   tree t;
-  tree slot = NULL_TREE;
 
   /* What about code that pulls out the temp and uses it elsewhere?  I
      think that such code never uses the TARGET_EXPR as an initializer.  If
      I'm wrong, we'll abort because the temp won't have any RTL.  In that
      case, I guess we'll need to replace references somehow.  */
   if (TREE_CODE (from) == TARGET_EXPR)
-    {
-      slot = TARGET_EXPR_SLOT (from);
-      from = TARGET_EXPR_INITIAL (from);
-    }
+    from = TARGET_EXPR_INITIAL (from);
 
   /* Look through any COMPOUND_EXPRs, since build_compound_expr pushes them
      inside the TARGET_EXPR.  */
@@ -556,6 +552,20 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 	 25979.  */
     case INIT_EXPR:
       cp_gimplify_init_expr (expr_p, pre_p, post_p);
+      /* Fall through.  */
+    case MODIFY_EXPR:
+      {
+	/* If the back end isn't clever enough to know that the lhs and rhs
+	   types are the same, add an explicit conversion.  */
+	tree op0 = TREE_OPERAND (*expr_p, 0);
+	tree op1 = TREE_OPERAND (*expr_p, 1);
+
+	if ((TYPE_STRUCTURAL_EQUALITY_P (TREE_TYPE (op0))
+	     || TYPE_STRUCTURAL_EQUALITY_P (TREE_TYPE (op1)))
+	    && !useless_type_conversion_p (TREE_TYPE (op1), TREE_TYPE (op0)))
+	  TREE_OPERAND (*expr_p, 1) = build1 (VIEW_CONVERT_EXPR,
+					      TREE_TYPE (op0), op1);
+      }
       ret = GS_OK;
       break;
 

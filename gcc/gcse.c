@@ -171,20 +171,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "dbgcnt.h"
 #include "target.h"
 
-/* Propagate flow information through back edges and thus enable PRE's
-   moving loop invariant calculations out of loops.
-
-   Originally this tended to create worse overall code, but several
-   improvements during the development of PRE seem to have made following
-   back edges generally a win.
-
-   Note much of the loop invariant code motion done here would normally
-   be done by loop.c, which has more heuristics for when to move invariants
-   out of loops.  At some point we might need to move some of those
-   heuristics into gcse.c.  */
-
 /* We support GCSE via Partial Redundancy Elimination.  PRE optimizations
-   are a superset of those done by GCSE.
+   are a superset of those done by classic GCSE.
 
    We perform the following steps:
 
@@ -199,8 +187,6 @@ along with GCC; see the file COPYING3.  If not see
       conditional jumps if the condition can be computed from a value of
       an incoming edge.
 
-   5) Perform store motion.
-
    Two passes of copy/constant propagation are done because the first one
    enables more GCSE and the second one helps to clean up the copies that
    GCSE creates.  This is needed more for PRE than for Classic because Classic
@@ -212,17 +198,13 @@ along with GCC; see the file COPYING3.  If not see
    (set (pseudo-reg) (expression)).
    Function want_to_gcse_p says what these are.
 
-   In addition, expressions in REG_EQUAL notes are candidates for GXSE-ing.
+   In addition, expressions in REG_EQUAL notes are candidates for GCSE-ing.
    This allows PRE to hoist expressions that are expressed in multiple insns,
-   such as comprex address calculations (e.g. for PIC code, or loads with a 
-   high part and as lowe part).
+   such as complex address calculations (e.g. for PIC code, or loads with a
+   high part and a low part).
 
    PRE handles moving invariant expressions out of loops (by treating them as
    partially redundant).
-
-   Eventually it would be nice to replace cse.c/gcse.c with SSA (static single
-   assignment) based GVN (global value numbering).  L. T. Simpson's paper
-   (Rice University) on value numbering is a useful reference for this.
 
    **********************
 
@@ -271,7 +253,7 @@ along with GCC; see the file COPYING3.  If not see
    argue it is not.  The number of iterations for the algorithm to converge
    is typically 2-4 so I don't view it as that expensive (relatively speaking).
 
-   PRE GCSE depends heavily on the second CSE pass to clean up the copies
+   PRE GCSE depends heavily on the second CPROP pass to clean up the copies
    we create.  To make an expression reach the place where it's redundant,
    the result of the expression is copied to a new register, and the redundant
    expression is deleted by replacing it with this new register.  Classic GCSE
@@ -730,7 +712,7 @@ compute_local_properties (sbitmap *transp, sbitmap *comp, sbitmap *antloc,
 	  if (antloc)
 	    for (occr = expr->antic_occr; occr != NULL; occr = occr->next)
 	      {
-		SET_BIT (antloc[BLOCK_NUM (occr->insn)], indx);
+		SET_BIT (antloc[BLOCK_FOR_INSN (occr->insn)->index], indx);
 
 		/* While we're scanning the table, this is a good place to
 		   initialize this.  */
@@ -742,7 +724,7 @@ compute_local_properties (sbitmap *transp, sbitmap *comp, sbitmap *antloc,
 	  if (comp)
 	    for (occr = expr->avail_occr; occr != NULL; occr = occr->next)
 	      {
-		SET_BIT (comp[BLOCK_NUM (occr->insn)], indx);
+		SET_BIT (comp[BLOCK_FOR_INSN (occr->insn)->index], indx);
 
 		/* While we're scanning the table, this is a good place to
 		   initialize this.  */
@@ -843,17 +825,17 @@ can_assign_to_reg_without_clobbers_p (rtx x)
      valid.  */
   PUT_MODE (SET_DEST (PATTERN (test_insn)), GET_MODE (x));
   SET_SRC (PATTERN (test_insn)) = x;
-  
+
   icode = recog (PATTERN (test_insn), test_insn, &num_clobbers);
   if (icode < 0)
     return false;
-  
+
   if (num_clobbers > 0 && added_clobbers_hard_reg_p (icode))
     return false;
-  
+
   if (targetm.cannot_copy_insn_p && targetm.cannot_copy_insn_p (test_insn))
     return false;
-  
+
   return true;
 }
 
@@ -1162,7 +1144,8 @@ insert_expr_in_table (rtx x, enum machine_mode mode, rtx insn, int antic_p,
     {
       antic_occr = cur_expr->antic_occr;
 
-      if (antic_occr && BLOCK_NUM (antic_occr->insn) != BLOCK_NUM (insn))
+      if (antic_occr
+	  && BLOCK_FOR_INSN (antic_occr->insn) != BLOCK_FOR_INSN (insn))
 	antic_occr = NULL;
 
       if (antic_occr)
@@ -1186,7 +1169,8 @@ insert_expr_in_table (rtx x, enum machine_mode mode, rtx insn, int antic_p,
     {
       avail_occr = cur_expr->avail_occr;
 
-      if (avail_occr && BLOCK_NUM (avail_occr->insn) == BLOCK_NUM (insn))
+      if (avail_occr
+	  && BLOCK_FOR_INSN (avail_occr->insn) == BLOCK_FOR_INSN (insn))
 	{
 	  /* Found another instance of the expression in the same basic block.
 	     Prefer this occurrence to the currently recorded one.  We want
@@ -1259,7 +1243,8 @@ insert_set_in_table (rtx x, rtx insn, struct hash_table_d *table)
   /* Now record the occurrence.  */
   cur_occr = cur_expr->avail_occr;
 
-  if (cur_occr && BLOCK_NUM (cur_occr->insn) == BLOCK_NUM (insn))
+  if (cur_occr
+      && BLOCK_FOR_INSN (cur_occr->insn) == BLOCK_FOR_INSN (insn))
     {
       /* Found another instance of the expression in the same basic block.
 	 Prefer this occurrence to the currently recorded one.  We want
@@ -1592,7 +1577,7 @@ canon_list_insert (rtx dest ATTRIBUTE_UNUSED, const_rtx unused1 ATTRIBUTE_UNUSED
   dest_addr = get_addr (XEXP (dest, 0));
   dest_addr = canon_rtx (dest_addr);
   insn = (rtx) v_insn;
-  bb = BLOCK_NUM (insn);
+  bb = BLOCK_FOR_INSN (insn)->index;
 
   canon_modify_mem_list[bb] =
     alloc_EXPR_LIST (VOIDmode, dest_addr, canon_modify_mem_list[bb]);
@@ -1607,7 +1592,7 @@ canon_list_insert (rtx dest ATTRIBUTE_UNUSED, const_rtx unused1 ATTRIBUTE_UNUSED
 static void
 record_last_mem_set_info (rtx insn)
 {
-  int bb = BLOCK_NUM (insn);
+  int bb = BLOCK_FOR_INSN (insn)->index;
 
   /* load_killed_in_block_p will handle the case of calls clobbering
      everything.  */
@@ -2094,7 +2079,7 @@ compute_transp (const_rtx x, int indx, sbitmap *bmap, int set_p)
 
 	    /* Now iterate over the blocks which have memory modifications
 	       but which do not have any calls.  */
-	    EXECUTE_IF_AND_COMPL_IN_BITMAP (modify_mem_list_set, 
+	    EXECUTE_IF_AND_COMPL_IN_BITMAP (modify_mem_list_set,
 					    blocks_with_calls,
 					    0, bb_index, bi)
 	      {
@@ -2335,7 +2320,8 @@ find_avail_set (int regno, rtx insn)
 	 which contains INSN.  */
       while (set)
 	{
-	  if (TEST_BIT (cprop_avin[BLOCK_NUM (insn)], set->bitmap_index))
+	  if (TEST_BIT (cprop_avin[BLOCK_FOR_INSN (insn)->index],
+			set->bitmap_index))
 	    break;
 	  set = next_set (regno, set);
 	}
@@ -2993,7 +2979,7 @@ bypass_block (basic_block bb, rtx setcc, rtx jump)
   for (ei = ei_start (bb->preds); (e = ei_safe_edge (ei)); )
     {
       removed_p = 0;
-	  
+
       if (e->flags & EDGE_COMPLEX)
 	{
 	  ei_next (&ei);
@@ -3328,7 +3314,7 @@ pre_expr_reaches_here_p_work (basic_block occr_bb, struct expr *expr, basic_bloc
 {
   edge pred;
   edge_iterator ei;
-  
+
   FOR_EACH_EDGE (pred, ei, bb->preds)
     {
       basic_block pred_bb = pred->src;
@@ -3410,7 +3396,7 @@ process_insert_insn (struct expr *expr)
       if (insn_invalid_p (insn))
 	gcc_unreachable ();
     }
-  
+
 
   pat = get_insns ();
   end_sequence ();
@@ -3728,7 +3714,7 @@ pre_insert_copy_insn (struct expr *expr, rtx insn)
   if (dump_file)
     fprintf (dump_file,
 	     "PRE: bb %d, insn %d, copy expression %d in insn %d to reg %d\n",
-	      BLOCK_NUM (insn), INSN_UID (new_insn), indx,
+	      BLOCK_FOR_INSN (insn)->index, INSN_UID (new_insn), indx,
 	      INSN_UID (insn), regno);
 }
 
@@ -4884,7 +4870,7 @@ update_ld_motion_stores (struct expr * expr)
 	  rtx pat = PATTERN (insn);
 	  rtx src = SET_SRC (pat);
 	  rtx reg = expr->reaching_reg;
-	  rtx copy, new_rtx;
+	  rtx copy;
 
 	  /* If we've already copied it, continue.  */
 	  if (expr->reaching_reg == src)
@@ -4900,7 +4886,7 @@ update_ld_motion_stores (struct expr * expr)
 	    }
 
 	  copy = gen_move_insn (reg, copy_rtx (SET_SRC (pat)));
-	  new_rtx = emit_insn_before (copy, insn);
+	  emit_insn_before (copy, insn);
 	  SET_SRC (pat) = reg;
 	  df_insn_rescan (insn);
 
@@ -4980,7 +4966,7 @@ one_cprop_pass (void)
      FIXME: This local pass should not be necessary after CSE (but for
 	    some reason it still is).  It is also (proven) not necessary
 	    to run the local pass right after FWPWOP.
-	    
+
      FIXME: The global analysis would not get into infinite loops if it
 	    would use the DF solver (via df_simple_dataflow) instead of
 	    the solver implemented in this file.  */
@@ -5074,7 +5060,6 @@ static unsigned int
 execute_rtl_cprop (void)
 {
   delete_unreachable_blocks ();
-  df_note_add_problem ();
   df_set_flags (DF_LR_RUN_DCE);
   df_analyze ();
   flag_rerun_cse_after_global_opts |= one_cprop_pass ();
@@ -5094,7 +5079,6 @@ static unsigned int
 execute_rtl_pre (void)
 {
   delete_unreachable_blocks ();
-  df_note_add_problem ();
   df_analyze ();
   flag_rerun_cse_after_global_opts |= one_pre_gcse_pass ();
   return 0;
@@ -5116,7 +5100,6 @@ static unsigned int
 execute_rtl_hoist (void)
 {
   delete_unreachable_blocks ();
-  df_note_add_problem ();
   df_analyze ();
   flag_rerun_cse_after_global_opts |= one_code_hoisting_pass ();
   return 0;
@@ -5127,8 +5110,8 @@ struct rtl_opt_pass pass_rtl_cprop =
  {
   RTL_PASS,
   "cprop",                              /* name */
-  gate_rtl_cprop,                       /* gate */   
-  execute_rtl_cprop,  			/* execute */       
+  gate_rtl_cprop,                       /* gate */
+  execute_rtl_cprop,  			/* execute */
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
@@ -5147,9 +5130,9 @@ struct rtl_opt_pass pass_rtl_pre =
 {
  {
   RTL_PASS,
-  "pre",                                /* name */
-  gate_rtl_pre,                         /* gate */   
-  execute_rtl_pre,    			/* execute */       
+  "rtl pre",                            /* name */
+  gate_rtl_pre,                         /* gate */
+  execute_rtl_pre,    			/* execute */
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
@@ -5169,8 +5152,8 @@ struct rtl_opt_pass pass_rtl_hoist =
  {
   RTL_PASS,
   "hoist",                              /* name */
-  gate_rtl_hoist,                       /* gate */   
-  execute_rtl_hoist,  			/* execute */       
+  gate_rtl_hoist,                       /* gate */
+  execute_rtl_hoist,  			/* execute */
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */

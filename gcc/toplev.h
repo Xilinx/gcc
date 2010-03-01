@@ -1,6 +1,7 @@
 /* toplev.h - Various declarations for functions found in toplev.c
-   Copyright (C) 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007,
+   2008, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -66,7 +67,7 @@ extern void error_at (location_t, const char *, ...) ATTRIBUTE_GCC_DIAG(2,3);
 extern void fatal_error (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2)
      ATTRIBUTE_NORETURN;
 /* Pass one of the OPT_W* from options.h as the second parameter.  */
-extern bool pedwarn (location_t, int, const char *, ...) 
+extern bool pedwarn (location_t, int, const char *, ...)
      ATTRIBUTE_GCC_DIAG(3,4);
 extern bool permerror (location_t, const char *, ...) ATTRIBUTE_GCC_DIAG(2,3);
 extern void sorry (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2);
@@ -116,6 +117,7 @@ extern unsigned local_tick;
 
 extern const char *progname;
 extern const char *dump_base_name;
+extern const char *dump_dir_name;
 extern const char *aux_base_name;
 extern const char *aux_info_file_name;
 extern const char *profile_data_prefix;

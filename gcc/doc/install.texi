@@ -45,7 +45,8 @@
 @end ifset
 
 @c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-@c 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+@c 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 
+@c 2010 Free Software Foundation, Inc.
 @c *** Converted to texinfo by Dean Wakerley, dean@wakerley.com
 
 @c IMPORTANT: whenever you modify this file, run `install.texi2html' to
@@ -302,7 +303,7 @@ Necessary (only on some platforms) to untar the source code.  Many
 systems' @command{tar} programs will also work, only try GNU
 @command{tar} if you have problems.
 
-@item GNU Multiple Precision Library (GMP) version 4.2 (or later)
+@item GNU Multiple Precision Library (GMP) version 4.3.2 (or later)
 
 Necessary to build GCC@.  If you do not have it installed in your
 library search path, you will have to configure with the
@@ -311,7 +312,7 @@ and @option{--with-gmp-include}.  Alternatively, if a GMP source
 distribution is found in a subdirectory of your GCC sources named
 @file{gmp}, it will be built together with GCC@.
 
-@item MPFR Library version 2.3.2 (or later)
+@item MPFR Library version 2.4.2 (or later)
 
 Necessary to build GCC@.  It can be downloaded from
 @uref{http://www.mpfr.org/}.  The @option{--with-mpfr} configure
@@ -320,6 +321,16 @@ default library search path.  See also @option{--with-mpfr-lib} and
 @option{--with-mpfr-include}.  Alternatively, if a MPFR source
 distribution is found in a subdirectory of your GCC sources named
 @file{mpfr}, it will be built together with GCC@.
+
+@item MPC Library version 0.8.1 (or later)
+
+Necessary to build GCC@.  It can be downloaded from
+@uref{http://www.multiprecision.org/}.  The @option{--with-mpc}
+configure option should be used if your MPC Library is not installed
+in your default library search path.  See also @option{--with-mpc-lib}
+and @option{--with-mpc-include}.  Alternatively, if an MPC source
+distribution is found in a subdirectory of your GCC sources named
+@file{mpc}, it will be built together with GCC@.
 
 @item Parma Polyhedra Library (PPL) version 0.10
 
@@ -343,18 +354,6 @@ not installed in your default library search path.
 @item @command{jar}, or InfoZIP (@command{zip} and @command{unzip})
 
 Necessary to build libgcj, the GCJ runtime.
-
-@item MPC Library version 0.7.0 (or later)
-
-Optional when building GCC@.  Having this library will enable
-additional optimizations on complex numbers.  It can be downloaded
-from @uref{http://www.multiprecision.org/mpc/}.  The
-@option{--with-mpc} configure option should be used if your MPC
-Library is not installed in your default library search path.  See
-also @option{--with-mpc-lib} and @option{--with-mpc-include}.
-Alternatively, if an MPC source distribution is found in a
-subdirectory of your GCC sources named @file{mpc}, it will be built
-together with GCC@.
 
 @item libelf version 0.8.12 (or later)
 
@@ -1118,7 +1117,8 @@ RTEMS thread support.
 @item single
 Disable thread support, should work for all platforms.
 @item solaris
-Sun Solaris 2 thread support.
+Sun Solaris 2/Unix International thread support.  Only use this if you
+really need to use this legacy API instead of the default, @samp{posix}.
 @item vxworks
 VxWorks thread support.
 @item win32
@@ -1433,7 +1433,7 @@ increase the risk of undetected internal errors causing wrong code to be
 generated.
 
 @item --disable-stage1-checking
-@item --enable-stage1-checking
+@itemx --enable-stage1-checking
 @itemx --enable-stage1-checking=@var{list}
 If no @option{--enable-checking} option is specified the stage1
 compiler will be built with @samp{yes} checking enabled, otherwise
@@ -2888,6 +2888,10 @@ information are.
 @item
 @uref{#iq2000-x-elf,,iq2000-*-elf}
 @item
+@uref{#lm32-x-elf,,lm32-*-elf}
+@item
+@uref{#lm32-x-uclinux,,lm32-*-uclinux}
+@item
 @uref{#m32c-x-elf,,m32c-*-elf}
 @item
 @uref{#m32r-x-elf,,m32r-*-elf}
@@ -2939,6 +2943,8 @@ information are.
 @uref{#sparc-sun-solaris2,,sparc-sun-solaris2*}
 @item
 @uref{#sparc-sun-solaris27,,sparc-sun-solaris2.7}
+@item
+@uref{#sparc-sun-solaris210,,sparc-sun-solaris2.10}
 @item
 @uref{#sparc-x-linux,,sparc-*-linux*}
 @item
@@ -3666,6 +3672,20 @@ applications.  There are no standard Unix configurations.
 @html
 <hr />
 @end html
+@heading @anchor{lm32-x-elf}lm32-*-elf
+Lattice Mico32 processor.
+This configuration is intended for embedded systems.
+
+@html
+<hr />
+@end html
+@heading @anchor{lm32-x-uclinux}lm32-*-uclinux
+Lattice Mico32 processor.
+This configuration is intended for embedded systems running uClinux.
+
+@html
+<hr />
+@end html
 @heading @anchor{m32c-x-elf}m32c-*-elf
 Renesas M32C processor.
 This configuration is intended for embedded systems.
@@ -4249,6 +4269,21 @@ This bug has been fixed in more recent revisions of the assembler.
 @html
 <hr />
 @end html
+@heading @anchor{sparc-sun-solaris210}sparc-sun-solaris2.10
+
+There is a bug in older versions of the Sun assembler which breaks
+thread-local storage (TLS).  A typical error message is
+
+@smallexample
+ld: fatal: relocation error: R_SPARC_TLS_LE_HIX22: file /var/tmp//ccamPA1v.o:
+  symbol <unknown>: bad symbol type SECT: symbol type must be TLS
+@end smallexample
+
+This bug is fixed in Sun patch 118683-03 or later.
+
+@html
+<hr />
+@end html
 @heading @anchor{sparc-x-linux}sparc-*-linux*
 
 GCC versions 3.0 and higher require binutils 2.11.2 and glibc 2.2.4
@@ -4430,7 +4465,11 @@ Ports of GCC are included with the
 GCC will build under Cygwin without modification; it does not build
 with Microsoft's C++ compiler and there are no plans to make it do so.
 
-Cygwin can be compiled with i?86-pc-cygwin.
+The Cygwin native compiler can be configured to target any 32-bit x86
+cpu architecture desired; the default is i686-pc-cygwin.  It should be
+used with as up-to-date a version of binutils as possible; use either
+the latest official GNU binutils release in the Cygwin distribution,
+or version 2.20 or above if building your own.
 
 @html
 <hr />

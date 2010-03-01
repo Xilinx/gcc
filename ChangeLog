@@ -1,3 +1,225 @@
+2010-02-15  Nick Clifton  <nickc@redhat.com>
+
+	PR 11238
+	* configure.ac: Delete config.cache files in sub-directories when
+	deleting Makefiles.
+	* configure: Regenerate.
+
+2010-02-12  Ben Elliston  <bje@gnu.org>
+
+	* MAINTAINERS: Update my email address.
+
+2010-02-08  Andrew Pinski  <pinskia@gmail.com>
+
+	* MAINTAINERS (spu port): Update my email address.
+
+2010-02-08  Jie Zhang  <jie.zhang@analog.com>
+
+	* MAINTAINERS: Add myself as a maintainer for the bfin port.
+
+2010-01-31  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* configure.ac: Add "recommended" version checks for GMP/MPC.
+	Update recommended GMP/MPFR/MPC versions.
+	* configure: Regenerate.
+
+2010-01-31  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* MAINTAINERS: Move my Embecosm email address into the
+	write-after-approval section.
+
+2010-01-26  Ian Lance Taylor  <iant@google.com>
+
+	* MAINTAINERS: Add myself as Go frontend maintainer.
+
+2010-01-25  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR libstdc++/36101, PR libstdc++/42813
+	* configure.ac (bootstrap_target_libs): Make inclusion of
+	target-libgomp conditional on libgomb being in target_configdirs.
+	* configure: Regenerate.
+
+2010-01-23  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR libstdc++/36101, PR libstdc++/42813
+	* configure.ac (bootstrap_target_libs): Include target-libgomp.
+	* configure: Regenerate.
+
+2010-01-22  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR libstdc++/36101, PR libstdc++/42813
+	* configure.ac (target_configdirs): Substitute.
+	* Makefile.def: Bootstrap target module libgomp.
+	Add dependency of all-target-libstdc++-v3 on configure-target-libgomp.
+	* Makefile.tpl (TARGET_CONFIGDIRS): New makefile variable.
+	(BASE_TARGET_EXPORTS): Export TARGET_CONFIGDIRS.
+	* configure, Makefile.in: Regenerate.
+
+2010-01-21  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* MAINTAINERS: Adjust my details.
+
+2010-01-20  Eric B. Weddington  <eric.weddington@atmel.com>
+
+	* MAINTAINERS (CPU Port Maintainers): Add myself for avr port.
+
+2010-01-18  Thierry Lafage  <thierry.lafage@inria.fr>
+
+	* MAINTAINERS: reindented my entry with tabs instead of spaces.
+
+2010-01-15  Thierry Lafage  <thierry.lafage@inria.fr>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2010-01-15  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2010-01-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41569
+	* Makefile.def (all-lto-plugin): Depend on all-gcc.
+	* Makefile.in: Regenerated.
+
+2010-01-11  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure.ac: Enable libjava build on x86_64-*freebsd*.
+	* configure: Regenerate.
+
+2010-01-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+            Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR bootstrap/42424
+	* configure.ac: Include libtool m4 files.
+        (_LT_CHECK_OBJDIR): Call it.
+	(extra_mpc_mpfr_configure_flags, extra_mpc_gmp_configure_flags,
+	gmplibs, ppllibs, clooglibs): Use $lt_cv_objdir.
+
+	* configure: Regenerate.
+
+2010-01-07  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/41818
+	* Makefile.tpl (BASE_TARGET_EXPORTS): Only add TARGET_LIB_PATH
+	to $(RPATH_ENVVAR) if bootstrapping.  Fix typo in comment.
+	* Makefile.in: Regenerate.
+
+2010-01-02  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41529
+	* configure.ac: Include config/elf.m4.  Disable LTO if not
+	builting for an elf target.
+	* configure: Regenerate.
+
+2009-12-27  Christopher Faylor  <me+cygwin@cgf.cx>
+
+	* MAINTAINERS: Change my email address.
+
+2009-12-18  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2009-12-07  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-12-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR middle-end/30447
+	PR middle-end/30789
+	PR other/40302
+
+	* configure.ac: Require MPC.
+	* configure: Regenerate.
+
+2009-12-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR target/38384
+	PR bootstrap/40972
+	* libtool.m4: Sync from git Libtool.
+	* ltoptions.m4: Likewise.
+	* ltversion.m4: Likewise.
+	* lt~obsolete.m4: Likewise.
+	* ltmain.sh: Likewise.
+
+2009-11-30  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* configure.ac: Update minimum MPC version to 0.8.
+	* configure: Regenerate.
+
+2009-11-21  Sebastian Pop  <sebpop@gmail.com>
+
+	* configure.ac: Check for version 0.15.5 or later revision of CLooG.
+	* configure: Regenerated.
+
+2009-11-21  Ian Lance Taylor  <iant@google.com>
+
+	* configure.ac: Change default of poststage1_ldflags to be empty if
+	poststage1_libs is set.  When poststage1_libs is empty, and
+	ENABLE_BUILD_WITH_CXX is set, add -static-libgcc.
+	* configure: Rebuild.
+
+2009-11-21  Adam Nemet  <adambnmet@gmail.com>
+
+	* MAINTAINERS (Write After Approval): Update my email address.
+
+2009-11-20  Ben Elliston  <bje@au.ibm.com>
+
+	* config.guess: Update from upstream sources.
+
+2009-11-16  Alexandre Oliva  <aoliva@redhat.com>
+
+	* Makefile.def: Restore host and target settings for gmp.
+	* Makefile.in: Rebuild.
+
+2009-11-16  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure.ac: Add libelf to host_libs.  Enable in-tree configury
+	of ppl and cloog.  Fix in-tree configury of libelf, skip tests.
+	Fix portability of test of C++ as bootstrap language.  Add
+	ppl/src/ppl-config.o to the bootstrap compare exclusion list.
+	* configure: Rebuild.
+	* Makefile.def: Drop host and target settings from gmp, mpfr, ppl,
+	and cloog.  Fix in-tree ppl configuration.  Introduce libelf
+	in-tree building.
+	* Makefile.tpl (POSTSTAGE1_CXX_EXPORT): New.
+	(POSTSTAGE1_HOST_EXPORTS): Use it.
+	(STAGE[+id+]_CXXFLAGS): New.
+	(BASE_FLAGS_TO_PASS): Pass it down.
+	(configure-stage[+id+]-[+prefix+][+module+]): Use it.  Add
+	extra_exports.
+	(all-stage[+id+]-[+prefix+][+module+]): Likewise.
+	(configure-[+prefix+][+module+], all-[+prefix+][+module+]): Add
+	extra_exports.
+	* Makefile.in: Rebuild.
+
+2009-11-17  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2009-11-12  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-11-09  Jon Beniston <jon@beniston.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-11-06  Ozkan Sezer  <sezeroz@gmail.com>
+
+	* configure.ac (FLAGS_FOR_TARGET):  Add -L and -isystem
+	paths for *-w64-mingw* and x86_64-*mingw*.
+	* configure: Regenerated.
+
+2009-11-05  Joern Rennecke <amylaar@spamcop.net>
+
+	* MAINTAINERS (Write After Approval): Add entry for my INRIA work.
+
+2009-11-02  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* MAINTAINERS: Add Jonathan Wakely under Various Maintainers, move
+	Phil Edwards to Write-After Approval.
+
 2009-10-30  Kai Tietz  <kai.tietz@onevision.com>
 
 	* configure.ac: Disable target-winsup & co for

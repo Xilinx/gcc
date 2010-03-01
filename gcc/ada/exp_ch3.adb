@@ -5715,9 +5715,13 @@ package body Exp_Ch3 is
          if Has_Task (Comp_Typ) then
             Set_Has_Task (Def_Id);
 
-         elsif Has_Controlled_Component (Comp_Typ)
-           or else (Chars (Comp) /= Name_uParent
-                     and then Is_Controlled (Comp_Typ))
+         --  Do not set Has_Controlled_Component on a class-wide equivalent
+         --  type. See Make_CW_Equivalent_Type.
+
+         elsif not Is_Class_Wide_Equivalent_Type (Def_Id)
+           and then (Has_Controlled_Component (Comp_Typ)
+                      or else (Chars (Comp) /= Name_uParent
+                                and then Is_Controlled (Comp_Typ)))
          then
             Set_Has_Controlled_Component (Def_Id);
 
@@ -8102,6 +8106,11 @@ package body Exp_Ch3 is
       --  We also skip these if finalization is not available
 
       elsif Restriction_Active (No_Finalization) then
+         null;
+
+      --  Skip these for CIL Value types, where finalization is not available
+
+      elsif Is_Value_Type (Tag_Typ) then
          null;
 
       elsif Etype (Tag_Typ) = Tag_Typ

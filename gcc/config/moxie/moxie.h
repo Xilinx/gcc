@@ -1,5 +1,5 @@
 /* Target Definitions for moxie.
-   Copyright (C) 2008, 2009  Free Software Foundation, Inc.
+   Copyright (C) 2008, 2009, 2010  Free Software Foundation, Inc.
    Contributed by Anthony Green.
 
    This file is part of GCC.
@@ -386,10 +386,10 @@ enum reg_class
 #define FUNCTION_PROFILER(FILE,LABELNO) (abort (), 0)
 
 /* Trampolines for Nested Functions.  */
-#define TRAMPOLINE_SIZE (2 + 6 + 6 + 2 + 6)
+#define TRAMPOLINE_SIZE (2 + 6 + 6 + 2 + 2 + 6)
 
 /* Alignment required for trampolines, in bits.  */
-#define TRAMPOLINE_ALIGNMENT 16
+#define TRAMPOLINE_ALIGNMENT 32
 
 /* An alias for the machine mode for pointers.  */
 #define Pmode         SImode
@@ -474,10 +474,6 @@ enum reg_class
 /* A C expression that is nonzero if X is a legitimate constant for
    an immediate operand on the target machine.  */
 #define LEGITIMATE_CONSTANT_P(X) 1
-
-/* A C expression that is 1 if the RTX X is a constant which is a
-   valid address.  */
-#define CONSTANT_ADDRESS_P(X) CONSTANT_P(X)
 
 /* A number, the maximum number of registers that can appear in a
    valid memory address.  */

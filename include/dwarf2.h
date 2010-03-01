@@ -425,6 +425,11 @@ enum dwarf_attribute
     DW_AT_GNU_template_name = 0x2110,
     /* VMS extensions.  */
     DW_AT_VMS_rtnbeg_pd_address = 0x2201,
+    /* GNAT extensions.  */
+    /* GNAT descriptive type.
+       See http://gcc.gnu.org/wiki/DW_AT_GNAT_descriptive_type .  */
+    DW_AT_use_GNAT_descriptive_type = 0x2301,
+    DW_AT_GNAT_descriptive_type	= 0x2302,
     /* UPC extension.  */
     DW_AT_upc_threads_scaled = 0x3210,
     /* PGI (STMicroelectronics) extensions.  */
@@ -721,7 +726,8 @@ enum dwarf_calling_convention
     DW_CC_lo_user = 0x40,
     DW_CC_hi_user = 0xff,
 
-    DW_CC_GNU_renesas_sh = 0x40
+    DW_CC_GNU_renesas_sh = 0x40,
+    DW_CC_GNU_borland_fastcall_i386 = 0x41
   };
 
 /* Inline attribute.  */

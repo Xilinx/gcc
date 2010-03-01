@@ -1,7 +1,7 @@
 /* Gcov.c: prepend line execution counts and branch probabilities to a
    source file.
    Copyright (C) 1990, 1991, 1992, 1993, 1994, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by James E. Wilson of Cygnus Support.
    Mangled by Bob Manson of Cygnus Support.
@@ -426,7 +426,7 @@ static void
 print_version (void)
 {
   fnotice (stdout, "gcov %s%s\n", pkgversion_string, version_string);
-  fprintf (stdout, "Copyright %s 2009 Free Software Foundation, Inc.\n",
+  fprintf (stdout, "Copyright %s 2010 Free Software Foundation, Inc.\n",
 	   _("(C)"));
   fnotice (stdout,
 	   _("This is free software; see the source for copying conditions.\n"
@@ -684,7 +684,7 @@ create_file_names (const char *file_name)
     *cptr = 0;
 
   length = strlen (name);
-  
+
   bbg_file_name = XNEWVEC (char, length + strlen (GCOV_NOTE_SUFFIX) + 1);
   strcpy (bbg_file_name, name);
   strcpy (bbg_file_name + length, GCOV_NOTE_SUFFIX);
@@ -721,7 +721,7 @@ find_source (const char *file_name)
       src->index = source_index++;
       src->next = sources;
       sources = src;
-      
+
       if (!stat (file_name, &status))
 	src->file_time = status.st_mtime;
     }
@@ -1043,7 +1043,7 @@ read_count_file (void)
 
       GCOV_UNSIGNED2STRING (v, version);
       GCOV_UNSIGNED2STRING (e, GCOV_VERSION);
-      
+
       fnotice (stderr, "%s:version '%.4s', prefer version '%.4s'\n",
 	       da_file_name, v, e);
     }
@@ -1896,11 +1896,11 @@ output_lines (FILE *gcov_file, const source_t *src)
 	{
 	  arc_t *arc = fn->blocks[fn->num_blocks - 1].pred;
 	  gcov_type return_count = fn->blocks[fn->num_blocks - 1].count;
-	  
+
 	  for (; arc; arc = arc->pred_next)
 	    if (arc->fake)
 	      return_count -= arc->count;
-	  
+
 	  fprintf (gcov_file, "function %s", fn->name);
 	  fprintf (gcov_file, " called %s",
 		   format_gcov (fn->blocks[0].count, 0, -1));

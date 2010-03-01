@@ -1,6 +1,6 @@
 // Algorithm implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -61,80 +61,10 @@
 #include <bits/algorithmfwd.h>
 #include <bits/stl_heap.h>
 #include <bits/stl_tempbuf.h>  // for _Temporary_buffer
-#include <debug/debug.h>
-#include <initializer_list>
 
 // See concept_check.h for the __glibcxx_*_requires macros.
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
-
-  /**
-   *  @brief Find the median of three values.
-   *  @param  a  A value.
-   *  @param  b  A value.
-   *  @param  c  A value.
-   *  @return One of @p a, @p b or @p c.
-   *
-   *  If @c {l,m,n} is some convolution of @p {a,b,c} such that @c l<=m<=n
-   *  then the value returned will be @c m.
-   *  This is an SGI extension.
-   *  @ingroup SGIextensions
-  */
-  template<typename _Tp>
-    inline const _Tp&
-    __median(const _Tp& __a, const _Tp& __b, const _Tp& __c)
-    {
-      // concept requirements
-      __glibcxx_function_requires(_LessThanComparableConcept<_Tp>)
-      if (__a < __b)
-	if (__b < __c)
-	  return __b;
-	else if (__a < __c)
-	  return __c;
-	else
-	  return __a;
-      else if (__a < __c)
-	return __a;
-      else if (__b < __c)
-	return __c;
-      else
-	return __b;
-    }
-
-  /**
-   *  @brief Find the median of three values using a predicate for comparison.
-   *  @param  a     A value.
-   *  @param  b     A value.
-   *  @param  c     A value.
-   *  @param  comp  A binary predicate.
-   *  @return One of @p a, @p b or @p c.
-   *
-   *  If @c {l,m,n} is some convolution of @p {a,b,c} such that @p comp(l,m)
-   *  and @p comp(m,n) are both true then the value returned will be @c m.
-   *  This is an SGI extension.
-   *  @ingroup SGIextensions
-  */
-  template<typename _Tp, typename _Compare>
-    inline const _Tp&
-    __median(const _Tp& __a, const _Tp& __b, const _Tp& __c, _Compare __comp)
-    {
-      // concept requirements
-      __glibcxx_function_requires(_BinaryFunctionConcept<_Compare, bool,
-				                         _Tp, _Tp>)
-      if (__comp(__a, __b))
-	if (__comp(__b, __c))
-	  return __b;
-	else if (__comp(__a, __c))
-	  return __c;
-	else
-	  return __a;
-      else if (__comp(__a, __c))
-	return __a;
-      else if (__comp(__b, __c))
-	return __c;
-      else
-	return __b;
-    }
 
   /// Swaps the median value of *__a, *__b and *__c to *__a
   template<typename _Iterator>
@@ -1647,53 +1577,64 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef typename iterator_traits<_RandomAccessIterator>::value_type
 	_ValueType;
 
-      const _Distance __n = __last   - __first;
-      const _Distance __k = __middle - __first;
-      const _Distance __l = __n - __k;
+      _Distance __n = __last   - __first;
+      _Distance __k = __middle - __first;
 
-      if (__k == __l)
+      if (__k == __n - __k)
 	{
 	  std::swap_ranges(__first, __middle, __middle);
 	  return;
 	}
 
-      const _Distance __d = std::__gcd(__n, __k);
+      _RandomAccessIterator __p = __first;
 
-      for (_Distance __i = 0; __i < __d; __i++)
+      for (;;)
 	{
-	  _ValueType __tmp = _GLIBCXX_MOVE(*__first);
-	  _RandomAccessIterator __p = __first;
-
-	  if (__k < __l)
+	  if (__k < __n - __k)
 	    {
-	      for (_Distance __j = 0; __j < __l / __d; __j++)
+	      if (__is_pod(_ValueType) && __k == 1)
 		{
-		  if (__p > __first + __l)
-		    {
-		      *__p = _GLIBCXX_MOVE(*(__p - __l));
-		      __p -= __l;
-		    }
-
-		  *__p = _GLIBCXX_MOVE(*(__p + __k));
-		  __p += __k;
+		  _ValueType __t = _GLIBCXX_MOVE(*__p);
+		  _GLIBCXX_MOVE3(__p + 1, __p + __n, __p);
+		  *(__p + __n - 1) = _GLIBCXX_MOVE(__t);
+		  return;
 		}
+	      _RandomAccessIterator __q = __p + __k;
+	      for (_Distance __i = 0; __i < __n - __k; ++ __i)
+		{
+		  std::iter_swap(__p, __q);
+		  ++__p;
+		  ++__q;
+		}
+	      __n %= __k;
+	      if (__n == 0)
+		return;
+	      std::swap(__n, __k);
+	      __k = __n - __k;
 	    }
 	  else
 	    {
-	      for (_Distance __j = 0; __j < __k / __d - 1; __j ++)
+	      __k = __n - __k;
+	      if (__is_pod(_ValueType) && __k == 1)
 		{
-		  if (__p < __last - __k)
-		    {
-		      *__p = _GLIBCXX_MOVE(*(__p + __k));
-		      __p += __k;
-		    }
-		  *__p = _GLIBCXX_MOVE(*(__p - __l));
-		  __p -= __l;
+		  _ValueType __t = _GLIBCXX_MOVE(*(__p + __n - 1));
+		  _GLIBCXX_MOVE_BACKWARD3(__p, __p + __n - 1, __p + __n);
+		  *__p = _GLIBCXX_MOVE(__t);
+		  return;
 		}
+	      _RandomAccessIterator __q = __p + __n;
+	      __p = __q - __k;
+	      for (_Distance __i = 0; __i < __n - __k; ++ __i)
+		{
+		  --__p;
+		  --__q;
+		  std::iter_swap(__p, __q);
+		}
+	      __n %= __k;
+	      if (__n == 0)
+		return;
+	      std::swap(__n, __k);
 	    }
-
-	  *__p = _GLIBCXX_MOVE(__tmp);
-	  ++__first;
 	}
     }
 
@@ -2451,8 +2392,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  val     The search term.
-   *  @return         An iterator pointing to the first element "not less
-   *                  than" @a val, or end() if every element is less than 
+   *  @return         An iterator pointing to the first element <em>not less
+   *                  than</em> @a val, or end() if every element is less than 
    *                  @a val.
    *  @ingroup binary_search_algorithms
   */
@@ -2500,8 +2441,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @param  last    Another iterator.
    *  @param  val     The search term.
    *  @param  comp    A functor to use for comparisons.
-   *  @return  An iterator pointing to the first element "not less than" @a val,
-   *           or end() if every element is less than @a val.
+   *  @return An iterator pointing to the first element <em>not less
+   *           than</em> @a val, or end() if every element is less
+   *           than @a val.
    *  @ingroup binary_search_algorithms
    *
    *  The comparison function should have the same effects on ordering as
@@ -3624,13 +3566,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   // max_element
 
   /**
-   *  @brief  Permute range into the next "dictionary" ordering.
+   *  @brief  Permute range into the next @a dictionary ordering.
    *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
    *  @param  last   End of range.
    *  @return  False if wrapped to first permutation, true otherwise.
    *
-   *  Treats all permutations of the range as a set of "dictionary" sorted
+   *  Treats all permutations of the range as a set of @a dictionary sorted
    *  sequences.  Permutes the current sequence into the next one of this set.
    *  Returns true if there are more sequences to generate.  If the sequence
    *  is the largest of the set, the smallest is generated and false returned.
@@ -3678,7 +3620,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @brief  Permute range into the next "dictionary" ordering using
+   *  @brief  Permute range into the next @a dictionary ordering using
    *          comparison functor.
    *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
@@ -3687,7 +3629,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @return  False if wrapped to first permutation, true otherwise.
    *
    *  Treats all permutations of the range [first,last) as a set of
-   *  "dictionary" sorted sequences ordered by @a comp.  Permutes the current
+   *  @a dictionary sorted sequences ordered by @a comp.  Permutes the current
    *  sequence into the next one of this set.  Returns true if there are more
    *  sequences to generate.  If the sequence is the largest of the set, the
    *  smallest is generated and false returned.
@@ -3736,13 +3678,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @brief  Permute range into the previous "dictionary" ordering.
+   *  @brief  Permute range into the previous @a dictionary ordering.
    *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
    *  @param  last   End of range.
    *  @return  False if wrapped to last permutation, true otherwise.
    *
-   *  Treats all permutations of the range as a set of "dictionary" sorted
+   *  Treats all permutations of the range as a set of @a dictionary sorted
    *  sequences.  Permutes the current sequence into the previous one of this
    *  set.  Returns true if there are more sequences to generate.  If the
    *  sequence is the smallest of the set, the largest is generated and false
@@ -3791,7 +3733,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @brief  Permute range into the previous "dictionary" ordering using
+   *  @brief  Permute range into the previous @a dictionary ordering using
    *          comparison functor.
    *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
@@ -3800,7 +3742,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @return  False if wrapped to last permutation, true otherwise.
    *
    *  Treats all permutations of the range [first,last) as a set of
-   *  "dictionary" sorted sequences ordered by @a comp.  Permutes the current
+   *  @a dictionary sorted sequences ordered by @a comp.  Permutes the current
    *  sequence into the previous one of this set.  Returns true if there are
    *  more sequences to generate.  If the sequence is the smallest of the set,
    *  the largest is generated and false returned.
@@ -4912,6 +4854,9 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
    *
    *  Performs the assignment @c *i = @p gen() for each @c i in the range
    *  @p [first,first+n).
+   *
+   *  _GLIBCXX_RESOLVE_LIB_DEFECTS
+   *  DR 865. More algorithms that throw away information
   */
   template<typename _OutputIterator, typename _Size, typename _Generator>
     _OutputIterator
@@ -5335,8 +5280,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
    *  @param  last1   Another iterator.
    *  @param  last2   Another iterator.
    *  @param  result  An iterator pointing to the end of the merged range.
-   *  @return         An iterator pointing to the first element "not less
-   *                  than" @a val.
+   *  @return         An iterator pointing to the first element <em>not less
+   *                  than</em> @a val.
    *
    *  Merges the ranges [first1,last1) and [first2,last2) into the sorted range
    *  [result, result + (last1-first1) + (last2-first2)).  Both input ranges

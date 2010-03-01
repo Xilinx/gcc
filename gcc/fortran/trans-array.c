@@ -837,7 +837,7 @@ gfc_conv_array_transpose (gfc_se * se, gfc_expr * expr)
 {
   tree dest, src, dest_index, src_index;
   gfc_loopinfo *loop;
-  gfc_ss_info *dest_info, *src_info;
+  gfc_ss_info *dest_info;
   gfc_ss *dest_ss, *src_ss;
   gfc_se src_se;
   int n;
@@ -847,10 +847,8 @@ gfc_conv_array_transpose (gfc_se * se, gfc_expr * expr)
   src_ss = gfc_walk_expr (expr);
   dest_ss = se->ss;
 
-  src_info = &src_ss->data.info;
   dest_info = &dest_ss->data.info;
   gcc_assert (dest_info->dimen == 2);
-  gcc_assert (src_info->dimen == 2);
 
   /* Get a descriptor for EXPR.  */
   gfc_init_se (&src_se, NULL);
@@ -3459,13 +3457,9 @@ gfc_conv_resolve_dependencies (gfc_loopinfo * loop, gfc_ss * dest,
   gfc_ss *ss;
   gfc_ref *lref;
   gfc_ref *rref;
-  gfc_ref *aref;
   int nDepend = 0;
-  int temp_dim = 0;
 
   loop->temp_ss = NULL;
-  aref = dest->data.info.ref;
-  temp_dim = 0;
 
   for (ss = rss; ss != gfc_ss_terminator; ss = ss->next)
     {
@@ -3514,7 +3508,6 @@ gfc_conv_resolve_dependencies (gfc_loopinfo * loop, gfc_ss * dest,
 		  if (depends[n])
 		  loop->order[dim++] = n;
 		}
-	      temp_dim = dim;
 	      for (n = 0; n < loop->dimen; n++)
 	        {
 		  if (! depends[n])
@@ -3557,12 +3550,10 @@ void
 gfc_conv_loop_setup (gfc_loopinfo * loop, locus * where)
 {
   int n;
-  int dim;
   gfc_ss_info *info;
   gfc_ss_info *specinfo;
   gfc_ss *ss;
   tree tmp;
-  tree len;
   gfc_ss *loopspec[GFC_MAX_DIMENSIONS];
   bool dynamic[GFC_MAX_DIMENSIONS];
   gfc_constructor *c;
@@ -3743,7 +3734,6 @@ gfc_conv_loop_setup (gfc_loopinfo * loop, locus * where)
 			 loop->temp_ss->string_length);
 
       tmp = loop->temp_ss->data.temp.type;
-      len = loop->temp_ss->string_length;
       n = loop->temp_ss->data.temp.dimen;
       memset (&loop->temp_ss->data.info, 0, sizeof (gfc_ss_info));
       loop->temp_ss->type = GFC_SS_SECTION;
@@ -3775,8 +3765,6 @@ gfc_conv_loop_setup (gfc_loopinfo * loop, locus * where)
 
       for (n = 0; n < info->dimen; n++)
 	{
-	  dim = info->dim[n];
-
 	  /* If we are specifying the range the delta is already set.  */
 	  if (loopspec[n] != ss)
 	    {
@@ -4121,11 +4109,11 @@ gfc_conv_array_initializer (tree type, gfc_expr * expr)
             {
               /* Problems occur when we get something like
                  integer :: a(lots) = (/(i, i=1, lots)/)  */
-              gfc_error_now ("The number of elements in the array constructor "
-			     "at %L requires an increase of the allowed %d "
-			     "upper limit.   See -fmax-array-constructor "
-			     "option", &expr->where,
-			     gfc_option.flag_max_array_constructor);
+              gfc_fatal_error ("The number of elements in the array constructor "
+			       "at %L requires an increase of the allowed %d "
+			       "upper limit.   See -fmax-array-constructor "
+			       "option", &expr->where,
+			       gfc_option.flag_max_array_constructor);
 	      return NULL_TREE;
 	    }
           if (mpz_cmp_si (c->n.offset, 0) != 0)
@@ -5480,17 +5468,27 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
   tree tmp = NULL_TREE;
   tree stmt;
   tree parent = DECL_CONTEXT (current_function_decl);
-  bool full_array_var, this_array_result;
+  bool full_array_var;
+  bool this_array_result;
+  bool contiguous;
   gfc_symbol *sym;
   stmtblock_t block;
+  gfc_ref *ref;
 
-  full_array_var = (expr->expr_type == EXPR_VARIABLE
-		    && expr->ref->type == REF_ARRAY
-		    && expr->ref->u.ar.type == AR_FULL);
+  for (ref = expr->ref; ref; ref = ref->next)
+    if (ref->next == NULL)
+      break;
+
+  full_array_var = false;
+  contiguous = false;
+
+  if (expr->expr_type == EXPR_VARIABLE && ref)
+    full_array_var = gfc_full_array_ref_p (ref, &contiguous);
+
   sym = full_array_var ? expr->symtree->n.sym : NULL;
 
   /* The symbol should have an array specification.  */
-  gcc_assert (!sym || sym->as);
+  gcc_assert (!sym || sym->as || ref->u.ar.as);
 
   if (expr->expr_type == EXPR_ARRAY && expr->ts.type == BT_CHARACTER)
     {
@@ -5513,6 +5511,14 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
 
       if (sym->ts.type == BT_CHARACTER)
 	se->string_length = sym->ts.u.cl->backend_decl;
+
+      if (sym->ts.type == BT_DERIVED && !sym->as)
+	{
+	  gfc_conv_expr_descriptor (se, expr, ss);
+	  se->expr = gfc_conv_array_data (se->expr);
+	  return;
+	}
+
       if (!sym->attr.pointer && sym->as->type != AS_ASSUMED_SHAPE 
           && !sym->attr.allocatable)
         {
@@ -5526,6 +5532,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
 	    array_parameter_size (tmp, expr, size);
 	  return;
         }
+
       if (sym->attr.allocatable)
         {
 	  if (sym->attr.dummy || sym->attr.result)
@@ -5538,6 +5545,18 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
 	  se->expr = gfc_conv_array_data (tmp);
           return;
         }
+    }
+
+  if (contiguous && g77 && !this_array_result
+	&& !expr->symtree->n.sym->attr.dummy)
+    {
+      gfc_conv_expr_descriptor (se, expr, ss);
+      if (expr->ts.type == BT_CHARACTER)
+	se->string_length = expr->ts.u.cl->backend_decl;
+      if (size)
+	array_parameter_size (se->expr, expr, size);
+      se->expr = gfc_conv_array_data (se->expr);
+      return;
     }
 
   if (this_array_result)
@@ -5723,10 +5742,12 @@ get_full_array_size (stmtblock_t *block, tree decl, int rank)
 }
 
 
-/* Allocate dest to the same size as src, and copy src -> dest.  */
+/* Allocate dest to the same size as src, and copy src -> dest.
+   If no_malloc is set, only the copy is done.  */
 
-tree
-gfc_duplicate_allocatable(tree dest, tree src, tree type, int rank)
+static tree
+duplicate_allocatable(tree dest, tree src, tree type, int rank,
+		      bool no_malloc)
 {
   tree tmp;
   tree size;
@@ -5735,35 +5756,66 @@ gfc_duplicate_allocatable(tree dest, tree src, tree type, int rank)
   tree null_data;
   stmtblock_t block;
 
-  /* If the source is null, set the destination to null.  */
-  gfc_init_block (&block);
-  gfc_conv_descriptor_data_set (&block, dest, null_pointer_node);
-  null_data = gfc_finish_block (&block);
-
+  /* If the source is null, set the destination to null.  Then,
+     allocate memory to the destination.  */
   gfc_init_block (&block);
 
-  nelems = get_full_array_size (&block, src, rank);
-  size = fold_build2 (MULT_EXPR, gfc_array_index_type, nelems,
-		      fold_convert (gfc_array_index_type,
-				    TYPE_SIZE_UNIT (gfc_get_element_type (type))));
+  if (rank == 0)
+    {
+      tmp = null_pointer_node;
+      tmp = fold_build2 (MODIFY_EXPR, type, dest, tmp);
+      gfc_add_expr_to_block (&block, tmp);
+      null_data = gfc_finish_block (&block);
 
-  /* Allocate memory to the destination.  */
-  tmp = gfc_call_malloc (&block, TREE_TYPE (gfc_conv_descriptor_data_get (src)),
-			 size);
-  gfc_conv_descriptor_data_set (&block, dest, tmp);
+      gfc_init_block (&block);
+      size = TYPE_SIZE_UNIT (type);
+      if (!no_malloc)
+	{
+	  tmp = gfc_call_malloc (&block, type, size);
+	  tmp = fold_build2 (MODIFY_EXPR, void_type_node, dest,
+			     fold_convert (type, tmp));
+	  gfc_add_expr_to_block (&block, tmp);
+	}
 
-  /* We know the temporary and the value will be the same length,
-     so can use memcpy.  */
-  tmp = built_in_decls[BUILT_IN_MEMCPY];
-  tmp = build_call_expr_loc (input_location,
-			 tmp, 3, gfc_conv_descriptor_data_get (dest),
-  			 gfc_conv_descriptor_data_get (src), size);
+      tmp = built_in_decls[BUILT_IN_MEMCPY];
+      tmp = build_call_expr_loc (input_location, tmp, 3,
+				 dest, src, size);
+    }
+  else
+    {
+      gfc_conv_descriptor_data_set (&block, dest, null_pointer_node);
+      null_data = gfc_finish_block (&block);
+
+      gfc_init_block (&block);
+      nelems = get_full_array_size (&block, src, rank);
+      tmp = fold_convert (gfc_array_index_type,
+			  TYPE_SIZE_UNIT (gfc_get_element_type (type)));
+      size = fold_build2 (MULT_EXPR, gfc_array_index_type, nelems, tmp);
+      if (!no_malloc)
+	{
+	  tmp = TREE_TYPE (gfc_conv_descriptor_data_get (src));
+	  tmp = gfc_call_malloc (&block, tmp, size);
+	  gfc_conv_descriptor_data_set (&block, dest, tmp);
+	}
+
+      /* We know the temporary and the value will be the same length,
+	 so can use memcpy.  */
+      tmp = built_in_decls[BUILT_IN_MEMCPY];
+      tmp = build_call_expr_loc (input_location,
+			tmp, 3, gfc_conv_descriptor_data_get (dest),
+			gfc_conv_descriptor_data_get (src), size);
+    }
+
   gfc_add_expr_to_block (&block, tmp);
   tmp = gfc_finish_block (&block);
 
   /* Null the destination if the source is null; otherwise do
      the allocate and copy.  */
-  null_cond = gfc_conv_descriptor_data_get (src);
+  if (rank == 0)
+    null_cond = src;
+  else
+    null_cond = gfc_conv_descriptor_data_get (src);
+
   null_cond = convert (pvoid_type_node, null_cond);
   null_cond = fold_build2 (NE_EXPR, boolean_type_node,
 			   null_cond, null_pointer_node);
@@ -5771,11 +5823,30 @@ gfc_duplicate_allocatable(tree dest, tree src, tree type, int rank)
 }
 
 
+/* Allocate dest to the same size as src, and copy data src -> dest.  */
+
+tree
+gfc_duplicate_allocatable (tree dest, tree src, tree type, int rank)
+{
+  return duplicate_allocatable(dest, src, type, rank, false);
+}
+
+
+/* Copy data src -> dest.  */
+
+tree
+gfc_copy_allocatable_data (tree dest, tree src, tree type, int rank)
+{
+  return duplicate_allocatable(dest, src, type, rank, true);
+}
+
+
 /* Recursively traverse an object of derived type, generating code to
    deallocate, nullify or copy allocatable components.  This is the work horse
    function for the functions named in this enum.  */
 
-enum {DEALLOCATE_ALLOC_COMP = 1, NULLIFY_ALLOC_COMP, COPY_ALLOC_COMP};
+enum {DEALLOCATE_ALLOC_COMP = 1, NULLIFY_ALLOC_COMP, COPY_ALLOC_COMP,
+      COPY_ONLY_ALLOC_COMP};
 
 static tree
 structure_alloc_comps (gfc_symbol * der_type, tree decl,
@@ -5798,7 +5869,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 
   gfc_init_block (&fnblock);
 
-  if (POINTER_TYPE_P (TREE_TYPE (decl)))
+  if (POINTER_TYPE_P (TREE_TYPE (decl)) && rank != 0)
     decl = build_fold_indirect_ref_loc (input_location,
 				    decl);
 
@@ -5852,6 +5923,14 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 					 gfc_conv_array_data (dest));
 	  dref = gfc_build_array_ref (tmp, index, NULL);
 	  tmp = structure_alloc_comps (der_type, vref, dref, rank, purpose);
+	}
+      else if (purpose == COPY_ONLY_ALLOC_COMP)
+        {
+	  tmp = build_fold_indirect_ref_loc (input_location,
+					 gfc_conv_array_data (dest));
+	  dref = gfc_build_array_ref (tmp, index, NULL);
+	  tmp = structure_alloc_comps (der_type, vref, dref, rank,
+				       COPY_ALLOC_COMP);
 	}
       else
         tmp = structure_alloc_comps (der_type, vref, NULL_TREE, rank, purpose);
@@ -5990,7 +6069,8 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 
 	  if (c->attr.allocatable && !cmp_has_alloc_comps)
 	    {
-	      tmp = gfc_duplicate_allocatable(dcmp, comp, ctype, c->as->rank);
+	      rank = c->as ? c->as->rank : 0;
+	      tmp = gfc_duplicate_allocatable(dcmp, comp, ctype, rank);
 	      gfc_add_expr_to_block (&fnblock, tmp);
 	    }
 
@@ -6037,12 +6117,22 @@ gfc_deallocate_alloc_comp (gfc_symbol * der_type, tree decl, int rank)
 
 
 /* Recursively traverse an object of derived type, generating code to
-   copy its allocatable components.  */
+   copy it and its allocatable components.  */
 
 tree
 gfc_copy_alloc_comp (gfc_symbol * der_type, tree decl, tree dest, int rank)
 {
   return structure_alloc_comps (der_type, decl, dest, rank, COPY_ALLOC_COMP);
+}
+
+
+/* Recursively traverse an object of derived type, generating code to
+   copy only its allocatable components.  */
+
+tree
+gfc_copy_only_alloc_comp (gfc_symbol * der_type, tree decl, tree dest, int rank)
+{
+  return structure_alloc_comps (der_type, decl, dest, rank, COPY_ONLY_ALLOC_COMP);
 }
 
 
@@ -6180,7 +6270,6 @@ gfc_walk_variable_expr (gfc_ss * ss, gfc_expr * expr)
   gfc_ref *ref;
   gfc_array_ref *ar;
   gfc_ss *newss;
-  gfc_ss *head;
   int n;
 
   for (ref = expr->ref; ref; ref = ref->next)
@@ -6252,8 +6341,6 @@ gfc_walk_variable_expr (gfc_ss * ss, gfc_expr * expr)
 	  newss->next = ss;
 	  newss->data.info.dimen = 0;
 	  newss->data.info.ref = ref;
-
-	  head = newss;
 
           /* We add SS chains for all the subscripts in the section.  */
 	  for (n = 0; n < ar->dimen; n++)

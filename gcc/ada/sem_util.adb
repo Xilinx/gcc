@@ -7040,9 +7040,58 @@ package body Sem_Util is
    function Is_Value_Type (T : Entity_Id) return Boolean is
    begin
       return VM_Target = CLI_Target
+        and then Nkind (T) in N_Has_Chars
         and then Chars (T) /= No_Name
         and then Get_Name_String (Chars (T)) = "valuetype";
    end Is_Value_Type;
+
+   -----------------
+   -- Is_Delegate --
+   -----------------
+
+   function Is_Delegate (T : Entity_Id) return Boolean is
+      Desig_Type : Entity_Id;
+
+   begin
+      if VM_Target /= CLI_Target then
+         return False;
+      end if;
+
+      --  Access-to-subprograms are delegates in CIL
+
+      if Ekind (T) = E_Access_Subprogram_Type then
+         return True;
+      end if;
+
+      if Ekind (T) not in Access_Kind then
+
+         --  A delegate is a managed pointer. If no designated type is defined
+         --  it means that it's not a delegate.
+
+         return False;
+      end if;
+
+      Desig_Type := Etype (Directly_Designated_Type (T));
+
+      if not Is_Tagged_Type (Desig_Type) then
+         return False;
+      end if;
+
+      --  Test if the type is inherited from [mscorlib]System.Delegate
+
+      while Etype (Desig_Type) /= Desig_Type loop
+         if Chars (Scope (Desig_Type)) /= No_Name
+           and then Is_Imported (Scope (Desig_Type))
+           and then Get_Name_String (Chars (Scope (Desig_Type))) = "delegate"
+         then
+            return True;
+         end if;
+
+         Desig_Type := Etype (Desig_Type);
+      end loop;
+
+      return False;
+   end Is_Delegate;
 
    -----------------
    -- Is_Variable --
@@ -7051,11 +7100,11 @@ package body Sem_Util is
    function Is_Variable (N : Node_Id) return Boolean is
 
       Orig_Node : constant Node_Id := Original_Node (N);
-      --  We do the test on the original node, since this is basically a
-      --  test of syntactic categories, so it must not be disturbed by
-      --  whatever rewriting might have occurred. For example, an aggregate,
-      --  which is certainly NOT a variable, could be turned into a variable
-      --  by expansion.
+      --  We do the test on the original node, since this is basically a test
+      --  of syntactic categories, so it must not be disturbed by whatever
+      --  rewriting might have occurred. For example, an aggregate, which is
+      --  certainly NOT a variable, could be turned into a variable by
+      --  expansion.
 
       function In_Protected_Function (E : Entity_Id) return Boolean;
       --  Within a protected function, the private components of the
@@ -7237,6 +7286,18 @@ package body Sem_Util is
          end case;
       end if;
    end Is_Variable;
+
+   ---------------------------
+   -- Is_Visibly_Controlled --
+   ---------------------------
+
+   function Is_Visibly_Controlled (T : Entity_Id) return Boolean is
+      Root : constant Entity_Id := Root_Type (T);
+   begin
+      return Chars (Scope (Root)) = Name_Finalization
+        and then Chars (Scope (Scope (Root))) = Name_Ada
+        and then Scope (Scope (Scope (Root))) = Standard_Standard;
+   end Is_Visibly_Controlled;
 
    ------------------------
    -- Is_Volatile_Object --
@@ -10428,6 +10489,10 @@ package body Sem_Util is
                end loop;
             end;
 
+            if Ekind (T) = E_Class_Wide_Subtype then
+               Set_Debug_Info_Needed_If_Not_Set (Equivalent_Type (T));
+            end if;
+
          elsif Is_Array_Type (T) then
             Set_Debug_Info_Needed_If_Not_Set (Component_Type (T));
 
@@ -11315,7 +11380,15 @@ package body Sem_Util is
                L  : constant Node_Id := Left_Opnd (Op);
                R  : constant Node_Id := Right_Opnd (Op);
             begin
-               if Etype (L) = Found_Type
+               --  The case for the message is when the left operand of the
+               --  comparison is the same modular type, or when it is an
+               --  integer literal (or other universal integer expression),
+               --  which would have been typed as the modular type if the
+               --  parens had been there.
+
+               if (Etype (L) = Found_Type
+                     or else
+                   Etype (L) = Universal_Integer)
                  and then Is_Integer_Type (Etype (R))
                then
                   Error_Msg_N

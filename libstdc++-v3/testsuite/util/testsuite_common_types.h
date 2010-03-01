@@ -44,7 +44,7 @@
 #include <tr1/unordered_set>
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-#include <cstdatomic>
+#include <atomic>
 #include <type_traits>
 #endif
 
@@ -426,12 +426,12 @@ namespace __gnu_test
 	{
 	  void __constraint()
 	  {
-	    _Tp a;
-	    _Tp b;
 	    a |= b; // set
 	    a &= ~b; // clear
 	    a ^= b;
 	  }
+	  _Tp a;
+	  _Tp b;
 	};
 
 	void (_Concept::*__x)() __attribute__((unused))

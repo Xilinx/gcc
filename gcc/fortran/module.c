@@ -1,6 +1,7 @@
 /* Handle modules, which amounts to loading and saving symbols and
    their attendant structures.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -77,7 +78,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Don't put any single quote (') in MOD_VERSION, 
    if yout want it to be recognized.  */
-#define MOD_VERSION "3"
+#define MOD_VERSION "4"
 
 
 /* Structure that describes a position within a module file.  */
@@ -741,8 +742,7 @@ static int
 number_use_names (const char *name, bool interface)
 {
   int i = 0;
-  const char *c;
-  c = find_use_name_n (name, &i, interface);
+  find_use_name_n (name, &i, interface);
   return i;
 }
 
@@ -1672,13 +1672,14 @@ typedef enum
   AB_CRAY_POINTER, AB_CRAY_POINTEE, AB_THREADPRIVATE, AB_ALLOC_COMP,
   AB_POINTER_COMP, AB_PRIVATE_COMP, AB_VALUE, AB_VOLATILE, AB_PROTECTED,
   AB_IS_BIND_C, AB_IS_C_INTEROP, AB_IS_ISO_C, AB_ABSTRACT, AB_ZERO_COMP,
-  AB_EXTENSION, AB_IS_CLASS, AB_PROCEDURE, AB_PROC_POINTER
+  AB_IS_CLASS, AB_PROCEDURE, AB_PROC_POINTER, AB_ASYNCHRONOUS
 }
 ab_attribute;
 
 static const mstring attr_bits[] =
 {
     minit ("ALLOCATABLE", AB_ALLOCATABLE),
+    minit ("ASYNCHRONOUS", AB_ASYNCHRONOUS),
     minit ("DIMENSION", AB_DIMENSION),
     minit ("EXTERNAL", AB_EXTERNAL),
     minit ("INTRINSIC", AB_INTRINSIC),
@@ -1712,7 +1713,6 @@ static const mstring attr_bits[] =
     minit ("ZERO_COMP", AB_ZERO_COMP),
     minit ("PROTECTED", AB_PROTECTED),
     minit ("ABSTRACT", AB_ABSTRACT),
-    minit ("EXTENSION", AB_EXTENSION),
     minit ("IS_CLASS", AB_IS_CLASS),
     minit ("PROCEDURE", AB_PROCEDURE),
     minit ("PROC_POINTER", AB_PROC_POINTER),
@@ -1772,7 +1772,7 @@ static void
 mio_symbol_attribute (symbol_attribute *attr)
 {
   atom_type t;
-  unsigned ext_attr;
+  unsigned ext_attr,extension_level;
 
   mio_lparen ();
 
@@ -1781,14 +1781,21 @@ mio_symbol_attribute (symbol_attribute *attr)
   attr->proc = MIO_NAME (procedure_type) (attr->proc, procedures);
   attr->if_source = MIO_NAME (ifsrc) (attr->if_source, ifsrc_types);
   attr->save = MIO_NAME (save_state) (attr->save, save_status);
+  
   ext_attr = attr->ext_attr;
   mio_integer ((int *) &ext_attr);
   attr->ext_attr = ext_attr;
+
+  extension_level = attr->extension;
+  mio_integer ((int *) &extension_level);
+  attr->extension = extension_level;
 
   if (iomode == IO_OUTPUT)
     {
       if (attr->allocatable)
 	MIO_NAME (ab_attribute) (AB_ALLOCATABLE, attr_bits);
+      if (attr->asynchronous)
+	MIO_NAME (ab_attribute) (AB_ASYNCHRONOUS, attr_bits);
       if (attr->dimension)
 	MIO_NAME (ab_attribute) (AB_DIMENSION, attr_bits);
       if (attr->external)
@@ -1859,8 +1866,6 @@ mio_symbol_attribute (symbol_attribute *attr)
 	MIO_NAME (ab_attribute) (AB_PRIVATE_COMP, attr_bits);
       if (attr->zero_comp)
 	MIO_NAME (ab_attribute) (AB_ZERO_COMP, attr_bits);
-      if (attr->extension)
-	MIO_NAME (ab_attribute) (AB_EXTENSION, attr_bits);
       if (attr->is_class)
 	MIO_NAME (ab_attribute) (AB_IS_CLASS, attr_bits);
       if (attr->procedure)
@@ -1885,6 +1890,9 @@ mio_symbol_attribute (symbol_attribute *attr)
 	    {
 	    case AB_ALLOCATABLE:
 	      attr->allocatable = 1;
+	      break;
+	    case AB_ASYNCHRONOUS:
+	      attr->asynchronous = 1;
 	      break;
 	    case AB_DIMENSION:
 	      attr->dimension = 1;
@@ -1984,9 +1992,6 @@ mio_symbol_attribute (symbol_attribute *attr)
 	      break;
 	    case AB_ZERO_COMP:
 	      attr->zero_comp = 1;
-	      break;
-	    case AB_EXTENSION:
-	      attr->extension = 1;
 	      break;
 	    case AB_IS_CLASS:
 	      attr->is_class = 1;
@@ -2922,12 +2927,27 @@ fix_mio_expr (gfc_expr *e)
     }
   else if (e->expr_type == EXPR_FUNCTION && e->value.function.name)
     {
+      gfc_symbol *sym;
+
       /* In some circumstances, a function used in an initialization
 	 expression, in one use associated module, can fail to be
 	 coupled to its symtree when used in a specification
 	 expression in another module.  */
       fname = e->value.function.esym ? e->value.function.esym->name
 				     : e->value.function.isym->name;
+      e->symtree = gfc_find_symtree (gfc_current_ns->sym_root, fname);
+
+      if (e->symtree)
+	return;
+
+      /* This is probably a reference to a private procedure from another
+	 module.  To prevent a segfault, make a generic with no specific
+	 instances.  If this module is used, without the required
+	 specific coming from somewhere, the appropriate error message
+	 is issued.  */
+      gfc_get_symbol (fname, gfc_current_ns, &sym);
+      sym->attr.flavor = FL_PROCEDURE;
+      sym->attr.generic = 1;
       e->symtree = gfc_find_symtree (gfc_current_ns->sym_root, fname);
     }
 }
@@ -3469,7 +3489,7 @@ mio_f2k_derived (gfc_namespace *f2k)
   else
     while (peek_atom () != ATOM_RPAREN)
       {
-	gfc_intrinsic_op op;
+	gfc_intrinsic_op op = GFC_INTRINSIC_BEGIN; /* Silence GCC.  */
 
 	mio_lparen ();
 	mio_intrinsic_op (&op);
@@ -3575,7 +3595,7 @@ mio_symbol (gfc_symbol *sym)
   mio_integer (&(sym->intmod_sym_id));
 
   if (sym->attr.flavor == FL_DERIVED)
-    mio_integer (&(sym->vindex));
+    mio_integer (&(sym->hash_value));
 
   mio_rparen ();
 }
@@ -3746,8 +3766,9 @@ load_generic_interfaces (void)
   const char *p;
   char name[GFC_MAX_SYMBOL_LEN + 1], module[GFC_MAX_SYMBOL_LEN + 1];
   gfc_symbol *sym;
-  gfc_interface *generic = NULL;
+  gfc_interface *generic = NULL, *gen = NULL;
   int n, i, renamed;
+  bool ambiguous_set = false;
 
   mio_lparen ();
 
@@ -3832,9 +3853,13 @@ load_generic_interfaces (void)
 	      sym = st->n.sym;
 
 	      if (st && !sym->attr.generic
+		     && !st->ambiguous
 		     && sym->module
 		     && strcmp(module, sym->module))
-		st->ambiguous = 1;
+		{
+		  ambiguous_set = true;
+		  st->ambiguous = 1;
+		}
 	    }
 
 	  sym->attr.use_only = only_flag;
@@ -3850,6 +3875,26 @@ load_generic_interfaces (void)
 	      sym->generic = generic;
 	      sym->attr.generic_copy = 1;
 	    }
+
+	  /* If a procedure that is not generic has generic interfaces
+	     that include itself, it is generic! We need to take care
+	     to retain symbols ambiguous that were already so.  */
+	  if (sym->attr.use_assoc
+		&& !sym->attr.generic
+		&& sym->attr.flavor == FL_PROCEDURE)
+	    {
+	      for (gen = generic; gen; gen = gen->next)
+		{
+		  if (gen->sym == sym)
+		    {
+		      sym->attr.generic = 1;
+		      if (ambiguous_set)
+		        st->ambiguous = 0;
+		      break;
+		    }
+		}
+	    }
+
 	}
     }
 
@@ -3977,7 +4022,7 @@ load_equiv (void)
 static void
 load_derived_extensions (void)
 {
-  int symbol, nuse, j;
+  int symbol, j;
   gfc_symbol *derived;
   gfc_symbol *dt;
   gfc_symtree *st;
@@ -4013,7 +4058,6 @@ load_derived_extensions (void)
 	  mio_internal_string (module);
 
           /* Only use one use name to find the symbol.  */
-	  nuse = number_use_names (name, false);
 	  j = 1;
 	  p = find_use_name_n (name, &j, false);
 	  if (p)
@@ -4453,8 +4497,6 @@ read_module (void)
 		 module_name);
     }
 
-  gfc_check_interfaces (gfc_current_ns);
-
   /* Now we should be in a position to fill f2k_derived with derived type
      extensions, since everything has been loaded.  */
   set_module_locus (&extensions);
@@ -4673,6 +4715,10 @@ write_equiv (void)
 static void
 write_dt_extensions (gfc_symtree *st)
 {
+  if (!gfc_check_access (st->n.sym->attr.access,
+			 st->n.sym->ns->default_access))
+    return;
+
   mio_lparen ();
   mio_pool_string (&st->n.sym->name);
   if (st->n.sym->module != NULL)
@@ -5490,9 +5536,9 @@ gfc_use_module (void)
 
 	  if (strcmp (atom_string, MOD_VERSION))
 	    {
-	      gfc_fatal_error ("Wrong module version '%s' (expected '"
-			       MOD_VERSION "') for file '%s' opened"
-			       " at %C", atom_string, filename);
+	      gfc_fatal_error ("Wrong module version '%s' (expected '%s') "
+			       "for file '%s' opened at %C", atom_string,
+			       MOD_VERSION, filename);
 	    }
 	}
 

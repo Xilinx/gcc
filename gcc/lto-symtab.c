@@ -86,7 +86,7 @@ lto_symtab_entry_eq (const void *p1, const void *p2)
 }
 
 /* Returns non-zero if P points to an lto_symtab_entry_def struct that needs
-   to be marked for GC.  */ 
+   to be marked for GC.  */
 
 static int
 lto_symtab_entry_marked_p (const void *p)
@@ -221,6 +221,25 @@ lto_cgraph_replace_node (struct cgraph_node *node,
       cgraph_remove_edge (e);
     }
 
+  if (node->same_body)
+    {
+      struct cgraph_node *alias;
+
+      for (alias = node->same_body; alias; alias = alias->next)
+	if (DECL_ASSEMBLER_NAME_SET_P (alias->decl))
+	  {
+	    lto_symtab_entry_t se
+	      = lto_symtab_get (DECL_ASSEMBLER_NAME (alias->decl));
+
+	    for (; se; se = se->next)
+	      if (se->node == node)
+		{
+		  se->node = NULL;
+		  break;
+		}
+	  }
+    }
+
   /* Finally remove the replaced node.  */
   cgraph_remove_node (node);
 }
@@ -352,7 +371,10 @@ lto_symtab_resolve_replaceable_p (lto_symtab_entry_t e)
 static bool
 lto_symtab_resolve_can_prevail_p (lto_symtab_entry_t e)
 {
-  if (!TREE_STATIC (e->decl))
+  /* The C++ frontend ends up neither setting TREE_STATIC nor
+     DECL_EXTERNAL on virtual methods but only TREE_PUBLIC.
+     So do not reject !TREE_STATIC here but only DECL_EXTERNAL.  */
+  if (DECL_EXTERNAL (e->decl))
     return false;
 
   /* For functions we need a non-discarded body.  */
@@ -376,20 +398,26 @@ lto_symtab_resolve_can_prevail_p (lto_symtab_entry_t e)
 static void
 lto_symtab_resolve_symbols (void **slot)
 {
-  lto_symtab_entry_t e = (lto_symtab_entry_t) *slot;
+  lto_symtab_entry_t e;
   lto_symtab_entry_t prevailing = NULL;
 
-  /* If the chain is already resolved there is nothing to do.  */
+  /* Always set e->node so that edges are updated to reflect decl merging. */
+  for (e = (lto_symtab_entry_t) *slot; e; e = e->next)
+    {
+      if (TREE_CODE (e->decl) == FUNCTION_DECL)
+	e->node = cgraph_get_node (e->decl);
+    }
+
+  e = (lto_symtab_entry_t) *slot;
+
+  /* If the chain is already resolved there is nothing else to do.  */
   if (e->resolution != LDPR_UNKNOWN)
     return;
 
   /* Find the single non-replaceable prevailing symbol and
      diagnose ODR violations.  */
-  for (; e; e = e->next)
+  for (e = (lto_symtab_entry_t) *slot; e; e = e->next)
     {
-      if (TREE_CODE (e->decl) == FUNCTION_DECL)
-	e->node = cgraph_get_node (e->decl);
-
       if (!lto_symtab_resolve_can_prevail_p (e))
 	{
 	  e->resolution = LDPR_RESOLVED_IR;
@@ -628,7 +656,22 @@ lto_symtab_merge_cgraph_nodes_1 (void **slot, void *data ATTRIBUTE_UNUSED)
   for (e = prevailing->next; e; e = e->next)
     {
       if (e->node != NULL)
-	lto_cgraph_replace_node (e->node, prevailing->node);
+	{
+	  if (e->node->decl != e->decl && e->node->same_body)
+	    {
+	      struct cgraph_node *alias;
+
+	      for (alias = e->node->same_body; alias; alias = alias->next)
+		if (alias->decl == e->decl)
+		  break;
+	      if (alias)
+		{
+		  cgraph_remove_same_body_alias (alias);
+		  continue;
+		}
+	    }
+	  lto_cgraph_replace_node (e->node, prevailing->node);
+	}
     }
 
   /* Drop all but the prevailing decl from the symtab.  */

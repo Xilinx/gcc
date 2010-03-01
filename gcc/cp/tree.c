@@ -37,10 +37,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "convert.h"
 #include "tree-flow.h"
+#include "cgraph.h"
 
 static tree bot_manip (tree *, int *, void *);
 static tree bot_replace (tree *, int *, void *);
-static tree build_cplus_array_type_1 (tree, tree);
 static int list_hash_eq (const void *, const void *);
 static hashval_t list_hash_pieces (tree, tree, tree);
 static hashval_t list_hash (const void *);
@@ -555,8 +555,8 @@ rvalue (tree expr)
 
      Non-class rvalues always have cv-unqualified types.  */
   type = TREE_TYPE (expr);
-  if (!CLASS_TYPE_P (type) && cp_type_quals (type))
-    type = cp_build_qualified_type (type, TYPE_UNQUALIFIED);
+  if (!CLASS_TYPE_P (type) && cv_qualified_p (type))
+    type = cv_unqualified (type);
 
   /* We need to do this for rvalue refs as well to get the right answer
      from decltype; see c++/36628.  */
@@ -600,14 +600,14 @@ cplus_array_compare (const void * k1, const void * k2)
   return (TREE_TYPE (t1) == t2->type && TYPE_DOMAIN (t1) == t2->domain);
 }
 
-/* Hash table containing all of the C++ array types, including
-   dependent array types and array types whose element type is
-   cv-qualified.  */
+/* Hash table containing dependent array types, which are unsuitable for
+   the language-independent type hash table.  */
 static GTY ((param_is (union tree_node))) htab_t cplus_array_htab;
 
+/* Like build_array_type, but handle special C++ semantics.  */
 
-static tree
-build_cplus_array_type_1 (tree elt_type, tree index_type)
+tree
+build_cplus_array_type (tree elt_type, tree index_type)
 {
   tree t;
 
@@ -664,29 +664,26 @@ build_cplus_array_type_1 (tree elt_type, tree index_type)
   else
     t = build_array_type (elt_type, index_type);
 
+  /* We want TYPE_MAIN_VARIANT of an array to strip cv-quals from the
+     element type as well, so fix it up if needed.  */
+  if (elt_type != TYPE_MAIN_VARIANT (elt_type))
+    {
+      tree m = build_cplus_array_type (TYPE_MAIN_VARIANT (elt_type),
+				       index_type);
+      if (TYPE_MAIN_VARIANT (t) != m)
+	{
+	  TYPE_MAIN_VARIANT (t) = m;
+	  TYPE_NEXT_VARIANT (t) = TYPE_NEXT_VARIANT (m);
+	  TYPE_NEXT_VARIANT (m) = t;
+	}
+    }
+
   /* Push these needs up so that initialization takes place
      more easily.  */
   TYPE_NEEDS_CONSTRUCTING (t)
     = TYPE_NEEDS_CONSTRUCTING (TYPE_MAIN_VARIANT (elt_type));
   TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t)
     = TYPE_HAS_NONTRIVIAL_DESTRUCTOR (TYPE_MAIN_VARIANT (elt_type));
-  return t;
-}
-
-tree
-build_cplus_array_type (tree elt_type, tree index_type)
-{
-  tree t;
-  int type_quals = cp_type_quals (elt_type);
-
-  if (type_quals != TYPE_UNQUALIFIED)
-    elt_type = cp_build_qualified_type (elt_type, TYPE_UNQUALIFIED);
-
-  t = build_cplus_array_type_1 (elt_type, index_type);
-
-  if (type_quals != TYPE_UNQUALIFIED)
-    t = cp_build_qualified_type (t, type_quals);
-
   return t;
 }
 
@@ -810,41 +807,27 @@ cp_build_qualified_type_real (tree type,
       if (element_type == error_mark_node)
 	return error_mark_node;
 
-      /* See if we already have an identically qualified type.  */
+      /* See if we already have an identically qualified type.  Tests
+	 should be equivalent to those in check_qualified_type.  */
       for (t = TYPE_MAIN_VARIANT (type); t; t = TYPE_NEXT_VARIANT (t))
 	if (cp_type_quals (t) == type_quals
 	    && TYPE_NAME (t) == TYPE_NAME (type)
-	    && TYPE_CONTEXT (t) == TYPE_CONTEXT (type))
+	    && TYPE_CONTEXT (t) == TYPE_CONTEXT (type)
+	    && attribute_list_equal (TYPE_ATTRIBUTES (t),
+				     TYPE_ATTRIBUTES (type)))
 	  break;
 
       if (!t)
-      {
-	t = build_cplus_array_type_1 (element_type, TYPE_DOMAIN (type));
+	{
+	  t = build_cplus_array_type (element_type, TYPE_DOMAIN (type));
 
-	if (TYPE_MAIN_VARIANT (t) != TYPE_MAIN_VARIANT (type))
-	  {
-	    /* Set the main variant of the newly-created ARRAY_TYPE
-	       (with cv-qualified element type) to the main variant of
-	       the unqualified ARRAY_TYPE we started with.  */
-	    tree last_variant = t;
-	    tree m = TYPE_MAIN_VARIANT (type);
-
-	    /* Find the last variant on the new ARRAY_TYPEs list of
-	       variants, setting the main variant of each of the other
-	       types to the main variant of our unqualified
-	       ARRAY_TYPE.  */
-	    while (TYPE_NEXT_VARIANT (last_variant))
-	      {
-		TYPE_MAIN_VARIANT (last_variant) = m;
-		last_variant = TYPE_NEXT_VARIANT (last_variant);
-	      }
-
-	    /* Splice in the newly-created variants.  */
-	    TYPE_NEXT_VARIANT (last_variant) = TYPE_NEXT_VARIANT (m);
-	    TYPE_NEXT_VARIANT (m) = t;
-	    TYPE_MAIN_VARIANT (last_variant) = m;
-	  }
-      }
+	  /* Keep the typedef name.  */
+	  if (TYPE_NAME (t) != TYPE_NAME (type))
+	    {
+	      t = build_variant_type_copy (t);
+	      TYPE_NAME (t) = TYPE_NAME (type);
+	    }
+	}
 
       /* Even if we already had this variant, we update
 	 TYPE_NEEDS_CONSTRUCTING and TYPE_HAS_NONTRIVIAL_DESTRUCTOR in case
@@ -1050,6 +1033,10 @@ strip_typedefs (tree t)
 	else
 	    result = build_function_type (type,
 					  arg_types);
+
+	if (TYPE_RAISES_EXCEPTIONS (t))
+	  result = build_exception_variant (result,
+					    TYPE_RAISES_EXCEPTIONS (t));
       }
       break;
     default:
@@ -1058,7 +1045,32 @@ strip_typedefs (tree t)
 
   if (!result)
       result = TYPE_MAIN_VARIANT (t);
+  if (TYPE_ATTRIBUTES (t))
+    result = cp_build_type_attribute_variant (result, TYPE_ATTRIBUTES (t));
   return cp_build_qualified_type (result, cp_type_quals (t));
+}
+
+/* Returns true iff TYPE is a type variant created for a typedef. */
+
+bool
+typedef_variant_p (tree type)
+{
+  return is_typedef_decl (TYPE_NAME (type));
+}
+
+/* Setup a TYPE_DECL node as a typedef representation.
+   See comments of set_underlying_type in c-common.c.  */
+
+void
+cp_set_underlying_type (tree t)
+{
+  set_underlying_type (t);
+  /* If T is a template type parm, make it require structural equality.
+     This is useful when comparing two template type parms,
+     because it forces the comparison of the template parameters of their
+     decls.  */
+  if (TREE_CODE (TREE_TYPE (t)) == TEMPLATE_TYPE_PARM)
+    SET_TYPE_STRUCTURAL_EQUALITY (TREE_TYPE (t));
 }
 
 
@@ -1476,8 +1488,7 @@ bind_template_template_parm (tree t, tree newargs)
   TEMPLATE_TYPE_PARM_INDEX (t2) = copy_node (TEMPLATE_TYPE_PARM_INDEX (t));
   TEMPLATE_PARM_DECL (TEMPLATE_TYPE_PARM_INDEX (t2)) = decl;
   TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (t2)
-    = tree_cons (TEMPLATE_TEMPLATE_PARM_TEMPLATE_DECL (t),
-		 newargs, NULL_TREE);
+    = build_template_info (TEMPLATE_TEMPLATE_PARM_TEMPLATE_DECL (t), newargs);
 
   TREE_TYPE (decl) = t2;
   TYPE_NAME (t2) = decl;
@@ -1583,7 +1594,7 @@ no_linkage_check (tree t, bool relaxed_p)
       /* Fall through.  */
     case ENUMERAL_TYPE:
       /* Only treat anonymous types as having no linkage if they're at
-	 namespace scope.  This doesn't have a core issue number yet.  */
+	 namespace scope.  This is core issue 966.  */
       if (TYPE_ANONYMOUS_P (t) && TYPE_NAMESPACE_SCOPE_P (t))
 	return t;
 
@@ -2031,7 +2042,9 @@ cp_tree_equal (tree t1, tree t2)
 	       arg2 = next_call_expr_arg (&iter2))
 	  if (!cp_tree_equal (arg1, arg2))
 	    return false;
-	return (arg1 || arg2);
+	if (arg1 || arg2)
+	  return false;
+	return true;
       }
 
     case TARGET_EXPR:
@@ -2262,7 +2275,7 @@ tree
 build_dummy_object (tree type)
 {
   tree decl = build1 (NOP_EXPR, build_pointer_type (type), void_zero_node);
-  return cp_build_indirect_ref (decl, NULL, tf_warning_or_error);
+  return cp_build_indirect_ref (decl, RO_NULL, tf_warning_or_error);
 }
 
 /* We've gotten a reference to a member of TYPE.  Return *this if appropriate,
@@ -2609,7 +2622,8 @@ cp_build_type_attribute_variant (tree type, tree attributes)
   tree new_type;
 
   new_type = build_type_attribute_variant (type, attributes);
-  if (TREE_CODE (new_type) == FUNCTION_TYPE
+  if ((TREE_CODE (new_type) == FUNCTION_TYPE
+       || TREE_CODE (new_type) == METHOD_TYPE)
       && (TYPE_RAISES_EXCEPTIONS (new_type)
 	  != TYPE_RAISES_EXCEPTIONS (type)))
     new_type = build_exception_variant (new_type,
@@ -2925,7 +2939,7 @@ stabilize_expr (tree exp, tree* initp)
       exp = cp_build_unary_op (ADDR_EXPR, exp, 1, tf_warning_or_error);
       init_expr = get_target_expr (exp);
       exp = TARGET_EXPR_SLOT (init_expr);
-      exp = cp_build_indirect_ref (exp, 0, tf_warning_or_error);
+      exp = cp_build_indirect_ref (exp, RO_NULL, tf_warning_or_error);
     }
   *initp = init_expr;
 
@@ -3111,7 +3125,16 @@ cp_fix_function_decl_p (tree decl)
   if (!gimple_has_body_p (decl)
       && !DECL_THUNK_P (decl)
       && !DECL_EXTERNAL (decl))
-    return true;
+    {
+      struct cgraph_node *node = cgraph_get_node (decl);
+
+      /* Don't fix same_body aliases.  Although they don't have their own
+	 CFG, they share it with what they alias to.  */
+      if (!node
+	  || node->decl == decl
+	  || !node->same_body)
+	return true;
+    }
 
   return false;
 }

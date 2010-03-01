@@ -1,5 +1,5 @@
 /* A pass for lowering trees to RTL.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -49,6 +49,10 @@ along with GCC; see the file COPYING3.  If not see
    into RTL.  */
 struct ssaexpand SA;
 
+/* This variable holds the currently expanded gimple statement for purposes
+   of comminucating the profile info to the builtin expanders.  */
+gimple currently_expanding_gimple_stmt;
+
 /* Return an expression tree corresponding to the RHS of GIMPLE
    statement STMT.  */
 
@@ -57,7 +61,7 @@ gimple_assign_rhs_to_tree (gimple stmt)
 {
   tree t;
   enum gimple_rhs_class grhs_class;
-    
+
   grhs_class = get_gimple_rhs_class (gimple_expr_code (stmt));
 
   if (grhs_class == GIMPLE_BINARY_RHS)
@@ -196,6 +200,9 @@ struct stack_var
 
   /* The next stack variable in the partition, or EOC.  */
   size_t next;
+
+  /* The numbers of conflicting stack variables.  */
+  bitmap conflicts;
 };
 
 #define EOC  ((size_t)-1)
@@ -208,11 +215,6 @@ static size_t stack_vars_num;
 /* An array of indices such that stack_vars[stack_vars_sorted[i]].size
    is non-decreasing.  */
 static size_t *stack_vars_sorted;
-
-/* We have an interference graph between such objects.  This graph
-   is lower triangular.  */
-static bool *stack_vars_conflict;
-static size_t stack_vars_conflict_alloc;
 
 /* The phase of the stack frame.  This is the known misalignment of
    virtual_stack_vars_rtx from PREFERRED_STACK_BOUNDARY.  That is,
@@ -315,39 +317,13 @@ add_stack_var (tree decl)
   stack_vars[stack_vars_num].representative = stack_vars_num;
   stack_vars[stack_vars_num].next = EOC;
 
+  /* All variables initially conflict with no other.  */
+  stack_vars[stack_vars_num].conflicts = NULL;
+
   /* Ensure that this decl doesn't get put onto the list twice.  */
   set_rtl (decl, pc_rtx);
 
   stack_vars_num++;
-}
-
-/* Compute the linear index of a lower-triangular coordinate (I, J).  */
-
-static size_t
-triangular_index (size_t i, size_t j)
-{
-  if (i < j)
-    {
-      size_t t;
-      t = i, i = j, j = t;
-    }
-  return (i * (i + 1)) / 2 + j;
-}
-
-/* Ensure that STACK_VARS_CONFLICT is large enough for N objects.  */
-
-static void
-resize_stack_vars_conflict (size_t n)
-{
-  size_t size = triangular_index (n-1, n-1) + 1;
-
-  if (size <= stack_vars_conflict_alloc)
-    return;
-
-  stack_vars_conflict = XRESIZEVEC (bool, stack_vars_conflict, size);
-  memset (stack_vars_conflict + stack_vars_conflict_alloc, 0,
-	  (size - stack_vars_conflict_alloc) * sizeof (bool));
-  stack_vars_conflict_alloc = size;
 }
 
 /* Make the decls associated with luid's X and Y conflict.  */
@@ -355,9 +331,14 @@ resize_stack_vars_conflict (size_t n)
 static void
 add_stack_var_conflict (size_t x, size_t y)
 {
-  size_t index = triangular_index (x, y);
-  gcc_assert (index < stack_vars_conflict_alloc);
-  stack_vars_conflict[index] = true;
+  struct stack_var *a = &stack_vars[x];
+  struct stack_var *b = &stack_vars[y];
+  if (!a->conflicts)
+    a->conflicts = BITMAP_ALLOC (NULL);
+  if (!b->conflicts)
+    b->conflicts = BITMAP_ALLOC (NULL);
+  bitmap_set_bit (a->conflicts, y);
+  bitmap_set_bit (b->conflicts, x);
 }
 
 /* Check whether the decls associated with luid's X and Y conflict.  */
@@ -365,11 +346,13 @@ add_stack_var_conflict (size_t x, size_t y)
 static bool
 stack_var_conflict_p (size_t x, size_t y)
 {
-  size_t index = triangular_index (x, y);
-  gcc_assert (index < stack_vars_conflict_alloc);
-  return stack_vars_conflict[index];
+  struct stack_var *a = &stack_vars[x];
+  struct stack_var *b = &stack_vars[y];
+  if (!a->conflicts || !b->conflicts)
+    return false;
+  return bitmap_bit_p (a->conflicts, y);
 }
- 
+
 /* Returns true if TYPE is or contains a union type.  */
 
 static bool
@@ -612,6 +595,9 @@ static void
 union_stack_vars (size_t a, size_t b, HOST_WIDE_INT offset)
 {
   size_t i, last;
+  struct stack_var *vb = &stack_vars[b];
+  bitmap_iterator bi;
+  unsigned u;
 
   /* Update each element of partition B with the given offset,
      and merge them into partition A.  */
@@ -628,9 +614,12 @@ union_stack_vars (size_t a, size_t b, HOST_WIDE_INT offset)
     stack_vars[a].alignb = stack_vars[b].alignb;
 
   /* Update the interference graph and merge the conflicts.  */
-  for (last = stack_vars_num, i = 0; i < last; ++i)
-    if (stack_var_conflict_p (b, i))
-      add_stack_var_conflict (a, i);
+  if (vb->conflicts)
+    {
+      EXECUTE_IF_SET_IN_BITMAP (vb->conflicts, 0, u, bi)
+	add_stack_var_conflict (a, stack_vars[u].representative);
+      BITMAP_FREE (vb->conflicts);
+    }
 }
 
 /* A subroutine of expand_used_vars.  Binpack the variables into
@@ -664,15 +653,6 @@ partition_stack_vars (void)
     return;
 
   qsort (stack_vars_sorted, n, sizeof (size_t), stack_var_size_cmp);
-
-  /* Special case: detect when all variables conflict, and thus we can't
-     do anything during the partitioning loop.  It isn't uncommon (with
-     C code at least) to declare all variables at the top of the function,
-     and if we're not inlining, then all variables will be in the same scope.
-     Take advantage of very fast libc routines for this scan.  */
-  gcc_assert (sizeof(bool) == sizeof(char));
-  if (memchr (stack_vars_conflict, false, stack_vars_conflict_alloc) == NULL)
-    return;
 
   for (si = 0; si < n; ++si)
     {
@@ -958,7 +938,7 @@ defer_stack_allocation (tree var, bool toplevel)
 
 /* A subroutine of expand_used_vars.  Expand one variable according to
    its flavor.  Variables to be placed on the stack are not actually
-   expanded yet, merely recorded.  
+   expanded yet, merely recorded.
    When REALLY_EXPAND is false, only add stack values to be allocated.
    Return stack usage this variable is supposed to take.
 */
@@ -1031,6 +1011,14 @@ expand_one_var (tree var, bool toplevel, bool really_expand)
       if (really_expand)
         expand_one_register_var (origvar);
     }
+  else if (!host_integerp (DECL_SIZE_UNIT (var), 1))
+    {
+      if (really_expand)
+	{
+	  error ("size of variable %q+D is too large", var);
+	  expand_one_error_var (var);
+	}
+    }
   else if (defer_stack_allocation (var, toplevel))
     add_stack_var (origvar);
   else
@@ -1070,15 +1058,13 @@ expand_used_vars_for_block (tree block, bool toplevel)
   /* Since we do not track exact variable lifetimes (which is not even
      possible for variables whose address escapes), we mirror the block
      tree in the interference graph.  Here we cause all variables at this
-     level, and all sublevels, to conflict.  Do make certain that a
-     variable conflicts with itself.  */
+     level, and all sublevels, to conflict.  */
   if (old_sv_num < this_sv_num)
     {
       new_sv_num = stack_vars_num;
-      resize_stack_vars_conflict (new_sv_num);
 
       for (i = old_sv_num; i < new_sv_num; ++i)
-	for (j = i < this_sv_num ? i+1 : this_sv_num; j-- > old_sv_num ;)
+	for (j = i < this_sv_num ? i : this_sv_num; j-- > old_sv_num ;)
 	  add_stack_var_conflict (i, j);
     }
 }
@@ -1246,42 +1232,23 @@ create_stack_guard (void)
 static HOST_WIDE_INT
 account_used_vars_for_block (tree block, bool toplevel)
 {
-  size_t i, j, old_sv_num, this_sv_num, new_sv_num;
   tree t;
   HOST_WIDE_INT size = 0;
-
-  old_sv_num = toplevel ? 0 : stack_vars_num;
 
   /* Expand all variables at this level.  */
   for (t = BLOCK_VARS (block); t ; t = TREE_CHAIN (t))
     if (TREE_USED (t))
       size += expand_one_var (t, toplevel, false);
 
-  this_sv_num = stack_vars_num;
-
   /* Expand all variables at containing levels.  */
   for (t = BLOCK_SUBBLOCKS (block); t ; t = BLOCK_CHAIN (t))
     size += account_used_vars_for_block (t, false);
 
-  /* Since we do not track exact variable lifetimes (which is not even
-     possible for variables whose address escapes), we mirror the block
-     tree in the interference graph.  Here we cause all variables at this
-     level, and all sublevels, to conflict.  Do make certain that a
-     variable conflicts with itself.  */
-  if (old_sv_num < this_sv_num)
-    {
-      new_sv_num = stack_vars_num;
-      resize_stack_vars_conflict (new_sv_num);
-
-      for (i = old_sv_num; i < new_sv_num; ++i)
-	for (j = i < this_sv_num ? i+1 : this_sv_num; j-- > old_sv_num ;)
-	  add_stack_var_conflict (i, j);
-    }
   return size;
 }
 
 /* Prepare for expanding variables.  */
-static void 
+static void
 init_vars_expansion (void)
 {
   tree t;
@@ -1301,13 +1268,13 @@ init_vars_expansion (void)
 static void
 fini_vars_expansion (void)
 {
+  size_t i, n = stack_vars_num;
+  for (i = 0; i < n; i++)
+    BITMAP_FREE (stack_vars[i].conflicts);
   XDELETEVEC (stack_vars);
   XDELETEVEC (stack_vars_sorted);
-  XDELETEVEC (stack_vars_conflict);
   stack_vars = NULL;
   stack_vars_alloc = stack_vars_num = 0;
-  stack_vars_conflict = NULL;
-  stack_vars_conflict_alloc = 0;
 }
 
 /* Make a fair guess for the size of the stack frame of the current
@@ -1550,7 +1517,7 @@ label_rtx_for_bb (basic_block bb ATTRIBUTE_UNUSED)
     return (rtx) *elt;
 
   /* Find the tree label if it is present.  */
-     
+
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       lab_stmt = gsi_stmt (gsi);
@@ -1572,10 +1539,11 @@ label_rtx_for_bb (basic_block bb ATTRIBUTE_UNUSED)
 
 /* A subroutine of expand_gimple_cond.  Given E, a fallthrough edge
    of a basic block where we just expanded the conditional at the end,
-   possibly clean up the CFG and instruction sequence.  */
+   possibly clean up the CFG and instruction sequence.  LAST is the
+   last instruction before the just emitted jump sequence.  */
 
 static void
-maybe_cleanup_end_of_block (edge e)
+maybe_cleanup_end_of_block (edge e, rtx last)
 {
   /* Special case: when jumpif decides that the condition is
      trivial it emits an unconditional jump (and the necessary
@@ -1590,7 +1558,6 @@ maybe_cleanup_end_of_block (edge e)
      normally isn't there in a cleaned CFG), fix it here.  */
   if (BARRIER_P (get_last_insn ()))
     {
-      basic_block bb = e->src;
       rtx insn;
       remove_edge (e);
       /* Now, we have a single successor block, if we have insns to
@@ -1606,7 +1573,7 @@ maybe_cleanup_end_of_block (edge e)
       /* Make sure we have an unconditional jump.  Otherwise we're
 	 confused.  */
       gcc_assert (JUMP_P (insn) && !any_condjump_p (insn));
-      for (insn = PREV_INSN (insn); insn != BB_HEAD (bb);)
+      for (insn = PREV_INSN (insn); insn != last;)
 	{
 	  insn = PREV_INSN (insn);
 	  if (JUMP_P (NEXT_INSN (insn)))
@@ -1647,13 +1614,35 @@ expand_gimple_cond (basic_block bb, gimple stmt)
       && bitmap_bit_p (SA.values, SSA_NAME_VERSION (op0)))
     {
       gimple second = SSA_NAME_DEF_STMT (op0);
-      if (gimple_code (second) == GIMPLE_ASSIGN
-	  && TREE_CODE_CLASS (gimple_assign_rhs_code (second))
-	     == tcc_comparison)
+      if (gimple_code (second) == GIMPLE_ASSIGN)
 	{
-	  code = gimple_assign_rhs_code (second);
-	  op0 = gimple_assign_rhs1 (second);
-	  op1 = gimple_assign_rhs2 (second);
+	  enum tree_code code2 = gimple_assign_rhs_code (second);
+	  if (TREE_CODE_CLASS (code2) == tcc_comparison)
+	    {
+	      code = code2;
+	      op0 = gimple_assign_rhs1 (second);
+	      op1 = gimple_assign_rhs2 (second);
+	    }
+	  /* If jumps are cheap turn some more codes into
+	     jumpy sequences.  */
+	  else if (BRANCH_COST (optimize_insn_for_speed_p (), false) < 4)
+	    {
+	      if ((code2 == BIT_AND_EXPR
+		   && TYPE_PRECISION (TREE_TYPE (op0)) == 1
+		   && TREE_CODE (gimple_assign_rhs2 (second)) != INTEGER_CST)
+		  || code2 == TRUTH_AND_EXPR)
+		{
+		  code = TRUTH_ANDIF_EXPR;
+		  op0 = gimple_assign_rhs1 (second);
+		  op1 = gimple_assign_rhs2 (second);
+		}
+	      else if (code2 == BIT_IOR_EXPR || code2 == TRUTH_OR_EXPR)
+		{
+		  code = TRUTH_ORIF_EXPR;
+		  op0 = gimple_assign_rhs1 (second);
+		  op1 = gimple_assign_rhs2 (second);
+		}
+	    }
 	}
     }
 
@@ -1685,7 +1674,7 @@ expand_gimple_cond (basic_block bb, gimple stmt)
 	}
       true_edge->goto_block = NULL;
       false_edge->flags |= EDGE_FALLTHRU;
-      maybe_cleanup_end_of_block (false_edge);
+      maybe_cleanup_end_of_block (false_edge, last);
       return NULL;
     }
   if (true_edge->dest == bb->next_bb)
@@ -1701,7 +1690,7 @@ expand_gimple_cond (basic_block bb, gimple stmt)
 	}
       false_edge->goto_block = NULL;
       true_edge->flags |= EDGE_FALLTHRU;
-      maybe_cleanup_end_of_block (true_edge);
+      maybe_cleanup_end_of_block (true_edge, last);
       return NULL;
     }
 
@@ -1756,17 +1745,32 @@ expand_call_stmt (gimple stmt)
 {
   tree exp;
   tree lhs = gimple_call_lhs (stmt);
-  tree fndecl = gimple_call_fndecl (stmt);
   size_t i;
+  bool builtin_p;
+  tree decl;
 
   exp = build_vl_exp (CALL_EXPR, gimple_call_num_args (stmt) + 3);
 
   CALL_EXPR_FN (exp) = gimple_call_fn (stmt);
+  decl = gimple_call_fndecl (stmt);
+  builtin_p = decl && DECL_BUILT_IN (decl);
+
   TREE_TYPE (exp) = gimple_call_return_type (stmt);
   CALL_EXPR_STATIC_CHAIN (exp) = gimple_call_chain (stmt);
 
   for (i = 0; i < gimple_call_num_args (stmt); i++)
-    CALL_EXPR_ARG (exp, i) = gimple_call_arg (stmt, i);
+    {
+      tree arg = gimple_call_arg (stmt, i);
+      gimple def;
+      /* TER addresses into arguments of builtin functions so we have a
+	 chance to infer more correct alignment information.  See PR39954.  */
+      if (builtin_p
+	  && TREE_CODE (arg) == SSA_NAME
+	  && (def = get_gimple_for_ssa_name (arg))
+	  && gimple_assign_rhs_code (def) == ADDR_EXPR)
+	arg = gimple_assign_rhs1 (def);
+      CALL_EXPR_ARG (exp, i) = arg;
+    }
 
   if (gimple_has_side_effects (stmt))
     TREE_SIDE_EFFECTS (exp) = 1;
@@ -1781,15 +1785,6 @@ expand_call_stmt (gimple stmt)
   CALL_EXPR_VA_ARG_PACK (exp) = gimple_call_va_arg_pack_p (stmt);
   SET_EXPR_LOCATION (exp, gimple_location (stmt));
   TREE_BLOCK (exp) = gimple_block (stmt);
-
-  /* Record the original call statement, as it may be used
-     to retrieve profile information during expansion.  */
-
-  if (fndecl && DECL_BUILT_IN (fndecl))
-    {
-      tree_ann_common_t ann = get_tree_common_ann (exp);
-      ann->stmt = stmt;
-    }
 
   if (lhs)
     expand_assignment (lhs, exp, false);
@@ -2237,7 +2232,6 @@ expand_debug_expr (tree exp)
   int unsignedp = TYPE_UNSIGNED (TREE_TYPE (exp));
   addr_space_t as;
   enum machine_mode address_mode;
-  enum machine_mode pointer_mode;
 
   switch (TREE_CODE_CLASS (TREE_CODE (exp)))
     {
@@ -2433,17 +2427,15 @@ expand_debug_expr (tree exp)
 	return NULL;
 
       if (POINTER_TYPE_P (TREE_TYPE (exp)))
-	as = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (exp)));
+	{
+	  as = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (exp)));
+	  address_mode = targetm.addr_space.address_mode (as);
+	}
       else
-	as = ADDR_SPACE_GENERIC;
-
-      address_mode = targetm.addr_space.address_mode (as);
-      pointer_mode = targetm.addr_space.pointer_mode (as);
-
-      gcc_assert (GET_MODE (op0) == address_mode
-		  || GET_MODE (op0) == pointer_mode
-		  || GET_CODE (op0) == CONST_INT
-		  || GET_CODE (op0) == CONST_DOUBLE);
+	{
+	  as = ADDR_SPACE_GENERIC;
+	  address_mode = Pmode;
+	}
 
       if (TREE_CODE (exp) == ALIGN_INDIRECT_REF)
 	{
@@ -2463,19 +2455,11 @@ expand_debug_expr (tree exp)
 	return NULL;
 
       op0 = expand_debug_expr
-	(tree_mem_ref_addr (build_pointer_type (TREE_TYPE (exp)),
-			    exp));
+	    (tree_mem_ref_addr (build_pointer_type (TREE_TYPE (exp)), exp));
       if (!op0)
 	return NULL;
 
       as = TYPE_ADDR_SPACE (TREE_TYPE (exp));
-      address_mode = targetm.addr_space.address_mode (as);
-      pointer_mode = targetm.addr_space.pointer_mode (as);
-
-      gcc_assert (GET_MODE (op0) == address_mode
-		  || GET_MODE (op0) == pointer_mode
-		  || GET_CODE (op0) == CONST_INT
-		  || GET_CODE (op0) == CONST_DOUBLE);
 
       op0 = gen_rtx_MEM (mode, op0);
 
@@ -3106,6 +3090,7 @@ expand_gimple_basic_block (basic_block bb)
       basic_block new_bb;
 
       stmt = gsi_stmt (gsi);
+      currently_expanding_gimple_stmt = stmt;
 
       /* Expand this statement, then evaluate the resulting RTL and
 	 fixup the CFG accordingly.  */
@@ -3193,7 +3178,7 @@ expand_gimple_basic_block (basic_block bb)
 		  /* Ignore this stmt if it is in the list of
 		     replaceable expressions.  */
 		  if (SA.values
-		      && bitmap_bit_p (SA.values, 
+		      && bitmap_bit_p (SA.values,
 				       SSA_NAME_VERSION (DEF_FROM_PTR (def_p))))
 		    continue;
 		}
@@ -3202,6 +3187,8 @@ expand_gimple_basic_block (basic_block bb)
 	    }
 	}
     }
+
+  currently_expanding_gimple_stmt = NULL;
 
   /* Expand implicit goto and convert goto_locus.  */
   FOR_EACH_EDGE (e, ei, bb->succs)
@@ -3218,6 +3205,18 @@ expand_gimple_basic_block (basic_block bb)
 	  emit_jump (label_rtx_for_bb (e->dest));
 	  e->flags &= ~EDGE_FALLTHRU;
 	}
+    }
+
+  /* Expanded RTL can create a jump in the last instruction of block.
+     This later might be assumed to be a jump to successor and break edge insertion.
+     We need to insert dummy move to prevent this. PR41440. */
+  if (single_succ_p (bb)
+      && (single_succ_edge (bb)->flags & EDGE_FALLTHRU)
+      && (last = get_last_insn ())
+      && JUMP_P (last))
+    {
+      rtx dummy = gen_reg_rtx (SImode);
+      emit_insn_after_noloc (gen_move_insn (dummy, dummy), last, NULL);
     }
 
   do_pending_stack_adjust ();
@@ -3442,7 +3441,7 @@ expand_stack_alignment (void)
 
   if (! SUPPORTS_STACK_ALIGNMENT)
     return;
-  
+
   if (cfun->calls_alloca
       || cfun->has_nonlocal_label
       || crtl->has_nonlocal_goto)
@@ -3487,7 +3486,7 @@ expand_stack_alignment (void)
   /* Target has to redefine TARGET_GET_DRAP_RTX to support stack
      alignment.  */
   gcc_assert (targetm.calls.get_drap_rtx != NULL);
-  drap_rtx = targetm.calls.get_drap_rtx (); 
+  drap_rtx = targetm.calls.get_drap_rtx ();
 
   /* stack_realign_drap and drap_rtx must match.  */
   gcc_assert ((stack_realign_drap != 0) == (drap_rtx != NULL));
@@ -3566,10 +3565,10 @@ gimple_expand_cfg (void)
   if (warn_stack_protect)
     {
       if (cfun->calls_alloca)
-	warning (OPT_Wstack_protector, 
+	warning (OPT_Wstack_protector,
 		 "not protecting local variables: variable length buffer");
       if (has_short_buffer && !crtl->stack_protect_guard)
-	warning (OPT_Wstack_protector, 
+	warning (OPT_Wstack_protector,
 		 "not protecting function: no buffer at least %d bytes long",
 		 (int) PARAM_VALUE (PARAM_SSP_BUFFER_SIZE));
     }
@@ -3639,6 +3638,9 @@ gimple_expand_cfg (void)
 
   execute_free_datastructures ();
   finish_out_of_ssa (&SA);
+
+  /* We are no longer in SSA form.  */
+  cfun->gimple_df->in_ssa_p = false;
 
   /* Expansion is used by optimization passes too, set maybe_hot_insn_p
      conservatively to true until they are all profile aware.  */
@@ -3760,7 +3762,8 @@ struct rtl_opt_pass pass_expand =
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
   TV_EXPAND,				/* tv_id */
-  PROP_ssa | PROP_gimple_leh | PROP_cfg,/* properties_required */
+  PROP_ssa | PROP_gimple_leh | PROP_cfg
+    | PROP_gimple_lcx,			/* properties_required */
   PROP_rtl,                             /* properties_provided */
   PROP_ssa | PROP_trees,		/* properties_destroyed */
   TODO_verify_ssa | TODO_verify_flow

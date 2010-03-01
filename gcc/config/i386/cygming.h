@@ -127,8 +127,6 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Enable parsing of #pragma pack(push,<n>) and #pragma pack(pop).  */
 #define HANDLE_PRAGMA_PACK_PUSH_POP 1
-/* Enable push_macro & pop_macro */
-#define HANDLE_PRAGMA_PUSH_POP_MACRO 1
 
 union tree_node;
 #define TREE union tree_node *
@@ -363,6 +361,7 @@ do {						\
     {									\
       const char *alias							\
 	= IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (DECL));		\
+      i386_pe_maybe_record_exported_symbol (DECL, alias, 0);		\
       if (TREE_CODE (DECL) == FUNCTION_DECL)				\
 	i386_pe_declare_function_type (STREAM, alias,			\
 				       TREE_PUBLIC (DECL));		\

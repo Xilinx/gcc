@@ -1553,7 +1553,8 @@ noce_get_alt_condition (struct noce_if_info *if_info, rtx target,
       /* First, look to see if we put a constant in a register.  */
       prev_insn = prev_nonnote_insn (if_info->cond_earliest);
       if (prev_insn
-	  && BLOCK_NUM (prev_insn) == BLOCK_NUM (if_info->cond_earliest)
+	  && BLOCK_FOR_INSN (prev_insn)
+	     == BLOCK_FOR_INSN (if_info->cond_earliest)
 	  && INSN_P (prev_insn)
 	  && GET_CODE (PATTERN (prev_insn)) == SET)
 	{
@@ -1810,7 +1811,7 @@ noce_try_abs (struct noce_if_info *if_info)
     {
       rtx set, insn = prev_nonnote_insn (earliest);
       if (insn
-	  && BLOCK_NUM (insn) == BLOCK_NUM (earliest)
+	  && BLOCK_FOR_INSN (insn) == BLOCK_FOR_INSN (earliest)
 	  && (set = single_set (insn))
 	  && rtx_equal_p (SET_DEST (set), c))
 	{
@@ -2291,7 +2292,7 @@ noce_process_if_block (struct noce_if_info *if_info)
 	 COND_EARLIEST to JUMP.  Make sure the relevant data is still
 	 intact.  */
       if (! insn_b
-	  || BLOCK_NUM (insn_b) != BLOCK_NUM (if_info->cond_earliest)
+	  || BLOCK_FOR_INSN (insn_b) != BLOCK_FOR_INSN (if_info->cond_earliest)
 	  || !NONJUMP_INSN_P (insn_b)
 	  || (set_b = single_set (insn_b)) == NULL_RTX
 	  || ! rtx_equal_p (x, SET_DEST (set_b))
@@ -3765,7 +3766,7 @@ find_if_case_2 (basic_block test_bb, edge then_edge, edge else_edge)
 	     test_bb->index, else_bb->index);
 
   /* ELSE is small.  */
-  if (! cheap_bb_rtx_cost_p (else_bb, 
+  if (! cheap_bb_rtx_cost_p (else_bb,
 	COSTS_N_INSNS (BRANCH_COST (optimize_bb_for_speed_p (else_edge->src),
 				    predictable_edge_p (else_edge)))))
     return FALSE;
@@ -3987,11 +3988,11 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
 		fail = 1;
 	    }
 	}
-      
+
       /* For TEST, we're interested in a range of insns, not a whole block.
 	 Moreover, we're interested in the insns live from OTHER_BB.  */
-      
-      /* The loop below takes the set of live registers 
+
+      /* The loop below takes the set of live registers
          after JUMP, and calculates the live set before EARLIEST. */
       bitmap_copy (test_live, df_get_live_in (other_bb));
       df_simulate_initialize_backwards (test_bb, test_live);
@@ -4086,7 +4087,8 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
 	  if (! note)
 	    continue;
 	  set = single_set (insn);
-	  if (!set || !function_invariant_p (SET_SRC (set)))
+	  if (!set || !function_invariant_p (SET_SRC (set))
+	      || !function_invariant_p (XEXP (note, 0)))
 	    remove_note (insn, note);
 	} while (insn != end && (insn = NEXT_INSN (insn)));
 
@@ -4157,14 +4159,19 @@ if_convert (void)
       FOR_EACH_BB (bb)
 	{
           basic_block new_bb;
-          while (!df_get_bb_dirty (bb) 
+          while (!df_get_bb_dirty (bb)
                  && (new_bb = find_if_header (bb, pass)) != NULL)
             bb = new_bb;
 	}
 
 #ifdef IFCVT_MULTIPLE_DUMPS
       if (dump_file && cond_exec_changed_p)
-	print_rtl_with_bb (dump_file, get_insns ());
+	{
+	  if (dump_flags & TDF_SLIM)
+	    print_rtl_slim_with_bb (dump_file, get_insns (), dump_flags);
+	  else
+	    print_rtl_with_bb (dump_file, get_insns ());
+	}
 #endif
     }
   while (cond_exec_changed_p);

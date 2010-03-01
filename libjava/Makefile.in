@@ -819,7 +819,6 @@ dbexecdir = @dbexecdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
-extra_gij_ldflags = @extra_gij_ldflags@
 extra_ldflags = @extra_ldflags@
 extra_ldflags_libjava = @extra_ldflags_libjava@ $(am__append_9)
 gcc_suffix = @gcc_suffix@
@@ -842,7 +841,6 @@ libexecdir = @libexecdir@
 libstdcxx_incdir = @libstdcxx_incdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
-lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 mkinstalldirs = @mkinstalldirs@
@@ -895,7 +893,7 @@ write_entries_to_file = $(shell rm -f $(2) || :) $(shell touch $(2)) \
 	     echo $$i; i=`expr $$i + $(write_entries_to_file_split)`; done), \
 	  $(shell echo $(wordlist $(range), \
 			  $(shell expr $(range) + $(write_entries_to_file_split) - 1), $(1)) \
-	     | tr ' ' '\n' >> $(2)))
+	     | tr ' ' '\012' >> $(2)))
 
 
 # This is required by TL_AC_GXX_INCLUDE_DIR.
@@ -8500,8 +8498,7 @@ gc_analyze_DEPENDENCIES = libgcj-tools.la libgcj.la libgcj.spec \
 	$(am__append_28)
 gij_SOURCES = 
 gij_LDFLAGS = -rpath $(dbexecdir) -rpath $(toolexeclibdir) \
-	-shared-libgcc $(THREADLDFLAGS) $(extra_ldflags) \
-	$(extra_gij_ldflags) 
+	-shared-libgcc $(THREADLDFLAGS) $(extra_ldflags)
 
 gij_LINK = $(GCJLINK) $(gij_LDFLAGS)
 gij_LDADD = -L$(here)/.libs libgij.la
@@ -11949,7 +11946,7 @@ java/io.list: $(java_io_source_files)
 
 java/lang.list: $(java_lang_source_files)
 	@$(mkinstalldirs) $(dir $@)
-	echo $(srcdir)/classpath/lib/java/lang/*.class | tr ' ' '\n' | fgrep -v Object.class | fgrep -v Class.class | egrep -v '(Ecos|Posix|Win32)Process' > java/lang.list
+	echo $(srcdir)/classpath/lib/java/lang/*.class | tr ' ' '\012' | fgrep -v Object.class | fgrep -v Class.class | egrep -v '(Ecos|Posix|Win32)Process' > java/lang.list
 
 -include java/lang.deps
 

@@ -1,6 +1,6 @@
 // Debugging unordered_map/unordered_multimap implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -33,7 +33,7 @@
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 # include <unordered_map>
 #else
-# include <c++0x_warning.h>
+# include <bits/c++0x_warning.h>
 #endif
 
 #include <debug/safe_sequence.h>
@@ -44,6 +44,7 @@ namespace std
 {
 namespace __debug
 {
+  /// Class std::unordered_map with safety/checking/debug instrumentation.
   template<typename _Key, typename _Tp,
 	   typename _Hash = std::hash<_Key>,
 	   typename _Pred = std::equal_to<_Key>,
@@ -114,7 +115,8 @@ namespace __debug
       unordered_map&
       operator=(unordered_map&& __x)
       {
-        // NB: DR 675.
+   	// NB: DR 1204.
+	// NB: DR 675.
 	clear();
 	swap(__x);
 	return *this;
@@ -181,19 +183,11 @@ namespace __debug
       }
 
       iterator
-      insert(iterator, const value_type& __obj)
-      {
-	typedef std::pair<typename _Base::iterator, bool> __pair_type;
-	__pair_type __res = _Base::insert(__obj);
-	return iterator(__res.first, this);
-      }
-
-      const_iterator
       insert(const_iterator, const value_type& __obj)
       {
 	typedef std::pair<typename _Base::iterator, bool> __pair_type;
 	__pair_type __res = _Base::insert(__obj);
-	return const_iterator(__res.first, this);
+	return iterator(__res.first, this);
       }
 
       void
@@ -249,46 +243,24 @@ namespace __debug
 	return __ret;
       }
 
-      iterator
-      erase(iterator __it)
-      {
-	__glibcxx_check_erase(__it);
-	__it._M_invalidate();
-	return iterator(_Base::erase(__it.base()), this);
-      }
-
-      const_iterator
+      void
       erase(const_iterator __it)
       {
 	__glibcxx_check_erase(__it);
 	__it._M_invalidate();
-	return const_iterator(_Base::erase(__it.base()), this);
+	_Base::erase(__it.base());
       }
 
-      iterator
-      erase(iterator __first, iterator __last)
-      {
-	__glibcxx_check_erase_range(__first, __last);
-	for (iterator __tmp = __first; __tmp != __last;)
-	{
-	  iterator __victim = __tmp++;
-	  __victim._M_invalidate();
-	}
-	return iterator(_Base::erase(__first.base(),
-				     __last.base()), this);
-      }
-
-      const_iterator
+      void
       erase(const_iterator __first, const_iterator __last)
       {
 	__glibcxx_check_erase_range(__first, __last);
 	for (const_iterator __tmp = __first; __tmp != __last;)
-	{
-	  const_iterator __victim = __tmp++;
-	  __victim._M_invalidate();
-	}
-	return const_iterator(_Base::erase(__first.base(),
-					   __last.base()), this);
+	  {
+	    const_iterator __victim = __tmp++;
+	    __victim._M_invalidate();
+	  }
+	_Base::erase(__first.base(), __last.base());
       }
 
       _Base&
@@ -315,6 +287,7 @@ namespace __debug
     { __x.swap(__y); }
 
 
+  /// Class std::unordered_multimap with safety/checking/debug instrumentation.
   template<typename _Key, typename _Tp,
 	   typename _Hash = std::hash<_Key>,
 	   typename _Pred = std::equal_to<_Key>,
@@ -386,7 +359,8 @@ namespace __debug
       unordered_multimap&
       operator=(unordered_multimap&& __x)
       {
-        // NB: DR 675.
+	// NB: DR 1204.
+	// NB: DR 675.
 	clear();
 	swap(__x);
 	return *this;
@@ -449,12 +423,8 @@ namespace __debug
       { return iterator(_Base::insert(__obj), this); }
 
       iterator
-      insert(iterator, const value_type& __obj)
-      { return iterator(_Base::insert(__obj), this); }
-
-      const_iterator
       insert(const_iterator, const value_type& __obj)
-      { return const_iterator(_Base::insert(__obj), this); }
+      { return iterator(_Base::insert(__obj), this); }
 
       void
       insert(std::initializer_list<value_type> __l)
@@ -509,46 +479,24 @@ namespace __debug
 	return __ret;
       }
 
-      iterator
-      erase(iterator __it)
-      {
-	__glibcxx_check_erase(__it);
-	__it._M_invalidate();
-	return iterator(_Base::erase(__it.base()), this);
-      }
-
-      const_iterator
+      void
       erase(const_iterator __it)
       {
 	__glibcxx_check_erase(__it);
 	__it._M_invalidate();
-	return const_iterator(_Base::erase(__it.base()), this);
+	_Base::erase(__it.base());
       }
 
-      iterator
-      erase(iterator __first, iterator __last)
-      {
-	__glibcxx_check_erase_range(__first, __last);
-	for (iterator __tmp = __first; __tmp != __last;)
-	{
-	  iterator __victim = __tmp++;
-	  __victim._M_invalidate();
-	}
-	return iterator(_Base::erase(__first.base(),
-				     __last.base()), this);
-      }
-
-      const_iterator
+      void
       erase(const_iterator __first, const_iterator __last)
       {
 	__glibcxx_check_erase_range(__first, __last);
 	for (const_iterator __tmp = __first; __tmp != __last;)
-	{
-	  const_iterator __victim = __tmp++;
-	  __victim._M_invalidate();
-	}
-	return const_iterator(_Base::erase(__first.base(),
-					   __last.base()), this);
+	  {
+	    const_iterator __victim = __tmp++;
+	    __victim._M_invalidate();
+	  }
+	_Base::erase(__first.base(), __last.base());
       }
 
       _Base&

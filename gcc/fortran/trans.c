@@ -711,6 +711,7 @@ gfc_allocate_with_status (stmtblock_t * block, tree size, tree status)
 	}
 	else
 	  runtime_error ("Attempting to allocate already allocated array");
+      }
     }
     
     expr must be set to the original expression being allocated for its locus
@@ -1047,10 +1048,12 @@ gfc_set_backend_locus (locus * loc)
 }
 
 
-/* Translate an executable statement.  */
+/* Translate an executable statement. The tree cond is used by gfc_trans_do.
+   This static function is wrapped by gfc_trans_code_cond and
+   gfc_trans_code.  */
 
-tree
-gfc_trans_code (gfc_code * code)
+static tree
+trans_code (gfc_code * code, tree cond)
 {
   stmtblock_t block;
   tree res;
@@ -1097,7 +1100,10 @@ gfc_trans_code (gfc_code * code)
 	  break;
 
 	case EXEC_INIT_ASSIGN:
-	  res = gfc_trans_init_assign (code);
+	  if (code->expr1->ts.type == BT_CLASS)
+	    res = gfc_trans_class_assign (code);
+	  else
+	    res = gfc_trans_init_assign (code);
 	  break;
 
 	case EXEC_CONTINUE:
@@ -1168,7 +1174,7 @@ gfc_trans_code (gfc_code * code)
 	  break;
 
 	case EXEC_DO:
-	  res = gfc_trans_do (code);
+	  res = gfc_trans_do (code, cond);
 	  break;
 
 	case EXEC_DO_WHILE:
@@ -1291,6 +1297,25 @@ gfc_trans_code (gfc_code * code)
 
   /* Return the finished block.  */
   return gfc_finish_block (&block);
+}
+
+
+/* Translate an executable statement with condition, cond.  The condition is
+   used by gfc_trans_do to test for IO result conditions inside implied
+   DO loops of READ and WRITE statements.  See build_dt in trans-io.c.  */
+
+tree
+gfc_trans_code_cond (gfc_code * code, tree cond)
+{
+  return trans_code (code, cond);
+}
+
+/* Translate an executable statement without condition.  */
+
+tree
+gfc_trans_code (gfc_code * code)
+{
+  return trans_code (code, NULL_TREE);
 }
 
 

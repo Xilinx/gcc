@@ -391,6 +391,20 @@ extern c_language_kind c_language;
 #define c_dialect_cxx()		((c_language & clk_cxx) != 0)
 #define c_dialect_objc()	((c_language & clk_objc) != 0)
 
+/* The various name of operator that appears in error messages. */
+typedef enum ref_operator {
+  /* NULL */
+  RO_NULL,
+  /* array indexing */
+  RO_ARRAY_INDEXING,
+  /* unary * */
+  RO_UNARY_STAR,
+  /* -> */
+  RO_ARROW,
+  /* implicit conversion */
+  RO_IMPLICIT_CONVERSION
+} ref_operator;
+
 /* Information about a statement tree.  */
 
 struct GTY(()) stmt_tree_s {
@@ -448,7 +462,7 @@ extern tree pushdecl_top_level (tree);
 extern tree pushdecl (tree);
 extern tree build_modify_expr (location_t, tree, tree, enum tree_code,
 			       location_t, tree, tree);
-extern tree build_indirect_ref (location_t, tree, const char *);
+extern tree build_indirect_ref (location_t, tree, ref_operator);
 
 extern int c_expand_decl (tree);
 
@@ -1038,9 +1052,9 @@ extern void warn_about_parentheses (enum tree_code,
 extern void warn_for_unused_label (tree label);
 extern void warn_for_div_by_zero (location_t, tree divisor);
 extern void warn_for_sign_compare (location_t,
-				   tree orig_op0, tree orig_op1, 
-				   tree op0, tree op1, 
-				   tree result_type, 
+				   tree orig_op0, tree orig_op1,
+				   tree op0, tree op1,
+				   tree result_type,
 				   enum tree_code resultcode);
 extern void set_underlying_type (tree x);
 extern bool is_typedef_decl (tree x);

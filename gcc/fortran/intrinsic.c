@@ -1601,7 +1601,7 @@ add_functions (void)
 
   add_sym_2 ("extends_type_of", GFC_ISYM_EXTENDS_TYPE_OF, CLASS_INQUIRY,
 	     ACTUAL_NO, BT_LOGICAL, dl, GFC_STD_F2003,
-	     gfc_check_same_type_as, NULL, NULL,
+	     gfc_check_same_type_as, NULL, gfc_resolve_extends_type_of,
 	     a, BT_UNKNOWN, 0, REQUIRED,
 	     mo, BT_UNKNOWN, 0, REQUIRED);
 
@@ -1665,15 +1665,15 @@ add_functions (void)
 
   make_generic ("fput", GFC_ISYM_FPUT, GFC_STD_GNU);
 
-  add_sym_1 ("gamma", GFC_ISYM_GAMMA, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr,
+  add_sym_1 ("gamma", GFC_ISYM_TGAMMA, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr,
 	     GFC_STD_F2008, gfc_check_fn_r, gfc_simplify_gamma,
 	     gfc_resolve_gamma, x, BT_REAL, dr, REQUIRED);
 
-  add_sym_1 ("dgamma", GFC_ISYM_GAMMA, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_GNU,
+  add_sym_1 ("dgamma", GFC_ISYM_TGAMMA, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_GNU,
 	     gfc_check_fn_d, gfc_simplify_gamma, gfc_resolve_gamma,
 	     x, BT_REAL, dr, REQUIRED);
 
-  make_generic ("gamma", GFC_ISYM_GAMMA, GFC_STD_F2008);
+  make_generic ("gamma", GFC_ISYM_TGAMMA, GFC_STD_F2008);
 
   /* Unix IDs (g77 compatibility)  */
   add_sym_1 ("getcwd", GFC_ISYM_GETCWD, NO_CLASS, ACTUAL_NO, BT_INTEGER, di,  GFC_STD_GNU,
@@ -4054,14 +4054,12 @@ gfc_try
 gfc_convert_chartype (gfc_expr *expr, gfc_typespec *ts)
 {
   gfc_intrinsic_sym *sym;
-  gfc_typespec from_ts;
   locus old_where;
   gfc_expr *new_expr;
   int rank;
   mpz_t *shape;
 
   gcc_assert (expr->ts.type == BT_CHARACTER && ts->type == BT_CHARACTER);
-  from_ts = expr->ts;		/* expr->ts gets clobbered */
 
   sym = find_char_conv (&expr->ts, ts);
   gcc_assert (sym);

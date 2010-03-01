@@ -1,7 +1,7 @@
 /* Collect static initialization info into data structures that can be
    traversed by C++ initialization and finalization routines.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Chris Smith (csmith@convex.com).
    Heavily modified by Michael Meissner (meissner@cygnus.com),
@@ -349,7 +349,7 @@ typedef enum {
 enum scanfilter_masks {
   SCAN_NOTHING = 0,
 
-  SCAN_CTOR = 1 << SYM_CTOR, 
+  SCAN_CTOR = 1 << SYM_CTOR,
   SCAN_DTOR = 1 << SYM_DTOR,
   SCAN_INIT = 1 << SYM_INIT,
   SCAN_FINI = 1 << SYM_FINI,
@@ -427,6 +427,17 @@ notice (const char *cmsgid, ...)
 
   va_start (ap, cmsgid);
   vfprintf (stderr, _(cmsgid), ap);
+  va_end (ap);
+}
+
+/* Notify user of a non-error, without translating the format string.  */
+void
+notice_translated (const char *cmsgid, ...)
+{
+  va_list ap;
+
+  va_start (ap, cmsgid);
+  vfprintf (stderr, cmsgid, ap);
   va_end (ap);
 }
 
@@ -1100,6 +1111,7 @@ int
 main (int argc, char **argv)
 {
   static const char *const ld_suffix	= "ld";
+  static const char *const plugin_ld_suffix = PLUGIN_LD;
   static const char *const real_ld_suffix = "real-ld";
   static const char *const collect_ld_suffix = "collect-ld";
   static const char *const nm_suffix	= "nm";
@@ -1118,6 +1130,8 @@ main (int argc, char **argv)
 
   const char *const full_ld_suffix =
     concat(target_machine, "-", ld_suffix, NULL);
+  const char *const full_plugin_ld_suffix =
+    concat(target_machine, "-", plugin_ld_suffix, NULL);
   const char *const full_nm_suffix =
     concat (target_machine, "-", nm_suffix, NULL);
   const char *const full_gnm_suffix =
@@ -1132,6 +1146,7 @@ main (int argc, char **argv)
     concat (target_machine, "-", gstrip_suffix, NULL);
 #else
   const char *const full_ld_suffix	= ld_suffix;
+  const char *const full_plugin_ld_suffix = plugin_ld_suffix;
   const char *const full_nm_suffix	= nm_suffix;
   const char *const full_gnm_suffix	= gnm_suffix;
 #ifdef LDD_SUFFIX
@@ -1152,7 +1167,8 @@ main (int argc, char **argv)
   const char **c_ptr;
   char **ld1_argv;
   const char **ld1;
-  
+  bool use_plugin = false;
+
   /* The kinds of symbols we will have to consider when scanning the
      outcome of a first pass link.  This is ALL to start with, then might
      be adjusted before getting to the first pass link per se, typically on
@@ -1168,6 +1184,8 @@ main (int argc, char **argv)
   int first_file;
   int num_c_args;
   char **old_argv;
+
+  bool use_verbose = false;
 
   old_argv = argv;
   expandargv (&argc, &argv);
@@ -1217,19 +1235,25 @@ main (int argc, char **argv)
      what LTO mode we are in.  */
   {
     int i;
-    bool use_plugin = false;
 
     for (i = 1; argv[i] != NULL; i ++)
       {
 	if (! strcmp (argv[i], "-debug"))
 	  debug = 1;
         else if (! strcmp (argv[i], "-flto") && ! use_plugin)
-          lto_mode = LTO_MODE_LTO;
+	  {
+	    use_verbose = true;
+	    lto_mode = LTO_MODE_LTO;
+	  }
         else if (! strcmp (argv[i], "-fwhopr") && ! use_plugin)
-          lto_mode = LTO_MODE_WHOPR;
+	  {
+	    use_verbose = true;
+	    lto_mode = LTO_MODE_WHOPR;
+	  }
         else if (! strcmp (argv[i], "-plugin"))
 	  {
 	    use_plugin = true;
+	    use_verbose = true;
 	    lto_mode = LTO_MODE_NONE;
 	  }
 #ifdef COLLECT_EXPORT_LIST
@@ -1329,11 +1353,17 @@ main (int argc, char **argv)
   /* Search the compiler directories for `ld'.  We have protection against
      recursive calls in find_a_file.  */
   if (ld_file_name == 0)
-    ld_file_name = find_a_file (&cpath, ld_suffix);
+    ld_file_name = find_a_file (&cpath,
+				use_plugin
+				? plugin_ld_suffix
+				: ld_suffix);
   /* Search the ordinary system bin directories
      for `ld' (if native linking) or `TARGET-ld' (if cross).  */
   if (ld_file_name == 0)
-    ld_file_name = find_a_file (&path, full_ld_suffix);
+    ld_file_name = find_a_file (&path,
+				use_plugin
+				? full_plugin_ld_suffix
+				: full_ld_suffix);
 
 #ifdef REAL_NM_FILE_NAME
   nm_file_name = find_a_file (&path, REAL_NM_FILE_NAME);
@@ -1435,6 +1465,11 @@ main (int argc, char **argv)
 	      q = extract_string (&p);
 	      *c_ptr++ = xstrdup (q);
 	    }
+	}
+      if (use_verbose && *q == '-' && q[1] == 'v' && q[2] == 0)
+	{
+	  /* Turn on trace in collect2 if needed.  */
+	  vflag = 1;
 	}
     }
   obstack_free (&temporary_obstack, temporary_firstobj);
@@ -1643,25 +1678,28 @@ main (int argc, char **argv)
      would otherwise reference them all, hence drag all the corresponding
      objects even if nothing else is referenced.  */
   {
-    const char **export_object_lst 
+    const char **export_object_lst
       = CONST_CAST2 (const char **, char **, object_lst);
-    
+
     struct id *list = libs.first;
 
     /* Compute the filter to use from the current one, do scan, then adjust
        the "current" filter to remove what we just included here.  This will
        control whether we need a first pass link later on or not, and what
        will remain to be scanned there.  */
-    
-    scanfilter this_filter
-      = shared_obj ? ld1_filter : (ld1_filter & ~SCAN_DWEH);
-    
+
+    scanfilter this_filter = ld1_filter;
+#if HAVE_AS_REF
+    if (!shared_obj)
+      this_filter &= ~SCAN_DWEH;
+#endif
+
     while (export_object_lst < object)
       scan_prog_file (*export_object_lst++, PASS_OBJ, this_filter);
-    
+
     for (; list; list = list->next)
       scan_prog_file (list->name, PASS_FIRST, this_filter);
-    
+
     ld1_filter = ld1_filter & ~this_filter;
   }
 
@@ -1734,9 +1772,9 @@ main (int argc, char **argv)
 
   /* Load the program, searching all libraries and attempting to provide
      undefined symbols from repository information.
-     
+
      If -r or they will be run via some other method, do not build the
-     constructor or destructor list, just return now.  */  
+     constructor or destructor list, just return now.  */
   {
     bool early_exit
       = rflag || (! DO_COLLECT_EXPORT_LIST && ! do_collecting);
@@ -1749,10 +1787,10 @@ main (int argc, char **argv)
        objects and libraries has performed above.  In the !shared_obj case, we
        expect the relevant tables to be dragged together with their associated
        functions from precise cross reference insertions by the compiler.  */
-       
+
     if (early_exit || ld1_filter != SCAN_NOTHING)
       do_tlink (ld1_argv, object_lst);
-    
+
     if (early_exit)
       {
 #ifdef COLLECT_EXPORT_LIST
@@ -1782,9 +1820,18 @@ main (int argc, char **argv)
 
   if (debug)
     {
-      notice ("%d constructor(s) found\n", constructors.number);
-      notice ("%d destructor(s)  found\n", destructors.number);
-      notice ("%d frame table(s) found\n", frame_tables.number);
+      notice_translated (ngettext ("%d constructor found\n",
+                                   "%d constructors found\n",
+                                   constructors.number),
+                         constructors.number);
+      notice_translated (ngettext ("%d destructor found\n",
+                                   "%d destructors found\n",
+                                   destructors.number),
+                         destructors.number);
+      notice_translated (ngettext("%d frame table found\n",
+                                  "%d frame tables found\n",
+                                  frame_tables.number),
+                         frame_tables.number);
     }
 
   /* If the scan exposed nothing of special interest, there's no need to
@@ -2624,8 +2671,8 @@ scan_prog_file (const char *prog_name, scanpass which_pass,
              the LTO objects list if found.  */
           for (p = buf; (ch = *p) != '\0' && ch != '\n'; p++)
             if (ch == ' '
-		&& (strncmp (p +1 , "gnu_lto_v1", 10) == 0)
-		&& ISSPACE( p[11]))
+		&& (strncmp (p + 1, "__gnu_lto_v1", 12) == 0)
+		&& ISSPACE (p[13]))
               {
                 add_lto_object (&lto_objects, prog_name);
 
@@ -2839,7 +2886,7 @@ scan_libraries (const char *prog_name)
   /* Now iterate through the library list adding their symbols to
      the list.  */
   for (list = libraries.first; list; list = list->next)
-    scan_prog_file (list->name, PASS_LIB);
+    scan_prog_file (list->name, PASS_LIB, SCAN_ALL);
 }
 
 #endif /* LDD_SUFFIX */

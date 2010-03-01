@@ -114,22 +114,56 @@ tree
 build_memfn_type (tree fntype, tree ctype, cp_cv_quals quals)
 {
   tree raises;
+  tree attrs;
   int type_quals;
 
   if (fntype == error_mark_node || ctype == error_mark_node)
     return error_mark_node;
 
+  gcc_assert (TREE_CODE (fntype) == FUNCTION_TYPE
+	      || TREE_CODE (fntype) == METHOD_TYPE);
+
   type_quals = quals & ~TYPE_QUAL_RESTRICT;
   ctype = cp_build_qualified_type (ctype, type_quals);
+  raises = TYPE_RAISES_EXCEPTIONS (fntype);
+  attrs = TYPE_ATTRIBUTES (fntype);
   fntype = build_method_type_directly (ctype, TREE_TYPE (fntype),
 				       (TREE_CODE (fntype) == METHOD_TYPE
 					? TREE_CHAIN (TYPE_ARG_TYPES (fntype))
 					: TYPE_ARG_TYPES (fntype)));
-  raises = TYPE_RAISES_EXCEPTIONS (fntype);
   if (raises)
     fntype = build_exception_variant (fntype, raises);
+  if (attrs)
+    fntype = cp_build_type_attribute_variant (fntype, attrs);
 
   return fntype;
+}
+
+/* Return a variant of FNTYPE, a FUNCTION_TYPE or METHOD_TYPE, with its
+   return type changed to NEW_RET.  */
+
+tree
+change_return_type (tree new_ret, tree fntype)
+{
+  tree newtype;
+  tree args = TYPE_ARG_TYPES (fntype);
+  tree raises = TYPE_RAISES_EXCEPTIONS (fntype);
+  tree attrs = TYPE_ATTRIBUTES (fntype);
+
+  if (same_type_p (new_ret, TREE_TYPE (fntype)))
+    return fntype;
+
+  if (TREE_CODE (fntype) == FUNCTION_TYPE)
+    newtype = build_function_type (new_ret, args);
+  else
+    newtype = build_method_type_directly (TYPE_METHOD_BASETYPE (fntype),
+					  new_ret, TREE_CHAIN (args));
+  if (raises)
+    newtype = build_exception_variant (newtype, raises);
+  if (attrs)
+    newtype = cp_build_type_attribute_variant (newtype, attrs);
+
+  return newtype;
 }
 
 /* Build a PARM_DECL with NAME and TYPE, and set DECL_ARG_TYPE
@@ -237,6 +271,9 @@ maybe_retrofit_in_chrg (tree fn)
   if (TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn)))
     fntype = build_exception_variant (fntype,
 				      TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn)));
+  if (TYPE_ATTRIBUTES (TREE_TYPE (fn)))
+    fntype = (cp_build_type_attribute_variant
+	      (fntype, TYPE_ATTRIBUTES (TREE_TYPE (fn))));
   TREE_TYPE (fn) = fntype;
 
   /* Now we've got the in-charge parameter.  */
@@ -779,7 +816,7 @@ grokfield (const cp_declarator *declarator,
 
   if (TREE_CODE (value) == TYPE_DECL && init)
     {
-      error ("typedef %qD is initialized (use __typeof__ instead)", value);
+      error ("typedef %qD is initialized (use decltype instead)", value);
       init = NULL_TREE;
     }
 
@@ -834,7 +871,7 @@ grokfield (const cp_declarator *declarator,
       if (declspecs->specs[(int)ds_typedef]
           && TREE_TYPE (value) != error_mark_node
           && TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (value))) != value)
-	set_underlying_type (value);
+	cp_set_underlying_type (value);
 
       return value;
     }
@@ -1219,6 +1256,8 @@ cp_reconstruct_complex_type (tree type, tree bottom)
   else
     return bottom;
 
+  if (TYPE_ATTRIBUTES (type))
+    outer = cp_build_type_attribute_variant (outer, TYPE_ATTRIBUTES (type));
   return cp_build_qualified_type (outer, TYPE_QUALS (type));
 }
 
@@ -1301,6 +1340,7 @@ build_anon_union_vars (tree type, tree object)
 	  decl = build_decl (input_location,
 			     VAR_DECL, DECL_NAME (field), TREE_TYPE (field));
 	  DECL_ANON_UNION_VAR_P (decl) = 1;
+	  DECL_ARTIFICIAL (decl) = 1;
 
 	  base = get_base_address (object);
 	  TREE_PUBLIC (decl) = TREE_PUBLIC (base);
@@ -1561,8 +1601,7 @@ comdat_linkage (tree decl)
 	}
     }
 
-  if (DECL_LANG_SPECIFIC (decl))
-    DECL_COMDAT (decl) = 1;
+  DECL_COMDAT (decl) = 1;
 }
 
 /* For win32 we also want to put explicit instantiations in
@@ -1871,6 +1910,8 @@ constrain_visibility (tree decl, int visibility)
       if (!DECL_EXTERN_C_P (decl))
 	{
 	  TREE_PUBLIC (decl) = 0;
+	  DECL_WEAK (decl) = 0;
+	  DECL_COMMON (decl) = 0;
 	  DECL_COMDAT_GROUP (decl) = NULL_TREE;
 	  DECL_INTERFACE_KNOWN (decl) = 1;
 	  if (DECL_LANG_SPECIFIC (decl))
@@ -2540,7 +2581,9 @@ get_guard (tree decl)
       TREE_PUBLIC (guard) = TREE_PUBLIC (decl);
       TREE_STATIC (guard) = TREE_STATIC (decl);
       DECL_COMMON (guard) = DECL_COMMON (decl);
-      DECL_COMDAT_GROUP (guard) = DECL_COMDAT_GROUP (decl);
+      DECL_COMDAT (guard) = DECL_COMDAT (decl);
+      if (DECL_ONE_ONLY (decl))
+	make_decl_one_only (guard, cxx_comdat_group (guard));
       if (TREE_PUBLIC (decl))
 	DECL_WEAK (guard) = DECL_WEAK (decl);
       DECL_VISIBILITY (guard) = DECL_VISIBILITY (decl);
@@ -3310,6 +3353,7 @@ cxx_callgraph_analyze_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED)
 	    mark_decl_referenced (vtbl);
 	}
       else if (DECL_CONTEXT (t)
+	       && flag_use_repository
 	       && TREE_CODE (DECL_CONTEXT (t)) == FUNCTION_DECL)
 	/* If we need a static variable in a function, then we
 	   need the containing function.  */
@@ -3642,7 +3686,36 @@ cp_write_global_declarations (void)
 	  if (DECL_NOT_REALLY_EXTERN (decl)
 	      && DECL_INITIAL (decl)
 	      && decl_needed_p (decl))
-	    DECL_EXTERNAL (decl) = 0;
+	    {
+	      struct cgraph_node *node = cgraph_get_node (decl), *alias, *next;
+
+	      DECL_EXTERNAL (decl) = 0;
+	      /* If we mark !DECL_EXTERNAL one of the same body aliases,
+		 we need to mark all of them that way.  */
+	      if (node && node->same_body)
+		{
+		  DECL_EXTERNAL (node->decl) = 0;
+		  for (alias = node->same_body; alias; alias = alias->next)
+		    DECL_EXTERNAL (alias->decl) = 0;
+		}
+	      /* If we mark !DECL_EXTERNAL one of the symbols in some comdat
+		 group, we need to mark all symbols in the same comdat group
+		 that way.  */
+	      if (node->same_comdat_group)
+		for (next = node->same_comdat_group;
+		     next != node;
+		     next = next->same_comdat_group)
+		  {
+		    DECL_EXTERNAL (next->decl) = 0;
+		    if (next->same_body)
+		      {
+			for (alias = next->same_body;
+			     alias;
+			     alias = alias->next)
+			  DECL_EXTERNAL (alias->decl) = 0;
+		      }
+		  }
+	    }
 
 	  /* If we're going to need to write this function out, and
 	     there's already a body for it, create RTL for it now.

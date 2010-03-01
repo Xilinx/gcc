@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2010, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -556,19 +556,18 @@ record_builtin_type (const char *name, tree type)
     debug_hooks->type_decl (type_decl, false);
 }
 
-/* Given a record type RECORD_TYPE and a chain of FIELD_DECL nodes FIELDLIST,
+/* Given a record type RECORD_TYPE and a list of FIELD_DECL nodes FIELD_LIST,
    finish constructing the record or union type.  If REP_LEVEL is zero, this
    record has no representation clause and so will be entirely laid out here.
    If REP_LEVEL is one, this record has a representation clause and has been
    laid out already; only set the sizes and alignment.  If REP_LEVEL is two,
    this record is derived from a parent record and thus inherits its layout;
-   only make a pass on the fields to finalize them.  If DO_NOT_FINALIZE is
-   true, the record type is expected to be modified afterwards so it will
-   not be sent to the back-end for finalization.  */
+   only make a pass on the fields to finalize them.  DEBUG_INFO_P is true if
+   we need to write debug information about this type.  */
 
 void
-finish_record_type (tree record_type, tree fieldlist, int rep_level,
-		    bool do_not_finalize)
+finish_record_type (tree record_type, tree field_list, int rep_level,
+		    bool debug_info_p)
 {
   enum tree_code code = TREE_CODE (record_type);
   tree name = TYPE_NAME (record_type);
@@ -579,7 +578,7 @@ finish_record_type (tree record_type, tree fieldlist, int rep_level,
   bool had_align = TYPE_ALIGN (record_type) != 0;
   tree field;
 
-  TYPE_FIELDS (record_type) = fieldlist;
+  TYPE_FIELDS (record_type) = field_list;
 
   /* Always attach the TYPE_STUB_DECL for a record type.  It is required to
      generate debug info and have a parallel type.  */
@@ -623,9 +622,9 @@ finish_record_type (tree record_type, tree fieldlist, int rep_level,
      handled yet, and adjust DECL_NONADDRESSABLE_P accordingly.  */
 
   if (code == QUAL_UNION_TYPE)
-    fieldlist = nreverse (fieldlist);
+    field_list = nreverse (field_list);
 
-  for (field = fieldlist; field; field = TREE_CHAIN (field))
+  for (field = field_list; field; field = TREE_CHAIN (field))
     {
       tree type = TREE_TYPE (field);
       tree pos = bit_position (field);
@@ -729,7 +728,7 @@ finish_record_type (tree record_type, tree fieldlist, int rep_level,
     }
 
   if (code == QUAL_UNION_TYPE)
-    nreverse (fieldlist);
+    nreverse (field_list);
 
   if (rep_level < 2)
     {
@@ -760,24 +759,24 @@ finish_record_type (tree record_type, tree fieldlist, int rep_level,
 	}
     }
 
-  if (!do_not_finalize)
+  if (debug_info_p)
     rest_of_record_type_compilation (record_type);
 }
 
-/* Wrap up compilation of RECORD_TYPE, i.e. most notably output all
-   the debug information associated with it.  It need not be invoked
-   directly in most cases since finish_record_type takes care of doing
-   so, unless explicitly requested not to through DO_NOT_FINALIZE.  */
+/* Wrap up compilation of RECORD_TYPE, i.e. output all the debug information
+   associated with it.  It need not be invoked directly in most cases since
+   finish_record_type takes care of doing so, but this can be necessary if
+   a parallel type is to be attached to the record type.  */
 
 void
 rest_of_record_type_compilation (tree record_type)
 {
-  tree fieldlist = TYPE_FIELDS (record_type);
+  tree field_list = TYPE_FIELDS (record_type);
   tree field;
   enum tree_code code = TREE_CODE (record_type);
   bool var_size = false;
 
-  for (field = fieldlist; field; field = TREE_CHAIN (field))
+  for (field = field_list; field; field = TREE_CHAIN (field))
     {
       /* We need to make an XVE/XVU record if any field has variable size,
 	 whether or not the record does.  For example, if we have a union,
@@ -1154,6 +1153,23 @@ copy_type (tree type)
 {
   tree new_type = copy_node (type);
 
+  /* Unshare the language-specific data.  */
+  if (TYPE_LANG_SPECIFIC (type))
+    {
+      TYPE_LANG_SPECIFIC (new_type) = NULL;
+      SET_TYPE_LANG_SPECIFIC (new_type, GET_TYPE_LANG_SPECIFIC (type));
+    }
+
+  /* And the contents of the language-specific slot if needed.  */
+  if ((INTEGRAL_TYPE_P (type) || TREE_CODE (type) == REAL_TYPE)
+      && TYPE_RM_VALUES (type))
+    {
+      TYPE_RM_VALUES (new_type) = NULL_TREE;
+      SET_TYPE_RM_SIZE (new_type, TYPE_RM_SIZE (type));
+      SET_TYPE_RM_MIN_VALUE (new_type, TYPE_RM_MIN_VALUE (type));
+      SET_TYPE_RM_MAX_VALUE (new_type, TYPE_RM_MAX_VALUE (type));
+    }
+
   /* copy_node clears this field instead of copying it, because it is
      aliased with TREE_CHAIN.  */
   TYPE_STUB_DECL (new_type) = TYPE_STUB_DECL (type);
@@ -1365,17 +1381,9 @@ create_var_decl_1 (tree var_name, tree asm_name, tree type, tree var_init,
   /* At the global level, an initializer requiring code to be generated
      produces elaboration statements.  Check that such statements are allowed,
      that is, not violating a No_Elaboration_Code restriction.  */
-  if (global_bindings_p () && var_init != 0 && ! init_const)
+  if (global_bindings_p () && var_init != 0 && !init_const)
     Check_Elaboration_Code_Allowed (gnat_node);
 
-  /* Ada doesn't feature Fortran-like COMMON variables so we shouldn't
-     try to fiddle with DECL_COMMON.  However, on platforms that don't
-     support global BSS sections, uninitialized global variables would
-     go in DATA instead, thus increasing the size of the executable.  */
-  if (!flag_no_common
-      && TREE_CODE (var_decl) == VAR_DECL
-      && !have_global_bss_p ())
-    DECL_COMMON (var_decl) = 1;
   DECL_INITIAL  (var_decl) = var_init;
   TREE_READONLY (var_decl) = const_flag;
   DECL_EXTERNAL (var_decl) = extern_flag;
@@ -1383,6 +1391,16 @@ create_var_decl_1 (tree var_name, tree asm_name, tree type, tree var_init,
   TREE_CONSTANT (var_decl) = constant_p;
   TREE_THIS_VOLATILE (var_decl) = TREE_SIDE_EFFECTS (var_decl)
     = TYPE_VOLATILE (type);
+
+  /* Ada doesn't feature Fortran-like COMMON variables so we shouldn't
+     try to fiddle with DECL_COMMON.  However, on platforms that don't
+     support global BSS sections, uninitialized global variables would
+     go in DATA instead, thus increasing the size of the executable.  */
+  if (!flag_no_common
+      && TREE_CODE (var_decl) == VAR_DECL
+      && TREE_PUBLIC (var_decl)
+      && !have_global_bss_p ())
+    DECL_COMMON (var_decl) = 1;
 
   /* If it's public and not external, always allocate storage for it.
      At the global binding level we need to allocate static storage for the
@@ -1400,10 +1418,12 @@ create_var_decl_1 (tree var_name, tree asm_name, tree type, tree var_init,
 	   != null_pointer_node)
     DECL_IGNORED_P (var_decl) = 1;
 
-  if (asm_name && VAR_OR_FUNCTION_DECL_P (var_decl))
-    SET_DECL_ASSEMBLER_NAME (var_decl, asm_name);
-
-  process_attributes (var_decl, attr_list);
+  if (TREE_CODE (var_decl) == VAR_DECL)
+    {
+      if (asm_name)
+	SET_DECL_ASSEMBLER_NAME (var_decl, asm_name);
+      process_attributes (var_decl, attr_list);
+    }
 
   /* Add this decl to the current binding level.  */
   gnat_pushdecl (var_decl, gnat_node);
@@ -2173,16 +2193,28 @@ gnat_type_for_mode (enum machine_mode mode, int unsignedp)
 {
   if (mode == BLKmode)
     return NULL_TREE;
-  else if (mode == VOIDmode)
+
+  if (mode == VOIDmode)
     return void_type_node;
-  else if (COMPLEX_MODE_P (mode))
+
+  if (COMPLEX_MODE_P (mode))
     return NULL_TREE;
-  else if (SCALAR_FLOAT_MODE_P (mode))
+
+  if (SCALAR_FLOAT_MODE_P (mode))
     return float_type_for_precision (GET_MODE_PRECISION (mode), mode);
-  else if (SCALAR_INT_MODE_P (mode))
+
+  if (SCALAR_INT_MODE_P (mode))
     return gnat_type_for_size (GET_MODE_BITSIZE (mode), unsignedp);
-  else
-    return NULL_TREE;
+
+  if (VECTOR_MODE_P (mode))
+    {
+      enum machine_mode inner_mode = GET_MODE_INNER (mode);
+      tree inner_type = gnat_type_for_mode (inner_mode, unsignedp);
+      if (inner_type)
+	return build_vector_type_for_mode (inner_type, mode);
+    }
+
+  return NULL_TREE;
 }
 
 /* Return the unsigned version of a TYPE_NODE, a scalar type.  */
@@ -2783,7 +2815,7 @@ build_vms_descriptor32 (tree type, Mechanism_Type mech, Entity_Id gnat_entity)
     }
 
   TYPE_NAME (record_type) = create_concat_name (gnat_entity, "DESC");
-  finish_record_type (record_type, field_list, 0, true);
+  finish_record_type (record_type, field_list, 0, false);
   return record_type;
 }
 
@@ -3097,7 +3129,7 @@ build_vms_descriptor (tree type, Mechanism_Type mech, Entity_Id gnat_entity)
     }
 
   TYPE_NAME (record64_type) = create_concat_name (gnat_entity, "DESC64");
-  finish_record_type (record64_type, field_list64, 0, true);
+  finish_record_type (record64_type, field_list64, 0, false);
   return record64_type;
 }
 
@@ -3509,7 +3541,7 @@ build_unc_object_type (tree template_type, tree object_type, tree name)
   finish_record_type (type,
 		      chainon (chainon (NULL_TREE, template_field),
 			       array_field),
-		      0, false);
+		      0, true);
 
   return type;
 }

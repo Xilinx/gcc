@@ -1,6 +1,6 @@
 // <forward_list.tcc> -*- C++ -*-
 
-// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -113,42 +113,34 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       }
 
   template<typename _Tp, typename _Alloc>
-    typename _Fwd_list_base<_Tp, _Alloc>::_Node_base::_Pointer
+    void
     _Fwd_list_base<_Tp, _Alloc>::
     _M_erase_after(typename _Node_base::_Pointer __pos)
     {
-      typename _Node::_Pointer __curr 
+      typename _Node::_Pointer __curr
         = __static_pointer_cast<typename _Node::_Pointer>(__pos->_M_next);
-      if (__curr)
-        {
-          typename _Node_base::_Pointer __next = __curr->_M_next;
-          __pos->_M_next = __next;
-          _M_get_Node_allocator().destroy(__curr);
-          _M_put_node(__curr);
-        }
-      return __pos;
+      __pos->_M_next = __curr->_M_next;
+      _M_get_Node_allocator().destroy(__curr);
+      _M_put_node(__curr);
     }
 
   template<typename _Tp, typename _Alloc>
-    typename _Fwd_list_base<_Tp, _Alloc>::_Node_base::_Pointer
+    void
     _Fwd_list_base<_Tp, _Alloc>::
     _M_erase_after(typename _Node_base::_Pointer __pos, 
                    typename _Node_base::_Pointer __last)
     {
       typename _Node::_Pointer __curr 
         = __static_pointer_cast<typename _Node::_Pointer>(__pos->_M_next);
-      while (__curr)
+      while (__curr != __last)
         {
           typename _Node::_Pointer __temp = __curr;
           __curr = __static_pointer_cast<typename _Node::_Pointer>
                                         (__curr->_M_next);
           _M_get_Node_allocator().destroy(__temp);
           _M_put_node(__temp);
-          __pos->_M_next = __curr;
-          if (__temp == __last)
-            break;
         }
-      return __pos;
+      __pos->_M_next = __last;
     }
   
   // Called by the range constructor to implement [23.1.1]/9
@@ -183,6 +175,19 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   template<typename _Tp, typename _Alloc>
+    forward_list<_Tp, _Alloc>::
+    forward_list(size_type __n)
+    : _Base()
+    {
+      typename _Node_base::_Pointer __to = &this->_M_impl._M_head;
+      for (; __n > 0; --__n)
+        {
+          __to->_M_next = this->_M_create_node();
+          __to = __to->_M_next;
+        }
+    }
+
+  template<typename _Tp, typename _Alloc>
     forward_list<_Tp, _Alloc>&
     forward_list<_Tp, _Alloc>::
     operator=(const forward_list& __list)
@@ -207,6 +212,28 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
             insert_after(__prev1, __first2, __last2);
         }
       return *this;
+    }
+
+  template<typename _Tp, typename _Alloc>
+    void
+    forward_list<_Tp, _Alloc>::
+    resize(size_type __sz)
+    {
+      iterator __k = before_begin();
+
+      size_type __len = 0;
+      while (__k._M_next() != end() && __len < __sz)
+        {
+          ++__k;
+          ++__len;
+        }
+      if (__len == __sz)
+        erase_after(__k, end());
+      else
+	{
+	  forward_list __tmp(__sz - __len);
+	  splice_after(__k, std::move(__tmp));
+	}
     }
 
   template<typename _Tp, typename _Alloc>

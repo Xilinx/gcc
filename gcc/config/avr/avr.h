@@ -1,7 +1,8 @@
 /* Definitions of target machine for GNU compiler,
    for ATMEL AVR at90s8515, ATmega103/103L, ATmega603/603L microcontrollers.
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 
-   2008, 2009 Free Software Foundation, Inc.
+   2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Denis Chertykov (chertykov@gmail.com)
 
 This file is part of GCC.
@@ -97,6 +98,8 @@ struct mcu_type_s {
   const char *const library_name; 
 };
 
+/* Preprocessor macros to define depending on MCU type.  */
+extern const char *avr_extra_arch_macro;
 extern const struct base_arch_s *avr_current_arch;
 extern const struct mcu_type_s *avr_current_device;
 extern const struct mcu_type_s avr_mcu_types[];
@@ -367,8 +370,7 @@ enum reg_class {
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
   OFFSET = avr_initial_elimination_offset (FROM, TO)
 
-#define RETURN_ADDR_RTX(count, x) \
-  gen_rtx_MEM (Pmode, memory_address (Pmode, plus_constant (tem, 1)))
+#define RETURN_ADDR_RTX(count, tem) avr_return_addr_rtx (count, tem)
 
 /* Don't use Push rounding. expr.c: emit_single_push_insn is broken 
    for POST_DEC targets (PR27386).  */
@@ -406,24 +408,12 @@ extern int avr_reg_order[];
 #define HAVE_POST_INCREMENT 1
 #define HAVE_PRE_DECREMENT 1
 
-#define CONSTANT_ADDRESS_P(X) CONSTANT_P (X)
-
 #define MAX_REGS_PER_ADDRESS 1
 
 #define REG_OK_FOR_BASE_NOSTRICT_P(X) \
   (REGNO (X) >= FIRST_PSEUDO_REGISTER || REG_OK_FOR_BASE_STRICT_P(X))
 
 #define REG_OK_FOR_BASE_STRICT_P(X) REGNO_OK_FOR_BASE_P (REGNO (X))
-
-#ifdef REG_OK_STRICT
-#  define REG_OK_FOR_BASE_P(X) REG_OK_FOR_BASE_STRICT_P (X)
-#else
-#  define REG_OK_FOR_BASE_P(X) REG_OK_FOR_BASE_NOSTRICT_P (X)
-#endif
-
-#define REG_OK_FOR_INDEX_P(X) 0
-
-#define XEXP_(X,Y) (X)
 
 /* LEGITIMIZE_RELOAD_ADDRESS will allow register R26/27 to be used, where it
    is no worse than normal base pointers R28/29 and R30/31. For example:
@@ -706,6 +696,9 @@ fprintf (STREAM, "\t.skip %lu,0\n", (unsigned long)(N))
           fprintf (STREAM, "\t.p2align\t%d\n", POWER);	\
   } while (0)
 
+#define ASM_OUTPUT_EXTERNAL(FILE, DECL, NAME) \
+  default_elf_asm_output_external (FILE, DECL, NAME)
+
 #define CASE_VECTOR_MODE HImode
 
 #undef WORD_REGISTER_OPERATIONS
@@ -802,9 +795,6 @@ mmcu=*:-mmcu=%*}"
 /* This is the default without any -mmcu=* option (AT90S*).  */
 #define MULTILIB_DEFAULTS { "mmcu=avr2" }
 
-/* This is undefined macro for collect2 disabling */
-#define LINKER_NAME "ld"
-
 #define TEST_HARD_REG_CLASS(CLASS, REGNO) \
   TEST_HARD_REG_BIT (reg_class_contents[ (int) (CLASS)], REGNO)
 
@@ -859,4 +849,7 @@ struct GTY(()) machine_function
   /* 'true' - if current function is a 'main' function 
      as specified by the "OS_main" attribute.  */
   int is_OS_main;
+  
+  /* Current function stack size.  */
+  int stack_usage;
 };

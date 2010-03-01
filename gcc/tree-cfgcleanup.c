@@ -1,5 +1,5 @@
 /* CFG cleanup for trees.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -338,7 +338,6 @@ remove_forwarder_block (basic_block bb)
   gimple label;
   edge_iterator ei;
   gimple_stmt_iterator gsi, gsi_to;
-  bool seen_abnormal_edge = false;
 
   /* We check for infinite loops already in tree_forwarder_block_p.
      However it may happen that the infinite loop is created
@@ -346,12 +345,13 @@ remove_forwarder_block (basic_block bb)
   if (dest == bb)
     return false;
 
-  /* If the destination block consists of a nonlocal label, do not merge
-     it.  */
+  /* If the destination block consists of a nonlocal label or is a
+     EH landing pad, do not merge it.  */
   label = first_stmt (dest);
   if (label
       && gimple_code (label) == GIMPLE_LABEL
-      && DECL_NONLOCAL (gimple_label_label (label)))
+      && (DECL_NONLOCAL (gimple_label_label (label))
+	  || EH_LANDING_PAD_NR (gimple_label_label (label)) != 0))
     return false;
 
   /* If there is an abnormal edge to basic block BB, but not into
@@ -365,14 +365,10 @@ remove_forwarder_block (basic_block bb)
 
      So if there is an abnormal edge to BB, proceed only if there is
      no abnormal edge to DEST and there are no phi nodes in DEST.  */
-  if (has_abnormal_incoming_edge_p (bb))
-    {
-      seen_abnormal_edge = true;
-
-      if (has_abnormal_incoming_edge_p (dest)
-	  || !gimple_seq_empty_p (phi_nodes (dest)))
-	return false;
-    }
+  if (has_abnormal_incoming_edge_p (bb)
+      && (has_abnormal_incoming_edge_p (dest)
+	  || !gimple_seq_empty_p (phi_nodes (dest))))
+    return false;
 
   /* If there are phi nodes in DEST, and some of the blocks that are
      predecessors of BB are also predecessors of DEST, check that the
@@ -419,16 +415,40 @@ remove_forwarder_block (basic_block bb)
 	}
     }
 
-  if (seen_abnormal_edge)
+  /* Move nonlocal labels and computed goto targets as well as user
+     defined labels and labels with an EH landing pad number to the
+     new block, so that the redirection of the abnormal edges works,
+     jump targets end up in a sane place and debug information for
+     labels is retained.  */
+  gsi_to = gsi_start_bb (dest);
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); )
     {
-      /* Move the labels to the new block, so that the redirection of
-	 the abnormal edges works.  */
-      gsi_to = gsi_start_bb (dest);
-      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); )
+      tree decl;
+      label = gsi_stmt (gsi);
+      if (is_gimple_debug (label))
+	break;
+      decl = gimple_label_label (label);
+      if (EH_LANDING_PAD_NR (decl) != 0
+	  || DECL_NONLOCAL (decl)
+	  || FORCED_LABEL (decl)
+	  || !DECL_ARTIFICIAL (decl))
 	{
-	  label = gsi_stmt (gsi);
-	  gcc_assert (gimple_code (label) == GIMPLE_LABEL
-		      || is_gimple_debug (label));
+	  gsi_remove (&gsi, false);
+	  gsi_insert_before (&gsi_to, label, GSI_SAME_STMT);
+	}
+      else
+	gsi_next (&gsi);
+    }
+
+  /* Move debug statements if the destination has just a single
+     predecessor.  */
+  if (single_pred_p (dest))
+    {
+      gsi_to = gsi_after_labels (dest);
+      for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi); )
+	{
+	  if (!is_gimple_debug (gsi_stmt (gsi)))
+	    break;
 	  gsi_remove (&gsi, false);
 	  gsi_insert_before (&gsi_to, label, GSI_SAME_STMT);
 	}
@@ -511,7 +531,7 @@ cleanup_omp_return (basic_block bb)
   control_bb = single_pred (bb);
   stmt = last_stmt (control_bb);
 
-  if (gimple_code (stmt) != GIMPLE_OMP_SECTIONS_SWITCH)
+  if (stmt == NULL || gimple_code (stmt) != GIMPLE_OMP_SECTIONS_SWITCH)
     return false;
 
   /* The block with the control statement normally has two entry edges -- one
@@ -537,7 +557,7 @@ cleanup_tree_cfg_bb (basic_block bb)
     return true;
 
   retval = cleanup_control_flow_bb (bb);
-  
+
   /* Forwarder blocks can carry line number information which is
      useful when debugging, so we only clean them up when
      optimizing.  */
@@ -606,7 +626,7 @@ cleanup_tree_cfg_1 (void)
 	 calls.  */
       retval |= split_bbs_on_noreturn_calls ();
     }
-  
+
   end_recording_case_labels ();
   BITMAP_FREE (cfgcleanup_altered_bbs);
   return retval;
@@ -856,7 +876,7 @@ merge_phi_nodes (void)
 
       /* We have to feed into another basic block with PHI
 	 nodes.  */
-      if (!phi_nodes (dest)
+      if (gimple_seq_empty_p (phi_nodes (dest))
 	  /* We don't want to deal with a basic block with
 	     abnormal edges.  */
 	  || has_abnormal_incoming_edge_p (bb))
@@ -924,7 +944,7 @@ gate_merge_phi (void)
   return 1;
 }
 
-struct gimple_opt_pass pass_merge_phi = 
+struct gimple_opt_pass pass_merge_phi =
 {
  {
   GIMPLE_PASS,

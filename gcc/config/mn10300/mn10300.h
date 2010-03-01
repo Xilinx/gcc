@@ -130,6 +130,7 @@ extern enum processor_type mn10300_processor;
 #define LAST_EXTENDED_REGNUM 17
 #define FIRST_FP_REGNUM 18
 #define LAST_FP_REGNUM 49
+#define FIRST_ARGUMENT_REGNUM 0
 
 /* Specify the registers used for certain standard purposes.
    The values of these macros are register numbers.  */
@@ -511,7 +512,7 @@ enum reg_class {
 #define STACK_POINTER_OFFSET 4
 
 /* 1 if N is a possible register number for function argument passing.
-   On the MN10300, no registers are used in this way.  */
+   On the MN10300, d0 and d1 are used in this way.  */
 
 #define FUNCTION_ARG_REGNO_P(N) ((N) <= 1)
 
@@ -559,8 +560,6 @@ struct cum_arg {int nbytes; };
    NAMED is nonzero if this argument is a named parameter
     (otherwise it is an extra parameter matching an ellipsis).  */
 
-/* On the MN10300 all args are pushed.  */
-
 #define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
   function_arg (&CUM, MODE, TYPE, NAMED)
 
@@ -600,10 +599,6 @@ struct cum_arg {int nbytes; };
    ? gen_rtx_MEM (Pmode, arg_pointer_rtx) \
    : (rtx) 0)
 
-/* 1 if X is an rtx for a constant that is a valid address.  */
-
-#define CONSTANT_ADDRESS_P(X)   (CONSTANT_P (X) && GET_CODE (X) != CONST_DOUBLE)
-
 /* Maximum number of registers that can appear in a valid memory address.  */
 
 #define MAX_REGS_PER_ADDRESS 2

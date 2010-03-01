@@ -1,18 +1,18 @@
 /* Global, SSA-based optimizations using mathematical identities.
    Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
-   
+
 This file is part of GCC.
-   
+
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
 Free Software Foundation; either version 3, or (at your option) any
 later version.
-   
+
 GCC is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
-   
+
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
@@ -312,7 +312,7 @@ insert_reciprocals (gimple_stmt_iterator *def_gsi, struct occurrence *occ,
       recip_def = make_rename_temp (type, "reciptmp");
       new_stmt = gimple_build_assign_with_ops (RDIV_EXPR, recip_def,
 					       build_one_cst (type), def);
-  
+
       if (occ->bb_has_division)
         {
           /* Case 1: insert before an existing division.  */
@@ -418,7 +418,7 @@ execute_cse_reciprocals_1 (gimple_stmt_iterator *def_gsi, tree def)
 	  count++;
 	}
     }
-  
+
   /* Do the expensive part only if we can hope to optimize something.  */
   threshold = targetm.min_divisions_for_recip_mul (TYPE_MODE (TREE_TYPE (def)));
   if (count >= threshold)
@@ -531,7 +531,9 @@ execute_cse_reciprocals (void)
 		      || DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD))
 		{
 		  enum built_in_function code;
-		  bool md_code;
+		  bool md_code, fail;
+		  imm_use_iterator ui;
+		  use_operand_p use_p;
 
 		  code = DECL_FUNCTION_CODE (fndecl);
 		  md_code = DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD;
@@ -540,12 +542,37 @@ execute_cse_reciprocals (void)
 		  if (!fndecl)
 		    continue;
 
+		  /* Check that all uses of the SSA name are divisions,
+		     otherwise replacing the defining statement will do
+		     the wrong thing.  */
+		  fail = false;
+		  FOR_EACH_IMM_USE_FAST (use_p, ui, arg1)
+		    {
+		      gimple stmt2 = USE_STMT (use_p);
+		      if (is_gimple_debug (stmt2))
+			continue;
+		      if (!is_gimple_assign (stmt2)
+			  || gimple_assign_rhs_code (stmt2) != RDIV_EXPR
+			  || gimple_assign_rhs1 (stmt2) == arg1
+			  || gimple_assign_rhs2 (stmt2) != arg1)
+			{
+			  fail = true;
+			  break;
+			}
+		    }
+		  if (fail)
+		    continue;
+
+		  gimple_replace_lhs (stmt1, arg1);
 		  gimple_call_set_fndecl (stmt1, fndecl);
 		  update_stmt (stmt1);
 
-		  gimple_assign_set_rhs_code (stmt, MULT_EXPR);
-		  fold_stmt_inplace (stmt);
-		  update_stmt (stmt);
+		  FOR_EACH_IMM_USE_STMT (stmt, ui, arg1)
+		    {
+		      gimple_assign_set_rhs_code (stmt, MULT_EXPR);
+		      fold_stmt_inplace (stmt);
+		      update_stmt (stmt);
+		    }
 		}
 	    }
 	}
@@ -710,7 +737,7 @@ execute_cse_sincos_1 (tree name)
 
 	gsi = gsi_for_stmt (use_stmt);
 	gsi_insert_after (&gsi, stmt, GSI_SAME_STMT);
-	gsi_remove (&gsi, true); 
+	gsi_remove (&gsi, true);
     }
 
   VEC_free(gimple, heap, stmts);
@@ -1084,8 +1111,9 @@ execute_optimize_bswap (void)
 	       && optab_handler (bswap_optab, SImode)->insn_code !=
 	       CODE_FOR_nothing);
   bswap64_p = (built_in_decls[BUILT_IN_BSWAP64]
-	       && optab_handler (bswap_optab, DImode)->insn_code !=
-	       CODE_FOR_nothing);
+	       && (optab_handler (bswap_optab, DImode)->insn_code !=
+		   CODE_FOR_nothing
+		   || (bswap32_p && word_mode == SImode)));
 
   if (!bswap32_p && !bswap64_p)
     return 0;

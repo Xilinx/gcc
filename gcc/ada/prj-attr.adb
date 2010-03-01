@@ -112,6 +112,7 @@ package body Prj.Attr is
 
    "SVdefault_language#" &
    "LVrun_path_option#" &
+   "SVrun_path_origin#" &
    "SVseparate_run_path_options#" &
    "Satoolchain_version#" &
    "Satoolchain_description#" &
@@ -141,6 +142,7 @@ package body Prj.Attr is
    "SVlibrary_auto_init_supported#" &
    "LVshared_library_minimum_switches#" &
    "LVlibrary_version_switches#" &
+   "SVlibrary_install_name_option#" &
    "Saruntime_library_dir#" &
    "Saruntime_source_dir#" &
 
@@ -179,6 +181,8 @@ package body Prj.Attr is
    "Sapath_syntax#" &
    "Saobject_file_suffix#" &
    "Laobject_file_switches#" &
+   "Lamulti_unit_switches#" &
+   "Samulti_unit_object_separator#" &
 
    --  Configuration - Mapping files
 
@@ -190,8 +194,10 @@ package body Prj.Attr is
 
    "Laconfig_file_switches#" &
    "Saconfig_body_file_name#" &
-   "Saconfig_spec_file_name#" &
+   "Saconfig_body_file_name_index#" &
    "Saconfig_body_file_name_pattern#" &
+   "Saconfig_spec_file_name#" &
+   "Saconfig_spec_file_name_index#" &
    "Saconfig_spec_file_name_pattern#" &
    "Saconfig_file_unique#" &
 

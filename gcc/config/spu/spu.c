@@ -1710,6 +1710,8 @@ get_pic_reg (void)
   rtx pic_reg = pic_offset_table_rtx;
   if (!reload_completed && !reload_in_progress)
     abort ();
+  if (current_function_is_leaf && !df_regs_ever_live_p (LAST_ARG_REGNUM))
+    pic_reg = gen_rtx_REG (SImode, LAST_ARG_REGNUM);
   return pic_reg;
 }
 
@@ -7070,6 +7072,13 @@ spu_split_convert (rtx ops[])
       rtx op1 = gen_rtx_REG (TImode, REGNO (ops[1]));
       emit_insn (gen_move_insn (op0, op1));
     }
+}
+
+void
+spu_function_profiler (FILE * file, int labelno)
+{
+  fprintf (file, "# profile\n");
+  fprintf (file, "brsl $75,  _mcount\n");
 }
 
 #include "gt-spu.h"

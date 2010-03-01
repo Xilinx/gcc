@@ -242,27 +242,9 @@ gfc_post_options (const char **pfilename)
   if (flag_whole_program)
     gfc_option.flag_whole_file = 1;
 
+  /* Enable whole-file mode if LTO is in effect.  */
   if (flag_lto || flag_whopr)
-    {
-#ifdef ENABLE_LTO
-      flag_generate_lto = 1;
-
-      /* When generating IL, do not operate in whole-program mode.
-	 Otherwise, symbols will be privatized too early, causing link
-	 errors later.  */
-      flag_whole_program = 0;
-
-      /* But do enable whole-file mode.  */
-      gfc_option.flag_whole_file = 1;
-#else
-      error ("LTO support has not been enabled in this configuration");
-#endif
-    }
-
-  /* Reconcile -flto and -fwhopr.  Set additional flags as appropriate and
-     check option consistency.  */
-  if (flag_lto && flag_whopr)
-    error ("-flto and -fwhopr are mutually exclusive");
+    gfc_option.flag_whole_file = 1;
 
   /* -fbounds-check is equivalent to -fcheck=bounds */
   if (flag_bounds_check)
@@ -371,17 +353,21 @@ gfc_post_options (const char **pfilename)
 		     "implied by -fopenmp", 
 		     gfc_option.flag_max_stack_var_size);
 
-  /* Implied -frecursive; implemented as -fmax-stack-var-size=-1.  */
-  if (gfc_option.flag_max_stack_var_size == -2 && gfc_option.flag_openmp)
+  /* Implement -frecursive as -fmax-stack-var-size=-1.  */
+  if (gfc_option.flag_recursive)
     gfc_option.flag_max_stack_var_size = -1;
+
+  /* Implied -frecursive; implemented as -fmax-stack-var-size=-1.  */
+  if (gfc_option.flag_max_stack_var_size == -2 && gfc_option.flag_openmp
+      && gfc_option.flag_automatic)
+    {
+      gfc_option.flag_recursive = 1;
+      gfc_option.flag_max_stack_var_size = -1;
+    }
 
   /* Set default.  */
   if (gfc_option.flag_max_stack_var_size == -2)
     gfc_option.flag_max_stack_var_size = 32768;
-
-  /* Implement -frecursive as -fmax-stack-var-size=-1.  */
-  if (gfc_option.flag_recursive)
-    gfc_option.flag_max_stack_var_size = -1;
 
   /* Implement -fno-automatic as -fmax-stack-var-size=0.  */
   if (!gfc_option.flag_automatic)
@@ -577,6 +563,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_Wimplicit_interface:
       gfc_option.warn_implicit_interface = value;
+      break;
+
+    case OPT_Wimplicit_procedure:
+      gfc_option.warn_implicit_procedure = value;
       break;
 
     case OPT_Wline_truncation:
