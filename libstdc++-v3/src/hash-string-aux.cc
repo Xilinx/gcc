@@ -26,29 +26,23 @@
   template<>
     size_t
     hash<string>::operator()(string __s) const
-    { return _Fnv_hash<>::hash(__s.data(), __s.length()); }
+    { return _Fnv_hash::hash(__s.data(), __s.length()); }
 
   template<>
     size_t
     hash<const string&>::operator()(const string& __s) const
-    { return _Fnv_hash<>::hash(__s.data(), __s.length()); }
+    { return _Fnv_hash::hash(__s.data(), __s.length()); }
 
 #ifdef _GLIBCXX_USE_WCHAR_T
   template<>
     size_t
     hash<wstring>::operator()(wstring __s) const
-    {
-      const char* __p = reinterpret_cast<const char*>(__s.data());
-      return _Fnv_hash<>::hash(__p, __s.length() * sizeof(wchar_t));
-    }
+    { return _Fnv_hash::hash(__s.data(), __s.length() * sizeof(wchar_t)); }
 
   template<>
     size_t
     hash<const wstring&>::operator()(const wstring& __s) const
-    {
-      const char* __p = reinterpret_cast<const char*>(__s.data());
-      return _Fnv_hash<>::hash(__p, __s.length() * sizeof(wchar_t));
-    }
+    { return _Fnv_hash::hash(__s.data(), __s.length() * sizeof(wchar_t)); }
 #endif
 
 #endif

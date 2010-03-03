@@ -117,56 +117,72 @@ namespace std
 #undef _Cxx_hashtable_define_trivial_hash
 
   // Fowler / Noll / Vo (FNV) Hash (type FNV-1a)
-  // (Used by the next specializations of std::hash.)
-
-  template<size_t = sizeof(size_t)>
-    struct _Fnv_hash;
 
   // Dummy generic implementation (for sizeof(size_t) != 4, 8).
   template<size_t>
-    struct _Fnv_hash
+    struct _Fnv_hash_base
     {
-      static size_t
-      hash(const char* __first, size_t __length)
-      {
-	size_t __result = 0;
-	for (; __length > 0; --__length)
-	  __result = (__result * 131) + *__first++;
-	return __result;
-      }
+      template<typename _Tp>
+        static size_t
+        hash(const _Tp* __ptr, size_t __clength, size_t __hash = 0)
+        {
+	  const char* __cptr = reinterpret_cast<const char*>(__ptr);
+	  for (; __clength; --__clength)
+	    __hash = (__hash * 131) + *__cptr++;
+	  return __hash;
+	}
     };
 
   template<>
-    struct _Fnv_hash<4>
+    struct _Fnv_hash_base<4>
     {
-      static size_t
-      hash(const char* __first, size_t __length)
-      {
-	size_t __result = static_cast<size_t>(2166136261UL);
-	for (; __length > 0; --__length)
-	  {
-	    __result ^= static_cast<size_t>(*__first++);
-	    __result *= static_cast<size_t>(16777619UL);
-	  }
-	return __result;
-      }
+      template<typename _Tp>
+        static size_t
+        hash(const _Tp* __ptr, size_t __clength,
+	     size_t __hash = static_cast<size_t>(2166136261UL))
+        {
+	  const char* __cptr = reinterpret_cast<const char*>(__ptr);
+	  for (; __clength; --__clength)
+	    {
+	      __hash ^= static_cast<size_t>(*__cptr++);
+	      __hash *= static_cast<size_t>(16777619UL);
+	    }
+	  return __hash;
+	}
     };
   
   template<>
-    struct _Fnv_hash<8>
+    struct _Fnv_hash_base<8>
     {
-      static size_t
-      hash(const char* __first, size_t __length)
-      {
-	size_t __result =
-	  static_cast<size_t>(14695981039346656037ULL);
-	for (; __length > 0; --__length)
-	  {
-	    __result ^= static_cast<size_t>(*__first++);
-	    __result *= static_cast<size_t>(1099511628211ULL);
-	  }
-	return __result;
-      }
+      template<typename _Tp>
+        static size_t
+        hash(const _Tp* __ptr, size_t __clength,
+	     size_t __hash = static_cast<size_t>(14695981039346656037ULL))
+        {
+	  const char* __cptr = reinterpret_cast<const char*>(__ptr);
+	  for (; __clength; --__clength)
+	    {
+	      __hash ^= static_cast<size_t>(*__cptr++);
+	      __hash *= static_cast<size_t>(1099511628211ULL);
+	    }
+	  return __hash;
+	}
+    };
+
+    struct _Fnv_hash
+    : public _Fnv_hash_base<sizeof(size_t)>
+    {
+      using _Fnv_hash_base<sizeof(size_t)>::hash;
+
+      template<typename _Tp>
+        static size_t
+        hash(const _Tp& __val)
+        { return hash(&__val, sizeof(__val)); }
+
+      template<typename _Tp>
+        static size_t
+        __hash_combine(const _Tp& __val, size_t __hash)
+        { return hash(&__val, sizeof(__val), __hash); }
     };
 
   /// Specialization for float.
@@ -174,13 +190,8 @@ namespace std
     inline size_t
     hash<float>::operator()(float __val) const
     {
-      size_t __result = 0;
-      
       // 0 and -0 both hash to zero.
-      if (__val != 0.0f)
-	__result = _Fnv_hash<>::hash(reinterpret_cast<const char*>(&__val),
-				     sizeof(__val));
-      return __result;
+      return __val != 0.0f ? std::_Fnv_hash::hash(__val) : 0;
     }
 
   /// Specialization for double.
@@ -188,18 +199,13 @@ namespace std
     inline size_t
     hash<double>::operator()(double __val) const
     {
-      size_t __result = 0;
-
       // 0 and -0 both hash to zero.
-      if (__val != 0.0)
-	__result = _Fnv_hash<>::hash(reinterpret_cast<const char*>(&__val),
-				     sizeof(__val));
-      return __result;
+      return __val != 0.0 ? std::_Fnv_hash::hash(__val) : 0;
     }
 
   /// Specialization for long double.
   template<>
-    size_t
+    _GLIBCXX_PURE size_t
     hash<long double>::operator()(long double __val) const;
 
   // @} group hashes

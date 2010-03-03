@@ -111,6 +111,7 @@
 #include "target.h"
 #include "toplev.h"
 #include "params.h"
+#include "diagnostic.h"
 
 /* var-tracking.c assumes that tree code with the same value as VALUE rtx code
    has no chance to appear in REG_EXPR/MEM_EXPRs and isn't a decl.
@@ -784,6 +785,9 @@ dv_onepart_p (decl_or_value dv)
   if (!decl)
     return true;
 
+  if (TREE_CODE (decl) == DEBUG_EXPR_DECL)
+    return true;
+
   return (target_for_debug_bind (decl) != NULL_TREE);
 }
 
@@ -817,6 +821,17 @@ dv_from_value (rtx value)
   gcc_assert (dv_is_value_p (dv));
 #endif
   return dv;
+}
+
+extern void debug_dv (decl_or_value dv);
+
+void
+debug_dv (decl_or_value dv)
+{
+  if (dv_is_value_p (dv))
+    debug_rtx (dv_as_value (dv));
+  else
+    debug_generic_stmt (dv_as_decl (dv));
 }
 
 typedef unsigned int dvuid;
@@ -2463,7 +2478,10 @@ loc_cmp (rtx x, rtx y)
     {
       if (GET_CODE (y) != VALUE)
 	return -1;
-      gcc_assert (GET_MODE (x) == GET_MODE (y));
+      /* Don't assert the modes are the same, that is true only
+	 when not recursing.  (subreg:QI (value:SI 1:1) 0)
+	 and (subreg:QI (value:DI 2:2) 0) can be compared,
+	 even when the modes are different.  */
       if (canon_value_cmp (x, y))
 	return -1;
       else
@@ -2563,39 +2581,48 @@ loc_cmp (rtx x, rtx y)
 static int
 add_value_chain (rtx *loc, void *dvp)
 {
-  if (GET_CODE (*loc) == VALUE && (void *) *loc != dvp)
+  decl_or_value dv, ldv;
+  value_chain vc, nvc;
+  void **slot;
+
+  if (GET_CODE (*loc) == VALUE)
+    ldv = dv_from_value (*loc);
+  else if (GET_CODE (*loc) == DEBUG_EXPR)
+    ldv = dv_from_decl (DEBUG_EXPR_TREE_DECL (*loc));
+  else
+    return 0;
+
+  if (dv_as_opaque (ldv) == dvp)
+    return 0;
+
+  dv = (decl_or_value) dvp;
+  slot = htab_find_slot_with_hash (value_chains, ldv, dv_htab_hash (ldv),
+				   INSERT);
+  if (!*slot)
     {
-      decl_or_value dv = (decl_or_value) dvp;
-      decl_or_value ldv = dv_from_value (*loc);
-      value_chain vc, nvc;
-      void **slot = htab_find_slot_with_hash (value_chains, ldv,
-					      dv_htab_hash (ldv), INSERT);
-      if (!*slot)
-	{
-	  vc = (value_chain) pool_alloc (value_chain_pool);
-	  vc->dv = ldv;
-	  vc->next = NULL;
-	  vc->refcount = 0;
-	  *slot = (void *) vc;
-	}
-      else
-	{
-	  for (vc = ((value_chain) *slot)->next; vc; vc = vc->next)
-	    if (dv_as_opaque (vc->dv) == dv_as_opaque (dv))
-	      break;
-	  if (vc)
-	    {
-	      vc->refcount++;
-	      return 0;
-	    }
-	}
-      vc = (value_chain) *slot;
-      nvc = (value_chain) pool_alloc (value_chain_pool);
-      nvc->dv = dv;
-      nvc->next = vc->next;
-      nvc->refcount = 1;
-      vc->next = nvc;
+      vc = (value_chain) pool_alloc (value_chain_pool);
+      vc->dv = ldv;
+      vc->next = NULL;
+      vc->refcount = 0;
+      *slot = (void *) vc;
     }
+  else
+    {
+      for (vc = ((value_chain) *slot)->next; vc; vc = vc->next)
+	if (dv_as_opaque (vc->dv) == dv_as_opaque (dv))
+	  break;
+      if (vc)
+	{
+	  vc->refcount++;
+	  return 0;
+	}
+    }
+  vc = (value_chain) *slot;
+  nvc = (value_chain) pool_alloc (value_chain_pool);
+  nvc->dv = dv;
+  nvc->next = vc->next;
+  nvc->refcount = 1;
+  vc->next = nvc;
   return 0;
 }
 
@@ -2605,7 +2632,7 @@ add_value_chain (rtx *loc, void *dvp)
 static void
 add_value_chains (decl_or_value dv, rtx loc)
 {
-  if (GET_CODE (loc) == VALUE)
+  if (GET_CODE (loc) == VALUE || GET_CODE (loc) == DEBUG_EXPR)
     {
       add_value_chain (&loc, dv_as_opaque (dv));
       return;
@@ -2635,33 +2662,41 @@ add_cselib_value_chains (decl_or_value dv)
 static int
 remove_value_chain (rtx *loc, void *dvp)
 {
-  if (GET_CODE (*loc) == VALUE && (void *) *loc != dvp)
-    {
-      decl_or_value dv = (decl_or_value) dvp;
-      decl_or_value ldv = dv_from_value (*loc);
-      value_chain vc, dvc = NULL;
-      void **slot = htab_find_slot_with_hash (value_chains, ldv,
-					      dv_htab_hash (ldv), NO_INSERT);
-      for (vc = (value_chain) *slot; vc->next; vc = vc->next)
-	if (dv_as_opaque (vc->next->dv) == dv_as_opaque (dv))
+  decl_or_value dv, ldv;
+  value_chain vc;
+  void **slot;
+
+  if (GET_CODE (*loc) == VALUE)
+    ldv = dv_from_value (*loc);
+  else if (GET_CODE (*loc) == DEBUG_EXPR)
+    ldv = dv_from_decl (DEBUG_EXPR_TREE_DECL (*loc));
+  else
+    return 0;
+
+  if (dv_as_opaque (ldv) == dvp)
+    return 0;
+
+  dv = (decl_or_value) dvp;
+  slot = htab_find_slot_with_hash (value_chains, ldv, dv_htab_hash (ldv),
+				   NO_INSERT);
+  for (vc = (value_chain) *slot; vc->next; vc = vc->next)
+    if (dv_as_opaque (vc->next->dv) == dv_as_opaque (dv))
+      {
+	value_chain dvc = vc->next;
+	gcc_assert (dvc->refcount > 0);
+	if (--dvc->refcount == 0)
 	  {
-	    dvc = vc->next;
-	    gcc_assert (dvc->refcount > 0);
-	    if (--dvc->refcount == 0)
+	    vc->next = dvc->next;
+	    pool_free (value_chain_pool, dvc);
+	    if (vc->next == NULL && vc == (value_chain) *slot)
 	      {
-		vc->next = dvc->next;
-		pool_free (value_chain_pool, dvc);
-		if (vc->next == NULL && vc == (value_chain) *slot)
-		  {
-		    pool_free (value_chain_pool, vc);
-		    htab_clear_slot (value_chains, slot);
-		  }
+		pool_free (value_chain_pool, vc);
+		htab_clear_slot (value_chains, slot);
 	      }
-	    return 0;
 	  }
-      gcc_unreachable ();
-    }
-  return 0;
+	return 0;
+      }
+  gcc_unreachable ();
 }
 
 /* If decl or value DVP refers to VALUEs from within LOC, remove backlinks
@@ -2670,7 +2705,7 @@ remove_value_chain (rtx *loc, void *dvp)
 static void
 remove_value_chains (decl_or_value dv, rtx loc)
 {
-  if (GET_CODE (loc) == VALUE)
+  if (GET_CODE (loc) == VALUE || GET_CODE (loc) == DEBUG_EXPR)
     {
       remove_value_chain (&loc, dv_as_opaque (dv));
       return;
@@ -4150,7 +4185,7 @@ track_expr_p (tree expr, bool need_rtl)
     return 0;
 
   /* It also must have a name...  */
-  if (!DECL_NAME (expr))
+  if (!DECL_NAME (expr) && need_rtl)
     return 0;
 
   /* ... and a RTL assigned to it.  */
@@ -4646,6 +4681,10 @@ count_with_sets (rtx insn, struct cselib_set *sets, int n_sets)
    MO_CLOBBER as well.  */
 #define VAL_EXPR_IS_CLOBBERED(x) \
   (RTL_FLAG_CHECK1 ("VAL_EXPR_IS_CLOBBERED", (x), CONCAT)->unchanging)
+/* Whether the location is a CONCAT of the MO_VAL_SET expression and
+   a reverse operation that should be handled afterwards.  */
+#define VAL_EXPR_HAS_REVERSE(x) \
+  (RTL_FLAG_CHECK1 ("VAL_EXPR_HAS_REVERSE", (x), CONCAT)->return_val)
 
 /* Add uses (register and memory references) LOC which will be tracked
    to VTI (bb)->mos.  INSN is instruction which the LOC is part of.  */
@@ -4831,6 +4870,92 @@ add_uses_1 (rtx *x, void *cui)
   for_each_rtx (x, add_uses, cui);
 }
 
+/* Attempt to reverse the EXPR operation in the debug info.  Say for
+   reg1 = reg2 + 6 even when reg2 is no longer live we
+   can express its value as VAL - 6.  */
+
+static rtx
+reverse_op (rtx val, const_rtx expr)
+{
+  rtx src, arg, ret;
+  cselib_val *v;
+  enum rtx_code code;
+
+  if (GET_CODE (expr) != SET)
+    return NULL_RTX;
+
+  if (!REG_P (SET_DEST (expr)) || GET_MODE (val) != GET_MODE (SET_DEST (expr)))
+    return NULL_RTX;
+
+  src = SET_SRC (expr);
+  switch (GET_CODE (src))
+    {
+    case PLUS:
+    case MINUS:
+    case XOR:
+    case NOT:
+    case NEG:
+    case SIGN_EXTEND:
+    case ZERO_EXTEND:
+      break;
+    default:
+      return NULL_RTX;
+    }
+
+  if (!REG_P (XEXP (src, 0)) || !SCALAR_INT_MODE_P (GET_MODE (src)))
+    return NULL_RTX;
+
+  v = cselib_lookup (XEXP (src, 0), GET_MODE (XEXP (src, 0)), 0);
+  if (!v || !cselib_preserved_value_p (v))
+    return NULL_RTX;
+
+  switch (GET_CODE (src))
+    {
+    case NOT:
+    case NEG:
+      if (GET_MODE (v->val_rtx) != GET_MODE (val))
+	return NULL_RTX;
+      ret = gen_rtx_fmt_e (GET_CODE (src), GET_MODE (val), val);
+      break;
+    case SIGN_EXTEND:
+    case ZERO_EXTEND:
+      ret = gen_lowpart_SUBREG (GET_MODE (v->val_rtx), val);
+      break;
+    case XOR:
+      code = XOR;
+      goto binary;
+    case PLUS:
+      code = MINUS;
+      goto binary;
+    case MINUS:
+      code = PLUS;
+      goto binary;
+    binary:
+      if (GET_MODE (v->val_rtx) != GET_MODE (val))
+	return NULL_RTX;
+      arg = XEXP (src, 1);
+      if (!CONST_INT_P (arg) && GET_CODE (arg) != SYMBOL_REF)
+	{
+	  arg = cselib_expand_value_rtx (arg, scratch_regs, 5);
+	  if (arg == NULL_RTX)
+	    return NULL_RTX;
+	  if (!CONST_INT_P (arg) && GET_CODE (arg) != SYMBOL_REF)
+	    return NULL_RTX;
+	}
+      ret = simplify_gen_binary (code, GET_MODE (val), val, arg);
+      if (ret == val)
+	/* Ensure ret isn't VALUE itself (which can happen e.g. for
+	   (plus (reg1) (reg2)) when reg2 is known to be 0), as that
+	   breaks a lot of routines during var-tracking.  */
+	ret = gen_rtx_fmt_ee (PLUS, GET_MODE (val), val, const0_rtx);
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  return gen_rtx_CONCAT (GET_MODE (v->val_rtx), v->val_rtx, ret);
+}
+
 /* Add stores (register and memory references) LOC which will be tracked
    to VTI (bb)->mos.  EXPR is the RTL expression containing the store.
    CUIP->insn is instruction which the LOC is part of.  */
@@ -4847,6 +4972,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
   bool track_p = false;
   cselib_val *v;
   bool resolve, preserve;
+  rtx reverse;
 
   if (type == MO_CLOBBER)
     return;
@@ -5049,6 +5175,16 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
      representations of dst and src, respectively.
 
   */
+
+  if (GET_CODE (PATTERN (cui->insn)) != COND_EXEC)
+    {
+      reverse = reverse_op (v->val_rtx, expr);
+      if (reverse)
+	{
+	  loc = gen_rtx_CONCAT (GET_MODE (mo->u.loc), loc, reverse);
+	  VAL_EXPR_HAS_REVERSE (loc) = 1;
+	}
+    }
 
   mo->u.loc = loc;
 
@@ -5335,10 +5471,17 @@ compute_bb_dataflow (basic_block bb)
 	  case MO_VAL_SET:
 	    {
 	      rtx loc = VTI (bb)->mos[i].u.loc;
-	      rtx val, vloc, uloc;
+	      rtx val, vloc, uloc, reverse = NULL_RTX;
 
-	      vloc = uloc = XEXP (loc, 1);
-	      val = XEXP (loc, 0);
+	      vloc = loc;
+	      if (VAL_EXPR_HAS_REVERSE (loc))
+		{
+		  reverse = XEXP (loc, 1);
+		  vloc = XEXP (loc, 0);
+		}
+	      uloc = XEXP (vloc, 1);
+	      val = XEXP (vloc, 0);
+	      vloc = uloc;
 
 	      if (GET_CODE (val) == CONCAT)
 		{
@@ -5411,6 +5554,10 @@ compute_bb_dataflow (basic_block bb)
 		var_regno_delete (out, REGNO (uloc));
 
 	      val_store (out, val, vloc, insn, true);
+
+	      if (reverse)
+		val_store (out, XEXP (reverse, 0), XEXP (reverse, 1),
+			   insn, false);
 	    }
 	    break;
 
@@ -5759,14 +5906,17 @@ dump_var (variable var)
       const_tree decl = dv_as_decl (var->dv);
 
       if (DECL_NAME (decl))
-	fprintf (dump_file, "  name: %s",
-		 IDENTIFIER_POINTER (DECL_NAME (decl)));
+	{
+	  fprintf (dump_file, "  name: %s",
+		   IDENTIFIER_POINTER (DECL_NAME (decl)));
+	  if (dump_flags & TDF_UID)
+	    fprintf (dump_file, "D.%u", DECL_UID (decl));
+	}
+      else if (TREE_CODE (decl) == DEBUG_EXPR_DECL)
+	fprintf (dump_file, "  name: D#%u", DEBUG_TEMP_UID (decl));
       else
 	fprintf (dump_file, "  name: D.%u", DECL_UID (decl));
-      if (dump_flags & TDF_UID)
-	fprintf (dump_file, " D.%u\n", DECL_UID (decl));
-      else
-	fprintf (dump_file, "\n");
+      fprintf (dump_file, "\n");
     }
   else
     {
@@ -6677,7 +6827,8 @@ check_changed_vars_1 (void **slot, void *data)
   variable var = (variable) *slot;
   htab_t htab = (htab_t) data;
 
-  if (dv_is_value_p (var->dv))
+  if (dv_is_value_p (var->dv)
+      || TREE_CODE (dv_as_decl (var->dv)) == DEBUG_EXPR_DECL)
     {
       value_chain vc
 	= (value_chain) htab_find_with_hash (value_chains, var->dv,
@@ -6707,7 +6858,8 @@ static void
 check_changed_vars_2 (variable var, htab_t htab)
 {
   variable_was_changed (var, NULL);
-  if (dv_is_value_p (var->dv))
+  if (dv_is_value_p (var->dv)
+      || TREE_CODE (dv_as_decl (var->dv)) == DEBUG_EXPR_DECL)
     {
       value_chain vc
 	= (value_chain) htab_find_with_hash (value_chains, var->dv,
@@ -6975,10 +7127,17 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 	  case MO_VAL_SET:
 	    {
 	      rtx loc = VTI (bb)->mos[i].u.loc;
-	      rtx val, vloc, uloc;
+	      rtx val, vloc, uloc, reverse = NULL_RTX;
 
-	      vloc = uloc = XEXP (loc, 1);
-	      val = XEXP (loc, 0);
+	      vloc = loc;
+	      if (VAL_EXPR_HAS_REVERSE (loc))
+		{
+		  reverse = XEXP (loc, 1);
+		  vloc = XEXP (loc, 0);
+		}
+	      uloc = XEXP (vloc, 1);
+	      val = XEXP (vloc, 0);
+	      vloc = uloc;
 
 	      if (GET_CODE (val) == CONCAT)
 		{
@@ -7045,6 +7204,10 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 		var_regno_delete (set, REGNO (uloc));
 
 	      val_store (set, val, vloc, insn, true);
+
+	      if (reverse)
+		val_store (set, XEXP (reverse, 0), XEXP (reverse, 1),
+			   insn, false);
 
 	      emit_notes_for_changes (NEXT_INSN (insn), EMIT_NOTE_BEFORE_INSN,
 				      set->vars);
@@ -7362,9 +7525,9 @@ vt_initialize (void)
     {
       rtx insn;
       HOST_WIDE_INT pre, post = 0;
-      int count;
       unsigned int next_uid_before = cselib_get_next_uid ();
       unsigned int next_uid_after = next_uid_before;
+      basic_block first_bb, last_bb;
 
       if (MAY_HAVE_DEBUG_INSNS)
 	{
@@ -7374,54 +7537,69 @@ vt_initialize (void)
 		     cselib_get_next_uid ());
 	}
 
-      /* Count the number of micro operations.  */
-      VTI (bb)->n_mos = 0;
-      for (insn = BB_HEAD (bb); insn != NEXT_INSN (BB_END (bb));
-	   insn = NEXT_INSN (insn))
+      first_bb = bb;
+      for (;;)
 	{
-	  if (INSN_P (insn))
+	  edge e;
+	  if (bb->next_bb == EXIT_BLOCK_PTR
+	      || ! single_pred_p (bb->next_bb))
+	    break;
+	  e = find_edge (bb, bb->next_bb);
+	  if (! e || (e->flags & EDGE_FALLTHRU) == 0)
+	    break;
+	  bb = bb->next_bb;
+	}
+      last_bb = bb;
+
+      /* Count the number of micro operations.  */
+      FOR_BB_BETWEEN (bb, first_bb, last_bb->next_bb, next_bb)
+	{
+	  VTI (bb)->n_mos = 0;
+	  for (insn = BB_HEAD (bb); insn != NEXT_INSN (BB_END (bb));
+	       insn = NEXT_INSN (insn))
 	    {
-	      if (!frame_pointer_needed)
+	      if (INSN_P (insn))
 		{
-		  insn_stack_adjust_offset_pre_post (insn, &pre, &post);
-		  if (pre)
+		  if (!frame_pointer_needed)
+		    {
+		      insn_stack_adjust_offset_pre_post (insn, &pre, &post);
+		      if (pre)
+			{
+			  VTI (bb)->n_mos++;
+			  if (dump_file && (dump_flags & TDF_DETAILS))
+			    log_op_type (GEN_INT (pre), bb, insn,
+					 MO_ADJUST, dump_file);
+			}
+		      if (post)
+			{
+			  VTI (bb)->n_mos++;
+			  if (dump_file && (dump_flags & TDF_DETAILS))
+			    log_op_type (GEN_INT (post), bb, insn,
+					 MO_ADJUST, dump_file);
+			}
+		    }
+		  cselib_hook_called = false;
+		  if (MAY_HAVE_DEBUG_INSNS)
+		    {
+		      cselib_process_insn (insn);
+		      if (dump_file && (dump_flags & TDF_DETAILS))
+			{
+			  print_rtl_single (dump_file, insn);
+			  dump_cselib_table (dump_file);
+			}
+		    }
+		  if (!cselib_hook_called)
+		    count_with_sets (insn, 0, 0);
+		  if (CALL_P (insn))
 		    {
 		      VTI (bb)->n_mos++;
 		      if (dump_file && (dump_flags & TDF_DETAILS))
-			log_op_type (GEN_INT (pre), bb, insn,
-				     MO_ADJUST, dump_file);
+			log_op_type (PATTERN (insn), bb, insn,
+				     MO_CALL, dump_file);
 		    }
-		  if (post)
-		    {
-		      VTI (bb)->n_mos++;
-		      if (dump_file && (dump_flags & TDF_DETAILS))
-			log_op_type (GEN_INT (post), bb, insn,
-				     MO_ADJUST, dump_file);
-		    }
-		}
-	      cselib_hook_called = false;
-	      if (MAY_HAVE_DEBUG_INSNS)
-		{
-		  cselib_process_insn (insn);
-		  if (dump_file && (dump_flags & TDF_DETAILS))
-		    {
-		      print_rtl_single (dump_file, insn);
-		      dump_cselib_table (dump_file);
-		    }
-		}
-	      if (!cselib_hook_called)
-		count_with_sets (insn, 0, 0);
-	      if (CALL_P (insn))
-		{
-		  VTI (bb)->n_mos++;
-		  if (dump_file && (dump_flags & TDF_DETAILS))
-		    log_op_type (PATTERN (insn), bb, insn,
-				 MO_CALL, dump_file);
 		}
 	    }
 	}
-
-      count = VTI (bb)->n_mos;
 
       if (MAY_HAVE_DEBUG_INSNS)
 	{
@@ -7435,22 +7613,53 @@ vt_initialize (void)
 	}
 
       /* Add the micro-operations to the array.  */
-      VTI (bb)->mos = XNEWVEC (micro_operation, VTI (bb)->n_mos);
-      VTI (bb)->n_mos = 0;
-      for (insn = BB_HEAD (bb); insn != NEXT_INSN (BB_END (bb));
-	   insn = NEXT_INSN (insn))
+      FOR_BB_BETWEEN (bb, first_bb, last_bb->next_bb, next_bb)
 	{
-	  if (INSN_P (insn))
+	  int count = VTI (bb)->n_mos;
+	  VTI (bb)->mos = XNEWVEC (micro_operation, count);
+	  VTI (bb)->n_mos = 0;
+	  for (insn = BB_HEAD (bb); insn != NEXT_INSN (BB_END (bb));
+	       insn = NEXT_INSN (insn))
 	    {
-	      if (!frame_pointer_needed)
+	      if (INSN_P (insn))
 		{
-		  insn_stack_adjust_offset_pre_post (insn, &pre, &post);
-		  if (pre)
+		  if (!frame_pointer_needed)
+		    {
+		      insn_stack_adjust_offset_pre_post (insn, &pre, &post);
+		      if (pre)
+			{
+			  micro_operation *mo
+			    = VTI (bb)->mos + VTI (bb)->n_mos++;
+
+			  mo->type = MO_ADJUST;
+			  mo->u.adjust = pre;
+			  mo->insn = insn;
+
+			  if (dump_file && (dump_flags & TDF_DETAILS))
+			    log_op_type (PATTERN (insn), bb, insn,
+					 MO_ADJUST, dump_file);
+			}
+		    }
+
+		  cselib_hook_called = false;
+		  if (MAY_HAVE_DEBUG_INSNS)
+		    {
+		      cselib_process_insn (insn);
+		      if (dump_file && (dump_flags & TDF_DETAILS))
+			{
+			  print_rtl_single (dump_file, insn);
+			  dump_cselib_table (dump_file);
+			}
+		    }
+		  if (!cselib_hook_called)
+		    add_with_sets (insn, 0, 0);
+
+		  if (!frame_pointer_needed && post)
 		    {
 		      micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
 
 		      mo->type = MO_ADJUST;
-		      mo->u.adjust = pre;
+		      mo->u.adjust = post;
 		      mo->insn = insn;
 
 		      if (dump_file && (dump_flags & TDF_DETAILS))
@@ -7458,35 +7667,12 @@ vt_initialize (void)
 				     MO_ADJUST, dump_file);
 		    }
 		}
-
-	      cselib_hook_called = false;
-	      if (MAY_HAVE_DEBUG_INSNS)
-		{
-		  cselib_process_insn (insn);
-		  if (dump_file && (dump_flags & TDF_DETAILS))
-		    {
-		      print_rtl_single (dump_file, insn);
-		      dump_cselib_table (dump_file);
-		    }
-		}
-	      if (!cselib_hook_called)
-		add_with_sets (insn, 0, 0);
-
-	      if (!frame_pointer_needed && post)
-		{
-		  micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
-
-		  mo->type = MO_ADJUST;
-		  mo->u.adjust = post;
-		  mo->insn = insn;
-
-		  if (dump_file && (dump_flags & TDF_DETAILS))
-		    log_op_type (PATTERN (insn), bb, insn,
-				 MO_ADJUST, dump_file);
-		}
 	    }
+	  gcc_assert (count == VTI (bb)->n_mos);
 	}
-      gcc_assert (count == VTI (bb)->n_mos);
+
+      bb = last_bb;
+
       if (MAY_HAVE_DEBUG_INSNS)
 	{
 	  cselib_preserve_only_values (true);
