@@ -1,3 +1,8 @@
+2010-03-03  Aldy Hernandez  <aldyh@redhat.com>
+
+	* configure.tgt: Add emacs -*- tags.
+	* barrier.tpl: Same.
+
 2010-02-23  Aldy Hernandez  <aldyh@redhat.com>
 
 	* Makefile.am: Rename serial.cc to method-serial.cc.

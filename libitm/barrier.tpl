@@ -1,3 +1,4 @@
+/* -*- c++ -*- */
 /* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
