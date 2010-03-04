@@ -1,3 +1,543 @@
+2010-03-03  Jeff Law  <law@redhat.com>
+
+	* PR middle-end/32693
+	* expmed.c (store_bit_field_1): Use gen_lowpart_SUBREG rather
+	than gen_rtx_SUBREG.
+	(extract_bit_field_1): Likewise.
+
+2010-03-03  Janis Johnson  <janis187@us.ibm.com>
+
+	* doc/sourcebuild.texi (Test directives): Document that arguments
+	include-opts and exclude-opts are now optional for dg-skip-if,
+	dg-xfail-if, dg-xfail-run-if, and dg-shouldfail.
+
+2010-03-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/12909
+	* cgraph.h (varpool_node): Add extra_name field.
+	* varpool.c (varpool_extra_name_alias): New.
+	(varpool_assemble_decl): Emit extra name aliases.
+	(varpool_mark_needed_node): Look past an extra name alias.
+	* lto-streamer.h (LTO_tags): Add LTO_var_decl_alias.
+	* lto-streamer-in.c (lto_input_tree): Read it.
+	* lto-streamer-out.c (output_unreferenced_globals): Write it.
+
+2010-03-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config.gcc (sparc64-*-solaris2*, sparc-*-solaris2*): Merge into...
+	(sparc*-*-solaris2*): ...this.
+
+2010-03-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43229
+	* cfgexpand.c (expand_debug_expr): Handle DOT_PROD_EXPR,
+	WIDEN_MULT_EXPR and WIDEN_SUM_EXPR.  Return NULL without
+	ICE for vector expressions, ADDR_SPACE_CONVERT_EXPR,
+	FIXED_CONVERT_EXPR, OBJ_TYPE_REF and WITH_SIZE_EXPR.
+
+	PR debug/43237
+	* dwarf2out.c (add_bound_info): If a decl bound doesn't have decl_die,
+	fallthrough to default handling, just with want_address 0 instead of 2.
+	For single element lists, add_AT_loc directly, otherwise create an
+	artificial variable DIE and stick location list to it.
+
+	PR debug/43177
+	* var-tracking.c (loc_cmp): Don't assert VALUEs have the same mode.
+	(VAL_EXPR_HAS_REVERSE): Define.
+	(reverse_op): New function.
+	(add_stores): For reversible operations add an extra MO_VAL_USE.
+
+2010-03-02  Jason Merrill  <jason@redhat.com>
+
+	* c-pretty-print.c (pp_c_specifier_qualifier_list): Print vector size.
+
+2010-03-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config.gcc (sparc-*-linux*): Do not include sparc/gas.h.
+	(sparc64-*-linux*): Likewise.
+	(sparc64-*-solaris2*): Include assembler files before linker ones.
+	(sparc-*-solaris2*): Simplify and reorder to match previous case.
+	* config/sparc/gas.h: Delete.
+	* config/sparc/sol2-64.h: Add copyright notice.
+	* config/sparc/sol2-gas-bi.h: Likewise.
+	* config/sparc/sol2-gld.h: Likewise.
+	* config/sparc/sysv4.h (TARGET_ASM_NAMED_SECTION): Delete.
+	* config/sparc/sol2.h (TARGET_ASM_NAMED_SECTION): Redefine.
+	* config/sparc/sol2-gas.h (TARGET_ASM_NAMED_SECTION): Likewise.
+	* config/sparc/sparc.c (TARGET_ASM_ALIGNED_SI_OP): Never redefine.
+	(sparc_elf_asm_named_section): Rename into...
+	(sparc_solaris_elf_asm_named_section): ...this.  Always define.
+
+2010-03-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (override_options): Fix -mtune error message.
+
+2010-03-02  Jeff Law  <law@redhat.com>
+
+	PR middle-end/42431
+	* reload1.c (rtx_p, substitute_stack): Declare.
+	(substitute): Record addresses of changed rtxs.
+	(gen_reload_chain_without_interm_reg_p): Don't use copy_rtx anymore.
+	Restore the original rtx when complete.
+	(reload): Free subsitute_stack when complete.
+
+2010-03-02  Janis Johnson  <janis187@us.ibm.com>
+
+	* doc/gccint.texi (menu): Add Testsuites as a chapter.
+	* doc/sourcebuild.texi (Testsuites): Move up a level to be a
+	new chapter.
+	(Test Idioms, Test Directives, Ada Tests, C Tests, libgcj Tests,
+	LTO Testing, gcov Testing, profopt Testing, compat Testing,
+	Torture Tests): Change from subsection to section.
+
+2010-03-02  Jakub Jelinek  <jakub@redhat.com>
+	    Steven Bosscher  <steven@gcc.gnu.org>
+
+	* var-tracking.c (vt_initialize): Scan insns in ebb chunks
+	instead of bb.
+
+2010-03-02  Reza Yazdani  <reza.yazdani@amd.com>
+
+	PR middle-end/42640
+	* tree-loop-distribution.c (update_phis_for_loop_copy): Replaced
+	the assignment from the new induction variable to the assignment
+	of the value from the original loop PHI function.
+
+2010-03-01  Janis Johnson  <janis187@us.ibm.com>
+	    Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* doc/sourcebuild.texi (Test directives): Clarify options to
+	dg-skip-if.
+
+2010-03-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gcc_cv_as_cfi_directive) [i?86-*-solaris*]:
+	Disable cfi directives unless GCC and gas agree on using read-only
+	.eh_frame sections for 64-bit.
+	* configure: Regenerate.
+
+2010-03-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43220
+	* tree-ssa-ccp.c (optimize_stack_restore): Do not optimize
+	BUILT_IN_STACK_{SAVE,RESTORE} around alloca.
+
+2010-03-01  Richard Guenther  <rguenther@suse.de>
+	    Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/41250
+	* gimplify.c (gimplify_body): Unset DECL_HAS_VALUE_EXPR_P on
+	gimplified parameters.
+
+2010-03-01  Christian Bruel  <christian.bruel@st.com>
+
+	* except.c (dw2_build_landing_pads): set LABEL_PRESERVE_P.
+
+2010-03-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/linux64.h (ASM_SPEC): Use SPEC_32 and SPEC_64.
+
+2010-03-01  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43213
+	* expr.c (expand_assignment): Use the alias-oracle to tell
+	if the rhs aliases the result decl.
+
+2010-03-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR pch/14940
+	* config/host-solaris.c (HOST_HOOKS_GT_PCH_GET_ADDRESS): Redefine
+	to sol_gt_pch_get_address.
+	(TRY_EMPTY_VM_SPACE): Define for all combinations of 32 and
+	64-bit, SPARC and x86.
+	(sol_gt_pch_get_address): New function.
+
+2010-03-01  Marco Poletti  <poletti.marco@gmail.com>
+
+	* toplev.h (inform_n, error_n): Declare.
+	* diagnostic.c (inform_n, error_n): New function.
+
+2010-03-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* cfgexpand.c (expand_used_vars): If an artificial non-ignored var
+	has no rtl yet when processing local_decls, queue it and recheck
+	if deferred stack allocation hasn't assigned it rtl.
+
+2010-02-28  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (unspec_bbr_uid): New.
+	(gen_block_redirect): Use it instead of INSN_UID.
+	(gen_far_branch): Likewise.
+
+2010-02-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/darwin.h (TARGET_SUBTARGET32_ISA_DEFAULT): Make
+	it the same as TARGET_SUBTARGET64_ISA_DEFAULT.
+
+2010-02-28  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/invoke.texi (Warning Options, RX Options): Fix typos.
+	(Warning Options): -Wno-conversion-null is valid for
+	Objective-C++ as well.
+	* doc/tm.texi (Named Address Spaces): Likewise.
+	* doc/plugins.texi (Plugins): Replace TABs with spaces.
+	* doc/tree-ssa.texi (Tree SSA): Likewise.
+
+2010-02-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/43202
+	* config.gcc: Don't enable SSE math for i[34567]86-*-darwin*
+	by default.  Don't set the default arch for
+	i[34567]86-*-darwin*|x86_64-*-darwin*.
+
+2010-02-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/43202
+	* config.gcc: Enable SSE math for i[34567]86-*-darwin* by
+	default.  Set the default 32bit/64bit archs with $with_arch
+	instead of $arch for i[34567]86-*-*|x86_64-*-* targets.
+
+2010-02-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43186
+	* params.def (PARAM_MAX_UNROLL_ITERATIONS): New param.
+	* doc/invoke.texi (max-completely-peel-loop-nest-depth): Document.
+	* tree-ssa-loop-ivcanon.c (tree_unroll_loops_completely): Limit
+	unroller iterations.
+
+2010-02-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Set the default 32bit/64bit archs if 64bit ISA is
+	required and i[34567]86-*-* targets don't support 64bit ISA.
+
+2010-02-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/43096
+	* tree-ssa-alias.c (same_type_for_tbaa): Return -1 if the types have
+	the same alias set.
+
+2010-02-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Set the default arch at least to Prescott for
+	i[34567]86-*-darwin* and Pentium 4 for i[34567]86-*-* targets
+	if SSE math is enabled.
+
+2010-02-26  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* diagnostic.c (diagnostic_initialize): Update.
+	(diagnostic_report_diagnostic): Test inhibit_notes_p for
+	informative notes.
+	* diagnostic.h (diagnostic_context): New bool inhibit_notes_p.
+	(diagnostic_inhibit_notes): New.
+	* toplev.c (process_options): inhibit notes with -fcompare-debug.
+
+2010-02-26  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/20631
+	* doc/cpp.texi: Use c90 instead of c89 and gnu90 instead of gnu89.
+	* doc/standards.texi: Likewise.
+	* doc/extend.texi: Likewise.
+	* doc/trouble.texi: Likewise.
+	* doc/cppopts.texi: Likewise.
+	* doc/install.texi: Likewise.
+	* c.opt (std=c90,std=gnu90): New options.
+	* c-opts.c (c_common_handle_option): Handle them.
+
+2010-02-26  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/24577
+	* c-decl.c (undeclared_variable): Use an informative note.
+
+2010-02-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43186
+	* gimple.h (gimple_fold): Remove.
+	* gimple.c (gimple_fold): Remove.  Inline into single user ...
+	* tree-cfgcleanup.c (cleanup_control_expr_graph): ... here.
+	Try harder for conditions.
+
+2010-02-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43190
+	* function.c (used_types_insert): Don't skip through named pointer
+	types.  Don't use TYPE_MAIN_VARIANT if the original type has a name
+	and it is different from the main variant's type.
+
+2010-02-26  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.md (sminsi3): Remove bogus alternative.
+
+2010-02-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Support --with-fpmath=sse for x86.
+
+	* config/i386/ssemath.h: New.
+
+	* doc/install.texi (--with-fpmath=sse): Documented.
+
+2010-02-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43188
+	* tree-vect-stmts.c (get_vectype_for_scalar_type): Do not build
+	vector types of over-aligned element type.
+
+2010-02-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/43175
+	* config/i386/i386.c (expand_vec_perm_blend): Use correct
+	operands in V8HImode subregs.  Fix operand order in VEC_MERGE rtx.
+
+2010-02-26  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* doc/invoke.texi (-fvar-tracking-assignments): Fix typo.
+
+2010-02-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* Makefile.in (var-tracking.o): Depend on $(DIAGNOSTIC_H).
+	* var-tracking.c: Include diagnostic.h.
+	(debug_dv): New function.
+	(dump_var): Print DEBUG_EXPR_DECLs as D#N instead of D.-N.
+
+	PR debug/43160
+	* var-tracking.c (dv_onepart_p): Return true for DEBUG_EXPR_DECLs.
+	(add_value_chain, add_value_chains, remove_value_chain,
+	remove_value_chains): Handle DEBUG_EXPRs.
+	(check_changed_vars_1, check_changed_vars_2): Handle DEBUG_EXPR_DECLs.
+
+	PR debug/43161
+	* regcprop.c (struct queued_debug_insn_change): New type.
+	(struct value_data_entry): Add debug_insn_changes field.
+	(struct value_data): Add n_debug_insn_changes field.
+	(debug_insn_changes_pool): New variable.
+	(free_debug_insn_changes, apply_debug_insn_changes,
+	cprop_find_used_regs_1, cprop_find_used_regs): New functions.
+	(kill_value_one_regno): Call free_debug_insn_changes if needed.
+	(init_value_data): Clear debug_insn_changes and n_debug_insn_changes
+	fields.
+	(replace_oldest_value_reg): Don't change DEBUG_INSNs, instead queue
+	changes for them.
+	(copyprop_hardreg_forward_1): Don't call apply_change_group for
+	DEBUG_INSNs.  For a real insn, if there are queued DEBUG_INSN
+	changes, call cprop_find_used_regs via note_stores.
+	(copyprop_hardreg_forward): When copying vd from predecessor
+	which has any queued DEBUG_INSN changes, make sure the pointers are
+	cleared.  At the end call df_analyze and then if there are any
+	DEBUG_INSN changes queued at the end of some basic block for still
+	live registers, apply them.
+	(pass_cprop_hardreg): Set TODO_df_finish in todo_flags_finish.
+
+2010-02-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config.gcc (i[34567]86-*-* | x86_64-*-*): Split long line.
+	(arm*-*-*): Ditto.
+
+2010-02-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Set arch/cpu for i[34567]86-*-*|x86_64-*-*
+	targets.  Set the default with_cpu/with_arch from arch/cpu.
+	Allow x86-64 and native for with_cpu/with_arch.
+
+2010-02-25  Nicolas Benoit  <nbenoit@tuxfamily.org>
+
+	* ebitmap.c: Change calls to verify_popcount with calls to
+	sbitmap_verify_popcount.
+	(ebitmap_clear_bit): Fixed map->cacheindex test and
+	map>cache update when bit clearing results in an empty
+	element.
+
+2010-02-25  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/43154
+	* config/rs6000/vector.md (VEC_64): New iterator for V2DF, V2DI.
+	(vec_interleave_high<mode>): Rename from vec_interleave_highv2df
+	and support both V2DF and V2DI modes.
+	(vec_interleave_low<mode>): Rename from vec_interleave_lowv2df and
+	support both V2DF and V2DI modes.
+	(general): Delete trailing whitespace from a few patterns.
+
+	* config/rs6000/rs6000-c.c (altivec_overloaded_builtins): Add
+	V2DF/V2DI interleave high/low builtins.
+
+	* config/rs6000/rs6000-builtin.def (VSX_BUILTIN_VEC_MERGE*): Add
+	new VSX builtins.
+
+	* config/rs6000/rs6000.c (bdesc_2arg): Add support for V2DF/V2DI
+	interleave high/low functions.
+
+2010-02-25  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/extend.texi (Symbol-Renaming Pragmas): Fix spelling of
+	#pragma extern_prefix.
+
+2010-02-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43166
+	* cfgexpand.c (expand_debug_expr) <case VAR_DECL>: If mode is
+	BLKmode, assert op0 is a MEM and just adjust its mode.
+
+	PR debug/43165
+	* cfgexpand.c (expand_debug_expr): Don't call simplify_gen_subreg
+	if bitpos isn't multiple of mode's bitsize.
+
+2010-02-24  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c.opt (-ftemplate-depth=): New.
+	(-ftemplate-depth-): Deprecate.
+	* optc-gen.awk: Handle -ftemplate-depth=.
+	* opth-gen.awk: Likewise.
+	* c-opts.c (c_common_handle_option): Likewise.
+	* doc/invoke.texi (-ftemplate-depth-): Replace with -ftemplate-depth=.
+
+2010-02-24  Jason Merrill  <jason@redhat.com>
+
+	* doc/invoke.texi: Improve -Wabi and -fabi-version docs.
+
+2010-02-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* cfg.c (alloc_aux_for_block): Remove inline.
+	(alloc_aux_for_edge): Likewise.
+
+2010-02-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.gcc: Fix typo in mips-sgi-irix6.[0-4]* obsoletion.
+
+2010-02-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/i386/sol2.h (NO_DBX_BNSYM_ENSYM): Define.
+	* config/i386/sol2-gas.h: New file.
+	* config.gcc (i[34567]86-*-solaris2*): Use it.
+
+2010-02-24  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/43128
+	* c-typeck.c (ep_convert_and_check): New.
+	(build_conditional_expr): Use it.
+	(build_binary_op): Likewise.
+
+2010-02-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* regcprop.c (copyprop_hardreg_forward_1): Don't call df_insn_rescan.
+
+	PR debug/43150
+	* gimplify.c (gimplify_type_sizes): Clear DECL_IGNORED_P for VLA
+	bounds even for -O+.
+	* var-tracking.c (track_expr_p): If !need_rtl, don't mandate
+	expr needs to have DECL_NAME set.
+
+2010-02-24  Nick Clifton  <nickc@redhat.com>
+
+	* config/mep/mep.c: Include gimple.h.
+	(mep_function_uses_sp): Delete unused function.
+	(mep_gimplify_va_arg_expr): Change types of pre_p and post_p
+	parameters.  Use unsigned integers to count args.  Return a
+	NULL_RTX instead of an error_mark_node.  Toidy up formatting.
+
+2010-02-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/43107
+	* config/i386/i386.c (avx_vpermilp_parallel): Reject indexes
+	greater or equal to nelt instead of 2 * nelt.
+	(expand_vec_perm_1): When op0 and op1 are equal, mask indexes
+	with nelt - 1.
+
+2010-02-23  Jason Merrill  <jason@redhat.com>
+
+	PR debug/42800
+	* cfgexpand.c (expand_used_vars): Keep artificial non-ignored vars
+	in cfun->local_decls even if they have register types.
+
+	PR c++/42837
+	* stor-layout.c (place_field): Don't warn about unnecessary
+	DECL_PACKED if the type is packed.
+
+2010-02-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/43139
+	* config/i386/i386.c (ix86_delegitimize_address): Delegitimize all
+	GOTOFF relocs, even when the base reg isn't pic pointer.
+
+2010-02-23  Michael Matz  <matz@suse.de>
+
+	PR debug/43077
+	* cfgexpand (expand_debug_expr): Expand TERed ssa names in place.
+	(expand_gimple_basic_block): Generate and use debug temps if there
+	are debug uses left after the last real use of TERed ssa names.
+	Unlink debug immediate uses when they are expanded.
+
+2010-02-23  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 43123
+	* config/i386/i386.c (override_options): Reorganise to provide
+	better error messages.
+
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43083
+	* graphite-scop-detection.c (create_single_exit_edge): Move
+	the call to find_single_exit_edge to....
+	(create_sese_edges): ...here.  Don't handle multiple edges
+	exiting the function.
+	(build_graphite_scops): Don't handle multiple edges
+	exiting the function.
+
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43097
+	* sese.c (get_rename): Assert that old_name is an SSA_NAME.
+	(rename_variables_in_stmt): Continue when the use is not an SSA_NAME.
+
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43026
+	* sese.c (expand_scalar_variables_expr): Handle COMPONENT_REF.
+
+2010-02-22  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/43126
+	* c-typeck.c (convert_arguments): Print declaration location.
+	* c-common.c (validate_nargs): Rename as
+	builtin_function_validate_nargs.
+	(check_builtin_function_arguments): Update.
+
+2010-02-22  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43045
+	* tree-inline.c (declare_return_variable): Use the type of
+	the call stmt lhs if available.
+
+2010-02-22  Duncan Sands  <baldrick@free.fr>
+
+	* passes.c (register_pass): Always consider all pass lists when
+	ref_pass_instance_number is zero.
+
+2010-02-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42749
+	* tree-tailcall.c (adjust_return_value_with_ops): Drop update
+	parameter.  Do arithmetic in the original type.
+	(update_accumulator_with_ops): Likewise.
+	(adjust_accumulator_values): Adjust.
+
+2010-02-22  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.md ("movqi"): Re-add the mem->mem alternative.
+	(QI to BLKmode splitter): New splitter.
+
+2010-02-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (initial_ix86_tune_features): Turn on
+	X86_TUNE_INTER_UNIT_MOVES for m_ATOM.
+
+2010-02-22  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-slp.c (vect_slp_analyze_bb): Fix typo.
+
+2010-02-22  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	Migrate crti, crtn, crtbegin, crtend build rules to libgcc.
+	* config/mmix/t-mmix (EXTRA_MULTILIB_PARTS): Don't set.
+	($(T)crti.o, $(T)crtn.o): Remove rules.
+
 2010-02-21  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/35259
@@ -19,7 +559,7 @@
 	(movdi_pic_gotdata_op): Likewise.
 	* config/sparc/sparc.c (legitimize_pic_address): If flag_pic is 2,
 	emit gen_mov{si,di}_pic_gotdata_op for the GOT slot load.
-	
+
 2010-02-20  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/43067
@@ -685,8 +1225,7 @@
 2010-02-03  Alexandre Oliva  <aoliva@redhat.com>
 
 	PR debug/42896
-	* cselib.h (struct cselib_val_struct): Add uid.  Rename value to
-	hash.
+	* cselib.h (struct cselib_val_struct): Add uid.  Rename value to hash.
 	(cselib_reset_table): Renamed from...
 	(cselib_reset_table_with_next_value): ... this.
 	(cselib_get_next_uid): Renamed from...

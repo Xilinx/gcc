@@ -66,74 +66,6 @@
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
-  /**
-   *  @brief Find the median of three values.
-   *  @param  a  A value.
-   *  @param  b  A value.
-   *  @param  c  A value.
-   *  @return One of @p a, @p b or @p c.
-   *
-   *  If @c {l,m,n} is some convolution of @p {a,b,c} such that @c l<=m<=n
-   *  then the value returned will be @c m.
-   *  This is an SGI extension.
-   *  @ingroup SGIextensions
-  */
-  template<typename _Tp>
-    inline const _Tp&
-    __median(const _Tp& __a, const _Tp& __b, const _Tp& __c)
-    {
-      // concept requirements
-      __glibcxx_function_requires(_LessThanComparableConcept<_Tp>)
-      if (__a < __b)
-	if (__b < __c)
-	  return __b;
-	else if (__a < __c)
-	  return __c;
-	else
-	  return __a;
-      else if (__a < __c)
-	return __a;
-      else if (__b < __c)
-	return __c;
-      else
-	return __b;
-    }
-
-  /**
-   *  @brief Find the median of three values using a predicate for comparison.
-   *  @param  a     A value.
-   *  @param  b     A value.
-   *  @param  c     A value.
-   *  @param  comp  A binary predicate.
-   *  @return One of @p a, @p b or @p c.
-   *
-   *  If @c {l,m,n} is some convolution of @p {a,b,c} such that @p comp(l,m)
-   *  and @p comp(m,n) are both true then the value returned will be @c m.
-   *  This is an SGI extension.
-   *  @ingroup SGIextensions
-  */
-  template<typename _Tp, typename _Compare>
-    inline const _Tp&
-    __median(const _Tp& __a, const _Tp& __b, const _Tp& __c, _Compare __comp)
-    {
-      // concept requirements
-      __glibcxx_function_requires(_BinaryFunctionConcept<_Compare, bool,
-				                         _Tp, _Tp>)
-      if (__comp(__a, __b))
-	if (__comp(__b, __c))
-	  return __b;
-	else if (__comp(__a, __c))
-	  return __c;
-	else
-	  return __a;
-      else if (__comp(__a, __c))
-	return __a;
-      else if (__comp(__b, __c))
-	return __c;
-      else
-	return __b;
-    }
-
   /// Swaps the median value of *__a, *__b and *__c to *__a
   template<typename _Iterator>
     void
@@ -4259,7 +4191,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
    *  @param  first  An input iterator.
    *  @param  last   An input iterator.
    *  @param  f      A unary function object.
-   *  @return   @p f.
+   *  @return   @p f (std::move(@p f) in C++0x).
    *
    *  Applies the function object @p f to each element in the range
    *  @p [first,last).  @p f must not modify the order of the sequence.
@@ -4274,7 +4206,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
       __glibcxx_requires_valid_range(__first, __last);
       for (; __first != __last; ++__first)
 	__f(*__first);
-      return __f;
+      return _GLIBCXX_MOVE(__f);
     }
 
   /**

@@ -35,7 +35,9 @@ namespace std
   // [26.4] Random number generation
 
   /**
-   * @addtogroup std_random Random Number Generation
+   * @defgroup random Random Number Generation
+   * @ingroup numerics
+   *
    * A facility for generating random numbers on selected distributions.
    * @{
    */
@@ -114,8 +116,8 @@ namespace std
   } // namespace __detail
 
   /**
-   * @addtogroup std_random_generators Random Number Generators
-   * @ingroup std_random
+   * @addtogroup random_generators Random Number Generators
+   * @ingroup random
    *
    * These classes define objects which provide random or pseudorandom
    * numbers, either from a discrete or a continuous interval.  The
@@ -188,11 +190,12 @@ namespace std
        *
        * @param __q the seed sequence.
        */
-      template<typename _Sseq, typename
-	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+      template<typename _Sseq, typename = typename
+	std::enable_if<!std::is_same<_Sseq, linear_congruential_engine>::value>
+	       ::type>
         explicit
         linear_congruential_engine(_Sseq& __q)
-        { seed<_Sseq>(__q); }
+        { seed(__q); }
 
       /**
        * @brief Reseeds the %linear_congruential_engine random number generator
@@ -210,9 +213,8 @@ namespace std
        *
        * @param __q the seed sequence.
        */
-      template<typename _Sseq, typename
-	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
-        void
+      template<typename _Sseq>
+        typename std::enable_if<std::is_class<_Sseq>::value>::type
         seed(_Sseq& __q);
 
       /**
@@ -403,18 +405,18 @@ namespace std
        *
        * @param __q the seed sequence.
        */
-      template<typename _Sseq, typename
-	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+      template<typename _Sseq, typename = typename
+        std::enable_if<!std::is_same<_Sseq, mersenne_twister_engine>::value>
+	       ::type>
         explicit
         mersenne_twister_engine(_Sseq& __q)
-        { seed<_Sseq>(__q); }
+        { seed(__q); }
 
       void
       seed(result_type __sd = default_seed);
 
-      template<typename _Sseq, typename
-	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
-        void
+      template<typename _Sseq>
+	typename std::enable_if<std::is_class<_Sseq>::value>::type
         seed(_Sseq& __q);
 
       /**
@@ -576,11 +578,12 @@ namespace std
        *
        * @param __q the seed sequence.
        */
-      template<typename _Sseq, typename
-	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+      template<typename _Sseq, typename = typename
+        std::enable_if<!std::is_same<_Sseq, subtract_with_carry_engine>::value>
+	       ::type>
         explicit
         subtract_with_carry_engine(_Sseq& __q)
-        { seed<_Sseq>(__q); }
+        { seed(__q); }
 
       /**
        * @brief Seeds the initial state @f$x_0@f$ of the random number
@@ -601,9 +604,8 @@ namespace std
        * @brief Seeds the initial state @f$x_0@f$ of the
        * % subtract_with_carry_engine random number generator.
        */
-      template<typename _Sseq, typename
-	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
-        void
+      template<typename _Sseq>
+	typename std::enable_if<std::is_class<_Sseq>::value>::type
         seed(_Sseq& __q);
 
       /**
@@ -767,10 +769,10 @@ namespace std
        *
        * @param __q A seed sequence.
        */
-      template<typename _Sseq, typename
-        = typename std::enable_if<std::is_class<_Sseq>::value
-				  && !std::is_same<_Sseq, _RandomNumberEngine>
-				  ::value>::type>
+      template<typename _Sseq, typename = typename
+	std::enable_if<!std::is_same<_Sseq, discard_block_engine>::value
+		       && !std::is_same<_Sseq, _RandomNumberEngine>::value>
+	       ::type>
         explicit
         discard_block_engine(_Sseq& __q)
 	: _M_b(__q), _M_n(0)
@@ -803,12 +805,11 @@ namespace std
        *        sequence.
        * @param __q A seed generator function.
        */
-      template<typename _Sseq, typename
-	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+      template<typename _Sseq>
         void
         seed(_Sseq& __q)
         {
-	  _M_b.seed<_Sseq>(__q);
+	  _M_b.seed(__q);
 	  _M_n = 0;
 	}
 
@@ -971,10 +972,10 @@ namespace std
        *
        * @param __q A seed sequence.
        */
-      template<typename _Sseq, typename
-        = typename std::enable_if<std::is_class<_Sseq>::value
-				  && !std::is_same<_Sseq, _RandomNumberEngine>
-				  ::value>::type>
+      template<typename _Sseq, typename = typename
+	std::enable_if<!std::is_same<_Sseq, independent_bits_engine>::value
+		       && !std::is_same<_Sseq, _RandomNumberEngine>::value>
+               ::type>
         explicit
         independent_bits_engine(_Sseq& __q)
         : _M_b(__q)
@@ -1001,11 +1002,10 @@ namespace std
        *        seed sequence.
        * @param __q A seed generator function.
        */
-      template<typename _Sseq, typename
-	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+      template<typename _Sseq>
         void
         seed(_Sseq& __q)
-        { _M_b.seed<_Sseq>(__q); }
+        { _M_b.seed(__q); }
 
       /**
        * @brief Gets a const reference to the underlying generator engine
@@ -1178,10 +1178,10 @@ namespace std
        *
        * @param __q A seed sequence.
        */
-      template<typename _Sseq, typename
-        = typename std::enable_if<std::is_class<_Sseq>::value
-				  && !std::is_same<_Sseq, _RandomNumberEngine>
-				  ::value>::type>
+      template<typename _Sseq, typename = typename
+	std::enable_if<!std::is_same<_Sseq, shuffle_order_engine>::value
+		       && !std::is_same<_Sseq, _RandomNumberEngine>::value>
+	       ::type>
         explicit
         shuffle_order_engine(_Sseq& __q)
         : _M_b(__q)
@@ -1214,12 +1214,11 @@ namespace std
        *        sequence.
        * @param __q A seed generator function.
        */
-      template<typename _Sseq, typename
-	       = typename std::enable_if<std::is_class<_Sseq>::value>::type>
+      template<typename _Sseq>
         void
         seed(_Sseq& __q)
         {
-	  _M_b.seed<_Sseq>(__q);
+	  _M_b.seed(__q);
 	  _M_initialize();
 	}
 
@@ -1474,17 +1473,17 @@ namespace std
 #endif
   };
 
-  /* @} */ // group std_random_generators
+  /* @} */ // group random_generators
 
   /**
-   * @addtogroup std_random_distributions Random Number Distributions
-   * @ingroup std_random
+   * @addtogroup random_distributions Random Number Distributions
+   * @ingroup random
    * @{
    */
 
   /**
-   * @addtogroup std_random_distributions_uniform Uniform Distributions
-   * @ingroup std_random_distributions
+   * @addtogroup random_distributions_uniform Uniform Distributions
+   * @ingroup random_distributions
    * @{
    */
 
@@ -1793,11 +1792,11 @@ namespace std
     operator>>(std::basic_istream<_CharT, _Traits>&,
 	       std::uniform_real_distribution<_RealType>&);
 
-  /* @} */ // group std_random_distributions_uniform
+  /* @} */ // group random_distributions_uniform
 
   /**
-   * @addtogroup std_random_distributions_normal Normal Distributions
-   * @ingroup std_random_distributions
+   * @addtogroup random_distributions_normal Normal Distributions
+   * @ingroup random_distributions
    * @{
    */
 
@@ -2852,11 +2851,11 @@ namespace std
       std::gamma_distribution<result_type> _M_gd;
     };
 
-  /* @} */ // group std_random_distributions_normal
+  /* @} */ // group random_distributions_normal
 
   /**
-   * @addtogroup std_random_distributions_bernoulli Bernoulli Distributions
-   * @ingroup std_random_distributions
+   * @addtogroup random_distributions_bernoulli Bernoulli Distributions
+   * @ingroup random_distributions
    * @{
    */
 
@@ -3475,11 +3474,11 @@ namespace std
       std::gamma_distribution<double> _M_gd;
     };
 
-  /* @} */ // group std_random_distributions_bernoulli
+  /* @} */ // group random_distributions_bernoulli
 
   /**
-   * @addtogroup std_random_distributions_poisson Poisson Distributions
-   * @ingroup std_random_distributions
+   * @addtogroup random_distributions_poisson Poisson Distributions
+   * @ingroup random_distributions
    * @{
    */
 
@@ -4609,13 +4608,13 @@ namespace std
     };
 
 
-  /* @} */ // group std_random_distributions_poisson
+  /* @} */ // group random_distributions_poisson
 
-  /* @} */ // group std_random_distributions
+  /* @} */ // group random_distributions
 
   /**
-   * @addtogroup std_random_utilities Random Number Utilities
-   * @ingroup std_random
+   * @addtogroup random_utilities Random Number Utilities
+   * @ingroup random
    * @{
    */
 
@@ -4660,9 +4659,9 @@ namespace std
     std::vector<result_type> _M_v;
   };
 
-  /* @} */ // group std_random_utilities
+  /* @} */ // group random_utilities
 
-  /* @} */ // group std_random
+  /* @} */ // group random
 
 }
 

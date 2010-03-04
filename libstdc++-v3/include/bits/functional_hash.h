@@ -32,8 +32,8 @@
 
 #pragma GCC system_header
 
-#include <string>
-#include <system_error>
+#include <cstddef>
+#include <bits/stl_function.h>
 
 namespace std
 {
@@ -44,10 +44,14 @@ namespace std
    *
    *  @{
    */
- 
+
   /// Primary class template hash.
   template<typename _Tp>
-    struct hash;
+    struct hash : public std::unary_function<_Tp, size_t>
+    {
+      size_t
+      operator()(_Tp __val) const;
+    };
 
   /// Partial specializations for pointer types.
   template<typename _Tp>
@@ -59,14 +63,11 @@ namespace std
     };
 
   // Explicit specializations for integer types.
-#define _Cxx_hashtable_define_trivial_hash(_Tp) 	       \
-  template<>						       \
-    struct hash<_Tp> : public std::unary_function<_Tp, size_t> \
-    {                                                          \
-      size_t                                                   \
-      operator()(_Tp __val) const		               \
-      { return static_cast<size_t>(__val); }		       \
-    };
+#define _Cxx_hashtable_define_trivial_hash(_Tp) 	\
+  template<>						\
+    inline size_t					\
+    hash<_Tp>::operator()(_Tp __val) const		\
+    { return static_cast<size_t>(__val); }
 
   /// Explicit specialization for bool.
   _Cxx_hashtable_define_trivial_hash(bool);
@@ -83,13 +84,11 @@ namespace std
   /// Explicit specialization for wchar_t.
   _Cxx_hashtable_define_trivial_hash(wchar_t);
 
-#ifdef _GLIBCXX_USE_C99_STDINT_TR1
   /// Explicit specialization for char16_t.
   _Cxx_hashtable_define_trivial_hash(char16_t);
 
   /// Explicit specialization for char32_t.
   _Cxx_hashtable_define_trivial_hash(char32_t);
-#endif
 
   /// Explicit specialization for short.
   _Cxx_hashtable_define_trivial_hash(short);
@@ -118,188 +117,97 @@ namespace std
 #undef _Cxx_hashtable_define_trivial_hash
 
   // Fowler / Noll / Vo (FNV) Hash (type FNV-1a)
-  // (Used by the next specializations of std::tr1::hash.)
 
   // Dummy generic implementation (for sizeof(size_t) != 4, 8).
-  template<size_t = sizeof(size_t)>
-    struct _Fnv_hash
+  template<size_t>
+    struct _Fnv_hash_base
     {
-      static size_t
-      hash(const char* __first, size_t __length)
-      {
-	size_t __result = 0;
-	for (; __length > 0; --__length)
-	  __result = (__result * 131) + *__first++;
-	return __result;
-      }
+      template<typename _Tp>
+        static size_t
+        hash(const _Tp* __ptr, size_t __clength, size_t __hash = 0)
+        {
+	  const char* __cptr = reinterpret_cast<const char*>(__ptr);
+	  for (; __clength; --__clength)
+	    __hash = (__hash * 131) + *__cptr++;
+	  return __hash;
+	}
     };
 
   template<>
-    struct _Fnv_hash<4>
+    struct _Fnv_hash_base<4>
     {
-      static size_t
-      hash(const char* __first, size_t __length)
-      {
-	size_t __result = static_cast<size_t>(2166136261UL);
-	for (; __length > 0; --__length)
-	  {
-	    __result ^= static_cast<size_t>(*__first++);
-	    __result *= static_cast<size_t>(16777619UL);
-	  }
-	return __result;
-      }
+      template<typename _Tp>
+        static size_t
+        hash(const _Tp* __ptr, size_t __clength,
+	     size_t __hash = static_cast<size_t>(2166136261UL))
+        {
+	  const char* __cptr = reinterpret_cast<const char*>(__ptr);
+	  for (; __clength; --__clength)
+	    {
+	      __hash ^= static_cast<size_t>(*__cptr++);
+	      __hash *= static_cast<size_t>(16777619UL);
+	    }
+	  return __hash;
+	}
     };
   
   template<>
-    struct _Fnv_hash<8>
+    struct _Fnv_hash_base<8>
     {
-      static size_t
-      hash(const char* __first, size_t __length)
-      {
-	size_t __result =
-	  static_cast<size_t>(14695981039346656037ULL);
-	for (; __length > 0; --__length)
-	  {
-	    __result ^= static_cast<size_t>(*__first++);
-	    __result *= static_cast<size_t>(1099511628211ULL);
-	  }
-	return __result;
-      }
+      template<typename _Tp>
+        static size_t
+        hash(const _Tp* __ptr, size_t __clength,
+	     size_t __hash = static_cast<size_t>(14695981039346656037ULL))
+        {
+	  const char* __cptr = reinterpret_cast<const char*>(__ptr);
+	  for (; __clength; --__clength)
+	    {
+	      __hash ^= static_cast<size_t>(*__cptr++);
+	      __hash *= static_cast<size_t>(1099511628211ULL);
+	    }
+	  return __hash;
+	}
     };
 
-  /// Explicit specializations for float.
+    struct _Fnv_hash
+    : public _Fnv_hash_base<sizeof(size_t)>
+    {
+      using _Fnv_hash_base<sizeof(size_t)>::hash;
+
+      template<typename _Tp>
+        static size_t
+        hash(const _Tp& __val)
+        { return hash(&__val, sizeof(__val)); }
+
+      template<typename _Tp>
+        static size_t
+        __hash_combine(const _Tp& __val, size_t __hash)
+        { return hash(&__val, sizeof(__val), __hash); }
+    };
+
+  /// Specialization for float.
   template<>
-    struct hash<float>
-    : public std::unary_function<float, size_t>
+    inline size_t
+    hash<float>::operator()(float __val) const
     {
-      size_t
-      operator()(float __val) const
-      {
-	size_t __result = 0;
-      
-	// 0 and -0 both hash to zero.
-	if (__val != 0.0f)
-	  __result = _Fnv_hash<>::hash(reinterpret_cast<const char*>(&__val),
-				       sizeof(__val));
-	return __result;
-      }
-    };
+      // 0 and -0 both hash to zero.
+      return __val != 0.0f ? std::_Fnv_hash::hash(__val) : 0;
+    }
 
-  /// Explicit specializations for double.
+  /// Specialization for double.
   template<>
-    struct hash<double>
-    : public std::unary_function<double, size_t>
+    inline size_t
+    hash<double>::operator()(double __val) const
     {
-      size_t
-      operator()(double __val) const
-      {
-	size_t __result = 0;
+      // 0 and -0 both hash to zero.
+      return __val != 0.0 ? std::_Fnv_hash::hash(__val) : 0;
+    }
 
-	// 0 and -0 both hash to zero.
-	if (__val != 0.0)
-	  __result = _Fnv_hash<>::hash(reinterpret_cast<const char*>(&__val),
-				       sizeof(__val));
-	return __result;
-      }
-    };
-
-  /// Explicit specializations for long double.
+  /// Specialization for long double.
   template<>
-    struct hash<long double>
-    : public std::unary_function<long double, size_t>
-    {
-      size_t
-      operator()(long double __val) const
-      {
-	size_t __result = 0;
+    _GLIBCXX_PURE size_t
+    hash<long double>::operator()(long double __val) const;
 
-	int __exponent;
-	__val = __builtin_frexpl(__val, &__exponent);
-	__val = __val < 0.0l ? -(__val + 0.5l) : __val;
-
-	const long double __mult =
-	  __gnu_cxx::__numeric_traits<size_t>::__max + 1.0l;
-	__val *= __mult;
-
-	// Try to use all the bits of the mantissa (really necessary only
-	// on 32-bit targets, at least for 80-bit floating point formats).
-	const size_t __hibits = (size_t)__val;
-	__val = (__val - (long double)__hibits) * __mult;
-
-	const size_t __coeff =
-	  __gnu_cxx::__numeric_traits<size_t>::__max / __LDBL_MAX_EXP__;
-
-	__result = __hibits + (size_t)__val + __coeff * __exponent;
-
-	return __result;
-      }
-    };
-
-  /// Explicit specializations for string.
-  template<>
-    struct hash<string>
-    : public std::unary_function<string, size_t>
-    {
-      size_t
-      operator()(const string& __s) const
-      { return _Fnv_hash<>::hash(__s.data(), __s.length()); }
-    };
-
-#ifdef _GLIBCXX_USE_WCHAR_T
-  /// Explicit specializations for wstring.
-  template<>
-    struct hash<wstring>
-    : public std::unary_function<wstring, size_t>
-    {
-      size_t
-      operator()(const wstring& __s) const
-      {
-	const char* __p = reinterpret_cast<const char*>(__s.data());
-	return _Fnv_hash<>::hash(__p, __s.length() * sizeof(wchar_t));
-      }
-    };
-#endif
-
-#ifdef _GLIBCXX_USE_C99_STDINT_TR1
-  /// Explicit specializations for u16string.
-  template<>
-    struct hash<u16string>
-    : public std::unary_function<u16string, size_t>
-    {
-      size_t
-      operator()(const u16string& __s) const
-      {
-	const char* __p = reinterpret_cast<const char*>(__s.data());
-	return _Fnv_hash<>::hash(__p, __s.length() * sizeof(char16_t));
-      }
-    };
-
-  /// Explicit specializations for u32string.
-  template<>
-    struct hash<u32string>
-    : public std::unary_function<u32string, size_t>
-    {
-      size_t
-      operator()(const u32string& __s) const
-      {
-	const char* __p = reinterpret_cast<const char*>(__s.data());
-	return _Fnv_hash<>::hash(__p, __s.length() * sizeof(char32_t));
-      }
-    };
-#endif
-
-  /// Explicit specializations for error_code.
-  template<>
-    struct hash<error_code>
-    : public std::unary_function<error_code, size_t>
-    {
-      size_t
-      operator()(const error_code& __e) const
-      {
-	const char* __p = reinterpret_cast<const char*>(&__e);
-	return _Fnv_hash<>::hash(__p, sizeof(__e));
-      }
-    };
   // @} group hashes
 }
 

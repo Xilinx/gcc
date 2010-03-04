@@ -4007,6 +4007,9 @@ find_array_spec (gfc_expr *e)
 	if (derived == NULL)
 	  derived = e->symtree->n.sym->ts.u.derived;
 
+	if (derived->attr.is_class)
+	  derived = derived->components->ts.u.derived;
+
 	c = derived->components;
 
 	for (; c; c = c->next)
@@ -8009,6 +8012,11 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	    case EXEC_OMP_DO:
 	      gfc_resolve_omp_do_blocks (code, ns);
 	      break;
+	    case EXEC_SELECT_TYPE:
+	      gfc_current_ns = code->ext.ns;
+	      gfc_resolve_blocks (code->block, gfc_current_ns);
+	      gfc_current_ns = ns;
+	      break;
 	    case EXEC_OMP_WORKSHARE:
 	      omp_workshare_save = omp_workshare_flag;
 	      omp_workshare_flag = 1;
@@ -8937,13 +8945,12 @@ resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
       && sym->ns->proc_name->attr.flavor == FL_MODULE
       && !sym->ns->save_all && !sym->attr.save
       && !sym->attr.pointer && !sym->attr.allocatable
-      && has_default_initializer (sym->ts.u.derived))
-    {
-      gfc_error("Object '%s' at %L must have the SAVE attribute for "
-		"default initialization of a component",
-		sym->name, &sym->declared_at);
-      return FAILURE;
-    }
+      && has_default_initializer (sym->ts.u.derived)
+      && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Implied SAVE for "
+			 "module variable '%s' at %L, needed due to "
+			 "the default initialization", sym->name,
+			 &sym->declared_at) == FAILURE)
+    return FAILURE;
 
   if (sym->ts.type == BT_CLASS)
     {
@@ -11668,12 +11675,19 @@ int
 gfc_impure_variable (gfc_symbol *sym)
 {
   gfc_symbol *proc;
+  gfc_namespace *ns;
 
   if (sym->attr.use_assoc || sym->attr.in_common)
     return 1;
 
-  if (sym->ns != gfc_current_ns)
-    return !sym->attr.function;
+  /* Check if the symbol's ns is inside the pure procedure.  */
+  for (ns = gfc_current_ns; ns; ns = ns->parent)
+    {
+      if (ns == sym->ns)
+	break;
+      if (ns->proc_name->attr.flavor == FL_PROCEDURE && !sym->attr.function)
+	return 1;
+    }
 
   proc = sym->ns->proc_name;
   if (sym->attr.dummy && gfc_pure (proc)
@@ -11689,18 +11703,30 @@ gfc_impure_variable (gfc_symbol *sym)
 }
 
 
-/* Test whether a symbol is pure or not.  For a NULL pointer, checks the
-   symbol of the current procedure.  */
+/* Test whether a symbol is pure or not.  For a NULL pointer, checks if the
+   current namespace is inside a pure procedure.  */
 
 int
 gfc_pure (gfc_symbol *sym)
 {
   symbol_attribute attr;
+  gfc_namespace *ns;
 
   if (sym == NULL)
-    sym = gfc_current_ns->proc_name;
-  if (sym == NULL)
-    return 0;
+    {
+      /* Check if the current namespace or one of its parents
+	belongs to a pure procedure.  */
+      for (ns = gfc_current_ns; ns; ns = ns->parent)
+	{
+	  sym = ns->proc_name;
+	  if (sym == NULL)
+	    return 0;
+	  attr = sym->attr;
+	  if (attr.flavor == FL_PROCEDURE && (attr.pure || attr.elemental))
+	    return 1;
+	}
+      return 0;
+    }
 
   attr = sym->attr;
 

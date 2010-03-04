@@ -1,3 +1,18 @@
+2010-02-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43155
+	* io/transfer.c (require_type): Subtract one from item_count for output
+	of error message.  Add comment before formatted_transfer function
+	explaining why the item_count is off by one.
+
+2010-02-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* io/write_float.def (WRITE_FLOAT): Use __builtin_signbit.
+
+2010-02-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* io/list_read.c (list_formatted_read_scalar): Remove duplicate code.
+
 2010-02-09  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/42996
