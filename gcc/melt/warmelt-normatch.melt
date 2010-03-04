@@ -2504,8 +2504,9 @@ variable $MSTEPTESTVAR_SYMB is the same as the matched data.}#
 (defclass class_match_step_test_group
   :super class_match_step_test
   :doc #{The $CLASS_MATCH_STEP_GROUP is used to redirect the then &
-else tests to a list of subtests, ie to the $MSTGROUP_THEN and
-$MSTGROUP_ELSE. The $MSTGROUP_START is the starting control point (for then & else edges arriving into the group).}#
+else tests to a list or tuple of subtests, i.e. to the $MSTGROUP_THEN and
+$MSTGROUP_ELSE. The $MSTGROUP_START is the starting control point (for
+then & else edges arriving into the group).}#
   :fields (mstgroup_start
 	   mstgroup_then
 	   mstgroup_else))
@@ -2711,16 +2712,23 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "check recv" (is_a recv class_match_step_test))
   (debug_msg elsestep "putelse_matchtest elsestep")
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
-  (compile_warning "putelse_matchtest should handle when else already exists")
-  (let ( (myelse (unsafe_get_field :mstep_else recv))
+  (compile_warning "putelse_matchtest should handle when else already exists
+and should propagate...")
+  (let ( 
+	(myelse (unsafe_get_field :mstep_else recv))
+	(elsestart (start_step elsestep))
 	 )
-    (cond ( (null myelse)
-	    (unsafe_put_fields recv :mstep_else  (start_step elsestep))
-	    (debug_msg recv "putelse_matchtest updated recv")
-	    )
-	  (:else
-	   ;; we probably should add the else to each then...
-	   (assert_msg "$@$unexpected putelse_matchtest already else")))
+    (cond 
+     ( (== recv elsestart)
+       (debug_msg recv "putelse_matchtest recv same as elsestep")
+       (return))
+     ( (null myelse)
+       (unsafe_put_fields recv :mstep_else elsestart)
+       (debug_msg recv "putelse_matchtest updated recv")
+       )
+     (:else
+      ;; we probably should add the else to each then...
+      (assert_msg "$@$unexpected putelse_matchtest already else")))
 ))
 (install_method class_match_step_test put_else_match putelse_matchtest)
 
@@ -3666,7 +3674,10 @@ the data of the $STEP with an extra context $CTX.}#
 	      stepsucc :mstepsuccess_varocc sortedvarocc))
 	   (put_then_match mstep stepsucc)
 	   (debug_msg mstep "translate_matchcase updated mstep")
-	   (if prevstep (put_else_match prevstep mstep))
+	   (if prevstep
+	       (progn
+		 (debug_msg prevstep "translate_matchcase before updating prevstep")
+		 (put_else_match prevstep mstep)))
 	   (debug_msg prevstep "translate_matchcase updated prevstep")
 	   (debug_msg stepsucc "translate_matchcase stepsucc")
 	   (return mstep)
