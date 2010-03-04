@@ -1251,7 +1251,7 @@ scanning variables.}#
 				 :ntest_then ()
 				 :ntest_else ()
 				 :ntest_comefrom (make_list discr_list)
-				 :ntorclear_locsym (list_to_multiple clearloclist)
+				 :ntorclear_locsym (list_to_multiple clearloclist discr_multiple)
 				 ))
 	     )
 ;;;;;;;;;;;;;;;;
@@ -1346,7 +1346,7 @@ scanning variables.}#
 	   )
       (debug_msg freshorvar "normpat_orpat final freshorvar")
       (put_fields disjtester 
-		  :ntdisjuncts (list_to_multiple subtestlist)
+		  :ntdisjuncts (list_to_multiple subtestlist discr_multiple)
 		  :ntdisj_freshorvar freshorvar
 		  )
       (debug_msg disjtester "normpat_orpat final disjtester")
@@ -2320,7 +2320,7 @@ scanning variables.}#
 		    stmpklist) 
 		  "normexp_match stuffmapkeylist")
        (let ( 
-	     (teststupl (let ( (tt (list_to_multiple testlist)) )
+	     (teststupl (let ( (tt (list_to_multiple testlist discr_multiple)) )
 			  (debug_msg tt "normexp_match teststupl")
 			  tt))
 	     (nmatch (instance class_nrep_match
@@ -2477,12 +2477,6 @@ data.}#
 then edge $MSTEP_THEN.}#
   :fields (mstep_then))
 
-(compile_warning "class_match_step_set_variable should be removed")
-(defclass class_match_step_set_variable
-  :super class_match_step_then
-  :doc #{The $CLASS_MATCH_STEP_SET_VARIABLE step sets a variable of
-symbol $MSTEPSETVAR_SYMB to the matched data.}#
-  :fields (mstepsetvar_symb))
 
 (defclass class_match_step_success
   :super class_match_step_then
@@ -2933,7 +2927,7 @@ the data of the $STEP with an extra context $CTX.}#
 				      :mstep_else ()
 				      :mstgroup_start istep
 				      :mstgroup_then laststep
-				      :mstgroup_else (list_to_multiple elselist)
+				      :mstgroup_else (list_to_multiple elselist discr_multiple)
 				      ))
 		 )
 	    (debug_msg stepgroup "translpat_inspat return stepgroup")
@@ -2966,29 +2960,9 @@ the data of the $STEP with an extra context $CTX.}#
     (cond 
      ( (null symbval)
        (mapobject_put varmap symb mdata)
-       (debug_msg varmap "translpat_varpat updated varmap")
-       (foreach_in_list
-	(steplist)
-	(curpair cursetstep)
-	(if (and (is_a cursetstep class_match_step_set_variable)
-		 (== (unsafe_get_field :mstepsetvar_symb cursetstep) symb)
-		 (== (unsafe_get_field :mstep_data cursetstep) mdata))
-	    (progn
-	      (debug_msg cursetstep "translpat_varpat found cursetstep")
-	      (return cursetstep)))
-	)
-       (let ( (stepset (instance class_match_step_set_variable
-				 :loca_location sloc
-				 :mstep_data mdata
-				 :mstep_then ()
-				 :mstepsetvar_symb symb
-				 ))
-	      )
-	 (compile_warning "the step set variable should probably be inserted before any tests on the same data..")
-	 (debug_msg stepset "translpat_varpat return stepset")
-	 (list_append steplist stepset)
-	 (return stepset)
-	 ))
+       (debug_msg varmap "translpat_varpat updated varmap & return null")
+       (return ())
+       )
      (:else
       (assert_msg "check symbval" (is_a symbval class_matched_data))
        (foreach_in_list
@@ -3286,55 +3260,7 @@ the data of the $STEP with an extra context $CTX.}#
 (defselector matchgraphic_altstep class_selector
 )
 
-(defun mgaltstep_stepsetvar (step mg)
-  (debug_msg step "mgaltstep_stepsetvar step")
-  (assert_msg "check step" (is_a step class_match_step_set_variable))
-  (assert_msg "check mg" (is_a mg class_match_graphic))
-  (let ( (loca (unsafe_get_field :loca_location step))
-	 (sthen (unsafe_get_field :mstep_then step))
-	 (setsymb (unsafe_get_field :mstepsetvar_symb step))
-	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
-	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
-	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
-	 (stepmap (unsafe_get_field :mchgx_stepnamemap mg))
-	 (stepname (mapobject_get stepmap step))
-	 (thenname (if sthen (mapobject_get stepmap sthen)))
-	 (:long stephash (obj_hash step))
-	 (dis (discrim step))
-	 (clanam (get_field :named_name dis))
-	 )
-    (add2out_strconst nodebuf "<tr><td><font color=\"saddlebrown\" face=\"Times-Roman Bold\" point-size=\"6\">")
-    (code_chunk 
-     outclanam
-     #{ /* $OUTCLANAM */
-     meltgc_add_out ((melt_ptr_t) $NODEBUF,
-		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
-     }#)
-    (add2out_strconst nodebuf "</font></td><td>")
-    (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
-    (add2sbuf_short_mixloc nodebuf loca)
-    (add2out_strconst nodebuf "</font></td></tr>")
-    (add2out_indentnl nodebuf 0)
-    (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font face=\"Time-Roman Italics\" point-size=\"7\">")
-    (add2out_string nodebuf (get_field :named_name setsymb))
-    (if (is_a setsymb class_cloned_symbol)
-	(let ( (:long syrank (get_int (get_field :csym_urank setsymb)))
-	      )
-	  (add2out_strconst nodebuf "$")
-	  (add2out_longdec nodebuf syrank)
-	  ))
-    (add2out_strconst nodebuf "</font></td></tr>")
-    (add2out_indentnl nodebuf 0)
-    (if thenname
-	(progn
-	  (add2out_indentnl edgebuf 0)
-	  (add2out_string edgebuf stepname)
-	  (add2out_strconst edgebuf " /*then*/ -> ")
-	  (add2out_string edgebuf thenname)
-	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
-	  ))
-    ))
-(install_method class_match_step_set_variable  matchgraphic_altstep mgaltstep_stepsetvar)
+
 
 
 ;;;;;;;;;;;;;;;;

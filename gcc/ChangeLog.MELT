@@ -1,4 +1,7 @@
 
+2010-03-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: removed class_match_step_set_variable.
+
 2010-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmatch-5.melt: added other case.
 
