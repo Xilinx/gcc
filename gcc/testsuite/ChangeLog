@@ -1,3 +1,111 @@
+2010-03-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* lib/plugin-support.exp (plugin-test-execute): Use PLUGINCC in lieu
+	of HOSTCC and PLUGINCFLAGS in lieu of HOSTCFLAGS.
+
+2010-03-05  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/abi/mangle40.C: Require weak and alias.
+
+2010-03-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42326
+	* gfortran.dg/graphite/pr42326.f90: New.
+	* gfortran.dg/graphite/pr42326-1.f90: New.
+
+2010-03-05  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/gnat.exp (gnat_init): Remove GNAT_UNDER_TEST_ORIG.
+	(gnat_target_compile): Likewise.
+	Reinitialize GNAT_UNDER_TEST if target changes.
+	Set ADA_INCLUDE_PATH, ADA_OBJECTS_PATH in environment.
+	(local_find_gnatmake): Pass full --GCC to gnatlink.
+	Remove --LINK.
+
+2010-03-04  Andrew Pinski  <andrew_pinski@caviumnetworks.com>
+
+	PR c/43248
+	* gcc.dg/compound-literal-1.c: New testcase.
+
+2010-03-04  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/43164
+	PR tree-optimization/43191
+	* gcc.c-torture/compile/pr43164.c: New test.
+	* gcc.c-torture/compile/pr43191.c: Likewise.
+
+2010-03-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/43244
+	* gfortran.dg/finalize_9.f90: New.
+
+2010-03-04  Tobias Burnus  <burnus@net-b.de>
+	    Ken Werner <ken@linux.vnet.ibm.com>
+
+	* gfortran.dg/reassoc_4.f: Add --param max-completely-peel-times
+	to dg-options for spu.
+	* gfortran.dg/vect/vect-7.f90: Add vect_intfloat_cvt to the
+	dump-scan target to exclude spu.
+
+2010-03-04  Changpeng Fang  <changpeng.fang@amd.com>
+
+	PR middle-end/43209
+	* gcc.dg/tree-ssa/ivopts-4.c: New.
+
+2010-03-03  Janis Johnson  <janis187@us.ibm.com>
+
+	* lib/target-supports-dg.exp (check-flags): Provide defaults for
+	include-opts and exclude-opts; skip checking the flags if arguments
+	are the same as the defaults.
+	(dg-xfail-if): Verify the number of arguments, supply defaults
+	for unspecified optional arguments.
+	(dg-skip-if, dg-xfail-run-if): Verify the number of arguments.
+
+2010-03-03  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/abi/mangle19-1.C: Adjust for default -Wabi.
+	* g++.dg/abi/mangle23.C: Likewise.
+	* g++.dg/eh/simd-2.C: Likewise.
+	* g++.dg/ext/attribute-test-2.C: Likewise.
+	* g++.dg/ext/vector14.C: Likewise.
+	* g++.dg/other/pr34435.C: Likewise.
+	* g++.dg/template/conv8.C: Likewise.
+	* g++.dg/template/nontype9.C: Likewise.
+	* g++.dg/template/qualttp17.C: Likewise.
+	* g++.dg/template/ref1.C: Likewise.
+	* g++.old-deja/g++.pt/crash68.C: Likewise.
+	* g++.old-deja/g++.pt/ref1.C: Likewise.
+	* g++.old-deja/g++.pt/ref3.C: Likewise.
+	* g++.old-deja/g++.pt/ref4.C: Likewise.
+
+	PR c++/12909
+	* g++.dg/abi/mangle40.C: New.
+	* g++.dg/abi/mangle41.C: New.
+	* g++.dg/lto/20100302_0.C: New.
+	* g++.dg/lto/20100302_1.C: New.
+	* g++.dg/lto/20100302.h: New.
+
+2010-03-03  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/43243
+	* gfortran.dg/internal_pack_12.f90: New test.
+
+2010-03-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.dg/pr36997.c: Adjust error message.
+
+2010-03-03  Mike Stump  <mikestump@comcast.net>
+
+	* gcc.target/i386/builtin-unreachable.c: Don't expect stack
+	adjustments to not be present on machines that align the stack to
+	more than 4 bytes and don't have a red zone yet as that is an
+	unimplemented optimization.
+
+2010-03-03  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/43169
+	* gfortran.dg/impure_assignment_3.f90: New.
+
 2010-03-03  Jakub Jelinek  <jakub@redhat.com>
 
 	PR debug/43229
