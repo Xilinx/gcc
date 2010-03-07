@@ -2707,31 +2707,60 @@ the data of the $STEP with an extra context $CTX.}#
   :formals (recv elsestep)
 )
 
+;; method to putelse inside then-steps
+(defun putelse_matchstepthen  (recv elsestep)
+  (debug_msg recv "putelse_matchstepthen recv")
+  (assert_msg "check recv" (is_a recv class_match_step_then))
+  (debug_msg elsestep "putelse_matchstepthen elsestep")
+  (assert_msg "check elsestep" (is_a elsestep class_match_step))
+  (let ( 
+	(mythen (unsafe_get_field :mstep_then recv))
+	)
+    (if mythen 
+	(progn
+	  (debug_msg mythen "putelse_matchstepthen recursing in mythen")
+	  (put_else_match mythen elsestep)))
+  (debug_msg recv "putelse_matchstepthen end recv")))
+(install_method class_match_step_then put_else_match putelse_matchstepthen)
+
+	  
+;; method to putelse inside tests
 (defun putelse_matchtest (recv elsestep)
   (debug_msg recv "putelse_matchtest recv")
   (assert_msg "check recv" (is_a recv class_match_step_test))
   (debug_msg elsestep "putelse_matchtest elsestep")
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
-  (compile_warning "putelse_matchtest should handle when else already exists
-and should propagate...")
   (let ( 
 	(myelse (unsafe_get_field :mstep_else recv))
+	(mythen (unsafe_get_field :mstep_then recv))
 	(elsestart (start_step elsestep))
-	 )
+	)
     (cond 
      ( (== recv elsestart)
        (debug_msg recv "putelse_matchtest recv same as elsestep")
+       (return))
+     ( (== myelse elsestart)
+       (debug_msg recv "putelse_matchtest myelse same as elsestep")
        (return))
      ( (null myelse)
        (unsafe_put_fields recv :mstep_else elsestart)
        (debug_msg recv "putelse_matchtest updated recv")
        )
      (:else
-      ;; we probably should add the else to each then...
-      (assert_msg "$@$unexpected putelse_matchtest already else")))
-))
+      (debug_msg myelse "putelse_matchtest myelse appending then")
+      (put_then_match myelse elsestart)
+      )
+     )
+    (if mythen
+	(progn
+	  (debug_msg mythen "putelse_matchtest recursing in mythen")
+	  (put_else_match mythen elsestart)))
+    (debug_msg recv "putelse_matchtest end recv")
+    ))
 (install_method class_match_step_test put_else_match putelse_matchtest)
 
+
+;;;;;;;;;;;;;;;;
 (defun putelse_matchgroup (recv elsestep)
   (debug_msg recv "putelse_matchgroup recv")
   (assert_msg "check recv" (is_a recv class_match_step_test_group))
@@ -2739,9 +2768,14 @@ and should propagate...")
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
   (let ( (elsegroup (unsafe_get_field :mstgroup_else recv)) 
 	 (elsestart (start_step elsestep))
+	 (startgroup (unsafe_get_field :mstgroup_start recv))
 	 )
-    (debug_msg elsestep "putelse_matchgroup elsestart")
-    (unsafe_put_fields recv :mstep_else elsestart)
+    (debug_msg elsestart "putelse_matchgroup elsestart")
+    (if startgroup
+	(progn
+	  (debug_msg startgroup "putelse_matchgroup recursing startgroup")
+	  (put_else_match startgroup elsestart)
+	  ))
     (debug_msg elsegroup "putelse_matchgroup elsegroup")
     (cond 
      ((null elsegroup)
@@ -3677,6 +3711,13 @@ and should propagate...")
 	   (if prevstep
 	       (progn
 		 (debug_msg prevstep "translate_matchcase before updating prevstep")
+		 (compile_warning "translate_matchcase does not work")
+		 ;; this does not work, because any common steps
+		 ;; between the current mstep & the prevstep become
+		 ;; incorrectly a loop. Perhaps we should have each
+		 ;; step having its age, and consider that age when
+		 ;; doing the else. BTW, this is the same issue as for
+		 ;; or patterns.
 		 (put_else_match prevstep mstep)))
 	   (debug_msg prevstep "translate_matchcase updated prevstep")
 	   (debug_msg stepsucc "translate_matchcase stepsucc")

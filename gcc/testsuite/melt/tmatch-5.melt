@@ -20,9 +20,11 @@
       (g x bx)
       )
 
-   ( ?(and ?xx
+   (
+    ;;(and ?xx
 	   ?(instance class_container 
-		      :container_value ?xx))
+		      :container_value ?xx)
+	    ;;)
       (g xx))
 
    ))

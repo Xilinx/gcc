@@ -1,4 +1,10 @@
 
+2010-03-07 Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: some design issues with alternate
+	matching. See the comment near warning in translate_matchcase.  
+	
+	* testsuite/melt/tmatch-5.melt: temporarily commented out the ?and
+	
 2010-03-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: putelse_matchtest should be completed...
 
