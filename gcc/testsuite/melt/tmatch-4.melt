@@ -1,11 +1,14 @@
 ; -*- lisp -*-
 ;; file tmatch-4.melt
 
-#| run in buildir/gcc
- ./cc1 -fmelt=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:...melt-source \
-    -fmelt-compile-script=./built-melt-cc-script \
-    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2:ana-base \
-    -fmelt-arg=.../tmatch-4.melt -fmelt-debug empty-file-for-melt.c
+#| run in buildir/gcc, with tmatch-4.melt being a symbolic link to this file:
+
+ ./cc1 -fmelt=translatefile  -fmelt-module-path=. \
+ -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2:xtramelt-ana-base \
+    -fmelt-option=match_graphic=/tmp/melt4graph,alternate_match \
+    -fmelt-arg=tmatch-4.melt -fmelt-debug empty-file-for-melt.c
+
 |#
 
 (defun simple4 (data f :tree t)

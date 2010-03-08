@@ -2887,8 +2887,10 @@ the data of the $STEP with an extra context $CTX.}#
 		 (inform_strv sloc "class of field is" (get_field :named_name flcla))
 		 (return)))
 	 ))
-      ;; find our step if its exist or else create it
+      ;; find our step if its exist or else create it, also find the
+      ;; last test step to add our new test in its else case
       (let ( (istep ())
+	     (laststeptest ())
 	     (steplist (unsafe_get_field :mdata_steps mdata))
 	     )
 	(foreach_in_list
@@ -2899,7 +2901,12 @@ the data of the $STEP with an extra context $CTX.}#
 		 (== (unsafe_get_field :mstins_class curstep) pclass))
 	    (setq curpair ())
 	    (setq istep curstep)
-	    )))
+	    )
+	  ( (is_a curstep class_match_step_test)
+	    (setq laststeptest curstep))
+	  ))
+	(debug_msg laststeptest "translpat_inspat laststeptest")
+	;;
 	(if (null istep)
 	    (let 
 		( 
@@ -2917,6 +2924,10 @@ the data of the $STEP with an extra context $CTX.}#
 	      (debug_msg newstep "translpat_inspat newstep")
 	      (list_append steplist newstep)
 	      (debug_msg steplist "translpat_inspat updated steplist")
+	      (if laststeptest
+		  (progn 
+		    (put_else_match laststeptest newstep)
+		    (debug_msg laststeptest "translpat_inspat updated laststeptest")))
 	      ))
 	;; translate each mentioned non-joker field 
 	(let ( (mslots (unsafe_get_field :mstins_slots istep))
@@ -3007,27 +3018,38 @@ the data of the $STEP with an extra context $CTX.}#
        )
      (:else
       (assert_msg "check symbval" (is_a symbval class_matched_data))
-       (foreach_in_list
-	(steplist)
-	(curpair curteststep)
-	(if (and (is_a curteststep class_match_step_test_variable)
+      (let ( (laststeptest ())
+	     )
+	(foreach_in_list
+	 (steplist)
+	 (curpair curteststep)
+	 (cond
+	  ( (and (is_a curteststep class_match_step_test_variable)
 		 (== (unsafe_get_field :msteptestvar_symb curteststep) symb)
 		 (== (unsafe_get_field :mstep_data curteststep) mdata))
 	    (progn
 	      (debug_msg curteststep "translpat_varpat found curteststep")
 	      (return curteststep)))
-	)
-      (let ( (steptest (instance class_match_step_test_variable
-				 :loca_location sloc
-				 :mstep_data mdata
-				 :mstep_then ()
-				 :msteptestvar_symb symb
-				 ))
-	     )
-	(list_append steplist steptest)
-	(debug_msg steptest "translpat_varpat return steptest")
-	(return steptest)
-	)))
+	  ( (is_a curteststep class_match_step_test)
+	    (setq laststeptest curteststep))
+	  )
+	 )
+	(debug_msg laststeptest "translpat_varpat laststeptest")
+	(let ( (steptest (instance class_match_step_test_variable
+				   :loca_location sloc
+				   :mstep_data mdata
+				   :mstep_then ()
+				   :msteptestvar_symb symb
+				   ))
+	       )
+	  (list_append steplist steptest)
+	  (if laststeptest
+	      (progn
+		(put_else_match laststeptest steptest)
+		(debug_msg laststeptest "translpat_varpat updated laststeptest")))
+	  (debug_msg steptest "translpat_varpat return steptest")
+	  (return steptest)
+	  ))))
     ))
 (install_method class_source_pattern_variable translate_pattern translpat_varpat)
 
@@ -3179,121 +3201,131 @@ the data of the $STEP with an extra context $CTX.}#
 			  (get_field :named_name curctyp))
 	      (return)))
 	))
-     ;; try to find the same test step
-     (foreach_in_list
-      (mdatasteps)
-      (curpairstep curdatastep)
-      (assert_msg "check curdatastep" (is_a curdatastep class_match_step))
-      (if (and
-	   (is_a curdatastep class_match_step_test_matcher)
-	   (== (unsafe_get_field :mstep_data curdatastep) mdata)
-	   (== (unsafe_get_field :mstma_matcher curdatastep) soper)
-	   (==i (list_length inbinds) 0)
-	   (==i (list_length (unsafe_get_field :mstma_binds curdatastep)) 0)
+     ;; try to find the same test step, and the last test for this mdata
+     (let (
+	   (laststeptest ())
 	   )
-	  (let ( (similarstep curdatastep)
-		 (curins (unsafe_get_field :mstma_ins curdatastep))
-		 )
-	    (foreach_in_multiple
-	     (curins)
-	     (cursimin :long simix)
-	     (if (!= (multiple_nth nins simix) cursimin)
-		 (progn
-		   (setq simix -1)
-		   (setq cursimin ())
-		   (setq similarstep ())))
+       (foreach_in_list
+	(mdatasteps)
+	(curpairstep curdatastep)
+	(assert_msg "check curdatastep" (is_a curdatastep class_match_step))
+	(if (is_a curdatastep class_match_step_test)
+	    (setq laststeptest curdatastep))
+	(if (and
+	     (is_a curdatastep class_match_step_test_matcher)
+	     (== (unsafe_get_field :mstep_data curdatastep) mdata)
+	     (== (unsafe_get_field :mstma_matcher curdatastep) soper)
+	     (==i (list_length inbinds) 0)
+	     (==i (list_length (unsafe_get_field :mstma_binds curdatastep)) 0)
 	     )
-	    (debug_msg similarstep "translpat_patmat similiarstep")
-	    (if similarstep 
-		(progn
-		  (setq curstep similarstep)
-		  (setq curpairstep ())
-		  (setq curdatastep ())))
-	    ))
-      )
-     (debug_msg curstep "translpat_patmat custep after seeking")
-     (if (null curstep)
-	 (let ( 
-	       (outdatatup (make_multiple discr_multiple nbopout))
-	       (newstep (instance class_match_step_test_matcher
-			       :loca_location sloc
-			       :mstep_data mdata
-			       :mstep_then ()
-			       :mstep_else ()
-			       :mstma_matcher soper
-			       :mstma_binds inbinds
-			       :mstma_ins nins
-			       :mstma_outs outdatatup))
-	       )
-	   (setq curstep newstep)
-	   (debug_msg newstep "translpat_patmat newstep")
-	   (list_append mdatasteps newstep)
-	   (debug_msg mdatasteps "translpat_patmat updated mdatasteps")
-	   (foreach_in_multiple
-	    (opout)
-	    (curoutbind :long outix)
-	    (debug_msg curoutbind "translpat_patmat curoutbind")
-	    (assert_msg "check curoutbind" (is_a curoutbind class_formal_binding))
-	    (let ( (outsymb (get_field :binder curoutbind))
-		   (outctyp (get_field :fbind_type curoutbind))
-		   (newslot (instance class_matched_data
-				      :mdata_symb (clone_symbol outsymb)
-				      :mdata_ctype outctyp
-				      :mdata_orig newstep
-				      :mdata_steps (make_list discr_list)))
+	    (let ( (similarstep curdatastep)
+		   (curins (unsafe_get_field :mstma_ins curdatastep))
 		   )
-	      (debug_msg outsymb "translpat_patmat outsymb")
-	      (debug_msg newslot "translpat_patmat newslot")
-	      (multiple_put_nth outdatatup outix newslot)
-	      (assert_msg "check outctyp" (is_a outctyp class_ctype))
+	      (foreach_in_multiple
+	       (curins)
+	       (cursimin :long simix)
+	       (if (!= (multiple_nth nins simix) cursimin)
+		   (progn
+		     (setq simix -1)
+		     (setq cursimin ())
+		     (setq similarstep ())))
+	       )
+	      (debug_msg similarstep "translpat_patmat similiarstep")
+	      (if similarstep 
+		  (progn
+		    (setq curstep similarstep)
+		    (setq curpairstep ())
+		    (setq curdatastep ())))
 	      ))
-	   ))
-     (debug_msg curstep "translpat_patmat curstep after making it")
-     (assert_msg "check curstep" (is_a curstep class_match_step_test_matcher))
-     (debug_msg souts "translpat_patmat souts again")
-     (let ( 
-	   (outdata (get_field :mstma_outs curstep))
-	   (thenlist (make_list discr_list))
-	   (elselist (make_list discr_list))
-	   (laststep curstep)
-	   (testgroup (instance class_match_step_test_group
-				:loca_location sloc
-				:mstep_data mdata
-				:mstep_then ()
-				:mstep_else ()
-				:mstgroup_start curstep
-				:mstgroup_then ()
-				:mstgroup_else ()
-				))
-	   )
-       (foreach_in_multiple
-	(outdata)
-	(curoutdata :long dix)
-	(let ( (outpat (multiple_nth souts dix))
-	       )
-	(debug_msg curoutdata "translpat_patmat curoutdata")
-	(debug_msg outpat "translpat_patmat outpat")
-	(let ( (outstep (translate_pattern outpat curoutdata mcase varmap sloc))
-	       )
-	  (debug_msg outstep "translpat_patmat outstep")
-	  (if outstep
-	      (progn
-		(put_then_match laststep outstep)
-		(list_append elselist outstep)
-		(setq laststep outstep)
+	)
+       (debug_msg curstep "translpat_patmat custep after seeking")
+       (if (null curstep)
+	   (let ( 
+		 (outdatatup (make_multiple discr_multiple nbopout))
+		 (newstep (instance class_match_step_test_matcher
+				    :loca_location sloc
+				    :mstep_data mdata
+				    :mstep_then ()
+				    :mstep_else ()
+				    :mstma_matcher soper
+				    :mstma_binds inbinds
+				    :mstma_ins nins
+				    :mstma_outs outdatatup))
+		 )
+	     (setq curstep newstep)
+	     (debug_msg newstep "translpat_patmat newstep")
+	     (list_append mdatasteps newstep)
+	     (debug_msg mdatasteps "translpat_patmat updated mdatasteps")
+	     (if laststeptest
+		 (progn
+		   (put_else_match laststeptest newstep)
+		   (debug_msg laststeptest "translpat_patmat updated laststeptest")))
+	     (foreach_in_multiple
+	      (opout)
+	      (curoutbind :long outix)
+	      (debug_msg curoutbind "translpat_patmat curoutbind")
+	      (assert_msg "check curoutbind" (is_a curoutbind class_formal_binding))
+	      (let ( (outsymb (get_field :binder curoutbind))
+		     (outctyp (get_field :fbind_type curoutbind))
+		     (newslot (instance class_matched_data
+					:mdata_symb (clone_symbol outsymb)
+					:mdata_ctype outctyp
+					:mdata_orig newstep
+					:mdata_steps (make_list discr_list)))
+		     )
+		(debug_msg outsymb "translpat_patmat outsymb")
+		(debug_msg newslot "translpat_patmat newslot")
+		(multiple_put_nth outdatatup outix newslot)
+		(assert_msg "check outctyp" (is_a outctyp class_ctype))
 		))
-	)))
-       (put_fields
-	testgroup
-	:mstgroup_then curstep
-	:mstgroup_else elselist)
-       (debug_msg testgroup "translpat_patmat return testgroup")
-       (return testgroup)
-       )
-	    
+	     ))
+       (debug_msg curstep "translpat_patmat curstep after making it")
+       (assert_msg "check curstep" (is_a curstep class_match_step_test_matcher))
+       (debug_msg souts "translpat_patmat souts again")
+       (let ( 
+	     (outdata (get_field :mstma_outs curstep))
+	     (thenlist (make_list discr_list))
+	     (elselist (make_list discr_list))
+	     (laststep curstep)
+	     (testgroup (instance class_match_step_test_group
+				  :loca_location sloc
+				  :mstep_data mdata
+				  :mstep_then ()
+				  :mstep_else ()
+				  :mstgroup_start curstep
+				  :mstgroup_then ()
+				  :mstgroup_else ()
+				  ))
+	     )
+	 (foreach_in_multiple
+	  (outdata)
+	  (curoutdata :long dix)
+	  (let ( (outpat (multiple_nth souts dix))
+		 )
+	    (debug_msg curoutdata "translpat_patmat curoutdata")
+	    (debug_msg outpat "translpat_patmat outpat")
+	    (let ( (outstep (translate_pattern outpat curoutdata mcase varmap sloc))
+		   )
+	      (debug_msg outstep "translpat_patmat outstep")
+	      (if outstep
+		  (progn
+		    (put_then_match laststep outstep)
+		    (list_append elselist outstep)
+		    (setq laststep outstep)
+		    ))
+	      )))
+	 (put_fields
+	  testgroup
+	  :mstgroup_then curstep
+	  :mstgroup_else elselist)
+	 (debug_msg testgroup "translpat_patmat return testgroup")
+	 (return testgroup)
+	 )
+       )	    
      )
     )
   )
+
 (install_method class_source_pattern_matcher  translate_pattern translpat_patmat)
 	
 
@@ -3710,15 +3742,11 @@ the data of the $STEP with an extra context $CTX.}#
 	   (debug_msg mstep "translate_matchcase updated mstep")
 	   (if prevstep
 	       (progn
-		 (debug_msg prevstep "translate_matchcase before updating prevstep")
-		 (compile_warning "translate_matchcase does not work")
-		 ;; this does not work, because any common steps
-		 ;; between the current mstep & the prevstep become
-		 ;; incorrectly a loop. Perhaps we should have each
-		 ;; step having its age, and consider that age when
-		 ;; doing the else. BTW, this is the same issue as for
-		 ;; or patterns.
-		 (put_else_match prevstep mstep)))
+		 (debug_msg prevstep "translate_matchcase got prevstep")
+		 (compile_warning "translate_matchcase don't put_else_match")
+		 ;; the put_else_match is unneeded & wrong
+		 ;; (put_else_match prevstep mstep)
+		 ))
 	   (debug_msg prevstep "translate_matchcase updated prevstep")
 	   (debug_msg stepsucc "translate_matchcase stepsucc")
 	   (return mstep)
