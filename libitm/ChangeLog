@@ -1,3 +1,9 @@
+2010-03-09  Aldy Hernandez  <aldyh@redhat.com>
+
+	* retry.cc (decide_retry_strategy): Set state to STATE_SERIAL when
+	switching to serial mode.
+	* beginend.cc (trycommit_and_finalize): Unlock serial_lock.
+
 2010-03-03  Aldy Hernandez  <aldyh@redhat.com>
 
 	* configure.tgt: Add emacs -*- tags.

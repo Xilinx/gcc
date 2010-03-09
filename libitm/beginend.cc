@@ -212,6 +212,10 @@ GTM::gtm_transaction::trycommit_and_finalize ()
       gtm_disp()->fini ();
       set_gtm_tx (this->prev);
       free_tx (this);
+      if (this->state & gtm_transaction::STATE_SERIAL)
+	gtm_transaction::serial_lock.write_unlock ();
+      else
+	gtm_transaction::serial_lock.read_unlock ();
       return true;
     }
   return false;
