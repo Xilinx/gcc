@@ -2390,21 +2390,22 @@ scanning variables.}#
 (defclass class_matching_context
   :super class_root
   :doc #{The $CLASS_MATCHING_CONTEXT is a context for normalization of
-pattern matching. $MXCT_NORMCTXT is the normalization
-context. $MXCT_SOURCE is the source matching
-expression. $MXCT_NMATCHED is the normal matched
-expression. $MXCT_CASES is the tuple of cases each of
-$CLASS_MATCH_CASE. $MXCT_ENV is the environment of the
-match. $MXCT_MDATA is the initial matched data of
-$CLASS_MATCHED_DATA. $MXCT_VARHANDLERS is the list of pattern variable
-handlers.}#
-  :fields ( mxct_normctxt
-	    mxct_source 
-	    mxct_nmatched 
-	    mxct_cases 
-	    mxct_env 
-	    mxct_mdata
-	    mxct_varhandlers
+pattern matching. $MCTX_NORMCTXT is the normalization
+context. $MCTX_SOURCE is the source matching
+expression. $MCTX_NMATCHED is the normal matched
+expression. $MCTX_CASES is the tuple of cases each of
+$CLASS_MATCH_CASE. $MCTX_ENV is the environment of the
+match. $MCTX_MDATA is the initial matched data of
+$CLASS_MATCHED_DATA. $MCTX_VARHANDLERS is the list of pattern variable
+handlers. $MCTX_FLAGS is the list of match flags.}#
+  :fields ( mctx_normctxt
+	    mctx_source 
+	    mctx_nmatched 
+	    mctx_cases 
+	    mctx_env 
+	    mctx_mdata
+	    mctx_varhandlers
+	    mctx_flags
 	    ))
 
 (defclass class_match_case
@@ -2471,12 +2472,47 @@ data.}#
   :fields ( mstep_data
 	    ))
 
+(defclass class_match_flag
+  :super class_located
+  :doc #{The $CLASS_MATCH_FLAG describes a flag related to a source
+pattern. The $MFLAG_SPAT is the source pattern, and the $MFLAG_RANK is
+a unique boxed integer rank. The $MFLAG_SETSTEP is the match step
+setting that flag, or else null. Match flags are initially cleared.}#
+  :fields ( mflag_spat
+	    mflag_rank
+	    mflag_setstep
+))
+
 (defclass class_match_step_then
   :super class_match_step
   :doc #{The $CLASS_MATCH_STEP_THEN super-class is for steps with a
 then edge $MSTEP_THEN.}#
   :fields (mstep_then))
 
+
+(defclass class_match_step_assign_flag
+  :super class_match_step_then
+  :doc #{The $CLASS_MATCH_STEP_ASSIGN_FLAG super-class assigns a match
+  flag $MSTEP_FLAG.}#
+  :fields (mstep_flag))
+
+(defclass class_match_step_flag_set
+  :super class_match_step_assign_flag
+  :doc #{The $CLASS_MATCH_STEP_FLAG_SET sets to true a match flag
+$MSTEP_FLAG.}#
+  :fields ())
+
+(defclass class_match_step_flag_operation
+  :super class_match_step_assign_flag
+  :doc #{The $CLASS_MATCH_STEP_FLAG_OPERATION sets the match flag according to flag arguments from the $MSTEP_FLAGARGS tuple.}#
+  :fields (mstep_flagargs))
+
+(defclass class_match_step_flag_conjonction
+  :super class_match_step_assign_flag
+  :doc #{The $CLASS_MATCH_STEP_FLAG_CONJONCTION sets the match
+flag $MSTEP_FLAG to the conjonction of $MSTEP_FLAGARGS, which is a
+tuple of match flags.}#
+  :fields ())
 
 (defclass class_match_step_success
   :super class_match_step_then
@@ -2531,6 +2567,36 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	   mstma_ins
 	   mstma_outs))
 
+
+
+;;;;;;;;;;;;;;;;
+;;; make a flag for a given source pattern in a given matching context
+(defun make_match_flag (spat mcx)
+  (debug_msg spat "make_match_flag spat")
+  (debug_msg mcx "make_match_flag mcx")
+  (assert_msg "check spat" (is_a spat class_source_pattern))
+  (assert_msg "check mcx" (is_a mcx class_matching_context))
+  (let ( (sloc (unsafe_get_field :loca_location spat))
+	 (flaglist (unsafe_get_field :mctx_flags mcx))
+	 (lastflag (pair_head (list_last flaglist)))
+	 (:long lastrank (get_int (get_field :mflag_rank lastflag)))
+	 )
+    (assert_msg "check flaglist" (is_list flaglist))
+    (assert_msg "check lastrank" (or (null lastflag) (>i lastrank 0)))
+    (let ( (mflag (instance class_match_flag
+			    :loca_location sloc
+			    :mflag_spat spat
+			    :mflag_rank 
+			    (make_integerbox discr_constant_integer (+i lastrank 1))))
+	   )
+      (list_append flaglist mflag)
+      (debug_msg mflag "make_match_flag return mflag")
+      mflag
+    )
+))
+
+
+;;;;;;;;;;;;;;;;
 (defselector scan_subpatterns class_selector
   :doc #{Apply a given function $FUN to the subpatterns of reciever
   $RECV with extra context $CTX.}#
@@ -2831,7 +2897,7 @@ the data of the $STEP with an extra context $CTX.}#
 (defselector translate_pattern class_selector
   :doc #{Translate a pattern into a match step. $RECV is the reciever,
   $MDATA is the matched data, $MCASE is the match case, and $SLOC is
-  the source location}#
+  the source location. Returns the match step and secundarily the match flag.}#
   :formals (recv mdata mcase varmap sloc))
 
 
@@ -2866,9 +2932,11 @@ the data of the $STEP with an extra context $CTX.}#
 	(pclass (unsafe_get_field :spat_class recv))
 	(pfields (unsafe_get_field :spat_fields recv))
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
+	(mctxt (unsafe_get_field :mcase_mctxt mcase))
 	)
     (assert_msg "check pclass" (is_a pclass class_class))
     (let ( (:long nbfields (multiple_length (unsafe_get_field :class_fields pclass)))
+	   (mflag (make_match_flag recv mctxt))
 	   )
       ;; check that each mentioned field is indeed a field of the class
       (foreach_in_multiple
@@ -2932,6 +3000,7 @@ the data of the $STEP with an extra context $CTX.}#
 	;; translate each mentioned non-joker field 
 	(let ( (mslots (unsafe_get_field :mstins_slots istep))
 	       (laststep istep)
+	       (flaglist (make_list discr_list))
 	       (elselist (make_list discr_list))
 	       )
 	  (assert_msg "check mslots" (is_multiple mslots))
@@ -2960,34 +3029,57 @@ the data of the $STEP with an extra context $CTX.}#
 			 (setq curslotdata newslot)
 			 (multiple_put_nth mslots curfix newslot)))
 		   (debug_msg curfpat "translpat_inspat before translation curfpat")
-		   (let ( (flstep (translate_pattern curfpat curslotdata 
-						     mcase varmap psloc)) 
-			  )
-		     (debug_msg flstep "translpat_inspat flstep")
-		     (if flstep 
-			 (progn
-			   (debug_msg laststep "translpat_inspat laststep")
-			   (put_then_match laststep flstep)
-			   (list_append elselist flstep)
-			   (setq laststep flstep)
-			   ))
-		     )))))
+		   (multicall
+		    (flstep flflag)
+		    (translate_pattern curfpat curslotdata mcase varmap psloc) 
+		    (debug_msg flstep "translpat_inspat flstep")
+		    (debug_msg flflag "translpat_inspat flflag")
+		    (if flstep 
+			(progn
+			  (debug_msg laststep "translpat_inspat laststep")
+			  (put_then_match laststep flstep)
+			  (list_append elselist flstep)
+			  (setq laststep flstep)
+			  ))
+		    (if flflag
+			(list_append flaglist flflag))
+		    )))))
 	  (debug_msg elselist "translpat_inspat elselist")
-	  (let ( (stepgroup (instance class_match_step_test_group
-				      :loca_location sloc
-				      :mstep_data mdata
-				      :mstep_then ()
-				      :mstep_else ()
-				      :mstgroup_start istep
-				      :mstgroup_then laststep
-				      :mstgroup_else (list_to_multiple elselist discr_multiple)
-				      ))
-		 )
+	  (let ( 
+		(stepsetflag (if (list_first_element flaglist)
+				 (instance class_match_step_flag_conjonction
+					   :loca_location sloc
+					   :mstep_data mdata
+					   :mstep_then ()
+					   :mstep_flag mflag
+					   :mstep_flagargs (list_to_multiple flaglist discr_multiple))
+			       (instance class_match_step_flag_set
+					 :loca_location sloc
+					 :mstep_data mdata
+					 :mstep_then ()
+					 :mstep_flag mflag)))
+		(stepgroup (instance class_match_step_test_group
+				     :loca_location sloc
+				     :mstep_data mdata
+				     :mstep_then ()
+				     :mstep_else ()
+				     :mstgroup_start istep
+				     :mstgroup_then laststep
+				     :mstgroup_else (list_to_multiple elselist discr_multiple)
+				     ))
+		)
+	    (put_fields mflag :mflag_setstep stepsetflag)
+	    (put_then_match laststep stepsetflag)
+	    (put_then_match  stepsetflag stepgroup)
 	    (debug_msg stepgroup "translpat_inspat return stepgroup")
-	    (return stepgroup)
+	    (return stepgroup mflag)
 	    ))))))
 (install_method class_source_pattern_instance translate_pattern translpat_inspat)
 
+
+(compile_warning "should systematically make match flags and set &
+test them...; the [disabled by default] alternate matching is in
+miserable state")
 
 (defun translpat_varpat (recv mdata mcase varmap psloc)
   (debug_msg recv "translpat_varpat recv")
@@ -3001,11 +3093,20 @@ the data of the $STEP with an extra context $CTX.}#
 	(symb (unsafe_get_field :spatvar_symb recv))
 	(matctx (unsafe_get_field  :mcase_mctxt mcase))
 	(symbval (mapobject_get varmap symb))
-	(mhandlers (get_field :mxct_varhandlers matctx))
+	(mhandlers (get_field :mctx_varhandlers matctx))
 	(steplist (unsafe_get_field :mdata_steps mdata))
+	(mctxt (unsafe_get_field :mcase_mctxt mcase))
+	(mflag (make_match_flag recv mctxt))
+	(flagstep (instance class_match_step_flag_set 
+			    :loca_location sloc
+			    :mstep_data mdata
+			    :mstep_then ()
+			    :mstep_flag mflag))
 	)
     (debug_msg symb "translpat_varpat symb")
     (debug_msg symbval "translpat_varpat symbval")
+    (put_fields mflag :mflag_setstep flagstep)
+    (debug_msg flagstep "translpat_varpat flagstep")
     (foreach_in_list
      (mhandlers)
      (curpair curhandler)
@@ -3014,7 +3115,7 @@ the data of the $STEP with an extra context $CTX.}#
      ( (null symbval)
        (mapobject_put varmap symb mdata)
        (debug_msg varmap "translpat_varpat updated varmap & return null")
-       (return ())
+       (return flagstep mflag)
        )
      (:else
       (assert_msg "check symbval" (is_a symbval class_matched_data))
@@ -3029,7 +3130,8 @@ the data of the $STEP with an extra context $CTX.}#
 		 (== (unsafe_get_field :mstep_data curteststep) mdata))
 	    (progn
 	      (debug_msg curteststep "translpat_varpat found curteststep")
-	      (return curteststep)))
+	      (put_then_match curteststep flagstep)
+	      (return curteststep mflag)))
 	  ( (is_a curteststep class_match_step_test)
 	    (setq laststeptest curteststep))
 	  )
@@ -3038,7 +3140,7 @@ the data of the $STEP with an extra context $CTX.}#
 	(let ( (steptest (instance class_match_step_test_variable
 				   :loca_location sloc
 				   :mstep_data mdata
-				   :mstep_then ()
+				   :mstep_then flagstep
 				   :msteptestvar_symb symb
 				   ))
 	       )
@@ -3048,7 +3150,7 @@ the data of the $STEP with an extra context $CTX.}#
 		(put_else_match laststeptest steptest)
 		(debug_msg laststeptest "translpat_varpat updated laststeptest")))
 	  (debug_msg steptest "translpat_varpat return steptest")
-	  (return steptest)
+	  (return steptest mflag)
 	  ))))
     ))
 (install_method class_source_pattern_variable translate_pattern translpat_varpat)
@@ -3071,6 +3173,8 @@ the data of the $STEP with an extra context $CTX.}#
 	(firststep ())
 	(thenlist (make_list discr_list))
 	(elselist (make_list discr_list))
+	(flaglist (make_list discr_list))
+	(mctxt (unsafe_get_field :mcase_mctxt mcase))
 	(stepgroup (instance class_match_step_test_group
 			     :loca_location sloc
 			     :mstep_data mdata
@@ -3078,32 +3182,46 @@ the data of the $STEP with an extra context $CTX.}#
 			     :mstgroup_then ()
 			     :mstgroup_else ()
 			     ))
+	(mflag (make_match_flag recv mctxt))
+	(flagstep (instance class_match_step_flag_conjonction
+			    :loca_location sloc
+			    :mstep_data mdata
+			    :mstep_then ()
+			    :mstep_flag mflag
+			    ))
 	)
     (assert_msg "check sconj" (is_multiple sconj))
+    (put_fields mflag :mflag_setstep flagstep)
     (foreach_in_multiple
      (sconj)
      (curconj :long conjix)
      (debug_msg curconj "translpat_andpat curconj")
-     (let ( (conjstep 
-	     (translate_pattern curconj mdata mcase varmap sloc))
+     (multicall 
+      (conjstep conjflag)
+      (translate_pattern curconj mdata mcase varmap sloc)
+      (debug_msg conjstep "translpat_andpat conjstep")
+      (debug_msg conjflag "translpat_andpat conjflag")
+      (if conjstep
+	  (progn
+	    (if (null curstep)
+		(progn
+		  (setq firststep conjstep)
+		  (list_append thenlist firststep)
+		  )
+	      (progn
+		(debug_msg curstep "translpat_andpat curstep")
+		(put_then_match curstep conjstep)
+		)
+	      )
+	    (list_append elselist conjstep)
+	    (setq curstep conjstep)
 	    )
-       (debug_msg conjstep "translpat_andpat conjstep")
-       (if conjstep
-	   (progn
-	     (if (null curstep)
-		 (progn
-		   (setq firststep conjstep)
-		   (list_append thenlist firststep)
-		   )
-	       (progn
-		 (debug_msg curstep "translpat_andpat curstep")
-		 (put_then_match curstep conjstep)
-		 )
-	       )
-	     (list_append elselist conjstep)
-	     (setq curstep conjstep)
-	     )
-	 )))
+	)
+      (if conjflag
+	  (progn
+	    (assert_msg "check conjflag" (is_a conjflag class_match_flag))
+	    (list_append flaglist conjflag)))
+      ))
     (unsafe_put_fields stepgroup
 		       :mstgroup_start firststep
 		       :mstgroup_then (list_to_multiple thenlist discr_multiple)
@@ -3111,10 +3229,13 @@ the data of the $STEP with an extra context $CTX.}#
     (cond ( (null firststep)
 	    ;; this happens only for degenerate conjonctions like ?(and ?_)
 	    (warning_plain sloc "degenerate ?(AND ...) pattern")
-	    (setq stepgroup ()))
+	    (return)
 	  )
+	  )
+    (put_fields flagstep :mstep_flagargs (list_to_multiple flaglist discr_multiple))
     (debug_msg stepgroup "translpat_andpat return stepgroup")
-    (return stepgroup)
+    (put_then_match stepgroup flagstep)
+    (return stepgroup mflag)
     ))
 (install_method class_source_pattern_and translate_pattern translpat_andpat)
 
@@ -3154,8 +3275,8 @@ the data of the $STEP with an extra context $CTX.}#
 	(sins (unsafe_get_field :spac_inargs recv))
 	(souts (unsafe_get_field :spac_outargs recv))
 	(matctx (unsafe_get_field  :mcase_mctxt mcase))
-	(env (get_field :mxct_env matctx))
-	(ncx (get_field :mxct_normctxt matctx))
+	(env (get_field :mctx_env matctx))
+	(ncx (get_field :mctx_normctxt matctx))
 	(opin (get_field :amatch_in soper))
 	(opout (get_field :amatch_out soper))
 	(:long nbopout (multiple_length opout))
@@ -3304,9 +3425,11 @@ the data of the $STEP with an extra context $CTX.}#
 		 )
 	    (debug_msg curoutdata "translpat_patmat curoutdata")
 	    (debug_msg outpat "translpat_patmat outpat")
-	    (let ( (outstep (translate_pattern outpat curoutdata mcase varmap sloc))
-		   )
-	      (debug_msg outstep "translpat_patmat outstep")
+	    (multicall 
+	     (outstep outflag)
+	     (translate_pattern outpat curoutdata mcase varmap sloc)
+	     (debug_msg outstep "translpat_patmat outstep")
+	     (debug_msg outflag "translpat_patmat outflag")
 	      (if outstep
 		  (progn
 		    (put_then_match laststep outstep)
@@ -3643,6 +3766,134 @@ the data of the $STEP with an extra context $CTX.}#
 (install_method class_match_step_success  matchgraphic_altstep mgaltstep_stepsuccess)
 ;;;;;;;;;;;;;;;;
 
+(defun mgaltstep_stepflagset (step mg)
+  (debug_msg step "mgaltstep_stepflagset step")
+  (assert_msg "check step" (is_a step class_match_step_flag_set))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (loca (unsafe_get_field :loca_location step))
+	 (sthen (unsafe_get_field :mstep_then step))
+	 (sflag (unsafe_get_field :mstep_flag step))
+	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
+	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
+	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
+	 (stepmap (unsafe_get_field :mchgx_stepnamemap mg))
+	 (stepname (mapobject_get stepmap step))
+	 (thenname (if sthen (mapobject_get stepmap sthen)))
+	 (:long stephash (obj_hash step))
+	 (dis (discrim step))
+	 (clanam (get_field :named_name dis))
+	 (flagrank (get_field :mflag_rank sflag))
+	 (flagloc (get_field :loca_location sflag))
+	 )
+    (add2out_strconst nodebuf "<tr><td><font color=\"darkolivegreen4\" face=\"Times-Roman Bold\" point-size=\"6\">")
+    (code_chunk 
+     outclanam
+     #{ /* $OUTCLANAM */
+     meltgc_add_out ((melt_ptr_t) $NODEBUF,
+		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
+     }#)
+    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf loca)
+    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (add2out_strconst nodebuf "<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size=\"7\">flag#")
+    (add2out_longdec nodebuf (get_int flagrank))
+    (add2out_strconst nodebuf "</font></td><td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf loca)
+    (add2sbuf_strconst nodebuf "</font></td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (if thenname
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*then*/ -> ")
+	  (add2out_string edgebuf thenname)
+	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
+	  ))
+    ))
+
+(install_method class_match_step_flag_set matchgraphic_altstep mgaltstep_stepflagset)
+;;;;;;;;;;;;;;;;
+(defun mgaltstep_stepflagoper (step mg)
+  (debug_msg step "mgaltstep_stepflagoper step")
+  (assert_msg "check step" (is_a step class_match_step_flag_operation))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (loca (unsafe_get_field :loca_location step))
+	 (sthen (unsafe_get_field :mstep_then step))
+	 (sflag (unsafe_get_field :mstep_flag step))
+	 (sflagargs (unsafe_get_field :mstep_flagargs step))
+	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
+	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
+	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
+	 (stepmap (unsafe_get_field :mchgx_stepnamemap mg))
+	 (stepname (mapobject_get stepmap step))
+	 (thenname (if sthen (mapobject_get stepmap sthen)))
+	 (:long stephash (obj_hash step))
+	 (dis (discrim step))
+	 (clanam (get_field :named_name dis))
+	 (flagrank (get_field :mflag_rank sflag))
+	 (flagloc (get_field :loca_location sflag))
+	 )
+    (add2out_strconst nodebuf "<tr><td><font color=\"mediumseagreen\" face=\"Times-Roman Bold\" point-size=\"6\">")
+    (code_chunk 
+     outclanam
+     #{ /* $OUTCLANAM */
+     meltgc_add_out ((melt_ptr_t) $NODEBUF,
+		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
+     }#)
+    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf loca)
+    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (add2out_strconst nodebuf "<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size=\"7\">flag#")
+    (add2out_longdec nodebuf (get_int flagrank))
+    (add2out_strconst nodebuf "</font></td><td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf loca)
+    (add2sbuf_strconst nodebuf "</font></td></tr>")
+    (if (is_multiple sflagargs)
+	(progn
+	  (add2out_indentnl nodebuf 0)
+	  (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font color=\"goldenrod4\" face=\"Times-Roman\" point-size=\"6.5\">flags{")
+	  (foreach_in_multiple
+	   (sflagargs)
+	   (argflag :long argix)
+	   (assert_msg "check argflag" (is_a argflag class_match_flag))
+	   (let ( (:long argrank (get_int (get_field  :mflag_rank argflag)))
+		  (argfstep (get_field :mflag_setstep argflag))
+		  )
+	     (if (>i argrank 0)
+		 (progn
+		   (add2sbuf_strconst nodebuf " ")
+		   (add2sbuf_longdec nodebuf argrank)
+		   ))
+	     (if (is_a argfstep class_match_step_assign_flag)
+		 (let ( (argfstepname (mapobject_get stepmap argfstep))
+			)
+			(add2out_indentnl edgebuf 0)
+			(add2out_string edgebuf argfstepname)
+			(add2out_strconst edgebuf " /*argflag*/ -> ")
+			(add2out_string edgebuf stepname)
+			(add2out_strconst edgebuf " [ arrowhead=olnormal, color=chartreuse2, style=dotted ];")
+		   ))
+	   ))
+	  (add2sbuf_strconst nodebuf " }</font></td></tr>")
+	  ))
+    (if thenname
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*then*/ -> ")
+	  (add2out_string edgebuf thenname)
+	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
+	  ))
+    ))
+
+(install_method class_match_step_flag_operation matchgraphic_altstep mgaltstep_stepflagoper)
+
+;;;;;;;;;;;;;;;;
+
 
 (compile_warning "missing other methods for matchgraphic_altstep on other step classes")
 
@@ -3661,96 +3912,98 @@ the data of the $STEP with an extra context $CTX.}#
 	  (curloc (unsafe_get_field :loca_location curscas))
 	  (curpat (unsafe_get_field :scam_patt curscas))
 	  (curbody (unsafe_get_field :scam_body curscas))
-	  (nmatx (unsafe_get_field :mxct_nmatched matctx))
-	  (mdata (unsafe_get_field :mxct_mdata matctx))
-	  (ncx (unsafe_get_field :mxct_normctxt matctx))
-	  (env (unsafe_get_field :mxct_env matctx))
+	  (nmatx (unsafe_get_field :mctx_nmatched matctx))
+	  (mdata (unsafe_get_field :mctx_mdata matctx))
+	  (ncx (unsafe_get_field :mctx_normctxt matctx))
+	  (env (unsafe_get_field :mctx_env matctx))
 	  (varmap (make_mapobject discr_map_objects
 				  (+i 12 (*i 2 (mapobject_count (unsafe_get_field :mcase_varmap curscas)))))) 
 	  (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
+	  (newenv (fresh_env env))
 	  )
       (debug_msg nmatx "translate_matchcase nmatx")
       (debug_msg curpat "translate_matchcase curpat")
       (debug_msg mdata "translate_matchcase mdata")
       (assert_msg "check ncx" (is_a ncx class_normalization_context))
       (assert_msg "check env" (is_a env class_environment))
-      (let ( (mstep (translate_pattern curpat mdata curmcase varmap sloc)) 
-	     (newenv (fresh_env env))
-	     )
-	(debug_msg mstep "translate_matchcase got mstep")
-	(debug_msg curbody "translate_matchcase got curbody")
-	(debug_msg varmap "translate_matchcase got varmap")
-	(foreach_in_mapobject
-	 (varmap)
-	 (cursym curmdata)
-	 (assert_msg "check cursym" (is_a cursym class_symbol))
-	 (assert_msg "check curmdata" (is_a curmdata class_matched_data))
-	 (let ( (matchbind (instance class_matched_binding
-				     :binder cursym
-				     :matchbind_data curmdata
-				     :matchbind_nbocc (make_integerbox discr_integer 0)
-				     ))
-		)
-	   (debug_msg matchbind "translate_matchcase matchbind")
-	   (put_env newenv matchbind)
-	   ))
-	(debug_msg newenv "translate_matchcase updated newenv")
-	(debug_msg curbody "translate_matchcase before normalizing curbody")
-	(multicall
-	 (nbody nbinds)
-	 (normalize_tuple curbody newenv ncx sloc)
-	 (debug_msg nbody "translate_matchcase nbody after body normalization")
-	 (debug_msg nbinds "translate_matchcase nbinds after body normalization")
-	 (let (
-	       (listvarocc (make_list discr_list))
-	       (newbindmap (get_field :env_bind newenv))
-	       (stepsucc (instance class_match_step_success
-				   :loca_location sloc
-				   :mstep_data mdata
-				   :mstep_then ()
-				   :mstepsuccess_varocc ()
-				   :mstepsuccess_binds nbinds
-				   :mstepsuccess_body nbody
-				   ))
+      (multicall 
+       (mstep mflag)
+       (translate_pattern curpat mdata curmcase varmap sloc)
+       (debug_msg mstep "translate_matchcase got mstep")
+       (debug_msg mflag "translate_matchcase got mflag")
+       (debug_msg curbody "translate_matchcase got curbody")
+       (debug_msg varmap "translate_matchcase got varmap")
+       (foreach_in_mapobject
+	(varmap)
+	(cursym curmdata)
+	(assert_msg "check cursym" (is_a cursym class_symbol))
+	(assert_msg "check curmdata" (is_a curmdata class_matched_data))
+	(let ( (matchbind (instance class_matched_binding
+				    :binder cursym
+				    :matchbind_data curmdata
+				    :matchbind_nbocc (make_integerbox discr_integer 0)
+				    ))
 	       )
-	   (foreach_in_mapobject
-	    (newbindmap)
-	    (bsymb binding)
-	    (if (and (is_a binding class_matched_binding)
-		     (>i (get_int (unsafe_get_field :matchbind_nbocc binding)) 0))
-		(let ( (syocc (mapobject_get sycmap bsymb))
-		       )
-		  (debug_msg syocc "translate_matchcase found syocc")
-		  (assert_msg "check syocc" (is_a syocc class_nrep_locsymocc))
-		  (assert_msg "check syocc binding" (== (get_field :nocc_bind syocc) binding))
-		  (list_append listvarocc syocc)
-		  )
-	      ))
-	   (debug_msg listvarocc "translate_matchcase listvarocc")
-	   (debug_msg mstep "translate_matchcase have mstep")
-	   (let ( (sortedvarocc
-		   (multiple_sort 
-		    (list_to_multiple listvarocc discr_multiple)
-		    (lambda (o1 o2)
-		      (compare_named_alpha (get_field :nocc_symb o1) (get_field :nocc_symb o2)))
-		    discr_multiple))
-		  )
-	     (debug_msg sortedvarocc  "translate_matchcase sortedvarocc")
-	     (put_fields 
-	      stepsucc :mstepsuccess_varocc sortedvarocc))
-	   (put_then_match mstep stepsucc)
-	   (debug_msg mstep "translate_matchcase updated mstep")
-	   (if prevstep
-	       (progn
-		 (debug_msg prevstep "translate_matchcase got prevstep")
-		 (compile_warning "translate_matchcase don't put_else_match")
-		 ;; the put_else_match is unneeded & wrong
-		 ;; (put_else_match prevstep mstep)
-		 ))
-	   (debug_msg prevstep "translate_matchcase updated prevstep")
-	   (debug_msg stepsucc "translate_matchcase stepsucc")
-	   (return mstep)
-	   ))))))
+	  (debug_msg matchbind "translate_matchcase matchbind")
+	  (put_env newenv matchbind)
+	  ))
+       (debug_msg newenv "translate_matchcase updated newenv")
+       (debug_msg curbody "translate_matchcase before normalizing curbody")
+       (multicall
+	(nbody nbinds)
+	(normalize_tuple curbody newenv ncx sloc)
+	(debug_msg nbody "translate_matchcase nbody after body normalization")
+	(debug_msg nbinds "translate_matchcase nbinds after body normalization")
+	(let (
+	      (listvarocc (make_list discr_list))
+	      (newbindmap (get_field :env_bind newenv))
+	      (stepsucc (instance class_match_step_success
+				  :loca_location sloc
+				  :mstep_data mdata
+				  :mstep_then ()
+				  :mstepsuccess_varocc ()
+				  :mstepsuccess_binds nbinds
+				  :mstepsuccess_body nbody
+				  ))
+	      )
+	  (foreach_in_mapobject
+	   (newbindmap)
+	   (bsymb binding)
+	   (if (and (is_a binding class_matched_binding)
+		    (>i (get_int (unsafe_get_field :matchbind_nbocc binding)) 0))
+	       (let ( (syocc (mapobject_get sycmap bsymb))
+		      )
+		 (debug_msg syocc "translate_matchcase found syocc")
+		 (assert_msg "check syocc" (is_a syocc class_nrep_locsymocc))
+		 (assert_msg "check syocc binding" (== (get_field :nocc_bind syocc) binding))
+		 (list_append listvarocc syocc)
+		 )
+	     ))
+	  (debug_msg listvarocc "translate_matchcase listvarocc")
+	  (debug_msg mstep "translate_matchcase have mstep")
+	  (let ( (sortedvarocc
+		  (multiple_sort 
+		   (list_to_multiple listvarocc discr_multiple)
+		   (lambda (o1 o2)
+		     (compare_named_alpha (get_field :nocc_symb o1) (get_field :nocc_symb o2)))
+		   discr_multiple))
+		 )
+	    (debug_msg sortedvarocc  "translate_matchcase sortedvarocc")
+	    (put_fields 
+	     stepsucc :mstepsuccess_varocc sortedvarocc))
+	  (put_then_match mstep stepsucc)
+	  (debug_msg mstep "translate_matchcase updated mstep")
+	  (if prevstep
+	      (progn
+		(debug_msg prevstep "translate_matchcase got prevstep")
+		(compile_warning "translate_matchcase don't put_else_match")
+		;; the put_else_match is unneeded & wrong
+		;; (put_else_match prevstep mstep)
+		))
+	  (debug_msg prevstep "translate_matchcase updated prevstep")
+	  (debug_msg stepsucc "translate_matchcase stepsucc")
+	  (return mstep)
+	  ))))))
 
 
 
@@ -3783,13 +4036,14 @@ the data of the $STEP with an extra context $CTX.}#
 			     :mdata_steps msteplist
 			     ))
 	    (matctx (instance class_matching_context
-			      :mxct_normctxt ncx
-			      :mxct_source recv
-			      :mxct_nmatched nmatx
-			      :mxct_cases mcasetup
-			      :mxct_env env
-			      :mxct_mdata mdata
-			      :mxct_varhandlers (make_list discr_list)
+			      :mctx_normctxt ncx
+			      :mctx_source recv
+			      :mctx_nmatched nmatx
+			      :mctx_cases mcasetup
+			      :mctx_env env
+			      :mctx_mdata mdata
+			      :mctx_varhandlers (make_list discr_list)
+			      :mctx_flags (make_list discr_list)
 			      ))
 	    )
        (debug_msg matctyp "normexp_altmatch matctyp")

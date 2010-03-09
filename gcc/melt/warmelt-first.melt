@@ -1333,7 +1333,14 @@ make a $CURAT string.}#
 (defprimitive list_last (li) :value
   :doc #{Safely retrieve the last pair of list value $LI, or null.}#
   #{(melt_list_last((melt_ptr_t)($li)))}#)
+;;  first element of list
+(defprimitive list_first_element (li) :value
+  :doc #{Safely retrieve the first element of list value $LI, or null.}#
+  #{(melt_pair_head (melt_list_first((melt_ptr_t)($li))))}#)
 ;; length of list
+(defprimitive list_last_element (li) :value
+  :doc #{Safely retrieve the last element of list value $LI, or null.}#
+  #{(melt_pair_head (melt_list_last((melt_ptr_t)($li))))}#)
 (defprimitive list_length (li) :long
   :doc #{Safely compute the length of list value $LI, or else 0.}#
   #{(melt_list_length((melt_ptr_t)($li)))}#)
@@ -3377,8 +3384,10 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  is_string
  list_append
  list_first
+ list_first_element
  list_find
  list_last
+ list_last_element
  list_length
  list_popfirst
  list_prepend

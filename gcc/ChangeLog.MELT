@@ -1,4 +1,10 @@
 
+2010-03-09 Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first: added list_first_element & list_last_element.
+
+	* melt/warmelt-normatch.melt: adding match flags and steps to set
+	them. Very incomplete!
+
 2010-03-08 Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: removed put_else_match in
 	translate_matchcase.... Still bad!
