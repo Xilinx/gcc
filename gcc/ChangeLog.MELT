@@ -1,3 +1,5 @@
+2010-03-10 Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: adding match set flags ...
 
 2010-03-09 Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first: added list_first_element & list_last_element.

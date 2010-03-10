@@ -2476,10 +2476,12 @@ data.}#
   :super class_located
   :doc #{The $CLASS_MATCH_FLAG describes a flag related to a source
 pattern. The $MFLAG_SPAT is the source pattern, and the $MFLAG_RANK is
-a unique boxed integer rank. The $MFLAG_SETSTEP is the match step
-setting that flag, or else null. Match flags are initially cleared.}#
+a unique boxed integer rank, $MFLAG_STRING gives a small descriptive
+string, The $MFLAG_SETSTEP is the match step setting that flag, or
+else null. Match flags are initially cleared.}#
   :fields ( mflag_spat
 	    mflag_rank
+	    mflag_string
 	    mflag_setstep
 ))
 
@@ -2508,12 +2510,13 @@ $MSTEP_FLAG.}#
   :fields (mstep_flagargs))
 
 (defclass class_match_step_flag_conjonction
-  :super class_match_step_assign_flag
+  :super class_match_step_flag_operation
   :doc #{The $CLASS_MATCH_STEP_FLAG_CONJONCTION sets the match
 flag $MSTEP_FLAG to the conjonction of $MSTEP_FLAGARGS, which is a
 tuple of match flags.}#
   :fields ())
 
+(compile_warning "class_match_step_success should have a flag condition")
 (defclass class_match_step_success
   :super class_match_step_then
   :doc #{The $CLASS_MATCH_STEP_SUCCESS step represents the normalized
@@ -2571,11 +2574,12 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 
 ;;;;;;;;;;;;;;;;
 ;;; make a flag for a given source pattern in a given matching context
-(defun make_match_flag (spat mcx)
+(defun make_match_flag (spat mcx str)
   (debug_msg spat "make_match_flag spat")
   (debug_msg mcx "make_match_flag mcx")
   (assert_msg "check spat" (is_a spat class_source_pattern))
   (assert_msg "check mcx" (is_a mcx class_matching_context))
+  (assert_msg "check str" (is_string str))
   (let ( (sloc (unsafe_get_field :loca_location spat))
 	 (flaglist (unsafe_get_field :mctx_flags mcx))
 	 (lastflag (pair_head (list_last flaglist)))
@@ -2583,11 +2587,14 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	 )
     (assert_msg "check flaglist" (is_list flaglist))
     (assert_msg "check lastrank" (or (null lastflag) (>i lastrank 0)))
-    (let ( (mflag (instance class_match_flag
-			    :loca_location sloc
-			    :mflag_spat spat
-			    :mflag_rank 
-			    (make_integerbox discr_constant_integer (+i lastrank 1))))
+    (let ( (mflag
+	    (instance class_match_flag
+		      :loca_location sloc
+		      :mflag_spat spat
+		      :mflag_rank (make_integerbox discr_constant_integer
+						   (+i lastrank 1))
+		      :mflag_string str
+			    ))
 	   )
       (list_append flaglist mflag)
       (debug_msg mflag "make_match_flag return mflag")
@@ -2936,7 +2943,7 @@ the data of the $STEP with an extra context $CTX.}#
 	)
     (assert_msg "check pclass" (is_a pclass class_class))
     (let ( (:long nbfields (multiple_length (unsafe_get_field :class_fields pclass)))
-	   (mflag (make_match_flag recv mctxt))
+	   (mflag (make_match_flag recv mctxt (get_field :named_name pclass)))
 	   )
       ;; check that each mentioned field is indeed a field of the class
       (foreach_in_multiple
@@ -3096,7 +3103,7 @@ miserable state")
 	(mhandlers (get_field :mctx_varhandlers matctx))
 	(steplist (unsafe_get_field :mdata_steps mdata))
 	(mctxt (unsafe_get_field :mcase_mctxt mcase))
-	(mflag (make_match_flag recv mctxt))
+	(mflag (make_match_flag recv mctxt (get_field :named_name symb)))
 	(flagstep (instance class_match_step_flag_set 
 			    :loca_location sloc
 			    :mstep_data mdata
@@ -3182,7 +3189,7 @@ miserable state")
 			     :mstgroup_then ()
 			     :mstgroup_else ()
 			     ))
-	(mflag (make_match_flag recv mctxt))
+	(mflag (make_match_flag recv mctxt '"and"))
 	(flagstep (instance class_match_step_flag_conjonction
 			    :loca_location sloc
 			    :mstep_data mdata
@@ -3282,6 +3289,7 @@ miserable state")
 	(:long nbopout (multiple_length opout))
 	(curstep ())
 	(mdatasteps (unsafe_get_field :mdata_steps mdata))
+	(mflag (make_match_flag recv matctx (get_field :named_name soper)))
 	)
     (assert_msg "check matctx" (is_a matctx class_matching_context))
     (assert_msg "check env" (is_a env class_environment))
@@ -3407,6 +3415,7 @@ miserable state")
 	     (outdata (get_field :mstma_outs curstep))
 	     (thenlist (make_list discr_list))
 	     (elselist (make_list discr_list))
+	     (flaglist (make_list discr_list))
 	     (laststep curstep)
 	     (testgroup (instance class_match_step_test_group
 				  :loca_location sloc
@@ -3430,21 +3439,47 @@ miserable state")
 	     (translate_pattern outpat curoutdata mcase varmap sloc)
 	     (debug_msg outstep "translpat_patmat outstep")
 	     (debug_msg outflag "translpat_patmat outflag")
-	      (if outstep
-		  (progn
-		    (put_then_match laststep outstep)
-		    (list_append elselist outstep)
-		    (setq laststep outstep)
-		    ))
-	      )))
-	 (put_fields
-	  testgroup
-	  :mstgroup_then curstep
-	  :mstgroup_else elselist)
-	 (debug_msg testgroup "translpat_patmat return testgroup")
-	 (return testgroup)
-	 )
-       )	    
+	     (if outstep
+		 (progn
+		   (put_then_match laststep outstep)
+		   (list_append elselist outstep)
+		   (setq laststep outstep)
+		   ))
+	     (if outflag
+		 (progn
+		   (assert_msg "check outflag" (is_a outflag class_match_flag))
+		   (list_append flaglist outflag))
+	       ))))
+	 (let ( (flagstep
+		 (if (list_first_element flaglist)
+		     (instance class_match_step_flag_conjonction
+			       :loca_location sloc
+			       :mstep_data mdata
+			       :mstep_then ()
+			       :mstep_flag mflag
+			       :mstep_flagargs (list_to_multiple flaglist discr_multiple)
+			       )
+		   (instance class_match_step_flag_set
+			     :loca_location sloc
+			     :mstep_data mdata
+			     :mstep_then ()
+			     :mstep_flag mflag
+			     )
+		     )
+		 )
+		)
+	   (debug_msg flagstep "translpat_patmat flagstep")
+	   (if laststep (put_then_match laststep flagstep))
+	   (put_fields mflag :mflag_setstep flagstep)
+	   (put_fields
+	    testgroup
+	    :mstgroup_then curstep
+	    :mstgroup_else elselist)
+	   (debug_msg testgroup "translpat_patmat return testgroup")
+	   (return testgroup mflag)
+	   )
+	 )	    
+       )
      )
     )
   )
@@ -3783,6 +3818,7 @@ miserable state")
 	 (dis (discrim step))
 	 (clanam (get_field :named_name dis))
 	 (flagrank (get_field :mflag_rank sflag))
+	 (flagstring (get_field :mflag_string sflag))
 	 (flagloc (get_field :loca_location sflag))
 	 )
     (add2out_strconst nodebuf "<tr><td><font color=\"darkolivegreen4\" face=\"Times-Roman Bold\" point-size=\"6\">")
@@ -3799,6 +3835,8 @@ miserable state")
     (add2out_indentnl nodebuf 0)
     (add2out_strconst nodebuf "<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size=\"7\">flag#")
     (add2out_longdec nodebuf (get_int flagrank))
+    (add2out_strconst nodebuf " ")
+    (add2out_string nodebuf flagstring)
     (add2out_strconst nodebuf "</font></td><td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
     (add2sbuf_strconst nodebuf "</font></td></tr>")
