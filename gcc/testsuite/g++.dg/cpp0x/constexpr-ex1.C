@@ -52,9 +52,9 @@ constexpr complex I(0, 1);  // OK -- literal complex
 
 
 // 2 invoked with non-const args
-double x = 1.0;
-constexpr complex unit(x, 0); // error: x non-constant
-const complex one(x, 0);   // OK, ‘‘ordinary const’’ -- dynamic
+double x5 = 1.0;
+constexpr complex unit(x5, 0); // error: x5 non-constant
+const complex one(x5, 0);   // OK, ‘‘ordinary const’’ -- dynamic
                            //   initialization
 constexpr double xx = I.real(); // OK
 complex z(2, 4);           // OK -- ordinary variable
@@ -63,7 +63,7 @@ complex z(2, 4);           // OK -- ordinary variable
 constexpr complex v[] = {
      complex(0, 0), complex(1, 1), complex(2, 2)
 };
-constexpr double x = v[2].real(); // OK
+constexpr double x6 = v[2].real(); // OK
 
 // 4 
   constexpr int i = 98;

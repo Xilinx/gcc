@@ -5369,6 +5369,18 @@ retrieve_constexpr_fundef (tree fun)
   return (constexpr_fundef *) htab_find (constexpr_fundef_table, &fundef);
 }
 
+/* Return true if type expression T is a valid parameter type, or
+   a valid return type, of a constexpr function.  */
+
+static bool
+valid_type_in_constexpr_fundecl_p (tree t)
+{
+  if (TREE_CODE (t) == REFERENCE_TYPE)
+    return CP_TYPE_CONST_P (TREE_TYPE (t))
+      && literal_type_p (TREE_TYPE (t));
+  return literal_type_p (t);
+}
+
 /* Return non-null if FUN certainly designates a valid constexpr function
    declaration.  Otherwise return NULL.  Issue appropriate diagnostics
    if necessary.  Note that we only check the declaration, not the body
@@ -5382,11 +5394,17 @@ validate_constexpr_fundecl (tree fun)
   constexpr_fundef entry;
   constexpr_fundef **slot;
 
+  if (processing_template_decl || !DECL_DECLARED_CONSTEXPR_P (fun))
+    return NULL;
+  else if (DECL_CLONED_FUNCTION_P (fun))
+    /* We already checked the original function.  */
+    return fun;
+
   parm = FUNCTION_FIRST_USER_PARM (fun);
   for (; parm != NULL; parm = TREE_CHAIN (parm))
-    if (!literal_type_p (TREE_TYPE (parm)))
+    if (!valid_type_in_constexpr_fundecl_p (TREE_TYPE (parm)))
       {
-        error ("parameter %q#D is not of literal type", parm);
+        error ("invalid type for parameter %q#D of constexpr function", parm);
         DECL_DECLARED_CONSTEXPR_P (fun) = false;
         return NULL;
       }
@@ -5394,9 +5412,9 @@ validate_constexpr_fundecl (tree fun)
   if (!DECL_CONSTRUCTOR_P (fun))
     {
       rettype = TREE_TYPE (TREE_TYPE (fun));
-      if (!literal_type_p (rettype))
+      if (!valid_type_in_constexpr_fundecl_p (rettype))
         {
-          error ("return type %qT of function %qD is not a literal type",
+          error ("invalid return type %qT of constexpr function %qD",
                  rettype, fun);
           DECL_DECLARED_CONSTEXPR_P (fun) = false;
           return NULL;
@@ -5425,32 +5443,46 @@ validate_constexpr_fundecl (tree fun)
   return fun;
 }
 
+/* Subroutine of  build_constexpr_constructor_member_initializers.
+   The expression tree T represents a data member initialization
+   in a (constexpr) constructor definition.  Build a pairing of
+   the data member with its initializer, and prepend that pair
+   to the existing initialization pair INITS.  */
+
+static tree
+build_data_member_initialization (tree t, tree inits)
+{
+  tree member;
+  gcc_assert (TREE_CODE (t) == CLEANUP_POINT_EXPR);
+  t = TREE_OPERAND (t, 0);
+  gcc_assert (TREE_CODE (t) == EXPR_STMT);
+  t = TREE_OPERAND (t, 0);
+  gcc_assert (TREE_CODE (t) == CONVERT_EXPR);
+  t = TREE_OPERAND (t, 0);
+  gcc_assert (TREE_CODE (t) == INIT_EXPR);
+  member = TREE_OPERAND (t, 0);
+  if (TREE_CODE (member) == COMPONENT_REF)
+    member = TREE_OPERAND (member, 1);
+  return  tree_cons (member, unshare_expr (TREE_OPERAND (t, 1)), inits);
+}
+
 /* Build compile-time evalable representations of member-initializer list
    for a constexpr constructor.  */
 
 static tree
 build_constexpr_constructor_member_initializers (tree type, tree body)
 {
-  tree_stmt_iterator i;
   tree inits = NULL;
   if (TREE_CODE (body) == BIND_EXPR)
     body = BIND_EXPR_BODY (body);
-  gcc_assert (TREE_CODE (body) == STATEMENT_LIST);
-  for (i = tsi_start (body); !tsi_end_p (i); tsi_next (&i))
+  if (TREE_CODE (body) == CLEANUP_POINT_EXPR)
+    inits = build_data_member_initialization (body, inits);
+  else
     {
-      tree x = tsi_stmt (i);
-      tree member;
-      gcc_assert (TREE_CODE (x) == CLEANUP_POINT_EXPR);
-      x = TREE_OPERAND (x, 0);
-      gcc_assert (TREE_CODE (x) == EXPR_STMT);
-      x = TREE_OPERAND (x, 0);
-      gcc_assert (TREE_CODE (x) == CONVERT_EXPR);
-      x = TREE_OPERAND (x, 0);
-      gcc_assert (TREE_CODE (x) == INIT_EXPR);
-      member = TREE_OPERAND (x, 0);
-      if (TREE_CODE (member) == COMPONENT_REF)
-        member = TREE_OPERAND (member, 1);
-      inits = tree_cons (member, unshare_expr (TREE_OPERAND (x, 1)), inits);
+      tree_stmt_iterator i;
+      gcc_assert (TREE_CODE (body) == STATEMENT_LIST);
+      for (i = tsi_start (body); !tsi_end_p (i); tsi_next (&i))
+        inits = build_data_member_initialization (tsi_stmt (i), inits);
     }
   return build1 (CTOR_INITIALIZER, type, nreverse (inits));
 }
@@ -5472,6 +5504,14 @@ register_constexpr_fundef (tree fun, tree body)
       (DECL_CONTEXT (fun), body);
   else
     {
+      if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fun)
+          && !literal_type_p (DECL_CONTEXT (fun)))
+        {
+          error ("enclosing class %qT of non-static member function "
+                 "is not a literal type", DECL_CONTEXT (fun));
+          DECL_DECLARED_CONSTEXPR_P (fun) = false;
+          return NULL;
+        }
       if (TREE_CODE (body) == EH_SPEC_BLOCK)
         body = EH_SPEC_STMTS (body);
       if (TREE_CODE (body) == CLEANUP_POINT_EXPR)
@@ -5640,7 +5680,7 @@ lookup_parameter_binding (const constexpr_call *call, tree t)
 {
   tree b = purpose_member (t, call->bindings);
   gcc_assert(b != NULL);
-  return b;
+  return TREE_VALUE (b);
 }
 
 /* Attempt to evaluate T which represents a call to a builtin function.
@@ -5777,6 +5817,15 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t)
   return new_call.result;
 }
 
+/* Return true if the expression tree T denotes a value good for
+   static initialization as implied by C++0x's constant expressions.  */
+
+static bool
+valid_for_static_initialization_p (tree t)
+{
+  return potential_constant_expression (t, tf_none);
+}
+
 /* Subroutine of cxx_eval_constant_expression.
    Attempt to reduce the unary expression tree T to a compile time value.
    If successful, return the value.  Otherwise issue a diagnostic
@@ -5789,7 +5838,7 @@ cxx_eval_unary_expression (const constexpr_call *call, tree t)
   if (arg == error_mark_node)
     return arg;
   arg = fold_if_not_in_template (build1 (TREE_CODE (t), TREE_TYPE (t), arg));
-  if (VALID_FOR_STATIC_INITIALIZATION_P (arg))
+  if (valid_for_static_initialization_p (arg))
     return arg;
   sorry ("could not evaluate %qE to a value", arg);
   return error_mark_node;
@@ -5807,7 +5856,7 @@ cxx_eval_binary_expression (const constexpr_call *call, tree t)
     return error_mark_node;
   t = fold_if_not_in_template
     (build2 (TREE_CODE (t), TREE_TYPE (t), lhs, rhs));
-  if (VALID_FOR_STATIC_INITIALIZATION_P (t))
+  if (valid_for_static_initialization_p (t))
     return t;
   sorry ("could not evaluate %qE to a value", t);
   return error_mark_node;
@@ -5915,8 +5964,70 @@ cxx_eval_object_construction (const constexpr_call *call, tree t)
       subobjects = tree_cons (TREE_PURPOSE (inits), v, subobjects);
     }
   t = build_constructor_from_list (TREE_TYPE (t), nreverse (subobjects));
-  COMPILE_TIME_CONSTANT_P (t) = true;
+  TREE_CONSTANT (t) = true;
   return t;
+}
+
+/* Subroutine of cxx_eval_constant_expression.
+   The expression tree T denotes a C-style array of a C-style
+   aggregate.  Reduce it to a constant expression.  */
+
+static tree
+cxx_eval_bare_aggregate (const constexpr_call *call, tree t)
+{
+  VEC(constructor_elt, gc) *v = CONSTRUCTOR_ELTS (t);
+  constructor_elt *ce;
+  HOST_WIDE_INT i;
+  for (i = 0; VEC_iterate(constructor_elt, v, i, ce); ++i)
+    {
+      tree elt = cxx_eval_constant_expression (call, ce->value);
+      if (elt == error_mark_node)
+        return elt;
+      ce->value = elt;
+    }
+  TREE_CONSTANT (t) = true;
+  return t;
+}
+
+
+/* Return true if the expression T is an implicit pointer dereference.  */
+
+static bool
+implicit_dereference_p (tree t)
+{
+  tree x;
+  if (TREE_CODE (t) != NOP_EXPR)
+    return false;
+  x = TREE_OPERAND (t, 0);
+  return TREE_CODE (TREE_TYPE (t)) == REFERENCE_TYPE
+    && TREE_CODE (TREE_TYPE (x)) == POINTER_TYPE
+    && TREE_TYPE (TREE_TYPE (t)) == TREE_TYPE (TREE_TYPE (x));
+}
+
+/* Return true if the expression T is an implicit address, resulting
+   from passing an lvalue expression by reference.   */
+
+static bool
+implicit_address_p (tree t)
+{
+  if (TREE_CODE (t) == NOP_EXPR)
+    switch (TREE_CODE (TREE_OPERAND (t, 0)))
+      {
+      case ADDR_EXPR:
+        return true;
+        
+      case CONVERT_EXPR:
+        {
+          tree x = TREE_OPERAND (TREE_OPERAND (t, 0), 0);
+          return TREE_CODE (TREE_TYPE (t)) == POINTER_TYPE
+            && TREE_CODE (TREE_TYPE (x)) == REFERENCE_TYPE
+            && TREE_TYPE (TREE_TYPE (t)) == TREE_TYPE (TREE_TYPE (x));
+        }
+        
+      default:
+        return false;
+      }
+  return false;
 }
 
 
@@ -5926,14 +6037,16 @@ cxx_eval_object_construction (const constexpr_call *call, tree t)
 static tree
 cxx_eval_constant_expression (const constexpr_call *call, tree t)
 {
-  if (t == error_mark_node || VALID_FOR_STATIC_INITIALIZATION_P (t))
+  if (t == error_mark_node || CONSTANT_CLASS_P (t))
     return t;
 
-  STRIP_NOPS (t);
   switch (TREE_CODE (t))
     {
     case VAR_DECL:
       return cxx_eval_constant_expression (call, DECL_INITIAL (t));
+
+    case FUNCTION_DECL:
+       return t;
 
     case PARM_DECL:
       return lookup_parameter_binding (call, t);
@@ -5952,11 +6065,11 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
 
     case ADDR_EXPR:
       if (TREE_STATIC (TREE_OPERAND (t, 0)))
-        {
-          COMPILE_TIME_CONSTANT_P (t) = true;
-          return t;
-        }
-      /* Fall through.  */
+        return t;
+      error ("address of object %qE with non-static storage is "
+             " not a constant expression", t);
+      return error_mark_node;
+
     case REALPART_EXPR:
     case IMAGPART_EXPR:
     case CONJ_EXPR:
@@ -5972,12 +6085,9 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
       return cxx_eval_unary_expression (call, t);
 
     case POINTER_PLUS_EXPR:
-      if (VALID_FOR_STATIC_INITIALIZATION_P (TREE_OPERAND (t, 0))
-          && VALID_FOR_STATIC_INITIALIZATION_P (TREE_OPERAND (t, 1)))
-        {
-          COMPILE_TIME_CONSTANT_P (t) = true;
-          return t;
-        }
+      if (valid_for_static_initialization_p (TREE_OPERAND (t, 0))
+          && valid_for_static_initialization_p (TREE_OPERAND (t, 1)))
+        return t;
       /* Fall through.  */
     case COMPOUND_EXPR:
     case PLUS_EXPR:
@@ -6037,8 +6147,6 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
     case INDIRECT_REF:
       {
         tree x = TREE_OPERAND (t, 0);
-        gcc_assert (TREE_CODE (x) == NOP_EXPR);
-        STRIP_NOPS (x);
         if (is_this_parameter (x))
           return lookup_parameter_binding (call, x);
         return cxx_eval_constant_expression (call, x);
@@ -6046,6 +6154,40 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
 
     case CTOR_INITIALIZER:
       return cxx_eval_object_construction (call, t);
+
+    case CONSTRUCTOR:
+      return cxx_eval_bare_aggregate (call, t);
+
+    case NOP_EXPR:
+      {
+        if (implicit_address_p (t))
+          return cxx_eval_constant_expression
+            (call, TREE_OPERAND (TREE_OPERAND (t, 0), 0));
+        /* If this is a no-op conversion from pointer to reference
+           representation, and that pointer was the result of a reference
+           calling convention, go directly to the reference.  */
+        if (implicit_dereference_p (t))
+          {
+            t = TREE_OPERAND (t, 0);
+            if (TREE_CODE (t) == NOP_EXPR)
+              {
+                STRIP_NOPS (t);
+                gcc_assert (TREE_CODE (t) == ADDR_EXPR);
+                t = TREE_OPERAND (t, 0);
+              }
+            return cxx_eval_constant_expression (call, t);
+          }
+        t =  cp_convert
+          (TREE_TYPE (t),
+           cxx_eval_constant_expression (call, TREE_OPERAND (t, 0)));
+        return cxx_eval_constant_expression (call, t);
+      }
+      
+    case CONVERT_EXPR:
+      t =  cp_convert
+        (TREE_TYPE (t),
+         cxx_eval_constant_expression (call, TREE_OPERAND (t, 0)));
+      return cxx_eval_constant_expression (call, t);
 
     default:
       internal_error ("unexpected expression %qE of kind %s", t,
@@ -6142,7 +6284,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
         error ("expression %qE has side-effects", t);
       return false;
     }
-  if (VALID_FOR_STATIC_INITIALIZATION_P (t))
+  if (CONSTANT_CLASS_P (t))
     return true;
   
   switch (TREE_CODE (t))
@@ -6443,6 +6585,9 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
         if (!potential_constant_expression (TREE_VALUE (t), flags))
           return false;
       return true;
+
+    case FUNCTION_DECL:
+       return true;
 
     default:
       sorry ("unexpected ast of kind %s", tree_code_name[TREE_CODE (t)]);

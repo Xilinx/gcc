@@ -5691,10 +5691,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	}
     }
 
-  if (!processing_template_decl
-      && FUNCTION_DECL_P (decl)
-      && !DECL_CLONED_FUNCTION_P (decl)
-      && DECL_DECLARED_CONSTEXPR_P (decl))
+  if (FUNCTION_DECL_P (decl))
      validate_constexpr_fundecl (decl);
 
   if (init && TREE_CODE (decl) == FUNCTION_DECL)
@@ -6937,6 +6934,8 @@ grokfndecl (tree ctype,
   /* If the declaration was declared inline, mark it as such.  */
   if (inlinep)
     DECL_DECLARED_INLINE_P (decl) = 1;
+  if (inlinep & 2)
+    DECL_DECLARED_CONSTEXPR_P (decl) = true;
 
   DECL_EXTERNAL (decl) = 1;
   if (quals && TREE_CODE (type) == FUNCTION_TYPE)
@@ -8647,18 +8646,8 @@ grokdeclarator (const cp_declarator *declarator,
 		  }
 	      }
 
-            /* It is not allowed to use `constexpr' in a function
-               declaration that is not a definition.
-               That is too strict, though.  */
-            if (constexpr_p && !funcdef_flag)
-              {
-                error ("the %<constexpr%> specifier cannot be used in "
-                       "a function declaration that is not a definition");
-                constexpr_p = false;
-              }
-
             /* A constexpr non-static member function is implicitly const.  */
-            if (constexpr_p && decl_context == FIELD && staticp == 0
+            if (constexpr_p && staticp == 0 && decl_context == FIELD 
                 && sfk != sfk_constructor && sfk != sfk_destructor)
               memfn_quals |= TYPE_QUAL_CONST;
 
@@ -8896,6 +8885,8 @@ grokdeclarator (const cp_declarator *declarator,
       else if (TREE_CODE (type) == FUNCTION_TYPE)
 	{
 	  tree sname = declarator->u.id.unqualified_name;
+          if (constexpr_p)
+             memfn_quals |= TYPE_QUAL_CONST;
 
 	  if (current_class_type
 	      && (!friendp || funcdef_flag))
@@ -8906,12 +8897,6 @@ grokdeclarator (const cp_declarator *declarator,
 		     ctype, name, current_class_type);
 	      return error_mark_node;
 	    }
-
-          /* It is not permitted to define a member function outside ist
-             membership class as `constexpr'.  */
-          if (constexpr_p)
-            error ("a constexpr function cannot be defined "
-                   "outside of its class");
 
 	  if (TREE_CODE (sname) == IDENTIFIER_NODE
 	      && NEW_DELETE_OPNAME_P (sname))
@@ -9413,7 +9398,7 @@ grokdeclarator (const cp_declarator *declarator,
 			       unqualified_id,
 			       virtualp, flags, memfn_quals, raises,
 			       friendp ? -1 : 0, friendp, publicp,
-                               inlinep || constexpr_p,
+                               inlinep | (2 * constexpr_p),
 			       sfk,
 			       funcdef_flag, template_count, in_namespace,
 			       attrlist, declarator->id_loc);
@@ -9664,7 +9649,8 @@ grokdeclarator (const cp_declarator *declarator,
 	decl = grokfndecl (ctype, type, original_name, parms, unqualified_id,
 			   virtualp, flags, memfn_quals, raises,
 			   1, friendp,
-			   publicp, inlinep || constexpr_p, sfk, funcdef_flag,
+			   publicp, inlinep | (2 * constexpr_p), sfk,
+                           funcdef_flag,
 			   template_count, in_namespace, attrlist,
 			   declarator->id_loc);
 	if (decl == NULL_TREE)
@@ -11725,6 +11711,10 @@ check_function_type (tree decl, tree current_function_parms)
 
   /* In a function definition, arg types must be complete.  */
   require_complete_types_for_parms (current_function_parms);
+
+  /* constexpr functions must have literal argument types and
+     literal return type.  */
+  validate_constexpr_fundecl (decl);
 
   if (dependent_type_p (return_type))
     return;

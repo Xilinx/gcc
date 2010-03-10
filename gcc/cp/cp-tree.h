@@ -111,7 +111,6 @@ framework extensions, you must include this file before toplev.h, not after.
    6: IDENTIFIER_REPO_CHOSEN (in IDENTIFIER_NODE)
       DECL_CONSTRUCTION_VTABLE_P (in VAR_DECL)
       TYPE_MARKED_P (in _TYPE)
-   7: COMPILE_TIME_CONSTANT_P (in _EXPR or _REF)
 
    Usage of TYPE_LANG_FLAG_?:
    0: TYPE_DEPENDENT_P
@@ -2168,21 +2167,6 @@ struct GTY(()) lang_decl {
    && CP_TYPE_CONST_NON_VOLATILE_P (TREE_TYPE (NODE))	\
    && INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (NODE))	\
    && DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (NODE))
-
-/* True if the expression tree NODE represents an object that can
-   be taken apart by the front end.  This is not to be confused with
-   link-time constants or load-time constants.  A compiler constant
-   may still be an expression that the middle end may be able to
-   reduce further.  */
-#define COMPILE_TIME_CONSTANT_P(NODE) \
-  (TREE_LANG_FLAG_7 (NODE))
-
-/* Same as COMPILE_TIME_CONSTANT_P, except that it includes literal
-   values too, such as INTEGER_CST, PTRMEM_CST, or address of
-   variables with static storage or combination thereof.  */
-#define VALID_FOR_STATIC_INITIALIZATION_P(NODE) \
-  (CONSTANT_CLASS_P (NODE) || COMPILE_TIME_CONSTANT_P (NODE))
-
 
 /* Nonzero if the DECL was initialized in the class definition itself,
    rather than outside the class.  This is used for both static member

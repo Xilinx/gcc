@@ -27,17 +27,17 @@ private:
    int val;
 };
 
-constexpr int abs(int x)
+constexpr int myabs(int x)
 { return x < 0 ? -x : x; }    // OK
 
-Length l(abs(-97)); // OK
+Length l(myabs(-97)); // OK
 
 // p6
 class debug_flag
 {
 public:
    explicit debug_flag(bool);
-   constexpr bool is_on(); // error: debug_flag not literal type
+   constexpr bool is_on(); // dg-error "enclosing class * not a literal type"
 private:
    bool flag;
 };

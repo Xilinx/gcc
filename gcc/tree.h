@@ -396,13 +396,12 @@ struct GTY(()) tree_base {
   unsigned lang_flag_4 : 1;
   unsigned lang_flag_5 : 1;
   unsigned lang_flag_6 : 1;
-  unsigned lang_flag_7 : 1;
 
   unsigned visited : 1;
   unsigned packed_flag : 1;
   unsigned user_align : 1;
 
-  unsigned spare : 12;
+  unsigned spare : 13;
 
   /* This field is only used with type nodes; the only reason it is present
      in tree_base instead of tree_type is to save space.  The size of the
@@ -1386,7 +1385,6 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 #define TREE_LANG_FLAG_4(NODE) ((NODE)->base.lang_flag_4)
 #define TREE_LANG_FLAG_5(NODE) ((NODE)->base.lang_flag_5)
 #define TREE_LANG_FLAG_6(NODE) ((NODE)->base.lang_flag_6)
-#define TREE_LANG_FLAG_7(NODE) ((NODE)->base.lang_flag_7)
 
 /* Define additional fields and accessors for nodes representing constants.  */
 
