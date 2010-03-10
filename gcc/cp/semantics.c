@@ -6289,6 +6289,9 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
   
   switch (TREE_CODE (t))
     {
+    case FUNCTION_DECL:
+       return true;
+
     case PARM_DECL:
       /* -- this (5.1) unless it appears as the postfix-expression in a
             class member access expression, including the result of the
@@ -6399,6 +6402,13 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
               error ("conversion of expression %qE of pointer or "
                      "pointer-to-member type cannot yield a constant "
                      "expression", from);
+            return false;
+          }
+        if ((INTEGRAL_TYPE_P (source) && !INTEGRAL_TYPE_P (target))
+            || (!INTEGRAL_TYPE_P (source) && INTEGRAL_TYPE_P (target)))
+          {
+            if (flags & tf_error)
+              error ("invalid conversion in constant expression");
             return false;
           }
         return potential_constant_expression (from, flags);
@@ -6585,9 +6595,6 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
         if (!potential_constant_expression (TREE_VALUE (t), flags))
           return false;
       return true;
-
-    case FUNCTION_DECL:
-       return true;
 
     default:
       sorry ("unexpected ast of kind %s", tree_code_name[TREE_CODE (t)]);
