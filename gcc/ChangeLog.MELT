@@ -1,4 +1,8 @@
 2010-03-10 Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: adding match set flags to success
+	step & coding translpat_orpat...
+
+2010-03-10 Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: adding match set flags ...
 
 2010-03-09 Basile Starynkevitch  <basile@starynkevitch.net>

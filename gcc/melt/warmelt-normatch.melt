@@ -2516,14 +2516,23 @@ flag $MSTEP_FLAG to the conjonction of $MSTEP_FLAGARGS, which is a
 tuple of match flags.}#
   :fields ())
 
-(compile_warning "class_match_step_success should have a flag condition")
+(defclass class_match_step_flag_disjonction
+  :super class_match_step_flag_operation
+  :doc #{The $CLASS_MATCH_STEP_FLAG_DISJONCTION sets the match
+flag $MSTEP_FLAG to the disjonction of $MSTEP_FLAGARGS, which is a
+tuple of match flags.}#
+  :fields ())
+
+
 (defclass class_match_step_success
   :super class_match_step_then
   :doc #{The $CLASS_MATCH_STEP_SUCCESS step represents the normalized
-action in a match. $MSTEPSUCCESS_VAROCC is the tuple of pattern
-variable occurrences, $MSTEPSUCCESS_BINDS is the list of local
+action in a match. $MSTEPSU$MSTEPSUCCESS_FLAG is the flag
+conditionning the success. $MSTEPSUCCESS_VAROCC is the tuple of
+pattern variable occurrences, $MSTEPSUCCESS_BINDS is the list of local
 binders, and $MSTEPSUCCESS_BODY is the normalized body tuple.}#
-  :fields (mstepsuccess_varocc
+  :fields (mstepsuccess_flag
+	   mstepsuccess_varocc
 	   mstepsuccess_binds
 	   mstepsuccess_body))
 
@@ -3084,9 +3093,7 @@ the data of the $STEP with an extra context $CTX.}#
 (install_method class_source_pattern_instance translate_pattern translpat_inspat)
 
 
-(compile_warning "should systematically make match flags and set &
-test them...; the [disabled by default] alternate matching is in
-miserable state")
+
 
 (defun translpat_varpat (recv mdata mcase varmap psloc)
   (debug_msg recv "translpat_varpat recv")
@@ -3257,8 +3264,40 @@ miserable state")
   (debug_msg mcase "translpat_orpat mcase")
   (assert_msg "check mcase" (is_a mcase class_match_case))
   (let (
+	(firststep ())
+	(laststep ())
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
+	(sdisj (unsafe_get_field :orpat_disj recv))
+	(mctxt (unsafe_get_field :mcase_mctxt mcase))
+	(stepgroup (instance class_match_step_test_group
+			     :loca_location sloc
+			     :mstep_data mdata
+			     :mstgroup_start ()
+			     :mstgroup_then ()
+			     :mstgroup_else ()
+			     ))
+	(mflag (make_match_flag recv mctxt '"or"))
+	(flagstep (instance class_match_step_flag_disjonction
+			    :loca_location sloc
+			    :mstep_data mdata
+			    :mstep_then ()
+			    :mstep_flag mflag
+			    ))
+	(flaglist (make_list discr_list))
 	)
+    (debug_msg flagstep "translpat_orpat flagstep")
+    (assert_msg "check sdisj" (is_multiple sdisj))
+    (compile_warning "translpat_orpat should register a variable hook")
+    (foreach_in_multiple
+     (sdisj)
+     (curdisj :long disjix)
+     (debug_msg curdisj "translpat_orpat curdisj")
+     (multicall 
+      (disjstep disjflag)
+      (translate_pattern curdisj mdata mcase varmap sloc)
+      (debug_msg disjstep "translpat_orpat disjstep")
+      (debug_msg disjflag "translpat_orpat disjflag")
+     ))
     (error_plain sloc "unimplemented translpat_orpat")
     (assert_msg "@$@unimplemented translpat_orpat")
     ))
@@ -3999,6 +4038,7 @@ miserable state")
 				  :loca_location sloc
 				  :mstep_data mdata
 				  :mstep_then ()
+				  :mstepsuccess_flag mflag
 				  :mstepsuccess_varocc ()
 				  :mstepsuccess_binds nbinds
 				  :mstepsuccess_body nbody
