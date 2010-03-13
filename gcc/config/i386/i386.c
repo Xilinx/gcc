@@ -53,6 +53,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm-constrs.h"
 #include "params.h"
 #include "cselib.h"
+#include "debug.h"
+#include "dwarf2out.h"
 
 static rtx legitimize_dllimport_symbol (rtx, bool);
 
@@ -2621,6 +2623,7 @@ override_options (bool main_args_p)
 {
   int i;
   unsigned int ix86_arch_mask, ix86_tune_mask;
+  const bool ix86_tune_specified = (ix86_tune_string != NULL); 
   const char *prefix;
   const char *suffix;
   const char *sw;
@@ -2821,8 +2824,12 @@ override_options (bool main_args_p)
 		   || !strcmp (ix86_tune_string, "generic64")))
 	;
       else if (!strncmp (ix86_tune_string, "generic", 7))
-	error ("bad value (%s) for %stune=%s %s",
+        error ("bad value (%s) for %stune=%s %s",
 	       ix86_tune_string, prefix, suffix, sw);
+      else if (!strcmp (ix86_tune_string, "x86-64"))
+        warning (OPT_Wdeprecated, "%stune=x86-64%s is deprecated.  Use "
+                 "%stune=k8%s or %stune=generic%s instead as appropriate.",
+                 prefix, suffix, prefix, suffix, prefix, suffix);
     }
   else
     {
@@ -2846,6 +2853,7 @@ override_options (bool main_args_p)
 	    ix86_tune_string = "generic32";
 	}
     }
+
   if (ix86_stringop_string)
     {
       if (!strcmp (ix86_stringop_string, "rep_byte"))
@@ -2868,22 +2876,11 @@ override_options (bool main_args_p)
 	error ("bad value (%s) for %sstringop-strategy=%s %s",
 	       ix86_stringop_string, prefix, suffix, sw);
     }
-  if (!strcmp (ix86_tune_string, "x86-64"))
-    warning (OPT_Wdeprecated, "%stune=x86-64%s is deprecated.  Use "
-	     "%stune=k8%s or %stune=generic%s instead as appropriate.",
-	     prefix, suffix, prefix, suffix, prefix, suffix);
 
   if (!ix86_arch_string)
     ix86_arch_string = TARGET_64BIT ? "x86-64" : "i386";
   else
     ix86_arch_specified = 1;
-
-  if (!strcmp (ix86_arch_string, "generic"))
-    error ("generic CPU can be used only for %stune=%s %s",
-	   prefix, suffix, sw);
-  if (!strncmp (ix86_arch_string, "generic", 7))
-    error ("bad value (%s) for %sarch=%s %s",
-	   ix86_arch_string, prefix, suffix, sw);
 
   /* Validate -mabi= value.  */
   if (ix86_abi_string)
@@ -3032,7 +3029,10 @@ override_options (bool main_args_p)
 	break;
       }
 
-  if (i == pta_size)
+  if (!strcmp (ix86_arch_string, "generic"))
+    error ("generic CPU can be used only for %stune=%s %s",
+	   prefix, suffix, sw);
+  else if (!strncmp (ix86_arch_string, "generic", 7) || i == pta_size)
     error ("bad value (%s) for %sarch=%s %s",
 	   ix86_arch_string, prefix, suffix, sw);
 
@@ -3071,7 +3071,8 @@ override_options (bool main_args_p)
 	  x86_prefetch_sse = true;
 	break;
       }
-  if (i == pta_size)
+
+  if (ix86_tune_specified && i == pta_size)
     error ("bad value (%s) for %stune=%s %s",
 	   ix86_tune_string, prefix, suffix, sw);
 
@@ -7585,6 +7586,9 @@ ix86_file_end (void)
   for (regno = 0; regno < 8; ++regno)
     {
       char name[32];
+#ifdef DWARF2_UNWIND_INFO
+      bool do_cfi;
+#endif
 
       if (! ((pic_labels_used >> regno) & 1))
 	continue;
@@ -7630,10 +7634,19 @@ ix86_file_end (void)
 	  ASM_OUTPUT_LABEL (asm_out_file, name);
 	}
 
+#ifdef DWARF2_UNWIND_INFO
+      do_cfi = dwarf2out_do_cfi_asm ();
+      if (do_cfi)
+	fprintf (asm_out_file, "\t.cfi_startproc\n");
+#endif
       xops[0] = gen_rtx_REG (Pmode, regno);
       xops[1] = gen_rtx_MEM (Pmode, stack_pointer_rtx);
       output_asm_insn ("mov%z0\t{%1, %0|%0, %1}", xops);
       output_asm_insn ("ret", xops);
+#ifdef DWARF2_UNWIND_INFO
+      if (do_cfi)
+	fprintf (asm_out_file, "\t.cfi_endproc\n");
+#endif
     }
 
   if (NEED_INDICATE_EXEC_STACK)
@@ -7674,7 +7687,24 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
       if (!flag_pic)
 	output_asm_insn ("mov%z0\t{%2, %0|%0, %2}", xops);
       else
-	output_asm_insn ("call\t%a2", xops);
+	{
+	  output_asm_insn ("call\t%a2", xops);
+#ifdef DWARF2_UNWIND_INFO
+	  /* The call to next label acts as a push.  */
+	  if (dwarf2out_do_frame ())
+	    {
+	      rtx insn;
+	      start_sequence ();
+	      insn = emit_insn (gen_rtx_SET (VOIDmode, stack_pointer_rtx,
+					     gen_rtx_PLUS (Pmode,
+							   stack_pointer_rtx,
+							   GEN_INT (-4))));
+	      RTX_FRAME_RELATED_P (insn) = 1;
+	      dwarf2out_frame_debug (insn, true);
+	      end_sequence ();
+	    }
+#endif
+	}
 
 #if TARGET_MACHO
       /* Output the Mach-O "canonical" label name ("Lxx$pb") here too.  This
@@ -7687,7 +7717,27 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
 				 CODE_LABEL_NUMBER (XEXP (xops[2], 0)));
 
       if (flag_pic)
-	output_asm_insn ("pop%z0\t%0", xops);
+	{
+	  output_asm_insn ("pop%z0\t%0", xops);
+#ifdef DWARF2_UNWIND_INFO
+	  /* The pop is a pop and clobbers dest, but doesn't restore it
+	     for unwind info purposes.  */
+	  if (dwarf2out_do_frame ())
+	    {
+	      rtx insn;
+	      start_sequence ();
+	      insn = emit_insn (gen_rtx_SET (VOIDmode, dest, const0_rtx));
+	      dwarf2out_frame_debug (insn, true);
+	      insn = emit_insn (gen_rtx_SET (VOIDmode, stack_pointer_rtx,
+					     gen_rtx_PLUS (Pmode,
+							   stack_pointer_rtx,
+							   GEN_INT (4))));
+	      RTX_FRAME_RELATED_P (insn) = 1;
+	      dwarf2out_frame_debug (insn, true);
+	      end_sequence ();
+	    }
+#endif
+	}
     }
   else
     {
@@ -7695,6 +7745,18 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
       get_pc_thunk_name (name, REGNO (dest));
       pic_labels_used |= 1 << REGNO (dest);
 
+#ifdef DWARF2_UNWIND_INFO
+      /* Ensure all queued register saves are flushed before the
+	 call.  */
+      if (dwarf2out_do_frame ())
+	{
+	  rtx insn;
+	  start_sequence ();
+	  insn = emit_barrier ();
+	  end_sequence ();
+	  dwarf2out_frame_debug (insn, false);
+	}
+#endif
       xops[2] = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (name));
       xops[2] = gen_rtx_MEM (QImode, xops[2]);
       output_asm_insn ("call\t%X2", xops);
@@ -8331,7 +8393,11 @@ ix86_get_drap_rtx (void)
       end_sequence ();
       
       insn = emit_insn_before (seq, NEXT_INSN (entry_of_function ()));
-      RTX_FRAME_RELATED_P (insn) = 1;
+      if (!optimize)
+	{
+	  add_reg_note (insn, REG_CFA_SET_VDRAP, drap_vreg);
+	  RTX_FRAME_RELATED_P (insn) = 1;
+	}
       return drap_vreg;
     }
   else
@@ -10884,6 +10950,9 @@ static rtx
 ix86_delegitimize_address (rtx x)
 {
   rtx orig_x = delegitimize_mem_from_attrs (x);
+  /* addend is NULL or some rtx if x is something+GOTOFF where
+     something doesn't include the PIC register.  */
+  rtx addend = NULL_RTX;
   /* reg_addend is NULL or a multiple of some register.  */
   rtx reg_addend = NULL_RTX;
   /* const_addend is NULL or a const_int.  */
@@ -10922,14 +10991,13 @@ ix86_delegitimize_address (rtx x)
       else if (ix86_pic_register_p (XEXP (reg_addend, 1)))
 	reg_addend = XEXP (reg_addend, 0);
       else
-	return orig_x;
-      if (!REG_P (reg_addend)
-	  && GET_CODE (reg_addend) != MULT
-	  && GET_CODE (reg_addend) != ASHIFT)
-	return orig_x;
+	{
+	  reg_addend = NULL_RTX;
+	  addend = XEXP (x, 0);
+	}
     }
   else
-    return orig_x;
+    addend = XEXP (x, 0);
 
   x = XEXP (XEXP (x, 1), 0);
   if (GET_CODE (x) == PLUS
@@ -10940,7 +11008,7 @@ ix86_delegitimize_address (rtx x)
     }
 
   if (GET_CODE (x) == UNSPEC
-      && ((XINT (x, 1) == UNSPEC_GOT && MEM_P (orig_x))
+      && ((XINT (x, 1) == UNSPEC_GOT && MEM_P (orig_x) && !addend)
 	  || (XINT (x, 1) == UNSPEC_GOTOFF && !MEM_P (orig_x))))
     result = XVECEXP (x, 0, 0);
 
@@ -10955,6 +11023,22 @@ ix86_delegitimize_address (rtx x)
     result = gen_rtx_CONST (Pmode, gen_rtx_PLUS (Pmode, result, const_addend));
   if (reg_addend)
     result = gen_rtx_PLUS (Pmode, reg_addend, result);
+  if (addend)
+    {
+      /* If the rest of original X doesn't involve the PIC register, add
+	 addend and subtract pic_offset_table_rtx.  This can happen e.g.
+	 for code like:
+	 leal (%ebx, %ecx, 4), %ecx
+	 ...
+	 movl foo@GOTOFF(%ecx), %edx
+	 in which case we return (%ecx - %ebx) + foo.  */
+      if (pic_offset_table_rtx)
+        result = gen_rtx_PLUS (Pmode, gen_rtx_MINUS (Pmode, copy_rtx (addend),
+						     pic_offset_table_rtx),
+			       result);
+      else
+	return orig_x;
+    }
   return result;
 }
 
@@ -24656,7 +24740,7 @@ avx_vpermilp_parallel (rtx par, enum machine_mode mode)
       if (!CONST_INT_P (er))
 	return 0;
       ei = INTVAL (er);
-      if (ei >= 2 * nelt)
+      if (ei >= nelt)
 	return 0;
       ipar[i] = ei;
     }
@@ -29127,8 +29211,8 @@ expand_vec_perm_blend (struct expand_vec_perm_d *d)
     do_subreg:
       vmode = V8HImode;
       target = gen_lowpart (vmode, target);
-      op0 = gen_lowpart (vmode, target);
-      op1 = gen_lowpart (vmode, target);
+      op0 = gen_lowpart (vmode, op0);
+      op1 = gen_lowpart (vmode, op1);
       break;
 
     default:
@@ -29136,7 +29220,7 @@ expand_vec_perm_blend (struct expand_vec_perm_d *d)
     }
 
   /* This matches five different patterns with the different modes.  */
-  x = gen_rtx_VEC_MERGE (vmode, op0, op1, GEN_INT (mask));
+  x = gen_rtx_VEC_MERGE (vmode, op1, op0, GEN_INT (mask));
   x = gen_rtx_SET (VOIDmode, target, x);
   emit_insn (x);
 
@@ -29248,7 +29332,12 @@ expand_vec_perm_1 (struct expand_vec_perm_d *d)
      input where SEL+CONCAT may not.  */
   if (d->op0 == d->op1)
     {
-      if (expand_vselect (d->target, d->op0, d->perm, nelt))
+      int mask = nelt - 1;
+
+      for (i = 0; i < nelt; i++)
+	perm2[i] = d->perm[i] & mask;
+
+      if (expand_vselect (d->target, d->op0, perm2, nelt))
 	return true;
 
       /* There are plenty of patterns in sse.md that are written for
@@ -29259,8 +29348,8 @@ expand_vec_perm_1 (struct expand_vec_perm_d *d)
 	 every other permutation operand.  */
       for (i = 0; i < nelt; i += 2)
 	{
-	  perm2[i] = d->perm[i];
-	  perm2[i+1] = d->perm[i+1] + nelt;
+	  perm2[i] = d->perm[i] & mask;
+	  perm2[i + 1] = (d->perm[i + 1] & mask) + nelt;
 	}
       if (expand_vselect_vconcat (d->target, d->op0, d->op0, perm2, nelt))
 	return true;
@@ -29268,11 +29357,12 @@ expand_vec_perm_1 (struct expand_vec_perm_d *d)
       /* Recognize shufps, which means adding {0, 0, nelt, nelt}.  */
       if (nelt >= 4)
 	{
-	  memcpy (perm2, d->perm, nelt);
-	  for (i = 2; i < nelt; i += 4)
+	  for (i = 0; i < nelt; i += 4)
 	    {
-	      perm2[i+0] += nelt;
-	      perm2[i+1] += nelt;
+	      perm2[i + 0] = d->perm[i + 0] & mask;
+	      perm2[i + 1] = d->perm[i + 1] & mask;
+	      perm2[i + 2] = (d->perm[i + 2] & mask) + nelt;
+	      perm2[i + 3] = (d->perm[i + 3] & mask) + nelt;
 	    }
 
 	  if (expand_vselect_vconcat (d->target, d->op0, d->op0, perm2, nelt))

@@ -50,13 +50,13 @@ namespace std
   // We need these due to the symbols exported since GLIBCXX_3.4.10.
   // See libstdc++/41662 for details.
 
-#include "hash-aux.cc"
+#include "hash-string-aux.cc"
 
   template<>
     size_t
     hash<error_code>::operator()(error_code __e) const
-    { 
-      const char* __p = reinterpret_cast<const char*>(&__e);
-      return _Fnv_hash<>::hash(__p, sizeof(__e));
+    {
+      const size_t __tmp = std::_Fnv_hash::hash(__e._M_value);
+      return std::_Fnv_hash::__hash_combine(__e._M_cat, __tmp);
     }
 }

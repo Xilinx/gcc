@@ -192,21 +192,11 @@ current_mode (st_parameter_dt *dtp)
    heap.  Hopefully this won't happen very often.  */
 
 char *
-read_sf (st_parameter_dt *dtp, int * length, int no_error)
+read_sf (st_parameter_dt *dtp, int * length)
 {
   static char *empty_string[0];
   char *base, *p, q;
   int n, lorig, memread, seen_comma;
-
-  /* If we hit EOF previously with the no_error flag set (i.e. X, T,
-     TR edit descriptors), and we now try to read again, this time
-     without setting no_error.  */
-  if (!no_error && dtp->u.p.at_eof)
-    {
-      *length = 0;
-      hit_eof (dtp);
-      return NULL;
-    }
 
   /* If we have seen an eor previously, return a length of 0.  The
      caller is responsible for correctly padding the input field.  */
@@ -273,8 +263,6 @@ read_sf (st_parameter_dt *dtp, int * length, int no_error)
 	     so we can just continue with a short read.  */
 	  if (dtp->u.p.current_unit->pad_status == PAD_NO)
 	    {
-	      if (likely (no_error))
-		break;
 	      generate_error (&dtp->common, LIBERROR_EOR, NULL);
 	      return NULL;
 	    }
@@ -304,7 +292,7 @@ read_sf (st_parameter_dt *dtp, int * length, int no_error)
      some other stuff. Set the relevant flags.  */
   if (lorig > *length && !dtp->u.p.sf_seen_eor && !seen_comma)
     {
-      if (n > 0 || no_error)
+      if (n > 0)
         {
 	  if (dtp->u.p.advance_status == ADVANCE_NO)
 	    {
@@ -386,7 +374,7 @@ read_block_form (st_parameter_dt *dtp, int * nbytes)
       (dtp->u.p.current_unit->flags.access == ACCESS_SEQUENTIAL ||
        dtp->u.p.current_unit->flags.access == ACCESS_STREAM))
     {
-      source = read_sf (dtp, nbytes, 0);
+      source = read_sf (dtp, nbytes);
       dtp->u.p.current_unit->strm_pos +=
 	(gfc_offset) (*nbytes + dtp->u.p.sf_seen_eor);
       return source;
@@ -925,8 +913,9 @@ require_type (st_parameter_dt *dtp, bt expected, bt actual, const fnode *f)
   if (actual == expected)
     return 0;
 
+  /* Adjust item_count before emitting error message.  */
   sprintf (buffer, "Expected %s for item %d in formatted transfer, got %s",
-	   type_name (expected), dtp->u.p.item_count, type_name (actual));
+	   type_name (expected), dtp->u.p.item_count - 1, type_name (actual));
 
   format_error (dtp, f, buffer);
   return 1;
@@ -1703,6 +1692,12 @@ formatted_transfer_scalar_write (st_parameter_dt *dtp, bt type, void *p, int kin
   unget_format (dtp, f);
 }
 
+  /* This function is first called from data_init_transfer to initiate the loop
+     over each item in the format, transferring data as required.  Subsequent
+     calls to this function occur for each data item foound in the READ/WRITE
+     statement.  The item_count is incremented for each call.  Since the first
+     call is from data_transfer_init, the item_count is always one greater than
+     the actual count number of the item being transferred.  */
 
 static void
 formatted_transfer (st_parameter_dt *dtp, bt type, void *p, int kind,
@@ -2815,8 +2810,8 @@ next_record_r (st_parameter_dt *dtp)
 		{
                   if (errno != 0)
                     generate_error (&dtp->common, LIBERROR_OS, NULL);
-                  else
-                    hit_eof (dtp);
+		  else if (dtp->u.p.item_count == 1)
+		    hit_eof (dtp);
 		  break;
                 }
 	      
