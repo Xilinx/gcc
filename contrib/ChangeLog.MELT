@@ -1,4 +1,7 @@
 
+2010-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh: added file.
+
 2008-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: REMOVED FILE.
 

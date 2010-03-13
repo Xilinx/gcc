@@ -606,8 +606,6 @@ LIBELFINC
 LIBELFLIBS
 CLOOGINC
 CLOOGLIBS
-GDBMINC
-GDBMLIBS
 PPLINC
 PPLLIBS
 GMPINC
@@ -929,8 +927,6 @@ GMPLIBS
 GMPINC
 PPLLIBS
 PPLINC
-GDBMLIBS
-GDBMINC
 CLOOGLIBS
 CLOOGINC
 LIBELFLIBS
@@ -1672,8 +1668,6 @@ Some influential environment variables:
   GMPINC      How to find GMP include files
   PPLLIBS     How to link PPL
   PPLINC      How to find PPL include files
-  GDBMLIBS    How to link GDBM
-  GDBMINC     How to find GDBM include files
   CLOOGLIBS   How to link CLOOG
   CLOOGINC    How to find CLOOG include files
   LIBELFLIBS  How to link libelf
@@ -17041,7 +17035,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17044 "configure"
+#line 17038 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -17147,7 +17141,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17150 "configure"
+#line 17144 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -25094,8 +25088,6 @@ else
     echo " from ${host} to ${target}." 1>&2
   fi
 fi
-
-
 
 
 

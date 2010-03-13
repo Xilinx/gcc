@@ -1,3 +1,30 @@
+2010-03-13 Basile Starynkevitch  <basile@starynkevitch.net>
+	{{can be compiled as a plugin, and removed every GDBM stuff.}}
+	* configure.ac: removed GDBM stuff.
+	* common.opt: removed GDBM related option -fmelt-gdbmstate=.
+	* melt-make.mk: added/renamed several variables, such as: 
+	melt_make_module_makefile melt_make_cc1 melt_make_gencdeps ...
+	* Makefile.in: corrected accordingly, and removed GDBM stuff.
+	* melt-runtime.h (melt_has_gdbmstate)
+	(meltgc_fetch_gdbmstate_constr, meltgc_fetch_gdbmstate)
+	(meltgc_put_gdbmstate_constr, meltgc_put_gdbmstate): 
+	removed declarations.
+
+	* melt-runtime.c: Don't include <gdbm.h> anymore.
+	(melt_argument): handle "option", but no more "gdbmstate".
+	(melt_debug_depth): uses melt_argument.	
+	(compile_module_to_binary): dlfile replaced by binfile when
+	MELT_IS_PLUGIN.
+	(load_melt_modules_and_do_mode): use melt_argument for option.
+	(plugin_init): use gcc_version->basever... when MELT_IS_PLUGIN.
+	(meltgdbmstate): removed variable.
+	(melt_has_gdbmstate, get_melt_gdbm, fatal_gdbm)
+	(meltgc_fetch_gdbmstate_constr, meltgc_fetch_gdbmstate)
+	(meltgc_put_gdbmstate_constr, meltgc_put_gdbmstate): removed
+	functions.
+
+	* melt/xtramelt-ana-base.melt: removed GDBM related code.
+	
 2010-03-10 Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: adding match set flags to success
 	step & coding translpat_orpat...

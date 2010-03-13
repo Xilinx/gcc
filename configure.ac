@@ -167,7 +167,7 @@ build_tools="build-texinfo build-byacc build-flex build-bison build-m4 build-fix
 
 # these libraries are used by various programs built for the host environment
 #
-host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr mpc ppl gdbm cloog libelf libiconv"
+host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr mpc ppl cloog libelf libiconv"
 
 # these tools are built for the host environment
 # Note, the powerpc-eabi build depends on sim occurring before gdb in order to
@@ -1628,30 +1628,6 @@ AC_ARG_ENABLE(lto,
 [  --enable-lto            enable link time optimization support],
 enable_lto=$enableval,
 enable_lto=yes; default_enable_lto=yes)
-
-# Check for GDBM needed for MELT
-gdbmlibs="-lgdbm"
-gdbminc=""
-
-AC_ARG_WITH(gdbm_include, [  --with-gdbm-include=PATH Specify directory for installed GDBM include files])
-AC_ARG_WITH(gdbm_lib, [  --with-gdbm-lib=PATH   Specify the directory for the installed GDBM library])
-
-if test "x$with_gdbm_include" != x; then
-  gdbminc="-I$with_gdbm_include "
-fi
-if test "x$with_gdbm_lib" != x; then
-  gdbmlibs="-L$with_gdbm_lib -lgdbm"
-fi
-LIBS="$gdbmlibs $LIBS"
-
-AC_MSG_CHECKING([for GDBM])
-AC_TRY_LINK([#include "gdbm.h"],[GDBM_FILE gf = gdbm_open("testdbm",0,GDBM_WRITER,0,0);],
-    [AC_MSG_RESULT([yes]); have_gdbm=yes],
-    [AC_MSG_RESULT([no]); have_gdbm=no])
-
-# Flags needed for GDBM
-AC_SUBST(gdbmlibs)
-AC_SUBST(gdbminc)
 
 
 if test x"$enable_lto" = x"yes" ; then

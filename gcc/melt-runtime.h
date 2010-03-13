@@ -3319,33 +3319,6 @@ void melt_cbreak_at(const char*msg, const char*fil, int lin);
 
 
 
-/** handling GDBM state store; if there is none, these routines do
-    nothing (and return NULL if needed); the GDBM database is lazily
-    opened at first needed call. pointer key & data can be string,
-    strbuf, or named instances (in which case the string name is
-    used) **/
-
-/* true if there is a GDBM state; side effect, open it */
-bool melt_has_gdbmstate(void);
-
-/* return a string value associated to a constant key, or null if none */
-melt_ptr_t meltgc_fetch_gdbmstate_constr(const char*key);
-
-/* return a string value associated to a pointer key [string, strbuf, named] or null if none */
-melt_ptr_t meltgc_fetch_gdbmstate (melt_ptr_t key_p);
-
-/* store or remove a constant key; if the value pointer is nil, remove
-   it; if it s a string, strbuf, named, put it, eventually replacing
-   the previous one; otherwise do nothing */
-void meltgc_put_gdbmstate_constr (const char *key, melt_ptr_t data_p);
-
-/* store or remove a pointer key (string, strbuf, or named value); if
-   the value pointer is nil, remove it; if it s a string, strbuf,
-   named, put it, eventually replacing the previous one; otherwise do
-   nothing */
-void meltgc_put_gdbmstate (melt_ptr_t key_p, melt_ptr_t data_p);
-
-
 /* make a new boxed file - the discr should be for a file or a raw
    file */
 melt_ptr_t meltgc_new_file(melt_ptr_t discr_p, FILE* fil);

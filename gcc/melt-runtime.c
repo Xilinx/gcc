@@ -71,7 +71,6 @@ along with GCC; see the file COPYING3.   If not see
 #include <ppl_c.h>
 /* meltgc_sort_multiple needs setjmp */
 #include <setjmp.h>
-#include <gdbm.h>
 
 #include "melt-runtime.h"
 
@@ -296,8 +295,6 @@ melt_argument (const char* argname)
     return melt_dynmodpath_string;
   else if (!strcmp (argname, "module-cflags"))
     return melt_module_cflags_string;
-  else if (!strcmp (argname, "gdbmstate"))
-    return melt_gdbmstate_string;
   else if (!strcmp (argname, "source-path"))
     return melt_srcpath_string;
   else if (!strcmp (argname, "single-c-file"))
@@ -306,6 +303,8 @@ melt_argument (const char* argname)
     return melt_init_string;
   else if (!strcmp (argname, "output"))
     return melt_output_string;
+  else if (!strcmp (argname, "option"))
+    return melt_option_string;
   else if (!strcmp (argname, "secondarg"))
     return melt_secondargument_string;
   else if (!strcmp (argname, "tempdir"))
@@ -335,7 +334,7 @@ melt_argument (const char* argname)
 #pragma GCC poison melt_mode_string melt_argument_string melt_arglist_string
 /* don't poison flag_melt_debug */
 #pragma GCC poison melt_compile_script_string count_melt_debugskip_string
-#pragma GCC poison melt_dynmodpath_string melt_gdbmstate_string melt_srcpath_string
+#pragma GCC poison melt_dynmodpath_string melt_srcpath_string
 #pragma GCC poison melt_init_string melt_secondargument_string melt_tempdir_string
 #endif
 
@@ -350,7 +349,8 @@ int melt_debug_depth (void)
     return 0;
   if (MELT_UNLIKELY(!d))
     {
-      d = melt_debug_depth_string?(atoi (melt_debug_depth_string)):0;
+      const char* dbgdepthstr = melt_argument ("debug-depth");
+      d = dbgdepthstr?(atoi (dbgdepthstr)):0;
       if (d == 0)
 	{
 	  d = MELT_DEFAULT_DEBUG_DEPTH;
@@ -456,8 +456,6 @@ void *melt_checkedp_ptr1;
 void *melt_checkedp_ptr2;
 #endif /*ENABLE_CHECKING */
 
-/*** GDBM state ****/
-static GDBM_FILE gdbm_melt;
 
 
 static inline void *
@@ -5315,7 +5313,7 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     obstack_grow0 (&cmd_obstack, BINARY_MODULE_ARG, strlen (BINARY_MODULE_ARG));
     warnescapedchar = obstack_add_escaped_path (&cmd_obstack, binfile);
     if (warnescapedchar)
-      warning (0, "escaped character[s] in MELT binary module %s", dlfile);
+      warning (0, "escaped character[s] in MELT binary module %s", binfile);
     obstack_1grow (&cmd_obstack, ' ');
 
     /* add the cflag argument if needed */
@@ -8326,6 +8324,7 @@ load_melt_modules_and_do_mode (void)
   char *curmod = 0;
   char *nextmod = 0;
   const char *modstr = 0;
+  const char *optstr = 0;
   const char *inistr = 0;
   const char* dbgstr = melt_argument("debug");
   MELT_ENTERFRAME (7, NULL);
@@ -8421,13 +8420,14 @@ load_melt_modules_and_do_mode (void)
   /**
    * the we set MELT options
    **/
-  if (melt_option_string && melt_option_string[0]
+  optstr = melt_argument ("option");
+  if (optstr && optstr[0]
       && (optsetv=melt_get_inisysdata (FSYSDAT_OPTION_SET)) != NULL
       && melt_magic_discr ((melt_ptr_t) optsetv) == OBMAG_CLOSURE) {
     char *optc = 0;
     char *optname = 0;
     char *optvalue = 0;
-    for (optc = CONST_CAST (char *, melt_option_string);
+    for (optc = CONST_CAST (char *, optstr);
 	 optc && *optc;
 	 )
       {
@@ -8764,11 +8764,6 @@ do_finalize_melt (void)
       /* force a minor GC to be sure nothing stays in young region */
       melt_garbcoll (0, MELT_ONLY_MINOR);
     }
-  if (gdbm_melt)
-    {
-      gdbm_close (gdbm_melt);
-      gdbm_melt = NULL;
-    }
   if (tempdir_melt[0])
     {
       DIR *tdir = opendir (tempdir_melt);
@@ -8832,7 +8827,7 @@ plugin_init (struct plugin_name_args* plugin_info,
   gcc_assert (gcc_version != NULL);
   melt_plugin_argc = plugin_info->argc;
   melt_plugin_argv = plugin_info->argv;
-  gccversionstr = concat (gcc_version->baseversion, " ",
+  gccversionstr = concat (gcc_version->basever, " ",
 			  gcc_version->datestamp, " (",
 			  gcc_version->devphase, ") [MELT plugin]",
 			  NULL);
@@ -9400,279 +9395,7 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
 }
 
 
-/*****************
- * state GDBM access
- ****************/
 
-static const char*meltgdbmstate;
-
-static void
-fatal_gdbm (char *msg)
-{
-  if (!meltgdbmstate)
-    meltgdbmstate = melt_argument ("gdbmstate");
-  fatal_error ("fatal melt GDBM (%s) error : %s", meltgdbmstate,
-	       msg);
-}
-
-static inline GDBM_FILE
-get_melt_gdbm (void)
-{
-  if (!meltgdbmstate)
-    meltgdbmstate = melt_argument ("gdbmstate");
-  if (gdbm_melt)
-    return gdbm_melt;
-  if (!meltgdbmstate || !meltgdbmstate[0])
-    return NULL;
-  gdbm_melt =
-    gdbm_open (CONST_CAST(char*, meltgdbmstate), 8192, GDBM_WRCREAT, 0600,
-	       fatal_gdbm);
-  if (!gdbm_melt)
-    fatal_error ("failed to lazily open melt GDBM (%s) - %m",
-		 meltgdbmstate);
-  return gdbm_melt;
-}
-
-bool
-melt_has_gdbmstate (void)
-{
-  return get_melt_gdbm () != NULL;
-}
-
-melt_ptr_t
-meltgc_fetch_gdbmstate_constr (const char *key)
-{
-  datum keydata = { 0, 0 };
-  datum valdata = { 0, 0 };
-  GDBM_FILE dbf = get_melt_gdbm ();
-  MELT_ENTERFRAME (1, NULL);
-#define restrv meltfram__.varptr[0]
-  if (!meltgdbmstate)
-    meltgdbmstate = melt_argument ("gdbmstate");
-  if (!dbf || !key || !key[0])
-    goto end;
-  keydata.dptr = CONST_CAST (char *, key);
-  keydata.dsize = strlen (key);
-  valdata = gdbm_fetch (dbf, keydata);
-  if (valdata.dptr != NULL && valdata.dsize >= 0)
-    {
-      gcc_assert ((int) valdata.dsize == (int) strlen (valdata.dptr));
-      restrv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), valdata.dptr);
-      free (valdata.dptr);
-      valdata.dptr = 0;
-    }
-end:
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) restrv;
-#undef restrv
-}
-
-melt_ptr_t
-meltgc_fetch_gdbmstate (melt_ptr_t key_p)
-{
-  datum keydata = { 0, 0 };
-  datum valdata = { 0, 0 };
-  int keymagic = 0;
-  GDBM_FILE dbf = get_melt_gdbm ();
-  MELT_ENTERFRAME (3, NULL);
-#define restrv meltfram__.varptr[0]
-#define keyv   meltfram__.varptr[1]
-#define kstrv  meltfram__.varptr[2]
-  keyv = key_p;
-  if (!meltgdbmstate)
-    meltgdbmstate = melt_argument ("gdbmstate");
-  if (!dbf || !keyv)
-    goto end;
-  keymagic = melt_magic_discr ((melt_ptr_t) keyv);
-  if (keymagic == OBMAG_STRING)
-    {
-      keydata.dptr = CONST_CAST (char *, melt_string_str ((melt_ptr_t) keyv));
-      keydata.dsize = strlen (keydata.dptr);
-      valdata = gdbm_fetch (dbf, keydata);
-    }
-  else if (keymagic == OBMAG_STRBUF)
-    {
-      keydata.dptr = CONST_CAST(char*, melt_strbuf_str ((melt_ptr_t) keyv));
-      keydata.dsize = strlen (keydata.dptr);
-      valdata = gdbm_fetch (dbf, keydata);
-    }
-  else if (keymagic == OBMAG_OBJECT
-	   && melt_is_instance_of ((melt_ptr_t) keyv,
-				      (melt_ptr_t) MELT_PREDEF (CLASS_NAMED)))
-    {
-      kstrv = melt_field_object ((melt_ptr_t) keyv, FNAMED_NAME);
-      if (melt_magic_discr ((melt_ptr_t) kstrv) == OBMAG_STRING)
-	{
-	  keydata.dptr = CONST_CAST(char*, melt_string_str ((melt_ptr_t) kstrv));
-	  keydata.dsize = strlen (keydata.dptr);
-	  valdata = gdbm_fetch (dbf, keydata);
-	}
-      else
-	goto end;
-    }
-  else
-    goto end;
-  if (valdata.dptr != NULL && valdata.dsize >= 0)
-    {
-      gcc_assert ((int) valdata.dsize == (int) strlen (valdata.dptr));
-      restrv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), valdata.dptr);
-      free (valdata.dptr);
-      valdata.dptr = 0;
-    }
-end:
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) restrv;
-#undef keyv
-#undef restrv
-#undef kstrv
-}
-
-
-
-void
-meltgc_put_gdbmstate_constr (const char *key, melt_ptr_t data_p)
-{
-  datum keydata = { 0, 0 };
-  datum valdata = { 0, 0 };
-  int datamagic = 0;
-  GDBM_FILE dbf = get_melt_gdbm ();
-  MELT_ENTERFRAME (2, NULL);
-#define datav  meltfram__.varptr[0]
-#define dstrv  meltfram__.varptr[1]
-  if (!meltgdbmstate)
-    meltgdbmstate = melt_argument ("gdbmstate");
-  datav = data_p;
-  if (!dbf || !key || !key[0])
-    goto end;
-  keydata.dptr = CONST_CAST(char *, key);
-  keydata.dsize = strlen (key);
-  if (!datav)
-    {
-      gdbm_delete (dbf, keydata);
-      goto end;
-    }
-  datamagic = melt_magic_discr ((melt_ptr_t) datav);
-  if (datamagic == OBMAG_STRING)
-    {
-      valdata.dptr = CONST_CAST(char *, melt_string_str ((melt_ptr_t) datav));
-      valdata.dsize = strlen (keydata.dptr);
-      gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
-    }
-  else if (datamagic == OBMAG_STRBUF)
-    {
-      valdata.dptr = CONST_CAST(char*, melt_strbuf_str ((melt_ptr_t) datav));
-      valdata.dsize = strlen (keydata.dptr);
-      gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
-    }
-  else if (datamagic == OBMAG_OBJECT
-	   && melt_is_instance_of ((melt_ptr_t) datav,
-				      (melt_ptr_t) MELT_PREDEF (CLASS_NAMED)))
-    {
-      dstrv = melt_field_object ((melt_ptr_t) datav, FNAMED_NAME);
-      if (melt_magic_discr ((melt_ptr_t) dstrv) == OBMAG_STRING)
-	{
-	  valdata.dptr = CONST_CAST (char *, melt_string_str ((melt_ptr_t) dstrv));
-	  valdata.dsize = strlen (keydata.dptr);
-	  gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
-	}
-      else
-	goto end;
-    }
-  else
-    goto end;
-end:
-  MELT_EXITFRAME ();
-#undef datav
-#undef dstrv
-}
-
-
-void
-meltgc_put_gdbmstate (melt_ptr_t key_p, melt_ptr_t data_p)
-{
-  datum keydata = { 0, 0 };
-  datum valdata = { 0, 0 };
-  int keymagic = 0;
-  int datamagic = 0;
-  GDBM_FILE dbf = get_melt_gdbm ();
-  MELT_ENTERFRAME (4, NULL);
-#define keyv   meltfram__.varptr[0]
-#define kstrv  meltfram__.varptr[1]
-#define datav  meltfram__.varptr[2]
-#define dstrv  meltfram__.varptr[3]
-  keyv = key_p;
-  datav = data_p;
-  if (!meltgdbmstate)
-    meltgdbmstate = melt_argument ("gdbmstate");
-  if (!dbf || !keyv)
-    goto end;
-  keymagic = melt_magic_discr ((melt_ptr_t) keyv);
-  if (keymagic == OBMAG_STRING)
-    {
-      keydata.dptr = CONST_CAST(char*, melt_string_str ((melt_ptr_t) keyv));
-      keydata.dsize = strlen (keydata.dptr);
-    }
-  else if (keymagic == OBMAG_STRBUF)
-    {
-      keydata.dptr = CONST_CAST(char*, melt_strbuf_str ((melt_ptr_t) keyv));
-      keydata.dsize = strlen (keydata.dptr);
-    }
-  else if (keymagic == OBMAG_OBJECT
-	   && melt_is_instance_of ((melt_ptr_t) keyv,
-				      (melt_ptr_t) MELT_PREDEF (CLASS_NAMED)))
-    {
-      kstrv = melt_field_object ((melt_ptr_t) keyv, FNAMED_NAME);
-      if (melt_magic_discr ((melt_ptr_t) kstrv) == OBMAG_STRING)
-	{
-	  keydata.dptr = CONST_CAST(char*, melt_string_str ((melt_ptr_t) kstrv));
-	  keydata.dsize = strlen (keydata.dptr);
-	}
-      else
-	goto end;
-    }
-  else
-    goto end;
-  if (!datav)
-    {
-      gdbm_delete (dbf, keydata);
-      goto end;
-    }
-  datamagic = melt_magic_discr ((melt_ptr_t) datav);
-  if (datamagic == OBMAG_STRING)
-    {
-      valdata.dptr = CONST_CAST(char*, melt_string_str ((melt_ptr_t) datav));
-      valdata.dsize = strlen (keydata.dptr);
-      gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
-    }
-  else if (datamagic == OBMAG_STRBUF)
-    {
-      valdata.dptr = CONST_CAST(char*, melt_strbuf_str ((melt_ptr_t) datav));
-      valdata.dsize = strlen (keydata.dptr);
-      gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
-    }
-  else if (datamagic == OBMAG_OBJECT
-	   && melt_is_instance_of ((melt_ptr_t) datav,
-				      (melt_ptr_t) MELT_PREDEF (CLASS_NAMED)))
-    {
-      dstrv = melt_field_object ((melt_ptr_t) datav, FNAMED_NAME);
-      if (melt_magic_discr ((melt_ptr_t) dstrv) == OBMAG_STRING)
-	{
-	  valdata.dptr = CONST_CAST(char*, melt_string_str ((melt_ptr_t) dstrv));
-	  valdata.dsize = strlen (keydata.dptr);
-	  gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
-	}
-      else
-	goto end;
-    }
-  else
-    goto end;
-end:
-  MELT_EXITFRAME ();
-#undef keyv
-#undef kstrv
-#undef datav
-#undef dstrv
-}
 
 /* wrapping gimple & tree prettyprinting for MELT debug */
 

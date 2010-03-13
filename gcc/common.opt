@@ -387,11 +387,6 @@ Common Report Var(melt_dynmodpath_string) RejectNegative Joined
 Dynamic module colon-separated path for MELT [or $GCCMELT_MODULE_PATH]
 
 
-; shared GDBM indexed file to keep state
-fmelt-gdbmstate=
-Common Report Var(melt_gdbmstate_string) RejectNegative Joined
-Shared GDBM state indexed file. Should be explicitly given.
-
 ; source path for melt -either *.melt or *.c files
 fmelt-source-path=
 Common Report Var(melt_srcpath_string) RejectNegative Joined

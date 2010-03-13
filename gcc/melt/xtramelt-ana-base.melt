@@ -31,24 +31,6 @@
   :fields (
 ))
 
-
-;;; primitive to access the gdbmstate
-
-(defprimitive fetch_gdbmstate_constr (:cstring keystr) :value
-  #{ (meltgc_fetch_gdbmstate_const(($keystr))) }# )
-
-(defprimitive fetch_gdbmstate (key) :value
-   #{ (meltgc_fetch_gdbmstate(($key))) }# )
-
-(defprimitive put_gdbmstate_constr (:cstring keystr :value data) :void
-  #{ meltgc_put_gdbmstate_const(($keystr), (melt_ptr_t) ($data)); 
-  }# )
-
-(defprimitive put_gdbmstate (key data) :void
-  #{ meltgc_put_gdbmstate((melt_ptr_t)($key), (melt_ptr_t)($data)); 
-  }# )
-
-
 (defprimitive install_melt_gcc_pass 
   (:value pass :cstring positioning refpassname :long refpassnum) :void
   #{ meltgc_register_pass ($pass, $positioning, $refpassname, $refpassnum); 
@@ -2068,8 +2050,6 @@
  edge_for_false_value
  edge_for_true_value 
  edge_src_bb
- fetch_gdbmstate
- fetch_gdbmstate_constr
  foreach_basicblock_succ_edge
  foreach_mapbasicblock
  foreach_maptree
@@ -2194,8 +2174,6 @@
  ppstrbuf_gimple_seq
  ppstrbuf_tree
  push_cfun_decl
- put_gdbmstate
- put_gdbmstate_constr
  raw_new_ppl_empty_constraint_system
  raw_new_ppl_unsatisfiable_constraint_system
  reveach_in_gimpleseq

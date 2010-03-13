@@ -680,8 +680,6 @@ libelflibs
 EGREP
 GREP
 CPP
-gdbminc
-gdbmlibs
 clooginc
 clooglibs
 pplinc
@@ -810,8 +808,6 @@ with_cloog_include
 with_cloog_lib
 enable_cloog_version_check
 enable_lto
-with_gdbm_include
-with_gdbm_lib
 with_libelf
 with_libelf_include
 with_libelf_lib
@@ -1548,8 +1544,6 @@ Optional Packages:
                           plus --with-cloog-lib=PATH/lib
   --with-cloog-include=PATH Specify directory for installed CLooG include files
   --with-cloog-lib=PATH   Specify the directory for the installed CLooG library
-  --with-gdbm-include=PATH Specify directory for installed GDBM include files
-  --with-gdbm-lib=PATH   Specify the directory for the installed GDBM library
   --with-libelf=PATH       Specify prefix directory for the installed libelf package
                           Equivalent to --with-libelf-include=PATH/include
                           plus --with-libelf-lib=PATH/lib
@@ -2900,7 +2894,7 @@ build_tools="build-texinfo build-byacc build-flex build-bison build-m4 build-fix
 
 # these libraries are used by various programs built for the host environment
 #
-host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr mpc ppl gdbm cloog libelf libiconv"
+host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr mpc ppl cloog libelf libiconv"
 
 # these tools are built for the host environment
 # Note, the powerpc-eabi build depends on sim occurring before gdb in order to
@@ -5976,58 +5970,6 @@ if test "${enable_lto+set}" = set; then :
 else
   enable_lto=yes; default_enable_lto=yes
 fi
-
-
-# Check for GDBM needed for MELT
-gdbmlibs="-lgdbm"
-gdbminc=""
-
-
-# Check whether --with-gdbm_include was given.
-if test "${with_gdbm_include+set}" = set; then :
-  withval=$with_gdbm_include;
-fi
-
-
-# Check whether --with-gdbm_lib was given.
-if test "${with_gdbm_lib+set}" = set; then :
-  withval=$with_gdbm_lib;
-fi
-
-
-if test "x$with_gdbm_include" != x; then
-  gdbminc="-I$with_gdbm_include "
-fi
-if test "x$with_gdbm_lib" != x; then
-  gdbmlibs="-L$with_gdbm_lib -lgdbm"
-fi
-LIBS="$gdbmlibs $LIBS"
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for GDBM" >&5
-$as_echo_n "checking for GDBM... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include "gdbm.h"
-int
-main ()
-{
-GDBM_FILE gf = gdbm_open("testdbm",0,GDBM_WRITER,0,0);
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }; have_gdbm=yes
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }; have_gdbm=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-
-# Flags needed for GDBM
-
 
 
 

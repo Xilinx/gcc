@@ -313,10 +313,6 @@ GMPINC = @GMPINC@
 
 
 
-# How to file GDBM for MELT
-GDBMLIBS = @GDBMLIBS@
-GDBMINC = @GDBMINC@
-
 # How to find PPL
 PPLLIBS = @PPLLIBS@
 PPLINC = @PPLINC@
@@ -1018,7 +1014,7 @@ BUILD_LIBDEPS= $(BUILD_LIBIBERTY)
 # and the system's installed libraries.
 LIBS = @LIBS@ $(CPPLIB) $(LIBINTL) $(LIBICONV) $(LIBIBERTY) $(LIBDECNUMBER) \
 	$(HOST_LIBS)
-BACKENDLIBS = $(CLOOGLIBS) $(PPLLIBS) $(GMPLIBS) $(PLUGINLIBS) $(GDBMLIBS) $(HOST_LIBS)  \
+BACKENDLIBS = $(CLOOGLIBS) $(PPLLIBS) $(GMPLIBS) $(PLUGINLIBS)  $(HOST_LIBS)  \
 	$(ZLIB) $(LIBELFLIBS)
 # Any system libraries needed just for GNAT.
 SYSLIBS = @GNAT_LIBEXC@
@@ -1048,7 +1044,7 @@ BUILD_ERRORS = build/errors.o
 INCLUDES = -I. -I$(@D) -I$(srcdir) -I$(srcdir)/$(@D) \
 	   -I$(srcdir)/../include @INCINTL@ \
 	   $(CPPINC) $(GMPINC) $(DECNUMINC) \
-	   $(PPLINC) $(CLOOGINC) $(GDBMINC) $(LIBELFINC)
+	   $(PPLINC) $(CLOOGINC)  $(LIBELFINC)
 
 .c.o:
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $< $(OUTPUT_OPTION)
@@ -5145,13 +5141,15 @@ melt.encap: run-melt.d
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR)
 
-melt_cc1=./cc1$(exeext)
-## already defined above
-melt_module_makefile=$(srcdir)/melt-module.mk
+
+melt_make_cc1=./cc1$(exeext)
+melt_make_gencdeps= ./cc1$(exeext)
+melt_make_module_makefile=$(srcdir)/melt-module.mk
 melt_make_source_dir=$(srcdir)/melt
 melt_make_module_dir=$(objdir)
 melt_make_move=$(SHELL) $(srcdir)/../move-if-change
-melt_cflags:=$(MELTHERE_CFLAGS) -I $(melt_build_include_dir)
+melt_make_cc1flags:=$(MELTHERE_CFLAGS) -I $(melt_build_include_dir)
+melt_cflags:=$(MELTHERE_CFLAGS) -I $(melt_build_include_dir) -I.
 melt_installed_cflags:=$(MELTHERE_CFLAGS) -I $(plugin_includedir)
 ## leave melt_is_plugin as empty 
 melt_is_plugin=
@@ -5191,7 +5189,7 @@ install-melt-meltfiles: installdirs $(WARMELT_SRCFILES) $(ANAMELT_SRCFILES)
 ### install other MELT files, notably *.mk file[s] for make
 
 install-melt-otherfiles: installdirs 
-	$(INSTALL_DATA) $(melt_module_makefile) $(melt_installed_module_makefile)
+	$(INSTALL_DATA) $(melt_make_module_makefile) $(melt_installed_module_makefile)
 
 #### this phony target is given manually to copy the generated
 #### warmelt*.3.c into the source directory it should be only
