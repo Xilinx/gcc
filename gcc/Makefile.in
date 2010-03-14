@@ -3657,6 +3657,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
 ## automount-ed file systems).  This could be useful in plugin mode of
 ## gengtype.
 REALGTFILES = $(foreach f, $(GTFILES), $(if $(patsubst [%],,$f), $(realpath $f), $f))
+REALGTMELTPLUGINFILES = $(foreach f, $(filter-out $(MELT_C) $(MELT_H), $(GTFILES)), $(if $(patsubst [%],,$f), $(realpath $f), $f))
 
 # Compute the list of GT header files from the corresponding C sources,
 # possibly nested within config or language subdirectories.  Match gengtype's
@@ -3684,12 +3685,14 @@ $(ALL_GTFILES_H) gtype-desc.c gtype-desc.h : s-gtype ; @true
 ## gtyp-real-input.list file contains only absolute paths, it may not
 ## work in some cases (e.g. perhaps when build tree is auto-mount-ed).
 
-gtyp-input.list gtyp-real-input.list: s-gtyp-input ; @true
+gtyp-input.list gtyp-real-input.list gtyp-real-meltplugin-input.list: s-gtyp-input ; @true
 s-gtyp-input: Makefile
 	@: $(call write_entries_to_file,$(GTFILES),tmp-gi.list)
 	$(SHELL) $(srcdir)/../move-if-change tmp-gi.list gtyp-input.list
 	@: $(call write_entries_to_file,$(REALGTFILES),tmp-realgi.list)
 	$(SHELL) $(srcdir)/../move-if-change tmp-realgi.list gtyp-real-input.list
+	@: $(call write_entries_to_file,$(REALGTMELTPLUGINFILES),tmp-realmeltgi.list)
+	$(SHELL) $(srcdir)/../move-if-change tmp-realmeltgi.list gtyp-real-meltplugin-input.list
 	$(STAMP) s-gtyp-input
 
 s-gtype: build/gengtype$(build_exeext) $(filter-out [%], $(GTFILES)) \
@@ -5137,7 +5140,7 @@ melt.encap: run-melt.d
 	rm -rf _tempmeltdir*
 	echo melt.encap done
 
-.PHONY: install-all-melt install-melt-headers update-warmelt diff-warm-1-2 diff-warm-2-3  diff-warm-4-5 diff-warmelt-2-3 install-melt-dynlib install-melt-cfiles install-melt-meltfiles install-melt-otherfiles
+.PHONY: install-all-melt install-melt-headers upgrade-warmelt upgrade-bigmelt diff-warm-1-2 diff-warm-2-3  diff-warm-4-5 diff-warmelt-2-3 install-melt-dynlib install-melt-cfiles install-melt-meltfiles install-melt-otherfiles 
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR)
 
@@ -5196,7 +5199,29 @@ install-melt-otherfiles: installdirs
 #### explicitly given
 .PHONY: upgrade-warmelt upgrade-bigmelt
 
-upgrade-warmelt: $(WARMELT_BASE3SO)
+
+
+#### generate gt-melt-runtime-plugin.h for ease of building MELT as a
+#### plugin.  gt-melt-runtime-plugin.h could be manually copied as the
+#### gt-melt-runtime.h file in plugin mode to avoid running gengtype
+#### in plugin mode, since gengtype requires both source and build
+#### tree of the GCC into which the plugin is made, which is a
+#### nuisance to e.g. distribution packagers. Having a dependency on
+#### the *build* tree is not common and painful .... See threads
+#### http://gcc.gnu.org/ml/gcc/2010-03/msg00129.html
+#### http://lists.debian.org/debian-gcc/2010/03/msg00047.html.
+#### this file is useless, except for packaging GCC MELT as a plugin.
+gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c $(srcdir)/melt-runtime.h gtyp-real-meltplugin-input.list  build/gengtype$(build_exeext)
+	rm -f $@
+	$(RUN_GEN) build/gengtype$(build_exeext) -P $@ $(srcdir) gtyp-real-meltplugin-input.list $(srcdir)/melt-runtime.h $(srcdir)/melt-runtime.c  
+# we add a comment containing various meta-information. 
+	date +"/* $@ file generated %c%n" >> $@
+	if [ -f REVISION ]; then (echo -n "GCC revision: " ; cat REVISION) >> $@ ; fi
+	if [ -f DATESTAMP ]; then (echo -n "GCC date stamp: " ; cat DATESTAMP) >> $@ ; fi
+	(cd $(srcdir); md5sum melt-runtime.h melt-runtime.c) >> $@
+	echo "*/" >> $@
+
+upgrade-warmelt: $(WARMELT_BASE3SO) gt-melt-runtime-plugin.h
 	$(MAKE) Makefile warmelt3.modlis
 # we used to have a move-if-change of the generated files, but an mv
 # is better...
@@ -5224,6 +5249,8 @@ upgrade-warmelt: $(WARMELT_BASE3SO)
 	    mv  $(srcdir)/melt/$$f-tmp  $(srcdir)/melt/generated/$$f; \
           done; \
 	done
+## copy gt-melt-runtime-plugin.h
+	cp gt-melt-runtime-plugin.h $(srcdir)/melt/generated/
 ## rebuild warmelt1 to be sure
 	@echo upgrade-warmelt rebuilding warmelt1
 	$(MAKE)  warmelt1.modlis $(WARMELT_BASE1SO)

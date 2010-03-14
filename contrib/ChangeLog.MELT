@@ -1,4 +1,7 @@
 
+2010-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-source-tar.sh: added file.
+
 2010-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh: added file.
 
