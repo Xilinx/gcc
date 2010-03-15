@@ -2648,6 +2648,18 @@ foo:	.long	25
 	tls_first_minor=13
 	tls_as_opt=--fatal-warnings
 	;;
+  microblaze-*-*)
+    conftest_s='
+	.section .tdata,"awT",@progbits
+x:
+	.word 2
+	.text
+	addik r5,r20,x@TLSGD
+	addik r5,r20,x@TLSLDM'
+	tls_first_major=2
+	tls_first_minor=20
+	tls_as_opt='--fatal-warnings'
+	;;
   cris-*-*|crisv32-*-*)
     conftest_s='
 	.section ".tdata","awT",@progbits

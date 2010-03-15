@@ -84,7 +84,8 @@ enum microblaze_address_type
   ADDRESS_CONST_INT,
   ADDRESS_SYMBOLIC,
   ADDRESS_GOTOFF,
-  ADDRESS_PLT
+  ADDRESS_PLT,
+  ADDRESS_TLS
 };
 
 /* Classifies symbols
@@ -95,7 +96,16 @@ A general symbol.  */
 enum microblaze_symbol_type
 {
   SYMBOL_TYPE_INVALID,
-  SYMBOL_TYPE_GENERAL
+  SYMBOL_TYPE_GENERAL,
+};
+
+/* TLS Address Type */
+enum tls_reloc {
+  TLS_GD,
+  TLS_LDM,
+  TLS_DTPREL,
+  TLS_IE,
+  TLS_LE
 };
 
 /* Classification of a MicroBlaze address.  */
@@ -108,6 +118,7 @@ struct microblaze_address_info
   rtx offset; 	/* Contains valid values on ADDRESS_CONST_INT and ADDRESS_REG.  */
   rtx symbol; 	/* Contains valid values on ADDRESS_SYMBOLIC.  */
   enum microblaze_symbol_type symbol_type;
+  enum tls_reloc tls_type;
 };
 
 /* Structure to be filled in by compute_frame_size with register
@@ -212,6 +223,11 @@ const struct attribute_spec microblaze_attribute_table[] = {
 static int microblaze_interrupt_function_p (tree);
 
 section *sdata2_section;
+
+#ifdef HAVE_AS_TLS
+#undef TARGET_HAVE_TLS
+#define TARGET_HAVE_TLS true
+#endif
 
 /* Return truth value if a CONST_DOUBLE is ok to be a legitimate constant.  */
 int
@@ -383,25 +399,128 @@ microblaze_valid_base_register_p (rtx x,
 	  && microblaze_regno_ok_for_base_p (REGNO (x), strict));
 }
 
+static rtx tls_get_addr_libfunc;
+
+static rtx
+get_tls_get_addr (void)
+{
+  if (!tls_get_addr_libfunc)
+    tls_get_addr_libfunc = init_one_libfunc ("__tls_get_addr");
+  return tls_get_addr_libfunc;
+}
+
+/* Return TRUE if X is a thread-local symbol.  */
+static bool
+microblaze_tls_symbol_p (rtx x)
+{
+  if (! TARGET_HAVE_TLS)
+    return false;
+
+  if (GET_CODE (x) != SYMBOL_REF)
+    return false;
+
+  return SYMBOL_REF_TLS_MODEL (x) != 0;
+}
+
+static rtx
+load_tls_operand (rtx x, rtx reg)
+{
+  rtx tmp;
+
+  if (reg == NULL_RTX)
+    reg = gen_reg_rtx (SImode);
+
+  tmp = gen_rtx_CONST (SImode, x);
+
+  emit_move_insn (reg, tmp);
+
+  return reg;
+}
+
+static rtx
+microblaze_call_tls_get_addr (rtx x, rtx reg, rtx *valuep, int reloc)
+{
+  rtx insns, tls_entry;
+
+  start_sequence ();
+
+  tls_entry = gen_rtx_UNSPEC (Pmode,
+			gen_rtvec (2, x, GEN_INT (reloc)) , UNSPEC_TLS);
+
+  reg = load_tls_operand (tls_entry, reg);
+
+  *valuep = emit_library_call_value (get_tls_get_addr (), NULL_RTX, LCT_PURE, /* LCT_CONST?  */
+				     Pmode, 1, reg, Pmode);
+
+  insns = get_insns ();
+  end_sequence ();
+
+  return insns;
+}
+
+rtx
+microblaze_legitimize_tls_address(rtx x, rtx reg)
+{
+  rtx dest, insns, ret, eqv, addend;
+  unsigned int model = SYMBOL_REF_TLS_MODEL (x);
+
+  switch (model)
+    {
+       case TLS_MODEL_GLOBAL_DYNAMIC:
+           insns = microblaze_call_tls_get_addr (x, reg, &ret, TLS_GD);
+           dest = gen_reg_rtx (Pmode);
+           emit_libcall_block (insns, dest, ret, x);
+           return dest;
+         break;
+
+       case TLS_MODEL_LOCAL_DYNAMIC:
+           insns = microblaze_call_tls_get_addr (x, reg, &ret, TLS_LDM);
+
+           /* Attach a unique REG_EQUIV, to allow the RTL optimizers to
+     	      share the LDM result with other LD model accesses.  */
+           eqv = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const1_rtx),
+			         UNSPEC_TLS);
+           dest = gen_reg_rtx (Pmode);
+           emit_libcall_block (insns, dest, ret, eqv);
+
+           /* Load the addend.  */
+           addend = gen_rtx_UNSPEC (Pmode, gen_rtvec (2, x, GEN_INT (TLS_DTPREL)),
+			       UNSPEC_TLS);
+           addend = force_reg (SImode, gen_rtx_CONST (SImode, addend));
+           return gen_rtx_PLUS (Pmode, dest, addend);
+
+         break;
+
+       default:
+	abort();
+    }
+
+  return dest;
+}
+
 static bool
 microblaze_classify_unspec (struct microblaze_address_info *info, rtx x)
 {
   info->symbol_type = SYMBOL_TYPE_GENERAL;
   info->symbol = XVECEXP (x, 0, 0);
 
-  if (XINT (x, 1) == UNSPEC_GOTOFF)
+  switch (XINT (x, 1)) 
     {
-      info->regA = gen_rtx_REG (SImode, PIC_OFFSET_TABLE_REGNUM);
-      info->type = ADDRESS_GOTOFF;
+	case UNSPEC_GOTOFF:
+      		info->regA = gen_rtx_REG (SImode, PIC_OFFSET_TABLE_REGNUM);
+		info->type = ADDRESS_GOTOFF;
+	  break;
+	case UNSPEC_PLT:
+      		info->type = ADDRESS_PLT;
+	  break;
+	case UNSPEC_TLS:
+      		info->type = ADDRESS_TLS;
+      		info->tls_type = INTVAL(XVECEXP(x, 0, 1));
+	  break;
+	default:
+      		return false;
     }
-  else if (XINT (x, 1) == UNSPEC_PLT)
-    {
-      info->type = ADDRESS_PLT;
-    }
-  else
-    {
-      return false;
-    }
+
   return true;
 }
 
@@ -428,7 +547,13 @@ static int
 get_base_reg (rtx x)
 {
   tree decl;
-  int base_reg = (flag_pic ? MB_ABI_PIC_ADDR_REGNUM : MB_ABI_BASE_REGNUM);
+  //int base_reg = (flag_pic ? MB_ABI_PIC_ADDR_REGNUM : MB_ABI_BASE_REGNUM);
+  int base_reg;
+
+  if (!flag_pic || microblaze_tls_symbol_p(x))
+	base_reg = MB_ABI_BASE_REGNUM;
+  else if (flag_pic)
+        base_reg = MB_ABI_PIC_ADDR_REGNUM;
 
   if (TARGET_XLGPOPT
       && GET_CODE (x) == SYMBOL_REF
@@ -523,6 +648,8 @@ microblaze_classify_address (struct microblaze_address_info *info, rtx x,
 		  {
 		    return false;
 		  }
+		else if (microblaze_tls_symbol_p(xplus1))
+		    return false;
 		info->type = ADDRESS_SYMBOLIC;
 		info->symbol = xplus1;
 		info->symbol_type = SYMBOL_TYPE_GENERAL;
@@ -557,20 +684,31 @@ microblaze_classify_address (struct microblaze_address_info *info, rtx x,
 	info->symbol = x;
 	info->regA = gen_rtx_raw_REG (mode, get_base_reg (x));
 
+        /* REVISIT: TLS Change */
 	if (GET_CODE (x) == CONST)
 	  {
-	    return !(flag_pic && pic_address_needs_scratch (x));
+		if (GET_CODE (XEXP (x, 0)) == UNSPEC) 
+                  {
+                    /* REVISIT: is it ok to set info- symbol to CONST above ? */
+	            info->regA = gen_rtx_raw_REG (mode, 
+                                   get_base_reg ( XVECEXP ( XEXP(x,0), 0, 0) ));
+		    return microblaze_classify_unspec (info, XEXP (x, 0));
+                  }
+	         return !(flag_pic && pic_address_needs_scratch (x));
 	  }
 	else if (flag_pic == 2)
 	  {
 	    return false;
 	  }
+	else if (microblaze_tls_symbol_p(x))
+	    return false;
 
 	return true;
       }
 
     case UNSPEC:
       {
+        /* REVISIT: UNSPEC_TLS may not use PIC_OFFSET_TABEL_REGNUM */
 	if (reload_in_progress)
 	  df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 	return microblaze_classify_unspec (info, x);
@@ -704,7 +842,7 @@ microblaze_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 	  return result;
 	}
 
-      if (code0 == REG && REG_OK_FOR_BASE_P (xplus0) && flag_pic == 2)
+      if (code0 == REG && REG_OK_FOR_BASE_P (xplus0))
 	{
 	  if (reload_in_progress)
 	    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
@@ -715,26 +853,55 @@ microblaze_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 	    }
 	  if (code1 == SYMBOL_REF)
 	    {
-	      result =
-		gen_rtx_UNSPEC (Pmode, gen_rtvec (1, xplus1), UNSPEC_GOTOFF);
-	      result = gen_rtx_CONST (Pmode, result);
-	      result = gen_rtx_PLUS (Pmode, pic_offset_table_rtx, result);
-	      result = gen_const_mem (Pmode, result);
-	      result = gen_rtx_PLUS (Pmode, xplus0, result);
-	      return result;
+             if (microblaze_tls_symbol_p(xplus1) )
+               {
+                 rtx tls_ref;
+
+                 tls_ref = microblaze_legitimize_tls_address (xplus1, NULL_RTX);
+	         result = gen_rtx_PLUS (Pmode, xplus0, tls_ref);
+
+                 return result;
+               }
+             else if (flag_pic == 2)
+               {
+                 rtx pic_ref, reg;
+                 reg = gen_reg_rtx (Pmode);
+
+	         pic_ref =
+		   gen_rtx_UNSPEC (Pmode, gen_rtvec (1, xplus1), UNSPEC_GOTOFF);
+	         pic_ref = gen_rtx_CONST (Pmode, pic_ref);
+	         pic_ref = gen_rtx_PLUS (Pmode, pic_offset_table_rtx, pic_ref);
+	         pic_ref = gen_const_mem (Pmode, pic_ref);
+         	 emit_move_insn (reg, pic_ref);
+	         result = gen_rtx_PLUS (Pmode, xplus0, reg);
+	         return result;
+               }
 	    }
 	}
     }
 
   if (GET_CODE (xinsn) == SYMBOL_REF)
     {
-      if (reload_in_progress)
-	df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
-      result = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, xinsn), UNSPEC_GOTOFF);
-      result = gen_rtx_CONST (Pmode, result);
-      result = gen_rtx_PLUS (Pmode, pic_offset_table_rtx, result);
-      result = gen_const_mem (Pmode, result);
-      return result;
+      rtx reg;
+      if (microblaze_tls_symbol_p(xinsn) )
+        {
+          reg = microblaze_legitimize_tls_address (xinsn, NULL_RTX);
+        }
+      else
+        {
+          rtx pic_ref;
+      
+          if (reload_in_progress)
+	    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
+          reg = gen_reg_rtx (Pmode);
+	  pic_ref =
+	     gen_rtx_UNSPEC (Pmode, gen_rtvec (1, xinsn), UNSPEC_GOTOFF);
+  	  pic_ref = gen_rtx_CONST (Pmode, pic_ref);
+	  pic_ref = gen_rtx_PLUS (Pmode, pic_offset_table_rtx, pic_ref);
+	  pic_ref = gen_const_mem (Pmode, pic_ref);
+          emit_move_insn (reg, pic_ref);
+        }
+       return reg;
     }
 
   return x;
@@ -1062,6 +1229,9 @@ microblaze_address_insns (rtx x, enum machine_mode mode)
 	  return 1;
 	case ADDRESS_GOTOFF:
 	  return 2;
+	case ADDRESS_TLS:
+          /* REVISIT: Handle TLS Models */
+	  return 4;
 	default:
 	  break;
 	}
@@ -1080,12 +1250,14 @@ microblaze_address_cost (rtx addr, bool speed ATTRIBUTE_UNUSED)
 /* Return nonzero if X is an address which needs a temporary register when 
    reloaded while generating PIC code.  */
 
+/* REVISIT: TLS */
 int
 pic_address_needs_scratch (rtx x)
 {
   /* An address which is a symbolic plus a non SMALL_INT needs a temp reg.  */
   if (GET_CODE (x) == CONST && GET_CODE (XEXP (x, 0)) == PLUS
       && GET_CODE (XEXP (XEXP (x, 0), 0)) == SYMBOL_REF
+      && ! microblaze_tls_symbol_p (XEXP (XEXP (x, 0), 0))
       && GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST_INT
       && (flag_pic == 2 || !SMALL_INT (XEXP (XEXP (x, 0), 1))))
     return 1;
@@ -1938,6 +2110,7 @@ print_operand (FILE * file, rtx op, int letter)
 	    case ADDRESS_CONST_INT:
 	    case ADDRESS_SYMBOLIC:
 	    case ADDRESS_GOTOFF:
+	    case ADDRESS_TLS:
 	      fputs ("i", file);
 	      break;
 	    case ADDRESS_REG_INDEX:
@@ -2118,6 +2291,7 @@ print_operand_address (FILE * file, rtx addr)
     case ADDRESS_SYMBOLIC:
     case ADDRESS_GOTOFF:
     case ADDRESS_PLT:
+    case ADDRESS_TLS:
       if (info.regA)
 	fprintf (file, "%s,", reg_names[REGNO (info.regA)]);
       output_addr_const (file, info.symbol);
@@ -2128,6 +2302,24 @@ print_operand_address (FILE * file, rtx addr)
       else if (type == ADDRESS_PLT)
 	{
 	  fputs ("@PLT", file);
+	}
+      else if (type == ADDRESS_TLS)
+	{
+          switch (info.tls_type) 
+            {
+              case TLS_GD:
+	        fputs ("@TLSGD", file);
+                break;
+              case TLS_LDM:
+	        fputs ("@TLSLDM", file);
+                break;
+              case TLS_DTPREL:
+	        fputs ("@TLSDTPREL", file);
+                break;
+              default :
+                abort();
+                break;
+            }
 	}
       break;
     case ADDRESS_INVALID:
@@ -2723,82 +2915,83 @@ microblaze_expand_move (enum machine_mode mode, rtx operands[])
 {
   /* If operands[1] is a constant address invalid for pic, then we need to
      handle it just like LEGITIMIZE_ADDRESS does.  */
-  if (flag_pic)
-    {
+
       if (GET_CODE (operands[0]) == MEM)
 	{
 	  rtx addr = XEXP (operands[0], 0);
 	  if (GET_CODE (addr) == SYMBOL_REF)
 	    {
-	      rtx ptr_reg, result;
+              if (microblaze_tls_symbol_p(addr))
+                {
+                  rtx result;
 
-	      if (reload_in_progress)
-		df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
+                  addr = microblaze_legitimize_tls_address (addr, NULL_RTX);
+	          result = gen_rtx_MEM (mode, addr);
+	          operands[0] = result;
+                }
+              else if (flag_pic)
+                {
+	          if (reload_in_progress)
+    		    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 
-	      addr = expand_pic_symbol_ref (mode, addr);
-	      ptr_reg = gen_reg_rtx (Pmode);
-	      emit_move_insn (ptr_reg, addr);
-	      result = gen_rtx_MEM (mode, ptr_reg);
-	      operands[0] = result;
+	          rtx ptr_reg, result;
+
+	          addr = expand_pic_symbol_ref (mode, addr);
+	          ptr_reg = gen_reg_rtx (Pmode);
+	          emit_move_insn (ptr_reg, addr);
+	          result = gen_rtx_MEM (mode, ptr_reg);
+	          operands[0] = result;
+                }
 	    }
 	}
       if (GET_CODE (operands[1]) == SYMBOL_REF
 	  || GET_CODE (operands[1]) == LABEL_REF)
 	{
 	  rtx result;
-	  if (reload_in_progress)
-	    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
-	  result = expand_pic_symbol_ref (mode, operands[1]);
-	  if (GET_CODE (operands[0]) != REG)
-	    {
-	      rtx ptr_reg = gen_reg_rtx (Pmode);
-	      emit_move_insn (ptr_reg, result);
-	      emit_move_insn (operands[0], ptr_reg);
-	    }
-	  else
-	    {
-	      emit_move_insn (operands[0], result);
-	    }
-	  return true;
+	  bool change_op1 = false;
+          
+          if (microblaze_tls_symbol_p(operands[1]))
+            {
+              result = microblaze_legitimize_tls_address (operands[1], NULL_RTX);
+              change_op1 = true;
+            }
+          else if (flag_pic)
+            {
+	      if (reload_in_progress)
+	        df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
+	      result = expand_pic_symbol_ref (mode, operands[1]);
+              change_op1 = true;
+            }
+          if (change_op1) 
+            {
+	      if (GET_CODE (operands[0]) != REG)
+	        {
+	          rtx ptr_reg = gen_reg_rtx (Pmode);
+	          emit_move_insn (ptr_reg, result);
+	          emit_move_insn (operands[0], ptr_reg);
+	        }
+	      else
+	        {
+	          emit_move_insn (operands[0], result);
+	        }
+	      return true;
+            }
 	}
       else if (GET_CODE (operands[1]) == MEM &&
-	       GET_CODE (XEXP (operands[1], 0)) == SYMBOL_REF)
+	       (GET_CODE (XEXP (operands[1], 0)) == SYMBOL_REF))
 	{
 	  rtx result;
 	  rtx ptr_reg;
-	  if (reload_in_progress)
-	    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
-	  result = expand_pic_symbol_ref (mode, XEXP (operands[1], 0));
+	  bool change_op1 = false;
 
-	  ptr_reg = gen_reg_rtx (Pmode);
-
-	  emit_move_insn (ptr_reg, result);
-	  result = gen_rtx_MEM (mode, ptr_reg);
-	  emit_move_insn (operands[0], result);
-	  return true;
-	}
-      else if (pic_address_needs_scratch (operands[1]))
-	{
-	  rtx temp = force_reg (SImode, XEXP (XEXP (operands[1], 0), 0));
-	  rtx temp2 = XEXP (XEXP (operands[1], 0), 1);
-
-	  if (reload_in_progress)
-	    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
-	  emit_move_insn (operands[0], gen_rtx_PLUS (SImode, temp, temp2));
-	  return true;
-	}
-    }
-
-  if ((reload_in_progress | reload_completed) == 0
-      && !register_operand (operands[0], SImode)
-      && !register_operand (operands[1], SImode)
-      && (GET_CODE (operands[1]) != CONST_INT || INTVAL (operands[1]) != 0))
-    {
-      rtx temp = force_reg (SImode, operands[1]);
-      emit_move_insn (operands[0], temp);
-      return true;
-    }
-  return false;
+          if (microblaze_tls_symbol_p (XEXP (operands[1], 0)) )
+            {
+              ptr_reg = microblaze_legitimize_tls_address (
+                           XEXP (operands[1], 0) , NULL_RTX);
+	      change_op1 = true;
+            }
+         }
+    return false;
 }
 
 /* Expand shift operations.  */
