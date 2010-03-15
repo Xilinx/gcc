@@ -2492,6 +2492,11 @@ then edge $MSTEP_THEN.}#
   :fields (mstep_then))
 
 
+(defclass class_match_step_clear
+  :super class_match_step_then
+  :doc #{The $CLASS_MATCH_STEP_CLEAR is a step to clear the $MSTEP_CLEARDATA tuple of matched data.}#
+  :fields (mstep_cleardata))
+
 (defclass class_match_step_assign_flag
   :super class_match_step_then
   :doc #{The $CLASS_MATCH_STEP_ASSIGN_FLAG super-class assigns a match
@@ -3121,14 +3126,14 @@ the data of the $STEP with an extra context $CTX.}#
     (debug_msg symbval "translpat_varpat symbval")
     (put_fields mflag :mflag_setstep flagstep)
     (debug_msg flagstep "translpat_varpat flagstep")
-    (foreach_in_list
-     (mhandlers)
-     (curpair curhandler)
-     (curhandler recv mdata mcase symbval sloc))
     (cond 
      ( (null symbval)
        (mapobject_put varmap symb mdata)
        (debug_msg varmap "translpat_varpat updated varmap & return null")
+       (foreach_in_list
+	(mhandlers)
+	(curpair curhandler)
+	(curhandler recv mdata mcase symbval flagstep mflag sloc))
        (return flagstep mflag)
        )
      (:else
@@ -3145,6 +3150,10 @@ the data of the $STEP with an extra context $CTX.}#
 	    (progn
 	      (debug_msg curteststep "translpat_varpat found curteststep")
 	      (put_then_match curteststep flagstep)
+	      (foreach_in_list
+	       (mhandlers)
+	       (curpair curhandler)
+	       (curhandler recv mdata mcase symbval curteststep mflag sloc))
 	      (return curteststep mflag)))
 	  ( (is_a curteststep class_match_step_test)
 	    (setq laststeptest curteststep))
@@ -3164,6 +3173,10 @@ the data of the $STEP with an extra context $CTX.}#
 		(put_else_match laststeptest steptest)
 		(debug_msg laststeptest "translpat_varpat updated laststeptest")))
 	  (debug_msg steptest "translpat_varpat return steptest")
+	  (foreach_in_list
+	   (mhandlers)
+	   (curpair curhandler)
+	   (curhandler recv mdata mcase symbval steptest mflag sloc))
 	  (return steptest mflag)
 	  ))))
     ))
@@ -3269,6 +3282,7 @@ the data of the $STEP with an extra context $CTX.}#
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
 	(sdisj (unsafe_get_field :orpat_disj recv))
 	(mctxt (unsafe_get_field :mcase_mctxt mcase))
+	(mhandlers (get_field :mctx_varhandlers mctxt))
 	(stepgroup (instance class_match_step_test_group
 			     :loca_location sloc
 			     :mstep_data mdata
@@ -3284,6 +3298,7 @@ the data of the $STEP with an extra context $CTX.}#
 			    :mstep_flag mflag
 			    ))
 	(flaglist (make_list discr_list))
+	(steplist (make_list discr_list))
 	)
     (debug_msg flagstep "translpat_orpat flagstep")
     (assert_msg "check sdisj" (is_multiple sdisj))
@@ -3292,12 +3307,53 @@ the data of the $STEP with an extra context $CTX.}#
      (sdisj)
      (curdisj :long disjix)
      (debug_msg curdisj "translpat_orpat curdisj")
-     (multicall 
-      (disjstep disjflag)
-      (translate_pattern curdisj mdata mcase varmap sloc)
-      (debug_msg disjstep "translpat_orpat disjstep")
-      (debug_msg disjflag "translpat_orpat disjflag")
-     ))
+     (let (
+	   (newvarmap (make_mapobject discr_map_objects 11))
+	   (varhandler
+	    (lambda 
+	      (varpat varmdata varmcase varsymbval varflagstep varmflag varsloc)
+	      (debug_msg varpat "translpat_orpat.varhandler varpat")
+	      (debug_msg varmdata "translpat_orpat.varhandler varmdata")
+	      (assert_msg "check varpat" (is_a varpat class_source_pattern_variable))
+	      (assert_msg "check varmdata" (is_a varmdata class_matched_data))
+	      (if (null varsymbval)
+		  (progn
+		    (mapobject_put newvarmap (get_field :spatvar_symb varpat)
+				   varmdata)
+		    (debug_msg newvarmap "translpat_orpat.varhandler updated newvarmap")
+		    ))
+	      ))
+	   )
+       (list_prepend mhandlers varhandler)
+       (multicall 
+	(disjstep disjflag)
+	(translate_pattern curdisj mdata mcase varmap sloc)
+	(debug_msg disjstep "translpat_orpat disjstep")
+	(debug_msg disjflag "translpat_orpat disjflag")
+	(if disjflag
+	    (list_append flagstep disjflag))
+	(if disjstep
+	    (if (>i (mapobject_count newvarmap) 0)
+		(let ( (erasestep (instance class_match_step_clear
+					    :mstep_then ())
+				  )
+		       )
+		  (compile_warning "translpat_orpat to be completed")
+		  )))
+	(if (is_a disjstep class_match_step_test)
+	    (progn
+	      (if (null firststep) 
+		  (setq firststep disjstep))
+	      (list_append steplist disjstep)
+	      (setq laststep disjstep)
+	      ))
+	)
+       (debug_msg newvarmap "translpat_orpat newvarmap")
+       (let ( (oldvarhdler (list_popfirst mhandlers)) 
+	      )
+	 (assert_msg "check oldvarhdler" (== oldvarhdler varhandler))
+	 ))
+     )
     (error_plain sloc "unimplemented translpat_orpat")
     (assert_msg "@$@unimplemented translpat_orpat")
     ))

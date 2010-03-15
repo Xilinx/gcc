@@ -1,3 +1,6 @@
+2010-03-15 Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: translpat_orpat still incomplete.
+
 2010-03-14 Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in (gt-melt-runtime-plugin.h): new target, useless
