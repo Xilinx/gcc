@@ -169,6 +169,13 @@ typedef struct micro_operation_def
   /* Type of micro operation.  */
   enum micro_operation_type type;
 
+  /* The instruction which the micro operation is in, for MO_USE,
+     MO_USE_NO_VAR, MO_CALL and MO_ADJUST, or the subsequent
+     instruction or note in the original flow (before any var-tracking
+     notes are inserted, to simplify emission of notes), for MO_SET
+     and MO_CLOBBER.  */
+  rtx insn;
+
   union {
     /* Location.  For MO_SET and MO_COPY, this is the SET that
        performs the assignment, if known, otherwise it is the target
@@ -181,14 +188,10 @@ typedef struct micro_operation_def
     /* Stack adjustment.  */
     HOST_WIDE_INT adjust;
   } u;
-
-  /* The instruction which the micro operation is in, for MO_USE,
-     MO_USE_NO_VAR, MO_CALL and MO_ADJUST, or the subsequent
-     instruction or note in the original flow (before any var-tracking
-     notes are inserted, to simplify emission of notes), for MO_SET
-     and MO_CLOBBER.  */
-  rtx insn;
 } micro_operation;
+
+DEF_VEC_O(micro_operation);
+DEF_VEC_ALLOC_O(micro_operation,heap);
 
 /* A declaration of a variable, or an RTL value being handled like a
    declaration.  */
@@ -258,11 +261,8 @@ typedef struct dataflow_set_def
    needed for variable tracking.  */
 typedef struct variable_tracking_info_def
 {
-  /* Number of micro operations stored in the MOS array.  */
-  int n_mos;
-
-  /* The array of micro operations.  */
-  micro_operation *mos;
+  /* The vector of micro operations.  */
+  VEC(micro_operation, heap) *mos;
 
   /* The IN and OUT set for dataflow analysis.  */
   dataflow_set in;
@@ -453,9 +453,6 @@ static void dataflow_set_destroy (dataflow_set *);
 static bool contains_symbol_ref (rtx);
 static bool track_expr_p (tree, bool);
 static bool same_variable_part_p (rtx, tree, HOST_WIDE_INT);
-static int count_uses (rtx *, void *);
-static void count_uses_1 (rtx *, void *);
-static void count_stores (rtx, const_rtx, void *);
 static int add_uses (rtx *, void *);
 static void add_uses_1 (rtx *, void *);
 static void add_stores (rtx, const_rtx, void *);
@@ -626,20 +623,18 @@ static void
 bb_stack_adjust_offset (basic_block bb)
 {
   HOST_WIDE_INT offset;
-  int i;
+  unsigned int i;
+  micro_operation *mo;
 
   offset = VTI (bb)->in.stack_adjust;
-  for (i = 0; i < VTI (bb)->n_mos; i++)
+  for (i = 0; VEC_iterate (micro_operation, VTI (bb)->mos, i, mo); i++)
     {
-      if (VTI (bb)->mos[i].type == MO_ADJUST)
-	offset += VTI (bb)->mos[i].u.adjust;
-      else if (VTI (bb)->mos[i].type != MO_CALL)
+      if (mo->type == MO_ADJUST)
+	offset += mo->u.adjust;
+      else if (mo->type != MO_CALL)
 	{
-	  if (MEM_P (VTI (bb)->mos[i].u.loc))
-	    {
-	      VTI (bb)->mos[i].u.loc
-		= adjust_stack_reference (VTI (bb)->mos[i].u.loc, -offset);
-	    }
+	  if (MEM_P (mo->u.loc))
+	    mo->u.loc = adjust_stack_reference (mo->u.loc, -offset);
 	}
     }
   VTI (bb)->out.stack_adjust = offset;
@@ -2674,6 +2669,7 @@ remove_value_chains (decl_or_value dv, rtx loc)
   for_each_rtx (&loc, remove_value_chain, dv_as_opaque (dv));
 }
 
+#if ENABLE_CHECKING
 /* If CSELIB_VAL_PTR of value DV refer to VALUEs, remove backlinks from those
    VALUEs to DV.  */
 
@@ -2686,7 +2682,6 @@ remove_cselib_value_chains (decl_or_value dv)
     for_each_rtx (&l->loc, remove_value_chain, dv_as_opaque (dv));
 }
 
-#if ENABLE_CHECKING
 /* Check the order of entries in one-part variables.   */
 
 static int
@@ -3825,8 +3820,6 @@ dataflow_set_preserve_mem_locs (void **slot, void *data)
       if (!var->var_part[0].loc_chain)
 	{
 	  var->n_var_parts--;
-	  if (emit_notes && dv_is_value_p (var->dv))
-	    remove_cselib_value_chains (var->dv);
 	  changed = true;
 	}
       if (changed)
@@ -3895,8 +3888,6 @@ dataflow_set_remove_mem_locs (void **slot, void *data)
       if (!var->var_part[0].loc_chain)
 	{
 	  var->n_var_parts--;
-	  if (emit_notes && dv_is_value_p (var->dv))
-	    remove_cselib_value_chains (var->dv);
 	  changed = true;
 	}
       if (changed)
@@ -4493,143 +4484,34 @@ log_op_type (rtx x, basic_block bb, rtx insn,
 	     enum micro_operation_type mopt, FILE *out)
 {
   fprintf (out, "bb %i op %i insn %i %s ",
-	   bb->index, VTI (bb)->n_mos - 1,
+	   bb->index, VEC_length (micro_operation, VTI (bb)->mos),
 	   INSN_UID (insn), micro_operation_type_name[mopt]);
   print_inline_rtx (out, x, 2);
   fputc ('\n', out);
 }
 
-/* Count uses (register and memory references) LOC which will be tracked.
-   INSN is instruction which the LOC is part of.  */
+/* Adjust sets if needed.  Currently this optimizes read-only MEM loads
+   if REG_EQUAL/REG_EQUIV note is present.  */
 
-static int
-count_uses (rtx *ploc, void *cuip)
+static void
+adjust_sets (rtx insn, struct cselib_set *sets, int n_sets)
 {
-  rtx loc = *ploc;
-  struct count_use_info *cui = (struct count_use_info *) cuip;
-  enum micro_operation_type mopt = use_type (loc, cui, NULL);
-
-  if (mopt != MO_CLOBBER)
+  if (n_sets == 1 && MEM_P (sets[0].src) && MEM_READONLY_P (sets[0].src))
     {
-      cselib_val *val;
-      enum machine_mode mode = GET_MODE (loc);
+      /* For read-only MEMs containing some constant, prefer those
+	 constants.  */
+      rtx note = find_reg_equal_equiv_note (insn), src;
 
-      switch (mopt)
+      if (note && CONSTANT_P (XEXP (note, 0)))
 	{
-	case MO_VAL_LOC:
-	  loc = PAT_VAR_LOCATION_LOC (loc);
-	  if (VAR_LOC_UNKNOWN_P (loc))
-	    break;
-	  /* Fall through.  */
-
-	case MO_VAL_USE:
-	case MO_VAL_SET:
-	  if (MEM_P (loc)
-	      && !REG_P (XEXP (loc, 0)) && !MEM_P (XEXP (loc, 0)))
-	    {
-	      enum machine_mode address_mode
-		= targetm.addr_space.address_mode (MEM_ADDR_SPACE (loc));
-	      val = cselib_lookup (XEXP (loc, 0), address_mode, 0);
-
-	      if (val && !cselib_preserved_value_p (val))
-		{
-		  VTI (cui->bb)->n_mos++;
-		  cselib_preserve_value (val);
-		  if (dump_file && (dump_flags & TDF_DETAILS))
-		    log_op_type (XEXP (loc, 0), cui->bb, cui->insn,
-				 MO_VAL_USE, dump_file);
-		}
-	    }
-
-	  val = find_use_val (loc, mode, cui);
-	  if (val)
-	    {
-	      if (mopt == MO_VAL_SET
-		  && GET_CODE (PATTERN (cui->insn)) == COND_EXEC
-		  && (REG_P (loc)
-		      || (MEM_P (loc)
-			  && (use_type (loc, NULL, NULL) == MO_USE
-			      || cui->sets))))
-		{
-		  cselib_val *oval = cselib_lookup (loc, GET_MODE (loc), 0);
-
-		  gcc_assert (oval != val);
-		  gcc_assert (REG_P (loc) || MEM_P (loc));
-
-		  if (!cselib_preserved_value_p (oval))
-		    {
-		      VTI (cui->bb)->n_mos++;
-		      cselib_preserve_value (oval);
-		      if (dump_file && (dump_flags & TDF_DETAILS))
-			log_op_type (loc, cui->bb, cui->insn,
-				     MO_VAL_USE, dump_file);
-		    }
-		}
-
-	      cselib_preserve_value (val);
-	    }
-	  else
-	    gcc_assert (mopt == MO_VAL_LOC
-			|| (mopt == MO_VAL_SET && cui->store_p));
-
-	  break;
-
-	default:
-	  break;
+	  sets[0].src = src = XEXP (note, 0);
+	  if (GET_CODE (PATTERN (insn)) == COND_EXEC)
+	    src = gen_rtx_IF_THEN_ELSE (GET_MODE (sets[0].dest),
+					COND_EXEC_TEST (PATTERN (insn)),
+					src, sets[0].dest);
+	  sets[0].src_elt = cselib_lookup (src, GET_MODE (sets[0].dest), 1);
 	}
-
-      VTI (cui->bb)->n_mos++;
-      if (dump_file && (dump_flags & TDF_DETAILS))
-	log_op_type (loc, cui->bb, cui->insn, mopt, dump_file);
     }
-
-  return 0;
-}
-
-/* Helper function for finding all uses of REG/MEM in X in CUI's
-   insn.  */
-
-static void
-count_uses_1 (rtx *x, void *cui)
-{
-  for_each_rtx (x, count_uses, cui);
-}
-
-/* Count stores (register and memory references) LOC which will be
-   tracked.  CUI is a count_use_info object containing the instruction
-   which the LOC is part of.  */
-
-static void
-count_stores (rtx loc, const_rtx expr ATTRIBUTE_UNUSED, void *cui)
-{
-  count_uses (&loc, cui);
-}
-
-/* Callback for cselib_record_sets_hook, that counts how many micro
-   operations it takes for uses and stores in an insn after
-   cselib_record_sets has analyzed the sets in an insn, but before it
-   modifies the stored values in the internal tables, unless
-   cselib_record_sets doesn't call it directly (perhaps because we're
-   not doing cselib in the first place, in which case sets and n_sets
-   will be 0).  */
-
-static void
-count_with_sets (rtx insn, struct cselib_set *sets, int n_sets)
-{
-  basic_block bb = BLOCK_FOR_INSN (insn);
-  struct count_use_info cui;
-
-  cselib_hook_called = true;
-
-  cui.insn = insn;
-  cui.bb = bb;
-  cui.sets = sets;
-  cui.n_sets = n_sets;
-
-  cui.store_p = false;
-  note_uses (&PATTERN (insn), count_uses_1, &cui);
-  cui.store_p = true;
-  note_stores (PATTERN (insn), count_stores, &cui);
 }
 
 /* Tell whether the CONCAT used to holds a VALUE and its location
@@ -4654,6 +4536,18 @@ count_with_sets (rtx insn, struct cselib_set *sets, int n_sets)
 #define VAL_EXPR_HAS_REVERSE(x) \
   (RTL_FLAG_CHECK1 ("VAL_EXPR_HAS_REVERSE", (x), CONCAT)->return_val)
 
+/* All preserved VALUEs.  */
+static VEC (rtx, heap) *preserved_values;
+
+/* Ensure VAL is preserved and remember it in a vector for vt_emit_notes.  */
+
+static void
+preserve_value (cselib_val *val)
+{
+  cselib_preserve_value (val);
+  VEC_safe_push (rtx, heap, preserved_values, val->val_rtx);
+}
+
 /* Add uses (register and memory references) LOC which will be tracked
    to VTI (bb)->mos.  INSN is instruction which the LOC is part of.  */
 
@@ -4668,11 +4562,11 @@ add_uses (rtx *ploc, void *data)
   if (type != MO_CLOBBER)
     {
       basic_block bb = cui->bb;
-      micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
+      micro_operation mo;
 
-      mo->type = type;
-      mo->u.loc = type == MO_USE ? var_lowpart (mode, loc) : loc;
-      mo->insn = cui->insn;
+      mo.type = type;
+      mo.u.loc = type == MO_USE ? var_lowpart (mode, loc) : loc;
+      mo.insn = cui->insn;
 
       if (type == MO_VAL_LOC)
 	{
@@ -4693,19 +4587,17 @@ add_uses (rtx *ploc, void *data)
 
 	      if (val && !cselib_preserved_value_p (val))
 		{
-		  micro_operation *mon = VTI (bb)->mos + VTI (bb)->n_mos++;
-		  mon->type = mo->type;
-		  mon->u.loc = mo->u.loc;
-		  mon->insn = mo->insn;
-		  cselib_preserve_value (val);
-		  mo->type = MO_VAL_USE;
+		  micro_operation moa;
+		  preserve_value (val);
 		  mloc = cselib_subst_to_values (XEXP (mloc, 0));
-		  mo->u.loc = gen_rtx_CONCAT (address_mode,
+		  moa.type = MO_VAL_USE;
+		  moa.insn = cui->insn;
+		  moa.u.loc = gen_rtx_CONCAT (address_mode,
 					      val->val_rtx, mloc);
 		  if (dump_file && (dump_flags & TDF_DETAILS))
-		    log_op_type (mo->u.loc, cui->bb, cui->insn,
-				 mo->type, dump_file);
-		  mo = mon;
+		    log_op_type (moa.u.loc, cui->bb, cui->insn,
+				 moa.type, dump_file);
+		  VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &moa);
 		}
 	    }
 
@@ -4733,7 +4625,7 @@ add_uses (rtx *ploc, void *data)
 		  && !cselib_preserved_value_p (val))
 		{
 		  VAL_NEEDS_RESOLUTION (oloc) = 1;
-		  cselib_preserve_value (val);
+		  preserve_value (val);
 		}
 	    }
 	  else if (!VAR_LOC_UNKNOWN_P (vloc))
@@ -4742,7 +4634,7 @@ add_uses (rtx *ploc, void *data)
 	      PAT_VAR_LOCATION_LOC (oloc) = gen_rtx_UNKNOWN_VAR_LOC ();
 	    }
 
-	  mo->u.loc = oloc;
+	  mo.u.loc = oloc;
 	}
       else if (type == MO_VAL_USE)
 	{
@@ -4764,20 +4656,17 @@ add_uses (rtx *ploc, void *data)
 
 	      if (val && !cselib_preserved_value_p (val))
 		{
-		  micro_operation *mon = VTI (bb)->mos + VTI (bb)->n_mos++;
-		  mon->type = mo->type;
-		  mon->u.loc = mo->u.loc;
-		  mon->insn = mo->insn;
-		  cselib_preserve_value (val);
-		  mo->type = MO_VAL_USE;
+		  micro_operation moa;
+		  preserve_value (val);
 		  mloc = cselib_subst_to_values (XEXP (mloc, 0));
-		  mo->u.loc = gen_rtx_CONCAT (address_mode,
+		  moa.type = MO_VAL_USE;
+		  moa.insn = cui->insn;
+		  moa.u.loc = gen_rtx_CONCAT (address_mode,
 					      val->val_rtx, mloc);
-		  mo->insn = cui->insn;
 		  if (dump_file && (dump_flags & TDF_DETAILS))
-		    log_op_type (mo->u.loc, cui->bb, cui->insn,
-				 mo->type, dump_file);
-		  mo = mon;
+		    log_op_type (moa.u.loc, cui->bb, cui->insn,
+				 moa.type, dump_file);
+		  VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &moa);
 		}
 	    }
 
@@ -4810,21 +4699,22 @@ add_uses (rtx *ploc, void *data)
 	  else
 	    oloc = val->val_rtx;
 
-	  mo->u.loc = gen_rtx_CONCAT (mode, oloc, nloc);
+	  mo.u.loc = gen_rtx_CONCAT (mode, oloc, nloc);
 
 	  if (type2 == MO_USE)
-	    VAL_HOLDS_TRACK_EXPR (mo->u.loc) = 1;
+	    VAL_HOLDS_TRACK_EXPR (mo.u.loc) = 1;
 	  if (!cselib_preserved_value_p (val))
 	    {
-	      VAL_NEEDS_RESOLUTION (mo->u.loc) = 1;
-	      cselib_preserve_value (val);
+	      VAL_NEEDS_RESOLUTION (mo.u.loc) = 1;
+	      preserve_value (val);
 	    }
 	}
       else
 	gcc_assert (type == MO_USE || type == MO_USE_NO_VAR);
 
       if (dump_file && (dump_flags & TDF_DETAILS))
-	log_op_type (mo->u.loc, cui->bb, cui->insn, mo->type, dump_file);
+	log_op_type (mo.u.loc, cui->bb, cui->insn, mo.type, dump_file);
+      VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &mo);
     }
 
   return 0;
@@ -4924,6 +4814,21 @@ reverse_op (rtx val, const_rtx expr)
   return gen_rtx_CONCAT (GET_MODE (v->val_rtx), v->val_rtx, ret);
 }
 
+/* Return SRC, or, if it is a read-only MEM for which adjust_sets
+   replated it with a constant from REG_EQUIV/REG_EQUAL note,
+   that constant.  */
+
+static inline rtx
+get_adjusted_src (struct count_use_info *cui, rtx src)
+{
+  if (cui->n_sets == 1
+      && MEM_P (src)
+      && MEM_READONLY_P (src)
+      && CONSTANT_P (cui->sets[0].src))
+    return cui->sets[0].src;
+  return src;
+}
+
 /* Add stores (register and memory references) LOC which will be tracked
    to VTI (bb)->mos.  EXPR is the RTL expression containing the store.
    CUIP->insn is instruction which the LOC is part of.  */
@@ -4934,7 +4839,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
   enum machine_mode mode = VOIDmode, mode2;
   struct count_use_info *cui = (struct count_use_info *)cuip;
   basic_block bb = cui->bb;
-  micro_operation *mo;
+  micro_operation mo;
   rtx oloc = loc, nloc, src = NULL;
   enum micro_operation_type type = use_type (loc, cui, &mode);
   bool track_p = false;
@@ -4949,25 +4854,26 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 
   if (REG_P (loc))
     {
-      mo = VTI (bb)->mos + VTI (bb)->n_mos++;
-
       if ((GET_CODE (expr) == CLOBBER && type != MO_VAL_SET)
 	  || !(track_p = use_type (loc, NULL, &mode2) == MO_USE)
 	  || GET_CODE (expr) == CLOBBER)
 	{
-	  mo->type = MO_CLOBBER;
-	  mo->u.loc = loc;
+	  mo.type = MO_CLOBBER;
+	  mo.u.loc = loc;
 	}
       else
 	{
 	  if (GET_CODE (expr) == SET && SET_DEST (expr) == loc)
-	    src = var_lowpart (mode2, SET_SRC (expr));
+	    {
+	      src = get_adjusted_src (cui, SET_SRC (expr));
+	      src = var_lowpart (mode2, src);
+	    }
 	  loc = var_lowpart (mode2, loc);
 
 	  if (src == NULL)
 	    {
-	      mo->type = MO_SET;
-	      mo->u.loc = loc;
+	      mo.type = MO_SET;
+	      mo.u.loc = loc;
 	    }
 	  else
 	    {
@@ -4976,20 +4882,18 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 	      if (SET_SRC (expr) != src)
 		xexpr = gen_rtx_SET (VOIDmode, loc, src);
 	      if (same_variable_part_p (src, REG_EXPR (loc), REG_OFFSET (loc)))
-		mo->type = MO_COPY;
+		mo.type = MO_COPY;
 	      else
-		mo->type = MO_SET;
-	      mo->u.loc = xexpr;
+		mo.type = MO_SET;
+	      mo.u.loc = xexpr;
 	    }
 	}
-      mo->insn = cui->insn;
+      mo.insn = cui->insn;
     }
   else if (MEM_P (loc)
 	   && ((track_p = use_type (loc, NULL, &mode2) == MO_USE)
 	       || cui->sets))
     {
-      mo = VTI (bb)->mos + VTI (bb)->n_mos++;
-
       if (MEM_P (loc) && type == MO_VAL_SET
 	  && !REG_P (XEXP (loc, 0)) && !MEM_P (XEXP (loc, 0)))
 	{
@@ -5000,33 +4904,36 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 
 	  if (val && !cselib_preserved_value_p (val))
 	    {
-	      cselib_preserve_value (val);
-	      mo->type = MO_VAL_USE;
+	      preserve_value (val);
+	      mo.type = MO_VAL_USE;
 	      mloc = cselib_subst_to_values (XEXP (mloc, 0));
-	      mo->u.loc = gen_rtx_CONCAT (address_mode, val->val_rtx, mloc);
-	      mo->insn = cui->insn;
+	      mo.u.loc = gen_rtx_CONCAT (address_mode, val->val_rtx, mloc);
+	      mo.insn = cui->insn;
 	      if (dump_file && (dump_flags & TDF_DETAILS))
-		log_op_type (mo->u.loc, cui->bb, cui->insn,
-			     mo->type, dump_file);
-	      mo = VTI (bb)->mos + VTI (bb)->n_mos++;
+		log_op_type (mo.u.loc, cui->bb, cui->insn,
+			     mo.type, dump_file);
+	      VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &mo);
 	    }
 	}
 
       if (GET_CODE (expr) == CLOBBER || !track_p)
 	{
-	  mo->type = MO_CLOBBER;
-	  mo->u.loc = track_p ? var_lowpart (mode2, loc) : loc;
+	  mo.type = MO_CLOBBER;
+	  mo.u.loc = track_p ? var_lowpart (mode2, loc) : loc;
 	}
       else
 	{
 	  if (GET_CODE (expr) == SET && SET_DEST (expr) == loc)
-	    src = var_lowpart (mode2, SET_SRC (expr));
+	    {
+	      src = get_adjusted_src (cui, SET_SRC (expr));
+	      src = var_lowpart (mode2, src);
+	    }
 	  loc = var_lowpart (mode2, loc);
 
 	  if (src == NULL)
 	    {
-	      mo->type = MO_SET;
-	      mo->u.loc = loc;
+	      mo.type = MO_SET;
+	      mo.u.loc = loc;
 	    }
 	  else
 	    {
@@ -5037,13 +4944,13 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 	      if (same_variable_part_p (SET_SRC (xexpr),
 					MEM_EXPR (loc),
 					INT_MEM_OFFSET (loc)))
-		mo->type = MO_COPY;
+		mo.type = MO_COPY;
 	      else
-		mo->type = MO_SET;
-	      mo->u.loc = xexpr;
+		mo.type = MO_SET;
+	      mo.u.loc = xexpr;
 	    }
 	}
-      mo->insn = cui->insn;
+      mo.insn = cui->insn;
     }
   else
     return;
@@ -5071,58 +4978,60 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 
       if (!cselib_preserved_value_p (oval))
 	{
-	  micro_operation *nmo = VTI (bb)->mos + VTI (bb)->n_mos++;
+	  micro_operation moa;
 
-	  cselib_preserve_value (oval);
+	  preserve_value (oval);
 
-	  nmo->type = MO_VAL_USE;
-	  nmo->u.loc = gen_rtx_CONCAT (mode, oval->val_rtx, oloc);
-	  VAL_NEEDS_RESOLUTION (nmo->u.loc) = 1;
-	  nmo->insn = mo->insn;
+	  moa.type = MO_VAL_USE;
+	  moa.u.loc = gen_rtx_CONCAT (mode, oval->val_rtx, oloc);
+	  VAL_NEEDS_RESOLUTION (moa.u.loc) = 1;
+	  moa.insn = cui->insn;
 
 	  if (dump_file && (dump_flags & TDF_DETAILS))
-	    log_op_type (nmo->u.loc, cui->bb, cui->insn,
-			 nmo->type, dump_file);
+	    log_op_type (moa.u.loc, cui->bb, cui->insn,
+			 moa.type, dump_file);
+	  VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &moa);
 	}
 
       resolve = false;
     }
-  else if (resolve && GET_CODE (mo->u.loc) == SET)
+  else if (resolve && GET_CODE (mo.u.loc) == SET)
     {
-      nloc = replace_expr_with_values (SET_SRC (expr));
+      src = get_adjusted_src (cui, SET_SRC (expr));
+      nloc = replace_expr_with_values (src);
 
       /* Avoid the mode mismatch between oexpr and expr.  */
       if (!nloc && mode != mode2)
 	{
-	  nloc = SET_SRC (expr);
+	  nloc = src;
 	  gcc_assert (oloc == SET_DEST (expr));
 	}
 
       if (nloc)
-	oloc = gen_rtx_SET (GET_MODE (mo->u.loc), oloc, nloc);
+	oloc = gen_rtx_SET (GET_MODE (mo.u.loc), oloc, nloc);
       else
 	{
-	  if (oloc == SET_DEST (mo->u.loc))
+	  if (oloc == SET_DEST (mo.u.loc))
 	    /* No point in duplicating.  */
-	    oloc = mo->u.loc;
-	  if (!REG_P (SET_SRC (mo->u.loc)))
+	    oloc = mo.u.loc;
+	  if (!REG_P (SET_SRC (mo.u.loc)))
 	    resolve = false;
 	}
     }
   else if (!resolve)
     {
-      if (GET_CODE (mo->u.loc) == SET
-	  && oloc == SET_DEST (mo->u.loc))
+      if (GET_CODE (mo.u.loc) == SET
+	  && oloc == SET_DEST (mo.u.loc))
 	/* No point in duplicating.  */
-	oloc = mo->u.loc;
+	oloc = mo.u.loc;
     }
   else
     resolve = false;
 
   loc = gen_rtx_CONCAT (mode, v->val_rtx, oloc);
 
-  if (mo->u.loc != oloc)
-    loc = gen_rtx_CONCAT (GET_MODE (mo->u.loc), loc, mo->u.loc);
+  if (mo.u.loc != oloc)
+    loc = gen_rtx_CONCAT (GET_MODE (mo.u.loc), loc, mo.u.loc);
 
   /* The loc of a MO_VAL_SET may have various forms:
 
@@ -5149,30 +5058,31 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
       reverse = reverse_op (v->val_rtx, expr);
       if (reverse)
 	{
-	  loc = gen_rtx_CONCAT (GET_MODE (mo->u.loc), loc, reverse);
+	  loc = gen_rtx_CONCAT (GET_MODE (mo.u.loc), loc, reverse);
 	  VAL_EXPR_HAS_REVERSE (loc) = 1;
 	}
     }
 
-  mo->u.loc = loc;
+  mo.u.loc = loc;
 
   if (track_p)
     VAL_HOLDS_TRACK_EXPR (loc) = 1;
   if (preserve)
     {
       VAL_NEEDS_RESOLUTION (loc) = resolve;
-      cselib_preserve_value (v);
+      preserve_value (v);
     }
-  if (mo->type == MO_CLOBBER)
+  if (mo.type == MO_CLOBBER)
     VAL_EXPR_IS_CLOBBERED (loc) = 1;
-  if (mo->type == MO_COPY)
+  if (mo.type == MO_COPY)
     VAL_EXPR_IS_COPIED (loc) = 1;
 
-  mo->type = MO_VAL_SET;
+  mo.type = MO_VAL_SET;
 
  log_and_return:
   if (dump_file && (dump_flags & TDF_DETAILS))
-    log_op_type (mo->u.loc, cui->bb, cui->insn, mo->type, dump_file);
+    log_op_type (mo.u.loc, cui->bb, cui->insn, mo.type, dump_file);
+  VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &mo);
 }
 
 /* Callback for cselib_record_sets_hook, that records as micro
@@ -5188,88 +5098,113 @@ add_with_sets (rtx insn, struct cselib_set *sets, int n_sets)
   basic_block bb = BLOCK_FOR_INSN (insn);
   int n1, n2;
   struct count_use_info cui;
+  micro_operation *mos;
 
   cselib_hook_called = true;
+
+  adjust_sets (insn, sets, n_sets);
 
   cui.insn = insn;
   cui.bb = bb;
   cui.sets = sets;
   cui.n_sets = n_sets;
 
-  n1 = VTI (bb)->n_mos;
+  n1 = VEC_length (micro_operation, VTI (bb)->mos);
   cui.store_p = false;
   note_uses (&PATTERN (insn), add_uses_1, &cui);
-  n2 = VTI (bb)->n_mos - 1;
+  n2 = VEC_length (micro_operation, VTI (bb)->mos) - 1;
+  mos = VEC_address (micro_operation, VTI (bb)->mos);
 
   /* Order the MO_USEs to be before MO_USE_NO_VARs and MO_VAL_USE, and
      MO_VAL_LOC last.  */
   while (n1 < n2)
     {
-      while (n1 < n2 && VTI (bb)->mos[n1].type == MO_USE)
+      while (n1 < n2 && mos[n1].type == MO_USE)
 	n1++;
-      while (n1 < n2 && VTI (bb)->mos[n2].type != MO_USE)
+      while (n1 < n2 && mos[n2].type != MO_USE)
 	n2--;
       if (n1 < n2)
 	{
 	  micro_operation sw;
 
-	  sw = VTI (bb)->mos[n1];
-	  VTI (bb)->mos[n1] = VTI (bb)->mos[n2];
-	  VTI (bb)->mos[n2] = sw;
+	  sw = mos[n1];
+	  mos[n1] = mos[n2];
+	  mos[n2] = sw;
 	}
     }
 
-  n2 = VTI (bb)->n_mos - 1;
-
+  n2 = VEC_length (micro_operation, VTI (bb)->mos) - 1;
   while (n1 < n2)
     {
-      while (n1 < n2 && VTI (bb)->mos[n1].type != MO_VAL_LOC)
+      while (n1 < n2 && mos[n1].type != MO_VAL_LOC)
 	n1++;
-      while (n1 < n2 && VTI (bb)->mos[n2].type == MO_VAL_LOC)
+      while (n1 < n2 && mos[n2].type == MO_VAL_LOC)
 	n2--;
       if (n1 < n2)
 	{
 	  micro_operation sw;
 
-	  sw = VTI (bb)->mos[n1];
-	  VTI (bb)->mos[n1] = VTI (bb)->mos[n2];
-	  VTI (bb)->mos[n2] = sw;
+	  sw = mos[n1];
+	  mos[n1] = mos[n2];
+	  mos[n2] = sw;
 	}
     }
 
   if (CALL_P (insn))
     {
-      micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
+      micro_operation mo;
 
-      mo->type = MO_CALL;
-      mo->insn = insn;
+      mo.type = MO_CALL;
+      mo.insn = insn;
+      mo.u.loc = NULL_RTX;
 
       if (dump_file && (dump_flags & TDF_DETAILS))
-	log_op_type (PATTERN (insn), bb, insn, mo->type, dump_file);
+	log_op_type (PATTERN (insn), bb, insn, mo.type, dump_file);
+      VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &mo);
     }
 
-  n1 = VTI (bb)->n_mos;
+  n1 = VEC_length (micro_operation, VTI (bb)->mos);
   /* This will record NEXT_INSN (insn), such that we can
      insert notes before it without worrying about any
      notes that MO_USEs might emit after the insn.  */
   cui.store_p = true;
   note_stores (PATTERN (insn), add_stores, &cui);
-  n2 = VTI (bb)->n_mos - 1;
+  n2 = VEC_length (micro_operation, VTI (bb)->mos) - 1;
+  mos = VEC_address (micro_operation, VTI (bb)->mos);
 
-  /* Order the MO_CLOBBERs to be before MO_SETs.  */
+  /* Order the MO_VAL_USEs first (note_stores does nothing
+     on DEBUG_INSNs, so there are no MO_VAL_LOCs from this
+     insn), then MO_CLOBBERs, then MO_SET/MO_COPY/MO_VAL_SET.  */
   while (n1 < n2)
     {
-      while (n1 < n2 && VTI (bb)->mos[n1].type == MO_CLOBBER)
+      while (n1 < n2 && mos[n1].type == MO_VAL_USE)
 	n1++;
-      while (n1 < n2 && VTI (bb)->mos[n2].type != MO_CLOBBER)
+      while (n1 < n2 && mos[n2].type != MO_VAL_USE)
 	n2--;
       if (n1 < n2)
 	{
 	  micro_operation sw;
 
-	  sw = VTI (bb)->mos[n1];
-	  VTI (bb)->mos[n1] = VTI (bb)->mos[n2];
-	  VTI (bb)->mos[n2] = sw;
+	  sw = mos[n1];
+	  mos[n1] = mos[n2];
+	  mos[n2] = sw;
+	}
+    }
+
+  n2 = VEC_length (micro_operation, VTI (bb)->mos) - 1;
+  while (n1 < n2)
+    {
+      while (n1 < n2 && mos[n1].type == MO_CLOBBER)
+	n1++;
+      while (n1 < n2 && mos[n2].type != MO_CLOBBER)
+	n2--;
+      if (n1 < n2)
+	{
+	  micro_operation sw;
+
+	  sw = mos[n1];
+	  mos[n1] = mos[n2];
+	  mos[n2] = sw;
 	}
     }
 }
@@ -5341,7 +5276,8 @@ find_src_set_src (dataflow_set *set, rtx src)
 static bool
 compute_bb_dataflow (basic_block bb)
 {
-  int i, n;
+  unsigned int i;
+  micro_operation *mo;
   bool changed;
   dataflow_set old_out;
   dataflow_set *in = &VTI (bb)->in;
@@ -5351,12 +5287,11 @@ compute_bb_dataflow (basic_block bb)
   dataflow_set_copy (&old_out, out);
   dataflow_set_copy (out, in);
 
-  n = VTI (bb)->n_mos;
-  for (i = 0; i < n; i++)
+  for (i = 0; VEC_iterate (micro_operation, VTI (bb)->mos, i, mo); i++)
     {
-      rtx insn = VTI (bb)->mos[i].insn;
+      rtx insn = mo->insn;
 
-      switch (VTI (bb)->mos[i].type)
+      switch (mo->type)
 	{
 	  case MO_CALL:
 	    dataflow_set_clear_at_call (out);
@@ -5364,7 +5299,7 @@ compute_bb_dataflow (basic_block bb)
 
 	  case MO_USE:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 
 	      if (REG_P (loc))
 		var_reg_set (out, loc, VAR_INIT_STATUS_UNINITIALIZED, NULL);
@@ -5375,7 +5310,7 @@ compute_bb_dataflow (basic_block bb)
 
 	  case MO_VAL_LOC:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 	      rtx val, vloc;
 	      tree var;
 
@@ -5407,7 +5342,7 @@ compute_bb_dataflow (basic_block bb)
 
 	  case MO_VAL_USE:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 	      rtx val, vloc, uloc;
 
 	      vloc = uloc = XEXP (loc, 1);
@@ -5438,7 +5373,7 @@ compute_bb_dataflow (basic_block bb)
 
 	  case MO_VAL_SET:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 	      rtx val, vloc, uloc, reverse = NULL_RTX;
 
 	      vloc = loc;
@@ -5531,7 +5466,7 @@ compute_bb_dataflow (basic_block bb)
 
 	  case MO_SET:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 	      rtx set_src = NULL;
 
 	      if (GET_CODE (loc) == SET)
@@ -5551,7 +5486,7 @@ compute_bb_dataflow (basic_block bb)
 
 	  case MO_COPY:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 	      enum var_init_status src_status;
 	      rtx set_src = NULL;
 
@@ -5582,7 +5517,7 @@ compute_bb_dataflow (basic_block bb)
 
 	  case MO_USE_NO_VAR:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 
 	      if (REG_P (loc))
 		var_reg_delete (out, loc, false);
@@ -5593,7 +5528,7 @@ compute_bb_dataflow (basic_block bb)
 
 	  case MO_CLOBBER:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 
 	      if (REG_P (loc))
 		var_reg_delete (out, loc, true);
@@ -5603,7 +5538,7 @@ compute_bb_dataflow (basic_block bb)
 	    break;
 
 	  case MO_ADJUST:
-	    out->stack_adjust += VTI (bb)->mos[i].u.adjust;
+	    out->stack_adjust += mo->u.adjust;
 	    break;
 	}
     }
@@ -6094,8 +6029,6 @@ set_slot_part (dataflow_set *set, rtx loc, void **slot,
       *slot = var;
       pos = 0;
       nextp = &var->var_part[0].loc_chain;
-      if (emit_notes && dv_is_value_p (dv))
-	add_cselib_value_chains (dv);
     }
   else if (onepart)
     {
@@ -6483,11 +6416,7 @@ delete_slot_part (dataflow_set *set, rtx loc, void **slot,
 	  changed = true;
 	  var->n_var_parts--;
 	  if (emit_notes)
-	    {
-	      var->cur_loc_changed = true;
-	      if (var->n_var_parts == 0 && dv_is_value_p (var->dv))
-		remove_cselib_value_chains (var->dv);
-	    }
+	    var->cur_loc_changed = true;
 	  while (pos < var->n_var_parts)
 	    {
 	      var->var_part[pos] = var->var_part[pos + 1];
@@ -6556,15 +6485,22 @@ vt_expand_loc_callback (rtx x, bitmap regs, int max_depth, void *data)
   switch (GET_CODE (x))
     {
     case SUBREG:
+      if (dummy)
+	{
+	  if (cselib_dummy_expand_value_rtx_cb (SUBREG_REG (x), regs,
+						max_depth - 1,
+						vt_expand_loc_callback, data))
+	    return pc_rtx;
+	  else
+	    return NULL;
+	}
+
       subreg = cselib_expand_value_rtx_cb (SUBREG_REG (x), regs,
 					   max_depth - 1,
 					   vt_expand_loc_callback, data);
 
       if (!subreg)
 	return NULL;
-
-      if (dummy)
-	return pc_rtx;
 
       result = simplify_gen_subreg (GET_MODE (x), subreg,
 				    GET_MODE (SUBREG_REG (x)),
@@ -6968,6 +6904,42 @@ DEF_VEC_ALLOC_P (variable, heap);
 
 static VEC (variable, heap) *changed_variables_stack;
 
+/* VALUEs with no variables that need set_dv_changed (val, false)
+   called before check_changed_vars_3.  */
+
+static VEC (rtx, heap) *changed_values_stack;
+
+/* Helper function for check_changed_vars_1 and check_changed_vars_2.  */
+
+static void
+check_changed_vars_0 (decl_or_value dv, htab_t htab)
+{
+  value_chain vc
+    = (value_chain) htab_find_with_hash (value_chains, dv, dv_htab_hash (dv));
+
+  if (vc == NULL)
+    return;
+  for (vc = vc->next; vc; vc = vc->next)
+    if (!dv_changed_p (vc->dv))
+      {
+	variable vcvar
+	  = (variable) htab_find_with_hash (htab, vc->dv,
+					    dv_htab_hash (vc->dv));
+	if (vcvar)
+	  {
+	    set_dv_changed (vc->dv, true);
+	    VEC_safe_push (variable, heap, changed_variables_stack, vcvar);
+	  }
+	else if (dv_is_value_p (vc->dv))
+	  {
+	    set_dv_changed (vc->dv, true);
+	    VEC_safe_push (rtx, heap, changed_values_stack,
+			   dv_as_value (vc->dv));
+	    check_changed_vars_0 (vc->dv, htab);
+	  }
+      }
+}
+
 /* Populate changed_variables_stack with variable_def pointers
    that need variable_was_changed called on them.  */
 
@@ -6979,24 +6951,7 @@ check_changed_vars_1 (void **slot, void *data)
 
   if (dv_is_value_p (var->dv)
       || TREE_CODE (dv_as_decl (var->dv)) == DEBUG_EXPR_DECL)
-    {
-      value_chain vc
-	= (value_chain) htab_find_with_hash (value_chains, var->dv,
-					     dv_htab_hash (var->dv));
-
-      if (vc == NULL)
-	return 1;
-      for (vc = vc->next; vc; vc = vc->next)
-	if (!dv_changed_p (vc->dv))
-	  {
-	    variable vcvar
-	      = (variable) htab_find_with_hash (htab, vc->dv,
-						dv_htab_hash (vc->dv));
-	    if (vcvar)
-	      VEC_safe_push (variable, heap, changed_variables_stack,
-			     vcvar);
-	  }
-    }
+    check_changed_vars_0 (var->dv, htab);
   return 1;
 }
 
@@ -7010,23 +6965,7 @@ check_changed_vars_2 (variable var, htab_t htab)
   variable_was_changed (var, NULL);
   if (dv_is_value_p (var->dv)
       || TREE_CODE (dv_as_decl (var->dv)) == DEBUG_EXPR_DECL)
-    {
-      value_chain vc
-	= (value_chain) htab_find_with_hash (value_chains, var->dv,
-					     dv_htab_hash (var->dv));
-
-      if (vc == NULL)
-	return;
-      for (vc = vc->next; vc; vc = vc->next)
-	if (!dv_changed_p (vc->dv))
-	  {
-	    variable vcvar
-	      = (variable) htab_find_with_hash (htab, vc->dv,
-						dv_htab_hash (vc->dv));
-	    if (vcvar)
-	      check_changed_vars_2 (vcvar, htab);
-	  }
-    }
+    check_changed_vars_0 (var->dv, htab);
 }
 
 /* For each changed decl (except DEBUG_EXPR_DECLs) recompute
@@ -7094,6 +7033,9 @@ emit_notes_for_changes (rtx insn, enum emit_note_where where,
       while (VEC_length (variable, changed_variables_stack) > 0)
 	check_changed_vars_2 (VEC_pop (variable, changed_variables_stack),
 			      htab);
+      while (VEC_length (rtx, changed_values_stack) > 0)
+	set_dv_changed (dv_from_value (VEC_pop (rtx, changed_values_stack)),
+			false);
       htab_traverse (changed_variables, check_changed_vars_3, htab);
     }
 
@@ -7135,8 +7077,6 @@ emit_notes_for_differences_1 (void **slot, void *data)
 	  gcc_assert (old_var->n_var_parts == 1);
 	  for (lc = old_var->var_part[0].loc_chain; lc; lc = lc->next)
 	    remove_value_chains (old_var->dv, lc->loc);
-	  if (dv_is_value_p (old_var->dv))
-	    remove_cselib_value_chains (old_var->dv);
 	}
       variable_was_changed (empty_var, NULL);
       /* Continue traversing the hash table.  */
@@ -7222,8 +7162,6 @@ emit_notes_for_differences_2 (void **slot, void *data)
 	  gcc_assert (new_var->n_var_parts == 1);
 	  for (lc = new_var->var_part[0].loc_chain; lc; lc = lc->next)
 	    add_value_chains (new_var->dv, lc->loc);
-	  if (dv_is_value_p (new_var->dv))
-	    add_cselib_value_chains (new_var->dv);
 	}
       for (i = 0; i < new_var->n_var_parts; i++)
 	new_var->var_part[i].cur_loc = NULL;
@@ -7255,16 +7193,17 @@ emit_notes_for_differences (rtx insn, dataflow_set *old_set,
 static void
 emit_notes_in_bb (basic_block bb, dataflow_set *set)
 {
-  int i;
+  unsigned int i;
+  micro_operation *mo;
 
   dataflow_set_clear (set);
   dataflow_set_copy (set, &VTI (bb)->in);
 
-  for (i = 0; i < VTI (bb)->n_mos; i++)
+  for (i = 0; VEC_iterate (micro_operation, VTI (bb)->mos, i, mo); i++)
     {
-      rtx insn = VTI (bb)->mos[i].insn;
+      rtx insn = mo->insn;
 
-      switch (VTI (bb)->mos[i].type)
+      switch (mo->type)
 	{
 	  case MO_CALL:
 	    dataflow_set_clear_at_call (set);
@@ -7273,7 +7212,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 
 	  case MO_USE:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 
 	      if (REG_P (loc))
 		var_reg_set (set, loc, VAR_INIT_STATUS_UNINITIALIZED, NULL);
@@ -7286,7 +7225,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 
 	  case MO_VAL_LOC:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 	      rtx val, vloc;
 	      tree var;
 
@@ -7320,7 +7259,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 
 	  case MO_VAL_USE:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 	      rtx val, vloc, uloc;
 
 	      vloc = uloc = XEXP (loc, 1);
@@ -7353,7 +7292,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 
 	  case MO_VAL_SET:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 	      rtx val, vloc, uloc, reverse = NULL_RTX;
 
 	      vloc = loc;
@@ -7443,7 +7382,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 
 	  case MO_SET:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 	      rtx set_src = NULL;
 
 	      if (GET_CODE (loc) == SET)
@@ -7466,7 +7405,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 
 	  case MO_COPY:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 	      enum var_init_status src_status;
 	      rtx set_src = NULL;
 
@@ -7491,7 +7430,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 
 	  case MO_USE_NO_VAR:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 
 	      if (REG_P (loc))
 		var_reg_delete (set, loc, false);
@@ -7504,7 +7443,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 
 	  case MO_CLOBBER:
 	    {
-	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx loc = mo->u.loc;
 
 	      if (REG_P (loc))
 		var_reg_delete (set, loc, true);
@@ -7517,7 +7456,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 	    break;
 
 	  case MO_ADJUST:
-	    set->stack_adjust += VTI (bb)->mos[i].u.adjust;
+	    set->stack_adjust += mo->u.adjust;
 	    break;
 	}
     }
@@ -7546,7 +7485,15 @@ vt_emit_notes (void)
   emit_notes = true;
 
   if (MAY_HAVE_DEBUG_INSNS)
-    changed_variables_stack = VEC_alloc (variable, heap, 40);
+    {
+      unsigned int i;
+      rtx val;
+
+      for (i = 0; VEC_iterate (rtx, preserved_values, i, val); i++)
+	add_cselib_value_chains (dv_from_value (val));
+      changed_variables_stack = VEC_alloc (variable, heap, 40);
+      changed_values_stack = VEC_alloc (rtx, heap, 40);
+    }
 
   dataflow_set_init (&cur);
 
@@ -7568,12 +7515,22 @@ vt_emit_notes (void)
 		 emit_notes_for_differences_1,
 		 shared_hash_htab (empty_shared_hash));
   if (MAY_HAVE_DEBUG_INSNS)
-    gcc_assert (htab_elements (value_chains) == 0);
+    {
+      unsigned int i;
+      rtx val;
+
+      for (i = 0; VEC_iterate (rtx, preserved_values, i, val); i++)
+	remove_cselib_value_chains (dv_from_value (val));
+      gcc_assert (htab_elements (value_chains) == 0);
+    }
 #endif
   dataflow_set_destroy (&cur);
 
   if (MAY_HAVE_DEBUG_INSNS)
-    VEC_free (variable, heap, changed_variables_stack);
+    {
+      VEC_free (variable, heap, changed_variables_stack);
+      VEC_free (rtx, heap, changed_values_stack);
+    }
 
 #ifdef ENABLE_RTL_CHECKING
   pointer_map_destroy (emitted_notes);
@@ -7699,7 +7656,7 @@ vt_add_function_parameters (void)
 	     cselib.  */
 	  if (val)
 	    {
-	      cselib_preserve_value (val);
+	      preserve_value (val);
 	      set_variable_part (out, val->val_rtx, dv, offset,
 				 VAR_INIT_STATUS_INITIALIZED, NULL, INSERT);
 	      dv = dv_from_value (val->val_rtx);
@@ -7725,7 +7682,7 @@ vt_add_function_parameters (void)
 
   if (MAY_HAVE_DEBUG_INSNS)
     {
-      cselib_preserve_only_values (true);
+      cselib_preserve_only_values ();
       cselib_reset_table (cselib_get_next_uid ());
     }
 
@@ -7747,6 +7704,7 @@ vt_initialize (void)
       scratch_regs = BITMAP_ALLOC (NULL);
       valvar_pool = create_alloc_pool ("small variable_def pool",
 				       sizeof (struct variable_def), 256);
+      preserved_values = VEC_alloc (rtx, heap, 256);
     }
   else
     {
@@ -7758,13 +7716,11 @@ vt_initialize (void)
     {
       rtx insn;
       HOST_WIDE_INT pre, post = 0;
-      unsigned int next_uid_before = cselib_get_next_uid ();
-      unsigned int next_uid_after = next_uid_before;
       basic_block first_bb, last_bb;
 
       if (MAY_HAVE_DEBUG_INSNS)
 	{
-	  cselib_record_sets_hook = count_with_sets;
+	  cselib_record_sets_hook = add_with_sets;
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    fprintf (dump_file, "first value: %i\n",
 		     cselib_get_next_uid ());
@@ -7784,10 +7740,9 @@ vt_initialize (void)
 	}
       last_bb = bb;
 
-      /* Count the number of micro operations.  */
+      /* Add the micro-operations to the vector.  */
       FOR_BB_BETWEEN (bb, first_bb, last_bb->next_bb, next_bb)
 	{
-	  VTI (bb)->n_mos = 0;
 	  for (insn = BB_HEAD (bb); insn != NEXT_INSN (BB_END (bb));
 	       insn = NEXT_INSN (insn))
 	    {
@@ -7798,75 +7753,12 @@ vt_initialize (void)
 		      insn_stack_adjust_offset_pre_post (insn, &pre, &post);
 		      if (pre)
 			{
-			  VTI (bb)->n_mos++;
-			  if (dump_file && (dump_flags & TDF_DETAILS))
-			    log_op_type (GEN_INT (pre), bb, insn,
-					 MO_ADJUST, dump_file);
-			}
-		      if (post)
-			{
-			  VTI (bb)->n_mos++;
-			  if (dump_file && (dump_flags & TDF_DETAILS))
-			    log_op_type (GEN_INT (post), bb, insn,
-					 MO_ADJUST, dump_file);
-			}
-		    }
-		  cselib_hook_called = false;
-		  if (MAY_HAVE_DEBUG_INSNS)
-		    {
-		      cselib_process_insn (insn);
-		      if (dump_file && (dump_flags & TDF_DETAILS))
-			{
-			  print_rtl_single (dump_file, insn);
-			  dump_cselib_table (dump_file);
-			}
-		    }
-		  if (!cselib_hook_called)
-		    count_with_sets (insn, 0, 0);
-		  if (CALL_P (insn))
-		    {
-		      VTI (bb)->n_mos++;
-		      if (dump_file && (dump_flags & TDF_DETAILS))
-			log_op_type (PATTERN (insn), bb, insn,
-				     MO_CALL, dump_file);
-		    }
-		}
-	    }
-	}
-
-      if (MAY_HAVE_DEBUG_INSNS)
-	{
-	  cselib_preserve_only_values (false);
-	  next_uid_after = cselib_get_next_uid ();
-	  cselib_reset_table (next_uid_before);
-	  cselib_record_sets_hook = add_with_sets;
-	  if (dump_file && (dump_flags & TDF_DETAILS))
-	    fprintf (dump_file, "first value: %i\n",
-		     cselib_get_next_uid ());
-	}
-
-      /* Add the micro-operations to the array.  */
-      FOR_BB_BETWEEN (bb, first_bb, last_bb->next_bb, next_bb)
-	{
-	  int count = VTI (bb)->n_mos;
-	  VTI (bb)->mos = XNEWVEC (micro_operation, count);
-	  VTI (bb)->n_mos = 0;
-	  for (insn = BB_HEAD (bb); insn != NEXT_INSN (BB_END (bb));
-	       insn = NEXT_INSN (insn))
-	    {
-	      if (INSN_P (insn))
-		{
-		  if (!frame_pointer_needed)
-		    {
-		      insn_stack_adjust_offset_pre_post (insn, &pre, &post);
-		      if (pre)
-			{
-			  micro_operation *mo
-			    = VTI (bb)->mos + VTI (bb)->n_mos++;
-
-			  mo->type = MO_ADJUST;
-			  mo->u.adjust = pre;
-			  mo->insn = insn;
+			  micro_operation mo;
+			  mo.type = MO_ADJUST;
+			  mo.u.adjust = pre;
+			  mo.insn = insn;
+			  VEC_safe_push (micro_operation, heap, VTI (bb)->mos,
+					 &mo);
 
 			  if (dump_file && (dump_flags & TDF_DETAILS))
 			    log_op_type (PATTERN (insn), bb, insn,
@@ -7889,11 +7781,12 @@ vt_initialize (void)
 
 		  if (!frame_pointer_needed && post)
 		    {
-		      micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
-
-		      mo->type = MO_ADJUST;
-		      mo->u.adjust = post;
-		      mo->insn = insn;
+		      micro_operation mo;
+		      mo.type = MO_ADJUST;
+		      mo.u.adjust = post;
+		      mo.insn = insn;
+		      VEC_safe_push (micro_operation, heap, VTI (bb)->mos,
+				     &mo);
 
 		      if (dump_file && (dump_flags & TDF_DETAILS))
 			log_op_type (PATTERN (insn), bb, insn,
@@ -7901,16 +7794,14 @@ vt_initialize (void)
 		    }
 		}
 	    }
-	  gcc_assert (count == VTI (bb)->n_mos);
 	}
 
       bb = last_bb;
 
       if (MAY_HAVE_DEBUG_INSNS)
 	{
-	  cselib_preserve_only_values (true);
-	  gcc_assert (next_uid_after == cselib_get_next_uid ());
-	  cselib_reset_table (next_uid_after);
+	  cselib_preserve_only_values ();
+	  cselib_reset_table (cselib_get_next_uid ());
 	  cselib_record_sets_hook = NULL;
 	}
     }
@@ -7997,7 +7888,7 @@ vt_finalize (void)
 
   FOR_EACH_BB (bb)
     {
-      free (VTI (bb)->mos);
+      VEC_free (micro_operation, heap, VTI (bb)->mos);
     }
 
   FOR_ALL_BB (bb)
@@ -8023,6 +7914,7 @@ vt_finalize (void)
       htab_delete (value_chains);
       free_alloc_pool (value_chain_pool);
       free_alloc_pool (valvar_pool);
+      VEC_free (rtx, heap, preserved_values);
       cselib_finish ();
       BITMAP_FREE (scratch_regs);
       scratch_regs = NULL;

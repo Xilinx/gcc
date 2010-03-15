@@ -1,3 +1,178 @@
+2010-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43367
+	* gcc.c-torture/compile/pr43367.c: New testcase.
+
+2010-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43317
+	* gcc.dg/pr43317.c: New testcase.
+
+2010-03-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* g++.dg/abi/packed1.C: Expect warning on the alpha*-*-*.
+
+2010-03-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* g++.dg/graphite/pr43026.C (dg-options): Remove -m32.
+
+2010-03-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43362
+	* gfortran.dg/impure_constructor_1.f90: New test.
+
+2010-03-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43354
+	* gfortran.dg/graphite/id-pr43354.f: New.
+
+2010-03-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43349
+	* gfortran.dg/graphite/pr43349.f: New.
+
+2010-03-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43306
+	* gcc.dg/graphite/pr43306.c: New.
+
+2010-03-12  David S. Miller  <davem@davemloft.net>
+
+	* gcc.dg/lto/20090313_0.c: Add -mcpu=v9 to dg-lto-options on
+	sparc.
+
+2010-03-12  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.target/arm/sibcall-1.c: Allow PLT to appear with pic code.
+
+2010-03-12  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/43291
+	PR fortran/43326
+	* gfortran.dg/dynamic_dispatch_7.f03: New test.
+
+2010-03-12  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gfortran.dg/default_format_denormal_1.f90: Don't assume
+	fail for *-*-mingw* targets.
+
+2010-03-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43329
+	* gcc.dg/guality/pr43329-1.c: New test.
+
+2010-03-11  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/43257
+	* g++.dg/torture/pr43257.C: New test.
+
+2010-03-11  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43228
+	* gfortran.dg/namelist_61.f90: New test.
+
+2010-03-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43255
+	* gcc.c-torture/compile/pr43255.c: New testcase.
+
+2010-03-11  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/optimize-bswapdi-1.c: Add OpenSSL bswap variant.
+	* gcc.dg/pr43280.c: New testcase.
+
+2010-03-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43200
+	* gcc.dg/lto/20100227-1_0.c: New testcase.
+	* gcc.dg/lto/20100227-1_1.c: Likewise.
+
+2010-03-10  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43320
+	PR libfortran/43265
+	* gfortran.dg/read_eof_6.f: New test
+	* gfortran.dg/read_x_eof.f90: New test.
+	* gfortran.dg/read_x_past.f: Update test.
+
+2010-03-10  Jan Hubicka   <jh@suse.cz>
+
+	* gcc.c-torture/compile/pr43288.c: New test.
+
+2010-03-10  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* g++.old-deja/g++.pt/asm1.C: Don't detect pic via looking for the
+	-fpic/-fPIC flags.
+	* g++.old-deja/g++.pt/asm2.C: Likewise.
+	* gcc.c-torture/compile/20000804-1.c: Likewise.
+	* gcc.target/i386/clobbers.c: Likewise.
+
+2010-03-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43303
+	* gfortran.dg/c_assoc_3.f90: New test.
+
+2010-03-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/36728
+	* gcc.dg/guality/pr36728-1.c: New test.
+	* gcc.dg/guality/pr36728-2.c: New test.
+
+2010-03-10  Kaushik Phatak  <kaushik.phatak@kpitcummins.com>
+
+	* gcc.dg/h8300-div-delay-slot.c: New test.
+
+2010-03-10  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR tree-optimization/43236
+	* gcc.c-torture/execute/pr43236.c: New test.
+
+2010-03-10  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR middle-end/42859
+	* g++.dg/eh/pr42859.C: New test.
+
+2010-03-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43299
+	* gcc.dg/pr43299.c: New test.
+
+	PR debug/43290
+	* g++.dg/eh/unwind2.C: New test.
+
+2010-03-05  Sebastian Pop  <sebastian.pop@amd.com>
+	    Reza Yazdani  <reza.yazdani@amd.com>
+
+	PR middle-end/43065
+	* gcc.dg/graphite/run-id-4.c: New.
+
+2010-03-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43065
+	* gcc.dg/graphite/run-id-3.c: New.
+
+2010-03-08  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	PR middle-end/42644
+	PR middle-end/42130
+	* gcc.dg/graphite/id-18.c: New.
+	* gcc.dg/graphite/run-id-pr42644.c: New.
+
+2010-03-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42326
+	* gcc.dg/graphite/pr42326.c: New.
+
+2010-03-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43269
+	* gcc.c-torture/execute/pr43269.c: New testcase.
+
+2010-03-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/43256
+	* gfortran.dg/typebound_call_13.f03: New.
+
 2010-03-05  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* lib/plugin-support.exp (plugin-test-execute): Use PLUGINCC in lieu
