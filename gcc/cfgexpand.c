@@ -1283,6 +1283,7 @@ static void
 expand_used_vars (void)
 {
   tree t, next, outer_block = DECL_INITIAL (current_function_decl);
+  tree maybe_local_decls = NULL_TREE;
   unsigned i;
 
   /* Compute the phase of the stack frame for this function.  */
@@ -1331,8 +1332,7 @@ expand_used_vars (void)
       if (is_gimple_reg (var))
 	{
 	  TREE_USED (var) = 0;
-	  ggc_free (t);
-	  continue;
+	  goto next;
 	}
       /* We didn't set a block for static or extern because it's hard
 	 to tell the difference between a global variable (re)declared
@@ -1353,20 +1353,29 @@ expand_used_vars (void)
       TREE_USED (var) = 1;
 
       if (expand_now)
-	{
-	  expand_one_var (var, true, true);
-	  if (DECL_ARTIFICIAL (var) && !DECL_IGNORED_P (var))
-	    {
-	      rtx rtl = DECL_RTL_IF_SET (var);
+	expand_one_var (var, true, true);
 
-	      /* Keep artificial non-ignored vars in cfun->local_decls
-		 chain until instantiate_decls.  */
-	      if (rtl && (MEM_P (rtl) || GET_CODE (rtl) == CONCAT))
-		{
-		  TREE_CHAIN (t) = cfun->local_decls;
-		  cfun->local_decls = t;
-		  continue;
-		}
+    next:
+      if (DECL_ARTIFICIAL (var) && !DECL_IGNORED_P (var))
+	{
+	  rtx rtl = DECL_RTL_IF_SET (var);
+
+	  /* Keep artificial non-ignored vars in cfun->local_decls
+	     chain until instantiate_decls.  */
+	  if (rtl && (MEM_P (rtl) || GET_CODE (rtl) == CONCAT))
+	    {
+	      TREE_CHAIN (t) = cfun->local_decls;
+	      cfun->local_decls = t;
+	      continue;
+	    }
+	  else if (rtl == NULL_RTX)
+	    {
+	      /* If rtl isn't set yet, which can happen e.g. with
+		 -fstack-protector, retry before returning from this
+		 function.  */
+	      TREE_CHAIN (t) = maybe_local_decls;
+	      maybe_local_decls = t;
+	      continue;
 	    }
 	}
 
@@ -1424,6 +1433,28 @@ expand_used_vars (void)
       expand_stack_vars (NULL);
 
       fini_vars_expansion ();
+    }
+
+  /* If there were any artificial non-ignored vars without rtl
+     found earlier, see if deferred stack allocation hasn't assigned
+     rtl to them.  */
+  for (t = maybe_local_decls; t; t = next)
+    {
+      tree var = TREE_VALUE (t);
+      rtx rtl = DECL_RTL_IF_SET (var);
+
+      next = TREE_CHAIN (t);
+
+      /* Keep artificial non-ignored vars in cfun->local_decls
+	 chain until instantiate_decls.  */
+      if (rtl && (MEM_P (rtl) || GET_CODE (rtl) == CONCAT))
+	{
+	  TREE_CHAIN (t) = cfun->local_decls;
+	  cfun->local_decls = t;
+	  continue;
+	}
+
+      ggc_free (t);
     }
 
   /* If the target requires that FRAME_OFFSET be aligned, do it.  */
@@ -2199,6 +2230,7 @@ expand_debug_expr (tree exp)
       switch (TREE_CODE (exp))
 	{
 	case COND_EXPR:
+	case DOT_PROD_EXPR:
 	  goto ternary;
 
 	case TRUTH_ANDIF_EXPR:
@@ -2317,7 +2349,11 @@ expand_debug_expr (tree exp)
       else
 	op0 = copy_rtx (op0);
 
-      if (GET_MODE (op0) == BLKmode)
+      if (GET_MODE (op0) == BLKmode
+	  /* If op0 is not BLKmode, but BLKmode is, adjust_mode
+	     below would ICE.  While it is likely a FE bug,
+	     try to be robust here.  See PR43166.  */
+	  || mode == BLKmode)
 	{
 	  gcc_assert (MEM_P (op0));
 	  op0 = adjust_address_nv (op0, mode, 0);
@@ -2539,8 +2575,9 @@ expand_debug_expr (tree exp)
 	    if (bitpos >= GET_MODE_BITSIZE (opmode))
 	      return NULL;
 
-	    return simplify_gen_subreg (mode, op0, opmode,
-					bitpos / BITS_PER_UNIT);
+	    if ((bitpos % GET_MODE_BITSIZE (mode)) == 0)
+	      return simplify_gen_subreg (mode, op0, opmode,
+					  bitpos / BITS_PER_UNIT);
 	  }
 
 	return simplify_gen_ternary (SCALAR_INT_MODE_P (GET_MODE (op0))
@@ -2912,6 +2949,81 @@ expand_debug_expr (tree exp)
       }
 
     case ERROR_MARK:
+      return NULL;
+
+    /* Vector stuff.  For most of the codes we don't have rtl codes.  */
+    case REALIGN_LOAD_EXPR:
+    case REDUC_MAX_EXPR:
+    case REDUC_MIN_EXPR:
+    case REDUC_PLUS_EXPR:
+    case VEC_COND_EXPR:
+    case VEC_EXTRACT_EVEN_EXPR:
+    case VEC_EXTRACT_ODD_EXPR:
+    case VEC_INTERLEAVE_HIGH_EXPR:
+    case VEC_INTERLEAVE_LOW_EXPR:
+    case VEC_LSHIFT_EXPR:
+    case VEC_PACK_FIX_TRUNC_EXPR:
+    case VEC_PACK_SAT_EXPR:
+    case VEC_PACK_TRUNC_EXPR:
+    case VEC_RSHIFT_EXPR:
+    case VEC_UNPACK_FLOAT_HI_EXPR:
+    case VEC_UNPACK_FLOAT_LO_EXPR:
+    case VEC_UNPACK_HI_EXPR:
+    case VEC_UNPACK_LO_EXPR:
+    case VEC_WIDEN_MULT_HI_EXPR:
+    case VEC_WIDEN_MULT_LO_EXPR:
+      return NULL;
+
+   /* Misc codes.  */
+    case ADDR_SPACE_CONVERT_EXPR:
+    case FIXED_CONVERT_EXPR:
+    case OBJ_TYPE_REF:
+    case WITH_SIZE_EXPR:
+      return NULL;
+
+    case DOT_PROD_EXPR:
+      if (SCALAR_INT_MODE_P (GET_MODE (op0))
+	  && SCALAR_INT_MODE_P (mode))
+	{
+	  if (TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (exp, 0))))
+	    op0 = gen_rtx_ZERO_EXTEND (mode, op0);
+	  else
+	    op0 = gen_rtx_SIGN_EXTEND (mode, op0);
+	  if (TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (exp, 1))))
+	    op1 = gen_rtx_ZERO_EXTEND (mode, op1);
+	  else
+	    op1 = gen_rtx_SIGN_EXTEND (mode, op1);
+	  op0 = gen_rtx_MULT (mode, op0, op1);
+	  return gen_rtx_PLUS (mode, op0, op2);
+	}
+      return NULL;
+
+    case WIDEN_MULT_EXPR:
+      if (SCALAR_INT_MODE_P (GET_MODE (op0))
+	  && SCALAR_INT_MODE_P (mode))
+	{
+	  if (TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (exp, 0))))
+	    op0 = gen_rtx_ZERO_EXTEND (mode, op0);
+	  else
+	    op0 = gen_rtx_SIGN_EXTEND (mode, op0);
+	  if (TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (exp, 1))))
+	    op1 = gen_rtx_ZERO_EXTEND (mode, op1);
+	  else
+	    op1 = gen_rtx_SIGN_EXTEND (mode, op1);
+	  return gen_rtx_MULT (mode, op0, op1);
+	}
+      return NULL;
+
+    case WIDEN_SUM_EXPR:
+      if (SCALAR_INT_MODE_P (GET_MODE (op0))
+	  && SCALAR_INT_MODE_P (mode))
+	{
+	  if (TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (exp, 0))))
+	    op0 = gen_rtx_ZERO_EXTEND (mode, op0);
+	  else
+	    op0 = gen_rtx_SIGN_EXTEND (mode, op0);
+	  return gen_rtx_PLUS (mode, op0, op1);
+	}
       return NULL;
 
     default:
