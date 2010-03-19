@@ -1,3 +1,8 @@
+2010-03-19  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* doc/gty.texi (GTY Options): Use typed GC allocation in
+	examples.  Document variable_size option.
+
 2010-01-17  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* ggc.h (ggc_alloc, ggc_alloc_cleared): Remove.
