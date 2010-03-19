@@ -83,7 +83,7 @@ alloc_node (hash_table *table ATTRIBUTE_UNUSED)
    nul-terminated string, and the length is calculated using strlen.  */
 
 const char *
-ggc_alloc_string (const char *contents, int length)
+ggc_alloc_string_stat (const char *contents, int length MEM_STAT_DECL)
 {
   char *result;
 
@@ -95,7 +95,7 @@ ggc_alloc_string (const char *contents, int length)
   if (length == 1 && ISDIGIT (contents[0]))
     return digit_string (contents[0] - '0');
 
-  result = (char *) ggc_alloc_atomic (length + 1);
+  result = (char *) ggc_alloc_atomic_stat (length + 1 PASS_MEM_STAT);
   memcpy (result, contents, length);
   result[length] = '\0';
   return (const char *) result;

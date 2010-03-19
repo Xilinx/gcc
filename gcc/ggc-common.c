@@ -526,7 +526,7 @@ gt_pch_save (FILE *f)
 
   /* Prepare the objects for writing, determine addresses and such.  */
   state.f = f;
-  state.d = init_ggc_pch();
+  state.d = init_ggc_pch ();
   state.count = 0;
   htab_traverse (saving_htab, call_count, &state);
 
@@ -830,7 +830,7 @@ ggc_min_heapsize_heuristic (void)
      the limit, whichever is larger.  If GCC does hit the data limit,
      compilation will fail, so this tries to be conservative.  */
   limit_kbytes = MAX (0, limit_kbytes - MAX (limit_kbytes / 4, 20 * 1024));
-  limit_kbytes = (limit_kbytes * 100) / (110 + ggc_min_expand_heuristic());
+  limit_kbytes = (limit_kbytes * 100) / (110 + ggc_min_expand_heuristic ());
   phys_kbytes = MIN (phys_kbytes, limit_kbytes);
 
   phys_kbytes = MAX (phys_kbytes, 4 * 1024);
@@ -844,8 +844,8 @@ void
 init_ggc_heuristics (void)
 {
 #if !defined ENABLE_GC_CHECKING && !defined ENABLE_GC_ALWAYS_COLLECT
-  set_param_value ("ggc-min-expand", ggc_min_expand_heuristic());
-  set_param_value ("ggc-min-heapsize", ggc_min_heapsize_heuristic());
+  set_param_value ("ggc-min-expand", ggc_min_expand_heuristic ());
+  set_param_value ("ggc-min-heapsize", ggc_min_heapsize_heuristic ());
 #endif
 }
 
@@ -987,7 +987,13 @@ ggc_free_overhead (void *ptr)
 {
   PTR *slot = htab_find_slot_with_hash (ptr_hash, ptr, htab_hash_pointer (ptr),
 					NO_INSERT);
-  struct ptr_hash_entry *p = (struct ptr_hash_entry *) *slot;
+  struct ptr_hash_entry *p;
+  /* The pointer might be not found if a PCH read happened between allocation
+     and ggc_free () call.  FIXME: account memory properly in the presence of
+     PCH. */
+  if (!slot)
+      return;
+  p = (struct ptr_hash_entry *) *slot;
   p->loc->freed += p->size;
   htab_clear_slot (ptr_hash, slot);
   free (p);

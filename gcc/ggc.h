@@ -21,6 +21,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef GCC_GGC_H
 #define GCC_GGC_H
+#include "coretypes.h"
 #include "statistics.h"
 
 /* Symbols are marked with `ggc' for `gcc gc' so as not to interfere with
@@ -122,6 +123,8 @@ extern void gt_ggc_m_S (const void *);
 
 /* End of GTY machinery API.  */
 
+struct alloc_zone;
+
 /* Initialize the string pool.  */
 extern void init_stringpool (void);
 
@@ -148,13 +151,10 @@ extern void *ggc_internal_alloc_stat (size_t MEM_STAT_DECL);
 /* Allocate an object of the specified type and size.  */
 extern void *ggc_alloc_typed_stat (enum gt_types_enum, size_t MEM_STAT_DECL);
 
-#define ggc_alloc_typed(s,z) ggc_alloc_typed_stat (s,z MEM_STAT_INFO)
+#define ggc_alloc_typed(s, z) ggc_alloc_typed_stat (s, z MEM_STAT_INFO)
 
 /* Allocates cleared memory.  */
 extern void *ggc_internal_cleared_alloc_stat (size_t MEM_STAT_DECL);
-
-#define ggc_internal_cleared_alloc(s)			\
-  ggc_internal_cleared_alloc_stat (s MEM_STAT_INFO)
 
 /* Resize a block.  */
 extern void *ggc_realloc_stat (void *, size_t MEM_STAT_DECL);
@@ -169,25 +169,37 @@ extern void ggc_prune_overhead_list (void);
 extern void dump_ggc_loc_statistics (bool);
 
 /* Reallocators.  */
-#define GGC_RESIZEVEC(T, P, N)  ((T *) ggc_realloc_stat ((P),	\
-					      (N) * sizeof (T) MEM_STAT_INFO))
+#define GGC_RESIZEVEC(T, P, N) \
+    ((T *) ggc_realloc_stat ((P), (N) * sizeof (T) MEM_STAT_INFO))
 
-#define GGC_RESIZEVAR(T, P, N)  ((T *) ggc_realloc_stat ((P),	\
-					      (N) MEM_STAT_INFO))
+#define GGC_RESIZEVAR(T, P, N)                          \
+    ((T *) ggc_realloc_stat ((P), (N) MEM_STAT_INFO))
 
-#define ggc_internal_vec_alloc(S, C) (ggc_internal_alloc ((C) * (S)))
+static inline void *
+ggc_internal_vec_alloc_stat (size_t s, size_t c MEM_STAT_DECL)
+{
+    return ggc_internal_alloc_stat (c * s PASS_MEM_STAT);
+}
 
-#define ggc_internal_cleared_vec_alloc(S, C)	\
-  (ggc_internal_cleared_alloc ((C) * (S)))
+static inline void *
+ggc_internal_cleared_vec_alloc_stat (size_t s, size_t c MEM_STAT_DECL)
+{
+    return ggc_internal_cleared_alloc_stat (c * s PASS_MEM_STAT);
+}
 
-#define ggc_alloc_atomic(S)  (ggc_internal_alloc (S))
+#define ggc_internal_cleared_vec_alloc(s, c) \
+    (ggc_internal_cleared_vec_alloc_stat ((s), (c) MEM_STAT_INFO))
 
-#define ggc_alloc_cleared_atomic(S) (ggc_internal_cleared_alloc (S))
+static inline void *
+ggc_alloc_atomic_stat (size_t s MEM_STAT_DECL)
+{
+    return ggc_internal_alloc_stat (s PASS_MEM_STAT);
+}
 
-#define ggc_alloc_rtvec_sized(NELT)					   \
-  (ggc_alloc_zone_vec_rtvec_def (sizeof (rtx),				   \
-				 sizeof (struct rtvec_def) + ((NELT) - 1), \
-				 &rtl_zone))
+#define ggc_alloc_atomic(S)  (ggc_alloc_atomic_stat ((S) MEM_STAT_INFO))
+
+#define ggc_alloc_cleared_atomic(S)             \
+    (ggc_internal_cleared_alloc_stat ((S) MEM_STAT_INFO))
 
 extern void * ggc_cleared_alloc_htab_ignore_args (size_t, size_t);
 
@@ -211,10 +223,13 @@ extern void ggc_splay_dont_free (void *, void *);
 /* Allocate a gc-able string, and fill it with LENGTH bytes from CONTENTS.
    If LENGTH is -1, then CONTENTS is assumed to be a
    null-terminated string and the memory sized accordingly.  */
-extern const char *ggc_alloc_string (const char *contents, int length);
+extern const char *ggc_alloc_string_stat (const char *contents, int length
+                                          MEM_STAT_DECL);
+
+#define ggc_alloc_string(c, l) ggc_alloc_string_stat (c, l MEM_STAT_INFO)
 
 /* Make a copy of S, in GC-able memory.  */
-#define ggc_strdup(S) ggc_alloc_string((S), -1)
+#define ggc_strdup(S) ggc_alloc_string_stat ((S), -1 MEM_STAT_INFO)
 
 /* Invoke the collector.  Garbage collection occurs only when this
    function is called, not during allocations.  */
@@ -242,9 +257,6 @@ extern void stringpool_statistics (void);
 extern void init_ggc_heuristics (void);
 
 /* Zone collection.  */
-#if defined (GGC_ZONE) && !defined (GENERATOR_FILE)
-
-struct alloc_zone;
 
 /* For regular rtl allocations.  */
 extern struct alloc_zone rtl_zone;
@@ -255,6 +267,13 @@ extern struct alloc_zone tree_zone;
 /* For IDENTIFIER_NODE allocations.  */
 extern struct alloc_zone tree_id_zone;
 
+#define ggc_alloc_rtvec_sized(NELT)                                     \
+    (ggc_alloc_zone_vec_rtvec_def (sizeof (rtx),                        \
+                                   sizeof (struct rtvec_def) + ((NELT) - 1), \
+                                   &rtl_zone))
+
+#if defined (GGC_ZONE) && !defined (GENERATOR_FILE)
+
 /* Allocate an object into the specified allocation zone.  */
 extern void *ggc_internal_alloc_zone_stat (size_t,
 					  struct alloc_zone * MEM_STAT_DECL);
@@ -262,26 +281,79 @@ extern void *ggc_internal_alloc_zone_stat (size_t,
 extern void *ggc_internal_cleared_alloc_zone_stat (size_t,
 					  struct alloc_zone * MEM_STAT_DECL);
 
-#define ggc_internal_zone_stat_alloc(z, s) \
-  (ggc_internal_alloc_zone_stat ((s), (z)))
+static inline void *
+ggc_internal_zone_alloc_stat (struct alloc_zone * z, size_t s MEM_STAT_DECL)
+{
+    return ggc_internal_alloc_zone_stat (s, z PASS_MEM_STAT);
+}
 
-#define ggc_internal_zone_cleared_stat_alloc(z, s)	\
-  (ggc_internal_cleared_alloc_zone_stat ((s), (z)))
+static inline void *
+ggc_internal_zone_cleared_alloc_stat (struct alloc_zone * z, size_t s
+                                      MEM_STAT_DECL)
+{
+    return ggc_internal_cleared_alloc_zone_stat (s, z PASS_MEM_STAT);
+}
 
-#define ggc_internal_zone_vec_alloc(z, s, n) \
-  (ggc_internal_alloc_zone_stat ((s) * (n), (z)))
+static inline void *
+ggc_internal_zone_vec_alloc_stat (struct alloc_zone * z, size_t s, size_t n
+                                  MEM_STAT_DECL)
+{
+    return ggc_internal_alloc_zone_stat (s * n, z PASS_MEM_STAT);
+}
+
 
 #else
 
-#define ggc_internal_zone_stat_alloc(z, s) \
-  (ggc_internal_alloc_stat (s))
+static inline void *
+ggc_internal_zone_alloc_stat (struct alloc_zone * z ATTRIBUTE_UNUSED,
+                              size_t s MEM_STAT_DECL)
+{
+    return ggc_internal_alloc_stat (s PASS_MEM_STAT);
+}
 
-#define ggc_internal_zone_cleared_stat_alloc(z, s) \
-  (ggc_internal_cleared_alloc_stat (s))
+static inline void *
+ggc_internal_zone_cleared_alloc_stat (struct alloc_zone * z ATTRIBUTE_UNUSED,
+                                      size_t s MEM_STAT_DECL)
+{
+    return ggc_internal_cleared_alloc_stat (s PASS_MEM_STAT);
+}
 
-#define ggc_internal_zone_vec_alloc(z, s, n) \
-  (ggc_internal_vec_alloc ((s), (n)))
+static inline void *
+ggc_internal_zone_vec_alloc_stat (struct alloc_zone * z ATTRIBUTE_UNUSED,
+                                  size_t s, size_t n MEM_STAT_DECL)
+{
+    return ggc_internal_vec_alloc_stat (s, n PASS_MEM_STAT);
+}
 
 #endif
+
+/* Memory statistics passing versions of some allocators.  Too few of them to
+   make gengtype produce them, so just define the needed ones here.  */
+static inline struct rtx_def *
+ggc_alloc_zone_rtx_def_stat (struct alloc_zone * z, size_t s MEM_STAT_DECL)
+{
+  return (struct rtx_def *) ggc_internal_zone_alloc_stat (z, s PASS_MEM_STAT);
+}
+
+static inline union tree_node *
+ggc_alloc_zone_tree_node_stat (struct alloc_zone * z, size_t s MEM_STAT_DECL)
+{
+  return (union tree_node *) ggc_internal_zone_alloc_stat (z, s PASS_MEM_STAT);
+}
+
+static inline union tree_node *
+ggc_alloc_zone_cleared_tree_node_stat (struct alloc_zone * z, size_t s
+                                       MEM_STAT_DECL)
+{
+  return (union tree_node *)
+    ggc_internal_zone_cleared_alloc_stat (z, s PASS_MEM_STAT);
+}
+
+static inline union gimple_statement_d *
+ggc_alloc_cleared_gimple_statement_d_stat (size_t s MEM_STAT_DECL)
+{
+  return (union gimple_statement_d *)
+    ggc_internal_cleared_alloc_stat (s PASS_MEM_STAT);
+}
 
 #endif

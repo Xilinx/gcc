@@ -1,5 +1,80 @@
 2010-03-19  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
+	* varasm.c (create_block_symbol): Use ggc_alloc_zone_rtx_def.
+
+	* tree.c (make_node_stat): Add PASS_MEM_STAT to
+	ggc_alloc_zone_cleared_tree_node_stat call.
+
+	* stringpool.c (ggc_alloc_string_stat): Rename from
+	ggc_alloc_string.  Add MEM_STAT_DECL.  Add PASS_MEM_STAT to
+	ggc_alloc_atomic_stat call.
+
+	* rtl.c (rtx_alloc_stat): Use ggc_alloc_zone_rtx_def_stat.
+	(shallow_copy_rtx_stat): Likewise.
+
+	* gimple.c (gimple_alloc_stat): Use
+	ggc_alloc_cleared_gimple_statement_d_stat.
+
+	* ggc.h (coretypes.h): Include.
+	(struct alloc_zone): New forward declaration.
+	(ggc_internal_cleared_alloc): Remove.
+	(ggc_internal_vec_alloc): Remove.
+	(ggc_internal_vec_alloc_stat): New function.
+	(ggc_internal_cleared_vec_alloc): Redefine using
+	ggc_internal_cleared_vec_alloc_stat.
+	(ggc_internal_cleared_vec_alloc_stat): New function.
+	(ggc_alloc_atomic): Redefine using ggc_alloc_atomic_stat.
+	(ggc_alloc_cleared_atomic): Redefine using
+	ggc_internal_cleared_alloc_stat.
+	(ggc_alloc_atomic_stat): New function.
+	(ggc_alloc_string_stat): Rename from ggc_alloc_string, add
+	MEM_STAT_DECL.
+	(ggc_alloc_string): New.
+	(ggc_strdup): Add MEM_STAT_DECL.
+	[GGC_ZONE]: struct alloc_zone: Remove.
+	[GGC_ZONE]: (ggc_internal_zone_stat_alloc): Remove.
+	[GGC_ZONE]: (ggc_internal_zone_alloc_stat): New.
+	[GGC_ZONE]: (ggc_internal_zone_cleared_stat_alloc): Remove.
+	[GGC_ZONE]: (ggc_internal_zone_cleared_alloc_stat): New.
+	[GGC_ZONE]: (ggc_internal_zone_vec_alloc): Remove.
+	[GGC_ZONE]: (ggc_internal_zone_vec_alloc_stat): New.
+	[!GGC_ZONE]: (ggc_internal_zone_stat_alloc): Remove.
+	[!GGC_ZONE]: (ggc_internal_zone_alloc_stat): New.
+	[!GGC_ZONE]: (ggc_internal_zone_cleared_stat_alloc): Remove.
+	[!GGC_ZONE]: (ggc_internal_zone_cleared_alloc_stat): New.
+	[!GGC_ZONE]: (ggc_internal_zone_vec_alloc): Remove.
+	[!GGC_ZONE]: (ggc_internal_zone_vec_alloc_stat): New.
+	(ggc_alloc_zone_rtx_def_stat): New.
+	(ggc_alloc_zone_tree_node_stat): New.
+	(ggc_alloc_zone_cleared_tree_node_stat): New.
+	(ggc_alloc_cleared_gimple_statement_d_stat): New.
+
+	* ggc-zone.c (ggc_internal_cleared_alloc_zone_stat): Use
+	ggc_internal_alloc_zone_pass_stat.
+	(poison_region): Prevent Valgrind from reporting errors from
+	poisoning the region.
+	(ggc_pch_read): Prune memory statistics overhead list on PCH
+	read.
+
+	* ggc-none.c: (struct alloc_zone, rtl_zone, tree_zone): Define.
+	(tree_id_zone): Likewise.
+
+	* ggc-page.c: (struct alloc_zone, rtl_zone, tree_zone): Define.
+	(tree_id_zone): Likewise.
+
+	* ggc-common.c (ggc_free_overhead): Handle empty slot.
+
+	* gengtype.c (write_typed_alloc_end): Rename from
+	write_typed_alloc_def, update parameter list, output the whole
+	typed allocation definition.
+	(write_typed_struct_alloc_def): Use write_typed_alloc_def.
+	(write_typed_typedef_alloc_def): Likewise.
+	(write_typed_alloc_defns): Properly output zone allocators.xo
+
+	* Makefile.in (GGC_H): Add coretypes.h.
+
+2010-03-19  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
 	* doc/gty.texi (GTY Options): Use typed GC allocation in
 	examples.  Document variable_size option.
 

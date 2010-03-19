@@ -3727,61 +3727,51 @@ enum alloc_quantity { single, vector };
 enum alloc_zone { any_zone, specific_zone };
 
 static void
-write_typed_alloc_end (const type_p s, const char * allocator_type,
-		       enum alloc_quantity quantity, enum alloc_zone zone)
+write_typed_alloc_def (bool variable_size,
+                       const char * type_tag, const char * type_name,
+                       const char * allocator_type,
+                       enum alloc_quantity quantity, enum alloc_zone zone)
 {
-  bool variable_size = variable_size_p (s);
-  const char * type_tag = get_tag_string (s);
+  bool two_args = variable_size && (quantity == vector);
+  bool third_arg = (zone == specific_zone) && (variable_size
+                                               || (quantity == vector));
 
-  oprintf (header_file, "((%s%s *)", type_tag, s->u.s.tag);
-  oprintf (header_file, "(ggc_internal_%salloc (", allocator_type);
+  oprintf (header_file, "#define ggc_alloc_%s%s", allocator_type, type_name);
+  oprintf (header_file, "(%s%s%s%s%s) ",
+           (variable_size ? "SIZE" : ""),
+           (two_args ? ", " : ""),
+           (quantity == vector) ? "n" : "",
+           (third_arg ? ", " : ""), (zone == specific_zone) ? "z" : "");
+  oprintf (header_file, "((%s%s *)", type_tag, type_name);
+  oprintf (header_file, "(ggc_internal_%salloc_stat (", allocator_type);
   if (zone == specific_zone)
     oprintf (header_file, "z, ");
   if (variable_size)
     oprintf (header_file, "SIZE");
   else
-    oprintf (header_file, "sizeof (%s%s)", type_tag, s->u.s.tag);
+    oprintf (header_file, "sizeof (%s%s)", type_tag, type_name);
   if (quantity == vector)
     oprintf (header_file, ", n");
-  oprintf (header_file, ")))\n");
+  oprintf (header_file, " MEM_STAT_INFO)))\n");
 }
 
 static void
 write_typed_struct_alloc_def (const type_p s, const char * allocator_type,
-			      enum alloc_quantity quantity,
-			      enum alloc_zone zone)
+                              enum alloc_quantity quantity,
+                              enum alloc_zone zone)
 {
-  bool variable_size = variable_size_p (s);
-  /* I hope svn blame is broken */
-  bool two_args = variable_size && (quantity == vector);
-  bool third_arg = (zone == specific_zone) && (variable_size
-					       || (quantity == vector));
-
-  oprintf (header_file, "#define ggc_alloc_%s%s", allocator_type, s->u.s.tag);
-  oprintf (header_file, "(%s%s%s%s%s) ", (variable_size ? "SIZE" : ""),
-	   (two_args ? ", " : ""), ((quantity == vector) ? "n" : ""),
-	   (third_arg ? ", " : ""), (zone == specific_zone ? "z" : ""));
-  write_typed_alloc_end (s, allocator_type, quantity, zone);
+  write_typed_alloc_def (variable_size_p (s), get_tag_string (s), s->u.s.tag,
+                         allocator_type, quantity, zone);
 }
 
 static void
 write_typed_typedef_alloc_def (const pair_p p,
-			       const char * const allocator_type,
-			       enum alloc_quantity quantity,
-			       enum alloc_zone zone)
+                               const char * const allocator_type,
+                               enum alloc_quantity quantity,
+                               enum alloc_zone zone)
 {
-  bool two_args = (quantity == vector) && (zone == specific_zone);
-
-  oprintf (header_file, "#define ggc_alloc_%s%s", allocator_type, p->name);
-  oprintf (header_file, "(%s%s%s) ", (quantity == vector) ? "n" : "",
-	   (two_args ? ", " : ""), (zone == specific_zone) ? "z" : "");
-  /*  FIXME: merge oprintfs below with write_typed_alloc_end or not? */
-  oprintf (header_file, "((%s *)", p->name);
-  oprintf (header_file, "(ggc_internal_%salloc (", allocator_type);
-  oprintf (header_file, (zone == specific_zone) ? "z, " : "");
-  oprintf (header_file, "sizeof (%s)", p->name);
-  oprintf (header_file, "%s", (quantity == vector) ? ", n" : "");
-  oprintf (header_file, ")))\n");
+  write_typed_alloc_def (variable_size_p (p->type), "", p->name,
+                         allocator_type, quantity, zone);
 }
 
 static void
@@ -3790,19 +3780,22 @@ write_typed_alloc_defns (const type_p structures, const pair_p typedefs)
   type_p s;
   pair_p p;
 
-  oprintf (header_file, "\n/* Allocators for known structs and unions.  */\n\n");
+  oprintf (header_file,
+           "\n/* Allocators for known structs and unions.  */\n\n");
   for (s = structures; s; s = s->next)
     {
       if (!USED_BY_TYPED_GC (s))
-	continue;
+        continue;
       write_typed_struct_alloc_def (s, "", single, any_zone);
       write_typed_struct_alloc_def (s, "cleared_", single, any_zone);
       write_typed_struct_alloc_def (s, "vec_", vector, any_zone);
       write_typed_struct_alloc_def (s, "cleared_vec_", vector, any_zone);
-      write_typed_struct_alloc_def (s, "zone_stat_", single, specific_zone);
-      write_typed_struct_alloc_def (s, "zone_cleared_stat_", single,
-				    specific_zone);
+      write_typed_struct_alloc_def (s, "zone_", single, specific_zone);
+      write_typed_struct_alloc_def (s, "zone_cleared_", single,
+                                    specific_zone);
       write_typed_struct_alloc_def (s, "zone_vec_", vector, specific_zone);
+      write_typed_struct_alloc_def (s, "zone_cleared_vec_", vector,
+                                    specific_zone);
     }
 
   oprintf (header_file, "\n/* Allocators for known typedefs.  */\n");
@@ -3810,15 +3803,16 @@ write_typed_alloc_defns (const type_p structures, const pair_p typedefs)
     {
       s = p->type;
       if (!USED_BY_TYPED_GC (s) || (strcmp (p->name, s->u.s.tag) == 0))
-	continue;
+        continue;
       write_typed_typedef_alloc_def (p, "", single, any_zone);
       write_typed_typedef_alloc_def (p, "cleared_", single, any_zone);
       write_typed_typedef_alloc_def (p, "vec_", vector, any_zone);
       write_typed_typedef_alloc_def (p, "cleared_vec_", vector, any_zone);
-      write_typed_typedef_alloc_def (p, "zone_stat_", single, specific_zone);
-      write_typed_typedef_alloc_def (p, "zone_cleared_stat_", single,
-				     specific_zone);
-      write_typed_typedef_alloc_def (p, "zone_vec_", vector, specific_zone);
+      write_typed_typedef_alloc_def (p, "zone_", single, specific_zone);
+      write_typed_typedef_alloc_def (p, "zone_cleared_", single,
+                                     specific_zone);
+      write_typed_typedef_alloc_def (p, "zone_cleared_vec_", vector,
+                                     specific_zone);
     }
 }
 

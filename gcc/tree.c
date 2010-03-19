@@ -853,8 +853,9 @@ make_node_stat (enum tree_code code MEM_STAT_DECL)
   tree_node_sizes[(int) kind] += length;
 #endif
 
-  t = ggc_alloc_zone_cleared_stat_tree_node (length,
-		       (code == IDENTIFIER_NODE) ? &tree_id_zone : &tree_zone);
+  t = ggc_alloc_zone_cleared_tree_node_stat (
+               (code == IDENTIFIER_NODE) ? &tree_id_zone : &tree_zone,
+               length PASS_MEM_STAT);
   TREE_SET_CODE (t, code);
 
   switch (type)
@@ -944,7 +945,7 @@ copy_node_stat (tree node MEM_STAT_DECL)
   gcc_assert (code != STATEMENT_LIST);
 
   length = tree_size (node);
-  t = ggc_alloc_zone_stat_tree_node (length, &tree_zone);
+  t = ggc_alloc_zone_tree_node_stat (&tree_zone, length PASS_MEM_STAT);
   memcpy (t, node, length);
 
   TREE_CHAIN (t) = 0;
@@ -1372,7 +1373,7 @@ build_fixed (tree type, FIXED_VALUE_TYPE f)
   FIXED_VALUE_TYPE *fp;
 
   v = make_node (FIXED_CST);
-  fp = ggc_alloc_fixed_value();
+  fp = ggc_alloc_fixed_value ();
   memcpy (fp, &f, sizeof (FIXED_VALUE_TYPE));
 
   TREE_TYPE (v) = type;
@@ -1393,7 +1394,7 @@ build_real (tree type, REAL_VALUE_TYPE d)
      Consider doing it via real_convert now.  */
 
   v = make_node (REAL_CST);
-  dp = ggc_alloc_real_value();
+  dp = ggc_alloc_real_value ();
   memcpy (dp, &d, sizeof (REAL_VALUE_TYPE));
 
   TREE_TYPE (v) = type;
@@ -1542,7 +1543,7 @@ make_tree_binfo_stat (unsigned base_binfos MEM_STAT_DECL)
   tree_node_sizes[(int) binfo_kind] += length;
 #endif
 
-  t = ggc_alloc_zone_stat_tree_node (length, &tree_zone);
+  t = ggc_alloc_zone_tree_node_stat (&tree_zone, length PASS_MEM_STAT);
 
   memset (t, 0, offsetof (struct tree_binfo, base_binfos));
 
@@ -1567,7 +1568,7 @@ make_tree_vec_stat (int len MEM_STAT_DECL)
   tree_node_sizes[(int) vec_kind] += length;
 #endif
 
-  t = ggc_alloc_zone_cleared_stat_tree_node (length, &tree_zone);
+  t = ggc_alloc_zone_cleared_tree_node_stat (&tree_zone, length PASS_MEM_STAT);
 
   TREE_SET_CODE (t, TREE_VEC);
   TREE_VEC_LENGTH (t) = len;
@@ -2083,7 +2084,8 @@ tree_cons_stat (tree purpose, tree value, tree chain MEM_STAT_DECL)
 {
   tree node;
 
-  node = ggc_alloc_zone_stat_tree_node (sizeof (struct tree_list), &tree_zone);
+  node = ggc_alloc_zone_tree_node_stat (&tree_zone, sizeof (struct tree_list)
+                                        PASS_MEM_STAT);
   memset (node, 0, sizeof (struct tree_common));
 
 #ifdef GATHER_STATISTICS
@@ -3581,7 +3583,7 @@ build1_stat (enum tree_code code, tree type, tree node MEM_STAT_DECL)
 
   gcc_assert (TREE_CODE_LENGTH (code) == 1);
 
-  t = ggc_alloc_zone_stat_tree_node (length, &tree_zone);
+  t = ggc_alloc_zone_tree_node_stat (&tree_zone, length PASS_MEM_STAT);
 
   memset (t, 0, sizeof (struct tree_common));
 
@@ -5642,41 +5644,6 @@ decl_fini_priority_insert (tree decl, priority_type priority)
   h->fini = priority;
 }
 
-#if 0
-<<<<<<< .working
-/* Look up a restrict qualified base decl for FROM.  */
-
-tree
-decl_restrict_base_lookup (tree from)
-{
-  struct tree_map *h;
-  struct tree_map in;
-
-  in.base.from = from;
-  h = (struct tree_map *) htab_find_with_hash (restrict_base_for_decl, &in,
-					       htab_hash_pointer (from));
-  return h ? h->to : NULL_TREE;
-}
-
-/* Record the restrict qualified base TO for FROM.  */
-
-void
-decl_restrict_base_insert (tree from, tree to)
-{
-  struct tree_map *h;
-  void **loc;
-
-  h = ggc_alloc_tree_map ();
-  h->hash = htab_hash_pointer (from);
-  h->base.from = from;
-  h->to = to;
-  loc = htab_find_slot_with_hash (restrict_base_for_decl, h, h->hash, INSERT);
-  *(struct tree_map **) loc = h;
-}
-
-=======
->>>>>>> .merge-right.r150220
-#endif
 /* Print out the statistics for the DECL_DEBUG_EXPR hash table.  */
 
 static void
@@ -9411,7 +9378,7 @@ build_vl_exp_stat (enum tree_code code, int len MEM_STAT_DECL)
   tree_node_sizes[(int) e_kind] += length;
 #endif
 
-  t = ggc_alloc_zone_cleared_stat_tree_node (length, &tree_zone);
+  t = ggc_alloc_zone_cleared_tree_node_stat (&tree_zone, length PASS_MEM_STAT);
 
   TREE_SET_CODE (t, code);
 

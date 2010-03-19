@@ -1354,18 +1354,18 @@ ggc_internal_alloc_zone_stat (size_t orig_size, struct alloc_zone *zone
   return result;
 }
 
+#define ggc_internal_alloc_zone_pass_stat(s,z)          \
+    ggc_internal_alloc_zone_stat (s,z PASS_MEM_STAT)
+
 void *
 ggc_internal_cleared_alloc_zone_stat (size_t orig_size,
 				      struct alloc_zone *zone MEM_STAT_DECL)
 {
-  void * result = ggc_internal_alloc_zone_stat (orig_size, zone);
+  void * result = ggc_internal_alloc_zone_pass_stat (orig_size, zone);
   memset (result, 0, orig_size);
   return result;
 }
 
-
-#define ggc_internal_alloc_zone_pass_stat(s,z)			\
-  ggc_internal_alloc_zone_stat (s,z PASS_MEM_STAT)
 
 /* Allocate a SIZE of chunk memory of GTE type, into an appropriate zone
    for that type.  */
@@ -1401,7 +1401,11 @@ ggc_internal_alloc_stat (size_t size MEM_STAT_DECL)
 /* Poison the chunk.  */
 #ifdef ENABLE_GC_CHECKING
 #define poison_region(PTR, SIZE) \
-  memset ((PTR), 0xa5, (SIZE))
+    do {                                                              \
+      VALGRIND_DISCARD (VALGRIND_MAKE_MEM_UNDEFINED ((PTR), (SIZE))); \
+      memset ((PTR), 0xa5, (SIZE));                                   \
+      VALGRIND_DISCARD (VALGRIND_MAKE_MEM_NOACCESS ((PTR), (SIZE)));  \
+    } while (0)
 #else
 #define poison_region(PTR, SIZE)
 #endif
@@ -2474,6 +2478,12 @@ ggc_pch_read (FILE *f, void *addr)
 
   /* We've just read in a PCH file.  So, every object that used to be
      allocated is now free.  */
+#ifdef GATHER_STATISTICS
+  zone_allocate_marks ();
+  ggc_prune_overhead_list ();
+  zone_free_marks ();
+#endif
+
   for (zone = G.zones; zone; zone = zone->next_zone)
     {
       struct small_page_entry *page, *next_page;

@@ -194,7 +194,8 @@ rtx_size (const_rtx x)
 rtx
 rtx_alloc_stat (RTX_CODE code MEM_STAT_DECL)
 {
-  rtx rt = ggc_alloc_rtx_def (RTX_CODE_SIZE (code));
+  rtx rt = ggc_alloc_zone_rtx_def_stat (&rtl_zone, RTX_CODE_SIZE (code)
+                                        PASS_MEM_STAT);
 
   /* We want to clear everything up to the FLD array.  Normally, this
      is one int, but we don't want to assume that and it isn't very
@@ -336,7 +337,7 @@ rtx
 shallow_copy_rtx_stat (const_rtx orig MEM_STAT_DECL)
 {
   const unsigned int size = rtx_size (orig);
-  rtx const copy = ggc_alloc_rtx_def (size);
+  rtx const copy = ggc_alloc_zone_rtx_def_stat (&rtl_zone, size PASS_MEM_STAT);
   return (rtx) memcpy (copy, orig, size);
 }
 
