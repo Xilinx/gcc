@@ -1,3 +1,103 @@
+2010-03-11  Francois-Xavier Coudert <fxcoudert@gcc.gnu.org>
+	    Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR target/36399
+	* gcc/testsuite/gcc.target/i386/push-1.c: Don't xfail
+	  scan-assembler-not "movups" on darwin.
+
+2010-03-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43058
+	* gcc.dg/pr43058.c: New test.
+
+2010-03-18  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/42450
+	* g++.dg/torture/pr42450.C: New test.
+
+2010-03-18  Michael Matz  <matz@suse.de>
+
+	PR middle-end/43419
+	* gcc.dg/pr43419.c: New testcase.
+
+2010-03-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/43360
+	* gcc.dg/torture/pr43360.c: New.
+
+2010-03-18  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/43402
+	* gcc.dg/pr43402.c: New testcase.
+
+2010-03-17  Peter Bergner  <bergner@vnet.ibm.com>
+
+	PR target/42427
+	* gcc.dg/pr42427.c: New test.
+
+2010-03-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43265
+	* gfortran.dg/read_empty_file.f: New test.
+	* gfortran.dg/read_eof_all.f90: New test.
+	* gfortran.dg/namelist_27.f90: Eliminate infinite loop posibility.
+	* gfortran.dg/namelist_28.f90: Eliminate infinite loop posibility.
+
+2010-03-17  Michael Matz  <matz@suse.de>
+
+	* gcc.dg/pr43300.c: Add -w.
+
+2010-03-17  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/pr43379.c: Add -w.
+
+2010-03-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43331
+	* gfortran.dg/cray_pointers_1.f90: Update dg-error message.
+
+2010-03-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/graphite/block-3.c: Add dg-timeout-factor.
+
+2010-03-16  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* ada/acats/run_all.sh: Log start and end times.
+
+2010-03-16  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gnat.dg/socket1.adb: Disable on *-*-solaris2*.
+
+2010-03-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43379
+	* gcc.dg/pr43379.c: New testcase.
+
+2010-03-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43051
+	* gcc.dg/guality/pr43051-1.c: New test.
+
+2010-03-15  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/43363
+	* g++.dg/ext/altivec-17.C: Handle changes to error message.
+
+2010-03-15  Michael Matz  <matz@suse.de>
+
+	PR middle-end/43300
+	* gcc.dg/pr43300.c: New testcase.
+
+2010-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43367
+	* gcc.c-torture/compile/pr43367.c: New testcase.
+
+2010-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43317
+	* gcc.dg/pr43317.c: New testcase.
+
 2010-03-14  Uros Bizjak  <ubizjak@gmail.com>
 
 	* g++.dg/abi/packed1.C: Expect warning on the alpha*-*-*.
@@ -225,6 +325,11 @@
 	(dg-xfail-if): Verify the number of arguments, supply defaults
 	for unspecified optional arguments.
 	(dg-skip-if, dg-xfail-run-if): Verify the number of arguments.
+
+2010-03-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/12909
+	* g++.dg/abi/mangle40.C: Updated.
 
 2010-03-03  Jason Merrill  <jason@redhat.com>
 
