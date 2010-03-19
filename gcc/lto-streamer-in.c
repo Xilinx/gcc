@@ -392,7 +392,7 @@ lto_input_eh_catch_list (struct lto_input_block *ib, struct data_in *data_in,
       lto_tag_check_range (tag, LTO_eh_catch, LTO_eh_catch);
 
       /* Read the catch node.  */
-      n = ggc_alloc_cleared_eh_catch_d();
+      n = ggc_alloc_cleared_eh_catch_d ();
       n->type_list = lto_input_tree (ib, data_in);
       n->filter_list = lto_input_tree (ib, data_in);
       n->label = lto_input_tree (ib, data_in);
@@ -432,7 +432,7 @@ input_eh_region (struct lto_input_block *ib, struct data_in *data_in, int ix)
   if (tag == LTO_null)
     return NULL;
 
-  r = ggc_alloc_cleared_eh_region_d();
+  r = ggc_alloc_cleared_eh_region_d ();
   r->index = lto_input_sleb128 (ib);
 
   gcc_assert (r->index == ix);
@@ -505,7 +505,7 @@ input_eh_lp (struct lto_input_block *ib, struct data_in *data_in, int ix)
 
   lto_tag_check_range (tag, LTO_eh_landing_pad, LTO_eh_landing_pad);
 
-  lp = ggc_alloc_cleared_eh_landing_pad_d();
+  lp = ggc_alloc_cleared_eh_landing_pad_d ();
   lp->index = lto_input_sleb128 (ib);
   gcc_assert (lp->index == ix);
   lp->next_lp = (eh_landing_pad) (intptr_t) lto_input_sleb128 (ib);
@@ -710,7 +710,7 @@ make_new_block (struct function *fn, unsigned int index)
   basic_block bb = alloc_block ();
   bb->index = index;
   SET_BASIC_BLOCK_FOR_FUNCTION (fn, index, bb);
-  bb->il.gimple = ggc_alloc_cleared_gimple_bb_info();
+  bb->il.gimple = ggc_alloc_cleared_gimple_bb_info ();
   n_basic_blocks_for_function (fn)++;
   bb->flags = 0;
   set_bb_seq (bb, gimple_seq_alloc ());
@@ -1591,7 +1591,7 @@ unpack_ts_real_cst_value_fields (struct bitpack_d *bp, tree expr)
   for (i = 0; i < SIGSZ; i++)
     r.sig[i] = (unsigned long) bp_unpack_value (bp, HOST_BITS_PER_LONG);
 
-  rp = ggc_alloc_real_value();
+  rp = ggc_alloc_real_value ();
   memcpy (rp, &r, sizeof (REAL_VALUE_TYPE));
   TREE_REAL_CST_PTR (expr) = rp;
 }

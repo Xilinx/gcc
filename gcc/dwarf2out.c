@@ -9282,7 +9282,7 @@ clone_die (dw_die_ref die)
   dw_attr_ref a;
   unsigned ix;
 
-  clone = ggc_alloc_cleared_die_node();
+  clone = ggc_alloc_cleared_die_node ();
   clone->die_tag = die->die_tag;
 
   for (ix = 0; VEC_iterate (dw_attr_node, die->die_attr, ix, a); ix++)
@@ -9323,7 +9323,7 @@ clone_as_declaration (dw_die_ref die)
   if (decl != NULL)
     return clone_die (decl);
 
-  clone = ggc_alloc_cleared_die_node();
+  clone = ggc_alloc_cleared_die_node ();
   clone->die_tag = die->die_tag;
 
   for (ix = 0; VEC_iterate (dw_attr_node, die->die_attr, ix, a); ix++)
@@ -9541,7 +9541,7 @@ break_out_comdat_types (dw_die_ref die)
         unit = new_die (DW_TAG_type_unit, NULL, NULL);
         add_AT_unsigned (unit, DW_AT_language,
                          get_AT_unsigned (comp_unit_die, DW_AT_language));
-        type_node = ggc_alloc_cleared_comdat_type_node();
+        type_node = ggc_alloc_cleared_comdat_type_node ();
         type_node->root_die = unit;
         type_node->next = comdat_type_list;
         comdat_type_list = type_node;
@@ -13763,7 +13763,8 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	  if (SCALAR_FLOAT_MODE_P (mode))
 	    {
 	      unsigned int length = GET_MODE_SIZE (mode);
-	      unsigned char *array = (unsigned char*)ggc_alloc_atomic (length);
+	      unsigned char *array
+                  = (unsigned char*) ggc_alloc_atomic (length);
 
 	      insert_float (rtl, array);
 	      loc_result->dw_loc_oprnd2.val_class = dw_val_class_vec;
@@ -14132,12 +14133,12 @@ add_loc_descr_to_each (dw_loc_list_ref list, dw_loc_descr_ref ref)
   list = list->dw_loc_next;
   while (list)
     {
-      copy = ggc_alloc_dw_loc_descr_node();
+      copy = ggc_alloc_dw_loc_descr_node ();
       memcpy (copy, ref, sizeof (dw_loc_descr_node));
       add_loc_descr (&list->expr, copy);
       while (copy->dw_loc_next)
 	{
-	  dw_loc_descr_ref new_copy = ggc_alloc_dw_loc_descr_node();
+	  dw_loc_descr_ref new_copy = ggc_alloc_dw_loc_descr_node ();
 	  memcpy (new_copy, copy->dw_loc_next, sizeof (dw_loc_descr_node));
 	  copy->dw_loc_next = new_copy;
 	  copy = new_copy;
@@ -16661,7 +16662,7 @@ add_name_and_src_coords_attributes (dw_die_ref die, tree decl)
 	    {
 	      limbo_die_node *asm_name;
 
-	      asm_name = ggc_alloc_cleared_limbo_die_node();
+	      asm_name = ggc_alloc_cleared_limbo_die_node ();
 	      asm_name->die = die;
 	      asm_name->created_for = decl;
 	      asm_name->next = deferred_asm_name;

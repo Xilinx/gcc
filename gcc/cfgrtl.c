@@ -3062,7 +3062,7 @@ void
 init_rtl_bb_info (basic_block bb)
 {
   gcc_assert (!bb->il.rtl);
-  bb->il.rtl = ggc_alloc_cleared_rtl_bb_info();
+  bb->il.rtl = ggc_alloc_cleared_rtl_bb_info ();
 }
 
 

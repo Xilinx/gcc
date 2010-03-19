@@ -2121,7 +2121,7 @@ replace_uses_equiv_to_x_with_y (struct loop *loop, gimple stmt, tree x,
       gsi_insert_before (firstbsi, setstmt, GSI_SAME_STMT);
       update_stmt (setstmt);
       SET_USE (use_p, var);
-      h = ggc_alloc_tree_map();
+      h = ggc_alloc_tree_map ();
       h->hash = in.hash;
       h->base.from = use;
       h->to = var;

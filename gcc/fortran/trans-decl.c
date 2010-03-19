@@ -3325,7 +3325,7 @@ gfc_find_module (const char *name)
 				   htab_hash_string (name), INSERT);
   if (*slot == NULL)
     {
-      struct module_htab_entry *entry = ggc_alloc_cleared_module_htab_entry();
+      struct module_htab_entry *entry = ggc_alloc_cleared_module_htab_entry ();
 
       entry->name = gfc_get_string (name);
       entry->decls = htab_create_ggc (10, module_htab_decls_hash,

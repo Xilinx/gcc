@@ -184,7 +184,7 @@ init_reswords (void)
   /* The Objective-C keywords are all context-dependent.  */
   mask |= D_OBJC;
 
-  ridpointers = ggc_alloc_cleared_vec_tree ( (int) RID_MAX);
+  ridpointers = ggc_alloc_cleared_vec_tree ((int) RID_MAX);
   for (i = 0; i < num_c_common_reswords; i++)
     {
       if (c_common_reswords[i].disable & D_CONLY)
@@ -650,7 +650,7 @@ cxx_make_type (enum tree_code code)
       || code == BOUND_TEMPLATE_TEMPLATE_PARM)
     {
       struct lang_type *pi
-	= ggc_alloc_cleared_lang_type(sizeof (struct lang_type));
+          = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
 
       TYPE_LANG_SPECIFIC (t) = pi;
       pi->u.c.h.is_lang_type_class = 1;

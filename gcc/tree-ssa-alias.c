@@ -381,7 +381,7 @@ get_ptr_info (tree t)
   pi = SSA_NAME_PTR_INFO (t);
   if (pi == NULL)
     {
-      pi = ggc_alloc_cleared_ptr_info_def();
+      pi = ggc_alloc_cleared_ptr_info_def ();
       pt_solution_reset (&pi->pt);
       SSA_NAME_PTR_INFO (t) = pi;
     }

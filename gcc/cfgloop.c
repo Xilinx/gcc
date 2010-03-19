@@ -334,9 +334,9 @@ flow_loop_tree_node_remove (struct loop *loop)
 struct loop *
 alloc_loop (void)
 {
-  struct loop *loop = ggc_alloc_cleared_loop();
+  struct loop *loop = ggc_alloc_cleared_loop ();
 
-  loop->exits = ggc_alloc_cleared_loop_exit();
+  loop->exits = ggc_alloc_cleared_loop_exit ();
   loop->exits->next = loop->exits->prev = loop->exits;
   loop->can_be_parallel = false;
   loop->single_iv = NULL_TREE;
@@ -1026,7 +1026,7 @@ rescan_loop_exit (edge e, bool new_edge, bool removed)
 	   aloop != cloop;
 	   aloop = loop_outer (aloop))
 	{
-	  exit = ggc_alloc_loop_exit();
+	  exit = ggc_alloc_loop_exit ();
 	  exit->e = e;
 
 	  exit->next = aloop->exits->next;

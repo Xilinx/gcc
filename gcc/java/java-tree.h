@@ -760,12 +760,12 @@ union GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
     (DECL_LANG_SPECIFIC (NODE)->u.v.vtable)
 
 /* Create a DECL_LANG_SPECIFIC if necessary. */
-#define MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC(T)			\
-  if (DECL_LANG_SPECIFIC (T) == NULL)				\
-    {								\
-      DECL_LANG_SPECIFIC ((T))					\
-	= ggc_alloc_cleared_lang_decl(sizeof (struct lang_decl));	\
-      DECL_LANG_SPECIFIC (T)->desc = LANG_DECL_VAR;		\
+#define MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC(T)                       \
+  if (DECL_LANG_SPECIFIC (T) == NULL)                                \
+    {                                                                \
+      DECL_LANG_SPECIFIC ((T))                                       \
+        = ggc_alloc_cleared_lang_decl (sizeof (struct lang_decl));   \
+      DECL_LANG_SPECIFIC (T)->desc = LANG_DECL_VAR;                  \
     }
 
 /* A ConstantExpression, after folding and name resolution. */
@@ -890,7 +890,7 @@ struct GTY((variable_size)) lang_decl {
 #define MAYBE_CREATE_TYPE_TYPE_LANG_SPECIFIC(T) \
   if (TYPE_LANG_SPECIFIC ((T)) == NULL)		\
      TYPE_LANG_SPECIFIC ((T))			\
-       = ggc_alloc_cleared_lang_type(sizeof (struct lang_type));
+       = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
 
 #define TYPE_DUMMY(T)		(TYPE_LANG_SPECIFIC(T)->dummy_class)
 

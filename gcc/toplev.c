@@ -1718,7 +1718,7 @@ general_init (const char *argv0)
      table.  */
   init_ggc ();
   init_stringpool ();
-  line_table = ggc_alloc_line_maps();
+  line_table = ggc_alloc_line_maps ();
   linemap_init (line_table);
   line_table->reallocator = realloc_for_line_map;
   init_ttree ();
@@ -1730,7 +1730,7 @@ general_init (const char *argv0)
   add_params (lang_independent_params, LAST_PARAM);
 
   /* This must be done after add_params but before argument processing.  */
-  init_ggc_heuristics();
+  init_ggc_heuristics ();
   init_optimization_passes ();
   statistics_early_init ();
 }

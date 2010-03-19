@@ -336,7 +336,7 @@ cpool_for_class (tree klass)
 
   if (cpool == NULL)
     {
-      cpool = ggc_alloc_cleared_CPool();
+      cpool = ggc_alloc_cleared_CPool ();
       TYPE_CPOOL (klass) = cpool;
     }
   return cpool;

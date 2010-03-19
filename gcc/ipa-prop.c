@@ -1279,7 +1279,7 @@ duplicate_ipa_jump_func_array (const struct ipa_jump_func * src, size_t n)
   if (!src)
     return NULL;
 
-  p = ggc_alloc_vec_ipa_jump_func(n);
+  p = ggc_alloc_vec_ipa_jump_func (n);
   memcpy (p, src, n * sizeof (struct ipa_jump_func));
   return p;
 }

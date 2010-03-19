@@ -5540,7 +5540,7 @@ types_used_by_var_decl_insert (tree type, tree var_decl)
       if (*slot == NULL)
 	{
 	  struct types_used_by_vars_entry *entry;
-	  entry = ggc_alloc_types_used_by_vars_entry();
+	  entry = ggc_alloc_types_used_by_vars_entry ();
 	  entry->type = type;
 	  entry->var_decl = var_decl;
 	  *slot = entry;

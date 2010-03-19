@@ -3138,7 +3138,7 @@ java_treetreehash_new (htab_t ht, tree t)
   e = htab_find_slot_with_hash (ht, t, hv, INSERT);
   if (*e == NULL)
     {
-      tthe = ggc_alloc_cleared_treetreehash_entry();
+      tthe = ggc_alloc_cleared_treetreehash_entry ();
       tthe->key = t;
       *e = tthe;
     }

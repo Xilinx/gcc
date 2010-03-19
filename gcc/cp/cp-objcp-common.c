@@ -246,7 +246,7 @@ decl_shadowed_for_var_insert (tree from, tree to)
   struct tree_map *h;
   void **loc;
 
-  h = ggc_alloc_tree_map();
+  h = ggc_alloc_tree_map ();
   h->hash = htab_hash_pointer (from);
   h->base.from = from;
   h->to = to;

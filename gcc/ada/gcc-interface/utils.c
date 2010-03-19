@@ -322,7 +322,7 @@ gnat_pushlevel (void)
       free_binding_level = free_binding_level->chain;
     }
   else
-    newlevel = ggc_alloc_gnat_binding_level();
+    newlevel = ggc_alloc_gnat_binding_level ();
 
   /* Use a free BLOCK, if any; otherwise, allocate one.  */
   if (free_block_chain)

@@ -139,7 +139,7 @@ lto_symtab_register_decl (tree decl,
   if (TREE_CODE (decl) == FUNCTION_DECL)
     gcc_assert (!DECL_ABSTRACT (decl));
 
-  new_entry = ggc_alloc_cleared_lto_symtab_entry_def();
+  new_entry = ggc_alloc_cleared_lto_symtab_entry_def ();
   new_entry->id = DECL_ASSEMBLER_NAME (decl);
   new_entry->decl = decl;
   new_entry->resolution = resolution;

@@ -431,7 +431,7 @@ cgraph_allocate_node (void)
     }
   else
     {
-      node = ggc_alloc_cleared_cgraph_node();
+      node = ggc_alloc_cleared_cgraph_node ();
       node->uid = cgraph_max_uid++;
     }
 
@@ -934,7 +934,7 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
     }
   else
     {
-      edge = ggc_alloc_cgraph_edge();
+      edge = ggc_alloc_cgraph_edge ();
       edge->uid = cgraph_edge_max_uid++;
     }
 
@@ -1807,7 +1807,7 @@ cgraph_add_asm_node (tree asm_str)
 {
   struct cgraph_asm_node *node;
 
-  node = ggc_alloc_cleared_cgraph_asm_node();
+  node = ggc_alloc_cleared_cgraph_asm_node ();
   node->asm_str = asm_str;
   node->order = cgraph_order++;
   node->next = NULL;

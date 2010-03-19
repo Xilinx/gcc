@@ -596,7 +596,7 @@ bind (tree name, tree decl, struct c_scope *scope, bool invisible,
       binding_freelist = b->prev;
     }
   else
-    b = ggc_alloc_c_binding();
+    b = ggc_alloc_c_binding ();
 
   b->shadowed = 0;
   b->decl = decl;
@@ -710,7 +710,7 @@ void
 record_inline_static (location_t loc, tree func, tree decl,
 		      enum c_inline_static_type type)
 {
-  struct c_inline_static *csi = ggc_alloc_c_inline_static();
+  struct c_inline_static *csi = ggc_alloc_c_inline_static ();
   csi->location = loc;
   csi->function = func;
   csi->static_decl = decl;
@@ -934,7 +934,7 @@ push_scope (void)
 	  scope_freelist = scope->outer;
 	}
       else
-	scope = ggc_alloc_cleared_c_scope();
+	scope = ggc_alloc_cleared_c_scope ();
 
       /* The FLOAT_CONST_DECIMAL64 pragma applies to nested scopes.  */
       if (current_scope)
@@ -6915,7 +6915,7 @@ finish_struct (location_t loc, tree t, tree fieldlist, tree attributes,
 	  ensure that this lives as long as the rest of the struct decl.
 	  All decls in an inline function need to be saved.  */
 
-	space = ggc_alloc_cleared_lang_type(sizeof (struct lang_type));
+	space = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
 	space2 = ggc_alloc_sorted_fields_type
 	  (sizeof (struct sorted_fields_type) + len * sizeof (tree));
 
@@ -8197,7 +8197,7 @@ void
 c_push_function_context (void)
 {
   struct language_function *p;
-  p = ggc_alloc_language_function();
+  p = ggc_alloc_language_function ();
   cfun->language = p;
 
   p->base.x_stmt_tree = c_stmt_tree;

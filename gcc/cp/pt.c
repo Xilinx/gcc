@@ -6063,7 +6063,7 @@ add_pending_template (tree d)
   if (level)
     push_tinst_level (d);
 
-  pt = ggc_alloc_pending_template();
+  pt = ggc_alloc_pending_template ();
   pt->next = NULL;
   pt->tinst = current_tinst_level;
   if (last_pending_template)
@@ -6928,7 +6928,7 @@ push_tinst_level (tree d)
       return 0;
     }
 
-  new_level = ggc_alloc_tinst_level();
+  new_level = ggc_alloc_tinst_level ();
   new_level->decl = d;
   new_level->locus = input_location;
   new_level->in_system_header_p = in_system_header;

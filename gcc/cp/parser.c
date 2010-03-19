@@ -273,7 +273,7 @@ cp_lexer_new_main (void)
   c_common_no_more_pch ();
 
   /* Allocate the memory.  */
-  lexer = ggc_alloc_cleared_cp_lexer();
+  lexer = ggc_alloc_cleared_cp_lexer ();
 
 #ifdef ENABLE_CHECKING
   /* Initially we are not debugging.  */
@@ -284,7 +284,7 @@ cp_lexer_new_main (void)
 
   /* Create the buffer.  */
   alloc = CP_LEXER_BUFFER_SIZE;
-  buffer = ggc_alloc_vec_cp_token(alloc);
+  buffer = ggc_alloc_vec_cp_token (alloc);
 
   /* Put the first token in the buffer.  */
   space = alloc;
@@ -325,7 +325,7 @@ cp_lexer_new_from_tokens (cp_token_cache *cache)
 {
   cp_token *first = cache->first;
   cp_token *last = cache->last;
-  cp_lexer *lexer = ggc_alloc_cleared_cp_lexer();
+  cp_lexer *lexer = ggc_alloc_cleared_cp_lexer ();
 
   /* We do not own the buffer.  */
   lexer->buffer = NULL;
@@ -825,7 +825,7 @@ cp_lexer_stop_debugging (cp_lexer* lexer)
 static cp_token_cache *
 cp_token_cache_new (cp_token *first, cp_token *last)
 {
-  cp_token_cache *cache = ggc_alloc_cp_token_cache();
+  cp_token_cache *cache = ggc_alloc_cp_token_cache ();
   cache->first = first;
   cache->last = last;
   return cache;
@@ -1374,7 +1374,7 @@ cp_parser_context_new (cp_parser_context* next)
       memset (context, 0, sizeof (*context));
     }
   else
-    context = ggc_alloc_cleared_cp_parser_context();
+    context = ggc_alloc_cleared_cp_parser_context ();
 
   /* No errors have occurred yet in this context.  */
   context->status = CP_PARSER_STATUS_KIND_NO_ERROR;
@@ -2831,7 +2831,7 @@ cp_parser_new (void)
   for (i = 0; i < sizeof (binops) / sizeof (binops[0]); i++)
     binops_by_token[binops[i].token_type] = binops[i];
 
-  parser = ggc_alloc_cleared_cp_parser();
+  parser = ggc_alloc_cleared_cp_parser ();
   parser->lexer = lexer;
   parser->context = cp_parser_context_new (NULL);
 
@@ -4326,7 +4326,7 @@ cp_parser_nested_name_specifier_opt (cp_parser *parser,
       token->type = CPP_NESTED_NAME_SPECIFIER;
       /* Retrieve any deferred checks.  Do not pop this access checks yet
 	 so the memory will not be reclaimed during token replacing below.  */
-      token->u.tree_check_value = ggc_alloc_cleared_tree_check();
+      token->u.tree_check_value = ggc_alloc_cleared_tree_check ();
       token->u.tree_check_value->value = parser->scope;
       token->u.tree_check_value->checks = get_deferred_access_checks ();
       token->u.tree_check_value->qualifying_scope =
@@ -10953,7 +10953,7 @@ cp_parser_template_id (cp_parser *parser,
       token->type = CPP_TEMPLATE_ID;
       /* Retrieve any deferred checks.  Do not pop this access checks yet
 	 so the memory will not be reclaimed during token replacing below.  */
-      token->u.tree_check_value = ggc_alloc_cleared_tree_check();
+      token->u.tree_check_value = ggc_alloc_cleared_tree_check ();
       token->u.tree_check_value->value = template_id;
       token->u.tree_check_value->checks = get_deferred_access_checks ();
       token->keyword = RID_MAX;

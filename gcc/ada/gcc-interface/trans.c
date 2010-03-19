@@ -1532,7 +1532,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 
 	    if (!pa)
 	      {
-		pa = ggc_alloc_cleared_parm_attr_d();
+		pa = ggc_alloc_cleared_parm_attr_d ();
 		pa->id = gnat_param;
 		pa->dim = Dimension;
 		VEC_safe_push (parm_attr, gc, f_parm_attr_cache, pa);
@@ -2233,7 +2233,7 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
   /* Initialize the information structure for the function.  */
   allocate_struct_function (gnu_subprog_decl, false);
   DECL_STRUCT_FUNCTION (gnu_subprog_decl)->language
-    = ggc_alloc_cleared_language_function();
+    = ggc_alloc_cleared_language_function ();
 
   begin_subprog_body (gnu_subprog_decl);
   gnu_cico_list = TYPE_CI_CO_LIST (gnu_subprog_type);
@@ -3423,7 +3423,7 @@ Compilation_Unit_to_gnu (Node_Id gnat_node)
 
   /* Save away what we've made so far and record this potential elaboration
      procedure.  */
-  info = ggc_alloc_elab_info();
+  info = ggc_alloc_elab_info ();
   set_current_block_context (gnu_elab_proc_decl);
   gnat_poplevel ();
   DECL_SAVED_TREE (gnu_elab_proc_decl) = end_stmt_group ();
@@ -5534,7 +5534,7 @@ start_stmt_group (void)
   if (group)
     stmt_group_free_list = group->previous;
   else
-    group = ggc_alloc_stmt_group();
+    group = ggc_alloc_stmt_group ();
 
   group->previous = current_stmt_group;
   group->stmt_list = group->block = group->cleanups = NULL_TREE;

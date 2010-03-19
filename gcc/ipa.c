@@ -577,7 +577,7 @@ cgraph_node_set_new (void)
 {
   cgraph_node_set new_node_set;
 
-  new_node_set = ggc_alloc_cgraph_node_set_def();
+  new_node_set = ggc_alloc_cgraph_node_set_def ();
   new_node_set->hashtab = htab_create_ggc (10,
 					   hash_cgraph_node_set_element,
 					   eq_cgraph_node_set_element,
@@ -608,7 +608,7 @@ cgraph_node_set_add (cgraph_node_set set, struct cgraph_node *node)
     }
 
   /* Insert node into hash table.  */
-  element = ggc_alloc_cgraph_node_set_element_def();
+  element = ggc_alloc_cgraph_node_set_element_def ();
   element->node = node;
   element->index = VEC_length (cgraph_node_ptr, set->nodes);
   *slot = element;
