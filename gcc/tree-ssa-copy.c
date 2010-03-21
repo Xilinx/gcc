@@ -968,6 +968,17 @@ execute_copy_prop (void)
   init_copy_prop ();
   ssa_propagate (copy_prop_visit_stmt, copy_prop_visit_phi_node);
   fini_copy_prop ();
+
+  /* Copy prop does not maintain a proper loop closed SSA form:
+     recompute it when copy prop is called from the LNO.  */
+  if (current_loops)
+    {
+      rewrite_into_loop_closed_ssa (NULL, TODO_update_ssa);
+#ifdef ENABLE_CHECKING
+      verify_loop_closed_ssa ();
+#endif
+    }
+
   return 0;
 }
 
