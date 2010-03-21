@@ -199,6 +199,7 @@ gnu_ld="$gnu_ld_flag"
 default_use_cxa_atexit=no
 target_gtfiles=
 need_64bit_hwint=
+need_64bit_isa=
 
 # Don't carry these over build->host->target.  Please.
 xm_file=
@@ -1083,6 +1084,7 @@ hppa[12]*-*-hpux11*)
 	;;
 i[34567]86-*-darwin*)
 	need_64bit_hwint=yes
+	need_64bit_isa=yes
 
 	# This is so that '.../configure && make' doesn't fail due to
 	# config.guess deciding that the configuration is i386-*-darwin* and
@@ -1148,6 +1150,7 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 			tm_defines="${tm_defines} TARGET_BI_ARCH=1"
 			tmake_file="${tmake_file} i386/t-linux64"
 			need_64bit_hwint=yes
+			need_64bit_isa=yes
 			case X"${with_cpu}" in
 			Xgeneric|Xatom|Xcore2|Xnocona|Xx86-64|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx|Xathlon64-sse3|Xk8-sse3|Xopteron-sse3)
 				;;
@@ -1266,6 +1269,7 @@ i[34567]86-*-solaris2*)
 		# depends on a runtime test and is thus performed in
 		# libgcc/configure.ac instead.
 		need_64bit_hwint=yes
+		need_64bit_isa=yes
 		use_gcc_stdint=wrap
 		case X"${with_cpu}" in
 		Xgeneric|Xatom|Xcore2|Xnocona|Xx86-64|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx|Xathlon64-sse3|Xk8-sse3|Xopteron-sse3)
@@ -1335,6 +1339,7 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 	case ${target} in
 		x86_64-*-* | *-w64-*)
 			need_64bit_hwint=yes
+			need_64bit_isa=yes
 			;;
 		*)
 			;;
@@ -2357,7 +2362,7 @@ sparc-*-elf*)
 	extra_parts="crti.o crtn.o crtbegin.o crtend.o"
 	;;
 sparc-*-linux*)		# SPARC's running GNU/Linux, libc6
-	tm_file="${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sparc/gas.h linux.h glibc-stdint.h"
+	tm_file="${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h linux.h glibc-stdint.h"
 	extra_options="${extra_options} sparc/long-double-switch.opt"
 	tmake_file="${tmake_file} sparc/t-linux"
 	if test x$enable_targets = xall; then
@@ -2373,23 +2378,32 @@ sparc-*-rtems*)
 	tmake_file="sparc/t-elf sparc/t-crtfm t-rtems"
 	extra_parts="crti.o crtn.o crtbegin.o crtend.o"
 	;;
-sparc64-*-solaris2* | sparcv9-*-solaris2*)
+sparc*-*-solaris2*)
 	tm_file="sparc/biarch64.h ${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sol2.h"
 	case ${target} in
-	*-*-solaris2.1[0-9]*)
+	    *-*-solaris2.1[0-9]*)
 		tm_file="${tm_file} sol2-10.h"
 		use_gcc_stdint=wrap
 		;;
-	*)
+	    *)
 		use_gcc_stdint=provide
 		;;
 	esac
-	tm_file="${tm_file} sparc/sol2.h sparc/sol2-64.h sparc/sol2-bi.h"
-	if test x$gnu_ld = xyes; then
-		tm_file="${tm_file} sparc/sol2-gld.h sparc/sol2-gld-bi.h"
-	fi
+	tm_file="${tm_file} sparc/sol2.h"
+	case ${target} in
+	    sparc64-*-* | sparcv9-*-*)
+		tm_file="${tm_file} sparc/sol2-64.h"
+		;;
+	    *)
+		test x$with_cpu != x || with_cpu=v9
+		;;
+	esac
+	tm_file="${tm_file} sparc/sol2-bi.h"
 	if test x$gas = xyes; then
 		tm_file="${tm_file} sparc/sol2-gas.h sparc/sol2-gas-bi.h"
+	fi
+	if test x$gnu_ld = xyes; then
+		tm_file="${tm_file} sparc/sol2-gld.h sparc/sol2-gld-bi.h"
 	fi
 	tm_file="${tm_file} tm-dwarf2.h"
 	tmake_file="t-sol2 sparc/t-sol2 sparc/t-sol2-64 sparc/t-crtfm"
@@ -2398,50 +2412,6 @@ sparc64-*-solaris2* | sparcv9-*-solaris2*)
 	else
 		tmake_file="$tmake_file t-slibgcc-sld"
 	fi
-	c_target_objs="sol2-c.o"
-	cxx_target_objs="sol2-c.o"
-	extra_objs="sol2.o"
-	tm_p_file="${tm_p_file} sol2-protos.h"
-	extra_parts="crt1.o crti.o crtn.o gcrt1.o crtbegin.o crtend.o"
-	case ${enable_threads}:${have_pthread_h}:${have_thread_h} in
-	  "":yes:* | yes:yes:* ) thread_file=posix ;;
-	  "":*:yes | yes:*:yes ) thread_file=solaris ;;
-	esac
-	;;
-sparc-*-solaris2*)
-	tm_file="${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sol2.h"
-	case ${target} in
-	*-*-solaris2.1[0-9]*)
-		tm_file="${tm_file} sol2-10.h"
-		use_gcc_stdint=wrap
-		;;
-	*)
-		use_gcc_stdint=provide
-		;;
-	esac
-	tm_file="${tm_file} sparc/sol2.h"
-	if test x$gnu_ld = xyes; then
-		tm_file="${tm_file} sparc/sol2-gld.h"
-	fi
-	if test x$gas = xyes; then
-		tm_file="${tm_file} sparc/sol2-gas.h"
-	fi
-	tmake_file="t-sol2 sparc/t-sol2 sparc/t-crtfm"
-	if test x$gnu_ld = xyes; then
-		tmake_file="$tmake_file t-slibgcc-elf-ver"
-	else
-		tmake_file="$tmake_file t-slibgcc-sld"
-	fi
-	tm_file="sparc/biarch64.h ${tm_file} sparc/sol2-bi.h"
-	if test x$gnu_ld = xyes; then
-		tm_file="${tm_file} sparc/sol2-gld-bi.h"
-	fi
-	if test x$gas = xyes; then
-		tm_file="${tm_file} sparc/sol2-gas-bi.h"
-	fi
-	tm_file="${tm_file} tm-dwarf2.h"
-	tmake_file="$tmake_file sparc/t-sol2-64"
-	test x$with_cpu != x || with_cpu=v9
 	c_target_objs="sol2-c.o"
 	cxx_target_objs="sol2-c.o"
 	extra_objs="sol2.o"
@@ -2477,7 +2447,7 @@ sparc64-*-freebsd*|ultrasparc-*-freebsd*)
 	esac
 	;;
 sparc64-*-linux*)		# 64-bit SPARC's running GNU/Linux
-	tm_file="sparc/biarch64.h ${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sparc/gas.h linux.h glibc-stdint.h sparc/linux64.h"
+	tm_file="sparc/biarch64.h ${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h linux.h glibc-stdint.h sparc/linux64.h"
 	extra_options="${extra_options} sparc/long-double-switch.opt"
 	tmake_file="${tmake_file} sparc/t-linux sparc/t-linux64 sparc/t-crtfm"
 	;;
@@ -2625,16 +2595,24 @@ esac
 # to generic if there is no processor scheduler model for the target.
 arch=
 cpu=
+arch_without_sse2=no
+arch_without_64bit=no
 case ${target} in
   i386-*-*)
     arch=i386
     cpu=i386
+    arch_without_sse2=yes
+    arch_without_64bit=yes
     ;;
   i486-*-*)
     arch=i486
     cpu=i486
+    arch_without_sse2=yes
+    arch_without_64bit=yes
     ;;
   i586-*-*)
+    arch_without_sse2=yes
+    arch_without_64bit=yes
     case ${target_noncanonical} in
       k6_2-*)
 	arch=k6-2
@@ -2675,22 +2653,28 @@ case ${target} in
       athlon_xp-*|athlon_mp-*|athlon_4-*)
 	arch=athlon-4
 	cpu=athlon-4
+	arch_without_sse2=yes
+	arch_without_64bit=yes
 	;;
       athlon_tbird-*|athlon-*)
 	arch=athlon
 	cpu=athlon
+	arch_without_sse2=yes
 	;;
       geode-*)
 	arch=geode
 	cpu=geode
+	arch_without_sse2=yes
 	;;
       pentium2-*)
 	arch=pentium2
 	cpu=pentium2
+	arch_without_sse2=yes
 	;;
       pentium3-*|pentium3m-*)
 	arch=pentium3
 	cpu=pentium3
+	arch_without_sse2=yes
 	;;
       pentium4-*|pentium4m-*)
 	arch=pentium4
@@ -2719,10 +2703,13 @@ case ${target} in
       pentiumpro-*)
 	arch=pentiumpro
 	cpu=pentiumpro
+	arch_without_sse2=yes
 	;;
       *)
 	arch=pentiumpro
 	cpu=generic
+	arch_without_sse2=yes
+	arch_without_64bit=yes
 	;;
     esac
     ;;
@@ -2835,15 +2822,17 @@ esac
 # This block sets nothing except for with_arch.
 if test x$with_arch = x ; then
   case ${target} in
-    i[34567]86-*-darwin*)
-      # Don't set default arch for Darwin since it will set the default
-      # ISA to SSE2.
+    i[34567]86-*-darwin*|x86_64-*-darwin*)
+      # Default arch is set via TARGET_SUBTARGET32_ISA_DEFAULT
+      # and TARGET_SUBTARGET64_ISA_DEFAULT in config/i386/darwin.h.
       ;;
     i[34567]86-*-*)
-      # Don't set default arch if --with-fpmath is used since it will set
-      # the default ISA to SSE2.
-      if test x$with_fpmath = x; then
-        with_arch=$arch
+      # --with-fpmath sets the default ISA to SSE2, which is the same
+      # ISA supported by Pentium 4.
+      if test x$with_fpmath = x || test $arch_without_sse2 = no; then
+	with_arch=$arch
+      else
+	with_arch=pentium4
       fi
       ;;
     x86_64-*-*)
@@ -2853,14 +2842,30 @@ if test x$with_arch = x ; then
 
   # Avoid overriding --with-arch-32 and --with-arch-64 values.
   case ${target} in
+    i[34567]86-*-darwin*|x86_64-*-darwin*)
+      # Default arch is set via TARGET_SUBTARGET32_ISA_DEFAULT
+      # and TARGET_SUBTARGET64_ISA_DEFAULT in config/i386/darwin.h.
+      ;;
     i[34567]86-*-*|x86_64-*-*)
       if test x$with_arch_32 != x || test x$with_arch_64 != x; then
 	if test x$with_arch_32 = x; then
-	  with_arch_32=$arch
+	  with_arch_32=$with_arch
 	fi
 	if test x$with_arch_64 = x; then
-	  with_arch_64=$arch
+	  if test $arch_without_64bit = yes; then
+	    # Set the default 64bit arch to x86-64 if the default arch
+	    # doesn't support 64bit.
+	    with_arch_64=x86-64
+	  else
+	    with_arch_64=$with_arch
+	  fi
 	fi
+	with_arch=
+      elif test $arch_without_64bit$need_64bit_isa = yesyes; then
+	# Set the default 64bit arch to x86-64 if the default arch
+	# doesn't support 64bit and we need 64bit ISA.
+	with_arch_32=$with_arch
+	with_arch_64=x86-64
 	with_arch=
       fi
       ;;

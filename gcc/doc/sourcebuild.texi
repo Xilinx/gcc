@@ -1,4 +1,4 @@
-@c Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009
+@c Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -15,7 +15,6 @@ which it is presumed that you are familiar.
 * Configure Terms:: Configuration terminology and history.
 * Top Level::       The top level source directory.
 * gcc Directory::   The @file{gcc} subdirectory.
-* Testsuites::      The GCC testsuites.
 @end menu
 
 @include configterms.texi
@@ -813,7 +812,7 @@ a maintainer when support is added.
 @end itemize
 
 @node Testsuites
-@section Testsuites
+@chapter Testsuites
 
 GCC contains several testsuites to help maintain compiler quality.
 Most of the runtime libraries and language front ends in GCC have
@@ -834,7 +833,7 @@ here; FIXME: document the others.
 @end menu
 
 @node Test Idioms
-@subsection Idioms Used in Testsuite Code
+@section Idioms Used in Testsuite Code
 
 In general, C testcases have a trailing @file{-@var{n}.c}, starting
 with @file{-1.c}, in case other testcases with similar names are added
@@ -913,7 +912,7 @@ unfortunately, the mechanisms for this differ by directory.
 FIXME: discuss non-C testsuites here.
 
 @node Test Directives
-@subsection Directives used within DejaGnu tests
+@section Directives used within DejaGnu tests
 
 Test directives appear within comments in a test source file and begin
 with @code{dg-}.  Some of these are defined within DejaGnu and others
@@ -931,7 +930,7 @@ effective-target keyword; or a logical expression.  Depending on the
 context, the selector specifies whether a test is skipped and reported
 as unsupported or is expected to fail.  Use @samp{*-*-*} to match any
 target.
-Effective-target keywords are defined in @file{target-supports.exp} in
+Effective-target keywords are defined in @file{lib/target-supports.exp} in
 the GCC testsuite.
 
 A selector expression appears within curly braces and uses a single
@@ -973,10 +972,10 @@ If the directive includes the optional @samp{@{ target @var{selector} @}}
 then the test is skipped unless the target system is included in the
 list of target triplets or matches the effective-target keyword.
 
-If @samp{do-what-keyword} is @code{run} and the directive includes
+If @var{do-what-keyword} is @code{run} and the directive includes
 the optional @samp{@{ xfail @var{selector} @}} and the selector is met
 then the test is expected to fail.  The @code{xfail} clause is ignored
-for other values of @samp{do-what-keyword}; those tests can use
+for other values of @var{do-what-keyword}; those tests can use
 directive @code{dg-xfail-if}.
 
 @item @{ dg-options @var{options} [@{ target @var{selector} @}] @}
@@ -1002,11 +1001,7 @@ and only then in certain modes.
 
 @item @{ dg-timeout @var{n} [@{target @var{selector} @}] @}
 Set the time limit for the compilation and for the execution of the test
-to the specified number of seconds.
-
-@item @{ dg-timeout-factor @var{x} [@{ target @var{selector} @}] @}
-Multiply the normal time limit for compilation and execution of the test
-by the specified floating-point factor.  The normal timeout limit, in
+to the specified number of seconds.  The normal timeout limit, in
 seconds, is found by searching the following in order:
 
 @itemize @bullet
@@ -1020,27 +1015,71 @@ the test
 @item 300
 @end itemize
 
-@item @{ dg-skip-if @var{comment} @{ @var{selector} @} @{ @var{include-opts} @} @{ @var{exclude-opts} @} @}
-Skip the test if the test system is included in @var{selector} and if
-each of the options in @var{include-opts} is in the set of options with
-which the test would be compiled and if none of the options in
-@var{exclude-opts} is in the set of options with which the test would be
-compiled.
+@item @{ dg-timeout-factor @var{x} [@{ target @var{selector} @}] @}
+Multiply the normal time limit for compilation and execution of the test
+by the specified floating-point factor.
 
-Use @samp{"*"} for an empty @var{include-opts} list and @samp{""} for
-an empty @var{exclude-opts} list.
+@item @{ dg-skip-if @var{comment} @{ @var{selector} @} [@{ @var{include-opts} @} [@{ @var{exclude-opts} @}]] @}
+Arguments @var{include-opts} and @var{exclude-opts} are lists in which
+each element is a string of zero or more GCC options.
+Skip the test if all of the following conditions are met:
+@itemize @bullet
+@item the test system is included in @var{selector}
 
-@item  @{ dg-xfail-if @var{comment} @{ @var{selector} @} @{ @var{include-opts} @} @{ @var{exclude-opts} @} @}
+@item for at least one of the option strings in @var{include-opts},
+every option from that string is in the set of options with which
+the test would be compiled; use @samp{"*"} for an @var{include-opts} list
+that matches any options; that is the default if @var{include-opts} is
+not specified
+
+@item for each of the option strings in @var{exclude-opts}, at least one
+option from that string is not in the set of options with which the test
+would be compiled; use @samp{""} for an empty @var{exclude-opts} list;
+that is the default if @var{exclude-opts} is not specified
+@end itemize
+
+For example, to skip a test if option @code{-Os} is present:
+
+@smallexample
+/* @{ dg-skip-if "" @{ *-*-* @}  @{ "-Os" @} @{ "" @} @} */
+@end smallexample
+
+To skip a test if both options @code{-O2} and @code{-g} are present:
+
+@smallexample
+/* @{ dg-skip-if "" @{ *-*-* @}  @{ "-O2 -g" @} @{ "" @} @} */
+@end smallexample
+
+To skip a test if either @code{-O2} or @code{-O3} is present:
+
+@smallexample
+/* @{ dg-skip-if "" @{ *-*-* @}  @{ "-O2" "-O3" @} @{ "" @} @} */
+@end smallexample
+
+To skip a test unless option @code{-OS} is present:
+
+@smallexample
+/* @{ dg-skip-if "" @{ *-*-* @}  @{ "*" @} @{ "-Os" @} @} */
+@end smallexample
+
+To skip a test if either @code{-O2} or @code{-O3} is used with @code{-g}
+but not if @code{-fpic} is also present:
+
+@smallexample
+/* @{ dg-skip-if "" @{ *-*-* @}  @{ "-O2 -g" "-O3 -g" @} @{ "-fpic" @} @} */
+@end smallexample
+
+@item  @{ dg-xfail-if @var{comment} @{ @var{selector} @} [@{ @var{include-opts} @} [@{ @var{exclude-opts} @}]] @}
 Expect the test to fail if the conditions (which are the same as for
 @code{dg-skip-if}) are met.  This does not affect the execute step.
 
-@item  @{ dg-xfail-run-if @var{comment} @{ @var{selector} @} @{ @var{include-opts} @} @{ @var{exclude-opts} @} @}
+@item  @{ dg-xfail-run-if @var{comment} @{ @var{selector} @} [@{ @var{include-opts} @} [@{ @var{exclude-opts} @}]] @}
 Expect the execute step of a test to fail if the conditions (which are
-the same as for @code{dg-skip-if}) and @code{dg-xfail-if}) are met.
+the same as for @code{dg-skip-if} and @code{dg-xfail-if}) are met.
 
 @item @{ dg-require-@var{support} args @}
 Skip the test if the target does not provide the required support;
-see @file{gcc-dg.exp} in the GCC testsuite for the actual directives.
+see @file{lib/gcc-dg.exp} in the GCC testsuite for the actual directives.
 These directives must appear after any @code{dg-do} directive in the test
 and before any @code{dg-additional-sources} directive.
 They require at least one argument, which can be an empty string if the
@@ -1052,7 +1091,7 @@ is not covered by the effective-target keyword.
 This directive must appear after any @code{dg-do} directive in the test
 and before any @code{dg-additional-sources} directive.
 
-@item  @{ dg-shouldfail @var{comment} @{ @var{selector} @} @{ @var{include-opts} @} @{ @var{exclude-opts} @} @}
+@item  @{ dg-shouldfail @var{comment} [@{ @var{selector} @} [@{ @var{include-opts} @} [@{ @var{exclude-opts} @}]]] @}
 Expect the test executable to return a nonzero exit status if the
 conditions (which are the same as for @code{dg-skip-if}) are met.
 
@@ -1198,11 +1237,11 @@ Check branch and/or call counts, in addition to line counts, in
 @end table
 
 @node Ada Tests
-@subsection Ada Language Testsuites
+@section Ada Language Testsuites
 
 The Ada testsuite includes executable tests from the ACATS 2.5
 testsuite, publicly available at
-@uref{http://www.adaic.org/compilers/acats/2.5}
+@uref{http://www.adaic.org/compilers/acats/2.5}.
 
 These tests are integrated in the GCC testsuite in the
 @file{gcc/testsuite/ada/acats} directory, and
@@ -1218,11 +1257,12 @@ $ make check-ada CHAPTERS="c3 c9"
 @end smallexample
 
 The tests are organized by directory, each directory corresponding to
-a chapter of the Ada Reference Manual.  So for example, c9 corresponds
+a chapter of the Ada Reference Manual.  So for example, @file{c9} corresponds
 to chapter 9, which deals with tasking features of the language.
 
 There is also an extra chapter called @file{gcc} containing a template for
-creating new executable tests.
+creating new executable tests, although this is deprecated in favor of
+the @file{gnat.dg} testsuite.
 
 The tests are run using two @command{sh} scripts: @file{run_acats} and
 @file{run_all.sh}.  To run the tests using a simulator or a cross
@@ -1233,7 +1273,7 @@ These tests are run using the build tree: they can be run without doing
 a @code{make install}.
 
 @node C Tests
-@subsection C Language Testsuites
+@section C Language Testsuites
 
 GCC contains the following C language testsuites, in the
 @file{gcc/testsuite} directory:
@@ -1252,7 +1292,7 @@ unless other options are given in the test.  Except as noted below they
 are not run with multiple optimization options.
 @item gcc.dg/compat
 This subdirectory contains tests for binary compatibility using
-@file{compat.exp}, which in turn uses the language-independent support
+@file{lib/compat.exp}, which in turn uses the language-independent support
 (@pxref{compat Testing, , Support for testing binary compatibility}).
 @item gcc.dg/cpp
 This subdirectory contains tests of the preprocessor.
@@ -1302,20 +1342,18 @@ This contains tests which are specific to IEEE floating point.
 FIXME: describe this.
 
 This directory should probably not be used for new tests.
-@item gcc.c-torture/misc-tests
+@item gcc.misc-tests
 This directory contains C tests that require special handling.  Some
 of these tests have individual expect files, and others share
 special-purpose expect files:
 
 @table @file
 @item @code{bprob*.c}
-Test @option{-fbranch-probabilities} using @file{bprob.exp}, which
+Test @option{-fbranch-probabilities} using
+@file{gcc.misc-tests/bprob.exp}, which
 in turn uses the generic, language-independent framework
 (@pxref{profopt Testing, , Support for testing profile-directed
 optimizations}).
-
-@item @code{dg-*.c}
-Test the testsuite itself using @file{dg-test.exp}.
 
 @item @code{gcov*.c}
 Test @command{gcov} output using @file{gcov.exp}, which in turn uses the
@@ -1325,13 +1363,19 @@ language-independent support (@pxref{gcov Testing, , Support for testing gcov}).
 Test i386-specific support for data prefetch using @file{i386-prefetch.exp}.
 @end table
 
+@item gcc.test-framework
+@table @file
+@item @code{dg-*.c}
+Test the testsuite itself using @file{gcc.test-framework/test-framework.exp}.
+@end table
+
 @end table
 
 FIXME: merge in @file{testsuite/README.gcc} and discuss the format of
 test cases and magic comments more.
 
 @node libgcj Tests
-@subsection The Java library testsuites.
+@section The Java library testsuites.
 
 Runtime tests are executed via @samp{make check} in the
 @file{@var{target}/libjava/testsuite} directory in the build
@@ -1354,7 +1398,7 @@ bugs in libgcj that had caused Mauve test failures.
 We encourage developers to contribute test cases to Mauve.
 
 @node LTO Testing
-@subsection Support for testing link-time optimizations
+@section Support for testing link-time optimizations
 
 Tests for link-time optimizations usually require multiple source files
 that are compiled separately, perhaps with different sets of options.
@@ -1390,12 +1434,12 @@ each of these sets of options.
 @end table
 
 @node gcov Testing
-@subsection Support for testing @command{gcov}
+@section Support for testing @command{gcov}
 
 Language-independent support for testing @command{gcov}, and for checking
 that branch profiling produces expected values, is provided by the
-expect file @file{gcov.exp}.  @command{gcov} tests also rely on procedures
-in @file{gcc.dg.exp} to compile and run the test program.  A typical
+expect file @file{lib/gcov.exp}.  @command{gcov} tests also rely on procedures
+in @file{lib/gcc-dg.exp} to compile and run the test program.  A typical
 @command{gcov} test contains the following DejaGnu commands within comments:
 
 @smallexample
@@ -1456,7 +1500,7 @@ commands to check branch percentages and call return percentages can
 bracket the lines that report them.
 
 @node profopt Testing
-@subsection Support for testing profile-directed optimizations
+@section Support for testing profile-directed optimizations
 
 The file @file{profopt.exp} provides language-independent support for
 checking correct execution of a test built with profile-directed
@@ -1495,7 +1539,7 @@ torture tests
 @end table
 
 @node compat Testing
-@subsection Support for testing binary compatibility
+@section Support for testing binary compatibility
 
 The file @file{compat.exp} provides language-independent support for
 binary compatibility testing.  It supports testing interoperability of
@@ -1568,7 +1612,7 @@ following from @file{@var{objdir}/gcc}:
 rm site.exp
 make -k \
   ALT_CXX_UNDER_TEST=$@{alt_prefix@}/bin/g++ \
-  COMPAT_OPTIONS="lists as shown above" \
+  COMPAT_OPTIONS="@var{lists as shown above}" \
   check-c++ \
   RUNTESTFLAGS="compat.exp"
 @end smallexample
@@ -1602,12 +1646,12 @@ targets.
 @end table
 
 @node Torture Tests
-@subsection Support for torture testing using multiple options
+@section Support for torture testing using multiple options
 
 Throughout the compiler testsuite there are several directories whose
 tests are run multiple times, each with a different set of options.
 These are known as torture tests.
-@file{gcc/testsuite/lib/torture-options.exp} defines procedures to
+@file{lib/torture-options.exp} defines procedures to
 set up these lists:
 
 @table @code

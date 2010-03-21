@@ -3514,7 +3514,7 @@ incomplete types.  Runs in the frontend only.
 Level 3 (default for @option{-Wstrict-aliasing}):
 Should have very few false positives and few false
 negatives.  Slightly slower than levels 1 or 2 when optimization is enabled.
-Takes care of the common punn+dereference pattern in the frontend:
+Takes care of the common pun+dereference pattern in the frontend:
 @code{*(int*)&some_float}.
 If optimization is enabled, it also runs in the backend, where it deals
 with multiple statement cases using flow-sensitive points-to information.
@@ -3877,7 +3877,7 @@ reference to them. Warnings about conversions between signed and
 unsigned integers are disabled by default in C++ unless
 @option{-Wsign-conversion} is explicitly enabled.
 
-@item -Wno-conversion-null @r{(C++)}
+@item -Wno-conversion-null @r{(C++ and Objective-C++ only)}
 @opindex Wconversion-null
 @opindex Wno-conversion-null
 Do not warn for conversions between @code{NULL} and non-pointer
@@ -6675,7 +6675,9 @@ Graphite loop transformation infrastructure.
 Perform loop strip mining transformations on loops.  Strip mining
 splits a loop into two nested loops.  The outer loop has strides
 equal to the strip size and the inner loop has strides of the
-original loop within a strip.  For example, given a loop like:
+original loop within a strip.  The strip length can be changed
+using the @option{loop-block-tile-size} parameter.  For example,
+given a loop like:
 @smallexample
 DO I = 1, N
   A(I) = A(I) + C
@@ -6683,8 +6685,8 @@ ENDDO
 @end smallexample
 loop strip mining will transform the loop as if the user had written:
 @smallexample
-DO II = 1, N, 4
-  DO I = II, min (II + 3, N)
+DO II = 1, N, 51
+  DO I = II, min (II + 50, N)
     A(I) = A(I) + C
   ENDDO
 ENDDO
@@ -6697,7 +6699,9 @@ enable the Graphite loop transformation infrastructure.
 @item -floop-block
 Perform loop blocking transformations on loops.  Blocking strip mines
 each loop in the loop nest such that the memory accesses of the
-element loops fit inside caches.  For example, given a loop like:
+element loops fit inside caches.  The strip length can be changed
+using the @option{loop-block-tile-size} parameter.  For example, given
+a loop like:
 @smallexample
 DO I = 1, N
   DO J = 1, M
@@ -6707,10 +6711,10 @@ ENDDO
 @end smallexample
 loop blocking will transform the loop as if the user had written:
 @smallexample
-DO II = 1, N, 64
-  DO JJ = 1, M, 64
-    DO I = II, min (II + 63, N)
-      DO J = JJ, min (JJ + 63, M)
+DO II = 1, N, 51
+  DO JJ = 1, M, 51
+    DO I = II, min (II + 50, N)
+      DO J = JJ, min (JJ + 50, M)
         A(J, I) = B(I) + C(J)
       ENDDO
     ENDDO
@@ -8094,6 +8098,9 @@ The maximum number of insns of a completely peeled loop.
 @item max-completely-peel-times
 The maximum number of iterations of a loop to be suitable for complete peeling.
 
+@item max-completely-peel-loop-nest-depth
+The maximum depth of a loop nest suitable for complete peeling.
+
 @item max-unswitch-insns
 The maximum number of insns of an unswitched loop.
 
@@ -8488,6 +8495,24 @@ IPA-SRA will replace a pointer to an aggregate with one or more new
 parameters only when their cumulative size is less or equal to
 @option{ipa-sra-ptr-growth-factor} times the size of the original
 pointer parameter.
+
+@item graphite-max-nb-scop-params
+To avoid exponential effects in the Graphite loop transforms, the
+number of parameters in a Static Control Part (SCoP) is bounded.  The
+default value is 10 parameters.  A variable whose value is unknown at
+compile time and defined outside a SCoP is a parameter of the SCoP.
+
+@item graphite-max-bbs-per-function
+To avoid exponential effects in the detection of SCoPs, the size of
+the functions analyzed by Graphite is bounded.  The default value is
+100 basic blocks.
+
+@item loop-block-tile-size
+Loop blocking or strip mining transforms, enabled with
+@option{-floop-block} or @option{-floop-strip-mine}, strip mine each
+loop in the loop nest by a given number of iterations.  The strip
+length can be changed using the @option{loop-block-tile-size}
+parameter.  The default value is 51 iterations.
 
 @end table
 @end table
@@ -11712,36 +11737,36 @@ instruction set support.
 @item k6
 AMD K6 CPU with MMX instruction set support.
 @item k6-2, k6-3
-Improved versions of AMD K6 CPU with MMX and 3dNOW!@: instruction set support.
+Improved versions of AMD K6 CPU with MMX and 3DNow!@: instruction set support.
 @item athlon, athlon-tbird
-AMD Athlon CPU with MMX, 3dNOW!, enhanced 3dNOW!@: and SSE prefetch instructions
+AMD Athlon CPU with MMX, 3dNOW!, enhanced 3DNow!@: and SSE prefetch instructions
 support.
 @item athlon-4, athlon-xp, athlon-mp
-Improved AMD Athlon CPU with MMX, 3dNOW!, enhanced 3dNOW!@: and full SSE
+Improved AMD Athlon CPU with MMX, 3DNow!, enhanced 3DNow!@: and full SSE
 instruction set support.
 @item k8, opteron, athlon64, athlon-fx
 AMD K8 core based CPUs with x86-64 instruction set support.  (This supersets
-MMX, SSE, SSE2, 3dNOW!, enhanced 3dNOW!@: and 64-bit instruction set extensions.)
+MMX, SSE, SSE2, 3DNow!, enhanced 3DNow!@: and 64-bit instruction set extensions.)
 @item k8-sse3, opteron-sse3, athlon64-sse3
 Improved versions of k8, opteron and athlon64 with SSE3 instruction set support.
 @item amdfam10, barcelona
 AMD Family 10h core based CPUs with x86-64 instruction set support.  (This
-supersets MMX, SSE, SSE2, SSE3, SSE4A, 3dNOW!, enhanced 3dNOW!, ABM and 64-bit
+supersets MMX, SSE, SSE2, SSE3, SSE4A, 3DNow!, enhanced 3DNow!, ABM and 64-bit
 instruction set extensions.)
 @item winchip-c6
 IDT Winchip C6 CPU, dealt in same way as i486 with additional MMX instruction
 set support.
 @item winchip2
-IDT Winchip2 CPU, dealt in same way as i486 with additional MMX and 3dNOW!@:
+IDT Winchip2 CPU, dealt in same way as i486 with additional MMX and 3DNow!@:
 instruction set support.
 @item c3
-Via C3 CPU with MMX and 3dNOW!@: instruction set support.  (No scheduling is
+Via C3 CPU with MMX and 3DNow!@: instruction set support.  (No scheduling is
 implemented for this chip.)
 @item c3-2
 Via C3-2 CPU with MMX and SSE instruction set support.  (No scheduling is
 implemented for this chip.)
 @item geode
-Embedded AMD CPU with MMX and 3dNOW! instruction set support.
+Embedded AMD CPU with MMX and 3DNow!@: instruction set support.
 @end table
 
 While picking a specific @var{cpu-type} will schedule things appropriately
@@ -15581,7 +15606,7 @@ default option.
 
 @item -mmax-constant-size=@var{N}
 @opindex mmax-constant-size
-Specifies the maxium size, in bytes, of a constant that can be used as
+Specifies the maximum size, in bytes, of a constant that can be used as
 an operand in a RX instruction.  Although the RX instruction set does
 allow constants of up to 4 bytes in length to be used in instructions,
 a longer value equates to a longer instruction.  Thus in some
@@ -15602,7 +15627,7 @@ versions of various instructions.  Disabled by default.
 @opindex mint-register
 Specify the number of registers to reserve for fast interrupt handler
 functions.  The value @var{N} can be between 0 and 4.  A value of 1
-means that register @code{r13} will be reserved for ther exclusive use
+means that register @code{r13} will be reserved for the exclusive use
 of fast interrupt handlers.  A value of 2 reserves @code{r13} and
 @code{r12}.  A value of 3 reserves @code{r13}, @code{r12} and
 @code{r11}, and a value of 4 reserves @code{r13} through @code{r10}.

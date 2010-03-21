@@ -2312,6 +2312,8 @@ expand_builtin_interclass_mathfn (tree exp, rtx target, rtx subtarget)
 
   if (icode != CODE_FOR_nothing)
     {
+      rtx last = get_last_insn ();
+      tree orig_arg = arg;
       /* Make a suitable register to place result in.  */
       if (!target
 	  || GET_MODE (target) != TYPE_MODE (TREE_TYPE (exp)))
@@ -2332,8 +2334,10 @@ expand_builtin_interclass_mathfn (tree exp, rtx target, rtx subtarget)
 
       /* Compute into TARGET.
 	 Set TARGET to wherever the result comes back.  */
-      emit_unop_insn (icode, target, op0, UNKNOWN);
-      return target;
+      if (maybe_emit_unop_insn (icode, target, op0, UNKNOWN))
+	return target;
+      delete_insns_since (last);
+      CALL_EXPR_ARG (exp, 0) = orig_arg;
     }
 
   return NULL_RTX;
@@ -2980,7 +2984,10 @@ expand_builtin_pow (tree exp, rtx target, rtx subtarget)
 	  && ((flag_unsafe_math_optimizations
 	       && optimize_insn_for_speed_p ()
 	       && powi_cost (n/2) <= POWI_MAX_MULTS)
-	      || n == 1))
+	      /* Even the c==0.5 case cannot be done unconditionally
+	         when we need to preserve signed zeros, as
+		 pow (-0, 0.5) is +0, while sqrt(-0) is -0.  */
+	      || (!HONOR_SIGNED_ZEROS (mode) && n == 1)))
 	{
 	  tree call_expr = build_call_nofold (fn, 1, narg0);
 	  /* Use expand_expr in case the newly built call expression
@@ -5194,9 +5201,11 @@ expand_builtin_signbit (tree exp, rtx target)
   icode = signbit_optab->handlers [(int) fmode].insn_code;
   if (icode != CODE_FOR_nothing)
     {
+      rtx last = get_last_insn ();
       target = gen_reg_rtx (TYPE_MODE (TREE_TYPE (exp)));
-      emit_unop_insn (icode, target, temp, UNKNOWN);
-      return target;
+      if (maybe_emit_unop_insn (icode, target, temp, UNKNOWN))
+	return target;
+      delete_insns_since (last);
     }
 
   /* For floating point formats without a sign bit, implement signbit

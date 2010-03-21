@@ -2404,8 +2404,8 @@ gfc_conv_array_index_offset (gfc_se * se, gfc_ss_info * info, int dim, int i,
 
 	  index = gfc_trans_array_bound_check (se, info->descriptor,
 			index, dim, &ar->where,
-			(ar->as->type != AS_ASSUMED_SIZE
-			 && !ar->as->cp_was_assumed) || dim < ar->dimen - 1);
+			ar->as->type != AS_ASSUMED_SIZE
+			|| dim < ar->dimen - 1);
 	  break;
 
 	case DIMEN_VECTOR:
@@ -2431,8 +2431,8 @@ gfc_conv_array_index_offset (gfc_se * se, gfc_ss_info * info, int dim, int i,
 	  /* Do any bounds checking on the final info->descriptor index.  */
 	  index = gfc_trans_array_bound_check (se, info->descriptor,
 			index, dim, &ar->where,
-			(ar->as->type != AS_ASSUMED_SIZE
-			 && !ar->as->cp_was_assumed) || dim < ar->dimen - 1);
+			ar->as->type != AS_ASSUMED_SIZE
+			|| dim < ar->dimen - 1);
 	  break;
 
 	case DIMEN_RANGE:
@@ -2581,8 +2581,7 @@ gfc_conv_array_ref (gfc_se * se, gfc_array_ref * ar, gfc_symbol * sym,
 
 	  /* Upper bound, but not for the last dimension of assumed-size
 	     arrays.  */
-	  if (n < ar->dimen - 1
-	      || (ar->as->type != AS_ASSUMED_SIZE && !ar->as->cp_was_assumed))
+	  if (n < ar->dimen - 1 || ar->as->type != AS_ASSUMED_SIZE)
 	    {
 	      tmp = gfc_conv_array_ubound (se->expr, n);
 	      if (sym->attr.temporary)
@@ -3207,8 +3206,7 @@ gfc_conv_ss_startstride (gfc_loopinfo * loop)
 		continue;
 
 	      if (dim == info->ref->u.ar.dimen - 1
-		  && (info->ref->u.ar.as->type == AS_ASSUMED_SIZE
-		      || info->ref->u.ar.as->cp_was_assumed))
+		  && info->ref->u.ar.as->type == AS_ASSUMED_SIZE)
 		check_upper = false;
 	      else
 		check_upper = true;
@@ -5472,18 +5470,32 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
   bool this_array_result;
   bool contiguous;
   bool no_pack;
+  bool array_constructor;
+  bool good_allocatable;
+  bool ultimate_ptr_comp;
+  bool ultimate_alloc_comp;
   gfc_symbol *sym;
   stmtblock_t block;
   gfc_ref *ref;
 
+  ultimate_ptr_comp = false;
+  ultimate_alloc_comp = false;
   for (ref = expr->ref; ref; ref = ref->next)
-    if (ref->next == NULL)
-      break;
+    {
+      if (ref->next == NULL)
+        break;
+
+      if (ref->type == REF_COMPONENT)
+	{
+	  ultimate_ptr_comp = ref->u.c.component->attr.pointer;
+	  ultimate_alloc_comp = ref->u.c.component->attr.allocatable;
+	}
+    }
 
   full_array_var = false;
   contiguous = false;
 
-  if (expr->expr_type == EXPR_VARIABLE && ref)
+  if (expr->expr_type == EXPR_VARIABLE && ref && !ultimate_ptr_comp)
     full_array_var = gfc_full_array_ref_p (ref, &contiguous);
 
   sym = full_array_var ? expr->symtree->n.sym : NULL;
@@ -5513,7 +5525,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
       if (sym->ts.type == BT_CHARACTER)
 	se->string_length = sym->ts.u.cl->backend_decl;
 
-      if (sym->ts.type == BT_DERIVED && !sym->as)
+      if (sym->ts.type == BT_DERIVED)
 	{
 	  gfc_conv_expr_descriptor (se, expr, ss);
 	  se->expr = gfc_conv_array_data (se->expr);
@@ -5550,8 +5562,11 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
         }
     }
 
-  /* There is no need to pack and unpack the array, if it is an array
-     constructor or contiguous and not deferred or assumed shape.  */
+  /* A convenient reduction in scope.  */
+  contiguous = g77 && !this_array_result && contiguous;
+
+  /* There is no need to pack and unpack the array, if it is contiguous
+     and not deferred or assumed shape.  */
   no_pack = ((sym && sym->as
 		  && !sym->attr.pointer
 		  && sym->as->type != AS_DEFERRED
@@ -5561,21 +5576,20 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
 		  && ref->u.ar.as->type != AS_DEFERRED
 		  && ref->u.ar.as->type != AS_ASSUMED_SHAPE));
 
-  no_pack = g77 && !this_array_result
-		&& (expr->expr_type == EXPR_ARRAY || (contiguous && no_pack));
+  no_pack = contiguous && no_pack;
 
-  if (no_pack)
-    {
-      gfc_conv_expr_descriptor (se, expr, ss);
-      if (expr->ts.type == BT_CHARACTER)
-	se->string_length = expr->ts.u.cl->backend_decl;
-      if (size)
-	array_parameter_size (se->expr, expr, size);
-      se->expr = gfc_conv_array_data (se->expr);
-      return;
-    }
+  /* Array constructors are always contiguous and do not need packing.  */
+  array_constructor = g77 && !this_array_result && expr->expr_type == EXPR_ARRAY;
 
-  if (expr->expr_type == EXPR_ARRAY && g77)
+  /* Same is true of contiguous sections from allocatable variables.  */
+  good_allocatable = contiguous
+		       && expr->symtree
+		       && expr->symtree->n.sym->attr.allocatable;
+
+  /* Or ultimate allocatable components.  */
+  ultimate_alloc_comp = contiguous && ultimate_alloc_comp; 
+
+  if (no_pack || array_constructor || good_allocatable || ultimate_alloc_comp)
     {
       gfc_conv_expr_descriptor (se, expr, ss);
       if (expr->ts.type == BT_CHARACTER)

@@ -921,6 +921,16 @@ resolve_structure_cons (gfc_expr *expr)
 		     "for pointer component '%s' should be a POINTER or "
 		     "a TARGET", &cons->expr->where, comp->name);
 	}
+
+      /* F2003, C1272 (3).  */
+      if (gfc_pure (NULL) && cons->expr->expr_type == EXPR_VARIABLE
+	  && gfc_impure_variable (cons->expr->symtree->n.sym))
+	{
+	  t = FAILURE;
+	  gfc_error ("Invalid expression in the derived type constructor for pointer "
+		     "component '%s' at %L in PURE procedure", comp->name,
+		     &cons->expr->where);
+	}
     }
 
   return t;
@@ -2556,8 +2566,8 @@ resolve_function (gfc_expr *expr)
     }
 
   /* If this ia a deferred TBP with an abstract interface (which may
-     of course be referenced), expr->value.function.name will be set.  */
-  if (sym && sym->attr.abstract && !expr->value.function.name)
+     of course be referenced), expr->value.function.esym will be set.  */
+  if (sym && sym->attr.abstract && !expr->value.function.esym)
     {
       gfc_error ("ABSTRACT INTERFACE '%s' must not be referenced at %L",
 		 sym->name, &expr->where);
@@ -4007,6 +4017,9 @@ find_array_spec (gfc_expr *e)
 	if (derived == NULL)
 	  derived = e->symtree->n.sym->ts.u.derived;
 
+	if (derived->attr.is_class)
+	  derived = derived->components->ts.u.derived;
+
 	c = derived->components;
 
 	for (; c; c = c->next)
@@ -5124,7 +5137,7 @@ resolve_compcall (gfc_expr* e, const char **name)
     return FAILURE;
 
   e->value.function.actual = newactual;
-  e->value.function.name = e->value.compcall.name;
+  e->value.function.name = NULL;
   e->value.function.esym = target->n.sym;
   e->value.function.isym = NULL;
   e->symtree = target;
@@ -7800,6 +7813,7 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
       if (lhs->ts.type == BT_DERIVED
 	    && lhs->expr_type == EXPR_VARIABLE
 	    && lhs->ts.u.derived->attr.pointer_comp
+	    && rhs->expr_type == EXPR_VARIABLE
 	    && gfc_impure_variable (rhs->symtree->n.sym))
 	{
 	  gfc_error ("The impure variable at %L is assigned to "
@@ -7871,6 +7885,11 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	      break;
 	    case EXEC_OMP_DO:
 	      gfc_resolve_omp_do_blocks (code, ns);
+	      break;
+	    case EXEC_SELECT_TYPE:
+	      gfc_current_ns = code->ext.ns;
+	      gfc_resolve_blocks (code->block, gfc_current_ns);
+	      gfc_current_ns = ns;
 	      break;
 	    case EXEC_OMP_WORKSHARE:
 	      omp_workshare_save = omp_workshare_flag;
@@ -8800,13 +8819,12 @@ resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
       && sym->ns->proc_name->attr.flavor == FL_MODULE
       && !sym->ns->save_all && !sym->attr.save
       && !sym->attr.pointer && !sym->attr.allocatable
-      && has_default_initializer (sym->ts.u.derived))
-    {
-      gfc_error("Object '%s' at %L must have the SAVE attribute for "
-		"default initialization of a component",
-		sym->name, &sym->declared_at);
-      return FAILURE;
-    }
+      && has_default_initializer (sym->ts.u.derived)
+      && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Implied SAVE for "
+			 "module variable '%s' at %L, needed due to "
+			 "the default initialization", sym->name,
+			 &sym->declared_at) == FAILURE)
+    return FAILURE;
 
   if (sym->ts.type == BT_CLASS)
     {
@@ -10853,7 +10871,7 @@ resolve_symbol (gfc_symbol *sym)
      arguments.  */
 
   if (sym->as != NULL
-      && (sym->as->type == AS_ASSUMED_SIZE
+      && ((sym->as->type == AS_ASSUMED_SIZE && !sym->as->cp_was_assumed)
 	  || sym->as->type == AS_ASSUMED_SHAPE)
       && sym->attr.dummy == 0)
     {
@@ -11532,12 +11550,19 @@ int
 gfc_impure_variable (gfc_symbol *sym)
 {
   gfc_symbol *proc;
+  gfc_namespace *ns;
 
   if (sym->attr.use_assoc || sym->attr.in_common)
     return 1;
 
-  if (sym->ns != gfc_current_ns)
-    return !sym->attr.function;
+  /* Check if the symbol's ns is inside the pure procedure.  */
+  for (ns = gfc_current_ns; ns; ns = ns->parent)
+    {
+      if (ns == sym->ns)
+	break;
+      if (ns->proc_name->attr.flavor == FL_PROCEDURE && !sym->attr.function)
+	return 1;
+    }
 
   proc = sym->ns->proc_name;
   if (sym->attr.dummy && gfc_pure (proc)
@@ -11553,18 +11578,30 @@ gfc_impure_variable (gfc_symbol *sym)
 }
 
 
-/* Test whether a symbol is pure or not.  For a NULL pointer, checks the
-   symbol of the current procedure.  */
+/* Test whether a symbol is pure or not.  For a NULL pointer, checks if the
+   current namespace is inside a pure procedure.  */
 
 int
 gfc_pure (gfc_symbol *sym)
 {
   symbol_attribute attr;
+  gfc_namespace *ns;
 
   if (sym == NULL)
-    sym = gfc_current_ns->proc_name;
-  if (sym == NULL)
-    return 0;
+    {
+      /* Check if the current namespace or one of its parents
+	belongs to a pure procedure.  */
+      for (ns = gfc_current_ns; ns; ns = ns->parent)
+	{
+	  sym = ns->proc_name;
+	  if (sym == NULL)
+	    return 0;
+	  attr = sym->attr;
+	  if (attr.flavor == FL_PROCEDURE && (attr.pure || attr.elemental))
+	    return 1;
+	}
+      return 0;
+    }
 
   attr = sym->attr;
 

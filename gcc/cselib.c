@@ -1,6 +1,6 @@
 /* Common subexpression elimination library for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -45,6 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 
 static bool cselib_record_memory;
+static bool cselib_preserve_constants;
 static int entry_and_rtx_equal_p (const void *, const void *);
 static hashval_t get_value_hash (const void *);
 static struct elt_list *new_elt_list (struct elt_list *, cselib_val *);
@@ -69,6 +70,7 @@ struct expand_value_data
   bitmap regs_active;
   cselib_expand_callback callback;
   void *callback_arg;
+  bool dummy;
 };
 
 static rtx cselib_expand_value_rtx_1 (rtx, struct expand_value_data *, int);
@@ -134,6 +136,11 @@ static int values_became_useless;
    presence in the list by checking the next pointer.  */
 static cselib_val dummy_val;
 
+/* If non-NULL, value of the eliminated arg_pointer_rtx or frame_pointer_rtx
+   that is constant through the whole function and should never be
+   eliminated.  */
+static cselib_val *cfa_base_preserved_val;
+
 /* Used to list all values that contain memory reference.
    May or may not contain the useless values - the list is compacted
    each time memory is invalidated.  */
@@ -154,8 +161,6 @@ void (*cselib_record_sets_hook) (rtx insn, struct cselib_set *sets,
 
 #define PRESERVED_VALUE_P(RTX) \
   (RTL_FLAG_CHECK1("PRESERVED_VALUE_P", (RTX), VALUE)->unchanging)
-#define LONG_TERM_PRESERVED_VALUE_P(RTX) \
-  (RTL_FLAG_CHECK1("LONG_TERM_PRESERVED_VALUE_P", (RTX), VALUE)->in_struct)
 
 
 
@@ -230,6 +235,35 @@ cselib_clear_table (void)
   cselib_reset_table (1);
 }
 
+/* Remove from hash table all VALUEs except constants.  */
+
+static int
+preserve_only_constants (void **x, void *info ATTRIBUTE_UNUSED)
+{
+  cselib_val *v = (cselib_val *)*x;
+
+  if (v->locs != NULL
+      && v->locs->next == NULL)
+    {
+      if (CONSTANT_P (v->locs->loc)
+	  && (GET_CODE (v->locs->loc) != CONST
+	      || !references_value_p (v->locs->loc, 0)))
+	return 1;
+      if (cfa_base_preserved_val)
+	{
+	  if (v == cfa_base_preserved_val)
+	    return 1;
+	  if (GET_CODE (v->locs->loc) == PLUS
+	      && CONST_INT_P (XEXP (v->locs->loc, 1))
+	      && XEXP (v->locs->loc, 0) == cfa_base_preserved_val->val_rtx)
+	    return 1;
+	}
+    }
+
+  htab_clear_slot (cselib_hash_table, x);
+  return 1;
+}
+
 /* Remove all entries from the hash table, arranging for the next
    value to be numbered NUM.  */
 
@@ -238,15 +272,37 @@ cselib_reset_table (unsigned int num)
 {
   unsigned int i;
 
-  for (i = 0; i < n_used_regs; i++)
-    REG_VALUES (used_regs[i]) = 0;
-
   max_value_regs = 0;
 
-  n_used_regs = 0;
+  if (cfa_base_preserved_val)
+    {
+      unsigned int regno = REGNO (cfa_base_preserved_val->locs->loc);
+      unsigned int new_used_regs = 0;
+      for (i = 0; i < n_used_regs; i++)
+	if (used_regs[i] == regno)
+	  {
+	    new_used_regs = 1;
+	    continue;
+	  }
+	else
+	  REG_VALUES (used_regs[i]) = 0;
+      gcc_assert (new_used_regs == 1);
+      n_used_regs = new_used_regs;
+      used_regs[0] = regno;
+      max_value_regs
+	= hard_regno_nregs[regno][GET_MODE (cfa_base_preserved_val->locs->loc)];
+    }
+  else
+    {
+      for (i = 0; i < n_used_regs; i++)
+	REG_VALUES (used_regs[i]) = 0;
+      n_used_regs = 0;
+    }
 
-  /* ??? Preserve constants?  */
-  htab_empty (cselib_hash_table);
+  if (cselib_preserve_constants)
+    htab_traverse (cselib_hash_table, preserve_only_constants, NULL);
+  else
+    htab_empty (cselib_hash_table);
 
   n_useless_values = 0;
 
@@ -435,50 +491,25 @@ cselib_preserved_value_p (cselib_val *v)
   return PRESERVED_VALUE_P (v->val_rtx);
 }
 
-/* Mark preserved values as preserved for the long term.  */
+/* Arrange for a REG value to be assumed constant through the whole function,
+   never invalidated and preserved across cselib_reset_table calls.  */
 
-static int
-cselib_preserve_definitely (void **slot, void *info ATTRIBUTE_UNUSED)
+void
+cselib_preserve_cfa_base_value (cselib_val *v)
 {
-  cselib_val *v = (cselib_val *)*slot;
-
-  if (PRESERVED_VALUE_P (v->val_rtx)
-      && !LONG_TERM_PRESERVED_VALUE_P (v->val_rtx))
-    LONG_TERM_PRESERVED_VALUE_P (v->val_rtx) = true;
-
-  return 1;
-}
-
-/* Clear the preserve marks for values not preserved for the long
-   term.  */
-
-static int
-cselib_clear_preserve (void **slot, void *info ATTRIBUTE_UNUSED)
-{
-  cselib_val *v = (cselib_val *)*slot;
-
-  if (PRESERVED_VALUE_P (v->val_rtx)
-      && !LONG_TERM_PRESERVED_VALUE_P (v->val_rtx))
-    {
-      PRESERVED_VALUE_P (v->val_rtx) = false;
-      if (!v->locs)
-	n_useless_values++;
-    }
-
-  return 1;
+  if (cselib_preserve_constants
+      && v->locs
+      && REG_P (v->locs->loc))
+    cfa_base_preserved_val = v;
 }
 
 /* Clean all non-constant expressions in the hash table, but retain
    their values.  */
 
 void
-cselib_preserve_only_values (bool retain)
+cselib_preserve_only_values (void)
 {
   int i;
-
-  htab_traverse (cselib_hash_table,
-		 retain ? cselib_preserve_definitely : cselib_clear_preserve,
-		 NULL);
 
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     cselib_invalidate_regno (i, reg_raw_mode[i]);
@@ -1069,6 +1100,7 @@ cselib_expand_value_rtx (rtx orig, bitmap regs_active, int max_depth)
   evd.regs_active = regs_active;
   evd.callback = NULL;
   evd.callback_arg = NULL;
+  evd.dummy = false;
 
   return cselib_expand_value_rtx_1 (orig, &evd, max_depth);
 }
@@ -1088,8 +1120,27 @@ cselib_expand_value_rtx_cb (rtx orig, bitmap regs_active, int max_depth,
   evd.regs_active = regs_active;
   evd.callback = cb;
   evd.callback_arg = data;
+  evd.dummy = false;
 
   return cselib_expand_value_rtx_1 (orig, &evd, max_depth);
+}
+
+/* Similar to cselib_expand_value_rtx_cb, but no rtxs are actually copied
+   or simplified.  Useful to find out whether cselib_expand_value_rtx_cb
+   would return NULL or non-NULL, without allocating new rtx.  */
+
+bool
+cselib_dummy_expand_value_rtx_cb (rtx orig, bitmap regs_active, int max_depth,
+				  cselib_expand_callback cb, void *data)
+{
+  struct expand_value_data evd;
+
+  evd.regs_active = regs_active;
+  evd.callback = cb;
+  evd.callback_arg = data;
+  evd.dummy = true;
+
+  return cselib_expand_value_rtx_1 (orig, &evd, max_depth) != NULL;
 }
 
 /* Internal implementation of cselib_expand_value_rtx and
@@ -1249,7 +1300,10 @@ cselib_expand_value_rtx_1 (rtx orig, struct expand_value_data *evd,
      that all fields need copying, and then clear the fields that should
      not be copied.  That is the sensible default behavior, and forces
      us to explicitly document why we are *not* copying a flag.  */
-  copy = shallow_copy_rtx (orig);
+  if (evd->dummy)
+    copy = NULL;
+  else
+    copy = shallow_copy_rtx (orig);
 
   format_ptr = GET_RTX_FORMAT (code);
 
@@ -1263,7 +1317,8 @@ cselib_expand_value_rtx_1 (rtx orig, struct expand_value_data *evd,
 						    max_depth - 1);
 	    if (!result)
 	      return NULL;
-	    XEXP (copy, i) = result;
+	    if (copy)
+	      XEXP (copy, i) = result;
 	  }
 	break;
 
@@ -1271,14 +1326,16 @@ cselib_expand_value_rtx_1 (rtx orig, struct expand_value_data *evd,
       case 'V':
 	if (XVEC (orig, i) != NULL)
 	  {
-	    XVEC (copy, i) = rtvec_alloc (XVECLEN (orig, i));
-	    for (j = 0; j < XVECLEN (copy, i); j++)
+	    if (copy)
+	      XVEC (copy, i) = rtvec_alloc (XVECLEN (orig, i));
+	    for (j = 0; j < XVECLEN (orig, i); j++)
 	      {
 		rtx result = cselib_expand_value_rtx_1 (XVECEXP (orig, i, j),
 							evd, max_depth - 1);
 		if (!result)
 		  return NULL;
-		XVECEXP (copy, i, j) = result;
+		if (copy)
+		  XVECEXP (copy, i, j) = result;
 	      }
 	  }
 	break;
@@ -1298,6 +1355,9 @@ cselib_expand_value_rtx_1 (rtx orig, struct expand_value_data *evd,
       default:
 	gcc_unreachable ();
       }
+
+  if (evd->dummy)
+    return orig;
 
   mode = GET_MODE (copy);
   /* If an operand has been simplified into CONST_INT, which doesn't
@@ -1609,7 +1669,7 @@ cselib_invalidate_regno (unsigned int regno, enum machine_mode mode)
 	  if (i < FIRST_PSEUDO_REGISTER && v != NULL)
 	    this_last = end_hard_regno (GET_MODE (v->val_rtx), i) - 1;
 
-	  if (this_last < regno || v == NULL)
+	  if (this_last < regno || v == NULL || v == cfa_base_preserved_val)
 	    {
 	      l = &(*l)->next;
 	      continue;
@@ -2027,7 +2087,7 @@ cselib_process_insn (rtx insn)
    init_alias_analysis.  */
 
 void
-cselib_init (bool record_memory)
+cselib_init (int record_what)
 {
   elt_list_pool = create_alloc_pool ("elt_list",
 				     sizeof (struct elt_list), 10);
@@ -2036,7 +2096,8 @@ cselib_init (bool record_memory)
   cselib_val_pool = create_alloc_pool ("cselib_val_list",
 				       sizeof (cselib_val), 10);
   value_pool = create_alloc_pool ("value", RTX_CODE_SIZE (VALUE), 100);
-  cselib_record_memory = record_memory;
+  cselib_record_memory = record_what & CSELIB_RECORD_MEMORY;
+  cselib_preserve_constants = record_what & CSELIB_PRESERVE_CONSTANTS;
 
   /* (mem:BLK (scratch)) is a special mechanism to conflict with everything,
      see canon_true_dependence.  This is only created once.  */
@@ -2070,6 +2131,8 @@ void
 cselib_finish (void)
 {
   cselib_discard_hook = NULL;
+  cselib_preserve_constants = false;
+  cfa_base_preserved_val = NULL;
   free_alloc_pool (elt_list_pool);
   free_alloc_pool (elt_loc_list_pool);
   free_alloc_pool (cselib_val_pool);
