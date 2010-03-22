@@ -27,8 +27,7 @@
  *  You should not attempt to use it directly.
  */
 
-#include <numeric>
-#include <algorithm>
+#include <numeric> // std::accumulate and std::partial_sum
 
 namespace std
 {
@@ -87,6 +86,17 @@ namespace std
 	__calc(_Tp __x)
 	{ return __a * __x + __c; }
       };
+
+    template<typename _InputIterator, typename _OutputIterator,
+	     typename _UnaryOperation>
+      _OutputIterator
+      __transform(_InputIterator __first, _InputIterator __last,
+		  _OutputIterator __result, _UnaryOperation __unary_op)
+      {
+	for (; __first != __last; ++__first, ++__result)
+	  *__result = __unary_op(*__first);
+	return __result;
+      }
   } // namespace __detail
 
 
@@ -1627,6 +1637,26 @@ namespace std
 	return __ret;
       }
 
+  template<typename _RealType>
+    bool
+    operator==(const std::normal_distribution<_RealType>& __d1,
+	       const std::normal_distribution<_RealType>& __d2)
+    {
+      if (__d1._M_param == __d2._M_param
+	  && __d1._M_saved_available == __d2._M_saved_available)
+	{
+	  if (__d1._M_saved_available
+	      && __d1._M_saved == __d2._M_saved)
+	    return true;
+	  else if(!__d1._M_saved_available)
+	    return true;
+	  else
+	    return false;
+	}
+      else
+	return false;
+    }
+
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
     operator<<(std::basic_ostream<_CharT, _Traits>& __os,
@@ -2157,8 +2187,8 @@ namespace std
       const double __sum = std::accumulate(_M_prob.begin(),
 					   _M_prob.end(), 0.0);
       // Now normalize the probabilites.
-      std::transform(_M_prob.begin(), _M_prob.end(), _M_prob.begin(),
-		     std::bind2nd(std::divides<double>(), __sum));
+      __detail::__transform(_M_prob.begin(), _M_prob.end(), _M_prob.begin(),
+			  std::bind2nd(std::divides<double>(), __sum));
       // Accumulate partial sums.
       _M_cp.reserve(_M_prob.size());
       std::partial_sum(_M_prob.begin(), _M_prob.end(),
@@ -2279,8 +2309,8 @@ namespace std
       const double __sum = std::accumulate(_M_den.begin(),
 					   _M_den.end(), 0.0);
 
-      std::transform(_M_den.begin(), _M_den.end(), _M_den.begin(),
-		     std::bind2nd(std::divides<double>(), __sum));
+      __detail::__transform(_M_den.begin(), _M_den.end(), _M_den.begin(),
+			    std::bind2nd(std::divides<double>(), __sum));
 
       _M_cp.reserve(_M_den.size());
       std::partial_sum(_M_den.begin(), _M_den.end(),
@@ -2479,14 +2509,14 @@ namespace std
 	}
 
       //  Now normalize the densities...
-      std::transform(_M_den.begin(), _M_den.end(), _M_den.begin(),
-		     std::bind2nd(std::divides<double>(), __sum));
+      __detail::__transform(_M_den.begin(), _M_den.end(), _M_den.begin(),
+			  std::bind2nd(std::divides<double>(), __sum));
       //  ... and partial sums... 
-      std::transform(_M_cp.begin(), _M_cp.end(), _M_cp.begin(),
-		     std::bind2nd(std::divides<double>(), __sum));
+      __detail::__transform(_M_cp.begin(), _M_cp.end(), _M_cp.begin(),
+			    std::bind2nd(std::divides<double>(), __sum));
       //  ... and slopes.
-      std::transform(_M_m.begin(), _M_m.end(), _M_m.begin(),
-		     std::bind2nd(std::divides<double>(), __sum));
+      __detail::__transform(_M_m.begin(), _M_m.end(), _M_m.begin(),
+			    std::bind2nd(std::divides<double>(), __sum));
       //  Make sure the last cumulative probablility is one.
       _M_cp[_M_cp.size() - 1] = 1.0;
      }

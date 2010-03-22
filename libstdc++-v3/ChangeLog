@@ -1,3 +1,326 @@
+2010-03-22  Johannes Singler  <singler@kit.edu>
+
+        * include/parallel/numeric (inner_product, partial_sum):
+        Precede subsequent call with _GLIBCXX_STD_P:: to avoid ambiguity 
+        between __gnu_parallel:: and std::
+        * include/parallel/algobase.h (equal): Likewise.
+        * include/parallel/algo.h (find_first_of, search_n, merge, nth_element,
+        partial_sort, max_element, min_element): Likewise.
+        * include/parallel/partial_sum.h (__parallel_partial_sum_linear):
+        Qualify accumulate call with __gnu_parallel::.
+
+2010-03-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/parallel/base.h (_PseudoSequence): Do not forward declare.
+	(_VoidFunctor): Remove, unused.
+	(__median_of_three_iterators): Take __comp by value.
+	(_PseudoSequenceIterator<>::operator++(int)): Do not const qualify
+	the return type.
+	(_PseudoSequenceIterator<>::operator!=): Fix return type to bool.
+
+2010-03-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/parallel/base.h (_Less): Use std::less.
+	(_Plus): Likewise use std::plus.
+	(_Multiplies): Likewise use std::multiplies.
+	* include/parallel/numeric: Adjust.
+
+2010-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/17_intro/freestanding.cc: Avoid -Wall warnings.
+
+2010-03-19  Rodolfo Lima  <rodolfo@rodsoft.org>
+
+	* include/bits/shared_ptr.h (shared_ptr(unique_ptr&&),
+	shared_ptr(auto_ptr&&)): Remove explicit specifier (as per DR 925).
+	* include/bits/shared_ptr_base.h: Likewise.
+	* testsuite/20_util/shared_ptr/creation/dr925.cc: New.
+
+2010-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.tcc: Minor formatting changes.
+
+2010-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_algo.h (shuffle): Fix typo in signature.
+	* include/bits/algorithmfwd.h: Adjust.
+	* testsuite/25_algorithms/shuffle/requirements/
+	explicit_instantiation/2.cc: Likewise.
+	* testsuite/25_algorithms/shuffle/requirements/
+	explicit_instantiation/pod.cc: Likewise.
+
+2010-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_algo.h (shuffle): Add, per D3056.
+	(random_shuffle): Fix signature in C++0x mode.
+	(lower_bound, __lg): Move...
+	* include/bits/stl_algobase.h: ... here.
+	* include/bits/algorithmfwd.h: Adjust.
+	* include/parallel/algorithmfwd.h: Likewise.
+	* include/parallel/algo.h: Likewise.
+	* include/bits/hashtable_policy.h (__lower_bound): Remove,
+	adjust callers.
+	* include/tr1/hashtable_policy.h (__lower_bound): Likewise.
+	* include/bits/random.tcc (__detail::__transform): Add,
+	adjust std::transform callers; don't include <algorithm>.
+	* testsuite/25_algorithms/shuffle/1.cc: Add.
+	* testsuite/25_algorithms/shuffle/requirements/
+	explicit_instantiation/2.cc: Likewise.
+	* testsuite/25_algorithms/shuffle/requirements/
+	explicit_instantiation/pod.cc: Likewise.
+
+	* include/bits/random.h: Add comments.
+
+2010-03-17  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/debug_mode.xml: Correct debug headers.
+
+2010-03-17  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/43397
+	* include/std/functional (_Mem_fn): Use perfect forwarding.
+	* testsuite/20_util/function/43397.cc: New.
+
+2010-03-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/43394
+	* include/parallel/compatibility.h: Add __k8 and __core2 among the
+	i386 targets supporting atomic operations.
+
+2010-03-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/backward/hash_map: Use consistently the _BACKWARD_*
+	prefix for the include guard.
+	* include/backward/hash_fun.h: Likewise.
+	* include/backward/hashtable.h: Likewise.
+	* include/backward/auto_ptr.h: Likewise.
+	* include/backward/strstream: Likewise.
+	* include/backward/binders.h: Likewise.
+	* include/backward/hash_set: Likewise.
+
+2010-03-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.h (operator==(const uniform_int_distribution<>&,
+	const uniform_int_distribution<>&), operator==(const
+	uniform_real_distribution<>&, const uniform_real_distribution<>&),
+	operator==(const lognormal_distribution<>&,
+	const lognormal_distribution<>&), operator==(const
+	chi_squared_distribution<>&, const chi_squared_distribution<>&),
+	operator==(const cauchy_distribution<>&, const cauchy_distribution<>&),
+	operator==(const fisher_distribution<>&, const fisher_distribution<>&),
+	operator==(const student_t_distribution<>&,
+	const student_t_distribution<>&), operator==(const
+	bernoulli_distribution<>&, const bernoulli_distribution<>&),
+	operator==(const binomial_distribution<>&, const
+	binomial_distribution<>&), operator==(const geometric_distribution<>&,
+	const geometric_distribution<>&), operator==(const
+	negative_binomial_distribution<>&, const
+	negative_binomial_distribution<>&), operator==(const
+	poisson_distribution<>&, const poisson_distribution<>&),
+	operator==(const exponential_distribution<>&,
+	const exponential_distribution<>&), operator==(const
+	gamma_distribution<>&, const gamma_distribution<>&), operator==(const
+	weibull_distribution<>&, const weibull_distribution<>&),
+	operator==(const extreme_value_distribution<>&,
+	const extreme_value_distribution<>&), operator==(const
+	discrete_distribution<>&, const discrete_distribution<>&),
+	operator==(const piecewise_constant_distribution<>&,
+	const piecewise_constant_distribution<>&), operator==(const
+	piecewise_linear_distribution<>&, const
+	piecewise_linear_distribution<>&)): Add, likewise for operator!=.
+	(operator!=(const independent_bits_engine<>&, const
+	independent_bits_engine<>&), operator!=(const
+	subtract_with_carry_engine<>&, const subtract_with_carry_engine<>&),
+	operator!=(const discard_block_engine<>&, const
+	discard_block_engine<>&), operator!=(const mersenne_twister_engine<>&,
+	const mersenne_twister_engine<>&), operator!=(const
+	linear_congruential_engine<>&, const linear_congruential_engine<>&),
+	operator!=(const shuffle_order_engine<>&, const
+	shuffle_order_engine<>&): Add.
+	* include/bits/random.tcc (operator==(const normal_distribution<>&,
+	const normal_distribution<>&)): Add.
+	* testsuite/26_numerics/random/uniform_real_distribution/operators/
+	inequal.cc: New.
+	* testsuite/26_numerics/random/uniform_real_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	operators/inequal.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	operators/equal.cc: Likewise.
+	* testsuite/26_numerics/random/chi_squared_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/chi_squared_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/normal_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/normal_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_int_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_int_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/poisson_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/poisson_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/bernoulli_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/bernoulli_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/discrete_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/discrete_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/weibull_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/weibull_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/cauchy_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/cauchy_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/negative_binomial_distribution/
+	operators/inequal.cc: Likewise.
+	* testsuite/26_numerics/random/negative_binomial_distribution/
+	operators/equal.cc: Likewise.
+	* testsuite/26_numerics/random/gamma_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/gamma_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/fisher_f_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/fisher_f_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/exponential_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/exponential_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/binomial_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/binomial_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/lognormal_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/lognormal_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/extreme_value_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/extreme_value_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	operators/inequal.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	operators/equal.cc: Likewise.
+	* testsuite/26_numerics/random/student_t_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/student_t_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/geometric_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/geometric_distribution/operators/
+	equal.cc: Likewise.
+
+2010-03-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.tcc (_Fwd_list_node_base::
+	_M_transfer_after): Return _Fwd_list_node_base*.
+	(forward_list<>::_M_splice_after): Add.
+	(forward_list<>::insert_after(const_iterator, size_type, const _Tp&),
+	insert_after(const_iterator, _InputIterator, _InputIterator),
+	insert_after(const_iterator, initializer_list<>)): Use the above,
+	implement DR 1278 ([Ready] in Pittsburgh).
+	* include/bits/forward_list.h (insert_after(const_iterator,
+	size_type, const _Tp&), insert_after(const_iterator, _InputIterator,
+	_InputIterator), insert_after(const_iterator, initializer_list<>)):
+	Only declare.
+	* testsuite/23_containers/forward_list/modifiers/2.cc: Adjust.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Adjust dg-error line number.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2010-03-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Adjust dg-error line number.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/capacity/1.cc: Adjust.
+
+	Revert:
+	2008-11-11  Bob Walters  <bob.s.walters@gmail.com>
+
+	* include/bits/forward_list.h: Support non-standard pointer types
+	(_Fwd_list_node_base): Add _Alloc template parameter.
+	(_Fwd_list_node<>): Likewise.
+	(_Fwd_list_iterator<>): Likewise.
+	(_Fwd_list_const_iterator<>): Likewise.
+	(_Fwd_list_node_base::_M_next, _M_transfer_after, _M_reverse_after):
+	Use _Alloc<_Tp>::pointer.
+	(_Fwd_list_iterator<>::_M_node): Use _Node_base::_Pointer.
+	(_Fwd_list_base<>::_M_get_node, _M_create_node, _M_create_node,
+	_M_insert_after, _M_put_node, _M_erase_after): Likewise.
+	(_Fwd_list_const_iterator<>::_M_node): use _Node_base::_Const_pointer.
+	(forward_list<>): Use __static_pointer_cast in place of static_cast,
+	and __const_pointer_cast in place of const_cast.
+	* include/bits/forward_list.tcc
+	(_Fwd_list_node<>::_M_sort_after): Using _Pointer typedefs in place
+	of standard pointers, __static_pointer_cast in place of static_cast.
+	(_Fwd_list_base<>::_Fwd_list_base, _M_insert_after, _M_erase_after):
+	Likewise.
+	(forward_list<>::_M_initialize_dispatch, _M_fill_initialize,
+	splice_after, remove, remove_if, merge): Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/1.cc: New.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/2.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/3.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/4.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/5.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/1.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/2.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/3.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/4.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/5.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/6.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/7.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/requirements/1.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/requirements/
+	explicit_instantiation/3.cc: Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/1.cc: Likewise.
+
 2010-03-13  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/tr1_impl/array (swap(array<>&, array<>&)): Use member swap.

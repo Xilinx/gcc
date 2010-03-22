@@ -1,3 +1,57 @@
+2010-03-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/43450
+	* trans-decl.c (gfc_create_module_variable): With -fwhole-file
+	do not assert the context of derived types.
+
+2010-03-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/43409
+	* ioparm.def: Change inquire size variable to type pointer to
+	GFC_IO_INT type.
+
+2010-03-18  Paul Thomas  <pault@gcc.gnu.org>
+
+        PR fortran/43039
+        * trans-expr.c (conv_parent_component_references): Ensure that
+	'dt' has a backend_decl.
+
+        PR fortran/43043
+        * trans-expr.c (gfc_conv_structure): Ensure that the derived
+	type has a backend_decl.
+
+        PR fortran/43044
+        * resolve.c (resolve_global_procedure): Check that the 'cl'
+	structure is not NULL.
+
+2010-03-18  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* lang.opt (-ffixed-line-length-, ffree-line-length-): Remove
+	redundant tab.
+
+2010-03-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43331
+	* trans-array.c (gfc_conv_array_index_offset,gfc_conv_array_ref,
+	gfc_conv_ss_startstride): Remove no-longer-needed cp_was_assumed
+	check.
+	* decl.c (gfc_match_derived_decl): Don't mark assumed-size Cray
+	pointees as having explizit size.
+	* expr.c (gfc_check_assign): Remove now unreachable Cray pointee
+	check.
+	* trans-types.c (gfc_is_nodesc_array): Add cp_was_assumed to assert.
+	(gfc_sym_type): Don't mark Cray pointees as restricted pointers.
+	* resolve.c (resolve_symbol): Handle cp_was_assumed.
+	* trans-decl.c (gfc_trans_deferred_vars): Ditto.
+	(gfc_finish_var_decl): Don't mark Cray pointees as restricted
+	pointers.
+
+2010-03-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43362
+	* resolve.c (resolve_structure_cons): Add missing PURE constraint.
+	(resolve_ordinary_assign): Add check to avoid segfault.
+
 2010-03-12  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/43291

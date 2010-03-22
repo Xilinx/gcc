@@ -1,3 +1,44 @@
+2010-03-19  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR ada/42554
+	* configure.ac: Only pass -c to ranlib for darwin9 and earlier.
+	* configure: Regenerate.
+
+2010-03-18  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* MAINTAINERS (dwarak.rajagopal@amd.com): Removed.
+	(ghassan.shobaki@amd.com): Removed.
+
+2010-03-17  Alan Modra  <amodra@gmail.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-16  Diego Novillo  <dnovillo@google.com>
+
+	* MAINTAINERS: Remove Dan Hipschman, William Maddox and Chris
+	Matthews.
+
+2010-03-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS (Write After Approval): Remove Jim Blandy, Daniel
+	Gutson, Jeffrey D. Oldham and Mark Shinwell.
+
+2010-03-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-16  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-15  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
 2010-03-09  Jie Zhang  <jie@codesourcery.com>
 
 	* MAINTAINERS: Update my email address.
