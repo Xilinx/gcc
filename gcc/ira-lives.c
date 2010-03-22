@@ -456,7 +456,7 @@ check_and_make_def_use_conflict (rtx dreg, enum reg_class def_cl,
      different.  (Indeed, if the constraints for the two
      operands are the same for all alternatives, there's no
      point marking them as commutative.)  */
-  if (use < recog_data.n_operands + 1
+  if (use < recog_data.n_operands - 1
       && recog_data.constraints[use][0] == '%')
     advance_p
       = make_pseudo_conflict (recog_data.operand[use + 1],
@@ -499,6 +499,8 @@ check_and_make_def_conflict (int alt, int def, enum reg_class def_cl)
 
   for (use = 0; use < recog_data.n_operands; use++)
     {
+      int alt1;
+
       if (use == def || recog_data.operand_type[use] == OP_OUT)
 	continue;
 
@@ -506,6 +508,22 @@ check_and_make_def_conflict (int alt, int def, enum reg_class def_cl)
 	use_cl = ALL_REGS;
       else
 	use_cl = recog_op_alt[use][alt].cl;
+
+      /* If there's any alternative that allows USE to match DEF, do not
+	 record a conflict.  If that causes us to create an invalid
+	 instruction due to the earlyclobber, reload must fix it up.  */	 
+      for (alt1 = 0; alt1 < recog_data.n_alternatives; alt1++)
+	if (recog_op_alt[use][alt1].matches == def
+	    || (use < recog_data.n_operands - 1
+		&& recog_data.constraints[use][0] == '%'
+		&& recog_op_alt[use + 1][alt1].matches == def)
+	    || (use >= 1
+		&& recog_data.constraints[use - 1][0] == '%'
+		&& recog_op_alt[use - 1][alt1].matches == def))
+	  break;
+
+      if (alt1 < recog_data.n_alternatives)
+	continue;
 
       advance_p = check_and_make_def_use_conflict (dreg, def_cl, use,
 						   use_cl, advance_p);

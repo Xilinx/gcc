@@ -1141,7 +1141,8 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
   if (expr == null_node
       && (desires & WANT_INT)
       && !(desires & WANT_NULL))
-    warning (OPT_Wconversion, "converting NULL to non-pointer type");
+    warning_at (input_location, OPT_Wconversion_null,
+		"converting NULL to non-pointer type");
 
   basetype = TREE_TYPE (expr);
 
@@ -1170,8 +1171,9 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
 	return (desires & WANT_POINTER) ? decay_conversion (expr)
 					: NULL_TREE;
 
+      case COMPLEX_TYPE:
       case VECTOR_TYPE:
-	if ((desires & WANT_VECTOR) == 0)
+	if ((desires & WANT_VECTOR_OR_COMPLEX) == 0)
 	  return NULL_TREE;
 	switch (TREE_CODE (TREE_TYPE (basetype)))
 	  {
@@ -1226,8 +1228,9 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
 	case POINTER_TYPE:
 	  win = (desires & WANT_POINTER); break;
 
+	case COMPLEX_TYPE:
 	case VECTOR_TYPE:
-	  if ((desires & WANT_VECTOR) == 0)
+	  if ((desires & WANT_VECTOR_OR_COMPLEX) == 0)
 	    break;
 	  switch (TREE_CODE (TREE_TYPE (candidate)))
 	    {

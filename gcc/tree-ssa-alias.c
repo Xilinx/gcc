@@ -544,13 +544,15 @@ same_type_for_tbaa (tree type1, tree type2)
       && TREE_CODE (type2) == ARRAY_TYPE)
     return -1;
 
-  /* In Ada, an lvalue of unconstrained type can be used to access an object
-     of one of its constrained subtypes, for example when a function with an
-     unconstrained parameter passed by reference is called on a constrained
-     object and inlined.  In this case, the types have the same alias set.  */
-  if (TYPE_SIZE (type1) && TYPE_SIZE (type2)
-      && TREE_CONSTANT (TYPE_SIZE (type1)) != TREE_CONSTANT (TYPE_SIZE (type2))
-      && get_alias_set (type1) == get_alias_set (type2))
+  /* ??? In Ada, an lvalue of an unconstrained type can be used to access an
+     object of one of its constrained subtypes, e.g. when a function with an
+     unconstrained parameter passed by reference is called on an object and
+     inlined.  But, even in the case of a fixed size, type and subtypes are
+     not equivalent enough as to share the same TYPE_CANONICAL, since this
+     would mean that conversions between them are useless, whereas they are
+     not (e.g. type and subtypes can have different modes).  So, in the end,
+     they are only guaranteed to have the same alias set.  */
+  if (get_alias_set (type1) == get_alias_set (type2))
     return -1;
 
   /* The types are known to be not equal.  */
@@ -1258,16 +1260,19 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_CALLOC:
 	  /* Unix98 specifies that errno is set on allocation failure.
 	     Until we properly can track the errno location assume it
-	     is not a plain decl but anonymous storage in a different
-	     translation unit.  */
-	  if (flag_errno_math)
+	     is not a local decl but external or anonymous storage in
+	     a different translation unit.  Also assume it is of
+	     type int as required by the standard.  */
+	  if (flag_errno_math
+	      && TREE_TYPE (base) == integer_type_node)
 	    {
 	      struct ptr_info_def *pi;
-	      if (DECL_P (base))
-		return false;
-	      if (INDIRECT_REF_P (base)
-		  && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME
-		  && (pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0))))
+	      if (DECL_P (base)
+		  && !TREE_STATIC (base))
+		return true;
+	      else if (INDIRECT_REF_P (base)
+		       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME
+		       && (pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0))))
 		return pi->pt.anything || pi->pt.nonlocal;
 	    }
 	  return false;

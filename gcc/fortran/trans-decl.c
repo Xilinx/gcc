@@ -598,6 +598,7 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
 
   if (!sym->attr.target
       && !sym->attr.pointer
+      && !sym->attr.cray_pointee
       && !sym->attr.proc_pointer)
     DECL_RESTRICTED_P (decl) = 1;
 }
@@ -3159,10 +3160,11 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, tree fnbody)
 
 	    case AS_ASSUMED_SIZE:
 	      /* Must be a dummy parameter.  */
-	      gcc_assert (sym->attr.dummy);
+	      gcc_assert (sym->attr.dummy || sym->as->cp_was_assumed);
 
 	      /* We should always pass assumed size arrays the g77 way.  */
-	      fnbody = gfc_trans_g77_array (sym, fnbody);
+	      if (sym->attr.dummy)
+		fnbody = gfc_trans_g77_array (sym, fnbody);
               break;
 
 	    case AS_ASSUMED_SHAPE:
@@ -3380,11 +3382,16 @@ gfc_create_module_variable (gfc_symbol * sym)
     {
       decl = sym->backend_decl;
       gcc_assert (sym->ns->proc_name->attr.flavor == FL_MODULE);
-      gcc_assert (TYPE_CONTEXT (decl) == NULL_TREE
-		  || TYPE_CONTEXT (decl) == sym->ns->proc_name->backend_decl);
-      gcc_assert (DECL_CONTEXT (TYPE_STUB_DECL (decl)) == NULL_TREE
-		  || DECL_CONTEXT (TYPE_STUB_DECL (decl))
-		     == sym->ns->proc_name->backend_decl);
+
+      /* -fwhole-file mixes up the contexts so these asserts are unnecessary.  */
+      if (!(gfc_option.flag_whole_file && sym->attr.use_assoc))
+	{
+	  gcc_assert (TYPE_CONTEXT (decl) == NULL_TREE
+		      || TYPE_CONTEXT (decl) == sym->ns->proc_name->backend_decl);
+	  gcc_assert (DECL_CONTEXT (TYPE_STUB_DECL (decl)) == NULL_TREE
+		      || DECL_CONTEXT (TYPE_STUB_DECL (decl))
+			   == sym->ns->proc_name->backend_decl);
+	}
       TYPE_CONTEXT (decl) = sym->ns->proc_name->backend_decl;
       DECL_CONTEXT (TYPE_STUB_DECL (decl)) = sym->ns->proc_name->backend_decl;
       gfc_module_add_decl (cur_module, TYPE_STUB_DECL (decl));

@@ -1,6 +1,6 @@
 /* Convert tree expression to rtl instructions, for GNU compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -4431,9 +4431,11 @@ expand_assignment (tree to, tree from, bool nontemporal)
   /* In case we are returning the contents of an object which overlaps
      the place the value is being stored, use a safe function when copying
      a value through a pointer into a structure value return block.  */
-  if (TREE_CODE (to) == RESULT_DECL && TREE_CODE (from) == INDIRECT_REF
+  if (TREE_CODE (to) == RESULT_DECL
+      && TREE_CODE (from) == INDIRECT_REF
       && ADDR_SPACE_GENERIC_P
-	  (TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (TREE_OPERAND (from, 0)))))
+	   (TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (TREE_OPERAND (from, 0)))))
+      && refs_may_alias_p (to, from)
       && cfun->returns_struct
       && !cfun->returns_pcc_struct)
     {
@@ -4550,7 +4552,7 @@ store_expr (tree exp, rtx target, int call_param_p, bool nontemporal)
 
       do_pending_stack_adjust ();
       NO_DEFER_POP;
-      jumpifnot (TREE_OPERAND (exp, 0), lab1);
+      jumpifnot (TREE_OPERAND (exp, 0), lab1, -1);
       store_expr (TREE_OPERAND (exp, 1), target, call_param_p,
 		  nontemporal);
       emit_jump_insn (gen_jump (lab2));
@@ -5546,7 +5548,7 @@ store_constructor (tree exp, rtx target, int cleared, HOST_WIDE_INT size)
 		    /* Generate a conditional jump to exit the loop.  */
 		    exit_cond = build2 (LT_EXPR, integer_type_node,
 					index, hi_index);
-		    jumpif (exit_cond, loop_end);
+		    jumpif (exit_cond, loop_end, -1);
 
 		    /* Update the loop counter, and jump to the head of
 		       the loop.  */
@@ -8012,7 +8014,8 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
 
 	temp = gen_label_rtx ();
 	do_compare_rtx_and_jump (target, cmpop1, comparison_code,
-				 unsignedp, mode, NULL_RTX, NULL_RTX, temp);
+				 unsignedp, mode, NULL_RTX, NULL_RTX, temp,
+				 -1);
       }
       emit_move_insn (target, op1);
       emit_label (temp);
@@ -8120,7 +8123,7 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
       emit_move_insn (target, const0_rtx);
 
       op1 = gen_label_rtx ();
-      jumpifnot_1 (code, treeop0, treeop1, op1);
+      jumpifnot_1 (code, treeop0, treeop1, op1, -1);
 
       emit_move_insn (target, const1_rtx);
 
@@ -9417,7 +9420,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	emit_move_insn (target, const0_rtx);
 
       op1 = gen_label_rtx ();
-      jumpifnot_1 (code, treeop0, treeop1, op1);
+      jumpifnot_1 (code, treeop0, treeop1, op1, -1);
 
       if (target)
 	emit_move_insn (target, const1_rtx);
@@ -9474,7 +9477,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
        NO_DEFER_POP;
        op0 = gen_label_rtx ();
        op1 = gen_label_rtx ();
-       jumpifnot (treeop0, op0);
+       jumpifnot (treeop0, op0, -1);
        store_expr (treeop1, temp,
  		  modifier == EXPAND_STACK_PARM,
 		  false);
@@ -9520,7 +9523,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	    int value = TREE_CODE (rhs) == BIT_IOR_EXPR;
 	    do_jump (TREE_OPERAND (rhs, 1),
 		     value ? label : 0,
-		     value ? 0 : label);
+		     value ? 0 : label, -1);
 	    expand_assignment (lhs, build_int_cst (TREE_TYPE (rhs), value),
 			       MOVE_NONTEMPORAL (exp));
 	    do_pending_stack_adjust ();

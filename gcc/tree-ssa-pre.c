@@ -1471,32 +1471,18 @@ get_representative_for (const pre_expr e)
 
 
 
+static pre_expr
+phi_translate (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
+	       basic_block pred, basic_block phiblock);
 
 /* Translate EXPR using phis in PHIBLOCK, so that it has the values of
    the phis in PRED.  Return NULL if we can't find a leader for each part
    of the translated expression.  */
 
 static pre_expr
-phi_translate (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
-	       basic_block pred, basic_block phiblock)
+phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
+		 basic_block pred, basic_block phiblock)
 {
-  pre_expr oldexpr = expr;
-  pre_expr phitrans;
-
-  if (!expr)
-    return NULL;
-
-  /* Constants contain no values that need translation.  */
-  if (expr->kind == CONSTANT)
-    return expr;
-
-  if (value_id_constant_p (get_expr_value_id (expr)))
-    return expr;
-
-  phitrans = phi_trans_lookup (expr, pred);
-  if (phitrans)
-    return phitrans;
-
   switch (expr->kind)
     {
     case NARY:
@@ -1584,7 +1570,6 @@ phi_translate (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	      }
 	    add_to_value (new_val_id, expr);
 	  }
-	phi_trans_add (oldexpr, expr, pred);
 	return expr;
       }
       break;
@@ -1765,7 +1750,6 @@ phi_translate (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	    add_to_value (new_val_id, expr);
 	  }
 	VEC_free (vn_reference_op_s, heap, newoperands);
-	phi_trans_add (oldexpr, expr, pred);
 	return expr;
       }
       break;
@@ -1811,6 +1795,44 @@ phi_translate (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
     }
 }
 
+/* Wrapper around phi_translate_1 providing caching functionality.  */
+
+static pre_expr
+phi_translate (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
+	       basic_block pred, basic_block phiblock)
+{
+  pre_expr phitrans;
+
+  if (!expr)
+    return NULL;
+
+  /* Constants contain no values that need translation.  */
+  if (expr->kind == CONSTANT)
+    return expr;
+
+  if (value_id_constant_p (get_expr_value_id (expr)))
+    return expr;
+
+  if (expr->kind != NAME)
+    {
+      phitrans = phi_trans_lookup (expr, pred);
+      if (phitrans)
+	return phitrans;
+    }
+
+  /* Translate.  */
+  phitrans = phi_translate_1 (expr, set1, set2, pred, phiblock);
+
+  /* Don't add empty translations to the cache.  Neither add
+     translations of NAMEs as those are cheap to translate.  */
+  if (phitrans
+      && expr->kind != NAME)
+    phi_trans_add (expr, phitrans, pred);
+
+  return phitrans;
+}
+
+
 /* For each expression in SET, translate the values through phi nodes
    in PHIBLOCK using edge PHIBLOCK->PRED, and store the resulting
    expressions in DEST.  */
@@ -1834,12 +1856,8 @@ phi_translate_set (bitmap_set_t dest, bitmap_set_t set, basic_block pred,
     {
       pre_expr translated;
       translated = phi_translate (expr, set, NULL, pred, phiblock);
-
-      /* Don't add empty translations to the cache  */
       if (!translated)
 	continue;
-
-      phi_trans_add (expr, translated, pred);
 
       /* We might end up with multiple expressions from SET being
 	 translated to the same value.  In this case we do not want
@@ -2542,7 +2560,7 @@ compute_antic (void)
 	fprintf (dump_file, "Starting iteration %d\n", num_iterations);
       num_iterations++;
       changed = false;
-      for (i = 0; i < n_basic_blocks - NUM_FIXED_BLOCKS; i++)
+      for (i = n_basic_blocks - NUM_FIXED_BLOCKS - 1; i >= 0; i--)
 	{
 	  if (TEST_BIT (changed_blocks, postorder[i]))
 	    {
@@ -2573,7 +2591,7 @@ compute_antic (void)
 	    fprintf (dump_file, "Starting iteration %d\n", num_iterations);
 	  num_iterations++;
 	  changed = false;
-	  for (i = 0; i < n_basic_blocks - NUM_FIXED_BLOCKS; i++)
+	  for (i = n_basic_blocks - NUM_FIXED_BLOCKS - 1 ; i >= 0; i--)
 	    {
 	      if (TEST_BIT (changed_blocks, postorder[i]))
 		{
@@ -4507,6 +4525,85 @@ remove_dead_inserted_code (void)
   VEC_free (gimple, heap, worklist);
 }
 
+/* Compute a reverse post-order in *POST_ORDER.  If INCLUDE_ENTRY_EXIT is
+   true, then then ENTRY_BLOCK and EXIT_BLOCK are included.  Returns
+   the number of visited blocks.  */
+
+static int
+my_rev_post_order_compute (int *post_order, bool include_entry_exit)
+{
+  edge_iterator *stack;
+  int sp;
+  int post_order_num = 0;
+  sbitmap visited;
+  int count;
+
+  if (include_entry_exit)
+    post_order[post_order_num++] = EXIT_BLOCK;
+
+  /* Allocate stack for back-tracking up CFG.  */
+  stack = XNEWVEC (edge_iterator, n_basic_blocks + 1);
+  sp = 0;
+
+  /* Allocate bitmap to track nodes that have been visited.  */
+  visited = sbitmap_alloc (last_basic_block);
+
+  /* None of the nodes in the CFG have been visited yet.  */
+  sbitmap_zero (visited);
+
+  /* Push the last edge on to the stack.  */
+  stack[sp++] = ei_start (EXIT_BLOCK_PTR->preds);
+
+  while (sp)
+    {
+      edge_iterator ei;
+      basic_block src;
+      basic_block dest;
+
+      /* Look at the edge on the top of the stack.  */
+      ei = stack[sp - 1];
+      src = ei_edge (ei)->src;
+      dest = ei_edge (ei)->dest;
+
+      /* Check if the edge destination has been visited yet.  */
+      if (src != ENTRY_BLOCK_PTR && ! TEST_BIT (visited, src->index))
+        {
+          /* Mark that we have visited the destination.  */
+          SET_BIT (visited, src->index);
+
+          if (EDGE_COUNT (src->preds) > 0)
+            /* Since the DEST node has been visited for the first
+               time, check its successors.  */
+            stack[sp++] = ei_start (src->preds);
+          else
+            post_order[post_order_num++] = src->index;
+        }
+      else
+        {
+          if (ei_one_before_end_p (ei) && dest != EXIT_BLOCK_PTR)
+            post_order[post_order_num++] = dest->index;
+
+          if (!ei_one_before_end_p (ei))
+            ei_next (&stack[sp - 1]);
+          else
+            sp--;
+        }
+    }
+
+  if (include_entry_exit)
+    {
+      post_order[post_order_num++] = ENTRY_BLOCK;
+      count = post_order_num;
+    }
+  else
+    count = post_order_num + 2;
+
+  free (stack);
+  sbitmap_free (visited);
+  return post_order_num;
+}
+
+
 /* Initialize data structures used by PRE.  */
 
 static void
@@ -4535,7 +4632,7 @@ init_pre (bool do_fre)
 
 
   postorder = XNEWVEC (int, n_basic_blocks - NUM_FIXED_BLOCKS);
-  post_order_compute (postorder, false, false);
+  my_rev_post_order_compute (postorder, false);
 
   FOR_ALL_BB (bb)
     bb->aux = XCNEWVEC (struct bb_bitmap_sets, 1);

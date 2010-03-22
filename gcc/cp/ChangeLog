@@ -1,4 +1,164 @@
+2010-03-20  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/43081:
+	* decl2.c (grokfield): Handle invalid initializers for member
+	functions.
+
+2010-03-20  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/43375
+	* method.c (make_alias_for): Avoid crashing when DECL_LANG_SPECIFIC
+	is NULL.
+	* decl2.c (vague_linkage_p): Likewise.
+
+2010-03-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/43418
+	* parser.c (cp_parser_for_init_statement): Use NULL_TREE, not
+	false, in the cp_parser_expression_statement call.
+
+2010-03-05  Jason Merrill  <jason@redhat.com>
+
+	* mangle.c (mangle_decl): Give name collision error even without
+	ASM_OUTPUT_DEF.
+
+2010-03-04  Marco Poletti  <poletti.marco@gmail.com>
+
+	* pt.c (process_partial_specialization): Use error_n instead of
+	error.
+
+2010-03-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/12909
+	* mangle.c (mangle_decl): Handle VAR_DECL, too.
+
+2010-03-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/12909
+	* mangle.c: Include cgraph.h.
+	(mangle_decl): If the mangled name will change in a later
+	ABI version, make the later mangled name an alias.
+	* method.c (make_alias_for): Copy DECL_ARGUMENTS.
+	* Make-lang.in (mangle.o): Depend on cgraph.h.
+	* method.c (make_alias_for): Handle VAR_DECL, too.
+	* decl2.c (vague_linkage_p): Rename from vague_linkage_fn_p.
+	* tree.c (no_linkage_check): Adjust.
+	* decl.c (maybe_commonize_var): Adjust.
+	* cp-tree.h: Adjust.
+
+2010-03-01  Marco Poletti  <poletti.marco@gmail.com>
+
+	* pt.c (redeclare_class_template): Use error_n and inform_n.
+
+2010-02-27  Mark Mitchell  <mark@codesourcery.com>
+
+	PR c++/42748
+	* cp-tree.h (push_tinst_level): Declare.
+	(pop_tinst_level): Likewise.
+	* pt.c (push_tinst_level): Give it external linkage.
+	(pop_tinst_level): Likewise.
+	* mangle.c (mangle_decl_string): Set the source location to that
+	of the decl while mangling.
+
+2010-02-27  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/42054
+	* pt.c (redeclare_class_template): Return false if there are erroneous
+	template parameters.
+
+2010-02-24  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* pt.c (push_tinst_level): Replace -ftemplate-depth- with 
+	-ftemplate-depth=.
+
+2010-02-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/12909
+	* mangle.c (write_type): Give -Wabi warning for old vector mangling.
+
+	* class.c (layout_class_type): Don't give -Wabi warning for a bug
+	in a previous ABI version.
+
+2010-02-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43143
+	* typeck2.c (digest_init_r): Accept value init of array.
+
+2010-02-22  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/43126
+	* typeck.c (convert_arguments): Update error message.
+
+2010-02-22  Mike Stump  <mikestump@comcast.net>
+
+	PR c++/43125
+	* decl.c (duplicate_decls): Merge DECL_PRESERVE_P.
+
+2010-02-21  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/23510
+	* error.c (print_instantiation_partial_context_line): New.
+	(print_instantiation_partial_context): Print at most 12 contexts,
+	skip the rest with a message.
+
+2010-02-21  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42824
+	* pt.c (lookup_template_class): Better support of specialization
+	of member of class template implicit instantiation.
+
+2010-02-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/35669
+	* call.c (conversion_null_warnings): Replace -Wconversion with
+	-Wconversion-null.
+	* cvt.c (build_expr_type_conversion): Likewise.
+
+2010-02-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42837
+	* class.c (create_vtable_ptr): Set DECL_PACKED if type is packed.
+
+	PR c++/43108
+	* typeck.c (cp_build_binary_op): Adapt mixed complex/non handling from
+	C build_binary_op.
+	* cp-tree.h (WANT_VECTOR_OR_COMPLEX): Rename from WANT_VECTOR.
+	* cvt.c (build_expr_type_conversion): Allow COMPLEX_TYPE.
+
+	PR c++/43070
+	* semantics.c (finish_goto_stmt): Don't call decay_conversion.
+
+	PR c++/26261
+	PR c++/43101
+	* pt.c (tsubst_qualified_id): Do normal lookup in non-dependent scope.
+	(maybe_update_decl_type): New fn.
+	* parser.c (cp_parser_init_declarator): Use it.
+
+	PR c++/43109
+	* semantics.c (begin_class_definition): Don't crash on unnamed ns.
+
+2010-02-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43075
+	* call.c (build_over_call): Don't create zero-sized assignments.
+	* cp-gimplify.c (cp_genericize_r): Don't remove them here.
+	* cp-objcp-common.c (cp_expr_size): Remove.
+	* cp-tree.h: Remove prototype.
+
+	PR c++/43069
+	* name-lookup.c (set_decl_namespace): Don't copy DECL_CONTEXT if the
+	decl we looked up doesn't match.
+
+	PR c++/43093
+	* cp-gimplify.c (cp_gimplify_expr) [INIT_EXPR]: Return if we don't
+	have an INIT_EXPR anymore.
+
+	PR c++/43079
+	* pt.c (convert_nontype_argument): Change assert to test.
+
 2010-02-16  Jason Merrill  <jason@redhat.com>
+
+	* cp-gimplify.c (cp_gimplify_expr): Fix error recovery.
 
 	PR c++/43031
 	* cp-gimplify.c (cp_gimplify_expr) [MODIFY_EXPR]: Use

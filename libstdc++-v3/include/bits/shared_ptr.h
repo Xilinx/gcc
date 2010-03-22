@@ -60,7 +60,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /// 2.2.3.7 shared_ptr I/O
   template<typename _Ch, typename _Tr, typename _Tp, _Lock_policy _Lp>
-    std::basic_ostream<_Ch, _Tr>&
+    inline std::basic_ostream<_Ch, _Tr>&
     operator<<(std::basic_ostream<_Ch, _Tr>& __os,
 	       const __shared_ptr<_Tp, _Lp>& __p)
     {
@@ -119,7 +119,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *
        *  __shared_ptr will release __p by calling __d(__p)
        */
-	template<typename _Tp1, typename _Deleter>
+      template<typename _Tp1, typename _Deleter>
 	shared_ptr(_Tp1* __p, _Deleter __d) : __shared_ptr<_Tp>(__p, __d) { }
 
       /**
@@ -204,16 +204,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 #if _GLIBCXX_DEPRECATED
       template<typename _Tp1>
-	explicit
 	shared_ptr(std::auto_ptr<_Tp1>&& __r)
 	: __shared_ptr<_Tp>(std::move(__r)) { }
 #endif
 
       template<typename _Tp1, typename _Del>
-	explicit shared_ptr(const std::unique_ptr<_Tp1, _Del>&) = delete;
-
-      template<typename _Tp1, typename _Del>
-	explicit shared_ptr(std::unique_ptr<_Tp1, _Del>&& __r)
+	shared_ptr(std::unique_ptr<_Tp1, _Del>&& __r)
 	: __shared_ptr<_Tp>(std::move(__r)) { }
 
       template<typename _Tp1>
@@ -248,10 +244,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  this->__shared_ptr<_Tp>::operator=(std::move(__r));
 	  return *this;
 	}
-
-      template<typename _Tp1, typename _Del>
-	shared_ptr&
-	operator=(const std::unique_ptr<_Tp1, _Del>& __r) = delete;
 
       template<typename _Tp1, typename _Del>
 	shared_ptr&
@@ -374,16 +366,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	return this->expired() ? shared_ptr<_Tp>() : shared_ptr<_Tp>(*this);
 #endif
       }
-
-      // Comparisons
-      template<typename _Tp1>
-	bool operator<(const weak_ptr<_Tp1>&) const = delete;
-      template<typename _Tp1>
-	bool operator<=(const weak_ptr<_Tp1>&) const = delete;
-      template<typename _Tp1>
-	bool operator>(const weak_ptr<_Tp1>&) const = delete;
-      template<typename _Tp1>
-	bool operator>=(const weak_ptr<_Tp1>&) const = delete;
     };
 
   // 20.8.13.3.7 weak_ptr specialized algorithms.

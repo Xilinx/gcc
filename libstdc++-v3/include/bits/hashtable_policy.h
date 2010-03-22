@@ -56,29 +56,6 @@ namespace __detail
       return __distance_fw(__first, __last, _Tag());
     }
 
-  template<typename _RAIter, typename _Tp>
-    _RAIter
-    __lower_bound(_RAIter __first, _RAIter __last, const _Tp& __val)
-    {
-      typedef typename std::iterator_traits<_RAIter>::difference_type _DType;
-
-      _DType __len = __last - __first;
-      while (__len > 0)
-	{
-	  _DType __half = __len >> 1;
-	  _RAIter __middle = __first + __half;
-	  if (*__middle < __val)
-	    {
-	      __first = __middle;
-	      ++__first;
-	      __len = __len - __half - 1;
-	    }
-	  else
-	    __len = __half;
-	}
-      return __first;
-    }
-
   // Auxiliary types used for all instantiations of _Hashtable: nodes
   // and iterators.
   
@@ -447,8 +424,8 @@ namespace __detail
   _Prime_rehash_policy::
   _M_next_bkt(std::size_t __n) const
   {
-    const unsigned long* __p = __lower_bound(__prime_list, __prime_list
-					     + _S_n_primes, __n);
+    const unsigned long* __p = std::lower_bound(__prime_list, __prime_list
+						+ _S_n_primes, __n);
     _M_next_resize = 
       static_cast<std::size_t>(__builtin_ceil(*__p * _M_max_load_factor));
     return *__p;
@@ -461,8 +438,8 @@ namespace __detail
   _M_bkt_for_elements(std::size_t __n) const
   {
     const float __min_bkts = __n / _M_max_load_factor;
-    const unsigned long* __p = __lower_bound(__prime_list, __prime_list
-					     + _S_n_primes, __min_bkts);
+    const unsigned long* __p = std::lower_bound(__prime_list, __prime_list
+						+ _S_n_primes, __min_bkts);
     _M_next_resize =
       static_cast<std::size_t>(__builtin_ceil(*__p * _M_max_load_factor));
     return *__p;
@@ -490,8 +467,8 @@ namespace __detail
 	  {
 	    __min_bkts = std::max(__min_bkts, _M_growth_factor * __n_bkt);
 	    const unsigned long* __p =
-	      __lower_bound(__prime_list, __prime_list + _S_n_primes,
-			    __min_bkts);
+	      std::lower_bound(__prime_list, __prime_list + _S_n_primes,
+			       __min_bkts);
 	    _M_next_resize = static_cast<std::size_t>
 	      (__builtin_ceil(*__p * _M_max_load_factor));
 	    return std::make_pair(true, *__p);
@@ -604,7 +581,7 @@ namespace __detail
     }
 
   // class template _Rehash_base.  Give hashtable the max_load_factor
-  // functions iff the rehash policy is _Prime_rehash_policy.
+  // functions and reserve iff the rehash policy is _Prime_rehash_policy.
   template<typename _RehashPolicy, typename _Hashtable>
     struct _Rehash_base { };
 
@@ -623,6 +600,13 @@ namespace __detail
       {
 	_Hashtable* __this = static_cast<_Hashtable*>(this);
 	__this->__rehash_policy(_Prime_rehash_policy(__z));
+      }
+
+      void
+      reserve(std::size_t __n)
+      {
+	_Hashtable* __this = static_cast<_Hashtable*>(this);
+	__this->rehash(__builtin_ceil(__n / max_load_factor()));
       }
     };
 

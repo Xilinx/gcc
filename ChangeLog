@@ -1,3 +1,74 @@
+2010-03-19  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR ada/42554
+	* configure.ac: Only pass -c to ranlib for darwin9 and earlier.
+	* configure: Regenerate.
+
+2010-03-18  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* MAINTAINERS (dwarak.rajagopal@amd.com): Removed.
+	(ghassan.shobaki@amd.com): Removed.
+
+2010-03-17  Alan Modra  <amodra@gmail.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-16  Diego Novillo  <dnovillo@google.com>
+
+	* MAINTAINERS: Remove Dan Hipschman, William Maddox and Chris
+	Matthews.
+
+2010-03-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS (Write After Approval): Remove Jim Blandy, Daniel
+	Gutson, Jeffrey D. Oldham and Mark Shinwell.
+
+2010-03-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-16  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-15  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-09  Jie Zhang  <jie@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libstdc++/32499
+	* configure.ac (RANLIB): Default to true.
+	(STRIP): Likewise.
+	(RANLIB_FOR_TARGET): Remove superfluous : argument.
+	* configure: Regenerate.
+
+2010-02-17 Rafael Ávila de Espíndola <espindola@google.com>
+
+	* MAINTAINERS (Plugin, LTO, LTO plugin): Remove myself.
+	(Write After Approval): Update my email address.
+
+2010-02-17  Nick Clifton  <nickc@redhat.com>
+
+	PR 11238
+	* Makefile.tpl (local-distclean): Also remove config.cache files in
+	sub-directories as there may not be Makefiles present in the
+	sub-directories.
+	* Makefile.tpl: Use "-exec rm {}" rather than "-delete" to delete
+	the config.cache files found by the find command.
+
+	* Makefile.in: Regenerate.
+	* configure.ac: Revert previous delta.
+	* configure: Regenerate.
+
 2010-02-15  Nick Clifton  <nickc@redhat.com>
 
 	PR 11238

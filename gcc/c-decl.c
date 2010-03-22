@@ -2387,6 +2387,10 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
     TREE_USED (newdecl) = 1;
   else if (TREE_USED (newdecl))
     TREE_USED (olddecl) = 1;
+  if (DECL_PRESERVE_P (olddecl))
+    DECL_PRESERVE_P (newdecl) = 1;
+  else if (DECL_PRESERVE_P (newdecl))
+    DECL_PRESERVE_P (olddecl) = 1;
 
   /* Copy most of the decl-specific fields of NEWDECL into OLDDECL.
      But preserve OLDDECL's DECL_UID, DECL_CONTEXT and
@@ -2945,11 +2949,10 @@ undeclared_variable (location_t loc, tree id)
   else
     {
       error_at (loc, "%qE undeclared (first use in this function)", id);
-
       if (!already)
 	{
-	  error_at (loc, "(Each undeclared identifier is reported only once");
-	  error_at (loc, "for each function it appears in.)");
+          inform (loc, "each undeclared identifier is reported only"
+                  " once for each function it appears in");
 	  already = true;
 	}
 
@@ -4459,7 +4462,8 @@ build_compound_literal (location_t loc, tree type, tree init, bool non_const)
   tree complit;
   tree stmt;
 
-  if (type == error_mark_node)
+  if (type == error_mark_node
+      || init == error_mark_node)
     return error_mark_node;
 
   decl = build_decl (loc, VAR_DECL, NULL_TREE, type);
@@ -6114,6 +6118,7 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
 
 		  TREE_VALUE (typelt) = error_mark_node;
 		  TREE_TYPE (parm) = error_mark_node;
+		  arg_types = NULL_TREE;
 		}
 	      else if (VOID_TYPE_P (type))
 		{
@@ -6134,6 +6139,7 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
 	      error (errmsg);
 	      TREE_VALUE (typelt) = error_mark_node;
 	      TREE_TYPE (parm) = error_mark_node;
+	      arg_types = NULL_TREE;
 	    }
 
 	  if (DECL_NAME (parm) && TREE_USED (parm))

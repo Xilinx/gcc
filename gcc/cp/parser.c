@@ -8352,7 +8352,7 @@ cp_parser_for_init_statement (cp_parser* parser)
 	return;
     }
 
-  cp_parser_expression_statement (parser, false);
+  cp_parser_expression_statement (parser, NULL_TREE);
 }
 
 /* Parse a jump-statement.
@@ -13476,6 +13476,11 @@ cp_parser_init_declarator (cp_parser* parser,
      located in.  `grokdeclarator' sometimes changes the scope, so
      we compute it now.  */
   scope = get_scope_of_declarator (declarator);
+
+  /* Perform any lookups in the declared type which were thought to be
+     dependent, but are not in the scope of the declarator.  */
+  decl_specifiers->type
+    = maybe_update_decl_type (decl_specifiers->type, scope);
 
   /* If we're allowing GNU extensions, look for an asm-specification
      and attributes.  */

@@ -1,3 +1,924 @@
+2010-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/17_intro/freestanding.cc: Avoid -Wall warnings.
+
+2010-03-19  Rodolfo Lima  <rodolfo@rodsoft.org>
+
+	* include/bits/shared_ptr.h (shared_ptr(unique_ptr&&),
+	shared_ptr(auto_ptr&&)): Remove explicit specifier (as per DR 925).
+	* include/bits/shared_ptr_base.h: Likewise.
+	* testsuite/20_util/shared_ptr/creation/dr925.cc: New.
+
+2010-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.tcc: Minor formatting changes.
+
+2010-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_algo.h (shuffle): Fix typo in signature.
+	* include/bits/algorithmfwd.h: Adjust.
+	* testsuite/25_algorithms/shuffle/requirements/
+	explicit_instantiation/2.cc: Likewise.
+	* testsuite/25_algorithms/shuffle/requirements/
+	explicit_instantiation/pod.cc: Likewise.
+
+2010-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_algo.h (shuffle): Add, per D3056.
+	(random_shuffle): Fix signature in C++0x mode.
+	(lower_bound, __lg): Move...
+	* include/bits/stl_algobase.h: ... here.
+	* include/bits/algorithmfwd.h: Adjust.
+	* include/parallel/algorithmfwd.h: Likewise.
+	* include/parallel/algo.h: Likewise.
+	* include/bits/hashtable_policy.h (__lower_bound): Remove,
+	adjust callers.
+	* include/tr1/hashtable_policy.h (__lower_bound): Likewise.
+	* include/bits/random.tcc (__detail::__transform): Add,
+	adjust std::transform callers; don't include <algorithm>.
+	* testsuite/25_algorithms/shuffle/1.cc: Add.
+	* testsuite/25_algorithms/shuffle/requirements/
+	explicit_instantiation/2.cc: Likewise.
+	* testsuite/25_algorithms/shuffle/requirements/
+	explicit_instantiation/pod.cc: Likewise.
+
+	* include/bits/random.h: Add comments.
+
+2010-03-17  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/debug_mode.xml: Correct debug headers.
+
+2010-03-17  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/43397
+	* include/std/functional (_Mem_fn): Use perfect forwarding.
+	* testsuite/20_util/function/43397.cc: New.
+
+2010-03-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/43394
+	* include/parallel/compatibility.h: Add __k8 and __core2 among the
+	i386 targets supporting atomic operations.
+
+2010-03-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/backward/hash_map: Use consistently the _BACKWARD_*
+	prefix for the include guard.
+	* include/backward/hash_fun.h: Likewise.
+	* include/backward/hashtable.h: Likewise.
+	* include/backward/auto_ptr.h: Likewise.
+	* include/backward/strstream: Likewise.
+	* include/backward/binders.h: Likewise.
+	* include/backward/hash_set: Likewise.
+
+2010-03-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.h (operator==(const uniform_int_distribution<>&,
+	const uniform_int_distribution<>&), operator==(const
+	uniform_real_distribution<>&, const uniform_real_distribution<>&),
+	operator==(const lognormal_distribution<>&,
+	const lognormal_distribution<>&), operator==(const
+	chi_squared_distribution<>&, const chi_squared_distribution<>&),
+	operator==(const cauchy_distribution<>&, const cauchy_distribution<>&),
+	operator==(const fisher_distribution<>&, const fisher_distribution<>&),
+	operator==(const student_t_distribution<>&,
+	const student_t_distribution<>&), operator==(const
+	bernoulli_distribution<>&, const bernoulli_distribution<>&),
+	operator==(const binomial_distribution<>&, const
+	binomial_distribution<>&), operator==(const geometric_distribution<>&,
+	const geometric_distribution<>&), operator==(const
+	negative_binomial_distribution<>&, const
+	negative_binomial_distribution<>&), operator==(const
+	poisson_distribution<>&, const poisson_distribution<>&),
+	operator==(const exponential_distribution<>&,
+	const exponential_distribution<>&), operator==(const
+	gamma_distribution<>&, const gamma_distribution<>&), operator==(const
+	weibull_distribution<>&, const weibull_distribution<>&),
+	operator==(const extreme_value_distribution<>&,
+	const extreme_value_distribution<>&), operator==(const
+	discrete_distribution<>&, const discrete_distribution<>&),
+	operator==(const piecewise_constant_distribution<>&,
+	const piecewise_constant_distribution<>&), operator==(const
+	piecewise_linear_distribution<>&, const
+	piecewise_linear_distribution<>&)): Add, likewise for operator!=.
+	(operator!=(const independent_bits_engine<>&, const
+	independent_bits_engine<>&), operator!=(const
+	subtract_with_carry_engine<>&, const subtract_with_carry_engine<>&),
+	operator!=(const discard_block_engine<>&, const
+	discard_block_engine<>&), operator!=(const mersenne_twister_engine<>&,
+	const mersenne_twister_engine<>&), operator!=(const
+	linear_congruential_engine<>&, const linear_congruential_engine<>&),
+	operator!=(const shuffle_order_engine<>&, const
+	shuffle_order_engine<>&): Add.
+	* include/bits/random.tcc (operator==(const normal_distribution<>&,
+	const normal_distribution<>&)): Add.
+	* testsuite/26_numerics/random/uniform_real_distribution/operators/
+	inequal.cc: New.
+	* testsuite/26_numerics/random/uniform_real_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	operators/inequal.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	operators/equal.cc: Likewise.
+	* testsuite/26_numerics/random/chi_squared_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/chi_squared_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/normal_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/normal_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_int_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_int_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/poisson_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/poisson_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/bernoulli_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/bernoulli_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/discrete_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/discrete_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/weibull_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/weibull_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/cauchy_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/cauchy_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/negative_binomial_distribution/
+	operators/inequal.cc: Likewise.
+	* testsuite/26_numerics/random/negative_binomial_distribution/
+	operators/equal.cc: Likewise.
+	* testsuite/26_numerics/random/gamma_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/gamma_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/fisher_f_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/fisher_f_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/exponential_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/exponential_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/binomial_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/binomial_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/lognormal_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/lognormal_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/extreme_value_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/extreme_value_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	operators/inequal.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	operators/equal.cc: Likewise.
+	* testsuite/26_numerics/random/student_t_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/student_t_distribution/operators/
+	equal.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/geometric_distribution/operators/
+	inequal.cc: Likewise.
+	* testsuite/26_numerics/random/geometric_distribution/operators/
+	equal.cc: Likewise.
+
+2010-03-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.tcc (_Fwd_list_node_base::
+	_M_transfer_after): Return _Fwd_list_node_base*.
+	(forward_list<>::_M_splice_after): Add.
+	(forward_list<>::insert_after(const_iterator, size_type, const _Tp&),
+	insert_after(const_iterator, _InputIterator, _InputIterator),
+	insert_after(const_iterator, initializer_list<>)): Use the above,
+	implement DR 1278 ([Ready] in Pittsburgh).
+	* include/bits/forward_list.h (insert_after(const_iterator,
+	size_type, const _Tp&), insert_after(const_iterator, _InputIterator,
+	_InputIterator), insert_after(const_iterator, initializer_list<>)):
+	Only declare.
+	* testsuite/23_containers/forward_list/modifiers/2.cc: Adjust.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Adjust dg-error line number.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2010-03-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Adjust dg-error line number.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/capacity/1.cc: Adjust.
+
+	Revert:
+	2008-11-11  Bob Walters  <bob.s.walters@gmail.com>
+
+	* include/bits/forward_list.h: Support non-standard pointer types
+	(_Fwd_list_node_base): Add _Alloc template parameter.
+	(_Fwd_list_node<>): Likewise.
+	(_Fwd_list_iterator<>): Likewise.
+	(_Fwd_list_const_iterator<>): Likewise.
+	(_Fwd_list_node_base::_M_next, _M_transfer_after, _M_reverse_after):
+	Use _Alloc<_Tp>::pointer.
+	(_Fwd_list_iterator<>::_M_node): Use _Node_base::_Pointer.
+	(_Fwd_list_base<>::_M_get_node, _M_create_node, _M_create_node,
+	_M_insert_after, _M_put_node, _M_erase_after): Likewise.
+	(_Fwd_list_const_iterator<>::_M_node): use _Node_base::_Const_pointer.
+	(forward_list<>): Use __static_pointer_cast in place of static_cast,
+	and __const_pointer_cast in place of const_cast.
+	* include/bits/forward_list.tcc
+	(_Fwd_list_node<>::_M_sort_after): Using _Pointer typedefs in place
+	of standard pointers, __static_pointer_cast in place of static_cast.
+	(_Fwd_list_base<>::_Fwd_list_base, _M_insert_after, _M_erase_after):
+	Likewise.
+	(forward_list<>::_M_initialize_dispatch, _M_fill_initialize,
+	splice_after, remove, remove_if, merge): Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/1.cc: New.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/2.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/3.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/4.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/5.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/1.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/2.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/3.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/4.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/5.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/6.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/7.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/requirements/1.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/requirements/
+	explicit_instantiation/3.cc: Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/1.cc: Likewise.
+
+2010-03-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/array (swap(array<>&, array<>&)): Use member swap.
+
+	* include/bits/stl_algo.h: Improve comment.
+
+2010-03-12  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* scripts/run_doxygen: Adjust.
+	* doc/doxygen/user.cfg.in: Adjust latex, xml prefs.
+	* doc/xml/api.xml: Update.
+	* doc/Makefile.am: Re-do stamp rules.
+	* doc/Makefile.in: Regenerate.
+
+2010-03-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/hashtable_policy.h (_Rehash_base<_Prime_rehash_policy,
+	_Hashtable>::reserve): Add, per DR 1189.
+	* include/bits/hashtable.h (_Hashtable<>::size_type,
+	_Hashtable<>::difference_type): Do not typedef from _Allocator.
+	* testsuite/23_containers/unordered_map/dr1189.cc: New.
+	* testsuite/23_containers/unordered_set/dr1189.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/dr1189.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/dr1189.cc: Likewise.
+
+2010-03-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert:
+	2010-02-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/41975, DR 579
+	* include/bits/hashtable.h (_Hashtable<>::_M_erase_node): Remove.
+	(erase(const_iterator), erase(const_iterator, const_iterator)):
+	Change return type to void.
+	* include/debug/unordered_map: Adjust.
+	* include/debug/unordered_set: Likewise.
+	* testsuite/util/exception/safety.h: Likewise.
+	* testsuite/23_containers/unordered_map/erase/1.cc: Likewise.
+	* testsuite/23_containers/unordered_map/erase/24061-map.cc: Likewise.
+	* testsuite/23_containers/unordered_set/erase/1.cc:  Likewise.
+	* testsuite/23_containers/unordered_set/erase/24061-map.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/erase/1.cc:  Likewise.
+	* testsuite/23_containers/unordered_multimap/erase/24061-map.cc:
+	Likewise.
+	* testsuite/23_containers/unordered_multiset/erase/1.cc:  Likewise.
+	* testsuite/23_containers/unordered_multiset/erase/24061-map.cc:
+	Likewise.
+
+2010-03-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/util/testsuite_container_traits.h (traits_base): Add
+	has_throwing_erase trait.
+	(traits<vector>, traits<deque>): Typedef the latter to true_type.
+	* testsuite/util/exception/safety.h (generation_prohibited):
+	Do not test vector::erase and deque::erase: can throw if
+	either copy constructor or assignment operator of value_type
+	throws.
+	* testsuite/23_containers/vector/requirements/exception/
+	generation_prohibited.cc: Remove xfail.
+	* testsuite/23_containers/deque/requirements/exception/
+	generation_prohibited.cc: Likewise.
+
+	* include/ext/throw_allocator.h (hash<__gnu_cxx::throw_value_limit>::
+	operator(), hash<__gnu_cxx::throw_value_random>::operator()): Pass
+	argument by const ref.
+
+	* testsuite/util/testsuite_container_traits.h (traits<map>,
+	traits<multimap>, traits<set>, traits<multiset>,
+	traits<unordered_map>, traits<unordered_multimap>,
+	traits<unordered_set>, traits<unordered_multiset>): Typedef
+	consistently has_erase and has_insert as true_type.
+
+	* testsuite/util/testsuite_container_traits.h
+	(traits<unordered_map>, traits<unordered_multimap>,
+	traits<unordered_set>, traits<unordered_multiset>): Do not wrongly
+	typedef has_size_type_constructor as true_type: the constructor
+	accepting a size_type actually gets the initial number of
+	buckets.
+
+2010-03-03  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/Makefile.am: Re-organize xml sources.
+	(doc-latex-doxygen): New.
+	(doc-pdf-doxygen): New.
+	(stamp-xml-doxygen, stamp-latex-doxygen): New.
+	* doc/Makefile.in: Regenerate.
+	* doc/doxygen/user.cfg.in: Add support here.
+	* doc/xml/manual/appendix_contributing.xml: Add specifics.
+
+	* doc/xml/manual/concurrency.xml: New.
+	* doc/xml/manual/atomics.xml: New.
+	* doc/xml/manual/spine.xml: Adjust.
+	* doc/xml/manual/diagnostics.xml: Adjust.
+
+2010-03-03  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/unique_ptr.h (unique_ptr<>::get_deleter): Simplify
+	return type.
+	* testsuite/20_util/unique_ptr/modifiers/reset_neg.cc: Adjust
+	dg-error line number.
+	* testsuite/20_util/unique_ptr/assign/assign_neg.cc: Likewise.
+
+2010-03-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/bitset (hash): Minor tweaks.
+	* include/debug/vector (hash): Likewise.
+	* include/profile/bitset (hash): Likewise.
+	* include/profile/vector (hash): Likewise.
+
+2010-03-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/functional_hash.h (_Fnv_hash_base<>::hash): Change
+	to template.
+	* include/tr1/functional_hash.h (_Fnv_hash_base<>::hash): Likewise.
+	* include/bits/vector.tcc (hash): Adjust.
+	* include/bits/basic_string.h (hash): Likewise.
+	* include/std/bitset (hash): Likewise.
+	* src/hash-string-aux.cc (hash): Likewise.
+
+2010-03-02  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/mutex (lock_guard::lock_guard): Do not lock mutex when
+	adopt_lock_t constructor is used.
+	* testsuite/30_threads/lock_guard/cons/1.cc: New.
+
+2010-03-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_bvector.h (hash<vector<bool, _Alloc>>::
+	operator()(const vector<bool, _Alloc>&)): Move definition...
+	* include/bits/vector.tcc: ... here.
+
+2010-03-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* testsuite/Makefile.am (check-DEJAGNU): Include de* in normal0
+	dirs.
+	* testsuite/Makefile.in: Regenerate.
+
+2010-03-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_bvector.h (hash<vector<bool, _Alloc>>): Add.
+	* include/debug/vector (hash<__debug::vector<bool, _Alloc>>):
+	Likewise.
+	* include/profile/vector (hash<__profile::vector<bool, _Alloc>>):
+	Likewise.
+	* testsuite/23_containers/vector/bool/hash/1.cc: New.
+
+	* include/std/bitset (hash<bitset<_Nb>>): Small tweaks.
+	(hash<bitset<0>>): Add.
+	* include/debug/bitset (hash<__debug::bitset<_Nb>>): Forward to
+	hash<bitset<_Nb>>.
+	* include/profile/bitset (hash<__profile::bitset<_Nb>>): Likewise.
+	* testsuite/23_containers/bitset/hash/1.cc: Improve.
+
+2010-03-02  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/43230
+	* testsuite/30_threads/promise/members/set_value3.cc
+	(tester::~tester): Remove.
+
+2010-03-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/bitset (_Base_bitset<>::_M_getdata()): Add.
+	(hash<bitset<_Nb>>): Add, use the latter.
+	* include/debug/bitset (hash<__debug::bitset<_Nb>>): Add.
+	* include/profile/bitset (hash<__profile::bitset<_Nb>>): Likewise.
+	* testsuite/23_containers/bitset/hash/1.cc: New.
+
+2010-03-02  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/43183
+	* include/bits/unique_ptr.h (reset): Fix as per working paper.
+	(operator*, operator->, operator[], operator bool, release): Use
+	pointer's null value instead of 0.
+	* testsuite/20_util/unique_ptr/assign/assign_neg.cc: Adjust.
+	* testsuite/20_util/unique_ptr/modifiers/reset_neg.cc: Adjust.
+	* testsuite/20_util/unique_ptr/modifiers/43183.cc: New.
+
+2010-03-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/iomanip (get_money, put_money): Add in C++0x mode; tidy.
+	* testsuite/27_io/manipulators/extended/get_money/char/1.cc: New.
+	* testsuite/27_io/manipulators/extended/get_money/wchar_t/1.cc:
+	Likewise.
+	* testsuite/27_io/manipulators/extended/put_money/char/1.cc: Likewise.
+	* testsuite/27_io/manipulators/extended/put_money/wchar_t/1.cc:
+	Likewise.
+
+2010-03-01  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/atomicfwd_cxx.h: Add typedefs to group.
+
+2010-03-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libstdc++/32499
+	* testsuite/Makefile.am (check-DEJAGNU
+	$(check_DEJAGNU_normal_targets)): Export AR, RANLIB.
+	* testsuite/Makefile.in: Regenerate.
+
+2010-02-28  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/html/ext/pb_ds/references.html: Adjust link to SGI's STL
+	site.
+
+2010-02-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+       * src/hash-long-double-aux.cc (hash<long double>::
+       operator()(long double)): Hash both -0 and +0 to 0.
+
+2010-02-25  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/bits/random.tcc (operator<<): Use max_digits10.
+
+2010-02-25  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/std/limits (__numeric_limits_base::max_digits10,
+	numeric_limits<>::max_digits10, numeric_limits<>::lowest): Add.
+	* src/limits.cc: Define max_digits10.
+	* config/abi/pre/gnu.ver: Adjust.
+	* testsuite/18_support/numeric_limits/dr559.cc: Test max_digits10
+	and lowest too.
+	* testsuite/18_support/numeric_limits/lowest.cc: New.
+	* testsuite/18_support/numeric_limits/max_digits10.cc: New.
+
+2010-02-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/functional_hash.h (__hash_combine): Remove.
+	(_Fnv_hash_base<>::hash(const char*, size_t)): Add defaulted
+	hash parameter.
+	(_Fnv_hash::__hash_combine(const _Tp&, size_t)): Add.
+	* include/std/system_error (hash<system_error>): Adjust.
+	* src/compatibility-c++0x.cc (hash<system_error>): Likewise.
+
+2010-02-24  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/faq.xml: Adjust structure for pdf index.
+	* doc/xml/manual/mt_allocator.xml: Same.
+	* doc/xml/manual/allocator.xml: Same.
+	* doc/xml/manual/ctype.xml: Same.
+	* doc/xml/manual/numerics.xml: Same.
+	* doc/xml/manual/codecvt.xml: Same.
+	* doc/xml/manual/intro.xml: Same.
+	* doc/xml/manual/shared_ptr.xml: Same.
+	* doc/xml/manual/status_cxxtr1.xml: Same.
+	* doc/xml/manual/auto_ptr.xml: Same.
+	* doc/xml/manual/internals.xml: Same.
+	* doc/xml/manual/status_cxx1998.xml: Same.
+	* doc/xml/manual/parallel_mode.xml: Same.
+	* doc/xml/manual/profile_mode.xml: Same.
+	* doc/xml/manual/containers.xml: Same.
+	* doc/xml/manual/io.xml: Same.
+	* doc/xml/manual/concurrency_extensions.xml: Same.
+	* doc/xml/manual/appendix_porting.xml: Same.
+	* doc/xml/manual/utilities.xml: Same.
+	* doc/xml/manual/support.xml: Same.
+	* doc/xml/manual/bitmap_allocator.xml: Same.
+	* doc/xml/manual/configure.xml: Same.
+	* doc/xml/manual/build_hacking.xml: Same.
+	* doc/xml/manual/evolution.xml: Same.
+	* doc/xml/manual/using.xml: Same.
+	* doc/xml/manual/debug.xml: Same.
+	* doc/xml/manual/localization.xml: Same.
+	* doc/xml/manual/strings.xml: Same.
+	* doc/xml/manual/debug_mode.xml: Same.
+	* doc/xml/manual/locale.xml: Same.
+	* doc/xml/manual/extensions.xml: Same.
+	* doc/xml/manual/appendix_contributing.xml: Same.
+	* doc/xml/manual/prerequisites.xml: Same.
+	* doc/xml/manual/messages.xml: Same.
+	* doc/xml/manual/diagnostics.xml: Same.
+	* doc/xml/manual/algorithms.xml: Same.
+	* doc/xml/manual/appendix_free.xml: Same.
+	* doc/xml/manual/iterators.xml: Same.
+	* doc/xml/manual/spine.xml: Same.
+	* doc/xml/manual/status_cxxtr24733.xml: Same.
+	* doc/xml/manual/status_cxx200x.xml: Same.
+	* doc/Makefile.am: Refactor.
+	* doc/Makefile.in: Regenerate.
+
+	* include/bits/c++0x_warning.h: Tweak doxygen file markup.
+
+2010-02-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* testsuite/ext/new_allocator/deallocate_global.cc: Require
+	__cxa_atexit.
+	* testsuite/ext/throw_allocator/deallocate_global.cc: Likewise.
+
+2010-02-23  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/concurrency.xml: Move...
+	* doc/xml/manual/concurrency_extensions.xml: ...here.
+	* doc/xml/manual/extensions.xml: Adjust.
+	* doc/Makefile.am: Adjust.
+	* doc/Makefile.in: Regenerate.
+
+2010-02-23  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/random.h: Doxygen group markup fixes.
+
+2010-02-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/functional_hash.h (struct _Fnv_hash): Rename
+	to _Fnv_hash_base.
+	(struct _Fnv_hash): Add, derives from the latter.
+	(__hash_combine): Add.
+	(hash<float>::operator()(float), hash<double>::operator()(double)):
+	Adjust.
+	* include/bits/basic_string.h (hash<string>, hash<wstring>,
+	hash<u16string>, hash<u32string>): Adjust.
+	* src/hash-string-aux.cc: Adjust.
+	* src/compatibility-c++0x.cc (hash<error_code>): Use __hash_combine.
+	* include/std/system_error (hash<error_code>): Likewise.
+	* include/std/thread (struct hash<thread::id>): Add.
+	* include/tr1/functional_hash.h : Rename to _Fnv_hash_base.
+	(struct _Fnv_hash): Add, derives from the latter.
+	(hash<float>::operator()(float), hash<double>::operator()(double)):
+	Adjust.
+	* testsuite/30_threads/thread/id/hash.cc: New.
+	* testsuite/30_threads/thread/cons/assign_neg.cc: Adjust dg-error
+	line number.
+	* testsuite/30_threads/thread/cons/copy_neg.cc: Likewise.
+
+2010-02-22  Janis Johnson  <janis187@us.ibm.com>
+
+	* src/compatibility-ldbl.cc: Include new hash-long-double-aux.cc.
+
+2010-02-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/hash-aux.cc: Rename to...
+	* src/hash-string-aux.cc: ... this.
+	* src/hash-long-double-aux.cc: New.
+	* src/hash_c++0x.cc: Adjust.
+	* src/hash_tr1.cc: Likewise.
+	* src/compatibility-c++0x.cc: Likewise.
+
+2010-02-22  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/class.txml: Adjust biblio markup.
+	* doc/xml/manual/allocator.xml: Same.
+	* doc/xml/manual/ctype.xml: Same.
+	* doc/xml/manual/codecvt.xml: Same.
+	* doc/xml/manual/backwards_compatibility.xml: Same.
+	* doc/xml/manual/abi.xml: Same.
+	* doc/xml/manual/shared_ptr.xml: Same.
+	* doc/xml/manual/profile_mode.xml: Same.
+	* doc/xml/manual/using_exceptions.xml: Same.
+	* doc/xml/manual/locale.xml: Same.
+	* doc/xml/manual/appendix_contributing.xml: Same.
+	* doc/xml/manual/messages.xml: Same.
+	* doc/Makefile.am (DBLATEX_FLAGS): Adjust.
+	* doc/Makefile.in: Regenerate.
+
+2010-02-22  François Dumont  <francois.cppdevs@free.fr>
+
+       * doc/xml/manual/profile_mode.xml: Minor updates and fixes.
+       * doc/xml/manual/debug_mode.xml: Likewise.
+       * doc/xml/manual/test.xml: Likewise.
+
+2010-02-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/complex (arg): Use std::signbit only when
+	available.
+
+2010-02-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/functional_hash.h (hash<string>, hash<wstring>,
+	hash<u16string>, hash<u32string>, hash<error_code>): Move, per
+	DR 1182 to...
+	* include/bits/basic_string.h: ... here.
+	* include/std/system_error: ... and here, respectively.
+	* src/hash-aux.cc (hash<long double>::operator()(long double)):
+	Move definition...
+	* src/hash_c++0x.cc: ... here, new file.
+	* src/hash_tr1.cc: ... and here, tweak includes.
+	* src/compatibility-c++0x.cc (hash, _Fnv_hash): Remove.
+	* src/Makefile.am: Adjust.
+	* src/Makefile.in: Regenerate.
+	* include/std/functional: Include <bits/functexcept.h>.
+	* include/std/unordered_set: Remove redundant include.
+	* include/std/unordered_map: Likewise.
+	* include/tr1/functional_hash.h: Remove spurious trailing semicolon.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Remove
+	dg-excess.
+
+2010-02-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/complex (proj): Change return type per DR 1137.
+	(conj): Copy from tr1_impl, likewise adjust return type.
+	* include/tr1_impl/complex (conj): Remove.
+	* include/tr1/complex (conj): Add both overloads.
+	* testsuite/26_numerics/complex/dr781.cc: Rename to...
+	* testsuite/26_numerics/complex/dr781_dr1137.cc: ... this, and extend.
+
+	* include/tr1_impl/complex (arg): Optimize.
+
+2010-02-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/20_util/is_trivial/requirements/typedefs.cc: New.
+	* testsuite/20_util/is_trivial/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_pod/value.cc: Likewise.
+	* testsuite/20_util/is_pod/requirements/typedefs.cc: Likewise.
+	* testsuite/20_util/is_pod/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_standard_layout/requiremenents/
+	typedefs.cc: Likewise.
+	* testsuite/20_util/is_standard_layout/requiremenents/
+	explicit_instantiation.cc: Likewise.
+
+2010-02-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/35669
+	* testsuite/18_support/headers/cstddef/macros.cc: Add
+	-Wno-conversion-null.
+
+2010-02-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/array (array): Add pointer and const_pointer
+	typedefs in C++0x mode, per DR 1306.
+	* testsuite/util/testsuite_containers.h (basic_types): Add pointer
+	and const_pointer typedefs.
+	(pointer_aware_types): Remove.
+	* testsuite/util/testsuite_container_traits.h: Adjust.
+
+2010-02-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_algo.h (for_each): Implement resolution of DR 1110.
+	* testsuite/25_algorithms/for_each/1.cc: New.
+
+2010-02-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/shared_ptr_base.h (__weak_ptr): Remove deleted
+	comparison operators, per DR 1256.
+	* include/bits/shared_ptr.h (weak_ptr): Likewise.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust.
+
+2010-02-18  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* scripts/run_doxygen: Add shortnames option.
+	* doc/Makefile.am (doc-man-doxygen): Use it.
+	(doc-html-doxygen): Use it.
+	(doc-xml-doxygen): Use it, but default to NO.
+	(doc-pdf-dblatex): Add.
+	* doc/Makefile.in: Regenerate.
+	* doc/doxygen/user.cfg.in: Update filelist.
+	* include/bits/locale_facets.h: Fix markup warning.
+
+2010-02-18  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/using.xml: Update.
+	* doc/xml/manual/status_cxx1998.xml: Same.
+	* doc/xml/manual/status_cxx200x.xml: Add link.
+	* doc/html/*: Regenerate.
+
+	* testsuite/17_intro/freestanding.cc: Add.
+
+2010-02-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* libsupc++/typeinfo: Add system_header pragma.
+	* libsupc++/exception: Likewise.
+	* libsupc++/cxxabi-forced.h: Likewise.
+	* libsupc++/new: Likewise.
+	* libsupc++/cxxabi.h: Likewise.
+	* libsupc++/initializer_list: Likewise.
+
+2010-02-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* libsupc++/nested_exception.h: Fix <bits/c++0x_warning.h> include.
+
+2010-02-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/appendix_contributing.xml: Update markup rules
+	for quoting and functions.
+
+2010-02-17  Chris Jefferson  <chris@bubblescope.net>
+
+	* include/bits/locale_facets.h (__convert_to_v): Add empty
+	exception-specification.
+
+2010-02-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/limits: Implement resolution of DR 559 (CD1) in
+	C++0x mode.
+	* testsuite/18_support/numeric_limits/dr559.cc: New.
+
+2010-02-16  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/ios_locale.cc: Fixes for -pedantic.
+	* src/system_error.cc: Same.
+	* src/locale.cc: Same.
+	* src/list.cc: Same.
+	* src/locale_facets.cc: Same.
+	* src/locale_init.cc: Same.
+	* src/ios.cc: Same.
+	* config/locale/darwin/ctype_members.cc: Same.
+	* config/locale/gnu/collate_members.cc: Same.
+	* config/locale/gnu/ctype_members.cc: Same.
+	* config/locale/gnu/c_locale.cc: Same.
+	* config/locale/gnu/monetary_members.cc: Same.
+	* config/locale/gnu/time_members.cc: Same.
+	* config/locale/ieee_1003.1-2001/c_locale.cc: Same.
+	* config/locale/generic/collate_members.cc: Same.
+	* config/locale/generic/ctype_members.cc: Same.
+	* config/locale/generic/c_locale.cc: Same.
+	* config/locale/generic/monetary_members.cc: Same.
+	* config/locale/generic/time_members.cc: Same.
+	* config/io/basic_file_stdio.cc: Same.
+
+	* libsupc++/pbase_type_info.cc: Fixes for -fno-rtti.
+	* libsupc++/pointer_type_info.cc: Same.
+	* libsupc++/eh_personality.cc: Same.
+
+	* include/std/system_error: Throw spacing.
+	* include/bits/locale_classes.h: Same.
+	* include/bits/locale_facets.h: Same.
+	* include/bits/ios_base.h: Same.
+
+	* testsuite/17_intro/headers/c++200x/all_no_rtti.cc: New.
+	* testsuite/17_intro/headers/c++1998/all_no_rtti.cc: New.
+
+2010-02-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.h (linear_congruential_engine(_Sseq&),
+	mersenne_twister_engine(_Sseq&), subtract_with_carry_engine(_Sseq&)):
+	Do not enable for the type itself.
+	(discard_block_engine(_Sseq&), independent_bits_engine(_Sseq&),
+	shuffle_order_engine(_Sseq&)): Do not enable for the type itself too.
+	(linear_congruential_engine<>::seed(_Sseq&),
+	mersenne_twister_engine<>::seed(_Sseq&),
+	subtract_with_carry_engine<>::seed(_Sseq&)): Use enable_if on the
+	return type.
+	(discard_block_engine<>::seed(_Sseq&),
+	independent_bits_engine<>::seed(_Sseq&),
+	shuffle_order_engine<>::seed(_Sseq&)): Do not use enable_if.
+	* include/bits/random.tcc: Adjust definitions.
+	* testsuite/26_numerics/random/independent_bits_engine/cons/copy.cc:
+	New.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/cons/
+	copy.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/
+	copy.cc: Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/cons/
+	copy.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/cons/
+	copy.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/
+	copy.cc: Likewise.
+
+	* testsuite/26_numerics/random/independent_bits_engine/cons/
+	base_move.cc: Minor tweaks.
+	* testsuite/26_numerics/random/independent_bits_engine/cons/seed1.cc:
+	Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/cons/seed2.cc:
+	Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/cons/
+	base_copy.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/cons/
+	default.cc: Likewise.
+	* testsuite/26_numerics/random/independent_bits_engine/cons/
+	seed_seq.cc: Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/cons/
+	seed1.cc: Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/cons/
+	seed2.cc: Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/cons/
+	default.cc: Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/cons/
+	seed_seq.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/base_move.cc:
+	Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/seed1.cc:
+	Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/seed2.cc:
+	Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/base_copy.cc:
+	Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/default.cc:
+	Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/seed_seq.cc:
+	Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/cons/seed1.cc:
+	Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/cons/seed2.cc:
+	Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/cons/
+	default.cc: Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/cons/
+	seed_seq.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/cons/
+	seed1.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/cons/
+	seed2.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/cons/
+	seed_seq.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/base_move.cc:
+	Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/seed1.cc:
+	Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/seed2.cc:
+	Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/base_copy.cc:
+	Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/default.cc:
+	Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/seed_seq.cc:
+	Likewise.
+
+2010-02-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/unique_ptr.h: (unique_ptr<>::
+	unique_ptr(const unique_ptr<_Up, _Up_Deleter>&),
+	operator=(const unique_ptr<_Up, _Up_Deleter>&)): Remove, redundant,
+	per DR 1303.
+	* include/bits/shared_ptr.h (shared_ptr<>::
+	shared_ptr(const unique_ptr<_Up, _Up_Deleter>&),
+	operator=(const unique_ptr<_Up, _Up_Deleter>&)): Likewise.
+	* include/bits/shared_ptr_base.h (__shared_ptr<>::
+	__shared_ptr(const unique_ptr<_Up, _Up_Deleter>&),
+	operator=(const unique_ptr<_Up, _Up_Deleter>&)): Likewise.
+	* testsuite/20_util/unique_ptr/modifiers/reset_neg.cc: Adjust.
+	* testsuite/20_util/unique_ptr/assign/assign_neg.cc: Likewise.
+	* testsuite/20_util/shared_ptr/cons/unique_ptr_neg.cc: Likewise.
+	* testsuite/20_util/shared_ptr/assign/unique_ptr_lvalue_neg.cc:
+	Likewise.
+
 2010-02-15  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* testsuite/ext/median.cc: Adjust.

@@ -52,6 +52,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "params.h"
 #include "df.h"
+#include "dwarf2out.h"
 
 /* Processor costs */
 static const
@@ -362,16 +363,13 @@ static rtx sparc_builtin_saveregs (void);
 static int epilogue_renumber (rtx *, int);
 static bool sparc_assemble_integer (rtx, unsigned int, int);
 static int set_extends (rtx);
-static void emit_pic_helper (void);
-static void load_pic_register (bool);
+static void load_pic_register (void);
 static int save_or_restore_regs (int, int, rtx, int, int);
 static void emit_save_or_restore_regs (int);
 static void sparc_asm_function_prologue (FILE *, HOST_WIDE_INT);
 static void sparc_asm_function_epilogue (FILE *, HOST_WIDE_INT);
-#if defined (OBJECT_FORMAT_ELF) && !HAVE_GNU_AS
-static void sparc_elf_asm_named_section (const char *, unsigned int, tree);
-#endif
-
+static void sparc_solaris_elf_asm_named_section (const char *, unsigned int,
+						 tree) ATTRIBUTE_UNUSED;
 static int sparc_adjust_cost (rtx, rtx, rtx, int);
 static int sparc_issue_rate (void);
 static void sparc_sched_init (FILE *, int, int);
@@ -463,14 +461,9 @@ static bool fpu_option_set = false;
 
 /* Initialize the GCC target structure.  */
 
-/* The sparc default is to use .half rather than .short for aligned
-   HI objects.  Use .word instead of .long on non-ELF systems.  */
+/* The default is to use .half rather than .short for aligned HI objects.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.half\t"
-#ifndef OBJECT_FORMAT_ELF
-#undef TARGET_ASM_ALIGNED_SI_OP
-#define TARGET_ASM_ALIGNED_SI_OP "\t.word\t"
-#endif
 
 #undef TARGET_ASM_UNALIGNED_HI_OP
 #define TARGET_ASM_UNALIGNED_HI_OP "\t.uahalf\t"
@@ -2915,9 +2908,8 @@ sparc_cannot_force_const_mem (rtx x)
 }
 
 /* PIC support.  */
-static GTY(()) char pic_helper_symbol_name[256];
+static GTY(()) bool pic_helper_needed = false;
 static GTY(()) rtx pic_helper_symbol;
-static GTY(()) bool pic_helper_emitted_p = false;
 static GTY(()) rtx global_offset_table;
 
 /* Ensure that we are not using patterns that are not OK with PIC.  */
@@ -3373,6 +3365,8 @@ legitimize_tls_address (rtx addr)
 static rtx
 legitimize_pic_address (rtx orig, rtx reg)
 {
+  bool gotdata_op = false;
+
   if (GET_CODE (orig) == SYMBOL_REF
       /* See the comment in sparc_expand_move.  */
       || (TARGET_VXWORKS_RTP && GET_CODE (orig) == LABEL_REF))
@@ -3409,15 +3403,28 @@ legitimize_pic_address (rtx orig, rtx reg)
 	      emit_insn (gen_movsi_lo_sum_pic (temp_reg, temp_reg, orig));
 	    }
 	  address = temp_reg;
+	  gotdata_op = true;
 	}
       else
 	address = orig;
 
-      pic_ref = gen_const_mem (Pmode,
-			       gen_rtx_PLUS (Pmode,
-					     pic_offset_table_rtx, address));
       crtl->uses_pic_offset_table = 1;
-      insn = emit_move_insn (reg, pic_ref);
+      if (gotdata_op)
+	{
+	  if (TARGET_ARCH64)
+	    insn = emit_insn (gen_movdi_pic_gotdata_op (reg, pic_offset_table_rtx,
+							address, orig));
+	  else
+	    insn = emit_insn (gen_movsi_pic_gotdata_op (reg, pic_offset_table_rtx,
+							address, orig));
+	}
+      else
+	{
+	  pic_ref = gen_const_mem (Pmode,
+				   gen_rtx_PLUS (Pmode,
+						 pic_offset_table_rtx, address));
+	  insn = emit_move_insn (reg, pic_ref);
+	}
       /* Put a REG_EQUAL note on this insn, so that it can be optimized
 	 by loop.  */
       set_unique_reg_note (insn, REG_EQUAL, orig);
@@ -3513,34 +3520,31 @@ sparc_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
   return x;
 }
 
-/* Emit the special PIC helper function.  */
+#ifdef HAVE_GAS_HIDDEN
+# define USE_HIDDEN_LINKONCE 1
+#else
+# define USE_HIDDEN_LINKONCE 0
+#endif
 
 static void
-emit_pic_helper (void)
+get_pc_thunk_name (char name[32], unsigned int regno)
 {
-  const char *pic_name = reg_names[REGNO (pic_offset_table_rtx)];
-  int align;
+  const char *pic_name = reg_names[regno];
 
-  switch_to_section (text_section);
+  /* Skip the leading '%' as that cannot be used in a
+     symbol name.  */
+  pic_name += 1;
 
-  align = floor_log2 (FUNCTION_BOUNDARY / BITS_PER_UNIT);
-  if (align > 0)
-    ASM_OUTPUT_ALIGN (asm_out_file, align);
-  ASM_OUTPUT_LABEL (asm_out_file, pic_helper_symbol_name);
-  if (flag_delayed_branch)
-    fprintf (asm_out_file, "\tjmp\t%%o7+8\n\t add\t%%o7, %s, %s\n",
-	    pic_name, pic_name);
+  if (USE_HIDDEN_LINKONCE)
+    sprintf (name, "__sparc_get_pc_thunk.%s", pic_name);
   else
-    fprintf (asm_out_file, "\tadd\t%%o7, %s, %s\n\tjmp\t%%o7+8\n\t nop\n",
-	    pic_name, pic_name);
-
-  pic_helper_emitted_p = true;
+    ASM_GENERATE_INTERNAL_LABEL (name, "LADDPC", regno);
 }
 
 /* Emit code to load the PIC register.  */
 
 static void
-load_pic_register (bool delay_pic_helper)
+load_pic_register (void)
 {
   int orig_flag_pic = flag_pic;
 
@@ -3552,17 +3556,17 @@ load_pic_register (bool delay_pic_helper)
     }
 
   /* If we haven't initialized the special PIC symbols, do so now.  */
-  if (!pic_helper_symbol_name[0])
+  if (!pic_helper_needed)
     {
-      ASM_GENERATE_INTERNAL_LABEL (pic_helper_symbol_name, "LADDPC", 0);
-      pic_helper_symbol = gen_rtx_SYMBOL_REF (Pmode, pic_helper_symbol_name);
+      char name[32];
+
+      pic_helper_needed = true;
+
+      get_pc_thunk_name (name, REGNO (pic_offset_table_rtx));
+      pic_helper_symbol = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (name));
+
       global_offset_table = gen_rtx_SYMBOL_REF (Pmode, "_GLOBAL_OFFSET_TABLE_");
     }
-
-  /* If we haven't emitted the special PIC helper function, do so now unless
-     we are requested to delay it.  */
-  if (!delay_pic_helper && !pic_helper_emitted_p)
-    emit_pic_helper ();
 
   flag_pic = 0;
   if (TARGET_ARCH64)
@@ -4213,7 +4217,7 @@ sparc_expand_prologue (void)
 
   /* Load the PIC register if needed.  */
   if (flag_pic && crtl->uses_pic_offset_table)
-    load_pic_register (false);
+    load_pic_register ();
 }
 
 /* This function generates the assembly code for function entry, which boils
@@ -7986,10 +7990,11 @@ sparc_profile_hook (int labelno)
     }
 }
 
-#if defined (OBJECT_FORMAT_ELF) && !HAVE_GNU_AS
+/* Solaris implementation of TARGET_ASM_NAMED_SECTION.  */
+
 static void
-sparc_elf_asm_named_section (const char *name, unsigned int flags,
-			     tree decl ATTRIBUTE_UNUSED)
+sparc_solaris_elf_asm_named_section (const char *name, unsigned int flags,
+				     tree decl ATTRIBUTE_UNUSED)
 {
   fprintf (asm_out_file, "\t.section\t\"%s\"", name);
 
@@ -8006,7 +8011,6 @@ sparc_elf_asm_named_section (const char *name, unsigned int flags,
 
   fputc ('\n', asm_out_file);
 }
-#endif /* OBJECT_FORMAT_ELF */
 
 /* We do not allow indirect calls to be optimized into sibling calls.
 
@@ -8874,7 +8878,7 @@ sparc_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 	  start_sequence ();
 	  /* Delay emitting the PIC helper function because it needs to
 	     change the section and we are emitting assembly code.  */
-	  load_pic_register (true);  /* clobbers %o7 */
+	  load_pic_register ();  /* clobbers %o7 */
 	  scratch = legitimize_pic_address (funexp, scratch);
 	  seq = get_insns ();
 	  end_sequence ();
@@ -9029,9 +9033,59 @@ sparc_output_dwarf_dtprel (FILE *file, int size, rtx x)
 static void
 sparc_file_end (void)
 {
-  /* If we haven't emitted the special PIC helper function, do so now.  */
-  if (pic_helper_symbol_name[0] && !pic_helper_emitted_p)
-    emit_pic_helper ();
+  /* If need to emit the special PIC helper function, do so now.  */
+  if (pic_helper_needed)
+    {
+      unsigned int regno = REGNO (pic_offset_table_rtx);
+      const char *pic_name = reg_names[regno];
+      char name[32];
+#ifdef DWARF2_UNWIND_INFO
+      bool do_cfi;
+#endif
+
+      get_pc_thunk_name (name, regno);
+      if (USE_HIDDEN_LINKONCE)
+	{
+	  tree decl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL,
+				  get_identifier (name),
+				  build_function_type (void_type_node,
+						       void_list_node));
+	  DECL_RESULT (decl) = build_decl (BUILTINS_LOCATION, RESULT_DECL,
+					   NULL_TREE, void_type_node);
+	  TREE_STATIC (decl) = 1;
+	  make_decl_one_only (decl, DECL_ASSEMBLER_NAME (decl));
+	  DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
+	  DECL_VISIBILITY_SPECIFIED (decl) = 1;
+	  allocate_struct_function (decl, true);
+	  current_function_decl = decl;
+	  init_varasm_status ();
+	  assemble_start_function (decl, name);
+	}
+      else
+	{
+	  const int align = floor_log2 (FUNCTION_BOUNDARY / BITS_PER_UNIT);
+          switch_to_section (text_section);
+	  if (align > 0)
+	    ASM_OUTPUT_ALIGN (asm_out_file, align);
+	  ASM_OUTPUT_LABEL (asm_out_file, name);
+	}
+
+#ifdef DWARF2_UNWIND_INFO
+      do_cfi = dwarf2out_do_cfi_asm ();
+      if (do_cfi)
+	fprintf (asm_out_file, "\t.cfi_startproc\n");
+#endif
+      if (flag_delayed_branch)
+	fprintf (asm_out_file, "\tjmp\t%%o7+8\n\t add\t%%o7, %s, %s\n",
+		 pic_name, pic_name);
+      else
+	fprintf (asm_out_file, "\tadd\t%%o7, %s, %s\n\tjmp\t%%o7+8\n\t nop\n",
+		 pic_name, pic_name);
+#ifdef DWARF2_UNWIND_INFO
+      if (do_cfi)
+	fprintf (asm_out_file, "\t.cfi_endproc\n");
+#endif
+    }
 
   if (NEED_INDICATE_EXEC_STACK)
     file_end_indicate_exec_stack ();

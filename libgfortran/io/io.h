@@ -331,7 +331,7 @@ typedef struct
   CHARACTER2 (round);
   CHARACTER1 (sign);
   GFC_INTEGER_4 *pending;
-  GFC_INTEGER_4 *size;
+  GFC_IO_INT *size;
   GFC_INTEGER_4 *id;
 }
 st_parameter_inquire;
@@ -641,9 +641,6 @@ internal_proto(type_name);
 
 extern void * read_block_form (st_parameter_dt *, int *);
 internal_proto(read_block_form);
-
-extern char *read_sf (st_parameter_dt *, int *, int);
-internal_proto(read_sf);
 
 extern void *write_block (st_parameter_dt *, int);
 internal_proto(write_block);
