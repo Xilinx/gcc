@@ -1,3 +1,157 @@
+2010-03-20  Simon Martin  <simartin@users.sourceforge.net>
+	    Michael Matz  <matz@suse.de>
+
+	PR c++/43081
+	* g++.dg/parse/crash56.C: New test.
+
+2010-03-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/43450
+	* gfortran.dg/whole_file_15.f90 : New test.
+
+2010-03-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/43409
+	* gfortran.dg/inquire_size.f90: New test.
+
+2010-03-20  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/43438
+	* gcc.c-torture/execute/pr43438.c: New testcase.
+
+2010-03-20  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/43375
+	* g++.dg/abi/mangle42.C: New test.
+
+2010-03-19  Andrew Pinski  <andrew_pinski@caviumnetworks.com>
+
+	PR C/43211
+	* gcc.dg/pr43211.c: New test.
+	* gcc.dg/pr18809-1.c: Don't expect an error when calling foo.
+
+2010-03-19  Bernd Schmidt  <bernd.schmidt@codesourcery.com>
+
+	PR rtl-optimization/42258
+	* gcc.target/arm/thumb1-mul-moves.c: New test.
+
+	PR target/40697
+	* gcc.target/arm/thumb-andsi.c: New test.
+
+	* gcc.target/arm/thumb-andsi.c: Correct dg-options and add
+	dg-require-effective-target.
+
+2010-03-19  Michael Matz  <matz@suse.de>
+
+	PR c++/43116
+	* g++.dg/other/pr43116.C: New testcase.
+
+2010-03-19  Michael Matz  <matz@suse.de>
+
+	PR target/43305
+	* gcc.dg/pr43305.c: New testcase.
+
+2010-03-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43415
+	* gcc.c-torture/compile/pr43415.c: New testcase.
+
+2010-03-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/43106
+	* gnat.dg/case_optimization2.adb: New test.
+	* gnat.dg/case_optimization_pkg2.ad[sb]: New helper.
+
+2010-03-18  Francois-Xavier Coudert <fxcoudert@gcc.gnu.org>
+	    Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR target/36399
+	* gcc.target/i386/push-1.c: Don't xfail
+	  scan-assembler-not "movups" on darwin.
+
+2010-03-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43058
+	* gcc.dg/pr43058.c: New test.
+
+2010-03-18  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/42450
+	* g++.dg/torture/pr42450.C: New test.
+
+2010-03-18  Michael Matz  <matz@suse.de>
+
+	PR middle-end/43419
+	* gcc.dg/pr43419.c: New testcase.
+
+2010-03-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/43360
+	* gcc.dg/torture/pr43360.c: New.
+
+2010-03-18  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/43402
+	* gcc.dg/pr43402.c: New testcase.
+
+2010-03-17  Peter Bergner  <bergner@vnet.ibm.com>
+
+	PR target/42427
+	* gcc.dg/pr42427.c: New test.
+
+2010-03-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43265
+	* gfortran.dg/read_empty_file.f: New test.
+	* gfortran.dg/read_eof_all.f90: New test.
+	* gfortran.dg/namelist_27.f90: Eliminate infinite loop posibility.
+	* gfortran.dg/namelist_28.f90: Eliminate infinite loop posibility.
+
+2010-03-17  Michael Matz  <matz@suse.de>
+
+	* gcc.dg/pr43300.c: Add -w.
+
+2010-03-17  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/pr43379.c: Add -w.
+
+2010-03-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43331
+	* gfortran.dg/cray_pointers_1.f90: Update dg-error message.
+
+2010-03-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/graphite/block-3.c: Add dg-timeout-factor.
+
+2010-03-16  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* ada/acats/run_all.sh: Log start and end times.
+
+2010-03-16  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gnat.dg/socket1.adb: Disable on *-*-solaris2*.
+
+2010-03-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43379
+	* gcc.dg/pr43379.c: New testcase.
+
+2010-03-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43051
+	* gcc.dg/guality/pr43051-1.c: New test.
+
+2010-03-15  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/43363
+	* g++.dg/ext/altivec-17.C: Handle changes to error message.
+
+2010-03-15  Michael Matz  <matz@suse.de>
+
+	PR middle-end/43300
+	* gcc.dg/pr43300.c: New testcase.
+
 2010-03-15  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/43367
@@ -235,6 +389,11 @@
 	(dg-xfail-if): Verify the number of arguments, supply defaults
 	for unspecified optional arguments.
 	(dg-skip-if, dg-xfail-run-if): Verify the number of arguments.
+
+2010-03-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/12909
+	* g++.dg/abi/mangle40.C: Updated.
 
 2010-03-03  Jason Merrill  <jason@redhat.com>
 

@@ -1851,12 +1851,13 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
      
       /* Non-assumed length character functions.  */
       if (sym->attr.function && sym->ts.type == BT_CHARACTER
-	  && gsym->ns->proc_name->ts.u.cl->length != NULL)
+	    && gsym->ns->proc_name->ts.u.cl != NULL
+	    && gsym->ns->proc_name->ts.u.cl->length != NULL)
 	{
 	  gfc_charlen *cl = sym->ts.u.cl;
 
 	  if (!sym->attr.entry_master && sym->attr.if_source == IFSRC_UNKNOWN
-              && cl && cl->length && cl->length->expr_type != EXPR_CONSTANT)
+                && cl && cl->length && cl->length->expr_type != EXPR_CONSTANT)
 	    {
               gfc_error ("Nonconstant character-length function '%s' at %L "
 			 "must have an explicit interface", sym->name,
@@ -11010,7 +11011,7 @@ resolve_symbol (gfc_symbol *sym)
      arguments.  */
 
   if (sym->as != NULL
-      && (sym->as->type == AS_ASSUMED_SIZE
+      && ((sym->as->type == AS_ASSUMED_SIZE && !sym->as->cp_was_assumed)
 	  || sym->as->type == AS_ASSUMED_SHAPE)
       && sym->attr.dummy == 0)
     {
