@@ -13,6 +13,7 @@ typedef struct cop
 extern const unsigned char PL_utf8skip[];
 extern char PL_dowarn;
 extern COP *volatile PL_curcop;
+char *
 S_find_byclass (regexp * prog, regnode * c, char *s, char *strend,
 		char *startpos, int norun)
 {

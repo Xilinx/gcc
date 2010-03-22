@@ -1,4 +1,16 @@
 2010-03-21  Sebastian Pop  <sebastian.pop@amd.com>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43464
+	* tree-ssa-copy.c (init_copy_prop): Loop closed phi nodes can
+	contain more than one argument.
+	(execute_copy_prop): Revert the previous change: do not call
+	rewrite_into_loop_closed_ssa.
+
+	* gcc.dg/graphite/id-pr43464.c: Remove compile warning.
+	* gcc.dg/graphite/id-pr43464-1.c: New.
+
+2010-03-21  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR middle-end/43464
 	* tree-ssa-copy.c (execute_copy_prop): Call rewrite_into_loop_closed_ssa
