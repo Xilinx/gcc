@@ -1,3 +1,11 @@
+2010-03-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-ssa-copy.c: Revert this previous change:
+	(init_copy_prop): Loop closed phi nodes cancontain more than one
+	argument.
+	(execute_copy_prop): Revert the previous change: do not call
+	rewrite_into_loop_closed_ssa.
+
 2010-03-21  Sebastian Pop  <sebastian.pop@amd.com>
 	    Richard Guenther  <rguenther@suse.de>
 

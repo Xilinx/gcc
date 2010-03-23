@@ -797,6 +797,7 @@ init_copy_prop (void)
 	         PHI nodes.  Technically this is only needed for loop
 		 exit PHIs, but this is difficult to query.  */
 	      || (current_loops
+		  && gimple_phi_num_args (phi) == 1
 		  && loops_state_satisfies_p (LOOP_CLOSED_SSA)))
             prop_set_simulate_again (phi, false);
 	  else
@@ -968,11 +969,15 @@ execute_copy_prop (void)
   ssa_propagate (copy_prop_visit_stmt, copy_prop_visit_phi_node);
   fini_copy_prop ();
 
+  /* Copy prop does not maintain a proper loop closed SSA form:
+     recompute it when copy prop is called from the LNO.  */
+  if (current_loops)
+    {
+      rewrite_into_loop_closed_ssa (NULL, TODO_update_ssa);
 #ifdef ENABLE_CHECKING
-  if (current_loops
-      && loops_state_satisfies_p (LOOP_CLOSED_SSA))
-    verify_loop_closed_ssa ();
+      verify_loop_closed_ssa ();
 #endif
+    }
 
   return 0;
 }
