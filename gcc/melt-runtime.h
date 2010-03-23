@@ -1980,6 +1980,9 @@ melt_strbuf_usedlength(melt_ptr_t v)
   return 0;
 }
 
+/* return the length of an output, i.e. the used length of strbuf or
+   the current file position of a file */
+long melt_output_length (melt_ptr_t out_p);
 
 /* output an strbuf into a file */
 void melt_output_strbuf_to_file (melt_ptr_t sbuf, const char*filnam);

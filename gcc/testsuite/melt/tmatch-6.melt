@@ -32,9 +32,20 @@
 ;;  (match nob (?(instance class_named :named_name ?fnam)
 ;;            fnam)))
 
+(defun testor2inst (obt)
+  (match obt
+         (?(or
+           ?(instance class_class 
+                      :named_name ?name)
+           ?(instance class_keyword 
+                      :named_name ?name)
+           )
+         (return name))))
+
+#|
 (defun testnameof (obt)
   (match obt
-	 (?(as 
+	 (?(and
 	    ?tob
 	    ?(or
 	      ?(instance class_class :named_name ?name)
@@ -44,13 +55,12 @@
 	      ))
 	   (return name))))
 
-
 (debug_msg (testnameof class_discriminant) "name of class class_discriminant")
 ;(debug_msg (testnameof fld_ownclass) "name of field fld_ownclass")
 (debug_msg (testnameof :else) "name of keyword :else")
 (debug_msg (testnameof 'asymbol) "fail name of asymbol")
 
-#|
+
 (defun test_or (ob :long i)
   (match i
          ( ?(or ?(integer_multiple 3 ?jj)
@@ -63,7 +73,7 @@
 (debug_msg (test_or 'firstok 6) "test_or firstok")
 (debug_msg (test_or 'secondok 10) "test_or secondok")
 (debug_msg (test_or 'thirdfail 1) "test_or thirdfail")
-|#
+
 
 (compile_warning "ignoring rest of file")
 (comment
@@ -78,23 +88,23 @@
            (?(or
               ?(instance class_infix_symbol 
                          :loca_location ?fldloc
-#|
+
                          :lexeme_data  
-                         ?(as ?sy 
+                         ?(and ?sy 
                               ?(instance class_symbol 
                                          :named_name ?nm))
-|#
+
                          )
               ?(instance class_infix_keyword
                          :loca_location ?fldloc 
-#|
+
                          :lexeme_data
                          ?(instance class_keyword 
                                     :named_name ?nm)
-|#
+
                          ))
              (debug_msg fldloc "iparse_field fldloc")
-#|
+
              (if (null sy) (setq sy (create_symbolstr nm)))
              (let ( (fldbind (find_env env sy)) 
                     )
@@ -114,11 +124,12 @@
                       (?_
                        (error_strv fldloc "incorrect infix field" nm)))
                )
-|#
+
              )
            (?(instance class_located :loca_location ?fldloc)
              (error_plain fldloc "expecting field in infix notation")))))
 
 
 )
+|#
 ;;; eof tmatch-6.melt

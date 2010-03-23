@@ -399,6 +399,10 @@ an integer $I if $I is greater than $N.}#
   :doc #{Give the used length of given $SBUF string buffer or else 0.}#
   #{melt_strbuf_usedlength((melt_ptr_t)($sbuf))}#)
 
+(defprimitive output_length (out) :long
+  :doc #{Return the length of a given output $OUT (i.e. the used length if it is a string buffer, the file position if it is a file) or else 0.}#
+  #{melt_output_length ((melt_ptr_t)$OUT)}#)
+
 (defprimitive is_strbuf (v) :long
   :doc #{Test if value $V is a stringbuffer.}# 
   #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_STRBUF)}#)
@@ -1028,6 +1032,7 @@ with component of $TUP2 and index. Stop when either end is reached. Return nil.}
  add2sbuf_texi_mixloc
  output_sbuf_strconst
  output_sbuf_strval
+ output_length
 
  add2out_ccomconst
  add2out_ccomstrbuf

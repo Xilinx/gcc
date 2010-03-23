@@ -32,8 +32,6 @@ along with GCC; see the file COPYING3.   If not see
 #endif
 
 
-/* the files marked notpluginexported are not exported by gcc-trunk in
-   PLUGIN_HEADERS */
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -2096,6 +2094,37 @@ end:
    suppose is small */
 #define MELTMAXFILE 512
 static long lasteol[MELTMAXFILE];
+
+
+long 
+melt_output_length (melt_ptr_t out_p)
+{
+  if (!out_p) 
+    return 0;
+  switch (melt_magic_discr (out_p)) {
+  case OBMAG_STRBUF:
+    {
+      struct meltstrbuf_st *sb = (struct meltstrbuf_st *) out_p;
+      if (sb->bufend >= sb->bufstart)
+	return sb->bufend - sb->bufstart;
+      break;
+    }
+  case OBMAG_SPEC_FILE:
+  case OBMAG_SPEC_RAWFILE:
+    {
+      struct meltspecial_st *sp = (struct meltspecial_st *) out_p;
+      if (sp->val.sp_file)
+	{ 
+	  long off = ftell (sp->val.sp_file);
+	  return off;
+	}
+      break;
+    }
+  default:
+    break;
+  }
+  return 0;
+}
 
 void
 meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
@@ -4919,7 +4948,7 @@ meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr_p)
 #if ENABLE_CHECKING
 static long applcount_melt;
 static int appldepth_melt;
-#define MAXDEPTH_APPLY_MELT 2000
+#define MAXDEPTH_APPLY_MELT 256
 #endif
 /*************** closure application ********************/
 melt_ptr_t
@@ -4936,7 +4965,7 @@ melt_apply (meltclosure_ptr_t clos_p,
   appldepth_melt++;
   if (appldepth_melt > MAXDEPTH_APPLY_MELT)
     {
-      melt_dbgshortbacktrace ("too deep applications", 200);
+      melt_dbgshortbacktrace ("too deep applications", 260);
       fatal_error ("too deep (%d) melt applications", appldepth_melt);
     }
 #endif

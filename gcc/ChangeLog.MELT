@@ -1,3 +1,19 @@
+2010-03-23 Basile Starynkevitch  <basile@starynkevitch.net>
+	{{{infinite recursion in alternate matching}}}
+	* testsuite/melt/tmatch-6.melt: commented temporarily out...
+
+	* melt-runtime.h (melt_output_length): Added declaration.
+
+	* melt-runtime.c (melt_output_length): Added function.
+	(melt_apply): reduced MAXDEPTH_APPLY_MELT.
+
+	* melt/warmelt-base.melt: added output_length.
+
+	* melt/warmelt-debug.melt: use it in dbgout_fields.
+
+	* melt/warmelt-normatch.melt: translpat_orpat still buggy. Added
+	stub for transpat_constpat.
+	
 2010-03-15 Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: translpat_orpat still incomplete.
 

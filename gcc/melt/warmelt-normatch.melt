@@ -2743,23 +2743,40 @@ the data of the $STEP with an extra context $CTX.}#
     (assert_msg "check step" (is_a step class_match_step))
     (return step))))
 
+
+
 (defun putthen_matchthen (recv thenstep)
   (debug_msg recv "putthen_matchthen recv")
   (assert_msg "check recv" (is_a recv class_match_step_then))
   (debug_msg thenstep "putthen_matchthen thenstep")
   (assert_msg "check thenstep" (is_a thenstep class_match_step))
-  (let ( (mythen (unsafe_get_field :mstep_then recv)) 
+  (assert_msg "check recv!=then" (!= recv thenstep))
+  (let ( (mythen (unsafe_get_field :mstep_then recv))
+	 (starthen  (start_step thenstep))
 	 )
+    (if (== recv starthen)
+	(progn
+	  (debug_msg starthen "putthen_matchthen recv same starthen")
+	  (return)))
+    (if (== mythen starthen)
+	(progn
+	  (debug_msg starthen "putthen_matchthen mythen same starthen")
+	  (return)))
     (if (null mythen)
 	(progn
-	  (unsafe_put_fields recv :mstep_then (start_step thenstep))
-	  (debug_msg recv "putthen_matchthen updated recv"))
+	  (unsafe_put_fields recv :mstep_then starthen)
+	  (debug_msg recv "putthen_matchthen updated recv")
+	  (shortbacktrace_dbg "putthen_matchthen" 12)
+	  )
       (progn
-	(debug_msg mythen "putthen_matchthen mythen")
-	(put_then_match mythen thenstep)
+	(debug_msg mythen "putthen_matchthen recursing in mythen")
+	(debug_msg starthen "putthen_matchthen recursing for starthen")
+	(put_then_match mythen starthen)
 	(debug_msg mythen "putthen_matchthen did mythen"))))
   )
 (install_method class_match_step_then put_then_match putthen_matchthen)
+
+
 
 (defun putthen_matchgroup (recv thenstep)
   (debug_msg recv "putthen_matchgroup recv")
@@ -2795,19 +2812,34 @@ the data of the $STEP with an extra context $CTX.}#
 )
 
 ;; method to putelse inside then-steps
-(defun putelse_matchstepthen  (recv elsestep)
+(defun putelse_matchstepthen (recv elsestep)
   (debug_msg recv "putelse_matchstepthen recv")
   (assert_msg "check recv" (is_a recv class_match_step_then))
   (debug_msg elsestep "putelse_matchstepthen elsestep")
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
   (let ( 
 	(mythen (unsafe_get_field :mstep_then recv))
+	(elsestart (start_step elsestep))
 	)
-    (if mythen 
-	(progn
-	  (debug_msg mythen "putelse_matchstepthen recursing in mythen")
-	  (put_else_match mythen elsestep)))
+    (cond 
+     ( (== recv elsestart)
+       (debug_msg recv "putelse_matchstepthen recv same elsestart")
+       (return))
+     ( (== mythen elsestep)
+       (debug_msg mythen "putelse_matchstepthen mythen same elsestep")
+       (return))
+     ( (== mythen elsestart)
+       (debug_msg mythen "putelse_matchstepthen mythen same elsestart")
+       (return))
+     (mythen 
+      (debug_msg mythen "putelse_matchstepthen recursing in mythen")
+      (debug_msg elsestart "putelse_matchstepthen recursing for elsestart")
+      (debug_msg recv "putelse_matchstepthen recursing from recv")
+      (put_else_match mythen elsestart)
+      (debug_msg mythen "putelse_matchstepthen done recursing in mythen"))
+     )
   (debug_msg recv "putelse_matchstepthen end recv")))
+
 (install_method class_match_step_then put_else_match putelse_matchstepthen)
 
 	  
@@ -2823,15 +2855,28 @@ the data of the $STEP with an extra context $CTX.}#
 	(elsestart (start_step elsestep))
 	)
     (cond 
-     ( (== recv elsestart)
+     ( (== recv elsestep)
        (debug_msg recv "putelse_matchtest recv same as elsestep")
        (return))
+     ( (== recv elsestart)
+       (debug_msg recv "putelse_matchtest recv same as elsestart")
+       (return))
      ( (== myelse elsestart)
+       (debug_msg recv "putelse_matchtest myelse same as elsestart")
+       (return))
+     ( (== myelse elsestep)
        (debug_msg recv "putelse_matchtest myelse same as elsestep")
+       (return))
+     ( (== mythen elsestep)
+       (debug_msg recv "putelse_matchtest mythen same as elsestep")
+       (return))
+     ( (== mythen elsestart)
+       (debug_msg recv "putelse_matchtest mythen same as elsestart")
        (return))
      ( (null myelse)
        (unsafe_put_fields recv :mstep_else elsestart)
        (debug_msg recv "putelse_matchtest updated recv")
+       (shortbacktrace_dbg "putelse_matchtest" 12)
        )
      (:else
       (debug_msg myelse "putelse_matchtest myelse appending then")
@@ -2841,7 +2886,9 @@ the data of the $STEP with an extra context $CTX.}#
     (if mythen
 	(progn
 	  (debug_msg mythen "putelse_matchtest recursing in mythen")
+	  (debug_msg elsestart "putelse_matchtest recursing with elsestart")
 	  (put_else_match mythen elsestart)))
+    ;;
     (debug_msg recv "putelse_matchtest end recv")
     ))
 (install_method class_match_step_test put_else_match putelse_matchtest)
@@ -2939,6 +2986,14 @@ the data of the $STEP with an extra context $CTX.}#
 )
 (install_method class_source_pattern_joker_variable translate_pattern translpat_jokerpat)
 
+
+(defun translpat_constpat (recv mdata mcase varmap sloc)
+  (assert_msg "check recv" (is_a recv class_source_pattern_constant))
+  (debug_msg recv "translpat_constpat recv")
+  (error_plain sloc "@@unimplemented translpat_constpat")
+  (assert_msg "$@$ translpat_constpat unimplemented")
+)
+(install_method class_source_pattern_constant translate_pattern translpat_constpat)
 
 
 
@@ -3067,18 +3122,19 @@ the data of the $STEP with an extra context $CTX.}#
 		    )))))
 	  (debug_msg elselist "translpat_inspat elselist")
 	  (let ( 
-		(stepsetflag (if (list_first_element flaglist)
-				 (instance class_match_step_flag_conjonction
-					   :loca_location sloc
-					   :mstep_data mdata
-					   :mstep_then ()
-					   :mstep_flag mflag
-					   :mstep_flagargs (list_to_multiple flaglist discr_multiple))
-			       (instance class_match_step_flag_set
-					 :loca_location sloc
-					 :mstep_data mdata
-					 :mstep_then ()
-					 :mstep_flag mflag)))
+		(stepsetflag
+		 (if (list_first_element flaglist)
+		     (instance class_match_step_flag_conjonction
+			       :loca_location sloc
+			       :mstep_data mdata
+			       :mstep_then ()
+			       :mstep_flag mflag
+			       :mstep_flagargs (list_to_multiple flaglist discr_multiple))
+		   (instance class_match_step_flag_set
+			     :loca_location sloc
+			     :mstep_data mdata
+			     :mstep_then ()
+			     :mstep_flag mflag)))
 		(stepgroup (instance class_match_step_test_group
 				     :loca_location sloc
 				     :mstep_data mdata
@@ -3090,6 +3146,7 @@ the data of the $STEP with an extra context $CTX.}#
 				     ))
 		)
 	    (put_fields mflag :mflag_setstep stepsetflag)
+	    (debug_msg stepsetflag  "translpat_inspat stepsetflag")
 	    (put_then_match laststep stepsetflag)
 	    (put_then_match  stepsetflag stepgroup)
 	    (debug_msg stepgroup "translpat_inspat return stepgroup")
@@ -3168,6 +3225,7 @@ the data of the $STEP with an extra context $CTX.}#
 				   ))
 	       )
 	  (list_append steplist steptest)
+	  (debug_msg steptest "translpat_varpat made steptest")
 	  (if laststeptest
 	      (progn
 		(put_else_match laststeptest steptest)
@@ -3218,6 +3276,7 @@ the data of the $STEP with an extra context $CTX.}#
 			    ))
 	)
     (assert_msg "check sconj" (is_multiple sconj))
+    (debug_msg flagstep "translpat_andpat flagstep")
     (put_fields mflag :mflag_setstep flagstep)
     (foreach_in_multiple
      (sconj)
@@ -3334,10 +3393,23 @@ the data of the $STEP with an extra context $CTX.}#
 	    (list_append flagstep disjflag))
 	(if disjstep
 	    (if (>i (mapobject_count newvarmap) 0)
-		(let ( (erasestep (instance class_match_step_clear
-					    :mstep_then ())
+		(let ( 
+		      (sortedsymbs (mapobject_sorted_attribute_tuple newvarmap))
+		      (sortedmdatas
+		       (multiple_map 
+			sortedsymbs
+			(lambda (cursymb :long symbix)
+			  (mapobject_get newvarmap cursymb)) 
+			))
+		      (erasestep (instance class_match_step_clear
+					   :loca_location (get_field :loca_location disjstep)
+					   :mstep_then ()
+					   :mstep_cleardata sortedmdatas
+					   )
 				  )
 		       )
+		  (debug_msg erasestep "translpat_orpat erasestep")
+		  (put_else_match disjstep erasestep)
 		  (compile_warning "translpat_orpat to be completed")
 		  )))
 	(if (is_a disjstep class_match_step_test)
@@ -3345,6 +3417,7 @@ the data of the $STEP with an extra context $CTX.}#
 	      (if (null firststep) 
 		  (setq firststep disjstep))
 	      (list_append steplist disjstep)
+	      (if laststep (put_else_match laststep disjstep))
 	      (setq laststep disjstep)
 	      ))
 	)
@@ -3353,9 +3426,16 @@ the data of the $STEP with an extra context $CTX.}#
 	      )
 	 (assert_msg "check oldvarhdler" (== oldvarhdler varhandler))
 	 ))
-     )
-    (error_plain sloc "unimplemented translpat_orpat")
-    (assert_msg "@$@unimplemented translpat_orpat")
+     ) ;;;; end foreach disjunct
+    (put_fields stepgroup
+		:mstgroup_start firststep
+		:mstgroup_then (list_to_multiple steplist)
+		:mstgroup_else ()
+		)
+    (put_fields flagstep :mstep_flagargs (list_to_multiple flaglist discr_multiple))
+    (debug_msg stepgroup "translpat_orpat return stepgroup")
+    (put_then_match stepgroup flagstep)
+    (return stepgroup mflag)
     ))
 (install_method class_source_pattern_or translate_pattern translpat_orpat)
 

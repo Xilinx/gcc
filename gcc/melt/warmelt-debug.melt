@@ -191,7 +191,7 @@ $DBGI at given $DEPTH}#
 ;; utility to dump fields in an object from a given rank to a given rank
 (defun dbgout_fields (obj dbgi :long depth fromrank torank)
   :doc #{Utility to output for debugging value in $OBJ using debug information
-$DBGI at given $DEPTH the fields from $FROMRANK to $TORANK}#
+  $DBGI at given $DEPTH the fields from $FROMRANK to $TORANK}#
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check obj" (is_object obj))
   (let ( (:long nbf (object_length obj)) 
@@ -200,7 +200,10 @@ $DBGI at given $DEPTH the fields from $FROMRANK to $TORANK}#
 	 (:long fldcnt 0)
 	 (clafieldseq (unsafe_get_field :class_fields cla))
 	 (out  (unsafe_get_field :dbgi_out dbgi))
+	 (:long outoff (output_length out))
 	 )
+    (assert_msg "check out" (is_out out))
+    ;; outoff may be -1 when out is a non-seekable file like stdout
     (if (<i ix 0) (setq ix 0))
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(forever fldloop
@@ -213,14 +216,25 @@ $DBGI at given $DEPTH the fields from $FROMRANK to $TORANK}#
 			(curval (object_nth_field obj ix))
 			)
 		   (if curval
-		       (progn
-			 (if (%iraw fldcnt 2) (add2out_indentnl out depth))
+		       (let
+			   ( (:long outcuroff (output_length out))
+			     )
 			 (setq fldcnt (+i fldcnt 1))
+			 (if (or 
+			      (>i outcuroff (+i outoff 140))
+			      (==i (%iraw fldcnt 2) 0)
+			      )
+			     (progn
+			       (add2out_indentnl out depth)
+			       (setq outoff (strbuf_usedlength out))
+			       )
+			   (add2out_strconst out " ")
+			   )
 			 (add2out_string out (unsafe_get_field :named_name curfld))
 			 (add2out_strconst out "=")
 			 (dbg_out curval dbgi (+i depth 1))
 			 (add2out_indent out depth))
-			 ))
+		     ))
 		 (setq ix (+i ix 1))
 		 )
       )))
