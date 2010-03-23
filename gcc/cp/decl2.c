@@ -908,8 +908,13 @@ grokfield (const cp_declarator *declarator,
 	    }
 	  else if (TREE_CODE (TREE_TYPE (value)) == METHOD_TYPE)
 	    {
-	      gcc_assert (error_operand_p (init) || integer_zerop (init));
-	      DECL_PURE_VIRTUAL_P (value) = 1;
+	      if (integer_zerop (init))
+		DECL_PURE_VIRTUAL_P (value) = 1;
+	      else if (error_operand_p (init))
+		; /* An error has already been reported.  */
+	      else
+		error ("invalid initializer for member function %qD",
+		       value);
 	    }
 	  else
 	    {
@@ -1655,7 +1660,8 @@ vague_linkage_p (tree decl)
   return (DECL_COMDAT (decl)
 	  || (((TREE_CODE (decl) == FUNCTION_DECL
 		&& DECL_DECLARED_INLINE_P (decl))
-	       || DECL_TEMPLATE_INSTANTIATION (decl))
+	       || (DECL_LANG_SPECIFIC (decl)
+		   && DECL_TEMPLATE_INSTANTIATION (decl)))
 	      && TREE_PUBLIC (decl)));
 }
 

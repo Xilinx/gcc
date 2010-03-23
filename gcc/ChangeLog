@@ -1,3 +1,187 @@
+2010-03-22  James E. Wilson  <wilson@codesourcery.com>
+
+	PR target/43348
+	* ia64.md (call_nogp, call_value_nogp, sibcall_nogp, call_gp,
+	call_value_gp,sibcall_gp): Use 's' constraint not 'i'.
+
+2010-03-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_target_string): Fix a typo in comments.
+	Add -mfma.
+
+2010-03-22  Mike Stump  <mikestump@comcast.net>
+
+	PR target/23071
+	* config/rs6000/rs6000.c (darwin_rs6000_special_round_type_align):
+	Don't overly align based upon packed packed fields.
+
+2010-03-22  Jason Merrill  <jason@redhat.com>
+
+	* c-pretty-print.c (pp_c_specifier_qualifier_list) [VECTOR_TYPE]:
+	Use () rather than [], and move before the element type.
+
+2010-03-22  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/configfiles.texi (Configuration Files): Removed
+	fixinc/Makefile*, intl/Makefile.*.
+	* doc/makefile.texi: Fixed markup.
+	Abstract from version control system used.
+	(Makefile): Removed obsolete gcc/java/parse.y example.
+	* doc/sourcebuild.texi: Likewise.
+	(Top Level): Added config, gnattools, libdecnumber, libgcc,
+	libgomp, libssp.
+	Removed fastjar.
+	(Miscellaneous Docs): Clarify location.
+	Added COPYING3, COPYING3.LIB.
+	(Front End Directory): Moved Make-lang.in entry to new
+	subsubsection.
+
+2010-03-22  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/38085
+	* config/i386/i386.c (x86_function_profiler)
+	[!NO_PROFILE_COUNTERS]: Fix typo.
+	* config/i386/gmon-sol2.c (_mcleanup) [__x86_64__]: Use call
+	instead of callq.
+
+2010-03-22  Janis Johnson  <janis187@us.ibm.com>
+	    Rainer Orth <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/sourcebuild.texi (Test Directives): Split into six
+	subsections, with most of the current text in new subsections
+	Directives, Selectors, and Final Actions.
+	(Directives): Split list of test directives into multiple
+	subsubsections.
+	(Selectors): Describe use and syntax of selectors.
+	(Effective-Target Keywords): Describe all existing keywords.
+	(Add Options): Describe features for dg-add-options.
+	(Require Support): Describe variants of dg-require-support.
+	(Final Actions): Describe commands to use in dg-final.
+
+2010-03-22  Michael Matz  <matz@suse.de>
+
+	PR middle-end/43475
+	* recog.c (validate_replace_rtx_group): Replace also in
+	REG_EQUAL and REG_EQUIV notes.
+
+2010-03-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43390
+	* tree-vect-stmts.c (get_vectype_for_scalar_type): Make
+	sure vector extracts are type correct.
+
+2010-03-22  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40106
+	* builtins.c (expand_builtin_pow): Expand pow (x, 1.5) as
+	x * sqrt (x) even when optimizing for size if the target
+	has native support for sqrt.
+
+2010-03-22  Jakub Jelinek  <jakub@redhat.com>
+
+	* varasm.c (make_decl_rtl_for_debug): Also clear
+	flag_mudflap for the duration of make_decl_rtl call.
+
+	PR debug/43443
+	* var-tracking.c (add_cselib_value_chains): Remove ASM_OPERANDS
+	locs from preserved VALUEs.
+
+2010-03-21  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR middle-end/42718
+	* pa.md (movmemsi): Set align to one if zero.
+	(movmemdi): Likewise.
+
+2010-03-21  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/42321
+	* arm.c (arm_output_epilogue): Correctly match VFP pop instructions
+	with their corresponding prologue pushes.
+
+2010-03-20  Andrew Pinski  <pinskia@gmail.com>
+
+	PR target/43156
+	* config/spu/spu.c (spu_expand_prologue): Don't emit NOTE_INSN_DELETED
+	at the begining or end.
+	(spu_expand_epilogue): Likewise.
+
+2010-03-20  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/43438
+	* combine.c (make_extraction): Properly zero-/sign-extend an
+	extraction of the low part of a CONST_INT.  Also handle
+	CONST_DOUBLE.
+
+2010-03-19  Mike Stump  <mikestump@comcast.net>
+
+	* config/i386/darwin.h (SUBTARGET32_DEFAULT_CPU): Add.
+	* config/i386/i386.c (SUBTARGET32_DEFAULT_CPU): Add.
+	(override_options): Use SUBTARGET32_DEFAULT_CPU.
+
+2010-03-19  Andrew Pinski  <andrew_pinski@caviumnetworks.com>
+
+	PR c/43211
+	* c-decl.c (grokparms): Set arg_types to NULL_TREE if there was an
+	error.
+
+2010-03-19  Bernd Schmidt  <bernd.schmidt@codesourcery.com>
+
+	PR rtl-optimization/42258
+	* ira-lives.c (check_and_make_def_conflict): Ignore conflict for a
+	use that may match DEF.
+
+	PR target/40697
+	* optabs.c (avoid_expensive_constant): Use rtx_cost to find out
+	the cost of loading the constant rather than assuming
+	COSTS_N_INSNS (1).
+	* config/arm/arm.c (thumb1_rtx_costs) <case CONST_INT>: If the
+	outer code is AND, do the same tests as the andsi3 expander and
+	return COSTS_N_INSNS (1) if and is cheap.
+
+	* optabs.c (avoid_expensive_constant): Fix formatting.
+
+2010-03-19  Michael Matz  <matz@suse.de>
+
+	PR c++/43116
+	* attribs.c (decl_attributes): When rebuilding a function pointer
+	type use the same qualifiers as the original pointer type.
+
+2010-03-19  Martin Jambor  <mjambor@suse.cz>
+
+	* doc/gimple.texi (Logical Operators): Describe is_gimple_ip_invariant
+	and is_gimple_ip_invariant_address.
+
+2010-03-19  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	Revert
+	2009-10-01  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/arm.c (arm_override_options): Turn off
+	flag_dwarf2_cfi_asm for AAPCS variants.
+
+2010-03-19  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/43399
+	* config/arm/arm.c (emit_multi_reg_push): Update comments.
+	Use PRE_MODIFY instead of PRE_DEC.
+	(emit_sfm): Use PRE_MODIFY instead of PRE_DEC.
+	(vfp_emit_fstmd): Likewise.
+
+2010-03-19  Michael Matz  <matz@suse.de>
+
+	PR target/43305
+	* builtins.c (expand_builtin_interclass_mathfn,
+	expand_builtin_signbit): Use maybe_emit_unop_insn, emit libcalls
+	if that fails.
+
+2010-03-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43415
+	* tree-ssa-pre.c (phi_translate): Split out worker to ...
+	(phi_translate_1): ... this.
+	(phi_translate): Move all caching here.  Cache all NARY
+	and REFERENCE translations.
+
 2010-03-19  David S. Miller  <davem@davemloft.net>
 
 	With help from Eric Botcazou.
@@ -16,11 +200,11 @@
 	(sparc_file_end): Emit a hidden comdat symbol for the PIC
 	thunk if possible.  Output CFI information as needed.
 
-2010-03-11  Francois-Xavier Coudert <fxcoudert@gcc.gnu.org>
+2010-03-18  Francois-Xavier Coudert <fxcoudert@gcc.gnu.org>
 	    Jack Howarth <howarth@bromo.med.uc.edu>
 
 	PR target/36399
-	* gcc/config/i386/i386.h: Fix ABI on darwin x86-32.
+	* config/i386/i386.h: Fix ABI on darwin x86-32.
 
 2010-03-18  Aldy Hernandez  <aldyh@redhat.com>
 
