@@ -1315,6 +1315,19 @@ make a $CURAT string.}#
 (defprimitive make_box (discr valb) :value
   :doc #{Make a box value of discriminant $DISCR and content $VALB.}#
   #{meltgc_new_box((meltobject_ptr_t)($discr), (melt_ptr_t)($valb))}#)
+;;; pattern
+(defcmatcher box_of 
+  (:value bx)
+  (:value v)
+  boxof
+  :doc #{The $BOX_OF patern matches a value box $BX. If indeed it
+  is a box, its content should match the subpattern $V.
+  It fails if $BX is not a boxed integer. See also $MAKE_BOX $BOX_CONTENT.}#
+  ;; test
+  #{ /* $BOXOF ?*/ $BX && melt_magic_discr($bx) == OBMAG_BOX }#
+  ;; fill
+  #{ /* $BOXOF !*/ $V = ((struct meltbox_st*)$bx)->val; }#
+)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; LIST primitives
 ;; test
@@ -3355,6 +3368,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  >=i
  assert_failed
  box_content
+ box_of
  box_put
  closure_nth
  closure_routine

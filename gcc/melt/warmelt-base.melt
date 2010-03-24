@@ -914,6 +914,21 @@ with component of $TUP2 and index. Stop when either end is reached. Return nil.}
 			 (f (multiple_nth tup1 ix) (multiple_nth tup2 ix) ix)
 			 (setq ix (+i ix 1))))))))
 
+
+;;;; MELT application depth & counter significant only when checking is enabled
+(defprimitive melt_application_depth () :long 
+  :doc #{Depth of MELT closures application - significant iff ENABLE_CHECKING.}#
+  #{melt_application_depth()}#)
+
+(defprimitive melt_application_shallower (:long maxdepth) :long
+  :doc #{Test that the MELT application depth is less that $MAXDEPTH -
+significant iff ENABLE_CHECKING.}# #{(melt_application_depth() <
+  $MAXDEPTH)}#)
+
+(defprimitive melt_application_count () :long
+  :doc #{Count of MELT closures application - significant iff ENABLE_CHECKING.}#
+  #{melt_application_count()}#)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  ignore
@@ -1068,6 +1083,10 @@ with component of $TUP2 and index. Stop when either end is reached. Return nil.}
  multiple_every_both
  multiple_every
  multiple_backward_every
+
+ melt_application_count
+ melt_application_depth
+ melt_application_shallower
  )
 
 

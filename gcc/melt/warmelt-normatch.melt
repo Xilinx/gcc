@@ -2751,6 +2751,12 @@ the data of the $STEP with an extra context $CTX.}#
   (debug_msg thenstep "putthen_matchthen thenstep")
   (assert_msg "check thenstep" (is_a thenstep class_match_step))
   (assert_msg "check recv!=then" (!= recv thenstep))
+  (compile_warning "temporary check for application depth..."
+		   (assert_msg "putthen_matchthen check shallow100" 
+			       (melt_application_shallower 100)))
+  (compile_warning "temporary backtrace when test_instance...."
+		   (if (is_a recv class_match_step_test_instance)
+		       (shortbacktrace_dbg "putthen_matchthen testinstance!!!" 20)))
   (let ( (mythen (unsafe_get_field :mstep_then recv))
 	 (starthen  (start_step thenstep))
 	 )
@@ -2817,6 +2823,9 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "check recv" (is_a recv class_match_step_then))
   (debug_msg elsestep "putelse_matchstepthen elsestep")
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
+  (compile_warning "temporary check for application depth..."
+		   (assert_msg "putelse_matchstepthen check shallow100" 
+			       (melt_application_shallower 100)))
   (let ( 
 	(mythen (unsafe_get_field :mstep_then recv))
 	(elsestart (start_step elsestep))
@@ -2849,6 +2858,9 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "check recv" (is_a recv class_match_step_test))
   (debug_msg elsestep "putelse_matchtest elsestep")
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
+  (compile_warning "temporary check for application depth..."
+		   (assert_msg "putelse_matchtest check shallow100" 
+			       (melt_application_shallower 100)))
   (let ( 
 	(myelse (unsafe_get_field :mstep_else recv))
 	(mythen (unsafe_get_field :mstep_then recv))
@@ -3141,14 +3153,14 @@ the data of the $STEP with an extra context $CTX.}#
 				     :mstep_then ()
 				     :mstep_else ()
 				     :mstgroup_start istep
-				     :mstgroup_then laststep
+				     :mstgroup_then stepsetflag
 				     :mstgroup_else (list_to_multiple elselist discr_multiple)
 				     ))
 		)
 	    (put_fields mflag :mflag_setstep stepsetflag)
 	    (debug_msg stepsetflag  "translpat_inspat stepsetflag")
 	    (put_then_match laststep stepsetflag)
-	    (put_then_match  stepsetflag stepgroup)
+	    (put_then_match stepsetflag stepgroup)
 	    (debug_msg stepgroup "translpat_inspat return stepgroup")
 	    (return stepgroup mflag)
 	    ))))))
@@ -3648,7 +3660,7 @@ the data of the $STEP with an extra context $CTX.}#
 	   (put_fields mflag :mflag_setstep flagstep)
 	   (put_fields
 	    testgroup
-	    :mstgroup_then curstep
+	    :mstgroup_then flagstep
 	    :mstgroup_else elselist)
 	   (debug_msg testgroup "translpat_patmat return testgroup")
 	   (return testgroup mflag)

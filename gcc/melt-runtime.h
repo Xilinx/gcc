@@ -266,6 +266,11 @@ melt_ptr_t melt_apply (meltclosure_ptr_t clos_p,
 			       const char xresdescr_[],
 			       union meltparam_un *xrestab_);
 
+/* Depth and counter of MELT applications are only significant when
+   checking is enabled by ENABLE_CHECKING.  */
+extern long melt_application_count (void);
+extern long melt_application_depth (void);
+
 /* gnu indent has some trouble with GTY hence */
 /* *INDENT-OFF* */
 

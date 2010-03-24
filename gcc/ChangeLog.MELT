@@ -1,7 +1,19 @@
 2010-03-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{still buggy alternate matching; recursion loop on simple
+	instance pattern!!}}
+	* melt-runtime.h (melt_application_count, melt_application_depth):
+	Added declarations.
+	* melt-runtime.c (melt_application_count, melt_application_depth):
+	Added functions.
+	* melt/warmelt-first.melt: added box_of cmatcher.
+	* melt/warmelt-base.melt: added melt_application_count,
+	melt_application_depth, melt_application_shallower.
+	* melt/warmelt-normatch.melt: the mstgroup_then should usally be
+	only the flag setting step. Still buggy!
+
+2010-03-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: updated copyright. Added cmatchers
 	tree_identifier tree_list tree_vec
-
 2010-03-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{{infinite recursion in alternate matching}}}
 	* testsuite/melt/tmatch-6.melt: commented temporarily out...

@@ -4949,6 +4949,11 @@ meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr_p)
 static long applcount_melt;
 static int appldepth_melt;
 #define MAXDEPTH_APPLY_MELT 256
+long melt_application_count (void)  { return (long) applcount_melt; }
+long melt_application_depth (void)  { return (long) appldepth_melt; }
+#else
+long melt_application_count (void)  { return 0L; }
+long melt_application_depth (void)  { return 0L; }
 #endif
 /*************** closure application ********************/
 melt_ptr_t
