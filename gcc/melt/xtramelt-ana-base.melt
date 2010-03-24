@@ -1,8 +1,8 @@
 ;; -*- Lisp -*-
-;; file ana-base.melt
+;; file xtramelt-ana-base.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -1177,6 +1177,41 @@
 
 
 ;;;;;;;;;;;;;;;;
+;;; pattern tree_identifier matches any identifier node
+(defcmatcher tree_identifier
+  (:tree tr)
+  (:cstring name)
+  treeident
+  #{ /*$TREEIDENT ?*/ $TR && TREE_CODE ($TR) == IDENTIFIER_NODE }#
+  #{ /*$TREEIDENT !*/ $NAME = IDENTIFIER_POINTER ($TR) }#
+)
+
+;;; pattern tree_list matches any tree list node
+(defcmatcher tree_list
+  (:tree tr)
+  (:tree trvalue trpurpose trchain)
+  treelist
+  #{ /*$TREELIST ?*/ $TR && TREE_CODE ($TR) == TREE_LIST }#
+  #{ /*$TREELIST !*/ 
+    $TRVALUE = TREE_VALUE ($TR);
+    $TRPURPOSE = TREE_PURPOSE ($TR);
+    $TRCHAIN = TREE_CHAIN ($TR);
+  }#
+)
+
+;;; pattern tree_vec matches any tree vector node
+(defcmatcher tree_vec
+  (:tree tr)
+  (:long len :tree trchain)
+  treevec
+  #{ /*$TREEVEC ?*/ $TR && TREE_CODE ($TR) == TREE_VEC }#
+  #{ /*$TREEVEC !*/ 
+  $LEN = TREE_VEC_LENGTH ($TR);
+  $TRCHAIN = TREE_CHAIN ($TR);
+  }#
+)
+
+;;;;;;;;;;;;;;;;
 ;;; pattern tree_decl matches any declaration
 (defcmatcher tree_decl 
   (:tree tr)
@@ -2181,14 +2216,17 @@
  tree_content 
  tree_decl
  tree_function_decl 
+ tree_identifier
  tree_integer_cst
  tree_integer_type
+ tree_list
  tree_of_type
  tree_parm_decl
  tree_ssa_name 
  tree_type
  tree_var_decl
  tree_var_decl_named
+ tree_vec
  warning_at_gimple
  warning_at_tree
 )

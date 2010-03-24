@@ -1,4 +1,8 @@
-2010-03-23 Basile Starynkevitch  <basile@starynkevitch.net>
+2010-03-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt: updated copyright. Added cmatchers
+	tree_identifier tree_list tree_vec
+
+2010-03-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{{infinite recursion in alternate matching}}}
 	* testsuite/melt/tmatch-6.melt: commented temporarily out...
 
@@ -14,10 +18,10 @@
 	* melt/warmelt-normatch.melt: translpat_orpat still buggy. Added
 	stub for transpat_constpat.
 	
-2010-03-15 Basile Starynkevitch  <basile@starynkevitch.net>
+2010-03-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: translpat_orpat still incomplete.
 
-2010-03-14 Basile Starynkevitch  <basile@starynkevitch.net>
+2010-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in (gt-melt-runtime-plugin.h): new target, useless
 	packaging MELT for plugins.
