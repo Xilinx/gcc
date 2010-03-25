@@ -2937,7 +2937,46 @@ list of every element of the tuple transformed by $TRANSF.}#
 		  (let ( (newmapdict (make_mapobject discr_method_map 35)) )
 		    (unsafe_put_fields cla :disc_methodict newmapdict)
 		    (mapobject_put newmapdict sel fun)
-		    ))))))
+		    )))
+	    (let (
+		  (clanam (get_field :named_name cla))
+		  (selnam (get_field :named_name sel))
+		  )
+	      (code_chunk 
+	       warn_non_fun
+	       #{
+	       warning (0, 
+			"MELT INSTALL_METHOD WARNING [#%ld] non-function in %s for %s",
+			melt_dbgcounter,
+			melt_string_str((melt_ptr_t) $CLANAM),
+			melt_string_str((melt_ptr_t) $SELNAM)) ;
+	       }#)
+	      (shortbacktrace_dbg "INSTALL_METHOD failing on non-function" 20)
+	      )
+	    )
+	(let ( (clanam (get_field :named_name cla))
+	       )
+	  (code_chunk 
+	   warn_non_sel
+	   #{
+	   warning (0, 
+		    "MELT INSTALL_METHOD WARNING [#%ld] non-function in %s for %s",
+		    melt_dbgcounter,
+		    melt_string_str((melt_ptr_t) $CLANAM)) ;
+	   }#)
+	  (shortbacktrace_dbg "INSTALL_METHOD failing on non-selector" 20)
+	  )
+	)
+    (progn
+      (code_chunk 
+       warn_non_discr
+       #{
+       warning (0, 
+		"MELT INSTALL_METHOD WARNING [#%ld] non-discriminant",
+		melt_dbgcounter)	;
+       }#)
+      (shortbacktrace_dbg "INSTALL_METHOD failing on non-discriminant" 20)
+      ))
   )
 
 

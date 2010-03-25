@@ -4217,6 +4217,7 @@ the data of the $STEP with an extra context $CTX.}#
 	    (debug_msg sortedvarocc  "translate_matchcase sortedvarocc")
 	    (put_fields 
 	     stepsucc :mstepsuccess_varocc sortedvarocc))
+	  (debug_msg stepsucc "translate_matchcase stepsucc")
 	  (put_then_match mstep stepsucc)
 	  (debug_msg mstep "translate_matchcase updated mstep")
 	  (if prevstep

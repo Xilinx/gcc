@@ -1,3 +1,10 @@
+2010-03-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: install_method warns when bad arguments.
+
+	* melt/warmelt-base.melt: added warningmsg_strv
+
+	* melt/warmelt-normatch.melt: added debug msg...
+
 2010-03-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{still buggy alternate matching; recursion loop on simple
 	instance pattern!!}}

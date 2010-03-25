@@ -283,10 +283,19 @@ number $NUM opaque location number $LOC.}#
   )
 
 
-;; signal a plain error
+
+
+;; signal a plain warning with string
+(defprimitive warningmsg_strv (:cstring cmsg :value strv) :void
+  :doc #{Show a plain warning with raw message string $CMSG and string value $STRV.}#
+  #{warning (0, "MELT WARNING MSG [#%ld]::: %s - %s", melt_dbgcounter, ($cmsg),
+	  melt_string_str((melt_ptr_t)($strv)))}#
+  )
+
+;; signal a plain error with string
 (defprimitive errormsg_strv (:cstring cmsg :value strv) :void
   :doc #{Show a plain error with raw message string $CMSG and string value $STRV.}#
-  #{error("MELT ERROR MSG [#%ld]::: %s - %s", melt_dbgcounter, ($cmsg),
+  #{error ("MELT ERROR MSG [#%ld]::: %s - %s", melt_dbgcounter, ($cmsg),
 	  melt_string_str((melt_ptr_t)($strv)))}#
   )
 
@@ -984,6 +993,7 @@ significant iff ENABLE_CHECKING.}# #{(melt_application_depth() <
  warning_strv
  warning_plain
  warningmsg_plain
+ warningmsg_strv
  errormsg_plain
  errormsg_strv
  inform_strv
