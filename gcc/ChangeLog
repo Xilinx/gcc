@@ -1,3 +1,144 @@
+2010-03-26  David S. Miller  <davem@davemloft.net>
+
+	* configure.ac: Fix sparc GOTDATA_OP bug check.
+	* configure: Rebuild.
+
+2010-03-26  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/rs6000.md (cmptf_internal2): Correct comparison.
+
+2010-03-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/tm.texi (Sections): Document TLS_COMMON_ASM_OP,
+	TLS_SECTION_ASM_FLAG.
+
+2010-03-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/43511
+	* config/i386/i386.c (ix86_code_end): Set DECL_WEAK if TARGET_MACHO.
+	Clear first_function_block_is_cold.
+
+	PR c/43385
+	* gimplify.c (gimple_boolify): Only recurse on __builtin_expect
+	argument if the argument is truth_value_p.
+
+2010-03-24  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/constraints.md: Update copyright year for my
+	changes.
+
+	PR target/43484
+	* config/rs6000/rs6000.c (rs6000_split_multireg_move): If r0 is
+	used in reg+reg addressing, swap registers.
+
+2010-03-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43293
+	* target.h (struct gcc_target): Add code_end hook.
+	* target-def.h (TARGET_ASM_CODE_END): Define to hook_void_void
+	if not yet defined.
+	(TARGET_ASM_OUT): Add TARGET_ASM_CODE_END.
+	* toplev.c (compile_file): Call targetm.asm_out.code_end
+	hook before unwind info/debug info output.
+	* config/i386/winnt.c (i386_pe_file_end): Don't call ix86_file_end.
+	* config/i386/linux.h (NEED_INDICATE_EXEC_STACK): Don't define.
+	(TARGET_ASM_FILE_END): Define to file_end_indicate_exec_stack.
+	* config/i386/linux64.h (NEED_INDICATE_EXEC_STACK): Don't define.
+	(TARGET_ASM_FILE_END): Define to file_end_indicate_exec_stack.
+	* config/i386/i386.c (ix86_file_end): Renamed to...
+	(ix86_code_end): ... this.  Make static.  Don't call
+	file_end_indicate_exec_stack.  Emit unwind info using
+	final_start_function/final_end_function.
+	(darwin_x86_file_end): Remove.
+	(TARGET_ASM_CODE_END): Define.
+	* config/i386/i386.h (TARGET_ASM_FILE_END,
+	NEED_INDICATE_EXEC_STACK): Don't define.
+	* config/i386/darwin.h (darwin_x86_file_end): Remove prototype.
+	(TARGET_ASM_FILE_END): Define to darwin_file_end.
+	* config/i386/i386-protos.h (ix86_file_end): Remove prototype.
+	* doc/tm.texi (TARGET_ASM_CODE_END): Document.
+
+	PR target/43498
+	* config/i386/i386.c (x86_output_mi_thunk): Call final_start_function
+	at the beginning and final_end_function at the end.
+	* config/s390/s390.c (s390_output_mi_thunk): Likewise.
+
+2010-03-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (i[34567]86-*-*): Handle Solaris 2/x86 TLS support
+	and Sun as TLS syntax.
+	(TLS_SECTION_ASM_FLAG) [on_solaris && !gas_flag]: Define.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+	* varasm.c (TLS_SECTION_ASM_FLAG): Define default.
+	(default_elf_asm_named_section): Use it.
+	* config/i386/i386.c (output_pic_addr_const): Lowercase @DTPOFF.
+	(i386_output_dwarf_dtprel): Likewise.
+	(output_addr_const_extra): Likewise.
+	(output_pic_addr_const): Lowercase @GOTTPOFF.
+	(output_addr_const_extra): Likewise.
+	(output_pic_addr_const): Lowercase @GOTNTPOFF.
+	(output_addr_const_extra): Likewise.
+	(output_pic_addr_const): Lowercase @INDNTPOFF.
+	(output_addr_const_extra): Likewise.
+	(output_pic_addr_const): Lowercase @NTPOFF.
+	(output_addr_const_extra): Likewise.
+	(output_pic_addr_const): Lowercase @TPOFF.
+	(output_addr_const_extra): Likewise.
+	* config/i386/i386.md (*tls_global_dynamic_32_gnu): Lowercase
+	@TLSGD.
+	(*tls_global_dynamic_64): Likewise.
+	(*tls_local_dynamic_base_32_gnu): Lowercase @TLSLDM.
+	(*tls_local_dynamic_base_64): Lowercase	@TLSLD.
+
+	* defaults.h (TLS_COMMON_ASM_OP): Provide default.
+	(ASM_OUTPUT_TLS_COMMON): Use it.
+	* config/i386/sol2-gas.h (TLS_COMMON_ASM_OP): Undef.
+
+	PR target/38118
+	* config.gcc (sparc*-*-solaris2*) [$gas=yes]: Add usegas.h to
+	tm_file.
+	* config/sparc/sol2.h (ASM_OUTPUT_ALIGNED_COMMON): Move ...
+	* config/sol2.h (ASM_OUTPUT_ALIGNED_COMMON): ... here.
+	* config/i386/sol2-10.h (ASM_OUTPUT_ALIGNED_COMMON): Redefine.
+	* config/i386/sol2.h (TARGET_SUN_TLS): Redefine.
+	(ASM_DECLARE_OBJECT_NAME) [!USE_GAS]: Redefine.
+
+2010-03-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/i386/i386.c (override_options): Don't accept
+	-mtls-dialect=sun any longer.
+	* config/i386/i386.h (TARGET_SUN_TLS): Define as 0.
+	* config/i386/i386.md (*tls_global_dynamic_32_sun): Remove.
+	(*tls_local_dynamic_base_32_sun): Likewise.
+	* config/i386/sol2.h (TARGET_SUN_TLS): Redefine.
+
+2010-03-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43508
+	* dwarf2out.c (mem_loc_descriptor): Don't ICE on
+	VEC_{MERGE,SELECT,CONCAT,DUPLICATE}.
+
+	PR debug/43479
+	* ira.c (adjust_cleared_regs): New function.
+	(update_equiv_regs): Adjust cleared_regs in DEBUG_INSNs.
+
+	PR debug/19192
+	PR debug/43479
+	* cfgexpand.c (gimple_assign_rhs_to_tree): Also set TREE_BLOCK
+	from gimple_block.
+	* expr.c (expand_expr_real): Restore previous
+	curr_insn_source_location and curr_insn_block after
+	expand_expr_real_1 call.
+	(expand_expr_real_1) <case SSA_NAME>: Call expand_expr_real
+	instead of expand_expr_real_1.
+
+2010-03-23  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/43413
+	* ira-color.c (setup_allocno_available_regs_num): Count prohibited
+	hard regs too.
+
 2010-03-22  James E. Wilson  <wilson@codesourcery.com>
 
 	PR target/43348

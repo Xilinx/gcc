@@ -2,7 +2,7 @@
 # Process this file with autoconf to generate a configuration script.
 
 # Copyright 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-# 2007, 2008, 2009 Free Software Foundation, Inc.
+# 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -2573,25 +2573,54 @@ foo:	.long	25
 	tls_first_minor=17
 	;;
   i[34567]86-*-*)
-    conftest_s='
-	.section ".tdata","awT",@progbits
+    case "$target" in
+      i[34567]86-*-solaris2.[56789]*)
+	# TLS was introduced in the Solaris 9 4/04 release but
+	# we do not enable it by default on Solaris 9 either.
+	if test "x$enable_tls" = xyes ; then
+	  on_solaris=yes
+	else
+	  enable_tls=no;
+	fi
+	;;
+      i[34567]86-*-solaris2.*)
+	on_solaris=yes
+	;;
+      *)
+	on_solaris=no
+	;;
+    esac
+    if test x$on_solaris = xyes && test x$gas_flag = xno; then
+      conftest_s='
+	.section .tdata,"awt",@progbits'
+      tls_first_major=0
+      tls_first_minor=0
+changequote([,])dnl
+      AC_DEFINE(TLS_SECTION_ASM_FLAG, 't',
+[Define to the flag used to mark TLS sections if the default (`T') doesn't work.])
+changequote(,)dnl
+    else
+      conftest_s='
+	.section ".tdata","awT",@progbits'
+      tls_first_major=2
+      tls_first_minor=14
+      tls_as_opt="--fatal-warnings"
+    fi
+    conftest_s="$conftest_s
 foo:	.long	25
 	.text
 	movl	%gs:0, %eax
-	leal	foo@TLSGD(,%ebx,1), %eax
-	leal	foo@TLSLDM(%ebx), %eax
-	leal	foo@DTPOFF(%eax), %edx
-	movl	foo@GOTTPOFF(%ebx), %eax
-	subl	foo@GOTTPOFF(%ebx), %eax
-	addl	foo@GOTNTPOFF(%ebx), %eax
-	movl	foo@INDNTPOFF, %eax
-	movl	$foo@TPOFF, %eax
-	subl	$foo@TPOFF, %eax
-	leal	foo@NTPOFF(%ecx), %eax'
-	tls_first_major=2
-	tls_first_minor=14
-	tls_as_opt=--fatal-warnings
-	;;
+	leal	foo@tlsgd(,%ebx,1), %eax
+	leal	foo@tlsldm(%ebx), %eax
+	leal	foo@dtpoff(%eax), %edx
+	movl	foo@gottpoff(%ebx), %eax
+	subl	foo@gottpoff(%ebx), %eax
+	addl	foo@gotntpoff(%ebx), %eax
+	movl	foo@indntpoff, %eax
+	movl	\$foo@tpoff, %eax
+	subl	\$foo@tpoff, %eax
+	leal	foo@ntpoff(%ecx), %eax"
+    ;;
   x86_64-*-*)
     conftest_s='
 	.section ".tdata","awT",@progbits
@@ -2971,12 +3000,19 @@ bar:
 	xor    %g1, %gdop_lox10(foo), %g1
 	ld    [[%l7 + %g1]], %g2, %gdop(foo)],
       [if test x$gcc_cv_ld != x \
-       && $gcc_cv_ld -o conftest conftest.o -G > /dev/null 2>&1 \
-       && (test x$gnu_ld_flag = xno \
-           || (test x$gcc_cv_objdump != x \
-               && $gcc_cv_objdump -s -j .text conftest.o 2> /dev/null \
-                  | grep ' 03000004 82186004 c405c001'> /dev/null 2>&1)); then
-	 gcc_cv_as_sparc_gotdata_op=yes
+       && $gcc_cv_ld -o conftest conftest.o -G > /dev/null 2>&1; then
+         if $gcc_cv_ld -v | grep GNU >/dev/null 2>&1; then
+           if test x$gcc_cv_objdump != x; then
+             if $gcc_cv_objdump -s -j .text conftest 2> /dev/null \
+                | grep ' 03000004 82186004 c405c001'> /dev/null 2>&1; then
+	       gcc_cv_as_sparc_gotdata_op=no
+             else
+	       gcc_cv_as_sparc_gotdata_op=yes
+             fi
+           fi
+         else
+	   gcc_cv_as_sparc_gotdata_op=yes
+         fi
        fi
        rm -f conftest],
       [AC_DEFINE(HAVE_AS_SPARC_GOTDATA_OP, 1,
