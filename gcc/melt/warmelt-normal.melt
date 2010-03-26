@@ -5142,10 +5142,11 @@ source location.}#
     (assert_msg "check sclabind" (is_a sclabind class_class_binding))
     (let ( (claobj (unsafe_get_field :cbind_class sclabind)) 
 	   (namsymdata (normal_symbol_data sname ncx sloc))
+	   (namstr (unsafe_get_field :named_name sname))
 	   (namstrdata
 	    (instance class_nrep_datastring
 		      :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
-		      :nstr_string (unsafe_get_field :named_name sname)
+		      :nstr_string namstr
 		      ))
 	   (claslots (make_multiple discr_multiple (obj_len claobj)))
 	   (cladata 
@@ -5185,6 +5186,27 @@ source location.}#
 	   (superdata (if (is_a superbind class_any_binding) 
 			  (normal_exp (unsafe_get_field :binder superbind) env ncx sloc)))
 	   )
+      (assert_msg "chechk namstr" (is_string namstr))
+      ;; Issue a warning if we have no super class and if the class is
+      ;; not predefined.
+      (if (and (null superbind)
+	       (null spredef))
+	  (warning_strv sloc "DEFCLASS of class without :SUPER -class" 
+			namstr))
+      ;; Issue a warning if namstr does not start with "CLASS_" to
+      ;; enforce a coding convention.
+      (let ( (:long dontstartwith_class 0)
+	     )
+	(code_chunk 
+	 startwithclass
+	 #{ $DONTSTARTWITH_CLASS 
+	      = strncmp (melt_string_str ((melt_ptr_t) $NAMSTR), 
+			 "CLASS_", strlen("CLASS_"));
+	 }#)
+	(if dontstartwith_class
+	    (warning_strv sloc "DEFCLASS-ed name should start with CLASS_ !" 
+			  namstr)))
+      ;;
       (assert_msg "check claobj" (is_a claobj class_class))
       (add_nctx_data ncx cladata)
       (add_nctx_data ncx namstrdata)

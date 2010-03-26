@@ -1,3 +1,10 @@
+2010-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-macro.melt: added :doc for defclass & defcmatcher.
+
+	* melt/warmelt-normal.melt: added warnings in defclass for classes
+	without super or with name not starting with CLASS_.
+	
 2010-03-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: install_method warns when bad arguments.
 

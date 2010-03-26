@@ -2079,7 +2079,11 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
       )
     ))
 (install_initial_macro 'defcmatcher mexpand_defcmatcher)
-(export_macro defcmatcher mexpand_defcmatcher)
+(export_macro defcmatcher mexpand_defcmatcher
+ :doc #{The $DEFCMATCHER macro defines pattern-matching operator by
+ their C expansion. Syntax is (DEFCMATCHER symbol match&ins-formals
+ out-formals state-symbol [:doc documentation] test-expansion
+ fill-expansion [operator-expansion]).}# )
 
 
 
@@ -2522,7 +2526,13 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	       :sclass_fldbinds ownfieldbindings
 	       ))))
 (install_initial_macro 'defclass mexpand_defclass)
-(export_macro defclass mexpand_defclass)
+(export_macro defclass mexpand_defclass
+	      :doc #{The $DEFCLASS macro defines a class. Syntax
+is (DEFCLASS symbol [:doc documentation] :super super-class :fields
+fields-list). Conventionally, the class name (i.e. the symbol) should
+preferably start with CLASS_. The fields' names should preferably be
+globally unique, and usually share a common prefix. See also
+$CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 
 ;;;;;;;;;;;;;;;; the definstance expander
 
