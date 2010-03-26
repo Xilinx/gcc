@@ -3160,7 +3160,6 @@ the data of the $STEP with an extra context $CTX.}#
 	    (put_fields mflag :mflag_setstep stepsetflag)
 	    (debug_msg stepsetflag  "translpat_inspat stepsetflag")
 	    (put_then_match laststep stepsetflag)
-	    (put_then_match stepsetflag stepgroup)
 	    (debug_msg stepgroup "translpat_inspat return stepgroup")
 	    (return stepgroup mflag)
 	    ))))))
@@ -4142,7 +4141,7 @@ the data of the $STEP with an extra context $CTX.}#
 	  (ncx (unsafe_get_field :mctx_normctxt matctx))
 	  (env (unsafe_get_field :mctx_env matctx))
 	  (varmap (make_mapobject discr_map_objects
-				  (+i 12 (*i 2 (mapobject_count (unsafe_get_field :mcase_varmap curscas)))))) 
+				  (+i 12 (*i 2 (mapobject_count (unsafe_get_field :mcase_varmap curmcase)))))) 
 	  (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
 	  (newenv (fresh_env env))
 	  )
@@ -4218,6 +4217,7 @@ the data of the $STEP with an extra context $CTX.}#
 	    (put_fields 
 	     stepsucc :mstepsuccess_varocc sortedvarocc))
 	  (debug_msg stepsucc "translate_matchcase stepsucc")
+	  (debug_msg mstep "translate_matchcase mstep before put_then")
 	  (put_then_match mstep stepsucc)
 	  (debug_msg mstep "translate_matchcase updated mstep")
 	  (if prevstep

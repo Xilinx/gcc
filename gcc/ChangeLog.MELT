@@ -1,4 +1,10 @@
 2010-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: in alternate matching the simple
+	instance match does not recurse infinitly! Removed bad
+	put_then_match in translpat_inspat!
+
+
+2010-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-macro.melt: added :doc for defclass & defcmatcher.
 
