@@ -2497,20 +2497,20 @@ then edge $MSTEP_THEN.}#
   :doc #{The $CLASS_MATCH_STEP_CLEAR is a step to clear the $MSTEP_CLEARDATA tuple of matched data.}#
   :fields (mstep_cleardata))
 
-(defclass class_match_step_assign_flag
+(defclass class_match_step_with_flag
   :super class_match_step_then
-  :doc #{The $CLASS_MATCH_STEP_ASSIGN_FLAG super-class assigns a match
-  flag $MSTEP_FLAG.}#
+  :doc #{The $CLASS_MATCH_STEP_WITH_FLAG super-class is for steps with a match
+  flag $MSTEP_FLAG, in particular flag assignments and flagged successes.}#
   :fields (mstep_flag))
 
 (defclass class_match_step_flag_set
-  :super class_match_step_assign_flag
+  :super class_match_step_with_flag
   :doc #{The $CLASS_MATCH_STEP_FLAG_SET sets to true a match flag
 $MSTEP_FLAG.}#
   :fields ())
 
 (defclass class_match_step_flag_operation
-  :super class_match_step_assign_flag
+  :super class_match_step_with_flag
   :doc #{The $CLASS_MATCH_STEP_FLAG_OPERATION sets the match flag according to flag arguments from the $MSTEP_FLAGARGS tuple.}#
   :fields (mstep_flagargs))
 
@@ -2529,14 +2529,14 @@ tuple of match flags.}#
   :fields ())
 
 
-(defclass class_match_step_success
-  :super class_match_step_then
-  :doc #{The $CLASS_MATCH_STEP_SUCCESS step represents the normalized
-action in a match. $MSTEPSU$MSTEPSUCCESS_FLAG is the flag
+(defclass class_match_step_success_when_flag
+  :super class_match_step_with_flag
+  :doc #{The $CLASS_MATCH_STEP_SUCCESS_WHEN_FLAG step represents the normalized
+action in a match. $MSTEP_FLAG is the flag
 conditionning the success. $MSTEPSUCCESS_VAROCC is the tuple of
 pattern variable occurrences, $MSTEPSUCCESS_BINDS is the list of local
 binders, and $MSTEPSUCCESS_BODY is the normalized body tuple.}#
-  :fields (mstepsuccess_flag
+  :fields (
 	   mstepsuccess_varocc
 	   mstepsuccess_binds
 	   mstepsuccess_body))
@@ -3948,10 +3948,11 @@ the data of the $STEP with an extra context $CTX.}#
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_stepsuccess (step mg)
   (debug_msg step "mgaltstep_stepsuccess step")
-  (assert_msg "check step" (is_a step class_match_step_success))
+  (assert_msg "check step" (is_a step class_match_step_success_when_flag))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
 	 (sthen (unsafe_get_field :mstep_then step))
+	 (sflag (unsafe_get_field :mstep_flag step))
 	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
 	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
 	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
@@ -3959,9 +3960,15 @@ the data of the $STEP with an extra context $CTX.}#
 	 (stepname (mapobject_get stepmap step))
 	 (thenname (if sthen (mapobject_get stepmap sthen)))
 	 (:long stephash (obj_hash step))
+	 (flagrank (get_field :mflag_rank sflag))
+	 (flagstring (get_field :mflag_string sflag))
+	 (flagloc (get_field :loca_location sflag))
+	 (argfstep (get_field :mflag_setstep sflag))
 	 (dis (discrim step))
 	 (clanam (get_field :named_name dis))
 	 )
+    (debug_msg sflag  "mgaltstep_stepsuccess sflag")
+    (assert_msg "check sflag" (is_a sflag class_match_flag))
     (add2out_strconst nodebuf "<tr><td><font color=\"firebrick\" face=\"Times-Roman Bold\" point-size=\"6\">")
     (code_chunk 
      outclanam
@@ -3974,6 +3981,14 @@ the data of the $STEP with an extra context $CTX.}#
     (add2sbuf_short_mixloc nodebuf loca)
     (add2out_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
+    (add2out_strconst nodebuf "<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size=\"7\">flag#")
+    (add2out_longdec nodebuf (get_int flagrank))
+    (add2out_strconst nodebuf " ")
+    (add2out_string nodebuf flagstring)
+    (add2out_strconst nodebuf "</font></td><td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf flagloc)
+    (add2sbuf_strconst nodebuf "</font></td></tr>")
+    (add2out_indentnl nodebuf 0)
     (if thenname
 	(progn
 	  (add2out_indentnl edgebuf 0)
@@ -3982,9 +3997,18 @@ the data of the $STEP with an extra context $CTX.}#
 	  (add2out_string edgebuf thenname)
 	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
 	  ))
+    (if (is_a argfstep class_match_step_with_flag)
+	(let ( (argfstepname (mapobject_get stepmap argfstep))
+	       )
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf argfstepname)
+	  (add2out_strconst edgebuf " /*argflag*/ -> ")
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " [ arrowhead=olnormal, color=chartreuse2, style=dotted ];")
+	  ))
     ))
 
-(install_method class_match_step_success  matchgraphic_altstep mgaltstep_stepsuccess)
+(install_method class_match_step_success_when_flag  matchgraphic_altstep mgaltstep_stepsuccess)
 ;;;;;;;;;;;;;;;;
 
 (defun mgaltstep_stepflagset (step mg)
@@ -4023,8 +4047,8 @@ the data of the $STEP with an extra context $CTX.}#
     (add2out_longdec nodebuf (get_int flagrank))
     (add2out_strconst nodebuf " ")
     (add2out_string nodebuf flagstring)
-    (add2out_strconst nodebuf "</font></td><td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\">")
-    (add2sbuf_short_mixloc nodebuf loca)
+    (add2out_strconst nodebuf "</font></td><td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\"> ")
+    (add2sbuf_short_mixloc nodebuf flagloc)
     (add2sbuf_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
     (if thenname
@@ -4092,7 +4116,7 @@ the data of the $STEP with an extra context $CTX.}#
 		   (add2sbuf_strconst nodebuf " ")
 		   (add2sbuf_longdec nodebuf argrank)
 		   ))
-	     (if (is_a argfstep class_match_step_assign_flag)
+	     (if (is_a argfstep class_match_step_with_flag)
 		 (let ( (argfstepname (mapobject_get stepmap argfstep))
 			)
 			(add2out_indentnl edgebuf 0)
@@ -4181,11 +4205,11 @@ the data of the $STEP with an extra context $CTX.}#
 	(let (
 	      (listvarocc (make_list discr_list))
 	      (newbindmap (get_field :env_bind newenv))
-	      (stepsucc (instance class_match_step_success
+	      (stepsucc (instance class_match_step_success_when_flag
 				  :loca_location sloc
 				  :mstep_data mdata
 				  :mstep_then ()
-				  :mstepsuccess_flag mflag
+				  :mstep_flag mflag
 				  :mstepsuccess_varocc ()
 				  :mstepsuccess_binds nbinds
 				  :mstepsuccess_body nbody
@@ -4566,7 +4590,7 @@ the data of the $STEP with an extra context $CTX.}#
 	   (add2out_indentnl nodebuf 0)
 	   (add2out_string nodebuf curstepname)
 	   (add2out_strconst nodebuf " [ margin=0, ")
-	   (if (is_a curstep class_match_step_success)
+	   (if (is_a curstep class_match_step_success_when_flag)
 	       (add2out_strconst nodebuf " style=\"filled\", bgcolor=\"palegreen\", ")
 	     )
 	   (add2out_strconst nodebuf "label=<<table border=\"1\" cellborder=\"1\"")

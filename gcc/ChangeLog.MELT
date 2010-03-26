@@ -1,8 +1,15 @@
 2010-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: class_match_step_assign_flag renamed
+	as class_match_step_with_flag and superclass of
+	class_match_step_success_when_flag which is the new name of
+	class_match_step_success. The field mstepsuccess_flag is removed,
+	we use mstep_flag instead.
+	mgaltstep_stepsuccess updated to better display success steps.
+
+2010-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: in alternate matching the simple
 	instance match does not recurse infinitly! Removed bad
 	put_then_match in translpat_inspat!
-
 
 2010-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
