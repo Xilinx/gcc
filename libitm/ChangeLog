@@ -1,3 +1,13 @@
+2010-03-26  Aldy Hernandez  <aldyh@redhat.com>
+
+	* configure.ac: Remove Linux futex support.
+	* configure.tgt (config_path): Same.
+	* Makefile.am: Same.
+	* config/linux: Remove entire directory.
+	* configure: Rebuild.
+	* Makefile.in: Rebuild.
+	* testsuite/Makefile.in: Rebuild.
+
 2010-03-09  Aldy Hernandez  <aldyh@redhat.com>
 
 	* retry.cc (decide_retry_strategy): Set state to STATE_SERIAL when

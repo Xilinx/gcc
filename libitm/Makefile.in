@@ -37,7 +37,6 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 @ARCH_X86_TRUE@am__append_1 = x86_sse.cc x86_avx.cc
-@ARCH_FUTEX_TRUE@am__append_2 = futex.cc
 subdir = .
 DIST_COMMON = $(am__configure_deps) $(srcdir)/../config.guess \
 	$(srcdir)/../config.sub $(srcdir)/../depcomp \
@@ -47,7 +46,17 @@ DIST_COMMON = $(am__configure_deps) $(srcdir)/../config.guess \
 	$(srcdir)/config.h.in $(srcdir)/libitm.spec.in \
 	$(top_srcdir)/configure ChangeLog
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/../config/acx.m4 \
+	$(top_srcdir)/../config/depstand.m4 \
+	$(top_srcdir)/../config/enable.m4 \
+	$(top_srcdir)/../config/lead-dot.m4 \
+	$(top_srcdir)/../config/mmap.m4 \
+	$(top_srcdir)/../config/multi.m4 \
+	$(top_srcdir)/../config/override.m4 \
+	$(top_srcdir)/../config/stdint.m4 \
+	$(top_srcdir)/../config/tls.m4 $(top_srcdir)/../ltoptions.m4 \
+	$(top_srcdir)/../ltsugar.m4 $(top_srcdir)/../ltversion.m4 \
+	$(top_srcdir)/../lt~obsolete.m4 $(top_srcdir)/acinclude.m4 \
 	$(top_srcdir)/../libtool.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -87,15 +96,13 @@ am__libitm_la_SOURCES_DIST = aatree.cc alloc.cc alloc_c.cc \
 	cachepage.cc eh_cpp.cc local.cc memcpy.cc memset.cc query.cc \
 	retry.cc rwlock.cc useraction.cc util.cc sjlj.S \
 	method-serial.cc method-readonly.cc method-wbetl.cc x86_sse.cc \
-	x86_avx.cc futex.cc
+	x86_avx.cc
 @ARCH_X86_TRUE@am__objects_1 = x86_sse.lo x86_avx.lo
-@ARCH_FUTEX_TRUE@am__objects_2 = futex.lo
 am_libitm_la_OBJECTS = aatree.lo alloc.lo alloc_c.lo alloc_cpp.lo \
 	barrier.lo beginend.lo clone.lo cacheline.lo cachepage.lo \
 	eh_cpp.lo local.lo memcpy.lo memset.lo query.lo retry.lo \
 	rwlock.lo useraction.lo util.lo sjlj.lo method-serial.lo \
-	method-readonly.lo method-wbetl.lo $(am__objects_1) \
-	$(am__objects_2)
+	method-readonly.lo method-wbetl.lo $(am__objects_1)
 libitm_la_OBJECTS = $(am_libitm_la_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/../depcomp
@@ -347,8 +354,7 @@ libitm_la_SOURCES = aatree.cc alloc.cc alloc_c.cc alloc_cpp.cc \
 	barrier.cc beginend.cc clone.cc cacheline.cc cachepage.cc \
 	eh_cpp.cc local.cc memcpy.cc memset.cc query.cc retry.cc \
 	rwlock.cc useraction.cc util.cc sjlj.S method-serial.cc \
-	method-readonly.cc method-wbetl.cc $(am__append_1) \
-	$(am__append_2)
+	method-readonly.cc method-wbetl.cc $(am__append_1)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -457,7 +463,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cachepage.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clone.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eh_cpp.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/futex.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/local.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memcpy.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memset.Plo@am__quote@

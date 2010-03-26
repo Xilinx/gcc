@@ -47,7 +47,3 @@ libitm_la_SOURCES += x86_sse.cc x86_avx.cc
 x86_sse.lo : XCFLAGS += -msse
 x86_avx.lo : XCFLAGS += -mavx
 endif
-
-if ARCH_FUTEX
-libitm_la_SOURCES += futex.cc
-endif

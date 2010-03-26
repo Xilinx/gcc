@@ -166,7 +166,6 @@ AH_BOTTOM(
 
 # Check to see if -pthread or -lpthread is needed.  Prefer the former.
 # In case the pthread.h system header is not found, this test will fail.
-# ??? Not needed if linux futexes are used.
 XPCFLAGS=""
 CFLAGS="$CFLAGS -pthread"
 AC_LINK_IFELSE(
@@ -195,8 +194,6 @@ case "$host" in
 	Define if the POSIX Semaphores do not work on your system.)
     ;;
 esac
-
-GCC_LINUX_FUTEX(:)
 
 # See if we support thread-local storage.
 GCC_CHECK_TLS
@@ -253,7 +250,6 @@ fi
 AC_SUBST(link_itm)
 
 AM_CONDITIONAL([ARCH_X86], [test "$ARCH" = x86])
-AM_CONDITIONAL([ARCH_FUTEX], [test $enable_linux_futex = yes])
 
 AC_CONFIG_FILES(Makefile testsuite/Makefile libitm.spec)
 AC_OUTPUT
