@@ -1,5 +1,5 @@
 @c Copyright (C) 1988,1989,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,
-@c 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+@c 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -5717,13 +5717,13 @@ If this hook is defined, the autovectorizer will use the
 conversion. Otherwise, it will return @code{NULL_TREE}.
 @end deftypefn
 
-@deftypefn {Target Hook} tree TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION (unsigned @var{code}, tree @var{vec_type_out}, tree @var{vec_type_in})
-This hook should return the decl of a function that implements the vectorized
-variant of the builtin function with builtin function code @var{code} or
-@code{NULL_TREE} if such a function is not available.  The value of @var{code}
-is one of the enumerators in @code{enum built_in_function}.  The return type of
-the vectorized function shall be of vector type @var{vec_type_out} and the
-argument types should be @var{vec_type_in}.
+@deftypefn {Target Hook} tree TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION (tree @var{fndecl}, tree @var{vec_type_out}, tree @var{vec_type_in})
+This hook should return the decl of a function that implements the
+vectorized variant of the builtin function with builtin function code
+@var{code} or @code{NULL_TREE} if such a function is not available.
+The value of @var{fndecl} is the builtin function declaration.  The
+return type of the vectorized function shall be of vector type
+@var{vec_type_out} and the argument types should be @var{vec_type_in}.
 @end deftypefn
 
 @deftypefn {Target Hook} bool TARGET_SUPPORT_VECTOR_MISALIGNMENT (enum machine_mode @var{mode}, const_tree @var{type}, int @var{misalignment}, bool @var{is_packed})
@@ -6786,6 +6786,18 @@ containing the assembler operation to identify the following data as
 uninitialized, writable small data.
 @end defmac
 
+@defmac TLS_COMMON_ASM_OP
+If defined, a C expression whose value is a string containing the
+assembler operation to identify the following data as thread-local
+common data.  The default is @code{".tls_common"}.
+@end defmac
+
+@defmac TLS_SECTION_ASM_FLAG
+If defined, a C expression whose value is a character constant
+containing the flag used to mark a section as a TLS section.  The
+default is @code{'T'}.
+@end defmac
+
 @defmac INIT_SECTION_ASM_OP
 If defined, a C expression whose value is a string, including spacing,
 containing the assembler operation to identify the following data as
@@ -7136,6 +7148,14 @@ should define @code{TARGET_ASM_FILE_END} to this function.  If you
 need to do other things in that hook, have your hook function call
 this function.
 @end deftypefun
+
+@deftypefn {Target Hook} void TARGET_ASM_CODE_END (void)
+Output to @code{asm_out_file} any text which is needed before emitting
+unwind info and debug info at the end of a file.  Some targets emit
+here PIC setup thunks that cannot be emitted at the end of file,
+because they couldn't have unwind info then.  The default is to output
+nothing.
+@end deftypefn
 
 @defmac ASM_COMMENT_START
 A C string constant describing how to begin a comment in the target

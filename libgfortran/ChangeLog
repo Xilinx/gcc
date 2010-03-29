@@ -1,3 +1,18 @@
+2010-03-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43551
+	* io/unix.c (buf_write): Set physical_offset after lseek.
+
+2010-03-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43517
+	* io/read.c (read_x): Return if seen EOR condition.
+
+2010-03-21  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/43409
+	* io/io.h: Fix type of size in st_parameter_inquire structure.
+
 2010-03-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR fortran/43409

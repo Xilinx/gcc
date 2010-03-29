@@ -1,3 +1,448 @@
+2010-03-29  Jie Zhang  <jie@codesourcery.com>
+
+	PR 43564
+	* gcc.dg/pr43564.c: New test.
+
+2010-03-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43551
+	* gfortran.dg/direct_io_12.f90: New test.
+
+2010-03-28  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/43505
+	* gfortran.dg/pr43505.f90: New testcase.
+
+2010-03-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR tree-optimization/43528
+	* gcc.target/i386/pr43528.c: New test.
+
+2010-03-26  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/43381
+	* gcc.dg/parm-impl-decl-3.c: New test.
+
+2010-03-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43509
+	* g++.dg/cpp0x/parse1.C: New.
+
+2010-03-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/43524
+	* gcc.target/i386/pr43524.c: New test.
+
+2010-03-26  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc/testsuite/gcc.dg/tree-ssa/loadpre1.c: Delete trailing
+	whitespace, rename main to foo.
+	* gcc/testsuite/gcc.dg/tree-ssa/loadpre14.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/loadpre15.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/loadpre16.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/loadpre17.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/loadpre19.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/loadpre20.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/loadpre3.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/loadpre5.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/ssa-pre-1.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/ssa-pre-4.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/ssa-pre-6.c: Likewise.
+
+2010-03-26  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/43327
+	* g++.dg/other/crash-10.C: New test.
+	* g++.dg/other/crash-11.C: New test.
+
+2010-03-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43517
+	* gfortran.dg/read_eof_7.f90: New test.
+
+2010-03-25  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	PR objc/35165
+	PR testsuite/43512
+	* objc-obj-c++-shared: New directory.
+	* objc-obj-c++-shared/Object1-implementation.h: New file.
+	* objc-obj-c++-shared/Object1.h: New file.
+	* objc-obj-c++-shared/Protocol1.h: New file.
+	* objc-obj-c++-shared/next-abi.h: New file.
+	* objc-obj-c++-shared/next-mapping.h: New file.
+	* objc/execute/next_mapping.h: Delete.
+	* objc.dg/special/special.exp: For all targets run the tests with
+	-fgnu-runtime, for darwin targets also run the tests with
+	-fnext-runtime.
+	* objc.dg/dg.exp: Ditto.
+	* obj-c++.dg/dg.exp: Ditto.
+	* objc/execute/forward-1.m: Use shared wrapper headers (Object1.h,
+	Protocol1.h) and next-mapping.h as required.  Amend testcase to
+	include use of updated NeXT interface.
+	* objc/execute/formal_protocol-5.m: Ditto.
+	* objc/execute/protocol-isEqual-2.m: Ditto.
+	* objc/execute/protocol-isEqual-4.m: Ditto.
+	* objc/execute/class-11.m: Use shared wrapper headers (Object1.h,
+	Protocol1.h) and next-mapping.h as required.
+	* objc/execute/object_is_class.m: Ditto.
+	* objc/execute/enumeration-1.m: Ditto.
+	* objc/execute/class-13.m: Ditto.
+	* objc/execute/formal_protocol-2.m: Ditto.
+	* objc/execute/formal_protocol-4.m: Ditto.
+	* objc/execute/class-1.m: Ditto.
+	* objc/execute/bycopy-1.m: Ditto.
+	* objc/execute/formal_protocol-6.m: Ditto.
+	* objc/execute/bycopy-3.m: Ditto.
+	* objc/execute/class-3.m: Ditto.
+	* objc/execute/bf-11.m: Ditto.
+	* objc/execute/class-5.m: Ditto.
+	* objc/execute/bf-13.m: Ditto.
+	* objc/execute/class-7.m: Ditto.
+	* objc/execute/bf-15.m: Ditto.
+	* objc/execute/class-9.m: Ditto.
+	* objc/execute/bf-17.m: Ditto.
+	* objc/execute/bf-19.m: Ditto.
+	* objc/execute/IMP.m: Ditto.
+	* objc/execute/exceptions/catchall-1.m: Ditto.
+	* objc/execute/exceptions/trivial.m: Ditto.
+	* objc/execute/exceptions/finally-1.m: Ditto.
+	* objc/execute/exceptions/local-variables-1.m: Ditto.
+	* objc/execute/exceptions/foward-1.m: Ditto.
+	* objc/execute/bf-2.m: Ditto.
+	* objc/execute/string1.m: Ditto.
+	* objc/execute/bf-4.m: Ditto.
+	* objc/execute/informal_protocol.m: Ditto.
+	* objc/execute/string3.m: Ditto.
+	* objc/execute/bf-6.m: Ditto.
+	* objc/execute/bf-8.m: Ditto.
+	* objc/execute/class-tests-1.h: Ditto.
+	* objc/execute/protocol-isEqual-1.m: Ditto.
+	* objc/execute/protocol-isEqual-3.m: Ditto.
+	* objc/execute/_cmd.m: Ditto.
+	* objc/execute/function-message-1.m: Ditto.
+	* objc/execute/bf-20.m: Ditto.
+	* objc/execute/bf-common.h: Ditto.
+	* objc/execute/np-2.m: Ditto.
+	* objc/execute/class-10.m: Ditto.
+	* objc/execute/class-12.m: Ditto.
+	* objc/execute/enumeration-2.m: Ditto.
+	* objc/execute/class-14.m: Ditto.
+	* objc/execute/encode-1.m: Ditto.
+	* objc/execute/formal_protocol-1.m: Ditto.
+	* objc/execute/formal_protocol-3.m: Ditto.
+	* objc/execute/accessing_ivars.m: Ditto.
+	* objc/execute/bycopy-2.m: Ditto.
+	* objc/execute/class-2.m: Ditto.
+	* objc/execute/bf-10.m: Ditto.
+	* objc/execute/formal_protocol-7.m: Ditto.
+	* objc/execute/root_methods.m: Ditto.
+	* objc/execute/class-4.m: Ditto.
+	* objc/execute/bf-12.m: Ditto.
+	* objc/execute/class-6.m: Ditto.
+	* objc/execute/bf-14.m: Ditto.
+	* objc/execute/nested-func-1.m: Ditto.
+	* objc/execute/class-8.m: Ditto.
+	* objc/execute/private.m: Ditto.
+	* objc/execute/bf-16.m: Ditto.
+	* objc/execute/bf-18.m: Ditto.
+	* objc/execute/load-3.m: Ditto.
+	* objc/execute/compatibility_alias.m: Ditto.
+	* objc/execute/bf-1.m: Ditto.
+	* objc/execute/no_clash.m: Ditto.
+	* objc/execute/bf-3.m: Ditto.
+	* objc/execute/string2.m: Ditto.
+	* objc/execute/bf-5.m: Ditto.
+	* objc/execute/string4.m: Ditto.
+	* objc/execute/bf-7.m: Ditto.
+	* objc/execute/object_is_meta_class.m: Ditto.
+	* objc/execute/bf-9.m: Ditto.
+	* objc/execute/bf-21.m: Ditto.
+	* objc/execute/cascading-1.m: Ditto.
+	* objc/execute/trivial.m: Ditto.
+	* objc/execute/np-1.m: Ditto.
+	* objc/compile/trivial.m: Ditto.
+	* objc/execute/class_self-2.m: Include <stdlib.h>.
+	* objc/execute/forward-1.x: Do not XFAIL for 32bit powerpc-darwin.
+	* objc.dg/desig-init-1.m: Use shared wrapper headers (Object1.h,
+	Protocol1.h) and next-mapping.h as required. XFAIL run if NeXT 
+	and 64bit. Use new NeXT interface as required.
+	* objc.dg/special/unclaimed-category-1.m: Ditto.
+	* objc.dg/special/unclaimed-category-1.h: Ditto.
+	* objc.dg/special/unclaimed-category-1a.m: Ditto.
+	* objc.dg/func-ptr-1.m: Ditto.
+	* objc.dg/stret-1.m: Ditto.	
+	* objc.dg/encode-2.m: Ditto.
+	* objc.dg/category-1.m: Ditto.
+	* objc.dg/encode-3.m: Ditto.
+	* objc.dg/call-super-3.m: Ditto.
+	* objc.dg/method-3.m: Ditto.
+	* objc.dg/func-ptr-2.m: Ditto.
+	* objc.dg/lookup-1.m: Ditto.
+	* objc.dg/encode-4.m: Ditto.
+	* objc.dg/fix-and-continue-1.m: Ditto.
+	* objc.dg/proto-lossage-3.m: Ditto.
+	* objc.dg/method-13.m: Ditto.
+	* objc.dg/proto-qual-1.m: Ditto.
+	* objc.dg/zero-link-3.m: Ditto.
+	* objc.dg/bitfield-1.m: Ditto.
+	* objc.dg/va-meth-1.m: Ditto.
+	* objc.dg/super-class-3.m: Ditto.
+	* objc.dg/call-super-1.m: Ditto.
+	* objc.dg/type-size-2.m: Ditto.
+	* objc.dg/method-10.m: Ditto.
+	* objc.dg/defs.m: Ditto.	
+	* objc.dg/const-str-3.m: Ditto.
+	* objc.dg/try-catch-6.m: Use shared wrapper headers (Object1.h,
+	Protocol1.h) and next-mapping.h as required. Use new NeXT 
+	interface as required.
+	* objc.dg/super-class-4.m: Ditto.
+	* objc.dg/comp-types-8.m: Ditto.
+	* objc.dg/call-super-2.m: Ditto.
+	* objc.dg/objc-fast-4.m: Ditto.
+	* objc.dg/method-6.m: Ditto.
+	* objc.dg/const-str-3.m: Ditto.
+	* objc.dg/const-str-7.m: Ditto.
+	* objc.dg/method-15.m: Ditto.
+	* objc.dg/method-19.m: Ditto.
+	* objc.dg/sync-1.m: Ditto.
+	* objc.dg/layout-1.m: Ditto.
+	* objc.dg/bitfield-3.m: Ditto.
+	* objc.dg/try-catch-3.m: Ditto.
+	* objc.dg/try-catch-7.m: Ditto.
+	* objc.dg/comp-types-10.m: Ditto.
+	* objc.dg/selector-2.: Ditto.
+	* objc.dg/method-7.m: Ditto.
+	* objc.dg/typedef-alias-1.m: Ditto.
+	* objc.dg/proto-lossage-2.m: Ditto.
+	* objc.dg/comp-types-11.m: Ditto.
+	* objc.dg/sizeof-1.m: Ditto.
+	* objc.dg/method-17.m: Ditto.
+	* objc.dg/bitfield-5.m: Ditto.
+	* objc.dg/try-catch-1.m: Ditto.
+	* objc.dg/encode-5.m: Ditto.
+	* objc.dg/fix-and-continue-2.m: Ditto.
+	* objc.dg/method-9.m: Ditto.
+	* objc.dg/isa-field-1.m: Ditto.
+	* objc.dg/local-decl-2.m: Ditto.
+	* objc.dg/objc-gc-4.m: Ditto.
+	* objc.dg/type-stream-1.m: Skip for NeXT runtime.
+	* objc.dg/gnu-runtime-3.m: Ditto.
+	* objc.dg/encode-7.m: Ditto.
+	* objc.dg/encode-8.m: Ditto.
+	* objc.dg/selector-3.m: Ditto.
+	* objc.dg/gnu-runtime-1.m: Ditto.
+	* objc.dg/const-str-12.m: Ditto.
+	* objc.dg/gnu-runtime-2.m: Ditto.
+	* objc.dg/no-extra-load.m: Skip for gnu-runtime.
+	* objc.dg/selector-1.m: Ditto.
+	* objc.dg/stubify-2.m: Ditto.
+	* objc.dg/zero-link-1.m: Ditto.
+	* objc.dg/stret-2.m: Ditto.
+	* objc.dg/zero-link-2.m: Ditto.
+	* objc.dg/next-runtime-1.m: Ditto.
+	* objc.dg/symtab-1.m: Ditto.
+	* objc.dg/stubify-1.m: Ditto.
+	* objc.dg/bitfield-2.m: Ditto.
+	* objc.dg/try-catch-10.m: Apply to both runtimes.
+	* objc.dg/const-str-1.m: Ditto.
+	* objc.dg/image-info.m: Ditto.
+	* objc.dg/encode-9.m: Ditto.
+	* objc.dg/pragma-1.m: Apply test to all targets.
+	* objc.dg/const-str-4.m: Ditto.
+	* objc.dg/const-str-8.m: Ditto.
+	* objc.dg/super-class-2.m: Ditto.
+	* objc.dg/try-catch-5.m: Ditto.
+	* objc.dg/const-str-10.m: Use shared wrapper headers (Object1.h,
+	Protocol1.h) and next-mapping.h as required. Use new NeXT
+	interface as required.  Skip for gnu-runtime.  Test for .quad
+	at m64.
+	* objc.dg/const-str-11.m: Ditto.
+	* objc.dg/const-str-9.m: Ditto.
+	* objc.dg/method-4.m: Skip for 64Bit NeXT.
+	* objc.dg/encode-1.m: Remove redundant -lobjc.
+	* objc.dg/try-catch-9.m: Tidy space.
+	* obj-c++.dg/method-19.mm: Use shared wrapper headers (Object1.h,
+	Protocol1.h) and next-mapping.h as required. XFAIL run if NeXT
+	and 64bit. Use new NeXT interface as required.
+	* obj-c++.dg/template-4.mm: Ditto.
+	* obj-c++.dg/defs.mm: Ditto.
+	* obj-c++.dg/basic.mm: Ditto.
+	* obj-c++.dg/encode-4.mm: Ditto.
+	* obj-c++.dg/method-17.mm: Ditto.
+	* obj-c++.dg/proto-lossage-3.mm: Ditto.
+	* obj-c++.dg/cxx-class-1.mm: Ditto.
+	* obj-c++.dg/method-10.mm: Ditto.
+	* obj-c++.dg/va-meth-1.mm: Ditto.
+	* obj-c++.dg/encode-5.mm: Ditto.
+	* obj-c++.dg/lookup-2.mm: Ditto.
+	* obj-c++.dg/template-3.mm: Ditto.
+	* obj-c++.dg/proto-qual-1.mm: Ditto.
+	* obj-c++.dg/qual-types-1.m: Ditto.
+	* obj-c++.dg/cxx-scope-1.mm: Ditto.
+	* obj-c++.dg/template-1.mm: Ditto.
+	* obj-c++.dg/encode-6.mm: Ditto.
+	* obj-c++.dg/bitfield-2.mm:  Use shared wrapper headers (Object1.h,
+	Protocol1.h) and next-mapping.h as required. Use new NeXT
+	interface as required.
+	* obj-c++.dg/except-1.mm: Ditto.
+	* obj-c++.dg/const-str-7.mm: Ditto.
+	* obj-c++.dg/ivar-list-semi.mm: Ditto.
+	* obj-c++.dg/cxx-scope-2.mm: Ditto.
+	* obj-c++.dg/selector-2.mm: Ditto.
+	* obj-c++.dg/isa-field-1.mm: Ditto.
+	* obj-c++.dg/try-catch-1.mm: Ditto.
+	* obj-c++.dg/local-decl-1.mm: Ditto.
+	* obj-c++.dg/try-catch-9.mm: Ditto.
+	* obj-c++.dg/no-extra-load.mm: Ditto.
+	* obj-c++.dg/selector-5.mm: Ditto.
+	* obj-c++.dg/method-12.mm: Ditto.
+	* obj-c++.dg/try-catch-11.mm: Ditto.
+	* obj-c++.dg/comp-types-11.mm: Ditto.
+	* obj-c++.dg/bitfield-3.mm: Ditto.
+	* obj-c++.dg/method-6.mm: Ditto.
+	* obj-c++.dg/super-class-2.mm: Ditto.
+	* obj-c++.dg/method-21.mm: Ditto.
+	* obj-c++.dg/const-str-8.mm: Ditto.
+	* obj-c++.dg/try-catch-7.mm: Ditto.
+	* obj-c++.dg/method-15.mm: Ditto.
+	* obj-c++.dg/layout-1.mm: Ditto.
+	* obj-c++.dg/cxx-ivars-1.mm: Ditto.
+	* obj-c++.dg/const-str-3.mm: Ditto.
+	* obj-c++.dg/try-catch-2.mm: Ditto.
+	* obj-c++.dg/objc-gc-3.mm: Ditto.
+	* obj-c++.dg/fix-and-continue-2.mm: Ditto.
+	* obj-c++.dg/bitfield-1.mm: Ditto.
+	* obj-c++.dg/selector-6.mm: Ditto.
+	* obj-c++.dg/method-13.mm: Ditto.
+	* obj-c++.dg/comp-types-12.mm: Ditto.
+	* obj-c++.dg/bitfield-4.mm: Ditto.
+	* obj-c++.dg/try-catch-8.mm: Ditto.
+	* obj-c++.dg/method-2.mm: Ditto.
+	* obj-c++.dg/cxx-ivars-2.mm: Ditto.
+	* obj-c++.dg/typedef-alias-1.mm: Ditto.
+	* obj-c++.dg/const-str-4.mm: Ditto.
+	* obj-c++.dg/proto-lossage-2.mm: Ditto.
+	* obj-c++.dg/try-catch-3.mm: Ditto.
+	* obj-c++.dg/comp-types-9.mm: Ditto.
+	* obj-c++.dg/gnu-runtime-2.mm: Skip if NeXT runtime.
+	* obj-c++.dg/gnu-runtime-3.mm: Ditto.
+	* obj-c++.dg/gnu-runtime-1.mm: Ditto.
+	* objc.dg/zero-link-2.m: Skip if gnu runtime. Use shared wrapper
+	headers (Object1.h, Protocol1.h) and next-mapping.h as required.
+	Use new NeXT interface as required.
+	* obj-c++.dg/const-str-10.mm: Ditto.
+	* obj-c++.dg/const-str-11.mm: Ditto.
+	* obj-c++.dg/const-str-9.mm: Ditto.
+	* obj-c++.dg/method-11.mm: Ditto.
+	* obj-c++.dg/cxx-ivars-3.mm: Skip if gnu runtime. Use shared wrapper
+	headers (Object1.h, Protocol1.h) and next-mapping.h as required.
+	Use new NeXT interface as required. XFAIL run if NeXT and 64bit.
+	* obj-c++.dg/encode-8.mm: Remove redundant -lobjc.
+	* obj-c++.dg/const-str-1.mm: Run for NeXT as well as gnu.
+
+2010-03-25  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/43206
+	* g++.dg/template/typedef30.C: New test case.
+
+2010-03-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/43385
+	* gcc.c-torture/execute/pr43385.c: New test.
+
+2010-03-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/strncpy-fix-1.c: New test.
+
+2010-03-24  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	PR testsuite/41609
+	* lib/objc-torture.exp (objc-set-runtime-options): New.
+	* objc/execute/execute.exp: Check runtime options on each pass.
+	* objc/execute/exceptions/exceptions.exp: Ditto.
+	* objc/compile/compile.exp: Ditto.
+
+	PR testsuite/42348
+	* lib/target-supports.exp: Add support for ObjC/ObjC++ tools in
+	standard tests.
+	(check_effective_target_objc2): New proc.
+	(check_effective_target_next_runtime): New proc.
+	* lib/objc.exp: Determine which runtime is in force and support it.
+	* lib/obj-c++.exp: Ditto.
+
+2010-03-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43502
+	* g++.dg/cpp0x/lambda/lambda-debug.C: New.
+
+2010-03-24  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/ipa/ipa-1.c: Delete trailing spaces, put the call to f into
+	a loop.
+	* gcc.dg/ipa/ipa-2.c: Likewise.
+	* gcc.dg/ipa/ipa-3.c: Likewise.
+	* gcc.dg/ipa/ipa-4.c: Likewise.
+	* gcc.dg/ipa/ipa-5.c: Likewise.
+	* gcc.dg/ipa/ipa-7.c: Likewise.
+	* gcc.dg/ipa/ipa-6.c: Delete trailing spaces, put the call to foo into
+	a loop.
+	* gcc.dg/ipa/ipacost-2.c: Delete trailing spaces, put the call to
+	i_can_not_be_propagated_fully2 into a loop.
+	* gcc.dg/ipa/ipa-8.c: New test.
+	* g++.dg/ipa/iinline-1.C: Put the call to docalling into a loop.
+
+2010-03-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/19192
+	PR debug/43479
+	* gcc.dg/guality/pr43479.c: New test.
+	* gcc.dg/debug/dwarf2/inline2.c (third): Make a a global var
+	and add volatile keyword.
+
+2010-03-23  Mike Stump  <mikestump@comcast.net>
+
+	* g++.dg/warn/Wstrict-aliasing-float-ref-int-obj.C: Enhance portability.
+
+2010-03-23  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/ext/altivec-17.C: Adjust error message.
+
+	* g++.dg/cpp0x/lambda/lambda-const-neg.C: Adjust for non-static op().
+	* g++.dg/cpp0x/lambda/lambda-conv.C: Likewise.
+	* g++.dg/cpp0x/lambda/lambda-mangle.C: Likewise.
+	* g++.dg/cpp0x/lambda/lambda-non-const.C: Likewise.
+	* g++.dg/cpp0x/lambda/lambda-conv2.C: New.
+	* g++.dg/cpp0x/lambda/lambda-conv3.C: New.
+
+2010-03-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43333
+	* g++.dg/ext/is_pod.C: Pass -std=c++0x.
+	* g++.dg/ext/is_pod_98.C: New.
+
+	PR c++/43281
+	* g++.dg/cpp0x/auto18.C: New.
+
+	* gcc.dg/pr36997.c: Adjust error message.
+	* g++.dg/ext/vector9.C: Likewise.
+	* g++.dg/conversion/simd3.C: Likewise.
+	* g++.dg/other/error23.C: Likewise.
+
+2010-03-22  Michael Matz  <matz@suse.de>
+
+	PR middle-end/43475
+	* gfortran.dg/pr43475.f90: New testcase.
+
+2010-03-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43390
+	* gfortran.fortran-torture/execute/pr43390.f90: New testcase.
+
+2010-03-21  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.target/powerpc/ppc-sdata-1.c: Require nonpic.
+	* gcc.target/powerpc/ppc-sdata-2.c: Likewise.
+
 2010-03-20  Simon Martin  <simartin@users.sourceforge.net>
 	    Michael Matz  <matz@suse.de>
 

@@ -2791,15 +2791,23 @@ add_value_chains (decl_or_value dv, rtx loc)
 }
 
 /* If CSELIB_VAL_PTR of value DV refer to VALUEs, add backlinks from those
-   VALUEs to DV.  */
+   VALUEs to DV.  Add the same time get rid of ASM_OPERANDS from locs list,
+   that is something we never can express in .debug_info and can prevent
+   reverse ops from being used.  */
 
 static void
 add_cselib_value_chains (decl_or_value dv)
 {
-  struct elt_loc_list *l;
+  struct elt_loc_list **l;
 
-  for (l = CSELIB_VAL_PTR (dv_as_value (dv))->locs; l; l = l->next)
-    for_each_rtx (&l->loc, add_value_chain, dv_as_opaque (dv));
+  for (l = &CSELIB_VAL_PTR (dv_as_value (dv))->locs; *l;)
+    if (GET_CODE ((*l)->loc) == ASM_OPERANDS)
+      *l = (*l)->next;
+    else
+      {
+	for_each_rtx (&(*l)->loc, add_value_chain, dv_as_opaque (dv));
+	l = &(*l)->next;
+      }
 }
 
 /* If decl or value DVP refers to VALUE from *LOC, remove backlinks
@@ -6852,14 +6860,13 @@ vt_expand_loc_callback (rtx x, bitmap regs, int max_depth, void *data)
 		result = pc_rtx;
 		break;
 	      }
-	    else
-	      {
-		result = cselib_expand_value_rtx_cb (loc->loc, regs, max_depth,
-						     vt_expand_loc_callback,
-						     data);
-		if (result)
-		  break;
-	      }
+	  }
+	else
+	  {
+	    result = cselib_expand_value_rtx_cb (loc->loc, regs, max_depth,
+						 vt_expand_loc_callback, data);
+	    if (result)
+	      break;
 	  }
       if (dummy && (result || var->var_part[0].cur_loc))
 	var->cur_loc_changed = true;
@@ -7091,8 +7098,12 @@ emit_note_insn_var_location (void **varp, void *data)
 				    (int) initialized);
   else if (n_var_parts == 1)
     {
-      rtx expr_list
-	= gen_rtx_EXPR_LIST (VOIDmode, loc[0], GEN_INT (offsets[0]));
+      rtx expr_list;
+
+      if (offsets[0] || GET_CODE (loc[0]) == PARALLEL)
+	expr_list = gen_rtx_EXPR_LIST (VOIDmode, loc[0], GEN_INT (offsets[0]));
+      else
+	expr_list = loc[0];
 
       note_vl = gen_rtx_VAR_LOCATION (VOIDmode, decl, expr_list,
 				      (int) initialized);

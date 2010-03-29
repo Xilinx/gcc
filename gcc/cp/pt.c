@@ -493,6 +493,9 @@ add_to_template_args (tree args, tree extra_args)
   int i;
   int j;
 
+  if (args == NULL_TREE)
+    return extra_args;
+
   extra_depth = TMPL_ARGS_DEPTH (extra_args);
   new_args = make_tree_vec (TMPL_ARGS_DEPTH (args) + extra_depth);
 
@@ -2837,6 +2840,25 @@ get_primary_template_innermost_parameters (const_tree t)
 	(DECL_TEMPLATE_PARMS (TI_TEMPLATE (template_info)));
 
   return parms;
+}
+
+/* Return the template parameters of the LEVELth level from the full list
+   of template parameters PARMS.  */
+
+tree
+get_template_parms_at_level (tree parms, int level)
+{
+  tree p;
+  if (!parms
+      || TREE_CODE (parms) != TREE_LIST
+      || level > TMPL_PARMS_DEPTH (parms))
+    return NULL_TREE;
+
+  for (p = parms; p; p = TREE_CHAIN (p))
+    if (TMPL_PARMS_DEPTH (p) == level)
+      return p;
+
+  return NULL_TREE;
 }
 
 /* Returns the template arguments of T if T is a template instantiation,
@@ -9921,6 +9943,7 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 
   if (type
       && TREE_CODE (t) != TYPENAME_TYPE
+      && TREE_CODE (t) != TEMPLATE_TYPE_PARM
       && TREE_CODE (t) != IDENTIFIER_NODE
       && TREE_CODE (t) != FUNCTION_TYPE
       && TREE_CODE (t) != METHOD_TYPE)
@@ -15035,6 +15058,13 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
       /* Matched cases are handled by the ARG == PARM test above.  */
       return 1;
 
+    case VAR_DECL:
+      /* A non-type template parameter that is a variable should be a
+	 an integral constant, in which case, it whould have been
+	 folded into its (constant) value. So we should not be getting
+	 a variable here.  */
+      gcc_unreachable ();
+
     case TYPE_ARGUMENT_PACK:
     case NONTYPE_ARGUMENT_PACK:
       {
@@ -15917,6 +15947,18 @@ most_specialized_class (tree type, tree tmpl)
 
 	  --processing_template_decl;
 	}
+
+      partial_spec_args =
+	  coerce_template_parms (DECL_INNERMOST_TEMPLATE_PARMS (tmpl),
+				 add_to_template_args (outer_args,
+						       partial_spec_args),
+				 tmpl, tf_none,
+				 /*require_all_args=*/true,
+				 /*use_default_args=*/true);
+
+      if (partial_spec_args == error_mark_node)
+	return error_mark_node;
+
       spec_args = get_class_bindings (parms,
 				      partial_spec_args,
 				      args);
@@ -18240,6 +18282,20 @@ listify_autos (tree type, tree auto_node)
   return tsubst (type, argvec, tf_warning_or_error, NULL_TREE);
 }
 
+/* walk_tree helper for do_auto_deduction.  */
+
+static tree
+contains_auto_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
+		 void *type)
+{
+  /* Is this a variable with the type we're looking for?  */
+  if (DECL_P (*tp)
+      && TREE_TYPE (*tp) == type)
+    return *tp;
+  else
+    return NULL_TREE;
+}
+
 /* Replace occurrences of 'auto' in TYPE with the appropriate type deduced
    from INIT.  AUTO_NODE is the TEMPLATE_TYPE_PARM used for 'auto' in TYPE.  */
 
@@ -18248,7 +18304,18 @@ do_auto_deduction (tree type, tree init, tree auto_node)
 {
   tree parms, tparms, targs;
   tree args[1];
+  tree decl;
   int val;
+
+  /* The name of the object being declared shall not appear in the
+     initializer expression.  */
+  decl = cp_walk_tree_without_duplicates (&init, contains_auto_r, type);
+  if (decl)
+    {
+      error ("variable %q#D with %<auto%> type used in its own "
+	     "initializer", decl);
+      return error_mark_node;
+    }
 
   /* [dcl.spec.auto]: Obtain P from T by replacing the occurrences of auto
      with either a new invented type template parameter U or, if the

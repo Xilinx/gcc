@@ -1,6 +1,6 @@
 /* Statement Analysis and Transformation for Vectorization
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software
-   Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
    and Ira Rosen <irar@il.ibm.com>
 
@@ -1189,7 +1189,6 @@ tree
 vectorizable_function (gimple call, tree vectype_out, tree vectype_in)
 {
   tree fndecl = gimple_call_fndecl (call);
-  enum built_in_function code;
 
   /* We only handle functions that do not read or clobber memory -- i.e.
      const or novops ones.  */
@@ -1201,8 +1200,7 @@ vectorizable_function (gimple call, tree vectype_out, tree vectype_in)
       || !DECL_BUILT_IN (fndecl))
     return NULL_TREE;
 
-  code = DECL_FUNCTION_CODE (fndecl);
-  return targetm.vectorize.builtin_vectorized_function (code, vectype_out,
+  return targetm.vectorize.builtin_vectorized_function (fndecl, vectype_out,
 						        vectype_in);
 }
 
@@ -4415,6 +4413,14 @@ get_vectype_for_scalar_type (tree scalar_type)
   /* We can't build a vector type of elements with alignment bigger than
      their size.  */
   if (nbytes < TYPE_ALIGN_UNIT (scalar_type))
+    return NULL_TREE;
+
+  /* If we'd build a vector type of elements whose mode precision doesn't
+     match their types precision we'll get mismatched types on vector
+     extracts via BIT_FIELD_REFs.  This effectively means we disable
+     vectorization of bool and/or enum types in some languages.  */
+  if (INTEGRAL_TYPE_P (scalar_type)
+      && GET_MODE_BITSIZE (inner_mode) != TYPE_PRECISION (scalar_type))
     return NULL_TREE;
 
   /* FORNOW: Only a single vector size per mode (UNITS_PER_SIMD_WORD)
