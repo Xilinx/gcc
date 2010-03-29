@@ -621,7 +621,8 @@ abstract syntax of patterns.}#
 ;;; or patterns
 (defclass class_source_pattern_or
   :doc #{The internal $CLASS_SOURCE_PATTERN_OR is for abstract syntax
-of $OR patterns. Field $ORPAT_DISJ gives the tuple of pattern disjuncts.}#
+of $OR patterns. Pattern syntax is ?(OR subpattern...). Field
+$ORPAT_DISJ gives the tuple of pattern disjuncts.}#
   :super class_source_pattern
   :fields (orpat_disj		    ;tuple of pattern disjuncts
 ))
@@ -630,9 +631,20 @@ of $OR patterns. Field $ORPAT_DISJ gives the tuple of pattern disjuncts.}#
 (defclass class_source_pattern_and
   :super class_source_pattern
   :doc #{The internal $CLASS_SOURCE_PATTERN_AND is for abstract syntax
-of $AND patterns. Field $ANDPAT_CONJ gives the tuple of pattern conjuncts.}#
+of $AND patterns. Pattern syntax is ?(AND subpattern...). Field
+$ANDPAT_CONJ gives the tuple of pattern conjuncts.}#
   :fields (andpat_conj			;tuple of pattern conjoncts
 ))
+
+;;; when patterns
+(defclass class_source_pattern_when
+  :super class_source_pattern
+  :doc #{The internal $CLASS_SOURCE_PATTERN_WHEN is for abstract
+syntax of tested patterns. Pattern syntax is ?(WHEN sub-pattern
+condition). Field $WHENPAT_SUBPAT is the sub-pattern and $WHENPAT_COND
+is the condition.}#
+  :fields (whenpat_subpat 
+	   whenpat_cond))
 
 
 
@@ -665,7 +677,7 @@ giving the constant.}#
 ;;; simple source pattern constant
 
 (defclass class_source_pattern_construct
-  :doc #{The internal $CLASS_SOURCE_PATTERN_CONSTRUCT is for
+  :doc #{The internal $CLASS_SOURCE_PATTERN_CONSTRUCT is the superclass for
 constructive pattern abstract syntax. The field $CTPAT_SUBPA is for
 sub-patterns abstract syntax.}#
   :super class_source_pattern
@@ -1140,9 +1152,14 @@ the object-map for pattern variables.}#
 
 
 (defun patternexpand_pairlist_as_tuple (pairlist env pctx psloc)
-  (pairlist_to_multiple pairlist discr_multiple
-			(lambda (x) (patternexpand_1 x env pctx psloc)))
-  )
+  (debug_msg pairlist "patternexpand_pairlist_as_tuple pairlist")
+  (let ( (restup (pairlist_to_multiple 
+		  pairlist discr_multiple
+		  (lambda (x) (patternexpand_1 x env pctx psloc))))
+	 )
+    (debug_msg restup "patternexpand_pairlist_as_tuple return restup")
+    (return restup)
+    ))
 
 
 ;; utility function to expand a pairlist for a pattern matcher with both input & output arguments

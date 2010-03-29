@@ -1,3 +1,15 @@
+2010-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tmatch-6.melt: replace old integer_multiple
+	cmatcher with some_integer_multiple & integer_greater_than with
+	some_integer_greater_than.
+
+	* melt/warmelt-macro.melt: added debug_msg to
+	patternexpand_pairlist_as_tuple.
+	Adding class_source_pattern_when.
+
+	* melt/warmelt-normatch.melt: added mgaltstep_stepclear. Better
+	transpat_orpat.
+	
 2010-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: class_match_step_assign_flag renamed
 	as class_match_step_with_flag and superclass of

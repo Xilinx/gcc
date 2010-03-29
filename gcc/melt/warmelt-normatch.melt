@@ -3348,7 +3348,7 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "check mcase" (is_a mcase class_match_case))
   (let (
 	(firststep ())
-	(laststep ())
+	(prevstep ())
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
 	(sdisj (unsafe_get_field :orpat_disj recv))
 	(mctxt (unsafe_get_field :mcase_mctxt mcase))
@@ -3372,7 +3372,6 @@ the data of the $STEP with an extra context $CTX.}#
 	)
     (debug_msg flagstep "translpat_orpat flagstep")
     (assert_msg "check sdisj" (is_multiple sdisj))
-    (compile_warning "translpat_orpat should register a variable hook")
     (foreach_in_multiple
      (sdisj)
      (curdisj :long disjix)
@@ -3395,41 +3394,49 @@ the data of the $STEP with an extra context $CTX.}#
 	      ))
 	   )
        (list_prepend mhandlers varhandler)
+       (debug_msg curdisj "translpat_orpat curdisj before translate_pattern")
        (multicall 
 	(disjstep disjflag)
 	(translate_pattern curdisj mdata mcase varmap sloc)
 	(debug_msg disjstep "translpat_orpat disjstep")
 	(debug_msg disjflag "translpat_orpat disjflag")
 	(if disjflag
-	    (list_append flagstep disjflag))
+	    (list_append flaglist disjflag))
 	(if disjstep
-	    (if (>i (mapobject_count newvarmap) 0)
-		(let ( 
-		      (sortedsymbs (mapobject_sorted_attribute_tuple newvarmap))
-		      (sortedmdatas
-		       (multiple_map 
-			sortedsymbs
-			(lambda (cursymb :long symbix)
-			  (mapobject_get newvarmap cursymb)) 
-			))
-		      (erasestep (instance class_match_step_clear
-					   :loca_location (get_field :loca_location disjstep)
-					   :mstep_then ()
-					   :mstep_cleardata sortedmdatas
-					   )
-				  )
-		       )
-		  (debug_msg erasestep "translpat_orpat erasestep")
-		  (put_else_match disjstep erasestep)
-		  (compile_warning "translpat_orpat to be completed")
-		  )))
-	(if (is_a disjstep class_match_step_test)
-	    (progn
-	      (if (null firststep) 
-		  (setq firststep disjstep))
+	    (progn 
+	      (cond 
+	       ( (is_a prevstep class_match_step_clear)
+		 (debug_msg prevstep "translpat_orpat prevstep clear so putthen")
+		 (put_then_match prevstep disjstep))
+	       ( prevstep
+		 (debug_msg prevstep "translpat_orpat prevstep notnull so putelse")
+		 (put_else_match prevstep disjstep)))
+	      (if (>i (mapobject_count newvarmap) 0)
+		  (let ( 
+			(sortedsymbs (mapobject_sorted_attribute_tuple newvarmap))
+			(sortedmdatas
+			 (multiple_map 
+			  sortedsymbs
+			  (lambda (cursymb :long symbix)
+			    (mapobject_get newvarmap cursymb)) 
+			  ))
+			(erasestep (instance class_match_step_clear
+					     :loca_location (get_field :loca_location disjstep)
+					     :mstep_then ()
+					     :mstep_cleardata sortedmdatas
+					     )
+				   )
+			)
+		    (debug_msg erasestep "translpat_orpat erasestep")
+		    (put_else_match disjstep erasestep)
+		    (setq prevstep erasestep)
+		    (debug_msg prevstep "translpat_orpat prevstep is erasestep")
+		    )
+		(progn
+		  (setq prevstep disjstep)
+		  (debug_msg prevstep "translpat_orpat prevstep is disjstep")
+		  ))
 	      (list_append steplist disjstep)
-	      (if laststep (put_else_match laststep disjstep))
-	      (setq laststep disjstep)
 	      ))
 	)
        (debug_msg newvarmap "translpat_orpat newvarmap")
@@ -3438,14 +3445,17 @@ the data of the $STEP with an extra context $CTX.}#
 	 (assert_msg "check oldvarhdler" (== oldvarhdler varhandler))
 	 ))
      ) ;;;; end foreach disjunct
+    (debug_msg steplist "translpat_orpat final steplist")
     (put_fields stepgroup
 		:mstgroup_start firststep
 		:mstgroup_then (list_to_multiple steplist)
 		:mstgroup_else ()
 		)
+    (debug_msg flaglist "translpat_orpat final flaglist")
     (put_fields flagstep :mstep_flagargs (list_to_multiple flaglist discr_multiple))
-    (debug_msg stepgroup "translpat_orpat return stepgroup")
+    (debug_msg flagstep "translpat_orpat final flagstep")
     (put_then_match stepgroup flagstep)
+    (debug_msg stepgroup "translpat_orpat return stepgroup")
     (return stepgroup mflag)
     ))
 (install_method class_source_pattern_or translate_pattern translpat_orpat)
@@ -4011,6 +4021,64 @@ the data of the $STEP with an extra context $CTX.}#
 (install_method class_match_step_success_when_flag  matchgraphic_altstep mgaltstep_stepsuccess)
 ;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;
+(defun mgaltstep_stepclear (step mg)
+  (debug_msg step "mgaltstep_stepclear step")
+  (assert_msg "check step" (is_a step class_match_step_clear))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (loca (unsafe_get_field :loca_location step))
+	 (sthen (unsafe_get_field :mstep_then step))
+	 (scleardata (unsafe_get_field :mstep_cleardata step))
+	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
+	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
+	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
+	 (stepmap (unsafe_get_field :mchgx_stepnamemap mg))
+	 (stepname (mapobject_get stepmap step))
+	 (thenname (if sthen (mapobject_get stepmap sthen)))
+	 (:long stephash (obj_hash step))
+	 (dis (discrim step))
+	 (clanam (get_field :named_name dis))
+	 )
+    (add2out_strconst nodebuf "<tr><td><font color=\"SaddleBrown\" face=\"Times-Roman Bold\" point-size=\"6\">")
+    (code_chunk 
+     outclanam
+     #{ /* $OUTCLANAM */
+     meltgc_add_out ((melt_ptr_t) $NODEBUF,
+		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
+     }#)
+    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf loca)
+    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (add2out_strconst nodebuf "<tr><td><font color=\"LimeGreen\" face=\"Times-Roman Bold\" point-size=\"6\">")
+    (foreach_in_multiple
+     (scleardata)
+     (curcdata :long cix)
+     (if (>i cix 0) (add2out_strconst nodebuf " "))
+     (let ( (cdatanam  (mapobject_get datamap curcdata)) 
+	    )
+       (add2out_string nodebuf cdatanam)
+       (add2out_indentnl edgebuf 0)
+       (add2out_string edgebuf cdatanam)
+       (add2out_strconst edgebuf " /*cleared data*/ -> ")
+       (add2out_string edgebuf stepname)
+       (add2out_strconst edgebuf " [ arrowhead=open,")
+       (add2out_strconst edgebuf " color=violet, style=dotted ];")
+     ))
+    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_indentnl nodebuf 0)
+    (if thenname
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out_string edgebuf stepname)
+	  (add2out_strconst edgebuf " /*then*/ -> ")
+	  (add2out_string edgebuf thenname)
+	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
+	  ))
+    ))
+(install_method class_match_step_clear matchgraphic_altstep mgaltstep_stepclear)
+
 (defun mgaltstep_stepflagset (step mg)
   (debug_msg step "mgaltstep_stepflagset step")
   (assert_msg "check step" (is_a step class_match_step_flag_set))
@@ -4140,6 +4208,8 @@ the data of the $STEP with an extra context $CTX.}#
 
 (install_method class_match_step_flag_operation matchgraphic_altstep mgaltstep_stepflagoper)
 
+
+
 ;;;;;;;;;;;;;;;;
 
 
@@ -4258,6 +4328,15 @@ the data of the $STEP with an extra context $CTX.}#
 
 
 
+(defun order_data_step_flag_altmatch (mdata mcasetup firststep sloc)
+  (debug_msg mdata "order_data_step_flag_altmatch mdata")
+  (debug_msg mcasetup "order_data_step_flag_altmatch mcasetup")
+  (debug_msg firststep "order_data_step_flag_altmatch firststep")
+  (shortbacktrace_dbg "@$@unimplemented order_data_step_flag_altmatch" 15)
+  ;; should return datatup steptup flagtup
+  )
+
+;;; normalize a match alternate
 (defun normexp_altmatch (recv env ncx psloc)
   (assert_msg "check match recv" (is_a recv class_source_match))
   (assert_msg "check env" (is_a env class_environment))
@@ -4267,6 +4346,7 @@ the data of the $STEP with an extra context $CTX.}#
 	 (smatsx (unsafe_get_field :smat_matchedx recv))
 	 (scases (unsafe_get_field :smat_cases recv))
 	 (:long nbcases (multiple_length scases))
+	 (firststep ())
 	 )
     (debug_msg smatsx "normexp_altmatch smatsx")
     (multicall
@@ -4329,7 +4409,10 @@ the data of the $STEP with an extra context $CTX.}#
 	       )
 	  (debug_msg curstep "normexp_altmatch after translate_matchcase curstep")
 	  (if curstep (setq prevstep curstep))
+	  (if (null firststep)
+	      (setq firststep curstep))
 	)))
+       (debug_msg firststep "normexp_altmatch firststep")
        ;;
        (debug_msg mdata "normexp_altmatch updated mdata")
        (if (need_dbg 1)
@@ -4338,10 +4421,14 @@ the data of the $STEP with an extra context $CTX.}#
 	     (debug_msg dotprefix "normexp_match dotprefix")
 	     (if (is_string dotprefix) 
 		 (mg_altdraw_graphviz mdata dotprefix))))
+       ;;
+       (multicall
+	(datatup steptup flagtup)
+	(order_data_step_flag_altmatch mdata mcasetup firststep sloc)
        (error_plain sloc "@@unimplemented normexp_altmatch")
        (compile_warning "@@unimplemented normexp_altmatch")
        (return)
-       ))))
+       )))))
 
 (defun alternate_match_optset (optsymb :cstring opts)
   (debug_msg optsymb "alternate_match_optset optsymb")

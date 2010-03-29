@@ -10,7 +10,6 @@
 |#
 
 ; this works
-#|
 (defun testnameofsymbol (symb)
   (match symb (
                ?(instance class_symbol :named_name 
@@ -26,7 +25,7 @@
            clanam)))
 
 (debug_msg (testnameofclassoffield disc_sender) "testnameofclassoffield disc_sender")
-|#
+
 
 ;; (defun retrievename (nob)
 ;;  (match nob (?(instance class_named :named_name ?fnam)
@@ -42,7 +41,7 @@
            )
          (return name))))
 
-#|
+
 (defun testnameof (obt)
   (match obt
 	 (?(and
@@ -63,8 +62,8 @@
 
 (defun test_or (ob :long i)
   (match i
-         ( ?(or ?(integer_multiple 3 ?jj)
-                ?(integer_greater_than 7))
+         ( ?(or ?(some_integer_multiple 3 ?jj)
+                ?(some_integer_greater_than 7))
             (put_int ob jj)
            ob)
 ))
@@ -75,8 +74,7 @@
 (debug_msg (test_or 'thirdfail 1) "test_or thirdfail")
 
 
-(compile_warning "ignoring rest of file")
-(comment
+
 
 ;; iparse_field crash the MELT translator :-(
 (defun iparse_field (iparser env)
@@ -130,6 +128,6 @@
              (error_plain fldloc "expecting field in infix notation")))))
 
 
-)
-|#
+
+
 ;;; eof tmatch-6.melt
