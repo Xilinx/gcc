@@ -1,3 +1,100 @@
+2010-03-30  Johannes Singler  <singler@kit.edu>
+
+        * include/parallel/random_shuffle.h
+        (__parallel_random_shuffle_drs) : Take as many threads as
+        possible, i. e. favor parallelism over cache efficiency.
+        Use own PRNG also for the 1 thread case.
+
+2010-03-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/unordered_map: Clean-up includes and guards.
+	* include/debug/unordered_set: Likewise.
+	* include/debug/list: Likewise.
+	* include/profile/unordered_map: Likewise.
+	* include/profile/unordered_set: Likewise.
+
+2010-03-29  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/43458
+	* testsuite/26_numerics/headers/cmath/c99_classification_macros_c.cc:
+	Xfail hppa*-*-hpux*.
+
+2010-03-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/xml/manual/profile_mode.xml (Profile Diagnostics): Correct
+	cols.
+	* doc/xml/manual/using.xml (C++ 1998 Library Headers): Add missing
+	c5 colspec.
+	(C++ 1998 Library Headers for C Library Facilities): Likewise.
+	(C++ 200x Library Headers): Likewise.
+
+2010-03-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/unordered_map.h (operator==, operator!=): Add per N3068.
+	* include/bits/unordered_set.h (operator==, operator!=): Likewise.
+	* include/debug/unordered_map (operator==, operator!=): Likewise.
+	* include/debug/unordered_set: Likewise.
+	* include/profile/unordered_map: Likewise.
+	* include/profile/unordered_set: Likewise.
+	* testsuite/23_containers/unordered_map/operators/1.cc: New.
+	* testsuite/23_containers/unordered_multimap/operators/1.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/operators/2.cc: Likewise.
+	* testsuite/23_containers/unordered_set/operators/1.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/operators/1.cc: Likewise.
+
+2010-03-25  John Lakos  <jlakos@bloomberg.net>
+	    Pablo Halpern  <phalpern@halpernwightsoftware.com>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/hashtable_policy.h (struct _Equality_base): Add.
+	* include/bits/hashtable.h (_Hashtable<>): Derive from the latter.
+
+2010-03-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/util/testsuite_tr1.h (NType, TType, SLType, PODType): Add.
+	* testsuite/20_util/is_trivial/value.cc: Adjust.
+	* testsuite/20_util/is_standard_layout/value.cc: Likewise.
+	* testsuite/20_util/is_pod/value.cc: Likewise.
+
+2010-03-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/20_util/is_trivial/value.cc: New.
+	* testsuite/20_util/is_standard_layout/value.cc: Likewise.
+	* testsuite/20_util/is_pod/value.cc: Extend.
+
+2010-03-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_algobase.h (lower_bound(_ForwardIterator,
+	_ForwardIterator, const _Tp&, _Compare)): Move...
+	* include/bits/stl_algo.h: ... here.
+
+2010-03-22  Johannes Singler  <singler@kit.edu>
+
+        * include/parallel/numeric (inner_product, partial_sum):
+        Precede subsequent call with _GLIBCXX_STD_P:: to avoid ambiguity
+        between __gnu_parallel:: and std::
+        * include/parallel/algobase.h (equal): Likewise.
+        * include/parallel/algo.h (find_first_of, search_n, merge, nth_element,
+        partial_sort, max_element, min_element): Likewise.
+        * include/parallel/partial_sum.h (__parallel_partial_sum_linear):
+        Qualify accumulate call with __gnu_parallel::.
+
+2010-03-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/parallel/base.h (_PseudoSequence): Do not forward declare.
+	(_VoidFunctor): Remove, unused.
+	(__median_of_three_iterators): Take __comp by value.
+	(_PseudoSequenceIterator<>::operator++(int)): Do not const qualify
+	the return type.
+	(_PseudoSequenceIterator<>::operator!=): Fix return type to bool.
+
+2010-03-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/parallel/base.h (_Less): Use std::less.
+	(_Plus): Likewise use std::plus.
+	(_Multiplies): Likewise use std::multiplies.
+	* include/parallel/numeric: Adjust.
+
 2010-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* testsuite/17_intro/freestanding.cc: Avoid -Wall warnings.

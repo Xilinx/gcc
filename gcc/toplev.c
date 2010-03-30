@@ -1084,6 +1084,10 @@ compile_file (void)
   /* Write out any pending weak symbol declarations.  */
   weak_finish ();
 
+  /* This must be at the end before unwind and debug info.
+     Some target ports emit PIC setup thunks here.  */
+  targetm.asm_out.code_end ();
+
   /* Do dbx symbols.  */
   timevar_push (TV_SYMOUT);
 
@@ -2144,6 +2148,10 @@ process_options (void)
 	       "for correctness");
       flag_omit_frame_pointer = 0;
     }
+
+  /* Save the current optimization options.  */
+  optimization_default_node = build_optimization_node ();
+  optimization_current_node = optimization_default_node;
 }
 
 /* This function can be called multiple times to reinitialize the compiler

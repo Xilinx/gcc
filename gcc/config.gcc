@@ -1498,11 +1498,11 @@ iq2000*-*-elf*)
         ;;
 lm32-*-elf*)
         tm_file="dbxelf.h elfos.h ${tm_file}"
-	tmake_file="${tmake_file} lm32/t-fprules-softfp soft-fp/t-softfp"
+	tmake_file="${tmake_file} lm32/t-lm32 lm32/t-fprules-softfp soft-fp/t-softfp"
         ;;
 lm32-*-uclinux*)
         tm_file="dbxelf.h elfos.h ${tm_file} linux.h lm32/uclinux-elf.h"
-	tmake_file="${tmake_file} lm32/t-fprules-softfp soft-fp/t-softfp"
+	tmake_file="${tmake_file} lm32/t-lm32 lm32/t-fprules-softfp soft-fp/t-softfp"
         ;;
 m32r-*-elf*)
 	tm_file="dbxelf.h elfos.h svr4.h newlib-stdint.h ${tm_file}"
@@ -2411,6 +2411,9 @@ sparc*-*-solaris2*)
 		tmake_file="$tmake_file t-slibgcc-elf-ver"
 	else
 		tmake_file="$tmake_file t-slibgcc-sld"
+	fi
+	if test x$gas = xyes; then
+		tm_file="usegas.h ${tm_file}"
 	fi
 	c_target_objs="sol2-c.o"
 	cxx_target_objs="sol2-c.o"
