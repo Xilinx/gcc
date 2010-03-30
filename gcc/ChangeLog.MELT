@@ -1,3 +1,7 @@
+2010-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: added computation of the ctype of
+	the match, with a warning on mismatches.
+
 2010-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmatch-6.melt: replace old integer_multiple
 	cmatcher with some_integer_multiple & integer_greater_than with
