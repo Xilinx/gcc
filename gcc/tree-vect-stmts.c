@@ -1,6 +1,6 @@
 /* Statement Analysis and Transformation for Vectorization
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software
-   Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
    and Ira Rosen <irar@il.ibm.com>
 
@@ -1189,7 +1189,6 @@ tree
 vectorizable_function (gimple call, tree vectype_out, tree vectype_in)
 {
   tree fndecl = gimple_call_fndecl (call);
-  enum built_in_function code;
 
   /* We only handle functions that do not read or clobber memory -- i.e.
      const or novops ones.  */
@@ -1201,8 +1200,7 @@ vectorizable_function (gimple call, tree vectype_out, tree vectype_in)
       || !DECL_BUILT_IN (fndecl))
     return NULL_TREE;
 
-  code = DECL_FUNCTION_CODE (fndecl);
-  return targetm.vectorize.builtin_vectorized_function (code, vectype_out,
+  return targetm.vectorize.builtin_vectorized_function (fndecl, vectype_out,
 						        vectype_in);
 }
 
@@ -1270,7 +1268,7 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt)
 
       /* We can only handle calls with arguments of the same type.  */
       if (rhs_type
-	  && rhs_type != TREE_TYPE (op))
+	  && !types_compatible_p (rhs_type, TREE_TYPE (op)))
 	{
 	  if (vect_print_dump_info (REPORT_DETAILS))
 	    fprintf (vect_dump, "argument types differ.");
@@ -3865,7 +3863,8 @@ vectorizable_condition (gimple stmt, gimple_stmt_iterator *gsi,
 
   /* We do not handle two different vector types for the condition
      and the values.  */
-  if (TREE_TYPE (TREE_OPERAND (cond_expr, 0)) != TREE_TYPE (vectype))
+  if (!types_compatible_p (TREE_TYPE (TREE_OPERAND (cond_expr, 0)),
+			   TREE_TYPE (vectype)))
     return false;
 
   if (TREE_CODE (then_clause) == SSA_NAME)

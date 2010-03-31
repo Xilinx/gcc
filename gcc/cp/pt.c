@@ -493,6 +493,9 @@ add_to_template_args (tree args, tree extra_args)
   int i;
   int j;
 
+  if (args == NULL_TREE)
+    return extra_args;
+
   extra_depth = TMPL_ARGS_DEPTH (extra_args);
   new_args = make_tree_vec (TMPL_ARGS_DEPTH (args) + extra_depth);
 
@@ -2839,6 +2842,25 @@ get_primary_template_innermost_parameters (const_tree t)
   return parms;
 }
 
+/* Return the template parameters of the LEVELth level from the full list
+   of template parameters PARMS.  */
+
+tree
+get_template_parms_at_level (tree parms, int level)
+{
+  tree p;
+  if (!parms
+      || TREE_CODE (parms) != TREE_LIST
+      || level > TMPL_PARMS_DEPTH (parms))
+    return NULL_TREE;
+
+  for (p = parms; p; p = TREE_CHAIN (p))
+    if (TMPL_PARMS_DEPTH (p) == level)
+      return p;
+
+  return NULL_TREE;
+}
+
 /* Returns the template arguments of T if T is a template instantiation,
    NULL otherwise.  */
 
@@ -3549,6 +3571,9 @@ end_template_parm_list (tree parms)
       next = TREE_CHAIN (parm);
       TREE_VEC_ELT (saved_parmlist, nparms) = parm;
       TREE_CHAIN (parm) = NULL_TREE;
+      if (TREE_CODE (TREE_VALUE (parm)) == TYPE_DECL)
+	TEMPLATE_TYPE_PARM_SIBLING_PARMS (TREE_TYPE (TREE_VALUE (parm))) =
+	      current_template_parms;
     }
 
   --processing_template_parmlist;
@@ -4526,6 +4551,9 @@ push_template_decl_real (tree decl, bool is_friend)
 
 	    if (current == decl)
 	      current = ctx;
+	    else if (current == NULL_TREE)
+	      /* Can happen in erroneous input.  */
+	      break;
 	    else
 	      current = (TYPE_P (current)
 			 ? TYPE_CONTEXT (current)
@@ -4597,9 +4625,6 @@ template arguments to %qD do not match original template %qD",
 	  tree parm = TREE_VALUE (TREE_VEC_ELT (parms, i));
 	  if (TREE_CODE (parm) == TEMPLATE_DECL)
 	    DECL_CONTEXT (parm) = tmpl;
-
-	  if (TREE_CODE (TREE_TYPE (parm)) == TEMPLATE_TYPE_PARM)
-	    DECL_CONTEXT (TYPE_NAME (TREE_TYPE (parm))) = tmpl;
 	}
     }
 
@@ -15036,6 +15061,13 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
       /* Matched cases are handled by the ARG == PARM test above.  */
       return 1;
 
+    case VAR_DECL:
+      /* A non-type template parameter that is a variable should be a
+	 an integral constant, in which case, it whould have been
+	 folded into its (constant) value. So we should not be getting
+	 a variable here.  */
+      gcc_unreachable ();
+
     case TYPE_ARGUMENT_PACK:
     case NONTYPE_ARGUMENT_PACK:
       {
@@ -15445,13 +15477,10 @@ more_specialized_fn (tree pat1, tree pat2, int len)
 	 than the type from the parameter template (as described above)
 	 that type is considered to be more specialized than the other. If
 	 neither type is more cv-qualified than the other then neither type
-	 is more specialized than the other."
+	 is more specialized than the other."  */
 
-         We check same_type_p explicitly because deduction can also succeed
-         in both directions when there is a nondeduced context.  */
       if (deduce1 && deduce2
-	  && quals1 != quals2 && quals1 >= 0 && quals2 >= 0
-	  && same_type_p (arg1, arg2))
+	  && quals1 != quals2 && quals1 >= 0 && quals2 >= 0)
 	{
 	  if ((quals1 & quals2) == quals2)
 	    lose2 = true;
@@ -15918,6 +15947,18 @@ most_specialized_class (tree type, tree tmpl)
 
 	  --processing_template_decl;
 	}
+
+      partial_spec_args =
+	  coerce_template_parms (DECL_INNERMOST_TEMPLATE_PARMS (tmpl),
+				 add_to_template_args (outer_args,
+						       partial_spec_args),
+				 tmpl, tf_none,
+				 /*require_all_args=*/true,
+				 /*use_default_args=*/true);
+
+      if (partial_spec_args == error_mark_node)
+	return error_mark_node;
+
       spec_args = get_class_bindings (parms,
 				      partial_spec_args,
 				      args);

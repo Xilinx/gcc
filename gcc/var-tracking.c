@@ -729,6 +729,65 @@ struct adjust_mem_data
   rtx side_effects;
 };
 
+/* Helper for adjust_mems.  Return 1 if *loc is unsuitable for
+   transformation of wider mode arithmetics to narrower mode,
+   -1 if it is suitable and subexpressions shouldn't be
+   traversed and 0 if it is suitable and subexpressions should
+   be traversed.  Called through for_each_rtx.  */
+
+static int
+use_narrower_mode_test (rtx *loc, void *data)
+{
+  rtx subreg = (rtx) data;
+
+  if (CONSTANT_P (*loc))
+    return -1;
+  switch (GET_CODE (*loc))
+    {
+    case REG:
+      if (cselib_lookup (*loc, GET_MODE (SUBREG_REG (subreg)), 0))
+	return 1;
+      return -1;
+    case PLUS:
+    case MINUS:
+    case MULT:
+      return 0;
+    case ASHIFT:
+      if (for_each_rtx (&XEXP (*loc, 0), use_narrower_mode_test, data))
+	return 1;
+      else
+	return -1;
+    default:
+      return 1;
+    }
+}
+
+/* Transform X into narrower mode MODE from wider mode WMODE.  */
+
+static rtx
+use_narrower_mode (rtx x, enum machine_mode mode, enum machine_mode wmode)
+{
+  rtx op0, op1;
+  if (CONSTANT_P (x))
+    return lowpart_subreg (mode, x, wmode);
+  switch (GET_CODE (x))
+    {
+    case REG:
+      return lowpart_subreg (mode, x, wmode);
+    case PLUS:
+    case MINUS:
+    case MULT:
+      op0 = use_narrower_mode (XEXP (x, 0), mode, wmode);
+      op1 = use_narrower_mode (XEXP (x, 1), mode, wmode);
+      return simplify_gen_binary (GET_CODE (x), mode, op0, op1);
+    case ASHIFT:
+      op0 = use_narrower_mode (XEXP (x, 0), mode, wmode);
+      return simplify_gen_binary (ASHIFT, mode, op0, XEXP (x, 1));
+    default:
+      gcc_unreachable ();
+    }
+}
+
 /* Helper function for adjusting used MEMs.  */
 
 static rtx
@@ -822,18 +881,36 @@ adjust_mems (rtx loc, const_rtx old_rtx, void *data)
       amd->store = store_save;
       mem = simplify_replace_fn_rtx (addr, old_rtx, adjust_mems, data);
       if (mem == SUBREG_REG (loc))
-	return loc;
+	{
+	  tem = loc;
+	  goto finish_subreg;
+	}
       tem = simplify_gen_subreg (GET_MODE (loc), mem,
 				 GET_MODE (SUBREG_REG (loc)),
 				 SUBREG_BYTE (loc));
       if (tem)
-	return tem;
+	goto finish_subreg;
       tem = simplify_gen_subreg (GET_MODE (loc), addr,
 				 GET_MODE (SUBREG_REG (loc)),
 				 SUBREG_BYTE (loc));
-      if (tem)
-	return tem;
-      return gen_rtx_raw_SUBREG (GET_MODE (loc), addr, SUBREG_BYTE (loc));
+      if (tem == NULL_RTX)
+	tem = gen_rtx_raw_SUBREG (GET_MODE (loc), addr, SUBREG_BYTE (loc));
+    finish_subreg:
+      if (MAY_HAVE_DEBUG_INSNS
+	  && GET_CODE (tem) == SUBREG
+	  && (GET_CODE (SUBREG_REG (tem)) == PLUS
+	      || GET_CODE (SUBREG_REG (tem)) == MINUS
+	      || GET_CODE (SUBREG_REG (tem)) == MULT
+	      || GET_CODE (SUBREG_REG (tem)) == ASHIFT)
+	  && GET_MODE_CLASS (GET_MODE (tem)) == MODE_INT
+	  && GET_MODE_CLASS (GET_MODE (SUBREG_REG (tem))) == MODE_INT
+	  && GET_MODE_SIZE (GET_MODE (tem))
+	     < GET_MODE_SIZE (GET_MODE (SUBREG_REG (tem)))
+	  && subreg_lowpart_p (tem)
+	  && !for_each_rtx (&SUBREG_REG (tem), use_narrower_mode_test, tem))
+	return use_narrower_mode (SUBREG_REG (tem), GET_MODE (tem),
+				  GET_MODE (SUBREG_REG (tem)));
+      return tem;
     default:
       break;
     }
@@ -4170,7 +4247,7 @@ dataflow_set_clear_at_call (dataflow_set *set)
   int r;
 
   for (r = 0; r < FIRST_PSEUDO_REGISTER; r++)
-    if (TEST_HARD_REG_BIT (call_used_reg_set, r))
+    if (TEST_HARD_REG_BIT (regs_invalidated_by_call, r))
       var_regno_delete (set, r);
 
   if (MAY_HAVE_DEBUG_INSNS)
@@ -6860,14 +6937,13 @@ vt_expand_loc_callback (rtx x, bitmap regs, int max_depth, void *data)
 		result = pc_rtx;
 		break;
 	      }
-	    else
-	      {
-		result = cselib_expand_value_rtx_cb (loc->loc, regs, max_depth,
-						     vt_expand_loc_callback,
-						     data);
-		if (result)
-		  break;
-	      }
+	  }
+	else
+	  {
+	    result = cselib_expand_value_rtx_cb (loc->loc, regs, max_depth,
+						 vt_expand_loc_callback, data);
+	    if (result)
+	      break;
 	  }
       if (dummy && (result || var->var_part[0].cur_loc))
 	var->cur_loc_changed = true;
@@ -7099,8 +7175,12 @@ emit_note_insn_var_location (void **varp, void *data)
 				    (int) initialized);
   else if (n_var_parts == 1)
     {
-      rtx expr_list
-	= gen_rtx_EXPR_LIST (VOIDmode, loc[0], GEN_INT (offsets[0]));
+      rtx expr_list;
+
+      if (offsets[0] || GET_CODE (loc[0]) == PARALLEL)
+	expr_list = gen_rtx_EXPR_LIST (VOIDmode, loc[0], GEN_INT (offsets[0]));
+      else
+	expr_list = loc[0];
 
       note_vl = gen_rtx_VAR_LOCATION (VOIDmode, decl, expr_list,
 				      (int) initialized);
@@ -8021,10 +8101,10 @@ vt_init_cfa_base (void)
   if (!MAY_HAVE_DEBUG_INSNS)
     return;
 
-  val = cselib_lookup (cfa_base_rtx, GET_MODE (cfa_base_rtx), 1);
+  val = cselib_lookup_from_insn (cfa_base_rtx, GET_MODE (cfa_base_rtx), 1,
+				 get_insns ());
   preserve_value (val);
   cselib_preserve_cfa_base_value (val);
-  val->locs->setting_insn = get_insns ();
   var_reg_decl_set (&VTI (ENTRY_BLOCK_PTR)->out, cfa_base_rtx,
 		    VAR_INIT_STATUS_INITIALIZED, dv_from_value (val->val_rtx),
 		    0, NULL_RTX, INSERT);

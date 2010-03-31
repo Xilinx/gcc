@@ -1,6 +1,7 @@
 /* Operating system specific defines to be used when targeting GCC for any
    Solaris 2 system.
-   Copyright 2002, 2003, 2004, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright 2002, 2003, 2004, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -253,6 +254,10 @@ __enable_execute_stack (void *addr)					\
   { "init",      0, 0, true,  false,  false, NULL },			\
   { "fini",      0, 0, true,  false,  false, NULL }
 
+/* Solaris/x86 as and gas support the common ELF .section/.pushsection
+   syntax.  */
+#define PUSHSECTION_FORMAT	"\t.pushsection\t%s\n"
+
 /* This is how to declare the size of a function.  For Solaris, we output
    any .init or .fini entries here.  */
 #undef ASM_DECLARE_FUNCTION_SIZE
@@ -264,6 +269,29 @@ __enable_execute_stack (void *addr)					\
       solaris_output_init_fini (FILE, DECL);			\
     }								\
   while (0)
+
+/* Solaris 'as' has a bug: a .common directive in .tbss section
+   behaves as .tls_common rather than normal non-TLS .common.  */
+#undef  ASM_OUTPUT_ALIGNED_COMMON
+#define ASM_OUTPUT_ALIGNED_COMMON(FILE, NAME, SIZE, ALIGN)		\
+  do									\
+    {									\
+      if (TARGET_SUN_TLS						\
+	  && in_section							\
+	  && ((in_section->common.flags & (SECTION_TLS | SECTION_BSS))	\
+	      == (SECTION_TLS | SECTION_BSS)))				\
+	switch_to_section (bss_section);				\
+      fprintf ((FILE), "%s", COMMON_ASM_OP);				\
+      assemble_name ((FILE), (NAME));					\
+      fprintf ((FILE), ","HOST_WIDE_INT_PRINT_UNSIGNED",%u\n",		\
+	       (SIZE), (ALIGN) / BITS_PER_UNIT);			\
+    }									\
+  while (0)
+
+#ifndef USE_GAS
+#undef TARGET_ASM_ASSEMBLE_VISIBILITY
+#define TARGET_ASM_ASSEMBLE_VISIBILITY solaris_assemble_visibility
+#endif
 
 extern GTY(()) tree solaris_pending_aligns;
 extern GTY(()) tree solaris_pending_inits;
