@@ -1,3 +1,8 @@
+2010-03-31  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (scalar_close_phi_node_p): Loop
+	close phi nodes may have more than one argument.
+
 2010-03-30  Richard Guenther  <rguenther@suse.de>
 	    Zdenek Dvorak  <ook@ucw.cz>
 	    Sebastian Pop  <sebastian.pop@amd.com>
