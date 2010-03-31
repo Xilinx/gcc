@@ -1129,8 +1129,8 @@ all-target: maybe-all-target-rda
 all-target: maybe-all-target-libada
 @if target-libgomp-no-bootstrap
 all-target: maybe-all-target-libgomp
-all-target: maybe-all-target-libitm
 @endif target-libgomp-no-bootstrap
+all-target: maybe-all-target-libitm
 
 # Do a target for all the subdirectories.  A ``make do-X'' will do a
 # ``make X'' in all subdirectories (because, in general, there is a
@@ -55640,7 +55640,7 @@ configure-target-libitm:
 	fi; \
 	test ! -f $(TARGET_SUBDIR)/libitm/Makefile || exit 0; \
 	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libitm ; \
-	$(NORMAL_TARGET_EXPORTS) \
+	$(NORMAL_TARGET_EXPORTS)  \
 	echo Configuring in $(TARGET_SUBDIR)/libitm; \
 	cd "$(TARGET_SUBDIR)/libitm" || exit 1; \
 	case $(srcdir) in \
@@ -55673,7 +55673,7 @@ all-target-libitm: configure-target-libitm
 	@: $(MAKE); $(unstage)
 	@r=`${PWD_COMMAND}`; export r; \
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
+	$(NORMAL_TARGET_EXPORTS)  \
 	(cd $(TARGET_SUBDIR)/libitm && \
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_TARGET_FLAGS)  \
 		$(TARGET-target-libitm))

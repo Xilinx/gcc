@@ -1,3 +1,7 @@
+2010-03-31  Richard Henderson  <rth@redhat.com>
+
+	* Makefile.in: Rebuild.
+
 2010-02-10  Aldy Hernandez  <aldyh@redhat.com>
 
 	* Merge from mainline rev 156607.
