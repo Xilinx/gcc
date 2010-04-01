@@ -1,3 +1,9 @@
+2010-04-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (rewrite_close_phi_out_of_ssa): Assert that
+	gimple_phi_num_args of the loop close SSA phi node is equal to 1.
+	(detect_commutative_reduction): Same.
+
 2010-03-31  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-sese-to-poly.c (scalar_close_phi_node_p): Loop
