@@ -2179,23 +2179,14 @@ create_zero_dim_array (tree var, const char *base_name)
 static bool
 scalar_close_phi_node_p (gimple phi)
 {
-  edge_iterator ei;
-  edge e;
-  basic_block bb;
-
   if (gimple_code (phi) != GIMPLE_PHI
       || !is_gimple_reg (gimple_phi_result (phi)))
     return false;
 
-  bb = gimple_bb (phi);
-
-  /* A loop close phi node contains at least one argument coming from
-     a loop exit edge.  */
-  FOR_EACH_EDGE (e, ei, bb->preds)
-    if (loop_exit_edge_p (e->src->loop_father, e))
-      return true;
-
-  return false;
+  /* Note that loop close phi nodes should have a single argument
+     because we translated the representation into a canonical form
+     before Graphite: see canonicalize_loop_closed_ssa_form.  */
+  return (gimple_phi_num_args (phi) == 1);
 }
 
 /* Rewrite out of SSA the reduction phi node at PSI by creating a zero

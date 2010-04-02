@@ -1,3 +1,10 @@
+2010-04-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Reverted this commit: as at this point the loop closed SSA form
+	is under a canonical form respecting the single argument condition.
+	* graphite-sese-to-poly.c (scalar_close_phi_node_p): Loop
+	close phi nodes may have more than one argument.
+
 2010-04-01  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-sese-to-poly.c (rewrite_close_phi_out_of_ssa): Assert that
