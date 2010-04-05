@@ -3571,6 +3571,9 @@ end_template_parm_list (tree parms)
       next = TREE_CHAIN (parm);
       TREE_VEC_ELT (saved_parmlist, nparms) = parm;
       TREE_CHAIN (parm) = NULL_TREE;
+      if (TREE_CODE (TREE_VALUE (parm)) == TYPE_DECL)
+	TEMPLATE_TYPE_PARM_SIBLING_PARMS (TREE_TYPE (TREE_VALUE (parm))) =
+	      current_template_parms;
     }
 
   --processing_template_parmlist;
@@ -4548,6 +4551,9 @@ push_template_decl_real (tree decl, bool is_friend)
 
 	    if (current == decl)
 	      current = ctx;
+	    else if (current == NULL_TREE)
+	      /* Can happen in erroneous input.  */
+	      break;
 	    else
 	      current = (TYPE_P (current)
 			 ? TYPE_CONTEXT (current)
@@ -4619,9 +4625,6 @@ template arguments to %qD do not match original template %qD",
 	  tree parm = TREE_VALUE (TREE_VEC_ELT (parms, i));
 	  if (TREE_CODE (parm) == TEMPLATE_DECL)
 	    DECL_CONTEXT (parm) = tmpl;
-
-	  if (TREE_CODE (TREE_TYPE (parm)) == TEMPLATE_TYPE_PARM)
-	    DECL_CONTEXT (TYPE_NAME (TREE_TYPE (parm))) = tmpl;
 	}
     }
 
@@ -15474,13 +15477,10 @@ more_specialized_fn (tree pat1, tree pat2, int len)
 	 than the type from the parameter template (as described above)
 	 that type is considered to be more specialized than the other. If
 	 neither type is more cv-qualified than the other then neither type
-	 is more specialized than the other."
+	 is more specialized than the other."  */
 
-         We check same_type_p explicitly because deduction can also succeed
-         in both directions when there is a nondeduced context.  */
       if (deduce1 && deduce2
-	  && quals1 != quals2 && quals1 >= 0 && quals2 >= 0
-	  && same_type_p (arg1, arg2))
+	  && quals1 != quals2 && quals1 >= 0 && quals2 >= 0)
 	{
 	  if ((quals1 & quals2) == quals2)
 	    lose2 = true;

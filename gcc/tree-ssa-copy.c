@@ -1,5 +1,6 @@
 /* Copy propagation and SSA_NAME replacement support routines.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -749,6 +750,7 @@ init_copy_prop (void)
     {
       gimple_stmt_iterator si;
       int depth = bb->loop_depth;
+      bool loop_exit_p = false;
 
       for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
 	{
@@ -786,6 +788,18 @@ init_copy_prop (void)
 	      cached_last_copy_of[SSA_NAME_VERSION (def)] = def;
 	}
 
+      /* In loop-closed SSA form do not copy-propagate through
+	 PHI nodes in blocks with a loop exit edge predecessor.  */
+      if (current_loops
+	  && loops_state_satisfies_p (LOOP_CLOSED_SSA))
+	{
+	  edge_iterator ei;
+	  edge e;
+	  FOR_EACH_EDGE (e, ei, bb->preds)
+	    if (loop_exit_edge_p (e->src->loop_father, e))
+	      loop_exit_p = true;
+	}
+
       for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
 	{
           gimple phi = gsi_stmt (si);
@@ -793,12 +807,7 @@ init_copy_prop (void)
 
 	  def = gimple_phi_result (phi);
 	  if (!is_gimple_reg (def)
-	      /* In loop-closed SSA form do not copy-propagate through
-	         PHI nodes.  Technically this is only needed for loop
-		 exit PHIs, but this is difficult to query.  */
-	      || (current_loops
-		  && gimple_phi_num_args (phi) == 1
-		  && loops_state_satisfies_p (LOOP_CLOSED_SSA)))
+	      || loop_exit_p)
             prop_set_simulate_again (phi, false);
 	  else
             prop_set_simulate_again (phi, true);
