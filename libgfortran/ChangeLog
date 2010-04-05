@@ -1,3 +1,42 @@
+2010-04-02  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in: Regenerate.
+	* aclocal.m4: Regenerate.
+
+2010-04-01  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/43605
+	* io/intrinsics.c (gf_ftell): New function, seek to correct offset.
+        (ftell): Call gf_ftell.
+	(FTELL_SUB): Likewise.
+
+2010-04-01  Paul Thomas  <pault@gcc.gnu.org>
+
+	* io/transfer.c : Update copyright.
+	* io/unix.c : ditto
+	* io/read.c : ditto
+	* io/io.h : ditto
+	* io/unix.h : ditto
+	* io/inquire.c : ditto
+	* io/format.c : ditto
+	* io/list_read.c : ditto
+	* runtime/error.c : ditto
+	* libgfortran.h : ditto
+	* intrinsics/date_and_time.c: ditto
+	* intrinsics/args.c : ditto
+
+2010-04-01  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/43605
+	* io/intrinsics.c (ftell): Reset fbuf, correct offset.
+	(FTELL_SUB): Likewise.
+
+2010-03-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43265
+	* io/transfer.c (next_record_r): Only call hit_eof for specific
+	conditions when an EOF is encountered.
+
 2010-03-29  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/43551

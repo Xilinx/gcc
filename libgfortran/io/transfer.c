@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    Namelist transfer functions contributed by Paul Thomas
@@ -2848,9 +2848,14 @@ next_record_r (st_parameter_dt *dtp, int done)
 		{
                   if (errno != 0)
                     generate_error (&dtp->common, LIBERROR_OS, NULL);
-		  else if (dtp->u.p.item_count == 1
-			   || dtp->u.p.pending_spaces == 0)
-		    hit_eof (dtp);
+		  else
+		    {
+		      if (is_stream_io (dtp)
+			  || dtp->u.p.current_unit->pad_status == PAD_NO
+			  || dtp->u.p.current_unit->bytes_left
+			     == dtp->u.p.current_unit->recl)
+			hit_eof (dtp);
+		    }
 		  break;
                 }
 	      

@@ -5689,6 +5689,11 @@ skeleton_chain_node;
    is not made available by the GCC front-end.  */
 #define	DWARF_LINE_DEFAULT_IS_STMT_START 1
 
+/* Maximum number of operations per instruction bundle.  */
+#ifndef DWARF_LINE_DEFAULT_MAX_OPS_PER_INSN
+#define DWARF_LINE_DEFAULT_MAX_OPS_PER_INSN 1
+#endif
+
 #ifdef DWARF2_DEBUGGING_INFO
 /* This location is used by calc_die_sizes() to keep track
    the offset of each DIE within the .debug_info section.  */
@@ -5964,9 +5969,7 @@ static const char *get_AT_string (dw_die_ref, enum dwarf_attribute);
 static int get_AT_flag (dw_die_ref, enum dwarf_attribute);
 static unsigned get_AT_unsigned (dw_die_ref, enum dwarf_attribute);
 static inline dw_die_ref get_AT_ref (dw_die_ref, enum dwarf_attribute);
-static bool is_c_family (void);
 static bool is_cxx (void);
-static bool is_java (void);
 static bool is_fortran (void);
 static bool is_ada (void);
 static void remove_AT (dw_die_ref, enum dwarf_attribute);
@@ -7443,18 +7446,6 @@ get_AT_file (dw_die_ref die, enum dwarf_attribute attr_kind)
   return a ? AT_file (a) : NULL;
 }
 
-/* Return TRUE if the language is C or C++.  */
-
-static inline bool
-is_c_family (void)
-{
-  unsigned int lang = get_AT_unsigned (comp_unit_die, DW_AT_language);
-
-  return (lang == DW_LANG_C || lang == DW_LANG_C89 || lang == DW_LANG_ObjC
-	  || lang == DW_LANG_C99
-	  || lang == DW_LANG_C_plus_plus || lang == DW_LANG_ObjC_plus_plus);
-}
-
 /* Return TRUE if the language is C++.  */
 
 static inline bool
@@ -7475,16 +7466,6 @@ is_fortran (void)
   return (lang == DW_LANG_Fortran77
 	  || lang == DW_LANG_Fortran90
 	  || lang == DW_LANG_Fortran95);
-}
-
-/* Return TRUE if the language is Java.  */
-
-static inline bool
-is_java (void)
-{
-  unsigned int lang = get_AT_unsigned (comp_unit_die, DW_AT_language);
-
-  return lang == DW_LANG_Java;
 }
 
 /* Return TRUE if the language is Ada.  */
@@ -9920,7 +9901,10 @@ size_of_die (dw_die_ref die)
 	    unsigned long lsize = size_of_locs (AT_loc (a));
 
 	    /* Block length.  */
-	    size += constant_size (lsize);
+	    if (dwarf_version >= 4)
+	      size += size_of_uleb128 (lsize);
+	    else
+	      size += constant_size (lsize);
 	    size += lsize;
 	  }
 	  break;
@@ -9948,7 +9932,16 @@ size_of_die (dw_die_ref die)
 		    * a->dw_attr_val.v.val_vec.elt_size; /* block */
 	  break;
 	case dw_val_class_flag:
-	  size += 1;
+	  if (dwarf_version >= 4)
+	    /* Currently all add_AT_flag calls pass in 1 as last argument,
+	       so DW_FORM_flag_present can be used.  If that ever changes,
+	       we'll need to use DW_FORM_flag and have some optimization
+	       in build_abbrev_table that will change those to
+	       DW_FORM_flag_present if it is set to 1 in all DIEs using
+	       the same abbrev entry.  */
+	    gcc_assert (a->dw_attr_val.v.val_flag == 1);
+	  else
+	    size += 1;
 	  break;
 	case dw_val_class_die_ref:
 	  if (AT_ref_external (a))
@@ -10142,8 +10135,11 @@ value_format (dw_attr_ref a)
 	  gcc_unreachable ();
 	}
     case dw_val_class_range_list:
-    case dw_val_class_offset:
     case dw_val_class_loc_list:
+      if (dwarf_version >= 4)
+	return DW_FORM_sec_offset;
+      /* FALLTHRU */
+    case dw_val_class_offset:
       switch (DWARF_OFFSET_SIZE)
 	{
 	case 4:
@@ -10154,6 +10150,8 @@ value_format (dw_attr_ref a)
 	  gcc_unreachable ();
 	}
     case dw_val_class_loc:
+      if (dwarf_version >= 4)
+	return DW_FORM_exprloc;
       switch (constant_size (size_of_locs (AT_loc (a))))
 	{
 	case 1:
@@ -10206,6 +10204,17 @@ value_format (dw_attr_ref a)
 	  gcc_unreachable ();
 	}
     case dw_val_class_flag:
+      if (dwarf_version >= 4)
+	{
+	  /* Currently all add_AT_flag calls pass in 1 as last argument,
+	     so DW_FORM_flag_present can be used.  If that ever changes,
+	     we'll need to use DW_FORM_flag and have some optimization
+	     in build_abbrev_table that will change those to
+	     DW_FORM_flag_present if it is set to 1 in all DIEs using
+	     the same abbrev entry.  */
+	  gcc_assert (a->dw_attr_val.v.val_flag == 1);
+	  return DW_FORM_flag_present;
+	}
       return DW_FORM_flag;
     case dw_val_class_die_ref:
       if (AT_ref_external (a))
@@ -10218,7 +10227,7 @@ value_format (dw_attr_ref a)
       return DW_FORM_addr;
     case dw_val_class_lineptr:
     case dw_val_class_macptr:
-      return DW_FORM_data;
+      return dwarf_version >= 4 ? DW_FORM_sec_offset : DW_FORM_data;
     case dw_val_class_str:
       return AT_string_form (a);
     case dw_val_class_file:
@@ -10450,7 +10459,10 @@ output_die (dw_die_ref die)
 	  size = size_of_locs (AT_loc (a));
 
 	  /* Output the block length for this list of location operations.  */
-	  dw2_asm_output_data (constant_size (size), size, "%s", name);
+	  if (dwarf_version >= 4)
+	    dw2_asm_output_data_uleb128 (size, "%s", name);
+	  else
+	    dw2_asm_output_data (constant_size (size), size, "%s", name);
 
 	  output_loc_sequence (AT_loc (a));
 	  break;
@@ -10518,6 +10530,20 @@ output_die (dw_die_ref die)
 	  }
 
 	case dw_val_class_flag:
+	  if (dwarf_version >= 4)
+	    {
+	      /* Currently all add_AT_flag calls pass in 1 as last argument,
+		 so DW_FORM_flag_present can be used.  If that ever changes,
+		 we'll need to use DW_FORM_flag and have some optimization
+		 in build_abbrev_table that will change those to
+		 DW_FORM_flag_present if it is set to 1 in all DIEs using
+		 the same abbrev entry.  */
+	      gcc_assert (AT_flag (a) == 1);
+	      if (flag_debug_asm)
+		fprintf (asm_out_file, "\t\t\t%s %s\n",
+			 ASM_COMMENT_START, name);
+	      break;
+	    }
 	  dw2_asm_output_data (1, AT_flag (a), "%s", name);
 	  break;
 
@@ -10642,11 +10668,6 @@ output_compilation_unit_header (void)
 {
   int ver = dwarf_version;
 
-  /* Don't mark the output as DWARF-4 until we make full use of the
-     version 4 extensions, and gdb supports them.  For now, -gdwarf-4
-     selects only a few extensions from the DWARF-4 spec.  */
-  if (ver > 3)
-    ver = 3;
   if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
     dw2_asm_output_data (4, 0xffffffff,
       "Initial length escape value indicating 64-bit DWARF extension");
@@ -11493,12 +11514,6 @@ output_line_info (void)
   unsigned long function;
   int ver = dwarf_version;
 
-  /* Don't mark the output as DWARF-4 until we make full use of the
-     version 4 extensions, and gdb supports them.  For now, -gdwarf-4
-     selects only a few extensions from the DWARF-4 spec.  */
-  if (ver > 3)
-    ver = 3;
-
   ASM_GENERATE_INTERNAL_LABEL (l1, LINE_NUMBER_BEGIN_LABEL, 0);
   ASM_GENERATE_INTERNAL_LABEL (l2, LINE_NUMBER_END_LABEL, 0);
   ASM_GENERATE_INTERNAL_LABEL (p1, LN_PROLOG_AS_LABEL, 0);
@@ -11526,6 +11541,9 @@ output_line_info (void)
   dw2_asm_output_data (1, 1,
 		       "Minimum Instruction Length");
 
+  if (ver >= 4)
+    dw2_asm_output_data (1, DWARF_LINE_DEFAULT_MAX_OPS_PER_INSN,
+			 "Maximum Operations Per Instruction");
   dw2_asm_output_data (1, DWARF_LINE_DEFAULT_IS_STMT_START,
 		       "Default is_stmt_start flag");
   dw2_asm_output_data (1, DWARF_LINE_BASE,
@@ -16294,6 +16312,42 @@ add_comp_dir_attribute (dw_die_ref die)
     add_AT_string (die, DW_AT_comp_dir, remap_debug_filename (wd));
 }
 
+/* Return the default for DW_AT_lower_bound, or -1 if there is not any
+   default.  */
+
+static int
+lower_bound_default (void)
+{
+  switch (get_AT_unsigned (comp_unit_die, DW_AT_language))
+    {
+    case DW_LANG_C:
+    case DW_LANG_C89:
+    case DW_LANG_C99:
+    case DW_LANG_C_plus_plus:
+    case DW_LANG_ObjC:
+    case DW_LANG_ObjC_plus_plus:
+    case DW_LANG_Java:
+      return 0;
+    case DW_LANG_Fortran77:
+    case DW_LANG_Fortran90:
+    case DW_LANG_Fortran95:
+      return 1;
+    case DW_LANG_UPC:
+    case DW_LANG_D:
+      return dwarf_version >= 4 ? 0 : -1;
+    case DW_LANG_Ada95:
+    case DW_LANG_Ada83:
+    case DW_LANG_Cobol74:
+    case DW_LANG_Cobol85:
+    case DW_LANG_Pascal83:
+    case DW_LANG_Modula2:
+    case DW_LANG_PLI:
+      return dwarf_version >= 4 ? 1 : -1;
+    default:
+      return -1;
+    }
+}
+
 /* Given a tree node describing an array bound (either lower or upper) output
    a representation for that bound.  */
 
@@ -16311,11 +16365,13 @@ add_bound_info (dw_die_ref subrange_die, enum dwarf_attribute bound_attr, tree b
     case INTEGER_CST:
       {
 	unsigned int prec = simple_type_size_in_bits (TREE_TYPE (bound));
+	int dflt;
 
 	/* Use the default if possible.  */
 	if (bound_attr == DW_AT_lower_bound
-	    && (((is_c_family () || is_java ()) && integer_zerop (bound))
-	        || (is_fortran () && integer_onep (bound))))
+	    && host_integerp (bound, 0)
+	    && (dflt = lower_bound_default ()) != -1
+	    && tree_low_cst (bound, 0) == dflt)
 	  ;
 
 	/* Otherwise represent the bound as an unsigned value with the
@@ -17216,11 +17272,11 @@ gen_descr_array_type_die (tree type, struct array_descr_info *info,
       if (info->dimen[dim].lower_bound)
 	{
 	  /* If it is the default value, omit it.  */
-	  if ((is_c_family () || is_java ())
-	      && integer_zerop (info->dimen[dim].lower_bound))
-	    ;
-	  else if (is_fortran ()
-		   && integer_onep (info->dimen[dim].lower_bound))
+	  int dflt;
+
+	  if (host_integerp (info->dimen[dim].lower_bound, 0)
+	      && (dflt = lower_bound_default ()) != -1
+	      && tree_low_cst (info->dimen[dim].lower_bound, 0) == dflt)
 	    ;
 	  else
 	    add_descr_info_field (subrange_die, DW_AT_lower_bound,
@@ -18238,9 +18294,9 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
 
   /* If the compiler emitted a definition for the DECL declaration
      and if we already emitted a DIE for it, don't emit a second
-     DIE for it again.  */
-  if (old_die
-      && declaration)
+     DIE for it again. Allow re-declarations of DECLs that are
+     inside functions, though.  */
+  if (old_die && declaration && !local_scope_p (context_die))
     return;
 
   /* For static data members, the declaration in the class is supposed

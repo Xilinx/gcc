@@ -357,7 +357,7 @@ ia64-hp-*vms*)
 	;;
 iq2000*-*-elf*)
         ;;
-lm32-*-elf*)
+lm32-*-elf*|lm32-*-rtems*)
         extra_parts="crtbegin.o crtend.o crti.o crtn.o"
         tmake_file="lm32/t-lm32 lm32/t-elf t-softfp"
 	;;
@@ -600,6 +600,7 @@ case ${host} in
 i[34567]86-*-darwin* | x86_64-*-darwin* | \
   i[34567]86-*-kfreebsd*-gnu | x86_64-*-kfreebsd*-gnu | \
   i[34567]86-*-linux* | x86_64-*-linux* | \
+  i[34567]86-*-solaris2* | \
   i[34567]86-*-cygwin* | i[34567]86-*-mingw* | x86_64-*-mingw*)
 	if test "${host_address}" = 32; then
 		tmake_file="${tmake_file} t-softfp i386/${host_address}/t-fprules-softfp"

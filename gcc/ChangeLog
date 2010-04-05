@@ -1,3 +1,506 @@
+2010-04-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/invoke.texi (Optimize Options): Document that LTO
+	won't remove object access purely due to incompatible
+	declarations.
+
+2010-04-04  Matthias Klose  <doko@ubuntu.com>
+
+	* graphite-sese-to-poly.c (translate_scalar_reduction_to_array):
+	Initialize variable.
+
+2010-04-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42509
+	* alias.c (nonoverlapping_memrefs_p): For spill-slot accesses
+	require a non-NULL MEM_OFFSET.
+
+2010-04-02  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* ada/gcc-interface/Make-lang.in, alias.c, attribs.c, auto-inc-dec.c, 
+	basic-block.h, bb-reorder.c, calls.c, c-common.c, cgraph.h,
+	collect2.h, config/alpha/alpha.c, config/alpha/alpha.md,
+	config/alpha/predicates.md, config/arm/arm.md,
+	config/arm/lib1funcs.asm, config/arm/neon-schedgen.ml,
+	config/avr/avr.c, config/avr/avr.md, config/bfin/bfin.c,
+	config/darwin9.h, config/darwin.c, config/darwin.h,
+	config/h8300/h8300.c, config/i386/cpuid.h, config/i386/cygming.h,
+	config/i386/cygwin.h, config/i386/mingw32.h, config/i386/msformat-c.c,
+	config/i386/sol2-10.h, config/i386/xopintrin.h, config/ia64/ia64.c,
+	config/ia64/ia64.md, config/ia64/sync.md, config/mep/mep.c,
+	config/mips/mips.md, config/mn10300/mn10300.c,
+	config/mn10300/mn10300.h, config/pa/pa.c, config/pa/pa.md,
+	config/rs6000/aix.h, config/rs6000/dfp.md,
+	config/rs6000/rs6000-builtin.def, config/rs6000/rs6000-c.c,
+	config/rs6000/vector.md, config/rtems.h, config/rx/rx.md,
+	config/s390/s390.md, config/sol2-c.c, config/sparc/sol2-bi.h,
+	config/sparc/sol2-gas.h, config/sparc/sparc.h, config/sparc/sparc.md,
+	config/sparc/sparc-protos.h, config/spu/spu.c, config/spu/spu-c.c,
+	config/t-darwin, convert.c, c.opt, c-opts.c, cp/Make-lang.in,
+	c-pretty-print.c, c-typeck.c, df-core.c, df-scan.c, diagnostic.c,
+	diagnostic.h, doc/cppopts.texi, doc/cpp.texi, doc/extend.texi,
+	doc/gimple.texi, doc/languages.texi, doc/plugins.texi, doc/rtl.texi,
+	doc/standards.texi, doc/tree-ssa.texi, doc/trouble.texi, dominance.c,
+	fold-const.c, fortran/Make-lang.in, fwprop.c, gcc-plugin.h,
+	gensupport.c, gimple.h, gimple-iterator.c, graphite.c,
+	graphite-clast-to-gimple.c, graphite-clast-to-gimple.h,
+	graphite-dependences.c, graphite-poly.c, graphite-poly.h,
+	graphite-ppl.c, graphite-ppl.h, graphite-scop-detection.c,
+	graphite-sese-to-poly.c, graphite-sese-to-poly.h, ifcvt.c, intl.c,
+	intl.h, ipa.c, ipa-cp.c, ipa-inline.c, ipa-prop.c, ipa-prop.h,
+	ipa-pure-const.c, ipa-reference.c, ipa-type-escape.c, ira-color.c,
+	ira-conflicts.c, ira-lives.c, java/Make-lang.in, lambda-code.c,
+	loop-invariant.c, lto/Make-lang.in, lto-streamer.h, lto-streamer-in.c,
+	objc/Make-lang.in, objcp/Make-lang.in, omp-low.c, optc-gen.awk,
+	opt-functions.awk, opth-gen.awk, params.def, passes.c,
+	postreload-gcse.c, print-tree.c, recog.c, regrename.c, reload.h,
+	rtl.def, sched-int.h, sched-rgn.c, sel-sched-dump.c, sese.c, sese.h,
+	store-motion.c, stor-layout.c, tree-cfgcleanup.c, tree-chrec.c,
+	tree-complex.c, tree-data-ref.c, tree.def, tree-eh.c, tree-flow.h,
+	tree-flow-inline.h, tree.h, tree-loop-distribution.c, tree-outof-ssa.c,
+	tree-parloops.c, tree-pass.h, tree-predcom.c, tree-profile.c,
+	tree-scalar-evolution.c, tree-ssa-address.c, tree-ssa-alias.c,
+	tree-ssa-coalesce.c, tree-ssa-copy.c, tree-ssa-dce.c, tree-ssa-dom.c,
+	tree-ssa-dse.c, tree-ssa-loop-im.c, tree-ssa-loop-ivcanon.c,
+	tree-ssa-loop-manip.c, tree-ssa-math-opts.c, tree-ssa-operands.c,
+	tree-ssa-pre.c, tree-ssa-sccvn.c, tree-ssa-structalias.c,
+	tree-ssa-uncprop.c, tree-tailcall.c, tree-vect-data-refs.c,
+	tree-vect-loop.c, tree-vectorizer.h, tree-vect-slp.c, tree-vrp.c,
+	unwind-dw2-fde-darwin.c, varpool.c: Update copyright years.
+
+2010-04-02  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR other/43620
+	* doc/install.texi (Prerequisites): Bump Automake version to 1.11.1.
+	* aclocal.m4: Regenerate.
+
+2010-04-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43629
+	* tree-ssa-ccp.c (likely_value): Reset all_undefined_operands
+	if we have seen a constant value.
+
+2010-04-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* read-rtl.c (read_rtx_1): Give an error for EOF while looking for
+	']'.
+
+2010-04-02  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/43469
+	* arm.c (legitimize_tls_address): Adjust call to 
+	gen_tls_load_dot_plus_four.
+	(arm_note_pic_base): New function.
+	(arm_cannot_copy_insn_p): Use it.
+	* thumb2.md (tls_load_dot_plus_four): Rework to avoid use of '+' in
+	constraint.
+
+2010-04-02  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/43531
+
+	Revert:
+	2009-09-28  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in ($(out_object_file)): Depend on
+	gt-$(basename $(notdir $(out_file))).h.
+
+2010-04-01  Ralf Corsépius <ralf.corsepius@rtems.org>
+
+        * config.gcc (lm32-*-rtems*): Add t-lm32.
+
+2010-04-01  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+        * config.gcc: Add lm32-*-rtems*.
+        * config/lm32/rtems.h: New file.
+
+2010-04-01  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR target/42609
+	* config/i386/cygwin.h (CXX_WRAP_SPEC): Disable spec when -mno-cygwin.
+
+2010-04-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (output_compilation_unit_header): For
+	-gdwarf-4 use version 4 instead of version 3.
+	(output_line_info): For version 4 and above emit additional
+	maximum ops per insn header field.
+	(DWARF_LINE_DEFAULT_MAX_OPS_PER_INSN): Define.
+
+	* dwarf2out.c (is_c_family, is_java): Remove.
+	(lower_bound_default): New function.
+	(add_bound_info, gen_descr_array_type_die): Use it.
+
+2010-04-01  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/43325
+	* dwarf2out.c (gen_variable_die): Allow debug info for variable
+	re-declaration when it happens in a function.
+
+2010-04-01  Aldy Hernandez  <aldyh@redhat.com>
+
+	* cgraph.c (cgraph_add_function_insertion_hook): Update comment.
+	(cgraph_remove_function_insertion_hook): Same.
+	(cgraph_call_function_insertion_hooks): Same.
+
+2010-04-01  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43614
+	* tree-ssa-address.c (copy_mem_ref_info): Copy TREE_SIDE_EFFECTS
+	and TREE_THIS_VOLATILE.
+	(copy_ref_info): Likewise.
+	* tree-ssa-operands.c (get_tmr_operands): Check TREE_THIS_VOLATILE.
+	* tree.c (build6_stat): Ignore side-effects of all but arg5
+	for TARGET_MEM_REF.  Set TREE_THIS_VOLATILE from arg5 of
+	TARGET_MEM_REF.
+
+2010-04-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43607
+	* ipa-type-escape.c (check_call): Do not access non-existing
+	arguments.
+
+2010-04-01  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43602
+	Revert
+	2010-03-30  Seongbae Park <seongbae.park@gmail.com>
+	    Jack Howarth <howarth@bromo.med.uc.edu>
+
+	* tree-profile.c (tree_init_ic_make_global_vars): Make static
+	variables TLS.
+
+2010-04-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/install.texi (Prerequisites): Document libelf usability on
+	IRIX 5/6 and Solaris 2.
+	(Specific, i?86-*-solaris2.10): No 64-bit default configuration.
+	Update GNU as, GNU ld requirements.
+	(Specific, *-*-solaris2*): Document Solaris 7 obsoletion, removal.
+	Document Sun Studio compiler download.
+	Update and simplify as, ld recommendations.
+	(Specific, *-*-solaris2.7): Note obsoletion, removal.
+
+2010-04-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.guess (i[34567]86-*-solaris2*): Default with_arch_32,
+	with_tune_32 to pentium4.
+
+2010-04-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/cpuid.h (__get_cpuid_max): Move misplaced comment.
+
+2010-04-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/install.texi (Specific, mips-sgi-irix5): Document IRIX 5
+	obsoletion, removal.
+	Update IDO URL.
+	Document GNU as requirement.
+	Update configure requirements.
+	(Specific, mips-sgi-irix6): Document IRIX 6 < 6.5 obsoletion,
+	removal.
+	Recomment IRIX 6.5.18+.
+	Document IDF/IDL requirement.
+	Document GNU as requirement.
+	Document GNU ld bootstrap failure.
+	Remove freeware.sgi.com reference.
+
+2010-04-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/install.texi (Specific, alpha*-dec-osf*): Document Tru64
+	UNIX V4.0, V5.0 obsoletion, removal.
+	Remove --with-gc=simple reference.
+	Update VM requirements during bootstrap.
+	Remove -oldas bootstrap description.
+	Update binutils reference.
+	Remove comparison failure note.
+
+2010-03-31  Richard Guenther  <rguenther@suse.de>
+	    Zdenek Dvorak  <ook@ucw.cz>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43464
+	* tree-ssa-copy.c (init_copy_prop): Handle loop close phi nodes
+	with multiple arguments.
+	(execute_copy_prop): Remove call to rewrite_into_loop_closed_ssa.
+
+2010-03-31  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (print_pddr): Call print_pdr with an
+	extra argument.
+	* graphite-poly.c (debug_pdr): Add an extra argument for the
+	verbosity level.
+	(print_pdr): Same.
+	(print_pbb_domain): Same.
+	(print_pbb): Same.
+	(print_scop_context): Same.
+	(print_scop): Same.
+	(print_cloog): Same.
+	(debug_pbb_domain): Same.
+	(debug_pbb): Same.
+	(print_pdrs): Same.
+	(debug_pdrs): Same.
+	(debug_scop_context): Same.
+	(debug_scop): Same.
+	(debug_cloog): Same.
+	(print_scop_params): Same.
+	(debug_scop_params): Same.
+	(print_iteration_domain): Same.
+	(print_iteration_domains): Same.
+	(debug_iteration_domain): Same.
+	(debug_iteration_domains): Same.
+	(print_scattering_function): Same.
+	(print_scattering_functions): Same.
+	(debug_scattering_function): Same.
+	(debug_scattering_functions): Same.
+	* graphite-poly.h (debug_pdr): Update declaration.
+	(print_pdr): Same.
+	(print_pbb_domain): Same.
+	(print_pbb): Same.
+	(print_scop_context): Same.
+	(print_scop): Same.
+	(print_cloog): Same.
+	(debug_pbb_domain): Same.
+	(debug_pbb): Same.
+	(print_pdrs): Same.
+	(debug_pdrs): Same.
+	(debug_scop_context): Same.
+	(debug_scop): Same.
+	(debug_cloog): Same.
+	(print_scop_params): Same.
+	(debug_scop_params): Same.
+	(print_iteration_domain): Same.
+	(print_iteration_domains): Same.
+	(debug_iteration_domain): Same.
+	(debug_iteration_domains): Same.
+	(print_scattering_function): Same.
+	(print_scattering_functions): Same.
+	(debug_scattering_function): Same.
+	(debug_scattering_functions): Same.
+
+2010-03-31  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (print_scattering_function_1): New.
+	(print_scattering_function): Call it.
+	(print_scop_params): Remove spaces at the end of lines.
+	(print_cloog): New.
+	(debug_cloog): New.
+	* graphite-poly.h (print_cloog): Declared.
+	(debug_cloog): Declared.
+
+2010-03-31  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (graphite_loop_normal_form): Add the IV bump
+	in loop->header.
+	* tree-flow.h (canonicalize_loop_ivs): Updated declaration.
+	* tree-parloops.c (gen_parallel_loop): Add the IV bump in loop->latch.
+	* tree-ssa-loop-manip.c (canonicalize_loop_ivs): Add a new parameter
+	to switch between adding the IV bump in loop->latch or in loop->header.
+
+2010-03-31  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (print_scattering_function): Pretty print following
+	the scoplib format.
+	(print_pdr): Same.
+	(print_pbb_domain): Same.
+	(dump_gbb_cases): Same.
+	(dump_gbb_conditions): Same.
+	(print_pdrs): Same.
+	(print_pbb): Same.
+	(print_scop_params): Same.
+	(print_scop_context): Same.
+	(print_scop): Same.
+	(print_pbb_body): New.
+	(lst_indent_to): New.
+	(print_lst): Start new lines with a #.
+	* graphite-poly.h (pbb_bb): New.
+	(pbb_index): Use pbb_bb.
+	* graphite-ppl.c (ppl_print_powerset_matrix): Print the number of
+	disjuncts.
+	* tree-data-ref.c (dump_data_reference): Start new lines with a #.
+
+2010-03-31  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (size_of_die): For -gdwarf-4 use
+	uleb128 size instead of fixed 1 or 2 for dw_val_class_loc
+	and 0 instead of 1 for dw_val_class_flag.
+	(value_format): For -gdwarf-4 use DW_FORM_sec_offset for
+	dw_val_class_range_list, dw_val_class_loc_list,
+	dw_val_class_lineptr and dw_val_class_macptr, use
+	DW_FORM_flag_present for dw_val_class_flag and
+	DW_FORM_exprloc for dw_val_class_loc.
+	(output_die): For -gdwarf-4 print dw_val_class_loc
+	size as uleb128 instead of 1 or 2 bytes and don't print
+	anything for dw_val_class_flag.
+
+	* var-tracking.c (vt_init_cfa_base): Use cselib_lookup_from_insn
+	instead of cselib_lookup following by tweaking locs->setting_insn.
+
+	PR bootstrap/43596
+	* cselib.c (cselib_process_insn): Clear cselib_current_insn
+	even before returning from label, setjmp call or volatile asm
+	handling.
+
+2010-03-31  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43600
+	* cgraphunit.c (cgraph_output_in_order): Do not allocate
+	temporary data on stack.
+
+2010-03-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/sparc/sysv4.h (PUSHSECTION_FORMAT): Remove undef.
+	(PUSHSECTION_ASM_OP): Remove.
+	(POPSECTION_ASM_OP): Remove.
+	(PUSHSECTION_FORMAT): Remove.
+	* config/sol2.h (PUSHSECTION_FORMAT): Define.
+	* config/sparc/sol2.h [!USE_GAS] (PUSHSECTION_FORMAT): Redefine.
+	* config/sol2.c (solaris_output_init_fini): Use it.
+
+2010-03-31  Jie Zhang  <jie@codesourcery.com>
+
+	PR 43574
+	* opt-functions.awk (var_type_struct): Use signed char type
+	for simple variables.
+
+2010-03-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/sol2.c: Include output.h.
+	(solaris_assemble_visibility): New function.
+	* config/t-sol2 (sol2.o): Add output.h dependency.
+	* config/sol2-protos.h (solaris_assemble_visibility): Declare.
+	* config/sol2.h [!USE_GAS] (TARGET_ASM_ASSEMBLE_VISIBILITY):
+	Redefine.
+
+2010-03-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/43580
+	* config/arm/arm.c (arm_save_coproc_regs): Use Pmode instead of
+	V2SImode or XFmode on PRE_DEC.
+
+	PR debug/43557
+	* cfgexpand.c (expand_debug_expr): Handle VOIDmode mode like
+	BLKmode.
+
+2010-03-31  Jie Zhang  <jie@codesourcery.com>
+
+	PR 43562
+	* reload.h (caller_save_initialized_p): Declare.
+	* toplev.c (backend_init_target): Don't call
+	init_caller_save but set caller_save_initialized_p to false.
+	* caller-save.c (caller_save_initialized_p): Define.
+	(init_caller_save): Check caller_save_initialized_p.
+	* ira.c (ira): Call init_caller_save if flag_caller_saves.
+
+2010-03-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/39048
+	* config.gcc (i[34567]86-*-solaris2*): Add i386/t-fprules-softfp
+	and soft-fp/t-softfp to tmake_file.
+	* config/i386/sol2.h (LIBGCC2_HAS_TF_MODE): Redefine.
+	(LIBGCC2_TF_CEXT): Define.
+	(TF_SIZE): Define.
+
+2010-03-30  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/42977
+	* cselib.c (n_useless_values): Document handling of debug locs.
+	(n_useless_debug_values, n_debug_values): New variables.
+	(new_elt_loc_list): Don't add to debug values, keep count.
+	(promote_debug_loc): New.
+	(cselib_reset_table): Zero new variables.
+	(entry_and_rtx_equal_p): Promote debug locs.
+	(discard_useless_locs): Increment n_useless_debug_values for
+	debug values.
+	(remove_useless_values): Adjust n_useless_values and n_debug_values
+	with n_useless_debug_values.
+	(add_mem_for_addr): Promote debug locs.
+	(cselib_lookup_mem): Likewise.
+	(cselib_lookup_addr): Renamed to...
+	(cselib_lookup_addr_1): ... this.  Promote debug locs.  Don't call...
+	(cselib_log_lookup): ... this.  Turn into...
+	(cselib_lookup_addr): ... new wrapper.
+	(cselib_lookup_from_insn): New.
+	(cselib_invalidate_regno): Increment n_useless_debug_values for
+	debug values.
+	(cselib_invalidate_mem): Likewise.
+	(cselib_process_insn): Take n_deleted and n_debug_values into
+	account to guard remove_useless_value call.
+	(cselib_finish): Zero n_useless_debug_values.
+	* cselib.h (cselib_lookup_from_insn): Declare.
+	* sched-deps.c (sched_analyze_1): Use cselib_lookup_from_insn.
+	(sched_analyze_2): Likewise.
+
+2010-03-30  Jakub Jelinek  <jakub@redhat.com>
+
+	* var-tracking.c (use_narrower_mode_test, use_narrower_mode): New
+	functions.
+	(adjust_mems): Replace narrowing SUBREG of expression containing
+	just PLUS, MINUS, MULT and ASHIFT of registers and constants
+	with operations in the narrower mode.
+
+	PR debug/43593
+	* var-tracking.c (dataflow_set_clear_at_call): Invalidate just
+	regs_invalidated_by_call instead all call_used_reg_set registers.
+
+2010-03-30  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43430
+	* tree-vect-slp.c (vect_get_and_check_slp_defs): Replace type
+	pointer comparisons with types_compatible_p.
+	* tree-vect-stmts.c (vectorizable_call): Same.
+	(vectorizable_condition): Same.
+
+2010-03-30  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.c (s390_emit_prologue): Omit issuing a dynamic
+	stack check if the mask would be zero.
+
+2010-03-30  Seongbae Park <seongbae.park@gmail.com>
+	    Jack Howarth <howarth@bromo.med.uc.edu>
+
+	* tree-profile.c (tree_init_ic_make_global_vars): Make static
+	variables TLS.
+
+2010-03-30  Joseph Myers  <joseph@codesourcery.com>
+
+	PR other/25232
+	* libgcc-std.ver (GCC_4.5.0): Define version.  Include __unordxf2
+	and __unordtf2.
+	* config/bfin/libgcc-bfin.ver (GCC_4.5.0): Define version.
+	Include ___unordxf2 and ___unordtf2.
+	* config/i386/libgcc-glibc.ver: Do not define inheritance from
+	GCC_4.4.0 here.
+
+2010-03-30  Tarik Graba  <tarik.graba@telecom-paristech.fr>
+
+	* config/lm32/t-lm32: New file.
+	* config.gcc: Use the above file when targetting lm32.
+
+2010-03-28  Duncan Sands  <baldrick@free.fr>
+
+	* Makefile.in (PLUGIN_HEADERS): Add except.h.
+
+2010-03-29  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43431
+	* tree-vect-loop.c (vect_estimate_min_profitable_iters):
+	Improve vectorization cost model diagnostic.
+
+2010-03-29  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43436
+	* tree-vect-data-refs.c (vect_analyze_data_refs): When
+	compute_data_dependences_for_loop returns false, early exit
+	and output an extra diagnostic for the failed data reference
+	analysis.
+
+2010-03-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43560
+	* tree-ssa-loop-im.c (ref_always_accessed_p): Add store_p parameter.
+	(can_sm_ref_p): Treat stores to readonly locations as trapping.
+
 2010-03-29  Jie Zhang  <jie@codesourcery.com>
 
 	PR 43564

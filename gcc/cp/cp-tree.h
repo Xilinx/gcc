@@ -4240,6 +4240,10 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
   (TEMPLATE_PARM_DECL (TEMPLATE_TYPE_PARM_INDEX (NODE)))
 #define TEMPLATE_TYPE_PARAMETER_PACK(NODE) \
   (TEMPLATE_PARM_PARAMETER_PACK (TEMPLATE_TYPE_PARM_INDEX (NODE)))
+/* The list of template parms that a given template parameter of type
+   TEMPLATE_TYPE_PARM belongs to.*/
+#define TEMPLATE_TYPE_PARM_SIBLING_PARMS(NODE) \
+  (TREE_CHECK ((NODE), TEMPLATE_TYPE_PARM))->type.maxval
 
 /* These constants can used as bit flags in the process of tree formatting.
 
@@ -4723,6 +4727,7 @@ extern bool cp_missing_noreturn_ok_p		(tree);
 extern void initialize_artificial_var		(tree, tree);
 extern tree check_var_type			(tree, tree);
 extern tree reshape_init (tree, tree);
+extern tree next_initializable_field (tree);
 
 extern bool defer_mark_used_calls;
 extern GTY(()) VEC(tree, gc) *deferred_mark_used_calls;

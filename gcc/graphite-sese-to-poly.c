@@ -1,5 +1,5 @@
 /* Conversion of SESE regions to Polyhedra.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@amd.com>.
 
 This file is part of GCC.
@@ -2787,7 +2787,7 @@ translate_scalar_reduction_to_array (VEC (gimple, heap) *in,
 {
   unsigned int i;
   gimple loop_phi;
-  tree red;
+  tree red = NULL_TREE;
 
   for (i = 0; VEC_iterate (gimple, in, i, loop_phi); i++)
     {
@@ -2887,7 +2887,7 @@ graphite_loop_normal_form (loop_p loop)
 
   bool known_niter = number_of_iterations_exit (loop, exit, &niter, false);
 
-  /* At this point we should know the number of iterations,  */
+  /* At this point we should know the number of iterations.  */
   gcc_assert (known_niter);
 
   nit = force_gimple_operand (unshare_expr (niter.niter), &stmts, true,
@@ -2895,7 +2895,7 @@ graphite_loop_normal_form (loop_p loop)
   if (stmts)
     gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
 
-  loop->single_iv = canonicalize_loop_ivs (loop, &nit);
+  loop->single_iv = canonicalize_loop_ivs (loop, &nit, false);
 }
 
 /* Rewrite all the loops of SCOP in normal form: one induction
