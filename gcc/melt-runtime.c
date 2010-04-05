@@ -6123,11 +6123,38 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
     goto loadit;
   free (modlistpath);
   modlistpath = 0;
-  fatal_error ("cannot load MELT module list %s - incorrect name?",
-	       modlistbase);
-  if (!modlistpath)
-    goto end;
-loadit:
+  /* display an error message, and inform about all the file paths we have tried */
+  error ("cannot load MELT module list %s - incorrect name? [%m]",
+	 modlistbase);
+  if (srcpathstr && srcpathstr[0]) 
+    inform (UNKNOWN_LOCATION, 
+	    "MELT tried to load module list %s from MELT source path %s", modlistbase, srcpathstr);
+  envpath = getenv ("GCCMELT_SOURCE_PATH");
+  if (envpath && envpath[0])
+    inform (UNKNOWN_LOCATION, 
+	    "MELT tried to load module list %s from GCCMELT_SOURCE_PATH=%s environment variable", 
+	    modlistbase, envpath);
+  inform (UNKNOWN_LOCATION,
+	  "MELT tried to load module list %s from builtin source directory %s", 
+	  modlistbase, melt_source_dir);
+  if (modpathstr && modpathstr[0]) 
+    inform (UNKNOWN_LOCATION, 
+	    "MELT tried to load module list %s from MELT module path %s", modlistbase, modpathstr);
+  envpath = getenv ("GCCMELT_MODULE_PATH");
+  if (envpath && envpath[0])
+    inform (UNKNOWN_LOCATION, 
+	    "MELT tried to load module list %s from GCCMELT_MODULE_PATH=%s environment variable", 
+	    modlistbase, envpath);
+  inform (UNKNOWN_LOCATION,
+	  "MELT tried to load module list %s from builtin module directory %s", modlistbase, 
+	  melt_module_dir);
+  inform (UNKNOWN_LOCATION,
+	  "MELT tried to load module list %s from temporary directory %s",
+	  modlistbase, melt_tempdir_path("",""));
+  /* at last make a fatal error, because loading a module list is soo important! */
+  fatal_error ("MELT failed to load module list %s with a suffix of %s", modlistbase, MODLIS_SUFFIX);
+  goto end;
+ loadit:
   debugeprintf ("meltgc_load_modulelist loadit modlistpath %s", modlistpath);
   filmod = fopen (modlistpath, "r");
   dbgprintf ("reading module list '%s'", modlistpath);
@@ -6149,7 +6176,7 @@ loadit:
       char *pc = 0;
       memset (linbuf, 0, sizeof (linbuf));
       if (!fgets (linbuf, sizeof (linbuf) - 1, filmod) && !feof(filmod))
-	fatal_error ("MELT failed to read from module list %s - %m", modlistpath);
+	fatal_error ("MELT failed to read from module list file %s - %m", modlistpath);
       pc = strchr (linbuf, '\n');
       if (pc)
 	*pc = (char) 0;
@@ -6160,7 +6187,7 @@ loadit:
       dbgprintf ("in module list %s loading module '%s'", modlistbase, pc);
       mdatav = meltgc_load_melt_module ((melt_ptr_t) mdatav, pc);
     }
-end:
+ end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) mdatav;
 #undef mdatav

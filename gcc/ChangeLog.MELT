@@ -1,4 +1,8 @@
 2010-04-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_load_modulelist): added a lot of
+	information message when failing to load a module list.
+
+2010-04-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (install-all-melt): added install-melt-otherfiles
 	dependency.
 	* melt/warmelt-normatch.mel: added export of new classes like
