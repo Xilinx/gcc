@@ -1,11 +1,15 @@
 2010-04-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: corrected warning with bad C arguments
+	in install_method.
+
+2010-04-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_load_modulelist): added a lot of
 	information message when failing to load a module list.
 
 2010-04-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (install-all-melt): added install-melt-otherfiles
 	dependency.
-	* melt/warmelt-normatch.mel: added export of new classes like
+	* melt/warmelt-normatch.melt: added export of new classes like
 	class_matched_normal_data etc.
 	{{regenerated all files}}
 	* melt/generated/warmelt-first.0.c: regenerated.
