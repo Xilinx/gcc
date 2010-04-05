@@ -1,3 +1,31 @@
+2010-04-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (install-all-melt): added install-melt-otherfiles
+	dependency.
+	* melt/warmelt-normatch.mel: added export of new classes like
+	class_matched_normal_data etc.
+	{{regenerated all files}}
+	* melt/generated/warmelt-first.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0.c: regenerated.
+	* melt/generated/warmelt-macro.0.c: regenerated.
+	* melt/generated/warmelt-debug.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0.c: regenerated.
+	* melt/generated/warmelt-normal.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0+03.c: regenerated.
+	* melt/generated/warmelt-base.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0.c: regenerated.
+	* melt/generated/warmelt-macro.0+01.c: regenerated.
+	* melt/generated/warmelt-macro.0+02.c: regenerated.
+	* melt/generated/warmelt-macro.0+03.c: regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: regenerated.
+	* melt/generated/warmelt-debug.0.c: regenerated.
+
+
 2010-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: added computation of the ctype of
 	the match, with a warning on mismatches.
@@ -13,7 +41,7 @@
 
 	* melt/warmelt-normatch.melt: added mgaltstep_stepclear. Better
 	transpat_orpat.
-	
+
 2010-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: class_match_step_assign_flag renamed
 	as class_match_step_with_flag and superclass of

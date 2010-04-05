@@ -5306,7 +5306,8 @@ install-melt-include-dir: installdirs
 
 
 install-all-melt: install-melt-include-dir \
-	install-melt-dynlib install-melt-cfiles install-melt-meltfiles
+	install-melt-dynlib install-melt-cfiles install-melt-meltfiles \
+	install-melt-otherfiles
 else
 melt.encap:
 install-all-melt:
