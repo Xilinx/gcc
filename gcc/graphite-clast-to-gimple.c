@@ -233,7 +233,7 @@ max_signed_precision_type (tree type1, tree type2)
   int p1 = TYPE_PRECISION (type1);
   int p2 = TYPE_PRECISION (type2);
   int precision = p1 > p2 ? p1 : p2;
-  tree type = lang_hooks.types.type_for_size (precision, false);
+  tree type = build_nonstandard_integer_type (precision, false);
 
   if (!type)
     {
@@ -485,7 +485,7 @@ gcc_type_for_interval (Value low, Value up, tree old_type)
   prec_int = precision_for_interval (low, up);
   precision = prec_up > prec_int ? prec_up : prec_int;
 
-  type = lang_hooks.types.type_for_size (precision, unsigned_p);
+  type = build_nonstandard_integer_type (precision, unsigned_p);
   if (!type)
     {
       gloog_error = true;
