@@ -1,3 +1,71 @@
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/39997
+	* intrinsic.c (add_functions): Add num_images.
+	* decl.c (gfc_match_end): Handle END CRITICAL.
+	* intrinsic.h (gfc_simplify_num_images): Add prototype.
+	* dump-parse-tree.c (show_code_node): Dump CRITICAL, ERROR STOP,
+	and SYNC.
+	* gfortran.h (gfc_statement): Add enum items for those.
+	(gfc_exec_op) Ditto.
+	(gfc_isym_id): Add num_images.
+	* trans-stmt.c (gfc_trans_stop): Handle ERROR STOP.
+	(gfc_trans_sync,gfc_trans_critical): New functions.
+	* trans-stmt.h (gfc_trans_stop,gfc_trans_sync,
+	gfc_trans_critical): Add/update prototypes.
+	* trans.c (gfc_trans_code): Handle CRITICAL, ERROR STOP,
+	and SYNC statements.
+	* trans.h (gfor_fndecl_error_stop_string) Add variable.
+	* resolve.c (resolve_sync): Add function.
+	(gfc_resolve_blocks): Handle CRITICAL.
+	(resolve_code): Handle CRITICAL, ERROR STOP,
+	(resolve_branch): Add CRITICAL constraint check.
+	and SYNC statements.
+	* st.c (gfc_free_statement): Add new statements.
+	* trans-decl.c (gfor_fndecl_error_stop_string): Global variable.
+	(gfc_build_builtin_function_decls): Initialize it.
+	* match.c (gfc_match_if): Handle ERROR STOP and SYNC.
+	(gfc_match_critical, gfc_match_error_stop, sync_statement,
+	gfc_match_sync_all, gfc_match_sync_images, gfc_match_sync_memory):
+	New functions.
+	(match_exit_cycle): Handle CRITICAL constraint.
+	(gfc_match_stopcode): Handle ERROR STOP.
+	* match.h (gfc_match_critical, gfc_match_error_stop,
+	gfc_match_sync_all, gfc_match_sync_images,
+	gfc_match_sync_memory): Add prototype.
+	* parse.c (decode_statement, gfc_ascii_statement,
+	parse_executable): Handle new statements.
+	(parse_critical_block): New function.
+	* parse.h (gfc_compile_state): Add COMP_CRITICAL.
+	* intrinsic.texi (num_images): Document new function.
+	* simplify.c (gfc_simplify_num_images): Add function.
+
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43178
+	* trans-array.c (gfc_conv_expr_descriptor): Update
+	gfc_trans_scalar_assign call.
+	(has_default_initializer): New function.
+	(gfc_trans_deferred_array): Nullify less often.
+	* trans-expr.c (gfc_conv_subref_array_arg,
+	gfc_trans_subcomponent_assign): Update call to
+	gfc_trans_scalar_assign.
+	(gfc_trans_scalar_assign): Add parameter and pass it on.
+	(gfc_trans_assignment_1): Optionally, do not dealloc before
+	assignment.
+	* trans-openmp.c (gfc_trans_omp_array_reduction): Update
+	call to gfc_trans_scalar_assign.
+	* trans-decl.c (gfc_get_symbol_decl): Do not always apply
+	initializer to static variables.
+	(gfc_init_default_dt): Add dealloc parameter and pass it on.
+	* trans-stmt.c (forall_make_variable_temp,
+	generate_loop_for_temp_to_lhs, generate_loop_for_rhs_to_temp,
+	gfc_trans_forall_1, gfc_trans_where_assign, gfc_trans_where_3
+	gfc_trans_allocate): Update gfc_trans_assignment call.
+	* trans.h (gfc_trans_scalar_assign, gfc_init_default_dt,
+	gfc_init_default_dt, gfc_trans_assignment): Add bool dealloc
+	parameter to prototype.
+
 2010-03-31  Paul Thomas  <pault@gcc.gnu.org>
 
 	* ioparm.def : Update copyright.
