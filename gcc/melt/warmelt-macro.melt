@@ -2232,7 +2232,10 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
       )
     ))
 (install_initial_macro 'defunmatcher mexpand_defunmatcher)
-(export_macro defunmatcher mexpand_defunmatcher)
+(export_macro defunmatcher mexpand_defunmatcher
+:doc #{The $DEFUNMATCHER syntax defines a matcher thru a MELT
+function. Syntax is (DEFUNMATCHER <symbol> <in-formals> <out-formals>
+[:doc docum] <match-function> <apply-function> [<data>])}#)
 
 ;;;;;;;;;;;;;;;;;; the defun expander
 ;;;(DEFUN funame formals [:doc documentation] body...)
@@ -2749,7 +2752,12 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 	  (return sinst)
 	  )))))
 (install_initial_macro 'definstance mexpand_definstance)
-(export_macro definstance mexpand_definstance)
+(export_macro 
+ definstance mexpand_definstance
+ :doc #{The $DEFINSTANCE syntax defines a static instance bound by a
+ symbol. Syntax is (DEFINSTANCE <symbol> <class> [:doc documentation]
+ @{:<field> <value>@}*). The symbol is bound to the newly made
+ instance.}#)
 
 
 ;; the defselector expanser
@@ -2863,7 +2871,11 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 	  res
 	  )))))
 (install_initial_macro 'defselector mexpand_defselector)
-(export_macro defselector mexpand_defselector)
+(export_macro 
+ defselector mexpand_defselector
+ :doc #{The $DEFSELECTOR syntax defines a selector for sending
+messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
+<documentation>] [:formals ( <formals>...)]).}#)
 
 
 ;;;; the [make_]instance expander
@@ -2927,7 +2939,10 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 		  :smins_fields fastup)
 	))))
 (install_initial_macro 'instance mexpand_instance)
-(export_macro instance mexpand_instance)
+(export_macro 
+ instance mexpand_instance
+ :doc #{The $INSTANCE syntax is for making new objects. Syntax
+ is (INSTANCE <class> @{:<field> <expression>@}*).}#)
 
 
 
@@ -2965,7 +2980,10 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
       (error_plain loc "LOAD expects a string filename")))
     ))
 (install_initial_macro 'load mexpand_load)
-(export_macro load mexpand_load)
+(export_macro 
+ load mexpand_load
+ :doc #{The $LOAD macro is for reading expressions from another
+ file. Syntax is (LOAD <file-name>).}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; parse a field pattern
@@ -3270,7 +3288,12 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		  :suput_fields fastup)
 	))))
 (install_initial_macro 'unsafe_put_fields mexpand_unsafe_put_fields)
-(export_macro unsafe_put_fields mexpand_unsafe_put_fields)
+(export_macro
+ unsafe_put_fields mexpand_unsafe_put_fields
+:doc #{The $UNSAFE_PUT_FIELDS is for expert use only, since it can
+crash the running GCC MELT compilation. Syntax is (UNSAFE_PUT_FIELDS
+<instance> @{:<field> <expression>@}). It sets fields in an instance
+without any checks. Using $PUT_FIELDS is prefered.}#)
 
 ;;;; the put_fields expander
 (defun mexpand_put_fields (sexpr env mexpander)
@@ -3310,7 +3333,13 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		  :suput_fields fastup)
 	))))
 (install_initial_macro 'put_fields mexpand_put_fields)
-(export_macro put_fields mexpand_put_fields)
+(export_macro 
+ put_fields mexpand_put_fields
+ :doc #{The $PUT_FIELDS syntax is for safely setting fields in an
+ object. Syntax is (PUT_FIELDS <instance-expression> @{:<field>
+ <field-expression>@}*). If the instance is not an object of the class
+ containing all the fields, no harm is done. See also
+ $UNSAFE_PUT_FIELDS which does not produces checks.}# )
 
 ;;;; the UNSAFE_GET_FIELD macro expander
 (defun mexpand_unsafe_get_field (sexpr env mexpander)
@@ -3344,7 +3373,12 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		    :suget_field fld
 		    ))))))
 (install_initial_macro 'unsafe_get_field mexpand_unsafe_get_field)
-(export_macro unsafe_get_field mexpand_unsafe_get_field)
+(export_macro
+ unsafe_get_field mexpand_unsafe_get_field
+ :doc #{The $UNSAFE_GET_FIELD syntax retrieves dangerously a field
+ from an instance and may crash when the instance is not an object of
+ the appropriate class. Syntax is (UNSAFE_GET_FIELD :<field>
+ <expression>). Using $GET_FIELD is preferrable.}#)
 
 ;;;; the GET_FIELD expander
 (defun mexpand_get_field (sexpr env mexpander)
@@ -3378,7 +3412,12 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		    :suget_field fld
 		    ))))))
 (install_initial_macro 'get_field mexpand_get_field)
-(export_macro get_field mexpand_get_field)
+(export_macro 
+ get_field mexpand_get_field
+ :doc #{The $GET_FIELD syntax safely access a field. Syntax
+ is (GET_FIELD :<field> <expression>) which evaluates to nil if the
+ expression is not of the class defining the field. See also
+ $UNSAFE_GET_FIELD.}#)
 
 
 ;;;; the setq expander
@@ -3405,7 +3444,11 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		)
       )))
 (install_initial_macro 'setq mexpand_setq)
-(export_macro setq mexpand_setq)
+(export_macro 
+ setq mexpand_setq
+ :doc #{The $SETQ syntax is for assignment of local variables, usually
+ bound by a LET in the same function. Syntax is (SETQ <symbol>
+ <expr>).}#)
 
 ;;;;; the if expanser
 (defun mexpand_if (sexpr env mexpander)
@@ -3452,7 +3495,10 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 	      (return resp))
 	    ))))))
 (install_initial_macro 'if mexpand_if)
-(export_macro if mexpand_if)
+(export_macro 
+ if mexpand_if
+ :doc #{The $IF syntax is for simple conditional expressions. Syntax
+ is (IF <test-expression> <then-expression> [<else-expression>]).}#)
 
 ;;;;; the cppif expander
 (defun mexpand_cppif (sexpr env mexpander)
@@ -3671,7 +3717,12 @@ condition is a string such as "4.5." or a list of strings.}#)
     (return res)
     ))
 (install_initial_macro 'cond mexpand_cond)
-(export_macro cond mexpand_cond)
+(export_macro 
+ cond mexpand_cond
+ :doc #{The usual lisp $COND conditional. Syntax is (COND
+ <conditions>...). Each condition is a list of the form (<test>
+ <expr>...). The last catch-all condition can be (:else <epxr>...).}#) 
+
 
 ;;;;;;;;;;;;;;;;
 ;;;; the AND macro expanser
@@ -3815,8 +3866,17 @@ condition is a string such as "4.5." or a list of strings.}#)
     (return res)
     )
   )
-(install_initial_patmacro 'and patexpand_and mexpand_and)
-(export_patmacro and patexpand_and mexpand_and)
+(install_initial_patmacro 
+ 'and patexpand_and mexpand_and)
+(export_patmacro 
+ and patexpand_and mexpand_and
+ :doc #{The lispy $AND conjonction syntax is a short-circuit "and
+ then" conjonction. Expression syntax is (AND
+ <conjunct-subexpression>...) and can evaluate to a :value or a thing
+ such as a :long or a :gimple which is null/zero iff any conjunct is
+ null or zero. Pattern syntax is ?(AND <conjunct-subpattern>...) and
+ matches if all conjunct-subpattern-s match. See also $COND $OR and
+ $IF.}#)
 
 ;;;;;;;;;;;;;;;;
 ;;;; the OR macro expanser
@@ -3866,7 +3926,15 @@ condition is a string such as "4.5." or a list of strings.}#)
     )
   )
 (install_initial_patmacro 'or patexpand_or mexpand_or)
-(export_patmacro or patexpand_or mexpand_or)
+(export_patmacro 
+ or patexpand_or mexpand_or
+ :doc #{The lispy $OR disjunctive syntax is a short-circuit "or else"
+ disjonction. Expression syntax is (OR <disjunct-subexpression>...)
+ and can evaluate to a :value or a thing such as a :gimple or a :long
+ etc. which is null/zero iff every disjunct is
+ null/zero. Pattern-syntax is ?(OR <disjunct-subpattern>...) and
+ matches if one of the disjunct-subpattern matches. See also $COND
+ $AND and $IF.}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; TUPLE 
 ;;;; the TUPLE macro expander
@@ -3905,7 +3973,15 @@ condition is a string such as "4.5." or a list of strings.}#)
     (return res)
 ))
 (install_initial_patmacro 'tuple patexpand_tuple mexpand_tuple)
-(export_patmacro tuple patexpand_tuple mexpand_tuple)
+(export_patmacro 
+ tuple patexpand_tuple mexpand_tuple
+ :doc #{The $TUPLE syntax is for making or matching tuples. Expression
+ syntax is (TUPLE <component-subexpression>...) to make a tuple of
+ $DISCR_MULTIPLE with the given components. Pattern syntax is ?(TUPLE
+ <component-subpattern>...) to match a tuple of given length with each
+ component matching its corresponding <component-subpattern>. $TUPLE
+ expressions are constructive, so can appear in $LETREC
+ bindings.}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LIST 
 ;;;; the LIST macro expander
@@ -3944,7 +4020,15 @@ condition is a string such as "4.5." or a list of strings.}#)
     (return res)
 ))
 (install_initial_patmacro 'list patexpand_list mexpand_list)
-(export_patmacro list patexpand_list mexpand_list)
+(export_patmacro 
+ list patexpand_list mexpand_list
+ :doc #{The $LIST syntax is for making or matching lists made of
+ pairs. Expression syntax is (LIST <component-subexpression>...) to
+ make a list of $DISCR_LIST with the given components going into the
+ head of pairs of $DISCR_PAIR. Pattern syntax is ?(LIST
+ <component-subpattern>...) to match a list of given length with each
+ component matching its corresponding <component-subpattern>. $LIST
+ expressions are constructive, so can appear in $LETREC bindings.}#)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -4018,7 +4102,13 @@ condition is a string such as "4.5." or a list of strings.}#)
       )))
 
 (install_initial_macro 'match mexpand_match)
-(export_macro match mexpand_match)
+(export_macro 
+ match mexpand_match
+ :doc #{The $MATCH syntax is for pattern-matching expressions. Syntax
+ is (MATCH <matched-expression> <match-case>...). Each match-case
+ starts with a pattern followed by expressions. The catch-all pattern
+ ?_ should appear in the last match-case if any. Pattern variables
+ like ?x are bound by the matching in their match-case.}#)
 
 ;;;;;;;; for LET
 ;; internal routine to make a letbinding
@@ -4152,7 +4242,17 @@ condition is a string such as "4.5." or a list of strings.}#)
       (return letr)
       )))
 (install_initial_macro 'let mexpand_let)
-(export_macro let mexpand_let)
+(export_macro
+ let mexpand_let
+ :doc #{The $LET syntax is for sequential local bindings of
+ expressions. Syntax is (LET ( <binding>... ) <body>...). Each binding
+ is an optional ctype such as :long or :gimple or :value (which is the
+ default), followed by a local variable name, followed by a single
+ expression. The body is a non-empty sequence of expressions,
+ evaluated in an environment enriched with the local bindings. The
+ MELT LET syntax is sequential, like LET* in Scheme so a variable
+ bound in a previous binding can appear in the expression of a later
+ binding.}#)
 
 
 ;;;;;;;;;;;;;;;; install methods to detect recursively constructible
@@ -4312,7 +4412,15 @@ condition is a string such as "4.5." or a list of strings.}#)
       (return letr)
       )))
 (install_initial_macro 'letrec mexpand_letrec)
-(export_macro letrec mexpand_letrec)
+(export_macro 
+ letrec mexpand_letrec
+ :doc #{The $LETREC syntax is for mutually @b{recursive} local
+ bindings. Syntax is (LETREC ( <binding>... ) <body>...). Each binding is
+ an optional ctype such as :long or :gimple or :value (which is the
+ default), followed by a local variable name, followed by a single
+ @b{constructive} expression, like $LAMBDA $INSTANCE $TUPLE $LIST. The
+ body is a non-empty sequence of sub-expressions evaluated in an
+ augmented environment. MELT LETREC is similar to Scheme's LETREC.}#)
 
 ;;;;;;;; for LAMBDA
 (defun mexpand_lambda (sexpr env mexpander)
@@ -4342,7 +4450,19 @@ condition is a string such as "4.5." or a list of strings.}#)
 	(return lambr)
 	))))
 (install_initial_macro 'lambda mexpand_lambda)
-(export_macro lambda mexpand_lambda)
+(export_macro
+ lambda mexpand_lambda
+ :doc #{The $LAMBDA syntax is for anonymous functions e.g. closures,
+ with closed values (however closing things like :gimple or :long is
+ not permitted, you have to box them explicitly as :value-s.). Syntax
+ is (LAMBDA ( <formals> ) <body>...). The formal argument list should
+ have its first formal be a :value. Other arguments can bec(-typed
+ with keywords like :value :gimple :long etc. which applies to all
+ succeeding arguments up to the next ctype keyword. The body is a
+ non-empty sequence of expressions. $LAMBDA functions can $RETURN a
+ value with possible secondary results. See also $MULTICALL. $LAMBDA
+ expressions are @b{construcitive} so can appear in $LETREC
+ bindings.}# )
 
 ;;;;;;;; for MULTICALL
 (defun mexpand_multicall (sexpr env mexpander)
@@ -4386,7 +4506,16 @@ condition is a string such as "4.5." or a list of strings.}#)
 	    (return mulcr)
 	    ))))))
 (install_initial_macro 'multicall mexpand_multicall)
-(export_macro multicall mexpand_multicall)
+(export_macro 
+ multicall mexpand_multicall
+ :doc #{The $MULTICALL syntax is for accumulating the primary and
+ secondary results of a function application or a message
+ sending. Syntax is (MULTICALL ( <formals> ) <application-or-sending>
+ <body>...). The first formal is bound to the primary result and
+ should be a :value. Other are for secondary results. The body is
+ evaluated with these results of the given application or sending
+ expression bound by the formals. Inspired by Scheme's
+ CALL-WITH-VALUES or CommonLisp's MULTIPLE-VALUE-BIND.}#)
 
 
 ;;;;;;;; for QUOTE (only of symbols or keywords, strings, or integers)
@@ -4420,7 +4549,12 @@ condition is a string such as "4.5." or a list of strings.}#)
       (return squ)
       )))
 (install_initial_macro 'quote mexpand_quote)
-(export_macro quote mexpand_quote)
+(export_macro
+ quote mexpand_quote
+ :doc #{The $QUOTE syntax (usually noted with a prefix
+ quote-character) is for quotations. Only symbols or literals can be
+ quoted. A quoted literal reifies a value, so '2 is a value of
+ $DISCR_CONSTANT_INTEGER.}#)
 
 ;;;;;;;; for COMMENT (only of strings)
 (defun mexpand_comment  (sexpr env mexpander)
@@ -4445,7 +4579,11 @@ condition is a string such as "4.5." or a list of strings.}#)
       (return scom)
       )))
 (install_initial_macro 'comment mexpand_comment)
-(export_macro comment mexpand_comment)
+(export_macro 
+ comment mexpand_comment
+ :doc #{The $COMMENT syntax inserts comment in the generated code, or
+ skips MELT code. Syntax is (COMMENT <string>) to insert a comment in
+ the generated C code, or (COMMENT ...) to skip some syntax.}#)
 
 ;;;;;;;; for PROGN
 ;; internal routine to make a progn from a pairlist at a location
@@ -4498,7 +4636,11 @@ condition is a string such as "4.5." or a list of strings.}#)
       (return progr)
       )))
 (install_initial_macro 'progn mexpand_progn)
-(export_macro progn mexpand_progn)
+(export_macro 
+ progn mexpand_progn
+ :doc #{The $PROGN syntax evaluate a sequence of expressions ignoring
+ all but the last which is the result. Syntax is (PROGN
+ <expression>...).}# )
 
 ;;;; the return expanser
 (defun mexpand_return (sexpr env mexpander)
@@ -4512,7 +4654,11 @@ condition is a string such as "4.5." or a list of strings.}#)
     (return retr)
     ))
 (install_initial_macro 'return mexpand_return)
-(export_macro return mexpand_return)
+(export_macro 
+ return mexpand_return
+ :doc #{The $RETURN syntax is for returning a primary and possibly
+ secondary results. Syntax is (RETURN <expression>...). If no
+ expression is given, returns nil.}#)
 
 
 ;;;; the forever expanser
@@ -4547,7 +4693,11 @@ condition is a string such as "4.5." or a list of strings.}#)
 	(return forr)
 	))))
 (install_initial_macro 'forever mexpand_forever)
-(export_macro forever mexpand_forever)
+(export_macro
+ forever mexpand_forever
+ :doc #{The $FOREVER syntax is for infinite loops exited thru
+ $EXIT. Syntax is (FOREVER <loop-name> <expr>...). Use $EXIT to go out
+ of the loop with a result.}#)
 
 ;;;; the exit expanser
 (defun mexpand_exit (sexpr env mexpander)
@@ -4583,7 +4733,10 @@ condition is a string such as "4.5." or a list of strings.}#)
 	(return exr)
 	))))
 (install_initial_macro 'exit mexpand_exit)
-(export_macro exit mexpand_exit)
+(export_macro
+ exit mexpand_exit
+ :doc #{The $EXIT syntax is for exitting a local $FOREVER loop in the
+ same function. Syntax is (EXIT <loop-name> <expression>...).}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile time warning (compile_warning msg expr)
@@ -4618,7 +4771,10 @@ condition is a string such as "4.5." or a list of strings.}#)
 	(return res)
 	))))
 (install_initial_macro 'compile_warning mexpand_compile_warning)
-(export_macro compile_warning mexpand_compile_warning)
+(export_macro 
+ compile_warning mexpand_compile_warning
+ :doc #{The $COMPILE_WARNING syntax issues a warning, inspired by GCC
+ #warning. Syntax is (COMPILE_WARNING <string> [<expression>]).}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; assert_msg macro is expanded into other src..
