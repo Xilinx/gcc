@@ -1,6 +1,6 @@
 /* Alias analysis for GNU C
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009 Free Software Foundation, Inc.
+   2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by John Carr (jfc@mit.edu).
 
 This file is part of GCC.
@@ -2145,6 +2145,13 @@ nonoverlapping_memrefs_p (const_rtx x, const_rtx y)
 
   /* Unless both have exprs, we can't tell anything.  */
   if (exprx == 0 || expry == 0)
+    return 0;
+
+  /* For spill-slot accesses make sure we have valid offsets.  */
+  if ((exprx == get_spill_slot_decl (false)
+       && ! MEM_OFFSET (x))
+      || (expry == get_spill_slot_decl (false)
+	  && ! MEM_OFFSET (y)))
     return 0;
 
   /* If both are field references, we may be able to determine something.  */

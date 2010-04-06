@@ -254,6 +254,10 @@ __enable_execute_stack (void *addr)					\
   { "init",      0, 0, true,  false,  false, NULL },			\
   { "fini",      0, 0, true,  false,  false, NULL }
 
+/* Solaris/x86 as and gas support the common ELF .section/.pushsection
+   syntax.  */
+#define PUSHSECTION_FORMAT	"\t.pushsection\t%s\n"
+
 /* This is how to declare the size of a function.  For Solaris, we output
    any .init or .fini entries here.  */
 #undef ASM_DECLARE_FUNCTION_SIZE
@@ -283,6 +287,11 @@ __enable_execute_stack (void *addr)					\
 	       (SIZE), (ALIGN) / BITS_PER_UNIT);			\
     }									\
   while (0)
+
+#ifndef USE_GAS
+#undef TARGET_ASM_ASSEMBLE_VISIBILITY
+#define TARGET_ASM_ASSEMBLE_VISIBILITY solaris_assemble_visibility
+#endif
 
 extern GTY(()) tree solaris_pending_aligns;
 extern GTY(()) tree solaris_pending_inits;

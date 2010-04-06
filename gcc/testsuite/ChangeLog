@@ -1,4 +1,149 @@
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43178
+	* gfortran.dg/alloc_comp_basics_1.f90: Update scan-tree-dump-times.
+	* gfortran.dg/alloc_comp_constructor_1.f90: Ditto.
+	* gfortran.dg/auto_dealloc_1.f90: Ditto.
+
+2010-04-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43627
+	* gcc.dg/tree-ssa/vrp49.c: New testcase.
+
+2010-04-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/43638
+	* gcc.target/i386/pr43638.c: New test.
+
+2010-04-06  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43661
+	* gcc.c-torture/compile/pr43661.c: New testcase.
+
+2010-04-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.target/s390/stackcheck1.c: Add dg-warning.
+
+2010-04-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/vect/pr43430-1.c: Don't use uint8_t.
+
+2010-04-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43629
+	* gcc.c-torture/execute/pr43629.c: New testcase.
+
+2010-04-01  Janne Blomqvist  <jb@gcc.gnu.org>
+            Dominique d'Humieres  <dominiq@lps.ens.fr>
+
+	PR libfortran/43605
+	* gfortran.dg/ftell_3.f90: Enhance test case by reading more.
+
+2010-04-01  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/43325
+	* c-c++-common/dwarf2/redeclaration-1.C: New test.
+
+2010-04-01  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/initlist12.C: Adjust expected errors.
+
+2010-04-01  Janne Blomqvist  <jb@gcc.gnu.org>
+	    Manfred Schwarb  <manfred99@gmx.ch>
+
+	PR libfortran/43605
+	* gfortran.dg/ftell_3.f90: New test.
+
+2010-04-01  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43614
+	* gcc.c-torture/compile/pr43614.c: New testcase.
+
+2010-04-01  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/43141
+	* gcc.dg/guality/pr43141.c: New test.
+	
+2010-04-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/cpp/_Pragma1.C: Skip on alpha*-dec-osf*.
+	* g++.dg/eh/spbp.C: Likewise.
+	* g++.dg/ext/label13.C (C::C): xfail dg-bogus on alpha*-dec-osf*.
+	* g++.dg/other/pragma-ep-1.C: Properly define p, remove
+	superfluous casts.
+	* gcc.dg/mtune.c: Add dg-bogus "mcpu".
+	* objc.dg/dwarf-1.m: Skip on  alpha*-dec-osf*.
+	* objc.dg/dwarf-2.m: Likewise.
+
+2010-03-31  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43464
+	* gcc.dg/graphite/id-pr43464.c: New.
+	* gcc.dg/graphite/id-pr43464-1.c: New.
+
+2010-03-31  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43351
+	* gcc.dg/graphite/id-pr43351.c
+
+2010-03-31  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	PR testsuite/35165
+	* obj-c++.dg/try-catch-9.mm: Don't XFAIL m32 NeXT runtime.
+	* obj-c++.dg/try-catch-2.mm: Ditto.
+	* obj-c++.dg/lookup-2.mm: Ditto.
+	* obj-c++.dg/encode-8.m: Ditto.
+	* obj-c++.dg/cxx-ivars-2.mm: Ditto.
+	* obj-c++.dg/cxx-ivars-3.mm: Skip for GNU, XFail for m64 NeXT.
+	* obj-c++.dg/const-str-10.mm: Skip for GNU, match .quad for m64 NeXT.
+	* obj-c++.dg/const-str-11.mm: Ditto.
+	* obj-c++.dg/const-str-9.mm: Ditto.
+	* obj-c++.dg/bitfield-3.mm: Skip for GNU runtime.
+	* obj-c++.dg/bitfield-2.mm: XFAIL run for m64 NeXT runtime.
+	* obj-c++.dg/except-1.mm: Ditto.
+	* obj-c++.dg/const-str-7.mm: Ditto.
+	* obj-c++.dg/cxx-ivars-1.mm: Ditto.
+	* obj-c++.dg/const-str-3.mm: Ditto.
+	* obj-c++.dg/const-str-7.mm: Ditto.
+	* obj-c++.dg/stubify-2.mm: Change dump file name.
+
+	PR objc++/23613
+	* gcc/testsuite/objc-obj-c++-shared/next-mapping.h (CLASSPTRFIELD):
+	New macro.
+	* gcc/testsuite/obj-c++.dg/isa-field-1.mm: Use new CLASSPTRFIELD macro.
+	Remove dg-xfail-if.
+
+2010-03-31  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/guality/inline-params.c: Disable early inlining.  Xfail run
+	only with -O2, -O3 or -Os and not with -fwhopr.
+
+2010-03-31  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/43558
+	* g++.dg/template/typedef31.C: New test.
+
+2010-03-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/ext/visibility/pragma-override1.C: Allow for .hidden in
+	assembler output on *-*-solaris2*.
+	* g++.dg/ext/visibility/pragma-override2.C: Likewise.
+
+2010-03-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43557
+	* gcc.dg/pr43557-1.c: New test.
+	* gcc.dg/pr43557-2.c: New file.
+
+2010-03-31  Jie Zhang  <jie@codesourcery.com>
+
+	PR 43562
+	* gcc.dg/pr43562.c: New test.
+
 2010-03-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43076
+	* g++.dg/template/error-recovery1.C: New.
 
 	PR c++/41786
 	* g++.dg/parse/ambig5.C: New.

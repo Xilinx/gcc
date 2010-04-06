@@ -2256,7 +2256,7 @@ gfc_conv_subref_array_arg (gfc_se * parmse, gfc_expr * expr, int g77,
 
   if (intent != INTENT_OUT)
     {
-      tmp = gfc_trans_scalar_assign (&lse, &rse, expr->ts, true, false);
+      tmp = gfc_trans_scalar_assign (&lse, &rse, expr->ts, true, false, true);
       gfc_add_expr_to_block (&body, tmp);
       gcc_assert (rse.ss == gfc_ss_terminator);
       gfc_trans_scalarizing_loops (&loop, &body);
@@ -2354,7 +2354,7 @@ gfc_conv_subref_array_arg (gfc_se * parmse, gfc_expr * expr, int g77,
 
   gcc_assert (lse.ss == gfc_ss_terminator);
 
-  tmp = gfc_trans_scalar_assign (&lse, &rse, expr->ts, false, false);
+  tmp = gfc_trans_scalar_assign (&lse, &rse, expr->ts, false, false, true);
   gfc_add_expr_to_block (&body, tmp);
   
   /* Generate the copying loops.  */
@@ -3982,7 +3982,7 @@ gfc_trans_subarray_assign (tree dest, gfc_component * cm, gfc_expr * expr)
 
   gfc_conv_expr (&rse, expr);
 
-  tmp = gfc_trans_scalar_assign (&lse, &rse, cm->ts, true, false);
+  tmp = gfc_trans_scalar_assign (&lse, &rse, cm->ts, true, false, true);
   gfc_add_expr_to_block (&body, tmp);
 
   gcc_assert (rse.ss == gfc_ss_terminator);
@@ -4240,7 +4240,7 @@ gfc_trans_subcomponent_assign (tree dest, gfc_component * cm, gfc_expr * expr)
       if (cm->ts.type == BT_CHARACTER)
 	lse.string_length = cm->ts.u.cl->backend_decl;
       lse.expr = dest;
-      tmp = gfc_trans_scalar_assign (&lse, &se, cm->ts, true, false);
+      tmp = gfc_trans_scalar_assign (&lse, &se, cm->ts, true, false, true);
       gfc_add_expr_to_block (&block, tmp);
     }
   return gfc_finish_block (&block);
@@ -4769,11 +4769,12 @@ gfc_conv_string_parameter (gfc_se * se)
 
 
 /* Generate code for assignment of scalar variables.  Includes character
-   strings and derived types with allocatable components.  */
+   strings and derived types with allocatable components.
+   If you know that the LHS has no allocations, set dealloc to false.  */
 
 tree
 gfc_trans_scalar_assign (gfc_se * lse, gfc_se * rse, gfc_typespec ts,
-			 bool l_is_temp, bool r_is_var)
+			 bool l_is_temp, bool r_is_var, bool dealloc)
 {
   stmtblock_t block;
   tree tmp;
@@ -4821,7 +4822,7 @@ gfc_trans_scalar_assign (gfc_se * lse, gfc_se * rse, gfc_typespec ts,
 	 the same as the rhs.  This must be done following the assignment
 	 to prevent deallocating data that could be used in the rhs
 	 expression.  */
-      if (!l_is_temp)
+      if (!l_is_temp && dealloc)
 	{
 	  tmp = gfc_evaluate_now (lse->expr, &lse->pre);
 	  tmp = gfc_deallocate_alloc_comp (ts.u.derived, tmp, 0);
@@ -5151,10 +5152,13 @@ gfc_trans_array_constructor_copy (gfc_expr * expr1, gfc_expr * expr2)
 
 
 /* Subroutine of gfc_trans_assignment that actually scalarizes the
-   assignment.  EXPR1 is the destination/LHS and EXPR2 is the source/RHS.  */
+   assignment.  EXPR1 is the destination/LHS and EXPR2 is the source/RHS.
+   init_flag indicates initialization expressions and dealloc that no
+   deallocate prior assignment is needed (if in doubt, set true).  */
 
 static tree
-gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag)
+gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
+			bool dealloc)
 {
   gfc_se lse;
   gfc_se rse;
@@ -5271,7 +5275,7 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag)
 		       && expr2->expr_type != EXPR_VARIABLE
 		       && !gfc_is_constant_expr (expr2)
 		       && expr1->rank && !expr2->rank);
-  if (scalar_to_array)
+  if (scalar_to_array && dealloc)
     {
       tmp = gfc_deallocate_alloc_comp (expr2->ts.u.derived, rse.expr, 0);
       gfc_add_expr_to_block (&loop.post, tmp);
@@ -5280,7 +5284,7 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag)
   tmp = gfc_trans_scalar_assign (&lse, &rse, expr1->ts,
 				 l_is_temp || init_flag,
 				 (expr2->expr_type == EXPR_VARIABLE)
-				    || scalar_to_array);
+				    || scalar_to_array, dealloc);
   gfc_add_expr_to_block (&body, tmp);
 
   if (lss == gfc_ss_terminator)
@@ -5317,7 +5321,7 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag)
 	    rse.string_length = string_length;
 
 	  tmp = gfc_trans_scalar_assign (&lse, &rse, expr1->ts,
-					 false, false);
+					 false, false, dealloc);
 	  gfc_add_expr_to_block (&body, tmp);
 	}
 
@@ -5375,7 +5379,8 @@ copyable_array_p (gfc_expr * expr)
 /* Translate an assignment.  */
 
 tree
-gfc_trans_assignment (gfc_expr * expr1, gfc_expr * expr2, bool init_flag)
+gfc_trans_assignment (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
+		      bool dealloc)
 {
   tree tmp;
 
@@ -5418,19 +5423,19 @@ gfc_trans_assignment (gfc_expr * expr1, gfc_expr * expr2, bool init_flag)
     }
 
   /* Fallback to the scalarizer to generate explicit loops.  */
-  return gfc_trans_assignment_1 (expr1, expr2, init_flag);
+  return gfc_trans_assignment_1 (expr1, expr2, init_flag, dealloc);
 }
 
 tree
 gfc_trans_init_assign (gfc_code * code)
 {
-  return gfc_trans_assignment (code->expr1, code->expr2, true);
+  return gfc_trans_assignment (code->expr1, code->expr2, true, false);
 }
 
 tree
 gfc_trans_assign (gfc_code * code)
 {
-  return gfc_trans_assignment (code->expr1, code->expr2, false);
+  return gfc_trans_assignment (code->expr1, code->expr2, false, true);
 }
 
 
