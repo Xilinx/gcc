@@ -3463,7 +3463,8 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
-	(curif (pair_head curpair)) )
+	(curif (pair_head curpair)) 
+	)
     (if (not (is_pair curpair))
 	(error_plain loc "missing condition in CPPIF"_))
     (setq curpair (pair_tail curpair))
@@ -3502,8 +3503,84 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 	    (return resp)
 	    ))))))
 (install_initial_macro 'cppif mexpand_cppif)
-(export_macro cppif mexpand_cppif)
+(export_macro 
+ cppif mexpand_cppif
+ :doc #{The $CPPIF macro expands to C-code with an #if condition, so
+the condition is handled when compiling the generated C code into a
+MELT module.  Syntax is (CPPIF <symbol> <then> [<else>]).}#)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun filtergccversion (versionstr)
+  (assert_msg "check versionstr" (is_string versionstr))
+  (let ( (:long versionlen (string_length versionstr))
+	 (res ())
+	 )
+    (code_chunk 
+     filtergcc
+     #{ if ($VERSIONLEN>0 /*$FILTERGCC*/
+	    && !strncmp (melt_string_str((melt_ptr_t)$VERSIONSTR),
+			 melt_gccversionstr,
+			 $VERSIONLEN))
+        $RES = $VERSIONSTR; 
+	}#)
+    (return res)))
+
+(defun mexpand_gccif (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_gccif sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(sloc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(curif (pair_head curpair)) 
+	(restpair (pair_tail curpair))
+	)
+    (debug_msg curif "mexpand_gccif curif")
+    (cond 
+     ((is_string curif)
+      (if (filtergccversion curif)
+	  (let ( (exprest (expand_pairlist_as_tuple restpair env mexpander))
+		 )
+	    (debug_msg exprest "mexpand_gccif return exprest")
+	    (return exprest))
+	(progn
+	  (debug_msg sexpr "mexpand_gccif sexpr gcc version mismatched")
+	  (return))))
+     ((is_list curif)
+      (let ( (ok ())
+	     )
+	(foreach_in_list 
+	 (curif)
+	 (curpair curstr)
+	 (if (not (is_string curstr))
+	     (error_plain sloc "GCC-IF condition not a list of strings"))
+	 (if (filtergccversion curif)
+	     (setq ok :true))
+	 )
+	(if ok
+	  (let ( (exprest (expand_pairlist_as_tuple restpair env mexpander))
+		 )
+	    (debug_msg exprest "mexpand_gccif return exprest multicond")
+	    (return exprest))
+	(progn
+	  (debug_msg sexpr "mexpand_gccif sexpr gcc version multicond mismatched")
+	  (return))))
+
+	)
+     (:else 
+      (error_plain sloc "GCC-IF bad condition, should be a string or a list of strings")
+      (return)
+     ))))
+
+(install_initial_macro 'gccif mexpand_gccif)
+(export_macro 
+ gccif mexpand_gccif
+ :doc #{The $GCCIF macro expands the rest of the expression if the
+version string of the GCC translating this MELT expression matches
+the condition. Syntax is ($GCCIF condition expr...), where the
+condition is a string such as "4.5." or a list of strings.}#)
 
 
 ;;;;; the cond expanser
