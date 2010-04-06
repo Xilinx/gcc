@@ -1,3 +1,8 @@
+2010-04-06  Aldy Hernandez  <aldyh@redhat.com>
+
+	* passes.c (init_optimization_passes): Move pass_ipa_tm into
+	all_small_ipa_passes.
+
 2010-02-15  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c: Include langhooks.h.
