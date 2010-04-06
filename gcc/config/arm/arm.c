@@ -1,6 +1,6 @@
 /* Output routines for GCC for ARM.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Pieter `Tiggr' Schoenmakers (rcpieter@win.tue.nl)
    and Martin Simmons (@harleqn.co.uk).
@@ -1876,13 +1876,6 @@ arm_override_options (void)
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
-
-  /* Ideally we would want to use CFI directives to generate
-     debug info.  However this also creates the .eh_frame
-     section, so disable them until GAS can handle
-     this properly.  See PR40521. */
-  if (TARGET_AAPCS_BASED)
-    flag_dwarf2_cfi_asm = 0;
 
   /* Register global variables with the garbage collector.  */
   arm_add_gc_roots ();
@@ -5850,7 +5843,7 @@ legitimize_tls_address (rtx x, rtx reg)
       if (TARGET_ARM)
 	emit_insn (gen_tls_load_dot_plus_eight (reg, reg, labelno));
       else if (TARGET_THUMB2)
-	emit_insn (gen_tls_load_dot_plus_four (reg, reg, labelno));
+	emit_insn (gen_tls_load_dot_plus_four (reg, NULL, reg, labelno));
       else
 	{
 	  emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
@@ -6235,6 +6228,15 @@ thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
       else if ((outer == IOR || outer == XOR || outer == AND)
 	       && INTVAL (x) < 256 && INTVAL (x) >= -256)
 	return COSTS_N_INSNS (1);
+      else if (outer == AND)
+	{
+	  int i;
+	  /* This duplicates the tests in the andsi3 expander.  */
+	  for (i = 9; i <= 31; i++)
+	    if ((((HOST_WIDE_INT) 1) << i) - 1 == INTVAL (x)
+		|| (((HOST_WIDE_INT) 1) << i) - 1 == ~INTVAL (x))
+	      return COSTS_N_INSNS (2);
+	}
       else if (outer == ASHIFT || outer == ASHIFTRT
 	       || outer == LSHIFTRT)
 	return 0;
@@ -8799,28 +8801,21 @@ tls_mentioned_p (rtx x)
     }
 }
 
-/* Must not copy a SET whose source operand is PC-relative.  */
+/* Must not copy any rtx that uses a pc-relative address.  */
+
+static int
+arm_note_pic_base (rtx *x, void *date ATTRIBUTE_UNUSED)
+{
+  if (GET_CODE (*x) == UNSPEC
+      && XINT (*x, 1) == UNSPEC_PIC_BASE)
+    return 1;
+  return 0;
+}
 
 static bool
 arm_cannot_copy_insn_p (rtx insn)
 {
-  rtx pat = PATTERN (insn);
-
-  if (GET_CODE (pat) == SET)
-    {
-      rtx rhs = SET_SRC (pat);
-
-      if (GET_CODE (rhs) == UNSPEC
-	  && XINT (rhs, 1) == UNSPEC_PIC_BASE)
-	return TRUE;
-
-      if (GET_CODE (rhs) == MEM
-	  && GET_CODE (XEXP (rhs, 0)) == UNSPEC
-	  && XINT (XEXP (rhs, 0), 1) == UNSPEC_PIC_BASE)
-	return TRUE;
-    }
-
-  return FALSE;
+  return for_each_rtx (&PATTERN (insn), arm_note_pic_base, NULL);
 }
 
 enum rtx_code
@@ -11655,9 +11650,14 @@ vfp_emit_fstmd (int base_reg, int count)
 
   XVECEXP (par, 0, 0)
     = gen_rtx_SET (VOIDmode,
-		   gen_frame_mem (BLKmode,
-				  gen_rtx_PRE_DEC (BLKmode,
-						   stack_pointer_rtx)),
+		   gen_frame_mem
+		   (BLKmode,
+		    gen_rtx_PRE_MODIFY (Pmode,
+					stack_pointer_rtx,
+					plus_constant
+					(stack_pointer_rtx,
+					 - (count * 8)))
+		    ),
 		   gen_rtx_UNSPEC (BLKmode,
 				   gen_rtvec (1, reg),
 				   UNSPEC_PUSH_MULT));
@@ -13726,24 +13726,29 @@ arm_output_epilogue (rtx sibling)
 
       if (TARGET_HARD_FLOAT && TARGET_VFP)
 	{
-	  start_reg = FIRST_VFP_REGNUM;
-	  for (reg = FIRST_VFP_REGNUM; reg < LAST_VFP_REGNUM; reg += 2)
+	  int end_reg = LAST_VFP_REGNUM + 1;
+
+	  /* Scan the registers in reverse order.  We need to match
+	     any groupings made in the prologue and generate matching
+	     pop operations.  */
+	  for (reg = LAST_VFP_REGNUM - 1; reg >= FIRST_VFP_REGNUM; reg -= 2)
 	    {
 	      if ((!df_regs_ever_live_p (reg) || call_used_regs[reg])
-		  && (!df_regs_ever_live_p (reg + 1) || call_used_regs[reg + 1]))
+		  && (!df_regs_ever_live_p (reg + 1)
+		      || call_used_regs[reg + 1]))
 		{
-		  if (start_reg != reg)
+		  if (end_reg > reg + 2)
 		    vfp_output_fldmd (f, SP_REGNUM,
-				      (start_reg - FIRST_VFP_REGNUM) / 2,
-				      (reg - start_reg) / 2);
-		  start_reg = reg + 2;
+				      (reg + 2 - FIRST_VFP_REGNUM) / 2,
+				      (end_reg - (reg + 2)) / 2);
+		  end_reg = reg;
 		}
 	    }
-	  if (start_reg != reg)
-	    vfp_output_fldmd (f, SP_REGNUM,
-			      (start_reg - FIRST_VFP_REGNUM) / 2,
-			      (reg - start_reg) / 2);
+	  if (end_reg > reg + 2)
+	    vfp_output_fldmd (f, SP_REGNUM, 0,
+			      (end_reg - (reg + 2)) / 2);
 	}
+
       if (TARGET_IWMMXT)
 	for (reg = FIRST_IWMMXT_REGNUM; reg <= LAST_IWMMXT_REGNUM; reg++)
 	  if (df_regs_ever_live_p (reg) && !call_used_regs[reg])
@@ -13912,16 +13917,17 @@ emit_multi_reg_push (unsigned long mask)
 
   /* For the body of the insn we are going to generate an UNSPEC in
      parallel with several USEs.  This allows the insn to be recognized
-     by the push_multi pattern in the arm.md file.  The insn looks
-     something like this:
+     by the push_multi pattern in the arm.md file.
+
+     The body of the insn looks something like this:
 
        (parallel [
-           (set (mem:BLK (pre_dec:BLK (reg:SI sp)))
+           (set (mem:BLK (pre_modify:SI (reg:SI sp)
+	                                (const_int:SI <num>)))
 	        (unspec:BLK [(reg:SI r4)] UNSPEC_PUSH_MULT))
-           (use (reg:SI 11 fp))
-           (use (reg:SI 12 ip))
-           (use (reg:SI 14 lr))
-           (use (reg:SI 15 pc))
+           (use (reg:SI XX))
+           (use (reg:SI YY))
+	   ...
         ])
 
      For the frame note however, we try to be more explicit and actually
@@ -13934,13 +13940,20 @@ emit_multi_reg_push (unsigned long mask)
       (sequence [
            (set (reg:SI sp) (plus:SI (reg:SI sp) (const_int -20)))
            (set (mem:SI (reg:SI sp)) (reg:SI r4))
-           (set (mem:SI (plus:SI (reg:SI sp) (const_int 4))) (reg:SI fp))
-           (set (mem:SI (plus:SI (reg:SI sp) (const_int 8))) (reg:SI ip))
-           (set (mem:SI (plus:SI (reg:SI sp) (const_int 12))) (reg:SI lr))
+           (set (mem:SI (plus:SI (reg:SI sp) (const_int 4))) (reg:SI XX))
+           (set (mem:SI (plus:SI (reg:SI sp) (const_int 8))) (reg:SI YY))
+	   ...
         ])
 
-      This sequence is used both by the code to support stack unwinding for
-      exceptions handlers and the code to generate dwarf2 frame debugging.  */
+     FIXME:: In an ideal world the PRE_MODIFY would not exist and
+     instead we'd have a parallel expression detailing all
+     the stores to the various memory addresses so that debug
+     information is more up-to-date. Remember however while writing
+     this to take care of the constraints with the push instruction.
+
+     Note also that this has to be taken care of for the VFP registers.
+
+     For more see PR43399.  */
 
   par = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (num_regs));
   dwarf = gen_rtx_SEQUENCE (VOIDmode, rtvec_alloc (num_dwarf_regs + 1));
@@ -13954,9 +13967,14 @@ emit_multi_reg_push (unsigned long mask)
 
 	  XVECEXP (par, 0, 0)
 	    = gen_rtx_SET (VOIDmode,
-			   gen_frame_mem (BLKmode,
-					  gen_rtx_PRE_DEC (BLKmode,
-							   stack_pointer_rtx)),
+			   gen_frame_mem
+			   (BLKmode,
+			    gen_rtx_PRE_MODIFY (Pmode,
+						stack_pointer_rtx,
+						plus_constant
+						(stack_pointer_rtx,
+						 -4 * num_regs))
+			    ),
 			   gen_rtx_UNSPEC (BLKmode,
 					   gen_rtvec (1, reg),
 					   UNSPEC_PUSH_MULT));
@@ -13987,9 +14005,10 @@ emit_multi_reg_push (unsigned long mask)
 	    {
 	      tmp
 		= gen_rtx_SET (VOIDmode,
-			       gen_frame_mem (SImode,
-					      plus_constant (stack_pointer_rtx,
-							     4 * j)),
+			       gen_frame_mem
+			       (SImode,
+				plus_constant (stack_pointer_rtx,
+					       4 * j)),
 			       reg);
 	      RTX_FRAME_RELATED_P (tmp) = 1;
 	      XVECEXP (dwarf, 0, dwarf_par_index++) = tmp;
@@ -14041,9 +14060,14 @@ emit_sfm (int base_reg, int count)
 
   XVECEXP (par, 0, 0)
     = gen_rtx_SET (VOIDmode,
-		   gen_frame_mem (BLKmode,
-				  gen_rtx_PRE_DEC (BLKmode,
-						   stack_pointer_rtx)),
+		   gen_frame_mem
+		   (BLKmode,
+		    gen_rtx_PRE_MODIFY (Pmode,
+					stack_pointer_rtx,
+					plus_constant
+					(stack_pointer_rtx,
+					 -12 * count))
+		    ),
 		   gen_rtx_UNSPEC (BLKmode,
 				   gen_rtvec (1, reg),
 				   UNSPEC_PUSH_MULT));
@@ -14402,7 +14426,7 @@ arm_save_coproc_regs(void)
   for (reg = LAST_IWMMXT_REGNUM; reg >= FIRST_IWMMXT_REGNUM; reg--)
     if (df_regs_ever_live_p (reg) && ! call_used_regs[reg])
       {
-	insn = gen_rtx_PRE_DEC (V2SImode, stack_pointer_rtx);
+	insn = gen_rtx_PRE_DEC (Pmode, stack_pointer_rtx);
 	insn = gen_rtx_MEM (V2SImode, insn);
 	insn = emit_set_insn (insn, gen_rtx_REG (V2SImode, reg));
 	RTX_FRAME_RELATED_P (insn) = 1;
@@ -14416,7 +14440,7 @@ arm_save_coproc_regs(void)
       for (reg = LAST_FPA_REGNUM; reg >= FIRST_FPA_REGNUM; reg--)
 	if (df_regs_ever_live_p (reg) && !call_used_regs[reg])
 	  {
-	    insn = gen_rtx_PRE_DEC (XFmode, stack_pointer_rtx);
+	    insn = gen_rtx_PRE_DEC (Pmode, stack_pointer_rtx);
 	    insn = gen_rtx_MEM (XFmode, insn);
 	    insn = emit_set_insn (insn, gen_rtx_REG (XFmode, reg));
 	    RTX_FRAME_RELATED_P (insn) = 1;

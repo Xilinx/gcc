@@ -1,5 +1,5 @@
 /* Graphite polyhedral representation.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@amd.com> and
    Tobias Grosser <grosser@fim.uni-passau.de>.
 
@@ -272,7 +272,6 @@ debug_iteration_domains (scop_p scop, int verbosity)
 {
   print_iteration_domains (stderr, scop, verbosity);
 }
-
 
 /* Write to file_name.graphite the transforms for SCOP.  */
 

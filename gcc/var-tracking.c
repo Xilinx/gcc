@@ -729,6 +729,65 @@ struct adjust_mem_data
   rtx side_effects;
 };
 
+/* Helper for adjust_mems.  Return 1 if *loc is unsuitable for
+   transformation of wider mode arithmetics to narrower mode,
+   -1 if it is suitable and subexpressions shouldn't be
+   traversed and 0 if it is suitable and subexpressions should
+   be traversed.  Called through for_each_rtx.  */
+
+static int
+use_narrower_mode_test (rtx *loc, void *data)
+{
+  rtx subreg = (rtx) data;
+
+  if (CONSTANT_P (*loc))
+    return -1;
+  switch (GET_CODE (*loc))
+    {
+    case REG:
+      if (cselib_lookup (*loc, GET_MODE (SUBREG_REG (subreg)), 0))
+	return 1;
+      return -1;
+    case PLUS:
+    case MINUS:
+    case MULT:
+      return 0;
+    case ASHIFT:
+      if (for_each_rtx (&XEXP (*loc, 0), use_narrower_mode_test, data))
+	return 1;
+      else
+	return -1;
+    default:
+      return 1;
+    }
+}
+
+/* Transform X into narrower mode MODE from wider mode WMODE.  */
+
+static rtx
+use_narrower_mode (rtx x, enum machine_mode mode, enum machine_mode wmode)
+{
+  rtx op0, op1;
+  if (CONSTANT_P (x))
+    return lowpart_subreg (mode, x, wmode);
+  switch (GET_CODE (x))
+    {
+    case REG:
+      return lowpart_subreg (mode, x, wmode);
+    case PLUS:
+    case MINUS:
+    case MULT:
+      op0 = use_narrower_mode (XEXP (x, 0), mode, wmode);
+      op1 = use_narrower_mode (XEXP (x, 1), mode, wmode);
+      return simplify_gen_binary (GET_CODE (x), mode, op0, op1);
+    case ASHIFT:
+      op0 = use_narrower_mode (XEXP (x, 0), mode, wmode);
+      return simplify_gen_binary (ASHIFT, mode, op0, XEXP (x, 1));
+    default:
+      gcc_unreachable ();
+    }
+}
+
 /* Helper function for adjusting used MEMs.  */
 
 static rtx
@@ -804,7 +863,7 @@ adjust_mems (rtx loc, const_rtx old_rtx, void *data)
     case POST_MODIFY:
       if (addr == loc)
 	addr = XEXP (loc, 0);
-      gcc_assert (amd->mem_mode != VOIDmode && amd->mem_mode != BLKmode);
+      gcc_assert (amd->mem_mode != VOIDmode);
       addr = simplify_replace_fn_rtx (addr, old_rtx, adjust_mems, data);
       amd->side_effects = alloc_EXPR_LIST (0,
 					   gen_rtx_SET (VOIDmode,
@@ -822,18 +881,36 @@ adjust_mems (rtx loc, const_rtx old_rtx, void *data)
       amd->store = store_save;
       mem = simplify_replace_fn_rtx (addr, old_rtx, adjust_mems, data);
       if (mem == SUBREG_REG (loc))
-	return loc;
+	{
+	  tem = loc;
+	  goto finish_subreg;
+	}
       tem = simplify_gen_subreg (GET_MODE (loc), mem,
 				 GET_MODE (SUBREG_REG (loc)),
 				 SUBREG_BYTE (loc));
       if (tem)
-	return tem;
+	goto finish_subreg;
       tem = simplify_gen_subreg (GET_MODE (loc), addr,
 				 GET_MODE (SUBREG_REG (loc)),
 				 SUBREG_BYTE (loc));
-      if (tem)
-	return tem;
-      return gen_rtx_raw_SUBREG (GET_MODE (loc), addr, SUBREG_BYTE (loc));
+      if (tem == NULL_RTX)
+	tem = gen_rtx_raw_SUBREG (GET_MODE (loc), addr, SUBREG_BYTE (loc));
+    finish_subreg:
+      if (MAY_HAVE_DEBUG_INSNS
+	  && GET_CODE (tem) == SUBREG
+	  && (GET_CODE (SUBREG_REG (tem)) == PLUS
+	      || GET_CODE (SUBREG_REG (tem)) == MINUS
+	      || GET_CODE (SUBREG_REG (tem)) == MULT
+	      || GET_CODE (SUBREG_REG (tem)) == ASHIFT)
+	  && GET_MODE_CLASS (GET_MODE (tem)) == MODE_INT
+	  && GET_MODE_CLASS (GET_MODE (SUBREG_REG (tem))) == MODE_INT
+	  && GET_MODE_SIZE (GET_MODE (tem))
+	     < GET_MODE_SIZE (GET_MODE (SUBREG_REG (tem)))
+	  && subreg_lowpart_p (tem)
+	  && !for_each_rtx (&SUBREG_REG (tem), use_narrower_mode_test, tem))
+	return use_narrower_mode (SUBREG_REG (tem), GET_MODE (tem),
+				  GET_MODE (SUBREG_REG (tem)));
+      return tem;
     default:
       break;
     }
@@ -2791,15 +2868,23 @@ add_value_chains (decl_or_value dv, rtx loc)
 }
 
 /* If CSELIB_VAL_PTR of value DV refer to VALUEs, add backlinks from those
-   VALUEs to DV.  */
+   VALUEs to DV.  Add the same time get rid of ASM_OPERANDS from locs list,
+   that is something we never can express in .debug_info and can prevent
+   reverse ops from being used.  */
 
 static void
 add_cselib_value_chains (decl_or_value dv)
 {
-  struct elt_loc_list *l;
+  struct elt_loc_list **l;
 
-  for (l = CSELIB_VAL_PTR (dv_as_value (dv))->locs; l; l = l->next)
-    for_each_rtx (&l->loc, add_value_chain, dv_as_opaque (dv));
+  for (l = &CSELIB_VAL_PTR (dv_as_value (dv))->locs; *l;)
+    if (GET_CODE ((*l)->loc) == ASM_OPERANDS)
+      *l = (*l)->next;
+    else
+      {
+	for_each_rtx (&(*l)->loc, add_value_chain, dv_as_opaque (dv));
+	l = &(*l)->next;
+      }
 }
 
 /* If decl or value DVP refers to VALUE from *LOC, remove backlinks
@@ -3164,6 +3249,67 @@ canonicalize_values_star (void **slot, void *data)
 
   if (VALUE_RECURSED_INTO (cval))
     goto restart_with_cval;
+
+  return 1;
+}
+
+/* Bind one-part variables to the canonical value in an equivalence
+   set.  Not doing this causes dataflow convergence failure in rare
+   circumstances, see PR42873.  Unfortunately we can't do this
+   efficiently as part of canonicalize_values_star, since we may not
+   have determined or even seen the canonical value of a set when we
+   get to a variable that references another member of the set.  */
+
+static int
+canonicalize_vars_star (void **slot, void *data)
+{
+  dataflow_set *set = (dataflow_set *)data;
+  variable var = (variable) *slot;
+  decl_or_value dv = var->dv;
+  location_chain node;
+  rtx cval;
+  decl_or_value cdv;
+  void **cslot;
+  variable cvar;
+  location_chain cnode;
+
+  if (!dv_onepart_p (dv) || dv_is_value_p (dv))
+    return 1;
+
+  gcc_assert (var->n_var_parts == 1);
+
+  node = var->var_part[0].loc_chain;
+
+  if (GET_CODE (node->loc) != VALUE)
+    return 1;
+
+  gcc_assert (!node->next);
+  cval = node->loc;
+
+  /* Push values to the canonical one.  */
+  cdv = dv_from_value (cval);
+  cslot = shared_hash_find_slot_noinsert (set->vars, cdv);
+  if (!cslot)
+    return 1;
+  cvar = (variable)*cslot;
+  gcc_assert (cvar->n_var_parts == 1);
+
+  cnode = cvar->var_part[0].loc_chain;
+
+  /* CVAL is canonical if its value list contains non-VALUEs or VALUEs
+     that are not “more canonical” than it.  */
+  if (GET_CODE (cnode->loc) != VALUE
+      || !canon_value_cmp (cnode->loc, cval))
+    return 1;
+
+  /* CVAL was found to be non-canonical.  Change the variable to point
+     to the canonical VALUE.  */
+  gcc_assert (!cnode->next);
+  cval = cnode->loc;
+
+  slot = set_slot_part (set, cval, slot, dv, 0,
+			node->init, node->set_src);
+  slot = clobber_slot_part (set, cval, slot, 0, node->set_src);
 
   return 1;
 }
@@ -3830,6 +3976,7 @@ dataflow_post_merge_adjust (dataflow_set *set, dataflow_set **permp)
     htab_traverse (shared_hash_htab ((*permp)->vars),
 		   variable_post_merge_perm_vals, &dfpm);
   htab_traverse (shared_hash_htab (set->vars), canonicalize_values_star, set);
+  htab_traverse (shared_hash_htab (set->vars), canonicalize_vars_star, set);
 }
 
 /* Return a node whose loc is a MEM that refers to EXPR in the
@@ -4100,7 +4247,7 @@ dataflow_set_clear_at_call (dataflow_set *set)
   int r;
 
   for (r = 0; r < FIRST_PSEUDO_REGISTER; r++)
-    if (TEST_HARD_REG_BIT (call_used_reg_set, r))
+    if (TEST_HARD_REG_BIT (regs_invalidated_by_call, r))
       var_regno_delete (set, r);
 
   if (MAY_HAVE_DEBUG_INSNS)
@@ -4738,6 +4885,33 @@ preserve_value (cselib_val *val)
   VEC_safe_push (rtx, heap, preserved_values, val->val_rtx);
 }
 
+/* Helper function for MO_VAL_LOC handling.  Return non-zero if
+   any rtxes not suitable for CONST use not replaced by VALUEs
+   are discovered.  */
+
+static int
+non_suitable_const (rtx *x, void *data ATTRIBUTE_UNUSED)
+{
+  if (*x == NULL_RTX)
+    return 0;
+
+  switch (GET_CODE (*x))
+    {
+    case REG:
+    case DEBUG_EXPR:
+    case PC:
+    case SCRATCH:
+    case CC0:
+    case ASM_INPUT:
+    case ASM_OPERANDS:
+      return 1;
+    case MEM:
+      return !MEM_READONLY_P (*x);
+    default:
+      return 0;
+    }
+}
+
 /* Add uses (register and memory references) LOC which will be tracked
    to VTI (bb)->mos.  INSN is instruction which the LOC is part of.  */
 
@@ -4794,8 +4968,12 @@ add_uses (rtx *ploc, void *data)
 		}
 	    }
 
-	  if (!VAR_LOC_UNKNOWN_P (vloc)
-	      && (val = find_use_val (vloc, GET_MODE (oloc), cui)))
+	  if (CONSTANT_P (vloc)
+	      && (GET_CODE (vloc) != CONST
+		  || for_each_rtx (&vloc, non_suitable_const, NULL)))
+	    /* For constants don't look up any value.  */;
+	  else if (!VAR_LOC_UNKNOWN_P (vloc)
+		   && (val = find_use_val (vloc, GET_MODE (oloc), cui)))
 	    {
 	      enum machine_mode mode2;
 	      enum micro_operation_type type2;
@@ -5508,6 +5686,11 @@ compute_bb_dataflow (basic_block bb)
 				     VAR_INIT_STATUS_INITIALIZED, NULL_RTX,
 				     INSERT);
 		}
+	      else if (!VAR_LOC_UNKNOWN_P (PAT_VAR_LOCATION_LOC (vloc)))
+		set_variable_part (out, PAT_VAR_LOCATION_LOC (vloc),
+				   dv_from_decl (var), 0,
+				   VAR_INIT_STATUS_INITIALIZED, NULL_RTX,
+				   INSERT);
 	    }
 	    break;
 
@@ -6754,14 +6937,13 @@ vt_expand_loc_callback (rtx x, bitmap regs, int max_depth, void *data)
 		result = pc_rtx;
 		break;
 	      }
-	    else
-	      {
-		result = cselib_expand_value_rtx_cb (loc->loc, regs, max_depth,
-						     vt_expand_loc_callback,
-						     data);
-		if (result)
-		  break;
-	      }
+	  }
+	else
+	  {
+	    result = cselib_expand_value_rtx_cb (loc->loc, regs, max_depth,
+						 vt_expand_loc_callback, data);
+	    if (result)
+	      break;
 	  }
       if (dummy && (result || var->var_part[0].cur_loc))
 	var->cur_loc_changed = true;
@@ -6902,6 +7084,8 @@ emit_note_insn_var_location (void **varp, void *data)
 	}
       loc[n_var_parts] = loc2;
       mode = GET_MODE (var->var_part[i].cur_loc);
+      if (mode == VOIDmode && dv_onepart_p (var->dv))
+	mode = DECL_MODE (decl);
       for (lc = var->var_part[i].loc_chain; lc; lc = lc->next)
 	if (var->var_part[i].cur_loc == lc->loc)
 	  {
@@ -6991,8 +7175,12 @@ emit_note_insn_var_location (void **varp, void *data)
 				    (int) initialized);
   else if (n_var_parts == 1)
     {
-      rtx expr_list
-	= gen_rtx_EXPR_LIST (VOIDmode, loc[0], GEN_INT (offsets[0]));
+      rtx expr_list;
+
+      if (offsets[0] || GET_CODE (loc[0]) == PARALLEL)
+	expr_list = gen_rtx_EXPR_LIST (VOIDmode, loc[0], GEN_INT (offsets[0]));
+      else
+	expr_list = loc[0];
 
       note_vl = gen_rtx_VAR_LOCATION (VOIDmode, decl, expr_list,
 				      (int) initialized);
@@ -7423,6 +7611,11 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 				     VAR_INIT_STATUS_INITIALIZED, NULL_RTX,
 				     INSERT);
 		}
+	      else if (!VAR_LOC_UNKNOWN_P (PAT_VAR_LOCATION_LOC (vloc)))
+		set_variable_part (set, PAT_VAR_LOCATION_LOC (vloc),
+				   dv_from_decl (var), 0,
+				   VAR_INIT_STATUS_INITIALIZED, NULL_RTX,
+				   INSERT);
 
 	      emit_notes_for_changes (insn, EMIT_NOTE_AFTER_INSN, set->vars);
 	    }
@@ -7899,13 +8092,19 @@ vt_init_cfa_base (void)
 #else
   cfa_base_rtx = arg_pointer_rtx;
 #endif
+  if (cfa_base_rtx == hard_frame_pointer_rtx
+      || !fixed_regs[REGNO (cfa_base_rtx)])
+    {
+      cfa_base_rtx = NULL_RTX;
+      return;
+    }
   if (!MAY_HAVE_DEBUG_INSNS)
     return;
 
-  val = cselib_lookup (cfa_base_rtx, GET_MODE (cfa_base_rtx), 1);
+  val = cselib_lookup_from_insn (cfa_base_rtx, GET_MODE (cfa_base_rtx), 1,
+				 get_insns ());
   preserve_value (val);
   cselib_preserve_cfa_base_value (val);
-  val->locs->setting_insn = get_insns ();
   var_reg_decl_set (&VTI (ENTRY_BLOCK_PTR)->out, cfa_base_rtx,
 		    VAR_INIT_STATUS_INITIALIZED, dv_from_value (val->val_rtx),
 		    0, NULL_RTX, INSERT);

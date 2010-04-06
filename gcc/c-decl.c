@@ -6118,6 +6118,7 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
 
 		  TREE_VALUE (typelt) = error_mark_node;
 		  TREE_TYPE (parm) = error_mark_node;
+		  arg_types = NULL_TREE;
 		}
 	      else if (VOID_TYPE_P (type))
 		{
@@ -6138,6 +6139,7 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
 	      error (errmsg);
 	      TREE_VALUE (typelt) = error_mark_node;
 	      TREE_TYPE (parm) = error_mark_node;
+	      arg_types = NULL_TREE;
 	    }
 
 	  if (DECL_NAME (parm) && TREE_USED (parm))
@@ -6301,6 +6303,11 @@ get_parm_info (bool ellipsis)
 	     type itself.  FUNCTION_DECLs appear when there is an implicit
 	     function declaration in the parameter list.  */
 
+	  /* When we reinsert this decl in the function body, we need
+	     to reconstruct whether it was marked as nested.  */
+	  gcc_assert (TREE_CODE (decl) == FUNCTION_DECL
+		      ? b->nested
+		      : !b->nested);
 	  TREE_CHAIN (decl) = others;
 	  others = decl;
 	  /* fall through */
@@ -7622,7 +7629,9 @@ store_parm_decls_newstyle (tree fndecl, const struct c_arg_info *arg_info)
       DECL_CONTEXT (decl) = current_function_decl;
       if (DECL_NAME (decl))
 	bind (DECL_NAME (decl), decl, current_scope,
-	      /*invisible=*/false, /*nested=*/false, UNKNOWN_LOCATION);
+	      /*invisible=*/false,
+	      /*nested=*/(TREE_CODE (decl) == FUNCTION_DECL),
+	      UNKNOWN_LOCATION);
     }
 
   /* And all the tag declarations.  */

@@ -607,7 +607,7 @@ fix = {
 fix = {
     hackname  = alpha_assert;
     files     = "assert.h";
-    select    = '(#define assert\(EX\).*)\(\(int\) \(EX\)\)';
+    select    = "(#[ \t]*" 'define assert\(EX\).*)\(\(int\) \(EX\)\)';
     c_fix     = format;
     c_fix_arg = "%1(EX)";
     test_text = '#define assert(EX) (((int) (EX)) ? (void)0 '
@@ -1597,6 +1597,28 @@ fix = {
     test_text = "/* This file is part of the GNU C Library.  */\n# define UINT8_C(c)\tc ## U\n# define UINT16_C(c)\tc ## U";
 };
 
+
+/* Some versions of glibc have a version of bits/string2.h that
+   produces "value computed is not used" warnings from strncpy; fix
+   this definition by using __builtin_strncpy instead as in newer
+   versions.  */
+fix = {
+    hackname  = glibc_strncpy;
+    files     = bits/string2.h;
+    bypass    = "__builtin_strncpy";
+    c_fix     = format;
+    c_fix_arg = "#  define strncpy(dest, src, n) __builtin_strncpy (dest, src, n)";
+    c_fix_arg = "#  define strncpy([^\n]*\\\\\n)*[^\n]*";
+    test_text = <<-EOT
+	#  define strncpy(dest, src, n) \
+	  (__extension__ (__builtin_constant_p (src) && __builtin_constant_p (n)      \\
+			  ? (strlen (src) + 1 >= ((size_t) (n))			      \\
+			     ? (char *) memcpy (dest, src, n)			      \\
+			     : strncpy (dest, src, n))				      \\
+			  : strncpy (dest, src, n)))
+	EOT;
+
+};
 
 /* glibc's tgmath.h relies on an expression that is not an integer
    constant expression being treated as it was by GCC 4.4 and
@@ -3339,7 +3361,7 @@ fix = {
 
 fix = {
     hackname = solaris_math_8;
-    select = '@\(#\)math_c99.h' "[ \t]+1.[0-9]+[ \t]+[0-9/]+ SMI";
+    select = '@\(#\)math_c99\.h' "[ \t]+1\\.[0-9]+[ \t]+[0-9/]+ SMI";
     bypass = "__GNUC__";
     files = iso/math_c99.h;
     c_fix = format;
@@ -3352,7 +3374,7 @@ fix = {
     test_text = <<- _EOText_
 	#ident	"@(#)math_c99.h	1.9	04/11/01 SMI"
 	#undef	signbit
-	#define	signbit(x)	__builtin_signbit(x);
+	#define	signbit(x)	__builtin_signbit(x)
 	_EOText_;
 };
 

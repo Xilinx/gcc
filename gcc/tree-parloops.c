@@ -1,5 +1,6 @@
 /* Loop autoparallelization.
-   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr> and
    Zdenek Dvorak <dvorakz@suse.cz>.
 
@@ -1969,7 +1970,7 @@ parallelize_loops (void)
       verify_flow_info ();
       verify_dominators (CDI_DOMINATORS);
       verify_loop_structure ();
-      verify_loop_closed_ssa ();
+      verify_loop_closed_ssa (true);
     }
 
   free_stmt_vec_info_vec ();

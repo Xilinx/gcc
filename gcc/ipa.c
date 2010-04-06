@@ -1,6 +1,6 @@
 /* Basic IPA optimizations and utilities.
-   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009 Free Software Foundation,
-   Inc.
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -262,10 +262,10 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 		  if (!clone)
 		    {
 		      cgraph_release_function_body (node);
-		      cgraph_node_remove_callees (node);
 		      node->analyzed = false;
 		      node->local.inlinable = false;
 		    }
+		  cgraph_node_remove_callees (node);
 		  if (node->prev_sibling_clone)
 		    node->prev_sibling_clone->next_sibling_clone = node->next_sibling_clone;
 		  else if (node->clone_of)
@@ -316,6 +316,8 @@ cgraph_externally_visible_p (struct cgraph_node *node, bool whole_program)
       && (!TREE_PUBLIC (node->decl) || DECL_EXTERNAL (node->decl)))
     return false;
   if (!whole_program)
+    return true;
+  if (DECL_PRESERVE_P (node->decl))
     return true;
   /* COMDAT functions must be shared only if they have address taken,
      otherwise we can produce our own private implementation with

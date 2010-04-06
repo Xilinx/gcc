@@ -1,5 +1,5 @@
 /* Conversion of SESE regions to Polyhedra.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@amd.com>.
 
 This file is part of GCC.
@@ -2406,8 +2406,7 @@ rewrite_reductions_out_of_ssa (scop_p scop)
 
   update_ssa (TODO_update_ssa);
 #ifdef ENABLE_CHECKING
-  verify_ssa (false);
-  verify_loop_closed_ssa ();
+  verify_loop_closed_ssa (true);
 #endif
 
   FOR_EACH_BB (bb)
@@ -2417,8 +2416,7 @@ rewrite_reductions_out_of_ssa (scop_p scop)
 
   update_ssa (TODO_update_ssa);
 #ifdef ENABLE_CHECKING
-  verify_ssa (false);
-  verify_loop_closed_ssa ();
+  verify_loop_closed_ssa (true);
 #endif
 }
 
@@ -2796,7 +2794,7 @@ translate_scalar_reduction_to_array (VEC (gimple, heap) *in,
 {
   unsigned int i;
   gimple loop_phi;
-  tree red;
+  tree red = NULL_TREE;
 
   for (i = 0; VEC_iterate (gimple, in, i, loop_phi); i++)
     {
@@ -2877,8 +2875,7 @@ rewrite_commutative_reductions_out_of_ssa (sese region, sbitmap reductions)
   gsi_commit_edge_inserts ();
   update_ssa (TODO_update_ssa);
 #ifdef ENABLE_CHECKING
-  verify_ssa (false);
-  verify_loop_closed_ssa ();
+  verify_loop_closed_ssa (true);
 #endif
 }
 

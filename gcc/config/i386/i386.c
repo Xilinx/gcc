@@ -1912,6 +1912,10 @@ static unsigned int ix86_minimum_incoming_stack_boundary (bool);
 static enum calling_abi ix86_function_abi (const_tree);
 
 
+#ifndef SUBTARGET32_DEFAULT_CPU
+#define SUBTARGET32_DEFAULT_CPU "i386"
+#endif
+
 /* The svr4 ABI for the i386 says that records and unions are returned
    in memory.  */
 #ifndef DEFAULT_PCC_STRUCT_RETURN
@@ -2402,7 +2406,7 @@ ix86_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED, int value)
     }
 }
 
-/* Return a string the documents the current -m options.  The caller is
+/* Return a string that documents the current -m options.  The caller is
    responsible for freeing the string.  */
 
 static char *
@@ -2421,6 +2425,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
   {
     { "-m64",		OPTION_MASK_ISA_64BIT },
     { "-mfma4",		OPTION_MASK_ISA_FMA4 },
+    { "-mfma",		OPTION_MASK_ISA_FMA },
     { "-mxop",		OPTION_MASK_ISA_XOP },
     { "-mlwp",		OPTION_MASK_ISA_LWP },
     { "-msse4a",	OPTION_MASK_ISA_SSE4A },
@@ -2878,7 +2883,7 @@ override_options (bool main_args_p)
     }
 
   if (!ix86_arch_string)
-    ix86_arch_string = TARGET_64BIT ? "x86-64" : "i386";
+    ix86_arch_string = TARGET_64BIT ? "x86-64" : SUBTARGET32_DEFAULT_CPU;
   else
     ix86_arch_specified = 1;
 
@@ -3192,8 +3197,6 @@ override_options (bool main_args_p)
 	ix86_tls_dialect = TLS_DIALECT_GNU;
       else if (strcmp (ix86_tls_dialect_string, "gnu2") == 0)
 	ix86_tls_dialect = TLS_DIALECT_GNU2;
-      else if (strcmp (ix86_tls_dialect_string, "sun") == 0)
-	ix86_tls_dialect = TLS_DIALECT_SUN;
       else
 	error ("bad value (%s) for %stls-dialect=%s %s",
 	       ix86_tls_dialect_string, prefix, suffix, sw);
@@ -7577,8 +7580,8 @@ get_pc_thunk_name (char name[32], unsigned int regno)
 /* This function generates code for -fpic that loads %ebx with
    the return address of the caller and then returns.  */
 
-void
-ix86_file_end (void)
+static void
+ix86_code_end (void)
 {
   rtx xops[2];
   int regno;
@@ -7586,14 +7589,20 @@ ix86_file_end (void)
   for (regno = 0; regno < 8; ++regno)
     {
       char name[32];
-#ifdef DWARF2_UNWIND_INFO
-      bool do_cfi;
-#endif
+      tree decl;
 
       if (! ((pic_labels_used >> regno) & 1))
 	continue;
 
       get_pc_thunk_name (name, regno);
+
+      decl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL,
+			 get_identifier (name),
+			 build_function_type (void_type_node, void_list_node));
+      DECL_RESULT (decl) = build_decl (BUILTINS_LOCATION, RESULT_DECL,
+				       NULL_TREE, void_type_node);
+      TREE_PUBLIC (decl) = 1;
+      TREE_STATIC (decl) = 1;
 
 #if TARGET_MACHO
       if (TARGET_MACHO)
@@ -7605,18 +7614,12 @@ ix86_file_end (void)
 	  assemble_name (asm_out_file, name);
 	  fputs ("\n", asm_out_file);
 	  ASM_OUTPUT_LABEL (asm_out_file, name);
+	  DECL_WEAK (decl) = 1;
 	}
       else
 #endif
       if (USE_HIDDEN_LINKONCE)
 	{
-	  tree decl;
-
-	  decl = build_decl (BUILTINS_LOCATION,
-			     FUNCTION_DECL, get_identifier (name),
-			     error_mark_node);
-	  TREE_PUBLIC (decl) = 1;
-	  TREE_STATIC (decl) = 1;
 	  DECL_COMDAT_GROUP (decl) = DECL_ASSEMBLER_NAME (decl);
 
 	  (*targetm.asm_out.unique_section) (decl, 0);
@@ -7634,23 +7637,23 @@ ix86_file_end (void)
 	  ASM_OUTPUT_LABEL (asm_out_file, name);
 	}
 
-#ifdef DWARF2_UNWIND_INFO
-      do_cfi = dwarf2out_do_cfi_asm ();
-      if (do_cfi)
-	fprintf (asm_out_file, "\t.cfi_startproc\n");
-#endif
+      DECL_INITIAL (decl) = make_node (BLOCK);
+      current_function_decl = decl;
+      init_function_start (decl);
+      first_function_block_is_cold = false;
+      /* Make sure unwind info is emitted for the thunk if needed.  */
+      final_start_function (emit_barrier (), asm_out_file, 1);
+
       xops[0] = gen_rtx_REG (Pmode, regno);
       xops[1] = gen_rtx_MEM (Pmode, stack_pointer_rtx);
       output_asm_insn ("mov%z0\t{%1, %0|%0, %1}", xops);
       output_asm_insn ("ret", xops);
-#ifdef DWARF2_UNWIND_INFO
-      if (do_cfi)
-	fprintf (asm_out_file, "\t.cfi_endproc\n");
-#endif
+      final_end_function ();
+      init_insn_lengths ();
+      free_after_compilation (cfun);
+      set_cfun (NULL);
+      current_function_decl = NULL;
     }
-
-  if (NEED_INDICATE_EXEC_STACK)
-    file_end_indicate_exec_stack ();
 }
 
 /* Emit code for the SET_GOT patterns.  */
@@ -8625,12 +8628,9 @@ ix86_expand_prologue (void)
 			       ix86_cfa_state->reg == stack_pointer_rtx);
   else
     {
-      /* Only valid for Win32.  */
       rtx eax = gen_rtx_REG (Pmode, AX_REG);
       bool eax_live;
       rtx t;
-
-      gcc_assert (!TARGET_64BIT || cfun->machine->call_abi == MS_ABI);
 
       if (cfun->machine->call_abi == MS_ABI)
 	eax_live = false;
@@ -10860,29 +10860,29 @@ output_pic_addr_const (FILE *file, rtx x, int code)
 	  break;
 	case UNSPEC_GOTTPOFF:
 	  /* FIXME: This might be @TPOFF in Sun ld too.  */
-	  fputs ("@GOTTPOFF", file);
+	  fputs ("@gottpoff", file);
 	  break;
 	case UNSPEC_TPOFF:
-	  fputs ("@TPOFF", file);
+	  fputs ("@tpoff", file);
 	  break;
 	case UNSPEC_NTPOFF:
 	  if (TARGET_64BIT)
-	    fputs ("@TPOFF", file);
+	    fputs ("@tpoff", file);
 	  else
-	    fputs ("@NTPOFF", file);
+	    fputs ("@ntpoff", file);
 	  break;
 	case UNSPEC_DTPOFF:
-	  fputs ("@DTPOFF", file);
+	  fputs ("@dtpoff", file);
 	  break;
 	case UNSPEC_GOTNTPOFF:
 	  if (TARGET_64BIT)
 	    fputs (ASSEMBLER_DIALECT == ASM_ATT ?
-		   "@GOTTPOFF(%rip)": "@GOTTPOFF[rip]", file);
+		   "@gottpoff(%rip)": "@gottpoff[rip]", file);
 	  else
-	    fputs ("@GOTNTPOFF", file);
+	    fputs ("@gotntpoff", file);
 	  break;
 	case UNSPEC_INDNTPOFF:
-	  fputs ("@INDNTPOFF", file);
+	  fputs ("@indntpoff", file);
 	  break;
 #if TARGET_MACHO
 	case UNSPEC_MACHOPIC_OFFSET:
@@ -10909,7 +10909,7 @@ i386_output_dwarf_dtprel (FILE *file, int size, rtx x)
 {
   fputs (ASM_LONG, file);
   output_addr_const (file, x);
-  fputs ("@DTPOFF", file);
+  fputs ("@dtpoff", file);
   switch (size)
     {
     case 4:
@@ -11390,7 +11390,6 @@ get_some_local_dynamic_name (void)
    L,W,B,Q,S,T -- print the opcode suffix for specified size of operand.
    C -- print opcode suffix for set/cmov insn.
    c -- like C, but print reversed condition
-   E,e -- likewise, but for compare-and-branch fused insn.
    F,f -- likewise, but for floating-point.
    O -- if HAVE_AS_IX86_CMOV_SUN_SYNTAX, expand to "w.", "l." or "q.",
         otherwise nothing
@@ -11795,14 +11794,6 @@ print_operand (FILE *file, rtx x, int code)
 	  put_condition_code (GET_CODE (x), GET_MODE (XEXP (x, 0)), 1, 1, file);
 	  return;
 
-	case 'E':
-	  put_condition_code (GET_CODE (x), CCmode, 0, 0, file);
-	  return;
-
-	case 'e':
-	  put_condition_code (GET_CODE (x), CCmode, 1, 0, file);
-	  return;
-
 	case 'H':
 	  /* It doesn't actually matter what mode we use here, as we're
 	     only going to use this for printing.  */
@@ -12186,34 +12177,34 @@ output_addr_const_extra (FILE *file, rtx x)
     case UNSPEC_GOTTPOFF:
       output_addr_const (file, op);
       /* FIXME: This might be @TPOFF in Sun ld.  */
-      fputs ("@GOTTPOFF", file);
+      fputs ("@gottpoff", file);
       break;
     case UNSPEC_TPOFF:
       output_addr_const (file, op);
-      fputs ("@TPOFF", file);
+      fputs ("@tpoff", file);
       break;
     case UNSPEC_NTPOFF:
       output_addr_const (file, op);
       if (TARGET_64BIT)
-	fputs ("@TPOFF", file);
+	fputs ("@tpoff", file);
       else
-	fputs ("@NTPOFF", file);
+	fputs ("@ntpoff", file);
       break;
     case UNSPEC_DTPOFF:
       output_addr_const (file, op);
-      fputs ("@DTPOFF", file);
+      fputs ("@dtpoff", file);
       break;
     case UNSPEC_GOTNTPOFF:
       output_addr_const (file, op);
       if (TARGET_64BIT)
 	fputs (ASSEMBLER_DIALECT == ASM_ATT ?
-	       "@GOTTPOFF(%rip)" : "@GOTTPOFF[rip]", file);
+	       "@gottpoff(%rip)" : "@gottpoff[rip]", file);
       else
-	fputs ("@GOTNTPOFF", file);
+	fputs ("@gotntpoff", file);
       break;
     case UNSPEC_INDNTPOFF:
       output_addr_const (file, op);
-      fputs ("@INDNTPOFF", file);
+      fputs ("@indntpoff", file);
       break;
 #if TARGET_MACHO
     case UNSPEC_MACHOPIC_OFFSET:
@@ -22481,10 +22472,10 @@ static const struct builtin_description bdesc_multi_arg[] =
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_pcom_tfv4si3,      "__builtin_ia32_vpcomtrueud", IX86_BUILTIN_VPCOMTRUEUD, (enum rtx_code) PCOM_TRUE,    (int)MULTI_ARG_2_SI_TF },
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_pcom_tfv2di3,      "__builtin_ia32_vpcomtrueuq", IX86_BUILTIN_VPCOMTRUEUQ, (enum rtx_code) PCOM_TRUE,    (int)MULTI_ARG_2_DI_TF },
 
-  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v2df3,     "__builtin_ia32_vpermil2pd",  IX86_BUILTIN_VPERMIL2PD, UNKNOWN, (int)MULTI_ARG_4_DF2_DI_I },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v4sf3,     "__builtin_ia32_vpermil2ps",  IX86_BUILTIN_VPERMIL2PS, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v4df3,     "__builtin_ia32_vpermil2pd256", IX86_BUILTIN_VPERMIL2PD256, UNKNOWN, (int)MULTI_ARG_4_DF2_DI_I1 },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v8sf3,     "__builtin_ia32_vpermil2ps256", IX86_BUILTIN_VPERMIL2PS256, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I1 },
+  { OPTION_MASK_ISA_XOP, CODE_FOR_xop_vpermil2v2df3,     "__builtin_ia32_vpermil2pd",  IX86_BUILTIN_VPERMIL2PD, UNKNOWN, (int)MULTI_ARG_4_DF2_DI_I },
+  { OPTION_MASK_ISA_XOP, CODE_FOR_xop_vpermil2v4sf3,     "__builtin_ia32_vpermil2ps",  IX86_BUILTIN_VPERMIL2PS, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I },
+  { OPTION_MASK_ISA_XOP, CODE_FOR_xop_vpermil2v4df3,     "__builtin_ia32_vpermil2pd256", IX86_BUILTIN_VPERMIL2PD256, UNKNOWN, (int)MULTI_ARG_4_DF2_DI_I1 },
+  { OPTION_MASK_ISA_XOP, CODE_FOR_xop_vpermil2v8sf3,     "__builtin_ia32_vpermil2ps256", IX86_BUILTIN_VPERMIL2PS256, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I1 },
 
 };
 
@@ -23639,10 +23630,10 @@ ix86_expand_args_builtin (const struct builtin_description *d,
       nargs = 3;
       nargs_constant = 2;
       break;
-    case MULTI_ARG_4_DF2_DI_I:
-    case MULTI_ARG_4_DF2_DI_I1:
-    case MULTI_ARG_4_SF2_SI_I:
-    case MULTI_ARG_4_SF2_SI_I1:
+    case V2DF_FTYPE_V2DF_V2DF_V2DI_INT:
+    case V4DF_FTYPE_V4DF_V4DF_V4DI_INT:
+    case V4SF_FTYPE_V4SF_V4SF_V4SI_INT:
+    case V8SF_FTYPE_V8SF_V8SF_V8SI_INT:
       nargs = 4;
       nargs_constant = 1;
       break;
@@ -24375,14 +24366,16 @@ ix86_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
    if it is not available.  */
 
 static tree
-ix86_builtin_vectorized_function (unsigned int fn, tree type_out,
+ix86_builtin_vectorized_function (tree fndecl, tree type_out,
 				  tree type_in)
 {
   enum machine_mode in_mode, out_mode;
   int in_n, out_n;
+  enum built_in_function fn = DECL_FUNCTION_CODE (fndecl);
 
   if (TREE_CODE (type_out) != VECTOR_TYPE
-      || TREE_CODE (type_in) != VECTOR_TYPE)
+      || TREE_CODE (type_in) != VECTOR_TYPE
+      || DECL_BUILT_IN_CLASS (fndecl) != BUILT_IN_NORMAL)
     return NULL_TREE;
 
   out_mode = TYPE_MODE (TREE_TYPE (type_out));
@@ -25935,13 +25928,6 @@ machopic_output_stub (FILE *file, const char *symb, const char *stub)
   fprintf (file, "\t.indirect_symbol %s\n", symbol_name);
   fprintf (file, ASM_LONG "%s\n", binder_name);
 }
-
-void
-darwin_x86_file_end (void)
-{
-  darwin_file_end ();
-  ix86_file_end ();
-}
 #endif /* TARGET_MACHO */
 
 /* Order the registers for register allocator.  */
@@ -26188,13 +26174,16 @@ x86_can_output_mi_thunk (const_tree thunk ATTRIBUTE_UNUSED,
    *(*this + vcall_offset) should be added to THIS.  */
 
 static void
-x86_output_mi_thunk (FILE *file ATTRIBUTE_UNUSED,
+x86_output_mi_thunk (FILE *file,
 		     tree thunk ATTRIBUTE_UNUSED, HOST_WIDE_INT delta,
 		     HOST_WIDE_INT vcall_offset, tree function)
 {
   rtx xops[3];
   rtx this_param = x86_this_parameter (function);
   rtx this_reg, tmp;
+
+  /* Make sure unwind info is emitted for the thunk if needed.  */
+  final_start_function (emit_barrier (), file, 1);
 
   /* If VCALL_OFFSET, we'll need THIS in a register.  Might as well
      pull it in now and let DELTA benefit.  */
@@ -26213,10 +26202,7 @@ x86_output_mi_thunk (FILE *file ATTRIBUTE_UNUSED,
   /* Adjust the this parameter by a fixed constant.  */
   if (delta)
     {
-      /* Make things pretty and `subl $4,%eax' rather than `addl $-4,%eax'.
-         Exceptions: -128 encodes smaller than 128, so swap sign and op.  */
-      bool sub = delta < 0 || delta == 128;
-      xops[0] = GEN_INT (sub ? -delta : delta);
+      xops[0] = GEN_INT (delta);
       xops[1] = this_reg ? this_reg : this_param;
       if (TARGET_64BIT)
 	{
@@ -26228,12 +26214,12 @@ x86_output_mi_thunk (FILE *file ATTRIBUTE_UNUSED,
 	      xops[0] = tmp;
 	      xops[1] = this_param;
 	    }
-	  if (sub)
+	  if (x86_maybe_negate_const_int (&xops[0], DImode))
 	    output_asm_insn ("sub{q}\t{%0, %1|%1, %0}", xops);
 	  else
 	    output_asm_insn ("add{q}\t{%0, %1|%1, %0}", xops);
 	}
-      else if (sub)
+      else if (x86_maybe_negate_const_int (&xops[0], SImode))
 	output_asm_insn ("sub{l}\t{%0, %1|%1, %0}", xops);
       else
 	output_asm_insn ("add{l}\t{%0, %1|%1, %0}", xops);
@@ -26324,6 +26310,7 @@ x86_output_mi_thunk (FILE *file ATTRIBUTE_UNUSED,
 	  output_asm_insn ("jmp\t{*}%1", xops);
 	}
     }
+  final_end_function ();
 }
 
 static void
@@ -26365,7 +26352,7 @@ x86_function_profiler (FILE *file, int labelno ATTRIBUTE_UNUSED)
   if (TARGET_64BIT)
     {
 #ifndef NO_PROFILE_COUNTERS
-      fprintf (file, "\tleaq\t" LPREFIX "P%d@(%%rip),%%r11\n", labelno);
+      fprintf (file, "\tleaq\t" LPREFIX "P%d(%%rip),%%r11\n", labelno);
 #endif
 
       if (DEFAULT_ABI == SYSV_ABI && flag_pic)
@@ -26657,6 +26644,52 @@ x86_extended_reg_mentioned_p (rtx insn)
 {
   return for_each_rtx (INSN_P (insn) ? &PATTERN (insn) : &insn,
 		       extended_reg_mentioned_1, NULL);
+}
+
+/* If profitable, negate (without causing overflow) integer constant
+   of mode MODE at location LOC.  Return true in this case.  */
+bool
+x86_maybe_negate_const_int (rtx *loc, enum machine_mode mode)
+{
+  HOST_WIDE_INT val;
+
+  if (!CONST_INT_P (*loc))
+    return false;
+
+  switch (mode)
+    {
+    case DImode:
+      /* DImode x86_64 constants must fit in 32 bits.  */
+      gcc_assert (x86_64_immediate_operand (*loc, mode));
+
+      mode = SImode;
+      break;
+
+    case SImode:
+    case HImode:
+    case QImode:
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  /* Avoid overflows.  */
+  if (mode_signbit_p (mode, *loc))
+    return false;
+
+  val = INTVAL (*loc);
+
+  /* Make things pretty and `subl $4,%eax' rather than `addl $-4,%eax'.
+     Exceptions: -128 encodes smaller than 128, so swap sign and op.  */
+  if ((val < 0 && val != -128)
+      || val == 128)
+    {
+      *loc = GEN_INT (-val);
+      return true;
+    }
+
+  return false;
 }
 
 /* Generate an unsigned DImode/SImode to FP conversion.  This is the same code
@@ -30542,6 +30575,9 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE ix86_can_eliminate
+
+#undef TARGET_ASM_CODE_END
+#define TARGET_ASM_CODE_END ix86_code_end
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

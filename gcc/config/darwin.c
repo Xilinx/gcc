@@ -1,6 +1,6 @@
 /* Functions for generic Darwin as target machine for GNU C compiler.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008, 2009
+   2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
@@ -1178,7 +1178,7 @@ machopic_select_section (tree decl,
   bool weak = (DECL_P (decl)
 	       && DECL_WEAK (decl)
 	       && !lookup_attribute ("weak_import",
-	       DECL_ATTRIBUTES (decl)));
+				     DECL_ATTRIBUTES (decl)));
   section *base_section;
 
   switch (categorize_decl_for_section (decl, reloc))

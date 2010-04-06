@@ -1,6 +1,6 @@
 /* Definitions of target machine for GCC for IA-32.
    Copyright (C) 1988, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -429,7 +429,7 @@ extern int x86_prefetch_sse;
 #define TARGET_GNU_TLS		(ix86_tls_dialect == TLS_DIALECT_GNU)
 #define TARGET_GNU2_TLS		(ix86_tls_dialect == TLS_DIALECT_GNU2)
 #define TARGET_ANY_GNU_TLS	(TARGET_GNU_TLS || TARGET_GNU2_TLS)
-#define TARGET_SUN_TLS		(ix86_tls_dialect == TLS_DIALECT_SUN)
+#define TARGET_SUN_TLS		0
 
 extern int ix86_isa_flags;
 
@@ -1627,9 +1627,6 @@ typedef struct ix86_args {
 #define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
   function_arg (&(CUM), (MODE), (TYPE), (NAMED))
 
-#define TARGET_ASM_FILE_END ix86_file_end
-#define NEED_INDICATE_EXEC_STACK 0
-
 /* Output assembler code to FILE to increment profiler label # LABELNO
    for profiling a function entry.  */
 
@@ -1810,7 +1807,7 @@ typedef struct ix86_args {
 #define X86_64_SSE_REGPARM_MAX 8
 #define X86_64_MS_SSE_REGPARM_MAX 4
 
-#define X86_32_SSE_REGPARM_MAX (TARGET_SSE ? 3 : 0)
+#define X86_32_SSE_REGPARM_MAX (TARGET_SSE ? (TARGET_MACHO ? 4 : 3) : 0)
 
 #define SSE_REGPARM_MAX							\
   (TARGET_64BIT ? (TARGET_64BIT_MS_ABI ? X86_64_MS_SSE_REGPARM_MAX	\

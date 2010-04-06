@@ -1,5 +1,5 @@
 /* Translation of CLAST (CLooG AST) to Gimple.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@amd.com>.
 
 This file is part of GCC.
@@ -66,8 +66,7 @@ graphite_verify (void)
   verify_loop_structure ();
   verify_dominators (CDI_DOMINATORS);
   verify_dominators (CDI_POST_DOMINATORS);
-  verify_ssa (false);
-  verify_loop_closed_ssa ();
+  verify_loop_closed_ssa (true);
 #endif
 }
 

@@ -1,6 +1,7 @@
 ;;- Machine description for HP PA-RISC architecture for GCC compiler
 ;;   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-;;   2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+;;   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010
+;;   Free Software Foundation, Inc.
 ;;   Contributed by the Center for Software Science at the University
 ;;   of Utah.
 
@@ -3097,7 +3098,7 @@
 
   size = INTVAL (operands[2]);
   align = INTVAL (operands[3]);
-  align = align > 4 ? 4 : align;
+  align = align > 4 ? 4 : (align ? align : 1);
 
   /* If size/alignment is large, then use the library routines.  */
   if (size / align > 16)
@@ -3285,7 +3286,7 @@
 
   size = INTVAL (operands[2]);
   align = INTVAL (operands[3]);
-  align = align > 8 ? 8 : align;
+  align = align > 8 ? 8 : (align ? align : 1);
 
   /* If size/alignment is large, then use the library routines.  */
   if (size / align > 16)

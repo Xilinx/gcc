@@ -104,7 +104,6 @@ static tree build_cp_library_fn (tree, enum tree_code, tree);
 static void store_parm_decls (tree);
 static void initialize_local_var (tree, tree);
 static void expand_static_init (tree, tree);
-static tree next_initializable_field (tree);
 
 /* The following symbols are subsumed in the cp_global_trees array, and
    listed here individually for documentation purposes.
@@ -4723,7 +4722,7 @@ static tree reshape_init_r (tree, reshape_iter *, bool);
    initialized.  If there are no more such fields, the return value
    will be NULL.  */
 
-static tree
+tree
 next_initializable_field (tree field)
 {
   while (field
@@ -10318,13 +10317,8 @@ grok_op_properties (tree decl, bool complain)
 	      || operator_code == ARRAY_REF
 	      || operator_code == NOP_EXPR)
 	    {
-	      if (class_type && LAMBDA_TYPE_P (class_type))
-		/* Lambdas can have static op() and conv ops.  */;
-	      else
-		{
-		  error ("%qD must be a nonstatic member function", decl);
-		  return false;
-		}
+	      error ("%qD must be a nonstatic member function", decl);
+	      return false;
 	    }
 	  else
 	    {

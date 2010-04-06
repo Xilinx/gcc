@@ -890,6 +890,7 @@ make_declarator (cp_declarator_kind kind)
   declarator->attributes = NULL_TREE;
   declarator->declarator = NULL;
   declarator->parameter_pack_p = false;
+  declarator->id_loc = UNKNOWN_LOCATION;
 
   return declarator;
 }
@@ -3896,13 +3897,15 @@ cp_parser_unqualified_id (cp_parser* parser,
 	  }
 	gcc_assert (!scope || TYPE_P (scope));
 
-	/* If the name is of the form "X::~X" it's OK.  */
+	/* If the name is of the form "X::~X" it's OK even if X is a
+	   typedef.  */
 	token = cp_lexer_peek_token (parser->lexer);
 	if (scope
 	    && token->type == CPP_NAME
 	    && (cp_lexer_peek_nth_token (parser->lexer, 2)->type
 		!= CPP_LESS)
-	    && constructor_name_p (token->u.value, scope))
+	    && (token->u.value == TYPE_IDENTIFIER (scope)
+		|| constructor_name_p (token->u.value, scope)))
 	  {
 	    cp_lexer_consume_token (parser->lexer);
 	    return build_nt (BIT_NOT_EXPR, scope);
@@ -4440,6 +4443,16 @@ cp_parser_qualifying_entity (cp_parser *parser,
      
       /* Parse a typedef-name or enum-name.  */
       scope = cp_parser_nonclass_name (parser);
+
+      /* "If the name found does not designate a namespace or a class,
+	 enumeration, or dependent type, the program is ill-formed."
+
+         We cover classes and dependent types above and namespaces below,
+         so this code is only looking for enums.  */
+      if (!scope || TREE_CODE (scope) != TYPE_DECL
+	  || TREE_CODE (TREE_TYPE (scope)) != ENUMERAL_TYPE)
+	cp_parser_simulate_error (parser);
+
       successful_parse_p = cp_parser_parse_definitely (parser);
     }
   /* If that didn't work, try for a namespace-name.  */
@@ -7390,21 +7403,12 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
     declarator = make_id_declarator (NULL_TREE, ansi_opname (CALL_EXPR),
 				     sfk_none);
 
-    quals = TYPE_UNQUALIFIED;
-    if (LAMBDA_EXPR_CAPTURE_LIST (lambda_expr) == NULL_TREE
-	&& LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) == CPLD_NONE)
-      {
-	/* A lambda with no captures has a static op() and a conversion op
-	   to function type.  */
-	if (LAMBDA_EXPR_MUTABLE_P (lambda_expr))
-	  error ("lambda expression with no captures declared mutable");
-	return_type_specs.storage_class = sc_static;
-      }
-    else if (!LAMBDA_EXPR_MUTABLE_P (lambda_expr))
-      quals = TYPE_QUAL_CONST;
+    quals = (LAMBDA_EXPR_MUTABLE_P (lambda_expr)
+	     ? TYPE_UNQUALIFIED : TYPE_QUAL_CONST);
     declarator = make_call_declarator (declarator, param_list, quals,
 				       exception_spec,
                                        /*late_return_type=*/NULL_TREE);
+    declarator->id_loc = LAMBDA_EXPR_LOCATION (lambda_expr);
 
     fco = grokmethod (&return_type_specs,
 		      declarator,
@@ -8352,7 +8356,7 @@ cp_parser_for_init_statement (cp_parser* parser)
 	return;
     }
 
-  cp_parser_expression_statement (parser, false);
+  cp_parser_expression_statement (parser, NULL_TREE);
 }
 
 /* Parse a jump-statement.
@@ -14104,11 +14108,13 @@ cp_parser_direct_declarator (cp_parser* parser,
 		bounds = fold_non_dependent_expr (bounds);
 	      /* Normally, the array bound must be an integral constant
 		 expression.  However, as an extension, we allow VLAs
-		 in function scopes.  */
-	      else if (!parser->in_function_body)
+		 in function scopes as long as they aren't part of a
+		 parameter declaration.  */
+	      else if (!parser->in_function_body
+		       || current_binding_level->kind == sk_function_parms)
 		{
-		  error_at (token->location,
-			    "array bound is not an integer constant");
+		  cp_parser_error (parser,
+				   "array bound is not an integer constant");
 		  bounds = error_mark_node;
 		}
 	      else if (processing_template_decl && !error_operand_p (bounds))

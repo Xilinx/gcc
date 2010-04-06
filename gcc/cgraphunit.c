@@ -751,8 +751,9 @@ verify_cgraph_node (struct cgraph_node *node)
 			    debug_tree (e->callee->decl);
 			    error_found = true;
 			  }
-			else if (!clone_of_p (cgraph_node (decl), e->callee)
-			         && !e->callee->global.inlined_to)
+			else if (!node->global.inlined_to
+				 && !e->callee->global.inlined_to
+				 && !clone_of_p (cgraph_node (decl), e->callee))
 			  {
 			    error ("edge points to wrong declaration:");
 			    debug_tree (e->callee->decl);
@@ -1663,7 +1664,6 @@ static void
 cgraph_output_in_order (void)
 {
   int max;
-  size_t size;
   struct cgraph_order_sort *nodes;
   int i;
   struct cgraph_node *pf;
@@ -1671,9 +1671,7 @@ cgraph_output_in_order (void)
   struct cgraph_asm_node *pa;
 
   max = cgraph_order;
-  size = max * sizeof (struct cgraph_order_sort);
-  nodes = (struct cgraph_order_sort *) alloca (size);
-  memset (nodes, 0, size);
+  nodes = XCNEWVEC (struct cgraph_order_sort, max);
 
   varpool_analyze_pending_decls ();
 
@@ -1740,6 +1738,7 @@ cgraph_output_in_order (void)
     }
 
   cgraph_asm_nodes = NULL;
+  free (nodes);
 }
 
 /* Return true when function body of DECL still needs to be kept around
@@ -1945,7 +1944,11 @@ cgraph_build_static_cdtor (char which, tree body, int priority)
   DECL_ARTIFICIAL (decl) = 1;
   DECL_NO_INSTRUMENT_FUNCTION_ENTRY_EXIT (decl) = 1;
   DECL_SAVED_TREE (decl) = body;
-  TREE_PUBLIC (decl) = ! targetm.have_ctors_dtors;
+  if (!targetm.have_ctors_dtors)
+    {
+      TREE_PUBLIC (decl) = 1;
+      DECL_PRESERVE_P (decl) = 1;
+    }
   DECL_UNINLINABLE (decl) = 1;
 
   DECL_INITIAL (decl) = make_node (BLOCK);
@@ -2222,11 +2225,60 @@ cgraph_materialize_clone (struct cgraph_node *node)
   bitmap_obstack_release (NULL);
 }
 
+/* If necessary, change the function declaration in the call statement
+   associated with E so that it corresponds to the edge callee.  */
+
+gimple
+cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
+{
+  tree decl = gimple_call_fndecl (e->call_stmt);
+  gimple new_stmt;
+  gimple_stmt_iterator gsi;
+
+  if (!decl || decl == e->callee->decl
+      /* Don't update call from same body alias to the real function.  */
+      || cgraph_get_node (decl) == cgraph_get_node (e->callee->decl))
+    return e->call_stmt;
+
+  if (cgraph_dump_file)
+    {
+      fprintf (cgraph_dump_file, "updating call of %s/%i -> %s/%i: ",
+	       cgraph_node_name (e->caller), e->caller->uid,
+	       cgraph_node_name (e->callee), e->callee->uid);
+      print_gimple_stmt (cgraph_dump_file, e->call_stmt, 0, dump_flags);
+    }
+
+  if (e->callee->clone.combined_args_to_skip)
+    new_stmt = gimple_call_copy_skip_args (e->call_stmt,
+				       e->callee->clone.combined_args_to_skip);
+  else
+    new_stmt = e->call_stmt;
+  if (gimple_vdef (new_stmt)
+      && TREE_CODE (gimple_vdef (new_stmt)) == SSA_NAME)
+    SSA_NAME_DEF_STMT (gimple_vdef (new_stmt)) = new_stmt;
+  gimple_call_set_fndecl (new_stmt, e->callee->decl);
+
+  gsi = gsi_for_stmt (e->call_stmt);
+  gsi_replace (&gsi, new_stmt, true);
+
+  /* Update EH information too, just in case.  */
+  maybe_clean_or_replace_eh_stmt (e->call_stmt, new_stmt);
+
+  cgraph_set_call_stmt_including_clones (e->caller, e->call_stmt, new_stmt);
+
+  if (cgraph_dump_file)
+    {
+      fprintf (cgraph_dump_file, "  updated to:");
+      print_gimple_stmt (cgraph_dump_file, e->call_stmt, 0, dump_flags);
+    }
+  return new_stmt;
+}
+
 /* Once all functions from compilation unit are in memory, produce all clones
-   and update all calls.
-   We might also do this on demand if we don't want to bring all functions to
-   memory prior compilation, but current WHOPR implementation does that and it is
-   is bit easier to keep everything right in this order.  */
+   and update all calls.  We might also do this on demand if we don't want to
+   bring all functions to memory prior compilation, but current WHOPR
+   implementation does that and it is is bit easier to keep everything right in
+   this order.  */
 void
 cgraph_materialize_all_clones (void)
 {
@@ -2302,69 +2354,28 @@ cgraph_materialize_all_clones (void)
   if (cgraph_dump_file)
     fprintf (cgraph_dump_file, "Updating call sites\n");
   for (node = cgraph_nodes; node; node = node->next)
-    if (node->analyzed && gimple_has_body_p (node->decl)
-        && (!node->clone_of || node->clone_of->decl != node->decl))
+    if (node->analyzed && !node->clone_of
+	&& gimple_has_body_p (node->decl))
       {
         struct cgraph_edge *e;
 
 	current_function_decl = node->decl;
         push_cfun (DECL_STRUCT_FUNCTION (node->decl));
 	for (e = node->callees; e; e = e->next_callee)
-	  {
-	    tree decl = gimple_call_fndecl (e->call_stmt);
-	    /* When function gets inlined, indirect inlining might've invented
-	       new edge for orginally indirect stmt.  Since we are not
-	       preserving clones in the original form, we must not update here
-	       since other inline clones don't need to contain call to the same
-	       call.  Inliner will do the substitution for us later.  */
-	    if (decl && decl != e->callee->decl)
-	      {
-		gimple new_stmt;
-		gimple_stmt_iterator gsi;
-
-		if (cgraph_get_node (decl) == cgraph_get_node (e->callee->decl))
-		  /* Don't update call from same body alias to the real function.  */
-		  continue;
-
-		if (cgraph_dump_file)
-		  {
-		    fprintf (cgraph_dump_file, "updating call of %s in %s:",
-		             cgraph_node_name (node),
-			     cgraph_node_name (e->callee));
-      		    print_gimple_stmt (cgraph_dump_file, e->call_stmt, 0, dump_flags);
-		  }
-
-		if (e->callee->clone.combined_args_to_skip)
-		  new_stmt = gimple_call_copy_skip_args (e->call_stmt,
-							 e->callee->clone.combined_args_to_skip);
-		else
-		  new_stmt = e->call_stmt;
-		if (gimple_vdef (new_stmt)
-		    && TREE_CODE (gimple_vdef (new_stmt)) == SSA_NAME)
-		  SSA_NAME_DEF_STMT (gimple_vdef (new_stmt)) = new_stmt;
-                gimple_call_set_fndecl (new_stmt, e->callee->decl);
-
-		gsi = gsi_for_stmt (e->call_stmt);
-		gsi_replace (&gsi, new_stmt, true);
-
-		/* Update EH information too, just in case.  */
-		maybe_clean_or_replace_eh_stmt (e->call_stmt, new_stmt);
-
-		cgraph_set_call_stmt_including_clones (node, e->call_stmt, new_stmt);
-
-		if (cgraph_dump_file)
-		  {
-		    fprintf (cgraph_dump_file, "  updated to:");
-      		    print_gimple_stmt (cgraph_dump_file, e->call_stmt, 0, dump_flags);
-		  }
-	      }
-	  }
+	  cgraph_redirect_edge_call_stmt_to_callee (e);
 	pop_cfun ();
 	current_function_decl = NULL;
 #ifdef ENABLE_CHECKING
         verify_cgraph_node (node);
 #endif
       }
+  if (cgraph_dump_file)
+    fprintf (cgraph_dump_file, "Materialization Call site updates done.\n");
+  /* All changes to parameters have been performed.  In order not to
+     incorrectly repeat them, we simply dispose of the bitmaps that drive the
+     changes. */
+  for (node = cgraph_nodes; node; node = node->next)
+    node->clone.combined_args_to_skip = NULL;
 #ifdef ENABLE_CHECKING
   verify_cgraph ();
 #endif
