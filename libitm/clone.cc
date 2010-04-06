@@ -86,7 +86,7 @@ find_clone (void *ptr)
 
 
 void * ITM_REGPARM
-_ITM_getTMCloneOrIrrevokable (void *ptr)
+_ITM_getTMCloneOrIrrevocable (void *ptr)
 {
   void *ret = find_clone (ptr);
   if (ret)

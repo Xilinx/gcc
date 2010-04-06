@@ -154,12 +154,6 @@ extern int _ITM_getThreadnum(void) ITM_REGPARM;
 
 extern void _ITM_dropReferences (const void *, size_t) ITM_REGPARM;
 
-extern void *_ITM_getTMCloneOrIrrevokable (void *) ITM_REGPARM;
-extern void *_ITM_getTMCloneSafe (void *) ITM_REGPARM;
-
-extern void _ITM_registerTMCloneTable (void *, size_t);
-extern void _ITM_deregisterTMCloneTable (void *);
-
 
 /* The following typedefs exist to make the macro expansions below work
    properly.  They are not part of any API.  */
@@ -269,7 +263,7 @@ extern void _ITM_memsetWaW(void *, int, size_t) ITM_REGPARM;
 
 // ??? These are not yet in the official spec; still work-in-progress.
 
-extern void *_ITM_getTMCloneOrIrrevokable (void *) ITM_REGPARM;
+extern void *_ITM_getTMCloneOrIrrevocable (void *) ITM_REGPARM;
 extern void *_ITM_getTMCloneSafe (void *) ITM_REGPARM;
 extern void _ITM_registerTMCloneTable (void *, size_t);
 extern void _ITM_deregisterTMCloneTable (void *);

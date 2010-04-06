@@ -1,3 +1,10 @@
+2010-04-06  Aldy Hernandez  <aldyh@redhat.com>
+
+	* clone.cc (_ITM_getTMCloneOrIrrevocable): Rename from
+	_ITM_getTMCloneOrIrrevokable.
+	* libitm.h (_ITM_getTMCloneOrIrrevocable): Same.
+	* libitm.map (_ITM_getTMCloneOrIrrevocable): Same.
+
 2010-03-26  Aldy Hernandez  <aldyh@redhat.com>
 
 	* configure.ac: Remove Linux futex support.
