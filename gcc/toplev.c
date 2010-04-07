@@ -1,6 +1,6 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -151,6 +151,10 @@ struct line_maps *line_table;
 /* Name to use as base of names for dump output files.  */
 
 const char *dump_base_name;
+
+/* Directory used for dump output files.  */
+
+const char *dump_dir_name;
 
 /* Name to use as a base for auxiliary output files.  */
 
@@ -1080,6 +1084,10 @@ compile_file (void)
   /* Write out any pending weak symbol declarations.  */
   weak_finish ();
 
+  /* This must be at the end before unwind and debug info.
+     Some target ports emit PIC setup thunks here.  */
+  targetm.asm_out.code_end ();
+
   /* Do dbx symbols.  */
   timevar_push (TV_SYMOUT);
 
@@ -1104,7 +1112,20 @@ compile_file (void)
      link errors if an object file with IL is stored into a shared
      library without invoking lto1.  */
   if (flag_generate_lto)
-    fprintf (asm_out_file,"\t.comm\tgnu_lto_v1,1,1\n");
+    {
+#if defined ASM_OUTPUT_ALIGNED_DECL_COMMON
+      ASM_OUTPUT_ALIGNED_DECL_COMMON (asm_out_file, NULL_TREE,
+				      "__gnu_lto_v1",
+				      (unsigned HOST_WIDE_INT) 1, 8);
+#elif defined ASM_OUTPUT_ALIGNED_COMMON
+      ASM_OUTPUT_ALIGNED_COMMON (asm_out_file, "__gnu_lto_v1",
+				 (unsigned HOST_WIDE_INT) 1, 8);
+#else
+      ASM_OUTPUT_COMMON (asm_out_file, "__gnu_lto_v1",
+			 (unsigned HOST_WIDE_INT) 1,
+			 (unsigned HOST_WIDE_INT) 1);
+#endif
+    }
 
   /* Attach a special .ident directive to the end of the file to identify
      the version of GCC which compiled this code.  The format of the .ident
@@ -1198,13 +1219,8 @@ print_version (FILE *file, const char *indent)
     N_("%s%s%s %sversion %s (%s) compiled by CC, ")
 #endif
     ;
-#ifdef HAVE_mpc
   static const char fmt2[] =
     N_("GMP version %s, MPFR version %s, MPC version %s\n");
-#else
-  static const char fmt2[] =
-    N_("GMP version %s, MPFR version %s\n");
-#endif
   static const char fmt3[] =
     N_("%s%swarning: %s header version %s differs from library version %s.\n");
   static const char fmt4[] =
@@ -1236,11 +1252,7 @@ print_version (FILE *file, const char *indent)
 #endif
   fprintf (file,
 	   file == stderr ? _(fmt2) : fmt2,
-	   GCC_GMP_STRINGIFY_VERSION, MPFR_VERSION_STRING
-#ifdef HAVE_mpc
-	   , MPC_VERSION_STRING
-#endif
-	   );
+	   GCC_GMP_STRINGIFY_VERSION, MPFR_VERSION_STRING, MPC_VERSION_STRING);
   if (strcmp (GCC_GMP_STRINGIFY_VERSION, gmp_version))
     fprintf (file,
 	     file == stderr ? _(fmt3) : fmt3,
@@ -1251,13 +1263,11 @@ print_version (FILE *file, const char *indent)
 	     file == stderr ? _(fmt3) : fmt3,
 	     indent, *indent != 0 ? " " : "",
 	     "MPFR", MPFR_VERSION_STRING, mpfr_get_version ());
-#ifdef HAVE_mpc
   if (strcmp (MPC_VERSION_STRING, mpc_get_version ()))
     fprintf (file,
 	     file == stderr ? _(fmt3) : fmt3,
 	     indent, *indent != 0 ? " " : "",
 	     "MPC", MPC_VERSION_STRING, mpc_get_version ());
-#endif
   fprintf (file,
 	   file == stderr ? _(fmt4) : fmt4,
 	   indent, *indent != 0 ? " " : "",
@@ -1386,6 +1396,7 @@ print_switch_values (print_switch_fn_type print_fn)
 	  /* Ignore these.  */
 	  if (strcmp (*p, "-o") == 0
 	      || strcmp (*p, "-dumpbase") == 0
+	      || strcmp (*p, "-dumpdir") == 0
 	      || strcmp (*p, "-auxbase") == 0)
 	    {
 	      if (p[1] != NULL)
@@ -1505,20 +1516,20 @@ option_affects_pch_p (int option, struct cl_option_state *state)
    most targets, but completely right for very few.  */
 
 void *
-default_get_pch_validity (size_t *len)
+default_get_pch_validity (size_t *sz)
 {
   struct cl_option_state state;
   size_t i;
   char *result, *r;
 
-  *len = 2;
+  *sz = 2;
   if (targetm.check_pch_target_flags)
-    *len += sizeof (target_flags);
+    *sz += sizeof (target_flags);
   for (i = 0; i < cl_options_count; i++)
     if (option_affects_pch_p (i, &state))
-      *len += state.size;
+      *sz += state.size;
 
-  result = r = XNEWVEC (char, *len);
+  result = r = XNEWVEC (char, *sz);
   r[0] = flag_pic;
   r[1] = flag_pie;
   r += 2;
@@ -1802,6 +1813,10 @@ process_options (void)
   /* Some machines may reject certain combinations of options.  */
   OVERRIDE_OPTIONS;
 #endif
+
+  /* Avoid any informative notes in the second run of -fcompare-debug.  */
+  if (flag_compare_debug) 
+    diagnostic_inhibit_notes (global_dc);
 
   if (flag_section_anchors && !target_supports_section_anchors_p ())
     {
@@ -2145,6 +2160,10 @@ process_options (void)
 	       "for correctness");
       flag_omit_frame_pointer = 0;
     }
+
+  /* Save the current optimization options.  */
+  optimization_default_node = build_optimization_node ();
+  optimization_current_node = optimization_default_node;
 }
 
 /* This function can be called multiple times to reinitialize the compiler
@@ -2184,8 +2203,8 @@ backend_init_target (void)
 
   /* We may need to recompute regno_save_code[] and regno_restore_code[]
      after a mode change as well.  */
-  if (flag_caller_saves)
-    init_caller_save ();
+  caller_save_initialized_p = false;
+
   expand_dummy_function_end ();
 }
 

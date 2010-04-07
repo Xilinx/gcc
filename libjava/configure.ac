@@ -142,27 +142,14 @@ AM_CONDITIONAL(JAVA_MAINTAINER_MODE, test "$enable_java_maintainer_mode" = yes)
 # It may not be safe to run linking tests in AC_PROG_CC/AC_PROG_CXX.
 GCC_NO_EXECUTABLES
 
-# (1) We use an abnormal CXX (without library references), so we
-# must cache it under a different name.
-# (2) CC, CFLAGS, CXX, CXXFLAGS, LDFLAGS must not be 'precious', or
-# the non-multilib-adjusted value will be used in multilibs.
-# (3) As a side effect, we must SUBST CXXFLAGS, CFLAGS, and LDFLAGS ourselves.
-# (4) As another side effect, automake doesn't automatically include them
-# in Makefile.in.
-# (5) For libstdc++-v3, -fno-builtin must be present here so that a
+# For libstdc++-v3, -fno-builtin must be present here so that a
 # non-conflicting form of std::exit can be guessed by AC_PROG_CXX, and
 # used in later tests.  This may not be necessary in libjava; I don't know.
-m4_rename([_AC_ARG_VAR_PRECIOUS],[glibcxx_PRECIOUS])
-m4_define([_AC_ARG_VAR_PRECIOUS],[])
 save_CXXFLAGS="$CXXFLAGS"
 CXXFLAGS="$CXXFLAGS -fno-builtin"
 AC_PROG_CC
 AC_PROG_CXX
 CXXFLAGS="$save_CXXFLAGS"
-m4_rename_force([glibcxx_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
-AC_SUBST(CFLAGS)
-AC_SUBST(CXXFLAGS)
-AC_SUBST(LDFLAGS)
 
 AM_INIT_AUTOMAKE([1.9.0])
 
@@ -170,6 +157,7 @@ AC_CHECK_TOOL(AS, as)
 AC_CHECK_TOOL(LD, ld)
 AC_CHECK_TOOL(AR, ar)
 AC_CHECK_TOOL(RANLIB, ranlib, :)
+AC_CHECK_TOOL(DLLTOOL, dlltool, :)
 AC_PROG_AWK
 AC_CHECK_PROGS([JAR], [jar fastjar gjar], no)
 AC_PATH_PROG([ZIP], [zip], no)
@@ -207,13 +195,16 @@ AC_EXEEXT
 #	libgcj_cxxflags  - host specific C++ compiler flags
 #	libgcj_javaflags - host specific Java compiler flags
 #	libgcj_sublib_ltflags - host specific Libtool flags 
-#                          (only used when building sublibs)
+#	libgcj_sublib_core_extra_deps - host specific extra 
+#			   dependencies for core sublib
+#	(these last two only used when building sublibs)
 # and a number of others; see the list at the start of the file.
 
 libgcj_cflags=
 libgcj_cxxflags=
 libgcj_javaflags=
 libgcj_sublib_ltflags=
+libgcj_sublib_core_extra_deps=
 
 . ${srcdir}/configure.host
 
@@ -227,12 +218,14 @@ LIBGCJ_CFLAGS="${libgcj_cflags}"
 LIBGCJ_CXXFLAGS="${libgcj_cxxflags}"
 LIBGCJ_JAVAFLAGS="${libgcj_javaflags}"
 LIBGCJ_SUBLIB_LTFLAGS="${libgcj_sublib_ltflags}"
+LIBGCJ_SUBLIB_CORE_EXTRA_DEPS="${libgcj_sublib_core_extra_deps}"
 LIBGCJ_LD_SYMBOLIC="${libgcj_ld_symbolic}"
 LIBGCJ_LD_SYMBOLIC_FUNCTIONS="${libgcj_ld_symbolic_functions}"
 AC_SUBST(LIBGCJ_CFLAGS)
 AC_SUBST(LIBGCJ_CXXFLAGS)
 AC_SUBST(LIBGCJ_JAVAFLAGS)
 AC_SUBST(LIBGCJ_SUBLIB_LTFLAGS)
+AC_SUBST(LIBGCJ_SUBLIB_CORE_EXTRA_DEPS)
 AC_SUBST(LIBGCJ_LD_SYMBOLIC)
 AC_SUBST(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
 
@@ -889,6 +882,9 @@ case "${host}" in
         SYSTEMSPEC="-lunicows $SYSTEMSPEC"
       fi
     ;;
+    *-*-darwin[[912]]*)
+      SYSTEMSPEC="-allow_stack_execute"
+    ;;
     *)
       SYSTEMSPEC=
     ;;
@@ -919,9 +915,6 @@ case "${host}" in
     # on Darwin -single_module speeds up loading of the dynamic libraries.
     extra_ldflags_libjava=-Wl,-single_module
     ;;
-*-*-darwin[[912]]*)
-    extra_gij_ldflags=-Wl,-allow_stack_execute
-    ;;
 arm*linux*eabi)
     # Some of the ARM unwinder code is actually in libstdc++.  We
     # could in principle replicate it in libgcj, but it's better to
@@ -935,7 +928,6 @@ arm*linux*eabi)
     ;;
 esac
 AC_SUBST(extra_ldflags_libjava)
-AC_SUBST(extra_gij_ldflags)
 AC_SUBST(extra_ldflags)
 AC_SUBST(LIBSTDCXXSPEC)
 
@@ -1568,9 +1560,17 @@ TL_AC_GXX_INCLUDE_DIR
 # for now.  If you change this, you also must update natFile.cc.
 AC_CHECK_HEADERS([unistd.h bstring.h sys/time.h sys/types.h fcntl.h \
 		  sys/ioctl.h sys/filio.h sys/stat.h sys/select.h \
-		  sys/socket.h netinet/in.h arpa/inet.h netdb.h net/if.h \
+		  sys/socket.h netinet/in.h arpa/inet.h netdb.h \
 		  pwd.h sys/config.h stdint.h langinfo.h locale.h \
 		  dirent.h sys/rw_lock.h magic.h ifaddrs.h])
+
+# sys/socket.h is a prerequisite for net/if.h on Solaris.
+AC_CHECK_HEADERS(net/if.h, [], [], [
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+])
+
 AC_CHECK_HEADERS(inttypes.h, [
     AC_DEFINE(HAVE_INTTYPES_H, 1, [Define if <inttypes.h> is available])
     AC_DEFINE(JV_HAVE_INTTYPES_H, 1, [Define if <inttypes.h> is available])

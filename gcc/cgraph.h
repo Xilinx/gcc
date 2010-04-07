@@ -1,5 +1,5 @@
 /* Callgraph handling code.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
@@ -200,6 +200,8 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   /* For normal nodes pointer to the list of alias and thunk nodes,
      in alias/thunk nodes pointer to the normal node.  */
   struct cgraph_node *same_body;
+  /* Circular list of nodes in the same comdat group if non-NULL.  */
+  struct cgraph_node *same_comdat_group;
   /* For functions with many calls sites it holds map from call expression
      to the edge to speed up cgraph_edge function.  */
   htab_t GTY((param_is (struct cgraph_edge))) call_site_hash;
@@ -359,6 +361,9 @@ struct GTY((chain_next ("%h.next"))) varpool_node {
   struct varpool_node *next;
   /* Pointer to the next function in varpool_nodes_queue.  */
   struct varpool_node *next_needed;
+  /* For normal nodes a pointer to the first extra name alias.  For alias
+     nodes a pointer to the normal node.  */
+  struct varpool_node *extra_name;
   /* Ordering of all cgraph nodes.  */
   int order;
 
@@ -377,7 +382,8 @@ struct GTY((chain_next ("%h.next"))) varpool_node {
   unsigned output : 1;
   /* Set when function is visible by other units.  */
   unsigned externally_visible : 1;
-  /* Set for aliases once they got through assemble_alias.  */
+  /* Set for aliases once they got through assemble_alias.  Also set for
+     extra name aliases in varpool_extra_name_alias.  */
   unsigned alias : 1;
 };
 
@@ -445,7 +451,7 @@ void cgraph_set_call_stmt (struct cgraph_edge *, gimple);
 void cgraph_set_call_stmt_including_clones (struct cgraph_node *, gimple, gimple);
 void cgraph_create_edge_including_clones (struct cgraph_node *,
 					  struct cgraph_node *,
-					  gimple, gcov_type, int, int,
+					  gimple, gimple, gcov_type, int, int,
 					  cgraph_inline_failed_t);
 void cgraph_update_edges_for_call_stmt (gimple, tree, gimple);
 struct cgraph_local_info *cgraph_local_info (tree);
@@ -472,6 +478,11 @@ struct cgraph_node * cgraph_create_virtual_clone (struct cgraph_node *old_node,
 			                          VEC(cgraph_edge_p,heap)*,
 			                          VEC(ipa_replace_map_p,gc)* tree_map,
 			                          bitmap args_to_skip);
+
+void cgraph_set_nothrow_flag (struct cgraph_node *, bool);
+void cgraph_set_readonly_flag (struct cgraph_node *, bool);
+void cgraph_set_pure_flag (struct cgraph_node *, bool);
+void cgraph_set_looping_const_or_pure_flag (struct cgraph_node *, bool);
 
 /* In cgraphunit.c  */
 void cgraph_finalize_function (tree, bool);
@@ -523,7 +534,7 @@ void cgraph_remove_edge_duplication_hook (struct cgraph_2edge_hook_list *);
 struct cgraph_2node_hook_list *cgraph_add_node_duplication_hook (cgraph_2node_hook, void *);
 void cgraph_remove_node_duplication_hook (struct cgraph_2node_hook_list *);
 void cgraph_materialize_all_clones (void);
-
+gimple cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *);
 /* In cgraphbuild.c  */
 unsigned int rebuild_cgraph_edges (void);
 void reset_inline_failed (struct cgraph_node *);
@@ -558,6 +569,7 @@ void dump_varpool_node (FILE *, struct varpool_node *);
 void varpool_finalize_decl (tree);
 bool decide_is_variable_needed (struct varpool_node *, tree);
 enum availability cgraph_variable_initializer_availability (struct varpool_node *);
+void cgraph_make_decl_local (tree);
 void cgraph_make_node_local (struct cgraph_node *);
 bool cgraph_node_can_be_local_p (struct cgraph_node *);
 
@@ -566,6 +578,7 @@ bool varpool_assemble_decl (struct varpool_node *node);
 bool varpool_analyze_pending_decls (void);
 void varpool_remove_unreferenced_decls (void);
 void varpool_empty_needed_queue (void);
+bool varpool_extra_name_alias (tree, tree);
 const char * varpool_node_name (struct varpool_node *node);
 
 /* Walk all reachable static variables.  */

@@ -139,6 +139,34 @@ build_memfn_type (tree fntype, tree ctype, cp_cv_quals quals)
   return fntype;
 }
 
+/* Return a variant of FNTYPE, a FUNCTION_TYPE or METHOD_TYPE, with its
+   return type changed to NEW_RET.  */
+
+tree
+change_return_type (tree new_ret, tree fntype)
+{
+  tree newtype;
+  tree args = TYPE_ARG_TYPES (fntype);
+  tree raises = TYPE_RAISES_EXCEPTIONS (fntype);
+  tree attrs = TYPE_ATTRIBUTES (fntype);
+
+  if (same_type_p (new_ret, TREE_TYPE (fntype)))
+    return fntype;
+
+  if (TREE_CODE (fntype) == FUNCTION_TYPE)
+    newtype = build_function_type (new_ret, args);
+  else
+    newtype = build_method_type_directly
+      (TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (fntype))),
+       new_ret, TREE_CHAIN (args));
+  if (raises)
+    newtype = build_exception_variant (newtype, raises);
+  if (attrs)
+    newtype = cp_build_type_attribute_variant (newtype, attrs);
+
+  return newtype;
+}
+
 /* Build a PARM_DECL with NAME and TYPE, and set DECL_ARG_TYPE
    appropriately.  */
 
@@ -844,7 +872,7 @@ grokfield (const cp_declarator *declarator,
       if (declspecs->specs[(int)ds_typedef]
           && TREE_TYPE (value) != error_mark_node
           && TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (value))) != value)
-	set_underlying_type (value);
+	cp_set_underlying_type (value);
 
       return value;
     }
@@ -881,8 +909,13 @@ grokfield (const cp_declarator *declarator,
 	    }
 	  else if (TREE_CODE (TREE_TYPE (value)) == METHOD_TYPE)
 	    {
-	      gcc_assert (error_operand_p (init) || integer_zerop (init));
-	      DECL_PURE_VIRTUAL_P (value) = 1;
+	      if (integer_zerop (init))
+		DECL_PURE_VIRTUAL_P (value) = 1;
+	      else if (error_operand_p (init))
+		; /* An error has already been reported.  */
+	      else
+		error ("invalid initializer for member function %qD",
+		       value);
 	    }
 	  else
 	    {
@@ -1615,20 +1648,22 @@ maybe_make_one_only (tree decl)
     }
 }
 
-/* Returns true iff DECL, a FUNCTION_DECL, has vague linkage.  This
-   predicate will give the right answer during parsing of the function,
-   which other tests may not.  */
+/* Returns true iff DECL, a FUNCTION_DECL or VAR_DECL, has vague linkage.
+   This predicate will give the right answer during parsing of the
+   function, which other tests may not.  */
 
 bool
-vague_linkage_fn_p (tree fn)
+vague_linkage_p (tree decl)
 {
   /* Unfortunately, import_export_decl has not always been called
      before the function is processed, so we cannot simply check
      DECL_COMDAT.  */
-  return (DECL_COMDAT (fn)
-	  || ((DECL_DECLARED_INLINE_P (fn)
-	       || DECL_TEMPLATE_INSTANTIATION (fn))
-	      && TREE_PUBLIC (fn)));
+  return (DECL_COMDAT (decl)
+	  || (((TREE_CODE (decl) == FUNCTION_DECL
+		&& DECL_DECLARED_INLINE_P (decl))
+	       || (DECL_LANG_SPECIFIC (decl)
+		   && DECL_TEMPLATE_INSTANTIATION (decl)))
+	      && TREE_PUBLIC (decl)));
 }
 
 /* Determine whether or not we want to specifically import or export CTYPE,
@@ -3660,7 +3695,7 @@ cp_write_global_declarations (void)
 	      && DECL_INITIAL (decl)
 	      && decl_needed_p (decl))
 	    {
-	      struct cgraph_node *node = cgraph_get_node (decl), *alias;
+	      struct cgraph_node *node = cgraph_get_node (decl), *alias, *next;
 
 	      DECL_EXTERNAL (decl) = 0;
 	      /* If we mark !DECL_EXTERNAL one of the same body aliases,
@@ -3671,6 +3706,23 @@ cp_write_global_declarations (void)
 		  for (alias = node->same_body; alias; alias = alias->next)
 		    DECL_EXTERNAL (alias->decl) = 0;
 		}
+	      /* If we mark !DECL_EXTERNAL one of the symbols in some comdat
+		 group, we need to mark all symbols in the same comdat group
+		 that way.  */
+	      if (node->same_comdat_group)
+		for (next = node->same_comdat_group;
+		     next != node;
+		     next = next->same_comdat_group)
+		  {
+		    DECL_EXTERNAL (next->decl) = 0;
+		    if (next->same_body)
+		      {
+			for (alias = next->same_body;
+			     alias;
+			     alias = alias->next)
+			  DECL_EXTERNAL (alias->decl) = 0;
+		      }
+		  }
 	    }
 
 	  /* If we're going to need to write this function out, and
@@ -3955,6 +4007,18 @@ mark_used (tree decl)
   if (TREE_CODE (decl) == FUNCTION_DECL
       && DECL_DELETED_FN (decl))
     {
+      if (DECL_ARTIFICIAL (decl))
+	{
+	  if (DECL_OVERLOADED_OPERATOR_P (decl) == TYPE_EXPR
+	      && LAMBDA_TYPE_P (DECL_CONTEXT (decl)))
+	    {
+	      /* We mark a lambda conversion op as deleted if we can't
+		 generate it properly; see maybe_add_lambda_conv_op.  */
+	      sorry ("converting lambda which uses %<...%> to "
+		     "function pointer");
+	      return;
+	    }
+	}
       error ("deleted function %q+D", decl);
       error ("used here");
       return;

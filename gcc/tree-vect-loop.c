@@ -1,6 +1,6 @@
 /* Loop Vectorization
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software
-   Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com> and
    Ira Rosen <irar@il.ibm.com>
 
@@ -981,7 +981,7 @@ vect_analyze_loop_form (struct loop *loop)
      before the loop if needed), where the loop header contains all the
      executable statements, and the latch is empty.  */
   if (!empty_block_p (loop->latch)
-        || phi_nodes (loop->latch))
+        || !gimple_seq_empty_p (phi_nodes (loop->latch)))
     {
       if (vect_print_dump_info (REPORT_BAD_FORM_LOOPS))
         fprintf (vect_dump, "not vectorized: unexpected loop form.");
@@ -1184,7 +1184,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo)
 	  if (!vect_analyze_stmt (stmt, &need_to_vectorize, NULL))
 	    return false;
 
-          if (STMT_VINFO_RELEVANT_P (stmt_info) && !PURE_SLP_STMT (stmt_info))
+          if ((STMT_VINFO_RELEVANT_P (stmt_info)
+               || VECTORIZABLE_CYCLE_DEF (STMT_VINFO_DEF_TYPE (stmt_info)))
+              && !PURE_SLP_STMT (stmt_info))
+
             /* STMT needs both SLP and loop-based vectorization.  */
             only_slp_in_loop = false;
         }
@@ -2170,9 +2173,9 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
   else
     {
       if (vect_print_dump_info (REPORT_COST))
-        fprintf (vect_dump, "cost model: vector iteration cost = %d "
-                 "is divisible by scalar iteration cost = %d by a factor "
-                 "greater than or equal to the vectorization factor = %d .",
+        fprintf (vect_dump, "cost model: the vector iteration cost = %d "
+		 "divided by the scalar iteration cost = %d "
+		 "is greater or equal to the vectorization factor = %d.",
                  vec_inside_cost, scalar_single_iter_cost, vf);
       return -1;
     }
@@ -4233,13 +4236,12 @@ vect_transform_loop (loop_vec_info loop_vinfo)
 	  if (!stmt_info)
 	    continue;
 
+	  if (MAY_HAVE_DEBUG_STMTS && !STMT_VINFO_LIVE_P (stmt_info))
+	    vect_loop_kill_debug_uses (loop, phi);
+
 	  if (!STMT_VINFO_RELEVANT_P (stmt_info)
 	      && !STMT_VINFO_LIVE_P (stmt_info))
-	    {
-	      if (MAY_HAVE_DEBUG_STMTS)
-		vect_loop_kill_debug_uses (loop, phi);
-	      continue;
-	    }
+	    continue;
 
 	  if ((TYPE_VECTOR_SUBPARTS (STMT_VINFO_VECTYPE (stmt_info))
 	        != (unsigned HOST_WIDE_INT) vectorization_factor)
@@ -4276,11 +4278,12 @@ vect_transform_loop (loop_vec_info loop_vinfo)
 	      continue;
 	    }
 
+	  if (MAY_HAVE_DEBUG_STMTS && !STMT_VINFO_LIVE_P (stmt_info))
+	    vect_loop_kill_debug_uses (loop, stmt);
+
 	  if (!STMT_VINFO_RELEVANT_P (stmt_info)
 	      && !STMT_VINFO_LIVE_P (stmt_info))
 	    {
-	      if (MAY_HAVE_DEBUG_STMTS)
-		vect_loop_kill_debug_uses (loop, stmt);
 	      gsi_next (&si);
 	      continue;
 	    }

@@ -1,5 +1,5 @@
 /* Prototypes of target machine for SPARC.
-   Copyright (C) 1999, 2000, 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright (C) 1999, 2000, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com).
    64-bit SPARC-V9 support by Michael Tiemann, Jim Wilson, and Doug Evans,
@@ -64,8 +64,6 @@ extern void emit_tfmode_cvt (enum rtx_code, rtx *);
 extern bool legitimate_constant_p (rtx);
 extern bool constant_address_p (rtx);
 extern bool legitimate_pic_operand_p (rtx);
-extern rtx legitimize_pic_address (rtx, enum machine_mode, rtx);
-extern rtx legitimize_tls_address (rtx);
 extern void sparc_emit_call_insn (rtx, rtx);
 extern void sparc_defer_case_vector (rtx, rtx, int);
 extern bool sparc_expand_move (enum machine_mode, rtx *);
@@ -97,7 +95,6 @@ extern int emit_move_sequence (rtx, enum machine_mode);
 extern int fp_sethi_p (rtx);
 extern int fp_mov_p (rtx);
 extern int fp_high_losum_p (rtx);
-extern bool sparc_tls_referenced_p (rtx);
 extern int mem_min_alignment (rtx, int);
 extern int pic_address_needs_scratch (rtx);
 extern int reg_unused_after (rtx, rtx);

@@ -1,5 +1,5 @@
 /* Array things
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -188,7 +188,7 @@ gfc_free_array_spec (gfc_array_spec *as)
   if (as == NULL)
     return;
 
-  for (i = 0; i < as->rank; i++)
+  for (i = 0; i < as->rank + as->corank; i++)
     {
       gfc_free_expr (as->lower[i]);
       gfc_free_expr (as->upper[i]);
@@ -234,7 +234,7 @@ gfc_resolve_array_spec (gfc_array_spec *as, int check_constant)
   if (as == NULL)
     return SUCCESS;
 
-  for (i = 0; i < as->rank; i++)
+  for (i = 0; i < as->rank + as->corank; i++)
     {
       e = as->lower[i];
       if (resolve_array_bound (e, check_constant) == FAILURE)
@@ -290,8 +290,8 @@ match_array_element_spec (gfc_array_spec *as)
   gfc_expr **upper, **lower;
   match m;
 
-  lower = &as->lower[as->rank - 1];
-  upper = &as->upper[as->rank - 1];
+  lower = &as->lower[as->rank + as->corank - 1];
+  upper = &as->upper[as->rank + as->corank - 1];
 
   if (gfc_match_char ('*') == MATCH_YES)
     {
@@ -335,22 +335,19 @@ match_array_element_spec (gfc_array_spec *as)
 
 
 /* Matches an array specification, incidentally figuring out what sort
-   it is.  */
+   it is. Match either a normal array specification, or a coarray spec
+   or both. Optionally allow [:] for coarrays.  */
 
 match
-gfc_match_array_spec (gfc_array_spec **asp)
+gfc_match_array_spec (gfc_array_spec **asp, bool match_dim, bool match_codim)
 {
   array_type current_type;
   gfc_array_spec *as;
   int i;
-
-  if (gfc_match_char ('(') != MATCH_YES)
-    {
-      *asp = NULL;
-      return MATCH_NO;
-    }
-
+ 
   as = gfc_get_array_spec ();
+  as->corank = 0;
+  as->rank = 0;
 
   for (i = 0; i < GFC_MAX_DIMENSIONS; i++)
     {
@@ -358,10 +355,19 @@ gfc_match_array_spec (gfc_array_spec **asp)
       as->upper[i] = NULL;
     }
 
-  as->rank = 1;
+  if (!match_dim)
+    goto coarray;
+
+  if (gfc_match_char ('(') != MATCH_YES)
+    {
+      if (!match_codim)
+	goto done;
+      goto coarray;
+    }
 
   for (;;)
     {
+      as->rank++;
       current_type = match_array_element_spec (as);
 
       if (as->rank == 1)
@@ -427,32 +433,144 @@ gfc_match_array_spec (gfc_array_spec **asp)
 	  goto cleanup;
 	}
 
-      if (as->rank >= GFC_MAX_DIMENSIONS)
+      if (as->rank + as->corank >= GFC_MAX_DIMENSIONS)
 	{
 	  gfc_error ("Array specification at %C has more than %d dimensions",
 		     GFC_MAX_DIMENSIONS);
 	  goto cleanup;
 	}
 
-      if (as->rank >= 7
+      if (as->corank + as->rank >= 7
 	  && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Array "
 			     "specification at %C with more than 7 dimensions")
 	     == FAILURE)
 	goto cleanup;
+    }
 
-      as->rank++;
+  if (!match_codim)
+    goto done;
+
+coarray:
+  if (gfc_match_char ('[')  != MATCH_YES)
+    goto done;
+
+  if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Coarray declaration at %C")
+      == FAILURE)
+    goto cleanup;
+
+  if (gfc_option.coarray == GFC_FCOARRAY_NONE)
+    {
+       gfc_error ("Coarrays disabled at %C, use -fcoarray= to enable");
+       goto cleanup;
+    }
+
+  for (;;)
+    {
+      as->corank++;
+      current_type = match_array_element_spec (as);
+
+      if (current_type == AS_UNKNOWN)
+	goto cleanup;
+
+      if (as->corank == 1)
+	as->cotype = current_type;
+      else
+	switch (as->cotype)
+	  { /* See how current spec meshes with the existing.  */
+	    case AS_UNKNOWN:
+	      goto cleanup;
+
+	    case AS_EXPLICIT:
+	      if (current_type == AS_ASSUMED_SIZE)
+		{
+		  as->cotype = AS_ASSUMED_SIZE;
+		  break;
+		}
+
+	      if (current_type == AS_EXPLICIT)
+		break;
+
+	      gfc_error ("Bad array specification for an explicitly "
+			 "shaped array at %C");
+
+	      goto cleanup;
+
+	    case AS_ASSUMED_SHAPE:
+	      if ((current_type == AS_ASSUMED_SHAPE)
+		  || (current_type == AS_DEFERRED))
+		break;
+
+	      gfc_error ("Bad array specification for assumed shape "
+			 "array at %C");
+	      goto cleanup;
+
+	    case AS_DEFERRED:
+	      if (current_type == AS_DEFERRED)
+		break;
+
+	      if (current_type == AS_ASSUMED_SHAPE)
+		{
+		  as->cotype = AS_ASSUMED_SHAPE;
+		  break;
+		}
+
+	      gfc_error ("Bad specification for deferred shape array at %C");
+	      goto cleanup;
+
+	    case AS_ASSUMED_SIZE:
+	      gfc_error ("Bad specification for assumed size array at %C");
+	      goto cleanup;
+	  }
+
+      if (gfc_match_char (']') == MATCH_YES)
+	break;
+
+      if (gfc_match_char (',') != MATCH_YES)
+	{
+	  gfc_error ("Expected another dimension in array declaration at %C");
+	  goto cleanup;
+	}
+
+      if (as->corank >= GFC_MAX_DIMENSIONS)
+	{
+	  gfc_error ("Array specification at %C has more than %d "
+		     "dimensions", GFC_MAX_DIMENSIONS);
+	  goto cleanup;
+	}
+    }
+
+  if (current_type == AS_EXPLICIT)
+    {
+      gfc_error ("Upper bound of last coarray dimension must be '*' at %C");
+      goto cleanup;
+    }
+
+  if (as->cotype == AS_ASSUMED_SIZE)
+    as->cotype = AS_EXPLICIT;
+
+  if (as->rank == 0)
+    as->type = as->cotype;
+
+done:
+  if (as->rank == 0 && as->corank == 0)
+    {
+      *asp = NULL;
+      gfc_free_array_spec (as);
+      return MATCH_NO;
     }
 
   /* If a lower bounds of an assumed shape array is blank, put in one.  */
   if (as->type == AS_ASSUMED_SHAPE)
     {
-      for (i = 0; i < as->rank; i++)
+      for (i = 0; i < as->rank + as->corank; i++)
 	{
 	  if (as->lower[i] == NULL)
 	    as->lower[i] = gfc_int_expr (1);
 	}
     }
+
   *asp = as;
+
   return MATCH_YES;
 
 cleanup:
@@ -469,14 +587,64 @@ cleanup:
 gfc_try
 gfc_set_array_spec (gfc_symbol *sym, gfc_array_spec *as, locus *error_loc)
 {
+  int i;
+
   if (as == NULL)
     return SUCCESS;
 
-  if (gfc_add_dimension (&sym->attr, sym->name, error_loc) == FAILURE)
+  if (as->rank
+      && gfc_add_dimension (&sym->attr, sym->name, error_loc) == FAILURE)
     return FAILURE;
 
-  sym->as = as;
+  if (as->corank
+      && gfc_add_codimension (&sym->attr, sym->name, error_loc) == FAILURE)
+    return FAILURE;
 
+  if (sym->as == NULL)
+    {
+      sym->as = as;
+      return SUCCESS;
+    }
+
+  if (as->corank)
+    {
+      /* The "sym" has no corank (checked via gfc_add_codimension). Thus
+	 the codimension is simply added.  */
+      gcc_assert (as->rank == 0 && sym->as->corank == 0);
+
+      sym->as->cotype = as->cotype;
+      sym->as->corank = as->corank;
+      for (i = 0; i < as->corank; i++)
+	{
+	  sym->as->lower[sym->as->rank + i] = as->lower[i];
+	  sym->as->upper[sym->as->rank + i] = as->upper[i];
+	}
+    }
+  else
+    {
+      /* The "sym" has no rank (checked via gfc_add_dimension). Thus
+	 the dimension is added - but first the codimensions (if existing
+	 need to be shifted to make space for the dimension.  */
+      gcc_assert (as->corank == 0 && sym->as->rank == 0);
+
+      sym->as->rank = as->rank;
+      sym->as->type = as->type;
+      sym->as->cray_pointee = as->cray_pointee;
+      sym->as->cp_was_assumed = as->cp_was_assumed;
+
+      for (i = 0; i < sym->as->corank; i++)
+	{
+	  sym->as->lower[as->rank + i] = sym->as->lower[i];
+	  sym->as->upper[as->rank + i] = sym->as->upper[i];
+	}
+      for (i = 0; i < as->rank; i++)
+	{
+	  sym->as->lower[i] = as->lower[i];
+	  sym->as->upper[i] = as->upper[i];
+	}
+    }
+
+  gfc_free (as);
   return SUCCESS;
 }
 
@@ -496,7 +664,7 @@ gfc_copy_array_spec (gfc_array_spec *src)
 
   *dest = *src;
 
-  for (i = 0; i < dest->rank; i++)
+  for (i = 0; i < dest->rank + dest->corank; i++)
     {
       dest->lower[i] = gfc_copy_expr (dest->lower[i]);
       dest->upper[i] = gfc_copy_expr (dest->upper[i]);
@@ -543,6 +711,9 @@ gfc_compare_array_spec (gfc_array_spec *as1, gfc_array_spec *as2)
   if (as1->rank != as2->rank)
     return 0;
 
+  if (as1->corank != as2->corank)
+    return 0;
+
   if (as1->rank == 0)
     return 1;
 
@@ -550,7 +721,7 @@ gfc_compare_array_spec (gfc_array_spec *as1, gfc_array_spec *as2)
     return 0;
 
   if (as1->type == AS_EXPLICIT)
-    for (i = 0; i < as1->rank; i++)
+    for (i = 0; i < as1->rank + as1->corank; i++)
       {
 	if (compare_bounds (as1->lower[i], as2->lower[i]) == 0)
 	  return 0;
@@ -1237,7 +1408,6 @@ count_elements (gfc_expr *e)
 static gfc_try
 extract_element (gfc_expr *e)
 {
-
   if (e->rank != 0)
     {				/* Something unextractable */
       gfc_free_expr (e);
@@ -1250,6 +1420,7 @@ extract_element (gfc_expr *e)
     gfc_free_expr (e);
 
   current_expand.extract_count++;
+  
   return SUCCESS;
 }
 
@@ -1495,7 +1666,7 @@ done:
    FAILURE if not so.  */
 
 static gfc_try
-constant_element (gfc_expr *e)
+is_constant_element (gfc_expr *e)
 {
   int rv;
 
@@ -1517,14 +1688,37 @@ gfc_constant_ac (gfc_expr *e)
 {
   expand_info expand_save;
   gfc_try rc;
+  gfc_constructor * con;
+  
+  rc = SUCCESS;
 
-  iter_stack = NULL;
-  expand_save = current_expand;
-  current_expand.expand_work_function = constant_element;
+  if (e->value.constructor
+      && e->value.constructor->expr->expr_type == EXPR_ARRAY)
+    {
+      /* Expand the constructor.  */
+      iter_stack = NULL;
+      expand_save = current_expand;
+      current_expand.expand_work_function = is_constant_element;
 
-  rc = expand_constructor (e->value.constructor);
+      rc = expand_constructor (e->value.constructor);
 
-  current_expand = expand_save;
+      current_expand = expand_save;
+    }
+  else
+    {
+      /* No need to expand this further.  */
+      for (con = e->value.constructor; con; con = con->next)
+	{
+	  if (con->expr->expr_type == EXPR_CONSTANT)
+	    continue;
+	  else
+	    {
+	      if (!gfc_is_constant_expr (con->expr))
+		rc = FAILURE;
+	    }
+	}
+    }
+
   if (rc == FAILURE)
     return 0;
 
@@ -2029,7 +2223,15 @@ gfc_array_dimen_size (gfc_expr *array, int dimen, mpz_t *result)
 	  return SUCCESS;
 	}
 
-      if (spec_dimen_size (array->symtree->n.sym->as, dimen, result) == FAILURE)
+      if (array->symtree->n.sym->attr.generic
+	  && array->value.function.esym != NULL)
+	{
+	  if (spec_dimen_size (array->value.function.esym->as, dimen, result)
+	      == FAILURE)
+	    return FAILURE;
+	}
+      else if (spec_dimen_size (array->symtree->n.sym->as, dimen, result)
+	       == FAILURE)
 	return FAILURE;
 
       break;

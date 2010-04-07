@@ -1,6 +1,6 @@
 ;;- Machine description for ARM for GNU compiler
 ;;  Copyright 1991, 1993, 1994, 1995, 1996, 1996, 1997, 1998, 1999, 2000,
-;;  2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+;;  2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 ;;  Free Software Foundation, Inc.
 ;;  Contributed by Pieter `Tiggr' Schoenmakers (rcpieter@win.tue.nl)
 ;;  and Martin Simmons (@harleqn.co.uk).
@@ -1265,8 +1265,8 @@
 		 (match_operand:SI 2 "register_operand" "l,0,0")))]
   "TARGET_THUMB1 && arm_arch6"
   "@
-   mul\\t%0, %2 
-   mul\\t%0, %1 
+   mul\\t%0, %2
+   mul\\t%0, %1
    mul\\t%0, %1"
   [(set_attr "length" "2")
    (set_attr "insn" "mul")]
@@ -5242,14 +5242,17 @@
 ;; the insn alone, and to force the minipool generation pass to then move
 ;; the GOT symbol to memory.
 
-(define_insn "pic_load_addr_arm"
+(define_insn "pic_load_addr_32bit"
   [(set (match_operand:SI 0 "s_register_operand" "=r")
 	(unspec:SI [(match_operand:SI 1 "" "mX")] UNSPEC_PIC_SYM))]
-  "TARGET_ARM && flag_pic"
+  "TARGET_32BIT && flag_pic"
   "ldr%?\\t%0, %1"
   [(set_attr "type" "load1")
-   (set (attr "pool_range")     (const_int 4096))
-   (set (attr "neg_pool_range") (const_int 4084))]
+   (set_attr "pool_range" "4096")
+   (set (attr "neg_pool_range")
+	(if_then_else (eq_attr "is_thumb" "no")
+		      (const_int 4084)
+		      (const_int 0)))]
 )
 
 (define_insn "pic_load_addr_thumb1"
@@ -5267,7 +5270,7 @@
 		    (const_int 4)
 		    (match_operand 2 "" "")]
 		   UNSPEC_PIC_BASE))]
-  "TARGET_THUMB1"
+  "TARGET_THUMB"
   "*
   (*targetm.asm_out.internal_label) (asm_out_file, \"LPIC\",
 				     INTVAL (operands[2]));
@@ -5292,7 +5295,7 @@
 )
 
 (define_insn "tls_load_dot_plus_eight"
-  [(set (match_operand:SI 0 "register_operand" "+r")
+  [(set (match_operand:SI 0 "register_operand" "=r")
 	(mem:SI (unspec:SI [(match_operand:SI 1 "register_operand" "r")
 			    (const_int 8)
 			    (match_operand 2 "" "")]
@@ -6073,7 +6076,7 @@
 (define_split
   [(set (match_operand:SF 0 "arm_general_register_operand" "")
 	(match_operand:SF 1 "immediate_operand" ""))]
-  "TARGET_32BIT
+  "TARGET_EITHER
    && reload_completed
    && GET_CODE (operands[1]) == CONST_DOUBLE"
   [(set (match_dup 2) (match_dup 3))]
@@ -8453,12 +8456,17 @@
    (set_attr "type" "call")]
 )
 
+
+;; Note: not used for armv5+ because the sequence used (ldr pc, ...) is not
+;; considered a function call by the branch predictor of some cores (PR40887).
+;; Falls back to blx rN (*call_reg_armv5).
+
 (define_insn "*call_mem"
   [(call (mem:SI (match_operand:SI 0 "call_memory_operand" "m"))
 	 (match_operand 1 "" ""))
    (use (match_operand 2 "" ""))
    (clobber (reg:SI LR_REGNUM))]
-  "TARGET_ARM"
+  "TARGET_ARM && !arm_arch5"
   "*
   return output_call_mem (operands);
   "
@@ -8560,13 +8568,15 @@
    (set_attr "type" "call")]
 )
 
+;; Note: see *call_mem
+
 (define_insn "*call_value_mem"
   [(set (match_operand 0 "" "")
 	(call (mem:SI (match_operand:SI 1 "call_memory_operand" "m"))
 	      (match_operand 2 "" "")))
    (use (match_operand 3 "" ""))
    (clobber (reg:SI LR_REGNUM))]
-  "TARGET_ARM && (!CONSTANT_ADDRESS_P (XEXP (operands[1], 0)))"
+  "TARGET_ARM && !arm_arch5 && (!CONSTANT_ADDRESS_P (XEXP (operands[1], 0)))"
   "*
   return output_call_mem (&operands[1]);
   "
@@ -11185,6 +11195,107 @@
   "movt%?\t%0, %c1"
  [(set_attr "predicable" "yes")
    (set_attr "length" "4")]
+)
+
+(define_insn "arm_rev"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+	(bswap:SI (match_operand:SI 1 "s_register_operand" "r")))]
+  "TARGET_EITHER && arm_arch6"
+  "rev\t%0, %1"
+  [(set (attr "length")
+        (if_then_else (eq_attr "is_thumb" "yes")
+		      (const_int 2)
+		      (const_int 4)))]
+)
+
+(define_expand "arm_legacy_rev"
+  [(set (match_operand:SI 2 "s_register_operand" "")
+	(xor:SI (rotatert:SI (match_operand:SI 1 "s_register_operand" "")
+			     (const_int 16))
+		(match_dup 1)))
+   (set (match_dup 2)
+	(lshiftrt:SI (match_dup 2)
+		     (const_int 8)))
+   (set (match_operand:SI 3 "s_register_operand" "")
+	(rotatert:SI (match_dup 1)
+		     (const_int 8)))
+   (set (match_dup 2)
+	(and:SI (match_dup 2)
+		(const_int -65281)))
+   (set (match_operand:SI 0 "s_register_operand" "")
+	(xor:SI (match_dup 3)
+		(match_dup 2)))]
+  "TARGET_32BIT"
+  ""
+)
+
+;; Reuse temporaries to keep register pressure down.
+(define_expand "thumb_legacy_rev"
+  [(set (match_operand:SI 2 "s_register_operand" "")
+     (ashift:SI (match_operand:SI 1 "s_register_operand" "")
+                (const_int 24)))
+   (set (match_operand:SI 3 "s_register_operand" "")
+     (lshiftrt:SI (match_dup 1)
+		  (const_int 24)))
+   (set (match_dup 3)
+     (ior:SI (match_dup 3)
+	     (match_dup 2)))
+   (set (match_operand:SI 4 "s_register_operand" "")
+     (const_int 16))
+   (set (match_operand:SI 5 "s_register_operand" "")
+     (rotatert:SI (match_dup 1)
+		  (match_dup 4)))
+   (set (match_dup 2)
+     (ashift:SI (match_dup 5)
+                (const_int 24)))
+   (set (match_dup 5)
+     (lshiftrt:SI (match_dup 5)
+		  (const_int 24)))
+   (set (match_dup 5)
+     (ior:SI (match_dup 5)
+	     (match_dup 2)))
+   (set (match_dup 5)
+     (rotatert:SI (match_dup 5)
+		  (match_dup 4)))
+   (set (match_operand:SI 0 "s_register_operand" "")
+     (ior:SI (match_dup 5)
+             (match_dup 3)))]
+  "TARGET_THUMB"
+  ""
+)
+
+(define_expand "bswapsi2"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+  	(bswap:SI (match_operand:SI 1 "s_register_operand" "r")))]
+"TARGET_EITHER"
+"
+  if (!arm_arch6)
+    {
+      if (!optimize_size)
+	{
+	  rtx op2 = gen_reg_rtx (SImode);
+	  rtx op3 = gen_reg_rtx (SImode);
+
+	  if (TARGET_THUMB)
+	    {
+	      rtx op4 = gen_reg_rtx (SImode);
+	      rtx op5 = gen_reg_rtx (SImode);
+
+	      emit_insn (gen_thumb_legacy_rev (operands[0], operands[1],
+					       op2, op3, op4, op5));
+	    }
+	  else
+	    {
+	      emit_insn (gen_arm_legacy_rev (operands[0], operands[1],
+					     op2, op3));
+	    }
+
+	  DONE;
+	}
+      else
+	FAIL;
+    }
+  "
 )
 
 ;; Load the FPA co-processor patterns

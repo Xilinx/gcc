@@ -1,5 +1,6 @@
 /* Tree based points-to analysis
-   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dberlin@dberlin.org>
 
    This file is part of GCC.
@@ -3482,7 +3483,7 @@ handle_rhs_call (gimple stmt, VEC(ce_s, heap) **results)
    the LHS point to global and escaped variables.  */
 
 static void
-handle_lhs_call (tree lhs, int flags, VEC(ce_s, heap) *rhsc)
+handle_lhs_call (tree lhs, int flags, VEC(ce_s, heap) *rhsc, tree fndecl)
 {
   VEC(ce_s, heap) *lhsc = NULL;
 
@@ -3496,6 +3497,12 @@ handle_lhs_call (tree lhs, int flags, VEC(ce_s, heap) *rhsc)
          it escapes.  */
       DECL_EXTERNAL (vi->decl) = 0;
       vi->is_global_var = 0;
+      /* If this is not a real malloc call assume the memory was
+         initialized and thus may point to global memory.  All
+	 builtin functions with the malloc attribute behave in a sane way.  */
+      if (!fndecl
+	  || DECL_BUILT_IN_CLASS (fndecl) != BUILT_IN_NORMAL)
+	make_constraint_from (vi, nonlocal_id);
     }
   else if (VEC_length (ce_s, rhsc) > 0)
     {
@@ -3798,7 +3805,7 @@ find_func_aliases (gimple origt)
 	    handle_rhs_call (t, &rhsc);
 	  if (gimple_call_lhs (t)
 	      && could_have_pointers (gimple_call_lhs (t)))
-	    handle_lhs_call (gimple_call_lhs (t), flags, rhsc);
+	    handle_lhs_call (gimple_call_lhs (t), flags, rhsc, fndecl);
 	  VEC_free (ce_s, heap, rhsc);
 	}
       else
@@ -4604,7 +4611,8 @@ intra_create_variable_infos (void)
   tree t;
 
   /* For each incoming pointer argument arg, create the constraint ARG
-     = NONLOCAL or a dummy variable if flag_argument_noalias is set.  */
+     = NONLOCAL or a dummy variable if it is a restrict qualified
+     passed-by-reference argument.  */
   for (t = DECL_ARGUMENTS (current_function_decl); t; t = TREE_CHAIN (t))
     {
       varinfo_t p;
@@ -4776,18 +4784,19 @@ set_uids_in_ptset (bitmap into, bitmap from, struct pt_solution *pt)
 /* Compute the points-to solution *PT for the variable VI.  */
 
 static void
-find_what_var_points_to (varinfo_t vi, struct pt_solution *pt)
+find_what_var_points_to (varinfo_t orig_vi, struct pt_solution *pt)
 {
   unsigned int i;
   bitmap_iterator bi;
   bitmap finished_solution;
   bitmap result;
+  varinfo_t vi;
 
   memset (pt, 0, sizeof (struct pt_solution));
 
   /* This variable may have been collapsed, let's get the real
      variable.  */
-  vi = get_varinfo (find (vi->id));
+  vi = get_varinfo (find (orig_vi->id));
 
   /* Translate artificial variables into SSA_NAME_PTR_INFO
      attributes.  */
@@ -4822,7 +4831,7 @@ find_what_var_points_to (varinfo_t vi, struct pt_solution *pt)
   /* Instead of doing extra work, simply do not create
      elaborate points-to information for pt_anything pointers.  */
   if (pt->anything
-      && (vi->is_artificial_var
+      && (orig_vi->is_artificial_var
 	  || !pt->vars_contains_restrict))
     return;
 

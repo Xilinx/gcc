@@ -1,5 +1,5 @@
 /* Header for array handling functions
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Paul Brook
 
@@ -45,13 +45,17 @@ tree gfc_trans_g77_array (gfc_symbol *, tree);
 /* Generate code to deallocate an array, if it is allocated.  */
 tree gfc_trans_dealloc_allocated (tree);
 
-tree gfc_duplicate_allocatable(tree dest, tree src, tree type, int rank);
+tree gfc_duplicate_allocatable (tree dest, tree src, tree type, int rank);
+
+tree gfc_copy_allocatable_data (tree dest, tree src, tree type, int rank);
 
 tree gfc_nullify_alloc_comp (gfc_symbol *, tree, int);
 
 tree gfc_deallocate_alloc_comp (gfc_symbol *, tree, int);
 
 tree gfc_copy_alloc_comp (gfc_symbol *, tree, tree, int);
+
+tree gfc_copy_only_alloc_comp (gfc_symbol *, tree, tree, int);
 
 /* Add initialization for deferred arrays.  */
 tree gfc_trans_deferred_array (gfc_symbol *, tree);
@@ -107,7 +111,7 @@ void gfc_conv_tmp_ref (gfc_se *);
 /* Evaluate an array expression.  */
 void gfc_conv_expr_descriptor (gfc_se *, gfc_expr *, gfc_ss *);
 /* Convert an array for passing as an actual function parameter.  */
-void gfc_conv_array_parameter (gfc_se *, gfc_expr *, gfc_ss *, int,
+void gfc_conv_array_parameter (gfc_se *, gfc_expr *, gfc_ss *, bool,
 			       const gfc_symbol *, const char *, tree *);
 /* Evaluate and transpose a matrix expression.  */
 void gfc_conv_array_transpose (gfc_se *, gfc_expr *);

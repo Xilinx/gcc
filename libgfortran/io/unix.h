@@ -1,4 +1,4 @@
-/* Copyright (C) 2009
+/* Copyright (C) 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Janne Blomqvist
 
@@ -33,10 +33,10 @@ struct stream
 {
   ssize_t (*read) (struct stream *, void *, ssize_t);
   ssize_t (*write) (struct stream *, const void *, ssize_t);
-  off_t (*seek) (struct stream *, off_t, int);
-  off_t (*tell) (struct stream *);
+  gfc_offset (*seek) (struct stream *, gfc_offset, int);
+  gfc_offset (*tell) (struct stream *);
   /* Avoid keyword truncate due to AIX namespace collision.  */
-  int (*trunc) (struct stream *, off_t);
+  int (*trunc) (struct stream *, gfc_offset);
   int (*flush) (struct stream *);
   int (*close) (struct stream *);
 };
@@ -54,20 +54,20 @@ swrite (stream * s, const void * buf, ssize_t nbyte)
   return s->write (s, buf, nbyte);
 }
 
-static inline off_t
-sseek (stream * s, off_t offset, int whence)
+static inline gfc_offset
+sseek (stream * s, gfc_offset offset, int whence)
 {
   return s->seek (s, offset, whence);
 }
 
-static inline off_t
+static inline gfc_offset
 stell (stream * s)
 {
   return s->tell (s);
 }
 
 static inline int
-struncate (stream * s, off_t length)
+struncate (stream * s, gfc_offset length)
 {
   return s->trunc (s, length);
 }
@@ -120,6 +120,9 @@ internal_proto(delete_file);
 
 extern int file_exists (const char *file, gfc_charlen_type file_len);
 internal_proto(file_exists);
+
+extern GFC_IO_INT file_size (const char *file, gfc_charlen_type file_len);
+internal_proto(file_size);
 
 extern const char *inquire_sequential (const char *, int);
 internal_proto(inquire_sequential);

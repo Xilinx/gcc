@@ -1,6 +1,6 @@
 /* Define control and data flow tables, and regsets.
    Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -506,8 +506,6 @@ extern bitmap_obstack reg_obstack;
 /* The two blocks that are always in the cfg.  */
 #define NUM_FIXED_BLOCKS (2)
 
-
-#define BLOCK_NUM(INSN)	      (BLOCK_FOR_INSN (INSN)->index + 0)
 #define set_block_for_insn(INSN, BB)  (BLOCK_FOR_INSN (INSN) = BB)
 
 extern void compute_bb_for_insn (void);

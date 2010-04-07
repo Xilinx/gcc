@@ -1,6 +1,6 @@
 /* Implements exception handling.
    Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Mike Stump <mrs@cygnus.com>.
 
@@ -974,6 +974,7 @@ dw2_build_landing_pads (void)
 
       lp->landing_pad = gen_label_rtx ();
       emit_label (lp->landing_pad);
+      LABEL_PRESERVE_P (lp->landing_pad) = 1;
 
 #ifdef HAVE_exception_receiver
       if (HAVE_exception_receiver)
@@ -1154,7 +1155,7 @@ sjlj_emit_function_enter (rtx dispatch_label)
 
 #ifdef DONT_USE_BUILTIN_SETJMP
   {
-    rtx x;
+    rtx x, last;
     x = emit_library_call_value (setjmp_libfunc, NULL_RTX, LCT_RETURNS_TWICE,
 				 TYPE_MODE (integer_type_node), 1,
 				 plus_constant (XEXP (fc, 0),
@@ -1162,7 +1163,12 @@ sjlj_emit_function_enter (rtx dispatch_label)
 
     emit_cmp_and_jump_insns (x, const0_rtx, NE, 0,
 			     TYPE_MODE (integer_type_node), 0, dispatch_label);
-    add_reg_br_prob_note (get_insns (), REG_BR_PROB_BASE/100);
+    last = get_last_insn ();
+    if (JUMP_P (last) && any_condjump_p (last))
+      {
+        gcc_assert (!find_reg_note (last, REG_BR_PROB, 0));
+        add_reg_note (last, REG_BR_PROB, GEN_INT (REG_BR_PROB_BASE / 100));
+      }
   }
 #else
   expand_builtin_setjmp_setup (plus_constant (XEXP (fc, 0), sjlj_fc_jbuf_ofs),
@@ -1835,7 +1841,7 @@ can_nonlocal_goto (const_rtx insn)
 
 /* Set TREE_NOTHROW and crtl->all_throwers_are_sibcalls.  */
 
-unsigned int
+static unsigned int
 set_nothrow_function_flags (void)
 {
   rtx insn;
@@ -1892,7 +1898,7 @@ set_nothrow_function_flags (void)
       struct cgraph_edge *e;
       for (e = node->callers; e; e = e->next_caller)
         e->can_throw_external = false;
-      TREE_NOTHROW (current_function_decl) = 1;
+      cgraph_set_nothrow_flag (node, true);
 
       if (dump_file)
 	fprintf (dump_file, "Marking function nothrow: %s\n\n",

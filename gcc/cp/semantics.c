@@ -546,10 +546,8 @@ finish_goto_stmt (tree destination)
     TREE_USED (destination) = 1;
   else
     {
-      /* The DESTINATION is being used as an rvalue.  */
       if (!processing_template_decl)
 	{
-	  destination = decay_conversion (destination);
 	  destination = cp_convert (ptr_type_node, destination);
 	  if (error_operand_p (destination))
 	    return NULL_TREE;
@@ -1458,7 +1456,7 @@ finish_non_static_data_member (tree decl, tree object, tree qualifying_scope)
     object = cp_build_indirect_ref (lambda_expr_this_capture
 				    (CLASSTYPE_LAMBDA_EXPR
 				     (TREE_TYPE (object))),
-                                    /*errorstring=*/"",
+                                    RO_NULL,
                                     /*complain=*/tf_warning_or_error);
 
   if (current_class_ptr)
@@ -2106,13 +2104,17 @@ finish_this_expr (void)
 {
   tree result;
 
-  /* In a lambda expression, 'this' refers to the captured 'this'.  */
-  if (current_function_decl
-      && LAMBDA_FUNCTION_P (current_function_decl))
-    result = (lambda_expr_this_capture
-	      (CLASSTYPE_LAMBDA_EXPR (current_class_type)));
-  else if (current_class_ptr)
-    result = current_class_ptr;
+  if (current_class_ptr)
+    {
+      tree type = TREE_TYPE (current_class_ref);
+
+      /* In a lambda expression, 'this' refers to the captured 'this'.  */
+      if (LAMBDA_TYPE_P (type))
+        result = lambda_expr_this_capture (CLASSTYPE_LAMBDA_EXPR (type));
+      else
+        result = current_class_ptr;
+
+    }
   else if (current_function_decl
 	   && DECL_STATIC_FUNCTION_P (current_function_decl))
     {
@@ -2257,6 +2259,7 @@ finish_compound_literal (tree type, tree compound_literal)
       tree decl = create_temporary_var (type);
       DECL_INITIAL (decl) = compound_literal;
       TREE_STATIC (decl) = 1;
+      cp_apply_type_quals_to_decl (cp_type_quals (type), decl);
       decl = pushdecl_top_level (decl);
       DECL_NAME (decl) = make_anon_name ();
       SET_DECL_ASSEMBLER_NAME (decl, DECL_NAME (decl));
@@ -2368,6 +2371,26 @@ begin_class_definition (tree t, tree attributes)
       error ("definition of %q#T inside template parameter list", t);
       return error_mark_node;
     }
+
+  /* According to the C++ ABI, decimal classes defined in ISO/IEC TR 24733
+     are passed the same as decimal scalar types.  */
+  if (TREE_CODE (t) == RECORD_TYPE
+      && !processing_template_decl)
+    {
+      tree ns = TYPE_CONTEXT (t);
+      if (ns && TREE_CODE (ns) == NAMESPACE_DECL
+	  && DECL_CONTEXT (ns) == std_node
+	  && DECL_NAME (ns)
+	  && !strcmp (IDENTIFIER_POINTER (DECL_NAME (ns)), "decimal"))
+	{
+	  const char *n = TYPE_NAME_STRING (t);
+	  if ((strcmp (n, "decimal32") == 0)
+	      || (strcmp (n, "decimal64") == 0)
+	      || (strcmp (n, "decimal128") == 0))
+	    TYPE_TRANSPARENT_AGGR (t) = 1;
+	}
+    }
+
   /* A non-implicit typename comes from code like:
 
        template <typename T> struct A {
@@ -2385,9 +2408,6 @@ begin_class_definition (tree t, tree attributes)
       t = make_class_type (RECORD_TYPE);
       pushtag (make_anon_name (), t, /*tag_scope=*/ts_current);
     }
-
-  /* Update the location of the decl.  */
-  DECL_SOURCE_LOCATION (TYPE_NAME (t)) = input_location;
 
   if (TYPE_BEING_DEFINED (t))
     {
@@ -4690,10 +4710,8 @@ finish_static_assert (tree condition, tree message, location_t location,
     }
 }
 
-/* Returns decltype((EXPR)) for cases where we can drop the decltype and
-   just return the type even though EXPR is a type-dependent expression.
-   The ABI specifies which cases this applies to, which is a subset of the
-   possible cases.  */
+/* Returns the type of EXPR for cases where we can determine it even though
+   EXPR is a type-dependent expression.  */
 
 tree
 describable_type (tree expr)
@@ -4717,8 +4735,7 @@ describable_type (tree expr)
     case PARM_DECL:
     case RESULT_DECL:
     case FUNCTION_DECL:
-      /* Named rvalue reference becomes lvalue.  */
-      type = build_reference_type (non_reference (TREE_TYPE (expr)));
+      return TREE_TYPE (expr);
       break;
 
     case NEW_EXPR:
@@ -4777,7 +4794,13 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
       return error_mark_node;
     }
 
-  if (type_dependent_expression_p (expr))
+  if (type_dependent_expression_p (expr)
+      /* In a template, a COMPONENT_REF has an IDENTIFIER_NODE for op1 even
+	 if it isn't dependent, so that we can check access control at
+	 instantiation time, so defer the decltype as well (PR 42277).  */
+      || (id_expression_or_member_access_p
+	  && processing_template_decl
+	  && TREE_CODE (expr) == COMPONENT_REF))
     {
       if (id_expression_or_member_access_p)
 	{
@@ -4800,6 +4823,7 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
       if (type && !type_uses_auto (type))
 	return type;
 
+    treat_as_dependent:
       type = cxx_make_type (DECLTYPE_TYPE);
       DECLTYPE_TYPE_EXPR (type) = expr;
       DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (type)
@@ -4927,6 +4951,11 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
                   && (TREE_CODE (TREE_TYPE (target_type)) == FUNCTION_TYPE
                       || TREE_CODE (TREE_TYPE (target_type)) == METHOD_TYPE))
                 type = TREE_TYPE (TREE_TYPE (target_type));
+	      else if (processing_template_decl)
+		/* Within a template finish_call_expr doesn't resolve
+		   CALL_EXPR_FN, so even though this decltype isn't really
+		   dependent let's defer resolving it.  */
+		goto treat_as_dependent;
               else
                 sorry ("unable to determine the declared type of expression %<%E%>",
                        expr);
@@ -5399,6 +5428,9 @@ build_lambda_object (tree lambda_expr)
       tree field = TREE_PURPOSE (node);
       tree val = TREE_VALUE (node);
 
+      if (DECL_P (val))
+	mark_used (val);
+
       /* Mere mortals can't copy arrays with aggregate initialization, so
 	 do some magic to make it work here.  */
       if (TREE_CODE (TREE_TYPE (field)) == ARRAY_TYPE)
@@ -5553,7 +5585,7 @@ apply_lambda_return_type (tree lambda, tree return_type)
 
   /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
      TREE_TYPE (METHOD_TYPE)   == return-type  */
-  TREE_TYPE (TREE_TYPE (fco)) = return_type;
+  TREE_TYPE (fco) = change_return_type (return_type, TREE_TYPE (fco));
 
   result = DECL_RESULT (fco);
   if (result == NULL_TREE)
@@ -5658,8 +5690,9 @@ add_capture (tree lambda, tree id, tree initializer, bool by_reference_p,
        always visible.  */
     DECL_NORMAL_CAPTURE_P (member) = true;
 
-  /* Add it to the appropriate closure class.  */
-  finish_member_declaration (member);
+  /* Add it to the appropriate closure class if we've started it.  */
+  if (current_class_type && current_class_type == TREE_TYPE (lambda))
+    finish_member_declaration (member);
 
   LAMBDA_EXPR_CAPTURE_LIST (lambda)
     = tree_cons (member, initializer, LAMBDA_EXPR_CAPTURE_LIST (lambda));
@@ -5674,6 +5707,18 @@ add_capture (tree lambda, tree id, tree initializer, bool by_reference_p,
   return member;
 }
 
+/* Register all the capture members on the list CAPTURES, which is the
+   LAMBDA_EXPR_CAPTURE_LIST for the lambda after the introducer.  */
+
+void register_capture_members (tree captures)
+{
+  if (captures)
+    {
+      register_capture_members (TREE_CHAIN (captures));
+      finish_member_declaration (TREE_PURPOSE (captures));
+    }
+}
+
 /* Given a FIELD_DECL decl belonging to a closure type, return a
    COMPONENT_REF of it relative to the 'this' parameter of the op() for
    that type.  */
@@ -5683,7 +5728,7 @@ thisify_lambda_field (tree decl)
 {
   tree context = lambda_function (DECL_CONTEXT (decl));
   tree object = cp_build_indirect_ref (DECL_ARGUMENTS (context),
-				       /*errorstring*/"",
+				       RO_NULL,
 				       tf_warning_or_error);
   return finish_non_static_data_member (decl, object,
 					/*qualifying_scope*/NULL_TREE);
@@ -5817,14 +5862,22 @@ maybe_add_lambda_conv_op (tree type)
   bool nested = (current_function_decl != NULL_TREE);
   tree callop = lambda_function (type);
   tree rettype, name, fntype, fn, body, compound_stmt;
+  tree thistype, stattype, statfn, convfn, call, arg;
+  VEC (tree, gc) *argvec;
 
-  if (!DECL_STATIC_FUNCTION_P (callop))
+  if (LAMBDA_EXPR_CAPTURE_LIST (CLASSTYPE_LAMBDA_EXPR (type)) != NULL_TREE)
     return;
 
-  rettype = build_pointer_type (TREE_TYPE (callop));
+  stattype = build_function_type (TREE_TYPE (TREE_TYPE (callop)),
+				  FUNCTION_ARG_CHAIN (callop));
+
+  /* First build up the conversion op.  */
+
+  rettype = build_pointer_type (stattype);
   name = mangle_conv_op_name_for_type (rettype);
-  fntype = build_function_type (rettype, void_list_node);
-  fn = build_lang_decl (FUNCTION_DECL, name, fntype);
+  thistype = cp_build_qualified_type (type, TYPE_QUAL_CONST);
+  fntype = build_method_type_directly (thistype, rettype, void_list_node);
+  fn = convfn = build_lang_decl (FUNCTION_DECL, name, fntype);
   DECL_SOURCE_LOCATION (fn) = DECL_SOURCE_LOCATION (callop);
 
   if (TARGET_PTRMEMFUNC_VBIT_LOCATION == ptrmemfunc_vbit_in_pfn
@@ -5839,23 +5892,96 @@ maybe_add_lambda_conv_op (tree type)
   DECL_ARTIFICIAL (fn) = 1;
   DECL_NOT_REALLY_EXTERN (fn) = 1;
   DECL_DECLARED_INLINE_P (fn) = 1;
+  DECL_ARGUMENTS (fn) = build_this_parm (fntype, TYPE_QUAL_CONST);
+  if (nested)
+    DECL_INTERFACE_KNOWN (fn) = 1;
+
+  add_method (type, fn, NULL_TREE);
+
+  /* Generic thunk code fails for varargs; we'll complain in mark_used if
+     the conversion op is used.  */
+  if (varargs_function_p (callop))
+    {
+      DECL_DELETED_FN (fn) = 1;
+      return;
+    }
+
+  /* Now build up the thunk to be returned.  */
+
+  name = get_identifier ("_FUN");
+  fn = statfn = build_lang_decl (FUNCTION_DECL, name, stattype);
+  DECL_SOURCE_LOCATION (fn) = DECL_SOURCE_LOCATION (callop);
+  if (TARGET_PTRMEMFUNC_VBIT_LOCATION == ptrmemfunc_vbit_in_pfn
+      && DECL_ALIGN (fn) < 2 * BITS_PER_UNIT)
+    DECL_ALIGN (fn) = 2 * BITS_PER_UNIT;
+  grokclassfn (type, fn, NO_SPECIAL);
+  set_linkage_according_to_type (type, fn);
+  rest_of_decl_compilation (fn, toplevel_bindings_p (), at_eof);
+  DECL_IN_AGGR_P (fn) = 1;
+  DECL_ARTIFICIAL (fn) = 1;
+  DECL_NOT_REALLY_EXTERN (fn) = 1;
+  DECL_DECLARED_INLINE_P (fn) = 1;
   DECL_STATIC_FUNCTION_P (fn) = 1;
+  DECL_ARGUMENTS (fn) = copy_list (TREE_CHAIN (DECL_ARGUMENTS (callop)));
+  for (arg = DECL_ARGUMENTS (fn); arg; arg = TREE_CHAIN (arg))
+    DECL_CONTEXT (arg) = fn;
+  if (nested)
+    DECL_INTERFACE_KNOWN (fn) = 1;
 
   add_method (type, fn, NULL_TREE);
 
   if (nested)
     push_function_context ();
-  start_preparsed_function (fn, NULL_TREE,
+
+  /* Generate the body of the thunk.  */
+
+  start_preparsed_function (statfn, NULL_TREE,
 			    SF_PRE_PARSED | SF_INCLASS_INLINE);
+  if (DECL_ONE_ONLY (statfn))
+    {
+      /* Put the thunk in the same comdat group as the call op.  */
+      struct cgraph_node *callop_node, *thunk_node;
+      DECL_COMDAT_GROUP (statfn) = DECL_COMDAT_GROUP (callop);
+      callop_node = cgraph_node (callop);
+      thunk_node = cgraph_node (statfn);
+      gcc_assert (callop_node->same_comdat_group == NULL);
+      gcc_assert (thunk_node->same_comdat_group == NULL);
+      callop_node->same_comdat_group = thunk_node;
+      thunk_node->same_comdat_group = callop_node;
+    }
   body = begin_function_body ();
   compound_stmt = begin_compound_stmt (0);
 
-  finish_return_stmt (decay_conversion (callop));
+  arg = build1 (NOP_EXPR, TREE_TYPE (DECL_ARGUMENTS (callop)),
+		null_pointer_node);
+  argvec = make_tree_vector ();
+  VEC_quick_push (tree, argvec, arg);
+  for (arg = DECL_ARGUMENTS (statfn); arg; arg = TREE_CHAIN (arg))
+    VEC_safe_push (tree, gc, argvec, arg);
+  call = build_cxx_call (callop, VEC_length (tree, argvec),
+			 VEC_address (tree, argvec));
+  CALL_FROM_THUNK_P (call) = 1;
+  finish_return_stmt (call);
 
   finish_compound_stmt (compound_stmt);
   finish_function_body (body);
 
   expand_or_defer_fn (finish_function (2));
+
+  /* Generate the body of the conversion op.  */
+
+  start_preparsed_function (convfn, NULL_TREE,
+			    SF_PRE_PARSED | SF_INCLASS_INLINE);
+  body = begin_function_body ();
+  compound_stmt = begin_compound_stmt (0);
+
+  finish_return_stmt (decay_conversion (statfn));
+
+  finish_compound_stmt (compound_stmt);
+  finish_function_body (body);
+
+  expand_or_defer_fn (finish_function (2));
+
   if (nested)
     pop_function_context ();
 }

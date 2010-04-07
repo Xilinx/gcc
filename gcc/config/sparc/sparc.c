@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for SPARC.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
    64-bit SPARC-V9 support by Michael Tiemann, Jim Wilson, and Doug Evans,
@@ -52,6 +52,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "params.h"
 #include "df.h"
+#include "dwarf2out.h"
 
 /* Processor costs */
 static const
@@ -362,16 +363,13 @@ static rtx sparc_builtin_saveregs (void);
 static int epilogue_renumber (rtx *, int);
 static bool sparc_assemble_integer (rtx, unsigned int, int);
 static int set_extends (rtx);
-static void emit_pic_helper (void);
-static void load_pic_register (bool);
+static void load_pic_register (void);
 static int save_or_restore_regs (int, int, rtx, int, int);
 static void emit_save_or_restore_regs (int);
 static void sparc_asm_function_prologue (FILE *, HOST_WIDE_INT);
 static void sparc_asm_function_epilogue (FILE *, HOST_WIDE_INT);
-#ifdef OBJECT_FORMAT_ELF
-static void sparc_elf_asm_named_section (const char *, unsigned int, tree);
-#endif
-
+static void sparc_solaris_elf_asm_named_section (const char *, unsigned int,
+						 tree) ATTRIBUTE_UNUSED;
 static int sparc_adjust_cost (rtx, rtx, rtx, int);
 static int sparc_issue_rate (void);
 static void sparc_sched_init (FILE *, int, int);
@@ -411,6 +409,9 @@ static bool sparc_strict_argument_naming (CUMULATIVE_ARGS *);
 static void sparc_va_start (tree, rtx);
 static tree sparc_gimplify_va_arg (tree, tree, gimple_seq *, gimple_seq *);
 static bool sparc_vector_mode_supported_p (enum machine_mode);
+static bool sparc_tls_referenced_p (rtx);
+static rtx legitimize_tls_address (rtx);
+static rtx legitimize_pic_address (rtx, rtx);
 static rtx sparc_legitimize_address (rtx, rtx, enum machine_mode);
 static bool sparc_pass_by_reference (CUMULATIVE_ARGS *,
 				     enum machine_mode, const_tree, bool);
@@ -460,14 +461,9 @@ static bool fpu_option_set = false;
 
 /* Initialize the GCC target structure.  */
 
-/* The sparc default is to use .half rather than .short for aligned
-   HI objects.  Use .word instead of .long on non-ELF systems.  */
+/* The default is to use .half rather than .short for aligned HI objects.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.half\t"
-#ifndef OBJECT_FORMAT_ELF
-#undef TARGET_ASM_ALIGNED_SI_OP
-#define TARGET_ASM_ALIGNED_SI_OP "\t.word\t"
-#endif
 
 #undef TARGET_ASM_UNALIGNED_HI_OP
 #define TARGET_ASM_UNALIGNED_HI_OP "\t.uahalf\t"
@@ -710,7 +706,7 @@ sparc_override_options (void)
   const struct cpu_table *cpu;
   const struct sparc_cpu_select *sel;
   int fpu;
-  
+
 #ifndef SPARC_BI_ARCH
   /* Check for unsupported architecture size.  */
   if (! TARGET_64BIT != DEFAULT_ARCH32_P)
@@ -727,7 +723,7 @@ sparc_override_options (void)
 
   /* Code model selection.  */
   sparc_cmodel = SPARC_DEFAULT_CMODEL;
-  
+
 #ifdef SPARC_BI_ARCH
   if (TARGET_ARCH32)
     sparc_cmodel = CM_32;
@@ -810,7 +806,7 @@ sparc_override_options (void)
   /* Don't use stack biasing in 32 bit mode.  */
   if (TARGET_ARCH32)
     target_flags &= ~MASK_STACK_BIAS;
-    
+
   /* Supply a default value for align_functions.  */
   if (align_functions == 0
       && (sparc_cpu == PROCESSOR_ULTRASPARC
@@ -887,7 +883,7 @@ sparc_override_options (void)
 		      : (sparc_cpu == PROCESSOR_ULTRASPARC3
 			 ? 8 : 3)));
   if (!PARAM_SET_P (PARAM_L1_CACHE_LINE_SIZE))
-    set_param_value ("l1-cache-line-size", 
+    set_param_value ("l1-cache-line-size",
 		     ((sparc_cpu == PROCESSOR_ULTRASPARC
 		       || sparc_cpu == PROCESSOR_ULTRASPARC3
 		       || sparc_cpu == PROCESSOR_NIAGARA
@@ -992,34 +988,17 @@ sparc_expand_move (enum machine_mode mode, rtx *operands)
   /* Fixup TLS cases.  */
   if (TARGET_HAVE_TLS
       && CONSTANT_P (operands[1])
-      && GET_CODE (operands[1]) != HIGH
       && sparc_tls_referenced_p (operands [1]))
     {
-      rtx sym = operands[1];
-      rtx addend = NULL;
-
-      if (GET_CODE (sym) == CONST && GET_CODE (XEXP (sym, 0)) == PLUS)
-	{
-	  addend = XEXP (XEXP (sym, 0), 1);
-	  sym = XEXP (XEXP (sym, 0), 0);
-	}
-
-      gcc_assert (SPARC_SYMBOL_REF_TLS_P (sym));
-
-      sym = legitimize_tls_address (sym);
-      if (addend)
-	{
-	  sym = gen_rtx_PLUS (mode, sym, addend);
-	  sym = force_operand (sym, operands[0]);
-	}
-      operands[1] = sym;
+      operands[1] = legitimize_tls_address (operands[1]);
+      return false;
     }
- 
+
   /* Fixup PIC cases.  */
   if (flag_pic && CONSTANT_P (operands[1]))
     {
       if (pic_address_needs_scratch (operands[1]))
-	operands[1] = legitimize_pic_address (operands[1], mode, 0);
+	operands[1] = legitimize_pic_address (operands[1], NULL_RTX);
 
       /* VxWorks does not impose a fixed gap between segments; the run-time
 	 gap can be different from the object-file gap.  We therefore can't
@@ -1047,10 +1026,8 @@ sparc_expand_move (enum machine_mode mode, rtx *operands)
       if (symbolic_operand (operands[1], mode))
 	{
 	  operands[1] = legitimize_pic_address (operands[1],
-						mode,
-						(reload_in_progress ?
-						 operands[0] :
-						 NULL_RTX));
+						reload_in_progress
+						? operands[0] : NULL_RTX);
 	  return false;
 	}
     }
@@ -1110,7 +1087,7 @@ sparc_expand_move (enum machine_mode mode, rtx *operands)
       /* input_operand should have filtered out 32-bit mode.  */
       sparc_emit_set_const64 (operands[0], operands[1]);
       return true;
-    
+
     default:
       gcc_unreachable ();
     }
@@ -2265,7 +2242,7 @@ emit_scc_insn (rtx operands[])
   if (code == LTU || code == GEU)
     {
       emit_insn (gen_rtx_SET (VOIDmode, operands[0],
-			      gen_rtx_fmt_ee (code, SImode, 
+			      gen_rtx_fmt_ee (code, SImode,
 					      gen_compare_reg_1 (code, x, y),
 					      const0_rtx)));
       return true;
@@ -2931,9 +2908,8 @@ sparc_cannot_force_const_mem (rtx x)
 }
 
 /* PIC support.  */
-static GTY(()) char pic_helper_symbol_name[256];
+static GTY(()) bool pic_helper_needed = false;
 static GTY(()) rtx pic_helper_symbol;
-static GTY(()) bool pic_helper_emitted_p = false;
 static GTY(()) rtx global_offset_table;
 
 /* Ensure that we are not using patterns that are not OK with PIC.  */
@@ -2957,7 +2933,7 @@ check_pic (int i)
     }
 }
 
-/* Return true if X is an address which needs a temporary register when 
+/* Return true if X is an address which needs a temporary register when
    reloaded while generating PIC code.  */
 
 int
@@ -2979,23 +2955,11 @@ pic_address_needs_scratch (rtx x)
 bool
 legitimate_constant_p (rtx x)
 {
-  rtx inner;
-
   switch (GET_CODE (x))
     {
-    case SYMBOL_REF:
-      /* TLS symbols are not constant.  */
-      if (SYMBOL_REF_TLS_MODEL (x))
-	return false;
-      break;
-
     case CONST:
-      inner = XEXP (x, 0);
-
-      /* Offsets of TLS symbols are never valid.
-	 Discourage CSE from creating them.  */
-      if (GET_CODE (inner) == PLUS
-	  && SPARC_SYMBOL_REF_TLS_P (XEXP (inner, 0)))
+    case SYMBOL_REF:
+      if (sparc_tls_referenced_p (x))
 	return false;
       break;
 
@@ -3062,17 +3026,14 @@ legitimate_pic_operand_p (rtx x)
 {
   if (pic_address_needs_scratch (x))
     return false;
-  if (SPARC_SYMBOL_REF_TLS_P (x)
-      || (GET_CODE (x) == CONST
-	  && GET_CODE (XEXP (x, 0)) == PLUS
-	  && SPARC_SYMBOL_REF_TLS_P (XEXP (XEXP (x, 0), 0))))
+  if (sparc_tls_referenced_p (x))
     return false;
   return true;
 }
 
 /* Return nonzero if ADDR is a valid memory address.
    STRICT specifies whether strict register checking applies.  */
-   
+
 static bool
 sparc_legitimate_address_p (enum machine_mode mode, rtx addr, bool strict)
 {
@@ -3103,7 +3064,7 @@ sparc_legitimate_address_p (enum machine_mode mode, rtx addr, bool strict)
 	   && GET_CODE (rs2) != SUBREG
 	   && GET_CODE (rs2) != LO_SUM
 	   && GET_CODE (rs2) != MEM
-	   && ! SPARC_SYMBOL_REF_TLS_P (rs2)
+	   && !(GET_CODE (rs2) == SYMBOL_REF && SYMBOL_REF_TLS_MODEL (rs2))
 	   && (! symbolic_operand (rs2, VOIDmode) || mode == Pmode)
 	   && (GET_CODE (rs2) != CONST_INT || SMALL_INT (rs2)))
 	  || ((REG_P (rs1)
@@ -3143,7 +3104,8 @@ sparc_legitimate_address_p (enum machine_mode mode, rtx addr, bool strict)
 	  rs2 = NULL;
 	  imm1 = XEXP (rs1, 1);
 	  rs1 = XEXP (rs1, 0);
-	  if (! CONSTANT_P (imm1) || SPARC_SYMBOL_REF_TLS_P (rs1))
+	  if (!CONSTANT_P (imm1)
+	      || (GET_CODE (rs1) == SYMBOL_REF && SYMBOL_REF_TLS_MODEL (rs1)))
 	    return 0;
 	}
     }
@@ -3152,7 +3114,8 @@ sparc_legitimate_address_p (enum machine_mode mode, rtx addr, bool strict)
       rs1 = XEXP (addr, 0);
       imm1 = XEXP (addr, 1);
 
-      if (! CONSTANT_P (imm1) || SPARC_SYMBOL_REF_TLS_P (rs1))
+      if (!CONSTANT_P (imm1)
+	  || (GET_CODE (rs1) == SYMBOL_REF && SYMBOL_REF_TLS_MODEL (rs1)))
 	return 0;
 
       /* We can't allow TFmode in 32-bit mode, because an offset greater
@@ -3228,29 +3191,28 @@ sparc_tls_got (void)
   return temp;
 }
 
-/* Return 1 if *X is a thread-local symbol.  */
+/* Return true if X contains a thread-local symbol.  */
 
-static int
-sparc_tls_symbol_ref_1 (rtx *x, void *data ATTRIBUTE_UNUSED)
-{
-  return SPARC_SYMBOL_REF_TLS_P (*x);
-}
-
-/* Return 1 if X contains a thread-local symbol.  */
-
-bool
+static bool
 sparc_tls_referenced_p (rtx x)
 {
   if (!TARGET_HAVE_TLS)
     return false;
 
-  return for_each_rtx (&x, &sparc_tls_symbol_ref_1, 0);
+  if (GET_CODE (x) == CONST && GET_CODE (XEXP (x, 0)) == PLUS)
+    x = XEXP (XEXP (x, 0), 0);
+
+  if (GET_CODE (x) == SYMBOL_REF && SYMBOL_REF_TLS_MODEL (x))
+    return true;
+
+  /* That's all we handle in legitimize_tls_address for now.  */
+  return false;
 }
 
 /* ADDR contains a thread-local SYMBOL_REF.  Generate code to compute
    this (thread-local) address.  */
 
-rtx
+static rtx
 legitimize_tls_address (rtx addr)
 {
   rtx temp1, temp2, temp3, ret, o0, got, insn;
@@ -3374,22 +3336,37 @@ legitimize_tls_address (rtx addr)
 	gcc_unreachable ();
       }
 
+  else if (GET_CODE (addr) == CONST)
+    {
+      rtx base, offset;
+
+      gcc_assert (GET_CODE (XEXP (addr, 0)) == PLUS);
+
+      base = legitimize_tls_address (XEXP (XEXP (addr, 0), 0));
+      offset = XEXP (XEXP (addr, 0), 1);
+
+      base = force_operand (base, NULL_RTX);
+      if (!(GET_CODE (offset) == CONST_INT && SMALL_INT (offset)))
+	offset = force_reg (Pmode, offset);
+      ret = gen_rtx_PLUS (Pmode, base, offset);
+    }
+
   else
     gcc_unreachable ();  /* for now ... */
 
   return ret;
 }
 
-
 /* Legitimize PIC addresses.  If the address is already position-independent,
    we return ORIG.  Newly generated position-independent addresses go into a
    reg.  This is REG if nonzero, otherwise we allocate register(s) as
    necessary.  */
 
-rtx
-legitimize_pic_address (rtx orig, enum machine_mode mode ATTRIBUTE_UNUSED,
-			rtx reg)
+static rtx
+legitimize_pic_address (rtx orig, rtx reg)
 {
+  bool gotdata_op = false;
+
   if (GET_CODE (orig) == SYMBOL_REF
       /* See the comment in sparc_expand_move.  */
       || (TARGET_VXWORKS_RTP && GET_CODE (orig) == LABEL_REF))
@@ -3426,15 +3403,28 @@ legitimize_pic_address (rtx orig, enum machine_mode mode ATTRIBUTE_UNUSED,
 	      emit_insn (gen_movsi_lo_sum_pic (temp_reg, temp_reg, orig));
 	    }
 	  address = temp_reg;
+	  gotdata_op = true;
 	}
       else
 	address = orig;
 
-      pic_ref = gen_const_mem (Pmode,
-			       gen_rtx_PLUS (Pmode,
-					     pic_offset_table_rtx, address));
       crtl->uses_pic_offset_table = 1;
-      insn = emit_move_insn (reg, pic_ref);
+      if (gotdata_op)
+	{
+	  if (TARGET_ARCH64)
+	    insn = emit_insn (gen_movdi_pic_gotdata_op (reg, pic_offset_table_rtx,
+							address, orig));
+	  else
+	    insn = emit_insn (gen_movsi_pic_gotdata_op (reg, pic_offset_table_rtx,
+							address, orig));
+	}
+      else
+	{
+	  pic_ref = gen_const_mem (Pmode,
+				   gen_rtx_PLUS (Pmode,
+						 pic_offset_table_rtx, address));
+	  insn = emit_move_insn (reg, pic_ref);
+	}
       /* Put a REG_EQUAL note on this insn, so that it can be optimized
 	 by loop.  */
       set_unique_reg_note (insn, REG_EQUAL, orig);
@@ -3455,9 +3445,9 @@ legitimize_pic_address (rtx orig, enum machine_mode mode ATTRIBUTE_UNUSED,
 	}
 
       gcc_assert (GET_CODE (XEXP (orig, 0)) == PLUS);
-      base = legitimize_pic_address (XEXP (XEXP (orig, 0), 0), Pmode, reg);
-      offset = legitimize_pic_address (XEXP (XEXP (orig, 0), 1), Pmode,
-			 	       base == reg ? 0 : reg);
+      base = legitimize_pic_address (XEXP (XEXP (orig, 0), 0), reg);
+      offset = legitimize_pic_address (XEXP (XEXP (orig, 0), 1),
+			 	       base == reg ? NULL_RTX : reg);
 
       if (GET_CODE (offset) == CONST_INT)
 	{
@@ -3490,7 +3480,7 @@ legitimize_pic_address (rtx orig, enum machine_mode mode ATTRIBUTE_UNUSED,
 
    On SPARC, change REG+N into REG+REG, and REG+(X*Y) into REG+REG.  */
 
-rtx
+static rtx
 sparc_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 			  enum machine_mode mode)
 {
@@ -3512,10 +3502,10 @@ sparc_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
   if (x != orig_x && sparc_legitimate_address_p (mode, x, FALSE))
     return x;
 
-  if (SPARC_SYMBOL_REF_TLS_P (x))
+  if (sparc_tls_referenced_p (x))
     x = legitimize_tls_address (x);
   else if (flag_pic)
-    x = legitimize_pic_address (x, mode, 0);
+    x = legitimize_pic_address (x, NULL_RTX);
   else if (GET_CODE (x) == PLUS && CONSTANT_ADDRESS_P (XEXP (x, 1)))
     x = gen_rtx_PLUS (Pmode, XEXP (x, 0),
 		      copy_to_mode_reg (Pmode, XEXP (x, 1)));
@@ -3524,39 +3514,37 @@ sparc_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 		      copy_to_mode_reg (Pmode, XEXP (x, 0)));
   else if (GET_CODE (x) == SYMBOL_REF
 	   || GET_CODE (x) == CONST
-           || GET_CODE (x) == LABEL_REF)
+	   || GET_CODE (x) == LABEL_REF)
     x = copy_to_suggested_reg (x, NULL_RTX, Pmode);
+
   return x;
 }
 
-/* Emit the special PIC helper function.  */
+#ifdef HAVE_GAS_HIDDEN
+# define USE_HIDDEN_LINKONCE 1
+#else
+# define USE_HIDDEN_LINKONCE 0
+#endif
 
 static void
-emit_pic_helper (void)
+get_pc_thunk_name (char name[32], unsigned int regno)
 {
-  const char *pic_name = reg_names[REGNO (pic_offset_table_rtx)];
-  int align;
+  const char *pic_name = reg_names[regno];
 
-  switch_to_section (text_section);
+  /* Skip the leading '%' as that cannot be used in a
+     symbol name.  */
+  pic_name += 1;
 
-  align = floor_log2 (FUNCTION_BOUNDARY / BITS_PER_UNIT);
-  if (align > 0)
-    ASM_OUTPUT_ALIGN (asm_out_file, align);
-  ASM_OUTPUT_LABEL (asm_out_file, pic_helper_symbol_name);
-  if (flag_delayed_branch)
-    fprintf (asm_out_file, "\tjmp\t%%o7+8\n\t add\t%%o7, %s, %s\n",
-	    pic_name, pic_name);
+  if (USE_HIDDEN_LINKONCE)
+    sprintf (name, "__sparc_get_pc_thunk.%s", pic_name);
   else
-    fprintf (asm_out_file, "\tadd\t%%o7, %s, %s\n\tjmp\t%%o7+8\n\t nop\n",
-	    pic_name, pic_name);
-
-  pic_helper_emitted_p = true;
+    ASM_GENERATE_INTERNAL_LABEL (name, "LADDPC", regno);
 }
 
 /* Emit code to load the PIC register.  */
 
 static void
-load_pic_register (bool delay_pic_helper)
+load_pic_register (void)
 {
   int orig_flag_pic = flag_pic;
 
@@ -3568,17 +3556,17 @@ load_pic_register (bool delay_pic_helper)
     }
 
   /* If we haven't initialized the special PIC symbols, do so now.  */
-  if (!pic_helper_symbol_name[0])
+  if (!pic_helper_needed)
     {
-      ASM_GENERATE_INTERNAL_LABEL (pic_helper_symbol_name, "LADDPC", 0);
-      pic_helper_symbol = gen_rtx_SYMBOL_REF (Pmode, pic_helper_symbol_name);
+      char name[32];
+
+      pic_helper_needed = true;
+
+      get_pc_thunk_name (name, REGNO (pic_offset_table_rtx));
+      pic_helper_symbol = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (name));
+
       global_offset_table = gen_rtx_SYMBOL_REF (Pmode, "_GLOBAL_OFFSET_TABLE_");
     }
-
-  /* If we haven't emitted the special PIC helper function, do so now unless
-     we are requested to delay it.  */
-  if (!delay_pic_helper && !pic_helper_emitted_p)
-    emit_pic_helper ();
 
   flag_pic = 0;
   if (TARGET_ARCH64)
@@ -3694,7 +3682,7 @@ mem_min_alignment (rtx mem, int desired)
 	 it is to a constant address, or the address involves a LO_SUM.  */
       return 1;
     }
-  
+
   /* An obviously unaligned address.  */
   return 0;
 }
@@ -3837,7 +3825,7 @@ sparc_init_modes (void)
 	    sparc_mode_class[i] = 1 << (int) T_MODE;
 	  else if (GET_MODE_SIZE (i) == 32)
 	    sparc_mode_class[i] = 1 << (int) O_MODE;
-	  else 
+	  else
 	    sparc_mode_class[i] = 0;
 	  break;
 	case MODE_VECTOR_INT:
@@ -3856,7 +3844,7 @@ sparc_init_modes (void)
 	    sparc_mode_class[i] = 1 << (int) TF_MODE;
 	  else if (GET_MODE_SIZE (i) == 32)
 	    sparc_mode_class[i] = 1 << (int) OF_MODE;
-	  else 
+	  else
 	    sparc_mode_class[i] = 0;
 	  break;
 	case MODE_CC:
@@ -4229,9 +4217,9 @@ sparc_expand_prologue (void)
 
   /* Load the PIC register if needed.  */
   if (flag_pic && crtl->uses_pic_offset_table)
-    load_pic_register (false);
+    load_pic_register ();
 }
- 
+
 /* This function generates the assembly code for function entry, which boils
    down to emitting the necessary .register directives.  */
 
@@ -4282,9 +4270,9 @@ sparc_can_use_return_insn_p (void)
   return sparc_prologue_data_valid_p
 	 && (actual_fsize == 0 || !sparc_leaf_function_p);
 }
-  
+
 /* This function generates the assembly code for function exit.  */
-  
+
 static void
 sparc_asm_function_epilogue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 {
@@ -4309,9 +4297,9 @@ sparc_asm_function_epilogue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 
   sparc_output_deferred_case_vectors ();
 }
-  
+
 /* Output a 'restore' instruction.  */
- 
+
 static void
 output_restore (rtx pat)
 {
@@ -4351,7 +4339,7 @@ output_restore (rtx pat)
 	break;
     }
 }
-  
+
 /* Output a return.  */
 
 const char *
@@ -4534,7 +4522,7 @@ output_sibcall (rtx insn, rtx call_operand)
      the appropriate fp reg and in memory.
 
 
-   Summary of the calling conventions implemented by GCC on SPARC:
+   Summary of the calling conventions implemented by GCC on the SPARC:
 
    32-bit ABI:
                                 size      argument     return value
@@ -4603,7 +4591,7 @@ implemented by the Sun compiler.
 Note #2: integral vector types follow the scalar floating-point types
 conventions to match what is implemented by the Sun VIS SDK.
 
-Note #3: floating-point vector types follow the aggregate types 
+Note #3: floating-point vector types follow the aggregate types
 conventions.  */
 
 
@@ -4657,7 +4645,6 @@ sparc_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
      for arithmetic operations which do zero/sign extension at the same time,
      so without this we end up with a srl/sra after every assignment to an
      user variable,  which means very very bad code.  */
-
   if (TARGET_ARCH64
       && GET_MODE_CLASS (mode) == MODE_INT
       && GET_MODE_SIZE (mode) < UNITS_PER_WORD)
@@ -4665,8 +4652,6 @@ sparc_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
 
   return mode;
 }
-
-
 
 /* Handle the TARGET_STRICT_ARGUMENT_NAMING target hook.  */
 
@@ -4983,7 +4968,7 @@ function_arg_record_value_1 (const_tree type, HOST_WIDE_INT startbitpos,
 /* A subroutine of function_arg_record_value.  Assign the bits of the
    structure between parms->intoffset and bitpos to integer registers.  */
 
-static void 
+static void
 function_arg_record_value_3 (HOST_WIDE_INT bitpos,
 			     struct function_arg_record_value_parms *parms)
 {
@@ -5147,7 +5132,7 @@ function_arg_record_value_2 (const_tree type, HOST_WIDE_INT startbitpos,
    NAMED is nonzero if this argument is a named parameter
     (otherwise it is an extra parameter matching an ellipsis).
    REGBASE is the regno of the base register for the parameter array.  */
-   
+
 static rtx
 function_arg_record_value (const_tree type, enum machine_mode mode,
 			   int slotno, int named, int regbase)
@@ -5547,7 +5532,7 @@ sparc_pass_by_reference (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
     /* Original SPARC 64-bit ABI says that structures and unions
        smaller than 16 bytes are passed in registers, as well as
        all other base types.
-       
+
        Extended ABI (as implemented by the Sun compiler) says that
        complex floats are passed in registers up to 16 bytes.  Pass
        all complex integers in registers up to 16 bytes.  More generally,
@@ -5653,7 +5638,7 @@ sparc_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
     /* Original SPARC 64-bit ABI says that structures and unions
        smaller than 32 bytes are returned in registers, as well as
        all other base types.
-       
+
        Extended ABI (as implemented by the Sun compiler) says that all
        complex floats are returned in registers (8 FP registers at most
        for '_Complex long double').  Return all complex integers in
@@ -5686,10 +5671,10 @@ sparc_struct_value_rtx (tree fndecl, int incoming)
 	mem = gen_rtx_MEM (Pmode, plus_constant (stack_pointer_rtx,
 						 STRUCT_VALUE_OFFSET));
 
-      /* Only follow the SPARC ABI for fixed-size structure returns. 
-         Variable size structure returns are handled per the normal 
+      /* Only follow the SPARC ABI for fixed-size structure returns.
+         Variable size structure returns are handled per the normal
          procedures in GCC. This is enabled by -mstd-struct-return */
-      if (incoming == 2 
+      if (incoming == 2
 	  && sparc_std_struct_return
 	  && TYPE_SIZE_UNIT (TREE_TYPE (fndecl))
 	  && TREE_CODE (TYPE_SIZE_UNIT (TREE_TYPE (fndecl))) == INTEGER_CST)
@@ -5699,7 +5684,7 @@ sparc_struct_value_rtx (tree fndecl, int incoming)
 	     provided.  */
 	  rtx ret_rtx = gen_rtx_REG (Pmode, 31);
 	  rtx scratch = gen_reg_rtx (SImode);
-	  rtx endlab = gen_label_rtx (); 
+	  rtx endlab = gen_label_rtx ();
 
 	  /* Calculate the return object size */
 	  tree size = TYPE_SIZE_UNIT (TREE_TYPE (fndecl));
@@ -5708,8 +5693,8 @@ sparc_struct_value_rtx (tree fndecl, int incoming)
 	  rtx temp_val = assign_stack_local (Pmode, TREE_INT_CST_LOW (size), 0);
 
 	  /* Implement SPARC 32-bit psABI callee returns struck checking
-	     requirements: 
-	    
+	     requirements:
+
 	      Fetch the instruction where we will return to and see if
 	     it's an unimp instruction (the most significant 10 bits
 	     will be zero).  */
@@ -5719,7 +5704,7 @@ sparc_struct_value_rtx (tree fndecl, int incoming)
 	  emit_insn (gen_add3_insn (ret_rtx, ret_rtx, GEN_INT (4)));
 	  emit_cmp_and_jump_insns (scratch, size_rtx, EQ, const0_rtx, SImode, 0, endlab);
 	  emit_insn (gen_sub3_insn (ret_rtx, ret_rtx, GEN_INT (4)));
-	  /* Assign stack temp: 
+	  /* Assign stack temp:
 	     Write the address of the memory pointed to by temp_val into
 	     the memory pointed to by mem */
 	  emit_move_insn (mem, XEXP (temp_val, 0));
@@ -6482,21 +6467,21 @@ output_v9branch (rtx op, rtx dest, int reg, int label, int reversed,
 
   /* branch on register are limited to +-128KB.  If it is too far away,
      change
-     
+
      brnz,pt %g1, .LC30
-     
+
      to
-     
+
      brz,pn %g1, .+12
       nop
      ba,pt %xcc, .LC30
-     
+
      and
-     
+
      brgez,a,pn %o1, .LC29
-     
+
      to
-     
+
      brlz,pt %o1, .+16
       nop
      ba,pt %xcc, .LC29  */
@@ -6748,7 +6733,7 @@ sparc_absnegfloat_split_legitimate (rtx x, rtx y)
 }
 
 /* Return 1 if REGNO (reg1) is even and REGNO (reg1) == REGNO (reg2) - 1.
-   This makes them candidates for using ldd and std insns. 
+   This makes them candidates for using ldd and std insns.
 
    Note reg1 and reg2 *must* be hard registers.  */
 
@@ -6756,22 +6741,22 @@ int
 registers_ok_for_ldd_peep (rtx reg1, rtx reg2)
 {
   /* We might have been passed a SUBREG.  */
-  if (GET_CODE (reg1) != REG || GET_CODE (reg2) != REG) 
+  if (GET_CODE (reg1) != REG || GET_CODE (reg2) != REG)
     return 0;
 
   if (REGNO (reg1) % 2 != 0)
     return 0;
 
-  /* Integer ldd is deprecated in SPARC V9 */ 
-  if (TARGET_V9 && REGNO (reg1) < 32)                  
-    return 0;                             
+  /* Integer ldd is deprecated in SPARC V9 */
+  if (TARGET_V9 && REGNO (reg1) < 32)
+    return 0;
 
   return (REGNO (reg1) == REGNO (reg2) - 1);
 }
 
 /* Return 1 if the addresses in mem1 and mem2 are suitable for use in
    an ldd or std insn.
-   
+
    This can only happen when addr1 and addr2, the addresses in mem1
    and mem2, are consecutive memory locations (addr1 + 4 == addr2).
    addr1 must also be aligned on a 64-bit boundary.
@@ -6814,10 +6799,10 @@ mems_ok_for_ldd_peep (rtx mem1, rtx mem2, rtx dependent_reg_rtx)
   /* MEM1 should be aligned on a 64-bit boundary.  */
   if (MEM_ALIGN (mem1) < 64)
     return 0;
-  
+
   addr1 = XEXP (mem1, 0);
   addr2 = XEXP (mem2, 0);
-  
+
   /* Extract a register number and offset (if used) from the first addr.  */
   if (GET_CODE (addr1) == PLUS)
     {
@@ -6855,8 +6840,8 @@ mems_ok_for_ldd_peep (rtx mem1, rtx mem2, rtx dependent_reg_rtx)
 
   if (dependent_reg_rtx != NULL_RTX && reg1 == REGNO (dependent_reg_rtx))
     return 0;
-  
-  /* The first offset must be evenly divisible by 8 to ensure the 
+
+  /* The first offset must be evenly divisible by 8 to ensure the
      address is 64 bit aligned.  */
   if (offset1 % 8 != 0)
     return 0;
@@ -7298,7 +7283,7 @@ sparc_type_code (register tree type)
 	{
 	case ERROR_MARK:
 	  return qualifiers;
-  
+
 	case ARRAY_TYPE:
 	  qualifiers |= (3 << shift);
 	  break;
@@ -7346,16 +7331,16 @@ sparc_type_code (register tree type)
 
 	  if (TYPE_PRECISION (type) <= CHAR_TYPE_SIZE)
 	    return (qualifiers | (TYPE_UNSIGNED (type) ? 12 : 2));
-  
+
 	  else if (TYPE_PRECISION (type) <= SHORT_TYPE_SIZE)
 	    return (qualifiers | (TYPE_UNSIGNED (type) ? 13 : 3));
-  
+
 	  else if (TYPE_PRECISION (type) <= INT_TYPE_SIZE)
 	    return (qualifiers | (TYPE_UNSIGNED (type) ? 14 : 4));
-  
+
 	  else
 	    return (qualifiers | (TYPE_UNSIGNED (type) ? 15 : 5));
-  
+
 	case REAL_TYPE:
 	  /* If this is a range type, consider it to be the underlying
 	     type.  */
@@ -7368,9 +7353,9 @@ sparc_type_code (register tree type)
 	  if (TYPE_PRECISION (type) == FLOAT_TYPE_SIZE)
 	    return (qualifiers | 6);
 
-	  else 
+	  else
 	    return (qualifiers | 7);
-  
+
 	case COMPLEX_TYPE:	/* GNU Fortran COMPLEX type.  */
 	  /* ??? We need to distinguish between double and float complex types,
 	     but I don't know how yet because I can't reach this code from
@@ -7381,7 +7366,7 @@ sparc_type_code (register tree type)
 	case BOOLEAN_TYPE:	/* Boolean truth value type.  */
 	case LANG_TYPE:		/* ? */
 	  return qualifiers;
-  
+
 	default:
 	  gcc_unreachable ();		/* Not a type! */
         }
@@ -7623,13 +7608,13 @@ hypersparc_adjust_cost (rtx insn, rtx link, rtx dep_insn, int cost)
 	  if (dep_type == TYPE_STORE || dep_type == TYPE_FPSTORE)
 	    {
 	      if (GET_CODE (pat) != SET || GET_CODE (dep_pat) != SET
-		  || GET_CODE (SET_DEST (dep_pat)) != MEM        
+		  || GET_CODE (SET_DEST (dep_pat)) != MEM
 		  || GET_CODE (SET_SRC (pat)) != MEM
 		  || ! rtx_equal_p (XEXP (SET_DEST (dep_pat), 0),
 				    XEXP (SET_SRC (pat), 0)))
 		return cost + 2;
 
-	      return cost + 8;        
+	      return cost + 8;
 	    }
 	  break;
 
@@ -7656,7 +7641,7 @@ hypersparc_adjust_cost (rtx insn, rtx link, rtx dep_insn, int cost)
 
     default:
       break;
-    }    
+    }
 
   return cost;
 }
@@ -7683,9 +7668,8 @@ static void
 sparc_sched_init (FILE *dump ATTRIBUTE_UNUSED,
 		  int sched_verbose ATTRIBUTE_UNUSED,
 		  int max_ready ATTRIBUTE_UNUSED)
-{
-}
-  
+{}
+
 static int
 sparc_use_sched_lookahead (void)
 {
@@ -7803,13 +7787,13 @@ sparc_defer_case_vector (rtx lab, rtx vec, int diff)
     sparc_addr_list = gen_rtx_EXPR_LIST (VOIDmode, vec, sparc_addr_list);
 }
 
-static void 
+static void
 sparc_output_addr_vec (rtx vec)
 {
   rtx lab = XEXP (vec, 0), body = XEXP (vec, 1);
   int idx, vlen = XVECLEN (body, 0);
 
-#ifdef ASM_OUTPUT_ADDR_VEC_START  
+#ifdef ASM_OUTPUT_ADDR_VEC_START
   ASM_OUTPUT_ADDR_VEC_START (asm_out_file);
 #endif
 
@@ -7825,20 +7809,20 @@ sparc_output_addr_vec (rtx vec)
       ASM_OUTPUT_ADDR_VEC_ELT
 	(asm_out_file, CODE_LABEL_NUMBER (XEXP (XVECEXP (body, 0, idx), 0)));
     }
-    
+
 #ifdef ASM_OUTPUT_ADDR_VEC_END
   ASM_OUTPUT_ADDR_VEC_END (asm_out_file);
 #endif
 }
 
-static void 
+static void
 sparc_output_addr_diff_vec (rtx vec)
 {
   rtx lab = XEXP (vec, 0), body = XEXP (vec, 1);
   rtx base = XEXP (XEXP (body, 0), 0);
   int idx, vlen = XVECLEN (body, 1);
 
-#ifdef ASM_OUTPUT_ADDR_VEC_START  
+#ifdef ASM_OUTPUT_ADDR_VEC_START
   ASM_OUTPUT_ADDR_VEC_START (asm_out_file);
 #endif
 
@@ -7857,7 +7841,7 @@ sparc_output_addr_diff_vec (rtx vec)
          CODE_LABEL_NUMBER (XEXP (XVECEXP (body, 1, idx), 0)),
          CODE_LABEL_NUMBER (base));
     }
-    
+
 #ifdef ASM_OUTPUT_ADDR_VEC_END
   ASM_OUTPUT_ADDR_VEC_END (asm_out_file);
 #endif
@@ -7879,7 +7863,7 @@ sparc_output_deferred_case_vectors (void)
   align = floor_log2 (FUNCTION_BOUNDARY / BITS_PER_UNIT);
   if (align > 0)
     ASM_OUTPUT_ALIGN (asm_out_file, align);
-  
+
   for (t = sparc_addr_list; t ; t = XEXP (t, 1))
     sparc_output_addr_vec (XEXP (t, 0));
   for (t = sparc_addr_diff_list; t ; t = XEXP (t, 1))
@@ -8006,19 +7990,12 @@ sparc_profile_hook (int labelno)
     }
 }
 
-#ifdef OBJECT_FORMAT_ELF
-static void
-sparc_elf_asm_named_section (const char *name, unsigned int flags,
-			     tree decl)
-{
-  if (flags & SECTION_MERGE)
-    {
-      /* entsize cannot be expressed in this section attributes
-	 encoding style.  */
-      default_elf_asm_named_section (name, flags, decl);
-      return;
-    }
+/* Solaris implementation of TARGET_ASM_NAMED_SECTION.  */
 
+static void
+sparc_solaris_elf_asm_named_section (const char *name, unsigned int flags,
+				     tree decl ATTRIBUTE_UNUSED)
+{
   fprintf (asm_out_file, "\t.section\t\"%s\"", name);
 
   if (!(flags & SECTION_DEBUG))
@@ -8034,7 +8011,6 @@ sparc_elf_asm_named_section (const char *name, unsigned int flags,
 
   fputc ('\n', asm_out_file);
 }
-#endif /* OBJECT_FORMAT_ELF */
 
 /* We do not allow indirect calls to be optimized into sibling calls.
 
@@ -8800,7 +8776,8 @@ sparc_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 
   /* Find the "this" pointer.  Normally in %o0, but in ARCH64 if the function
      returns a structure, the structure return pointer is there instead.  */
-  if (TARGET_ARCH64 && aggregate_value_p (TREE_TYPE (TREE_TYPE (function)), function))
+  if (TARGET_ARCH64
+      && aggregate_value_p (TREE_TYPE (TREE_TYPE (function)), function))
     this_rtx = gen_rtx_REG (Pmode, int_arg_first + 1);
   else
     this_rtx = gen_rtx_REG (Pmode, int_arg_first);
@@ -8901,8 +8878,8 @@ sparc_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 	  start_sequence ();
 	  /* Delay emitting the PIC helper function because it needs to
 	     change the section and we are emitting assembly code.  */
-	  load_pic_register (true);  /* clobbers %o7 */
-	  scratch = legitimize_pic_address (funexp, Pmode, scratch);
+	  load_pic_register ();  /* clobbers %o7 */
+	  scratch = legitimize_pic_address (funexp, scratch);
 	  seq = get_insns ();
 	  end_sequence ();
 	  emit_and_preserve (seq, spill_reg, spill_reg2);
@@ -9056,9 +9033,59 @@ sparc_output_dwarf_dtprel (FILE *file, int size, rtx x)
 static void
 sparc_file_end (void)
 {
-  /* If we haven't emitted the special PIC helper function, do so now.  */
-  if (pic_helper_symbol_name[0] && !pic_helper_emitted_p)
-    emit_pic_helper ();
+  /* If need to emit the special PIC helper function, do so now.  */
+  if (pic_helper_needed)
+    {
+      unsigned int regno = REGNO (pic_offset_table_rtx);
+      const char *pic_name = reg_names[regno];
+      char name[32];
+#ifdef DWARF2_UNWIND_INFO
+      bool do_cfi;
+#endif
+
+      get_pc_thunk_name (name, regno);
+      if (USE_HIDDEN_LINKONCE)
+	{
+	  tree decl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL,
+				  get_identifier (name),
+				  build_function_type (void_type_node,
+						       void_list_node));
+	  DECL_RESULT (decl) = build_decl (BUILTINS_LOCATION, RESULT_DECL,
+					   NULL_TREE, void_type_node);
+	  TREE_STATIC (decl) = 1;
+	  make_decl_one_only (decl, DECL_ASSEMBLER_NAME (decl));
+	  DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
+	  DECL_VISIBILITY_SPECIFIED (decl) = 1;
+	  allocate_struct_function (decl, true);
+	  current_function_decl = decl;
+	  init_varasm_status ();
+	  assemble_start_function (decl, name);
+	}
+      else
+	{
+	  const int align = floor_log2 (FUNCTION_BOUNDARY / BITS_PER_UNIT);
+          switch_to_section (text_section);
+	  if (align > 0)
+	    ASM_OUTPUT_ALIGN (asm_out_file, align);
+	  ASM_OUTPUT_LABEL (asm_out_file, name);
+	}
+
+#ifdef DWARF2_UNWIND_INFO
+      do_cfi = dwarf2out_do_cfi_asm ();
+      if (do_cfi)
+	fprintf (asm_out_file, "\t.cfi_startproc\n");
+#endif
+      if (flag_delayed_branch)
+	fprintf (asm_out_file, "\tjmp\t%%o7+8\n\t add\t%%o7, %s, %s\n",
+		 pic_name, pic_name);
+      else
+	fprintf (asm_out_file, "\tadd\t%%o7, %s, %s\n\tjmp\t%%o7+8\n\t nop\n",
+		 pic_name, pic_name);
+#ifdef DWARF2_UNWIND_INFO
+      if (do_cfi)
+	fprintf (asm_out_file, "\t.cfi_endproc\n");
+#endif
+    }
 
   if (NEED_INDICATE_EXEC_STACK)
     file_end_indicate_exec_stack ();
@@ -9197,7 +9224,7 @@ sparc_frame_pointer_required (void)
 bool
 sparc_can_eliminate (const int from ATTRIBUTE_UNUSED, const int to)
 {
-  return (to == HARD_FRAME_POINTER_REGNUM 
+  return (to == HARD_FRAME_POINTER_REGNUM
           || !targetm.frame_pointer_required ());
 }
 

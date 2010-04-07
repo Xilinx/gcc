@@ -1983,6 +1983,18 @@ fields_length (const_tree type)
   return count;
 }
 
+/* Returns the first FIELD_DECL in the TYPE_FIELDS of the RECORD_TYPE or
+   UNION_TYPE TYPE, or NULL_TREE if none.  */
+
+tree
+first_field (const_tree type)
+{
+  tree t = TYPE_FIELDS (type);
+  while (t && TREE_CODE (t) != FIELD_DECL)
+    t = TREE_CHAIN (t);
+  return t;
+}
+
 /* Concatenate two chains of nodes (chained through TREE_CHAIN)
    by modifying the last node in chain 1 to point to chain 2.
    This is the Lisp primitive `nconc'.  */
@@ -3812,10 +3824,14 @@ build6_stat (enum tree_code code, tree tt, tree arg0, tree arg1,
   PROCESS_ARG(2);
   PROCESS_ARG(3);
   PROCESS_ARG(4);
+  if (code == TARGET_MEM_REF)
+    side_effects = 0;
   PROCESS_ARG(5);
 
   TREE_SIDE_EFFECTS (t) = side_effects;
-  TREE_THIS_VOLATILE (t) = 0;
+  TREE_THIS_VOLATILE (t)
+    = (code == TARGET_MEM_REF
+       && arg5 && TREE_THIS_VOLATILE (arg5));
 
   return t;
 }
@@ -4152,13 +4168,10 @@ free_lang_data_in_binfo (tree binfo)
 
   gcc_assert (TREE_CODE (binfo) == TREE_BINFO);
 
-  BINFO_OFFSET (binfo) = NULL_TREE;
   BINFO_VTABLE (binfo) = NULL_TREE;
-  BINFO_VPTR_FIELD (binfo) = NULL_TREE;
   BINFO_BASE_ACCESSES (binfo) = NULL;
   BINFO_INHERITANCE_CHAIN (binfo) = NULL_TREE;
   BINFO_SUBVTT_INDEX (binfo) = NULL_TREE;
-  BINFO_VPTR_FIELD (binfo) = NULL_TREE;
 
   for (i = 0; VEC_iterate (tree, BINFO_BASE_BINFOS (binfo), i, t); i++)
     free_lang_data_in_binfo (t);
@@ -4253,7 +4266,8 @@ free_lang_data_in_type (tree type)
     }
 
   TYPE_CONTEXT (type) = NULL_TREE;
-  TYPE_STUB_DECL (type) = NULL_TREE;
+  if (debug_info_level < DINFO_LEVEL_TERSE)
+    TYPE_STUB_DECL (type) = NULL_TREE;
 }
 
 
@@ -4271,6 +4285,10 @@ need_assembler_name_p (tree decl)
      new one.  */
   if (!HAS_DECL_ASSEMBLER_NAME_P (decl)
       || DECL_ASSEMBLER_NAME_SET_P (decl))
+    return false;
+
+  /* Abstract decls do not need an assembler name.  */
+  if (DECL_ABSTRACT (decl))
     return false;
 
   /* For VAR_DECLs, only static, public and external symbols need an
@@ -4376,29 +4394,16 @@ free_lang_data_in_decl (tree decl)
        }
    }
 
-  if (TREE_CODE (decl) == PARM_DECL
-      || TREE_CODE (decl) == FIELD_DECL
-      || TREE_CODE (decl) == RESULT_DECL)
-    {
-      tree unit_size = DECL_SIZE_UNIT (decl);
-      tree size = DECL_SIZE (decl);
-      if ((unit_size && TREE_CODE (unit_size) != INTEGER_CST)
-	  || (size && TREE_CODE (size) != INTEGER_CST))
-	{
-	  DECL_SIZE_UNIT (decl) = NULL_TREE;
-	  DECL_SIZE (decl) = NULL_TREE;
-	}
+ /* ???  We could free non-constant DECL_SIZE, DECL_SIZE_UNIT
+    and DECL_FIELD_OFFSET.  But it's cheap enough to not do
+    that and refrain from adding workarounds to dwarf2out.c  */
 
-      if (TREE_CODE (decl) == FIELD_DECL
-	  && DECL_FIELD_OFFSET (decl)
-	  && TREE_CODE (DECL_FIELD_OFFSET (decl)) != INTEGER_CST)
-	DECL_FIELD_OFFSET (decl) = NULL_TREE;
+ /* DECL_FCONTEXT is only used for debug info generation.  */
+ if (TREE_CODE (decl) == FIELD_DECL
+     && debug_info_level < DINFO_LEVEL_TERSE)
+   DECL_FCONTEXT (decl) = NULL_TREE;
 
-      /* DECL_FCONTEXT is only used for debug info generation.  */
-      if (TREE_CODE (decl) == FIELD_DECL)
-	DECL_FCONTEXT (decl) = NULL_TREE;
-    }
-  else if (TREE_CODE (decl) == FUNCTION_DECL)
+ if (TREE_CODE (decl) == FUNCTION_DECL)
     {
       if (gimple_has_body_p (decl))
 	{
@@ -4830,6 +4835,33 @@ find_decls_types_in_var (struct varpool_node *v, struct free_lang_data_d *fld)
   find_decls_types (v->decl, fld);
 }
 
+/* If T needs an assembler name, have one created for it.  */
+
+void
+assign_assembler_name_if_neeeded (tree t)
+{
+  if (need_assembler_name_p (t))
+    {
+      /* When setting DECL_ASSEMBLER_NAME, the C++ mangler may emit
+	 diagnostics that use input_location to show locus
+	 information.  The problem here is that, at this point,
+	 input_location is generally anchored to the end of the file
+	 (since the parser is long gone), so we don't have a good
+	 position to pin it to.
+
+	 To alleviate this problem, this uses the location of T's
+	 declaration.  Examples of this are
+	 testsuite/g++.dg/template/cond2.C and
+	 testsuite/g++.dg/template/pr35240.C.  */
+      location_t saved_location = input_location;
+      input_location = DECL_SOURCE_LOCATION (t);
+
+      decl_assembler_name (t);
+
+      input_location = saved_location;
+    }
+}
+
 
 /* Free language specific information for every operand and expression
    in every node of the call graph.  This process operates in three stages:
@@ -4879,26 +4911,7 @@ free_lang_data_in_cgraph (void)
      now because free_lang_data_in_decl will invalidate data needed
      for mangling.  This breaks mangling on interdependent decls.  */
   for (i = 0; VEC_iterate (tree, fld.decls, i, t); i++)
-    if (need_assembler_name_p (t))
-      {
-	/* When setting DECL_ASSEMBLER_NAME, the C++ mangler may emit
-	   diagnostics that use input_location to show locus
-	   information.  The problem here is that, at this point,
-	   input_location is generally anchored to the end of the file
-	   (since the parser is long gone), so we don't have a good
-	   position to pin it to.
-
-	   To alleviate this problem, this uses the location of T's
-	   declaration.  Examples of this are
-	   testsuite/g++.dg/template/cond2.C and
-	   testsuite/g++.dg/template/pr35240.C.  */
-	location_t saved_location = input_location;
-	input_location = DECL_SOURCE_LOCATION (t);
-
-	decl_assembler_name (t);
-
-	input_location = saved_location;
-      }
+    assign_assembler_name_if_neeeded (t);
 
   /* Traverse every decl found freeing its language data.  */
   for (i = 0; VEC_iterate (tree, fld.decls, i, t); i++)
@@ -4972,13 +4985,6 @@ free_lang_data (void)
   diagnostic_starter (global_dc) = default_diagnostic_starter;
   diagnostic_finalizer (global_dc) = default_diagnostic_finalizer;
   diagnostic_format_decoder (global_dc) = default_tree_printer;
-
-  /* FIXME. We remove sufficient language data that the debug
-     info writer gets completely confused.  Disable debug information
-     for now.  */
-  debug_info_level = DINFO_LEVEL_NONE;
-  write_symbols = NO_DEBUG;
-  debug_hooks = &do_nothing_debug_hooks;
 
   return 0;
 }
@@ -7628,6 +7634,14 @@ get_unwidened (tree op, tree for_type)
 	    }
 	}
     }
+
+  /* If we finally reach a constant see if it fits in for_type and
+     in that case convert it.  */
+  if (for_type
+      && TREE_CODE (win) == INTEGER_CST
+      && TREE_TYPE (win) != for_type
+      && int_fits_type_p (win, for_type))
+    win = fold_convert (for_type, win);
 
   return win;
 }
@@ -10630,6 +10644,9 @@ tree_nop_conversion (const_tree exp)
 
   outer_type = TREE_TYPE (exp);
   inner_type = TREE_TYPE (TREE_OPERAND (exp, 0));
+
+  if (!inner_type)
+    return false;
 
   /* Use precision rather then machine mode when we can, which gives
      the correct answer even for submode (bit-field) types.  */

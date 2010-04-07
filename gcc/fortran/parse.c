@@ -1,6 +1,6 @@
 /* Main parser.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009
+   2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -111,7 +111,7 @@ decode_specification_statement (void)
   match ("import", gfc_match_import, ST_IMPORT);
   match ("use", gfc_match_use, ST_USE);
 
-  if (gfc_current_block ()->ts.type != BT_DERIVED)
+  if (gfc_current_block ()->result->ts.type != BT_DERIVED)
     goto end_of_block;
 
   match (NULL, gfc_match_st_function, ST_STATEMENT_FUNCTION);
@@ -129,6 +129,8 @@ decode_specification_statement (void)
     case 'a':
       match ("abstract% interface", gfc_match_abstract_interface,
 	     ST_INTERFACE);
+      match ("allocatable", gfc_match_asynchronous, ST_ATTR_DECL);
+      match ("asynchronous", gfc_match_asynchronous, ST_ATTR_DECL);
       break;
 
     case 'b':
@@ -136,6 +138,7 @@ decode_specification_statement (void)
       break;
 
     case 'c':
+      match ("codimension", gfc_match_codimension, ST_ATTR_DECL);
       break;
 
     case 'd':
@@ -289,9 +292,9 @@ decode_statement (void)
   gfc_undo_symbols ();
   gfc_current_locus = old_locus;
 
-  /* Check for the IF, DO, SELECT, WHERE, FORALL and BLOCK statements, which
-     might begin with a block label.  The match functions for these
-     statements are unusual in that their keyword is not seen before
+  /* Check for the IF, DO, SELECT, WHERE, FORALL, CRITICAL, and BLOCK
+     statements, which might begin with a block label.  The match functions for
+     these statements are unusual in that their keyword is not seen before
      the matcher is called.  */
 
   if (gfc_match_if (&st) == MATCH_YES)
@@ -309,8 +312,9 @@ decode_statement (void)
   gfc_undo_symbols ();
   gfc_current_locus = old_locus;
 
-  match (NULL, gfc_match_block, ST_BLOCK);
   match (NULL, gfc_match_do, ST_DO);
+  match (NULL, gfc_match_block, ST_BLOCK);
+  match (NULL, gfc_match_critical, ST_CRITICAL);
   match (NULL, gfc_match_select, ST_SELECT_CASE);
   match (NULL, gfc_match_select_type, ST_SELECT_TYPE);
 
@@ -328,6 +332,7 @@ decode_statement (void)
       match ("allocate", gfc_match_allocate, ST_ALLOCATE);
       match ("allocatable", gfc_match_allocatable, ST_ATTR_DECL);
       match ("assign", gfc_match_assign, ST_LABEL_ASSIGNMENT);
+      match ("asynchronous", gfc_match_asynchronous, ST_ATTR_DECL);
       break;
 
     case 'b':
@@ -345,6 +350,7 @@ decode_statement (void)
       match ("common", gfc_match_common, ST_COMMON);
       match ("contains", gfc_match_eos, ST_CONTAINS);
       match ("class", gfc_match_class_is, ST_CLASS_IS);
+      match ("codimension", gfc_match_codimension, ST_ATTR_DECL);
       break;
 
     case 'd':
@@ -359,6 +365,7 @@ decode_statement (void)
       match ("else", gfc_match_else, ST_ELSE);
       match ("else where", gfc_match_elsewhere, ST_ELSEWHERE);
       match ("else if", gfc_match_elseif, ST_ELSEIF);
+      match ("error stop", gfc_match_error_stop, ST_ERROR_STOP);
       match ("enum , bind ( c )", gfc_match_enum, ST_ENUM);
 
       if (gfc_match_end (&st) == MATCH_YES)
@@ -429,6 +436,9 @@ decode_statement (void)
       match ("sequence", gfc_match_eos, ST_SEQUENCE);
       match ("stop", gfc_match_stop, ST_STOP);
       match ("save", gfc_match_save, ST_ATTR_DECL);
+      match ("sync all", gfc_match_sync_all, ST_SYNC_ALL);
+      match ("sync images", gfc_match_sync_images, ST_SYNC_IMAGES);
+      match ("sync memory", gfc_match_sync_memory, ST_SYNC_MEMORY);
       break;
 
     case 't':
@@ -933,7 +943,8 @@ next_statement (void)
   case ST_POINTER_ASSIGNMENT: case ST_EXIT: case ST_CYCLE: \
   case ST_ASSIGNMENT: case ST_ARITHMETIC_IF: case ST_WHERE: case ST_FORALL: \
   case ST_LABEL_ASSIGNMENT: case ST_FLUSH: case ST_OMP_FLUSH: \
-  case ST_OMP_BARRIER: case ST_OMP_TASKWAIT
+  case ST_OMP_BARRIER: case ST_OMP_TASKWAIT: case ST_ERROR_STOP: \
+  case ST_SYNC_ALL: case ST_SYNC_IMAGES: case ST_SYNC_MEMORY
 
 /* Statements that mark other executable statements.  */
 
@@ -945,7 +956,7 @@ next_statement (void)
   case ST_OMP_CRITICAL: case ST_OMP_MASTER: case ST_OMP_SINGLE: \
   case ST_OMP_DO: case ST_OMP_PARALLEL_DO: case ST_OMP_ATOMIC: \
   case ST_OMP_WORKSHARE: case ST_OMP_PARALLEL_WORKSHARE: \
-  case ST_OMP_TASK
+  case ST_OMP_TASK: case ST_CRITICAL
 
 /* Declaration statements */
 
@@ -1079,6 +1090,7 @@ check_statement_label (gfc_statement st)
     case ST_ENDDO:
     case ST_ENDIF:
     case ST_END_SELECT:
+    case ST_END_CRITICAL:
     case_executable:
     case_exec_markers:
       type = ST_LABEL_TARGET;
@@ -1173,6 +1185,9 @@ gfc_ascii_statement (gfc_statement st)
     case ST_CONTAINS:
       p = "CONTAINS";
       break;
+    case ST_CRITICAL:
+      p = "CRITICAL";
+      break;
     case ST_CYCLE:
       p = "CYCLE";
       break;
@@ -1205,6 +1220,9 @@ gfc_ascii_statement (gfc_statement st)
       break;
     case ST_END_BLOCK_DATA:
       p = "END BLOCK DATA";
+      break;
+    case ST_END_CRITICAL:
+      p = "END CRITICAL";
       break;
     case ST_ENDDO:
       p = "END DO";
@@ -1247,6 +1265,9 @@ gfc_ascii_statement (gfc_statement st)
       break;
     case ST_EQUIVALENCE:
       p = "EQUIVALENCE";
+      break;
+    case ST_ERROR_STOP:
+      p = "ERROR STOP";
       break;
     case ST_EXIT:
       p = "EXIT";
@@ -1335,6 +1356,15 @@ gfc_ascii_statement (gfc_statement st)
       break;
     case ST_STOP:
       p = "STOP";
+      break;
+    case ST_SYNC_ALL:
+      p = "SYNC ALL";
+      break;
+    case ST_SYNC_IMAGES:
+      p = "SYNC IMAGES";
+      break;
+    case ST_SYNC_MEMORY:
+      p = "SYNC MEMORY";
       break;
     case ST_SUBROUTINE:
       p = "SUBROUTINE";
@@ -1552,6 +1582,7 @@ accept_statement (gfc_statement st)
 
     case ST_ENDIF:
     case ST_END_SELECT:
+    case ST_END_CRITICAL:
       if (gfc_statement_label != NULL)
 	{
 	  new_st.op = EXEC_END_BLOCK;
@@ -2083,6 +2114,11 @@ endType:
 	      && c->ts.u.derived->attr.proc_pointer_comp))
 	sym->attr.proc_pointer_comp = 1;
 
+      /* Looking for coarray components.  */
+      if (c->attr.codimension
+	  || (c->attr.coarray_comp && !c->attr.pointer && !c->attr.allocatable))
+	sym->attr.coarray_comp = 1;
+
       /* Look for private components.  */
       if (sym->component_access == ACCESS_PRIVATE
 	  || c->attr.access == ACCESS_PRIVATE
@@ -2340,7 +2376,7 @@ match_deferred_characteristics (gfc_typespec * ts)
     {
       ts->kind = 0;
 
-      if (!ts->u.derived || !ts->u.derived->components)
+      if (!ts->u.derived)
 	m = MATCH_ERROR;
     }
 
@@ -3044,6 +3080,61 @@ check_do_closure (void)
 static void parse_progunit (gfc_statement);
 
 
+/* Parse a CRITICAL block.  */
+
+static void
+parse_critical_block (void)
+{
+  gfc_code *top, *d;
+  gfc_state_data s;
+  gfc_statement st;
+
+  s.ext.end_do_label = new_st.label1;
+
+  accept_statement (ST_CRITICAL);
+  top = gfc_state_stack->tail;
+
+  push_state (&s, COMP_CRITICAL, gfc_new_block);
+
+  d = add_statement ();
+  d->op = EXEC_CRITICAL;
+  top->block = d;
+
+  do
+    {
+      st = parse_executable (ST_NONE);
+
+      switch (st)
+	{
+	  case ST_NONE:
+	    unexpected_eof ();
+	    break;
+
+	  case ST_END_CRITICAL:
+	    if (s.ext.end_do_label != NULL
+		&& s.ext.end_do_label != gfc_statement_label)
+	      gfc_error_now ("Statement label in END CRITICAL at %C does not "
+			     "match CRITIAL label");
+
+	    if (gfc_statement_label != NULL)
+	      {
+		new_st.op = EXEC_NOP;
+		add_statement ();
+	      }
+	    break;
+
+	  default:
+	    unexpected_statement (st);
+	    break;
+	}
+    }
+  while (st != ST_END_CRITICAL);
+
+  pop_state ();
+  accept_statement (st);
+}
+
+
 /* Set up the local namespace for a BLOCK construct.  */
 
 gfc_namespace*
@@ -3469,9 +3560,12 @@ parse_executable (gfc_statement st)
 	  case ST_CYCLE:
 	  case ST_PAUSE:
 	  case ST_STOP:
+	  case ST_ERROR_STOP:
 	  case ST_END_SUBROUTINE:
 
 	  case ST_DO:
+	  case ST_CRITICAL:
+	  case ST_BLOCK:
 	  case ST_FORALL:
 	  case ST_WHERE:
 	  case ST_SELECT_CASE:
@@ -3517,6 +3611,10 @@ parse_executable (gfc_statement st)
 	  parse_do_block ();
 	  if (check_do_closure () == 1)
 	    return ST_IMPLIED_ENDDO;
+	  break;
+
+	case ST_CRITICAL:
+	  parse_critical_block ();
 	  break;
 
 	case ST_WHERE_BLOCK:

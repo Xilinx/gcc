@@ -1,6 +1,6 @@
 /* Vectorizer
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009 Free
-   Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
 
 This file is part of GCC.
@@ -65,6 +65,10 @@ enum vect_def_type {
   vect_nested_cycle,
   vect_unknown_def_type
 };
+
+#define VECTORIZABLE_CYCLE_DEF(D) (((D) == vect_reduction_def)           \
+                                   || ((D) == vect_double_reduction_def) \
+                                   || ((D) == vect_nested_cycle))
 
 /* Define verbosity levels.  */
 enum verbosity_levels {

@@ -3,7 +3,7 @@
 ;; expander, and the actual vector instructions will be in altivec.md and
 ;; vsx.md
 
-;; Copyright (C) 2009
+;; Copyright (C) 2009, 2010
 ;; Free Software Foundation, Inc.
 ;; Contributed by Michael Meissner <meissner@linux.vnet.ibm.com>
 
@@ -50,6 +50,9 @@
 
 ;; Vector init/extract modes
 (define_mode_iterator VEC_E [V16QI V8HI V4SI V2DI V4SF V2DF])
+
+;; Vector modes for 64-bit base types
+(define_mode_iterator VEC_64 [V2DI V2DF])
 
 ;; Vector reload iterator
 (define_mode_iterator VEC_R [V16QI V8HI V4SI V2DI V4SF V2DF DF TI])
@@ -480,7 +483,7 @@
 	(eq:SI (reg:CC 74)
 	       (const_int 0)))]
   "TARGET_ALTIVEC || TARGET_VSX"
-  "")	
+  "")
 
 (define_expand "cr6_test_for_zero_reverse"
   [(set (match_operand:SI 0 "register_operand" "=r")
@@ -533,7 +536,7 @@
         (not:VEC_L (match_operand:VEC_L 1 "vlogical_operand" "")))]
   "VECTOR_MEM_ALTIVEC_OR_VSX_P (<MODE>mode)"
   "")
-  
+
 (define_expand "nor<mode>3"
   [(set (match_operand:VEC_L 0 "vlogical_operand" "")
         (not:VEC_L (ior:VEC_L (match_operand:VEC_L 1 "vlogical_operand" "")
@@ -668,24 +671,24 @@
   "VECTOR_UNIT_ALTIVEC_OR_VSX_P (V4SFmode)"
   "")
 
-(define_expand "vec_interleave_highv2df"
-  [(set (match_operand:V2DF 0 "vfloat_operand" "")
-	(vec_concat:V2DF
-	 (vec_select:DF (match_operand:V2DF 1 "vfloat_operand" "")
-			(parallel [(const_int 0)]))
-	 (vec_select:DF (match_operand:V2DF 2 "vfloat_operand" "")
-			(parallel [(const_int 0)]))))]
-  "VECTOR_UNIT_VSX_P (V2DFmode)"
+(define_expand "vec_interleave_high<mode>"
+  [(set (match_operand:VEC_64 0 "vfloat_operand" "")
+	(vec_concat:VEC_64
+	 (vec_select:<VEC_base> (match_operand:VEC_64 1 "vfloat_operand" "")
+				(parallel [(const_int 0)]))
+	 (vec_select:<VEC_base> (match_operand:VEC_64 2 "vfloat_operand" "")
+				(parallel [(const_int 0)]))))]
+  "VECTOR_UNIT_VSX_P (<MODE>mode)"
   "")
 
-(define_expand "vec_interleave_lowv2df"
-  [(set (match_operand:V2DF 0 "vfloat_operand" "")
-	(vec_concat:V2DF
-	 (vec_select:DF (match_operand:V2DF 1 "vfloat_operand" "")
-			(parallel [(const_int 1)]))
-	 (vec_select:DF (match_operand:V2DF 2 "vfloat_operand" "")
-			(parallel [(const_int 1)]))))]
-  "VECTOR_UNIT_VSX_P (V2DFmode)"
+(define_expand "vec_interleave_low<mode>"
+  [(set (match_operand:VEC_64 0 "vfloat_operand" "")
+	(vec_concat:VEC_64
+	 (vec_select:<VEC_base> (match_operand:VEC_64 1 "vfloat_operand" "")
+				(parallel [(const_int 1)]))
+	 (vec_select:<VEC_base> (match_operand:VEC_64 2 "vfloat_operand" "")
+				(parallel [(const_int 1)]))))]
+  "VECTOR_UNIT_VSX_P (<MODE>mode)"
   "")
 
 
@@ -889,7 +892,7 @@
   rtx insn;
   HOST_WIDE_INT bitshift_val;
   HOST_WIDE_INT byteshift_val;
- 
+
   if (! CONSTANT_P (bitshift))
     FAIL;
   bitshift_val = INTVAL (bitshift);
@@ -944,3 +947,97 @@
 			(match_operand:VEC_I 2 "vint_operand" "")))]
   "TARGET_ALTIVEC"
   "")
+
+;;; Expanders for vector insn patterns shared between the SPE and TARGET_PAIRED systems.
+
+(define_expand "absv2sf2"
+  [(set (match_operand:V2SF 0 "gpc_reg_operand" "")
+	(abs:V2SF (match_operand:V2SF 1 "gpc_reg_operand" "")))]
+  "TARGET_PAIRED_FLOAT || TARGET_SPE"
+  "")
+
+(define_expand "negv2sf2"
+  [(set (match_operand:V2SF 0 "gpc_reg_operand" "")
+	(neg:V2SF (match_operand:V2SF 1 "gpc_reg_operand" "")))]
+  "TARGET_PAIRED_FLOAT || TARGET_SPE"
+  "")
+
+(define_expand "addv2sf3"
+  [(set (match_operand:V2SF 0 "gpc_reg_operand" "")
+	(plus:V2SF (match_operand:V2SF 1 "gpc_reg_operand" "")
+		   (match_operand:V2SF 2 "gpc_reg_operand" "")))]
+  "TARGET_PAIRED_FLOAT || TARGET_SPE"
+  "
+{
+  if (TARGET_SPE)
+    {
+      /* We need to make a note that we clobber SPEFSCR.  */
+      rtx par = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (2));
+
+      XVECEXP (par, 0, 0) = gen_rtx_SET (VOIDmode, operands[0],
+                                         gen_rtx_PLUS (V2SFmode, operands[1], operands[2]));
+      XVECEXP (par, 0, 1) = gen_rtx_CLOBBER (VOIDmode, gen_rtx_REG (SImode, SPEFSCR_REGNO));
+      emit_insn (par);
+      DONE;
+    }
+}")
+
+(define_expand "subv2sf3"
+  [(set (match_operand:V2SF 0 "gpc_reg_operand" "")
+	(minus:V2SF (match_operand:V2SF 1 "gpc_reg_operand" "")
+		    (match_operand:V2SF 2 "gpc_reg_operand" "")))]
+  "TARGET_PAIRED_FLOAT || TARGET_SPE"
+  "
+{
+  if (TARGET_SPE)
+    {
+      /* We need to make a note that we clobber SPEFSCR.  */
+      rtx par = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (2));
+
+      XVECEXP (par, 0, 0) = gen_rtx_SET (VOIDmode, operands[0],
+                                         gen_rtx_MINUS (V2SFmode, operands[1], operands[2]));
+      XVECEXP (par, 0, 1) = gen_rtx_CLOBBER (VOIDmode, gen_rtx_REG (SImode, SPEFSCR_REGNO));
+      emit_insn (par);
+      DONE;
+    }
+}")
+
+(define_expand "mulv2sf3"
+  [(set (match_operand:V2SF 0 "gpc_reg_operand" "")
+	(mult:V2SF (match_operand:V2SF 1 "gpc_reg_operand" "")
+		   (match_operand:V2SF 2 "gpc_reg_operand" "")))]
+  "TARGET_PAIRED_FLOAT || TARGET_SPE"
+  "
+{
+  if (TARGET_SPE)
+    {
+      /* We need to make a note that we clobber SPEFSCR.  */
+      rtx par = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (2));
+
+      XVECEXP (par, 0, 0) = gen_rtx_SET (VOIDmode, operands[0],
+                                         gen_rtx_MULT (V2SFmode, operands[1], operands[2]));
+      XVECEXP (par, 0, 1) = gen_rtx_CLOBBER (VOIDmode, gen_rtx_REG (SImode, SPEFSCR_REGNO));
+      emit_insn (par);
+      DONE;
+    }
+}")
+
+(define_expand "divv2sf3"
+  [(set (match_operand:V2SF 0 "gpc_reg_operand" "")
+	(div:V2SF (match_operand:V2SF 1 "gpc_reg_operand" "")
+		  (match_operand:V2SF 2 "gpc_reg_operand" "")))]
+  "TARGET_PAIRED_FLOAT || TARGET_SPE"
+  "
+{
+  if (TARGET_SPE)
+    {
+      /* We need to make a note that we clobber SPEFSCR.  */
+      rtx par = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (2));
+
+      XVECEXP (par, 0, 0) = gen_rtx_SET (VOIDmode, operands[0],
+                                         gen_rtx_DIV (V2SFmode, operands[1], operands[2]));
+      XVECEXP (par, 0, 1) = gen_rtx_CLOBBER (VOIDmode, gen_rtx_REG (SImode, SPEFSCR_REGNO));
+      emit_insn (par);
+      DONE;
+    }
+}")

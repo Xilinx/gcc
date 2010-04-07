@@ -1,6 +1,6 @@
 /* Register renaming for the GNU compiler.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
-   Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+   2010 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -40,6 +40,10 @@
 #include "tree-pass.h"
 #include "df.h"
 
+#if HOST_BITS_PER_WIDE_INT <= MAX_RECOG_OPERANDS
+#error "Use a different bitmap implementation for untracked_operands."
+#endif
+   
 /* We keep linked lists of DU_HEAD structures, each of which describes
    a chain of occurrences of a reg.  */
 struct du_head
@@ -434,21 +438,23 @@ static unsigned current_id;
 static struct du_head *open_chains;
 static struct du_head *closed_chains;
 
-/* Conflict bitmaps, tracking the live chains and the live hard registers.
-   The bits set in open_chains_set always match the list found in
+/* Bitmap of open chains.  The bits set always match the list found in
    open_chains.  */
 static bitmap_head open_chains_set;
-static HARD_REG_SET live_hard_regs;
 
-/* Record the registers being tracked in open_chains.  The intersection
-   between this and live_hard_regs is empty.  */
+/* Record the registers being tracked in open_chains.  */
 static HARD_REG_SET live_in_chains;
 
-/* Return true if OP is a reg that is being tracked already in some form.
-   May set fail_current_block if it sees an unhandled case of overlap.  */
+/* Record the registers that are live but not tracked.  The intersection
+   between this and live_in_chains is empty.  */
+static HARD_REG_SET live_hard_regs;
+
+/* Return true if OP is a reg for which all bits are set in PSET, false
+   if all bits are clear.
+   In other cases, set fail_current_block and return false.  */
 
 static bool
-verify_reg_tracked (rtx op)
+verify_reg_in_set (rtx op, HARD_REG_SET *pset)
 {
   unsigned regno, nregs;
   bool all_live, all_dead;
@@ -459,7 +465,7 @@ verify_reg_tracked (rtx op)
   nregs = hard_regno_nregs[regno][GET_MODE (op)];
   all_live = all_dead = true;
   while (nregs-- > 0)
-    if (TEST_HARD_REG_BIT (live_hard_regs, regno + nregs))
+    if (TEST_HARD_REG_BIT (*pset, regno + nregs))
       all_dead = false;
     else
       all_live = false;
@@ -468,24 +474,17 @@ verify_reg_tracked (rtx op)
       fail_current_block = true;
       return false;
     }
-
-  if (all_live)
-    return true;
-
-  nregs = hard_regno_nregs[regno][GET_MODE (op)];
-  all_live = all_dead = true;
-  while (nregs-- > 0)
-    if (TEST_HARD_REG_BIT (live_in_chains, regno + nregs))
-      all_dead = false;
-    else
-      all_live = false;
-  if (!all_dead && !all_live)
-    {
-      fail_current_block = true;
-      return false;
-    }
-
   return all_live;
+}
+
+/* Return true if OP is a reg that is being tracked already in some form.
+   May set fail_current_block if it sees an unhandled case of overlap.  */
+
+static bool
+verify_reg_tracked (rtx op)
+{
+  return (verify_reg_in_set (op, &live_hard_regs)
+	  || verify_reg_in_set (op, &live_in_chains));
 }
 
 /* Called through note_stores.  DATA points to a rtx_code, either SET or
@@ -510,6 +509,72 @@ note_sets_clobbers (rtx x, const_rtx set, void *data)
     add_to_hard_reg_set (&chain->hard_conflicts, GET_MODE (x), REGNO (x));
 }
 
+/* Create a new chain for THIS_NREGS registers starting at THIS_REGNO,
+   and record its occurrence in *LOC, which is being written to in INSN.
+   This access requires a register of class CL.  */
+
+static void
+create_new_chain (unsigned this_regno, unsigned this_nregs, rtx *loc,
+		  rtx insn, enum reg_class cl)
+{
+  struct du_head *head = XOBNEW (&rename_obstack, struct du_head);
+  struct du_chain *this_du;
+  int nregs;
+
+  head->next_chain = open_chains;
+  open_chains = head;
+  head->regno = this_regno;
+  head->nregs = this_nregs;
+  head->need_caller_save_reg = 0;
+  head->cannot_rename = 0;
+  head->terminated = 0;
+
+  VEC_safe_push (du_head_p, heap, id_to_chain, head);
+  head->id = current_id++;
+
+  bitmap_initialize (&head->conflicts, &bitmap_default_obstack);
+  bitmap_copy (&head->conflicts, &open_chains_set);
+  mark_conflict (open_chains, head->id);
+
+  /* Since we're tracking this as a chain now, remove it from the
+     list of conflicting live hard registers and track it in
+     live_in_chains instead.  */
+  nregs = head->nregs;
+  while (nregs-- > 0)
+    {
+      SET_HARD_REG_BIT (live_in_chains, head->regno + nregs);
+      CLEAR_HARD_REG_BIT (live_hard_regs, head->regno + nregs);
+    }
+
+  COPY_HARD_REG_SET (head->hard_conflicts, live_hard_regs);
+  bitmap_set_bit (&open_chains_set, head->id);
+
+  open_chains = head;
+
+  if (dump_file)
+    {
+      fprintf (dump_file, "Creating chain %s (%d)",
+	       reg_names[head->regno], head->id);
+      if (insn != NULL_RTX)
+	fprintf (dump_file, " at insn %d", INSN_UID (insn));
+      fprintf (dump_file, "\n");
+    }
+
+  if (insn == NULL_RTX)
+    {
+      head->first = head->last = NULL;
+      return;
+    }
+
+  this_du = XOBNEW (&rename_obstack, struct du_chain);
+  head->first = head->last = this_du;
+
+  this_du->next_use = 0;
+  this_du->loc = loc;
+  this_du->insn = insn;
+  this_du->cl = cl;
+}
+
 static void
 scan_rtx_reg (rtx insn, rtx *loc, enum reg_class cl, enum scan_actions action,
 	      enum op_type type)
@@ -523,53 +588,7 @@ scan_rtx_reg (rtx insn, rtx *loc, enum reg_class cl, enum scan_actions action,
   if (action == mark_write)
     {
       if (type == OP_OUT)
-	{
-	  struct du_head *head = XOBNEW (&rename_obstack, struct du_head);
-	  struct du_chain *this_du = XOBNEW (&rename_obstack, struct du_chain);
-	  int nregs;
-
-	  head->next_chain = open_chains;
-	  open_chains = head;
-	  head->first = head->last = this_du;
-	  head->regno = this_regno;
-	  head->nregs = this_nregs;
-	  head->need_caller_save_reg = 0;
-	  head->cannot_rename = 0;
-	  head->terminated = 0;
-
-	  VEC_safe_push (du_head_p, heap, id_to_chain, head);
-	  head->id = current_id++;
-
-	  bitmap_initialize (&head->conflicts, &bitmap_default_obstack);
-	  bitmap_copy (&head->conflicts, &open_chains_set);
-	  mark_conflict (open_chains, head->id);
-
-	  /* Since we're tracking this as a chain now, remove it from the
-	     list of conflicting live hard registers and track it in
-	     live_in_chains instead.  */
-	  nregs = head->nregs;
-	  while (nregs-- > 0)
-	    {
-	      SET_HARD_REG_BIT (live_in_chains, head->regno + nregs);
-	      CLEAR_HARD_REG_BIT (live_hard_regs, head->regno + nregs);
-	    }
-
-	  COPY_HARD_REG_SET (head->hard_conflicts, live_hard_regs);
-	  bitmap_set_bit (&open_chains_set, head->id);
-
-	  open_chains = head;
-
-	  this_du->next_use = 0;
-	  this_du->loc = loc;
-	  this_du->insn = insn;
-	  this_du->cl = cl;
-
-	  if (dump_file)
-	    fprintf (dump_file,
-		     "Creating chain %s (%d) at insn %d (%s)\n",
-		     reg_names[head->regno], head->id, INSN_UID (insn),
-		     scan_actions_name[(int) action]);
-	}
+	create_new_chain (this_regno, this_nregs, loc, insn, cl);
       return;
     }
 
@@ -584,6 +603,8 @@ scan_rtx_reg (rtx insn, rtx *loc, enum reg_class cl, enum scan_actions action,
 			 && head->nregs == this_nregs);
       int superset = (this_regno <= head->regno
 		      && this_regno + this_nregs >= head->regno + head->nregs);
+      int subset = (this_regno >= head->regno
+		      && this_regno + this_nregs <= head->regno + head->nregs);
 
       if (head->terminated
 	  || head->regno + head->nregs <= this_regno
@@ -607,6 +628,25 @@ scan_rtx_reg (rtx insn, rtx *loc, enum reg_class cl, enum scan_actions action,
 			 reg_names[head->regno], head->id, INSN_UID (insn),
 			 scan_actions_name[(int) action]);
 	      head->cannot_rename = 1;
+	      if (superset)
+		{
+		  unsigned nregs = this_nregs;
+		  head->regno = this_regno;
+		  head->nregs = this_nregs;
+		  while (nregs-- > 0)
+		    SET_HARD_REG_BIT (live_in_chains, head->regno + nregs);
+		  if (dump_file)
+		    fprintf (dump_file,
+			     "Widening register in chain %s (%d) at insn %d\n",
+			     reg_names[head->regno], head->id, INSN_UID (insn));
+		}
+	      else if (!subset)
+		{
+		  fail_current_block = true;
+		  if (dump_file)
+		    fprintf (dump_file,
+			     "Failing basic block due to unhandled overlap\n");
+		}
 	    }
 	  else
 	    {
@@ -616,7 +656,10 @@ scan_rtx_reg (rtx insn, rtx *loc, enum reg_class cl, enum scan_actions action,
 	      this_du->loc = loc;
 	      this_du->insn = insn;
 	      this_du->cl = cl;
-	      head->last->next_use = this_du;
+	      if (head->first == NULL)
+		head->first = this_du;
+	      else
+		head->last->next_use = this_du;
 	      head->last = this_du;
 
 	    }
@@ -869,13 +912,15 @@ scan_rtx (rtx insn, rtx *loc, enum reg_class cl, enum scan_actions action,
       return;
 
     case STRICT_LOW_PART:
-      scan_rtx (insn, &XEXP (x, 0), cl, action, OP_INOUT);
+      scan_rtx (insn, &XEXP (x, 0), cl, action,
+		verify_reg_tracked (XEXP (x, 0)) ? OP_INOUT : OP_OUT);
       return;
 
     case ZERO_EXTRACT:
     case SIGN_EXTRACT:
       scan_rtx (insn, &XEXP (x, 0), cl, action,
-		type == OP_IN ? OP_IN : OP_INOUT);
+		(type == OP_IN ? OP_IN :
+		 verify_reg_tracked (XEXP (x, 0)) ? OP_INOUT : OP_OUT));
       scan_rtx (insn, &XEXP (x, 1), cl, action, OP_IN);
       scan_rtx (insn, &XEXP (x, 2), cl, action, OP_IN);
       return;
@@ -919,12 +964,13 @@ scan_rtx (rtx insn, rtx *loc, enum reg_class cl, enum scan_actions action,
 /* Hide operands of the current insn (of which there are N_OPS) by
    substituting cc0 for them.
    Previous values are stored in the OLD_OPERANDS and OLD_DUPS.
+   For every bit set in DO_NOT_HIDE, we leave the operand alone.
    If INOUT_AND_EC_ONLY is set, we only do this for OP_INOUT type operands
    and earlyclobbers.  */
 
 static void
 hide_operands (int n_ops, rtx *old_operands, rtx *old_dups,
-	       bool inout_and_ec_only)
+	       unsigned HOST_WIDE_INT do_not_hide, bool inout_and_ec_only)
 {
   int i;
   int alt = which_alternative;
@@ -936,6 +982,8 @@ hide_operands (int n_ops, rtx *old_operands, rtx *old_dups,
 	 reachable by proper operands.  */
       if (recog_data.constraints[i][0] == '\0')
 	continue;
+      if (do_not_hide & (1 << i))
+	continue;
       if (!inout_and_ec_only || recog_data.operand_type[i] == OP_INOUT
 	  || recog_op_alt[i][alt].earlyclobber)
 	*recog_data.operand_loc[i] = cc0_rtx;
@@ -944,6 +992,8 @@ hide_operands (int n_ops, rtx *old_operands, rtx *old_dups,
     {
       int opn = recog_data.dup_num[i];
       old_dups[i] = *recog_data.dup_loc[i];
+      if (do_not_hide & (1 << opn))
+	continue;
       if (!inout_and_ec_only || recog_data.operand_type[opn] == OP_INOUT
 	  || recog_op_alt[opn][alt].earlyclobber)
 	*recog_data.dup_loc[i] = cc0_rtx;
@@ -1018,6 +1068,7 @@ build_def_use (basic_block bb)
 {
   rtx insn;
   df_ref *def_rec;
+  unsigned HOST_WIDE_INT untracked_operands;
 
   open_chains = closed_chains = NULL;
 
@@ -1077,6 +1128,7 @@ build_def_use (basic_block bb)
 	  preprocess_constraints ();
 	  alt = which_alternative;
 	  n_ops = recog_data.n_operands;
+	  untracked_operands = 0;
 
 	  /* Simplify the code below by rewriting things to reflect
 	     matching constraints.  Also promote OP_OUT to OP_INOUT in
@@ -1087,18 +1139,40 @@ build_def_use (basic_block bb)
 	  predicated = GET_CODE (PATTERN (insn)) == COND_EXEC;
 	  for (i = 0; i < n_ops; ++i)
 	    {
+	      rtx op = recog_data.operand[i];
 	      int matches = recog_op_alt[i][alt].matches;
 	      if (matches >= 0)
 		recog_op_alt[i][alt].cl = recog_op_alt[matches][alt].cl;
 	      if (matches >= 0 || recog_op_alt[i][alt].matched >= 0
-	          || (predicated && recog_data.operand_type[i] == OP_OUT
-		      && verify_reg_tracked (recog_data.operand[i])))
+	          || (predicated && recog_data.operand_type[i] == OP_OUT))
 		{
 		  recog_data.operand_type[i] = OP_INOUT;
+		  /* A special case to deal with instruction patterns that
+		     have matching operands with different modes.  If we're
+		     not already tracking such a reg, we won't start here,
+		     and we must instead make sure to make the operand visible
+		     to the machinery that tracks hard registers.  */
 		  if (matches >= 0
 		      && (GET_MODE_SIZE (recog_data.operand_mode[i])
-			  != GET_MODE_SIZE (recog_data.operand_mode[matches])))
-		    fail_current_block = true;
+			  != GET_MODE_SIZE (recog_data.operand_mode[matches]))
+		      && !verify_reg_in_set (op, &live_in_chains))
+		    {
+		      untracked_operands |= 1 << i;
+		      untracked_operands |= 1 << matches;
+		    }
+		}
+	      /* If there's an in-out operand with a register that is not
+		 being tracked at all yet, open a chain.  */
+	      if (recog_data.operand_type[i] == OP_INOUT
+		  && !(untracked_operands & (1 << i))
+		  && REG_P (op)
+		  && !verify_reg_tracked (op))
+		{
+		  enum machine_mode mode = GET_MODE (op);
+		  unsigned this_regno = REGNO (op);
+		  unsigned this_nregs = hard_regno_nregs[this_regno][mode];
+		  create_new_chain (this_regno, this_nregs, NULL, NULL_RTX,
+				    NO_REGS);
 		}
 	    }
 
@@ -1107,7 +1181,8 @@ build_def_use (basic_block bb)
 
 	  /* Step 1a: Mark hard registers that are clobbered in this insn,
 	     outside an operand, as live.  */
-	  hide_operands (n_ops, old_operands, old_dups, false);
+	  hide_operands (n_ops, old_operands, old_dups, untracked_operands,
+			 false);
 	  note_stores (PATTERN (insn), note_sets_clobbers, &clobber_code);
 	  restore_operands (insn, n_ops, old_operands, old_dups);
 
@@ -1120,7 +1195,8 @@ build_def_use (basic_block bb)
 	     We do this by munging all operands into CC0, and closing
 	     everything remaining.  */
 
-	  hide_operands (n_ops, old_operands, old_dups, false);
+	  hide_operands (n_ops, old_operands, old_dups, untracked_operands,
+			 false);
 	  scan_rtx (insn, &PATTERN (insn), NO_REGS, mark_all_read, OP_IN);
 	  restore_operands (insn, n_ops, old_operands, old_dups);
 
@@ -1157,7 +1233,8 @@ build_def_use (basic_block bb)
 	      /* Don't scan match_operand here, since we've no reg class
 		 information to pass down.  Any operands that we could
 		 substitute in will be represented elsewhere.  */
-	      if (recog_data.constraints[opn][0] == '\0')
+	      if (recog_data.constraints[opn][0] == '\0'
+		  || untracked_operands & (1 << opn))
 		continue;
 
 	      if (recog_op_alt[opn][alt].is_address)
@@ -1202,13 +1279,15 @@ build_def_use (basic_block bb)
 	     the previous insn at the latest, as such operands cannot
 	     possibly overlap with any input operands.  */
 
-	  hide_operands (n_ops, old_operands, old_dups, true);
+	  hide_operands (n_ops, old_operands, old_dups, untracked_operands,
+			 true);
 	  scan_rtx (insn, &PATTERN (insn), NO_REGS, terminate_write, OP_IN);
 	  restore_operands (insn, n_ops, old_operands, old_dups);
 
 	  /* Step 6a: Mark hard registers that are set in this insn,
 	     outside an operand, as live.  */
-	  hide_operands (n_ops, old_operands, old_dups, false);
+	  hide_operands (n_ops, old_operands, old_dups, untracked_operands,
+			 false);
 	  note_stores (PATTERN (insn), note_sets_clobbers, &set_code);
 	  restore_operands (insn, n_ops, old_operands, old_dups);
 

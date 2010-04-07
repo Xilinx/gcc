@@ -1,5 +1,5 @@
 /* Alias analysis for trees.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -537,11 +537,22 @@ same_type_for_tbaa (tree type1, tree type2)
   if (TYPE_CANONICAL (type1) == TYPE_CANONICAL (type2))
     return 1;
 
-  /* ???  Array types are not properly unified in all cases as we have
+  /* ??? Array types are not properly unified in all cases as we have
      spurious changes in the index types for example.  Removing this
      causes all sorts of problems with the Fortran frontend.  */
   if (TREE_CODE (type1) == ARRAY_TYPE
       && TREE_CODE (type2) == ARRAY_TYPE)
+    return -1;
+
+  /* ??? In Ada, an lvalue of an unconstrained type can be used to access an
+     object of one of its constrained subtypes, e.g. when a function with an
+     unconstrained parameter passed by reference is called on an object and
+     inlined.  But, even in the case of a fixed size, type and subtypes are
+     not equivalent enough as to share the same TYPE_CANONICAL, since this
+     would mean that conversions between them are useless, whereas they are
+     not (e.g. type and subtypes can have different modes).  So, in the end,
+     they are only guaranteed to have the same alias set.  */
+  if (get_alias_set (type1) == get_alias_set (type2))
     return -1;
 
   /* The types are known to be not equal.  */
@@ -600,19 +611,9 @@ aliasing_component_refs_p (tree ref1, tree type1,
       offset1 -= offadj;
       return ranges_overlap_p (offset1, max_size1, offset2, max_size2);
     }
-
-  /* We haven't found any common base to apply offset-based disambiguation.
-     There are two cases:
-       1. The base access types have the same alias set.  This can happen
-	  in Ada when a function with an unconstrained parameter passed by
-	  reference is called on a constrained object and inlined: the types
-	  have the same alias set but aren't equivalent.  The references may
-	  alias in this case.
-       2. The base access types don't have the same alias set, i.e. one set
-	  is a subset of the other.  We have proved that B1 is not in the
-	  access path B2.path and that B2 is not in the access path B1.path
-	  so the references may not alias.  */
-  return get_alias_set (type1) == get_alias_set (type2);
+  /* If we have two type access paths B1.path1 and B2.path2 they may
+     only alias if either B1 is in B2.path2 or B2 is in B1.path1.  */
+  return false;
 }
 
 /* Return true if two memory references based on the variables BASE1
@@ -819,6 +820,77 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
     return decl_refs_may_alias_p (base1, offset1, max_size1,
 				  base2, offset2, max_size2);
 
+  ind1_p = INDIRECT_REF_P (base1);
+  ind2_p = INDIRECT_REF_P (base2);
+  /* Canonicalize the pointer-vs-decl case.  */
+  if (ind1_p && var2_p)
+    {
+      HOST_WIDE_INT tmp1;
+      tree tmp2;
+      ao_ref *tmp3;
+      tmp1 = offset1; offset1 = offset2; offset2 = tmp1;
+      tmp1 = max_size1; max_size1 = max_size2; max_size2 = tmp1;
+      tmp2 = base1; base1 = base2; base2 = tmp2;
+      tmp3 = ref1; ref1 = ref2; ref2 = tmp3;
+      var1_p = true;
+      ind1_p = false;
+      var2_p = false;
+      ind2_p = true;
+    }
+
+  /* If we are about to disambiguate pointer-vs-decl try harder to
+     see must-aliases and give leeway to some invalid cases.
+     This covers a pretty minimal set of cases only and does not
+     when called from the RTL oracle.  It handles cases like
+
+       int i = 1;
+       return *(float *)&i;
+
+     and also fixes gfortran.dg/lto/pr40725.  */
+  if (var1_p && ind2_p
+      && cfun
+      && gimple_in_ssa_p (cfun)
+      && TREE_CODE (TREE_OPERAND (base2, 0)) == SSA_NAME)
+    {
+      gimple def_stmt = SSA_NAME_DEF_STMT (TREE_OPERAND (base2, 0));
+      while (is_gimple_assign (def_stmt)
+	     && (gimple_assign_rhs_code (def_stmt) == SSA_NAME
+		 || CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def_stmt))))
+	{
+	  tree rhs = gimple_assign_rhs1 (def_stmt);
+	  HOST_WIDE_INT offset, size, max_size;
+
+	  /* Look through SSA name copies and pointer conversions.  */
+	  if (TREE_CODE (rhs) == SSA_NAME
+	      && POINTER_TYPE_P (TREE_TYPE (rhs)))
+	    {
+	      def_stmt = SSA_NAME_DEF_STMT (rhs);
+	      continue;
+	    }
+	  if (TREE_CODE (rhs) != ADDR_EXPR)
+	    break;
+
+	  /* If the pointer is defined as an address based on a decl
+	     use plain offset disambiguation and ignore TBAA.  */
+	  rhs = TREE_OPERAND (rhs, 0);
+	  rhs = get_ref_base_and_extent (rhs, &offset, &size, &max_size);
+	  if (SSA_VAR_P (rhs))
+	    {
+	      base2 = rhs;
+	      offset2 += offset;
+	      if (size != max_size
+		  || max_size == -1)
+		max_size2 = -1;
+	      return decl_refs_may_alias_p (base1, offset1, max_size1,
+					    base2, offset2, max_size2);
+	    }
+
+	  /* Do not continue looking through &p->x to limit time
+	     complexity.  */
+	  break;
+	}
+    }
+
   /* First defer to TBAA if possible.  */
   if (tbaa_p
       && flag_strict_aliasing
@@ -834,19 +906,12 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
     return true;
 
   /* Dispatch to the pointer-vs-decl or pointer-vs-pointer disambiguators.  */
-  ind1_p = INDIRECT_REF_P (base1);
-  ind2_p = INDIRECT_REF_P (base2);
   set = tbaa_p ? -1 : 0;
   if (var1_p && ind2_p)
     return indirect_ref_may_alias_decl_p (ref2->ref, TREE_OPERAND (base2, 0),
 					  offset2, max_size2, set,
 					  ref1->ref, base1,
 					  offset1, max_size1, set);
-  else if (ind1_p && var2_p)
-    return indirect_ref_may_alias_decl_p (ref1->ref, TREE_OPERAND (base1, 0),
-					  offset1, max_size1, set,
-					  ref2->ref, base2,
-					  offset2, max_size2, set);
   else if (ind1_p && ind2_p)
     return indirect_refs_may_alias_p (ref1->ref, TREE_OPERAND (base1, 0),
 				      offset1, max_size1, set,
@@ -964,6 +1029,7 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 	/* The following builtins do not read from memory.  */
 	case BUILT_IN_FREE:
 	case BUILT_IN_MALLOC:
+	case BUILT_IN_CALLOC:
 	case BUILT_IN_MEMSET:
 	case BUILT_IN_FREXP:
 	case BUILT_IN_FREXPF:
@@ -1191,6 +1257,24 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	/* Allocating memory does not have any side-effects apart from
 	   being the definition point for the pointer.  */
 	case BUILT_IN_MALLOC:
+	case BUILT_IN_CALLOC:
+	  /* Unix98 specifies that errno is set on allocation failure.
+	     Until we properly can track the errno location assume it
+	     is not a local decl but external or anonymous storage in
+	     a different translation unit.  Also assume it is of
+	     type int as required by the standard.  */
+	  if (flag_errno_math
+	      && TREE_TYPE (base) == integer_type_node)
+	    {
+	      struct ptr_info_def *pi;
+	      if (DECL_P (base)
+		  && !TREE_STATIC (base))
+		return true;
+	      else if (INDIRECT_REF_P (base)
+		       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME
+		       && (pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0))))
+		return pi->pt.anything || pi->pt.nonlocal;
+	    }
 	  return false;
 	/* Freeing memory kills the pointed-to memory.  More importantly
 	   the call has to serve as a barrier for moving loads and stores

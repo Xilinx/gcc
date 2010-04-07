@@ -1,5 +1,6 @@
 /* The Blackfin code generation auxiliary output file.
-   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Analog Devices.
 
    This file is part of GCC.
@@ -5499,7 +5500,11 @@ bfin_reorg (void)
       add_sched_insns_for_speculation ();
 
       timevar_push (TV_SCHED2);
-      schedule_insns ();
+      if (flag_selective_scheduling2
+	  && !maybe_skip_selective_scheduling ())
+        run_selective_scheduling ();
+      else
+	schedule_insns ();
       timevar_pop (TV_SCHED2);
 
       /* Examine the schedule and insert nops as necessary for 64-bit parallel

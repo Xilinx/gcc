@@ -1,6 +1,6 @@
 /* Optimize by combining instructions for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1343,7 +1343,7 @@ setup_incoming_promotions (rtx first)
   for (arg = DECL_ARGUMENTS (current_function_decl); arg;
        arg = TREE_CHAIN (arg))
     {
-      rtx reg = DECL_INCOMING_RTL (arg);
+      rtx x, reg = DECL_INCOMING_RTL (arg);
       int uns1, uns3;
       enum machine_mode mode1, mode2, mode3, mode4;
 
@@ -1375,30 +1375,38 @@ setup_incoming_promotions (rtx first)
       /* The mode of the register in which the argument is being passed.  */
       mode4 = GET_MODE (reg);
 
-      /* Eliminate sign extensions in the callee when possible.  Only
-         do this when:
-	 (a) a mode promotion has occurred;
-	 (b) the mode of the register is the same as the mode of
-	     the argument as it is passed; and
-	 (c) the signedness does not change across any of the promotions; and
-	 (d) when no language-level promotions (which we cannot guarantee
-	     will have been done by an external caller) are necessary,
-	     unless we know that this function is only ever called from
-	     the current compilation unit -- all of whose call sites will
-	     do the mode1 --> mode2 promotion.  */
-      if (mode1 != mode3
-          && mode3 == mode4
-          && uns1 == uns3
-	  && (mode1 == mode2 || strictly_local))
-        {
-	  /* Record that the value was promoted from mode1 to mode3,
-	     so that any sign extension at the head of the current
-	     function may be eliminated.  */
-	  rtx x;
-	  x = gen_rtx_CLOBBER (mode1, const0_rtx);
-	  x = gen_rtx_fmt_e ((uns3 ? ZERO_EXTEND : SIGN_EXTEND), mode3, x);
-	  record_value_for_reg (reg, first, x);
-	}
+      /* Eliminate sign extensions in the callee when:
+	 (a) A mode promotion has occurred;  */
+      if (mode1 == mode3)
+	continue;
+      /* (b) The mode of the register is the same as the mode of
+	     the argument as it is passed; */
+      if (mode3 != mode4)
+	continue;
+      /* (c) There's no language level extension;  */
+      if (mode1 == mode2)
+	;
+      /* (c.1) All callers are from the current compilation unit.  If that's
+	 the case we don't have to rely on an ABI, we only have to know
+	 what we're generating right now, and we know that we will do the
+	 mode1 to mode2 promotion with the given sign.  */
+      else if (!strictly_local)
+	continue;
+      /* (c.2) The combination of the two promotions is useful.  This is
+	 true when the signs match, or if the first promotion is unsigned.
+	 In the later case, (sign_extend (zero_extend x)) is the same as
+	 (zero_extend (zero_extend x)), so make sure to force UNS3 true.  */
+      else if (uns1)
+	uns3 = true;
+      else if (uns3)
+	continue;
+
+      /* Record that the value was promoted from mode1 to mode3,
+	 so that any sign extension at the head of the current
+	 function may be eliminated.  */
+      x = gen_rtx_CLOBBER (mode1, const0_rtx);
+      x = gen_rtx_fmt_e ((uns3 ? ZERO_EXTEND : SIGN_EXTEND), mode3, x);
+      record_value_for_reg (reg, first, x);
     }
 }
 
@@ -2278,10 +2286,12 @@ struct rtx_subst_pair
    substituted.  */
 
 static rtx
-propagate_for_debug_subst (rtx from ATTRIBUTE_UNUSED, void *data)
+propagate_for_debug_subst (rtx from, const_rtx old_rtx, void *data)
 {
   struct rtx_subst_pair *pair = (struct rtx_subst_pair *)data;
 
+  if (!rtx_equal_p (from, old_rtx))
+    return NULL_RTX;
   if (!pair->adjusted)
     {
       pair->adjusted = true;
@@ -2655,10 +2665,16 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	  i2dest = SET_DEST (temp);
 	  i2dest_killed = dead_or_set_p (i2, i2dest);
 
+	  /* Replace the source in I2 with the new constant and make the
+	     resulting insn the new pattern for I3.  Then skip to where we
+	     validate the pattern.  Everything was set up above.  */
 	  SUBST (SET_SRC (temp),
 		 immed_double_const (olo, ohi, GET_MODE (SET_DEST (temp))));
 
 	  newpat = PATTERN (i2);
+
+          /* The dest of I3 has been replaced with the dest of I2.  */
+          changed_i3_dest = 1;
 	  goto validate_replacement;
 	}
     }
@@ -3030,8 +3046,6 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	}
     }
 
-  /* We come here when we are replacing a destination in I2 with the
-     destination of I3.  */
  validate_replacement:
 
   /* Note which hard regs this insn has as inputs.  */
@@ -5156,6 +5170,10 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 	       force_to_mode (XEXP (x, 0), GET_MODE (XEXP (x, 0)),
 			      GET_MODE_MASK (mode), 0));
 
+      /* We can truncate a constant value and return it.  */
+      if (CONST_INT_P (XEXP (x, 0)))
+	return gen_int_mode (INTVAL (XEXP (x, 0)), mode);
+
       /* Similarly to what we do in simplify-rtx.c, a truncate of a register
 	 whose value is a comparison can be replaced with a subreg if
 	 STORE_FLAG_VALUE permits.  */
@@ -6775,8 +6793,10 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
       if (mode == tmode)
 	return new_rtx;
 
-      if (CONST_INT_P (new_rtx))
-	return gen_int_mode (INTVAL (new_rtx), mode);
+      if (CONST_INT_P (new_rtx)
+	  || GET_CODE (new_rtx) == CONST_DOUBLE)
+	return simplify_unary_operation (unsignedp ? ZERO_EXTEND : SIGN_EXTEND,
+					 mode, new_rtx, tmode);
 
       /* If we know that no extraneous bits are set, and that the high
 	 bit is not set, convert the extraction to the cheaper of
@@ -7294,15 +7314,14 @@ make_compound_operation (rtx x, enum rtx_code in_code)
       tem = make_compound_operation (SUBREG_REG (x), in_code);
 
       {
-	rtx simplified;
-	simplified = simplify_subreg (GET_MODE (x), tem, GET_MODE (tem),
-				      SUBREG_BYTE (x));
+	rtx simplified = simplify_subreg (mode, tem, GET_MODE (SUBREG_REG (x)),
+					  SUBREG_BYTE (x));
 
 	if (simplified)
 	  tem = simplified;
 
 	if (GET_CODE (tem) != GET_CODE (SUBREG_REG (x))
-	    && GET_MODE_SIZE (mode) < GET_MODE_SIZE (GET_MODE (tem))
+	    && GET_MODE_SIZE (mode) < GET_MODE_SIZE (GET_MODE (SUBREG_REG (x)))
 	    && subreg_lowpart_p (x))
 	  {
 	    rtx newer = force_to_mode (tem, mode, ~(HOST_WIDE_INT) 0,

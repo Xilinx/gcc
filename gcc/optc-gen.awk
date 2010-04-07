@@ -1,4 +1,5 @@
-#  Copyright (C) 2003, 2004, 2007, 2008, 2009 Free Software Foundation, Inc.
+#  Copyright (C) 2003, 2004, 2007, 2008, 2009, 2010
+#  Free Software Foundation, Inc.
 #  Contributed by Kelley Cook, June 2004.
 #  Original code from Neil Booth, May 2003.
 #
@@ -170,7 +171,8 @@ for (i = 0; i < n_opts; i++) {
 
 	len = length (opts[i]);
 	enum = "OPT_" opts[i]
-	if (opts[i] == "finline-limit=" || opts[i] == "Wlarger-than=")
+	if (opts[i] == "finline-limit=" || opts[i] == "Wlarger-than=" \
+	    || opts[i] == "ftemplate-depth=")
 		enum = enum "eq"
 	gsub ("[^A-Za-z0-9]", "_", enum)
 

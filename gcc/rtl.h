@@ -1,6 +1,6 @@
 /* Register Transfer Language (RTL) definitions for GCC
    Copyright (C) 1987, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1779,7 +1779,7 @@ extern rtx simplify_subreg (enum machine_mode, rtx, enum machine_mode,
 extern rtx simplify_gen_subreg (enum machine_mode, rtx, enum machine_mode,
 				unsigned int);
 extern rtx simplify_replace_fn_rtx (rtx, const_rtx,
-				    rtx (*fn) (rtx, void *), void *);
+				    rtx (*fn) (rtx, const_rtx, void *), void *);
 extern rtx simplify_replace_rtx (rtx, const_rtx, rtx);
 extern rtx simplify_rtx (const_rtx);
 extern rtx avoid_constant_pool_reference (rtx);
@@ -2419,8 +2419,6 @@ extern GTY(()) rtx stack_limit_rtx;
 /* In predict.c */
 extern void invert_br_probabilities (rtx);
 extern bool expensive_function_p (int);
-/* In cfgexpand.c */
-extern void add_reg_br_prob_note (rtx last, int probability);
 
 /* In var-tracking.c */
 extern unsigned int variable_tracking_main (void);

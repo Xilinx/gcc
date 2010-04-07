@@ -1073,6 +1073,117 @@ comp_array_types (const_tree t1, const_tree t2, bool allow_redeclaration)
   return true;
 }
 
+/* Compare the relative position of T1 and T2 into their respective
+   template parameter list.
+   T1 and T2 must be template parameter types.
+   Return TRUE if T1 and T2 have the same position, FALSE otherwise.  */
+
+static bool
+comp_template_parms_position (tree t1, tree t2)
+{
+  gcc_assert (t1 && t2
+	      && TREE_CODE (t1) == TREE_CODE (t2)
+	      && (TREE_CODE (t1) == BOUND_TEMPLATE_TEMPLATE_PARM
+		  || TREE_CODE (t1) == TEMPLATE_TEMPLATE_PARM
+		  || TREE_CODE (t1) == TEMPLATE_TYPE_PARM));
+
+      if (TEMPLATE_TYPE_IDX (t1) != TEMPLATE_TYPE_IDX (t2)
+	  || TEMPLATE_TYPE_LEVEL (t1) != TEMPLATE_TYPE_LEVEL (t2)
+          || (TEMPLATE_TYPE_PARAMETER_PACK (t1) 
+              != TEMPLATE_TYPE_PARAMETER_PACK (t2)))
+	return false;
+
+      return true;
+}
+
+/* Subroutine of incompatible_dependent_types_p.
+   Return the template parameter of the dependent type T.
+   If T is a typedef, return the template parameters of
+   the _decl_ of the typedef. T must be a dependent type.  */
+
+static tree
+get_template_parms_of_dependent_type (tree t)
+{
+  tree tinfo = NULL_TREE, tparms = NULL_TREE;
+
+  /* First, try the obvious case of getting the
+     template info from T itself.  */
+  if ((tinfo = get_template_info (t)))
+    ;
+  else if (TREE_CODE (t) == TEMPLATE_TYPE_PARM)
+    return TEMPLATE_TYPE_PARM_SIBLING_PARMS (t);
+  else if (typedef_variant_p (t)
+	   && !NAMESPACE_SCOPE_P (TYPE_NAME (t)))
+    tinfo = get_template_info (DECL_CONTEXT (TYPE_NAME (t)));
+  /* If T is a TYPENAME_TYPE which context is a template type
+     parameter, get the template parameters from that context.  */
+  else if (TYPE_CONTEXT (t)
+	   && TREE_CODE (TYPE_CONTEXT (t)) == TEMPLATE_TYPE_PARM)
+   return TEMPLATE_TYPE_PARM_SIBLING_PARMS (TYPE_CONTEXT (t));
+  else if (TYPE_CONTEXT (t)
+	   && !NAMESPACE_SCOPE_P (t))
+    tinfo = get_template_info (TYPE_CONTEXT (t));
+
+  if (tinfo)
+    tparms = DECL_TEMPLATE_PARMS (TI_TEMPLATE (tinfo));
+
+  return tparms;
+}
+
+/* Subroutine of structural_comptypes.
+   Compare the dependent types T1 and T2.
+   Return TRUE if we are sure they can't be equal, FALSE otherwise.
+   The whole point of this function is to support cases where either T1 or
+   T2 is a typedef. In those cases, we need to compare the template parameters
+   of the _decl_ of the typedef. If those don't match then we know T1
+   and T2 cannot be equal.  */
+
+static bool
+incompatible_dependent_types_p (tree t1, tree t2)
+{
+  tree tparms1 = NULL_TREE, tparms2 = NULL_TREE;
+
+  if (!uses_template_parms (t1) || !uses_template_parms (t2))
+    return false;
+
+  if (TREE_CODE (t1) == TEMPLATE_TYPE_PARM)
+    {
+      /* If T1 and T2 don't have the same relative position in their
+	 template parameters set, they can't be equal.  */
+      if (!comp_template_parms_position (t1, t2))
+	return true;
+    }
+
+  /* Either T1 or T2 must be a typedef.  */
+  if (!typedef_variant_p (t1) && !typedef_variant_p (t2))
+    return false;
+
+  /* So if we reach this point, it means either T1 or T2 is a typedef variant.
+     Let's compare their template parameters.  */
+
+  tparms1 = get_template_parms_of_dependent_type (t1);
+  tparms2 = get_template_parms_of_dependent_type (t2);
+
+  /* If T2 is a template type parm and if we could not get the template
+     parms it belongs to, that means we have not finished parsing the
+     full set of template parameters of the template declaration it
+     belongs to yet. If we could get the template parms T1 belongs to,
+     that mostly means T1 and T2 belongs to templates that are
+     different and incompatible.  */
+  if (TREE_CODE (t1) == TEMPLATE_TYPE_PARM
+      && (tparms1 == NULL_TREE || tparms2 == NULL_TREE)
+      && tparms1 != tparms2)
+    return true;
+
+  if (tparms1 == NULL_TREE
+      || tparms2 == NULL_TREE
+      || tparms1 == tparms2)
+    return false;
+
+  /* And now compare the mighty template parms!  */
+  return !comp_template_parms (tparms1, tparms2);
+}
+
 /* Subroutine in comptypes.  */
 
 static bool
@@ -1120,6 +1231,12 @@ structural_comptypes (tree t1, tree t2, int strict)
       && TYPE_MAIN_VARIANT (t1) == TYPE_MAIN_VARIANT (t2))
     return true;
 
+  /* If T1 and T2 are dependent typedefs then check upfront that
+     the template parameters of their typedef DECLs match before
+     going down checking their subtypes.  */
+  if (incompatible_dependent_types_p (t1, t2))
+    return false;
+
   /* Compare the types.  Break out if they could be the same.  */
   switch (TREE_CODE (t1))
     {
@@ -1149,10 +1266,7 @@ structural_comptypes (tree t1, tree t2, int strict)
 
     case TEMPLATE_TEMPLATE_PARM:
     case BOUND_TEMPLATE_TEMPLATE_PARM:
-      if (TEMPLATE_TYPE_IDX (t1) != TEMPLATE_TYPE_IDX (t2)
-	  || TEMPLATE_TYPE_LEVEL (t1) != TEMPLATE_TYPE_LEVEL (t2)
-          || (TEMPLATE_TYPE_PARAMETER_PACK (t1) 
-              != TEMPLATE_TYPE_PARAMETER_PACK (t2)))
+      if (!comp_template_parms_position (t1, t2))
 	return false;
       if (!comp_template_parms
 	  (DECL_TEMPLATE_PARMS (TEMPLATE_TEMPLATE_PARM_TEMPLATE_DECL (t1)),
@@ -1214,11 +1328,8 @@ structural_comptypes (tree t1, tree t2, int strict)
       break;
 
     case TEMPLATE_TYPE_PARM:
-      if (TEMPLATE_TYPE_IDX (t1) != TEMPLATE_TYPE_IDX (t2)
-	  || TEMPLATE_TYPE_LEVEL (t1) != TEMPLATE_TYPE_LEVEL (t2)
-          || (TEMPLATE_TYPE_PARAMETER_PACK (t1) 
-              != TEMPLATE_TYPE_PARAMETER_PACK (t2)))
-	return false;
+      /* If incompatible_dependent_types_p called earlier didn't decide
+         T1 and T2 were different, they might be equal.  */
       break;
 
     case TYPENAME_TYPE:
@@ -2048,7 +2159,7 @@ build_class_member_access_expr (tree object, tree member,
   {
     tree temp = unary_complex_lvalue (ADDR_EXPR, object);
     if (temp)
-      object = cp_build_indirect_ref (temp, NULL, complain);
+      object = cp_build_indirect_ref (temp, RO_NULL, complain);
   }
 
   /* In [expr.ref], there is an explicit list of the valid choices for
@@ -2548,7 +2659,7 @@ build_ptrmemfunc_access_expr (tree ptrmem, tree member_name)
    Must also handle REFERENCE_TYPEs for C++.  */
 
 tree
-build_x_indirect_ref (tree expr, const char *errorstring, 
+build_x_indirect_ref (tree expr, ref_operator errorstring, 
                       tsubst_flags_t complain)
 {
   tree orig_expr = expr;
@@ -2579,13 +2690,13 @@ build_x_indirect_ref (tree expr, const char *errorstring,
 /* Helper function called from c-common.  */
 tree
 build_indirect_ref (location_t loc __attribute__ ((__unused__)),
-		    tree ptr, const char *errorstring)
+		    tree ptr, ref_operator errorstring)
 {
   return cp_build_indirect_ref (ptr, errorstring, tf_warning_or_error);
 }
 
 tree
-cp_build_indirect_ref (tree ptr, const char *errorstring, 
+cp_build_indirect_ref (tree ptr, ref_operator errorstring, 
                        tsubst_flags_t complain)
 {
   tree pointer, type;
@@ -2653,14 +2764,38 @@ cp_build_indirect_ref (tree ptr, const char *errorstring,
   /* `pointer' won't be an error_mark_node if we were given a
      pointer to member, so it's cool to check for this here.  */
   else if (TYPE_PTR_TO_MEMBER_P (type))
-    error ("invalid use of %qs on pointer to member", errorstring);
+    switch (errorstring)
+      {
+         case RO_ARRAY_INDEXING:
+           error ("invalid use of array indexing on pointer to member");
+           break;
+         case RO_UNARY_STAR:
+           error ("invalid use of unary %<*%> on pointer to member");
+           break;
+         case RO_IMPLICIT_CONVERSION:
+           error ("invalid use of implicit conversion on pointer to member");
+           break;
+         default:
+           gcc_unreachable ();
+      }
   else if (pointer != error_mark_node)
-    {
-      if (errorstring)
-	error ("invalid type argument of %qs", errorstring);
-      else
-	error ("invalid type argument");
-    }
+    switch (errorstring)
+      {
+         case RO_NULL:
+           error ("invalid type argument");
+           break;
+         case RO_ARRAY_INDEXING:
+           error ("invalid type argument of array indexing");
+           break;
+         case RO_UNARY_STAR:
+           error ("invalid type argument of unary %<*%>");
+           break;
+         case RO_IMPLICIT_CONVERSION:
+           error ("invalid type argument of implicit conversion");
+           break;
+         default:
+           gcc_unreachable ();
+      }
   return error_mark_node;
 }
 
@@ -2827,7 +2962,7 @@ build_array_ref (location_t loc, tree array, tree idx)
     ret = cp_build_indirect_ref (cp_build_binary_op (input_location,
 						     PLUS_EXPR, ar, ind,
 						     tf_warning_or_error),
-                                 "array indexing",
+                                 RO_ARRAY_INDEXING,
                                  tf_warning_or_error);
     protected_set_expr_location (ret, loc);
     return ret;
@@ -2936,7 +3071,7 @@ get_member_function_from_ptrfunc (tree *instance_ptrptr, tree function)
       /* Next extract the vtable pointer from the object.  */
       vtbl = build1 (NOP_EXPR, build_pointer_type (vtbl_ptr_type_node),
 		     instance_ptr);
-      vtbl = cp_build_indirect_ref (vtbl, NULL, tf_warning_or_error);
+      vtbl = cp_build_indirect_ref (vtbl, RO_NULL, tf_warning_or_error);
       /* If the object is not dynamic the access invokes undefined
 	 behavior.  As it is not executed in this case silence the
 	 spurious warnings it may provoke.  */
@@ -2946,7 +3081,7 @@ get_member_function_from_ptrfunc (tree *instance_ptrptr, tree function)
       e2 = fold_build2_loc (input_location,
 			POINTER_PLUS_EXPR, TREE_TYPE (vtbl), vtbl,
 			fold_convert (sizetype, idx));
-      e2 = cp_build_indirect_ref (e2, NULL, tf_warning_or_error);
+      e2 = cp_build_indirect_ref (e2, RO_NULL, tf_warning_or_error);
       TREE_CONSTANT (e2) = 1;
 
       /* When using function descriptors, the address of the
@@ -3174,9 +3309,10 @@ convert_arguments (tree typelist, VEC(tree,gc) **values, tree fndecl,
             {
               if (fndecl)
                 {
-                  error ("too many arguments to %s %q+#D", 
-                         called_thing, fndecl);
-                  error ("at this point in file");
+                  error_at (input_location, "too many arguments to %s %q#D", 
+			    called_thing, fndecl);
+		  inform (DECL_SOURCE_LOCATION (fndecl),
+			  "declared here");
                 }
               else
                 error ("too many arguments to function");
@@ -3287,9 +3423,10 @@ convert_arguments (tree typelist, VEC(tree,gc) **values, tree fndecl,
             {
               if (fndecl)
                 {
-                  error ("too few arguments to %s %q+#D", 
-                         called_thing, fndecl);
-                  error ("at this point in file");
+                  error_at (input_location, "too few arguments to %s %q#D", 
+			    called_thing, fndecl);
+		  inform (DECL_SOURCE_LOCATION (fndecl),
+			  "declared here");
                 }
               else
                 error ("too few arguments to function");
@@ -4100,7 +4237,83 @@ cp_build_binary_op (location_t location,
 
   if (arithmetic_types_p)
     {
-      int none_complex = (code0 != COMPLEX_TYPE && code1 != COMPLEX_TYPE);
+      bool first_complex = (code0 == COMPLEX_TYPE);
+      bool second_complex = (code1 == COMPLEX_TYPE);
+      int none_complex = (!first_complex && !second_complex);
+
+      /* Adapted from patch for c/24581.  */
+      if (first_complex != second_complex
+	  && (code == PLUS_EXPR
+	      || code == MINUS_EXPR
+	      || code == MULT_EXPR
+	      || (code == TRUNC_DIV_EXPR && first_complex))
+	  && TREE_CODE (TREE_TYPE (result_type)) == REAL_TYPE
+	  && flag_signed_zeros)
+	{
+	  /* An operation on mixed real/complex operands must be
+	     handled specially, but the language-independent code can
+	     more easily optimize the plain complex arithmetic if
+	     -fno-signed-zeros.  */
+	  tree real_type = TREE_TYPE (result_type);
+	  tree real, imag;
+	  if (first_complex)
+	    {
+	      if (TREE_TYPE (op0) != result_type)
+		op0 = cp_convert_and_check (result_type, op0);
+	      if (TREE_TYPE (op1) != real_type)
+		op1 = cp_convert_and_check (real_type, op1);
+	    }
+	  else
+	    {
+	      if (TREE_TYPE (op0) != real_type)
+		op0 = cp_convert_and_check (real_type, op0);
+	      if (TREE_TYPE (op1) != result_type)
+		op1 = cp_convert_and_check (result_type, op1);
+	    }
+	  if (TREE_CODE (op0) == ERROR_MARK || TREE_CODE (op1) == ERROR_MARK)
+	    return error_mark_node;
+	  if (first_complex)
+	    {
+	      op0 = save_expr (op0);
+	      real = cp_build_unary_op (REALPART_EXPR, op0, 1, complain);
+	      imag = cp_build_unary_op (IMAGPART_EXPR, op0, 1, complain);
+	      switch (code)
+		{
+		case MULT_EXPR:
+		case TRUNC_DIV_EXPR:
+		  imag = build2 (resultcode, real_type, imag, op1);
+		  /* Fall through.  */
+		case PLUS_EXPR:
+		case MINUS_EXPR:
+		  real = build2 (resultcode, real_type, real, op1);
+		  break;
+		default:
+		  gcc_unreachable();
+		}
+	    }
+	  else
+	    {
+	      op1 = save_expr (op1);
+	      real = cp_build_unary_op (REALPART_EXPR, op1, 1, complain);
+	      imag = cp_build_unary_op (IMAGPART_EXPR, op1, 1, complain);
+	      switch (code)
+		{
+		case MULT_EXPR:
+		  imag = build2 (resultcode, real_type, op0, imag);
+		  /* Fall through.  */
+		case PLUS_EXPR:
+		  real = build2 (resultcode, real_type, op0, real);
+		  break;
+		case MINUS_EXPR:
+		  real = build2 (resultcode, real_type, op0, real);
+		  imag = build1 (NEGATE_EXPR, real_type, imag);
+		  break;
+		default:
+		  gcc_unreachable();
+		}
+	    }
+	  return build2 (COMPLEX_EXPR, result_type, real, imag);
+	}
 
       /* For certain operations (which identify themselves by shorten != 0)
 	 if both args were extended from the same smaller type,
@@ -4293,9 +4506,10 @@ build_x_unary_op (enum tree_code code, tree xarg, tsubst_flags_t complain)
 	  tree fn = get_first_fn (xarg);
 	  if (DECL_CONSTRUCTOR_P (fn) || DECL_DESTRUCTOR_P (fn))
 	    {
-	      const char *type =
-		(DECL_CONSTRUCTOR_P (fn) ? "constructor" : "destructor");
-	      error ("taking address of %s %qE", type, xarg);
+	      error (DECL_CONSTRUCTOR_P (fn)
+                     ? G_("taking address of constructor %qE")
+                     : G_("taking address of destructor %qE"),
+                     xarg);
 	      return error_mark_node;
 	    }
 	}
@@ -4484,7 +4698,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	    arg = default_conversion (arg);
 	}
       else if (!(arg = build_expr_type_conversion (WANT_INT | WANT_ENUM
-						   | WANT_VECTOR,
+						   | WANT_VECTOR_OR_COMPLEX,
 						   arg, true)))
 	errstring = _("wrong type argument to bit-complement");
       else if (!noconvert && CP_INTEGRAL_TYPE_P (TREE_TYPE (arg)))
@@ -6344,15 +6558,15 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
     {
       int from_array;
 
-      if (BRACE_ENCLOSED_INITIALIZER_P (rhs))
+      if (BRACE_ENCLOSED_INITIALIZER_P (newrhs))
 	{
-	  if (check_array_initializer (lhs, lhstype, rhs))
+	  if (check_array_initializer (lhs, lhstype, newrhs))
 	    return error_mark_node;
-	  rhs = digest_init (lhstype, rhs);
+	  newrhs = digest_init (lhstype, newrhs);
 	}
 
       else if (!same_or_base_type_p (TYPE_MAIN_VARIANT (lhstype),
-				     TYPE_MAIN_VARIANT (TREE_TYPE (rhs))))
+				     TYPE_MAIN_VARIANT (TREE_TYPE (newrhs))))
 	{
 	  if (complain & tf_error)
 	    error ("incompatible types in assignment of %qT to %qT",
@@ -7427,6 +7641,44 @@ comp_ptr_ttypes (tree to, tree from)
   return comp_ptr_ttypes_real (to, from, 1);
 }
 
+/* Returns true iff FNTYPE is a non-class type that involves
+   error_mark_node.  We can get FUNCTION_TYPE with buried error_mark_node
+   if a parameter type is ill-formed.  */
+
+bool
+error_type_p (const_tree type)
+{
+  tree t;
+
+  switch (TREE_CODE (type))
+    {
+    case ERROR_MARK:
+      return true;
+
+    case POINTER_TYPE:
+    case REFERENCE_TYPE:
+    case OFFSET_TYPE:
+      return error_type_p (TREE_TYPE (type));
+
+    case FUNCTION_TYPE:
+    case METHOD_TYPE:
+      if (error_type_p (TREE_TYPE (type)))
+	return true;
+      for (t = TYPE_ARG_TYPES (type); t; t = TREE_CHAIN (t))
+	if (error_type_p (TREE_VALUE (t)))
+	  return true;
+      return false;
+
+    case RECORD_TYPE:
+      if (TYPE_PTRMEMFUNC_P (type))
+	return error_type_p (TYPE_PTRMEMFUNC_FN_TYPE (type));
+      return false;
+
+    default:
+      return false;
+    }
+}
+
 /* Returns 1 if to and from are (possibly multi-level) pointers to the same
    type or inheritance-related types, regardless of cv-quals.  */
 
@@ -7436,9 +7688,10 @@ ptr_reasonably_similar (const_tree to, const_tree from)
   for (; ; to = TREE_TYPE (to), from = TREE_TYPE (from))
     {
       /* Any target type is similar enough to void.  */
-      if (TREE_CODE (to) == VOID_TYPE
-	  || TREE_CODE (from) == VOID_TYPE)
-	return 1;
+      if (TREE_CODE (to) == VOID_TYPE)
+	return !error_type_p (from);
+      if (TREE_CODE (from) == VOID_TYPE)
+	return !error_type_p (to);
 
       if (TREE_CODE (to) != TREE_CODE (from))
 	return 0;
@@ -7458,7 +7711,7 @@ ptr_reasonably_similar (const_tree to, const_tree from)
 	return 1;
 
       if (TREE_CODE (to) == FUNCTION_TYPE)
-	return 1;
+	return !error_type_p (to) && !error_type_p (from);
 
       if (TREE_CODE (to) != POINTER_TYPE)
 	return comptypes

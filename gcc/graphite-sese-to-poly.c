@@ -1,5 +1,5 @@
 /* Conversion of SESE regions to Polyhedra.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@amd.com>.
 
 This file is part of GCC.
@@ -180,7 +180,7 @@ reduction_phi_p (sese region, gimple_stmt_iterator *psi)
 
   if (simple_copy_phi_p (phi))
     {
-      /* FIXME: PRE introduces phi nodes like these, for an example,
+      /* PRE introduces phi nodes like these, for an example,
 	 see id-5.f in the fortran graphite testsuite:
 
 	 # prephitmp.85_265 = PHI <prephitmp.85_258(33), prephitmp.85_265(18)>
@@ -280,7 +280,6 @@ new_gimple_bb (basic_block bb, VEC (data_reference_p, heap) *drs)
   GBB_DATA_REFS (gbb) = drs;
   GBB_CONDITIONS (gbb) = NULL;
   GBB_CONDITION_CASES (gbb) = NULL;
-  GBB_CLOOG_IV_TYPES (gbb) = NULL;
 
   return gbb;
 }
@@ -308,9 +307,6 @@ free_data_refs_aux (VEC (data_reference_p, heap) *datarefs)
 static void
 free_gimple_bb (struct gimple_bb *gbb)
 {
-  if (GBB_CLOOG_IV_TYPES (gbb))
-    htab_delete (GBB_CLOOG_IV_TYPES (gbb));
-
   free_data_refs_aux (GBB_DATA_REFS (gbb));
   free_data_refs (GBB_DATA_REFS (gbb));
 
@@ -1038,6 +1034,74 @@ gbb_from_bb (basic_block bb)
   return (gimple_bb_p) bb->aux;
 }
 
+/* Insert in the SCOP context constraints from the estimation of the
+   number of iterations.  UB_EXPR is a linear expression describing
+   the number of iterations in a loop.  This expression is bounded by
+   the estimation NIT.  */
+
+static void
+add_upper_bounds_from_estimated_nit (scop_p scop, double_int nit,
+				     ppl_dimension_type dim,
+				     ppl_Linear_Expression_t ub_expr)
+{
+  Value val;
+  ppl_Linear_Expression_t nb_iters_le;
+  ppl_Polyhedron_t pol;
+  ppl_Coefficient_t coef;
+  ppl_Constraint_t ub;
+
+  ppl_new_Linear_Expression_with_dimension (&ub_expr, dim);
+  ppl_new_C_Polyhedron_from_space_dimension (&pol, dim, 0);
+  ppl_new_Linear_Expression_from_Linear_Expression (&nb_iters_le,
+						    ub_expr);
+
+  /* Construct the negated number of last iteration in VAL.  */
+  value_init (val);
+  mpz_set_double_int (val, nit, false);
+  value_sub_int (val, val, 1);
+  value_oppose (val, val);
+
+  /* NB_ITERS_LE holds the number of last iteration in
+     parametrical form.  Subtract estimated number of last
+     iteration and assert that result is not positive.  */
+  ppl_new_Coefficient_from_mpz_t (&coef, val);
+  ppl_Linear_Expression_add_to_inhomogeneous (nb_iters_le, coef);
+  ppl_delete_Coefficient (coef);
+  ppl_new_Constraint (&ub, nb_iters_le,
+		      PPL_CONSTRAINT_TYPE_LESS_OR_EQUAL);
+  ppl_Polyhedron_add_constraint (pol, ub);
+
+  /* Remove all but last GDIM dimensions from POL to obtain
+     only the constraints on the parameters.  */
+  {
+    graphite_dim_t gdim = scop_nb_params (scop);
+    ppl_dimension_type *dims = XNEWVEC (ppl_dimension_type, dim - gdim);
+    graphite_dim_t i;
+
+    for (i = 0; i < dim - gdim; i++)
+      dims[i] = i;
+
+    ppl_Polyhedron_remove_space_dimensions (pol, dims, dim - gdim);
+    XDELETEVEC (dims);
+  }
+
+  /* Add the constraints on the parameters to the SCoP context.  */
+  {
+    ppl_Pointset_Powerset_C_Polyhedron_t constraints_ps;
+
+    ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron
+      (&constraints_ps, pol);
+    ppl_Pointset_Powerset_C_Polyhedron_intersection_assign
+      (SCOP_CONTEXT (scop), constraints_ps);
+    ppl_delete_Pointset_Powerset_C_Polyhedron (constraints_ps);
+  }
+
+  ppl_delete_Polyhedron (pol);
+  ppl_delete_Linear_Expression (nb_iters_le);
+  ppl_delete_Constraint (ub);
+  value_clear (val);
+}
+
 /* Builds the constraint polyhedra for LOOP in SCOP.  OUTER_PH gives
    the constraints for the surrounding loops.  */
 
@@ -1113,64 +1177,8 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
       scan_tree_for_params (SCOP_REGION (scop), nb_iters, ub_expr, one);
       value_clear (one);
 
-      /* N <= estimated_nb_iters
-
-	 FIXME: This is a workaround that should go away once we will
-	 have the PIP algorithm.  */
       if (estimated_loop_iterations (loop, true, &nit))
-	{
-	  Value val;
-	  ppl_Linear_Expression_t nb_iters_le;
-	  ppl_Polyhedron_t pol;
-	  graphite_dim_t n = scop_nb_params (scop);
-	  ppl_Coefficient_t coef;
-
-	  ppl_new_C_Polyhedron_from_space_dimension (&pol, dim, 0);
-	  ppl_new_Linear_Expression_from_Linear_Expression (&nb_iters_le,
-							    ub_expr);
-
-	  /* Construct the negated number of last iteration in VAL.  */
-	  value_init (val);
-	  mpz_set_double_int (val, nit, false);
-	  value_sub_int (val, val, 1);
-	  value_oppose (val, val);
-
-	  /* NB_ITERS_LE holds number of last iteration in parametrical form.
-	  Subtract estimated number of last iteration and assert that result
-	  is not positive.  */
-	  ppl_new_Coefficient_from_mpz_t (&coef, val);
-	  ppl_Linear_Expression_add_to_inhomogeneous (nb_iters_le, coef);
-	  ppl_delete_Coefficient (coef);
-	  ppl_new_Constraint (&ub, nb_iters_le,
-			      PPL_CONSTRAINT_TYPE_LESS_OR_EQUAL);
-	  ppl_Polyhedron_add_constraint (pol, ub);
-
-	  /* Remove all but last N dimensions from POL to obtain constraints
-	     on parameters.  */
-	    {
-	      ppl_dimension_type *dims = XNEWVEC (ppl_dimension_type, dim - n);
-	      graphite_dim_t i;
-	      for (i = 0; i < dim - n; i++)
-		dims[i] = i;
-	      ppl_Polyhedron_remove_space_dimensions (pol, dims, dim - n);
-	      XDELETEVEC (dims);
-	    }
-
-	  /* Add constraints on parameters to SCoP context.  */
-	    {
-	      ppl_Pointset_Powerset_C_Polyhedron_t constraints_ps;
-	      ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron
-	       (&constraints_ps, pol);
-	      ppl_Pointset_Powerset_C_Polyhedron_intersection_assign
-	       (SCOP_CONTEXT (scop), constraints_ps);
-	      ppl_delete_Pointset_Powerset_C_Polyhedron (constraints_ps);
-	    }
-
-	  ppl_delete_Polyhedron (pol);
-	  ppl_delete_Linear_Expression (nb_iters_le);
-	  ppl_delete_Constraint (ub);
-	  value_clear (val);
-	}
+	add_upper_bounds_from_estimated_nit (scop, nit, dim, ub_expr);
 
       /* loop_i <= expr_nb_iters */
       ppl_set_coef (ub_expr, nb, -1);
@@ -1499,16 +1507,18 @@ add_param_constraints (scop_p scop, ppl_Polyhedron_t context, graphite_dim_t p)
   ppl_Linear_Expression_t le;
   tree parameter = VEC_index (tree, SESE_PARAMS (SCOP_REGION (scop)), p);
   tree type = TREE_TYPE (parameter);
-  tree lb, ub;
+  tree lb = NULL_TREE;
+  tree ub = NULL_TREE;
 
-  /* Disabled until we fix CPU2006.  */
-  return;
+  if (POINTER_TYPE_P (type) || !TYPE_MIN_VALUE (type))
+    lb = lower_bound_in_type (type, type);
+  else
+    lb = TYPE_MIN_VALUE (type);
 
-  if (!INTEGRAL_TYPE_P (type))
-    return;
-
-  lb = TYPE_MIN_VALUE (type);
-  ub = TYPE_MAX_VALUE (type);
+  if (POINTER_TYPE_P (type) || !TYPE_MAX_VALUE (type))
+    ub = upper_bound_in_type (type, type);
+  else
+    ub = TYPE_MAX_VALUE (type);
 
   if (lb)
     {
@@ -2169,6 +2179,9 @@ scalar_close_phi_node_p (gimple phi)
       || !is_gimple_reg (gimple_phi_result (phi)))
     return false;
 
+  /* Note that loop close phi nodes should have a single argument
+     because we translated the representation into a canonical form
+     before Graphite: see canonicalize_loop_closed_ssa_form.  */
   return (gimple_phi_num_args (phi) == 1);
 }
 
@@ -2186,7 +2199,17 @@ rewrite_close_phi_out_of_ssa (gimple_stmt_iterator *psi)
   gimple stmt = gimple_build_assign (res, zero_dim_array);
   tree arg = gimple_phi_arg_def (phi, 0);
 
-  insert_out_of_ssa_copy (zero_dim_array, arg);
+  /* Note that loop close phi nodes should have a single argument
+     because we translated the representation into a canonical form
+     before Graphite: see canonicalize_loop_closed_ssa_form.  */
+  gcc_assert (gimple_phi_num_args (phi) == 1);
+
+  if (TREE_CODE (arg) == SSA_NAME
+      && !SSA_NAME_IS_DEFAULT_DEF (arg))
+    insert_out_of_ssa_copy (zero_dim_array, arg);
+  else
+    insert_out_of_ssa_copy_on_edge (single_pred_edge (gimple_bb (phi)),
+				    zero_dim_array, arg);
 
   remove_phi_node (psi, false);
   gsi_insert_before (&gsi, stmt, GSI_NEW_STMT);
@@ -2241,7 +2264,7 @@ rewrite_phi_out_of_ssa (gimple_stmt_iterator *psi)
 	 |  end_2
 	 | end_1
 
-	 whereas inserting the copy on the incomming edge is correct
+	 whereas inserting the copy on the incoming edge is correct
 
 	 | a = ...
 	 | loop_1
@@ -2347,7 +2370,8 @@ rewrite_cross_bb_scalar_deps (sese region, gimple_stmt_iterator *gsi)
 
   FOR_EACH_IMM_USE_STMT (use_stmt, imm_iter, def)
     if (def_bb != gimple_bb (use_stmt)
-	&& gimple_code (use_stmt) != GIMPLE_PHI)
+	&& gimple_code (use_stmt) != GIMPLE_PHI
+	&& !is_gimple_debug (use_stmt))
       {
 	if (!zero_dim_array)
 	  {
@@ -2382,8 +2406,7 @@ rewrite_reductions_out_of_ssa (scop_p scop)
 
   update_ssa (TODO_update_ssa);
 #ifdef ENABLE_CHECKING
-  verify_ssa (false);
-  verify_loop_closed_ssa ();
+  verify_loop_closed_ssa (true);
 #endif
 
   FOR_EACH_BB (bb)
@@ -2393,8 +2416,7 @@ rewrite_reductions_out_of_ssa (scop_p scop)
 
   update_ssa (TODO_update_ssa);
 #ifdef ENABLE_CHECKING
-  verify_ssa (false);
-  verify_loop_closed_ssa ();
+  verify_loop_closed_ssa (true);
 #endif
 }
 
@@ -2446,6 +2468,9 @@ split_reduction_stmt (gimple stmt)
 
   split_block (bb, stmt);
 
+  if (gsi_one_before_end_p (gsi_start_nondebug_bb (bb)))
+    return bb;
+
   gsi = gsi_last_bb (bb);
   gsi_prev (&gsi);
   e = split_block (bb, gsi_stmt (gsi));
@@ -2458,9 +2483,14 @@ split_reduction_stmt (gimple stmt)
 static inline bool
 is_reduction_operation_p (gimple stmt)
 {
+  enum tree_code code;
+
+  gcc_assert (is_gimple_assign (stmt));
+  code = gimple_assign_rhs_code (stmt);
+
   return flag_associative_math
-    && commutative_tree_code (gimple_assign_rhs_code (stmt))
-    && associative_tree_code (gimple_assign_rhs_code (stmt));
+    && commutative_tree_code (code)
+    && associative_tree_code (code);
 }
 
 /* Returns true when PHI contains an argument ARG.  */
@@ -2489,12 +2519,19 @@ follow_ssa_with_commutative_ops (tree arg, tree lhs)
 
   stmt = SSA_NAME_DEF_STMT (arg);
 
+  if (gimple_code (stmt) == GIMPLE_NOP
+      || gimple_code (stmt) == GIMPLE_CALL)
+    return NULL;
+
   if (gimple_code (stmt) == GIMPLE_PHI)
     {
       if (phi_contains_arg (stmt, lhs))
 	return stmt;
       return NULL;
     }
+
+  if (!is_gimple_assign (stmt))
+    return NULL;
 
   if (gimple_num_ops (stmt) == 2)
     return follow_ssa_with_commutative_ops (gimple_assign_rhs1 (stmt), lhs);
@@ -2511,7 +2548,7 @@ follow_ssa_with_commutative_ops (tree arg, tree lhs)
 }
 
 /* Detect commutative and associative scalar reductions starting at
-   the STMT.  */
+   the STMT.  Return the phi node of the reduction cycle, or NULL.  */
 
 static gimple
 detect_commutative_reduction_arg (tree lhs, gimple stmt, tree arg,
@@ -2520,18 +2557,16 @@ detect_commutative_reduction_arg (tree lhs, gimple stmt, tree arg,
 {
   gimple phi = follow_ssa_with_commutative_ops (arg, lhs);
 
-  if (phi)
-    {
-      VEC_safe_push (gimple, heap, *in, stmt);
-      VEC_safe_push (gimple, heap, *out, stmt);
-      return phi;
-    }
+  if (!phi)
+    return NULL;
 
-  return NULL;
+  VEC_safe_push (gimple, heap, *in, stmt);
+  VEC_safe_push (gimple, heap, *out, stmt);
+  return phi;
 }
 
 /* Detect commutative and associative scalar reductions starting at
-   the STMT.  */
+   the STMT.  Return the phi node of the reduction cycle, or NULL.  */
 
 static gimple
 detect_commutative_reduction_assign (gimple stmt, VEC (gimple, heap) **in,
@@ -2619,7 +2654,8 @@ initial_value_for_loop_phi (gimple phi)
 }
 
 /* Detect commutative and associative scalar reductions starting at
-   the loop closed phi node CLOSE_PHI.  */
+   the loop closed phi node CLOSE_PHI.  Return the phi node of the
+   reduction cycle, or NULL.  */
 
 static gimple
 detect_commutative_reduction (gimple stmt, VEC (gimple, heap) **in,
@@ -2628,8 +2664,18 @@ detect_commutative_reduction (gimple stmt, VEC (gimple, heap) **in,
   if (scalar_close_phi_node_p (stmt))
     {
       tree arg = gimple_phi_arg_def (stmt, 0);
-      gimple def = SSA_NAME_DEF_STMT (arg);
-      gimple loop_phi = detect_commutative_reduction (def, in, out);
+      gimple def, loop_phi;
+
+      if (TREE_CODE (arg) != SSA_NAME)
+	return NULL;
+
+      /* Note that loop close phi nodes should have a single argument
+	 because we translated the representation into a canonical form
+	 before Graphite: see canonicalize_loop_closed_ssa_form.  */
+      gcc_assert (gimple_phi_num_args (stmt) == 1);
+
+      def = SSA_NAME_DEF_STMT (arg);
+      loop_phi = detect_commutative_reduction (def, in, out);
 
       if (loop_phi)
 	{
@@ -2658,13 +2704,13 @@ static void
 translate_scalar_reduction_to_array_for_stmt (tree red, gimple stmt,
 					      gimple loop_phi)
 {
-  basic_block bb = gimple_bb (stmt);
-  gimple_stmt_iterator insert_gsi = gsi_after_labels (bb);
+  gimple_stmt_iterator insert_gsi = gsi_after_labels (gimple_bb (loop_phi));
   tree res = gimple_phi_result (loop_phi);
   gimple assign = gimple_build_assign (res, red);
 
   gsi_insert_before (&insert_gsi, assign, GSI_SAME_STMT);
 
+  insert_gsi = gsi_after_labels (gimple_bb (stmt));
   assign = gimple_build_assign (red, gimple_assign_lhs (stmt));
   insert_gsi = gsi_for_stmt (stmt);
   gsi_insert_after (&insert_gsi, assign, GSI_SAME_STMT);
@@ -2696,6 +2742,41 @@ insert_copyin (tree red, gimple loop_phi)
   gsi_insert_seq_on_edge (edge_initial_value_for_loop_phi (loop_phi), stmts);
 }
 
+/* Removes the PHI node and resets all the debug stmts that are using
+   the PHI_RESULT.  */
+
+static void
+remove_phi (gimple phi)
+{
+  imm_use_iterator imm_iter;
+  tree def;
+  use_operand_p use_p;
+  gimple_stmt_iterator gsi;
+  VEC (gimple, heap) *update = VEC_alloc (gimple, heap, 3);
+  unsigned int i;
+  gimple stmt;
+
+  def = PHI_RESULT (phi);
+  FOR_EACH_IMM_USE_FAST (use_p, imm_iter, def)
+    {
+      stmt = USE_STMT (use_p);
+
+      if (is_gimple_debug (stmt))
+	{
+	  gimple_debug_bind_reset_value (stmt);
+	  VEC_safe_push (gimple, heap, update, stmt);
+	}
+    }
+
+  for (i = 0; VEC_iterate (gimple, update, i, stmt); i++)
+    update_stmt (stmt);
+
+  VEC_free (gimple, heap, update);
+
+  gsi = gsi_for_phi_node (phi);
+  remove_phi_node (&gsi, false);
+}
+
 /* Rewrite out of SSA the reduction described by the loop phi nodes
    IN, and the close phi nodes OUT.  IN and OUT are structured by loop
    levels like this:
@@ -2713,8 +2794,7 @@ translate_scalar_reduction_to_array (VEC (gimple, heap) *in,
 {
   unsigned int i;
   gimple loop_phi;
-  tree red;
-  gimple_stmt_iterator gsi;
+  tree red = NULL_TREE;
 
   for (i = 0; VEC_iterate (gimple, in, i, loop_phi); i++)
     {
@@ -2741,11 +2821,8 @@ translate_scalar_reduction_to_array (VEC (gimple, heap) *in,
 	  insert_copyin (red, loop_phi);
 	}
 
-      gsi = gsi_for_phi_node (loop_phi);
-      remove_phi_node (&gsi, false);
-
-      gsi = gsi_for_phi_node (close_phi);
-      remove_phi_node (&gsi, false);
+      remove_phi (loop_phi);
+      remove_phi (close_phi);
     }
 }
 
@@ -2798,8 +2875,7 @@ rewrite_commutative_reductions_out_of_ssa (sese region, sbitmap reductions)
   gsi_commit_edge_inserts ();
   update_ssa (TODO_update_ssa);
 #ifdef ENABLE_CHECKING
-  verify_ssa (false);
-  verify_loop_closed_ssa ();
+  verify_loop_closed_ssa (true);
 #endif
 }
 
@@ -2817,7 +2893,7 @@ graphite_loop_normal_form (loop_p loop)
 
   bool known_niter = number_of_iterations_exit (loop, exit, &niter, false);
 
-  /* At this point we should know the number of iterations,  */
+  /* At this point we should know the number of iterations.  */
   gcc_assert (known_niter);
 
   nit = force_gimple_operand (unshare_expr (niter.niter), &stmts, true,
@@ -2825,7 +2901,7 @@ graphite_loop_normal_form (loop_p loop)
   if (stmts)
     gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
 
-  loop->single_iv = canonicalize_loop_ivs (loop, &nit);
+  loop->single_iv = canonicalize_loop_ivs (loop, &nit, false);
 }
 
 /* Rewrite all the loops of SCOP in normal form: one induction
@@ -2842,13 +2918,50 @@ scop_canonicalize_loops (scop_p scop)
       graphite_loop_normal_form (loop);
 }
 
+/* Java does not initialize long_long_integer_type_node.  */
+#define my_long_long (long_long_integer_type_node ? long_long_integer_type_node : ssizetype)
+
+/* Can all ivs be represented by a signed integer?
+   As CLooG might generate negative values in its expressions, signed loop ivs
+   are required in the backend. */
+static bool
+scop_ivs_can_be_represented (scop_p scop)
+{
+  loop_iterator li;
+  loop_p loop;
+
+  FOR_EACH_LOOP (li, loop, 0)
+    {
+      tree type;
+      int precision;
+
+      if (!loop_in_sese_p (loop, SCOP_REGION (scop)))
+	continue;
+
+      if (!loop->single_iv)
+	continue;
+
+      type = TREE_TYPE(loop->single_iv);
+      precision = TYPE_PRECISION (type);
+
+      if (TYPE_UNSIGNED (type)
+	  && precision >= TYPE_PRECISION (my_long_long))
+	return false;
+    }
+
+  return true;
+}
+
+#undef my_long_long
+
 /* Builds the polyhedral representation for a SESE region.  */
 
-bool
+void
 build_poly_scop (scop_p scop)
 {
   sese region = SCOP_REGION (scop);
   sbitmap reductions = sbitmap_alloc (last_basic_block * 2);
+  graphite_dim_t max_dim;
 
   sbitmap_zero (reductions);
   rewrite_commutative_reductions_out_of_ssa (region, reductions);
@@ -2861,12 +2974,19 @@ build_poly_scop (scop_p scop)
      sense to optimize a scop containing only PBBs that do not belong
      to any loops.  */
   if (nb_pbbs_in_loops (scop) == 0)
-    return false;
+    return;
 
   scop_canonicalize_loops (scop);
+  if (!scop_ivs_can_be_represented (scop))
+    return;
+
   build_sese_loop_nests (region);
   build_sese_conditions (region);
   find_scop_parameters (scop);
+
+  max_dim = PARAM_VALUE (PARAM_GRAPHITE_MAX_NB_SCOP_PARAMS);
+  if (scop_nb_params (scop) > max_dim)
+    return;
 
   build_scop_iteration_domain (scop);
   build_scop_context (scop);
@@ -2876,7 +2996,9 @@ build_poly_scop (scop_p scop)
   build_scop_scattering (scop);
   build_scop_drs (scop);
 
-  return true;
+  /* This SCoP has been translated to the polyhedral
+     representation.  */
+  POLY_SCOP_P (scop) = true;
 }
 
 /* Always return false.  Exercise the scop_to_clast function.  */

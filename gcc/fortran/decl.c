@@ -1,5 +1,5 @@
 /* Declaration statement matcher
-   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -1057,6 +1057,7 @@ build_sym (const char *name, gfc_charlen *cl,
      dimension attribute.  */
   attr = current_attr;
   attr.dimension = 0;
+  attr.codimension = 0;
 
   if (gfc_copy_attr (&sym->attr, &attr, var_locus) == FAILURE)
     return FAILURE;
@@ -1430,7 +1431,12 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 
   c->as = *as;
   if (c->as != NULL)
-    c->attr.dimension = 1;
+    {
+      if (c->as->corank)
+	c->attr.codimension = 1;
+      if (c->as->rank)
+	c->attr.dimension = 1;
+    }
   *as = NULL;
 
   /* Should this ever get more complicated, combine with similar section
@@ -1589,7 +1595,7 @@ variable_decl (int elem)
   var_locus = gfc_current_locus;
 
   /* Now we could see the optional array spec. or character length.  */
-  m = gfc_match_array_spec (&as);
+  m = gfc_match_array_spec (&as, true, true);
   if (gfc_option.flag_cray_pointer && m == MATCH_YES)
     cp_as = gfc_copy_array_spec (as);
   else if (m == MATCH_ERROR)
@@ -1809,7 +1815,8 @@ variable_decl (int elem)
 	      m = MATCH_ERROR;
 	    }
 
-	  if (current_attr.flavor != FL_PARAMETER && gfc_pure (NULL))
+	  if (current_attr.flavor != FL_PARAMETER && gfc_pure (NULL)
+	      && gfc_state_stack->state != COMP_DERIVED)
 	    {
 	      gfc_error ("Initialization of variable at %C is not allowed in "
 			 "a PURE procedure");
@@ -2819,7 +2826,7 @@ match_attr_spec (void)
     DECL_IN, DECL_OUT, DECL_INOUT, DECL_INTRINSIC, DECL_OPTIONAL,
     DECL_PARAMETER, DECL_POINTER, DECL_PROTECTED, DECL_PRIVATE,
     DECL_PUBLIC, DECL_SAVE, DECL_TARGET, DECL_VALUE, DECL_VOLATILE,
-    DECL_IS_BIND_C, DECL_NONE,
+    DECL_IS_BIND_C, DECL_CODIMENSION, DECL_ASYNCHRONOUS, DECL_NONE,
     GFC_DECL_END /* Sentinel */
   }
   decl_types;
@@ -2864,9 +2871,25 @@ match_attr_spec (void)
 	  switch (gfc_peek_ascii_char ())
 	    {
 	    case 'a':
-	      if (match_string_p ("allocatable"))
-		d = DECL_ALLOCATABLE;
-	      break;
+	      gfc_next_ascii_char ();
+	      switch (gfc_next_ascii_char ())
+		{
+		case 'l':
+		  if (match_string_p ("locatable"))
+		    {
+		      /* Matched "allocatable".  */
+		      d = DECL_ALLOCATABLE;
+		    }
+		  break;
+
+		case 's':
+		  if (match_string_p ("ynchronous"))
+		    {
+		      /* Matched "asynchronous".  */
+		      d = DECL_ASYNCHRONOUS;
+		    }
+		  break;
+		}
 
 	    case 'b':
 	      /* Try and match the bind(c).  */
@@ -2875,6 +2898,11 @@ match_attr_spec (void)
 		d = DECL_IS_BIND_C;
 	      else if (m == MATCH_ERROR)
 		goto cleanup;
+	      break;
+
+	    case 'c':
+	      if (match_string_p ("codimension"))
+		d = DECL_CODIMENSION;
 	      break;
 
 	    case 'd':
@@ -3024,11 +3052,25 @@ match_attr_spec (void)
 
       if (d == DECL_DIMENSION)
 	{
-	  m = gfc_match_array_spec (&current_as);
+	  m = gfc_match_array_spec (&current_as, true, false);
 
 	  if (m == MATCH_NO)
 	    {
 	      gfc_error ("Missing dimension specification at %C");
+	      m = MATCH_ERROR;
+	    }
+
+	  if (m == MATCH_ERROR)
+	    goto cleanup;
+	}
+
+      if (d == DECL_CODIMENSION)
+	{
+	  m = gfc_match_array_spec (&current_as, false, true);
+
+	  if (m == MATCH_NO)
+	    {
+	      gfc_error ("Missing codimension specification at %C");
 	      m = MATCH_ERROR;
 	    }
 
@@ -3046,6 +3088,12 @@ match_attr_spec (void)
 	  {
 	  case DECL_ALLOCATABLE:
 	    attr = "ALLOCATABLE";
+	    break;
+	  case DECL_ASYNCHRONOUS:
+	    attr = "ASYNCHRONOUS";
+	    break;
+	  case DECL_CODIMENSION:
+	    attr = "CODIMENSION";
 	    break;
 	  case DECL_DIMENSION:
 	    attr = "DIMENSION";
@@ -3115,9 +3163,9 @@ match_attr_spec (void)
 	continue;
 
       if (gfc_current_state () == COMP_DERIVED
-	  && d != DECL_DIMENSION && d != DECL_POINTER
-	  && d != DECL_PRIVATE   && d != DECL_PUBLIC
-	  && d != DECL_NONE)
+	  && d != DECL_DIMENSION && d != DECL_CODIMENSION
+	  && d != DECL_POINTER   && d != DECL_PRIVATE
+	  && d != DECL_PUBLIC && d != DECL_NONE)
 	{
 	  if (d == DECL_ALLOCATABLE)
 	    {
@@ -3171,6 +3219,19 @@ match_attr_spec (void)
 	{
 	case DECL_ALLOCATABLE:
 	  t = gfc_add_allocatable (&current_attr, &seen_at[d]);
+	  break;
+
+	case DECL_ASYNCHRONOUS:
+	  if (gfc_notify_std (GFC_STD_F2003,
+			      "Fortran 2003: ASYNCHRONOUS attribute at %C")
+	      == FAILURE)
+	    t = FAILURE;
+	  else
+	    t = gfc_add_asynchronous (&current_attr, NULL, &seen_at[d]);
+	  break;
+
+	case DECL_CODIMENSION:
+	  t = gfc_add_codimension (&current_attr, NULL, &seen_at[d]);
 	  break;
 
 	case DECL_DIMENSION:
@@ -5071,6 +5132,10 @@ gfc_match_subroutine (void)
   if (get_proc_name (name, &sym, false))
     return MATCH_ERROR;
 
+  /* Set declared_at as it might point to, e.g., a PUBLIC statement, if
+     the symbol existed before. */
+  sym->declared_at = gfc_current_locus;
+
   if (add_hidden_procptr_result (sym) == SUCCESS)
     sym = sym->result;
 
@@ -5443,6 +5508,12 @@ gfc_match_end (gfc_statement *st)
       eos_ok = 0;
       break;
 
+    case COMP_CRITICAL:
+      *st = ST_END_CRITICAL;
+      target = " critical";
+      eos_ok = 0;
+      break;
+
     case COMP_SELECT:
     case COMP_SELECT_TYPE:
       *st = ST_END_SELECT;
@@ -5501,7 +5572,8 @@ gfc_match_end (gfc_statement *st)
     {
 
       if (*st != ST_ENDDO && *st != ST_ENDIF && *st != ST_END_SELECT
-	  && *st != ST_END_FORALL && *st != ST_END_WHERE && *st != ST_END_BLOCK)
+	  && *st != ST_END_FORALL && *st != ST_END_WHERE && *st != ST_END_BLOCK
+	  && *st != ST_END_CRITICAL)
 	return MATCH_YES;
 
       if (!block_name)
@@ -5586,11 +5658,15 @@ attr_decl1 (void)
 
   /* Deal with possible array specification for certain attributes.  */
   if (current_attr.dimension
+      || current_attr.codimension
       || current_attr.allocatable
       || current_attr.pointer
       || current_attr.target)
     {
-      m = gfc_match_array_spec (&as);
+      m = gfc_match_array_spec (&as, !current_attr.codimension,
+				!current_attr.dimension
+				&& !current_attr.pointer
+				&& !current_attr.target);
       if (m == MATCH_ERROR)
 	goto cleanup;
 
@@ -5606,6 +5682,14 @@ attr_decl1 (void)
 	{
 	  gfc_error ("Dimensions specified for %s at %L after its "
 		     "initialisation", sym->name, &var_locus);
+	  m = MATCH_ERROR;
+	  goto cleanup;
+	}
+
+      if (current_attr.codimension && m == MATCH_NO)
+	{
+	  gfc_error ("Missing array specification at %L in CODIMENSION "
+		     "statement", &var_locus);
 	  m = MATCH_ERROR;
 	  goto cleanup;
 	}
@@ -5638,8 +5722,8 @@ attr_decl1 (void)
     }
   else
     {
-      if (current_attr.dimension == 0
-	    && gfc_copy_attr (&sym->attr, &current_attr, &var_locus) == FAILURE)
+      if (current_attr.dimension == 0 && current_attr.codimension == 0
+	  && gfc_copy_attr (&sym->attr, &current_attr, &var_locus) == FAILURE)
 	{
 	  m = MATCH_ERROR;
 	  goto cleanup;
@@ -5737,7 +5821,7 @@ static match
 cray_pointer_decl (void)
 {
   match m;
-  gfc_array_spec *as;
+  gfc_array_spec *as = NULL;
   gfc_symbol *cptr; /* Pointer symbol.  */
   gfc_symbol *cpte; /* Pointee symbol.  */
   locus var_locus;
@@ -5806,7 +5890,7 @@ cray_pointer_decl (void)
 	}
 
       /* Check for an optional array spec.  */
-      m = gfc_match_array_spec (&as);
+      m = gfc_match_array_spec (&as, true, false);
       if (m == MATCH_ERROR)
 	{
 	  gfc_free_array_spec (as);
@@ -5960,6 +6044,16 @@ gfc_match_allocatable (void)
 {
   gfc_clear_attr (&current_attr);
   current_attr.allocatable = 1;
+
+  return attr_decl ();
+}
+
+
+match
+gfc_match_codimension (void)
+{
+  gfc_clear_attr (&current_attr);
+  current_attr.codimension = 1;
 
   return attr_decl ();
 }
@@ -6453,11 +6547,19 @@ gfc_match_volatile (void)
   for(;;)
     {
       /* VOLATILE is special because it can be added to host-associated 
-	 symbols locally.  */
+	 symbols locally. Except for coarrays. */
       m = gfc_match_symbol (&sym, 1);
       switch (m)
 	{
 	case MATCH_YES:
+	  /* F2008, C560+C561. VOLATILE for host-/use-associated variable or
+	     for variable in a BLOCK which is defined outside of the BLOCK.  */
+	  if (sym->ns != gfc_current_ns && sym->attr.codimension)
+	    {
+	      gfc_error ("Specifying VOLATILE for coarray variable '%s' at "
+			 "%C, which is use-/host-associated", sym->name);
+	      return MATCH_ERROR;
+	    }
 	  if (gfc_add_volatile (&sym->attr, sym->name, &gfc_current_locus)
 	      == FAILURE)
 	    return MATCH_ERROR;
@@ -6481,6 +6583,59 @@ gfc_match_volatile (void)
 
 syntax:
   gfc_error ("Syntax error in VOLATILE statement at %C");
+  return MATCH_ERROR;
+}
+
+
+match
+gfc_match_asynchronous (void)
+{
+  gfc_symbol *sym;
+  match m;
+
+  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ASYNCHRONOUS statement at %C")
+      == FAILURE)
+    return MATCH_ERROR;
+
+  if (gfc_match (" ::") == MATCH_NO && gfc_match_space () == MATCH_NO)
+    {
+      return MATCH_ERROR;
+    }
+
+  if (gfc_match_eos () == MATCH_YES)
+    goto syntax;
+
+  for(;;)
+    {
+      /* ASYNCHRONOUS is special because it can be added to host-associated 
+	 symbols locally.  */
+      m = gfc_match_symbol (&sym, 1);
+      switch (m)
+	{
+	case MATCH_YES:
+	  if (gfc_add_asynchronous (&sym->attr, sym->name, &gfc_current_locus)
+	      == FAILURE)
+	    return MATCH_ERROR;
+	  goto next_item;
+
+	case MATCH_NO:
+	  break;
+
+	case MATCH_ERROR:
+	  return MATCH_ERROR;
+	}
+
+    next_item:
+      if (gfc_match_eos () == MATCH_YES)
+	break;
+      if (gfc_match_char (',') != MATCH_YES)
+	goto syntax;
+    }
+
+  return MATCH_YES;
+
+syntax:
+  gfc_error ("Syntax error in ASYNCHRONOUS statement at %C");
   return MATCH_ERROR;
 }
 
@@ -6883,22 +7038,14 @@ gfc_match_derived_decl (void)
 
 
 /* Cray Pointees can be declared as: 
-      pointer (ipt, a (n,m,...,*)) 
-   By default, this is treated as an AS_ASSUMED_SIZE array.  We'll
-   cheat and set a constant bound of 1 for the last dimension, if this
-   is the case. Since there is no bounds-checking for Cray Pointees,
-   this will be okay.  */
+      pointer (ipt, a (n,m,...,*))  */
 
 match
 gfc_mod_pointee_as (gfc_array_spec *as)
 {
   as->cray_pointee = true; /* This will be useful to know later.  */
   if (as->type == AS_ASSUMED_SIZE)
-    {
-      as->type = AS_EXPLICIT;
-      as->upper[as->rank - 1] = gfc_int_expr (1);
-      as->cp_was_assumed = true;
-    }
+    as->cp_was_assumed = true;
   else if (as->type == AS_ASSUMED_SHAPE)
     {
       gfc_error ("Cray Pointee at %C cannot be assumed shape array");
@@ -7038,10 +7185,9 @@ enumerator_decl (void)
 
   if (initializer == NULL || initializer->ts.type != BT_INTEGER)
     {
-      gfc_error("ENUMERATOR %L not initialized with integer expression",
-		&var_locus);
+      gfc_error ("ENUMERATOR %L not initialized with integer expression",
+		 &var_locus);
       m = MATCH_ERROR;
-      gfc_free_enum_history ();
       goto cleanup;
     }
 
@@ -7107,7 +7253,10 @@ gfc_match_enumerator_def (void)
     {
       m = enumerator_decl ();
       if (m == MATCH_ERROR)
-	goto cleanup;
+	{
+	  gfc_free_enum_history ();
+	  goto cleanup;
+	}
       if (m == MATCH_NO)
 	break;
 
@@ -7722,8 +7871,18 @@ gfc_match_final_decl (void)
   bool first, last;
   gfc_symbol* block;
 
+  if (gfc_current_form == FORM_FREE)
+    {
+      char c = gfc_peek_ascii_char ();
+      if (!gfc_is_whitespace (c) && c != ':')
+	return MATCH_NO;
+    }
+  
   if (gfc_state_stack->state != COMP_DERIVED_CONTAINS)
     {
+      if (gfc_current_form == FORM_FIXED)
+	return MATCH_NO;
+
       gfc_error ("FINAL declaration at %C must be inside a derived type "
 		 "CONTAINS section");
       return MATCH_ERROR;

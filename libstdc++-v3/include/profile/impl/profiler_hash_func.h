@@ -34,8 +34,8 @@
 
 // Written by Lixia Liu and Silvius Rus.
 
-#ifndef PROFCXX_PROFILER_HASH_FUNC_H__
-#define PROFCXX_PROFILER_HASH_FUNC_H__ 1
+#ifndef _GLIBCXX_PROFILE_PROFILER_HASH_FUNC_H
+#define _GLIBCXX_PROFILE_PROFILER_HASH_FUNC_H 1
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdlib>
@@ -69,7 +69,7 @@ class __hashfunc_info: public __object_info_base
   void __destruct(size_t __chain, size_t __accesses, size_t __hops);
   void __write(FILE* __f) const;
   float __magnitude() const { return static_cast<float>(_M_hops); }
-  const char* __advice() const { return "change hash function"; }
+  const char* __advice() const { return strdup("change hash function"); }
 
 private:
   size_t _M_longest_chain;
@@ -151,33 +151,25 @@ inline void __trace_hash_func::__destruct(const void* __obj, size_t __chain,
   __retire_object(__obj);
 }
 
-//////////////////////////////////////////////////////////////////////////////
-// Initialization and report.
-//////////////////////////////////////////////////////////////////////////////
-
 inline void __trace_hash_func_init()
 {
-  __tables<0>::_S_hash_func = new __trace_hash_func();
+  _GLIBCXX_PROFILE_DATA(_S_hash_func) = new __trace_hash_func();
 }
 
 inline void __trace_hash_func_report(FILE* __f,
                                      __warning_vector_t& __warnings)
 {
-  if (__tables<0>::_S_hash_func) {
-    __tables<0>::_S_hash_func->__collect_warnings(__warnings);
-    __tables<0>::_S_hash_func->__write(__f);
+  if (_GLIBCXX_PROFILE_DATA(_S_hash_func)) {
+    _GLIBCXX_PROFILE_DATA(_S_hash_func)->__collect_warnings(__warnings);
+    _GLIBCXX_PROFILE_DATA(_S_hash_func)->__write(__f);
   }
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// Implementations of instrumentation hooks.
-//////////////////////////////////////////////////////////////////////////////
 
 inline void __trace_hash_func_construct(const void* __obj)
 {
   if (!__profcxx_init()) return;
 
-  __tables<0>::_S_hash_func->__insert(__obj, __get_stack());
+  _GLIBCXX_PROFILE_DATA(_S_hash_func)->__insert(__obj, __get_stack());
 }
 
 inline void __trace_hash_func_destruct(const void* __obj, size_t __chain,
@@ -185,8 +177,9 @@ inline void __trace_hash_func_destruct(const void* __obj, size_t __chain,
 {
   if (!__profcxx_init()) return;
 
-  __tables<0>::_S_hash_func->__destruct(__obj, __chain, __accesses, __hops);
+  _GLIBCXX_PROFILE_DATA(_S_hash_func)->__destruct(__obj, __chain, __accesses, 
+                                                  __hops);
 }
 
 } // namespace __gnu_profile
-#endif /* PROFCXX_PROFILER_HASH_FUNC_H__ */
+#endif /* _GLIBCXX_PROFILE_PROFILER_HASH_FUNC_H */

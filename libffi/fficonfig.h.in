@@ -17,6 +17,9 @@
 /* Define this if you want extra debugging. */
 #undef FFI_DEBUG
 
+/* Cannot use malloc on this target, so, we revert to alternative means */
+#undef FFI_MMAP_EXEC_WRIT
+
 /* Define this is you do not want support for the raw API. */
 #undef FFI_NO_RAW_API
 
@@ -39,6 +42,9 @@
 /* Define if your assembler and linker support unaligned PC relative relocs.
    */
 #undef HAVE_AS_SPARC_UA_PCREL
+
+/* Define if your assembler supports unwind section type. */
+#undef HAVE_AS_X86_64_UNWIND_SECTION_TYPE
 
 /* Define if your assembler supports PC relative relocs. */
 #undef HAVE_AS_X86_PCREL

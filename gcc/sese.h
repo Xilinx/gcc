@@ -1,5 +1,6 @@
 /* Single entry single exit control flow regions.
-   Copyright (C) 2008, 2009  Free Software Foundation, Inc.
+   Copyright (C) 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Jan Sjodin <jan.sjodin@amd.com> and
    Sebastian Pop <sebastian.pop@amd.com>.
 
@@ -229,6 +230,7 @@ extern ifsese create_if_region_on_edge (edge, tree);
 extern ifsese move_sese_in_condition (sese);
 extern edge get_true_edge_from_guard_bb (basic_block);
 extern edge get_false_edge_from_guard_bb (basic_block);
+extern void set_ifsese_condition (ifsese, tree);
 
 static inline edge
 if_region_entry (ifsese if_region)
@@ -262,6 +264,8 @@ extern void debug_rename_map (htab_t);
 extern hashval_t rename_map_elt_info (const void *);
 extern int eq_rename_map_elts (const void *, const void *);
 extern void set_rename (htab_t, tree, tree);
+extern void rename_nb_iterations (htab_t);
+extern void rename_sese_parameters (htab_t, sese);
 
 /* Constructs a new SCEV_INFO_STR structure for VAR and INSTANTIATED_BELOW.  */
 
@@ -342,14 +346,12 @@ typedef struct gimple_bb
   VEC (gimple, heap) *conditions;
   VEC (gimple, heap) *condition_cases;
   VEC (data_reference_p, heap) *data_refs;
-  htab_t cloog_iv_types;
 } *gimple_bb_p;
 
 #define GBB_BB(GBB) GBB->bb
 #define GBB_DATA_REFS(GBB) GBB->data_refs
 #define GBB_CONDITIONS(GBB) GBB->conditions
 #define GBB_CONDITION_CASES(GBB) GBB->condition_cases
-#define GBB_CLOOG_IV_TYPES(GBB) GBB->cloog_iv_types
 
 /* Return the innermost loop that contains the basic block GBB.  */
 
@@ -387,8 +389,5 @@ nb_common_loops (sese region, gimple_bb_p gbb1, gimple_bb_p gbb2)
 
   return sese_loop_depth (region, common);
 }
-
-extern void print_gimple_bb (FILE *, gimple_bb_p, int, int);
-extern void debug_gbb (gimple_bb_p, int);
 
 #endif

@@ -1,6 +1,6 @@
 /* Data References Analysis and Manipulation Utilities for Vectorization.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software
-   Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
    and Ira Rosen <irar@il.ibm.com>
 
@@ -294,7 +294,7 @@ vect_update_interleaving_chain (struct data_reference *drb,
 static bool
 vect_equal_offsets (tree offset1, tree offset2)
 {
-  bool res0, res1;
+  bool res;
 
   STRIP_NOPS (offset1);
   STRIP_NOPS (offset2);
@@ -303,16 +303,19 @@ vect_equal_offsets (tree offset1, tree offset2)
     return true;
 
   if (TREE_CODE (offset1) != TREE_CODE (offset2)
-      || !BINARY_CLASS_P (offset1)
-      || !BINARY_CLASS_P (offset2))
+      || (!BINARY_CLASS_P (offset1) && !UNARY_CLASS_P (offset1)))
     return false;
 
-  res0 = vect_equal_offsets (TREE_OPERAND (offset1, 0),
-			     TREE_OPERAND (offset2, 0));
-  res1 = vect_equal_offsets (TREE_OPERAND (offset1, 1),
-			     TREE_OPERAND (offset2, 1));
+  res = vect_equal_offsets (TREE_OPERAND (offset1, 0),
+			    TREE_OPERAND (offset2, 0));
 
-  return (res0 && res1);
+  if (!res || !BINARY_CLASS_P (offset1))
+    return res;
+
+  res = vect_equal_offsets (TREE_OPERAND (offset1, 1),
+			    TREE_OPERAND (offset2, 1));
+
+  return res;
 }
 
 
@@ -1857,6 +1860,7 @@ vect_analyze_data_refs (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo)
   VEC (data_reference_p, heap) *datarefs;
   struct data_reference *dr;
   tree scalar_type;
+  bool res;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "=== vect_analyze_data_refs ===\n");
@@ -1864,17 +1868,34 @@ vect_analyze_data_refs (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo)
   if (loop_vinfo)
     {
       loop = LOOP_VINFO_LOOP (loop_vinfo);
-      compute_data_dependences_for_loop (loop, true,
-                                         &LOOP_VINFO_DATAREFS (loop_vinfo),
-                                         &LOOP_VINFO_DDRS (loop_vinfo));
+      res = compute_data_dependences_for_loop
+	(loop, true, &LOOP_VINFO_DATAREFS (loop_vinfo),
+	 &LOOP_VINFO_DDRS (loop_vinfo));
+
+      if (!res)
+	{
+	  if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
+	    fprintf (vect_dump, "not vectorized: loop contains function calls"
+		     " or data references that cannot be analyzed");
+	  return false;
+	}
+
       datarefs = LOOP_VINFO_DATAREFS (loop_vinfo);
     }
   else
     {
       bb = BB_VINFO_BB (bb_vinfo);
-      compute_data_dependences_for_bb (bb, true,
-                                       &BB_VINFO_DATAREFS (bb_vinfo),
-                                       &BB_VINFO_DDRS (bb_vinfo));
+      res = compute_data_dependences_for_bb (bb, true,
+					     &BB_VINFO_DATAREFS (bb_vinfo),
+					     &BB_VINFO_DDRS (bb_vinfo));
+      if (!res)
+	{
+	  if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
+	    fprintf (vect_dump, "not vectorized: basic block contains function"
+		     " calls or data references that cannot be analyzed");
+	  return false;
+	}
+
       datarefs = BB_VINFO_DATAREFS (bb_vinfo);
     }
 

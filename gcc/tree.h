@@ -1,6 +1,6 @@
 /* Front-end tree definitions for GNU compiler.
    Copyright (C) 1989, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -2251,16 +2251,18 @@ extern enum machine_mode vector_type_mode (const_tree);
 #define TYPE_NEEDS_CONSTRUCTING(NODE) \
   (TYPE_CHECK (NODE)->type.needs_constructing_flag)
 
-/* Indicates that objects of this type (a UNION_TYPE), should be passed
-   the same way that the first union alternative would be passed.  */
-#define TYPE_TRANSPARENT_UNION(NODE)  \
-  (UNION_TYPE_CHECK (NODE)->type.transparent_union_flag)
+/* Indicates that a UNION_TYPE object should be passed the same way that
+   the first union alternative would be passed, or that a RECORD_TYPE
+   object should be passed the same way that the first (and only) member
+   would be passed.  */
+#define TYPE_TRANSPARENT_AGGR(NODE) \
+  (RECORD_OR_UNION_CHECK (NODE)->type.transparent_aggr_flag)
 
 /* For an ARRAY_TYPE, indicates that it is not permitted to take the
    address of a component of the type.  This is the counterpart of
    DECL_NONADDRESSABLE_P for arrays, see the definition of this flag.  */
 #define TYPE_NONALIASED_COMPONENT(NODE) \
-  (ARRAY_TYPE_CHECK (NODE)->type.transparent_union_flag)
+  (ARRAY_TYPE_CHECK (NODE)->type.transparent_aggr_flag)
 
 /* Indicated that objects of this type should be laid out in as
    compact a way as possible.  */
@@ -2285,7 +2287,7 @@ struct GTY(()) tree_type {
   unsigned int precision : 10;
   unsigned no_force_blk_flag : 1;
   unsigned needs_constructing_flag : 1;
-  unsigned transparent_union_flag : 1;
+  unsigned transparent_aggr_flag : 1;
   unsigned restrict_flag : 1;
   unsigned contains_placeholder_bits : 2;
 
@@ -2634,7 +2636,7 @@ struct GTY(()) tree_decl_minimal {
    || TREE_CODE (DECL_CONTEXT (EXP)) == TRANSLATION_UNIT_DECL)
 
 /* Nonzero for a decl that is decorated using attribute used.
-   This indicates compiler tools that this decl needs to be preserved.  */
+   This indicates to compiler tools that this decl needs to be preserved.  */
 #define DECL_PRESERVE_P(DECL) \
   DECL_COMMON_CHECK (DECL)->decl_common.preserve_flag
 
@@ -4360,6 +4362,10 @@ extern int list_length (const_tree);
 
 extern int fields_length (const_tree);
 
+/* Returns the first FIELD_DECL in a type.  */
+
+extern tree first_field (const_tree);
+
 /* Given an initializer INIT, return TRUE if INIT is zero or some
    aggregate of zeros.  Otherwise return FALSE.  */
 
@@ -4714,6 +4720,8 @@ extern tree build_low_bits_mask (tree, unsigned);
 extern tree tree_strip_nop_conversions (tree);
 extern tree tree_strip_sign_nop_conversions (tree);
 extern tree lhd_gcc_personality (void);
+extern void assign_assembler_name_if_neeeded (tree);
+
 
 /* In cgraph.c */
 extern void change_decl_assembler_name (tree, tree);
@@ -5123,6 +5131,7 @@ extern unsigned int update_alignment_for_field (record_layout_info, tree,
                                                 unsigned int);
 /* varasm.c */
 extern void make_decl_rtl (tree);
+extern rtx make_decl_rtl_for_debug (tree);
 extern void make_decl_one_only (tree, tree);
 extern int supports_one_only (void);
 extern void resolve_unique_section (tree, int, int);

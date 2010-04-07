@@ -1,7 +1,7 @@
 /* Data structures and declarations used for reading and writing
    GIMPLE to a file stream.
 
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Doug Kwan <dougkwan@google.com>
 
 This file is part of GCC.
@@ -216,6 +216,9 @@ enum LTO_tags
 
   /* Special for global streamer. Reference to previously-streamed node.  */
   LTO_tree_pickle_reference,
+
+  /* A decl which exists only to provide an extra symbol for another var.  */
+  LTO_var_decl_alias,
 
   /* References to indexable tree nodes.  These objects are stored in
      tables that are written separately from the function bodies that

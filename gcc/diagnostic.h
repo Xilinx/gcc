@@ -1,6 +1,6 @@
 /* Various declarations for language-independent diagnostics subroutines.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
-   Free Software Foundation, Inc.
+   2010, Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@codesourcery.com>
 
 This file is part of GCC.
@@ -113,7 +113,16 @@ struct diagnostic_context
   const struct line_map *last_module;
 
   int lock;
+
+  bool inhibit_notes_p;
 };
+
+static inline void
+diagnostic_inhibit_notes (diagnostic_context * context)
+{
+  context->inhibit_notes_p = true;
+}
+
 
 /* Client supplied function to announce a diagnostic.  */
 #define diagnostic_starter(DC) (DC)->begin_diagnostic

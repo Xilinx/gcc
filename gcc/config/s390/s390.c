@@ -1,6 +1,6 @@
 /* Subroutines used for code generation on IBM S/390 and zSeries
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009 Free Software Foundation, Inc.
+   2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Hartmut Penner (hpenner@de.ibm.com) and
                   Ulrich Weigand (uweigand@de.ibm.com) and
                   Andreas Krebbel (Andreas.Krebbel@de.ibm.com).
@@ -1639,6 +1639,9 @@ override_options (void)
   if (s390_tune == PROCESSOR_2097_Z10
       && !PARAM_SET_P (PARAM_MAX_UNROLLED_INSNS))
     set_param_value ("max-unrolled-insns", 100);
+
+  set_param_value ("max-pending-list-length", 256);
+
 }
 
 /* Map for smallest class containing reg regno.  */
@@ -4759,8 +4762,10 @@ s390_mangle_type (const_tree type)
 static rtx
 s390_delegitimize_address (rtx orig_x)
 {
-  rtx x = orig_x, y;
+  rtx x, y;
 
+  orig_x = delegitimize_mem_from_attrs (orig_x);
+  x = orig_x;
   if (GET_CODE (x) != MEM)
     return orig_x;
 
@@ -7797,16 +7802,35 @@ s390_emit_prologue (void)
 	    }
 	  else
 	    {
-	      HOST_WIDE_INT stack_check_mask = ((s390_stack_size - 1)
-						& ~(stack_guard - 1));
-	      rtx t = gen_rtx_AND (Pmode, stack_pointer_rtx,
-				   GEN_INT (stack_check_mask));
-	      if (TARGET_64BIT)
-	        emit_insn (gen_ctrapdi4 (gen_rtx_EQ (VOIDmode, t, const0_rtx),
-				         t, const0_rtx, const0_rtx));
+	      /* stack_guard has to be smaller than s390_stack_size.
+		 Otherwise we would emit an AND with zero which would
+		 not match the test under mask pattern.  */
+	      if (stack_guard >= s390_stack_size)
+		{
+		  warning (0, "frame size of function %qs is "
+			   HOST_WIDE_INT_PRINT_DEC
+			   " bytes which is more than half the stack size. "
+			   "The dynamic check would not be reliable. "
+			   "No check emitted for this function.",
+			   current_function_name(),
+			   cfun_frame_layout.frame_size);
+		}
 	      else
-	        emit_insn (gen_ctrapsi4 (gen_rtx_EQ (VOIDmode, t, const0_rtx),
-				         t, const0_rtx, const0_rtx));
+		{
+		  HOST_WIDE_INT stack_check_mask = ((s390_stack_size - 1)
+						    & ~(stack_guard - 1));
+
+		  rtx t = gen_rtx_AND (Pmode, stack_pointer_rtx,
+				       GEN_INT (stack_check_mask));
+		  if (TARGET_64BIT)
+		    emit_insn (gen_ctrapdi4 (gen_rtx_EQ (VOIDmode,
+							 t, const0_rtx),
+					     t, const0_rtx, const0_rtx));
+		  else
+		    emit_insn (gen_ctrapsi4 (gen_rtx_EQ (VOIDmode,
+							 t, const0_rtx),
+					     t, const0_rtx, const0_rtx));
+		}
 	    }
   	}
 
@@ -9025,6 +9049,9 @@ s390_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
   rtx op[10];
   int nonlocal = 0;
 
+  /* Make sure unwind info is emitted for the thunk if needed.  */
+  final_start_function (emit_barrier (), file, 1);
+
   /* Operand 0 is the target function.  */
   op[0] = XEXP (DECL_RTL (function), 0);
   if (flag_pic && !SYMBOL_REF_LOCAL_P (op[0]))
@@ -9274,6 +9301,7 @@ s390_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
 	  output_asm_insn (".long\t%3", op);
 	}
     }
+  final_end_function ();
 }
 
 static bool
@@ -10155,6 +10183,14 @@ s390_sched_variable_issue (FILE *file ATTRIBUTE_UNUSED,
     return more;
 }
 
+static void
+s390_sched_init (FILE *file ATTRIBUTE_UNUSED,
+		 int verbose ATTRIBUTE_UNUSED,
+		 int max_ready ATTRIBUTE_UNUSED)
+{
+  last_scheduled_insn = NULL_RTX;
+}
+
 /* Initialize GCC target structure.  */
 
 #undef  TARGET_ASM_ALIGNED_HI_OP
@@ -10215,6 +10251,8 @@ s390_sched_variable_issue (FILE *file ATTRIBUTE_UNUSED,
 #define TARGET_SCHED_VARIABLE_ISSUE s390_sched_variable_issue
 #undef TARGET_SCHED_REORDER
 #define TARGET_SCHED_REORDER s390_sched_reorder
+#undef TARGET_SCHED_INIT
+#define TARGET_SCHED_INIT s390_sched_init
 
 #undef TARGET_CANNOT_COPY_INSN_P
 #define TARGET_CANNOT_COPY_INSN_P s390_cannot_copy_insn_p

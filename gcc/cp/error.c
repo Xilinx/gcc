@@ -78,14 +78,12 @@ static void dump_global_iord (tree);
 static void dump_parameters (tree, int);
 static void dump_exception_spec (tree, int);
 static void dump_template_argument (tree, int);
-static void dump_template_argument_list (tree, tree, int);
+static void dump_template_argument_list (tree, int);
 static void dump_template_parameter (tree, int);
 static void dump_template_bindings (tree, tree, VEC(tree,gc) *);
 static void dump_scope (tree, int);
 static void dump_template_parms (tree, int, int);
-
-static int count_non_default_template_args (tree, tree, int);
-
+static int get_non_default_template_args_count (tree, int);
 static const char *function_category (tree);
 static void maybe_print_instantiation_context (diagnostic_context *);
 static void print_instantiation_full_context (diagnostic_context *);
@@ -147,7 +145,7 @@ static void
 dump_template_argument (tree arg, int flags)
 {
   if (ARGUMENT_PACK_P (arg))
-    dump_template_argument_list (ARGUMENT_PACK_ARGS (arg), NULL_TREE, flags);
+    dump_template_argument_list (ARGUMENT_PACK_ARGS (arg), flags);
   else if (TYPE_P (arg) || TREE_CODE (arg) == TEMPLATE_DECL)
     dump_type (arg, flags & ~TFF_CLASS_KEY_OR_ENUM);
   else
@@ -163,52 +161,29 @@ dump_template_argument (tree arg, int flags)
    match the (optional) default template parameter in PARAMS  */
 
 static int
-count_non_default_template_args (tree args, tree params, int flags)
+get_non_default_template_args_count (tree args, int flags)
 {
-  tree inner_args = INNERMOST_TEMPLATE_ARGS (args);
-  int n = TREE_VEC_LENGTH (inner_args);
-  int last;
+  int n = TREE_VEC_LENGTH (INNERMOST_TEMPLATE_ARGS (args));
 
-  if (params == NULL_TREE
-      /* We use this flag when generating debug information.  We don't
+  if (/* We use this flag when generating debug information.  We don't
 	 want to expand templates at this point, for this may generate
 	 new decls, which gets decl counts out of sync, which may in
 	 turn cause codegen differences between compilations with and
 	 without -g.  */
-      || (flags & TFF_NO_OMIT_DEFAULT_TEMPLATE_ARGUMENTS) != 0
+      (flags & TFF_NO_OMIT_DEFAULT_TEMPLATE_ARGUMENTS) != 0
       || !flag_pretty_templates)
     return n;
 
-  for (last = n - 1; last >= 0; --last)
-    {
-      tree param = TREE_VEC_ELT (params, last);
-      tree def = TREE_PURPOSE (param);
-
-      if (!def)
-        break;
-      if (uses_template_parms (def))
-	{
-	  ++processing_template_decl;
-	  /* This speculative substitution must not cause any classes to be
-	     instantiated that otherwise wouldn't be.  */
-	  def = tsubst_copy_and_build (def, args, tf_no_class_instantiations,
-				       NULL_TREE, false, true);
-	  --processing_template_decl;
-	}
-      if (!cp_tree_equal (TREE_VEC_ELT (inner_args, last), def))
-        break;
-    }
-
-  return last + 1;
+  return GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (INNERMOST_TEMPLATE_ARGS (args));
 }
 
 /* Dump a template-argument-list ARGS (always a TREE_VEC) under control
    of FLAGS.  */
 
 static void
-dump_template_argument_list (tree args, tree parms, int flags)
+dump_template_argument_list (tree args, int flags)
 {
-  int n = count_non_default_template_args (args, parms, flags);
+  int n = get_non_default_template_args_count (args, flags);
   int need_comma = 0;
   int i;
 
@@ -422,7 +397,7 @@ dump_type (tree t, int flags)
 	pp_cxx_cv_qualifier_seq (cxx_pp, t);
 	pp_cxx_tree_identifier (cxx_pp, TYPE_IDENTIFIER (t));
 	pp_cxx_begin_template_argument_list (cxx_pp);
-	dump_template_argument_list (args, NULL_TREE, flags);
+	dump_template_argument_list (args, flags);
 	pp_cxx_end_template_argument_list (cxx_pp);
       }
       break;
@@ -1041,7 +1016,7 @@ dump_decl (tree t, int flags)
 	dump_decl (name, flags);
 	pp_cxx_begin_template_argument_list (cxx_pp);
 	if (TREE_OPERAND (t, 1))
-	  dump_template_argument_list (TREE_OPERAND (t, 1), NULL_TREE, flags);
+	  dump_template_argument_list (TREE_OPERAND (t, 1), flags);
 	pp_cxx_end_template_argument_list (cxx_pp);
       }
       break;
@@ -1487,12 +1462,7 @@ dump_template_parms (tree info, int primary, int flags)
   if (args && !primary)
     {
       int len, ix;
-      /* We don't know the parms for a friend template specialization.  */
-      tree params = (TREE_CODE (TI_TEMPLATE (info)) == TEMPLATE_DECL
-		     ? DECL_INNERMOST_TEMPLATE_PARMS (TI_TEMPLATE (info))
-		     : NULL_TREE);
-
-      len = count_non_default_template_args (args, params, flags);
+      len = get_non_default_template_args_count (args, flags);
 
       args = INNERMOST_TEMPLATE_ARGS (args);
       for (ix = 0; ix != len; ix++)
@@ -2758,36 +2728,89 @@ print_instantiation_full_context (diagnostic_context *context)
   print_instantiation_partial_context (context, p, location);
 }
 
-/* Same as above but less verbose.  */
+/* Helper function of print_instantiation_partial_context() that
+   prints a single line of instantiation context.  */
+
 static void
-print_instantiation_partial_context (diagnostic_context *context,
-				     struct tinst_level *t, location_t loc)
+print_instantiation_partial_context_line (diagnostic_context *context,
+					  const struct tinst_level *t, location_t loc)
 {
   expanded_location xloc;
-  const char *str;
-  for (; ; t = t->next)
+  xloc = expand_location (loc);
+
+  if (t != NULL) {
+    const char *str;
+    str = decl_as_string_translate (t->decl,
+				    TFF_DECL_SPECIFIERS | TFF_RETURN_TYPE);
+    if (flag_show_column)
+      pp_verbatim (context->printer,
+		   _("%s:%d:%d:   instantiated from %qs\n"),
+		   xloc.file, xloc.line, xloc.column, str);
+    else
+      pp_verbatim (context->printer,
+		   _("%s:%d:   instantiated from %qs\n"),
+		   xloc.file, xloc.line, str);
+  } else {
+    if (flag_show_column)
+      pp_verbatim (context->printer, _("%s:%d:%d:   instantiated from here"),
+		   xloc.file, xloc.line, xloc.column);
+    else
+      pp_verbatim (context->printer, _("%s:%d:   instantiated from here"),
+		   xloc.file, xloc.line);
+  }
+}
+
+/* Same as print_instantiation_full_context but less verbose.  */
+
+static void
+print_instantiation_partial_context (diagnostic_context *context,
+				     struct tinst_level *t0, location_t loc)
+{
+  struct tinst_level *t;
+  int n_total = 0;
+  int n;
+
+  for (t = t0; t != NULL; t = t->next)
+    n_total++;
+
+  t = t0;
+
+  if (n_total >= 12) 
     {
-      xloc = expand_location (loc);
-      if (t == NULL)
-	break;
-      str = decl_as_string_translate (t->decl,
-	  			      TFF_DECL_SPECIFIERS | TFF_RETURN_TYPE);
-      if (flag_show_column)
-	pp_verbatim (context->printer,
-		     _("%s:%d:%d:   instantiated from %qs\n"),
-		     xloc.file, xloc.line, xloc.column, str);
-      else
-	pp_verbatim (context->printer,
-		     _("%s:%d:   instantiated from %qs\n"),
-		     xloc.file, xloc.line, str);
+      int skip = n_total - 10;
+      for (n = 0; n < 5; n++)
+	{
+	  gcc_assert (t != NULL);
+	  print_instantiation_partial_context_line (context, t, loc);
+	  loc = t->locus;
+	  t = t->next;
+	}
+      if (skip > 1) 
+	{
+	  expanded_location xloc;
+	  xloc = expand_location (loc);
+	  if (flag_show_column)
+	    pp_verbatim (context->printer,
+			 _("%s:%d:%d:   [ skipping %d instantiation contexts ]\n"),
+			 xloc.file, xloc.line, xloc.column, skip);
+	  else
+	    pp_verbatim (context->printer,
+			 _("%s:%d:   [ skipping %d instantiation contexts ]\n"),
+			 xloc.file, xloc.line, skip);
+	  
+	  do {
+	      loc = t->locus;
+	      t = t->next;
+	  } while (--skip > 0);
+	}
+    }
+  
+  for (; t != NULL; t = t->next)
+    {
+      print_instantiation_partial_context_line (context, t, loc);
       loc = t->locus;
     }
-  if (flag_show_column)
-    pp_verbatim (context->printer, _("%s:%d:%d:   instantiated from here"),
-		 xloc.file, xloc.line, xloc.column);
-  else
-    pp_verbatim (context->printer, _("%s:%d:   instantiated from here"),
-		 xloc.file, xloc.line);
+  print_instantiation_partial_context_line (context, NULL, loc);
   pp_base_newline (context->printer);
 }
 

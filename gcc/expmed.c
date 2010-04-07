@@ -1,7 +1,7 @@
 /* Medium-level subroutines: convert bit-field store and extract
    and shifts, multiplies and divides to rtl instructions.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -698,7 +698,7 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	   and we will need the original value of op0 if insv fails.  */
 	xop0 = gen_rtx_SUBREG (op_mode, SUBREG_REG (xop0), SUBREG_BYTE (xop0));
       if (REG_P (xop0) && GET_MODE (xop0) != op_mode)
-	xop0 = gen_rtx_SUBREG (op_mode, xop0, 0);
+	xop0 = gen_lowpart_SUBREG (op_mode, xop0);
 
       /* If the destination is a paradoxical subreg such that we need a
 	 truncate to the inner mode, perform the insertion on a temporary and
@@ -1542,7 +1542,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
       /* If op0 is a register, we need it in EXT_MODE to make it
 	 acceptable to the format of ext(z)v.  */
       if (REG_P (xop0) && GET_MODE (xop0) != ext_mode)
-	xop0 = gen_rtx_SUBREG (ext_mode, xop0, 0);
+	xop0 = gen_lowpart_SUBREG (ext_mode, xop0);
       if (MEM_P (xop0))
 	/* Get ref to first byte containing part of the field.  */
 	xop0 = adjust_address (xop0, byte_mode, xoffset);
@@ -4194,7 +4194,8 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 		else if (d == -1)
 		  quotient = expand_unop (compute_mode, neg_optab, op0,
 					  tquotient, 0);
-		else if (abs_d == (unsigned HOST_WIDE_INT) 1 << (size - 1))
+		else if (HOST_BITS_PER_WIDE_INT >= size
+			 && abs_d == (unsigned HOST_WIDE_INT) 1 << (size - 1))
 		  {
 		    /* This case is not handled correctly below.  */
 		    quotient = emit_store_flag (tquotient, EQ, op0, op1,
@@ -5791,7 +5792,7 @@ emit_store_flag_force (rtx target, enum rtx_code code, rtx op0, rtx op1,
     {
       label = gen_label_rtx ();
       do_compare_rtx_and_jump (target, const0_rtx, EQ, unsignedp,
-			       mode, NULL_RTX, NULL_RTX, label);
+			       mode, NULL_RTX, NULL_RTX, label, -1);
       emit_move_insn (target, trueval);
       emit_label (label);
       return target;
@@ -5829,7 +5830,7 @@ emit_store_flag_force (rtx target, enum rtx_code code, rtx op0, rtx op1,
   emit_move_insn (target, trueval);
   label = gen_label_rtx ();
   do_compare_rtx_and_jump (op0, op1, code, unsignedp, mode, NULL_RTX,
-			   NULL_RTX, label);
+			   NULL_RTX, label, -1);
 
   emit_move_insn (target, falseval);
   emit_label (label);
@@ -5847,5 +5848,5 @@ do_cmp_and_jump (rtx arg1, rtx arg2, enum rtx_code op, enum machine_mode mode,
 {
   int unsignedp = (op == LTU || op == LEU || op == GTU || op == GEU);
   do_compare_rtx_and_jump (arg1, arg2, op, unsignedp, mode,
-			   NULL_RTX, NULL_RTX, label);
+			   NULL_RTX, NULL_RTX, label, -1);
 }

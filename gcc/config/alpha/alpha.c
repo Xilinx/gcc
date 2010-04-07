@@ -1,6 +1,6 @@
 /* Subroutines used for code generation on the DEC Alpha.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -388,7 +388,7 @@ override_options (void)
 	    break;
 	  }
       if (i == ct_size)
-	error ("bad value %qs for -mcpu switch", alpha_tune_string);
+	error ("bad value %qs for -mtune switch", alpha_tune_string);
     }
 
   /* Do some sanity checks on the above options.  */
@@ -1474,6 +1474,10 @@ get_aligned_mem (rtx ref, rtx *paligned_mem, rtx *pbitnum)
     offset = 0;
   else
     offset = disp & 3;
+
+  /* The location should not cross aligned word boundary.  */
+  gcc_assert (offset + GET_MODE_SIZE (GET_MODE (ref))
+	      <= GET_MODE_SIZE (SImode));
 
   /* Access the entire aligned word.  */
   *paligned_mem = widen_memory_access (ref, SImode, -offset);

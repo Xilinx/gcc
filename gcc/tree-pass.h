@@ -1,5 +1,5 @@
 /* Definitions for describing one tree-ssa optimization pass.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>
 
@@ -226,6 +226,7 @@ struct dump_file_info
 #define PROP_rtl		(1 << 7)
 #define PROP_gimple_lomp	(1 << 8)	/* lowered OpenMP directives */
 #define PROP_cfglayout	 	(1 << 9)	/* cfglayout mode on RTL */
+#define PROP_gimple_lcx		(1 << 10)       /* lowered complex */
 
 #define PROP_trees \
   (PROP_gimple_any | PROP_gimple_lcf | PROP_gimple_leh | PROP_gimple_lomp)
@@ -237,7 +238,6 @@ struct dump_file_info
 #define TODO_verify_flow		(1 << 3)
 #define TODO_verify_stmts		(1 << 4)
 #define TODO_cleanup_cfg        	(1 << 5)
-#define TODO_verify_loops		(1 << 6)
 #define TODO_dump_cgraph		(1 << 7)
 #define TODO_remove_functions		(1 << 8)
 #define TODO_rebuild_frequencies	(1 << 9)
@@ -563,6 +563,27 @@ extern struct gimple_opt_pass pass_convert_switch;
 /* The root of the compilation pass tree, once constructed.  */
 extern struct opt_pass *all_passes, *all_small_ipa_passes, *all_lowering_passes,
                        *all_regular_ipa_passes, *all_lto_gen_passes;
+
+/* Define a list of pass lists so that both passes.c and plugins can easily
+   find all the pass lists.  */
+#define GCC_PASS_LISTS \
+  DEF_PASS_LIST (all_lowering_passes) \
+  DEF_PASS_LIST (all_small_ipa_passes) \
+  DEF_PASS_LIST (all_regular_ipa_passes) \
+  DEF_PASS_LIST (all_lto_gen_passes) \
+  DEF_PASS_LIST (all_passes)
+
+#define DEF_PASS_LIST(LIST) PASS_LIST_NO_##LIST,
+enum
+{
+  GCC_PASS_LISTS
+  PASS_LIST_NUM
+};
+#undef DEF_PASS_LIST
+
+/* This is used by plugins, and should also be used in
+   passes.c:register_pass.  */
+extern struct opt_pass **gcc_pass_lists[];
 
 /* Current optimization pass.  */
 extern struct opt_pass *current_pass;

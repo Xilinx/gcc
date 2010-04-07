@@ -1,5 +1,5 @@
 /* Gimple Represented as Polyhedra.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@inria.fr>
    and Tobias Grosser <grosser@fim.uni-passau.de>.
 
@@ -48,8 +48,10 @@ void ppl_set_inhomogeneous_gmp (ppl_Linear_Expression_t, Value);
 void ppl_set_coef_gmp (ppl_Linear_Expression_t, ppl_dimension_type, Value);
 void ppl_max_for_le_pointset (ppl_Pointset_Powerset_C_Polyhedron_t,
                               ppl_Linear_Expression_t, Value);
-void ppl_min_for_le_polyhedron (ppl_Polyhedron_t, ppl_Linear_Expression_t,
-				Value);
+void ppl_min_for_le_pointset (ppl_Pointset_Powerset_C_Polyhedron_t,
+			      ppl_Linear_Expression_t, Value);
+ppl_Constraint_t ppl_build_relation (int, int, int, int,
+				     enum ppl_enum_Constraint_Type);
 
 /* Assigns to RES the value of the INTEGER_CST T.  */
 

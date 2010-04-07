@@ -1,5 +1,5 @@
 @c Copyright (C) 1988, 1989, 1992, 1994, 1997, 1998, 1999, 2000, 2001, 2002,
-@c 2003, 2004, 2005, 2006, 2007, 2008
+@c 2003, 2004, 2005, 2006, 2007, 2008, 2010
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -2614,9 +2614,12 @@ a set bit indicates it is taken from @var{vec1}.
 @findex vec_select
 @item (vec_select:@var{m} @var{vec1} @var{selection})
 This describes an operation that selects parts of a vector.  @var{vec1} is
-the source vector, @var{selection} is a @code{parallel} that contains a
+the source vector, and @var{selection} is a @code{parallel} that contains a
 @code{const_int} for each of the subparts of the result vector, giving the
-number of the source subpart that should be stored into it.
+number of the source subpart that should be stored into it.  
+The result mode @var{m} is either the submode for a single element of
+@var{vec1} (if only one subpart is selected), or another vector mode 
+with that element submode (if multiple subparts are selected).
 
 @findex vec_concat
 @item (vec_concat:@var{m} @var{vec1} @var{vec2})
@@ -4056,5 +4059,5 @@ does not contain all the information about the program.
 
 The proper way to interface GCC to a new language front end is with
 the ``tree'' data structure, described in the files @file{tree.h} and
-@file{tree.def}.  The documentation for this structure (@pxref{Trees})
+@file{tree.def}.  The documentation for this structure (@pxref{GENERIC})
 is incomplete.

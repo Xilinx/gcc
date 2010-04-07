@@ -1,5 +1,5 @@
 /* Struct-reorg optimization.
-   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Olga Golovanevsky <olga@il.ibm.com>
    (Initial version of this code was developed
    by Caroline Tice and Mostafa Hagog.)
@@ -248,6 +248,32 @@ finalize_stmt_and_append (gimple_seq *stmts, gimple stmt)
   finalize_stmt (stmt);
 }
 
+/* This function returns true if two fields FIELD1 and FIELD2 are 
+   semantically equal, and false otherwise.  */
+
+static bool
+compare_fields (tree field1, tree field2)
+{
+  if (DECL_NAME (field1) && DECL_NAME (field2))
+    {
+      const char *name1 = IDENTIFIER_POINTER (DECL_NAME (field1));
+      const char *name2 = IDENTIFIER_POINTER (DECL_NAME (field2));
+
+      gcc_assert (name1 && name2);
+
+      if (strcmp (name1, name2))
+	return false;
+	
+    }
+  else if (DECL_NAME (field1) || DECL_NAME (field2))
+    return false;
+
+  if (!is_equal_types (TREE_TYPE (field1), TREE_TYPE (field2)))
+    return false;
+
+  return true;
+}
+
 /* Given structure type SRT_TYPE and field FIELD,
    this function is looking for a field with the same name
    and type as FIELD in STR_TYPE. It returns it if found,
@@ -264,24 +290,12 @@ find_field_in_struct_1 (tree str_type, tree field)
   for (str_field = TYPE_FIELDS (str_type); str_field;
        str_field = TREE_CHAIN (str_field))
     {
-      const char *str_field_name;
-      const char *field_name;
 
       if (!DECL_NAME (str_field))
 	continue;
 
-      str_field_name = IDENTIFIER_POINTER (DECL_NAME (str_field));
-      field_name = IDENTIFIER_POINTER (DECL_NAME (field));
-
-      gcc_assert (str_field_name);
-      gcc_assert (field_name);
-
-      if (!strcmp (str_field_name, field_name))
-	{
-	  /* Check field types.  */
-	  if (is_equal_types (TREE_TYPE (str_field), TREE_TYPE (field)))
-	    return str_field;
-	}
+      if (compare_fields (field, str_field))
+	return str_field;
     }
 
   return NULL_TREE;
@@ -433,9 +447,7 @@ decompose_access (tree str_decl, struct field_access_site *acc)
 static inline struct field_access_site *
 make_field_acc_node (void)
 {
-  int size = sizeof (struct field_access_site);
-
-  return (struct field_access_site *) xcalloc (1, size);
+  return XCNEW (struct field_access_site);
 }
 
 /* This function returns the structure field access, defined by STMT,
@@ -481,15 +493,18 @@ add_access_to_acc_sites (gimple stmt, tree var, htab_t accs)
      {
        void **slot;
 
-       acc = (struct access_site *) xmalloc (sizeof (struct access_site));
+       acc = XNEW (struct access_site);
        acc->stmt = stmt;
-       acc->vars = VEC_alloc (tree, heap, 10);
+       if (!is_gimple_debug (stmt))
+	 acc->vars = VEC_alloc (tree, heap, 10);
+       else
+	 acc->vars = NULL;
        slot = htab_find_slot_with_hash (accs, stmt,
 					htab_hash_pointer (stmt), INSERT);
        *slot = acc;
-
      }
-   VEC_safe_push (tree, heap, acc->vars, var);
+   if (!is_gimple_debug (stmt))
+     VEC_safe_push (tree, heap, acc->vars, var);
 }
 
 /* This function adds NEW_DECL to function
@@ -1369,6 +1384,14 @@ create_new_general_access (struct access_site *acc, d_str str)
       create_new_stmts_for_cond_expr (stmt);
       break;
 
+    case GIMPLE_DEBUG:
+      /* It is very hard to maintain usable debug info after struct peeling,
+	 for now just reset all debug stmts referencing objects that have
+	 been peeled.  */
+      gimple_debug_bind_reset_value (stmt);
+      update_stmt (stmt);
+      break;
+
     default:
       create_new_stmts_for_general_acc (acc, str);
     }
@@ -1596,11 +1619,8 @@ is_equal_types (tree type1, tree type2)
   name1 = get_type_name (type1);
   name2 = get_type_name (type2);
 
-  if (name1 && name2 && !strcmp (name1, name2))
-    return true;
-
-  if (name1 && name2 && strcmp (name1, name2))
-    return false;
+  if (name1 && name2)
+    return strcmp (name1, name2) == 0;
 
   switch (TREE_CODE (type1))
     {
@@ -1616,16 +1636,20 @@ is_equal_types (tree type1, tree type2)
     case QUAL_UNION_TYPE:
     case ENUMERAL_TYPE:
       {
-	tree field1;
+	tree field1, field2;
+
 	/* Compare fields of structure.  */
-	for (field1 = TYPE_FIELDS (type1); field1;
-	     field1 = TREE_CHAIN (field1))
+	for (field1 = TYPE_FIELDS (type1), field2 = TYPE_FIELDS (type2);
+	     field1 && field2;
+	     field1 = TREE_CHAIN (field1), field2 = TREE_CHAIN (field2))
 	  {
-	    tree field2 = find_field_in_struct_1 (type2, field1);
-	    if (!field2)
+	    if (!compare_fields (field1, field2))
 	      return false;
 	  }
-	return true;
+	if (field1 || field2)
+	  return false;
+	else
+	  return true;
       }
       break;
 
@@ -1975,7 +1999,7 @@ create_new_var_node (tree var, d_str str)
 {
   new_var node;
 
-  node = (new_var) xmalloc (sizeof (struct new_var_data));
+  node = XNEW (struct new_var_data);
   node->orig_var = var;
   node->new_vars = VEC_alloc (tree, heap, VEC_length (tree, str->new_types));
   return node;
@@ -2316,8 +2340,7 @@ get_fields (tree struct_decl, int num_fields)
   tree t = TYPE_FIELDS (struct_decl);
   int idx = 0;
 
-  list =
-    (struct field_entry *) xmalloc (num_fields * sizeof (struct field_entry));
+  list = XNEWVEC (struct field_entry, num_fields);
 
   for (idx = 0 ; t; t = TREE_CHAIN (t), idx++)
     if (TREE_CODE (t) == FIELD_DECL)
@@ -2479,6 +2502,15 @@ get_stmt_accesses (tree *tp, int *walk_subtrees, void *data)
 
 	if (i != VEC_length (structure, structures))
 	  {
+	    if (is_gimple_debug (stmt))
+	      {
+		d_str str;
+
+		str = VEC_index (structure, structures, i);
+		add_access_to_acc_sites (stmt, NULL, str->accs);
+		*walk_subtrees = 0;
+		break;
+	      }
 	    if (dump_file)
 	      {
 		fprintf (dump_file, "\nThe type ");
@@ -2509,6 +2541,13 @@ get_stmt_accesses (tree *tp, int *walk_subtrees, void *data)
 		d_str str = VEC_index (structure, structures, i);
 		struct field_entry * field =
 		  find_field_in_struct (str, field_decl);
+
+		if (is_gimple_debug (stmt))
+		  {
+		    add_access_to_acc_sites (stmt, NULL, str->accs);
+		    *walk_subtrees = 0;
+		    break;
+		  }
 
 		if (field)
 		  {
@@ -2997,8 +3036,7 @@ add_alloc_site (tree fn_decl, gimple stmt, d_str str)
     {
       void **slot;
 
-      fallocs = (fallocs_t)
-	xmalloc (sizeof (struct func_alloc_sites));
+      fallocs = XNEW (struct func_alloc_sites);
       fallocs->func = fn_decl;
       fallocs->allocs = VEC_alloc (alloc_site_t, heap, 1);
       slot = htab_find_slot_with_hash (alloc_sites, fn_decl,
@@ -3153,10 +3191,8 @@ collect_accesses_in_bb (basic_block bb)
 static void
 gen_cluster (sbitmap fields, d_str str)
 {
-  struct field_cluster *crr_cluster = NULL;
+  struct field_cluster *crr_cluster = XCNEW (struct field_cluster);
 
-  crr_cluster =
-    (struct field_cluster *) xcalloc (1, sizeof (struct field_cluster));
   crr_cluster->sibling = str->struct_clustering;
   str->struct_clustering = crr_cluster;
   crr_cluster->fields_in_cluster = fields;
@@ -3167,10 +3203,8 @@ gen_cluster (sbitmap fields, d_str str)
 static void
 peel_field (int i, d_str ds)
 {
-  struct field_cluster *crr_cluster = NULL;
+  struct field_cluster *crr_cluster = XCNEW (struct field_cluster);
 
-  crr_cluster =
-    (struct field_cluster *) xcalloc (1, sizeof (struct field_cluster));
   crr_cluster->sibling = ds->struct_clustering;
   ds->struct_clustering = crr_cluster;
   crr_cluster->fields_in_cluster =

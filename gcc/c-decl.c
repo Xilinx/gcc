@@ -1,6 +1,6 @@
 /* Process declarations and variables for C compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -2387,6 +2387,10 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
     TREE_USED (newdecl) = 1;
   else if (TREE_USED (newdecl))
     TREE_USED (olddecl) = 1;
+  if (DECL_PRESERVE_P (olddecl))
+    DECL_PRESERVE_P (newdecl) = 1;
+  else if (DECL_PRESERVE_P (newdecl))
+    DECL_PRESERVE_P (olddecl) = 1;
 
   /* Copy most of the decl-specific fields of NEWDECL into OLDDECL.
      But preserve OLDDECL's DECL_UID, DECL_CONTEXT and
@@ -2945,11 +2949,10 @@ undeclared_variable (location_t loc, tree id)
   else
     {
       error_at (loc, "%qE undeclared (first use in this function)", id);
-
       if (!already)
 	{
-	  error_at (loc, "(Each undeclared identifier is reported only once");
-	  error_at (loc, "for each function it appears in.)");
+          inform (loc, "each undeclared identifier is reported only"
+                  " once for each function it appears in");
 	  already = true;
 	}
 
@@ -4459,7 +4462,8 @@ build_compound_literal (location_t loc, tree type, tree init, bool non_const)
   tree complit;
   tree stmt;
 
-  if (type == error_mark_node)
+  if (type == error_mark_node
+      || init == error_mark_node)
     return error_mark_node;
 
   decl = build_decl (loc, VAR_DECL, NULL_TREE, type);
@@ -4570,14 +4574,26 @@ check_bitfield_type_and_width (tree *type, tree *width, tree orig_name)
 
   /* Detect and ignore out of range field width and process valid
      field widths.  */
-  if (!INTEGRAL_TYPE_P (TREE_TYPE (*width))
-      || TREE_CODE (*width) != INTEGER_CST)
+  if (!INTEGRAL_TYPE_P (TREE_TYPE (*width)))
     {
       error ("bit-field %qs width not an integer constant", name);
       *width = integer_one_node;
     }
   else
     {
+      if (TREE_CODE (*width) != INTEGER_CST)
+	{
+	  *width = c_fully_fold (*width, false, NULL);
+	  if (TREE_CODE (*width) == INTEGER_CST)
+	    pedwarn (input_location, OPT_pedantic,
+		     "bit-field %qs width not an integer constant expression",
+		     name);
+	}
+      if (TREE_CODE (*width) != INTEGER_CST)
+	{
+	  error ("bit-field %qs width not an integer constant", name);
+	  *width = integer_one_node;
+	}
       constant_expression_warning (*width);
       if (tree_int_cst_sgn (*width) < 0)
 	{
@@ -5382,6 +5398,7 @@ grokdeclarator (const struct c_declarator *declarator,
 		    gcc_assert (itype);
 		    TYPE_SIZE (type) = bitsize_zero_node;
 		    TYPE_SIZE_UNIT (type) = size_zero_node;
+		    SET_TYPE_STRUCTURAL_EQUALITY (type);
 		  }
 		if (array_parm_vla_unspec_p)
 		  {
@@ -5389,6 +5406,7 @@ grokdeclarator (const struct c_declarator *declarator,
 		    /* The type is complete.  C99 6.7.5.2p4  */
 		    TYPE_SIZE (type) = bitsize_zero_node;
 		    TYPE_SIZE_UNIT (type) = size_zero_node;
+		    SET_TYPE_STRUCTURAL_EQUALITY (type);
 		  }
 	      }
 
@@ -6100,6 +6118,7 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
 
 		  TREE_VALUE (typelt) = error_mark_node;
 		  TREE_TYPE (parm) = error_mark_node;
+		  arg_types = NULL_TREE;
 		}
 	      else if (VOID_TYPE_P (type))
 		{
@@ -6120,6 +6139,7 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
 	      error (errmsg);
 	      TREE_VALUE (typelt) = error_mark_node;
 	      TREE_TYPE (parm) = error_mark_node;
+	      arg_types = NULL_TREE;
 	    }
 
 	  if (DECL_NAME (parm) && TREE_USED (parm))
@@ -6283,6 +6303,11 @@ get_parm_info (bool ellipsis)
 	     type itself.  FUNCTION_DECLs appear when there is an implicit
 	     function declaration in the parameter list.  */
 
+	  /* When we reinsert this decl in the function body, we need
+	     to reconstruct whether it was marked as nested.  */
+	  gcc_assert (TREE_CODE (decl) == FUNCTION_DECL
+		      ? b->nested
+		      : !b->nested);
 	  TREE_CHAIN (decl) = others;
 	  others = decl;
 	  /* fall through */
@@ -6939,10 +6964,10 @@ finish_struct (location_t loc, tree t, tree fieldlist, tree attributes,
   /* If this was supposed to be a transparent union, but we can't
      make it one, warn and turn off the flag.  */
   if (TREE_CODE (t) == UNION_TYPE
-      && TYPE_TRANSPARENT_UNION (t)
+      && TYPE_TRANSPARENT_AGGR (t)
       && (!TYPE_FIELDS (t) || TYPE_MODE (t) != DECL_MODE (TYPE_FIELDS (t))))
     {
-      TYPE_TRANSPARENT_UNION (t) = 0;
+      TYPE_TRANSPARENT_AGGR (t) = 0;
       warning_at (loc, 0, "union cannot be made transparent");
     }
 
@@ -7604,7 +7629,9 @@ store_parm_decls_newstyle (tree fndecl, const struct c_arg_info *arg_info)
       DECL_CONTEXT (decl) = current_function_decl;
       if (DECL_NAME (decl))
 	bind (DECL_NAME (decl), decl, current_scope,
-	      /*invisible=*/false, /*nested=*/false, UNKNOWN_LOCATION);
+	      /*invisible=*/false,
+	      /*nested=*/(TREE_CODE (decl) == FUNCTION_DECL),
+	      UNKNOWN_LOCATION);
     }
 
   /* And all the tag declarations.  */
@@ -8018,6 +8045,8 @@ finish_function (void)
       && !current_function_returns_value && !current_function_returns_null
       /* Don't complain if we are no-return.  */
       && !current_function_returns_abnormally
+      /* Don't complain if we are declared noreturn.  */
+      && !TREE_THIS_VOLATILE (fndecl)
       /* Don't warn for main().  */
       && !MAIN_NAME_P (DECL_NAME (fndecl))
       /* Or if they didn't actually specify a return type.  */
@@ -8052,6 +8081,7 @@ finish_function (void)
     {
       if (!decl_function_context (fndecl))
 	{
+	  invoke_plugin_callbacks (PLUGIN_PRE_GENERICIZE, fndecl);
 	  c_genericize (fndecl);
 
 	  /* ??? Objc emits functions after finalizing the compilation unit.

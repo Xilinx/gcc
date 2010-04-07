@@ -1,5 +1,6 @@
 /* Routines for discovering and unpropagating edge equivalences.
-   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -456,7 +457,7 @@ uncprop_into_successor_phis (basic_block bb)
 
       /* If there are no PHI nodes in this destination, then there is
 	 no sense in recording any equivalences.  */
-      if (!phis)
+      if (gimple_seq_empty_p (phis))
 	continue;
 
       /* Record any equivalency associated with E.  */

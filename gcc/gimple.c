@@ -1,6 +1,6 @@
 /* Gimple IR support functions.
 
-   Copyright 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Aldy Hernandez <aldyh@redhat.com>
 
 This file is part of GCC.
@@ -1297,7 +1297,7 @@ walk_gimple_asm (gimple stmt, walk_tree_fn callback_op,
    The return value is that returned by the last call to walk_tree, or
    NULL_TREE if no CALLBACK_OP is specified.  */
 
-inline tree
+tree
 walk_gimple_op (gimple stmt, walk_tree_fn callback_op,
 		struct walk_stmt_info *wi)
 {
@@ -1832,54 +1832,6 @@ gimple_set_bb (gimple stmt, basic_block bb)
 
       VEC_replace (basic_block, label_to_block_map, uid, bb);
     }
-}
-
-
-/* Fold the expression computed by STMT.  If the expression can be
-   folded, return the folded result, otherwise return NULL.  STMT is
-   not modified.  */
-
-tree
-gimple_fold (const_gimple stmt)
-{
-  location_t loc = gimple_location (stmt);
-  switch (gimple_code (stmt))
-    {
-    case GIMPLE_COND:
-      return fold_binary_loc (loc, gimple_cond_code (stmt),
-			  boolean_type_node,
-			  gimple_cond_lhs (stmt),
-			  gimple_cond_rhs (stmt));
-
-    case GIMPLE_ASSIGN:
-      switch (get_gimple_rhs_class (gimple_assign_rhs_code (stmt)))
-	{
-	case GIMPLE_UNARY_RHS:
-	  return fold_unary_loc (loc, gimple_assign_rhs_code (stmt),
-			     TREE_TYPE (gimple_assign_lhs (stmt)),
-			     gimple_assign_rhs1 (stmt));
-	case GIMPLE_BINARY_RHS:
-	  return fold_binary_loc (loc, gimple_assign_rhs_code (stmt),
-			      TREE_TYPE (gimple_assign_lhs (stmt)),
-			      gimple_assign_rhs1 (stmt),
-			      gimple_assign_rhs2 (stmt));
-	case GIMPLE_SINGLE_RHS:
-	  return fold (gimple_assign_rhs1 (stmt));
-	default:;
-	}
-      break;
-
-    case GIMPLE_SWITCH:
-      return gimple_switch_index (stmt);
-
-    case GIMPLE_CALL:
-      return NULL_TREE;
-
-    default:
-      break;
-    }
-
-  gcc_unreachable ();
 }
 
 
@@ -3171,7 +3123,7 @@ compare_type_names_p (tree t1, tree t2, bool for_completion_p)
 
 /* Return true if the field decls F1 and F2 are at the same offset.  */
 
-static bool
+bool
 compare_field_offset (tree f1, tree f2)
 {
   if (DECL_OFFSET_ALIGN (f1) == DECL_OFFSET_ALIGN (f2))
@@ -3707,8 +3659,12 @@ iterative_hash_gimple_type (tree type, hashval_t val,
   /* For integer types hash the types min/max values and the string flag.  */
   if (TREE_CODE (type) == INTEGER_TYPE)
     {
-      v = iterative_hash_expr (TYPE_MIN_VALUE (type), v);
-      v = iterative_hash_expr (TYPE_MAX_VALUE (type), v);
+      /* OMP lowering can introduce error_mark_node in place of
+	 random local decls in types.  */
+      if (TYPE_MIN_VALUE (type) != error_mark_node)
+	v = iterative_hash_expr (TYPE_MIN_VALUE (type), v);
+      if (TYPE_MAX_VALUE (type) != error_mark_node)
+	v = iterative_hash_expr (TYPE_MAX_VALUE (type), v);
       v = iterative_hash_hashval_t (TYPE_STRING_FLAG (type), v);
     }
 

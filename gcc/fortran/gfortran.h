@@ -1,5 +1,6 @@
 /* gfortran header file
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -213,9 +214,9 @@ typedef enum
   ST_END_FILE, ST_FINAL, ST_FLUSH, ST_END_FORALL, ST_END_FUNCTION, ST_ENDIF,
   ST_END_INTERFACE, ST_END_MODULE, ST_END_PROGRAM, ST_END_SELECT,
   ST_END_SUBROUTINE, ST_END_WHERE, ST_END_TYPE, ST_ENTRY, ST_EQUIVALENCE,
-  ST_EXIT, ST_FORALL, ST_FORALL_BLOCK, ST_FORMAT, ST_FUNCTION, ST_GOTO,
-  ST_IF_BLOCK, ST_IMPLICIT, ST_IMPLICIT_NONE, ST_IMPORT,
-  ST_INQUIRE, ST_INTERFACE,
+  ST_ERROR_STOP, ST_EXIT, ST_FORALL, ST_FORALL_BLOCK, ST_FORMAT, ST_FUNCTION,
+  ST_GOTO, ST_IF_BLOCK, ST_IMPLICIT, ST_IMPLICIT_NONE, ST_IMPORT,
+  ST_INQUIRE, ST_INTERFACE, ST_SYNC_ALL, ST_SYNC_MEMORY, ST_SYNC_IMAGES,
   ST_PARAMETER, ST_MODULE, ST_MODULE_PROC, ST_NAMELIST, ST_NULLIFY, ST_OPEN,
   ST_PAUSE, ST_PRIVATE, ST_PROGRAM, ST_PUBLIC, ST_READ, ST_RETURN, ST_REWIND,
   ST_STOP, ST_SUBROUTINE, ST_TYPE, ST_USE, ST_WHERE_BLOCK, ST_WHERE, ST_WAIT, 
@@ -230,7 +231,7 @@ typedef enum
   ST_OMP_PARALLEL, ST_OMP_PARALLEL_DO, ST_OMP_PARALLEL_SECTIONS,
   ST_OMP_PARALLEL_WORKSHARE, ST_OMP_SECTIONS, ST_OMP_SECTION, ST_OMP_SINGLE,
   ST_OMP_THREADPRIVATE, ST_OMP_WORKSHARE, ST_OMP_TASK, ST_OMP_END_TASK,
-  ST_OMP_TASKWAIT, ST_PROCEDURE, ST_GENERIC,
+  ST_OMP_TASKWAIT, ST_PROCEDURE, ST_GENERIC, ST_CRITICAL, ST_END_CRITICAL,
   ST_GET_FCN_CHARACTERISTICS, ST_NONE
 }
 gfc_statement;
@@ -377,7 +378,7 @@ enum gfc_isym_id
   GFC_ISYM_FSEEK,
   GFC_ISYM_FSTAT,
   GFC_ISYM_FTELL,
-  GFC_ISYM_GAMMA,
+  GFC_ISYM_TGAMMA,
   GFC_ISYM_GERROR,
   GFC_ISYM_GETARG,
   GFC_ISYM_GET_COMMAND,
@@ -461,6 +462,7 @@ enum gfc_isym_id
   GFC_ISYM_NINT,
   GFC_ISYM_NOT,
   GFC_ISYM_NULL,
+  GFC_ISYM_NUMIMAGES,
   GFC_ISYM_OR,
   GFC_ISYM_PACK,
   GFC_ISYM_PERROR,
@@ -561,6 +563,13 @@ typedef enum
 }
 init_local_integer;
 
+typedef enum
+{
+  GFC_FCOARRAY_NONE = 0,
+  GFC_FCOARRAY_SINGLE
+}
+gfc_fcoarray;
+
 /************************* Structures *****************************/
 
 /* Used for keeping things in balanced binary trees.  */
@@ -649,10 +658,15 @@ extern const ext_attr_t ext_attr_list[];
 typedef struct
 {
   /* Variable attributes.  */
-  unsigned allocatable:1, dimension:1, external:1, intrinsic:1,
+  unsigned allocatable:1, dimension:1, codimension:1, external:1, intrinsic:1,
     optional:1, pointer:1, target:1, value:1, volatile_:1, temporary:1,
     dummy:1, result:1, assign:1, threadprivate:1, not_always_present:1,
-    implied_index:1, subref_array_pointer:1, proc_pointer:1;
+    implied_index:1, subref_array_pointer:1, proc_pointer:1, asynchronous:1;
+
+  /* For CLASS containers, the pointer attribute is sometimes set internally
+     even though it was not directly specified.  In this case, keep the
+     "real" (original) value here.  */
+  unsigned class_pointer:1;
 
   ENUM_BITFIELD (save_state) save:2;
 
@@ -709,9 +723,6 @@ typedef struct
      modification of type or type parameters is permitted.  */
   unsigned referenced:1;
 
-  /* Set if the symbol has ambiguous interfaces.  */
-  unsigned ambiguous_interfaces:1;
-
   /* Set if this is the symbol for the main program.  */
   unsigned is_main_program:1;
 
@@ -731,13 +742,13 @@ typedef struct
      possibly nested.  zero_comp is true if the derived type has no
      component at all.  */
   unsigned alloc_comp:1, pointer_comp:1, proc_pointer_comp:1,
-	   private_comp:1, zero_comp:1;
+	   private_comp:1, zero_comp:1, coarray_comp:1;
 
   /* Attributes set by compiler extensions (!GCC$ ATTRIBUTES).  */
   unsigned ext_attr:EXT_ATTR_NUM;
 
-  /* The namespace where the VOLATILE attribute has been set.  */
-  struct gfc_namespace *volatile_ns;
+  /* The namespace where the attribute has been set.  */
+  struct gfc_namespace *volatile_ns, *asynchronous_ns;
 }
 symbol_attribute;
 
@@ -863,7 +874,8 @@ gfc_typespec;
 typedef struct
 {
   int rank;	/* A rank of zero means that a variable is a scalar.  */
-  array_type type;
+  int corank;
+  array_type type, cotype;
   struct gfc_expr *lower[GFC_MAX_DIMENSIONS], *upper[GFC_MAX_DIMENSIONS];
 
   /* These two fields are used with the Cray Pointer extension.  */
@@ -1370,8 +1382,9 @@ typedef struct gfc_namespace
   /* Set to 1 if namespace is an interface body with "IMPORT" used.  */
   unsigned has_import_set:1;
 
-  /* Set to 1 if resolved has been called for this namespace.  */
-  unsigned resolved:1;
+  /* Set to 1 if resolved has been called for this namespace.
+     Holds -1 during resolution.  */
+  signed resolved:2;
 
   /* Set to 1 if code has been generated for this namespace.  */
   unsigned translated:1;
@@ -1624,19 +1637,7 @@ gfc_class_esym_list;
 
 #include <gmp.h>
 #include <mpfr.h>
-#ifdef HAVE_mpc
 #include <mpc.h>
-# if MPC_VERSION >= MPC_VERSION_NUM(0,6,1)
-#  define HAVE_mpc_pow
-# endif
-# if MPC_VERSION >= MPC_VERSION_NUM(0,7,1)
-#  define HAVE_mpc_arc
-#  define HAVE_mpc_pow_z
-# endif
-#else
-#define mpc_realref(X) ((X).r)
-#define mpc_imagref(X) ((X).i)
-#endif
 #define GFC_RND_MODE GMP_RNDN
 #define GFC_MPC_RND_MODE MPC_RNDNN
 
@@ -1695,15 +1696,7 @@ typedef struct gfc_expr
 
     mpfr_t real;
 
-#ifdef HAVE_mpc
-    mpc_t
-#else
-    struct
-    {
-      mpfr_t r, i;
-    }
-#endif
-    complex;
+    mpc_t complex;
 
     struct
     {
@@ -1992,12 +1985,13 @@ gfc_forall_iterator;
 typedef enum
 {
   EXEC_NOP = 1, EXEC_END_BLOCK, EXEC_ASSIGN, EXEC_LABEL_ASSIGN,
-  EXEC_POINTER_ASSIGN,
+  EXEC_POINTER_ASSIGN, EXEC_CRITICAL, EXEC_ERROR_STOP,
   EXEC_GOTO, EXEC_CALL, EXEC_COMPCALL, EXEC_ASSIGN_CALL, EXEC_RETURN,
   EXEC_ENTRY, EXEC_PAUSE, EXEC_STOP, EXEC_CONTINUE, EXEC_INIT_ASSIGN,
   EXEC_IF, EXEC_ARITHMETIC_IF, EXEC_DO, EXEC_DO_WHILE, EXEC_SELECT, EXEC_BLOCK,
   EXEC_FORALL, EXEC_WHERE, EXEC_CYCLE, EXEC_EXIT, EXEC_CALL_PPC,
   EXEC_ALLOCATE, EXEC_DEALLOCATE, EXEC_END_PROCEDURE, EXEC_SELECT_TYPE,
+  EXEC_SYNC_ALL, EXEC_SYNC_MEMORY, EXEC_SYNC_IMAGES,
   EXEC_OPEN, EXEC_CLOSE, EXEC_WAIT,
   EXEC_READ, EXEC_WRITE, EXEC_IOLENGTH, EXEC_TRANSFER, EXEC_DT_END,
   EXEC_BACKSPACE, EXEC_ENDFILE, EXEC_INQUIRE, EXEC_REWIND, EXEC_FLUSH,
@@ -2118,6 +2112,7 @@ typedef struct
   int warn_ampersand;
   int warn_conversion;
   int warn_implicit_interface;
+  int warn_implicit_procedure;
   int warn_line_truncation;
   int warn_surprising;
   int warn_tabs;
@@ -2166,9 +2161,11 @@ typedef struct
   char flag_init_character_value;
   int flag_align_commons;
   int flag_whole_file;
+  int flag_protect_parens;
 
   int fpe;
   int rtcheck;
+  gfc_fcoarray coarray;
 
   int warn_std;
   int allow_std;
@@ -2412,6 +2409,7 @@ void gfc_set_sym_referenced (gfc_symbol *);
 gfc_try gfc_add_attribute (symbol_attribute *, locus *);
 gfc_try gfc_add_ext_attribute (symbol_attribute *, ext_attr_id_t, locus *);
 gfc_try gfc_add_allocatable (symbol_attribute *, locus *);
+gfc_try gfc_add_codimension (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_dimension (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_external (symbol_attribute *, locus *);
 gfc_try gfc_add_intrinsic (symbol_attribute *, locus *);
@@ -2440,6 +2438,7 @@ gfc_try gfc_add_recursive (symbol_attribute *, locus *);
 gfc_try gfc_add_function (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_subroutine (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_volatile (symbol_attribute *, const char *, locus *);
+gfc_try gfc_add_asynchronous (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_proc (symbol_attribute *attr, const char *name, locus *where);
 gfc_try gfc_add_abstract (symbol_attribute* attr, locus* where);
 
@@ -2603,7 +2602,7 @@ bool is_subref_array (gfc_expr *);
 void gfc_add_component_ref (gfc_expr *, const char *);
 gfc_expr *gfc_build_conversion (gfc_expr *);
 void gfc_free_ref_list (gfc_ref *);
-void gfc_type_convert_binary (gfc_expr *);
+void gfc_type_convert_binary (gfc_expr *, int);
 int gfc_is_constant_expr (gfc_expr *);
 gfc_try gfc_simplify_expr (gfc_expr *, int);
 int gfc_has_vector_index (gfc_expr *);
@@ -2630,6 +2629,8 @@ gfc_try gfc_check_assign_symbol (gfc_symbol *, gfc_expr *);
 
 gfc_expr *gfc_default_initializer (gfc_typespec *);
 gfc_expr *gfc_get_variable_expr (gfc_symtree *);
+
+gfc_array_spec *gfc_get_full_arrayspec_from_expr (gfc_expr *expr);
 
 bool gfc_traverse_expr (gfc_expr *, gfc_symbol *,
 			bool (*)(gfc_expr *, gfc_symbol *, int*),

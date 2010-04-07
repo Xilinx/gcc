@@ -1,5 +1,5 @@
 /* params.def - Run-time parameters.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Written by Mark Mitchell <mark@codesourcery.com>.
 
@@ -52,7 +52,7 @@ DEFPARAM (PARAM_STRUCT_REORG_COLD_STRUCT_RATIO,
    threshold (in percent), then it is considered well predictable. */
 DEFPARAM (PARAM_PREDICTABLE_BRANCH_OUTCOME,
 	  "predictable-branch-outcome",
-	  "Maximal esitmated outcome of branch considered predictable",
+	  "Maximal estimated outcome of branch considered predictable",
 	  2, 0, 50)
 
 /* The single function inlining limit. This is the maximum size
@@ -266,6 +266,11 @@ DEFPARAM(PARAM_MAX_ONCE_PEELED_INSNS,
 	"max-once-peeled-insns",
 	"The maximum number of insns of a peeled loop that rolls only once",
 	400, 0, 0)
+/* The maximum depth of a loop nest we completely peel.  */
+DEFPARAM(PARAM_MAX_UNROLL_ITERATIONS,
+	 "max-completely-peel-loop-nest-depth",
+	 "The maximum depth of a loop nest we completely peel",
+	 8, 0, 0)
 
 /* The maximum number of insns of an unswitched loop.  */
 DEFPARAM(PARAM_MAX_UNSWITCH_INSNS,
@@ -740,6 +745,20 @@ DEFPARAM (PARAM_LOOP_BLOCK_TILE_SIZE,
 	  "size of tiles for loop blocking",
 	  51, 0, 0)
 
+/* Maximal number of parameters that we allow in a SCoP.  */
+
+DEFPARAM (PARAM_GRAPHITE_MAX_NB_SCOP_PARAMS,
+	  "graphite-max-nb-scop-params",
+	  "maximum number of parameters in a SCoP",
+	  10, 0, 0)
+
+/* Maximal number of basic blocks in the functions analyzed by Graphite.  */
+
+DEFPARAM (PARAM_GRAPHITE_MAX_BBS_PER_FUNCTION,
+	  "graphite-max-bbs-per-function",
+	  "maximum number of basic blocks per function to be analyzed by Graphite",
+	  100, 0, 0)
+
 /* Avoid doing loop invariant motion on very large loops.  */
 
 DEFPARAM (PARAM_LOOP_INVARIANT_MAX_BBS_IN_LOOP,
@@ -763,6 +782,13 @@ DEFPARAM (PARAM_PREFETCH_MIN_INSN_TO_MEM_RATIO,
 	  "prefetch-min-insn-to-mem-ratio",
 	  "Min. ratio of insns to mem ops to enable prefetching in a loop",
 	  3, 0, 0)
+
+/* Set maximum hash table size for var tracking.  */
+
+DEFPARAM (PARAM_MAX_VARTRACK_SIZE,
+	  "max-vartrack-size",
+	  "Max. size of var tracking hash tables",
+	  50000000, 0, 0)
 
 /* Set minimum insn uid for non-debug insns.  */
 

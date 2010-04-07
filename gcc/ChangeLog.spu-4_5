@@ -1,4 +1,8 @@
-2010-23-02  Revital Eres  <eres@il.ibm.com>
+2010-04-07  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	Update to mainline revision 158060.
+
+2010-02-23  Revital Eres  <eres@il.ibm.com>
 
 	* target.h (add_external_branches_to_section): New field in struct gcc_target.
 	* target-def.h (TARGET_ADD_EXTERNAL_BRANCHES_TO_SECTION): New definition.

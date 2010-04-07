@@ -1,5 +1,5 @@
 /* Solaris support needed only by C/C++ frontends.
-   Copyright (C) 2004, 2005, 2007, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2009, 2010 Free Software Foundation, Inc.
    Contributed by CodeSourcery, LLC.
 
 This file is part of GCC.
@@ -170,9 +170,10 @@ solaris_pragma_init (cpp_reader *pfile ATTRIBUTE_UNUSED)
       tree decl = identifier_global_value (t);
       if (decl && DECL_P (decl))
 	{
-	  tree init_list = build_tree_list (get_identifier ("init"),
-					    NULL);
-	  tree attrs = tree_cons (get_identifier ("used"), NULL, init_list);
+	  tree attrs = build_tree_list (get_identifier ("init"),
+					NULL);
+	  TREE_USED (decl) = 1;
+	  DECL_PRESERVE_P (decl) = 1;
 	  decl_attributes (&decl, attrs, 0);
 	}
       else
@@ -228,9 +229,10 @@ solaris_pragma_fini (cpp_reader *pfile ATTRIBUTE_UNUSED)
       tree decl = identifier_global_value (t);
       if (decl && DECL_P (decl))
 	{
-	  tree fini_list = build_tree_list (get_identifier ("fini"),
-					    NULL);
-	  tree attrs = tree_cons (get_identifier ("used"), NULL, fini_list);
+	  tree attrs = build_tree_list (get_identifier ("fini"),
+					NULL);
+	  TREE_USED (decl) = 1;
+	  DECL_PRESERVE_P (decl) = 1;
 	  decl_attributes (&decl, attrs, 0);
 	}
       else

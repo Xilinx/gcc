@@ -1,7 +1,7 @@
 /* Instruction scheduling pass.  This file contains definitions used
    internally in the scheduler.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1295,6 +1295,11 @@ extern region *rgn_table;
 extern int *rgn_bb_table;
 extern int *block_to_bb;
 extern int *containing_rgn;
+
+/* Often used short-hand in the scheduler.  The rest of the compiler uses
+   BLOCK_FOR_INSN(INSN) and an indirect reference to get the basic block
+   number ("index").  For historical reasons, the scheduler does not.  */
+#define BLOCK_NUM(INSN)	      (BLOCK_FOR_INSN (INSN)->index + 0)
 
 #define RGN_NR_BLOCKS(rgn) (rgn_table[rgn].rgn_nr_blocks)
 #define RGN_BLOCKS(rgn) (rgn_table[rgn].rgn_blocks)

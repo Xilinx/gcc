@@ -297,7 +297,7 @@ build_base_path (enum tree_code code,
     {
       expr = build_nop (build_pointer_type (target_type), expr);
       if (!want_pointer)
-	expr = build_indirect_ref (EXPR_LOCATION (expr), expr, NULL);
+	expr = build_indirect_ref (EXPR_LOCATION (expr), expr, RO_NULL);
       return expr;
     }
 
@@ -343,7 +343,7 @@ build_base_path (enum tree_code code,
 	 interesting to the optimizers anyway.  */
       && !has_empty)
     {
-      expr = cp_build_indirect_ref (expr, NULL, tf_warning_or_error);
+      expr = cp_build_indirect_ref (expr, RO_NULL, tf_warning_or_error);
       expr = build_simple_base_path (expr, binfo);
       if (want_pointer)
 	expr = build_address (expr);
@@ -368,11 +368,11 @@ build_base_path (enum tree_code code,
 	  t = TREE_TYPE (TYPE_VFIELD (current_class_type));
 	  t = build_pointer_type (t);
 	  v_offset = convert (t, current_vtt_parm);
-	  v_offset = cp_build_indirect_ref (v_offset, NULL, 
+	  v_offset = cp_build_indirect_ref (v_offset, RO_NULL, 
                                             tf_warning_or_error);
 	}
       else
-	v_offset = build_vfield_ref (cp_build_indirect_ref (expr, NULL,
+	v_offset = build_vfield_ref (cp_build_indirect_ref (expr, RO_NULL,
                                                             tf_warning_or_error),
 				     TREE_TYPE (TREE_TYPE (expr)));
 
@@ -381,7 +381,7 @@ build_base_path (enum tree_code code,
       v_offset = build1 (NOP_EXPR,
 			 build_pointer_type (ptrdiff_type_node),
 			 v_offset);
-      v_offset = cp_build_indirect_ref (v_offset, NULL, tf_warning_or_error);
+      v_offset = cp_build_indirect_ref (v_offset, RO_NULL, tf_warning_or_error);
       TREE_CONSTANT (v_offset) = 1;
 
       offset = convert_to_integer (ptrdiff_type_node,
@@ -424,7 +424,7 @@ build_base_path (enum tree_code code,
     null_test = NULL;
 
   if (!want_pointer)
-    expr = cp_build_indirect_ref (expr, NULL, tf_warning_or_error);
+    expr = cp_build_indirect_ref (expr, RO_NULL, tf_warning_or_error);
 
  out:
   if (null_test)
@@ -458,7 +458,7 @@ build_simple_base_path (tree expr, tree binfo)
 	 in the back end.  */
       temp = unary_complex_lvalue (ADDR_EXPR, expr);
       if (temp)
-	expr = cp_build_indirect_ref (temp, NULL, tf_warning_or_error);
+	expr = cp_build_indirect_ref (temp, RO_NULL, tf_warning_or_error);
 
       return expr;
     }
@@ -646,7 +646,7 @@ build_vfn_ref (tree instance_ptr, tree idx)
 {
   tree aref;
 
-  aref = build_vtbl_ref_1 (cp_build_indirect_ref (instance_ptr, 0,
+  aref = build_vtbl_ref_1 (cp_build_indirect_ref (instance_ptr, RO_NULL,
                                                   tf_warning_or_error), 
                            idx);
 
@@ -4554,6 +4554,8 @@ create_vtable_ptr (tree t, tree* virtuals_p)
       DECL_ARTIFICIAL (field) = 1;
       DECL_FIELD_CONTEXT (field) = t;
       DECL_FCONTEXT (field) = t;
+      if (TYPE_PACKED (t))
+	DECL_PACKED (field) = 1;
 
       TYPE_VFIELD (t) = field;
 
@@ -5042,6 +5044,7 @@ layout_class_type (tree t, tree *virtuals_p)
       /* G++ used to use DECL_FIELD_OFFSET as if it were the byte
 	 offset of the field.  */
       if (warn_abi
+	  && !abi_version_at_least (2)
 	  && !tree_int_cst_equal (DECL_FIELD_OFFSET (field),
 				  byte_position (field))
 	  && contains_empty_class_p (TREE_TYPE (field)))
@@ -5215,6 +5218,11 @@ layout_class_type (tree t, tree *virtuals_p)
     place_field (rli,
 		 build_decl (input_location,
 			     FIELD_DECL, NULL_TREE, char_type_node));
+
+  /* If this is a non-POD, declaring it packed makes a difference to how it
+     can be used as a field; don't let finalize_record_size undo it.  */
+  if (TYPE_PACKED (t) && !layout_pod_type_p (t))
+    rli->packed_maybe_necessary = true;
 
   /* Let the back end lay out the type.  */
   finish_record_layout (rli, /*free_p=*/true);
@@ -6514,7 +6522,7 @@ build_self_reference (void)
   DECL_CONTEXT (value) = current_class_type;
   DECL_ARTIFICIAL (value) = 1;
   SET_DECL_SELF_REFERENCE_P (value);
-  set_underlying_type (value);
+  cp_set_underlying_type (value);
 
   if (processing_template_decl)
     value = push_template_decl (value);

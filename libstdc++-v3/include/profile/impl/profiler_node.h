@@ -34,8 +34,8 @@
 
 // Written by Lixia Liu and Silvius Rus.
 
-#ifndef PROFCXX_PROFILER_NODE_H__
-#define PROFCXX_PROFILER_NODE_H__ 1
+#ifndef _GLIBCXX_PROFILE_PROFILER_NODE_H
+#define _GLIBCXX_PROFILE_PROFILER_NODE_H 1
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <cstdio>
@@ -47,7 +47,7 @@
 #include <string.h>
 #endif
 #include <vector>
-#if defined HAVE_EXECINFO_H
+#if defined _GLIBCXX_HAVE_EXECINFO_H
 #include <execinfo.h>
 #endif
 
@@ -62,7 +62,7 @@ size_t __stack_max_depth();
 
 inline __stack_t __get_stack()
 {
-#if defined HAVE_EXECINFO_H
+#if defined _GLIBCXX_HAVE_EXECINFO_H
   size_t __max_depth = __stack_max_depth();
   if (__max_depth == 0)
     return NULL;
@@ -169,4 +169,4 @@ class __stack_info_base
 };
 
 } // namespace __gnu_profile
-#endif /* PROFCXX_PROFILER_NODE_H__ */
+#endif /* _GLIBCXX_PROFILE_PROFILER_NODE_H */

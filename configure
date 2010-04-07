@@ -656,6 +656,7 @@ CC_FOR_BUILD
 AS_FOR_BUILD
 AR_FOR_BUILD
 target_configargs
+target_configdirs
 configdirs
 host_configargs
 build_configdirs
@@ -3260,6 +3261,7 @@ case "${target}" in
     case "${target}" in
       i*86-*-*) ;;
       alpha*-*-*) ;;
+      x86_64-*-*) ;;
       *)
 	noconfigdirs="$noconfigdirs ${libgcj}"
 	;;
@@ -3700,6 +3702,9 @@ case "${target}" in
     noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
   sparc-*-solaris* | sparc64-*-solaris* | sparcv9-*-solaris*)
+    ;;
+  tic6x-*-*)
+    noconfigdirs="$noconfigdirs gdb sim ${libgcj}"
     ;;
   v810-*-*)
     noconfigdirs="$noconfigdirs bfd binutils gas gcc gdb ld target-libstdc++-v3 opcodes target-libgloss ${libgcj}"
@@ -5284,13 +5289,40 @@ else
 fi
 
 
+# Used for setting $lt_cv_objdir
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for objdir" >&5
+$as_echo_n "checking for objdir... " >&6; }
+if test "${lt_cv_objdir+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  rm -f .libs 2>/dev/null
+mkdir .libs 2>/dev/null
+if test -d .libs; then
+  lt_cv_objdir=.libs
+else
+  # MS-DOS does not allow filenames that begin with a dot.
+  lt_cv_objdir=_libs
+fi
+rmdir .libs 2>/dev/null
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $lt_cv_objdir" >&5
+$as_echo "$lt_cv_objdir" >&6; }
+objdir=$lt_cv_objdir
+
+
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define LT_OBJDIR "$lt_cv_objdir/"
+_ACEOF
+
+
+
 # Check for GMP, MPFR and MPC
-gmplibs="-lmpfr -lgmp"
+gmplibs="-lmpc -lmpfr -lgmp"
 gmpinc=
 have_gmp=no
-mpclibs=-lmpc
-mpcinc=
-have_mpc=no
 
 # Specify a location for mpc
 # check for this first so it ends up on the link line before mpfr.
@@ -5314,23 +5346,23 @@ fi
 
 
 if test "x$with_mpc" != x; then
-  mpclibs="-L$with_mpc/lib -lmpc"
-  mpcinc="-I$with_mpc/include $mpcinc"
+  gmplibs="-L$with_mpc/lib $gmplibs"
+  gmpinc="-I$with_mpc/include $gmpinc"
 fi
 if test "x$with_mpc_include" != x; then
-  mpcinc="-I$with_mpc_include $mpcinc"
+  gmpinc="-I$with_mpc_include $gmpinc"
 fi
 if test "x$with_mpc_lib" != x; then
-  mpclibs="-L$with_mpc_lib -lmpc"
+  gmplibs="-L$with_mpc_lib $gmplibs"
 fi
 if test "x$with_mpc$with_mpc_include$with_mpc_lib" = x && test -d ${srcdir}/mpc; then
-  mpclibs='-L$$r/$(HOST_SUBDIR)/mpc/src/.libs -L$$r/$(HOST_SUBDIR)/mpc/src/_libs -lmpc'
-  mpcinc='-I$$s/mpc/src '"$mpcinc"
+  gmplibs='-L$$r/$(HOST_SUBDIR)/mpc/src/'"$lt_cv_objdir $gmplibs"
+  gmpinc='-I$$s/mpc/src '"$gmpinc"
   # Do not test the mpc version.  Assume that it is sufficient, since
   # it is in the source tree, and the library has not been built yet
   # but it would be included on the link line in the version check below
   # hence making the test fail.
-  have_mpc=yes
+  have_gmp=yes
 fi
 
 # Specify a location for mpfr
@@ -5364,18 +5396,18 @@ fi
 
 if test "x$with_mpfr" != x; then
   gmplibs="-L$with_mpfr/lib $gmplibs"
-  gmpinc="-I$with_mpfr/include"
+  gmpinc="-I$with_mpfr/include $gmpinc"
 fi
 if test "x$with_mpfr_include" != x; then
-  gmpinc="-I$with_mpfr_include"
+  gmpinc="-I$with_mpfr_include $gmpinc"
 fi
 if test "x$with_mpfr_lib" != x; then
   gmplibs="-L$with_mpfr_lib $gmplibs"
 fi
 if test "x$with_mpfr$with_mpfr_include$with_mpfr_lib" = x && test -d ${srcdir}/mpfr; then
-  gmplibs='-L$$r/$(HOST_SUBDIR)/mpfr/.libs -L$$r/$(HOST_SUBDIR)/mpfr/_libs '"$gmplibs"
+  gmplibs='-L$$r/$(HOST_SUBDIR)/mpfr/'"$lt_cv_objdir $gmplibs"
   gmpinc='-I$$r/$(HOST_SUBDIR)/mpfr -I$$s/mpfr '"$gmpinc"
-  extra_mpc_mpfr_configure_flags='--with-mpfr-include=$$s/mpfr'
+  extra_mpc_mpfr_configure_flags='--with-mpfr-include=$$s/mpfr --with-mpfr-lib=$$r/$(HOST_SUBDIR)/mpfr/'"$lt_cv_objdir"
   # Do not test the mpfr version.  Assume that it is sufficient, since
   # it is in the source tree, and the library has not been built yet
   # but it would be included on the link line in the version check below
@@ -5423,10 +5455,10 @@ if test "x$with_gmp_lib" != x; then
   gmplibs="-L$with_gmp_lib $gmplibs"
 fi
 if test "x$with_gmp$with_gmp_include$with_gmp_lib" = x && test -d ${srcdir}/gmp; then
-  gmplibs='-L$$r/$(HOST_SUBDIR)/gmp/.libs -L$$r/$(HOST_SUBDIR)/gmp/_libs '"$gmplibs"
+  gmplibs='-L$$r/$(HOST_SUBDIR)/gmp/'"$lt_cv_objdir $gmplibs"
   gmpinc='-I$$r/$(HOST_SUBDIR)/gmp -I$$s/gmp '"$gmpinc"
   extra_mpfr_configure_flags='--with-gmp-build=$$r/$(HOST_SUBDIR)/gmp'
-  extra_mpc_gmp_configure_flags='--with-gmp-include=$$r/$(HOST_SUBDIR)/gmp'
+  extra_mpc_gmp_configure_flags='--with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-gmp-lib=$$r/$(HOST_SUBDIR)/gmp/'"$lt_cv_objdir"
   # Do not test the gmp version.  Assume that it is sufficient, since
   # it is in the source tree, and the library has not been built yet
   # but it would be included on the link line in the version check below
@@ -5438,9 +5470,9 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
   have_gmp=yes
   saved_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $gmpinc"
-  # Check GMP actually works
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for correct version of gmp.h" >&5
-$as_echo_n "checking for correct version of gmp.h... " >&6; }
+  # Check for the recommended and required versions of GMP.
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the correct version of gmp.h" >&5
+$as_echo_n "checking for the correct version of gmp.h... " >&6; }
 
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -5449,7 +5481,27 @@ int
 main ()
 {
 
-  #if __GNU_MP_VERSION < 4 || (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR < 2)
+  #define GCC_GMP_VERSION_NUM(a,b,c) (((a) << 16L) | ((b) << 8) | (c))
+  #define GCC_GMP_VERSION GCC_GMP_VERSION_NUM(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL)
+  #if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4,2,0)
+  choke me
+  #endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <gmp.h>
+int
+main ()
+{
+
+  #define GCC_GMP_VERSION_NUM(a,b,c) (((a) << 16L) | ((b) << 8) | (c))
+  #define GCC_GMP_VERSION GCC_GMP_VERSION_NUM(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL)
+  #if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4,3,2)
   choke me
   #endif
 
@@ -5461,6 +5513,11 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: buggy but acceptable" >&5
+$as_echo "buggy but acceptable" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }; have_gmp=no
 fi
@@ -5468,8 +5525,9 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
   # If we have GMP, check the MPFR version.
   if test x"$have_gmp" = xyes; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for correct version of mpfr.h" >&5
-$as_echo_n "checking for correct version of mpfr.h... " >&6; }
+    # Check for the recommended and required versions of MPFR.
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the correct version of mpfr.h" >&5
+$as_echo_n "checking for the correct version of mpfr.h... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <gmp.h>
@@ -5495,7 +5553,7 @@ int
 main ()
 {
 
-    #if MPFR_VERSION < MPFR_VERSION_NUM(2,3,2)
+    #if MPFR_VERSION < MPFR_VERSION_NUM(2,4,2)
     choke me
     #endif
 
@@ -5519,8 +5577,8 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
 
   # Check for the MPC header version.
-  if test x"$have_mpc" != xyes ; then
-    CFLAGS="$CFLAGS $mpcinc"
+  if test x"$have_gmp" = xyes ; then
+    # Check for the recommended and required versions of MPC.
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the correct version of mpc.h" >&5
 $as_echo_n "checking for the correct version of mpc.h... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -5530,7 +5588,23 @@ int
 main ()
 {
 
-    #if MPC_VERSION < MPC_VERSION_NUM (0,8,0)
+    #if MPC_VERSION < MPC_VERSION_NUM(0,8,0)
+    choke me
+    #endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <mpc.h>
+int
+main ()
+{
+
+    #if MPC_VERSION < MPC_VERSION_NUM(0,8,1)
     choke me
     #endif
 
@@ -5540,10 +5614,15 @@ main ()
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }; have_mpc=maybe
+$as_echo "yes" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: buggy but acceptable" >&5
+$as_echo "buggy but acceptable" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }; have_mpc=no; mpclibs= ; mpcinc=
+$as_echo "no" >&6; }; have_gmp=no
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
@@ -5552,24 +5631,32 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   if test x"$have_gmp" = xyes; then
     saved_LIBS="$LIBS"
     LIBS="$LIBS $gmplibs"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the correct version of the gmp/mpfr libraries" >&5
-$as_echo_n "checking for the correct version of the gmp/mpfr libraries... " >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the correct version of the gmp/mpfr/mpc libraries" >&5
+$as_echo_n "checking for the correct version of the gmp/mpfr/mpc libraries... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-#include <gmp.h>
-    #include <mpfr.h>
+#include <mpc.h>
 int
 main ()
 {
 
     mpfr_t n;
     mpfr_t x;
+    mpc_t c;
     int t;
     mpfr_init (n);
     mpfr_init (x);
     mpfr_atan2 (n, n, x, GMP_RNDN);
     mpfr_erfc (n, x, GMP_RNDN);
     mpfr_subnormalize (x, t, GMP_RNDN);
+    mpfr_clear(n);
+    mpfr_clear(x);
+    mpc_init2 (c, 53);
+    mpc_set_ui_ui (c, 1, 1, MPC_RNDNN);
+    mpc_cosh (c, c, MPC_RNDNN);
+    mpc_pow (c, c, c, MPC_RNDNN);
+    mpc_acosh (c, c, MPC_RNDNN);
+    mpc_clear (c);
 
   ;
   return 0;
@@ -5587,74 +5674,22 @@ rm -f core conftest.err conftest.$ac_objext \
     LIBS="$saved_LIBS"
   fi
 
-  if test x"$have_mpc" = xmaybe; then
-    saved_LIBS="$LIBS"
-    LIBS="$LIBS $mpclibs $gmplibs"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the correct version of the mpc library" >&5
-$as_echo_n "checking for the correct version of the mpc library... " >&6; }
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <mpc.h>
-int
-main ()
-{
-
-    mpc_t n;
-    mpc_init2 (n, 53);
-    mpc_set_ui_ui (n, 1, 1, MPC_RNDNN);
-    mpc_sin (n, n, MPC_RNDNN);
-    mpc_cos (n, n, MPC_RNDNN);
-    mpc_tan (n, n, MPC_RNDNN);
-    mpc_sinh (n, n, MPC_RNDNN);
-    mpc_cosh (n, n, MPC_RNDNN);
-    mpc_tanh (n, n, MPC_RNDNN);
-    mpc_exp (n, n, MPC_RNDNN);
-    mpc_log (n, n, MPC_RNDNN);
-    mpc_sqrt (n, n, MPC_RNDNN);
-    mpc_proj (n, n, MPC_RNDNN);
-    mpc_neg (n, n, MPC_RNDNN);
-    mpc_sqr (n, n, MPC_RNDNN);
-    mpc_pow (n, n, n, MPC_RNDNN);
-    mpc_acosh (n, n, MPC_RNDNN);
-    mpc_clear (n);
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }; have_mpc=yes
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }; have_mpc=no; mpclibs= ; mpcinc=
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-    LIBS="$saved_LIBS"
-  fi
-
   CFLAGS="$saved_CFLAGS"
 
+# The library versions listed in the error message below should match
+# the HARD-minimums enforced above.
   if test x$have_gmp != xyes; then
-    as_fn_error "Building GCC requires GMP 4.2+ and MPFR 2.3.2+.
-Try the --with-gmp and/or --with-mpfr options to specify their locations.
-Copies of these libraries' source code can be found at their respective
-hosting sites as well as at ftp://gcc.gnu.org/pub/gcc/infrastructure/.
-See also http://gcc.gnu.org/install/prerequisites.html for additional info.
-If you obtained GMP and/or MPFR from a vendor distribution package, make
-sure that you have installed both the libraries and the header files.
-They may be located in separate packages." "$LINENO" 5
+    as_fn_error "Building GCC requires GMP 4.2+, MPFR 2.3.1+ and MPC 0.8.0+.
+Try the --with-gmp, --with-mpfr and/or --with-mpc options to specify
+their locations.  Source code for these libraries can be found at
+their respective hosting sites as well as at
+ftp://gcc.gnu.org/pub/gcc/infrastructure/.  See also
+http://gcc.gnu.org/install/prerequisites.html for additional info.  If
+you obtained GMP, MPFR and/or MPC from a vendor distribution package,
+make sure that you have installed both the libraries and the header
+files.  They may be located in separate packages." "$LINENO" 5
   fi
 fi
-
-if test x$have_mpc != xyes ; then
-  mpcinc=
-  mpclibs=
-fi
-
-gmpinc="$mpcinc $gmpinc"
-gmplibs="$mpclibs $gmplibs"
 
 # Flags needed for both GMP, MPFR and/or MPC.
 
@@ -5787,7 +5822,7 @@ if test "x$with_ppl_lib" != x; then
   ppllibs="-L$with_ppl_lib -lppl_c -lppl -lgmpxx"
 fi
 if test "x$with_ppl$with_ppl_include$with_ppl_lib" = x && test -d ${srcdir}/ppl; then
-  ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/interfaces/C/.libs -L$$r/$(HOST_SUBDIR)/ppl/interfaces/C/_libs -L$$r/$(HOST_SUBDIR)/ppl/src/.libs -L$$r/$(HOST_SUBDIR)/ppl/src/_libs -lppl_c -lppl -lgmpxx '
+  ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/interfaces/C/'"$lt_cv_objdir"' -L$$r/$(HOST_SUBDIR)/ppl/src/'"$lt_cv_objdir"' -lppl_c -lppl -lgmpxx '
   pplinc='-I$$r/$(HOST_SUBDIR)/ppl/src -I$$r/$(HOST_SUBDIR)/ppl/interfaces/C '
   enable_ppl_version_check=no
 fi
@@ -5882,7 +5917,7 @@ if test "x$with_cloog_lib" != x; then
   clooglibs="-L$with_cloog_lib -lcloog"
 fi
 if test "x$with_cloog$with_cloog_include$with_cloog_lib" = x && test -d ${srcdir}/cloog; then
-  clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/.libs -L$$r/$(HOST_SUBDIR)/cloog/_libs -lcloog '
+  clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/'"$lt_cv_objdir"' -lcloog '
   clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include -DCLOOG_PPL_BACKEND '
   enable_cloog_version_check=no
 fi
@@ -5916,8 +5951,29 @@ main ()
 }
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"; then :
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include "cloog/cloog.h"
+int
+main ()
+{
+
+  #if CLOOG_VERSION_MAJOR != 0 || CLOOG_VERSION_MINOR != 15 || CLOOG_VERSION_REVISION < 9
+  choke me
+  #endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: buggy but acceptable" >&5
+$as_echo "buggy but acceptable" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }; clooglibs= ; clooginc=
@@ -5936,6 +5992,35 @@ if test "${enable_lto+set}" = set; then :
   enableval=$enable_lto; enable_lto=$enableval
 else
   enable_lto=yes; default_enable_lto=yes
+fi
+
+
+
+
+
+target_elf=no
+case $target in
+  *-darwin* | *-aix* | *-cygwin* | *-mingw* | *-aout* | *-*coff* | \
+  *-msdosdjgpp* | *-netware* | *-vms* | *-wince* | *-*-pe* | \
+  alpha*-dec-osf* | *-interix*)
+    target_elf=no
+    ;;
+  *)
+    target_elf=yes
+    ;;
+esac
+
+if test $target_elf = yes; then :
+
+else
+  if test x"$default_enable_lto" = x"yes" ; then
+  enable_lto=no
+else
+  if test x"$enable_lto" = x"yes"; then
+    as_fn_error "LTO support requires an ELF target." "$LINENO" 5
+  fi
+fi
+default_enable_lto=no
 fi
 
 
@@ -7231,8 +7316,8 @@ case "${target}" in
     extra_arflags_for_target=" -X32_64"
     extra_nmflags_for_target=" -B -X32_64"
     ;;
-  *-*-darwin*)
-    # ranlib from Darwin requires the -c flag to look at common symbols.
+  *-*-darwin[3-9]*)
+    # ranlib before Darwin10 requires the -c flag to look at common symbols.
     extra_ranlibflags_for_target=" -c"
     ;;
   mips*-*-pe | sh*-*-pe | *arm-wince-pe)
@@ -7382,6 +7467,11 @@ fi
 # build configuration in Makefile.
 target_configdirs=`echo "${target_configdirs}" | sed -e 's/target-//g'`
 build_configdirs=`echo "${build_configdirs}" | sed -e 's/build-//g'`
+
+# If we are building libgomp, bootstrap it.
+if echo " ${target_configdirs} " | grep " libgomp " > /dev/null 2>&1 ; then
+  bootstrap_target_libs=${bootstrap_target_libs}target-libgomp,
+fi
 
 # Determine whether gdb needs tk/tcl or not.
 # Use 'maybe' since enable_gdbtk might be true even if tk isn't available
@@ -7936,6 +8026,7 @@ done
 
 
 # Host module lists & subconfigure args.
+
 
 
 
@@ -9348,7 +9439,7 @@ fi
 done
 
 if test -z "$ac_cv_prog_RANLIB" ; then
-  RANLIB=":"
+  RANLIB="true"
 fi
 
 
@@ -9484,7 +9575,7 @@ fi
 done
 
 if test -z "$ac_cv_prog_STRIP" ; then
-  STRIP=":"
+  STRIP="true"
 fi
 
 

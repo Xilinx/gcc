@@ -1,4 +1,4 @@
-#   Copyright (C) 1999, 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+#   Copyright (C) 1999, 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 #    Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
@@ -29,10 +29,17 @@
 # If ARGS is not empty, its first element is a string that
 # should be added to the command line.
 #
-# Assume by default that CONTENTS is C code.  C++ code should contain
-# "// C++" and Fortran code should contain "! Fortran".
+# Assume by default that CONTENTS is C code.  
+# Otherwise, code should contain:
+# "// C++" for c++,
+# "! Fortran" for Fortran code,
+# "/* ObjC", for ObjC
+# and "// ObjC++" for ObjC++
+# If the tool is ObjC/ObjC++ then we overide the extension to .m/.mm to 
+# allow for ObjC/ObjC++ specific flags.
 proc check_compile {basename type contents args} {
     global tool
+    verbose "check_compile tool: $tool for $basename" 
 
     if { [llength $args] > 0 } {
 	set options [list "additional_flags=[lindex $args 0]"]
@@ -42,8 +49,17 @@ proc check_compile {basename type contents args} {
     switch -glob -- $contents {
 	"*! Fortran*" { set src ${basename}[pid].f90 }
 	"*// C++*" { set src ${basename}[pid].cc }
-	default { set src ${basename}[pid].c }
+	"*// ObjC++*" { set src ${basename}[pid].mm }
+	"*/* ObjC*" { set src ${basename}[pid].m }
+	default {
+	    switch -- $tool {
+		"objc" { set src ${basename}[pid].m }
+		"obj-c++" { set src ${basename}[pid].mm }
+		default { set src ${basename}[pid].c }
+	    }
+	}
     }
+
     set compile_type $type
     switch -glob $type {
 	assembly { set output ${basename}[pid].s }
@@ -1188,6 +1204,25 @@ proc check_cxa_atexit_available { } {
     }]
 }
 
+proc check_effective_target_objc2 { } {
+    return [check_no_compiler_messages objc2 object {
+	#ifdef __OBJC2__
+	int dummy[1];
+	#else
+	#error
+	#endif 
+    }]
+}
+
+proc check_effective_target_next_runtime { } {
+    return [check_no_compiler_messages objc2 object {
+	#ifdef __NEXT_RUNTIME__
+	int dummy[1];
+	#else
+	#error
+	#endif 
+    }]
+}
 
 # Return 1 if we're generating 32-bit code using default options, 0
 # otherwise.
@@ -1336,13 +1371,39 @@ proc check_effective_target_dfp { } {
 }
 
 # Return 1 if the target supports linking and executing Decimal Floating
-# Point, # 0 otherwise.
+# Point, 0 otherwise.
 #
 # This won't change for different subtargets so cache the result.
 
 proc check_effective_target_dfprt { } {
     return [check_cached_effective_target dfprt {
 	check_effective_target_dfprt_nocache
+    }]
+}
+
+# Return 1 if the target supports compiling and assembling UCN, 0 otherwise.
+
+proc check_effective_target_ucn_nocache { } {
+    # -std=c99 is only valid for C
+    if [check_effective_target_c] {
+	set ucnopts "-std=c99"
+    }
+    append ucnopts " -fextended-identifiers"
+    verbose "check_effective_target_ucn_nocache: compiling source" 2
+    set ret [check_no_compiler_messages_nocache ucn object {
+	int \u00C0;
+    } $ucnopts]
+    verbose "check_effective_target_ucn_nocache: returning $ret" 2
+    return $ret
+}
+
+# Return 1 if the target supports compiling and assembling UCN, 0 otherwise.
+#
+# This won't change for different subtargets, so cache the result.
+
+proc check_effective_target_ucn { } {
+    return [check_cached_effective_target ucn {
+	check_effective_target_ucn_nocache
     }]
 }
 
@@ -3138,55 +3199,6 @@ proc check_effective_target_correct_iso_cpp_string_wchar_protos { } {
 proc check_effective_target_lto { } {
     global ENABLE_LTO
     return [info exists ENABLE_LTO]
-}
-
-# Return 1 if the MPC library is integrated with GCC, 0 otherwise.
-
-proc check_effective_target_mpc { } {
-    return [check_no_compiler_messages mpc executable {
-	extern void link_error(void);
-	int main ()
-	{
-	  if (__builtin_csin(0) != 0)
-	    link_error();
-	}
-    }]
-}
-
-# Return 1 if the MPC library with mpc_pow is integrated with GCC, 0 otherwise.
-
-proc check_effective_target_mpc_pow { } {
-    return [check_no_compiler_messages mpc_pow executable {
-	extern void link_error(void);
-	int main ()
-	{
-	  if (__builtin_cpow(1,1) != 1)
-	    link_error();
-	}
-    }]
-}
-
-# Return 1 if the MPC library with "arc" functions is integrated with GCC, 0 otherwise.
-
-proc check_effective_target_mpc_arc { } {
-    return [check_no_compiler_messages mpc_arc executable {
-	extern void link_error(void);
-	int main ()
-	{
-	  if (__builtin_cacos(1) != 0)
-	    link_error();
-	  if (__builtin_casin(0) != 0)
-	    link_error();
-	  if (__builtin_catan(0) != 0)
-	    link_error();
-	  if (__builtin_cacosh(1) != 0)
-	    link_error();
-	  if (__builtin_casinh(0) != 0)
-	    link_error();
-	  if (__builtin_catanh(0) != 0)
-	    link_error();
-	}
-    }]
 }
 
 # Return 1 if the language for the compiler under test is C.

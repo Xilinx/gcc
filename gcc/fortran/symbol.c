@@ -1,5 +1,6 @@
 /* Maintain binary trees of symbols.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -369,7 +370,8 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
     *use_assoc = "USE ASSOCIATED", *cray_pointer = "CRAY POINTER",
     *cray_pointee = "CRAY POINTEE", *data = "DATA", *value = "VALUE",
     *volatile_ = "VOLATILE", *is_protected = "PROTECTED",
-    *is_bind_c = "BIND(C)", *procedure = "PROCEDURE";
+    *is_bind_c = "BIND(C)", *procedure = "PROCEDURE",
+    *asynchronous = "ASYNCHRONOUS", *codimension = "CODIMENSION";
   static const char *threadprivate = "THREADPRIVATE";
 
   const char *a1, *a2;
@@ -475,11 +477,13 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
 
   conf (in_common, dummy);
   conf (in_common, allocatable);
+  conf (in_common, codimension);
   conf (in_common, result);
 
   conf (dummy, result);
 
   conf (in_equivalence, use_assoc);
+  conf (in_equivalence, codimension);
   conf (in_equivalence, dummy);
   conf (in_equivalence, target);
   conf (in_equivalence, pointer);
@@ -501,6 +505,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
 
   conf (is_bind_c, cray_pointer);
   conf (is_bind_c, cray_pointee);
+  conf (is_bind_c, codimension);
   conf (is_bind_c, allocatable);
   conf (is_bind_c, elemental);
 
@@ -511,6 +516,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   /* Cray pointer/pointee conflicts.  */
   conf (cray_pointer, cray_pointee);
   conf (cray_pointer, dimension);
+  conf (cray_pointer, codimension);
   conf (cray_pointer, pointer);
   conf (cray_pointer, target);
   conf (cray_pointer, allocatable);
@@ -522,6 +528,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (cray_pointer, entry);
 
   conf (cray_pointee, allocatable);
+  conf (cray_pointer, codimension);
   conf (cray_pointee, intent);
   conf (cray_pointee, optional);
   conf (cray_pointee, dummy);
@@ -545,7 +552,10 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (value, function)
   conf (value, volatile_)
   conf (value, dimension)
+  conf (value, codimension)
   conf (value, external)
+
+  conf (codimension, result)
 
   if (attr->value
       && (attr->intent == INTENT_OUT || attr->intent == INTENT_INOUT))
@@ -559,6 +569,9 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (is_protected, external)
   conf (is_protected, in_common)
 
+  conf (asynchronous, intrinsic)
+  conf (asynchronous, external)
+
   conf (volatile_, intrinsic)
   conf (volatile_, external)
 
@@ -571,11 +584,13 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
 
   conf (procedure, allocatable)
   conf (procedure, dimension)
+  conf (procedure, codimension)
   conf (procedure, intrinsic)
   conf (procedure, is_protected)
   conf (procedure, target)
   conf (procedure, value)
   conf (procedure, volatile_)
+  conf (procedure, asynchronous)
   conf (procedure, entry)
 
   a1 = gfc_code2string (flavors, attr->flavor);
@@ -595,9 +610,11 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
     case FL_BLOCK_DATA:
     case FL_MODULE:
     case FL_LABEL:
+      conf2 (codimension);
       conf2 (dimension);
       conf2 (dummy);
       conf2 (volatile_);
+      conf2 (asynchronous);
       conf2 (pointer);
       conf2 (is_protected);
       conf2 (target);
@@ -640,9 +657,13 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
 
       if (attr->subroutine)
 	{
+	  a1 = subroutine;
 	  conf2 (target);
 	  conf2 (allocatable);
+	  conf2 (volatile_);
+	  conf2 (asynchronous);
 	  conf2 (in_namelist);
+	  conf2 (codimension);
 	  conf2 (dimension);
 	  conf2 (function);
 	  conf2 (threadprivate);
@@ -708,9 +729,11 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       conf2 (in_common);
       conf2 (value);
       conf2 (volatile_);
+      conf2 (asynchronous);
       conf2 (threadprivate);
       conf2 (value);
       conf2 (is_bind_c);
+      conf2 (codimension);
       conf2 (result);
       break;
 
@@ -851,6 +874,32 @@ gfc_add_allocatable (symbol_attribute *attr, locus *where)
 
   attr->allocatable = 1;
   return check_conflict (attr, NULL, where);
+}
+
+
+gfc_try
+gfc_add_codimension (symbol_attribute *attr, const char *name, locus *where)
+{
+
+  if (check_used (attr, name, where))
+    return FAILURE;
+
+  if (attr->codimension)
+    {
+      duplicate_attr ("CODIMENSION", where);
+      return FAILURE;
+    }
+
+  if (attr->flavor == FL_PROCEDURE && attr->if_source == IFSRC_IFBODY
+      && gfc_find_state (COMP_INTERFACE) == FAILURE)
+    {
+      gfc_error ("CODIMENSION specified for '%s' outside its INTERFACE body "
+		 "at %L", name, where);
+      return FAILURE;
+    }
+
+  attr->codimension = 1;
+  return check_conflict (attr, name, where);
 }
 
 
@@ -1085,7 +1134,7 @@ gfc_add_volatile (symbol_attribute *attr, const char *name, locus *where)
 {
   /* No check_used needed as 11.2.1 of the F2003 standard allows
      that the local identifier made accessible by a use statement can be
-     given a VOLATILE attribute.  */
+     given a VOLATILE attribute - unless it is a coarray (F2008, C560).  */
 
   if (attr->volatile_ && attr->volatile_ns == gfc_current_ns)
     if (gfc_notify_std (GFC_STD_LEGACY, 
@@ -1095,6 +1144,25 @@ gfc_add_volatile (symbol_attribute *attr, const char *name, locus *where)
 
   attr->volatile_ = 1;
   attr->volatile_ns = gfc_current_ns;
+  return check_conflict (attr, name, where);
+}
+
+
+gfc_try
+gfc_add_asynchronous (symbol_attribute *attr, const char *name, locus *where)
+{
+  /* No check_used needed as 11.2.1 of the F2003 standard allows
+     that the local identifier made accessible by a use statement can be
+     given a ASYNCHRONOUS attribute.  */
+
+  if (attr->asynchronous && attr->asynchronous_ns == gfc_current_ns)
+    if (gfc_notify_std (GFC_STD_LEGACY, 
+        		"Duplicate ASYNCHRONOUS attribute specified at %L",
+			where) == FAILURE)
+      return FAILURE;
+
+  attr->asynchronous = 1;
+  attr->asynchronous_ns = gfc_current_ns;
   return check_conflict (attr, name, where);
 }
 
@@ -1647,6 +1715,8 @@ gfc_copy_attr (symbol_attribute *dest, symbol_attribute *src, locus *where)
 
   if (src->dimension && gfc_add_dimension (dest, NULL, where) == FAILURE)
     goto fail;
+  if (src->codimension && gfc_add_codimension (dest, NULL, where) == FAILURE)
+    goto fail;
   if (src->optional && gfc_add_optional (dest, where) == FAILURE)
     goto fail;
   if (src->pointer && gfc_add_pointer (dest, where) == FAILURE)
@@ -1658,6 +1728,8 @@ gfc_copy_attr (symbol_attribute *dest, symbol_attribute *src, locus *where)
   if (src->value && gfc_add_value (dest, NULL, where) == FAILURE)
     goto fail;
   if (src->volatile_ && gfc_add_volatile (dest, NULL, where) == FAILURE)
+    goto fail;
+  if (src->asynchronous && gfc_add_asynchronous (dest, NULL, where) == FAILURE)
     goto fail;
   if (src->threadprivate
       && gfc_add_threadprivate (dest, NULL, where) == FAILURE)
@@ -1927,21 +1999,15 @@ gfc_find_component (gfc_symbol *sym, const char *name,
 
   else if (sym->attr.use_assoc && !noaccess)
     {
-      if (p->attr.access == ACCESS_PRIVATE)
+      bool is_parent_comp = sym->attr.extension && (p == sym->components);
+      if (p->attr.access == ACCESS_PRIVATE ||
+	  (p->attr.access != ACCESS_PUBLIC
+	   && sym->component_access == ACCESS_PRIVATE
+	   && !is_parent_comp))
 	{
 	  if (!silent)
 	    gfc_error ("Component '%s' at %C is a PRIVATE component of '%s'",
 		       name, sym->name);
-	  return NULL;
-	}
-	
-      /* If there were components given and all components are private, error
-	 out at this place.  */
-      if (p->attr.access != ACCESS_PUBLIC && sym->component_access == ACCESS_PRIVATE)
-	{
-	  if (!silent)
-	    gfc_error ("All components of '%s' are PRIVATE in structure"
-		       " constructor at %C", sym->name);
 	  return NULL;
 	}
     }
@@ -2476,7 +2542,7 @@ select_type_insert_tmp (gfc_symtree **st)
 {
   gfc_select_type_stack *stack = select_type_stack;
   for (; stack; stack = stack->prev)
-    if ((*st)->n.sym == stack->selector)
+    if ((*st)->n.sym == stack->selector && stack->tmp)
       *st = stack->tmp;
 }
 
@@ -3659,10 +3725,10 @@ gen_special_c_interop_ptr (int ptr_id, const char *ptr_name,
   tmp_sym->value->expr_type = EXPR_STRUCTURE;
   tmp_sym->value->ts.type = BT_DERIVED;
   tmp_sym->value->ts.u.derived = tmp_sym->ts.u.derived;
-  /* Create a constructor with no expr, that way we can recognize if the user
-     tries to call the structure constructor for one of the iso_c_binding
-     derived types during resolution (resolve_structure_cons).  */
   tmp_sym->value->value.constructor = gfc_get_constructor ();
+  tmp_sym->value->value.constructor->expr = gfc_get_expr ();
+  tmp_sym->value->value.constructor->expr->expr_type = EXPR_NULL;
+  tmp_sym->value->value.constructor->expr->ts.is_iso_c = 1;
   /* Must declare c_null_ptr and c_null_funptr as having the
      PARAMETER attribute so they can be used in init expressions.  */
   tmp_sym->attr.flavor = FL_PARAMETER;
@@ -4477,6 +4543,8 @@ get_iso_c_sym (gfc_symbol *old_sym, char *new_name,
   new_symtree->n.sym->module = gfc_get_string (old_sym->module);
   new_symtree->n.sym->from_intmod = old_sym->from_intmod;
   new_symtree->n.sym->intmod_sym_id = old_sym->intmod_sym_id;
+  if (old_sym->attr.function)
+    new_symtree->n.sym->result = new_symtree->n.sym;
   /* Build the formal arg list.  */
   build_formal_args (new_symtree->n.sym, old_sym, add_optional_arg);
 
@@ -4681,9 +4749,11 @@ gfc_build_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
       c->ts.type = BT_DERIVED;
       c->attr.access = ACCESS_PRIVATE;
       c->ts.u.derived = ts->u.derived;
+      c->attr.class_pointer = attr->pointer;
       c->attr.pointer = attr->pointer || attr->dummy;
       c->attr.allocatable = attr->allocatable;
       c->attr.dimension = attr->dimension;
+      c->attr.codimension = attr->codimension;
       c->attr.abstract = ts->u.derived->attr.abstract;
       c->as = (*as);
       c->initializer = gfc_get_expr ();
@@ -4747,6 +4817,7 @@ gfc_find_derived_vtab (gfc_symbol *derived)
 	  vtab->attr.target = 1;
 	  vtab->attr.save = SAVE_EXPLICIT;
 	  vtab->attr.vtab = 1;
+	  vtab->attr.access = ACCESS_PRIVATE;
 	  vtab->refs++;
 	  gfc_set_sym_referenced (vtab);
 	  sprintf (name, "vtype$%s", derived->name);
@@ -4763,6 +4834,7 @@ gfc_find_derived_vtab (gfc_symbol *derived)
 		return NULL;
 	      vtype->refs++;
 	      gfc_set_sym_referenced (vtype);
+	      vtype->attr.access = ACCESS_PRIVATE;
 
 	      /* Add component '$hash'.  */
 	      if (gfc_add_component (vtype, "$hash", &c) == FAILURE)

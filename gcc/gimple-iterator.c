@@ -1,5 +1,5 @@
 /* Iterator routines for GIMPLE statements.
-   Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008, 2010 Free Software Foundation, Inc.
    Contributed by Aldy Hernandez  <aldy@quesejoda.com>
 
 This file is part of GCC.
@@ -474,7 +474,8 @@ gsi_remove (gimple_stmt_iterator *i, bool remove_permanently)
   gimple_seq_node cur, next, prev;
   gimple stmt = gsi_stmt (*i);
 
-  insert_debug_temps_for_defs (i);
+  if (gimple_code (stmt) != GIMPLE_PHI)
+    insert_debug_temps_for_defs (i);
 
   /* Free all the data flow information for STMT.  */
   gimple_set_bb (stmt, NULL);

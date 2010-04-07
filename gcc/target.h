@@ -1,5 +1,5 @@
 /* Data structure definitions for a generic GCC target.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify it
@@ -235,6 +235,10 @@ struct gcc_target
        translation unit.  */
     void (*file_end) (void);
 
+    /* Output any boilerplace text needed at the end of a
+       translation unit before debug and unwind info is emitted.  */
+    void (*code_end) (void);
+
     /* Output an assembler pseudo-op to declare a library function name
        external.  */
     void (*external_libcall) (rtx);
@@ -467,7 +471,7 @@ struct gcc_target
 
     /* Returns a code for builtin that realizes vectorized version of
        function, or NULL_TREE if not available.  */
-    tree (* builtin_vectorized_function) (unsigned, tree, tree);
+    tree (* builtin_vectorized_function) (tree, tree, tree);
 
     /* Returns a code for builtin that realizes vectorized version of
        conversion, or NULL_TREE if not available.  */
@@ -1060,7 +1064,7 @@ struct gcc_target
   /* Return the class for a secondary reload, and fill in extra information.  */
   enum reg_class (*secondary_reload) (bool, rtx, enum reg_class,
 				      enum machine_mode,
-				      struct secondary_reload_info *);
+				      secondary_reload_info *);
 
   /* This target hook allows the backend to perform additional
      processing while initializing for variable expansion.  */

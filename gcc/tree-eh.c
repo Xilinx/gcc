@@ -1,5 +1,5 @@
 /* Exception handling semantics and decomposition for trees.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -28,6 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "function.h"
 #include "except.h"
+#include "pointer-set.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "tree-inline.h"
@@ -563,6 +564,7 @@ replace_goto_queue (struct leh_tf_state *tf)
   if (tf->goto_queue_active == 0)
     return;
   replace_goto_queue_stmt_list (tf->top_p_seq, tf);
+  replace_goto_queue_stmt_list (eh_seq, tf);
 }
 
 /* Add a new record to the goto queue contained in TF. NEW_STMT is the
@@ -643,7 +645,6 @@ record_in_goto_queue_label (struct leh_tf_state *tf, treemple stmt, tree label)
      labels. */
   new_stmt = stmt;
   record_in_goto_queue (tf, new_stmt, index, true);
-
 }
 
 /* For any GIMPLE_GOTO or GIMPLE_RETURN, decide whether it leaves a try_finally
@@ -1530,6 +1531,7 @@ lower_try_finally (struct leh_state *state, gimple tp)
   struct leh_tf_state this_tf;
   struct leh_state this_state;
   int ndests;
+  gimple_seq old_eh_seq;
 
   /* Process the try block.  */
 
@@ -1545,6 +1547,9 @@ lower_try_finally (struct leh_state *state, gimple tp)
   this_state.cur_region = this_tf.region;
   this_state.ehp_region = state->ehp_region;
   this_state.tf = &this_tf;
+
+  old_eh_seq = eh_seq;
+  eh_seq = NULL;
 
   lower_eh_constructs_1 (&this_state, gimple_try_eval(tp));
 
@@ -1600,6 +1605,20 @@ lower_try_finally (struct leh_state *state, gimple tp)
     free (this_tf.goto_queue);
   if (this_tf.goto_queue_map)
     pointer_map_destroy (this_tf.goto_queue_map);
+
+  /* If there was an old (aka outer) eh_seq, append the current eh_seq.
+     If there was no old eh_seq, then the append is trivially already done.  */
+  if (old_eh_seq)
+    {
+      if (eh_seq == NULL)
+	eh_seq = old_eh_seq;
+      else
+	{
+	  gimple_seq new_eh_seq = eh_seq;
+	  eh_seq = old_eh_seq;
+	  gimple_seq_add_seq(&eh_seq, new_eh_seq);
+	}
+    }
 
   return this_tf.top_p_seq;
 }
@@ -3038,9 +3057,10 @@ struct gimple_opt_pass pass_lower_resx =
 };
 
 
-/* At the end of inlining, we can lower EH_DISPATCH.  */
+/* At the end of inlining, we can lower EH_DISPATCH.  Return true when 
+   we have found some duplicate labels and removed some edges.  */
 
-static void
+static bool
 lower_eh_dispatch (basic_block src, gimple stmt)
 {
   gimple_stmt_iterator gsi;
@@ -3048,6 +3068,7 @@ lower_eh_dispatch (basic_block src, gimple stmt)
   eh_region r;
   tree filter, fn;
   gimple x;
+  bool redirected = false;
 
   region_nr = gimple_eh_dispatch_region (stmt);
   r = get_eh_region_from_number (region_nr);
@@ -3063,6 +3084,7 @@ lower_eh_dispatch (basic_block src, gimple stmt)
 	eh_catch c;
 	edge_iterator ei;
 	edge e;
+	struct pointer_set_t *seen_values = pointer_set_create ();
 
 	/* Collect the labels for a switch.  Zero the post_landing_pad
 	   field becase we'll no longer have anything keeping these labels
@@ -3071,6 +3093,7 @@ lower_eh_dispatch (basic_block src, gimple stmt)
 	for (c = r->u.eh_try.first_catch; c ; c = c->next_catch)
 	  {
 	    tree tp_node, flt_node, lab = c->label;
+	    bool have_label = false;
 
 	    c->label = NULL;
 	    tp_node = c->type_list;
@@ -3083,14 +3106,29 @@ lower_eh_dispatch (basic_block src, gimple stmt)
 	      }
 	    do
 	      {
-		tree t = build3 (CASE_LABEL_EXPR, void_type_node,
-				 TREE_VALUE (flt_node), NULL, lab);
-		VEC_safe_push (tree, heap, labels, t);
+		/* Filter out duplicate labels that arise when this handler 
+		   is shadowed by an earlier one.  When no labels are 
+		   attached to the handler anymore, we remove 
+		   the corresponding edge and then we delete unreachable 
+		   blocks at the end of this pass.  */
+		if (! pointer_set_contains (seen_values, TREE_VALUE (flt_node)))
+		  {
+		    tree t = build3 (CASE_LABEL_EXPR, void_type_node,
+				     TREE_VALUE (flt_node), NULL, lab);
+		    VEC_safe_push (tree, heap, labels, t);
+		    pointer_set_insert (seen_values, TREE_VALUE (flt_node));
+		    have_label = true;
+		  }
 
 		tp_node = TREE_CHAIN (tp_node);
 		flt_node = TREE_CHAIN (flt_node);
 	      }
 	    while (tp_node);
+	    if (! have_label)
+	      {
+	        remove_edge (find_edge (src, label_to_block (lab)));
+	        redirected = true;
+	      }
 	  }
 
 	/* Clean up the edge flags.  */
@@ -3132,6 +3170,7 @@ lower_eh_dispatch (basic_block src, gimple stmt)
 
 	    VEC_free (tree, heap, labels);
 	  }
+	pointer_set_destroy (seen_values);
       }
       break;
 
@@ -3165,6 +3204,7 @@ lower_eh_dispatch (basic_block src, gimple stmt)
 
   /* Replace the EH_DISPATCH with the SWITCH or COND generated above.  */
   gsi_remove (&gsi, true);
+  return redirected;
 }
 
 static unsigned
@@ -3172,6 +3212,7 @@ execute_lower_eh_dispatch (void)
 {
   basic_block bb;
   bool any_rewritten = false;
+  bool redirected = false;
 
   assign_filter_values ();
 
@@ -3180,11 +3221,13 @@ execute_lower_eh_dispatch (void)
       gimple last = last_stmt (bb);
       if (last && gimple_code (last) == GIMPLE_EH_DISPATCH)
 	{
-	  lower_eh_dispatch (bb, last);
+	  redirected |= lower_eh_dispatch (bb, last);
 	  any_rewritten = true;
 	}
     }
 
+  if (redirected)
+    delete_unreachable_blocks ();
   return any_rewritten ? TODO_update_ssa_only_virtuals : 0;
 }
 
@@ -3350,8 +3393,11 @@ unsplit_eh (eh_landing_pad lp)
   if ((e_in->flags & EDGE_EH) == 0 || (e_out->flags & EDGE_EH) != 0)
     return false;
 
-  /* The block must be empty except for the labels.  */
-  if (!gsi_end_p (gsi_after_labels (bb)))
+  /* The block must be empty except for the labels and debug insns.  */
+  gsi = gsi_after_labels (bb);
+  if (!gsi_end_p (gsi) && is_gimple_debug (gsi_stmt (gsi)))
+    gsi_next_nondebug (&gsi);
+  if (!gsi_end_p (gsi))
     return false;
 
   /* The destination block must not already have a landing pad

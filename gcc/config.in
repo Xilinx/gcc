@@ -393,6 +393,12 @@
 #endif
 
 
+/* Define if your assembler supports .ref */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_REF
+#endif
+
+
 /* Define if your assembler supports .register. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_REGISTER_PSEUDO_OP
@@ -408,6 +414,12 @@
 /* Define if your assembler supports -relax option. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_RELAX_OPTION
+#endif
+
+
+/* Define if your assembler and linker support GOTDATA_OP relocs. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_SPARC_GOTDATA_OP
 #endif
 
 
@@ -1477,12 +1489,6 @@
 #endif
 
 
-/* Define if mpc is in use. */
-#ifndef USED_FOR_TARGET
-#undef HAVE_mpc
-#endif
-
-
 /* Define as const if the declaration of iconv() needs const. */
 #ifndef USED_FOR_TARGET
 #undef ICONV_CONST
@@ -1625,6 +1631,13 @@
 /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
 #ifndef USED_FOR_TARGET
 #undef TIME_WITH_SYS_TIME
+#endif
+
+
+/* Define to the flag used to mark TLS sections if the default (`T') doesn't
+   work. */
+#ifndef USED_FOR_TARGET
+#undef TLS_SECTION_ASM_FLAG
 #endif
 
 

@@ -1,6 +1,949 @@
+2010-04-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43519
+	* graphite-clast-to-gimple.c (max_signed_precision_type): Use
+	lang_hooks.types.type_for_size instead of build_nonstandard_integer_type.
+	When converting an unsigned type to signed, double its precision.
+	(gcc_type_for_interval): Use lang_hooks.types.type_for_size.
+	(gcc_type_for_iv_of_clast_loop): Call max_signed_precision_type.
+	(graphite_create_new_loop_guard): When ub + 1 wraps around, use lb <= ub.
+
+2010-04-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43519
+	* graphite-clast-to-gimple.c (max_signed_precision_type): Use
+	build_nonstandard_integer_type.
+	(gcc_type_for_interval): Same.
+
+2010-04-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43519
+	* graphite-clast-to-gimple.c (graphite_create_new_loop_guard): Use
+	POINTER_PLUS_EXPR for pointer types.
+
+	* gcc.dg/graphite/id-19.c: New.
+
+2010-04-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43519
+	* Makefile.in (graphite-clast-to-gimple.o): Depends on langhooks.h.
+	* graphite-clast-to-gimple.c: Include langhooks.h.
+	(max_signed_precision_type): New.
+	(max_precision_type): Takes two types as arguments.
+	(precision_for_value): New.
+	(precision_for_interval): New.
+	(gcc_type_for_interval): New.
+	(gcc_type_for_value): New.
+	(gcc_type_for_clast_term): New.
+	(gcc_type_for_clast_red): New.
+	(gcc_type_for_clast_bin): New.
+	(gcc_type_for_clast_expr): Split up into several functions.
+	(gcc_type_for_clast_eq): Rewritten.
+	(compute_bounds_for_level): New.
+	(compute_type_for_level_1): New.
+	(compute_type_for_level): New.
+	(gcc_type_for_cloog_iv): Removed.
+	(gcc_type_for_iv_of_clast_loop): Rewritten.
+	(graphite_create_new_loop): Compute the lower and upper bound types
+	with gcc_type_for_clast_expr.
+	(graphite_create_new_loop_guard): Same.
+	(find_cloog_iv_in_expr): Removed.
+	(compute_cloog_iv_types_1): Removed.
+	(compute_cloog_iv_types): Removed.
+	(gloog): Do not call compute_cloog_iv_types.
+	* graphite-sese-to-poly.c (new_gimple_bb): Do not initialize
+	GBB_CLOOG_IV_TYPES.
+	(free_data_refs_aux): Do not free GBB_CLOOG_IV_TYPES.
+	* sese.h (struct gimple_bb): Removed field cloog_iv_types.
+	(GBB_CLOOG_IV_TYPES): Removed.
+
+	* gcc.dg/graphite/run-id-pr42644.c: Call abort.
+
+2010-04-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Reverted this commit: as at this point the loop closed SSA form
+	is under a canonical form respecting the single argument condition.
+	* graphite-sese-to-poly.c (scalar_close_phi_node_p): Loop
+	close phi nodes may have more than one argument.
+
+2010-04-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (rewrite_close_phi_out_of_ssa): Assert that
+	gimple_phi_num_args of the loop close SSA phi node is equal to 1.
+	(detect_commutative_reduction): Same.
+
+2010-03-31  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (scalar_close_phi_node_p): Loop
+	close phi nodes may have more than one argument.
+
+2010-03-30  Richard Guenther  <rguenther@suse.de>
+	    Zdenek Dvorak  <ook@ucw.cz>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43464
+	* tree-ssa-copy.c (init_copy_prop): Handle loop close phi nodes
+	with multiple arguments.
+	(execute_copy_prop): Remove call to rewrite_into_loop_closed_ssa.
+
+2010-03-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (print_pddr): Call print_pdr with an
+	extra argument.
+	* graphite-poly.c (debug_pdr): Add an extra argument for the
+	verbosity level.
+	(print_pdr): Same.
+	(print_pbb_domain): Same.
+	(print_pbb): Same.
+	(print_scop_context): Same.
+	(print_scop): Same.
+	(print_cloog): Same.
+	(debug_pbb_domain): Same.
+	(debug_pbb): Same.
+	(print_pdrs): Same.
+	(debug_pdrs): Same.
+	(debug_scop_context): Same.
+	(debug_scop): Same.
+	(debug_cloog): Same.
+	(print_scop_params): Same.
+	(debug_scop_params): Same.
+	(print_iteration_domain): Same.
+	(print_iteration_domains): Same.
+	(debug_iteration_domain): Same.
+	(debug_iteration_domains): Same.
+	(print_scattering_function): Same.
+	(print_scattering_functions): Same.
+	(debug_scattering_function): Same.
+	(debug_scattering_functions): Same.
+	* graphite-poly.h (debug_pdr): Update declaration.
+	(print_pdr): Same.
+	(print_pbb_domain): Same.
+	(print_pbb): Same.
+	(print_scop_context): Same.
+	(print_scop): Same.
+	(print_cloog): Same.
+	(debug_pbb_domain): Same.
+	(debug_pbb): Same.
+	(print_pdrs): Same.
+	(debug_pdrs): Same.
+	(debug_scop_context): Same.
+	(debug_scop): Same.
+	(debug_cloog): Same.
+	(print_scop_params): Same.
+	(debug_scop_params): Same.
+	(print_iteration_domain): Same.
+	(print_iteration_domains): Same.
+	(debug_iteration_domain): Same.
+	(debug_iteration_domains): Same.
+	(print_scattering_function): Same.
+	(print_scattering_functions): Same.
+	(debug_scattering_function): Same.
+	(debug_scattering_functions): Same.
+
+2010-03-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (print_scattering_function_1): New.
+	(print_scattering_function): Call it.
+	(print_scop_params): Remove spaces at the end of lines.
+	(print_cloog): New.
+	(debug_cloog): New.
+	* graphite-poly.h (print_cloog): Declared.
+	(debug_cloog): Declared.
+
+2010-03-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-ssa-copy.c: Revert this previous change:
+	(init_copy_prop): Loop closed phi nodes cancontain more than one
+	argument.
+	(execute_copy_prop): Revert the previous change: do not call
+	rewrite_into_loop_closed_ssa.
+
+2010-03-21  Sebastian Pop  <sebastian.pop@amd.com>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43464
+	* tree-ssa-copy.c (init_copy_prop): Loop closed phi nodes can
+	contain more than one argument.
+	(execute_copy_prop): Revert the previous change: do not call
+	rewrite_into_loop_closed_ssa.
+
+	* gcc.dg/graphite/id-pr43464.c: Remove compile warning.
+	* gcc.dg/graphite/id-pr43464-1.c: New.
+
+2010-03-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43464
+	* tree-ssa-copy.c (execute_copy_prop): Call rewrite_into_loop_closed_ssa
+	and verify_loop_closed_ssa when copy prop is executed in the LNO.
+
+	* gcc.dg/graphite/id-pr43464.c: New.
+
+2010-03-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (graphite_loop_normal_form): Add the IV bump
+	in loop->header.
+	* tree-flow.h (canonicalize_loop_ivs): Updated declaration.
+	* tree-parloops.c (gen_parallel_loop): Add the IV bump in loop->latch.
+	* tree-ssa-loop-manip.c (canonicalize_loop_ivs): Add a new parameter
+	to switch between adding the IV bump in loop->latch or in loop->header.
+
+2010-03-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* passes.c (init_optimization_passes): Add pass_copy_prop
+	after Graphite.
+
+2010-03-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (print_scattering_function): Pretty print following
+	the scoplib format.
+	(print_pdr): Same.
+	(print_pbb_domain): Same.
+	(dump_gbb_cases): Same.
+	(dump_gbb_conditions): Same.
+	(print_pdrs): Same.
+	(print_pbb): Same.
+	(print_scop_params): Same.
+	(print_scop_context): Same.
+	(print_scop): Same.
+	(print_pbb_body): New.
+	(lst_indent_to): New.
+	(print_lst): Start new lines with a #.
+	* graphite-poly.h (pbb_bb): New.
+	(pbb_index): Use pbb_bb.
+	* graphite-ppl.c (ppl_print_powerset_matrix): Print the number of
+	disjuncts.
+	* tree-data-ref.c (dump_data_reference): Start new lines with a #.
+
+2010-03-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43351
+	* gcc.dg/graphite/id-pr43351.c
+
+2010-03-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43354
+	* graphite-sese-to-poly.c (rewrite_close_phi_out_of_ssa): Do not
+	call insert_out_of_ssa_copy for default definitions.
+	* gfortran.dg/graphite/id-pr43354.f: New.
+
+2010-03-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43349
+	* gfortran.dg/graphite/pr43349.f: New.
+
+2010-03-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (my_long_long): Defined.
+	(gcc_type_for_cloog_iv): Use it instead of long_long_integer_type_node.
+	* graphite-sese-to-poly.c (my_long_long): Defined.
+	(scop_ivs_can_be_represented): Use it.
+
+2010-03-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* doc/invoke.texi: Fix documentation of graphite-max-nb-scop-params,
+	graphite-max-bbs-per-function, and loop-block-tile-size.
+	* params.def (PARAM_GRAPHITE_MAX_NB_SCOP_PARAMS): Replace "maximal"
+	with "maximum".
+	(PARAM_GRAPHITE_MAX_BBS_PER_FUNCTION): Same.
+
+2010-03-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (gcc_type_for_iv_of_clast_loop): Remove
+	forward declaration.
+	* graphite-sese-to-poly.c (reduction_phi_p): Remove FIXME comment.
+	(add_upper_bounds_from_estimated_nit): New.
+	(build_loop_iteration_domains): Use it.
+
+2010-03-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* doc/invoke.texi (PARAM_LOOP_BLOCK_TILE_SIZE): Document.
+
+2010-03-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43306
+	* tree-chrec.c (evolution_function_right_is_integer_cst): CHREC_RIGHT
+	should be an INTEGER_CST.  Also handle CASE_CONVERT.
+	* gcc.dg/graphite/pr43306.c: New.
+
+2010-03-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (graphite_initialize): To bound the number of bbs per
+	function, use PARAM_GRAPHITE_MAX_BBS_PER_FUNCTION.
+	* params.def (PARAM_GRAPHITE_MAX_BBS_PER_FUNCTION): Declared.
+	* doc/invoke.texi: Document it.
+
+2010-03-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (build_poly_scop): Do not return bool.
+	* graphite-sese-to-poly.h (build_poly_scop): Same.
+
+2010-03-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (build_poly_scop): Limit scops following
+	the number of parameters in the scop.  Use as an upper bound
+	PARAM_GRAPHITE_MAX_NB_SCOP_PARAMS.
+	* params.def (PARAM_GRAPHITE_MAX_NB_SCOP_PARAMS): Declared.
+	* doc/invoke.texi: Document it.
+
+2010-03-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (add_param_constraints): Use
+	lower_bound_in_type and upper_bound_in_type.
+
+2010-03-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (add_param_constraints): Use sizetype
+	instead of unsigned_type_node.
+
+2010-03-05  Sebastian Pop  <sebastian.pop@amd.com>
+	    Reza Yazdani  <reza.yazdani@amd.com>
+
+	PR middle-end/43065
+	* graphite-sese-to-poly.c (add_param_constraints): Insert bounds
+	on pointer type parameters.
+
+	* gcc.dg/graphite/run-id-4.c: New.
+
+2010-03-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43065
+	* gcc.dg/graphite/run-id-3.c: New.
+
+2010-03-05  Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Ramakrishna Upadrasta <Ramakrishna.Upadrasta@inria.fr>
+
+	* graphite-clast-to-gimple.c (clast_to_gcc_expression): Also
+	handle conversions from pointer to integers.
+	(gcc_type_for_cloog_iv): Choose the smalles signed integer as an
+	induction variable, to be able to work with code generated by CLooG.
+	* graphite-sese-to-poly.c (scop_ivs_can_be_represented): New.
+	(build_poly_scop): Bail out if we cannot codegen a loop.
+
+2010-03-04  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-clast-to-gimple.c (translate_clast): Do not short-cut
+	code generation with gloog_error.
+
+2010-03-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* sese.c (expand_scalar_variables_ssa_name): Add new argument for type.
+	Call fold_convert on all the returned values.
+	(expand_scalar_variables_expr): Pass to expand_scalar_variables_ssa_name
+	the type of the resulting expression.
+
+2010-03-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-ppl.c (ppl_min_for_le_polyhedron): Renamed
+	ppl_min_for_le_pointset.  Use ppl_Pointset_Powerset_C_Polyhedron_minimize.
+	* graphite-ppl.h (ppl_min_for_le_polyhedron): Update declaration.
+
+2010-03-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (map_into_dep_poly): Removed.
+	(dependence_polyhedron_1): Use combine_context_id_scat.
+
+2010-03-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.h (struct poly_scattering): Add layout documentation.
+	(struct poly_bb): Same.
+	(combine_context_id_scat): New.
+
+2010-03-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42326
+	* sese.c (name_defined_in_loop_p): Return false for default
+	definitions.
+
+	* gcc.dg/graphite/pr42326.c: New.
+
+2010-02-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (find_cloog_iv_in_expr): Simplify
+	and clean up the logic.
+
+2010-02-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (add_param_constraints): Enabled: remove
+	early return.
+
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43083
+	* graphite-scop-detection.c (create_single_exit_edge): Move
+	the call to find_single_exit_edge to....
+	(create_sese_edges): ...here.  Don't handle multiple edges
+	exiting the function.
+	(build_graphite_scops): Don't handle multiple edges
+	exiting the function.
+
+	* gcc.dg/graphite/pr43083.c: New.
+
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43097
+	* sese.c (get_rename): Assert that old_name is an SSA_NAME.
+	(rename_variables_in_stmt): Continue when the use is not an SSA_NAME.
+
+	* gfortran.dg/graphite/pr43097.f: New.
+
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+	    Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR middle-end/43140
+	* g++.dg/graphite/pr41305.C: Add -Wno-conversion-null.
+
+2010-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43026
+	* sese.c (expand_scalar_variables_expr): Handle COMPONENT_REF.
+
+	* g++.dg/graphite/pr43026.C: New.
+
+2010-02-13  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* Merge from mainline (154736:156693).
+
+2010-02-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43012
+	* gcc.dg/graphite/pr43012.c: New.
+
+2010-02-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (graphite_transform_loops): Re-enable dbg_cnt.
+2010-02-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* g++.dg/graphite/pr42930.C: New.
+
+2010-02-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42930
+	* graphite-scop-detection.c (graphite_can_represent_scev): Call
+	graphite_can_represent_init for MULT_EXPR.
+
+2010-02-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42914
+	PR middle-end/42530
+	* graphite-sese-to-poly.c (remove_phi): New.
+	(translate_scalar_reduction_to_array): Call remove_phi.
+
+	* gcc.dg/graphite/pr42530.c: New.
+	* gcc.dg/graphite/pr42914.c: New.
+
+2010-02-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42771
+	* graphite-clast-to-gimple.c (gloog): Call rename_sese_parameters.
+	* graphite-clast-to-gimple.h (gloog): Update declaration.
+	* graphite-poly.c (new_scop): Clear POLY_SCOP_P.
+	* graphite-poly.h (struct poly_bb): Add missing comments.
+	(struct scop): Add poly_scop_p field.
+	(POLY_SCOP_P): New.
+	* graphite-sese-to-poly.c (build_poly_scop): Set POLY_SCOP_P.
+	* graphite.c (graphite_transform_loops): Build the polyhedral
+	representation for each scop before code generation.
+	* sese.c (rename_variables_in_operand): Removed.
+	(rename_variables_in_expr): Return the renamed expression.
+	(rename_sese_parameters): New.
+	* sese.h (rename_sese_parameters): Declared.
+
+	* gcc.dg/graphite/pr42771.c: New.
+
+2010-02-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/block-0.c: Call abort for runtime test.  Always
+	return 0 from main.
+	* gcc.dg/graphite/block-1.c: Same.
+	* gcc.dg/graphite/block-3.c: Same.
+	* gcc.dg/graphite/block-4.c: Same.
+	* gcc.dg/graphite/block-5.c: Same.
+	* gcc.dg/graphite/block-6.c: Same.
+	* gcc.dg/graphite/block-7.c: Same.
+	* gcc.dg/graphite/interchange-0.c: Same.
+	* gcc.dg/graphite/interchange-1.c: Same.
+	* gcc.dg/graphite/interchange-10.c: Same.
+	* gcc.dg/graphite/interchange-11.c: Same.
+	* gcc.dg/graphite/interchange-12.c: Same.
+	* gcc.dg/graphite/interchange-2.c: Same.
+	* gcc.dg/graphite/interchange-3.c: Same.
+	* gcc.dg/graphite/interchange-4.c: Same.
+	* gcc.dg/graphite/interchange-5.c: Same.
+	* gcc.dg/graphite/interchange-6.c: Same.
+	* gcc.dg/graphite/interchange-7.c: Same.
+	* gcc.dg/graphite/interchange-8.c: Same.
+	* gcc.dg/graphite/interchange-9.c: Same.
+	* gcc.dg/graphite/interchange-mvt.c: Same.
+
+2010-02-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gfortran.dg/graphite/id-19.f: New.
+	* gfortran.dg/graphite/pr14741.f90: New.
+	* gfortran.dg/graphite/pr41924.f90: New.
+	* gfortran.dg/graphite/run-id-2.f90: New.
+
+2010-02-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42988
+	* graphite-dependences.c (dependence_polyhedron): Set PDDR_KIND
+	to unknown_dependence.
+	(graphite_legal_transform_dr): Handle the unknown_dependence.
+	(graphite_carried_dependence_level_k): Same.
+
+2010-02-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* ChangeLog.graphite: Remove testsuite/ or gcc/testsuite/.
+
+2010-02-05  Sebastian Pop  <sebastian.pop@amd.com>
+	    Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+	PR middle-end/42637
+	* graphite-dependences.c (build_lexicographical_constraint): Return
+	a union of dependence polyhedra.
+	(dependence_polyhedron_1): Adapt for build_lexicographical_constraint.
+
+	* gcc.dg/graphite/block-0.c: Enable runtime check.  XFAILed.
+	* gcc.dg/graphite/block-4.c: Same.
+	* gcc.dg/graphite/block-7.c: Same.
+	* gcc.dg/graphite/interchange-12.c: Same.
+	* gcc.dg/graphite/interchange-mvt.c: Same.
+	* gfortran.dg/graphite/interchange-1.f: XFAILed.
+	* gfortran.dg/graphite/interchange-3.f90: XFAILed.
+	* gfortran.dg/graphite/run-id-1.f: New testcase for PR42637.
+
+2010-02-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/interchange-12.c: Return 0 to avoid
+	the execution check to FAIL.  This testcase is miscompiled by Graphite
+	and the check should be re-enabled.
+	* gcc.dg/graphite/interchange-mvt.c: Same.
+	* gcc.dg/graphite/block-0.c: Same.
+	* gcc.dg/graphite/block-4.c: Same.
+	* gcc.dg/graphite/block-7.c: Same.
+
+2010-02-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/interchange-mvt.c: Un-XFAILed.
+	* gcc.dg/graphite/scop-0.c: Fix spaces.
+	* gfortran.dg/graphite/block-1.f90: Rewrite expected output.
+	* gfortran.dg/graphite/block-2.f: Same.
+	* gfortran.dg/graphite/block-3.f90: Same.
+	* gfortran.dg/graphite/block-4.f90: Same.
+	* gfortran.dg/graphite/interchange-1.f: Un-XFAILed.
+	* gfortran.dg/graphite/interchange-3.f90: Un-XFAILed.
+
+2010-02-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (new_poly_ddr): Initialize PDDR_KIND and
+	PDDR_ORIGINAL_SCATTERING_P.
+	(pddr_is_empty): Rewritten.
+	(print_dependence_polyhedron_layout): New.
+	(print_pddr): New.
+	(debug_pddr): New.
+	(build_alias_set_powerset): Moved up.
+	(poly_drs_may_alias_p): Moved up.
+	(lexicographically_gt_p): Removed.
+	(build_lexicographically_gt_constraint): Renamed
+	build_lexicographical_constraint, reimplemented.
+	(dependence_polyhedron_1): Simplified parameters.
+	(dependence_polyhedron): Same.  Keep along empty PDDRs
+	to make efficient use of the cache.
+	(reduction_dr_p): Compute the PBBs don't pass them as parameters.
+	(graphite_legal_transform_dr): Rewritten.
+	(graphite_legal_transform_bb): Pass fewer arguments to
+	graphite_legal_transform_dr.
+	(graphite_carried_dependence_level_k): Simplified implementation.
+	(dot_original_deps_stmt_1): Call dependence_polyhedron.
+	(dot_transformed_deps_stmt_1): Same.
+	(dot_original_deps): Same.
+	(dot_transformed_deps): Same.
+	* graphite-dependences.h (struct poly_ddr): Added a new field
+	original_scattering_p.
+	(PDDR_ORIGINAL_SCATTERING_P): New.
+	(print_pddr): Declared.
+	(debug_pddr): Declared.
+	* graphite-ppl.c: Clarify comment.
+	* sese.h (print_gimple_bb): Removed unused declaration.
+	(debug_gbb): Same.
+
+2010-02-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* g++.dg/graphite/graphite.exp: Rewritten.
+	* gcc.dg/graphite/graphite.exp: Rewritten.
+	* gfortran.dg/graphite/graphite.exp: Rewritten.
+	* gcc.dg/graphite/block-0.c: Added runtime test.
+	* gcc.dg/graphite/block-1.c: Same.
+	* gcc.dg/graphite/block-3.c: Same.
+	* gcc.dg/graphite/block-4.c: Same.
+	* gcc.dg/graphite/block-5.c: Same.
+	* gcc.dg/graphite/block-6.c: Same.
+	* gcc.dg/graphite/block-7.c: Same.
+	* gcc.dg/graphite/interchange-0.c: Same.
+	* gcc.dg/graphite/interchange-1.c: Same.
+	* gcc.dg/graphite/interchange-10.c: Same.
+	* gcc.dg/graphite/interchange-11.c: Same.
+	* gcc.dg/graphite/interchange-12.c: Same.
+	* gcc.dg/graphite/interchange-2.c: Same.
+	* gcc.dg/graphite/interchange-3.c: Same.
+	* gcc.dg/graphite/interchange-4.c: Same.
+	* gcc.dg/graphite/interchange-5.c: Same.
+	* gcc.dg/graphite/interchange-6.c: Same.
+	* gcc.dg/graphite/interchange-7.c: Same.
+	* gcc.dg/graphite/interchange-8.c: Same.
+	* gcc.dg/graphite/interchange-9.c: Same.
+	* gcc.dg/graphite/interchange-mvt.c: Same.
+	* gcc.dg/graphite/run-id-2.c: Remove useless dg-do run.
+
+2010-01-22  Ramakrishna Upadrasta <Ramakrishna.Upadrasta@inria.fr>
+
+	* graphite-scop-detection.c (dot_all_scops): Make calls to dot run in
+	  background.
+
+2010-01-22  Ramakrishna Upadrasta <Ramakrishna.Upadrasta@inria.fr>
+
+	* common.opt: Add -fgraphite-cloog-opts.
+	* graphite-clast-to-gimple.c (set_cloog_options): Same.
+	* opts.c (decode_options): Same.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/id-17.c: New.
+	* gcc.dg/graphite/pr41888.c: New.
+	* gcc.dg/graphite/scop-22.c: New.
+	* gfortran.dg/graphite/pr40982.f90: New.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c: Clarify comments.
+	(build_pddr): Add an extra parameter direction.
+	(graphite_legal_transform_dr): Use build_pddr.
+	(dot_original_deps_stmt_1): Update use of build_pddr.
+	(dot_transformed_deps_stmt_1): Same.
+	(dot_original_deps): Same.
+	(dot_transformed_deps): Same.
+
+	* gcc.dg/graphite/interchange-12.c: New.
+	* gcc.dg/graphite/block-7.c: New.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (pddr_original_scattering): Renamed build_pddr.
+	(pddr_transformed_scattering): Removed.
+	(graphite_legal_transform_dr): Use build_pddr.
+	(dot_original_deps_stmt_1): Same.
+	(dot_transformed_deps_stmt_1): Same.
+	(dot_original_deps): Same.
+	(dot_transformed_deps): Same.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (lexicographically_gt_p): Add comments.
+	(build_lexicographically_gt_constraint): Same.
+	(dependence_polyhedron_1): Same.
+	(dependence_polyhedron): Same.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (build_pairwise_scheduling_equality): Removed.
+	(build_pairwise_scheduling_inequality): Renamed build_pairwise_scheduling.
+	(lexicographically_gt_p): Change type of direction to int.
+	(build_lexicographically_gt_constraint): Same.
+	(dependence_polyhedron_1): Same.
+	(dependence_polyhedron): Same.
+	(pddr_original_scattering): Use integers for direction.
+	(pddr_transformed_scattering): Same.
+	(graphite_legal_transform_dr): Same.
+	(graphite_carried_dependence_level_k): Same.
+
+2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (build_pairwise_constraint): Renamed
+	ppl_build_relation.  Moved...
+	(dr_equality_constraints): Use ppl_build_relation.
+	(build_pairwise_scheduling_equality): Same.
+	(build_pairwise_scheduling_inequality): Same.
+	* graphite-ppl.c (ppl_build_relation): ...here.
+	* graphite-ppl.h (ppl_build_relation): Declared.
+
+2010-01-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42681
+	* graphite-clast-to-gimple.c (gloog_error): New static variable.
+	(clast_to_gcc_expression): Do not build MULT_EXPR of POINTER_TYPE_P.
+	Set gloog_error when such an expression failed to be built.
+	(translate_clast): Early return when gloog_error is set.
+	(gloog): Clear gloog_error.  When gloog_error is set, call
+	set_ifsese_condition to enable the original code.  Return the status
+	of the code generation based on gloog_error.
+	* sese.c (set_ifsese_condition): New.
+	* sese.h (set_ifsese_condition): Declared.
+
+	* g++.dg/graphite/pr42681.C: New.
+
+2010-01-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42732
+	* graphite-clast-to-gimple.c (gloog): Call scev_reset_htab and
+	rename_nb_iterations.
+	* sese.c (rename_variables_in_operand): New.
+	(rename_variables_in_expr): New.
+	(rename_nb_iterations): New.
+	(sese_adjust_liveout_phis): Update the rename_map.
+	* sese.h (rename_nb_iterations): Declared.
+	* tree-scalar-evolution.c (scev_reset_htab): New.
+	(scev_reset): Call scev_reset_htab.
+	* tree-scalar-evolution.h (scev_reset_htab): Declared.
+
+	* gfortran.dg/graphite/pr42732.f: New.
+
+2010-01-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42393
+	* graphite-clast-to-gimple.c: Fix formatting.
+	* sese.c (defined_in_loop_p): Renamed name_defined_in_loop_p.
+	(expr_defined_in_loop_p): New.
+	(add_loop_exit_phis): Also handle full expressions: remove from
+	the rename_map the expressions defined in the loop that we're closing.
+
+	* gfortran.dg/graphite/pr42393-1.f90: New.
+	* gfortran.dg/graphite/pr42393.f90: Add new flags
+	-fno-loop-block -fno-loop-interchange -fno-loop-strip-mine to also
+	make this testcase useful in the Graphite branch.
+
+2010-01-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-scop-detection.c (exclude_component_ref): Removed.
+	(is_simple_operand): Removed.
+	(stmt_simple_for_scop_p): Remove use of is_simple_operand.
+
+2010-01-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42221
+	* sese.c (expand_scalar_variables_expr): Follow the SSA links into
+	the array indexing of ADDR_EXPRs.
+
+	* gcc.dg/graphite/pr42221.c: New.
+
+2010-01-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42521
+	* graphite.c (graphite_finalize): Call scev_reset.
+	(graphite_transform_loops): Do not call scev_reset between the code
+	generation of scops.
+
+	* gcc.dg/graphite/pr42521.c: New.
+
+2010-01-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-interchange.c (memory_stride_in_loop): Renamed
+	pdr_stride_in_loop.
+	(memory_strides_in_loop): Renamed memory_strides_in_loop_1.
+	(memory_strides_in_loop): Memoize the memory strides per loop.
+	(lst_interchange_profitable_p): Do not initialize to zero the memory
+	strides.
+	* graphite-poly.h (struct lst): Add a field memory_strides.
+	(LST_LOOP_MEMORY_STRIDES): New.
+	(new_lst_loop): Initialize LST_LOOP_MEMORY_STRIDES to -1.
+	(free_lst): Clear LST_LOOP_MEMORY_STRIDES.
+
+2010-01-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-interchange.c (memory_strides_in_loop_depth): Renamed
+	memory_strides_in_loop.  Gather memory strides on a whole loop.
+	(pbb_interchange_profitable_p): Renamed lst_interchange_profitable_p.
+	(lst_interchange_profitable_p): Removed.
+	(lst_try_interchange_loops): Call lst_interchange_profitable_p.
+
+2010-01-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Revert patch 2009-11-23  Tobias Grosser  <grosser@fim.uni-passau.de>
+	* graphite-clast-to-gimple.c (try_mark_loop_parallel): New.
+	(translate_clast_for, translate_clast_guard, translate_clast, gloog):
+	Remove context_loop and level.
+
+2010-01-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42641
+	* sese.c (rename_map_elt_info): Use the SSA name version, do
+	not hash pointers.
+
+2010-01-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-blocking.c (scop_do_block): Print "SCoP will be loop
+	blocked" only when both the strip mine and the interchange have
+	been applied.
+
+	* gcc.dg/graphite/block-2.c: Removed.
+	* gcc.dg/graphite/block-3.c: Add scan pattern.
+	* gcc.dg/graphite/block-4.c: Same.
+	* gcc.dg/graphite/block-5.c: Same.
+	* gcc.dg/graphite/block-6.c: Same.
+
+2010-01-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (save_clast_name_index): Free slot
+	before allocating a new one.
+	(copy_renames): Check that slot is not NULL.
+	(mark_bb_with_pbb): Same.
+	(compute_cloog_iv_types_1): Same.
+	* graphite-interchange.c (lst_perfect_nestify): Free the before,
+	nest, and after LSTs.
+	(lst_try_interchange_loops): Same.
+
+2010-01-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42178
+	* graphite-interchange.c (lst_try_interchange_loops): Do not return
+	the before, nest, and after LSTs.
+	(lst_try_interchange): Removed.
+	(lst_interchange_select_inner): Do not iterate over the LSTs if they
+	were modified.
+	(lst_interchange_select_outer): Apply interchange on the outer loop
+	until there are no more changes in the inner loops.
+
+2009-12-18  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Revert patch fixing PR middle-end/42221.
+
+2009-12-18  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42180
+	* graphite-sese-to-poly.c (follow_ssa_with_commutative_ops): Handle
+	GIMPLE_CALL.
+
+	* gfortran.dg/graphite/pr42180.f90: Add compile flags.
+
+2009-12-18  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42180
+	* graphite-sese-to-poly.c (split_reduction_stmt): Do not split blocks
+	that contain only one statement.
+
+	* gfortran.dg/graphite/pr42180.f90: New.
+
+2009-12-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42393
+	* gfortran.dg/graphite/pr42393.f90: New.
+
+2009-12-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42186
+	* gfortran.dg/graphite/pr42186.f90: New.
+
+2009-12-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42205
+	* graphite-sese-to-poly.c (translate_scalar_reduction_to_array_for_stmt):
+	Insert the reduction copy in the same block as the phi node.
+	(follow_ssa_with_commutative_ops): Handle GIMPLE_NOPs.
+
+	* gcc.dg/graphite/pr42205-1.c: New.
+	* gcc.dg/graphite/pr42205-2.c: New.
+
+2009-12-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42221
+	* sese.c (expand_scalar_variables_expr): Follow the SSA links into
+	the array indexing of ADDR_EXPRs.
+
+	* gcc.dg/graphite/pr42221.c: New.
+
+2009-12-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42178
+	PR middle-end/42334
+	* graphite-interchange.c (lst_try_interchange): Do not modify OUTER
+	index.  Call lst_interchange_select_inner only once.
+	(lst_interchange_select_inner): Update use of lst_try_interchange.
+	(lst_interchange_select_outer): Update.
+
+2009-12-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42178
+	PR middle-end/42334
+	* graphite-interchange.c (lst_try_interchange): Do not increment the
+	the OUTER index when there is no AFTER kernel.  Do not increment the
+	OUTER index for after processing the AFTER kernel.
+	(lst_interchange_select_inner): Call lst_try_interchange only on loops.
+	(lst_interchange_select_outer): Do not pass in a pointer to the OUTER
+	index.  Do not pass to lst_interchange_select_inner the OUTER index.
+	(scop_do_interchange): Update use of lst_interchange_select_outer.
+
+	* gfortran.dg/graphite/graphite.exp
+	(DEFAULT_FLAGS_GRAPHITE_IDENTITY): Remove -fdump-tree-graphite-all.
+	* gfortran.dg/graphite/interchange-1.f: Add comment.  Clean
+	the graphite dump file.
+	* gfortran.dg/graphite/interchange-2.f: Same.
+	* gfortran.dg/graphite/pr42334-1.f: New.
+
+2009-12-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42178
+	PR middle-end/42334
+	* graphite-interchange.c (lst_perfect_nestify): Reset to NULL the LSTs
+	that are empty.
+	(lst_do_interchange_1): Renamed lst_interchange_select_inner.
+	(lst_try_interchange): Reimplemented.
+	(lst_interchange_select_inner): Same.
+	(lst_do_interchange): Renamed lst_interchange_select_outer.
+	Reimplemented.
+	(scop_do_interchange): Update use of lst_interchange_select_outer.
+
+	* g++.dg/graphite/pr42130.C: Add -fgraphite-identity.
+	* gcc.dg/graphite/block-0.c: Un-XFAILed.
+	* gcc.dg/graphite/pr42211.c: New.
+	* gfortran.dg/graphite/pr42334.f90: New.
+
+2009-12-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/42181
+	* graphite-scop-detection.c (graphite_can_represent_scev): Handle more
+	carefully PLUS_EXPR, MINUS_EXPR, and MULT_EXPR.
+
+	* gfortran.dg/graphite/pr42181.f90: New.
+
+2009-12-12  Sebastian Pop  <sebpop@gmail.com>
+
+	PR middle-end/42284
+	* graphite-sese-to-poly.c (rewrite_close_phi_out_of_ssa): Call
+	insert_out_of_ssa_copy_on_edge for anything else than SSA_NAMEs.
+	(detect_commutative_reduction_arg): Simplified.
+	(detect_commutative_reduction): Early return when the argument of
+	the close phi is not of an SSA_NAME.
+
+	* gcc.dg/graphite/pr42284.c: New.
+
+2009-12-11  Alexander Monakov  <amonakov@ispras.ru>
+
+	* dbgcnt.def (graphite_scop): New counter.
+	* graphite.c: Include dbgcnt.h
+	(graphite_transform_loops): Use new counter to limit transformations.
+
+2009-12-08  Sebastian Pop  <sebpop@gmail.com>
+
+	PR middle-end/42285
+	* graphite-scop-detection.c (graphite_can_represent_init): Also
+	handle more complex MULT_EXPRs containing parameters by recursion
+	on the structure.
+
+	* gfortran.dg/graphite/pr42285.f90: New.
+
+2009-12-01  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* g++.dg/graphite/pr42130.C: Fix type.
+
 2009-11-29  Alexander Monakov <amonakov@gcc.gnu.org>
 
-	* testsuite/g++.dg/graphite/pr42130.C: Correct testcase.
+	* g++.dg/graphite/pr42130.C: Correct testcase.
+
+2009-11-28 Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* Merge from mainline (154493:154734).
+
+2009-11-28 Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* Merge from mainline (151362:154491).
 
 2009-11-24  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -14,8 +957,8 @@
 	translate_clast_for_loop): New.
 	(translate_clast_for): Add a condition around the loop, to do not
 	execute loops with zero iterations.
-	* testsuite/g++.dg/graphite/pr42130.C: New.
-	* testsuite/gcc.dg/graphite/pr35356-2.c: Adapt.
+	* g++.dg/graphite/pr42130.C: New.
+	* gcc.dg/graphite/pr35356-2.c: Adapt.
 
 2009-11-23  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -91,7 +1034,7 @@
 2009-11-18  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR middle-end/40281
-	* testsuite/gcc.dg/graphite/pr40281.c: New.
+	* gcc.dg/graphite/pr40281.c: New.
 
 	* tree-scalar-evolution.c (instantiate_scev_poly): Base and stride
 	evolutions should not variate in inner loops.
@@ -99,7 +1042,7 @@
 2009-11-18  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR middle-end/42050
-	* testsuite/gfortran.dg/graphite/pr42050.f90: New.
+	* gfortran.dg/graphite/pr42050.f90: New.
 
 2009-11-18  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -567,12 +1510,12 @@
 
 2009-10-14  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* testsuite/gcc.dg/graphite/id-15.c: (8 * 8) replaced with
+	* gcc.dg/graphite/id-15.c: (8 * 8) replaced with
 	sizeof(unsigned long) to make it run on 32bit systems.
 
 2009-10-14  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* testsuite/gcc.dg/graphite/run-id-1.c: Use smaller matrix to not
+	* gcc.dg/graphite/run-id-1.c: Use smaller matrix to not
 	SEGFAULT on 32bit.
 
 2009-10-14  Ramakrishna Upadrasta <Ramakrishna.Upadrasta@inria.fr>
@@ -622,6 +1565,7 @@
 
 	* graphite-poly.c (apply_poly_transforms): Implement the high
 	level driver for flag_loop_block.
+	* opts.c (decode_options): Enable flag_loop_block at -O2.
 	* tree-ssa-loop.c (gate_graphite_transforms): Remove call to sorry for
 	flag_loop_block.
 
@@ -803,21 +1747,40 @@
 
 2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* Merge from mainline (151310:151361).
+
+2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (151171:151310).
+
+2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (151171:151806).
+
+2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Revert the last commit.
+
+2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (151171:151819).
+
+2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-scop-detection.c (stmt_simple_memref_p): Removed.
 	(is_simple_operand): Remove call to stmt_simple_memref_p.
 	(stmt_simple_for_scop_p): Update call to is_simple_operand.
 
 2009-09-17  David Edelsohn  <edelsohn@gnu.org>
 
-	* testsuite/gcc.dg/graphite/interchange-mvt.c: New File.
-	* testsuite/gcc.dg/graphite/scop-dsyrk.c: New File.
-	* testsuite/gcc.dg/graphite/scop-dsyr2k.c: New File.
-	* testsuite/gcc.dg/graphite/scop-mvt.c: New File.
-	* testsuite/gcc.dg/graphite/scop-sor.c: New File.
+	* gcc.dg/graphite/interchange-mvt.c: New File.
+	* gcc.dg/graphite/scop-dsyrk.c: New File.
+	* gcc.dg/graphite/scop-dsyr2k.c: New File.
+	* gcc.dg/graphite/scop-mvt.c: New File.
+	* gcc.dg/graphite/scop-sor.c: New File.
 
 2009-09-17 Li Feng  <nemokingdom@gmail.com>
 
-	PR middle-end/41118
 	* graphite-dependences.c (poly_drs_may_alias_p): Adjust definition.
 	(pddr_original_scattering): Make sure 2 pdr2 in the same base object set.
 	(graphite_carried_dependence_level_k): Ditto.
@@ -942,6 +1905,10 @@
 2009-08-28  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Merge from mainline (150992:151171).
+
+2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* opts.c (decode_options): Enable flag_loop_interchange at -O2.
 
 2009-08-25  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1119,14 +2086,14 @@
 	* sese.c (convert_for_phi_arg): New.
 	(add_guard_exit_phis): Use convert_for_phi_arg.
 
-	* testsuite/gfortran.dg/graphite/id-17.f: New.
+	* gfortran.dg/graphite/id-17.f: New.
 
 2009-08-11  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-sese-to-poly.c (pdr_add_data_dimensions): Dont add
 	unknown subscript upper bounds.
 
-	* testsuite/gcc.dg/graphite/interchange-6.c: Un-XFAIL.
+	* gcc.dg/graphite/interchange-6.c: Un-XFAIL.
 
 2009-08-11  Sebastian Pop  <sebastian.pop@amd.com>
 	    Pranav Garg  <pranav.garg2107@gmail.com>
@@ -1139,7 +2106,7 @@
 	* graphite-ppl.h (ppl_new_id_map): New.
 	(ppl_interchange): New.
 
-	* testsuite/gcc.dg/graphite/interchange-6.c: XFAILed.
+	* gcc.dg/graphite/interchange-6.c: XFAILed.
 
 2009-08-11  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1182,7 +2149,7 @@
 
 2009-08-11  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/interchange-9.c: New.
+	* gcc.dg/graphite/interchange-9.c: New.
 
 2009-08-05  Konrad Trifunovic  <konrad.trifunovic@gmail.com>
 	    Sebastian Pop  <sebastian.pop@amd.com>
@@ -1192,11 +2159,11 @@
 	(graphite_carried_dependence_level_k): Free unused objects before
 	returning.
 
-	* testsuite/gcc.dg/graphite/interchange-1.c: XFAILed.
-	* testsuite/gcc.dg/graphite/interchange-2.c: XFAILed.
-	* testsuite/gcc.dg/graphite/interchange-3.c: XFAILed.
-	* testsuite/gcc.dg/graphite/interchange-4.c: XFAILed.
-	* testsuite/gcc.dg/graphite/interchange-7.c: XFAILed.
+	* gcc.dg/graphite/interchange-1.c: XFAILed.
+	* gcc.dg/graphite/interchange-2.c: XFAILed.
+	* gcc.dg/graphite/interchange-3.c: XFAILed.
+	* gcc.dg/graphite/interchange-4.c: XFAILed.
+	* gcc.dg/graphite/interchange-7.c: XFAILed.
 
 2009-08-05  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1289,16 +2256,16 @@
 	(rewrite_reductions_out_of_ssa): New.
 	(build_poly_scop): Call rewrite_reductions_out_of_ssa.
 
-	* testsuite/gcc.dg/graphite/id-11.c: New.
-	* testsuite/gcc.dg/graphite/id-15.c: New.
-	* testsuite/gcc.dg/graphite/interchange-1.c: Un-XFAIL.
-	* testsuite/gcc.dg/graphite/interchange-2.c: Un-XFAIL.
-	* testsuite/gcc.dg/graphite/interchange-3.c: Un-XFAIL.
-	* testsuite/gcc.dg/graphite/interchange-4.c: Un-XFAIL.
-	* testsuite/gcc.dg/graphite/interchange-7.c: Un-XFAIL.
-	* testsuite/gcc.dg/graphite/scop-matmult.c: Un-XFAIL.
-	* testsuite/gfortran.dg/graphite/id-13.f: New.
-	* testsuite/gfortran.dg/graphite/id-5.f: New.
+	* gcc.dg/graphite/id-11.c: New.
+	* gcc.dg/graphite/id-15.c: New.
+	* gcc.dg/graphite/interchange-1.c: Un-XFAIL.
+	* gcc.dg/graphite/interchange-2.c: Un-XFAIL.
+	* gcc.dg/graphite/interchange-3.c: Un-XFAIL.
+	* gcc.dg/graphite/interchange-4.c: Un-XFAIL.
+	* gcc.dg/graphite/interchange-7.c: Un-XFAIL.
+	* gcc.dg/graphite/scop-matmult.c: Un-XFAIL.
+	* gfortran.dg/graphite/id-13.f: New.
+	* gfortran.dg/graphite/id-5.f: New.
 
 2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1317,7 +2284,7 @@
 
 	* graphite-clast-to-gimple.c (build_cloog_prog): Do not code generate
 	statements that have an empty iteration domain.
-	* testsuite/gfortran.dg/graphite/id-16.f: New.
+	* gfortran.dg/graphite/id-16.f: New.
 
 2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1326,8 +2293,8 @@
 	* graphite-scop-detection.c (scopdet_basic_block_info): Fix formatting.
 	* graphite-sese-to-poly.c (create_linear_expr_from_tree): Assert that
 	the tree has a known scalar evolution.
-	* testsuite/gfortran.dg/graphite/id-14.f: New.
-	* testsuite/gfortran.dg/graphite/id-15.f: New.
+	* gfortran.dg/graphite/id-14.f: New.
+	* gfortran.dg/graphite/id-15.f: New.
 
 2009-07-28  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1347,16 +2314,16 @@
 
 	* graphite.c (graphite_finalize): Call print_loops instead of
 	dump_function_to_file.
-	* testsuite/gcc.dg/graphite/graphite.exp: Fix formatting.
-	* testsuite/gcc.dg/graphite/pr35356-1.c: New.  Look for the number of
+	* gcc.dg/graphite/graphite.exp: Fix formatting.
+	* gcc.dg/graphite/pr35356-1.c: New.  Look for the number of
 	loops generated in the graphite output file.
-	* testsuite/gcc.dg/graphite/pr35356-2.c: New.
-	* testsuite/gcc.dg/graphite/pr35356-3.c: New.  XFAILed for now.
-	* testsuite/gfortran.dg/graphite/id-12.f: New.
+	* gcc.dg/graphite/pr35356-2.c: New.
+	* gcc.dg/graphite/pr35356-3.c: New.  XFAILed for now.
+	* gfortran.dg/graphite/id-12.f: New.
 
 2009-07-24  Li Feng  <nemokingdom@gmail.com>
 
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-8.c:
+	* gcc.dg/graphite/graphite_autopar/force-parallel-8.c:
 	Remove 2 XFAIL.
 
 2009-07-24  Li Feng  <nemokingdom@gmail.com>
@@ -1425,9 +2392,9 @@
 
 2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/id-14.c: New.
-	* testsuite/gcc.dg/graphite/pr40157.c: New.
-	* testsuite/gfortran.dg/graphite/id-11.f: New.
+	* gcc.dg/graphite/id-14.c: New.
+	* gcc.dg/graphite/pr40157.c: New.
+	* gfortran.dg/graphite/id-11.f: New.
 
 2009-07-16  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1489,13 +2456,13 @@
 	polynomials of degree > 1 pass to Graphite.
 	* tree-chrec.c (scev_is_linear_expression): Call
 	evolution_function_is_affine_multivariate_p.
-	* testsuite/gfortran.dg/graphite/id-10.f90: New.
+	* gfortran.dg/graphite/id-10.f90: New.
 
 2009-07-14  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* tree-scalar-evolution.c (compute_overall_effect_of_inner_loop):
 	Instantiate scevs varying in outer loops.
-	* testsuite/gfortran.dg/graphite/id-9.f: Correct testcase.
+	* gfortran.dg/graphite/id-9.f: Correct testcase.
 
 2009-07-14  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1504,22 +2471,22 @@
 
 2009-07-14  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/graphite.exp: Fix comments.
-	* testsuite/gfortran.dg/graphite/graphite.exp: Trigger actions
+	* gcc.dg/graphite/graphite.exp: Fix comments.
+	* gfortran.dg/graphite/graphite.exp: Trigger actions
 	based on the file names as in the C testsuite.
-	* testsuite/gfortran.dg/graphite/block-1.f90: Fix patterns.
-	* testsuite/gfortran.dg/graphite/block-2.f: Same.
-	* testsuite/gfortran.dg/graphite/block-3.f90: Same.
-	* testsuite/gfortran.dg/graphite/block-4.f90: Same.
-	* testsuite/gfortran.dg/graphite/id-1.f90: Same.
-	* testsuite/gfortran.dg/graphite/id-2.f90: Same.
-	* testsuite/gfortran.dg/graphite/id-3.f90: Same.
-	* testsuite/gfortran.dg/graphite/id-4.f90: Same.
-	* testsuite/gfortran.dg/graphite/id-6.f: Same.
-	* testsuite/gfortran.dg/graphite/id-9.f: Same.
-	* testsuite/gfortran.dg/graphite/interchange-1.f: Same.
-	* testsuite/gfortran.dg/graphite/interchange-2.f: Same.
-	* testsuite/gfortran.dg/graphite/scop-1.f: Same.
+	* gfortran.dg/graphite/block-1.f90: Fix patterns.
+	* gfortran.dg/graphite/block-2.f: Same.
+	* gfortran.dg/graphite/block-3.f90: Same.
+	* gfortran.dg/graphite/block-4.f90: Same.
+	* gfortran.dg/graphite/id-1.f90: Same.
+	* gfortran.dg/graphite/id-2.f90: Same.
+	* gfortran.dg/graphite/id-3.f90: Same.
+	* gfortran.dg/graphite/id-4.f90: Same.
+	* gfortran.dg/graphite/id-6.f: Same.
+	* gfortran.dg/graphite/id-9.f: Same.
+	* gfortran.dg/graphite/interchange-1.f: Same.
+	* gfortran.dg/graphite/interchange-2.f: Same.
+	* gfortran.dg/graphite/scop-1.f: Same.
 
 2009-07-14  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1528,18 +2495,18 @@
 
 2009-07-13  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-6.c:
+	* gcc.dg/graphite/graphite_autopar/force-parallel-6.c:
 	Expect to see the pattern twice.
-	* testsuite/gcc.dg/graphite/interchange-0.c: Un-XFAIL.
-	* testsuite/gcc.dg/graphite/interchange-5.c: Same.
-	* testsuite/gcc.dg/graphite/interchange-6.c: Same.
+	* gcc.dg/graphite/interchange-0.c: Un-XFAIL.
+	* gcc.dg/graphite/interchange-5.c: Same.
+	* gcc.dg/graphite/interchange-6.c: Same.
 
 2009-07-13  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/id-10.c: New.
-	* testsuite/gcc.dg/graphite/id-12.c: New.
-	* testsuite/gfortran.dg/graphite/id-7.f: New.
-	* testsuite/gfortran.dg/graphite/id-8.f: New.
+	* gcc.dg/graphite/id-10.c: New.
+	* gcc.dg/graphite/id-12.c: New.
+	* gfortran.dg/graphite/id-7.f: New.
+	* gfortran.dg/graphite/id-8.f: New.
 
 2009-07-13  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1600,9 +2567,9 @@
 
 2009-07-09  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/graphite.exp: Added a rule to execute
+	* gcc.dg/graphite/graphite.exp: Added a rule to execute
 	run-id-*.c files.
-	* testsuite/gcc.dg/graphite/run-id-1.c: New.
+	* gcc.dg/graphite/run-id-1.c: New.
 
 2009-07-09  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -1684,7 +2651,7 @@
 
 2009-07-07  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/id-13.c: New.
+	* gcc.dg/graphite/id-13.c: New.
 	* graphite-sese-to-poly.c (graphite_stmt_p): Do not call
 	analyze_scalar_evolution, use scalar_evolution_in_region.
 	(scan_tree_for_params_right_scev): Add extra assert.
@@ -1716,22 +2683,22 @@
 
 2009-07-07  Li Feng  <nemokingdom@gmail.com>
 
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-4.c: New.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-5.c: New.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-6.c: New.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-7.c: New.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-8.c: New.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-9.c: New.
+	* gcc.dg/graphite/graphite_autopar/force-parallel-4.c: New.
+	* gcc.dg/graphite/graphite_autopar/force-parallel-5.c: New.
+	* gcc.dg/graphite/graphite_autopar/force-parallel-6.c: New.
+	* gcc.dg/graphite/graphite_autopar/force-parallel-7.c: New.
+	* gcc.dg/graphite/graphite_autopar/force-parallel-8.c: New.
+	* gcc.dg/graphite/graphite_autopar/force-parallel-9.c: New.
 
 2009-07-07  Li Feng  <nemokingdom@gmail.com>
 
 	* graphite-clast-to-gimple.c (mark_loops_parallel): Dump information
 	for dependency checking part.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-1.c: Add
+	* gcc.dg/graphite/graphite_autopar/force-parallel-1.c: Add
 	tests for dependency checking.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-2.c: Ditto.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-3.c: Ditto.
-	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp: Add
+	* gcc.dg/graphite/graphite_autopar/force-parallel-2.c: Ditto.
+	* gcc.dg/graphite/graphite_autopar/force-parallel-3.c: Ditto.
+	* gcc.dg/graphite/graphite_autopar/graphite_autopar.exp: Add
 	flag -fdump-tree-graphite-all for autopar testsuites.
 
 2009-07-06  Sebastian Pop  <sebastian.pop@amd.com>
@@ -1750,7 +2717,7 @@
 
 2009-07-06  Li Feng  <nemokingdom@gmail.com>
 
-	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp:
+	* gcc.dg/graphite/graphite_autopar/graphite_autopar.exp:
 	Added flag -fno-loop-strip-mine for autopar testcase.
 
 2009-07-04  Li Feng  <nemokingdom@gmail.com>
@@ -1896,11 +2863,11 @@
 
 2009-06-24  Li Feng  <nemokingdom@gmail.com>
 
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-1.c: Update
+	* gcc.dg/graphite/graphite_autopar/force-parallel-1.c: Update
 	-fdump-tree-final_cleanup to -fdump-tree-optimized.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-2.c: Ditto.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-3.c: Ditto.
-	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp: Ditto.
+	* gcc.dg/graphite/graphite_autopar/force-parallel-2.c: Ditto.
+	* gcc.dg/graphite/graphite_autopar/force-parallel-3.c: Ditto.
+	* gcc.dg/graphite/graphite_autopar/graphite_autopar.exp: Ditto.
 
 2009-06-23  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -2035,7 +3002,7 @@
 
 2009-06-18  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* gcc/testsuite/gcc.dg/graphite/interchange-{1..7}.c: New avatars of
+	* gcc.dg/graphite/interchange-{1..7}.c: New avatars of
 	ltrans-{1..6,8}.c.
 
 2009-06-18  Sebastian Pop  <sebastian.pop@amd.com>
@@ -2169,7 +3136,7 @@
 
 2009-05-17  Li Feng  <nemokingdom@gmail.com>
 
-	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp:
+	* gcc.dg/graphite/graphite_autopar/graphite_autopar.exp:
 	Cover all the testcases (not only the filtered ones).
 
 2009-05-17  Tobias Grosser  <grosser@fim.uni-passau.de>
@@ -2346,19 +3313,19 @@
 
 2009-05-11  Li Feng  <nemokingdom@gmail.com>
 
-	* testsuite/gcc.dg/graphite/graphite.exp: Set different default
+	* gcc.dg/graphite/graphite.exp: Set different default
 	compile options by file names.
-	* testsuite/gcc.dg/graphite/block{0-6}.c: Remove dg-option line.
-	* testsuite/gcc.dg/graphite/id-{1-9}.c: Ditto.
-	* testsuite/gcc.dg/graphite/scop-{0-20}.c: Ditto.
-	* testsuite/gcc.dg/graphite/scop-matmult.c: Ditto.
+	* gcc.dg/graphite/block{0-6}.c: Remove dg-option line.
+	* gcc.dg/graphite/id-{1-9}.c: Ditto.
+	* gcc.dg/graphite/scop-{0-20}.c: Ditto.
+	* gcc.dg/graphite/scop-matmult.c: Ditto.
 
 2009-05-08  Li Feng <nemokingdom@gmail.com>
 
-	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp: New.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-1.c: New.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-2.c: New.
-	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-3.c: New.
+	* gcc.dg/graphite/graphite_autopar/graphite_autopar.exp: New.
+	* gcc.dg/graphite/graphite_autopar/force-parallel-1.c: New.
+	* gcc.dg/graphite/graphite_autopar/force-parallel-2.c: New.
+	* gcc.dg/graphite/graphite_autopar/force-parallel-3.c: New.
 
 2009-05-07  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -2378,8 +3345,8 @@
 	(try_generate_gimple_bb): Cleanup.
 	(build_scops): Enable data references.
 
-	* testsuite/gcc.dg/graphite/id-5.c: New.
-	* testsuite/gcc.dg/graphite/id-9.c: New.
+	* gcc.dg/graphite/id-5.c: New.
+	* gcc.dg/graphite/id-9.c: New.
 	* tree-chrec.c (evolution_function_right_is_integer_cst): New.
 	* tree-chrec.h (evolution_function_right_is_integer_cst): New.
 
@@ -2408,8 +3375,8 @@
 
 2009-05-01  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* testsuite/gcc.dg/graphite/id-6.c: Update testcase.
-	* testsuite/gcc.dg/graphite/scop-3.c: Dito.
+	* gcc.dg/graphite/id-6.c: Update testcase.
+	* gcc.dg/graphite/scop-3.c: Dito.
 
 2009-05-01  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -2423,7 +3390,7 @@
 	(harmful_stmt_in_bb): Check if we can represent the conditions.
 	(scopdet_basic_block_info (basic_block bb, VEC): Pass the loop to
 	harmful_stmt_in_bb.
-	* testsuite/gcc.dg/graphite/id-7.c: New.
+	* gcc.dg/graphite/id-7.c: New.
 
 2009-04-30  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -2431,7 +3398,7 @@
 	Check all bbs in region, not only the bbs that are represented in
 	GRAPHITE.
 	(build_poly_scop): Add newline.
-	* testsuite/gcc.dg/graphite/id-8.c: New.
+	* gcc.dg/graphite/id-8.c: New.
 
 2009-04-30  Li Feng  <nemokingdom@gmail.com>
 
@@ -2467,7 +3434,7 @@
 
 	* graphite-scop-detection.c (graphite_can_represent_scev): Do not
 	allow non constant strides.
-	* testsuite/gcc.dg/graphite/scop-20.c: New.
+	* gcc.dg/graphite/scop-20.c: New.
 
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -2477,8 +3444,8 @@
 
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/id-6.c: Fix pattern.
-	* testsuite/gcc.dg/graphite/scop-3.c: Same.
+	* gcc.dg/graphite/id-6.c: Fix pattern.
+	* gcc.dg/graphite/scop-3.c: Same.
 
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -2560,7 +3527,7 @@
 	* graphite-ppl.h (debug_ppl_powerset_matrix): New.
 	* graphite-sese-to-poly.c (add_condition_to_pbb): Use
 	upper_bound_assign to calculate unions.
-	* testsuite/gcc.dg/graphite/id-6.c: New.
+	* gcc.dg/graphite/id-6.c: New.
 
 2009-04-09  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -2584,8 +3551,8 @@
 
 2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gfortran.dg/graphite/interchange-1.c: New.
-	* testsuite/gfortran.dg/graphite/interchange-2.c: New.
+	* gfortran.dg/graphite/interchange-1.c: New.
+	* gfortran.dg/graphite/interchange-2.c: New.
 
 2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -2632,7 +3599,7 @@
 	(add_condition_to_domain): New.
 	(add_condition_to_pbb): New.
 	(add_conditions_to_domain): Cleanup and handle of NE_EXPR and EQ_EXPR.
-	* testsuite/gcc.dg/graphite/scop-3.c: Update number of detected SCoPs.
+	* gcc.dg/graphite/scop-3.c: Update number of detected SCoPs.
 
 2009-04-08  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -2764,14 +3731,14 @@
 2009-03-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-poly.c: (apply_poly_transforms): sorry -> gcc_unreachable.
-	* testsuite/gcc.dg/graphite/pr37883.c: Remove -floop-*
-	* testsuite/gcc.dg/graphite/pr37928.c: Same
-	* testsuite/gcc.dg/graphite/pr38409.c: Same
-	* testsuite/gcc.dg/graphite/pr38498.c: Same
-	* testsuite/gcc.dg/graphite/pr38559.c: Same
-	* testsuite/gcc.dg/graphite/pr39335.c: Same
-	* testsuite/gcc.dg/graphite/pr39335_1.c: Same
-	* testsuite/gfortran.dg/graphite/block-2.f: Same
+	* gcc.dg/graphite/pr37883.c: Remove -floop-*
+	* gcc.dg/graphite/pr37928.c: Same
+	* gcc.dg/graphite/pr38409.c: Same
+	* gcc.dg/graphite/pr38498.c: Same
+	* gcc.dg/graphite/pr38559.c: Same
+	* gcc.dg/graphite/pr39335.c: Same
+	* gcc.dg/graphite/pr39335_1.c: Same
+	* gfortran.dg/graphite/block-2.f: Same
 	* tree-ssa-loop.c (gate_graphite_transforms): Always fail if called
 	with -floop-*.
 
@@ -2890,7 +3857,7 @@
 
 2009-03-13  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* testsuite/gcc.dg/graphite/id-4.c: New.
+	* gcc.dg/graphite/id-4.c: New.
 
 2009-03-12  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -2923,7 +3890,7 @@
 
 	* graphite-scop-detection.c (is_simple_operand): Do not handle
 	REALPART_EXPR.
-	* testsuite/gcc.dg/graphite/id-2.c: New.
+	* gcc.dg/graphite/id-2.c: New.
 
 	* graphite-sese-to-poly.c (build_bb_loops,
 	add_value_to_dim, scan_tree_for_params_right_scev,
@@ -3033,24 +4000,24 @@
 
 2009-03-04  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* testsuite/gcc.dg/graphite/pr37485.c: Remove -floop-block
-	* testsuite/gcc.dg/graphite/pr37828.c: Same.
-	* testsuite/gcc.dg/graphite/pr37684.c: Same.
-	* testsuite/gcc.dg/graphite/block-0.c: Same.
-	* testsuite/gcc.dg/graphite/block-1.c: Same.
-	* testsuite/gcc.dg/graphite/block-2.c: Same.
-	* testsuite/gcc.dg/graphite/block-3.c: Same.
-	* testsuite/gcc.dg/graphite/block-4.c: Same.
-	* testsuite/gcc.dg/graphite/block-5.c: Same.
-	* testsuite/gcc.dg/graphite/block-6.c: Same.
-	* testsuite/gfortran.dg/graphite/pr38083.f90: Same.
-	* testsuite/gfortran.dg/graphite/block-1.f90: Same.
-	* testsuite/gfortran.dg/graphite/block-3.f90: Same.
-	* testsuite/gfortran.dg/graphite/pr37852.f90: Same.
-	* testsuite/gfortran.dg/graphite/block-4.f90: Same.
-	* testsuite/gfortran.dg/graphite/pr37980.f90: Same.
-	* testsuite/gfortran.dg/graphite/pr38953.f90: Same.
-	* testsuite/gfortran.dg/graphite/pr37857.f90: Same.
+	* gcc.dg/graphite/pr37485.c: Remove -floop-block
+	* gcc.dg/graphite/pr37828.c: Same.
+	* gcc.dg/graphite/pr37684.c: Same.
+	* gcc.dg/graphite/block-0.c: Same.
+	* gcc.dg/graphite/block-1.c: Same.
+	* gcc.dg/graphite/block-2.c: Same.
+	* gcc.dg/graphite/block-3.c: Same.
+	* gcc.dg/graphite/block-4.c: Same.
+	* gcc.dg/graphite/block-5.c: Same.
+	* gcc.dg/graphite/block-6.c: Same.
+	* gfortran.dg/graphite/pr38083.f90: Same.
+	* gfortran.dg/graphite/block-1.f90: Same.
+	* gfortran.dg/graphite/block-3.f90: Same.
+	* gfortran.dg/graphite/pr37852.f90: Same.
+	* gfortran.dg/graphite/block-4.f90: Same.
+	* gfortran.dg/graphite/pr37980.f90: Same.
+	* gfortran.dg/graphite/pr38953.f90: Same.
+	* gfortran.dg/graphite/pr37857.f90: Same.
 	* opts.c: Remove -floop-block from -O2.
 	* graphite-poly.c: Fail if -floop-block -floop-interchange or
 	-floop-strip-mine are used.
@@ -3107,8 +4074,8 @@
 	* graphite-clast-to-gimple.c (graphite_loop_normal_form): Same.
 	* tree-flow.h (canonicalize_loop_ivs): Update declaration.
 
-	* testsuite/gcc.dg/graphite/pr39335_1.c: New.
-	* testsuite/gcc.dg/graphite/pr39335.c: New.
+	* gcc.dg/graphite/pr39335_1.c: New.
+	* gcc.dg/graphite/pr39335.c: New.
 
 2009-03-02  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -3230,7 +4197,7 @@
 	* graphite-sese-to-poly.c (build_poly_scop): Don't fail on
 	build_sese_loop_nests.
 
-	* testsuite/gcc.dg/graphite/id-1.c: New.
+	* gcc.dg/graphite/id-1.c: New.
 
 2009-02-23  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
@@ -3656,7 +4623,7 @@
 	* graphite.h (ref_nb_loops): ... from here.
 	(struct scop): Remove bbs_b bitmap.
 	(SCOP_BBS_B, bb_in_scop_p, loop_in_scop_p): Removed.
-	* testsuite/gcc.dg/graphite/scop-19.c: New
+	* gcc.dg/graphite/scop-19.c: New
 
 2009-02-03  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -3794,7 +4761,7 @@
 2009-01-11  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR tree-optimization/38786
-	* testsuite/gcc.dg/graphite/pr38786.c: New.
+	* gcc.dg/graphite/pr38786.c: New.
 	* graphite.c (expand_scalar_variables_ssa_name): New, outlined from
 	the SSA_NAME case of expand_scalar_variables_expr.
 	(expand_scalar_variables_expr): Also gather the scalar computation
@@ -3804,7 +4771,7 @@
 
 2009-01-10  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/block-3.c: Fix compile error on 32bit.
+	* gcc.dg/graphite/block-3.c: Fix compile error on 32bit.
 
 2009-01-10  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -3824,7 +4791,7 @@
 	    Jan Sjodin  <jan.sjodin@amd.com>
 
 	PR tree-optimization/38559
-	* testsuite/gcc.dg/graphite/pr38559.c: New.
+	* gcc.dg/graphite/pr38559.c: New.
 
 	* graphite.c (debug_value, copy_constraint,
 	swap_constraint_variables, scale_constraint_variable, ): New.
@@ -3858,15 +4825,15 @@
 	(graphite_transform_loops): Do not handle scops that contain condition
 	scalar phi nodes.
 
-	* testsuite/gcc.dg/graphite/pr38500.c: Fixed warning as committed
+	* gcc.dg/graphite/pr38500.c: Fixed warning as committed
 	in trunk.
-	* testsuite/gcc.dg/graphite/block-0.c: Update test.
-	* testsuite/gcc.dg/graphite/block-1.c: Same.
-	* testsuite/gcc.dg/graphite/block-2.c: Remove xfail and test for
+	* gcc.dg/graphite/block-0.c: Update test.
+	* gcc.dg/graphite/block-1.c: Same.
+	* gcc.dg/graphite/block-2.c: Remove xfail and test for
 	blocking.
-	* testsuite/gcc.dg/graphite/block-4.c: Remove test for strip mine.
-	* testsuite/gcc.dg/graphite/block-3.c: New.
-	* testsuite/gcc.dg/graphite/pr38498.c: New.
+	* gcc.dg/graphite/block-4.c: Remove test for strip mine.
+	* gcc.dg/graphite/block-3.c: New.
+	* gcc.dg/graphite/pr38498.c: New.
 
 2008-12-22  Harsha Jagasia  <harsha.jagasia@amd.com>
 
@@ -3940,13 +4907,13 @@
 
 2008-12-11  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/scop-16.c: Test only scop specific info.
-	* testsuite/gcc.dg/graphite/scop-17.c: Same.
-	* testsuite/gcc.dg/graphite/block-5.c: New.
-	* testsuite/gcc.dg/graphite/block-6.c: New.
-	* testsuite/gcc.dg/graphite/pr37485.c: Clean dump file after.
-	* testsuite/gcc.dg/graphite/pr37684.c: Same.
-	* testsuite/gcc.dg/graphite/block-2.c: Same.
+	* gcc.dg/graphite/scop-16.c: Test only scop specific info.
+	* gcc.dg/graphite/scop-17.c: Same.
+	* gcc.dg/graphite/block-5.c: New.
+	* gcc.dg/graphite/block-6.c: New.
+	* gcc.dg/graphite/pr37485.c: Clean dump file after.
+	* gcc.dg/graphite/pr37684.c: Same.
+	* gcc.dg/graphite/block-2.c: Same.
 
 	* graphite.c (struct ivtype_map_elt): New.
 	(debug_ivtype_elt, debug_ivtype_map_1, debug_ivtype_map,
@@ -3994,7 +4961,7 @@
 	(graphite_transform_loops): Move condition detection before parameter
 	detection.
 	* graphite.h (struct scop): Add SCOP_ADD_PARAMS.
-	* testsuite/gfortran.dg/graphite/pr38459.f90: New.
+	* gfortran.dg/graphite/pr38459.f90: New.
 
 2008-12-09  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -4010,19 +4977,19 @@
 2008-12-08  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	PR middle-end/38084
-	Fix testsuite/gfortran.dg/graphite/id-3.f90.
+	Fix gfortran.dg/graphite/id-3.f90.
 	* graphite.c (scopdet_basic_block_info): Fix bug that found some
 	regions more than once.
 
 2008-12-03  Sebastian Pop  <sebastian.pop@amd.com>
 
-	Fix testsuite/gfortran.dg/graphite/id-4.f90.
+	Fix gfortran.dg/graphite/id-4.f90.
 	* graphite.c (scan_tree_for_params): Do not compute the multiplicand
 	when not needed.
 
 2008-12-03  Sebastian Pop  <sebastian.pop@amd.com>
 
-	Fix testsuite/gfortran.dg/graphite/id-1.f90.
+	Fix gfortran.dg/graphite/id-1.f90.
 	* graphite.c (gmp_cst_to_tree): Pass the type in parameter.
 	(loop_iv_stack_patch_for_consts): Update use of gmp_cst_to_tree.
 	(max_precision_type): New.
@@ -4042,12 +5009,12 @@
 
 2008-12-02  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/pr38084.c: New.
-	* testsuite/gfortran.dg/graphite/id-1.f90: New.
-	* testsuite/gfortran.dg/graphite/id-2.f90: New.
-	* testsuite/gfortran.dg/graphite/id-3.f90: New.
-	* testsuite/gfortran.dg/graphite/id-4.f90: New.
-	* testsuite/gfortran.dg/graphite/pr37857.f90: New.
+	* gcc.dg/graphite/pr38084.c: New.
+	* gfortran.dg/graphite/id-1.f90: New.
+	* gfortran.dg/graphite/id-2.f90: New.
+	* gfortran.dg/graphite/id-3.f90: New.
+	* gfortran.dg/graphite/id-4.f90: New.
+	* gfortran.dg/graphite/pr37857.f90: New.
 
 2008-12-02  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
@@ -4063,20 +5030,20 @@
 	PR middle-end/38083
 	PR middle-end/38125
 
-	* testsuite/gcc.dg/graphite/pr38073.c: New.
-	* testsuite/gcc.dg/graphite/pr37928.c: New.
-	* testsuite/gcc.dg/graphite/pr37883.c: New.
-	* testsuite/gcc.dg/graphite/pr38125.c: New.
-	* testsuite/gfortran.dg/graphite/pr38083.f90: New.
-	* testsuite/gfortran.dg/graphite/pr37852.f90: New.
-	* testsuite/gfortran.dg/graphite/pr37980.f90: New.
+	* gcc.dg/graphite/pr38073.c: New.
+	* gcc.dg/graphite/pr37928.c: New.
+	* gcc.dg/graphite/pr37883.c: New.
+	* gcc.dg/graphite/pr38125.c: New.
+	* gfortran.dg/graphite/pr38083.f90: New.
+	* gfortran.dg/graphite/pr37852.f90: New.
+	* gfortran.dg/graphite/pr37980.f90: New.
 
-	* testsuite/gcc.dg/graphite/scop-18.c: Remove reduction, test for
+	* gcc.dg/graphite/scop-18.c: Remove reduction, test for
 	the number of detected scops.  Copy exact same test for loop
 	blocking...
-	* testsuite/gcc.dg/graphite/block-1.c: Fix the number of expected
+	* gcc.dg/graphite/block-1.c: Fix the number of expected
 	loops to be blocked as reductions are not handled.
-	* testsuite/gcc.dg/graphite/block-4.c: ...here.  New.
+	* gcc.dg/graphite/block-4.c: ...here.  New.
 
 	* tree-phinodes.c (remove_phi_nodes): New, extracted from...
 	* tree-cfg.c (remove_phi_nodes_and_edges_for_unreachable_block):
@@ -4185,7 +5152,7 @@
 
 	* graphite.c (scopdet_basic_block_info): Fix loops with multiple
 	exits and conditions.
-	* testsuite/gcc.dg/graphite/pr37943.c: New.
+	* gcc.dg/graphite/pr37943.c: New.
 
 2008-10-23  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -4229,7 +5196,7 @@
     	    Harsha Jagasia  <harsha.jagasia@amd.com>
 
 	PR tree-optimization/37828
-	* testsuite/gcc.dg/graphite/pr37828.c: New.
+	* gcc.dg/graphite/pr37828.c: New.
 	* graphite.c (graphite_trans_loop_block): Do not loop block
 	single nested loops.
 
@@ -4321,7 +5288,7 @@
 2008-09-01  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Merge from mainline (138275:139870).
-	* testsuite/gcc.dg/graphite/scop-matmult.c: XFailed as one of
+	* gcc.dg/graphite/scop-matmult.c: XFailed as one of
 	the commits from trunk broke the niter detection.
 
 2008-09-01  Sebastian Pop  <sebastian.pop@amd.com>
@@ -4518,41 +5485,41 @@
 2008-08-20  Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/lib/target-supports.exp
+	* lib/target-supports.exp
 	(check_effective_target_fgraphite): New.
 
-	* testsuite/gcc.dg/graphite/graphite.exp: Early exit when
+	* gcc.dg/graphite/graphite.exp: Early exit when
 	check_effective_target_fgraphite returns false.
 	Set dg-do-what-default to compile.
 	(scan-graphite-dump-times): Removed.
-	* testsuite/gfortran.dg/graphite/graphite.exp: Same.
+	* gfortran.dg/graphite/graphite.exp: Same.
 
-	* testsuite/gcc.dg/graphite/scop-0.c: Do not use "dg-do compile".
+	* gcc.dg/graphite/scop-0.c: Do not use "dg-do compile".
 	Use scan-tree-dump-times instead of scan-graphite-dump-times.
-	* testsuite/gcc.dg/graphite/scop-1.c: Same.
-	* testsuite/gcc.dg/graphite/scop-2.c: Same.
-	* testsuite/gcc.dg/graphite/scop-3.c: Same.
-	* testsuite/gcc.dg/graphite/scop-4.c: Same.
-	* testsuite/gcc.dg/graphite/scop-5.c: Same.
-	* testsuite/gcc.dg/graphite/scop-6.c: Same.
-	* testsuite/gcc.dg/graphite/scop-7.c: Same.
-	* testsuite/gcc.dg/graphite/scop-8.c: Same.
-	* testsuite/gcc.dg/graphite/scop-9.c: Same.
-	* testsuite/gcc.dg/graphite/scop-10.c: Same.
-	* testsuite/gcc.dg/graphite/scop-11.c: Same.
-	* testsuite/gcc.dg/graphite/scop-12.c: Same.
-	* testsuite/gcc.dg/graphite/scop-13.c: Same.
-	* testsuite/gcc.dg/graphite/scop-matmult.c: Same.
-	* testsuite/gcc.dg/graphite/scop-14.c: Same.
-	* testsuite/gcc.dg/graphite/scop-15.c: Same.
-	* testsuite/gcc.dg/graphite/block-0.c: Same.
-	* testsuite/gcc.dg/graphite/scop-16.c: Same.
-	* testsuite/gcc.dg/graphite/block-1.c: Same.
-	* testsuite/gcc.dg/graphite/scop-17.c: Same.
-	* testsuite/gcc.dg/graphite/scop-18.c: Same.
-	* testsuite/gfortran.dg/graphite/block-1.f90: Same.
-	* testsuite/gfortran.dg/graphite/scop-1.f: Same.
-	* testsuite/gfortran.dg/graphite/block-2.f: Same.
+	* gcc.dg/graphite/scop-1.c: Same.
+	* gcc.dg/graphite/scop-2.c: Same.
+	* gcc.dg/graphite/scop-3.c: Same.
+	* gcc.dg/graphite/scop-4.c: Same.
+	* gcc.dg/graphite/scop-5.c: Same.
+	* gcc.dg/graphite/scop-6.c: Same.
+	* gcc.dg/graphite/scop-7.c: Same.
+	* gcc.dg/graphite/scop-8.c: Same.
+	* gcc.dg/graphite/scop-9.c: Same.
+	* gcc.dg/graphite/scop-10.c: Same.
+	* gcc.dg/graphite/scop-11.c: Same.
+	* gcc.dg/graphite/scop-12.c: Same.
+	* gcc.dg/graphite/scop-13.c: Same.
+	* gcc.dg/graphite/scop-matmult.c: Same.
+	* gcc.dg/graphite/scop-14.c: Same.
+	* gcc.dg/graphite/scop-15.c: Same.
+	* gcc.dg/graphite/block-0.c: Same.
+	* gcc.dg/graphite/scop-16.c: Same.
+	* gcc.dg/graphite/block-1.c: Same.
+	* gcc.dg/graphite/scop-17.c: Same.
+	* gcc.dg/graphite/scop-18.c: Same.
+	* gfortran.dg/graphite/block-1.f90: Same.
+	* gfortran.dg/graphite/scop-1.f: Same.
+	* gfortran.dg/graphite/block-2.f: Same.
 
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -4646,9 +5613,9 @@
 
 	* graphite.c (graphite_trans_scop_block): Or the result with
 	the result from graphite_trans_loop_block.
-	* testsuite/gcc.dg/graphite/block-1.c: New.
-	* testsuite/gfortran.dg/graphite/block-1.f90: New.
-	* testsuite/gfortran.dg/graphite/block-2.f: New.
+	* gcc.dg/graphite/block-1.c: New.
+	* gfortran.dg/graphite/block-1.f90: New.
+	* gfortran.dg/graphite/block-2.f: New.
 
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -4662,11 +5629,11 @@
 	* graphite.c (stmt_simple_memref_for_scop_p): Removed.
 	(is_simple_operand): Call stmt_simple_memref_p.
 
-	* testsuite/gcc.dg/graphite/scop-matmult.c: Updated for not
+	* gcc.dg/graphite/scop-matmult.c: Updated for not
 	using pointer arithmetic, as this is optimized by PRE and
 	makes the code too difficult to analyze.
 
-	* testsuite/gcc.dg/graphite/scop-18.c: Same.
+	* gcc.dg/graphite/scop-18.c: Same.
 
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -4780,28 +5747,28 @@
 
 	* gcc/graphite.c (limit_scops): New.
 	(graphite_transform_loops): Add limit SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-0.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-1.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-10.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-11.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-12.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-13.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-14.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-15.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-16.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-0.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-1.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-10.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-11.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-12.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-13.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-14.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-15.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-16.c: Update number of SCoPs.
 	Change loop numbers.
-	* gcc/testsuite/gcc.dg/graphite/scop-17.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-17.c: Update number of SCoPs.
 	Change loop numbers.
-	* gcc/testsuite/gcc.dg/graphite/scop-18.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-2.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-3.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-4.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-5.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-6.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-7.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-8.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-9.c: Update number of SCoPs.
-	* gcc/testsuite/gcc.dg/graphite/scop-matmult.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-18.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-2.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-3.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-4.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-5.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-6.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-7.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-8.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-9.c: Update number of SCoPs.
+	* gcc.dg/graphite/scop-matmult.c: Update number of SCoPs.
 
 2008-08-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -4821,8 +5788,8 @@
 
 2008-08-07  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* testsuite/gcc.dg/graphite/scop-16.c: Fix for 32bit.
-	* testsuite/gcc.dg/graphite/scop-17.c: Fix for 32bit.
+	* gcc.dg/graphite/scop-16.c: Fix for 32bit.
+	* gcc.dg/graphite/scop-17.c: Fix for 32bit.
 
 2008-08-04  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -4848,9 +5815,9 @@
 	* tree-ssa-loop.c (graphite_transforms): ... here.
 	When not configured with CLooG, print to dump_file that
 	Graphite transforms were not performed.
-	* testsuite/gcc.dg/graphite/graphite.exp (scan-graphite-dump-times):
+	* gcc.dg/graphite/graphite.exp (scan-graphite-dump-times):
 	New.
-	* testsuite/gcc.dg/graphite/*.c: Updated all testcases to use
+	* gcc.dg/graphite/*.c: Updated all testcases to use
 	scan-graphite-dump-times.
 
 2008-08-03  Sebastian Pop  <sebastian.pop@amd.com>
@@ -4960,7 +5927,7 @@
 
 	Remove fallouts from "Reverted the Condate changes".
 	* tree.h: Remove unused decl.
-	* testsuite/gcc.dg/tree-checker: Same.
+	* gcc.dg/tree-checker: Same.
 	* timevar.def: Remove counter.
 
 2008-07-24  Sebastian Pop  <sebastian.pop@amd.com>
@@ -4989,11 +5956,11 @@
 	optimizations.
 	* doc/invoke.texi: Remove -fgraphite and add -floop-block,
 	-floop-strip-mine and -floop-interchange.
-	* testsuite/gcc.dg/graphite/block-0.c: Add -floop-block and remove
+	* gcc.dg/graphite/block-0.c: Add -floop-block and remove
 	-fgraphite.
-	* testsuite/gcc.dg/graphite/scop-16.c: Ditto.
-	* testsuite/gcc.dg/graphite/scop-17.c: Ditto.
-	* testsuite/gcc.dg/graphite/scop-18.c: Ditto.
+	* gcc.dg/graphite/scop-16.c: Ditto.
+	* gcc.dg/graphite/scop-17.c: Ditto.
+	* gcc.dg/graphite/scop-18.c: Ditto.
 
 2008-07-23  Jan Sjodin  <jan.sjodin@amd.com>
 	    Sebastian Pop  <sebastian.pop@amd.com>
@@ -5060,7 +6027,7 @@
 	rename_variables_in_bb): Declare.
 	* tree-cfg.c (remove_bb): Extern.
 
-	* testsuite/gcc.dg/graphite/block-0.c: New.
+	* gcc.dg/graphite/block-0.c: New.
 
 2008-07-21  Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 	    Sebastian Pop  <sebastian.pop@amd.com>
@@ -5068,9 +6035,9 @@
 	* graphite.c (strip_mine_profitable_p): New.
 	(graphite_trans_bb_block): Disable strip mining if not profitable.
 
-	* testsuite/gcc.dg/graphite/scop-18.c: New.
-	* testsuite/gcc.dg/graphite/scop-17.c: Fixed.
-	* testsuite/gcc.dg/graphite/scop-16.c: Fixed.
+	* gcc.dg/graphite/scop-18.c: New.
+	* gcc.dg/graphite/scop-17.c: Fixed.
+	* gcc.dg/graphite/scop-16.c: Fixed.
 
 2008-07-17  Harsha Jagasia  <harsha.jagasia@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
@@ -5085,8 +6052,8 @@
 
 	* tree-loop-linear.c (perfect_loop_nest_depth): Remove static.
 	* tree-flow.h (perfect_loop_nest_depth): Declare as extern.
-	* testsuite/gcc.dg/graphite/scop-16.c: New.
-	* testsuite/gcc.dg/graphite/scop-17.c: New.
+	* gcc.dg/graphite/scop-16.c: New.
+	* gcc.dg/graphite/scop-17.c: New.
 
 2008-07-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -5101,28 +6068,28 @@
 	(build_scops_1): Cleanup, bugfixes.
 	(build_scops): Cleanup.
 
-	* testsuite/gcc.dg/graphite/scop-matmult.c: Remove duplicated code.
-	* testsuite/gcc.dg/graphite/scop-15.c: Add SCoP numbers.
+	* gcc.dg/graphite/scop-matmult.c: Remove duplicated code.
+	* gcc.dg/graphite/scop-15.c: Add SCoP numbers.
 
 2008-07-10  Harsha Jagasia  <harsha.jagasia@amd.com>
 
-	* testsuite/gfortran.dg/graphite/scop-1.f: Update to reduced test case.
+	* gfortran.dg/graphite/scop-1.f: Update to reduced test case.
 
-	* testsuite/gfortran.dg/graphite/graphite.exp: Use
+	* gfortran.dg/graphite/graphite.exp: Use
 	DEFAULT_GRAPHITE_FLAGS.
 
-	* testsuite/gcc.dg/graphite/scop-15.c: Update to reduced test case.
+	* gcc.dg/graphite/scop-15.c: Update to reduced test case.
 
 2008-07-10  Harsha Jagasia  <harsha.jagasia@amd.com>
 
 	* graphite.c (scan_tree_for_params): Do not assert any more if
 	MULT_EXPR parameter is negative.
 
-	* testsuite/gfortran.dg/graphite/scop-1.f: New.
+	* gfortran.dg/graphite/scop-1.f: New.
 
-	* testsuite/gfortran.dg/graphite/graphite.exp: New.
+	* gfortran.dg/graphite/graphite.exp: New.
 
-	* testsuite/gcc.dg/graphite/scop-15.c: New.
+	* gcc.dg/graphite/scop-15.c: New.
 
 2008-07-10  Harsha Jagasia  <harsha.jagasia@amd.com>
 
@@ -5143,7 +6110,7 @@
 	(graphite_apply_transformations): Rename from
 	graphite_transformations.
 
-	* testsuite/gcc.dg/graphite/scop-matmult.c: New.
+	* gcc.dg/graphite/scop-matmult.c: New.
 
 2008-07-10  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -5332,7 +6299,7 @@
 	with multiple exits and conditional handling in edge cases.
 	(is_loop_exit): Fix memory leak. (Forgotten in last commit)
 
-	* testsuite/gcc.dg/graphite/scop-14.c: New.
+	* gcc.dg/graphite/scop-14.c: New.
 
 2008-06-06  Tobias Grosser  <grosser@fim.uni-passau.de>
 	    Adrien Eliche  <aeliche@isty.uvsq.fr>
@@ -5488,9 +6455,9 @@
 	(is_bb_addable): Rework condition handling, now support for case
 	case statements and loops with multiple exits.
 
-	* testsuite/gcc.dg/graphite/scop-11.c: New.
-	* testsuite/gcc.dg/graphite/scop-12.c: New.
-	* testsuite/gcc.dg/graphite/scop-13.c: New.
+	* gcc.dg/graphite/scop-11.c: New.
+	* gcc.dg/graphite/scop-12.c: New.
+	* gcc.dg/graphite/scop-13.c: New.
 
 2008-05-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -5557,19 +6524,19 @@
 
 2008-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* testsuite/gcc.dg/graphite/scop-1.c: Update.
-	* testsuite/gcc.dg/graphite/scop-2.c: Update.
-	* testsuite/gcc.dg/graphite/scop-4.c: Update.
-	* testsuite/gcc.dg/graphite/scop-5.c: Add.
-	* testsuite/gcc.dg/graphite/scop-6.c: Add.
+	* gcc.dg/graphite/scop-1.c: Update.
+	* gcc.dg/graphite/scop-2.c: Update.
+	* gcc.dg/graphite/scop-4.c: Update.
+	* gcc.dg/graphite/scop-5.c: Add.
+	* gcc.dg/graphite/scop-6.c: Add.
 
 2008-05-06  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* testsuite/gcc.dg/graphite/scop-0.c: Add.
-	* testsuite/gcc.dg/graphite/scop-7.c: Add.
-	* testsuite/gcc.dg/graphite/scop-8.c: Add.
-	* testsuite/gcc.dg/graphite/scop-9.c: Add.
-	* testsuite/gcc.dg/graphite/scop-10.c: Add.
+	* gcc.dg/graphite/scop-0.c: Add.
+	* gcc.dg/graphite/scop-7.c: Add.
+	* gcc.dg/graphite/scop-8.c: Add.
+	* gcc.dg/graphite/scop-9.c: Add.
+	* gcc.dg/graphite/scop-10.c: Add.
 
 2008-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -5596,7 +6563,7 @@
 	scop_end_loop): New.
 	(build_scops): Do not use dfs_enumerate_from.
 
-	* testsuite/gcc.dg/graphite/scop-{1,2,4}.c: Updated.
+	* gcc.dg/graphite/scop-{1,2,4}.c: Updated.
 
 2008-04-23  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -5822,7 +6789,7 @@
 	(SCOP_LOOPS): New.
 	(scop_loop_index): Test that the given loop belongs to SCOP_LOOPS.
 
-	* testsuite/gcc.dg/graphite/scop-{1,...,7}.c: Updated.
+	* gcc.dg/graphite/scop-{1,...,7}.c: Updated.
 
 2008-02-27  Antoniu Pop  <antoniu.pop@gmail.com>
 	    Sebastian Pop  <sebastian.pop@amd.com>
@@ -5938,7 +6905,7 @@
 	* tree-loop-distribution.c: Fix apsi.f ICE.
 	(create_bb_after_loop): New.
 	(generate_loops_for_partition): Use it.
-	* testsuite/gfortran.dg/ldist-1.f90: New.
+	* gfortran.dg/ldist-1.f90: New.
 
 	* tree-data-ref.c (dot_rdg): Use /tmp/rdg.dot for dotty format.
 	* graphite.c (dot_scop): Use /tmp/scop.dot for dotty format.
@@ -6180,12 +7147,12 @@
 2007-04-13  Sebastian Pop  <sebastian.pop@inria.fr>
 
 	* doc/invoke.texi (-ftree-check-verbose): Documented.
-	* testsuite/gcc.dg/tree-checker/tree-checks-1.c: New.
-	* testsuite/gcc.dg/tree-checker/tree-checks-2.c: New.
-	* testsuite/gcc.dg/tree-checker/tree-checks-3.c: New.
-	* testsuite/gcc.dg/tree-checker/tree-checks-4.c: New.
-	* testsuite/gcc.dg/tree-checker/tree-checks.exp: New.
-	* testsuite/gcc.dg/tree-checker/condates.crp: New.
+	* gcc.dg/tree-checker/tree-checks-1.c: New.
+	* gcc.dg/tree-checker/tree-checks-2.c: New.
+	* gcc.dg/tree-checker/tree-checks-3.c: New.
+	* gcc.dg/tree-checker/tree-checks-4.c: New.
+	* gcc.dg/tree-checker/tree-checks.exp: New.
+	* gcc.dg/tree-checker/condates.crp: New.
 	* common.opt (ftree-checks-verbose): New.
 	* tree-check.c (tree_check_warning): Move extra stderr output
 	under control of flag_tree_check_verbose.
@@ -6385,9 +7352,9 @@
 	* doc/invoke.texi (-fgraphite): Correct typo.
 	* tree-scalar-evolution.c (number_of_iterations_for_all_loops): Update
 	use of print_loop_ir.
-	* testsuite/gcc.dg/graphite/scop-1.c: New.
-	* testsuite/gcc.dg/graphite/scop-2.c: New.
-	* testsuite/gcc.dg/graphite/graphite.exp: New.
+	* gcc.dg/graphite/scop-1.c: New.
+	* gcc.dg/graphite/scop-2.c: New.
+	* gcc.dg/graphite/graphite.exp: New.
 	* graphite.c: Include domwalk.h.
 	(print_scop): Print only the entry and exit blocks.
 	(debug_scop): No longer static.

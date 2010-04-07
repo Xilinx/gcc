@@ -1,7 +1,8 @@
 /* Declarations and definitions of codes relating to the DWARF2 and
    DWARF3 symbolic debugging information formats.
    Copyright (C) 1992, 1993, 1995, 1996, 1997, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
 
    Written by Gary Funck (gary@intrepid.com) The Ada Joint Program
    Office (AJPO), Florida State University and Silicon Graphics Inc.
@@ -66,6 +67,7 @@ typedef struct
   unsigned short li_version;
   unsigned int   li_prologue_length;
   unsigned char  li_min_insn_length;
+  unsigned char  li_max_ops_per_insn;
   unsigned char  li_default_is_stmt;
   int            li_line_base;
   unsigned char  li_line_range;
@@ -425,6 +427,11 @@ enum dwarf_attribute
     DW_AT_GNU_template_name = 0x2110,
     /* VMS extensions.  */
     DW_AT_VMS_rtnbeg_pd_address = 0x2201,
+    /* GNAT extensions.  */
+    /* GNAT descriptive type.
+       See http://gcc.gnu.org/wiki/DW_AT_GNAT_descriptive_type .  */
+    DW_AT_use_GNAT_descriptive_type = 0x2301,
+    DW_AT_GNAT_descriptive_type	= 0x2302,
     /* UPC extension.  */
     DW_AT_upc_threads_scaled = 0x3210,
     /* PGI (STMicroelectronics) extensions.  */

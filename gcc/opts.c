@@ -1,5 +1,5 @@
 /* Command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
@@ -898,7 +898,7 @@ decode_options (unsigned int argc, const char **argv)
   flag_tree_vrp = opt2;
   flag_tree_builtin_call_dce = opt2;
   flag_tree_pre = opt2;
-  flag_tree_switch_conversion = 1;
+  flag_tree_switch_conversion = opt2;
   flag_ipa_cp = opt2;
   flag_ipa_sra = opt2;
 
@@ -971,24 +971,31 @@ decode_options (unsigned int argc, const char **argv)
 
   handle_options (argc, argv, lang_mask);
 
-  /* Make DUMP_BASE_NAME relative to the AUX_BASE_NAME directory,
-     typically the directory to contain the object file.  */
-  if (aux_base_name && ! IS_ABSOLUTE_PATH (dump_base_name))
+  if (dump_base_name && ! IS_ABSOLUTE_PATH (dump_base_name))
     {
-      const char *aux_base;
-
-      base_of_path (aux_base_name, &aux_base);
-      if (aux_base_name != aux_base)
+      /* First try to make DUMP_BASE_NAME relative to the DUMP_DIR_NAME
+	 directory.  Then try to make DUMP_BASE_NAME relative to the
+	 AUX_BASE_NAME directory, typically the directory to contain
+	 the object file.  */
+      if (dump_dir_name)
+	dump_base_name = concat (dump_dir_name, dump_base_name, NULL);
+      else if (aux_base_name)
 	{
-	  int dir_len = aux_base - aux_base_name;
-	  char *new_dump_base_name =
-	    XNEWVEC (char, strlen(dump_base_name) + dir_len + 1);
+	  const char *aux_base;
 
-	  /* Copy directory component from AUX_BASE_NAME.  */
-	  memcpy (new_dump_base_name, aux_base_name, dir_len);
-	  /* Append existing DUMP_BASE_NAME.  */
-	  strcpy (new_dump_base_name + dir_len, dump_base_name);
-	  dump_base_name = new_dump_base_name;
+	  base_of_path (aux_base_name, &aux_base);
+	  if (aux_base_name != aux_base)
+	    {
+	      int dir_len = aux_base - aux_base_name;
+	      char *new_dump_base_name =
+		XNEWVEC (char, strlen(dump_base_name) + dir_len + 1);
+
+	      /* Copy directory component from AUX_BASE_NAME.  */
+	      memcpy (new_dump_base_name, aux_base_name, dir_len);
+	      /* Append existing DUMP_BASE_NAME.  */
+	      strcpy (new_dump_base_name + dir_len, dump_base_name);
+	      dump_base_name = new_dump_base_name;
+	    }
 	}
     }
 
@@ -1027,6 +1034,7 @@ decode_options (unsigned int argc, const char **argv)
 	flag_pic = flag_pie;
       if (flag_pic && !flag_pie)
 	flag_shlib = 1;
+      first_time_p = false;
     }
 
   if (optimize == 0)
@@ -1119,13 +1127,6 @@ decode_options (unsigned int argc, const char **argv)
       flag_ira_algorithm = IRA_ALGORITHM_PRIORITY;
     }
 
-  /* Save the current optimization options if this is the first call.  */
-  if (first_time_p)
-    {
-      optimization_default_node = build_optimization_node ();
-      optimization_current_node = optimization_default_node;
-      first_time_p = false;
-    }
   if (flag_conserve_stack)
     {
       if (!PARAM_SET_P (PARAM_LARGE_STACK_FRAME))
@@ -1143,10 +1144,6 @@ decode_options (unsigned int argc, const char **argv)
 	 Otherwise, symbols will be privatized too early, causing link
 	 errors later.  */
       flag_whole_program = 0;
-
-      /* FIXME lto.  Disable var-tracking until debug information
-	 is properly handled in free_lang_data.  */
-      flag_var_tracking = 0;
 #else
       error ("LTO support has not been enabled in this configuration");
 #endif
@@ -1719,6 +1716,10 @@ common_handle_option (size_t scode, const char *arg, int value,
       dump_base_name = arg;
       break;
 
+    case OPT_dumpdir:
+      dump_dir_name = arg;
+      break;
+
     case OPT_falign_functions_:
       align_functions = value;
       break;
@@ -2143,11 +2144,17 @@ common_handle_option (size_t scode, const char *arg, int value,
     case OPT_fcse_skip_blocks:
     case OPT_floop_optimize:
     case OPT_frerun_loop_opt:
+    case OPT_fsched2_use_traces:
     case OPT_fstrength_reduce:
     case OPT_ftree_store_copy_prop:
     case OPT_fforce_addr:
     case OPT_ftree_salias:
     case OPT_ftree_store_ccp:
+    case OPT_Wunreachable_code:
+    case OPT_fargument_alias:
+    case OPT_fargument_noalias:
+    case OPT_fargument_noalias_anything:
+    case OPT_fargument_noalias_global:
       /* These are no-ops, preserved for backward compatibility.  */
       break;
 

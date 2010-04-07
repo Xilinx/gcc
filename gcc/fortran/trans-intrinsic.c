@@ -1,5 +1,5 @@
 /* Intrinsic translation
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
    and Steven Bosscher <s.bosscher@student.tudelft.nl>
@@ -838,7 +838,6 @@ gfc_conv_intrinsic_bound (gfc_se * se, gfc_expr * expr, int upper)
   gfc_se argse;
   gfc_ss *ss;
   gfc_array_spec * as;
-  gfc_ref *ref;
 
   arg = expr->value.function.actual;
   arg2 = arg->next;
@@ -907,42 +906,7 @@ gfc_conv_intrinsic_bound (gfc_se * se, gfc_expr * expr, int upper)
   ubound = gfc_conv_descriptor_ubound_get (desc, bound);
   lbound = gfc_conv_descriptor_lbound_get (desc, bound);
   
-  /* Follow any component references.  */
-  if (arg->expr->expr_type == EXPR_VARIABLE
-      || arg->expr->expr_type == EXPR_CONSTANT)
-    {
-      as = arg->expr->symtree->n.sym->as;
-      for (ref = arg->expr->ref; ref; ref = ref->next)
-	{
-	  switch (ref->type)
-	    {
-	    case REF_COMPONENT:
-	      as = ref->u.c.component->as;
-	      continue;
-
-	    case REF_SUBSTRING:
-	      continue;
-
-	    case REF_ARRAY:
-	      {
-		switch (ref->u.ar.type)
-		  {
-		  case AR_ELEMENT:
-		  case AR_SECTION:
-		  case AR_UNKNOWN:
-		    as = NULL;
-		    continue;
-
-		  case AR_FULL:
-		    break;
-		  }
-		break;
-	      }
-	    }
-	}
-    }
-  else
-    as = NULL;
+  as = gfc_get_full_arrayspec_from_expr (arg->expr);
 
   /* 13.14.53: Result value for LBOUND
 
@@ -5033,7 +4997,7 @@ gfc_conv_intrinsic_loc (gfc_se * se, gfc_expr * expr)
   if (ss == gfc_ss_terminator)
     gfc_conv_expr_reference (se, arg_expr);
   else
-    gfc_conv_array_parameter (se, arg_expr, ss, 1, NULL, NULL, NULL);
+    gfc_conv_array_parameter (se, arg_expr, ss, true, NULL, NULL, NULL);
   se->expr= convert (gfc_get_int_type (gfc_index_integer_kind), se->expr);
    
   /* Create a temporary variable for loc return value.  Without this, 
