@@ -1,5 +1,10 @@
 2010-04-06  Aldy Hernandez  <aldyh@redhat.com>
 
+	* trans-mem.c (ipa_tm_insert_gettmclone_call): Mark the old
+	cgraph node as used.
+
+2010-04-06  Aldy Hernandez  <aldyh@redhat.com>
+
 	* passes.c (init_optimization_passes): Move pass_ipa_tm into
 	all_small_ipa_passes.
 

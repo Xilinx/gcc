@@ -3849,6 +3849,15 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
 
   old_fn = gimple_call_fn (stmt);
 
+  if (TREE_CODE (old_fn) == ADDR_EXPR)
+    {
+      tree fndecl = TREE_OPERAND (old_fn, 0);
+      /* We're technically taking the address of the original function
+	 by transforming the call into a TM_GETTMCLONE.  Explain this
+	 so inlining will know this function is needed.  */
+      cgraph_mark_address_taken_node (cgraph_node (fndecl));
+    }
+
   safe = is_tm_safe (TREE_TYPE (old_fn));
   gettm_fn = built_in_decls[safe ? BUILT_IN_TM_GETTMCLONE_SAFE
 			    : BUILT_IN_TM_GETTMCLONE_IRR];
