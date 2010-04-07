@@ -1,5 +1,12 @@
 2010-04-07  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
+	* dwarf2out.c (dwarf2out_finish): Fix merge errors.
+	(gen_subprogram_die): Likewise.
+	(add_high_low_attributes): Likewise.
+	(convert_cfa_to_fb_loc_list_multiple_sect): Likewise.
+
+2010-04-07  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
 	Update to mainline revision 158060.
 
 2010-02-23  Revital Eres  <eres@il.ibm.com>

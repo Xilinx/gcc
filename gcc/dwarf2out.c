@@ -16558,8 +16558,7 @@ convert_cfa_to_fb_loc_list_multiple_sections (HOST_WIDE_INT offset)
 	    if (!cfa_equal_p (&last_cfa, &next_cfa))
 	      {
 		*list_tail = new_loc_list (build_cfa_loc (&last_cfa, offset),
-					   start_label, last_label, section,
-					   list == NULL);
+					   start_label, last_label, section);
 		list_tail = &(*list_tail)->dw_loc_next;
 		last_cfa = next_cfa;
 		start_label = last_label;
@@ -16584,15 +16583,13 @@ convert_cfa_to_fb_loc_list_multiple_sections (HOST_WIDE_INT offset)
   if (!cfa_equal_p (&last_cfa, &next_cfa))
     {
       *list_tail = new_loc_list (build_cfa_loc (&next_cfa, offset),
-				 start_label, last_label, section,
-				 list == NULL);
+				 start_label, last_label, section);
       list_tail = &(*list_tail)->dw_loc_next;
       start_label = last_label;
     }
 
   *list_tail = new_loc_list (build_cfa_loc (&next_cfa, offset),
-			     start_label, last_fde_label, section,
-			     list == NULL);
+			     start_label, last_fde_label, section);
 
   if (strcmp (last_function_section_label, last_fde_label) != 0)
     {
@@ -16603,11 +16600,15 @@ convert_cfa_to_fb_loc_list_multiple_sections (HOST_WIDE_INT offset)
 	  fde = &fde_table[i];
 	  *list_tail = new_loc_list (build_cfa_loc (&next_cfa, offset),
 				     fde->dw_fde_begin, fde->dw_fde_end,
-				     section, list == NULL);
+				     section);
 	  list_tail = &(*list_tail)->dw_loc_next;
 	  i++;
 	}
     }
+
+  if (list && list->dw_loc_next)
+    gen_llsym (list);
+
   return list;
 }
 
@@ -18432,6 +18433,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	    }
 	  else
 	    {
+	      bool range_list_added = false;
 	      unsigned i;
 
 	      add_AT_addr (subr_die, DW_AT_low_pc, const0_rtx);
@@ -18447,8 +18449,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 			       crtl->subsections.number_of_sections);
 
 	      /* Record the range list of the function.  */
-	      add_AT_range_list (subr_die, DW_AT_ranges,
-				 add_ranges_by_labels (tmps, tmpe));
+	      add_ranges_by_labels (subr_die, tmps, tmpe, &range_list_added);
 
 	      for (i = 0; i < crtl->subsections.number_of_sections; i++)
 		{
@@ -18457,7 +18458,8 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 		  tmpe = VEC_index (const_str,
 				    crtl->subsections.section_end_labels, i);
 		  if (i > 0)
-		    add_ranges_by_labels (tmps, tmpe);
+		    add_ranges_by_labels (subr_die, tmps, tmpe,
+					  &range_list_added);
 
 		  VEC_safe_push (const_str, gc,
 				 subr_die->sections_info.section_start_labels,
@@ -18473,7 +18475,8 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 		  add_arange (decl, subr_die);
 		}
 
-	      add_ranges (NULL);
+	      if (range_list_added)
+		add_ranges (NULL);
 	    }
 	  add_pubname (decl, subr_die);
 	}
@@ -19019,6 +19022,8 @@ add_high_low_attributes (tree stmt, dw_die_ref die)
 
       if (BLOCK_FRAGMENT_CHAIN (stmt))
 	{
+	  bool range_list_added = false;
+
 	  elm.block_num = block_num;
 	  blk = (struct block_aux_struct *)
 		htab_find (block_labels_table, &elm);
@@ -19031,13 +19036,13 @@ add_high_low_attributes (tree stmt, dw_die_ref die)
 	      elabel = VEC_index (const_str, blk->block_labels, 1);
 	      size = VEC_length (const_str, blk->block_labels);
 
-	      add_AT_range_list (die, DW_AT_ranges,
-				 add_ranges_by_labels (slabel, elabel));
+	      add_ranges_by_labels (die, slabel, elabel, &range_list_added);
 	      for (i = 2; i < size; i = i + 2)
 		{
 		  slabel = VEC_index (const_str, blk->block_labels, i);
 		  elabel = VEC_index (const_str, blk->block_labels, i + 1);
-		  add_ranges_by_labels (slabel, elabel);
+		  add_ranges_by_labels (die, slabel, elabel,
+					&range_list_added);
 		}
 	    }
 
@@ -19056,14 +19061,16 @@ add_high_low_attributes (tree stmt, dw_die_ref die)
 		    {
 		      slabel = VEC_index (const_str, blk->block_labels, i);
 		      elabel = VEC_index (const_str, blk->block_labels, i + 1);
-		      add_ranges_by_labels (slabel, elabel);
+		      add_ranges_by_labels (die, slabel, elabel,
+					    &range_list_added);
 		    }
 		}
 	      chain = BLOCK_FRAGMENT_CHAIN (chain);
 	    }
 	  while (chain);
 
-	  add_ranges (NULL);
+	  if (range_list_added)
+	    add_ranges (NULL);
 	}
       else
 	{
@@ -19077,18 +19084,22 @@ add_high_low_attributes (tree stmt, dw_die_ref die)
               size = VEC_length (const_str, blk->block_labels);
 	      if (size > 2)
 		{
+		  bool range_list_added = false;
+
 		  slabel = VEC_index (const_str, blk->block_labels, 0);
 		  elabel = VEC_index (const_str, blk->block_labels, 1);
 
-		  add_AT_range_list (die, DW_AT_ranges,
-				     add_ranges_by_labels (slabel, elabel));
+		  add_ranges_by_labels (die, slabel, elabel,
+					&range_list_added);
 		  for (i = 2; i < size; i = i + 2)
 		    {
 		      slabel = VEC_index (const_str, blk->block_labels, i);
 		      elabel = VEC_index (const_str, blk->block_labels, i + 1);
-		      add_ranges_by_labels (slabel, elabel);
+		      add_ranges_by_labels (die, slabel, elabel,
+					    &range_list_added);
 		    }
-		  add_ranges (NULL);
+		  if (range_list_added)
+		    add_ranges (NULL);
 		}
 	      else
 		{
@@ -22138,6 +22149,7 @@ dwarf2out_finish (const char *filename)
 
   else if (COMP_UNIT_HAS_SECTIONS)
     {
+      bool range_list_added = false;
       unsigned fde_idx = 0;
       dw_fde_ref fde;
 
@@ -22146,16 +22158,17 @@ dwarf2out_finish (const char *filename)
 
       /* Add ranges list for the compilation unit.  */
       fde = &fde_table[0];
-      add_AT_range_list (comp_unit_die, DW_AT_ranges,
-			 add_ranges_by_labels (fde->dw_fde_begin,
-			 fde->dw_fde_end));
+      add_ranges_by_labels (comp_unit_die, fde->dw_fde_begin,
+			    fde->dw_fde_end, &range_list_added);
 
       for (fde_idx = 1; fde_idx < fde_table_in_use; fde_idx++)
 	{
 	  fde = &fde_table[fde_idx];
-	  add_ranges_by_labels (fde->dw_fde_begin, fde->dw_fde_end);
+	  add_ranges_by_labels (comp_unit_die, fde->dw_fde_begin,
+				fde->dw_fde_end, &range_list_added);
 	}
-      add_ranges (NULL);
+      if (range_list_added)
+	add_ranges (NULL);
     }
 
   else
