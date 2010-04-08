@@ -5309,9 +5309,11 @@ condition is a string such as "4.5." or a list of strings.}#)
  class_source_pattern_construct
  class_source_pattern_instance
  class_source_pattern_joker_variable
+ class_source_pattern_list
  class_source_pattern_matcher
  class_source_pattern_object
  class_source_pattern_or
+ class_source_pattern_tuple
  class_source_pattern_variable
  class_source_primitive
  class_source_progn

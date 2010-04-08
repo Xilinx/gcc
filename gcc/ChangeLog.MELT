@@ -1,3 +1,14 @@
+2010-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt: exporting class_source_pattern_list &
+	class_source_pattern_tuple.
+
+	* melt/warmelt-normatch.melt: added :mctx_nmatbind field to
+	class_matching_context. Added translpat_tuplepat &
+	translpat_listpat stubs. Removed useless
+	order_data_step_flag_altmatch & adding altmatch_normalize.
+
+	* testsuite/melt/tmatch-1.melt: updated comment & testing tuple..
+
 2010-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt: added more :doc.
 

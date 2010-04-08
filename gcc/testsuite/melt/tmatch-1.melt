@@ -3,16 +3,18 @@
 ;; test the match operation
 
 #| run in buildir/gcc
- ./cc1 -fmelt=translatefile -fmelt-dynlibdir=. \
-    -fmelt-compile-script=./built-melt-cc-script \
-    -fmelt-gensrcdir=. -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
-    -fmelt-arg=..../tmatch-1.melt -fmelt-debug
+ ./cc1 -fmelt=runfile  -fmelt-module-path=.    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-option=match_graphic=/tmp/melt1graph,alternate_match \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tmatch-1.melt \
+    -fmelt-debug empty-file-for-melt.c
 |#
 
 (defun tmatch_aa (x f g)
   (match x
-	 ( ?(tuple_nth 0 ?(instance class_symbol :named_name ?n))
-	    (f n))
+	 ( ?(tuple ?(instance class_symbol :named_name ?n)
+		   ?d)
+	    (f n d))
 	 ( ?(instance class_named :named_name ?y)
 	  (g y))
 	 ( ?_ 

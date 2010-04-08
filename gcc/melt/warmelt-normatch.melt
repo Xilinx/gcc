@@ -2393,14 +2393,15 @@ scanning variables.}#
 pattern matching. $MCTX_NORMCTXT is the normalization
 context. $MCTX_SOURCE is the source matching
 expression. $MCTX_NMATCHED is the normal matched
-expression. $MCTX_CASES is the tuple of cases each of
-$CLASS_MATCH_CASE. $MCTX_ENV is the environment of the
-match. $MCTX_MDATA is the initial matched data of
+expression. $MCTX_NMATBIND the corresponding bindings. $MCTX_CASES is
+the tuple of cases each of $CLASS_MATCH_CASE. $MCTX_ENV is the
+environment of the match. $MCTX_MDATA is the initial matched data of
 $CLASS_MATCHED_DATA. $MCTX_VARHANDLERS is the list of pattern variable
 handlers. $MCTX_FLAGS is the list of match flags.}#
   :fields ( mctx_normctxt
 	    mctx_source 
 	    mctx_nmatched 
+	    mctx_nmatbind
 	    mctx_cases 
 	    mctx_env 
 	    mctx_mdata
@@ -3013,6 +3014,24 @@ the data of the $STEP with an extra context $CTX.}#
   (assert_msg "$@$ translpat_constpat unimplemented")
 )
 (install_method class_source_pattern_constant translate_pattern translpat_constpat)
+
+
+(defun translpat_tuplepat (recv mdata mcase varmap sloc)
+  (assert_msg "check recv" (is_a recv class_source_pattern_tuple))
+  (debug_msg recv "translpat_tuplepat recv")
+  (error_plain sloc "@@unimplemented translpat_tuplepat")
+  (assert_msg "$@$ translpat_tuplepat unimplemented")
+)
+(install_method class_source_pattern_tuple translate_pattern translpat_tuplepat)
+
+
+(defun translpat_listpat (recv mdata mcase varmap sloc)
+  (assert_msg "check recv" (is_a recv class_source_pattern_list))
+  (debug_msg recv "translpat_listpat recv")
+  (error_plain sloc "@@unimplemented translpat_listpat")
+  (assert_msg "$@$ translpat_listpat unimplemented")
+)
+(install_method class_source_pattern_list translate_pattern translpat_listpat)
 
 
 
@@ -4379,14 +4398,39 @@ the data of the $STEP with an extra context $CTX.}#
 	 ))
 
 
-(compile_warning "this order_data_step_flag_altmatch function is probably useless")
-(defun order_data_step_flag_altmatch (mdata mcasetup firststep sloc)
-  (debug_msg mdata "order_data_step_flag_altmatch mdata")
-  (debug_msg mcasetup "order_data_step_flag_altmatch mcasetup")
-  (debug_msg firststep "order_data_step_flag_altmatch firststep")
-  (shortbacktrace_dbg "@$@unimplemented order_data_step_flag_altmatch" 15)
-  ;; should return datatup steptup flagtup
-  )
+
+;;; function to really normalize an alternate match
+(defun altmatch_normalize (mdata mcasetup firststep matctyp sloc)
+  (debug_msg mdata "altmatch_normalize mdata")
+  (debug_msg mcasetup "altmatch_normalize mcasetup")
+  (debug_msg firststep "altmatch_normalize firststep")
+  (debug_msg matctyp "altmatch_normalize matctyp")
+  (debug_msg sloc "altmatch_normalize sloc")
+  (let ( (nmatch (instance class_nrep_altmatch
+			   :nexpr_ctyp matctyp
+			   :nrep_loc sloc
+			   :namatch_matched ()
+			   :namatch_result ()
+			   :namatch_blocks ()
+			   ))
+	 ;; maybe we should handle particularily the case when matctyp
+	 ;; is :void
+	 (mrsymb  (clone_symbol '_matchres))
+	 (mrbind (instance class_normal_let_binding
+				   :letbind_loc sloc
+				   :binder mrsymb
+				   :letbind_type matctyp 
+				   :letbind_expr ()))
+	 (mcalocc  (instance  class_nrep_locsymocc
+				       :nrep_loc sloc
+				       :nocc_ctyp matctyp
+				       :nocc_symb mrsymb
+				       :nocc_bind mrbind
+				       ))
+	)
+    (error_plain sloc "@@unimplemented altmatch_normalize")
+    (assert_msg "@@unimplemented altmatch_normalize")
+    ))
 
 ;;; normalize a match alternate
 (defun normexp_altmatch (recv env ncx psloc)
@@ -4422,6 +4466,7 @@ the data of the $STEP with an extra context $CTX.}#
 			      :mctx_normctxt ncx
 			      :mctx_source recv
 			      :mctx_nmatched nmatx
+			      :mctx_nmatbind nbindmatx
 			      :mctx_cases mcasetup
 			      :mctx_env env
 			      :mctx_mdata mdata
@@ -4515,8 +4560,8 @@ the data of the $STEP with an extra context $CTX.}#
 		 (mg_altdraw_graphviz mdata dotprefix))))
        ;;
        (multicall
-	(datatup steptup flagtup)
-	(order_data_step_flag_altmatch mdata mcasetup firststep sloc)
+	(normatch norbindmatch)
+	(altmatch_normalize mdata mcasetup firststep matctyp sloc)
 	(error_plain sloc "@@unimplemented normexp_altmatch")
 	(compile_warning "@@unimplemented normexp_altmatch")
 	(return)
