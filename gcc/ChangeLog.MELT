@@ -1,3 +1,11 @@
+2010-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{bug reported by Jeremie Salvucci on gcc-melt-french@googlegroups.com}}
+
+	* Makefile.in: replaced ANAMELT with XTRAMELT, so
+	(install-melt-dynlib): replaced ANAMELT.
+	(install-melt-cfiles): ditto.
+	(install-melt-meltfiles): ditto.
+
 2010-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt: exporting class_source_pattern_list &
 	class_source_pattern_tuple.
