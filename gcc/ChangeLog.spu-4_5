@@ -1,3 +1,9 @@
+2010-04-08  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* dwarf2out.c: Fix whitespace.
+	* bb-reorder.c: Likewise.
+	* config/spu/spu.c: Likewise.
+
 2010-04-07  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	* dwarf2out.c (dwarf2out_finish): Fix merge errors.

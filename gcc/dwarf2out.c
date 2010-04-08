@@ -14479,7 +14479,7 @@ dw_loc_list (var_loc_list *loc_list, tree decl, int want_address)
 	      /* Emit the end label of the last section.  */
 	      endname
 		= ggc_strdup (VEC_last (const_str,
-			      crtl->subsections.section_end_labels));
+					crtl->subsections.section_end_labels));
 	    }
 	  else
 	    {

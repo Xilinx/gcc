@@ -1414,7 +1414,7 @@ split_bb (basic_block bb, unsigned HOST_WIDE_INT first_partition_size,
 		size += insns_aux[INSN_UID (insn)].size;
 	      else
 		size += get_attr_min_length (insn);
-	      
+
 	      if (size > first_partition_size)
 		{
 		  if (legal_insn == NULL)
@@ -1825,7 +1825,7 @@ create_sections (void)
 	  last_section_size += bb_size;
           if (targetm.bb_partitioning.add_external_branches_to_section)
             targetm.bb_partitioning.add_external_branches_to_section ();
-          
+
 	  if (dump_file)
 	    fprintf (dump_file,
 		     " ...OK\n\tSection new size: " HOST_WIDE_INT_PRINT_DEC

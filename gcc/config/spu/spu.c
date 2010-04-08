@@ -2968,7 +2968,7 @@ fpart_finalize (void)
 {
   int i;
   critical_sections_p crit1;
-  
+
   if (critical_sections != NULL)
     {
       for (i = 0;
@@ -2984,7 +2984,7 @@ spu_add_external_branches_to_section (void)
 {
   if (number_of_external_branches_in_last_bb == 0)
     return;
-  
+
   estimate_number_of_external_branches_in_section +=
     number_of_external_branches_in_last_bb;
   if (dump_file)
@@ -3028,7 +3028,7 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
       if (bb->flags & BB_FIRST_AFTER_SECTION_SWITCH)
 	estimate_number_of_external_branches_in_section = 0;
     }
-  
+
   /* This bb should be skipped.  */
   if (bb->il.rtl->skip)
     return false;
