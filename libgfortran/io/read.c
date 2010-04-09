@@ -1,4 +1,5 @@
-/* Copyright (C) 2002, 2003, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2005, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
 
@@ -1045,6 +1046,9 @@ read_x (st_parameter_dt *dtp, int n)
 	n = length;
       goto done;
     }
+
+  if (dtp->u.p.sf_seen_eor)
+    return;
 
   p = fbuf_read (dtp->u.p.current_unit, &length);
   if (p == NULL)

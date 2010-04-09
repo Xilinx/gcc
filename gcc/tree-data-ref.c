@@ -1,5 +1,5 @@
 /* Data references and dependences detectors.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
@@ -203,19 +203,19 @@ dump_data_reference (FILE *outf,
 {
   unsigned int i;
 
-  fprintf (outf, "(Data Ref: \n  stmt: ");
+  fprintf (outf, "#(Data Ref: \n#  stmt: ");
   print_gimple_stmt (outf, DR_STMT (dr), 0, 0);
-  fprintf (outf, "  ref: ");
+  fprintf (outf, "#  ref: ");
   print_generic_stmt (outf, DR_REF (dr), 0);
-  fprintf (outf, "  base_object: ");
+  fprintf (outf, "#  base_object: ");
   print_generic_stmt (outf, DR_BASE_OBJECT (dr), 0);
 
   for (i = 0; i < DR_NUM_DIMENSIONS (dr); i++)
     {
-      fprintf (outf, "  Access function %d: ", i);
+      fprintf (outf, "#  Access function %d: ", i);
       print_generic_stmt (outf, DR_ACCESS_FN (dr, i), 0);
     }
-  fprintf (outf, ")\n");
+  fprintf (outf, "#)\n");
 }
 
 /* Dumps the affine function described by FN to the file OUTF.  */

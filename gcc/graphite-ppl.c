@@ -1,5 +1,5 @@
 /* Gimple Represented as Polyhedra.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@amd.com>
    and Tobias Grosser <grosser@fim.uni-passau.de>
 
@@ -591,10 +591,14 @@ void
 ppl_print_powerset_matrix (FILE *file,
 			   ppl_Pointset_Powerset_C_Polyhedron_t ps)
 {
+  size_t nb_disjuncts;
   ppl_Pointset_Powerset_C_Polyhedron_iterator_t it, end;
 
   ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&it);
   ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&end);
+
+  ppl_Pointset_Powerset_C_Polyhedron_size (ps, &nb_disjuncts);
+  fprintf (file, "%d\n", (int) nb_disjuncts);
 
   for (ppl_Pointset_Powerset_C_Polyhedron_iterator_begin (ps, it),
        ppl_Pointset_Powerset_C_Polyhedron_iterator_end (ps, end);

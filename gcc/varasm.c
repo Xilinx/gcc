@@ -1434,16 +1434,19 @@ make_decl_rtl (tree decl)
 
   /* Specifying a section attribute on a variable forces it into a
      non-.bss section, and thus it cannot be common.  */
-  gcc_assert (!(TREE_CODE (decl) == VAR_DECL
-	      && DECL_SECTION_NAME (decl) != NULL_TREE
-	      && DECL_INITIAL (decl) == NULL_TREE
-	      && DECL_COMMON (decl))
-	      || !DECL_COMMON (decl));
+  /* FIXME: In general this code should not be necessary because
+     visibility pass is doing the same work.  But notice_global_symbol
+     is called early and it needs to make DECL_RTL to get the name.
+     we take care of recomputing the DECL_RTL after visibility is changed.  */
+  if (TREE_CODE (decl) == VAR_DECL
+      && DECL_SECTION_NAME (decl) != NULL_TREE
+      && DECL_INITIAL (decl) == NULL_TREE
+      && DECL_COMMON (decl))
+    DECL_COMMON (decl) = 0;
 
   /* Variables can't be both common and weak.  */
-  gcc_assert (TREE_CODE (decl) != VAR_DECL
-	      || !DECL_WEAK (decl)
-	      || !DECL_COMMON (decl));
+  if (TREE_CODE (decl) == VAR_DECL && DECL_WEAK (decl))
+    DECL_COMMON (decl) = 0;
 
   if (use_object_blocks_p () && use_blocks_for_decl_p (decl))
     x = create_block_symbol (name, get_block_for_decl (decl), -1);
@@ -1483,7 +1486,7 @@ make_decl_rtl (tree decl)
 rtx
 make_decl_rtl_for_debug (tree decl)
 {
-  unsigned int save_aliasing_flag;
+  unsigned int save_aliasing_flag, save_mudflap_flag;
   rtx rtl;
 
   if (DECL_RTL_SET_P (decl))
@@ -1494,9 +1497,12 @@ make_decl_rtl_for_debug (tree decl)
      we do not want to create alias sets that will throw the alias
      numbers off in the comparison dumps.  So... clearing
      flag_strict_aliasing will keep new_alias_set() from creating a
-     new set.  */
+     new set.  It is undesirable to register decl with mudflap
+     in this case as well.  */
   save_aliasing_flag = flag_strict_aliasing;
   flag_strict_aliasing = 0;
+  save_mudflap_flag = flag_mudflap;
+  flag_mudflap = 0;
 
   rtl = DECL_RTL (decl);
   /* Reset DECL_RTL back, as various parts of the compiler expects
@@ -1504,6 +1510,7 @@ make_decl_rtl_for_debug (tree decl)
   SET_DECL_RTL (decl, NULL);
 
   flag_strict_aliasing = save_aliasing_flag;
+  flag_mudflap = save_mudflap_flag;
 
   return rtl;
 }
@@ -6062,6 +6069,10 @@ default_no_named_section (const char *name ATTRIBUTE_UNUSED,
   gcc_unreachable ();
 }
 
+#ifndef TLS_SECTION_ASM_FLAG
+#define TLS_SECTION_ASM_FLAG 'T'
+#endif
+
 void
 default_elf_asm_named_section (const char *name, unsigned int flags,
 			       tree decl ATTRIBUTE_UNUSED)
@@ -6092,7 +6103,7 @@ default_elf_asm_named_section (const char *name, unsigned int flags,
   if (flags & SECTION_STRINGS)
     *f++ = 'S';
   if (flags & SECTION_TLS)
-    *f++ = 'T';
+    *f++ = TLS_SECTION_ASM_FLAG;
   if (HAVE_COMDAT_GROUP && (flags & SECTION_LINKONCE))
     *f++ = 'G';
   *f = '\0';

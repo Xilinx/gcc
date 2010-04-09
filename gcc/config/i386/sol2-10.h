@@ -1,5 +1,6 @@
 /* Solaris 10 configuration.
-   Copyright (C) 2004, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by CodeSourcery, LLC.
 
 This file is part of GCC.
@@ -49,6 +50,21 @@ along with GCC; see the file COPYING3.  If not see
     fputs (SIZE == 8 ? "@rel64" : "@rel", FILE);	\
   } while (0)
 #endif
+
+/* As in sol2.h, override the default from i386/x86-64.h to work around
+   Sun as TLS bug.  */
+#undef  ASM_OUTPUT_ALIGNED_COMMON
+#define ASM_OUTPUT_ALIGNED_COMMON(FILE, NAME, SIZE, ALIGN)		\
+  do									\
+    {									\
+      if (TARGET_SUN_TLS						\
+	  && in_section							\
+	  && ((in_section->common.flags & (SECTION_TLS | SECTION_BSS))	\
+	      == (SECTION_TLS | SECTION_BSS)))				\
+	switch_to_section (bss_section);				\
+      x86_elf_aligned_common (FILE, NAME, SIZE, ALIGN);			\
+    }									\
+  while  (0)
 
 #undef NO_PROFILE_COUNTERS
 

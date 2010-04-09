@@ -258,6 +258,14 @@ resolve_formal_arglist (gfc_symbol *proc)
 
       if (gfc_elemental (proc))
 	{
+	  /* F2008, C1289.  */
+	  if (sym->attr.codimension)
+	    {
+	      gfc_error ("Coarray dummy argument '%s' at %L to elemental "
+			 "procedure", sym->name, &sym->declared_at);
+	      continue;
+	    }
+
 	  if (sym->as != NULL)
 	    {
 	      gfc_error ("Argument '%s' of elemental procedure at %L must "
@@ -955,7 +963,7 @@ was_declared (gfc_symbol *sym)
   if (a.allocatable || a.dimension || a.dummy || a.external || a.intrinsic
       || a.optional || a.pointer || a.save || a.target || a.volatile_
       || a.value || a.access != ACCESS_UNKNOWN || a.intent != INTENT_UNKNOWN
-      || a.asynchronous)
+      || a.asynchronous || a.codimension)
     return 1;
 
   return 0;
@@ -7315,6 +7323,48 @@ find_reachable_labels (gfc_code *block)
     }
 }
 
+
+static void
+resolve_sync (gfc_code *code)
+{
+  /* Check imageset. The * case matches expr1 == NULL.  */
+  if (code->expr1)
+    {
+      if (code->expr1->ts.type != BT_INTEGER || code->expr1->rank > 1)
+	gfc_error ("Imageset argument at %L must be a scalar or rank-1 "
+		   "INTEGER expression", &code->expr1->where);
+      if (code->expr1->expr_type == EXPR_CONSTANT && code->expr1->rank == 0
+	  && mpz_cmp_si (code->expr1->value.integer, 1) < 0)
+	gfc_error ("Imageset argument at %L must between 1 and num_images()",
+		   &code->expr1->where);
+      else if (code->expr1->expr_type == EXPR_ARRAY
+	       && gfc_simplify_expr (code->expr1, 0) == SUCCESS)
+	{
+	   gfc_constructor *cons;
+	   for (cons = code->expr1->value.constructor; cons; cons = cons->next)
+	     if (cons->expr->expr_type == EXPR_CONSTANT
+		 &&  mpz_cmp_si (cons->expr->value.integer, 1) < 0)
+	       gfc_error ("Imageset argument at %L must between 1 and "
+			  "num_images()", &cons->expr->where);
+	}
+    }
+
+  /* Check STAT.  */
+  if (code->expr2
+      && (code->expr2->ts.type != BT_INTEGER || code->expr2->rank != 0
+	  || code->expr2->expr_type != EXPR_VARIABLE))
+    gfc_error ("STAT= argument at %L must be a scalar INTEGER variable",
+	       &code->expr2->where);
+
+  /* Check ERRMSG.  */
+  if (code->expr3
+      && (code->expr3->ts.type != BT_CHARACTER || code->expr3->rank != 0
+	  || code->expr3->expr_type != EXPR_VARIABLE))
+    gfc_error ("ERRMSG= argument at %L must be a scalar CHARACTER variable",
+	       &code->expr3->where);
+}
+
+
 /* Given a branch to a label, see if the branch is conforming.
    The code node describes where the branch is located.  */
 
@@ -7355,15 +7405,36 @@ resolve_branch (gfc_st_label *label, gfc_code *code)
      the bitmap reachable_labels.  */
 
   if (bitmap_bit_p (cs_base->reachable_labels, label->value))
-    return;
+    {
+      /* Check now whether there is a CRITICAL construct; if so, check
+	 whether the label is still visible outside of the CRITICAL block,
+	 which is invalid.  */
+      for (stack = cs_base; stack; stack = stack->prev)
+	if (stack->current->op == EXEC_CRITICAL
+	    && bitmap_bit_p (stack->reachable_labels, label->value))
+	  gfc_error ("GOTO statement at %L leaves CRITICAL construct for label"
+		      " at %L", &code->loc, &label->where);
+
+      return;
+    }
 
   /* Step four:  If we haven't found the label in the bitmap, it may
     still be the label of the END of the enclosing block, in which
     case we find it by going up the code_stack.  */
 
   for (stack = cs_base; stack; stack = stack->prev)
-    if (stack->current->next && stack->current->next->here == label)
-      break;
+    {
+      if (stack->current->next && stack->current->next->here == label)
+	break;
+      if (stack->current->op == EXEC_CRITICAL)
+	{
+	  /* Note: A label at END CRITICAL does not leave the CRITICAL
+	     construct as END CRITICAL is still part of it.  */
+	  gfc_error ("GOTO statement at %L leaves CRITICAL construct for label"
+		      " at %L", &code->loc, &label->where);
+	  return;
+	}
+    }
 
   if (stack)
     {
@@ -7788,6 +7859,7 @@ gfc_resolve_blocks (gfc_code *b, gfc_namespace *ns)
 	case EXEC_FORALL:
 	case EXEC_DO:
 	case EXEC_DO_WHILE:
+	case EXEC_CRITICAL:
 	case EXEC_READ:
 	case EXEC_WRITE:
 	case EXEC_IOLENGTH:
@@ -8068,10 +8140,18 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	case EXEC_CYCLE:
 	case EXEC_PAUSE:
 	case EXEC_STOP:
+	case EXEC_ERROR_STOP:
 	case EXEC_EXIT:
 	case EXEC_CONTINUE:
 	case EXEC_DT_END:
 	case EXEC_ASSIGN_CALL:
+	case EXEC_CRITICAL:
+	  break;
+
+	case EXEC_SYNC_ALL:
+	case EXEC_SYNC_IMAGES:
+	case EXEC_SYNC_MEMORY:
+	  resolve_sync (code);
 	  break;
 
 	case EXEC_ENTRY:
@@ -8619,13 +8699,12 @@ is_non_constant_shape_array (gfc_symbol *sym)
       /* Unfortunately, !gfc_is_compile_time_shape hits a legal case that
 	 has not been simplified; parameter array references.  Do the
 	 simplification now.  */
-      for (i = 0; i < sym->as->rank; i++)
+      for (i = 0; i < sym->as->rank + sym->as->corank; i++)
 	{
 	  e = sym->as->lower[i];
 	  if (e && (resolve_index_expr (e) == FAILURE
 		    || !gfc_is_constant_expr (e)))
 	    not_constant = true;
-
 	  e = sym->as->upper[i];
 	  if (e && (resolve_index_expr (e) == FAILURE
 		    || !gfc_is_constant_expr (e)))
@@ -9075,7 +9154,7 @@ resolve_fl_variable (gfc_symbol *sym, int mp_flag)
   if (sym->attr.allocatable || sym->attr.external || sym->attr.dummy
       || sym->attr.intrinsic || sym->attr.result)
     no_init_flag = 1;
-  else if (sym->attr.dimension && !sym->attr.pointer
+  else if ((sym->attr.dimension || sym->attr.codimension) && !sym->attr.pointer
 	   && is_non_constant_shape_array (sym))
     {
       no_init_flag = automatic_flag = 1;
@@ -10359,6 +10438,15 @@ resolve_fl_derived (gfc_symbol *sym)
 
   super_type = gfc_get_derived_super_type (sym);
 
+  /* F2008, C432. */
+  if (super_type && sym->attr.coarray_comp && !super_type->attr.coarray_comp)
+    {
+      gfc_error ("As extending type '%s' at %L has a coarray component, "
+		 "parent type '%s' shall also have one", sym->name,
+		 &sym->declared_at, super_type->name);
+      return FAILURE;
+    }
+
   /* Ensure the extended type gets resolved before we do.  */
   if (super_type && resolve_fl_derived (super_type) == FAILURE)
     return FAILURE;
@@ -10373,6 +10461,35 @@ resolve_fl_derived (gfc_symbol *sym)
 
   for (c = sym->components; c != NULL; c = c->next)
     {
+      /* F2008, C442.  */
+      if (c->attr.codimension
+	  && (!c->attr.allocatable || c->as->type != AS_DEFERRED))
+	{
+	  gfc_error ("Coarray component '%s' at %L must be allocatable with "
+		     "deferred shape", c->name, &c->loc);
+	  return FAILURE;
+	}
+
+      /* F2008, C443.  */
+      if (c->attr.codimension && c->ts.type == BT_DERIVED
+	  && c->ts.u.derived->ts.is_iso_c)
+	{
+	  gfc_error ("Component '%s' at %L of TYPE(C_PTR) or TYPE(C_FUNPTR) "
+		     "shall not be a coarray", c->name, &c->loc);
+	  return FAILURE;
+	}
+
+      /* F2008, C444.  */
+      if (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.coarray_comp
+	  && (c->attr.codimension || c->attr.pointer || c->attr.dimension
+	      || c->attr.allocatable))
+	{
+	  gfc_error ("Component '%s' at %L with coarray component "
+		     "shall be a nonpointer, nonallocatable scalar",
+		     c->name, &c->loc);
+	  return FAILURE;
+	}
+
       if (c->attr.proc_pointer && c->ts.interface)
 	{
 	  if (c->ts.interface->attr.procedure)
@@ -11202,6 +11319,62 @@ resolve_symbol (gfc_symbol *sym)
 	    }
 	}
     }
+
+  /* F2008, C526.  */
+  if (((sym->ts.type == BT_DERIVED && sym->ts.u.derived->attr.coarray_comp)
+       || sym->attr.codimension)
+      && sym->attr.result)
+    gfc_error ("Function result '%s' at %L shall not be a coarray or have "
+	       "a coarray component", sym->name, &sym->declared_at);
+
+  /* F2008, C524.  */
+  if (sym->attr.codimension && sym->ts.type == BT_DERIVED
+      && sym->ts.u.derived->ts.is_iso_c)
+    gfc_error ("Variable '%s' at %L of TYPE(C_PTR) or TYPE(C_FUNPTR) "
+	       "shall not be a coarray", sym->name, &sym->declared_at);
+
+  /* F2008, C525.  */
+  if (sym->ts.type == BT_DERIVED && sym->ts.u.derived->attr.coarray_comp
+      && (sym->attr.codimension || sym->attr.pointer || sym->attr.dimension
+	  || sym->attr.allocatable))
+    gfc_error ("Variable '%s' at %L with coarray component "
+	       "shall be a nonpointer, nonallocatable scalar",
+	       sym->name, &sym->declared_at);
+
+  /* F2008, C526.  The function-result case was handled above.  */
+  if (((sym->ts.type == BT_DERIVED && sym->ts.u.derived->attr.coarray_comp)
+       || sym->attr.codimension)
+      && !(sym->attr.allocatable || sym->attr.dummy || sym->attr.save
+	   || sym->ns->proc_name->attr.flavor == FL_MODULE
+	   || sym->ns->proc_name->attr.is_main_program
+	   || sym->attr.function || sym->attr.result || sym->attr.use_assoc))
+    gfc_error ("Variable '%s' at %L is a coarray or has a coarray "
+	       "component and is not ALLOCATABLE, SAVE nor a "
+	       "dummy argument", sym->name, &sym->declared_at);
+  /* F2008, C528.  */
+  else if (sym->attr.codimension && !sym->attr.allocatable
+      && sym->as->cotype == AS_DEFERRED)
+    gfc_error ("Coarray variable '%s' at %L shall not have codimensions with "
+		"deferred shape", sym->name, &sym->declared_at);
+  else if (sym->attr.codimension && sym->attr.allocatable
+      && (sym->as->type != AS_DEFERRED || sym->as->cotype != AS_DEFERRED))
+    gfc_error ("Allocatable coarray variable '%s' at %L must have "
+	       "deferred shape", sym->name, &sym->declared_at);
+
+
+  /* F2008, C541.  */
+  if (((sym->ts.type == BT_DERIVED && sym->ts.u.derived->attr.coarray_comp)
+       || (sym->attr.codimension && sym->attr.allocatable))
+      && sym->attr.dummy && sym->attr.intent == INTENT_OUT)
+    gfc_error ("Variable '%s' at %L is INTENT(OUT) and can thus not be an "
+	       "allocatable coarray or have coarray components",
+	       sym->name, &sym->declared_at);
+
+  if (sym->attr.codimension && sym->attr.dummy
+      && sym->ns->proc_name && sym->ns->proc_name->attr.is_bind_c)
+    gfc_error ("Coarray dummy variable '%s' at %L not allowed in BIND(C) "
+	       "procedure '%s'", sym->name, &sym->declared_at,
+	       sym->ns->proc_name->name);
 
   switch (sym->attr.flavor)
     {

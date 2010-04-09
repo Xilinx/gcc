@@ -1084,6 +1084,10 @@ compile_file (void)
   /* Write out any pending weak symbol declarations.  */
   weak_finish ();
 
+  /* This must be at the end before unwind and debug info.
+     Some target ports emit PIC setup thunks here.  */
+  targetm.asm_out.code_end ();
+
   /* Do dbx symbols.  */
   timevar_push (TV_SYMOUT);
 
@@ -2144,6 +2148,10 @@ process_options (void)
 	       "for correctness");
       flag_omit_frame_pointer = 0;
     }
+
+  /* Save the current optimization options.  */
+  optimization_default_node = build_optimization_node ();
+  optimization_current_node = optimization_default_node;
 }
 
 /* This function can be called multiple times to reinitialize the compiler
@@ -2183,8 +2191,8 @@ backend_init_target (void)
 
   /* We may need to recompute regno_save_code[] and regno_restore_code[]
      after a mode change as well.  */
-  if (flag_caller_saves)
-    init_caller_save ();
+  caller_save_initialized_p = false;
+
   expand_dummy_function_end ();
 }
 

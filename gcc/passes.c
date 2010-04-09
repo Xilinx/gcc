@@ -1,6 +1,6 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -885,9 +885,9 @@ init_optimization_passes (void)
 	{
 	  struct opt_pass **p = &pass_tree_loop.pass.sub;
 	  NEXT_PASS (pass_tree_loop_init);
+	  NEXT_PASS (pass_lim);
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_dce_loop);
-	  NEXT_PASS (pass_lim);
 	  NEXT_PASS (pass_tree_unswitch);
 	  NEXT_PASS (pass_scev_cprop);
 	  NEXT_PASS (pass_record_bounds);
@@ -897,6 +897,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_graphite_transforms);
 	    {
 	      struct opt_pass **p = &pass_graphite_transforms.pass.sub;
+	      NEXT_PASS (pass_copy_prop);
 	      NEXT_PASS (pass_dce_loop);
 	      NEXT_PASS (pass_lim);
 	    }
@@ -1255,14 +1256,15 @@ execute_function_todo (void *data)
     }
 
 #if defined ENABLE_CHECKING
-  if (flags & TODO_verify_ssa)
+  if (flags & TODO_verify_ssa
+      || (current_loops && loops_state_satisfies_p (LOOP_CLOSED_SSA)))
     verify_ssa (true);
   if (flags & TODO_verify_flow)
     verify_flow_info ();
   if (flags & TODO_verify_stmts)
     verify_stmts ();
-  if (flags & TODO_verify_loops)
-    verify_loop_closed_ssa ();
+  if (current_loops && loops_state_satisfies_p (LOOP_CLOSED_SSA))
+    verify_loop_closed_ssa (false);
   if (flags & TODO_verify_rtl_sharing)
     verify_rtl_sharing ();
 #endif
