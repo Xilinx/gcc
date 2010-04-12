@@ -1,3 +1,9 @@
+2010-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{bug reported by Christophe Coupe'}}
+	* melt-runtime.c (load_checked_dynamic_module_index): try to
+	append a .so to the dynamic module shared object. A quick & dirty
+	hack!
+
 2010-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{bug reported by Jeremie Salvucci on gcc-melt-french@googlegroups.com}}
 

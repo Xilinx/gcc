@@ -5487,6 +5487,7 @@ static int
 load_checked_dynamic_module_index (const char *dypath, char *md5src)
 {
   int ix = 0;
+  int dypathlen = 0;
   char *dynmd5 = NULL;
   char *dynversion = NULL;
   void *dlh = NULL;
@@ -5498,9 +5499,18 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   PTR_UNION_TYPE(void **) iniframe_up = {0};
   int i = 0, c = 0;
   char hbuf[4];
+  dypathlen = dypath?strlen(dypath):0;
   debugeprintf ("load_check_dynamic_module_index dypath=%s md5src=%s", dypath, md5src);
   dlh = (void *) dlopen (dypath, RTLD_NOW | RTLD_GLOBAL);
   debugeprintf ("load_check_dynamic_module_index dlh=%p dypath=%s", dlh, dypath);
+  /* Try to append .so if needed ... */
+  if (!dlh && dypathlen>3 
+      && (dypath[dypathlen-3]!='.' || dypath[dypathlen-2]!='s' || dypath[dypathlen-1]!='o'))
+    {
+      char*dypathso = concat(dypath, ".so", NULL);
+      dlh = (void *) dlopen (dypath, RTLD_NOW | RTLD_GLOBAL);
+      free (dypathso);
+    }
   if (!dlh) 
     {
       debugeprintf("load_check_dynamic_module_index dlerror %s", dlerror());
