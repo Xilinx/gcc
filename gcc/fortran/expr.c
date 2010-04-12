@@ -1,5 +1,6 @@
 /* Routines for manipulation of expression nodes.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -781,6 +782,8 @@ gfc_is_constant_expr (gfc_expr *e)
       break;
 
     case EXPR_FUNCTION:
+    case EXPR_PPC:
+    case EXPR_COMPCALL:
       /* Specification functions are constant.  */
       if (check_specification_function (e) == MATCH_YES)
 	{
@@ -2807,6 +2810,7 @@ check_restricted (gfc_expr *e)
 gfc_try
 gfc_specification_expr (gfc_expr *e)
 {
+  gfc_component *comp;
 
   if (e == NULL)
     return SUCCESS;
@@ -2821,7 +2825,9 @@ gfc_specification_expr (gfc_expr *e)
   if (e->expr_type == EXPR_FUNCTION
 	  && !e->value.function.isym
 	  && !e->value.function.esym
-	  && !gfc_pure (e->symtree->n.sym))
+	  && !gfc_pure (e->symtree->n.sym)
+	  && (!gfc_is_proc_ptr_comp (e, &comp)
+	      || !comp->attr.pure))
     {
       gfc_error ("Function '%s' at %L must be PURE",
 		 e->symtree->n.sym->name, &e->where);
@@ -3204,6 +3210,20 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
   if (rvalue->expr_type == EXPR_NULL && rvalue->ts.type == BT_UNKNOWN)
     return SUCCESS;
 
+  /* F2008, C723 (pointer) and C726 (proc-pointer); for PURE also C1283.  */
+  if (lvalue->expr_type == EXPR_VARIABLE
+      && gfc_is_coindexed (lvalue))
+    {
+      gfc_ref *ref;
+      for (ref = lvalue->ref; ref; ref = ref->next)
+	if (ref->type == REF_ARRAY && ref->u.ar.codimen)
+	  {
+	    gfc_error ("Pointer object at %L shall not have a coindex",
+		       &lvalue->where);
+	    return FAILURE;
+	  }
+    }
+
   /* Checks on rvalue for procedure pointer assignments.  */
   if (proc_pointer)
     {
@@ -3366,6 +3386,20 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
       gfc_error ("Pointer assignment target has PROTECTED "
 		 "attribute at %L", &rvalue->where);
       return FAILURE;
+    }
+
+  /* F2008, C725. For PURE also C1283.  */
+  if (rvalue->expr_type == EXPR_VARIABLE
+      && gfc_is_coindexed (rvalue))
+    {
+      gfc_ref *ref;
+      for (ref = rvalue->ref; ref; ref = ref->next)
+	if (ref->type == REF_ARRAY && ref->u.ar.codimen)
+	  {
+	    gfc_error ("Data target at %L shall not have a coindex",
+		       &rvalue->where);
+	    return FAILURE;
+	  }
     }
 
   return SUCCESS;
@@ -3559,6 +3593,8 @@ gfc_traverse_expr (gfc_expr *expr, gfc_symbol *sym,
 
   switch (expr->expr_type)
     {
+    case EXPR_PPC:
+    case EXPR_COMPCALL:
     case EXPR_FUNCTION:
       for (args = expr->value.function.actual; args; args = args->next)
 	{
@@ -3641,7 +3677,8 @@ gfc_traverse_expr (gfc_expr *expr, gfc_symbol *sym,
 	    return true;
 
 	  if (ref->u.c.component->as)
-	    for (i = 0; i < ref->u.c.component->as->rank; i++)
+	    for (i = 0; i < ref->u.c.component->as->rank
+			    + ref->u.c.component->as->corank; i++)
 	      {
 		if (gfc_traverse_expr (ref->u.c.component->as->lower[i],
 				       sym, func, f))
@@ -3835,3 +3872,75 @@ gfc_expr_replace_comp (gfc_expr *expr, gfc_component *dest)
   gfc_traverse_expr (expr, (gfc_symbol *)dest, &replace_comp, 0);
 }
 
+
+bool
+gfc_is_coindexed (gfc_expr *e)
+{
+  gfc_ref *ref;
+
+  for (ref = e->ref; ref; ref = ref->next)
+    if (ref->type == REF_ARRAY && ref->u.ar.codimen > 0)
+      return true;
+
+  return false;
+}
+
+
+/* Check whether the expression has an ultimate allocatable component.
+   Being itself allocatable does not count.  */
+bool
+gfc_has_ultimate_allocatable (gfc_expr *e)
+{
+  gfc_ref *ref, *last = NULL;
+
+  if (e->expr_type != EXPR_VARIABLE)
+    return false;
+
+  for (ref = e->ref; ref; ref = ref->next)
+    if (ref->type == REF_COMPONENT)
+      last = ref;
+
+  if (last && last->u.c.component->ts.type == BT_CLASS)
+    return last->u.c.component->ts.u.derived->components->attr.alloc_comp;
+  else if (last && last->u.c.component->ts.type == BT_DERIVED)
+    return last->u.c.component->ts.u.derived->attr.alloc_comp;
+  else if (last)
+    return false;
+
+  if (e->ts.type == BT_CLASS)
+    return e->ts.u.derived->components->attr.alloc_comp;
+  else if (e->ts.type == BT_DERIVED)
+    return e->ts.u.derived->attr.alloc_comp;
+  else
+    return false;
+}
+
+
+/* Check whether the expression has an pointer component.
+   Being itself a pointer does not count.  */
+bool
+gfc_has_ultimate_pointer (gfc_expr *e)
+{
+  gfc_ref *ref, *last = NULL;
+
+  if (e->expr_type != EXPR_VARIABLE)
+    return false;
+
+  for (ref = e->ref; ref; ref = ref->next)
+    if (ref->type == REF_COMPONENT)
+      last = ref;
+ 
+  if (last && last->u.c.component->ts.type == BT_CLASS)
+    return last->u.c.component->ts.u.derived->components->attr.pointer_comp;
+  else if (last && last->u.c.component->ts.type == BT_DERIVED)
+    return last->u.c.component->ts.u.derived->attr.pointer_comp;
+  else if (last)
+    return false;
+
+  if (e->ts.type == BT_CLASS)
+    return e->ts.u.derived->components->attr.pointer_comp;
+  else if (e->ts.type == BT_DERIVED)
+    return e->ts.u.derived->attr.pointer_comp;
+  else
+    return false;
+}

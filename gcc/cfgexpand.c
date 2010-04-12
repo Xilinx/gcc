@@ -540,8 +540,6 @@ update_alias_info_with_stack_vars (void)
 
       add_partitioned_vars_to_ptset (&cfun->gimple_df->escaped,
 				     decls_to_partitions, visited, temp);
-      add_partitioned_vars_to_ptset (&cfun->gimple_df->callused,
-				     decls_to_partitions, visited, temp);
 
       pointer_set_destroy (visited);
       pointer_map_destroy (decls_to_partitions);
@@ -2502,7 +2500,8 @@ expand_debug_expr (tree exp)
 	  {
 	    enum machine_mode addrmode, offmode;
 
-	    gcc_assert (MEM_P (op0));
+	    if (!MEM_P (op0))
+	      return NULL;
 
 	    op0 = XEXP (op0, 0);
 	    addrmode = GET_MODE (op0);
@@ -3623,7 +3622,8 @@ discover_nonconstant_array_refs (void)
     for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
       {
 	gimple stmt = gsi_stmt (gsi);
-	walk_gimple_op (stmt, discover_nonconstant_array_refs_r, NULL);
+	if (!is_gimple_debug (stmt))
+	  walk_gimple_op (stmt, discover_nonconstant_array_refs_r, NULL);
       }
 }
 

@@ -3720,15 +3720,17 @@ maybe_update_decl_type (tree orig_type, tree scope)
 	 TYPENAME_TYPEs and SCOPE_REFs that were previously dependent.  */
       tree args = current_template_args ();
       tree auto_node = type_uses_auto (type);
+      tree pushed;
       if (auto_node)
 	{
 	  tree auto_vec = make_tree_vec (1);
 	  TREE_VEC_ELT (auto_vec, 0) = auto_node;
 	  args = add_to_template_args (args, auto_vec);
 	}
-      push_scope (scope);
+      pushed = push_scope (scope);
       type = tsubst (type, args, tf_warning_or_error, NULL_TREE);
-      pop_scope (scope);
+      if (pushed)
+	pop_scope (scope);
     }
 
   if (type == error_mark_node)
@@ -7328,11 +7330,18 @@ tsubst_friend_function (tree decl, tree args)
 	      DECL_TEMPLATE_INFO (old_decl) = new_friend_template_info;
 
 	      if (TREE_CODE (old_decl) != TEMPLATE_DECL)
-		/* We should have called reregister_specialization in
-		   duplicate_decls.  */
-		gcc_assert (retrieve_specialization (new_template,
-						     new_args, 0)
-			    == old_decl);
+		{
+		  /* We should have called reregister_specialization in
+		     duplicate_decls.  */
+		  gcc_assert (retrieve_specialization (new_template,
+						       new_args, 0)
+			      == old_decl);
+
+		  /* Instantiate it if the global has already been used.  */
+		  if (DECL_ODR_USED (old_decl))
+		    instantiate_decl (old_decl, /*defer_ok=*/true,
+				      /*expl_inst_class_mem_p=*/false);
+		}
 	      else
 		{
 		  tree t;
@@ -9018,7 +9027,8 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	       specialize R.  */
 	    gen_tmpl = most_general_template (DECL_TI_TEMPLATE (t));
 	    argvec = tsubst_template_args (DECL_TI_ARGS
-					   (DECL_TEMPLATE_RESULT (gen_tmpl)),
+                                          (DECL_TEMPLATE_RESULT
+                                                 (DECL_TI_TEMPLATE (t))),
 					   args, complain, in_decl);
 
 	    /* Check to see if we already have this specialization.  */
@@ -9486,6 +9496,8 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	      type = DECL_ORIGINAL_TYPE (t);
 	    else
 	      type = TREE_TYPE (t);
+	    if (TREE_CODE (t) == VAR_DECL && VAR_HAD_UNKNOWN_BOUND (t))
+	      type = strip_array_domain (type);
 	    type = tsubst (type, args, complain, in_decl);
 	  }
 	if (TREE_CODE (r) == VAR_DECL)
@@ -16446,10 +16458,15 @@ regenerate_decl_from_template (tree decl, tree tmpl)
 	DECL_DECLARED_INLINE_P (decl) = 1;
     }
   else if (TREE_CODE (decl) == VAR_DECL)
-    DECL_INITIAL (decl) =
-      tsubst_expr (DECL_INITIAL (code_pattern), args,
-		   tf_error, DECL_TI_TEMPLATE (decl),
-		   /*integral_constant_expression_p=*/false);
+    {
+      DECL_INITIAL (decl) =
+	tsubst_expr (DECL_INITIAL (code_pattern), args,
+		     tf_error, DECL_TI_TEMPLATE (decl),
+		     /*integral_constant_expression_p=*/false);
+      if (VAR_HAD_UNKNOWN_BOUND (decl))
+	TREE_TYPE (decl) = tsubst (TREE_TYPE (code_pattern), args,
+				   tf_error, DECL_TI_TEMPLATE (decl));
+    }
   else
     gcc_unreachable ();
 
@@ -17720,6 +17737,15 @@ type_dependent_expression_p (tree expression)
       return false;
     }
 
+  /* A static data member of the current instantiation with incomplete
+     array type is type-dependent, as the definition and specializations
+     can have different bounds.  */
+  if (TREE_CODE (expression) == VAR_DECL
+      && DECL_CLASS_SCOPE_P (expression)
+      && dependent_type_p (DECL_CONTEXT (expression))
+      && VAR_HAD_UNKNOWN_BOUND (expression))
+    return true;
+
   if (TREE_TYPE (expression) == unknown_type_node)
     {
       if (TREE_CODE (expression) == ADDR_EXPR)
@@ -18549,6 +18575,21 @@ init_template_processing (void)
 					  hash_specialization,
 					  eq_specializations,
 					  ggc_free);
+}
+
+/* Print stats about the template hash tables for -fstats.  */
+
+void
+print_template_statistics (void)
+{
+  fprintf (stderr, "decl_specializations: size %ld, %ld elements, "
+	   "%f collisions\n", (long) htab_size (decl_specializations),
+	   (long) htab_elements (decl_specializations),
+	   htab_collisions (decl_specializations));
+  fprintf (stderr, "type_specializations: size %ld, %ld elements, "
+	   "%f collisions\n", (long) htab_size (type_specializations),
+	   (long) htab_elements (type_specializations),
+	   htab_collisions (type_specializations));
 }
 
 #include "gt-cp-pt.h"

@@ -1,5 +1,6 @@
 /* Memory address lowering and addressing mode selection.
-   Copyright (C) 2004, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -765,6 +766,8 @@ copy_mem_ref_info (tree to, tree from)
 {
   /* And the info about the original reference.  */
   TMR_ORIGINAL (to) = TMR_ORIGINAL (from);
+  TREE_SIDE_EFFECTS (to) = TREE_SIDE_EFFECTS (from);
+  TREE_THIS_VOLATILE (to) = TREE_THIS_VOLATILE (from);
 }
 
 /* Move constants in target_mem_ref REF to offset.  Returns the new target

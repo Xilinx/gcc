@@ -1,6 +1,6 @@
 /* Subroutines shared by all languages that are variants of C.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -4393,7 +4393,7 @@ c_sizeof_or_alignof_type (location_t loc,
       if (complain)
 	error_at (loc, "invalid application of %qs to incomplete type %qT ",
 		  op_name, type);
-      value = size_zero_node;
+      return error_mark_node;
     }
   else
     {
@@ -6124,6 +6124,8 @@ handle_used_attribute (tree *pnode, tree name, tree ARG_UNUSED (args),
     {
       TREE_USED (node) = 1;
       DECL_PRESERVE_P (node) = 1;
+      if (TREE_CODE (node) == VAR_DECL)
+	DECL_READ_P (node) = 1;
     }
   else
     {
@@ -6150,7 +6152,12 @@ handle_unused_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 	  || TREE_CODE (decl) == FUNCTION_DECL
 	  || TREE_CODE (decl) == LABEL_DECL
 	  || TREE_CODE (decl) == TYPE_DECL)
-	TREE_USED (decl) = 1;
+	{
+	  TREE_USED (decl) = 1;
+	  if (TREE_CODE (decl) == VAR_DECL
+	      || TREE_CODE (decl) == PARM_DECL)
+	    DECL_READ_P (decl) = 1;
+	}
       else
 	{
 	  warning (OPT_Wattributes, "%qE attribute ignored", name);
@@ -8282,8 +8289,52 @@ c_parse_error (const char *gmsgid, enum cpp_ttype token_type,
 #undef catenate_messages
 }
 
+/* Mapping for cpp message reasons to the options that enable them.  */
+
+struct reason_option_codes_t
+{
+  const int reason;		/* cpplib message reason.  */
+  const int option_code;	/* gcc option that controls this message.  */
+};
+
+static const struct reason_option_codes_t option_codes[] = {
+  {CPP_W_DEPRECATED,			OPT_Wdeprecated},
+  {CPP_W_COMMENTS,			OPT_Wcomments},
+  {CPP_W_TRIGRAPHS,			OPT_Wtrigraphs},
+  {CPP_W_MULTICHAR,			OPT_Wmultichar},
+  {CPP_W_TRADITIONAL,			OPT_Wtraditional},
+  {CPP_W_LONG_LONG,			OPT_Wlong_long},
+  {CPP_W_ENDIF_LABELS,			OPT_Wendif_labels},
+  {CPP_W_VARIADIC_MACROS,		OPT_Wvariadic_macros},
+  {CPP_W_BUILTIN_MACRO_REDEFINED,	OPT_Wbuiltin_macro_redefined},
+  {CPP_W_UNDEF,				OPT_Wundef},
+  {CPP_W_UNUSED_MACROS,			OPT_Wunused_macros},
+  {CPP_W_CXX_OPERATOR_NAMES,		OPT_Wc___compat},
+  {CPP_W_NORMALIZE,			OPT_Wnormalized_},
+  {CPP_W_INVALID_PCH,			OPT_Winvalid_pch},
+  {CPP_W_WARNING_DIRECTIVE,		OPT_Wcpp},
+  {CPP_W_NONE,				0}
+};
+
+/* Return the gcc option code associated with the reason for a cpp
+   message, or 0 if none.  */
+
+static int
+c_option_controlling_cpp_error (int reason)
+{
+  const struct reason_option_codes_t *entry;
+
+  for (entry = option_codes; entry->reason != CPP_W_NONE; entry++)
+    {
+      if (entry->reason == reason)
+	return entry->option_code;
+    }
+  return 0;
+}
+
 /* Callback from cpp_error for PFILE to print diagnostics from the
-   preprocessor.  The diagnostic is of type LEVEL, at location
+   preprocessor.  The diagnostic is of type LEVEL, with REASON set
+   to the reason code if LEVEL is represents a warning, at location
    LOCATION unless this is after lexing and the compiler's location
    should be used instead, with column number possibly overridden by
    COLUMN_OVERRIDE if not zero; MSG is the translated message and AP
@@ -8291,7 +8342,7 @@ c_parse_error (const char *gmsgid, enum cpp_ttype token_type,
    otherwise.  */
 
 bool
-c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
+c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
 	     location_t location, unsigned int column_override,
 	     const char *msg, va_list *ap)
 {
@@ -8338,6 +8389,8 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
 				  location, dlevel);
   if (column_override)
     diagnostic_override_column (&diagnostic, column_override);
+  diagnostic_override_option_index (&diagnostic,
+                                    c_option_controlling_cpp_error (reason));
   ret = report_diagnostic (&diagnostic);
   if (level == CPP_DL_WARNING_SYSHDR)
     warn_system_headers = save_warn_system_headers;

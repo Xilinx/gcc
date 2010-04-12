@@ -1,6 +1,6 @@
 /* Fold a constant sub-tree into a single node for C-compiler
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -3168,6 +3168,11 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
   if (TREE_CODE (arg0) == ERROR_MARK || TREE_CODE (arg1) == ERROR_MARK
       || TREE_TYPE (arg0) == error_mark_node
       || TREE_TYPE (arg1) == error_mark_node)
+    return 0;
+
+  /* Similar, if either does not have a type (like a released SSA name), 
+     they aren't equal.  */
+  if (!TREE_TYPE (arg0) || !TREE_TYPE (arg1))
     return 0;
 
   /* Check equality of integer constants before bailing out due to
@@ -8556,10 +8561,11 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
 				      &mode, &unsignedp, &volatilep, false);
 	  /* If the reference was to a (constant) zero offset, we can use
 	     the address of the base if it has the same base type
-	     as the result type.  */
+	     as the result type and the pointer type is unqualified.  */
 	  if (! offset && bitpos == 0
-	      && TYPE_MAIN_VARIANT (TREE_TYPE (type))
+	      && (TYPE_MAIN_VARIANT (TREE_TYPE (type))
 		  == TYPE_MAIN_VARIANT (TREE_TYPE (base)))
+	      && TYPE_QUALS (type) == TYPE_UNQUALIFIED)
 	    return fold_convert_loc (loc, type,
 				     build_fold_addr_expr_loc (loc, base));
         }
@@ -9576,7 +9582,9 @@ fold_comparison (location_t loc, enum tree_code code, tree type,
       tree variable1 = TREE_OPERAND (arg0, 0);
       enum tree_code cmp_code = code;
 
-      gcc_assert (!integer_zerop (const1));
+      /* Handle unfolded multiplication by zero.  */
+      if (integer_zerop (const1))
+	return fold_build2_loc (loc, cmp_code, type, const1, const2);
 
       fold_overflow_warning (("assuming signed overflow does not occur when "
 			      "eliminating multiplication in comparison "

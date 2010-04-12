@@ -1,5 +1,6 @@
 /* Parse and display command line options.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -129,9 +130,7 @@ gfc_init_options (unsigned int argc, const char **argv)
   
   gfc_option.fpe = 0;
   gfc_option.rtcheck = 0;
-
-  /* Argument pointers cannot point to anything but their argument.  */
-  flag_argument_noalias = 3;
+  gfc_option.coarray = GFC_FCOARRAY_NONE;
 
   flag_errno_math = 0;
 
@@ -475,6 +474,18 @@ gfc_handle_fpe_trap_option (const char *arg)
       if (!result)
 	gfc_fatal_error ("Argument to -ffpe-trap is not valid: %s", arg);
     }
+}
+
+
+static void
+gfc_handle_coarray_option (const char *arg)
+{
+  if (strcmp (arg, "none") == 0)
+    gfc_option.coarray = GFC_FCOARRAY_NONE;
+  else if (strcmp (arg, "single") == 0)
+    gfc_option.coarray = GFC_FCOARRAY_SINGLE;
+  else
+    gfc_fatal_error ("Argument to -fcoarray is not valid: %s", arg);
 }
 
 
@@ -930,6 +941,9 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       gfc_handle_runtime_check_option (arg);
       break;
 
+    case OPT_fcoarray_:
+      gfc_handle_coarray_option (arg);
+      break;
     }
 
   return result;

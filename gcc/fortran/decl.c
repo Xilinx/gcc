@@ -570,6 +570,62 @@ cleanup:
 
 /************************ Declaration statements *********************/
 
+
+/* Auxilliary function to merge DIMENSION and CODIMENSION array specs.  */
+
+static void
+merge_array_spec (gfc_array_spec *from, gfc_array_spec *to, bool copy)
+{
+  int i;
+
+  if (to->rank == 0 && from->rank > 0)
+    {
+      to->rank = from->rank;
+      to->type = from->type;
+      to->cray_pointee = from->cray_pointee;
+      to->cp_was_assumed = from->cp_was_assumed;
+
+      for (i = 0; i < to->corank; i++)
+	{
+	  to->lower[from->rank + i] = to->lower[i];
+	  to->upper[from->rank + i] = to->upper[i];
+	}
+      for (i = 0; i < from->rank; i++)
+	{
+	  if (copy)
+	    {
+	      to->lower[i] = gfc_copy_expr (from->lower[i]);
+	      to->upper[i] = gfc_copy_expr (from->upper[i]);
+	    }
+	  else
+	    {
+	      to->lower[i] = from->lower[i];
+	      to->upper[i] = from->upper[i];
+	    }
+	}
+    }
+  else if (to->corank == 0 && from->corank > 0)
+    {
+      to->corank = from->corank;
+      to->cotype = from->cotype;
+
+      for (i = 0; i < from->corank; i++)
+	{
+	  if (copy)
+	    {
+	      to->lower[to->rank + i] = gfc_copy_expr (from->lower[i]);
+	      to->upper[to->rank + i] = gfc_copy_expr (from->upper[i]);
+	    }
+	  else
+	    {
+	      to->lower[to->rank + i] = from->lower[i];
+	      to->upper[to->rank + i] = from->upper[i];
+	    }
+	}
+    }
+}
+
+
 /* Match an intent specification.  Since this can only happen after an
    INTENT word, a legal intent-spec must follow.  */
 
@@ -1057,6 +1113,7 @@ build_sym (const char *name, gfc_charlen *cl,
      dimension attribute.  */
   attr = current_attr;
   attr.dimension = 0;
+  attr.codimension = 0;
 
   if (gfc_copy_attr (&sym->attr, &attr, var_locus) == FAILURE)
     return FAILURE;
@@ -1430,7 +1487,12 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 
   c->as = *as;
   if (c->as != NULL)
-    c->attr.dimension = 1;
+    {
+      if (c->as->corank)
+	c->attr.codimension = 1;
+      if (c->as->rank)
+	c->attr.dimension = 1;
+    }
   *as = NULL;
 
   /* Should this ever get more complicated, combine with similar section
@@ -1589,7 +1651,7 @@ variable_decl (int elem)
   var_locus = gfc_current_locus;
 
   /* Now we could see the optional array spec. or character length.  */
-  m = gfc_match_array_spec (&as);
+  m = gfc_match_array_spec (&as, true, true);
   if (gfc_option.flag_cray_pointer && m == MATCH_YES)
     cp_as = gfc_copy_array_spec (as);
   else if (m == MATCH_ERROR)
@@ -1597,6 +1659,8 @@ variable_decl (int elem)
 
   if (m == MATCH_NO)
     as = gfc_copy_array_spec (current_as);
+  else if (current_as)
+    merge_array_spec (current_as, as, true);
 
   char_len = NULL;
   cl = NULL;
@@ -2820,7 +2884,7 @@ match_attr_spec (void)
     DECL_IN, DECL_OUT, DECL_INOUT, DECL_INTRINSIC, DECL_OPTIONAL,
     DECL_PARAMETER, DECL_POINTER, DECL_PROTECTED, DECL_PRIVATE,
     DECL_PUBLIC, DECL_SAVE, DECL_TARGET, DECL_VALUE, DECL_VOLATILE,
-    DECL_IS_BIND_C, DECL_ASYNCHRONOUS, DECL_NONE,
+    DECL_IS_BIND_C, DECL_CODIMENSION, DECL_ASYNCHRONOUS, DECL_NONE,
     GFC_DECL_END /* Sentinel */
   }
   decl_types;
@@ -2892,6 +2956,11 @@ match_attr_spec (void)
 		d = DECL_IS_BIND_C;
 	      else if (m == MATCH_ERROR)
 		goto cleanup;
+	      break;
+
+	    case 'c':
+	      if (match_string_p ("codimension"))
+		d = DECL_CODIMENSION;
 	      break;
 
 	    case 'd':
@@ -3039,13 +3108,27 @@ match_attr_spec (void)
       seen[d]++;
       seen_at[d] = gfc_current_locus;
 
-      if (d == DECL_DIMENSION)
+      if (d == DECL_DIMENSION || d == DECL_CODIMENSION)
 	{
-	  m = gfc_match_array_spec (&current_as);
+	  gfc_array_spec *as = NULL;
+
+	  m = gfc_match_array_spec (&as, d == DECL_DIMENSION,
+				    d == DECL_CODIMENSION);
+
+	  if (current_as == NULL)
+	    current_as = as;
+	  else if (m == MATCH_YES)
+	    {
+	      merge_array_spec (as, current_as, false);
+	      gfc_free (as);
+	    }
 
 	  if (m == MATCH_NO)
 	    {
-	      gfc_error ("Missing dimension specification at %C");
+	      if (d == DECL_CODIMENSION)
+		gfc_error ("Missing codimension specification at %C");
+	      else
+		gfc_error ("Missing dimension specification at %C");
 	      m = MATCH_ERROR;
 	    }
 
@@ -3066,6 +3149,9 @@ match_attr_spec (void)
 	    break;
 	  case DECL_ASYNCHRONOUS:
 	    attr = "ASYNCHRONOUS";
+	    break;
+	  case DECL_CODIMENSION:
+	    attr = "CODIMENSION";
 	    break;
 	  case DECL_DIMENSION:
 	    attr = "DIMENSION";
@@ -3135,9 +3221,9 @@ match_attr_spec (void)
 	continue;
 
       if (gfc_current_state () == COMP_DERIVED
-	  && d != DECL_DIMENSION && d != DECL_POINTER
-	  && d != DECL_PRIVATE   && d != DECL_PUBLIC
-	  && d != DECL_NONE)
+	  && d != DECL_DIMENSION && d != DECL_CODIMENSION
+	  && d != DECL_POINTER   && d != DECL_PRIVATE
+	  && d != DECL_PUBLIC && d != DECL_NONE)
 	{
 	  if (d == DECL_ALLOCATABLE)
 	    {
@@ -3200,6 +3286,10 @@ match_attr_spec (void)
 	    t = FAILURE;
 	  else
 	    t = gfc_add_asynchronous (&current_attr, NULL, &seen_at[d]);
+	  break;
+
+	case DECL_CODIMENSION:
+	  t = gfc_add_codimension (&current_attr, NULL, &seen_at[d]);
 	  break;
 
 	case DECL_DIMENSION:
@@ -5476,6 +5566,12 @@ gfc_match_end (gfc_statement *st)
       eos_ok = 0;
       break;
 
+    case COMP_CRITICAL:
+      *st = ST_END_CRITICAL;
+      target = " critical";
+      eos_ok = 0;
+      break;
+
     case COMP_SELECT:
     case COMP_SELECT_TYPE:
       *st = ST_END_SELECT;
@@ -5534,7 +5630,8 @@ gfc_match_end (gfc_statement *st)
     {
 
       if (*st != ST_ENDDO && *st != ST_ENDIF && *st != ST_END_SELECT
-	  && *st != ST_END_FORALL && *st != ST_END_WHERE && *st != ST_END_BLOCK)
+	  && *st != ST_END_FORALL && *st != ST_END_WHERE && *st != ST_END_BLOCK
+	  && *st != ST_END_CRITICAL)
 	return MATCH_YES;
 
       if (!block_name)
@@ -5619,11 +5716,15 @@ attr_decl1 (void)
 
   /* Deal with possible array specification for certain attributes.  */
   if (current_attr.dimension
+      || current_attr.codimension
       || current_attr.allocatable
       || current_attr.pointer
       || current_attr.target)
     {
-      m = gfc_match_array_spec (&as);
+      m = gfc_match_array_spec (&as, !current_attr.codimension,
+				!current_attr.dimension
+				&& !current_attr.pointer
+				&& !current_attr.target);
       if (m == MATCH_ERROR)
 	goto cleanup;
 
@@ -5639,6 +5740,14 @@ attr_decl1 (void)
 	{
 	  gfc_error ("Dimensions specified for %s at %L after its "
 		     "initialisation", sym->name, &var_locus);
+	  m = MATCH_ERROR;
+	  goto cleanup;
+	}
+
+      if (current_attr.codimension && m == MATCH_NO)
+	{
+	  gfc_error ("Missing array specification at %L in CODIMENSION "
+		     "statement", &var_locus);
 	  m = MATCH_ERROR;
 	  goto cleanup;
 	}
@@ -5671,8 +5780,8 @@ attr_decl1 (void)
     }
   else
     {
-      if (current_attr.dimension == 0
-	    && gfc_copy_attr (&sym->attr, &current_attr, &var_locus) == FAILURE)
+      if (current_attr.dimension == 0 && current_attr.codimension == 0
+	  && gfc_copy_attr (&sym->attr, &current_attr, &var_locus) == FAILURE)
 	{
 	  m = MATCH_ERROR;
 	  goto cleanup;
@@ -5770,7 +5879,7 @@ static match
 cray_pointer_decl (void)
 {
   match m;
-  gfc_array_spec *as;
+  gfc_array_spec *as = NULL;
   gfc_symbol *cptr; /* Pointer symbol.  */
   gfc_symbol *cpte; /* Pointee symbol.  */
   locus var_locus;
@@ -5839,7 +5948,7 @@ cray_pointer_decl (void)
 	}
 
       /* Check for an optional array spec.  */
-      m = gfc_match_array_spec (&as);
+      m = gfc_match_array_spec (&as, true, false);
       if (m == MATCH_ERROR)
 	{
 	  gfc_free_array_spec (as);
@@ -5993,6 +6102,16 @@ gfc_match_allocatable (void)
 {
   gfc_clear_attr (&current_attr);
   current_attr.allocatable = 1;
+
+  return attr_decl ();
+}
+
+
+match
+gfc_match_codimension (void)
+{
+  gfc_clear_attr (&current_attr);
+  current_attr.codimension = 1;
 
   return attr_decl ();
 }
@@ -6486,11 +6605,19 @@ gfc_match_volatile (void)
   for(;;)
     {
       /* VOLATILE is special because it can be added to host-associated 
-	 symbols locally.  */
+	 symbols locally. Except for coarrays. */
       m = gfc_match_symbol (&sym, 1);
       switch (m)
 	{
 	case MATCH_YES:
+	  /* F2008, C560+C561. VOLATILE for host-/use-associated variable or
+	     for variable in a BLOCK which is defined outside of the BLOCK.  */
+	  if (sym->ns != gfc_current_ns && sym->attr.codimension)
+	    {
+	      gfc_error ("Specifying VOLATILE for coarray variable '%s' at "
+			 "%C, which is use-/host-associated", sym->name);
+	      return MATCH_ERROR;
+	    }
 	  if (gfc_add_volatile (&sym->attr, sym->name, &gfc_current_locus)
 	      == FAILURE)
 	    return MATCH_ERROR;

@@ -1,6 +1,6 @@
 /* Language-independent node constructors for parse phase of GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -3652,9 +3652,9 @@ build1_stat (enum tree_code code, tree type, tree node MEM_STAT_DECL)
 	  side_effects = 1;			\
         if (!TREE_READONLY (arg##N)		\
 	    && !CONSTANT_CLASS_P (arg##N))	\
-	  read_only = 0;			\
+	  (void) (read_only = 0);		\
         if (!TREE_CONSTANT (arg##N))		\
-	  constant = 0;				\
+	  (void) (constant = 0);		\
       }						\
   } while (0)
 
@@ -3824,10 +3824,14 @@ build6_stat (enum tree_code code, tree tt, tree arg0, tree arg1,
   PROCESS_ARG(2);
   PROCESS_ARG(3);
   PROCESS_ARG(4);
+  if (code == TARGET_MEM_REF)
+    side_effects = 0;
   PROCESS_ARG(5);
 
   TREE_SIDE_EFFECTS (t) = side_effects;
-  TREE_THIS_VOLATILE (t) = 0;
+  TREE_THIS_VOLATILE (t)
+    = (code == TARGET_MEM_REF
+       && arg5 && TREE_THIS_VOLATILE (arg5));
 
   return t;
 }
@@ -6872,6 +6876,10 @@ build_index_type (tree maxval)
     }
 }
 
+#define MAX_INT_CACHED_PREC \
+  (HOST_BITS_PER_WIDE_INT > 64 ? HOST_BITS_PER_WIDE_INT : 64)
+static GTY(()) tree nonstandard_integer_type_cache[2 * MAX_INT_CACHED_PREC + 2];
+
 /* Builds a signed or unsigned integer type of precision PRECISION.
    Used for C bitfields whose precision does not match that of
    built-in target types.  */
@@ -6879,8 +6887,19 @@ tree
 build_nonstandard_integer_type (unsigned HOST_WIDE_INT precision,
 				int unsignedp)
 {
-  tree itype = make_node (INTEGER_TYPE);
+  tree itype, ret;
 
+  if (unsignedp)
+    unsignedp = MAX_INT_CACHED_PREC + 1;
+    
+  if (precision <= MAX_INT_CACHED_PREC)
+    {
+      itype = nonstandard_integer_type_cache[precision + unsignedp];
+      if (itype)
+	return itype;
+    }
+
+  itype = make_node (INTEGER_TYPE);
   TYPE_PRECISION (itype) = precision;
 
   if (unsignedp)
@@ -6888,10 +6907,13 @@ build_nonstandard_integer_type (unsigned HOST_WIDE_INT precision,
   else
     fixup_signed_type (itype);
 
+  ret = itype;
   if (host_integerp (TYPE_MAX_VALUE (itype), 1))
-    return type_hash_canon (tree_low_cst (TYPE_MAX_VALUE (itype), 1), itype);
+    ret = type_hash_canon (tree_low_cst (TYPE_MAX_VALUE (itype), 1), itype);
+  if (precision <= MAX_INT_CACHED_PREC && lang_hooks.types.hash_types)
+    nonstandard_integer_type_cache[precision + unsignedp] = ret;
 
-  return itype;
+  return ret;
 }
 
 /* Create a range of some discrete type TYPE (an INTEGER_TYPE,
@@ -10640,6 +10662,9 @@ tree_nop_conversion (const_tree exp)
 
   outer_type = TREE_TYPE (exp);
   inner_type = TREE_TYPE (TREE_OPERAND (exp, 0));
+
+  if (!inner_type)
+    return false;
 
   /* Use precision rather then machine mode when we can, which gives
      the correct answer even for submode (bit-field) types.  */

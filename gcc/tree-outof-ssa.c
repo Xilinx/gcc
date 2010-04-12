@@ -1,5 +1,5 @@
 /* Convert a program in SSA form into Normal form.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andrew Macleod <amacleod@redhat.com>
 
@@ -452,8 +452,9 @@ do {									\
       y_ = VEC_index (int, (GRAPH)->edge_list, x_);			\
       if (y_ != (NODE))							\
         continue;							\
-      (VAR) = VEC_index (int, (GRAPH)->edge_list, x_ + 1);		\
-      (LOCUS) = VEC_index (source_location, (GRAPH)->edge_locus, x_ / 2); \
+      (void) ((VAR) = VEC_index (int, (GRAPH)->edge_list, x_ + 1));	\
+      (void) ((LOCUS) = VEC_index (source_location,			\
+				   (GRAPH)->edge_locus, x_ / 2));	\
       CODE;								\
     }									\
 } while (0)
@@ -472,8 +473,9 @@ do {									\
       y_ = VEC_index (int, (GRAPH)->edge_list, x_ + 1);			\
       if (y_ != (NODE))							\
         continue;							\
-      (VAR) = VEC_index (int, (GRAPH)->edge_list, x_);			\
-      (LOCUS) = VEC_index (source_location, (GRAPH)->edge_locus, x_ / 2); \
+      (void) ((VAR) = VEC_index (int, (GRAPH)->edge_list, x_));		\
+      (void) ((LOCUS) = VEC_index (source_location,			\
+				   (GRAPH)->edge_locus, x_ / 2));	\
       CODE;								\
     }									\
 } while (0)

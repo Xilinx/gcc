@@ -4395,8 +4395,8 @@ ix86_function_ok_for_sibcall (tree decl, tree exp)
   return true;
 }
 
-/* Handle "cdecl", "stdcall", "fastcall", "regparm" and "sseregparm"
-   calling convention attributes;
+/* Handle "cdecl", "stdcall", "fastcall", "regparm", "thiscall",
+   and "sseregparm" calling convention attributes;
    arguments as in struct attribute_spec.handler.  */
 
 static tree
@@ -4426,6 +4426,11 @@ ix86_handle_cconv_attribute (tree *node, tree name,
 	  error ("fastcall and regparm attributes are not compatible");
 	}
 
+      if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("regparam and thiscall attributes are not compatible");
+	}
+
       cst = TREE_VALUE (args);
       if (TREE_CODE (cst) != INTEGER_CST)
 	{
@@ -4447,7 +4452,8 @@ ix86_handle_cconv_attribute (tree *node, tree name,
   if (TARGET_64BIT)
     {
       /* Do not warn when emulating the MS ABI.  */
-      if (TREE_CODE (*node) != FUNCTION_TYPE
+      if ((TREE_CODE (*node) != FUNCTION_TYPE
+	   && TREE_CODE (*node) != METHOD_TYPE)
 	  || ix86_function_type_abi (*node) != MS_ABI)
 	warning (OPT_Wattributes, "%qE attribute ignored",
 	         name);
@@ -4470,6 +4476,10 @@ ix86_handle_cconv_attribute (tree *node, tree name,
         {
 	  error ("fastcall and regparm attributes are not compatible");
 	}
+      if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("fastcall and thiscall attributes are not compatible");
+	}
     }
 
   /* Can combine stdcall with fastcall (redundant), regparm and
@@ -4484,6 +4494,10 @@ ix86_handle_cconv_attribute (tree *node, tree name,
         {
 	  error ("stdcall and fastcall attributes are not compatible");
 	}
+      if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("stdcall and thiscall attributes are not compatible");
+	}
     }
 
   /* Can combine cdecl with regparm and sseregparm.  */
@@ -4496,6 +4510,28 @@ ix86_handle_cconv_attribute (tree *node, tree name,
       if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (*node)))
         {
 	  error ("fastcall and cdecl attributes are not compatible");
+	}
+      if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("cdecl and thiscall attributes are not compatible");
+	}
+    }
+  else if (is_attribute_p ("thiscall", name))
+    {
+      if (TREE_CODE (*node) != METHOD_TYPE && pedantic)
+	warning (OPT_Wattributes, "%qE attribute is used for none class-method",
+	         name);
+      if (lookup_attribute ("stdcall", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("stdcall and thiscall attributes are not compatible");
+	}
+      if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("fastcall and thiscall attributes are not compatible");
+	}
+      if (lookup_attribute ("cdecl", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("cdecl and thiscall attributes are not compatible");
 	}
     }
 
@@ -4530,6 +4566,11 @@ ix86_comp_type_attributes (const_tree type1, const_tree type2)
       != !lookup_attribute ("sseregparm", TYPE_ATTRIBUTES (type2)))
     return 0;
 
+  /* Check for mismatched thiscall types.  */
+  if (!lookup_attribute ("thiscall", TYPE_ATTRIBUTES (type1))
+      != !lookup_attribute ("thiscall", TYPE_ATTRIBUTES (type2)))
+    return 0;
+
   /* Check for mismatched return types (cdecl vs stdcall).  */
   if (!lookup_attribute (rtdstr, TYPE_ATTRIBUTES (type1))
       != !lookup_attribute (rtdstr, TYPE_ATTRIBUTES (type2)))
@@ -4562,6 +4603,9 @@ ix86_function_regparm (const_tree type, const_tree decl)
 
   if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (type)))
     return 2;
+
+  if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (type)))
+    return 1;
 
   /* Use register calling convention for local functions when possible.  */
   if (decl
@@ -4700,7 +4744,8 @@ ix86_return_pops_args (tree fundecl, tree funtype, int size)
       /* Stdcall and fastcall functions will pop the stack if not
          variable args.  */
       if (lookup_attribute ("stdcall", TYPE_ATTRIBUTES (funtype))
-          || lookup_attribute ("fastcall", TYPE_ATTRIBUTES (funtype)))
+	  || lookup_attribute ("fastcall", TYPE_ATTRIBUTES (funtype))
+          || lookup_attribute ("thiscall", TYPE_ATTRIBUTES (funtype)))
 	rtd = 1;
 
       if (rtd && ! stdarg_p (funtype))
@@ -4963,7 +5008,12 @@ init_cumulative_args (CUMULATIVE_ARGS *cum,  /* Argument info to initialize */
 	 else look for regparm information.  */
       if (fntype)
 	{
-	  if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (fntype)))
+	  if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (fntype)))
+	    {
+	      cum->nregs = 1;
+	      cum->fastcall = 1; /* Same first register as in fastcall.  */
+	    }
+	  else if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (fntype)))
 	    {
 	      cum->nregs = 2;
 	      cum->fastcall = 1;
@@ -8302,6 +8352,8 @@ find_drap_reg (void)
          passing.  */
       if (ix86_function_regparm (TREE_TYPE (decl), decl) <= 2
 	  && !lookup_attribute ("fastcall",
+    				TYPE_ATTRIBUTES (TREE_TYPE (decl)))
+	  && !lookup_attribute ("thiscall",
     				TYPE_ATTRIBUTES (TREE_TYPE (decl))))
 	return CX_REG;
       else
@@ -11390,7 +11442,6 @@ get_some_local_dynamic_name (void)
    L,W,B,Q,S,T -- print the opcode suffix for specified size of operand.
    C -- print opcode suffix for set/cmov insn.
    c -- like C, but print reversed condition
-   E,e -- likewise, but for compare-and-branch fused insn.
    F,f -- likewise, but for floating-point.
    O -- if HAVE_AS_IX86_CMOV_SUN_SYNTAX, expand to "w.", "l." or "q.",
         otherwise nothing
@@ -11793,14 +11844,6 @@ print_operand (FILE *file, rtx x, int code)
 	    putc ('.', file);
 #endif
 	  put_condition_code (GET_CODE (x), GET_MODE (XEXP (x, 0)), 1, 1, file);
-	  return;
-
-	case 'E':
-	  put_condition_code (GET_CODE (x), CCmode, 0, 0, file);
-	  return;
-
-	case 'e':
-	  put_condition_code (GET_CODE (x), CCmode, 1, 0, file);
 	  return;
 
 	case 'H':
@@ -17087,20 +17130,22 @@ ix86_split_ashl (rtx *operands, rtx scratch, enum machine_mode mode)
 		  : gen_x86_64_shld) (high[0], low[0], operands[2]));
     }
 
-  emit_insn ((mode == DImode ? gen_ashlsi3 : gen_ashldi3) (low[0], low[0], operands[2]));
+  emit_insn ((mode == DImode
+	      ? gen_ashlsi3
+	      : gen_ashldi3) (low[0], low[0], operands[2]));
 
   if (TARGET_CMOVE && scratch)
     {
       ix86_expand_clear (scratch);
       emit_insn ((mode == DImode
-		  ? gen_x86_shift_adj_1
-		  : gen_x86_64_shift_adj_1) (high[0], low[0], operands[2],
-					     scratch));
+		  ? gen_x86_shiftsi_adj_1
+		  : gen_x86_shiftdi_adj_1) (high[0], low[0], operands[2],
+					    scratch));
     }
   else
     emit_insn ((mode == DImode
-		? gen_x86_shift_adj_2
-		: gen_x86_64_shift_adj_2) (high[0], low[0], operands[2]));
+		? gen_x86_shiftsi_adj_2
+		: gen_x86_shiftdi_adj_2) (high[0], low[0], operands[2]));
 }
 
 void
@@ -17173,14 +17218,14 @@ ix86_split_ashr (rtx *operands, rtx scratch, enum machine_mode mode)
 		      : gen_ashrdi3) (scratch, scratch,
 				      GEN_INT (single_width - 1)));
 	  emit_insn ((mode == DImode
-		      ? gen_x86_shift_adj_1
-		      : gen_x86_64_shift_adj_1) (low[0], high[0], operands[2],
-						 scratch));
+		      ? gen_x86_shiftsi_adj_1
+		      : gen_x86_shiftdi_adj_1) (low[0], high[0], operands[2],
+						scratch));
 	}
       else
 	emit_insn ((mode == DImode
-		    ? gen_x86_shift_adj_3
-		    : gen_x86_64_shift_adj_3) (low[0], high[0], operands[2]));
+		    ? gen_x86_shiftsi_adj_3
+		    : gen_x86_shiftdi_adj_3) (low[0], high[0], operands[2]));
     }
 }
 
@@ -17238,14 +17283,14 @@ ix86_split_lshr (rtx *operands, rtx scratch, enum machine_mode mode)
 	{
 	  ix86_expand_clear (scratch);
 	  emit_insn ((mode == DImode
-		      ? gen_x86_shift_adj_1
-		      : gen_x86_64_shift_adj_1) (low[0], high[0], operands[2],
-						 scratch));
+		      ? gen_x86_shiftsi_adj_1
+		      : gen_x86_shiftdi_adj_1) (low[0], high[0], operands[2],
+						scratch));
 	}
       else
 	emit_insn ((mode == DImode
-		    ? gen_x86_shift_adj_2
-		    : gen_x86_64_shift_adj_2) (low[0], high[0], operands[2]));
+		    ? gen_x86_shiftsi_adj_2
+		    : gen_x86_shiftdi_adj_2) (low[0], high[0], operands[2]));
     }
 }
 
@@ -20165,6 +20210,12 @@ ix86_static_chain (const_tree fndecl, bool incoming_p)
 	     us with EAX for the static chain.  */
 	  regno = AX_REG;
 	}
+      else if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (fntype)))
+	{
+	  /* Thiscall functions use ecx for arguments, which leaves
+	     us with EAX for the static chain.  */
+	  regno = AX_REG;
+	}
       else if (ix86_function_regparm (fntype, fndecl) == 3)
 	{
 	  /* For regparm 3, we have no free call-clobbered registers in
@@ -22481,10 +22532,10 @@ static const struct builtin_description bdesc_multi_arg[] =
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_pcom_tfv4si3,      "__builtin_ia32_vpcomtrueud", IX86_BUILTIN_VPCOMTRUEUD, (enum rtx_code) PCOM_TRUE,    (int)MULTI_ARG_2_SI_TF },
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_pcom_tfv2di3,      "__builtin_ia32_vpcomtrueuq", IX86_BUILTIN_VPCOMTRUEUQ, (enum rtx_code) PCOM_TRUE,    (int)MULTI_ARG_2_DI_TF },
 
-  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v2df3,     "__builtin_ia32_vpermil2pd",  IX86_BUILTIN_VPERMIL2PD, UNKNOWN, (int)MULTI_ARG_4_DF2_DI_I },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v4sf3,     "__builtin_ia32_vpermil2ps",  IX86_BUILTIN_VPERMIL2PS, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v4df3,     "__builtin_ia32_vpermil2pd256", IX86_BUILTIN_VPERMIL2PD256, UNKNOWN, (int)MULTI_ARG_4_DF2_DI_I1 },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_xop_vpermil2v8sf3,     "__builtin_ia32_vpermil2ps256", IX86_BUILTIN_VPERMIL2PS256, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I1 },
+  { OPTION_MASK_ISA_XOP, CODE_FOR_xop_vpermil2v2df3,     "__builtin_ia32_vpermil2pd",  IX86_BUILTIN_VPERMIL2PD, UNKNOWN, (int)MULTI_ARG_4_DF2_DI_I },
+  { OPTION_MASK_ISA_XOP, CODE_FOR_xop_vpermil2v4sf3,     "__builtin_ia32_vpermil2ps",  IX86_BUILTIN_VPERMIL2PS, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I },
+  { OPTION_MASK_ISA_XOP, CODE_FOR_xop_vpermil2v4df3,     "__builtin_ia32_vpermil2pd256", IX86_BUILTIN_VPERMIL2PD256, UNKNOWN, (int)MULTI_ARG_4_DF2_DI_I1 },
+  { OPTION_MASK_ISA_XOP, CODE_FOR_xop_vpermil2v8sf3,     "__builtin_ia32_vpermil2ps256", IX86_BUILTIN_VPERMIL2PS256, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I1 },
 
 };
 
@@ -23639,10 +23690,10 @@ ix86_expand_args_builtin (const struct builtin_description *d,
       nargs = 3;
       nargs_constant = 2;
       break;
-    case MULTI_ARG_4_DF2_DI_I:
-    case MULTI_ARG_4_DF2_DI_I1:
-    case MULTI_ARG_4_SF2_SI_I:
-    case MULTI_ARG_4_SF2_SI_I1:
+    case V2DF_FTYPE_V2DF_V2DF_V2DI_INT:
+    case V4DF_FTYPE_V4DF_V4DF_V4DI_INT:
+    case V4SF_FTYPE_V4SF_V4SF_V4SI_INT:
+    case V8SF_FTYPE_V8SF_V8SF_V8SI_INT:
       nargs = 4;
       nargs_constant = 1;
       break;
@@ -24642,43 +24693,92 @@ ix86_veclibabi_acml (enum built_in_function fn, tree type_out, tree type_in)
 
 
 /* Returns a decl of a function that implements conversion of an integer vector
-   into a floating-point vector, or vice-versa. TYPE is the type of the integer
-   side of the conversion.
+   into a floating-point vector, or vice-versa.  DEST_TYPE and SRC_TYPE
+   are the types involved when converting according to CODE.
    Return NULL_TREE if it is not available.  */
 
 static tree
-ix86_vectorize_builtin_conversion (unsigned int code, tree type)
+ix86_vectorize_builtin_conversion (unsigned int code,
+				   tree dest_type, tree src_type)
 {
-  if (! (TARGET_SSE2 && TREE_CODE (type) == VECTOR_TYPE))
+  if (! TARGET_SSE2)
     return NULL_TREE;
 
   switch (code)
     {
     case FLOAT_EXPR:
-      switch (TYPE_MODE (type))
+      switch (TYPE_MODE (src_type))
 	{
 	case V4SImode:
-	  return TYPE_UNSIGNED (type)
-	    ? ix86_builtins[IX86_BUILTIN_CVTUDQ2PS]
-	    : ix86_builtins[IX86_BUILTIN_CVTDQ2PS];
+	  switch (TYPE_MODE (dest_type))
+	    {
+	    case V4SFmode:
+	      return (TYPE_UNSIGNED (src_type)
+		      ? ix86_builtins[IX86_BUILTIN_CVTUDQ2PS]
+		      : ix86_builtins[IX86_BUILTIN_CVTDQ2PS]);
+	    case V4DFmode:
+	      return (TYPE_UNSIGNED (src_type)
+		      ? NULL_TREE
+		      : ix86_builtins[IX86_BUILTIN_CVTDQ2PD256]);
+	    default:
+	      return NULL_TREE;
+	    }
+	  break;
+	case V8SImode:
+	  switch (TYPE_MODE (dest_type))
+	    {
+	    case V8SFmode:
+	      return (TYPE_UNSIGNED (src_type)
+		      ? NULL_TREE
+		      : ix86_builtins[IX86_BUILTIN_CVTDQ2PS]);
+	    default:
+	      return NULL_TREE;
+	    }
+	  break;
 	default:
 	  return NULL_TREE;
 	}
 
     case FIX_TRUNC_EXPR:
-      switch (TYPE_MODE (type))
+      switch (TYPE_MODE (dest_type))
 	{
 	case V4SImode:
-	  return TYPE_UNSIGNED (type)
-	    ? NULL_TREE
-	    : ix86_builtins[IX86_BUILTIN_CVTTPS2DQ];
+	  switch (TYPE_MODE (src_type))
+	    {
+	    case V4SFmode:
+	      return (TYPE_UNSIGNED (dest_type)
+		      ? NULL_TREE
+		      : ix86_builtins[IX86_BUILTIN_CVTTPS2DQ]);
+	    case V4DFmode:
+	      return (TYPE_UNSIGNED (dest_type)
+		      ? NULL_TREE
+		      : ix86_builtins[IX86_BUILTIN_CVTTPD2DQ256]);
+	    default:
+	      return NULL_TREE;
+	    }
+	  break;
+
+	case V8SImode:
+	  switch (TYPE_MODE (src_type))
+	    {
+	    case V8SFmode:
+	      return (TYPE_UNSIGNED (dest_type)
+		      ? NULL_TREE
+		      : ix86_builtins[IX86_BUILTIN_CVTTPS2DQ256]);
+	    default:
+	      return NULL_TREE;
+	    }
+	  break;
+
 	default:
 	  return NULL_TREE;
 	}
+
     default:
       return NULL_TREE;
-
     }
+
+  return NULL_TREE;
 }
 
 /* Returns a code for a target-specific builtin that implements
@@ -26132,6 +26232,11 @@ x86_this_parameter (tree function)
 
       if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (type)))
 	regno = aggr ? DX_REG : CX_REG;
+      /* ???: To be verified. It is not absolutely clear how aggregates
+         have to be treated for thiscall.  We assume that they are
+	 identical to fastcall.  */
+      else if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (type)))
+	regno = aggr ? DX_REG : CX_REG;
       else
         {
 	  regno = AX_REG;
@@ -26211,10 +26316,7 @@ x86_output_mi_thunk (FILE *file,
   /* Adjust the this parameter by a fixed constant.  */
   if (delta)
     {
-      /* Make things pretty and `subl $4,%eax' rather than `addl $-4,%eax'.
-         Exceptions: -128 encodes smaller than 128, so swap sign and op.  */
-      bool sub = delta < 0 || delta == 128;
-      xops[0] = GEN_INT (sub ? -delta : delta);
+      xops[0] = GEN_INT (delta);
       xops[1] = this_reg ? this_reg : this_param;
       if (TARGET_64BIT)
 	{
@@ -26226,12 +26328,12 @@ x86_output_mi_thunk (FILE *file,
 	      xops[0] = tmp;
 	      xops[1] = this_param;
 	    }
-	  if (sub)
+	  if (x86_maybe_negate_const_int (&xops[0], DImode))
 	    output_asm_insn ("sub{q}\t{%0, %1|%1, %0}", xops);
 	  else
 	    output_asm_insn ("add{q}\t{%0, %1|%1, %0}", xops);
 	}
-      else if (sub)
+      else if (x86_maybe_negate_const_int (&xops[0], SImode))
 	output_asm_insn ("sub{l}\t{%0, %1|%1, %0}", xops);
       else
 	output_asm_insn ("add{l}\t{%0, %1|%1, %0}", xops);
@@ -26246,7 +26348,9 @@ x86_output_mi_thunk (FILE *file,
 	{
 	  int tmp_regno = CX_REG;
 	  if (lookup_attribute ("fastcall",
-				TYPE_ATTRIBUTES (TREE_TYPE (function))))
+				TYPE_ATTRIBUTES (TREE_TYPE (function)))
+	      || lookup_attribute ("thiscall",
+				   TYPE_ATTRIBUTES (TREE_TYPE (function))))
 	    tmp_regno = AX_REG;
 	  tmp = gen_rtx_REG (SImode, tmp_regno);
 	}
@@ -26656,6 +26760,52 @@ x86_extended_reg_mentioned_p (rtx insn)
 {
   return for_each_rtx (INSN_P (insn) ? &PATTERN (insn) : &insn,
 		       extended_reg_mentioned_1, NULL);
+}
+
+/* If profitable, negate (without causing overflow) integer constant
+   of mode MODE at location LOC.  Return true in this case.  */
+bool
+x86_maybe_negate_const_int (rtx *loc, enum machine_mode mode)
+{
+  HOST_WIDE_INT val;
+
+  if (!CONST_INT_P (*loc))
+    return false;
+
+  switch (mode)
+    {
+    case DImode:
+      /* DImode x86_64 constants must fit in 32 bits.  */
+      gcc_assert (x86_64_immediate_operand (*loc, mode));
+
+      mode = SImode;
+      break;
+
+    case SImode:
+    case HImode:
+    case QImode:
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  /* Avoid overflows.  */
+  if (mode_signbit_p (mode, *loc))
+    return false;
+
+  val = INTVAL (*loc);
+
+  /* Make things pretty and `subl $4,%eax' rather than `addl $-4,%eax'.
+     Exceptions: -128 encodes smaller than 128, so swap sign and op.  */
+  if ((val < 0 && val != -128)
+      || val == 128)
+    {
+      *loc = GEN_INT (-val);
+      return true;
+    }
+
+  return false;
 }
 
 /* Generate an unsigned DImode/SImode to FP conversion.  This is the same code
@@ -28940,6 +29090,9 @@ static const struct attribute_spec ix86_attribute_table[] =
   /* Fastcall attribute says callee is responsible for popping arguments
      if they are not variable.  */
   { "fastcall",  0, 0, false, true,  true,  ix86_handle_cconv_attribute },
+  /* Thiscall attribute says callee is responsible for popping arguments
+     if they are not variable.  */
+  { "thiscall",  0, 0, false, true,  true,  ix86_handle_cconv_attribute },
   /* Cdecl attribute says the callee is a normal C declaration */
   { "cdecl",     0, 0, false, true,  true,  ix86_handle_cconv_attribute },
   /* Regparm attribute specifies how many integer arguments are to be

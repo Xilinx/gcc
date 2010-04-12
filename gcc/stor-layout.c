@@ -1,6 +1,6 @@
 /* C-compiler utilities for types and variables storage layout
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1996, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1506,8 +1506,6 @@ finalize_record_size (record_layout_info rli)
       unpacked_size = round_up_loc (input_location, TYPE_SIZE (rli->t), rli->unpacked_align);
       if (simple_cst_equal (unpacked_size, TYPE_SIZE (rli->t)))
 	{
-	  TYPE_PACKED (rli->t) = 0;
-
 	  if (TYPE_NAME (rli->t))
 	    {
 	      tree name;

@@ -1,6 +1,6 @@
 /* Alias analysis for GNU C
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009 Free Software Foundation, Inc.
+   2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by John Carr (jfc@mit.edu).
 
 This file is part of GCC.
@@ -265,11 +265,6 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
   if (!expr)
     return false;
 
-  /* If MEM_OFFSET or MEM_SIZE are NULL punt.  */
-  if (!MEM_OFFSET (mem)
-      || !MEM_SIZE (mem))
-    return false;
-
   ao_ref_init (ref, expr);
 
   /* Get the base of the reference and see if we have to reject or
@@ -278,15 +273,15 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
   if (base == NULL_TREE)
     return false;
 
+  /* The tree oracle doesn't like to have these.  */
+  if (TREE_CODE (base) == FUNCTION_DECL
+      || TREE_CODE (base) == LABEL_DECL)
+    return false;
+
   /* If this is a pointer dereference of a non-SSA_NAME punt.
      ???  We could replace it with a pointer to anything.  */
   if (INDIRECT_REF_P (base)
       && TREE_CODE (TREE_OPERAND (base, 0)) != SSA_NAME)
-    return false;
-
-  /* The tree oracle doesn't like to have these.  */
-  if (TREE_CODE (base) == FUNCTION_DECL
-      || TREE_CODE (base) == LABEL_DECL)
     return false;
 
   /* If this is a reference based on a partitioned decl replace the
@@ -306,6 +301,18 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
     }
 
   ref->ref_alias_set = MEM_ALIAS_SET (mem);
+
+  /* If MEM_OFFSET or MEM_SIZE are NULL we have to punt.
+     Keep points-to related information though.  */
+  if (!MEM_OFFSET (mem)
+      || !MEM_SIZE (mem))
+    {
+      ref->ref = NULL_TREE;
+      ref->offset = 0;
+      ref->size = -1;
+      ref->max_size = -1;
+      return true;
+    }
 
   /* If the base decl is a parameter we can have negative MEM_OFFSET in
      case of promoted subregs on bigendian targets.  Trust the MEM_EXPR
@@ -1684,14 +1691,7 @@ base_alias_check (rtx x, rtx y, enum machine_mode x_mode,
       || (GET_CODE (y_base) == ADDRESS && GET_MODE (y_base) == Pmode))
     return 0;
 
-  if (! flag_argument_noalias)
-    return 1;
-
-  if (flag_argument_noalias > 1)
-    return 0;
-
-  /* Weak noalias assertion (arguments are distinct, but may match globals).  */
-  return ! (GET_MODE (x_base) == VOIDmode && GET_MODE (y_base) == VOIDmode);
+  return 1;
 }
 
 /* Convert the address X into something we can use.  This is done by returning
@@ -2147,6 +2147,13 @@ nonoverlapping_memrefs_p (const_rtx x, const_rtx y)
   if (exprx == 0 || expry == 0)
     return 0;
 
+  /* For spill-slot accesses make sure we have valid offsets.  */
+  if ((exprx == get_spill_slot_decl (false)
+       && ! MEM_OFFSET (x))
+      || (expry == get_spill_slot_decl (false)
+	  && ! MEM_OFFSET (y)))
+    return 0;
+
   /* If both are field references, we may be able to determine something.  */
   if (TREE_CODE (exprx) == COMPONENT_REF
       && TREE_CODE (expry) == COMPONENT_REF
@@ -2175,13 +2182,6 @@ nonoverlapping_memrefs_p (const_rtx x, const_rtx y)
 	exprx = t;
       }
     }
-  else if (INDIRECT_REF_P (exprx))
-    {
-      exprx = TREE_OPERAND (exprx, 0);
-      if (flag_argument_noalias < 2
-	  || TREE_CODE (exprx) != PARM_DECL)
-	return 0;
-    }
 
   moffsety = MEM_OFFSET (y);
   if (TREE_CODE (expry) == COMPONENT_REF)
@@ -2202,13 +2202,6 @@ nonoverlapping_memrefs_p (const_rtx x, const_rtx y)
 	moffsety = adjust_offset_for_component_ref (expry, moffsety);
 	expry = t;
       }
-    }
-  else if (INDIRECT_REF_P (expry))
-    {
-      expry = TREE_OPERAND (expry, 0);
-      if (flag_argument_noalias < 2
-	  || TREE_CODE (expry) != PARM_DECL)
-	return 0;
     }
 
   if (! DECL_P (exprx) || ! DECL_P (expry))

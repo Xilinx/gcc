@@ -1,6 +1,6 @@
 /* Calculate branch probabilities, and basic block execution counts.
    Copyright (C) 1990, 1991, 1992, 1993, 1994, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010
    Free Software Foundation, Inc.
    Contributed by James E. Wilson, UC Berkeley/Cygnus Support;
    based on some ideas from Dain Samples of UC Berkeley.
@@ -82,7 +82,6 @@ tree_init_ic_make_global_vars (void)
   TREE_PUBLIC (ic_void_ptr_var) = 0;
   DECL_ARTIFICIAL (ic_void_ptr_var) = 1;
   DECL_INITIAL (ic_void_ptr_var) = NULL;
-  DECL_TLS_MODEL (ic_void_ptr_var) = decl_default_tls_model (ic_void_ptr_var);
   varpool_finalize_decl (ic_void_ptr_var);
 
   gcov_type_ptr = build_pointer_type (get_gcov_type ());
@@ -94,7 +93,6 @@ tree_init_ic_make_global_vars (void)
   TREE_PUBLIC (ic_gcov_type_ptr_var) = 0;
   DECL_ARTIFICIAL (ic_gcov_type_ptr_var) = 1;
   DECL_INITIAL (ic_gcov_type_ptr_var) = NULL;
-  DECL_TLS_MODEL (ic_gcov_type_ptr_var) = decl_default_tls_model (ic_gcov_type_ptr_var);
   varpool_finalize_decl (ic_gcov_type_ptr_var);
 }
 

@@ -1,5 +1,5 @@
 /* Data and Control Flow Analysis for Trees.
-   Copyright (C) 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -55,9 +55,6 @@ struct GTY(()) gimple_df {
 
   /* The PTA solution for the ESCAPED artificial variable.  */
   struct pt_solution escaped;
-
-  /* The PTA solution for the CALLUSED artificial variable.  */
-  struct pt_solution callused;
 
   /* A map of decls to artificial ssa-names that point to the partition
      of the decl.  */
@@ -252,17 +249,17 @@ typedef struct immediate_use_iterator_d
 /* Use this iterator when simply looking at stmts.  Adding, deleting or
    modifying stmts will cause this iterator to malfunction.  */
 
-#define FOR_EACH_IMM_USE_FAST(DEST, ITER, SSAVAR)			\
+#define FOR_EACH_IMM_USE_FAST(DEST, ITER, SSAVAR)		\
   for ((DEST) = first_readonly_imm_use (&(ITER), (SSAVAR));	\
        !end_readonly_imm_use_p (&(ITER));			\
-       (DEST) = next_readonly_imm_use (&(ITER)))
+       (void) ((DEST) = next_readonly_imm_use (&(ITER))))
 
 /* Use this iterator to visit each stmt which has a use of SSAVAR.  */
 
 #define FOR_EACH_IMM_USE_STMT(STMT, ITER, SSAVAR)		\
   for ((STMT) = first_imm_use_stmt (&(ITER), (SSAVAR));		\
        !end_imm_use_stmt_p (&(ITER));				\
-       (STMT) = next_imm_use_stmt (&(ITER)))
+       (void) ((STMT) = next_imm_use_stmt (&(ITER))))
 
 /* Use this to terminate the FOR_EACH_IMM_USE_STMT loop early.  Failure to
    do so will result in leaving a iterator marker node in the immediate
@@ -290,7 +287,7 @@ typedef struct immediate_use_iterator_d
 #define FOR_EACH_IMM_USE_ON_STMT(DEST, ITER)			\
   for ((DEST) = first_imm_use_on_stmt (&(ITER));		\
        !end_imm_use_on_stmt_p (&(ITER));			\
-       (DEST) = next_imm_use_on_stmt (&(ITER)))
+       (void) ((DEST) = next_imm_use_on_stmt (&(ITER))))
 
 
 
@@ -715,7 +712,7 @@ enum ev_direction scev_direction (const_tree);
 void free_numbers_of_iterations_estimates (void);
 void free_numbers_of_iterations_estimates_loop (struct loop *);
 void rewrite_into_loop_closed_ssa (bitmap, unsigned);
-void verify_loop_closed_ssa (void);
+void verify_loop_closed_ssa (bool);
 bool for_each_index (tree *, bool (*) (tree, tree *, void *), void *);
 void create_iv (tree, tree, tree, struct loop *, gimple_stmt_iterator *, bool,
 		tree *, tree *);

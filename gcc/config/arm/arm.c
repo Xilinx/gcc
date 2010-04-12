@@ -224,6 +224,7 @@ static bool arm_can_eliminate (const int, const int);
 static void arm_asm_trampoline_template (FILE *);
 static void arm_trampoline_init (rtx, tree, rtx);
 static rtx arm_trampoline_adjust_address (rtx);
+static rtx arm_pic_static_addr (rtx orig, rtx reg);
 
 
 /* Table of machine attributes.  */
@@ -4905,28 +4906,15 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
     {
       rtx pic_ref, address;
       rtx insn;
-      int subregs = 0;
-
-      /* If this function doesn't have a pic register, create one now.  */
-      require_pic_register ();
 
       if (reg == 0)
 	{
 	  gcc_assert (can_create_pseudo_p ());
 	  reg = gen_reg_rtx (Pmode);
-
-	  subregs = 1;
+	  address = gen_reg_rtx (Pmode);
 	}
-
-      if (subregs)
-	address = gen_reg_rtx (Pmode);
       else
 	address = reg;
-
-      if (TARGET_32BIT)
-	emit_insn (gen_pic_load_addr_32bit (address, orig));
-      else /* TARGET_THUMB1 */
-	emit_insn (gen_pic_load_addr_thumb1 (address, orig));
 
       /* VxWorks does not impose a fixed gap between segments; the run-time
 	 gap can be different from the object-file gap.  We therefore can't
@@ -4939,15 +4927,22 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 	       SYMBOL_REF_LOCAL_P (orig)))
 	  && NEED_GOT_RELOC
 	  && !TARGET_VXWORKS_RTP)
-	pic_ref = gen_rtx_PLUS (Pmode, cfun->machine->pic_reg, address);
+	insn = arm_pic_static_addr (orig, reg);
       else
 	{
+	  /* If this function doesn't have a pic register, create one now.  */
+	  require_pic_register ();
+
+	  if (TARGET_32BIT)
+	    emit_insn (gen_pic_load_addr_32bit (address, orig));
+	  else /* TARGET_THUMB1 */
+	    emit_insn (gen_pic_load_addr_thumb1 (address, orig));
+
 	  pic_ref = gen_const_mem (Pmode,
 				   gen_rtx_PLUS (Pmode, cfun->machine->pic_reg,
 					         address));
+	  insn = emit_move_insn (reg, pic_ref);
 	}
-
-      insn = emit_move_insn (reg, pic_ref);
 
       /* Put a REG_EQUAL note on this insn, so that it can be optimized
 	 by loop.  */
@@ -5155,6 +5150,43 @@ arm_load_pic_register (unsigned long saved_regs ATTRIBUTE_UNUSED)
   emit_use (pic_reg);
 }
 
+/* Generate code to load the address of a static var when flag_pic is set.  */
+static rtx
+arm_pic_static_addr (rtx orig, rtx reg)
+{
+  rtx l1, labelno, offset_rtx, insn;
+
+  gcc_assert (flag_pic);
+
+  /* We use an UNSPEC rather than a LABEL_REF because this label
+     never appears in the code stream.  */
+  labelno = GEN_INT (pic_labelno++);
+  l1 = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, labelno), UNSPEC_PIC_LABEL);
+  l1 = gen_rtx_CONST (VOIDmode, l1);
+
+  /* On the ARM the PC register contains 'dot + 8' at the time of the
+     addition, on the Thumb it is 'dot + 4'.  */
+  offset_rtx = plus_constant (l1, TARGET_ARM ? 8 : 4);
+  offset_rtx = gen_rtx_UNSPEC (Pmode, gen_rtvec (2, orig, offset_rtx),
+                               UNSPEC_SYMBOL_OFFSET);
+  offset_rtx = gen_rtx_CONST (Pmode, offset_rtx);
+
+  if (TARGET_32BIT)
+    {
+      emit_insn (gen_pic_load_addr_32bit (reg, offset_rtx));
+      if (TARGET_ARM)
+        insn = emit_insn (gen_pic_add_dot_plus_eight (reg, reg, labelno));
+      else
+        insn = emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
+    }
+  else /* TARGET_THUMB1 */
+    {
+      emit_insn (gen_pic_load_addr_thumb1 (reg, offset_rtx));
+      insn = emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
+    }
+
+  return insn;
+}
 
 /* Return nonzero if X is valid as an ARM state addressing register.  */
 static int
@@ -5843,7 +5875,7 @@ legitimize_tls_address (rtx x, rtx reg)
       if (TARGET_ARM)
 	emit_insn (gen_tls_load_dot_plus_eight (reg, reg, labelno));
       else if (TARGET_THUMB2)
-	emit_insn (gen_tls_load_dot_plus_four (reg, reg, labelno));
+	emit_insn (gen_tls_load_dot_plus_four (reg, NULL, reg, labelno));
       else
 	{
 	  emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
@@ -6884,6 +6916,130 @@ arm_rtx_costs_1 (rtx x, enum rtx_code outer, int* total, bool speed)
     }
 }
 
+/* Estimates the size cost of thumb1 instructions.
+   For now most of the code is copied from thumb1_rtx_costs. We need more
+   fine grain tuning when we have more related test cases.  */
+static inline int
+thumb1_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
+{
+  enum machine_mode mode = GET_MODE (x);
+
+  switch (code)
+    {
+    case ASHIFT:
+    case ASHIFTRT:
+    case LSHIFTRT:
+    case ROTATERT:
+    case PLUS:
+    case MINUS:
+    case COMPARE:
+    case NEG:
+    case NOT:
+      return COSTS_N_INSNS (1);
+
+    case MULT:
+      if (GET_CODE (XEXP (x, 1)) == CONST_INT)
+        {
+          /* Thumb1 mul instruction can't operate on const. We must Load it
+             into a register first.  */
+          int const_size = thumb1_size_rtx_costs (XEXP (x, 1), CONST_INT, SET);
+          return COSTS_N_INSNS (1) + const_size;
+        }
+      return COSTS_N_INSNS (1);
+
+    case SET:
+      return (COSTS_N_INSNS (1)
+              + 4 * ((GET_CODE (SET_SRC (x)) == MEM)
+                     + GET_CODE (SET_DEST (x)) == MEM));
+
+    case CONST_INT:
+      if (outer == SET)
+        {
+          if ((unsigned HOST_WIDE_INT) INTVAL (x) < 256)
+            return 0;
+          if (thumb_shiftable_const (INTVAL (x)))
+            return COSTS_N_INSNS (2);
+          return COSTS_N_INSNS (3);
+        }
+      else if ((outer == PLUS || outer == COMPARE)
+               && INTVAL (x) < 256 && INTVAL (x) > -256)
+        return 0;
+      else if ((outer == IOR || outer == XOR || outer == AND)
+               && INTVAL (x) < 256 && INTVAL (x) >= -256)
+        return COSTS_N_INSNS (1);
+      else if (outer == AND)
+        {
+          int i;
+          /* This duplicates the tests in the andsi3 expander.  */
+          for (i = 9; i <= 31; i++)
+            if ((((HOST_WIDE_INT) 1) << i) - 1 == INTVAL (x)
+                || (((HOST_WIDE_INT) 1) << i) - 1 == ~INTVAL (x))
+              return COSTS_N_INSNS (2);
+        }
+      else if (outer == ASHIFT || outer == ASHIFTRT
+               || outer == LSHIFTRT)
+        return 0;
+      return COSTS_N_INSNS (2);
+
+    case CONST:
+    case CONST_DOUBLE:
+    case LABEL_REF:
+    case SYMBOL_REF:
+      return COSTS_N_INSNS (3);
+
+    case UDIV:
+    case UMOD:
+    case DIV:
+    case MOD:
+      return 100;
+
+    case TRUNCATE:
+      return 99;
+
+    case AND:
+    case XOR:
+    case IOR:
+      /* XXX guess.  */
+      return 8;
+
+    case MEM:
+      /* XXX another guess.  */
+      /* Memory costs quite a lot for the first word, but subsequent words
+         load at the equivalent of a single insn each.  */
+      return (10 + 4 * ((GET_MODE_SIZE (mode) - 1) / UNITS_PER_WORD)
+              + ((GET_CODE (x) == SYMBOL_REF && CONSTANT_POOL_ADDRESS_P (x))
+                 ? 4 : 0));
+
+    case IF_THEN_ELSE:
+      /* XXX a guess.  */
+      if (GET_CODE (XEXP (x, 1)) == PC || GET_CODE (XEXP (x, 2)) == PC)
+        return 14;
+      return 2;
+
+    case ZERO_EXTEND:
+      /* XXX still guessing.  */
+      switch (GET_MODE (XEXP (x, 0)))
+        {
+          case QImode:
+            return (1 + (mode == DImode ? 4 : 0)
+                    + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
+
+          case HImode:
+            return (4 + (mode == DImode ? 4 : 0)
+                    + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
+
+          case SImode:
+            return (1 + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
+
+          default:
+            return 99;
+        }
+
+    default:
+      return 99;
+    }
+}
+
 /* RTX costs when optimizing for size.  */
 static bool
 arm_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code,
@@ -6892,8 +7048,7 @@ arm_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code,
   enum machine_mode mode = GET_MODE (x);
   if (TARGET_THUMB1)
     {
-      /* XXX TBD.  For now, use the standard costs.  */
-      *total = thumb1_rtx_costs (x, code, outer_code);
+      *total = thumb1_size_rtx_costs (x, code, outer_code);
       return true;
     }
 
@@ -8801,28 +8956,21 @@ tls_mentioned_p (rtx x)
     }
 }
 
-/* Must not copy a SET whose source operand is PC-relative.  */
+/* Must not copy any rtx that uses a pc-relative address.  */
+
+static int
+arm_note_pic_base (rtx *x, void *date ATTRIBUTE_UNUSED)
+{
+  if (GET_CODE (*x) == UNSPEC
+      && XINT (*x, 1) == UNSPEC_PIC_BASE)
+    return 1;
+  return 0;
+}
 
 static bool
 arm_cannot_copy_insn_p (rtx insn)
 {
-  rtx pat = PATTERN (insn);
-
-  if (GET_CODE (pat) == SET)
-    {
-      rtx rhs = SET_SRC (pat);
-
-      if (GET_CODE (rhs) == UNSPEC
-	  && XINT (rhs, 1) == UNSPEC_PIC_BASE)
-	return TRUE;
-
-      if (GET_CODE (rhs) == MEM
-	  && GET_CODE (XEXP (rhs, 0)) == UNSPEC
-	  && XINT (XEXP (rhs, 0), 1) == UNSPEC_PIC_BASE)
-	return TRUE;
-    }
-
-  return FALSE;
+  return for_each_rtx (&PATTERN (insn), arm_note_pic_base, NULL);
 }
 
 enum rtx_code
@@ -21206,6 +21354,16 @@ arm_output_addr_const_extra (FILE *fp, rtx x)
 	fputs ("+.", fp);
       fputs ("-(", fp);
       output_addr_const (fp, XVECEXP (x, 0, 0));
+      fputc (')', fp);
+      return TRUE;
+    }
+  else if (GET_CODE (x) == UNSPEC && XINT (x, 1) == UNSPEC_SYMBOL_OFFSET)
+    {
+      output_addr_const (fp, XVECEXP (x, 0, 0));
+      if (GOT_PCREL)
+        fputs ("+.", fp);
+      fputs ("-(", fp);
+      output_addr_const (fp, XVECEXP (x, 0, 1));
       fputc (')', fp);
       return TRUE;
     }

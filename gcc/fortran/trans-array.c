@@ -1,5 +1,5 @@
 /* Array translation routines
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
    and Steven Bosscher <s.bosscher@student.tudelft.nl>
@@ -2531,6 +2531,9 @@ gfc_conv_array_ref (gfc_se * se, gfc_array_ref * ar, gfc_symbol * sym,
   gfc_se indexse;
   gfc_se tmpse;
 
+  if (ar->dimen == 0)
+    return;
+
   /* Handle scalarized references separately.  */
   if (ar->type != AR_ELEMENT)
     {
@@ -3958,13 +3961,26 @@ gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree pstat)
   /* Find the last reference in the chain.  */
   while (ref && ref->next != NULL)
     {
-      gcc_assert (ref->type != REF_ARRAY || ref->u.ar.type == AR_ELEMENT);
+      gcc_assert (ref->type != REF_ARRAY || ref->u.ar.type == AR_ELEMENT
+		  || (ref->u.ar.dimen == 0 && ref->u.ar.codimen > 0));
       prev_ref = ref;
       ref = ref->next;
     }
 
   if (ref == NULL || ref->type != REF_ARRAY)
     return false;
+
+  /* Return if this is a scalar coarray.  */
+  if (!prev_ref && !expr->symtree->n.sym->attr.dimension)
+    {
+      gcc_assert (expr->symtree->n.sym->attr.codimension);
+      return false;
+    }
+  else if (prev_ref && !prev_ref->u.c.component->attr.dimension)
+    {
+      gcc_assert (prev_ref->u.c.component->attr.codimension);
+      return false;
+    }
 
   if (!prev_ref)
     allocatable_array = expr->symtree->n.sym->attr.allocatable;
@@ -5214,7 +5230,7 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
 
       lse.string_length = rse.string_length;
       tmp = gfc_trans_scalar_assign (&lse, &rse, expr->ts, true,
-				     expr->expr_type == EXPR_VARIABLE);
+				     expr->expr_type == EXPR_VARIABLE, true);
       gfc_add_expr_to_block (&block, tmp);
 
       /* Finish the copying loops.  */
@@ -6176,6 +6192,25 @@ gfc_copy_only_alloc_comp (gfc_symbol * der_type, tree decl, tree dest, int rank)
 }
 
 
+/* Check for default initializer; sym->value is not enough as it is also
+   set for EXPR_NULL of allocatables.  */
+
+static bool
+has_default_initializer (gfc_symbol *der)
+{
+  gfc_component *c;
+
+  gcc_assert (der->attr.flavor == FL_DERIVED);
+  for (c = der->components; c; c = c->next)
+    if ((c->ts.type != BT_DERIVED && c->initializer)
+        || (c->ts.type == BT_DERIVED
+            && (!c->attr.pointer && has_default_initializer (c->ts.u.derived))))
+      break;
+
+  return c != NULL;
+}
+
+
 /* NULLIFY an allocatable/pointer array on function entry, free it on exit.
    Do likewise, recursively if necessary, with the allocatable components of
    derived types.  */
@@ -6236,17 +6271,21 @@ gfc_trans_deferred_array (gfc_symbol * sym, tree body)
 
   /* Get the descriptor type.  */
   type = TREE_TYPE (sym->backend_decl);
-    
+
   if (sym_has_alloc_comp && !(sym->attr.pointer || sym->attr.allocatable))
     {
-      if (!sym->attr.save)
+      if (!sym->attr.save
+	  && !(TREE_STATIC (sym->backend_decl) && sym->attr.is_main_program))
 	{
-	  rank = sym->as ? sym->as->rank : 0;
-	  tmp = gfc_nullify_alloc_comp (sym->ts.u.derived, descriptor, rank);
-	  gfc_add_expr_to_block (&fnblock, tmp);
-	  if (sym->value)
+	  if (sym->value == NULL || !has_default_initializer (sym->ts.u.derived))
 	    {
-	      tmp = gfc_init_default_dt (sym, NULL);
+	      rank = sym->as ? sym->as->rank : 0;
+	      tmp = gfc_nullify_alloc_comp (sym->ts.u.derived, descriptor, rank);
+	      gfc_add_expr_to_block (&fnblock, tmp);
+	    }
+	  else
+	    {
+	      tmp = gfc_init_default_dt (sym, NULL, false);
 	      gfc_add_expr_to_block (&fnblock, tmp);
 	    }
 	}
@@ -6338,6 +6377,13 @@ gfc_walk_variable_expr (gfc_ss * ss, gfc_expr * expr)
 	continue;
 
       ar = &ref->u.ar;
+
+      if (ar->as->rank == 0)
+	{
+	  /* Scalar coarray.  */
+	  continue;
+	}
+
       switch (ar->type)
 	{
 	case AR_ELEMENT:

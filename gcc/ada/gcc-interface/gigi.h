@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2010, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -111,9 +111,6 @@ extern void mark_out_of_scope (Entity_Id gnat_entity);
 
 /* Get the unpadded version of a GNAT type.  */
 extern tree get_unpadded_type (Entity_Id gnat_entity);
-
-/* Called when we need to protect a variable object using a save_expr.  */
-extern tree maybe_variable (tree gnu_operand);
 
 /* Create a record type that contains a SIZE bytes long field of TYPE with a
     starting bit position so that it is aligned to ALIGN bits, and leaving at
@@ -256,9 +253,6 @@ extern void post_error_ne_tree (const char *msg, Node_Id node, Entity_Id ent,
 extern void post_error_ne_tree_2 (const char *msg, Node_Id node, Entity_Id ent,
                                   tree t, int num);
 
-/* Protect EXP from multiple evaluation.  This may make a SAVE_EXPR.  */
-extern tree protect_multiple_eval (tree exp);
-
 /* Return a label to branch to for the exception type in KIND or NULL_TREE
    if none.  */
 extern tree get_exception_label (char kind);
@@ -266,12 +260,6 @@ extern tree get_exception_label (char kind);
 /* Current node being treated, in case gigi_abort or Check_Elaboration_Code
    called.  */
 extern Node_Id error_gnat_node;
-
-/* This is equivalent to stabilize_reference in tree.c, but we know how to
-   handle our own nodes and we take extra arguments.  FORCE says whether to
-   force evaluation of everything.  We set SUCCESS to true unless we walk
-   through something we don't know how to stabilize.  */
-extern tree maybe_stabilize_reference (tree ref, bool force, bool *success);
 
 /* Highest number in the front-end node table.  */
 extern int max_gnat_nodes;
@@ -545,19 +533,19 @@ extern void add_parallel_type (tree decl, tree parallel_type);
 /* Return the parallel type associated to a type, if any.  */
 extern tree get_parallel_type (tree type);
 
-/* Returns a FUNCTION_TYPE node. RETURN_TYPE is the type returned by the
-   subprogram. If it is void_type_node, then we are dealing with a procedure,
-   otherwise we are dealing with a function. PARAM_DECL_LIST is a list of
-   PARM_DECL nodes that are the subprogram arguments.  CICO_LIST is the
-   copy-in/copy-out list to be stored into TYPE_CI_CO_LIST.
-   RETURNS_UNCONSTRAINED is true if the function returns an unconstrained
-   object.  RETURNS_BY_REF is true if the function returns by reference.
-   RETURNS_BY_TARGET_PTR is true if the function is to be passed (as its
-   first parameter) the address of the place to copy its result.  */
+/* Return a FUNCTION_TYPE node.  RETURN_TYPE is the type returned by the
+   subprogram.  If it is VOID_TYPE, then we are dealing with a procedure,
+   otherwise we are dealing with a function.  PARAM_DECL_LIST is a list of
+   PARM_DECL nodes that are the subprogram parameters.  CICO_LIST is the
+   copy-in/copy-out list to be stored into the TYPE_CICO_LIST field.
+   RETURN_UNCONSTRAINED_P is true if the function returns an unconstrained
+   object.  RETURN_BY_DIRECT_REF_P is true if the function returns by direct
+   reference.  RETURN_BY_INVISI_REF_P is true if the function returns by
+   invisible reference.  */
 extern tree create_subprog_type (tree return_type, tree param_decl_list,
-                                 tree cico_list, bool returns_unconstrained,
-                                 bool returns_by_ref,
-                                 bool returns_by_target_ptr);
+				 tree cico_list, bool return_unconstrained_p,
+				 bool return_by_direct_ref_p,
+				 bool return_by_invisi_ref_p);
 
 /* Return a copy of TYPE, but safe to modify in any way.  */
 extern tree copy_type (tree type);
@@ -804,7 +792,7 @@ extern tree build_cond_expr (tree result_type, tree condition_operand,
                              tree true_operand, tree false_operand);
 
 /* Similar, but for RETURN_EXPR.  */
-extern tree build_return_expr (tree result_decl, tree ret_val);
+extern tree build_return_expr (tree ret_obj, tree ret_val);
 
 /* Build a CALL_EXPR to call FUNDECL with one argument, ARG.  Return
    the CALL_EXPR.  */
@@ -871,9 +859,24 @@ extern tree build_allocator (tree type, tree init, tree result_type,
 extern tree fill_vms_descriptor (tree expr, Entity_Id gnat_formal,
                                  Node_Id gnat_actual);
 
-/* Indicate that we need to make the address of EXPR_NODE and it therefore
-   should not be allocated in a register.  Return true if successful.  */
-extern bool gnat_mark_addressable (tree expr_node);
+/* Indicate that we need to take the address of T and that it therefore
+   should not be allocated in a register.  Returns true if successful.  */
+extern bool gnat_mark_addressable (tree t);
+
+/* Save EXP for later use or reuse.  This is equivalent to save_expr in tree.c
+   but we know how to handle our own nodes.  */
+extern tree gnat_save_expr (tree exp);
+
+/* Protect EXP for immediate reuse.  This is a variant of gnat_save_expr that
+   is optimized under the assumption that EXP's value doesn't change before
+   its subsequent reuse(s) except through its potential reevaluation.  */
+extern tree gnat_protect_expr (tree exp);
+
+/* This is equivalent to stabilize_reference in tree.c but we know how to
+   handle our own nodes and we take extra arguments.  FORCE says whether to
+   force evaluation of everything.  We set SUCCESS to true unless we walk
+   through something we don't know how to stabilize.  */
+extern tree gnat_stabilize_reference (tree ref, bool force, bool *success);
 
 /* Implementation of the builtin_function langhook.  */
 extern tree gnat_builtin_function (tree decl);

@@ -1,5 +1,6 @@
 /* Loop distribution.
-   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Georges-Andre Silber <Georges-Andre.Silber@ensmp.fr>
    and Sebastian Pop <sebastian.pop@amd.com>.
 
@@ -1242,6 +1243,6 @@ struct gimple_opt_pass pass_loop_distribution =
   0,				/* properties_provided */
   0,				/* properties_destroyed */
   0,				/* todo_flags_start */
-  TODO_dump_func | TODO_verify_loops            /* todo_flags_finish */
+  TODO_dump_func                /* todo_flags_finish */
  }
 };

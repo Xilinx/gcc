@@ -1,7 +1,5 @@
-/* Definitions of target machine for GCC, for SPARC running Solaris 2
-   using the GNU linker.
-
-   Copyright (C) 2002, 2010 Free Software Foundation, Inc.
+/* Definitions for rtems targeting a lm32 using ELF.
+   Copyright (C) 2009, Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -19,9 +17,16 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-/* Undefine this so that attribute((init_priority)) works.  */
-#undef CTORS_SECTION_ASM_OP
-#undef DTORS_SECTION_ASM_OP
+/* Target OS builtins.  */
+#undef TARGET_OS_CPP_BUILTINS
+#define TARGET_OS_CPP_BUILTINS()		\
+  do						\
+    {						\
+	builtin_define ("__rtems__");		\
+	builtin_define ("__USE_INIT_FINI__");	\
+	builtin_assert ("system=rtems");	\
+    }						\
+  while (0)
 
-#undef SUPPORTS_INIT_PRIORITY
-#define SUPPORTS_INIT_PRIORITY 1
+/* Use the default */
+#undef LINK_GCC_C_SEQUENCE_SPEC

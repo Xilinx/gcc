@@ -3897,13 +3897,15 @@ cp_parser_unqualified_id (cp_parser* parser,
 	  }
 	gcc_assert (!scope || TYPE_P (scope));
 
-	/* If the name is of the form "X::~X" it's OK.  */
+	/* If the name is of the form "X::~X" it's OK even if X is a
+	   typedef.  */
 	token = cp_lexer_peek_token (parser->lexer);
 	if (scope
 	    && token->type == CPP_NAME
 	    && (cp_lexer_peek_nth_token (parser->lexer, 2)->type
 		!= CPP_LESS)
-	    && constructor_name_p (token->u.value, scope))
+	    && (token->u.value == TYPE_IDENTIFIER (scope)
+		|| constructor_name_p (token->u.value, scope)))
 	  {
 	    cp_lexer_consume_token (parser->lexer);
 	    return build_nt (BIT_NOT_EXPR, scope);
@@ -16393,6 +16395,9 @@ cp_parser_class_head (cp_parser* parser,
       end_specialization ();
       --parser->num_template_parameter_lists;
     }
+
+  if (type)
+    DECL_SOURCE_LOCATION (TYPE_NAME (type)) = type_start_token->location;
   *attributes_p = attributes;
   return type;
 }

@@ -1,6 +1,6 @@
 /* Inline functions for tree-flow.h
-   Copyright (C) 2001, 2003, 2005, 2006, 2007, 2008 Free Software
-   Foundation, Inc.
+   Copyright (C) 2001, 2003, 2005, 2006, 2007, 2008, 2010
+   Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -631,15 +631,6 @@ is_call_clobbered (const_tree var)
   return (is_global_var (var)
 	  || (may_be_aliased (var)
 	      && pt_solution_includes (&cfun->gimple_df->escaped, var)));
-}
-
-/* Return true if VAR is used by function calls.  */
-static inline bool
-is_call_used (const_tree var)
-{
-  return (is_call_clobbered (var)
-	  || (may_be_aliased (var)
-	      && pt_solution_includes (&cfun->gimple_df->callused, var)));
 }
 
 /*  -----------------------------------------------------------------------  */

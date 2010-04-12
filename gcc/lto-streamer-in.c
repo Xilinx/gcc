@@ -1,6 +1,6 @@
 /* Read the GIMPLE representation from a file stream.
 
-   Copyright 2009 Free Software Foundation, Inc.
+   Copyright 2009, 2010 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
    Re-implemented by Diego Novillo <dnovillo@google.com>
 
@@ -1156,6 +1156,10 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 	    SSA_NAME_DEF_STMT (op) = stmt;
 	}
     }
+
+  /* Reset alias information.  */
+  if (code == GIMPLE_CALL)
+    gimple_call_reset_alias_info (stmt);
 
   /* Fixup reference tree operands for substituted prevailing decls
      with mismatched types.  */

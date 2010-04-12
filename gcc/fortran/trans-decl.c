@@ -85,6 +85,7 @@ tree gfor_fndecl_pause_numeric;
 tree gfor_fndecl_pause_string;
 tree gfor_fndecl_stop_numeric;
 tree gfor_fndecl_stop_string;
+tree gfor_fndecl_error_stop_string;
 tree gfor_fndecl_runtime_error;
 tree gfor_fndecl_runtime_error_at;
 tree gfor_fndecl_runtime_warning_at;
@@ -1258,9 +1259,15 @@ gfc_get_symbol_decl (gfc_symbol * sym)
   if (sym->attr.assign)
     gfc_add_assign_aux_vars (sym);
 
-  if (TREE_STATIC (decl) && !sym->attr.use_assoc)
+  if (TREE_STATIC (decl) && !sym->attr.use_assoc
+      && (sym->attr.save || sym->ns->proc_name->attr.is_main_program
+	  || gfc_option.flag_max_stack_var_size == 0
+	  || sym->attr.data || sym->ns->proc_name->attr.flavor == FL_MODULE))
     {
-      /* Add static initializer.  */
+      /* Add static initializer. For procedures, it is only needed if
+	 SAVE is specified otherwise they need to be reinitialized
+	 every time the procedure is entered. The TREE_STATIC is
+	 in this case due to -fmax-stack-var-size=.  */
       DECL_INITIAL (decl) = gfc_conv_initializer (sym->value, &sym->ts,
 	  TREE_TYPE (decl), sym->attr.dimension,
 	  sym->attr.pointer || sym->attr.allocatable);
@@ -2719,6 +2726,13 @@ gfc_build_builtin_function_decls (void)
   /* Stop doesn't return.  */
   TREE_THIS_VOLATILE (gfor_fndecl_stop_string) = 1;
 
+  gfor_fndecl_error_stop_string =
+    gfc_build_library_function_decl (get_identifier (PREFIX("error_stop_string")),
+				     void_type_node, 2, pchar_type_node,
+                                     gfc_int4_type_node);
+  /* ERROR STOP doesn't return.  */
+  TREE_THIS_VOLATILE (gfor_fndecl_error_stop_string) = 1;
+
   gfor_fndecl_pause_numeric =
     gfc_build_library_function_decl (get_identifier (PREFIX("pause_numeric")),
 				     void_type_node, 1, gfc_int4_type_node);
@@ -2981,9 +2995,10 @@ gfc_trans_vla_type_sizes (gfc_symbol *sym, stmtblock_t *body)
 
 
 /* Initialize a derived type by building an lvalue from the symbol
-   and using trans_assignment to do the work.  */
+   and using trans_assignment to do the work. Set dealloc to false
+   if no deallocation prior the assignment is needed.  */
 tree
-gfc_init_default_dt (gfc_symbol * sym, tree body)
+gfc_init_default_dt (gfc_symbol * sym, tree body, bool dealloc)
 {
   stmtblock_t fnblock;
   gfc_expr *e;
@@ -2994,7 +3009,7 @@ gfc_init_default_dt (gfc_symbol * sym, tree body)
   gcc_assert (!sym->attr.allocatable);
   gfc_set_sym_referenced (sym);
   e = gfc_lval_expr_from_sym (sym);
-  tmp = gfc_trans_assignment (e, sym->value, false);
+  tmp = gfc_trans_assignment (e, sym->value, false, dealloc);
   if (sym->attr.dummy && (sym->attr.optional
 			  || sym->ns->proc_name->attr.entry_master))
     {
@@ -3045,7 +3060,7 @@ init_intent_out_dt (gfc_symbol * proc_sym, tree body)
 	    gfc_add_expr_to_block (&fnblock, tmp);
 	  }
        else if (f->sym->value)
-	  body = gfc_init_default_dt (f->sym, body);
+	  body = gfc_init_default_dt (f->sym, body, true);
       }
 
   gfc_add_expr_to_block (&fnblock, body);
@@ -3148,7 +3163,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, tree fnbody)
 			     && sym->value
 			     && !sym->attr.data
 			     && sym->attr.save == SAVE_NONE)
-		    fnbody = gfc_init_default_dt (sym, fnbody);
+		    fnbody = gfc_init_default_dt (sym, fnbody, false);
 
 		  gfc_get_backend_locus (&loc);
 		  gfc_set_backend_locus (&sym->declared_at);
@@ -3246,7 +3261,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, tree fnbody)
 		 && sym->value
 		 && !sym->attr.data
 		 && sym->attr.save == SAVE_NONE)
-	fnbody = gfc_init_default_dt (sym, fnbody);
+	fnbody = gfc_init_default_dt (sym, fnbody, false);
       else
 	gcc_unreachable ();
     }

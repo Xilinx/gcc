@@ -5473,7 +5473,8 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
   # Check for the recommended and required versions of GMP.
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the correct version of gmp.h" >&5
 $as_echo_n "checking for the correct version of gmp.h... " >&6; }
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include "gmp.h"
 int
@@ -5491,8 +5492,7 @@ main ()
 }
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"; then :
-
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <gmp.h>
 int
@@ -5951,8 +5951,29 @@ main ()
 }
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"; then :
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include "cloog/cloog.h"
+int
+main ()
+{
+
+  #if CLOOG_VERSION_MAJOR != 0 || CLOOG_VERSION_MINOR != 15 || CLOOG_VERSION_REVISION < 9
+  choke me
+  #endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: buggy but acceptable" >&5
+$as_echo "buggy but acceptable" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }; clooglibs= ; clooginc=
@@ -7778,9 +7799,6 @@ do
       skip_next=$separate_arg
       continue
       ;;
-    --enable-multilib | --disable-multilib)
-      continue
-      ;;
     -*)
       # An option.  Add it.
       case $ac_arg in
@@ -7849,12 +7867,10 @@ if test x${is_cross_compiler} = xyes ; then
   target_configargs="--with-cross-host=${host_noncanonical} ${target_configargs}"
 fi
 
-# Pass --enable-multilib to target dirs; default to --enable-multilib.
-case $enable_multilib in
-'' | yes)
+# Default to --enable-multilib.
+if test x${enable_multilib} = x ; then
   target_configargs="--enable-multilib ${target_configargs}"
-  ;;
-esac
+fi
 
 # Pass --with-newlib if appropriate.  Note that target_configdirs has
 # changed from the earlier setting of with_newlib.

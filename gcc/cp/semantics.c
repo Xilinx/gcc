@@ -2409,9 +2409,6 @@ begin_class_definition (tree t, tree attributes)
       pushtag (make_anon_name (), t, /*tag_scope=*/ts_current);
     }
 
-  /* Update the location of the decl.  */
-  DECL_SOURCE_LOCATION (TYPE_NAME (t)) = input_location;
-
   if (TYPE_BEING_DEFINED (t))
     {
       t = make_class_type (TREE_CODE (t));
@@ -3449,7 +3446,9 @@ expand_or_defer_fn_1 (tree fn)
 	 this function as needed so that finish_file will make sure to
 	 output it later.  Similarly, all dllexport'd functions must
 	 be emitted; there may be callers in other DLLs.  */
-      if ((flag_keep_inline_functions && DECL_DECLARED_INLINE_P (fn))
+      if ((flag_keep_inline_functions
+	   && DECL_DECLARED_INLINE_P (fn)
+	   && !DECL_REALLY_EXTERN (fn))
 	  || lookup_attribute ("dllexport", DECL_ATTRIBUTES (fn)))
 	mark_needed (fn);
     }
@@ -4839,6 +4838,14 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
   /* The type denoted by decltype(e) is defined as follows:  */
 
   expr = resolve_nondeduced_context (expr);
+
+  /* To get the size of a static data member declared as an array of
+     unknown bound, we need to instantiate it.  */
+  if (TREE_CODE (expr) == VAR_DECL
+      && VAR_HAD_UNKNOWN_BOUND (expr)
+      && DECL_TEMPLATE_INSTANTIATION (expr))
+    instantiate_decl (expr, /*defer_ok*/true, /*expl_inst_mem*/false);
+
   if (id_expression_or_member_access_p)
     {
       /* If e is an id-expression or a class member access (5.2.5
@@ -5955,7 +5962,8 @@ maybe_add_lambda_conv_op (tree type)
   body = begin_function_body ();
   compound_stmt = begin_compound_stmt (0);
 
-  arg = build1 (NOP_EXPR, TREE_TYPE (DECL_ARGUMENTS (callop)), void_zero_node);
+  arg = build1 (NOP_EXPR, TREE_TYPE (DECL_ARGUMENTS (callop)),
+		null_pointer_node);
   argvec = make_tree_vector ();
   VEC_quick_push (tree, argvec, arg);
   for (arg = DECL_ARGUMENTS (statfn); arg; arg = TREE_CHAIN (arg))

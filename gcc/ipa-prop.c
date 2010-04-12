@@ -1,5 +1,6 @@
 /* Interprocedural analyses.
-   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -198,7 +199,9 @@ visit_store_addr_for_mod_analysis (gimple stmt ATTRIBUTE_UNUSED,
 {
   struct ipa_node_params *info = (struct ipa_node_params *) data;
 
-  if (TREE_CODE (op) == PARM_DECL)
+  op = get_base_address (op);
+  if (op
+      && TREE_CODE (op) == PARM_DECL)
     {
       int index = ipa_get_param_decl_index (info, op);
       gcc_assert (index >= 0);
@@ -288,6 +291,13 @@ ipa_print_node_jump_functions (FILE *f, struct cgraph_node *node)
 	      tree val = jump_func->value.constant;
 	      fprintf (f, "CONST: ");
 	      print_generic_expr (f, val, 0);
+	      if (TREE_CODE (val) == ADDR_EXPR
+		  && TREE_CODE (TREE_OPERAND (val, 0)) == CONST_DECL)
+		{
+		  fprintf (f, " -> ");
+		  print_generic_expr (f, DECL_INITIAL (TREE_OPERAND (val, 0)),
+						       0);
+		}
 	      fprintf (f, "\n");
 	    }
 	  else if (type == IPA_JF_CONST_MEMBER_PTR)
