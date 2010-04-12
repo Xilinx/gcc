@@ -1,7 +1,7 @@
 2010-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{bug reported by Sylvestre Ledru}}
 	* melt-runtime.c (melt_debug_out): Added missing cast from
-	unsigned short to int.
+	unsigned to int.
 
 2010-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{bug reported by Christophe Coupe'}}
