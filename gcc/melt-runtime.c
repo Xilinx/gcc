@@ -9112,7 +9112,7 @@ melt_debug_out (struct debugprint_melt_st *dp,
 	  {
 	    fputs ("[", dp->dfil);
 	    if (p->obj_vartab)
-	      for (ix = 0; ix < p->obj_len; ix++)
+	      for (ix = 0; ix < (int) p->obj_len; ix++)
 		{
 		  if (ix > 0)
 		    skip_debug_out (dp, depth);
