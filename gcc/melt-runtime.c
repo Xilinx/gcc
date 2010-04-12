@@ -5507,8 +5507,8 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   if (!dlh && dypathlen>3 
       && (dypath[dypathlen-3]!='.' || dypath[dypathlen-2]!='s' || dypath[dypathlen-1]!='o'))
     {
-      char*dypathso = concat(dypath, ".so", NULL);
-      dlh = (void *) dlopen (dypath, RTLD_NOW | RTLD_GLOBAL);
+      char* dypathso = concat(dypath, ".so", NULL);
+      dlh = (void *) dlopen (dypathso, RTLD_NOW | RTLD_GLOBAL);
       free (dypathso);
     }
   if (!dlh) 
