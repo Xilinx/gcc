@@ -9321,7 +9321,7 @@ melt_debug_out (struct debugprint_melt_st *dp,
 	  {
 	    fprintf (dp->dfil, "[`buflen=%ld ", melt_primtab[p->buflenix]);
 	    gcc_assert (p->bufstart <= p->bufend
-			&& p->bufend < melt_primtab[p->buflenix]);
+			&& p->bufend < (unsigned) melt_primtab[p->buflenix]);
 	    fprintf (dp->dfil, "bufstart=%u bufend=%u buf='",
 		     p->bufstart, p->bufend);
 	    if (p->bufzn)
