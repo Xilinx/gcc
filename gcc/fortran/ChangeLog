@@ -1,3 +1,143 @@
+2010-04-08  Bud Davis  <bdavis9659@sbcglobal.net>
+
+	PR fortran/28039
+	* io.c (check_format_string):  Added check for additional non 
+	blank characters after the format string was successfully 
+	parsed.
+	* io.c (check_format): Changed the error messages for positive
+	int required and period required to drop through the error logic
+	and report with gfc_error instead of gfc_error_now.  Corrected
+	format postion for hollerith strings.
+
+2010-04-08  Tobias Burnus  <burnus@net-b.de>
+
+	* module.c (use_iso_fortran_env_module): Fix standard check.
+
+2010-04-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* parse.c (parse_derived, parse_enum): Avoid set but not used
+	warning.
+
+2010-04-07  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/40539
+	* gfortran.texi: Add section about representation of
+	LOGICAL variables.
+
+2010-04-07  Simon Baldwin  <simonb@google.com>
+
+	* cpp.c (cb_cpp_error): Add warning reason argument, set a value
+	for diagnostic_override_option_index if CPP_W_WARNING_DIRECTIVE.
+
+2010-04-07  Richard Guenther  <rguenther@suse.de>
+
+	* options.c (gfc_init_options): Do not set.
+
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* array.c (gfc_match_array_spec): Add error for -fcoarray=none.
+	* match.c (gfc_match_critical, sync_statement): Ditto.
+	* gfortran.h (gfc_fcoarray): New enum.
+	(gfc_option_t): Use it.
+	* lang.opt (fcoarray): Add new flag.
+	* invoke.texi (fcoarray): Document it.
+	* options.c (gfc_init_options,gfc_handle_option): Handle -fcoarray=.
+	(gfc_handle_coarray_option): New function.
+
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.h (gfc_array_spec): Add cotype.
+	* array.c (gfc_match_array_spec,gfc_set_array_spec): Use it
+	and defer error diagnostic.
+	* resolve.c (resolve_fl_derived): Add missing check.
+	(resolve_symbol): Add cotype/type check.
+	* parse.c (parse_derived): Fix setting of coarray_comp.
+
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* array.c (gfc_free_array_spec,gfc_resolve_array_spec,
+	match_array_element_spec,gfc_copy_array_spec,
+	gfc_compare_array_spec): Include corank.
+	(match_array_element_spec,gfc_set_array_spec): Support codimension.
+	* decl.c (build_sym,build_struct,variable_decl,
+	match_attr_spec,attr_decl1,cray_pointer_decl,
+	gfc_match_volatile): Add codimension.
+	(gfc_match_codimension): New function.
+	* dump-parse-tree.c (show_array_spec,show_attr): Support codimension.
+	* gfortran.h (symbol_attribute,gfc_array_spec): Ditto.
+	(gfc_add_codimension): New function prototype.
+	* match.h (gfc_match_codimension): New function prototype.
+	(gfc_match_array_spec): Update prototype
+	* match.c (gfc_match_common): Update gfc_match_array_spec call.
+	* module.c (MOD_VERSION): Bump.
+	(mio_symbol_attribute): Support coarray attributes.
+	(mio_array_spec): Add corank support.
+	* parse.c (decode_specification_statement,decode_statement,
+	parse_derived): Add coarray support.
+	* resolve.c (resolve_formal_arglist, was_declared,
+	is_non_constant_shape_array, resolve_fl_variable,
+	resolve_fl_derived, resolve_symbol): Add coarray support.
+	* symbol.c (check_conflict, gfc_add_volatile, gfc_copy_attr,
+	gfc_build_class_symbol): Add coarray support.
+	(gfc_add_codimension): New function.
+
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* iso-fortran-env.def: Add the integer parameters atomic_int_kind,
+	atomic_logical_kind, iostat_inquire_internal_unit, stat_locked,
+	stat_locked_other_image, stat_stopped_image and stat_unlocked of
+	Fortran 2008.
+	* intrinsic.texi (iso_fortran_env): Ditto.
+	* libgfortran.h (libgfortran_stat_codes): New enum.
+	* module.c (use_iso_fortran_env_module): Honour -std= when loading
+	constants from the intrinsic module.
+
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/39997
+	* intrinsic.c (add_functions): Add num_images.
+	* decl.c (gfc_match_end): Handle END CRITICAL.
+	* intrinsic.h (gfc_simplify_num_images): Add prototype.
+	* dump-parse-tree.c (show_code_node): Dump CRITICAL, ERROR STOP,
+	and SYNC.
+	* gfortran.h (gfc_statement): Add enum items for those.
+	(gfc_exec_op) Ditto.
+	(gfc_isym_id): Add num_images.
+	* trans-stmt.c (gfc_trans_stop): Handle ERROR STOP.
+	(gfc_trans_sync,gfc_trans_critical): New functions.
+	* trans-stmt.h (gfc_trans_stop,gfc_trans_sync,
+	gfc_trans_critical): Add/update prototypes.
+	* trans.c (gfc_trans_code): Handle CRITICAL, ERROR STOP,
+	and SYNC statements.
+	* trans.h (gfor_fndecl_error_stop_string) Add variable.
+	* resolve.c (resolve_sync): Add function.
+	(gfc_resolve_blocks): Handle CRITICAL.
+	(resolve_code): Handle CRITICAL, ERROR STOP,
+	(resolve_branch): Add CRITICAL constraint check.
+	and SYNC statements.
+	* st.c (gfc_free_statement): Add new statements.
+	* trans-decl.c (gfor_fndecl_error_stop_string): Global variable.
+	(gfc_build_builtin_function_decls): Initialize it.
+	* match.c (gfc_match_if): Handle ERROR STOP and SYNC.
+	(gfc_match_critical, gfc_match_error_stop, sync_statement,
+	gfc_match_sync_all, gfc_match_sync_images, gfc_match_sync_memory):
+	New functions.
+	(match_exit_cycle): Handle CRITICAL constraint.
+	(gfc_match_stopcode): Handle ERROR STOP.
+	* match.h (gfc_match_critical, gfc_match_error_stop,
+	gfc_match_sync_all, gfc_match_sync_images,
+	gfc_match_sync_memory): Add prototype.
+	* parse.c (decode_statement, gfc_ascii_statement,
+	parse_executable): Handle new statements.
+	(parse_critical_block): New function.
+	* parse.h (gfc_compile_state): Add COMP_CRITICAL.
+	* intrinsic.texi (num_images): Document new function.
+	* simplify.c (gfc_simplify_num_images): Add function.
+
 2010-04-06  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/43178

@@ -1,3 +1,462 @@
+2010-04-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.h (TREE_ADDRESSABLE): Document its effect for function types.
+	* calls.c (expand_call): Pass the function type to aggregate_value_p.
+	* function.c (aggregate_value_p): Do not honor DECL_BY_REFERENCE on
+	the target function of a CALL_EXPR.  Honor TREE_ADDRESSABLE on the
+	function type instead.  Reorder and simplify checks.
+
+	* gimplify.c (gimplify_modify_expr_rhs) <WITH_SIZE_EXPR>: New case.
+
+2010-04-08  Jing Yu  <jingyu@google.com>
+	    Zdenek Dvorak  <ook@ucw.cz>
+
+	PR tree-optimization/42720
+	* tree-ssa-loop-unswitch.c (tree_ssa_unswitch_loops): Move one-time
+	loop unswitch conditions here from
+	(tree_unswitch_single_loop).
+
+2010-04-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-if-conv.c: Fix comments and simplify logic.
+
+2010-04-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-if-conv.c (if_convertible_loop_p): Remove unused parameter.
+	(tree_if_conversion): Same.  Update call to if_convertible_loop_p.
+	(main_tree_if_conversion): Update call to tree_if_conversion.
+
+2010-04-08  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 42485
+	* doc/invoke.texi (-b,-V): Delete.
+	* doc/tm.texi: Do not mention -b.
+	* gcc.c (display_help): Delete -b and -V.
+	(process_command): Delete -b and -V.
+	* gcc.h (DEFAULT_SWITCH_TAKES_ARG): Delete -b and -V.
+
+2010-04-08  Christian Borntraeger  <borntraeger@de.ibm.com>
+            Wolfgang Gellerich  <gellerich@de.ibm.com>
+
+        Implement target hook for loop unrolling
+        * target.h (loop_unroll_adjust): Add a new target hook function.
+        * target-def.h (TARGET_LOOP_UNROLL_ADJUST): Likewise.
+        * doc/tm.texi (TARGET_LOOP_UNROLL_ADJUST): Document it.
+        * config/s390/s390.c (TARGET_LOOP_UNROLL_ADJUST): Define it.
+        (s390_loop_unroll_adjust): Implement the new target hook for s390.
+        * loop-unroll.c (decide_unroll_runtime_iterations): Call loop unroll target hook
+        (decide_unroll_stupid): Likewise.
+
+2010-04-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/43643
+	* config/i386/gmon-sol2.c [__x86_64__]: Properly restore %rcx.
+
+2010-04-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/install.texi (Specific, i?86-*-solaris2.10): Fix grammar.
+	(Specific, *-*-solaris2*): Likewise.
+	Don't prefer Sun as over GNU as.
+
+2010-04-08  Wolfgang Gellerich  <gellerich@de.ibm.com>
+
+	* config/s390/s390.c (override_options): Adjust the z10
+          defaults for max-unroll-times, max-completely-peeled-insns
+          and max-completely-peel-times.
+
+2010-04-08  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.c (s390_expand_movmem): Issue prefetch
+	instructions for z10.
+	(s390_expand_setmem): Likewise.
+	(s390_expand_cmpmem): Likewise.
+
+2010-04-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43679
+	* tree-ssa-pre.c (eliminate): Only propagate copies.
+
+2010-04-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/43681
+	* expr.c (block_move_libcall_safe_for_call_parm): Avoid
+	set but not used variable warning.
+
+2010-04-08  Wei Guozhi  <carrot@google.com>
+
+	PR target/41653
+	* config/arm/arm.c (thumb1_size_rtx_costs): New function.
+	(arm_size_rtx_costs): Call the new function when optimized for size.
+
+2010-04-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43670
+	* cfgexpand.c (expand_debug_expr): If for non-NULL offset
+	op0 is not a MEM, just return NULL instead of assertion
+	failure.
+	(discover_nonconstant_array_refs): Don't walk debug stmts.
+
+2010-04-08  Doug Kwan  <dougkwan@google.com>
+
+	* configure.ac: Recognize gold and do not use its version number
+	to test ld features.
+	* configure: Regenerate.
+
+2010-04-08  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR middle-end/40815
+	* tree-ssa-reassoc.c (broken_up_substracts): Rename to plus_negates.
+	(negate_value): Move code to push elements to broken_up_substracts ...
+	(eliminate_plus_minus_pair): ... here.  Push operands that have no
+	negative pair to plus_negates.
+	(repropagate_negates, init_reassoc, fini_reassoc): Update.
+
+2010-04-07  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/install.texi (Configuration): Move description of
+	--enable-lto, --with-libelf*, --enable-gold from Java section to
+	general section.
+
+	* doc/generic.texi (Working with declarations)
+	(Function Properties, C and C++ Trees): Fix typos.
+	* doc/sourcebuild.texi (Top Level): Likewise.
+
+2010-04-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/18624
+	* tree.h (DECL_READ_P): Define.
+	(struct tree_decl_common): Add decl_read_flag.
+	* c-decl.c (pop_scope): If TREE_USED but !DECL_READ_P, issue
+	a set but not used warning.
+	(merge_decls): Merge DECL_READ_P flag.
+	(finish_decl, build_compound_literal): Set DECL_READ_P flag.
+	(finish_function): Issue -Wunused-but-set-parameter diagnostics.
+	* c-common.c (handle_used_attribute, handle_unused_attribute):
+	Likewise.
+	* c-tree.h (default_function_array_read_conversion, mark_exp_read):
+	New prototypes.
+	* c-typeck.c (default_function_array_read_conversion, mark_exp_read):
+	New functions.
+	(default_conversion, c_process_expr_stmt): Call mark_exp_read.
+	* c-parser.c (c_parser_initializer, c_parser_expr_no_commas,
+	c_parser_binary_expression, c_parser_cast_expression,
+	c_parser_expr_list, c_parser_omp_atomic, c_parser_omp_for_loop):
+	Call default_function_array_read_conversion instead of
+	default_function_array_conversion where needed.
+	(c_parser_unary_expression, c_parser_conditional_expression,
+	c_parser_postfix_expression_after_primary, c_parser_initelt):
+	Likewise.  Call mark_exp_read where needed.
+	(c_parser_statement_after_labels, c_parser_asm_operands,
+	c_parser_typeof_specifier, c_parser_sizeof_expression,
+	c_parser_alignof_expression, c_parser_initval): Call mark_exp_read
+	where needed.
+	* common.opt (Wunused-but-set-variable, Wunused-but-set-parameter):
+	New.
+	* toplev.c (warn_unused_but_set_variable): Default to warn_unused.
+	(warn_unused_but_set_parameter): Default to warn_unused
+	&& extra_warnings.
+	* doc/invoke.texi: Document -Wunused-but-set-variable and
+	-Wunused-but-set-parameter.
+
+	* tree-ssa-pre.c (my_rev_post_order_compute): Remove set but not
+	used count variable.
+	* genemit.c (gen_expand, gen_split): Avoid set but not used warnings
+	when operandN variables aren't used in the body of the expander
+	or splitter.
+	* tree-outof-ssa.c (FOR_EACH_ELIM_GRAPH_SUCC,
+	FOR_EACH_ELIM_GRAPH_PRED): Avoid set but not used warnings.
+	* tree-ssa-operands.h (FOR_EACH_SSA_TREE_OPERAND): Likewise.
+	* tree-flow.h (FOR_EACH_IMM_USE_FAST, FOR_EACH_IMM_USE_STMT,
+	FOR_EACH_IMM_USE_ON_STMT): Likewise.
+	* tree.h (FOR_EACH_CONSTRUCTOR_ELT): Likewise.
+	* tree.c (PROCESS_ARG): Likewise.
+
+2010-04-07  Simon Baldwin  <simonb@google.com>
+
+	* diagnostic.h (diagnostic_override_option_index): New macro to
+	set a diagnostic's option_index.
+	* c-tree.h (c_cpp_error): Add warning reason argument.
+	* opts.c (_warning_as_error_callback): New.
+	(register_warning_as_error_callback): Store callback for
+	warnings enabled via enable_warning_as_error.
+	(enable_warning_as_error): Call callback, minor code tidy.
+	* opts.h (register_warning_as_error_callback): Declare.
+	* c-opts.c (warning_as_error_callback): New, set cpp_opts flag in
+	response to -Werror=.
+	(c_common_init_options): Register warning_as_error_callback in opts.c.
+	* common.opt: Add -Wno-cpp option.
+	* c-common.c (struct reason_option_codes_t): Map cpp warning
+	reason codes to gcc option indexes.
+	* (c_option_controlling_cpp_error): New function, lookup the gcc
+	option index for a cpp warning reason code.
+	* (c_cpp_error): Add warning reason argument, call
+	c_option_controlling_cpp_error for diagnostic_override_option_index.
+	* doc/invoke.texi: Document -Wno-cpp.
+
+2010-04-07  Richard Guenther  <rguenther@suse.de>
+
+	* ipa-reference.c (mark_load): Use get_base_address.
+	(mark_store): Likewise.
+
+	* tree-ssa-ccp.c (gimplify_and_update_call_from_tree): Avoid
+	inserting GIMPLE_NOPs into the IL.
+	* tree-ssa-structalias.c (get_constraint_for_component_ref):
+	Explicitly strip handled components and indirect references.
+  
+	* fold-const.c (fold_unary_loc): Do not strip qualifiers when
+	folding address expressions.
+	* gimple.c (gimple_ior_addresses_taken_1): Use get_base_address.
+	* tree-ssa-alias.c (decl_refs_may_alias_p): Do not use
+	operand_equal_p to compare decls.
+	(ptr_deref_may_alias_decl_p): Likewise.
+	* tree-ssa-operands.c (get_asm_expr_operands): Simplify
+	* tree-ssa-forwprop.c (forward_propagate_into_gimple_cond):
+	Handle reversed comparison ops.
+	* tree-sra.c (asm_visit_addr): Use get_base_address.
+	* ipa-prop.c (visit_store_addr_for_mod_analysis): Use
+	get_base_address.
+	* ipa-reference.c (mark_address): Use get_base_address.
+
+2010-04-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr):
+	Propagate constants everywhere.
+
+2010-04-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43516
+	* tree.c (MAX_INT_CACHED_PREC): Define.
+	(nonstandard_integer_type_cache): New array.
+	(build_nonstandard_integer_type): Cache results for precision
+	<= MAX_INT_CACHED_PREC.
+
+2010-04-07  Richard Guenther  <rguenther@suse.de>
+
+	* doc/invoke.texi (-fargument-alias, -fargument-noalias,
+	-fargument-noalias-global, -fargument-noalias-anything): Remove.
+	* common.opt: Likewise.
+	* tree-ssa-structalias.c (intra_create_variable_infos): Adjust
+	comment.
+	* alias.c (base_alias_check): Remove flag_argument_noalias
+	handling.
+	(nonoverlapping_memrefs_p): Likewise.
+	* emit-rtl.c (set_mem_attributes_minus_bitpos): Likewise.
+	* opts.c (common_handle_option): Handle OPT_fargument_alias,
+	OPT_fargument_noalias, OPT_fargument_noalias_anything and
+	OPT_fargument_noalias_global for backward compatibility.
+
+2010-04-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43270
+	* tree-vrp.c (check_array_ref): Fix flexible array member
+	detection.
+	* tree-ssa-sccvn.h (fully_constant_vn_reference_p): Declare.
+	* tree-ssa-pre.c (phi_translate_1): Adjust.
+	(fully_constant_expression): Split out vn_reference handling to ...
+	* tree-ssa-sccvn.c (fully_constant_vn_reference_p): ... here.
+	Fold reads from constant strings.
+	(vn_reference_lookup): Handle fully constant references.
+	(vn_reference_lookup_pieces): Likewise.
+	* Makefile.in (expmed.o-warn): Add -Wno-error.
+
+2010-04-07  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (find_param_candidates): Allow scalar va_list types.
+
+2010-04-07  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR driver/41594
+	* gcc.c: Add -static-libstdc++ to list of recognized options.
+
+2010-04-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.gcc (i[34567]86-*-solaris2*): Default with_tune_32 to
+	generic.
+
+2010-04-07  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42617
+	* expr.c (expand_expr_real_1): For TARGET_MEM_REFs with
+	pointer bases build simple mem attributes to retain
+	points-to information.
+
+2010-04-07  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42617
+	* alias.c (ao_ref_from_mem): Without MEM_OFFSET or MEM_SIZE
+	preserve points-to related information.
+
+2010-04-07  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42617
+	* emit-rtl.c (set_mem_attributes_minus_bitpos): Do not
+	discard plain indirect references.
+	* fold-const.c (operand_equal_p): Guard against NULL_TREE
+	type.
+	* tree.c (tree_nop_conversion): Likewise.
+
+2010-04-07  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/43628
+	* dwarf2out.c (modified_type_die): Ignore artificial typedefs.
+
+2010-04-06  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/i386.c (ix86_handle_cconv_attribute): Ignore
+	calling convention attributes on METHOD_TYPEs for w64 ABI, too.
+
+2010-04-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-if-conv.c: Fix indentation and comments.
+
+2010-04-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-if-conv.c: Sort static functions in topological order.
+
+2010-04-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-if-conv.c: Fix indentation and comments.
+
+2010-04-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43519
+	* graphite-clast-to-gimple.c (max_signed_precision_type): Use
+	lang_hooks.types.type_for_size instead of build_nonstandard_integer_type.
+	When converting an unsigned type to signed, double its precision.
+	(gcc_type_for_interval): Use lang_hooks.types.type_for_size.
+	(gcc_type_for_iv_of_clast_loop): Call max_signed_precision_type.
+	(graphite_create_new_loop_guard): When ub + 1 wraps around, use lb <= ub.
+
+2010-04-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43519
+	* graphite-clast-to-gimple.c (graphite_create_new_loop_guard): Use
+	POINTER_PLUS_EXPR for pointer types.
+
+2010-04-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43519
+	* Makefile.in (graphite-clast-to-gimple.o): Depends on langhooks.h.
+	* graphite-clast-to-gimple.c: Include langhooks.h.
+	(max_signed_precision_type): New.
+	(max_precision_type): Takes two types as arguments.
+	(precision_for_value): New.
+	(precision_for_interval): New.
+	(gcc_type_for_interval): New.
+	(gcc_type_for_value): New.
+	(gcc_type_for_clast_term): New.
+	(gcc_type_for_clast_red): New.
+	(gcc_type_for_clast_bin): New.
+	(gcc_type_for_clast_expr): Split up into several functions.
+	(gcc_type_for_clast_eq): Rewritten.
+	(compute_bounds_for_level): New.
+	(compute_type_for_level_1): New.
+	(compute_type_for_level): New.
+	(gcc_type_for_cloog_iv): Removed.
+	(gcc_type_for_iv_of_clast_loop): Rewritten.
+	(graphite_create_new_loop): Compute the lower and upper bound types
+	with gcc_type_for_clast_expr.
+	(graphite_create_new_loop_guard): Same.
+	(find_cloog_iv_in_expr): Removed.
+	(compute_cloog_iv_types_1): Removed.
+	(compute_cloog_iv_types): Removed.
+	(gloog): Do not call compute_cloog_iv_types.
+	* graphite-sese-to-poly.c (new_gimple_bb): Do not initialize
+	GBB_CLOOG_IV_TYPES.
+	(free_data_refs_aux): Do not free GBB_CLOOG_IV_TYPES.
+	* sese.h (struct gimple_bb): Removed field cloog_iv_types.
+	(GBB_CLOOG_IV_TYPES): Removed.
+
+2010-04-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (rewrite_close_phi_out_of_ssa): Assert that
+	gimple_phi_num_args of the loop close SSA phi node is equal to 1.
+	(detect_commutative_reduction): Same.
+
+2010-04-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (graphite_verify): Remove redundant
+	call to verify_ssa.  Invoke verify_loop_closed_ssa with an extra
+	argument.
+	* graphite-scop-detection.c (canonicalize_loop_closed_ssa_form): Same.
+	* graphite-sese-to-poly.c (rewrite_reductions_out_of_ssa): Same.
+	(rewrite_commutative_reductions_out_of_ssa): Same.
+	* passes.c (execute_function_todo): Call verify_ssa for every pass
+	in the LNO.  Invoke verify_loop_closed_ssa with an extra argument.
+	* tree-flow.h (verify_loop_closed_ssa): Update declaration.
+	* tree-parloops.c (parallelize_loops): Invoke verify_loop_closed_ssa
+	with an extra argument.
+	* tree-ssa-loop-manip.c (check_loop_closed_ssa_stmt): Same.  Call
+	verify_ssa only when the extra argument is true.
+	(gimple_duplicate_loop_to_header_edge): Invoke verify_loop_closed_ssa
+	with an extra argument.
+	(tree_transform_and_unroll_loop): Same.
+
+2010-04-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* passes.c (execute_function_todo): Call verify_loop_closed_ssa
+	for all the passes of the LNO having LOOP_CLOSED_SSA.
+	* tree-if-conv.c (pass_if_conversion): Remove TODO_verify_loops.
+	* tree-loop-distribution.c (pass_loop_distribution): Same.
+	* tree-pass.h (TODO_verify_loops): Removed.
+	* tree-ssa-loop.c (pass_tree_loop_init): Same.
+	(pass_lim): Same.
+	(pass_tree_unswitch): Same.
+	(pass_predcom): Same.
+	(pass_vectorize): Same.
+	(pass_linear_transform): Same.
+	(pass_graphite_transforms): Same.
+	(pass_iv_canon): Same.
+	(pass_complete_unroll): Same.
+	(pass_complete_unrolli): Same.
+	(pass_parallelize_loops): Same.
+	(pass_loop_prefetch): Same.
+	(pass_iv_optimize): Same.
+
+2010-04-06  Changpeng Fang  <changpeng.fang@amd.com>
+
+	PR middle-end/32824
+	* passes.c (init_optimization_passes): Move pass_lim before
+	pass_copy_prop and pass_dce_loop.
+
+2010-04-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/43667
+	* config/i386/i386.c (bdesc_multi_arg): Use OPTION_MASK_ISA_XOP
+	instead of OPTION_MASK_ISA_AVX for __builtin_ia32_vpermil2p*.
+	(ix86_expand_args_builtin): Use V*_FTYPE_* enum codes instead of
+	MULTI_* defines for 4 argument vpermil2p* builtins.
+
+2010-04-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386-protos.h (x86_maybe_negate_const_int): Declare.
+	* config/i386/i386.c (x86_maybe_negate_const_int): New.
+	(x86_output_mi_thunk): Use x86_maybe_negate_const_int.
+	* config/i386/i386.md (*add<mode>_1, *addsi_1_zext, *addhi_1,
+	*addhi_1_lea, *addqi_1, *addqi_1_lea, *addqi_1_slp, *add<mode>_2,
+	*addsi_2_zext, *addhi_2, *addqi_2, *add<mode>_3, *addsi_3_zext,
+	*addhi_3, *addqi_3,*add<mode>_5, *addhi_5, *addqi_5):
+	Use x86_maybe_negate_const_int to output insn mnemonic.
+	(*adddi_4, *addsi_4, *addhi_4, *addqi_4): Ditto.  Remove overflow
+	check from instruction predicate.  Update comments.
+	* config/i386/sync.md (sync_add<mode>): Use
+	x86_maybe_negate_const_int to output insn mnemonic.
+
+2010-04-06  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/42906
+	* tree-ssa-dce.c (mark_control_dependent_edges_necessary): Add
+	IGNORE_SELF argument.  Set visited_control_parents for fully
+	processed BBs.
+	(find_obviously_necessary_stmts): Update call of
+	mark_control_dependent_edges_necessary.
+	(propagate_necessity): Likewise.  Handle PHI edges more curefully.
+
+2010-04-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md: Remove comment about 'e' and 'E'
+	operand modifier.
+
 2010-04-06  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/43627
@@ -37,7 +496,7 @@
 
 2010-04-02  Steven Bosscher  <steven@gcc.gnu.org>
 
-	* ada/gcc-interface/Make-lang.in, alias.c, attribs.c, auto-inc-dec.c, 
+	* ada/gcc-interface/Make-lang.in, alias.c, attribs.c, auto-inc-dec.c,
 	basic-block.h, bb-reorder.c, calls.c, c-common.c, cgraph.h,
 	collect2.h, config/alpha/alpha.c, config/alpha/alpha.md,
 	config/alpha/predicates.md, config/arm/arm.md,
@@ -108,7 +567,7 @@
 2010-04-02  Richard Earnshaw  <rearnsha@arm.com>
 
 	PR target/43469
-	* arm.c (legitimize_tls_address): Adjust call to 
+	* arm.c (legitimize_tls_address): Adjust call to
 	gen_tls_load_dot_plus_four.
 	(arm_note_pic_base): New function.
 	(arm_cannot_copy_insn_p): Use it.
@@ -203,7 +662,7 @@
 
 2010-04-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
-	* config.guess (i[34567]86-*-solaris2*): Default with_arch_32,
+	* config.gcc (i[34567]86-*-solaris2*): Default with_arch_32,
 	with_tune_32 to pentium4.
 
 2010-04-01  Uros Bizjak  <ubizjak@gmail.com>
@@ -2669,7 +3128,7 @@
 
 2010-02-15  Nick Clifton  <nickc@redhat.com>
 
-	* config/h8300/h8300.c: (h8300_push_pop): Use bool type for
+	* config/h8300/h8300.c (h8300_push_pop): Use bool type for
 	boolean parameters.  Use emit_jump_insn when emitting a pop
 	instruction containing a return insn.
 	(push): Use 'true' rather than '1' as second parameter to F.

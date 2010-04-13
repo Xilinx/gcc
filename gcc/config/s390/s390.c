@@ -53,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 #include "df.h"
 #include "params.h"
+#include "cfgloop.h"
 
 
 /* Define the specific costs for a given cpu.  */
@@ -1636,12 +1637,19 @@ override_options (void)
     target_flags |= MASK_LONG_DOUBLE_128;
 #endif
 
-  if (s390_tune == PROCESSOR_2097_Z10
-      && !PARAM_SET_P (PARAM_MAX_UNROLLED_INSNS))
-    set_param_value ("max-unrolled-insns", 100);
+  if (s390_tune == PROCESSOR_2097_Z10)
+    {
+      if (!PARAM_SET_P (PARAM_MAX_UNROLLED_INSNS))
+	set_param_value ("max-unrolled-insns", 100);
+      if (!PARAM_SET_P (PARAM_MAX_UNROLL_TIMES))
+	set_param_value ("max-unroll-times", 32);
+      if (!PARAM_SET_P (PARAM_MAX_COMPLETELY_PEELED_INSNS))
+	set_param_value ("max-completely-peeled-insns", 800);
+      if (!PARAM_SET_P (PARAM_MAX_COMPLETELY_PEEL_TIMES))
+	set_param_value ("max-completely-peel-times", 64);
+    }
 
   set_param_value ("max-pending-list-length", 256);
-
 }
 
 /* Map for smallest class containing reg regno.  */
@@ -3940,6 +3948,24 @@ s390_expand_movmem (rtx dst, rtx src, rtx len)
 
       emit_label (loop_start_label);
 
+      if (TARGET_Z10
+	  && (GET_CODE (len) != CONST_INT || INTVAL (len) > 768))
+	{
+	  rtx prefetch;
+
+	  /* Issue a read prefetch for the +3 cache line.  */
+	  prefetch = gen_prefetch (gen_rtx_PLUS (Pmode, src_addr, GEN_INT (768)),
+				   const0_rtx, const0_rtx);
+	  PREFETCH_SCHEDULE_BARRIER_P (prefetch) = true;
+	  emit_insn (prefetch);
+
+	  /* Issue a write prefetch for the +3 cache line.  */
+	  prefetch = gen_prefetch (gen_rtx_PLUS (Pmode, dst_addr, GEN_INT (768)),
+				   const1_rtx, const0_rtx);
+	  PREFETCH_SCHEDULE_BARRIER_P (prefetch) = true;
+	  emit_insn (prefetch);
+	}
+
       emit_insn (gen_movmem_short (dst, src, GEN_INT (255)));
       s390_load_address (dst_addr,
 			 gen_rtx_PLUS (Pmode, dst_addr, GEN_INT (256)));
@@ -4060,6 +4086,17 @@ s390_expand_setmem (rtx dst, rtx len, rtx val)
 
       emit_label (loop_start_label);
 
+      if (TARGET_Z10
+	  && (GET_CODE (len) != CONST_INT || INTVAL (len) > 1024))
+	{
+	  /* Issue a write prefetch for the +4 cache line.  */
+	  rtx prefetch = gen_prefetch (gen_rtx_PLUS (Pmode, dst_addr,
+						     GEN_INT (1024)),
+				       const1_rtx, const0_rtx);
+	  emit_insn (prefetch);
+	  PREFETCH_SCHEDULE_BARRIER_P (prefetch) = true;
+	}
+
       if (val == const0_rtx)
 	emit_insn (gen_clrmem_short (dst, GEN_INT (255)));
       else
@@ -4154,6 +4191,24 @@ s390_expand_cmpmem (rtx target, rtx op0, rtx op1, rtx len)
 			       EQ, NULL_RTX, mode, 1, loop_end_label);
 
       emit_label (loop_start_label);
+
+      if (TARGET_Z10
+	  && (GET_CODE (len) != CONST_INT || INTVAL (len) > 512))
+	{
+	  rtx prefetch;
+
+	  /* Issue a read prefetch for the +2 cache line of operand 1.  */
+	  prefetch = gen_prefetch (gen_rtx_PLUS (Pmode, addr0, GEN_INT (512)),
+				   const0_rtx, const0_rtx);
+	  emit_insn (prefetch);
+	  PREFETCH_SCHEDULE_BARRIER_P (prefetch) = true;
+
+	  /* Issue a read prefetch for the +2 cache line of operand 2.  */
+	  prefetch = gen_prefetch (gen_rtx_PLUS (Pmode, addr1, GEN_INT (512)),
+				   const0_rtx, const0_rtx);
+	  emit_insn (prefetch);
+	  PREFETCH_SCHEDULE_BARRIER_P (prefetch) = true;
+	}
 
       emit_insn (gen_cmpmem_short (op0, op1, GEN_INT (255)));
       temp = gen_rtx_NE (VOIDmode, ccreg, const0_rtx);
@@ -10191,6 +10246,62 @@ s390_sched_init (FILE *file ATTRIBUTE_UNUSED,
   last_scheduled_insn = NULL_RTX;
 }
 
+/* This function checks the whole of insn X for memory references. The
+   function always returns zero because the framework it is called
+   from would stop recursively analyzing the insn upon a return value
+   other than zero. The real result of this function is updating
+   counter variable MEM_COUNT.  */
+static int
+check_dpu (rtx *x, unsigned *mem_count)
+{
+  if (*x != NULL_RTX && MEM_P (*x))
+    (*mem_count)++;
+  return 0;
+}
+
+/* This target hook implementation for TARGET_LOOP_UNROLL_ADJUST calculates
+   a new number struct loop *loop should be unrolled if tuned for the z10
+   cpu. The loop is analyzed for memory accesses by calling check_dpu for
+   each rtx of the loop. Depending on the loop_depth and the amount of
+   memory accesses a new number <=nunroll is returned to improve the
+   behaviour of the hardware prefetch unit.  */
+static unsigned
+s390_loop_unroll_adjust (unsigned nunroll, struct loop *loop)
+{
+  basic_block *bbs;
+  rtx insn;
+  unsigned i;
+  unsigned mem_count = 0;
+
+  /* Only z10 needs special handling.  */
+  if (s390_tune != PROCESSOR_2097_Z10)
+    return nunroll;
+
+  /* Count the number of memory references within the loop body.  */
+  bbs = get_loop_body (loop);
+  for (i = 0; i < loop->num_nodes; i++)
+    {
+      for (insn = BB_HEAD (bbs[i]); insn != BB_END (bbs[i]); insn = NEXT_INSN (insn))
+	if (INSN_P (insn) && INSN_CODE (insn) != -1)
+            for_each_rtx (&insn, (rtx_function) check_dpu, &mem_count);
+    }
+  free (bbs);
+
+  /* Prevent division by zero, and we do not need to adjust nunroll in this case.  */
+  if (mem_count == 0)
+    return nunroll;
+
+  switch (loop_depth(loop))
+    {
+    case 1:
+      return MIN (nunroll, 28 / mem_count);
+    case 2:
+      return MIN (nunroll, 22 / mem_count);
+    default:
+      return MIN (nunroll, 16 / mem_count);
+    }
+}
+
 /* Initialize GCC target structure.  */
 
 #undef  TARGET_ASM_ALIGNED_HI_OP
@@ -10318,6 +10429,9 @@ s390_sched_init (FILE *file ATTRIBUTE_UNUSED,
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE s390_can_eliminate
+
+#undef TARGET_LOOP_UNROLL_ADJUST
+#define TARGET_LOOP_UNROLL_ADJUST s390_loop_unroll_adjust
 
 #undef TARGET_ASM_TRAMPOLINE_TEMPLATE
 #define TARGET_ASM_TRAMPOLINE_TEMPLATE s390_asm_trampoline_template

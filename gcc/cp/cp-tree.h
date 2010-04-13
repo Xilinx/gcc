@@ -1758,7 +1758,7 @@ struct GTY(()) lang_decl_base {
   unsigned threadprivate_or_deleted_p : 1; /* var or fn */
   unsigned anticipated_p : 1;		   /* fn or type */
   unsigned friend_attr : 1;		   /* fn or type */
-  unsigned template_conv_p : 1;		   /* template only? */
+  unsigned template_conv_p : 1;		   /* var or template */
   unsigned odr_used : 1;		   /* var or fn */
   unsigned u2sel : 1;
   /* 1 spare bit */
@@ -2087,6 +2087,15 @@ struct GTY(()) lang_decl {
    args.  */
 #define DECL_TEMPLATE_CONV_FN_P(NODE) \
   (DECL_LANG_SPECIFIC (TEMPLATE_DECL_CHECK (NODE))->u.base.template_conv_p)
+
+/* Nonzero if NODE, a static data member, was declared in its class as an
+   array of unknown bound.  */
+#define VAR_HAD_UNKNOWN_BOUND(NODE)			\
+  (DECL_LANG_SPECIFIC (VAR_DECL_CHECK (NODE))		\
+   ? DECL_LANG_SPECIFIC (NODE)->u.base.template_conv_p	\
+   : false)
+#define SET_VAR_HAD_UNKNOWN_BOUND(NODE) \
+  (DECL_LANG_SPECIFIC (VAR_DECL_CHECK (NODE))->u.base.template_conv_p = true)
 
 /* Set the overloaded operator code for NODE to CODE.  */
 #define SET_OVERLOADED_OPERATOR_CODE(NODE, CODE) \
@@ -4644,6 +4653,7 @@ extern tree pushdecl_top_level_and_finish	(tree, tree);
 extern tree check_for_out_of_scope_variable	(tree);
 extern void print_other_binding_stack		(struct cp_binding_level *);
 extern tree maybe_push_decl			(tree);
+extern tree current_decl_namespace		(void);
 
 /* decl.c */
 extern tree poplevel				(int, int, int);
@@ -4975,6 +4985,7 @@ extern void pop_tinst_level                     (void);
 extern struct tinst_level *outermost_tinst_level(void);
 extern bool parameter_of_template_p		(tree, tree);
 extern void init_template_processing		(void);
+extern void print_template_statistics		(void);
 bool template_template_parameter_p		(const_tree);
 extern bool primary_template_instantiation_p    (const_tree);
 extern tree get_primary_template_innermost_parameters	(const_tree);
@@ -5391,6 +5402,7 @@ extern tree composite_pointer_type		(tree, tree, tree, tree,
 						 composite_pointer_operation, 
 						 tsubst_flags_t);
 extern tree merge_types				(tree, tree);
+extern tree strip_array_domain			(tree);
 extern tree check_return_expr			(tree, bool *);
 extern tree cp_build_binary_op                  (location_t,
 						 enum tree_code, tree, tree,

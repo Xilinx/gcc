@@ -3170,6 +3170,11 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
       || TREE_TYPE (arg1) == error_mark_node)
     return 0;
 
+  /* Similar, if either does not have a type (like a released SSA name), 
+     they aren't equal.  */
+  if (!TREE_TYPE (arg0) || !TREE_TYPE (arg1))
+    return 0;
+
   /* Check equality of integer constants before bailing out due to
      precision differences.  */
   if (TREE_CODE (arg0) == INTEGER_CST && TREE_CODE (arg1) == INTEGER_CST)
@@ -8556,10 +8561,11 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
 				      &mode, &unsignedp, &volatilep, false);
 	  /* If the reference was to a (constant) zero offset, we can use
 	     the address of the base if it has the same base type
-	     as the result type.  */
+	     as the result type and the pointer type is unqualified.  */
 	  if (! offset && bitpos == 0
-	      && TYPE_MAIN_VARIANT (TREE_TYPE (type))
+	      && (TYPE_MAIN_VARIANT (TREE_TYPE (type))
 		  == TYPE_MAIN_VARIANT (TREE_TYPE (base)))
+	      && TYPE_QUALS (type) == TYPE_UNQUALIFIED)
 	    return fold_convert_loc (loc, type,
 				     build_fold_addr_expr_loc (loc, base));
         }

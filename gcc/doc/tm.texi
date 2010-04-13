@@ -465,7 +465,7 @@ indicates an absolute file name.
 @defmac MD_EXEC_PREFIX
 If defined, this macro is an additional prefix to try after
 @code{STANDARD_EXEC_PREFIX}.  @code{MD_EXEC_PREFIX} is not searched
-when the @option{-b} option is used, or the compiler is built as a cross
+when the compiler is built as a cross
 compiler.  If you define @code{MD_EXEC_PREFIX}, then be sure to add it
 to the list of directories used to find the assembler in @file{configure.in}.
 @end defmac
@@ -497,14 +497,13 @@ is built as a cross compiler.
 @defmac MD_STARTFILE_PREFIX
 If defined, this macro supplies an additional prefix to try after the
 standard prefixes.  @code{MD_EXEC_PREFIX} is not searched when the
-@option{-b} option is used, or when the compiler is built as a cross
-compiler.
+compiler is built as a cross compiler.
 @end defmac
 
 @defmac MD_STARTFILE_PREFIX_1
 If defined, this macro supplies yet another prefix to try after the
-standard prefixes.  It is not searched when the @option{-b} option is
-used, or when the compiler is built as a cross compiler.
+standard prefixes.  It is not searched when the compiler is built as a
+cross compiler.
 @end defmac
 
 @defmac INIT_ENVIRONMENT
@@ -10879,6 +10878,15 @@ to reserve space for caller-saved target registers.
 This target hook returns true if the target supports conditional execution.
 This target hook is required only when the target has several different
 modes and they have different conditional execution capability, such as ARM.
+@end deftypefn
+
+@deftypefn {Target Hook} unsigned TARGET_LOOP_UNROLL_ADJUST (unsigned @var{nunroll}, struct loop *@var{loop})
+This target hook returns a new value for the number of times @var{loop}
+should be unrolled. The parameter @var{nunroll} is the number of times
+the loop is to be unrolled. The parameter @var{loop} is a pointer to
+the loop, which is going to be checked for unrolling. This target hook
+is required only when the target has special constraints like maximum
+number of memory accesses.
 @end deftypefn
 
 @defmac POWI_MAX_MULTS

@@ -1262,6 +1262,9 @@ block_move_libcall_safe_for_call_parm (void)
      an outgoing argument.  */
 #if defined (REG_PARM_STACK_SPACE)
   fn = emit_block_move_libcall_fn (false);
+  /* Avoid set but not used warning if *REG_PARM_STACK_SPACE doesn't
+     depend on its argument.  */
+  (void) fn;
   if (OUTGOING_REG_PARM_STACK_SPACE ((!fn ? NULL_TREE : TREE_TYPE (fn)))
       && REG_PARM_STACK_SPACE (fn) != 0)
     return false;
@@ -8730,6 +8733,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       {
 	addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (exp));
 	struct mem_address addr;
+	tree base;
 
 	get_address_description (exp, &addr);
 	op0 = addr_for_mem_ref (&addr, as, true);
@@ -8737,6 +8741,16 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	temp = gen_rtx_MEM (mode, op0);
 	set_mem_attributes (temp, TMR_ORIGINAL (exp), 0);
 	set_mem_addr_space (temp, as);
+	base = get_base_address (TMR_ORIGINAL (exp));
+	if (INDIRECT_REF_P (base)
+	    && TMR_BASE (exp)
+	    && TREE_CODE (TMR_BASE (exp)) == SSA_NAME
+	    && POINTER_TYPE_P (TREE_TYPE (TMR_BASE (exp))))
+	  {
+	    set_mem_expr (temp, build1 (INDIRECT_REF,
+					TREE_TYPE (exp), TMR_BASE (exp)));
+	    set_mem_offset (temp, NULL_RTX);
+	  }
       }
       return temp;
 

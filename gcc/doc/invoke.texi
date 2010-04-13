@@ -232,7 +232,7 @@ Objective-C and Objective-C++ Dialects}.
 -Wno-attributes -Wno-builtin-macro-redefined @gol
 -Wc++-compat -Wc++0x-compat -Wcast-align  -Wcast-qual  @gol
 -Wchar-subscripts -Wclobbered  -Wcomment @gol
--Wconversion  -Wcoverage-mismatch  -Wno-deprecated  @gol
+-Wconversion  -Wcoverage-mismatch  -Wcpp  -Wno-deprecated  @gol
 -Wno-deprecated-declarations -Wdisabled-optimization  @gol
 -Wno-div-by-zero -Wempty-body  -Wenum-compare -Wno-endif-labels @gol
 -Werror  -Werror=* @gol
@@ -262,7 +262,7 @@ Objective-C and Objective-C++ Dialects}.
 -Wunknown-pragmas  -Wno-pragmas @gol
 -Wunsuffixed-float-constants  -Wunused  -Wunused-function @gol
 -Wunused-label  -Wunused-parameter -Wno-unused-result -Wunused-value  -Wunused-variable @gol
--Wvariadic-macros -Wvla @gol
+-Wunused-but-set-parameter -Wunused-but-set-variable -Wvariadic-macros -Wvla @gol
 -Wvolatile-register-var  -Wwrite-strings}
 
 @item C and Objective-C-only Warning Options
@@ -427,11 +427,6 @@ Objective-C and Objective-C++ Dialects}.
 @xref{Directory Options,,Options for Directory Search}.
 @gccoptlist{-B@var{prefix}  -I@var{dir}  -iquote@var{dir}  -L@var{dir}
 -specs=@var{file}  -I- --sysroot=@var{dir}}
-
-@item Target Options
-@c I wrote this xref this way to avoid overfull hbox. -- rms
-@xref{Target Options}.
-@gccoptlist{-V @var{version}  -b @var{machine}}
 
 @item Machine Dependent Options
 @xref{Submodel Options,,Hardware Models and Configurations}.
@@ -916,8 +911,7 @@ See S/390 and zSeries Options.
 -fshort-double  -fshort-wchar @gol
 -fverbose-asm  -fpack-struct[=@var{n}]  -fstack-check @gol
 -fstack-limit-register=@var{reg}  -fstack-limit-symbol=@var{sym} @gol
--fno-stack-limit  -fargument-alias  -fargument-noalias @gol
--fargument-noalias-global  -fargument-noalias-anything @gol
+-fno-stack-limit @gol
 -fleading-underscore  -ftls-model=@var{model} @gol
 -ftrapv  -fwrapv  -fbounds-check @gol
 -fvisibility}
@@ -2927,7 +2921,8 @@ name is still supported, but the newer name is more descriptive.)
 -Wsign-compare  @gol
 -Wtype-limits  @gol
 -Wuninitialized  @gol
--Wunused-parameter @r{(only with} @option{-Wunused} @r{or} @option{-Wall}@r{)}  @gol
+-Wunused-parameter @r{(only with} @option{-Wunused} @r{or} @option{-Wall}@r{)} @gol
+-Wunused-but-set-parameter @r{(only with} @option{-Wunused} @r{or} @option{-Wall}@r{)}  @gol
 }
 
 The option @option{-Wextra} also prints warning messages for the
@@ -2973,6 +2968,11 @@ This warning is enabled by @option{-Wall}.
 Warn whenever a comment-start sequence @samp{/*} appears in a @samp{/*}
 comment, or whenever a Backslash-Newline appears in a @samp{//} comment.
 This warning is enabled by @option{-Wall}.
+
+@item -Wno-cpp \
+@r{(C, Objective-C, C++, Objective-C++ and Fortran only)}
+
+Suppress warning messages emitted by @code{#warning} directives.
 
 @item -Wformat
 @opindex Wformat
@@ -3316,6 +3316,31 @@ built-in functions are used.  These functions changed semantics in GCC 4.4.
 Warn if any trigraphs are encountered that might change the meaning of
 the program (trigraphs within comments are not warned about).
 This warning is enabled by @option{-Wall}.
+
+@item -Wunused-but-set-parameter
+@opindex Wunused-but-set-parameter
+@opindex Wno-unused-but-set-parameter
+Warn whenever a function parameter is assigned to, but otherwise unused
+(aside from its declaration).
+
+To suppress this warning use the @samp{unused} attribute
+(@pxref{Variable Attributes}).
+
+This warning is also enabled by @option{-Wunused} together with
+@option{-Wextra}.
+
+@item -Wunused-but-set-variable
+@opindex Wunused-but-set-variable
+@opindex Wno-unused-but-set-variable
+Warn whenever a local variable is assigned to, but otherwise unused
+(aside from its declaration).
+This warning is enabled by @option{-Wall}.
+
+To suppress this warning use the @samp{unused} attribute
+(@pxref{Variable Attributes}).
+
+This warning is also enabled by @option{-Wunused}, which is enabled
+by @option{-Wall}.
 
 @item -Wunused-function
 @opindex Wunused-function
@@ -9526,33 +9551,7 @@ proper position among the other output files.
 The usual way to run GCC is to run the executable called @file{gcc}, or
 @file{<machine>-gcc} when cross-compiling, or
 @file{<machine>-gcc-<version>} to run a version other than the one that
-was installed last.  Sometimes this is inconvenient, so GCC provides
-options that will switch to another cross-compiler or version.
-
-@table @gcctabopt
-@item -b @var{machine}
-@opindex b
-The argument @var{machine} specifies the target machine for compilation.
-
-The value to use for @var{machine} is the same as was specified as the
-machine type when configuring GCC as a cross-compiler.  For
-example, if a cross-compiler was configured with @samp{configure
-arm-elf}, meaning to compile for an arm processor with elf binaries,
-then you would specify @option{-b arm-elf} to run that cross compiler.
-Because there are other options beginning with @option{-b}, the
-configuration must contain a hyphen, or @option{-b} alone should be one
-argument followed by the configuration in the next argument.
-
-@item -V @var{version}
-@opindex V
-The argument @var{version} specifies which version of GCC to run.
-This is useful when multiple versions are installed.  For example,
-@var{version} might be @samp{4.0}, meaning to run GCC version 4.0.
-@end table
-
-The @option{-V} and @option{-b} options work by running the
-@file{<machine>-gcc-<version>} executable, so there's no real reason to
-use them if you can just run that directly.
+was installed last.
 
 @node Submodel Options
 @section Hardware Models and Configurations
@@ -9561,11 +9560,7 @@ use them if you can just run that directly.
 @cindex hardware models and configurations, specifying
 @cindex machine dependent options
 
-Earlier we discussed the standard option @option{-b} which chooses among
-different installed compilers for completely different target
-machines, such as VAX vs.@: 68000 vs.@: 80386.
-
-In addition, each of these target machine types can have its own
+Each target machine types can have its own
 special options, starting with @samp{-m}, to choose among various
 hardware models or configurations---for example, 68010 vs 68020,
 floating coprocessor or none.  A single installed version of the
@@ -17443,31 +17438,6 @@ and grows downwards, you can use the flags
 @option{-fstack-limit-symbol=__stack_limit} and
 @option{-Wl,--defsym,__stack_limit=0x7ffe0000} to enforce a stack limit
 of 128KB@.  Note that this may only work with the GNU linker.
-
-@cindex aliasing of parameters
-@cindex parameters, aliased
-@item -fargument-alias
-@itemx -fargument-noalias
-@itemx -fargument-noalias-global
-@itemx -fargument-noalias-anything
-@opindex fargument-alias
-@opindex fargument-noalias
-@opindex fargument-noalias-global
-@opindex fargument-noalias-anything
-Specify the possible relationships among parameters and between
-parameters and global data.
-
-@option{-fargument-alias} specifies that arguments (parameters) may
-alias each other and may alias global storage.@*
-@option{-fargument-noalias} specifies that arguments do not alias
-each other, but may alias global storage.@*
-@option{-fargument-noalias-global} specifies that arguments do not
-alias each other and do not alias global storage.
-@option{-fargument-noalias-anything} specifies that arguments do not
-alias any other storage.
-
-Each language will automatically use whatever option is required by
-the language standard.  You should not need to use these options yourself.
 
 @item -fleading-underscore
 @opindex fleading-underscore

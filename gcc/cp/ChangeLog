@@ -1,3 +1,74 @@
+2010-04-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43016
+	* decl.c (start_preparsed_function): Do defer nested functions.
+
+	PR c++/11094, DR 408
+	* cp-tree.h (VAR_HAD_UNKNOWN_BOUND, SET_VAR_HAD_UNKNOWN_BOUND): New.
+	* decl2.c (finish_static_data_member_decl): Set it.
+	* decl.c (duplicate_decls): Propagate it.
+	* pt.c (tsubst_decl): Don't substitute the domain of an array
+	VAR_DECL if it's set.
+	(regenerate_decl_from_template): Substitute it here.
+	(type_dependent_expression_p): Return true if it's set.
+	* semantics.c (finish_decltype_type): Instantiate such a variable.
+	* typeck.c (cxx_sizeof_expr): Likewise.
+	(strip_array_domain): New.
+
+	* name-lookup.c (current_decl_namespace): Non-static.
+	(pop_nested_namespace): Sanity check.
+	* cp-tree.h: Declare current_decl_namespace.
+	* decl.c (grokvardecl): Use it instead of current_namespace.
+	(grokfndecl): Likewise.
+
+	PR c++/38392
+	* pt.c (tsubst_friend_function): Instatiate a friend that has already
+	been used.
+
+	* pt.c (print_template_statistics): New.
+	* cp-tree.h: Declare it.
+	* tree.c (cxx_print_statistics): Call it.
+
+	PR c++/41970
+	* decl.c (grokvardecl): Tweak warning message.
+	(grokfndecl): Likewise.
+
+2010-04-07  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42697
+	*pt.c (tsubst_decl): Get the arguments of a specialization from
+	the specialization template, not from the most general template.
+
+2010-04-07  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/40239
+	* typeck2.c (process_init_constructor_record):
+	value-initialize members that are are not explicitely
+	initialized.
+
+2010-04-07  Jie Zhang  <jie@codesourcery.com>
+
+	PR c++/42556
+	* typeck2.c (split_nonconstant_init_1): Drop empty CONSTRUCTOR
+	when all of its elements are non-constant and have been split out.
+
+2010-04-06  Taras Glek  <taras@mozilla.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	* parser.c (cp_parser_class_specifier): Set class location to that
+	of IDENTIFIER_NODE instead of '{' when possible.
+	* semantics.c (begin_class_definition): Do not overide locations
+	with less precise ones.
+
+2010-04-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43648
+	* name-lookup.c (constructor_name_p): Allow X::~X even for typedefs.
+
+	PR c++/43621
+	* pt.c (maybe_update_decl_type): Check the return value from
+	push_scope.
+
 2010-04-01  Jason Merrill  <jason@redhat.com>
 
 	* decl.c (next_initializable_field): No longer static.
