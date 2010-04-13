@@ -5157,14 +5157,15 @@ char *
 melt_tempdir_path (const char *srcnam, const char* suffix)
 {
   int loopcnt = 0;
+  int mkdirdone = 0;
   const char *basnam = 0;
   static const char* tmpdirstr = 0;
-  extern char *choose_tmpdir (void);	/* from libiberty/choose-temp.c */
-  basnam = lbasename (CONST_CAST (char*,srcnam));
+  time_t nowt = 0;
+  basnam = srcnam?lbasename (CONST_CAST (char*,srcnam)):0;
   debugeprintf ("melt_tempdir_path srcnam %s basnam %s suffix %s", srcnam, basnam, suffix);
   if (!tmpdirstr)
     tmpdirstr = melt_argument ("tempdir");
-  gcc_assert (basnam && (ISALNUM (basnam[0]) || basnam[0] == '_'));
+  gcc_assert (!basnam || (ISALNUM (basnam[0]) || basnam[0] == '_'));
   if (tmpdirstr && tmpdirstr[0])
     {
       if (access (tmpdirstr, F_OK))
@@ -5178,31 +5179,42 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
     }
   if (!tempdir_melt[0])
     {
+      time (&nowt);
       /* usually this loop runs only once */
       for (loopcnt = 0; loopcnt < 1000; loopcnt++)
 	{
-	  int n = melt_lrand () & 0xfffffff;
+	  int n = (melt_lrand () & 0x1fffffff) ^ (nowt & 0xffffff);
+	  n += (int)getpid ();
 	  memset(tempdir_melt, 0, sizeof(tempdir_melt));
 #ifdef MELT_IS_PLUGIN
 	  /* we don't have choose_tmpdir in plugin mode because it is
 	     in libiberty */
 	  snprintf (tempdir_melt, sizeof(tempdir_melt)-1,
-		    "%s-GccMelt%d-%d-d",
-		    tmpnam(NULL), (int)getpid (), n);
+		    "%s-GccMeltTmp-%x",
+		    tmpnam(NULL),  n);
 #else
-	  snprintf (tempdir_melt, sizeof(tempdir_melt)-1, 
-		     "%s/GccMeltmpd%d-%d", choose_tmpdir (), (int) getpid (),
-		    n);
+	  {
+	    /* from libiberty/choose-temp.c */
+	    extern char *choose_tmpdir (void);	
+	    char*chtmpdir = choose_tmpdir ();
+	    gcc_assert (chtmpdir != NULL);
+	    if (chtmpdir[0] && chtmpdir[strlen(chtmpdir)-1]!='/')
+	      snprintf (tempdir_melt, sizeof(tempdir_melt)-1, 
+			"%s/GccMeltTmpdir-%x", chtmpdir, n);
+	    else
+	      snprintf (tempdir_melt, sizeof(tempdir_melt)-1, 
+			"%sGCCMeltTmpdir-%x", chtmpdir,  n);
+	  }
 #endif
 	  if (!mkdir (tempdir_melt, 0700))
 	    {
 	      made_tempdir_melt = true;
+	      mkdirdone = 1;
 	      break;
-	    }
-	  tempdir_melt[0] = '\0';
+	    };
 	}
-      if (!tempdir_melt[0])
-	fatal_error ("failed to create temporary directory for MELT");
+      if (!mkdirdone)
+	fatal_error ("failed to create temporary directory for MELT, last try was %s - %m", tempdir_melt);
     };
   return concat (tempdir_melt, "/", basnam, suffix, NULL);
 }
@@ -5237,6 +5249,7 @@ obstack_add_escaped_path(struct obstack* obs, const char* path)
    /some/path/foo+1.c /some/path/foo+2.c.  the binfile should have a
    .so suffix.  The module build is done thru the melt-module.mk file
    [with the 'make' utility]. */
+
 static void
 compile_module_to_binary (const char *srcfile, const char *binfile, const char*workdir)
 {
@@ -5253,11 +5266,11 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
 
   */
   int srcfilelen = 0, binfilelen = 0;
-  char pwdbuf[500];
   const char* ourmakecommand=0;
   const char* ourmakefile=0;
   const char* ourcflags=0;
-  memset(pwdbuf, 0, sizeof(pwdbuf));
+  char* mycwd=0;
+  mycwd = getpwd ();
   /* the name of the source module argument to 'make'. */
 #define SOURCE_MODULE_ARG "GCCMELT_MODULE_SOURCE="
   /* the name of the binary module argument to 'make'. */
@@ -5266,13 +5279,12 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
 #define WORKSPACE_ARG "GCCMELT_MODULE_WORKSPACE="
   /* the additional C flags */
 #define CFLAGS_ARG "GCCMELT_CFLAGS="
-  debugeprintf ("compile_module_to_binary start srcfile %s binfile %s", srcfile, binfile);
-  if (flag_melt_debug) {
-    char* cwd = getcwd (pwdbuf, sizeof(pwdbuf)-1);
-    if (!cwd)
-      fatal_error("Melt: getcwd failed %m");
-    debugeprintf ("compile_module_to_binary cwd %s", cwd);
-  }
+  /* the flag to change directory for make */
+#define MAKECHDIR_ARG "-C"
+  debugeprintf ("compile_module_to_binary start srcfile %s", srcfile);
+  debugeprintf ("compile_module_to_binary start binfile %s", binfile);
+  debugeprintf ("compile_module_to_binary start workdir %s", workdir);
+  debugeprintf ("compile_module_to_binary start mycwd %s", mycwd);
   gcc_assert (srcfile != NULL);
   gcc_assert (binfile != NULL);
   srcfilelen = (int) strlen(srcfile);
@@ -5303,8 +5315,11 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
   gcc_assert (ourmakefile[0]);
 
   ourcflags = melt_argument ("module-cflags");
-  if (!ourcflags || !ourcflags[0]) ourcflags = getenv ("GCCMELT_MODULE_CFLAGS");
-  if (!ourcflags || !ourcflags[0]) ourcflags = melt_module_cflags;
+  if (!ourcflags || !ourcflags[0])
+    ourcflags = getenv ("GCCMELT_MODULE_CFLAGS");
+  if (!ourcflags || !ourcflags[0]) 
+    ourcflags = melt_module_cflags;
+
   fflush (stdout);
   fflush (stderr);
 
@@ -5336,8 +5351,21 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     if (warnescapedchar)
       warning (0, "escaped character[s] in MELT module makefile %s", ourmakefile);
     obstack_1grow (&cmd_obstack, ' ');
+    /* add the -C workdir argument if workdir is not the current directory */
+    if (workdir && strcmp(workdir, ".") && strcmp(workdir, mycwd))) {
+      debugeprintf ("compile_module_to_binary dochdir in workdir %s", workdir);
+      obstack_grow0 (&cmd_obstack, MAKECHDIR_ARG, strlen (MAKECHDIR_ARG));
+      obstack_1grow (&cmd_obstack, ' ');
+      (void) obstack_add_escaped_path (&cmd_obstack, workdir);
+      obstack_1grow (&cmd_obstack, ' ');
+    }
+
     /* add the source argument */
     obstack_grow0 (&cmd_obstack, SOURCE_MODULE_ARG, strlen (SOURCE_MODULE_ARG));
+    if (!IS_ABSOLUTE_PATH(srcfile)) {
+      (void) obstack_add_escaped_path (&cmd_obstack, mycwd);
+      obstack_1grow (&cmd_obstack, '/');
+    }
     warnescapedchar = obstack_add_escaped_path (&cmd_obstack, srcfile);
     if (warnescapedchar)
       warning (0, "escaped character[s] in MELT source module %s", srcfile);
@@ -5345,6 +5373,10 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
 
     /* add the binary argument */
     obstack_grow0 (&cmd_obstack, BINARY_MODULE_ARG, strlen (BINARY_MODULE_ARG));
+    if (!IS_ABSOLUTE_PATH(binfile)) {
+      (void) obstack_add_escaped_path (&cmd_obstack, mycwd);
+      obstack_1grow (&cmd_obstack, '/');
+    }    
     warnescapedchar = obstack_add_escaped_path (&cmd_obstack, binfile);
     if (warnescapedchar)
       warning (0, "escaped character[s] in MELT binary module %s", binfile);
@@ -5361,13 +5393,18 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
 
     /* add the workspace argument if needed, that is if workdir is
        provided not as '.' */
-    if (workdir && workdir[0] && (workdir[0] != '.' || workdir[1]))
+    if (workdir && workdir[0] && strcmp(workdir,".") && strcmp(workdir, mycwd))
       {
 	struct stat workstat;
 	memset (&workstat, 0, sizeof(workstat));
+	debugeprintf ("compile_module_to_binary handling workdir %s", workdir);
 	if (stat (workdir, &workstat) || (!S_ISDIR (workstat.st_mode), (errno = ENOTDIR) != 0))
 	  fatal_error ("invalid MELT module workspace directory %s - %m", workdir);
 	obstack_grow0 (&cmd_obstack, WORKSPACE_ARG, strlen (WORKSPACE_ARG));
+	if (!IS_ABSOLUTE_PATH(workdir)) {
+	  (void) obstack_add_escaped_path (&cmd_obstack, mycwd);
+	  obstack_1grow (&cmd_obstack, '/');
+	}; 
 	warnescapedchar = obstack_add_escaped_path (&cmd_obstack, workdir);
 	if (warnescapedchar)
 	  warning (0, "escaped character[s] in MELT workspace directory %s", workdir);
@@ -5376,12 +5413,17 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     obstack_1grow (&cmd_obstack, (char) 0);
     cmdstr = XOBFINISH (&cmd_obstack, char *);
     debugeprintf("compile_module_to_binary cmdstr= %s", cmdstr);
+    fflush (NULL);
     err = system (cmdstr);
     debugeprintf("compile_module_to_binary command got %d", err);
     if (err)
       fatal_error ("MELT module compilation failed for command %s", cmdstr);
     cmdstr = NULL;
     obstack_free (&cmd_obstack, NULL); /* free all the cmd_obstack */
+    if (IS_ABSOLUTE_PATH (binfile))
+      inform (UNKNOWN_LOCATION, "MELT has built module %s", binfile);
+    else
+      inform (UNKNOWN_LOCATION, "MELT has built module %s in %s", binfile, mycwd);
     return;
   }
 #else /* not MELT_IS_PLUGIN */
@@ -5390,17 +5432,21 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     int err = 0;
     int cstatus = 0;
     const char *errmsg = 0;
-    const char *argv[9] = { 0,0,0,0,0,0,0,0,0 };
+    const char *argv[12] = { 0,0,0,0,0,0,0,0,0,0,0,0 };
     char* srcarg = 0;
     char* binarg = 0;
     char* cflagsarg = 0;
     char* workarg = 0;
     struct pex_obj* pex = 0;
     struct pex_time ptime;
+    double mysystime = 0.0, myusrtime = 0.0;
+    char cputimebuf[32];
     memset (&ptime, 0, sizeof (ptime));
+    memset (cputimebuf, 0, sizeof (cputimebuf));
     /* compute the ourmakecommand */
     pex = pex_init (PEX_RECORD_TIMES, ourmakecommand, NULL);
     argv[argc++] = ourmakecommand;
+    debugeprintf("compile_module_to_binary arg ourmakecommand %s", ourmakecommand);
     /* silent make if not debugging */
     if (!flag_melt_debug)
       argv[argc++] = "-s";
@@ -5408,17 +5454,31 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     /* the -f argument, and then the makefile */
     argv[argc++] = "-f";
     argv[argc++] = ourmakefile;
+    debugeprintf("compile_module_to_binary arg ourmakefile %s", ourmakefile);
+
+    if (workdir && strcmp(workdir, ".") && strcmp(workdir, mycwd)) {
+      debugeprintf("compile_module_to_binary dochdir workdir %s", workdir);
+      argv[argc++] = MAKECHDIR_ARG;
+      argv[argc++] = workdir;
+    }
+	
     /* the source argument */
-    srcarg = concat (SOURCE_MODULE_ARG, srcfile, NULL);
+    if (IS_ABSOLUTE_PATH(srcfile))
+      srcarg = concat (SOURCE_MODULE_ARG, srcfile, NULL);
+    else 
+      srcarg = concat (SOURCE_MODULE_ARG, getpwd(), "/", srcfile, NULL);
     argv[argc++] = srcarg;
+    debugeprintf("compile_module_to_binary arg srcarg %s", srcarg);
 
     /* the binary argument */
     binarg = concat (BINARY_MODULE_ARG, binfile, NULL);
     argv[argc++] = binarg;
+    debugeprintf("compile_module_to_binary arg binarg %s", binarg);
 
     if (ourcflags && ourcflags[0])
       {
 	cflagsarg = concat (CFLAGS_ARG, ourcflags, NULL);
+	debugeprintf("compile_module_to_binary arg cflagsarg %s", cflagsarg);
 	argv[argc++] = cflagsarg;
       }
     /* add the workspace argument if needed, that is if workdir is
@@ -5426,18 +5486,24 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     if (workdir && workdir[0] && (workdir[0] != '.' || workdir[1]))
       {
 	struct stat workstat;
+	debugeprintf ("compile_module_to_binary handling workdir %s", workdir);
 	memset (&workstat, 0, sizeof(workstat));
 	if (stat (workdir, &workstat) || (!S_ISDIR (workstat.st_mode) && (errno = ENOTDIR) != 0))
 	  fatal_error ("invalid MELT module workspace directory %s - %m", workdir);
 	workarg = concat (WORKSPACE_ARG, workdir, NULL);
 	argv[argc++] = workarg;
+	debugeprintf ("compile_module_to_binary arg workarg %s", workarg);
       }
     argv[argc] = NULL;
     gcc_assert ((int) argc < (int) (sizeof(argv)/sizeof(*argv)));
     
-    debugeprintf("compile_module_to_binary pex: %s -f %s %s %s %s %s",
-		 ourmakecommand, ourmakefile, srcarg, binarg,
-		 workarg?workarg:"", cflagsarg?cflagsarg:"");
+    if (flag_melt_debug) {
+      int i;
+      for (i=0; i<argc; i++) 
+	debugeprintf ("compile_module_to_binary argv[%d]=%s", i, argv[i]);
+    }
+    debugeprintf("compile_module_to_binary before pex_run argc=%d", argc);
+    fflush (NULL);
     errmsg =
       pex_run (pex, PEX_LAST | PEX_SEARCH, ourmakecommand,
 	       CONST_CAST (char**, argv),
@@ -5455,6 +5521,20 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
 	("failed to get time of melt dynamic compilation to dyl:  %s %s %s - %m",
 	 ourmakecommand, srcfile, binfile);
     pex_free (pex);
+    myusrtime = (double) ptime.user_seconds
+      + 1.0e-6*ptime.user_microseconds;
+    mysystime = (double) ptime.system_seconds
+      + 1.0e-6*ptime.system_microseconds;
+    snprintf (cputimebuf, sizeof(cputimebuf)-1, "%.3f", myusrtime+mysystime);
+    if (IS_ABSOLUTE_PATH(binfile))
+      inform (UNKNOWN_LOCATION,
+	      "MELT has built module %s in %s sec.",
+	      binfile, cputimebuf);
+    else
+      inform (UNKNOWN_LOCATION, 
+	      "MELT has built module %s inside %s in %s sec.", 
+	      binfile, mycwd, cputimebuf);
+      
     free (srcarg);
     free (binarg);
     free (workarg);
@@ -5933,11 +6013,15 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
   /* if we have the srcpath but did'nt found the stuff, try to compile it using the temporary directory */
   if (srcpath)
     {
+      char* mytmpdir = melt_tempdir_path(NULL, NULL);
       tmpath = melt_tempdir_path (dupmodulnam, ".so");
       debugeprintf ("meltgc_load_melt_module before compiling tmpath %s", tmpath);
-      compile_module_to_binary (srcpath, tmpath, melt_argument ("tempdir"));
+      debugeprintf ("meltgc_load_melt_module before compiling mytmpdir %s", mytmpdir);
+      compile_module_to_binary (srcpath, tmpath, mytmpdir);
       debugeprintf ("meltgc_compile srcpath=%s compiled to tmpath=%s",
 		    srcpath, tmpath);
+      free (mytmpdir);
+      mytmpdir = NULL;
       MELT_LOCATION_HERE
 	("meltgc_load_melt_module before load_checked_dylib compiled tmpath");
       dlix = load_checked_dynamic_module_index (tmpath, md5src);
@@ -8839,6 +8923,7 @@ do_finalize_melt (void)
     {
       DIR *tdir = opendir (tempdir_melt);
       VEC (char_p, heap) * dirvec = 0;
+      int nbdelfil = 0;
       struct dirent *dent = 0;
       if (!tdir)
 	fatal_error ("failed to open tempdir %s %m", tempdir_melt);
@@ -8855,10 +8940,14 @@ do_finalize_melt (void)
 	{
 	  char *tfilnam = VEC_pop (char_p, dirvec);
 	  debugeprintf ("melt_finalize remove file %s", tfilnam);
-	  remove (tfilnam);
+	  if (!remove (tfilnam))
+	    nbdelfil++;
 	  free (tfilnam);
 	};
       VEC_free (char_p, heap, dirvec);
+      if (nbdelfil>0)
+	inform (UNKNOWN_LOCATION, "MELT removed %d temporary files from %s",
+		nbdelfil, tempdir_melt);
     }
   if (made_tempdir_melt && tempdir_melt[0])
     {
@@ -10328,10 +10417,7 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
   char *dotcpercentnam = NULL;
   FILE *cfil = NULL;
   FILE *oldfil = NULL;
-  static char pwdbuf[500];
-  memset (pwdbuf, 0, sizeof(pwdbuf));
-  if (!getcwd (pwdbuf, sizeof(pwdbuf)-1)) 
-    fatal_error ("getcwd failure %m");
+  char *mycwd = getpwd ();
   gcc_assert (melt_magic_discr (unitnam) == OBMAG_STRING);
   gcc_assert (melt_magic_discr (declbuf) == OBMAG_STRBUF);
   gcc_assert (melt_magic_discr (implbuf) == OBMAG_STRBUF);
@@ -10340,13 +10426,14 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
   {
     const char *s = melt_string_str (unitnam);
     int slen = strlen (s);
-    char bufpid[24];
+    char bufpid[32];
     time_t now = 0;
     time (&now);
+    debugeprintf ("melt_output_cfile_decl_impl_secondary s=%s", s);
     /* generate in bufpid a unique file suffix from the pid and the time */
     memset (bufpid, 0, sizeof(bufpid));
     snprintf (bufpid, sizeof(bufpid)-1, "_%d_%d",
-	      (int) getpid(), (int) (now%1024));
+	      (int) getpid(), (int) (now%10000));
     if (slen>2 && (s[slen-2]!='.' || s[slen-1]!='c')) 
       {
 	dotcnam = concat (s, ".c", NULL);
@@ -10444,8 +10531,11 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
     if (remove (dotempnam))
       fatal_error ("failed to remove %s as melt generated file - %m",
 		   dotempnam);
+    if (IS_ABSOLUTE_PATH(dotcnam))
+    inform (UNKNOWN_LOCATION, "MELT generated same file %s", dotcnam);
+    else
     inform (UNKNOWN_LOCATION, "MELT generated same file %s in %s",
-	    dotcnam, pwdbuf);
+	    dotcnam, mycwd);
     }
   else
     {
@@ -10456,8 +10546,11 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
       if (rename (dotempnam, dotcnam))
 	fatal_error ("failed to rename %s as %s melt generated file - %m",
 		     dotempnam, dotcnam);
-    inform (UNKNOWN_LOCATION, "MELT generated new file %s in %s",
-	    dotcnam, pwdbuf);
+      if (IS_ABSOLUTE_PATH (dotcnam))
+	inform (UNKNOWN_LOCATION, "MELT generated new file %s",	dotcnam);
+      else
+	inform (UNKNOWN_LOCATION, "MELT generated new file %s in %s",
+		dotcnam, mycwd);
     }
   debugeprintf ("output_cfile done dotcnam %s", dotcnam);
   free (dotcnam);

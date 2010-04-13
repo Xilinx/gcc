@@ -59,7 +59,7 @@ ifndef GCCMELT_CFLAGS
 GCCMELT_CFLAGS=-O 
 endif
 
-RM= rm -vf
+RM=rm -f
 MD5SUM=md5sum
 .PHONY: meltmodule meltmoduledynamic  meltmodulerawdynamic meltmodulewithoutline meltclean
 

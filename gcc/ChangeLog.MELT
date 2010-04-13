@@ -1,3 +1,15 @@
+2010-04-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk (RM): set to rm -f without verbosity.
+	* melt-runtime.c (melt_tempdir_path): Made a bit more robust, and
+	the generated temporary dir has a more suggestive unique name.
+	(compile_module_to_binary): The make command is given a -C to
+	chdir into the work directory, to avoid spoling the user's
+	directory. Added informative messages.
+	(meltgc_load_melt_module): Uses the temporary directory as a work
+	directory when compiling generated C files.
+	(do_finalize_melt): inform about the temporary directory cleanup.
+	(melt_output_cfile_decl_impl_secondary): Added inform.
+
 2010-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{bug reported by Sylvestre Ledru}}
 	* melt-runtime.c (melt_debug_out): Added missing cast from
