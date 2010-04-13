@@ -343,7 +343,7 @@ Generate auto-inc/dec instructions
 ; Midlle End Lisp Translator by Basile Starynkevitch (source file gcc/melt-runtime.c)
 fmelt=
 Common Report Var(melt_mode_string) Joined 
-Basile's mode with command or analysis to run. Uses -fmelt=help for more.
+MELT mode with command or analysis to run. Uses -fmelt=help for more.
 
 ; argument string for melt
 fmelt-arg=

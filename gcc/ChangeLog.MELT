@@ -1,9 +1,14 @@
 2010-04-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* common.opt (fmelt-arg): updated description.
+	* doc/melt.texi (Invoking MELT): updated documentation.
+	(MELT as a plugin): Mentions GCC 4.5.
+
+2010-04-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk (RM): set to rm -f without verbosity.
 	* melt-runtime.c (melt_tempdir_path): Made a bit more robust, and
 	the generated temporary dir has a more suggestive unique name.
 	(compile_module_to_binary): The make command is given a -C to
-	chdir into the work directory, to avoid spoling the user's
+	chdir into the work directory, to avoid spoiling the user's
 	directory. Added informative messages.
 	(meltgc_load_melt_module): Uses the temporary directory as a work
 	directory when compiling generated C files.
