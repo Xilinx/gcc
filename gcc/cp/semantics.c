@@ -3446,7 +3446,9 @@ expand_or_defer_fn_1 (tree fn)
 	 this function as needed so that finish_file will make sure to
 	 output it later.  Similarly, all dllexport'd functions must
 	 be emitted; there may be callers in other DLLs.  */
-      if ((flag_keep_inline_functions && DECL_DECLARED_INLINE_P (fn))
+      if ((flag_keep_inline_functions
+	   && DECL_DECLARED_INLINE_P (fn)
+	   && !DECL_REALLY_EXTERN (fn))
 	  || lookup_attribute ("dllexport", DECL_ATTRIBUTES (fn)))
 	mark_needed (fn);
     }
@@ -5966,9 +5968,12 @@ maybe_add_lambda_conv_op (tree type)
   VEC_quick_push (tree, argvec, arg);
   for (arg = DECL_ARGUMENTS (statfn); arg; arg = TREE_CHAIN (arg))
     VEC_safe_push (tree, gc, argvec, arg);
-  call = build_cxx_call (callop, VEC_length (tree, argvec),
-			 VEC_address (tree, argvec));
+  call = build_call_a (callop, VEC_length (tree, argvec),
+		       VEC_address (tree, argvec));
   CALL_FROM_THUNK_P (call) = 1;
+  if (MAYBE_CLASS_TYPE_P (TREE_TYPE (call)))
+    call = build_cplus_new (TREE_TYPE (call), call);
+  call = convert_from_reference (call);
   finish_return_stmt (call);
 
   finish_compound_stmt (compound_stmt);

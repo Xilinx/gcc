@@ -540,8 +540,6 @@ update_alias_info_with_stack_vars (void)
 
       add_partitioned_vars_to_ptset (&cfun->gimple_df->escaped,
 				     decls_to_partitions, visited, temp);
-      add_partitioned_vars_to_ptset (&cfun->gimple_df->callused,
-				     decls_to_partitions, visited, temp);
 
       pointer_set_destroy (visited);
       pointer_map_destroy (decls_to_partitions);
@@ -3766,10 +3764,12 @@ gimple_expand_cfg (void)
     {
       if (cfun->calls_alloca)
 	warning (OPT_Wstack_protector,
-		 "not protecting local variables: variable length buffer");
+		 "stack protector not protecting local variables: "
+                 "variable length buffer");
       if (has_short_buffer && !crtl->stack_protect_guard)
 	warning (OPT_Wstack_protector,
-		 "not protecting function: no buffer at least %d bytes long",
+		 "stack protector not protecting function: "
+                 "all local arrays are less than %d bytes long",
 		 (int) PARAM_VALUE (PARAM_SSP_BUFFER_SIZE));
     }
 

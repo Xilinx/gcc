@@ -425,8 +425,9 @@ Objective-C and Objective-C++ Dialects}.
 
 @item Directory Options
 @xref{Directory Options,,Options for Directory Search}.
-@gccoptlist{-B@var{prefix}  -I@var{dir}  -iquote@var{dir}  -L@var{dir}
--specs=@var{file}  -I- --sysroot=@var{dir}}
+@gccoptlist{-B@var{prefix} -I@var{dir} -iplugindir=@var{dir}}
+-iquote@var{dir} -L@var{dir} -specs=@var{file} -I-
+--sysroot=@var{dir}
 
 @item Machine Dependent Options
 @xref{Submodel Options,,Hardware Models and Configurations}.
@@ -4284,11 +4285,13 @@ warning about it.
 The restrictions on @samp{offsetof} may be relaxed in a future version
 of the C++ standard.
 
-@item -Wno-int-to-pointer-cast @r{(C and Objective-C only)}
+@item -Wno-int-to-pointer-cast
 @opindex Wno-int-to-pointer-cast
 @opindex Wint-to-pointer-cast
 Suppress warnings from casts to pointer type of an integer of a
-different size.
+different size. In C++, casting to a pointer type of smaller size is
+an error. @option{Wint-to-pointer-cast} is enabled by default.
+
 
 @item -Wno-pointer-to-int-cast @r{(C and Objective-C only)}
 @opindex Wno-pointer-to-int-cast
@@ -8889,6 +8892,12 @@ This is to ensure that GCC's procedure to fix buggy system headers and
 the ordering for the include_next directive are not inadvertently changed.
 If you really need to change the search order for system directories,
 use the @option{-nostdinc} and/or @option{-isystem} options.
+
+@item -iplugindir=@var{dir}
+Set the directory to search for plugins which are passed
+by @option{-fplugin=@var{name}} instead of
+@option{-fplugin=@var{path}/@var{name}.so}.  This option is not meant
+to be used by the user, but only passed by the driver.
 
 @item -iquote@var{dir}
 @opindex iquote

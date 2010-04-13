@@ -560,7 +560,7 @@ c_readstr (const char *str, enum machine_mode mode)
 	  && GET_MODE_SIZE (mode) > UNITS_PER_WORD)
 	j = j + UNITS_PER_WORD - 2 * (j % UNITS_PER_WORD) - 1;
       j *= BITS_PER_UNIT;
-      gcc_assert (j <= 2 * HOST_BITS_PER_WIDE_INT);
+      gcc_assert (j < 2 * HOST_BITS_PER_WIDE_INT);
 
       if (ch)
 	ch = (unsigned char) str[i];
@@ -2316,7 +2316,8 @@ expand_builtin_interclass_mathfn (tree exp, rtx target, rtx subtarget)
       tree orig_arg = arg;
       /* Make a suitable register to place result in.  */
       if (!target
-	  || GET_MODE (target) != TYPE_MODE (TREE_TYPE (exp)))
+	  || GET_MODE (target) != TYPE_MODE (TREE_TYPE (exp))
+	  || !insn_data[icode].operand[0].predicate (target, GET_MODE (target)))
          target = gen_reg_rtx (TYPE_MODE (TREE_TYPE (exp)));
 
       gcc_assert (insn_data[icode].operand[0].predicate

@@ -112,9 +112,6 @@ extern void mark_out_of_scope (Entity_Id gnat_entity);
 /* Get the unpadded version of a GNAT type.  */
 extern tree get_unpadded_type (Entity_Id gnat_entity);
 
-/* Called when we need to protect a variable object using a save_expr.  */
-extern tree maybe_variable (tree gnu_operand);
-
 /* Create a record type that contains a SIZE bytes long field of TYPE with a
     starting bit position so that it is aligned to ALIGN bits, and leaving at
     least ROOM bytes free before the field.  BASE_ALIGN is the alignment the
@@ -256,9 +253,6 @@ extern void post_error_ne_tree (const char *msg, Node_Id node, Entity_Id ent,
 extern void post_error_ne_tree_2 (const char *msg, Node_Id node, Entity_Id ent,
                                   tree t, int num);
 
-/* Protect EXP from multiple evaluation.  This may make a SAVE_EXPR.  */
-extern tree protect_multiple_eval (tree exp);
-
 /* Return a label to branch to for the exception type in KIND or NULL_TREE
    if none.  */
 extern tree get_exception_label (char kind);
@@ -266,12 +260,6 @@ extern tree get_exception_label (char kind);
 /* Current node being treated, in case gigi_abort or Check_Elaboration_Code
    called.  */
 extern Node_Id error_gnat_node;
-
-/* This is equivalent to stabilize_reference in tree.c, but we know how to
-   handle our own nodes and we take extra arguments.  FORCE says whether to
-   force evaluation of everything.  We set SUCCESS to true unless we walk
-   through something we don't know how to stabilize.  */
-extern tree maybe_stabilize_reference (tree ref, bool force, bool *success);
 
 /* Highest number in the front-end node table.  */
 extern int max_gnat_nodes;
@@ -386,8 +374,11 @@ enum standard_datatypes
   /* Likewise for freeing memory.  */
   ADT_free_decl,
 
-  /* Function decl node for 64-bit multiplication with overflow checking */
+  /* Function decl node for 64-bit multiplication with overflow checking.  */
   ADT_mulv64_decl,
+
+  /* Identifier for the name of the _Parent field in tagged record types.  */
+  ADT_parent_name_id,
 
   /* Types and decls used by our temporary exception mechanism.  See
      init_gigi_decls for details.  */
@@ -420,6 +411,7 @@ extern GTY(()) tree gnat_raise_decls[(int) LAST_REASON_CODE + 1];
 #define malloc32_decl gnat_std_decls[(int) ADT_malloc32_decl]
 #define free_decl gnat_std_decls[(int) ADT_free_decl]
 #define mulv64_decl gnat_std_decls[(int) ADT_mulv64_decl]
+#define parent_name_id gnat_std_decls[(int) ADT_parent_name_id]
 #define jmpbuf_type gnat_std_decls[(int) ADT_jmpbuf_type]
 #define jmpbuf_ptr_type gnat_std_decls[(int) ADT_jmpbuf_ptr_type]
 #define get_jmpbuf_decl gnat_std_decls[(int) ADT_get_jmpbuf_decl]
@@ -871,9 +863,24 @@ extern tree build_allocator (tree type, tree init, tree result_type,
 extern tree fill_vms_descriptor (tree expr, Entity_Id gnat_formal,
                                  Node_Id gnat_actual);
 
-/* Indicate that we need to make the address of EXPR_NODE and it therefore
-   should not be allocated in a register.  Return true if successful.  */
-extern bool gnat_mark_addressable (tree expr_node);
+/* Indicate that we need to take the address of T and that it therefore
+   should not be allocated in a register.  Returns true if successful.  */
+extern bool gnat_mark_addressable (tree t);
+
+/* Save EXP for later use or reuse.  This is equivalent to save_expr in tree.c
+   but we know how to handle our own nodes.  */
+extern tree gnat_save_expr (tree exp);
+
+/* Protect EXP for immediate reuse.  This is a variant of gnat_save_expr that
+   is optimized under the assumption that EXP's value doesn't change before
+   its subsequent reuse(s) except through its potential reevaluation.  */
+extern tree gnat_protect_expr (tree exp);
+
+/* This is equivalent to stabilize_reference in tree.c but we know how to
+   handle our own nodes and we take extra arguments.  FORCE says whether to
+   force evaluation of everything.  We set SUCCESS to true unless we walk
+   through something we don't know how to stabilize.  */
+extern tree gnat_stabilize_reference (tree ref, bool force, bool *success);
 
 /* Implementation of the builtin_function langhook.  */
 extern tree gnat_builtin_function (tree decl);

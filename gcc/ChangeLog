@@ -1,3 +1,706 @@
+2010-04-13  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline.c (cgraph_mark_inline_edge): Avoid double accounting
+	of optimized out static functions.
+	(cgraph_edge_badness): Add DUMP parameter and dump reasons for the
+	cost computation.  Also sanity check for overflows.
+	(update_caller_keys): Update cgraph_edge_badness call; properly
+	update fibheap and sanity check that it is up to date.
+	(add_new_edges_to_heap): Update cgraph_edge_badness.
+	(cgraph_decide_inlining_of_small_function): Likewise;
+	add sanity checking that badness in heap is up to date;
+	improve dumping of reason; Update badness of calls to the
+	offline copy of function currently inlined; dump badness
+	of functions not inlined because of unit growth limits.
+
+2010-04-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/32628
+	* c-common.c (pointer_int_sum): Disregard overflow that occured only
+	because of sign-extension change when converting to sizetype here...
+	* fold-const.c (fold_convert_const_int_from_int): ...and not here.
+
+	* fold-const.c (fold_binary_op_with_conditional_arg): Do not restrict
+	the folding to constants.  Remove redundant final conversion.
+	(fold_binary) <associate>: Do not associate if the re-association of
+	constants alone overflows.
+	(fold_binary) <FLOOR_MOD_EXPR>: Move transformation into BIT_AND_EXPR
+	to the end of the list.
+	(multiple_of_p) <COND_EXPR>: New case.
+
+2010-04-13  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* opt-functions.awk (opt_sanitized_name): New.
+	(opt_enum): New.
+	* optc-gen.awk: Use it
+	* opth-gen.awk: Use it.
+
+2010-04-13  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (replace_uses_with_default_def_ssa_name): New function.
+	(sra_modify_assign): Delete stmts loading dead data even if racc has no
+	children.  Call replace_uses_with_default_def_ssa_name to handle
+	SSA_NAES on lhs.
+
+2010-04-13  Michael Matz  <matz@suse.de>
+
+	PR middle-end/43730
+	* builtins.c (expand_builtin_interclass_mathfn): Also create
+	a register if the predicate doesn't match.
+
+2010-04-13  Diego Novillo  <dnovillo@google.com>
+
+	* Makefile.in (c-pch.o, ggc-common.o): Depend on timevar.h.
+	* c-pch.c: Include timevar.h.
+	(c_common_write_pch): Use TV_PCH_SAVE and TV_PCH_CPP_SAVE timers.
+	(c_common_read_pch): Use TV_PCH_RESTORE and TV_PCH_CPP_RESTORE
+	timers.
+	* ggc-common.c: Include timevar.h.
+	(gt_pch_save): Use TV_PCH_PTR_REALLOC and TV_PCH_PTR_SORT
+	timers.
+	* timevar.def (TV_PCH_SAVE): Define.
+	(TV_PCH_CPP_SAVE): Define.
+	(TV_PCH_PTR_REALLOC): Define.
+	(TV_PCH_PTR_SORT): Define.
+	(TV_PCH_RESTORE): Define.
+	(TV_PCH_CPP_RESTORE): Define.
+
+2010-04-13  Michael Matz  <matz@suse.de>
+
+	* tree-ssa-reassoc.c (repropagate_negates): Merge negates also
+	into MINUS_EXPRs.
+	(can_reassociate_p): New function.
+	(break_up_subtract_bb, reassociate_bb): Use it.
+
+2010-04-13  Richard Guenther  <rguenther@suse.de>
+
+	PR bootstrap/43737
+	* builtins.c (c_readstr): Fix assert.
+
+2010-04-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (extendsidi2 splitter): Also check for DX_REG
+	when generating cltd insn.
+
+	(*ashl<mode>3_1): Remove special handling for register operand 2.
+	(*ashlsi3_1_zext): Ditto.
+	(*ashlhi3_1): Ditto.
+	(*ashlhi3_1_lea): Ditto.
+	(*ashlqi3_1): Ditto.
+	(*ashlqi3_1_lea): Ditto.
+	(*<shiftrt_insn><mode>3_1): Ditto.
+	(*<shiftrt_insn>si3_1_zext): Ditto.
+	(*<shiftrt_insn>qi3_1_slp): Ditto.
+	(*<rotate_insn><mode>3_1): Ditto.
+	(*<rotate_insn>si3_1_zext): Ditto.
+	(*<rotate_insn>qi3_1_slp): Ditto.
+
+2010-04-13  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (callused_id): Remove.
+	(call_stmt_vars): New.
+	(get_call_vi): Likewise.
+	(lookup_call_use_vi): Likewise.
+	(lookup_call_clobber_vi): Likewise.
+	(get_call_use_vi): Likewise.
+	(get_call_clobber_vi): Likewise.
+	(make_transitive_closure_constraints): Likewise.
+	(handle_const_call): Adjust to do per-call call-used handling.
+	(handle_pure_call): Likewise.
+	(find_what_var_points_to): Remove general callused handling.
+	(init_base_vars): Likewise.
+	(init_alias_vars): Initialize call_stmt_vars.
+	(compute_points_to_sets): Process call-used and call-clobbered
+	vars for call statements.
+	(delete_points_to_sets): Free call_stmt_vars.
+
+2010-04-13  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-data-refs.c (vect_analyze_data_ref_dependence):
+	Only add RW dependence for dependence distance zero.
+	Adjust maximal vectorization factor according to dependences.
+	Move alignment handling ...
+	(vect_find_same_alignment_drs): ... here.  New function.
+	(vect_analyze_data_ref_dependences): Adjust.
+	(vect_analyze_data_refs_alignment): Call vect_find_same_alignment_drs.
+	(vect_analyze_data_refs): Adjust minimal vectorization factor
+	according to data references.
+	* tree-vect-loop.c (vect_analyze_loop): Analyze data-ref
+	dependences before determining the vectorization factor.
+	Analyze alignment after determining the vectorization factor.
+	* tree-vect-slp.c ((vect_slp_analyze_bb): Analyze data-ref
+	dependences before alignment.
+	* tree-vectorizer.h (vect_analyze_data_ref_dependences):
+	Adjust prototype.
+	(vect_analyze_data_refs): Likewise.
+	(MAX_VECTORIZATION_FACTOR): New define.
+
+2010-04-13  Duncan Sands  <baldrick@free.fr>
+
+	* except.h (lang_eh_type_covers): Remove.
+	* except.c (lang_eh_type_covers): Likewise.
+
+2010-04-13  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+            Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+	
+	* gcc/config/s390/s390.md: Replace TARGET_64BIT with TARGET_ZARCH.
+	* gcc/config/s390/s390.c: Replace UNTIS_PER_WORD with
+	UNITS_PER_LONG where it is ABI relevant.	
+	(s390_return_addr_rtx): Likewise.
+	(s390_back_chain_rtx): Likewise.
+	(s390_frame_area): Likewise.
+	(s390_frame_info): Likewise.
+	(s390_initial_elimination_offset): Likewise.
+	(save_gprs): Likewise.
+	(s390_emit_prologue): Likewise.
+	(s390_emit_epilogue): Likewise.
+	(s390_function_arg_advance): Likewise.
+	(s390_function_arg): Likewise.
+	(s390_va_start): Likewise.
+	(s390_gimplify_va_arg): Likewise.
+	(s390_function_profiler): Likewise.
+	(s390_optimize_prologue): Likewise.
+	(s390_rtx_costs): Likewise.
+	(s390_secondary_reload): Likewise.
+	(s390_promote_function_mode): Likewise.
+	(s390_hard_regno_mode_ok): Replace TARGET_64BIT with TARGET_ZARCH.
+	(s390_scalar_mode_supported_p): Disallow TImode if no 64 bit
+	registers available.
+	(s390_unwind_word_mode): New function.
+	(s390_function_value): Split 64 bit values into register pair if
+	used as return value.
+	(s390_call_saved_register_used): Don't use HARD_REGNO_NREGS for
+	function call parameters.  Handle parallels.
+	(TARGET_SCALAR_MODE_SUPPORTED_P): New macro.
+	(HARD_REGNO_CALL_PART_CLOBBERED): New macro.
+	(DWARF_CIE_DATA_ALIGNMENT): New macro.
+	(s390_expand_setmem): Remove unused variable src_addr.
+	* gcc/longlong.h: Make smul_ppmm and sdiv_qrnnd inline asms to
+	deal with 64 bit registers.	
+	* gcc/config/s390/s390.h: Define __zarch__ predefined macro.
+	Replace UNITS_PER_WORD with UNITS_PER_LONG where it is ABI relevant.
+	(UNITS_PER_LONG): New macro.
+	* libjava/include/s390-signal.h: Define extended ucontext
+	structure containing the upper halfs of the 64 bit registers.
+
+2010-04-13  Simon Baldwin  <simonb@google.com>
+
+	* cfgexpand.c (gimple_expand_cfg): Clarify warning message text.
+
+2010-04-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gimple.c (walk_gimple_op) <GIMPLE_ASSIGN>: Do not request a pure
+	rvalue on the RHS if the LHS is of a non-renamable type.
+	* tree-ssa-ccp.c (maybe_fold_offset_to_component_ref): Fold result.
+
+2010-04-13  Matthias Klose  <doko@ubuntu.com>
+
+	* gcc.c (cc1_options): Handle -iplugindir before processing
+	the cc1 spec. Only add -iplugindir once.
+	(cpp_unique_options): Add -iplugindir option if -fplugin* options
+	found.
+	* common.opt (iplugindir): Remove `Separate' property, initialize.
+	* plugin.c (default_plugin_dir_name): Error with missing -iplugindir
+	option.
+	* Makefile.in (check-%, check-parallel-%): Create plugin dir.
+	(distclean): Remove plugin dir.
+	* doc/invoke.texi: Document -iplugindir.
+
+2010-04-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* doc/plugins.texi (Loading Plugins): Document short
+	-fplugin=foo option.
+	(Plugin API): Mention default_plugin_dir_name function.
+
+	* gcc.c (find_file_spec_function): Add new declaration.
+	(static_spec_func): Use it for "find-file".
+	(find_file_spec_function): Add new function.
+	(cc1_options): Add -iplugindir option if -fplugin* options found.
+
+	* gcc-plugin.h (default_plugin_dir_name): Added new declaration.
+
+	* plugin.c (add_new_plugin): Updated comment, and handle short
+	plugin name.
+	(default_plugin_dir_name): Added new function.
+
+	* common.opt (iplugindir): New option to set the plugin directory.
+
+2010-04-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (any_rotate): New code iterator.
+	(rotate_insn): New code attribute.
+	(rotate): Ditto.
+	(SWIM124): New mode iterator.
+	(<rotate_insn>ti3): New expander.
+	(<rotate_insn>di3): Macroize expander from {rotl,rotr}di3 using
+	any_rotate code iterator.
+	(<rotate_insn><mode>3) Macroize expander from {rotl,rotr}{qi,hi,si}3
+	using any_rotate code iterator and SWIM124 mode iterator.
+	(ix86_rotlti3): New insn_and_split pattern.
+	(ix86_rotrti3): Ditto.
+	(ix86_rotl<dwi>3_doubleword): Macroize insn_and_split pattern from
+	ix86_rotl{di,ti}3 patterns.
+	(ix86_rotr<dwi>3_doubleword): Ditto from ix86_rotr{di,ti}3 patterns.
+	(*<rotate_insn><mode>3_1): Merge with *{rotl,rotr}{qi,hi,si}3_1_one_bit
+	and *{rotl,rotr}di3_1_one_bit_rex64. Macroize insn from
+	*{rotl,rotr}{qi,hi,si}3_1 and *{rotl,rotr}di3_1_rex64 using any_rotate
+	code iterator and SWI mode iterator.
+	(*<rotate_insn>si3_1_zext): Merge with *{rotl,rotr}si3_1_one_bit_zext.
+	Macroize insn from {rotl,rotr}si3_1_zext using any_rotate
+	code iterator.
+	(*<rotate_insn>qi3_1_slp): Merge with *{rotl,rotr}qi3_1_one_bit_slp.
+	Macroize insn from {rotl,rotr}qi3_1_slp using any_rotate code iterator.
+	(bswap rotatert splitter): Add splitter.
+	(bswap splitter): Macroize splitter using any_rotate code iterator.
+	Add insn predicate to split only for TARGET_USE_XCHGB or when
+	optimizing function for size.
+
+2010-04-12  Steve Ellcey  <sje@cup.hp.com>
+
+	* config/pa/pa.c (emit_move_sequence): Remove use of
+	deleted variable flag_argument_noalias.
+
+2010-04-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.gcc: Removed *-*-solaris2.7* from list of obsolete
+	configurations.
+	Add to unsupported targets list.
+	* configure.ac (gcc_cv_as_tls): Removed i[34567]86-*-solaris2.[567]*,
+	sparc*-sun-solaris2.[567]* from target lists.
+	* configure: Regenerate.
+	* doc/install.texi (Specific, *-*-solaris2*): Document Solaris 7
+	removal.
+	Remove Solaris 7 patch references.
+	(Specific, sparc-sun-solaris2.7): Removed.
+	(sparc-sun-solaris2*): Update Solaris 7 example.
+	(sparc64-*-solaris2*): Likewise.
+
+2010-04-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.build (alpha*-dec-osf4*): Remove.
+	* config.gcc: Remove alpha*-dec-osf4*, alpha-dec-osf5.0* from list
+	of obsolete configurations.
+	(alpha*-dec-osf[45]*): Remove alpha*-dec-osf4*, alpha-dec-osf5.0*
+	support.
+	* config/alpha/t-osf4: Renamed to ...
+	* config/alpha/t-osf5: ... this.
+	* config/alpha/osf.h: Renamed to ...
+	* config/alpha/osf5.h: ... this.
+	Merged old osf5.h contents.
+	Update comments.
+	(ASM_SPEC): Use ASM_OLDAS_SPEC directly.
+	(EXTRA_SPECS): Removed.
+	* doc/install.texi (Specific, alpha*-dec-osf5.1): Renamed to
+	reflect removal of Tru64 UNIX V4.0/V5.0 support.
+	Document that.
+
+2010-04-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/contrib.texi (Contributors, Rainer Orth): Update.
+
+2010-04-12  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR/43702
+	* config/i386/i386.c (x86_this_parameter): Handle aggregate for
+	__thiscall convention.
+
+2010-04-12  Steve Ellcey  <sje@cup.hp.com>
+
+	* config/pa/pa.c (hppa_legitimize_address): Remove unused variable
+	orig_base.
+	* config/pa/pa.md (call, call_value): Remove unused variable call_insn.
+
+2010-04-12  Steve Ellcey  <sje@cup.hp.com>
+
+	* function.c (assign_parms_initialize_all): Add unused attribute
+	to fntype.
+
+2010-04-12  Richard Guenther  <rguenther@suse.de>
+
+	* gsstruct.def (GSS_CALL): New.
+	* gimple.def (GIMPLE_CALL): Change to GSS_CALL.
+	* gimple.h: Include tree-ssa-alias.h.
+	(struct gimple_statement_call): New.
+	(union gimple_statement_struct_d): Add gimple_call member.
+	(gimple_call_reset_alias_info): Declare.
+	(gimple_call_use_set): New function.
+	(gimple_call_clobber_set): Likewise.
+	* Makefile.in (GIMPLE_H): Add tree-ssa-alias.h.
+	* gimple.c (gimple_call_reset_alias_info): New function.
+	(gimple_build_call_1): Call it.
+	* lto-streamer-in.c (input_gimple_stmt): Likewise.
+	* tree-inline.c (remap_gimple_stmt): Likewise.
+	(expand_call_inline): Remove callused handling.
+	* cfgexpand.c (update_alias_info_with_stack_vars): Likewise.
+	* tree-dfa.c (dump_variable): Likewise.
+	* tree-parloops.c (parallelize_loops): Likewise.
+	* tree-ssa.c (init_tree_ssa): Likewise.
+	(delete_tree_ssa): Likewise.
+	* tree-flow-inline.h (is_call_used): Remove.
+	* tree-flow.h (struct gimple_df): Remove callused member.
+	* tree-nrv.c (dest_safe_for_nrv_p): Adjust predicate.
+	* tree-ssa-alias.c (dump_alias_info): Remove callused handling.
+	(ref_maybe_used_by_call_p_1): Simplify.
+	(call_may_clobber_ref_p_1): Likewise.
+	* tree-ssa-structalias.c (compute_points_to_sets): Set
+	the call stmt used and clobbered sets.
+	* tree-tailcall.c (suitable_for_tail_opt_p): Adjust predicate.
+	(find_tail_calls): Verify the tail call.
+
+2010-04-12  Richard Guenther  <rguenther@suse.de>
+
+	* ipa.c (cgraph_postorder): Adjust postorder to guarantee
+	single-iteration always-inline inlining.
+	* ipa-inline.c (cgraph_mark_inline): Do not return anything.
+	(cgraph_decide_inlining): Do not handle always-inline specially.
+	(try_inline): Remove always-inline cycle detection special case.
+	Do not recurse on always-inlines.
+	(cgraph_early_inlining): Do not iterate if not optimizing.
+	(cgraph_gate_early_inlining): remove.
+	(pass_early_inline): Run unconditionally.
+	(gate_cgraph_decide_inlining): New function.
+	(pass_ipa_inline): Use it.  Do not run the IPA inliner if
+	not inlining or optimizing.
+	(cgraph_decide_inlining_of_small_functions): Also consider
+	always-inline functions.
+	(cgraph_default_inline_p): Return true for nodes which should
+	disregard inline limits.
+	(estimate_function_body_sizes): Assume zero size and time for
+	nodes which are marked as disregarding inline limits.
+	(cgraph_decide_recursive_inlining): Do not perform recursive
+	inlining on always-inline nodes.
+
+2010-04-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/43699
+	* c-typeck.c (c_process_expr_stmt): Call mark_exp_read even
+	for exprs satisfying handled_component_p.
+
+2010-04-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* expr.c (categorize_ctor_elements_1): Properly count sub-elements of
+	non-constant aggregate elements.
+
+	* gimplify.c (gimplify_init_constructor): Do not pre-evaluate if this
+	is a real initialization.
+
+2010-04-12  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c/36774
+	* c-decl.c (start_function): Move forward check for nested function.
+
+2010-04-11  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh-protos.h (sh_legitimize_reload_address): Declare.
+	* config/sh/sh.c: Include reload.h.
+	(sh_legitimize_reload_address): New.
+	* config/sh/sh.h (LEGITIMIZE_RELOAD_ADDRESS): Use
+	sh_legitimize_reload_address.
+
+2010-04-11  Kaushik Phatak  <kaushik.phatak@kpitcummins.com>
+
+	* config/sh/sh.md (*movqi_pop): New insn pattern.
+	* config/sh/predicates.md (sh_no_delay_pop_operand): New predicate.
+
+2010-04-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (any_shiftrt): New code iterator.
+	(shiftrt_insn): New code attribute.
+	(shiftrt): Ditto.
+	(<shiftrt_insn><mode>3): Macroize expander from {ashr,lshr}<mode>3
+	using any_shiftrt code iterator.
+	(*<shiftrt_insn><mode>3_doubleword): Macroize insn_and_split from
+	*{ashr,lshr}<mode>3_doubleword using any_shiftrt code iterator.
+	(*<shiftrt_insn><mode>3_doubleword peephole2): Macroize peephole2
+	pattern from corresponding peephole2 patterns.
+	(*<shiftrt_insn><mode>3_1): Macroize insn from *{ashr,lshr}<mode>3_1
+	using any_shiftrt code iterator.
+	(*<shiftrt_insn>si3_1_zext): Ditto from *{ashr,lshr}si3_1_zext.
+	(*<shiftrt_insn>qi3_1_slp): Ditto from *{ashr,lshr}qi3_1_slp.
+	(*<shiftrt_insn><mode>3_cmp): Ditto from *{ashr,lshr}<mode>3_cmp.
+	(*<shiftrt_insn><mode>3_cmp_zext): Ditto from
+	*{ashr,lshr}<mode>3_cmp_zext.
+	(*<shiftrt_insn><mode>3_cconly): Ditto from *{ashr,lshr}<mode>3_cconly.
+
+2010-04-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*ashr<mode>3_cconly): Fix wrong mode of
+	scratch register.
+	(*lshr<mode>3_cconly): Ditto.
+
+2010-04-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (lshr<mode>3): Macroize expander from
+	lshr{qi,hi,si,di,ti}3_1 using SDWIM mode iterator.
+	(*lshr<mode>3_doubleword): New insn_and_split_pattern.  Macroize
+	pattern from *lshr{di,ti}3_1 and corresponding splitters using
+	DWI mode iterator.
+	(*lshr<mode>3_doubleword peephole2): Macroize peephole2 pattern
+	from corresponding peephole2 patterns.
+	(*lshr<mode>3_1): Merge with *lshr{qi,hi,si}3_1_one_bit and
+	*lshrdi3_1_one_bit_rex64. Macroize insn from *lshr{qi,hi,si}3_1
+	and *lshrdi3_1_rex64 using SWI mode iterator.
+	(*lshrsi3_1_zext): Merge with *lshrsi3_1_one_bit_zext.
+	(*lshrqi3_1_slp): Merge with *lshrqi3_1_one_bit_slp.
+	(*lshr<mode>3_cmp): Merge with *lshr{qi,hi,si}3_one_bit_cmp and
+	*lshrdi3_one_bit_cmp_rex64. Macroize insn from *lshr{qi,hi,si}3_cmp
+	and *lshrdi3_cmp_rex64 using SWI mode iterator.
+	(*lshrsi3_cmp_zext): Merge with *lshrsi3_cmp_one_bit_zext.
+	(*lshr<mode>3_cconly): Merge with *lshr{qi,hi,si}3_one_bit_cconly and
+	*lshrdi3_one_bit_cconly_rex64. Macroize insn from
+	*lshr{qi,hi,si}3_cconly and *lshrdi3_cconly_rex64 using
+	SWI mode iterator.
+
+2010-04-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (ashr<mode>3): Macroize expander from
+	ashr{qi,hi,si,di,ti}3_1 using SDWIM mode iterator.
+	(*ashr<mode>3_doubleword): New insn_and_split_pattern.  Macroize
+	pattern from *ashr{di,ti}3_1 and corresponding splitters using
+	DWI mode iterator.
+	(*ashr<mode>3_doubleword peephole2): Macroize peephole2 pattern
+	from corresponding peephole2 patterns.
+	(ashrdi3_cvt): Rename from ashrdi3_63_rex64.
+	(ashrsi3_cvt): Rename from ashrsi3_31.
+	(*ashrsi3_cvt_zext): Rename from *ashrsi3_31_zext.
+	(x86_shift<mode>_adj_3): Macroize expander from x86_shift_adj_3
+	and x86_64_shift_adj_3 using SWI48 mode iterator.
+	(*ashr<mode>3_1): Merge with *ashr{qi,hi,si}3_1_one_bit and
+	*ashrdi3_1_one_bit_rex64. Macroize insn from *ashr{qi,hi,si}3_1
+	and *ashrdi3_1_rex64 using SWI mode iterator.
+	(*ashrsi3_1_zext): Merge with *ashrsi3_1_one_bit_zext.
+	(*ashrqi3_1_slp): Merge with *ashrqi3_1_one_bit_slp.
+	(*ashr<mode>3_cmp): Merge with *ashr{qi,hi,si}3_one_bit_cmp and
+	*ashrdi3_one_bit_cmp_rex64. Macroize insn from *ashr{qi,hi,si}3_cmp
+	and *ashrdi3_cmp_rex64 using SWI mode iterator.
+	(*ashrsi3_cmp_zext): Merge with *ashrsi3_cmp_one_bit_zext.
+	(*ashr<mode>3_cconly): Merge with *ashr{qi,hi,si}3_one_bit_cconly and
+	*ashrdi3_one_bit_cconly_rex64. Macroize insn from
+	*ashr{qi,hi,si}3_cconly and *ashrdi3_cconly_rex64 using
+	SWI mode iterator.
+	(sign_extend splitters): Update for renamed ashr{di,si}3_cvt patterns.
+	* config/i386/i386.c (ix86_split_ashr): Update for renamed
+	x86_shift<mode>_adj_3 expanders.
+
+2010-04-10  Wei Guozhi  <carrot@google.com>
+
+	PR target/42601
+	* config/arm/arm.c (arm_pic_static_addr): New function.
+	(legitimize_pic_address): Call arm_pic_static_addr when it detects
+	a static symbol.
+	(arm_output_addr_const_extra): Output expression for new pattern.
+	* config/arm/arm.md (UNSPEC_SYMBOL_OFFSET): New unspec symbol.
+
+2010-04-10  Bernd Schmidt  <bernd.schmidt@codesourcery.com>
+
+	* ira-costs.c (record_reg_classes): Ignore alternatives that are
+	not enabled.
+
+	* Makefile.in (web.o): Depend on insn-config.h and $(RECOG_H).
+	* web.c: Include "insn-config.h" and "recog.h".
+	(union_match_dups): New function.
+	(web_main): Call it.
+	(union_defs): Don't try to recognize match_dups.
+
+	* reload1.c (eliminate_regs_in_insn): Don't restore an operand
+	if doing so would replace the entire pattern.
+
+2010-04-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/43707
+	PR target/43709
+	* config/i386/i386.md (*ashl<mode>3_doubleword): Split to insn
+	and splitter pattern.  Change splitter operand 1 predicate to
+	nonmemory_operand.
+
+2010-04-09  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-cp.c (ipcp_lats_are_equal): Return true also if the two
+	lattices are addresses of CONST_DECLs with the same initial value.
+	(ipcp_print_all_lattices): Print values of CONST_DECLs.
+	* ipa-prop.c (ipa_print_node_jump_functions): Likewise.
+
+2010-04-09  Eric Botcazou  <ebotcazou@adacore.com>
+	    Bernd Schmidt  <bernd.schmidt@codesourcery.com>
+
+	* loop-invariant.c (replace_uses): New static function.
+	(move_invariant_reg): Use it to ensure we can replace the uses.
+
+2010-04-09  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	* config/picochip/picochip.c (picochip_rtx_costs): Use correct
+	function template.
+	(picochip_override_options): Enable section anchors only above -O1.
+	(picochip_reorg): Fixed a couple of build warnings.
+
+2010-04-09  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (plugin -rdynamic test): Log result.
+	* configure: Regenerate.
+	* config/sol2.h (LINK_SPEC): Handle -rdynamic.
+	(RDYNAMIC_SPEC): Define.
+	* config/sol2-gld.h (RDYNAMIC_SPEC): Redefine.
+
+2010-04-09  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac: Determine Sun ld version numbers.
+	(comdat_group): Restrict GNU ld version checks to gld.
+	(comdat_group, *-*-solaris2.1[1-9]*): Enable for Sun ld > 1.1688.
+	(enable_comdat): Support --enable-comdat.
+	* configure: Regenerate.
+	* doc/install.texi (Configuration): Document --enable-comdat.
+
+2010-04-09  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/sparc/sol2-gld.h: Remove SPARC reference.  Rename ...
+	* config/sol2-gld.h: ... here.
+	* config.gcc (sparc*-*-solaris2*): Reflect this.
+	(i[34567]86-*-solaris2*): Use it.
+
+2010-04-09  Steve Ellcey  <sje@cup.hp.com>
+
+	* config/ia64/ia64.c (ia64_dfa_new_cycle): Remove unused variable
+	setup_clocks_p.
+	(final_emit_insn_group_barriers): Remove unused variable prev_insn.
+
+2010-04-09  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 42965
+	* diagnostic.c (diagnostic_initialize): Initialize
+	some_warnings_are_errors.
+	(diagnostic_finish): New.
+	(diagnostic_action_after_output): Call it before exiting.
+	(diagnostic_report_diagnostic): Do not print message here. Set
+	some_warnings_are_errors.
+	* diagnostic.h (diagnostic_context): Delete
+	issue_warnings_are_errors_message. Add some_warnings_are_errors.
+	(diagnostic_finish): Declare.
+	* toplev.c (toplev_main): Call it before exit.
+
+2010-04-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42623
+	* c-common.c (c_sizeof_or_alignof_type): Return error_mark_node
+	for incomplete type.
+
+	PR c++/41788
+	* stor-layout.c (finalize_record_size): Don't change TYPE_PACKED
+	based on a warning flag.
+
+2010-04-09  Richard Guenther  <rguenther@suse.de>
+
+	* tree-pretty-print.c (dump_generic_node): Dump TYPE_VECTOR_SUBPARTS.
+
+2010-04-09  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR bootstrap/43684
+	* varasm.c (default_assemble_visibility): Wrap vars that are
+	set, but unused, by targets without GAS.
+	* config/rs6000/rs6000.c: (paired_emit_vector_compare):
+	Remove set, but unused, vars.
+	(rs6000_legitimize_tls_address): Likewise.
+	(altivec_expand_dst_builtin): Likewise.
+	* config/darwin.c (machopic_classify_symbol): Likewise.
+	(machopic_indirection_name): Likewise.
+
+2010-04-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (DWI): New mode iterator.
+	(S): New mode attribute.
+	(shift_operand): Ditto.
+	(shift_immediate_operand): Ditto.
+	(ashl_input_operand): Ditto.
+	(ashl<mode>3): Macroize expander from ashl{qi,hi,si,di,ti}3_1
+	using SDWIM mode iterator.
+	(*ashl<mode>3_doubleword): New insn_and_split_pattern.  Macroize
+	pattern from *ashl{di,ti}3_1 and corresponding splitters using
+	DWI mode iterator.
+	(*ashl<mode>3_doubleword peephole2): Macroize peephole2 pattern
+	from corresponding peephole2 patterns.
+	(x86_shift<mode>_adj_1): Macroize expander from x86_shift_adj_1
+	and x86_64_shift_adj_1 using SWI48 mode iterator.
+	(x86_shift<mode>_adj_2): Ditto.
+	(*ashldi3_1_rex64): Split TYPE_LEA pattern.
+	(*ashl<mode>3_1): Macroize insn from *ashlsi3_1 and *ashldi3_1_rex64
+	using SWI48 mode iterator.
+	(*ashl<mode>3_cmp): Macroize insn from *ashl{qi,hi,si}3_cmp and
+	*ashldi3_cmp_rex64 using SWI mode iterator.
+	(*ashl<mode>3_cconly): Macroize insn from *ashl{qi,hi,si}3_cconly and
+	*ashldi3_cconly_rex64 using SWI mode iterator.
+	* config/i386/i386.c (ix86_split_ashl): Update for renamed
+	x86_shift<mode>_adj_{1,2}.
+	(ix86_split_ashr): Ditto.
+	(ix86_split_lshr): Ditto.
+
+2010-04-09  Richard Guenther  <rguenther@suse.de>
+
+	* target.h (builtin_conversion): Pass in input and output types.
+	* targhooks.c (default_builtin_vectorized_conversion): Adjust.
+	* targhooks.h (default_builtin_vectorized_conversion): Likewise.
+	* tree-vect-stmts.c (vectorizable_conversion): Adjust.
+	* doc/tm.texi (TARGET_VECTORIZE_BUILTIN_CONVERSION): Adjust.
+
+	* config/i386/i386.c (ix86_vectorize_builtin_conversion): Adjust.
+	Handle AVX modes.
+	* config/rs6000/rs6000.c (rs6000_builtin_conversion): Adjust.
+
+2010-04-09  Richard Guenther  <rguenther@suse.de>
+
+	PR target/43152
+	* config/i386/sse.md (vcond<mode>): Handle AVX modes as well.
+
+2010-04-09  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vectorizer.h (struct _stmt_vec_info): Document
+	that vectype is the type of the LHS.
+	(supportable_widening_operation, supportable_narrowing_operation):
+	Get both input and output vector types as arguments.
+	(vect_is_simple_use_1): Declare.
+	(get_same_sized_vectype): Likewise.
+	* tree-vect-loop.c (vect_determine_vectorization_factor):
+	Set STMT_VINFO_VECTYPE to the vector type of the def.
+	(vectorizable_reduction): Adjust.
+	* tree-vect-patterns.c (vect_recog_widen_mult_pattern):
+	Adjust.  Specify the output vector type.
+	(vect_pattern_recog_1): Adjust.
+	* tree-vect-stmts.c (get_same_sized_vectype): New function.
+	(vectorizable_call): Adjust.
+	(vectorizable_conversion): Likewise.
+	(vectorizable_operation): Likewise.
+	(vectorizable_type_demotion): Likewise.
+	(vectorizable_type_promotion): Likewise.
+	(vect_analyze_stmt): Set STMT_VINFO_VECTYPE to the vector type of
+	the def.
+	(vect_is_simple_use_1): New function.
+	(supportable_widening_operation): Get both input and output
+	vector types.
+	(supportable_narrowing_operation): Likewise.
+	* tree-vect-slp.c (vect_schedule_slp_instance): Adjust.
+
+2010-04-09  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/cygming.h (TARGET_OS_CPP_BUILTINS): Add
+	__thiscall and _thiscall as predefined macros.
+	* config/i386/i386.c (ix86_handle_cconv_attribute): Add
+	thiscall attribute handling.
+	(ix86_comp_type_attributes): Likewise.
+	(ix86_function_regparm): Likewise.
+	(ix86_return_pops_args): Likewise.
+	(init_cumulative_args): Likewise.
+	(find_drap_reg): Likewise.
+	(ix86_static_chain): Likewise.
+	(x86_this_parameter): Likewise.
+	(x86_output_mi_thunk): Likewise.
+	(ix86_attribute_table): Add description for thiscall attribute.
+	* config/i386/i386.h (ix86_args): Adjust comment for member fastcall.
+	* doc/extend.texi: Add documentation for thiscall.
+
+2010-04-09  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/28584
+	* c.opt (Wint-to-pointer-cast): Available in C++.
+	* doc/invoke.texi (Wint-to-pointer-cast): Available in C++.
+
 2010-04-08  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* tree.h (TREE_ADDRESSABLE): Document its effect for function types.
@@ -13,8 +716,8 @@
 
 	PR tree-optimization/42720
 	* tree-ssa-loop-unswitch.c (tree_ssa_unswitch_loops): Move one-time
-	loop unswitch conditions here from
-	(tree_unswitch_single_loop).
+	loop unswitch conditions here from ...
+	(tree_unswitch_single_loop): ... here.
 
 2010-04-08  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -36,16 +739,17 @@
 	* gcc.h (DEFAULT_SWITCH_TAKES_ARG): Delete -b and -V.
 
 2010-04-08  Christian Borntraeger  <borntraeger@de.ibm.com>
-            Wolfgang Gellerich  <gellerich@de.ibm.com>
+	    Wolfgang Gellerich  <gellerich@de.ibm.com>
 
-        Implement target hook for loop unrolling
-        * target.h (loop_unroll_adjust): Add a new target hook function.
-        * target-def.h (TARGET_LOOP_UNROLL_ADJUST): Likewise.
-        * doc/tm.texi (TARGET_LOOP_UNROLL_ADJUST): Document it.
-        * config/s390/s390.c (TARGET_LOOP_UNROLL_ADJUST): Define it.
-        (s390_loop_unroll_adjust): Implement the new target hook for s390.
-        * loop-unroll.c (decide_unroll_runtime_iterations): Call loop unroll target hook
-        (decide_unroll_stupid): Likewise.
+	Implement target hook for loop unrolling
+	* target.h (loop_unroll_adjust): Add a new target hook function.
+	* target-def.h (TARGET_LOOP_UNROLL_ADJUST): Likewise.
+	* doc/tm.texi (TARGET_LOOP_UNROLL_ADJUST): Document it.
+	* config/s390/s390.c (TARGET_LOOP_UNROLL_ADJUST): Define it.
+	(s390_loop_unroll_adjust): Implement the new target hook for s390.
+	* loop-unroll.c (decide_unroll_runtime_iterations): Call loop unroll
+	target hook.
+	(decide_unroll_stupid): Likewise.
 
 2010-04-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
@@ -61,8 +765,8 @@
 2010-04-08  Wolfgang Gellerich  <gellerich@de.ibm.com>
 
 	* config/s390/s390.c (override_options): Adjust the z10
-          defaults for max-unroll-times, max-completely-peeled-insns
-          and max-completely-peel-times.
+	  defaults for max-unroll-times, max-completely-peeled-insns
+	  and max-completely-peel-times.
 
 2010-04-08  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
 
@@ -202,7 +906,7 @@
 	inserting GIMPLE_NOPs into the IL.
 	* tree-ssa-structalias.c (get_constraint_for_component_ref):
 	Explicitly strip handled components and indirect references.
-  
+
 	* fold-const.c (fold_unary_loc): Do not strip qualifiers when
 	folding address expressions.
 	* gimple.c (gimple_ior_addresses_taken_1): Use get_base_address.
@@ -213,8 +917,7 @@
 	* tree-ssa-forwprop.c (forward_propagate_into_gimple_cond):
 	Handle reversed comparison ops.
 	* tree-sra.c (asm_visit_addr): Use get_base_address.
-	* ipa-prop.c (visit_store_addr_for_mod_analysis): Use
-	get_base_address.
+	* ipa-prop.c (visit_store_addr_for_mod_analysis): Use get_base_address.
 	* ipa-reference.c (mark_address): Use get_base_address.
 
 2010-04-07  Richard Guenther  <rguenther@suse.de>
@@ -235,10 +938,8 @@
 	* doc/invoke.texi (-fargument-alias, -fargument-noalias,
 	-fargument-noalias-global, -fargument-noalias-anything): Remove.
 	* common.opt: Likewise.
-	* tree-ssa-structalias.c (intra_create_variable_infos): Adjust
-	comment.
-	* alias.c (base_alias_check): Remove flag_argument_noalias
-	handling.
+	* tree-ssa-structalias.c (intra_create_variable_infos): Adjust comment.
+	* alias.c (base_alias_check): Remove flag_argument_noalias handling.
 	(nonoverlapping_memrefs_p): Likewise.
 	* emit-rtl.c (set_mem_attributes_minus_bitpos): Likewise.
 	* opts.c (common_handle_option): Handle OPT_fargument_alias,
@@ -248,8 +949,7 @@
 2010-04-07  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/43270
-	* tree-vrp.c (check_array_ref): Fix flexible array member
-	detection.
+	* tree-vrp.c (check_array_ref): Fix flexible array member detection.
 	* tree-ssa-sccvn.h (fully_constant_vn_reference_p): Declare.
 	* tree-ssa-pre.c (phi_translate_1): Adjust.
 	(fully_constant_expression): Split out vn_reference handling to ...
@@ -270,15 +970,13 @@
 
 2010-04-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
-	* config.gcc (i[34567]86-*-solaris2*): Default with_tune_32 to
-	generic.
+	* config.gcc (i[34567]86-*-solaris2*): Default with_tune_32 to generic.
 
 2010-04-07  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/42617
-	* expr.c (expand_expr_real_1): For TARGET_MEM_REFs with
-	pointer bases build simple mem attributes to retain
-	points-to information.
+	* expr.c (expand_expr_real_1): For TARGET_MEM_REFs with pointer
+	bases build simple mem attributes to retain points-to information.
 
 2010-04-07  Richard Guenther  <rguenther@suse.de>
 
@@ -291,8 +989,7 @@
 	PR middle-end/42617
 	* emit-rtl.c (set_mem_attributes_minus_bitpos): Do not
 	discard plain indirect references.
-	* fold-const.c (operand_equal_p): Guard against NULL_TREE
-	type.
+	* fold-const.c (operand_equal_p): Guard against NULL_TREE type.
 	* tree.c (tree_nop_conversion): Likewise.
 
 2010-04-07  Dodji Seketeli  <dodji@redhat.com>
@@ -321,11 +1018,13 @@
 
 	PR middle-end/43519
 	* graphite-clast-to-gimple.c (max_signed_precision_type): Use
-	lang_hooks.types.type_for_size instead of build_nonstandard_integer_type.
+	lang_hooks.types.type_for_size instead of
+	build_nonstandard_integer_type.
 	When converting an unsigned type to signed, double its precision.
 	(gcc_type_for_interval): Use lang_hooks.types.type_for_size.
 	(gcc_type_for_iv_of_clast_loop): Call max_signed_precision_type.
-	(graphite_create_new_loop_guard): When ub + 1 wraps around, use lb <= ub.
+	(graphite_create_new_loop_guard): When ub + 1 wraps around,
+	use lb <= ub.
 
 2010-04-06  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -561,8 +1260,7 @@
 
 2010-04-02  Joseph Myers  <joseph@codesourcery.com>
 
-	* read-rtl.c (read_rtx_1): Give an error for EOF while looking for
-	']'.
+	* read-rtl.c (read_rtx_1): Give an error for EOF while looking for ']'.
 
 2010-04-02  Richard Earnshaw  <rearnsha@arm.com>
 
@@ -586,12 +1284,12 @@
 
 2010-04-01  Ralf Corsépius <ralf.corsepius@rtems.org>
 
-        * config.gcc (lm32-*-rtems*): Add t-lm32.
+	* config.gcc (lm32-*-rtems*): Add t-lm32.
 
 2010-04-01  Joel Sherrill <joel.sherrill@oarcorp.com>
 
-        * config.gcc: Add lm32-*-rtems*.
-        * config/lm32/rtems.h: New file.
+	* config.gcc: Add lm32-*-rtems*.
+	* config/lm32/rtems.h: New file.
 
 2010-04-01  Dave Korn  <dave.korn.cygwin@gmail.com>
 
@@ -644,7 +1342,7 @@
 	PR middle-end/43602
 	Revert
 	2010-03-30  Seongbae Park <seongbae.park@gmail.com>
-	    Jack Howarth <howarth@bromo.med.uc.edu>
+		    Jack Howarth <howarth@bromo.med.uc.edu>
 
 	* tree-profile.c (tree_init_ic_make_global_vars): Make static
 	variables TLS.
@@ -676,8 +1374,7 @@
 	Update IDO URL.
 	Document GNU as requirement.
 	Update configure requirements.
-	(Specific, mips-sgi-irix6): Document IRIX 6 < 6.5 obsoletion,
-	removal.
+	(Specific, mips-sgi-irix6): Document IRIX 6 < 6.5 obsoletion, removal.
 	Recomment IRIX 6.5.18+.
 	Document IDF/IDL requirement.
 	Document GNU as requirement.

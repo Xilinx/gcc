@@ -1,3 +1,200 @@
+2010-04-13  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/lambda/lambda-deduce2.C: Remove.
+	* g++.dg/cpp0x/lambda/lambda-uneval.C: New.
+
+2010-04-13  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* gcc.dg/cpp/cpp.exp: Test also c-c++-common/cpp.
+	* g++.dg/dg.exp: Likewise.
+	* gcc.dg/cpp/warning-directive-1.c: Move to ...
+	* c-c++-common/cpp/warning-directive-1.c: ... here.
+	* gcc.dg/cpp/warning-directive-2.c: Move to ...
+	* c-c++-common/cpp/warning-directive-2.c: ... here.
+	* gcc.dg/cpp/warning-directive-3.c: Move to ...
+	* c-c++-common/cpp/warning-directive-3.c: ... here.
+	* gcc.dg/cpp/warning-directive-4.c: Move to ...
+	* c-c++-common/cpp/warning-directive-4.c: ... here.
+	* g++.dg/cpp/warning-directive-1.C: Delete.
+	* g++.dg/cpp/warning-directive-2.C: Delete.
+	* g++.dg/cpp/warning-directive-3.C: Delete.
+	* g++.dg/cpp/warning-directive-4.C: Delete.
+	* gcc.dg/cpp/normalised-3.c: Delete.
+	* g++.dg/cpp/normalised-1.C: Rename as ...
+	* c-c++-common/cpp/normalised-3.c: ... this.
+
+2010-04-13  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/tree-ssa/sra-9.c: New test.
+
+2010-04-13  Michael Matz  <matz@suse.de>
+
+	PR middle-end/43730
+	* gcc.dg/pr43730.c: New test.
+
+2010-04-13  Michael Matz  <matz@suse.de>
+
+	* gcc.dg/tree-ssa/negate.c: New testcase.
+
+2010-04-13  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/43735
+	* gcc.dg/guality/inline-params.c: Remove -fwhopr XPASS.
+
+2010-04-13  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/vect/no-vfa-vect-depend-1.c: Adjust.
+
+2010-04-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/derived_type1.adb: New test.
+
+2010-04-13  Matthias Klose  <doko@ubuntu.com>
+
+	* gcc.dg/plugindir1.c: New testcase.
+	* gcc.dg/plugindir2.c: New testcase.
+	* gcc.dg/plugindir3.c: New testcase.
+	* gcc.dg/plugindir4.c: New testcase.
+
+2010-04-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/rotate-2.c: New test.
+
+2010-04-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43641
+	* g++.dg/cpp0x/lambda/lambda-conv4.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce2.C: New.
+
+2010-04-12  Fabien Chene  <fabien.chene@gmail.com>
+
+	PR c++/25811
+	* g++.dg/init/pr25811.C: New test.
+
+2010-04-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/warn/miss-format-1.C: Removed *-*-solaris2.7 from
+	dg-error, dg-warning.
+	* gcc.dg/c99-stdint-6.c: Removed *-*-solaris2.7 from dg-options.
+
+2010-04-12  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/torture/inline-2.c: New testcase.
+
+2010-04-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/43699
+	* gcc.dg/Wunused-var-7.c: New test.
+
+	PR tree-optimization/43560
+	* gcc.c-torture/execute/pr43560.c: New test.
+
+2010-04-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/aggr13.adb: New test.
+	* gnat.dg/aggr14.adb: Likewise.
+	* gnat.dg/aggr14_pkg.ad[sb]: New helper.
+
+2010-04-12  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/43611
+	* g++.dg/torture/pr43611.C: New testcase.
+
+2010-04-12  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c/36774
+	* gcc.dg/pr36774-1.c: New test.
+	* gcc.dg/pr36774-2.c: New test.
+
+2010-04-11  Kaushik Phatak  <kaushik.phatak@kpitcummins.com>
+
+	* gcc.target/sh/rte-delay-slot.c: New test.
+
+2010-04-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/pack9.adb: Remove -cargs option.
+	* gnat.dg/aggr12.ad[sb]: New test.
+
+2010-04-10  Jie Zhang  <jie@codesourcery.com>
+
+	PR target/43417
+	* gcc.target/sh/pr43417.c: New test.
+
+2010-04-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43591
+	* gfortran.dg/spec_expr_6.f90: New test.
+
+2010-04-09  Manuel López-Ibáñez <manu@gcc.gnu.org>
+
+	PR cpp/43195
+	* gcc.dg/cpp/pr43195.c: New.
+	* gcc.dg/cpp/pr43195.h: New.
+
+2010-04-09  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 42965
+	* gcc.dg/Werror-6.c: Adjust.
+	* gcc.dg/Werror-implicit-function-declaration.c: Likewise.
+	* gcc.dg/Werror-4.c: Likewise.
+	* gcc.dg/Wdeclaration-after-statement-3.c: Likewise.
+	* gcc.dg/Wswitch-enum-error.c: Likewise.
+	* gcc.dg/Wpointer-arith.c: Likewise.
+	* gcc.dg/Wfatal.c: Likewise.
+	* gcc.dg/Wswitch-error.c: Likewise.
+	* g++.dg/warn/unused-result1-Werror.c: Likewise.
+	* gcc.dg/Werror-9.c: Delete. Duplicate of Werror-4.c.
+	* gcc.dg/cpp/warn-undef-2.c: Likewise.
+	* gcc.dg/cpp/warn-traditional-2.c: Likewise.
+	* gcc.dg/cpp/warn-comments-2.c: Likewise.
+	* gcc.dg/cpp/warn-variadic-2.c: Likewise.
+	* gcc.dg/cpp/warning-directive-2.c: Likewise.
+	* gcc.dg/cpp/warn-long-long-2.c: Likewise.
+	* gcc.dg/cpp/warn-deprecated-2.c: Likewise.
+	* gcc.dg/cpp/warn-multichar-2.c: Likewise.
+	* gcc.dg/cpp/warn-normalized-3.c: Likewise.
+	* gcc.dg/cpp/warn-cxx-compat-2.c: Likewise.
+	* gcc.dg/cpp/warn-trigraphs-3.c: Likewise.
+	* gcc.dg/cpp/warn-unused-macros-2.c: Likewise.
+	* gcc.dg/cpp/warn-trigraphs-4.c: Likewise.
+	* gcc.dg/cpp/warn-redefined-2.c: Likewise.
+	* g++.dg/cpp/warning-directive-2.C: Likewise.
+	* gfortran.dg/warning-directive-2.F90: Likewise.
+
+2010-04-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42623
+	* g++.dg/template/sizeof13.C: New.
+
+2010-04-09  Kai Tietz  <kai.tietz@onevision.com>
+
+	* g++.dg/other/pr35504.C: Add check for thiscall.
+	* g++.dg/torture/stackalign/eh-thiscall-1.C: New.
+	* gcc.dg/torture/stackalign/thiscall-1.c: New.
+
+2010-04-09  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/28584
+	* gcc.dg/Wint-to-pointer-cast-1.c: Move to...
+	* c-c++-common/Wint-to-pointer-cast-1.c: ...  here.
+	* gcc.dg/Wint-to-pointer-cast-2.c: Move to...
+	* c-c++-common/Wint-to-pointer-cast-2.c: ...  here.
+	* gcc.dg/Wint-to-pointer-cast-3.c: Move to...
+	* c-c++-common/Wint-to-pointer-cast-3.c: ...  here. Update.
+	* g++.old-deja/g++.mike/warn1.C: Add -Wno-int-to-pointer-cast.
+	* g++.dg/other/increment1.C: Likewise.
+
+2010-04-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_7.f90: New test.
+	* gfortran.dg/coarray_8.f90: New test.
+
+2010-04-08  Bud Davis  <bdavis9659@sbcglobal.net>
+
+	PR fortran/28039
+	* gfortran.dg/fmt_with_extra.f: Remove xfail and update test.
+
 2010-04-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	PR target/43643
@@ -138,7 +335,7 @@
 
 2010-04-06  Dodji Seketeli  <dodji@redhat.com>
 
-	* g++.dg/debug/dwarf2/redeclaration-1.C: Moved from 
+	* g++.dg/debug/dwarf2/redeclaration-1.C: Moved from
 	c-c++-common/dwarf2/redeclaration-1.C
 
 2010-04-06  Jason Merrill  <jason@redhat.com>
@@ -279,7 +476,7 @@
 	* gcc.c-torture/execute/pr43629.c: New testcase.
 
 2010-04-01  Janne Blomqvist  <jb@gcc.gnu.org>
-            Dominique d'Humieres  <dominiq@lps.ens.fr>
+	    Dominique d'Humieres  <dominiq@lps.ens.fr>
 
 	PR libfortran/43605
 	* gfortran.dg/ftell_3.f90: Enhance test case by reading more.
@@ -308,7 +505,7 @@
 
 	PR tree-optimization/43141
 	* gcc.dg/guality/pr43141.c: New test.
-	
+
 2010-04-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* g++.dg/cpp/_Pragma1.C: Skip on alpha*-dec-osf*.
@@ -621,13 +818,13 @@
 	* objc/execute/class_self-2.m: Include <stdlib.h>.
 	* objc/execute/forward-1.x: Do not XFAIL for 32bit powerpc-darwin.
 	* objc.dg/desig-init-1.m: Use shared wrapper headers (Object1.h,
-	Protocol1.h) and next-mapping.h as required. XFAIL run if NeXT 
+	Protocol1.h) and next-mapping.h as required. XFAIL run if NeXT
 	and 64bit. Use new NeXT interface as required.
 	* objc.dg/special/unclaimed-category-1.m: Ditto.
 	* objc.dg/special/unclaimed-category-1.h: Ditto.
 	* objc.dg/special/unclaimed-category-1a.m: Ditto.
 	* objc.dg/func-ptr-1.m: Ditto.
-	* objc.dg/stret-1.m: Ditto.	
+	* objc.dg/stret-1.m: Ditto.
 	* objc.dg/encode-2.m: Ditto.
 	* objc.dg/category-1.m: Ditto.
 	* objc.dg/encode-3.m: Ditto.
@@ -647,10 +844,10 @@
 	* objc.dg/call-super-1.m: Ditto.
 	* objc.dg/type-size-2.m: Ditto.
 	* objc.dg/method-10.m: Ditto.
-	* objc.dg/defs.m: Ditto.	
+	* objc.dg/defs.m: Ditto.
 	* objc.dg/const-str-3.m: Ditto.
 	* objc.dg/try-catch-6.m: Use shared wrapper headers (Object1.h,
-	Protocol1.h) and next-mapping.h as required. Use new NeXT 
+	Protocol1.h) and next-mapping.h as required. Use new NeXT
 	interface as required.
 	* objc.dg/super-class-4.m: Ditto.
 	* objc.dg/comp-types-8.m: Ditto.
@@ -711,8 +908,7 @@
 	* objc.dg/try-catch-5.m: Ditto.
 	* objc.dg/const-str-10.m: Use shared wrapper headers (Object1.h,
 	Protocol1.h) and next-mapping.h as required. Use new NeXT
-	interface as required.  Skip for gnu-runtime.  Test for .quad
-	at m64.
+	interface as required.  Skip for gnu-runtime.  Test for .quad at m64.
 	* objc.dg/const-str-11.m: Ditto.
 	* objc.dg/const-str-9.m: Ditto.
 	* objc.dg/method-4.m: Skip for 64Bit NeXT.

@@ -1,5 +1,6 @@
 /* Matching subroutines in all sizes, shapes and colors.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009, 2010
    2010 Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -949,6 +950,8 @@ gfc_match_iterator (gfc_iterator *iter, int init_flag)
   locus start;
   match m;
 
+  e1 = e2 = e3 = NULL;
+
   /* Match the start of an iterator without affecting the symbol table.  */
 
   start = gfc_current_locus;
@@ -962,9 +965,12 @@ gfc_match_iterator (gfc_iterator *iter, int init_flag)
   if (m != MATCH_YES)
     return MATCH_NO;
 
-  gfc_match_char ('=');
-
-  e1 = e2 = e3 = NULL;
+  /* F2008, C617 & C565.  */
+  if (var->symtree->n.sym->attr.codimension)
+    {
+      gfc_error ("Loop variable at %C cannot be a coarray");
+      goto cleanup;
+    }
 
   if (var->ref != NULL)
     {
@@ -978,6 +984,8 @@ gfc_match_iterator (gfc_iterator *iter, int init_flag)
 		 var->symtree->n.sym->name);
       goto cleanup;
     }
+
+  gfc_match_char ('=');
 
   var->symtree->n.sym->attr.implied_index = 1;
 
@@ -998,7 +1006,7 @@ gfc_match_iterator (gfc_iterator *iter, int init_flag)
 
   if (gfc_match_char (',') != MATCH_YES)
     {
-      e3 = gfc_int_expr (1);
+      e3 = gfc_get_int_expr (gfc_default_integer_kind, NULL, 1);
       goto done;
     }
 
@@ -1819,7 +1827,7 @@ gfc_match_do (void)
 
   if (gfc_match_eos () == MATCH_YES)
     {
-      iter.end = gfc_logical_expr (1, NULL);
+      iter.end = gfc_get_logical_expr (gfc_default_logical_kind, NULL, true);
       new_st.op = EXEC_DO_WHILE;
       goto done;
     }
@@ -2457,7 +2465,8 @@ gfc_match_goto (void)
 	}
 
       cp = gfc_get_case ();
-      cp->low = cp->high = gfc_int_expr (i++);
+      cp->low = cp->high = gfc_get_int_expr (gfc_default_integer_kind,
+					     NULL, i++);
 
       tail->op = EXEC_SELECT;
       tail->ext.case_list = cp;
@@ -2937,10 +2946,7 @@ gfc_match_nullify (void)
 	}
 
       /* build ' => NULL() '.  */
-      e = gfc_get_expr ();
-      e->where = gfc_current_locus;
-      e->expr_type = EXPR_NULL;
-      e->ts.type = BT_UNKNOWN;
+      e = gfc_get_null_expr (&gfc_current_locus);
 
       /* Chain to list.  */
       if (tail == NULL)
@@ -3348,7 +3354,8 @@ gfc_match_call (void)
 	  c->op = EXEC_SELECT;
 
 	  new_case = gfc_get_case ();
-	  new_case->high = new_case->low = gfc_int_expr (i);
+	  new_case->high = gfc_get_int_expr (gfc_default_integer_kind, NULL, i);
+	  new_case->low = new_case->high;
 	  c->ext.case_list = new_case;
 
 	  c->next = gfc_get_code ();
@@ -4779,7 +4786,7 @@ match_forall_iterator (gfc_forall_iterator **result)
     goto cleanup;
 
   if (gfc_match_char (':') == MATCH_NO)
-    iter->stride = gfc_int_expr (1);
+    iter->stride = gfc_get_int_expr (gfc_default_integer_kind, NULL, 1);
   else
     {
       m = gfc_match_expr (&iter->stride);

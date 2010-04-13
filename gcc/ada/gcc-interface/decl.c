@@ -138,6 +138,7 @@ static bool same_discriminant_p (Entity_Id, Entity_Id);
 static bool array_type_has_nonaliased_component (tree, Entity_Id);
 static bool compile_time_known_address_p (Node_Id);
 static bool cannot_be_superflat_p (Node_Id);
+static bool constructor_address_p (tree);
 static void components_to_record (tree, Node_Id, tree, int, bool, tree *,
 				  bool, bool, bool, bool, bool);
 static Uint annotate_value (tree);
@@ -897,7 +898,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 			    && !TREE_SIDE_EFFECTS (gnu_expr))))
 		  {
 		    maybe_stable_expr
-		      = maybe_stabilize_reference (gnu_expr, true, &stable);
+		      = gnat_stabilize_reference (gnu_expr, true, &stable);
 
 		    if (stable)
 		      {
@@ -973,7 +974,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		    else
 	 	     {
 			maybe_stable_expr
-			  = maybe_stabilize_reference (gnu_expr, true, &stable);
+			  = gnat_stabilize_reference (gnu_expr, true, &stable);
 
 			if (stable)
 			  renamed_obj = maybe_stable_expr;
@@ -1375,6 +1376,15 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	       do not generate information for the constant.  */
 	    DECL_IGNORED_P (gnu_decl) = 1;
 	  }
+
+	/* If this is a constant, even if we don't need a true variable, we
+	   may need to avoid returning the initializer in every case.  That
+	   can happen for the address of a (constant) constructor because,
+	   upon dereferencing it, the constructor will be reinjected in the
+	   tree, which may not be valid in every case; see lvalue_required_p
+	   for more details.  */
+	if (TREE_CODE (gnu_decl) == CONST_DECL)
+	  DECL_CONST_ADDRESS_P (gnu_decl) = constructor_address_p (gnu_expr);
 
 	/* If this is declared in a block that contains a block with an
 	   exception handler, we must force this variable in memory to
@@ -2841,8 +2851,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 	    /* ...and reference the _Parent field of this record.  */
 	    gnu_field
-	      = create_field_decl (get_identifier
-				   (Get_Name_String (Name_uParent)),
+	      = create_field_decl (parent_name_id,
 				   gnu_parent, gnu_type, 0,
 				   has_rep
 				   ? TYPE_SIZE (gnu_parent) : NULL_TREE,
@@ -2892,10 +2901,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 			      false, all_rep, is_unchecked_union,
 			      debug_info_p, false);
 
-	/* If it is a tagged record force the type to BLKmode to insure that
-	   these objects will always be put in memory.  Likewise for limited
-	   record types.  */
-	if (Is_Tagged_Type (gnat_entity) || Is_Limited_Record (gnat_entity))
+	/* If it is passed by reference, force BLKmode to ensure that objects
++	   of this type will always be put in memory.  */
+	if (Is_By_Reference_Type (gnat_entity))
 	  SET_TYPE_MODE (gnu_type, BLKmode);
 
 	/* We used to remove the associations of the discriminants and _Parent
@@ -3216,8 +3224,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      finish_record_type (gnu_type, gnu_field_list, 2, false);
 
 	      /* See the E_Record_Type case for the rationale.  */
-	      if (Is_Tagged_Type (gnat_entity)
-		  || Is_Limited_Record (gnat_entity))
+	      if (Is_By_Reference_Type (gnat_entity))
 		SET_TYPE_MODE (gnu_type, BLKmode);
 	      else
 		compute_record_mode (gnu_type);
@@ -4384,12 +4391,18 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
      handling alignment and possible padding.  */
   if (is_type && (!gnu_decl || this_made_decl))
     {
+      /* Tell the middle-end that objects of tagged types are guaranteed to
+	 be properly aligned.  This is necessary because conversions to the
+	 class-wide type are translated into conversions to the root type,
+	 which can be less aligned than some of its derived types.  */
       if (Is_Tagged_Type (gnat_entity)
 	  || Is_Class_Wide_Equivalent_Type (gnat_entity))
 	TYPE_ALIGN_OK (gnu_type) = 1;
 
-      if (AGGREGATE_TYPE_P (gnu_type) && Is_By_Reference_Type (gnat_entity))
-	TYPE_BY_REFERENCE_P (gnu_type) = 1;
+      /* If the type is passed by reference, objects of this type must be
+	 fully addressable and cannot be copied.  */
+      if (Is_By_Reference_Type (gnat_entity))
+	TREE_ADDRESSABLE (gnu_type) = 1;
 
       /* ??? Don't set the size for a String_Literal since it is either
 	 confirming or we don't handle it properly (if the low bound is
@@ -5397,6 +5410,20 @@ cannot_be_superflat_p (Node_Id gnat_range)
 
   return (tree_int_cst_lt (gnu_hb, gnu_lb) == 0);
 }
+
+/* Return true if GNU_EXPR is (essentially) the address of a CONSTRUCTOR.  */
+
+static bool
+constructor_address_p (tree gnu_expr)
+{
+  while (TREE_CODE (gnu_expr) == NOP_EXPR
+	 || TREE_CODE (gnu_expr) == CONVERT_EXPR
+	 || TREE_CODE (gnu_expr) == NON_LVALUE_EXPR)
+    gnu_expr = TREE_OPERAND (gnu_expr, 0);
+
+  return (TREE_CODE (gnu_expr) == ADDR_EXPR
+	  && TREE_CODE (TREE_OPERAND (gnu_expr, 0)) == CONSTRUCTOR);
+}
 
 /* Given GNAT_ENTITY, elaborate all expressions that are required to
    be elaborated at the point of its definition, but do nothing else.  */
@@ -5727,31 +5754,6 @@ prepend_attributes (Entity_Id gnat_entity, struct attrib ** attr_list)
       }
 }
 
-/* Called when we need to protect a variable object using a SAVE_EXPR.  */
-
-tree
-maybe_variable (tree gnu_operand)
-{
-  if (TREE_CONSTANT (gnu_operand)
-      || TREE_READONLY (gnu_operand)
-      || TREE_CODE (gnu_operand) == SAVE_EXPR
-      || TREE_CODE (gnu_operand) == NULL_EXPR)
-    return gnu_operand;
-
-  if (TREE_CODE (gnu_operand) == UNCONSTRAINED_ARRAY_REF)
-    {
-      tree gnu_result
-	= build1 (UNCONSTRAINED_ARRAY_REF, TREE_TYPE (gnu_operand),
-		  variable_size (TREE_OPERAND (gnu_operand, 0)));
-
-      TREE_READONLY (gnu_result) = TREE_STATIC (gnu_result)
-	= TYPE_READONLY (TREE_TYPE (TREE_TYPE (gnu_operand)));
-      return gnu_result;
-    }
-
-  return variable_size (gnu_operand);
-}
-
 /* Given a GNAT tree GNAT_EXPR, for an expression which is a value within a
    type definition (either a bound or a discriminant value) for GNAT_ENTITY,
    return the GCC tree to use for that expression.  GNU_NAME is the suffix
@@ -5854,7 +5856,7 @@ elaborate_expression_1 (tree gnu_expr, Entity_Id gnat_entity, tree gnu_name,
   if (expr_global && expr_variable)
     return gnu_decl;
 
-  return expr_variable ? maybe_variable (gnu_expr) : gnu_expr;
+  return expr_variable ? gnat_save_expr (gnu_expr) : gnu_expr;
 }
 
 /* Create a record type that contains a SIZE bytes long field of TYPE with a
@@ -6058,10 +6060,7 @@ make_packable_type (tree type, bool in_record)
 				     !DECL_NONADDRESSABLE_P (old_field));
 
       DECL_INTERNAL_P (new_field) = DECL_INTERNAL_P (old_field);
-      SET_DECL_ORIGINAL_FIELD
-	(new_field, (DECL_ORIGINAL_FIELD (old_field)
-		     ? DECL_ORIGINAL_FIELD (old_field) : old_field));
-
+      SET_DECL_ORIGINAL_FIELD_TO_FIELD (new_field, old_field);
       if (TREE_CODE (new_type) == QUAL_UNION_TYPE)
 	DECL_QUALIFIER (new_field) = DECL_QUALIFIER (old_field);
 
@@ -7278,9 +7277,8 @@ annotate_object (Entity_Id gnat_entity, tree gnu_type, tree size, bool by_ref)
 		   UI_From_Int (TYPE_ALIGN (gnu_type) / BITS_PER_UNIT));
 }
 
-/* Return first element of field list whose TREE_PURPOSE is ELEM or whose
-   DECL_ORIGINAL_FIELD of TREE_PURPOSE is ELEM.  Return NULL_TREE if there
-   is no such element in the list.  */
+/* Return first element of field list whose TREE_PURPOSE is the same as ELEM.
+   Return NULL_TREE if there is no such element in the list.  */
 
 static tree
 purpose_member_field (const_tree elem, tree list)
@@ -7288,7 +7286,7 @@ purpose_member_field (const_tree elem, tree list)
   while (list)
     {
       tree field = TREE_PURPOSE (list);
-      if (elem == field || elem == DECL_ORIGINAL_FIELD (field))
+      if (SAME_FIELD_P (field, elem))
 	return list;
       list = TREE_CHAIN (list);
     }
@@ -8060,8 +8058,7 @@ create_field_decl_from (tree old_field, tree field_type, tree record_type,
     }
 
   DECL_INTERNAL_P (new_field) = DECL_INTERNAL_P (old_field);
-  t = DECL_ORIGINAL_FIELD (old_field);
-  SET_DECL_ORIGINAL_FIELD (new_field, t ? t : old_field);
+  SET_DECL_ORIGINAL_FIELD_TO_FIELD (new_field, old_field);
   DECL_DISCRIMINANT_NUMBER (new_field) = DECL_DISCRIMINANT_NUMBER (old_field);
   TREE_THIS_VOLATILE (new_field) = TREE_THIS_VOLATILE (old_field);
 
@@ -8397,9 +8394,7 @@ substitute_in_type (tree t, tree f, tree r)
 	      }
 
 	    DECL_CONTEXT (new_field) = nt;
-	    SET_DECL_ORIGINAL_FIELD (new_field,
-				     (DECL_ORIGINAL_FIELD (field)
-				      ? DECL_ORIGINAL_FIELD (field) : field));
+	    SET_DECL_ORIGINAL_FIELD_TO_FIELD (new_field, field);
 
 	    TREE_CHAIN (new_field) = TYPE_FIELDS (nt);
 	    TYPE_FIELDS (nt) = new_field;
