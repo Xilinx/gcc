@@ -452,8 +452,8 @@ walk_mems_2 (rtx *x, rtx mem)
     {
       if (alias_sets_conflict_p (MEM_ALIAS_SET(*x), MEM_ALIAS_SET(mem)))
         return 1;
-        
-      return -1;  
+
+      return -1;
     }
   return 0;
 }
@@ -467,7 +467,7 @@ walk_mems_1 (rtx *x, rtx *pat)
       if (for_each_rtx (pat, (rtx_function) walk_mems_2, *x))
         /* Indicate that dependence was determined and stop traversal.  */
         return 1;
-        
+
       return -1;
     }
   return 0;
@@ -640,7 +640,7 @@ get_alias_set (tree t)
      aren't types.  */
   if (! TYPE_P (t))
     {
-      tree inner = t;
+      tree inner;
 
       /* Remove any nops, then give the language a chance to do
 	 something with this tree before we look at it.  */
@@ -649,8 +649,13 @@ get_alias_set (tree t)
       if (set != -1)
 	return set;
 
+      /* Retrieve the original memory reference if needed.  */
+      if (TREE_CODE (t) == TARGET_MEM_REF)
+	t = TMR_ORIGINAL (t);
+
       /* First see if the actual object referenced is an INDIRECT_REF from a
 	 restrict-qualified pointer or a "void *".  */
+      inner = t;
       while (handled_component_p (inner))
 	{
 	  inner = TREE_OPERAND (inner, 0);
@@ -2199,6 +2204,13 @@ nonoverlapping_memrefs_p (const_rtx x, const_rtx y)
 
   if (! DECL_P (exprx) || ! DECL_P (expry))
     return 0;
+
+  /* With invalid code we can end up storing into the constant pool.
+     Bail out to avoid ICEing when creating RTL for this.
+     See gfortran.dg/lto/20091028-2_0.f90.  */
+  if (TREE_CODE (exprx) == CONST_DECL
+      || TREE_CODE (expry) == CONST_DECL)
+    return 1;
 
   rtlx = DECL_RTL (exprx);
   rtly = DECL_RTL (expry);

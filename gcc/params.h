@@ -52,10 +52,10 @@ typedef struct param_info
 
   /* Minimum acceptable value.  */
   int min_value;
-  
+
   /* Maximum acceptable value, if greater than minimum  */
   int max_value;
-  
+
   /* A short description of the option.  */
   const char *const help;
 } param_info;
@@ -64,6 +64,9 @@ typedef struct param_info
    values.  */
 
 extern param_info *compiler_params;
+
+/* Returns the number of entries in the table, for the use by plugins.  */
+extern size_t get_num_compiler_params (void);
 
 /* Add the N PARAMS to the current list of compiler parameters.  */
 

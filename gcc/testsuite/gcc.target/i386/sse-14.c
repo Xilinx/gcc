@@ -1,12 +1,13 @@
 /* { dg-do compile } */
-/* { dg-options "-O0 -Werror-implicit-function-declaration -march=k8 -m3dnow -mavx -msse4a -maes -mpclmul" } */
+/* { dg-options "-O0 -Werror-implicit-function-declaration -march=k8 -m3dnow -mavx -mxop -msse4a -maes -mpclmul -mpopcnt -mabm -mlwp" } */
 
 #include <mm_malloc.h>
 
 /* Test that the intrinsics compile without optimization.  All of them are
-   defined as inline functions in {,x,e,p,t,s,w,a}mmintrin.h  and mm3dnow.h
-   that reference the proper builtin functions.  Defining away "extern" and
-   "__inline" results in all of them being compiled as proper functions.  */
+   defined as inline functions in {,x,e,p,t,s,w,a}mmintrin.h, xopintrin.h,
+   lwpintrin.h and mm3dnow.h that reference the proper builtin functions.
+   Defining away "extern" and "__inline" results in all of them being compiled
+   as proper functions.  */
 
 #define extern
 #define __inline
@@ -155,3 +156,17 @@ test_2 (_m_pinsrw, __m64, __m64, int, 1)
 test_1 (_mm_shuffle_pi16, __m64, __m64, 1)
 test_1 (_m_pshufw, __m64, __m64, 1)
 test_1 (_mm_prefetch, void, void *, _MM_HINT_NTA)
+
+/* xopintrin.h */
+test_1 ( _mm_roti_epi8, __m128i, __m128i, 1)
+test_1 ( _mm_roti_epi16, __m128i, __m128i, 1)
+test_1 ( _mm_roti_epi32, __m128i, __m128i, 1)
+test_1 ( _mm_roti_epi64, __m128i, __m128i, 1)
+
+/* lwpintrin.h */
+test_2 ( __lwpval32, void, unsigned int, unsigned int, 1)
+test_2 ( __lwpins32, unsigned char, unsigned int, unsigned int, 1)
+#ifdef __x86_64__
+test_2 ( __lwpval64, void, unsigned long long, unsigned int, 1)
+test_2 ( __lwpins64, unsigned char, unsigned long long, unsigned int, 1)
+#endif

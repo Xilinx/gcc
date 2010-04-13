@@ -470,8 +470,6 @@ static void output_cfi (dw_cfi_ref, dw_fde_ref, int);
 static void output_cfi_directive (dw_cfi_ref);
 static void output_call_frame_info (int);
 static void dwarf2out_note_section_used (void);
-static void dwarf2out_stack_adjust (rtx, bool);
-static void dwarf2out_args_size_adjust (HOST_WIDE_INT, const char *);
 static void flush_queued_reg_saves (void);
 static bool clobbers_queued_reg_save (const_rtx);
 static void dwarf2out_frame_debug_expr (rtx, const char *);
@@ -806,7 +804,7 @@ add_fde_cfi (const char *label, dw_cfi_ref cfi)
 
       /* Emit the state save.  */
       emit_cfa_remember = false;
-      cfi_remember = new_cfi (); 
+      cfi_remember = new_cfi ();
       cfi_remember->dw_cfi_opc = DW_CFA_remember_state;
       add_fde_cfi (label, cfi_remember);
     }
@@ -1044,7 +1042,7 @@ def_cfa_1 (const char *label, dw_cfa_location *loc_p)
   if (loc.reg == old_cfa.reg && !loc.indirect)
     {
       /* Construct a "DW_CFA_def_cfa_offset <offset>" instruction, indicating
-	 the CFA register did not change but the offset did.  The data 
+	 the CFA register did not change but the offset did.  The data
 	 factoring for DW_CFA_def_cfa_offset_sf happens in output_cfi, or
 	 in the assembler via the .cfi_def_cfa_offset directive.  */
       if (loc.offset < 0)
@@ -1154,25 +1152,6 @@ dwarf2out_window_save (const char *label)
   dw_cfi_ref cfi = new_cfi ();
 
   cfi->dw_cfi_opc = DW_CFA_GNU_window_save;
-  add_fde_cfi (label, cfi);
-}
-
-/* Add a CFI to update the running total of the size of arguments
-   pushed onto the stack.  */
-
-void
-dwarf2out_args_size (const char *label, HOST_WIDE_INT size)
-{
-  dw_cfi_ref cfi;
-
-  if (size == old_args_size)
-    return;
-
-  old_args_size = size;
-
-  cfi = new_cfi ();
-  cfi->dw_cfi_opc = DW_CFA_GNU_args_size;
-  cfi->dw_cfi_oprnd1.dw_cfi_offset = size;
   add_fde_cfi (label, cfi);
 }
 
@@ -1526,13 +1505,58 @@ compute_barrier_args_size (void)
   VEC_free (rtx, heap, next);
 }
 
-
-/* Check INSN to see if it looks like a push or a stack adjustment, and
-   make a note of it if it does.  EH uses this information to find out how
-   much extra space it needs to pop off the stack.  */
+/* Add a CFI to update the running total of the size of arguments
+   pushed onto the stack.  */
 
 static void
-dwarf2out_stack_adjust (rtx insn, bool after_p)
+dwarf2out_args_size (const char *label, HOST_WIDE_INT size)
+{
+  dw_cfi_ref cfi;
+
+  if (size == old_args_size)
+    return;
+
+  old_args_size = size;
+
+  cfi = new_cfi ();
+  cfi->dw_cfi_opc = DW_CFA_GNU_args_size;
+  cfi->dw_cfi_oprnd1.dw_cfi_offset = size;
+  add_fde_cfi (label, cfi);
+}
+
+/* Record a stack adjustment of OFFSET bytes.  */
+
+static void
+dwarf2out_stack_adjust (HOST_WIDE_INT offset, const char *label)
+{
+  if (cfa.reg == STACK_POINTER_REGNUM)
+    cfa.offset += offset;
+
+  if (cfa_store.reg == STACK_POINTER_REGNUM)
+    cfa_store.offset += offset;
+
+  if (ACCUMULATE_OUTGOING_ARGS)
+    return;
+
+#ifndef STACK_GROWS_DOWNWARD
+  offset = -offset;
+#endif
+
+  args_size += offset;
+  if (args_size < 0)
+    args_size = 0;
+
+  def_cfa_1 (label, &cfa);
+  if (flag_asynchronous_unwind_tables)
+    dwarf2out_args_size (label, args_size);
+}
+
+/* Check INSN to see if it looks like a push or a stack adjustment, and
+   make a note of it if it does.  EH uses this information to find out
+   how much extra space it needs to pop off the stack.  */
+
+static void
+dwarf2out_notice_stack_adjust (rtx insn, bool after_p)
 {
   HOST_WIDE_INT offset;
   const char *label;
@@ -1616,31 +1640,7 @@ dwarf2out_stack_adjust (rtx insn, bool after_p)
     return;
 
   label = dwarf2out_cfi_label (false);
-  dwarf2out_args_size_adjust (offset, label);
-}
-
-/* Adjust args_size based on stack adjustment OFFSET.  */
-
-static void
-dwarf2out_args_size_adjust (HOST_WIDE_INT offset, const char *label)
-{
-  if (cfa.reg == STACK_POINTER_REGNUM)
-    cfa.offset += offset;
-
-  if (cfa_store.reg == STACK_POINTER_REGNUM)
-    cfa_store.offset += offset;
-
-#ifndef STACK_GROWS_DOWNWARD
-  offset = -offset;
-#endif
-
-  args_size += offset;
-  if (args_size < 0)
-    args_size = 0;
-
-  def_cfa_1 (label, &cfa);
-  if (flag_asynchronous_unwind_tables)
-    dwarf2out_args_size (label, args_size);
+  dwarf2out_stack_adjust (offset, label);
 }
 
 #endif
@@ -1885,7 +1885,7 @@ dwarf2out_frame_debug_cfa_offset (rtx set, const char *label)
   addr = XEXP (set, 0);
   gcc_assert (MEM_P (addr));
   addr = XEXP (addr, 0);
-  
+
   /* As documented, only consider extremely simple addresses.  */
   switch (GET_CODE (addr))
     {
@@ -2218,7 +2218,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	      HOST_WIDE_INT offset = stack_adjust_offset (elem, args_size, 0);
 
 	      if (offset != 0)
-		dwarf2out_args_size_adjust (offset, label);
+		dwarf2out_stack_adjust (offset, label);
 	    }
 	}
       return;
@@ -2711,10 +2711,13 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
   if (!NONJUMP_INSN_P (insn) || clobbers_queued_reg_save (insn))
     flush_queued_reg_saves ();
 
-  if (! RTX_FRAME_RELATED_P (insn))
+  if (!RTX_FRAME_RELATED_P (insn))
     {
+      /* ??? This should be done unconditionally since stack adjustments
+	 matter if the stack pointer is not the CFA register anymore but
+	 is still used to save registers.  */
       if (!ACCUMULATE_OUTGOING_ARGS)
-	dwarf2out_stack_adjust (insn, after_p);
+	dwarf2out_notice_stack_adjust (insn, after_p);
       return;
     }
 
@@ -2872,7 +2875,7 @@ dwarf2out_begin_epilogue (rtx insn)
 void
 dwarf2out_frame_debug_restore_state (void)
 {
-  dw_cfi_ref cfi = new_cfi (); 
+  dw_cfi_ref cfi = new_cfi ();
   const char *label = dwarf2out_cfi_label (false);
 
   cfi->dw_cfi_opc = DW_CFA_restore_state;
@@ -5418,6 +5421,7 @@ static void dwarf2out_abstract_function (tree);
 static void dwarf2out_var_location (rtx);
 static void dwarf2out_direct_call (tree);
 static void dwarf2out_virtual_call_token (tree, int);
+static void dwarf2out_copy_call_info (rtx, rtx);
 static void dwarf2out_virtual_call (int);
 static void dwarf2out_begin_function (tree);
 static void dwarf2out_set_name (tree, tree);
@@ -5457,6 +5461,7 @@ const struct gcc_debug_hooks dwarf2_debug_hooks =
   dwarf2out_switch_text_section,
   dwarf2out_direct_call,
   dwarf2out_virtual_call_token,
+  dwarf2out_copy_call_info,
   dwarf2out_virtual_call,
   dwarf2out_set_name,
   1                             /* start_end_main_source_file */
@@ -6172,10 +6177,7 @@ static void gen_generic_params_dies (tree);
 static void splice_child_die (dw_die_ref, dw_die_ref);
 static int file_info_cmp (const void *, const void *);
 static dw_loc_list_ref new_loc_list (dw_loc_descr_ref, const char *,
-				     const char *, const char *, unsigned);
-static void add_loc_descr_to_loc_list (dw_loc_list_ref *, dw_loc_descr_ref,
-				       const char *, const char *,
-				       const char *);
+				     const char *, const char *);
 static void output_loc_list (dw_loc_list_ref);
 static char *gen_internal_sym (const char *);
 
@@ -7209,6 +7211,13 @@ AT_loc_list (dw_attr_ref a)
   return a->dw_attr_val.v.val_loc_list;
 }
 
+static inline dw_loc_list_ref *
+AT_loc_list_ptr (dw_attr_ref a)
+{
+  gcc_assert (a && AT_class (a) == dw_val_class_loc_list);
+  return &a->dw_attr_val.v.val_loc_list;
+}
+
 /* Add an address constant attribute value to a DIE.  */
 
 static inline void
@@ -7788,8 +7797,7 @@ add_var_loc_to_decl (tree decl, struct var_loc_node *loc)
 	  temp->last = loc;
 	}
     }
-  /* Do not add empty location to the beginning of the list.  */
-  else if (NOTE_VAR_LOCATION_LOC (loc->var_loc_note) != NULL_RTX)
+  else
     {
       temp->first = loc;
       temp->last = loc;
@@ -9605,7 +9613,7 @@ htab_decl_del (void *what)
   free (entry);
 }
 
-/* Copy DIE and its ancestors, up to, but not including, the compile unit 
+/* Copy DIE and its ancestors, up to, but not including, the compile unit
    or type unit entry, to a new tree.  Adds the new tree to UNIT and returns
    a pointer to the copy of DIE.  If DECL_TABLE is provided, it is used
    to check if the ancestor has already been copied into UNIT.  */
@@ -10297,12 +10305,11 @@ output_die_symbol (dw_die_ref die)
 }
 
 /* Return a new location list, given the begin and end range, and the
-   expression. gensym tells us whether to generate a new internal symbol for
-   this location list node, which is done for the head of the list only.  */
+   expression.  */
 
 static inline dw_loc_list_ref
 new_loc_list (dw_loc_descr_ref expr, const char *begin, const char *end,
-	      const char *section, unsigned int gensym)
+	      const char *section)
 {
   dw_loc_list_ref retlist = GGC_CNEW (dw_loc_list_node);
 
@@ -10310,27 +10317,18 @@ new_loc_list (dw_loc_descr_ref expr, const char *begin, const char *end,
   retlist->end = end;
   retlist->expr = expr;
   retlist->section = section;
-  if (gensym)
-    retlist->ll_symbol = gen_internal_sym ("LLST");
 
   return retlist;
 }
 
-/* Add a location description expression to a location list.  */
+/* Generate a new internal symbol for this location list node, if it
+   hasn't got one yet.  */
 
 static inline void
-add_loc_descr_to_loc_list (dw_loc_list_ref *list_head, dw_loc_descr_ref descr,
-			   const char *begin, const char *end,
-			   const char *section)
+gen_llsym (dw_loc_list_ref list)
 {
-  dw_loc_list_ref *d;
-
-  /* Find the end of the chain.  */
-  for (d = list_head; (*d) != NULL; d = &(*d)->dw_loc_next)
-    ;
-
-  /* Add a new location list node to the list.  */
-  *d = new_loc_list (descr, begin, end, section, 0);
+  gcc_assert (!list->ll_symbol);
+  list->ll_symbol = gen_internal_sym ("LLST");
 }
 
 /* Output the location list given to us.  */
@@ -11261,7 +11259,6 @@ output_file_names (void)
   int ndirs;
   int idx_offset;
   int i;
-  int idx;
 
   if (!last_emitted_file)
     {
@@ -11388,7 +11385,6 @@ output_file_names (void)
     }
 
   /* Emit the directory name table.  */
-  idx = 1;
   idx_offset = dirs[0].length > 0 ? 1 : 0;
   for (i = 1 - idx_offset; i < ndirs; i++)
     dw2_asm_output_nstring (dirs[i].path,
@@ -13650,15 +13646,17 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
       break;
 
     case CONST_DOUBLE:
+      if (mode == VOIDmode)
+	mode = GET_MODE (rtl);
+
       if (mode != VOIDmode && (dwarf_version >= 4 || !dwarf_strict))
 	{
+	  gcc_assert (mode == GET_MODE (rtl) || VOIDmode == GET_MODE (rtl));
+
 	  /* Note that a CONST_DOUBLE rtx could represent either an integer
 	     or a floating-point constant.  A CONST_DOUBLE is used whenever
 	     the constant requires more than one word in order to be
 	     adequately represented.  We output CONST_DOUBLEs as blocks.  */
-	  if (GET_MODE (rtl) != VOIDmode)
-	    mode = GET_MODE (rtl);
-
 	  loc_result = new_loc_descr (DW_OP_implicit_value,
 				      GET_MODE_SIZE (mode), 0);
 	  if (SCALAR_FLOAT_MODE_P (mode))
@@ -13684,6 +13682,9 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
       break;
 
     case CONST_VECTOR:
+      if (mode == VOIDmode)
+	mode = GET_MODE (rtl);
+
       if (mode != VOIDmode && (dwarf_version >= 4 || !dwarf_strict))
 	{
 	  unsigned int elt_size = GET_MODE_UNIT_SIZE (GET_MODE (rtl));
@@ -13692,7 +13693,7 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	  unsigned int i;
 	  unsigned char *p;
 
-	  mode = GET_MODE (rtl);
+	  gcc_assert (mode == GET_MODE (rtl) || VOIDmode == GET_MODE (rtl));
 	  switch (GET_MODE_CLASS (mode))
 	    {
 	    case MODE_VECTOR_INT:
@@ -13774,10 +13775,10 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
       if (mode != VOIDmode && GET_MODE_SIZE (mode) == DWARF2_ADDR_SIZE
 	  && (dwarf_version >= 4 || !dwarf_strict))
 	{
-	  loc_result = new_loc_descr (DW_OP_implicit_value,
-				      DWARF2_ADDR_SIZE, 0);
-	  loc_result->dw_loc_oprnd2.val_class = dw_val_class_addr;
-	  loc_result->dw_loc_oprnd2.v.val_addr = rtl;
+	  loc_result = new_loc_descr (DW_OP_addr, 0, 0);
+	  loc_result->dw_loc_oprnd1.val_class = dw_val_class_addr;
+	  loc_result->dw_loc_oprnd1.v.val_addr = rtl;
+	  add_loc_descr (&loc_result, new_loc_descr (DW_OP_stack_value, 0, 0));
 	  VEC_safe_push (rtx, gc, used_rtx_array, rtl);
 	}
       break;
@@ -13837,14 +13838,6 @@ decl_by_reference_p (tree decl)
   return ((TREE_CODE (decl) == PARM_DECL || TREE_CODE (decl) == RESULT_DECL
   	   || TREE_CODE (decl) == VAR_DECL)
 	  && DECL_BY_REFERENCE (decl));
-}
-
-/* Return single element location list containing loc descr REF.  */
-
-static dw_loc_list_ref
-single_element_loc_list (dw_loc_descr_ref ref)
-{
-  return new_loc_list (ref, NULL, NULL, NULL, 0);
 }
 
 /* Helper function for dw_loc_list.  Compute proper Dwarf location descriptor
@@ -13928,20 +13921,21 @@ dw_loc_list_1 (tree loc, rtx varloc, int want_address,
   return descr;
 }
 
-/* Return dwarf representation of location list representing for
-   LOC_LIST of DECL.  WANT_ADDRESS has the same meaning as in
-   loc_list_from_tree function.  */
+/* Return the dwarf representation of the location list LOC_LIST of
+   DECL.  WANT_ADDRESS has the same meaning as in loc_list_from_tree
+   function.  */
 
 static dw_loc_list_ref
-dw_loc_list (var_loc_list * loc_list, tree decl, int want_address)
+dw_loc_list (var_loc_list *loc_list, tree decl, int want_address)
 {
   const char *endname, *secname;
-  dw_loc_list_ref list;
   rtx varloc;
   enum var_init_status initialized;
   struct var_loc_node *node;
   dw_loc_descr_ref descr;
   char label_id[MAX_ARTIFICIAL_LABEL_BYTES];
+  dw_loc_list_ref list = NULL;
+  dw_loc_list_ref *listp = &list;
 
   /* Now that we know what section we are using for a base,
      actually construct the list of locations.
@@ -13954,26 +13948,9 @@ dw_loc_list (var_loc_list * loc_list, tree decl, int want_address)
      This means we have to special case the last node, and generate
      a range of [last location start, end of function label].  */
 
-  node = loc_list->first;
   secname = secname_for_decl (decl);
 
-  if (NOTE_VAR_LOCATION_LOC (node->var_loc_note))
-    initialized = NOTE_VAR_LOCATION_STATUS (node->var_loc_note);
-  else
-    initialized = VAR_INIT_STATUS_INITIALIZED;
-  varloc = NOTE_VAR_LOCATION (node->var_loc_note);
-  descr = dw_loc_list_1 (decl, varloc, want_address, initialized);
-
-  if (loc_list && loc_list->first != loc_list->last)
-    list = new_loc_list (descr, node->label, node->next->label, secname, 1);
-  else
-    return single_element_loc_list (descr);
-  node = node->next;
-
-  if (!node)
-    return NULL;
-
-  for (; node->next; node = node->next)
+  for (node = loc_list->first; node->next; node = node->next)
     if (NOTE_VAR_LOCATION_LOC (node->var_loc_note) != NULL_RTX)
       {
 	/* The variable has a location between NODE->LABEL and
@@ -13981,28 +13958,46 @@ dw_loc_list (var_loc_list * loc_list, tree decl, int want_address)
 	initialized = NOTE_VAR_LOCATION_STATUS (node->var_loc_note);
 	varloc = NOTE_VAR_LOCATION (node->var_loc_note);
 	descr = dw_loc_list_1 (decl, varloc, want_address, initialized);
-	add_loc_descr_to_loc_list (&list, descr,
-				   node->label, node->next->label, secname);
+	if (descr)
+	  {
+	    *listp = new_loc_list (descr, node->label, node->next->label,
+				   secname);
+	    listp = &(*listp)->dw_loc_next;
+	  }
       }
 
   /* If the variable has a location at the last label
      it keeps its location until the end of function.  */
   if (NOTE_VAR_LOCATION_LOC (node->var_loc_note) != NULL_RTX)
     {
-      if (!current_function_decl)
-	endname = text_end_label;
-      else
-	{
-	  ASM_GENERATE_INTERNAL_LABEL (label_id, FUNC_END_LABEL,
-				       FUNC_LABEL_ID (cfun));
-	  endname = ggc_strdup (label_id);
-	}
-
       initialized = NOTE_VAR_LOCATION_STATUS (node->var_loc_note);
       varloc = NOTE_VAR_LOCATION (node->var_loc_note);
       descr = dw_loc_list_1 (decl, varloc, want_address, initialized);
-      add_loc_descr_to_loc_list (&list, descr, node->label, endname, secname);
+      if (descr)
+	{
+	  if (!current_function_decl)
+	    endname = text_end_label;
+	  else
+	    {
+	      ASM_GENERATE_INTERNAL_LABEL (label_id, FUNC_END_LABEL,
+					   FUNC_LABEL_ID (cfun));
+	      endname = ggc_strdup (label_id);
+	    }
+
+	  *listp = new_loc_list (descr, node->label, endname, secname);
+	  listp = &(*listp)->dw_loc_next;
+	}
     }
+
+  /* Try to avoid the overhead of a location list emitting a location
+     expression instead, but only if we didn't have more than one
+     location entry in the first place.  If some entries were not
+     representable, we don't want to pretend a single entry that was
+     applies to the entire scope in which the variable is
+     available.  */
+  if (list && loc_list->first->next)
+    gen_llsym (list);
+
   return list;
 }
 
@@ -14012,7 +14007,8 @@ dw_loc_list (var_loc_list * loc_list, tree decl, int want_address)
 static bool
 single_element_loc_list_p (dw_loc_list_ref list)
 {
-  return (!list->dw_loc_next && !list->begin && !list->end);
+  gcc_assert (!list->dw_loc_next || list->ll_symbol);
+  return !list->ll_symbol;
 }
 
 /* To each location in list LIST add loc descr REF.  */
@@ -14046,7 +14042,7 @@ add_loc_descr_to_each (dw_loc_list_ref list, dw_loc_descr_ref ref)
 
    TODO: We handle only simple cases of RET or LIST having at most one
    element. General case would inolve sorting the lists in program order
-   and merging them that will need some additional work.  
+   and merging them that will need some additional work.
    Adding that will improve quality of debug info especially for SRA-ed
    structures.  */
 
@@ -14309,13 +14305,17 @@ loc_list_from_tree (tree loc, int want_address)
     case RESULT_DECL:
     case FUNCTION_DECL:
       {
-	rtx rtl = rtl_for_decl_location (loc);
+	rtx rtl;
 	var_loc_list *loc_list = lookup_decl_loc (loc);
 
-	if (loc_list && loc_list->first
-	    && (list_ret = dw_loc_list (loc_list, loc, want_address)))
-	  have_address = want_address != 0;
-	else if (rtl == NULL_RTX)
+	if (loc_list && loc_list->first)
+	  {
+	    list_ret = dw_loc_list (loc_list, loc, want_address);
+	    have_address = want_address != 0;
+	    break;
+	  }
+	rtl = rtl_for_decl_location (loc);
+	if (rtl == NULL_RTX)
 	  {
 	    expansion_failed (loc, NULL_RTX, "DECL has no RTL");
 	    return 0;
@@ -14430,7 +14430,7 @@ loc_list_from_tree (tree loc, int want_address)
 	if (bytepos > 0)
 	  add_loc_descr_to_each (list_ret, new_loc_descr (DW_OP_plus_uconst, bytepos, 0));
 	else if (bytepos < 0)
-	  loc_list_plus_const (list_ret, bytepos); 
+	  loc_list_plus_const (list_ret, bytepos);
 
 	have_address = 1;
 	break;
@@ -14721,7 +14721,7 @@ loc_list_from_tree (tree loc, int want_address)
 	add_loc_descr_to_each (list_ret, new_loc_descr (op, size, 0));
     }
   if (ret)
-    list_ret = single_element_loc_list (ret);
+    list_ret = new_loc_list (ret, NULL, NULL, NULL);
 
   return list_ret;
 }
@@ -15039,11 +15039,11 @@ add_data_member_location_attribute (dw_die_ref die, tree decl)
       else
 	{
 	  enum dwarf_location_atom op;
-	  
+
 	  /* The DWARF2 standard says that we should assume that the structure
 	     address is already on the stack, so we can specify a structure
 	     field address by using DW_OP_plus_uconst.  */
-	  
+
 #ifdef MIPS_DEBUGGING_INFO
 	  /* ??? The SGI dwarf reader does not handle the DW_OP_plus_uconst
 	     operator correctly.  It works only if we leave the offset on the
@@ -15052,7 +15052,7 @@ add_data_member_location_attribute (dw_die_ref die, tree decl)
 #else
 	  op = DW_OP_plus_uconst;
 #endif
-	  
+
 	  loc_descr = new_loc_descr (op, offset, 0);
 	}
     }
@@ -15223,10 +15223,20 @@ add_const_value_attribute (dw_die_ref die, rtx rtl)
       return true;
 
     case CONST_STRING:
-      resolve_one_addr (&rtl, NULL);
-      add_AT_addr (die, DW_AT_const_value, rtl);
-      VEC_safe_push (rtx, gc, used_rtx_array, rtl);
-      return true;
+      if (dwarf_version >= 4 || !dwarf_strict)
+	{
+	  dw_loc_descr_ref loc_result;
+	  resolve_one_addr (&rtl, NULL);
+	rtl_addr:
+	  loc_result = new_loc_descr (DW_OP_addr, 0, 0);
+	  loc_result->dw_loc_oprnd1.val_class = dw_val_class_addr;
+	  loc_result->dw_loc_oprnd1.v.val_addr = rtl;
+	  add_loc_descr (&loc_result, new_loc_descr (DW_OP_stack_value, 0, 0));
+	  add_AT_loc (die, DW_AT_location, loc_result);
+	  VEC_safe_push (rtx, gc, used_rtx_array, rtl);
+	  return true;
+	}
+      return false;
 
     case CONST:
       if (CONSTANT_P (XEXP (rtl, 0)))
@@ -15236,9 +15246,9 @@ add_const_value_attribute (dw_die_ref die, rtx rtl)
       if (!const_ok_for_output (rtl))
 	return false;
     case LABEL_REF:
-      add_AT_addr (die, DW_AT_const_value, rtl);
-      VEC_safe_push (rtx, gc, used_rtx_array, rtl);
-      return true;
+      if (dwarf_version >= 4 || !dwarf_strict)
+	goto rtl_addr;
+      return false;
 
     case PLUS:
       /* In cases where an inlined instance of an inline function is passed
@@ -15605,6 +15615,27 @@ rtl_for_decl_location (tree decl)
   if (rtl)
     rtl = avoid_constant_pool_reference (rtl);
 
+  /* Try harder to get a rtl.  If this symbol ends up not being emitted
+     in the current CU, resolve_addr will remove the expression referencing
+     it.  */
+  if (rtl == NULL_RTX
+      && TREE_CODE (decl) == VAR_DECL
+      && !DECL_EXTERNAL (decl)
+      && TREE_STATIC (decl)
+      && DECL_NAME (decl)
+      && !DECL_HARD_REGISTER (decl)
+      && DECL_MODE (decl) != VOIDmode)
+    {
+      rtl = DECL_RTL (decl);
+      /* Reset DECL_RTL back, as various parts of the compiler expects
+	 DECL_RTL set meaning it is actually going to be output.  */
+      SET_DECL_RTL (decl, NULL);
+      if (!MEM_P (rtl)
+	  || GET_CODE (XEXP (rtl, 0)) != SYMBOL_REF
+	  || SYMBOL_REF_DECL (XEXP (rtl, 0)) != decl)
+	rtl = NULL_RTX;
+    }
+
   return rtl;
 }
 
@@ -15621,12 +15652,11 @@ fortran_common (tree decl, HOST_WIDE_INT *value)
   tree offset;
   int volatilep = 0, unsignedp = 0;
 
-  /* If the decl isn't a VAR_DECL, or if it isn't public or static, or if
+  /* If the decl isn't a VAR_DECL, or if it isn't static, or if
      it does not have a value (the offset into the common area), or if it
      is thread local (as opposed to global) then it isn't common, and shouldn't
      be handled as such.  */
   if (TREE_CODE (decl) != VAR_DECL
-      || !TREE_PUBLIC (decl)
       || !TREE_STATIC (decl)
       || !DECL_HAS_VALUE_EXPR_P (decl)
       || !is_fortran ())
@@ -15695,17 +15725,18 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
      a constant value.  That way we are better to use add_const_value_attribute
      rather than expanding constant value equivalent.  */
   loc_list = lookup_decl_loc (decl);
-  if (loc_list && loc_list->first && loc_list->first == loc_list->last)
+  if (loc_list
+      && loc_list->first
+      && loc_list->first == loc_list->last
+      && NOTE_VAR_LOCATION (loc_list->first->var_loc_note)
+      && NOTE_VAR_LOCATION_LOC (loc_list->first->var_loc_note))
     {
-      enum var_init_status status;
       struct var_loc_node *node;
 
       node = loc_list->first;
-      status = NOTE_VAR_LOCATION_STATUS (node->var_loc_note);
-      rtl = NOTE_VAR_LOCATION (node->var_loc_note);
-      if (GET_CODE (rtl) == VAR_LOCATION
-	  && GET_CODE (XEXP (rtl, 1)) != PARALLEL)
-	rtl = XEXP (XEXP (rtl, 1), 0);
+      rtl = NOTE_VAR_LOCATION_LOC (node->var_loc_note);
+      if (GET_CODE (rtl) != PARALLEL)
+	rtl = XEXP (rtl, 0);
       if ((CONSTANT_P (rtl) || GET_CODE (rtl) == CONST_STRING)
 	  && add_const_value_attribute (die, rtl))
 	 return true;
@@ -15992,8 +16023,7 @@ convert_cfa_to_fb_loc_list (HOST_WIDE_INT offset)
 	if (!cfa_equal_p (&last_cfa, &next_cfa))
 	  {
 	    *list_tail = new_loc_list (build_cfa_loc (&last_cfa, offset),
-				       start_label, last_label, section,
-				       list == NULL);
+				       start_label, last_label, section);
 
 	    list_tail = &(*list_tail)->dw_loc_next;
 	    last_cfa = next_cfa;
@@ -16014,14 +16044,16 @@ convert_cfa_to_fb_loc_list (HOST_WIDE_INT offset)
   if (!cfa_equal_p (&last_cfa, &next_cfa))
     {
       *list_tail = new_loc_list (build_cfa_loc (&last_cfa, offset),
-				 start_label, last_label, section,
-				 list == NULL);
+				 start_label, last_label, section);
       list_tail = &(*list_tail)->dw_loc_next;
       start_label = last_label;
     }
+
   *list_tail = new_loc_list (build_cfa_loc (&next_cfa, offset),
-			     start_label, fde->dw_fde_end, section,
-			     list == NULL);
+			     start_label, fde->dw_fde_end, section);
+
+  if (list && list->dw_loc_next)
+    gen_llsym (list);
 
   return list;
 }
@@ -16451,7 +16483,8 @@ add_pure_or_virtual_attribute (dw_die_ref die, tree func_decl)
 				   0));
 
       /* GNU extension: Record what type this method came from originally.  */
-      if (debug_info_level > DINFO_LEVEL_TERSE)
+      if (debug_info_level > DINFO_LEVEL_TERSE
+	  && DECL_CONTEXT (func_decl))
 	add_AT_die_ref (die, DW_AT_containing_type,
 			lookup_type_die (DECL_CONTEXT (func_decl)));
     }
@@ -16869,7 +16902,7 @@ gen_array_type_die (tree type, dw_die_ref context_die)
     add_subscript_info (array_die, type, collapse_nested_arrays);
 
   /* Add representation of the type of the elements of this array type and
-     emit the corresponding DIE if we haven't done it already.  */  
+     emit the corresponding DIE if we haven't done it already.  */
   element_type = TREE_TYPE (type);
   if (collapse_nested_arrays)
     while (TREE_CODE (element_type) == ARRAY_TYPE)
@@ -17371,7 +17404,8 @@ gen_type_die_for_member (tree type, tree member, dw_die_ref context_die)
 
   /* If we're trying to avoid duplicate debug info, we may not have
      emitted the member decl for this function.  Emit it now.  */
-  if (TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type))
+  if (TYPE_STUB_DECL (type)
+      && TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type))
       && ! lookup_decl_die (member))
     {
       dw_die_ref type_die;
@@ -17409,7 +17443,7 @@ dwarf2out_abstract_function (tree decl)
   dw_die_ref old_die;
   tree save_fn;
   tree context;
-  int was_abstract = DECL_ABSTRACT (decl);
+  int was_abstract;
   htab_t old_decl_loc_table;
 
   /* Make sure we have the actual abstract inline, not a clone.  */
@@ -17441,6 +17475,7 @@ dwarf2out_abstract_function (tree decl)
   current_function_decl = decl;
   push_cfun (DECL_STRUCT_FUNCTION (decl));
 
+  was_abstract = DECL_ABSTRACT (decl);
   set_decl_abstract_flags (decl, 1);
   dwarf2out_decl (decl);
   if (! was_abstract)
@@ -17814,7 +17849,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	 of the pack. Note that the set of pack arguments can be empty.
 	 In that case, the DW_TAG_GNU_formal_parameter_pack DIE will not have any
 	 children DIE.
-	
+
 	 Otherwise, we just consider the parameters of DECL.  */
       while (generic_decl_parm || parm)
 	{
@@ -17927,26 +17962,6 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
   dw_die_ref old_die = decl ? lookup_decl_die (decl) : NULL;
   dw_die_ref origin_die;
   int declaration = (DECL_EXTERNAL (decl_or_origin)
-		     /* If DECL is COMDAT and has not actually been
-			emitted, we cannot take its address; there
-			might end up being no definition anywhere in
-			the program.  For example, consider the C++
-			test case:
-
-			  template <class T>
-			  struct S { static const int i = 7; };
-
-			  template <class T>
-			  const int S<T>::i;
-
-			  int f() { return S<int>::i; }
-
-			Here, S<int>::i is not DECL_EXTERNAL, but no
-			definition is required, so the compiler will
-			not emit a definition.  */
-		     || (TREE_CODE (decl_or_origin) == VAR_DECL
-			 && DECL_COMDAT (decl_or_origin)
-			 && !TREE_ASM_WRITTEN (decl_or_origin))
 		     || class_or_namespace_scope_p (context_die));
 
   if (!origin)
@@ -17958,7 +17973,6 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
      of a data member.  */
   if (com_decl)
     {
-      tree field;
       dw_die_ref com_die;
       dw_loc_list_ref loc;
       die_node com_die_arg;
@@ -17996,7 +18010,6 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
 	  = htab_create_ggc (10, common_block_die_table_hash,
 			     common_block_die_table_eq, NULL);
 
-      field = TREE_OPERAND (DECL_VALUE_EXPR (decl), 0);
       com_die_arg.decl_id = DECL_UID (com_decl);
       com_die_arg.die_parent = context_die;
       com_die = (dw_die_ref) htab_find (common_block_die_table, &com_die_arg);
@@ -18060,8 +18073,7 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
      and if we already emitted a DIE for it, don't emit a second
      DIE for it again.  */
   if (old_die
-      && declaration
-      && old_die->die_parent == context_die)
+      && declaration)
     return;
 
   /* For static data members, the declaration in the class is supposed
@@ -19086,7 +19098,7 @@ get_context_die (tree context)
     {
       /* Find die that represents this context.  */
       if (TYPE_P (context))
-	return force_type_die (context);
+	return force_type_die (TYPE_MAIN_VARIANT (context));
       else
 	return force_decl_die (context);
     }
@@ -19925,7 +19937,7 @@ gen_remaining_tmpl_value_param_die_attribute (void)
 
 
 /* Replace DW_AT_name for the decl with name.  */
- 
+
 static void
 dwarf2out_set_name (tree decl, tree name)
 {
@@ -19996,6 +20008,42 @@ vcall_insn_table_eq (const void *x, const void *y)
           == ((const struct vcall_insn *) y)->insn_uid);
 }
 
+/* Associate VTABLE_SLOT with INSN_UID in the VCALL_INSN_TABLE.  */
+
+static void
+store_vcall_insn (unsigned int vtable_slot, int insn_uid)
+{
+  struct vcall_insn *item = GGC_NEW (struct vcall_insn);
+  struct vcall_insn **slot;
+
+  gcc_assert (item);
+  item->insn_uid = insn_uid;
+  item->vtable_slot = vtable_slot;
+  slot = (struct vcall_insn **)
+      htab_find_slot_with_hash (vcall_insn_table, &item,
+				(hashval_t) insn_uid, INSERT);
+  *slot = item;
+}
+
+/* Return the VTABLE_SLOT associated with INSN_UID.  */
+
+static unsigned int
+lookup_vcall_insn (unsigned int insn_uid)
+{
+  struct vcall_insn item;
+  struct vcall_insn *p;
+
+  item.insn_uid = insn_uid;
+  item.vtable_slot = 0;
+  p = (struct vcall_insn *) htab_find_with_hash (vcall_insn_table,
+                                                 (void *) &item,
+                                                 (hashval_t) insn_uid);
+  if (p == NULL)
+    return (unsigned int) -1;
+  return p->vtable_slot;
+}
+
+
 /* Called when lowering indirect calls to RTL.  We make a note of INSN_UID
    and the OBJ_TYPE_REF_TOKEN from ADDR.  For C++ virtual calls, the token
    is the vtable slot index that we will need to put in the virtual call
@@ -20008,19 +20056,21 @@ dwarf2out_virtual_call_token (tree addr, int insn_uid)
     {
       tree token = OBJ_TYPE_REF_TOKEN (addr);
       if (TREE_CODE (token) == INTEGER_CST)
-        {
-          struct vcall_insn *item = GGC_NEW (struct vcall_insn);
-          struct vcall_insn **slot;
-
-          gcc_assert (item);
-          item->insn_uid = insn_uid;
-          item->vtable_slot = TREE_INT_CST_LOW (token);
-          slot = (struct vcall_insn **)
-              htab_find_slot_with_hash (vcall_insn_table, &item,
-                                        (hashval_t) insn_uid, INSERT);
-          *slot = item;
-        }
+        store_vcall_insn (TREE_INT_CST_LOW (token), insn_uid);
     }
+}
+
+/* Called when scheduling RTL, when a CALL_INSN is split.  Copies the
+   OBJ_TYPE_REF_TOKEN previously associated with OLD_INSN and associates it
+   with NEW_INSN.  */
+
+static void
+dwarf2out_copy_call_info (rtx old_insn, rtx new_insn)
+{
+  unsigned int vtable_slot = lookup_vcall_insn (INSN_UID (old_insn));
+
+  if (vtable_slot != (unsigned int) -1)
+    store_vcall_insn (vtable_slot, INSN_UID (new_insn));
 }
 
 /* Called by the final INSN scan whenever we see a virtual function call.
@@ -20032,20 +20082,14 @@ dwarf2out_virtual_call_token (tree addr, int insn_uid)
 static void
 dwarf2out_virtual_call (int insn_uid)
 {
+  unsigned int vtable_slot = lookup_vcall_insn (insn_uid);
   vcall_entry e;
-  struct vcall_insn item;
-  struct vcall_insn *p;
 
-  item.insn_uid = insn_uid;
-  item.vtable_slot = 0;
-  p = (struct vcall_insn *) htab_find_with_hash (vcall_insn_table,
-                                                 (void *) &item,
-                                                 (hashval_t) insn_uid);
-  if (p == NULL)
+  if (vtable_slot == (unsigned int) -1)
     return;
 
   e.poc_label_num = poc_label_num++;
-  e.vtable_slot = p->vtable_slot;
+  e.vtable_slot = vtable_slot;
   VEC_safe_push (vcall_entry, gc, vcall_table, &e);
 
   /* Drop a label at the return point to mark the point of call.  */
@@ -20548,7 +20592,7 @@ prune_unused_types_mark (dw_die_ref die, int dokids)
 	 breaking out types into comdat sections, do this
 	 for all type definitions.  */
       if (die->die_tag == DW_TAG_array_type
-          || (dwarf_version >= 4 
+          || (dwarf_version >= 4
               && is_type_die (die) && ! is_declaration_die (die)))
 	FOR_EACH_CHILD (die, c, prune_unused_types_mark (c, 1));
       else
@@ -20943,28 +20987,48 @@ resolve_addr (dw_die_ref die)
 {
   dw_die_ref c;
   dw_attr_ref a;
-  dw_loc_list_ref curr;
+  dw_loc_list_ref *curr;
   unsigned ix;
 
   for (ix = 0; VEC_iterate (dw_attr_node, die->die_attr, ix, a); ix++)
     switch (AT_class (a))
       {
       case dw_val_class_loc_list:
-	for (curr = AT_loc_list (a); curr != NULL; curr = curr->dw_loc_next)
-	  if (!resolve_addr_in_expr (curr->expr))
-	    curr->expr = NULL;
+	curr = AT_loc_list_ptr (a);
+	while (*curr)
+	  {
+	    if (!resolve_addr_in_expr ((*curr)->expr))
+	      {
+		dw_loc_list_ref next = (*curr)->dw_loc_next;
+		if (next && (*curr)->ll_symbol)
+		  {
+		    gcc_assert (!next->ll_symbol);
+		    next->ll_symbol = (*curr)->ll_symbol;
+		  }
+		*curr = next;
+	      }
+	    else
+	      curr = &(*curr)->dw_loc_next;
+	  }
+	if (!AT_loc_list (a))
+	  {
+	    remove_AT (die, a->dw_attr);
+	    ix--;
+	  }
 	break;
       case dw_val_class_loc:
 	if (!resolve_addr_in_expr (AT_loc (a)))
-	  a->dw_attr_val.v.val_loc = NULL;
+	  {
+	    remove_AT (die, a->dw_attr);
+	    ix--;
+	  }
 	break;
       case dw_val_class_addr:
 	if (a->dw_attr == DW_AT_const_value
 	    && resolve_one_addr (&a->dw_attr_val.v.val_addr, NULL))
 	  {
-	    a->dw_attr = DW_AT_location;
-	    a->dw_attr_val.val_class = dw_val_class_loc;
-	    a->dw_attr_val.v.val_loc = NULL;
+	    remove_AT (die, a->dw_attr);
+	    ix--;
 	  }
 	break;
       default:
@@ -21154,10 +21218,11 @@ dwarf2out_finish (const char *filename)
       add_AT_addr (comp_unit_die, DW_AT_low_pc, const0_rtx);
       add_AT_addr (comp_unit_die, DW_AT_entry_pc, const0_rtx);
 
-      add_AT_range_list (comp_unit_die, DW_AT_ranges,
-			 add_ranges_by_labels (text_section_label,
-					       text_end_label));
-      if (flag_reorder_blocks_and_partition)
+      if (text_section_used)
+	add_AT_range_list (comp_unit_die, DW_AT_ranges,
+			   add_ranges_by_labels (text_section_label,
+						 text_end_label));
+      if (flag_reorder_blocks_and_partition && cold_text_section_used)
 	add_ranges_by_labels (cold_text_section_label,
 			      cold_end_label);
 
@@ -21336,6 +21401,7 @@ const struct gcc_debug_hooks dwarf2_debug_hooks =
   0,		/* switch_text_section */
   0,		/* direct_call */
   0,		/* virtual_call_token */
+  0,		/* copy_call_info */
   0,		/* virtual_call */
   0,		/* set_name */
   0		/* start_end_main_source_file */

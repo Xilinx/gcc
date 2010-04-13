@@ -61,7 +61,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    file. It need not be an absolute time stamp, merely a ticker that
    increments fast enough and cycles slow enough to distinguish
    different compile/run/compile cycles.
-   
+
    Although the ident and version are formally 32 bit numbers, they
    are derived from 4 character ASCII strings.  The version number
    consists of the single character major version number, a two
@@ -377,12 +377,12 @@ typedef HOST_WIDEST_INT gcov_type;
 /* Number of counters used for value profiling.  */
 #define GCOV_N_VALUE_COUNTERS \
   (GCOV_LAST_VALUE_COUNTER - GCOV_FIRST_VALUE_COUNTER + 1)
-  
+
   /* A list of human readable names of the counters */
 #define GCOV_COUNTER_NAMES	{"arcs", "interval", "pow2", "single", \
 				 "delta","indirect_call", "average", "ior", \
 				 "indirect_call_topn", "direct_call"}
-  
+
 #define GCOV_ICALL_TOPN_VAL  2   /* Track two hottest callees */
 #define GCOV_ICALL_TOPN_NCOUNTS  9 /* The number of counter entries per icall callsite */
   /* Names of merge functions for counters.  */
@@ -396,7 +396,7 @@ typedef HOST_WIDEST_INT gcov_type;
 				 "__gcov_merge_ior",	\
 				 "__gcov_merge_icall_topn",\
                                  "__gcov_merge_dc" }
-  
+
 /* Convert a counter index to a tag.  */
 #define GCOV_TAG_FOR_COUNTER(COUNT)				\
 	(GCOV_TAG_COUNTER_BASE + ((gcov_unsigned_t)(COUNT) << 17))
@@ -550,7 +550,7 @@ extern void __gcov_merge_dc (gcov_type *, unsigned) ATTRIBUTE_HIDDEN;
 extern void __gcov_merge_icall_topn (gcov_type *, unsigned) ATTRIBUTE_HIDDEN;
 
 /* The profiler functions.  */
-extern void __gcov_interval_profiler (gcov_type *, gcov_type, int, unsigned); 
+extern void __gcov_interval_profiler (gcov_type *, gcov_type, int, unsigned);
 extern void __gcov_pow2_profiler (gcov_type *, gcov_type);
 extern void __gcov_one_value_profiler (gcov_type *, gcov_type);
 extern void __gcov_indirect_call_profiler (gcov_type *, gcov_type, void *, void *);

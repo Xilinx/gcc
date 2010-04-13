@@ -2991,8 +2991,11 @@ package body Sem_Warn is
             Warn_On_Non_Local_Exception         := True;
             Warn_On_Object_Renames_Function     := True;
             Warn_On_Obsolescent_Feature         := True;
+            Warn_On_Overlap                     := True;
+            Warn_On_Parameter_Order             := True;
             Warn_On_Questionable_Missing_Parens := True;
             Warn_On_Redundant_Constructs        := True;
+            Warn_On_Reverse_Bit_Order           := True;
             Warn_On_Unchecked_Conversion        := True;
             Warn_On_Unrecognized_Pragma         := True;
             Warn_On_Unrepped_Components         := True;
@@ -3000,6 +3003,12 @@ package body Sem_Warn is
 
          when 'g' =>
             Set_GNAT_Mode_Warnings;
+
+         when 'i' =>
+            Warn_On_Overlap                     := True;
+
+         when 'I' =>
+            Warn_On_Overlap                     := False;
 
          when 'm' =>
             Warn_On_Suspicious_Modulus_Value    := True;
@@ -3024,6 +3033,12 @@ package body Sem_Warn is
 
          when 'R' =>
             Warn_On_Object_Renames_Function     := False;
+
+         when 'v' =>
+            Warn_On_Reverse_Bit_Order           := True;
+
+         when 'V' =>
+            Warn_On_Reverse_Bit_Order           := False;
 
          when 'w' =>
             Warn_On_Warnings_Off                := True;
@@ -3077,6 +3092,7 @@ package body Sem_Warn is
       Warn_On_Obsolescent_Feature         := True;
       Warn_On_Questionable_Missing_Parens := True;
       Warn_On_Redundant_Constructs        := True;
+      Warn_On_Reverse_Bit_Order           := False;
       Warn_On_Object_Renames_Function     := True;
       Warn_On_Unchecked_Conversion        := True;
       Warn_On_Unrecognized_Pragma         := True;
@@ -3113,11 +3129,13 @@ package body Sem_Warn is
             Warn_On_Parameter_Order             := True;
             Warn_On_Questionable_Missing_Parens := True;
             Warn_On_Redundant_Constructs        := True;
+            Warn_On_Reverse_Bit_Order           := True;
             Warn_On_Unchecked_Conversion        := True;
             Warn_On_Unrecognized_Pragma         := True;
             Warn_On_Unrepped_Components         := True;
 
          when 'A' =>
+            Address_Clause_Overlay_Warnings     := False;
             Check_Unreferenced                  := False;
             Check_Unreferenced_Formals          := False;
             Check_Withs                         := False;
@@ -3126,6 +3144,7 @@ package body Sem_Warn is
             Implementation_Unit_Warnings        := False;
             Ineffective_Inline_Warnings         := False;
             Warn_On_Ada_2005_Compatibility      := False;
+            Warn_On_All_Unread_Out_Parameters   := False;
             Warn_On_Assertion_Failure           := False;
             Warn_On_Assumed_Low_Bound           := False;
             Warn_On_Bad_Fixed_Value             := False;
@@ -3138,12 +3157,13 @@ package body Sem_Warn is
             Warn_On_Modified_Unread             := False;
             Warn_On_No_Value_Assigned           := False;
             Warn_On_Non_Local_Exception         := False;
+            Warn_On_Object_Renames_Function     := False;
             Warn_On_Obsolescent_Feature         := False;
-            Warn_On_All_Unread_Out_Parameters   := False;
+            Warn_On_Overlap                     := False;
             Warn_On_Parameter_Order             := False;
             Warn_On_Questionable_Missing_Parens := False;
             Warn_On_Redundant_Constructs        := False;
-            Warn_On_Object_Renames_Function     := False;
+            Warn_On_Reverse_Bit_Order           := False;
             Warn_On_Unchecked_Conversion        := False;
             Warn_On_Unrecognized_Pragma         := False;
             Warn_On_Unrepped_Components         := False;
@@ -3544,11 +3564,7 @@ package body Sem_Warn is
       Form1, Form2 : Entity_Id;
 
    begin
-      --  For now, treat this warning as an extension
-      --  Why not just define a new warning switch, you really don't want to
-      --  force this warning when using conditional expressions for example???
-
-      if not Extensions_Allowed then
+      if not Warn_On_Overlap then
          return;
       end if;
 
@@ -3582,10 +3598,6 @@ package body Sem_Warn is
                     Denotes_Same_Prefix (Act1, Act2))
                then
                   --  Exclude generic types and guard against previous errors.
-                  --  If either type is elementary the aliasing is harmless.
-
-                  --  I can't relate the comment about elementary to the
-                  --  actual code below, which seems to be testing generic???
 
                   if Error_Posted (N)
                     or else No (Etype (Act1))
@@ -3604,6 +3616,8 @@ package body Sem_Warn is
 
                   elsif Nkind (Act2) = N_Function_Call then
                      null;
+
+                  --  If either type is elementary the aliasing is harmless.
 
                   elsif Is_Elementary_Type (Underlying_Type (Etype (Form1)))
                           or else
@@ -3626,10 +3640,9 @@ package body Sem_Warn is
                            Next_Actual (Act);
                         end loop;
 
-                        --  If the call was written in prefix notation, count
-                        --  only the visible actuals in the call.
-
-                        --  Why original_node calls below ???
+                        --  If the call was written in prefix notation, and
+                        --  thus its prefix before rewriting was a selected
+                        --  component, count only visible actuals in the call.
 
                         if Is_Entity_Name (First_Actual (N))
                           and then Nkind (Original_Node (N)) = Nkind (N)

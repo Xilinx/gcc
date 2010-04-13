@@ -960,8 +960,9 @@ direct conversion.
 ARM provides hardware support for conversions between 
 @code{__fp16} and @code{float} values
 as an extension to VFP and NEON (Advanced SIMD).  GCC generates
-code using the instructions provided by this extension if you compile
-with the options @option{-mfpu=neon-fp16 -mfloat-abi=softfp},
+code using these hardware instructions if you compile with
+options to select an FPU that provides them; 
+for example, @option{-mfpu=neon-fp16 -mfloat-abi=softfp},
 in addition to the @option{-mfp16-format} option to select
 a half-precision format.  
 
@@ -1921,6 +1922,8 @@ particular target systems.  Other attributes, including @code{section}
 are supported for variables declarations (@pxref{Variable Attributes})
 and for types (@pxref{Type Attributes}).
 
+GCC plugins may provide their own attributes.
+
 You may also specify attributes with @samp{__} preceding and following
 each keyword.  This allows you to use them in header files without
 being concerned about a possible macro of the same name.  For example,
@@ -2270,13 +2273,6 @@ on data in the eight bit data area.  Note the eight bit data area is limited to
 You must use GAS and GLD from GNU binutils version 2.7 or later for
 this attribute to work correctly.
 
-@item exception
-@cindex exception handler functions on the RX processor
-Use this attribute on the RX to indicate that the specified function
-is an exception handler.  The compiler will generate function entry and
-exit sequences suitable for use in an exception handler when this
-attribute is present.
-
 @item exception_handler
 @cindex exception handler functions on the Blackfin processor
 Use this attribute on the Blackfin to indicate that the specified function
@@ -2554,14 +2550,14 @@ void __attribute__ ((interrupt, use_shadow_register_set)) v1 ();
 void __attribute__ ((interrupt, keep_interrupts_masked)) v2 ();
 void __attribute__ ((interrupt, use_debug_exception_return)) v3 ();
 void __attribute__ ((interrupt, use_shadow_register_set,
-		     keep_interrupts_masked)) v4 ();
+                     keep_interrupts_masked)) v4 ();
 void __attribute__ ((interrupt, use_shadow_register_set,
-		     use_debug_exception_return)) v5 ();
+                     use_debug_exception_return)) v5 ();
 void __attribute__ ((interrupt, keep_interrupts_masked,
-		     use_debug_exception_return)) v6 ();
+                     use_debug_exception_return)) v6 ();
 void __attribute__ ((interrupt, use_shadow_register_set,
-		     keep_interrupts_masked,
-		     use_debug_exception_return)) v7 ();
+                     keep_interrupts_masked,
+                     use_debug_exception_return)) v7 ();
 @end smallexample
 
 @item interrupt_handler
@@ -3213,6 +3209,16 @@ Enable/disable the generation of the SSE4A instructions.
 @itemx no-fma4
 @cindex @code{target("fma4")} attribute
 Enable/disable the generation of the FMA4 instructions.
+
+@item xop
+@itemx no-xop
+@cindex @code{target("xop")} attribute
+Enable/disable the generation of the XOP instructions.
+
+@item lwp
+@itemx no-lwp
+@cindex @code{target("lwp")} attribute
+Enable/disable the generation of the LWP instructions.
 
 @item ssse3
 @itemx no-ssse3
@@ -4229,8 +4235,8 @@ Three attributes are currently defined for the Blackfin.
 
 @table @code
 @item l1_data
-@item l1_data_A
-@item l1_data_B
+@itemx l1_data_A
+@itemx l1_data_B
 @cindex @code{l1_data} variable attribute
 @cindex @code{l1_data_A} variable attribute
 @cindex @code{l1_data_B} variable attribute
@@ -4302,7 +4308,7 @@ allows modules to make no assumptions about where variables might be
 stored.
 
 @item io
-@item io (@var{addr})
+@itemx io (@var{addr})
 Variables with the @code{io} attribute are used to address
 memory-mapped peripherals.  If an address is specified, the variable
 is assigned that address, else it is not assigned an address (it is
@@ -4313,7 +4319,7 @@ int timer_count __attribute__((io(0x123)));
 @end example
 
 @item cb
-@item cb (@var{addr})
+@itemx cb (@var{addr})
 Variables with the @code{cb} attribute are used to access the control
 bus, using special instructions.  @code{addr} indicates the control bus
 address.  Example:
@@ -5428,9 +5434,9 @@ void doit(void)
   int i = 0;
   asm goto ("mfsr %%r1, 123; jmp %%r1;"
             ".pushsection doit_table;"
-	    ".long %l0, %l1, %l2, %l3;"
-	    ".popsection"
-	    : : : "r1" : label1, label2, label3, label4);
+            ".long %l0, %l1, %l2, %l3;"
+            ".popsection"
+            : : : "r1" : label1, label2, label3, label4);
   __builtin_unreachable ();
 
  label1:
@@ -8935,6 +8941,134 @@ v2di __builtin_ia32_insertq (v2di, v2di)
 v2di __builtin_ia32_insertqi (v2di, v2di, const unsigned int, const unsigned int)
 @end smallexample
 
+The following built-in functions are available when @option{-mxop} is used.
+@smallexample
+v2df __builtin_ia32_vfrczpd (v2df)
+v4sf __builtin_ia32_vfrczps (v4sf)
+v2df __builtin_ia32_vfrczsd (v2df, v2df)
+v4sf __builtin_ia32_vfrczss (v4sf, v4sf)
+v4df __builtin_ia32_vfrczpd256 (v4df)
+v8sf __builtin_ia32_vfrczps256 (v8sf)
+v2di __builtin_ia32_vpcmov (v2di, v2di, v2di)
+v2di __builtin_ia32_vpcmov_v2di (v2di, v2di, v2di)
+v4si __builtin_ia32_vpcmov_v4si (v4si, v4si, v4si)
+v8hi __builtin_ia32_vpcmov_v8hi (v8hi, v8hi, v8hi)
+v16qi __builtin_ia32_vpcmov_v16qi (v16qi, v16qi, v16qi)
+v2df __builtin_ia32_vpcmov_v2df (v2df, v2df, v2df)
+v4sf __builtin_ia32_vpcmov_v4sf (v4sf, v4sf, v4sf)
+v4di __builtin_ia32_vpcmov_v4di256 (v4di, v4di, v4di)
+v8si __builtin_ia32_vpcmov_v8si256 (v8si, v8si, v8si)
+v16hi __builtin_ia32_vpcmov_v16hi256 (v16hi, v16hi, v16hi)
+v32qi __builtin_ia32_vpcmov_v32qi256 (v32qi, v32qi, v32qi)
+v4df __builtin_ia32_vpcmov_v4df256 (v4df, v4df, v4df)
+v8sf __builtin_ia32_vpcmov_v8sf256 (v8sf, v8sf, v8sf)
+v16qi __builtin_ia32_vpcomeqb (v16qi, v16qi)
+v8hi __builtin_ia32_vpcomeqw (v8hi, v8hi)
+v4si __builtin_ia32_vpcomeqd (v4si, v4si)
+v2di __builtin_ia32_vpcomeqq (v2di, v2di)
+v16qi __builtin_ia32_vpcomequb (v16qi, v16qi)
+v4si __builtin_ia32_vpcomequd (v4si, v4si)
+v2di __builtin_ia32_vpcomequq (v2di, v2di)
+v8hi __builtin_ia32_vpcomequw (v8hi, v8hi)
+v8hi __builtin_ia32_vpcomeqw (v8hi, v8hi)
+v16qi __builtin_ia32_vpcomfalseb (v16qi, v16qi)
+v4si __builtin_ia32_vpcomfalsed (v4si, v4si)
+v2di __builtin_ia32_vpcomfalseq (v2di, v2di)
+v16qi __builtin_ia32_vpcomfalseub (v16qi, v16qi)
+v4si __builtin_ia32_vpcomfalseud (v4si, v4si)
+v2di __builtin_ia32_vpcomfalseuq (v2di, v2di)
+v8hi __builtin_ia32_vpcomfalseuw (v8hi, v8hi)
+v8hi __builtin_ia32_vpcomfalsew (v8hi, v8hi)
+v16qi __builtin_ia32_vpcomgeb (v16qi, v16qi)
+v4si __builtin_ia32_vpcomged (v4si, v4si)
+v2di __builtin_ia32_vpcomgeq (v2di, v2di)
+v16qi __builtin_ia32_vpcomgeub (v16qi, v16qi)
+v4si __builtin_ia32_vpcomgeud (v4si, v4si)
+v2di __builtin_ia32_vpcomgeuq (v2di, v2di)
+v8hi __builtin_ia32_vpcomgeuw (v8hi, v8hi)
+v8hi __builtin_ia32_vpcomgew (v8hi, v8hi)
+v16qi __builtin_ia32_vpcomgtb (v16qi, v16qi)
+v4si __builtin_ia32_vpcomgtd (v4si, v4si)
+v2di __builtin_ia32_vpcomgtq (v2di, v2di)
+v16qi __builtin_ia32_vpcomgtub (v16qi, v16qi)
+v4si __builtin_ia32_vpcomgtud (v4si, v4si)
+v2di __builtin_ia32_vpcomgtuq (v2di, v2di)
+v8hi __builtin_ia32_vpcomgtuw (v8hi, v8hi)
+v8hi __builtin_ia32_vpcomgtw (v8hi, v8hi)
+v16qi __builtin_ia32_vpcomleb (v16qi, v16qi)
+v4si __builtin_ia32_vpcomled (v4si, v4si)
+v2di __builtin_ia32_vpcomleq (v2di, v2di)
+v16qi __builtin_ia32_vpcomleub (v16qi, v16qi)
+v4si __builtin_ia32_vpcomleud (v4si, v4si)
+v2di __builtin_ia32_vpcomleuq (v2di, v2di)
+v8hi __builtin_ia32_vpcomleuw (v8hi, v8hi)
+v8hi __builtin_ia32_vpcomlew (v8hi, v8hi)
+v16qi __builtin_ia32_vpcomltb (v16qi, v16qi)
+v4si __builtin_ia32_vpcomltd (v4si, v4si)
+v2di __builtin_ia32_vpcomltq (v2di, v2di)
+v16qi __builtin_ia32_vpcomltub (v16qi, v16qi)
+v4si __builtin_ia32_vpcomltud (v4si, v4si)
+v2di __builtin_ia32_vpcomltuq (v2di, v2di)
+v8hi __builtin_ia32_vpcomltuw (v8hi, v8hi)
+v8hi __builtin_ia32_vpcomltw (v8hi, v8hi)
+v16qi __builtin_ia32_vpcomneb (v16qi, v16qi)
+v4si __builtin_ia32_vpcomned (v4si, v4si)
+v2di __builtin_ia32_vpcomneq (v2di, v2di)
+v16qi __builtin_ia32_vpcomneub (v16qi, v16qi)
+v4si __builtin_ia32_vpcomneud (v4si, v4si)
+v2di __builtin_ia32_vpcomneuq (v2di, v2di)
+v8hi __builtin_ia32_vpcomneuw (v8hi, v8hi)
+v8hi __builtin_ia32_vpcomnew (v8hi, v8hi)
+v16qi __builtin_ia32_vpcomtrueb (v16qi, v16qi)
+v4si __builtin_ia32_vpcomtrued (v4si, v4si)
+v2di __builtin_ia32_vpcomtrueq (v2di, v2di)
+v16qi __builtin_ia32_vpcomtrueub (v16qi, v16qi)
+v4si __builtin_ia32_vpcomtrueud (v4si, v4si)
+v2di __builtin_ia32_vpcomtrueuq (v2di, v2di)
+v8hi __builtin_ia32_vpcomtrueuw (v8hi, v8hi)
+v8hi __builtin_ia32_vpcomtruew (v8hi, v8hi)
+v4si __builtin_ia32_vphaddbd (v16qi)
+v2di __builtin_ia32_vphaddbq (v16qi)
+v8hi __builtin_ia32_vphaddbw (v16qi)
+v2di __builtin_ia32_vphadddq (v4si)
+v4si __builtin_ia32_vphaddubd (v16qi)
+v2di __builtin_ia32_vphaddubq (v16qi)
+v8hi __builtin_ia32_vphaddubw (v16qi)
+v2di __builtin_ia32_vphaddudq (v4si)
+v4si __builtin_ia32_vphadduwd (v8hi)
+v2di __builtin_ia32_vphadduwq (v8hi)
+v4si __builtin_ia32_vphaddwd (v8hi)
+v2di __builtin_ia32_vphaddwq (v8hi)
+v8hi __builtin_ia32_vphsubbw (v16qi)
+v2di __builtin_ia32_vphsubdq (v4si)
+v4si __builtin_ia32_vphsubwd (v8hi)
+v4si __builtin_ia32_vpmacsdd (v4si, v4si, v4si)
+v2di __builtin_ia32_vpmacsdqh (v4si, v4si, v2di)
+v2di __builtin_ia32_vpmacsdql (v4si, v4si, v2di)
+v4si __builtin_ia32_vpmacssdd (v4si, v4si, v4si)
+v2di __builtin_ia32_vpmacssdqh (v4si, v4si, v2di)
+v2di __builtin_ia32_vpmacssdql (v4si, v4si, v2di)
+v4si __builtin_ia32_vpmacsswd (v8hi, v8hi, v4si)
+v8hi __builtin_ia32_vpmacssww (v8hi, v8hi, v8hi)
+v4si __builtin_ia32_vpmacswd (v8hi, v8hi, v4si)
+v8hi __builtin_ia32_vpmacsww (v8hi, v8hi, v8hi)
+v4si __builtin_ia32_vpmadcsswd (v8hi, v8hi, v4si)
+v4si __builtin_ia32_vpmadcswd (v8hi, v8hi, v4si)
+v16qi __builtin_ia32_vpperm (v16qi, v16qi, v16qi)
+v16qi __builtin_ia32_vprotb (v16qi, v16qi)
+v4si __builtin_ia32_vprotd (v4si, v4si)
+v2di __builtin_ia32_vprotq (v2di, v2di)
+v8hi __builtin_ia32_vprotw (v8hi, v8hi)
+v16qi __builtin_ia32_vpshab (v16qi, v16qi)
+v4si __builtin_ia32_vpshad (v4si, v4si)
+v2di __builtin_ia32_vpshaq (v2di, v2di)
+v8hi __builtin_ia32_vpshaw (v8hi, v8hi)
+v16qi __builtin_ia32_vpshlb (v16qi, v16qi)
+v4si __builtin_ia32_vpshld (v4si, v4si)
+v2di __builtin_ia32_vpshlq (v2di, v2di)
+v8hi __builtin_ia32_vpshlw (v8hi, v8hi)
+@end smallexample
+
 The following built-in functions are available when @option{-mfma4} is used.
 All of them generate the machine instruction that is part of the name
 with MMX registers.
@@ -8973,6 +9107,23 @@ v8sf __builtin_ia32_fmaddsubps256 (v8sf, v8sf, v8sf)
 v4df __builtin_ia32_fmsubaddpd256 (v4df, v4df, v4df)
 v8sf __builtin_ia32_fmsubaddps256 (v8sf, v8sf, v8sf)
 
+@end smallexample
+
+The following built-in functions are available when @option{-mlwp} is used.
+
+@smallexample
+void __builtin_ia32_llwpcb16 (void *);
+void __builtin_ia32_llwpcb32 (void *);
+void __builtin_ia32_llwpcb64 (void *);
+void * __builtin_ia32_llwpcb16 (void);
+void * __builtin_ia32_llwpcb32 (void);
+void * __builtin_ia32_llwpcb64 (void);
+void __builtin_ia32_lwpval16 (unsigned short, unsigned int, unsigned short)
+void __builtin_ia32_lwpval32 (unsigned int, unsigned int, unsigned int)
+void __builtin_ia32_lwpval64 (unsigned __int64, unsigned int, unsigned int)
+unsigned char __builtin_ia32_lwpins16 (unsigned short, unsigned int, unsigned short)
+unsigned char __builtin_ia32_lwpins32 (unsigned int, unsigned int, unsigned int)
+unsigned char __builtin_ia32_lwpins64 (unsigned __int64, unsigned int, unsigned int)
 @end smallexample
 
 The following built-in functions are available when @option{-m3dnow} is used.

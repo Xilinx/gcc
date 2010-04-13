@@ -458,9 +458,6 @@ static tree prephitemp;
    cleaned up.  */
 static bitmap need_eh_cleanup;
 
-/* Which expressions have been seen during a given phi translation.  */
-static bitmap seen_during_translate;
-
 /* The phi_translate_table caches phi translations for a given
    expression and predecessor.  */
 
@@ -1156,7 +1153,7 @@ fully_constant_expression (pre_expr e)
 	    }
 	  case tcc_reference:
 	    if (nary->opcode != REALPART_EXPR
-		&& nary->opcode != IMAGPART_EXPR 
+		&& nary->opcode != IMAGPART_EXPR
 		&& nary->opcode != VIEW_CONVERT_EXPR)
 	      return e;
 	    /* Fallthrough.  */
@@ -1435,14 +1432,12 @@ get_representative_for (const pre_expr e)
 
 
 /* Translate EXPR using phis in PHIBLOCK, so that it has the values of
-   the phis in PRED.  SEEN is a bitmap saying which expression we have
-   translated since we started translation of the toplevel expression.
-   Return NULL if we can't find a leader for each part of the
-   translated expression.  */
+   the phis in PRED.  Return NULL if we can't find a leader for each part
+   of the translated expression.  */
 
 static pre_expr
-phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
-		 basic_block pred, basic_block phiblock, bitmap seen)
+phi_translate (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
+	       basic_block pred, basic_block phiblock)
 {
   pre_expr oldexpr = expr;
   pre_expr phitrans;
@@ -1456,16 +1451,6 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
   phitrans = phi_trans_lookup (expr, pred);
   if (phitrans)
     return phitrans;
-
-  /* Prevent cycles when we have recursively dependent leaders.  This
-     can only happen when phi translating the maximal set.  */
-  if (seen)
-    {
-      unsigned int expr_id = get_expression_id (expr);
-      if (bitmap_bit_p (seen, expr_id))
-	return NULL;
-      bitmap_set_bit (seen, expr_id);
-    }
 
   switch (expr->kind)
     {
@@ -1490,10 +1475,10 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	      continue;
 	    else
 	      {
+                pre_expr leader, result;
 		unsigned int op_val_id = VN_INFO (newnary.op[i])->value_id;
-		pre_expr leader = find_leader_in_sets (op_val_id, set1, set2);
-		pre_expr result = phi_translate_1 (leader, set1, set2,
-						   pred, phiblock, seen);
+		leader = find_leader_in_sets (op_val_id, set1, set2);
+                result = phi_translate (leader, set1, set2, pred, phiblock);
 		if (result && result != leader)
 		  {
 		    tree name = get_representative_for (result);
@@ -1595,8 +1580,7 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	      {
 		unsigned int op_val_id = VN_INFO (op0)->value_id;
 		leader = find_leader_in_sets (op_val_id, set1, set2);
-		opresult = phi_translate_1 (leader, set1, set2,
-					    pred, phiblock, seen);
+		opresult = phi_translate (leader, set1, set2, pred, phiblock);
 		if (opresult && opresult != leader)
 		  {
 		    tree name = get_representative_for (opresult);
@@ -1613,8 +1597,7 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	      {
 		unsigned int op_val_id = VN_INFO (op1)->value_id;
 		leader = find_leader_in_sets (op_val_id, set1, set2);
-		opresult = phi_translate_1 (leader, set1, set2,
-					    pred, phiblock, seen);
+		opresult = phi_translate (leader, set1, set2, pred, phiblock);
 		if (opresult && opresult != leader)
 		  {
 		    tree name = get_representative_for (opresult);
@@ -1633,8 +1616,7 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	      {
 		unsigned int op_val_id = VN_INFO (op2)->value_id;
 		leader = find_leader_in_sets (op_val_id, set1, set2);
-		opresult = phi_translate_1 (leader, set1, set2,
-					    pred, phiblock, seen);
+		opresult = phi_translate (leader, set1, set2, pred, phiblock);
 		if (opresult && opresult != leader)
 		  {
 		    tree name = get_representative_for (opresult);
@@ -1788,20 +1770,6 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
     default:
       gcc_unreachable ();
     }
-}
-
-/* Translate EXPR using phis in PHIBLOCK, so that it has the values of
-   the phis in PRED.
-   Return NULL if we can't find a leader for each part of the
-   translated expression.  */
-
-static pre_expr
-phi_translate (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
-	       basic_block pred, basic_block phiblock)
-{
-  bitmap_clear (seen_during_translate);
-  return phi_translate_1 (expr, set1, set2, pred, phiblock,
-			  seen_during_translate);
 }
 
 /* For each expression in SET, translate the values through phi nodes
@@ -2998,7 +2966,7 @@ create_expression_by_pieces (basic_block block, pre_expr expr,
 		genop2 = fold_convert (sizetype, genop2);
 	      else
 		genop2 = fold_convert (TREE_TYPE (nary->op[1]), genop2);
-	      
+
 	      folded = fold_build2 (nary->opcode, nary->type,
 				    genop1, genop2);
 	    }
@@ -3257,7 +3225,7 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
 	  if (!useless_type_conversion_p (type, TREE_TYPE (constant)))
 	    {
 	      tree builtexpr = fold_convert (type, constant);
-	      if (!is_gimple_min_invariant (builtexpr)) 
+	      if (!is_gimple_min_invariant (builtexpr))
 		{
 		  tree forcedexpr = force_gimple_operand (builtexpr,
 							  &stmts, true,
@@ -4462,8 +4430,10 @@ remove_dead_inserted_code (void)
 	  if (gimple_code (t) == GIMPLE_PHI)
 	    remove_phi_node (&gsi, true);
 	  else
-	    gsi_remove (&gsi, true);
-	  release_defs (t);
+	    {
+	      gsi_remove (&gsi, true);
+	      release_defs (t);
+	    }
 	}
     }
   VEC_free (gimple, heap, worklist);
@@ -4511,7 +4481,6 @@ init_pre (bool do_fre)
   expression_to_id = htab_create (num_ssa_names * 3,
 				  pre_expr_hash,
 				  pre_expr_eq, NULL);
-  seen_during_translate = BITMAP_ALLOC (&grand_bitmap_obstack);
   bitmap_set_pool = create_alloc_pool ("Bitmap sets",
 				       sizeof (struct bitmap_set), 30);
   pre_expr_pool = create_alloc_pool ("pre_expr nodes",
@@ -4587,7 +4556,7 @@ execute_pre (bool do_fre)
 	  remove_dead_inserted_code ();
 	  loop_optimizer_finalize ();
 	}
-      
+
       return 0;
     }
   init_pre (do_fre);

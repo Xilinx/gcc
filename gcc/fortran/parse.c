@@ -1940,7 +1940,6 @@ parse_derived (void)
   int compiling_type, seen_private, seen_sequence, seen_component, error_flag;
   gfc_statement st;
   gfc_state_data s;
-  gfc_symbol *derived_sym = NULL;
   gfc_symbol *sym;
   gfc_component *c;
 
@@ -2061,8 +2060,6 @@ endType:
   /* need to verify that all fields of the derived type are
    * interoperable with C if the type is declared to be bind(c)
    */
-  derived_sym = gfc_current_block();
-
   sym = gfc_current_block ();
   for (c = sym->components; c; c = c->next)
     {
@@ -2343,7 +2340,7 @@ match_deferred_characteristics (gfc_typespec * ts)
     {
       ts->kind = 0;
 
-      if (!ts->u.derived || !ts->u.derived->components)
+      if (!ts->u.derived)
 	m = MATCH_ERROR;
     }
 

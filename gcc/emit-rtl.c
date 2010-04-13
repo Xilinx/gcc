@@ -73,7 +73,7 @@ enum machine_mode ptr_mode;	/* Mode whose width is POINTER_SIZE.  */
 struct rtl_data x_rtl;
 
 /* Indexed by pseudo register number, gives the rtx for that pseudo.
-   Allocated in parallel with regno_pointer_align.  
+   Allocated in parallel with regno_pointer_align.
    FIXME: We could put it into emit_status struct, but gengtype is not able to deal
    with length attribute nested in top level structures.  */
 
@@ -83,10 +83,6 @@ rtx * regno_reg_rtx;
    in the entire compilation a unique label number.  */
 
 static GTY(()) int label_num = 1;
-
-/* Nonzero means do not generate NOTEs for source line numbers.  */
-
-static int no_line_numbers;
 
 /* Commonly used rtx's, so that we only need space for one copy.
    These are initialized once for the entire compilation.
@@ -539,7 +535,7 @@ immed_double_const (HOST_WIDE_INT i0, HOST_WIDE_INT i1, enum machine_mode mode)
 	gen_int_mode.
      2) GET_MODE_BITSIZE (mode) == 2 * HOST_BITS_PER_WIDE_INT, but the value of
 	the integer fits into HOST_WIDE_INT anyway (i.e., i1 consists only
-	from copies of the sign bit, and sign of i0 and i1 are the same),  then 
+	from copies of the sign bit, and sign of i0 and i1 are the same),  then
 	we return a CONST_INT for i0.
      3) Otherwise, we create a CONST_DOUBLE for i0 and i1.  */
   if (mode != VOIDmode)
@@ -869,7 +865,7 @@ gen_reg_rtx (enum machine_mode mode)
   /* If a virtual register with bigger mode alignment is generated,
      increase stack alignment estimation because it might be spilled
      to stack later.  */
-  if (SUPPORTS_STACK_ALIGNMENT 
+  if (SUPPORTS_STACK_ALIGNMENT
       && crtl->stack_alignment_estimated < align
       && !crtl->stack_realign_processed)
     {
@@ -1193,7 +1189,7 @@ gen_lowpart_common (enum machine_mode mode, rtx x)
     innermode = mode_for_size (HOST_BITS_PER_WIDE_INT, MODE_INT, 0);
   else if (innermode == VOIDmode)
     innermode = mode_for_size (HOST_BITS_PER_WIDE_INT * 2, MODE_INT, 0);
-  
+
   xsize = GET_MODE_SIZE (innermode);
 
   gcc_assert (innermode != VOIDmode && innermode != BLKmode);
@@ -1254,7 +1250,7 @@ gen_highpart (enum machine_mode mode, rtx x)
   result = simplify_gen_subreg (mode, x, GET_MODE (x),
 				subreg_highpart_offset (mode, GET_MODE (x)));
   gcc_assert (result);
-  
+
   /* simplify_gen_subreg is not guaranteed to return a valid operand for
      the target if we have a MEM.  gen_highpart must return a valid operand,
      emitting code if necessary to do so.  */
@@ -1263,7 +1259,7 @@ gen_highpart (enum machine_mode mode, rtx x)
       result = validize_mem (result);
       gcc_assert (result);
     }
-  
+
   return result;
 }
 
@@ -1587,11 +1583,11 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 
   /* We can set the alignment from the type if we are making an object,
      this is an INDIRECT_REF, or if TYPE_ALIGN_OK.  */
-  if (objectp || TREE_CODE (t) == INDIRECT_REF 
-      || TREE_CODE (t) == ALIGN_INDIRECT_REF 
+  if (objectp || TREE_CODE (t) == INDIRECT_REF
+      || TREE_CODE (t) == ALIGN_INDIRECT_REF
       || TYPE_ALIGN_OK (type))
     align = MAX (align, TYPE_ALIGN (type));
-  else 
+  else
     if (TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
       {
 	if (integer_zerop (TREE_OPERAND (t, 1)))
@@ -2469,7 +2465,7 @@ verify_rtx_sharing (rtx orig, rtx insn)
     }
 #endif
   gcc_assert (!RTX_FLAG (x, used));
-  
+
   RTX_FLAG (x, used) = 1;
 
   /* Now scan the subexpressions recursively.  */
@@ -2677,7 +2673,7 @@ repeat:
   format_ptr = GET_RTX_FORMAT (code);
   length = GET_RTX_LENGTH (code);
   last_ptr = NULL;
-  
+
   for (i = 0; i < length; i++)
     {
       switch (*format_ptr++)
@@ -2693,12 +2689,12 @@ repeat:
 	    {
 	      int j;
 	      int len = XVECLEN (x, i);
-              
+
               /* Copy the vector iff I copied the rtx and the length
 		 is nonzero.  */
 	      if (copied && len > 0)
 		XVEC (x, i) = gen_rtvec_v (len, XVEC (x, i)->elem);
-              
+
               /* Call recursively on all inside the vector.  */
 	      for (j = 0; j < len; j++)
                 {
@@ -2773,7 +2769,7 @@ repeat:
 
   format_ptr = GET_RTX_FORMAT (code);
   length = GET_RTX_LENGTH (code);
-  
+
   for (i = 0; i < length; i++)
     {
       switch (*format_ptr++)
@@ -3217,8 +3213,8 @@ last_call_insn (void)
 }
 
 /* Find the next insn after INSN that really does something.  This routine
-   does not look inside SEQUENCEs.  Until reload has completed, this is the
-   same as next_real_insn.  */
+   does not look inside SEQUENCEs.  After reload this also skips over
+   standalone USE and CLOBBER insn.  */
 
 int
 active_insn_p (const_rtx insn)
@@ -3244,8 +3240,8 @@ next_active_insn (rtx insn)
 }
 
 /* Find the last insn before INSN that really does something.  This routine
-   does not look inside SEQUENCEs.  Until reload has completed, this is the
-   same as prev_real_insn.  */
+   does not look inside SEQUENCEs.  After reload this also skips over
+   standalone USE and CLOBBER insn.  */
 
 rtx
 prev_active_insn (rtx insn)
@@ -3516,6 +3512,10 @@ try_split (rtx pat, rtx trial, int last)
 	      p = &XEXP (*p, 1);
 	    *p = CALL_INSN_FUNCTION_USAGE (trial);
 	    SIBLING_CALL_P (insn) = SIBLING_CALL_P (trial);
+
+	    /* Update the debug information for the CALL_INSN.  */
+	    if (flag_enable_icf_debug)
+	      (*debug_hooks->copy_call_info) (trial, insn);
 	  }
     }
 
@@ -3812,7 +3812,7 @@ add_insn_before (rtx insn, rtx before, basic_block bb)
       gcc_assert (stack);
     }
 
-  if (!bb 
+  if (!bb
       && !BARRIER_P (before)
       && !BARRIER_P (insn))
     bb = BLOCK_FOR_INSN (before);
@@ -5009,15 +5009,15 @@ rtx
 emit_note_copy (rtx orig)
 {
   rtx note;
-  
+
   note = rtx_alloc (NOTE);
-  
+
   INSN_UID (note) = cur_insn_uid++;
   NOTE_DATA (note) = NOTE_DATA (orig);
   NOTE_KIND (note) = NOTE_KIND (orig);
   BLOCK_FOR_INSN (note) = NULL;
   add_insn (note);
-  
+
   return note;
 }
 
@@ -5710,11 +5710,10 @@ init_emit_regs (void)
     pic_offset_table_rtx = NULL_RTX;
 }
 
-/* Create some permanent unique rtl objects shared between all functions.
-   LINE_NUMBERS is nonzero if line numbers are to be generated.  */
+/* Create some permanent unique rtl objects shared between all functions.  */
 
 void
-init_emit_once (int line_numbers)
+init_emit_once (void)
 {
   int i;
   enum machine_mode mode;
@@ -5735,8 +5734,6 @@ init_emit_once (int line_numbers)
 				    mem_attrs_htab_eq, NULL);
   reg_attrs_htab = htab_create_ggc (37, reg_attrs_htab_hash,
 				    reg_attrs_htab_eq, NULL);
-
-  no_line_numbers = ! line_numbers;
 
   /* Compute the word and byte modes.  */
 
@@ -5999,7 +5996,7 @@ emit_copy_of_insn_after (rtx insn, rtx after)
       SIBLING_CALL_P (new_rtx) = SIBLING_CALL_P (insn);
       RTL_CONST_CALL_P (new_rtx) = RTL_CONST_CALL_P (insn);
       RTL_PURE_CALL_P (new_rtx) = RTL_PURE_CALL_P (insn);
-      RTL_LOOPING_CONST_OR_PURE_CALL_P (new_rtx) 
+      RTL_LOOPING_CONST_OR_PURE_CALL_P (new_rtx)
 	= RTL_LOOPING_CONST_OR_PURE_CALL_P (insn);
       break;
 

@@ -297,7 +297,7 @@ build_base_path (enum tree_code code,
     {
       expr = build_nop (build_pointer_type (target_type), expr);
       if (!want_pointer)
-	expr = build_indirect_ref (EXPR_LOCATION (expr), expr, NULL);
+	expr = build_indirect_ref (EXPR_LOCATION (expr), expr, RO_NULL);
       return expr;
     }
 
@@ -343,7 +343,7 @@ build_base_path (enum tree_code code,
 	 interesting to the optimizers anyway.  */
       && !has_empty)
     {
-      expr = cp_build_indirect_ref (expr, NULL, tf_warning_or_error);
+      expr = cp_build_indirect_ref (expr, RO_NULL, tf_warning_or_error);
       expr = build_simple_base_path (expr, binfo);
       if (want_pointer)
 	expr = build_address (expr);
@@ -368,11 +368,11 @@ build_base_path (enum tree_code code,
 	  t = TREE_TYPE (TYPE_VFIELD (current_class_type));
 	  t = build_pointer_type (t);
 	  v_offset = convert (t, current_vtt_parm);
-	  v_offset = cp_build_indirect_ref (v_offset, NULL, 
+	  v_offset = cp_build_indirect_ref (v_offset, RO_NULL, 
                                             tf_warning_or_error);
 	}
       else
-	v_offset = build_vfield_ref (cp_build_indirect_ref (expr, NULL,
+	v_offset = build_vfield_ref (cp_build_indirect_ref (expr, RO_NULL,
                                                             tf_warning_or_error),
 				     TREE_TYPE (TREE_TYPE (expr)));
 
@@ -381,7 +381,7 @@ build_base_path (enum tree_code code,
       v_offset = build1 (NOP_EXPR,
 			 build_pointer_type (ptrdiff_type_node),
 			 v_offset);
-      v_offset = cp_build_indirect_ref (v_offset, NULL, tf_warning_or_error);
+      v_offset = cp_build_indirect_ref (v_offset, RO_NULL, tf_warning_or_error);
       TREE_CONSTANT (v_offset) = 1;
 
       offset = convert_to_integer (ptrdiff_type_node,
@@ -424,7 +424,7 @@ build_base_path (enum tree_code code,
     null_test = NULL;
 
   if (!want_pointer)
-    expr = cp_build_indirect_ref (expr, NULL, tf_warning_or_error);
+    expr = cp_build_indirect_ref (expr, RO_NULL, tf_warning_or_error);
 
  out:
   if (null_test)
@@ -458,7 +458,7 @@ build_simple_base_path (tree expr, tree binfo)
 	 in the back end.  */
       temp = unary_complex_lvalue (ADDR_EXPR, expr);
       if (temp)
-	expr = cp_build_indirect_ref (temp, NULL, tf_warning_or_error);
+	expr = cp_build_indirect_ref (temp, RO_NULL, tf_warning_or_error);
 
       return expr;
     }
@@ -646,7 +646,7 @@ build_vfn_ref (tree instance_ptr, tree idx)
 {
   tree aref;
 
-  aref = build_vtbl_ref_1 (cp_build_indirect_ref (instance_ptr, 0,
+  aref = build_vtbl_ref_1 (cp_build_indirect_ref (instance_ptr, RO_NULL,
                                                   tf_warning_or_error), 
                            idx);
 
@@ -4104,6 +4104,7 @@ adjust_clone_args (tree decl)
 	      /* A default parameter has been added. Adjust the
 		 clone's parameters.  */
 	      tree exceptions = TYPE_RAISES_EXCEPTIONS (TREE_TYPE (clone));
+	      tree attrs = TYPE_ATTRIBUTES (TREE_TYPE (clone));
 	      tree basetype = TYPE_METHOD_BASETYPE (TREE_TYPE (clone));
 	      tree type;
 
@@ -4121,6 +4122,8 @@ adjust_clone_args (tree decl)
 						 clone_parms);
 	      if (exceptions)
 		type = build_exception_variant (type, exceptions);
+	      if (attrs)
+		type = cp_build_type_attribute_variant (type, attrs);
 	      TREE_TYPE (clone) = type;
 
 	      clone_parms = NULL_TREE;
@@ -4251,7 +4254,12 @@ remove_zero_width_bit_fields (tree t)
     {
       if (TREE_CODE (*fieldsp) == FIELD_DECL
 	  && DECL_C_BIT_FIELD (*fieldsp)
-	  && DECL_INITIAL (*fieldsp))
+          /* We should not be confused by the fact that grokbitfield
+	     temporarily sets the width of the bit field into
+	     DECL_INITIAL (*fieldsp).
+	     check_bitfield_decl eventually sets DECL_SIZE (*fieldsp)
+	     to that width.  */
+	  && integer_zerop (DECL_SIZE (*fieldsp)))
 	*fieldsp = TREE_CHAIN (*fieldsp);
       else
 	fieldsp = &TREE_CHAIN (*fieldsp);
@@ -5516,6 +5524,9 @@ finish_struct (tree t, tree attributes)
 	if (DECL_PURE_VIRTUAL_P (x))
 	  VEC_safe_push (tree, gc, CLASSTYPE_PURE_VIRTUALS (t), x);
       complete_vars (t);
+
+      /* Remember current #pragma pack value.  */
+      TYPE_PRECISION (t) = maximum_field_alignment;
     }
   else
     finish_struct_1 (t);
@@ -6053,12 +6064,12 @@ resolve_address_of_overloaded_function (tree target_type,
        selected function.  */
 
   int is_ptrmem = 0;
-  int is_reference = 0;
   /* We store the matches in a TREE_LIST rooted here.  The functions
      are the TREE_PURPOSE, not the TREE_VALUE, in this list, for easy
      interoperability with most_specialized_instantiation.  */
   tree matches = NULL_TREE;
   tree fn;
+  tree target_fn_type;
 
   /* By the time we get here, we should be seeing only real
      pointer-to-member types, not the internal POINTER_TYPE to
@@ -6075,12 +6086,9 @@ resolve_address_of_overloaded_function (tree target_type,
     /* This is OK, too.  */
     is_ptrmem = 1;
   else if (TREE_CODE (target_type) == FUNCTION_TYPE)
-    {
-      /* This is OK, too.  This comes from a conversion to reference
-	 type.  */
-      target_type = build_reference_type (target_type);
-      is_reference = 1;
-    }
+    /* This is OK, too.  This comes from a conversion to reference
+       type.  */
+    target_type = build_reference_type (target_type);
   else
     {
       if (flags & tf_error)
@@ -6089,6 +6097,15 @@ resolve_address_of_overloaded_function (tree target_type,
 	       DECL_NAME (OVL_FUNCTION (overload)), target_type);
       return error_mark_node;
     }
+
+  /* Non-member functions and static member functions match targets of type
+     "pointer-to-function" or "reference-to-function."  Nonstatic member
+     functions match targets of type "pointer-to-member-function;" the
+     function type of the pointer to member is used to select the member
+     function from the set of overloaded member functions.
+
+     So figure out the FUNCTION_TYPE that we want to match against.  */
+  target_fn_type = static_fn_type (target_type);
 
   /* If we can find a non-template function that matches, we can just
      use it.  There's no point in generating template instantiations
@@ -6101,7 +6118,6 @@ resolve_address_of_overloaded_function (tree target_type,
       for (fns = overload; fns; fns = OVL_NEXT (fns))
 	{
 	  tree fn = OVL_CURRENT (fns);
-	  tree fntype;
 
 	  if (TREE_CODE (fn) == TEMPLATE_DECL)
 	    /* We're not looking for templates just yet.  */
@@ -6119,13 +6135,7 @@ resolve_address_of_overloaded_function (tree target_type,
 	    continue;
 
 	  /* See if there's a match.  */
-	  fntype = TREE_TYPE (fn);
-	  if (is_ptrmem)
-	    fntype = build_ptrmemfunc_type (build_pointer_type (fntype));
-	  else if (!is_reference)
-	    fntype = build_pointer_type (fntype);
-
-	  if (can_convert_arg (target_type, fntype, fn, LOOKUP_NORMAL))
+	  if (same_type_p (target_fn_type, static_fn_type (fn)))
 	    matches = tree_cons (fn, NULL_TREE, matches);
 	}
     }
@@ -6135,7 +6145,6 @@ resolve_address_of_overloaded_function (tree target_type,
      match we need to look at them, too.  */
   if (!matches)
     {
-      tree target_fn_type;
       tree target_arg_types;
       tree target_ret_type;
       tree fns;
@@ -6143,17 +6152,8 @@ resolve_address_of_overloaded_function (tree target_type,
       unsigned int nargs, ia;
       tree arg;
 
-      if (is_ptrmem)
-	target_fn_type
-	  = TREE_TYPE (TYPE_PTRMEMFUNC_FN_TYPE (target_type));
-      else
-	target_fn_type = TREE_TYPE (target_type);
       target_arg_types = TYPE_ARG_TYPES (target_fn_type);
       target_ret_type = TREE_TYPE (target_fn_type);
-
-      /* Never do unification on the 'this' parameter.  */
-      if (TREE_CODE (target_fn_type) == METHOD_TYPE)
-	target_arg_types = TREE_CHAIN (target_arg_types);
 
       nargs = list_length (target_arg_types);
       args = XALLOCAVEC (tree, nargs);
@@ -6167,7 +6167,6 @@ resolve_address_of_overloaded_function (tree target_type,
 	{
 	  tree fn = OVL_CURRENT (fns);
 	  tree instantiation;
-	  tree instantiation_type;
 	  tree targs;
 
 	  if (TREE_CODE (fn) != TEMPLATE_DECL)
@@ -6195,14 +6194,7 @@ resolve_address_of_overloaded_function (tree target_type,
 	    continue;
 
 	  /* See if there's a match.  */
-	  instantiation_type = TREE_TYPE (instantiation);
-	  if (is_ptrmem)
-	    instantiation_type =
-	      build_ptrmemfunc_type (build_pointer_type (instantiation_type));
-	  else if (!is_reference)
-	    instantiation_type = build_pointer_type (instantiation_type);
-	  if (can_convert_arg (target_type, instantiation_type, instantiation,
-			       LOOKUP_NORMAL))
+	  if (same_type_p (target_fn_type, static_fn_type (instantiation)))
 	    matches = tree_cons (instantiation, fn, matches);
 	}
 
@@ -6522,6 +6514,7 @@ build_self_reference (void)
   DECL_CONTEXT (value) = current_class_type;
   DECL_ARTIFICIAL (value) = 1;
   SET_DECL_SELF_REFERENCE_P (value);
+  cp_set_underlying_type (value);
 
   if (processing_template_decl)
     value = push_template_decl (value);
@@ -8051,12 +8044,10 @@ build_rtti_vtbl_entries (tree binfo, vtbl_init_data* vid)
 {
   tree b;
   tree t;
-  tree basetype;
   tree offset;
   tree decl;
   tree init;
 
-  basetype = BINFO_TYPE (binfo);
   t = BINFO_TYPE (vid->rtti_binfo);
 
   /* To find the complete object, we will first convert to our most

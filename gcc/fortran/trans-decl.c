@@ -3193,7 +3193,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, tree fnbody)
 	  gfc_expr *e;
 	  gfc_se se;
 	  stmtblock_t block;
-	  
+
 	  e = gfc_lval_expr_from_sym (sym);
 	  if (sym->ts.type == BT_CLASS)
 	    gfc_add_component_ref (e, "$data");
@@ -3206,13 +3206,9 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, tree fnbody)
 	  gfc_start_block (&block);
 	  gfc_add_expr_to_block (&block, fnbody);
 
+	  /* Note: Nullifying is not needed.  */
 	  tmp = gfc_deallocate_with_status (se.expr, NULL_TREE, true, NULL);
 	  gfc_add_expr_to_block (&block, tmp);
-
-	  tmp = fold_build2 (MODIFY_EXPR, void_type_node,
-			     se.expr, build_int_cst (TREE_TYPE (se.expr), 0));
-	  gfc_add_expr_to_block (&block, tmp);
-
 	  fnbody = gfc_finish_block (&block);
 	}
       else if (sym->ts.type == BT_CHARACTER)
@@ -3409,7 +3405,7 @@ gfc_create_module_variable (gfc_symbol * sym)
       && (sym->equiv_built || sym->attr.in_equivalence))
     return;
 
-  if (sym->backend_decl)
+  if (sym->backend_decl && !sym->attr.vtab)
     internal_error ("backend decl for module variable %s already exists",
 		    sym->name);
 
@@ -3780,8 +3776,12 @@ generate_local_decl (gfc_symbol * sym)
       else if (warn_unused_variable
 	       && sym->attr.dummy
 	       && sym->attr.intent == INTENT_OUT)
-	gfc_warning ("Dummy argument '%s' at %L was declared INTENT(OUT) but was not set",
-		     sym->name, &sym->declared_at);
+	{
+	  if (!(sym->ts.type == BT_DERIVED
+		&& sym->ts.u.derived->components->initializer))
+	    gfc_warning ("Dummy argument '%s' at %L was declared INTENT(OUT) "
+		         "but was not set",  sym->name, &sym->declared_at);
+	}
       /* Specific warning for unused dummy arguments. */
       else if (warn_unused_variable && sym->attr.dummy)
 	gfc_warning ("Unused dummy argument '%s' at %L", sym->name,
@@ -4396,10 +4396,10 @@ gfc_generate_function_code (gfc_namespace * ns)
 
       /* Reset recursion-check variable.  */
       if ((gfc_option.rtcheck & GFC_RTCHECK_RECURSION) && !is_recursive)
-      {
-	gfc_add_modify (&block, recurcheckvar, boolean_false_node);
-	recurcheckvar = NULL;
-      }
+	{
+	  gfc_add_modify (&block, recurcheckvar, boolean_false_node);
+	  recurcheckvar = NULL;
+	}
 
       if (result == NULL_TREE)
 	{

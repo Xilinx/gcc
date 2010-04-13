@@ -522,22 +522,21 @@ extern tree make_dummy_type (Entity_Id gnat_type);
 /* Record TYPE as a builtin type for Ada.  NAME is the name of the type.  */
 extern void record_builtin_type (const char *name, tree type);
 
-/* Given a record type RECORD_TYPE and a chain of FIELD_DECL nodes FIELDLIST,
+/* Given a record type RECORD_TYPE and a list of FIELD_DECL nodes FIELD_LIST,
    finish constructing the record or union type.  If REP_LEVEL is zero, this
    record has no representation clause and so will be entirely laid out here.
    If REP_LEVEL is one, this record has a representation clause and has been
    laid out already; only set the sizes and alignment.  If REP_LEVEL is two,
    this record is derived from a parent record and thus inherits its layout;
-   only make a pass on the fields to finalize them.  If DO_NOT_FINALIZE is
-   true, the record type is expected to be modified afterwards so it will
-   not be sent to the back-end for finalization.  */
-extern void finish_record_type (tree record_type, tree fieldlist,
-                                int rep_level, bool do_not_finalize);
+   only make a pass on the fields to finalize them.  DEBUG_INFO_P is true if
+   we need to write debug information about this type.  */
+extern void finish_record_type (tree record_type, tree field_list,
+				int rep_level, bool debug_info_p);
 
-/* Wrap up compilation of RECORD_TYPE, i.e. most notably output all
-   the debug information associated with it.  It need not be invoked
-   directly in most cases since finish_record_type takes care of doing
-   so, unless explicitly requested not to through DO_NOT_FINALIZE.  */
+/* Wrap up compilation of RECORD_TYPE, i.e. output all the debug information
+   associated with it.  It need not be invoked directly in most cases since
+   finish_record_type takes care of doing so, but this can be necessary if
+   a parallel type is to be attached to the record type.  */
 extern void rest_of_record_type_compilation (tree record_type);
 
 /* Append PARALLEL_TYPE on the chain of parallel types for decl.  */
@@ -643,12 +642,13 @@ extern void record_global_renaming_pointer (tree decl);
 /* Invalidate the global renaming pointers.  */
 extern void invalidate_global_renaming_pointers (void);
 
-/* Returns a FIELD_DECL node. FIELD_NAME the field name, FIELD_TYPE is its
-   type, and RECORD_TYPE is the type of the parent.  PACKED is nonzero if
-   this field is in a record type with a "pragma pack".  If SIZE is nonzero
-   it is the specified size for this field.  If POS is nonzero, it is the bit
-   position.  If ADDRESSABLE is nonzero, it means we are allowed to take
-   the address of this field for aliasing purposes.  */
+/* Return a FIELD_DECL node.  FIELD_NAME is the field's name, FIELD_TYPE is
+   its type and RECORD_TYPE is the type of the enclosing record.  PACKED is
+   1 if the enclosing record is packed, -1 if it has Component_Alignment of
+   Storage_Unit.  If SIZE is nonzero, it is the specified size of the field.
+   If POS is nonzero, it is the bit position.  If ADDRESSABLE is nonzero, it
+   means we are allowed to take the address of the field; if it is negative,
+   we should not make a bitfield, which is used by make_aligning_type.  */
 extern tree create_field_decl (tree field_name, tree field_type,
                                tree record_type, int packed, tree size,
                                tree pos, int addressable);

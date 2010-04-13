@@ -84,7 +84,7 @@
 #define TARGET_ASM_INTERNAL_LABEL default_internal_label
 #endif
 
-#ifndef TARGET_ARM_TTYPE
+#ifndef TARGET_ASM_TTYPE
 #define TARGET_ASM_TTYPE hook_bool_rtx_false
 #endif
 
@@ -391,9 +391,11 @@
 #define TARGET_VECTOR_ALIGNMENT_REACHABLE \
   default_builtin_vector_alignment_reachable
 #define TARGET_VECTORIZE_BUILTIN_VEC_PERM 0
+#define TARGET_VECTORIZE_BUILTIN_VEC_PERM_OK \
+  hook_bool_tree_tree_true
 #define TARGET_SUPPORT_VECTOR_MISALIGNMENT \
-  default_builtin_support_vector_misalignment 
-   
+  default_builtin_support_vector_misalignment
+
 
 #define TARGET_VECTORIZE                                                \
   {									\
@@ -405,10 +407,13 @@
     TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST,			\
     TARGET_VECTOR_ALIGNMENT_REACHABLE,                                  \
     TARGET_VECTORIZE_BUILTIN_VEC_PERM,					\
-    TARGET_SUPPORT_VECTOR_MISALIGNMENT				\
+    TARGET_VECTORIZE_BUILTIN_VEC_PERM_OK,				\
+    TARGET_SUPPORT_VECTOR_MISALIGNMENT					\
   }
 
 #define TARGET_DEFAULT_TARGET_FLAGS 0
+
+#define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE hook_void_void
 
 #define TARGET_HANDLE_OPTION hook_bool_size_t_constcharptr_int_true
 #define TARGET_HELP NULL
@@ -905,6 +910,7 @@
   TARGET_SCHED,					\
   TARGET_VECTORIZE,				\
   TARGET_DEFAULT_TARGET_FLAGS,			\
+  TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE,		\
   TARGET_HANDLE_OPTION,				\
   TARGET_HELP,					\
   TARGET_EH_RETURN_FILTER_MODE,			\

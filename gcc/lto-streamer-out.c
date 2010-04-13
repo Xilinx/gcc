@@ -86,7 +86,7 @@ eq_string_slot_node (const void *p1, const void *p2)
 
 /* Free the string slot pointed-to by P.  */
 
-static void 
+static void
 string_slot_free (void *p)
 {
   struct string_slot *slot = (struct string_slot *) p;
@@ -342,7 +342,8 @@ pack_ts_base_value_fields (struct bitpack_d *bp, tree expr)
     bp_pack_value (bp, DECL_UNSIGNED (expr), 1);
   else if (TYPE_P (expr))
     bp_pack_value (bp, TYPE_UNSIGNED (expr), 1);
-  bp_pack_value (bp, TREE_ASM_WRITTEN (expr), 1);
+  /* We write debug info two times, do not confuse the second one.  */
+  bp_pack_value (bp, TYPE_P (expr) ? 0 : TREE_ASM_WRITTEN (expr), 1);
   bp_pack_value (bp, TREE_NO_WARNING (expr), 1);
   bp_pack_value (bp, TREE_USED (expr), 1);
   bp_pack_value (bp, TREE_NOTHROW (expr), 1);
@@ -365,7 +366,7 @@ pack_ts_real_cst_value_fields (struct bitpack_d *bp, tree expr)
 {
   unsigned i;
   REAL_VALUE_TYPE r;
-  
+
   r = TREE_REAL_CST (expr);
   bp_pack_value (bp, r.cl, 2);
   bp_pack_value (bp, r.decimal, 1);
@@ -637,7 +638,8 @@ tree_is_indexable (tree t)
 {
   if (TREE_CODE (t) == PARM_DECL)
     return false;
-  else if (TREE_CODE (t) == VAR_DECL && decl_function_context (t))
+  else if (TREE_CODE (t) == VAR_DECL && decl_function_context (t)
+	   && !TREE_STATIC (t))
     return false;
   else
     return (TYPE_P (t) || DECL_P (t) || TREE_CODE (t) == SSA_NAME);
@@ -693,7 +695,8 @@ lto_output_tree_ref (struct output_block *ob, tree expr)
 
     case VAR_DECL:
     case DEBUG_EXPR_DECL:
-      gcc_assert (decl_function_context (expr) == NULL);
+      gcc_assert (decl_function_context (expr) == NULL
+		  || TREE_STATIC (expr));
       output_record_start (ob, LTO_global_decl_ref);
       lto_output_var_decl_index (ob->decl_state, ob->main_stream, expr);
       break;
@@ -758,7 +761,7 @@ static void
 lto_output_chain (struct output_block *ob, tree t, bool ref_p)
 {
   int i, count;
-  
+
   count = list_length (t);
   output_sleb128 (ob, count);
   for (i = 0; i < count; i++)
@@ -848,6 +851,11 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
 
   if (TREE_CODE (expr) == PARM_DECL)
     lto_output_chain (ob, TREE_CHAIN (expr), ref_p);
+
+  if ((TREE_CODE (expr) == VAR_DECL
+       || TREE_CODE (expr) == PARM_DECL)
+      && DECL_HAS_VALUE_EXPR_P (expr))
+    lto_output_tree_or_ref (ob, DECL_VALUE_EXPR (expr), ref_p);
 }
 
 
@@ -961,6 +969,7 @@ lto_output_ts_type_tree_pointers (struct output_block *ob, tree expr,
     lto_output_tree_or_ref (ob, TYPE_BINFO (expr), ref_p);
   lto_output_tree_or_ref (ob, TYPE_CONTEXT (expr), ref_p);
   lto_output_tree_or_ref (ob, TYPE_CANONICAL (expr), ref_p);
+  lto_output_tree_or_ref (ob, TYPE_STUB_DECL (expr), ref_p);
 }
 
 
@@ -1612,7 +1621,7 @@ static void
 output_phi (struct output_block *ob, gimple phi)
 {
   unsigned i, len = gimple_phi_num_args (phi);
-  
+
   output_record_start (ob, lto_gimple_code_to_tag (GIMPLE_PHI));
   output_uleb128 (ob, SSA_NAME_VERSION (PHI_RESULT (phi)));
 
@@ -1732,7 +1741,7 @@ output_bb (struct output_block *ob, basic_block bb, struct function *fn)
 	  gimple stmt = gsi_stmt (bsi);
 
 	  output_gimple_stmt (ob, stmt);
-	
+
 	  /* Emit the EH region holding STMT.  */
 	  region = lookup_stmt_eh_lp_fn (fn, stmt);
 	  if (region != 0)
@@ -1785,14 +1794,14 @@ produce_asm (struct output_block *ob, tree fn)
 
   /* The entire header is stream computed here.  */
   memset (&header, 0, sizeof (struct lto_function_header));
-  
+
   /* Write the header.  */
   header.lto_header.major_version = LTO_major_version;
   header.lto_header.minor_version = LTO_minor_version;
   header.lto_header.section_type = section_type;
-  
+
   header.compressed_size = 0;
-  
+
   if (section_type == LTO_section_function_body)
     header.cfg_size = ob->cfg_stream->total_size;
   header.main_size = ob->main_stream->total_size;
@@ -1870,6 +1879,9 @@ output_function (struct cgraph_node *node)
   /* Output all the local variables in the function.  */
   lto_output_tree_ref (ob, fn->local_decls);
 
+  /* Output the head of the arguments list.  */
+  lto_output_tree_ref (ob, DECL_ARGUMENTS (function));
+
   /* Output all the SSA names used in the function.  */
   output_ssa_names (ob, fn);
 
@@ -1879,9 +1891,6 @@ output_function (struct cgraph_node *node)
   /* Output DECL_INITIAL for the function, which contains the tree of
      lexical scopes.  */
   lto_output_tree (ob, DECL_INITIAL (function), true);
-
-  /* Output the head of the arguments list.  */
-  lto_output_tree_ref (ob, DECL_ARGUMENTS (function));
 
   /* We will renumber the statements.  The code that does this uses
      the same ordering that we use for serializing them so we can use
@@ -2037,7 +2046,7 @@ copy_function (struct cgraph_node *node)
 	VEC_safe_push (tree, heap, encoder->trees, trees[j]);
       encoder->next_index = n;
     }
-  
+
   lto_free_section_data (file_data, LTO_section_function_body, name,
 			 data, len);
   free (output_stream);
@@ -2115,13 +2124,14 @@ struct ipa_opt_pass_d pass_ipa_lto_gimple_out =
  lto_output,           			/* write_summary */
  NULL,		         		/* read_summary */
  NULL,					/* function_read_summary */
+ NULL,					/* stmt_fixup */
  0,					/* TODOs */
  NULL,			                /* function_transform */
  NULL					/* variable_transform */
 };
 
 
-/* Write each node in encoded by ENCODER to OB, as well as those reachable 
+/* Write each node in encoded by ENCODER to OB, as well as those reachable
    from it and required for correct representation of its semantics.
    Each node in ENCODER must be a global declaration or a type.  A node
    is written only once, even if it appears multiple times in the
@@ -2141,35 +2151,20 @@ write_global_stream (struct output_block *ob,
     {
       t = lto_tree_ref_encoder_get_tree (encoder, index);
       if (!lto_streamer_cache_lookup (ob->writer_cache, t, NULL))
+	lto_output_tree (ob, t, false);
+
+      if (flag_wpa)
 	{
-	  if (flag_wpa)
-	    {
-	      /* In WPA we should not emit multiple definitions of the
-		 same symbol to all the files in the link set.  If
-		 T had already been emitted as the pervailing definition
-		 in one file, emit it as an external reference in the
-		 others.  */
-	      /* FIXME lto.  We should check if T belongs to the
-		 file we are writing to.  */
-	      if (TREE_CODE (t) == VAR_DECL
-		  && TREE_PUBLIC (t)
-		  && !DECL_EXTERNAL (t))
-		{
-		  /* FIXME lto.  Make DECLS_ALREADY_EMITTED an argument
-		     to this function so it can be freed up afterwards.
-		     Alternately, assign global symbols to cgraph
-		     node sets.  */
-		  static struct pointer_set_t *decls_already_emitted = NULL;
-
-		  if (decls_already_emitted == NULL)
-		    decls_already_emitted = pointer_set_create ();
-
-		  if (pointer_set_insert (decls_already_emitted, t))
-		    make_decl_one_only (t, DECL_ASSEMBLER_NAME (t));
-		}
-	    }
-
-	  lto_output_tree (ob, t, false);
+	  /* In WPA we should not emit multiple definitions of the
+	     same symbol to all the files in the link set.  If
+	     T had already been emitted as the pervailing definition
+	     in one file, do not emit it in the others.  */
+	  /* FIXME lto.  We should check if T belongs to the
+	     file we are writing to.  */
+	  if (TREE_CODE (t) == VAR_DECL
+	      && TREE_PUBLIC (t)
+	      && !DECL_EXTERNAL (t))
+	    TREE_ASM_WRITTEN (t) = 1;
 	}
     }
 }
@@ -2229,7 +2224,7 @@ lto_output_decl_state_refs (struct output_block *ob,
   unsigned i;
   int32_t ref;
   tree decl;
-  
+
   /* Write reference to FUNCTION_DECL.  If there is not function,
      write reference to void_type_node. */
   decl = (state->fn_decl) ? state->fn_decl : void_type_node;
@@ -2344,7 +2339,9 @@ write_symbol_vec (struct lto_streamer_cache_d *cache,
 	  break;
 	}
 
-      if (kind == GCCPK_COMMON && DECL_SIZE (t))
+      if (kind == GCCPK_COMMON
+	  && DECL_SIZE (t)
+	  && TREE_CODE (DECL_SIZE (t)) == INTEGER_CST)
 	size = (((uint64_t) TREE_INT_CST_HIGH (DECL_SIZE (t))) << 32)
 	  | TREE_INT_CST_LOW (DECL_SIZE (t));
       else
@@ -2441,7 +2438,7 @@ produce_asm_for_decls (cgraph_node_set set)
      needed.  */
   output_unreferenced_globals (set);
 
-  memset (&header, 0, sizeof (struct lto_decl_header)); 
+  memset (&header, 0, sizeof (struct lto_decl_header));
 
   section_name = lto_get_section_name (LTO_section_decls, NULL);
   lto_begin_section (section_name, !flag_wpa);
@@ -2487,7 +2484,7 @@ produce_asm_for_decls (cgraph_node_set set)
   lto_output_data_stream (header_stream, &header, sizeof header);
   lto_write_stream (header_stream);
   free (header_stream);
- 
+
   /* Write the main out-decl state, followed by out-decl states of
      functions. */
   decl_state_stream = ((struct lto_output_stream *)
@@ -2503,7 +2500,7 @@ produce_asm_for_decls (cgraph_node_set set)
       lto_output_decl_state_refs (ob, decl_state_stream, fn_out_state);
     }
   lto_write_stream (decl_state_stream);
-  free(decl_state_stream); 
+  free(decl_state_stream);
 
   lto_write_stream (ob->main_stream);
   lto_write_stream (ob->string_stream);
@@ -2545,6 +2542,7 @@ struct ipa_opt_pass_d pass_ipa_lto_finish_out =
  produce_asm_for_decls,			/* write_summary */
  NULL,		         		/* read_summary */
  NULL,					/* function_read_summary */
+ NULL,					/* stmt_fixup */
  0,					/* TODOs */
  NULL,			                /* function_transform */
  NULL					/* variable_transform */

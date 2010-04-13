@@ -105,10 +105,6 @@ typedef struct GTY(()) globals {
 
 static GTY (()) globals G;
 
-/* Whether or not to pretend that a static function is in an anonymous
-   namespace.  */
-static bool fake_anon_scope;
-
 /* The obstack on which we build mangled names.  */
 static struct obstack *mangle_obstack;
 
@@ -734,20 +730,6 @@ write_encoding (const tree decl)
     }
 }
 
-/* Since we now use strcmp to compare typeinfos on all targets because of
-   the RTLD_LOCAL problem, we need to munge the typeinfo name used for
-   local classes of static functions to fix g++.dg/abi/local1.C.  We do
-   that by pretending that the function is in an anonymous namespace.  */
-
-static bool
-needs_fake_anon (const_tree decl)
-{
-  /* Pretend there's an anonymous namespace right around a static
-     function if we're mangling for RTTI.  */
-  return (fake_anon_scope && !TREE_PUBLIC (decl)
-	  && TREE_CODE (decl) == FUNCTION_DECL);
-}
-
 /* Lambdas can have a bit more context for mangling, specifically VAR_DECL
    or PARM_DECL context, which doesn't belong in DECL_CONTEXT.  */
 
@@ -761,6 +743,10 @@ decl_mangling_context (tree decl)
       if (extra)
 	return extra;
     }
+    else if (TREE_CODE (decl) == TYPE_DECL
+	     && TREE_CODE (TREE_TYPE (decl)) == TEMPLATE_TYPE_PARM)
+     /* template type parms have no mangling context.  */
+      return NULL_TREE;
   return CP_DECL_CONTEXT (decl);
 }
 
@@ -791,18 +777,13 @@ write_name (tree decl, const int ignore_local_scope)
 
   context = decl_mangling_context (decl);
 
-  gcc_assert (context != NULL_TREE);
-
-  /* If we need a fake anonymous namespace, force the nested name path.  */
-  if (needs_fake_anon (decl) && context == global_namespace)
-    context = error_mark_node;
-
   /* A decl in :: or ::std scope is treated specially.  The former is
      mangled using <unscoped-name> or <unscoped-template-name>, the
      latter with a special substitution.  Also, a name that is
      directly in a local function scope is also mangled with
      <unscoped-name> rather than a full <nested-name>.  */
-  if (context == global_namespace
+  if (context == NULL
+      || context == global_namespace
       || DECL_NAMESPACE_STD_P (context)
       || (ignore_local_scope && TREE_CODE (context) == FUNCTION_DECL))
     {
@@ -820,9 +801,6 @@ write_name (tree decl, const int ignore_local_scope)
     }
   else
     {
-      if (context == error_mark_node)
-	context = global_namespace;
-
       /* Handle local names, unless we asked not to (that is, invoked
 	 under <local-name>, to handle only the part of the name under
 	 the local scope).  */
@@ -835,10 +813,10 @@ write_name (tree decl, const int ignore_local_scope)
 	     directly in that function's scope, either decl or one of
 	     its enclosing scopes.  */
 	  tree local_entity = decl;
-	  while (context != global_namespace)
+	  while (context != NULL && context != global_namespace)
 	    {
 	      /* Make sure we're always dealing with decls.  */
-	      if (TYPE_P (context))
+	      if (context != NULL && TYPE_P (context))
 		context = TYPE_NAME (context);
 	      /* Is this a function?  */
 	      if (TREE_CODE (context) == FUNCTION_DECL
@@ -883,6 +861,7 @@ write_unscoped_name (const tree decl)
       /* If not, it should be either in the global namespace, or directly
 	 in a local function scope.  */
       gcc_assert (context == global_namespace
+		  || context != NULL
 		  || TREE_CODE (context) == FUNCTION_DECL);
 
       write_unqualified_name (decl);
@@ -954,9 +933,6 @@ write_nested_name (const tree decl)
     {
       /* No, just use <prefix>  */
       write_prefix (DECL_CONTEXT (decl));
-      if (needs_fake_anon (decl))
-	/* Pretend this static function is in an anonymous namespace.  */
-	write_source_name (get_anonymous_namespace_name ());
       write_unqualified_name (decl);
     }
   write_char ('E');
@@ -1605,11 +1581,11 @@ discriminator_for_local_entity (tree entity)
 {
   if (DECL_DISCRIMINATOR_P (entity))
     {
-      if (DECL_LANG_SPECIFIC (entity))
+      if (DECL_DISCRIMINATOR_SET_P (entity))
 	return DECL_DISCRIMINATOR (entity);
       else
 	/* The first entity with a particular name doesn't get
-	   DECL_LANG_SPECIFIC/DECL_DISCRIMINATOR.  */
+	   DECL_DISCRIMINATOR set up.  */
 	return 0;
     }
   else if (TREE_CODE (entity) == TYPE_DECL)
@@ -2323,12 +2299,7 @@ write_member_name (tree member)
   if (TREE_CODE (member) == IDENTIFIER_NODE)
     write_source_name (member);
   else if (DECL_P (member))
-    {
-      /* G++ 3.2 incorrectly put out both the "sr" code and
-	 the nested name of the qualified name.  */
-      G.need_abi_warning = 1;
-      write_unqualified_name (member);
-    }
+    write_unqualified_name (member);
   else if (TREE_CODE (member) == TEMPLATE_ID_EXPR)
     {
       tree name = TREE_OPERAND (member, 0);
@@ -2425,17 +2396,27 @@ write_expression (tree expr)
       write_string ("at");
       write_type (TREE_OPERAND (expr, 0));
     }
-  else if (abi_version_at_least (2) && TREE_CODE (expr) == SCOPE_REF)
+  else if (TREE_CODE (expr) == SCOPE_REF)
     {
       tree scope = TREE_OPERAND (expr, 0);
       tree member = TREE_OPERAND (expr, 1);
+
+      if (!abi_version_at_least (2))
+	{
+	  write_string ("sr");
+	  write_type (scope);
+	  /* G++ 3.2 incorrectly put out both the "sr" code and
+	     the nested name of the qualified name.  */
+	  G.need_abi_warning = 1;
+	  write_encoding (member);
+	}
 
       /* If the MEMBER is a real declaration, then the qualifying
 	 scope was not dependent.  Ideally, we would not have a
 	 SCOPE_REF in those cases, but sometimes we do.  If the second
 	 argument is a DECL, then the name must not have been
 	 dependent.  */
-      if (DECL_P (member))
+      else if (DECL_P (member))
 	write_expression (member);
       else
 	{
@@ -2598,12 +2579,6 @@ write_expression (tree expr)
 
 	case NEW_EXPR:
 	  sorry ("mangling new-expression");
-	  break;
-
-	/* Handle pointers-to-members specially.  */
-	case SCOPE_REF:
-	  write_type (TREE_OPERAND (expr, 0));
-	  write_member_name (TREE_OPERAND (expr, 1));
 	  break;
 
 	default:
@@ -2837,8 +2812,6 @@ static void
 write_template_param (const tree parm)
 {
   int parm_index;
-  int parm_level;
-  tree parm_type = NULL_TREE;
 
   MANGLE_TRACE_TREE ("template-parm", parm);
 
@@ -2848,13 +2821,10 @@ write_template_param (const tree parm)
     case TEMPLATE_TEMPLATE_PARM:
     case BOUND_TEMPLATE_TEMPLATE_PARM:
       parm_index = TEMPLATE_TYPE_IDX (parm);
-      parm_level = TEMPLATE_TYPE_LEVEL (parm);
       break;
 
     case TEMPLATE_PARM_INDEX:
       parm_index = TEMPLATE_PARM_IDX (parm);
-      parm_level = TEMPLATE_PARM_LEVEL (parm);
-      parm_type = TREE_TYPE (TEMPLATE_PARM_DECL (parm));
       break;
 
     default:
@@ -3012,18 +2982,15 @@ mangle_decl (const tree decl)
   SET_DECL_ASSEMBLER_NAME (decl, id);
 }
 
-/* Generate the mangled representation of TYPE for the typeinfo name.  */
+/* Generate the mangled representation of TYPE.  */
 
 const char *
-mangle_type_string_for_rtti (const tree type)
+mangle_type_string (const tree type)
 {
   const char *result;
 
   start_mangling (type);
-  /* Mangle in a fake anonymous namespace if necessary.  */
-  fake_anon_scope = true;
   write_type (type);
-  fake_anon_scope = false;
   result = finish_mangling (/*warn=*/false);
   if (DEBUG_MANGLE)
     fprintf (stderr, "mangle_type_string = '%s'\n\n", result);

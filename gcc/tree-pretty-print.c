@@ -182,13 +182,21 @@ dump_decl_name (pretty_printer *buffer, tree node, int flags)
   if ((flags & TDF_UID) || DECL_NAME (node) == NULL_TREE)
     {
       if (TREE_CODE (node) == LABEL_DECL && LABEL_DECL_UID (node) != -1)
-        pp_printf (buffer, "L.%d", (int) LABEL_DECL_UID (node));
+	pp_printf (buffer, "L.%d", (int) LABEL_DECL_UID (node));
       else if (TREE_CODE (node) == DEBUG_EXPR_DECL)
-	pp_printf (buffer, "D#%i", DEBUG_TEMP_UID (node));
+	{
+	  if (flags & TDF_NOUID)
+	    pp_string (buffer, "D#xxxx");
+	  else
+	    pp_printf (buffer, "D#%i", DEBUG_TEMP_UID (node));
+	}
       else
 	{
 	  char c = TREE_CODE (node) == CONST_DECL ? 'C' : 'D';
-	  pp_printf (buffer, "%c.%u", c, DECL_UID (node));
+	  if (flags & TDF_NOUID)
+	    pp_printf (buffer, "%c.xxxx", c);
+	  else
+	    pp_printf (buffer, "%c.%u", c, DECL_UID (node));
 	}
     }
 }
@@ -626,13 +634,13 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	  {
 	    size_t len = TREE_VEC_LENGTH (node);
 	    for (i = 0; i < len - 1; i++)
-	      {	    
+	      {
 		dump_generic_node (buffer, TREE_VEC_ELT (node, i), spc, flags,
 				   false);
 		pp_character (buffer, ',');
 		pp_space (buffer);
 	      }
-	    dump_generic_node (buffer, TREE_VEC_ELT (node, len - 1), spc, 
+	    dump_generic_node (buffer, TREE_VEC_ELT (node, len - 1), spc,
 			       flags, false);
 	  }
       }
@@ -1030,9 +1038,14 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       if (DECL_NAME (node))
 	dump_decl_name (buffer, node, flags);
       else if (LABEL_DECL_UID (node) != -1)
-        pp_printf (buffer, "<L%d>", (int) LABEL_DECL_UID (node));
+	pp_printf (buffer, "<L%d>", (int) LABEL_DECL_UID (node));
       else
-        pp_printf (buffer, "<D.%u>", DECL_UID (node));
+	{
+	  if (flags & TDF_NOUID)
+	    pp_string (buffer, "<D.xxxx>");
+	  else
+	    pp_printf (buffer, "<D.%u>", DECL_UID (node));
+	}
       break;
 
     case TYPE_DECL:
@@ -1905,7 +1918,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       dump_generic_node (buffer, TREE_OPERAND (node, 2), spc, flags, false);
       pp_string (buffer, ">");
       break;
-      
+
     case VEC_COND_EXPR:
       pp_string (buffer, " VEC_COND_EXPR < ");
       dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
@@ -2010,7 +2023,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
     case OMP_SECTION:
       pp_string (buffer, "#pragma omp section");
       goto dump_omp_body;
- 
+
     case OMP_MASTER:
       pp_string (buffer, "#pragma omp master");
       goto dump_omp_body;
@@ -2144,7 +2157,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       dump_generic_node (buffer, TREE_OPERAND (node, 1), spc, flags, false);
       pp_string (buffer, " > ");
       break;
-  
+
     case VEC_EXTRACT_ODD_EXPR:
       pp_string (buffer, " VEC_EXTRACT_ODD_EXPR < ");
       dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
@@ -2583,7 +2596,7 @@ op_symbol_code (enum tree_code code)
 
     case POINTER_PLUS_EXPR:
       return "+";
- 
+
     case PLUS_EXPR:
       return "+";
 

@@ -29,8 +29,9 @@
 ;; in Thumb-1 state: I, J, K, L, M, N, O
 
 ;; The following multi-letter normal constraints have been used:
-;; in ARM/Thumb-2 state: Da, Db, Dc, Dn, Dl, DL, Dv
+;; in ARM/Thumb-2 state: Da, Db, Dc, Dn, Dl, DL, Dv, Dy
 ;; in Thumb-1 state: Pa, Pb
+;; in Thumb-2 state: Ps, Pt
 
 ;; The following memory constraints have been used:
 ;; in ARM/Thumb-2 state: Q, Ut, Uv, Uy, Un, Um, Us
@@ -147,6 +148,16 @@
        (match_test "TARGET_THUMB1 && ival >= -262 && ival <= 262
 		    && (ival > 255 || ival < -255)")))
 
+(define_constraint "Ps"
+  "@internal In Thumb-2 state a constant in the range -255 to +255"
+  (and (match_code "const_int")
+       (match_test "TARGET_THUMB2 && ival >= -255 && ival <= 255")))
+
+(define_constraint "Pt"
+  "@internal In Thumb-2 state a constant in the range -7 to +7"
+  (and (match_code "const_int")
+       (match_test "TARGET_THUMB2 && ival >= -7 && ival <= 7")))
+
 (define_constraint "G"
  "In ARM/Thumb-2 state a valid FPA immediate constant."
  (and (match_code "const_double")
@@ -207,9 +218,16 @@
 (define_constraint "Dv"
  "@internal
   In ARM/Thumb-2 state a const_double which can be used with a VFP fconsts
-  or fconstd instruction."
+  instruction."
  (and (match_code "const_double")
       (match_test "TARGET_32BIT && vfp3_const_double_rtx (op)")))
+
+(define_constraint "Dy"
+ "@internal
+  In ARM/Thumb-2 state a const_double which can be used with a VFP fconstd
+  instruction."
+ (and (match_code "const_double")
+      (match_test "TARGET_32BIT && TARGET_VFP_DOUBLE && vfp3_const_double_rtx (op)")))
 
 (define_memory_constraint "Ut"
  "@internal

@@ -781,6 +781,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  This function fills a range with copies of the same value.  For char
    *  types filling contiguous areas of memory, this becomes an inline call
    *  to @c memset or @ wmemset.
+   *
+   *  _GLIBCXX_RESOLVE_LIB_DEFECTS
+   *  DR 865. More algorithms that throw away information
   */
   template<typename _OI, typename _Size, typename _Tp>
     inline _OI
@@ -998,7 +1001,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
     }
 
   /**
-   *  @brief Performs "dictionary" comparison on ranges.
+   *  @brief Performs 'dictionary' comparison on ranges.
    *  @ingroup sorting_algorithms
    *  @param  first1  An input iterator.
    *  @param  last1   An input iterator.
@@ -1006,9 +1009,9 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
    *  @param  last2   An input iterator.
    *  @return   A boolean true or false.
    *
-   *  "Returns true if the sequence of elements defined by the range
+   *  'Returns true if the sequence of elements defined by the range
    *  [first1,last1) is lexicographically less than the sequence of elements
-   *  defined by the range [first2,last2).  Returns false otherwise."
+   *  defined by the range [first2,last2).  Returns false otherwise.'
    *  (Quoted from [25.3.8]/1.)  If the iterators are all character pointers,
    *  then this is an inline call to @c memcmp.
   */

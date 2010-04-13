@@ -1194,6 +1194,7 @@ emit_block_move_hints (rtx x, rtx y, rtx size, enum block_op_methods method,
     }
 
   align = MIN (MEM_ALIGN (x), MEM_ALIGN (y));
+  gcc_assert (align >= BITS_PER_UNIT);
 
   gcc_assert (MEM_P (x));
   gcc_assert (MEM_P (y));
@@ -2311,7 +2312,7 @@ can_store_by_pieces (unsigned HOST_WIDE_INT len,
   if (len == 0)
     return 1;
 
-  if (! (memsetp 
+  if (! (memsetp
 	 ? SET_BY_PIECES_P (len, align)
 	 : STORE_BY_PIECES_P (len, align)))
     return 0;
@@ -2712,8 +2713,7 @@ set_storage_via_libcall (rtx object, rtx size, rtx val, bool tailcall)
   val_tree = make_tree (integer_type_node, val);
 
   fn = clear_storage_libcall_fn (true);
-  call_expr = build_call_expr (fn, 3,
-			       object_tree, integer_zero_node, size_tree);
+  call_expr = build_call_expr (fn, 3, object_tree, val_tree, size_tree);
   CALL_EXPR_TAILCALL (call_expr) = tailcall;
 
   retval = expand_normal (call_expr);
@@ -4512,7 +4512,7 @@ emit_storent_insn (rtx to, rtx from)
 
    If CALL_PARAM_P is nonzero, this is a store into a call param on the
    stack, and block moves may need to be treated specially.
- 
+
    If NONTEMPORAL is true, try using a nontemporal store instruction.  */
 
 rtx
@@ -5754,7 +5754,7 @@ store_constructor (tree exp, rtx target, int cleared, HOST_WIDE_INT size)
    ALIAS_SET is the alias set for the destination.  This value will
    (in general) be different from that for TARGET, since TARGET is a
    reference to the containing structure.
-   
+
    If NONTEMPORAL is true, try generating a nontemporal store.  */
 
 static rtx
@@ -5762,8 +5762,6 @@ store_field (rtx target, HOST_WIDE_INT bitsize, HOST_WIDE_INT bitpos,
 	     enum machine_mode mode, tree exp, tree type,
 	     alias_set_type alias_set, bool nontemporal)
 {
-  HOST_WIDE_INT width_mask = 0;
-
   if (TREE_CODE (exp) == ERROR_MARK)
     return const0_rtx;
 
@@ -5771,8 +5769,6 @@ store_field (rtx target, HOST_WIDE_INT bitsize, HOST_WIDE_INT bitpos,
      side-effects.  */
   if (bitsize == 0)
     return expand_expr (exp, const0_rtx, VOIDmode, EXPAND_NORMAL);
-  else if (bitsize >= 0 && bitsize < HOST_BITS_PER_WIDE_INT)
-    width_mask = ((HOST_WIDE_INT) 1 << bitsize) - 1;
 
   /* If we are storing into an unaligned field of an aligned union that is
      in a register, we may have the mode of TARGET being an integer mode but
@@ -6148,7 +6144,7 @@ contains_packed_reference (const_tree exp)
 	case COMPONENT_REF:
 	  {
 	    tree field = TREE_OPERAND (exp, 1);
-	    packed_p = DECL_PACKED (field) 
+	    packed_p = DECL_PACKED (field)
 		       || TYPE_PACKED (TREE_TYPE (field))
 		       || TYPE_PACKED (TREE_TYPE (exp));
 	    if (packed_p)
@@ -6755,7 +6751,7 @@ highest_pow2_factor_for_target (const_tree target, const_tree exp)
 {
   unsigned HOST_WIDE_INT talign = target_align (target) / BITS_PER_UNIT;
   unsigned HOST_WIDE_INT factor = highest_pow2_factor (exp);
-  
+
   return MAX (factor, talign);
 }
 
@@ -6845,9 +6841,8 @@ expand_expr_addr_expr_1 (tree exp, rtx target, enum machine_mode tmode,
       return expand_expr (TREE_OPERAND (exp, 0), target, tmode, modifier);
 
     case CONST_DECL:
-      /* Recurse and make the output_constant_def clause above handle this.  */
-      return expand_expr_addr_expr_1 (DECL_INITIAL (exp), target,
-				      tmode, modifier, as);
+      /* Expand the initializer like constants above.  */
+      return XEXP (expand_expr_constant (DECL_INITIAL (exp), 0, modifier), 0);
 
     case REALPART_EXPR:
       /* The real part of the complex number is always first, therefore
@@ -6945,7 +6940,7 @@ expand_expr_addr_expr_1 (tree exp, rtx target, enum machine_mode tmode,
 
       if (modifier != EXPAND_NORMAL)
 	result = force_operand (result, NULL);
-      tmp = expand_expr (offset, NULL_RTX, tmode, 
+      tmp = expand_expr (offset, NULL_RTX, tmode,
 			 modifier == EXPAND_INITIALIZER
 			  ? EXPAND_INITIALIZER : EXPAND_NORMAL);
 
@@ -7157,8 +7152,7 @@ rtx
 expand_expr_real (tree exp, rtx target, enum machine_mode tmode,
 		  enum expand_modifier modifier, rtx *alt_rtl)
 {
-  int lp_nr = 0;
-  rtx ret, last = NULL;
+  rtx ret;
 
   /* Handle ERROR_MARK before anybody tries to access its type.  */
   if (TREE_CODE (exp) == ERROR_MARK
@@ -7166,13 +7160,6 @@ expand_expr_real (tree exp, rtx target, enum machine_mode tmode,
     {
       ret = CONST0_RTX (tmode);
       return ret ? ret : const0_rtx;
-    }
-
-  if (flag_non_call_exceptions)
-    {
-      lp_nr = lookup_expr_eh_lp (exp);
-      if (lp_nr)
-	last = get_last_insn ();
     }
 
   /* If this is an expression of some kind and it has an associated line
@@ -7201,25 +7188,6 @@ expand_expr_real (tree exp, rtx target, enum machine_mode tmode,
       ret = expand_expr_real_1 (exp, target, tmode, modifier, alt_rtl);
     }
 
-  /* If using non-call exceptions, mark all insns that may trap.
-     expand_call() will mark CALL_INSNs before we get to this code,
-     but it doesn't handle libcalls, and these may trap.  */
-  if (lp_nr)
-    {
-      rtx insn;
-      for (insn = next_real_insn (last); insn;
-	   insn = next_real_insn (insn))
-	{
-	  if (! find_reg_note (insn, REG_EH_REGION, NULL_RTX)
-	      /* If we want exceptions for non-call insns, any
-		 may_trap_p instruction may throw.  */
-	      && GET_CODE (PATTERN (insn)) != CLOBBER
-	      && GET_CODE (PATTERN (insn)) != USE
-	      && insn_could_throw_p (insn))
-	    make_reg_eh_region_note (insn, 0, lp_nr);
-	}
-    }
-
   return ret;
 }
 
@@ -7240,7 +7208,7 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
   gimple subexp0_def, subexp1_def;
   tree top0, top1;
   location_t loc = ops->location;
-  tree treeop0, treeop1, treeop2;
+  tree treeop0, treeop1;
 #define REDUCE_BIT_FIELD(expr)	(reduce_bit_field			  \
 				 ? reduce_to_bit_field_precision ((expr), \
 								  target, \
@@ -7253,7 +7221,6 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
 
   treeop0 = ops->op0;
   treeop1 = ops->op1;
-  treeop2 = ops->op2;
 
   /* We should be called only on simple (binary or unary) expressions,
      exactly those that are valid in gimple expressions that aren't
@@ -7423,9 +7390,9 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
 	return CONST0_RTX (mode);
       }
 
-    case POINTER_PLUS_EXPR: 
+    case POINTER_PLUS_EXPR:
       /* Even though the sizetype mode and the pointer's mode can be different
-         expand is able to handle this correctly and get the correct result out 
+         expand is able to handle this correctly and get the correct result out
          of the PLUS_EXPR code.  */
       /* Make sure to sign-extend the sizetype offset in a POINTER_PLUS_EXPR
          if sizetype precision is smaller than pointer precision.  */
@@ -9363,7 +9330,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       /* If both modes are integral, then we can convert from one to the
 	 other.  */
       else if (SCALAR_INT_MODE_P (GET_MODE (op0)) && SCALAR_INT_MODE_P (mode))
-	op0 = convert_modes (mode, GET_MODE (op0), op0, 
+	op0 = convert_modes (mode, GET_MODE (op0), op0,
 			     TYPE_UNSIGNED (TREE_TYPE (treeop0)));
       /* As a last resort, spill op0 to memory, and reload it in a
 	 different mode.  */

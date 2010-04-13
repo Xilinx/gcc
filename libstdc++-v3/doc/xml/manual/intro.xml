@@ -195,10 +195,9 @@ requirements of the license of GCC.
       <title>Implementation Bugs</title>
     <para>
       Information on known bugs, details on efforts to fix them, and
-      fixed bugs are all available as part of the GCC bug tracking
-      system, <ulink
-      url="http://gcc.gnu.org/bugzilla">bugzilla</ulink>, with the
-      category set to <literal>libstdc++</literal>.
+      fixed bugs are all available as part of the <ulink
+      url="http://gcc.gnu.org/bugs/">GCC bug tracking system</ulink>,
+      with the category set to <literal>libstdc++</literal>.
     </para>
     </sect2>
 
@@ -629,7 +628,7 @@ requirements of the license of GCC.
     <listitem><para>Have <code>open</code> clear the error flags.
     </para></listitem></varlistentry>
 
-    <varlistentry><term><ulink url="../ext/lwg-active.html#431">431</ulink>:
+    <varlistentry><term><ulink url="../ext/lwg-closed.html#431">431</ulink>:
         <emphasis>Swapping containers with unequal allocators</emphasis>
     </term>
     <listitem><para>Implement Option 3, as per N1599.
@@ -700,6 +699,14 @@ requirements of the license of GCC.
         input_iterator' value_type.
     </para></listitem></varlistentry>
 
+    <varlistentry><term><ulink url="../ext/lwg-active.html#539">539</ulink>:
+        <emphasis>partial_sum and adjacent_difference should mention
+            requirements</emphasis>
+    </term>
+    <listitem><para>We were almost doing the right thing, just use std::move
+        in adjacent_difference.
+    </para></listitem></varlistentry>
+
     <varlistentry><term><ulink url="../ext/lwg-defects.html#541">541</ulink>:
         <emphasis>shared_ptr template assignment and void</emphasis>
     </term>
@@ -730,7 +737,7 @@ requirements of the license of GCC.
     <listitem><para>Add the missing modes to fopen_mode.
     </para></listitem></varlistentry>
 
-    <varlistentry><term><ulink url="../ext/lwg-active.html#630">630</ulink>:
+    <varlistentry><term><ulink url="../ext/lwg-defects.html#630">630</ulink>:
         <emphasis>arrays of valarray</emphasis>
     </term>
     <listitem><para>Implement the simple resolution.
@@ -761,7 +768,7 @@ requirements of the license of GCC.
     <listitem><para>Make the member functions table and classic_table public.
     </para></listitem></varlistentry>
 
-    <varlistentry><term><ulink url="../ext/lwg-active.html#696">696</ulink>:
+    <varlistentry><term><ulink url="../ext/lwg-defects.html#696">696</ulink>:
         <emphasis>istream::operator&gt;&gt;(int&amp;) broken</emphasis>
     </term>
     <listitem><para>Implement the straightforward resolution.
@@ -807,6 +814,13 @@ requirements of the license of GCC.
         <emphasis>to_string needs updating with zero and one</emphasis>
     </term>
     <listitem><para>Update / add the signatures.
+    </para></listitem></varlistentry>
+
+    <varlistentry><term><ulink url="../ext/lwg-active.html#865">865</ulink>:
+        <emphasis>More algorithms that throw away information</emphasis>
+    </term>
+    <listitem><para>The traditional HP / SGI return type and value is blessed
+                    by the resolution of the DR.
     </para></listitem></varlistentry>
   </variablelist>
 

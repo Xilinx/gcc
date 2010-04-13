@@ -71,7 +71,7 @@ enum tree_dump_index
 
 #define TDF_DIAGNOSTIC	(1 << 15)	/* A dump to be put in a diagnostic
 					   message.  */
-#define TDF_VERBOSE     (1 << 16)       /* A dump that uses the full tree 
+#define TDF_VERBOSE     (1 << 16)       /* A dump that uses the full tree
 					   dumper to print stmts.  */
 #define TDF_RHS_ONLY	(1 << 17)	/* a flag to only print the RHS of
 					   a gimple stmt.  */
@@ -79,6 +79,7 @@ enum tree_dump_index
 #define TDF_EH		(1 << 19)	/* display EH region number
 					   holding this gimple statement.  */
 
+#define TDF_NOUID	(1 << 20)	/* omit UIDs from dumps.  */
 
 /* In tree-dump.c */
 
@@ -185,7 +186,10 @@ struct ipa_opt_pass_d
      as needed so both calls are necessary.  */
   void (*read_summary) (void);
   void (*function_read_summary) (struct cgraph_node *);
-  
+  /* Hook to convert gimple stmt uids into true gimple statements.  The second
+     parameter is an array of statements indexed by their uid. */
+  void (*stmt_fixup) (struct cgraph_node *, gimple *);
+
   /* Results of interprocedural propagation of an IPA pass is applied to
      function body via this hook.  */
   unsigned int function_transform_todo_flags_start;
@@ -229,7 +233,7 @@ struct dump_file_info
 /* To-do flags.  */
 #define TODO_dump_func			(1 << 0)
 #define TODO_ggc_collect		(1 << 1)
-#define TODO_verify_ssa			(1 << 2) 
+#define TODO_verify_ssa			(1 << 2)
 #define TODO_verify_flow		(1 << 3)
 #define TODO_verify_stmts		(1 << 4)
 #define TODO_cleanup_cfg        	(1 << 5)
@@ -261,7 +265,7 @@ struct dump_file_info
    IDF is done.  This is used by passes that need the PHI nodes for
    O_j even if it means that some arguments will come from the default
    definition of O_j's symbol (e.g., pass_linear_transform).
-   
+
    WARNING: If you need to use this flag, chances are that your pass
    may be doing something wrong.  Inserting PHI nodes for an old name
    where not all edges carry a new replacement may lead to silent
@@ -402,7 +406,6 @@ extern struct gimple_opt_pass pass_early_warn_uninitialized;
 extern struct gimple_opt_pass pass_late_warn_uninitialized;
 extern struct gimple_opt_pass pass_cse_reciprocals;
 extern struct gimple_opt_pass pass_cse_sincos;
-extern struct gimple_opt_pass pass_convert_to_rsqrt;
 extern struct gimple_opt_pass pass_optimize_bswap;
 extern struct gimple_opt_pass pass_warn_function_return;
 extern struct gimple_opt_pass pass_warn_function_noreturn;
@@ -560,15 +563,41 @@ extern struct gimple_opt_pass pass_convert_switch;
 extern struct opt_pass *all_passes, *all_small_ipa_passes, *all_lowering_passes,
                        *all_regular_ipa_passes, *all_lto_gen_passes;
 
+/* Define a list of pass lists so that both passes.c and plugins can easily
+   find all the pass lists.  */
+#define GCC_PASS_LISTS \
+  DEF_PASS_LIST (all_lowering_passes) \
+  DEF_PASS_LIST (all_small_ipa_passes) \
+  DEF_PASS_LIST (all_regular_ipa_passes) \
+  DEF_PASS_LIST (all_lto_gen_passes) \
+  DEF_PASS_LIST (all_passes)
+
+#define DEF_PASS_LIST(LIST) PASS_LIST_NO_##LIST,
+enum
+{
+  GCC_PASS_LISTS
+  PASS_LIST_NUM
+};
+#undef DEF_PASS_LIST
+
+/* This is used by plugins, and should also be used in
+   passes.c:register_pass.  */
+extern struct opt_pass **gcc_pass_lists[];
+
 /* Current optimization pass.  */
 extern struct opt_pass *current_pass;
 
 extern struct opt_pass * get_pass_for_id (int);
+extern bool execute_one_pass (struct opt_pass *);
 extern void execute_pass_list (struct opt_pass *);
 extern void execute_ipa_pass_list (struct opt_pass *);
 extern void execute_ipa_summary_passes (struct ipa_opt_pass_d *);
 extern void execute_all_ipa_transforms (void);
+extern void execute_all_ipa_stmt_fixups (struct cgraph_node *, gimple *);
+extern bool pass_init_dump_file (struct opt_pass *);
+extern void pass_fini_dump_file (struct opt_pass *);
 
+extern const char *get_current_pass_name (void);
 extern void print_current_pass (FILE *);
 extern void debug_pass (void);
 extern void ipa_write_summaries (void);
@@ -587,5 +616,8 @@ extern void register_pass (struct register_pass_info *);
    throughout the compilation -- we will be able to mark the affected loops
    directly in jump threading, and avoid peeling them next time.  */
 extern bool first_pass_instance;
+
+/* Declare for plugins.  */
+extern void do_per_function_toporder (void (*) (void *), void *);
 
 #endif /* GCC_TREE_PASS_H */

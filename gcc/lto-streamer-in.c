@@ -140,7 +140,7 @@ input_string_internal (struct data_in *data_in, struct lto_input_block *ib,
   unsigned int len;
   unsigned int loc;
   const char *result;
-  
+
   loc = lto_input_uleb128 (ib);
   LTO_INIT_INPUT_BLOCK (str_tab, data_in->strings, loc, data_in->strings_len);
   len = lto_input_uleb128 (&str_tab);
@@ -148,7 +148,7 @@ input_string_internal (struct data_in *data_in, struct lto_input_block *ib,
 
   if (str_tab.p + len > data_in->strings_len)
     internal_error ("bytecode stream: string too long for the string table");
-  
+
   result = (const char *)(data_in->strings + str_tab.p);
 
   return result;
@@ -220,7 +220,7 @@ input_record_start (struct lto_input_block *ib)
 {
   enum LTO_tags tag = (enum LTO_tags) lto_input_uleb128 (ib);
   return tag;
-} 
+}
 
 
 /* Lookup STRING in file_name_hash_table.  If found, return the existing
@@ -311,7 +311,7 @@ lto_input_location (struct lto_input_block *ib, struct data_in *data_in)
    function scope for the read tree.  */
 
 static tree
-lto_input_tree_ref (struct lto_input_block *ib, struct data_in *data_in, 
+lto_input_tree_ref (struct lto_input_block *ib, struct data_in *data_in,
 		    struct function *fn, enum LTO_tags tag)
 {
   unsigned HOST_WIDE_INT ix_u;
@@ -358,7 +358,7 @@ lto_input_tree_ref (struct lto_input_block *ib, struct data_in *data_in,
     case LTO_label_decl_ref:
       ix_u = lto_input_uleb128 (ib);
       result = lto_file_decl_data_get_var_decl (data_in->file_data, ix_u);
-      if (tag == LTO_global_decl_ref)
+      if (TREE_CODE (result) == VAR_DECL)
 	varpool_mark_needed_node (varpool_node (result));
       break;
 
@@ -578,6 +578,11 @@ fixup_eh_region_pointers (struct function *fn, HOST_WIDE_INT root_region)
 static void
 lto_init_eh (void)
 {
+  static bool eh_initialized_p = false;
+
+  if (eh_initialized_p)
+    return;
+
   /* Contrary to most other FEs, we only initialize EH support when at
      least one of the files in the set contains exception regions in
      it.  Since this happens much later than the call to init_eh in
@@ -593,6 +598,8 @@ lto_init_eh (void)
   if (dwarf2out_do_frame ())
     dwarf2out_frame_init ();
 #endif
+
+  eh_initialized_p = true;
 }
 
 
@@ -605,8 +612,7 @@ input_eh_regions (struct lto_input_block *ib, struct data_in *data_in,
 {
   HOST_WIDE_INT i, root_region, len;
   enum LTO_tags tag;
-  static bool eh_initialized_p = false;
-  
+
   tag = input_record_start (ib);
   if (tag == LTO_null)
     return;
@@ -616,11 +622,7 @@ input_eh_regions (struct lto_input_block *ib, struct data_in *data_in,
   /* If the file contains EH regions, then it was compiled with
      -fexceptions.  In that case, initialize the backend EH
      machinery.  */
-  if (!eh_initialized_p)
-    {
-      lto_init_eh ();
-      eh_initialized_p = true;
-    }
+  lto_init_eh ();
 
   gcc_assert (fn->eh);
 
@@ -718,7 +720,7 @@ make_new_block (struct function *fn, unsigned int index)
 
 /* Read the CFG for function FN from input block IB.  */
 
-static void 
+static void
 input_cfg (struct lto_input_block *ib, struct function *fn)
 {
   unsigned int bb_count;
@@ -729,7 +731,7 @@ input_cfg (struct lto_input_block *ib, struct function *fn)
   init_empty_tree_cfg_for_function (fn);
   init_ssa_operands ();
 
-  profile_status_for_function (fn) = 
+  profile_status_for_function (fn) =
     (enum profile_status_d) lto_input_uleb128 (ib);
 
   bb_count = lto_input_uleb128 (ib);
@@ -740,7 +742,7 @@ input_cfg (struct lto_input_block *ib, struct function *fn)
 			   basic_block_info_for_function (fn), bb_count);
 
   if (bb_count > VEC_length (basic_block, label_to_block_map_for_function (fn)))
-    VEC_safe_grow_cleared (basic_block, gc, 
+    VEC_safe_grow_cleared (basic_block, gc,
 			   label_to_block_map_for_function (fn), bb_count);
 
   index = lto_input_sleb128 (ib);
@@ -771,7 +773,7 @@ input_cfg (struct lto_input_block *ib, struct function *fn)
 
 	  dest = BASIC_BLOCK_FOR_FUNCTION (fn, dest_index);
 
-	  if (dest == NULL) 
+	  if (dest == NULL)
 	    dest = make_new_block (fn, dest_index);
 
 	  e = make_edge (bb, dest, edge_flags);
@@ -822,10 +824,10 @@ input_phi (struct lto_input_block *ib, basic_block bb, struct data_in *data_in,
       int src_index = lto_input_uleb128 (ib);
       location_t arg_loc = lto_input_location (ib, data_in);
       basic_block sbb = BASIC_BLOCK_FOR_FUNCTION (fn, src_index);
-      
+
       edge e = NULL;
       int j;
-      
+
       for (j = 0; j < len; j++)
 	if (EDGE_PRED (bb, j)->src == sbb)
 	  {
@@ -833,7 +835,7 @@ input_phi (struct lto_input_block *ib, basic_block bb, struct data_in *data_in,
 	    break;
 	  }
 
-      add_phi_arg (result, def, e, arg_loc); 
+      add_phi_arg (result, def, e, arg_loc);
     }
 
   return result;
@@ -870,7 +872,7 @@ input_ssa_names (struct lto_input_block *ib, struct data_in *data_in,
 	set_default_def (SSA_NAME_VAR (ssa_name), ssa_name);
 
       i = lto_input_uleb128 (ib);
-    } 
+    }
 }
 
 
@@ -1080,17 +1082,16 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 		    {
 		      if (tem == field
 			  || (TREE_TYPE (tem) == TREE_TYPE (field)
-			      && (DECL_FIELD_OFFSET (tem)
-				  == DECL_FIELD_OFFSET (field))
-			      && (DECL_FIELD_BIT_OFFSET (tem)
-				  == DECL_FIELD_BIT_OFFSET (field))
-			      && (DECL_OFFSET_ALIGN (tem)
-				  == DECL_OFFSET_ALIGN (field))))
+			      && compare_field_offset (tem, field)))
 			break;
 		    }
 		  /* In case of type mismatches across units we can fail
 		     to unify some types and thus not find a proper
-		     field-decl here.  Just do nothing in this case.  */
+		     field-decl here.  So only assert here if checking
+		     is enabled.  */
+#ifdef ENABLE_CHECKING
+		  gcc_assert (tem != NULL_TREE);
+#endif
 		  if (tem != NULL_TREE)
 		    TREE_OPERAND (op, 1) = tem;
 		}
@@ -1142,12 +1143,12 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
   return stmt;
 }
 
- 
+
 /* Read a basic block with tag TAG from DATA_IN using input block IB.
    FN is the function being processed.  */
 
 static void
-input_bb (struct lto_input_block *ib, enum LTO_tags tag, 
+input_bb (struct lto_input_block *ib, enum LTO_tags tag,
 	  struct data_in *data_in, struct function *fn)
 {
   unsigned int index;
@@ -1253,7 +1254,7 @@ fixup_call_stmt_edges (struct cgraph_node *orig, gimple *stmts)
 /* Read the body of function FN_DECL from DATA_IN using input block IB.  */
 
 static void
-input_function (tree fn_decl, struct data_in *data_in, 
+input_function (tree fn_decl, struct data_in *data_in,
 		struct lto_input_block *ib)
 {
   struct function *fn;
@@ -1261,6 +1262,8 @@ input_function (tree fn_decl, struct data_in *data_in,
   gimple *stmts;
   basic_block bb;
   struct bitpack_d *bp;
+  struct cgraph_node *node;
+  tree args, narg, oarg;
 
   fn = DECL_STRUCT_FUNCTION (fn_decl);
   tag = input_record_start (ib);
@@ -1295,6 +1298,22 @@ input_function (tree fn_decl, struct data_in *data_in,
   /* Read all the local symbols.  */
   fn->local_decls = lto_input_tree (ib, data_in);
 
+  /* Read all function arguments.  We need to re-map them here to the
+     arguments of the merged function declaration.  */
+  args = lto_input_tree (ib, data_in);
+  for (oarg = args, narg = DECL_ARGUMENTS (fn_decl);
+       oarg && narg;
+       oarg = TREE_CHAIN (oarg), narg = TREE_CHAIN (narg))
+    {
+      int ix;
+      bool res;
+      res = lto_streamer_cache_lookup (data_in->reader_cache, oarg, &ix);
+      gcc_assert (res);
+      /* Replace the argument in the streamer cache.  */
+      lto_streamer_cache_insert_at (data_in->reader_cache, narg, ix);
+    }
+  gcc_assert (!oarg && !narg);
+
   /* Read all the SSA names.  */
   input_ssa_names (ib, data_in, fn);
 
@@ -1305,9 +1324,6 @@ input_function (tree fn_decl, struct data_in *data_in,
   DECL_INITIAL (fn_decl) = lto_input_tree (ib, data_in);
   gcc_assert (DECL_INITIAL (fn_decl));
   DECL_SAVED_TREE (fn_decl) = NULL_TREE;
-
-  /* Read all function arguments.  */
-  DECL_ARGUMENTS (fn_decl) = lto_input_tree (ib, data_in); 
 
   /* Read all the basic blocks.  */
   tag = input_record_start (ib);
@@ -1340,9 +1356,11 @@ input_function (tree fn_decl, struct data_in *data_in,
     gimple_set_body (fn_decl, bb_seq (ei_edge (ei)->dest));
   }
 
-  fixup_call_stmt_edges (cgraph_node (fn_decl), stmts);
+  node = cgraph_node (fn_decl);
+  fixup_call_stmt_edges (node, stmts);
+  execute_all_ipa_stmt_fixups (node, stmts);
 
-  update_ssa (TODO_update_ssa_only_virtuals); 
+  update_ssa (TODO_update_ssa_only_virtuals);
   free_dominance_info (CDI_DOMINATORS);
   free_dominance_info (CDI_POST_DOMINATORS);
   free (stmts);
@@ -1369,7 +1387,7 @@ input_alias_pairs (struct lto_input_block *ib, struct data_in *data_in)
     {
       const char *orig_name, *new_name;
       alias_pair *p;
-      
+
       p = VEC_safe_push (alias_pair, gc, alias_pairs, NULL);
       p->decl = var;
       p->target = lto_input_tree (ib, data_in);
@@ -1393,7 +1411,7 @@ input_alias_pairs (struct lto_input_block *ib, struct data_in *data_in)
    section type is LTO_section_function_body, FN must be the decl for
    that function.  */
 
-static void 
+static void
 lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
 	       const char *data, enum lto_section_type section_type)
 {
@@ -1406,7 +1424,7 @@ lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
   struct lto_input_block ib_main;
 
   header = (const struct lto_function_header *) data;
-  cfg_offset = sizeof (struct lto_function_header); 
+  cfg_offset = sizeof (struct lto_function_header);
   main_offset = cfg_offset + header->cfg_size;
   string_offset = main_offset + header->main_size;
 
@@ -1419,7 +1437,7 @@ lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
 			data + main_offset,
 			0,
 			header->main_size);
-  
+
   data_in = lto_data_in_create (file_data, data + string_offset,
 				header->string_size, NULL);
 
@@ -1459,18 +1477,9 @@ lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
       /* Restore decl state */
       file_data->current_decl_state = file_data->global_decl_state;
 
-      /* FIXME: ipa_transforms_to_apply holds list of passes that have optimization
-         summaries computed and needs to apply changes.  At the moment WHOPR only
-         supports inlining, so we can push it here by hand.  In future we need to stream
-         this field into ltrans compilation.  This will also need to move the field
-	 from struct function into cgraph node where it belongs.  */
-      if (flag_ltrans && !cgraph_node (fn_decl)->global.inlined_to)
-	 VEC_safe_push (ipa_opt_pass, heap,
-			cfun->ipa_transforms_to_apply,
-			(ipa_opt_pass)&pass_ipa_inline);
       pop_cfun ();
     }
-  else 
+  else
     {
       input_alias_pairs (&ib_main, data_in);
     }
@@ -1483,7 +1492,7 @@ lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
 /* Read the body of FN_DECL using DATA.  FILE_DATA holds the global
    decls and types.  */
 
-void 
+void
 lto_input_function_body (struct lto_file_decl_data *file_data,
 			 tree fn_decl, const char *data)
 {
@@ -1495,7 +1504,7 @@ lto_input_function_body (struct lto_file_decl_data *file_data,
 /* Read in VAR_DECL using DATA.  FILE_DATA holds the global decls and
    types.  */
 
-void 
+void
 lto_input_constructors_and_inits (struct lto_file_decl_data *file_data,
 				  const char *data)
 {
@@ -1574,7 +1583,7 @@ unpack_ts_real_cst_value_fields (struct bitpack_d *bp, tree expr)
   unsigned i;
   REAL_VALUE_TYPE r;
   REAL_VALUE_TYPE *rp;
-  
+
   r.cl = (unsigned) bp_unpack_value (bp, 2);
   r.decimal = (unsigned) bp_unpack_value (bp, 1);
   r.sign = (unsigned) bp_unpack_value (bp, 1);
@@ -1597,7 +1606,7 @@ static void
 unpack_ts_fixed_cst_value_fields (struct bitpack_d *bp, tree expr)
 {
   struct fixed_value fv;
-  
+
   fv.data.low = (HOST_WIDE_INT) bp_unpack_value (bp, HOST_BITS_PER_WIDE_INT);
   fv.data.high = (HOST_WIDE_INT) bp_unpack_value (bp, HOST_BITS_PER_WIDE_INT);
   TREE_FIXED_CST (expr) = fv;
@@ -1942,7 +1951,7 @@ lto_input_chain (struct lto_input_block *ib, struct data_in *data_in)
 {
   int i, count;
   tree first, prev, curr;
-  
+
   first = prev = NULL_TREE;
   count = lto_input_sleb128 (ib);
   for (i = 0; i < count; i++)
@@ -1960,7 +1969,7 @@ lto_input_chain (struct lto_input_block *ib, struct data_in *data_in)
   return first;
 }
 
-  
+
 /* Read all pointer fields in the TS_COMMON structure of EXPR from input
    block IB.  DATA_IN contains tables and descriptors for the
    file being read.  */
@@ -2032,6 +2041,11 @@ lto_input_ts_decl_common_tree_pointers (struct lto_input_block *ib,
 
   if (TREE_CODE (expr) == PARM_DECL)
     TREE_CHAIN (expr) = lto_input_chain (ib, data_in);
+
+  if ((TREE_CODE (expr) == VAR_DECL
+       || TREE_CODE (expr) == PARM_DECL)
+      && DECL_HAS_VALUE_EXPR_P (expr))
+    SET_DECL_VALUE_EXPR (expr, lto_input_tree (ib, data_in));
 }
 
 
@@ -2061,7 +2075,7 @@ lto_input_ts_decl_with_vis_tree_pointers (struct lto_input_block *ib,
 				          struct data_in *data_in, tree expr)
 {
   tree id;
-  
+
   id = lto_input_tree (ib, data_in);
   if (id)
     {
@@ -2104,6 +2118,12 @@ lto_input_ts_function_decl_tree_pointers (struct lto_input_block *ib,
   DECL_FUNCTION_PERSONALITY (expr) = lto_input_tree (ib, data_in);
   DECL_FUNCTION_SPECIFIC_TARGET (expr) = lto_input_tree (ib, data_in);
   DECL_FUNCTION_SPECIFIC_OPTIMIZATION (expr) = lto_input_tree (ib, data_in);
+
+  /* If the file contains a function with an EH personality set,
+     then it was compiled with -fexceptions.  In that case, initialize
+     the backend EH machinery.  */
+  if (DECL_FUNCTION_PERSONALITY (expr))
+    lto_init_eh ();
 }
 
 
@@ -2142,6 +2162,7 @@ lto_input_ts_type_tree_pointers (struct lto_input_block *ib,
     TYPE_BINFO (expr) = lto_input_tree (ib, data_in);
   TYPE_CONTEXT (expr) = lto_input_tree (ib, data_in);
   TYPE_CANONICAL (expr) = lto_input_tree (ib, data_in);
+  TYPE_STUB_DECL (expr) = lto_input_tree (ib, data_in);
 }
 
 
@@ -2405,7 +2426,7 @@ lto_register_var_decl_in_symtab (struct data_in *data_in, tree decl)
 	     confuse any attempt to unmangle it.  */
 	  const char *name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
 	  char *label;
-      
+
 	  ASM_FORMAT_PRIVATE_NAME (label, name, DECL_UID (decl));
 	  SET_DECL_ASSEMBLER_NAME (decl, get_identifier (label));
           rest_of_decl_compilation (decl, 1, 0);
@@ -2450,7 +2471,7 @@ lto_register_function_decl_in_symtab (struct data_in *data_in, tree decl)
 	 attempt to unmangle it.  */
       const char *name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
       char *label;
-      
+
       ASM_FORMAT_PRIVATE_NAME (label, name, DECL_UID (decl));
       SET_DECL_ASSEMBLER_NAME (decl, get_identifier (label));
 
@@ -2472,11 +2493,11 @@ lto_register_function_decl_in_symtab (struct data_in *data_in, tree decl)
 
 	  /* Also register the reverse mapping so that we can find the
 	     new name given to an existing assembler name (used when
-	     restoring alias pairs in input_constructors_or_inits.  */ 
+	     restoring alias pairs in input_constructors_or_inits.  */
 	  lto_record_renamed_decl (data_in->file_data,
 				   IDENTIFIER_POINTER (new_assembler_name),
 				   IDENTIFIER_POINTER (old_assembler_name));
-	}				   
+	}
     }
 
   /* If this variable has already been declared, queue the
@@ -2566,6 +2587,8 @@ lto_get_builtin_tree (struct lto_input_block *ib, struct data_in *data_in)
       if (!result || result == error_mark_node)
 	fatal_error ("target specific builtin not available");
     }
+  else
+    gcc_unreachable ();
 
   asmname = input_string (data_in, ib);
   if (asmname)
@@ -2585,7 +2608,6 @@ lto_read_tree (struct lto_input_block *ib, struct data_in *data_in,
 	       enum LTO_tags tag)
 {
   tree result;
-  char end_marker;
   int ix;
 
   result = lto_materialize_tree (ib, data_in, tag, &ix);
@@ -2602,7 +2624,7 @@ lto_read_tree (struct lto_input_block *ib, struct data_in *data_in,
   else if (TREE_CODE (result) == FUNCTION_DECL && !DECL_BUILT_IN (result))
     lto_register_function_decl_in_symtab (data_in, result);
 
-  end_marker = lto_input_1_unsigned (ib);
+  /* end_marker = */ lto_input_1_unsigned (ib);
 
 #ifdef LTO_STREAMER_DEBUG
   /* Remove the mapping to RESULT's original address set by
@@ -2651,7 +2673,7 @@ lto_input_tree (struct lto_input_block *ib, struct data_in *data_in)
 {
   enum LTO_tags tag;
   tree result;
-  
+
   tag = input_record_start (ib);
   gcc_assert ((unsigned) tag < (unsigned) LTO_NUM_TAGS);
 

@@ -1,4 +1,4 @@
-/* This file contains routines to construct GNU OpenMP constructs, 
+/* This file contains routines to construct GNU OpenMP constructs,
    called from parsing in the C and C++ front ends.
 
    Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
@@ -145,7 +145,7 @@ c_finish_omp_atomic (location_t loc, enum tree_code code, tree lhs, tree rhs)
       DECL_CONTEXT (var) = current_function_decl;
       addr = build4 (TARGET_EXPR, TREE_TYPE (addr), var, addr, NULL, NULL);
     }
-  lhs = build_indirect_ref (loc, addr, NULL);
+  lhs = build_indirect_ref (loc, addr, RO_NULL);
 
   /* There are lots of warnings, errors, and conversions that need to happen
      in the course of interpreting a statement.  Use the normal mechanisms
@@ -154,7 +154,7 @@ c_finish_omp_atomic (location_t loc, enum tree_code code, tree lhs, tree rhs)
       			 input_location, rhs, NULL_TREE);
   if (x == error_mark_node)
     return error_mark_node;
-  gcc_assert (TREE_CODE (x) == MODIFY_EXPR);  
+  gcc_assert (TREE_CODE (x) == MODIFY_EXPR);
   rhs = TREE_OPERAND (x, 1);
 
   /* Punt the actual generation of atomic operations to common code.  */
@@ -275,7 +275,7 @@ c_finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 	      fail = true;
 	    }
 
-	  init = build_modify_expr (elocus, decl, NULL_TREE, NOP_EXPR, 
+	  init = build_modify_expr (elocus, decl, NULL_TREE, NOP_EXPR,
 	      			    /* FIXME diagnostics: This should
 				       be the location of the INIT.  */
 	      			    elocus,

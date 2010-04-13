@@ -327,7 +327,7 @@ dump_alias_info (FILE *file)
   fprintf (file, "\n\nAlias information for %s\n\n", funcname);
 
   fprintf (file, "Aliased symbols\n\n");
-  
+
   FOR_EACH_REFERENCED_VAR (var, rvi)
     {
       if (may_be_aliased (var))
@@ -347,7 +347,7 @@ dump_alias_info (FILE *file)
     {
       tree ptr = ssa_name (i);
       struct ptr_info_def *pi;
-      
+
       if (ptr == NULL_TREE
 	  || SSA_NAME_IN_FREE_LIST (ptr))
 	continue;
@@ -772,7 +772,6 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
 {
   tree base1, base2;
   HOST_WIDE_INT offset1 = 0, offset2 = 0;
-  HOST_WIDE_INT size1 = -1, size2 = -1;
   HOST_WIDE_INT max_size1 = -1, max_size2 = -1;
   bool var1_p, var2_p, ind1_p, ind2_p;
   alias_set_type set;
@@ -781,12 +780,14 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
 	       || SSA_VAR_P (ref1->ref)
 	       || handled_component_p (ref1->ref)
 	       || INDIRECT_REF_P (ref1->ref)
-	       || TREE_CODE (ref1->ref) == TARGET_MEM_REF)
+	       || TREE_CODE (ref1->ref) == TARGET_MEM_REF
+	       || TREE_CODE (ref1->ref) == CONST_DECL)
 	      && (!ref2->ref
 		  || SSA_VAR_P (ref2->ref)
 		  || handled_component_p (ref2->ref)
 		  || INDIRECT_REF_P (ref2->ref)
-		  || TREE_CODE (ref2->ref) == TARGET_MEM_REF));
+		  || TREE_CODE (ref2->ref) == TARGET_MEM_REF
+		  || TREE_CODE (ref2->ref) == CONST_DECL));
 
   if (!dbg_cnt (alias))
     return true;
@@ -794,11 +795,9 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
   /* Decompose the references into their base objects and the access.  */
   base1 = ao_ref_base (ref1);
   offset1 = ref1->offset;
-  size1 = ref1->size;
   max_size1 = ref1->max_size;
   base2 = ao_ref_base (ref2);
   offset2 = ref2->offset;
-  size2 = ref2->size;
   max_size2 = ref2->max_size;
 
   /* We can end up with registers or constants as bases for example from
@@ -806,6 +805,8 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
      which is seen as a struct copy.  */
   if (TREE_CODE (base1) == SSA_NAME
       || TREE_CODE (base2) == SSA_NAME
+      || TREE_CODE (base1) == CONST_DECL
+      || TREE_CODE (base2) == CONST_DECL
       || is_gimple_min_invariant (base1)
       || is_gimple_min_invariant (base2))
     return false;
@@ -942,7 +943,6 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 	   their first argument.  */
 	case BUILT_IN_STRCPY:
 	case BUILT_IN_STRNCPY:
-	case BUILT_IN_BCOPY:
 	case BUILT_IN_MEMCPY:
 	case BUILT_IN_MEMMOVE:
 	case BUILT_IN_MEMPCPY:
@@ -960,8 +960,18 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 					   size);
 	    return refs_may_alias_p_1 (&dref, ref, false);
 	  }
+	case BUILT_IN_BCOPY:
+	  {
+	    ao_ref dref;
+	    tree size = gimple_call_arg (call, 2);
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 0),
+					   size);
+	    return refs_may_alias_p_1 (&dref, ref, false);
+	  }
 	/* The following builtins do not read from memory.  */
 	case BUILT_IN_FREE:
+	case BUILT_IN_MALLOC:
 	case BUILT_IN_MEMSET:
 	case BUILT_IN_FREXP:
 	case BUILT_IN_FREXPF:
@@ -1159,7 +1169,6 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	   their first argument.  */
 	case BUILT_IN_STRCPY:
 	case BUILT_IN_STRNCPY:
-	case BUILT_IN_BCOPY:
 	case BUILT_IN_MEMCPY:
 	case BUILT_IN_MEMMOVE:
 	case BUILT_IN_MEMPCPY:
@@ -1178,6 +1187,19 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 					   size);
 	    return refs_may_alias_p_1 (&dref, ref, false);
 	  }
+	case BUILT_IN_BCOPY:
+	  {
+	    ao_ref dref;
+	    tree size = gimple_call_arg (call, 2);
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 1),
+					   size);
+	    return refs_may_alias_p_1 (&dref, ref, false);
+	  }
+	/* Allocating memory does not have any side-effects apart from
+	   being the definition point for the pointer.  */
+	case BUILT_IN_MALLOC:
+	  return false;
 	/* Freeing memory kills the pointed-to memory.  More importantly
 	   the call has to serve as a barrier for moving loads and stores
 	   across it.  */

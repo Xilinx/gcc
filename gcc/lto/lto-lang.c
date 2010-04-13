@@ -285,7 +285,6 @@ handle_nonnull_attribute (tree *node, tree ARG_UNUSED (name),
 			  bool * ARG_UNUSED (no_add_attrs))
 {
   tree type = *node;
-  unsigned HOST_WIDE_INT attr_arg_num;
 
   /* If no arguments are specified, all pointer arguments should be
      non-null.  Verify a full prototype is given so that the arguments
@@ -298,7 +297,7 @@ handle_nonnull_attribute (tree *node, tree ARG_UNUSED (name),
 
   /* Argument list specified.  Verify that each argument number references
      a pointer argument.  */
-  for (attr_arg_num = 1; args; args = TREE_CHAIN (args))
+  for (; args; args = TREE_CHAIN (args))
     {
       tree argument;
       unsigned HOST_WIDE_INT arg_num = 0, ck_num;
@@ -601,9 +600,11 @@ static unsigned int
 lto_init_options (unsigned int argc ATTRIBUTE_UNUSED,
 		  const char **argv ATTRIBUTE_UNUSED)
 {
-  /* Always operate in unit-at-time mode so that we can defer
-     decisions about what to output.  */
-  flag_unit_at_a_time = 1;
+  /* By default, C99-like requirements for complex multiply and divide.
+     ???  Until the complex method is encoded in the IL this is the only
+     safe choice.  This will pessimize Fortran code with LTO unless
+     people specify a complex method manually or use -ffast-math.  */
+  flag_complex_method = 2;
 
   return CL_LTO;
 }
@@ -622,7 +623,7 @@ lto_handle_option (size_t scode, const char *arg, int value ATTRIBUTE_UNUSED)
 
   switch (code)
     {
-    case OPT_resolution:
+    case OPT_fresolution:
       resolution_file_name = arg;
       result = 1;
       break;
@@ -645,16 +646,6 @@ lto_handle_option (size_t scode, const char *arg, int value ATTRIBUTE_UNUSED)
 static bool
 lto_post_options (const char **pfilename ATTRIBUTE_UNUSED)
 {
-  /* FIXME lto: We have stripped enough type and other
-     debugging information out of the IR that it may
-     appear ill-formed to dwarf2out, etc.  We must not
-     attempt to generate debug info in lto1.  A more
-     graceful solution would disable the option flags
-     rather than ignoring them, but we'd also have to
-     worry about default debugging options.  */
-  write_symbols = NO_DEBUG;
-  debug_info_level = DINFO_LEVEL_NONE;
-
   /* -fltrans and -fwpa are mutually exclusive.  Check for that here.  */
   if (flag_wpa && flag_ltrans)
     error ("-fwpa and -fltrans are mutually exclusive");

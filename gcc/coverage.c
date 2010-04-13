@@ -1122,10 +1122,10 @@ build_ctr_info_value (unsigned int counter, tree type)
       TREE_TYPE (tree_ctr_tables[counter]) = array_type;
       DECL_SIZE (tree_ctr_tables[counter]) = TYPE_SIZE (array_type);
       DECL_SIZE_UNIT (tree_ctr_tables[counter]) = TYPE_SIZE_UNIT (array_type);
-      assemble_variable (tree_ctr_tables[counter], 0, 0, 0);
+      varpool_finalize_decl (tree_ctr_tables[counter]);
 
       value = tree_cons (fields,
-			 build1 (ADDR_EXPR, TREE_TYPE (fields), 
+			 build1 (ADDR_EXPR, TREE_TYPE (fields),
 					    tree_ctr_tables[counter]),
 			 value);
     }
@@ -1141,6 +1141,7 @@ build_ctr_info_value (unsigned int counter, tree type)
   TREE_PUBLIC (fn) = 1;
   DECL_ARTIFICIAL (fn) = 1;
   TREE_NOTHROW (fn) = 1;
+  DECL_ASSEMBLER_NAME (fn);  /* Initialize assembler name so we can stream out. */
   value = tree_cons (fields,
 		     build1 (ADDR_EXPR, TREE_TYPE (fields), fn),
 		     value);
@@ -1401,7 +1402,7 @@ build_gcov_module_info_value (void)
   DECL_INITIAL (mod_info) = value;
 
   /* Build structure.  */
-  assemble_variable (mod_info, 0, 0, 0);
+  varpool_finalize_decl (mod_info);
 
   return mod_info;
 }
@@ -1590,7 +1591,7 @@ create_coverage (void)
   DECL_INITIAL (gcov_info) = t;
 
   /* Build structure.  */
-  assemble_variable (gcov_info, 0, 0, 0);
+  varpool_finalize_decl (gcov_info);
 
   /* Build a decl for __gcov_init.  */
   t = build_pointer_type (TREE_TYPE (gcov_info));
@@ -1599,6 +1600,7 @@ create_coverage (void)
 		  FUNCTION_DECL, get_identifier ("__gcov_init"), t);
   TREE_PUBLIC (t) = 1;
   DECL_EXTERNAL (t) = 1;
+  DECL_ASSEMBLER_NAME (t);  /* Initialize assembler name so we can stream out. */
   gcov_init = t;
 
   /* Generate a call to __gcov_init(&gcov_info).  */

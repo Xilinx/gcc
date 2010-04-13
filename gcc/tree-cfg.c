@@ -144,9 +144,9 @@ init_empty_tree_cfg_for_function (struct function *fn)
 			 label_to_block_map_for_function (fn),
 			 initial_cfg_capacity);
 
-  SET_BASIC_BLOCK_FOR_FUNCTION (fn, ENTRY_BLOCK, 
+  SET_BASIC_BLOCK_FOR_FUNCTION (fn, ENTRY_BLOCK,
 				ENTRY_BLOCK_PTR_FOR_FUNCTION (fn));
-  SET_BASIC_BLOCK_FOR_FUNCTION (fn, EXIT_BLOCK, 
+  SET_BASIC_BLOCK_FOR_FUNCTION (fn, EXIT_BLOCK,
 		   EXIT_BLOCK_PTR_FOR_FUNCTION (fn));
 
   ENTRY_BLOCK_PTR_FOR_FUNCTION (fn)->next_bb
@@ -2439,11 +2439,11 @@ reinstall_phi_args (edge new_edge, edge old_edge)
   edge_var_map *vm;
   int i;
   gimple_stmt_iterator phis;
-  
+
   v = redirect_edge_var_map_vector (old_edge);
   if (!v)
     return;
-  
+
   for (i = 0, phis = gsi_start_phis (new_edge->dest);
        VEC_iterate (edge_var_map, v, i, vm) && !gsi_end_p (phis);
        i++, gsi_next (&phis))
@@ -2451,12 +2451,12 @@ reinstall_phi_args (edge new_edge, edge old_edge)
       gimple phi = gsi_stmt (phis);
       tree result = redirect_edge_var_map_result (vm);
       tree arg = redirect_edge_var_map_def (vm);
- 
+
       gcc_assert (result == gimple_phi_result (phi));
-  
+
       add_phi_arg (phi, arg, new_edge, redirect_edge_var_map_location (vm));
     }
-  
+
   redirect_edge_var_map_clear (old_edge);
 }
 
@@ -2890,12 +2890,24 @@ verify_types_in_gimple_reference (tree expr, bool require_lvalue)
 	  return true;
 	}
 
-      /* For VIEW_CONVERT_EXPRs which are allowed here, too, there
-	 is nothing to verify.  Gross mismatches at most invoke
-	 undefined behavior.  */
-      if (TREE_CODE (expr) == VIEW_CONVERT_EXPR
-	  && !handled_component_p (op))
-	return false;
+      if (TREE_CODE (expr) == VIEW_CONVERT_EXPR)
+	{
+	  /* For VIEW_CONVERT_EXPRs which are allowed here too, we only check
+	     that their operand is not an SSA name or an invariant when
+	     requiring an lvalue (this usually means there is a SRA or IPA-SRA
+	     bug).  Otherwise there is nothing to verify, gross mismatches at
+	     most invoke undefined behavior.  */
+	  if (require_lvalue
+	      && (TREE_CODE (op) == SSA_NAME
+		  || is_gimple_min_invariant (op)))
+	    {
+	      error ("Conversion of an SSA_NAME on the left hand side.");
+	      debug_generic_stmt (expr);
+	      return true;
+	    }
+	  else if (!handled_component_p (op))
+	    return false;
+	}
 
       expr = op;
     }
@@ -2952,7 +2964,8 @@ verify_gimple_call (gimple stmt)
     }
 
   if (gimple_call_lhs (stmt)
-      && !is_gimple_lvalue (gimple_call_lhs (stmt)))
+      && (!is_gimple_lvalue (gimple_call_lhs (stmt))
+	  || verify_types_in_gimple_reference (gimple_call_lhs (stmt), true)))
     {
       error ("invalid LHS in gimple call");
       return true;
@@ -3368,7 +3381,7 @@ do_pointer_plus_expr_check:
 	  }
 
 	return false;
-      } 
+      }
 
     case TRUTH_ANDIF_EXPR:
     case TRUTH_ORIF_EXPR:
@@ -3613,7 +3626,7 @@ verify_gimple_return (gimple stmt)
      return values from the original source.  */
   if (op == NULL)
     return false;
- 
+
   if (!is_gimple_val (op)
       && TREE_CODE (op) != RESULT_DECL)
     {
@@ -4319,7 +4332,7 @@ gimple_verify_flow_info (void)
 	  {
 	    edge true_edge;
 	    edge false_edge;
-  
+
 	    extract_true_false_edges_from_block (bb, &true_edge, &false_edge);
 
 	    if (!true_edge
@@ -4497,13 +4510,13 @@ gimple_make_forwarder_block (edge fallthru)
   for (gsi = gsi_start_phis (dummy); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple phi, new_phi;
-      
+
       phi = gsi_stmt (gsi);
       var = gimple_phi_result (phi);
       new_phi = create_phi_node (var, bb);
       SSA_NAME_DEF_STMT (var) = new_phi;
       gimple_phi_set_result (phi, make_ssa_name (SSA_NAME_VAR (var), phi));
-      add_phi_arg (new_phi, gimple_phi_result (phi), fallthru, 
+      add_phi_arg (new_phi, gimple_phi_result (phi), fallthru,
 		   UNKNOWN_LOCATION);
     }
 
@@ -4677,14 +4690,23 @@ gimple_redirect_edge_and_branch (edge e, basic_block dest)
     case GIMPLE_ASM:
       {
 	int i, n = gimple_asm_nlabels (stmt);
-	tree label = gimple_block_label (dest);
+	tree label = NULL;
 
 	for (i = 0; i < n; ++i)
 	  {
 	    tree cons = gimple_asm_label_op (stmt, i);
 	    if (label_to_block (TREE_VALUE (cons)) == e->dest)
-	      TREE_VALUE (cons) = label;
+	      {
+		if (!label)
+		  label = gimple_block_label (dest);
+		TREE_VALUE (cons) = label;
+	      }
 	  }
+
+	/* If we didn't find any label matching the former edge in the
+	   asm labels, we must be redirecting the fallthrough
+	   edge.  */
+	gcc_assert (label || (e->flags & EDGE_FALLTHRU));
       }
       break;
 
@@ -4790,7 +4812,7 @@ gimple_split_block (basic_block bb, void *stmt)
     return new_bb;
 
   /* Split the statement list - avoid re-creating new containers as this
-     brings ugly quadratic memory consumption in the inliner.  
+     brings ugly quadratic memory consumption in the inliner.
      (We are still quadratic since we need to update stmt BB pointers,
      sadly.)  */
   list = gsi_split_seq_before (&gsi);
@@ -4876,7 +4898,7 @@ gimple_duplicate_bb (basic_block bb)
   return new_bb;
 }
 
-/* Add phi arguments to the phi nodes in E_COPY->dest according to 
+/* Add phi arguments to the phi nodes in E_COPY->dest according to
    the phi arguments coming from the equivalent edge at
    the phi nodes of DEST.  */
 
@@ -4885,8 +4907,8 @@ add_phi_args_after_redirect (edge e_copy, edge orig_e)
 {
    gimple_stmt_iterator psi, psi_copy;
    gimple phi, phi_copy;
-   tree def; 
-   
+   tree def;
+
     for (psi = gsi_start_phis (orig_e->dest),
        psi_copy = gsi_start_phis (e_copy->dest);
        !gsi_end_p (psi);
@@ -4947,7 +4969,7 @@ add_phi_args_after_copy_edge (edge e_copy)
       phi = gsi_stmt (psi);
       phi_copy = gsi_stmt (psi_copy);
       def = PHI_ARG_DEF_FROM_EDGE (phi, e);
-      add_phi_arg (phi_copy, def, e_copy, 
+      add_phi_arg (phi_copy, def, e_copy,
 		   gimple_phi_arg_location_from_edge (phi, e));
     }
 }
@@ -5146,8 +5168,8 @@ gimple_duplicate_sese_region (edge entry, edge exit,
    is moved to ENTRY.  Returns true if duplication succeeds, false
    otherwise.
 
-   For example, 
- 
+   For example,
+
    some_code;
    if (cond)
      A;
@@ -5277,21 +5299,21 @@ gimple_duplicate_sese_tail (edge entry ATTRIBUTE_UNUSED, edge exit ATTRIBUTE_UNU
   cond_stmt = last_stmt (exit->src);
   gcc_assert (gimple_code (cond_stmt) == GIMPLE_COND);
   cond_stmt = gimple_copy (cond_stmt);
- 
- /* If the block consisting of the exit condition has the latch as 
-    successor, then the body of the loop is executed before 
-    the exit condition is tested.  In such case, moving the 
-    condition to the entry, causes that the loop will iterate  
-    one less iteration (which is the wanted outcome, since we 
-    peel out the last iteration).  If the body is executed after 
-    the condition, moving the condition to the entry requires 
+
+ /* If the block consisting of the exit condition has the latch as
+    successor, then the body of the loop is executed before
+    the exit condition is tested.  In such case, moving the
+    condition to the entry, causes that the loop will iterate
+    one less iteration (which is the wanted outcome, since we
+    peel out the last iteration).  If the body is executed after
+    the condition, moving the condition to the entry requires
     decrementing one iteration.  */
   if (exits[1]->dest == orig_loop->latch)
     new_rhs = gimple_cond_rhs (cond_stmt);
   else
   {
     new_rhs = fold_build2 (MINUS_EXPR, TREE_TYPE (gimple_cond_rhs (cond_stmt)),
-			   gimple_cond_rhs (cond_stmt), 
+			   gimple_cond_rhs (cond_stmt),
 			   build_int_cst (TREE_TYPE (gimple_cond_rhs (cond_stmt)), 1));
 
     if (TREE_CODE (gimple_cond_rhs (cond_stmt)) == SSA_NAME)
@@ -5300,12 +5322,12 @@ gimple_duplicate_sese_tail (edge entry ATTRIBUTE_UNUSED, edge exit ATTRIBUTE_UNU
 	for (gsi1 = gsi_start_bb (iters_bb); !gsi_end_p (gsi1); gsi_next (&gsi1))
 	  if (gsi_stmt (gsi1) == SSA_NAME_DEF_STMT (gimple_cond_rhs (cond_stmt)))
 	    break;
-		 
+
 	new_rhs = force_gimple_operand_gsi (&gsi1, new_rhs, true,
 					    NULL_TREE,false,GSI_CONTINUE_LINKING);
       }
-  }   
-  gimple_cond_set_rhs (cond_stmt, unshare_expr (new_rhs)); 
+  }
+  gimple_cond_set_rhs (cond_stmt, unshare_expr (new_rhs));
   gimple_cond_set_lhs (cond_stmt, unshare_expr (gimple_cond_lhs (cond_stmt)));
   gsi_insert_after (&gsi, cond_stmt, GSI_NEW_STMT);
 
@@ -5318,64 +5340,64 @@ gimple_duplicate_sese_tail (edge entry ATTRIBUTE_UNUSED, edge exit ATTRIBUTE_UNU
 
   /* Add the PHI node arguments.  */
   add_phi_args_after_copy (region_copy, n_region, snew);
-  
+
   /* Get rid of now superfluous conditions and associated edges (and phi node
      arguments).  */
   exit_bb = exit->dest;
- 
+
   e = redirect_edge_and_branch (exits[0], exits[1]->dest);
   PENDING_STMT (e) = NULL;
- 
-  /* If the block consisting of the exit condition has the latch as 
-     successor, then the body of the loop is executed before 
-     the exit condition is tested.  
-     
+
+  /* If the block consisting of the exit condition has the latch as
+     successor, then the body of the loop is executed before
+     the exit condition is tested.
+
      { body  }
      { cond  } (exit[0])  -> { latch }
-        |      
+        |
 	V (exit[1])
-	 
+
      { exit_bb }
-     
-     
+
+
      In such case, the equivalent copied edge nexits[1]
      (for the peeled iteration) needs to be redirected to exit_bb.
-     
-     Otherwise, 
-     
+
+     Otherwise,
+
      { cond  } (exit[0])  -> { body }
         |
 	V (exit[1])
-     
+
      { exit_bb }
-    
-     
+
+
      exit[0] is pointing to the body of the loop,
-     and the equivalent nexits[0] needs to be redirected to 
-     the copied body (of the peeled iteration).  */ 
-    
+     and the equivalent nexits[0] needs to be redirected to
+     the copied body (of the peeled iteration).  */
+
   if (exits[1]->dest == orig_loop->latch)
     e = redirect_edge_and_branch (nexits[1], nexits[0]->dest);
   else
     e = redirect_edge_and_branch (nexits[0], nexits[1]->dest);
-  PENDING_STMT (e) = NULL; 
-  
+  PENDING_STMT (e) = NULL;
+
   redirect_edges = VEC_alloc (edge, heap, 10);
-  
+
   for (i = 0; i < n_region; i++)
     region_copy[i]->flags |= BB_DUPLICATED;
-  
-  /* Iterate all incoming edges to latch.  All those coming from 
+
+  /* Iterate all incoming edges to latch.  All those coming from
      copied bbs will be redirected to exit_bb.  */
   FOR_EACH_EDGE (e, ei, orig_loop->latch->preds)
     {
       if (e->src->flags & BB_DUPLICATED)
         VEC_safe_push (edge, heap, redirect_edges, e);
     }
-  
+
   for (i = 0; i < n_region; i++)
     region_copy[i]->flags &= ~BB_DUPLICATED;
-  
+
   for (i = 0; VEC_iterate (edge, redirect_edges, i, e); ++i)
     {
       e = redirect_edge_and_branch (e, exit_bb);
@@ -5384,7 +5406,7 @@ gimple_duplicate_sese_tail (edge entry ATTRIBUTE_UNUSED, edge exit ATTRIBUTE_UNU
       orig_e = find_edge (orig_src, orig_loop->latch);
       add_phi_args_after_redirect (e, orig_e);
     }
-  
+
   VEC_free (edge, heap, redirect_edges);
 
   /* Anything that is outside of the region, but was dominated by something
@@ -5556,7 +5578,7 @@ move_stmt_op (tree *tp, int *walk_subtrees, void *data)
 	       && !is_global_var (t))
 	      || TREE_CODE (t) == CONST_DECL)
 	    replace_by_duplicate_decl (tp, p->vars_map, p->to_context);
-	  
+
 	  if (SSA_VAR_P (t)
 	      && gimple_in_ssa_p (cfun))
 	    {
@@ -6352,7 +6374,7 @@ print_succ_bbs (FILE *file, basic_block bb)
 
 /* Print to FILE the basic block BB following the VERBOSITY level.  */
 
-void 
+void
 print_loops_bb (FILE *file, basic_block bb, int indent, int verbosity)
 {
   char *s_indent = (char *) alloca ((size_t) indent + 1);
@@ -6398,7 +6420,7 @@ print_loop (FILE *file, struct loop *loop, int indent, int verbosity)
   s_indent[indent] = '\0';
 
   /* Print loop's header.  */
-  fprintf (file, "%sloop_%d (header = %d, latch = %d", s_indent, 
+  fprintf (file, "%sloop_%d (header = %d, latch = %d", s_indent,
 	   loop->num, loop->header->index, loop->latch->index);
   fprintf (file, ", niter = ");
   print_generic_expr (file, loop->nb_iterations, 0);
@@ -6805,14 +6827,14 @@ remove_edge_and_dominated_blocks (edge e)
 
   /* Update the dominance information.  The immediate dominator may change only
      for blocks whose immediate dominator belongs to DF_IDOM:
-   
+
      Suppose that idom(X) = Y before removal of E and idom(X) != Y after the
      removal.  Let Z the arbitrary block such that idom(Z) = Y and
      Z dominates X after the removal.  Before removal, there exists a path P
      from Y to X that avoids Z.  Let F be the last edge on P that is
      removed, and let W = F->dest.  Before removal, idom(W) = Y (since Y
      dominates W, and because of P, Z does not dominate W), and W belongs to
-     the dominance frontier of E.  Therefore, Y belongs to DF_IDOM.  */ 
+     the dominance frontier of E.  Therefore, Y belongs to DF_IDOM.  */
   EXECUTE_IF_SET_IN_BITMAP (df_idom, 0, i, bi)
     {
       bb = BASIC_BLOCK (i);
@@ -7022,11 +7044,11 @@ split_critical_edges (void)
         {
 	  if (EDGE_CRITICAL_P (e) && !(e->flags & EDGE_ABNORMAL))
 	    split_edge (e);
-	  /* PRE inserts statements to edges and expects that 
+	  /* PRE inserts statements to edges and expects that
 	     since split_critical_edges was done beforehand, committing edge
 	     insertions will not split more edges.  In addition to critical
 	     edges we must split edges that have multiple successors and
-	     end by control flow statements, such as RESX. 
+	     end by control flow statements, such as RESX.
 	     Go ahead and split them too.  This matches the logic in
 	     gimple_find_edge_insert_loc.  */
 	  else if ((!single_pred_p (e->dest)
@@ -7202,7 +7224,7 @@ struct gimple_opt_pass pass_warn_function_return =
 {
  {
   GIMPLE_PASS,
-  NULL,					/* name */
+  "*warn_function_return",		/* name */
   NULL,					/* gate */
   execute_warn_function_return,		/* execute */
   NULL,					/* sub */
@@ -7236,7 +7258,7 @@ struct gimple_opt_pass pass_warn_function_noreturn =
 {
  {
   GIMPLE_PASS,
-  NULL,					/* name */
+  "*warn_function_noreturn",		/* name */
   NULL,					/* gate */
   execute_warn_function_noreturn,	/* execute */
   NULL,					/* sub */

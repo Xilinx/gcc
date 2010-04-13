@@ -407,12 +407,12 @@ static int vars_copy_1 (void **, void *);
 static void vars_copy (htab_t, htab_t);
 static tree var_debug_decl (tree);
 static void var_reg_set (dataflow_set *, rtx, enum var_init_status, rtx);
-static void var_reg_delete_and_set (dataflow_set *, rtx, bool, 
+static void var_reg_delete_and_set (dataflow_set *, rtx, bool,
 				    enum var_init_status, rtx);
 static void var_reg_delete (dataflow_set *, rtx, bool);
 static void var_regno_delete (dataflow_set *, int);
 static void var_mem_set (dataflow_set *, rtx, enum var_init_status, rtx);
-static void var_mem_delete_and_set (dataflow_set *, rtx, bool, 
+static void var_mem_delete_and_set (dataflow_set *, rtx, bool,
 				    enum var_init_status, rtx);
 static void var_mem_delete (dataflow_set *, rtx, bool);
 
@@ -521,7 +521,7 @@ stack_adjust_offset_pre_post (rtx pattern, HOST_WIDE_INT *pre,
 	      /* We handle only adjustments by constant amount.  */
 	      gcc_assert (GET_CODE (XEXP (src, 1)) == PLUS &&
 			  CONST_INT_P (val));
-	      
+
 	      if (code == PRE_MODIFY)
 		*pre -= INTVAL (val);
 	      else
@@ -1367,7 +1367,7 @@ get_init_value (dataflow_set *set, rtx loc, decl_or_value dv)
    part.  */
 
 static void
-var_reg_delete_and_set (dataflow_set *set, rtx loc, bool modify, 
+var_reg_delete_and_set (dataflow_set *set, rtx loc, bool modify,
 			enum var_init_status initialized, rtx set_src)
 {
   tree decl = REG_EXPR (loc);
@@ -1465,7 +1465,7 @@ var_mem_decl_set (dataflow_set *set, rtx loc, enum var_init_status initialized,
    Adjust the address first if it is stack pointer based.  */
 
 static void
-var_mem_set (dataflow_set *set, rtx loc, enum var_init_status initialized, 
+var_mem_set (dataflow_set *set, rtx loc, enum var_init_status initialized,
 	     rtx set_src)
 {
   tree decl = MEM_EXPR (loc);
@@ -1483,7 +1483,7 @@ var_mem_set (dataflow_set *set, rtx loc, enum var_init_status initialized,
    Adjust the address first if it is stack pointer based.  */
 
 static void
-var_mem_delete_and_set (dataflow_set *set, rtx loc, bool modify, 
+var_mem_delete_and_set (dataflow_set *set, rtx loc, bool modify,
 			enum var_init_status initialized, rtx set_src)
 {
   tree decl = MEM_EXPR (loc);
@@ -1687,7 +1687,7 @@ val_resolve (dataflow_set *set, rtx val, rtx loc, rtx insn)
 		       VAR_INIT_STATUS_INITIALIZED, NULL_RTX, INSERT);
 }
 
-/* Initialize dataflow set SET to be empty. 
+/* Initialize dataflow set SET to be empty.
    VARS_SIZE is the initial size of hash table VARS.  */
 
 static void
@@ -1758,7 +1758,7 @@ variable_union_info_cmp_pos (const void *n1, const void *n2)
 
   if (i1->pos != i2->pos)
     return i1->pos - i2->pos;
-  
+
   return (i1->pos_dst - i2->pos_dst);
 }
 
@@ -4128,8 +4128,8 @@ track_expr_p (tree expr, bool need_rtl)
   decl_rtl = DECL_RTL_IF_SET (expr);
   if (!decl_rtl && need_rtl)
     return 0;
-  
-  /* If this expression is really a debug alias of some other declaration, we 
+
+  /* If this expression is really a debug alias of some other declaration, we
      don't need to track this expression if the ultimate declaration is
      ignored.  */
   realdecl = expr;
@@ -4143,7 +4143,7 @@ track_expr_p (tree expr, bool need_rtl)
     }
 
   /* Do not track EXPR if REALDECL it should be ignored for debugging
-     purposes.  */ 
+     purposes.  */
   if (DECL_IGNORED_P (realdecl))
     return 0;
 
@@ -4375,19 +4375,19 @@ replace_expr_with_values (rtx loc)
    MO_CLOBBER if no micro operation is to be generated.  */
 
 static enum micro_operation_type
-use_type (rtx *loc, struct count_use_info *cui, enum machine_mode *modep)
+use_type (rtx loc, struct count_use_info *cui, enum machine_mode *modep)
 {
   tree expr;
   cselib_val *val;
 
   if (cui && cui->sets)
     {
-      if (GET_CODE (*loc) == VAR_LOCATION)
+      if (GET_CODE (loc) == VAR_LOCATION)
 	{
-	  if (track_expr_p (PAT_VAR_LOCATION_DECL (*loc), false))
+	  if (track_expr_p (PAT_VAR_LOCATION_DECL (loc), false))
 	    {
-	      rtx ploc = PAT_VAR_LOCATION_LOC (*loc);
-	      cselib_val *val = cselib_lookup (ploc, GET_MODE (*loc), 1);
+	      rtx ploc = PAT_VAR_LOCATION_LOC (loc);
+	      cselib_val *val = cselib_lookup (ploc, GET_MODE (loc), 1);
 
 	      /* ??? flag_float_store and volatile mems are never
 		 given values, but we could in theory use them for
@@ -4399,15 +4399,15 @@ use_type (rtx *loc, struct count_use_info *cui, enum machine_mode *modep)
 	    return MO_CLOBBER;
 	}
 
-      if ((REG_P (*loc) || MEM_P (*loc))
-	  && (val = find_use_val (*loc, GET_MODE (*loc), cui)))
+      if ((REG_P (loc) || MEM_P (loc))
+	  && (val = find_use_val (loc, GET_MODE (loc), cui)))
 	{
 	  if (modep)
-	    *modep = GET_MODE (*loc);
+	    *modep = GET_MODE (loc);
 	  if (cui->store_p)
 	    {
-	      if (REG_P (*loc)
-		  || cselib_lookup (XEXP (*loc, 0), GET_MODE (*loc), 0))
+	      if (REG_P (loc)
+		  || cselib_lookup (XEXP (loc, 0), GET_MODE (loc), 0))
 		return MO_VAL_SET;
 	    }
 	  else if (!cselib_preserved_value_p (val))
@@ -4415,31 +4415,31 @@ use_type (rtx *loc, struct count_use_info *cui, enum machine_mode *modep)
 	}
     }
 
-  if (REG_P (*loc))
+  if (REG_P (loc))
     {
-      gcc_assert (REGNO (*loc) < FIRST_PSEUDO_REGISTER);
+      gcc_assert (REGNO (loc) < FIRST_PSEUDO_REGISTER);
 
-      expr = REG_EXPR (*loc);
+      expr = REG_EXPR (loc);
 
       if (!expr)
 	return MO_USE_NO_VAR;
       else if (target_for_debug_bind (var_debug_decl (expr)))
 	return MO_CLOBBER;
-      else if (track_loc_p (*loc, expr, REG_OFFSET (*loc),
+      else if (track_loc_p (loc, expr, REG_OFFSET (loc),
 			    false, modep, NULL))
 	return MO_USE;
       else
 	return MO_USE_NO_VAR;
     }
-  else if (MEM_P (*loc))
+  else if (MEM_P (loc))
     {
-      expr = MEM_EXPR (*loc);
+      expr = MEM_EXPR (loc);
 
       if (!expr)
 	return MO_CLOBBER;
       else if (target_for_debug_bind (var_debug_decl (expr)))
 	return MO_CLOBBER;
-      else if (track_loc_p (*loc, expr, INT_MEM_OFFSET (*loc),
+      else if (track_loc_p (loc, expr, INT_MEM_OFFSET (loc),
 			    false, modep, NULL))
 	return MO_USE;
       else
@@ -4467,37 +4467,38 @@ log_op_type (rtx x, basic_block bb, rtx insn,
    INSN is instruction which the LOC is part of.  */
 
 static int
-count_uses (rtx *loc, void *cuip)
+count_uses (rtx *ploc, void *cuip)
 {
+  rtx loc = *ploc;
   struct count_use_info *cui = (struct count_use_info *) cuip;
   enum micro_operation_type mopt = use_type (loc, cui, NULL);
 
   if (mopt != MO_CLOBBER)
     {
       cselib_val *val;
-      enum machine_mode mode = GET_MODE (*loc);
+      enum machine_mode mode = GET_MODE (loc);
 
       VTI (cui->bb)->n_mos++;
 
       if (dump_file && (dump_flags & TDF_DETAILS))
-	log_op_type (*loc, cui->bb, cui->insn, mopt, dump_file);
+	log_op_type (loc, cui->bb, cui->insn, mopt, dump_file);
 
       switch (mopt)
 	{
 	case MO_VAL_LOC:
-	  loc = &PAT_VAR_LOCATION_LOC (*loc);
-	  if (VAR_LOC_UNKNOWN_P (*loc))
+	  loc = PAT_VAR_LOCATION_LOC (loc);
+	  if (VAR_LOC_UNKNOWN_P (loc))
 	    break;
 	  /* Fall through.  */
 
 	case MO_VAL_USE:
 	case MO_VAL_SET:
-	  if (MEM_P (*loc)
-	      && !REG_P (XEXP (*loc, 0)) && !MEM_P (XEXP (*loc, 0)))
+	  if (MEM_P (loc)
+	      && !REG_P (XEXP (loc, 0)) && !MEM_P (XEXP (loc, 0)))
 	    {
 	      enum machine_mode address_mode
-		= targetm.addr_space.address_mode (MEM_ADDR_SPACE (*loc));
-	      val = cselib_lookup (XEXP (*loc, 0), address_mode, false);
+		= targetm.addr_space.address_mode (MEM_ADDR_SPACE (loc));
+	      val = cselib_lookup (XEXP (loc, 0), address_mode, false);
 
 	      if (val && !cselib_preserved_value_p (val))
 		{
@@ -4506,9 +4507,30 @@ count_uses (rtx *loc, void *cuip)
 		}
 	    }
 
-	  val = find_use_val (*loc, mode, cui);
+	  val = find_use_val (loc, mode, cui);
 	  if (val)
-	    cselib_preserve_value (val);
+	    {
+	      if (mopt == MO_VAL_SET
+		  && GET_CODE (PATTERN (cui->insn)) == COND_EXEC
+		  && (REG_P (loc)
+		      || (MEM_P (loc)
+			  && (use_type (loc, NULL, NULL) == MO_USE
+			      || cui->sets))))
+		{
+		  cselib_val *oval = cselib_lookup (loc, GET_MODE (loc), 0);
+
+		  gcc_assert (oval != val);
+		  gcc_assert (REG_P (loc) || MEM_P (loc));
+
+		  if (!cselib_preserved_value_p (oval))
+		    {
+		      VTI (cui->bb)->n_mos++;
+		      cselib_preserve_value (oval);
+		    }
+		}
+
+	      cselib_preserve_value (val);
+	    }
 	  else
 	    gcc_assert (mopt == MO_VAL_LOC);
 
@@ -4590,8 +4612,9 @@ count_with_sets (rtx insn, struct cselib_set *sets, int n_sets)
    to VTI (bb)->mos.  INSN is instruction which the LOC is part of.  */
 
 static int
-add_uses (rtx *loc, void *data)
+add_uses (rtx *ploc, void *data)
 {
+  rtx loc = *ploc;
   enum machine_mode mode = VOIDmode;
   struct count_use_info *cui = (struct count_use_info *)data;
   enum micro_operation_type type = use_type (loc, cui, &mode);
@@ -4602,12 +4625,12 @@ add_uses (rtx *loc, void *data)
       micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
 
       mo->type = type;
-      mo->u.loc = type == MO_USE ? var_lowpart (mode, *loc) : *loc;
+      mo->u.loc = type == MO_USE ? var_lowpart (mode, loc) : loc;
       mo->insn = cui->insn;
 
       if (type == MO_VAL_LOC)
 	{
-	  rtx oloc = *loc;
+	  rtx oloc = loc;
 	  rtx vloc = PAT_VAR_LOCATION_LOC (oloc);
 	  cselib_val *val;
 
@@ -4655,7 +4678,7 @@ add_uses (rtx *loc, void *data)
 
 	      oloc = gen_rtx_CONCAT (mode, val->val_rtx, oloc);
 
-	      type2 = use_type (&vloc, 0, &mode2);
+	      type2 = use_type (vloc, 0, &mode2);
 
 	      gcc_assert (type2 == MO_USE || type2 == MO_USE_NO_VAR
 			  || type2 == MO_CLOBBER);
@@ -4679,8 +4702,8 @@ add_uses (rtx *loc, void *data)
 	{
 	  enum machine_mode mode2 = VOIDmode;
 	  enum micro_operation_type type2;
-	  cselib_val *val = find_use_val (*loc, GET_MODE (*loc), cui);
-	  rtx vloc, oloc = *loc, nloc;
+	  cselib_val *val = find_use_val (loc, GET_MODE (loc), cui);
+	  rtx vloc, oloc = loc, nloc;
 
 	  gcc_assert (cui->sets);
 
@@ -4718,7 +4741,7 @@ add_uses (rtx *loc, void *data)
 		      || type2 == MO_CLOBBER);
 
 	  if (type2 == MO_USE)
-	    vloc = var_lowpart (mode2, *loc);
+	    vloc = var_lowpart (mode2, loc);
 	  else
 	    vloc = oloc;
 
@@ -4732,7 +4755,7 @@ add_uses (rtx *loc, void *data)
 
 	  */
 
-	  nloc = replace_expr_with_values (*loc);
+	  nloc = replace_expr_with_values (loc);
 	  if (!nloc)
 	    nloc = oloc;
 
@@ -4781,7 +4804,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
   basic_block bb = cui->bb;
   micro_operation *mo;
   rtx oloc = loc, nloc, src = NULL;
-  enum micro_operation_type type = use_type (&loc, cui, &mode);
+  enum micro_operation_type type = use_type (loc, cui, &mode);
   bool track_p = false;
   cselib_val *v;
   bool resolve, preserve;
@@ -4796,7 +4819,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
       mo = VTI (bb)->mos + VTI (bb)->n_mos++;
 
       if ((GET_CODE (expr) == CLOBBER && type != MO_VAL_SET)
-	  || !(track_p = use_type (&loc, NULL, &mode2) == MO_USE)
+	  || !(track_p = use_type (loc, NULL, &mode2) == MO_USE)
 	  || GET_CODE (expr) == CLOBBER)
 	{
 	  mo->type = MO_CLOBBER;
@@ -4815,19 +4838,21 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 	    }
 	  else
 	    {
+	      rtx xexpr = CONST_CAST_RTX (expr);
+
 	      if (SET_SRC (expr) != src)
-		expr = gen_rtx_SET (VOIDmode, loc, src);
+		xexpr = gen_rtx_SET (VOIDmode, loc, src);
 	      if (same_variable_part_p (src, REG_EXPR (loc), REG_OFFSET (loc)))
 		mo->type = MO_COPY;
 	      else
 		mo->type = MO_SET;
-	      mo->u.loc = CONST_CAST_RTX (expr);
+	      mo->u.loc = xexpr;
 	    }
 	}
       mo->insn = cui->insn;
     }
   else if (MEM_P (loc)
-	   && ((track_p = use_type (&loc, NULL, &mode2) == MO_USE)
+	   && ((track_p = use_type (loc, NULL, &mode2) == MO_USE)
 	       || cui->sets))
     {
       mo = VTI (bb)->mos + VTI (bb)->n_mos++;
@@ -4872,15 +4897,17 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 	    }
 	  else
 	    {
+	      rtx xexpr = CONST_CAST_RTX (expr);
+
 	      if (SET_SRC (expr) != src)
-		expr = gen_rtx_SET (VOIDmode, loc, src);
-	      if (same_variable_part_p (SET_SRC (expr),
+		xexpr = gen_rtx_SET (VOIDmode, loc, src);
+	      if (same_variable_part_p (SET_SRC (xexpr),
 					MEM_EXPR (loc),
 					INT_MEM_OFFSET (loc)))
 		mo->type = MO_COPY;
 	      else
 		mo->type = MO_SET;
-	      mo->u.loc = CONST_CAST_RTX (expr);
+	      mo->u.loc = xexpr;
 	    }
 	}
       mo->insn = cui->insn;
@@ -4899,9 +4926,41 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
   if (nloc)
     oloc = nloc;
 
-  if (resolve && GET_CODE (mo->u.loc) == SET)
+  if (GET_CODE (PATTERN (cui->insn)) == COND_EXEC)
     {
-      nloc = replace_expr_with_values (SET_SRC (mo->u.loc));
+      cselib_val *oval = cselib_lookup (oloc, GET_MODE (oloc), 0);
+
+      gcc_assert (oval != v);
+      gcc_assert (REG_P (oloc) || MEM_P (oloc));
+
+      if (!cselib_preserved_value_p (oval))
+	{
+	  micro_operation *nmo = VTI (bb)->mos + VTI (bb)->n_mos++;
+
+	  cselib_preserve_value (oval);
+
+	  nmo->type = MO_VAL_USE;
+	  nmo->u.loc = gen_rtx_CONCAT (mode, oval->val_rtx, oloc);
+	  VAL_NEEDS_RESOLUTION (nmo->u.loc) = 1;
+	  nmo->insn = mo->insn;
+
+	  if (dump_file && (dump_flags & TDF_DETAILS))
+	    log_op_type (nmo->u.loc, cui->bb, cui->insn,
+			 nmo->type, dump_file);
+	}
+
+      resolve = false;
+    }
+  else if (resolve && GET_CODE (mo->u.loc) == SET)
+    {
+      nloc = replace_expr_with_values (SET_SRC (expr));
+
+      /* Avoid the mode mismatch between oexpr and expr.  */
+      if (!nloc && mode != mode2)
+	{
+	  nloc = SET_SRC (expr);
+	  gcc_assert (oloc == SET_DEST (expr));
+	}
 
       if (nloc)
 	oloc = gen_rtx_SET (GET_MODE (mo->u.loc), oloc, nloc);
@@ -4940,7 +4999,8 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 
      (concat (concat val dstv) (set dst src)): dst now holds val,
      copied from src.  dstv is a value-based representation of dst, if
-     it differs from dst.  If resolution is needed, src is a REG.
+     it differs from dst.  If resolution is needed, src is a REG, and
+     its mode is the same as that of val.
 
      (concat (concat val (set dstv srcv)) (set dst src)): src
      copied to dst, holding val.  dstv and srcv are value-based
@@ -5116,14 +5176,14 @@ find_src_set_src (dataflow_set *set, rtx src)
 	{
 	  found = false;
 	  for (i = 0; i < var->n_var_parts && !found; i++)
-	    for (nextp = var->var_part[i].loc_chain; nextp && !found; 
+	    for (nextp = var->var_part[i].loc_chain; nextp && !found;
 		 nextp = nextp->next)
 	      if (rtx_equal_p (nextp->loc, src))
 		{
 		  set_src = nextp->set_src;
 		  found = true;
 		}
-	      
+
 	}
     }
 
@@ -6416,7 +6476,7 @@ emit_note_insn_var_location (void **varp, void *data)
 	  continue;
 	}
       loc[n_var_parts] = loc2;
-      mode = GET_MODE (loc[n_var_parts]);
+      mode = GET_MODE (var->var_part[i].loc_chain->loc);
       initialized = var->var_part[i].loc_chain->init;
       last_limit = offsets[n_var_parts] + GET_MODE_SIZE (mode);
 
@@ -6427,9 +6487,10 @@ emit_note_insn_var_location (void **varp, void *data)
 	  break;
       if (j < var->n_var_parts
 	  && wider_mode != VOIDmode
+	  && mode == GET_MODE (var->var_part[j].loc_chain->loc)
+	  && (REG_P (loc[n_var_parts]) || MEM_P (loc[n_var_parts]))
 	  && (loc2 = vt_expand_loc (var->var_part[j].loc_chain->loc, vars))
 	  && GET_CODE (loc[n_var_parts]) == GET_CODE (loc2)
-	  && mode == GET_MODE (loc2)
 	  && last_limit == var->var_part[j].offset)
 	{
 	  rtx new_loc = NULL;
@@ -6512,7 +6573,7 @@ emit_note_insn_var_location (void **varp, void *data)
 	= gen_rtx_EXPR_LIST (VOIDmode, loc[0], GEN_INT (offsets[0]));
 
       NOTE_VAR_LOCATION (note) = gen_rtx_VAR_LOCATION (VOIDmode, decl,
-						       expr_list, 
+						       expr_list,
 						       (int) initialized);
     }
   else if (n_var_parts)
@@ -6526,7 +6587,7 @@ emit_note_insn_var_location (void **varp, void *data)
       parallel = gen_rtx_PARALLEL (VOIDmode,
 				   gen_rtvec_v (n_var_parts, loc));
       NOTE_VAR_LOCATION (note) = gen_rtx_VAR_LOCATION (VOIDmode, decl,
-						       parallel, 
+						       parallel,
 						       (int) initialized);
     }
 
@@ -7094,7 +7155,7 @@ static void
 vt_add_function_parameters (void)
 {
   tree parm;
-  
+
   for (parm = DECL_ARGUMENTS (current_function_decl);
        parm; parm = TREE_CHAIN (parm))
     {

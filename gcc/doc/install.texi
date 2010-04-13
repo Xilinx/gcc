@@ -321,6 +321,16 @@ default library search path.  See also @option{--with-mpfr-lib} and
 distribution is found in a subdirectory of your GCC sources named
 @file{mpfr}, it will be built together with GCC@.
 
+@item MPC Library version 0.8.0 (or later)
+
+Necessary to build GCC@.  It can be downloaded from
+@uref{http://www.multiprecision.org/}.  The @option{--with-mpc}
+configure option should be used if your MPC Library is not installed
+in your default library search path.  See also @option{--with-mpc-lib}
+and @option{--with-mpc-include}.  Alternatively, if an MPC source
+distribution is found in a subdirectory of your GCC sources named
+@file{mpc}, it will be built together with GCC@.
+
 @item Parma Polyhedra Library (PPL) version 0.10
 
 Necessary to build GCC with the Graphite loop optimizations.
@@ -343,18 +353,6 @@ not installed in your default library search path.
 @item @command{jar}, or InfoZIP (@command{zip} and @command{unzip})
 
 Necessary to build libgcj, the GCJ runtime.
-
-@item MPC Library version 0.7.0 (or later)
-
-Optional when building GCC@.  Having this library will enable
-additional optimizations on complex numbers.  It can be downloaded
-from @uref{http://www.multiprecision.org/mpc/}.  The
-@option{--with-mpc} configure option should be used if your MPC
-Library is not installed in your default library search path.  See
-also @option{--with-mpc-lib} and @option{--with-mpc-include}.
-Alternatively, if an MPC source distribution is found in a
-subdirectory of your GCC sources named @file{mpc}, it will be built
-together with GCC@.
 
 @item libelf version 0.8.12 (or later)
 
@@ -1118,7 +1116,8 @@ RTEMS thread support.
 @item single
 Disable thread support, should work for all platforms.
 @item solaris
-Sun Solaris 2 thread support.
+Sun Solaris 2/Unix International thread support.  Only use this if you
+really need to use this legacy API instead of the default, @samp{posix}.
 @item vxworks
 VxWorks thread support.
 @item win32
@@ -1433,7 +1432,7 @@ increase the risk of undetected internal errors causing wrong code to be
 generated.
 
 @item --disable-stage1-checking
-@item --enable-stage1-checking
+@itemx --enable-stage1-checking
 @itemx --enable-stage1-checking=@var{list}
 If no @option{--enable-checking} option is specified the stage1
 compiler will be built with @samp{yes} checking enabled, otherwise
@@ -2888,6 +2887,10 @@ information are.
 @item
 @uref{#iq2000-x-elf,,iq2000-*-elf}
 @item
+@uref{#lm32-x-elf,,lm32-*-elf}
+@item
+@uref{#lm32-x-uclinux,,lm32-*-uclinux}
+@item
 @uref{#m32c-x-elf,,m32c-*-elf}
 @item
 @uref{#m32r-x-elf,,m32r-*-elf}
@@ -3662,6 +3665,20 @@ switch and using the configure option @option{--with-cpu-@var{cpu_type}}.
 @heading @anchor{iq2000-x-elf}iq2000-*-elf
 Vitesse IQ2000 processors.  These are used in embedded
 applications.  There are no standard Unix configurations.
+
+@html
+<hr />
+@end html
+@heading @anchor{lm32-x-elf}lm32-*-elf
+Lattice Mico32 processor.
+This configuration is intended for embedded systems.
+
+@html
+<hr />
+@end html
+@heading @anchor{lm32-x-uclinux}lm32-*-uclinux
+Lattice Mico32 processor.
+This configuration is intended for embedded systems running uClinux.
 
 @html
 <hr />

@@ -203,21 +203,6 @@ lookup_stmt_eh_lp (gimple t)
   return lookup_stmt_eh_lp_fn (cfun, t);
 }
 
-/* Likewise, but reference a tree expression instead.  */
-
-int
-lookup_expr_eh_lp (tree t)
-{
-  if (cfun && cfun->eh->throw_stmt_table && t && EXPR_P (t))
-    {
-      tree_ann_common_t ann = tree_common_ann (t);
-      if (ann)
-	return ann->lp_nr;
-    }
-  return 0;
-}
-
-
 /* First pass of EH node decomposition.  Build up a tree of GIMPLE_TRY_FINALLY
    nodes and LABEL_DECL nodes.  We will use this during the second phase to
    determine if a goto leaves the body of a TRY_FINALLY_EXPR node.  */
@@ -334,7 +319,7 @@ outside_finally_tree (treemple start, gimple target)
    The eh region creation is straight-forward, but frobbing all the gotos
    and such into shape isn't.  */
 
-/* The sequence into which we record all EH stuff.  This will be 
+/* The sequence into which we record all EH stuff.  This will be
    placed at the end of the function when we're all done.  */
 static gimple_seq eh_seq;
 
@@ -1681,6 +1666,8 @@ lower_catch (struct leh_state *state, gimple tp)
 	  x = gimple_build_goto (out_label);
 	  gimple_seq_add_stmt (&new_seq, x);
 	}
+      if (!c->type_list)
+	break;
     }
 
   gimple_try_set_cleanup (tp, new_seq);
@@ -1883,9 +1870,12 @@ lower_eh_constructs_2 (struct leh_state *state, gimple_stmt_iterator *gsi)
     case GIMPLE_ASSIGN:
       /* If the stmt can throw use a new temporary for the assignment
          to a LHS.  This makes sure the old value of the LHS is
-	 available on the EH edge.  */
+	 available on the EH edge.  Only do so for statements that
+	 potentially fall thru (no noreturn calls e.g.), otherwise
+	 this new assignment might create fake fallthru regions.  */
       if (stmt_could_throw_p (stmt)
 	  && gimple_has_lhs (stmt)
+	  && gimple_stmt_may_fallthru (stmt)
 	  && !tree_could_throw_p (gimple_get_lhs (stmt))
 	  && is_gimple_reg_type (TREE_TYPE (gimple_get_lhs (stmt))))
 	{
@@ -2140,7 +2130,7 @@ redirect_eh_edge_1 (edge edge_in, basic_block new_bb, bool change_region)
     {
       new_lp = get_eh_landing_pad_from_number (new_lp_nr);
       gcc_assert (new_lp);
-      
+
       /* Unless CHANGE_REGION is true, the new and old landing pad
 	 had better be associated with the same EH region.  */
       gcc_assert (change_region || new_lp->region == old_lp->region);
@@ -3300,7 +3290,7 @@ remove_unreachable_handlers (void)
 	  fprintf (dump_file, "Removing unreachable landing pad %d\n", lp_nr);
 	remove_eh_landing_pad (lp);
       }
-    
+
   if (dump_file)
     {
       fprintf (dump_file, "\n\nAfter removal of unreachable regions:\n");
@@ -3610,7 +3600,7 @@ cleanup_empty_eh_move_lp (basic_block bb, edge e_out,
 }
 
 /* A subroutine of cleanup_empty_eh.  Handle more complex cases of
-   unsplitting than unsplit_eh was prepared to handle, e.g. when 
+   unsplitting than unsplit_eh was prepared to handle, e.g. when
    multiple incoming edges and phis are involved.  */
 
 static bool

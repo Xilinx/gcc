@@ -37,7 +37,6 @@ along with this program; see the file COPYING3.  If not see
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
-#include <ar.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -70,11 +69,10 @@ struct plugin_file_info
   char *name;
   void *handle;
   struct plugin_symtab symtab;
-  unsigned char temp;
 };
 
 
-static char *temp_obj_dir_name;
+static char *arguments_file_name;
 static ld_plugin_register_claim_file register_claim_file;
 static ld_plugin_add_symbols add_symbols;
 static ld_plugin_register_all_symbols_read register_all_symbols_read;
@@ -293,8 +291,9 @@ free_2 (void)
   claimed_files = NULL;
   num_claimed_files = 0;
 
-  free (temp_obj_dir_name);
-  temp_obj_dir_name = NULL;
+  if (arguments_file_name)
+    free (arguments_file_name);
+  arguments_file_name = NULL;
 
   if (resolution_file)
     {
@@ -310,9 +309,6 @@ write_resolution (void)
 {
   unsigned int i;
   FILE *f;
-
-  if (!resolution_file)
-    return;
 
   f = fopen (resolution_file, "w");
   check (f, LDPL_FATAL, "could not open file");
@@ -335,7 +331,7 @@ write_resolution (void)
 	{
 	  uint32_t slot = symtab->slots[j];
 	  unsigned int resolution = syms[j].resolution;
-	  fprintf (f, "%d %s\n", slot, lto_resolution_str[resolution]);
+	  fprintf (f, "%d %s %s\n", slot, lto_resolution_str[resolution], syms[j].name);
 	}
     }
   fclose (f);
@@ -376,7 +372,6 @@ exec_lto_wrapper (char *argv[])
   int t;
   int status;
   char *at_args;
-  char *args_name;
   FILE *args;
   FILE *wrapper_output;
   char *new_argv[3];
@@ -384,17 +379,20 @@ exec_lto_wrapper (char *argv[])
   const char *errmsg;
 
   /* Write argv to a file to avoid a command line that is too long. */
-  t = asprintf (&at_args, "@%s/arguments", temp_obj_dir_name);
-  check (t >= 0, LDPL_FATAL, "asprintf failed");
+  arguments_file_name = make_temp_file ("");
+  check (arguments_file_name, LDPL_FATAL,
+         "Failed to generate a temorary file name");
 
-  args_name = at_args + 1;
-  args = fopen (args_name, "w");
+  args = fopen (arguments_file_name, "w");
   check (args, LDPL_FATAL, "could not open arguments file");
 
   t = writeargv (&argv[1], args);
   check (t == 0, LDPL_FATAL, "could not write arguments");
   t = fclose (args);
   check (t == 0, LDPL_FATAL, "could not close arguments file");
+
+  at_args = concat ("@", arguments_file_name, NULL);
+  check (at_args, LDPL_FATAL, "could not allocate");
 
   new_argv[0] = argv[0];
   new_argv[1] = at_args;
@@ -428,8 +426,6 @@ exec_lto_wrapper (char *argv[])
 
   pex_free (pex);
 
-  t = unlink (args_name);
-  check (t == 0, LDPL_FATAL, "could not unlink arguments file");
   free (at_args);
 }
 
@@ -453,7 +449,7 @@ static enum ld_plugin_status
 all_symbols_read_handler (void)
 {
   unsigned i;
-  unsigned num_lto_args = num_claimed_files + lto_wrapper_num_args + 1;
+  unsigned num_lto_args = num_claimed_files + lto_wrapper_num_args + 2 + 1;
   char **lto_argv;
   const char **lto_arg_ptr;
   if (num_claimed_files == 0)
@@ -469,12 +465,17 @@ all_symbols_read_handler (void)
   lto_arg_ptr = (const char **) lto_argv;
   assert (lto_wrapper_argv);
 
+  resolution_file = make_temp_file ("");
+
   write_resolution ();
 
   free_1 ();
 
   for (i = 0; i < lto_wrapper_num_args; i++)
     *lto_arg_ptr++ = lto_wrapper_argv[i];
+
+  *lto_arg_ptr++ = "-fresolution";
+  *lto_arg_ptr++ = resolution_file;
 
   for (i = 0; i < num_claimed_files; i++)
     {
@@ -512,36 +513,22 @@ all_symbols_read_handler (void)
 static enum ld_plugin_status
 cleanup_handler (void)
 {
-  /* Note: we cannot use LDPL_FATAL in here as that would produce
-     an infinite loop. */
   int t;
-  unsigned i;
-  char *arguments;
-  struct stat buf;
 
-  for (i = 0; i < num_claimed_files; i++)
+  if (debug)
+    return LDPS_OK;
+
+  if (arguments_file_name)
     {
-      struct plugin_file_info *info = &claimed_files[i];
-      if (info->temp)
-	{
-	  t = unlink (info->name);
-	  check (t == 0, LDPL_ERROR, "could not unlink temporary file");
-	}
+      t = unlink (arguments_file_name);
+      check (t == 0, LDPL_FATAL, "could not unlink arguments file");
     }
 
-  /* If we are being called from an error handler, it is possible
-     that the arguments file is still exists. */
-  t = asprintf (&arguments, "%s/arguments", temp_obj_dir_name);
-  check (t >= 0, LDPL_ERROR, "asprintf failed");
-  if (stat(arguments, &buf) == 0)
+  if (resolution_file)
     {
-      t = unlink (arguments);
-      check (t == 0, LDPL_ERROR, "could not unlink arguments file");
+      t = unlink (resolution_file);
+      check (t == 0, LDPL_FATAL, "could not unlink resolution file");
     }
-  free (arguments);
-
-  t = rmdir (temp_obj_dir_name);
-  check (t == 0, LDPL_ERROR, "could not remove temporary directory");
 
   free_2 ();
   return LDPS_OK;
@@ -557,49 +544,39 @@ claim_file_handler (const struct ld_plugin_input_file *file, int *claimed)
   Elf *elf;
   struct plugin_file_info lto_file;
   Elf_Data *symtab;
-  int lto_file_fd;
 
   if (file->offset != 0)
     {
-      /* FIXME lto: lto1 should know how to handle archives. */
-      int fd;
-      off_t size = file->filesize;
-      off_t offset;
-
-      static int objnum = 0;
       char *objname;
-      int t = asprintf (&objname, "%s/obj%d.o",
-			temp_obj_dir_name, objnum);
+      Elf *archive;
+      off_t offset;
+      /* We pass the offset of the actual file, not the archive header. */
+      int t = asprintf (&objname, "%s@0x%" PRIx64, file->name,
+                        (int64_t) file->offset);
       check (t >= 0, LDPL_FATAL, "asprintf failed");
-      objnum++;
-
-      fd = open (objname, O_RDWR | O_CREAT, 0666);
-      check (fd > 0, LDPL_FATAL, "could not open/create temporary file");
-      offset = lseek (file->fd, file->offset, SEEK_SET);
-      check (offset == file->offset, LDPL_FATAL, "could not seek");
-      while (size > 0)
-	{
-	  ssize_t r, written;
-	  char buf[1000];
-	  off_t s = sizeof (buf) < size ? sizeof (buf) : size;
-	  r = read (file->fd, buf, s);
-	  written = write (fd, buf, r);
-	  check (written == r, LDPL_FATAL, "could not write to temporary file");
-	  size -= r;
-	}
       lto_file.name = objname;
-      lto_file_fd = fd;
-      lto_file.handle = file->handle;
-      lto_file.temp = 1;
+
+      archive = elf_begin (file->fd, ELF_C_READ, NULL);
+      check (elf_kind (archive) == ELF_K_AR, LDPL_FATAL,
+             "Not an archive and offset not 0");
+
+      /* elf_rand expects the offset to point to the ar header, not the
+         object itself. Subtract the size of the ar header (60 bytes).
+         We don't uses sizeof (struct ar_hd) to avoid including ar.h */
+
+      offset = file->offset - 60;
+      check (offset == elf_rand (archive, offset), LDPL_FATAL,
+             "could not seek in archive");
+      elf = elf_begin (file->fd, ELF_C_READ, archive);
+      check (elf != NULL, LDPL_FATAL, "could not find archive member");
+      elf_end (archive);
     }
   else
     {
       lto_file.name = strdup (file->name);
-      lto_file_fd = file->fd;
-      lto_file.handle = file->handle;
-      lto_file.temp = 0;
+      elf = elf_begin (file->fd, ELF_C_READ, NULL);
     }
-  elf = elf_begin (lto_file_fd, ELF_C_READ, NULL);
+  lto_file.handle = file->handle;
 
   *claimed = 0;
 
@@ -626,11 +603,6 @@ claim_file_handler (const struct ld_plugin_input_file *file, int *claimed)
   goto cleanup;
 
  err:
-  if (file->offset != 0)
-    {
-      int t = unlink (lto_file.name);
-      check (t == 0, LDPL_FATAL, "could not unlink file");
-    }
   free (lto_file.name);
 
  cleanup:
@@ -649,10 +621,6 @@ process_option (const char *option)
     debug = 1;
   else if (strcmp (option, "-nop") == 0)
     nop = 1;
-  else if (!strncmp (option, "-resolution=", strlen("-resolution=")))
-    {
-      resolution_file = strdup (option + strlen("-resolution="));
-    }
   else if (!strncmp (option, "-pass-through=", strlen("-pass-through=")))
     {
       num_pass_through_items++;
@@ -678,7 +646,6 @@ onload (struct ld_plugin_tv *tv)
 {
   struct ld_plugin_tv *p;
   enum ld_plugin_status status;
-  char *t;
 
   unsigned version = elf_version (EV_CURRENT);
   check (version != EV_NONE, LDPL_FATAL, "invalid ELF version");
@@ -742,8 +709,5 @@ onload (struct ld_plugin_tv *tv)
 	     "could not register the all_symbols_read callback");
     }
 
-  temp_obj_dir_name = strdup ("tmp_objectsXXXXXX");
-  t = mkdtemp (temp_obj_dir_name);
-  assert (t == temp_obj_dir_name);
   return LDPS_OK;
 }

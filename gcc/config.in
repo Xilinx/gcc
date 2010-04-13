@@ -1477,12 +1477,6 @@
 #endif
 
 
-/* Define if mpc is in use. */
-#ifndef USED_FOR_TARGET
-#undef HAVE_mpc
-#endif
-
-
 /* Define as const if the declaration of iconv() needs const. */
 #ifndef USED_FOR_TARGET
 #undef ICONV_CONST
@@ -1547,6 +1541,12 @@
 /* Define to the version of this package. */
 #ifndef USED_FOR_TARGET
 #undef PACKAGE_VERSION
+#endif
+
+
+/* Specify plugin linker */
+#ifndef USED_FOR_TARGET
+#undef PLUGIN_LD
 #endif
 
 
@@ -1625,6 +1625,13 @@
 /* Define if your assembler mis-optimizes .eh_frame data. */
 #ifndef USED_FOR_TARGET
 #undef USE_AS_TRADITIONAL_FORMAT
+#endif
+
+
+/* Define if you want to generate code by default that assumes that the Cygwin
+   DLL exports wrappers to support libstdc++ function replacement. */
+#ifndef USED_FOR_TARGET
+#undef USE_CYGWIN_LIBSTDCXX_WRAPPERS
 #endif
 
 

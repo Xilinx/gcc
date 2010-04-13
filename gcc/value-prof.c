@@ -695,7 +695,7 @@ gimple_divmod_fixed_value (gimple stmt, tree value, int prob, gcov_type count,
   e13->count = all - count;
 
   remove_edge (e23);
-  
+
   e24 = make_edge (bb2, bb4, EDGE_FALLTHRU);
   e24->probability = REG_BR_PROB_BASE;
   e24->count = count;
@@ -727,7 +727,7 @@ gimple_divmod_fixed_value_transform (gimple_stmt_iterator *si)
     return false;
 
   code = gimple_assign_rhs_code (stmt);
-  
+
   if (code != TRUNC_DIV_EXPR && code != TRUNC_MOD_EXPR)
     return false;
 
@@ -781,7 +781,7 @@ gimple_divmod_fixed_value_transform (gimple_stmt_iterator *si)
 
 /* Generate code for transformation 2 (with parent gimple assign STMT and
    probability of taking the optimal path PROB, which is equivalent to COUNT/ALL
-   within roundoff error).  This generates the result into a temp and returns 
+   within roundoff error).  This generates the result into a temp and returns
    the temp; it does not replace or alter the original STMT.  */
 static tree
 gimple_mod_pow2 (gimple stmt, int prob, gcov_type count, gcov_type all)
@@ -850,7 +850,7 @@ gimple_mod_pow2 (gimple stmt, int prob, gcov_type count, gcov_type all)
   e13->count = all - count;
 
   remove_edge (e23);
-  
+
   e24 = make_edge (bb2, bb4, EDGE_FALLTHRU);
   e24->probability = REG_BR_PROB_BASE;
   e24->count = count;
@@ -881,7 +881,7 @@ gimple_mod_pow2_value_transform (gimple_stmt_iterator *si)
     return false;
 
   code = gimple_assign_rhs_code (stmt);
-  
+
   if (code != TRUNC_MOD_EXPR || !TYPE_UNSIGNED (lhs_type))
     return false;
 
@@ -929,8 +929,8 @@ gimple_mod_pow2_value_transform (gimple_stmt_iterator *si)
    NCOUNTS the number of cases to support.  Currently only NCOUNTS==0 or 1 is
    supported and this is built into this interface.  The probabilities of taking
    the optimal paths are PROB1 and PROB2, which are equivalent to COUNT1/ALL and
-   COUNT2/ALL respectively within roundoff error).  This generates the 
-   result into a temp and returns the temp; it does not replace or alter 
+   COUNT2/ALL respectively within roundoff error).  This generates the
+   result into a temp and returns the temp; it does not replace or alter
    the original STMT.  */
 /* FIXME: Generalize the interface to handle NCOUNTS > 1.  */
 
@@ -989,7 +989,7 @@ gimple_mod_subtract (gimple stmt, int prob1, int prob2, int ncounts,
   e12 = split_block (bb, bb1end);
   bb2 = e12->dest;
   bb2->count = all - count1;
-    
+
   if (ncounts)	/* Assumed to be 0 or 1.  */
     {
       e23 = split_block (bb2, bb2end);
@@ -1037,7 +1037,7 @@ gimple_mod_subtract_transform (gimple_stmt_iterator *si)
   histogram_value histogram;
   enum tree_code code;
   gcov_type count, wrong_values, all;
-  tree lhs_type, result, value;
+  tree lhs_type, result;
   gcov_type prob1, prob2;
   unsigned int i, steps;
   gcov_type count1, count2;
@@ -1052,7 +1052,7 @@ gimple_mod_subtract_transform (gimple_stmt_iterator *si)
     return false;
 
   code = gimple_assign_rhs_code (stmt);
-  
+
   if (code != TRUNC_MOD_EXPR || !TYPE_UNSIGNED (lhs_type))
     return false;
 
@@ -1060,7 +1060,6 @@ gimple_mod_subtract_transform (gimple_stmt_iterator *si)
   if (!histogram)
     return false;
 
-  value = histogram->hvalue.value;
   all = 0;
   wrong_values = 0;
   for (i = 0; i < histogram->hdata.intvl.steps; i++)
@@ -1129,7 +1128,7 @@ static struct cgraph_node** pid_map = NULL;
 
 /* Initialize map of pids (pid -> cgraph node) */
 
-static void 
+static void
 init_pid_map (void)
 {
   struct cgraph_node *n;
@@ -1296,7 +1295,7 @@ check_ic_target (tree call_expr, struct cgraph_node *target)
  */
 
 static gimple
-gimple_ic (gimple icall_stmt, struct cgraph_node *direct_call, 
+gimple_ic (gimple icall_stmt, struct cgraph_node *direct_call,
 	   int prob, gcov_type count, gcov_type all)
 {
   gimple dcall_stmt, load_stmt, cond_stmt;
@@ -1316,7 +1315,7 @@ gimple_ic (gimple icall_stmt, struct cgraph_node *direct_call,
   load_stmt = gimple_build_assign (tmpv, tmp);
   gsi_insert_before (&gsi, load_stmt, GSI_SAME_STMT);
 
-  tmp = fold_convert (optype, build_addr (direct_call->decl, 
+  tmp = fold_convert (optype, build_addr (direct_call->decl,
 					  current_function_decl));
   load_stmt = gimple_build_assign (tmp1, tmp);
   gsi_insert_before (&gsi, load_stmt, GSI_SAME_STMT);
@@ -1351,7 +1350,7 @@ gimple_ic (gimple icall_stmt, struct cgraph_node *direct_call,
   e_ci->count = all - count;
 
   remove_edge (e_di);
-  
+
   e_dj = make_edge (dcall_bb, join_bb, EDGE_FALLTHRU);
   e_dj->probability = REG_BR_PROB_BASE;
   e_dj->count = count;
@@ -1402,7 +1401,7 @@ gimple_ic_transform_single_targ (gimple stmt, histogram_value histogram)
     return false;
 
   bb_all = gimple_bb (stmt)->count;
-  /* The order of CHECK_COUNTER calls is important - 
+  /* The order of CHECK_COUNTER calls is important -
      since check_counter can correct the third parameter
      and we want to make count <= all <= bb_all. */
   if ( check_counter (stmt, "ic", &all, &bb_all, bb_all)
@@ -1653,7 +1652,7 @@ interesting_stringop_to_profile_p (tree fndecl, gimple call, int *size_arg)
 }
 
 /* Convert   stringop (..., vcall_size)
-   into 
+   into
    if (vcall_size == icall_size)
      stringop (..., icall_size);
    else
@@ -1720,7 +1719,7 @@ gimple_stringop_fixed_value (gimple vcall_stmt, tree icall_size, int prob,
   e_cv->count = all - count;
 
   remove_edge (e_iv);
-  
+
   e_ij = make_edge (icall_bb, join_bb, EDGE_FALLTHRU);
   e_ij->probability = REG_BR_PROB_BASE;
   e_ij->count = count;
@@ -1744,7 +1743,6 @@ gimple_stringops_transform (gimple_stmt_iterator *gsi)
   enum built_in_function fcode;
   histogram_value histogram;
   gcov_type count, all, val;
-  tree value;
   tree dest, src;
   unsigned int dest_align, src_align;
   gcov_type prob;
@@ -1767,7 +1765,6 @@ gimple_stringops_transform (gimple_stmt_iterator *gsi)
   histogram = gimple_histogram_value_of_type (cfun, stmt, HIST_TYPE_SINGLE_VALUE);
   if (!histogram)
     return false;
-  value = histogram->hvalue.value;
   val = histogram->hvalue.counters[0];
   count = histogram->hvalue.counters[1];
   all = histogram->hvalue.counters[2];
@@ -1819,7 +1816,7 @@ gimple_stringops_transform (gimple_stmt_iterator *gsi)
       print_gimple_stmt (dump_file, stmt, 0, TDF_SLIM);
     }
   gimple_stringop_fixed_value (stmt, tree_val, prob, count, all);
-  
+
   return true;
 }
 
@@ -1878,7 +1875,7 @@ struct value_prof_hooks {
 
   /* Identify and exploit properties of values that are hard to analyze
      statically.  See value-prof.c for more detail.  */
-  bool (*value_profile_transformations) (void);  
+  bool (*value_profile_transformations) (void);
 };
 
 /* Find values inside STMT for that we want to measure histograms for
@@ -1939,8 +1936,8 @@ gimple_divmod_values_to_profile (gimple stmt, histogram_values *values)
     }
 }
 
-/* Find calls inside STMT for that we want to measure histograms for 
-   indirect/virtual call optimization. */ 
+/* Find calls inside STMT for that we want to measure histograms for
+   indirect/virtual call optimization. */
 
 static void
 gimple_indirect_call_to_profile (gimple stmt, histogram_values *values)
@@ -1956,11 +1953,11 @@ gimple_indirect_call_to_profile (gimple stmt, histogram_values *values)
   VEC_reserve (histogram_value, heap, *values, 3);
 
   if (flag_dyn_ipa)
-    VEC_quick_push (histogram_value, *values, 
+    VEC_quick_push (histogram_value, *values,
 		    gimple_alloc_histogram_value (cfun, HIST_TYPE_INDIR_CALL_TOPN,
 						  stmt, callee));
   else
-    VEC_quick_push (histogram_value, *values, 
+    VEC_quick_push (histogram_value, *values,
 		    gimple_alloc_histogram_value (cfun, HIST_TYPE_INDIR_CALL,
 						  stmt, callee));
 
@@ -1975,7 +1972,6 @@ gimple_stringops_values_to_profile (gimple stmt, histogram_values *values)
   tree fndecl;
   tree blck_size;
   tree dest;
-  enum built_in_function fcode;
   int size_arg;
 
   if (gimple_code (stmt) != GIMPLE_CALL)
@@ -1983,7 +1979,6 @@ gimple_stringops_values_to_profile (gimple stmt, histogram_values *values)
   fndecl = gimple_call_fndecl (stmt);
   if (!fndecl)
     return;
-  fcode = DECL_FUNCTION_CODE (fndecl);
 
   if (!interesting_stringop_to_profile_p (fndecl, stmt, &size_arg))
     return;
@@ -2032,7 +2027,7 @@ gimple_find_values_to_profile (histogram_values *values)
   FOR_EACH_BB (bb)
     for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
       gimple_values_to_profile (gsi_stmt (gsi), values);
-  
+
   for (i = 0; VEC_iterate (histogram_value, *values, i, hist); i++)
     {
       switch (hist->type)
