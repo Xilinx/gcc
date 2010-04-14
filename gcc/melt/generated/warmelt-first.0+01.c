@@ -4904,7 +4904,7 @@ lab_endgetargs:;
        MELT_LOCATION("warmelt-first.melt:2947:/ locexp");
        
 	       warning (0, 
-			"MELT INSTALL_METHOD WARNING [#%ld] non-function in %s for %s",
+			"MELT INSTALL_METHOD WARNING [#%ld] non-function in %s for selector %s",
 			melt_dbgcounter,
 			melt_string_str((melt_ptr_t) /*_.CLANAM__V7*/ meltfptr[5]),
 			melt_string_str((melt_ptr_t) /*_.SELNAM__V8*/ meltfptr[4])) ;
@@ -4960,7 +4960,7 @@ lab_endgetargs:;
      MELT_LOCATION("warmelt-first.melt:2961:/ locexp");
      
 	   warning (0, 
-		    "MELT INSTALL_METHOD WARNING [#%ld] non-function in %s for %s",
+		    "MELT INSTALL_METHOD WARNING [#%ld] install with non-selector in %s",
 		    melt_dbgcounter,
 		    melt_string_str((melt_ptr_t) /*_.CLANAM__V9*/ meltfptr[5])) ;
 	   ;}

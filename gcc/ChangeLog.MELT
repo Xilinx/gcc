@@ -1,3 +1,53 @@
+2010-04-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/melt.texi: (Invoking MELT) updated section for -fmelt-init.
+	* Makefile.in:
+	(MELT_RAW_CFLAGS) Added @CFLAGS@.
+	(MELT_FINAL_CFLAGS) Added new variable, with default
+	initialization to -O.
+	(warmelt3) removed, and replaced by
+	(warmelt). Likewise, replace WARMELT_BASE3* with WARMELT_BASE* to
+	have installed generated files as warmelt-first.{c,so}.
+	(install-melt-cfiles) ditto. Likewise removed 3
+	(upgrade-warmelt) uses WAMELT_BASESO... so removed 3 everywhere.
+
+	* melt-runtime.c (melt_nb_modules): added variable.
+	(compile_module_to_binary) renamed
+	as (compile_gencsrc_to_binmodule).
+	(meltgc_load_melt_module): retrieve the temporary directory thru
+	melt_tempdir_path.
+	(meltgc_generate_melt_module): likewise. Also added information
+	messages.
+	(load_melt_modules_and_do_mode): handle @@ as the default module list.
+
+	* melt-make.mk: removed warmelt*3 and uses the plain warmelt* name
+	everywhere. Use MELT_FINAL_CFLAGS to compile generated C code.
+
+	* melt/warmelt-normatch.melt: added blocklist in
+	altmatch_normalize, which is still incomplete.
+	* melt/warmelt-outobj.melt: Added translatetomodule mode.
+	{{regenerated all}}
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
+
 2010-04-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* common.opt (fmelt-arg): updated description.
 	* doc/melt.texi (Invoking MELT): updated documentation.

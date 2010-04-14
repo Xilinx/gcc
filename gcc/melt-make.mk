@@ -103,24 +103,24 @@ warmeltbig-%.so: warmeltbig-%.c $(melt_make_module_makefile)
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 warm%.so: warm%.c  $(melt_make_module_makefile)
 	$(MELT_MAKE_MODULE) meltmodule \
-	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_CFLAGS="$(melt_cflags) $(MELT_FINAL_CFLAGS)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
 ###
 
 xtra%.n.so: xtra%.c $(melt_make_module_makefile)
 	$(MELT_MAKE_MODULE) meltmodulerawwithoutline \
-	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_CFLAGS="$(melt_cflags) $(MELT_FINAL_CFLAGS)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
 xtra%.d.so: xtra%.c $(melt_make_module_makefile)
 	$(MELT_MAKE_MODULE) meltmodulerawdynamic \
-	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_CFLAGS="$(melt_cflags) $(MELT_FINAL_CFLAGS)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
 xtra%.so: xtra%.c $(melt_make_module_makefile)
 	$(MELT_MAKE_MODULE) meltmodule \
-	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_CFLAGS="$(melt_cflags) $(MELT_FINAL_CFLAGS)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
 ## the warmelt files - order is important!
@@ -175,20 +175,20 @@ WARMELT_BASE2SO= $(patsubst %, %.2.so, $(WARMELT_BASE))
 WARMELT_BASE2NSO= $(patsubst %, %.2.n.so, $(WARMELT_BASE))
 WARMELT_BASE2C= $(patsubst %, %.2.c, $(WARMELT_BASE))
 WARMELT_BASE2ROW:=$(shell echo $(WARMELT_BASE2)|sed 's/ /:/g')
-##
-WARMELT_BASE3= $(patsubst %, %.3, $(WARMELT_BASE))
-WARMELT_BASE3SO= $(patsubst %, %.3.so, $(WARMELT_BASE))
-WARMELT_BASE3C= $(patsubst %, %.3.c, $(WARMELT_BASE))
-WARMELT_BASE3ROW:=$(shell echo $(WARMELT_BASE3)|sed 's/ /:/g')
+
+WARMELT_BASESO= $(patsubst %, %.so, $(WARMELT_BASE))
+WARMELT_BASENSO= $(patsubst %, %.n.so, $(WARMELT_BASE))
+WARMELT_BASEC= $(patsubst %, %.c, $(WARMELT_BASE))
+WARMELT_BASEROW:=$(shell echo $(WARMELT_BASE)|sed 's/ /:/g')
 
 ## force a dependency
 $(WARMELT_BASE0SO): empty-file-for-melt.c run-melt.h melt-runtime.h
 
-.PHONY: warmelt1 warmelt2 warmelt3
+.PHONY: warmelt1 warmelt2 warmelt
 
 warmelt1: warmelt1.modlis $(WARMELT_BASE1SO)
 warmelt2: warmelt2.modlis $(WARMELT_BASE2SO)
-warmelt3: warmelt3.modlis $(WARMELT_BASE3SO)
+warmelt: warmelt.modlis $(WARMELT_BASESO)
 
 ################
 ## the extra MELT files. They are not needed to bootstrap the MELT
@@ -207,7 +207,7 @@ XTRAMELT_BASEC= $(patsubst %, %.c, $(XTRAMELT_BASE))
 XTRAMELT_BASEROW:=$(shell echo $(XTRAMELT_BASE)|sed 's/ /:/g')
 
 ## keep the generated warm*.c files!
-.SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASE3C) $(XTRAMELT_BASEC) $(WARMELT_BASEHC) $(WARMELT_BASEH2C)
+.SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASEC) $(XTRAMELT_BASEC) $(WARMELT_BASEHC) $(WARMELT_BASEH2C)
 
 warmelt0.modlis: $(WARMELT_BASE0SO)
 	date +"#$@ generated %F" > $@-tmp
@@ -468,12 +468,12 @@ warmelt2b: $(patsubst %,%b.so, $(WARMELT_BASE2))
 ###
 warmelt-normal.2.c: warmelt-predef.melt
 warmelt-normal.2b.c: warmelt-predef.melt
-warmelt-normal.3.c: warmelt-predef.melt
+warmelt-normal.c: warmelt-predef.melt
 
 ## apparently, these dependencies are explicitly needed... because
 ## melt.encap target is making explicitly these
 warmelt-normatch.2.so: warmelt-normatch.2.c
-warmelt-outobj.3.so: warmelt-outobj.3.c 
+warmelt-outobj.so: warmelt-outobj.c 
 
 warmelt2n.modlis: $(WARMELT_BASE2NSO)
 	date +"#$@ generated %c" > $@-tmp
@@ -481,19 +481,19 @@ warmelt2n.modlis: $(WARMELT_BASE2NSO)
 	$(melt_make_move) $@-tmp $@
 
 ####
-warmelt-%.3.c: $(melt_make_source_dir)/warmelt-%.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_make_gencdeps)  empty-file-for-melt.c
+warmelt-%.c: $(melt_make_source_dir)/warmelt-%.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_make_gencdeps)  empty-file-for-melt.c
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2" \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 	ls -l $@
-warmelt3.modlis: $(WARMELT_BASE2SO)
+warmelt.modlis: $(WARMELT_BASE2SO)
 	date +"#$@ generated %c" > $@-tmp
-	for f in  $(WARMELT_BASE3); do echo $$f >> $@-tmp; done
+	for f in  $(WARMELT_BASE); do echo $$f >> $@-tmp; done
 	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
 
-warmelt-first.3.c: $(melt_make_source_dir)/warmelt-first.melt warmelt2.modlis $(WARMELT_BASE2SO) $(melt_make_gencdeps)
+warmelt-first.c: $(melt_make_source_dir)/warmelt-first.melt warmelt2.modlis $(WARMELT_BASE2SO) $(melt_make_gencdeps)
 	-rm -f $@ 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt2" \
@@ -503,10 +503,10 @@ warmelt-first.3.c: $(melt_make_source_dir)/warmelt-first.melt warmelt2.modlis $(
 
 
 ####
-diff-warmelt.2.3: $(WARMELT_BASE3SO)
-	echo WARMELT_BASE3ROW= $(WARMELT_BASE3ROW)
+diff-warmelt.2.: $(WARMELT_BASESO)
+	echo WARMELT_BASE3ROW= $(WARMELT_BASEROW)
 	for f in $(WARMELT_BASE); do; \
-	  diff $$f.2.c $$f.3.c || true; \
+	  diff $$f.2.c $$f.c || true; \
 	done
 
 
@@ -537,9 +537,9 @@ xtramelt-parse-infix-syntax.c:  $(melt_make_source_dir)/xtramelt-parse-infix-syn
 
 ####
 #### the default list of modules
-$(melt_default_modules_list).modlis:  $(WARMELT_BASE3SO) $(XTRAMELT_BASESO)
+$(melt_default_modules_list).modlis:  $(WARMELT_BASESO) $(XTRAMELT_BASESO)
 	date +"#$@ generated %F" > $@-tmp
-	for f in  $(WARMELT_BASE3); do echo $$f >> $@-tmp; done
+	for f in  $(WARMELT_BASE); do echo $$f >> $@-tmp; done
 	for f in  $(XTRAMELT_BASE); do echo $$f >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
 

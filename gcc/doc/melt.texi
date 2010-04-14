@@ -335,10 +335,12 @@ alpha
 beta
 @end example
 would have the same effect as @code{-fmelt-init=alpha:beta:bar}.
-Notice that modules are seeked in several directories.  There is a
-default module list called @file{melt-default-modules.modlis} so the
-default value of this flag is
-@code{-fmelt-init=@@melt-default-modules}.
+Notice that modules are seeked in several directories. The notation
+@code{@@@@} is a shorthand for the default module list called
+@file{melt-default-modules.modlis} and is the default value of this
+flag. In practice, to use your own MELT module @code{foo} you should
+pass @code{-fmelt-init=@@@@:foo} because your module needs the default
+modules.
 
 @item -fmelt-single-c-file
 @gccoptlist{-fplugin-arg-melt-single-c-file=yes}

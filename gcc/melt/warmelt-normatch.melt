@@ -4427,6 +4427,7 @@ the data of the $STEP with an extra context $CTX.}#
 				       :nocc_symb mrsymb
 				       :nocc_bind mrbind
 				       ))
+	 (blocklist (make_list discr_list))
 	)
     (error_plain sloc "@@unimplemented altmatch_normalize")
     (assert_msg "@@unimplemented altmatch_normalize")
