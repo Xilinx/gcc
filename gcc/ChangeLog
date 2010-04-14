@@ -1,3 +1,96 @@
+2010-04-14  Bernd Schmidt  <bernd.schmidt@codesourcery.com>
+	
+	PR target/21803
+	* ifcvt.c (cond_exec_process_if_block): Look for identical sequences
+	at the start and end of the then/else blocks, and omit them from the
+	conversion.
+	* cfgcleanup.c (flow_find_cross_jump): No longer static.  Remove MODE
+	argument; all callers changed.  Pass zero to old_insns_match_p instead.
+	(flow_find_head_matching_sequence): New function.
+	(old_insns_match_p): Check REG_EH_REGION notes for calls.
+	* basic-block.h (flow_find_cross_jump,
+	flow_find_head_matching_sequence): Declare functions.
+
+2010-04-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36625
+	* c-common.c (attribute_takes_identifier_p): New fn.
+	* c-common.h: Declare it.
+
+2010-04-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*divmod<mode>4): Remove stray "&&" from
+	splitter condition.
+	(*udivmod<mode>4): Ditto.
+
+2010-04-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (maxmin_int): Rename code attribute from
+	maxminiprefix and update all users.
+	(maxmin_float): Ditto from maxminfprefix.
+	(logic): Ditto from logicprefix.
+	(absneg_mnemonic): Ditto from absnegprefix.
+	* config/i386/mmx.md: Update all users of maxminiprefix,
+	maxminfprefix and loficprefix for rename.
+	* config/i386/sse.md: Ditto.
+	* config/i386/sync.md (sync_<code><mode>): Update for
+	logicprefix rename.
+
+2010-04-14  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 42966
+	* diagnostics.c (diagnostic_report_diagnostic): Mark specially
+	warnings converted to errors.
+
+2010-04-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (alpha_adjust_cost): Remove set but not
+	used insn_type variable.
+	(function_value): Add ATTRIBUTE_UNUSED to dummy variable declaration
+	to avoid set-but-not-used warning.
+
+2010-04-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* df-core.c (df_ref_debug): Change format string placeholder
+	from 0x%x to %#x.
+	* dwarf2asm.c (dw2_asm_output_data_raw,
+	dw2_asm_output_data_uleb128_raw, dw2_asm_output_data_uleb128,
+	dw2_asm_output_data_sleb128_raw, dw2_asm_output_data_sleb128): Ditto.
+	* dwarf2out.c (output_cfi, output_cfi_directive,
+	dwarf2out_do_cfi_startproc, output_loc_sequence_raw,
+	output_cfa_loc_raw, output_die, output_ranges, output_file_names):
+	Ditto.
+	* genattrtab.c (write_test_expr, write_attr_valueq): Ditto.
+	* print-rtl.c (print_rtx): Ditto.
+
+2010-04-14  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR middle-end/42694
+	* builtins.c (expand_builtin_pow_root): New function to expand pow
+	calls with exponents 0.25, 0.50, 0.75, 1./3., and 1./6. into a
+	series of sqrt and cbrt calls under -ffast-math.
+	(expand_builtin_pow): Call it.
+
+2010-04-14  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/42963
+	* tree-cfg.c (touched_switch_bbs): New static variable.
+	(group_case_labels_stmt): New function broken out from ...
+	(group_case_labels): ... here, use the above.
+	(start_recording_case_labels): Allocate touched_switch_bbs.
+	(end_recording_case_labels): Deallocate it, call
+	group_case_labels_stmt.
+	(gimple_redirect_edge_and_branch): Remember index of affected BB.
+
+2010-04-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*popcountsi2_cmp_zext): Remove mode attribute
+	from insn template.
+
+2010-04-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*ashlqi3_1_slp): New insn pattern.
+
 2010-04-13  Jan Hubicka  <jh@suse.cz>
 
 	* ipa-inline.c (cgraph_mark_inline_edge): Avoid double accounting
@@ -53,11 +146,9 @@
 	* Makefile.in (c-pch.o, ggc-common.o): Depend on timevar.h.
 	* c-pch.c: Include timevar.h.
 	(c_common_write_pch): Use TV_PCH_SAVE and TV_PCH_CPP_SAVE timers.
-	(c_common_read_pch): Use TV_PCH_RESTORE and TV_PCH_CPP_RESTORE
-	timers.
+	(c_common_read_pch): Use TV_PCH_RESTORE and TV_PCH_CPP_RESTORE timers.
 	* ggc-common.c: Include timevar.h.
-	(gt_pch_save): Use TV_PCH_PTR_REALLOC and TV_PCH_PTR_SORT
-	timers.
+	(gt_pch_save): Use TV_PCH_PTR_REALLOC and TV_PCH_PTR_SORT timers.
 	* timevar.def (TV_PCH_SAVE): Define.
 	(TV_PCH_CPP_SAVE): Define.
 	(TV_PCH_PTR_REALLOC): Define.
@@ -141,11 +232,11 @@
 	* except.c (lang_eh_type_covers): Likewise.
 
 2010-04-13  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
-            Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
-	
+	    Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
 	* gcc/config/s390/s390.md: Replace TARGET_64BIT with TARGET_ZARCH.
 	* gcc/config/s390/s390.c: Replace UNTIS_PER_WORD with
-	UNITS_PER_LONG where it is ABI relevant.	
+	UNITS_PER_LONG where it is ABI relevant.
 	(s390_return_addr_rtx): Likewise.
 	(s390_back_chain_rtx): Likewise.
 	(s390_frame_area): Likewise.
@@ -176,7 +267,7 @@
 	(DWARF_CIE_DATA_ALIGNMENT): New macro.
 	(s390_expand_setmem): Remove unused variable src_addr.
 	* gcc/longlong.h: Make smul_ppmm and sdiv_qrnnd inline asms to
-	deal with 64 bit registers.	
+	deal with 64 bit registers.
 	* gcc/config/s390/s390.h: Define __zarch__ predefined macro.
 	Replace UNITS_PER_WORD with UNITS_PER_LONG where it is ABI relevant.
 	(UNITS_PER_LONG): New macro.

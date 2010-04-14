@@ -1,3 +1,60 @@
+2010-04-14  Bernd Schmidt  <bernd.schmidt@codesourcery.com>
+
+	PR target/21803
+	* gcc.target/arm/pr42496.c: New test.
+
+2010-04-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36625
+	* g++.dg/ext/attrib38.C: New.
+
+2010-04-14  Steve Ellcey  <sje@cup.hp.com>
+
+	PR testsuite/43739
+	* gcc.dg/pr43643.c: Use static link on hppa*-*-hpux*.
+
+2010-04-14  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 42966
+	* gcc.dg/cpp/warn-undef-2.c: Update.
+	* gcc.dg/cpp/warn-traditional-2.c: Update.
+	* gcc.dg/cpp/warn-comments-2.c: Update.
+	* gcc.dg/cpp/warn-variadic-2.c: Update.
+	* gcc.dg/cpp/warn-long-long-2.c: Update.
+	* gcc.dg/cpp/warn-deprecated-2.c: Update.
+	* gcc.dg/cpp/warn-multichar-2.c: Update.
+	* gcc.dg/cpp/warn-normalized-3.c: Update.
+	* gcc.dg/cpp/warn-cxx-compat-2.c: Update.
+	* gcc.dg/cpp/warn-trigraphs-3.c: Update.
+	* gcc.dg/cpp/warn-unused-macros-2.c: Update.
+	* gcc.dg/cpp/warn-trigraphs-4.c: Update.
+	* gcc.dg/cpp/warn-redefined-2.c: Update.
+	* gfortran.dg/warning-directive-2.F90: Update.
+	* c-c++-common/cpp/warning-directive-2.c: Update.
+
+2010-04-14  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/42963
+	* testsuite/gcc.dg/pr42963.c: New testcase.
+
+2010-04-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/class_wide.adb: Rename into...
+	* gnat.dg/class_wide1.adb: ...this.
+	* gnat.dg/class_wide2.ad[sb]: New test.
+
+2010-04-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_9.f90: Update dg-errors.
+	* gfortran.dg/coarray_10.f90: New test.
+	* gfortran.dg/coarray_11.f90: New test.
+
+2010-04-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/43747
+	gfortran.dg/initialization_24.f90: New test.
+
 2010-04-13  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/lambda/lambda-deduce2.C: Remove.
