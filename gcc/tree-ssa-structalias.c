@@ -1,5 +1,6 @@
 /* Tree based points-to analysis
-   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dberlin@dberlin.org>
 
    This file is part of GCC.
@@ -2950,7 +2951,8 @@ get_constraint_for_component_ref (tree t, VEC(ce_s, heap) **results,
   /* Some people like to do cute things like take the address of
      &0->a.b */
   forzero = t;
-  while (!SSA_VAR_P (forzero) && !CONSTANT_CLASS_P (forzero))
+  while (handled_component_p (forzero)
+	 || INDIRECT_REF_P (forzero))
     forzero = TREE_OPERAND (forzero, 0);
 
   if (CONSTANT_CLASS_P (forzero) && integer_zerop (forzero))
@@ -3482,7 +3484,7 @@ handle_rhs_call (gimple stmt, VEC(ce_s, heap) **results)
    the LHS point to global and escaped variables.  */
 
 static void
-handle_lhs_call (tree lhs, int flags, VEC(ce_s, heap) *rhsc)
+handle_lhs_call (tree lhs, int flags, VEC(ce_s, heap) *rhsc, tree fndecl)
 {
   VEC(ce_s, heap) *lhsc = NULL;
 
@@ -3496,6 +3498,12 @@ handle_lhs_call (tree lhs, int flags, VEC(ce_s, heap) *rhsc)
          it escapes.  */
       DECL_EXTERNAL (vi->decl) = 0;
       vi->is_global_var = 0;
+      /* If this is not a real malloc call assume the memory was
+         initialized and thus may point to global memory.  All
+	 builtin functions with the malloc attribute behave in a sane way.  */
+      if (!fndecl
+	  || DECL_BUILT_IN_CLASS (fndecl) != BUILT_IN_NORMAL)
+	make_constraint_from (vi, nonlocal_id);
     }
   else if (VEC_length (ce_s, rhsc) > 0)
     {
@@ -3836,7 +3844,7 @@ find_func_aliases (gimple t)
 	    handle_rhs_call (t, &rhsc);
 	  if (gimple_call_lhs (t)
 	      && could_have_pointers (gimple_call_lhs (t)))
-	    handle_lhs_call (gimple_call_lhs (t), flags, rhsc);
+	    handle_lhs_call (gimple_call_lhs (t), flags, rhsc, fndecl);
 	  VEC_free (ce_s, heap, rhsc);
 	}
       else
@@ -4642,7 +4650,8 @@ intra_create_variable_infos (void)
   tree t;
 
   /* For each incoming pointer argument arg, create the constraint ARG
-     = NONLOCAL or a dummy variable if flag_argument_noalias is set.  */
+     = NONLOCAL or a dummy variable if it is a restrict qualified
+     passed-by-reference argument.  */
   for (t = DECL_ARGUMENTS (current_function_decl); t; t = TREE_CHAIN (t))
     {
       varinfo_t p;
@@ -5509,6 +5518,7 @@ compute_points_to_sets (void)
   basic_block bb;
   unsigned i;
   varinfo_t vi;
+  struct pt_solution callused;
 
   timevar_push (TV_TREE_PTA);
 
@@ -5545,8 +5555,7 @@ compute_points_to_sets (void)
      call-clobber analysis.  */
   find_what_var_points_to (get_varinfo (escaped_id),
 			   &cfun->gimple_df->escaped);
-  find_what_var_points_to (get_varinfo (callused_id),
-			   &cfun->gimple_df->callused);
+  find_what_var_points_to (get_varinfo (callused_id), &callused);
 
   /* Make sure the ESCAPED solution (which is used as placeholder in
      other solutions) does not reference itself.  This simplifies
@@ -5568,6 +5577,48 @@ compute_points_to_sets (void)
       if (ptr
 	  && POINTER_TYPE_P (TREE_TYPE (ptr)))
 	find_what_p_points_to (ptr);
+    }
+
+  /* Compute the call-used/clobbered sets.  */
+  FOR_EACH_BB (bb)
+    {
+      gimple_stmt_iterator gsi;
+
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	{
+	  gimple stmt = gsi_stmt (gsi);
+	  struct pt_solution *pt;
+	  if (!is_gimple_call (stmt))
+	    continue;
+
+	  pt = gimple_call_use_set (stmt);
+	  if (gimple_call_flags (stmt) & ECF_CONST)
+	    memset (pt, 0, sizeof (struct pt_solution));
+	  else if (gimple_call_flags (stmt) & ECF_PURE)
+	    {
+	      /* For const calls we should now be able to compute the
+		 call-used set per function.  */
+	      *pt = callused;
+	      /* ???  ESCAPED can be empty even though NONLOCAL
+		 always escaped.  */
+	      pt->nonlocal = 1;
+	      pt->escaped = 1;
+	    }
+	  else
+	    {
+	      *pt = cfun->gimple_df->escaped;
+	      pt->nonlocal = 1;
+	    }
+
+	  pt = gimple_call_clobber_set (stmt);
+	  if (gimple_call_flags (stmt) & (ECF_CONST|ECF_PURE|ECF_NOVOPS))
+	    memset (pt, 0, sizeof (struct pt_solution));
+	  else
+	    {
+	      *pt = cfun->gimple_df->escaped;
+	      pt->nonlocal = 1;
+	    }
+	}
     }
 
   timevar_pop (TV_TREE_PTA);

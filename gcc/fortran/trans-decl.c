@@ -1,5 +1,5 @@
 /* Backend function setup
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Paul Brook
 
@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "gfortran.h"
 #include "pointer-set.h"
+#include "constructor.h"
 #include "trans.h"
 #include "trans-types.h"
 #include "trans-array.h"
@@ -85,6 +86,7 @@ tree gfor_fndecl_pause_numeric;
 tree gfor_fndecl_pause_string;
 tree gfor_fndecl_stop_numeric;
 tree gfor_fndecl_stop_string;
+tree gfor_fndecl_error_stop_string;
 tree gfor_fndecl_runtime_error;
 tree gfor_fndecl_runtime_error_at;
 tree gfor_fndecl_runtime_warning_at;
@@ -598,6 +600,7 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
 
   if (!sym->attr.target
       && !sym->attr.pointer
+      && !sym->attr.cray_pointee
       && !sym->attr.proc_pointer)
     DECL_RESTRICTED_P (decl) = 1;
 }
@@ -1257,9 +1260,15 @@ gfc_get_symbol_decl (gfc_symbol * sym)
   if (sym->attr.assign)
     gfc_add_assign_aux_vars (sym);
 
-  if (TREE_STATIC (decl) && !sym->attr.use_assoc)
+  if (TREE_STATIC (decl) && !sym->attr.use_assoc
+      && (sym->attr.save || sym->ns->proc_name->attr.is_main_program
+	  || gfc_option.flag_max_stack_var_size == 0
+	  || sym->attr.data || sym->ns->proc_name->attr.flavor == FL_MODULE))
     {
-      /* Add static initializer.  */
+      /* Add static initializer. For procedures, it is only needed if
+	 SAVE is specified otherwise they need to be reinitialized
+	 every time the procedure is entered. The TREE_STATIC is
+	 in this case due to -fmax-stack-var-size=.  */
       DECL_INITIAL (decl) = gfc_conv_initializer (sym->value, &sym->ts,
 	  TREE_TYPE (decl), sym->attr.dimension,
 	  sym->attr.pointer || sym->attr.allocatable);
@@ -2718,6 +2727,13 @@ gfc_build_builtin_function_decls (void)
   /* Stop doesn't return.  */
   TREE_THIS_VOLATILE (gfor_fndecl_stop_string) = 1;
 
+  gfor_fndecl_error_stop_string =
+    gfc_build_library_function_decl (get_identifier (PREFIX("error_stop_string")),
+				     void_type_node, 2, pchar_type_node,
+                                     gfc_int4_type_node);
+  /* ERROR STOP doesn't return.  */
+  TREE_THIS_VOLATILE (gfor_fndecl_error_stop_string) = 1;
+
   gfor_fndecl_pause_numeric =
     gfc_build_library_function_decl (get_identifier (PREFIX("pause_numeric")),
 				     void_type_node, 1, gfc_int4_type_node);
@@ -2980,9 +2996,10 @@ gfc_trans_vla_type_sizes (gfc_symbol *sym, stmtblock_t *body)
 
 
 /* Initialize a derived type by building an lvalue from the symbol
-   and using trans_assignment to do the work.  */
+   and using trans_assignment to do the work. Set dealloc to false
+   if no deallocation prior the assignment is needed.  */
 tree
-gfc_init_default_dt (gfc_symbol * sym, tree body)
+gfc_init_default_dt (gfc_symbol * sym, tree body, bool dealloc)
 {
   stmtblock_t fnblock;
   gfc_expr *e;
@@ -2993,7 +3010,7 @@ gfc_init_default_dt (gfc_symbol * sym, tree body)
   gcc_assert (!sym->attr.allocatable);
   gfc_set_sym_referenced (sym);
   e = gfc_lval_expr_from_sym (sym);
-  tmp = gfc_trans_assignment (e, sym->value, false);
+  tmp = gfc_trans_assignment (e, sym->value, false, dealloc);
   if (sym->attr.dummy && (sym->attr.optional
 			  || sym->ns->proc_name->attr.entry_master))
     {
@@ -3044,7 +3061,7 @@ init_intent_out_dt (gfc_symbol * proc_sym, tree body)
 	    gfc_add_expr_to_block (&fnblock, tmp);
 	  }
        else if (f->sym->value)
-	  body = gfc_init_default_dt (f->sym, body);
+	  body = gfc_init_default_dt (f->sym, body, true);
       }
 
   gfc_add_expr_to_block (&fnblock, body);
@@ -3147,7 +3164,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, tree fnbody)
 			     && sym->value
 			     && !sym->attr.data
 			     && sym->attr.save == SAVE_NONE)
-		    fnbody = gfc_init_default_dt (sym, fnbody);
+		    fnbody = gfc_init_default_dt (sym, fnbody, false);
 
 		  gfc_get_backend_locus (&loc);
 		  gfc_set_backend_locus (&sym->declared_at);
@@ -3159,10 +3176,11 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, tree fnbody)
 
 	    case AS_ASSUMED_SIZE:
 	      /* Must be a dummy parameter.  */
-	      gcc_assert (sym->attr.dummy);
+	      gcc_assert (sym->attr.dummy || sym->as->cp_was_assumed);
 
 	      /* We should always pass assumed size arrays the g77 way.  */
-	      fnbody = gfc_trans_g77_array (sym, fnbody);
+	      if (sym->attr.dummy)
+		fnbody = gfc_trans_g77_array (sym, fnbody);
               break;
 
 	    case AS_ASSUMED_SHAPE:
@@ -3244,7 +3262,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, tree fnbody)
 		 && sym->value
 		 && !sym->attr.data
 		 && sym->attr.save == SAVE_NONE)
-	fnbody = gfc_init_default_dt (sym, fnbody);
+	fnbody = gfc_init_default_dt (sym, fnbody, false);
       else
 	gcc_unreachable ();
     }
@@ -3380,11 +3398,16 @@ gfc_create_module_variable (gfc_symbol * sym)
     {
       decl = sym->backend_decl;
       gcc_assert (sym->ns->proc_name->attr.flavor == FL_MODULE);
-      gcc_assert (TYPE_CONTEXT (decl) == NULL_TREE
-		  || TYPE_CONTEXT (decl) == sym->ns->proc_name->backend_decl);
-      gcc_assert (DECL_CONTEXT (TYPE_STUB_DECL (decl)) == NULL_TREE
-		  || DECL_CONTEXT (TYPE_STUB_DECL (decl))
-		     == sym->ns->proc_name->backend_decl);
+
+      /* -fwhole-file mixes up the contexts so these asserts are unnecessary.  */
+      if (!(gfc_option.flag_whole_file && sym->attr.use_assoc))
+	{
+	  gcc_assert (TYPE_CONTEXT (decl) == NULL_TREE
+		      || TYPE_CONTEXT (decl) == sym->ns->proc_name->backend_decl);
+	  gcc_assert (DECL_CONTEXT (TYPE_STUB_DECL (decl)) == NULL_TREE
+		      || DECL_CONTEXT (TYPE_STUB_DECL (decl))
+			   == sym->ns->proc_name->backend_decl);
+	}
       TYPE_CONTEXT (decl) = sym->ns->proc_name->backend_decl;
       DECL_CONTEXT (TYPE_STUB_DECL (decl)) = sym->ns->proc_name->backend_decl;
       gfc_module_add_decl (cur_module, TYPE_STUB_DECL (decl));
@@ -3556,7 +3579,8 @@ check_constant_initializer (gfc_expr *expr, gfc_typespec *ts, bool array,
 	return check_constant_initializer (expr, ts, false, false);
       else if (expr->expr_type != EXPR_ARRAY)
 	return false;
-      for (c = expr->value.constructor; c; c = c->next)
+      for (c = gfc_constructor_first (expr->value.constructor);
+	   c; c = gfc_constructor_next (c))
 	{
 	  if (c->iterator)
 	    return false;
@@ -3576,7 +3600,8 @@ check_constant_initializer (gfc_expr *expr, gfc_typespec *ts, bool array,
       if (expr->expr_type != EXPR_STRUCTURE)
 	return false;
       cm = expr->ts.u.derived->components;
-      for (c = expr->value.constructor; c; c = c->next, cm = cm->next)
+      for (c = gfc_constructor_first (expr->value.constructor);
+	   c; c = gfc_constructor_next (c), cm = cm->next)
 	{
 	  if (!c->expr || cm->attr.allocatable)
 	    continue;
@@ -4367,7 +4392,7 @@ gfc_generate_function_code (gfc_namespace * ns)
   /* If bounds-checking is enabled, generate code to check passed in actual
      arguments against the expected dummy argument attributes (e.g. string
      lengths).  */
-  if (gfc_option.rtcheck & GFC_RTCHECK_BOUNDS)
+  if ((gfc_option.rtcheck & GFC_RTCHECK_BOUNDS) && !sym->attr.is_bind_c)
     add_argument_checking (&body, sym);
 
   tmp = gfc_trans_code (ns->code);

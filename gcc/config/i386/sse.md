@@ -1538,14 +1538,15 @@
    (set_attr "mode" "<MODE>")])
 
 (define_expand "vcond<mode>"
-  [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
-        (if_then_else:SSEMODEF2P
+  [(set (match_operand:AVXMODEF2P 0 "register_operand" "")
+        (if_then_else:AVXMODEF2P
           (match_operator 3 ""
-            [(match_operand:SSEMODEF2P 4 "nonimmediate_operand" "")
-             (match_operand:SSEMODEF2P 5 "nonimmediate_operand" "")])
-          (match_operand:SSEMODEF2P 1 "general_operand" "")
-          (match_operand:SSEMODEF2P 2 "general_operand" "")))]
-  "SSE_VEC_FLOAT_MODE_P (<MODE>mode)"
+            [(match_operand:AVXMODEF2P 4 "nonimmediate_operand" "")
+             (match_operand:AVXMODEF2P 5 "nonimmediate_operand" "")])
+          (match_operand:AVXMODEF2P 1 "general_operand" "")
+          (match_operand:AVXMODEF2P 2 "general_operand" "")))]
+  "(SSE_VEC_FLOAT_MODE_P (<MODE>mode)
+    || AVX_VEC_FLOAT_MODE_P (<MODE>mode))"
 {
   bool ok = ix86_expand_fp_vcond (operands);
   gcc_assert (ok);
@@ -10422,7 +10423,7 @@
 {
   operands[3] = CONST0_RTX (V2DImode);
 }
-  [(set_attr "type" "ssemuladd")
+  [(set_attr "type" "ssemul")
    (set_attr "mode" "TI")])
 
 (define_insn "xop_pmacsdqh"
@@ -10484,7 +10485,7 @@
 {
   operands[3] = CONST0_RTX (V2DImode);
 }
-  [(set_attr "type" "ssemuladd")
+  [(set_attr "type" "ssemul")
    (set_attr "mode" "TI")])
 
 ;; XOP parallel integer multiply/add instructions for the intrinisics
@@ -11538,6 +11539,20 @@
    (set_attr "prefix_extra" "2")
    (set_attr "length_immediate" "1")
    (set_attr "mode" "TI")])
+
+(define_insn "xop_vpermil2<mode>3"
+  [(set (match_operand:AVXMODEF2P 0 "register_operand" "=x")
+	(unspec:AVXMODEF2P
+	  [(match_operand:AVXMODEF2P 1 "register_operand" "x")
+	   (match_operand:AVXMODEF2P 2 "nonimmediate_operand" "%x")
+	   (match_operand:<avxpermvecmode> 3 "nonimmediate_operand" "xm")
+	   (match_operand:SI 4 "const_0_to_3_operand" "n")]
+	  UNSPEC_VPERMIL2))]
+  "TARGET_XOP"
+  "vpermil2p<avxmodesuffixf2c>\t{%4, %3, %2, %1, %0|%0, %1, %2, %3, %4}"
+  [(set_attr "type" "sse4arg")
+   (set_attr "length_immediate" "1")
+   (set_attr "mode" "<MODE>")])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define_insn "*avx_aesenc"

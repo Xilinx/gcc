@@ -626,22 +626,26 @@ build_aggr_conv (tree type, tree ctor, int flags)
 {
   unsigned HOST_WIDE_INT i = 0;
   conversion *c;
-  tree field = TYPE_FIELDS (type);
+  tree field = next_initializable_field (TYPE_FIELDS (type));
 
-  for (; field; field = TREE_CHAIN (field), ++i)
+  for (; field; field = next_initializable_field (TREE_CHAIN (field)))
     {
-      if (TREE_CODE (field) != FIELD_DECL)
-	continue;
       if (i < CONSTRUCTOR_NELTS (ctor))
 	{
 	  constructor_elt *ce = CONSTRUCTOR_ELT (ctor, i);
 	  if (!can_convert_arg (TREE_TYPE (field), TREE_TYPE (ce->value),
 				ce->value, flags))
 	    return NULL;
+	  ++i;
+	  if (TREE_CODE (type) == UNION_TYPE)
+	    break;
 	}
       else if (build_value_init (TREE_TYPE (field)) == error_mark_node)
 	return NULL;
     }
+
+  if (i < CONSTRUCTOR_NELTS (ctor))
+    return NULL;
 
   c = alloc_conversion (ck_aggr);
   c->type = type;
@@ -2259,6 +2263,8 @@ type_decays_to (tree type)
     return build_pointer_type (TREE_TYPE (type));
   if (TREE_CODE (type) == FUNCTION_TYPE)
     return build_pointer_type (type);
+  if (!CLASS_TYPE_P (type))
+    type = cv_unqualified (type);
   return type;
 }
 
@@ -2944,15 +2950,10 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
       for (fns = TREE_VALUE (conv_fns); fns; fns = OVL_NEXT (fns))
 	{
 	  tree fn = OVL_CURRENT (fns);
-	  tree first = first_arg;
 
 	  if (DECL_NONCONVERTING_P (fn)
 	      && (flags & LOOKUP_ONLYCONVERTING))
 	    continue;
-
-	  /* Lambdas have a static conversion op.  */
-	  if (DECL_STATIC_FUNCTION_P (fn))
-	    first = NULL_TREE;
 
 	  /* [over.match.funcs] For conversion functions, the function
 	     is considered to be a member of the class of the implicit
@@ -2964,14 +2965,14 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
 	  if (TREE_CODE (fn) == TEMPLATE_DECL)
 	    cand = add_template_candidate (&candidates, fn, fromtype,
 					   NULL_TREE,
-					   first, NULL, totype,
+					   first_arg, NULL, totype,
 					   TYPE_BINFO (fromtype),
 					   conversion_path,
 					   flags,
 					   DEDUCE_CONV);
 	  else
 	    cand = add_function_candidate (&candidates, fn, fromtype,
-					   first, NULL,
+					   first_arg, NULL,
 					   TYPE_BINFO (fromtype),
 					   conversion_path,
 					   flags);
@@ -3379,29 +3380,20 @@ build_op_call (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
 	{
 	  tree fn = OVL_CURRENT (fns);
 
-	  tree lfirst = first_mem_arg;
-	  if (DECL_STATIC_FUNCTION_P (fn))
-	    lfirst = NULL_TREE;
-
 	  if (TREE_CODE (fn) == TEMPLATE_DECL)
 	    add_template_candidate (&candidates, fn, base, NULL_TREE,
-				    lfirst, *args, NULL_TREE,
+				    first_mem_arg, *args, NULL_TREE,
 				    TYPE_BINFO (type),
 				    TYPE_BINFO (type),
 				    LOOKUP_NORMAL, DEDUCE_CALL);
 	  else
 	    add_function_candidate
-	      (&candidates, fn, base, lfirst, *args, TYPE_BINFO (type),
+	      (&candidates, fn, base, first_mem_arg, *args, TYPE_BINFO (type),
 	       TYPE_BINFO (type), LOOKUP_NORMAL);
 	}
     }
 
-  /* Rather than mess with handling static conversion ops here, just don't
-     look at conversions in lambdas.  */
-  if (LAMBDA_TYPE_P (type))
-    convs = NULL_TREE;
-  else
-    convs = lookup_conversions (type, /*lookup_template_convs_p=*/true);
+  convs = lookup_conversions (type, /*lookup_template_convs_p=*/true);
 
   for (; convs; convs = TREE_CHAIN (convs))
     {
@@ -4804,17 +4796,19 @@ conversion_null_warnings (tree totype, tree expr, tree fn, int argnum)
   if (expr == null_node && TREE_CODE (t) != BOOLEAN_TYPE && ARITHMETIC_TYPE_P (t))
     {
       if (fn)
-	warning (OPT_Wconversion, "passing NULL to non-pointer argument %P of %qD",
-		 argnum, fn);
+	warning_at (input_location, OPT_Wconversion_null,
+		    "passing NULL to non-pointer argument %P of %qD",
+		    argnum, fn);
       else
-	warning (OPT_Wconversion, "converting to non-pointer type %qT from NULL", t);
+	warning_at (input_location, OPT_Wconversion_null,
+		    "converting to non-pointer type %qT from NULL", t);
     }
 
   /* Issue warnings if "false" is converted to a NULL pointer */
   else if (expr == boolean_false_node && fn && POINTER_TYPE_P (t))
-    warning (OPT_Wconversion,
-	     "converting %<false%> to pointer type for argument %P of %qD",
-	     argnum, fn);
+    warning_at (input_location, OPT_Wconversion_null,
+		"converting %<false%> to pointer type for argument %P of %qD",
+		argnum, fn);
 }
 
 /* Perform the conversions in CONVS on the expression EXPR.  FN and
@@ -5782,8 +5776,20 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	{
 	  tree to = stabilize_reference (cp_build_indirect_ref (fa, RO_NULL,
 								complain));
+	  tree type = TREE_TYPE (to);
 
-	  val = build2 (INIT_EXPR, DECL_CONTEXT (fn), to, arg);
+	  if (TREE_CODE (arg) != TARGET_EXPR
+	      && TREE_CODE (arg) != AGGR_INIT_EXPR
+	      && is_really_empty_class (type))
+	    {
+	      /* Avoid copying empty classes.  */
+	      val = build2 (COMPOUND_EXPR, void_type_node, to, arg);
+	      TREE_NO_WARNING (val) = 1;
+	      val = build2 (COMPOUND_EXPR, type, val, to);
+	      TREE_NO_WARNING (val) = 1;
+	    }
+	  else
+	    val = build2 (INIT_EXPR, DECL_CONTEXT (fn), to, arg);
 	  return val;
 	}
     }
@@ -5797,7 +5803,15 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       tree as_base = CLASSTYPE_AS_BASE (type);
       tree arg = argarray[1];
 
-      if (tree_int_cst_equal (TYPE_SIZE (type), TYPE_SIZE (as_base)))
+      if (is_really_empty_class (type))
+	{
+	  /* Avoid copying empty classes.  */
+	  val = build2 (COMPOUND_EXPR, void_type_node, to, arg);
+	  TREE_NO_WARNING (val) = 1;
+	  val = build2 (COMPOUND_EXPR, type, val, to);
+	  TREE_NO_WARNING (val) = 1;
+	}
+      else if (tree_int_cst_equal (TYPE_SIZE (type), TYPE_SIZE (as_base)))
 	{
 	  arg = cp_build_indirect_ref (arg, RO_NULL, complain);
 	  val = build2 (MODIFY_EXPR, TREE_TYPE (to), to, arg);

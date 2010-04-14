@@ -1,5 +1,5 @@
 /* Header for array handling functions
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Paul Brook
 
@@ -111,7 +111,7 @@ void gfc_conv_tmp_ref (gfc_se *);
 /* Evaluate an array expression.  */
 void gfc_conv_expr_descriptor (gfc_se *, gfc_expr *, gfc_ss *);
 /* Convert an array for passing as an actual function parameter.  */
-void gfc_conv_array_parameter (gfc_se *, gfc_expr *, gfc_ss *, int,
+void gfc_conv_array_parameter (gfc_se *, gfc_expr *, gfc_ss *, bool,
 			       const gfc_symbol *, const char *, tree *);
 /* Evaluate and transpose a matrix expression.  */
 void gfc_conv_array_transpose (gfc_se *, gfc_expr *);
@@ -144,7 +144,7 @@ void gfc_conv_descriptor_ubound_set (stmtblock_t *, tree, tree, tree);
 void gfc_add_intrinsic_ss_code (gfc_loopinfo *, gfc_ss *);
 
 /* Functions for constant array constructor processing.  */
-unsigned HOST_WIDE_INT gfc_constant_array_constructor_p (gfc_constructor *);
+unsigned HOST_WIDE_INT gfc_constant_array_constructor_p (gfc_constructor_base);
 tree gfc_build_constant_array_constructor (gfc_expr *, tree);
 
 /* Copy a string from src to dest.  */

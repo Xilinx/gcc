@@ -1,6 +1,6 @@
 /* Functions for generic Darwin as target machine for GNU C compiler.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008, 2009
+   2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
@@ -188,10 +188,8 @@ machopic_symbol_defined_p (rtx sym_ref)
 enum machopic_addr_class
 machopic_classify_symbol (rtx sym_ref)
 {
-  int flags;
   bool function_p;
 
-  flags = SYMBOL_REF_FLAGS (sym_ref);
   function_p = SYMBOL_REF_FUNCTION_P (sym_ref);
   if (machopic_symbol_defined_p (sym_ref))
     return (function_p
@@ -363,7 +361,6 @@ machopic_indirection_name (rtx sym_ref, bool stub_p)
   size_t namelen = strlen (name);
   machopic_indirection *p;
   void ** slot;
-  bool saw_star = false;
   bool needs_quotes;
   const char *suffix;
   const char *prefix = user_label_prefix;
@@ -386,7 +383,6 @@ machopic_indirection_name (rtx sym_ref, bool stub_p)
 
   if (name[0] == '*')
     {
-      saw_star = true;
       prefix = "";
       ++name;
       --namelen;
@@ -1177,9 +1173,8 @@ machopic_select_section (tree decl,
 {
   bool weak = (DECL_P (decl)
 	       && DECL_WEAK (decl)
-	       && (lookup_attribute ("weak", DECL_ATTRIBUTES (decl))
-		   || ! lookup_attribute ("weak_import",
-					  DECL_ATTRIBUTES (decl))));
+	       && !lookup_attribute ("weak_import",
+				     DECL_ATTRIBUTES (decl)));
   section *base_section;
 
   switch (categorize_decl_for_section (decl, reloc))

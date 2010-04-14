@@ -1471,27 +1471,12 @@ gimple_can_merge_blocks_p (basic_block a, basic_block b)
     return false;
 
   /* It must be possible to eliminate all phi nodes in B.  If ssa form
-     is not up-to-date, we cannot eliminate any phis; however, if only
-     some symbols as whole are marked for renaming, this is not a problem,
-     as phi nodes for those symbols are irrelevant in updating anyway.  */
+     is not up-to-date and a name-mapping is registered, we cannot eliminate
+     any phis.  Symbols marked for renaming are never a problem though.  */
   phis = phi_nodes (b);
-  if (!gimple_seq_empty_p (phis))
-    {
-      gimple_stmt_iterator i;
-
-      if (name_mappings_registered_p ())
-	return false;
-
-      for (i = gsi_start (phis); !gsi_end_p (i); gsi_next (&i))
-	{
-	  gimple phi = gsi_stmt (i);
-
-	  if (!is_gimple_reg (gimple_phi_result (phi))
-	      && !may_propagate_copy (gimple_phi_result (phi),
-				      gimple_phi_arg_def (phi, 0)))
-	    return false;
-	}
-    }
+  if (!gimple_seq_empty_p (phis)
+      && name_mappings_registered_p ())
+    return false;
 
   return true;
 }
@@ -1665,6 +1650,9 @@ gimple_merge_blocks (basic_block a, basic_block b)
 	      FOR_EACH_IMM_USE_STMT (stmt, iter, def)
 		FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
 		  SET_USE (use_p, use);
+
+	      if (SSA_NAME_OCCURS_IN_ABNORMAL_PHI (def))
+		SSA_NAME_OCCURS_IN_ABNORMAL_PHI (use) = 1;
 	    }
 	  else
             replace_uses_by (def, use);

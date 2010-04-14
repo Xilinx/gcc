@@ -1,6 +1,6 @@
 /* SLP - Basic Block Vectorization
-   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
-   Foundation, Inc.
+   Copyright (C) 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
    and Ira Rosen <irar@il.ibm.com>
 
@@ -246,14 +246,16 @@ vect_get_and_check_slp_defs (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
 	      if ((i == 0
 		   && (*first_stmt_dt0 != dt[i]
 		       || (*first_stmt_def0_type && def
-			   && *first_stmt_def0_type != TREE_TYPE (def))))
+			   && !types_compatible_p (*first_stmt_def0_type,
+						   TREE_TYPE (def)))))
 		  || (i == 1
 		      && (*first_stmt_dt1 != dt[i]
 			  || (*first_stmt_def1_type && def
-			      && *first_stmt_def1_type != TREE_TYPE (def))))
+			      && !types_compatible_p (*first_stmt_def1_type,
+						      TREE_TYPE (def)))))
 		  || (!def
-		      && TREE_TYPE (*first_stmt_const_oprnd)
-		      != TREE_TYPE (oprnd)))
+		      && !types_compatible_p (TREE_TYPE (*first_stmt_const_oprnd),
+					      TREE_TYPE (oprnd))))
 		{
 		  if (vect_print_dump_info (REPORT_SLP))
 		    fprintf (vect_dump, "Build SLP failed: different types ");
@@ -1102,6 +1104,7 @@ vect_detect_hybrid_slp_stmts (slp_tree node)
   gimple stmt;
   imm_use_iterator imm_iter;
   gimple use_stmt;
+  stmt_vec_info stmt_vinfo; 
 
   if (!node)
     return;
@@ -1110,9 +1113,10 @@ vect_detect_hybrid_slp_stmts (slp_tree node)
     if (PURE_SLP_STMT (vinfo_for_stmt (stmt))
 	&& TREE_CODE (gimple_op (stmt, 0)) == SSA_NAME)
       FOR_EACH_IMM_USE_STMT (use_stmt, imm_iter, gimple_op (stmt, 0))
-	if (vinfo_for_stmt (use_stmt)
-	    && !STMT_SLP_TYPE (vinfo_for_stmt (use_stmt))
-            && STMT_VINFO_RELEVANT (vinfo_for_stmt (use_stmt)))
+	if ((stmt_vinfo = vinfo_for_stmt (use_stmt))
+	    && !STMT_SLP_TYPE (stmt_vinfo)
+            && (STMT_VINFO_RELEVANT (stmt_vinfo)
+                || VECTORIZABLE_CYCLE_DEF (STMT_VINFO_DEF_TYPE (stmt_vinfo))))
 	  vect_mark_slp_stmts (node, hybrid, i);
 
   vect_detect_hybrid_slp_stmts (SLP_TREE_LEFT (node));
@@ -1271,7 +1275,13 @@ vect_slp_analyze_bb (basic_block bb)
     fprintf (vect_dump, "===vect_slp_analyze_bb===\n");
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-    insns++;
+    {
+      gimple stmt = gsi_stmt (gsi);
+      if (!is_gimple_debug (stmt)
+	  && !gimple_nop_p (stmt)
+	  && gimple_code (stmt) != GIMPLE_LABEL)
+	insns++;
+    }
 
   if (insns > PARAM_VALUE (PARAM_SLP_MAX_INSNS_IN_BB))
     {
@@ -1961,7 +1971,7 @@ vect_schedule_slp_instance (slp_tree node, slp_instance instance,
   stmt_info = vinfo_for_stmt (stmt);
 
   /* VECTYPE is the type of the destination.  */
-  vectype = get_vectype_for_scalar_type (TREE_TYPE (gimple_assign_lhs (stmt)));
+  vectype = STMT_VINFO_VECTYPE (stmt_info);
   nunits = (unsigned int) TYPE_VECTOR_SUBPARTS (vectype);
   group_size = SLP_INSTANCE_GROUP_SIZE (instance);
 

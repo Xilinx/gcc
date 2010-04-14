@@ -1,5 +1,5 @@
 /* Induction variable optimizations.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -4089,6 +4089,7 @@ determine_use_iv_cost_condition (struct ivopts_data *data,
   bitmap depends_on_elim = NULL, depends_on_express = NULL, depends_on;
   comp_cost elim_cost, express_cost, cost;
   bool ok;
+  tree *control_var, *bound_cst;
 
   /* Only consider real candidates.  */
   if (!cand->iv)
@@ -4110,8 +4111,21 @@ determine_use_iv_cost_condition (struct ivopts_data *data,
 
   /* Try expressing the original giv.  If it is compared with an invariant,
      note that we cannot get rid of it.  */
-  ok = extract_cond_operands (data, use->stmt, NULL, NULL, NULL, &cmp_iv);
+  ok = extract_cond_operands (data, use->stmt, &control_var, &bound_cst,
+			      NULL, &cmp_iv);
   gcc_assert (ok);
+
+  /* When the condition is a comparison of the candidate IV against
+     zero, prefer this IV.
+
+     TODO: The constant that we're substracting from the cost should
+     be target-dependent.  This information should be added to the
+     target costs for each backend.  */
+  if (!infinite_cost_p (elim_cost) /* Do not try to decrease infinite! */
+      && integer_zerop (*bound_cst)
+      && (operand_equal_p (*control_var, cand->var_after, 0)
+	  || operand_equal_p (*control_var, cand->var_before, 0)))
+    elim_cost.cost -= 1;
 
   express_cost = get_computation_cost (data, use, cand, false,
 				       &depends_on_express, NULL);
@@ -5503,7 +5517,11 @@ copy_ref_info (tree new_ref, tree old_ref)
   if (TREE_CODE (old_ref) == TARGET_MEM_REF)
     copy_mem_ref_info (new_ref, old_ref);
   else
-    TMR_ORIGINAL (new_ref) = unshare_and_remove_ssa_names (old_ref);
+    {
+      TMR_ORIGINAL (new_ref) = unshare_and_remove_ssa_names (old_ref);
+      TREE_SIDE_EFFECTS (new_ref) = TREE_SIDE_EFFECTS (old_ref);
+      TREE_THIS_VOLATILE (new_ref) = TREE_THIS_VOLATILE (old_ref);
+    }
 }
 
 /* Rewrites USE (address that is an iv) using candidate CAND.  */

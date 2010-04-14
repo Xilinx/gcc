@@ -1,6 +1,7 @@
 /* Output routines for GCC for Renesas / SuperH SH.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Steve Chamberlain (sac@cygnus.com).
    Improved by Jim Wilson (wilson@cygnus.com).
 
@@ -30,6 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "expr.h"
 #include "optabs.h"
+#include "reload.h"
 #include "function.h"
 #include "regs.h"
 #include "hard-reg-set.h"
@@ -105,6 +107,9 @@ static int skip_cycles = 0;
 /* Cached value of can_issue_more. This is cached in sh_variable_issue hook
    and returned from sh_reorder2.  */
 static short cached_can_issue_more;
+
+/* Unique number for UNSPEC_BBR pattern.  */
+static unsigned int unspec_bbr_uid = 1;
 
 /* Provides the class number of the smallest class containing
    reg number.  */
@@ -4392,6 +4397,7 @@ find_barrier (int num_mova, rtx mova, rtx from)
   int si_limit;
   int hi_limit;
   rtx orig = from;
+  rtx last_got = NULL_RTX;
 
   /* For HImode: range is 510, add 4 because pc counts from address of
      second instruction after this one, subtract 2 for the jump instruction
@@ -4482,6 +4488,16 @@ find_barrier (int num_mova, rtx mova, rtx from)
 	  dst = SET_DEST (pat);
 	  mode = GET_MODE (dst);
 
+	  /* GOT pcrelat setting comes in pair of
+	     mova	.L8,r0
+	     mov.l	.L8,r12
+	     instructions.  (plus add r0,r12).
+	     Remember if we see one without the other.  */
+          if (GET_CODE (src) == UNSPEC && PIC_ADDR_P (XVECEXP (src, 0, 0)))
+            last_got = last_got ? NULL_RTX : from;
+          else if (PIC_ADDR_P (src))
+            last_got = last_got ? NULL_RTX : from;
+
 	  /* We must explicitly check the mode, because sometimes the
 	     front end will generate code to load unsigned constants into
 	     HImode targets without properly sign extending them.  */
@@ -4567,6 +4583,13 @@ find_barrier (int num_mova, rtx mova, rtx from)
 	       && ! TARGET_SMALLCODE)
 	new_align = 4;
 
+      /* There is a possibility that a bf is transformed into a bf/s by the
+	 delay slot scheduler.  */
+      if (JUMP_P (from) && !JUMP_TABLE_DATA_P (from) 
+	  && get_attr_type (from) == TYPE_CBRANCH
+	  && GET_CODE (PATTERN (NEXT_INSN (PREV_INSN (from)))) != SEQUENCE)
+	inc += 2;
+
       if (found_si)
 	{
 	  count_si += inc;
@@ -4626,6 +4649,20 @@ find_barrier (int num_mova, rtx mova, rtx from)
 	  && (count_hi > hi_limit || count_si > si_limit))
 	from = PREV_INSN (PREV_INSN (from));
       else
+	from = PREV_INSN (from);
+
+      /* Don't emit a constant table int the middle of global pointer setting,
+	 since that that would move the addressing base GOT into another table. 
+	 We need the first mov instruction before the _GLOBAL_OFFSET_TABLE_
+	 in the pool anyway, so just move up the whole constant pool.  */
+      if (last_got)
+        from = PREV_INSN (last_got);
+
+      /* Don't insert the constant pool table at the position which
+	 may be the landing pad.  */
+      if (flag_exceptions
+	  && CALL_P (from)
+	  && find_reg_note (from, REG_EH_REGION, NULL_RTX))
 	from = PREV_INSN (from);
 
       /* Walk back to be just before any jump or label.
@@ -4979,8 +5016,8 @@ gen_block_redirect (rtx jump, int addr, int need_block)
 	 branch; simplejump_p fails for indirect jumps even if they have
 	 a JUMP_LABEL.  */
       rtx insn = emit_insn_before (gen_indirect_jump_scratch
-				   (reg, GEN_INT (INSN_UID (JUMP_LABEL (jump))))
-				   , jump);
+				   (reg, GEN_INT (unspec_bbr_uid++)),
+				   jump);
       /* ??? We would like this to have the scope of the jump, but that
 	 scope will change when a delay slot insn of an inner scope is added.
 	 Hence, after delay slot scheduling, we'll have to expect
@@ -4995,8 +5032,8 @@ gen_block_redirect (rtx jump, int addr, int need_block)
     /* We can't use JUMP_LABEL here because it might be undefined
        when not optimizing.  */
     return emit_insn_before (gen_block_branch_redirect
-		      (GEN_INT (INSN_UID (XEXP (SET_SRC (PATTERN (jump)), 0))))
-		      , jump);
+			     (GEN_INT (unspec_bbr_uid++)),
+			     jump);
   return prev;
 }
 
@@ -5055,7 +5092,7 @@ gen_far_branch (struct far_branch *bp)
   if (bp->far_label)
     (emit_insn_after
      (gen_stuff_delay_slot
-      (GEN_INT (INSN_UID (XEXP (SET_SRC (PATTERN (jump)), 0))),
+      (GEN_INT (unspec_bbr_uid++),
        GEN_INT (recog_memoized (insn) == CODE_FOR_branch_false)),
       insn));
   /* Prevent reorg from undoing our splits.  */
@@ -9587,6 +9624,88 @@ sh_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
     }
 
   return x;
+}
+
+/* Attempt to replace *P, which is an address that needs reloading, with
+   a valid memory address for an operand of mode MODE.
+   Like for sh_legitimize_address, for the SH we try to get a normal form
+   of the address.  That will allow inheritance of the address reloads.  */
+
+bool
+sh_legitimize_reload_address (rtx *p, enum machine_mode mode, int opnum,
+			      int itype)
+{
+  enum reload_type type = (enum reload_type) itype;
+
+  if (GET_CODE (*p) == PLUS
+      && (GET_MODE_SIZE (mode) == 4 || GET_MODE_SIZE (mode) == 8)
+      && CONST_INT_P (XEXP (*p, 1))
+      && BASE_REGISTER_RTX_P (XEXP (*p, 0))
+      && ! TARGET_SHMEDIA
+      && ! (TARGET_SH4 && mode == DFmode)
+      && ! (mode == PSImode && type == RELOAD_FOR_INPUT_ADDRESS)
+      && (ALLOW_INDEXED_ADDRESS
+	  || XEXP (*p, 0) == stack_pointer_rtx
+	  || XEXP (*p, 0) == hard_frame_pointer_rtx))
+    {
+      rtx index_rtx = XEXP (*p, 1);
+      HOST_WIDE_INT offset = INTVAL (index_rtx), offset_base;
+      rtx sum;
+
+      if (TARGET_SH2A && mode == DFmode && (offset & 0x7))
+	{
+	  push_reload (*p, NULL_RTX, p, NULL,
+		       BASE_REG_CLASS, Pmode, VOIDmode, 0, 0, opnum, type);
+	  goto win;
+	}
+      if (TARGET_SH2E && mode == SFmode)
+	{
+	  *p = copy_rtx (*p);
+	  push_reload (*p, NULL_RTX, p, NULL,
+		       BASE_REG_CLASS, Pmode, VOIDmode, 0, 0, opnum, type);
+	  goto win;
+	}
+      /* Instead of offset_base 128..131 use 124..127, so that
+	 simple add suffices.  */
+      if (offset > 127)
+	offset_base = ((offset + 4) & ~60) - 4;
+      else
+	offset_base = offset & ~60;
+      /* Sometimes the normal form does not suit DImode.  We could avoid
+	 that by using smaller ranges, but that would give less optimized
+	 code when SImode is prevalent.  */
+      if (offset_base != 0
+	  && GET_MODE_SIZE (mode) + offset - offset_base <= 64)
+	{
+	  sum = gen_rtx_PLUS (Pmode, XEXP (*p, 0), GEN_INT (offset_base));
+	  *p = gen_rtx_PLUS (Pmode, sum, GEN_INT (offset - offset_base));
+	  push_reload (sum, NULL_RTX, &XEXP (*p, 0), NULL,
+		       BASE_REG_CLASS, Pmode, VOIDmode, 0, 0, opnum, type);
+	  goto win;
+	}
+    }
+  /* We must re-recognize what we created before.  */
+  else if (GET_CODE (*p) == PLUS
+	   && (GET_MODE_SIZE (mode) == 4 || GET_MODE_SIZE (mode) == 8)
+	   && GET_CODE (XEXP (*p, 0)) == PLUS
+	   && CONST_INT_P (XEXP (XEXP (*p, 0), 1))
+	   && BASE_REGISTER_RTX_P (XEXP (XEXP (*p, 0), 0))
+	   && CONST_INT_P (XEXP (*p, 1))
+	   && ! TARGET_SHMEDIA
+	   && ! (TARGET_SH2E && mode == SFmode))
+    {
+      /* Because this address is so complex, we know it must have
+	 been created by LEGITIMIZE_RELOAD_ADDRESS before; thus,
+	 it is already unshared, and needs no further unsharing.  */
+      push_reload (XEXP (*p, 0), NULL_RTX, &XEXP (*p, 0), NULL,
+		   BASE_REG_CLASS, Pmode, VOIDmode, 0, 0, opnum, type);
+      goto win;
+    }
+
+  return false;
+
+ win:
+  return true;
 }
 
 /* Mark the use of a constant in the literal table. If the constant

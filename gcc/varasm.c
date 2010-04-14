@@ -1174,12 +1174,13 @@ get_variable_section (tree decl, bool prefer_noswitch_p)
   if (TREE_TYPE (decl) != error_mark_node)
     as = TYPE_ADDR_SPACE (TREE_TYPE (decl));
 
-  /* If the decl has been given an explicit section name, or it resides
-     in a non-generic address space, then it isn't common, and shouldn't
-     be handled as such.  */
-  if (DECL_COMMON (decl) && DECL_SECTION_NAME (decl) == NULL
-      && ADDR_SPACE_GENERIC_P (as))
+  if (DECL_COMMON (decl))
     {
+      /* If the decl has been given an explicit section name, or it resides
+	 in a non-generic address space, then it isn't common, and shouldn't
+	 be handled as such.  */
+      gcc_assert (DECL_SECTION_NAME (decl) == NULL
+		  && ADDR_SPACE_GENERIC_P (as));
       if (DECL_THREAD_LOCAL_P (decl))
 	return tls_comm_section;
       /* This cannot be common bss for an emulated TLS object without
@@ -1434,6 +1435,10 @@ make_decl_rtl (tree decl)
 
   /* Specifying a section attribute on a variable forces it into a
      non-.bss section, and thus it cannot be common.  */
+  /* FIXME: In general this code should not be necessary because
+     visibility pass is doing the same work.  But notice_global_symbol
+     is called early and it needs to make DECL_RTL to get the name.
+     we take care of recomputing the DECL_RTL after visibility is changed.  */
   if (TREE_CODE (decl) == VAR_DECL
       && DECL_SECTION_NAME (decl) != NULL_TREE
       && DECL_INITIAL (decl) == NULL_TREE
@@ -1473,6 +1478,42 @@ make_decl_rtl (tree decl)
   /* Make this function static known to the mudflap runtime.  */
   if (flag_mudflap && TREE_CODE (decl) == VAR_DECL)
     mudflap_enqueue_decl (decl);
+}
+
+/* Like make_decl_rtl, but inhibit creation of new alias sets when
+   calling make_decl_rtl.  Also, reset DECL_RTL before returning the
+   rtl.  */
+
+rtx
+make_decl_rtl_for_debug (tree decl)
+{
+  unsigned int save_aliasing_flag, save_mudflap_flag;
+  rtx rtl;
+
+  if (DECL_RTL_SET_P (decl))
+    return DECL_RTL (decl);
+
+  /* Kludge alert!  Somewhere down the call chain, make_decl_rtl will
+     call new_alias_set.  If running with -fcompare-debug, sometimes
+     we do not want to create alias sets that will throw the alias
+     numbers off in the comparison dumps.  So... clearing
+     flag_strict_aliasing will keep new_alias_set() from creating a
+     new set.  It is undesirable to register decl with mudflap
+     in this case as well.  */
+  save_aliasing_flag = flag_strict_aliasing;
+  flag_strict_aliasing = 0;
+  save_mudflap_flag = flag_mudflap;
+  flag_mudflap = 0;
+
+  rtl = DECL_RTL (decl);
+  /* Reset DECL_RTL back, as various parts of the compiler expects
+     DECL_RTL set meaning it is actually going to be output.  */
+  SET_DECL_RTL (decl, NULL);
+
+  flag_strict_aliasing = save_aliasing_flag;
+  flag_mudflap = save_mudflap_flag;
+
+  return rtl;
 }
 
 /* Output a string of literal assembler code
@@ -5507,6 +5548,10 @@ do_assemble_alias (tree decl, tree target)
   if (TREE_ASM_WRITTEN (decl))
     return;
 
+  /* We must force creation of DECL_RTL for debug info generation, even though
+     we don't use it here.  */
+  make_decl_rtl (decl);
+
   TREE_ASM_WRITTEN (decl) = 1;
   TREE_ASM_WRITTEN (DECL_ASSEMBLER_NAME (decl)) = 1;
 
@@ -5724,10 +5769,6 @@ assemble_alias (tree decl, tree target)
 # endif
 #endif
     }
-
-  /* We must force creation of DECL_RTL for debug info generation, even though
-     we don't use it here.  */
-  make_decl_rtl (decl);
   TREE_USED (decl) = 1;
 
   /* A quirk of the initial implementation of aliases required that the user
@@ -5811,8 +5852,10 @@ finish_tm_clone_pairs (void)
    the visibility type VIS, which must not be VISIBILITY_DEFAULT.  */
 
 void
-default_assemble_visibility (tree decl, int vis)
+default_assemble_visibility (tree decl ATTRIBUTE_UNUSED, 
+			     int vis ATTRIBUTE_UNUSED)
 {
+#ifdef HAVE_GAS_HIDDEN
   static const char * const visibility_types[] = {
     NULL, "protected", "hidden", "internal"
   };
@@ -5822,7 +5865,6 @@ default_assemble_visibility (tree decl, int vis)
   name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
   type = visibility_types[vis];
 
-#ifdef HAVE_GAS_HIDDEN
   fprintf (asm_out_file, "\t.%s\t", type);
   assemble_name (asm_out_file, name);
   fprintf (asm_out_file, "\n");
@@ -6078,6 +6120,10 @@ default_no_named_section (const char *name ATTRIBUTE_UNUSED,
   gcc_unreachable ();
 }
 
+#ifndef TLS_SECTION_ASM_FLAG
+#define TLS_SECTION_ASM_FLAG 'T'
+#endif
+
 void
 default_elf_asm_named_section (const char *name, unsigned int flags,
 			       tree decl ATTRIBUTE_UNUSED)
@@ -6108,7 +6154,7 @@ default_elf_asm_named_section (const char *name, unsigned int flags,
   if (flags & SECTION_STRINGS)
     *f++ = 'S';
   if (flags & SECTION_TLS)
-    *f++ = 'T';
+    *f++ = TLS_SECTION_ASM_FLAG;
   if (HAVE_COMDAT_GROUP && (flags & SECTION_LINKONCE))
     *f++ = 'G';
   *f = '\0';

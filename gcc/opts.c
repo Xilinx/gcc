@@ -1034,6 +1034,7 @@ decode_options (unsigned int argc, const char **argv)
 	flag_pic = flag_pie;
       if (flag_pic && !flag_pie)
 	flag_shlib = 1;
+      first_time_p = false;
     }
 
   if (optimize == 0)
@@ -1112,13 +1113,6 @@ decode_options (unsigned int argc, const char **argv)
       flag_ira_algorithm = IRA_ALGORITHM_PRIORITY;
     }
 
-  /* Save the current optimization options if this is the first call.  */
-  if (first_time_p)
-    {
-      optimization_default_node = build_optimization_node ();
-      optimization_current_node = optimization_default_node;
-      first_time_p = false;
-    }
   if (flag_conserve_stack)
     {
       if (!PARAM_SET_P (PARAM_LARGE_STACK_FRAME))
@@ -2126,12 +2120,17 @@ common_handle_option (size_t scode, const char *arg, int value,
     case OPT_fcse_skip_blocks:
     case OPT_floop_optimize:
     case OPT_frerun_loop_opt:
+    case OPT_fsched2_use_traces:
     case OPT_fstrength_reduce:
     case OPT_ftree_store_copy_prop:
     case OPT_fforce_addr:
     case OPT_ftree_salias:
     case OPT_ftree_store_ccp:
     case OPT_Wunreachable_code:
+    case OPT_fargument_alias:
+    case OPT_fargument_noalias:
+    case OPT_fargument_noalias_anything:
+    case OPT_fargument_noalias_global:
       /* These are no-ops, preserved for backward compatibility.  */
       break;
 
@@ -2397,6 +2396,20 @@ set_option (const struct cl_option *option, int value, const char *arg)
     }
 }
 
+
+/* Callback function, called when -Werror= enables a warning.  */
+
+static void (*warning_as_error_callback) (int) = NULL;
+
+/* Register a callback for enable_warning_as_error calls.  */
+
+void
+register_warning_as_error_callback (void (*callback) (int))
+{
+  gcc_assert (warning_as_error_callback == NULL || callback == NULL);
+  warning_as_error_callback = callback;
+}
+
 /* Enable a warning option as an error.  This is used by -Werror= and
    also by legacy Werror-implicit-function-declaration.  */
 
@@ -2416,14 +2429,20 @@ enable_warning_as_error (const char *arg, int value, unsigned int lang_mask)
     }
   else
     {
-      diagnostic_t kind = value ? DK_ERROR : DK_WARNING;
-      diagnostic_classify_diagnostic (global_dc, option_index, kind);
+      const diagnostic_t kind = value ? DK_ERROR : DK_WARNING;
 
-      /* -Werror=foo implies -Wfoo.  */
-      if (cl_options[option_index].var_type == CLVC_BOOLEAN
-	  && cl_options[option_index].flag_var
-	  && kind == DK_ERROR)
-	*(int *) cl_options[option_index].flag_var = 1;
+      diagnostic_classify_diagnostic (global_dc, option_index, kind);
+      if (kind == DK_ERROR)
+	{
+	  const struct cl_option * const option = cl_options + option_index;
+
+	  /* -Werror=foo implies -Wfoo.  */
+	  if (option->var_type == CLVC_BOOLEAN && option->flag_var)
+	    *(int *) option->flag_var = 1;
+
+	  if (warning_as_error_callback)
+	    warning_as_error_callback (option_index);
+	}
     }
   free (new_option);
 }

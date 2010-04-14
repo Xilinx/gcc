@@ -76,6 +76,8 @@ EXTERNAL_OBJECTS=""
 
 rm -f $dir/acats.sum $dir/acats.log
 
+display "Test Run By $USER on `date`"
+
 display "		=== acats configuration ==="
 
 target=`$GCC -dumpmachine`
@@ -282,7 +284,7 @@ for chapter in $chapters; do
       cat ${i}.log >> $dir/acats.log
       egrep -e '(==== |\+\+\+\+ |\!\!\!\! )' ${i}.log > /dev/null 2>&1
       if [ $? -ne 0 ]; then
-         grep 'Tasking not implemented' ${i}.log > /dev/null 2>&1
+         grep 'tasking not implemented' ${i}.log > /dev/null 2>&1
 
          if [ $? -ne 0 ]; then
             display "FAIL:	$i"
@@ -311,5 +313,7 @@ fi
 if [ $glob_countok -ne $glob_countn ]; then
    display "*** FAILURES: $failed"
 fi
+
+display "$0 completed at `date`"
 
 exit 0

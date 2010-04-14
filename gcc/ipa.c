@@ -1,6 +1,6 @@
 /* Basic IPA optimizations and utilities.
-   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009 Free Software Foundation,
-   Inc.
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -70,6 +70,12 @@ cgraph_postorder (struct cgraph_node **order)
 		    node2->aux = edge->next_caller;
 		  else
 		    node2->aux = &last;
+		  /* Break possible cycles involving always-inline
+		     functions by ignoring edges from always-inline
+		     functions to non-always-inline functions.  */
+		  if (edge->caller->local.disregard_inline_limits
+		      && !edge->callee->local.disregard_inline_limits)
+		    continue;
 		  if (!edge->caller->aux)
 		    {
 		      if (!edge->caller->callers)
@@ -262,10 +268,10 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 		  if (!clone)
 		    {
 		      cgraph_release_function_body (node);
-		      cgraph_node_remove_callees (node);
 		      node->analyzed = false;
 		      node->local.inlinable = false;
 		    }
+		  cgraph_node_remove_callees (node);
 		  if (node->prev_sibling_clone)
 		    node->prev_sibling_clone->next_sibling_clone = node->next_sibling_clone;
 		  else if (node->clone_of)
@@ -316,6 +322,8 @@ cgraph_externally_visible_p (struct cgraph_node *node, bool whole_program)
       && (!TREE_PUBLIC (node->decl) || DECL_EXTERNAL (node->decl)))
     return false;
   if (!whole_program)
+    return true;
+  if (DECL_PRESERVE_P (node->decl))
     return true;
   /* COMDAT functions must be shared only if they have address taken,
      otherwise we can produce our own private implementation with
@@ -400,21 +408,45 @@ function_and_variable_visibility (bool whole_program)
 	  && !DECL_EXTERNAL (node->decl))
 	{
 	  gcc_assert (whole_program || !TREE_PUBLIC (node->decl));
-	  TREE_PUBLIC (node->decl) = 0;
-	  DECL_COMDAT (node->decl) = 0;
-	  DECL_WEAK (node->decl) = 0;
+	  cgraph_make_decl_local (node->decl);
 	}
       node->local.local = (cgraph_only_called_directly_p (node)
 			   && node->analyzed
 			   && !DECL_EXTERNAL (node->decl)
 			   && !node->local.externally_visible);
     }
+  for (vnode = varpool_nodes; vnode; vnode = vnode->next)
+    {
+      /* weak flag makes no sense on local variables.  */
+      gcc_assert (!DECL_WEAK (vnode->decl)
+      		  || TREE_PUBLIC (vnode->decl) || DECL_EXTERNAL (vnode->decl));
+      /* In several cases declarations can not be common:
+
+	 - when declaration has initializer
+	 - when it is in weak
+	 - when it has specific section
+	 - when it resides in non-generic address space.
+	 - if declaration is local, it will get into .local common section
+	   so common flag is not needed.  Frontends still produce these in
+	   certain cases, such as for:
+
+	     static int a __attribute__ ((common))
+
+	 Canonicalize things here and clear the redundant flag.  */
+      if (DECL_COMMON (vnode->decl)
+	  && (!(TREE_PUBLIC (vnode->decl) || DECL_EXTERNAL (vnode->decl))
+	      || (DECL_INITIAL (vnode->decl)
+		  && DECL_INITIAL (vnode->decl) != error_mark_node)
+	      || DECL_WEAK (vnode->decl)
+	      || DECL_SECTION_NAME (vnode->decl) != NULL
+	      || ! (ADDR_SPACE_GENERIC_P
+		    (TYPE_ADDR_SPACE (TREE_TYPE (vnode->decl))))))
+	DECL_COMMON (vnode->decl) = 0;
+    }
   for (vnode = varpool_nodes_queue; vnode; vnode = vnode->next_needed)
     {
       if (!vnode->finalized)
         continue;
-      gcc_assert ((!DECL_WEAK (vnode->decl) && !DECL_COMMON (vnode->decl))
-      		  || TREE_PUBLIC (vnode->decl) || DECL_EXTERNAL (vnode->decl));
       if (vnode->needed
 	  && (DECL_COMDAT (vnode->decl) || TREE_PUBLIC (vnode->decl))
 	  && (!whole_program
@@ -431,8 +463,7 @@ function_and_variable_visibility (bool whole_program)
       if (!vnode->externally_visible)
 	{
 	  gcc_assert (whole_program || !TREE_PUBLIC (vnode->decl));
-	  TREE_PUBLIC (vnode->decl) = 0;
-	  DECL_COMMON (vnode->decl) = 0;
+	  cgraph_make_decl_local (vnode->decl);
 	}
      gcc_assert (TREE_STATIC (vnode->decl));
     }

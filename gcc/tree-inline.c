@@ -533,7 +533,6 @@ remap_decls (tree decls, VEC(tree,gc) **nonlocalized_list, copy_body_data *id)
   for (old_var = decls; old_var; old_var = TREE_CHAIN (old_var))
     {
       tree new_var;
-      tree origin_var = DECL_ORIGIN (old_var);
 
       if (can_be_nonlocal (old_var, id))
 	{
@@ -545,7 +544,7 @@ remap_decls (tree decls, VEC(tree,gc) **nonlocalized_list, copy_body_data *id)
 	  if ((!optimize || debug_info_level > DINFO_LEVEL_TERSE)
 	      && !DECL_IGNORED_P (old_var)
 	      && nonlocalized_list)
-	    VEC_safe_push (tree, gc, *nonlocalized_list, origin_var);
+	    VEC_safe_push (tree, gc, *nonlocalized_list, old_var);
 	  continue;
 	}
 
@@ -563,7 +562,7 @@ remap_decls (tree decls, VEC(tree,gc) **nonlocalized_list, copy_body_data *id)
 	  if ((!optimize || debug_info_level > DINFO_LEVEL_TERSE)
 	      && !DECL_IGNORED_P (old_var)
 	      && nonlocalized_list)
-	    VEC_safe_push (tree, gc, *nonlocalized_list, origin_var);
+	    VEC_safe_push (tree, gc, *nonlocalized_list, old_var);
 	}
       else
 	{
@@ -1398,6 +1397,13 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 		  default:
 		    break;
 		  }
+
+	      /* Reset alias info.
+	         ???  By maintaining DECL_PT_UID this should not
+		 be necessary, but the plan is to only maintain
+		 it when IPA-PTA was run.  It's not too easy to
+		 detect this here ...  */
+	      gimple_call_reset_alias_info (copy);
 	    }
 	    break;
 
@@ -1657,6 +1663,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 				   bb->frequency,
 				   copy_basic_block->frequency);
 			}
+		      stmt = cgraph_redirect_edge_call_stmt_to_callee (edge);
 		    }
 		  break;
 
@@ -2548,8 +2555,15 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest)
   tree caller = id->dst_fn;
   tree result = DECL_RESULT (callee);
   tree callee_type = TREE_TYPE (result);
-  tree caller_type = TREE_TYPE (TREE_TYPE (callee));
+  tree caller_type;
   tree var, use;
+
+  /* Handle type-mismatches in the function declaration return type
+     vs. the call expression.  */
+  if (modify_dest)
+    caller_type = TREE_TYPE (modify_dest);
+  else
+    caller_type = TREE_TYPE (TREE_TYPE (callee));
 
   /* We don't need to do anything for functions that don't return
      anything.  */
@@ -3730,12 +3744,9 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   	     cg_edge->frequency * REG_BR_PROB_BASE / CGRAPH_FREQ_BASE,
 	     bb, return_block);
 
-  /* Reset the escaped and callused solutions.  */
+  /* Reset the escaped solution.  */
   if (cfun->gimple_df)
-    {
-      pt_solution_reset (&cfun->gimple_df->escaped);
-      pt_solution_reset (&cfun->gimple_df->callused);
-    }
+    pt_solution_reset (&cfun->gimple_df->escaped);
 
   /* Clean up.  */
   if (id->debug_map)

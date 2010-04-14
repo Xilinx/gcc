@@ -1,5 +1,6 @@
 /* Induction variable canonicalization.
-   Copyright (C) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -522,6 +523,7 @@ tree_unroll_loops_completely (bool may_increase_size, bool unroll_outer)
   struct loop *loop;
   bool changed;
   enum unroll_level ul;
+  int iteration = 0;
 
   do
     {
@@ -554,7 +556,8 @@ tree_unroll_loops_completely (bool may_increase_size, bool unroll_outer)
 	  scev_reset ();
 	}
     }
-  while (changed);
+  while (changed
+	 && ++iteration <= PARAM_VALUE (PARAM_MAX_UNROLL_ITERATIONS));
 
   return 0;
 }

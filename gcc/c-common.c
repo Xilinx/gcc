@@ -1,6 +1,6 @@
 /* Subroutines shared by all languages that are variants of C.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -2215,12 +2215,17 @@ conversion_warning (tree type, tree expr)
       else if (TREE_CODE (expr_type) == INTEGER_TYPE
                && TREE_CODE (type) == REAL_TYPE)
         {
-          tree type_low_bound = TYPE_MIN_VALUE (expr_type);
-          tree type_high_bound = TYPE_MAX_VALUE (expr_type);
-          REAL_VALUE_TYPE real_low_bound
-	    = real_value_from_int_cst (0, type_low_bound);
-          REAL_VALUE_TYPE real_high_bound
-	    = real_value_from_int_cst (0, type_high_bound);
+	  tree type_low_bound, type_high_bound;
+          REAL_VALUE_TYPE real_low_bound, real_high_bound;
+
+	  /* Don't warn about char y = 0xff; float x = (int) y;  */
+	  expr = get_unwidened (expr, 0);
+	  expr_type = TREE_TYPE (expr);
+
+          type_low_bound = TYPE_MIN_VALUE (expr_type);
+          type_high_bound = TYPE_MAX_VALUE (expr_type);
+          real_low_bound = real_value_from_int_cst (0, type_low_bound);
+          real_high_bound = real_value_from_int_cst (0, type_high_bound);
 
           if (!exact_real_truncate (TYPE_MODE (type), &real_low_bound)
               || !exact_real_truncate (TYPE_MODE (type), &real_high_bound))
@@ -4408,7 +4413,7 @@ c_sizeof_or_alignof_type (location_t loc,
       if (complain)
 	error_at (loc, "invalid application of %qs to incomplete type %qT ",
 		  op_name, type);
-      value = size_zero_node;
+      return error_mark_node;
     }
   else
     {
@@ -6139,6 +6144,8 @@ handle_used_attribute (tree *pnode, tree name, tree ARG_UNUSED (args),
     {
       TREE_USED (node) = 1;
       DECL_PRESERVE_P (node) = 1;
+      if (TREE_CODE (node) == VAR_DECL)
+	DECL_READ_P (node) = 1;
     }
   else
     {
@@ -6165,7 +6172,12 @@ handle_unused_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 	  || TREE_CODE (decl) == FUNCTION_DECL
 	  || TREE_CODE (decl) == LABEL_DECL
 	  || TREE_CODE (decl) == TYPE_DECL)
-	TREE_USED (decl) = 1;
+	{
+	  TREE_USED (decl) = 1;
+	  if (TREE_CODE (decl) == VAR_DECL
+	      || TREE_CODE (decl) == PARM_DECL)
+	    DECL_READ_P (decl) = 1;
+	}
       else
 	{
 	  warning (OPT_Wattributes, "%qE attribute ignored", name);
@@ -8216,21 +8228,24 @@ check_function_arguments_recurse (void (*callback)
   (*callback) (ctx, param, param_num);
 }
 
-/* Checks the number of arguments NARGS against the required number
-   REQUIRED and issues an error if there is a mismatch.  Returns true
-   if the number of arguments is correct, otherwise false.  */
+/* Checks for a builtin function FNDECL that the number of arguments
+   NARGS against the required number REQUIRED and issues an error if
+   there is a mismatch.  Returns true if the number of arguments is
+   correct, otherwise false.  */
 
 static bool
-validate_nargs (tree fndecl, int nargs, int required)
+builtin_function_validate_nargs (tree fndecl, int nargs, int required)
 {
   if (nargs < required)
     {
-      error ("not enough arguments to function %qE", fndecl);
+      error_at (input_location,
+		"not enough arguments to function %qE", fndecl);
       return false;
     }
   else if (nargs > required)
     {
-      error ("too many arguments to function %qE", fndecl);
+      error_at (input_location,
+		"too many arguments to function %qE", fndecl);
       return false;
     }
   return true;
@@ -8249,14 +8264,14 @@ check_builtin_function_arguments (tree fndecl, int nargs, tree *args)
   switch (DECL_FUNCTION_CODE (fndecl))
     {
     case BUILT_IN_CONSTANT_P:
-      return validate_nargs (fndecl, nargs, 1);
+      return builtin_function_validate_nargs (fndecl, nargs, 1);
 
     case BUILT_IN_ISFINITE:
     case BUILT_IN_ISINF:
     case BUILT_IN_ISINF_SIGN:
     case BUILT_IN_ISNAN:
     case BUILT_IN_ISNORMAL:
-      if (validate_nargs (fndecl, nargs, 1))
+      if (builtin_function_validate_nargs (fndecl, nargs, 1))
 	{
 	  if (TREE_CODE (TREE_TYPE (args[0])) != REAL_TYPE)
 	    {
@@ -8274,7 +8289,7 @@ check_builtin_function_arguments (tree fndecl, int nargs, tree *args)
     case BUILT_IN_ISLESSEQUAL:
     case BUILT_IN_ISLESSGREATER:
     case BUILT_IN_ISUNORDERED:
-      if (validate_nargs (fndecl, nargs, 2))
+      if (builtin_function_validate_nargs (fndecl, nargs, 2))
 	{
 	  enum tree_code code0, code1;
 	  code0 = TREE_CODE (TREE_TYPE (args[0]));
@@ -8292,7 +8307,7 @@ check_builtin_function_arguments (tree fndecl, int nargs, tree *args)
       return false;
 
     case BUILT_IN_FPCLASSIFY:
-      if (validate_nargs (fndecl, nargs, 6))
+      if (builtin_function_validate_nargs (fndecl, nargs, 6))
 	{
 	  unsigned i;
 
@@ -8486,8 +8501,52 @@ c_parse_error (const char *gmsgid, enum cpp_ttype token_type,
 #undef catenate_messages
 }
 
+/* Mapping for cpp message reasons to the options that enable them.  */
+
+struct reason_option_codes_t
+{
+  const int reason;		/* cpplib message reason.  */
+  const int option_code;	/* gcc option that controls this message.  */
+};
+
+static const struct reason_option_codes_t option_codes[] = {
+  {CPP_W_DEPRECATED,			OPT_Wdeprecated},
+  {CPP_W_COMMENTS,			OPT_Wcomments},
+  {CPP_W_TRIGRAPHS,			OPT_Wtrigraphs},
+  {CPP_W_MULTICHAR,			OPT_Wmultichar},
+  {CPP_W_TRADITIONAL,			OPT_Wtraditional},
+  {CPP_W_LONG_LONG,			OPT_Wlong_long},
+  {CPP_W_ENDIF_LABELS,			OPT_Wendif_labels},
+  {CPP_W_VARIADIC_MACROS,		OPT_Wvariadic_macros},
+  {CPP_W_BUILTIN_MACRO_REDEFINED,	OPT_Wbuiltin_macro_redefined},
+  {CPP_W_UNDEF,				OPT_Wundef},
+  {CPP_W_UNUSED_MACROS,			OPT_Wunused_macros},
+  {CPP_W_CXX_OPERATOR_NAMES,		OPT_Wc___compat},
+  {CPP_W_NORMALIZE,			OPT_Wnormalized_},
+  {CPP_W_INVALID_PCH,			OPT_Winvalid_pch},
+  {CPP_W_WARNING_DIRECTIVE,		OPT_Wcpp},
+  {CPP_W_NONE,				0}
+};
+
+/* Return the gcc option code associated with the reason for a cpp
+   message, or 0 if none.  */
+
+static int
+c_option_controlling_cpp_error (int reason)
+{
+  const struct reason_option_codes_t *entry;
+
+  for (entry = option_codes; entry->reason != CPP_W_NONE; entry++)
+    {
+      if (entry->reason == reason)
+	return entry->option_code;
+    }
+  return 0;
+}
+
 /* Callback from cpp_error for PFILE to print diagnostics from the
-   preprocessor.  The diagnostic is of type LEVEL, at location
+   preprocessor.  The diagnostic is of type LEVEL, with REASON set
+   to the reason code if LEVEL is represents a warning, at location
    LOCATION unless this is after lexing and the compiler's location
    should be used instead, with column number possibly overridden by
    COLUMN_OVERRIDE if not zero; MSG is the translated message and AP
@@ -8495,7 +8554,7 @@ c_parse_error (const char *gmsgid, enum cpp_ttype token_type,
    otherwise.  */
 
 bool
-c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
+c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
 	     location_t location, unsigned int column_override,
 	     const char *msg, va_list *ap)
 {
@@ -8542,6 +8601,8 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
 				  location, dlevel);
   if (column_override)
     diagnostic_override_column (&diagnostic, column_override);
+  diagnostic_override_option_index (&diagnostic,
+                                    c_option_controlling_cpp_error (reason));
   ret = report_diagnostic (&diagnostic);
   if (level == CPP_DL_WARNING_SYSHDR)
     warn_system_headers = save_warn_system_headers;

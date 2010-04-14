@@ -1,3 +1,28 @@
+2010-04-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/18624
+	* objc-act.c (finish_var_decl, objc_begin_catch_clause,
+	really_start_method, get_super_receiver, handle_class_ref): Set
+	DECL_READ_P in addition to TREE_USED.
+
+2010-04-07  Iain Sandoe <iains@gcc.gnu.org>
+
+	PR objc/35996
+	* objc-act.c (objc_init): Warn that -fobjc-gc is ignored for
+	-fgnu-runtime and set flag_objc_gc to zero.
+
+2010-04-07  Iain Sandoe <iains@gcc.gnu.org>
+
+	PR objc++/23716
+	* objc-act.c (build_module_initializer_routine): Make the argument
+	to objc_start_function NULL_TREE when compiling ObjC++.
+
+2010-02-18  Iain Sandoe <iain.sandoe@sandoe-acoustics.co.uk>
+	    Mike Stump  <mikestump@comcast.net>
+
+	PR objc/43061
+	* objc-act.c (finish_var_decl): Set the generated symbols as "used".
+
 2009-12-17  Shujing Zhao  <pearly.zhao@oracle.com>
 
 	* objc-act.c (objc_substitute_decl, build_ivar_reference,

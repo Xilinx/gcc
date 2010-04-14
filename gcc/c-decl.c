@@ -1164,14 +1164,21 @@ pop_scope (void)
 
 	case VAR_DECL:
 	  /* Warnings for unused variables.  */
-	  if (!TREE_USED (p)
+	  if ((!TREE_USED (p) || !DECL_READ_P (p))
 	      && !TREE_NO_WARNING (p)
 	      && !DECL_IN_SYSTEM_HEADER (p)
 	      && DECL_NAME (p)
 	      && !DECL_ARTIFICIAL (p)
 	      && scope != file_scope
 	      && scope != external_scope)
-	    warning (OPT_Wunused_variable, "unused variable %q+D", p);
+	    {
+	      if (!TREE_USED (p))
+		warning (OPT_Wunused_variable, "unused variable %q+D", p);
+	      else if (DECL_CONTEXT (p) == current_function_decl)
+		warning_at (DECL_SOURCE_LOCATION (p),
+			    OPT_Wunused_but_set_variable,
+			    "variable %qD set but not used", p);
+	    }
 
 	  if (b->inner_comp)
 	    {
@@ -2387,6 +2394,12 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
     TREE_USED (newdecl) = 1;
   else if (TREE_USED (newdecl))
     TREE_USED (olddecl) = 1;
+  if (TREE_CODE (olddecl) == VAR_DECL || TREE_CODE (olddecl) == PARM_DECL)
+    DECL_READ_P (newdecl) |= DECL_READ_P (olddecl);
+  if (DECL_PRESERVE_P (olddecl))
+    DECL_PRESERVE_P (newdecl) = 1;
+  else if (DECL_PRESERVE_P (newdecl))
+    DECL_PRESERVE_P (olddecl) = 1;
 
   /* Copy most of the decl-specific fields of NEWDECL into OLDDECL.
      But preserve OLDDECL's DECL_UID, DECL_CONTEXT and
@@ -2945,11 +2958,10 @@ undeclared_variable (location_t loc, tree id)
   else
     {
       error_at (loc, "%qE undeclared (first use in this function)", id);
-
       if (!already)
 	{
-	  error_at (loc, "(Each undeclared identifier is reported only once");
-	  error_at (loc, "for each function it appears in.)");
+          inform (loc, "each undeclared identifier is reported only"
+                  " once for each function it appears in");
 	  already = true;
 	}
 
@@ -4229,7 +4241,10 @@ finish_decl (tree decl, location_t init_loc, tree init,
 	}
 
       if (TREE_USED (type))
-	TREE_USED (decl) = 1;
+	{
+	  TREE_USED (decl) = 1;
+	  DECL_READ_P (decl) = 1;
+	}
     }
 
   /* If this is a function and an assembler name is specified, reset DECL_RTL
@@ -4377,6 +4392,7 @@ finish_decl (tree decl, location_t init_loc, tree init,
 	  /* Don't warn about decl unused; the cleanup uses it.  */
 	  TREE_USED (decl) = 1;
 	  TREE_USED (cleanup_decl) = 1;
+	  DECL_READ_P (decl) = 1;
 
 	  push_cleanup (decl, cleanup, false);
 	}
@@ -4459,7 +4475,8 @@ build_compound_literal (location_t loc, tree type, tree init, bool non_const)
   tree complit;
   tree stmt;
 
-  if (type == error_mark_node)
+  if (type == error_mark_node
+      || init == error_mark_node)
     return error_mark_node;
 
   decl = build_decl (loc, VAR_DECL, NULL_TREE, type);
@@ -4468,6 +4485,7 @@ build_compound_literal (location_t loc, tree type, tree init, bool non_const)
   TREE_STATIC (decl) = (current_scope == file_scope);
   DECL_CONTEXT (decl) = current_function_decl;
   TREE_USED (decl) = 1;
+  DECL_READ_P (decl) = 1;
   TREE_TYPE (decl) = type;
   TREE_READONLY (decl) = TYPE_READONLY (type);
   store_init_value (loc, decl, init, NULL_TREE);
@@ -6114,6 +6132,7 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
 
 		  TREE_VALUE (typelt) = error_mark_node;
 		  TREE_TYPE (parm) = error_mark_node;
+		  arg_types = NULL_TREE;
 		}
 	      else if (VOID_TYPE_P (type))
 		{
@@ -6134,6 +6153,7 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
 	      error (errmsg);
 	      TREE_VALUE (typelt) = error_mark_node;
 	      TREE_TYPE (parm) = error_mark_node;
+	      arg_types = NULL_TREE;
 	    }
 
 	  if (DECL_NAME (parm) && TREE_USED (parm))
@@ -6297,6 +6317,11 @@ get_parm_info (bool ellipsis)
 	     type itself.  FUNCTION_DECLs appear when there is an implicit
 	     function declaration in the parameter list.  */
 
+	  /* When we reinsert this decl in the function body, we need
+	     to reconstruct whether it was marked as nested.  */
+	  gcc_assert (TREE_CODE (decl) == FUNCTION_DECL
+		      ? b->nested
+		      : !b->nested);
 	  TREE_CHAIN (decl) = others;
 	  others = decl;
 	  /* fall through */
@@ -7418,6 +7443,10 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
      error_mark_node is replaced below (in pop_scope) with the BLOCK.  */
   DECL_INITIAL (decl1) = error_mark_node;
 
+  /* A nested function is not global.  */
+  if (current_function_decl != 0)
+    TREE_PUBLIC (decl1) = 0;
+
   /* If this definition isn't a prototype and we had a prototype declaration
      before, copy the arg type info from that prototype.  */
   old_decl = lookup_name_in_scope (DECL_NAME (decl1), current_scope);
@@ -7518,10 +7547,6 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
      (This does not mean `static' in the C sense!)  */
   TREE_STATIC (decl1) = 1;
 
-  /* A nested function is not global.  */
-  if (current_function_decl != 0)
-    TREE_PUBLIC (decl1) = 0;
-
   /* This is the earliest point at which we might know the assembler
      name of the function.  Thus, if it's set before this, die horribly.  */
   gcc_assert (!DECL_ASSEMBLER_NAME_SET_P (decl1));
@@ -7618,7 +7643,9 @@ store_parm_decls_newstyle (tree fndecl, const struct c_arg_info *arg_info)
       DECL_CONTEXT (decl) = current_function_decl;
       if (DECL_NAME (decl))
 	bind (DECL_NAME (decl), decl, current_scope,
-	      /*invisible=*/false, /*nested=*/false, UNKNOWN_LOCATION);
+	      /*invisible=*/false,
+	      /*nested=*/(TREE_CODE (decl) == FUNCTION_DECL),
+	      UNKNOWN_LOCATION);
     }
 
   /* And all the tag declarations.  */
@@ -8045,6 +8072,25 @@ finish_function (void)
       warning (OPT_Wreturn_type,
 	       "no return statement in function returning non-void");
       TREE_NO_WARNING (fndecl) = 1;
+    }
+
+  /* Complain about parameters that are only set, but never otherwise used.  */
+  if (warn_unused_but_set_parameter)
+    {
+      tree decl;
+
+      for (decl = DECL_ARGUMENTS (fndecl);
+	   decl;
+	   decl = TREE_CHAIN (decl))
+	if (TREE_USED (decl)
+	    && TREE_CODE (decl) == PARM_DECL
+	    && !DECL_READ_P (decl)
+	    && DECL_NAME (decl)
+	    && !DECL_ARTIFICIAL (decl)
+	    && !TREE_NO_WARNING (decl))
+	  warning_at (DECL_SOURCE_LOCATION (decl),
+		      OPT_Wunused_but_set_parameter,
+		      "parameter %qD set but not used", decl);
     }
 
   /* Store the end of the function, so that we get good line number

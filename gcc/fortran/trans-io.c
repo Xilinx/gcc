@@ -1,5 +1,5 @@
 /* IO Code translation/library interface
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Paul Brook
 
@@ -620,7 +620,7 @@ gfc_convert_array_to_string (gfc_se * se, gfc_expr * e)
       return;
     }
 
-  gfc_conv_array_parameter (se, e, gfc_walk_expr (e), 1, NULL, NULL, &size);
+  gfc_conv_array_parameter (se, e, gfc_walk_expr (e), true, NULL, NULL, &size);
   se->string_length = fold_convert (gfc_charlen_type_node, size);
 }
 
@@ -1391,21 +1391,6 @@ gfc_trans_wait (gfc_code * code)
 
 }
 
-static gfc_expr *
-gfc_new_nml_name_expr (const char * name)
-{
-   gfc_expr * nml_name;
-
-   nml_name = gfc_get_expr();
-   nml_name->ref = NULL;
-   nml_name->expr_type = EXPR_CONSTANT;
-   nml_name->ts.kind = gfc_default_character_kind;
-   nml_name->ts.type = BT_CHARACTER;
-   nml_name->value.character.length = strlen(name);
-   nml_name->value.character.string = gfc_char_to_widechar (name);
-
-   return nml_name;
-}
 
 /* nml_full_name builds up the fully qualified name of a
    derived type component.  */
@@ -1776,7 +1761,9 @@ build_dt (tree function, gfc_code * code)
 	  if (dt->format_expr || dt->format_label)
 	    gfc_internal_error ("build_dt: format with namelist");
 
-	  nmlname = gfc_new_nml_name_expr (dt->namelist->name);
+          nmlname = gfc_get_character_expr (gfc_default_character_kind, NULL,
+					    dt->namelist->name,
+					    strlen (dt->namelist->name));
 
 	  mask |= set_string (&block, &post_block, var, IOPARM_dt_namelist_name,
 			      nmlname);
@@ -1811,7 +1798,23 @@ build_dt (tree function, gfc_code * code)
   dt_parm = var;
   dt_post_end_block = &post_end_block;
 
-  gfc_add_expr_to_block (&block, gfc_trans_code (code->block->next));
+  /* Set implied do loop exit condition.  */
+  if (last_dt == READ || last_dt == WRITE)
+    {
+      gfc_st_parameter_field *p = &st_parameter_field[IOPARM_common_flags];
+
+      tmp = fold_build3 (COMPONENT_REF, st_parameter[IOPARM_ptype_common].type,
+			 dt_parm, TYPE_FIELDS (TREE_TYPE (dt_parm)), NULL_TREE);
+      tmp = fold_build3 (COMPONENT_REF, TREE_TYPE (p->field),
+			  tmp, p->field, NULL_TREE);
+      tmp = fold_build2 (BIT_AND_EXPR, TREE_TYPE (tmp),
+			  tmp, build_int_cst (TREE_TYPE (tmp),
+			  IOPARM_common_libreturn_mask));
+    }
+  else /* IOLENGTH */
+    tmp = NULL_TREE;
+
+  gfc_add_expr_to_block (&block, gfc_trans_code_cond (code->block->next, tmp));
 
   gfc_add_block_to_block (&block, &post_iu_block);
 

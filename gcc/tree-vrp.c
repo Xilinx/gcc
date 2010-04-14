@@ -1,5 +1,6 @@
 /* Support routines for Value Range Propagation (VRP).
-   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>.
 
 This file is part of GCC.
@@ -1898,9 +1899,9 @@ vrp_int_const_binop (enum tree_code code, tree val1, tree val2)
 
   res = int_const_binop (code, val1, val2, 0);
 
-  /* If we are not using wrapping arithmetic, operate symbolically
-     on -INF and +INF.  */
-  if (TYPE_OVERFLOW_WRAPS (TREE_TYPE (val1)))
+  /* If we are using unsigned arithmetic, operate symbolically
+     on -INF and +INF as int_const_binop only handles signed overflow.  */
+  if (TYPE_UNSIGNED (TREE_TYPE (val1)))
     {
       int checkz = compare_values (res, val1);
       bool overflow = false;
@@ -1937,6 +1938,10 @@ vrp_int_const_binop (enum tree_code code, tree val1, tree val2)
 	}
 
     }
+  else if (TYPE_OVERFLOW_WRAPS (TREE_TYPE (val1)))
+    /* If the singed operation wraps then int_const_binop has done
+       everything we want.  */
+    ;
   else if ((TREE_OVERFLOW (res)
 	    && !TREE_OVERFLOW (val1)
 	    && !TREE_OVERFLOW (val2))
@@ -2710,8 +2715,16 @@ extract_range_from_unary_expr (value_range_t *vr, enum tree_code code,
 	   || vr0.type == VR_ANTI_RANGE)
 	  && TREE_CODE (vr0.min) == INTEGER_CST
 	  && TREE_CODE (vr0.max) == INTEGER_CST
-	  && !is_overflow_infinity (vr0.min)
-	  && !is_overflow_infinity (vr0.max)
+	  && (!is_overflow_infinity (vr0.min)
+	      || (vr0.type == VR_RANGE
+		  && TYPE_PRECISION (outer_type) > TYPE_PRECISION (inner_type)
+		  && needs_overflow_infinity (outer_type)
+		  && supports_overflow_infinity (outer_type)))
+	  && (!is_overflow_infinity (vr0.max)
+	      || (vr0.type == VR_RANGE
+		  && TYPE_PRECISION (outer_type) > TYPE_PRECISION (inner_type)
+		  && needs_overflow_infinity (outer_type)
+		  && supports_overflow_infinity (outer_type)))
 	  && (TYPE_PRECISION (outer_type) >= TYPE_PRECISION (inner_type)
 	      || (vr0.type == VR_RANGE
 		  && integer_zerop (int_const_binop (RSHIFT_EXPR,
@@ -2725,6 +2738,10 @@ extract_range_from_unary_expr (value_range_t *vr, enum tree_code code,
 	  new_max = force_fit_type_double (outer_type,
 					   TREE_INT_CST_LOW (vr0.max),
 					   TREE_INT_CST_HIGH (vr0.max), 0, 0);
+	  if (is_overflow_infinity (vr0.min))
+	    new_min = negative_overflow_infinity (outer_type);
+	  if (is_overflow_infinity (vr0.max))
+	    new_max = positive_overflow_infinity (outer_type);
 	  set_and_canonicalize_value_range (vr, vr0.type,
 					    new_min, new_max, NULL);
 	  return;
@@ -3276,7 +3293,8 @@ vrp_var_may_overflow (tree var, gimple stmt)
     return true;
 
   l = loop_containing_stmt (stmt);
-  if (l == NULL)
+  if (l == NULL
+      || !loop_outer (l))
     return true;
 
   chrec = instantiate_parameters (l, analyze_scalar_evolution (l, var));
@@ -4831,6 +4849,10 @@ process_assert_insertions_for (tree name, assert_locus_t loc)
   edge_iterator ei;
   edge e;
 
+  /* If we have X <=> X do not insert an assert expr for that.  */
+  if (loc->expr == loc->val)
+    return false;
+
   cond = build2 (loc->comp_code, boolean_type_node, loc->expr, loc->val);
   assert_stmt = build_assert_expr_for (cond, name);
   if (loc->e)
@@ -4976,23 +4998,46 @@ check_array_ref (location_t location, tree ref, bool ignore_off_by_one)
 {
   value_range_t* vr = NULL;
   tree low_sub, up_sub;
-  tree low_bound, up_bound = array_ref_up_bound (ref);
+  tree low_bound, up_bound, up_bound_p1;
+  tree base;
 
-  low_sub = up_sub = TREE_OPERAND (ref, 1);
-
-  if (!up_bound || TREE_NO_WARNING (ref)
-      || TREE_CODE (up_bound) != INTEGER_CST
-      /* Can not check flexible arrays.  */
-      || (TYPE_SIZE (TREE_TYPE (ref)) == NULL_TREE
-          && TYPE_DOMAIN (TREE_TYPE (ref)) != NULL_TREE
-          && TYPE_MAX_VALUE (TYPE_DOMAIN (TREE_TYPE (ref))) == NULL_TREE)
-      /* Accesses after the end of arrays of size 0 (gcc
-         extension) and 1 are likely intentional ("struct
-         hack").  */
-      || compare_tree_int (up_bound, 1) <= 0)
+  if (TREE_NO_WARNING (ref))
     return;
 
+  low_sub = up_sub = TREE_OPERAND (ref, 1);
+  up_bound = array_ref_up_bound (ref);
+
+  /* Can not check flexible arrays.  */
+  if (!up_bound
+      || TREE_CODE (up_bound) != INTEGER_CST)
+    return;
+
+  /* Accesses to trailing arrays via pointers may access storage
+     beyond the types array bounds.  */
+  base = get_base_address (ref);
+  if (base
+      && INDIRECT_REF_P (base))
+    {
+      tree cref, next = NULL_TREE;
+
+      if (TREE_CODE (TREE_OPERAND (ref, 0)) != COMPONENT_REF)
+	return;
+
+      cref = TREE_OPERAND (ref, 0);
+      if (TREE_CODE (TREE_TYPE (TREE_OPERAND (cref, 0))) == RECORD_TYPE)
+	for (next = TREE_CHAIN (TREE_OPERAND (cref, 1));
+	     next && TREE_CODE (next) != FIELD_DECL;
+	     next = TREE_CHAIN (next))
+	  ;
+
+      /* If this is the last field in a struct type or a field in a
+	 union type do not warn.  */
+      if (!next)
+	return;
+    }
+
   low_bound = array_ref_low_bound (ref);
+  up_bound_p1 = int_const_binop (PLUS_EXPR, up_bound, integer_one_node, 0);
 
   if (TREE_CODE (low_sub) == SSA_NAME)
     {
@@ -5017,14 +5062,11 @@ check_array_ref (location_t location, tree ref, bool ignore_off_by_one)
         }
     }
   else if (TREE_CODE (up_sub) == INTEGER_CST
-           && tree_int_cst_lt (up_bound, up_sub)
-           && !tree_int_cst_equal (up_bound, up_sub)
-           && (!ignore_off_by_one
-               || !tree_int_cst_equal (int_const_binop (PLUS_EXPR,
-                                                        up_bound,
-                                                        integer_one_node,
-                                                        0),
-                                       up_sub)))
+	   && (ignore_off_by_one
+	       ? (tree_int_cst_lt (up_bound, up_sub)
+		  && !tree_int_cst_equal (up_bound_p1, up_sub))
+	       : (tree_int_cst_lt (up_bound, up_sub)
+		  || tree_int_cst_equal (up_bound_p1, up_sub))))
     {
       warning_at (location, OPT_Warray_bounds,
 		  "array subscript is above array bounds");
@@ -5338,19 +5380,12 @@ vrp_visit_assignment_or_call (gimple stmt, tree *output_p)
 	   && TYPE_MAX_VALUE (TREE_TYPE (lhs)))
 	  || POINTER_TYPE_P (TREE_TYPE (lhs))))
     {
-      struct loop *l;
       value_range_t new_vr = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
 
       if (code == GIMPLE_CALL)
 	extract_range_basic (&new_vr, stmt);
       else
 	extract_range_from_assignment (&new_vr, stmt);
-
-      /* If STMT is inside a loop, we may be able to know something
-	 else about the range of LHS by examining scalar evolution
-	 information.  */
-      if (current_loops && (l = loop_containing_stmt (stmt)))
-	adjust_range_with_scev (&new_vr, l, stmt, lhs);
 
       if (update_value_range (lhs, &new_vr))
 	{
@@ -6255,6 +6290,7 @@ vrp_visit_phi_node (gimple phi)
   value_range_t *lhs_vr = get_value_range (lhs);
   value_range_t vr_result = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
   int edges, old_edges;
+  struct loop *l;
 
   copy_value_range (&vr_result, lhs_vr);
 
@@ -6317,6 +6353,13 @@ vrp_visit_phi_node (gimple phi)
 	    break;
 	}
     }
+
+  /* If this is a loop PHI node SCEV may known more about its
+     value-range.  */
+  if (current_loops
+      && (l = loop_containing_stmt (phi))
+      && l->header == gimple_bb (phi))
+    adjust_range_with_scev (&vr_result, l, phi, lhs);
 
   if (vr_result.type == VR_VARYING)
     goto varying;

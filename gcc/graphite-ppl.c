@@ -1,5 +1,5 @@
 /* Gimple Represented as Polyhedra.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@amd.com>
    and Tobias Grosser <grosser@fim.uni-passau.de>
 
@@ -591,10 +591,14 @@ void
 ppl_print_powerset_matrix (FILE *file,
 			   ppl_Pointset_Powerset_C_Polyhedron_t ps)
 {
+  size_t nb_disjuncts;
   ppl_Pointset_Powerset_C_Polyhedron_iterator_t it, end;
 
   ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&it);
   ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&end);
+
+  ppl_Pointset_Powerset_C_Polyhedron_size (ps, &nb_disjuncts);
+  fprintf (file, "%d\n", (int) nb_disjuncts);
 
   for (ppl_Pointset_Powerset_C_Polyhedron_iterator_begin (ps, it),
        ppl_Pointset_Powerset_C_Polyhedron_iterator_end (ps, end);
@@ -673,18 +677,18 @@ ppl_max_for_le_pointset (ppl_Pointset_Powerset_C_Polyhedron_t ps,
    polyhedron POL.  */
 
 void
-ppl_min_for_le_polyhedron (ppl_Polyhedron_t pol,
-			   ppl_Linear_Expression_t le, Value res)
+ppl_min_for_le_pointset (ppl_Pointset_Powerset_C_Polyhedron_t ps,
+			 ppl_Linear_Expression_t le, Value res)
 {
   ppl_Coefficient_t num, denom;
   Value dv, nv;
-  int maximum, err;
+  int minimum, err;
 
   value_init (nv);
   value_init (dv);
   ppl_new_Coefficient (&num);
   ppl_new_Coefficient (&denom);
-  err = ppl_Polyhedron_minimize (pol, le, num, denom, &maximum);
+  err = ppl_Pointset_Powerset_C_Polyhedron_minimize (ps, le, num, denom, &minimum);
 
   if (err > 0)
     {

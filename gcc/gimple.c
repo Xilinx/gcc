@@ -198,6 +198,21 @@ gimple_build_return (tree retval)
   return s;
 }
 
+/* Reset alias information on call S.  */
+
+void
+gimple_call_reset_alias_info (gimple s)
+{
+  if (gimple_call_flags (s) & ECF_CONST)
+    memset (gimple_call_use_set (s), 0, sizeof (struct pt_solution));
+  else
+    pt_solution_reset (gimple_call_use_set (s));
+  if (gimple_call_flags (s) & (ECF_CONST|ECF_PURE|ECF_NOVOPS))
+    memset (gimple_call_clobber_set (s), 0, sizeof (struct pt_solution));
+  else
+    pt_solution_reset (gimple_call_clobber_set (s));
+}
+
 /* Helper for gimple_build_call, gimple_build_call_vec and
    gimple_build_call_from_tree.  Build the basic components of a
    GIMPLE_CALL statement to function FN with NARGS arguments.  */
@@ -209,6 +224,7 @@ gimple_build_call_1 (tree fn, unsigned nargs)
   if (TREE_CODE (fn) == FUNCTION_DECL)
     fn = build_fold_addr_expr (fn);
   gimple_set_op (s, 1, fn);
+  gimple_call_reset_alias_info (s);
   return s;
 }
 
@@ -1334,11 +1350,15 @@ walk_gimple_op (gimple stmt, walk_tree_fn callback_op,
   switch (gimple_code (stmt))
     {
     case GIMPLE_ASSIGN:
-      /* Walk the RHS operands.  A formal temporary LHS may use a
-	 COMPONENT_REF RHS.  */
+      /* Walk the RHS operands.  If the LHS is of a non-renamable type or
+         is a register variable, we may use a COMPONENT_REF on the RHS.  */
       if (wi)
-	wi->val_only = !is_gimple_reg (gimple_assign_lhs (stmt))
-                       || !gimple_assign_single_p (stmt);
+	{
+	  tree lhs = gimple_assign_lhs (stmt);
+	  wi->val_only
+	    = (is_gimple_reg_type (TREE_TYPE (lhs)) && !is_gimple_reg (lhs))
+	      || !gimple_assign_single_p (stmt);
+	}
 
       for (i = 1; i < gimple_num_ops (stmt); i++)
 	{
@@ -1891,54 +1911,6 @@ gimple_set_bb (gimple stmt, basic_block bb)
 
       VEC_replace (basic_block, label_to_block_map, uid, bb);
     }
-}
-
-
-/* Fold the expression computed by STMT.  If the expression can be
-   folded, return the folded result, otherwise return NULL.  STMT is
-   not modified.  */
-
-tree
-gimple_fold (const_gimple stmt)
-{
-  location_t loc = gimple_location (stmt);
-  switch (gimple_code (stmt))
-    {
-    case GIMPLE_COND:
-      return fold_binary_loc (loc, gimple_cond_code (stmt),
-			  boolean_type_node,
-			  gimple_cond_lhs (stmt),
-			  gimple_cond_rhs (stmt));
-
-    case GIMPLE_ASSIGN:
-      switch (get_gimple_rhs_class (gimple_assign_rhs_code (stmt)))
-	{
-	case GIMPLE_UNARY_RHS:
-	  return fold_unary_loc (loc, gimple_assign_rhs_code (stmt),
-			     TREE_TYPE (gimple_assign_lhs (stmt)),
-			     gimple_assign_rhs1 (stmt));
-	case GIMPLE_BINARY_RHS:
-	  return fold_binary_loc (loc, gimple_assign_rhs_code (stmt),
-			      TREE_TYPE (gimple_assign_lhs (stmt)),
-			      gimple_assign_rhs1 (stmt),
-			      gimple_assign_rhs2 (stmt));
-	case GIMPLE_SINGLE_RHS:
-	  return fold (gimple_assign_rhs1 (stmt));
-	default:;
-	}
-      break;
-
-    case GIMPLE_SWITCH:
-      return gimple_switch_index (stmt);
-
-    case GIMPLE_CALL:
-      return NULL_TREE;
-
-    default:
-      break;
-    }
-
-  gcc_unreachable ();
 }
 
 
@@ -4653,9 +4625,9 @@ gimple_ior_addresses_taken_1 (gimple stmt ATTRIBUTE_UNUSED,
 			      tree addr, void *data)
 {
   bitmap addresses_taken = (bitmap)data;
-  while (handled_component_p (addr))
-    addr = TREE_OPERAND (addr, 0);
-  if (DECL_P (addr))
+  addr = get_base_address (addr);
+  if (addr
+      && DECL_P (addr))
     {
       bitmap_set_bit (addresses_taken, DECL_UID (addr));
       return true;

@@ -802,13 +802,15 @@ create_access (tree expr, gimple stmt, bool write)
 
 
 /* Return true iff TYPE is a RECORD_TYPE with fields that are either of gimple
-   register types or (recursively) records with only these two kinds of
-   fields.  */
+   register types or (recursively) records with only these two kinds of fields.
+   It also returns false if any of these records has a zero-size field as its
+   last field.  */
 
 static bool
 type_consists_of_records_p (tree type)
 {
   tree fld;
+  bool last_fld_has_zero_size = false;
 
   if (TREE_CODE (type) != RECORD_TYPE)
     return false;
@@ -821,7 +823,13 @@ type_consists_of_records_p (tree type)
 	if (!is_gimple_reg_type (ft)
 	    && !type_consists_of_records_p (ft))
 	  return false;
+
+	last_fld_has_zero_size = tree_low_cst (DECL_SIZE (fld), 1) == 0;
       }
+
+  if (last_fld_has_zero_size)
+    return false;
+
   return true;
 }
 
@@ -1058,7 +1066,9 @@ static bool
 asm_visit_addr (gimple stmt ATTRIBUTE_UNUSED, tree op,
 		void *data ATTRIBUTE_UNUSED)
 {
-  if (DECL_P (op))
+  op = get_base_address (op);
+  if (op
+      && DECL_P (op))
     disqualify_candidate (op, "Non-scalarizable GIMPLE_ASM operand.");
 
   return false;
@@ -1432,7 +1442,7 @@ build_ref_for_offset_1 (tree *res, tree type, HOST_WIDE_INT offset,
 	  el_size = tree_low_cst (tr_size, 1);
 
 	  minidx = TYPE_MIN_VALUE (TYPE_DOMAIN (type));
-	  if (TREE_CODE (minidx) != INTEGER_CST)
+	  if (TREE_CODE (minidx) != INTEGER_CST || el_size == 0)
 	    return false;
 	  if (res)
 	    {
@@ -1656,6 +1666,7 @@ create_access_replacement (struct access *access)
 
   DECL_SOURCE_LOCATION (repl) = DECL_SOURCE_LOCATION (access->base);
   DECL_ARTIFICIAL (repl) = 1;
+  DECL_IGNORED_P (repl) = DECL_IGNORED_P (access->base);
 
   if (DECL_NAME (access->base)
       && !DECL_IGNORED_P (access->base)
@@ -1668,11 +1679,10 @@ create_access_replacement (struct access *access)
 
       SET_DECL_DEBUG_EXPR (repl, access->expr);
       DECL_DEBUG_EXPR_IS_FROM (repl) = 1;
-      DECL_IGNORED_P (repl) = 0;
+      TREE_NO_WARNING (repl) = TREE_NO_WARNING (access->base);
     }
-
-  DECL_IGNORED_P (repl) = DECL_IGNORED_P (access->base);
-  TREE_NO_WARNING (repl) = TREE_NO_WARNING (access->base);
+  else
+    TREE_NO_WARNING (repl) = 1;
 
   if (dump_file)
     {
@@ -2983,7 +2993,7 @@ find_param_candidates (void)
 
       if (TREE_THIS_VOLATILE (parm)
 	  || TREE_ADDRESSABLE (parm)
-	  || is_va_list_type (type))
+	  || (!is_gimple_reg_type (type) && is_va_list_type (type)))
 	continue;
 
       if (is_unused_scalar_param (parm))
@@ -4040,6 +4050,26 @@ convert_callers (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
   return;
 }
 
+/* Create an abstract origin declaration for OLD_DECL and make it an abstract
+   origin of the provided decl so that there are preserved parameters for debug
+   information.  */
+
+static void
+create_abstract_origin (tree old_decl)
+{
+  if (!DECL_ABSTRACT_ORIGIN (old_decl))
+    {
+      tree new_decl = copy_node (old_decl);
+
+      DECL_ABSTRACT (new_decl) = 1;
+      SET_DECL_ASSEMBLER_NAME (new_decl, NULL_TREE);
+      SET_DECL_RTL (new_decl, NULL);
+      DECL_STRUCT_FUNCTION (new_decl) = NULL;
+      DECL_ARTIFICIAL (old_decl) = 1;
+      DECL_ABSTRACT_ORIGIN (old_decl) = new_decl;
+    }
+}
+
 /* Perform all the modification required in IPA-SRA for NODE to have parameters
    as given in ADJUSTMENTS.  */
 
@@ -4051,6 +4081,7 @@ modify_function (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
     ipa_modify_formal_parameters (alias->decl, adjustments, "ISRA");
   /* current_function_decl must be handled last, after same_body aliases,
      as following functions will use what it computed.  */
+  create_abstract_origin (current_function_decl);
   ipa_modify_formal_parameters (current_function_decl, adjustments, "ISRA");
   scan_function (sra_ipa_modify_expr, sra_ipa_modify_assign,
 		 replace_removed_params_ssa_names, false, adjustments);

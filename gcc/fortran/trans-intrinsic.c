@@ -1,5 +1,5 @@
 /* Intrinsic translation
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
    and Steven Bosscher <s.bosscher@student.tudelft.nl>
@@ -4684,7 +4684,8 @@ gfc_conv_same_type_as (gfc_se *se, gfc_expr *expr)
       gfc_add_component_ref (a, "$hash");
     }
   else if (a->ts.type == BT_DERIVED)
-    a = gfc_int_expr (a->ts.u.derived->hash_value);
+    a = gfc_get_int_expr (gfc_default_integer_kind, NULL,
+			  a->ts.u.derived->hash_value);
 
   if (b->ts.type == BT_CLASS)
     {
@@ -4692,7 +4693,8 @@ gfc_conv_same_type_as (gfc_se *se, gfc_expr *expr)
       gfc_add_component_ref (b, "$hash");
     }
   else if (b->ts.type == BT_DERIVED)
-    b = gfc_int_expr (b->ts.u.derived->hash_value);
+    b = gfc_get_int_expr (gfc_default_integer_kind, NULL,
+			  b->ts.u.derived->hash_value);
 
   gfc_conv_expr (&se1, a);
   gfc_conv_expr (&se2, b);
@@ -4997,7 +4999,7 @@ gfc_conv_intrinsic_loc (gfc_se * se, gfc_expr * expr)
   if (ss == gfc_ss_terminator)
     gfc_conv_expr_reference (se, arg_expr);
   else
-    gfc_conv_array_parameter (se, arg_expr, ss, 1, NULL, NULL, NULL);
+    gfc_conv_array_parameter (se, arg_expr, ss, true, NULL, NULL, NULL);
   se->expr= convert (gfc_get_int_type (gfc_index_integer_kind), se->expr);
    
   /* Create a temporary variable for loc return value.  Without this, 

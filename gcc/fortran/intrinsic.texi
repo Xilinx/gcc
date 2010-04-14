@@ -1,5 +1,5 @@
 @ignore
-Copyright (C) 2005, 2006, 2007, 2008, 2009
+Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
 Free Software Foundation, Inc.
 This is part of the GNU Fortran manual.   
 For copying conditions, see the file gfortran.texi.
@@ -204,6 +204,7 @@ Some basic guidelines for editing this document:
 * @code{NINT}:          NINT,      Nearest whole number
 * @code{NOT}:           NOT,       Logical negation
 * @code{NULL}:          NULL,      Function that returns an disassociated pointer
+* @code{NUM_IMAGES}:    NUM_IMAGES, Number of images
 * @code{OR}:            OR,        Bitwise logical OR
 * @code{PACK}:          PACK,      Pack an array into an array of rank one
 * @code{PERROR}:        PERROR,    Print system error message
@@ -7558,8 +7559,8 @@ Transformational function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER},
-@code{REAL}, or @code{CHARACTER}.
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER} or
+@code{REAL}.
 @item @var{DIM}   @tab (Optional) Shall be a scalar of type
 @code{INTEGER}, with a value between one and the rank of @var{ARRAY},
 inclusive.  It may not be an optional dummy argument.
@@ -7614,8 +7615,8 @@ Transformational function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER},
-@code{REAL}, or @code{CHARACTER}.
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER} or
+@code{REAL}.
 @item @var{DIM}   @tab (Optional) Shall be a scalar of type
 @code{INTEGER}, with a value between one and the rank of @var{ARRAY},
 inclusive.  It may not be an optional dummy argument.
@@ -7869,8 +7870,8 @@ Transformational function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER},
-@code{REAL}, or @code{CHARACTER}.
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER} or
+@code{REAL}.
 @item @var{DIM}   @tab (Optional) Shall be a scalar of type
 @code{INTEGER}, with a value between one and the rank of @var{ARRAY},
 inclusive.  It may not be an optional dummy argument.
@@ -7925,8 +7926,8 @@ Transformational function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER},
-@code{REAL}, or @code{CHARACTER}.
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER} or
+@code{REAL}.
 @item @var{DIM}   @tab (Optional) Shall be a scalar of type
 @code{INTEGER}, with a value between one and the rank of @var{ARRAY},
 inclusive.  It may not be an optional dummy argument.
@@ -8371,6 +8372,49 @@ REAL, POINTER, DIMENSION(:) :: VEC => NULL ()
 
 @item @emph{See also}:
 @ref{ASSOCIATED}
+@end table
+
+
+
+@node NUM_IMAGES
+@section @code{NUM_IMAGES} --- Function that returns the number of images
+@fnindex NUM_IMAGES
+@cindex coarray, NUM_IMAGES
+@cindex images, number of
+
+@table @asis
+@item @emph{Description}:
+Returns the number of images.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Transformational function
+
+@item @emph{Syntax}:
+@code{RESULT = NUM_IMAGES()}
+
+@item @emph{Arguments}: None.
+
+@item @emph{Return value}:
+Scalar default-kind integer.
+
+@item @emph{Example}:
+@smallexample
+INTEGER :: value[*]
+INTEGER :: i
+value = THIS_IMAGE()
+SYNC ALL
+IF (THIS_IMAGE() == 1) THEN
+  DO i = 1, NUM_IMAGES()
+    WRITE(*,'(2(a,i0))') 'value[', i, '] is ', value[i]
+  END DO
+END IF
+@end smallexample
+
+@item @emph{See also}:
+@c FIXME: ref{THIS_IMAGE}
 @end table
 
 
@@ -11237,14 +11281,21 @@ Fortran 95 elemental function: @ref{IEOR}
 @section @code{ISO_FORTRAN_ENV}
 @table @asis
 @item @emph{Standard}:
-Fortran 2003 and later; @code{INT8}, @code{INT16}, @code{INT32}, @code{INT64},
-@code{REAL32}, @code{REAL64}, @code{REAL128} are Fortran 2008 or later
+Fortran 2003 and later, except when otherwise noted
 @end table
 
 The @code{ISO_FORTRAN_ENV} module provides the following scalar default-integer
 named constants:
 
 @table @asis
+@item @code{ATOMIC_INT_KIND}:
+Default-kind integer constant to be used as kind parameter when defining
+integer variables used in atomic operations. (Fortran 2008 or later.)
+
+@item @code{ATOMIC_LOGICAL_KIND}:
+Default-kind integer constant to be used as kind parameter when defining
+logical variables used in atomic operations. (Fortran 2008 or later.)
+
 @item @code{CHARACTER_STORAGE_SIZE}:
 Size in bits of the character storage unit.
 
@@ -11258,10 +11309,10 @@ Size in bits of the file-storage unit.
 Identifies the preconnected unit identified by the asterisk
 (@code{*}) in @code{READ} statement.
 
-@item @code{INT8}, @code{INT16}, @code{INT32}, @code{INT64}
+@item @code{INT8}, @code{INT16}, @code{INT32}, @code{INT64}:
 Kind type parameters to specify an INTEGER type with a storage
 size of 16, 32, and 64 bits. It is negative if a target platform
-does not support the particular kind.
+does not support the particular kind. (Fortran 2008 or later.)
 
 @item @code{IOSTAT_END}:
 The value assigned to the variable passed to the IOSTAT= specifier of
@@ -11271,6 +11322,11 @@ an input/output statement if an end-of-file condition occurred.
 The value assigned to the variable passed to the IOSTAT= specifier of
 an input/output statement if an end-of-record condition occurred.
 
+@item @code{IOSTAT_INQUIRE_INTERNAL_UNIT}:
+Scalar default-integer constant, used by @code{INQUIRE} for the
+IOSTAT= specifier to denote an that a unit number identifies an
+internal unit. (Fortran 2008 or later.)
+
 @item @code{NUMERIC_STORAGE_SIZE}:
 The size in bits of the numeric storage unit.
 
@@ -11278,10 +11334,29 @@ The size in bits of the numeric storage unit.
 Identifies the preconnected unit identified by the asterisk
 (@code{*}) in @code{WRITE} statement.
 
-@item @code{REAL32}, @code{REAL64}, @code{REAL128}
+@item @code{REAL32}, @code{REAL64}, @code{REAL128}:
 Kind type parameters to specify a REAL type with a storage
 size of 32, 64, and 128 bits. It is negative if a target platform
-does not support the particular kind.
+does not support the particular kind. (Fortran 2008 or later.)
+
+@item @code{STAT_LOCKED}:
+Scalar default-integer constant used as STAT= return value by @code{LOCK} to
+denote that the lock variable is locked by the executing image. (Fortran 2008
+or later.)
+
+@item @code{STAT_LOCKED_OTHER_IMAGE}:
+Scalar default-integer constant used as STAT= return value by @code{UNLOCK} to
+denote that the lock variable is locked by another image. (Fortran 2008 or
+later.)
+
+@item @code{STAT_STOPPED_IMAGE}:
+Positive, scalar default-integer constant used as STAT= return value if the
+argument in the statement requires synchronisation with an image, which has
+initiated the termination of the execution. (Fortran 2008 or later.)
+
+@item @code{STAT_UNLOCKED}:
+Scalar default-integer constant used as STAT= return value by @code{UNLOCK} to
+denote that the lock variable is unlocked. (Fortran 2008 or later.)
 @end table
 
 

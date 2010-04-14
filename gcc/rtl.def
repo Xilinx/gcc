@@ -2,7 +2,7 @@
    Register Transfer Expressions (rtx's) that make up the
    Register Transfer Language (rtl) used in the Back End of the GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1994, 1995, 1997, 1998, 1999, 2000, 2004,
-   2005, 2006, 2007, 2008, 2009
+   2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -486,7 +486,7 @@ DEF_RTL_EXPR(UMAX, "umax", "ee", RTX_COMM_ARITH)
    because they can be understood from the machine-mode of the
    containing MEM.  These operations exist in only two cases:
    1. pushes onto the stack.
-   2. created automatically by the life_analysis pass in flow.c.  */
+   2. created automatically by the auto-inc-dec pass.  */
 DEF_RTL_EXPR(PRE_DEC, "pre_dec", "e", RTX_AUTOINC)
 DEF_RTL_EXPR(PRE_INC, "pre_inc", "e", RTX_AUTOINC)
 DEF_RTL_EXPR(POST_DEC, "post_dec", "e", RTX_AUTOINC)

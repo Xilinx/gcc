@@ -1,6 +1,6 @@
 /* Conditional constant propagation pass for the GNU compiler.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
-   Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+   2010 Free Software Foundation, Inc.
    Adapted from original RTL SSA-CCP by Daniel Berlin <dberlin@dberlin.org>
    Adapted to GIMPLE trees by Diego Novillo <dnovillo@redhat.com>
 
@@ -557,6 +557,9 @@ likely_value (gimple stmt)
       if (is_gimple_min_invariant (op))
 	has_constant_operand = true;
     }
+
+  if (has_constant_operand)
+    all_undefined_operands = false;
 
   /* If the operation combines operands like COMPLEX_EXPR make sure to
      not mark the result UNDEFINED if only one part of the result is
@@ -1977,7 +1980,7 @@ maybe_fold_offset_to_component_ref (location_t loc, tree record_type,
       if (cmp == 0
 	  && useless_type_conversion_p (orig_type, field_type))
 	{
-	  t = build3 (COMPONENT_REF, field_type, base, f, NULL_TREE);
+	  t = fold_build3 (COMPONENT_REF, field_type, base, f, NULL_TREE);
 	  return t;
 	}
 
@@ -2001,7 +2004,7 @@ maybe_fold_offset_to_component_ref (location_t loc, tree record_type,
 
       /* If we matched, then set offset to the displacement into
 	 this field.  */
-      new_base = build3 (COMPONENT_REF, field_type, base, f, NULL_TREE);
+      new_base = fold_build3 (COMPONENT_REF, field_type, base, f, NULL_TREE);
       SET_EXPR_LOCATION (new_base, loc);
 
       /* Recurse to possibly find the match.  */
@@ -2024,7 +2027,7 @@ maybe_fold_offset_to_component_ref (location_t loc, tree record_type,
 
   /* If we get here, we've got an aggregate field, and a possibly
      nonzero offset into them.  Recurse and hope for a valid match.  */
-  base = build3 (COMPONENT_REF, field_type, base, f, NULL_TREE);
+  base = fold_build3 (COMPONENT_REF, field_type, base, f, NULL_TREE);
   SET_EXPR_LOCATION (base, loc);
 
   t = maybe_fold_offset_to_array_ref (loc, base, offset, orig_type,
@@ -3203,7 +3206,10 @@ optimize_stack_restore (gimple_stmt_iterator i)
 	continue;
 
       callee = gimple_call_fndecl (stmt);
-      if (!callee || DECL_BUILT_IN_CLASS (callee) != BUILT_IN_NORMAL)
+      if (!callee
+	  || DECL_BUILT_IN_CLASS (callee) != BUILT_IN_NORMAL
+	  /* All regular builtins are ok, just obviously not alloca.  */
+	  || DECL_FUNCTION_CODE (callee) == BUILT_IN_ALLOCA)
 	return NULL_TREE;
 
       if (DECL_FUNCTION_CODE (callee) == BUILT_IN_STACK_RESTORE)
@@ -3348,6 +3354,7 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
   gimple_stmt_iterator i;
   gimple_seq stmts = gimple_seq_alloc();
   struct gimplify_ctx gctx;
+  gimple last = NULL;
 
   stmt = gsi_stmt (*si_p);
 
@@ -3369,22 +3376,31 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
 
   /* The replacement can expose previously unreferenced variables.  */
   for (i = gsi_start (stmts); !gsi_end_p (i); gsi_next (&i))
-  {
-    new_stmt = gsi_stmt (i);
-    find_new_referenced_vars (new_stmt);
-    gsi_insert_before (si_p, new_stmt, GSI_NEW_STMT);
-    mark_symbols_for_renaming (new_stmt);
-    gsi_next (si_p);
-  }
+    {
+      if (last)
+	{
+	  gsi_insert_before (si_p, last, GSI_NEW_STMT);
+	  gsi_next (si_p);
+	}
+      new_stmt = gsi_stmt (i);
+      find_new_referenced_vars (new_stmt);
+      mark_symbols_for_renaming (new_stmt);
+      last = new_stmt;
+    }
 
   if (lhs == NULL_TREE)
     {
-      new_stmt = gimple_build_nop ();
       unlink_stmt_vdef (stmt);
       release_defs (stmt);
+      new_stmt = last;
     }
   else
     {
+      if (last)
+	{
+	  gsi_insert_before (si_p, last, GSI_NEW_STMT);
+	  gsi_next (si_p);
+	}
       new_stmt = gimple_build_assign (lhs, tmp);
       gimple_set_vuse (new_stmt, gimple_vuse (stmt));
       gimple_set_vdef (new_stmt, gimple_vdef (stmt));

@@ -1,6 +1,6 @@
 /* Definitions for C parsing and type checking.
    Copyright (C) 1987, 1993, 1994, 1995, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -511,7 +511,10 @@ extern bool c_mark_addressable (tree);
 extern void c_incomplete_type_error (const_tree, const_tree);
 extern tree c_type_promotes_to (tree);
 extern struct c_expr default_function_array_conversion (location_t,
-    							struct c_expr);
+							struct c_expr);
+extern struct c_expr default_function_array_read_conversion (location_t,
+							     struct c_expr);
+extern void mark_exp_read (tree);
 extern tree composite_type (tree, tree);
 extern tree build_component_ref (location_t, tree, tree);
 extern tree build_array_ref (location_t, tree, tree);
@@ -609,8 +612,8 @@ extern void c_write_global_declarations (void);
 extern void pedwarn_c90 (location_t, int opt, const char *, ...) ATTRIBUTE_GCC_CDIAG(3,4);
 extern void pedwarn_c99 (location_t, int opt, const char *, ...) ATTRIBUTE_GCC_CDIAG(3,4);
 
-extern bool c_cpp_error (cpp_reader *, int, location_t, unsigned int,
+extern bool c_cpp_error (cpp_reader *, int, int, location_t, unsigned int,
 			 const char *, va_list *)
-     ATTRIBUTE_GCC_CDIAG(5,0);
+     ATTRIBUTE_GCC_CDIAG(6,0);
 
 #endif /* ! GCC_C_TREE_H */

@@ -1,5 +1,6 @@
 /* Callgraph based analysis of static variables.
-   Copyright (C) 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
@@ -159,7 +160,7 @@ check_decl (funct_state local,
 
   /* If the variable has the "used" attribute, treat it as if it had a
      been touched by the devil.  */
-  if (lookup_attribute ("used", DECL_ATTRIBUTES (t)))
+  if (DECL_PRESERVE_P (t))
     {
       local->pure_const_state = IPA_NEITHER;
       if (dump_file)

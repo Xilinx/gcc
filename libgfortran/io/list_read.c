@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009
+/* Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    Namelist input contributed by Paul Thomas
@@ -1735,9 +1735,6 @@ list_formatted_read_scalar (st_parameter_dt *dtp, volatile bt type, void *p,
       if (dtp->u.p.input_complete)
 	goto cleanup;
 
-      if (dtp->u.p.input_complete)
-	goto cleanup;
-
       if (dtp->u.p.at_eol)
 	finish_separator (dtp);
       else
@@ -2093,6 +2090,14 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 	      break;
 	    }
 	}
+
+      if (is_array_section == 1 && dtp->u.p.expanded_read == 1)
+     	{
+	  int i;
+	  dtp->u.p.expanded_read = 0;
+	  for (i = 0; i < dim; i++)
+	    ls[i].end = ls[i].start;
+      	}
 
       /* Check the values of the triplet indices.  */
       if ((ls[dim].start > (ssize_t) GFC_DIMENSION_UBOUND(ad[dim]))

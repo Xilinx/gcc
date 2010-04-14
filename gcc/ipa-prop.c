@@ -1,5 +1,6 @@
 /* Interprocedural analyses.
-   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -198,7 +199,9 @@ visit_store_addr_for_mod_analysis (gimple stmt ATTRIBUTE_UNUSED,
 {
   struct ipa_node_params *info = (struct ipa_node_params *) data;
 
-  if (TREE_CODE (op) == PARM_DECL)
+  op = get_base_address (op);
+  if (op
+      && TREE_CODE (op) == PARM_DECL)
     {
       int index = ipa_get_param_decl_index (info, op);
       gcc_assert (index >= 0);
@@ -288,6 +291,13 @@ ipa_print_node_jump_functions (FILE *f, struct cgraph_node *node)
 	      tree val = jump_func->value.constant;
 	      fprintf (f, "CONST: ");
 	      print_generic_expr (f, val, 0);
+	      if (TREE_CODE (val) == ADDR_EXPR
+		  && TREE_CODE (TREE_OPERAND (val, 0)) == CONST_DECL)
+		{
+		  fprintf (f, " -> ");
+		  print_generic_expr (f, DECL_INITIAL (TREE_OPERAND (val, 0)),
+						       0);
+		}
 	      fprintf (f, "\n");
 	    }
 	  else if (type == IPA_JF_CONST_MEMBER_PTR)
@@ -745,8 +755,6 @@ ipa_note_param_call (struct ipa_node_params *info, int formal_id,
 {
   struct ipa_param_call_note *note;
   basic_block bb = gimple_bb (stmt);
-
-  info->params[formal_id].called = 1;
 
   note = XCNEW (struct ipa_param_call_note);
   note->formal_id = formal_id;
@@ -1425,8 +1433,6 @@ ipa_print_node_params (FILE * f, struct cgraph_node *node)
                   : "(unnamed)"));
       if (ipa_is_param_modified (info, i))
 	fprintf (f, " modified");
-      if (ipa_is_param_called (info, i))
-	fprintf (f, " called");
       fprintf (f, "\n");
     }
 }
@@ -2024,10 +2030,7 @@ ipa_write_node_info (struct output_block *ob, struct cgraph_node *node)
   gcc_assert (!info->node_enqueued);
   gcc_assert (!info->ipcp_orig_node);
   for (j = 0; j < ipa_get_param_count (info); j++)
-    {
-      bp_pack_value (bp, info->params[j].modified, 1);
-      bp_pack_value (bp, info->params[j].called, 1);
-    }
+    bp_pack_value (bp, info->params[j].modified, 1);
   lto_output_bitpack (ob->main_stream, bp);
   bitpack_delete (bp);
   for (e = node->callees; e; e = e->next_callee)
@@ -2071,10 +2074,7 @@ ipa_read_node_info (struct lto_input_block *ib, struct cgraph_node *node,
     }
   info->node_enqueued = false;
   for (k = 0; k < ipa_get_param_count (info); k++)
-    {
-      info->params[k].modified = bp_unpack_value (bp, 1);
-      info->params[k].called = bp_unpack_value (bp, 1);
-    }
+    info->params[k].modified = bp_unpack_value (bp, 1);
   bitpack_delete (bp);
   for (e = node->callees; e; e = e->next_callee)
     {
@@ -2206,17 +2206,17 @@ ipa_update_after_lto_read (void)
   ipa_check_create_edge_args ();
 
   for (node = cgraph_nodes; node; node = node->next)
-    {
-      if (!node->analyzed)
-	continue;
+    if (node->analyzed)
       ipa_initialize_node_params (node);
+
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->analyzed)
       for (cs = node->callees; cs; cs = cs->next_callee)
 	{
 	  if (ipa_get_cs_argument_count (IPA_EDGE_REF (cs))
 	      != ipa_get_param_count (IPA_NODE_REF (cs->callee)))
 	    ipa_set_called_with_variable_arg (IPA_NODE_REF (cs->callee));
 	}
-    }
 }
 
 /* Walk param call notes of NODE and set their call statements given the uid

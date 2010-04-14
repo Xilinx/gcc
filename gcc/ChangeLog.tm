@@ -1,3 +1,9 @@
+2010-04-14  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (tm_log_emit_save_or_restores): Remove unused
+	variables.
+	(ipa_tm_insert_irr_call): Same.
+
 2010-04-06  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (ipa_tm_insert_gettmclone_call): Mark the old

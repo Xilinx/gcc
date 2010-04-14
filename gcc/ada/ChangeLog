@@ -1,3 +1,228 @@
+2010-04-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/gigi.h (standard_datatypes): Add ADT_parent_name_id.
+	(parent_name_id): New macro.
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Record_Type>: Use it.
+	* gcc-interface/trans.c (gigi): Initialize it.
+	(lvalue_required_p) <N_Type_Conversion>: New case.
+	<N_Qualified_Expression>: Likewise.
+	<N_Allocator>: Likewise.
+	* gcc-interface/utils.c (convert): Try to properly upcast tagged types.
+
+2010-04-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/ada-tree.h (TYPE_BY_REFERENCE_P): Delete.
+	(DECL_CONST_ADDRESS_P): New macro.
+	(SET_DECL_ORIGINAL_FIELD_TO_FIELD): Likewise.
+	(SAME_FIELD_P): Likewise.
+	* gcc-interface/decl.c (constructor_address_p): New static function.
+	(gnat_to_gnu_entity) <object>: Set DECL_CONST_ADDRESS_P according to
+	the return value of above function.
+	(gnat_to_gnu_entity) <E_Record_Type>: Force BLKmode for all types
+	passed by reference.
+	<E_Record_Subtype>: Likewise.
+	Set TREE_ADDRESSABLE on the type if it passed by reference.
+	(make_packable_type): Use SET_DECL_ORIGINAL_FIELD_TO_FIELD.
+	(create_field_decl_from): Likewise.
+	(substitute_in_type): Likewise.
+	(purpose_member_field): Use SAME_FIELD_P.
+	* gcc-interface/misc.c (must_pass_by_ref): Test TREE_ADDRESSABLE.
+	* gcc-interface/trans.c (lvalue_required_p): Add ADDRESS_OF_CONSTANT
+	parameter and adjust recursive calls.
+	<N_Explicit_Dereference>: New case.
+	<N_Object_Declaration>: Return 1 if the object is of a class-wide type.
+	Adjust calls to lvalue_required_p.  Do not return the initializer of a
+	DECL_CONST_ADDRESS_P constant if an lvalue is required for it.
+	(call_to_gnu): Delay issuing error message for a misaligned actual and
+	avoid the associated back-end assertion.  Test TREE_ADDRESSABLE.
+	(gnat_gimplify_expr) <ADDR_EXPR>: Handle non-static constructors.
+	* gcc-interface/utils.c (make_dummy_type): Set TREE_ADDRESSABLE if the
+	type is passed by reference.
+	(convert) <CONSTRUCTOR>: Convert in-place in more cases.
+	* gcc-interface/utils2.c (build_cond_expr): Drop TYPE_BY_REFERENCE_P.
+	(build_simple_component_ref): Use SAME_FIELD_P.
+
+2010-04-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (Identifier_to_gnu): Use boolean variable.
+	(call_to_gnu): Test gigi's flag TYPE_BY_REFERENCE_P instead of calling
+	front-end's predicate Is_By_Reference_Type.  Use consistent order and
+	remove ??? comment.  Use original conversion in all cases, if any.
+	* gcc-interface/utils.c (make_dummy_type): Minor tweak.
+	(convert): Use local copy in more cases.
+	<INDIRECT_REF>: Remove deactivated code.
+	(unchecked_convert): Use a couple of local copies.
+
+2010-04-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (lvalue_required_for_attribute_p): New static
+	function.
+	(lvalue_required_p) <N_Attribute_Reference>: Call it.
+	(gnat_to_gnu) <N_Selected_Component>: Prevent build_component_ref from
+	folding the result only if lvalue_required_for_attribute_p is true.
+	* gcc-interface/utils.c (maybe_unconstrained_array): Pass correctly
+	typed constant to build_component_ref.
+	(unchecked_convert): Likewise.
+	* gcc-interface/utils2.c (maybe_wrap_malloc): Likewise.
+	(build_allocator): Likewise.
+
+2010-04-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils2.c (build_cond_expr): Take the address and
+	dereference if the result type is passed by reference.
+
+2010-04-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (Case_Statement_to_gnu): Bool-ify variable.
+	(gnat_to_gnu) <N_Null_Statement>: When not optimizing, generate a
+	goto to the next statement.
+
+2010-04-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/gigi.h (maybe_variable): Delete.
+	(protect_multiple_eval): Likewise.
+	(maybe_stabilize_reference): Likewise.
+	(gnat_save_expr): Declare.
+	(gnat_protect_expr): Likewise.
+	(gnat_stabilize_reference): Likewise.
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <object>: Use
+	gnat_stabilize_reference.
+	(maybe_variable): Delete.
+	(elaborate_expression_1): Use gnat_save_expr.
+	* gcc-interface/trans.c (Attribute_to_gnu): Use gnat_protect_expr.
+	(call_to_gnu): Pass NULL to gnat_stabilize_reference.
+	(gnat_to_gnu) <N_Object_Declaration>: Use gnat_save_expr.
+	<N_Slice>: Use gnat_protect_exp.
+	<N_Selected_Component>: Pass NULL to gnat_stabilize_reference.
+	<N_In>: Use gnat_protect_expr.
+	Pass NULL to gnat_stabilize_reference.
+	(build_unary_op_trapv): Use gnat_protect_expr.
+	(build_binary_op_trapv): Likewise.
+	(emit_range_check): Likewise.
+	(emit_index_check): Likewise.
+	(convert_with_check): Likewise.
+	(protect_multiple_eval): Move to utils2.c file.
+	(maybe_stabilize_reference): Merge into...
+	(gnat_stabilize_reference): ...this.  Move to utils2.c file.
+	(gnat_stabilize_reference_1): Likewise.
+	* gcc-interface/utils.c (convert_to_fat_pointer): Use gnat_protect_expr
+	instead of protect_multiple_eval.
+	* gcc-interface/utils2.c (compare_arrays): Likewise.
+	(nonbinary_modular_operation): Likewise.
+	(maybe_wrap_malloc): Likewise.
+	(build_allocator): Likewise.
+	(gnat_save_expr): New function.
+	(gnat_protect_expr): Rename from protect_multiple_eval.  Early return
+	in common cases.  Propagate TREE_READONLY onto dereferences.
+	(gnat_stabilize_reference_1): Move from trans.c file.
+	(gnat_stabilize_reference): Likewise.
+
+2010-04-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/gigi.h (gnat_mark_addressable): Rename parameter.
+	* gcc-interface/decl.c (maybe_variable): Do not set TREE_STATIC on _REF
+	node.  Use the type of the operand to set TREE_READONLY.
+	* gcc-interface/trans.c (Identifier_to_gnu): Do not set TREE_STATIC on
+	_REF node.  Do not overwrite TREE_READONLY.
+	(call_to_gnu): Rename local variable and fix various nits.  In the
+	copy-in/copy-out case, build the SAVE_EXPR manually.
+	(convert_with_check): Call protect_multiple_eval in lieu of save_expr
+	and fold the computations.
+	(protect_multiple_eval): Always save entire fat pointers.
+	(maybe_stabilize_reference): Minor tweaks.
+	(gnat_stabilize_reference_1): Likewise.  Do not deal with tcc_constant,
+	tcc_type and tcc_statement.
+	* gcc-interface/utils.c (convert_to_fat_pointer): Call
+	protect_multiple_eval in lieu of save_expr.
+	(convert): Minor tweaks.
+	(maybe_unconstrained_array): Do not set TREE_STATIC on _REF node.
+	(builtin_type_for_size): Call gnat_type_for_size directly.
+	* gcc-interface/utils2.c (contains_save_expr_p): Delete.
+	(contains_null_expr): Likewise
+	(gnat_build_constructor): Do not call it.
+	(compare_arrays): Deal with all side-effects, use protect_multiple_eval
+	instead of gnat_stabilize_reference to protect the operands.
+	(nonbinary_modular_operation): Call protect_multiple_eval in lieu of
+	save_expr.
+	(maybe_wrap_malloc): Likewise.
+	(build_allocator): Likewise.
+	(build_unary_op) <INDIRECT_REF>: Do not set TREE_STATIC on _REF node.
+	(gnat_mark_addressable): Rename parameter.
+
+2010-04-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/ada-tree.h (TYPE_RETURNS_UNCONSTRAINED_P): Rename into.
+	(TYPE_RETURN_UNCONSTRAINED_P): ...this.
+	(TYPE_RETURNS_BY_REF_P): Rename into.
+	(TYPE_RETURN_BY_DIRECT_REF_P): ...this.
+	(TYPE_RETURNS_BY_TARGET_PTR_P): Delete.
+	* gcc-interface/gigi.h (create_subprog_type): Adjust parameter names.
+	(build_return_expr): Likewise.
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Subprogram_Type>:
+	Rename local variables.  If the return Mechanism is By_Reference, pass
+	return_by_invisible_ref_p to create_subprog_type instead of toggling
+	TREE_ADDRESSABLE.  Test return_by_invisible_ref_p in order to annotate
+	the mechanism.  Use regular return for contrained types with non-static
+	size and return by invisible reference for unconstrained return types
+	with default discriminants.  Update comment.
+	* gcc-interface/trans.c (Subprogram_Body_to_gnu): If the function
+	returns by invisible reference, turn the RESULT_DECL into a pointer.
+	Do not handle DECL_BY_REF_P in the CICO case here.
+	(call_to_gnu): Remove code handling return by target pointer.  For a
+	function call, if the return type has non-constant size, generate the
+	assignment with an INIT_EXPR.
+	(gnat_to_gnu) <N_Return_Statement>: Remove dead code in the CICO case.
+	If the function returns by invisible reference, build the copy return
+	operation manually.
+	(add_decl_expr): Initialize the variable with an INIT_EXPR.
+	* gcc-interface/utils.c (create_subprog_type): Adjust parameter names.
+	Adjust for renaming of macros.  Copy the node only when necessary.
+	(create_subprog_decl): Do not toggle TREE_ADDRESSABLE on the return
+	type, only change DECL_BY_REFERENCE on the RETURN_DECL.
+	(convert_from_reference): Delete.
+	(is_byref_result): Likewise.
+	(gnat_genericize_r): Likewise.
+	(gnat_genericize): Likewise.
+	(end_subprog_body): Do not call gnat_genericize.
+	* gcc-interface/utils2.c (build_binary_op) <INIT_EXPR>: New case.
+	(build_return_expr): Adjust parameter names, logic and comment.
+
+2010-04-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* exp_pakd.adb (Create_Packed_Array_Type): Always use a modular type
+	if the size is small enough.  Propagate the alignment if there is an
+	alignment clause on the original array type.
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Modular_Integer_Subtype>
+	Deal with under-aligned packed array types.  Copy the size onto the
+	justified modular type and don't lay it out again.  Likewise for the
+	padding type built for other under-aligned subtypes.
+	* gcc-interface/utils.c (finish_record_type): Do not set a default mode
+	on the type.
+
+2010-04-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Procedure>: Set default
+	alignment on the RETURN type built for the Copy-In Copy-Out mechanism.
+
+2010-04-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (call_to_gnu): In the return-by-target-ptr case
+	do not set the result type if there is a specified target and do not
+	convert the result in any cases.
+	(protect_multiple_eval): Make direct SAVE_EXPR for CALL_EXPR.
+	(maybe_stabilize_reference) <COMPOUND_EXPR>: Merge with CALL_EXPR.
+
+2010-03-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/Makefile.in (SPARC/Solaris): Use sparcv8plus.
+
+2010-02-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/42253
+	* gcc-interface/utils2.c (build_binary_op) <EQ_EXPR>: Assert that fat
+	pointer base types are variant of each other.  Apply special treatment
+	for null to fat pointer types in all cases.
+
 2010-01-28  Pascal Obry  <obry@adacore.com>
 
 	* s-win32.ads: Add some missing constants.

@@ -262,11 +262,11 @@ static int use_pipes;
 
 static const char *compiler_version;
 
-/* The target version specified with -V */
+/* The target version.  */
 
 static const char *const spec_version = DEFAULT_TARGET_VERSION;
 
-/* The target machine specified with -b.  */
+/* The target machine.  */
 
 static const char *spec_machine = DEFAULT_TARGET_MACHINE;
 
@@ -403,6 +403,7 @@ static const char *if_exists_else_spec_function (int, const char **);
 static const char *replace_outfile_spec_function (int, const char **);
 static const char *version_compare_spec_function (int, const char **);
 static const char *include_spec_function (int, const char **);
+static const char *find_file_spec_function (int, const char **);
 static const char *print_asm_header_spec_function (int, const char **);
 static const char *compare_debug_dump_opt_spec_function (int, const char **);
 static const char *compare_debug_self_opt_spec_function (int, const char **);
@@ -872,6 +873,7 @@ static const char *cpp_unique_options =
  %{M} %{MM} %{MF*} %{MG} %{MP} %{MQ*} %{MT*}\
  %{!E:%{!M:%{!MM:%{!MT:%{!MQ:%{MD|MMD:%{o*:-MQ %*}}}}}}}\
  %{remap} %{g3|ggdb3|gstabs3|gcoff3|gxcoff3|gvms3:-dD}\
+ %{!iplugindir*:%{fplugin*:-iplugindir=%:find-file(plugin)}}\
  %{H} %C %{D*&U*&A*} %{i*} %Z %i\
  %{fmudflap:-D_MUDFLAP -include mf-runtime.h}\
  %{fmudflapth:-D_MUDFLAP -D_MUDFLAPTH -include mf-runtime.h}\
@@ -894,6 +896,7 @@ static const char *cpp_debug_options = "%{d*}";
 /* NB: This is shared amongst all front-ends, except for Ada.  */
 static const char *cc1_options =
 "%{pg:%{fomit-frame-pointer:%e-pg and -fomit-frame-pointer are incompatible}}\
+ %{!iplugindir*:%{fplugin*:-iplugindir=%:find-file(plugin)}}\
  %1 %{!Q:-quiet} %{!dumpbase:-dumpbase %B} %{d*} %{m*} %{a*}\
  %{fcompare-debug-second:%:compare-debug-auxbase-opt(%b)} \
  %{!fcompare-debug-second:%{c|S:%{o*:-auxbase-strip %*}%{!o*:-auxbase %b}}}%{!c:%{!S:-auxbase %b}} \
@@ -1726,6 +1729,7 @@ static const struct spec_function static_spec_functions[] =
   { "replace-outfile",		replace_outfile_spec_function },
   { "version-compare",		version_compare_spec_function },
   { "include",			include_spec_function },
+  { "find-file",		find_file_spec_function },
   { "print-asm-header",		print_asm_header_spec_function },
   { "compare-debug-dump-opt",	compare_debug_dump_opt_spec_function },
   { "compare-debug-self-opt",	compare_debug_self_opt_spec_function },
@@ -3420,8 +3424,6 @@ display_help (void)
   --sysroot=<directory>    Use <directory> as the root directory for headers\n\
                            and libraries\n"), stdout);
   fputs (_("  -B <directory>           Add <directory> to the compiler's search paths\n"), stdout);
-  fputs (_("  -b <machine>             Run gcc for target <machine>, if installed\n"), stdout);
-  fputs (_("  -V <version>             Run gcc version number <version>, if installed\n"), stdout);
   fputs (_("  -v                       Display the programs invoked by the compiler\n"), stdout);
   fputs (_("  -###                     Like -v but options quoted and commands not executed\n"), stdout);
   fputs (_("  -E                       Preprocess only; do not compile, assemble or link\n"), stdout);
@@ -3524,81 +3526,6 @@ process_command (int argc, const char **argv)
 	  *temp1 = '\0';
 	  break;
 	}
-    }
-
-  /* If there is a -V or -b option (or both), process it now, before
-     trying to interpret the rest of the command line.
-     Use heuristic that all configuration names must have at least
-     one dash '-'. This allows us to pass options starting with -b.  */
-  if (argc > 1 && argv[1][0] == '-'
-      && (argv[1][1] == 'V'
-	  || (argv[1][1] == 'b'
-	      && (argv[1][2] == '\0'
-		  || NULL != strchr (argv[1] + 2, '-')))))
-    {
-      const char *new_version = DEFAULT_TARGET_VERSION;
-      const char *new_machine = DEFAULT_TARGET_MACHINE;
-      const char *progname = argv[0];
-      char **new_argv;
-      char *new_argv0;
-      int baselen;
-      int status = 0;
-      int err = 0;
-      const char *errmsg;
-
-      while (argc > 1 && argv[1][0] == '-'
-	     && (argv[1][1] == 'V'
-		 || (argv[1][1] == 'b'
-		     && (argv[1][2] == '\0'
-			 || NULL != strchr (argv[1] + 2, '-')))))
-	{
-	  char opt = argv[1][1];
-	  const char *arg;
-	  if (argv[1][2] != '\0')
-	    {
-	      arg = argv[1] + 2;
-	      argc -= 1;
-	      argv += 1;
-	    }
-	  else if (argc > 2)
-	    {
-	      arg = argv[2];
-	      argc -= 2;
-	      argv += 2;
-	    }
-	  else
-	    fatal ("'-%c' option must have argument", opt);
-	  if (opt == 'V')
-	    new_version = arg;
-	  else
-	    new_machine = arg;
-	}
-
-      for (baselen = strlen (progname); baselen > 0; baselen--)
-	if (IS_DIR_SEPARATOR (progname[baselen-1]))
-	  break;
-      new_argv0 = XDUPVAR (char, progname, baselen,
-			   baselen + concat_length (new_version, new_machine,
-						    "-gcc-", NULL) + 1);
-      strcpy (new_argv0 + baselen, new_machine);
-      strcat (new_argv0, "-gcc-");
-      strcat (new_argv0, new_version);
-
-      new_argv = XDUPVEC (char *, argv, argc + 1);
-      new_argv[0] = new_argv0;
-
-      errmsg = pex_one (PEX_SEARCH, new_argv0, new_argv, progname, NULL,
-			NULL, &status, &err);
-
-      if (errmsg)
-	{
-	  if (err == 0)
-	    fatal ("couldn't run '%s': %s", new_argv0, errmsg);
-	  else
-	    fatal ("couldn't run '%s': %s: %s", new_argv0, errmsg,
-		    xstrerror (err));
-        }
-      exit (status);
     }
 
   /* Convert new-style -- options to old-style.  */
@@ -4094,15 +4021,6 @@ process_command (int argc, const char **argv)
 
 	  switch (c)
 	    {
-	    case 'b':
-	      if (p[1] && NULL == strchr (argv[i] + 2, '-'))
-		goto normal_switch;
-
-	      /* Fall through.  */
-	    case 'V':
-	      fatal ("'-%c' must come at the start of the command line", c);
-	      break;
-
 	    case 'B':
 	      {
 		const char *value;
@@ -4558,12 +4476,14 @@ process_command (int argc, const char **argv)
 	  switches[n_switches].validated = 0;
 	  switches[n_switches].ordering = 0;
 	  /* These are always valid, since gcc.c itself understands the
-	     first four and gfortranspec.c understands -static-libgfortran.  */
+	     first four, gfortranspec.c understands -static-libgfortran
+	     and g++spec.c understands -static-libstdc++ */
 	  if (!strcmp (p, "save-temps")
 	      || !strcmp (p, "static-libgcc")
 	      || !strcmp (p, "shared-libgcc")
 	      || !strcmp (p, "pipe")
-	      || !strcmp (p, "static-libgfortran"))
+	      || !strcmp (p, "static-libgfortran")
+	      || !strcmp (p, "static-libstdc++"))
 	    switches[n_switches].validated = 1;
 	  else
 	    {
@@ -4575,20 +4495,35 @@ process_command (int argc, const char **argv)
 	}
       else
 	{
-          const char *p = strchr (argv[i], '@');
+          const char *p = strrchr (argv[i], '@');
           char *fname;
+	  long offset;
+	  int consumed;
 #ifdef HAVE_TARGET_OBJECT_SUFFIX
 	  argv[i] = convert_filename (argv[i], 0, access (argv[i], F_OK));
 #endif
-          if (!p)
-            fname = xstrdup (argv[i]);
-          else
-            {
+	  /* For LTO static archive support we handle input file
+	     specifications that are composed of a filename and
+	     an offset like FNAME@OFFSET.  */
+	  if (p
+	      && p != argv[i]
+	      && sscanf (p, "@%li%n", &offset, &consumed) >= 1
+	      && strlen (p) == (unsigned int)consumed)
+	    {
               fname = (char *)xmalloc (p - argv[i] + 1);
               memcpy (fname, argv[i], p - argv[i]);
               fname[p - argv[i]] = '\0';
-            }
-
+	      /* Only accept non-stdin and existing FNAME parts, otherwise
+		 try with the full name.  */
+	      if (strcmp (fname, "-") == 0 || access (fname, F_OK) < 0)
+		{
+		  free (fname);
+		  fname = xstrdup (argv[i]);
+		}
+	    }
+	  else
+	    fname = xstrdup (argv[i]);
+ 
           if (strcmp (fname, "-") != 0 && access (fname, F_OK) < 0)
             {
               perror_with_name (fname);
@@ -8778,6 +8713,22 @@ include_spec_function (int argc, const char **argv)
 
   return NULL;
 }
+
+/* %:find-file spec function.  This function replace its argument by
+    the file found thru find_file, that is the -print-file-name gcc
+    program option. */
+static const char *
+find_file_spec_function (int argc, const char**argv)
+{
+  const char *file;
+
+  if (argc != 1)
+    abort ();
+
+  file = find_file (argv[0]);
+  return file;
+}
+
 
 /* %:print-asm-header spec function.  Print a banner to say that the
    following output is from the assembler.  */

@@ -1,5 +1,5 @@
 @c Copyright (C) 1988,1989,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,
-@c 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+@c 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -465,7 +465,7 @@ indicates an absolute file name.
 @defmac MD_EXEC_PREFIX
 If defined, this macro is an additional prefix to try after
 @code{STANDARD_EXEC_PREFIX}.  @code{MD_EXEC_PREFIX} is not searched
-when the @option{-b} option is used, or the compiler is built as a cross
+when the compiler is built as a cross
 compiler.  If you define @code{MD_EXEC_PREFIX}, then be sure to add it
 to the list of directories used to find the assembler in @file{configure.in}.
 @end defmac
@@ -497,14 +497,13 @@ is built as a cross compiler.
 @defmac MD_STARTFILE_PREFIX
 If defined, this macro supplies an additional prefix to try after the
 standard prefixes.  @code{MD_EXEC_PREFIX} is not searched when the
-@option{-b} option is used, or when the compiler is built as a cross
-compiler.
+compiler is built as a cross compiler.
 @end defmac
 
 @defmac MD_STARTFILE_PREFIX_1
 If defined, this macro supplies yet another prefix to try after the
-standard prefixes.  It is not searched when the @option{-b} option is
-used, or when the compiler is built as a cross compiler.
+standard prefixes.  It is not searched when the compiler is built as a
+cross compiler.
 @end defmac
 
 @defmac INIT_ENVIRONMENT
@@ -5684,14 +5683,28 @@ preserved (e.g.@: used only by a reduction computation). Otherwise, the
 @code{widen_mult_hi/lo} idioms will be used.
 @end deftypefn
 
-@deftypefn {Target Hook} tree TARGET_VECTORIZE_BUILTIN_CONVERSION (enum tree_code @var{code}, tree @var{type})
+@deftypefn {Target Hook} int TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST (bool @var{runtime_test})
+Returns the cost to be added to the overhead involved with executing 
+the vectorized version of a loop.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE (const_tree @var{type}, bool @var{is_packed})
+Return true if vector alignment is reachable (by peeling N iterations) for the given type.
+@end deftypefn
+
+@deftypefn {Target Hook} tree TARGET_VECTORIZE_BUILTIN_VEC_PERM (tree @var{type}, tree *@var{mask_element_type})
+Target builtin that implements vector permute.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_VECTORIZE_BUILTIN_VEC_PERM_OK (tree @var{vec_type}, tree @var{mask})
+Return true if a vector created for @code{builtin_vec_perm} is valid.
+@end deftypefn
+
+@deftypefn {Target Hook} tree TARGET_VECTORIZE_BUILTIN_CONVERSION (unsigned @var{code}, tree @var{dest_type}, tree @var{src_type})
 This hook should return the DECL of a function that implements conversion of the
-input vector of type @var{type}.
-If @var{type} is an integral type, the result of the conversion is a vector of
-floating-point type of the same size.
-If @var{type} is a floating-point type, the result of the conversion is a vector
-of integral type of the same size.
-@var{code} specifies how the conversion is to be applied
+input vector of type @var{src_type} to type @var{dest_type}.
+The value of @var{code} is one of the enumerators in @code{enum tree_code} and
+specifies how the conversion is to be applied
 (truncation, rounding, etc.).
 
 If this hook is defined, the autovectorizer will use the
@@ -5699,12 +5712,13 @@ If this hook is defined, the autovectorizer will use the
 conversion. Otherwise, it will return @code{NULL_TREE}.
 @end deftypefn
 
-@deftypefn {Target Hook} tree TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION (enum built_in_function @var{code}, tree @var{vec_type_out}, tree @var{vec_type_in})
-This hook should return the decl of a function that implements the vectorized
-variant of the builtin function with builtin function code @var{code} or
-@code{NULL_TREE} if such a function is not available.  The return type of
-the vectorized function shall be of vector type @var{vec_type_out} and the
-argument types should be @var{vec_type_in}.
+@deftypefn {Target Hook} tree TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION (tree @var{fndecl}, tree @var{vec_type_out}, tree @var{vec_type_in})
+This hook should return the decl of a function that implements the
+vectorized variant of the builtin function with builtin function code
+@var{code} or @code{NULL_TREE} if such a function is not available.
+The value of @var{fndecl} is the builtin function declaration.  The
+return type of the vectorized function shall be of vector type
+@var{vec_type_out} and the argument types should be @var{vec_type_in}.
 @end deftypefn
 
 @deftypefn {Target Hook} bool TARGET_SUPPORT_VECTOR_MISALIGNMENT (enum machine_mode @var{mode}, const_tree @var{type}, int @var{misalignment}, bool @var{is_packed})
@@ -6557,18 +6571,18 @@ be issued.
 The default is that any ready insns can be chosen to be issued.
 @end deftypefn
 
-@deftypefn {Target Hook} int TARGET_SCHED_DFA_NEW_CYCLE (FILE *, int, rtx, int, int, int *)
+@deftypefn {Target Hook} int TARGET_SCHED_DFA_NEW_CYCLE (FILE *@var{dump}, int @var{verbose}, rtx @var{insn}, int @var{last_clock}, int @var{clock}, int *@var{sort_p})
 
-This hook is called by the insn scheduler before issuing insn passed
-as the third parameter on given cycle.  If the hook returns nonzero,
-the insn is not issued on given processors cycle.  Instead of that,
-the processor cycle is advanced.  If the value passed through the last
-parameter is zero, the insn ready queue is not sorted on the new cycle
-start as usually.  The first parameter passes file for debugging
-output.  The second one passes the scheduler verbose level of the
-debugging output.  The forth and the fifth parameter values are
-correspondingly processor cycle on which the previous insn has been
-issued and the current processor cycle.
+This hook is called by the insn scheduler before issuing @var{insn}
+on cycle @var{clock}.  If the hook returns nonzero,
+@var{insn} is not issued on this processor cycle.  Instead,
+the processor cycle is advanced.  If *@var{sort_p}
+is zero, the insn ready queue is not sorted on the new cycle
+start as usually.  @var{dump} and @var{verbose} specify the file and
+verbosity level to use for debugging output.
+@var{last_clock} and @var{clock} are, respectively, the
+processor cycle on which the previous insn has been issued,
+and the current processor cycle.
 @end deftypefn
 
 @deftypefn {Target Hook} bool TARGET_SCHED_IS_COSTLY_DEPENDENCE (struct _dep *@var{_dep}, int @var{cost}, int @var{distance})
@@ -6648,13 +6662,15 @@ a pattern for a branchy check corresponding to a simple check denoted by
 @var{insn} should be generated.  In this case @var{label} can't be null.
 @end deftypefn
 
-@deftypefn {Target Hook} int TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD_SPEC (rtx @var{insn})
+@deftypefn {Target Hook} bool TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD_SPEC (const_rtx @var{insn})
 This hook is used as a workaround for
 @samp{TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD} not being
 called on the first instruction of the ready list.  The hook is used to
-discard speculative instruction that stand first in the ready list from
-being scheduled on the current cycle.  For non-speculative instructions,
-the hook should always return nonzero.  For example, in the ia64 backend
+discard speculative instructions that stand first in the ready list from
+being scheduled on the current cycle.  If the hook returns @code{false},
+@var{insn} will not be chosen to be issued.
+For non-speculative instructions,
+the hook should always return @code{true}.  For example, in the ia64 backend
 the hook is used to cancel data speculative insns when the ALAT table
 is nearly full.
 @end deftypefn
@@ -6763,6 +6779,18 @@ used.
 If defined, a C expression whose value is a string, including spacing,
 containing the assembler operation to identify the following data as
 uninitialized, writable small data.
+@end defmac
+
+@defmac TLS_COMMON_ASM_OP
+If defined, a C expression whose value is a string containing the
+assembler operation to identify the following data as thread-local
+common data.  The default is @code{".tls_common"}.
+@end defmac
+
+@defmac TLS_SECTION_ASM_FLAG
+If defined, a C expression whose value is a character constant
+containing the flag used to mark a section as a TLS section.  The
+default is @code{'T'}.
 @end defmac
 
 @defmac INIT_SECTION_ASM_OP
@@ -7115,6 +7143,14 @@ should define @code{TARGET_ASM_FILE_END} to this function.  If you
 need to do other things in that hook, have your hook function call
 this function.
 @end deftypefun
+
+@deftypefn {Target Hook} void TARGET_ASM_CODE_END (void)
+Output to @code{asm_out_file} any text which is needed before emitting
+unwind info and debug info at the end of a file.  Some targets emit
+here PIC setup thunks that cannot be emitted at the end of file,
+because they couldn't have unwind info then.  The default is to output
+nothing.
+@end deftypefn
 
 @defmac ASM_COMMENT_START
 A C string constant describing how to begin a comment in the target
@@ -9835,7 +9871,7 @@ address spaces other than the default address space.  These address
 spaces are new keywords that are similar to the @code{volatile} and
 @code{const} type attributes.
 
-Pointers to named address spaces can a a different size than
+Pointers to named address spaces can have a different size than
 pointers to the generic address space.
 
 For example, the SPU port uses the @code{__ea} address space to refer
@@ -10838,6 +10874,15 @@ to reserve space for caller-saved target registers.
 This target hook returns true if the target supports conditional execution.
 This target hook is required only when the target has several different
 modes and they have different conditional execution capability, such as ARM.
+@end deftypefn
+
+@deftypefn {Target Hook} unsigned TARGET_LOOP_UNROLL_ADJUST (unsigned @var{nunroll}, struct loop *@var{loop})
+This target hook returns a new value for the number of times @var{loop}
+should be unrolled. The parameter @var{nunroll} is the number of times
+the loop is to be unrolled. The parameter @var{loop} is a pointer to
+the loop, which is going to be checked for unrolling. This target hook
+is required only when the target has special constraints like maximum
+number of memory accesses.
 @end deftypefn
 
 @defmac POWI_MAX_MULTS

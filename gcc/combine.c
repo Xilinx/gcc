@@ -1,6 +1,6 @@
 /* Optimize by combining instructions for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -2286,10 +2286,12 @@ struct rtx_subst_pair
    substituted.  */
 
 static rtx
-propagate_for_debug_subst (rtx from ATTRIBUTE_UNUSED, void *data)
+propagate_for_debug_subst (rtx from, const_rtx old_rtx, void *data)
 {
   struct rtx_subst_pair *pair = (struct rtx_subst_pair *)data;
 
+  if (!rtx_equal_p (from, old_rtx))
+    return NULL_RTX;
   if (!pair->adjusted)
     {
       pair->adjusted = true;
@@ -6791,8 +6793,10 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
       if (mode == tmode)
 	return new_rtx;
 
-      if (CONST_INT_P (new_rtx))
-	return gen_int_mode (INTVAL (new_rtx), mode);
+      if (CONST_INT_P (new_rtx)
+	  || GET_CODE (new_rtx) == CONST_DOUBLE)
+	return simplify_unary_operation (unsignedp ? ZERO_EXTEND : SIGN_EXTEND,
+					 mode, new_rtx, tmode);
 
       /* If we know that no extraneous bits are set, and that the high
 	 bit is not set, convert the extraction to the cheaper of

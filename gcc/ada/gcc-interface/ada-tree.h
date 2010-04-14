@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2010, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -90,7 +90,7 @@ do {							    \
 
 /* For FUNCTION_TYPE, nonzero if this denotes a function returning an
    unconstrained array or record.  */
-#define TYPE_RETURNS_UNCONSTRAINED_P(NODE) \
+#define TYPE_RETURN_UNCONSTRAINED_P(NODE) \
   TYPE_LANG_FLAG_1 (FUNCTION_TYPE_CHECK (NODE))
 
 /* For RECORD_TYPE, UNION_TYPE, and QUAL_UNION_TYPE, nonzero if this denotes
@@ -101,9 +101,6 @@ do {							    \
 /* Nonzero in an arithmetic subtype if this is a subtype not known to the
    front-end.  */
 #define TYPE_EXTRA_SUBTYPE_P(NODE) TYPE_LANG_FLAG_2 (NODE)
-
-/* Nonzero for composite types if this is a by-reference type.  */
-#define TYPE_BY_REFERENCE_P(NODE) TYPE_LANG_FLAG_2 (NODE)
 
 /* For RECORD_TYPE, UNION_TYPE, and QUAL_UNION_TYPE, nonzero if this is the
    type for an object whose type includes its template in addition to
@@ -135,8 +132,10 @@ do {							    \
 #define TYPE_CONVENTION_FORTRAN_P(NODE) \
   TYPE_LANG_FLAG_4 (ARRAY_TYPE_CHECK (NODE))
 
-/* For FUNCTION_TYPEs, nonzero if the function returns by reference.  */
-#define TYPE_RETURNS_BY_REF_P(NODE) \
+/* For FUNCTION_TYPEs, nonzero if the function returns by direct reference,
+   i.e. the callee returns a pointer to a memory location it has allocated
+   and the caller only needs to dereference the pointer.  */
+#define TYPE_RETURN_BY_DIRECT_REF_P(NODE) \
   TYPE_LANG_FLAG_4 (FUNCTION_TYPE_CHECK (NODE))
 
 /* For VOID_TYPE, ENUMERAL_TYPE, UNION_TYPE, and RECORD_TYPE, nonzero if this
@@ -147,11 +146,6 @@ do {							    \
   ((TREE_CODE (NODE) == VOID_TYPE || TREE_CODE (NODE) == RECORD_TYPE	\
     || TREE_CODE (NODE) == UNION_TYPE || TREE_CODE (NODE) == ENUMERAL_TYPE) \
    && TYPE_DUMMY_P (NODE))
-
-/* For FUNCTION_TYPEs, nonzero if function returns by being passed a pointer
-   to a place to store its result.  */
-#define TYPE_RETURNS_BY_TARGET_PTR_P(NODE) \
-  TYPE_LANG_FLAG_5 (FUNCTION_TYPE_CHECK (NODE))
 
 /* For an INTEGER_TYPE, nonzero if TYPE_ACTUAL_BOUNDS is present.  */
 #define TYPE_HAS_ACTUAL_BOUNDS_P(NODE) \
@@ -328,6 +322,10 @@ do {						   \
    been elaborated and TREE_READONLY is not set on it.  */
 #define DECL_READONLY_ONCE_ELAB(NODE) DECL_LANG_FLAG_0 (VAR_DECL_CHECK (NODE))
 
+/* Nonzero in a CONST_DECL if its value is (essentially) the address of a
+   constant CONSTRUCTOR.  */
+#define DECL_CONST_ADDRESS_P(NODE) DECL_LANG_FLAG_0 (CONST_DECL_CHECK (NODE))
+
 /* Nonzero if this decl is always used by reference; i.e., an INDIRECT_REF
    is needed to access the object.  */
 #define DECL_BY_REF_P(NODE) DECL_LANG_FLAG_1 (NODE)
@@ -371,6 +369,20 @@ do {						   \
   GET_DECL_LANG_SPECIFIC (FIELD_DECL_CHECK (NODE))
 #define SET_DECL_ORIGINAL_FIELD(NODE, X) \
   SET_DECL_LANG_SPECIFIC (FIELD_DECL_CHECK (NODE), X)
+
+/* Set DECL_ORIGINAL_FIELD of FIELD1 to (that of) FIELD2.  */
+#define SET_DECL_ORIGINAL_FIELD_TO_FIELD(FIELD1, FIELD2)	\
+  SET_DECL_ORIGINAL_FIELD ((FIELD1),				\
+			   DECL_ORIGINAL_FIELD (FIELD2)		\
+			   ? DECL_ORIGINAL_FIELD (FIELD2) : (FIELD2))
+
+/* Return true if FIELD1 and FIELD2 represent the same field.  */
+#define SAME_FIELD_P(FIELD1, FIELD2)					\
+  ((FIELD1) == (FIELD2)							\
+   || DECL_ORIGINAL_FIELD (FIELD1) == (FIELD2)				\
+   || (FIELD1) == DECL_ORIGINAL_FIELD (FIELD2)				\
+   || (DECL_ORIGINAL_FIELD (FIELD1)					\
+       && (DECL_ORIGINAL_FIELD (FIELD1) == DECL_ORIGINAL_FIELD (FIELD2))))
 
 /* In a VAR_DECL, points to the object being renamed if the VAR_DECL is a
    renaming pointer, otherwise 0.  Note that this object is guaranteed to

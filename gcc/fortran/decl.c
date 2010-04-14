@@ -1,5 +1,5 @@
 /* Declaration statement matcher
-   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -25,7 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "match.h"
 #include "parse.h"
 #include "flags.h"
-
+#include "constructor.h"
 
 /* Macros to access allocate memory for gfc_data_variable,
    gfc_data_value and gfc_data.  */
@@ -570,6 +570,62 @@ cleanup:
 
 /************************ Declaration statements *********************/
 
+
+/* Auxilliary function to merge DIMENSION and CODIMENSION array specs.  */
+
+static void
+merge_array_spec (gfc_array_spec *from, gfc_array_spec *to, bool copy)
+{
+  int i;
+
+  if (to->rank == 0 && from->rank > 0)
+    {
+      to->rank = from->rank;
+      to->type = from->type;
+      to->cray_pointee = from->cray_pointee;
+      to->cp_was_assumed = from->cp_was_assumed;
+
+      for (i = 0; i < to->corank; i++)
+	{
+	  to->lower[from->rank + i] = to->lower[i];
+	  to->upper[from->rank + i] = to->upper[i];
+	}
+      for (i = 0; i < from->rank; i++)
+	{
+	  if (copy)
+	    {
+	      to->lower[i] = gfc_copy_expr (from->lower[i]);
+	      to->upper[i] = gfc_copy_expr (from->upper[i]);
+	    }
+	  else
+	    {
+	      to->lower[i] = from->lower[i];
+	      to->upper[i] = from->upper[i];
+	    }
+	}
+    }
+  else if (to->corank == 0 && from->corank > 0)
+    {
+      to->corank = from->corank;
+      to->cotype = from->cotype;
+
+      for (i = 0; i < from->corank; i++)
+	{
+	  if (copy)
+	    {
+	      to->lower[to->rank + i] = gfc_copy_expr (from->lower[i]);
+	      to->upper[to->rank + i] = gfc_copy_expr (from->upper[i]);
+	    }
+	  else
+	    {
+	      to->lower[to->rank + i] = from->lower[i];
+	      to->upper[to->rank + i] = from->upper[i];
+	    }
+	}
+    }
+}
+
+
 /* Match an intent specification.  Since this can only happen after an
    INTENT word, a legal intent-spec must follow.  */
 
@@ -658,7 +714,7 @@ match_char_length (gfc_expr **expr)
       if (gfc_notify_std (GFC_STD_F95_OBS, "Obsolescent feature: "
 			  "Old-style character length at %C") == FAILURE)
 	return MATCH_ERROR;
-      *expr = gfc_int_expr (length);
+      *expr = gfc_get_int_expr (gfc_default_integer_kind, NULL, length);
       return m;
     }
 
@@ -1057,6 +1113,7 @@ build_sym (const char *name, gfc_charlen *cl,
      dimension attribute.  */
   attr = current_attr;
   attr.dimension = 0;
+  attr.codimension = 0;
 
   if (gfc_copy_attr (&sym->attr, &attr, var_locus) == FAILURE)
     return FAILURE;
@@ -1282,13 +1339,18 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 		  if (init->expr_type == EXPR_CONSTANT)
 		    {
 		      clen = init->value.character.length;
-		      sym->ts.u.cl->length = gfc_int_expr (clen);
+		      sym->ts.u.cl->length
+				= gfc_get_int_expr (gfc_default_integer_kind,
+						    NULL, clen);
 		    }
 		  else if (init->expr_type == EXPR_ARRAY)
 		    {
-		      gfc_expr *p = init->value.constructor->expr;
-		      clen = p->value.character.length;
-		      sym->ts.u.cl->length = gfc_int_expr (clen);
+		      gfc_constructor *c;
+		      c = gfc_constructor_first (init->value.constructor);
+		      clen = c->expr->value.character.length;
+		      sym->ts.u.cl->length
+				= gfc_get_int_expr (gfc_default_integer_kind,
+						    NULL, clen);
 		    }
 		  else if (init->ts.u.cl && init->ts.u.cl->length)
 		    sym->ts.u.cl->length =
@@ -1299,19 +1361,21 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 	  else if (sym->ts.u.cl->length->expr_type == EXPR_CONSTANT)
 	    {
 	      int len = mpz_get_si (sym->ts.u.cl->length->value.integer);
-	      gfc_constructor * p;
 
 	      if (init->expr_type == EXPR_CONSTANT)
 		gfc_set_constant_character_len (len, init, -1);
 	      else if (init->expr_type == EXPR_ARRAY)
 		{
+		  gfc_constructor *c;
+
 		  /* Build a new charlen to prevent simplification from
 		     deleting the length before it is resolved.  */
 		  init->ts.u.cl = gfc_new_charlen (gfc_current_ns, NULL);
 		  init->ts.u.cl->length = gfc_copy_expr (sym->ts.u.cl->length);
 
-		  for (p = init->value.constructor; p; p = p->next)
-		    gfc_set_constant_character_len (len, p->expr, -1);
+		  for (c = gfc_constructor_first (init->value.constructor);
+		       c; c = gfc_constructor_next (c))
+		    gfc_set_constant_character_len (len, c->expr, -1);
 		}
 	    }
 	}
@@ -1335,38 +1399,27 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 	  if (init->ts.is_iso_c)
 	    sym->ts.f90_type = init->ts.f90_type;
 	}
-      
+
       /* Add initializer.  Make sure we keep the ranks sane.  */
       if (sym->attr.dimension && init->rank == 0)
 	{
 	  mpz_t size;
 	  gfc_expr *array;
-	  gfc_constructor *c;
 	  int n;
 	  if (sym->attr.flavor == FL_PARAMETER
 		&& init->expr_type == EXPR_CONSTANT
 		&& spec_size (sym->as, &size) == SUCCESS
 		&& mpz_cmp_si (size, 0) > 0)
 	    {
-	      array = gfc_start_constructor (init->ts.type, init->ts.kind,
-					     &init->where);
-
-	      array->value.constructor = c = NULL;
+	      array = gfc_get_array_expr (init->ts.type, init->ts.kind,
+					  &init->where);
 	      for (n = 0; n < (int)mpz_get_si (size); n++)
-		{
-		  if (array->value.constructor == NULL)
-		    {
-		      array->value.constructor = c = gfc_get_constructor ();
-		      c->expr = init;
-		    }
-		  else
-		    {
-		      c->next = gfc_get_constructor ();
-		      c = c->next;
-		      c->expr = gfc_copy_expr (init);
-		    }
-		}
-
+		gfc_constructor_append_expr (&array->value.constructor,
+					     n == 0
+						? init
+						: gfc_copy_expr (init),
+					     &init->where);
+		
 	      array->shape = gfc_get_shape (sym->as->rank);
 	      for (n = 0; n < sym->as->rank; n++)
 		spec_dimen_size (sym->as, n, &array->shape[n]);
@@ -1430,7 +1483,12 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 
   c->as = *as;
   if (c->as != NULL)
-    c->attr.dimension = 1;
+    {
+      if (c->as->corank)
+	c->attr.codimension = 1;
+      if (c->as->rank)
+	c->attr.dimension = 1;
+    }
   *as = NULL;
 
   /* Should this ever get more complicated, combine with similar section
@@ -1451,15 +1509,14 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
       else if (mpz_cmp (c->ts.u.cl->length->value.integer,
 			c->initializer->ts.u.cl->length->value.integer))
 	{
-	  bool has_ts;
-	  gfc_constructor *ctor = c->initializer->value.constructor;
-
-	  has_ts = (c->initializer->ts.u.cl
-		    && c->initializer->ts.u.cl->length_from_typespec);
+	  gfc_constructor *ctor;
+	  ctor = gfc_constructor_first (c->initializer->value.constructor);
 
 	  if (ctor)
 	    {
 	      int first_len;
+	      bool has_ts = (c->initializer->ts.u.cl
+			     && c->initializer->ts.u.cl->length_from_typespec);
 
 	      /* Remember the length of the first element for checking
 		 that all elements *in the constructor* have the same
@@ -1468,11 +1525,12 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 	      gcc_assert (ctor->expr->ts.type == BT_CHARACTER);
 	      first_len = ctor->expr->value.character.length;
 
-	      for (; ctor; ctor = ctor->next)
+	      for ( ; ctor; ctor = gfc_constructor_next (ctor))
+		if (ctor->expr->expr_type == EXPR_CONSTANT)
 		{
-		  if (ctor->expr->expr_type == EXPR_CONSTANT)
-		    gfc_set_constant_character_len (len, ctor->expr,
-						    has_ts ? -1 : first_len);
+		  gfc_set_constant_character_len (len, ctor->expr,
+						  has_ts ? -1 : first_len);
+		  ctor->expr->ts.u.cl->length = gfc_copy_expr (c->ts.u.cl->length);
 		}
 	    }
 	}
@@ -1524,7 +1582,6 @@ match
 gfc_match_null (gfc_expr **result)
 {
   gfc_symbol *sym;
-  gfc_expr *e;
   match m;
 
   m = gfc_match (" null ( )");
@@ -1546,12 +1603,7 @@ gfc_match_null (gfc_expr **result)
 	  || gfc_add_function (&sym->attr, sym->name, NULL) == FAILURE))
     return MATCH_ERROR;
 
-  e = gfc_get_expr ();
-  e->where = gfc_current_locus;
-  e->expr_type = EXPR_NULL;
-  e->ts.type = BT_UNKNOWN;
-
-  *result = e;
+  *result = gfc_get_null_expr (&gfc_current_locus);
 
   return MATCH_YES;
 }
@@ -1589,7 +1641,7 @@ variable_decl (int elem)
   var_locus = gfc_current_locus;
 
   /* Now we could see the optional array spec. or character length.  */
-  m = gfc_match_array_spec (&as);
+  m = gfc_match_array_spec (&as, true, true);
   if (gfc_option.flag_cray_pointer && m == MATCH_YES)
     cp_as = gfc_copy_array_spec (as);
   else if (m == MATCH_ERROR)
@@ -1597,6 +1649,8 @@ variable_decl (int elem)
 
   if (m == MATCH_NO)
     as = gfc_copy_array_spec (current_as);
+  else if (current_as)
+    merge_array_spec (current_as, as, true);
 
   char_len = NULL;
   cl = NULL;
@@ -2245,7 +2299,7 @@ done:
   cl = gfc_new_charlen (gfc_current_ns, NULL);
 
   if (seen_length == 0)
-    cl->length = gfc_int_expr (1);
+    cl->length = gfc_get_int_expr (gfc_default_integer_kind, NULL, 1);
   else
     cl->length = len;
 
@@ -2626,7 +2680,8 @@ gfc_match_implicit (void)
 		{
 		  ts.kind = gfc_default_character_kind;
 		  ts.u.cl = gfc_new_charlen (gfc_current_ns, NULL);
-		  ts.u.cl->length = gfc_int_expr (1);
+		  ts.u.cl->length = gfc_get_int_expr (gfc_default_integer_kind,
+						      NULL, 1);
 		}
 
 	      /* Record the Successful match.  */
@@ -2820,7 +2875,7 @@ match_attr_spec (void)
     DECL_IN, DECL_OUT, DECL_INOUT, DECL_INTRINSIC, DECL_OPTIONAL,
     DECL_PARAMETER, DECL_POINTER, DECL_PROTECTED, DECL_PRIVATE,
     DECL_PUBLIC, DECL_SAVE, DECL_TARGET, DECL_VALUE, DECL_VOLATILE,
-    DECL_IS_BIND_C, DECL_ASYNCHRONOUS, DECL_NONE,
+    DECL_IS_BIND_C, DECL_CODIMENSION, DECL_ASYNCHRONOUS, DECL_NONE,
     GFC_DECL_END /* Sentinel */
   }
   decl_types;
@@ -2892,6 +2947,11 @@ match_attr_spec (void)
 		d = DECL_IS_BIND_C;
 	      else if (m == MATCH_ERROR)
 		goto cleanup;
+	      break;
+
+	    case 'c':
+	      if (match_string_p ("codimension"))
+		d = DECL_CODIMENSION;
 	      break;
 
 	    case 'd':
@@ -3039,13 +3099,27 @@ match_attr_spec (void)
       seen[d]++;
       seen_at[d] = gfc_current_locus;
 
-      if (d == DECL_DIMENSION)
+      if (d == DECL_DIMENSION || d == DECL_CODIMENSION)
 	{
-	  m = gfc_match_array_spec (&current_as);
+	  gfc_array_spec *as = NULL;
+
+	  m = gfc_match_array_spec (&as, d == DECL_DIMENSION,
+				    d == DECL_CODIMENSION);
+
+	  if (current_as == NULL)
+	    current_as = as;
+	  else if (m == MATCH_YES)
+	    {
+	      merge_array_spec (as, current_as, false);
+	      gfc_free (as);
+	    }
 
 	  if (m == MATCH_NO)
 	    {
-	      gfc_error ("Missing dimension specification at %C");
+	      if (d == DECL_CODIMENSION)
+		gfc_error ("Missing codimension specification at %C");
+	      else
+		gfc_error ("Missing dimension specification at %C");
 	      m = MATCH_ERROR;
 	    }
 
@@ -3066,6 +3140,9 @@ match_attr_spec (void)
 	    break;
 	  case DECL_ASYNCHRONOUS:
 	    attr = "ASYNCHRONOUS";
+	    break;
+	  case DECL_CODIMENSION:
+	    attr = "CODIMENSION";
 	    break;
 	  case DECL_DIMENSION:
 	    attr = "DIMENSION";
@@ -3135,9 +3212,9 @@ match_attr_spec (void)
 	continue;
 
       if (gfc_current_state () == COMP_DERIVED
-	  && d != DECL_DIMENSION && d != DECL_POINTER
-	  && d != DECL_PRIVATE   && d != DECL_PUBLIC
-	  && d != DECL_NONE)
+	  && d != DECL_DIMENSION && d != DECL_CODIMENSION
+	  && d != DECL_POINTER   && d != DECL_PRIVATE
+	  && d != DECL_PUBLIC && d != DECL_NONE)
 	{
 	  if (d == DECL_ALLOCATABLE)
 	    {
@@ -3200,6 +3277,10 @@ match_attr_spec (void)
 	    t = FAILURE;
 	  else
 	    t = gfc_add_asynchronous (&current_attr, NULL, &seen_at[d]);
+	  break;
+
+	case DECL_CODIMENSION:
+	  t = gfc_add_codimension (&current_attr, NULL, &seen_at[d]);
 	  break;
 
 	case DECL_DIMENSION:
@@ -5100,6 +5181,10 @@ gfc_match_subroutine (void)
   if (get_proc_name (name, &sym, false))
     return MATCH_ERROR;
 
+  /* Set declared_at as it might point to, e.g., a PUBLIC statement, if
+     the symbol existed before. */
+  sym->declared_at = gfc_current_locus;
+
   if (add_hidden_procptr_result (sym) == SUCCESS)
     sym = sym->result;
 
@@ -5472,6 +5557,12 @@ gfc_match_end (gfc_statement *st)
       eos_ok = 0;
       break;
 
+    case COMP_CRITICAL:
+      *st = ST_END_CRITICAL;
+      target = " critical";
+      eos_ok = 0;
+      break;
+
     case COMP_SELECT:
     case COMP_SELECT_TYPE:
       *st = ST_END_SELECT;
@@ -5530,7 +5621,8 @@ gfc_match_end (gfc_statement *st)
     {
 
       if (*st != ST_ENDDO && *st != ST_ENDIF && *st != ST_END_SELECT
-	  && *st != ST_END_FORALL && *st != ST_END_WHERE && *st != ST_END_BLOCK)
+	  && *st != ST_END_FORALL && *st != ST_END_WHERE && *st != ST_END_BLOCK
+	  && *st != ST_END_CRITICAL)
 	return MATCH_YES;
 
       if (!block_name)
@@ -5615,11 +5707,15 @@ attr_decl1 (void)
 
   /* Deal with possible array specification for certain attributes.  */
   if (current_attr.dimension
+      || current_attr.codimension
       || current_attr.allocatable
       || current_attr.pointer
       || current_attr.target)
     {
-      m = gfc_match_array_spec (&as);
+      m = gfc_match_array_spec (&as, !current_attr.codimension,
+				!current_attr.dimension
+				&& !current_attr.pointer
+				&& !current_attr.target);
       if (m == MATCH_ERROR)
 	goto cleanup;
 
@@ -5635,6 +5731,14 @@ attr_decl1 (void)
 	{
 	  gfc_error ("Dimensions specified for %s at %L after its "
 		     "initialisation", sym->name, &var_locus);
+	  m = MATCH_ERROR;
+	  goto cleanup;
+	}
+
+      if (current_attr.codimension && m == MATCH_NO)
+	{
+	  gfc_error ("Missing array specification at %L in CODIMENSION "
+		     "statement", &var_locus);
 	  m = MATCH_ERROR;
 	  goto cleanup;
 	}
@@ -5667,8 +5771,8 @@ attr_decl1 (void)
     }
   else
     {
-      if (current_attr.dimension == 0
-	    && gfc_copy_attr (&sym->attr, &current_attr, &var_locus) == FAILURE)
+      if (current_attr.dimension == 0 && current_attr.codimension == 0
+	  && gfc_copy_attr (&sym->attr, &current_attr, &var_locus) == FAILURE)
 	{
 	  m = MATCH_ERROR;
 	  goto cleanup;
@@ -5766,7 +5870,7 @@ static match
 cray_pointer_decl (void)
 {
   match m;
-  gfc_array_spec *as;
+  gfc_array_spec *as = NULL;
   gfc_symbol *cptr; /* Pointer symbol.  */
   gfc_symbol *cpte; /* Pointee symbol.  */
   locus var_locus;
@@ -5835,7 +5939,7 @@ cray_pointer_decl (void)
 	}
 
       /* Check for an optional array spec.  */
-      m = gfc_match_array_spec (&as);
+      m = gfc_match_array_spec (&as, true, false);
       if (m == MATCH_ERROR)
 	{
 	  gfc_free_array_spec (as);
@@ -5989,6 +6093,16 @@ gfc_match_allocatable (void)
 {
   gfc_clear_attr (&current_attr);
   current_attr.allocatable = 1;
+
+  return attr_decl ();
+}
+
+
+match
+gfc_match_codimension (void)
+{
+  gfc_clear_attr (&current_attr);
+  current_attr.codimension = 1;
 
   return attr_decl ();
 }
@@ -6482,11 +6596,19 @@ gfc_match_volatile (void)
   for(;;)
     {
       /* VOLATILE is special because it can be added to host-associated 
-	 symbols locally.  */
+	 symbols locally. Except for coarrays. */
       m = gfc_match_symbol (&sym, 1);
       switch (m)
 	{
 	case MATCH_YES:
+	  /* F2008, C560+C561. VOLATILE for host-/use-associated variable or
+	     for variable in a BLOCK which is defined outside of the BLOCK.  */
+	  if (sym->ns != gfc_current_ns && sym->attr.codimension)
+	    {
+	      gfc_error ("Specifying VOLATILE for coarray variable '%s' at "
+			 "%C, which is use-/host-associated", sym->name);
+	      return MATCH_ERROR;
+	    }
 	  if (gfc_add_volatile (&sym->attr, sym->name, &gfc_current_locus)
 	      == FAILURE)
 	    return MATCH_ERROR;
@@ -6965,22 +7087,14 @@ gfc_match_derived_decl (void)
 
 
 /* Cray Pointees can be declared as: 
-      pointer (ipt, a (n,m,...,*)) 
-   By default, this is treated as an AS_ASSUMED_SIZE array.  We'll
-   cheat and set a constant bound of 1 for the last dimension, if this
-   is the case. Since there is no bounds-checking for Cray Pointees,
-   this will be okay.  */
+      pointer (ipt, a (n,m,...,*))  */
 
 match
 gfc_mod_pointee_as (gfc_array_spec *as)
 {
   as->cray_pointee = true; /* This will be useful to know later.  */
   if (as->type == AS_ASSUMED_SIZE)
-    {
-      as->type = AS_EXPLICIT;
-      as->upper[as->rank - 1] = gfc_int_expr (1);
-      as->cp_was_assumed = true;
-    }
+    as->cp_was_assumed = true;
   else if (as->type == AS_ASSUMED_SHAPE)
     {
       gfc_error ("Cray Pointee at %C cannot be assumed shape array");
@@ -7024,12 +7138,7 @@ static gfc_expr *
 enum_initializer (gfc_expr *last_initializer, locus where)
 {
   gfc_expr *result;
-
-  result = gfc_get_expr ();
-  result->expr_type = EXPR_CONSTANT;
-  result->ts.type = BT_INTEGER;
-  result->ts.kind = gfc_c_int_kind;
-  result->where = where;
+  result = gfc_get_constant_expr (BT_INTEGER, gfc_c_int_kind, &where);
 
   mpz_init (result->value.integer);
 
@@ -7120,10 +7229,9 @@ enumerator_decl (void)
 
   if (initializer == NULL || initializer->ts.type != BT_INTEGER)
     {
-      gfc_error("ENUMERATOR %L not initialized with integer expression",
-		&var_locus);
+      gfc_error ("ENUMERATOR %L not initialized with integer expression",
+		 &var_locus);
       m = MATCH_ERROR;
-      gfc_free_enum_history ();
       goto cleanup;
     }
 
@@ -7189,7 +7297,10 @@ gfc_match_enumerator_def (void)
     {
       m = enumerator_decl ();
       if (m == MATCH_ERROR)
-	goto cleanup;
+	{
+	  gfc_free_enum_history ();
+	  goto cleanup;
+	}
       if (m == MATCH_NO)
 	break;
 
@@ -7804,8 +7915,18 @@ gfc_match_final_decl (void)
   bool first, last;
   gfc_symbol* block;
 
+  if (gfc_current_form == FORM_FREE)
+    {
+      char c = gfc_peek_ascii_char ();
+      if (!gfc_is_whitespace (c) && c != ':')
+	return MATCH_NO;
+    }
+  
   if (gfc_state_stack->state != COMP_DERIVED_CONTAINS)
     {
+      if (gfc_current_form == FORM_FIXED)
+	return MATCH_NO;
+
       gfc_error ("FINAL declaration at %C must be inside a derived type "
 		 "CONTAINS section");
       return MATCH_ERROR;

@@ -1,5 +1,5 @@
 /* Gimple Represented as Polyhedra.
-   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@inria.fr>.
 
 This file is part of GCC.
@@ -202,7 +202,7 @@ graphite_initialize (void)
   if (number_of_loops () <= 1
       /* FIXME: This limit on the number of basic blocks of a function
 	 should be removed when the SCOP detection is faster.  */
-      || n_basic_blocks > 100)
+      || n_basic_blocks > PARAM_VALUE (PARAM_GRAPHITE_MAX_BBS_PER_FUNCTION))
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
 	print_global_statistics (dump_file);
@@ -268,20 +268,13 @@ graphite_transform_loops (void)
   bb_pbb_mapping = htab_create (10, bb_pbb_map_hash, eq_bb_pbb_map, free);
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
-    {
-      bool transform_done = false;
+    build_poly_scop (scop);
 
-      if (!build_poly_scop (scop))
-	continue;
-
-      if (apply_poly_transforms (scop))
-	transform_done = gloog (scop, bb_pbb_mapping);
-      else
-	check_poly_representation (scop);
-
-      if (transform_done)
-	need_cfg_cleanup_p = true;
-    }
+  for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
+    if (POLY_SCOP_P (scop)
+	&& apply_poly_transforms (scop)
+	&& gloog (scop, scops, bb_pbb_mapping))
+      need_cfg_cleanup_p = true;
 
   htab_delete (bb_pbb_mapping);
   free_scops (scops);

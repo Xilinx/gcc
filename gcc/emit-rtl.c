@@ -1750,23 +1750,24 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	      /* ??? Any reason the field size would be different than
 		 the size we got from the type?  */
 	    }
-	  else if (flag_argument_noalias > 1
-		   && (INDIRECT_REF_P (t2))
-		   && TREE_CODE (TREE_OPERAND (t2, 0)) == PARM_DECL)
+
+	  /* If this is an indirect reference, record it.  */
+	  else if (TREE_CODE (t) == INDIRECT_REF
+		   || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
 	    {
-	      expr = t2;
-	      offset = NULL;
+	      expr = t;
+	      offset = const0_rtx;
+	      apply_bitpos = bitpos;
 	    }
 	}
 
-      /* If this is a Fortran indirect argument reference, record the
-	 parameter decl.  */
-      else if (flag_argument_noalias > 1
-	       && (INDIRECT_REF_P (t))
-	       && TREE_CODE (TREE_OPERAND (t, 0)) == PARM_DECL)
+      /* If this is an indirect reference, record it.  */
+      else if (TREE_CODE (t) == INDIRECT_REF
+	       || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
 	{
 	  expr = t;
-	  offset = NULL;
+	  offset = const0_rtx;
+	  apply_bitpos = bitpos;
 	}
 
       if (!align_computed && !INDIRECT_REF_P (t))

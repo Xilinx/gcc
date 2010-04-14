@@ -1107,8 +1107,7 @@ tm_log_emit_save_or_restores (unsigned trxn_prop,
 			      edge fallthru_edge,
 			      basic_block *end_bb)
 {
-  edge e;
-  basic_block cond_bb, after_bb, code_bb;
+  basic_block cond_bb, code_bb;
   gimple cond_stmt, stmt;
   gimple_stmt_iterator gsi;
   tree t1, t2;
@@ -1117,10 +1116,9 @@ tm_log_emit_save_or_restores (unsigned trxn_prop,
   cond_bb = create_empty_bb (before_bb);
   code_bb = create_empty_bb (cond_bb);
   *end_bb = create_empty_bb (code_bb);
-  after_bb = fallthru_edge->dest;
   redirect_edge_pred (fallthru_edge, *end_bb);
   fallthru_edge->flags = EDGE_FALLTHRU;
-  e = make_edge (before_bb, cond_bb, old_flags);
+  make_edge (before_bb, cond_bb, old_flags);
 
   set_immediate_dominator (CDI_DOMINATORS, cond_bb, before_bb);
   set_immediate_dominator (CDI_DOMINATORS, code_bb, cond_bb);
@@ -1140,9 +1138,9 @@ tm_log_emit_save_or_restores (unsigned trxn_prop,
 
   emitf (code_bb);
 
-  e = make_edge (cond_bb, code_bb, EDGE_TRUE_VALUE);
-  e = make_edge (cond_bb, *end_bb, EDGE_FALSE_VALUE);
-  e = make_edge (code_bb, *end_bb, EDGE_FALLTHRU);
+  make_edge (cond_bb, code_bb, EDGE_TRUE_VALUE);
+  make_edge (cond_bb, *end_bb, EDGE_FALSE_VALUE);
+  make_edge (code_bb, *end_bb, EDGE_FALLTHRU);
 
   return cond_bb;
 }
@@ -3821,13 +3819,12 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
 {
   gimple_stmt_iterator gsi;
   gimple g;
-  edge e;
 
   transaction_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 
   g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOCABLE], 0);
 
-  e = split_block_after_labels (bb);
+  split_block_after_labels (bb);
   gsi = gsi_after_labels (bb);
   gsi_insert_before (&gsi, g, GSI_SAME_STMT);
 

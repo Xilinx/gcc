@@ -1,5 +1,6 @@
 /* Implementation of the DATE_AND_TIME intrinsic.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Steven Bosscher.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -55,6 +56,11 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    thread-local storage so they are threadsafe.  */
 
 #ifndef HAVE_LOCALTIME_R
+/* If _POSIX is defined localtime_r gets defined by mingw-w64 headers.  */
+#ifdef localtime_r
+#undef localtime_r
+#endif
+
 static struct tm *
 localtime_r (const time_t * timep, struct tm * result)
 {
@@ -64,6 +70,11 @@ localtime_r (const time_t * timep, struct tm * result)
 #endif
 
 #ifndef HAVE_GMTIME_R
+/* If _POSIX is defined gmtime_r gets defined by mingw-w64 headers.  */
+#ifdef gmtime_r
+#undef gmtime_r
+#endif
+
 static struct tm *
 gmtime_r (const time_t * timep, struct tm * result)
 {

@@ -1,6 +1,6 @@
 /* Language-independent diagnostic subroutines for the GNU Compiler Collection
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009 Free Software Foundation, Inc.
+   2009, 2010 Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@codesourcery.com>
 
 This file is part of GCC.
@@ -97,7 +97,7 @@ diagnostic_initialize (diagnostic_context *context)
   context->printer->wrapping.rule = DIAGNOSTICS_SHOW_PREFIX_ONCE;
 
   memset (context->diagnostic_count, 0, sizeof context->diagnostic_count);
-  context->issue_warnings_are_errors_message = true;
+  context->some_warnings_are_errors = false;
   context->warning_as_error_requested = false;
   memset (context->classify_diagnostic, DK_UNSPECIFIED,
 	  sizeof context->classify_diagnostic);
@@ -109,6 +109,29 @@ diagnostic_initialize (diagnostic_context *context)
   context->last_module = 0;
   context->last_function = NULL;
   context->lock = 0;
+  context->inhibit_notes_p = false;
+}
+
+/* Do any cleaning up required after the last diagnostic is emitted.  */
+
+void
+diagnostic_finish (diagnostic_context *context)
+{
+  /* Some of the errors may actually have been warnings.  */
+  if (context->some_warnings_are_errors)
+    {
+      /* -Werror was given.  */
+      if (context->warning_as_error_requested)
+	pp_verbatim (context->printer,
+		     _("%s: all warnings being treated as errors\n"),
+		     progname);
+      /* At least one -Werror= was given.  */
+      else
+	pp_verbatim (context->printer,
+		     _("%s: some warnings being treated as errors\n"),
+		     progname);
+      pp_flush (context->printer);
+    }
 }
 
 /* Initialize DIAGNOSTIC, where the message MSG has already been
@@ -183,6 +206,7 @@ diagnostic_action_after_output (diagnostic_context *context,
       if (flag_fatal_errors)
 	{
 	  fnotice (stderr, "compilation terminated due to -Wfatal-errors.\n");
+	  diagnostic_finish (context);
 	  exit (FATAL_EXIT_CODE);
 	}
       break;
@@ -199,7 +223,7 @@ diagnostic_action_after_output (diagnostic_context *context,
     case DK_FATAL:
       if (context->abort_on_error)
 	real_abort ();
-
+      diagnostic_finish (context);
       fnotice (stderr, "compilation terminated.\n");
       exit (FATAL_EXIT_CODE);
 
@@ -308,7 +332,7 @@ diagnostic_report_diagnostic (diagnostic_context *context,
 			      diagnostic_info *diagnostic)
 {
   location_t location = diagnostic->location;
-  bool maybe_print_warnings_as_errors_message = false;
+  diagnostic_t orig_diag_kind = diagnostic->kind;
   const char *saved_format_spec;
 
   /* Give preference to being able to inhibit warnings, before they
@@ -317,11 +341,15 @@ diagnostic_report_diagnostic (diagnostic_context *context,
       && !diagnostic_report_warnings_p (location))
     return false;
 
-  if (diagnostic->kind == DK_NOTE && flag_compare_debug)
-    return false;
-
   if (diagnostic->kind == DK_PEDWARN)
-    diagnostic->kind = pedantic_warning_kind ();
+    {
+      diagnostic->kind = pedantic_warning_kind ();
+      /* We do this to avoid giving the message for -pedantic-errors.  */
+      orig_diag_kind = diagnostic->kind;
+    }
+ 
+  if (diagnostic->kind == DK_NOTE && context->inhibit_notes_p)
+    return false;
 
   if (context->lock > 0)
     {
@@ -342,7 +370,6 @@ diagnostic_report_diagnostic (diagnostic_context *context,
       && diagnostic->kind == DK_WARNING)
     {
       diagnostic->kind = DK_ERROR;
-      maybe_print_warnings_as_errors_message = true;
     }
 
   if (diagnostic->option_index)
@@ -356,7 +383,6 @@ diagnostic_report_diagnostic (diagnostic_context *context,
       if (context->classify_diagnostic[diagnostic->option_index] != DK_UNSPECIFIED)
 	{
 	  diagnostic->kind = context->classify_diagnostic[diagnostic->option_index];
-	  maybe_print_warnings_as_errors_message = false;
 	}
       /* This allows for future extensions, like temporarily disabling
 	 warnings for ranges of source code.  */
@@ -364,15 +390,8 @@ diagnostic_report_diagnostic (diagnostic_context *context,
 	return false;
     }
 
-  /* If we changed the kind due to -Werror, and didn't override it, we
-     need to print this message.  */
-  if (context->issue_warnings_are_errors_message
-      && maybe_print_warnings_as_errors_message)
-    {
-      pp_verbatim (context->printer,
-		   "%s: warnings being treated as errors\n", progname);
-      context->issue_warnings_are_errors_message = false;
-    }
+  if (orig_diag_kind == DK_WARNING && diagnostic->kind == DK_ERROR)
+    context->some_warnings_are_errors = true;
 
   context->lock++;
 
@@ -519,6 +538,23 @@ inform (location_t location, const char *gmsgid, ...)
   va_end (ap);
 }
 
+/* An informative note at LOCATION.  Use this for additional details on an
+   error message.  */
+void
+inform_n (location_t location, int n, const char *singular_gmsgid,
+          const char *plural_gmsgid, ...)
+{
+  diagnostic_info diagnostic;
+  va_list ap;
+
+  va_start (ap, plural_gmsgid);
+  diagnostic_set_info_translated (&diagnostic,
+                                  ngettext (singular_gmsgid, plural_gmsgid, n),
+                                  &ap, location, DK_NOTE);
+  report_diagnostic (&diagnostic);
+  va_end (ap);
+}
+
 /* A warning at INPUT_LOCATION.  Use this for code which is correct according
    to the relevant language specification but is likely to be buggy anyway.
    Returns true if the warning was printed, false if it was inhibited.  */
@@ -610,6 +646,23 @@ error (const char *gmsgid, ...)
 
   va_start (ap, gmsgid);
   diagnostic_set_info (&diagnostic, gmsgid, &ap, input_location, DK_ERROR);
+  report_diagnostic (&diagnostic);
+  va_end (ap);
+}
+
+/* A hard error: the code is definitely ill-formed, and an object file
+   will not be produced.  */
+void
+error_n (location_t location, int n, const char *singular_gmsgid,
+         const char *plural_gmsgid, ...)
+{
+  diagnostic_info diagnostic;
+  va_list ap;
+
+  va_start (ap, plural_gmsgid);
+  diagnostic_set_info_translated (&diagnostic,
+                                  ngettext (singular_gmsgid, plural_gmsgid, n),
+                                  &ap, location, DK_ERROR);
   report_diagnostic (&diagnostic);
   va_end (ap);
 }

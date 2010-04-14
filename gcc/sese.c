@@ -1,5 +1,6 @@
 /* Single entry single exit control flow regions.
-   Copyright (C) 2008, 2009  Free Software Foundation, Inc.
+   Copyright (C) 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Jan Sjodin <jan.sjodin@amd.com> and
    Sebastian Pop <sebastian.pop@amd.com>.
 
@@ -494,6 +495,7 @@ get_rename (htab_t map, tree old_name)
   struct rename_map_elt_s tmp;
   PTR *slot;
 
+  gcc_assert (TREE_CODE (old_name) == SSA_NAME);
   tmp.old_name = old_name;
   slot = htab_find_slot (map, &tmp, NO_INSERT);
 
@@ -526,49 +528,31 @@ set_rename (htab_t map, tree old_name, tree expr)
   *slot = new_rename_map_elt (old_name, expr);
 }
 
-static void rename_variables_in_expr (htab_t, tree);
-
-/* Renames the operand OP of expression T following the tuples
-   (OLD_NAME, EXPR) in RENAME_MAP.  */
-
-static void
-rename_variables_in_operand (htab_t rename_map, tree t, int op)
-{
-  tree operand = TREE_OPERAND (t, op);
-
-  if (TREE_CODE (operand) == SSA_NAME)
-    {
-      tree new_name = get_rename (rename_map, operand);
-
-      if (new_name != operand)
-	TREE_OPERAND (t, op) = new_name;
-    }
-  else
-    rename_variables_in_expr (rename_map, operand);
-}
-
 /* Renames the expression T following the tuples (OLD_NAME, EXPR) in
-   RENAME_MAP.  */
+   the rename map M.  Returns the expression T after renaming.  */
 
-static void
-rename_variables_in_expr (htab_t rename_map, tree t)
+static tree
+rename_variables_in_expr (htab_t m, tree t)
 {
   if (!t)
-    return;
+    return t;
+
+ if (TREE_CODE (t) == SSA_NAME)
+   return get_rename (m, t);
 
   switch (TREE_CODE_LENGTH (TREE_CODE (t)))
     {
     case 3:
-      rename_variables_in_operand (rename_map, t, 2);
+      TREE_OPERAND (t, 2) = rename_variables_in_expr (m, TREE_OPERAND (t, 2));
 
     case 2:
-      rename_variables_in_operand (rename_map, t, 1);
+      TREE_OPERAND (t, 1) = rename_variables_in_expr (m, TREE_OPERAND (t, 1));
 
     case 1:
-      rename_variables_in_operand (rename_map, t, 0);
+      TREE_OPERAND (t, 0) = rename_variables_in_expr (m, TREE_OPERAND (t, 0));
 
     default:
-      return;
+      return t;
     }
 }
 
@@ -582,9 +566,22 @@ rename_nb_iterations (htab_t rename_map)
   struct loop *loop;
 
   FOR_EACH_LOOP (li, loop, 0)
-    {
-      rename_variables_in_expr (rename_map, loop->nb_iterations);
-    }
+    loop->nb_iterations = rename_variables_in_expr (rename_map,
+						    loop->nb_iterations);
+}
+
+/* Renames all the parameters of SESE following the tuples (OLD_NAME,
+   EXPR) in RENAME_MAP.  */
+
+void
+rename_sese_parameters (htab_t rename_map, sese region)
+{
+  int i;
+  tree p;
+
+  for (i = 0; VEC_iterate (tree, SESE_PARAMS (region), i, p); i++)
+    VEC_replace (tree, SESE_PARAMS (region), i,
+		 rename_variables_in_expr (rename_map, p));
 }
 
 /* Adjusts the phi nodes in the block BB for variables defined in
@@ -663,13 +660,18 @@ rename_variables_in_stmt (gimple stmt, htab_t map, gimple_stmt_iterator *insert_
   FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_ALL_USES)
     {
       tree use = USE_FROM_PTR (use_p);
-      tree expr = get_rename (map, use);
-      tree type_use = TREE_TYPE (use);
-      tree type_expr = TREE_TYPE (expr);
+      tree expr, type_use, type_expr;
       gimple_seq stmts;
 
+      if (TREE_CODE (use) != SSA_NAME)
+	continue;
+
+      expr = get_rename (map, use);
       if (use == expr)
 	continue;
+
+      type_use = TREE_TYPE (use);
+      type_expr = TREE_TYPE (expr);
 
       if (type_use != type_expr
 	  || (TREE_CODE (expr) != SSA_NAME
@@ -777,7 +779,7 @@ expand_scalar_variables_call (gimple stmt, basic_block bb, sese region,
    to translate the names of induction variables.  */
 
 static tree
-expand_scalar_variables_ssa_name (tree op0, basic_block bb,
+expand_scalar_variables_ssa_name (tree type, tree op0, basic_block bb,
 				  sese region, htab_t map,
 				  gimple_stmt_iterator *gsi)
 {
@@ -786,7 +788,7 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
 
   if (is_parameter (region, op0)
       || is_iv (op0))
-    return get_rename (map, op0);
+    return fold_convert (type, get_rename (map, op0));
 
   def_stmt = SSA_NAME_DEF_STMT (op0);
 
@@ -795,7 +797,7 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
 
   if (new_op != op0
       && gimple_bb (SSA_NAME_DEF_STMT (new_op)) == bb)
-    return new_op;
+    return fold_convert (type, new_op);
 
   if (gimple_bb (def_stmt) == bb)
     {
@@ -803,13 +805,13 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
 	 we do not need to create a new expression for it, we
 	 only need to ensure its operands are expanded.  */
       expand_scalar_variables_stmt (def_stmt, bb, region, map, gsi);
-      return new_op;
+      return fold_convert (type, new_op);
     }
   else
     {
       if (!gimple_bb (def_stmt)
 	  || !bb_in_sese_p (gimple_bb (def_stmt), region))
-	return new_op;
+	return fold_convert (type, new_op);
 
       switch (gimple_code (def_stmt))
 	{
@@ -870,7 +872,7 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
 	  {
 	    tree old_name = TREE_OPERAND (op0, 0);
 	    tree expr = expand_scalar_variables_ssa_name
-	      (old_name, bb, region, map, gsi);
+	      (type, old_name, bb, region, map, gsi);
 
 	    if (TREE_CODE (expr) != SSA_NAME
 		&& is_gimple_reg (old_name))
@@ -901,6 +903,9 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
 
 	    return build4 (ARRAY_REF, type, base, subscript, op02, op03);
 	  }
+
+	case COMPONENT_REF:
+	  return op0;
 
 	default:
 	  /* The above cases should catch everything.  */
@@ -934,7 +939,7 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
     }
 
   if (code == SSA_NAME)
-    return expand_scalar_variables_ssa_name (op0, bb, region, map, gsi);
+    return expand_scalar_variables_ssa_name (type, op0, bb, region, map, gsi);
 
   if (code == ADDR_EXPR)
     {
@@ -1102,9 +1107,8 @@ get_false_edge_from_guard_bb (basic_block bb)
 static bool
 name_defined_in_loop_p (tree name, loop_p loop)
 {
-  gimple stmt = SSA_NAME_DEF_STMT (name);
-
-  return (gimple_bb (stmt)->loop_father == loop);
+  return !SSA_NAME_IS_DEFAULT_DEF (name)
+    && gimple_bb (SSA_NAME_DEF_STMT (name))->loop_father == loop;
 }
 
 /* Returns true when EXPR contains SSA_NAMEs defined in LOOP.  */

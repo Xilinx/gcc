@@ -1,5 +1,5 @@
 /* Alias analysis for trees.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -189,7 +189,7 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
 	ptr = TREE_OPERAND (base, 0);
       else if (base
 	       && SSA_VAR_P (base))
-	return operand_equal_p (base, decl, 0);
+	return base == decl;
       else if (base
 	       && CONSTANT_CLASS_P (base))
 	return false;
@@ -336,8 +336,6 @@ dump_alias_info (FILE *file)
 
   fprintf (file, "\nESCAPED");
   dump_points_to_solution (file, &cfun->gimple_df->escaped);
-  fprintf (file, "\nCALLUSED");
-  dump_points_to_solution (file, &cfun->gimple_df->callused);
 
   fprintf (file, "\n\nFlow-insensitive points-to information\n\n");
 
@@ -544,13 +542,15 @@ same_type_for_tbaa (tree type1, tree type2)
       && TREE_CODE (type2) == ARRAY_TYPE)
     return -1;
 
-  /* In Ada, an lvalue of unconstrained type can be used to access an object
-     of one of its constrained subtypes, for example when a function with an
-     unconstrained parameter passed by reference is called on a constrained
-     object and inlined.  In this case, the types have the same alias set.  */
-  if (TYPE_SIZE (type1) && TYPE_SIZE (type2)
-      && TREE_CONSTANT (TYPE_SIZE (type1)) != TREE_CONSTANT (TYPE_SIZE (type2))
-      && get_alias_set (type1) == get_alias_set (type2))
+  /* ??? In Ada, an lvalue of an unconstrained type can be used to access an
+     object of one of its constrained subtypes, e.g. when a function with an
+     unconstrained parameter passed by reference is called on an object and
+     inlined.  But, even in the case of a fixed size, type and subtypes are
+     not equivalent enough as to share the same TYPE_CANONICAL, since this
+     would mean that conversions between them are useless, whereas they are
+     not (e.g. type and subtypes can have different modes).  So, in the end,
+     they are only guaranteed to have the same alias set.  */
+  if (get_alias_set (type1) == get_alias_set (type2))
     return -1;
 
   /* The types are known to be not equal.  */
@@ -627,7 +627,7 @@ decl_refs_may_alias_p (tree base1,
   gcc_assert (SSA_VAR_P (base1) && SSA_VAR_P (base2));
 
   /* If both references are based on different variables, they cannot alias.  */
-  if (!operand_equal_p (base1, base2, 0))
+  if (base1 != base2)
     return false;
 
   /* If both references are based on the same variable, they cannot alias if
@@ -818,6 +818,77 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
     return decl_refs_may_alias_p (base1, offset1, max_size1,
 				  base2, offset2, max_size2);
 
+  ind1_p = INDIRECT_REF_P (base1);
+  ind2_p = INDIRECT_REF_P (base2);
+  /* Canonicalize the pointer-vs-decl case.  */
+  if (ind1_p && var2_p)
+    {
+      HOST_WIDE_INT tmp1;
+      tree tmp2;
+      ao_ref *tmp3;
+      tmp1 = offset1; offset1 = offset2; offset2 = tmp1;
+      tmp1 = max_size1; max_size1 = max_size2; max_size2 = tmp1;
+      tmp2 = base1; base1 = base2; base2 = tmp2;
+      tmp3 = ref1; ref1 = ref2; ref2 = tmp3;
+      var1_p = true;
+      ind1_p = false;
+      var2_p = false;
+      ind2_p = true;
+    }
+
+  /* If we are about to disambiguate pointer-vs-decl try harder to
+     see must-aliases and give leeway to some invalid cases.
+     This covers a pretty minimal set of cases only and does not
+     when called from the RTL oracle.  It handles cases like
+
+       int i = 1;
+       return *(float *)&i;
+
+     and also fixes gfortran.dg/lto/pr40725.  */
+  if (var1_p && ind2_p
+      && cfun
+      && gimple_in_ssa_p (cfun)
+      && TREE_CODE (TREE_OPERAND (base2, 0)) == SSA_NAME)
+    {
+      gimple def_stmt = SSA_NAME_DEF_STMT (TREE_OPERAND (base2, 0));
+      while (is_gimple_assign (def_stmt)
+	     && (gimple_assign_rhs_code (def_stmt) == SSA_NAME
+		 || CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def_stmt))))
+	{
+	  tree rhs = gimple_assign_rhs1 (def_stmt);
+	  HOST_WIDE_INT offset, size, max_size;
+
+	  /* Look through SSA name copies and pointer conversions.  */
+	  if (TREE_CODE (rhs) == SSA_NAME
+	      && POINTER_TYPE_P (TREE_TYPE (rhs)))
+	    {
+	      def_stmt = SSA_NAME_DEF_STMT (rhs);
+	      continue;
+	    }
+	  if (TREE_CODE (rhs) != ADDR_EXPR)
+	    break;
+
+	  /* If the pointer is defined as an address based on a decl
+	     use plain offset disambiguation and ignore TBAA.  */
+	  rhs = TREE_OPERAND (rhs, 0);
+	  rhs = get_ref_base_and_extent (rhs, &offset, &size, &max_size);
+	  if (SSA_VAR_P (rhs))
+	    {
+	      base2 = rhs;
+	      offset2 += offset;
+	      if (size != max_size
+		  || max_size == -1)
+		max_size2 = -1;
+	      return decl_refs_may_alias_p (base1, offset1, max_size1,
+					    base2, offset2, max_size2);
+	    }
+
+	  /* Do not continue looking through &p->x to limit time
+	     complexity.  */
+	  break;
+	}
+    }
+
   /* First defer to TBAA if possible.  */
   if (tbaa_p
       && flag_strict_aliasing
@@ -833,19 +904,12 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
     return true;
 
   /* Dispatch to the pointer-vs-decl or pointer-vs-pointer disambiguators.  */
-  ind1_p = INDIRECT_REF_P (base1);
-  ind2_p = INDIRECT_REF_P (base2);
   set = tbaa_p ? -1 : 0;
   if (var1_p && ind2_p)
     return indirect_ref_may_alias_decl_p (ref2->ref, TREE_OPERAND (base2, 0),
 					  offset2, max_size2, set,
 					  ref1->ref, base1,
 					  offset1, max_size1, set);
-  else if (ind1_p && var2_p)
-    return indirect_ref_may_alias_decl_p (ref1->ref, TREE_OPERAND (base1, 0),
-					  offset1, max_size1, set,
-					  ref2->ref, base2,
-					  offset2, max_size2, set);
   else if (ind1_p && ind2_p)
     return indirect_refs_may_alias_p (ref1->ref, TREE_OPERAND (base1, 0),
 				      offset1, max_size1, set,
@@ -1018,51 +1082,24 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 	goto process_args;
     }
 
-  /* If the base variable is call-used or call-clobbered then
-     it may be used.  */
-  if (flags & (ECF_PURE|ECF_CONST|ECF_LOOPING_CONST_OR_PURE|ECF_NOVOPS))
+  /* Check if the base variable is call-used.  */
+  if (DECL_P (base))
     {
-      if (DECL_P (base))
-	{
-	  if (is_call_used (base))
-	    return true;
-	}
-      else if (INDIRECT_REF_P (base)
-	       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
-	{
-	  struct ptr_info_def *pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0));
-	  if (!pi)
-	    return true;
+      if (pt_solution_includes (gimple_call_use_set (call), base))
+	return true;
+    }
+  else if (INDIRECT_REF_P (base)
+	   && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
+    {
+      struct ptr_info_def *pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0));
+      if (!pi)
+	return true;
 
-	  if (pt_solution_includes_global (&pi->pt)
-	      || pt_solutions_intersect (&cfun->gimple_df->callused, &pi->pt)
-	      || pt_solutions_intersect (&cfun->gimple_df->escaped, &pi->pt))
-	    return true;
-	}
-      else
+      if (pt_solutions_intersect (gimple_call_use_set (call), &pi->pt))
 	return true;
     }
   else
-    {
-      if (DECL_P (base))
-	{
-	  if (is_call_clobbered (base))
-	    return true;
-	}
-      else if (INDIRECT_REF_P (base)
-	       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
-	{
-	  struct ptr_info_def *pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0));
-	  if (!pi)
-	    return true;
-
-	  if (pt_solution_includes_global (&pi->pt)
-	      || pt_solutions_intersect (&cfun->gimple_df->escaped, &pi->pt))
-	    return true;
-	}
-      else
-	return true;
-    }
+    return true;
 
   /* Inspect call arguments for passed-by-value aliases.  */
 process_args:
@@ -1217,16 +1254,19 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_CALLOC:
 	  /* Unix98 specifies that errno is set on allocation failure.
 	     Until we properly can track the errno location assume it
-	     is not a plain decl but anonymous storage in a different
-	     translation unit.  */
-	  if (flag_errno_math)
+	     is not a local decl but external or anonymous storage in
+	     a different translation unit.  Also assume it is of
+	     type int as required by the standard.  */
+	  if (flag_errno_math
+	      && TREE_TYPE (base) == integer_type_node)
 	    {
 	      struct ptr_info_def *pi;
-	      if (DECL_P (base))
-		return false;
-	      if (INDIRECT_REF_P (base)
-		  && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME
-		  && (pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0))))
+	      if (DECL_P (base)
+		  && !TREE_STATIC (base))
+		return true;
+	      else if (INDIRECT_REF_P (base)
+		       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME
+		       && (pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0))))
 		return pi->pt.anything || pi->pt.nonlocal;
 	    }
 	  return false;
@@ -1301,8 +1341,9 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	return false;
     }
 
+  /* Check if the base variable is call-clobbered.  */
   if (DECL_P (base))
-    return is_call_clobbered (base);
+    return pt_solution_includes (gimple_call_clobber_set (call), base);
   else if (INDIRECT_REF_P (base)
 	   && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
     {
@@ -1310,8 +1351,7 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
       if (!pi)
 	return true;
 
-      return (pt_solution_includes_global (&pi->pt)
-	      || pt_solutions_intersect (&cfun->gimple_df->escaped, &pi->pt));
+      return pt_solutions_intersect (gimple_call_clobber_set (call), &pi->pt);
     }
 
   return true;

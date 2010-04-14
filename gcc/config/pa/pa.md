@@ -1,6 +1,7 @@
 ;;- Machine description for HP PA-RISC architecture for GCC compiler
 ;;   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-;;   2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+;;   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010
+;;   Free Software Foundation, Inc.
 ;;   Contributed by the Center for Software Science at the University
 ;;   of Utah.
 
@@ -3097,7 +3098,7 @@
 
   size = INTVAL (operands[2]);
   align = INTVAL (operands[3]);
-  align = align > 4 ? 4 : align;
+  align = align > 4 ? 4 : (align ? align : 1);
 
   /* If size/alignment is large, then use the library routines.  */
   if (size / align > 16)
@@ -3285,7 +3286,7 @@
 
   size = INTVAL (operands[2]);
   align = INTVAL (operands[3]);
-  align = align > 8 ? 8 : align;
+  align = align > 8 ? 8 : (align ? align : 1);
 
   /* If size/alignment is large, then use the library routines.  */
   if (size / align > 16)
@@ -7231,7 +7232,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   ""
   "
 {
-  rtx op, call_insn;
+  rtx op;
   rtx nb = operands[1];
 
   if (TARGET_PORTABLE_RUNTIME)
@@ -7296,11 +7297,11 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
     {
       rtx r4 = gen_rtx_REG (word_mode, 4);
       if (GET_CODE (op) == SYMBOL_REF)
-	call_insn = emit_call_insn (gen_call_symref_64bit (op, nb, r4));
+	emit_call_insn (gen_call_symref_64bit (op, nb, r4));
       else
 	{
 	  op = force_reg (word_mode, op);
-	  call_insn = emit_call_insn (gen_call_reg_64bit (op, nb, r4));
+	  emit_call_insn (gen_call_reg_64bit (op, nb, r4));
 	}
     }
   else
@@ -7310,10 +7311,10 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	  if (flag_pic)
 	    {
 	      rtx r4 = gen_rtx_REG (word_mode, 4);
-	      call_insn = emit_call_insn (gen_call_symref_pic (op, nb, r4));
+	      emit_call_insn (gen_call_symref_pic (op, nb, r4));
 	    }
 	  else
-	    call_insn = emit_call_insn (gen_call_symref (op, nb));
+	    emit_call_insn (gen_call_symref (op, nb));
 	}
       else
 	{
@@ -7322,10 +7323,10 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	  if (flag_pic)
 	    {
 	      rtx r4 = gen_rtx_REG (word_mode, 4);
-	      call_insn = emit_call_insn (gen_call_reg_pic (nb, r4));
+	      emit_call_insn (gen_call_reg_pic (nb, r4));
 	    }
 	  else
-	    call_insn = emit_call_insn (gen_call_reg (nb));
+	    emit_call_insn (gen_call_reg (nb));
 	}
     }
 
@@ -7723,7 +7724,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   ""
   "
 {
-  rtx op, call_insn;
+  rtx op;
   rtx dst = operands[0];
   rtx nb = operands[2];
 
@@ -7789,13 +7790,11 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
     {
       rtx r4 = gen_rtx_REG (word_mode, 4);
       if (GET_CODE (op) == SYMBOL_REF)
-	call_insn
-	  = emit_call_insn (gen_call_val_symref_64bit (dst, op, nb, r4));
+	  emit_call_insn (gen_call_val_symref_64bit (dst, op, nb, r4));
       else
 	{
 	  op = force_reg (word_mode, op);
-	  call_insn
-	    = emit_call_insn (gen_call_val_reg_64bit (dst, op, nb, r4));
+	  emit_call_insn (gen_call_val_reg_64bit (dst, op, nb, r4));
 	}
     }
   else
@@ -7805,11 +7804,10 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	  if (flag_pic)
 	    {
 	      rtx r4 = gen_rtx_REG (word_mode, 4);
-	      call_insn
-		= emit_call_insn (gen_call_val_symref_pic (dst, op, nb, r4));
+	      emit_call_insn (gen_call_val_symref_pic (dst, op, nb, r4));
 	    }
 	  else
-	    call_insn = emit_call_insn (gen_call_val_symref (dst, op, nb));
+	    emit_call_insn (gen_call_val_symref (dst, op, nb));
 	}
       else
 	{
@@ -7818,10 +7816,10 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	  if (flag_pic)
 	    {
 	      rtx r4 = gen_rtx_REG (word_mode, 4);
-	      call_insn = emit_call_insn (gen_call_val_reg_pic (dst, nb, r4));
+	      emit_call_insn (gen_call_val_reg_pic (dst, nb, r4));
 	    }
 	  else
-	    call_insn = emit_call_insn (gen_call_val_reg (dst, nb));
+	    emit_call_insn (gen_call_val_reg (dst, nb));
 	}
     }
 

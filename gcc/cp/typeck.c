@@ -878,6 +878,19 @@ merge_types (tree t1, tree t2)
     return cp_build_type_attribute_variant (t1, attributes);
 }
 
+/* Return the ARRAY_TYPE type without its domain.  */
+
+tree
+strip_array_domain (tree type)
+{
+  tree t2;
+  gcc_assert (TREE_CODE (type) == ARRAY_TYPE);
+  if (TYPE_DOMAIN (type) == NULL_TREE)
+    return type;
+  t2 = build_cplus_array_type (TREE_TYPE (type), NULL_TREE);
+  return cp_build_type_attribute_variant (t2, TYPE_ATTRIBUTES (type));
+}
+
 /* Wrapper around cp_common_type that is used by c-common.c and other
    front end optimizations that remove promotions.  
 
@@ -1110,28 +1123,22 @@ get_template_parms_of_dependent_type (tree t)
      template info from T itself.  */
   if ((tinfo = get_template_info (t)))
     ;
-  /* If T1 is a typedef or whatever has a template info associated
-     to its context, get the template parameters from that context.  */
+  else if (TREE_CODE (t) == TEMPLATE_TYPE_PARM)
+    return TEMPLATE_TYPE_PARM_SIBLING_PARMS (t);
   else if (typedef_variant_p (t)
-      && DECL_CONTEXT (TYPE_NAME (t))
-      && !NAMESPACE_SCOPE_P (TYPE_NAME (t)))
+	   && !NAMESPACE_SCOPE_P (TYPE_NAME (t)))
     tinfo = get_template_info (DECL_CONTEXT (TYPE_NAME (t)));
+  /* If T is a TYPENAME_TYPE which context is a template type
+     parameter, get the template parameters from that context.  */
+  else if (TYPE_CONTEXT (t)
+	   && TREE_CODE (TYPE_CONTEXT (t)) == TEMPLATE_TYPE_PARM)
+   return TEMPLATE_TYPE_PARM_SIBLING_PARMS (TYPE_CONTEXT (t));
   else if (TYPE_CONTEXT (t)
 	   && !NAMESPACE_SCOPE_P (t))
     tinfo = get_template_info (TYPE_CONTEXT (t));
 
   if (tinfo)
     tparms = DECL_TEMPLATE_PARMS (TI_TEMPLATE (tinfo));
-  /* If T is a template type parameter, get the template parameter
-     set it is part of.  */
-  else if (TREE_CODE (t) == TEMPLATE_TYPE_PARM
-	   && DECL_CONTEXT (TYPE_NAME (t)))
-    tparms = DECL_TEMPLATE_PARMS (DECL_CONTEXT (TYPE_NAME (t)));
-  /* If T is a TYPENAME_TYPE which context is a template type
-     parameter, get the template parameters from that context.  */
-  else if (TYPE_CONTEXT (t)
-	   && TREE_CODE (TYPE_CONTEXT (t)) == TEMPLATE_TYPE_PARM)
-    tparms = get_template_parms_of_dependent_type (TYPE_CONTEXT (t));
 
   return tparms;
 }
@@ -1169,6 +1176,17 @@ incompatible_dependent_types_p (tree t1, tree t2)
 
   tparms1 = get_template_parms_of_dependent_type (t1);
   tparms2 = get_template_parms_of_dependent_type (t2);
+
+  /* If T2 is a template type parm and if we could not get the template
+     parms it belongs to, that means we have not finished parsing the
+     full set of template parameters of the template declaration it
+     belongs to yet. If we could get the template parms T1 belongs to,
+     that mostly means T1 and T2 belongs to templates that are
+     different and incompatible.  */
+  if (TREE_CODE (t1) == TEMPLATE_TYPE_PARM
+      && (tparms1 == NULL_TREE || tparms2 == NULL_TREE)
+      && tparms1 != tparms2)
+    return true;
 
   if (tparms1 == NULL_TREE
       || tparms2 == NULL_TREE
@@ -1590,6 +1608,13 @@ cxx_sizeof_expr (tree e, tsubst_flags_t complain)
 
       return e;
     }
+
+  /* To get the size of a static data member declared as an array of
+     unknown bound, we need to instantiate it.  */
+  if (TREE_CODE (e) == VAR_DECL
+      && VAR_HAD_UNKNOWN_BOUND (e)
+      && DECL_TEMPLATE_INSTANTIATION (e))
+    instantiate_decl (e, /*defer_ok*/true, /*expl_inst_mem*/false);
 
   if (TREE_CODE (e) == COMPONENT_REF
       && TREE_CODE (TREE_OPERAND (e, 1)) == FIELD_DECL
@@ -3304,9 +3329,10 @@ convert_arguments (tree typelist, VEC(tree,gc) **values, tree fndecl,
             {
               if (fndecl)
                 {
-                  error ("too many arguments to %s %q+#D", 
-                         called_thing, fndecl);
-                  error ("at this point in file");
+                  error_at (input_location, "too many arguments to %s %q#D", 
+			    called_thing, fndecl);
+		  inform (DECL_SOURCE_LOCATION (fndecl),
+			  "declared here");
                 }
               else
                 error ("too many arguments to function");
@@ -3417,9 +3443,10 @@ convert_arguments (tree typelist, VEC(tree,gc) **values, tree fndecl,
             {
               if (fndecl)
                 {
-                  error ("too few arguments to %s %q+#D", 
-                         called_thing, fndecl);
-                  error ("at this point in file");
+                  error_at (input_location, "too few arguments to %s %q#D", 
+			    called_thing, fndecl);
+		  inform (DECL_SOURCE_LOCATION (fndecl),
+			  "declared here");
                 }
               else
                 error ("too few arguments to function");
@@ -4230,7 +4257,83 @@ cp_build_binary_op (location_t location,
 
   if (arithmetic_types_p)
     {
-      int none_complex = (code0 != COMPLEX_TYPE && code1 != COMPLEX_TYPE);
+      bool first_complex = (code0 == COMPLEX_TYPE);
+      bool second_complex = (code1 == COMPLEX_TYPE);
+      int none_complex = (!first_complex && !second_complex);
+
+      /* Adapted from patch for c/24581.  */
+      if (first_complex != second_complex
+	  && (code == PLUS_EXPR
+	      || code == MINUS_EXPR
+	      || code == MULT_EXPR
+	      || (code == TRUNC_DIV_EXPR && first_complex))
+	  && TREE_CODE (TREE_TYPE (result_type)) == REAL_TYPE
+	  && flag_signed_zeros)
+	{
+	  /* An operation on mixed real/complex operands must be
+	     handled specially, but the language-independent code can
+	     more easily optimize the plain complex arithmetic if
+	     -fno-signed-zeros.  */
+	  tree real_type = TREE_TYPE (result_type);
+	  tree real, imag;
+	  if (first_complex)
+	    {
+	      if (TREE_TYPE (op0) != result_type)
+		op0 = cp_convert_and_check (result_type, op0);
+	      if (TREE_TYPE (op1) != real_type)
+		op1 = cp_convert_and_check (real_type, op1);
+	    }
+	  else
+	    {
+	      if (TREE_TYPE (op0) != real_type)
+		op0 = cp_convert_and_check (real_type, op0);
+	      if (TREE_TYPE (op1) != result_type)
+		op1 = cp_convert_and_check (result_type, op1);
+	    }
+	  if (TREE_CODE (op0) == ERROR_MARK || TREE_CODE (op1) == ERROR_MARK)
+	    return error_mark_node;
+	  if (first_complex)
+	    {
+	      op0 = save_expr (op0);
+	      real = cp_build_unary_op (REALPART_EXPR, op0, 1, complain);
+	      imag = cp_build_unary_op (IMAGPART_EXPR, op0, 1, complain);
+	      switch (code)
+		{
+		case MULT_EXPR:
+		case TRUNC_DIV_EXPR:
+		  imag = build2 (resultcode, real_type, imag, op1);
+		  /* Fall through.  */
+		case PLUS_EXPR:
+		case MINUS_EXPR:
+		  real = build2 (resultcode, real_type, real, op1);
+		  break;
+		default:
+		  gcc_unreachable();
+		}
+	    }
+	  else
+	    {
+	      op1 = save_expr (op1);
+	      real = cp_build_unary_op (REALPART_EXPR, op1, 1, complain);
+	      imag = cp_build_unary_op (IMAGPART_EXPR, op1, 1, complain);
+	      switch (code)
+		{
+		case MULT_EXPR:
+		  imag = build2 (resultcode, real_type, op0, imag);
+		  /* Fall through.  */
+		case PLUS_EXPR:
+		  real = build2 (resultcode, real_type, op0, real);
+		  break;
+		case MINUS_EXPR:
+		  real = build2 (resultcode, real_type, op0, real);
+		  imag = build1 (NEGATE_EXPR, real_type, imag);
+		  break;
+		default:
+		  gcc_unreachable();
+		}
+	    }
+	  return build2 (COMPLEX_EXPR, result_type, real, imag);
+	}
 
       /* For certain operations (which identify themselves by shorten != 0)
 	 if both args were extended from the same smaller type,
@@ -4615,7 +4718,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	    arg = default_conversion (arg);
 	}
       else if (!(arg = build_expr_type_conversion (WANT_INT | WANT_ENUM
-						   | WANT_VECTOR,
+						   | WANT_VECTOR_OR_COMPLEX,
 						   arg, true)))
 	errstring = _("wrong type argument to bit-complement");
       else if (!noconvert && CP_INTEGRAL_TYPE_P (TREE_TYPE (arg)))
@@ -6185,6 +6288,15 @@ cp_build_c_cast (tree type, tree expr, tsubst_flags_t complain)
         error ("invalid cast to function type %qT", type);
       return error_mark_node;
     }
+
+  if (TREE_CODE (type) == POINTER_TYPE
+      && TREE_CODE (TREE_TYPE (value)) == INTEGER_TYPE
+      /* Casting to an integer of smaller size is an error detected elsewhere.  */
+      && TYPE_PRECISION (type) > TYPE_PRECISION (TREE_TYPE (value))
+      /* Don't warn about converting any constant.  */
+      && !TREE_CONSTANT (value))
+    warning_at (input_location, OPT_Wint_to_pointer_cast, 
+		"cast to pointer from integer of different size");
 
   /* A C-style cast can be a const_cast.  */
   result = build_const_cast_1 (type, value, /*complain=*/false,

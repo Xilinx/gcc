@@ -1,4 +1,4 @@
-@c Copyright (c) 2009 Free Software Foundation, Inc.
+@c Copyright (c) 2009, 2010 Free Software Foundation, Inc.
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -22,6 +22,11 @@ The plugin arguments are parsed by GCC and passed to respective
 plugins as key-value pairs. Multiple plugins can be invoked by
 specifying multiple @option{-fplugin} arguments.
 
+A plugin can be simply given by its short name (no dots or
+slashes). When simply passing @option{-fplugin=NAME}, the plugin is
+loaded from the @file{plugin} directory, so @option{-fplugin=NAME} is
+the same as @option{-fplugin=`gcc -print-file-name=plugin`/NAME.so},
+using backquote shell syntax to query the @file{plugin} directory.
 
 @section Plugin API
 
@@ -148,14 +153,14 @@ enum plugin_event
   PLUGIN_PRE_GENERICIZE,        /* Allows to see low level AST in C and C++ frontends.  */
   PLUGIN_FINISH,                /* Called before GCC exits.  */
   PLUGIN_INFO,                  /* Information about the plugin. */
-  PLUGIN_GGC_START,		/* Called at start of GCC Garbage Collection. */
-  PLUGIN_GGC_MARKING,		/* Extend the GGC marking. */
-  PLUGIN_GGC_END,		/* Called at end of GGC. */
-  PLUGIN_REGISTER_GGC_ROOTS,	/* Register an extra GGC root table. */
-  PLUGIN_REGISTER_GGC_CACHES,	/* Register an extra GGC cache table. */
+  PLUGIN_GGC_START,             /* Called at start of GCC Garbage Collection. */
+  PLUGIN_GGC_MARKING,           /* Extend the GGC marking. */
+  PLUGIN_GGC_END,               /* Called at end of GGC. */
+  PLUGIN_REGISTER_GGC_ROOTS,    /* Register an extra GGC root table. */
+  PLUGIN_REGISTER_GGC_CACHES,   /* Register an extra GGC cache table. */
   PLUGIN_ATTRIBUTES,            /* Called during attribute registration */
   PLUGIN_START_UNIT,            /* Called before processing a translation unit.  */
-  PLUGIN_PRAGMAS,	        /* Called during pragma registration. */
+  PLUGIN_PRAGMAS,               /* Called during pragma registration. */
   /* Called before first pass from all_passes.  */
   PLUGIN_ALL_PASSES_START,
   /* Called after last pass from all_passes.  */
@@ -406,6 +411,9 @@ is installed, containing all the header files needed to build plugins.
 On most systems, you can query this @code{plugin} directory by
 invoking @command{gcc -print-file-name=plugin} (replace if needed
 @command{gcc} with the appropriate program path).
+
+Inside plugins, this @code{plugin} directory name can be queried by
+calling @code{default_plugin_dir_name ()}.
 
 The following GNU Makefile excerpt shows how to build a simple plugin:
 

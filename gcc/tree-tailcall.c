@@ -1,5 +1,5 @@
 /* Tail call optimization on trees.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -136,11 +136,23 @@ suitable_for_tail_opt_p (void)
   if (cfun->stdarg)
     return false;
 
-  /* No local variable nor structure field should be call-used.  */
+  /* No local variable nor structure field should escape to callees.  */
   FOR_EACH_REFERENCED_VAR (var, rvi)
     {
       if (!is_global_var (var)
-	  && is_call_used (var))
+	  /* ???  We do not have a suitable predicate for escaping to
+	     callees.  With IPA-PTA the following might be incorrect.
+	     We want to catch
+	       foo {
+	         int i;
+		 bar (&i);
+		 foo ();
+	       }
+	     where bar might store &i somewhere and in the next
+	     recursion should not be able to tell if it got the
+	     same (with tail-recursion applied) or a different
+	     address.  */
+	  && is_call_clobbered (var))
 	return false;
     }
 
@@ -430,7 +442,9 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
   func = gimple_call_fndecl (call);
   if (func == current_function_decl)
     {
-      tree arg;
+      tree arg, var;
+      referenced_var_iterator rvi;
+
       for (param = DECL_ARGUMENTS (func), idx = 0;
 	   param && idx < gimple_call_num_args (call);
 	   param = TREE_CHAIN (param), idx ++)
@@ -460,6 +474,15 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
 	}
       if (idx == gimple_call_num_args (call) && !param)
 	tail_recursion = true;
+
+      /* Make sure the tail invocation of this function does not refer
+	 to local variables.  */
+      FOR_EACH_REFERENCED_VAR (var, rvi)
+	{
+	  if (!is_global_var (var)
+	      && ref_maybe_used_by_stmt_p (call, var))
+	    return;
+	}
     }
 
   /* Now check the statements after the call.  None of them has virtual
@@ -570,23 +593,37 @@ add_successor_phi_arg (edge e, tree var, tree phi_arg)
 
 static tree
 adjust_return_value_with_ops (enum tree_code code, const char *label,
-			      tree op0, tree op1, gimple_stmt_iterator gsi,
-			      enum gsi_iterator_update update)
+			      tree acc, tree op1, gimple_stmt_iterator gsi)
 {
 
   tree ret_type = TREE_TYPE (DECL_RESULT (current_function_decl));
   tree tmp = create_tmp_var (ret_type, label);
-  gimple stmt = gimple_build_assign_with_ops (code, tmp, op0, op1);
+  gimple stmt;
   tree result;
 
   if (TREE_CODE (ret_type) == COMPLEX_TYPE
       || TREE_CODE (ret_type) == VECTOR_TYPE)
     DECL_GIMPLE_REG_P (tmp) = 1;
   add_referenced_var (tmp);
+
+  if (types_compatible_p (TREE_TYPE (acc), TREE_TYPE (op1)))
+    stmt = gimple_build_assign_with_ops (code, tmp, acc, op1);
+  else
+    {
+      tree rhs = fold_convert (TREE_TYPE (acc),
+			       fold_build2 (code,
+					    TREE_TYPE (op1),
+					    fold_convert (TREE_TYPE (op1), acc),
+					    op1));
+      rhs = force_gimple_operand_gsi (&gsi, rhs,
+				      false, NULL, true, GSI_CONTINUE_LINKING);
+      stmt = gimple_build_assign (NULL_TREE, rhs);
+    }
+
   result = make_ssa_name (tmp, stmt);
   gimple_assign_set_lhs (stmt, result);
   update_stmt (stmt);
-  gsi_insert_before (&gsi, stmt, update);
+  gsi_insert_before (&gsi, stmt, GSI_NEW_STMT);
   return result;
 }
 
@@ -599,9 +636,22 @@ static tree
 update_accumulator_with_ops (enum tree_code code, tree acc, tree op1,
 			     gimple_stmt_iterator gsi)
 {
-  gimple stmt = gimple_build_assign_with_ops (code, SSA_NAME_VAR (acc), acc,
-					      op1);
-  tree var = make_ssa_name (SSA_NAME_VAR (acc), stmt);
+  gimple stmt;
+  tree var;
+  if (types_compatible_p (TREE_TYPE (acc), TREE_TYPE (op1)))
+    stmt = gimple_build_assign_with_ops (code, SSA_NAME_VAR (acc), acc, op1);
+  else
+    {
+      tree rhs = fold_convert (TREE_TYPE (acc),
+			       fold_build2 (code,
+					    TREE_TYPE (op1),
+					    fold_convert (TREE_TYPE (op1), acc),
+					    op1));
+      rhs = force_gimple_operand_gsi (&gsi, rhs,
+				      false, NULL, false, GSI_CONTINUE_LINKING);
+      stmt = gimple_build_assign (NULL_TREE, rhs);
+    }
+  var = make_ssa_name (SSA_NAME_VAR (acc), stmt);
   gimple_assign_set_lhs (stmt, var);
   update_stmt (stmt);
   gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
@@ -631,7 +681,7 @@ adjust_accumulator_values (gimple_stmt_iterator gsi, tree m, tree a, edge back)
 	    var = m_acc;
 	  else
 	    var = adjust_return_value_with_ops (MULT_EXPR, "acc_tmp", m_acc,
-						a, gsi, GSI_NEW_STMT);
+						a, gsi);
 	}
       else
 	var = a;
@@ -667,10 +717,10 @@ adjust_return_value (basic_block bb, tree m, tree a)
 
   if (m)
     retval = adjust_return_value_with_ops (MULT_EXPR, "mul_tmp", m_acc, retval,
-					   gsi, GSI_SAME_STMT);
+					   gsi);
   if (a)
     retval = adjust_return_value_with_ops (PLUS_EXPR, "acc_tmp", a_acc, retval,
-					   gsi, GSI_SAME_STMT);
+					   gsi);
   gimple_return_set_retval (ret_stmt, retval);
   update_stmt (ret_stmt);
 }
