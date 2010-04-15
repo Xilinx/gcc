@@ -1,5 +1,10 @@
 2010-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{alternate matching buggy & incomplete}}
+	* melt/warmelt-normatch.melt: added matresctyp to
+	normexp_altmatch.
+
+2010-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{alternate matching buggy & incomplete}}
 	* melt/warmelt-normatch.melt: added asserts & debugs.
 	* testsuite/melt/tmatch-5.melt: uncommented ?and
 
