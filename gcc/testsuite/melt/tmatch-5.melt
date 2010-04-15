@@ -21,10 +21,10 @@
       )
 
    (
-    ;;(and ?xx
+    ?(and ?xx
 	   ?(instance class_container 
 		      :container_value ?xx)
-	    ;;)
+	   )
       (g xx))
 
    ))
