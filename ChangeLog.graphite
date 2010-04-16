@@ -1,3 +1,8 @@
+2010-04-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* configure.ac: Allow all the versions greater than 0.10 of PPL.
+	* configure: Regenerated.
+
 2010-04-06  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* Merge from mainline (157519:158021).
@@ -64,7 +69,7 @@
 
 2008-08-03  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* Makefile.def: Remove support for building ppl and cloog 
+	* Makefile.def: Remove support for building ppl and cloog
 	libs in gcc's sources.
 	* Makefile.in: Regenerated.
 
