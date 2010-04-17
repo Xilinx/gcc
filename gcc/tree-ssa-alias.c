@@ -214,7 +214,7 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
   if (DECL_RESTRICTED_P (decl)
       && TYPE_RESTRICT (TREE_TYPE (ptr))
       && pi->pt.vars_contains_restrict)
-    return bitmap_bit_p (pi->pt.vars, DECL_UID (decl));
+    return bitmap_bit_p (pi->pt.vars, DECL_PT_UID (decl));
 
   return pt_solution_includes (&pi->pt, decl);
 }
@@ -401,6 +401,9 @@ dump_points_to_solution (FILE *file, struct pt_solution *pt)
   if (pt->escaped)
     fprintf (file, ", points-to escaped");
 
+  if (pt->ipa_escaped)
+    fprintf (file, ", points-to unit escaped");
+
   if (pt->null)
     fprintf (file, ", points-to NULL");
 
@@ -410,6 +413,8 @@ dump_points_to_solution (FILE *file, struct pt_solution *pt)
       dump_decl_set (file, pt->vars);
       if (pt->vars_contains_global)
 	fprintf (file, " (includes global vars)");
+      if (pt->vars_contains_restrict)
+	fprintf (file, " (includes restrict tags)");
     }
 }
 
@@ -1334,7 +1339,10 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
   return true;
 }
 
-static bool ATTRIBUTE_UNUSED
+/* If the call in statement CALL may clobber the memory reference REF
+   return true, otherwise return false.  */
+
+bool
 call_may_clobber_ref_p (gimple call, tree ref)
 {
   bool res;

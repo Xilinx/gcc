@@ -1,4 +1,60 @@
-2010-04-14  Bernd Schmidt  <bernd.schmidt@codesourcery.com>
+2010-04-17  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+   PR fortran/31538
+   * gfortran.dg/bounds_check_fail_4.f90: Adjust error message.
+   * gfortran.dg/bounds_check_fail_3.f90: Ditto.
+
+2010-04-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/sizetype.adb: Rename into...
+	* gnat.dg/sizetype1.adb: ...this.
+	* gnat.dg/sizetype2.adb: New test.
+
+2010-04-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43572
+	* gcc.dg/tree-ssa/tailcall-5.c: New testcase.
+
+2010-04-16  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/specs/discr_private.ads: New test.
+
+2010-04-16  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/41514
+	* gcc.target/arm/thumb-comparisons.c: New test.
+
+	PR target/40603
+	* gcc.target/arm/thumb-cbranchqi.c: New test.
+
+2010-04-16  Christian Bruel  <christian.bruel@st.com>
+
+	* g++.dg/torture/pr36191.C: Enable for SH.
+
+2010-04-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/wide_boolean.adb: New test.
+	* gnat.dg/wide_boolean_pkg.ad[sb]: New helper.
+
+2010-04-15  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/ipa/ipa-pta-1.c: New testcase.
+	* gcc.dg/ipa/ipa-pta-2.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-3.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-4.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-5.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-6.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-7.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-8.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-9.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-10.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-11.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-12.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-13.c: Likewise.
+	* gcc.dg/torture/ipa-pta-2.c: Likewise.
+	* gcc.dg/torture/ipa-pta-1.c: Adjust.
+
+2010-04-14  Bernd Schmidt  <bernds@codesourcery.com>
 
 	PR target/21803
 	* gcc.target/arm/pr42496.c: New test.
@@ -1185,7 +1241,7 @@
 	* gcc.dg/pr43211.c: New test.
 	* gcc.dg/pr18809-1.c: Don't expect an error when calling foo.
 
-2010-03-19  Bernd Schmidt  <bernd.schmidt@codesourcery.com>
+2010-03-19  Bernd Schmidt  <bernds@codesourcery.com>
 
 	PR rtl-optimization/42258
 	* gcc.target/arm/thumb1-mul-moves.c: New test.

@@ -826,7 +826,7 @@ See RS/6000 and PowerPC Options.
 -mprefergot  -musermode -multcost=@var{number} -mdiv=@var{strategy} @gol
 -mdivsi3_libfunc=@var{name} -mfixed-range=@var{register-range} @gol
 -madjust-unroll -mindexed-addressing -mgettrcost=@var{number} -mpt-fixed @gol
--minvalid-symbols}
+-maccumulate-outgoing-args -minvalid-symbols}
 
 @emph{SPARC Options}
 @gccoptlist{-mcpu=@var{cpu-type} @gol
@@ -2806,6 +2806,15 @@ example, @option{-Wno-implicit}.  This manual lists only one of the
 two forms, whichever is not the default.  For further,
 language-specific options also refer to @ref{C++ Dialect Options} and
 @ref{Objective-C and Objective-C++ Dialect Options}.
+
+When an unrecognized warning label is requested (e.g.,
+@option{-Wunknown-warning}), GCC will emit a diagnostic stating
+that the option is not recognized.  However, if the @samp{-Wno-} form
+is used, the behavior is slightly different: No diagnostic will be
+produced for @option{-Wno-unknown-warning} unless other diagnostics
+are being produced.  This allows the use of new @option{-Wno-} options
+with old compilers, but if something goes wrong, the compiler will
+warn that an unrecognized option was used.
 
 @table @gcctabopt
 @item -pedantic
@@ -6577,8 +6586,10 @@ With this flag, the program debug info reflects a new structure layout.
 
 @item -fipa-pta
 @opindex fipa-pta
-Perform interprocedural pointer analysis.  This option is experimental
-and does not affect generated code.
+Perform interprocedural pointer analysis and interprocedural modification
+and reference analysis.  This option can cause excessive memory and
+compile-time usage on large compilation units.  It is not enabled by
+default at any optimization level.
 
 @item -fipa-cp
 @opindex fipa-cp
@@ -16134,6 +16145,12 @@ up division where the dividend fits into 20 bits (plus sign where applicable),
 by inserting a test to skip a number of operations in this case; this test
 slows down the case of larger dividends.  inv20u assumes the case of a such
 a small dividend to be unlikely, and inv20l assumes it to be likely.
+
+@item -maccumulate-outgoing-args
+@opindex maccumulate-outgoing-args
+Reserve space once for outgoing arguments in the function prologue rather 
+than around each call.  Generally beneficial for performance and size.  Also
+needed for unwinding to avoid changing the stack frame around conditional code.
 
 @item -mdivsi3_libfunc=@var{name}
 @opindex mdivsi3_libfunc=@var{name}

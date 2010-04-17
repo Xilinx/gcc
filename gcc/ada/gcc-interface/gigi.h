@@ -85,7 +85,7 @@ extern void mark_visited (tree t);
 
 #define MARK_VISITED(EXP)		\
 do {					\
-  if((EXP) && !TREE_CONSTANT (EXP))	\
+  if((EXP) && !CONSTANT_CLASS_P (EXP))	\
     mark_visited (EXP);			\
 } while (0)
 
@@ -203,6 +203,7 @@ extern void gigi (Node_Id gnat_root, int max_gnat_node,
                   struct File_Info_Type *file_info_ptr,
                   Entity_Id standard_boolean,
                   Entity_Id standard_integer,
+                  Entity_Id standard_character,
                   Entity_Id standard_long_long_float,
                   Entity_Id standard_exception_type,
                   Int gigi_operating_mode);
@@ -232,28 +233,25 @@ extern bool Sloc_to_locus (Source_Ptr Sloc, location_t *locus);
 
 /* Post an error message.  MSG is the error message, properly annotated.
    NODE is the node at which to post the error and the node to use for the
-   "&" substitution.  */
+   '&' substitution.  */
 extern void post_error (const char *msg, Node_Id node);
 
-/* Similar, but NODE is the node at which to post the error and ENT
-   is the node to use for the "&" substitution.  */
+/* Similar to post_error, but NODE is the node at which to post the error and
+   ENT is the node to use for the '&' substitution.  */
 extern void post_error_ne (const char *msg, Node_Id node, Entity_Id ent);
 
-/* Similar, but NODE is the node at which to post the error, ENT is the node
-   to use for the "&" substitution, and N is the number to use for the ^.  */
+/* Similar to post_error_ne, but NUM is the number to use for the '^'.  */
 extern void post_error_ne_num (const char *msg, Node_Id node, Entity_Id ent,
-                               int n);
+                               int num);
 
-/* Similar to post_error_ne_num, but T is a GCC tree representing the number
-   to write.  If the tree represents a constant that fits within a
-   host integer, the text inside curly brackets in MSG will be output
-   (presumably including a '^').  Otherwise that text will not be output
-   and the text inside square brackets will be output instead.  */
+/* Similar to post_error_ne, but T is a GCC tree representing the number to
+   write.  If T represents a constant, the text inside curly brackets in
+   MSG will be output (presumably including a '^').  Otherwise it will not
+   be output and the text inside square brackets will be output instead.  */
 extern void post_error_ne_tree (const char *msg, Node_Id node, Entity_Id ent,
                                 tree t);
 
-/* Similar to post_error_ne_tree, except that NUM is a second
-   integer to write in the message.  */
+/* Similar to post_error_ne_tree, but NUM is a second integer to write.  */
 extern void post_error_ne_tree_2 (const char *msg, Node_Id node, Entity_Id ent,
                                   tree t, int num);
 
@@ -273,45 +271,6 @@ extern int double_float_alignment;
    types whose size is greater or equal to 64 bits, or 0 if this alignment
    is not specifically capped.  */
 extern int double_scalar_alignment;
-
-/* Standard data type sizes.  Most of these are not used.  */
-
-#ifndef CHAR_TYPE_SIZE
-#define CHAR_TYPE_SIZE BITS_PER_UNIT
-#endif
-
-#ifndef SHORT_TYPE_SIZE
-#define SHORT_TYPE_SIZE (BITS_PER_UNIT * MIN ((UNITS_PER_WORD + 1) / 2, 2))
-#endif
-
-#ifndef INT_TYPE_SIZE
-#define INT_TYPE_SIZE BITS_PER_WORD
-#endif
-
-#ifndef LONG_TYPE_SIZE
-#define LONG_TYPE_SIZE BITS_PER_WORD
-#endif
-
-#ifndef LONG_LONG_TYPE_SIZE
-#define LONG_LONG_TYPE_SIZE (BITS_PER_WORD * 2)
-#endif
-
-#ifndef FLOAT_TYPE_SIZE
-#define FLOAT_TYPE_SIZE BITS_PER_WORD
-#endif
-
-#ifndef DOUBLE_TYPE_SIZE
-#define DOUBLE_TYPE_SIZE (BITS_PER_WORD * 2)
-#endif
-
-#ifndef LONG_DOUBLE_TYPE_SIZE
-#define LONG_DOUBLE_TYPE_SIZE (BITS_PER_WORD * 2)
-#endif
-
-/* The choice of SIZE_TYPE here is very problematic.  We need a signed
-   type whose bit width is Pmode.  Assume "long" is such a type here.  */
-#undef SIZE_TYPE
-#define SIZE_TYPE "long int"
 
 /* Data structures used to represent attributes.  */
 
@@ -359,8 +318,14 @@ enum standard_datatypes
   /* Type declaration node  <==> typedef virtual void *T() */
   ADT_fdesc_type,
 
-  /* Null pointer for above type */
+  /* Null pointer for above type.  */
   ADT_null_fdesc,
+
+  /* Value 1 in signed bitsizetype.  */
+  ADT_sbitsize_one_node,
+
+  /* Value BITS_PER_UNIT in signed bitsizetype.  */
+  ADT_sbitsize_unit_node,
 
   /* Function declaration nodes for run-time functions for allocating memory.
      Ada allocators cause calls to these functions to be generated.  Malloc32
@@ -404,6 +369,8 @@ extern GTY(()) tree gnat_raise_decls[(int) LAST_REASON_CODE + 1];
 #define ptr_void_ftype gnat_std_decls[(int) ADT_ptr_void_ftype]
 #define fdesc_type_node gnat_std_decls[(int) ADT_fdesc_type]
 #define null_fdesc_node gnat_std_decls[(int) ADT_null_fdesc]
+#define sbitsize_one_node gnat_std_decls[(int) ADT_sbitsize_one_node]
+#define sbitsize_unit_node gnat_std_decls[(int) ADT_sbitsize_unit_node]
 #define malloc_decl gnat_std_decls[(int) ADT_malloc_decl]
 #define malloc32_decl gnat_std_decls[(int) ADT_malloc32_decl]
 #define free_decl gnat_std_decls[(int) ADT_free_decl]
@@ -447,7 +414,6 @@ extern tree get_block_jmpbuf_decl (void);
    and uses GNAT_NODE for location information.  */
 extern void gnat_pushdecl (tree decl, Node_Id gnat_node);
 
-extern void gnat_init_decl_processing (void);
 extern void gnat_init_gcc_eh (void);
 extern void gnat_install_builtins (void);
 
@@ -621,9 +587,6 @@ create_var_decl_1 (tree var_name, tree asm_name, tree type, tree var_init,
   create_var_decl_1 (var_name, asm_name, type, var_init,		\
 		     const_flag, public_flag, extern_flag,		\
 		     static_flag, false, attr_list, gnat_node)
-
-/* Given a DECL and ATTR_LIST, apply the listed attributes.  */
-extern void process_attributes (tree decl, struct attrib *attr_list);
 
 /* Record DECL as a global renaming pointer.  */
 extern void record_global_renaming_pointer (tree decl);

@@ -1,6 +1,37 @@
+2010-04-17  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+   PR fortran/31538
+   * fortran/trans-array.c (gfc_conv_ss_startstride): Remove the use of
+   gfc_msg_bounds by using 'Array bound mismatch' directly.
+   (gfc_trans_dummy_array_bias):  Remove the use of gfc_msg_bounds.  Reword
+   error message to include the mismatch in the extent of array bound.
+   * fortran/trans.c: Remove gfc_msg_bounds.  It is only used in one place.
+   * fortran/trans.h: Remove extern definition of gfc_msg_bounds.
+
+2010-04-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* gfortran.texi: Update information on temporary file locations.
+
+2010-04-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* trans-decl.c (gfc_build_qualified_array): Ensure
+	ubound.N and lbound.N artificial variable names don't appear
+	in debug info.
+
+2010-04-15  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/30073
+	* trans-array.c (gfc_trans_array_bound_check): Eliminate a redundant
+	block of code.  Set name to the variable associated with the descriptor.
+
+2010-04-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* trans-decl.c (gfc_build_qualified_array): Clear DECL_IGNORED_P
+	on VAR_DECL LBOUND and/or UBOUND, even for -O1.
+
 2010-04-14  Steven G. Kargl  <kargl@gcc.gnu.org>
 
-	* fortran/intrinsic.texi: Add the missing specific name of intrinsic
+	* intrinsic.texi: Add the missing specific name of intrinsic
 	procedure where the specific name is identical to the generic name.
 	Fix inconsistent or mismatch in the argument names in intrinsic
 	procedure descriptions.  Add the SCALAR allocatable description to

@@ -526,6 +526,9 @@ int making_const_table;
 /* The processor for which instructions should be scheduled.  */
 enum processor_type arm_tune = arm_none;
 
+/* The current tuning set.  */
+const struct tune_params *current_tune;
+
 /* The default processor used if not overridden by commandline.  */
 static enum processor_type arm_default_cpu = arm_none;
 
@@ -698,9 +701,6 @@ unsigned arm_pic_register = INVALID_REGNUM;
    the next function.  */
 static int after_arm_reorg = 0;
 
-/* The maximum number of insns to be used when loading a constant.  */
-static int arm_constant_limit = 3;
-
 static enum arm_pcs arm_pcs_default;
 
 /* For an explanation of these variables, see final_prescan_insn below.  */
@@ -739,7 +739,31 @@ struct processors
   enum processor_type core;
   const char *arch;
   const unsigned long flags;
-  bool (* rtx_costs) (rtx, enum rtx_code, enum rtx_code, int *, bool);
+  const struct tune_params *const tune;
+};
+
+const struct tune_params arm_slowmul_tune =
+{
+  arm_slowmul_rtx_costs,
+  3
+};
+
+const struct tune_params arm_fastmul_tune =
+{
+  arm_fastmul_rtx_costs,
+  1
+};
+
+const struct tune_params arm_xscale_tune =
+{
+  arm_xscale_rtx_costs,
+  2
+};
+
+const struct tune_params arm_9e_tune =
+{
+  arm_9e_rtx_costs,
+  1
 };
 
 /* Not all of these give usefully different compilation alternatives,
@@ -748,7 +772,7 @@ static const struct processors all_cores[] =
 {
   /* ARM Cores */
 #define ARM_CORE(NAME, IDENT, ARCH, FLAGS, COSTS) \
-  {NAME, arm_none, #ARCH, FLAGS | FL_FOR_ARCH##ARCH, arm_##COSTS##_rtx_costs},
+  {NAME, arm_none, #ARCH, FLAGS | FL_FOR_ARCH##ARCH, &arm_##COSTS##_tune},
 #include "arm-cores.def"
 #undef ARM_CORE
   {NULL, arm_none, NULL, 0, NULL}
@@ -757,7 +781,7 @@ static const struct processors all_cores[] =
 static const struct processors all_architectures[] =
 {
   /* ARM Architectures */
-  /* We don't specify rtx_costs here as it will be figured out
+  /* We don't specify tuning costs here as it will be figured out
      from the core.  */
 
   {"armv2",   arm2,       "2",   FL_CO_PROC | FL_MODE26 | FL_FOR_ARCH2, NULL},
@@ -905,6 +929,13 @@ enum tls_reloc {
   TLS_IE32,
   TLS_LE32
 };
+
+/* The maximum number of insns to be used when loading a constant.  */
+inline static int
+arm_constant_limit (bool size_p)
+{
+  return size_p ? 1 : current_tune->constant_limit;
+}
 
 /* Emit an insn that's a simple single-set.  Both the operands must be known
    to be valid.  */
@@ -1446,6 +1477,7 @@ arm_override_options (void)
   gcc_assert (arm_tune != arm_none);
 
   tune_flags = all_cores[(int)arm_tune].flags;
+  current_tune = all_cores[(int)arm_tune].tune;
 
   if (target_fp16_format_name)
     {
@@ -1842,26 +1874,12 @@ arm_override_options (void)
 
   if (optimize_size)
     {
-      arm_constant_limit = 1;
-
       /* If optimizing for size, bump the number of instructions that we
          are prepared to conditionally execute (even on a StrongARM).  */
       max_insns_skipped = 6;
     }
   else
     {
-      /* For processors with load scheduling, it never costs more than
-         2 cycles to load a constant, and the load scheduler may well
-	 reduce that to 1.  */
-      if (arm_ld_sched)
-        arm_constant_limit = 1;
-
-      /* On XScale the longer latency of a load makes it more difficult
-         to achieve a good schedule, so it's faster to synthesize
-	 constants that can be done in two insns.  */
-      if (arm_tune_xscale)
-        arm_constant_limit = 2;
-
       /* StrongARM has early execution of branches, so a sequence
          that is worth skipping is shorter.  */
       if (arm_tune_strongarm)
@@ -2362,7 +2380,8 @@ arm_split_constant (enum rtx_code code, enum machine_mode mode, rtx insn,
 	  && !cond
 	  && (arm_gen_constant (code, mode, NULL_RTX, val, target, source,
 				1, 0)
-	      > arm_constant_limit + (code != SET)))
+	      > (arm_constant_limit (optimize_function_for_size_p (cfun))
+		 + (code != SET))))
 	{
 	  if (code == SET)
 	    {
@@ -2522,7 +2541,6 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
   int can_negate = 0;
   int final_invert = 0;
   int can_negate_initial = 0;
-  int can_shift = 0;
   int i;
   int num_bits_set = 0;
   int set_sign_bit_copies = 0;
@@ -2541,7 +2559,6 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
     {
     case SET:
       can_invert = 1;
-      can_shift = 1;
       can_negate = 1;
       break;
 
@@ -6340,7 +6357,6 @@ arm_rtx_costs_1 (rtx x, enum rtx_code outer, int* total, bool speed)
   enum rtx_code subcode;
   rtx operand;
   enum rtx_code code = GET_CODE (x);
-  int extra_cost;
   *total = 0;
 
   switch (code)
@@ -6564,7 +6580,6 @@ arm_rtx_costs_1 (rtx x, enum rtx_code outer, int* total, bool speed)
       /* Fall through */
 
     case AND: case XOR: case IOR:
-      extra_cost = 0;
 
       /* Normally the frame registers will be spilt into reg+const during
 	 reload, so it is a bad idea to combine them with other instructions,
@@ -7298,9 +7313,9 @@ arm_rtx_costs (rtx x, int code, int outer_code, int *total,
     return arm_size_rtx_costs (x, (enum rtx_code) code,
 			       (enum rtx_code) outer_code, total);
   else
-    return all_cores[(int)arm_tune].rtx_costs (x, (enum rtx_code) code,
-					       (enum rtx_code) outer_code,
-					       total, speed);
+    return current_tune->rtx_costs (x, (enum rtx_code) code,
+				    (enum rtx_code) outer_code,
+				    total, speed);
 }
 
 /* RTX costs for cores with a slow MUL implementation.  Thumb-2 is not
@@ -7445,7 +7460,8 @@ arm_fastmul_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code,
    so it can be ignored.  */
 
 static bool
-arm_xscale_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code, int *total, bool speed)
+arm_xscale_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code,
+		      int *total, bool speed)
 {
   enum machine_mode mode = GET_MODE (x);
 
@@ -21121,7 +21137,7 @@ arm_unwind_emit_set (FILE * asm_out_file, rtx p)
 	      offset = INTVAL (XEXP (e1, 1));
 	      asm_fprintf (asm_out_file, "\t.setfp %r, %r, #%wd\n",
 			   HARD_FRAME_POINTER_REGNUM, reg,
-			   INTVAL (XEXP (e1, 1)));
+			   offset);
 	    }
 	  else if (GET_CODE (e1) == REG)
 	    {
@@ -21411,11 +21427,8 @@ const char *
 thumb1_output_casesi (rtx *operands)
 {
   rtx diff_vec = PATTERN (next_real_insn (operands[0]));
-  addr_diff_vec_flags flags;
 
   gcc_assert (GET_CODE (diff_vec) == ADDR_DIFF_VEC);
-
-  flags = ADDR_DIFF_VEC_FLAGS (diff_vec);
 
   switch (GET_MODE(diff_vec))
     {
