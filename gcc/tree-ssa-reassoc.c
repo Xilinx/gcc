@@ -172,11 +172,15 @@ static struct
 typedef struct operand_entry
 {
   unsigned int rank;
+  int id;
   tree op;
 } *operand_entry_t;
 
 static alloc_pool operand_entry_pool;
 
+/* This is used to assign a unique ID to each struct operand_entry
+   so that qsort results are identical on different hosts.  */
+static int next_operand_entry_id;
 
 /* Starting rank number for a given basic block, so that we can rank
    operations using unmovable instructions in that BB based on the bb
@@ -328,16 +332,31 @@ sort_by_operand_rank (const void *pa, const void *pb)
      to fold when added/multiplied//whatever are put next to each
      other.  Since all constants have rank 0, order them by type.  */
   if (oeb->rank == 0 &&  oea->rank == 0)
-    return constant_type (oeb->op) - constant_type (oea->op);
+    {
+      if (constant_type (oeb->op) != constant_type (oea->op))
+	return constant_type (oeb->op) - constant_type (oea->op);
+      else
+	/* To make sorting result stable, we use unique IDs to determine
+	   order.  */
+        return oeb->id - oea->id;
+    }
 
   /* Lastly, make sure the versions that are the same go next to each
      other.  We use SSA_NAME_VERSION because it's stable.  */
   if ((oeb->rank - oea->rank == 0)
       && TREE_CODE (oea->op) == SSA_NAME
       && TREE_CODE (oeb->op) == SSA_NAME)
-    return SSA_NAME_VERSION (oeb->op) - SSA_NAME_VERSION (oea->op);
+    {
+      if (SSA_NAME_VERSION (oeb->op) != SSA_NAME_VERSION (oea->op))
+	return SSA_NAME_VERSION (oeb->op) - SSA_NAME_VERSION (oea->op);
+      else
+	return oeb->id - oea->id;
+    }
 
-  return oeb->rank - oea->rank;
+  if (oeb->rank != oea->rank)
+    return oeb->rank - oea->rank;
+  else
+    return oeb->id - oea->id;
 }
 
 /* Add an operand entry to *OPS for the tree operand OP.  */
@@ -349,6 +368,7 @@ add_to_ops_vec (VEC(operand_entry_t, heap) **ops, tree op)
 
   oe->op = op;
   oe->rank = get_rank (op);
+  oe->id = next_operand_entry_id++;
   VEC_safe_push (operand_entry_t, heap, *ops, oe);
 }
 
@@ -740,6 +760,7 @@ static void linearize_expr_tree (VEC(operand_entry_t, heap) **, gimple,
 /* Structure for tracking and counting operands.  */
 typedef struct oecount_s {
   int cnt;
+  int id;
   enum tree_code oecode;
   tree op;
 } oecount;
@@ -777,7 +798,11 @@ oecount_cmp (const void *p1, const void *p2)
 {
   const oecount *c1 = (const oecount *)p1;
   const oecount *c2 = (const oecount *)p2;
-  return c1->cnt - c2->cnt;
+  if (c1->cnt != c2->cnt)
+    return c1->cnt - c2->cnt;
+  else
+    /* If counts are identical, use unique IDs to stabilize qsort.  */
+    return c1->id - c2->id;
 }
 
 /* Walks the linear chain with result *DEF searching for an operation
@@ -959,6 +984,7 @@ undistribute_ops_list (enum tree_code opcode,
   VEC (operand_entry_t, heap) **subops;
   htab_t ctable;
   bool changed = false;
+  int next_oecount_id = 0;
 
   if (length <= 1
       || opcode != PLUS_EXPR)
@@ -1026,6 +1052,7 @@ undistribute_ops_list (enum tree_code opcode,
 	  size_t idx;
 	  c.oecode = oecode;
 	  c.cnt = 1;
+	  c.id = next_oecount_id++;
 	  c.op = oe1->op;
 	  VEC_safe_push (oecount, heap, cvec, &c);
 	  idx = VEC_length (oecount, cvec) + 41;
@@ -1707,14 +1734,15 @@ repropagate_negates (void)
     {
       gimple user = get_single_immediate_use (negate);
 
+      if (!user || !is_gimple_assign (user))
+	continue;
+
       /* The negate operand can be either operand of a PLUS_EXPR
 	 (it can be the LHS if the RHS is a constant for example).
 
 	 Force the negate operand to the RHS of the PLUS_EXPR, then
 	 transform the PLUS_EXPR into a MINUS_EXPR.  */
-      if (user
-	  && is_gimple_assign (user)
-	  && gimple_assign_rhs_code (user) == PLUS_EXPR)
+      if (gimple_assign_rhs_code (user) == PLUS_EXPR)
 	{
 	  /* If the negated operand appears on the LHS of the
 	     PLUS_EXPR, exchange the operands of the PLUS_EXPR
@@ -1737,7 +1765,61 @@ repropagate_negates (void)
 	      update_stmt (user);
 	    }
 	}
+      else if (gimple_assign_rhs_code (user) == MINUS_EXPR)
+	{
+	  if (gimple_assign_rhs1 (user) == negate)
+	    {
+	      /* We have
+	           x = -a
+		   y = x - b
+		 which we transform into
+		   x = a + b
+		   y = -x .
+		 This pushes down the negate which we possibly can merge
+		 into some other operation, hence insert it into the
+		 plus_negates vector.  */
+	      gimple feed = SSA_NAME_DEF_STMT (negate);
+	      tree a = gimple_assign_rhs1 (feed);
+	      tree rhs2 = gimple_assign_rhs2 (user);
+	      gimple_stmt_iterator gsi = gsi_for_stmt (feed), gsi2;
+	      gimple_replace_lhs (feed, negate);
+	      gimple_assign_set_rhs_with_ops (&gsi, PLUS_EXPR, a, rhs2);
+	      update_stmt (gsi_stmt (gsi));
+	      gsi2 = gsi_for_stmt (user);
+	      gimple_assign_set_rhs_with_ops (&gsi2, NEGATE_EXPR, negate, NULL);
+	      update_stmt (gsi_stmt (gsi2));
+	      gsi_move_before (&gsi, &gsi2);
+	      VEC_safe_push (tree, heap, plus_negates,
+			     gimple_assign_lhs (gsi_stmt (gsi2)));
+	    }
+	  else
+	    {
+	      /* Transform "x = -a; y = b - x" into "y = b + a", getting
+	         rid of one operation.  */
+	      gimple feed = SSA_NAME_DEF_STMT (negate);
+	      tree a = gimple_assign_rhs1 (feed);
+	      tree rhs1 = gimple_assign_rhs1 (user);
+	      gimple_stmt_iterator gsi = gsi_for_stmt (user);
+	      gimple_assign_set_rhs_with_ops (&gsi, PLUS_EXPR, rhs1, a);
+	      update_stmt (gsi_stmt (gsi));
+	    }
+	}
     }
+}
+
+/* Returns true if OP is of a type for which we can do reassociation.
+   That is for integral or non-saturating fixed-point types, and for
+   floating point type when associative-math is enabled.  */
+
+static bool
+can_reassociate_p (tree op)
+{
+  tree type = TREE_TYPE (op);
+  if (INTEGRAL_TYPE_P (type)
+      || NON_SAT_FIXED_POINT_TYPE_P (type)
+      || (flag_associative_math && SCALAR_FLOAT_TYPE_P (type)))
+    return true;
+  return false;
 }
 
 /* Break up subtract operations in block BB.
@@ -1768,27 +1850,15 @@ break_up_subtract_bb (basic_block bb)
       gimple stmt = gsi_stmt (gsi);
       gimple_set_visited (stmt, false);
 
-      /* Look for simple gimple subtract operations.  */
-      if (is_gimple_assign (stmt)
-	  && gimple_assign_rhs_code (stmt) == MINUS_EXPR)
-	{
-	  tree lhs = gimple_assign_lhs (stmt);
-	  tree rhs1 = gimple_assign_rhs1 (stmt);
-	  tree rhs2 = gimple_assign_rhs2 (stmt);
+      if (!is_gimple_assign (stmt)
+	  || !can_reassociate_p (gimple_assign_lhs (stmt)))
+	continue;
 
-	  /* If associative-math we can do reassociation for
-	     non-integral types.  Or, we can do reassociation for
-	     non-saturating fixed-point types.  */
-	  if ((!INTEGRAL_TYPE_P (TREE_TYPE (lhs))
-	       || !INTEGRAL_TYPE_P (TREE_TYPE (rhs1))
-	       || !INTEGRAL_TYPE_P (TREE_TYPE (rhs2)))
-	      && (!SCALAR_FLOAT_TYPE_P (TREE_TYPE (lhs))
-		  || !SCALAR_FLOAT_TYPE_P (TREE_TYPE(rhs1))
-		  || !SCALAR_FLOAT_TYPE_P (TREE_TYPE(rhs2))
-		  || !flag_associative_math)
-	      && (!NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE (lhs))
-		  || !NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE(rhs1))
-		  || !NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE(rhs2))))
+      /* Look for simple gimple subtract operations.  */
+      if (gimple_assign_rhs_code (stmt) == MINUS_EXPR)
+	{
+	  if (!can_reassociate_p (gimple_assign_rhs1 (stmt))
+	      || !can_reassociate_p (gimple_assign_rhs2 (stmt)))
 	    continue;
 
 	  /* Check for a subtract used only in an addition.  If this
@@ -1798,6 +1868,9 @@ break_up_subtract_bb (basic_block bb)
 	  if (should_break_up_subtract (stmt))
 	    break_up_subtract (stmt, &gsi);
 	}
+      else if (gimple_assign_rhs_code (stmt) == NEGATE_EXPR
+	       && can_reassociate_p (gimple_assign_rhs1 (stmt)))
+	VEC_safe_push (tree, heap, plus_negates, gimple_assign_lhs (stmt));
     }
   for (son = first_dom_son (CDI_DOMINATORS, bb);
        son;
@@ -1858,19 +1931,9 @@ reassociate_bb (basic_block bb)
 	  rhs1 = gimple_assign_rhs1 (stmt);
 	  rhs2 = gimple_assign_rhs2 (stmt);
 
-	  /* If associative-math we can do reassociation for
-	     non-integral types.  Or, we can do reassociation for
-	     non-saturating fixed-point types.  */
-	  if ((!INTEGRAL_TYPE_P (TREE_TYPE (lhs))
-	       || !INTEGRAL_TYPE_P (TREE_TYPE (rhs1))
-	       || !INTEGRAL_TYPE_P (TREE_TYPE (rhs2)))
-	      && (!SCALAR_FLOAT_TYPE_P (TREE_TYPE (lhs))
-		  || !SCALAR_FLOAT_TYPE_P (TREE_TYPE(rhs1))
-		  || !SCALAR_FLOAT_TYPE_P (TREE_TYPE(rhs2))
-		  || !flag_associative_math)
-	      && (!NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE (lhs))
-		  || !NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE(rhs1))
-		  || !NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE(rhs2))))
+	  if (!can_reassociate_p (lhs)
+	      || !can_reassociate_p (rhs1)
+	      || !can_reassociate_p (rhs2))
 	    continue;
 
 	  if (associative_tree_code (rhs_code))
@@ -1984,6 +2047,7 @@ init_reassoc (void)
 
   operand_entry_pool = create_alloc_pool ("operand entry pool",
 					  sizeof (struct operand_entry), 30);
+  next_operand_entry_id = 0;
 
   /* Reverse RPO (Reverse Post Order) will give us something where
      deeper loops come later.  */

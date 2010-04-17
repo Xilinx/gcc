@@ -500,12 +500,12 @@ update_alias_info_with_stack_vars (void)
       for (j = i; j != EOC; j = stack_vars[j].next)
 	{
 	  tree decl = stack_vars[j].decl;
-	  unsigned int uid = DECL_UID (decl);
+	  unsigned int uid = DECL_PT_UID (decl);
 	  /* We should never end up partitioning SSA names (though they
 	     may end up on the stack).  Neither should we allocate stack
 	     space to something that is unused and thus unreferenced.  */
 	  gcc_assert (DECL_P (decl)
-		      && referenced_var_lookup (uid));
+		      && referenced_var_lookup (DECL_UID (decl)));
 	  bitmap_set_bit (part, uid);
 	  *((bitmap *) pointer_map_insert (decls_to_partitions,
 					   (void *)(size_t) uid)) = part;
@@ -515,7 +515,7 @@ update_alias_info_with_stack_vars (void)
 
       /* Make the SSA name point to all partition members.  */
       pi = get_ptr_info (name);
-      pt_solution_set (&pi->pt, part);
+      pt_solution_set (&pi->pt, part, false, false);
     }
 
   /* Make all points-to sets that contain one member of a partition
@@ -3764,10 +3764,12 @@ gimple_expand_cfg (void)
     {
       if (cfun->calls_alloca)
 	warning (OPT_Wstack_protector,
-		 "not protecting local variables: variable length buffer");
+		 "stack protector not protecting local variables: "
+                 "variable length buffer");
       if (has_short_buffer && !crtl->stack_protect_guard)
 	warning (OPT_Wstack_protector,
-		 "not protecting function: no buffer at least %d bytes long",
+		 "stack protector not protecting function: "
+                 "all local arrays are less than %d bytes long",
 		 (int) PARAM_VALUE (PARAM_SSP_BUFFER_SIZE));
     }
 

@@ -1024,6 +1024,22 @@ AC_CHECK_FUNCS(times clock kill getrlimit setrlimit atoll atoq \
 	gettimeofday mbstowcs wcswidth mmap mincore setlocale \
 	gcc_UNLOCKED_FUNCS)
 
+save_CPPFLAGS="$CPPFLAGS"
+save_LIBS="$LIBS"
+LIBS="$LIBS $LIBELFLIBS"
+AC_CHECK_FUNCS(elf_getshdrstrndx,,
+  [AC_CHECK_FUNCS(elf_getshstrndx,
+    [AC_RUN_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
+#include <libelf.h>
+int main()
+{
+  return elf_getshstrndx (NULL, 0) == 0;
+}]]), AC_DEFINE(HAVE_ELF_GETSHSTRNDX_GABI, 1,
+        [Define if elf_getshstrndx has gABI conformant return values.])])])]
+  )
+LIBS="$save_LIBS"
+CPPFLAGS="$save_CPPFLAGS"
+
 if test x$ac_cv_func_mbstowcs = xyes; then
   AC_CACHE_CHECK(whether mbstowcs works, gcc_cv_func_mbstowcs_works,
 [    AC_RUN_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
@@ -2633,7 +2649,7 @@ foo:	.long	25
 	;;
   i[34567]86-*-*)
     case "$target" in
-      i[34567]86-*-solaris2.[56789]*)
+      i[34567]86-*-solaris2.[89]*)
 	# TLS was introduced in the Solaris 9 4/04 release but
 	# we do not enable it by default on Solaris 9 either.
 	if test "x$enable_tls" = xyes ; then
@@ -2859,7 +2875,7 @@ foo:	.long	25
 	;;
   sparc*-*-*)
     case "$target" in
-      sparc*-sun-solaris2.[56789]*)
+      sparc*-sun-solaris2.[89]*)
 	# TLS was introduced in the Solaris 9 4/04 release but
 	# we do not enable it by default on Solaris 9 either.
 	if test "x$enable_tls" = xyes ; then

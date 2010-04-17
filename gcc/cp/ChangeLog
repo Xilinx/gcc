@@ -1,3 +1,38 @@
+2010-04-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36625
+	* parser.c (cp_parser_parenthesized_expression_list): Change
+	is_attribute_list parm to int to indicate whether or not to
+	handle initial identifier specially.
+	(cp_parser_attribute_list): Use attribute_takes_identifier_p.
+
+2010-04-13  Jason Merrill  <jason@redhat.com>
+
+	* call.c (type_decays_to): Check MAYBE_CLASS_TYPE_P instead of
+	CLASS_TYPE_P.
+	* parser.c (cp_parser_lambda_expression): Complain about lambda in
+	unevaluated context.
+	* pt.c (iterative_hash_template_arg): Don't crash on lambda.
+
+2010-04-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43641
+	* semantics.c (maybe_add_lambda_conv_op): Use build_call_a and tweak
+	return value directly.
+
+	* call.c (type_decays_to): Call cv_unqualified for non-class type.
+
+2010-04-12  Fabien Chene  <fabien.chene@gmail.com>
+
+	PR c++/25811
+	* cp-tree.h (diagnose_uninitialized_cst_or_ref_member): Declare.
+	* init.c (build_new_1): Check for uninitialized const members and
+	uninitialized reference members, when using new without
+	new-initializer. Call diagnose_uninitialized_cst_or_ref_member.
+	(diagnose_uninitialized_cst_or_ref_member): Define, call
+	diagnose_uninitialized_cst_or_ref_member_1.
+	(diagnose_uninitialized_cst_or_ref_member_1): New function.
+
 2010-04-12  Richard Guenther  <rguenther@suse.de>
 
 	PR c++/43611

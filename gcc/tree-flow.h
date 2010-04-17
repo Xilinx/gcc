@@ -76,6 +76,9 @@ struct GTY(()) gimple_df {
   /* True if the code is in ssa form.  */
   unsigned int in_ssa_p : 1;
 
+  /* True if IPA points-to information was computed for this function.  */
+  unsigned int ipa_pta : 1;
+
   struct ssa_operands ssa_operands;
 };
 
@@ -111,9 +114,10 @@ typedef struct
 ---------------------------------------------------------------------------*/
 
 /* Aliasing information for SSA_NAMEs representing pointer variables.  */
+
 struct GTY(()) ptr_info_def
 {
-  /* The points-to solution, TBAA-pruned if the pointer is dereferenced.  */
+  /* The points-to solution.  */
   struct pt_solution pt;
 };
 
@@ -614,12 +618,7 @@ extern void ssanames_print_statistics (void);
 #endif
 
 /* In tree-ssa-ccp.c  */
-bool fold_stmt (gimple_stmt_iterator *);
-bool fold_stmt_inplace (gimple);
-tree get_symbol_constant_value (tree);
 tree fold_const_aggregate_ref (tree);
-bool may_propagate_address_into_dereference (tree, tree);
-
 
 /* In tree-ssa-dom.c  */
 extern void dump_dominator_optimization_stats (FILE *);
@@ -775,7 +774,6 @@ extern enum move_pos movement_possibility (gimple);
 char *get_lsm_tmp_name (tree, unsigned);
 
 /* In tree-flow-inline.h  */
-static inline bool is_call_clobbered (const_tree);
 static inline void set_is_used (tree);
 static inline bool unmodifiable_var_p (const_tree);
 static inline bool ref_contains_array_ref (const_tree);

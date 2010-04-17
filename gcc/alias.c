@@ -413,7 +413,7 @@ alias_set_subset_of (alias_set_type set1, alias_set_type set2)
   /* Otherwise, check if set1 is a subset of set2.  */
   ase = get_alias_set_entry (set2);
   if (ase != 0
-      && ((ase->has_zero_child && set1 == 0)
+      && (ase->has_zero_child
 	  || splay_tree_lookup (ase->children,
 			        (splay_tree_key) set1)))
     return true;
@@ -1789,9 +1789,41 @@ static int
 memrefs_conflict_p (int xsize, rtx x, int ysize, rtx y, HOST_WIDE_INT c)
 {
   if (GET_CODE (x) == VALUE)
-    x = get_addr (x);
+    {
+      if (REG_P (y))
+	{
+	  struct elt_loc_list *l = NULL;
+	  if (CSELIB_VAL_PTR (x))
+	    for (l = CSELIB_VAL_PTR (x)->locs; l; l = l->next)
+	      if (REG_P (l->loc) && rtx_equal_for_memref_p (l->loc, y))
+		break;
+	  if (l)
+	    x = y;
+	  else
+	    x = get_addr (x);
+	}
+      /* Don't call get_addr if y is the same VALUE.  */
+      else if (x != y)
+	x = get_addr (x);
+    }
   if (GET_CODE (y) == VALUE)
-    y = get_addr (y);
+    {
+      if (REG_P (x))
+	{
+	  struct elt_loc_list *l = NULL;
+	  if (CSELIB_VAL_PTR (y))
+	    for (l = CSELIB_VAL_PTR (y)->locs; l; l = l->next)
+	      if (REG_P (l->loc) && rtx_equal_for_memref_p (l->loc, x))
+		break;
+	  if (l)
+	    y = x;
+	  else
+	    y = get_addr (y);
+	}
+      /* Don't call get_addr if x is the same VALUE.  */
+      else if (y != x)
+	y = get_addr (y);
+    }
   if (GET_CODE (x) == HIGH)
     x = XEXP (x, 0);
   else if (GET_CODE (x) == LO_SUM)

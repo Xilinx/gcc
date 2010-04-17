@@ -102,9 +102,6 @@ do {							    \
    front-end.  */
 #define TYPE_EXTRA_SUBTYPE_P(NODE) TYPE_LANG_FLAG_2 (NODE)
 
-/* Nonzero for composite types if this is a by-reference type.  */
-#define TYPE_BY_REFERENCE_P(NODE) TYPE_LANG_FLAG_2 (NODE)
-
 /* For RECORD_TYPE, UNION_TYPE, and QUAL_UNION_TYPE, nonzero if this is the
    type for an object whose type includes its template in addition to
    its value (only true for RECORD_TYPE).  */
@@ -325,6 +322,10 @@ do {						   \
    been elaborated and TREE_READONLY is not set on it.  */
 #define DECL_READONLY_ONCE_ELAB(NODE) DECL_LANG_FLAG_0 (VAR_DECL_CHECK (NODE))
 
+/* Nonzero in a CONST_DECL if its value is (essentially) the address of a
+   constant CONSTRUCTOR.  */
+#define DECL_CONST_ADDRESS_P(NODE) DECL_LANG_FLAG_0 (CONST_DECL_CHECK (NODE))
+
 /* Nonzero if this decl is always used by reference; i.e., an INDIRECT_REF
    is needed to access the object.  */
 #define DECL_BY_REF_P(NODE) DECL_LANG_FLAG_1 (NODE)
@@ -369,6 +370,20 @@ do {						   \
 #define SET_DECL_ORIGINAL_FIELD(NODE, X) \
   SET_DECL_LANG_SPECIFIC (FIELD_DECL_CHECK (NODE), X)
 
+/* Set DECL_ORIGINAL_FIELD of FIELD1 to (that of) FIELD2.  */
+#define SET_DECL_ORIGINAL_FIELD_TO_FIELD(FIELD1, FIELD2)	\
+  SET_DECL_ORIGINAL_FIELD ((FIELD1),				\
+			   DECL_ORIGINAL_FIELD (FIELD2)		\
+			   ? DECL_ORIGINAL_FIELD (FIELD2) : (FIELD2))
+
+/* Return true if FIELD1 and FIELD2 represent the same field.  */
+#define SAME_FIELD_P(FIELD1, FIELD2)					\
+  ((FIELD1) == (FIELD2)							\
+   || DECL_ORIGINAL_FIELD (FIELD1) == (FIELD2)				\
+   || (FIELD1) == DECL_ORIGINAL_FIELD (FIELD2)				\
+   || (DECL_ORIGINAL_FIELD (FIELD1)					\
+       && (DECL_ORIGINAL_FIELD (FIELD1) == DECL_ORIGINAL_FIELD (FIELD2))))
+
 /* In a VAR_DECL, points to the object being renamed if the VAR_DECL is a
    renaming pointer, otherwise 0.  Note that this object is guaranteed to
    be protected against multiple evaluations.  */
@@ -402,10 +417,28 @@ do {						   \
   (STATEMENT_CLASS_P (NODE) && TREE_CODE (NODE) >= STMT_STMT)
 
 #define STMT_STMT_STMT(NODE)     TREE_OPERAND_CHECK_CODE (NODE, STMT_STMT, 0)
-#define LOOP_STMT_TOP_COND(NODE) TREE_OPERAND_CHECK_CODE (NODE, LOOP_STMT, 0)
-#define LOOP_STMT_BOT_COND(NODE) TREE_OPERAND_CHECK_CODE (NODE, LOOP_STMT, 1)
-#define LOOP_STMT_UPDATE(NODE)   TREE_OPERAND_CHECK_CODE (NODE, LOOP_STMT, 2)
-#define LOOP_STMT_BODY(NODE)     TREE_OPERAND_CHECK_CODE (NODE, LOOP_STMT, 3)
-#define LOOP_STMT_LABEL(NODE)    TREE_OPERAND_CHECK_CODE (NODE, LOOP_STMT, 4)
+
+#define LOOP_STMT_COND(NODE)     TREE_OPERAND_CHECK_CODE (NODE, LOOP_STMT, 0)
+#define LOOP_STMT_UPDATE(NODE)   TREE_OPERAND_CHECK_CODE (NODE, LOOP_STMT, 1)
+#define LOOP_STMT_BODY(NODE)     TREE_OPERAND_CHECK_CODE (NODE, LOOP_STMT, 2)
+#define LOOP_STMT_LABEL(NODE)    TREE_OPERAND_CHECK_CODE (NODE, LOOP_STMT, 3)
+
+/* A loop statement is conceptually made up of 6 sub-statements:
+
+    loop:
+      TOP_CONDITION
+      TOP_UPDATE
+      BODY
+      BOTTOM_CONDITION
+      BOTTOM_UPDATE
+      GOTO loop
+
+  However, only 4 of them can exist for a given loop, the pair of conditions
+  and the pair of updates being mutually exclusive.  The default setting is
+  TOP_CONDITION and BOTTOM_UPDATE and the following couple of flags are used
+  to toggle the individual settings.  */
+#define LOOP_STMT_BOTTOM_COND_P(NODE) TREE_LANG_FLAG_0 (LOOP_STMT_CHECK (NODE))
+#define LOOP_STMT_TOP_UPDATE_P(NODE)  TREE_LANG_FLAG_1 (LOOP_STMT_CHECK (NODE))
+
 #define EXIT_STMT_COND(NODE)     TREE_OPERAND_CHECK_CODE (NODE, EXIT_STMT, 0)
 #define EXIT_STMT_LABEL(NODE)    TREE_OPERAND_CHECK_CODE (NODE, EXIT_STMT, 1)

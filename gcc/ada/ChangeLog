@@ -1,3 +1,338 @@
+2010-04-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* back-end.adb (Call_Back_End): Pass Standard_Character to gigi.
+	* gcc-interface/gigi.h (gigi): Add standard_character parameter.
+	(CHAR_TYPE_SIZE, SHORT_TYPE_SIZE, INT_TYPE_SIZE, LONG_TYPE_SIZE, 
+	LONG_LONG_TYPE_SIZE, FLOAT_TYPE_SIZE, DOUBLE_TYPE_SIZE,
+	LONG_DOUBLE_TYPE_SIZE, SIZE_TYPE): Delete.
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Array_Subtype>: Call
+	rm_size.
+	* gcc-interface/misc.c (gnat_init): Set signedness of char as per
+	flag_signed_char.  Tag sizetype with "size_type" moniker.
+	* gcc-interface/trans.c (gigi): Add standard_character parameter.
+	Remove useless built-in types.  Equate unsigned_char_type_node to
+	Standard.Character.  Use it instead of char_type_node throughout.
+	(Attribute_to_gnu): Likewise.
+	(gnat_to_gnu): Likewise.
+	* gcc-interface/utils2.c (build_call_raise): Likewise.
+
+2010-04-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/gigi.h (enum standard_datatypes): Add new values
+	ADT_sbitsize_one_node and ADT_sbitsize_unit_node.
+	(sbitsize_one_node): New macro.
+	(sbitsize_unit_node): Likewise.
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Array_Subtype>: Fix
+	latent bug in the computation of subrange_p.  Fold wider_p predicate.
+	(cannot_be_superflat_p): Use an explicitly signed 64-bit type to do
+	the final comparison.
+	(make_aligning_type): Build real negation and use sizetype throughout
+	the offset computation.
+	(maybe_pad_type): Do not issue the warning when the new size expression
+	is too complex.
+	(annotate_value) <INTEGER_CST>: Simplify code handling negative values.
+	* gcc-interface/misc.c (gnat_init): Initialize sbitsize_one_node and
+	sbitsize_unit_node.
+	* gcc-interface/trans.c (Attribute_to_gnu) <Attr_Pool_Address>: Fold
+	double negation.
+	(gnat_to_gnu) <N_Free_Statement>: Likewise.
+	* gcc-interface/utils.c (convert): Use sbitsize_unit_node.
+	* gcc-interface/utils2.c (compare_arrays): Compute real lengths and use
+	constants in sizetype.  Remove dead code and tweak comments.  Generate
+	equality instead of inequality comparisons for zero length tests.
+
+2010-04-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/gigi.h (gnat_init_decl_processing): Delete.
+	* gcc-interface/decl.c (gnat_to_gnu_entity): Constify a few variables.
+	<object>: Do not create the fake PARM_DECL if no debug info is needed.
+	Do not create the corresponding VAR_DECL of a CONST_DECL for debugging
+	purposes if no debug info is needed.
+	Fix formatting.  Reorder and add comments.
+	* gcc-interface/trans.c (gnat_to_gnu) <N_Attribute_Reference>: Constify
+	variable and remove obsolete comment.
+	* gcc-interface/utils.c (convert_vms_descriptor64): Tweak comment.
+	(convert_vms_descriptor32): Likewise.
+	(convert): Remove dead code.
+	<UNCONSTRAINED_ARRAY_REF>: Pass the field instead of its name to build
+	the reference to the P_ARRAY pointer.
+	<POINTER_TYPE>: Likewise.
+	(maybe_unconstrained_array) <UNCONSTRAINED_ARRAY_TYPE>: Likewise.
+	(gnat_init_decl_processing): Delete, move contents to...
+	* gcc-interface/misc.c (gnat_init): ...here.
+
+2010-04-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (unchecked_conversion_nop): Handle function
+	calls.  Return true for conversion from a record subtype to its type.
+
+2010-04-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity): Use boolean_type_node in
+	lieu of integer_type_node for boolean operations.
+	(choices_to_gnu): Likewise.
+	* gcc-interface/trans.c (Attribute_to_gnu): Likewise.
+	(Loop_Statement_to_gnu): Likewise.
+	(establish_gnat_vms_condition_handler): Likewise.
+	(Exception_Handler_to_gnu_sjlj): Likewise.
+	(gnat_to_gnu): Likewise.
+	(build_unary_op_trapv): Likewise.
+	(build_binary_op_trapv): Likewise.
+	(emit_range_check): Likewise.
+	(emit_index_check): Likewise.
+	(convert_with_check): Likewise.
+	* gcc-interface/utils.c (convert_vms_descriptor64): Likewise.
+	(convert_vms_descriptor32): Likewise.
+	(convert_vms_descriptor): Likewise.
+	* gcc-interface/utils2.c (nonbinary_modular_operation): Likewise.
+	(compare_arrays): Use boolean instead of integer constants.
+	(build_binary_op) <TRUTH_ANDIF_EXPR, TRUTH_ORIF_EXPR, TRUTH_AND_EXPR,
+	TRUTH_OR_EXPR, TRUTH_XOR_EXPR>: New case.  Check that the result type
+	is a boolean type.
+	<GE_EXPR, LE_EXPR, GT_EXPR, LT_EXPR>: Remove obsolete assertion.
+	<EQ_EXPR, NE_EXPR>: Check that the result type is a boolean type.
+	<PREINC/PREDECREMENT_EXPR, POSTINC/POSTDECREMENT_EXPR>: Delete.
+	<TRUTH_NOT_EXPR>: Check that the result type is a boolean type.
+	(build_unary_op): Use boolean_type_node in lieu of integer_type_node
+	for boolean operations.
+	(fill_vms_descriptor): Likewise.  Fix formatting nits.
+
+2010-04-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/ada-tree.def (LOOP_STMT): Change to 4-operand nodes.
+	* gcc-interface/ada-tree.h (LOOP_STMT_TOP_COND, LOOP_STMT_BOT_COND):
+	Merge into...
+	(LOOP_STMT_COND): ...this.
+	(LOOP_STMT_BOTTOM_COND_P): New flag.
+	(LOOP_STMT_TOP_UPDATE_P): Likewise.
+	* gcc-interface/trans.c (can_equal_min_or_max_val_p): New function.
+	(can_equal_min_val_p): New static inline function.
+	(can_equal_max_val_p): Likewise.
+	(Loop_Statement_to_gnu): Use build4 in lieu of build5 and adjust to
+	new LOOP_STMT semantics.  Use two different strategies depending on
+	whether optimization is enabled to translate the loop.
+	(gnat_gimplify_stmt) <LOOP_STMT>: Adjust to new LOOP_STMT semantics.
+
+2010-04-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* uintp.adb (UI_From_Dint): Remove useless code.
+	(UI_From_Int): Likewise.
+	* uintp.h: Reorder declarations.
+	(UI_From_gnu): Declare.
+	(UI_Base): Likewise.
+	(Vector_Template): Likewise.
+	(Vector_To_Uint): Likewise.
+	(Uint_0): Remove.
+	(Uint_1): Likewise.
+	* gcc-interface/gigi.h: Tweak comments.
+	* gcc-interface/cuintp.c (UI_From_gnu): New global function.
+	* gcc-interface/decl.c (maybe_pad_type): Do not warn if either size
+	overflows.
+	(annotate_value) <INTEGER_CST>: Call UI_From_gnu.
+	* gcc-interface/trans.c (post_error_ne_num): Call post_error_ne.
+	(post_error_ne_tree): Call UI_From_gnu and post_error_ne.
+	* gcc-interface/utils.c (max_size) <tcc_binary>: Do not special-case
+	TYPE_MAX_VALUE.
+
+2010-04-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (make_type_from_size) <INTEGER_TYPE>: Just copy
+	TYPE_NAME.
+	* gcc-interface/trans.c (smaller_packable_type_p): Rename into...
+	(smaller_form_type_p): ...this.  Change parameter and variable names.
+	(call_to_gnu): Use the nominal type of the parameter to create the
+	temporary if it's a smaller form of the actual type.
+	(addressable_p): Return false if the actual type is integral and its
+	size is greater than that of the expected type.
+
+2010-04-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/cuintp.c (UI_To_gnu): Fix long line.
+	* gcc-interface/gigi.h (MARK_VISITED): Skip objects of constant class.
+	(process_attributes): Delete.
+	(post_error_ne_num): Change parameter name.
+	* gcc-interface/decl.c (gnat_to_gnu_entity): Do not force debug info
+	with -g3.  Remove a couple of obsolete lines.  Minor tweaks.
+	If type annotating mode, operate on trees to compute the adjustment to
+	the sizes of tagged types.  Fix long line.
+	(cannot_be_superflat_p): Tweak head comment.
+	(annotate_value): Fold local constant.
+	(set_rm_size): Fix long line.
+	* gcc-interface/trans.c (Identifier_to_gnu): Rework comments.
+	(Attribute_to_gnu): Fix long line.
+	<Attr_Size>: Remove useless assertion.
+	Reorder statements.  Use size_binop routine.
+	(Loop_Statement_to_gnu): Use build5 in lieu of build_nt.
+	Create local variables for the label and the test.  Tweak comments.
+	(Subprogram_Body_to_gnu): Reset cfun to NULL.
+	(Compilation_Unit_to_gnu): Use the Sloc of the Unit node.
+	(process_inlined_subprograms): Integrate into...
+	(Compilation_Unit_to_gnu): ...this.
+	(gnat_to_gnu): Fix long line.
+	(post_error_ne_num): Change parameter name.
+	* gcc-interface/utils.c (process_attributes): Static-ify.
+	<ATTR_MACHINE_ATTRIBUTE>: Set input_location before proceeding.
+	(create_type_decl): Add comment.
+	(create_var_decl_1): Process the attributes after adding the VAR_DECL
+	to the current binding level.
+	(create_subprog_decl): Likewise for the FUNCTION_DECL.
+	(end_subprog_body): Do not reset cfun to NULL.
+	(build_vms_descriptor32): Fix long line.
+	(build_vms_descriptor): Likewise.
+	(handle_nonnull_attribute): Likewise.
+	(convert_vms_descriptor64): Likewise.
+	* gcc-interface/utils2.c (fill_vms_descriptor): Fix long line.
+	(gnat_protect_expr): Fix thinko.
+
+2010-04-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (gigi): Set DECL_IGNORED_P on EH functions.
+	(gnat_to_gnu) <N_Op_Eq>: Restore the value of input_location
+	before translating the top-level node.
+	(lvalue_required_p) <N_Function_Call>: Return 1 if !constant.
+	<N_Object_Declaration>: Likewise.
+	<N_Assignment_Statement>: Likewise.
+	<N_Unchecked_Type_Conversion>: Likewise.
+	(call_to_gnu): Remove kludge.
+	(gnat_to_gnu) <N_Return_Statement>: When not optimizing, force labels
+	associated with user returns to be preserved.
+	(gnat_to_gnu): Add special code to deal with boolean rvalues.
+	* gcc-interface/utils2.c (compare_arrays): Set input_location on all
+	comparisons.
+	(build_unary_op) <ADDR_EXPR>: Call build_fold_addr_expr.
+	<INDIRECT_REF>: Call build_fold_indirect_ref.
+
+2010-04-15  Joel Sherrill  <joel.sherrill@oarcorp.com>
+
+	* g-socket.adb: A target can have multiple missing errno's.  This
+	will result in multiple errno's being defined as -1.  Because of this
+	we can not use a case but must use a series of if's to avoid 
+	a duplicate case error in GNAT.Sockets.Resolve_Error.
+
+2010-04-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (call_to_gnu): Open a nesting level if this is
+	a statement.  Otherwise, if at top-level, push the processing of the
+	elaboration routine.  In the misaligned case, issue the error messages
+	again on entry and create the temporary explicitly.  Do not issue them
+	for CONSTRUCTORs.
+	For a function call, emit the range check if necessary.
+	In the copy-in copy-out case, create the temporary for the return
+	value explicitly.
+	Do not unnecessarily convert by-ref parameters to the formal's type.
+	Remove obsolete guards in conditions.
+	(gnat_to_gnu) <N_Assignment_Statement>: For a function call, pass the
+	target to call_to_gnu in all cases.
+	(gnat_gimplify_expr) <ADDR_EXPR>: Remove handling of SAVE_EXPR.
+	(addressable_p) <CONSTRUCTOR>: Return false if not static.
+	<COMPOUND_EXPR>: New case.
+	* gcc-interface/utils2.c (build_unary_op) <ADDR_EXPR>: Fold a compound
+	expression if it has unconstrained array type.
+	(gnat_mark_addressable) <COMPOUND_EXPR>: New case.
+	(gnat_stabilize_reference) <COMPOUND_EXPR>: Stabilize operands on an
+	individual basis.
+
+2010-04-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (gigi): Do not start statement group.
+	(Compilation_Unit_to_gnu): Set current_function_decl to NULL.
+	Start statement group and push binding level here...
+	(gnat_to_gnu) <N_Compilation_Unit>: ...and not here.
+	Do not push fake contexts at top level.  Remove redundant code.
+	(call_to_gnu): Rename a local variable and constify another.
+	* gcc-interface/utils.c (gnat_pushlevel): Fix formatting nits.
+	(set_current_block_context): Set it as the group's block.
+	(gnat_init_decl_processing): Delete unrelated init code.
+	(end_subprog_body): Use NULL_TREE.
+
+2010-04-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (call_to_gnu): Do not unnecessarily force
+	side-effects of actual parameters before the call.
+
+2010-04-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (validate_size): Reorder, remove obsolete test
+	and warning.
+	(set_rm_size): Reorder and remove obsolete test.
+
+2010-04-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/gigi.h: Reorder declarations and tweak comments.
+	(gigi): Adjust ATTRIBUTE_UNUSED markers.
+	* gcc-interface/gadaint.h: New file.
+	* gcc-interface/trans.c: Include it in lieu of adaint.h.  Reorder.
+	(__gnat_to_canonical_file_spec): Remove declaration.
+	(number_names): Delete.
+	(number_files): Likewise.
+	(gigi): Adjust.
+	* gcc-interface/Make-lang.in (ada/trans.o): Adjust dependencies to
+	above change.
+
+2010-04-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Class_Wide_Type>: Fix
+	comment.
+	* gcc-interface/trans.c (process_freeze_entity): Use local copy of
+	Ekind.  Return early for class-wide types.  Do not compute initializer
+	unless necessary.  Reuse the tree for an associated class-wide type
+	only if processing its root type.
+
+2010-04-13  Joel Sherrill  <joel.sherrill@oarcorp.com>
+
+	* gsocket.h: Run-time can no longer be built without network
+	OS headers available.  Changing RTEMS GNAT build procedure to
+	reflect this and letting run-time build use network .h files.
+
+2010-04-13  Duncan Sands  <baldrick@free.fr>
+
+	* gcc-interface/misc.c (gnat_eh_type_covers): Remove.
+	* gcc-interface/trans.c (Exception_Handler_to_gnu_zcx): Update comment.
+
+2010-04-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/gigi.h (standard_datatypes): Add ADT_parent_name_id.
+	(parent_name_id): New macro.
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Record_Type>: Use it.
+	* gcc-interface/trans.c (gigi): Initialize it.
+	(lvalue_required_p) <N_Type_Conversion>: New case.
+	<N_Qualified_Expression>: Likewise.
+	<N_Allocator>: Likewise.
+	* gcc-interface/utils.c (convert): Try to properly upcast tagged types.
+
+2010-04-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/ada-tree.h (TYPE_BY_REFERENCE_P): Delete.
+	(DECL_CONST_ADDRESS_P): New macro.
+	(SET_DECL_ORIGINAL_FIELD_TO_FIELD): Likewise.
+	(SAME_FIELD_P): Likewise.
+	* gcc-interface/decl.c (constructor_address_p): New static function.
+	(gnat_to_gnu_entity) <object>: Set DECL_CONST_ADDRESS_P according to
+	the return value of above function.
+	(gnat_to_gnu_entity) <E_Record_Type>: Force BLKmode for all types
+	passed by reference.
+	<E_Record_Subtype>: Likewise.
+	Set TREE_ADDRESSABLE on the type if it passed by reference.
+	(make_packable_type): Use SET_DECL_ORIGINAL_FIELD_TO_FIELD.
+	(create_field_decl_from): Likewise.
+	(substitute_in_type): Likewise.
+	(purpose_member_field): Use SAME_FIELD_P.
+	* gcc-interface/misc.c (must_pass_by_ref): Test TREE_ADDRESSABLE.
+	* gcc-interface/trans.c (lvalue_required_p): Add ADDRESS_OF_CONSTANT
+	parameter and adjust recursive calls.
+	<N_Explicit_Dereference>: New case.
+	<N_Object_Declaration>: Return 1 if the object is of a class-wide type.
+	Adjust calls to lvalue_required_p.  Do not return the initializer of a
+	DECL_CONST_ADDRESS_P constant if an lvalue is required for it.
+	(call_to_gnu): Delay issuing error message for a misaligned actual and
+	avoid the associated back-end assertion.  Test TREE_ADDRESSABLE.
+	(gnat_gimplify_expr) <ADDR_EXPR>: Handle non-static constructors.
+	* gcc-interface/utils.c (make_dummy_type): Set TREE_ADDRESSABLE if the
+	type is passed by reference.
+	(convert) <CONSTRUCTOR>: Convert in-place in more cases.
+	* gcc-interface/utils2.c (build_cond_expr): Drop TYPE_BY_REFERENCE_P.
+	(build_simple_component_ref): Use SAME_FIELD_P.
+
 2010-04-12  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/trans.c (Identifier_to_gnu): Use boolean variable.

@@ -1,3 +1,183 @@
+2010-04-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43572
+	* gcc.dg/tree-ssa/tailcall-5.c: New testcase.
+
+2010-04-16  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/specs/discr_private.ads: New test.
+
+2010-04-16  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/41514
+	* gcc.target/arm/thumb-comparisons.c: New test.
+
+	PR target/40603
+	* gcc.target/arm/thumb-cbranchqi.c: New test.
+
+2010-04-16  Christian Bruel  <christian.bruel@st.com>
+
+	* g++.dg/torture/pr36191.C: Enable for SH.
+
+2010-04-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/wide_boolean.adb: New test.
+	* gnat.dg/wide_boolean_pkg.ad[sb]: New helper.
+
+2010-04-15  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/ipa/ipa-pta-1.c: New testcase.
+	* gcc.dg/ipa/ipa-pta-2.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-3.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-4.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-5.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-6.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-7.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-8.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-9.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-10.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-11.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-12.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-13.c: Likewise.
+	* gcc.dg/torture/ipa-pta-2.c: Likewise.
+	* gcc.dg/torture/ipa-pta-1.c: Adjust.
+
+2010-04-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/21803
+	* gcc.target/arm/pr42496.c: New test.
+
+2010-04-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36625
+	* g++.dg/ext/attrib38.C: New.
+
+2010-04-14  Steve Ellcey  <sje@cup.hp.com>
+
+	PR testsuite/43739
+	* gcc.dg/pr43643.c: Use static link on hppa*-*-hpux*.
+
+2010-04-14  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 42966
+	* gcc.dg/cpp/warn-undef-2.c: Update.
+	* gcc.dg/cpp/warn-traditional-2.c: Update.
+	* gcc.dg/cpp/warn-comments-2.c: Update.
+	* gcc.dg/cpp/warn-variadic-2.c: Update.
+	* gcc.dg/cpp/warn-long-long-2.c: Update.
+	* gcc.dg/cpp/warn-deprecated-2.c: Update.
+	* gcc.dg/cpp/warn-multichar-2.c: Update.
+	* gcc.dg/cpp/warn-normalized-3.c: Update.
+	* gcc.dg/cpp/warn-cxx-compat-2.c: Update.
+	* gcc.dg/cpp/warn-trigraphs-3.c: Update.
+	* gcc.dg/cpp/warn-unused-macros-2.c: Update.
+	* gcc.dg/cpp/warn-trigraphs-4.c: Update.
+	* gcc.dg/cpp/warn-redefined-2.c: Update.
+	* gfortran.dg/warning-directive-2.F90: Update.
+	* c-c++-common/cpp/warning-directive-2.c: Update.
+
+2010-04-14  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/42963
+	* testsuite/gcc.dg/pr42963.c: New testcase.
+
+2010-04-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/class_wide.adb: Rename into...
+	* gnat.dg/class_wide1.adb: ...this.
+	* gnat.dg/class_wide2.ad[sb]: New test.
+
+2010-04-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_9.f90: Update dg-errors.
+	* gfortran.dg/coarray_10.f90: New test.
+	* gfortran.dg/coarray_11.f90: New test.
+
+2010-04-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/43747
+	gfortran.dg/initialization_24.f90: New test.
+
+2010-04-13  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/lambda/lambda-deduce2.C: Remove.
+	* g++.dg/cpp0x/lambda/lambda-uneval.C: New.
+
+2010-04-13  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* gcc.dg/cpp/cpp.exp: Test also c-c++-common/cpp.
+	* g++.dg/dg.exp: Likewise.
+	* gcc.dg/cpp/warning-directive-1.c: Move to ...
+	* c-c++-common/cpp/warning-directive-1.c: ... here.
+	* gcc.dg/cpp/warning-directive-2.c: Move to ...
+	* c-c++-common/cpp/warning-directive-2.c: ... here.
+	* gcc.dg/cpp/warning-directive-3.c: Move to ...
+	* c-c++-common/cpp/warning-directive-3.c: ... here.
+	* gcc.dg/cpp/warning-directive-4.c: Move to ...
+	* c-c++-common/cpp/warning-directive-4.c: ... here.
+	* g++.dg/cpp/warning-directive-1.C: Delete.
+	* g++.dg/cpp/warning-directive-2.C: Delete.
+	* g++.dg/cpp/warning-directive-3.C: Delete.
+	* g++.dg/cpp/warning-directive-4.C: Delete.
+	* gcc.dg/cpp/normalised-3.c: Delete.
+	* g++.dg/cpp/normalised-1.C: Rename as ...
+	* c-c++-common/cpp/normalised-3.c: ... this.
+
+2010-04-13  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/tree-ssa/sra-9.c: New test.
+
+2010-04-13  Michael Matz  <matz@suse.de>
+
+	PR middle-end/43730
+	* gcc.dg/pr43730.c: New test.
+
+2010-04-13  Michael Matz  <matz@suse.de>
+
+	* gcc.dg/tree-ssa/negate.c: New testcase.
+
+2010-04-13  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/43735
+	* gcc.dg/guality/inline-params.c: Remove -fwhopr XPASS.
+
+2010-04-13  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/vect/no-vfa-vect-depend-1.c: Adjust.
+
+2010-04-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/derived_type1.adb: New test.
+
+2010-04-13  Matthias Klose  <doko@ubuntu.com>
+
+	* gcc.dg/plugindir1.c: New testcase.
+	* gcc.dg/plugindir2.c: New testcase.
+	* gcc.dg/plugindir3.c: New testcase.
+	* gcc.dg/plugindir4.c: New testcase.
+
+2010-04-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/rotate-2.c: New test.
+
+2010-04-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43641
+	* g++.dg/cpp0x/lambda/lambda-conv4.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce2.C: New.
+
+2010-04-12  Fabien Chene  <fabien.chene@gmail.com>
+
+	PR c++/25811
+	* g++.dg/init/pr25811.C: New test.
+
+2010-04-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/warn/miss-format-1.C: Removed *-*-solaris2.7 from
+	dg-error, dg-warning.
+	* gcc.dg/c99-stdint-6.c: Removed *-*-solaris2.7 from dg-options.
+
 2010-04-12  Richard Guenther  <rguenther@suse.de>
 
 	* gcc.dg/torture/inline-2.c: New testcase.
@@ -1049,7 +1229,7 @@
 	* gcc.dg/pr43211.c: New test.
 	* gcc.dg/pr18809-1.c: Don't expect an error when calling foo.
 
-2010-03-19  Bernd Schmidt  <bernd.schmidt@codesourcery.com>
+2010-03-19  Bernd Schmidt  <bernds@codesourcery.com>
 
 	PR rtl-optimization/42258
 	* gcc.target/arm/thumb1-mul-moves.c: New test.
