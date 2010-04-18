@@ -898,7 +898,15 @@ resolve_structure_cons (gfc_expr *expr)
       if (!gfc_compare_types (&cons->expr->ts, &comp->ts))
 	{
 	  t = FAILURE;
-	  if (comp->attr.pointer && cons->expr->ts.type != BT_UNKNOWN)
+	  if (strcmp (comp->name, "$extends") == 0)
+	    {
+	      /* Can afford to be brutal with the $extends initializer.
+		 The derived type can get lost because it is PRIVATE
+		 but it is not usage constrained by the standard.  */
+	      cons->expr->ts = comp->ts;
+	      t = SUCCESS;
+	    }
+	  else if (comp->attr.pointer && cons->expr->ts.type != BT_UNKNOWN)
 	    gfc_error ("The element in the derived type constructor at %L, "
 		       "for pointer component '%s', is %s but should be %s",
 		       &cons->expr->where, comp->name,
