@@ -6,6 +6,8 @@ SUBDIRS = testsuite
 ## May be used by toolexeclibdir.
 gcc_version := $(shell cat $(top_srcdir)/../gcc/BASE-VER)
 
+abi_version = -fabi-version=4
+
 config_path = @config_path@
 search_path = $(addprefix $(top_srcdir)/config/, $(config_path)) $(top_srcdir)
 
@@ -16,7 +18,7 @@ vpath % $(strip $(search_path))
 
 AM_CPPFLAGS = $(addprefix -I, $(search_path))
 AM_CFLAGS = $(XCFLAGS)
-AM_CXXFLAGS = -std=gnu++0x -fno-rtti $(XCFLAGS)
+AM_CXXFLAGS = -std=gnu++0x -fno-rtti $(XCFLAGS) $(abi_version)
 AM_CCASFLAGS = $(XCFLAGS)
 AM_LDFLAGS = $(XLDFLAGS) $(SECTION_LDFLAGS) $(OPT_LDFLAGS)
 

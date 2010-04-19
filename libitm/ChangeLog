@@ -1,3 +1,10 @@
+2010-04-19  Aldy Hernandez  <aldyh@redhat.com>
+
+	* Makefile.am (abi_version): New.
+	(AM_CXXFLAGS): Pass abi_version.
+	* Makefile.in: Regenerate.
+	* config/x86/unaligned.h: Remove always_inline kludge for vectors.
+
 2010-04-06  Aldy Hernandez  <aldyh@redhat.com>
 
 	* clone.cc (_ITM_getTMCloneOrIrrevocable): Rename from

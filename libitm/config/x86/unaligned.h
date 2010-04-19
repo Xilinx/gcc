@@ -32,10 +32,6 @@
 
 namespace GTM HIDDEN {
 
-// ??? C++ currently has ambiguous name mangling, with __m128 and __m256
-// mangling to the same thing.  "Fix" this by forcing these inline
-// functions to be always inline.
-
 template<>
 inline uint32_t
 unaligned_load2<uint32_t>(const gtm_cacheline *c1,
@@ -121,14 +117,14 @@ template<>
 
 // Expand the unaligned SSE move instructions.
 template<>
-inline _ITM_TYPE_M128 ALWAYS_INLINE
+inline _ITM_TYPE_M128
 unaligned_load<_ITM_TYPE_M128>(const void *t)
 {
   return _mm_loadu_ps (static_cast<const float *>(t));
 }
 
 template<>
-inline void ALWAYS_INLINE
+inline void
 unaligned_store<_ITM_TYPE_M128>(void *t, _ITM_TYPE_M128 val)
 {
   _mm_storeu_ps (static_cast<float *>(t), val);
@@ -143,14 +139,14 @@ template<>
   { };
 
 template<>
-inline _ITM_TYPE_M256 ALWAYS_INLINE
+inline _ITM_TYPE_M256
 unaligned_load<_ITM_TYPE_M256>(const void *t)
 {
   return _mm256_loadu_ps (static_cast<const float *>(t));
 }
 
 template<>
-inline void ALWAYS_INLINE
+inline void
 unaligned_store<_ITM_TYPE_M256>(void *t, _ITM_TYPE_M256 val)
 {
   _mm256_storeu_ps (static_cast<float *>(t), val);
@@ -160,7 +156,7 @@ unaligned_store<_ITM_TYPE_M256>(void *t, _ITM_TYPE_M256 val)
 #ifdef __XOP__
 # define HAVE_ARCH_REALIGN_M128I 1
 extern const __v16qi GTM_vpperm_shift[16];
-inline __m128i ALWAYS_INLINE
+inline __m128i
 realign_m128i (__m128i lo, __m128i hi, unsigned byte_count)
 {
   return _mm_perm_epi8 (lo, hi, GTM_vpperm_shift[byte_count]);
@@ -168,7 +164,7 @@ realign_m128i (__m128i lo, __m128i hi, unsigned byte_count)
 #elif defined(__AVX__)
 # define HAVE_ARCH_REALIGN_M128I 1
 extern "C" const uint64_t GTM_vpalignr_table[16];
-inline __m128i ALWAYS_INLINE
+inline __m128i
 realign_m128i (__m128i lo, __m128i hi, unsigned byte_count)
 {
   register __m128i xmm0 __asm__("xmm0") = hi;
@@ -180,7 +176,7 @@ realign_m128i (__m128i lo, __m128i hi, unsigned byte_count)
 #elif defined(__SSSE3__)
 # define HAVE_ARCH_REALIGN_M128I 1
 extern "C" const uint64_t GTM_palignr_table[16];
-inline __m128i ALWAYS_INLINE
+inline __m128i
 realign_m128i (__m128i lo, __m128i hi, unsigned byte_count)
 {
   register __m128i xmm0 __asm__("xmm0") = hi;
@@ -192,7 +188,7 @@ realign_m128i (__m128i lo, __m128i hi, unsigned byte_count)
 #elif defined(__SSE2__)
 # define HAVE_ARCH_REALIGN_M128I 1
 extern "C" const char GTM_pshift_table[16 * 16];
-inline __m128i ALWAYS_INLINE
+inline __m128i
 realign_m128i (__m128i lo, __m128i hi, unsigned byte_count)
 {
   register __m128i xmm0 __asm__("xmm0") = lo;
@@ -205,7 +201,7 @@ realign_m128i (__m128i lo, __m128i hi, unsigned byte_count)
 
 #ifdef HAVE_ARCH_REALIGN_M128I
 template<>
-inline _ITM_TYPE_M128 ALWAYS_INLINE
+inline _ITM_TYPE_M128
 unaligned_load2<_ITM_TYPE_M128>(const gtm_cacheline *c1,
 				const gtm_cacheline *c2, size_t ofs)
 {
@@ -217,7 +213,7 @@ unaligned_load2<_ITM_TYPE_M128>(const gtm_cacheline *c1,
 
 #ifdef __AVX__
 template<>
-inline _ITM_TYPE_M256 ALWAYS_INLINE
+inline _ITM_TYPE_M256
 unaligned_load2<_ITM_TYPE_M256>(const gtm_cacheline *c1,
 				const gtm_cacheline *c2, size_t ofs)
 {

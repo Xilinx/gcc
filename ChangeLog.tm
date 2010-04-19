@@ -1,3 +1,8 @@
+2010-04-19  Aldy Hernandez  <aldyh@redhat.com>
+
+	* libstdc++-v3/testsuite/util/testsuite_abi.cc (check_version):
+	Add CXXABI_TM_1.
+
 2010-04-14  Aldy Hernandez  <aldyh@redhat.com>
 
 	* Merge from mainline rev 158257.
