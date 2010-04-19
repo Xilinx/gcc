@@ -340,10 +340,17 @@ Common Report Var(flag_auto_inc_dec) Init(1)
 Generate auto-inc/dec instructions
 
 ;;;;;; MELT stuff
-; Midlle End Lisp Translator by Basile Starynkevitch (source file gcc/melt-runtime.c)
+;;; Midlle End Lisp Translator by Basile Starynkevitch 
+;;; (source file gcc/melt-runtime.c)
+
+;; old option -fmelt=<mode> is deprecated
 fmelt=
+Common Report Var(melt_old_mode_string) Warning Joined 
+Deprecated, use -fmelt-mode= instead.
+
+fmelt-mode=
 Common Report Var(melt_mode_string) Joined 
-MELT mode with command or analysis to run. Uses -fmelt=help for more.
+MELT mode with command or analysis to run. Use -fmelt-mode=help for more.
 
 ; argument string for melt
 fmelt-arg=

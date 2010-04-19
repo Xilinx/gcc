@@ -36,7 +36,7 @@
 ### melt_cflags - the CFLAGS for compiling MELT generated C code
 
 ## the various arguments to MELT - avoid spaces in them!
-meltarg_mode=$(if $(melt_is_plugin),-fplugin-arg-melt-mode,-fmelt)
+meltarg_mode=$(if $(melt_is_plugin),-fplugin-arg-melt-mode,-fmelt-mode)
 meltarg_init=$(if $(melt_is_plugin),-fplugin-arg-melt-init,-fmelt-init)
 meltarg_module_path=$(if $(melt_is_plugin),-fplugin-arg-melt-module-path,-fmelt-module-path)
 meltarg_source_path=$(if $(melt_is_plugin),-fplugin-arg-melt-source-path,-fmelt-source-path)
@@ -433,7 +433,7 @@ warmelt2.modlis: $(WARMELT_BASE2SO)
 warmelt-first.2.c: $(melt_make_source_dir)/warmelt-first.melt warmelt1.modlis $(WARMELT_BASE1SO) $(melt_make_gencdeps)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt1" \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_output)=$@
+	      $(meltarg_output)=$@ empty-file-for-melt.c
 
 
 

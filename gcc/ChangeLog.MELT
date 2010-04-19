@@ -1,3 +1,19 @@
+2010-04-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* common.opt: -fmelt=<mode> is deprecated and replaced by
+	-fmelt-mode=<mode>.
+
+	* melt-runtime.c (melt_argument): looks into melt_mode_string &
+	melt_old_mode_string, and issues a warning when
+	melt_old_mode_string is used.
+
+	* toplev.c (toplev_main): also test melt_old_mode_string before
+	calling melt_initialize & melt_finalize.
+
+	* melt-make.mk: typo in rule for warmelt-first.2.c
+
+	* doc/melt.texi (Invoking MELT): document -fmelt-mode=.
+	(translating a MELT module): use it.
+
 2010-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{alternate matching buggy & incomplete}}
 	* melt/warmelt-normatch.melt: added matresctyp to

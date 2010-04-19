@@ -203,11 +203,11 @@ tasks which are not related to a particular GCC input source file. In
 practice, you should pass an empty C file to @code{gcc} for that
 purpose. In particular, the translation of a MELT file @code{foo.melt}
 into C code @code{foo.c} is done with a special invocation like
-@code{gcc -fmelt=translatefile -fmelt-arg=foo.melt
+@code{gcc -fmelt-mode=translatefile -fmelt-arg=foo.melt
 -fmelt-secondarg=foo.c} (possibly with other options like some
 appropriate @code{-fmelt-init=}). It is possible but deprecated to
-invoke with @code{-fmelt=compilefile} instead of
-@code{-fmelt=translatefile}. In other words, the MELT translator to C
+invoke with @code{-fmelt-mode=compilefile} instead of
+@code{-fmelt-mode=translatefile}. In other words, the MELT translator to C
 @emph{is not} a GCC front-end, like e.g. @code{g++} is a C++ front-end
 of GCC.
 
@@ -216,9 +216,9 @@ order. We list both MELT branch options like @code{-fmelt-arg=} and
 MELT plugin option like @code{-fplugin-arg-melt-arg=}
 
 @table @gcctabopt
-@item -fmelt=
+@item -fmelt-mode=
 @gccoptlist{-fplugin-arg-melt-mode=}
-@opindex fmelt
+@opindex fmelt-mode
 @opindex fplugin-arg-melt-mode
 
 This flag (called the MELT mode flag) is required for every MELT
@@ -1884,7 +1884,7 @@ A MELT file @file{@var{foo}.melt} [which can be viewed as defining the
 @file{@var{foo}.c} which is then compiled into a dynamically loadable
 shared library - usually @file{@var{foo}.so} on Linux. The translation
 to C is done using @code{cc1} (or @code{gcc}, not implemented yet)
-with the @code{-fmelt=translatefile -fmelt-arg=@var{foo}.melt
+with the @code{-fmelt-mode=translatefile -fmelt-arg=@var{foo}.melt
 -fmelt-secondarg=@var{foo}.c} options. The generated file
 @var{foo}.c is usually quite big (and only @code{#include}-ing one
 file, @code{"run-melt.h"} which includes all the rest). It
@@ -1904,6 +1904,9 @@ parent environment and returns the newly filled module
 environment@footnote{There is an ordered sequence of MELT modules, the
 very first, @code{warmelt-first}, being translated specially and gets
 a nil parent.}.
+
+To generate a MELT binary module from a MELT source file, use 
+@code{-fmelt-mode=translatetomodule}.
 
 @node MELT module initialization and exports
 @subsubsection MELT module initialization and exports

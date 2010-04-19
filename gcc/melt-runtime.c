@@ -275,8 +275,22 @@ melt_argument (const char* argname)
 {
   if (!argname || !argname[0]) 
     return NULL;
-  else if (!strcmp (argname, "mode")) 
-    return melt_mode_string;
+  else if (!strcmp (argname, "mode")) {
+    if (melt_mode_string && melt_mode_string[0]) {
+      if (melt_old_mode_string && melt_old_mode_string[0])
+	error("-fmelt=<mode> is obsolete and cannot be given with -fmelt-mode=<mode> which is prefered");
+      return melt_mode_string;
+    }
+    if (melt_old_mode_string && melt_old_mode_string[0]) {
+      static int warncount;
+      if (warncount++ <= 0)
+	warning(0, 
+		"-fmelt=<mode> option is deprecated; use -fmelt-mode=<mode> instead\n"
+		"\t e.g. -fmelt-mode=help.");
+      return melt_old_mode_string;
+    }
+    return NULL;
+  }
   else if (!strcmp (argname, "arg"))
     return melt_argument_string;
   else if (!strcmp (argname, "arglist"))
@@ -331,7 +345,7 @@ melt_argument (const char* argname)
 }
 #endif /*MELT_IS_PLUGIN*/
 #if defined(__GNUC__) && __GNUC__>3
-#pragma GCC poison melt_mode_string melt_argument_string melt_arglist_string
+#pragma GCC poison melt_mode_string melt_old_mode_string melt_argument_string melt_arglist_string
 /* don't poison flag_melt_debug */
 #pragma GCC poison melt_compile_script_string count_melt_debugskip_string
 #pragma GCC poison melt_dynmodpath_string melt_srcpath_string

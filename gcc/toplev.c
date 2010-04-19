@@ -2473,8 +2473,9 @@ toplev_main (int argc, char **argv)
   initialize_plugins ();
 
   /* initialize melt if needed */
-  if (melt_mode_string && melt_mode_string[0])
-    melt_initialize();
+  if ((melt_mode_string && melt_mode_string[0])
+      || (melt_old_mode_string && melt_old_mode_string[0]))
+    melt_initialize ();
 
   if (version_flag)
     print_version (stderr, "");
@@ -2488,7 +2489,8 @@ toplev_main (int argc, char **argv)
 
 
   /* finalize melt if needed */
-  if (melt_mode_string && melt_mode_string[0])
+  if ((melt_mode_string && melt_mode_string[0])
+      || (melt_old_mode_string && melt_old_mode_string[0]))
     melt_finalize();
 
   if (warningcount || errorcount) 
