@@ -211,11 +211,21 @@ remap_ssa_name (tree name, copy_body_data *id)
       && (TREE_CODE (SSA_NAME_VAR (name)) != RESULT_DECL
 	  || !id->transform_return_to_modify))
     {
+      struct ptr_info_def *pi;
       new_tree = make_ssa_name (new_tree, NULL);
       insert_decl_map (id, name, new_tree);
       SSA_NAME_OCCURS_IN_ABNORMAL_PHI (new_tree)
 	= SSA_NAME_OCCURS_IN_ABNORMAL_PHI (name);
       TREE_TYPE (new_tree) = TREE_TYPE (SSA_NAME_VAR (new_tree));
+      /* At least IPA points-to info can be directly transferred.  */
+      if (id->src_cfun->gimple_df
+	  && id->src_cfun->gimple_df->ipa_pta
+	  && (pi = SSA_NAME_PTR_INFO (name))
+	  && !pi->pt.anything)
+	{
+	  struct ptr_info_def *new_pi = get_ptr_info (new_tree);
+	  new_pi->pt = pi->pt;
+	}
       if (gimple_nop_p (SSA_NAME_DEF_STMT (name)))
 	{
 	  /* By inlining function having uninitialized variable, we might
@@ -1391,6 +1401,12 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 		  default:
 		    break;
 		  }
+
+	      /* Reset alias info if we didn't apply measures to
+		 keep it valid over inlining by setting DECL_PT_UID.  */
+	      if (!id->src_cfun->gimple_df
+		  || !id->src_cfun->gimple_df->ipa_pta)
+		gimple_call_reset_alias_info (copy);
 	    }
 	    break;
 
@@ -3724,12 +3740,9 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   	     cg_edge->frequency * REG_BR_PROB_BASE / CGRAPH_FREQ_BASE,
 	     bb, return_block);
 
-  /* Reset the escaped and callused solutions.  */
+  /* Reset the escaped solution.  */
   if (cfun->gimple_df)
-    {
-      pt_solution_reset (&cfun->gimple_df->escaped);
-      pt_solution_reset (&cfun->gimple_df->callused);
-    }
+    pt_solution_reset (&cfun->gimple_df->escaped);
 
   /* Clean up.  */
   if (id->debug_map)
@@ -4512,6 +4525,8 @@ copy_decl_to_var (tree decl, copy_body_data *id)
 
   copy = build_decl (DECL_SOURCE_LOCATION (id->dst_fn),
 		     VAR_DECL, DECL_NAME (decl), type);
+  if (DECL_PT_UID_SET_P (decl))
+    SET_DECL_PT_UID (copy, DECL_PT_UID (decl));
   TREE_ADDRESSABLE (copy) = TREE_ADDRESSABLE (decl);
   TREE_READONLY (copy) = TREE_READONLY (decl);
   TREE_THIS_VOLATILE (copy) = TREE_THIS_VOLATILE (decl);
@@ -4537,6 +4552,8 @@ copy_result_decl_to_var (tree decl, copy_body_data *id)
 
   copy = build_decl (DECL_SOURCE_LOCATION (id->dst_fn),
 		     VAR_DECL, DECL_NAME (decl), type);
+  if (DECL_PT_UID_SET_P (decl))
+    SET_DECL_PT_UID (copy, DECL_PT_UID (decl));
   TREE_READONLY (copy) = TREE_READONLY (decl);
   TREE_THIS_VOLATILE (copy) = TREE_THIS_VOLATILE (decl);
   if (!DECL_BY_REFERENCE (decl))

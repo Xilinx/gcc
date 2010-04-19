@@ -269,6 +269,8 @@ dump_variable (FILE *file, tree var)
   ann = var_ann (var);
 
   fprintf (file, ", UID D.%u", (unsigned) DECL_UID (var));
+  if (DECL_PT_UID (var) != DECL_UID (var))
+    fprintf (file, ", PT-UID D.%u", (unsigned) DECL_PT_UID (var));
 
   fprintf (file, ", ");
   print_generic_expr (file, TREE_TYPE (var), dump_flags);
@@ -281,11 +283,6 @@ dump_variable (FILE *file, tree var)
 
   if (TREE_THIS_VOLATILE (var))
     fprintf (file, ", is volatile");
-
-  if (is_call_clobbered (var))
-    fprintf (file, ", call clobbered");
-  else if (is_call_used (var))
-    fprintf (file, ", call used");
 
   if (ann && ann->noalias_state == NO_ALIAS)
     fprintf (file, ", NO_ALIAS (does not alias other NO_ALIAS symbols)");

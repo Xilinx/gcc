@@ -1,3 +1,594 @@
+2010-04-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/rep_clause5.ad[sb]: New test.
+	* gnat.dg/rep_clause5_pkg.ads: New helper.
+
+2010-04-18 Ira Rosen <irar@il.ibm.com>
+
+	PR tree-optimization/43771
+	* g++.dg/vect/pr43771.cc: New test.
+
+2010-04-17  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/31538
+	* gfortran.dg/bounds_check_fail_4.f90: Adjust error message.
+	* gfortran.dg/bounds_check_fail_3.f90: Ditto.
+
+2010-04-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/sizetype.adb: Rename into...
+	* gnat.dg/sizetype1.adb: ...this.
+	* gnat.dg/sizetype2.adb: New test.
+
+2010-04-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43572
+	* gcc.dg/tree-ssa/tailcall-5.c: New testcase.
+
+2010-04-16  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/specs/discr_private.ads: New test.
+
+2010-04-16  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/41514
+	* gcc.target/arm/thumb-comparisons.c: New test.
+
+	PR target/40603
+	* gcc.target/arm/thumb-cbranchqi.c: New test.
+
+2010-04-16  Christian Bruel  <christian.bruel@st.com>
+
+	* g++.dg/torture/pr36191.C: Enable for SH.
+
+2010-04-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/wide_boolean.adb: New test.
+	* gnat.dg/wide_boolean_pkg.ad[sb]: New helper.
+
+2010-04-15  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/ipa/ipa-pta-1.c: New testcase.
+	* gcc.dg/ipa/ipa-pta-2.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-3.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-4.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-5.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-6.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-7.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-8.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-9.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-10.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-11.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-12.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-13.c: Likewise.
+	* gcc.dg/torture/ipa-pta-2.c: Likewise.
+	* gcc.dg/torture/ipa-pta-1.c: Adjust.
+
+2010-04-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/21803
+	* gcc.target/arm/pr42496.c: New test.
+
+2010-04-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36625
+	* g++.dg/ext/attrib38.C: New.
+
+2010-04-14  Steve Ellcey  <sje@cup.hp.com>
+
+	PR testsuite/43739
+	* gcc.dg/pr43643.c: Use static link on hppa*-*-hpux*.
+
+2010-04-14  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 42966
+	* gcc.dg/cpp/warn-undef-2.c: Update.
+	* gcc.dg/cpp/warn-traditional-2.c: Update.
+	* gcc.dg/cpp/warn-comments-2.c: Update.
+	* gcc.dg/cpp/warn-variadic-2.c: Update.
+	* gcc.dg/cpp/warn-long-long-2.c: Update.
+	* gcc.dg/cpp/warn-deprecated-2.c: Update.
+	* gcc.dg/cpp/warn-multichar-2.c: Update.
+	* gcc.dg/cpp/warn-normalized-3.c: Update.
+	* gcc.dg/cpp/warn-cxx-compat-2.c: Update.
+	* gcc.dg/cpp/warn-trigraphs-3.c: Update.
+	* gcc.dg/cpp/warn-unused-macros-2.c: Update.
+	* gcc.dg/cpp/warn-trigraphs-4.c: Update.
+	* gcc.dg/cpp/warn-redefined-2.c: Update.
+	* gfortran.dg/warning-directive-2.F90: Update.
+	* c-c++-common/cpp/warning-directive-2.c: Update.
+
+2010-04-14  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/42963
+	* testsuite/gcc.dg/pr42963.c: New testcase.
+
+2010-04-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/class_wide.adb: Rename into...
+	* gnat.dg/class_wide1.adb: ...this.
+	* gnat.dg/class_wide2.ad[sb]: New test.
+
+2010-04-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_9.f90: Update dg-errors.
+	* gfortran.dg/coarray_10.f90: New test.
+	* gfortran.dg/coarray_11.f90: New test.
+
+2010-04-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/43747
+	gfortran.dg/initialization_24.f90: New test.
+
+2010-04-13  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/lambda/lambda-deduce2.C: Remove.
+	* g++.dg/cpp0x/lambda/lambda-uneval.C: New.
+
+2010-04-13  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* gcc.dg/cpp/cpp.exp: Test also c-c++-common/cpp.
+	* g++.dg/dg.exp: Likewise.
+	* gcc.dg/cpp/warning-directive-1.c: Move to ...
+	* c-c++-common/cpp/warning-directive-1.c: ... here.
+	* gcc.dg/cpp/warning-directive-2.c: Move to ...
+	* c-c++-common/cpp/warning-directive-2.c: ... here.
+	* gcc.dg/cpp/warning-directive-3.c: Move to ...
+	* c-c++-common/cpp/warning-directive-3.c: ... here.
+	* gcc.dg/cpp/warning-directive-4.c: Move to ...
+	* c-c++-common/cpp/warning-directive-4.c: ... here.
+	* g++.dg/cpp/warning-directive-1.C: Delete.
+	* g++.dg/cpp/warning-directive-2.C: Delete.
+	* g++.dg/cpp/warning-directive-3.C: Delete.
+	* g++.dg/cpp/warning-directive-4.C: Delete.
+	* gcc.dg/cpp/normalised-3.c: Delete.
+	* g++.dg/cpp/normalised-1.C: Rename as ...
+	* c-c++-common/cpp/normalised-3.c: ... this.
+
+2010-04-13  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/tree-ssa/sra-9.c: New test.
+
+2010-04-13  Michael Matz  <matz@suse.de>
+
+	PR middle-end/43730
+	* gcc.dg/pr43730.c: New test.
+
+2010-04-13  Michael Matz  <matz@suse.de>
+
+	* gcc.dg/tree-ssa/negate.c: New testcase.
+
+2010-04-13  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/43735
+	* gcc.dg/guality/inline-params.c: Remove -fwhopr XPASS.
+
+2010-04-13  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/vect/no-vfa-vect-depend-1.c: Adjust.
+
+2010-04-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/derived_type1.adb: New test.
+
+2010-04-13  Matthias Klose  <doko@ubuntu.com>
+
+	* gcc.dg/plugindir1.c: New testcase.
+	* gcc.dg/plugindir2.c: New testcase.
+	* gcc.dg/plugindir3.c: New testcase.
+	* gcc.dg/plugindir4.c: New testcase.
+
+2010-04-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/rotate-2.c: New test.
+
+2010-04-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43641
+	* g++.dg/cpp0x/lambda/lambda-conv4.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce2.C: New.
+
+2010-04-12  Fabien Chene  <fabien.chene@gmail.com>
+
+	PR c++/25811
+	* g++.dg/init/pr25811.C: New test.
+
+2010-04-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/warn/miss-format-1.C: Removed *-*-solaris2.7 from
+	dg-error, dg-warning.
+	* gcc.dg/c99-stdint-6.c: Removed *-*-solaris2.7 from dg-options.
+
+2010-04-12  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/torture/inline-2.c: New testcase.
+
+2010-04-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/43699
+	* gcc.dg/Wunused-var-7.c: New test.
+
+	PR tree-optimization/43560
+	* gcc.c-torture/execute/pr43560.c: New test.
+
+2010-04-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/aggr13.adb: New test.
+	* gnat.dg/aggr14.adb: Likewise.
+	* gnat.dg/aggr14_pkg.ad[sb]: New helper.
+
+2010-04-12  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/43611
+	* g++.dg/torture/pr43611.C: New testcase.
+
+2010-04-12  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c/36774
+	* gcc.dg/pr36774-1.c: New test.
+	* gcc.dg/pr36774-2.c: New test.
+
+2010-04-11  Kaushik Phatak  <kaushik.phatak@kpitcummins.com>
+
+	* gcc.target/sh/rte-delay-slot.c: New test.
+
+2010-04-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/pack9.adb: Remove -cargs option.
+	* gnat.dg/aggr12.ad[sb]: New test.
+
+2010-04-10  Jie Zhang  <jie@codesourcery.com>
+
+	PR target/43417
+	* gcc.target/sh/pr43417.c: New test.
+
+2010-04-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43591
+	* gfortran.dg/spec_expr_6.f90: New test.
+
+2010-04-09  Manuel López-Ibáñez <manu@gcc.gnu.org>
+
+	PR cpp/43195
+	* gcc.dg/cpp/pr43195.c: New.
+	* gcc.dg/cpp/pr43195.h: New.
+
+2010-04-09  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 42965
+	* gcc.dg/Werror-6.c: Adjust.
+	* gcc.dg/Werror-implicit-function-declaration.c: Likewise.
+	* gcc.dg/Werror-4.c: Likewise.
+	* gcc.dg/Wdeclaration-after-statement-3.c: Likewise.
+	* gcc.dg/Wswitch-enum-error.c: Likewise.
+	* gcc.dg/Wpointer-arith.c: Likewise.
+	* gcc.dg/Wfatal.c: Likewise.
+	* gcc.dg/Wswitch-error.c: Likewise.
+	* g++.dg/warn/unused-result1-Werror.c: Likewise.
+	* gcc.dg/Werror-9.c: Delete. Duplicate of Werror-4.c.
+	* gcc.dg/cpp/warn-undef-2.c: Likewise.
+	* gcc.dg/cpp/warn-traditional-2.c: Likewise.
+	* gcc.dg/cpp/warn-comments-2.c: Likewise.
+	* gcc.dg/cpp/warn-variadic-2.c: Likewise.
+	* gcc.dg/cpp/warning-directive-2.c: Likewise.
+	* gcc.dg/cpp/warn-long-long-2.c: Likewise.
+	* gcc.dg/cpp/warn-deprecated-2.c: Likewise.
+	* gcc.dg/cpp/warn-multichar-2.c: Likewise.
+	* gcc.dg/cpp/warn-normalized-3.c: Likewise.
+	* gcc.dg/cpp/warn-cxx-compat-2.c: Likewise.
+	* gcc.dg/cpp/warn-trigraphs-3.c: Likewise.
+	* gcc.dg/cpp/warn-unused-macros-2.c: Likewise.
+	* gcc.dg/cpp/warn-trigraphs-4.c: Likewise.
+	* gcc.dg/cpp/warn-redefined-2.c: Likewise.
+	* g++.dg/cpp/warning-directive-2.C: Likewise.
+	* gfortran.dg/warning-directive-2.F90: Likewise.
+
+2010-04-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42623
+	* g++.dg/template/sizeof13.C: New.
+
+2010-04-09  Kai Tietz  <kai.tietz@onevision.com>
+
+	* g++.dg/other/pr35504.C: Add check for thiscall.
+	* g++.dg/torture/stackalign/eh-thiscall-1.C: New.
+	* gcc.dg/torture/stackalign/thiscall-1.c: New.
+
+2010-04-09  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/28584
+	* gcc.dg/Wint-to-pointer-cast-1.c: Move to...
+	* c-c++-common/Wint-to-pointer-cast-1.c: ...  here.
+	* gcc.dg/Wint-to-pointer-cast-2.c: Move to...
+	* c-c++-common/Wint-to-pointer-cast-2.c: ...  here.
+	* gcc.dg/Wint-to-pointer-cast-3.c: Move to...
+	* c-c++-common/Wint-to-pointer-cast-3.c: ...  here. Update.
+	* g++.old-deja/g++.mike/warn1.C: Add -Wno-int-to-pointer-cast.
+	* g++.dg/other/increment1.C: Likewise.
+
+2010-04-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_7.f90: New test.
+	* gfortran.dg/coarray_8.f90: New test.
+
+2010-04-08  Bud Davis  <bdavis9659@sbcglobal.net>
+
+	PR fortran/28039
+	* gfortran.dg/fmt_with_extra.f: Remove xfail and update test.
+
+2010-04-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/43643
+	* gcc.dg/pr43643.c: New test.
+
+2010-04-08  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/iso_fortran_env_6.f90: Add more checks.
+
+2010-04-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43679
+	* gcc.c-torture/compile/pr43679.c: New testcase.
+
+2010-04-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43670
+	* gcc.dg/pr43670.c: New test.
+
+2010-04-08  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR middle-end/40815
+	* gcc.dg/tree-ssa/reassoc-19.c: New.
+
+2010-04-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/18624
+	* gcc.dg/Wunused-var-1.c: New test.
+	* gcc.dg/Wunused-var-2.c: New test.
+	* gcc.dg/Wunused-var-3.c: New test.
+	* gcc.dg/Wunused-var-4.c: New test.
+	* gcc.dg/Wunused-var-5.c: New test.
+	* gcc.dg/Wunused-var-6.c: New test.
+	* gcc.dg/Wunused-parm-1.c: New test.
+
+	* gcc.dg/builtin-choose-expr.c: Avoid set but not used warnings.
+	* gcc.dg/trunc-1.c: Likewise.
+	* gcc.dg/vla-9.c: Likewise.
+	* gcc.dg/dfp/composite-type.c: Likewise.
+
+2010-04-07  Iain Sandoe <iains@gcc.gnu.org>
+
+	PR objc/35996
+	* objc.dg/objc-gc-4.m: Run for all targets, prune new warning.
+	* obj-c++.dg/objc-gc-3.mm: Ditto.
+
+2010-04-07  Simon Baldwin  <simonb@google.com>
+
+	* gcc.dg/cpp/warn-undef-2.c: New.
+	* gcc.dg/cpp/warn-traditional-2.c: New.
+	* gcc.dg/cpp/warn-comments-2.c: New.
+	* gcc.dg/cpp/warning-directive-1.c: New.
+	* gcc.dg/cpp/warn-long-long.c: New.
+	* gcc.dg/cpp/warn-traditional.c: New.
+	* gcc.dg/cpp/warn-variadic-2.c: New.
+	* gcc.dg/cpp/warn-undef.c: New.
+	* gcc.dg/cpp/warn-normalized-1.c: New.
+	* gcc.dg/cpp/warning-directive-2.c: New.
+	* gcc.dg/cpp/warn-long-long-2.c: New.
+	* gcc.dg/cpp/warn-variadic.c: New.
+	* gcc.dg/cpp/warn-normalized-2.c: New.
+	* gcc.dg/cpp/warning-directive-3.c: New.
+	* gcc.dg/cpp/warn-deprecated-2.c: New.
+	* gcc.dg/cpp/warn-trigraphs-1.c: New.
+	* gcc.dg/cpp/warn-multichar-2.c: New.
+	* gcc.dg/cpp/warn-normalized-3.c: New.
+	* gcc.dg/cpp/warning-directive-4.c: New.
+	* gcc.dg/cpp/warn-unused-macros.c: New.
+	* gcc.dg/cpp/warn-trigraphs-2.c: New.
+	* gcc.dg/cpp/warn-cxx-compat-2.c: New.
+	* gcc.dg/cpp/warn-cxx-compat.c: New.
+	* gcc.dg/cpp/warn-redefined.c: New.
+	* gcc.dg/cpp/warn-trigraphs-3.c: New.
+	* gcc.dg/cpp/warn-unused-macros-2.c: New.
+	* gcc.dg/cpp/warn-deprecated.c: New.
+	* gcc.dg/cpp/warn-trigraphs-4.c: New.
+	* gcc.dg/cpp/warn-redefined-2.c: New.
+	* gcc.dg/cpp/warn-comments.c: New.
+	* gcc.dg/cpp/warn-multichar.c: New.
+	* g++.dg/cpp/warning-directive-1.C: New.
+	* g++.dg/cpp/warning-directive-2.C: New.
+	* g++.dg/cpp/warning-directive-3.C: New.
+	* g++.dg/cpp/warning-directive-4.C: New.
+	* gfortran.dg/warning-directive-1.F90: New.
+	* gfortran.dg/warning-directive-3.F90: New.
+	* gfortran.dg/warning-directive-2.F90: New.
+	* gfortran.dg/warning-directive-4.F90: New.
+
+2010-04-07  Iain Sandoe <iains@gcc.gnu.org>
+
+	PR objc++/23716
+	* obj-c++.dg/comp-types-10.mm: Remove XFAIL.
+
+2010-04-07  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/dr408.C: New.
+
+	* g++.dg/lookup/ns4.C: New.
+
+	PR c++/38392
+	* g++.dg/template/friend51.C: New test.
+
+	PR c++/41970
+	* g++.old-deja/g++.other/linkage1.C: Adjust.
+
+2010-04-07  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42697
+	* g++.dg/template/crash94.C: New test.
+
+2010-04-07  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/40239
+	* g++.dg/init/aggr5.C: New test.
+	* g++.dg/init/aggr5.C: New test.
+
+2010-04-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43270
+	* g++.dg/warn/Warray-bounds-4.C: New testcase.
+	* gcc.dg/Warray-bounds-7.c: Likewise.
+
+2010-04-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/bit_packed_array.ad[sb]: Rename into...
+	* gnat.dg/bit_packed_array1.ad[sb]: ...this.
+	* gnat.dg/bit_packed_array4.ad[sb]: New test.
+
+2010-04-07  Jie Zhang  <jie@codesourcery.com>
+
+	PR c++/42556
+	* g++.dg/init/pr42556.C: New test.
+
+2010-04-07  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/43628
+	* g++.dg/debug/dwarf2/typedef2.C: New test.
+
+2010-04-06  Dodji Seketeli  <dodji@redhat.com>
+
+	* g++.dg/debug/dwarf2/redeclaration-1.C: Moved from
+	c-c++-common/dwarf2/redeclaration-1.C
+
+2010-04-06  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/pr31437.C: Adjust error location.
+	* g++.dg/ext/attrib18.C: Likewise.
+	* g++.dg/ext/bitfield2.C: Likewise.
+	* g++.dg/ext/bitfield4.C: Likewise.
+	* g++.dg/ext/visibility/warn2.C: Likewise.
+	* g++.dg/ext/visibility/warn3.C: Likewise.
+	* g++.dg/gomp/pr26690-1.C: Likewise.
+	* g++.dg/inherit/covariant7.C: Likewise.
+	* g++.dg/init/synth2.C: Likewise.
+	* g++.dg/lookup/using7.C: Likewise.
+	* g++.dg/other/crash-4.C: Likewise.
+	* g++.dg/other/error13.C: Likewise.
+	* g++.dg/other/error20.C: Likewise.
+	* g++.dg/parse/crash31.C: Likewise.
+	* g++.dg/parse/error16.C: Likewise.
+	* g++.dg/parse/error19.C: Likewise.
+	* g++.dg/parse/error27.C: Likewise.
+	* g++.dg/parse/error28.C: Likewise.
+	* g++.dg/parse/fused-params1.C: Likewise.
+	* g++.dg/template/error2.C: Likewise.
+	* g++.dg/template/local6.C: Likewise.
+	* g++.dg/template/qualttp15.C: Likewise.
+	* g++.dg/warn/Wnvdtor-2.C: Likewise.
+	* g++.dg/warn/anonymous-namespace-3.C: Likewise.
+	* g++.old-deja/g++.benjamin/15309-1.C: Likewise.
+	* g++.old-deja/g++.brendan/crash29.C: Likewise.
+	* g++.old-deja/g++.eh/spec6.C: Likewise.
+	* g++.old-deja/g++.jason/crash3.C: Likewise.
+	* g++.old-deja/g++.jason/destruct2.C: Likewise.
+	* g++.old-deja/g++.law/ctors5.C: Likewise.
+	* g++.old-deja/g++.law/ctors9.C: Likewise.
+	* g++.old-deja/g++.mike/p3538a.C: Likewise.
+	* g++.old-deja/g++.mike/p3538b.C: Likewise.
+	* g++.old-deja/g++.other/struct1.C: Likewise.
+	* g++.old-deja/g++.other/volatile1.C: Likewise.
+	* g++.old-deja/g++.pt/crash36.C: Likewise.
+	* g++.old-deja/g++.pt/derived3.C: Likewise.
+	* g++.old-deja/g++.robertl/eb109.C: Likewise.
+	* g++.old-deja/g++.robertl/eb4.C: Likewise.
+
+2010-04-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/43519
+	* gcc.dg/graphite/run-id-pr42644.c: Call abort.
+	* gcc.dg/graphite/id-19.c: New.
+
+2010-04-06  Changpeng Fang  <changpeng.fang@amd.com>
+
+	PR middle-end/32824
+	* gcc.dg/vect/pr32824: New.
+
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_2.f90: Add dg-options -fcoarray=single.
+	* gfortran.dg/coarray_3.f90: Ditto.
+	* gfortran.dg/coarray_4.f90: Ditto.
+	* gfortran.dg/coarray_5.f90: Ditto.
+	* gfortran.dg/coarray_6.f90: Ditto.
+	* gfortran.dg/coarray_9.f90: New -fcoarray=none test.
+
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_4.f90: Fix test.
+	* gfortran.dg/coarray_6.f90: Add more tests.
+
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_4.f90: New test.
+	* gfortran.dg/coarray_5.f90: New test.
+	* gfortran.dg/coarray_6.f90: New test.
+
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/iso_fortran_env_5.f90: New test.
+	* gfortran.dg/iso_fortran_env_6.f90: New test.
+
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/39997
+	* gfortran.dg/coarray_1.f90: New test.
+	* gfortran.dg/coarray_2.f90: New test.
+	* gfortran.dg/coarray_3.f90: New test.
+
+2010-04-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43648
+	* g++.dg/template/dtor8.C: New.
+
+	PR c++/43621
+	* g++.dg/template/error-recovery2.C: New.
+
+2010-04-06  Jan Hubicka  <jh@suse.czpli
+
+	PR tree-optimization/42906
+	* gcc.dg/tree-ssa/dce-1.c: New testcase.
+
+2010-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43178
+	* gfortran.dg/alloc_comp_basics_1.f90: Update scan-tree-dump-times.
+	* gfortran.dg/alloc_comp_constructor_1.f90: Ditto.
+	* gfortran.dg/auto_dealloc_1.f90: Ditto.
+
+2010-04-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43627
+	* gcc.dg/tree-ssa/vrp49.c: New testcase.
+
+2010-04-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/43638
+	* gcc.target/i386/pr43638.c: New test.
+
+2010-04-06  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/43661
+	* gcc.c-torture/compile/pr43661.c: New testcase.
+
+2010-04-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.target/s390/stackcheck1.c: Add dg-warning.
+
 2010-04-04  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* gcc.dg/vect/pr43430-1.c: Don't use uint8_t.
@@ -8,7 +599,7 @@
 	* gcc.c-torture/execute/pr43629.c: New testcase.
 
 2010-04-01  Janne Blomqvist  <jb@gcc.gnu.org>
-            Dominique d'Humieres  <dominiq@lps.ens.fr>
+	    Dominique d'Humieres  <dominiq@lps.ens.fr>
 
 	PR libfortran/43605
 	* gfortran.dg/ftell_3.f90: Enhance test case by reading more.
@@ -37,7 +628,7 @@
 
 	PR tree-optimization/43141
 	* gcc.dg/guality/pr43141.c: New test.
-	
+
 2010-04-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* g++.dg/cpp/_Pragma1.C: Skip on alpha*-dec-osf*.
@@ -350,13 +941,13 @@
 	* objc/execute/class_self-2.m: Include <stdlib.h>.
 	* objc/execute/forward-1.x: Do not XFAIL for 32bit powerpc-darwin.
 	* objc.dg/desig-init-1.m: Use shared wrapper headers (Object1.h,
-	Protocol1.h) and next-mapping.h as required. XFAIL run if NeXT 
+	Protocol1.h) and next-mapping.h as required. XFAIL run if NeXT
 	and 64bit. Use new NeXT interface as required.
 	* objc.dg/special/unclaimed-category-1.m: Ditto.
 	* objc.dg/special/unclaimed-category-1.h: Ditto.
 	* objc.dg/special/unclaimed-category-1a.m: Ditto.
 	* objc.dg/func-ptr-1.m: Ditto.
-	* objc.dg/stret-1.m: Ditto.	
+	* objc.dg/stret-1.m: Ditto.
 	* objc.dg/encode-2.m: Ditto.
 	* objc.dg/category-1.m: Ditto.
 	* objc.dg/encode-3.m: Ditto.
@@ -376,10 +967,10 @@
 	* objc.dg/call-super-1.m: Ditto.
 	* objc.dg/type-size-2.m: Ditto.
 	* objc.dg/method-10.m: Ditto.
-	* objc.dg/defs.m: Ditto.	
+	* objc.dg/defs.m: Ditto.
 	* objc.dg/const-str-3.m: Ditto.
 	* objc.dg/try-catch-6.m: Use shared wrapper headers (Object1.h,
-	Protocol1.h) and next-mapping.h as required. Use new NeXT 
+	Protocol1.h) and next-mapping.h as required. Use new NeXT
 	interface as required.
 	* objc.dg/super-class-4.m: Ditto.
 	* objc.dg/comp-types-8.m: Ditto.
@@ -440,8 +1031,7 @@
 	* objc.dg/try-catch-5.m: Ditto.
 	* objc.dg/const-str-10.m: Use shared wrapper headers (Object1.h,
 	Protocol1.h) and next-mapping.h as required. Use new NeXT
-	interface as required.  Skip for gnu-runtime.  Test for .quad
-	at m64.
+	interface as required.  Skip for gnu-runtime.  Test for .quad at m64.
 	* objc.dg/const-str-11.m: Ditto.
 	* objc.dg/const-str-9.m: Ditto.
 	* objc.dg/method-4.m: Skip for 64Bit NeXT.
@@ -661,7 +1251,7 @@
 	* gcc.dg/pr43211.c: New test.
 	* gcc.dg/pr18809-1.c: Don't expect an error when calling foo.
 
-2010-03-19  Bernd Schmidt  <bernd.schmidt@codesourcery.com>
+2010-03-19  Bernd Schmidt  <bernds@codesourcery.com>
 
 	PR rtl-optimization/42258
 	* gcc.target/arm/thumb1-mul-moves.c: New test.

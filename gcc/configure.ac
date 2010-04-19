@@ -1024,6 +1024,22 @@ AC_CHECK_FUNCS(times clock kill getrlimit setrlimit atoll atoq \
 	gettimeofday mbstowcs wcswidth mmap mincore setlocale \
 	gcc_UNLOCKED_FUNCS)
 
+save_CPPFLAGS="$CPPFLAGS"
+save_LIBS="$LIBS"
+LIBS="$LIBS $LIBELFLIBS"
+AC_CHECK_FUNCS(elf_getshdrstrndx,,
+  [AC_CHECK_FUNCS(elf_getshstrndx,
+    [AC_RUN_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
+#include <libelf.h>
+int main()
+{
+  return elf_getshstrndx (NULL, 0) == 0;
+}]]), AC_DEFINE(HAVE_ELF_GETSHSTRNDX_GABI, 1,
+        [Define if elf_getshstrndx has gABI conformant return values.])])])]
+  )
+LIBS="$save_LIBS"
+CPPFLAGS="$save_CPPFLAGS"
+
 if test x$ac_cv_func_mbstowcs = xyes; then
   AC_CACHE_CHECK(whether mbstowcs works, gcc_cv_func_mbstowcs_works,
 [    AC_RUN_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
@@ -1934,6 +1950,17 @@ AC_ARG_WITH(plugin-ld,
 AC_SUBST(ORIGINAL_PLUGIN_LD_FOR_TARGET)
 AC_DEFINE_UNQUOTED(PLUGIN_LD, "$PLUGIN_LD", [Specify plugin linker])
 
+# Check to see if we are using gold instead of ld
+AC_MSG_CHECKING(whether we are using gold)
+ld_is_gold=no
+if test x$gcc_cv_ld != x; then
+  if $gcc_cv_ld --version 2>/dev/null | sed 1q \
+     | grep "GNU gold" > /dev/null; then
+    ld_is_gold=yes
+  fi
+fi
+AC_MSG_RESULT($ld_is_gold)
+
 ORIGINAL_LD_FOR_TARGET=$gcc_cv_ld
 AC_SUBST(ORIGINAL_LD_FOR_TARGET)
 case "$ORIGINAL_LD_FOR_TARGET" in
@@ -2122,13 +2149,36 @@ foobar:])
 changequote(,)dnl
 if test $in_tree_ld != yes ; then
   ld_ver=`$gcc_cv_ld --version 2>/dev/null | sed 1q`
-  if echo "$ld_ver" | grep GNU > /dev/null; then
+  if test x"$ld_is_gold" = xyes; then
+    gcc_cv_ld_hidden=yes
+  elif echo "$ld_ver" | grep GNU > /dev/null; then
     ld_vers=`echo $ld_ver | sed -n \
 	-e 's,^.*[	 ]\([0-9][0-9]*\.[0-9][0-9]*.*\)$,\1,p'`
     ld_date=`echo $ld_ver | sed -n 's,^.*\([2-9][0-9][0-9][0-9]\)[-]*\([01][0-9]\)[-]*\([0-3][0-9]\).*$,\1\2\3,p'`
     ld_vers_major=`expr "$ld_vers" : '\([0-9]*\)'`
     ld_vers_minor=`expr "$ld_vers" : '[0-9]*\.\([0-9]*\)'`
     ld_vers_patch=`expr "$ld_vers" : '[0-9]*\.[0-9]*\.\([0-9]*\)'`
+  else
+    case "${target}" in
+      *-*-solaris2*)
+	#
+	# Solaris 2 ld -V output looks like this for a regular version:
+	#
+	# ld: Software Generation Utilities - Solaris Link Editors: 5.11-1.1699
+	#
+	# but test versions add stuff at the end:
+	#
+	# ld: Software Generation Utilities - Solaris Link Editors: 5.11-1.1701:onnv-ab196087-6931056-03/25/10
+	#
+	ld_ver=`$gcc_cv_ld -V 2>&1`
+	if echo "$ld_ver" | grep 'Solaris Link Editors' > /dev/null; then
+	  ld_vers=`echo $ld_ver | sed -n \
+	    -e 's,^.*: 5\.[0-9][0-9]*-\([0-9]\.[0-9][0-9]*\).*$,\1,p'`
+	  ld_vers_major=`expr "$ld_vers" : '\([0-9]*\)'`
+	  ld_vers_minor=`expr "$ld_vers" : '[0-9]*\.\([0-9]*\)'`
+	fi
+	;;
+    esac
   fi
 fi
 changequote([,])dnl
@@ -2441,13 +2491,15 @@ else
    [elf,2,16,0], [--fatal-warnings],
    [.section .text,"axG",%progbits,.foo,comdat])
 fi
-if test $in_tree_ld = yes ; then
+if test x"$ld_is_gold" = xyes; then
+  comdat_group=yes
+elif test $in_tree_ld = yes ; then
   comdat_group=no
   if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 16 -o "$gcc_cv_gld_major_version" -gt 2 \
      && test $in_tree_ld_is_elf = yes; then
      comdat_group=yes
   fi
-elif test x"$ld_vers" != x; then
+elif echo "$ld_ver" | grep GNU > /dev/null; then
   comdat_group=yes
   if test 0"$ld_date" -lt 20050308; then
     if test -n "$ld_date"; then
@@ -2460,9 +2512,32 @@ elif test x"$ld_vers" != x; then
     fi
   fi
 else
-  # assume linkers other than GNU ld don't support COMDAT group
-  comdat_group=no
+changequote(,)dnl
+  case "${target}" in
+    *-*-solaris2.1[1-9]*)
+      # Sun ld has COMDAT group support since Solaris 9, but it doesn't
+      # interoperate with GNU as until Solaris 11 build 130, i.e. ld
+      # version 1.688.
+      #
+      # FIXME: Maybe need to refine later when COMDAT group support with
+      # Sun as is implemented.
+      if test "$ld_vers_major" -gt 1 || test "$ld_vers_minor" -ge 1688; then
+        comdat_group=yes
+      else
+        comdat_group=no
+      fi
+      ;;
+    *)
+      # Assume linkers other than GNU ld don't support COMDAT group.
+      comdat_group=no
+      ;;
+  esac
+changequote([,])dnl
 fi
+# Allow overriding the automatic COMDAT group tests above.
+AC_ARG_ENABLE(comdat,
+  [AS_HELP_STRING([--enable-comdat], [enable COMDAT group support])],
+  [comdat_group="$enable_comdat"])
 if test $comdat_group = no; then
   gcc_cv_as_comdat_group=no
   gcc_cv_as_comdat_group_percent=no
@@ -2574,7 +2649,7 @@ foo:	.long	25
 	;;
   i[34567]86-*-*)
     case "$target" in
-      i[34567]86-*-solaris2.[56789]*)
+      i[34567]86-*-solaris2.[89]*)
 	# TLS was introduced in the Solaris 9 4/04 release but
 	# we do not enable it by default on Solaris 9 either.
 	if test "x$enable_tls" = xyes ; then
@@ -2800,7 +2875,7 @@ foo:	.long	25
 	;;
   sparc*-*-*)
     case "$target" in
-      sparc*-sun-solaris2.[56789]*)
+      sparc*-sun-solaris2.[89]*)
 	# TLS was introduced in the Solaris 9 4/04 release but
 	# we do not enable it by default on Solaris 9 either.
 	if test "x$enable_tls" = xyes ; then
@@ -4390,10 +4465,13 @@ if test x"$enable_plugin" = x"yes"; then
     AC_MSG_CHECKING([for -rdynamic])
     ${CC} ${CFLAGS} ${LDFLAGS} -rdynamic conftest.c -o conftest > /dev/null 2>&1
     if $gcc_cv_objdump -T conftest | grep foobar > /dev/null; then
+      plugin_rdynamic=yes
       pluginlibs="-rdynamic"
     else
+      plugin_rdynamic=no
       enable_plugin=no
     fi
+    AC_MSG_RESULT([$plugin_rdynamic])
   fi
 
   # Check -ldl

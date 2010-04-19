@@ -97,6 +97,9 @@ struct _dep;
 /* This is defined in ddg.h .  */
 struct ddg;
 
+/* This is defined in cfgloop.h .  */
+struct loop;
+
 /* Assembler instructions for creating various kinds of integer object.  */
 
 struct asm_int_op
@@ -473,9 +476,9 @@ struct gcc_target
        function, or NULL_TREE if not available.  */
     tree (* builtin_vectorized_function) (tree, tree, tree);
 
-    /* Returns a code for builtin that realizes vectorized version of
-       conversion, or NULL_TREE if not available.  */
-    tree (* builtin_conversion) (unsigned, tree);
+    /* Returns a function declaration for a builtin that realizes the
+       vector conversion, or NULL_TREE if not available.  */
+    tree (* builtin_conversion) (unsigned, tree, tree);
 
     /* Target builtin that implements vector widening multiplication.
        builtin_mul_widen_eve computes the element-by-element products
@@ -636,6 +639,9 @@ struct gcc_target
 
   /* Return true if the target supports conditional execution.  */
   bool (* have_conditional_execution) (void);
+
+  /* Return a new value for loop unroll size.  */
+  unsigned (* loop_unroll_adjust) (unsigned nunroll, struct loop *loop);
 
   /* True if the constant X cannot be placed in the constant pool.  */
   bool (* cannot_force_const_mem) (rtx);

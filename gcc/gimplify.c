@@ -3793,10 +3793,10 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	if (notify_temp_creation)
 	  return GS_OK;
 
-	/* If there are nonzero elements, pre-evaluate to capture elements
-	   overlapping with the lhs into temporaries.  We must do this before
-	   clearing to fetch the values before they are zeroed-out.  */
-	if (num_nonzero_elements > 0)
+	/* If there are nonzero elements and if needed, pre-evaluate to capture
+	   elements overlapping with the lhs into temporaries.  We must do this
+	   before clearing to fetch the values before they are zeroed-out.  */
+	if (num_nonzero_elements > 0 && TREE_CODE (*expr_p) != INIT_EXPR)
 	  {
 	    preeval_data.lhs_base_decl = get_base_address (object);
 	    if (!DECL_P (preeval_data.lhs_base_decl))
@@ -4276,6 +4276,18 @@ gimplify_modify_expr_rhs (tree *expr_p, tree *from_p, tree *to_p,
 	  }
 
 	ret = GS_UNHANDLED;
+	break;
+
+      case WITH_SIZE_EXPR:
+	/* Likewise for calls that return an aggregate of non-constant size,
+	   since we would not be able to generate a temporary at all.  */
+	if (TREE_CODE (TREE_OPERAND (*from_p, 0)) == CALL_EXPR)
+	  {
+	    *from_p = TREE_OPERAND (*from_p, 0);
+	    ret = GS_OK;
+	  }
+	else
+	  ret = GS_UNHANDLED;
 	break;
 
 	/* If we're initializing from a container, push the initialization
