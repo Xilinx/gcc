@@ -457,6 +457,9 @@ struct GTY(()) tree_common {
 
        CALL_CANNOT_INLINE_P in
            CALL_EXPR
+ 
+       ENUM_IS_SCOPED in
+	   ENUMERAL_TYPE
 
    public_flag:
 
@@ -1110,9 +1113,10 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    In CONSTRUCTOR nodes, it means object constructed must be in memory.
    In LABEL_DECL nodes, it means a goto for this label has been seen
    from a place outside all binding contours that restore stack levels.
-   In ..._TYPE nodes, it means that objects of this type must
-   be fully addressable.  This means that pieces of this
-   object cannot go into register parameters, for example.
+   In ..._TYPE nodes, it means that objects of this type must be fully
+   addressable.  This means that pieces of this object cannot go into
+   register parameters, for example.  If this a function type, this
+   means that the value must be returned in memory.
    In IDENTIFIER_NODEs, this means that some extern decl for this name
    had its address taken.  That matters for inline functions.  */
 #define TREE_ADDRESSABLE(NODE) ((NODE)->base.addressable_flag)
@@ -1160,6 +1164,9 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 
 /* Used to mark a CALL_EXPR as not suitable for inlining.  */
 #define CALL_CANNOT_INLINE_P(NODE) (CALL_EXPR_CHECK (NODE)->base.static_flag)
+
+/* Used to mark scoped enums.  */
+#define ENUM_IS_SCOPED(NODE) (ENUMERAL_TYPE_CHECK (NODE)->base.static_flag)
 
 /* In an expr node (usually a conversion) this means the node was made
    implicitly and should not lead to any sort of warning.  In a decl node,
@@ -1316,6 +1323,9 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 #define DECL_RESTRICTED_P(NODE) \
   (TREE_CHECK3 (NODE, VAR_DECL, PARM_DECL, \
 		RESULT_DECL)->decl_common.decl_restricted_flag)
+
+#define DECL_READ_P(NODE) \
+  (TREE_CHECK2 (NODE, VAR_DECL, PARM_DECL)->decl_common.decl_read_flag)
 
 /* In a CALL_EXPR, means that the call is the jump from a thunk to the
    thunked-to function.  */
@@ -1507,9 +1517,9 @@ struct GTY(()) tree_vec {
 #define FOR_EACH_CONSTRUCTOR_ELT(V, IX, INDEX, VAL) \
   for (IX = 0; (IX >= VEC_length (constructor_elt, V)) \
 	       ? false \
-	       : ((VAL = VEC_index (constructor_elt, V, IX)->value), \
+	       : (((void) (VAL = VEC_index (constructor_elt, V, IX)->value)), \
 		  (INDEX = VEC_index (constructor_elt, V, IX)->index), \
-	       true); \
+		  true); \
        (IX)++)
 
 /* Append a new constructor element to V, with the specified INDEX and VAL.  */
@@ -2485,6 +2495,15 @@ struct function;
    uses.  */
 #define DEBUG_TEMP_UID(NODE) (-DECL_UID (TREE_CHECK ((NODE), DEBUG_EXPR_DECL)))
 
+/* Every ..._DECL node gets a unique number that stays the same even
+   when the decl is copied by the inliner once it is set.  */
+#define DECL_PT_UID(NODE) (DECL_COMMON_CHECK (NODE)->decl_common.pt_uid == -1u ? (NODE)->decl_minimal.uid : (NODE)->decl_common.pt_uid)
+/* Initialize the ..._DECL node pt-uid to the decls uid.  */
+#define SET_DECL_PT_UID(NODE, UID) (DECL_COMMON_CHECK (NODE)->decl_common.pt_uid = (UID))
+/* Whether the ..._DECL node pt-uid has been initialized and thus needs to
+   be preserved when copyin the decl.  */
+#define DECL_PT_UID_SET_P(NODE) (DECL_COMMON_CHECK (NODE)->decl_common.pt_uid != -1u)
+
 /* These two fields describe where in the source code the declaration
    was.  If the declaration appears in several places (as for a C
    function that is declared first and then defined later), this
@@ -2691,8 +2710,12 @@ struct GTY(()) tree_decl_common {
   /* In VAR_DECL, PARM_DECL and RESULT_DECL, this is DECL_RESTRICTED_P.  */
   unsigned decl_restricted_flag : 1;
 
+  /* In VAR_DECL and PARM_DECL set when the decl has been used except for
+     being set.  */
+  unsigned decl_read_flag : 1;
+
   /* Padding so that 'off_align' can be on a 32-bit boundary.  */
-  unsigned decl_common_unused : 2;
+  unsigned decl_common_unused : 1;
 
   /* DECL_OFFSET_ALIGN, used only for FIELD_DECLs.  */
   unsigned int off_align : 8;
@@ -2701,6 +2724,9 @@ struct GTY(()) tree_decl_common {
 
   /* DECL_ALIGN.  It should have the same size as TYPE_ALIGN.  */
   unsigned int align;
+
+  /* UID for points-to sets, stable over copying from inlining.  */
+  unsigned int pt_uid;
 
   tree size_unit;
   tree initial;
@@ -3947,7 +3973,7 @@ extern tree make_unsigned_type (int);
 extern tree signed_or_unsigned_type_for (int, tree);
 extern tree signed_type_for (tree);
 extern tree unsigned_type_for (tree);
-extern void initialize_sizetypes (bool);
+extern void initialize_sizetypes (void);
 extern void set_sizetype (tree);
 extern void fixup_unsigned_type (tree);
 extern tree build_pointer_type_for_mode (tree, enum machine_mode, bool);
@@ -4812,44 +4838,6 @@ extern void fold_undefer_overflow_warnings (bool, const_gimple, int);
 extern void fold_undefer_and_ignore_overflow_warnings (void);
 extern bool fold_deferring_overflow_warnings_p (void);
 
-extern tree force_fit_type_double (tree, unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-				   int, bool);
-
-extern int fit_double_type (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-			    unsigned HOST_WIDE_INT *, HOST_WIDE_INT *, const_tree);
-extern int add_double_with_sign (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-				 unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-				 unsigned HOST_WIDE_INT *, HOST_WIDE_INT *,
-				 bool);
-#define add_double(l1,h1,l2,h2,lv,hv) \
-  add_double_with_sign (l1, h1, l2, h2, lv, hv, false)
-extern int neg_double (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-		       unsigned HOST_WIDE_INT *, HOST_WIDE_INT *);
-extern int mul_double_with_sign (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-				 unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-				 unsigned HOST_WIDE_INT *, HOST_WIDE_INT *,
-				 bool);
-#define mul_double(l1,h1,l2,h2,lv,hv) \
-  mul_double_with_sign (l1, h1, l2, h2, lv, hv, false)
-extern void lshift_double (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-			   HOST_WIDE_INT, unsigned int,
-			   unsigned HOST_WIDE_INT *, HOST_WIDE_INT *, int);
-extern void rshift_double (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-			   HOST_WIDE_INT, unsigned int,
-			   unsigned HOST_WIDE_INT *, HOST_WIDE_INT *, int);
-extern void lrotate_double (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-			    HOST_WIDE_INT, unsigned int,
-			    unsigned HOST_WIDE_INT *, HOST_WIDE_INT *);
-extern void rrotate_double (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-			    HOST_WIDE_INT, unsigned int,
-			    unsigned HOST_WIDE_INT *, HOST_WIDE_INT *);
-
-extern int div_and_round_double (enum tree_code, int, unsigned HOST_WIDE_INT,
-				 HOST_WIDE_INT, unsigned HOST_WIDE_INT,
-				 HOST_WIDE_INT, unsigned HOST_WIDE_INT *,
-				 HOST_WIDE_INT *, unsigned HOST_WIDE_INT *,
-				 HOST_WIDE_INT *);
-
 enum operand_equal_flag
 {
   OEP_ONLY_CONST = 1,
@@ -4999,7 +4987,7 @@ extern int real_onep (const_tree);
 extern int real_twop (const_tree);
 extern int real_minus_onep (const_tree);
 extern void init_ttree (void);
-extern void build_common_tree_nodes (bool, bool);
+extern void build_common_tree_nodes (bool);
 extern void build_common_tree_nodes_2 (int);
 extern void build_common_builtin_nodes (void);
 extern tree build_nonstandard_integer_type (unsigned HOST_WIDE_INT, int);
@@ -5311,11 +5299,6 @@ struct GTY(()) tree_priority_map {
 /* In tree-ssa.c */
 
 tree target_for_debug_bind (tree);
-
-/* In tree-ssa-ccp.c */
-extern tree maybe_fold_offset_to_reference (location_t, tree, tree, tree);
-extern tree maybe_fold_offset_to_address (location_t, tree, tree, tree);
-extern tree maybe_fold_stmt_addition (location_t, tree, tree, tree);
 
 /* In tree-ssa-address.c.  */
 extern tree tree_mem_ref_addr (tree, tree);

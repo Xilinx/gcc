@@ -1929,6 +1929,10 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	  if (DECL_VIRTUAL_P (newdecl))
 	    DECL_THUNKS (newdecl) = DECL_THUNKS (olddecl);
 	}
+      /* Only variables have this field.  */
+      else if (TREE_CODE (newdecl) == VAR_DECL
+	       && VAR_HAD_UNKNOWN_BOUND (olddecl))
+	SET_VAR_HAD_UNKNOWN_BOUND (newdecl);
     }
 
   if (TREE_CODE (newdecl) == FUNCTION_DECL)
@@ -3354,7 +3358,7 @@ cxx_init_decl_processing (void)
   tree void_ftype;
   tree void_ftype_ptr;
 
-  build_common_tree_nodes (flag_signed_char, false);
+  build_common_tree_nodes (flag_signed_char);
 
   /* Create all the identifiers we need.  */
   initialize_predefined_identifiers ();
@@ -6758,7 +6762,7 @@ grokfndecl (tree ctype,
   if (in_namespace)
     set_decl_namespace (decl, in_namespace, friendp);
   else if (!ctype)
-    DECL_CONTEXT (decl) = FROB_CONTEXT (current_namespace);
+    DECL_CONTEXT (decl) = FROB_CONTEXT (current_decl_namespace ());
 
   /* `main' and builtins have implicit 'C' linkage.  */
   if ((MAIN_NAME_P (declarator)
@@ -6821,8 +6825,9 @@ grokfndecl (tree ctype,
 		/* Allow this; it's pretty common in C.  */;
 	      else
 		{
-		  permerror (input_location, "non-local function %q#D uses anonymous type",
-			      decl);
+		  permerror (input_location, "anonymous type with no linkage "
+			     "used to declare function %q#D with linkage",
+			     decl);
 		  if (DECL_ORIGINAL_TYPE (TYPE_NAME (t)))
 		    permerror (input_location, "%q+#D does not refer to the unqualified "
 			       "type, so it is not used for linkage",
@@ -6830,7 +6835,8 @@ grokfndecl (tree ctype,
 		}
 	    }
 	  else
-	    permerror (input_location, "non-local function %q#D uses local type %qT", decl, t);
+	    permerror (input_location, "type %qT with no linkage used to "
+		       "declare function %q#D with linkage", t, decl);
 	}
     }
 
@@ -7018,7 +7024,7 @@ grokvardecl (tree type,
       /* An explicit "extern" specifier indicates a namespace-scope
 	 variable.  */
       if (declspecs->storage_class == sc_extern)
-	scope = current_namespace;
+	scope = current_decl_namespace ();
       else if (!at_function_scope_p ())
 	scope = current_scope ();
     }
@@ -7104,8 +7110,8 @@ grokvardecl (tree type,
 		     no linkage can only be used to declare extern "C"
 		     entities.  Since it's not always an error in the
 		     ISO C++ 90 Standard, we only issue a warning.  */
-		  warning (0, "non-local variable %q#D uses anonymous type",
-			   decl);
+		  warning (0, "anonymous type with no linkage used to declare "
+			   "variable %q#D with linkage", decl);
 		  if (DECL_ORIGINAL_TYPE (TYPE_NAME (t)))
 		    warning (0, "%q+#D does not refer to the unqualified "
 			     "type, so it is not used for linkage",
@@ -7113,7 +7119,8 @@ grokvardecl (tree type,
 		}
 	    }
 	  else
-	    warning (0, "non-local variable %q#D uses local type %qT", decl, t);
+	    warning (0, "type %qT with no linkage used to declare variable "
+		     "%q#D with linkage", t, decl);
 	}
     }
   else
@@ -12016,9 +12023,7 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
 
       if ((DECL_DECLARED_INLINE_P (decl1)
 	   || DECL_TEMPLATE_INSTANTIATION (decl1))
-	  && ! DECL_INTERFACE_KNOWN (decl1)
-	  /* Don't try to defer nested functions for now.  */
-	  && ! decl_function_context (decl1))
+	  && ! DECL_INTERFACE_KNOWN (decl1))
 	DECL_DEFER_OUTPUT (decl1) = 1;
       else
 	DECL_INTERFACE_KNOWN (decl1) = 1;

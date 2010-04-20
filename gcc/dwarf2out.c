@@ -3051,7 +3051,7 @@ output_cfi (dw_cfi_ref cfi, dw_fde_ref fde, int for_eh)
     {
       r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
       dw2_asm_output_data (1, (cfi->dw_cfi_opc | (r & 0x3f)),
-			   "DW_CFA_offset, column 0x%lx", r);
+			   "DW_CFA_offset, column %#lx", r);
       off = div_data_align (cfi->dw_cfi_oprnd2.dw_cfi_offset);
       dw2_asm_output_data_uleb128 (off, NULL);
     }
@@ -3059,7 +3059,7 @@ output_cfi (dw_cfi_ref cfi, dw_fde_ref fde, int for_eh)
     {
       r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
       dw2_asm_output_data (1, (cfi->dw_cfi_opc | (r & 0x3f)),
-			   "DW_CFA_restore, column 0x%lx", r);
+			   "DW_CFA_restore, column %#lx", r);
     }
   else
     {
@@ -3251,7 +3251,7 @@ output_cfi_directive (dw_cfi_ref cfi)
       break;
 
     case DW_CFA_GNU_args_size:
-      fprintf (asm_out_file, "\t.cfi_escape 0x%x,", DW_CFA_GNU_args_size);
+      fprintf (asm_out_file, "\t.cfi_escape %#x,", DW_CFA_GNU_args_size);
       dw2_asm_output_data_uleb128_raw (cfi->dw_cfi_oprnd1.dw_cfi_offset);
       if (flag_debug_asm)
 	fprintf (asm_out_file, "\t%s args_size "HOST_WIDE_INT_PRINT_DEC,
@@ -3265,7 +3265,7 @@ output_cfi_directive (dw_cfi_ref cfi)
 
     case DW_CFA_def_cfa_expression:
     case DW_CFA_expression:
-      fprintf (asm_out_file, "\t.cfi_escape 0x%x,", cfi->dw_cfi_opc);
+      fprintf (asm_out_file, "\t.cfi_escape %#x,", cfi->dw_cfi_opc);
       output_cfa_loc_raw (cfi);
       fputc ('\n', asm_out_file);
       break;
@@ -3863,7 +3863,7 @@ dwarf2out_do_cfi_startproc (bool second)
       if (enc & DW_EH_PE_indirect)
 	ref = dw2_force_const_mem (ref, true);
 
-      fprintf (asm_out_file, "\t.cfi_personality 0x%x,", enc);
+      fprintf (asm_out_file, "\t.cfi_personality %#x,", enc);
       output_addr_const (asm_out_file, ref);
       fputc ('\n', asm_out_file);
     }
@@ -3881,7 +3881,7 @@ dwarf2out_do_cfi_startproc (bool second)
       if (enc & DW_EH_PE_indirect)
 	ref = dw2_force_const_mem (ref, true);
 
-      fprintf (asm_out_file, "\t.cfi_lsda 0x%x,", enc);
+      fprintf (asm_out_file, "\t.cfi_lsda %#x,", enc);
       output_addr_const (asm_out_file, ref);
       fputc ('\n', asm_out_file);
     }
@@ -5175,7 +5175,7 @@ output_loc_sequence_raw (dw_loc_descr_ref loc)
   while (1)
     {
       /* Output the opcode.  */
-      fprintf (asm_out_file, "0x%x", loc->dw_loc_opc);
+      fprintf (asm_out_file, "%#x", loc->dw_loc_opc);
       output_loc_operands_raw (loc);
 
       if (!loc->dw_loc_next)
@@ -5221,7 +5221,7 @@ output_cfa_loc_raw (dw_cfi_ref cfi)
 
   if (cfi->dw_cfi_opc == DW_CFA_expression)
     {
-      fprintf (asm_out_file, "0x%x,", cfi->dw_cfi_oprnd1.dw_cfi_reg_num);
+      fprintf (asm_out_file, "%#x,", cfi->dw_cfi_oprnd1.dw_cfi_reg_num);
       loc = cfi->dw_cfi_oprnd2.dw_cfi_loc;
     }
   else
@@ -10423,7 +10423,7 @@ output_die (dw_die_ref die)
   if (dwarf_version < 4 && die->die_id.die_symbol)
     output_die_symbol (die);
 
-  dw2_asm_output_data_uleb128 (die->die_abbrev, "(DIE (0x%lx) %s)",
+  dw2_asm_output_data_uleb128 (die->die_abbrev, "(DIE (%#lx) %s)",
 			       (unsigned long)die->die_offset,
 			       dwarf_tag_name (die->die_tag));
 
@@ -10655,7 +10655,7 @@ output_die (dw_die_ref die)
 
   /* Add null byte to terminate sibling list.  */
   if (die->die_child != NULL)
-    dw2_asm_output_data (1, 0, "end of children of DIE 0x%lx",
+    dw2_asm_output_data (1, 0, "end of children of DIE %#lx",
 			 (unsigned long) die->die_offset);
 }
 
@@ -11081,7 +11081,7 @@ static void
 output_ranges (void)
 {
   unsigned i;
-  static const char *const start_fmt = "Offset 0x%x";
+  static const char *const start_fmt = "Offset %#x";
   const char *fmt = start_fmt;
 
   for (i = 0; i < ranges_table_in_use; i++)
@@ -11423,7 +11423,7 @@ output_file_names (void)
     dw2_asm_output_nstring (dirs[i].path,
 			    dirs[i].length
 			     - !DWARF2_DIR_SHOULD_END_WITH_SEPARATOR,
-			    "Directory Entry: 0x%x", i + idx_offset);
+			    "Directory Entry: %#x", i + idx_offset);
 
   dw2_asm_output_data (1, 0, "End directory table");
 
@@ -11459,7 +11459,7 @@ output_file_names (void)
 	        files[file_idx].path + dirs[dir_idx].length, ver);
 
       dw2_asm_output_nstring
-	(filebuf, -1, "File Entry: 0x%x", (unsigned) i + 1);
+	(filebuf, -1, "File Entry: %#x", (unsigned) i + 1);
 
       /* Include directory index.  */
       dw2_asm_output_data_uleb128 (dir_idx + idx_offset, NULL);
@@ -11477,7 +11477,7 @@ output_file_names (void)
 	 NULL);
 #else
       dw2_asm_output_nstring (files[file_idx].path + dirs[dir_idx].length, -1,
-			      "File Entry: 0x%x", (unsigned) i + 1);
+			      "File Entry: %#x", (unsigned) i + 1);
 
       /* Include directory index.  */
       dw2_asm_output_data_uleb128 (dir_idx + idx_offset, NULL);
@@ -11568,7 +11568,7 @@ output_line_info (void)
 	  break;
 	}
 
-      dw2_asm_output_data (1, n_op_args, "opcode: 0x%x has %d args",
+      dw2_asm_output_data (1, n_op_args, "opcode: %#x has %d args",
 			   opc, n_op_args);
     }
 
@@ -12145,7 +12145,8 @@ modified_type_die (tree type, int is_const_type, int is_volatile_type,
   name = qualified_type ? TYPE_NAME (qualified_type) : NULL;
 
   /* Handle C typedef types.  */
-  if (name && TREE_CODE (name) == TYPE_DECL && DECL_ORIGINAL_TYPE (name))
+  if (name && TREE_CODE (name) == TYPE_DECL && DECL_ORIGINAL_TYPE (name)
+      && !DECL_ARTIFICIAL (name))
     {
       tree dtype = TREE_TYPE (name);
 
@@ -16337,6 +16338,7 @@ lower_bound_default (void)
       return 1;
     case DW_LANG_UPC:
     case DW_LANG_D:
+    case DW_LANG_Python:
       return dwarf_version >= 4 ? 0 : -1;
     case DW_LANG_Ada95:
     case DW_LANG_Ada83:
@@ -16357,8 +16359,6 @@ lower_bound_default (void)
 static void
 add_bound_info (dw_die_ref subrange_die, enum dwarf_attribute bound_attr, tree bound)
 {
-  int want_address = 2;
-
   switch (TREE_CODE (bound))
     {
     case ERROR_MARK:
@@ -16421,7 +16421,6 @@ add_bound_info (dw_die_ref subrange_die, enum dwarf_attribute bound_attr, tree b
 	    add_AT_die_ref (subrange_die, bound_attr, decl_die);
 	    break;
 	  }
-	want_address = 0;
       }
       /* FALLTHRU */
 
@@ -16433,15 +16432,23 @@ add_bound_info (dw_die_ref subrange_die, enum dwarf_attribute bound_attr, tree b
 	dw_die_ref ctx, decl_die;
 	dw_loc_list_ref list;
 
-	list = loc_list_from_tree (bound, want_address);
+	list = loc_list_from_tree (bound, 2);
+	if (list == NULL || single_element_loc_list_p (list))
+	  {
+	    /* If DW_AT_*bound is not a reference nor constant, it is
+	       a DWARF expression rather than location description.
+	       For that loc_list_from_tree (bound, 0) is needed.
+	       If that fails to give a single element list,
+	       fall back to outputting this as a reference anyway.  */
+	    dw_loc_list_ref list2 = loc_list_from_tree (bound, 0);
+	    if (list2 && single_element_loc_list_p (list2))
+	      {
+		add_AT_loc (subrange_die, bound_attr, list2->expr);
+		break;
+	      }
+	  }
 	if (list == NULL)
 	  break;
-
-	if (single_element_loc_list_p (list))
-	  {
-	    add_AT_loc (subrange_die, bound_attr, list->expr);
-	    break;
-	  }
 
 	if (current_function_decl == 0)
 	  ctx = comp_unit_die;
@@ -17382,6 +17389,9 @@ gen_enumeration_type_die (tree type, dw_die_ref context_die)
 			  scope_die_for (type, context_die), type);
       equate_type_number_to_die (type, type_die);
       add_name_attribute (type_die, type_tag (type));
+      if ((dwarf_version >= 4 || !dwarf_strict)
+	  && ENUM_IS_SCOPED (type))
+	add_AT_flag (type_die, DW_AT_enum_class, 1);
     }
   else if (! TYPE_SIZE (type))
     return type_die;

@@ -199,6 +199,13 @@ dump_decl_name (pretty_printer *buffer, tree node, int flags)
 	    pp_printf (buffer, "%c.%u", c, DECL_UID (node));
 	}
     }
+  if ((flags & TDF_ALIAS) && DECL_PT_UID (node) != DECL_UID (node))
+    {
+      if (flags & TDF_NOUID)
+	pp_printf (buffer, "ptD.xxxx");
+      else
+	pp_printf (buffer, "ptD.%u", DECL_PT_UID (node));
+    }
 }
 
 /* Like the above, but used for pretty printing function calls.  */
@@ -695,7 +702,10 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	      }
 	    else if (TREE_CODE (node) == VECTOR_TYPE)
 	      {
-		pp_string (buffer, "vector ");
+		pp_string (buffer, "vector");
+		pp_character (buffer, '(');
+		pp_wide_integer (buffer, TYPE_VECTOR_SUBPARTS (node));
+		pp_string (buffer, ") ");
 		dump_generic_node (buffer, TREE_TYPE (node), spc, flags, false);
 	      }
 	    else if (TREE_CODE (node) == INTEGER_TYPE)

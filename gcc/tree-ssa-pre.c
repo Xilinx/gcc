@@ -1231,49 +1231,11 @@ do_unary:
     case REFERENCE:
       {
 	vn_reference_t ref = PRE_EXPR_REFERENCE (e);
-	VEC (vn_reference_op_s, heap) *operands = ref->operands;
-	vn_reference_op_t op;
-
-	/* Try to simplify the translated expression if it is
-	   a call to a builtin function with at most two arguments.  */
-	op = VEC_index (vn_reference_op_s, operands, 0);
-	if (op->opcode == CALL_EXPR
-	    && TREE_CODE (op->op0) == ADDR_EXPR
-	    && TREE_CODE (TREE_OPERAND (op->op0, 0)) == FUNCTION_DECL
-	    && DECL_BUILT_IN (TREE_OPERAND (op->op0, 0))
-	    && VEC_length (vn_reference_op_s, operands) >= 2
-	    && VEC_length (vn_reference_op_s, operands) <= 3)
-	  {
-	    vn_reference_op_t arg0, arg1 = NULL;
-	    bool anyconst = false;
-	    arg0 = VEC_index (vn_reference_op_s, operands, 1);
-	    if (VEC_length (vn_reference_op_s, operands) > 2)
-	      arg1 = VEC_index (vn_reference_op_s, operands, 2);
-	    if (TREE_CODE_CLASS (arg0->opcode) == tcc_constant
-		|| (arg0->opcode == ADDR_EXPR
-		    && is_gimple_min_invariant (arg0->op0)))
-	      anyconst = true;
-	    if (arg1
-		&& (TREE_CODE_CLASS (arg1->opcode) == tcc_constant
-		    || (arg1->opcode == ADDR_EXPR
-			&& is_gimple_min_invariant (arg1->op0))))
-	      anyconst = true;
-	    if (anyconst)
-	      {
-		tree folded = build_call_expr (TREE_OPERAND (op->op0, 0),
-					       arg1 ? 2 : 1,
-					       arg0->op0,
-					       arg1 ? arg1->op0 : NULL);
-		if (folded
-		    && TREE_CODE (folded) == NOP_EXPR)
-		  folded = TREE_OPERAND (folded, 0);
-		if (folded
-		    && is_gimple_min_invariant (folded))
-		  return get_or_alloc_expr_for_constant (folded);
-	      }
-	  }
-	  return e;
-	}
+	tree folded;
+	if ((folded = fully_constant_vn_reference_p (ref)))
+	  return get_or_alloc_expr_for_constant (folded);
+	return e;
+      }
     default:
       return e;
     }
@@ -1445,7 +1407,7 @@ get_representative_for (const pre_expr e)
      that we will return.  */
   if (!pretemp || exprtype != TREE_TYPE (pretemp))
     {
-      pretemp = create_tmp_var (exprtype, "pretmp");
+      pretemp = create_tmp_reg (exprtype, "pretmp");
       get_var_ann (pretemp);
     }
 
@@ -1702,7 +1664,7 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 						      ref->type,
 						      newoperands,
 						      &newref, true);
-	    if (newref)
+	    if (result)
 	      VEC_free (vn_reference_op_s, heap, newoperands);
 
 	    if (result && is_gimple_min_invariant (result))
@@ -2817,22 +2779,37 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	  return NULL_TREE;
 	if (genop2)
 	  {
-	    op2expr = get_or_alloc_expr_for (genop2);
-	    genop2 = find_or_generate_expression (block, op2expr, stmts,
-						  domstmt);
-	    if (!genop2)
-	      return NULL_TREE;
+	    /* Drop zero minimum index.  */
+	    if (tree_int_cst_equal (genop2, integer_zero_node))
+	      genop2 = NULL_TREE;
+	    else
+	      {
+		op2expr = get_or_alloc_expr_for (genop2);
+		genop2 = find_or_generate_expression (block, op2expr, stmts,
+						      domstmt);
+		if (!genop2)
+		  return NULL_TREE;
+	      }
 	  }
 	if (genop3)
 	  {
 	    tree elmt_type = TREE_TYPE (TREE_TYPE (genop0));
-	    genop3 = size_binop (EXACT_DIV_EXPR, genop3,
-				 size_int (TYPE_ALIGN_UNIT (elmt_type)));
-	    op3expr = get_or_alloc_expr_for (genop3);
-	    genop3 = find_or_generate_expression (block, op3expr, stmts,
-						  domstmt);
-	    if (!genop3)
-	      return NULL_TREE;
+	    /* We can't always put a size in units of the element alignment
+	       here as the element alignment may be not visible.  See
+	       PR43783.  Simply drop the element size for constant
+	       sizes.  */
+	    if (tree_int_cst_equal (genop3, TYPE_SIZE_UNIT (elmt_type)))
+	      genop3 = NULL_TREE;
+	    else
+	      {
+		genop3 = size_binop (EXACT_DIV_EXPR, genop3,
+				     size_int (TYPE_ALIGN_UNIT (elmt_type)));
+		op3expr = get_or_alloc_expr_for (genop3);
+		genop3 = find_or_generate_expression (block, op3expr, stmts,
+						      domstmt);
+		if (!genop3)
+		  return NULL_TREE;
+	      }
 	  }
 	return build4 (currop->opcode, currop->type, genop0, genop1,
 		       genop2, genop3);
@@ -3111,16 +3088,12 @@ create_expression_by_pieces (basic_block block, pre_expr expr,
      that we will return.  */
   if (!pretemp || exprtype != TREE_TYPE (pretemp))
     {
-      pretemp = create_tmp_var (exprtype, "pretmp");
+      pretemp = create_tmp_reg (exprtype, "pretmp");
       get_var_ann (pretemp);
     }
 
   temp = pretemp;
   add_referenced_var (temp);
-
-  if (TREE_CODE (exprtype) == COMPLEX_TYPE
-      || TREE_CODE (exprtype) == VECTOR_TYPE)
-    DECL_GIMPLE_REG_P (temp) = 1;
 
   newstmt = gimple_build_assign (temp, folded);
   name = make_ssa_name (temp, newstmt);
@@ -4379,15 +4352,16 @@ eliminate (void)
   for (i = 0; VEC_iterate (gimple, to_remove, i, stmt); ++i)
     {
       tree lhs = gimple_assign_lhs (stmt);
+      tree rhs = gimple_assign_rhs1 (stmt);
       use_operand_p use_p;
       gimple use_stmt;
 
       /* If there is a single use only, propagate the equivalency
 	 instead of keeping the copy.  */
       if (TREE_CODE (lhs) == SSA_NAME
+	  && TREE_CODE (rhs) == SSA_NAME
 	  && single_imm_use (lhs, &use_p, &use_stmt)
-	  && may_propagate_copy (USE_FROM_PTR (use_p),
-				 gimple_assign_rhs1 (stmt)))
+	  && may_propagate_copy (USE_FROM_PTR (use_p), rhs))
 	{
 	  SET_USE (use_p, gimple_assign_rhs1 (stmt));
 	  update_stmt (use_stmt);
@@ -4536,7 +4510,6 @@ my_rev_post_order_compute (int *post_order, bool include_entry_exit)
   int sp;
   int post_order_num = 0;
   sbitmap visited;
-  int count;
 
   if (include_entry_exit)
     post_order[post_order_num++] = EXIT_BLOCK;
@@ -4591,12 +4564,7 @@ my_rev_post_order_compute (int *post_order, bool include_entry_exit)
     }
 
   if (include_entry_exit)
-    {
-      post_order[post_order_num++] = ENTRY_BLOCK;
-      count = post_order_num;
-    }
-  else
-    count = post_order_num + 2;
+    post_order[post_order_num++] = ENTRY_BLOCK;
 
   free (stack);
   sbitmap_free (visited);

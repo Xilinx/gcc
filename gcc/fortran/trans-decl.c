@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "gfortran.h"
 #include "pointer-set.h"
+#include "constructor.h"
 #include "trans.h"
 #include "trans-types.h"
 #include "trans-array.h"
@@ -770,19 +771,33 @@ gfc_build_qualified_array (tree decl, gfc_symbol * sym)
 
       for (dim = sym->as->rank - 1; dim >= 0; dim--)
 	{
-	  rtype = build_range_type (gfc_array_index_type,
-				    GFC_TYPE_ARRAY_LBOUND (type, dim),
-				    GFC_TYPE_ARRAY_UBOUND (type, dim));
+	  tree lbound, ubound;
+	  lbound = GFC_TYPE_ARRAY_LBOUND (type, dim);
+	  ubound = GFC_TYPE_ARRAY_UBOUND (type, dim);
+	  rtype = build_range_type (gfc_array_index_type, lbound, ubound);
 	  gtype = build_array_type (gtype, rtype);
-	  /* Ensure the bound variables aren't optimized out at -O0.  */
-	  if (!optimize)
+	  /* Ensure the bound variables aren't optimized out at -O0.
+	     For -O1 and above they often will be optimized out, but
+	     can be tracked by VTA.  Also clear the artificial
+	     lbound.N or ubound.N DECL_NAME, so that it doesn't end up
+	     in debug info.  */
+	  if (lbound && TREE_CODE (lbound) == VAR_DECL
+	      && DECL_ARTIFICIAL (lbound) && DECL_IGNORED_P (lbound))
 	    {
-	      if (GFC_TYPE_ARRAY_LBOUND (type, dim)
-		  && TREE_CODE (GFC_TYPE_ARRAY_LBOUND (type, dim)) == VAR_DECL)
-		DECL_IGNORED_P (GFC_TYPE_ARRAY_LBOUND (type, dim)) = 0;
-	      if (GFC_TYPE_ARRAY_UBOUND (type, dim)
-		  && TREE_CODE (GFC_TYPE_ARRAY_UBOUND (type, dim)) == VAR_DECL)
-		DECL_IGNORED_P (GFC_TYPE_ARRAY_UBOUND (type, dim)) = 0;
+	      if (DECL_NAME (lbound)
+		  && strstr (IDENTIFIER_POINTER (DECL_NAME (lbound)),
+			     "lbound") != 0)
+		DECL_NAME (lbound) = NULL_TREE;
+	      DECL_IGNORED_P (lbound) = 0;
+	    }
+	  if (ubound && TREE_CODE (ubound) == VAR_DECL
+	      && DECL_ARTIFICIAL (ubound) && DECL_IGNORED_P (ubound))
+	    {
+	      if (DECL_NAME (ubound)
+		  && strstr (IDENTIFIER_POINTER (DECL_NAME (ubound)),
+			     "ubound") != 0)
+		DECL_NAME (ubound) = NULL_TREE;
+	      DECL_IGNORED_P (ubound) = 0;
 	    }
 	}
       TYPE_NAME (type) = type_decl = build_decl (input_location,
@@ -3578,7 +3593,8 @@ check_constant_initializer (gfc_expr *expr, gfc_typespec *ts, bool array,
 	return check_constant_initializer (expr, ts, false, false);
       else if (expr->expr_type != EXPR_ARRAY)
 	return false;
-      for (c = expr->value.constructor; c; c = c->next)
+      for (c = gfc_constructor_first (expr->value.constructor);
+	   c; c = gfc_constructor_next (c))
 	{
 	  if (c->iterator)
 	    return false;
@@ -3598,7 +3614,8 @@ check_constant_initializer (gfc_expr *expr, gfc_typespec *ts, bool array,
       if (expr->expr_type != EXPR_STRUCTURE)
 	return false;
       cm = expr->ts.u.derived->components;
-      for (c = expr->value.constructor; c; c = c->next, cm = cm->next)
+      for (c = gfc_constructor_first (expr->value.constructor);
+	   c; c = gfc_constructor_next (c), cm = cm->next)
 	{
 	  if (!c->expr || cm->attr.allocatable)
 	    continue;

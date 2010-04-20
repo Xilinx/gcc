@@ -878,6 +878,19 @@ merge_types (tree t1, tree t2)
     return cp_build_type_attribute_variant (t1, attributes);
 }
 
+/* Return the ARRAY_TYPE type without its domain.  */
+
+tree
+strip_array_domain (tree type)
+{
+  tree t2;
+  gcc_assert (TREE_CODE (type) == ARRAY_TYPE);
+  if (TYPE_DOMAIN (type) == NULL_TREE)
+    return type;
+  t2 = build_cplus_array_type (TREE_TYPE (type), NULL_TREE);
+  return cp_build_type_attribute_variant (t2, TYPE_ATTRIBUTES (type));
+}
+
 /* Wrapper around cp_common_type that is used by c-common.c and other
    front end optimizations that remove promotions.  
 
@@ -1223,6 +1236,12 @@ structural_comptypes (tree t1, tree t2, int strict)
   if (TYPE_FOR_JAVA (t1) != TYPE_FOR_JAVA (t2))
     return false;
 
+  /* If T1 and T2 are dependent typedefs then check upfront that
+     the template parameters of their typedef DECLs match before
+     going down checking their subtypes.  */
+  if (incompatible_dependent_types_p (t1, t2))
+    return false;
+
   /* Allow for two different type nodes which have essentially the same
      definition.  Note that we already checked for equality of the type
      qualifiers (just above).  */
@@ -1231,11 +1250,6 @@ structural_comptypes (tree t1, tree t2, int strict)
       && TYPE_MAIN_VARIANT (t1) == TYPE_MAIN_VARIANT (t2))
     return true;
 
-  /* If T1 and T2 are dependent typedefs then check upfront that
-     the template parameters of their typedef DECLs match before
-     going down checking their subtypes.  */
-  if (incompatible_dependent_types_p (t1, t2))
-    return false;
 
   /* Compare the types.  Break out if they could be the same.  */
   switch (TREE_CODE (t1))
@@ -1595,6 +1609,13 @@ cxx_sizeof_expr (tree e, tsubst_flags_t complain)
 
       return e;
     }
+
+  /* To get the size of a static data member declared as an array of
+     unknown bound, we need to instantiate it.  */
+  if (TREE_CODE (e) == VAR_DECL
+      && VAR_HAD_UNKNOWN_BOUND (e)
+      && DECL_TEMPLATE_INSTANTIATION (e))
+    instantiate_decl (e, /*defer_ok*/true, /*expl_inst_mem*/false);
 
   if (TREE_CODE (e) == COMPONENT_REF
       && TREE_CODE (TREE_OPERAND (e, 1)) == FIELD_DECL
@@ -6268,6 +6289,15 @@ cp_build_c_cast (tree type, tree expr, tsubst_flags_t complain)
         error ("invalid cast to function type %qT", type);
       return error_mark_node;
     }
+
+  if (TREE_CODE (type) == POINTER_TYPE
+      && TREE_CODE (TREE_TYPE (value)) == INTEGER_TYPE
+      /* Casting to an integer of smaller size is an error detected elsewhere.  */
+      && TYPE_PRECISION (type) > TYPE_PRECISION (TREE_TYPE (value))
+      /* Don't warn about converting any constant.  */
+      && !TREE_CONSTANT (value))
+    warning_at (input_location, OPT_Wint_to_pointer_cast, 
+		"cast to pointer from integer of different size");
 
   /* A C-style cast can be a const_cast.  */
   result = build_const_cast_1 (type, value, /*complain=*/false,

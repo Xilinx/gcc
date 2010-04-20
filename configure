@@ -3291,6 +3291,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-newlib target-libiberty target-libgloss ${libgcj} target-libmudflap"
     ;;
   *-*-rtems*)
+    skipdirs="${skipdirs} target-libiberty"
     noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
     ;;
     # The tpf target doesn't support gdb yet.
@@ -3310,7 +3311,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs gas ld fileutils target-newlib target-libgloss"
     ;;
   alpha*-*-*vms*)
-    noconfigdirs="$noconfigdirs gdb ld target-newlib target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs gdb target-newlib target-libgloss ${libgcj}"
     ;;
   alpha*-*-linux*)
     # newlib is not 64 bit ready
@@ -6002,7 +6003,7 @@ target_elf=no
 case $target in
   *-darwin* | *-aix* | *-cygwin* | *-mingw* | *-aout* | *-*coff* | \
   *-msdosdjgpp* | *-netware* | *-vms* | *-wince* | *-*-pe* | \
-  alpha*-dec-osf* | *-interix*)
+  alpha*-dec-osf* | *-interix* | hppa[12]*-*-hpux*)
     target_elf=no
     ;;
   *)
@@ -6574,7 +6575,6 @@ main ()
       elf_nextscn (0, 0);
       elf_strptr (0, 0, 0);
       elf_getident (0, 0);
-      elf_getshdrstrndx (0, 0);
       elf_begin (0, 0, 0);
       elf_ndxscn (0);
       elf_end (0);
@@ -6593,6 +6593,61 @@ $as_echo "no" >&6; }; enable_lto=no; libelflibs= ; libelfinc=
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
+
+    # Check for elf_getshdrstrndx or elf_getshstrndx.  The latter's flavor
+    # is determined in gcc/configure.ac.
+    if test x"$enable_lto" = x"yes" ; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for elf_getshdrstrndx" >&5
+$as_echo_n "checking for elf_getshdrstrndx... " >&6; }
+      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <libelf.h>
+int
+main ()
+{
+
+	elf_getshdrstrndx (0, 0);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; };
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; };
+	 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for elf_getshstrndx" >&5
+$as_echo_n "checking for elf_getshstrndx... " >&6; }
+         cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <libelf.h>
+int
+main ()
+{
+
+	   elf_getshstrndx (0, 0);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; };
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }; enable_lto=no; libelflibs= ; libelfinc=
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+    fi
 
     # If we couldn't enable LTO and the user forced it, emit an error.
     if test x"$enable_lto" = x"no" \

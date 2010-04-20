@@ -186,6 +186,8 @@ lookup_option (Option *xopt, int *xskip, const char **xarg, const char *text)
 	opt = OPTION_syntax_only;
       else if (!strcmp (text, "-static-libgfortran"))
 	opt = OPTION_static_libgfortran;
+      else if (!strcmp (text, "-static"))
+	opt = OPTION_static;
       else if (!strcmp (text, "-fversion"))	/* Really --version!! */
 	opt = OPTION_version;
       else if (!strcmp (text, "-Xlinker") || !strcmp (text, "-specs"))
@@ -275,11 +277,13 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   /* By default, we throw on the math library if we have one.  */
   int need_math = (MATH_LIBRARY[0] != '\0');
 
-  /* Whether we should link a static libgfortran.  */
-  int static_lib = 0;
+#ifdef HAVE_LD_STATIC_DYNAMIC
+  /* Whether we should link a static libgfortran. */
+  int static_lib = 0; 
 
   /* Whether we need to link statically.  */
   int static_linking = 0;
+#endif
 
   /* The number of input and output files in the incoming arg list.  */
   int n_infiles = 0;
@@ -340,11 +344,16 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	  break;
 
 	case OPTION_static_libgfortran:
+#ifdef HAVE_LD_STATIC_DYNAMIC
 	  static_lib = 1;
+#endif
 	  break;
 
 	case OPTION_static:
+#ifdef HAVE_LD_STATIC_DYNAMIC
 	  static_linking = 1;
+#endif
+	  break;
 
 	case OPTION_l:
 	  ++n_infiles;

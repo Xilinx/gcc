@@ -508,6 +508,23 @@ create_tmp_var (tree type, const char *prefix)
   return tmp_var;
 }
 
+/* Create a new temporary variable declaration of type TYPE by calling
+   create_tmp_var and if TYPE is a vector or a complex number, mark the new
+   temporary as gimple register.  */
+
+tree
+create_tmp_reg (tree type, const char *prefix)
+{
+  tree tmp;
+
+  tmp = create_tmp_var (type, prefix);
+  if (TREE_CODE (type) == COMPLEX_TYPE
+      || TREE_CODE (type) == VECTOR_TYPE)
+    DECL_GIMPLE_REG_P (tmp) = 1;
+
+  return tmp;
+}
+
 /* Create a temporary with a name derived from VAL.  Subroutine of
    lookup_tmp_var; nobody else should call this function.  */
 
@@ -1219,10 +1236,7 @@ gimplify_return_expr (tree stmt, gimple_seq *pre_p)
     result = gimplify_ctxp->return_temp;
   else
     {
-      result = create_tmp_var (TREE_TYPE (result_decl), NULL);
-      if (TREE_CODE (TREE_TYPE (result)) == COMPLEX_TYPE
-          || TREE_CODE (TREE_TYPE (result)) == VECTOR_TYPE)
-        DECL_GIMPLE_REG_P (result) = 1;
+      result = create_tmp_reg (TREE_TYPE (result_decl), NULL);
 
       /* ??? With complex control flow (usually involving abnormal edges),
 	 we can wind up warning about an uninitialized value for this.  Due
@@ -3793,10 +3807,10 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	if (notify_temp_creation)
 	  return GS_OK;
 
-	/* If there are nonzero elements, pre-evaluate to capture elements
-	   overlapping with the lhs into temporaries.  We must do this before
-	   clearing to fetch the values before they are zeroed-out.  */
-	if (num_nonzero_elements > 0)
+	/* If there are nonzero elements and if needed, pre-evaluate to capture
+	   elements overlapping with the lhs into temporaries.  We must do this
+	   before clearing to fetch the values before they are zeroed-out.  */
+	if (num_nonzero_elements > 0 && TREE_CODE (*expr_p) != INIT_EXPR)
 	  {
 	    preeval_data.lhs_base_decl = get_base_address (object);
 	    if (!DECL_P (preeval_data.lhs_base_decl))
@@ -4276,6 +4290,18 @@ gimplify_modify_expr_rhs (tree *expr_p, tree *from_p, tree *to_p,
 	  }
 
 	ret = GS_UNHANDLED;
+	break;
+
+      case WITH_SIZE_EXPR:
+	/* Likewise for calls that return an aggregate of non-constant size,
+	   since we would not be able to generate a temporary at all.  */
+	if (TREE_CODE (TREE_OPERAND (*from_p, 0)) == CALL_EXPR)
+	  {
+	    *from_p = TREE_OPERAND (*from_p, 0);
+	    ret = GS_OK;
+	  }
+	else
+	  ret = GS_UNHANDLED;
 	break;
 
 	/* If we're initializing from a container, push the initialization
@@ -6339,9 +6365,7 @@ gimplify_omp_atomic (tree *expr_p, gimple_seq *pre_p)
   tree type = TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (addr)));
   tree tmp_load;
 
-   tmp_load = create_tmp_var (type, NULL);
-   if (TREE_CODE (type) == COMPLEX_TYPE || TREE_CODE (type) == VECTOR_TYPE)
-     DECL_GIMPLE_REG_P (tmp_load) = 1;
+   tmp_load = create_tmp_reg (type, NULL);
    if (goa_stabilize_expr (&rhs, pre_p, addr, tmp_load) < 0)
      return GS_ERROR;
 
@@ -7816,11 +7840,8 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
 	    }
 	  if (need_temp)
 	    {
-	      tree temp = create_tmp_var (TREE_TYPE (lhs), NULL);
+	      tree temp = create_tmp_reg (TREE_TYPE (lhs), NULL);
 
-	      if (TREE_CODE (TREE_TYPE (lhs)) == COMPLEX_TYPE
-		  || TREE_CODE (TREE_TYPE (lhs)) == VECTOR_TYPE)
-		DECL_GIMPLE_REG_P (temp) = 1;
 	      if (TREE_CODE (orig_lhs) == SSA_NAME)
 		orig_lhs = SSA_NAME_VAR (orig_lhs);
 

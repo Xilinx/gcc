@@ -265,11 +265,6 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
   if (!expr)
     return false;
 
-  /* If MEM_OFFSET or MEM_SIZE are NULL punt.  */
-  if (!MEM_OFFSET (mem)
-      || !MEM_SIZE (mem))
-    return false;
-
   ao_ref_init (ref, expr);
 
   /* Get the base of the reference and see if we have to reject or
@@ -278,15 +273,15 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
   if (base == NULL_TREE)
     return false;
 
+  /* The tree oracle doesn't like to have these.  */
+  if (TREE_CODE (base) == FUNCTION_DECL
+      || TREE_CODE (base) == LABEL_DECL)
+    return false;
+
   /* If this is a pointer dereference of a non-SSA_NAME punt.
      ???  We could replace it with a pointer to anything.  */
   if (INDIRECT_REF_P (base)
       && TREE_CODE (TREE_OPERAND (base, 0)) != SSA_NAME)
-    return false;
-
-  /* The tree oracle doesn't like to have these.  */
-  if (TREE_CODE (base) == FUNCTION_DECL
-      || TREE_CODE (base) == LABEL_DECL)
     return false;
 
   /* If this is a reference based on a partitioned decl replace the
@@ -306,6 +301,18 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
     }
 
   ref->ref_alias_set = MEM_ALIAS_SET (mem);
+
+  /* If MEM_OFFSET or MEM_SIZE are NULL we have to punt.
+     Keep points-to related information though.  */
+  if (!MEM_OFFSET (mem)
+      || !MEM_SIZE (mem))
+    {
+      ref->ref = NULL_TREE;
+      ref->offset = 0;
+      ref->size = -1;
+      ref->max_size = -1;
+      return true;
+    }
 
   /* If the base decl is a parameter we can have negative MEM_OFFSET in
      case of promoted subregs on bigendian targets.  Trust the MEM_EXPR
@@ -406,7 +413,7 @@ alias_set_subset_of (alias_set_type set1, alias_set_type set2)
   /* Otherwise, check if set1 is a subset of set2.  */
   ase = get_alias_set_entry (set2);
   if (ase != 0
-      && ((ase->has_zero_child && set1 == 0)
+      && (ase->has_zero_child
 	  || splay_tree_lookup (ase->children,
 			        (splay_tree_key) set1)))
     return true;
@@ -1686,14 +1693,7 @@ base_alias_check (rtx x, rtx y, enum machine_mode x_mode,
       || (GET_CODE (y_base) == ADDRESS && GET_MODE (y_base) == Pmode))
     return 0;
 
-  if (! flag_argument_noalias)
-    return 1;
-
-  if (flag_argument_noalias > 1)
-    return 0;
-
-  /* Weak noalias assertion (arguments are distinct, but may match globals).  */
-  return ! (GET_MODE (x_base) == VOIDmode && GET_MODE (y_base) == VOIDmode);
+  return 1;
 }
 
 /* Convert the address X into something we can use.  This is done by returning
@@ -1791,9 +1791,41 @@ static int
 memrefs_conflict_p (int xsize, rtx x, int ysize, rtx y, HOST_WIDE_INT c)
 {
   if (GET_CODE (x) == VALUE)
-    x = get_addr (x);
+    {
+      if (REG_P (y))
+	{
+	  struct elt_loc_list *l = NULL;
+	  if (CSELIB_VAL_PTR (x))
+	    for (l = CSELIB_VAL_PTR (x)->locs; l; l = l->next)
+	      if (REG_P (l->loc) && rtx_equal_for_memref_p (l->loc, y))
+		break;
+	  if (l)
+	    x = y;
+	  else
+	    x = get_addr (x);
+	}
+      /* Don't call get_addr if y is the same VALUE.  */
+      else if (x != y)
+	x = get_addr (x);
+    }
   if (GET_CODE (y) == VALUE)
-    y = get_addr (y);
+    {
+      if (REG_P (x))
+	{
+	  struct elt_loc_list *l = NULL;
+	  if (CSELIB_VAL_PTR (y))
+	    for (l = CSELIB_VAL_PTR (y)->locs; l; l = l->next)
+	      if (REG_P (l->loc) && rtx_equal_for_memref_p (l->loc, x))
+		break;
+	  if (l)
+	    y = x;
+	  else
+	    y = get_addr (y);
+	}
+      /* Don't call get_addr if x is the same VALUE.  */
+      else if (y != x)
+	y = get_addr (y);
+    }
   if (GET_CODE (x) == HIGH)
     x = XEXP (x, 0);
   else if (GET_CODE (x) == LO_SUM)
@@ -2184,13 +2216,6 @@ nonoverlapping_memrefs_p (const_rtx x, const_rtx y)
 	exprx = t;
       }
     }
-  else if (INDIRECT_REF_P (exprx))
-    {
-      exprx = TREE_OPERAND (exprx, 0);
-      if (flag_argument_noalias < 2
-	  || TREE_CODE (exprx) != PARM_DECL)
-	return 0;
-    }
 
   moffsety = MEM_OFFSET (y);
   if (TREE_CODE (expry) == COMPONENT_REF)
@@ -2211,13 +2236,6 @@ nonoverlapping_memrefs_p (const_rtx x, const_rtx y)
 	moffsety = adjust_offset_for_component_ref (expry, moffsety);
 	expry = t;
       }
-    }
-  else if (INDIRECT_REF_P (expry))
-    {
-      expry = TREE_OPERAND (expry, 0);
-      if (flag_argument_noalias < 2
-	  || TREE_CODE (expry) != PARM_DECL)
-	return 0;
     }
 
   if (! DECL_P (exprx) || ! DECL_P (expry))

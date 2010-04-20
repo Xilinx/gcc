@@ -130,19 +130,8 @@ static void find_tail_calls (basic_block, struct tailcall **);
 static bool
 suitable_for_tail_opt_p (void)
 {
-  referenced_var_iterator rvi;
-  tree var;
-
   if (cfun->stdarg)
     return false;
-
-  /* No local variable nor structure field should be call-used.  */
-  FOR_EACH_REFERENCED_VAR (var, rvi)
-    {
-      if (!is_global_var (var)
-	  && is_call_used (var))
-	return false;
-    }
 
   return true;
 }
@@ -375,6 +364,8 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
   tree m, a;
   basic_block abb;
   size_t idx;
+  tree var;
+  referenced_var_iterator rvi;
 
   if (!single_succ_p (bb))
     return;
@@ -431,6 +422,7 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
   if (func == current_function_decl)
     {
       tree arg;
+
       for (param = DECL_ARGUMENTS (func), idx = 0;
 	   param && idx < gimple_call_num_args (call);
 	   param = TREE_CHAIN (param), idx ++)
@@ -460,6 +452,15 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
 	}
       if (idx == gimple_call_num_args (call) && !param)
 	tail_recursion = true;
+    }
+
+  /* Make sure the tail invocation of this function does not refer
+     to local variables.  */
+  FOR_EACH_REFERENCED_VAR (var, rvi)
+    {
+      if (!is_global_var (var)
+	  && ref_maybe_used_by_stmt_p (call, var))
+	return;
     }
 
   /* Now check the statements after the call.  None of them has virtual
@@ -574,13 +575,10 @@ adjust_return_value_with_ops (enum tree_code code, const char *label,
 {
 
   tree ret_type = TREE_TYPE (DECL_RESULT (current_function_decl));
-  tree tmp = create_tmp_var (ret_type, label);
+  tree tmp = create_tmp_reg (ret_type, label);
   gimple stmt;
   tree result;
 
-  if (TREE_CODE (ret_type) == COMPLEX_TYPE
-      || TREE_CODE (ret_type) == VECTOR_TYPE)
-    DECL_GIMPLE_REG_P (tmp) = 1;
   add_referenced_var (tmp);
 
   if (types_compatible_p (TREE_TYPE (acc), TREE_TYPE (op1)))
@@ -907,12 +905,9 @@ static tree
 create_tailcall_accumulator (const char *label, basic_block bb, tree init)
 {
   tree ret_type = TREE_TYPE (DECL_RESULT (current_function_decl));
-  tree tmp = create_tmp_var (ret_type, label);
+  tree tmp = create_tmp_reg (ret_type, label);
   gimple phi;
 
-  if (TREE_CODE (ret_type) == COMPLEX_TYPE
-      || TREE_CODE (ret_type) == VECTOR_TYPE)
-    DECL_GIMPLE_REG_P (tmp) = 1;
   add_referenced_var (tmp);
   phi = create_phi_node (tmp, bb);
   /* RET_TYPE can be a float when -ffast-maths is enabled.  */

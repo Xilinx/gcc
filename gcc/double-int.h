@@ -1,5 +1,5 @@
 /* Operations with long integers.
-   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -57,13 +57,16 @@ typedef struct
   HOST_WIDE_INT high;
 } double_int;
 
-union tree_node;
+#define HOST_BITS_PER_DOUBLE_INT (2 * HOST_BITS_PER_WIDE_INT)
 
 /* Constructors and conversions.  */
 
-union tree_node *double_int_to_tree (union tree_node *, double_int);
-bool double_int_fits_to_tree_p (const union tree_node *, double_int);
-double_int tree_to_double_int (const union tree_node *);
+tree double_int_to_tree (tree, double_int);
+bool double_int_fits_to_tree_p (const_tree, double_int);
+
+/* Constructs double_int from tree CST.  */
+
+#define tree_to_double_int(cst) (TREE_INT_CST (cst))
 
 /* Constructs double_int from integer CST.  The bits over the precision of
    HOST_WIDE_INT are filled with the sign bit.  */
@@ -127,7 +130,29 @@ double_int double_int_umod (double_int, double_int, unsigned);
 double_int double_int_divmod (double_int, double_int, bool, unsigned, double_int *);
 double_int double_int_sdivmod (double_int, double_int, unsigned, double_int *);
 double_int double_int_udivmod (double_int, double_int, unsigned, double_int *);
-bool double_int_negative_p (double_int);
+
+/* Logical operations.  */
+static inline double_int
+double_int_not (double_int a)
+{
+  a.low = ~a.low;
+  a.high = ~ a.high;
+  return a;
+}
+
+/* Shift operations.  */
+double_int double_int_lshift (double_int, HOST_WIDE_INT, unsigned int, bool);
+double_int double_int_rshift (double_int, HOST_WIDE_INT, unsigned int, bool);
+
+/* Returns true if CST is negative.  Of course, CST is considered to
+   be signed.  */
+
+static inline bool
+double_int_negative_p (double_int cst)
+{
+  return cst.high < 0;
+}
+
 int double_int_cmp (double_int, double_int, bool);
 int double_int_scmp (double_int, double_int);
 int double_int_ucmp (double_int, double_int);
@@ -177,6 +202,47 @@ double_int_equal_p (double_int cst1, double_int cst2)
 {
   return cst1.low == cst2.low && cst1.high == cst2.high;
 }
+
+
+/* Legacy interface with decomposed high/low parts.  */
+
+extern tree force_fit_type_double (tree, unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+				   int, bool);
+extern int fit_double_type (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+			    unsigned HOST_WIDE_INT *, HOST_WIDE_INT *,
+			    const_tree);
+extern int add_double_with_sign (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+				 unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+				 unsigned HOST_WIDE_INT *, HOST_WIDE_INT *,
+				 bool);
+#define add_double(l1,h1,l2,h2,lv,hv) \
+  add_double_with_sign (l1, h1, l2, h2, lv, hv, false)
+extern int neg_double (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+		       unsigned HOST_WIDE_INT *, HOST_WIDE_INT *);
+extern int mul_double_with_sign (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+				 unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+				 unsigned HOST_WIDE_INT *, HOST_WIDE_INT *,
+				 bool);
+#define mul_double(l1,h1,l2,h2,lv,hv) \
+  mul_double_with_sign (l1, h1, l2, h2, lv, hv, false)
+extern void lshift_double (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+			   HOST_WIDE_INT, unsigned int,
+			   unsigned HOST_WIDE_INT *, HOST_WIDE_INT *, bool);
+extern void rshift_double (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+			   HOST_WIDE_INT, unsigned int,
+			   unsigned HOST_WIDE_INT *, HOST_WIDE_INT *, bool);
+extern void lrotate_double (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+			    HOST_WIDE_INT, unsigned int,
+			    unsigned HOST_WIDE_INT *, HOST_WIDE_INT *);
+extern void rrotate_double (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+			    HOST_WIDE_INT, unsigned int,
+			    unsigned HOST_WIDE_INT *, HOST_WIDE_INT *);
+extern int div_and_round_double (unsigned, int, unsigned HOST_WIDE_INT,
+				 HOST_WIDE_INT, unsigned HOST_WIDE_INT,
+				 HOST_WIDE_INT, unsigned HOST_WIDE_INT *,
+				 HOST_WIDE_INT *, unsigned HOST_WIDE_INT *,
+				 HOST_WIDE_INT *);
+
 
 #ifndef GENERATOR_FILE
 /* Conversion to and from GMP integer representations.  */
