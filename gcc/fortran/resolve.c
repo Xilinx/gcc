@@ -5326,10 +5326,11 @@ get_declared_from_expr (gfc_ref **class_ref, gfc_ref **new_ref,
 }
 
 
-/* Resolve a CLASS typebound function, or 'method'.  */
+/* Resolve a typebound function, or 'method'. First separate all
+   the non-CLASS references by calling resolve_compcall directly.  */
 
 static gfc_try
-resolve_class_compcall (gfc_expr* e)
+resolve_typebound_function (gfc_expr* e)
 {
   gfc_symbol *declared;
   gfc_component *c;
@@ -5341,12 +5342,15 @@ resolve_class_compcall (gfc_expr* e)
   gfc_typespec ts;
 
   st = e->symtree;
+  if (st == NULL)
+    return resolve_compcall (e, NULL);
 
   /* Get the CLASS declared type.  */
   declared = get_declared_from_expr (&class_ref, &new_ref, e);
 
   /* Weed out cases of the ultimate component being a derived type.  */
-  if (class_ref && class_ref->u.c.component->ts.type == BT_DERIVED)
+  if ((class_ref && class_ref->u.c.component->ts.type == BT_DERIVED)
+	 || (!class_ref && st->n.sym->ts.type != BT_CLASS))
     {
       gfc_free_ref_list (new_ref);
       return resolve_compcall (e, NULL);
@@ -5396,9 +5400,12 @@ resolve_class_compcall (gfc_expr* e)
   return SUCCESS;
 }
 
-/* Resolve a CLASS typebound subroutine, or 'method'.  */
+/* Resolve a typebound subroutine, or 'method'. First separate all
+   the non-CLASS references by calling resolve_typebound_call
+   directly.  */
+
 static gfc_try
-resolve_class_typebound_call (gfc_code *code)
+resolve_typebound_subroutine (gfc_code *code)
 {
   gfc_symbol *declared;
   gfc_component *c;
@@ -5410,12 +5417,15 @@ resolve_class_typebound_call (gfc_code *code)
   gfc_typespec ts;
 
   st = code->expr1->symtree;
+  if (st == NULL)
+    return resolve_typebound_call (code, NULL);
 
   /* Get the CLASS declared type.  */
   declared = get_declared_from_expr (&class_ref, &new_ref, code->expr1);
 
   /* Weed out cases of the ultimate component being a derived type.  */
-  if (class_ref && class_ref->u.c.component->ts.type == BT_DERIVED)
+  if ((class_ref && class_ref->u.c.component->ts.type == BT_DERIVED)
+	 || (!class_ref && st->n.sym->ts.type != BT_CLASS))
     {
       gfc_free_ref_list (new_ref);
       return resolve_typebound_call (code, NULL);
@@ -5607,10 +5617,7 @@ gfc_resolve_expr (gfc_expr *e)
       break;
 
     case EXPR_COMPCALL:
-      if (e->symtree && e->symtree->n.sym->ts.type == BT_CLASS)
-	t = resolve_class_compcall (e);
-      else
-	t = resolve_compcall (e, NULL);
+      t = resolve_typebound_function (e);
       break;
 
     case EXPR_SUBSTRING:
@@ -8342,11 +8349,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 
 	case EXEC_COMPCALL:
 	compcall:
-	  if (code->expr1->symtree
-		&& code->expr1->symtree->n.sym->ts.type == BT_CLASS)
-	    resolve_class_typebound_call (code);
-	  else
-	    resolve_typebound_call (code, NULL);
+	  resolve_typebound_subroutine (code);
 	  break;
 
 	case EXEC_CALL_PPC:

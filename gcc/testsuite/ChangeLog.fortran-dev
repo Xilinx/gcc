@@ -1,3 +1,8 @@
+2010-04-21  Paul Thomas  <pault@gcc.gnu.org>
+
+        PR fortran/43326
+        * gfortran.dg/dynamic_dispatch_9.f03: New test.
+
 2010-04-21  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/43492

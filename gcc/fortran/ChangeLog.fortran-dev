@@ -1,3 +1,14 @@
+2010-04-21  Paul Thomas  <pault@gcc.gnu.org>
+
+        PR fortran/43326
+        * resolve.c (resolve_typebound_function): Renamed
+	resolve_class_compcall.Do all the detection of class references
+	here.
+        (resolve_typebound_subroutine): resolve_class_typebound_call
+        renamed. Otherwise same as resolve_typebound_function.
+        (gfc_resolve_expr): Call resolve_typebound_function.
+        (resolve_code): Call resolve_typebound_subroutine.
+
 2010-04-21  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/43492
