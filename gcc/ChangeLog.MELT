@@ -1,4 +1,8 @@
 2010-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_load_melt_module): Corrected typo in
+	error message, suggesting -fmelt-source-path...
+
+2010-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (load_checked_dynamic_module_index):
 	better error when bad modulnam.
 	all dlopen-s test than dypath is non empty.

@@ -5929,7 +5929,7 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
   tmpath = NULL;
   /* we didn't found the source */
   debugeprintf ("meltgc_load_melt_module cannot find source for mudule %s", dupmodulnam);
-  warning (0, "didn't find MELT module %s 's C source code; perhaps need -fmelt-srcpath=...", dupmodulnam);
+  warning (0, "didn't find MELT module %s 's C source code; perhaps need -fmelt-source-path=...", dupmodulnam);
   inform (UNKNOWN_LOCATION, "MELT temporary source path tried %s for C source code", 
 	  melt_tempdir_path (dupmodulnam, ".c"));
   {
