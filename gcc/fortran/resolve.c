@@ -5174,7 +5174,7 @@ resolve_typebound_generic_call (gfc_expr* e, const char **name)
 	      /* Pass along the name for CLASS methods, where the vtab
 		 procedure pointer component has to be referenced.  */
 	      if (name)
-		*name = target->name;
+		*name = g->specific_st->name;
 	      goto success;
 	    }
 	}

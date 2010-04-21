@@ -1,3 +1,10 @@
+2010-04-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/43492
+	* resolve.c (resolve_typebound_generic_call): For CLASS methods
+	pass back the specific symtree name, rather than the target
+	name.
+
 2010-04-18  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/42353
