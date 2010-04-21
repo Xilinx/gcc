@@ -2030,8 +2030,8 @@ scanning variables.}#
      FILE* dotfil = 
      fopen (melt_string_str ((melt_ptr_t) $DOTFILENAME), "w");
      if (!dotfil) 
-     fatal_error("failed to open matchdot file %s - %m", 
-                 melt_string_str ((melt_ptr_t) $DOTFILENAME));
+       melt_fatal_error ("failed to open matchdot file %s - %m", 
+			 melt_string_str ((melt_ptr_t) $DOTFILENAME));
      fprintf (dotfil, "// melt matchdot file %s\n", 
                       melt_string_str ((melt_ptr_t) $DOTFILENAME));
      time (&nowt);
@@ -4855,8 +4855,8 @@ the data of the $STEP with an extra context $CTX.}#
      FILE* dotfil = 
      fopen (melt_string_str ((melt_ptr_t) $DOTFILENAME), "w");
      if (!dotfil) 
-     fatal_error("failed to open matchdot file %s - %m", 
-                 melt_string_str ((melt_ptr_t) $DOTFILENAME));
+        melt_fatal_error ("failed to open matchdot file %s - %m", 
+		     melt_string_str ((melt_ptr_t) $DOTFILENAME));
      fprintf (dotfil, "// melt matchdot file %s\n", 
                       melt_string_str ((melt_ptr_t) $DOTFILENAME));
      time (&nowt);

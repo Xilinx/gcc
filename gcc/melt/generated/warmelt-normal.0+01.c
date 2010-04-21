@@ -7082,7 +7082,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /15cc78d8 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))== OBMAG_PAIR);
+  melt_assertmsg("putpairhead /38472b34 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))== OBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))->hd = (melt_ptr_t) (/*_.CBIND__V30*/ meltfptr[29]);
   ;
   /*^touch*/
@@ -36164,7 +36164,7 @@ lab_endgetargs:;
   ;
   MELT_LOCATION("warmelt-normal.melt:3437:/ putpairhead");
   /*putpairhead*/
-  melt_assertmsg("putpairhead /22445c4 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))== OBMAG_PAIR);
+  melt_assertmsg("putpairhead /298ffc44 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))== OBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))->hd = (melt_ptr_t) (/*_.CTUPBIND__V36*/ meltfptr[35]);
   ;
   /*^touch*/

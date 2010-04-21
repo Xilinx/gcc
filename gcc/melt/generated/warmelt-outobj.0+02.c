@@ -2542,6 +2542,8 @@ lab_endgetargs:;
  
  {
  MELT_LOCATION("warmelt-outobj.melt:2107:/ locexp");
+#ifndef MELTGCC_NOLINENUMBERING
+#endif /*MELTGCC_NOLINENUMBERING*/
  meltgc_add_strbuf((melt_ptr_t)(/*_.IMPLBUF__V4*/ meltfptr[3]), melt_string_str((melt_ptr_t)(/*_.CCOND__V10*/ meltfptr[9])));}
  ;
  
@@ -2593,6 +2595,8 @@ lab_endgetargs:;
  
  {
  MELT_LOCATION("warmelt-outobj.melt:2114:/ locexp");
+#ifndef MELTGCC_NOLINENUMBERING
+#endif /*MELTGCC_NOLINENUMBERING*/
  meltgc_add_strbuf((melt_ptr_t)(/*_.IMPLBUF__V4*/ meltfptr[3]), melt_string_str((melt_ptr_t)(/*_.CCOND__V10*/ meltfptr[9])));}
  ;
  
@@ -2970,6 +2974,8 @@ lab_endgetargs:;
  
  {
  MELT_LOCATION("warmelt-outobj.melt:2134:/ locexp");
+#ifndef MELTGCC_NOLINENUMBERING
+#endif /*MELTGCC_NOLINENUMBERING*/
  meltgc_add_strbuf((melt_ptr_t)(/*_.IMPLBUF__V4*/ meltfptr[3]), melt_string_str((melt_ptr_t)(/*_.NSY__V17*/ meltfptr[15])));}
  ;
  
@@ -3327,6 +3333,8 @@ lab_endgetargs:;
  
  {
  MELT_LOCATION("warmelt-outobj.melt:2157:/ locexp");
+#ifndef MELTGCC_NOLINENUMBERING
+#endif /*MELTGCC_NOLINENUMBERING*/
  meltgc_add_strbuf((melt_ptr_t)(/*_.IMPLBUF__V4*/ meltfptr[3]), melt_string_str((melt_ptr_t)(/*_.NSY__V15*/ meltfptr[13])));}
  ;
  
@@ -3729,6 +3737,8 @@ lab_endgetargs:;
  
  {
  MELT_LOCATION("warmelt-outobj.melt:2182:/ locexp");
+#ifndef MELTGCC_NOLINENUMBERING
+#endif /*MELTGCC_NOLINENUMBERING*/
  meltgc_add_strbuf((melt_ptr_t)(/*_.IMPLBUF__V4*/ meltfptr[3]), melt_string_str((melt_ptr_t)(/*_.NSY__V17*/ meltfptr[15])));}
  ;
  
@@ -4227,6 +4237,8 @@ lab_endgetargs:;
  
  {
  MELT_LOCATION("warmelt-outobj.melt:2219:/ locexp");
+#ifndef MELTGCC_NOLINENUMBERING
+#endif /*MELTGCC_NOLINENUMBERING*/
  meltgc_add_strbuf((melt_ptr_t)(/*_.IMPLBUF__V4*/ meltfptr[3]), melt_string_str((melt_ptr_t)(/*_.NKW__V17*/ meltfptr[15])));}
  ;
  
@@ -7142,6 +7154,8 @@ lab_endgetargs:;
  
  {
  MELT_LOCATION("warmelt-outobj.melt:2450:/ locexp");
+#ifndef MELTGCC_NOLINENUMBERING
+#endif /*MELTGCC_NOLINENUMBERING*/
  meltgc_add_strbuf_dec((melt_ptr_t)(/*_.IMPLBUF__V4*/ meltfptr[3]), (/*_#NBARG__L4*/ meltfnum[1]));}
  ;
  
@@ -12428,6 +12442,8 @@ lab_endgetargs:;
    
    {
    MELT_LOCATION("warmelt-outobj.melt:2838:/ locexp");
+#ifndef MELTGCC_NOLINENUMBERING
+#endif /*MELTGCC_NOLINENUMBERING*/
    meltgc_add_strbuf_cident((melt_ptr_t)(/*_.IMPLBUF__V4*/ meltfptr[3]),
   melt_string_str((melt_ptr_t)(/*_.COMM__V9*/ meltfptr[8])));}
    ;

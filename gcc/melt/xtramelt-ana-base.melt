@@ -1562,12 +1562,12 @@
 (defprimitive ppl_Constraint_System_insert_Constraint
  (:ppl_constraint_system consys :ppl_constraint cons) :void
 #{ if (ppl_Constraint_System_insert_Constraint ($consys, $cons)) 
-     fatal_error("ppl_Constraint_System_insert_Constraint failed"); }#)
+     melt_fatal_error("ppl_Constraint_System_insert_Constraint failed"); }#)
 
 (defprimitive ppl_Polyhedron_add_constraint 
 (:ppl_polyhedron poly :ppl_constraint cons) :void
 #{ if (ppl_Polyhedron_add_constraint(($poly), ($cons))) 
-     fatal_error("ppl_Polyhedron_add_constraint failed"); }#)
+     melt_fatal_error("ppl_Polyhedron_add_constraint failed"); }#)
 
 (defprimitive debug_ppl_coefficient
   (:cstring msg :ppl_coefficient coef) :void

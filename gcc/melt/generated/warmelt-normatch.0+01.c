@@ -13513,8 +13513,8 @@ lab_endgetargs:;
      FILE* dotfil = 
      fopen (melt_string_str ((melt_ptr_t) /*_.DOTFILENAME__V11*/ meltfptr[10]), "w");
      if (!dotfil) 
-     fatal_error("failed to open matchdot file %s - %m", 
-                 melt_string_str ((melt_ptr_t) /*_.DOTFILENAME__V11*/ meltfptr[10]));
+       melt_fatal_error ("failed to open matchdot file %s - %m", 
+			 melt_string_str ((melt_ptr_t) /*_.DOTFILENAME__V11*/ meltfptr[10]));
      fprintf (dotfil, "// melt matchdot file %s\n", 
                       melt_string_str ((melt_ptr_t) /*_.DOTFILENAME__V11*/ meltfptr[10]));
      time (&nowt);
@@ -14232,7 +14232,7 @@ lab_endgetargs:;
     
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /184165a checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V49*/ meltfptr[48]))== OBMAG_PAIR);
+    melt_assertmsg("putpairhead /a2ad9bb checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V49*/ meltfptr[48]))== OBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.CBIND__V49*/ meltfptr[48]))->hd = (melt_ptr_t) (/*_.CBIND__V41*/ meltfptr[40]);
     ;
     /*^touch*/

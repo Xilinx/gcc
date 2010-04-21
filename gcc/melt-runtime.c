@@ -72,6 +72,8 @@ along with GCC; see the file COPYING3.   If not see
 
 #include "melt-runtime.h"
 
+const char melt_runtime_build_date[] = __DATE__;
+
 /* the generating GGC marking routine */
 extern void gt_ggc_mx_melt_un (void *);
 
@@ -510,7 +512,7 @@ check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
   if (!ptr)
     return;
   if (!ptr->u_discr)
-    fatal_error
+    melt_fatal_error
       ("<%s#%ld> corrupted pointer %p (at %p) without discr at %s:%d", msg,
        count, (void *) ptr, (void *) pptr, lbasename (filenam), lineno);
   switch (ptr->u_discr->object_magic)
@@ -545,7 +547,7 @@ check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
     case ALL_OBMAG_SPECIAL_CASES:
       break;
     default:
-      fatal_error ("<%s#%ld> bad pointer %p (at %p) bad magic %d at %s:%d",
+      melt_fatal_error ("<%s#%ld> bad pointer %p (at %p) bad magic %d at %s:%d",
 		   msg, count, (void *) ptr, (void *) pptr,
 		   (int) ptr->u_discr->object_magic, lbasename (filenam),
 		   lineno);
@@ -590,6 +592,8 @@ void
 melt_check_call_frames_at (int noyoungflag, const char *msg,
 			      const char *filenam, int lineno)
 {
+  /* Don't call melt_fatal_error here, because if the MELT stack is
+     corrupted we can't show it! */
   struct callframe_melt_st *cfram = NULL;
   int nbfram = 0, nbvar = 0;
   nbcheckcallframes++;
@@ -2218,7 +2222,7 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 	  gcc_assert (newblen >= newsiz);
 	  gcc_assert (siz >= 0);
 	  if (newblen > MELT_MAXLEN)
-	    fatal_error ("strbuf overflow to %d bytes", newblen);
+	    melt_fatal_error ("strbuf overflow to %d bytes", newblen);
 	  /* the newly grown buffer is allocated in young memory if the
 	     previous was young, or in old memory if it was already old;
 	     but we have to deal with the rare case when the allocation
@@ -2615,18 +2619,18 @@ melt_output_strbuf_to_file (melt_ptr_t sbuf, const char*filnam)
   (void) remove (namdot);
   fil = fopen(namdot, "w");
   if (!fil)
-    fatal_error ("failed to open MELT output file %s [%s]",
+    melt_fatal_error ("failed to open MELT output file %s [%s]",
 			namdot, strerror(errno));
   if (fwrite (melt_strbuf_str (sbuf), (size_t) melt_strbuf_usedlength (sbuf),
 	      (size_t) 1, fil) <= 0)
-    fatal_error ("failed to write %d bytes into MELT output file %s [%s]",
+    melt_fatal_error ("failed to write %d bytes into MELT output file %s [%s]",
 		 melt_strbuf_usedlength (sbuf), namdot, strerror(errno));
   if (fclose (fil)) 
-    fatal_error ("failed to close MELT output file %s [%s]",
+    melt_fatal_error ("failed to close MELT output file %s [%s]",
 		 namdot, strerror(errno));
   fil = NULL;
   if (rename (namdot, filnam))
-    fatal_error ("failed to rename MELT output file from %s to %s [%s]",
+    melt_fatal_error ("failed to rename MELT output file from %s to %s [%s]",
 		 namdot, filnam, strerror(errno));
   free (namdot);
 }
@@ -4988,7 +4992,8 @@ melt_apply (meltclosure_ptr_t clos_p,
   if (appldepth_melt > MAXDEPTH_APPLY_MELT)
     {
       melt_dbgshortbacktrace ("too deep applications", 260);
-      fatal_error ("too deep (%d) melt applications", appldepth_melt);
+      /* Don't call melt_fatal_error, since the backtrace is already shown. */
+      fatal_error ("too deep (%d) MELT applications", appldepth_melt);
     }
 #endif
   if (melt_magic_discr ((melt_ptr_t) clos_p) != OBMAG_CLOSURE)
@@ -5188,7 +5193,7 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
       if (access (tmpdirstr, F_OK))
 	{
 	  if (mkdir (tmpdirstr, 0700))
-	    fatal_error ("failed to mkdir melt_tempdir %s - %m",
+	    melt_fatal_error ("failed to mkdir melt_tempdir %s - %m",
 			 tmpdirstr);
 	  made_tempdir_melt = true;
 	}
@@ -5231,7 +5236,7 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
 	    };
 	}
       if (!mkdirdone)
-	fatal_error ("failed to create temporary directory for MELT, last try was %s - %m", tempdir_melt);
+	melt_fatal_error ("failed to create temporary directory for MELT, last try was %s - %m", tempdir_melt);
     };
   return concat (tempdir_melt, "/", basnam, suffix, NULL);
 }
@@ -5309,16 +5314,16 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *binfile, const ch
   /* srcfile should be an existing .c file */
   if (srcfilelen<3 ||
       srcfile[srcfilelen-2] != '.' || srcfile[srcfilelen-1] != 'c')
-    fatal_error ("invalid MELT module primary source file %s (not a .c)",
+    melt_fatal_error ("invalid MELT module primary source file %s (not a .c)",
 		 srcfile);
   if (access (srcfile, R_OK))
-    fatal_error ("unreadable MELT module primary source file %s - %m",
+    melt_fatal_error ("unreadable MELT module primary source file %s - %m",
 		 srcfile);
   /* binfile should be a .so file */
   if (binfilelen<4
       || binfile[binfilelen-3] != '.'
       || binfile[binfilelen-2] != 's' || binfile[binfilelen-1] != 'o')
-    fatal_error ("invalid MELT module binary file %s (not a .so)", binfile);
+    melt_fatal_error ("invalid MELT module binary file %s (not a .so)", binfile);
 
   ourmakecommand = melt_argument ("module-make-command");
   if (!ourmakecommand || !ourmakecommand[0])
@@ -5416,7 +5421,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *binfile, const ch
 	memset (&workstat, 0, sizeof(workstat));
 	debugeprintf ("compile_gencsrc_to_binmodule handling workdir %s", workdir);
 	if (stat (workdir, &workstat) || (!S_ISDIR (workstat.st_mode), (errno = ENOTDIR) != 0))
-	  fatal_error ("invalid MELT module workspace directory %s - %m", workdir);
+	  melt_fatal_error ("invalid MELT module workspace directory %s - %m", workdir);
 	obstack_grow0 (&cmd_obstack, WORKSPACE_ARG, strlen (WORKSPACE_ARG));
 	if (!IS_ABSOLUTE_PATH(workdir)) {
 	  (void) obstack_add_escaped_path (&cmd_obstack, mycwd);
@@ -5434,7 +5439,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *binfile, const ch
     err = system (cmdstr);
     debugeprintf("compile_gencsrc_to_binmodule command got %d", err);
     if (err)
-      fatal_error ("MELT module compilation failed for command %s", cmdstr);
+      melt_fatal_error ("MELT module compilation failed for command %s", cmdstr);
     cmdstr = NULL;
     obstack_free (&cmd_obstack, NULL); /* free all the cmd_obstack */
     if (IS_ABSOLUTE_PATH (binfile))
@@ -5511,7 +5516,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *binfile, const ch
 	debugeprintf ("compile_gencsrc_to_binmodule handling workdir %s", workdir);
 	memset (&workstat, 0, sizeof(workstat));
 	if (stat (workdir, &workstat) || (!S_ISDIR (workstat.st_mode) && (errno = ENOTDIR) != 0))
-	  fatal_error ("invalid MELT module workspace directory %s - %m", workdir);
+	  melt_fatal_error ("invalid MELT module workspace directory %s - %m", workdir);
 	workarg = concat (WORKSPACE_ARG, workdir, NULL);
 	argv[argc++] = workarg;
 	debugeprintf ("compile_gencsrc_to_binmodule arg workarg %s", workarg);
@@ -5531,15 +5536,15 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *binfile, const ch
 	       CONST_CAST (char**, argv),
 	       NULL, NULL, &err);
     if (errmsg)
-      fatal_error
+      melt_fatal_error
 	("failed to melt compile to dyl: %s %s %s : %s",
 	 ourmakecommand, srcfile, binfile, errmsg);
     if (!pex_get_status (pex, 1, &cstatus))
-      fatal_error
+      melt_fatal_error
 	("failed to get status of melt dynamic compilation to dyl:  %s %s %s - %m",
 	 ourmakecommand, srcfile, binfile);
     if (!pex_get_times (pex, 1, &ptime))
-      fatal_error
+      melt_fatal_error
 	("failed to get time of melt dynamic compilation to dyl:  %s %s %s - %m",
 	 ourmakecommand, srcfile, binfile);
     pex_free (pex);
@@ -5950,11 +5955,11 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
       if (!srcfi)
 	/* this really should not happen, we checked with access before
 	   that the source file existed! */
-	fatal_error ("cannot open generated source file %s for MELT : %m",
-		     srcpath);
+	melt_fatal_error ("cannot open generated source file %s for MELT : %m",
+			  srcpath);
       memset (md5srctab, 0, sizeof (md5srctab));
       if (md5_stream (srcfi, &md5srctab))
-	fatal_error
+	melt_fatal_error
 	  ("failed to compute md5sum of generated source file %s for MELT",
 	   srcpath);
       md5src = md5srctab;
@@ -6080,7 +6085,7 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
     inform (UNKNOWN_LOCATION, 
 	    "not found dynamic stuff using srcpath %s", 
 	    srcpath);
-  fatal_error ("unable to continue since failed to load MELT module %s", 
+  melt_fatal_error ("unable to continue since failed to load MELT module %s", 
 	       dupmodulnam);
  dylibfound:
   debugeprintf ("dylibfound dlix=%d", dlix);
@@ -6300,15 +6305,15 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
   inform (UNKNOWN_LOCATION,
 	  "MELT tried to load module list %s from temporary directory %s",
 	  modlistbase, melt_tempdir_path("",""));
-  /* at last make a fatal error, because loading a module list is soo important! */
-  fatal_error ("MELT failed to load module list %s with a suffix of %s", modlistbase, MODLIS_SUFFIX);
+  /* at last make a fatal error, because loading a module list is so important! */
+  melt_fatal_error ("MELT failed to load module list %s with a suffix of %s", modlistbase, MODLIS_SUFFIX);
   goto end;
  loadit:
   debugeprintf ("meltgc_load_modulelist loadit modlistpath %s", modlistpath);
   filmod = fopen (modlistpath, "r");
   dbgprintf ("reading module list '%s'", modlistpath);
   if (!filmod)
-    fatal_error ("failed to open melt module list file %s - %m",
+    melt_fatal_error ("failed to open melt module list file %s - %m",
 		 modlistpath);
 #if ENABLE_CHECKING
   {
@@ -6325,7 +6330,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
       char *pc = 0;
       memset (linbuf, 0, sizeof (linbuf));
       if (!fgets (linbuf, sizeof (linbuf) - 1, filmod) && !feof(filmod))
-	fatal_error ("MELT failed to read from module list file %s - %m", modlistpath);
+	melt_fatal_error ("MELT failed to read from module list file %s - %m", modlistpath);
       pc = strchr (linbuf, '\n');
       if (pc)
 	*pc = (char) 0;
@@ -6362,13 +6367,15 @@ static struct obstack bstring_obstack;
 #define rdcurc() rd->rcurlin[rd->rcol]
 #define rdfollowc(Rk) rd->rcurlin[rd->rcol + (Rk)]
 #define rdeof() ((rd->rfil?feof(rd->rfil):1) && rd->rcurlin[rd->rcol]==0)
+
 #define READ_ERROR(Fmt,...)	do {					\
   if (rd->rcol>0)							\
     LINEMAP_POSITION_FOR_COLUMN (rd->rsrcloc, line_table, rd->rcol);	\
   error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);				\
-  fatal_error("MELT read failure <%s:%d>",				\
+  melt_fatal_error("MELT read failure <%s:%d>",				\
 	      lbasename(__FILE__), __LINE__);				\
 } while(0)
+
 /* readval returns the read value and sets *PGOT to true if something
    was read */
 static melt_ptr_t readval (struct reading_st *rd, bool * pgot);
@@ -6906,7 +6913,7 @@ meltgc_open_infix_file (const char* filnam)
   debugeprintf ("meltgc_open_infix_file filnamdup %s", filnamdup);
   fil = fopen (filnamdup, "rt");
   if (!fil)
-    fatal_error ("cannot open MELT infix file %s - %m", filnamdup);
+    melt_fatal_error ("cannot open MELT infix file %s - %m", filnamdup);
   /* warn if the filename has strange characters in its base name,
      notably + */
   {
@@ -6957,7 +6964,8 @@ meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimap_p)
   if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
     melt_dbgshortbacktrace ("unexpected call to MELT infix_lexeme" ,
 			    100);
-    fatal_error ("MELT infix_lexeme called outside of infix parsing.");
+    melt_fatal_error ("MELT infix_lexeme called outside of infix parsing (%s)",
+		      melt_string_str ((melt_ptr_t)locnamv));
   }
   if (melt_magic_discr ((melt_ptr_t) locnamv) != OBMAG_STRING)
     locnamv = 0;
@@ -7187,7 +7195,8 @@ meltgc_close_infix_file (void)
   if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
     melt_dbgshortbacktrace ("unexpected call to MELT close_infix_file" ,
 			    100);
-    fatal_error ("MELT close_infix_file called outside of infix parsing.");
+    melt_fatal_error ("MELT close_infix_file called outside of infix parsing (%p)",
+		      (void*)curinfixr);
   }
   if (curinfixr->infr_reading.rfil)
     fclose (curinfixr->infr_reading.rfil);
@@ -8227,7 +8236,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
   debugeprintf ("meltgc_read_file filnamdup %s locnam %s", filnamdup, locnam);
   fil = fopen (filnamdup, "rt");
   if (!fil)
-    fatal_error ("cannot open MELT file %s - %m", filnamdup);
+    melt_fatal_error ("cannot open MELT file %s - %m", filnamdup);
   /* warn if the filename has strange characters in its base name,
      notably + */
   {
@@ -8612,6 +8621,7 @@ load_melt_modules_and_do_mode (void)
 	/* the @@ notation means the initial module list; it should
 	   always be first. */
 	if (melt_nb_modules>0)
+	  /* Don't call melt_fatal_error, since nothing more to tell! */
 	  fatal_error ("MELT default module list should be loaded at first!");
 	modatv =
 	    meltgc_load_modulelist ((melt_ptr_t) modatv, 
@@ -8655,8 +8665,8 @@ load_melt_modules_and_do_mode (void)
       {
 	optname = optvalue = NULL;
 	if (!ISALPHA(*optc))
-	  fatal_error ("invalid MELT option name %s [should start with letter]",
-		       optc);
+	  melt_fatal_error ("invalid MELT option name %s [should start with letter]",
+			    optc);
 	optname = optc;
 	while (*optc && (ISALNUM(*optc) || *optc=='_' || *optc=='-'))
 	  optc++;
@@ -8717,7 +8727,7 @@ load_melt_modules_and_do_mode (void)
 	}
     }
   else if (modstr)
-    fatal_error ("melt with mode string %s without mode dispatcher",
+    melt_fatal_error ("melt with mode string %s without mode dispatcher",
 		 modstr);
   debugeprintf
     ("load_melt_modules_and_do_mode ended with %ld GarbColl, %ld fullGc",
@@ -8898,6 +8908,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 		 (melt_module_info_t *) 0);
   proghandle = dlopen (NULL, RTLD_NOW | RTLD_GLOBAL);
   if (!proghandle)
+    /* Don't call melt_fatal_error - we are initializing! */
     fatal_error ("melt failed to get whole program handle - %s",
 		 dlerror ());
   if (countdbgstr != (char *) 0)
@@ -8955,6 +8966,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   debugeprintf ("melt_really_initialize melt_module_dir=%s", melt_module_dir);
   debugeprintf ("melt_really_initialize inistr=%s", inistr);
   if (ppl_set_error_handler(melt_ppl_error_handler))
+    /* don't call melt_fatal_error since initializing! */
     fatal_error ("failed to set PPL handler");
   load_melt_modules_and_do_mode ();
   debugeprintf ("melt_really_initialize ended init=%s mode=%s",
@@ -8993,7 +9005,7 @@ do_finalize_melt (void)
       int nbdelfil = 0;
       struct dirent *dent = 0;
       if (!tdir)
-	fatal_error ("failed to open tempdir %s %m", tempdir_melt);
+	melt_fatal_error ("failed to open tempdir %s %m", tempdir_melt);
       dirvec = VEC_alloc (char_p, heap, 30);
       while ((dent = readdir (tdir)) != NULL)
 	{
@@ -9085,8 +9097,8 @@ melt_dynobjstruct_fieldoffset_at (const char *fldnam, const char *fil,
   nam = concat ("meltfieldoff__", fldnam, NULL);
   ptr = melt_dlsym_all (nam);
   if (!ptr)
-    fatal_error ("melt failed to find field offset %s - %s (%s:%d)", nam,
-		 dlerror (), fil, lin);
+    melt_fatal_error ("melt failed to find field offset %s - %s (%s:%d)", nam,
+		      dlerror (), fil, lin);
   free (nam);
   return (int *) ptr;
 }
@@ -9101,8 +9113,8 @@ melt_dynobjstruct_classlength_at (const char *clanam, const char *fil,
   nam = concat ("meltclasslen__", clanam, NULL);
   ptr = melt_dlsym_all (nam);
   if (!ptr)
-    fatal_error ("melt failed to find class length %s - %s (%s:%d)", nam,
-		 dlerror (), fil, lin);
+    melt_fatal_error ("melt failed to find class length %s - %s (%s:%d)", nam,
+		      dlerror (), fil, lin);
   free (nam);
   return (int *) ptr;
 }
@@ -9516,9 +9528,9 @@ melt_debug_out (struct debugprint_melt_st *dp,
     case OBMAG_MAPBASICBLOCKS:
     case OBMAG_MAPEDGES:
     case OBMAG_DECAY:
-      fatal_error ("debug_out unimplemented magic %d", mag);
+      melt_fatal_error ("debug_out unimplemented magic %d", mag);
     default:
-      fatal_error ("debug_out invalid magic %d", mag);
+      melt_fatal_error ("debug_out invalid magic %d", mag);
     }
 }
 
@@ -9649,7 +9661,7 @@ open_meltpp_file(void)
   meltppbuffer = xcalloc (1, meltppbufsiz);
   meltppfile = open_memstream (&meltppbuffer, &meltppsiz);
   if (!meltppfile)
-    fatal_error ("failed to open meltpp file in memory");
+    melt_fatal_error ("failed to open meltpp file in memory");
 #else
   if (!meltppfilename) 
     {
@@ -9667,11 +9679,11 @@ open_meltpp_file(void)
       if (tfd>=0)
 	meltppfilename = ourtempnamebuf;
       else
-	fatal_error ("melt temporary file: mkstemp %s failed", ourtempnamebuf);
+	melt_fatal_error ("melt temporary file: mkstemp %s failed", ourtempnamebuf);
 #else
       meltppfilename = make_temp_file (".meltmem");
       if (!meltppfilename)
-	fatal_error ("failed to get melt memory temporary file");
+	melt_fatal_error ("failed to get melt memory temporary file %s", strerror(errno));
 #endif
     }
   meltppfile = fopen (meltppfilename, "w+");
@@ -9694,7 +9706,8 @@ close_meltpp_file(void)
   rewind (meltppfile);
   meltppbuffer = (char*) xcalloc(1, meltppbufsiz);
   if (fread (meltppbuffer, meltppbufsiz, 1, meltppfile) <= 0)
-    fatal_error ("failed to re-read melt buffer temporary file");
+    melt_fatal_error ("failed to re-read melt buffer temporary file (%s)",
+		      strerror (errno));
   fclose (meltppfile);
 #endif
   meltppfile = NULL;
@@ -9983,6 +9996,7 @@ melt_make_ppl_coefficient_from_tree(tree tr)
   HOST_WIDE_INT lo=0, hi=0;
   ppl_Coefficient_t coef=NULL;
   mpz_t mp;
+  int err=0;
   if (!tr) return NULL;
   switch (TREE_CODE(tr)) {
   case INTEGER_CST:
@@ -10001,8 +10015,8 @@ melt_make_ppl_coefficient_from_tree(tree tr)
       mpz_add(mp, mp, mp2);
       mpz_clear(mp2);
     };
-    if (ppl_new_Coefficient_from_mpz_t (&coef, mp))
-      fatal_error("ppl_new_Coefficient_from_mpz_t failed");
+    if ((err=ppl_new_Coefficient_from_mpz_t (&coef, mp))!=0)
+      melt_fatal_error("ppl_new_Coefficient_from_mpz_t failed (%d)", err);
     mpz_clear(mp);
     return coef;
   default:
@@ -10016,10 +10030,11 @@ ppl_Coefficient_t
 melt_make_ppl_coefficient_from_long(long l)
 {
   ppl_Coefficient_t coef=NULL;
+  int err=0;
   mpz_t mp;
   mpz_init_set_si (mp, l);
-  if (ppl_new_Coefficient_from_mpz_t (&coef, mp))
-    fatal_error("ppl_new_Coefficient_from_mpz_t failed");
+  if ((err=ppl_new_Coefficient_from_mpz_t (&coef, mp))!=0)
+    melt_fatal_error("ppl_new_Coefficient_from_mpz_t failed (%d)", err);
   mpz_clear(mp);
   return coef;
 }
@@ -10046,7 +10061,7 @@ meltgc_new_ppl_constraint_system(melt_ptr_t discr_p, bool unsatisfiable)
   else
     err = ppl_new_Constraint_System_zero_dim_empty(&spec_resv->val.sp_constraint_system);
   if (err) 
-    fatal_error("PPL new Constraint System failed in Melt"); 
+    melt_fatal_error("PPL new Constraint System failed in Melt (%d)", err); 
  end:
   MELT_EXITFRAME();
   return (melt_ptr_t)resv;
@@ -10078,7 +10093,7 @@ meltgc_clone_ppl_constraint_system (melt_ptr_t ppl_p)
   if (oldconsys)
     err = ppl_new_Constraint_System_from_Constraint_System(&newconsys, oldconsys);
   if (err) 
-    fatal_error("PPL clone Constraint System failed in Melt");
+    melt_fatal_error("PPL clone Constraint System failed in Melt (%d)", err);
   spec_resv->val.sp_constraint_system = newconsys;
  end:
   MELT_EXITFRAME();
@@ -10095,6 +10110,7 @@ meltgc_clone_ppl_constraint_system (melt_ptr_t ppl_p)
 void
 melt_insert_ppl_constraint_in_boxed_system(ppl_Constraint_t cons, melt_ptr_t ppl_p) 
 {
+  int err=0;
   MELT_ENTERFRAME(3, NULL);
 #define pplv   meltfram__.varptr[0]
 #define spec_pplv ((struct meltspecial_st*)(pplv))
@@ -10103,9 +10119,9 @@ melt_insert_ppl_constraint_in_boxed_system(ppl_Constraint_t cons, melt_ptr_t ppl
       || melt_magic_discr((melt_ptr_t)pplv) != OBMAG_SPECPPL_CONSTRAINT_SYSTEM)
     goto end;
   if (spec_pplv->val.sp_constraint_system
-      && ppl_Constraint_System_insert_Constraint (spec_pplv->val.sp_constraint_system,
-						  cons))
-    fatal_error("failed to ppl_Constraint_System_insert_Constraint");
+      && (err=ppl_Constraint_System_insert_Constraint (spec_pplv->val.sp_constraint_system,
+						       cons))!=0)
+    melt_fatal_error("failed to ppl_Constraint_System_insert_Constraint (%d)", err);
  end:
   MELT_EXITFRAME();
 #undef pplv
@@ -10118,8 +10134,9 @@ ppl_Polyhedron_t
 melt_make_ppl_NNC_Polyhedron_from_Constraint_System(ppl_Constraint_System_t consys)
 {
   ppl_Polyhedron_t poly = NULL;
-  if (ppl_new_NNC_Polyhedron_from_Constraint_System(&poly, consys))
-    fatal_error("melt_make_ppl_NNC_Polyhedron_from_Constraint_System failed");
+  int err=0;
+  if ((err=ppl_new_NNC_Polyhedron_from_Constraint_System(&poly, consys))!=0)
+    melt_fatal_error("melt_make_ppl_NNC_Polyhedron_from_Constraint_System failed (%d)", err);
   return poly;
 }
 
@@ -10142,8 +10159,10 @@ meltgc_new_ppl_polyhedron(melt_ptr_t discr_p, ppl_Polyhedron_t poly, bool cloned
   spec_resv->val.sp_pointer = NULL;
   if (cloned && poly)
     {
-      if (ppl_new_NNC_Polyhedron_from_NNC_Polyhedron(&spec_resv->val.sp_polyhedron, poly))
-	fatal_error("failed to ppl_new_NNC_Polyhedron_from_NNC_Polyhedron");
+      int err=0;
+      if ((err=ppl_new_NNC_Polyhedron_from_NNC_Polyhedron(&spec_resv->val.sp_polyhedron, poly))
+	  !=0)
+	melt_fatal_error("failed to ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (%d)", err);
     }
   else
     spec_resv->val.sp_polyhedron = poly;
@@ -10161,8 +10180,9 @@ ppl_Linear_Expression_t
 melt_make_ppl_linear_expression(void)
 {
   ppl_Linear_Expression_t liex = NULL;
-  if (ppl_new_Linear_Expression(&liex))
-    fatal_error("melt_make_ppl_linear_expression failed");
+  int err=0;
+  if ((err=ppl_new_Linear_Expression(&liex))!=0)
+    melt_fatal_error("melt_make_ppl_linear_expression failed (%d)", err);
   return liex;
 }
 
@@ -10215,7 +10235,7 @@ meltgc_new_ppl_linear_expression(melt_ptr_t discr_p)
   spec_resv->val.sp_pointer = NULL;
   err = ppl_new_Linear_Expression(&spec_resv->val.sp_linear_expression);
   if (err) 
-    fatal_error("PPL new Linear Expression failed in Melt"); 
+    melt_fatal_error("PPL new Linear Expression failed in Melt (%d)", err); 
  end:
   MELT_EXITFRAME();
   return (melt_ptr_t)resv;
@@ -10342,36 +10362,36 @@ meltgc_ppstrbuf_ppl_varnamvect (melt_ptr_t sbuf_p, int indentsp, melt_ptr_t ppl_
   case OBMAG_SPECPPL_COEFFICIENT:
     if (ppl_io_asprint_Coefficient(&ppstr, 
 				   spec_pplv->val.sp_coefficient))
-      fatal_error("failed to ppl_io_asprint_Coefficient");
+      melt_fatal_error("failed to ppl_io_asprint_Coefficient %s", ppstr?ppstr:"?");
     break;
   case OBMAG_SPECPPL_LINEAR_EXPRESSION:
     if (ppl_io_asprint_Linear_Expression(&ppstr,
 					 spec_pplv->val.sp_linear_expression))
-      fatal_error("failed to ppl_io_asprint_Linear_Expression");
+      melt_fatal_error("failed to ppl_io_asprint_Linear_Expression %s", ppstr?ppstr:"?");
     break;
   case OBMAG_SPECPPL_CONSTRAINT:
     if (ppl_io_asprint_Constraint(&ppstr, 
 				  spec_pplv->val.sp_constraint))
-      fatal_error("failed to ppl_io_asprint_Constraint");
+      melt_fatal_error("failed to ppl_io_asprint_Constraint %s", ppstr?ppstr:"?");
     break;
   case OBMAG_SPECPPL_CONSTRAINT_SYSTEM:
     if (ppl_io_asprint_Constraint_System(&ppstr, 
 					 spec_pplv->val.sp_constraint_system))
-      fatal_error("failed to ppl_io_asprint_Constraint_System");
+      melt_fatal_error("failed to ppl_io_asprint_Constraint_System %s", ppstr?ppstr:"?");
     break;
   case OBMAG_SPECPPL_GENERATOR:
     if (ppl_io_asprint_Generator(&ppstr, spec_pplv->val.sp_generator))
-      fatal_error("failed to ppl_io_asprint_Generator");
+      melt_fatal_error("failed to ppl_io_asprint_Generator %s", ppstr?ppstr:"?");
     break;
   case OBMAG_SPECPPL_GENERATOR_SYSTEM:
     if (ppl_io_asprint_Generator_System(&ppstr, 
 					spec_pplv->val.sp_generator_system))
-      fatal_error("failed to ppl_io_asprint_Generator_System");
+      melt_fatal_error("failed to ppl_io_asprint_Generator_System %s", ppstr?ppstr:"?");
     break;
   case OBMAG_SPECPPL_POLYHEDRON:
     if (ppl_io_asprint_Polyhedron(&ppstr, 
 					spec_pplv->val.sp_polyhedron))
-      fatal_error("failed to ppl_io_asprint_Polyhedron");
+      melt_fatal_error("failed to ppl_io_asprint_Polyhedron %s", ppstr?ppstr:"?");
     break;
   default:
     {
@@ -10383,7 +10403,7 @@ meltgc_ppstrbuf_ppl_varnamvect (melt_ptr_t sbuf_p, int indentsp, melt_ptr_t ppl_
     break;
   }
   if (!ppstr) 
-    fatal_error("ppl_io_asprint_* gives a null string pointer");
+    melt_fatal_error("ppl_io_asprint_* gives a null string pointer mag=%d", mag);
   /* in the resulting ppstr, replace each newline with appropriate
      indentation */
   {
@@ -10440,7 +10460,7 @@ static void melt_ppl_error_handler(enum ppl_enum_error_code err, const char* des
     error("Melt PPL unexpected error: %s", descr);
     return;
   default:
-    fatal_error("Melt unexpected PPL error #%d - %s", err, descr);
+    melt_fatal_error("Melt unexpected PPL error #%d - %s", err, descr);
   }
 }
 
@@ -10517,7 +10537,7 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
   /* we first write in the temporary name */
   cfil = fopen (dotempnam, "w");
   if (!cfil)
-    fatal_error ("failed to open melt generated file %s - %m", dotempnam);
+    melt_fatal_error ("failed to open melt generated file %s - %m", dotempnam);
   fprintf (cfil,
 	   "/* GCC MELT GENERATED FILE %s - DO NOT EDIT */\n", dotcnam);
   if (filrank <= 0)
@@ -10563,7 +10583,7 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
   /* reopen the dotempnam and the dotcnam files to compare their content */
   cfil = fopen (dotempnam, "r");
   if (!cfil) 
-    fatal_error ("failed to re-open melt generated file %s - %m", dotempnam);
+    melt_fatal_error ("failed to re-open melt generated file %s - %m", dotempnam);
   oldfil = fopen (dotcnam, "r");
   /* we compare oldfil & cfil; if they are the same we don't overwrite
      the oldfil; this is for the happiness of make utility. */
@@ -10596,8 +10616,8 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
       /* Rare case when the generated file is the same as what existed
 	 in the filesystem, so discard the generated temporary file. */
     if (remove (dotempnam))
-      fatal_error ("failed to remove %s as melt generated file - %m",
-		   dotempnam);
+      melt_fatal_error ("failed to remove %s as melt generated file - %m",
+			dotempnam);
     if (IS_ABSOLUTE_PATH(dotcnam))
     inform (UNKNOWN_LOCATION, "MELT generated same file %s", dotcnam);
     else
@@ -10611,7 +10631,7 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
 	 and rename the new temporary foo.c%_12_34 as foo.c */
       (void) rename (dotcnam, dotcpercentnam);
       if (rename (dotempnam, dotcnam))
-	fatal_error ("failed to rename %s as %s melt generated file - %m",
+	melt_fatal_error ("failed to rename %s as %s melt generated file - %m",
 		     dotempnam, dotcnam);
       if (IS_ABSOLUTE_PATH (dotcnam))
 	inform (UNKNOWN_LOCATION, "MELT generated new file %s",	dotcnam);
@@ -10633,8 +10653,6 @@ void
 melt_assert_failed (const char *msg, const char *filnam,
 		       int lineno, const char *fun)
 {
-  int ix = 0;
-  melt_module_info_t *mi = 0;
   time_t nowt = 0;
   static char msgbuf[600];
   if (!msg)
@@ -10650,9 +10668,28 @@ melt_assert_failed (const char *msg, const char *filnam,
   else
     snprintf (msgbuf, sizeof (msgbuf) - 1, "%s:%d: MELT ASSERT: %s {%s}",
 	      lbasename (filnam), lineno, fun, msg);
-  melt_dbgshortbacktrace (msgbuf, 100);
   time (&nowt);
-  error ("MELT assert failed:: %s", msgbuf);
+  melt_fatal_info (filnam, lineno);
+  /* don't call melt_fatal_error here! */
+  fatal_error ("%s:%d: MELT ASSERT FAILED <%s> : %s\n @ %s\n",
+		    lbasename (filnam), lineno, fun, msg, ctime (&nowt));
+}
+
+
+/* Should usually be called from melt_fatal_error macro... */
+void
+melt_fatal_info (const char*filename, int lineno)
+{
+  int ix = 0;
+  melt_module_info_t* mi=0;
+  if (filename != NULL && lineno>0)
+    error ("MELT fatal failure from %s:%d [MELT built %s]", filename, lineno, melt_runtime_build_date);
+  else
+    error ("MELT fatal failure without location [MELT built %s]", melt_runtime_build_date);
+  fflush (NULL);
+#if ENABLE_CHECKING
+  melt_dbgshortbacktrace ("MELT fatal failure", 100);
+#endif
   if (modinfvec) 
     for (ix = 0; VEC_iterate (melt_module_info_t, modinfvec, ix, mi); ix++)
       {
@@ -10660,8 +10697,7 @@ melt_assert_failed (const char *msg, const char *filnam,
 	  continue;
 	error ("MELT failure with loaded module #%d: %s", ix, mi->modpath);
       };
-  fatal_error ("%s:%d: MELT ASSERT FAILED <%s> : %s\n @ %s\n",
-	       lbasename (filnam), lineno, fun, msg, ctime (&nowt));
+  fflush (NULL);
 }
 
 void
@@ -11331,7 +11367,8 @@ meltgc_register_pass (melt_ptr_t pass_p,
     posop = PASS_POS_INSERT_BEFORE;
   else if (!strcasecmp(positioning,"replace"))
     posop = PASS_POS_REPLACE;
-  else fatal_error("invalid positioning string %s in MELT pass", positioning);
+  else
+    melt_fatal_error("invalid positioning string %s in MELT pass", positioning);
   if (!passv || melt_object_length((melt_ptr_t) passv) < FGCCPASS__LAST
       || !melt_is_instance_of((melt_ptr_t) passv, 
 			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_PASS)))
@@ -11450,7 +11487,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
   }
   /* non simple ipa passes are a different story - TODO! */
   else 
-    fatal_error ("MELT cannot register pass %s of unexpected class %s",
+    melt_fatal_error ("MELT cannot register pass %s of unexpected class %s",
 		 melt_string_str ((melt_ptr_t) namev), 
 		 melt_string_str (melt_object_nth_field 
 				  ((melt_ptr_t) melt_discr((melt_ptr_t) passv), 

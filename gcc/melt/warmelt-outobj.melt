@@ -3540,7 +3540,8 @@
      check_errors_after_normalization
      #{ 
      if (melt_error_counter>0) 
-     fatal_error ("MELT translation of %s halted after normalization: got %ld MELT errors", melt_string_str($modnamstr), melt_error_counter) ;
+        melt_fatal_error ("MELT translation of %s halted after normalization: got %ld MELT errors", 
+			  melt_string_str($MODNAMSTR), melt_error_counter) ;
      }#)
     (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
 	   (objlist (make_list discr_list))
@@ -3564,9 +3565,10 @@
       ;;
       (code_chunk 
        check_errors_after_compilation
-       #{ 
+       #{ /*$check_errors_after_compilation*/
        if (melt_error_counter>0) 
-       fatal_error ("MELT translation of %s halted after MELT compilation: got %ld MELT errors",  melt_string_str($modnamstr), melt_error_counter) ;
+         melt_fatal_error ("MELT translation of %s halted after MELT compilation: got %ld MELT errors",
+			   melt_string_str($modnamstr), melt_error_counter) ;
        }#)
       ;;
       (debug_msg objlist "compile_list_sexpr objlist")  
@@ -3667,10 +3669,10 @@
 	;;
       (code_chunk 
          check_errors_after_generation
-	 #{ 
+	 #{ /*$check_errors_after_generation*/
 	 if (melt_error_counter>0) 
-	    fatal_error ("MELT translation of %s halted after generation: got %ld MELT errors",  
-			 melt_string_str($modnamstr), melt_error_counter);
+	    melt_fatal_error ("MELT translation of %s halted after generation: got %ld MELT errors",  
+			      melt_string_str($modnamstr), melt_error_counter);
 	 }#)
   (message_dbg "ended compile_list_sexpr")
   )

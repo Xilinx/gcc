@@ -57,6 +57,13 @@ along with GCC; see the file COPYING3.   If not see
 /* we include toplev.h for the error routines */
 #include "toplev.h"
 
+extern const char melt_runtime_build_date[];
+
+extern void melt_fatal_info (const char*filename, int lineno);
+
+#define melt_fatal_error(Fmt,...) do{ melt_fatal_info (__FILE__,__LINE__); \
+    fatal_error ((Fmt),##__VA_ARGS__); }while(0)
+
 #define dbgprintf_raw(Fmt,...) do{if (dump_file) \
       {fprintf(dump_file, Fmt, ##__VA_ARGS__); fflush(dump_file);}}while(0)
 #define dbgprintf(Fmt,...) dbgprintf_raw("@%s:%d: " Fmt "\n", \
@@ -1814,9 +1821,9 @@ melt_putfield_object_at(melt_ptr_t ob, unsigned off, melt_ptr_t val, const char*
 	pob->obj_vartab[off] = val;
 	return;
       }
-      fatal_error("checked field put failed (bad offset %d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, fil, lin, msg?msg:"...");
+      melt_fatal_error("checked field put failed (bad offset %d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, fil, lin, msg?msg:"...");
     }
-  fatal_error("checked field put failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");
+  melt_fatal_error("checked field put failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");
 }
 
 static inline melt_ptr_t
@@ -2452,8 +2459,9 @@ meltgc_ppstrbuf_ppl_varnamvect (melt_ptr_t sbuf_p, int indentsp, melt_ptr_t ppl_
 static inline ppl_Constraint_System_t 
 melt_raw_new_ppl_empty_constraint_system (void) {
   ppl_Constraint_System_t consys= NULL;
-  if (ppl_new_Constraint_System(&consys))
-    fatal_error("melt_raw_new_ppl_empty_constraint_system failed");
+  int err=0;
+  if ((err=ppl_new_Constraint_System(&consys))!=0)
+    melt_fatal_error("melt_raw_new_ppl_empty_constraint_system failed (%d)", err);
   return consys;
 }
 
@@ -2461,8 +2469,9 @@ melt_raw_new_ppl_empty_constraint_system (void) {
 static inline ppl_Constraint_System_t 
 melt_raw_new_ppl_unsatisfiable_constraint_system (void) {
   ppl_Constraint_System_t consys= NULL;
-  if (ppl_new_Constraint_System_zero_dim_empty(&consys))
-    fatal_error("melt_raw_new_ppl_unsatisfiable_constraint_system failed");
+  int err=0;
+  if ((err=ppl_new_Constraint_System_zero_dim_empty(&consys))!=0)
+    melt_fatal_error("melt_raw_new_ppl_unsatisfiable_constraint_system failed (%d)", err);
   return consys;
 }
 
@@ -2470,8 +2479,9 @@ melt_raw_new_ppl_unsatisfiable_constraint_system (void) {
 static inline ppl_Constraint_System_t 
 melt_raw_clone_ppl_consstraint_system (ppl_Constraint_System_t oldconsys) {
   ppl_Constraint_System_t consys= NULL;
-  if (ppl_new_Constraint_System_from_Constraint_System(&consys, oldconsys))
-    fatal_error("melt_raw_clone_ppl_consstraint_system failed");
+  int err=0;
+  if ((err=ppl_new_Constraint_System_from_Constraint_System(&consys, oldconsys))!=0)
+    melt_fatal_error("melt_raw_clone_ppl_consstraint_system failed (%d)", err);
   return consys;
 }
 
