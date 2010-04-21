@@ -1,3 +1,5 @@
+2010-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gcc_update: force LANG & LC_ALL to C locale
 
 2010-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-source-tar.sh: added file.

@@ -37,6 +37,9 @@
 # contrib/gcc_update --touch
 # contrib/gcc_update --list
 
+## this script dont work well in French locale, so
+LANG=C
+LC_ALL=C
 
 # SVN command
 GCC_SVN=${GCC_SVN-${SVN-svn}}
