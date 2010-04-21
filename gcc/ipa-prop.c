@@ -1260,6 +1260,10 @@ ipa_edge_removal_hook (struct cgraph_edge *cs, void *data ATTRIBUTE_UNUSED)
 static void
 ipa_node_removal_hook (struct cgraph_node *node, void *data ATTRIBUTE_UNUSED)
 {
+  /* During IPA-CP updating we can be called on not-yet analyze clones.  */
+  if (VEC_length (ipa_node_params_t, ipa_node_params_vector)
+      <= (unsigned)node->uid)
+    return;
   ipa_free_node_params_substructures (IPA_NODE_REF (node));
 }
 
@@ -1700,7 +1704,7 @@ ipa_modify_call_arguments (struct cgraph_edge *cs, gimple stmt,
 	      if (!useless_type_conversion_p (ptrtype, TREE_TYPE (expr)))
 		expr = fold_convert (ptrtype, expr);
 	      expr = fold_build2 (POINTER_PLUS_EXPR, ptrtype, expr,
-				  build_int_cst (size_type_node,
+				  build_int_cst (sizetype,
 						 adj->offset / BITS_PER_UNIT));
 	      if (!adj->by_ref)
 		expr = fold_build1 (INDIRECT_REF, adj->type, expr);
