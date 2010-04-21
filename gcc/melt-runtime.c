@@ -5609,7 +5609,8 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   char hbuf[4];
   dypathlen = dypath?strlen(dypath):0;
   debugeprintf ("load_check_dynamic_module_index dypath=%s md5src=%s", dypath, md5src);
-  dlh = (void *) dlopen (dypath, RTLD_NOW | RTLD_GLOBAL);
+  if (dypath && dypath[0])
+    dlh = (void *) dlopen (dypath, RTLD_NOW | RTLD_GLOBAL);
   debugeprintf ("load_check_dynamic_module_index dlh=%p dypath=%s", dlh, dypath);
   if (dlh)
     dypathdup = xstrdup(dypath);
@@ -5618,7 +5619,8 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
       && (dypath[dypathlen-3]!='.' || dypath[dypathlen-2]!='s' || dypath[dypathlen-1]!='o'))
     {
       char* dypathso = concat(dypath, ".so", NULL);
-      dlh = (void *) dlopen (dypathso, RTLD_NOW | RTLD_GLOBAL);
+      if (dypathso && dypathso[0])
+	dlh = (void *) dlopen (dypathso, RTLD_NOW | RTLD_GLOBAL);
       if (dlh)
 	dypathdup = dypathso;
       else
@@ -5845,7 +5847,8 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
   }
   debugeprintf("meltgc_load_melt_module modulnam %s", modulnam);
   if (!ISALNUM(modulnam[0]) && modulnam[0] != '_')
-    error ("bad MELT module name %s to load", modulnam);
+    error ("bad MELT module name %s to load, should start with alphanumerical character", 
+	   modulnam);
   /* always check the module name */
   {
     const char* p = 0;
@@ -5988,7 +5991,11 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
       tmpath = lookup_path (modpathstr, dupmodulnam, ".so");
       MELT_LOCATION_HERE
 	("meltgc_load_melt_module before load_checked_dylib pathed");
-      dlix = load_checked_dynamic_module_index (tmpath, md5src);
+      debugeprintf ("meltgc_load_melt_module tmpath %s", tmpath);
+      if (tmpath)
+	dlix = load_checked_dynamic_module_index (tmpath, md5src);
+      else
+	dlix = -1;
       debugeprintf ("meltgc_load_melt_module dlix=%d dynlib tmpath=%s", dlix,
 		    tmpath);
       if (dlix > 0)

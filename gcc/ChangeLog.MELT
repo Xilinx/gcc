@@ -1,4 +1,9 @@
 2010-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (load_checked_dynamic_module_index):
+	better error when bad modulnam.
+	all dlopen-s test than dypath is non empty.
+
+2010-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_fatal_error): Added new macro which calls
 	melt_fatal_info..
 	(melt_fatal_info,melt_runtime_build_date): Added declaration.
