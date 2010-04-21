@@ -1,3 +1,11 @@
+2010-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (struct melt_module_info_st): Added modpath
+	field.
+	(load_checked_dynamic_module_index): Added dypathdup to fill the
+	modpath field in melt_module_info_t.
+	(melt_assert_failed): Show all the loaded modules thru error
+	messages.
+
 2010-04-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* common.opt: -fmelt=<mode> is deprecated and replaced by
 	-fmelt-mode=<mode>.

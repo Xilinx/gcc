@@ -151,6 +151,7 @@ static long melt_fullthresholdkilow = 0;
 typedef struct melt_module_info_st
 {
   void *dlh;			/* dlopen handle */
+  char* modpath;		/* strdup-ed file path passed to dlopen */
   void **iniframp;		/* initial frame pointer adress */
   void (*marker_rout) (void *);	/* marking routine of initial frame */
   melt_ptr_t (*start_rout) (melt_ptr_t);	/* start routine */
@@ -5591,6 +5592,7 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   int dypathlen = 0;
   char *dynmd5 = NULL;
   char *dynversion = NULL;
+  char* dypathdup = NULL; /* the strdup-ed path stored in the module info */
   void *dlh = NULL;
   char *dyncomptimstamp = NULL;
   typedef melt_ptr_t startroutine_t (melt_ptr_t);
@@ -5604,13 +5606,18 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   debugeprintf ("load_check_dynamic_module_index dypath=%s md5src=%s", dypath, md5src);
   dlh = (void *) dlopen (dypath, RTLD_NOW | RTLD_GLOBAL);
   debugeprintf ("load_check_dynamic_module_index dlh=%p dypath=%s", dlh, dypath);
+  if (dlh)
+    dypathdup = xstrdup(dypath);
   /* Try to append .so if needed ... */
-  if (!dlh && dypathlen>3 
+  else if (!dlh && dypathlen>3 
       && (dypath[dypathlen-3]!='.' || dypath[dypathlen-2]!='s' || dypath[dypathlen-1]!='o'))
     {
       char* dypathso = concat(dypath, ".so", NULL);
       dlh = (void *) dlopen (dypathso, RTLD_NOW | RTLD_GLOBAL);
-      free (dypathso);
+      if (dlh)
+	dypathdup = dypathso;
+      else
+	free (dypathso);
     }
   if (!dlh) 
     {
@@ -5714,8 +5721,9 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
 	}
     }
   {
-    melt_module_info_t minf = { 0, 0, 0, 0 };
+    melt_module_info_t minf = { 0, 0, 0, 0, 0 };
     minf.dlh = dlh;
+    minf.modpath = dypathdup;
     minf.iniframp = PTR_UNION_AS_CAST_PTR (iniframe_up);
     minf.marker_rout = PTR_UNION_AS_CAST_PTR (markrout_uf);
     minf.start_rout = PTR_UNION_AS_CAST_PTR (startrout_uf);
@@ -5729,7 +5737,10 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
 bad:
   debugeprintf ("load_checked_dynamic_module_index failed dlerror:%s",
 		dlerror ());
-  dlclose ((void *) dlh);
+  if (dypathdup)
+    free (dypathdup);
+  if (dlh)
+    dlclose ((void *) dlh);
   return 0;
 }
 
@@ -10622,6 +10633,8 @@ void
 melt_assert_failed (const char *msg, const char *filnam,
 		       int lineno, const char *fun)
 {
+  int ix = 0;
+  melt_module_info_t *mi = 0;
   time_t nowt = 0;
   static char msgbuf[600];
   if (!msg)
@@ -10639,6 +10652,14 @@ melt_assert_failed (const char *msg, const char *filnam,
 	      lbasename (filnam), lineno, fun, msg);
   melt_dbgshortbacktrace (msgbuf, 100);
   time (&nowt);
+  error ("MELT assert failed:: %s", msgbuf);
+  if (modinfvec) 
+    for (ix = 0; VEC_iterate (melt_module_info_t, modinfvec, ix, mi); ix++)
+      {
+	if (!mi || !mi->dlh || !mi->modpath)
+	  continue;
+	error ("MELT failure with loaded module #%d: %s", ix, mi->modpath);
+      };
   fatal_error ("%s:%d: MELT ASSERT FAILED <%s> : %s\n @ %s\n",
 	       lbasename (filnam), lineno, fun, msg, ctime (&nowt));
 }
