@@ -349,9 +349,14 @@ extern char microblaze_hard_regno_mode_ok[][FIRST_PSEUDO_REGISTER];
 
 #define NO_FUNCTION_CSE                 1
 
+#if 0
+/* REVISIT : Appears that PIC_ADDR_REGNUM is always a fixed register */
 #define PIC_OFFSET_TABLE_REGNUM         \
         (flag_pic ? (GP_REG_FIRST + MB_ABI_PIC_ADDR_REGNUM) : \
         INVALID_REGNUM)
+#else
+#define PIC_OFFSET_TABLE_REGNUM   (GP_REG_FIRST + MB_ABI_PIC_ADDR_REGNUM)
+#endif
 
 enum reg_class
 {
@@ -563,17 +568,16 @@ typedef struct microblaze_args
   (GET_CODE (X) == LABEL_REF || GET_CODE (X) == SYMBOL_REF		\
     || GET_CODE (X) == CONST_INT 		                        \
     || (GET_CODE (X) == CONST						\
-	&& ! (flag_pic && pic_address_needs_scratch (X))))
+	&& ! (flag_pic && pic_address_needs_scratch (X))))               
 
 /* Define this, so that when PIC, reload won't try to reload invalid
    addresses which require two reload registers.  */
-#define LEGITIMATE_PIC_OPERAND_P(X)  microblaze_legitimate_pic_operand (X)
+#define LEGITIMATE_PIC_OPERAND_P(X)  (legitimate_pic_operand_p(X))
 
 /* At present, GAS doesn't understand li.[sd], so don't allow it
    to be generated at present.  */
 #define LEGITIMATE_CONSTANT_P(X)				\
-  (GET_CODE (X) != CONST_DOUBLE					\
-    || microblaze_const_double_ok (X, GET_MODE (X)))
+   (legitimate_const_operand_p(X))
 
 #define CASE_VECTOR_MODE			(SImode)
 
