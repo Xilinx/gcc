@@ -67,6 +67,7 @@
 						GET_CODE (p1) == LABEL_REF) &&
 					      GET_CODE(p1) == CONST_INT )
 					  {
+						/* REVISIT: Should be arith_plus_operand ? */
 						return arith_operand (p0, GET_MODE(p0));
 					  }
 				}
