@@ -3807,7 +3807,7 @@ ipa_tm_create_version (struct cgraph_node *old_node)
   record_tm_clone_pair (old_decl, new_decl);
 
   cgraph_call_function_insertion_hooks (new_node);
-  if (new_node->local.externally_visible)
+  if (old_node->needed)
     cgraph_mark_needed_node (new_node);
 }
 

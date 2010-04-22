@@ -1,3 +1,8 @@
+2010-04-22  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_create_version): Mark as needed if original
+	node is needed.
+
 2010-04-14  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (tm_log_emit_save_or_restores): Remove unused
