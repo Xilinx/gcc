@@ -1,5 +1,12 @@
 2010-04-22  Aldy Hernandez  <aldyh@redhat.com>
 
+	* trans-mem.c (diagnose_tm_1): Include function name when
+	displaying error.
+	(ipa_tm_diagnose_tm_safe): Same.
+	(ipa_tm_diagnose_transaction): Same.
+
+2010-04-22  Aldy Hernandez  <aldyh@redhat.com>
+
 	* trans-mem.c (ipa_tm_create_version): Mark as needed if original
 	node is needed.
 

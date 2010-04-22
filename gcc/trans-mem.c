@@ -568,13 +568,16 @@ diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 
 	    if (!is_safe)
 	      {
+		if (TREE_CODE (fn) == ADDR_EXPR)
+		  fn = TREE_OPERAND (fn, 0);
 		if (d->block_flags & DIAG_TM_SAFE)
 		  error_at (gimple_location (stmt),
-			    "unsafe function call within atomic transaction");
+			    "unsafe function call %qE within "
+			    "atomic transaction", fn);
 		else
 		  error_at (gimple_location (stmt),
-			    "unsafe function call within "
-			    "%<transaction_safe%> function");
+			    "unsafe function call %qE within "
+			    "%<transaction_safe%> function", fn);
 	      }
 	  }
       }
@@ -3645,7 +3648,8 @@ ipa_tm_diagnose_tm_safe (struct cgraph_node *node)
     if (!is_tm_callable (e->callee->decl)
 	&& e->callee->local.tm_may_enter_irr)
       error_at (gimple_location (e->call_stmt),
-		"unsafe function call within %<transaction_safe%> function");
+		"unsafe function call %qE within "
+		"%<transaction_safe%> function", e->callee->decl);
 }
 
 /* Diagnose call from atomic transactions to unmarked functions
@@ -3704,7 +3708,8 @@ ipa_tm_diagnose_transaction (struct cgraph_node *node,
 
 	      if (cgraph_local_info (fndecl)->tm_may_enter_irr)
 		error_at (gimple_location (stmt),
-			  "unsafe function call within atomic transaction");
+			  "unsafe function call %qE within "
+			  "atomic transaction", fndecl);
 	    }
 
 	VEC_free (basic_block, heap, bbs);
