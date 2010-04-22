@@ -37,14 +37,17 @@
 # contrib/gcc_update --touch
 # contrib/gcc_update --list
 
-## this script dont work well in French locale, so
-LANG=C
-LC_ALL=C
 
 # SVN command
 GCC_SVN=${GCC_SVN-${SVN-svn}}
 # Default options used when updating via SVN (none).
 UPDATE_OPTIONS=""
+
+# Set the locale to C to make this script work for users with foreign
+# locale like e.g. French UTF-8.
+LANG=C
+LC_ALL=C
+export LANG LC_ALL
 
 ######## Anything below shouldn't be changed by regular users.
 
