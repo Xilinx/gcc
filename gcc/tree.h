@@ -457,6 +457,9 @@ struct GTY(()) tree_common {
 
        CALL_CANNOT_INLINE_P in
            CALL_EXPR
+ 
+       ENUM_IS_SCOPED in
+	   ENUMERAL_TYPE
 
    public_flag:
 
@@ -500,6 +503,9 @@ struct GTY(()) tree_common {
            OMP_PARALLEL
        OMP_CLAUSE_PRIVATE_OUTER_REF in
 	   OMP_CLAUSE_PRIVATE
+
+       TYPE_REF_IS_RVALUE in
+	   REFERENCE_TYPE
 
    protected_flag:
 
@@ -1162,6 +1168,9 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 /* Used to mark a CALL_EXPR as not suitable for inlining.  */
 #define CALL_CANNOT_INLINE_P(NODE) (CALL_EXPR_CHECK (NODE)->base.static_flag)
 
+/* Used to mark scoped enums.  */
+#define ENUM_IS_SCOPED(NODE) (ENUMERAL_TYPE_CHECK (NODE)->base.static_flag)
+
 /* In an expr node (usually a conversion) this means the node was made
    implicitly and should not lead to any sort of warning.  In a decl node,
    warnings concerning the decl should be suppressed.  This is used at
@@ -1340,6 +1349,10 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 #define TREE_PRIVATE(NODE) ((NODE)->base.private_flag)
 /* Used in classes in C++. */
 #define TREE_PROTECTED(NODE) ((NODE)->base.protected_flag)
+
+/* True if reference type NODE is a C++ rvalue reference.  */
+#define TYPE_REF_IS_RVALUE(NODE) \
+  (REFERENCE_TYPE_CHECK (NODE)->base.private_flag)
 
 /* Nonzero in a _DECL if the use of the name is defined as a
    deprecated feature by __attribute__((deprecated)).  */
@@ -3972,7 +3985,7 @@ extern tree make_unsigned_type (int);
 extern tree signed_or_unsigned_type_for (int, tree);
 extern tree signed_type_for (tree);
 extern tree unsigned_type_for (tree);
-extern void initialize_sizetypes (bool);
+extern void initialize_sizetypes (void);
 extern void set_sizetype (tree);
 extern void fixup_unsigned_type (tree);
 extern tree build_pointer_type_for_mode (tree, enum machine_mode, bool);
@@ -4986,7 +4999,7 @@ extern int real_onep (const_tree);
 extern int real_twop (const_tree);
 extern int real_minus_onep (const_tree);
 extern void init_ttree (void);
-extern void build_common_tree_nodes (bool, bool);
+extern void build_common_tree_nodes (bool);
 extern void build_common_tree_nodes_2 (int);
 extern void build_common_builtin_nodes (void);
 extern tree build_nonstandard_integer_type (unsigned HOST_WIDE_INT, int);

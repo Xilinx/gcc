@@ -74,7 +74,6 @@ framework extensions, you must include this file before toplev.h, not after.
       BASELINK_QUALIFIED_P (in BASELINK)
       TARGET_EXPR_IMPLICIT_P (in TARGET_EXPR)
       TEMPLATE_PARM_PARAMETER_PACK (in TEMPLATE_PARM_INDEX)
-      TYPE_REF_IS_RVALUE (in REFERENCE_TYPE)
       ATTR_IS_DEPENDENT (in the TREE_LIST for an attribute)
       CONSTRUCTOR_IS_DIRECT_INIT (in CONSTRUCTOR)
       LAMBDA_EXPR_CAPTURES_THIS_P (in LAMBDA_EXPR)
@@ -121,7 +120,6 @@ framework extensions, you must include this file before toplev.h, not after.
    3: TYPE_FOR_JAVA.
    4: TYPE_HAS_NONTRIVIAL_DESTRUCTOR
    5: CLASS_TYPE_P (in RECORD_TYPE and UNION_TYPE)
-      SCOPED_ENUM_P (in ENUMERAL_TYPE)
    6: TYPE_DEPENDENT_P_VALID
 
    Usage of DECL_LANG_FLAG_?:
@@ -3036,17 +3034,17 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 
      - The underlying type of the enum is well-defined.  */
 #define SCOPED_ENUM_P(TYPE)                                             \
-  (TREE_CODE (TYPE) == ENUMERAL_TYPE && TYPE_LANG_FLAG_5 (TYPE))
+  (TREE_CODE (TYPE) == ENUMERAL_TYPE && ENUM_IS_SCOPED (TYPE))
 
 /* Determine whether this is an unscoped enumeration type.  */
 #define UNSCOPED_ENUM_P(TYPE)                                           \
-  (TREE_CODE (TYPE) == ENUMERAL_TYPE && !TYPE_LANG_FLAG_5 (TYPE))
+  (TREE_CODE (TYPE) == ENUMERAL_TYPE && !ENUM_IS_SCOPED (TYPE))
 
 /* Set the flag indicating whether an ENUMERAL_TYPE is a C++0x scoped
    enumeration type (1) or a normal (unscoped) enumeration type
    (0).  */
 #define SET_SCOPED_ENUM_P(TYPE, VAL)                    \
-  (TYPE_LANG_FLAG_5 (ENUMERAL_TYPE_CHECK (TYPE)) = (VAL))
+  (ENUM_IS_SCOPED (TYPE) = (VAL))
 
 /* Returns the underlying type of the given enumeration type. The
    underlying type is determined in different ways, depending on the
@@ -3200,10 +3198,6 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    in ascending tree code order.  */
 #define TYPE_REF_OBJ_P(NODE)					\
   (TREE_CODE (NODE) == REFERENCE_TYPE && TYPE_OBJ_P (TREE_TYPE (NODE)))
-
-/* True if reference type NODE is an rvalue reference */
-#define TYPE_REF_IS_RVALUE(NODE) \
-  TREE_LANG_FLAG_0 (REFERENCE_TYPE_CHECK (NODE))
 
 /* Returns true if NODE is a pointer to an object, or a pointer to
    void.  Keep these checks in ascending tree code order.  */

@@ -1146,7 +1146,7 @@ cgraph_mark_functions_to_output (void)
 	 outside the current compilation unit.  */
       if (node->analyzed
 	  && !node->global.inlined_to
-	  && (node->needed
+	  && (node->needed || node->reachable_from_other_partition
 	      || (e && node->reachable))
 	  && !TREE_ASM_WRITTEN (decl)
 	  && !DECL_EXTERNAL (decl))
@@ -1173,6 +1173,10 @@ cgraph_mark_functions_to_output (void)
 #ifdef ENABLE_CHECKING
 	  if (!node->global.inlined_to
 	      && gimple_has_body_p (decl)
+	      /* FIXME: in ltrans unit when offline copy is outside partition but inline copies
+		 are inside partition, we can end up not removing the body since we no longer
+		 have analyzed node pointing to it.  */
+	      && !node->in_other_partition
 	      && !DECL_EXTERNAL (decl))
 	    {
 	      dump_cgraph_node (stderr, node);
@@ -1181,6 +1185,7 @@ cgraph_mark_functions_to_output (void)
 #endif
 	  gcc_assert (node->global.inlined_to
 		      || !gimple_has_body_p (decl)
+		      || node->in_other_partition
 		      || DECL_EXTERNAL (decl));
 
 	}
@@ -1194,6 +1199,10 @@ cgraph_mark_functions_to_output (void)
 	  tree decl = node->decl;
 	  if (!node->global.inlined_to
 	      && gimple_has_body_p (decl)
+	      /* FIXME: in ltrans unit when offline copy is outside partition but inline copies
+		 are inside partition, we can end up not removing the body since we no longer
+		 have analyzed node pointing to it.  */
+	      && !node->in_other_partition
 	      && !DECL_EXTERNAL (decl))
 	    {
 	      dump_cgraph_node (stderr, node);
@@ -2276,6 +2285,7 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
 
   gsi = gsi_for_stmt (e->call_stmt);
   gsi_replace (&gsi, new_stmt, true);
+  update_stmt (new_stmt);
 
   /* Update EH information too, just in case.  */
   maybe_clean_or_replace_eh_stmt (e->call_stmt, new_stmt);
@@ -2379,6 +2389,7 @@ cgraph_materialize_all_clones (void)
         push_cfun (DECL_STRUCT_FUNCTION (node->decl));
 	for (e = node->callees; e; e = e->next_callee)
 	  cgraph_redirect_edge_call_stmt_to_callee (e);
+	gcc_assert (!need_ssa_update_p (cfun));
 	pop_cfun ();
 	current_function_decl = NULL;
 #ifdef ENABLE_CHECKING
