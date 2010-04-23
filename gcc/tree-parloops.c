@@ -1952,8 +1952,8 @@ parallelize_loops (void)
       if (!try_create_reduction_list (loop, reduction_list))
 	continue;
 
-      if (!flag_loop_parallelize_all && !loop_parallel_p (loop,
-							  &parloop_obstack))
+      if (!flag_loop_parallelize_all
+	  && !loop_parallel_p (loop, &parloop_obstack))
 	continue;
 
       changed = true;

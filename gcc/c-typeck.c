@@ -6658,9 +6658,10 @@ pop_init_level (int implicit, struct obstack * braced_init_obstack)
       /* When we come to an explicit close brace,
 	 pop any inner levels that didn't have explicit braces.  */
       while (constructor_stack->implicit)
-	process_init_element (pop_init_level (1, braced_init_obstack), true,
-			      braced_init_obstack);
-
+	{
+	  process_init_element (pop_init_level (1, braced_init_obstack),
+				true, braced_init_obstack);
+	}
       gcc_assert (!constructor_range_stack);
     }
 
@@ -6829,8 +6830,10 @@ set_designator (int array, struct obstack * braced_init_obstack)
       /* Designator list starts at the level of closest explicit
 	 braces.  */
       while (constructor_stack->implicit)
-	process_init_element (pop_init_level (1, braced_init_obstack), true,
-			      braced_init_obstack);
+	{
+	  process_init_element (pop_init_level (1, braced_init_obstack),
+				true, braced_init_obstack);
+	}
       constructor_designated = 1;
       return 0;
     }
@@ -6896,7 +6899,8 @@ push_range_stack (tree range_end, struct obstack * braced_init_obstack)
    of indices, running from FIRST through LAST.  */
 
 void
-set_init_index (tree first, tree last, struct obstack * braced_init_obstack)
+set_init_index (tree first, tree last,
+		struct obstack * braced_init_obstack)
 {
   if (set_designator (1, braced_init_obstack))
     return;
@@ -7263,7 +7267,10 @@ set_nonincremental_init (struct obstack * braced_init_obstack)
     return;
 
   FOR_EACH_CONSTRUCTOR_ELT (constructor_elements, ix, index, value)
-    add_pending_init (index, value, NULL_TREE, false, braced_init_obstack);
+    {
+      add_pending_init (index, value, NULL_TREE, false,
+			braced_init_obstack);
+    }
   constructor_elements = 0;
   if (TREE_CODE (constructor_type) == RECORD_TYPE)
     {
@@ -7354,7 +7361,8 @@ set_nonincremental_init_from_string (tree str,
 	}
 
       value = build_int_cst_wide (type, val[1], val[0]);
-      add_pending_init (purpose, value, NULL_TREE, false, braced_init_obstack);
+      add_pending_init (purpose, value, NULL_TREE, false,
+			braced_init_obstack);
     }
 
   constructor_incremental = 0;
@@ -7557,7 +7565,8 @@ output_init_element (tree value, tree origtype, bool strict_string, tree type,
 	  && tree_int_cst_lt (field, constructor_unfilled_index))
 	set_nonincremental_init (braced_init_obstack);
 
-      add_pending_init (field, value, origtype, implicit, braced_init_obstack);
+      add_pending_init (field, value, origtype, implicit,
+			braced_init_obstack);
       return;
     }
   else if (TREE_CODE (constructor_type) == RECORD_TYPE
@@ -7583,7 +7592,8 @@ output_init_element (tree value, tree origtype, bool strict_string, tree type,
 	    }
 	}
 
-      add_pending_init (field, value, origtype, implicit, braced_init_obstack);
+      add_pending_init (field, value, origtype, implicit,
+			braced_init_obstack);
       return;
     }
   else if (TREE_CODE (constructor_type) == UNION_TYPE
@@ -7645,7 +7655,6 @@ output_init_element (tree value, tree origtype, bool strict_string, tree type,
 
    If ALL is 1, we output space as necessary so that
    we can output all the pending elements.  */
-
 static void
 output_pending_init_elements (int all, struct obstack * braced_init_obstack)
 {
@@ -7723,7 +7732,8 @@ output_pending_init_elements (int all, struct obstack * braced_init_obstack)
 	      constructor_unfilled_fields = elt->purpose;
 	      output_init_element (elt->value, elt->origtype, true,
 				   TREE_TYPE (elt->purpose),
-				   elt->purpose, 0, false, braced_init_obstack);
+				   elt->purpose, 0, false,
+				   braced_init_obstack);
 	    }
 	  else if (tree_int_cst_lt (ctor_unfilled_bitpos, elt_bitpos))
 	    {
@@ -7836,15 +7846,15 @@ process_init_element (struct c_expr value, bool implicit,
       if ((TREE_CODE (constructor_type) == RECORD_TYPE
 	   || TREE_CODE (constructor_type) == UNION_TYPE)
 	  && constructor_fields == 0)
-	process_init_element (pop_init_level (1, braced_init_obstack), true,
-			      braced_init_obstack);
+	process_init_element (pop_init_level (1, braced_init_obstack),
+			      true, braced_init_obstack);
       else if ((TREE_CODE (constructor_type) == ARRAY_TYPE
 	        || TREE_CODE (constructor_type) == VECTOR_TYPE)
 	       && (constructor_max_index == 0
 		   || tree_int_cst_lt (constructor_max_index,
 				       constructor_index)))
-	process_init_element (pop_init_level (1, braced_init_obstack), true,
-			      braced_init_obstack);
+	process_init_element (pop_init_level (1, braced_init_obstack),
+			      true, braced_init_obstack);
       else
 	break;
     }
@@ -8131,7 +8141,8 @@ process_init_element (struct c_expr value, bool implicit,
 	  if (value.value)
 	    output_init_element (value.value, value.original_type,
 				 strict_string, constructor_type,
-				 NULL_TREE, 1, implicit, braced_init_obstack);
+				 NULL_TREE, 1, implicit,
+				 braced_init_obstack);
 	  constructor_fields = 0;
 	}
 
@@ -8147,7 +8158,8 @@ process_init_element (struct c_expr value, bool implicit,
 	  while (constructor_stack != range_stack->stack)
 	    {
 	      gcc_assert (constructor_stack->implicit);
-	      process_init_element (pop_init_level (1, braced_init_obstack),
+	      process_init_element (pop_init_level (1,
+						    braced_init_obstack),
 				    true, braced_init_obstack);
 	    }
 	  for (p = range_stack;

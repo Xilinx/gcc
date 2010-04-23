@@ -36,7 +36,7 @@ lambda_matrix_new (int m, int n, struct obstack * lambda_obstack)
   int i;
 
   mat = (lambda_matrix) obstack_alloc (lambda_obstack,
-                                       sizeof (lambda_vector *) * m);
+				       sizeof (lambda_vector *) * m);
 
   for (i = 0; i < m; i++)
     mat[i] = lambda_vector_new (n);

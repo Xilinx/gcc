@@ -150,11 +150,13 @@ static lambda_lattice lambda_lattice_compute_base (lambda_loopnest,
 
 static bool can_convert_to_perfect_nest (struct loop *);
 
-static
-lambda_loop lambda_loop_new (struct obstack * lambda_obstack)
+/* Create a new lambda loop in LAMBDA_OBSTACK.  */
+
+static lambda_loop
+lambda_loop_new (struct obstack * lambda_obstack)
 {
-  lambda_loop result = (lambda_loop) obstack_alloc (lambda_obstack,
-						    sizeof (struct lambda_loop_s));
+  lambda_loop result = (lambda_loop)
+    obstack_alloc (lambda_obstack, sizeof (struct lambda_loop_s));
   memset (result, 0, sizeof (struct lambda_loop_s));
   return result;
 }
@@ -166,7 +168,8 @@ lambda_body_vector_new (int size, struct obstack * lambda_obstack)
 {
   lambda_body_vector ret;
 
-  ret = (lambda_body_vector) obstack_alloc (lambda_obstack, sizeof (*ret));
+  ret = (lambda_body_vector) obstack_alloc (lambda_obstack,
+					    sizeof (*ret));
   LBV_COEFFICIENTS (ret) = lambda_vector_new (size);
   LBV_SIZE (ret) = size;
   LBV_DENOMINATOR (ret) = 1;
@@ -993,8 +996,9 @@ lambda_compute_target_space (lambda_loopnest auxillary_nest,
    result.  */
 
 static lambda_vector
-lambda_compute_step_signs (lambda_trans_matrix trans, lambda_vector stepsigns,
-			   struct obstack * lambda_obstack)
+lambda_compute_step_signs (lambda_trans_matrix trans,
+                           lambda_vector stepsigns,
+                           struct obstack * lambda_obstack)
 {
   lambda_matrix matrix, H;
   int size;
@@ -1094,11 +1098,13 @@ lambda_loopnest_transform (lambda_loopnest nest, lambda_trans_matrix trans,
 
   /* Compute the auxiliary loop nest's space from the unimodular
      portion.  */
-  auxillary_nest = lambda_compute_auxillary_space (nest, U, lambda_obstack);
+  auxillary_nest = lambda_compute_auxillary_space (nest, U,
+						   lambda_obstack);
 
   /* Compute the loop step signs from the old step signs and the
      transformation matrix.  */
-  stepsigns = lambda_compute_step_signs (trans1, stepsigns, lambda_obstack);
+  stepsigns = lambda_compute_step_signs (trans1, stepsigns,
+					 lambda_obstack);
 
   /* Compute the target loop nest space from the auxiliary nest and
      the lower triangular matrix H.  */
@@ -2813,7 +2819,8 @@ av_for_af (tree access_fun, lambda_vector cy, struct access_matrix *am)
 
 static bool
 build_access_matrix (data_reference_p data_reference,
-		     VEC (tree, heap) *parameters, VEC (loop_p, heap) *nest,
+		     VEC (tree, heap) *parameters,
+		     VEC (loop_p, heap) *nest,
 		     struct obstack * lambda_obstack)
 {
   struct access_matrix *am = (struct access_matrix *)

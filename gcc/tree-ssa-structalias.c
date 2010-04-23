@@ -1705,7 +1705,8 @@ do_sd_constraint (constraint_graph_t graph, constraint_t c,
 	     the set.  Use ESCAPED as representative instead.  */
 	  else if (v->id == escaped_id)
 	    flag |= bitmap_set_bit (sol, escaped_id);
-	  else if (add_graph_edge (graph, lhs, t))
+	  else if (v->may_have_pointers
+		   && add_graph_edge (graph, lhs, t))
 	    flag |= bitmap_ior_into (sol, get_varinfo (t)->solution);
 
 	  /* If the variable is not exactly at the requested offset
@@ -1744,6 +1745,7 @@ do_ds_constraint (constraint_t c, bitmap delta)
   unsigned int j;
   bitmap_iterator bi;
   HOST_WIDE_INT loff = c->lhs.offset;
+  bool escaped_p = false;
 
   /* Our IL does not allow this.  */
   gcc_assert (c->rhs.offset == 0);
@@ -1790,22 +1792,6 @@ do_ds_constraint (constraint_t c, bitmap delta)
       unsigned int t;
       HOST_WIDE_INT fieldoffset = v->offset + loff;
 
-      /* If v is a global variable then this is an escape point.  */
-      if (v->is_global_var)
-	{
-	  t = find (escaped_id);
-	  if (add_graph_edge (graph, t, rhs)
-	      && bitmap_ior_into (get_varinfo (t)->solution, sol)
-	      && !TEST_BIT (changed, t))
-	    {
-	      SET_BIT (changed, t);
-	      changed_count++;
-	    }
-	}
-
-      if (v->is_special_var)
-	continue;
-
       if (v->is_full_var)
 	fieldoffset = v->offset;
       else if (loff != 0)
@@ -1818,6 +1804,25 @@ do_ds_constraint (constraint_t c, bitmap delta)
 	{
 	  if (v->may_have_pointers)
 	    {
+	      /* If v is a global variable then this is an escape point.  */
+	      if (v->is_global_var
+		  && !escaped_p)
+		{
+		  t = find (escaped_id);
+		  if (add_graph_edge (graph, t, rhs)
+		      && bitmap_ior_into (get_varinfo (t)->solution, sol)
+		      && !TEST_BIT (changed, t))
+		    {
+		      SET_BIT (changed, t);
+		      changed_count++;
+		    }
+		  /* Enough to let rhs escape once.  */
+		  escaped_p = true;
+		}
+
+	      if (v->is_special_var)
+		break;
+
 	      t = find (v->id);
 	      if (add_graph_edge (graph, t, rhs)
 		  && bitmap_ior_into (get_varinfo (t)->solution, sol)
@@ -2884,6 +2889,16 @@ process_constraint (constraint_t t)
   /* ADDRESSOF on the lhs is invalid.  */
   gcc_assert (lhs.type != ADDRESSOF);
 
+  /* We shouldn't add constraints from things that cannot have pointers.
+     It's not completely trivial to avoid in the callers, so do it here.  */
+  if (rhs.type != ADDRESSOF
+      && !get_varinfo (rhs.var)->may_have_pointers)
+    return;
+
+  /* Likewise adding to the solution of a non-pointer var isn't useful.  */
+  if (!get_varinfo (lhs.var)->may_have_pointers)
+    return;
+
   /* This can happen in our IR with things like n->a = *p */
   if (rhs.type == DEREF && lhs.type == DEREF && rhs.var != anything_id)
     {
@@ -3400,7 +3415,19 @@ do_structure_copy (tree lhsop, tree rhsop)
   if (lhsp->type == DEREF
       || (lhsp->type == ADDRESSOF && lhsp->var == anything_id)
       || rhsp->type == DEREF)
-    process_all_all_constraints (lhsc, rhsc);
+    {
+      if (lhsp->type == DEREF)
+	{
+	  gcc_assert (VEC_length (ce_s, lhsc) == 1);
+	  lhsp->offset = UNKNOWN_OFFSET;
+	}
+      if (rhsp->type == DEREF)
+	{
+	  gcc_assert (VEC_length (ce_s, rhsc) == 1);
+	  rhsp->offset = UNKNOWN_OFFSET;
+	}
+      process_all_all_constraints (lhsc, rhsc);
+    }
   else if (lhsp->type == SCALAR
 	   && (rhsp->type == SCALAR
 	       || rhsp->type == ADDRESSOF))
@@ -5907,13 +5934,7 @@ dump_sa_points_to_info (FILE *outfile)
     {
       varinfo_t vi = get_varinfo (i);
       if (!vi->may_have_pointers)
-	{
-	  gcc_assert (find (i) == i
-		      || !(vi = get_varinfo (find (i)))->may_have_pointers);
-	  /* ???  See create_variable_info_for.
-	     gcc_assert (bitmap_empty_p (vi->solution));  */
-	  continue;
-	}
+	continue;
       dump_solution_for_var (outfile, i);
     }
 }
@@ -5952,6 +5973,8 @@ init_base_vars (void)
   var_nothing->size = ~0;
   var_nothing->fullsize = ~0;
   var_nothing->is_special_var = 1;
+  var_nothing->may_have_pointers = 0;
+  var_nothing->is_global_var = 0;
 
   /* Create the ANYTHING variable, used to represent that a variable
      points to some unknown piece of memory.  */

@@ -5279,7 +5279,6 @@ expand_builtin_signbit (tree exp, rtx target)
 {
   const struct real_format *fmt;
   enum machine_mode fmode, imode, rmode;
-  HOST_WIDE_INT hi, lo;
   tree arg;
   int word, bitpos;
   enum insn_code icode;
@@ -5355,21 +5354,12 @@ expand_builtin_signbit (tree exp, rtx target)
 
   if (bitpos < GET_MODE_BITSIZE (rmode))
     {
-      if (bitpos < HOST_BITS_PER_WIDE_INT)
-	{
-	  hi = 0;
-	  lo = (HOST_WIDE_INT) 1 << bitpos;
-	}
-      else
-	{
-	  hi = (HOST_WIDE_INT) 1 << (bitpos - HOST_BITS_PER_WIDE_INT);
-	  lo = 0;
-	}
+      double_int mask = double_int_setbit (double_int_zero, bitpos);
 
       if (GET_MODE_SIZE (imode) > GET_MODE_SIZE (rmode))
 	temp = gen_lowpart (rmode, temp);
       temp = expand_binop (rmode, and_optab, temp,
-			   immed_double_const (lo, hi, rmode),
+			   immed_double_int_const (mask, rmode),
 			   NULL_RTX, 1, OPTAB_LIB_WIDEN);
     }
   else
@@ -7047,6 +7037,77 @@ fold_builtin_cabs (location_t loc, tree arg, tree type, tree fndecl)
 
 	  return build_call_expr_loc (loc, sqrtfn, 1, result);
 	}
+    }
+
+  return NULL_TREE;
+}
+
+/* Build a complex (inf +- 0i) for the result of cproj.  TYPE is the
+   complex tree type of the result.  If NEG is true, the imaginary
+   zero is negative.  */
+
+static tree
+build_complex_cproj (tree type, bool neg)
+{
+  REAL_VALUE_TYPE rinf, rzero = dconst0;
+  
+  real_inf (&rinf);
+  rzero.sign = neg;
+  return build_complex (type, build_real (TREE_TYPE (type), rinf),
+			build_real (TREE_TYPE (type), rzero));
+}
+
+/* Fold call to builtin cproj, cprojf or cprojl with argument ARG.  TYPE is the
+   return type.  Return NULL_TREE if no simplification can be made.  */
+
+static tree
+fold_builtin_cproj (location_t loc, tree arg, tree type)
+{
+  if (!validate_arg (arg, COMPLEX_TYPE)
+      || TREE_CODE (TREE_TYPE (TREE_TYPE (arg))) != REAL_TYPE)
+    return NULL_TREE;
+
+  /* If there are no infinities, return arg.  */
+  if (! HONOR_INFINITIES (TYPE_MODE (TREE_TYPE (type))))
+    return non_lvalue_loc (loc, arg);
+
+  /* Calculate the result when the argument is a constant.  */
+  if (TREE_CODE (arg) == COMPLEX_CST)
+    {
+      const REAL_VALUE_TYPE *real = TREE_REAL_CST_PTR (TREE_REALPART (arg));
+      const REAL_VALUE_TYPE *imag = TREE_REAL_CST_PTR (TREE_IMAGPART (arg));
+      
+      if (real_isinf (real) || real_isinf (imag))
+	return build_complex_cproj (type, imag->sign);
+      else
+	return arg;
+    }
+  else if (TREE_CODE (arg) == COMPLEX_EXPR)
+    {
+      tree real = TREE_OPERAND (arg, 0);
+      tree imag = TREE_OPERAND (arg, 1);
+
+      STRIP_NOPS (real);
+      STRIP_NOPS (imag);
+      
+      /* If the real part is inf and the imag part is known to be
+	 nonnegative, return (inf + 0i).  Remember side-effects are
+	 possible in the imag part.  */
+      if (TREE_CODE (real) == REAL_CST
+	  && real_isinf (TREE_REAL_CST_PTR (real))
+	  && tree_expr_nonnegative_p (imag))
+	return omit_one_operand_loc (loc, type,
+				     build_complex_cproj (type, false),
+				     arg);
+      
+      /* If the imag part is inf, return (inf+I*copysign(0,imag)).
+	 Remember side-effects are possible in the real part.  */
+      if (TREE_CODE (imag) == REAL_CST
+	  && real_isinf (TREE_REAL_CST_PTR (imag)))
+	return
+	  omit_one_operand_loc (loc, type,
+				build_complex_cproj (type, TREE_REAL_CST_PTR
+						     (imag)->sign), arg);
     }
 
   return NULL_TREE;
@@ -9808,6 +9869,9 @@ fold_builtin_1 (location_t loc, tree fndecl, tree arg0, bool ignore)
 
     CASE_FLT_FN (BUILT_IN_CCOSH):
       return fold_builtin_ccos(loc, arg0, type, fndecl, /*hyper=*/ true);
+
+    CASE_FLT_FN (BUILT_IN_CPROJ):
+      return fold_builtin_cproj(loc, arg0, type);
 
     CASE_FLT_FN (BUILT_IN_CSIN):
       if (validate_arg (arg0, COMPLEX_TYPE)

@@ -907,7 +907,8 @@ static struct c_type_name *c_parser_type_name (c_parser *);
 static struct c_expr c_parser_initializer (c_parser *);
 static struct c_expr c_parser_braced_init (c_parser *, tree, bool);
 static void c_parser_initelt (c_parser *, struct obstack *);
-static void c_parser_initval (c_parser *, struct c_expr *, struct obstack *);
+static void c_parser_initval (c_parser *, struct c_expr *,
+			      struct obstack *);
 static tree c_parser_compound_statement (c_parser *);
 static void c_parser_compound_statement_nostart (c_parser *);
 static void c_parser_label (c_parser *);
@@ -3147,7 +3148,8 @@ c_parser_initelt (c_parser *parser, struct obstack * braced_init_obstack)
       && c_parser_peek_2nd_token (parser)->type == CPP_COLON)
     {
       /* Old-style structure member designator.  */
-      set_init_label (c_parser_peek_token (parser)->value, braced_init_obstack);
+      set_init_label (c_parser_peek_token (parser)->value,
+		      braced_init_obstack);
       /* Use the colon as the error location.  */
       pedwarn (c_parser_peek_2nd_token (parser)->location, OPT_pedantic,
 	       "obsolete use of designated initializer with %<:%>");

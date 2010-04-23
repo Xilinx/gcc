@@ -814,7 +814,6 @@ init_optimization_passes (void)
 
   p = &all_lto_gen_passes;
   NEXT_PASS (pass_ipa_lto_gimple_out);
-  NEXT_PASS (pass_ipa_lto_wpa_fixup);
   NEXT_PASS (pass_ipa_lto_finish_out);  /* This must be the last LTO pass.  */
   *p = NULL;
 
@@ -944,6 +943,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_forwprop);
       NEXT_PASS (pass_phiopt);
       NEXT_PASS (pass_fold_builtins);
+      NEXT_PASS (pass_optimize_widening_mul);
       NEXT_PASS (pass_tail_calls);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_uncprop);
@@ -1487,10 +1487,20 @@ execute_one_ipa_transform_pass (struct cgraph_node *node,
 void
 execute_all_ipa_transforms (void)
 {
+  enum cgraph_state old_state = cgraph_state;
   struct cgraph_node *node;
   if (!cfun)
     return;
   node = cgraph_node (current_function_decl);
+
+  /* Statement verification skip verification of nothorw when
+     state is IPA_SSA because we do not modify function bodies
+     after setting the flag on function.  Instead we leave it
+     to fixup_cfg to do such a transformation.  We need to temporarily
+     change the cgraph state so statement verifier before
+     transform do not fire.  */
+  cgraph_state = CGRAPH_STATE_IPA_SSA;
+
   if (node->ipa_transforms_to_apply)
     {
       unsigned int i;
@@ -1504,6 +1514,7 @@ execute_all_ipa_transforms (void)
       VEC_free (ipa_opt_pass, heap, node->ipa_transforms_to_apply);
       node->ipa_transforms_to_apply = NULL;
     }
+  cgraph_state = old_state;
 }
 
 /* Execute PASS. */
@@ -1674,8 +1685,8 @@ ipa_write_summaries_1 (cgraph_node_set set)
   struct lto_out_decl_state *state = lto_new_out_decl_state ();
   lto_push_out_decl_state (state);
 
-  if (!flag_wpa)
-    ipa_write_summaries_2 (all_regular_ipa_passes, set, state);
+  gcc_assert (!flag_wpa);
+  ipa_write_summaries_2 (all_regular_ipa_passes, set, state);
   ipa_write_summaries_2 (all_lto_gen_passes, set, state);
 
   gcc_assert (lto_get_out_decl_state () == state);
@@ -1695,7 +1706,6 @@ ipa_write_summaries (void)
   if (!flag_generate_lto || errorcount || sorrycount)
     return;
 
-  lto_new_extern_inline_states ();
   set = cgraph_node_set_new ();
 
   /* Create the callgraph set in the same order used in
@@ -1726,21 +1736,63 @@ ipa_write_summaries (void)
     }
 
   ipa_write_summaries_1 (set);
-  lto_delete_extern_inline_states ();
 
   free (order);
   ggc_free (set);
 }
 
+/* Same as execute_pass_list but assume that subpasses of IPA passes
+   are local passes. If SET is not NULL, write out optimization summaries of
+   only those node in SET. */
 
-/* Write all the summaries for the cgraph nodes in SET.  If SET is
+static void
+ipa_write_optimization_summaries_1 (struct opt_pass *pass, cgraph_node_set set,
+		       struct lto_out_decl_state *state)
+{
+  while (pass)
+    {
+      struct ipa_opt_pass_d *ipa_pass = (struct ipa_opt_pass_d *)pass;
+      gcc_assert (!current_function_decl);
+      gcc_assert (!cfun);
+      gcc_assert (pass->type == SIMPLE_IPA_PASS || pass->type == IPA_PASS);
+      if (pass->type == IPA_PASS
+	  && ipa_pass->write_optimization_summary
+	  && (!pass->gate || pass->gate ()))
+	{
+	  /* If a timevar is present, start it.  */
+	  if (pass->tv_id)
+	    timevar_push (pass->tv_id);
+
+	  ipa_pass->write_optimization_summary (set);
+
+	  /* If a timevar is present, start it.  */
+	  if (pass->tv_id)
+	    timevar_pop (pass->tv_id);
+	}
+
+      if (pass->sub && pass->sub->type != GIMPLE_PASS)
+	ipa_write_optimization_summaries_1 (pass->sub, set, state);
+
+      pass = pass->next;
+    }
+}
+
+/* Write all the optimization summaries for the cgraph nodes in SET.  If SET is
    NULL, write out all summaries of all nodes. */
 
 void
-ipa_write_summaries_of_cgraph_node_set (cgraph_node_set set)
+ipa_write_optimization_summaries (cgraph_node_set set)
 {
-  if (flag_generate_lto && !(errorcount || sorrycount))
-    ipa_write_summaries_1 (set);
+  struct lto_out_decl_state *state = lto_new_out_decl_state ();
+  lto_push_out_decl_state (state);
+
+  gcc_assert (flag_wpa);
+  ipa_write_optimization_summaries_1 (all_regular_ipa_passes, set, state);
+  ipa_write_optimization_summaries_1 (all_lto_gen_passes, set, state);
+
+  gcc_assert (lto_get_out_decl_state () == state);
+  lto_pop_out_decl_state ();
+  lto_delete_out_decl_state (state);
 }
 
 /* Same as execute_pass_list but assume that subpasses of IPA passes
@@ -1785,9 +1837,53 @@ ipa_read_summaries_1 (struct opt_pass *pass)
 void
 ipa_read_summaries (void)
 {
-  if (!flag_ltrans)
-    ipa_read_summaries_1 (all_regular_ipa_passes);
+  ipa_read_summaries_1 (all_regular_ipa_passes);
   ipa_read_summaries_1 (all_lto_gen_passes);
+}
+
+/* Same as execute_pass_list but assume that subpasses of IPA passes
+   are local passes.  */
+
+static void
+ipa_read_optimization_summaries_1 (struct opt_pass *pass)
+{
+  while (pass)
+    {
+      struct ipa_opt_pass_d *ipa_pass = (struct ipa_opt_pass_d *) pass;
+
+      gcc_assert (!current_function_decl);
+      gcc_assert (!cfun);
+      gcc_assert (pass->type == SIMPLE_IPA_PASS || pass->type == IPA_PASS);
+
+      if (pass->gate == NULL || pass->gate ())
+	{
+	  if (pass->type == IPA_PASS && ipa_pass->read_optimization_summary)
+	    {
+	      /* If a timevar is present, start it.  */
+	      if (pass->tv_id)
+		timevar_push (pass->tv_id);
+
+	      ipa_pass->read_optimization_summary ();
+
+	      /* Stop timevar.  */
+	      if (pass->tv_id)
+		timevar_pop (pass->tv_id);
+	    }
+
+	  if (pass->sub && pass->sub->type != GIMPLE_PASS)
+	    ipa_read_optimization_summaries_1 (pass->sub);
+	}
+      pass = pass->next;
+    }
+}
+
+/* Read all the summaries for all_regular_ipa_passes and all_lto_gen_passes.  */
+
+void
+ipa_read_optimization_summaries (void)
+{
+  ipa_read_optimization_summaries_1 (all_regular_ipa_passes);
+  ipa_read_optimization_summaries_1 (all_lto_gen_passes);
 }
 
 /* Same as execute_pass_list but assume that subpasses of IPA passes
