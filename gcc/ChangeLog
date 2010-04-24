@@ -1,3 +1,72 @@
+2010-04-24  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/contrib.texi (Contributors): Add Dodji Seketeli.
+
+2010-04-24  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR tree-optimization/41442
+	* fold-const.c (merge_truthop_with_opposite_arm): New function.
+	(fold_binary_loc): Call it.
+
+2010-04-23  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* toplev.c (general_init): Set default for
+	fdiagnostics-show-option.
+	* opts.c (common_handle_option): Allow disabling it.
+	* common.opt (fdiagnostics-show-option): Add Var. Enabled by
+	default.
+	
+2010-04-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* expr.c (expand_expr_real_1) <VIEW_CONVERT_EXPR>: Only use conversion
+	between modes if both types are integral.
+
+2010-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43572
+	* tree-tailcall.c (find_tail_calls): Allow PARM_DECL uses.
+
+2010-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43455
+	* tree-inline.c (tree_can_inline_p): Also check compatibility
+	of return types.
+
+2010-04-23  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/43846
+	* tree-sra.c (struct access): New flag grp_assignment_read.
+	(build_accesses_from_assign): Set grp_assignment_read.
+	(sort_and_splice_var_accesses): Propagate grp_assignment_read.
+	(enum mark_read_status): New type.
+	(analyze_access_subtree): Propagate grp_assignment_read, create
+	accesses also if both direct_read and root->grp_assignment_read.
+
+2010-04-23  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/43835
+	* tree-sra.c (ipa_sra_preliminary_function_checks): Check that the
+	function does not have type attributes.
+
+2010-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42653
+	* tree.c (free_lang_data_in_decl): Do not reset DECL_CONTEXT
+	of FUNCTION_DECLs.
+
+2010-04-22  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* sese.h (create_if_region_on_edge): Remove.
+
+	* sese.c (create_if_region_on_edge): Make static.
+
+	* tree-inline.c: Do not include ggc.h.
+
+	* expr.c: Do not include ggc.h.
+
+	* Makefile.in (tree-inline.o, expr.o): Remove $(GGC_H) from
+	dependencies.
+
 2010-04-22  Kaz Kojima  <kkojima@gcc.gnu.org>
 
 	PR target/43744

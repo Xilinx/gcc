@@ -1,3 +1,59 @@
+2010-04-24  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR tree-optimization/41442
+	* gcc.target/i386/pr41442.c: New test.
+
+2010-04-24  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR fortran/43832
+	* gfortran.dg/fgetc_3.f90: Delete bogus test.
+
+2010-04-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/43832
+	* gfortran.dg/open_nounit.f90: New test.
+
+2010-04-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/43841
+	PR fortran/43843
+	* gfortran.dg/elemental_scalar_args_1.f90 : New test.
+
+2010-04-23  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* gcc.dg/Wconversion-integer.c: Update.
+
+2010-04-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/unchecked_convert5.adb: New test.
+
+2010-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41734
+	* gcc.dg/lto/20100423-2_0.c: New testcase.
+	* gcc.dg/lto/20100423-2_0.c: Likewise.
+
+2010-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43455
+	* gcc.dg/lto/20100423-1_0.c: New testcase.
+	* gcc.dg/lto/20100423-1_1.c: Likewise.
+
+2010-04-23  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/43846
+	* gcc.dg/tree-ssa/sra-10.c: New test.
+
+2010-04-23  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/43835
+	* gcc.c-torture/execute/pr43835.c: New test.
+
+2010-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42653
+	* g++.dg/lto/20100423-1_0.C: New testcase.
+
 2010-04-22  Uros Bizjak  <ubizjak@gmail.com>
 
 	* gcc.dg/graphite/interchange-0.c: Fix dg-final directive.
