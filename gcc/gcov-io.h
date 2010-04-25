@@ -453,6 +453,9 @@ struct gcov_summary
 #define GCOV_MODULE_CPP_LANG  2
 #define GCOV_MODULE_FORT_LANG 3
 
+#define GCOV_MODULE_ASM_STMTS (1 << 16)
+#define GCOV_MODULE_LANG_MASK 0xffff
+
 /* Source module info. The data structure is used in
    both runtime and profile-use phase. Make sure to allocate
    enough space for the variable length member.  */
@@ -464,19 +467,25 @@ struct gcov_module_info
 				 (2) means IS_PRIMARY in persistent file or
 				     memory copy used in profile-use.  */
   gcov_unsigned_t is_exported;
-  gcov_unsigned_t lang;
+  gcov_unsigned_t lang; /* lower 16 bits encode the language, and the upper
+			   16 bits enocde other attributes, such as whether
+			   any assembler is present in the source, etc.  */
   char *da_filename;
   char *source_filename;
   gcov_unsigned_t num_quote_paths;
   gcov_unsigned_t num_bracket_paths;
   gcov_unsigned_t num_cpp_defines;
+  gcov_unsigned_t num_cpp_includes;
   gcov_unsigned_t num_cl_args;
   char *string_array[1];
 };
 
 extern struct gcov_module_info **module_infos;
 extern unsigned primary_module_id;
-#define PRIMARY_MODULE_EXPORTED module_infos[0]->is_exported
+#define PRIMARY_MODULE_EXPORTED                                         \
+  (module_infos[0]->is_exported						\
+   && !((module_infos[0]->lang & GCOV_MODULE_ASM_STMTS)			\
+	&& flag_ripa_disallow_asm_modules))
 
 /* Structures embedded in coveraged program.  The structures generated
    by write_profile must match these.  */

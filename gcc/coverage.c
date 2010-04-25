@@ -64,13 +64,11 @@ struct function_list
   unsigned n_ctrs[GCOV_COUNTERS];/* number of counters.  */
 };
 
-/* Linked list of -D/-U strings for a
-   source module.  */
-
-struct cpp_def_list
+/* Linked list of -D/-U/-imacro/-include strings for a source module.  */
+struct str_list
 {
-  char *cpp_def;
-  struct cpp_def_list *next;
+  char *str;
+  struct str_list *next;
 };
 
 /* Counts information for a function.  */
@@ -133,8 +131,15 @@ static bool rebuilding_counts_hash = false;
 struct gcov_module_info **module_infos = NULL;
 
 /* List of -D/-U options.  */
-static struct cpp_def_list *cpp_defines_head = NULL, *cpp_defines_tail = NULL;
+static struct str_list *cpp_defines_head = NULL, *cpp_defines_tail = NULL;
 static unsigned num_cpp_defines = 0;
+
+/* List of -imcaro/-include options.  */
+static struct str_list *cpp_includes_head = NULL, *cpp_includes_tail = NULL;
+static unsigned num_cpp_includes = 0;
+
+/* True if the current module has any asm statements.  */
+static bool has_asm_statement;
 
 /* Forward declarations.  */
 static hashval_t htab_counts_entry_hash (const void *);
@@ -220,9 +225,11 @@ incompatible_cl_args (struct gcov_module_info* mod_info1,
   bool warning_mismatch = false;
   bool non_warning_mismatch = false;
   unsigned int start_index1 = mod_info1->num_quote_paths +
-    mod_info1->num_bracket_paths + mod_info1->num_cpp_defines;
+    mod_info1->num_bracket_paths + mod_info1->num_cpp_defines +
+    mod_info1->num_cpp_includes;
   unsigned int start_index2 = mod_info2->num_quote_paths +
-    mod_info2->num_bracket_paths + mod_info2->num_cpp_defines;
+    mod_info2->num_bracket_paths + mod_info2->num_cpp_defines +
+    mod_info2->num_cpp_includes;
 
   /* First, separate the warning and non-warning options.  */
   for (i = 0; i < mod_info1->num_cl_args; i++)
@@ -445,6 +452,7 @@ read_counts_file (const char *da_file_name, unsigned module_id)
 		     sizeof (void *) * (mod_info->num_quote_paths +
 					mod_info->num_bracket_paths +
 					mod_info->num_cpp_defines +
+					mod_info->num_cpp_includes +
 					mod_info->num_cl_args));
 	  /* The first MODULE_INFO record must be for the primary module.  */
 	  if (module_infos_read == 0)
@@ -466,7 +474,8 @@ read_counts_file (const char *da_file_name, unsigned module_id)
 	      if (pointer_set_insert (modset, (void *)(size_t)mod_info->ident))
 		inform (input_location, "Not importing %s: already imported",
 			mod_info->source_filename);
-	      else if (module_infos[0]->lang != mod_info->lang)
+	      else if ((module_infos[0]->lang & GCOV_MODULE_LANG_MASK) !=
+		       (mod_info->lang & GCOV_MODULE_LANG_MASK))
 		inform (input_location, "Not importing %s: source language"
 			" different from primary module's source language",
 			mod_info->source_filename);
@@ -480,6 +489,10 @@ read_counts_file (const char *da_file_name, unsigned module_id)
 	      else if ((fd = open (aux_da_filename, O_RDONLY)) < 0)
 		inform (input_location, "Not importing %s: couldn't open %s",
 			mod_info->source_filename, aux_da_filename);
+	      else if ((mod_info->lang & GCOV_MODULE_ASM_STMTS)
+		       && flag_ripa_disallow_asm_modules)
+		inform (input_location, "Not importing %s: contains assembler"
+			" statements", mod_info->source_filename);
 	      else
 		{
 		  close (fd);
@@ -495,15 +508,15 @@ read_counts_file (const char *da_file_name, unsigned module_id)
 		}
             }
 
-	  /* Debugging */
-          {
-            inform (input_location,
-		    "MODULE Id=%d, Is_Primary=%s,"
-		    " Is_Exported=%s, Name=%s (%s)",
-		    mod_info->ident, mod_info->is_primary?"yes":"no",
-		    mod_info->is_exported?"yes":"no", mod_info->source_filename,
-		    mod_info->da_filename);
-          }
+          if (flag_ripa_verbose)
+            {
+              inform (input_location,
+                      "MODULE Id=%d, Is_Primary=%s,"
+                      " Is_Exported=%s, Name=%s (%s)",
+                      mod_info->ident, mod_info->is_primary?"yes":"no",
+                      mod_info->is_exported?"yes":"no", mod_info->source_filename,
+                      mod_info->da_filename);
+            }
         }
       gcov_sync (offset, length);
       if ((is_error = gcov_is_error ()))
@@ -603,8 +616,9 @@ get_coverage_counts (unsigned counter, unsigned expected,
 
   if (!entry)
     {
-      warning (0, "no coverage for function %qE found",
-	       DECL_ASSEMBLER_NAME (current_function_decl));
+      if (!flag_dyn_ipa)
+	warning (0, "no coverage for function %qE found",
+		 DECL_ASSEMBLER_NAME (current_function_decl));
       return NULL;
     }
 
@@ -1182,32 +1196,32 @@ build_inc_path_array_value (tree string_type, tree inc_path_value,
   return inc_path_value;
 }
 
-/* Returns an array (tree) of macro def strings. STRING_TYPE is
-   the string type, CPP_DEF_VALUE is the initial value of the
-   macro array, and HEAD gives the list of raw strings.  */
+/* Returns an array (tree) of strings. STR_TYPE is the string type,
+   STR_ARRAY_VALUE is the initial value of the string array, and HEAD gives
+   the list of raw strings.  */
 
 static tree
-build_cpp_def_array_value (tree string_type, tree cpp_def_value,
-			   struct cpp_def_list *head)
+build_str_array_value (tree str_type, tree str_array_value,
+		       struct str_list *head)
 {
-  const char *def_raw_string;
-  int def_string_length;
+  const char *raw_str;
+  int str_length;
   while (head)
     {
-      tree def_string;
-      def_raw_string = head->cpp_def;
-      def_string_length = strlen (def_raw_string);
-      def_string = build_string (def_string_length + 1, def_raw_string);
-      TREE_TYPE (def_string) =
+      tree str;
+      raw_str = head->str;
+      str_length = strlen (raw_str);
+      str = build_string (str_length + 1, raw_str);
+      TREE_TYPE (str) =
 	build_array_type (char_type_node,
 			  build_index_type (build_int_cst (NULL_TREE,
-							   def_string_length)));
-      cpp_def_value = tree_cons (NULL_TREE,
-				 build1 (ADDR_EXPR, string_type, def_string),
-				 cpp_def_value);
+							   str_length)));
+      str_array_value = tree_cons (NULL_TREE,
+				   build1 (ADDR_EXPR, str_type, str),
+				   str_array_value);
       head = head->next;
     }
-  return cpp_def_value;
+  return str_array_value;
 }
 
 /* Returns an array (tree) of command-line argument strings. STRING_TYPE is
@@ -1295,6 +1309,8 @@ build_gcov_module_info_value (void)
     lang = GCOV_MODULE_CPP_LANG;
   else
     lang = GCOV_MODULE_UNKNOWN_LANG;
+  if (has_asm_statement)
+    lang |= GCOV_MODULE_ASM_STMTS;
   value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
                                             lang), value);
 
@@ -1358,6 +1374,14 @@ build_gcov_module_info_value (void)
   value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
                                             num_cpp_defines), value);
 
+  /* Num -imacro/-include options.  */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL, NULL_TREE,
+		      get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
+                                            num_cpp_includes), value);
+
   /* Num command-line args.  */
   field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
 		      NULL_TREE, get_gcov_unsigned_t ());
@@ -1371,14 +1395,17 @@ build_gcov_module_info_value (void)
 						num_quote_paths	+
 						num_bracket_paths +
 						num_cpp_defines +
+						num_cpp_includes +
 						num_lipo_cl_args));
   string_array_type = build_array_type (string_type, index_type);
   string_array = build_inc_path_array_value (string_type, string_array,
 					     quote_paths, num_quote_paths);
   string_array = build_inc_path_array_value (string_type, string_array,
 					     bracket_paths, num_bracket_paths);
-  string_array = build_cpp_def_array_value (string_type, string_array,
-					    cpp_defines_head);
+  string_array = build_str_array_value (string_type, string_array,
+					cpp_defines_head);
+  string_array = build_str_array_value (string_type, string_array,
+					cpp_includes_head);
   string_array = build_cl_args_array_value (string_type, string_array);
   string_array = build_constructor_from_list (string_array_type,
 					      nreverse (string_array));
@@ -1742,6 +1769,12 @@ set_lipo_c_parsing_context (struct cpp_reader *parse_in, int i, bool verbose)
 	  cpp_define (parse_in, mod_info->string_array[j] + 1);
 	else
 	  cpp_undef (parse_in, mod_info->string_array[j] + 1);
+
+      /* Setup -imacro/-include.  */
+      for (i = 0, j = mod_info->num_quote_paths + mod_info->num_bracket_paths +
+	     mod_info->num_cpp_defines; i < mod_info->num_cpp_includes;
+	   i++, j++)
+	cpp_push_include (parse_in, mod_info->string_array[j]);
     }
 }
 
@@ -1755,6 +1788,7 @@ coverage_init (const char *filename, const char* source_name)
   int src_name_prefix_len = 0;
   int len = strlen (filename);
 
+  has_asm_statement = false;
   da_file_name = get_da_file_name (filename);
   da_base_file_name = XNEWVEC (char, strlen (filename) + 1);
   strcpy (da_base_file_name, filename);
@@ -1815,6 +1849,23 @@ coverage_finish (void)
     }
 }
 
+/* Add S to the end of the string-list, the head and tail of which are
+   pointed-to by HEAD and TAIL, respectively.  */
+
+static void
+str_list_append (struct str_list **head, struct str_list **tail, const char *s)
+{
+  struct str_list *e = XNEW (struct str_list);
+  e->str = XNEWVEC (char, strlen (s) + 1);
+  strcpy (e->str, s);
+  e->next = NULL;
+  if (*tail)
+    (*tail)->next = e;
+  else
+    *head = e;
+  *tail = e;
+}
+
 /* Copies the macro def or undef CPP_DEF and saves the copy
    in a list. IS_DEF is a flag indicating if CPP_DEF represents
    a -D or -U.  */
@@ -1822,17 +1873,28 @@ coverage_finish (void)
 void
 coverage_note_define (const char *cpp_def, bool is_def)
 {
-  struct cpp_def_list *d = XNEW (struct cpp_def_list);
-  d->cpp_def = XNEWVEC (char, strlen (cpp_def) + 2);
-  d->cpp_def[0] = is_def ? 'D' : 'U';
-  strcpy (d->cpp_def + 1, cpp_def);
-  d->next = NULL;
+  char *s = XNEWVEC (char, strlen (cpp_def) + 2);
+  s[0] = is_def ? 'D' : 'U';
+  strcpy (s + 1, cpp_def);
+  str_list_append (&cpp_defines_head, &cpp_defines_tail, s);
   num_cpp_defines++;
-  if (cpp_defines_tail)
-    cpp_defines_tail->next = d;
-  else
-    cpp_defines_head = d;
-  cpp_defines_tail = d;
+}
+
+/* Copies the -imacro/-include FILENAME and saves the copy in a list.  */
+
+void
+coverage_note_include (const char *filename)
+{
+  str_list_append (&cpp_includes_head, &cpp_includes_tail, filename);
+  num_cpp_includes++;
+}
+
+/* Mark this module as containing asm statements.  */
+
+void
+coverage_has_asm_stmt (void)
+{
+  has_asm_statement = flag_ripa_disallow_asm_modules;
 }
 
 #include "gt-coverage.h"

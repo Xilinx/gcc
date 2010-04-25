@@ -1555,6 +1555,7 @@ finish_options (void)
 	  if (opt->code == OPT_imacros
 	      && cpp_push_include (parse_in, opt->arg))
 	    {
+	      coverage_note_include (opt->arg);
 	      /* Disable push_command_line_include callback for now.  */
 	      include_cursor = deferred_count + 1;
 	      cpp_scan_nooutput (parse_in);
@@ -1578,7 +1579,10 @@ push_command_line_include (void)
 
       if (!cpp_opts->preprocessed && opt->code == OPT_include
 	  && cpp_push_include (parse_in, opt->arg))
-	return;
+	{
+	  coverage_note_include (opt->arg);
+	  return;
+	}
     }
 
   if (include_cursor == deferred_count)

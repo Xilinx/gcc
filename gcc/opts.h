@@ -121,4 +121,5 @@ extern void add_input_filename (const char *filename);
 extern void add_module_info (unsigned mod_id, bool is_primary, int index);
 extern void set_lipo_c_parsing_context (struct cpp_reader *parse_in, int i, bool verbose);
 extern void coverage_note_define (const char *cpp_def, bool is_def);
+extern void coverage_note_include (const char *filename);
 #endif

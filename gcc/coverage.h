@@ -66,4 +66,7 @@ extern bool coverage_function_present (unsigned fn_ident);
 extern tree get_gcov_type (void);
 extern tree get_gcov_unsigned_t (void);
 
+/* Mark this module as containing asm statements.  */
+extern void coverage_has_asm_stmt (void);
+
 #endif

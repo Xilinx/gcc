@@ -1498,17 +1498,20 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
   if (direct_call1 == NULL
       || !check_ic_target (gimple_call_fn (stmt), direct_call1))
     {
-      if (!direct_call1)
-        inform (locus, "Can not find indirect call target decl "
-                "(%d:%d)[cnt:%u] in current module",
-                EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val1),
-                EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1), (unsigned) count1);
-      else
-        inform (locus,
-                "Can not find promote indirect call target decl -- type mismatch "
-                "(%d:%d)[cnt:%u] in current module",
-                EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val1),
-                EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1), (unsigned) count1);
+      if (flag_ripa_verbose)
+        {
+          if (!direct_call1)
+            inform (locus, "Can not find indirect call target decl "
+                    "(%d:%d)[cnt:%u] in current module",
+                    EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val1),
+                    EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1), (unsigned) count1);
+          else
+            inform (locus,
+                    "Can not find promote indirect call target decl -- type mismatch "
+                    "(%d:%d)[cnt:%u] in current module",
+                    EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val1),
+                    EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1), (unsigned) count1);
+        }
       return false;
     }
 
@@ -1520,15 +1523,12 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
       && ! TREE_PUBLIC (direct_call1->decl))
     return false;
 
-  inform (locus, "Found indirect call target"
-	  " decl (%d:%d)[cnt:%u] in current module",
-	  EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val1),
-	  EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1), (unsigned) count1);
-
-
   modify1 = gimple_ic (stmt, direct_call1, prob1, count1, all);
-  inform (locus, "Promote indirect call to target %s",
-          lang_hooks.decl_printable_name (direct_call1->decl, 3));
+  if (flag_ripa_verbose)
+    inform (locus, "Promote indirect call to target (call count:%u) %s",
+	    (unsigned) count1,
+	    lang_hooks.decl_printable_name (direct_call1->decl, 3));
+
   if (always_inline && count1 >= always_inline)
     {
       /* TODO: should mark the call edge. */
@@ -1541,9 +1541,12 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
       print_generic_expr (dump_file, gimple_call_fn (stmt), TDF_SLIM);
       fprintf (dump_file, "=> ");
       print_generic_expr (dump_file, direct_call1->decl, TDF_SLIM);
-      fprintf (dump_file, " transformation on insn ");
+      fprintf (dump_file, " (module_id:%d, func_id:%d)\n",
+               EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val1),
+               EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1));
+      fprintf (dump_file, "Transformation on insn:\n");
       print_gimple_stmt (dump_file, stmt, 0, TDF_SLIM);
-      fprintf (dump_file, " to ");
+      fprintf (dump_file, "==>\n");
       print_gimple_stmt (dump_file, modify1, 0, TDF_SLIM);
       fprintf (dump_file, "hist->count "HOST_WIDEST_INT_PRINT_DEC
 	       " hist->all "HOST_WIDEST_INT_PRINT_DEC"\n", count1, all);
@@ -1559,8 +1562,12 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
     {
       modify2 = gimple_ic (stmt, direct_call2,
                            prob2, count2, all - count1);
-      inform (locus, "Promote indirect call to target %s",
-              lang_hooks.decl_printable_name (direct_call2->decl, 3));
+
+      if (flag_ripa_verbose)
+	inform (locus, "Promote indirect call to target (call count:%u) %s",
+		(unsigned) count2,
+		lang_hooks.decl_printable_name (direct_call2->decl, 3));
+
       if (always_inline && count2 >= always_inline)
         {
           /* TODO: should mark the call edge.  */
@@ -1573,9 +1580,12 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
           print_generic_expr (dump_file, gimple_call_fn (stmt), TDF_SLIM);
           fprintf (dump_file, "=> ");
           print_generic_expr (dump_file, direct_call2->decl, TDF_SLIM);
-          fprintf (dump_file, " transformation on insn ");
+          fprintf (dump_file, " (module_id:%d, func_id:%d)\n",
+                   EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val2),
+                   EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val2));
+          fprintf (dump_file, "Transformation on insn\n");
           print_gimple_stmt (dump_file, stmt, 0, TDF_SLIM);
-          fprintf (dump_file, " to ");
+          fprintf (dump_file, "=>\n");
           print_gimple_stmt (dump_file, modify2, 0, TDF_SLIM);
           fprintf (dump_file, "hist->count "HOST_WIDEST_INT_PRINT_DEC
                    " hist->all "HOST_WIDEST_INT_PRINT_DEC"\n", count2,

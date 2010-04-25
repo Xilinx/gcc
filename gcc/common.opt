@@ -490,9 +490,17 @@ fdump-unnumbered-links
 Common Report Var(flag_dump_unnumbered_links) VarExists
 Suppress output of previous and next insn numbers in debugging dumps
 
+fripa-disallow-asm-modules
+Common Report Var(flag_ripa_disallow_asm_modules)
+Don't import an auxiliary module if it contains asm statements
+
 fripa-disallow-opt-mismatch
 Common Report Var(flag_ripa_disallow_opt_mismatch)
 Don't import an auxiliary module if the command line options mismatch with the primary module
+
+fripa-verbose
+Common Report Var(flag_ripa_verbose)
+Enable verbose informational messages for LIPO compilation
 
 fearly-inlining
 Common Report Var(flag_early_inlining) Init(1) Optimization

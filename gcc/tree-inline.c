@@ -1474,7 +1474,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
      basic_block_info automatically.  */
   copy_basic_block = create_basic_block (NULL, (void *) 0,
                                          (basic_block) bb->prev_bb->aux);
-  copy_basic_block->count = bb->count * count_scale / REG_BR_PROB_BASE;
+  copy_basic_block->count = (double)bb->count * count_scale / REG_BR_PROB_BASE;
 
   /* We are going to rebuild frequencies from scratch.  These values
      have just small importance to drive canonicalize_loop_headers.  */
@@ -1839,7 +1839,8 @@ copy_edges_for_bb (basic_block bb, gcov_type count_scale, basic_block ret_bb)
 	    && old_edge->dest->aux != EXIT_BLOCK_PTR)
 	  flags |= EDGE_FALLTHRU;
 	new_edge = make_edge (new_bb, (basic_block) old_edge->dest->aux, flags);
-	new_edge->count = old_edge->count * count_scale / REG_BR_PROB_BASE;
+	new_edge->count
+            = old_edge->count * (double)count_scale / REG_BR_PROB_BASE;
 	new_edge->probability = old_edge->probability;
       }
 
@@ -1979,7 +1980,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
   gcov_type count_scale;
 
   if (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count)
-    count_scale = (REG_BR_PROB_BASE * count
+    count_scale = (REG_BR_PROB_BASE * (double)count
 		   / ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count);
   else
     count_scale = REG_BR_PROB_BASE;
@@ -2017,12 +2018,12 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
 
   profile_status_for_function (cfun) = profile_status_for_function (src_cfun);
   ENTRY_BLOCK_PTR->count =
-    (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count * count_scale /
-     REG_BR_PROB_BASE);
+    (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count * (double)count_scale /
+    REG_BR_PROB_BASE);
   ENTRY_BLOCK_PTR->frequency
     = ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->frequency;
   EXIT_BLOCK_PTR->count =
-    (EXIT_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count * count_scale /
+    (EXIT_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count * (double)count_scale /
      REG_BR_PROB_BASE);
   EXIT_BLOCK_PTR->frequency =
     EXIT_BLOCK_PTR_FOR_FUNCTION (src_cfun)->frequency;
@@ -2055,7 +2056,7 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency_scale,
   int last;
 
   if (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count)
-    count_scale = (REG_BR_PROB_BASE * count
+    count_scale = (REG_BR_PROB_BASE * (double)count
 		   / ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count);
   else
     count_scale = REG_BR_PROB_BASE;

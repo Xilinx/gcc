@@ -283,6 +283,7 @@ is_edge_inconsistent (VEC(edge,gc) *edges)
         {
           if (e->count < 0
 	      && (!(e->flags & EDGE_FAKE)
+		  || e->src == ENTRY_BLOCK_PTR
 	          || !block_ends_with_call_p (e->src)))
 	    {
 	      if (dump_file)

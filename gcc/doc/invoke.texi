@@ -367,8 +367,9 @@ Objective-C and Objective-C++ Dialects}.
 -freciprocal-math -fregmove -frename-registers -freorder-blocks @gol
 -freorder-blocks-and-partition -freorder-functions @gol
 -frerun-cse-after-loop -freschedule-modulo-scheduled-loops @gol
--fripa -fripa-disallow-opt-mismatch -frounding-math -fsched2-use-superblocks @gol
--fsched2-use-traces -fsched-pressure @gol
+-fripa -fripa-disallow-asm-modules @gol
+-fripa-disallow-opt-mismatch -fripa-verbose -frounding-math @gol
+-fsched2-use-superblocks -fsched2-use-traces -fsched-pressure @gol
 -fsched-spec-load -fsched-spec-load-dangerous @gol
 -fsched-stalled-insns-dep[=@var{n}] -fsched-stalled-insns[=@var{n}] @gol
 -fsched-group-heuristic -fsched-critical-path-heuristic @gol
@@ -7481,12 +7482,26 @@ instrumentation code that enables dynamic call-graph analysis.
 During the @option{-fprofile-use} phase, this flag enables cross-module
 optimizations such as inlining.
 
+@item -fripa-disallow-asm-modules
+@opindex fripa-disallow-asm-modules
+During profile-gen, if this flag is enabled, and the module has asm statements,
+arrange so that a bit recording this information will be set in the profile
+feedback data file.
+During profile-use, if this flag is enabled, and the same bit in auxiliary
+module's profile feedback data is set, don't import this auxiliary module.
+If this is the primary module, don't export it.
+
 @item -fripa-disallow-opt-mismatch
 @opindex fripa-disallow-opt-mismatch
 Don't import an auxiliary module, if the GCC command line options used for this
 auxiliary module during the profile-generate stage were different from those used
 for the primary module. Note that any mismatches in warning-related options are
 ignored for this comparison.
+
+@item -fripa-verbose
+@opindex fripa-verbose
+Enable printing of verbose information about dynamic inter-procedural optimizations.
+This is used in conjunction with the @option{-fripa}.
 @end table
 
 The following options control compiler behavior regarding floating
