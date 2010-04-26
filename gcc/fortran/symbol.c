@@ -4819,6 +4819,7 @@ add_proc_component (gfc_component *c, gfc_symbol *vtype,
   if (!c->tb)
     c->tb = XCNEW (gfc_typebound_proc);
   *c->tb = *st->n.tb;
+  c->tb->ppc = 1;
   c->attr.procedure = 1;
   c->attr.proc_pointer = 1;
   c->attr.flavor = FL_PROCEDURE;
@@ -4858,6 +4859,7 @@ add_proc_comps (gfc_component *c, gfc_symbol *vtype,
   else if (c->attr.proc_pointer && c->tb)
     {
       *c->tb = *st->n.tb;
+      c->tb->ppc = 1;
       c->ts.interface = st->n.tb->u.specific->n.sym;	  
     }
 }
@@ -4954,7 +4956,7 @@ copy_vtab_proc_comps (gfc_symbol *declared, gfc_symbol *vtype,
       c->attr.flavor = FL_PROCEDURE;
       c->attr.access = ACCESS_PRIVATE;
       c->attr.external = 1;
-      c->ts.interface = cmp->tb->u.specific->n.sym;
+      c->ts.interface = cmp->ts.interface;
       c->attr.untyped = 1;
       c->attr.if_source = IFSRC_IFBODY;
       c->initializer = gfc_get_expr ();

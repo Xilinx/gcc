@@ -492,7 +492,7 @@ tree gfc_trans_assignment (gfc_expr *, gfc_expr *, bool, bool);
 tree gfc_trans_pointer_assignment (gfc_expr *, gfc_expr *);
 
 /* Generate code to assign typebound procedures to a derived vtab.  */
-void gfc_trans_assign_vtab_procs (stmtblock_t*, gfc_symbol*);
+void gfc_trans_assign_vtab_procs (stmtblock_t*, gfc_symbol*, gfc_symbol*);
 
 /* Initialize function decls for library functions.  */
 void gfc_build_intrinsic_lib_fndecls (void);

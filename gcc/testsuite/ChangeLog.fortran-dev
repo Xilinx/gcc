@@ -1,7 +1,12 @@
+2010-04-26  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42274
+	* gfortran.dg/class_15.f03: New.
+
 2010-04-21  Paul Thomas  <pault@gcc.gnu.org>
 
-        PR fortran/43326
-        * gfortran.dg/dynamic_dispatch_9.f03: New test.
+	PR fortran/43326
+	* gfortran.dg/dynamic_dispatch_9.f03: New test.
 
 2010-04-21  Janus Weil  <janus@gcc.gnu.org>
 

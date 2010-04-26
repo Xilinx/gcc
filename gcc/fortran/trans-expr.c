@@ -2486,7 +2486,7 @@ gfc_conv_derived_to_class (gfc_se *parmse, gfc_expr *e,
     not to the class declared type.  */
   vtab = gfc_find_derived_vtab (e->ts.u.derived, true);
   gcc_assert (vtab);
-  gfc_trans_assign_vtab_procs (&parmse->pre, vtab);
+  gfc_trans_assign_vtab_procs (&parmse->pre, e->ts.u.derived, vtab);
   tmp = gfc_build_addr_expr (NULL_TREE, gfc_get_symbol_decl (vtab));
   gfc_add_modify (&parmse->pre, ctree,
 		  fold_convert (TREE_TYPE (ctree), tmp));
@@ -5450,7 +5450,8 @@ gfc_trans_assign (gfc_code * code)
 
 
 /* Generate code to assign typebound procedures to a derived vtab.  */
-void gfc_trans_assign_vtab_procs (stmtblock_t *block, gfc_symbol *vtab)
+void gfc_trans_assign_vtab_procs (stmtblock_t *block, gfc_symbol *dt,
+				  gfc_symbol *vtab)
 {
   gfc_component *cmp;
   tree vtb;
@@ -5485,8 +5486,10 @@ void gfc_trans_assign_vtab_procs (stmtblock_t *block, gfc_symbol *vtab)
   gfc_init_block (&body);
   for (; cmp; cmp = cmp->next)
     {
+      gfc_symbol *target = NULL;
+      
       /* Generic procedure - build its vtab.  */
-      if (cmp->ts.type == BT_DERIVED)
+      if (cmp->ts.type == BT_DERIVED && !cmp->tb)
 	{
 	  gfc_symbol *vt = cmp->ts.interface;
 
@@ -5502,7 +5505,7 @@ void gfc_trans_assign_vtab_procs (stmtblock_t *block, gfc_symbol *vtab)
 		continue;
 	    }
 
-	  gfc_trans_assign_vtab_procs (&body, vt);
+	  gfc_trans_assign_vtab_procs (&body, dt, vt);
 	  ctree = fold_build3 (COMPONENT_REF, TREE_TYPE (cmp->backend_decl),
 			       vtb, cmp->backend_decl, NULL_TREE);
 	  proc = gfc_get_symbol_decl (vt);
@@ -5514,12 +5517,22 @@ void gfc_trans_assign_vtab_procs (stmtblock_t *block, gfc_symbol *vtab)
       /* This is required when typebound generic procedures are called
 	 with derived type targets.  The specific procedures do not get
 	 added to the vtype, which remains "empty".  */
-      if (!(cmp->tb && cmp->tb->u.specific && cmp->tb->u.specific->n.sym))
+      if (cmp->tb && cmp->tb->u.specific && cmp->tb->u.specific->n.sym)
+	target = cmp->tb->u.specific->n.sym;
+      else
+	{
+	  gfc_symtree *st;
+	  st = gfc_find_typebound_proc (dt, NULL, cmp->name, false, NULL);
+	  if (st->n.tb && st->n.tb->u.specific)
+	    target = st->n.tb->u.specific->n.sym;
+	}
+
+      if (!target)
 	continue;
 
       ctree = fold_build3 (COMPONENT_REF, TREE_TYPE (cmp->backend_decl),
 			   vtb, cmp->backend_decl, NULL_TREE);
-      proc = gfc_get_symbol_decl (cmp->tb->u.specific->n.sym);
+      proc = gfc_get_symbol_decl (target);
       proc = gfc_build_addr_expr (TREE_TYPE (ctree), proc);
       gfc_add_modify (&body, ctree, proc);
     }
@@ -5576,7 +5589,7 @@ gfc_trans_class_assign (gfc_code *code)
 	  gfc_symtree *st;
 	  vtab = gfc_find_derived_vtab (code->expr2->ts.u.derived, true);
 	  gcc_assert (vtab);
-	  gfc_trans_assign_vtab_procs (&block, vtab);
+	  gfc_trans_assign_vtab_procs (&block, code->expr2->ts.u.derived, vtab);
 	  rhs = gfc_get_expr ();
 	  rhs->expr_type = EXPR_VARIABLE;
 	  gfc_find_sym_tree (vtab->name, NULL, 1, &st);

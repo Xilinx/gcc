@@ -1,13 +1,27 @@
+2010-04-26  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42274
+	* symbol.c (add_proc_component,add_proc_comps): Correctly set the 'ppc'
+	attribute for all PPC members of the vtypes.
+	(copy_vtab_proc_comps): Copy the correct interface.
+	* trans.h (gfc_trans_assign_vtab_procs): Modified prototype.
+	* trans-expr.c (gfc_trans_assign_vtab_procs): Pass the derived type as
+	a dummy argument and make sure all PPC members of the vtab are
+	initialized correctly.
+	(gfc_conv_derived_to_class,gfc_trans_class_assign): Additional argument
+	in call to gfc_trans_assign_vtab_procs.
+	* trans-stmt.c (gfc_trans_allocate): Ditto.
+
 2010-04-21  Paul Thomas  <pault@gcc.gnu.org>
 
-        PR fortran/43326
-        * resolve.c (resolve_typebound_function): Renamed
+	PR fortran/43326
+	* resolve.c (resolve_typebound_function): Renamed
 	resolve_class_compcall.Do all the detection of class references
 	here.
-        (resolve_typebound_subroutine): resolve_class_typebound_call
-        renamed. Otherwise same as resolve_typebound_function.
-        (gfc_resolve_expr): Call resolve_typebound_function.
-        (resolve_code): Call resolve_typebound_subroutine.
+	(resolve_typebound_subroutine): resolve_class_typebound_call
+	renamed. Otherwise same as resolve_typebound_function.
+	(gfc_resolve_expr): Call resolve_typebound_function.
+	(resolve_code): Call resolve_typebound_subroutine.
 
 2010-04-21  Janus Weil  <janus@gcc.gnu.org>
 
