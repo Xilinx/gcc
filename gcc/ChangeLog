@@ -1,3 +1,314 @@
+2010-04-26  Jie Zhang  <jie@codesourcery.com>
+
+	PR tree-optimization/43833
+	* tree-vrp.c (range_int_cst_p): New.
+	(range_int_cst_singleton_p): New.
+	(extract_range_from_binary_expr): Optimize BIT_AND_EXPR case
+	when both operands are constants.  Use range_int_cst_p in
+	BIT_IOR_EXPR case.
+
+2010-04-26  Jan Hubicka  <jh@suse.cz>
+
+	* cgraphunit.c (cgraph_copy_node_for_versioning): Fix profile updating.
+
+2010-04-26  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43080
+	* gimple.c (gimple_decl_printable_name): Deal gracefully
+	with a NULL DECL_NAME.
+
+2010-04-26  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42425
+	* tree.c (free_lang_data_in_type): Do not free TYPE_CONTEXT
+	if emitting debug information and it is either a function
+	or a namespace decl.
+
+2010-04-26  Ira Rosen  <irar@il.ibm.com>
+
+	* tree-vectorizer.h (struct _stmt_vec_info): Add new field to 
+	determine if the statement is vectorizable, and a macro to 
+	access it.
+	* tree-vect-data-refs.c (vect_analyze_data_ref_dependence): 
+	Skip statements that can't be vectorized. If the analysis 
+	fails, mark the statement as unvectorizable if vectorizing 
+	basic block.
+	(vect_compute_data_refs_alignment): Likewise.
+	(vect_verify_datarefs_alignment): Skip statements marked as 
+	unvectorizable. Add print.
+	(vect_analyze_group_access): Skip statements that can't be 
+	vectorized. If the analysis fails, mark the statement as 
+	unvectorizable if vectorizing basic block.
+	(vect_analyze_data_ref_accesses, vect_analyze_data_refs): 
+	Likewise.
+	* tree-vect-stmts.c (vectorizable_store): Fix the number of 
+	generated stmts for SLP.
+	(new_stmt_vec_info): Initialize the new field.
+	* tree-vect-slp.c (vect_build_slp_tree): Fail to vectorize 
+	statements marked as unvectorizable.
+
+2010-04-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (flag_isoc1x): New.
+	(flag_isoc99): Update comment.
+	* c-common.h (flag_isoc1x): New.
+	(flag_isoc99): Update comment.
+	* c-cppbuiltin.c (builtin_define_float_constants): Also define
+	__<type>_DECIMAL_DIG__.
+	* c-opts.c (set_std_c1x): New.
+	(c_common_handle_option): Handle -std=c1x and -std=gnu1x.
+	(set_std_c89, set_std_c99): Also set flag_isoc1x to 0.
+	* c.opt (-std=c1x, -std=gnu1x): New options.
+	* doc/cpp.texi: Mention -std=c1x.
+	* doc/cppopts.texi (-std=c1x, -std=gnu1x): Document.
+	* doc/extend.texi: Mention -std=c1x and -std=gnu1x.
+	* doc/invoke.texi (-std=c1x, -std=gnu1x): Document.
+	* doc/standards.texi: Mention C1X.
+	* ginclude/float.h (FLT_DECIMAL_DIG, DBL_DECIMAL_DIG,
+	LDBL_DECIMAL_DIG, FLT_HAS_SUBNORM, DBL_HAS_SUBNORM,
+	LDBL_HAS_SUBNORM, FLT_TRUE_MIN, DBL_TRUE_MIN, LDBL_TRUE_MIN):
+	Define for C1X.
+
+2010-04-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/gmon-sol2.c (_mcleanup): Change format string
+	placeholder from 0x%x to %#x.
+	* config/i386/i386elf.h (ASM_OUTPUT_ASCII): Ditto.
+	* config/i386/i386-interix.h (ASM_OUTPUT_ASCII): Ditto.
+	* config/i386/att.h (ASM_OUTPUT_ASCII): Ditto.
+	* config/i386/sysv4.h (ASM_OUTPUT_ASCII): Ditto.
+	* config/i386/i386.c (ix86_target_string): Ditto.
+	(output_pic_addr_const): Ditto.
+	(print_operand): Ditto.
+
+2010-04-25  Paolo Bonzini  <bonzini@gnu.org>
+
+	* combine.c (find_split_point): Add third argument.  Use it
+	to find nested multiply-accumulate instructions.  Adjust calls.
+	(try_combine): Adjust call to find_split_point.
+
+2010-04-24  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/contrib.texi (Contributors): Add Dodji Seketeli.
+
+2010-04-24  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR tree-optimization/41442
+	* fold-const.c (merge_truthop_with_opposite_arm): New function.
+	(fold_binary_loc): Call it.
+
+2010-04-23  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* toplev.c (general_init): Set default for fdiagnostics-show-option.
+	* opts.c (common_handle_option): Allow disabling it.
+	* common.opt (fdiagnostics-show-option): Add Var. Enabled by default.
+
+2010-04-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* expr.c (expand_expr_real_1) <VIEW_CONVERT_EXPR>: Only use conversion
+	between modes if both types are integral.
+
+2010-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43572
+	* tree-tailcall.c (find_tail_calls): Allow PARM_DECL uses.
+
+2010-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43455
+	* tree-inline.c (tree_can_inline_p): Also check compatibility
+	of return types.
+
+2010-04-23  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/43846
+	* tree-sra.c (struct access): New flag grp_assignment_read.
+	(build_accesses_from_assign): Set grp_assignment_read.
+	(sort_and_splice_var_accesses): Propagate grp_assignment_read.
+	(enum mark_read_status): New type.
+	(analyze_access_subtree): Propagate grp_assignment_read, create
+	accesses also if both direct_read and root->grp_assignment_read.
+
+2010-04-23  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/43835
+	* tree-sra.c (ipa_sra_preliminary_function_checks): Check that the
+	function does not have type attributes.
+
+2010-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42653
+	* tree.c (free_lang_data_in_decl): Do not reset DECL_CONTEXT
+	of FUNCTION_DECLs.
+
+2010-04-22  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* sese.h (create_if_region_on_edge): Remove.
+
+	* sese.c (create_if_region_on_edge): Make static.
+
+	* tree-inline.c: Do not include ggc.h.
+
+	* expr.c: Do not include ggc.h.
+
+	* Makefile.in (tree-inline.o, expr.o): Remove $(GGC_H) from
+	dependencies.
+
+2010-04-22  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/43744
+	* config/sh/sh.c (find_barrier): Don't emit a constant pool
+	in the middle of insns for casesi_worker_2.
+
+2010-04-22  David Edelsohn  <edelsohn@gnu.org>
+
+	* config/rs6000/x-aix: Override LDFLAGS for all COMPILERS.
+
+2010-04-22  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/43842
+	* tree-vect-loop.c (vect_create_epilog_for_reduction): Handle
+	loop unrolling in update of exit phis. Fix comment.
+	* tree-vect-slp.c (vect_analyze_slp): Check that there are at
+	least two reduction statements in the loop before starting SLP
+	analysis.
+
+2010-04-22  Nick Clifton  <nickc@redhat.com>
+
+	* config/stormy16/stormy16-lib2.c (__ucmpsi2): Fix thinko.
+
+2010-04-22  Alexander Monakov  <amonakov@ispras.ru>
+
+	* tree-ssa-reassoc.c (eliminate_plus_minus_pair): Handle BIT_NOT_EXPR
+	to simplify a + ~a.
+
+2010-04-22  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* tree-parloops.c (loop_parallel_p): New argument
+	parloop_obstack.  Pass it down.
+	(parallelize_loops): New variable parloop_obstack.  Initialize it,
+	pass it down, free it.
+
+	* tree-loop-linear.c (linear_transform_loops): Pass down
+	lambda_obstack.
+
+	* tree-data-ref.h (lambda_compute_access_matrices): New argument
+	of type struct obstack *.
+
+	* tree-data-ref.c (analyze_subscript_affine_affine): New variable
+	scratch_obstack.  Initialize it, pass down, free it.
+
+	* lambda.h (lambda_loop_new): Remove.
+	(lambda_matrix_new, lambda_matrix_inverse)
+	(lambda_trans_matrix_new, lambda_trans_matrix_inverse): New
+	argument of type struct obstack *.
+
+	* lambda-trans.c (lambda_trans_matrix_new): New argument
+	lambda_obstack.  Pass it down, use obstack allocation for ret.
+	(lambda_trans_matrix_inverse): New argument lambda_obstack.  Pass
+	it down.
+
+	* lambda-mat.c (lambda_matrix_get_column)
+	(lambda_matrix_project_to_null): Remove.
+	(lambda_matrix_new): New argument lambda_obstack.  Use obstack
+	allocation for mat.
+	(lambda_matrix_inverse_hard, lambda_matrix_inverse): New argument
+	lambda_obstack.
+
+	* lambda-code.c (lambda_loop_new): New function.
+	(lambda_lattice_new, compute_nest_using_fourier_motzkin)
+	(lambda_compute_auxillary_space, lambda_compute_target_space)
+	(lambda_loopnest_transform, gcc_loop_to_lambda_loop)
+	(lambda_loopnest_to_gcc_loopnest): Pass down lambda_obstack.
+	(build_access_matrix): New argument lambda_obstack.  Use obstack
+	allocation for am.
+	(lambda_compute_step_signs, lambda_compute_access_matrices): New
+	argument lambda_obstack.  Pass it down.
+
+2010-04-22  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* optabs.h (expand_widening_mult): Declare.
+
+2010-04-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43845
+	* tree-ssa-pre.c (create_component_ref_by_pieces_1): Properly
+	lookup the CALL_EXPR function and arguments.
+
+2010-04-22  Nick Clifton  <nickc@redhat.com>
+
+	* config/stormy16/stormy16.c
+	(xstormy16_asm_output_aligned_common): Handle a NULL decl parameter.
+	* config/stormy16/stormy16.h: Tidy up formatting.
+	(DONT_USE_BUILTIN_SETJMP): Remove definition.
+	* config/stormy16/stormy16.c (cbranchsi4): Delete pattern.
+	(ineqbranchsi): Delete pattern.
+	* config/stormy16/stormy16-lib2-ucmpsi2.c: New file.
+	* config/stormy16/stormy16-lib2.c (__ucmpsi2): New function.
+	* config/stormy16/t-stormy16 (LIB2FUNCS_EXTRA): Add
+	stormy16-lib2-ucmpsi2.c.
+
+2010-04-22  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* ifcvt.c (dead_or_predicable): Use df_simulate_find_defs and
+	df_simulate_find_noclobber_defs as appropriate.  Keep track of an
+	extra set merge_set_noclobber, and use it to relax the final test
+	slightly.
+	* df.h (df_simulate_find_noclobber_defs): Declare.
+	* df-problems.c (df_simulate_find_defs): Don't ignore partial or
+	conditional defs.
+	(df_simulate_find_noclobber_defs): New function.
+
+2010-04-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md: Use {} around multi-line preparation statements.
+
+2010-04-22  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* c-tree.h (push_init_level, pop_init_level, set_init_index)
+	(process_init_element): New argument of type struct obstack *.
+
+	* c-typeck.c (push_init_level, pop_init_level, set_designator)
+	(set_init_index, set_init_label, set_nonincremental_init)
+	(set_nonincremental_init_from_string, find_init_member)
+	(output_init_element, output_pending_init_elements)
+	(process_init_element): New argument braced_init_obstack.  Pass it
+	down.
+	(push_range_stack, add_pending_init): New argument
+	braced_init_obstack.  Use obstack allocation.
+
+	* c-parser.c (c_parser_initelt, c_parser_initval): New argument
+	braced_init_obstack.  Pass it down.
+	(c_parser_braced_init): New variables ret, braced_init_obstack.
+	Initialize obstack, pass it down and finally free it.
+
+2010-04-22  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR middle-end/29274
+	* tree-pass.h (pass_optimize_widening_mul): Declare.
+	* tree-ssa-math-opts.c (execute_optimize_widening_mul,
+	gate_optimize_widening_mul): New static functions.
+	(pass_optimize_widening_mul): New.
+	* expr.c (expand_expr_real_2) <case WIDEN_MULT_EXPR>: New case.
+	<case MULT_EXPR>: Remove support for widening multiplies.
+	* tree.def (WIDEN_MULT_EXPR): Tweak comment.
+	* cfgexpand.c (expand_debug_expr) <case WIDEN_MULT_EXPR>: Use
+	simplify_gen_unary rather than directly building extensions.
+	* tree-cfg.c (verify_gimple_assign_binary): Add tests for
+	WIDEN_MULT_EXPR.
+	* expmed.c (expand_widening_mult): New function.
+	* passes.c (init_optimization_passes): Add pass_optimize_widening_mul.
+
+2010-04-21  Jan Hubicka  <jh@suse.cz>
+
+	* timevar.def (TV_WHOPR_WPA_FIXUP): Remove.
+	* lto-section-in.c (lto_section_name): Remove wpa_fixup.
+	* lto-wpa-fixup.c: Remove.
+	* Makefile.in (lto-wpa-fixup.o): Remove.
+	* passes.c (init_optimization_passes): Remove pass_ipa_lto_wpa_fixup.
+	(execute_all_ipa_transforms): Set cgraph_state to CGRAPH_STATE_IPA_SSA.
+	* lto-streamer.c (lto_get_section_name): Remove wpa_fixup section.
+
 2010-04-21  Jan Hubicka  <jh@suse.cz>
 
 	* tree-pass.h (ipa_opt_pass_d): Rename function_read_summary;
@@ -81,14 +392,12 @@
 	* dwarf2out.c (add_var_loc_to_decl): Add LABEL argument.  Drop
 	last chain entry if it starts with the still current label.
 	(add_location_or_const_value_attribute): Check that
-	loc_list->first->next is NULL instead of comparing ->first with
-	->last.
+	loc_list->first->next is NULL instead of comparing ->first with ->last.
 	(dwarf2out_var_location): Pass last_label resp. last_postcall_label
 	to add_var_loc_to_decl.
 
 	* dwarf2out.c (output_call_frame_info): For dw_cie_version
-	>= 4 add also address size and segment size fields into CIE
-	header.
+	>= 4 add also address size and segment size fields into CIE header.
 
 	* unwind-dw2.c (extract_cie_info): Handle CIE version 4, as
 	long as address size is the same as sizeof (void *) and
@@ -341,7 +650,7 @@
 	PR target/43662
 	* reginfo.c (reinit_regs): Set caller_save_initialized_p to false.
 
-2010-04-19 Ira Rosen <irar@il.ibm.com>
+2010-04-19  Ira Rosen  <irar@il.ibm.com>
 
 	PR tree-optimization/37027
 	* tree-vectorizer.h (struct _loop_vec_info): Add new field reductions
@@ -406,7 +715,7 @@
 
 	* gcc.c (main): Search for liblto_plugin.so with mode R_OK.
 
-2010-04-18 Ira Rosen <irar@il.ibm.com>
+2010-04-18  Ira Rosen  <irar@il.ibm.com>
 
 	PR tree-optimization/43771
 	* tree-vect-slp.c (vect_supported_load_permutation_p): Check that
@@ -4619,7 +4928,7 @@
 	statements ...
 	(vrp_visit_phi_node): ... but only for loop PHI nodes.
 
-2010-02-16  Ira Rosen <irar@il.ibm.com>
+2010-02-16  Ira Rosen  <irar@il.ibm.com>
 
 	PR tree-optimization/43074
 	* tree-vectorizer.h (VECTORIZABLE_CYCLE_DEF): New.

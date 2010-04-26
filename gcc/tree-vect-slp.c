@@ -344,6 +344,19 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
 	  print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
 	}
 
+      /* Fail to vectorize statements marked as unvectorizable.  */
+      if (!STMT_VINFO_VECTORIZABLE (vinfo_for_stmt (stmt)))
+        {
+          if (vect_print_dump_info (REPORT_SLP))
+            {
+              fprintf (vect_dump,
+                       "Build SLP failed: unvectorizable statement ");
+              print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
+            }
+
+          return false;
+        }
+
       lhs = gimple_get_lhs (stmt);
       if (lhs == NULL_TREE)
 	{
@@ -1213,7 +1226,7 @@ vect_analyze_slp (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo)
     }
 
   /* Find SLP sequences starting from groups of reductions.  */
-  if (loop_vinfo &&  VEC_length (gimple, LOOP_VINFO_REDUCTIONS (loop_vinfo))
+  if (loop_vinfo && VEC_length (gimple, LOOP_VINFO_REDUCTIONS (loop_vinfo)) > 1
       && vect_analyze_slp_instance (loop_vinfo, bb_vinfo, 
                                     VEC_index (gimple, reductions, 0)))
     ok = true;

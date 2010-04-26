@@ -378,7 +378,7 @@ lto_file_read (lto_file *file, FILE *resolution_file)
 
   file_data = XCNEW (struct lto_file_decl_data);
   file_data->file_name = file->filename;
-  file_data->section_hash_table = lto_elf_build_section_table (file);
+  file_data->section_hash_table = lto_obj_build_section_table (file);
   file_data->renaming_hash_table = lto_create_renaming_table ();
 
   data = lto_get_section_data (file_data, LTO_section_decls, NULL, &len);
@@ -1040,16 +1040,16 @@ lto_wpa_write_files (void)
       if (cgraph_node_set_needs_ltrans_p (set))
 	{
 	  /* Write all the nodes in SET to TEMP_FILENAME.  */
-	  file = lto_elf_file_open (temp_filename, true);
+	  file = lto_obj_file_open (temp_filename, true);
 	  if (!file)
-	    fatal_error ("lto_elf_file_open() failed");
+	    fatal_error ("lto_obj_file_open() failed");
 
 	  lto_set_current_out_file (file);
 
 	  ipa_write_optimization_summaries (set);
 
 	  lto_set_current_out_file (NULL);
-	  lto_elf_file_close (file);
+	  lto_obj_file_close (file);
 	}
     }
 
@@ -1422,7 +1422,13 @@ lto_fixup_type (tree t, void *data)
   /* Accessor is for derived node types only. */
   LTO_FIXUP_SUBTREE (t->type.binfo);
 
-  LTO_REGISTER_TYPE_AND_FIXUP_SUBTREE (TYPE_CONTEXT (t));
+  if (TYPE_CONTEXT (t))
+    {
+      if (TYPE_P (TYPE_CONTEXT (t)))
+	LTO_REGISTER_TYPE_AND_FIXUP_SUBTREE (TYPE_CONTEXT (t));
+      else
+	LTO_FIXUP_SUBTREE (TYPE_CONTEXT (t));
+    }
   LTO_REGISTER_TYPE_AND_FIXUP_SUBTREE (TYPE_CANONICAL (t));
 
   /* The following re-creates proper variant lists while fixing up
@@ -1561,28 +1567,6 @@ lto_fixup_tree (tree *tp, int *walk_subtrees, void *data)
 
       if (t != prevailing)
 	{
-	  if (TREE_CODE (t) == FUNCTION_DECL
-	      && TREE_NOTHROW (prevailing) != TREE_NOTHROW (t))
-	    {
-	      /* If the prevailing definition does not throw but the
-		 declaration (T) was considered throwing, then we
-		 simply add PREVAILING to the list of throwing
-		 functions.  However, if the opposite is true, then
-		 the call to PREVAILING was generated assuming that
-		 the function didn't throw, which means that CFG
-		 cleanup may have removed surrounding try/catch
-		 regions.
-
-		 Note that we currently accept these cases even when
-		 they occur within a single file.  It's certainly a
-		 user error, but we silently allow the compiler to
-		 remove surrounding try/catch regions.  Perhaps we
-		 could emit a warning here, instead of silently
-		 accepting the conflicting declaration.  */
-	      if (TREE_NOTHROW (prevailing))
-		lto_mark_nothrow_fndecl (prevailing);
-	    }
-
 	   /* Also replace t with prevailing defintion.  We don't want to
 	      insert the other defintion in the seen set as we want to
 	      replace all instances of it.  */
@@ -1762,17 +1746,17 @@ lto_read_all_file_options (void)
   for (i = 0; i < num_in_fnames; i++)
     {
       struct lto_file_decl_data *file_data;
-      lto_file *file = lto_elf_file_open (in_fnames[i], false);
+      lto_file *file = lto_obj_file_open (in_fnames[i], false);
       if (!file)
 	break;
 
       file_data = XCNEW (struct lto_file_decl_data);
       file_data->file_name = file->filename;
-      file_data->section_hash_table = lto_elf_build_section_table (file);
+      file_data->section_hash_table = lto_obj_build_section_table (file);
 
       lto_read_file_options (file_data);
 
-      lto_elf_file_close (file);
+      lto_obj_file_close (file);
       htab_delete (file_data->section_hash_table);
       free (file_data);
     }
@@ -1835,7 +1819,7 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
 	  fflush (stderr);
 	}
 
-      current_lto_file = lto_elf_file_open (fnames[i], false);
+      current_lto_file = lto_obj_file_open (fnames[i], false);
       if (!current_lto_file)
 	break;
 
@@ -1845,7 +1829,7 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
 
       all_file_decl_data[last_file_ix++] = file_data;
 
-      lto_elf_file_close (current_lto_file);
+      lto_obj_file_close (current_lto_file);
       current_lto_file = NULL;
     }
 
@@ -1974,8 +1958,6 @@ materialize_cgraph (void)
   for (i = 0; VEC_iterate (tree, lto_global_var_decls, i, decl); i++)
     rest_of_decl_compilation (decl, 1, 0);
 
-  /* Fix up any calls to DECLs that have become not exception throwing.  */
-  lto_fixup_nothrow_decls ();
   if (!quiet_flag)
     fprintf (stderr, "\n");
 

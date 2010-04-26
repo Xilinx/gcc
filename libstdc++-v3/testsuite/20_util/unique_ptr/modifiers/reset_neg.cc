@@ -36,4 +36,4 @@ void test01()
 }
 
 // { dg-error "used here" "" { target *-*-* } 35 } 
-// { dg-error "deleted function" "" { target *-*-* } 332 }
+// { dg-error "deleted function" "" { target *-*-* } 347 }
