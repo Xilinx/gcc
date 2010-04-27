@@ -4831,8 +4831,7 @@ add_proc_component (gfc_component *c, gfc_symbol *vtype,
   /* A static initializer cannot be used here because the specific
      function is not a constant; internal compiler error: in
      output_constant, at varasm.c:4623  */
-  c->initializer = gfc_get_expr ();
-  c->initializer->expr_type = EXPR_NULL;
+  c->initializer = NULL;
 }
 
 
@@ -4944,8 +4943,7 @@ copy_vtab_proc_comps (gfc_symbol *declared, gfc_symbol *vtype,
 	  c->ts.u.derived = cmp->ts.u.derived;
 	  c->attr.flavor = FL_VARIABLE;
 	  c->attr.pointer = 1;
-	  c->initializer = gfc_get_expr ();
-	  c->initializer->expr_type = EXPR_NULL;
+	  c->initializer = NULL;
 	  continue;
 	}
 
@@ -4959,8 +4957,7 @@ copy_vtab_proc_comps (gfc_symbol *declared, gfc_symbol *vtype,
       c->ts.interface = cmp->ts.interface;
       c->attr.untyped = 1;
       c->attr.if_source = IFSRC_IFBODY;
-      c->initializer = gfc_get_expr ();
-      c->initializer->expr_type = EXPR_NULL;
+      c->initializer = NULL;
     }
 }
 

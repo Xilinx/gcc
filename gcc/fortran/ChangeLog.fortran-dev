@@ -1,3 +1,9 @@
+2010-04-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/43896
+	* symbol.c (add_proc_component,copy_vtab_proc_comps): Remove
+	initializers for PPC members of the vtabs.
+
 2010-04-26  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/42274
