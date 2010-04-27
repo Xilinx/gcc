@@ -508,6 +508,23 @@ create_tmp_var (tree type, const char *prefix)
   return tmp_var;
 }
 
+/* Create a new temporary variable declaration of type TYPE by calling
+   create_tmp_var and if TYPE is a vector or a complex number, mark the new
+   temporary as gimple register.  */
+
+tree
+create_tmp_reg (tree type, const char *prefix)
+{
+  tree tmp;
+
+  tmp = create_tmp_var (type, prefix);
+  if (TREE_CODE (type) == COMPLEX_TYPE
+      || TREE_CODE (type) == VECTOR_TYPE)
+    DECL_GIMPLE_REG_P (tmp) = 1;
+
+  return tmp;
+}
+
 /* Create a temporary with a name derived from VAL.  Subroutine of
    lookup_tmp_var; nobody else should call this function.  */
 
@@ -1219,10 +1236,7 @@ gimplify_return_expr (tree stmt, gimple_seq *pre_p)
     result = gimplify_ctxp->return_temp;
   else
     {
-      result = create_tmp_var (TREE_TYPE (result_decl), NULL);
-      if (TREE_CODE (TREE_TYPE (result)) == COMPLEX_TYPE
-          || TREE_CODE (TREE_TYPE (result)) == VECTOR_TYPE)
-        DECL_GIMPLE_REG_P (result) = 1;
+      result = create_tmp_reg (TREE_TYPE (result_decl), NULL);
 
       /* ??? With complex control flow (usually involving abnormal edges),
 	 we can wind up warning about an uninitialized value for this.  Due
@@ -2853,71 +2867,67 @@ static enum gimplify_status
 gimplify_cond_expr (tree *expr_p, gimple_seq *pre_p, fallback_t fallback)
 {
   tree expr = *expr_p;
-  tree tmp, type, arm1, arm2;
+  tree type = TREE_TYPE (expr);
+  location_t loc = EXPR_LOCATION (expr);
+  tree tmp, arm1, arm2;
   enum gimplify_status ret;
   tree label_true, label_false, label_cont;
   bool have_then_clause_p, have_else_clause_p;
   gimple gimple_cond;
   enum tree_code pred_code;
   gimple_seq seq = NULL;
-  location_t loc = EXPR_LOCATION (*expr_p);
-
-  type = TREE_TYPE (expr);
 
   /* If this COND_EXPR has a value, copy the values into a temporary within
      the arms.  */
-  if (! VOID_TYPE_P (type))
+  if (!VOID_TYPE_P (type))
     {
+      tree then_ = TREE_OPERAND (expr, 1), else_ = TREE_OPERAND (expr, 2);
       tree result;
 
-      /* If an rvalue is ok or we do not require an lvalue, avoid creating
-	 an addressable temporary.  */
-      if (((fallback & fb_rvalue)
-	   || !(fallback & fb_lvalue))
+      /* If either an rvalue is ok or we do not require an lvalue, create the
+	 temporary.  But we cannot do that if the type is addressable.  */
+      if (((fallback & fb_rvalue) || !(fallback & fb_lvalue))
 	  && !TREE_ADDRESSABLE (type))
 	{
 	  if (gimplify_ctxp->allow_rhs_cond_expr
 	      /* If either branch has side effects or could trap, it can't be
 		 evaluated unconditionally.  */
-	      && !TREE_SIDE_EFFECTS (TREE_OPERAND (*expr_p, 1))
-	      && !generic_expr_could_trap_p (TREE_OPERAND (*expr_p, 1))
-	      && !TREE_SIDE_EFFECTS (TREE_OPERAND (*expr_p, 2))
-	      && !generic_expr_could_trap_p (TREE_OPERAND (*expr_p, 2)))
+	      && !TREE_SIDE_EFFECTS (then_)
+	      && !generic_expr_could_trap_p (then_)
+	      && !TREE_SIDE_EFFECTS (else_)
+	      && !generic_expr_could_trap_p (else_))
 	    return gimplify_pure_cond_expr (expr_p, pre_p);
 
-	  result = tmp = create_tmp_var (TREE_TYPE (expr), "iftmp");
-	  ret = GS_ALL_DONE;
+	  tmp = create_tmp_var (type, "iftmp");
+	  result = tmp;
 	}
+
+      /* Otherwise, only create and copy references to the values.  */
       else
 	{
-	  tree type = build_pointer_type (TREE_TYPE (expr));
+	  type = build_pointer_type (type);
 
-	  if (TREE_TYPE (TREE_OPERAND (expr, 1)) != void_type_node)
-	    TREE_OPERAND (expr, 1) =
-	      build_fold_addr_expr_loc (loc, TREE_OPERAND (expr, 1));
+	  if (!VOID_TYPE_P (TREE_TYPE (then_)))
+	    then_ = build_fold_addr_expr_loc (loc, then_);
 
-	  if (TREE_TYPE (TREE_OPERAND (expr, 2)) != void_type_node)
-	    TREE_OPERAND (expr, 2) =
-	      build_fold_addr_expr_loc (loc, TREE_OPERAND (expr, 2));
+	  if (!VOID_TYPE_P (TREE_TYPE (else_)))
+	    else_ = build_fold_addr_expr_loc (loc, else_);
+ 
+	  expr
+	    = build3 (COND_EXPR, type, TREE_OPERAND (expr, 0), then_, else_);
 
 	  tmp = create_tmp_var (type, "iftmp");
-
-	  expr = build3 (COND_EXPR, void_type_node, TREE_OPERAND (expr, 0),
-			 TREE_OPERAND (expr, 1), TREE_OPERAND (expr, 2));
-
 	  result = build_fold_indirect_ref_loc (loc, tmp);
 	}
 
-      /* Build the then clause, 't1 = a;'.  But don't build an assignment
-	 if this branch is void; in C++ it can be, if it's a throw.  */
-      if (TREE_TYPE (TREE_OPERAND (expr, 1)) != void_type_node)
-	TREE_OPERAND (expr, 1)
-	  = build2 (MODIFY_EXPR, TREE_TYPE (tmp), tmp, TREE_OPERAND (expr, 1));
+      /* Build the new then clause, `tmp = then_;'.  But don't build the
+	 assignment if the value is void; in C++ it can be if it's a throw.  */
+      if (!VOID_TYPE_P (TREE_TYPE (then_)))
+	TREE_OPERAND (expr, 1) = build2 (MODIFY_EXPR, type, tmp, then_);
 
-      /* Build the else clause, 't1 = b;'.  */
-      if (TREE_TYPE (TREE_OPERAND (expr, 2)) != void_type_node)
-	TREE_OPERAND (expr, 2)
-	  = build2 (MODIFY_EXPR, TREE_TYPE (tmp), tmp, TREE_OPERAND (expr, 2));
+      /* Similarly, build the new else clause, `tmp = else_;'.  */
+      if (!VOID_TYPE_P (TREE_TYPE (else_)))
+	TREE_OPERAND (expr, 2) = build2 (MODIFY_EXPR, type, tmp, else_);
 
       TREE_TYPE (expr) = void_type_node;
       recalculate_side_effects (expr);
@@ -6351,9 +6361,7 @@ gimplify_omp_atomic (tree *expr_p, gimple_seq *pre_p)
   tree type = TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (addr)));
   tree tmp_load;
 
-   tmp_load = create_tmp_var (type, NULL);
-   if (TREE_CODE (type) == COMPLEX_TYPE || TREE_CODE (type) == VECTOR_TYPE)
-     DECL_GIMPLE_REG_P (tmp_load) = 1;
+   tmp_load = create_tmp_reg (type, NULL);
    if (goa_stabilize_expr (&rhs, pre_p, addr, tmp_load) < 0)
      return GS_ERROR;
 
@@ -7828,11 +7836,8 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
 	    }
 	  if (need_temp)
 	    {
-	      tree temp = create_tmp_var (TREE_TYPE (lhs), NULL);
+	      tree temp = create_tmp_reg (TREE_TYPE (lhs), NULL);
 
-	      if (TREE_CODE (TREE_TYPE (lhs)) == COMPLEX_TYPE
-		  || TREE_CODE (TREE_TYPE (lhs)) == VECTOR_TYPE)
-		DECL_GIMPLE_REG_P (temp) = 1;
 	      if (TREE_CODE (orig_lhs) == SSA_NAME)
 		orig_lhs = SSA_NAME_VAR (orig_lhs);
 

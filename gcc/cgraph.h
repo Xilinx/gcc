@@ -175,6 +175,21 @@ struct GTY(()) cgraph_clone_info
   bitmap combined_args_to_skip;
 };
 
+enum node_frequency {
+  /* This function most likely won't be executed at all.
+     (set only when profile feedback is available or via function attribute). */
+  NODE_FREQUENCY_UNLIKELY_EXECUTED,
+  /* For functions that are known to be executed once (i.e. constructors, destructors
+     and main function.  */
+  NODE_FREQUENCY_EXECUTED_ONCE,
+  /* The default value.  */
+  NODE_FREQUENCY_NORMAL,
+  /* Optimize this function hard
+     (set only when profile feedback is available or via function attribute). */
+  NODE_FREQUENCY_HOT
+};
+
+
 /* The cgraph data structure.
    Each function decl has assigned cgraph_node listing callees and callers.  */
 
@@ -249,11 +264,15 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
      cgraph_remove_unreachable_nodes cgraph still can contain unreachable
      nodes when they are needed for virtual clone instantiation.  */
   unsigned reachable : 1;
+  /* Set when function is reachable by call from other LTRANS partition.  */
+  unsigned reachable_from_other_partition : 1;
   /* Set once the function is lowered (i.e. its CFG is built).  */
   unsigned lowered : 1;
   /* Set once the function has been instantiated and its callee
      lists created.  */
   unsigned analyzed : 1;
+  /* Set when function is available in the other LTO partition.  */
+  unsigned in_other_partition : 1;
   /* Set when function is scheduled to be processed by local passes.  */
   unsigned process : 1;
   /* Set for aliases once they got through assemble_alias.  */
@@ -263,6 +282,9 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   /* Set for alias and thunk nodes, same_body points to the node they are alias
      of and they are linked through the next/previous pointers.  */
   unsigned same_body_alias : 1;
+  /* How commonly executed the node is.  Initialized during branch
+     probabilities pass.  */
+  ENUM_BITFIELD (node_frequency) frequency : 2;
 };
 
 typedef struct cgraph_node *cgraph_node_ptr;
@@ -535,6 +557,7 @@ struct cgraph_2node_hook_list *cgraph_add_node_duplication_hook (cgraph_2node_ho
 void cgraph_remove_node_duplication_hook (struct cgraph_2node_hook_list *);
 void cgraph_materialize_all_clones (void);
 gimple cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *);
+bool cgraph_propagate_frequency (struct cgraph_node *node);
 /* In cgraphbuild.c  */
 unsigned int rebuild_cgraph_edges (void);
 void reset_inline_failed (struct cgraph_node *);
@@ -723,7 +746,7 @@ cgraph_only_called_directly_p (struct cgraph_node *node)
 static inline bool
 cgraph_can_remove_if_no_direct_calls_p (struct cgraph_node *node)
 {
-  return (!node->needed
+  return (!node->needed && !node->reachable_from_other_partition
   	  && (DECL_COMDAT (node->decl) || !node->local.externally_visible));
 }
 

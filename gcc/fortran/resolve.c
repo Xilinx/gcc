@@ -3978,8 +3978,9 @@ compare_spec_to_ref (gfc_array_ref *ar)
 
 /* Resolve one part of an array index.  */
 
-gfc_try
-gfc_resolve_index (gfc_expr *index, int check_scalar)
+static gfc_try
+gfc_resolve_index_1 (gfc_expr *index, int check_scalar,
+		     int force_index_integer_kind)
 {
   gfc_typespec ts;
 
@@ -4007,7 +4008,8 @@ gfc_resolve_index (gfc_expr *index, int check_scalar)
 			&index->where) == FAILURE)
       return FAILURE;
 
-  if (index->ts.kind != gfc_index_integer_kind
+  if ((index->ts.kind != gfc_index_integer_kind
+       && force_index_integer_kind)
       || index->ts.type != BT_INTEGER)
     {
       gfc_clear_ts (&ts);
@@ -4018,6 +4020,14 @@ gfc_resolve_index (gfc_expr *index, int check_scalar)
     }
 
   return SUCCESS;
+}
+
+/* Resolve one part of an array index.  */
+
+gfc_try
+gfc_resolve_index (gfc_expr *index, int check_scalar)
+{
+  return gfc_resolve_index_1 (index, check_scalar, 1);
 }
 
 /* Resolve a dim argument to an intrinsic function.  */
@@ -4144,7 +4154,10 @@ resolve_array_ref (gfc_array_ref *ar)
     {
       check_scalar = ar->dimen_type[i] == DIMEN_RANGE;
 
-      if (gfc_resolve_index (ar->start[i], check_scalar) == FAILURE)
+      /* Do not force gfc_index_integer_kind for the start.  We can
+         do fine with any integer kind.  This avoids temporary arrays
+	 created for indexing with a vector.  */
+      if (gfc_resolve_index_1 (ar->start[i], check_scalar, 0) == FAILURE)
 	return FAILURE;
       if (gfc_resolve_index (ar->end[i], check_scalar) == FAILURE)
 	return FAILURE;
@@ -6548,9 +6561,9 @@ check_symbols:
       goto failure;
     }
 
-  if (codimension)
+  if (codimension && ar->as->rank == 0)
     {
-      gfc_error ("Sorry, allocatable coarrays are no yet supported coarray "
+      gfc_error ("Sorry, allocatable scalar coarrays are not yet supported "
 		 "at %L", &e->where);
       goto failure;
     }
@@ -10617,7 +10630,9 @@ ensure_not_abstract_walker (gfc_symbol* sub, gfc_symtree* st)
     {
       gfc_symtree* overriding;
       overriding = gfc_find_typebound_proc (sub, NULL, st->name, true, NULL);
-      gcc_assert (overriding && overriding->n.tb);
+      if (!overriding)
+	return FAILURE;
+      gcc_assert (overriding->n.tb);
       if (overriding->n.tb->deferred)
 	{
 	  gfc_error ("Derived-type '%s' declared at %L must be ABSTRACT because"
@@ -10784,8 +10799,12 @@ resolve_fl_derived (gfc_symbol *sym)
 	      /* Copy char length.  */
 	      if (ifc->ts.type == BT_CHARACTER && ifc->ts.u.cl)
 		{
-		  c->ts.u.cl = gfc_new_charlen (sym->ns, ifc->ts.u.cl);
-		  gfc_expr_replace_comp (c->ts.u.cl->length, c);
+		  gfc_charlen *cl = gfc_new_charlen (sym->ns, ifc->ts.u.cl);
+		  gfc_expr_replace_comp (cl->length, c);
+		  if (cl->length && !cl->resolved
+		        && gfc_resolve_expr (cl->length) == FAILURE)
+		    return FAILURE;
+		  c->ts.u.cl = cl;
 		}
 	    }
 	  else if (c->ts.interface->name[0] != '\0')
@@ -11298,6 +11317,9 @@ resolve_symbol (gfc_symbol *sym)
 	    {
 	      sym->ts.u.cl = gfc_new_charlen (sym->ns, ifc->ts.u.cl);
 	      gfc_expr_replace_symbols (sym->ts.u.cl->length, sym);
+	      if (sym->ts.u.cl->length && !sym->ts.u.cl->resolved
+		    && gfc_resolve_expr (sym->ts.u.cl->length) == FAILURE)
+		return;
 	    }
 	}
       else if (sym->ts.interface->name[0] != '\0')

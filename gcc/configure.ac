@@ -1034,8 +1034,8 @@ AC_CHECK_FUNCS(elf_getshdrstrndx,,
 int main()
 {
   return elf_getshstrndx (NULL, 0) == 0;
-}]]), AC_DEFINE(HAVE_ELF_GETSHSTRNDX_GABI, 1,
-        [Define if elf_getshstrndx has gABI conformant return values.])])])]
+}]])], AC_DEFINE(HAVE_ELF_GETSHSTRNDX_GABI, 1,
+        [Define if elf_getshstrndx has gABI conformant return values.]))])]
   )
 LIBS="$save_LIBS"
 CPPFLAGS="$save_CPPFLAGS"
@@ -3202,6 +3202,19 @@ foo:	nop
 	   rm -f conftest],
 	  [AC_DEFINE(HAVE_GAS_PE_SECREL32_RELOC, 1,
 	    [Define if your assembler and linker support 32-bit section relative relocs via '.secrel32 label'.])])
+	# Test if the assembler supports the extended form of the .section
+	# directive that specifies section alignment.  LTO support uses this,
+	# but normally only after installation, so we warn but don't fail the
+	# configure if LTO is enabled but the assembler does not support it.
+	gcc_GAS_CHECK_FEATURE([.section with alignment], gcc_cv_as_section_has_align,
+	  [2,20,1],-fatal-warnings,[.section lto_test,"dr0"])
+	if test x$gcc_cv_as_section_has_align != xyes; then
+	  case ",$enable_languages," in
+	    *,lto,*)
+	      AC_MSG_WARN([LTO for $target requires binutils >= 2.20.1, but version found appears insufficient; LTO will not work until binutils is upgraded.])
+	      ;;
+	  esac
+	fi
 	;;
     esac
 
@@ -4270,6 +4283,17 @@ changequote([,])dnl
 		    AC_DEFINE(ENABLE_LTO, 1, [Define to enable LTO support.])
 		    enable_lto=yes
 		    AC_SUBST(enable_lto)
+		    # LTO needs to speak the platform's object file format, and has a
+		    # number of implementations of the required binary file access APIs.
+		    # ELF is the most common, and default.  We only link libelf if ELF
+		    # is indeed the selected format.
+		    LTO_BINARY_READER=${lto_binary_reader}
+		    LTO_USE_LIBELF=-lelf
+		    if test "x$lto_binary_reader" != "xlto-elf" ; then
+		      LTO_USE_LIBELF=
+		    fi
+		    AC_SUBST(LTO_BINARY_READER)
+		    AC_SUBST(LTO_USE_LIBELF)
 		    ;;
 		*) ;;
 	esac
@@ -4456,15 +4480,23 @@ enable_plugin=yes; default_plugin=yes)
 pluginlibs=
 if test x"$enable_plugin" = x"yes"; then
 
+  case "${host}" in
+    *-*-darwin*)
+      export_sym_check="$gcc_cv_nm -g"
+    ;;
+    *)
+      export_sym_check="$gcc_cv_objdump -T"
+    ;;
+  esac
   AC_MSG_CHECKING([for exported symbols])
   echo "int main() {return 0;} int foobar() {return 0;}" > conftest.c
   ${CC} ${CFLAGS} ${LDFLAGS} conftest.c -o conftest > /dev/null 2>&1
-  if $gcc_cv_objdump -T conftest | grep foobar > /dev/null; then
+  if $export_sym_check conftest | grep foobar > /dev/null; then
     : # No need to use a flag
   else
     AC_MSG_CHECKING([for -rdynamic])
     ${CC} ${CFLAGS} ${LDFLAGS} -rdynamic conftest.c -o conftest > /dev/null 2>&1
-    if $gcc_cv_objdump -T conftest | grep foobar > /dev/null; then
+    if $export_sym_check conftest | grep foobar > /dev/null; then
       plugin_rdynamic=yes
       pluginlibs="-rdynamic"
     else
@@ -4484,7 +4516,14 @@ if test x"$enable_plugin" = x"yes"; then
 
   # Check that we can build shared objects with -fPIC -shared
   saved_LDFLAGS="$LDFLAGS"
-  LDFLAGS="$LDFLAGS -fPIC -shared"
+  case "${host}" in
+    *-*-darwin*)
+      LDFLAGS="$LDFLAGS -fPIC -shared -undefined dynamic_lookup"
+    ;;
+    *)
+      LDFLAGS="$LDFLAGS -fPIC -shared"
+    ;;
+  esac
   AC_MSG_CHECKING([for -fPIC -shared])
   AC_TRY_LINK(
     [extern int X;],[return X == 0;],

@@ -714,6 +714,32 @@ verify_cgraph_node (struct cgraph_node *node)
       error ("double linked list of clones corrupted");
       error_found = true;
     }
+  if (node->same_comdat_group)
+    {
+      struct cgraph_node *n = node->same_comdat_group;
+
+      if (!DECL_ONE_ONLY (node->decl))
+	{
+	  error ("non-DECL_ONE_ONLY node in a same_comdat_group list");
+	  error_found = true;
+	}
+      if (n == node)
+	{
+	  error ("node is alone in a comdat group");
+	  error_found = true;
+	}
+      do
+	{
+	  if (!n->same_comdat_group)
+	    {
+	      error ("same_comdat_group is not a circular list");
+	      error_found = true;
+	      break;
+	    }
+	  n = n->same_comdat_group;
+	}
+      while (n != node);
+    }
 
   if (node->analyzed && gimple_has_body_p (node->decl)
       && !TREE_ASM_WRITTEN (node->decl)
@@ -1130,7 +1156,7 @@ cgraph_mark_functions_to_output (void)
 	 outside the current compilation unit.  */
       if (node->analyzed
 	  && !node->global.inlined_to
-	  && (node->needed
+	  && (node->needed || node->reachable_from_other_partition
 	      || (e && node->reachable))
 	  && !TREE_ASM_WRITTEN (decl)
 	  && !DECL_EXTERNAL (decl))
@@ -1157,6 +1183,10 @@ cgraph_mark_functions_to_output (void)
 #ifdef ENABLE_CHECKING
 	  if (!node->global.inlined_to
 	      && gimple_has_body_p (decl)
+	      /* FIXME: in ltrans unit when offline copy is outside partition but inline copies
+		 are inside partition, we can end up not removing the body since we no longer
+		 have analyzed node pointing to it.  */
+	      && !node->in_other_partition
 	      && !DECL_EXTERNAL (decl))
 	    {
 	      dump_cgraph_node (stderr, node);
@@ -1165,6 +1195,7 @@ cgraph_mark_functions_to_output (void)
 #endif
 	  gcc_assert (node->global.inlined_to
 		      || !gimple_has_body_p (decl)
+		      || node->in_other_partition
 		      || DECL_EXTERNAL (decl));
 
 	}
@@ -1178,6 +1209,10 @@ cgraph_mark_functions_to_output (void)
 	  tree decl = node->decl;
 	  if (!node->global.inlined_to
 	      && gimple_has_body_p (decl)
+	      /* FIXME: in ltrans unit when offline copy is outside partition but inline copies
+		 are inside partition, we can end up not removing the body since we no longer
+		 have analyzed node pointing to it.  */
+	      && !node->in_other_partition
 	      && !DECL_EXTERNAL (decl))
 	    {
 	      dump_cgraph_node (stderr, node);
@@ -2018,7 +2053,7 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
 				 VEC(cgraph_edge_p,heap) *redirect_callers)
  {
    struct cgraph_node *new_version;
-   struct cgraph_edge *e, *new_e;
+   struct cgraph_edge *e;
    struct cgraph_edge *next_callee;
    unsigned i;
 
@@ -2037,10 +2072,10 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
       also cloned.  */
    for (e = old_version->callees;e; e=e->next_callee)
      {
-       new_e = cgraph_clone_edge (e, new_version, e->call_stmt,
-				  e->lto_stmt_uid, 0, e->frequency,
-				  e->loop_nest, true);
-       new_e->count = e->count;
+       cgraph_clone_edge (e, new_version, e->call_stmt,
+			  e->lto_stmt_uid, REG_BR_PROB_BASE,
+			  CGRAPH_FREQ_BASE,
+			  e->loop_nest, true);
      }
    /* Fix recursive calls.
       If OLD_VERSION has a recursive call after the
@@ -2260,6 +2295,7 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
 
   gsi = gsi_for_stmt (e->call_stmt);
   gsi_replace (&gsi, new_stmt, true);
+  update_stmt (new_stmt);
 
   /* Update EH information too, just in case.  */
   maybe_clean_or_replace_eh_stmt (e->call_stmt, new_stmt);
@@ -2363,6 +2399,7 @@ cgraph_materialize_all_clones (void)
         push_cfun (DECL_STRUCT_FUNCTION (node->decl));
 	for (e = node->callees; e; e = e->next_callee)
 	  cgraph_redirect_edge_call_stmt_to_callee (e);
+	gcc_assert (!need_ssa_update_p (cfun));
 	pop_cfun ();
 	current_function_decl = NULL;
 #ifdef ENABLE_CHECKING

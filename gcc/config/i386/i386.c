@@ -2512,7 +2512,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
   if (isa && add_nl_p)
     {
       opts[num++][0] = isa_other;
-      sprintf (isa_other, "(other isa: 0x%x)", isa);
+      sprintf (isa_other, "(other isa: %#x)", isa);
     }
 
   /* Add flag options.  */
@@ -2528,7 +2528,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
   if (flags && add_nl_p)
     {
       opts[num++][0] = target_other;
-      sprintf (target_other, "(other flags: 0x%x)", isa);
+      sprintf (target_other, "(other flags: %#x)", isa);
     }
 
   /* Add -fpmath= option.  */
@@ -8010,6 +8010,7 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
       && cfun->machine->use_fast_prologue_epilogue_nregs != frame->nregs)
     {
       int count = frame->nregs;
+      struct cgraph_node *node = cgraph_node (current_function_decl);
 
       cfun->machine->use_fast_prologue_epilogue_nregs = count;
       /* The fast prologue uses move instead of push to save registers.  This
@@ -8024,9 +8025,9 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
 	 slow to use many of them.  */
       if (count)
 	count = (count - 1) * FAST_PROLOGUE_INSN_COUNT;
-      if (cfun->function_frequency < FUNCTION_FREQUENCY_NORMAL
+      if (node->frequency < NODE_FREQUENCY_NORMAL
 	  || (flag_branch_probabilities
-	      && cfun->function_frequency < FUNCTION_FREQUENCY_HOT))
+	      && node->frequency < NODE_FREQUENCY_HOT))
         cfun->machine->use_fast_prologue_epilogue = false;
       else
         cfun->machine->use_fast_prologue_epilogue
@@ -9357,6 +9358,7 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
   rtx base_reg, index_reg;
   HOST_WIDE_INT scale = 1;
   rtx scale_rtx = NULL_RTX;
+  rtx tmp;
   int retval = 1;
   enum ix86_address_seg seg = SEG_DEFAULT;
 
@@ -9390,6 +9392,19 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 		return 0;
 	      index = XEXP (op, 0);
 	      scale_rtx = XEXP (op, 1);
+	      break;
+
+	    case ASHIFT:
+	      if (index)
+		return 0;
+	      index = XEXP (op, 0);
+	      tmp = XEXP (op, 1);
+	      if (!CONST_INT_P (tmp))
+		return 0;
+	      scale = INTVAL (tmp);
+	      if ((unsigned HOST_WIDE_INT) scale > 3)
+		return 0;
+	      scale = 1 << scale;
 	      break;
 
 	    case UNSPEC:
@@ -9432,8 +9447,6 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
     }
   else if (GET_CODE (addr) == ASHIFT)
     {
-      rtx tmp;
-
       /* We're called for lea too, which implements ashift on occasion.  */
       index = XEXP (addr, 0);
       tmp = XEXP (addr, 1);
@@ -10829,7 +10842,7 @@ output_pic_addr_const (FILE *file, rtx x, int code)
 	{
 	  /* We can use %d if the number is <32 bits and positive.  */
 	  if (CONST_DOUBLE_HIGH (x) || CONST_DOUBLE_LOW (x) < 0)
-	    fprintf (file, "0x%lx%08lx",
+	    fprintf (file, "%#lx%08lx",
 		     (unsigned long) CONST_DOUBLE_HIGH (x),
 		     (unsigned long) CONST_DOUBLE_LOW (x));
 	  else
@@ -11993,7 +12006,7 @@ print_operand (FILE *file, rtx x, int code)
 
       if (ASSEMBLER_DIALECT == ASM_ATT)
 	putc ('$', file);
-      fprintf (file, "0x%08lx", (long unsigned int) l);
+      fprintf (file, "%#08lx", (long unsigned int) l);
     }
 
   /* These float cases don't actually occur as immediate operands.  */
@@ -26694,7 +26707,7 @@ ix86_pad_returns (void)
 	    replace = true;
 	  /* Empty functions get branch mispredict even when the jump destination
 	     is not visible to us.  */
-	  if (!prev && cfun->function_frequency > FUNCTION_FREQUENCY_UNLIKELY_EXECUTED)
+	  if (!prev && !optimize_function_for_size_p (cfun))
 	    replace = true;
 	}
       if (replace)

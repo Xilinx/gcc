@@ -285,6 +285,7 @@ cgraph_clone_inlined_nodes (struct cgraph_edge *e, bool duplicate,
       + inline_summary (e->callee)->estimated_self_stack_size;
   if (e->callee->global.inlined_to->global.estimated_stack_size < peak)
     e->callee->global.inlined_to->global.estimated_stack_size = peak;
+  cgraph_propagate_frequency (e->callee);
 
   /* Recursively clone all bodies.  */
   for (e = e->callee->callees; e; e = e->next_callee)
@@ -1024,8 +1025,9 @@ cgraph_decide_inlining_of_small_functions (void)
 		   " Estimated growth after inlined into all callees is %+i insns.\n"
 		   " Estimated badness is %i, frequency %.2f.\n",
 		   cgraph_node_name (edge->caller),
-		   gimple_filename ((const_gimple) edge->call_stmt),
-		   gimple_lineno ((const_gimple) edge->call_stmt),
+		   flag_wpa ? "unknown"
+		   : gimple_filename ((const_gimple) edge->call_stmt),
+		   flag_wpa ? -1 : gimple_lineno ((const_gimple) edge->call_stmt),
 		   cgraph_estimate_growth (edge->callee),
 		   badness,
 		   edge->frequency / (double)CGRAPH_FREQ_BASE);
@@ -1200,8 +1202,9 @@ cgraph_decide_inlining_of_small_functions (void)
 		   " Estimated growth after inlined into all callees is %+i insns.\n"
 		   " Estimated badness is %i, frequency %.2f.\n",
 		   cgraph_node_name (edge->caller),
-		   gimple_filename ((const_gimple) edge->call_stmt),
-		   gimple_lineno ((const_gimple) edge->call_stmt),
+		   flag_wpa ? "unknown"
+		   : gimple_filename ((const_gimple) edge->call_stmt),
+		   flag_wpa ? -1 : gimple_lineno ((const_gimple) edge->call_stmt),
 		   cgraph_estimate_growth (edge->callee),
 		   badness,
 		   edge->frequency / (double)CGRAPH_FREQ_BASE);
@@ -1416,13 +1419,14 @@ cgraph_decide_inlining (void)
 	      if (cgraph_check_inline_limits (node->callers->caller, node,
 					      &reason, false))
 		{
+		  struct cgraph_node *caller = node->callers->caller;
 		  cgraph_mark_inline (node->callers);
 		  if (dump_file)
 		    fprintf (dump_file,
 			     " Inlined into %s which now has %i size"
 			     " for a net change of %+i size.\n",
-			     cgraph_node_name (node->callers->caller),
-			     node->callers->caller->global.size,
+			     cgraph_node_name (caller),
+			     caller->global.size,
 			     overall_size - old_size);
 		}
 	      else
@@ -2132,7 +2136,8 @@ struct ipa_opt_pass_d pass_ipa_inline =
  inline_generate_summary,		/* generate_summary */
  inline_write_summary,			/* write_summary */
  inline_read_summary,			/* read_summary */
- NULL,					/* function_read_summary */
+ NULL,					/* write_optimization_summary */
+ NULL,					/* read_optimization_summary */
  lto_ipa_fixup_call_notes,		/* stmt_fixup */
  0,					/* TODOs */
  inline_transform,			/* function_transform */
