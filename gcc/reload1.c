@@ -724,7 +724,7 @@ static int *temp_pseudo_reg_arr;
 int
 reload (rtx first, int global)
 {
-  int i, n;
+  int i;
   rtx insn;
   struct elim_table *ep;
   basic_block bb;
@@ -800,7 +800,7 @@ reload (rtx first, int global)
      or stack slots.  Assign them stack slots now.  Also alter each pseudo
      to contain its hard reg number.  */
 
-  for (n = 0, i = LAST_VIRTUAL_REGISTER + 1; i < max_regno; i++)
+  for (i = LAST_VIRTUAL_REGISTER + 1; i < max_regno; i++)
     alter_reg (i, -1, false);
 
   /* If we have some registers we think can be eliminated, scan all insns to

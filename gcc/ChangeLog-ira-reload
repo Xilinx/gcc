@@ -1,3 +1,8 @@
+2010-04-27  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (ira_reload): Remove set, but not used 'tail' variable.
+	* reload1.c (reload): Similarly for 'n' variable.
+
 2010-02-16  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (create_new_allocno_for_spilling): No longer

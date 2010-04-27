@@ -1016,8 +1016,6 @@ ira_reload (void)
         {
 	  if (!bitmap_bit_p (visited, bb->index))
 	    {
-	      rtx tail;
-
 	      /* This collects pseudos live at the start of the EBB.  */
 	      EXECUTE_IF_SET_IN_BITMAP (DF_LIVE_IN (bb), FIRST_PSEUDO_REGISTER, i, bi)
 		if (localize_pseudo_p (i))
@@ -1028,7 +1026,6 @@ ira_reload (void)
 		  edge e;
 		  edge_iterator ei;
 		  bitmap_set_bit (visited, bb->index);
-		  tail = BB_END (bb);
 		  if (bb->next_bb == EXIT_BLOCK_PTR
 		      || LABEL_P (BB_HEAD (bb->next_bb)))
 		    break;
