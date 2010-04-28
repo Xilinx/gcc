@@ -1,3 +1,7 @@
+2010-04-28  Richard Henderson  <rth@redhat.com>
+
+	* cp/pt.c (tsubst_expr): Handle TRANSACTION_EXPR.
+
 2010-04-28  Aldy Hernandez  <aldyh@redhat.com>
 
 	* Makefile.in (GTFILES): Add trans-mem.c.
