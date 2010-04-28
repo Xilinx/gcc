@@ -7542,9 +7542,6 @@ gimplify_body (tree *body_p, tree fndecl, bool do_parms)
   gimple outer_bind;
   struct gimplify_ctx gctx;
 
-  if (!strcmp(IDENTIFIER_POINTER(DECL_ASSEMBLER_NAME(fndecl)),
-	      "_ZNSt3mapISsjSt4lessISsESaISt4pairIKSsjEEEixERS3_"))
-    debug_tree(fndecl);
   timevar_push (TV_TREE_GIMPLIFY);
 
   /* Initialize for optimize_insn_for_s{ize,peed}_p possibly called during
