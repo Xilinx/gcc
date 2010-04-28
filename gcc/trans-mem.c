@@ -425,7 +425,8 @@ gate_tm (void)
 /* Map for aribtrary function replacement under TM, as created
    by the tm_wrap attribute.  */
 
-static GTY((param_is (struct tree_map))) htab_t tm_wrap_map;
+static GTY((if_marked ("tree_map_marked_p"), param_is (struct tree_map)))
+     htab_t tm_wrap_map;
 
 void
 record_tm_replacement (tree from, tree to)
@@ -4345,3 +4346,5 @@ struct simple_ipa_opt_pass pass_ipa_tm =
   TODO_dump_func,			/* todo_flags_finish */
  },
 };
+
+#include "gt-trans-mem.h"

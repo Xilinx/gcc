@@ -3998,6 +3998,8 @@ optimize_inline_calls (tree fn)
      will split id->current_basic_block, and the new blocks will
      follow it; we'll trudge through them, processing their CALL_EXPRs
      along the way.  */
+  if (!strcmp(IDENTIFIER_POINTER(DECL_ASSEMBLER_NAME(fn)), "_Z3runPv"))
+    debug_tree(fn);
   FOR_EACH_BB (bb)
     gimple_expand_calls_inline (bb, &id);
 

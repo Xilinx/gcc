@@ -16970,6 +16970,9 @@ instantiate_pending_templates (int retries)
 	      if (!DECL_TEMPLATE_SPECIALIZATION (instantiation)
 		  && !DECL_TEMPLATE_INSTANTIATED (instantiation))
 		{
+         if (!strcmp(IDENTIFIER_POINTER(DECL_ASSEMBLER_NAME(instantiation)),
+                     "_ZNSt3mapISsjSt4lessISsESaISt4pairIKSsjEEEixERS3_"))
+           debug_tree(instantiation);
 		  instantiation
 		    = instantiate_decl (instantiation,
 					/*defer_ok=*/0,

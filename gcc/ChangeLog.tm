@@ -1,3 +1,9 @@
+2010-04-28  Aldy Hernandez  <aldyh@redhat.com>
+
+	* Makefile.in (GTFILES): Add trans-mem.c.
+	* trans-mem.c (tm_wrap_map): Add 'if_marked' GTY marker.
+	Include gt-trans-mem.h.
+
 2010-04-22  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (diagnose_tm_1): Include function name when
