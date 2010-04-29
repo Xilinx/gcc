@@ -139,15 +139,21 @@ lto_output_edge (struct lto_simple_output_block *ob, struct cgraph_edge *edge,
   intptr_t ref;
   struct bitpack_d *bp;
 
-  lto_output_uleb128_stream (ob->main_stream, LTO_cgraph_edge);
+  if (edge->indirect_unknown_callee)
+    lto_output_uleb128_stream (ob->main_stream, LTO_cgraph_indirect_edge);
+  else
+    lto_output_uleb128_stream (ob->main_stream, LTO_cgraph_edge);
 
   ref = lto_cgraph_encoder_lookup (encoder, edge->caller);
   gcc_assert (ref != LCC_NOT_FOUND);
   lto_output_sleb128_stream (ob->main_stream, ref);
 
-  ref = lto_cgraph_encoder_lookup (encoder, edge->callee);
-  gcc_assert (ref != LCC_NOT_FOUND);
-  lto_output_sleb128_stream (ob->main_stream, ref);
+  if (!edge->indirect_unknown_callee)
+    {
+      ref = lto_cgraph_encoder_lookup (encoder, edge->callee);
+      gcc_assert (ref != LCC_NOT_FOUND);
+      lto_output_sleb128_stream (ob->main_stream, ref);
+    }
 
   lto_output_sleb128_stream (ob->main_stream, edge->count);
 
@@ -157,7 +163,7 @@ lto_output_edge (struct lto_simple_output_block *ob, struct cgraph_edge *edge,
   bp_pack_value (bp, edge->inline_failed, HOST_BITS_PER_INT);
   bp_pack_value (bp, edge->frequency, HOST_BITS_PER_INT);
   bp_pack_value (bp, edge->loop_nest, 30);
-  bp_pack_value (bp, edge->indirect_call, 1);
+  bp_pack_value (bp, edge->indirect_inlining_edge, 1);
   bp_pack_value (bp, edge->call_stmt_cannot_inline_p, 1);
   bp_pack_value (bp, edge->can_throw_external, 1);
   lto_output_bitpack (ob->main_stream, bp);
@@ -286,6 +292,7 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
   bp_pack_value (bp, node->process, 1);
   bp_pack_value (bp, node->alias, 1);
   bp_pack_value (bp, node->finalized_by_frontend, 1);
+  bp_pack_value (bp, node->frequency, 2);
   lto_output_bitpack (ob->main_stream, bp);
   bitpack_delete (bp);
 
@@ -371,6 +378,45 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
     lto_output_uleb128_stream (ob->main_stream, 0);
 }
 
+/* Output the varpool NODE to OB. 
+   If NODE is not in SET, then NODE is a boundary.  */
+
+static void
+lto_output_varpool_node (struct lto_simple_output_block *ob, struct varpool_node *node,
+		         varpool_node_set set)
+{
+  bool boundary_p = !varpool_node_in_set_p (node, set) && node->analyzed;
+  struct bitpack_d *bp;
+  struct varpool_node *alias;
+  int count = 0;
+
+  lto_output_var_decl_index (ob->decl_state, ob->main_stream, node->decl);
+  bp = bitpack_create ();
+  bp_pack_value (bp, node->externally_visible, 1);
+  bp_pack_value (bp, node->force_output, 1);
+  bp_pack_value (bp, node->finalized, 1);
+  gcc_assert (node->finalized || !node->analyzed);
+  gcc_assert (node->needed);
+  gcc_assert (!node->alias);
+  /* FIXME: We have no idea how we move references around.  For moment assume that
+     everything is used externally.  */
+  bp_pack_value (bp, flag_wpa, 1);  /* used_from_other_parition.  */
+  bp_pack_value (bp, boundary_p, 1);  /* in_other_partition.  */
+  /* Also emit any extra name aliases.  */
+  for (alias = node->extra_name; alias; alias = alias->next)
+    count++;
+  bp_pack_value (bp, count != 0, 1);
+  lto_output_bitpack (ob->main_stream, bp);
+  bitpack_delete (bp);
+
+  if (count)
+    {
+      lto_output_uleb128_stream (ob->main_stream, count);
+      for (alias = node->extra_name; alias; alias = alias->next)
+	lto_output_var_decl_index (ob->decl_state, ob->main_stream, alias->decl);
+    }
+}
+
 /* Stream out profile_summary to OB.  */
 
 static void
@@ -397,6 +443,25 @@ add_node_to (lto_cgraph_encoder_t encoder, struct cgraph_node *node)
   if (node->clone_of)
     add_node_to (encoder, node->clone_of);
   lto_cgraph_encoder_encode (encoder, node);
+}
+
+/* Output all callees or indirect outgoing edges.  EDGE must be the first such
+   edge.  */
+
+static void
+output_outgoing_cgraph_edges (struct cgraph_edge *edge,
+			      struct lto_simple_output_block *ob,
+			      lto_cgraph_encoder_t encoder)
+{
+  if (!edge)
+    return;
+
+  /* Output edges in backward direction, so the reconstructed callgraph match
+     and it is easy to associate call sites in the IPA pass summaries.  */
+  while (edge->next_callee)
+    edge = edge->next_callee;
+  for (; edge; edge = edge->prev_callee)
+    lto_output_edge (ob, edge, encoder);
 }
 
 /* Output the part of the cgraph in SET.  */
@@ -467,16 +532,8 @@ output_cgraph (cgraph_node_set set)
   for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
     {
       node = csi_node (csi);
-      if (node->callees)
-        {
-	  /* Output edges in backward direction, so the reconstructed callgraph
-	     match and it is easy to associate call sites in the IPA pass summaries.  */
-	  edge = node->callees;
-	  while (edge->next_callee)
-	    edge = edge->next_callee;
-	  for (; edge; edge = edge->prev_callee)
-	    lto_output_edge (ob, edge, encoder);
-	}
+      output_outgoing_cgraph_edges (node->callees, ob, encoder);
+      output_outgoing_cgraph_edges (node->indirect_calls, ob, encoder);
     }
 
   lto_output_uleb128_stream (ob->main_stream, 0);
@@ -495,7 +552,6 @@ output_cgraph (cgraph_node_set set)
 
   lto_destroy_simple_output_block (ob);
 }
-
 
 /* Overwrite the information in NODE based on FILE_DATA, TAG, FLAGS,
    STACK_SIZE, SELF_TIME and SELF_SIZE.  This is called either to initialize
@@ -544,8 +600,35 @@ input_overwrite_node (struct lto_file_decl_data *file_data,
   node->process = bp_unpack_value (bp, 1);
   node->alias = bp_unpack_value (bp, 1);
   node->finalized_by_frontend = bp_unpack_value (bp, 1);
+  node->frequency = (enum node_frequency)bp_unpack_value (bp, 2);
 }
 
+/* Output the part of the cgraph in SET.  */
+
+void
+output_varpool (varpool_node_set set)
+{
+  struct varpool_node *node;
+  struct lto_simple_output_block *ob;
+  int len = 0;
+
+  ob = lto_create_simple_output_block (LTO_section_varpool);
+
+  for (node = varpool_nodes; node; node = node->next)
+    if (node->needed && node->analyzed)
+      len++;
+
+  lto_output_uleb128_stream (ob->main_stream, len);
+
+  /* Write out the nodes.  We must first output a node and then its clones,
+     otherwise at a time reading back the node there would be nothing to clone
+     from.  */
+  for (node = varpool_nodes; node; node = node->next)
+    if (node->needed && node->analyzed)
+      lto_output_varpool_node (ob, node, set);
+
+  lto_destroy_simple_output_block (ob);
+}
 
 /* Read a node from input_block IB.  TAG is the node's tag just read.
    Return the node read or overwriten.  */
@@ -665,12 +748,57 @@ input_node (struct lto_file_decl_data *file_data,
   return node;
 }
 
+/* Read a node from input_block IB.  TAG is the node's tag just read.
+   Return the node read or overwriten.  */
 
-/* Read an edge from IB.  NODES points to a vector of previously read
-   nodes for decoding caller and callee of the edge to be read.  */
+static struct varpool_node *
+input_varpool_node (struct lto_file_decl_data *file_data,
+		    struct lto_input_block *ib)
+{
+  int decl_index;
+  tree var_decl;
+  struct varpool_node *node;
+  struct bitpack_d *bp;
+  bool aliases_p;
+  int count;
+
+  decl_index = lto_input_uleb128 (ib);
+  var_decl = lto_file_decl_data_get_var_decl (file_data, decl_index);
+  node = varpool_node (var_decl);
+
+  bp = lto_input_bitpack (ib);
+  node->externally_visible = bp_unpack_value (bp, 1);
+  node->force_output = bp_unpack_value (bp, 1);
+  node->finalized = bp_unpack_value (bp, 1);
+  node->analyzed = 1; 
+  node->used_from_other_partition = bp_unpack_value (bp, 1);
+  node->in_other_partition = bp_unpack_value (bp, 1);
+  aliases_p = bp_unpack_value (bp, 1);
+  if (node->finalized)
+    varpool_mark_needed_node (node);
+  bitpack_delete (bp);
+  if (aliases_p)
+    {
+      count = lto_input_uleb128 (ib);
+      for (; count > 0; count --)
+	{
+	  tree decl = lto_file_decl_data_get_var_decl (file_data,
+						       lto_input_uleb128 (ib));
+	  varpool_extra_name_alias (decl, var_decl);
+	}
+    }
+  return node;
+}
+
+
+/* Read an edge from IB.  NODES points to a vector of previously read nodes for
+   decoding caller and callee of the edge to be read.  If INDIRECT is true, the
+   edge being read is indirect (in the sense that it has
+   indirect_unknown_callee set).  */
 
 static void
-input_edge (struct lto_input_block *ib, VEC(cgraph_node_ptr, heap) *nodes)
+input_edge (struct lto_input_block *ib, VEC(cgraph_node_ptr, heap) *nodes,
+	    bool indirect)
 {
   struct cgraph_node *caller, *callee;
   struct cgraph_edge *edge;
@@ -686,9 +814,14 @@ input_edge (struct lto_input_block *ib, VEC(cgraph_node_ptr, heap) *nodes)
   if (caller == NULL || caller->decl == NULL_TREE)
     internal_error ("bytecode stream: no caller found while reading edge");
 
-  callee = VEC_index (cgraph_node_ptr, nodes, lto_input_sleb128 (ib));
-  if (callee == NULL || callee->decl == NULL_TREE)
-    internal_error ("bytecode stream: no callee found while reading edge");
+  if (!indirect)
+    {
+      callee = VEC_index (cgraph_node_ptr, nodes, lto_input_sleb128 (ib));
+      if (callee == NULL || callee->decl == NULL_TREE)
+	internal_error ("bytecode stream: no callee found while reading edge");
+    }
+  else
+    callee = NULL;
 
   count = (gcov_type) lto_input_sleb128 (ib);
 
@@ -706,10 +839,14 @@ input_edge (struct lto_input_block *ib, VEC(cgraph_node_ptr, heap) *nodes)
       || caller_resolution == LDPR_PREEMPTED_IR)
     return;
 
-  edge = cgraph_create_edge (caller, callee, NULL, count, freq, nest);
+  if (indirect)
+    edge = cgraph_create_indirect_edge (caller, NULL, count, freq, nest);
+  else
+    edge = cgraph_create_edge (caller, callee, NULL, count, freq, nest);
+
+  edge->indirect_inlining_edge = bp_unpack_value (bp, 1);
   edge->lto_stmt_uid = stmt_id;
   edge->inline_failed = inline_failed;
-  edge->indirect_call = bp_unpack_value (bp, 1);
   edge->call_stmt_cannot_inline_p = bp_unpack_value (bp, 1);
   edge->can_throw_external = bp_unpack_value (bp, 1);
   bitpack_delete (bp);
@@ -732,7 +869,9 @@ input_cgraph_1 (struct lto_file_decl_data *file_data,
   while (tag)
     {
       if (tag == LTO_cgraph_edge)
-        input_edge (ib, nodes);
+        input_edge (ib, nodes, false);
+      else if (tag == LTO_cgraph_indirect_edge)
+        input_edge (ib, nodes, true);
       else
 	{
 	  node = input_node (file_data, ib, tag);
@@ -778,6 +917,22 @@ input_cgraph_1 (struct lto_file_decl_data *file_data,
     }
 
   VEC_free (cgraph_node_ptr, heap, nodes);
+}
+
+/* Read a varpool from IB using the info in FILE_DATA.  */
+
+static void
+input_varpool_1 (struct lto_file_decl_data *file_data,
+		struct lto_input_block *ib)
+{
+  unsigned HOST_WIDE_INT len;
+
+  len = lto_input_uleb128 (ib);
+  while (len)
+    {
+      input_varpool_node (file_data, ib);
+      len--;
+    }
 }
 
 static struct gcov_ctr_summary lto_gcov_summary;
@@ -833,6 +988,12 @@ input_cgraph (void)
       file_data->cgraph_node_encoder = lto_cgraph_encoder_new ();
       input_cgraph_1 (file_data, ib);
       lto_destroy_simple_input_block (file_data, LTO_section_cgraph,
+				      ib, data, len);
+
+      ib = lto_create_simple_input_block (file_data, LTO_section_varpool,
+					  &data, &len);
+      input_varpool_1 (file_data, ib);
+      lto_destroy_simple_input_block (file_data, LTO_section_varpool,
 				      ib, data, len);
 
       /* Assume that every file read needs to be processed by LTRANS.  */

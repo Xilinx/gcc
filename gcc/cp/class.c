@@ -1,6 +1,6 @@
 /* Functions related to building classes and their related objects.
    Copyright (C) 1987, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -506,10 +506,12 @@ build_simple_base_path (tree expr, tree binfo)
    assumed to be non-NULL.  */
 
 tree
-convert_to_base (tree object, tree type, bool check_access, bool nonnull)
+convert_to_base (tree object, tree type, bool check_access, bool nonnull,
+		 tsubst_flags_t complain)
 {
   tree binfo;
   tree object_type;
+  base_access access;
 
   if (TYPE_PTR_P (TREE_TYPE (object)))
     {
@@ -519,8 +521,11 @@ convert_to_base (tree object, tree type, bool check_access, bool nonnull)
   else
     object_type = TREE_TYPE (object);
 
+  access = check_access ? ba_check : ba_unique;
+  if (!(complain & tf_error))
+    access |= ba_quiet;
   binfo = lookup_base (object_type, type,
-		       check_access ? ba_check : ba_unique,
+		       access,
 		       NULL);
   if (!binfo || binfo == error_mark_node)
     return error_mark_node;
@@ -575,7 +580,7 @@ build_vfield_ref (tree datum, tree type)
   /* First, convert to the requested type.  */
   if (!same_type_ignoring_top_level_qualifiers_p (TREE_TYPE (datum), type))
     datum = convert_to_base (datum, type, /*check_access=*/false,
-			     /*nonnull=*/true);
+			     /*nonnull=*/true, tf_warning_or_error);
 
   /* Second, the requested type may not be the owner of its own vptr.
      If not, convert to the base class that owns it.  We cannot use
@@ -4177,6 +4182,34 @@ type_has_user_nondefault_constructor (tree t)
   return false;
 }
 
+/* Returns the defaulted constructor if T has one. Otherwise, returns
+   NULL_TREE.  */
+
+tree
+in_class_defaulted_default_constructor (tree t)
+{
+  tree fns, args;
+
+  if (!TYPE_HAS_USER_CONSTRUCTOR (t))
+    return NULL_TREE;
+
+  for (fns = CLASSTYPE_CONSTRUCTORS (t); fns; fns = OVL_NEXT (fns))
+    {
+      tree fn = OVL_CURRENT (fns);
+
+      if (DECL_DEFAULTED_IN_CLASS_P (fn))
+	{
+	  args = FUNCTION_FIRST_USER_PARMTYPE (fn);
+	  while (args && TREE_PURPOSE (args))
+	    args = TREE_CHAIN (args);
+	  if (!args || args == void_list_node)
+	    return fn;
+	}
+    }
+
+  return NULL_TREE;
+}
+
 /* Returns true iff FN is a user-provided function, i.e. user-declared
    and not defaulted at its first declaration; or explicit, private,
    protected, or non-const.  */
@@ -5935,6 +5968,34 @@ currently_open_derived_class (tree t)
 	return current_class_stack[i].type;
     }
 
+  return NULL_TREE;
+}
+
+/* Returns the innermost class type which is not a lambda closure type.  */
+
+tree
+current_nonlambda_class_type (void)
+{
+  int i;
+
+  /* We start looking from 1 because entry 0 is from global scope,
+     and has no type.  */
+  for (i = current_class_depth; i > 0; --i)
+    {
+      tree c;
+      if (i == current_class_depth)
+	c = current_class_type;
+      else
+	{
+	  if (current_class_stack[i].hidden)
+	    break;
+	  c = current_class_stack[i].type;
+	}
+      if (!c)
+	continue;
+      if (!LAMBDA_TYPE_P (c))
+	return c;
+    }
   return NULL_TREE;
 }
 

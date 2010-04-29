@@ -1,3 +1,78 @@
+2010-04-28  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/9335
+        * error.c (print_instantiation_partial_context_line): Handle
+	recursive instantiation.
+        (print_instantiation_partial_context): Likewise.
+
+2010-04-27  Jason Merrill  <jason@redhat.com>
+
+	* init.c (perform_member_init): Check CLASS_TYPE_P.
+
+2010-04-27  Fabien Chêne  <fabien.chene@gmail.com>
+
+	PR c++/29043
+	* init.c (perform_member_init): check for uninitialized const or
+	reference members, including array types.
+
+2010-04-24  Jason Merrill  <jason@redhat.com>
+
+	* tree.c (get_fns): Split out from get_first_fn.
+	* cp-tree.h: Declare it.
+	* search.c (shared_member_p): Use it.
+	* semantics.c (finish_qualified_id_expr): Simplify.
+	(finish_id_expression): Simplify.
+
+	* semantics.c (finish_non_static_data_member): Call maybe_dummy_object
+	whenever object is NULL_TREE.  Don't do 'this' capture here.
+	(finish_qualified_id_expr): Pass NULL_TREE.
+	(finish_id_expression): Likewise.
+	(lambda_expr_this_capture): Likewise.
+
+	* semantics.c (finish_qualified_id_expr): Use maybe_dummy_object
+	rather than checking current_class_ref directly.
+	(finish_call_expr): Likewise.
+
+	PR c++/43856
+	* name-lookup.c (qualify_lookup): Disqualify lambda op().
+	* class.c (current_nonlambda_class_type): New fn.
+	* semantics.c (nonlambda_method_basetype): New.
+	* cp-tree.h: Declare them.
+	* tree.c (maybe_dummy_object): Handle implicit 'this' capture.
+
+	* semantics.c (baselink_for_fns): Correct BASELINK_BINFO.
+
+	PR c++/43875
+	* semantics.c (lambda_return_type): Complain about
+	braced-init-list.
+
+	PR c++/43790
+	* tree.c (cv_unqualified): Handle error_mark_node.
+
+	PR c++/41468
+	* call.c (convert_like_real) [ck_ambig]: Just return error_mark_node
+	if we don't want errors.
+
+	PR c++/41468
+	* class.c (convert_to_base): Add complain parameter.  Pass
+	ba_quiet to lookup_base if we don't want errors.
+	(build_vfield_ref): Pass complain to convert_to_base.
+	* call.c (convert_like_real): Likewise.
+	(initialize_reference): Likewise.
+	(perform_direct_initialization_if_possible): Pass complain to
+	convert_like_real.
+	* cp-tree.h: Adjust.
+
+2010-04-27  Fabien Chêne  <fabien.chene@gmail.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	PR c++/42844
+	* decl.c (check_for_uninitialized_const_var): Handle classes that need
+	constructing, too.
+	(check_initializer): Call it for classes that need constructing, too.
+	* class.c (in_class_defaulted_default_constructor): New.
+	* cp-tree.h: Declare it.
+
 2010-04-20  Jason Merrill  <jason@redhat.com>
 
 	PR c++/9335

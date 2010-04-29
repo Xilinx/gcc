@@ -175,6 +175,21 @@ struct GTY(()) cgraph_clone_info
   bitmap combined_args_to_skip;
 };
 
+enum node_frequency {
+  /* This function most likely won't be executed at all.
+     (set only when profile feedback is available or via function attribute). */
+  NODE_FREQUENCY_UNLIKELY_EXECUTED,
+  /* For functions that are known to be executed once (i.e. constructors, destructors
+     and main function.  */
+  NODE_FREQUENCY_EXECUTED_ONCE,
+  /* The default value.  */
+  NODE_FREQUENCY_NORMAL,
+  /* Optimize this function hard
+     (set only when profile feedback is available or via function attribute). */
+  NODE_FREQUENCY_HOT
+};
+
+
 /* The cgraph data structure.
    Each function decl has assigned cgraph_node listing callees and callers.  */
 
@@ -184,6 +199,9 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   struct cgraph_edge *callers;
   struct cgraph_node *next;
   struct cgraph_node *previous;
+  /* List of edges representing indirect calls with a yet undetermined
+     callee.  */
+  struct cgraph_edge *indirect_calls;
   /* For nested functions points to function the node is nested in.  */
   struct cgraph_node *origin;
   /* Points to first nested function, if any.  */
@@ -256,7 +274,7 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   /* Set once the function has been instantiated and its callee
      lists created.  */
   unsigned analyzed : 1;
-  /* Set when function is available in the other LTO partition.  */
+  /* Set when function is available in the other LTRANS partition.  */
   unsigned in_other_partition : 1;
   /* Set when function is scheduled to be processed by local passes.  */
   unsigned process : 1;
@@ -267,6 +285,9 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   /* Set for alias and thunk nodes, same_body points to the node they are alias
      of and they are linked through the next/previous pointers.  */
   unsigned same_body_alias : 1;
+  /* How commonly executed the node is.  Initialized during branch
+     probabilities pass.  */
+  ENUM_BITFIELD (node_frequency) frequency : 2;
 };
 
 typedef struct cgraph_node *cgraph_node_ptr;
@@ -284,11 +305,32 @@ struct GTY(()) cgraph_node_set_def
   PTR GTY ((skip)) aux;
 };
 
+typedef struct varpool_node *varpool_node_ptr;
+
+DEF_VEC_P(varpool_node_ptr);
+DEF_VEC_ALLOC_P(varpool_node_ptr,heap);
+DEF_VEC_ALLOC_P(varpool_node_ptr,gc);
+
+/* A varpool node set is a collection of varpool nodes.  A varpool node
+   can appear in multiple sets.  */
+struct GTY(()) varpool_node_set_def
+{
+  htab_t GTY((param_is (struct varpool_node_set_element_def))) hashtab;
+  VEC(varpool_node_ptr, gc) *nodes;
+  PTR GTY ((skip)) aux;
+};
+
 typedef struct cgraph_node_set_def *cgraph_node_set;
 
 DEF_VEC_P(cgraph_node_set);
 DEF_VEC_ALLOC_P(cgraph_node_set,gc);
 DEF_VEC_ALLOC_P(cgraph_node_set,heap);
+
+typedef struct varpool_node_set_def *varpool_node_set;
+
+DEF_VEC_P(varpool_node_set);
+DEF_VEC_ALLOC_P(varpool_node_set,gc);
+DEF_VEC_ALLOC_P(varpool_node_set,heap);
 
 /* A cgraph node set element contains an index in the vector of nodes in
    the set.  */
@@ -308,12 +350,38 @@ typedef struct
   unsigned index;
 } cgraph_node_set_iterator;
 
+/* A varpool node set element contains an index in the vector of nodes in
+   the set.  */
+struct GTY(()) varpool_node_set_element_def
+{
+  struct varpool_node *node;
+  HOST_WIDE_INT index;
+};
+
+typedef struct varpool_node_set_element_def *varpool_node_set_element;
+typedef const struct varpool_node_set_element_def *const_varpool_node_set_element;
+
+/* Iterator structure for varpool node sets.  */
+typedef struct
+{
+  varpool_node_set set;
+  unsigned index;
+} varpool_node_set_iterator;
+
 #define DEFCIFCODE(code, string)	CIF_ ## code,
 /* Reasons for inlining failures.  */
 typedef enum {
 #include "cif-code.def"
   CIF_N_REASONS
 } cgraph_inline_failed_t;
+
+/* Structure containing additional information about an indirect call.  */
+
+struct GTY(()) cgraph_indirect_call_info
+{
+  /* Index of the parameter that is called.  */
+  int param_index;
+};
 
 struct GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_caller"))) cgraph_edge {
   /* Expected number of executions: calculated in profile.c.  */
@@ -325,6 +393,9 @@ struct GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_caller"))) cgrap
   struct cgraph_edge *prev_callee;
   struct cgraph_edge *next_callee;
   gimple call_stmt;
+  /* Additional information about an indirect call.  Not cleared when an edge
+     becomes direct.  */
+  struct cgraph_indirect_call_info *indirect_info;
   PTR GTY ((skip (""))) aux;
   /* When equal to CIF_OK, inline this call.  Otherwise, points to the
      explanation why function was not inlined.  */
@@ -340,8 +411,12 @@ struct GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_caller"))) cgrap
   int uid;
   /* Depth of loop nest, 1 means no loop nest.  */
   unsigned short int loop_nest;
-  /* Whether this edge describes a call that was originally indirect.  */
-  unsigned int indirect_call : 1;
+  /* Whether this edge was made direct by indirect inlining.  */
+  unsigned int indirect_inlining_edge : 1;
+  /* Whether this edge describes an indirect call with an undetermined
+     callee.  */
+  unsigned int indirect_unknown_callee : 1;
+  /* Whether this edge is still a dangling  */
   /* True if the corresponding CALL stmt cannot be inlined.  */
   unsigned int call_stmt_cannot_inline_p : 1;
   /* Can this call throw externally?  */
@@ -362,9 +437,9 @@ DEF_VEC_ALLOC_P(cgraph_edge_p,heap);
 struct GTY((chain_next ("%h.next"))) varpool_node {
   tree decl;
   /* Pointer to the next function in varpool_nodes.  */
-  struct varpool_node *next;
+  struct varpool_node *next, *prev;
   /* Pointer to the next function in varpool_nodes_queue.  */
-  struct varpool_node *next_needed;
+  struct varpool_node *next_needed, *prev_needed;
   /* For normal nodes a pointer to the first extra name alias.  For alias
      nodes a pointer to the normal node.  */
   struct varpool_node *extra_name;
@@ -389,6 +464,10 @@ struct GTY((chain_next ("%h.next"))) varpool_node {
   /* Set for aliases once they got through assemble_alias.  Also set for
      extra name aliases in varpool_extra_name_alias.  */
   unsigned alias : 1;
+  /* Set when variable is used from other LTRANS partition.  */
+  unsigned used_from_other_partition : 1;
+  /* Set when variable is available in the other LTRANS partition.  */
+  unsigned in_other_partition : 1;
 };
 
 /* Every top level asm statement is put into a cgraph_asm_node.  */
@@ -443,7 +522,8 @@ void cgraph_node_remove_callees (struct cgraph_node *node);
 struct cgraph_edge *cgraph_create_edge (struct cgraph_node *,
 					struct cgraph_node *,
 					gimple, gcov_type, int, int);
-
+struct cgraph_edge *cgraph_create_indirect_edge (struct cgraph_node *, gimple,
+						 gcov_type, int, int);
 struct cgraph_node * cgraph_get_node (tree);
 struct cgraph_node *cgraph_node (tree);
 bool cgraph_same_body_alias (tree, tree);
@@ -469,6 +549,7 @@ struct cgraph_node * cgraph_clone_node (struct cgraph_node *, gcov_type, int,
 					int, bool, VEC(cgraph_edge_p,heap) *);
 
 void cgraph_redirect_edge_callee (struct cgraph_edge *, struct cgraph_node *);
+void cgraph_make_edge_direct (struct cgraph_edge *, struct cgraph_node *);
 
 struct cgraph_asm_node *cgraph_add_asm_node (tree);
 
@@ -539,6 +620,7 @@ struct cgraph_2node_hook_list *cgraph_add_node_duplication_hook (cgraph_2node_ho
 void cgraph_remove_node_duplication_hook (struct cgraph_2node_hook_list *);
 void cgraph_materialize_all_clones (void);
 gimple cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *);
+bool cgraph_propagate_frequency (struct cgraph_node *node);
 /* In cgraphbuild.c  */
 unsigned int rebuild_cgraph_edges (void);
 void reset_inline_failed (struct cgraph_node *);
@@ -555,6 +637,13 @@ void cgraph_node_set_remove (cgraph_node_set, struct cgraph_node *);
 void dump_cgraph_node_set (FILE *, cgraph_node_set);
 void debug_cgraph_node_set (cgraph_node_set);
 
+varpool_node_set varpool_node_set_new (void);
+varpool_node_set_iterator varpool_node_set_find (varpool_node_set,
+					       struct varpool_node *);
+void varpool_node_set_add (varpool_node_set, struct varpool_node *);
+void varpool_node_set_remove (varpool_node_set, struct varpool_node *);
+void dump_varpool_node_set (FILE *, varpool_node_set);
+void debug_varpool_node_set (varpool_node_set);
 
 /* In predict.c  */
 bool cgraph_maybe_hot_edge_p (struct cgraph_edge *e);
@@ -577,6 +666,9 @@ void cgraph_make_decl_local (tree);
 void cgraph_make_node_local (struct cgraph_node *);
 bool cgraph_node_can_be_local_p (struct cgraph_node *);
 
+
+struct varpool_node * varpool_get_node (tree decl);
+void varpool_remove_node (struct varpool_node *node);
 bool varpool_assemble_pending_decls (void);
 bool varpool_assemble_decl (struct varpool_node *node);
 bool varpool_analyze_pending_decls (void);
@@ -638,6 +730,7 @@ enum LTO_cgraph_tags
   LTO_cgraph_overwritable_node,
   LTO_cgraph_unavail_node,
   LTO_cgraph_edge,
+  LTO_cgraph_indirect_edge,
   LTO_cgraph_last_tag
 };
 
@@ -690,6 +783,54 @@ cgraph_node_in_set_p (struct cgraph_node *node, cgraph_node_set set)
 /* Return number of nodes in SET.  */
 static inline size_t
 cgraph_node_set_size (cgraph_node_set set)
+{
+  return htab_elements (set->hashtab);
+}
+
+/* Return true if iterator VSI points to nothing.  */
+static inline bool
+vsi_end_p (varpool_node_set_iterator vsi)
+{
+  return vsi.index >= VEC_length (varpool_node_ptr, vsi.set->nodes);
+}
+
+/* Advance iterator VSI.  */
+static inline void
+vsi_next (varpool_node_set_iterator *vsi)
+{
+  vsi->index++;
+}
+
+/* Return the node pointed to by VSI.  */
+static inline struct varpool_node *
+vsi_node (varpool_node_set_iterator vsi)
+{
+  return VEC_index (varpool_node_ptr, vsi.set->nodes, vsi.index);
+}
+
+/* Return an iterator to the first node in SET.  */
+static inline varpool_node_set_iterator
+vsi_start (varpool_node_set set)
+{
+  varpool_node_set_iterator vsi;
+
+  vsi.set = set;
+  vsi.index = 0;
+  return vsi;
+}
+
+/* Return true if SET contains NODE.  */
+static inline bool
+varpool_node_in_set_p (struct varpool_node *node, varpool_node_set set)
+{
+  varpool_node_set_iterator vsi;
+  vsi = varpool_node_set_find (set, node);
+  return !vsi_end_p (vsi);
+}
+
+/* Return number of nodes in SET.  */
+static inline size_t
+varpool_node_set_size (varpool_node_set set)
 {
   return htab_elements (set->hashtab);
 }
