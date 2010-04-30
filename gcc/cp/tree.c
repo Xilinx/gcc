@@ -934,7 +934,12 @@ cp_build_qualified_type_real (tree type,
 tree
 cv_unqualified (tree type)
 {
-  int quals = TYPE_QUALS (type);
+  int quals;
+
+  if (type == error_mark_node)
+    return type;
+
+  quals = TYPE_QUALS (type);
   quals &= ~(TYPE_QUAL_CONST|TYPE_QUAL_VOLATILE);
   return cp_build_qualified_type (type, quals);
 }
@@ -1347,7 +1352,7 @@ really_overloaded_fn (tree x)
 }
 
 tree
-get_first_fn (tree from)
+get_fns (tree from)
 {
   gcc_assert (is_overloaded_fn (from));
   /* A baselink is also considered an overloaded function.  */
@@ -1358,7 +1363,13 @@ get_first_fn (tree from)
     from = BASELINK_FUNCTIONS (from);
   if (TREE_CODE (from) == TEMPLATE_ID_EXPR)
     from = TREE_OPERAND (from, 0);
-  return OVL_CURRENT (from);
+  return from;
+}
+
+tree
+get_first_fn (tree from)
+{
+  return OVL_CURRENT (get_fns (from));
 }
 
 /* Return a new OVL node, concatenating it with the old one.  */
@@ -2288,11 +2299,11 @@ maybe_dummy_object (tree type, tree* binfop)
 {
   tree decl, context;
   tree binfo;
+  tree current = current_nonlambda_class_type ();
 
-  if (current_class_type
-      && (binfo = lookup_base (current_class_type, type,
-			       ba_unique | ba_quiet, NULL)))
-    context = current_class_type;
+  if (current
+      && (binfo = lookup_base (current, type, ba_any, NULL)))
+    context = current;
   else
     {
       /* Reference from a nested class member function.  */
@@ -2310,6 +2321,13 @@ maybe_dummy_object (tree type, tree* binfop)
       && same_type_p (TYPE_MAIN_VARIANT (TREE_TYPE (current_class_ref)),
 		      current_class_type))
     decl = current_class_ref;
+  else if (current != current_class_type
+	   && context == nonlambda_method_basetype ())
+    /* In a lambda, need to go through 'this' capture.  */
+    decl = (cp_build_indirect_ref
+	    ((lambda_expr_this_capture
+	      (CLASSTYPE_LAMBDA_EXPR (current_class_type))),
+	     RO_NULL, tf_warning_or_error));
   else
     decl = build_dummy_object (context);
 

@@ -1,54 +1,61 @@
 ! { dg-do run }
+! Test the fix for PR43291, which was a regression that caused
+! incorrect type mismatch errors at line 46. In the course of
+! fixing the PR, it was noted that the dynamic dispatch of the
+! final typebound call was not occurring - hence the dg-do run.
 !
-! [OOP] Ensure that different specifc interfaces are
-! handled properly by dynamic dispatch.
+! Contributed by Janus Weil <janus@gcc.gnu.org>
 !
-! Contributed by Salvatore Filippone <sfilippone@uniroma2.it>
-!
-module m
-
- type :: t
- contains
-  procedure :: a
-  generic :: gen => a
- end type
-
- type,extends(t) :: t2
- contains
-  procedure :: b
-  generic :: gen => b
- end type
-
+module m1
+  type :: t1
+  contains
+    procedure :: sizeof
+  end type
 contains
-
-  real function a(ct,x)
-    class(t) :: ct
-    real :: x
-    a=2*x
+  integer function sizeof(a)
+    class(t1) :: a
+    sizeof = 1
+  end function sizeof
+end module
+	
+module m2
+  use m1
+  type, extends(t1) :: t2
+  contains
+    procedure :: sizeof => sizeof2
+  end type
+contains
+  integer function sizeof2(a)
+    class(t2) :: a
+    sizeof2 = 2
   end function
+end module
 
-  integer function b(ct,x)
-    class(t2) :: ct
-    integer :: x
-    b=3*x
+module m3
+  use m2
+  type :: t3
+  class(t1), pointer :: a
+  contains
+    procedure :: sizeof => sizeof3
+  end type
+contains
+  integer function sizeof3(a)
+    class(t3) :: a
+    sizeof3 = a%a%sizeof()
   end function
+end module
 
+  use m1
+  use m2
+  use m3
+  type(t1), target :: x
+  type(t2), target :: y
+  type(t3) :: z
+  z%a => x
+  if ((z%sizeof() .ne. 1) .or. (z%a%sizeof() .ne. 1)) call abort
+  z%a => y
+  if ((z%sizeof() .ne. 2) .or. (z%a%sizeof() .ne. 2)) call abort
 end
 
-
- use m
- class(t), allocatable :: o1
- type (t) :: t1
- class(t2), allocatable :: o2
-
- allocate(o1)
- allocate(o2)
-
- if (t1%gen(2.0) .ne. o1%gen(2.0)) call abort
- if (t1%gen(2.0) .ne. o2%gen(2.0)) call abort
- if (o2%gen(3) .ne. 9) call abort
-
-end
-
-! { dg-final { cleanup-modules "m" } }
-
+! { dg-final { cleanup-modules "m1 m2 m3" } }
+ 	

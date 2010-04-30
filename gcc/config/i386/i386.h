@@ -955,7 +955,7 @@ enum target_cpu_default
    registers listed in CALL_USED_REGISTERS, keeping the others
    available for storage of persistent values.
 
-   The ORDER_REGS_FOR_LOCAL_ALLOC actually overwrite the order,
+   The ADJUST_REG_ALLOC_ORDER actually overwrite the order,
    so this is just empty initializer for array.  */
 
 #define REG_ALLOC_ORDER 					\
@@ -964,11 +964,11 @@ enum target_cpu_default
    33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,  \
    48, 49, 50, 51, 52 }
 
-/* ORDER_REGS_FOR_LOCAL_ALLOC is a macro which permits reg_alloc_order
+/* ADJUST_REG_ALLOC_ORDER is a macro which permits reg_alloc_order
    to be rearranged based on a particular function.  When using sse math,
    we want to allocate SSE before x87 registers and vice versa.  */
 
-#define ORDER_REGS_FOR_LOCAL_ALLOC x86_order_regs_for_local_alloc ()
+#define ADJUST_REG_ALLOC_ORDER x86_order_regs_for_local_alloc ()
 
 
 #define OVERRIDE_ABI_FORMAT(FNDECL) ix86_call_abi_override (FNDECL)
@@ -2148,9 +2148,12 @@ do {									\
 /* Switch to init or fini section via SECTION_OP, emit a call to FUNC,
    and switch back.  For x86 we do this only to save a few bytes that
    would otherwise be unused in the text section.  */
-#define CRT_CALL_STATIC_FUNCTION(SECTION_OP, FUNC)	\
-   asm (SECTION_OP "\n\t"				\
-	"call " USER_LABEL_PREFIX #FUNC "\n"		\
+#define CRT_MKSTR2(VAL) #VAL
+#define CRT_MKSTR(x) CRT_MKSTR2(x)
+
+#define CRT_CALL_STATIC_FUNCTION(SECTION_OP, FUNC)		\
+   asm (SECTION_OP "\n\t"					\
+	"call " CRT_MKSTR(__USER_LABEL_PREFIX__) #FUNC "\n"	\
 	TEXT_SECTION_ASM_OP);
 
 /* Print operand X (an rtx) in assembler syntax to file FILE.

@@ -4355,7 +4355,7 @@ gfc_conv_structure (gfc_se * se, gfc_expr * expr, int init)
       else if (cm->initializer && cm->initializer->expr_type != EXPR_NULL
 	       && strcmp (cm->name, "$extends") == 0)
 	{
-	  tree vtab = NULL_TREE;
+	  tree vtab;
 	  gfc_symbol *vtabs;
 	  vtabs = cm->initializer->symtree->n.sym;
 	  vtab = gfc_build_addr_expr (NULL_TREE, gfc_get_symbol_decl (vtabs));
