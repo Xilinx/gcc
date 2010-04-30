@@ -1,3 +1,9 @@
+2010-04-29  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (diagnose_tm_1): Print entire function signature.
+	(ipa_tm_diagnose_tm_safe): Same.
+	(ipa_tm_diagnose_transaction): Same.
+
 2010-04-28  Richard Henderson  <rth@redhat.com>
 
 	* cp/pt.c (tsubst_expr): Handle TRANSACTION_EXPR.

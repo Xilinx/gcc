@@ -573,11 +573,11 @@ diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 		  fn = TREE_OPERAND (fn, 0);
 		if (d->block_flags & DIAG_TM_SAFE)
 		  error_at (gimple_location (stmt),
-			    "unsafe function call %qE within "
+			    "unsafe function call %qD within "
 			    "atomic transaction", fn);
 		else
 		  error_at (gimple_location (stmt),
-			    "unsafe function call %qE within "
+			    "unsafe function call %qD within "
 			    "%<transaction_safe%> function", fn);
 	      }
 	  }
@@ -3649,7 +3649,7 @@ ipa_tm_diagnose_tm_safe (struct cgraph_node *node)
     if (!is_tm_callable (e->callee->decl)
 	&& e->callee->local.tm_may_enter_irr)
       error_at (gimple_location (e->call_stmt),
-		"unsafe function call %qE within "
+		"unsafe function call %qD within "
 		"%<transaction_safe%> function", e->callee->decl);
 }
 
@@ -3709,7 +3709,7 @@ ipa_tm_diagnose_transaction (struct cgraph_node *node,
 
 	      if (cgraph_local_info (fndecl)->tm_may_enter_irr)
 		error_at (gimple_location (stmt),
-			  "unsafe function call %qE within "
+			  "unsafe function call %qD within "
 			  "atomic transaction", fndecl);
 	    }
 
