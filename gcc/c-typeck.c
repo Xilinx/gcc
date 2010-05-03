@@ -2638,6 +2638,9 @@ build_function_call_vec (location_t loc, tree function, VEC(tree,gc) *params,
 	return tem;
 
       name = DECL_NAME (function);
+
+      if (flag_tm)
+	tm_malloc_replacement (function);
       fundecl = function;
     }
   if (TREE_CODE (TREE_TYPE (function)) == FUNCTION_TYPE)

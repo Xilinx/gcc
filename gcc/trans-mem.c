@@ -485,6 +485,40 @@ find_tm_replacement_function (tree fndecl)
 
   return NULL;
 }
+
+/* When appropriate, record TM replacement for memory allocation functions.
+
+   FROM is the FNDECL to wrap.  */
+void
+tm_malloc_replacement (tree from)
+{
+  const char *str;
+  tree to;
+
+  if (TREE_CODE (from) != FUNCTION_DECL)
+    return;
+
+  /* If we have a previous replacement, the user must be explicitly
+     wrapping malloc/calloc/free.  They better know what they're
+     doing... */
+  if (find_tm_replacement_function (from))
+    return;
+
+  str = IDENTIFIER_POINTER (DECL_NAME (from));
+
+  if (!strcmp (str, "malloc"))
+    to = built_in_decls[BUILT_IN_TM_MALLOC];
+  else if (!strcmp (str, "calloc"))
+    to = built_in_decls[BUILT_IN_TM_CALLOC];
+  else if (!strcmp (str, "free"))
+    to = built_in_decls[BUILT_IN_TM_FREE];
+  else
+    return;
+
+  TREE_NOTHROW (to) = 0;
+
+  record_tm_replacement (from, to);
+}
 
 /* Diagnostics for tm_safe functions/regions.  Called by the front end
    once we've lowered the function to high-gimple.  */
@@ -529,9 +563,25 @@ diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 
 	if (d->summary_flags & DIAG_TM_SAFE)
 	  {
-	    bool is_safe;
+	    bool is_safe, direct_call_p;
+	    tree replacement;
 
-	    if (is_tm_safe (fn))
+	    if (TREE_CODE (fn) == ADDR_EXPR
+		&& TREE_CODE (TREE_OPERAND (fn, 0)) == FUNCTION_DECL)
+	      {
+		direct_call_p = true;
+		replacement = TREE_OPERAND (fn, 0);
+		replacement = find_tm_replacement_function (replacement);
+		if (replacement)
+		  fn = replacement;
+	      }
+	    else
+	      {
+		direct_call_p = false;
+		replacement = NULL_TREE;
+	      }
+
+	    if (is_tm_safe (fn) || is_tm_pure (fn))
 	      is_safe = true;
 	    else if (is_tm_callable (fn) || is_tm_irrevocable (fn))
 	      {
@@ -540,10 +590,9 @@ diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 		   unsafe as part of its ABI, regardless of its contents.  */
 		is_safe = false;
 	      }
-	    else if (TREE_CODE (fn) == ADDR_EXPR
-		     && TREE_CODE (TREE_OPERAND (fn, 0)) == FUNCTION_DECL)
+	    else if (direct_call_p)
 	      {
-		if (find_tm_replacement_function (TREE_OPERAND (fn, 0)))
+		if (replacement)
 		  {
 		    /* ??? At present we've been considering replacements
 		       merely transaction_callable, and therefore might

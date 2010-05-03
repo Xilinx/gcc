@@ -1,3 +1,19 @@
+2010-05-03  Aldy Hernandez  <aldyh@redhat.com>
+
+	* tree.h (tm_malloc_replacement): Protoize.
+	* builtin-attrs.def (ATTR_TM_PURE_MALLOC_NOTHROW_LIST): New.
+	(ATTR_TM_PURE_NOTHROW_LIST): New.
+	* builtins.def: Add comments regarding TM synchronization.
+	* gtm-builtins.def (BUILT_IN_TM_MALLOC): New.
+	(BUILT_IN_TM_CALLOC): New.
+	(BUILT_IN_TM_FREE): New.
+	* trans-mem.c (tm_malloc_replacement): New.
+	(diagnose_tm_1): TM pure functions are safe.
+	Handle replacements.
+	* c-typeck.c (build_function_call_vec): Call
+	tm_malloc_replacement.
+	* cp/call.c (build_new_function_call): Call tm_malloc_replacement.
+
 2010-04-29  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (diagnose_tm_1): Print entire function signature.

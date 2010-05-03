@@ -5388,6 +5388,7 @@ extern bool is_tm_callable (tree);
 extern bool is_tm_irrevocable (tree);
 extern bool is_tm_may_cancel_outer (tree);
 extern void record_tm_replacement (tree, tree);
+extern void tm_malloc_replacement (tree);
 
 /* In tree-inline.c.  */
 
