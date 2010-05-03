@@ -111,10 +111,6 @@ struct GTY(()) cgraph_local_info {
      redefined now.  */
   unsigned redefined_extern_inline : 1;
 
-  /* True if statics_read_for_function and
-     statics_written_for_function contain valid data.  */
-  unsigned for_functions_valid : 1;
-
   /* True if the function is going to be emitted in some other translation
      unit, referenced from vtable.  */
   unsigned vtable_method : 1;
@@ -139,9 +135,6 @@ struct GTY(()) cgraph_global_info {
 
   /* Estimated growth after inlining.  INT_MIN if not computed.  */
   int estimated_growth;
-
-  /* Set iff the function has been inlined at least once.  */
-  bool inlined;
 };
 
 /* Information about the function that is propagated by the RTL backend.
@@ -721,24 +714,6 @@ unsigned int compute_inline_parameters (struct cgraph_node *);
 /* Create a new static variable of type TYPE.  */
 tree add_new_static_var (tree type);
 
-/* lto-cgraph.c */
-
-enum LTO_cgraph_tags
-{
-  /* Must leave 0 for the stopper.  */
-  LTO_cgraph_avail_node = 1,
-  LTO_cgraph_overwritable_node,
-  LTO_cgraph_unavail_node,
-  LTO_cgraph_edge,
-  LTO_cgraph_indirect_edge,
-  LTO_cgraph_last_tag
-};
-
-extern const char * LTO_cgraph_tag_names[LTO_cgraph_last_tag];
-
-#define LCC_NOT_FOUND	(-1)
-
-
 /* Return true if iterator CSI points to nothing.  */
 static inline bool
 csi_end_p (cgraph_node_set_iterator csi)
@@ -851,6 +826,20 @@ struct GTY(()) constant_descriptor_tree {
      use of the hash table during hash table expansion.  */
   hashval_t hash;
 };
+
+/* Return true if set is nonempty.  */
+static inline bool
+cgraph_node_set_nonempty_p (cgraph_node_set set)
+{
+  return VEC_length (cgraph_node_ptr, set->nodes);
+}
+
+/* Return true if set is nonempty.  */
+static inline bool
+varpool_node_set_nonempty_p (varpool_node_set set)
+{
+  return VEC_length (varpool_node_ptr, set->nodes);
+}
 
 /* Return true when function NODE is only called directly.
    i.e. it is not externally visible, address was not taken and

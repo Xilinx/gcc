@@ -35,7 +35,6 @@
 #include "tree.h"
 #include "tree-flow.h"
 #include "tree-inline.h"
-#include "varray.h"
 #include "diagnostic.h"
 #include "toplev.h"
 #include "gimple.h"
@@ -2941,6 +2940,12 @@ type_could_have_pointers (tree type)
   if (TREE_CODE (type) == ARRAY_TYPE)
     return type_could_have_pointers (TREE_TYPE (type));
 
+  /* A function or method can consume pointers.
+     ???  We could be more precise here.  */
+  if (TREE_CODE (type) == FUNCTION_TYPE
+      || TREE_CODE (type) == METHOD_TYPE)
+    return true;
+
   return AGGREGATE_TYPE_P (type);
 }
 
@@ -3281,14 +3286,18 @@ get_constraint_for_1 (tree t, VEC (ce_s, heap) **results, bool address_p)
      in that case *NULL does not fail, so it _should_ alias *anything.
      It is not worth adding a new option or renaming the existing one,
      since this case is relatively obscure.  */
-  if (flag_delete_null_pointer_checks
-      && ((TREE_CODE (t) == INTEGER_CST
-	   && integer_zerop (t))
-	  /* The only valid CONSTRUCTORs in gimple with pointer typed
-	     elements are zero-initializer.  */
-	  || TREE_CODE (t) == CONSTRUCTOR))
+  if ((TREE_CODE (t) == INTEGER_CST
+       && integer_zerop (t))
+      /* The only valid CONSTRUCTORs in gimple with pointer typed
+	 elements are zero-initializer.  But in IPA mode we also
+	 process global initializers, so verify at least.  */
+      || (TREE_CODE (t) == CONSTRUCTOR
+	  && CONSTRUCTOR_NELTS (t) == 0))
     {
-      temp.var = nothing_id;
+      if (flag_delete_null_pointer_checks)
+	temp.var = nothing_id;
+      else
+	temp.var = anything_id;
       temp.type = ADDRESSOF;
       temp.offset = 0;
       VEC_safe_push (ce_s, heap, *results, &temp);
@@ -3348,6 +3357,26 @@ get_constraint_for_1 (tree t, VEC (ce_s, heap) **results, bool address_p)
 	  case SSA_NAME:
 	    {
 	      get_constraint_for_ssa_var (t, results, address_p);
+	      return;
+	    }
+	  case CONSTRUCTOR:
+	    {
+	      unsigned int i;
+	      tree val;
+	      VEC (ce_s, heap) *tmp = NULL;
+	      FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (t), i, val)
+		{
+		  struct constraint_expr *rhsp;
+		  unsigned j;
+		  get_constraint_for_1 (val, &tmp, address_p);
+		  for (j = 0; VEC_iterate (ce_s, tmp, j, rhsp); ++j)
+		    VEC_safe_push (ce_s, heap, *results, rhsp);
+		  VEC_truncate (ce_s, tmp, 0);
+		}
+	      VEC_free (ce_s, heap, tmp);
+	      /* We do not know whether the constructor was complete,
+	         so technically we have to add &NOTHING or &ANYTHING
+		 like we do for an empty constructor as well.  */
 	      return;
 	    }
 	  default:;

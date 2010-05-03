@@ -1,3 +1,32 @@
+2010-05-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/faq.xml: Fix anachronisms.
+	* doc/xml/manual/intro.xml (Make): Tweak grammar and whitespace.
+	* doc/xml/manual/support.xml (NULL): Use inline <code> element
+	instead of <programlisting> block.
+	* doc/html/*: Regenerate.
+
+2010-04-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_pair.h (piecewise_construct_t,
+	pair<>::pair(piecewise_construct_t, tuple, tuple)): Add.
+	(pair<>::__cons, pair<>::__do_cons): Declare.
+	(__decay_and_strip, __strip_reference_wrapper): Move...
+	* include/std/type_traits: ... here.
+	* include/std/functional (_Index_tuple, _Build_index_tuple): Move...
+	* include/std/tuple: ... here.
+	(pack_arguments): Add.
+	(pair<>::__cons, pair<>::__do_cons): Define.
+	* testsuite/20_util/tuple/creation_functions/pack_arguments.cc: New.
+	* testsuite/20_util/pair/piecewise.cc: Likewise.
+	* testsuite/20_util/tuple/cons/big_tuples.cc: Include <utility>.
+	* testsuite/20_util/tuple/cons/constructor.cc: Likewise.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Likewise.
+	* testsuite/20_util/declval/requirements/1_neg.cc: Likewise.
+
 2010-04-27  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	PR libstdc++/43865
@@ -20,7 +49,7 @@
 
 2010-04-27  Alexander Monakov  <amonakov@ispras.ru>
 
-	* testsuite/22_locale/codecvt/unshift/char/1.c (test01): Clarify size
+	* testsuite/22_locale/codecvt/unshift/char/1.cc (test01): Clarify size
 	definition.  Use memcpy and memcmp to avoid access beyond allocated
 	memory.
 

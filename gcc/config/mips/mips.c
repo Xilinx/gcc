@@ -1,6 +1,6 @@
 /* Subroutines used for MIPS code generation.
    Copyright (C) 1989, 1990, 1991, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by A. Lichnewsky, lich@inria.inria.fr.
    Changes by Michael Meissner, meissner@osf.org.
@@ -10718,6 +10718,15 @@ mips_cannot_change_mode_class (enum machine_mode from ATTRIBUTE_UNUSED,
   return reg_classes_intersect_p (FP_REGS, rclass);
 }
 
+/* Implement target hook small_register_classes_for_mode_p.  */
+
+static bool
+mips_small_register_classes_for_mode_p (enum machine_mode mode
+					ATTRIBUTE_UNUSED)
+{
+  return TARGET_MIPS16;
+}
+
 /* Return true if moves in mode MODE can use the FPU's mov.fmt instruction.  */
 
 static bool
@@ -11808,10 +11817,17 @@ mips_output_division (const char *division, rtx *operands)
 	  s = "bnez\t%2,1f\n\tbreak\t7\n1:";
 	}
       else if (GENERATE_DIVIDE_TRAPS)
-        {
-	  output_asm_insn (s, operands);
-	  s = "teq\t%2,%.,7";
-        }
+	{
+	  /* Avoid long replay penalty on load miss by putting the trap before
+	     the divide.  */
+	  if (TUNE_74K)
+	    output_asm_insn ("teq\t%2,%.,7", operands);
+	  else
+	    {
+	      output_asm_insn (s, operands);
+	      s = "teq\t%2,%.,7";
+	    }
+	}
       else
 	{
 	  output_asm_insn ("%(bne\t%2,%.,1f", operands);
