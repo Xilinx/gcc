@@ -1,6 +1,6 @@
 /* Functions for generic Darwin as target machine for GNU C compiler.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008, 2009
+   2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
@@ -1177,9 +1177,8 @@ machopic_select_section (tree decl,
 {
   bool weak = (DECL_P (decl)
 	       && DECL_WEAK (decl)
-	       && (lookup_attribute ("weak", DECL_ATTRIBUTES (decl))
-		   || ! lookup_attribute ("weak_import",
-					  DECL_ATTRIBUTES (decl))));
+	       && !lookup_attribute ("weak_import",
+				     DECL_ATTRIBUTES (decl)));
   section *base_section;
 
   switch (categorize_decl_for_section (decl, reloc))
@@ -1371,6 +1370,25 @@ darwin_globalize_label (FILE *stream, const char *name)
 {
   if (!!strncmp (name, "_OBJC_", 6))
     default_globalize_label (stream, name);
+}
+
+/* This routine returns non-zero if 'name' starts with the special objective-c 
+   anonymous file-scope static name.  It accommodates c++'s mangling of such 
+   symbols (in this case the symbols will have form _ZL{d}*_OBJC_* d=digit).  */
+   
+int 
+darwin_label_is_anonymous_local_objc_name (const char *name)
+{
+  const unsigned char *p = (const unsigned char *) name;
+  if (*p != '_')
+    return 0;
+  if (p[1] == 'Z' && p[2] == 'L')
+  {
+    p += 3;
+    while (*p >= '0' && *p <= '9')
+      p++;
+  }
+  return (!strncmp ((const char *)p, "_OBJC_", 6));
 }
 
 void

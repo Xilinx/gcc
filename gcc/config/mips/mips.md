@@ -1,6 +1,6 @@
 ;;  Mips.md	     Machine Description for MIPS based processors
 ;;  Copyright (C) 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-;;  1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+;;  1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 ;;  Free Software Foundation, Inc.
 ;;  Contributed by   A. Lichnewsky, lich@inria.inria.fr
 ;;  Changes by       Michael Meissner, meissner@osf.org
@@ -2888,8 +2888,9 @@
   [(set_attr "type" "shift")
    (set_attr "mode" "<MODE>")])
 
-;; Logical shift by 32 or more results in proper SI values so
-;; truncation is removed by the middle end.
+;; Logical shift by more than 32 results in proper SI values so truncation is
+;; removed by the middle end.  Note that a logical shift by 32 is handled by
+;; the previous pattern.
 (define_insn "*<optab>_trunc<mode>_exts"
   [(set (match_operand:SUBDI 0 "register_operand" "=d")
         (truncate:SUBDI

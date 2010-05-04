@@ -1,5 +1,5 @@
 ; Options for the Fortran 95 front end.
-; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 ; Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
@@ -96,6 +96,10 @@ Wimplicit-interface
 Fortran Warning
 Warn about calls with implicit interface
 
+Wimplicit-procedure
+Fortran Warning
+Warn about called procedures not explicitly declared
+
 Wline-truncation
 Fortran Warning
 Warn about truncated source lines
@@ -162,7 +166,7 @@ Produce a backtrace when a runtime error is encountered
 
 fblas-matmul-limit=
 Fortran RejectNegative Joined UInteger
--fblas-matmul-limit=<n>        Size of the smallest matrix for which matmul will use BLAS
+-fblas-matmul-limit=<n>	Size of the smallest matrix for which matmul will use BLAS
 
 fcheck-array-temporaries
 Fortran
@@ -242,7 +246,7 @@ Allow arbitrary character line width in fixed mode
 
 ffixed-line-length-
 Fortran RejectNegative Joined UInteger
--ffixed-line-length-<n>		Use n as character line width in fixed mode
+-ffixed-line-length-<n>	Use n as character line width in fixed mode
 
 ffpe-trap=
 Fortran RejectNegative JoinedOrMissing
@@ -258,7 +262,7 @@ Allow arbitrary character line width in free mode
 
 ffree-line-length-
 Fortran RejectNegative Joined UInteger
--ffree-line-length-<n>		Use n as character line width in free mode
+-ffree-line-length-<n>	Use n as character line width in free mode
 
 fimplicit-none
 Fortran
@@ -266,11 +270,11 @@ Specify that no implicit typing is allowed, unless overridden by explicit IMPLIC
 
 finit-character=
 Fortran RejectNegative Joined UInteger
--finit-character=<n> Initialize local character variables to ASCII value n
+-finit-character=<n>	Initialize local character variables to ASCII value n
 
 finit-integer=
 Fortran RejectNegative Joined
--finit-integer=<n> Initialize local integer variables to n
+-finit-integer=<n>	Initialize local integer variables to n
 
 finit-local-zero
 Fortran
@@ -278,15 +282,15 @@ Initialize local variables to zero (from g77)
 
 finit-logical=
 Fortran RejectNegative Joined
--finit-logical=<true|false> Initialize local logical variables
+-finit-logical=<true|false>	Initialize local logical variables
 
 finit-real=
 Fortran RejectNegative Joined
--finit-real=<zero|nan|inf|-inf> Initialize local real variables
+-finit-real=<zero|nan|inf|-inf>	Initialize local real variables
 
 fmax-array-constructor=
 Fortran RejectNegative Joined UInteger
--fmax-array-constructor=<n>        Maximum number of objects in an array constructor
+-fmax-array-constructor=<n>	Maximum number of objects in an array constructor
 
 fmax-errors=
 Fortran RejectNegative Joined UInteger
@@ -319,6 +323,10 @@ Try to lay out derived types as compactly as possible
 fpreprocessed
 Fortran
 ; Documented in C
+
+fprotect-parens
+Fortran
+Protect parentheses in expressions
 
 frange-check
 Fortran

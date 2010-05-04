@@ -1,6 +1,6 @@
 /* SLP - Basic Block Vectorization
-   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
-   Foundation, Inc.
+   Copyright (C) 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
    and Ira Rosen <irar@il.ibm.com>
 
@@ -246,14 +246,16 @@ vect_get_and_check_slp_defs (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
 	      if ((i == 0
 		   && (*first_stmt_dt0 != dt[i]
 		       || (*first_stmt_def0_type && def
-			   && *first_stmt_def0_type != TREE_TYPE (def))))
+			   && !types_compatible_p (*first_stmt_def0_type,
+						   TREE_TYPE (def)))))
 		  || (i == 1
 		      && (*first_stmt_dt1 != dt[i]
 			  || (*first_stmt_def1_type && def
-			      && *first_stmt_def1_type != TREE_TYPE (def))))
+			      && !types_compatible_p (*first_stmt_def1_type,
+						      TREE_TYPE (def)))))
 		  || (!def
-		      && TREE_TYPE (*first_stmt_const_oprnd)
-		      != TREE_TYPE (oprnd)))
+		      && !types_compatible_p (TREE_TYPE (*first_stmt_const_oprnd),
+					      TREE_TYPE (oprnd))))
 		{
 		  if (vect_print_dump_info (REPORT_SLP))
 		    fprintf (vect_dump, "Build SLP failed: different types ");
@@ -796,6 +798,7 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
 {
   int i = 0, j, prev = -1, next, k;
   bool supported;
+  sbitmap load_index;
 
   /* FORNOW: permutations are only supported in SLP.  */
   if (!slp_instn)
@@ -816,6 +819,8 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
     return false;
 
   supported = true;
+  load_index = sbitmap_alloc (group_size);
+  sbitmap_zero (load_index);
   for (j = 0; j < group_size; j++)
     {
       for (i = j * group_size, k = 0;
@@ -830,7 +835,17 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
 
          prev = next;
        }
+
+      if (TEST_BIT (load_index, prev))
+        {
+          supported = false;
+          break;
+        }
+
+      SET_BIT (load_index, prev);
     }
+  
+  sbitmap_free (load_index);
 
   if (supported && i == group_size * group_size
       && vect_supported_slp_permutation_p (slp_instn))
@@ -1089,6 +1104,7 @@ vect_detect_hybrid_slp_stmts (slp_tree node)
   gimple stmt;
   imm_use_iterator imm_iter;
   gimple use_stmt;
+  stmt_vec_info stmt_vinfo; 
 
   if (!node)
     return;
@@ -1097,9 +1113,10 @@ vect_detect_hybrid_slp_stmts (slp_tree node)
     if (PURE_SLP_STMT (vinfo_for_stmt (stmt))
 	&& TREE_CODE (gimple_op (stmt, 0)) == SSA_NAME)
       FOR_EACH_IMM_USE_STMT (use_stmt, imm_iter, gimple_op (stmt, 0))
-	if (vinfo_for_stmt (use_stmt)
-	    && !STMT_SLP_TYPE (vinfo_for_stmt (use_stmt))
-            && STMT_VINFO_RELEVANT (vinfo_for_stmt (use_stmt)))
+	if ((stmt_vinfo = vinfo_for_stmt (use_stmt))
+	    && !STMT_SLP_TYPE (stmt_vinfo)
+            && (STMT_VINFO_RELEVANT (stmt_vinfo)
+                || VECTORIZABLE_CYCLE_DEF (STMT_VINFO_DEF_TYPE (stmt_vinfo))))
 	  vect_mark_slp_stmts (node, hybrid, i);
 
   vect_detect_hybrid_slp_stmts (SLP_TREE_LEFT (node));
@@ -1258,7 +1275,13 @@ vect_slp_analyze_bb (basic_block bb)
     fprintf (vect_dump, "===vect_slp_analyze_bb===\n");
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-    insns++;
+    {
+      gimple stmt = gsi_stmt (gsi);
+      if (!is_gimple_debug (stmt)
+	  && !gimple_nop_p (stmt)
+	  && gimple_code (stmt) != GIMPLE_LABEL)
+	insns++;
+    }
 
   if (insns > PARAM_VALUE (PARAM_SLP_MAX_INSNS_IN_BB))
     {
@@ -1408,7 +1431,6 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
   VEC (gimple, heap) *stmts = SLP_TREE_SCALAR_STMTS (slp_node);
   gimple stmt = VEC_index (gimple, stmts, 0);
   stmt_vec_info stmt_vinfo = vinfo_for_stmt (stmt);
-  tree vectype = STMT_VINFO_VECTYPE (stmt_vinfo);
   int nunits;
   tree vec_cst;
   tree t = NULL_TREE;
@@ -1433,16 +1455,12 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
     }
 
   if (CONSTANT_CLASS_P (op))
-    {
-      vector_type = vectype;
-      constant_p = true;
-    }
+    constant_p = true;
   else
-    {
-      vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
-      gcc_assert (vector_type);
-      constant_p = false;
-    }
+    constant_p = false;
+
+  vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
+  gcc_assert (vector_type);
 
   nunits = TYPE_VECTOR_SUBPARTS (vector_type);
 

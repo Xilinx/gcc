@@ -1,5 +1,6 @@
 /* gfortran header file
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -377,7 +378,7 @@ enum gfc_isym_id
   GFC_ISYM_FSEEK,
   GFC_ISYM_FSTAT,
   GFC_ISYM_FTELL,
-  GFC_ISYM_GAMMA,
+  GFC_ISYM_TGAMMA,
   GFC_ISYM_GERROR,
   GFC_ISYM_GETARG,
   GFC_ISYM_GET_COMMAND,
@@ -652,7 +653,7 @@ typedef struct
   unsigned allocatable:1, dimension:1, external:1, intrinsic:1,
     optional:1, pointer:1, target:1, value:1, volatile_:1, temporary:1,
     dummy:1, result:1, assign:1, threadprivate:1, not_always_present:1,
-    implied_index:1, subref_array_pointer:1, proc_pointer:1;
+    implied_index:1, subref_array_pointer:1, proc_pointer:1, asynchronous:1;
 
   /* For CLASS containers, the pointer attribute is sometimes set internally
      even though it was not directly specified.  In this case, keep the
@@ -714,9 +715,6 @@ typedef struct
      modification of type or type parameters is permitted.  */
   unsigned referenced:1;
 
-  /* Set if the symbol has ambiguous interfaces.  */
-  unsigned ambiguous_interfaces:1;
-
   /* Set if this is the symbol for the main program.  */
   unsigned is_main_program:1;
 
@@ -741,8 +739,8 @@ typedef struct
   /* Attributes set by compiler extensions (!GCC$ ATTRIBUTES).  */
   unsigned ext_attr:EXT_ATTR_NUM;
 
-  /* The namespace where the VOLATILE attribute has been set.  */
-  struct gfc_namespace *volatile_ns;
+  /* The namespace where the attribute has been set.  */
+  struct gfc_namespace *volatile_ns, *asynchronous_ns;
 }
 symbol_attribute;
 
@@ -1375,8 +1373,9 @@ typedef struct gfc_namespace
   /* Set to 1 if namespace is an interface body with "IMPORT" used.  */
   unsigned has_import_set:1;
 
-  /* Set to 1 if resolved has been called for this namespace.  */
-  unsigned resolved:1;
+  /* Set to 1 if resolved has been called for this namespace.
+     Holds -1 during resolution.  */
+  signed resolved:2;
 
   /* Set to 1 if code has been generated for this namespace.  */
   unsigned translated:1;
@@ -2103,6 +2102,7 @@ typedef struct
   int warn_ampersand;
   int warn_conversion;
   int warn_implicit_interface;
+  int warn_implicit_procedure;
   int warn_line_truncation;
   int warn_surprising;
   int warn_tabs;
@@ -2151,6 +2151,7 @@ typedef struct
   char flag_init_character_value;
   int flag_align_commons;
   int flag_whole_file;
+  int flag_protect_parens;
 
   int fpe;
   int rtcheck;
@@ -2425,6 +2426,7 @@ gfc_try gfc_add_recursive (symbol_attribute *, locus *);
 gfc_try gfc_add_function (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_subroutine (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_volatile (symbol_attribute *, const char *, locus *);
+gfc_try gfc_add_asynchronous (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_proc (symbol_attribute *attr, const char *name, locus *where);
 gfc_try gfc_add_abstract (symbol_attribute* attr, locus* where);
 
@@ -2615,6 +2617,8 @@ gfc_try gfc_check_assign_symbol (gfc_symbol *, gfc_expr *);
 
 gfc_expr *gfc_default_initializer (gfc_typespec *);
 gfc_expr *gfc_get_variable_expr (gfc_symtree *);
+
+gfc_array_spec *gfc_get_full_arrayspec_from_expr (gfc_expr *expr);
 
 bool gfc_traverse_expr (gfc_expr *, gfc_symbol *,
 			bool (*)(gfc_expr *, gfc_symbol *, int*),

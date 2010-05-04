@@ -1,3 +1,38 @@
+2010-04-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR preprocessor/43642
+	* lex.c (lex_raw_string): Change type of TYPE variable to
+	unsigned char.
+
+2010-04-02  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* aclocal.m4: Regenerate.
+
+2010-03-29  Jason Merrill  <jason@redhat.com>
+
+	More N3077 raw string changes
+	* charset.c (cpp_interpret_string): Don't transform UCNs in raw
+	strings.
+	* lex.c (bufring_append): Split out from...
+	(lex_raw_string): ...here.  Undo trigraph and line splicing
+	transformations.  Do process line notes in multi-line literals.
+	(_cpp_process_line_notes): Ignore notes that were already handled.
+
+	Some raw string changes from N3077
+	* charset.c (cpp_interpret_string): Change inner delimiters to ().
+	* lex.c (lex_raw_string): Likewise.  Also disallow '\' in delimiter.
+
+2010-02-11  Jakub Jelinek  <jakub@redhat.com>
+
+	* init.c (read_original_filename): Don't call read_original_directory
+	if _cpp_handle_directive returns 0.
+
+2010-01-01  Joseph Myers  <joseph@codesourcery.com>
+
+	PR preprocessor/41947
+	* expr.c (cpp_classify_number): Give error for hexadecimal
+	floating-point constant with no digits before or after point.
+
 2009-11-20  Arnaud Charlet  <charlet@adacore.com>
 
 	* macro.c (enter_macro_context): Call cb.used callback if defined.

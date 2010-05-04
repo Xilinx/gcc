@@ -1,7 +1,7 @@
 /* Instruction scheduling pass.  This file computes dependencies between
    instructions.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) Enhanced by,
    and currently maintained by, Jim Wilson (wilson@cygnus.com)
@@ -2033,8 +2033,8 @@ setup_insn_reg_pressure_info (rtx insn)
   len = sizeof (struct reg_pressure_data) * ira_reg_class_cover_size;
   pressure_info
     = INSN_REG_PRESSURE (insn) = (struct reg_pressure_data *) xmalloc (len);
-  INSN_MAX_REG_PRESSURE (insn) = (int *) xmalloc (ira_reg_class_cover_size
-						  * sizeof (int));
+  INSN_MAX_REG_PRESSURE (insn) = (int *) xcalloc (ira_reg_class_cover_size
+						  * sizeof (int), 1);
   for (i = 0; i < ira_reg_class_cover_size; i++)
     {
       cl = ira_reg_class_cover[i];
@@ -2286,7 +2286,7 @@ sched_analyze_1 (struct deps *deps, rtx x, rtx insn)
 	    = targetm.addr_space.address_mode (MEM_ADDR_SPACE (dest));
 
 	  t = shallow_copy_rtx (dest);
-	  cselib_lookup (XEXP (t, 0), address_mode, 1);
+	  cselib_lookup_from_insn (XEXP (t, 0), address_mode, 1, insn);
 	  XEXP (t, 0) = cselib_subst_to_values (XEXP (t, 0));
 	}
       t = canon_rtx (t);
@@ -2443,7 +2443,7 @@ sched_analyze_2 (struct deps *deps, rtx x, rtx insn)
 	      = targetm.addr_space.address_mode (MEM_ADDR_SPACE (t));
 
 	    t = shallow_copy_rtx (t);
-	    cselib_lookup (XEXP (t, 0), address_mode, 1);
+	    cselib_lookup_from_insn (XEXP (t, 0), address_mode, 1, insn);
 	    XEXP (t, 0) = cselib_subst_to_values (XEXP (t, 0));
 	  }
 
@@ -2623,6 +2623,7 @@ sched_analyze_insn (struct deps *deps, rtx x, rtx insn)
       extract_insn (insn);
       preprocess_constraints ();
       ira_implicitly_set_insn_hard_regs (&temp);
+      AND_COMPL_HARD_REG_SET (temp, ira_no_alloc_regs);
       IOR_HARD_REG_SET (implicit_reg_pending_clobbers, temp);
     }
 
@@ -3382,7 +3383,7 @@ sched_analyze (struct deps *deps, rtx head, rtx tail)
   rtx insn;
 
   if (sched_deps_info->use_cselib)
-    cselib_init (true);
+    cselib_init (CSELIB_RECORD_MEMORY);
 
   deps_start_bb (deps, head);
 

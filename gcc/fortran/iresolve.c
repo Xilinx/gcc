@@ -1,5 +1,6 @@
 /* Intrinsic function resolution.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -912,7 +913,7 @@ gfc_resolve_gamma (gfc_expr *f, gfc_expr *x)
 {
   f->ts = x->ts;
   f->value.function.name
-    = gfc_get_string ("__gamma_%d", x->ts.kind);
+    = gfc_get_string ("__tgamma_%d", x->ts.kind);
 }
 
 

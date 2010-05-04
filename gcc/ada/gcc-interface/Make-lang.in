@@ -1,6 +1,7 @@
 # Top level -*- makefile -*- fragment for GNU Ada (GNAT).
 #   Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
-#   2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+#   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+#   Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -23,7 +24,7 @@
 #
 # foo.all.cross, foo.start.encap, foo.rest.encap,
 # foo.install-common, foo.install-man, foo.install-info, foo.install-pdf,
-# foo.info, foo.dvi, foo.pdf, foo.html, foo.uninstall,
+# foo.install-html, foo.info, foo.dvi, foo.pdf, foo.html, foo.uninstall,
 # foo.mostlyclean, foo.clean, foo.distclean,
 # foo.maintainer-clean, foo.stage1, foo.stage2, foo.stage3, foo.stage4
 #
@@ -625,6 +626,8 @@ ada.install-pdf: $(ADA_PDFFILES)
 	done
 
 ada.html:
+
+ada.install-html:
 
 doc/gnat_ugn.dvi: doc/gnat_ugn.texi $(gcc_docdir)/include/fdl.texi	\
 	$(gcc_docdir)/include/gcc-common.texi gcc-vers.texi

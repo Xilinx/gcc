@@ -1,4 +1,4 @@
-/* Copyright (C) 2009
+/* Copyright (C) 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Janne Blomqvist
 
@@ -120,6 +120,9 @@ internal_proto(delete_file);
 
 extern int file_exists (const char *file, gfc_charlen_type file_len);
 internal_proto(file_exists);
+
+extern GFC_IO_INT file_size (const char *file, gfc_charlen_type file_len);
+internal_proto(file_size);
 
 extern const char *inquire_sequential (const char *, int);
 internal_proto(inquire_sequential);

@@ -225,4 +225,5 @@ cp_eh_personality (void)
   return cp_eh_personality_decl;
 }
 
+#include "gt-cp-cp-lang.h"
 #include "gtype-cp.h"

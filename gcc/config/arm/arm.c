@@ -1,6 +1,6 @@
 /* Output routines for GCC for ARM.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Pieter `Tiggr' Schoenmakers (rcpieter@win.tue.nl)
    and Martin Simmons (@harleqn.co.uk).
@@ -601,7 +601,7 @@ static int thumb_call_reg_needed;
 #define FL_FOR_ARCH6T2	(FL_FOR_ARCH6 | FL_THUMB2)
 #define FL_FOR_ARCH6M	(FL_FOR_ARCH6 & ~FL_NOTM)
 #define FL_FOR_ARCH7	(FL_FOR_ARCH6T2 &~ FL_NOTM)
-#define FL_FOR_ARCH7A	(FL_FOR_ARCH7 | FL_NOTM)
+#define FL_FOR_ARCH7A	(FL_FOR_ARCH7 | FL_NOTM | FL_ARCH6K)
 #define FL_FOR_ARCH7R	(FL_FOR_ARCH7A | FL_DIV)
 #define FL_FOR_ARCH7M	(FL_FOR_ARCH7 | FL_DIV)
 #define FL_FOR_ARCH7EM  (FL_FOR_ARCH7M | FL_ARCH7EM)
@@ -1639,8 +1639,12 @@ arm_override_options (void)
 	  break;
 	}
     }
+
   if (!arm_fpu_desc)
-    error ("invalid floating point option: -mfpu=%s", target_fpu_name);
+    {
+      error ("invalid floating point option: -mfpu=%s", target_fpu_name);
+      return;
+    }
 
   switch (arm_fpu_desc->model)
     {
@@ -1758,7 +1762,7 @@ arm_override_options (void)
   /* Use the cp15 method if it is available.  */
   if (target_thread_pointer == TP_AUTO)
     {
-      if (arm_arch6k && !TARGET_THUMB)
+      if (arm_arch6k && !TARGET_THUMB1)
 	target_thread_pointer = TP_CP15;
       else
 	target_thread_pointer = TP_SOFT;
@@ -1872,13 +1876,6 @@ arm_override_options (void)
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
-
-  /* Ideally we would want to use CFI directives to generate
-     debug info.  However this also creates the .eh_frame
-     section, so disable them until GAS can handle
-     this properly.  See PR40521. */
-  if (TARGET_AAPCS_BASED)
-    flag_dwarf2_cfi_asm = 0;
 
   /* Register global variables with the garbage collector.  */
   arm_add_gc_roots ();
@@ -4926,10 +4923,8 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
       else
 	address = reg;
 
-      if (TARGET_ARM)
-	emit_insn (gen_pic_load_addr_arm (address, orig));
-      else if (TARGET_THUMB2)
-	emit_insn (gen_pic_load_addr_thumb2 (address, orig));
+      if (TARGET_32BIT)
+	emit_insn (gen_pic_load_addr_32bit (address, orig));
       else /* TARGET_THUMB1 */
 	emit_insn (gen_pic_load_addr_thumb1 (address, orig));
 
@@ -5106,7 +5101,7 @@ arm_load_pic_register (unsigned long saved_regs ATTRIBUTE_UNUSED)
     {
       pic_rtx = gen_rtx_SYMBOL_REF (Pmode, VXWORKS_GOTT_BASE);
       pic_rtx = gen_rtx_CONST (Pmode, pic_rtx);
-      emit_insn (gen_pic_load_addr_arm (pic_reg, pic_rtx));
+      emit_insn (gen_pic_load_addr_32bit (pic_reg, pic_rtx));
 
       emit_insn (gen_rtx_SET (Pmode, pic_reg, gen_rtx_MEM (Pmode, pic_reg)));
 
@@ -5129,29 +5124,13 @@ arm_load_pic_register (unsigned long saved_regs ATTRIBUTE_UNUSED)
 				UNSPEC_GOTSYM_OFF);
       pic_rtx = gen_rtx_CONST (Pmode, pic_rtx);
 
-      if (TARGET_ARM)
+      if (TARGET_32BIT)
 	{
-	  emit_insn (gen_pic_load_addr_arm (pic_reg, pic_rtx));
-	  emit_insn (gen_pic_add_dot_plus_eight (pic_reg, pic_reg, labelno));
-	}
-      else if (TARGET_THUMB2)
-	{
-	  /* Thumb-2 only allows very limited access to the PC.  Calculate the
-	     address in a temporary register.  */
-	  if (arm_pic_register != INVALID_REGNUM)
-	    {
-	      pic_tmp = gen_rtx_REG (SImode,
-				     thumb_find_work_register (saved_regs));
-	    }
+	  emit_insn (gen_pic_load_addr_32bit (pic_reg, pic_rtx));
+	  if (TARGET_ARM)
+	    emit_insn (gen_pic_add_dot_plus_eight (pic_reg, pic_reg, labelno));
 	  else
-	    {
-	      gcc_assert (can_create_pseudo_p ());
-	      pic_tmp = gen_reg_rtx (Pmode);
-	    }
-
-	  emit_insn (gen_pic_load_addr_thumb2 (pic_reg, pic_rtx));
-	  emit_insn (gen_pic_load_dot_plus_four (pic_tmp, labelno));
-	  emit_insn (gen_addsi3 (pic_reg, pic_reg, pic_tmp));
+	    emit_insn (gen_pic_add_dot_plus_four (pic_reg, pic_reg, labelno));
 	}
       else /* TARGET_THUMB1 */
 	{
@@ -5808,14 +5787,7 @@ arm_call_tls_get_addr (rtx x, rtx reg, rtx *valuep, int reloc)
   if (TARGET_ARM)
     emit_insn (gen_pic_add_dot_plus_eight (reg, reg, labelno));
   else if (TARGET_THUMB2)
-    {
-      rtx tmp;
-      /* Thumb-2 only allows very limited access to the PC.  Calculate
-	 the address in a temporary register.  */
-      tmp = gen_reg_rtx (SImode);
-      emit_insn (gen_pic_load_dot_plus_four (tmp, labelno));
-      emit_insn (gen_addsi3(reg, reg, tmp));
-    }
+    emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
   else /* TARGET_THUMB1 */
     emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
 
@@ -5871,15 +5843,7 @@ legitimize_tls_address (rtx x, rtx reg)
       if (TARGET_ARM)
 	emit_insn (gen_tls_load_dot_plus_eight (reg, reg, labelno));
       else if (TARGET_THUMB2)
-	{
-	  rtx tmp;
-	  /* Thumb-2 only allows very limited access to the PC.  Calculate
-	     the address in a temporary register.  */
-	  tmp = gen_reg_rtx (SImode);
-	  emit_insn (gen_pic_load_dot_plus_four (tmp, labelno));
-	  emit_insn (gen_addsi3(reg, reg, tmp));
-	  emit_move_insn (reg, gen_const_mem (SImode, reg));
-	}
+	emit_insn (gen_tls_load_dot_plus_four (reg, NULL, reg, labelno));
       else
 	{
 	  emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
@@ -6264,6 +6228,15 @@ thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
       else if ((outer == IOR || outer == XOR || outer == AND)
 	       && INTVAL (x) < 256 && INTVAL (x) >= -256)
 	return COSTS_N_INSNS (1);
+      else if (outer == AND)
+	{
+	  int i;
+	  /* This duplicates the tests in the andsi3 expander.  */
+	  for (i = 9; i <= 31; i++)
+	    if ((((HOST_WIDE_INT) 1) << i) - 1 == INTVAL (x)
+		|| (((HOST_WIDE_INT) 1) << i) - 1 == ~INTVAL (x))
+	      return COSTS_N_INSNS (2);
+	}
       else if (outer == ASHIFT || outer == ASHIFTRT
 	       || outer == LSHIFTRT)
 	return 0;
@@ -8828,28 +8801,21 @@ tls_mentioned_p (rtx x)
     }
 }
 
-/* Must not copy a SET whose source operand is PC-relative.  */
+/* Must not copy any rtx that uses a pc-relative address.  */
+
+static int
+arm_note_pic_base (rtx *x, void *date ATTRIBUTE_UNUSED)
+{
+  if (GET_CODE (*x) == UNSPEC
+      && XINT (*x, 1) == UNSPEC_PIC_BASE)
+    return 1;
+  return 0;
+}
 
 static bool
 arm_cannot_copy_insn_p (rtx insn)
 {
-  rtx pat = PATTERN (insn);
-
-  if (GET_CODE (pat) == SET)
-    {
-      rtx rhs = SET_SRC (pat);
-
-      if (GET_CODE (rhs) == UNSPEC
-	  && XINT (rhs, 1) == UNSPEC_PIC_BASE)
-	return TRUE;
-
-      if (GET_CODE (rhs) == MEM
-	  && GET_CODE (XEXP (rhs, 0)) == UNSPEC
-	  && XINT (XEXP (rhs, 0), 1) == UNSPEC_PIC_BASE)
-	return TRUE;
-    }
-
-  return FALSE;
+  return for_each_rtx (&PATTERN (insn), arm_note_pic_base, NULL);
 }
 
 enum rtx_code
@@ -11684,9 +11650,14 @@ vfp_emit_fstmd (int base_reg, int count)
 
   XVECEXP (par, 0, 0)
     = gen_rtx_SET (VOIDmode,
-		   gen_frame_mem (BLKmode,
-				  gen_rtx_PRE_DEC (BLKmode,
-						   stack_pointer_rtx)),
+		   gen_frame_mem
+		   (BLKmode,
+		    gen_rtx_PRE_MODIFY (Pmode,
+					stack_pointer_rtx,
+					plus_constant
+					(stack_pointer_rtx,
+					 - (count * 8)))
+		    ),
 		   gen_rtx_UNSPEC (BLKmode,
 				   gen_rtvec (1, reg),
 				   UNSPEC_PUSH_MULT));
@@ -11772,11 +11743,14 @@ output_call (rtx *operands)
   return "";
 }
 
-/* Output a 'call' insn that is a reference in memory.  */
+/* Output a 'call' insn that is a reference in memory. This is
+   disabled for ARMv5 and we prefer a blx instead because otherwise
+   there's a significant performance overhead.  */
 const char *
 output_call_mem (rtx *operands)
 {
-  if (TARGET_INTERWORK && !arm_arch5)
+  gcc_assert (!arm_arch5);
+  if (TARGET_INTERWORK)
     {
       output_asm_insn ("ldr%?\t%|ip, %0", operands);
       output_asm_insn ("mov%?\t%|lr, %|pc", operands);
@@ -11788,16 +11762,11 @@ output_call_mem (rtx *operands)
 	 first instruction.  It's safe to use IP as the target of the
 	 load since the call will kill it anyway.  */
       output_asm_insn ("ldr%?\t%|ip, %0", operands);
-      if (arm_arch5)
-	output_asm_insn ("blx%?\t%|ip", operands);
+      output_asm_insn ("mov%?\t%|lr, %|pc", operands);
+      if (arm_arch4t)
+	output_asm_insn ("bx%?\t%|ip", operands);
       else
-	{
-	  output_asm_insn ("mov%?\t%|lr, %|pc", operands);
-	  if (arm_arch4t)
-	    output_asm_insn ("bx%?\t%|ip", operands);
-	  else
-	    output_asm_insn ("mov%?\t%|pc, %|ip", operands);
-	}
+	output_asm_insn ("mov%?\t%|pc, %|ip", operands);
     }
   else
     {
@@ -13755,24 +13724,29 @@ arm_output_epilogue (rtx sibling)
 
       if (TARGET_HARD_FLOAT && TARGET_VFP)
 	{
-	  start_reg = FIRST_VFP_REGNUM;
-	  for (reg = FIRST_VFP_REGNUM; reg < LAST_VFP_REGNUM; reg += 2)
+	  int end_reg = LAST_VFP_REGNUM + 1;
+
+	  /* Scan the registers in reverse order.  We need to match
+	     any groupings made in the prologue and generate matching
+	     pop operations.  */
+	  for (reg = LAST_VFP_REGNUM - 1; reg >= FIRST_VFP_REGNUM; reg -= 2)
 	    {
 	      if ((!df_regs_ever_live_p (reg) || call_used_regs[reg])
-		  && (!df_regs_ever_live_p (reg + 1) || call_used_regs[reg + 1]))
+		  && (!df_regs_ever_live_p (reg + 1)
+		      || call_used_regs[reg + 1]))
 		{
-		  if (start_reg != reg)
+		  if (end_reg > reg + 2)
 		    vfp_output_fldmd (f, SP_REGNUM,
-				      (start_reg - FIRST_VFP_REGNUM) / 2,
-				      (reg - start_reg) / 2);
-		  start_reg = reg + 2;
+				      (reg + 2 - FIRST_VFP_REGNUM) / 2,
+				      (end_reg - (reg + 2)) / 2);
+		  end_reg = reg;
 		}
 	    }
-	  if (start_reg != reg)
-	    vfp_output_fldmd (f, SP_REGNUM,
-			      (start_reg - FIRST_VFP_REGNUM) / 2,
-			      (reg - start_reg) / 2);
+	  if (end_reg > reg + 2)
+	    vfp_output_fldmd (f, SP_REGNUM, 0,
+			      (end_reg - (reg + 2)) / 2);
 	}
+
       if (TARGET_IWMMXT)
 	for (reg = FIRST_IWMMXT_REGNUM; reg <= LAST_IWMMXT_REGNUM; reg++)
 	  if (df_regs_ever_live_p (reg) && !call_used_regs[reg])
@@ -13941,16 +13915,17 @@ emit_multi_reg_push (unsigned long mask)
 
   /* For the body of the insn we are going to generate an UNSPEC in
      parallel with several USEs.  This allows the insn to be recognized
-     by the push_multi pattern in the arm.md file.  The insn looks
-     something like this:
+     by the push_multi pattern in the arm.md file.
+
+     The body of the insn looks something like this:
 
        (parallel [
-           (set (mem:BLK (pre_dec:BLK (reg:SI sp)))
+           (set (mem:BLK (pre_modify:SI (reg:SI sp)
+	                                (const_int:SI <num>)))
 	        (unspec:BLK [(reg:SI r4)] UNSPEC_PUSH_MULT))
-           (use (reg:SI 11 fp))
-           (use (reg:SI 12 ip))
-           (use (reg:SI 14 lr))
-           (use (reg:SI 15 pc))
+           (use (reg:SI XX))
+           (use (reg:SI YY))
+	   ...
         ])
 
      For the frame note however, we try to be more explicit and actually
@@ -13963,13 +13938,20 @@ emit_multi_reg_push (unsigned long mask)
       (sequence [
            (set (reg:SI sp) (plus:SI (reg:SI sp) (const_int -20)))
            (set (mem:SI (reg:SI sp)) (reg:SI r4))
-           (set (mem:SI (plus:SI (reg:SI sp) (const_int 4))) (reg:SI fp))
-           (set (mem:SI (plus:SI (reg:SI sp) (const_int 8))) (reg:SI ip))
-           (set (mem:SI (plus:SI (reg:SI sp) (const_int 12))) (reg:SI lr))
+           (set (mem:SI (plus:SI (reg:SI sp) (const_int 4))) (reg:SI XX))
+           (set (mem:SI (plus:SI (reg:SI sp) (const_int 8))) (reg:SI YY))
+	   ...
         ])
 
-      This sequence is used both by the code to support stack unwinding for
-      exceptions handlers and the code to generate dwarf2 frame debugging.  */
+     FIXME:: In an ideal world the PRE_MODIFY would not exist and
+     instead we'd have a parallel expression detailing all
+     the stores to the various memory addresses so that debug
+     information is more up-to-date. Remember however while writing
+     this to take care of the constraints with the push instruction.
+
+     Note also that this has to be taken care of for the VFP registers.
+
+     For more see PR43399.  */
 
   par = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (num_regs));
   dwarf = gen_rtx_SEQUENCE (VOIDmode, rtvec_alloc (num_dwarf_regs + 1));
@@ -13983,9 +13965,14 @@ emit_multi_reg_push (unsigned long mask)
 
 	  XVECEXP (par, 0, 0)
 	    = gen_rtx_SET (VOIDmode,
-			   gen_frame_mem (BLKmode,
-					  gen_rtx_PRE_DEC (BLKmode,
-							   stack_pointer_rtx)),
+			   gen_frame_mem
+			   (BLKmode,
+			    gen_rtx_PRE_MODIFY (Pmode,
+						stack_pointer_rtx,
+						plus_constant
+						(stack_pointer_rtx,
+						 -4 * num_regs))
+			    ),
 			   gen_rtx_UNSPEC (BLKmode,
 					   gen_rtvec (1, reg),
 					   UNSPEC_PUSH_MULT));
@@ -14016,9 +14003,10 @@ emit_multi_reg_push (unsigned long mask)
 	    {
 	      tmp
 		= gen_rtx_SET (VOIDmode,
-			       gen_frame_mem (SImode,
-					      plus_constant (stack_pointer_rtx,
-							     4 * j)),
+			       gen_frame_mem
+			       (SImode,
+				plus_constant (stack_pointer_rtx,
+					       4 * j)),
 			       reg);
 	      RTX_FRAME_RELATED_P (tmp) = 1;
 	      XVECEXP (dwarf, 0, dwarf_par_index++) = tmp;
@@ -14070,9 +14058,14 @@ emit_sfm (int base_reg, int count)
 
   XVECEXP (par, 0, 0)
     = gen_rtx_SET (VOIDmode,
-		   gen_frame_mem (BLKmode,
-				  gen_rtx_PRE_DEC (BLKmode,
-						   stack_pointer_rtx)),
+		   gen_frame_mem
+		   (BLKmode,
+		    gen_rtx_PRE_MODIFY (Pmode,
+					stack_pointer_rtx,
+					plus_constant
+					(stack_pointer_rtx,
+					 -12 * count))
+		    ),
 		   gen_rtx_UNSPEC (BLKmode,
 				   gen_rtvec (1, reg),
 				   UNSPEC_PUSH_MULT));
@@ -14431,7 +14424,7 @@ arm_save_coproc_regs(void)
   for (reg = LAST_IWMMXT_REGNUM; reg >= FIRST_IWMMXT_REGNUM; reg--)
     if (df_regs_ever_live_p (reg) && ! call_used_regs[reg])
       {
-	insn = gen_rtx_PRE_DEC (V2SImode, stack_pointer_rtx);
+	insn = gen_rtx_PRE_DEC (Pmode, stack_pointer_rtx);
 	insn = gen_rtx_MEM (V2SImode, insn);
 	insn = emit_set_insn (insn, gen_rtx_REG (V2SImode, reg));
 	RTX_FRAME_RELATED_P (insn) = 1;
@@ -14445,7 +14438,7 @@ arm_save_coproc_regs(void)
       for (reg = LAST_FPA_REGNUM; reg >= FIRST_FPA_REGNUM; reg--)
 	if (df_regs_ever_live_p (reg) && !call_used_regs[reg])
 	  {
-	    insn = gen_rtx_PRE_DEC (XFmode, stack_pointer_rtx);
+	    insn = gen_rtx_PRE_DEC (Pmode, stack_pointer_rtx);
 	    insn = gen_rtx_MEM (XFmode, insn);
 	    insn = emit_set_insn (insn, gen_rtx_REG (XFmode, reg));
 	    RTX_FRAME_RELATED_P (insn) = 1;
@@ -21374,7 +21367,7 @@ arm_mangle_type (const_tree type)
       && lang_hooks.types_compatible_p (CONST_CAST_TREE (type), va_list_type))
     {
       static bool warned;
-      if (!warned && warn_psabi)
+      if (!warned && warn_psabi && !in_system_header)
 	{
 	  warned = true;
 	  inform (input_location,

@@ -1,5 +1,5 @@
 /* Translation of CLAST (CLooG AST) to Gimple.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@amd.com>.
 
 This file is part of GCC.
@@ -36,7 +36,7 @@ typedef struct bb_pbb_def
   poly_bb_p pbb;
 }bb_pbb_def;
 
-extern bool gloog (scop_p, htab_t);
+extern bool gloog (scop_p, VEC (scop_p, heap) *, htab_t);
 extern cloog_prog_clast scop_to_clast (scop_p);
 extern void debug_clast_stmt (struct clast_stmt *);
 extern void print_clast_stmt (FILE *, struct clast_stmt *);

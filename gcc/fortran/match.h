@@ -1,5 +1,5 @@
 /* All matcher functions.
-   Copyright (C) 2003, 2005, 2007, 2008
+   Copyright (C) 2003, 2005, 2007, 2008, 2010
    Free Software Foundation, Inc.
    Contributed by Steven Bosscher
 
@@ -162,6 +162,7 @@ void gfc_set_constant_character_len (int, gfc_expr *, int);
 
 /* Matchers for attribute declarations.  */
 match gfc_match_allocatable (void);
+match gfc_match_asynchronous (void);
 match gfc_match_dimension (void);
 match gfc_match_external (void);
 match gfc_match_gcc_attributes (void);

@@ -1,5 +1,5 @@
 @ignore
-Copyright (C) 2005, 2006, 2007, 2008, 2009
+Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
 Free Software Foundation, Inc.
 This is part of the GNU Fortran manual.   
 For copying conditions, see the file gfortran.texi.
@@ -7558,8 +7558,8 @@ Transformational function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER},
-@code{REAL}, or @code{CHARACTER}.
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER} or
+@code{REAL}.
 @item @var{DIM}   @tab (Optional) Shall be a scalar of type
 @code{INTEGER}, with a value between one and the rank of @var{ARRAY},
 inclusive.  It may not be an optional dummy argument.
@@ -7614,8 +7614,8 @@ Transformational function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER},
-@code{REAL}, or @code{CHARACTER}.
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER} or
+@code{REAL}.
 @item @var{DIM}   @tab (Optional) Shall be a scalar of type
 @code{INTEGER}, with a value between one and the rank of @var{ARRAY},
 inclusive.  It may not be an optional dummy argument.
@@ -7869,8 +7869,8 @@ Transformational function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER},
-@code{REAL}, or @code{CHARACTER}.
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER} or
+@code{REAL}.
 @item @var{DIM}   @tab (Optional) Shall be a scalar of type
 @code{INTEGER}, with a value between one and the rank of @var{ARRAY},
 inclusive.  It may not be an optional dummy argument.
@@ -7925,8 +7925,8 @@ Transformational function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER},
-@code{REAL}, or @code{CHARACTER}.
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER} or
+@code{REAL}.
 @item @var{DIM}   @tab (Optional) Shall be a scalar of type
 @code{INTEGER}, with a value between one and the rank of @var{ARRAY},
 inclusive.  It may not be an optional dummy argument.
@@ -11350,8 +11350,8 @@ C_INT_LEAST128_T, C_INT_FAST128_T}.
 @item @code{CHARACTER}@tab @code{C_CHAR}        @tab @code{char}
 @end multitable
 
-Additionally, the following @code{(CHARACTER(KIND=C_CHAR))} are
-defined.
+Additionally, the following parameters of type @code{CHARACTER(KIND=C_CHAR)}
+are defined.
 
 @multitable @columnfractions .20 .45 .15
 @item Name                     @tab C definition    @tab Value

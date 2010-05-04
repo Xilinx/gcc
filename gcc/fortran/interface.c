@@ -1,5 +1,6 @@
 /* Deal with interfaces.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009,
+   2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -955,6 +956,8 @@ gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, const char *name2,
 {
   gfc_formal_arglist *f1, *f2;
 
+  gcc_assert (name2 != NULL);
+
   if (s1->attr.function && (s2->attr.subroutine
       || (!s2->attr.function && s2->ts.type == BT_UNKNOWN
 	  && gfc_get_default_type (name2, s2->ns)->type == BT_UNKNOWN)))
@@ -1126,20 +1129,20 @@ check_interface1 (gfc_interface *p, gfc_interface *q0,
 	if (p->sym->name == q->sym->name && p->sym->module == q->sym->module)
 	  continue;
 
-	if (gfc_compare_interfaces (p->sym, q->sym, NULL, generic_flag, 0,
+	if (gfc_compare_interfaces (p->sym, q->sym, q->sym->name, generic_flag, 0,
 				    NULL, 0))
 	  {
 	    if (referenced)
-	      {
-		gfc_error ("Ambiguous interfaces '%s' and '%s' in %s at %L",
-			   p->sym->name, q->sym->name, interface_name,
-			   &p->where);
-	      }
-
-	    if (!p->sym->attr.use_assoc && q->sym->attr.use_assoc)
+	      gfc_error ("Ambiguous interfaces '%s' and '%s' in %s at %L",
+			 p->sym->name, q->sym->name, interface_name,
+			 &p->where);
+	    else if (!p->sym->attr.use_assoc && q->sym->attr.use_assoc)
 	      gfc_warning ("Ambiguous interfaces '%s' and '%s' in %s at %L",
 			   p->sym->name, q->sym->name, interface_name,
 			   &p->where);
+	    else
+	      gfc_warning ("Although not referenced, '%s' has ambiguous "
+			   "interfaces at %L", interface_name, &p->where);
 	    return 1;
 	  }
       }
@@ -1155,7 +1158,6 @@ static void
 check_sym_interfaces (gfc_symbol *sym)
 {
   char interface_name[100];
-  bool k;
   gfc_interface *p;
 
   if (sym->ns != gfc_current_ns)
@@ -1182,9 +1184,8 @@ check_sym_interfaces (gfc_symbol *sym)
       /* Originally, this test was applied to host interfaces too;
 	 this is incorrect since host associated symbols, from any
 	 source, cannot be ambiguous with local symbols.  */
-      k = sym->attr.referenced || !sym->attr.use_assoc;
-      if (check_interface1 (sym->generic, sym->generic, 1, interface_name, k))
-	sym->attr.ambiguous_interfaces = 1;
+      check_interface1 (sym->generic, sym->generic, 1, interface_name,
+			sym->attr.referenced || !sym->attr.use_assoc);
     }
 }
 
@@ -1449,9 +1450,11 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 
   rank_check = where != NULL && !is_elemental && formal->as
 	       && (formal->as->type == AS_ASSUMED_SHAPE
-		   || formal->as->type == AS_DEFERRED);
+		   || formal->as->type == AS_DEFERRED)
+	       && actual->expr_type != EXPR_NULL;
 
-  if (rank_check || ranks_must_agree || formal->attr.pointer
+  if (rank_check || ranks_must_agree
+      || (formal->attr.pointer && actual->expr_type != EXPR_NULL)
       || (actual->rank != 0 && !(is_elemental || formal->attr.dimension))
       || (actual->rank == 0 && formal->as->type == AS_ASSUMED_SHAPE))
     {
@@ -1493,7 +1496,7 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
       else
 	return 1;
     }
-  else if (ref == NULL)
+  else if (ref == NULL && actual->expr_type != EXPR_NULL)
     {
       if (where)
 	gfc_error ("Rank mismatch in argument '%s' at %L (%d and %d)",
@@ -2380,12 +2383,18 @@ gfc_procedure_use (gfc_symbol *sym, gfc_actual_arglist **ap, locus *where)
 
   /* Warn about calls with an implicit interface.  Special case
      for calling a ISO_C_BINDING becase c_loc and c_funloc
-     are pseudo-unknown.  */
-  if (gfc_option.warn_implicit_interface
-      && sym->attr.if_source == IFSRC_UNKNOWN
-      && ! sym->attr.is_iso_c)
-    gfc_warning ("Procedure '%s' called with an implicit interface at %L",
-		 sym->name, where);
+     are pseudo-unknown.  Additionally, warn about procedures not
+     explicitly declared at all if requested.  */
+  if (sym->attr.if_source == IFSRC_UNKNOWN && ! sym->attr.is_iso_c)
+    {
+      if (gfc_option.warn_implicit_interface)
+	gfc_warning ("Procedure '%s' called with an implicit interface at %L",
+		     sym->name, where);
+      else if (gfc_option.warn_implicit_procedure
+	       && sym->attr.proc == PROC_UNKNOWN)
+	gfc_warning ("Procedure '%s' called at %L is not explicitly declared",
+		     sym->name, where);
+    }
 
   if (sym->attr.if_source == IFSRC_UNKNOWN)
     {

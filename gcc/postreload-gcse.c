@@ -1,5 +1,5 @@
 /* Post reload partially redundant load elimination
-   Copyright (C) 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -363,7 +363,8 @@ insert_expr_in_table (rtx x, rtx insn)
 
   /* Search for another occurrence in the same basic block.  */
   avail_occr = cur_expr->avail_occr;
-  while (avail_occr && BLOCK_NUM (avail_occr->insn) != BLOCK_NUM (insn))
+  while (avail_occr
+	 && BLOCK_FOR_INSN (avail_occr->insn) != BLOCK_FOR_INSN (insn))
     {
       /* If an occurrence isn't found, save a pointer to the end of
 	 the list.  */

@@ -1,3 +1,46 @@
+2010-03-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR bootstrap/43276
+	* lto-elf.c: Define EM_* constants if not already defined.
+
+2010-03-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* lto-elf.c (is_compatible_architecture): New static function.
+	(DEFINE_VALIDATE_EHDR): Use it to validate the architecture.
+
+2010-02-11  Richard Guenther  <rguenther@suse.de>
+
+	PR driver/43021
+	* lto-elf.c (lto_elf_file_open): Handle file@offset case more
+	appropriately.
+
+2010-01-11  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* lto.c (O_BINARY): Define.
+	(lto_read_section_data): Open file in binary mode.
+	* lto-elf.c (O_BINARY): Define.
+	(lto_elf_file_open): Open file in binary mode. 
+
+2010-01-08  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42528
+	* lto-lang.c (lto_handle_option): Handle -f[un]signed-char.
+	(lto_init): Do not init char_type_node in a standard way
+	but according to flag_signed_char.
+
+2010-01-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR lto/41564
+	* lto.c (DUMPBASE_SUFFIX): New.
+	(lto_execute_ltrans): Append a sequence number to -dumpbase
+	for LTRANS.
+
+2010-01-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR lto/42580
+	* lto-elf.c (lto_elf_file_open): Stop if the command line
+	option file is missing.
+
 2009-12-15  Richard Guenther  <rguenther@suse.de>
 
 	* lto.c (lto_fixup_field_decl): Fixup DECL_FIELD_OFFSET.

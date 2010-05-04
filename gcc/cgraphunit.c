@@ -1,5 +1,5 @@
 /* Callgraph based interprocedural optimizations.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
@@ -772,11 +772,12 @@ verify_cgraph_node (struct cgraph_node *node)
 			    debug_tree (e->callee->decl);
 			    error_found = true;
 			  }
-			else if (!clone_of_p (cgraph_node (decl), e->callee)
-                                 && (!L_IPO_COMP_MODE
+			else if (!node->global.inlined_to
+				 && !e->callee->global.inlined_to
+				 && !clone_of_p (cgraph_node (decl), e->callee)
+				 && (!L_IPO_COMP_MODE
                                      || !clone_of_p (cgraph_lipo_get_resolved_node (decl),
-                                                e->callee))
-                                 && !e->callee->global.inlined_to)
+						     e->callee)))
 			  {
 			    error ("edge points to wrong declaration:");
 			    debug_tree (e->callee->decl);
@@ -860,6 +861,8 @@ cgraph_analyze_function (struct cgraph_node *node)
   current_function_decl = decl;
   push_cfun (DECL_STRUCT_FUNCTION (decl));
 
+  assign_assembler_name_if_neeeded (node->decl);
+
   /* Make sure to gimplify bodies only once.  During analyzing a
      function we lower it, which will require gimplified nested
      functions, so we can end up here with an already gimplified
@@ -909,7 +912,7 @@ process_function_and_variable_attributes (struct cgraph_node *first,
   for (node = cgraph_nodes; node != first; node = node->next)
     {
       tree decl = node->decl;
-      if (lookup_attribute ("used", DECL_ATTRIBUTES (decl)))
+      if (DECL_PRESERVE_P (decl))
 	{
 	  mark_decl_referenced (decl);
 	  if (node->local.finalized)
@@ -928,7 +931,7 @@ process_function_and_variable_attributes (struct cgraph_node *first,
   for (vnode = varpool_nodes; vnode != first_var; vnode = vnode->next)
     {
       tree decl = vnode->decl;
-      if (lookup_attribute ("used", DECL_ATTRIBUTES (decl)))
+      if (DECL_PRESERVE_P (decl))
 	{
 	  mark_decl_referenced (decl);
 	  vnode->force_output = true;
@@ -1386,7 +1389,8 @@ thunk_adjust (gimple_stmt_iterator * bsi,
   gimple stmt;
   tree ret;
 
-  if (this_adjusting)
+  if (this_adjusting
+      && fixed_offset != 0)
     {
       stmt = gimple_build_assign (ptr,
 				  fold_build2_loc (input_location,
@@ -1471,7 +1475,8 @@ thunk_adjust (gimple_stmt_iterator * bsi,
 			     offsettmp);
     }
 
-  if (!this_adjusting)
+  if (!this_adjusting
+      && fixed_offset != 0)
     /* Adjust the pointer by the constant.  */
     {
       tree ptrtmp;
@@ -1621,7 +1626,7 @@ assemble_thunk (struct cgraph_node *node)
 
       if (restmp && !this_adjusting)
         {
-	  tree true_label = NULL_TREE, false_label = NULL_TREE;
+	  tree true_label = NULL_TREE;
 
 	  if (TREE_CODE (TREE_TYPE (restmp)) == POINTER_TYPE)
 	    {
@@ -1635,7 +1640,6 @@ assemble_thunk (struct cgraph_node *node)
 	      else_bb = create_basic_block (NULL, (void *) 0, else_bb);
 	      remove_edge (single_succ_edge (bb));
 	      true_label = gimple_block_label (then_bb);
-	      false_label = gimple_block_label (else_bb);
 	      stmt = gimple_build_cond (NE_EXPR, restmp,
 	      				fold_convert (TREE_TYPE (restmp),
 						      integer_zero_node),
@@ -1816,7 +1820,6 @@ static void
 cgraph_output_in_order (void)
 {
   int max;
-  size_t size;
   struct cgraph_order_sort *nodes;
   int i;
   struct cgraph_node *pf;
@@ -1824,9 +1827,7 @@ cgraph_output_in_order (void)
   struct cgraph_asm_node *pa;
 
   max = cgraph_order;
-  size = max * sizeof (struct cgraph_order_sort);
-  nodes = (struct cgraph_order_sort *) alloca (size);
-  memset (nodes, 0, size);
+  nodes = XCNEWVEC (struct cgraph_order_sort, max);
 
   varpool_analyze_pending_decls ();
 
@@ -1893,6 +1894,7 @@ cgraph_output_in_order (void)
     }
 
   cgraph_asm_nodes = NULL;
+  free (nodes);
 }
 
 /* Return true when function body of DECL still needs to be kept around
@@ -2116,7 +2118,11 @@ cgraph_build_static_cdtor (char which, tree body, int priority)
   DECL_ARTIFICIAL (decl) = 1;
   DECL_NO_INSTRUMENT_FUNCTION_ENTRY_EXIT (decl) = 1;
   DECL_SAVED_TREE (decl) = body;
-  TREE_PUBLIC (decl) = ! targetm.have_ctors_dtors;
+  if (!targetm.have_ctors_dtors)
+    {
+      TREE_PUBLIC (decl) = 1;
+      DECL_PRESERVE_P (decl) = 1;
+    }
   DECL_UNINLINABLE (decl) = 1;
 
   DECL_INITIAL (decl) = make_node (BLOCK);
@@ -2284,12 +2290,7 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
      that is not weak also.
      ??? We cannot use COMDAT linkage because there is no
      ABI support for this.  */
-  DECL_EXTERNAL (new_version_node->decl) = 0;
-  DECL_COMDAT_GROUP (new_version_node->decl) = NULL_TREE;
-  TREE_PUBLIC (new_version_node->decl) = 0;
-  DECL_COMDAT (new_version_node->decl) = 0;
-  DECL_VIRTUAL_P (new_version_node->decl) = 0;
-  DECL_WEAK (new_version_node->decl) = 0;
+  cgraph_make_decl_local (new_version_node->decl);
   DECL_VIRTUAL_P (new_version_node->decl) = 0;
   new_version_node->local.externally_visible = 0;
   new_version_node->local.local = 1;
@@ -2410,11 +2411,64 @@ get_clone_orig_node (struct cgraph_node *node)
   return node;
 }
 
+/* If necessary, change the function declaration in the call statement
+   associated with E so that it corresponds to the edge callee.  */
+
+gimple
+cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
+{
+  tree decl = gimple_call_fndecl (e->call_stmt);
+  gimple new_stmt;
+  gimple_stmt_iterator gsi;
+
+  if (!decl || decl == e->callee->decl
+      /* Don't update call from same body alias to the real function.  */
+      || cgraph_get_node (decl) == cgraph_get_node (e->callee->decl)
+      || (L_IPO_COMP_MODE
+	  && (cgraph_lipo_get_resolved_node (decl)
+	      == cgraph_lipo_get_resolved_node (e->callee->decl))))
+    return e->call_stmt;
+
+  if (cgraph_dump_file)
+    {
+      fprintf (cgraph_dump_file, "updating call of %s/%i -> %s/%i: ",
+	       cgraph_node_name (e->caller), e->caller->uid,
+	       cgraph_node_name (e->callee), e->callee->uid);
+      print_gimple_stmt (cgraph_dump_file, e->call_stmt, 0, dump_flags);
+    }
+
+  if (e->callee->clone.combined_args_to_skip)
+    new_stmt = gimple_call_copy_skip_args (e->call_stmt,
+				       e->callee->clone.combined_args_to_skip);
+  else
+    new_stmt = e->call_stmt;
+  if (gimple_vdef (new_stmt)
+      && TREE_CODE (gimple_vdef (new_stmt)) == SSA_NAME)
+    SSA_NAME_DEF_STMT (gimple_vdef (new_stmt)) = new_stmt;
+  gimple_call_set_fndecl (new_stmt, e->callee->decl);
+
+  gsi = gsi_for_stmt (e->call_stmt);
+  gsi_replace (&gsi, new_stmt, true);
+
+  /* Update EH information too, just in case.  */
+  maybe_clean_or_replace_eh_stmt (e->call_stmt, new_stmt);
+
+  cgraph_set_call_stmt_including_clones (get_clone_orig_node (e->caller),
+					 e->call_stmt, new_stmt);
+
+  if (cgraph_dump_file)
+    {
+      fprintf (cgraph_dump_file, "  updated to:");
+      print_gimple_stmt (cgraph_dump_file, e->call_stmt, 0, dump_flags);
+    }
+  return new_stmt;
+}
+
 /* Once all functions from compilation unit are in memory, produce all clones
-   and update all calls.
-   We might also do this on demand if we don't want to bring all functions to
-   memory prior compilation, but current WHOPR implementation does that and it is
-   is bit easier to keep everything right in this order.  */
+   and update all calls.  We might also do this on demand if we don't want to
+   bring all functions to memory prior compilation, but current WHOPR
+   implementation does that and it is is bit easier to keep everything right in
+   this order.  */
 void
 cgraph_materialize_all_clones (void)
 {
@@ -2491,7 +2545,7 @@ cgraph_materialize_all_clones (void)
     fprintf (cgraph_dump_file, "Updating call sites\n");
   for (node = cgraph_nodes; node; node = node->next)
     if (node->analyzed && gimple_has_body_p (node->decl)
-        && ((!node->clone_of || node->clone_of->decl != node->decl)
+        && (!node->clone_of
             /* A clone node may be unreachable (and not needed) and
                the node will be removed in unreachable node removal.
                However its caller node which is external (inline extern,
@@ -2503,82 +2557,24 @@ cgraph_materialize_all_clones (void)
             || L_IPO_COMP_MODE))
       {
         struct cgraph_edge *e;
-        struct cgraph_node *orig_node;
 
-        orig_node = get_clone_orig_node (node);
 	current_function_decl = node->decl;
         push_cfun (DECL_STRUCT_FUNCTION (node->decl));
 	for (e = node->callees; e; e = e->next_callee)
-	  {
-	    tree decl = gimple_call_fndecl (e->call_stmt);
-	    /* When function gets inlined, indirect inlining might've invented
-	       new edge for orginally indirect stmt.  Since we are not
-	       preserving clones in the original form, we must not update here
-	       since other inline clones don't need to contain call to the same
-	       call.  Inliner will do the substitution for us later.  */
-
-	    if (decl && decl != e->callee->decl
-                && (!L_IPO_COMP_MODE || !decl
-                    || (cgraph_lipo_get_resolved_node (decl)
-                        != cgraph_lipo_get_resolved_node (e->callee->decl))))
-	      {
-		gimple new_stmt;
-		gimple_stmt_iterator gsi;
-
-		if (e->callee->same_body)
-		  {
-		    struct cgraph_node *alias;
-
-		    for (alias = e->callee->same_body;
-			 alias;
-			 alias = alias->next)
-		      if (decl == alias->decl)
-			break;
-		    /* Don't update call from same body alias to the real
-		       function.  */
-		    if (alias)
-		      continue;
-		  }
-
-		if (cgraph_dump_file)
-		  {
-		    fprintf (cgraph_dump_file, "updating call of %s in %s:",
-		             cgraph_node_name (e->callee),
-			     cgraph_node_name (node));
-      		    print_gimple_stmt (cgraph_dump_file, e->call_stmt, 0, dump_flags);
-		  }
-
-		if (e->callee->clone.combined_args_to_skip)
-		  new_stmt = gimple_call_copy_skip_args (e->call_stmt,
-							 e->callee->clone.combined_args_to_skip);
-		else
-		  new_stmt = e->call_stmt;
-		if (gimple_vdef (new_stmt)
-		    && TREE_CODE (gimple_vdef (new_stmt)) == SSA_NAME)
-		  SSA_NAME_DEF_STMT (gimple_vdef (new_stmt)) = new_stmt;
-                gimple_call_set_fndecl (new_stmt, e->callee->decl);
-
-		gsi = gsi_for_stmt (e->call_stmt);
-		gsi_replace (&gsi, new_stmt, true);
-
-		/* Update EH information too, just in case.  */
-		maybe_clean_or_replace_eh_stmt (e->call_stmt, new_stmt);
-
-		cgraph_set_call_stmt_including_clones (orig_node, e->call_stmt, new_stmt);
-
-		if (cgraph_dump_file)
-		  {
-		    fprintf (cgraph_dump_file, "  updated to:");
-      		    print_gimple_stmt (cgraph_dump_file, e->call_stmt, 0, dump_flags);
-		  }
-	      }
-	  }
+	  cgraph_redirect_edge_call_stmt_to_callee (e);
 	pop_cfun ();
 	current_function_decl = NULL;
 #ifdef ENABLE_CHECKING
         verify_cgraph_node (node);
 #endif
       }
+  if (cgraph_dump_file)
+    fprintf (cgraph_dump_file, "Materialization Call site updates done.\n");
+  /* All changes to parameters have been performed.  In order not to
+     incorrectly repeat them, we simply dispose of the bitmaps that drive the
+     changes. */
+  for (node = cgraph_nodes; node; node = node->next)
+    node->clone.combined_args_to_skip = NULL;
 #ifdef ENABLE_CHECKING
   verify_cgraph ();
 #endif

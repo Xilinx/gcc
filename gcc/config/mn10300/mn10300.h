@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler.
    Matsushita MN10300 series
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2007, 2008, 2009 Free Software Foundation, Inc.
+   2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
 This file is part of GCC.
@@ -130,6 +130,7 @@ extern enum processor_type mn10300_processor;
 #define LAST_EXTENDED_REGNUM 17
 #define FIRST_FP_REGNUM 18
 #define LAST_FP_REGNUM 49
+#define FIRST_ARGUMENT_REGNUM 0
 
 /* Specify the registers used for certain standard purposes.
    The values of these macros are register numbers.  */
@@ -511,7 +512,7 @@ enum reg_class {
 #define STACK_POINTER_OFFSET 4
 
 /* 1 if N is a possible register number for function argument passing.
-   On the MN10300, no registers are used in this way.  */
+   On the MN10300, d0 and d1 are used in this way.  */
 
 #define FUNCTION_ARG_REGNO_P(N) ((N) <= 1)
 
@@ -558,8 +559,6 @@ struct cum_arg {int nbytes; };
     the preceding args and about the function being called.
    NAMED is nonzero if this argument is a named parameter
     (otherwise it is an extra parameter matching an ellipsis).  */
-
-/* On the MN10300 all args are pushed.  */
 
 #define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
   function_arg (&CUM, MODE, TYPE, NAMED)

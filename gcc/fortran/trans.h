@@ -1,5 +1,5 @@
 /* Header for code translation functions
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Paul Brook
 
@@ -315,7 +315,7 @@ int gfc_is_intrinsic_libcall (gfc_expr *);
 int gfc_conv_procedure_call (gfc_se *, gfc_symbol *, gfc_actual_arglist *,
 			    gfc_expr *, tree);
 
-void gfc_conv_subref_array_arg (gfc_se *, gfc_expr *, int, sym_intent);
+void gfc_conv_subref_array_arg (gfc_se *, gfc_expr *, int, sym_intent, bool);
 
 /* gfc_trans_* shouldn't call push/poplevel, use gfc_push/pop_scope */
 

@@ -1,5 +1,6 @@
 /* Loop distribution.
-   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Georges-Andre Silber <Georges-Andre.Silber@ensmp.fr>
    and Sebastian Pop <sebastian.pop@amd.com>.
 
@@ -118,8 +119,8 @@ update_phis_for_loop_copy (struct loop *orig_loop, struct loop *new_loop)
 
 	  if (!new_ssa_name)
 	    /* This only happens if there are no definitions inside the
-	       loop.  Use the phi_result in this case.  */
-	    new_ssa_name = PHI_RESULT (phi_new);
+	       loop.  Use the the invariant in the new loop as is.  */
+	    new_ssa_name = def;
 	}
       else
 	/* Could be an integer.  */
@@ -285,6 +286,8 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
       addr_base = fold_convert_loc (loc, sizetype, addr_base);
       addr_base = size_binop_loc (loc, MINUS_EXPR, addr_base,
 				  fold_convert_loc (loc, sizetype, nb_bytes));
+      addr_base = size_binop_loc (loc, PLUS_EXPR, addr_base,
+				  TYPE_SIZE_UNIT (TREE_TYPE (op0)));
       addr_base = fold_build2_loc (loc, POINTER_PLUS_EXPR,
 				   TREE_TYPE (DR_BASE_ADDRESS (dr)),
 				   DR_BASE_ADDRESS (dr), addr_base);
@@ -389,6 +392,8 @@ generate_builtin (struct loop *loop, bitmap partition, bool copy_p)
 		goto end;
 
 	      write = stmt;
+	      if (bb == loop->latch)
+		nb_iter = number_of_latch_executions (loop);
 	    }
 	}
     }
@@ -1120,7 +1125,7 @@ ldist_gen (struct loop *loop, struct graph *rdg,
 static int
 distribute_loop (struct loop *loop, VEC (gimple, heap) *stmts)
 {
-  bool res = false;
+  int res = 0;
   struct graph *rdg;
   gimple s;
   unsigned i;

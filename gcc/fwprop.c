@@ -1,5 +1,6 @@
 /* RTL-based forward propagation pass for GNU compiler.
-   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Paolo Bonzini and Steven Bosscher.
 
 This file is part of GCC.
@@ -818,17 +819,23 @@ all_uses_available_at (rtx def_insn, rtx target_insn)
     }
   else
     {
+      rtx def_reg = REG_P (SET_DEST (def_set)) ? SET_DEST (def_set) : NULL_RTX;
+
       /* Look at all the uses of DEF_INSN, and see if they are not
 	 killed between DEF_INSN and TARGET_INSN.  */
       for (use_rec = DF_INSN_INFO_USES (insn_info); *use_rec; use_rec++)
 	{
 	  df_ref use = *use_rec;
+	  if (def_reg && rtx_equal_p (DF_REF_REG (use), def_reg))
+	    return false;
 	  if (use_killed_between (use, def_insn, target_insn))
 	    return false;
 	}
       for (use_rec = DF_INSN_INFO_EQ_USES (insn_info); *use_rec; use_rec++)
 	{
 	  df_ref use = *use_rec;
+	  if (def_reg && rtx_equal_p (DF_REF_REG (use), def_reg))
+	    return false;
 	  if (use_killed_between (use, def_insn, target_insn))
 	    return false;
 	}

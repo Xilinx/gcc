@@ -1,6 +1,6 @@
 /* Fold a constant sub-tree into a single node for C-compiler
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -326,13 +326,17 @@ add_double_with_sign (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
   HOST_WIDE_INT h;
 
   l = l1 + l2;
-  h = h1 + h2 + (l < l1);
+  h = (HOST_WIDE_INT) ((unsigned HOST_WIDE_INT) h1
+		       + (unsigned HOST_WIDE_INT) h2
+		       + (l < l1));
 
   *lv = l;
   *hv = h;
 
   if (unsigned_p)
-    return (unsigned HOST_WIDE_INT) h < (unsigned HOST_WIDE_INT) h1;
+    return ((unsigned HOST_WIDE_INT) h < (unsigned HOST_WIDE_INT) h1
+	    || (h == h1
+		&& l < l1));
   else
     return OVERFLOW_SUM_SIGN (h1, h2, h);
 }
@@ -1125,9 +1129,13 @@ negate_expr_p (tree t)
 	      && TYPE_OVERFLOW_WRAPS (type));
 
     case FIXED_CST:
-    case REAL_CST:
     case NEGATE_EXPR:
       return true;
+
+    case REAL_CST:
+      /* We want to canonicalize to positive real constants.  Pretend
+         that only negative ones can be easily negated.  */
+      return REAL_VALUE_NEGATIVE (TREE_REAL_CST (t));
 
     case COMPLEX_CST:
       return negate_expr_p (TREE_REALPART (t))
@@ -3157,7 +3165,9 @@ int
 operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
 {
   /* If either is ERROR_MARK, they aren't equal.  */
-  if (TREE_CODE (arg0) == ERROR_MARK || TREE_CODE (arg1) == ERROR_MARK)
+  if (TREE_CODE (arg0) == ERROR_MARK || TREE_CODE (arg1) == ERROR_MARK
+      || TREE_TYPE (arg0) == error_mark_node
+      || TREE_TYPE (arg1) == error_mark_node)
     return 0;
 
   /* Check equality of integer constants before bailing out due to
@@ -8942,6 +8952,19 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
 	}
       return NULL_TREE;
 
+    case INDIRECT_REF:
+      /* Fold *&X to X if X is an lvalue.  */
+      if (TREE_CODE (op0) == ADDR_EXPR)
+	{
+	  tree op00 = TREE_OPERAND (op0, 0);
+	  if ((TREE_CODE (op00) == VAR_DECL
+	       || TREE_CODE (op00) == PARM_DECL
+	       || TREE_CODE (op00) == RESULT_DECL)
+	      && !TREE_READONLY (op00))
+	    return op00;
+	}
+      return NULL_TREE;
+
     default:
       return NULL_TREE;
     } /* switch (code) */
@@ -9553,7 +9576,9 @@ fold_comparison (location_t loc, enum tree_code code, tree type,
       tree variable1 = TREE_OPERAND (arg0, 0);
       enum tree_code cmp_code = code;
 
-      gcc_assert (!integer_zerop (const1));
+      /* Handle unfolded multiplication by zero.  */
+      if (integer_zerop (const1))
+	return fold_build2_loc (loc, cmp_code, type, const1, const2);
 
       fold_overflow_warning (("assuming signed overflow does not occur when "
 			      "eliminating multiplication in comparison "

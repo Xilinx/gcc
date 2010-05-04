@@ -1,5 +1,5 @@
 /* Chains of recurrences.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
@@ -283,6 +283,10 @@ chrec_fold_plus_1 (enum tree_code code, tree type,
 	case POLYNOMIAL_CHREC:
 	  return chrec_fold_plus_poly_poly (code, type, op0, op1);
 
+	CASE_CONVERT:
+	  if (tree_contains_chrecs (op1, NULL))
+	    return chrec_dont_know;
+
 	default:
 	  if (code == PLUS_EXPR || code == POINTER_PLUS_EXPR)
 	    return build_polynomial_chrec
@@ -295,6 +299,10 @@ chrec_fold_plus_1 (enum tree_code code, tree type,
 	       chrec_fold_minus (type, CHREC_LEFT (op0), op1),
 	       CHREC_RIGHT (op0));
 	}
+
+    CASE_CONVERT:
+      if (tree_contains_chrecs (op0, NULL))
+	return chrec_dont_know;
 
     default:
       switch (TREE_CODE (op1))
@@ -313,6 +321,10 @@ chrec_fold_plus_1 (enum tree_code code, tree type,
 				    SCALAR_FLOAT_TYPE_P (type)
 				    ? build_real (type, dconstm1)
 				    : build_int_cst_type (type, -1)));
+
+	CASE_CONVERT:
+	  if (tree_contains_chrecs (op1, NULL))
+	    return chrec_dont_know;
 
 	default:
 	  {
@@ -393,6 +405,10 @@ chrec_fold_multiply (tree type,
 	case POLYNOMIAL_CHREC:
 	  return chrec_fold_multiply_poly_poly (type, op0, op1);
 
+	CASE_CONVERT:
+	  if (tree_contains_chrecs (op1, NULL))
+	    return chrec_dont_know;
+
 	default:
 	  if (integer_onep (op1))
 	    return op0;
@@ -404,6 +420,10 @@ chrec_fold_multiply (tree type,
 	     chrec_fold_multiply (type, CHREC_LEFT (op0), op1),
 	     chrec_fold_multiply (type, CHREC_RIGHT (op0), op1));
 	}
+
+    CASE_CONVERT:
+      if (tree_contains_chrecs (op0, NULL))
+	return chrec_dont_know;
 
     default:
       if (integer_onep (op0))
@@ -419,6 +439,10 @@ chrec_fold_multiply (tree type,
 	    (CHREC_VARIABLE (op1),
 	     chrec_fold_multiply (type, CHREC_LEFT (op1), op0),
 	     chrec_fold_multiply (type, CHREC_RIGHT (op1), op0));
+
+	CASE_CONVERT:
+	  if (tree_contains_chrecs (op1, NULL))
+	    return chrec_dont_know;
 
 	default:
 	  if (integer_onep (op1))
@@ -1505,14 +1529,12 @@ evolution_function_right_is_integer_cst (const_tree chrec)
       return true;
 
     case POLYNOMIAL_CHREC:
-      if (!evolution_function_right_is_integer_cst (CHREC_RIGHT (chrec)))
-	return false;
+      return TREE_CODE (CHREC_RIGHT (chrec)) == INTEGER_CST
+	&& (TREE_CODE (CHREC_LEFT (chrec)) != POLYNOMIAL_CHREC
+	    || evolution_function_right_is_integer_cst (CHREC_LEFT (chrec)));
 
-      if (TREE_CODE (CHREC_LEFT (chrec)) == POLYNOMIAL_CHREC
-	&& !evolution_function_right_is_integer_cst (CHREC_LEFT (chrec)))
-	return false;
-
-      return true;
+    CASE_CONVERT:
+      return evolution_function_right_is_integer_cst (TREE_OPERAND (chrec, 0));
 
     default:
       return false;

@@ -1,5 +1,5 @@
 /* C/ObjC/C++ command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
@@ -803,6 +803,8 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_ftemplate_depth_:
+      /* Kept for backwards compatibility.  */
+    case OPT_ftemplate_depth_eq:
       max_tinst_depth = value;
       break;
 
@@ -952,6 +954,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_std_c89:
+    case OPT_std_c90:
     case OPT_std_iso9899_1990:
     case OPT_std_iso9899_199409:
       if (!preprocessing_asm_p)
@@ -959,6 +962,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_std_gnu89:
+    case OPT_std_gnu90:
       if (!preprocessing_asm_p)
 	set_std_c89 (false /* c94 */, false /* ISO */);
       break;

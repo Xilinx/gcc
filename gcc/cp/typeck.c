@@ -1096,65 +1096,84 @@ comp_template_parms_position (tree t1, tree t2)
       return true;
 }
 
+/* Subroutine of incompatible_dependent_types_p.
+   Return the template parameter of the dependent type T.
+   If T is a typedef, return the template parameters of
+   the _decl_ of the typedef. T must be a dependent type.  */
+
+static tree
+get_template_parms_of_dependent_type (tree t)
+{
+  tree tinfo = NULL_TREE, tparms = NULL_TREE;
+
+  /* First, try the obvious case of getting the
+     template info from T itself.  */
+  if ((tinfo = get_template_info (t)))
+    ;
+  else if (TREE_CODE (t) == TEMPLATE_TYPE_PARM)
+    return TEMPLATE_TYPE_PARM_SIBLING_PARMS (t);
+  else if (typedef_variant_p (t)
+	   && !NAMESPACE_SCOPE_P (TYPE_NAME (t)))
+    tinfo = get_template_info (DECL_CONTEXT (TYPE_NAME (t)));
+  /* If T is a TYPENAME_TYPE which context is a template type
+     parameter, get the template parameters from that context.  */
+  else if (TYPE_CONTEXT (t)
+	   && TREE_CODE (TYPE_CONTEXT (t)) == TEMPLATE_TYPE_PARM)
+   return TEMPLATE_TYPE_PARM_SIBLING_PARMS (TYPE_CONTEXT (t));
+  else if (TYPE_CONTEXT (t)
+	   && !NAMESPACE_SCOPE_P (t))
+    tinfo = get_template_info (TYPE_CONTEXT (t));
+
+  if (tinfo)
+    tparms = DECL_TEMPLATE_PARMS (TI_TEMPLATE (tinfo));
+
+  return tparms;
+}
+
 /* Subroutine of structural_comptypes.
-   Compare the template type parameters T1 and T2.
-   Return TRUE if we are sure they can't be equal, FALSE otherwise.  */
+   Compare the dependent types T1 and T2.
+   Return TRUE if we are sure they can't be equal, FALSE otherwise.
+   The whole point of this function is to support cases where either T1 or
+   T2 is a typedef. In those cases, we need to compare the template parameters
+   of the _decl_ of the typedef. If those don't match then we know T1
+   and T2 cannot be equal.  */
 
 static bool
-incompatible_template_type_parms_p (tree t1, tree t2)
+incompatible_dependent_types_p (tree t1, tree t2)
 {
-  tree decl1, tparms1 = NULL_TREE,
-       decl2, tparms2 = NULL_TREE;
+  tree tparms1 = NULL_TREE, tparms2 = NULL_TREE;
 
-  gcc_assert (t1 && TREE_CODE (t1) == TEMPLATE_TYPE_PARM
-	      && t2 && TREE_CODE (t2) == TEMPLATE_TYPE_PARM);
-
-  /* If T1 and T2 don't have the same relative position in their
-     template parameters set, they can't be equal.  */
-  if (!comp_template_parms_position (t1, t2))
-    return true;
-
-  if (!typedef_variant_p (t1) && !typedef_variant_p (t2))
-    /* If neither T1 nor T2 is a typedef we cannot know more
-       about their incompatibility than what comp_template_parms_position
-       told us above. If we try to keep going nonetheless, the call to
-       comp_template_parms at the end of this function might lead to an
-       infinite recursion.  */
+  if (!uses_template_parms (t1) || !uses_template_parms (t2))
     return false;
 
-  decl1 = TYPE_NAME (t1);
-  decl2 = TYPE_NAME (t2);
-  if (decl1 == NULL_TREE || decl2 == NULL_TREE || decl1 == decl2)
-    return false ;
+  if (TREE_CODE (t1) == TEMPLATE_TYPE_PARM)
+    {
+      /* If T1 and T2 don't have the same relative position in their
+	 template parameters set, they can't be equal.  */
+      if (!comp_template_parms_position (t1, t2))
+	return true;
+    }
+
+  /* Either T1 or T2 must be a typedef.  */
+  if (!typedef_variant_p (t1) && !typedef_variant_p (t2))
+    return false;
 
   /* So if we reach this point, it means either T1 or T2 is a typedef variant.
      Let's compare their template parameters.  */
 
-  /* If T1 is not a typedef, there possibly is a delay between the
-     creation of DECL1 and the setting of DECL_CONTEXT (DECL1) to its
-     template decl so DECL_CONTEXT (DECL1) can be empty for
-     a little while.  */
-  if (DECL_CONTEXT (decl1))
-    {
-      if (TREE_CODE (DECL_CONTEXT (decl1)) == TEMPLATE_DECL)
-	tparms1 = DECL_TEMPLATE_PARMS (DECL_CONTEXT (decl1));
-      else
-	/* T1 is a typedef variant type. Get the parms of its context.  */
-	tparms1 =
-	  DECL_TEMPLATE_PARMS (TI_TEMPLATE
-				 (get_template_info (DECL_CONTEXT (decl1))));
-    }
+  tparms1 = get_template_parms_of_dependent_type (t1);
+  tparms2 = get_template_parms_of_dependent_type (t2);
 
-  /* Do the same thing for DECL2.  */
-  if (DECL_CONTEXT (decl2))
-    {
-      if (TREE_CODE (DECL_CONTEXT (decl2)) == TEMPLATE_DECL)
-	tparms2 = DECL_TEMPLATE_PARMS (DECL_CONTEXT (decl2));
-      else
-	tparms2 =
-	  DECL_TEMPLATE_PARMS (TI_TEMPLATE
-				(get_template_info (DECL_CONTEXT (decl2))));
-    }
+  /* If T2 is a template type parm and if we could not get the template
+     parms it belongs to, that means we have not finished parsing the
+     full set of template parameters of the template declaration it
+     belongs to yet. If we could get the template parms T1 belongs to,
+     that mostly means T1 and T2 belongs to templates that are
+     different and incompatible.  */
+  if (TREE_CODE (t1) == TEMPLATE_TYPE_PARM
+      && (tparms1 == NULL_TREE || tparms2 == NULL_TREE)
+      && tparms1 != tparms2)
+    return true;
 
   if (tparms1 == NULL_TREE
       || tparms2 == NULL_TREE
@@ -1211,6 +1230,12 @@ structural_comptypes (tree t1, tree t2, int strict)
   if (TREE_CODE (t1) != ARRAY_TYPE
       && TYPE_MAIN_VARIANT (t1) == TYPE_MAIN_VARIANT (t2))
     return true;
+
+  /* If T1 and T2 are dependent typedefs then check upfront that
+     the template parameters of their typedef DECLs match before
+     going down checking their subtypes.  */
+  if (incompatible_dependent_types_p (t1, t2))
+    return false;
 
   /* Compare the types.  Break out if they could be the same.  */
   switch (TREE_CODE (t1))
@@ -1303,8 +1328,8 @@ structural_comptypes (tree t1, tree t2, int strict)
       break;
 
     case TEMPLATE_TYPE_PARM:
-      if (incompatible_template_type_parms_p (t1, t2))
-	return false;
+      /* If incompatible_dependent_types_p called earlier didn't decide
+         T1 and T2 were different, they might be equal.  */
       break;
 
     case TYPENAME_TYPE:
@@ -3284,9 +3309,10 @@ convert_arguments (tree typelist, VEC(tree,gc) **values, tree fndecl,
             {
               if (fndecl)
                 {
-                  error ("too many arguments to %s %q+#D", 
-                         called_thing, fndecl);
-                  error ("at this point in file");
+                  error_at (input_location, "too many arguments to %s %q#D", 
+			    called_thing, fndecl);
+		  inform (DECL_SOURCE_LOCATION (fndecl),
+			  "declared here");
                 }
               else
                 error ("too many arguments to function");
@@ -3397,9 +3423,10 @@ convert_arguments (tree typelist, VEC(tree,gc) **values, tree fndecl,
             {
               if (fndecl)
                 {
-                  error ("too few arguments to %s %q+#D", 
-                         called_thing, fndecl);
-                  error ("at this point in file");
+                  error_at (input_location, "too few arguments to %s %q#D", 
+			    called_thing, fndecl);
+		  inform (DECL_SOURCE_LOCATION (fndecl),
+			  "declared here");
                 }
               else
                 error ("too few arguments to function");
@@ -4210,7 +4237,83 @@ cp_build_binary_op (location_t location,
 
   if (arithmetic_types_p)
     {
-      int none_complex = (code0 != COMPLEX_TYPE && code1 != COMPLEX_TYPE);
+      bool first_complex = (code0 == COMPLEX_TYPE);
+      bool second_complex = (code1 == COMPLEX_TYPE);
+      int none_complex = (!first_complex && !second_complex);
+
+      /* Adapted from patch for c/24581.  */
+      if (first_complex != second_complex
+	  && (code == PLUS_EXPR
+	      || code == MINUS_EXPR
+	      || code == MULT_EXPR
+	      || (code == TRUNC_DIV_EXPR && first_complex))
+	  && TREE_CODE (TREE_TYPE (result_type)) == REAL_TYPE
+	  && flag_signed_zeros)
+	{
+	  /* An operation on mixed real/complex operands must be
+	     handled specially, but the language-independent code can
+	     more easily optimize the plain complex arithmetic if
+	     -fno-signed-zeros.  */
+	  tree real_type = TREE_TYPE (result_type);
+	  tree real, imag;
+	  if (first_complex)
+	    {
+	      if (TREE_TYPE (op0) != result_type)
+		op0 = cp_convert_and_check (result_type, op0);
+	      if (TREE_TYPE (op1) != real_type)
+		op1 = cp_convert_and_check (real_type, op1);
+	    }
+	  else
+	    {
+	      if (TREE_TYPE (op0) != real_type)
+		op0 = cp_convert_and_check (real_type, op0);
+	      if (TREE_TYPE (op1) != result_type)
+		op1 = cp_convert_and_check (result_type, op1);
+	    }
+	  if (TREE_CODE (op0) == ERROR_MARK || TREE_CODE (op1) == ERROR_MARK)
+	    return error_mark_node;
+	  if (first_complex)
+	    {
+	      op0 = save_expr (op0);
+	      real = cp_build_unary_op (REALPART_EXPR, op0, 1, complain);
+	      imag = cp_build_unary_op (IMAGPART_EXPR, op0, 1, complain);
+	      switch (code)
+		{
+		case MULT_EXPR:
+		case TRUNC_DIV_EXPR:
+		  imag = build2 (resultcode, real_type, imag, op1);
+		  /* Fall through.  */
+		case PLUS_EXPR:
+		case MINUS_EXPR:
+		  real = build2 (resultcode, real_type, real, op1);
+		  break;
+		default:
+		  gcc_unreachable();
+		}
+	    }
+	  else
+	    {
+	      op1 = save_expr (op1);
+	      real = cp_build_unary_op (REALPART_EXPR, op1, 1, complain);
+	      imag = cp_build_unary_op (IMAGPART_EXPR, op1, 1, complain);
+	      switch (code)
+		{
+		case MULT_EXPR:
+		  imag = build2 (resultcode, real_type, op0, imag);
+		  /* Fall through.  */
+		case PLUS_EXPR:
+		  real = build2 (resultcode, real_type, op0, real);
+		  break;
+		case MINUS_EXPR:
+		  real = build2 (resultcode, real_type, op0, real);
+		  imag = build1 (NEGATE_EXPR, real_type, imag);
+		  break;
+		default:
+		  gcc_unreachable();
+		}
+	    }
+	  return build2 (COMPLEX_EXPR, result_type, real, imag);
+	}
 
       /* For certain operations (which identify themselves by shorten != 0)
 	 if both args were extended from the same smaller type,
@@ -4595,7 +4698,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	    arg = default_conversion (arg);
 	}
       else if (!(arg = build_expr_type_conversion (WANT_INT | WANT_ENUM
-						   | WANT_VECTOR,
+						   | WANT_VECTOR_OR_COMPLEX,
 						   arg, true)))
 	errstring = _("wrong type argument to bit-complement");
       else if (!noconvert && CP_INTEGRAL_TYPE_P (TREE_TYPE (arg)))

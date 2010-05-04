@@ -1,6 +1,6 @@
 /* Write the GIMPLE representation to a file stream.
 
-   Copyright 2009 Free Software Foundation, Inc.
+   Copyright 2009, 2010 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
    Re-implemented by Diego Novillo <dnovillo@google.com>
 
@@ -518,8 +518,8 @@ pack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
   bp_pack_value (bp, TYPE_STRING_FLAG (expr), 1);
   bp_pack_value (bp, TYPE_NO_FORCE_BLK (expr), 1);
   bp_pack_value (bp, TYPE_NEEDS_CONSTRUCTING(expr), 1);
-  if (TREE_CODE (expr) == UNION_TYPE)
-    bp_pack_value (bp, TYPE_TRANSPARENT_UNION (expr), 1);
+  if (TREE_CODE (expr) == UNION_TYPE || TREE_CODE (expr) == RECORD_TYPE)
+    bp_pack_value (bp, TYPE_TRANSPARENT_AGGR (expr), 1);
   bp_pack_value (bp, TYPE_PACKED (expr), 1);
   bp_pack_value (bp, TYPE_RESTRICT (expr), 1);
   bp_pack_value (bp, TYPE_CONTAINS_PLACEHOLDER_INTERNAL (expr), 2);
@@ -1872,6 +1872,9 @@ output_function (struct cgraph_node *node)
   lto_output_bitpack (ob->main_stream, bp);
   bitpack_delete (bp);
 
+  /* Output current IL state of the function.  */
+  output_uleb128 (ob, fn->curr_properties);
+
   /* Output the static chain and non-local goto save area.  */
   lto_output_tree_ref (ob, fn->static_chain_decl);
   lto_output_tree_ref (ob, fn->nonlocal_goto_save_area);
@@ -1973,8 +1976,29 @@ output_unreferenced_globals (cgraph_node_set set)
     {
       tree var = vnode->decl;
 
-      if (TREE_CODE (var) == VAR_DECL && TREE_PUBLIC (var))
-	lto_output_tree_ref (ob, var);
+      if (TREE_CODE (var) == VAR_DECL)
+        {
+	  struct varpool_node *alias;
+
+          /* Output the object in order to output references used in the
+             initialization. */
+          lto_output_tree (ob, var, true);
+
+          /* If it is public we also need a reference to the object itself. */
+          if (TREE_PUBLIC (var))
+            lto_output_tree_ref (ob, var);
+
+	  /* Also output any extra_name aliases for this variable.  */
+	  for (alias = vnode->extra_name; alias; alias = alias->next)
+	    {
+	      lto_output_tree (ob, alias->decl, true);
+	      output_record_start (ob, LTO_var_decl_alias);
+	      lto_output_var_decl_index (ob->decl_state, ob->main_stream,
+					 alias->decl);
+	      lto_output_var_decl_index (ob->decl_state, ob->main_stream,
+					 var);
+	    }
+        }
     }
 
   output_zero (ob);

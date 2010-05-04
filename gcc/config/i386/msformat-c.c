@@ -1,6 +1,7 @@
 /* Check calls to formatted I/O functions (-Wformat).
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2007, 2008, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -40,7 +41,7 @@ static format_length_info ms_printf_length_specs[] =
   { "l", FMT_LEN_l, STD_C89, NULL, FMT_LEN_none, STD_C89, 0 },
   { "I32", FMT_LEN_l, STD_EXT, NULL, FMT_LEN_none, STD_C89, 1 },
   { "I64", FMT_LEN_ll, STD_EXT, NULL, FMT_LEN_none, STD_C89, 1 },
-  { "I", FMT_LEN_L, STD_EXT, NULL, FMT_LEN_none, STD_C89, 0 },
+  { "I", FMT_LEN_L, STD_EXT, NULL, FMT_LEN_none, STD_C89, 1 },
   { NULL, FMT_LEN_none, STD_C89, NULL, FMT_LEN_none, STD_C89, 0 }
 };
 

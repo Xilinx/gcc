@@ -3,7 +3,8 @@
    marshalling to implement data sharing and copying clauses.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
-   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -4663,7 +4664,7 @@ expand_omp_sections (struct omp_region *region)
   l2_bb = region->exit;
   if (exit_reachable)
     {
-      if (single_pred (l2_bb) == l0_bb)
+      if (single_pred_p (l2_bb) && single_pred (l2_bb) == l0_bb)
 	l2 = gimple_block_label (l2_bb);
       else
 	{
@@ -6856,6 +6857,27 @@ diagnose_sb_2 (gimple_stmt_iterator *gsi_p, bool *handled_ops_p,
 	  	       diagnose_sb_2, NULL, wi);
       walk_gimple_seq (gimple_omp_body (stmt), diagnose_sb_2, NULL, wi);
       wi->info = context;
+      break;
+
+    case GIMPLE_COND:
+	{
+	  tree lab = gimple_cond_true_label (stmt);
+	  if (lab)
+	    {
+	      n = splay_tree_lookup (all_labels,
+				     (splay_tree_key) lab);
+	      diagnose_sb_0 (gsi_p, context,
+			     n ? (gimple) n->value : NULL);
+	    }
+	  lab = gimple_cond_false_label (stmt);
+	  if (lab)
+	    {
+	      n = splay_tree_lookup (all_labels,
+				     (splay_tree_key) lab);
+	      diagnose_sb_0 (gsi_p, context,
+			     n ? (gimple) n->value : NULL);
+	    }
+	}
       break;
 
     case GIMPLE_GOTO:

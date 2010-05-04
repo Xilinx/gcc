@@ -1,6 +1,6 @@
 /* Subroutines used for code generation on IBM RS/6000.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -909,7 +909,7 @@ static rtx rs6000_emit_stack_reset (rs6000_stack_t *, rtx, rtx, int, bool);
 static rtx rs6000_make_savres_rtx (rs6000_stack_t *, rtx, int,
 				   enum machine_mode, bool, bool, bool);
 static bool rs6000_reg_live_or_pic_offset_p (int);
-static tree rs6000_builtin_vectorized_function (unsigned int, tree, tree);
+static tree rs6000_builtin_vectorized_function (tree, tree, tree);
 static int rs6000_savres_strategy (rs6000_stack_t *, bool, int, int);
 static void rs6000_restore_saved_cr (rtx, int);
 static void rs6000_output_function_prologue (FILE *, HOST_WIDE_INT);
@@ -1059,6 +1059,7 @@ static rtx rs6000_legitimize_address (rtx, rtx, enum machine_mode);
 static rtx rs6000_debug_legitimize_address (rtx, rtx, enum machine_mode);
 static rtx rs6000_legitimize_tls_address (rtx, enum tls_model);
 static void rs6000_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
+static rtx rs6000_delegitimize_address (rtx);
 static rtx rs6000_tls_get_addr (void);
 static rtx rs6000_got_sym (void);
 static int rs6000_tls_symbol_ref_1 (rtx *, void *);
@@ -1268,9 +1269,6 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #endif
 #ifndef TARGET_PROFILE_KERNEL
 #define TARGET_PROFILE_KERNEL 0
-#define SET_PROFILE_KERNEL(N)
-#else
-#define SET_PROFILE_KERNEL(N) TARGET_PROFILE_KERNEL = (N)
 #endif
 
 /* The VRSAVE bitmask puts bit %v0 as the most significant bit.  */
@@ -1325,6 +1323,9 @@ static const struct attribute_spec rs6000_attribute_table[] =
 
 #undef TARGET_CANNOT_FORCE_CONST_MEM
 #define TARGET_CANNOT_FORCE_CONST_MEM rs6000_tls_referenced_p
+
+#undef TARGET_DELEGITIMIZE_ADDRESS
+#define TARGET_DELEGITIMIZE_ADDRESS rs6000_delegitimize_address
 
 #undef TARGET_ASM_FUNCTION_PROLOGUE
 #define TARGET_ASM_FUNCTION_PROLOGUE rs6000_output_function_prologue
@@ -2378,10 +2379,10 @@ rs6000_override_options (const char *default_cpu)
     rs6000_gen_cell_microcode = !(rs6000_cpu == PROCESSOR_CELL
                                   && !optimize_size);
 
-  /* If we are optimizing big endian systems for space, use the load/store
-     multiple and string instructions unless we are not generating
-     Cell microcode.  */
-  if (BYTES_BIG_ENDIAN && optimize_size && !rs6000_gen_cell_microcode)
+  /* If we are optimizing big endian systems for space and it's OK to
+     use instructions that would be microcoded on the Cell, use the
+     load/store multiple and string instructions.  */
+  if (BYTES_BIG_ENDIAN && optimize_size && rs6000_gen_cell_microcode)
     target_flags |= ~target_flags_explicit & (MASK_MULTIPLE | MASK_STRING);
 
   /* Don't allow -mmultiple or -mstring on little endian systems
@@ -2407,8 +2408,7 @@ rs6000_override_options (const char *default_cpu)
 	}
     }
 
-  /* Add some warnings for VSX.  Enable -maltivec unless the user explicitly
-     used -mno-altivec  */
+  /* Add some warnings for VSX.  */
   if (TARGET_VSX)
     {
       const char *msg = NULL;
@@ -2429,14 +2429,20 @@ rs6000_override_options (const char *default_cpu)
 	msg = N_("-mvsx used with little endian code");
       else if (TARGET_AVOID_XFORM > 0)
 	msg = N_("-mvsx needs indexed addressing");
+      else if (!TARGET_ALTIVEC && (target_flags_explicit & MASK_ALTIVEC))
+        {
+	  if (target_flags_explicit & MASK_VSX)
+	    msg = N_("-mvsx and -mno-altivec are incompatible");
+	  else
+	    msg = N_("-mno-altivec disables vsx");
+        }
 
       if (msg)
 	{
 	  warning (0, msg);
 	  target_flags &= ~ MASK_VSX;
 	}
-      else if (TARGET_VSX && !TARGET_ALTIVEC
-	       && (target_flags_explicit & MASK_ALTIVEC) == 0)
+      else if (TARGET_VSX && !TARGET_ALTIVEC)
 	target_flags |= MASK_ALTIVEC;
     }
 
@@ -3173,15 +3179,17 @@ rs6000_parse_fpu_option (const char *option)
    if it is not available.  */
 
 static tree
-rs6000_builtin_vectorized_function (unsigned int fn, tree type_out,
+rs6000_builtin_vectorized_function (tree fndecl, tree type_out,
 				    tree type_in)
 {
   enum machine_mode in_mode, out_mode;
   int in_n, out_n;
+  enum built_in_function fn = DECL_FUNCTION_CODE (fndecl);
 
   if (TREE_CODE (type_out) != VECTOR_TYPE
       || TREE_CODE (type_in) != VECTOR_TYPE
-      || !TARGET_VECTORIZE_BUILTINS)
+      || !TARGET_VECTORIZE_BUILTINS
+      || DECL_BUILT_IN_CLASS (fndecl) != BUILT_IN_NORMAL)
     return NULL_TREE;
 
   out_mode = TYPE_MODE (TREE_TYPE (type_out));
@@ -3794,6 +3802,8 @@ num_insns_constant_wide (HOST_WIDE_INT value)
 
       if (low == 0)
 	return num_insns_constant_wide (high) + 1;
+      else if (high == 0)
+	return num_insns_constant_wide (low) + 1;
       else
 	return (num_insns_constant_wide (high)
 		+ num_insns_constant_wide (low) + 1);
@@ -4645,6 +4655,9 @@ darwin_rs6000_special_round_type_align (tree type, unsigned int computed,
       field = TREE_CHAIN (field);
     if (! field)
       break;
+    /* A packed field does not contribute any extra alignment.  */
+    if (DECL_PACKED (field))
+      return align;
     type = TREE_TYPE (field);
     while (TREE_CODE (type) == ARRAY_TYPE)
       type = TREE_TYPE (type);
@@ -5253,6 +5266,51 @@ rs6000_output_dwarf_dtprel (FILE *file, int size, rtx x)
     }
   output_addr_const (file, x);
   fputs ("@dtprel+0x8000", file);
+}
+
+/* In the name of slightly smaller debug output, and to cater to
+   general assembler lossage, recognize various UNSPEC sequences
+   and turn them back into a direct symbol reference.  */
+
+static rtx
+rs6000_delegitimize_address (rtx orig_x)
+{
+  rtx x, y;
+
+  orig_x = delegitimize_mem_from_attrs (orig_x);
+  x = orig_x;
+  if (MEM_P (x))
+    x = XEXP (x, 0);
+
+  if (GET_CODE (x) == PLUS
+      && GET_CODE (XEXP (x, 1)) == CONST
+      && GET_CODE (XEXP (x, 0)) == REG
+      && REGNO (XEXP (x, 0)) == TOC_REGISTER)
+    {
+      y = XEXP (XEXP (x, 1), 0);
+      if (GET_CODE (y) == UNSPEC
+          && XINT (y, 1) == UNSPEC_TOCREL)
+	{
+	  y = XVECEXP (y, 0, 0);
+	  if (!MEM_P (orig_x))
+	    return y;
+	  else
+	    return replace_equiv_address_nv (orig_x, y);
+	}
+      return orig_x;
+    }
+
+  if (TARGET_MACHO
+      && GET_CODE (orig_x) == LO_SUM
+      && GET_CODE (XEXP (x, 1)) == CONST)
+    {
+      y = XEXP (XEXP (x, 1), 0);
+      if (GET_CODE (y) == UNSPEC
+	  && XINT (y, 1) == UNSPEC_MACHOPIC_OFFSET)
+	return XVECEXP (y, 0, 0);
+    }
+
+  return orig_x;
 }
 
 /* Construct the SYMBOL_REF for the tls_get_addr function.  */
@@ -6143,6 +6201,20 @@ rs6000_emit_set_long_const (rtx dest, HOST_WIDE_INT c1, HOST_WIDE_INT c2)
 			    gen_rtx_IOR (DImode, copy_rtx (dest),
 					 GEN_INT (ud1)));
 	}
+      else if (ud3 == 0 && ud4 == 0)
+	{
+	  gcc_assert (ud2 & 0x8000);
+	  emit_move_insn (dest, GEN_INT (((ud2 << 16) ^ 0x80000000)
+					 - 0x80000000));
+	  if (ud1 != 0)
+	    emit_move_insn (copy_rtx (dest),
+			    gen_rtx_IOR (DImode, copy_rtx (dest),
+					 GEN_INT (ud1)));
+	  emit_move_insn (copy_rtx (dest),
+			  gen_rtx_ZERO_EXTEND (DImode,
+					       gen_lowpart (SImode,
+							    copy_rtx (dest))));
+	}
       else if ((ud4 == 0xffff && (ud3 & 0x8000))
 	       || (ud4 == 0 && ! (ud3 & 0x8000)))
 	{
@@ -6274,32 +6346,6 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
       emit_move_insn (adjust_address (copy_rtx (operands[0]), SImode, 4),
 		      adjust_address (copy_rtx (operands[1]), SImode, 4));
       return;
-    }
-
-  /* Fix up invalid (const (plus (symbol_ref) (reg))) that seems to be created
-     in the secondary_reload phase, which evidently overwrites the CONST_INT
-     with a register.  */
-  if (GET_CODE (source) == CONST && GET_CODE (XEXP (source, 0)) == PLUS
-      && mode == Pmode)
-    {
-      rtx add_op0 = XEXP (XEXP (source, 0), 0);
-      rtx add_op1 = XEXP (XEXP (source, 0), 1);
-
-      if (GET_CODE (add_op0) == SYMBOL_REF && GET_CODE (add_op1) == REG)
-	{
-	  rtx tmp = (can_create_pseudo_p ()) ? gen_reg_rtx (Pmode) : dest;
-
-	  if (TARGET_DEBUG_ADDR)
-	    {
-	      fprintf (stderr, "\nrs6000_emit_move: bad source\n");
-	      debug_rtx (source);
-	    }
-
-	  rs6000_emit_move (tmp, add_op0, Pmode);
-	  emit_insn (gen_rtx_SET (VOIDmode, dest,
-				  gen_rtx_PLUS (Pmode, tmp, add_op1)));
-	  return;
-	}
     }
 
   if (can_create_pseudo_p () && GET_CODE (operands[0]) == MEM
@@ -8890,6 +8936,10 @@ static struct builtin_description bdesc_2arg[] =
   { MASK_VSX, CODE_FOR_vsx_xxmrghw_v4si, "__builtin_vsx_xxmrghw_4si", VSX_BUILTIN_XXMRGHW_4SI },
   { MASK_VSX, CODE_FOR_vsx_xxmrglw_v4sf, "__builtin_vsx_xxmrglw", VSX_BUILTIN_XXMRGLW_4SF },
   { MASK_VSX, CODE_FOR_vsx_xxmrglw_v4si, "__builtin_vsx_xxmrglw_4si", VSX_BUILTIN_XXMRGLW_4SI },
+  { MASK_VSX, CODE_FOR_vec_interleave_lowv2df, "__builtin_vsx_mergel_2df", VSX_BUILTIN_VEC_MERGEL_V2DF },
+  { MASK_VSX, CODE_FOR_vec_interleave_lowv2di, "__builtin_vsx_mergel_2di", VSX_BUILTIN_VEC_MERGEL_V2DI },
+  { MASK_VSX, CODE_FOR_vec_interleave_highv2df, "__builtin_vsx_mergeh_2df", VSX_BUILTIN_VEC_MERGEH_V2DF },
+  { MASK_VSX, CODE_FOR_vec_interleave_highv2di, "__builtin_vsx_mergeh_2di", VSX_BUILTIN_VEC_MERGEH_V2DI },
 
   { MASK_ALTIVEC|MASK_VSX, CODE_FOR_nothing, "__builtin_vec_add", ALTIVEC_BUILTIN_VEC_ADD },
   { MASK_ALTIVEC|MASK_VSX, CODE_FOR_nothing, "__builtin_vec_vaddfp", ALTIVEC_BUILTIN_VEC_VADDFP },
@@ -16679,6 +16729,7 @@ rs6000_split_multireg_move (rtx dst, rtx src)
       int i;
       int j = -1;
       bool used_update = false;
+      rtx restore_basereg = NULL_RTX;
 
       if (MEM_P (src) && INT_REGNO_P (reg))
 	{
@@ -16697,10 +16748,27 @@ rs6000_split_multireg_move (rtx dst, rtx src)
 	    }
 	  else if (! rs6000_offsettable_memref_p (src))
 	    {
-	      rtx basereg;
-	      basereg = gen_rtx_REG (Pmode, reg);
-	      emit_insn (gen_rtx_SET (VOIDmode, basereg, XEXP (src, 0)));
-	      src = replace_equiv_address (src, basereg);
+	      if (GET_CODE (XEXP (src, 0)) == PRE_MODIFY)
+		{
+		  rtx basereg = XEXP (XEXP (src, 0), 0);
+		  if (TARGET_UPDATE)
+		    {
+		      rtx ndst = simplify_gen_subreg (reg_mode, dst, mode, 0);
+		      emit_insn (gen_rtx_SET (VOIDmode, ndst,
+				 gen_rtx_MEM (reg_mode, XEXP (src, 0))));
+		      used_update = true;
+		    }
+		  else
+		    emit_insn (gen_rtx_SET (VOIDmode, basereg,
+			       XEXP (XEXP (src, 0), 1)));
+		  src = replace_equiv_address (src, basereg);
+		}
+	      else
+		{
+		  rtx basereg = gen_rtx_REG (Pmode, reg);
+		  emit_insn (gen_rtx_SET (VOIDmode, basereg, XEXP (src, 0)));
+		  src = replace_equiv_address (src, basereg);
+		}
 	    }
 
 	  breg = XEXP (src, 0);
@@ -16714,8 +16782,7 @@ rs6000_split_multireg_move (rtx dst, rtx src)
 	      && REGNO (breg) < REGNO (dst) + nregs)
 	    j = REGNO (breg) - REGNO (dst);
 	}
-
-      if (GET_CODE (dst) == MEM && INT_REGNO_P (reg))
+      else if (MEM_P (dst) && INT_REGNO_P (reg))
 	{
 	  rtx breg;
 
@@ -16745,7 +16812,44 @@ rs6000_split_multireg_move (rtx dst, rtx src)
 		emit_insn (gen_add3_insn (breg, breg, delta_rtx));
 	      dst = replace_equiv_address (dst, breg);
 	    }
-	  else
+	  else if (!rs6000_offsettable_memref_p (dst)
+		   && GET_CODE (XEXP (dst, 0)) != LO_SUM)
+	    {
+	      if (GET_CODE (XEXP (dst, 0)) == PRE_MODIFY)
+		{
+		  rtx basereg = XEXP (XEXP (dst, 0), 0);
+		  if (TARGET_UPDATE)
+		    {
+		      rtx nsrc = simplify_gen_subreg (reg_mode, src, mode, 0);
+		      emit_insn (gen_rtx_SET (VOIDmode,
+				 gen_rtx_MEM (reg_mode, XEXP (dst, 0)), nsrc));
+		      used_update = true;
+		    }
+		  else
+		    emit_insn (gen_rtx_SET (VOIDmode, basereg,
+			       XEXP (XEXP (dst, 0), 1)));
+		  dst = replace_equiv_address (dst, basereg);
+		}
+	      else
+		{
+		  rtx basereg = XEXP (XEXP (dst, 0), 0);
+		  rtx offsetreg = XEXP (XEXP (dst, 0), 1);
+		  gcc_assert (GET_CODE (XEXP (dst, 0)) == PLUS
+			      && REG_P (basereg)
+			      && REG_P (offsetreg)
+			      && REGNO (basereg) != REGNO (offsetreg));
+		  if (REGNO (basereg) == 0)
+		    {
+		      rtx tmp = offsetreg;
+		      offsetreg = basereg;
+		      basereg = tmp;
+		    }
+		  emit_insn (gen_add3_insn (basereg, basereg, offsetreg));
+		  restore_basereg = gen_sub3_insn (basereg, basereg, offsetreg);
+		  dst = replace_equiv_address (dst, basereg);
+		}
+	    }
+	  else if (GET_CODE (XEXP (dst, 0)) != LO_SUM)
 	    gcc_assert (rs6000_offsettable_memref_p (dst));
 	}
 
@@ -16767,6 +16871,8 @@ rs6000_split_multireg_move (rtx dst, rtx src)
 				  simplify_gen_subreg (reg_mode, src, mode,
 						       j * reg_mode_size)));
 	}
+      if (restore_basereg != NULL_RTX)
+	emit_insn (restore_basereg);
     }
 }
 
@@ -17894,7 +18000,7 @@ rs6000_aix_emit_builtin_unwind_init (void)
 
   do_compare_rtx_and_jump (opcode, tocompare, EQ, 1,
 			   SImode, NULL_RTX, NULL_RTX,
-			   no_toc_save_needed);
+			   no_toc_save_needed, -1);
 
   mem = gen_frame_mem (Pmode,
 		       gen_rtx_PLUS (Pmode, stack_top,
@@ -21332,9 +21438,7 @@ static int load_store_pendulum;
    instructions to issue in this cycle.  */
 
 static int
-rs6000_variable_issue (FILE *stream ATTRIBUTE_UNUSED,
-		       int verbose ATTRIBUTE_UNUSED,
-		       rtx insn, int more)
+rs6000_variable_issue_1 (rtx insn, int more)
 {
   last_scheduled_insn = insn;
   if (GET_CODE (PATTERN (insn)) == USE
@@ -21371,6 +21475,15 @@ rs6000_variable_issue (FILE *stream ATTRIBUTE_UNUSED,
 
   cached_can_issue_more = more - 1;
   return cached_can_issue_more;
+}
+
+static int
+rs6000_variable_issue (FILE *stream, int verbose, rtx insn, int more)
+{
+  int r = rs6000_variable_issue_1 (insn, more);
+  if (verbose)
+    fprintf (stream, "// rs6000_variable_issue (more = %d) = %d\n", more, r);
+  return r;
 }
 
 /* Adjust the cost of a scheduling dependency.  Return the new cost of

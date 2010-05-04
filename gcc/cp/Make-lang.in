@@ -1,6 +1,6 @@
 # Top level -*- makefile -*- fragment for GNU C++.
 #   Copyright (C) 1994, 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-#   2005, 2007, 2008, 2009
+#   2005, 2007, 2008, 2009, 2010
 #   Free Software Foundation, Inc.
 
 #This file is part of GCC.
@@ -24,7 +24,7 @@
 #
 # foo.all.cross, foo.start.encap, foo.rest.encap,
 # foo.install-common, foo.install-man, foo.install-info, foo.install-pdf,
-# foo.info, foo.dvi, foo.pdf, foo.html, foo.uninstall,
+# foo.install-html, foo.info, foo.dvi, foo.pdf, foo.html, foo.uninstall,
 # foo.mostlyclean, foo.clean, foo.distclean,
 # foo.maintainer-clean, foo.stage1, foo.stage2, foo.stage3, foo.stage4
 #
@@ -121,6 +121,7 @@ c++.install-info:
 c++.dvi:
 c++.pdf:
 c++.install-pdf:
+c++.install-html:
 c++.html:
 c++.srcinfo:
 c++.srcextra:
@@ -249,7 +250,7 @@ CXX_PRETTY_PRINT_H = cp/cxx-pretty-print.h $(C_PRETTY_PRINT_H)
 cp/lex.o: cp/lex.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   $(C_PRAGMA_H) toplev.h output.h input.h cp/operators.def $(TM_P_H)
 cp/cp-lang.o: cp/cp-lang.c $(CXX_TREE_H) $(TM_H) toplev.h debug.h langhooks.h \
-  $(LANGHOOKS_DEF_H) $(C_COMMON_H) gtype-cp.h \
+  $(LANGHOOKS_DEF_H) $(C_COMMON_H) gtype-cp.h gt-cp-cp-lang.h \
   $(DIAGNOSTIC_H) cp/cp-objcp-common.h $(EXPR_H) $(EXCEPT_H)
 cp/decl.o: cp/decl.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   output.h $(EXPR_H) except.h toplev.h $(HASHTAB_H) $(RTL_H) \
@@ -278,8 +279,9 @@ cp/init.o: cp/init.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) $(RTL_H) $(EXPR_H) \
 cp/method.o: cp/method.c $(CXX_TREE_H) $(TM_H) toplev.h $(RTL_H) $(EXPR_H) \
   $(TM_P_H) $(TARGET_H) $(DIAGNOSTIC_H) gt-cp-method.h $(GIMPLE_H)
 cp/cvt.o: cp/cvt.c $(CXX_TREE_H) $(TM_H) cp/decl.h $(FLAGS_H) toplev.h \
-  convert.h $(TARGET_H)
-cp/search.o: cp/search.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h $(RTL_H)
+  convert.h $(TARGET_H) intl.h
+cp/search.o: cp/search.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h $(RTL_H) \
+  intl.h
 cp/tree.o: cp/tree.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h $(RTL_H) \
   insn-config.h $(INTEGRATE_H) $(TREE_INLINE_H) $(REAL_H) gt-cp-tree.h \
   $(TARGET_H) debug.h $(TREE_FLOW_H) $(CGRAPH_H)
@@ -306,9 +308,9 @@ cp/optimize.o: cp/optimize.c $(CXX_TREE_H) $(TM_H) rtl.h $(INTEGRATE_H) \
   insn-config.h input.h $(PARAMS_H) debug.h $(TREE_INLINE_H) $(GIMPLE_H) \
   $(TARGET_H) tree-iterator.h $(CGRAPH_H)
 cp/mangle.o: cp/mangle.c $(CXX_TREE_H) $(TM_H) toplev.h $(REAL_H) \
-  gt-cp-mangle.h $(TARGET_H) $(TM_P_H)
+  gt-cp-mangle.h $(TARGET_H) $(TM_P_H) $(CGRAPH_H)
 cp/parser.o: cp/parser.c $(CXX_TREE_H) $(TM_H) $(DIAGNOSTIC_H) gt-cp-parser.h \
-  output.h $(TARGET_H) $(PLUGIN_H)
+  output.h $(TARGET_H) $(PLUGIN_H) intl.h
 cp/cp-gimplify.o: cp/cp-gimplify.c $(CXX_TREE_H) toplev.h $(C_COMMON_H) \
 	$(TM_H) coretypes.h pointer-set.h tree-iterator.h
 

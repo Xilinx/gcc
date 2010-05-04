@@ -1,6 +1,6 @@
 # GCC target-specific configuration file.
 # Copyright 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-# 2008, 2009 Free Software Foundation, Inc.
+# 2008, 2009, 2010 Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -199,22 +199,28 @@ gnu_ld="$gnu_ld_flag"
 default_use_cxa_atexit=no
 target_gtfiles=
 need_64bit_hwint=
+need_64bit_isa=
 
 # Don't carry these over build->host->target.  Please.
 xm_file=
 md_file=
 
 # Obsolete configurations.
-#case ${target} in
-# )
-#    if test "x$enable_obsolete" != xyes; then
-#      echo "*** Configuration ${target} is obsolete." >&2
-#      echo "*** Specify --enable-obsolete to build it anyway." >&2
-#      echo "*** Support will be REMOVED in the next major release of GCC," >&2
-#      echo "*** unless a maintainer comes forward." >&2
-#      exit 1
-#    fi;;
-#esac
+case ${target} in
+   alpha*-dec-osf4*			\
+ | alpha*-dec-osf5.0*			\
+ | mips-sgi-irix5*			\
+ | mips-sgi-irix6.[0-4]*		\
+ | *-*-solaris2.7*			\
+ )
+    if test "x$enable_obsolete" != xyes; then
+      echo "*** Configuration ${target} is obsolete." >&2
+      echo "*** Specify --enable-obsolete to build it anyway." >&2
+      echo "*** Support will be REMOVED in the next major release of GCC," >&2
+      echo "*** unless a maintainer comes forward." >&2
+      exit 1
+    fi;;
+esac
 
 # Unsupported targets list.  Do not put an entry in this list unless
 # it would otherwise be caught by a more permissive pattern.  The list
@@ -265,6 +271,11 @@ arm*-*-*)
 	extra_headers="mmintrin.h arm_neon.h"
 	c_target_objs="arm-c.o"
 	cxx_target_objs="arm-c.o"
+	;;
+avr-*-*)
+	cpu_type=avr
+	c_target_objs="avr-c.o"
+	cxx_target_objs="avr-c.o"
 	;;
 bfin*-*)
 	cpu_type=bfin
@@ -1073,6 +1084,7 @@ hppa[12]*-*-hpux11*)
 	;;
 i[34567]86-*-darwin*)
 	need_64bit_hwint=yes
+	need_64bit_isa=yes
 
 	# This is so that '.../configure && make' doesn't fail due to
 	# config.guess deciding that the configuration is i386-*-darwin* and
@@ -1138,8 +1150,9 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 			tm_defines="${tm_defines} TARGET_BI_ARCH=1"
 			tmake_file="${tmake_file} i386/t-linux64"
 			need_64bit_hwint=yes
+			need_64bit_isa=yes
 			case X"${with_cpu}" in
-			Xgeneric|Xatom|Xcore2|Xnocona|Xx86-64|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx)
+			Xgeneric|Xatom|Xcore2|Xnocona|Xx86-64|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx|Xathlon64-sse3|Xk8-sse3|Xopteron-sse3)
 				;;
 			X)
 				if test x$with_cpu_64 = x; then
@@ -1148,7 +1161,7 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 				;;
 			*)
 				echo "Unsupported CPU used in --with-cpu=$with_cpu, supported values:" 1>&2
-				echo "generic atom core2 nocona x86-64 amdfam10 barcelona k8 opteron athlon64 athlon-fx" 1>&2
+				echo "generic atom core2 nocona x86-64 amdfam10 barcelona k8 opteron athlon64 athlon-fx athlon64-sse3 k8-sse3 opteron-sse3" 1>&2
 				exit 1
 				;;
 			esac
@@ -1223,12 +1236,19 @@ i[34567]86-*-rtems*)
 	;;
 i[34567]86-*-solaris2*)
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h svr4.h i386/sysv4.h sol2.h"
+	# Set default arch and tune to pentium4 like the other i386 targets,
+	# although config.guess defaults to i386-pc-solaris2*.
+	with_arch_32=${with_arch_32:-pentium4}
+	with_tune_32=${with_tune_32:-pentium4}
 	case ${target} in
 	*-*-solaris2.1[0-9]*)
 		tm_file="${tm_file} sol2-10.h"
 		;;
 	esac
 	tm_file="${tm_file} i386/sol2.h"
+	if test x$gas = xyes; then
+		tm_file="${tm_file} i386/sol2-gas.h"
+	fi
 	tmake_file="${tmake_file} t-sol2 t-svr4"
 	c_target_objs="${c_target_objs} sol2-c.o"
 	cxx_target_objs="${cxx_target_objs} sol2-c.o"
@@ -1253,9 +1273,10 @@ i[34567]86-*-solaris2*)
 		# depends on a runtime test and is thus performed in
 		# libgcc/configure.ac instead.
 		need_64bit_hwint=yes
+		need_64bit_isa=yes
 		use_gcc_stdint=wrap
 		case X"${with_cpu}" in
-		Xgeneric|Xatom|Xcore2|Xnocona|Xx86-64|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx)
+		Xgeneric|Xatom|Xcore2|Xnocona|Xx86-64|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx|Xathlon64-sse3|Xk8-sse3|Xopteron-sse3)
 			;;
 		X)
 			if test x$with_cpu_64 = x; then
@@ -1264,7 +1285,7 @@ i[34567]86-*-solaris2*)
 			;;
 		*)
 			echo "Unsupported CPU used in --with-cpu=$with_cpu, supported values:" 1>&2
-			echo "generic atom core2 nocona x86-64 amdfam10 barcelona k8 opteron athlon64 athlon-fx" 1>&2
+			echo "generic atom core2 nocona x86-64 amdfam10 barcelona k8 opteron athlon64 athlon-fx athlon64-sse3 k8-sse3 opteron-sse3" 1>&2
 			exit 1
 			;;
 		esac
@@ -1322,6 +1343,7 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 	case ${target} in
 		x86_64-*-* | *-w64-*)
 			need_64bit_hwint=yes
+			need_64bit_isa=yes
 			;;
 		*)
 			;;
@@ -1330,11 +1352,10 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 	case ${target} in
 		*-w64-*)
 			tm_file="${tm_file} i386/mingw-w64.h"
-			tmake_file="${tmake_file} i386/t-mingw-w64"
 			if test x$enable_targets = xall; then
 				tm_defines="${tm_defines} TARGET_BI_ARCH=1"
 				case X"${with_cpu}" in
-				Xgeneric|Xatom|Xcore2|Xnocona|Xx86-64|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx)
+				Xgeneric|Xatom|Xcore2|Xnocona|Xx86-64|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx|Xathlon64-sse3|Xk8-sse3|Xopteron-sse3)
 					;;
 				X)
 					if test x$with_cpu_64 = x; then
@@ -1343,14 +1364,13 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 					;;
 				*)
 					echo "Unsupported CPU used in --with-cpu=$with_cpu, supported values:" 1>&2
-					echo "generic atom core2 nocona x86-64 amdfam10 barcelona k8 opteron athlon64 athlon-fx" 1>&2
+					echo "generic atom core2 nocona x86-64 amdfam10 barcelona k8 opteron athlon64 athlon-fx athlon64-sse3 k8-sse3 opteron-sse3" 1>&2
 					exit 1
 					;;
 				esac
 			fi
 			;;
 		*)
-			tmake_file="${tmake_file} i386/t-mingw32"
 			;;
 	esac
 	tm_file="${tm_file} i386/mingw-stdint.h"
@@ -1361,6 +1381,14 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 		tmake_eh_file="i386/t-sjlj-eh"
 	fi
 	tmake_file="${tmake_file} ${tmake_eh_file} i386/t-cygming"
+        case ${target} in
+               *-w64-*)
+               		tmake_file="${tmake_file} i386/t-mingw-w64"
+			;;
+               *)
+               		tmake_file="${tmake_file} i386/t-mingw32"
+                     	;;
+	esac
 	target_gtfiles="\$(srcdir)/config/i386/winnt.c"
 	extra_options="${extra_options} i386/cygming.opt i386/mingw.opt"
 	case ${target} in
@@ -1474,11 +1502,16 @@ iq2000*-*-elf*)
         ;;
 lm32-*-elf*)
         tm_file="dbxelf.h elfos.h ${tm_file}"
-	tmake_file="${tmake_file} lm32/t-fprules-softfp soft-fp/t-softfp"
+	tmake_file="${tmake_file} lm32/t-lm32 lm32/t-fprules-softfp soft-fp/t-softfp"
         ;;
+lm32-*-rtems*)
+	tm_file="dbxelf.h elfos.h ${tm_file} lm32/rtems.h rtems.h"
+	tmake_file="${tmake_file} lm32/t-lm32 lm32/t-fprules-softfp soft-fp/t-softfp"
+	tmake_file="${tmake_file} t-rtems"
+         ;;
 lm32-*-uclinux*)
         tm_file="dbxelf.h elfos.h ${tm_file} linux.h lm32/uclinux-elf.h"
-	tmake_file="${tmake_file} lm32/t-fprules-softfp soft-fp/t-softfp"
+	tmake_file="${tmake_file} lm32/t-lm32 lm32/t-fprules-softfp soft-fp/t-softfp"
         ;;
 m32r-*-elf*)
 	tm_file="dbxelf.h elfos.h svr4.h newlib-stdint.h ${tm_file}"
@@ -1650,12 +1683,23 @@ mips-sgi-irix[56]*)
 	case ${target} in
 	*-*-irix5*)
 		tm_file="${tm_file} mips/iris5.h"
+		use_gcc_stdint=provide
 		;;
 
 	*-*-irix6*)
 		tm_file="${tm_file} mips/iris6.h"
 		tmake_file="${tmake_file} mips/t-iris6"
 		tm_defines="${tm_defines} MIPS_ISA_DEFAULT=3 MIPS_ABI_DEFAULT=ABI_N32"
+		case ${target} in
+		*-*-irix6.[0-4]*)
+			use_gcc_stdint=provide
+			;;
+		*-*-irix6.5*)
+			# Only IRIX Development Foundation 1.3 for IRIX 6.5
+			# provides stdint.h.
+			use_gcc_stdint=wrap
+			;;
+		esac
 		;;
 	esac
 	if test "x$stabs" = xyes
@@ -2343,23 +2387,32 @@ sparc-*-rtems*)
 	tmake_file="sparc/t-elf sparc/t-crtfm t-rtems"
 	extra_parts="crti.o crtn.o crtbegin.o crtend.o"
 	;;
-sparc64-*-solaris2* | sparcv9-*-solaris2*)
+sparc*-*-solaris2*)
 	tm_file="sparc/biarch64.h ${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sol2.h"
 	case ${target} in
-	*-*-solaris2.1[0-9]*)
+	    *-*-solaris2.1[0-9]*)
 		tm_file="${tm_file} sol2-10.h"
 		use_gcc_stdint=wrap
 		;;
-	*)
+	    *)
 		use_gcc_stdint=provide
 		;;
 	esac
-	tm_file="${tm_file} sparc/sol2.h sparc/sol2-64.h sparc/sol2-bi.h"
-	if test x$gnu_ld = xyes; then
-		tm_file="${tm_file} sparc/sol2-gld.h sparc/sol2-gld-bi.h"
-	fi
+	tm_file="${tm_file} sparc/sol2.h"
+	case ${target} in
+	    sparc64-*-* | sparcv9-*-*)
+		tm_file="${tm_file} sparc/sol2-64.h"
+		;;
+	    *)
+		test x$with_cpu != x || with_cpu=v9
+		;;
+	esac
+	tm_file="${tm_file} sparc/sol2-bi.h"
 	if test x$gas = xyes; then
 		tm_file="${tm_file} sparc/sol2-gas.h sparc/sol2-gas-bi.h"
+	fi
+	if test x$gnu_ld = xyes; then
+		tm_file="${tm_file} sparc/sol2-gld.h sparc/sol2-gld-bi.h"
 	fi
 	tm_file="${tm_file} tm-dwarf2.h"
 	tmake_file="t-sol2 sparc/t-sol2 sparc/t-sol2-64 sparc/t-crtfm"
@@ -2368,50 +2421,9 @@ sparc64-*-solaris2* | sparcv9-*-solaris2*)
 	else
 		tmake_file="$tmake_file t-slibgcc-sld"
 	fi
-	c_target_objs="sol2-c.o"
-	cxx_target_objs="sol2-c.o"
-	extra_objs="sol2.o"
-	tm_p_file="${tm_p_file} sol2-protos.h"
-	extra_parts="crt1.o crti.o crtn.o gcrt1.o crtbegin.o crtend.o"
-	case ${enable_threads}:${have_pthread_h}:${have_thread_h} in
-	  "":yes:* | yes:yes:* ) thread_file=posix ;;
-	  "":*:yes | yes:*:yes ) thread_file=solaris ;;
-	esac
-	;;
-sparc-*-solaris2*)
-	tm_file="${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sol2.h"
-	case ${target} in
-	*-*-solaris2.1[0-9]*)
-		tm_file="${tm_file} sol2-10.h"
-		use_gcc_stdint=wrap
-		;;
-	*)
-		use_gcc_stdint=provide
-		;;
-	esac
-	tm_file="${tm_file} sparc/sol2.h"
-	if test x$gnu_ld = xyes; then
-		tm_file="${tm_file} sparc/sol2-gld.h"
-	fi
 	if test x$gas = xyes; then
-		tm_file="${tm_file} sparc/sol2-gas.h"
+		tm_file="usegas.h ${tm_file}"
 	fi
-	tmake_file="t-sol2 sparc/t-sol2 sparc/t-crtfm"
-	if test x$gnu_ld = xyes; then
-		tmake_file="$tmake_file t-slibgcc-elf-ver"
-	else
-		tmake_file="$tmake_file t-slibgcc-sld"
-	fi
-	tm_file="sparc/biarch64.h ${tm_file} sparc/sol2-bi.h"
-	if test x$gnu_ld = xyes; then
-		tm_file="${tm_file} sparc/sol2-gld-bi.h"
-	fi
-	if test x$gas = xyes; then
-		tm_file="${tm_file} sparc/sol2-gas-bi.h"
-	fi
-	tm_file="${tm_file} tm-dwarf2.h"
-	tmake_file="$tmake_file sparc/t-sol2-64"
-	test x$with_cpu != x || with_cpu=v9
 	c_target_objs="sol2-c.o"
 	cxx_target_objs="sol2-c.o"
 	extra_objs="sol2.o"
@@ -2591,99 +2603,168 @@ case ${with_cpu} in
     ;;
 esac
 
+# Set arch and cpu from ${target} and ${target_noncanonical}.  Set cpu
+# to generic if there is no processor scheduler model for the target.
+arch=
+cpu=
+arch_without_sse2=no
+arch_without_64bit=no
+case ${target} in
+  i386-*-*)
+    arch=i386
+    cpu=i386
+    arch_without_sse2=yes
+    arch_without_64bit=yes
+    ;;
+  i486-*-*)
+    arch=i486
+    cpu=i486
+    arch_without_sse2=yes
+    arch_without_64bit=yes
+    ;;
+  i586-*-*)
+    arch_without_sse2=yes
+    arch_without_64bit=yes
+    case ${target_noncanonical} in
+      k6_2-*)
+	arch=k6-2
+	cpu=k6-2
+	;;
+      k6_3-*)
+	arch=k6-3
+	cpu=k6-3
+	;;
+      k6-*)
+	arch=k6
+	cpu=k6
+	;;
+      pentium_mmx-*|winchip_c6-*|winchip2-*|c3-*)
+	arch=pentium-mmx
+	cpu=pentium-mmx
+	;;
+      *)
+	arch=pentium
+	cpu=pentium
+	;;
+    esac
+    ;;
+  i686-*-* | i786-*-*)
+    case ${target_noncanonical} in
+      amdfam10-*|barcelona-*)
+	arch=amdfam10
+	cpu=amdfam10
+	;;
+      k8_sse3-*|opteron_sse3-*|athlon64_sse3-*)
+	arch=k8-sse3
+	cpu=k8-sse3
+	;;
+      k8-*|opteron-*|athlon64-*|athlon_fx-*)
+	arch=k8
+	cpu=k8
+	;;
+      athlon_xp-*|athlon_mp-*|athlon_4-*)
+	arch=athlon-4
+	cpu=athlon-4
+	arch_without_sse2=yes
+	arch_without_64bit=yes
+	;;
+      athlon_tbird-*|athlon-*)
+	arch=athlon
+	cpu=athlon
+	arch_without_sse2=yes
+	;;
+      geode-*)
+	arch=geode
+	cpu=geode
+	arch_without_sse2=yes
+	;;
+      pentium2-*)
+	arch=pentium2
+	cpu=pentium2
+	arch_without_sse2=yes
+	;;
+      pentium3-*|pentium3m-*)
+	arch=pentium3
+	cpu=pentium3
+	arch_without_sse2=yes
+	;;
+      pentium4-*|pentium4m-*)
+	arch=pentium4
+	cpu=pentium4
+	;;
+      prescott-*)
+	arch=prescott
+	cpu=prescott
+	;;
+      nocona-*)
+	arch=nocona
+	cpu=nocona
+	;;
+      atom-*)
+	arch=atom
+	cpu=atom
+	;;
+      core2-*)
+	arch=core2
+	cpu=core2
+	;;
+      pentium_m-*)
+	arch=pentium-m
+	cpu=pentium-m
+	;;
+      pentiumpro-*)
+	arch=pentiumpro
+	cpu=pentiumpro
+	arch_without_sse2=yes
+	;;
+      *)
+	arch=pentiumpro
+	cpu=generic
+	arch_without_sse2=yes
+	arch_without_64bit=yes
+	;;
+    esac
+    ;;
+  x86_64-*-*)
+    case ${target_noncanonical} in
+      amdfam10-*|barcelona-*)
+	arch=amdfam10
+	cpu=amdfam10
+	;;
+      k8_sse3-*|opteron_sse3-*|athlon64_sse3-*)
+	arch=k8-sse3
+	cpu=k8-sse3
+	;;
+      k8-*|opteron-*|athlon_64-*)
+	arch=k8
+	cpu=k8
+	;;
+      nocona-*)
+	arch=nocona
+	cpu=nocona
+	;;
+      atom-*)
+	arch=atom
+	cpu=atom
+	;;
+      core2-*)
+	arch=core2
+	cpu=core2
+	;;
+      *)
+	arch=x86-64
+	cpu=generic
+	;;
+    esac
+    ;;
+esac
+
 # If there is no $with_cpu option, try to infer one from ${target}.
 # This block sets nothing except for with_cpu.
 if test x$with_cpu = x ; then
   case ${target} in
-    i386-*-*)
-      with_cpu=i386
-      ;;
-    i486-*-*)
-      with_cpu=i486
-      ;;
-    i586-*-*)
-      case ${target_noncanonical} in
-        k6_2-*)
-          with_cpu=k6-2
-          ;;
-        k6_3-*)
-          with_cpu=k6-3
-          ;;
-        k6-*)
-          with_cpu=k6
-          ;;
-        pentium_mmx-*|winchip_c6-*|winchip2-*|c3-*)
-          with_cpu=pentium-mmx
-          ;;
-        *)
-          with_cpu=pentium
-          ;;
-      esac
-      ;;
-    i686-*-* | i786-*-*)
-      case ${target_noncanonical} in
-        amdfam10-*|barcelona-*)
-          with_cpu=amdfam10
-          ;;
-        k8-*|opteron-*|athlon_64-*)
-          with_cpu=k8
-          ;;
-        athlon_xp-*|athlon_mp-*|athlon_4-*)
-          with_cpu=athlon-4
-          ;;
-        athlon_tbird-*|athlon-*)
-          with_cpu=athlon
-          ;;
-	geode-*)
-	  with_cpu=geode
-	  ;;
-        pentium2-*)
-          with_cpu=pentium2
-          ;;
-        pentium3-*|pentium3m-*)
-          with_cpu=pentium3
-          ;;
-        pentium4-*|pentium4m-*)
-          with_cpu=pentium4
-          ;;
-        prescott-*)
-          with_cpu=prescott
-          ;;
-        nocona-*)
-          with_cpu=nocona
-          ;;
-	core2-*)
-	  with_cpu=core2
-	  ;;
-        pentium_m-*)
-          with_cpu=pentium-m
-          ;;
-        pentiumpro-*)
-          with_cpu=pentiumpro
-          ;;
-        *)
-          with_cpu=generic
-          ;;
-      esac
-      ;;
-    x86_64-*-*)
-      case ${target_noncanonical} in
-        amdfam10-*|barcelona-*)
-          with_cpu=amdfam10
-          ;;
-        k8-*|opteron-*|athlon_64-*)
-          with_cpu=k8
-          ;;
-        nocona-*)
-          with_cpu=nocona
-          ;;
-	core2-*)
-	  with_cpu=core2
-	  ;;
-        *)
-          with_cpu=generic
-          ;;
-      esac
+    i[34567]86-*-*|x86_64-*-*)
+      with_cpu=$cpu
       ;;
     alphaev6[78]*-*-*)
       with_cpu=ev67
@@ -2727,17 +2808,99 @@ if test x$with_cpu = x ; then
   # Avoid overriding --with-cpu-32 and --with-cpu-64 values.
   case ${target} in
     i[34567]86-*-*|x86_64-*-*)
-      if test x$with_cpu != x; then
-        if test x$with_cpu_32 != x || test x$with_cpu_64 != x; then
-          if test x$with_cpu_32 = x; then
-            with_cpu_32=$with_cpu
-          fi
-          if test x$with_cpu_64 = x; then
-            with_cpu_64=$with_cpu
-          fi
-          with_cpu=
-        fi
+      if test x$with_cpu_32 != x || test x$with_cpu_64 != x; then
+	if test x$with_cpu_32 = x; then
+	  with_cpu_32=$with_cpu
+	fi
+	if test x$with_cpu_64 = x; then
+	  with_cpu_64=$with_cpu
+	fi
+        with_cpu=
       fi
+      ;;
+  esac
+fi
+
+# Support for --with-arch and related options (and a few unrelated options,
+# too).
+case ${with_arch} in
+  yes | no)
+    echo "--with-arch must be passed a value" 1>&2
+    exit 1
+    ;;
+esac
+
+# If there is no $with_arch option, try to infer one from ${target}.
+# This block sets nothing except for with_arch.
+if test x$with_arch = x ; then
+  case ${target} in
+    i[34567]86-*-darwin*|x86_64-*-darwin*)
+      # Default arch is set via TARGET_SUBTARGET32_ISA_DEFAULT
+      # and TARGET_SUBTARGET64_ISA_DEFAULT in config/i386/darwin.h.
+      ;;
+    i[34567]86-*-*)
+      # --with-fpmath sets the default ISA to SSE2, which is the same
+      # ISA supported by Pentium 4.
+      if test x$with_fpmath = x || test $arch_without_sse2 = no; then
+	with_arch=$arch
+      else
+	with_arch=pentium4
+      fi
+      ;;
+    x86_64-*-*)
+      with_arch=$arch
+      ;;
+  esac
+
+  # Avoid overriding --with-arch-32 and --with-arch-64 values.
+  case ${target} in
+    i[34567]86-*-darwin*|x86_64-*-darwin*)
+      # Default arch is set via TARGET_SUBTARGET32_ISA_DEFAULT
+      # and TARGET_SUBTARGET64_ISA_DEFAULT in config/i386/darwin.h.
+      ;;
+    i[34567]86-*-*|x86_64-*-*)
+      if test x$with_arch_32 != x || test x$with_arch_64 != x; then
+	if test x$with_arch_32 = x; then
+	  with_arch_32=$with_arch
+	fi
+	if test x$with_arch_64 = x; then
+	  if test $arch_without_64bit = yes; then
+	    # Set the default 64bit arch to x86-64 if the default arch
+	    # doesn't support 64bit.
+	    with_arch_64=x86-64
+	  else
+	    with_arch_64=$with_arch
+	  fi
+	fi
+	with_arch=
+      elif test $arch_without_64bit$need_64bit_isa = yesyes; then
+	# Set the default 64bit arch to x86-64 if the default arch
+	# doesn't support 64bit and we need 64bit ISA.
+	with_arch_32=$with_arch
+	with_arch_64=x86-64
+	with_arch=
+      fi
+      ;;
+  esac
+fi
+
+# Support --with-fpmath.
+if test x$with_fpmath != x; then
+  case ${target} in
+    i[34567]86-*-* | x86_64-*-*)
+      case ${with_fpmath} in
+      sse)
+	tm_file="${tm_file} i386/ssemath.h"
+	;;
+      *)
+	echo "Invalid --with-fpmath=$with_fpmath" 1>&2
+	exit 1
+	;;
+      esac
+      ;;
+    *)
+      echo "--with-fpmath isn't supported for $target." 1>&2
+      exit 1
       ;;
   esac
 fi
@@ -2828,7 +2991,10 @@ case "${target}" in
 
 		case "$with_fpu" in
 		"" \
-		| fpa | fpe2 | fpe3 | maverick | vfp | vfp3 | vfpv3 | vfpv3-fp16 | vfpv3-d16 | vfpv3-d16-fp16 | vfpv3xd | vfpv3xd-fp16 | neon | neon-fp16 | vfpv4 | vfpv4-d16 | fpv4-sp-d16 | neon-vfpv4)
+		| fpa | fpe2 | fpe3 | maverick | vfp | vfp3 | vfpv3 \
+		| vfpv3-fp16 | vfpv3-d16 | vfpv3-d16-fp16 | vfpv3xd \
+		| vfpv3xd-fp16 | neon | neon-fp16 | vfpv4 | vfpv4-d16 \
+		| fpv4-sp-d16 | neon-vfpv4)
 			# OK
 			;;
 		*)
@@ -2965,7 +3131,10 @@ case "${target}" in
 				esac
 				# OK
 				;;
-			"" | amdfam10 | barcelona | k8 | opteron | athlon64 | athlon-fx | nocona | core2 | atom | generic)
+			"" | x86-64 | generic | native \
+			| k8 | k8-sse3 | athlon64 | athlon64-sse3 | opteron \
+			| opteron-sse3 | athlon-fx | amdfam10 | barcelona \
+			| nocona | core2 | atom)
 				# OK
 				;;
 			*)
@@ -3241,6 +3410,9 @@ case ${target} in
 		;;
 	i[34567]86-*-linux* | x86_64-*-linux* | i[34567]86-*-kfreebsd*-gnu | x86_64-*-kfreebsd*-gnu)
 		tmake_file="${tmake_file} i386/t-fprules-softfp soft-fp/t-softfp i386/t-linux"
+		;;
+	i[34567]86-*-solaris2*)
+		tmake_file="${tmake_file} i386/t-fprules-softfp soft-fp/t-softfp"
 		;;
 	i[34567]86-*-cygwin* | i[34567]86-*-mingw* | x86_64-*-mingw*)
 		tmake_file="${tmake_file} i386/t-fprules-softfp soft-fp/t-softfp"

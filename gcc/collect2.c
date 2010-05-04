@@ -1,7 +1,7 @@
 /* Collect static initialization info into data structures that can be
    traversed by C++ initialization and finalization routines.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Chris Smith (csmith@convex.com).
    Heavily modified by Michael Meissner (meissner@cygnus.com),
@@ -427,6 +427,17 @@ notice (const char *cmsgid, ...)
 
   va_start (ap, cmsgid);
   vfprintf (stderr, _(cmsgid), ap);
+  va_end (ap);
+}
+
+/* Notify user of a non-error, without translating the format string.  */
+void
+notice_translated (const char *cmsgid, ...)
+{
+  va_list ap;
+
+  va_start (ap, cmsgid);
+  vfprintf (stderr, cmsgid, ap);
   va_end (ap);
 }
 
@@ -1174,6 +1185,8 @@ main (int argc, char **argv)
   int num_c_args;
   char **old_argv;
 
+  bool use_verbose = false;
+
   old_argv = argv;
   expandargv (&argc, &argv);
   if (argv != old_argv)
@@ -1228,12 +1241,19 @@ main (int argc, char **argv)
 	if (! strcmp (argv[i], "-debug"))
 	  debug = 1;
         else if (! strcmp (argv[i], "-flto") && ! use_plugin)
-          lto_mode = LTO_MODE_LTO;
+	  {
+	    use_verbose = true;
+	    lto_mode = LTO_MODE_LTO;
+	  }
         else if (! strcmp (argv[i], "-fwhopr") && ! use_plugin)
-          lto_mode = LTO_MODE_WHOPR;
+	  {
+	    use_verbose = true;
+	    lto_mode = LTO_MODE_WHOPR;
+	  }
         else if (! strcmp (argv[i], "-plugin"))
 	  {
 	    use_plugin = true;
+	    use_verbose = true;
 	    lto_mode = LTO_MODE_NONE;
 	  }
 #ifdef COLLECT_EXPORT_LIST
@@ -1445,6 +1465,11 @@ main (int argc, char **argv)
 	      q = extract_string (&p);
 	      *c_ptr++ = xstrdup (q);
 	    }
+	}
+      if (use_verbose && *q == '-' && q[1] == 'v' && q[2] == 0)
+	{
+	  /* Turn on trace in collect2 if needed.  */
+	  vflag = 1;
 	}
     }
   obstack_free (&temporary_obstack, temporary_firstobj);
@@ -1663,8 +1688,11 @@ main (int argc, char **argv)
        control whether we need a first pass link later on or not, and what
        will remain to be scanned there.  */
 
-    scanfilter this_filter
-      = shared_obj ? ld1_filter : (ld1_filter & ~SCAN_DWEH);
+    scanfilter this_filter = ld1_filter;
+#if HAVE_AS_REF
+    if (!shared_obj)
+      this_filter &= ~SCAN_DWEH;
+#endif
 
     while (export_object_lst < object)
       scan_prog_file (*export_object_lst++, PASS_OBJ, this_filter);
@@ -1792,9 +1820,18 @@ main (int argc, char **argv)
 
   if (debug)
     {
-      notice ("%d constructor(s) found\n", constructors.number);
-      notice ("%d destructor(s)  found\n", destructors.number);
-      notice ("%d frame table(s) found\n", frame_tables.number);
+      notice_translated (ngettext ("%d constructor found\n",
+                                   "%d constructors found\n",
+                                   constructors.number),
+                         constructors.number);
+      notice_translated (ngettext ("%d destructor found\n",
+                                   "%d destructors found\n",
+                                   destructors.number),
+                         destructors.number);
+      notice_translated (ngettext("%d frame table found\n",
+                                  "%d frame tables found\n",
+                                  frame_tables.number),
+                         frame_tables.number);
     }
 
   /* If the scan exposed nothing of special interest, there's no need to
@@ -2634,8 +2671,8 @@ scan_prog_file (const char *prog_name, scanpass which_pass,
              the LTO objects list if found.  */
           for (p = buf; (ch = *p) != '\0' && ch != '\n'; p++)
             if (ch == ' '
-		&& (strncmp (p +1 , "gnu_lto_v1", 10) == 0)
-		&& ISSPACE( p[11]))
+		&& (strncmp (p + 1, "__gnu_lto_v1", 12) == 0)
+		&& ISSPACE (p[13]))
               {
                 add_lto_object (&lto_objects, prog_name);
 
@@ -2849,7 +2886,7 @@ scan_libraries (const char *prog_name)
   /* Now iterate through the library list adding their symbols to
      the list.  */
   for (list = libraries.first; list; list = list->next)
-    scan_prog_file (list->name, PASS_LIB);
+    scan_prog_file (list->name, PASS_LIB, SCAN_ALL);
 }
 
 #endif /* LDD_SUFFIX */

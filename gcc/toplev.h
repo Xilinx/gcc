@@ -1,6 +1,7 @@
 /* toplev.h - Various declarations for functions found in toplev.c
-   Copyright (C) 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007,
+   2008, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -63,6 +64,8 @@ extern bool warning (int, const char *, ...) ATTRIBUTE_GCC_DIAG(2,3);
 extern bool warning_at (location_t, int, const char *, ...)
     ATTRIBUTE_GCC_DIAG(3,4);
 extern void error (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2);
+extern void error_n (location_t, int, const char *, const char *, ...)
+    ATTRIBUTE_GCC_DIAG(3,5) ATTRIBUTE_GCC_DIAG(4,5);
 extern void error_at (location_t, const char *, ...) ATTRIBUTE_GCC_DIAG(2,3);
 extern void fatal_error (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2)
      ATTRIBUTE_NORETURN;
@@ -72,6 +75,8 @@ extern bool pedwarn (location_t, int, const char *, ...)
 extern bool permerror (location_t, const char *, ...) ATTRIBUTE_GCC_DIAG(2,3);
 extern void sorry (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2);
 extern void inform (location_t, const char *, ...) ATTRIBUTE_GCC_DIAG(2,3);
+extern void inform_n (location_t, int, const char *, const char *, ...)
+    ATTRIBUTE_GCC_DIAG(3,5) ATTRIBUTE_GCC_DIAG(4,5);
 extern void verbatim (const char *, ...) ATTRIBUTE_GCC_DIAG(1,2);
 
 extern void rest_of_decl_compilation (tree, int, int);
@@ -117,6 +122,7 @@ extern unsigned local_tick;
 
 extern const char *progname;
 extern const char *dump_base_name;
+extern const char *dump_dir_name;
 extern const char *aux_base_name;
 extern const char *aux_info_file_name;
 extern const char *profile_data_prefix;

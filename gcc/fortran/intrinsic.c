@@ -1,6 +1,7 @@
 /* Build up a list of intrinsic subroutines and functions for the
    name-resolution stage.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -1665,15 +1666,15 @@ add_functions (void)
 
   make_generic ("fput", GFC_ISYM_FPUT, GFC_STD_GNU);
 
-  add_sym_1 ("gamma", GFC_ISYM_GAMMA, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr,
+  add_sym_1 ("gamma", GFC_ISYM_TGAMMA, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr,
 	     GFC_STD_F2008, gfc_check_fn_r, gfc_simplify_gamma,
 	     gfc_resolve_gamma, x, BT_REAL, dr, REQUIRED);
 
-  add_sym_1 ("dgamma", GFC_ISYM_GAMMA, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_GNU,
+  add_sym_1 ("dgamma", GFC_ISYM_TGAMMA, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_GNU,
 	     gfc_check_fn_d, gfc_simplify_gamma, gfc_resolve_gamma,
 	     x, BT_REAL, dr, REQUIRED);
 
-  make_generic ("gamma", GFC_ISYM_GAMMA, GFC_STD_F2008);
+  make_generic ("gamma", GFC_ISYM_TGAMMA, GFC_STD_F2008);
 
   /* Unix IDs (g77 compatibility)  */
   add_sym_1 ("getcwd", GFC_ISYM_GETCWD, NO_CLASS, ACTUAL_NO, BT_INTEGER, di,  GFC_STD_GNU,

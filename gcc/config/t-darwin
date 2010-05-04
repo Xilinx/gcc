@@ -1,4 +1,4 @@
-# Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+# Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 # Free Software Foundation, Inc.
 #
 # This file is part of GCC.
@@ -34,8 +34,6 @@ darwin-c.o: $(srcdir)/config/darwin-c.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 darwin-f.o: $(srcdir)/config/darwin-f.c $(CONFIG_H) $(SYSTEM_H) coretypes.h
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	  $(srcdir)/config/darwin-f.c $(PREPROCESSOR_DEFINES)
-
-gt-darwin.h : s-gtype ; @true
 
 darwin-driver.o: $(srcdir)/config/darwin-driver.c \
   $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(GCC_H)

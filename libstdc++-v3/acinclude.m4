@@ -1075,8 +1075,9 @@ AC_DEFUN([GLIBCXX_ENABLE_LIBSTDCXX_TIME], [
   CXXFLAGS="$CXXFLAGS -fno-exceptions"
   ac_save_LIBS="$LIBS"
 
-  ac_has_clock_monotonic=no;
-  ac_has_clock_realtime=no;
+  ac_has_clock_monotonic=no
+  ac_has_clock_realtime=no
+  AC_MSG_RESULT($enable_libstdcxx_time)
 
   if test x"$enable_libstdcxx_time" != x"no"; then
 
@@ -2023,10 +2024,10 @@ AC_DEFUN([GLIBCXX_ENABLE_PARALLEL], [
 
   # See if configured libgomp/omp.h exists. (libgomp may be in
   # noconfigdirs but not explicitly disabled.)
-  if test -f $glibcxx_builddir/../libgomp/omp.h; then
+  if echo " ${TARGET_CONFIGDIRS} " | grep " libgomp " > /dev/null 2>&1 ; then
     enable_parallel=yes;
   else
-    AC_MSG_NOTICE([$glibcxx_builddir/../libgomp/omp.h not found])
+    AC_MSG_NOTICE([target-libgomp not built])
   fi
 
   AC_MSG_CHECKING([for parallel mode support])

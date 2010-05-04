@@ -2321,6 +2321,10 @@ struct GTY(()) lang_decl {
 #define TYPE_NAMESPACE_SCOPE_P(NODE) \
   (TREE_CODE (CP_TYPE_CONTEXT (NODE)) == NAMESPACE_DECL)
 
+#define NAMESPACE_SCOPE_P(NODE) \
+  ((DECL_P (NODE) && DECL_NAMESPACE_SCOPE_P (NODE)) \
+   || (TYPE_P (NODE) && TYPE_NAMESPACE_SCOPE_P (NODE)))
+
 /* 1 iff NODE is a class member.  */
 #define DECL_CLASS_SCOPE_P(NODE) \
   (DECL_CONTEXT (NODE) && TYPE_P (DECL_CONTEXT (NODE)))
@@ -2494,6 +2498,23 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 #define TI_TEMPLATE(NODE) TREE_TYPE (TEMPLATE_INFO_CHECK (NODE))
 #define TI_ARGS(NODE) TREE_CHAIN (TEMPLATE_INFO_CHECK (NODE))
 #define TI_PENDING_TEMPLATE_FLAG(NODE) TREE_LANG_FLAG_1 (NODE)
+/* For a given TREE_VEC containing a template argument list,
+   this property contains the number of arguments that are not
+   defaulted.  */
+#define NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE) TREE_CHAIN (TREE_VEC_CHECK (NODE))
+/* Below are the setter and getter of the NON_DEFAULT_TEMPLATE_ARGS_COUNT
+   property.  */
+#define SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE, INT_VALUE) \
+  NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE) = build_int_cst (NULL_TREE, INT_VALUE)
+#ifdef ENABLE_CHECKING
+#define GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE) \
+    int_cst_value (NON_DEFAULT_TEMPLATE_ARGS_COUNT (NODE))
+#else
+#define GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE) \
+  NON_DEFAULT_TEMPLATE_ARGS_COUNT (NODE) \
+  ? int_cst_value (NON_DEFAULT_TEMPLATE_ARGS_COUNT (NODE)) \
+  : TREE_VEC_LENGTH (INNERMOST_TEMPLATE_ARGS (NODE))
+#endif
 /* The list of typedefs - used in the template - that need
    access checking at template instantiation time.  */
 #define TI_TYPEDEFS_NEEDING_ACCESS_CHECKING(NODE) \
@@ -2510,7 +2531,13 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 
    It is incorrect to ever form a template argument vector containing
    only one level of arguments, but which is a TREE_VEC containing as
-   its only entry the TREE_VEC for that level.  */
+   its only entry the TREE_VEC for that level.
+
+   For each TREE_VEC containing the template arguments for a single
+   level, it's possible to get or set the number of non defaulted
+   template arguments by using the accessor macros
+   GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT or
+   SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT.  */
 
 /* Nonzero if the template arguments is actually a vector of vectors,
    rather than just a vector.  */
@@ -4141,8 +4168,8 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 #define WANT_ENUM	4 /* enumerated types */
 #define WANT_POINTER	8 /* pointer types */
 #define WANT_NULL      16 /* null pointer constant */
-#define WANT_VECTOR    32 /* vector types */
-#define WANT_ARITH	(WANT_INT | WANT_FLOAT | WANT_VECTOR)
+#define WANT_VECTOR_OR_COMPLEX 32 /* vector or complex types */
+#define WANT_ARITH	(WANT_INT | WANT_FLOAT | WANT_VECTOR_OR_COMPLEX)
 
 /* Used with comptypes, and related functions, to guide type
    comparison.  */
@@ -4214,6 +4241,10 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
   (TEMPLATE_PARM_DECL (TEMPLATE_TYPE_PARM_INDEX (NODE)))
 #define TEMPLATE_TYPE_PARAMETER_PACK(NODE) \
   (TEMPLATE_PARM_PARAMETER_PACK (TEMPLATE_TYPE_PARM_INDEX (NODE)))
+/* The list of template parms that a given template parameter of type
+   TEMPLATE_TYPE_PARM belongs to.*/
+#define TEMPLATE_TYPE_PARM_SIBLING_PARMS(NODE) \
+  (TREE_CHECK ((NODE), TEMPLATE_TYPE_PARM))->type.maxval
 
 /* These constants can used as bit flags in the process of tree formatting.
 
@@ -4697,6 +4728,7 @@ extern bool cp_missing_noreturn_ok_p		(tree);
 extern void initialize_artificial_var		(tree, tree);
 extern tree check_var_type			(tree, tree);
 extern tree reshape_init (tree, tree);
+extern tree next_initializable_field (tree);
 
 extern bool defer_mark_used_calls;
 extern GTY(()) VEC(tree, gc) *deferred_mark_used_calls;
@@ -4706,9 +4738,10 @@ extern tree cxx_maybe_build_cleanup		(tree);
 /* in decl2.c */
 extern bool check_java_method			(tree);
 extern tree build_memfn_type			(tree, tree, cp_cv_quals);
+extern tree change_return_type			(tree, tree);
 extern void maybe_retrofit_in_chrg		(tree);
 extern void maybe_make_one_only			(tree);
-extern bool vague_linkage_fn_p			(tree);
+extern bool vague_linkage_p			(tree);
 extern void grokclassfn				(tree, tree,
 						 enum overload_flags);
 extern tree grok_array_decl			(tree, tree);
@@ -4872,6 +4905,7 @@ extern tree process_template_parm		(tree, location_t, tree,
 						 bool, bool);
 extern tree end_template_parm_list		(tree);
 extern void end_template_decl			(void);
+extern tree maybe_update_decl_type		(tree, tree);
 extern bool check_default_tmpl_args             (tree, tree, int, int, int);
 extern tree push_template_decl			(tree);
 extern tree push_template_decl_real		(tree, bool);
@@ -4940,12 +4974,15 @@ extern void make_args_non_dependent		(VEC(tree,gc) *);
 extern bool reregister_specialization		(tree, tree, tree);
 extern tree fold_non_dependent_expr		(tree);
 extern bool explicit_class_specialization_p     (tree);
+extern int push_tinst_level                     (tree);
+extern void pop_tinst_level                     (void);
 extern struct tinst_level *outermost_tinst_level(void);
 extern bool parameter_of_template_p		(tree, tree);
 extern void init_template_processing		(void);
 bool template_template_parameter_p		(const_tree);
 extern bool primary_template_instantiation_p    (const_tree);
 extern tree get_primary_template_innermost_parameters	(const_tree);
+extern tree get_template_parms_at_level (tree, int);
 extern tree get_template_innermost_arguments	(const_tree);
 extern tree get_template_argument_pack_elems	(const_tree);
 extern tree get_function_template_decl		(const_tree);
@@ -4993,7 +5030,7 @@ extern int at_function_scope_p			(void);
 extern bool at_class_scope_p			(void);
 extern bool at_namespace_scope_p		(void);
 extern tree context_for_name_lookup		(tree);
-extern tree lookup_conversions			(tree);
+extern tree lookup_conversions			(tree, bool);
 extern tree binfo_from_vbase			(tree);
 extern tree binfo_for_vbase			(tree, tree);
 extern tree look_for_overrides_here		(tree, tree);
@@ -5169,6 +5206,7 @@ extern tree lambda_function			(tree);
 extern void apply_lambda_return_type            (tree, tree);
 extern tree add_capture                         (tree, tree, tree, bool, bool);
 extern tree add_default_capture                 (tree, tree, tree);
+extern void register_capture_members		(tree);
 extern tree lambda_expr_this_capture            (tree);
 extern void maybe_add_lambda_conv_op            (tree);
 
@@ -5420,7 +5458,6 @@ extern bool cp_dump_tree			(void *, tree);
 
 extern alias_set_type cxx_get_alias_set		(tree);
 extern bool cxx_warn_unused_global_decl		(const_tree);
-extern tree cp_expr_size			(const_tree);
 extern size_t cp_tree_size			(enum tree_code);
 extern bool cp_var_mod_type_p			(tree, tree);
 extern void cxx_initialize_diagnostics		(struct diagnostic_context *);

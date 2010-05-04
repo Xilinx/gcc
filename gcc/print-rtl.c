@@ -1,6 +1,6 @@
 /* Print RTL for GCC.
    Copyright (C) 1987, 1988, 1992, 1997, 1998, 1999, 2000, 2002, 2003,
-   2004, 2005, 2007, 2008, 2009
+   2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -316,7 +316,7 @@ print_rtx (const_rtx in_rtx)
 #ifndef GENERATOR_FILE
 	    cselib_val *val = CSELIB_VAL_PTR (in_rtx);
 
-	    fprintf (outfile, " %i", val->value);
+	    fprintf (outfile, " %u:%u", val->uid, val->hash);
 	    dump_addr (outfile, " @", in_rtx);
 	    dump_addr (outfile, "/", (void*)val);
 #endif
@@ -548,8 +548,11 @@ print_rtx (const_rtx in_rtx)
     {
 #ifndef GENERATOR_FILE
     case MEM:
-      fprintf (outfile, " [" HOST_WIDE_INT_PRINT_DEC,
-	       (HOST_WIDE_INT) MEM_ALIAS_SET (in_rtx));
+      if (__builtin_expect (final_insns_dump_p, false))
+	fprintf (outfile, " [");
+      else
+	fprintf (outfile, " [" HOST_WIDE_INT_PRINT_DEC,
+		 (HOST_WIDE_INT) MEM_ALIAS_SET (in_rtx));
 
       if (MEM_EXPR (in_rtx))
 	print_mem_expr (outfile, MEM_EXPR (in_rtx));

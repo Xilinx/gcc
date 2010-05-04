@@ -1,5 +1,5 @@
 /* Instruction scheduling pass.   Log dumping infrastructure.
-   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -391,7 +391,7 @@ dump_lv_set (regset lv)
 {
   sel_print ("{");
 
-  /* This code was adapted from flow.c: dump_regset ().  */
+  /* This code was adapted from cfg.c: dump_regset ().  */
   if (lv == NULL)
     sel_print ("nil");
   else

@@ -1,3 +1,250 @@
+2010-04-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* configure.ac: Add brackets around AC_TRY_COMPILE alternative.
+	* configure: Regenerated.
+
+2010-04-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* configure.ac: Print "buggy but acceptable" when CLooG
+	revision is less than 9.
+	* configure: Regenerated.
+
+2010-04-01  Diego Novillo  <dnovillo@google.com>
+
+	* MAINTAINERS (Plugin): Add myself and Le-Chun Wu.
+
+2010-04-01  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/43615
+	PR bootstrap/43328
+
+	Revert:
+
+	2010-03-31  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: Do not pass --enable-multilib nor
+	--disable-multilib in baseargs.  Accept explicitly passed
+	--enable_multilib.
+	* configure: Regenerate.
+
+2010-03-31  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* MAINTAINERS (CPU Port Maintainers): Add myself for spu port.
+
+2010-03-31  Janis Johnson  <janis187@us.ibm.com>
+
+	* MAINTAINERS: Remove myself.
+
+2010-03-31  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/43328
+	* configure.ac: Do not pass --enable-multilib nor
+	--disable-multilib in baseargs.  Accept explicitly passed
+	--enable_multilib.
+	* configure: Regenerate.
+
+2010-03-28  Andrew Pinski  <pinskia@gmail.com>
+
+	* MAINTAINERS (spu port): Remove me.
+
+2010-03-23  Joseph Myers  <joseph@codesourcery.com>
+
+	* configure.ac (tic6x-*-*): New case.
+	* configure: Regenerate.
+
+2010-03-23  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.sub: Update to version 2010-03-22.
+	* config.guess: Update to version 2009-12-30.
+
+2010-03-19  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR ada/42554
+	* configure.ac: Only pass -c to ranlib for darwin9 and earlier.
+	* configure: Regenerate.
+
+2010-03-18  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* MAINTAINERS (dwarak.rajagopal@amd.com): Removed.
+	(ghassan.shobaki@amd.com): Removed.
+
+2010-03-17  Alan Modra  <amodra@gmail.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-16  Diego Novillo  <dnovillo@google.com>
+
+	* MAINTAINERS: Remove Dan Hipschman, William Maddox and Chris
+	Matthews.
+
+2010-03-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS (Write After Approval): Remove Jim Blandy, Daniel
+	Gutson, Jeffrey D. Oldham and Mark Shinwell.
+
+2010-03-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-16  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-15  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-09  Jie Zhang  <jie@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-03-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libstdc++/32499
+	* configure.ac (RANLIB): Default to true.
+	(STRIP): Likewise.
+	(RANLIB_FOR_TARGET): Remove superfluous : argument.
+	* configure: Regenerate.
+
+2010-02-17 Rafael Ávila de Espíndola <espindola@google.com>
+
+	* MAINTAINERS (Plugin, LTO, LTO plugin): Remove myself.
+	(Write After Approval): Update my email address.
+
+2010-02-17  Nick Clifton  <nickc@redhat.com>
+
+	PR 11238
+	* Makefile.tpl (local-distclean): Also remove config.cache files in
+	sub-directories as there may not be Makefiles present in the
+	sub-directories.
+	* Makefile.tpl: Use "-exec rm {}" rather than "-delete" to delete
+	the config.cache files found by the find command.
+
+	* Makefile.in: Regenerate.
+	* configure.ac: Revert previous delta.
+	* configure: Regenerate.
+
+2010-02-15  Nick Clifton  <nickc@redhat.com>
+
+	PR 11238
+	* configure.ac: Delete config.cache files in sub-directories when
+	deleting Makefiles.
+	* configure: Regenerate.
+
+2010-02-12  Ben Elliston  <bje@gnu.org>
+
+	* MAINTAINERS: Update my email address.
+
+2010-02-08  Andrew Pinski  <pinskia@gmail.com>
+
+	* MAINTAINERS (spu port): Update my email address.
+
+2010-02-08  Jie Zhang  <jie.zhang@analog.com>
+
+	* MAINTAINERS: Add myself as a maintainer for the bfin port.
+
+2010-01-31  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* configure.ac: Add "recommended" version checks for GMP/MPC.
+	Update recommended GMP/MPFR/MPC versions.
+	* configure: Regenerate.
+
+2010-01-31  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* MAINTAINERS: Move my Embecosm email address into the
+	write-after-approval section.
+
+2010-01-26  Ian Lance Taylor  <iant@google.com>
+
+	* MAINTAINERS: Add myself as Go frontend maintainer.
+
+2010-01-25  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR libstdc++/36101, PR libstdc++/42813
+	* configure.ac (bootstrap_target_libs): Make inclusion of
+	target-libgomp conditional on libgomb being in target_configdirs.
+	* configure: Regenerate.
+
+2010-01-23  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR libstdc++/36101, PR libstdc++/42813
+	* configure.ac (bootstrap_target_libs): Include target-libgomp.
+	* configure: Regenerate.
+
+2010-01-22  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR libstdc++/36101, PR libstdc++/42813
+	* configure.ac (target_configdirs): Substitute.
+	* Makefile.def: Bootstrap target module libgomp.
+	Add dependency of all-target-libstdc++-v3 on configure-target-libgomp.
+	* Makefile.tpl (TARGET_CONFIGDIRS): New makefile variable.
+	(BASE_TARGET_EXPORTS): Export TARGET_CONFIGDIRS.
+	* configure, Makefile.in: Regenerate.
+
+2010-01-21  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* MAINTAINERS: Adjust my details.
+
+2010-01-20  Eric B. Weddington  <eric.weddington@atmel.com>
+
+	* MAINTAINERS (CPU Port Maintainers): Add myself for avr port.
+
+2010-01-18  Thierry Lafage  <thierry.lafage@inria.fr>
+
+	* MAINTAINERS: reindented my entry with tabs instead of spaces.
+
+2010-01-15  Thierry Lafage  <thierry.lafage@inria.fr>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2010-01-15  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2010-01-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41569
+	* Makefile.def (all-lto-plugin): Depend on all-gcc.
+	* Makefile.in: Regenerated.
+
+2010-01-11  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure.ac: Enable libjava build on x86_64-*freebsd*.
+	* configure: Regenerate.
+
+2010-01-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+            Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR bootstrap/42424
+	* configure.ac: Include libtool m4 files.
+        (_LT_CHECK_OBJDIR): Call it.
+	(extra_mpc_mpfr_configure_flags, extra_mpc_gmp_configure_flags,
+	gmplibs, ppllibs, clooglibs): Use $lt_cv_objdir.
+
+	* configure: Regenerate.
+
+2010-01-07  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/41818
+	* Makefile.tpl (BASE_TARGET_EXPORTS): Only add TARGET_LIB_PATH
+	to $(RPATH_ENVVAR) if bootstrapping.  Fix typo in comment.
+	* Makefile.in: Regenerate.
+
+2010-01-02  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41529
+	* configure.ac: Include config/elf.m4.  Disable LTO if not
+	builting for an elf target.
+	* configure: Regenerate.
+
+2009-12-27  Christopher Faylor  <me+cygwin@cgf.cx>
+
+	* MAINTAINERS: Change my email address.
+
 2009-12-18  Ben Elliston  <bje@au.ibm.com>
 
 	* config.sub, config.guess: Update from upstream sources.

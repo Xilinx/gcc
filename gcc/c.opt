@@ -1,5 +1,5 @@
 ; Options for the C, ObjC, C++ and ObjC++ front ends.
-; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 ; Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
@@ -170,6 +170,10 @@ Synonym for -Wcomment
 Wconversion
 C ObjC C++ ObjC++ Var(warn_conversion) Warning
 Warn for implicit type conversions that may change a value
+
+Wconversion-null
+C++ ObjC++ Var(warn_conversion_null) Init(1) Warning
+Warn for converting NULL from/to a non-pointer type
 
 Wsign-conversion
 C ObjC C++ ObjC++ Var(warn_sign_conversion) Init(-1)
@@ -769,7 +773,7 @@ C ObjC C++ ObjC++
 When \"signed\" or \"unsigned\" is not given make the bitfield signed
 
 fsigned-char
-C ObjC C++ ObjC++
+C ObjC C++ ObjC++ LTO
 Make \"char\" signed by default
 
 fsquangle
@@ -787,8 +791,11 @@ C ObjC C++ ObjC++ Joined RejectNegative UInteger
 -ftabstop=<number>	Distance between tab stops for column reporting
 
 ftemplate-depth-
+C++ ObjC++ Joined RejectNegative UInteger Undocumented
+
+ftemplate-depth=
 C++ ObjC++ Joined RejectNegative UInteger
--ftemplate-depth-<number>	Specify maximum template instantiation depth
+-ftemplate-depth=<number>	Specify maximum template instantiation depth
 
 fthis-is-variable
 C++ ObjC++
@@ -802,7 +809,7 @@ C ObjC C++ ObjC++
 When \"signed\" or \"unsigned\" is not given make the bitfield unsigned
 
 funsigned-char
-C ObjC C++ ObjC++
+C ObjC C++ ObjC++ LTO
 Make \"char\" unsigned by default
 
 fuse-cxa-atexit
@@ -875,7 +882,7 @@ C ObjC C++ ObjC++ Joined Separate
 
 imultilib
 C ObjC C++ ObjC++ Joined Separate
--imultilib <dir> Set <dir> to be the multilib include subdirectory
+-imultilib <dir>	Set <dir> to be the multilib include subdirectory
 
 include
 C ObjC C++ ObjC++ Joined Separate
@@ -958,6 +965,10 @@ std=c89
 C ObjC
 Conform to the ISO 1990 C standard
 
+std=c90
+C ObjC
+Conform to the ISO 1990 C standard
+
 std=c99
 C ObjC
 Conform to the ISO 1999 C standard
@@ -978,6 +989,10 @@ standard, dubbed C++0x. Note that the extensions enabled by this mode
 are experimental and may be removed in future releases of GCC.
 
 std=gnu89
+C ObjC
+Conform to the ISO 1990 C standard with GNU extensions
+
+std=gnu90
 C ObjC
 Conform to the ISO 1990 C standard with GNU extensions
 

@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009
+   2009, 2010
    Free Software Foundation, Inc.
    Contributed by James E. Wilson <wilson@cygnus.com> and
 		  David Mosberger <davidm@hpl.hp.com>.
@@ -1733,25 +1733,18 @@ ia64_expand_vecint_compare (enum rtx_code code, enum machine_mode mode,
 	  {
 	    rtx t1, t2, mask;
 
-	    /* Perform a parallel modulo subtraction.  */
-	    t1 = gen_reg_rtx (V2SImode);
-	    emit_insn (gen_subv2si3 (t1, op0, op1));
-
-	    /* Extract the original sign bit of op0.  */
-	    mask = GEN_INT (-0x80000000);
+	    /* Subtract (-(INT MAX) - 1) from both operands to make
+	       them signed.  */
+	    mask = GEN_INT (0x80000000);
 	    mask = gen_rtx_CONST_VECTOR (V2SImode, gen_rtvec (2, mask, mask));
-	    mask = force_reg (V2SImode, mask);
-	    t2 = gen_reg_rtx (V2SImode);
-	    emit_insn (gen_andv2si3 (t2, op0, mask));
-
-	    /* XOR it back into the result of the subtraction.  This results
-	       in the sign bit set iff we saw unsigned underflow.  */
-	    x = gen_reg_rtx (V2SImode);
-	    emit_insn (gen_xorv2si3 (x, t1, t2));
-
+	    mask = force_reg (mode, mask);
+	    t1 = gen_reg_rtx (mode);
+	    emit_insn (gen_subv2si3 (t1, op0, mask));
+	    t2 = gen_reg_rtx (mode);
+	    emit_insn (gen_subv2si3 (t2, op1, mask));
+	    op0 = t1;
+	    op1 = t2;
 	    code = GT;
-	    op0 = x;
-	    op1 = CONST0_RTX (mode);
 	  }
 	  break;
 

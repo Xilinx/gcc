@@ -1,6 +1,6 @@
 /* Tree lowering pass.  This pass converts the GENERIC functions-as-trees
    tree representation into the GIMPLE form.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Major work done by Sebastian Pop <s.pop@laposte.net>,
    Diego Novillo <dnovillo@redhat.com> and Jason Merrill <jason@redhat.com>.
@@ -2720,6 +2720,36 @@ gimple_boolify (tree expr)
   tree type = TREE_TYPE (expr);
   location_t loc = EXPR_LOCATION (expr);
 
+  if (TREE_CODE (expr) == NE_EXPR
+      && TREE_CODE (TREE_OPERAND (expr, 0)) == CALL_EXPR
+      && integer_zerop (TREE_OPERAND (expr, 1)))
+    {
+      tree call = TREE_OPERAND (expr, 0);
+      tree fn = get_callee_fndecl (call);
+
+      /* For __builtin_expect ((long) (x), y) recurse into x as well
+	 if x is truth_value_p.  */
+      if (fn
+	  && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
+	  && DECL_FUNCTION_CODE (fn) == BUILT_IN_EXPECT
+	  && call_expr_nargs (call) == 2)
+	{
+	  tree arg = CALL_EXPR_ARG (call, 0);
+	  if (arg)
+	    {
+	      if (TREE_CODE (arg) == NOP_EXPR
+		  && TREE_TYPE (arg) == TREE_TYPE (call))
+		arg = TREE_OPERAND (arg, 0);
+	      if (truth_value_p (TREE_CODE (arg)))
+		{
+		  arg = gimple_boolify (arg);
+		  CALL_EXPR_ARG (call, 0)
+		    = fold_convert_loc (loc, TREE_TYPE (call), arg);
+		}
+	    }
+	}
+    }
+
   if (TREE_CODE (type) == BOOLEAN_TYPE)
     return expr;
 
@@ -3745,6 +3775,21 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	      }
 	  }
 
+	/* If the target is volatile and we have non-zero elements
+	   initialize the target from a temporary.  */
+	if (TREE_THIS_VOLATILE (object)
+	    && !TREE_ADDRESSABLE (type)
+	    && num_nonzero_elements > 0)
+	  {
+	    tree temp = create_tmp_var (TYPE_MAIN_VARIANT (type), NULL);
+	    TREE_OPERAND (*expr_p, 0) = temp;
+	    *expr_p = build2 (COMPOUND_EXPR, TREE_TYPE (*expr_p),
+			      *expr_p,
+			      build2 (MODIFY_EXPR, void_type_node,
+				      object, temp));
+	    return GS_OK;
+	  }
+
 	if (notify_temp_creation)
 	  return GS_OK;
 
@@ -3920,7 +3965,7 @@ gimple_fold_indirect_ref (tree t)
   tree sub = t;
   tree subtype;
 
-  STRIP_USELESS_TYPE_CONVERSION (sub);
+  STRIP_NOPS (sub);
   subtype = TREE_TYPE (sub);
   if (!POINTER_TYPE_P (subtype))
     return NULL_TREE;
@@ -3935,18 +3980,80 @@ gimple_fold_indirect_ref (tree t)
 
       /* *(foo *)&fooarray => fooarray[0] */
       if (TREE_CODE (optype) == ARRAY_TYPE
+	  && TREE_CODE (TYPE_SIZE (TREE_TYPE (optype))) == INTEGER_CST
 	  && useless_type_conversion_p (type, TREE_TYPE (optype)))
        {
          tree type_domain = TYPE_DOMAIN (optype);
          tree min_val = size_zero_node;
          if (type_domain && TYPE_MIN_VALUE (type_domain))
            min_val = TYPE_MIN_VALUE (type_domain);
-         return build4 (ARRAY_REF, type, op, min_val, NULL_TREE, NULL_TREE);
+	 if (TREE_CODE (min_val) == INTEGER_CST)
+	   return build4 (ARRAY_REF, type, op, min_val, NULL_TREE, NULL_TREE);
        }
+      /* *(foo *)&complexfoo => __real__ complexfoo */
+      else if (TREE_CODE (optype) == COMPLEX_TYPE
+               && useless_type_conversion_p (type, TREE_TYPE (optype)))
+        return fold_build1 (REALPART_EXPR, type, op);
+      /* *(foo *)&vectorfoo => BIT_FIELD_REF<vectorfoo,...> */
+      else if (TREE_CODE (optype) == VECTOR_TYPE
+               && useless_type_conversion_p (type, TREE_TYPE (optype)))
+        {
+          tree part_width = TYPE_SIZE (type);
+          tree index = bitsize_int (0);
+          return fold_build3 (BIT_FIELD_REF, type, op, part_width, index);
+        }
+    }
+
+  /* ((foo*)&vectorfoo)[1] => BIT_FIELD_REF<vectorfoo,...> */
+  if (TREE_CODE (sub) == POINTER_PLUS_EXPR
+      && TREE_CODE (TREE_OPERAND (sub, 1)) == INTEGER_CST)
+    {
+      tree op00 = TREE_OPERAND (sub, 0);
+      tree op01 = TREE_OPERAND (sub, 1);
+      tree op00type;
+
+      STRIP_NOPS (op00);
+      op00type = TREE_TYPE (op00);
+      if (TREE_CODE (op00) == ADDR_EXPR
+	  && TREE_CODE (TREE_TYPE (op00type)) == VECTOR_TYPE
+	  && useless_type_conversion_p (type, TREE_TYPE (TREE_TYPE (op00type))))
+	{
+	  HOST_WIDE_INT offset = tree_low_cst (op01, 0);
+	  tree part_width = TYPE_SIZE (type);
+	  unsigned HOST_WIDE_INT part_widthi
+	    = tree_low_cst (part_width, 0) / BITS_PER_UNIT;
+	  unsigned HOST_WIDE_INT indexi = offset * BITS_PER_UNIT;
+	  tree index = bitsize_int (indexi);
+	  if (offset / part_widthi
+	      <= TYPE_VECTOR_SUBPARTS (TREE_TYPE (op00type)))
+	    return fold_build3 (BIT_FIELD_REF, type, TREE_OPERAND (op00, 0),
+				part_width, index);
+	}
+    }
+
+  /* ((foo*)&complexfoo)[1] => __imag__ complexfoo */
+  if (TREE_CODE (sub) == POINTER_PLUS_EXPR
+      && TREE_CODE (TREE_OPERAND (sub, 1)) == INTEGER_CST)
+    {
+      tree op00 = TREE_OPERAND (sub, 0);
+      tree op01 = TREE_OPERAND (sub, 1);
+      tree op00type;
+
+      STRIP_NOPS (op00);
+      op00type = TREE_TYPE (op00);
+      if (TREE_CODE (op00) == ADDR_EXPR
+	  && TREE_CODE (TREE_TYPE (op00type)) == COMPLEX_TYPE
+	  && useless_type_conversion_p (type, TREE_TYPE (TREE_TYPE (op00type))))
+	{
+	  tree size = TYPE_SIZE_UNIT (type);
+	  if (tree_int_cst_equal (size, op01))
+	    return fold_build1 (IMAGPART_EXPR, type, TREE_OPERAND (op00, 0));
+	}
     }
 
   /* *(foo *)fooarrptr => (*fooarrptr)[0] */
   if (TREE_CODE (TREE_TYPE (subtype)) == ARRAY_TYPE
+      && TREE_CODE (TYPE_SIZE (TREE_TYPE (TREE_TYPE (subtype)))) == INTEGER_CST
       && useless_type_conversion_p (type, TREE_TYPE (TREE_TYPE (subtype))))
     {
       tree type_domain;
@@ -3958,7 +4065,8 @@ gimple_fold_indirect_ref (tree t)
       type_domain = TYPE_DOMAIN (TREE_TYPE (sub));
       if (type_domain && TYPE_MIN_VALUE (type_domain))
         min_val = TYPE_MIN_VALUE (type_domain);
-      return build4 (ARRAY_REF, type, sub, min_val, NULL_TREE, NULL_TREE);
+      if (TREE_CODE (min_val) == INTEGER_CST)
+	return build4 (ARRAY_REF, type, sub, min_val, NULL_TREE, NULL_TREE);
     }
 
   return NULL_TREE;
@@ -4407,7 +4515,8 @@ gimplify_modify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
       /* Since the RHS is a CALL_EXPR, we need to create a GIMPLE_CALL
 	 instead of a GIMPLE_ASSIGN.  */
       assign = gimple_build_call_from_tree (*from_p);
-      gimple_call_set_lhs (assign, *to_p);
+      if (!gimple_call_noreturn_p (assign))
+	gimple_call_set_lhs (assign, *to_p);
     }
   else
     {
@@ -7272,9 +7381,10 @@ gimplify_type_sizes (tree type, gimple_seq *list_p)
       /* These types may not have declarations, so handle them here.  */
       gimplify_type_sizes (TREE_TYPE (type), list_p);
       gimplify_type_sizes (TYPE_DOMAIN (type), list_p);
-      /* When not optimizing, ensure VLA bounds aren't removed.  */
-      if (!optimize
-	  && TYPE_DOMAIN (type)
+      /* Ensure VLA bounds aren't removed, for -O0 they should be variables
+	 with assigned stack slots, for -O1+ -g they should be tracked
+	 by VTA.  */
+      if (TYPE_DOMAIN (type)
 	  && INTEGRAL_TYPE_P (TYPE_DOMAIN (type)))
 	{
 	  t = TYPE_MIN_VALUE (TYPE_DOMAIN (type));
@@ -7439,11 +7549,21 @@ gimplify_body (tree *body_p, tree fndecl, bool do_parms)
   *body_p = NULL_TREE;
 
   /* If we had callee-copies statements, insert them at the beginning
-     of the function.  */
+     of the function and clear DECL_VALUE_EXPR_P on the parameters.  */
   if (!gimple_seq_empty_p (parm_stmts))
     {
+      tree parm;
+
       gimplify_seq_add_seq (&parm_stmts, gimple_bind_body (outer_bind));
       gimple_bind_set_body (outer_bind, parm_stmts);
+
+      for (parm = DECL_ARGUMENTS (current_function_decl);
+	   parm; parm = TREE_CHAIN (parm))
+	if (DECL_HAS_VALUE_EXPR_P (parm))
+	  {
+	    DECL_HAS_VALUE_EXPR_P (parm) = 0;
+	    DECL_IGNORED_P (parm) = 0;
+	  }
     }
 
   if (nonlocal_vlas)

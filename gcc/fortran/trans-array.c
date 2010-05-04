@@ -1,5 +1,5 @@
 /* Array translation routines
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
    and Steven Bosscher <s.bosscher@student.tudelft.nl>
@@ -2404,8 +2404,8 @@ gfc_conv_array_index_offset (gfc_se * se, gfc_ss_info * info, int dim, int i,
 
 	  index = gfc_trans_array_bound_check (se, info->descriptor,
 			index, dim, &ar->where,
-			(ar->as->type != AS_ASSUMED_SIZE
-			 && !ar->as->cp_was_assumed) || dim < ar->dimen - 1);
+			ar->as->type != AS_ASSUMED_SIZE
+			|| dim < ar->dimen - 1);
 	  break;
 
 	case DIMEN_VECTOR:
@@ -2431,8 +2431,8 @@ gfc_conv_array_index_offset (gfc_se * se, gfc_ss_info * info, int dim, int i,
 	  /* Do any bounds checking on the final info->descriptor index.  */
 	  index = gfc_trans_array_bound_check (se, info->descriptor,
 			index, dim, &ar->where,
-			(ar->as->type != AS_ASSUMED_SIZE
-			 && !ar->as->cp_was_assumed) || dim < ar->dimen - 1);
+			ar->as->type != AS_ASSUMED_SIZE
+			|| dim < ar->dimen - 1);
 	  break;
 
 	case DIMEN_RANGE:
@@ -2581,8 +2581,7 @@ gfc_conv_array_ref (gfc_se * se, gfc_array_ref * ar, gfc_symbol * sym,
 
 	  /* Upper bound, but not for the last dimension of assumed-size
 	     arrays.  */
-	  if (n < ar->dimen - 1
-	      || (ar->as->type != AS_ASSUMED_SIZE && !ar->as->cp_was_assumed))
+	  if (n < ar->dimen - 1 || ar->as->type != AS_ASSUMED_SIZE)
 	    {
 	      tmp = gfc_conv_array_ubound (se->expr, n);
 	      if (sym->attr.temporary)
@@ -3207,8 +3206,7 @@ gfc_conv_ss_startstride (gfc_loopinfo * loop)
 		continue;
 
 	      if (dim == info->ref->u.ar.dimen - 1
-		  && (info->ref->u.ar.as->type == AS_ASSUMED_SIZE
-		      || info->ref->u.ar.as->cp_was_assumed))
+		  && info->ref->u.ar.as->type == AS_ASSUMED_SIZE)
 		check_upper = false;
 	      else
 		check_upper = true;
@@ -4109,11 +4107,11 @@ gfc_conv_array_initializer (tree type, gfc_expr * expr)
             {
               /* Problems occur when we get something like
                  integer :: a(lots) = (/(i, i=1, lots)/)  */
-              gfc_error_now ("The number of elements in the array constructor "
-			     "at %L requires an increase of the allowed %d "
-			     "upper limit.   See -fmax-array-constructor "
-			     "option", &expr->where,
-			     gfc_option.flag_max_array_constructor);
+              gfc_fatal_error ("The number of elements in the array constructor "
+			       "at %L requires an increase of the allowed %d "
+			       "upper limit.   See -fmax-array-constructor "
+			       "option", &expr->where,
+			       gfc_option.flag_max_array_constructor);
 	      return NULL_TREE;
 	    }
           if (mpz_cmp_si (c->n.offset, 0) != 0)
@@ -5459,7 +5457,7 @@ array_parameter_size (tree desc, gfc_expr *expr, tree *size)
 /* TODO: Optimize passing g77 arrays.  */
 
 void
-gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
+gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
 			  const gfc_symbol *fsym, const char *proc_name,
 			  tree *size)
 {
@@ -5468,17 +5466,42 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
   tree tmp = NULL_TREE;
   tree stmt;
   tree parent = DECL_CONTEXT (current_function_decl);
-  bool full_array_var, this_array_result;
+  bool full_array_var;
+  bool this_array_result;
+  bool contiguous;
+  bool no_pack;
+  bool array_constructor;
+  bool good_allocatable;
+  bool ultimate_ptr_comp;
+  bool ultimate_alloc_comp;
   gfc_symbol *sym;
   stmtblock_t block;
+  gfc_ref *ref;
 
-  full_array_var = (expr->expr_type == EXPR_VARIABLE
-		    && expr->ref->type == REF_ARRAY
-		    && expr->ref->u.ar.type == AR_FULL);
+  ultimate_ptr_comp = false;
+  ultimate_alloc_comp = false;
+  for (ref = expr->ref; ref; ref = ref->next)
+    {
+      if (ref->next == NULL)
+        break;
+
+      if (ref->type == REF_COMPONENT)
+	{
+	  ultimate_ptr_comp = ref->u.c.component->attr.pointer;
+	  ultimate_alloc_comp = ref->u.c.component->attr.allocatable;
+	}
+    }
+
+  full_array_var = false;
+  contiguous = false;
+
+  if (expr->expr_type == EXPR_VARIABLE && ref && !ultimate_ptr_comp)
+    full_array_var = gfc_full_array_ref_p (ref, &contiguous);
+
   sym = full_array_var ? expr->symtree->n.sym : NULL;
 
   /* The symbol should have an array specification.  */
-  gcc_assert (!sym || sym->as);
+  gcc_assert (!sym || sym->as || ref->u.ar.as);
 
   if (expr->expr_type == EXPR_ARRAY && expr->ts.type == BT_CHARACTER)
     {
@@ -5501,8 +5524,18 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
 
       if (sym->ts.type == BT_CHARACTER)
 	se->string_length = sym->ts.u.cl->backend_decl;
-      if (!sym->attr.pointer && sym->as->type != AS_ASSUMED_SHAPE 
-          && !sym->attr.allocatable)
+
+      if (sym->ts.type == BT_DERIVED)
+	{
+	  gfc_conv_expr_descriptor (se, expr, ss);
+	  se->expr = gfc_conv_array_data (se->expr);
+	  return;
+	}
+
+      if (!sym->attr.pointer
+	    && sym->as
+	    && sym->as->type != AS_ASSUMED_SHAPE 
+            && !sym->attr.allocatable)
         {
 	  /* Some variables are declared directly, others are declared as
 	     pointers and allocated on the heap.  */
@@ -5514,6 +5547,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
 	    array_parameter_size (tmp, expr, size);
 	  return;
         }
+
       if (sym->attr.allocatable)
         {
 	  if (sym->attr.dummy || sym->attr.result)
@@ -5526,6 +5560,44 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
 	  se->expr = gfc_conv_array_data (tmp);
           return;
         }
+    }
+
+  /* A convenient reduction in scope.  */
+  contiguous = g77 && !this_array_result && contiguous;
+
+  /* There is no need to pack and unpack the array, if it is contiguous
+     and not deferred or assumed shape.  */
+  no_pack = ((sym && sym->as
+		  && !sym->attr.pointer
+		  && sym->as->type != AS_DEFERRED
+		  && sym->as->type != AS_ASSUMED_SHAPE)
+		      ||
+	     (ref && ref->u.ar.as
+		  && ref->u.ar.as->type != AS_DEFERRED
+		  && ref->u.ar.as->type != AS_ASSUMED_SHAPE));
+
+  no_pack = contiguous && no_pack;
+
+  /* Array constructors are always contiguous and do not need packing.  */
+  array_constructor = g77 && !this_array_result && expr->expr_type == EXPR_ARRAY;
+
+  /* Same is true of contiguous sections from allocatable variables.  */
+  good_allocatable = contiguous
+		       && expr->symtree
+		       && expr->symtree->n.sym->attr.allocatable;
+
+  /* Or ultimate allocatable components.  */
+  ultimate_alloc_comp = contiguous && ultimate_alloc_comp; 
+
+  if (no_pack || array_constructor || good_allocatable || ultimate_alloc_comp)
+    {
+      gfc_conv_expr_descriptor (se, expr, ss);
+      if (expr->ts.type == BT_CHARACTER)
+	se->string_length = expr->ts.u.cl->backend_decl;
+      if (size)
+	array_parameter_size (se->expr, expr, size);
+      se->expr = gfc_conv_array_data (se->expr);
+      return;
     }
 
   if (this_array_result)
@@ -5570,7 +5642,6 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
     {
       desc = se->expr;
       /* Repack the array.  */
-
       if (gfc_option.warn_array_temp)
 	{
 	  if (fsym)
@@ -5711,10 +5782,12 @@ get_full_array_size (stmtblock_t *block, tree decl, int rank)
 }
 
 
-/* Allocate dest to the same size as src, and copy src -> dest.  */
+/* Allocate dest to the same size as src, and copy src -> dest.
+   If no_malloc is set, only the copy is done.  */
 
-tree
-gfc_duplicate_allocatable(tree dest, tree src, tree type, int rank)
+static tree
+duplicate_allocatable(tree dest, tree src, tree type, int rank,
+		      bool no_malloc)
 {
   tree tmp;
   tree size;
@@ -5723,35 +5796,66 @@ gfc_duplicate_allocatable(tree dest, tree src, tree type, int rank)
   tree null_data;
   stmtblock_t block;
 
-  /* If the source is null, set the destination to null.  */
-  gfc_init_block (&block);
-  gfc_conv_descriptor_data_set (&block, dest, null_pointer_node);
-  null_data = gfc_finish_block (&block);
-
+  /* If the source is null, set the destination to null.  Then,
+     allocate memory to the destination.  */
   gfc_init_block (&block);
 
-  nelems = get_full_array_size (&block, src, rank);
-  size = fold_build2 (MULT_EXPR, gfc_array_index_type, nelems,
-		      fold_convert (gfc_array_index_type,
-				    TYPE_SIZE_UNIT (gfc_get_element_type (type))));
+  if (rank == 0)
+    {
+      tmp = null_pointer_node;
+      tmp = fold_build2 (MODIFY_EXPR, type, dest, tmp);
+      gfc_add_expr_to_block (&block, tmp);
+      null_data = gfc_finish_block (&block);
 
-  /* Allocate memory to the destination.  */
-  tmp = gfc_call_malloc (&block, TREE_TYPE (gfc_conv_descriptor_data_get (src)),
-			 size);
-  gfc_conv_descriptor_data_set (&block, dest, tmp);
+      gfc_init_block (&block);
+      size = TYPE_SIZE_UNIT (type);
+      if (!no_malloc)
+	{
+	  tmp = gfc_call_malloc (&block, type, size);
+	  tmp = fold_build2 (MODIFY_EXPR, void_type_node, dest,
+			     fold_convert (type, tmp));
+	  gfc_add_expr_to_block (&block, tmp);
+	}
 
-  /* We know the temporary and the value will be the same length,
-     so can use memcpy.  */
-  tmp = built_in_decls[BUILT_IN_MEMCPY];
-  tmp = build_call_expr_loc (input_location,
-			 tmp, 3, gfc_conv_descriptor_data_get (dest),
-  			 gfc_conv_descriptor_data_get (src), size);
+      tmp = built_in_decls[BUILT_IN_MEMCPY];
+      tmp = build_call_expr_loc (input_location, tmp, 3,
+				 dest, src, size);
+    }
+  else
+    {
+      gfc_conv_descriptor_data_set (&block, dest, null_pointer_node);
+      null_data = gfc_finish_block (&block);
+
+      gfc_init_block (&block);
+      nelems = get_full_array_size (&block, src, rank);
+      tmp = fold_convert (gfc_array_index_type,
+			  TYPE_SIZE_UNIT (gfc_get_element_type (type)));
+      size = fold_build2 (MULT_EXPR, gfc_array_index_type, nelems, tmp);
+      if (!no_malloc)
+	{
+	  tmp = TREE_TYPE (gfc_conv_descriptor_data_get (src));
+	  tmp = gfc_call_malloc (&block, tmp, size);
+	  gfc_conv_descriptor_data_set (&block, dest, tmp);
+	}
+
+      /* We know the temporary and the value will be the same length,
+	 so can use memcpy.  */
+      tmp = built_in_decls[BUILT_IN_MEMCPY];
+      tmp = build_call_expr_loc (input_location,
+			tmp, 3, gfc_conv_descriptor_data_get (dest),
+			gfc_conv_descriptor_data_get (src), size);
+    }
+
   gfc_add_expr_to_block (&block, tmp);
   tmp = gfc_finish_block (&block);
 
   /* Null the destination if the source is null; otherwise do
      the allocate and copy.  */
-  null_cond = gfc_conv_descriptor_data_get (src);
+  if (rank == 0)
+    null_cond = src;
+  else
+    null_cond = gfc_conv_descriptor_data_get (src);
+
   null_cond = convert (pvoid_type_node, null_cond);
   null_cond = fold_build2 (NE_EXPR, boolean_type_node,
 			   null_cond, null_pointer_node);
@@ -5759,11 +5863,30 @@ gfc_duplicate_allocatable(tree dest, tree src, tree type, int rank)
 }
 
 
+/* Allocate dest to the same size as src, and copy data src -> dest.  */
+
+tree
+gfc_duplicate_allocatable (tree dest, tree src, tree type, int rank)
+{
+  return duplicate_allocatable(dest, src, type, rank, false);
+}
+
+
+/* Copy data src -> dest.  */
+
+tree
+gfc_copy_allocatable_data (tree dest, tree src, tree type, int rank)
+{
+  return duplicate_allocatable(dest, src, type, rank, true);
+}
+
+
 /* Recursively traverse an object of derived type, generating code to
    deallocate, nullify or copy allocatable components.  This is the work horse
    function for the functions named in this enum.  */
 
-enum {DEALLOCATE_ALLOC_COMP = 1, NULLIFY_ALLOC_COMP, COPY_ALLOC_COMP};
+enum {DEALLOCATE_ALLOC_COMP = 1, NULLIFY_ALLOC_COMP, COPY_ALLOC_COMP,
+      COPY_ONLY_ALLOC_COMP};
 
 static tree
 structure_alloc_comps (gfc_symbol * der_type, tree decl,
@@ -5786,7 +5909,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 
   gfc_init_block (&fnblock);
 
-  if (POINTER_TYPE_P (TREE_TYPE (decl)))
+  if (POINTER_TYPE_P (TREE_TYPE (decl)) && rank != 0)
     decl = build_fold_indirect_ref_loc (input_location,
 				    decl);
 
@@ -5840,6 +5963,14 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 					 gfc_conv_array_data (dest));
 	  dref = gfc_build_array_ref (tmp, index, NULL);
 	  tmp = structure_alloc_comps (der_type, vref, dref, rank, purpose);
+	}
+      else if (purpose == COPY_ONLY_ALLOC_COMP)
+        {
+	  tmp = build_fold_indirect_ref_loc (input_location,
+					 gfc_conv_array_data (dest));
+	  dref = gfc_build_array_ref (tmp, index, NULL);
+	  tmp = structure_alloc_comps (der_type, vref, dref, rank,
+				       COPY_ALLOC_COMP);
 	}
       else
         tmp = structure_alloc_comps (der_type, vref, NULL_TREE, rank, purpose);
@@ -5978,7 +6109,8 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 
 	  if (c->attr.allocatable && !cmp_has_alloc_comps)
 	    {
-	      tmp = gfc_duplicate_allocatable(dcmp, comp, ctype, c->as->rank);
+	      rank = c->as ? c->as->rank : 0;
+	      tmp = gfc_duplicate_allocatable(dcmp, comp, ctype, rank);
 	      gfc_add_expr_to_block (&fnblock, tmp);
 	    }
 
@@ -6025,12 +6157,22 @@ gfc_deallocate_alloc_comp (gfc_symbol * der_type, tree decl, int rank)
 
 
 /* Recursively traverse an object of derived type, generating code to
-   copy its allocatable components.  */
+   copy it and its allocatable components.  */
 
 tree
 gfc_copy_alloc_comp (gfc_symbol * der_type, tree decl, tree dest, int rank)
 {
   return structure_alloc_comps (der_type, decl, dest, rank, COPY_ALLOC_COMP);
+}
+
+
+/* Recursively traverse an object of derived type, generating code to
+   copy only its allocatable components.  */
+
+tree
+gfc_copy_only_alloc_comp (gfc_symbol * der_type, tree decl, tree dest, int rank)
+{
+  return structure_alloc_comps (der_type, decl, dest, rank, COPY_ONLY_ALLOC_COMP);
 }
 
 

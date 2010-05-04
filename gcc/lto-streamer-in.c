@@ -1,6 +1,6 @@
 /* Read the GIMPLE representation from a file stream.
 
-   Copyright 2009 Free Software Foundation, Inc.
+   Copyright 2009, 2010 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
    Re-implemented by Diego Novillo <dnovillo@google.com>
 
@@ -946,7 +946,8 @@ maybe_fixup_handled_component (tree op)
 }
 
 /* Fixup reference tree operands for substituted prevailing decls
-   with mismatched types in STMT.  */
+   with mismatched types in STMT.  This handles plain DECLs where
+   we need the stmt for context to lookup the required type.  */
 
 static void
 maybe_fixup_decls (gimple stmt)
@@ -967,8 +968,6 @@ maybe_fixup_decls (gimple stmt)
 	    gimple_assign_set_rhs1 (stmt, build1 (VIEW_CONVERT_EXPR,
 						  TREE_TYPE (lhs), rhs));
 	}
-      else if (handled_component_p (rhs))
-	maybe_fixup_handled_component (rhs);
       /* Then catch scalar stores.  */
       else if (TREE_CODE (lhs) == VAR_DECL)
 	{
@@ -976,8 +975,6 @@ maybe_fixup_decls (gimple stmt)
 	    gimple_assign_set_lhs (stmt, build1 (VIEW_CONVERT_EXPR,
 						 TREE_TYPE (rhs), lhs));
 	}
-      else if (handled_component_p (lhs))
-	maybe_fixup_handled_component (lhs);
     }
   else if (is_gimple_call (stmt))
     {
@@ -991,8 +988,6 @@ maybe_fixup_decls (gimple stmt)
 					       gimple_call_return_type (stmt),
 					       lhs));
 	}
-      else if (lhs && handled_component_p (lhs))
-	maybe_fixup_handled_component (lhs);
 
       /* Arguments, especially for varargs functions will be funny...  */
     }
@@ -1069,9 +1064,29 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 	{
 	  tree op = lto_input_tree (ib, data_in);
 	  gimple_set_op (stmt, i, op);
+	  if (!op)
+	    continue;
 
-	  /* Fixup FIELD_DECLs.  */
-	  while (op && handled_component_p (op))
+	  /* Fixup reference tree operands for substituted prevailing decls
+	     with mismatched types.  For plain VAR_DECLs we need to look
+	     at context to determine the wanted type - we do that below
+	     after the stmt is completed.  */
+	  if (TREE_CODE (op) == ADDR_EXPR
+	      && TREE_CODE (TREE_OPERAND (op, 0)) == VAR_DECL
+	      && !useless_type_conversion_p (TREE_TYPE (TREE_TYPE (op)),
+					     TREE_TYPE (op)))
+	    {
+	      TREE_OPERAND (op, 0)
+		= build1 (VIEW_CONVERT_EXPR, TREE_TYPE (TREE_TYPE (op)),
+			  TREE_OPERAND (op, 0));
+	      continue;
+	    }
+
+	  /* Fixup FIELD_DECLs in COMPONENT_REFs, they are not handled
+	     by decl merging.  */
+	  if (TREE_CODE (op) == ADDR_EXPR)
+	    op = TREE_OPERAND (op, 0);
+	  while (handled_component_p (op))
 	    {
 	      if (TREE_CODE (op) == COMPONENT_REF)
 		{
@@ -1096,8 +1111,17 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 		    TREE_OPERAND (op, 1) = tem;
 		}
 
+	      /* Preserve the last handled component for the fixup of
+	         its operand below.  */
+	      if (!handled_component_p (TREE_OPERAND (op, 0)))
+		break;
 	      op = TREE_OPERAND (op, 0);
 	    }
+
+	  /* Fixup reference tree operands for substituted prevailing decls
+	     with mismatched types.  */
+	  if (handled_component_p (op))
+	    maybe_fixup_handled_component (op);
 	}
       break;
 
@@ -1291,6 +1315,9 @@ input_function (tree fn_decl, struct data_in *data_in,
   fn->va_list_gpr_size = bp_unpack_value (bp, 8);
   bitpack_delete (bp);
 
+  /* Input the current IL state of the function.  */
+  fn->curr_properties = lto_input_uleb128 (ib);
+
   /* Read the static chain and non-local goto save area.  */
   fn->static_chain_decl = lto_input_tree (ib, data_in);
   fn->nonlocal_goto_save_area = lto_input_tree (ib, data_in);
@@ -1466,14 +1493,6 @@ lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
       /* We should now be in SSA.  */
       cfun->gimple_df->in_ssa_p = true;
 
-      /* Fill in properties we know hold for the rebuilt CFG.  */
-      cfun->curr_properties = PROP_ssa
-			      | PROP_cfg
-			      | PROP_gimple_any
-			      | PROP_gimple_lcf
-			      | PROP_gimple_leh
-			      | PROP_referenced_vars;
-
       /* Restore decl state */
       file_data->current_decl_state = file_data->global_decl_state;
 
@@ -1520,12 +1539,15 @@ get_resolution (struct data_in *data_in, unsigned index)
   if (data_in->globals_resolution)
     {
       ld_plugin_symbol_resolution_t ret;
-      gcc_assert (index < VEC_length (ld_plugin_symbol_resolution_t,
-				      data_in->globals_resolution));
+      /* We can have references to not emitted functions in
+	 DECL_FUNCTION_PERSONALITY at least.  So we can and have
+	 to indeed return LDPR_UNKNOWN in some cases.   */
+      if (VEC_length (ld_plugin_symbol_resolution_t,
+		      data_in->globals_resolution) <= index)
+	return LDPR_UNKNOWN;
       ret = VEC_index (ld_plugin_symbol_resolution_t,
 		       data_in->globals_resolution,
 		       index);
-      gcc_assert (ret != LDPR_UNKNOWN);
       return ret;
     }
   else
@@ -1747,8 +1769,8 @@ unpack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
   TYPE_STRING_FLAG (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_NO_FORCE_BLK (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_NEEDS_CONSTRUCTING(expr) = (unsigned) bp_unpack_value (bp, 1);
-  if (TREE_CODE (expr) == UNION_TYPE)
-    TYPE_TRANSPARENT_UNION (expr) = (unsigned) bp_unpack_value (bp, 1);
+  if (TREE_CODE (expr) == UNION_TYPE || TREE_CODE (expr) == RECORD_TYPE)
+    TYPE_TRANSPARENT_AGGR (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_PACKED (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_RESTRICT (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_CONTAINS_PLACEHOLDER_INTERNAL (expr)
@@ -2697,6 +2719,17 @@ lto_input_tree (struct lto_input_block *ib, struct data_in *data_in)
       /* If we are going to read a built-in function, all we need is
 	 the code and class.  */
       result = lto_get_builtin_tree (ib, data_in);
+    }
+  else if (tag == LTO_var_decl_alias)
+    {
+      /* An extra_name alias for a variable.  */
+      unsigned HOST_WIDE_INT ix;
+      tree target;
+      ix = lto_input_uleb128 (ib);
+      result = lto_file_decl_data_get_var_decl (data_in->file_data, ix);
+      ix = lto_input_uleb128 (ib);
+      target = lto_file_decl_data_get_var_decl (data_in->file_data, ix);
+      varpool_extra_name_alias (result, target);
     }
   else if (tag == lto_tree_code_to_tag (INTEGER_CST))
     {

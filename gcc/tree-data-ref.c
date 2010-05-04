@@ -1,5 +1,5 @@
 /* Data references and dependences detectors.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
@@ -79,6 +79,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "ggc.h"
+#include "flags.h"
 #include "tree.h"
 
 /* These RTL headers are needed for basic-block.h.  */
@@ -202,19 +203,19 @@ dump_data_reference (FILE *outf,
 {
   unsigned int i;
 
-  fprintf (outf, "(Data Ref: \n  stmt: ");
+  fprintf (outf, "#(Data Ref: \n#  stmt: ");
   print_gimple_stmt (outf, DR_STMT (dr), 0, 0);
-  fprintf (outf, "  ref: ");
+  fprintf (outf, "#  ref: ");
   print_generic_stmt (outf, DR_REF (dr), 0);
-  fprintf (outf, "  base_object: ");
+  fprintf (outf, "#  base_object: ");
   print_generic_stmt (outf, DR_BASE_OBJECT (dr), 0);
 
   for (i = 0; i < DR_NUM_DIMENSIONS (dr); i++)
     {
-      fprintf (outf, "  Access function %d: ", i);
+      fprintf (outf, "#  Access function %d: ", i);
       print_generic_stmt (outf, DR_ACCESS_FN (dr, i), 0);
     }
-  fprintf (outf, ")\n");
+  fprintf (outf, "#)\n");
 }
 
 /* Dumps the affine function described by FN to the file OUTF.  */
@@ -380,6 +381,19 @@ dump_data_dependence_relation (FILE *outf,
 
   if (!ddr || DDR_ARE_DEPENDENT (ddr) == chrec_dont_know)
     {
+      if (ddr)
+	{
+	  dra = DDR_A (ddr);
+	  drb = DDR_B (ddr);
+	  if (dra)
+	    dump_data_reference (outf, dra);
+	  else
+	    fprintf (outf, "    (nil)\n");
+	  if (drb)
+	    dump_data_reference (outf, drb);
+	  else
+	    fprintf (outf, "    (nil)\n");
+	}
       fprintf (outf, "    (don't know)\n)\n");
       return;
     }
@@ -630,6 +644,24 @@ split_constant_offset_1 (tree type, tree op0, enum tree_code code, tree op1,
 	var1 = gimple_assign_rhs2 (def_stmt);
 
 	return split_constant_offset_1 (type, var0, subcode, var1, var, off);
+      }
+    CASE_CONVERT:
+      {
+	/* We must not introduce undefined overflow, and we must not change the value.
+	   Hence we're okay if the inner type doesn't overflow to start with
+	   (pointer or signed), the outer type also is an integer or pointer
+	   and the outer precision is at least as large as the inner.  */
+	tree itype = TREE_TYPE (op0);
+	if ((POINTER_TYPE_P (itype)
+	     || (INTEGRAL_TYPE_P (itype) && TYPE_OVERFLOW_UNDEFINED (itype)))
+	    && TYPE_PRECISION (type) >= TYPE_PRECISION (itype)
+	    && (POINTER_TYPE_P (type) || INTEGRAL_TYPE_P (type)))
+	  {
+	    split_constant_offset (op0, &var0, off);
+	    *var = fold_convert (type, var0);
+	    return true;
+	  }
+	return false;
       }
 
     default:

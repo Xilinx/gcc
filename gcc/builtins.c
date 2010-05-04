@@ -1,6 +1,6 @@
 /* Expand builtin functions.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -135,7 +135,7 @@ static rtx expand_builtin_expect (tree, rtx);
 static tree fold_builtin_constant_p (tree);
 static tree fold_builtin_expect (location_t, tree, tree);
 static tree fold_builtin_classify_type (tree);
-static tree fold_builtin_strlen (location_t, tree);
+static tree fold_builtin_strlen (location_t, tree, tree);
 static tree fold_builtin_inf (location_t, tree, int);
 static tree fold_builtin_nan (tree, tree, int);
 static tree rewrite_call_expr (location_t, tree, int, tree, int, ...);
@@ -325,7 +325,8 @@ get_object_alignment (tree exp, unsigned int align, unsigned int max_align)
     }
   if (TREE_CODE (exp) == CONST_DECL)
     exp = DECL_INITIAL (exp);
-  if (DECL_P (exp))
+  if (DECL_P (exp)
+      && TREE_CODE (exp) != LABEL_DECL)
     align = MIN (inner, DECL_ALIGN (exp));
 #ifdef CONSTANT_ALIGNMENT
   else if (CONSTANT_CLASS_P (exp))
@@ -432,6 +433,7 @@ c_strlen (tree src, int only_value)
   HOST_WIDE_INT offset;
   int max;
   const char *ptr;
+  location_t loc;
 
   STRIP_NOPS (src);
   if (TREE_CODE (src) == COND_EXPR
@@ -448,6 +450,11 @@ c_strlen (tree src, int only_value)
   if (TREE_CODE (src) == COMPOUND_EXPR
       && (only_value || !TREE_SIDE_EFFECTS (TREE_OPERAND (src, 0))))
     return c_strlen (TREE_OPERAND (src, 1), only_value);
+
+  if (EXPR_HAS_LOCATION (src))
+    loc = EXPR_LOCATION (src);
+  else
+    loc = input_location;
 
   src = string_constant (src, &offset_node);
   if (src == 0)
@@ -474,7 +481,7 @@ c_strlen (tree src, int only_value)
 	 and return that.  This would perhaps not be valid if we were dealing
 	 with named arrays in addition to literal string constants.  */
 
-      return size_diffop_loc (input_location, size_int (max), offset_node);
+      return size_diffop_loc (loc, size_int (max), offset_node);
     }
 
   /* We have a known offset into the string.  Start searching there for
@@ -493,7 +500,7 @@ c_strlen (tree src, int only_value)
      /* Suppress multiple warnings for propagated constant strings.  */
       if (! TREE_NO_WARNING (src))
         {
-          warning (0, "offset outside bounds of constant string");
+          warning_at (loc, 0, "offset outside bounds of constant string");
           TREE_NO_WARNING (src) = 1;
         }
       return NULL_TREE;
@@ -1874,7 +1881,9 @@ expand_errno_check (tree exp, rtx target)
   /* Test the result; if it is NaN, set errno=EDOM because
      the argument was not in the domain.  */
   do_compare_rtx_and_jump (target, target, EQ, 0, GET_MODE (target),
-                           NULL_RTX, NULL_RTX, lab);
+			   NULL_RTX, NULL_RTX, lab,
+			   /* The jump is very likely.  */
+			   REG_BR_PROB_BASE - (REG_BR_PROB_BASE / 2000 - 1));
 
 #ifdef TARGET_EDOM
   /* If this built-in doesn't throw an exception, set errno directly.  */
@@ -2303,6 +2312,8 @@ expand_builtin_interclass_mathfn (tree exp, rtx target, rtx subtarget)
 
   if (icode != CODE_FOR_nothing)
     {
+      rtx last = get_last_insn ();
+      tree orig_arg = arg;
       /* Make a suitable register to place result in.  */
       if (!target
 	  || GET_MODE (target) != TYPE_MODE (TREE_TYPE (exp)))
@@ -2323,8 +2334,10 @@ expand_builtin_interclass_mathfn (tree exp, rtx target, rtx subtarget)
 
       /* Compute into TARGET.
 	 Set TARGET to wherever the result comes back.  */
-      emit_unop_insn (icode, target, op0, UNKNOWN);
-      return target;
+      if (maybe_emit_unop_insn (icode, target, op0, UNKNOWN))
+	return target;
+      delete_insns_since (last);
+      CALL_EXPR_ARG (exp, 0) = orig_arg;
     }
 
   return NULL_RTX;
@@ -2971,7 +2984,16 @@ expand_builtin_pow (tree exp, rtx target, rtx subtarget)
 	  && ((flag_unsafe_math_optimizations
 	       && optimize_insn_for_speed_p ()
 	       && powi_cost (n/2) <= POWI_MAX_MULTS)
-	      || n == 1))
+	      /* Even the c == 0.5 case cannot be done unconditionally
+	         when we need to preserve signed zeros, as
+		 pow (-0, 0.5) is +0, while sqrt(-0) is -0.  */
+	      || (!HONOR_SIGNED_ZEROS (mode) && n == 1)
+	      /* For c == 1.5 we can assume that x * sqrt (x) is always
+	         smaller than pow (x, 1.5) if sqrt will not be expanded
+		 as a call.  */
+	      || (n == 3
+		  && (optab_handler (sqrt_optab, mode)->insn_code
+		      != CODE_FOR_nothing))))
 	{
 	  tree call_expr = build_call_nofold (fn, 1, narg0);
 	  /* Use expand_expr in case the newly built call expression
@@ -5185,9 +5207,11 @@ expand_builtin_signbit (tree exp, rtx target)
   icode = signbit_optab->handlers [(int) fmode].insn_code;
   if (icode != CODE_FOR_nothing)
     {
+      rtx last = get_last_insn ();
       target = gen_reg_rtx (TYPE_MODE (TREE_TYPE (exp)));
-      emit_unop_insn (icode, target, temp, UNKNOWN);
-      return target;
+      if (maybe_emit_unop_insn (icode, target, temp, UNKNOWN))
+	return target;
+      delete_insns_since (last);
     }
 
   /* For floating point formats without a sign bit, implement signbit
@@ -6616,7 +6640,7 @@ fold_builtin_classify_type (tree arg)
 /* Fold a call to __builtin_strlen with argument ARG.  */
 
 static tree
-fold_builtin_strlen (location_t loc, tree arg)
+fold_builtin_strlen (location_t loc, tree type, tree arg)
 {
   if (!validate_arg (arg, POINTER_TYPE))
     return NULL_TREE;
@@ -6625,12 +6649,7 @@ fold_builtin_strlen (location_t loc, tree arg)
       tree len = c_strlen (arg, 0);
 
       if (len)
-	{
-	  /* Convert from the internal "sizetype" type to "size_t".  */
-	  if (size_type_node)
-	    len = fold_convert_loc (loc, size_type_node, len);
-	  return len;
-	}
+	return fold_convert_loc (loc, type, len);
 
       return NULL_TREE;
     }
@@ -9658,7 +9677,7 @@ fold_builtin_1 (location_t loc, tree fndecl, tree arg0, bool ignore)
       return fold_builtin_classify_type (arg0);
 
     case BUILT_IN_STRLEN:
-      return fold_builtin_strlen (loc, arg0);
+      return fold_builtin_strlen (loc, type, arg0);
 
     CASE_FLT_FN (BUILT_IN_FABS):
       return fold_builtin_fabs (loc, arg0, type);
@@ -13591,6 +13610,14 @@ set_builtin_user_assembler_name (tree decl, const char *asmspec)
       break;
     case BUILT_IN_ABORT:
       abort_libfunc = set_user_assembler_libfunc ("abort", asmspec);
+      break;
+    case BUILT_IN_FFS:
+      if (INT_TYPE_SIZE < BITS_PER_WORD)
+	{
+	  set_user_assembler_libfunc ("ffs", asmspec);
+	  set_optab_libfunc (ffs_optab, mode_for_size (INT_TYPE_SIZE,
+						       MODE_INT, 0), "ffs");
+	}
       break;
     default:
       break;

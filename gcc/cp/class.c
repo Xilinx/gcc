@@ -4554,6 +4554,8 @@ create_vtable_ptr (tree t, tree* virtuals_p)
       DECL_ARTIFICIAL (field) = 1;
       DECL_FIELD_CONTEXT (field) = t;
       DECL_FCONTEXT (field) = t;
+      if (TYPE_PACKED (t))
+	DECL_PACKED (field) = 1;
 
       TYPE_VFIELD (t) = field;
 
@@ -5042,6 +5044,7 @@ layout_class_type (tree t, tree *virtuals_p)
       /* G++ used to use DECL_FIELD_OFFSET as if it were the byte
 	 offset of the field.  */
       if (warn_abi
+	  && !abi_version_at_least (2)
 	  && !tree_int_cst_equal (DECL_FIELD_OFFSET (field),
 				  byte_position (field))
 	  && contains_empty_class_p (TREE_TYPE (field)))
@@ -5215,6 +5218,11 @@ layout_class_type (tree t, tree *virtuals_p)
     place_field (rli,
 		 build_decl (input_location,
 			     FIELD_DECL, NULL_TREE, char_type_node));
+
+  /* If this is a non-POD, declaring it packed makes a difference to how it
+     can be used as a field; don't let finalize_record_size undo it.  */
+  if (TYPE_PACKED (t) && !layout_pod_type_p (t))
+    rli->packed_maybe_necessary = true;
 
   /* Let the back end lay out the type.  */
   finish_record_layout (rli, /*free_p=*/true);

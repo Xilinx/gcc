@@ -1,6 +1,6 @@
 /* Allocation for dataflow support routines.
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009 Free Software Foundation, Inc.
+   2008, 2009, 2010 Free Software Foundation, Inc.
    Originally contributed by Michael P. Hayes
              (m.hayes@elec.canterbury.ac.nz, mhayes@redhat.com)
    Major rewrite contributed by Danny Berlin (dberlin@dberlin.org)
@@ -636,7 +636,7 @@ df_finish_pass (bool verify ATTRIBUTE_UNUSED)
   int removed = 0;
 
 #ifdef ENABLE_DF_CHECKING
-  enum df_changeable_flags saved_flags;
+  int saved_flags;
 #endif
 
   if (!df)
@@ -1350,6 +1350,30 @@ df_set_bb_dirty (basic_block bb)
 	    bitmap_set_bit (dflow->out_of_date_transfer_functions, bb->index);
 	}
       df_mark_solutions_dirty ();
+    }
+}
+
+
+/* Mark BB as needing it's transfer functions as being out of
+   date, except for LR problem.  Used when analyzing DEBUG_INSNs,
+   as LR problem can trigger DCE, and DEBUG_INSNs shouldn't ever
+   shorten or enlarge lifetime of regs.  */
+
+void
+df_set_bb_dirty_nonlr (basic_block bb)
+{
+  if (df)
+    {
+      int p;
+      for (p = 1; p < df->num_problems_defined; p++)
+	{
+	  struct dataflow *dflow = df->problems_in_order[p];
+	  if (dflow == df_lr)
+	    continue;
+	  if (dflow->out_of_date_transfer_functions)
+	    bitmap_set_bit (dflow->out_of_date_transfer_functions, bb->index);
+	  dflow->solutions_dirty = true;
+	}
     }
 }
 

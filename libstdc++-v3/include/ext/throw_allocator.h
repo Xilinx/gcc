@@ -1,6 +1,7 @@
 // -*- C++ -*-
 
-// Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -457,16 +458,16 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
       std::size_t			       	_M_i;
 
+#ifndef _GLIBCXX_IS_AGGREGATE
       throw_value_base() : _M_i(0)
       { throw_conditionally(); }
 
-      throw_value_base(const throw_value_base& __v)
-      : _M_i(__v._M_i)
+      throw_value_base(const throw_value_base& __v) : _M_i(__v._M_i)
       { throw_conditionally(); }
 
-      explicit throw_value_base(const std::size_t __i)
-	: _M_i(__i)
+      explicit throw_value_base(const std::size_t __i) : _M_i(__i)
       { throw_conditionally(); }
+#endif
 
       throw_value_base&
       operator=(const throw_value_base& __v)
@@ -553,17 +554,20 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       return __ret;
     }
 
+
   /// Type throwing via limit condition.
   struct throw_value_limit : public throw_value_base<limit_condition>
   {
     typedef throw_value_base<limit_condition> base_type;
 
+#ifndef _GLIBCXX_IS_AGGREGATE
     throw_value_limit() { }
 
     throw_value_limit(const throw_value_limit& __other)
     : base_type(__other._M_i) { }
 
     explicit throw_value_limit(const std::size_t __i) : base_type(__i) { }
+#endif
   };
 
   /// Type throwing via random condition.
@@ -571,6 +575,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
   {
     typedef throw_value_base<random_condition> base_type;
 
+#ifndef _GLIBCXX_IS_AGGREGATE
     throw_value_random() { }
 
     throw_value_random(const throw_value_random& __other)
@@ -578,6 +583,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
 
     explicit throw_value_random(const std::size_t __i) : base_type(__i) { }
+#endif
   };
 
 
@@ -723,7 +729,7 @@ namespace std
     : public std::unary_function<__gnu_cxx::throw_value_limit, size_t>
     {
       size_t
-      operator()(__gnu_cxx::throw_value_limit __val) const
+      operator()(const __gnu_cxx::throw_value_limit& __val) const
       {
 	std::hash<std::size_t> h;
 	size_t __result = h(__val._M_i);
@@ -737,7 +743,7 @@ namespace std
     : public std::unary_function<__gnu_cxx::throw_value_random, size_t>
     {
       size_t
-      operator()(__gnu_cxx::throw_value_random __val) const
+      operator()(const __gnu_cxx::throw_value_random& __val) const
       {
 	std::hash<std::size_t> h;
 	size_t __result = h(__val._M_i);

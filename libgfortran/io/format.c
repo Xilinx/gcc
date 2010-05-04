@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
@@ -130,7 +130,7 @@ reset_fnode_counters (st_parameter_dt *dtp)
   /* Clear this pointer at the head so things start at the right place.  */
   fmt->array.array[0].current = NULL;
 
-  for (f = fmt->last->array[0].u.child; f; f = f->next)
+  for (f = fmt->array.array[0].u.child; f; f = f->next)
     reset_node (f);
 }
 
@@ -863,7 +863,7 @@ parse_format_list (st_parameter_dt *dtp, bool *save_ok)
       t = format_lex (fmt);
       if (t != FMT_POSINT)
 	{
-	  if (notification_std(GFC_STD_GNU) == ERROR)
+	  if (notification_std(GFC_STD_GNU) == NOTIFICATION_ERROR)
 	    {
 	      fmt->error = posint_required;
 	      goto finished;
@@ -912,7 +912,7 @@ parse_format_list (st_parameter_dt *dtp, bool *save_ok)
       u = format_lex (fmt);
       if (t == FMT_G && u == FMT_ZERO)
 	{
-	  if (notification_std (GFC_STD_F2008) == ERROR
+	  if (notification_std (GFC_STD_F2008) == NOTIFICATION_ERROR
 	      || dtp->u.p.mode == READING)
 	    {
 	      fmt->error = zero_width;
@@ -1218,6 +1218,8 @@ parse_format (st_parameter_dt *dtp)
   format_data *fmt;
   bool format_cache_ok;
 
+  /* Don't cache for internal units and set an arbitrary limit on the size of
+     format strings we will cache.  (Avoids memory issues.)  */
   format_cache_ok = !is_internal_unit (dtp);
 
   /* Lookup format string to see if it has already been parsed.  */
