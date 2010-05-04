@@ -1,3 +1,10 @@
+2010-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{and patterns still mistranslated in alternate matching, so
+	tmicro5 example from tmatch-5.melt fails.}}
+	* melt/warmelt-normatch.melt: added more debug_msg, but still
+	buggy.
+	* gcc/testsuite/melt/tmatch-5.melt: commented stuff & added tmicro5
+
 2010-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_load_melt_module): Corrected typo in
 	error message, suggesting -fmelt-source-path...

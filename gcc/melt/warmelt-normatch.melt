@@ -3329,6 +3329,7 @@ the data of the $STEP with an extra context $CTX.}#
 	    (if (null curstep)
 		(progn
 		  (setq firststep conjstep)
+		  (debug_msg firststep "translpat_andpat firststep")
 		  (list_append thenlist firststep)
 		  )
 	      (progn
@@ -4224,6 +4225,8 @@ the data of the $STEP with an extra context $CTX.}#
 			)
 		   (debug_msg argfstep "mgaltstep_stepflagoper argfstep")
 		   (debug_msg argfstepname "mgaltstep_stepflagoper argfstepname")
+		   (if (null argfstepname) 
+		       (debug_msg stepmap "mgaltstep_stepflagoper bad stepmap"))
 		   (assert_msg "check argstepname" (is_string argfstepname))
 		   (add2out_indentnl edgebuf 0)
 		   (add2out_string edgebuf argfstepname)

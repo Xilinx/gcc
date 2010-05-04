@@ -10,6 +10,17 @@
 |#
 
 
+(defun tmicro5 (x g)
+  (match x
+   (
+    ?(and ?xx
+	   ?(instance class_container 
+		      :container_value ?xx)
+      )
+      (g xx))
+   ))
+
+#|	 
 (defun tmini5 (x g)
   (match 
    x
@@ -24,7 +35,7 @@
     ?(and ?xx
 	   ?(instance class_container 
 		      :container_value ?xx)
-	   )
+      )
       (g xx))
 
    ))
@@ -48,5 +59,6 @@
        )
      )
     )
-  
+
+|#  
 ;; eof tmatch-5.melt
