@@ -3254,10 +3254,12 @@ the flags of the $STEP with an extra context $CTX.}#
      ( (null symbval)
        (mapobject_put varmap symb mdata)
        (debug_msg varmap "translpat_varpat updated varmap & return null")
+       (list_append steplist flagstep)
        (foreach_in_list
 	(mhandlers)
 	(curpair curhandler)
 	(curhandler recv mdata mcase symbval flagstep mflag sloc))
+       (debug_msg flagstep "translpat_varpat return flagstep")
        (return flagstep mflag)
        )
      (:else
@@ -3297,11 +3299,11 @@ the flags of the $STEP with an extra context $CTX.}#
 	      (progn
 		(put_else_match laststeptest steptest)
 		(debug_msg laststeptest "translpat_varpat updated laststeptest")))
-	  (debug_msg steptest "translpat_varpat return steptest")
 	  (foreach_in_list
 	   (mhandlers)
 	   (curpair curhandler)
 	   (curhandler recv mdata mcase symbval steptest mflag sloc))
+	  (debug_msg steptest "translpat_varpat return steptest")
 	  (return steptest mflag)
 	  ))))
     ))
@@ -3387,8 +3389,8 @@ the flags of the $STEP with an extra context $CTX.}#
 	  )
 	  )
     (put_fields flagstep :mstep_flagargs (list_to_multiple flaglist discr_multiple))
-    (debug_msg stepgroup "translpat_andpat return stepgroup")
     (put_then_match stepgroup flagstep)
+    (debug_msg stepgroup "translpat_andpat return stepgroup")
     (return stepgroup mflag)
     ))
 (install_method class_source_pattern_and translate_pattern translpat_andpat)

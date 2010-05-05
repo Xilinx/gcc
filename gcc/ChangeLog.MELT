@@ -1,4 +1,10 @@
 2010-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: a flag setting for the translation
+	of a new pattern variable is a match step on the data... So
+	tmatch-5.melt tmicro5 test seems to produce a correct match step
+	graph.
+
+2010-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: added scan_step_flag selector and
 	methods, and scanflag local lambda in mg_altdraw_graphviz so the
 	dot graph is generated entirely.
