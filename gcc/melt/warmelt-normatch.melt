@@ -2637,6 +2637,11 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 the data of the $STEP with an extra context $CTX.}#
   :formals (step fun ctx))
 
+(defselector scan_step_flag class_selector
+  :doc #{Given a reciever $STEP, apply a given function $FUN to all
+the flags of the $STEP with an extra context $CTX.}#
+  :formals (step fun ctx))
+
 (defun scansubpat_anyrecv (recv fun ctx)
   (debug_msg recv "scansubpat_anyrecv recv")
   (let ( (dis (discrim recv)) )
@@ -2958,7 +2963,7 @@ the data of the $STEP with an extra context $CTX.}#
 
 
 
-(defun scanstep_testins (step fun ctx)
+(defun scanstepdata_testins (step fun ctx)
   (assert_msg "check step" (is_a step class_match_step_test_instance))
   (let ( (slotup (unsafe_get_field :mstins_slots step)) 
 	 )
@@ -2967,9 +2972,9 @@ the data of the $STEP with an extra context $CTX.}#
      (curslot :long ix)
      (if curslot 
 	 (fun curslot ctx)))))
-(install_method class_match_step_test_instance scan_step_data scanstep_testins)
+(install_method class_match_step_test_instance scan_step_data scanstepdata_testins)
 
-(defun scanstep_testmatcher (step fun ctx)
+(defun scanstepdata_testmatcher (step fun ctx)
   (assert_msg "check step" (is_a step class_match_step_test_matcher))
   (let ( (outs (unsafe_get_field :mstma_outs step)) 
 	 )
@@ -2978,7 +2983,32 @@ the data of the $STEP with an extra context $CTX.}#
      (curout :long outix)
      (if curout (fun curout ctx)))
     ))
-(install_method class_match_step_test_matcher scan_step_data scanstep_testmatcher)
+(install_method class_match_step_test_matcher scan_step_data scanstepdata_testmatcher)
+
+(defun scanstepflag_stepwithflag (step fun ctx)
+  (assert_msg "check step" (is_a step class_match_step_with_flag))
+  (let ( (flag (unsafe_get_field :mstep_flag step)) 
+	 )
+    (if flag (fun flag ctx))
+    ))
+(install_method class_match_step_with_flag scan_step_flag 
+		scanstepflag_stepwithflag)
+
+(defun scanstepflag_stepflagoper (step fun ctx)
+  (assert_msg "check step" (is_a step class_match_step_flag_operation))
+  (let ( (flag (unsafe_get_field :mstep_flag step))
+	 (flagargs (unsafe_get_field :mstep_flagargs step))
+	 )
+    (if flag (fun flag ctx))
+    (if flagargs
+	(foreach_in_multiple 
+	 (flagargs) 
+	 (curflag :long flagix) 
+	 (fun curflag ctx)))
+    ))
+
+(install_method class_match_step_flag_operation scan_step_flag
+		scanstepflag_stepflagoper)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; the selector to translate a pattern
@@ -4686,14 +4716,29 @@ the data of the $STEP with an extra context $CTX.}#
 	    (mapobject_put mapstep step (strbuf2string discr_string nambuf))
 	    (if sdata (scandata sdata))
 	    (scan_step_data step scandata ())
+	    (scan_step_flag step scanflag ())
 	    (let (
-					;; these are checked get fields!!
+	          ;;; these are checked get fields!!
 		  (sthen (get_field :mstep_then step))
 		  (selse (get_field :mstep_else step))
+		  (sflag (get_field :mstep_flag step))
 		  )
 	      (if sthen (scanstep sthen))
 	      (if selse (scanstep selse))
+	      (if sflag (scanflag sflag))
 	      ))))
+       (scanflag
+	(lambda (flag)
+	  (debug_msg flag  "mg_altdraw_graphviz.scanflag flag")
+	  (let ( (flstep (get_field :mflag_setstep flag))
+		 )
+	    (if flstep
+		(progn
+		  (debug_msg flstep "mg_altdraw_graphviz.scanflag flstep")
+		  (assert_msg "check flstep" (is_a flstep class_match_step))
+		  (scanstep flstep)
+		  ))
+	  )))
        )
      (debug_msg mdata "mg_altdraw_graphviz before scandata mdata")
      (debug_msg scandata "mg_altdraw_graphviz scandata")

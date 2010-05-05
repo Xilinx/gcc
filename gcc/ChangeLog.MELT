@@ -1,3 +1,8 @@
+2010-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: added scan_step_flag selector and
+	methods, and scanflag local lambda in mg_altdraw_graphviz so the
+	dot graph is generated entirely.
+
 2010-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{and patterns still mistranslated in alternate matching, so
 	tmicro5 example from tmatch-5.melt fails.}}
