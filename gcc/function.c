@@ -4115,8 +4115,6 @@ allocate_struct_function (tree fndecl, bool abstract_p)
 
   cfun = ggc_alloc_cleared_function ();
 
-  cfun->function_frequency = FUNCTION_FREQUENCY_NORMAL;
-
   init_eh_for_function ();
 
   if (init_machine_status)

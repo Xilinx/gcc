@@ -29,7 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "params.h"
 #include "input.h"
-#include "varray.h"
 #include "hashtab.h"
 #include "basic-block.h"
 #include "tree-flow.h"
@@ -43,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "lto-streamer.h"
 #include "lto-compress.h"
+#include "ggc.h"
 
 /* Section names.  These must correspond to the values of
    enum lto_section_type.  */
@@ -52,6 +52,8 @@ const char *lto_section_name[LTO_N_SECTION_TYPES] =
   "function_body",
   "static_initializer",
   "cgraph",
+  "varpool",
+  "jump_funcs"
   "ipa_pure_const",
   "ipa_reference",
   "symtab",
@@ -429,11 +431,7 @@ lto_get_decl_name_mapping (struct lto_file_decl_data *decl_data,
 struct lto_in_decl_state *
 lto_new_in_decl_state (void)
 {
-  struct lto_in_decl_state *state;
-
-  state = ((struct lto_in_decl_state *) xmalloc (sizeof (*state)));
-  memset (state, 0, sizeof (*state));
-  return state;
+  return ggc_alloc_cleared_lto_in_decl_state ();
 }
 
 /* Delete STATE and its components. */
@@ -445,8 +443,8 @@ lto_delete_in_decl_state (struct lto_in_decl_state *state)
 
   for (i = 0; i < LTO_N_DECL_STREAMS; i++)
     if (state->streams[i].trees)
-      free (state->streams[i].trees);
-  free (state);
+      ggc_free (state->streams[i].trees);
+  ggc_free (state);
 }
 
 /* Hashtable helpers. lto_in_decl_states are hash by their function decls. */

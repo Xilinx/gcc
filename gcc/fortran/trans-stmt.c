@@ -2822,7 +2822,7 @@ gfc_trans_pointer_assign_need_temp (gfc_expr * expr1, gfc_expr * expr2,
 
       /* Make a new descriptor.  */
       parmtype = gfc_get_element_type (TREE_TYPE (desc));
-      parmtype = gfc_get_array_type_bounds (parmtype, loop.dimen,
+      parmtype = gfc_get_array_type_bounds (parmtype, loop.dimen, 0,
                                             loop.from, loop.to, 1,
 					    GFC_ARRAY_UNKNOWN, true);
 
@@ -4278,8 +4278,9 @@ gfc_trans_allocate (gfc_code * code)
 
 	      if (ts->type == BT_DERIVED)
 		{
-		  vtab = gfc_find_derived_vtab (ts->u.derived);
+		  vtab = gfc_find_derived_vtab (ts->u.derived, true);
 		  gcc_assert (vtab);
+		  gfc_trans_assign_vtab_procs (&block, ts->u.derived, vtab);
 		  gfc_init_se (&lse, NULL);
 		  lse.want_pointer = 1;
 		  gfc_conv_expr (&lse, lhs);

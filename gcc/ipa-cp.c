@@ -1282,7 +1282,7 @@ ipcp_driver (void)
       ipcp_print_profile_data (dump_file);
     }
   /* Free all IPCP structures.  */
-  free_all_ipa_structures_after_ipa_cp ();
+  ipa_free_all_structures_after_ipa_cp ();
   if (dump_file)
     fprintf (dump_file, "\nIPA constant propagation end\n");
   return 0;
@@ -1304,7 +1304,8 @@ ipcp_generate_summary (void)
 
 /* Write ipcp summary for nodes in SET.  */
 static void
-ipcp_write_summary (cgraph_node_set set)
+ipcp_write_summary (cgraph_node_set set,
+		    varpool_node_set vset ATTRIBUTE_UNUSED)
 {
   ipa_prop_write_jump_functions (set);
 }
@@ -1339,14 +1340,14 @@ struct ipa_opt_pass_d pass_ipa_cp =
   0,				/* properties_destroyed */
   0,				/* todo_flags_start */
   TODO_dump_cgraph | TODO_dump_func |
-  TODO_remove_functions /* todo_flags_finish */
+  TODO_remove_functions | TODO_ggc_collect /* todo_flags_finish */
  },
  ipcp_generate_summary,			/* generate_summary */
  ipcp_write_summary,			/* write_summary */
  ipcp_read_summary,			/* read_summary */
  NULL,					/* write_optimization_summary */
  NULL,					/* read_optimization_summary */
- lto_ipa_fixup_call_notes, 		/* stmt_fixup */
+ NULL,			 		/* stmt_fixup */
  0,					/* TODOs */
  NULL,					/* function_transform */
  NULL,					/* variable_transform */

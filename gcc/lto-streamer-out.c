@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "params.h"
 #include "input.h"
-#include "varray.h"
 #include "hashtab.h"
 #include "basic-block.h"
 #include "tree-flow.h"
@@ -468,6 +467,7 @@ pack_ts_decl_with_vis_value_fields (struct bitpack_d *bp, tree expr)
     {
       bp_pack_value (bp, DECL_HARD_REGISTER (expr), 1);
       bp_pack_value (bp, DECL_IN_TEXT_SECTION (expr), 1);
+      bp_pack_value (bp, DECL_IN_CONSTANT_POOL (expr), 1);
       bp_pack_value (bp, DECL_TLS_MODEL (expr),  3);
     }
 
@@ -517,8 +517,8 @@ pack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
   bp_pack_value (bp, TYPE_MODE (expr), 7);
   bp_pack_value (bp, TYPE_STRING_FLAG (expr), 1);
   bp_pack_value (bp, TYPE_NO_FORCE_BLK (expr), 1);
-  bp_pack_value (bp, TYPE_NEEDS_CONSTRUCTING(expr), 1);
-  if (TREE_CODE (expr) == UNION_TYPE || TREE_CODE (expr) == RECORD_TYPE)
+  bp_pack_value (bp, TYPE_NEEDS_CONSTRUCTING (expr), 1);
+  if (RECORD_OR_UNION_TYPE_P (expr))
     bp_pack_value (bp, TYPE_TRANSPARENT_AGGR (expr), 1);
   bp_pack_value (bp, TYPE_PACKED (expr), 1);
   bp_pack_value (bp, TYPE_RESTRICT (expr), 1);
@@ -946,9 +946,10 @@ lto_output_ts_type_tree_pointers (struct output_block *ob, tree expr,
     lto_output_tree_or_ref (ob, TYPE_VALUES (expr), ref_p);
   else if (TREE_CODE (expr) == ARRAY_TYPE)
     lto_output_tree_or_ref (ob, TYPE_DOMAIN (expr), ref_p);
-  else if (TREE_CODE (expr) == RECORD_TYPE || TREE_CODE (expr) == UNION_TYPE)
+  else if (RECORD_OR_UNION_TYPE_P (expr))
     lto_output_tree_or_ref (ob, TYPE_FIELDS (expr), ref_p);
-  else if (TREE_CODE (expr) == FUNCTION_TYPE || TREE_CODE (expr) == METHOD_TYPE)
+  else if (TREE_CODE (expr) == FUNCTION_TYPE
+	   || TREE_CODE (expr) == METHOD_TYPE)
     lto_output_tree_or_ref (ob, TYPE_ARG_TYPES (expr), ref_p);
   else if (TREE_CODE (expr) == VECTOR_TYPE)
     lto_output_tree_or_ref (ob, TYPE_DEBUG_REPRESENTATION_TYPE (expr), ref_p);
@@ -965,7 +966,7 @@ lto_output_ts_type_tree_pointers (struct output_block *ob, tree expr,
   lto_output_tree_or_ref (ob, TYPE_MAIN_VARIANT (expr), ref_p);
   /* Do not stream TYPE_NEXT_VARIANT, we reconstruct the variant lists
      during fixup.  */
-  if (TREE_CODE (expr) == RECORD_TYPE || TREE_CODE (expr) == UNION_TYPE)
+  if (RECORD_OR_UNION_TYPE_P (expr))
     lto_output_tree_or_ref (ob, TYPE_BINFO (expr), ref_p);
   lto_output_tree_or_ref (ob, TYPE_CONTEXT (expr), ref_p);
   lto_output_tree_or_ref (ob, TYPE_CANONICAL (expr), ref_p);
@@ -1866,7 +1867,6 @@ output_function (struct cgraph_node *node)
   bp_pack_value (bp, fn->has_nonlocal_label, 1);
   bp_pack_value (bp, fn->calls_alloca, 1);
   bp_pack_value (bp, fn->calls_setjmp, 1);
-  bp_pack_value (bp, fn->function_frequency, 2);
   bp_pack_value (bp, fn->va_list_fpr_size, 8);
   bp_pack_value (bp, fn->va_list_gpr_size, 8);
   lto_output_bitpack (ob->main_stream, bp);
@@ -1929,22 +1929,14 @@ output_function (struct cgraph_node *node)
    the file processed by LTRANS.  */
 
 static bool
-output_alias_pair_p (alias_pair *p, cgraph_node_set set)
+output_alias_pair_p (alias_pair *p, cgraph_node_set set, varpool_node_set vset)
 {
-  cgraph_node_set_iterator csi;
-  struct cgraph_node *target_node;
-
-  /* Always emit VAR_DECLs.  FIXME lto, we should probably only emit
-     those VAR_DECLs that are instantiated in this file partition, but
-     we have no easy way of knowing this based on SET.  */
   if (TREE_CODE (p->decl) == VAR_DECL)
-    return true;
+    return varpool_node_in_set_p (varpool_node_for_asm (p->target), vset);
 
   /* Check if the assembler name for P->TARGET has its cgraph node in SET.  */
   gcc_assert (TREE_CODE (p->decl) == FUNCTION_DECL);
-  target_node = cgraph_node_for_asm (p->target);
-  csi = cgraph_node_set_find (set, target_node);
-  return (!csi_end_p (csi));
+  return cgraph_node_in_set_p (cgraph_node_for_asm (p->target), set);
 }
 
 
@@ -1952,7 +1944,7 @@ output_alias_pair_p (alias_pair *p, cgraph_node_set set)
    and labels.  */
 
 static void
-output_unreferenced_globals (cgraph_node_set set)
+output_unreferenced_globals (cgraph_node_set set, varpool_node_set vset)
 {
   struct output_block *ob;
   alias_pair *p;
@@ -1973,40 +1965,28 @@ output_unreferenced_globals (cgraph_node_set set)
      symbols at link time if a file defines a global symbol but
      never references it.  */
   FOR_EACH_STATIC_VARIABLE (vnode)
-    {
-      tree var = vnode->decl;
+   if (vnode->needed && varpool_node_in_set_p (vnode, vset))
+      {
+	tree var = vnode->decl;
 
-      if (TREE_CODE (var) == VAR_DECL)
-        {
-	  struct varpool_node *alias;
+	if (TREE_CODE (var) == VAR_DECL)
+	  {
+	    /* Output the object in order to output references used in the
+	       initialization. */
+	    lto_output_tree (ob, var, true);
 
-          /* Output the object in order to output references used in the
-             initialization. */
-          lto_output_tree (ob, var, true);
-
-          /* If it is public we also need a reference to the object itself. */
-          if (TREE_PUBLIC (var))
-            lto_output_tree_ref (ob, var);
-
-	  /* Also output any extra_name aliases for this variable.  */
-	  for (alias = vnode->extra_name; alias; alias = alias->next)
-	    {
-	      lto_output_tree (ob, alias->decl, true);
-	      output_record_start (ob, LTO_var_decl_alias);
-	      lto_output_var_decl_index (ob->decl_state, ob->main_stream,
-					 alias->decl);
-	      lto_output_var_decl_index (ob->decl_state, ob->main_stream,
-					 var);
-	    }
-        }
-    }
+	    /* If it is public we also need a reference to the object itself. */
+	    if (TREE_PUBLIC (var))
+	      lto_output_tree_ref (ob, var);
+	  }
+      }
 
   output_zero (ob);
 
   /* Emit the alias pairs for the nodes in SET.  */
   for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); i++)
     {
-      if (output_alias_pair_p (p, set))
+      if (output_alias_pair_p (p, set, vset))
 	{
 	  lto_output_tree_ref (ob, p->decl);
 	  lto_output_tree_ref (ob, p->target);
@@ -2090,7 +2070,7 @@ lto_writer_init (void)
 /* Main entry point from the pass manager.  */
 
 static void
-lto_output (cgraph_node_set set)
+lto_output (cgraph_node_set set, varpool_node_set vset)
 {
   struct cgraph_node *node;
   struct lto_out_decl_state *decl_state;
@@ -2123,6 +2103,7 @@ lto_output (cgraph_node_set set)
      have been renumbered so that edges can be associated with call
      statements using the statement UIDs.  */
   output_cgraph (set);
+  output_varpool (vset);
 
   lto_bitmap_free (output);
 }
@@ -2177,20 +2158,6 @@ write_global_stream (struct output_block *ob,
       t = lto_tree_ref_encoder_get_tree (encoder, index);
       if (!lto_streamer_cache_lookup (ob->writer_cache, t, NULL))
 	lto_output_tree (ob, t, false);
-
-      if (flag_wpa)
-	{
-	  /* In WPA we should not emit multiple definitions of the
-	     same symbol to all the files in the link set.  If
-	     T had already been emitted as the pervailing definition
-	     in one file, do not emit it in the others.  */
-	  /* FIXME lto.  We should check if T belongs to the
-	     file we are writing to.  */
-	  if (TREE_CODE (t) == VAR_DECL
-	      && TREE_PUBLIC (t)
-	      && !DECL_EXTERNAL (t))
-	    TREE_ASM_WRITTEN (t) = 1;
-	}
     }
 }
 
@@ -2443,7 +2410,7 @@ produce_symtab (struct lto_streamer_cache_d *cache)
    recover these on other side.  */
 
 static void
-produce_asm_for_decls (cgraph_node_set set)
+produce_asm_for_decls (cgraph_node_set set, varpool_node_set vset)
 {
   struct lto_out_decl_state *out_state;
   struct lto_out_decl_state *fn_out_state;
@@ -2461,7 +2428,7 @@ produce_asm_for_decls (cgraph_node_set set)
   /* Write out unreferenced globals, alias pairs and labels.  We defer
      doing this until now so that we can write out only what is
      needed.  */
-  output_unreferenced_globals (set);
+  output_unreferenced_globals (set, vset);
 
   memset (&header, 0, sizeof (struct lto_decl_header));
 

@@ -1078,6 +1078,30 @@ build_int_cst_wide_type (tree type,
   return build_int_cst_wide (type, low, high);
 }
 
+/* Constructs tree in type TYPE from with value given by CST.  Signedness
+   of CST is assumed to be the same as the signedness of TYPE.  */
+
+tree
+double_int_to_tree (tree type, double_int cst)
+{
+  cst = double_int_ext (cst, TYPE_PRECISION (type), TYPE_UNSIGNED (type));
+
+  return build_int_cst_wide (type, cst.low, cst.high);
+}
+
+/* Returns true if CST fits into range of TYPE.  Signedness of CST is assumed
+   to be the same as the signedness of TYPE.  */
+
+bool
+double_int_fits_to_tree_p (const_tree type, double_int cst)
+{
+  double_int ext = double_int_ext (cst,
+				   TYPE_PRECISION (type),
+				   TYPE_UNSIGNED (type));
+
+  return double_int_equal_p (cst, ext);
+}
+
 /* These are the hash table functions for the hash table of INTEGER_CST
    nodes of a sizetype.  */
 
@@ -4252,7 +4276,12 @@ free_lang_data_in_type (tree type)
       TYPE_LANG_SLOT_1 (type) = NULL_TREE;
     }
 
-  TYPE_CONTEXT (type) = NULL_TREE;
+  if (debug_info_level < DINFO_LEVEL_TERSE
+      || (TYPE_CONTEXT (type)
+	  && TREE_CODE (TYPE_CONTEXT (type)) != FUNCTION_DECL
+	  && TREE_CODE (TYPE_CONTEXT (type)) != NAMESPACE_DECL))
+    TYPE_CONTEXT (type) = NULL_TREE;
+
   if (debug_info_level < DINFO_LEVEL_TERSE)
     TYPE_STUB_DECL (type) = NULL_TREE;
 }
@@ -4355,7 +4384,8 @@ free_lang_data_in_decl (tree decl)
 
   /* Ignore any intervening types, because we are going to clear their
      TYPE_CONTEXT fields.  */
-  if (TREE_CODE (decl) != FIELD_DECL)
+  if (TREE_CODE (decl) != FIELD_DECL
+      && TREE_CODE (decl) != FUNCTION_DECL)
     DECL_CONTEXT (decl) = decl_function_context (decl);
 
   if (DECL_CONTEXT (decl)
@@ -7924,7 +7954,8 @@ bool
 auto_var_in_fn_p (const_tree var, const_tree fn)
 {
   return (DECL_P (var) && DECL_CONTEXT (var) == fn
-	  && (((TREE_CODE (var) == VAR_DECL || TREE_CODE (var) == PARM_DECL)
+	  && ((((TREE_CODE (var) == VAR_DECL && ! DECL_EXTERNAL (var))
+		|| TREE_CODE (var) == PARM_DECL)
 	       && ! TREE_STATIC (var))
 	      || TREE_CODE (var) == LABEL_DECL
 	      || TREE_CODE (var) == RESULT_DECL));

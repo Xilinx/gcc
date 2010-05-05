@@ -1,6 +1,6 @@
 /* Process declarations and variables for C++ compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -4692,7 +4692,7 @@ maybe_commonize_var (tree decl)
 static void
 check_for_uninitialized_const_var (tree decl)
 {
-  tree type = TREE_TYPE (decl);
+  tree type = strip_array_types (TREE_TYPE (decl));
 
   if (TREE_CODE (decl) == VAR_DECL && DECL_DECLARED_CONSTEXPR_P (decl)
       && DECL_INITIAL (decl) == NULL)
@@ -4704,11 +4704,28 @@ check_for_uninitialized_const_var (tree decl)
   else if (TREE_CODE (decl) == VAR_DECL
       && TREE_CODE (type) != REFERENCE_TYPE
       && CP_TYPE_CONST_P (type)
-      && !TYPE_NEEDS_CONSTRUCTING (type)
+      && (!TYPE_NEEDS_CONSTRUCTING (type)
+	  || !type_has_user_provided_default_constructor (type))
       && !DECL_INITIAL (decl))
-    error ("uninitialized const %qD", decl);
-}
+    {
+      permerror (DECL_SOURCE_LOCATION (decl),
+		 "uninitialized const %qD", decl);
 
+      if (CLASS_TYPE_P (type)
+	  && !type_has_user_provided_default_constructor (type))
+	{
+	  tree defaulted_ctor;
+
+	  inform (DECL_SOURCE_LOCATION (TYPE_MAIN_DECL (type)),
+		  "%q#T has no user-provided default constructor", type);
+	  defaulted_ctor = in_class_defaulted_default_constructor (type);
+	  if (defaulted_ctor)
+	    inform (DECL_SOURCE_LOCATION (defaulted_ctor),
+		    "constructor is not user-provided because it is "
+		    "explicitly defaulted in the class body");
+	}
+    }
+}
 
 /* Structure holding the current initializer being processed by reshape_init.
    CUR is a pointer to the current element being processed, END is a pointer
@@ -5261,7 +5278,10 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
   else if (DECL_EXTERNAL (decl))
     ;
   else if (TYPE_P (type) && TYPE_NEEDS_CONSTRUCTING (type))
-    return build_aggr_init_full_exprs (decl, init, flags);
+    {
+      check_for_uninitialized_const_var (decl);
+      return build_aggr_init_full_exprs (decl, init, flags);
+    }
   else if (MAYBE_CLASS_TYPE_P (type))
     {
       tree core_type = strip_array_types (type);
@@ -11235,12 +11255,6 @@ finish_enum (tree enumtype)
   tree maxnode;
   tree value;
   tree t;
-  bool unsignedp;
-  bool use_short_enum;
-  int lowprec;
-  int highprec;
-  int precision;
-  unsigned int itk;
   tree underlying_type = NULL_TREE;
   bool fixed_underlying_type_p 
     = ENUM_UNDERLYING_TYPE (enumtype) != NULL_TREE;
@@ -11303,17 +11317,19 @@ finish_enum (tree enumtype)
        the enumeration had a single enumerator with value 0.  */
     minnode = maxnode = integer_zero_node;
 
-  /* Compute the number of bits require to represent all values of the
-     enumeration.  We must do this before the type of MINNODE and
-     MAXNODE are transformed, since tree_int_cst_min_precision relies
-     on the TREE_TYPE of the value it is passed.  */
-  unsignedp = tree_int_cst_sgn (minnode) >= 0;
-  lowprec = tree_int_cst_min_precision (minnode, unsignedp);
-  highprec = tree_int_cst_min_precision (maxnode, unsignedp);
-  precision = MAX (lowprec, highprec);
-
   if (!fixed_underlying_type_p)
     {
+      /* Compute the number of bits require to represent all values of the
+	 enumeration.  We must do this before the type of MINNODE and
+	 MAXNODE are transformed, since tree_int_cst_min_precision relies
+	 on the TREE_TYPE of the value it is passed.  */
+      bool unsignedp = tree_int_cst_sgn (minnode) >= 0;
+      int lowprec = tree_int_cst_min_precision (minnode, unsignedp);
+      int highprec = tree_int_cst_min_precision (maxnode, unsignedp);
+      int precision = MAX (lowprec, highprec);
+      unsigned int itk;
+      bool use_short_enum;
+
       /* Determine the underlying type of the enumeration.
 
          [dcl.enum]
@@ -11360,43 +11376,51 @@ finish_enum (tree enumtype)
          The value of sizeof() applied to an enumeration type, an object
          of an enumeration type, or an enumerator, is the value of sizeof()
          applied to the underlying type.  */
+      TYPE_MIN_VALUE (enumtype) = TYPE_MIN_VALUE (underlying_type);
+      TYPE_MAX_VALUE (enumtype) = TYPE_MAX_VALUE (underlying_type);
       TYPE_SIZE (enumtype) = TYPE_SIZE (underlying_type);
       TYPE_SIZE_UNIT (enumtype) = TYPE_SIZE_UNIT (underlying_type);
       SET_TYPE_MODE (enumtype, TYPE_MODE (underlying_type));
+      TYPE_PRECISION (enumtype) = TYPE_PRECISION (underlying_type);
       TYPE_ALIGN (enumtype) = TYPE_ALIGN (underlying_type);
       TYPE_USER_ALIGN (enumtype) = TYPE_USER_ALIGN (underlying_type);
       TYPE_UNSIGNED (enumtype) = TYPE_UNSIGNED (underlying_type);
 
-      /* Set the underlying type of the enumeration type to the
-         computed enumeration type, restricted to the enumerator
-         values. */
+      /* Compute the minimum and maximum values for the type.
+
+	 [dcl.enum]
+
+	 For an enumeration where emin is the smallest enumerator and emax
+	 is the largest, the values of the enumeration are the values of the
+	 underlying type in the range bmin to bmax, where bmin and bmax are,
+	 respectively, the smallest and largest values of the smallest bit-
+	 field that can store emin and emax.  */
+
+      /* The middle-end currently assumes that types with TYPE_PRECISION
+	 narrower than their underlying type are suitably zero or sign
+	 extended to fill their mode.  Similarly, it assumes that the front
+	 end assures that a value of a particular type must be within
+	 TYPE_MIN_VALUE and TYPE_MAX_VALUE.
+
+	 We used to set these fields based on bmin and bmax, but that led
+	 to invalid assumptions like optimizing away bounds checking.  So
+	 now we just set the TYPE_PRECISION, TYPE_MIN_VALUE, and
+	 TYPE_MAX_VALUE to the values for the mode above and only restrict
+	 the ENUM_UNDERLYING_TYPE for the benefit of diagnostics.  */
       ENUM_UNDERLYING_TYPE (enumtype)
 	= build_distinct_type_copy (underlying_type);
-      set_min_and_max_values_for_integral_type 
+      TYPE_PRECISION (ENUM_UNDERLYING_TYPE (enumtype)) = precision;
+      set_min_and_max_values_for_integral_type
         (ENUM_UNDERLYING_TYPE (enumtype), precision, unsignedp);
+
+      /* If -fstrict-enums, still constrain TYPE_MIN/MAX_VALUE.  */
+      if (flag_strict_enums)
+	set_min_and_max_values_for_integral_type (enumtype, precision,
+						  unsignedp);
     }
   else
     underlying_type = ENUM_UNDERLYING_TYPE (enumtype);
 
-  /* Compute the minimum and maximum values for the type.
-
-     [dcl.enum]
-
-     For an enumeration where emin is the smallest enumerator and emax
-     is the largest, the values of the enumeration are the values of the
-     underlying type in the range bmin to bmax, where bmin and bmax are,
-     respectively, the smallest and largest values of the smallest bit-
-     field that can store emin and emax.  */
-  
-  /* The middle-end currently assumes that types with TYPE_PRECISION
-     narrower than their underlying type are suitably zero or sign
-     extended to fill their mode.  g++ doesn't make these guarantees.
-     Until the middle-end can represent such paradoxical types, we
-     set the TYPE_PRECISION to the width of the underlying type.  */
-  TYPE_PRECISION (enumtype) = TYPE_PRECISION (underlying_type);
-  
-  set_min_and_max_values_for_integral_type (enumtype, precision, unsignedp);
-  
   /* Convert each of the enumerators to the type of the underlying
      type of the enumeration.  */
   for (values = TYPE_VALUES (enumtype); values; values = TREE_CHAIN (values))

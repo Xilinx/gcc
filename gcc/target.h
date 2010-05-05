@@ -762,6 +762,12 @@ struct gcc_target
      for further details.  */
   bool (* vector_mode_supported_p) (enum machine_mode mode);
 
+  /* True for MODE if the target expects that registers in this mode will
+     be allocated to registers in a small register class.  The compiler is
+     allowed to use registers explicitly used in the rtl as spill registers
+     but it should prevent extending the lifetime of these registers.  */
+  bool (* small_register_classes_for_mode_p) (enum machine_mode mode);
+
   /* Compute a (partial) cost for rtx X.  Return true if the complete
      cost has been computed, and false if subexpressions should be
      scanned.  In either case, *TOTAL contains the cost result.  */
@@ -967,6 +973,10 @@ struct gcc_target
     /* Return the rtx for the result of a libcall of mode MODE,
        calling the function FN_NAME.  */
     rtx (*libcall_value) (enum machine_mode, const_rtx);
+
+    /* Return true if REGNO is a possible register number for
+       a function value as seen by the caller.  */
+    bool (*function_value_regno_p) (const unsigned int);
 
     /* Return an rtx for the argument pointer incoming to the
        current function.  */

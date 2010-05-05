@@ -4797,10 +4797,12 @@ gnat_to_gnu (Node_Id gnat_node)
 	  gnu_result
 	    = build_binary_op (MODIFY_EXPR, NULL_TREE, gnu_lhs, gnu_rhs);
 
-	  /* If the type being assigned is an array type and the two sides
-	     are not completely disjoint, play safe and use memmove.  */
+	  /* If the type being assigned is an array type and the two sides are
+	     not completely disjoint, play safe and use memmove.  But don't do
+	     it for a bit-packed array as it might not be byte-aligned.  */
 	  if (TREE_CODE (gnu_result) == MODIFY_EXPR
 	      && Is_Array_Type (Etype (Name (gnat_node)))
+	      && !Is_Bit_Packed_Array (Etype (Name (gnat_node)))
 	      && !(Forwards_OK (gnat_node) && Backwards_OK (gnat_node)))
 	    {
 	      tree to, from, size, to_ptr, from_ptr, t;
@@ -6034,16 +6036,8 @@ gnat_gimplify_expr (tree *expr_p, gimple_seq *pre_p,
 	     the reference is in an elaboration procedure.  */
 	  if (TREE_CONSTANT (op))
 	    {
-	      tree new_var = create_tmp_var_raw (TREE_TYPE (op), "C");
-	      TREE_ADDRESSABLE (new_var) = 1;
-	      gimple_add_tmp_var (new_var);
-
-	      TREE_READONLY (new_var) = 1;
-	      TREE_STATIC (new_var) = 1;
-	      DECL_INITIAL (new_var) = op;
-
-	      TREE_OPERAND (expr, 0) = new_var;
-	      recompute_tree_invariant_for_addr_expr (expr);
+	      tree addr = build_fold_addr_expr (tree_output_constant_def (op));
+	      *expr_p = fold_convert (TREE_TYPE (expr), addr);
 	    }
 
 	  /* Otherwise explicitly create the local temporary.  That's required

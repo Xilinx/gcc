@@ -1,3 +1,523 @@
+2010-05-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* g++.dg/cdce3.C: Add a space.  Updated.
+
+2010-05-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43680
+	* g++.dg/opt/enum2.C: New.
+	* g++.dg/warn/pr33738.C: Use -fstrict-enums.
+	* g++.dg/warn/Wswitch-1.C: Adjust message.
+
+2010-05-03  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/cdce3.C: Skip on alpha*-dec-osf5*.
+	* g++.dg/ext/label13.C: Fix typo.
+	* g++.dg/warn/miss-format-1.C (bar): xfail dg-warning on
+	alpha*-dec-osf5*.
+	* gcc.c-torture/compile/limits-declparen.c: xfail on
+	alpha*-dec-osf5* with -g.
+	* gcc.c-torture/compile/limits-pointer.c: Likewise.
+	* gcc.dg/c99-tgmath-1.c: Skip on alpha*-dec-osf5*.
+	* gcc.dg/c99-tgmath-2.c: Likewise.
+	* gcc.dg/c99-tgmath-3.c: Likewise.
+	* gcc.dg/c99-tgmath-4.c: Likewise.
+
+2010-05-03  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/43592
+	* gfortran.dg/unexpected_interface.f90: New test.
+
+2010-05-03  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* ada/acats/run_acats (which): New function.
+	(host_gnatchop, host_gnatmake): Use it.
+
+2010-05-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43971
+	* gcc.dg/pr43971.c: New testcase.
+
+2010-05-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43972
+	* gcc.dg/debug/pr43972.c: New test.
+
+2010-05-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/43963
+	* g++.dg/debug/dwarf2/icf.C: Update scan regexp for Vtable slot 0.
+
+2010-05-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43879
+	* gcc.dg/torture/pr43879-3.c: New testcase.
+
+2010-05-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43949
+	* g++.dg/warn/Warray-bounds-5.C: New testcase.
+
+2010-05-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/43951
+	* g++.dg/init/new28.C: New.
+
+2010-04-30  Iain Sandoe <iains@gcc.gnu.org>
+
+	PR objc++/32052
+	* obj-c++.dg/encode-2.mm: Remove XFAIL. Add test for anonymous
+	structure and nested declarations.
+	* obj-c++.dg/encode-3.mm:  Remove XFAIL. Add test for anonymous
+	structure and nested declarations.  Reduce header clutter and
+	use _exit() rather than abort().
+	* objc.dg/encode-10.m: New.
+	* objc.dg/encode-11.m: New.
+
+2010-04-30  DJ Delorie  <dj@redhat.com>
+
+	* gcc.c-torture/execute/20100430-1.c: New test.
+
+2010-04-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43868
+	* g++.dg/template/ptrmem21.C: New.
+
+2010-04-30  Tobias Burnus  Mburnus@net-b.de>
+
+	PR fortran/18918
+	PR fortran/43931
+	* gfortran.dg/coarray_13.f90: New test.
+
+2010-04-30  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43946
+	* gcc.dg/lto/20100430-1_0.c: New testcase.
+
+2010-04-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43942
+	* c-c++-common/pr43942.c: New test.
+
+2009-04-30  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* gcc.dg/lto/20091216-1_0.c: Adjust test case to avoid
+	conflict with darwin crt1.o 'start' symbol.
+
+2010-04-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43879
+	* gcc.dg/torture/pr43879_1.c: New testcase.
+
+2010-04-30  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/builtin-free.c: New testcase.
+
+2010-04-29  Fabien Chêne  <fabien.chene@gmail.com>
+
+	PR c++/43890
+	* init.c (diagnose_uninitialized_cst_or_ref_member): check for
+	user-provided constructor while recursing.
+
+2010-04-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42274
+	* gfortran.dg/class_16.f03: New test.
+
+2010-04-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42274
+	* gfortran.dg/class_15.f03: New.
+
+2010-04-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/43326
+	* gfortran.dg/dynamic_dispatch_9.f03: New test.
+
+2010-04-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/43492
+	* gfortran.dg/generic_22.f03 : New test.
+
+2010-04-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/42353
+	* gfortran.dg/class_14.f03: New test.
+
+2010-04-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/42680
+	* gfortran.dg/interface_32.f90: New test.
+
+2009-04-29  Paul Thomas  <pault@gcc.gnu.org>
+	    Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41829
+	* gfortran.dg/dynamic_dispatch_5.f03 : Change to "run".
+	* gfortran.dg/dynamic_dispatch_7.f03 : New test.
+	* gfortran.dg/dynamic_dispatch_8.f03 : New test.
+
+2010-04-28  Mike Stump  <mikestump@comcast.net>
+
+	* g++.dg/uninit-pred-1_b.C: Use dg-message instead of
+	dg-excess-errors.
+	* g++.dg/uninit-pred-2_b.C: Likewise.
+
+2010-04-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	PR fortran/43919
+	* gfortran.dg/coarray_11.f90: Add scalar-coarrays test case.
+
+2010-04-28  Matthias Klose  <doko@ubuntu.com>
+
+	* gcc.dg/plugin/plugin.exp: Run the plugindir tests.
+	* gcc.dg/plugindir1.c: Move to gcc.dg/plugin/plugindir1.c.
+	* gcc.dg/plugindir2.c: Move to gcc.dg/plugin/plugindir2.c.
+	* gcc.dg/plugindir3.c: Move to gcc.dg/plugin/plugindir3.c.
+	* gcc.dg/plugindir4.c: Move to gcc.dg/plugin/plugindir4.c.
+
+2010-04-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/const-uniq-1.c: New test.
+	* gcc.dg/lto/const-uniq_[01].c: Likewise.
+
+2010-04-28  Xinliang David Li  <davidxl@google.com>
+
+	* gcc.dg/uninit-pred-2_b.c: New test.
+	* gcc.dg/uninit-pred-4_b.c: New test.
+	* gcc.dg/uninit-pred-3_d.c: New test.
+	* gcc.dg/uninit-pred-6_b.c: New test.
+	* gcc.dg/uninit-pred-8_b.c: New test.
+	* gcc.dg/uninit-pred-3_a.c: New test.
+	* gcc.dg/uninit-pred-2_c.c: New test.
+	* gcc.dg/uninit-pred-5_a.c: New test.
+	* gcc.dg/uninit-pred-3_e.c: New test.
+	* gcc.dg/uninit-pred-7_a.c: New test.
+	* gcc.dg/uninit-pred-6_c.c: New test.
+	* gcc.dg/uninit-pred-9_a.c: New test.
+	* gcc.dg/uninit-pred-8_c.c: New test.
+	* gcc.dg/uninit-pred-3_b.c: New test.
+	* gcc.dg/uninit-pred-5_b.c: New test.
+	* gcc.dg/uninit-pred-7_b.c: New test.
+	* gcc.dg/uninit-pred-6_d.c: New test.
+	* gcc.dg/uninit-pred-9_b.c: New test.
+	* gcc.dg/uninit-pred-2_a.c: New test.
+	* gcc.dg/uninit-pred-4_a.c: New test.
+	* gcc.dg/uninit-pred-3_c.c: New test.
+	* gcc.dg/uninit-pred-6_a.c: New test.
+	* gcc.dg/uninit-pred-8_a.c: New test.
+	* gcc.dg/uninit-pred-7_c.c: New test.
+	* gcc.dg/uninit-pred-6_e.c: New test.
+	* g++.dg/uninit-pred-loop-1_b.cc: New test.
+	* g++.dg/uninit-pred-1_a.C: New test.
+	* g++.dg/uninit-pred-1_b.C: New test.
+	* g++.dg/uninit-pred-2_a.C: New test.
+	* g++.dg/uninit-pred-2_b.C: New test.
+	* g++.dg/uninit-pred-loop-1_a.cc: New test.
+	* g++.dg/uninit-pred-loop-1_c.cc: New test.
+	* g++.dg/uninit-pred-loop_1.cc: New test.
+
+2010-04-28  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/lto/20091209-1_0.c: New testcase.
+
+2010-04-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43879
+	PR tree-optimization/43909
+	* gcc.dg/ipa/ipa-pta-14.c: Adjust.
+
+2010-04-28  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/43880
+	* g++.dg/torture/pr43880.C: New testcase.
+
+2010-04-28  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/9335
+        * g++.dg/template/recurse2.C: Update
+        * g++.dg/template/recurse.C: Update.
+        * g++.dg/template/pr23510.C: Update.
+        * lib/prune.exp: Filter out 'recursively instantiated'.
+
+2010-04-27  Fabien Chêne  <fabien.chene@gmail.com>
+
+	PR c++/29043
+	* g++.dg/init/pr29043.C: New.
+
+2010-04-27  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/lookup/scoped5.C: Adjust.
+	* g++.dg/lookup/scoped8.C: Adjust.
+	* g++.dg/template/dependent-expr5.C: Adjust.
+	* g++.old-deja/g++.brendan/nest1.C: Adjust.
+
+	PR c++/43856
+	* g++.dg/cpp0x/lambda/lambda-this2.C: New.
+
+	PR c++/43875
+	* g++.dg/cpp0x/lambda/lambda-deduce2.C: New.
+
+2010-04-27  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+	    Jan Hubicka <hubicka@ucw.cz>
+
+	* gcc.dg/pure-2.c: New testcase.
+	* gcc.dg/const-1.c: New testcase.
+
+2010-04-27  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/lambda/lambda-ice1.C: New.
+
+	PR c++/41468
+	* g++.dg/template/sfinae17.C: New.
+	* g++.dg/template/sfinae18.C: New.
+
+2010-04-27  Fabien Chêne  <fabien.chene@gmail.com>
+
+	* g++.dg/init/pr42844.C: New.
+	* g++.dg/cpp0x/pr42844-2.C: New.
+	* g++.dg/cpp0x/defaulted2.C: Adjust.
+	* g++.dg/tree-ssa/pr27549.C: Likewise.
+	* g++.old-deja/g++.mike/dyncast8.C: Likewise.
+
+2010-04-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_12.f90: Fix dump parsing.
+
+2010-04-27  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40561
+	* g++.dg/other/pr40561.C: New testcase.
+
+2010-04-27  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/43812
+	* g++.dg/ipa/pr43812.C: New test.
+
+2010-04-27  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/ipa/iinline-1.c (main): Rename to...
+	(test): ... this one.
+
+2010-04-27  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/40657
+	* gcc.target/arm/thumb-stackframe.c: New test.
+
+2010-04-27  Shujing Zhao  <pearly.zhao@oracle.com>
+	
+	* gcc.dg/pr32207.c: Fix typo in expected warning messages.
+	* gcc.dg/misc-column.c: Likewise.
+	* gcc.dg/Walways-true-1.c: Likewise.
+	* gcc.dg/Walways-true-2.c: Likewise.
+	* gcc.dg/warn-addr-cmp.c: Likewise.
+
+2010-04-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_7.f90: Modified and removed obsolete tests.
+	* gfortran.dg/coarray_12.f90: New.
+
+2010-04-27  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c/32207
+	* gcc.dg/pr32207.c: New test.
+	* gcc.dg/misc-column.c: Adjust expected warning.
+	* gcc.dg/Walways-true-1.c: Likewise.
+	* gcc.dg/Walways-true-2.c: Likewise.
+	* gcc.dg/warn-addr-cmp.c: Likewise.
+
+2010-04-27  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR lto/42776
+	* lib/lto.exp (lto_prune_vis_warns): New function.
+	(lto-link-and-maybe-run): Call it.
+
+2010-04-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR tree-optimization/43904
+	* gcc.dg/tree-ssa/tailcall-6.c: New.
+
+2010-04-26  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	PR testsuite/35165
+	* obj-c++.dg/stubify-2.mm: Restrict to ilp32 targets.  Require
+	Darwin8/OSX10.4 - compatible code generation.
+	Use scan-rtl-dump.
+	* obj-c++.dg/stubify-1.mm: Ditto.
+	* lib/objc-torture.exp: Do not require link success for
+	"trivial.m" in the runtime checks when dowhat = 'compile'.
+	* lib/dg-pch.exp: (dg-flags-pch): New Proc.
+	* objc.dg/stubify-1.m:  Restrict to ilp32 targets.  Require
+	Darwin8/OSX10.4 - compatible code generation.
+	* objc.dg/stubify-2.m: Ditto.
+	* objc.dg/symtab-1.m: Match '.quad' for m64 code.
+	* objc.dg/next-runtime-1.m: Ditto.
+	* objc.dg/stret-2.m: Restrict to ilp32 targets.
+	* objc.dg/pch/pch.exp: Apply tests to both Gnu and NeXT
+	runtimes on Darwin.
+
+2010-04-26  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR 43715
+	* testsuite/lib/plugin-support.exp: Use "-undefined
+	dynamic_lookup" on darwin.
+
+2010-04-26  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/lto/20100426_0.c: New testcase.
+
+2010-04-26  Jie Zhang  <jie@codesourcery.com>
+
+	PR tree-optimization/43833
+	gcc.dg/Warray-bounds-8.c: New test case.
+
+2010-04-26  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43080
+	* g++.dg/lto/20100423-3_0.C: New testcase.
+
+2010-04-26  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42425
+	* g++.dg/lto/20100423-2_0.C: New testcase.
+
+2010-04-26  Ira Rosen  <irar@il.ibm.com>
+
+	* gcc.dg/vect/bb-slp-23.c: New test.
+
+2010-04-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/c90-float-1.c: Also test that C1X macros are not defined.
+	* gcc.dg/c99-float-1.c: Also test that C1X macros are not defined.
+	* gcc.dg/c1x-float-1.c: New test.
+
+2010-04-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/pr43766.c: Scan "lea\[lq\]?\[ \t\]" instead
+	of "lea\[ \t\]".
+
+2010-04-25  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* gfortran.dg/default_format_denormal_2.f90: Remove XFAIL for
+	FreeBSD.
+	* gfortran.dg/default_format_denormal_1.f90: Ditto.
+	* gfortran.dg/default_format_2.f90: Ditto.
+
+2010-04-25  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* gfortran.dg/pr43505.f90: Clean up .mod file.
+	* gfortran.dg/host_assoc_blockdata_1.f90: Ditto.
+	* gfortran.dg/pr41347.f90: Ditto.
+	* gfortran.dg/internal_pack_4.f90: Ditto.
+	* gfortran.dg/proc_decl_23.f90: Ditto.
+	* gfortran.dg/recursive_check_3.f90: Ditto.
+	* gfortran.dg/intent_out_3.f90: Ditto.
+	* gfortran.dg/assignment_2.f90: Ditto.
+	* gfortran.dg/pr41928.f90: Ditto.
+	* gfortran.dg/pr42166.f90: Ditto.
+	* gfortran.dg/private_type_12.f90: Ditto.
+	* gfortran.dg/graphite/pr42185.f90: Ditto.
+	* gfortran.dg/graphite/pr42186.f90: Ditto.
+	* gfortran.dg/graphite/pr40982.f90: Ditto.
+	* gfortran.dg/graphite/id-2.f90: Ditto.
+	* gfortran.dg/graphite/id-4.f90: Ditto.
+	* gfortran.dg/graphite/pr42050.f90: Ditto.
+	* gfortran.dg/graphite/id-18.f90: Ditto.
+	* gfortran.dg/graphite/pr42393-1.f90: Ditto.
+	* gfortran.dg/graphite/pr41924.f90: Ditto.
+	* gfortran.dg/graphite/pr42393.f90: Ditto.
+	* gfortran.dg/graphite/pr37980.f90: Ditto.
+	* gfortran.dg/graphite/pr38953.f90: Ditto.
+	* gfortran.dg/graphite/pr42180.f90: Ditto.
+	* gfortran.dg/graphite/pr42181.f90: Ditto.
+	* gfortran.dg/where_operator_assign_4.f90: Ditto.
+	* gfortran.dg/select_type_4.f90: Ditto.
+	* gfortran.dg/redefined_intrinsic_assignment.f90: Ditto.
+	* gfortran.dg/host_assoc_blockdata_2.f90: Ditto.
+	* gfortran.dg/lto/pr40725_0.f03: Ditto.
+	* gfortran.dg/elemental_args_check_2.f90: Ditto.
+	* gfortran.dg/whole_file_11.f90: Ditto.
+	* gfortran.dg/private_type_11.f90: Ditto.
+	* gfortran.dg/vect/vect-gems.f90: Ditto.
+	* gfortran.dg/vect/fast-math-real8-pr40801.f90: Ditto.
+
+2010-04-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/pr43766.c: Scan "lea\[ \t\]" instead of "lea".
+
+2010-04-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/pack15.ad[sb]: New test.
+
+2010-04-25  Paolo Bonzini  <bonzini@gnu.org>
+
+	* gcc.target/arm/mla-1.c: New test.
+
+2010-04-24  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/30073
+	PR fortran/43793
+	* gfortran.dg/pr43793.f90: New test.
+
+2010-04-24  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR tree-optimization/41442
+	* gcc.target/i386/pr41442.c: New test.
+
+2010-04-24  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR fortran/43832
+	* gfortran.dg/fgetc_3.f90: Delete bogus test.
+
+2010-04-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/43832
+	* gfortran.dg/open_nounit.f90: New test.
+
+2010-04-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/43841
+	PR fortran/43843
+	* gfortran.dg/elemental_scalar_args_1.f90 : New test.
+
+2010-04-23  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* gcc.dg/Wconversion-integer.c: Update.
+
+2010-04-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/unchecked_convert5.adb: New test.
+
+2010-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41734
+	* gcc.dg/lto/20100423-2_0.c: New testcase.
+	* gcc.dg/lto/20100423-2_0.c: Likewise.
+
+2010-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43455
+	* gcc.dg/lto/20100423-1_0.c: New testcase.
+	* gcc.dg/lto/20100423-1_1.c: Likewise.
+
+2010-04-23  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/43846
+	* gcc.dg/tree-ssa/sra-10.c: New test.
+
+2010-04-23  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/43835
+	* gcc.c-torture/execute/pr43835.c: New test.
+
+2010-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42653
+	* g++.dg/lto/20100423-1_0.C: New testcase.
+
 2010-04-22  Uros Bizjak  <ubizjak@gmail.com>
 
 	* gcc.dg/graphite/interchange-0.c: Fix dg-final directive.

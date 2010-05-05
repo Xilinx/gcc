@@ -2006,12 +2006,12 @@ enum reg_class
 
 #define INDEX_REG_CLASS NO_REGS
 
-/* When SMALL_REGISTER_CLASSES is nonzero, the compiler allows
+/* When this hook returns true for MODE, the compiler allows
    registers explicitly used in the rtl to be used as spill registers
    but prevents the compiler from extending the lifetime of these
    registers.  */
-
-#define SMALL_REGISTER_CLASSES (TARGET_MIPS16)
+#define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P \
+  mips_small_register_classes_for_mode_p
 
 /* We generally want to put call-clobbered registers ahead of
    call-saved ones.  (IRA expects this.)  */
@@ -2059,12 +2059,12 @@ enum reg_class
   182,183,184,185,186,187						\
 }
 
-/* ORDER_REGS_FOR_LOCAL_ALLOC is a macro which permits reg_alloc_order
+/* ADJUST_REG_ALLOC_ORDER is a macro which permits reg_alloc_order
    to be rearranged based on a particular function.  On the mips16, we
    want to allocate $24 (T_REG) before other registers for
    instructions for which it is possible.  */
 
-#define ORDER_REGS_FOR_LOCAL_ALLOC mips_order_regs_for_local_alloc ()
+#define ADJUST_REG_ALLOC_ORDER mips_order_regs_for_local_alloc ()
 
 /* True if VALUE is an unsigned 6-bit number.  */
 

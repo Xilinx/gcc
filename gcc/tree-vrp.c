@@ -764,6 +764,27 @@ range_is_null (value_range_t *vr)
 	 && integer_zerop (vr->max);
 }
 
+/* Return true if max and min of VR are INTEGER_CST.  It's not necessary
+   a singleton.  */
+
+static inline bool
+range_int_cst_p (value_range_t *vr)
+{
+  return (vr->type == VR_RANGE
+	  && TREE_CODE (vr->max) == INTEGER_CST
+	  && TREE_CODE (vr->min) == INTEGER_CST
+	  && !TREE_OVERFLOW (vr->max)
+	  && !TREE_OVERFLOW (vr->min));
+}
+
+/* Return true if VR is a INTEGER_CST singleton.  */
+
+static inline bool
+range_int_cst_singleton_p (value_range_t *vr)
+{
+  return (range_int_cst_p (vr)
+	  && tree_int_cst_equal (vr->min, vr->max));
+}
 
 /* Return true if value range VR involves at least one symbol.  */
 
@@ -1342,6 +1363,10 @@ bool
 ssa_name_nonnegative_p (const_tree t)
 {
   value_range_t *vr = get_value_range (t);
+
+  if (INTEGRAL_TYPE_P (t)
+      && TYPE_UNSIGNED (t))
+    return true;
 
   if (!vr)
     return false;
@@ -2058,6 +2083,10 @@ extract_range_from_binary_expr (value_range_t *vr,
       && code != CEIL_DIV_EXPR
       && code != EXACT_DIV_EXPR
       && code != ROUND_DIV_EXPR
+      && code != TRUNC_MOD_EXPR
+      && code != FLOOR_MOD_EXPR
+      && code != CEIL_MOD_EXPR
+      && code != ROUND_MOD_EXPR
       && code != RSHIFT_EXPR
       && code != MIN_EXPR
       && code != MAX_EXPR
@@ -2126,6 +2155,10 @@ extract_range_from_binary_expr (value_range_t *vr,
       && code != CEIL_DIV_EXPR
       && code != EXACT_DIV_EXPR
       && code != ROUND_DIV_EXPR
+      && code != TRUNC_MOD_EXPR
+      && code != FLOOR_MOD_EXPR
+      && code != CEIL_MOD_EXPR
+      && code != ROUND_MOD_EXPR
       && (vr0.type == VR_VARYING
 	  || vr1.type == VR_VARYING
 	  || vr0.type != vr1.type
@@ -2476,6 +2509,28 @@ extract_range_from_binary_expr (value_range_t *vr,
 	    }
 	}
     }
+  else if (code == TRUNC_MOD_EXPR
+	   || code == FLOOR_MOD_EXPR
+	   || code == CEIL_MOD_EXPR
+	   || code == ROUND_MOD_EXPR)
+    {
+      bool sop = false;
+      if (vr0.type == VR_ANTI_RANGE
+	  || vr1.type != VR_RANGE
+	  || symbolic_range_p (&vr1)
+	  || range_includes_zero_p (&vr1))
+	{
+	  set_value_range_to_varying (vr);
+	  return;
+	}
+      type = VR_RANGE;
+      max = int_const_binop (MINUS_EXPR, vr1.max, integer_one_node, 0);
+      if (vrp_expr_computes_nonnegative (op0, &sop)
+	  && vrp_expr_computes_nonnegative (op1, &sop) && !sop)
+	min = build_int_cst (TREE_TYPE (vr1.max), 0);
+      else
+	min = fold_unary (NEGATE_EXPR, TREE_TYPE (max), max);
+    }
   else if (code == MINUS_EXPR)
     {
       /* If we have a MINUS_EXPR with two VR_ANTI_RANGEs, drop to
@@ -2498,19 +2553,20 @@ extract_range_from_binary_expr (value_range_t *vr,
     }
   else if (code == BIT_AND_EXPR)
     {
-      if (vr0.type == VR_RANGE
-	  && vr0.min == vr0.max
-	  && TREE_CODE (vr0.max) == INTEGER_CST
-	  && !TREE_OVERFLOW (vr0.max)
-	  && tree_int_cst_sgn (vr0.max) >= 0)
+      bool vr0_int_cst_singleton_p, vr1_int_cst_singleton_p;
+
+      vr0_int_cst_singleton_p = range_int_cst_singleton_p (&vr0);
+      vr1_int_cst_singleton_p = range_int_cst_singleton_p (&vr1);
+
+      if (vr0_int_cst_singleton_p && vr1_int_cst_singleton_p)
+	min = max = int_const_binop (code, vr0.max, vr1.max, 0);
+      else if (vr0_int_cst_singleton_p
+	       && tree_int_cst_sgn (vr0.max) >= 0)
 	{
 	  min = build_int_cst (expr_type, 0);
 	  max = vr0.max;
 	}
-      else if (vr1.type == VR_RANGE
-	       && vr1.min == vr1.max
-	       && TREE_CODE (vr1.max) == INTEGER_CST
-	       && !TREE_OVERFLOW (vr1.max)
+      else if (vr1_int_cst_singleton_p
 	       && tree_int_cst_sgn (vr1.max) >= 0)
 	{
 	  type = VR_RANGE;
@@ -2525,12 +2581,8 @@ extract_range_from_binary_expr (value_range_t *vr,
     }
   else if (code == BIT_IOR_EXPR)
     {
-      if (vr0.type == VR_RANGE
-          && vr1.type == VR_RANGE
-	  && TREE_CODE (vr0.min) == INTEGER_CST
-	  && TREE_CODE (vr1.min) == INTEGER_CST
-	  && TREE_CODE (vr0.max) == INTEGER_CST
-	  && TREE_CODE (vr1.max) == INTEGER_CST
+      if (range_int_cst_p (&vr0)
+	  && range_int_cst_p (&vr1)
 	  && tree_int_cst_sgn (vr0.min) >= 0
 	  && tree_int_cst_sgn (vr1.min) >= 0)
 	{

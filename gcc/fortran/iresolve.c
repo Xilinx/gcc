@@ -119,6 +119,27 @@ resolve_mask_arg (gfc_expr *mask)
     }
 }
 
+
+static void
+resolve_bound (gfc_expr *f, gfc_expr *array, gfc_expr *dim, gfc_expr *kind,
+	       const char *name)
+{
+  f->ts.type = BT_INTEGER;
+  if (kind)
+    f->ts.kind = mpz_get_si (kind->value.integer);
+  else
+    f->ts.kind = gfc_default_integer_kind;
+
+  if (dim == NULL)
+    {
+      f->rank = 1;
+      f->shape = gfc_get_shape (1);
+      mpz_init_set_ui (f->shape[0], array->rank);
+    }
+
+  f->value.function.name = xstrdup (name);
+}
+
 /********************** Resolution functions **********************/
 
 
@@ -832,7 +853,7 @@ gfc_resolve_extends_type_of (gfc_expr *f, gfc_expr *a, gfc_expr *mo)
     gfc_add_component_ref (a, "$vptr");
   else if (a->ts.type == BT_DERIVED)
     {
-      vtab = gfc_find_derived_vtab (a->ts.u.derived);
+      vtab = gfc_find_derived_vtab (a->ts.u.derived, false);
       /* Clear the old expr.  */
       gfc_free_ref_list (a->ref);
       memset (a, '\0', sizeof (gfc_expr));
@@ -848,7 +869,7 @@ gfc_resolve_extends_type_of (gfc_expr *f, gfc_expr *a, gfc_expr *mo)
     gfc_add_component_ref (mo, "$vptr");
   else if (mo->ts.type == BT_DERIVED)
     {
-      vtab = gfc_find_derived_vtab (mo->ts.u.derived);
+      vtab = gfc_find_derived_vtab (mo->ts.u.derived, false);
       /* Clear the old expr.  */
       gfc_free_ref_list (mo->ref);
       memset (mo, '\0', sizeof (gfc_expr));
@@ -1247,22 +1268,14 @@ gfc_resolve_kill (gfc_expr *f, gfc_expr *p ATTRIBUTE_UNUSED,
 void
 gfc_resolve_lbound (gfc_expr *f, gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 {
-  static char lbound[] = "__lbound";
+  resolve_bound (f, array, dim, kind, "__lbound");
+}
 
-  f->ts.type = BT_INTEGER;
-  if (kind)
-    f->ts.kind = mpz_get_si (kind->value.integer);
-  else
-    f->ts.kind = gfc_default_integer_kind;
 
-  if (dim == NULL)
-    {
-      f->rank = 1;
-      f->shape = gfc_get_shape (1);
-      mpz_init_set_ui (f->shape[0], array->rank);
-    }
-
-  f->value.function.name = lbound;
+void
+gfc_resolve_lcobound (gfc_expr *f, gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
+{
+  resolve_bound (f, array, dim, kind, "__lcobound");
 }
 
 
@@ -2376,6 +2389,23 @@ gfc_resolve_tanh (gfc_expr *f, gfc_expr *x)
 
 
 void
+gfc_resolve_image_index (gfc_expr *f, gfc_expr *array ATTRIBUTE_UNUSED,
+			 gfc_expr *sub ATTRIBUTE_UNUSED)
+{
+  static char this_image[] = "__image_index";
+  f->ts.kind = gfc_default_integer_kind;
+  f->value.function.name = this_image;
+}
+
+
+void
+gfc_resolve_this_image (gfc_expr *f, gfc_expr *array, gfc_expr *dim)
+{
+  resolve_bound (f, array, dim, NULL, "__this_image");
+}
+
+
+void
 gfc_resolve_time (gfc_expr *f)
 {
   f->ts.type = BT_INTEGER;
@@ -2510,22 +2540,14 @@ gfc_resolve_trim (gfc_expr *f, gfc_expr *string)
 void
 gfc_resolve_ubound (gfc_expr *f, gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 {
-  static char ubound[] = "__ubound";
+  resolve_bound (f, array, dim, kind, "__ubound");
+}
 
-  f->ts.type = BT_INTEGER;
-  if (kind)
-    f->ts.kind = mpz_get_si (kind->value.integer);
-  else
-    f->ts.kind = gfc_default_integer_kind;
 
-  if (dim == NULL)
-    {
-      f->rank = 1;
-      f->shape = gfc_get_shape (1);
-      mpz_init_set_ui (f->shape[0], array->rank);
-    }
-
-  f->value.function.name = ubound;
+void
+gfc_resolve_ucobound (gfc_expr *f, gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
+{
+  resolve_bound (f, array, dim, kind, "__ucobound");
 }
 
 
