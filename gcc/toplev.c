@@ -1056,7 +1056,7 @@ compile_file (void)
      what's left of the symbol table output.  */
   timevar_pop (TV_PARSE);
 
-  if (flag_syntax_only)
+  if (flag_syntax_only || flag_wpa)
     return;
 
   ggc_protect_identifiers = false;
@@ -2347,7 +2347,6 @@ dump_memory_report (bool final)
   dump_tree_statistics ();
   dump_gimple_statistics ();
   dump_rtx_statistics ();
-  dump_varray_statistics ();
   dump_alloc_pool_statistics ();
   dump_bitmap_statistics ();
   dump_vec_loc_statistics ();

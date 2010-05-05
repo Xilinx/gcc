@@ -217,9 +217,6 @@ enum LTO_tags
   /* Special for global streamer. Reference to previously-streamed node.  */
   LTO_tree_pickle_reference,
 
-  /* A decl which exists only to provide an extra symbol for another var.  */
-  LTO_var_decl_alias,
-
   /* References to indexable tree nodes.  These objects are stored in
      tables that are written separately from the function bodies that
      reference them.  This way they can be instantiated even when the
@@ -259,11 +256,11 @@ enum lto_section_type
   LTO_section_function_body,
   LTO_section_static_initializer,
   LTO_section_cgraph,
+  LTO_section_varpool,
   LTO_section_jump_functions,
   LTO_section_ipa_pure_const,
   LTO_section_ipa_reference,
   LTO_section_symtab,
-  LTO_section_wpa_fixup,
   LTO_section_opts,
   LTO_N_SECTION_TYPES		/* Must be last.  */
 };
@@ -470,10 +467,10 @@ struct lto_cgraph_encoder_d
 typedef struct lto_cgraph_encoder_d *lto_cgraph_encoder_t;
 
 /* Mapping from indices to trees.  */
-struct lto_tree_ref_table
+struct GTY(()) lto_tree_ref_table
 {
   /* Array of referenced trees . */
-  tree *trees;
+  tree * GTY((length ("%h.size"))) trees;
 
   /* Size of array. */
   unsigned int size;
@@ -499,7 +496,7 @@ struct lto_tree_ref_encoder
 
 
 /* Structure to hold states of input scope.  */
-struct lto_in_decl_state
+struct GTY(()) lto_in_decl_state
 {
   /* Array of lto_in_decl_buffers to store type and decls streams. */
   struct lto_tree_ref_table streams[LTO_N_DECL_STREAMS];
@@ -537,7 +534,7 @@ DEF_VEC_ALLOC_P(lto_out_decl_state_ptr, heap);
    by lto.  This structure contains the tables that are needed by the
    serialized functions and ipa passes to connect themselves to the
    global types and decls as they are reconstituted.  */
-struct lto_file_decl_data
+struct GTY(()) lto_file_decl_data
 {
   /* Decl state currently used. */
   struct lto_in_decl_state *current_decl_state;
@@ -547,22 +544,19 @@ struct lto_file_decl_data
   struct lto_in_decl_state *global_decl_state;
 
   /* Table of cgraph nodes present in this file.  */
-  lto_cgraph_encoder_t cgraph_node_encoder;
+  lto_cgraph_encoder_t GTY((skip)) cgraph_node_encoder;
 
   /* Hash table maps lto-related section names to location in file.  */
-  htab_t function_decl_states;
+  htab_t GTY((param_is (struct lto_in_decl_state))) function_decl_states;
 
   /* The .o file that these offsets relate to.  */
-  const char *file_name;
-
-  /* Nonzero if this file should be recompiled with LTRANS.  */
-  unsigned needs_ltrans_p : 1;
+  const char *GTY((skip)) file_name;
 
   /* Hash table maps lto-related section names to location in file.  */
-  htab_t section_hash_table;
+  htab_t GTY((skip)) section_hash_table;
 
   /* Hash new name of renamed global declaration to its original name.  */
-  htab_t renaming_hash_table;
+  htab_t GTY((skip)) renaming_hash_table;
 };
 
 struct lto_char_ptr_base
@@ -834,6 +828,8 @@ int lto_cgraph_encoder_encode (lto_cgraph_encoder_t, struct cgraph_node *);
 void lto_cgraph_encoder_delete (lto_cgraph_encoder_t encoder);
 void output_cgraph (cgraph_node_set);
 void input_cgraph (void);
+void output_varpool (varpool_node_set);
+void input_varpool (void);
 
 
 /* In lto-symtab.c.  */
@@ -922,38 +918,6 @@ lto_tag_to_tree_code (enum LTO_tags tag)
   gcc_assert (lto_tag_is_tree_code_p (tag));
   return (enum tree_code) ((unsigned) tag - 1);
 }
-
-
-/* Return true if FILE needs to be compiled with LTRANS.  */
-static inline bool
-lto_file_needs_ltrans_p (struct lto_file_decl_data *file)
-{
-  return file->needs_ltrans_p != 0;
-}
-
-
-/* Mark FILE to be compiled with LTRANS.  */
-static inline void
-lto_mark_file_for_ltrans (struct lto_file_decl_data *file)
-{
-  file->needs_ltrans_p = 1;
-}
-
-
-/* Return true if any files in node set SET need to be compiled
-   with LTRANS.  */
-static inline bool
-cgraph_node_set_needs_ltrans_p (cgraph_node_set set)
-{
-  cgraph_node_set_iterator csi;
-
-  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
-    if (lto_file_needs_ltrans_p (csi_node (csi)->local.lto_file_data))
-      return true;
-
-  return false;
-}
-
 
 /* Initialize an lto_out_decl_buffer ENCODER.  */
 static inline void

@@ -14468,6 +14468,10 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
       FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (arg), i, elt)
 	{
 	  int elt_strict = strict;
+
+	  if (elt == error_mark_node)
+	    return 1;
+
 	  if (!BRACE_ENCLOSED_INITIALIZER_P (elt))
 	    {
 	      tree type = TREE_TYPE (elt);
@@ -15941,11 +15945,12 @@ most_specialized_class (tree type, tree tmpl)
       tree parms = TREE_VALUE (t);
 
       partial_spec_args = CLASSTYPE_TI_ARGS (TREE_TYPE (t));
+
+      ++processing_template_decl;
+
       if (outer_args)
 	{
 	  int i;
-
-	  ++processing_template_decl;
 
 	  /* Discard the outer levels of args, and then substitute in the
 	     template args from the enclosing class.  */
@@ -15963,7 +15968,6 @@ most_specialized_class (tree type, tree tmpl)
 	    TREE_VEC_ELT (parms, i) =
 	      tsubst (TREE_VEC_ELT (parms, i), outer_args, tf_none, NULL_TREE);
 
-	  --processing_template_decl;
 	}
 
       partial_spec_args =
@@ -15973,6 +15977,8 @@ most_specialized_class (tree type, tree tmpl)
 				 tmpl, tf_none,
 				 /*require_all_args=*/true,
 				 /*use_default_args=*/true);
+
+      --processing_template_decl;
 
       if (partial_spec_args == error_mark_node)
 	return error_mark_node;

@@ -665,9 +665,23 @@ copy_bind_expr (tree *tp, int *walk_subtrees, copy_body_data *id)
     }
 
   if (BIND_EXPR_VARS (*tp))
-    /* This will remap a lot of the same decls again, but this should be
-       harmless.  */
-    BIND_EXPR_VARS (*tp) = remap_decls (BIND_EXPR_VARS (*tp), NULL, id);
+    {
+      tree t;
+
+      /* This will remap a lot of the same decls again, but this should be
+	 harmless.  */
+      BIND_EXPR_VARS (*tp) = remap_decls (BIND_EXPR_VARS (*tp), NULL, id);
+ 
+      /* Also copy value-expressions.  */
+      for (t = BIND_EXPR_VARS (*tp); t; t = TREE_CHAIN (t))
+	if (TREE_CODE (t) == VAR_DECL
+	    && DECL_HAS_VALUE_EXPR_P (t))
+	  {
+	    tree tem = DECL_VALUE_EXPR (t);
+	    walk_tree (&tem, copy_tree_body_r, id, NULL);
+	    SET_DECL_VALUE_EXPR (t, tem);
+	  }
+    }
 }
 
 
@@ -1684,9 +1698,8 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 	      /* Constant propagation on argument done during inlining
 		 may create new direct call.  Produce an edge for it.  */
 	      if ((!edge
-		   || (edge->indirect_call
+		   || (edge->indirect_inlining_edge
 		       && id->transform_call_graph_edges == CB_CGE_MOVE_CLONES))
-		  && is_gimple_call (stmt)
 		  && (fn = gimple_call_fndecl (stmt)) != NULL)
 		{
 		  struct cgraph_node *dest = cgraph_node (fn);
@@ -3539,7 +3552,7 @@ get_indirect_callee_fndecl (struct cgraph_node *node, gimple stmt)
   struct cgraph_edge *cs;
 
   cs = cgraph_edge (node, stmt);
-  if (cs)
+  if (cs && !cs->indirect_unknown_callee)
     return cs->callee->decl;
 
   return NULL_TREE;
@@ -3622,7 +3635,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
       /* If this call was originally indirect, we do not want to emit any
 	 inlining related warnings or sorry messages because there are no
 	 guarantees regarding those.  */
-      if (cg_edge->indirect_call)
+      if (cg_edge->indirect_inlining_edge)
 	goto egress;
 
       if (lookup_attribute ("always_inline", DECL_ATTRIBUTES (fn))

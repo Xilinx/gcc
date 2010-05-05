@@ -506,6 +506,7 @@ perform_member_init (tree member, tree init)
     {
       if (init == NULL_TREE)
 	{
+	  tree core_type;
 	  /* member traversal: note it leaves init NULL */
 	  if (TREE_CODE (type) == REFERENCE_TYPE)
 	    permerror (DECL_SOURCE_LOCATION (current_function_decl),
@@ -515,6 +516,13 @@ perform_member_init (tree member, tree init)
 	    permerror (DECL_SOURCE_LOCATION (current_function_decl),
 		       "uninitialized member %qD with %<const%> type %qT",
 		       member, type);
+
+	  core_type = strip_array_types (type);
+	  if (CLASS_TYPE_P (core_type)
+	      && (CLASSTYPE_READONLY_FIELDS_NEED_INIT (core_type)
+		  || CLASSTYPE_REF_FIELDS_NEED_INIT (core_type)))
+	    diagnose_uninitialized_cst_or_ref_member (core_type,
+						      /*using_new=*/false);
 	}
       else if (TREE_CODE (init) == TREE_LIST)
 	/* There was an explicit member initialization.  Do some work
@@ -1771,6 +1779,9 @@ diagnose_uninitialized_cst_or_ref_member_1 (tree type, tree origin,
 {
   tree field;
 
+  if (type_has_user_provided_constructor (type))
+    return;
+
   for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
     {
       tree field_type;
@@ -1783,8 +1794,8 @@ diagnose_uninitialized_cst_or_ref_member_1 (tree type, tree origin,
       if (TREE_CODE (field_type) == REFERENCE_TYPE)
 	{
 	  if (using_new)
-	    error ("uninitialized reference member in %q#T using %<new%>",
-		   origin);
+	    error ("uninitialized reference member in %q#T "
+		   "using %<new%> without new-initializer", origin);
 	  else
 	    error ("uninitialized reference member in %q#T", origin);
 	  inform (DECL_SOURCE_LOCATION (field),
@@ -1794,8 +1805,8 @@ diagnose_uninitialized_cst_or_ref_member_1 (tree type, tree origin,
       if (CP_TYPE_CONST_P (field_type))
 	{
 	  if (using_new)
-	    error ("uninitialized const member in %q#T using %<new%>",
-		   origin);
+	    error ("uninitialized const member in %q#T "
+		   "using %<new%> without new-initializer", origin);
 	  else
 	    error ("uninitialized const member in %q#T", origin);
 	  inform (DECL_SOURCE_LOCATION (field),

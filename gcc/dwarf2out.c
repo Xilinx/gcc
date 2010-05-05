@@ -79,7 +79,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "dwarf2out.h"
 #include "dwarf2asm.h"
 #include "toplev.h"
-#include "varray.h"
 #include "ggc.h"
 #include "md5.h"
 #include "tm_p.h"
@@ -1040,7 +1039,7 @@ def_cfa_1 (const char *label, dw_cfa_location *loc_p)
 
   cfi = new_cfi ();
 
-  if (loc.reg == old_cfa.reg && !loc.indirect)
+  if (loc.reg == old_cfa.reg && !loc.indirect && !old_cfa.indirect)
     {
       /* Construct a "DW_CFA_def_cfa_offset <offset>" instruction, indicating
 	 the CFA register did not change but the offset did.  The data
@@ -1056,7 +1055,8 @@ def_cfa_1 (const char *label, dw_cfa_location *loc_p)
 #ifndef MIPS_DEBUGGING_INFO  /* SGI dbx thinks this means no offset.  */
   else if (loc.offset == old_cfa.offset
 	   && old_cfa.reg != INVALID_REGNUM
-	   && !loc.indirect)
+	   && !loc.indirect
+	   && !old_cfa.indirect)
     {
       /* Construct a "DW_CFA_def_cfa_register <register>" instruction,
 	 indicating the CFA register has changed to <register> but the
@@ -6116,6 +6116,7 @@ static void add_AT_location_description	(dw_die_ref, enum dwarf_attribute,
 static void add_data_member_location_attribute (dw_die_ref, tree);
 static bool add_const_value_attribute (dw_die_ref, rtx);
 static void insert_int (HOST_WIDE_INT, unsigned, unsigned char *);
+static void insert_double (double_int, unsigned char *);
 static void insert_float (const_rtx, unsigned char *);
 static rtx rtl_for_decl_location (tree);
 static bool add_location_or_const_value_attribute (dw_die_ref, tree,
@@ -13887,10 +13888,8 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	  else
 	    {
 	      loc_result->dw_loc_oprnd2.val_class = dw_val_class_const_double;
-	      loc_result->dw_loc_oprnd2.v.val_double.high
-		= CONST_DOUBLE_HIGH (rtl);
-	      loc_result->dw_loc_oprnd2.v.val_double.low
-		= CONST_DOUBLE_LOW (rtl);
+	      loc_result->dw_loc_oprnd2.v.val_double
+	        = rtx_to_double_int (rtl);
 	    }
 	}
       break;
@@ -13914,39 +13913,14 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	      for (i = 0, p = array; i < length; i++, p += elt_size)
 		{
 		  rtx elt = CONST_VECTOR_ELT (rtl, i);
-		  HOST_WIDE_INT lo, hi;
-
-		  switch (GET_CODE (elt))
-		    {
-		    case CONST_INT:
-		      lo = INTVAL (elt);
-		      hi = -(lo < 0);
-		      break;
-
-		    case CONST_DOUBLE:
-		      lo = CONST_DOUBLE_LOW (elt);
-		      hi = CONST_DOUBLE_HIGH (elt);
-		      break;
-
-		    default:
-		      gcc_unreachable ();
-		    }
+		  double_int val = rtx_to_double_int (elt);
 
 		  if (elt_size <= sizeof (HOST_WIDE_INT))
-		    insert_int (lo, elt_size, p);
+		    insert_int (double_int_to_shwi (val), elt_size, p);
 		  else
 		    {
-		      unsigned char *p0 = p;
-		      unsigned char *p1 = p + sizeof (HOST_WIDE_INT);
-
 		      gcc_assert (elt_size == 2 * sizeof (HOST_WIDE_INT));
-		      if (WORDS_BIG_ENDIAN)
-			{
-			  p0 = p1;
-			  p1 = p;
-			}
-		      insert_int (lo, sizeof (HOST_WIDE_INT), p0);
-		      insert_int (hi, sizeof (HOST_WIDE_INT), p1);
+		      insert_double (val, p);
 		    }
 		}
 	      break;
@@ -15334,6 +15308,24 @@ extract_int (const unsigned char *src, unsigned int size)
   return val;
 }
 
+/* Writes double_int values to dw_vec_const array.  */
+
+static void
+insert_double (double_int val, unsigned char *dest)
+{
+  unsigned char *p0 = dest;
+  unsigned char *p1 = dest + sizeof (HOST_WIDE_INT);
+
+  if (WORDS_BIG_ENDIAN)
+    {
+      p0 = p1;
+      p1 = dest;
+    }
+
+  insert_int ((HOST_WIDE_INT) val.low, sizeof (HOST_WIDE_INT), p0);
+  insert_int ((HOST_WIDE_INT) val.high, sizeof (HOST_WIDE_INT), p1);
+}
+
 /* Writes floating point values to dw_vec_const array.  */
 
 static void
@@ -15413,39 +15405,14 @@ add_const_value_attribute (dw_die_ref die, rtx rtl)
 	    for (i = 0, p = array; i < length; i++, p += elt_size)
 	      {
 		rtx elt = CONST_VECTOR_ELT (rtl, i);
-		HOST_WIDE_INT lo, hi;
-
-		switch (GET_CODE (elt))
-		  {
-		  case CONST_INT:
-		    lo = INTVAL (elt);
-		    hi = -(lo < 0);
-		    break;
-
-		  case CONST_DOUBLE:
-		    lo = CONST_DOUBLE_LOW (elt);
-		    hi = CONST_DOUBLE_HIGH (elt);
-		    break;
-
-		  default:
-		    gcc_unreachable ();
-		  }
+		double_int val = rtx_to_double_int (elt);
 
 		if (elt_size <= sizeof (HOST_WIDE_INT))
-		  insert_int (lo, elt_size, p);
+		  insert_int (double_int_to_shwi (val), elt_size, p);
 		else
 		  {
-		    unsigned char *p0 = p;
-		    unsigned char *p1 = p + sizeof (HOST_WIDE_INT);
-
 		    gcc_assert (elt_size == 2 * sizeof (HOST_WIDE_INT));
-		    if (WORDS_BIG_ENDIAN)
-		      {
-			p0 = p1;
-			p1 = p;
-		      }
-		    insert_int (lo, sizeof (HOST_WIDE_INT), p0);
-		    insert_int (hi, sizeof (HOST_WIDE_INT), p1);
+		    insert_double (val, p);
 		  }
 	      }
 	    break;

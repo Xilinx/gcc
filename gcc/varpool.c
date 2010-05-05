@@ -105,6 +105,22 @@ eq_varpool_node (const void *p1, const void *p2)
   return DECL_UID (n1->decl) == DECL_UID (n2->decl);
 }
 
+/* Return varpool node assigned to DECL without creating new one.  */
+struct varpool_node *
+varpool_get_node (tree decl)
+{
+  struct varpool_node key, **slot;
+
+  gcc_assert (DECL_P (decl) && TREE_CODE (decl) != FUNCTION_DECL);
+
+  if (!varpool_hash)
+    return NULL;
+  key.decl = decl;
+  slot = (struct varpool_node **)
+    htab_find_slot (varpool_hash, &key, INSERT);
+  return *slot;
+}
+
 /* Return varpool node assigned to DECL.  Create new one when needed.  */
 struct varpool_node *
 varpool_node (tree decl)
@@ -125,9 +141,61 @@ varpool_node (tree decl)
   node->decl = decl;
   node->order = cgraph_order++;
   node->next = varpool_nodes;
+  if (varpool_nodes)
+    varpool_nodes->prev = node;
   varpool_nodes = node;
   *slot = node;
   return node;
+}
+
+/* Remove node from the varpool.  */
+void
+varpool_remove_node (struct varpool_node *node)
+{
+  void **slot;
+  slot = htab_find_slot (varpool_hash, node, NO_INSERT);
+  gcc_assert (*slot == node);
+  htab_clear_slot (varpool_hash, slot);
+  gcc_assert (!varpool_assembled_nodes_queue);
+  if (!node->alias)
+    while (node->extra_name)
+      varpool_remove_node (node->extra_name);
+  if (node->next)
+    node->next->prev = node->prev;
+  if (node->prev)
+    node->prev->next = node->next;
+  else
+    {
+      if (node->alias)
+	{
+          gcc_assert (node->extra_name->extra_name == node);
+	  node->extra_name->extra_name = node->next;
+	}
+      else
+	{
+          gcc_assert (varpool_nodes == node);
+          varpool_nodes = node->next;
+	}
+    }
+  if (varpool_first_unanalyzed_node == node)
+    varpool_first_unanalyzed_node = node->next_needed;
+  if (node->next_needed)
+    node->next_needed->prev_needed = node->prev_needed;
+  else if (node->prev_needed)
+    {
+      gcc_assert (varpool_last_needed_node);
+      varpool_last_needed_node = node->prev_needed;
+    }
+  if (node->prev_needed)
+    node->prev_needed->next_needed = node->next_needed;
+  else if (node->next_needed)
+    {
+      gcc_assert (varpool_nodes_queue == node);
+      varpool_nodes_queue = node->next_needed;
+    }
+  if (DECL_INITIAL (node->decl))
+    DECL_INITIAL (node->decl) = error_mark_node;
+  ggc_free (node);
 }
 
 /* Dump given cgraph node.  */
@@ -139,8 +207,12 @@ dump_varpool_node (FILE *f, struct varpool_node *node)
 	   cgraph_function_flags_ready
 	   ? cgraph_availability_names[cgraph_variable_initializer_availability (node)]
 	   : "not-ready");
+  if (DECL_ASSEMBLER_NAME_SET_P (node->decl))
+    fprintf (f, " (asm: %s)", IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (node->decl)));
   if (DECL_INITIAL (node->decl))
     fprintf (f, " initialized");
+  if (TREE_ASM_WRITTEN (node->decl))
+    fprintf (f, " (asm written)");
   if (node->needed)
     fprintf (f, " needed");
   if (node->analyzed)
@@ -151,6 +223,10 @@ dump_varpool_node (FILE *f, struct varpool_node *node)
     fprintf (f, " output");
   if (node->externally_visible)
     fprintf (f, " externally_visible");
+  if (node->in_other_partition)
+    fprintf (f, " in_other_partition");
+  else if (node->used_from_other_partition)
+    fprintf (f, " used_from_other_partition");
   fprintf (f, "\n");
 }
 
@@ -192,7 +268,10 @@ static void
 varpool_enqueue_needed_node (struct varpool_node *node)
 {
   if (varpool_last_needed_node)
-    varpool_last_needed_node->next_needed = node;
+    {
+      varpool_last_needed_node->next_needed = node;
+      node->prev_needed = varpool_last_needed_node;
+    }
   varpool_last_needed_node = node;
   node->next_needed = NULL;
   if (!varpool_nodes_queue)
@@ -230,11 +309,7 @@ varpool_reset_queue (void)
 bool
 decide_is_variable_needed (struct varpool_node *node, tree decl)
 {
-  /* We do not track variable references at all and thus have no idea if the
-     variable was referenced in some other partition or not.  
-     FIXME: We really need address taken edges in callgraph and varpool to
-     drive WPA and decide whether other partition might reference it or not.  */
-  if (flag_ltrans)
+  if (node->used_from_other_partition)
     return true;
   /* If the user told us it is used, then it must be so.  */
   if ((node->externally_visible && !DECL_COMDAT (decl))
@@ -288,17 +363,6 @@ varpool_finalize_decl (tree decl)
 {
   struct varpool_node *node = varpool_node (decl);
 
-  /* FIXME: We don't really stream varpool datastructure and instead rebuild it
-     by varpool_finalize_decl.  This is not quite correct since this way we can't
-     attach any info to varpool.  Eventually we will want to stream varpool nodes
-     and the flags.
-
-     For the moment just prevent analysis of varpool nodes to happen again, so
-     we will re-try to compute "address_taken" flag of varpool that breaks
-     in presence of clones.  */
-  if (in_lto_p)
-    node->analyzed = true;
-
   /* The first declaration of a variable that comes through this function
      decides whether it is global (in C, has external linkage)
      or local (in C, has internal linkage).  So do nothing more
@@ -348,8 +412,8 @@ bool
 varpool_analyze_pending_decls (void)
 {
   bool changed = false;
-  timevar_push (TV_CGRAPH);
 
+  timevar_push (TV_VARPOOL);
   while (varpool_first_unanalyzed_node)
     {
       tree decl = varpool_first_unanalyzed_node->decl;
@@ -364,7 +428,7 @@ varpool_analyze_pending_decls (void)
 	 We however don't want to re-analyze already analyzed nodes.  */
       if (!analyzed)
 	{
-	  gcc_assert (!in_lto_p);
+	  gcc_assert (!in_lto_p || cgraph_function_flags_ready);
           /* Compute the alignment early so function body expanders are
 	     already informed about increased alignment.  */
           align_variable (decl, 0);
@@ -373,7 +437,7 @@ varpool_analyze_pending_decls (void)
 	record_references_in_initializer (decl, analyzed);
       changed = true;
     }
-  timevar_pop (TV_CGRAPH);
+  timevar_pop (TV_VARPOOL);
   return changed;
 }
 
@@ -385,6 +449,7 @@ varpool_assemble_decl (struct varpool_node *node)
 
   if (!TREE_ASM_WRITTEN (decl)
       && !node->alias
+      && !node->in_other_partition
       && !DECL_EXTERNAL (decl)
       && (TREE_CODE (decl) != VAR_DECL || !DECL_HAS_VALUE_EXPR_P (decl)))
     {
@@ -394,6 +459,9 @@ varpool_assemble_decl (struct varpool_node *node)
 	  struct varpool_node *alias;
 
 	  node->next_needed = varpool_assembled_nodes_queue;
+	  node->prev_needed = NULL;
+	  if (varpool_assembled_nodes_queue)
+	    varpool_assembled_nodes_queue->prev_needed = node;
 	  varpool_assembled_nodes_queue = node;
 	  node->finalized = 1;
 
@@ -463,6 +531,7 @@ varpool_assemble_pending_decls (void)
   if (errorcount || sorrycount)
     return false;
 
+  timevar_push (TV_VAROUT);
   /* EH might mark decls as needed during expansion.  This should be safe since
      we don't create references to new function, but it should not be used
      elsewhere.  */
@@ -476,11 +545,15 @@ varpool_assemble_pending_decls (void)
       if (varpool_assemble_decl (node))
 	changed = true;
       else
-        node->next_needed = NULL;
+	{
+	  node->prev_needed = NULL;
+          node->next_needed = NULL;
+	}
     }
   /* varpool_nodes_queue is now empty, clear the pointer to the last element
      in the queue.  */
   varpool_last_needed_node = NULL;
+  timevar_pop (TV_VAROUT);
   return changed;
 }
 
@@ -498,6 +571,7 @@ varpool_empty_needed_queue (void)
       struct varpool_node *node = varpool_nodes_queue;
       varpool_nodes_queue = varpool_nodes_queue->next_needed;
       node->next_needed = NULL;
+      node->prev_needed = NULL;
     }
   /* varpool_nodes_queue is now empty, clear the pointer to the last element
      in the queue.  */
@@ -559,6 +633,8 @@ varpool_extra_name_alias (tree alias, tree decl)
   alias_node->alias = 1;
   alias_node->extra_name = decl_node;
   alias_node->next = decl_node->extra_name;
+  if (decl_node->extra_name)
+    decl_node->extra_name->prev = alias_node;
   decl_node->extra_name = alias_node;
   *slot = alias_node;
   return true;

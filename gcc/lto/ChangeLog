@@ -1,3 +1,39 @@
+2010-04-30  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (get_filename_for_set): Look for cgraph node and if none found, use
+	default name.
+	(lto_wpa_write_files): Write any non-empty partition.
+
+2010-04-30  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c: Do not attempt to make constant pool references global.
+
+2010-04-28  Jan Hubicka  <jh@suse.cz>
+
+	* lto/lto.c (lto_read_in_decl_state): Use GGC.
+	(lto_wpa_write_files): Announce what we are writting.
+	(all_file_decl_data): New.
+	(read_cgraph_and_symbols): Use GGC; correct timevars.
+	(do_whole_program_analysis): Collect.
+	* lto/Make-lang.in (lto.o): Fix dependency.
+	* Makefile.in (GTFILES): Add lto-streamer.h.
+	* varpool.c (varpool_analyze_pending_decls): Use TV_VARPOOL.
+	(varpool_assemble_pending_decls): Use VAROUT.
+	* lto-streamer.h (lto_tree_ref_table): Annotate.
+	(lto_in_decl_state): Annotate.
+	(lto_file_decl_data): Annotate.
+
+2010-04-28  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_varpool_node_sets): New.
+	(lto_1_to_1_map): Partition varpool too.
+	(globalize_context_t, globalize_cross_file_statics,
+	lto_scan_statics_in_ref_table, lto_scan_statics_in_cgraph_node,
+	lto_scan_statics_in_remaining_global_vars): Remove.
+	(lto_promote_cross_file_statics): Rewrite.
+	(get_filename_for_set): Take vset argument.
+	(lto_wpa_write_files): Pass around vsets.
+
 2010-04-27  Dave Korn  <dave.korn.cygwin@gmail.com>
 
 	PR lto/42776

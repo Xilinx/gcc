@@ -310,10 +310,7 @@ cgraph_mark_inline_edge (struct cgraph_edge *e, bool update_original,
 
   gcc_assert (e->inline_failed);
   e->inline_failed = CIF_OK;
-
-  if (!e->callee->global.inlined)
-    DECL_POSSIBLY_INLINED (e->callee->decl) = true;
-  e->callee->global.inlined = true;
+  DECL_POSSIBLY_INLINED (e->callee->decl) = true;
 
   cgraph_clone_inlined_nodes (e, true, update_original);
 
@@ -1322,6 +1319,8 @@ cgraph_decide_inlining (void)
   cgraph_remove_function_insertion_hook (function_insertion_hook_holder);
   if (in_lto_p && flag_indirect_inlining)
     ipa_update_after_lto_read ();
+  if (flag_indirect_inlining)
+    ipa_create_all_structures_for_iinln ();
 
   max_count = 0;
   max_benefit = 0;
@@ -1442,7 +1441,7 @@ cgraph_decide_inlining (void)
 
   /* Free ipa-prop structures if they are no longer needed.  */
   if (flag_indirect_inlining)
-    free_all_ipa_structures_after_iinln ();
+    ipa_free_all_structures_after_iinln ();
 
   if (dump_file)
     fprintf (dump_file,
@@ -2095,7 +2094,8 @@ inline_read_summary (void)
    active, we don't need to write them twice.  */
 
 static void
-inline_write_summary (cgraph_node_set set)
+inline_write_summary (cgraph_node_set set,
+		      varpool_node_set vset ATTRIBUTE_UNUSED)
 {
   if (flag_indirect_inlining && !flag_ipa_cp)
     ipa_prop_write_jump_functions (set);
@@ -2131,14 +2131,14 @@ struct ipa_opt_pass_d pass_ipa_inline =
   0,					/* properties_destroyed */
   TODO_remove_functions,		/* todo_flags_finish */
   TODO_dump_cgraph | TODO_dump_func
-  | TODO_remove_functions		/* todo_flags_finish */
+  | TODO_remove_functions | TODO_ggc_collect	/* todo_flags_finish */
  },
  inline_generate_summary,		/* generate_summary */
  inline_write_summary,			/* write_summary */
  inline_read_summary,			/* read_summary */
  NULL,					/* write_optimization_summary */
  NULL,					/* read_optimization_summary */
- lto_ipa_fixup_call_notes,		/* stmt_fixup */
+ NULL,					/* stmt_fixup */
  0,					/* TODOs */
  inline_transform,			/* function_transform */
  NULL,					/* variable_transform */
