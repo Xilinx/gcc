@@ -1,3 +1,166 @@
+2010-05-06  Jason Merrill  <jason@redhat.com>
+
+	* config/abi/pre/gnu.ver: Add typeinfo for decltype(nullptr).
+
+2010-05-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/basic_string.h: Escape class names in doxygen docs.
+
+2010-05-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/44014
+	* include/bits/stringfwd.h: Add doxygen comments and new group.
+	* include/bits/basic_string.h: Add to new doxygen group.
+	* doc/doxygen/user.cfg.in (ALIASES): Link to correct group.
+
+2010-05-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.host: Removed irix[1-6], irix[1-5].*, irix6.[0-4]*
+	support.
+	* config/os/irix/irix5.2: Removed.
+
+2010-05-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/vector/bool/capacity/29134.cc: Adjust
+	for profile-mode too.
+	* testsuite/23_containers/vector/bool/modifiers/insert/31370.cc:
+	Likewise.
+
+2010-05-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/profile/unordered_map (unordered_map<>::insert(_InputIter,
+	_InputIter), unordered_multimap<>::insert(_InputIter, _InputIter)):
+	Fix typo, don't call base() on __first and __last.
+
+2010-05-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Fix profile-mode vs -std=c++0x
+	* include/profile/impl/profiler_trace.h: Do not include the
+	whole <algorithm>, include <bits/stl_heap.h> (additionally
+	to <bits/stl_algobase.h>).
+	(__write_cost_factors): Replace std::for_each with open-coding.
+	(__set_cost_factors): Likewise.
+	(__report): Likewise; use std::make_heap / std::sort_heap
+	instead of std::sort.
+	(__report_cost_factors): Replace std::remove with open-coding.
+	(__warn, __cost_factor_writer, __cost_factor_setter): Remove.
+
+2010-05-04  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR other/43620
+	* configure.ac (AM_INIT_AUTOMAKE): Add no-dist.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+	* doc/Makefile.in: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* libsupc++/Makefile.in: Regenerate.
+	* po/Makefile.in: Regenerate.
+	* python/Makefile.in: Regenerate.
+	* src/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2010-05-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/faq.xml: Fix anachronisms.
+	* doc/xml/manual/intro.xml (Make): Tweak grammar and whitespace.
+	* doc/xml/manual/support.xml (NULL): Use inline <code> element
+	instead of <programlisting> block.
+	* doc/html/*: Regenerate.
+
+2010-04-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_pair.h (piecewise_construct_t,
+	pair<>::pair(piecewise_construct_t, tuple, tuple)): Add.
+	(pair<>::__cons, pair<>::__do_cons): Declare.
+	(__decay_and_strip, __strip_reference_wrapper): Move...
+	* include/std/type_traits: ... here.
+	* include/std/functional (_Index_tuple, _Build_index_tuple): Move...
+	* include/std/tuple: ... here.
+	(pack_arguments): Add.
+	(pair<>::__cons, pair<>::__do_cons): Define.
+	* testsuite/20_util/tuple/creation_functions/pack_arguments.cc: New.
+	* testsuite/20_util/pair/piecewise.cc: Likewise.
+	* testsuite/20_util/tuple/cons/big_tuples.cc: Include <utility>.
+	* testsuite/20_util/tuple/cons/constructor.cc: Likewise.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Likewise.
+	* testsuite/20_util/declval/requirements/1_neg.cc: Likewise.
+
+2010-04-27  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/43865
+	* include/c_global/cstdlib (abort, exit): _GLIBCXX_NORETURN typo.
+
+2010-04-27  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx200x.xml: Update quick_exit status.
+	* doc/html/*: Regenerate.
+
+2010-04-27  Fabien Chêne  <fabien.chene@gmail.com>
+
+	* testsuite/util/testsuite_error.h: Add empty default constructor
+	to __gnu_test::test_category and
+	__gnu_test::test_derived_category.
+	* src/future.cc: Add empty default constructor to
+	future_error_category.
+	* src/system_error.cc: Add default ctor to generic_error_category
+	and system_error_category.
+
+2010-04-27  Alexander Monakov  <amonakov@ispras.ru>
+
+	* testsuite/22_locale/codecvt/unshift/char/1.cc (test01): Clarify size
+	definition.  Use memcpy and memcmp to avoid access beyond allocated
+	memory.
+
+2010-04-27  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx200x.xml: Update to match n3092.
+	* doc/html/*: Regenerate.
+
+2010-04-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx200x.xml: Update Threads status.
+	* doc/html/manual/status.html: Regenerate.
+
+2010-04-24  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/unique_ptr (unique_ptr::pointer): Use deleter's
+	pointer type if it exists.
+	* testsuite/20_util/unique_ptr/requirements/pointer_type.cc: New.
+	* testsuite/20_util/unique_ptr/assign/assign_neg.cc: Adjust.
+	* testsuite/20_util/unique_ptr/modifiers/reset_neg.cc: Adjust.
+
+2010-04-22  Johannes Singler  <singler@kit.edu>
+
+        * include/parallel/partition.h (__parallel_partition):
+        Improve scalability by:
+        -introducing new variables __leftold, __rightold, __dist, thus
+        -getting rid of omp lock by using atomic operations
+        -getting rid of two omp barriers
+
+2010-04-22  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/faq.xml: Link to manual.
+	* doc/xml/manual/using.xml: Expand dynamic libraries section.
+	* doc/xml/manual/strings.xml: Mention shrink_to_fit() member.
+	* doc/xml/manual/prerequisites.xml: Link to doxygen requirements.
+	* doc/xml/manual/appendix_contributing.xml: Update Bash version.
+	* doc/html/*: Regenerate.
+
+2010-04-13  Ian Lance Taylor  <iant@google.com>
+
+	* include/backward/hash_map: Don't #include "backward_warning.h"
+	if _GLIBCXX_PERMIT_BACKWARD_HASH is defined.
+	* include/backward/hash_set: Likewise.
+
+2010-04-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.host (os_include_dir): Removed solaris2.7 support.
+	* crossconfig.m4 (GLIBCXX_CROSSCONFIG): Likewise.
+	* configure: Regenerate.
+
 2010-04-06  Matthias Klose  <doko@ubuntu.com>
 
 	* acinclude.m4 (GLIBCXX_ENABLE_LIBSTDCXX_TIME): Show test result.

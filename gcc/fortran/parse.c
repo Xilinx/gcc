@@ -1968,13 +1968,11 @@ parse_derived_contains (void)
 static void
 parse_derived (void)
 {
-  int compiling_type, seen_private, seen_sequence, seen_component, error_flag;
+  int compiling_type, seen_private, seen_sequence, seen_component;
   gfc_statement st;
   gfc_state_data s;
   gfc_symbol *sym;
   gfc_component *c;
-
-  error_flag = 0;
 
   accept_statement (ST_DERIVED_DECL);
   push_state (&s, COMP_DERIVED, gfc_new_block);
@@ -2002,18 +2000,15 @@ parse_derived (void)
 
 	case ST_FINAL:
 	  gfc_error ("FINAL declaration at %C must be inside CONTAINS");
-	  error_flag = 1;
 	  break;
 
 	case ST_END_TYPE:
 endType:
 	  compiling_type = 0;
 
-	  if (!seen_component
-	      && (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Derived type "
-				 "definition at %C without components")
-		  == FAILURE))
-	    error_flag = 1;
+	  if (!seen_component)
+	    gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Derived type "
+			    "definition at %C without components");
 
 	  accept_statement (ST_END_TYPE);
 	  break;
@@ -2023,7 +2018,6 @@ endType:
 	    {
 	      gfc_error ("PRIVATE statement in TYPE at %C must be inside "
 			 "a MODULE");
-	      error_flag = 1;
 	      break;
 	    }
 
@@ -2031,15 +2025,11 @@ endType:
 	    {
 	      gfc_error ("PRIVATE statement at %C must precede "
 			 "structure components");
-	      error_flag = 1;
 	      break;
 	    }
 
 	  if (seen_private)
-	    {
-	      gfc_error ("Duplicate PRIVATE statement at %C");
-	      error_flag = 1;
-	    }
+	    gfc_error ("Duplicate PRIVATE statement at %C");
 
 	  s.sym->component_access = ACCESS_PRIVATE;
 
@@ -2052,7 +2042,6 @@ endType:
 	    {
 	      gfc_error ("SEQUENCE statement at %C must precede "
 			 "structure components");
-	      error_flag = 1;
 	      break;
 	    }
 
@@ -2063,7 +2052,6 @@ endType:
 	  if (seen_sequence)
 	    {
 	      gfc_error ("Duplicate SEQUENCE statement at %C");
-	      error_flag = 1;
 	    }
 
 	  seen_sequence = 1;
@@ -2072,14 +2060,12 @@ endType:
 	  break;
 
 	case ST_CONTAINS:
-	  if (gfc_notify_std (GFC_STD_F2003,
-			      "Fortran 2003:  CONTAINS block in derived type"
-			      " definition at %C") == FAILURE)
-	    error_flag = 1;
+	  gfc_notify_std (GFC_STD_F2003,
+			  "Fortran 2003:  CONTAINS block in derived type"
+			  " definition at %C");
 
 	  accept_statement (ST_CONTAINS);
-	  if (parse_derived_contains ())
-	    error_flag = 1;
+	  parse_derived_contains ();
 	  goto endType;
 
 	default:
@@ -2124,6 +2110,22 @@ endType:
 	  || c->attr.access == ACCESS_PRIVATE
 	  || (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.private_comp))
 	sym->attr.private_comp = 1;
+
+     /* Fix up incomplete CLASS components.  */
+     if (c->ts.type == BT_CLASS)
+	{
+	  gfc_component *data;
+	  gfc_component *vptr;
+	  gfc_symbol *vtab;
+	  data = gfc_find_component (c->ts.u.derived, "$data", true, true);
+	  vptr = gfc_find_component (c->ts.u.derived, "$vptr", true, true);
+	  if (vptr->ts.u.derived == NULL)
+	    {
+	      vtab = gfc_find_derived_vtab (data->ts.u.derived, false);
+	      gcc_assert (vtab);
+	      vptr->ts.u.derived = vtab->ts.u.derived;
+	    }
+	}
     }
 
   if (!seen_component)
@@ -2138,13 +2140,10 @@ endType:
 static void
 parse_enum (void)
 {
-  int error_flag;
   gfc_statement st;
   int compiling_enum;
   gfc_state_data s;
   int seen_enumerator = 0;
-
-  error_flag = 0;
 
   push_state (&s, COMP_ENUM, gfc_new_block);
 
@@ -2167,10 +2166,7 @@ parse_enum (void)
 	case ST_END_ENUM:
 	  compiling_enum = 0;
 	  if (!seen_enumerator)
-	    {
-	      gfc_error ("ENUM declaration at %C has no ENUMERATORS");
-	      error_flag = 1;
-	    }
+	    gfc_error ("ENUM declaration at %C has no ENUMERATORS");
 	  accept_statement (st);
 	  break;
 
@@ -2268,9 +2264,9 @@ loop:
     {
       if (current_state == COMP_NONE)
 	{
-	  if (new_state == COMP_FUNCTION)
+	  if (new_state == COMP_FUNCTION && sym)
 	    gfc_add_function (&sym->attr, sym->name, NULL);
-	  else if (new_state == COMP_SUBROUTINE)
+	  else if (new_state == COMP_SUBROUTINE && sym)
 	    gfc_add_subroutine (&sym->attr, sym->name, NULL);
 
 	  current_state = new_state;

@@ -34,10 +34,16 @@ The callgraph:
     based on DECL_UID.  The call-graph nodes are created lazily using
     cgraph_node function when called for unknown declaration.
 
-    The callgraph at the moment does not represent indirect calls or calls
-    from other compilation unit.  Flag NEEDED is set for each node that may
-    be accessed in such an invisible way and it shall be considered an
-    entry point to the callgraph.
+    The callgraph at the moment does not represent all indirect calls or calls
+    from other compilation units.  Flag NEEDED is set for each node that may be
+    accessed in such an invisible way and it shall be considered an entry point
+    to the callgraph.
+
+    On the other hand, the callgraph currently does contain some edges for
+    indirect calls with unknown callees which can be accessed through
+    indirect_calls field of a node.  It should be noted however that at the
+    moment only calls which are potential candidates for indirect inlining are
+    added there.
 
     Interprocedural information:
 
@@ -47,6 +53,9 @@ The callgraph:
       of global walking of the callgraph on the end of compilation and
       rtl_info used by RTL backend to propagate data from already compiled
       functions to their callers.
+
+      Moreover, each node has a uid which can be used to keep information in
+      on-the-side arrays.  UIDs are reused and therefore reasonably dense.
 
     Inlining plans:
 
@@ -453,6 +462,8 @@ cgraph_create_node (void)
     cgraph_nodes->previous = node;
   node->previous = NULL;
   node->global.estimated_growth = INT_MIN;
+  node->frequency = NODE_FREQUENCY_NORMAL;
+  ipa_empty_ref_list (&node->ref_list);
   cgraph_nodes = node;
   cgraph_n_nodes++;
   return node;
@@ -722,6 +733,19 @@ edge_eq (const void *x, const void *y)
   return ((const struct cgraph_edge *) x)->call_stmt == y;
 }
 
+/* Add call graph edge E to call site hash of its caller.  */
+
+static inline void
+cgraph_add_edge_to_call_site_hash (struct cgraph_edge *e)
+{
+  void **slot;
+  slot = htab_find_slot_with_hash (e->caller->call_site_hash,
+				   e->call_stmt,
+				   htab_hash_pointer (e->call_stmt),
+				   INSERT);
+  gcc_assert (!*slot);
+  *slot = e;
+}
 
 /* Return the callgraph edge representing the GIMPLE_CALL statement
    CALL_STMT.  */
@@ -742,26 +766,28 @@ cgraph_edge (struct cgraph_node *node, gimple call_stmt)
      solution.  It is not good idea to add pointer into CALL_EXPR itself
      because we want to make possible having multiple cgraph nodes representing
      different clones of the same body before the body is actually cloned.  */
-  for (e = node->callees; e; e= e->next_callee)
+  for (e = node->callees; e; e = e->next_callee)
     {
       if (e->call_stmt == call_stmt)
 	break;
       n++;
     }
 
+  if (!e)
+    for (e = node->indirect_calls; e; e = e->next_callee)
+      {
+	if (e->call_stmt == call_stmt)
+	  break;
+	n++;
+      }
+
   if (n > 100)
     {
       node->call_site_hash = htab_create_ggc (120, edge_hash, edge_eq, NULL);
       for (e2 = node->callees; e2; e2 = e2->next_callee)
-	{
-          void **slot;
-	  slot = htab_find_slot_with_hash (node->call_site_hash,
-					   e2->call_stmt,
-					   htab_hash_pointer (e2->call_stmt),
-					   INSERT);
-	  gcc_assert (!*slot);
-	  *slot = e2;
-	}
+	cgraph_add_edge_to_call_site_hash (e2);
+      for (e2 = node->indirect_calls; e2; e2 = e2->next_callee)
+	cgraph_add_edge_to_call_site_hash (e2);
     }
 
   return e;
@@ -773,26 +799,31 @@ cgraph_edge (struct cgraph_node *node, gimple call_stmt)
 void
 cgraph_set_call_stmt (struct cgraph_edge *e, gimple new_stmt)
 {
+  tree decl;
+
   if (e->caller->call_site_hash)
     {
       htab_remove_elt_with_hash (e->caller->call_site_hash,
 				 e->call_stmt,
 				 htab_hash_pointer (e->call_stmt));
     }
+
   e->call_stmt = new_stmt;
+  if (e->indirect_unknown_callee
+      && (decl = gimple_call_fndecl (new_stmt)))
+    {
+      /* Constant propagation (and possibly also inlining?) can turn an
+	 indirect call into a direct one.  */
+      struct cgraph_node *new_callee = cgraph_node (decl);
+
+      cgraph_make_edge_direct (e, new_callee);
+    }
+
   push_cfun (DECL_STRUCT_FUNCTION (e->caller->decl));
   e->can_throw_external = stmt_can_throw_external (new_stmt);
   pop_cfun ();
   if (e->caller->call_site_hash)
-    {
-      void **slot;
-      slot = htab_find_slot_with_hash (e->caller->call_site_hash,
-				       e->call_stmt,
-				       htab_hash_pointer
-				       (e->call_stmt), INSERT);
-      gcc_assert (!*slot);
-      *slot = e;
-    }
+    cgraph_add_edge_to_call_site_hash (e);
 }
 
 /* Like cgraph_set_call_stmt but walk the clone tree and update all
@@ -894,7 +925,9 @@ initialize_inline_failed (struct cgraph_edge *e)
 {
   struct cgraph_node *callee = e->callee;
 
-  if (!callee->analyzed)
+  if (e->indirect_unknown_callee)
+    e->inline_failed = CIF_INDIRECT_UNKNOWN_CALL;
+  else if (!callee->analyzed)
     e->inline_failed = CIF_BODY_NOT_AVAILABLE;
   else if (callee->local.redefined_extern_inline)
     e->inline_failed = CIF_REDEFINED_EXTERN_INLINE;
@@ -906,14 +939,15 @@ initialize_inline_failed (struct cgraph_edge *e)
     e->inline_failed = CIF_FUNCTION_NOT_CONSIDERED;
 }
 
-/* Create edge from CALLER to CALLEE in the cgraph.  */
+/* Allocate a cgraph_edge structure and fill it with data according to the
+   parameters of which only CALLEE can be NULL (when creating an indirect call
+   edge).  */
 
-struct cgraph_edge *
-cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
-		    gimple call_stmt, gcov_type count, int freq, int nest)
+static struct cgraph_edge *
+cgraph_create_edge_1 (struct cgraph_node *caller, struct cgraph_node *callee,
+		       gimple call_stmt, gcov_type count, int freq, int nest)
 {
   struct cgraph_edge *edge;
-
 
   /* LTO does not actually have access to the call_stmt since these
      have not been loaded yet.  */
@@ -940,46 +974,82 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
     }
 
   edge->aux = NULL;
-
   edge->caller = caller;
   edge->callee = callee;
-  edge->call_stmt = call_stmt;
-  push_cfun (DECL_STRUCT_FUNCTION (caller->decl));
-  edge->can_throw_external
-    = call_stmt ? stmt_can_throw_external (call_stmt) : false;
-  pop_cfun ();
   edge->prev_caller = NULL;
-  edge->next_caller = callee->callers;
-  if (callee->callers)
-    callee->callers->prev_caller = edge;
+  edge->next_caller = NULL;
   edge->prev_callee = NULL;
-  edge->next_callee = caller->callees;
-  if (caller->callees)
-    caller->callees->prev_callee = edge;
-  caller->callees = edge;
-  callee->callers = edge;
+  edge->next_callee = NULL;
+
   edge->count = count;
   gcc_assert (count >= 0);
   edge->frequency = freq;
   gcc_assert (freq >= 0);
   gcc_assert (freq <= CGRAPH_FREQ_MAX);
   edge->loop_nest = nest;
-  edge->indirect_call = 0;
+
+  edge->call_stmt = call_stmt;
+  push_cfun (DECL_STRUCT_FUNCTION (caller->decl));
+  edge->can_throw_external
+    = call_stmt ? stmt_can_throw_external (call_stmt) : false;
+  pop_cfun ();
   edge->call_stmt_cannot_inline_p =
     (call_stmt ? gimple_call_cannot_inline_p (call_stmt) : false);
   if (call_stmt && caller->call_site_hash)
-    {
-      void **slot;
-      slot = htab_find_slot_with_hash (caller->call_site_hash,
-				       edge->call_stmt,
-				       htab_hash_pointer
-					 (edge->call_stmt),
-				       INSERT);
-      gcc_assert (!*slot);
-      *slot = edge;
-    }
+    cgraph_add_edge_to_call_site_hash (edge);
 
+  edge->indirect_info = NULL;
+  edge->indirect_inlining_edge = 0;
+
+  return edge;
+}
+
+/* Create edge from CALLER to CALLEE in the cgraph.  */
+
+struct cgraph_edge *
+cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
+		    gimple call_stmt, gcov_type count, int freq, int nest)
+{
+  struct cgraph_edge *edge = cgraph_create_edge_1 (caller, callee, call_stmt,
+						   count, freq, nest);
+
+  edge->indirect_unknown_callee = 0;
   initialize_inline_failed (edge);
+
+  edge->next_caller = callee->callers;
+  if (callee->callers)
+    callee->callers->prev_caller = edge;
+  edge->next_callee = caller->callees;
+  if (caller->callees)
+    caller->callees->prev_callee = edge;
+  caller->callees = edge;
+  callee->callers = edge;
+
+  return edge;
+}
+
+
+/* Create an indirect edge with a yet-undetermined callee where the call
+   statement destination is a formal parameter of the caller with index
+   PARAM_INDEX. */
+
+struct cgraph_edge *
+cgraph_create_indirect_edge (struct cgraph_node *caller, gimple call_stmt,
+			     gcov_type count, int freq, int nest)
+{
+  struct cgraph_edge *edge = cgraph_create_edge_1 (caller, NULL, call_stmt,
+						   count, freq, nest);
+
+  edge->indirect_unknown_callee = 1;
+  initialize_inline_failed (edge);
+
+  edge->indirect_info = GGC_NEW (struct cgraph_indirect_call_info);
+  edge->indirect_info->param_index = -1;
+
+  edge->next_callee = caller->indirect_calls;
+  if (caller->indirect_calls)
+    caller->indirect_calls->prev_callee = edge;
+  caller->indirect_calls = edge;
 
   return edge;
 }
@@ -989,6 +1059,7 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
 static inline void
 cgraph_edge_remove_callee (struct cgraph_edge *e)
 {
+  gcc_assert (!e->indirect_unknown_callee);
   if (e->prev_caller)
     e->prev_caller->next_caller = e->next_caller;
   if (e->next_caller)
@@ -1007,7 +1078,12 @@ cgraph_edge_remove_caller (struct cgraph_edge *e)
   if (e->next_callee)
     e->next_callee->prev_callee = e->prev_callee;
   if (!e->prev_callee)
-    e->caller->callees = e->next_callee;
+    {
+      if (e->indirect_unknown_callee)
+	e->caller->indirect_calls = e->next_callee;
+      else
+	e->caller->callees = e->next_callee;
+    }
   if (e->caller->call_site_hash)
     htab_remove_elt_with_hash (e->caller->call_site_hash,
 			       e->call_stmt,
@@ -1036,14 +1112,29 @@ cgraph_remove_edge (struct cgraph_edge *e)
   /* Call all edge removal hooks.  */
   cgraph_call_edge_removal_hooks (e);
 
-  /* Remove from callers list of the callee.  */
-  cgraph_edge_remove_callee (e);
+  if (!e->indirect_unknown_callee)
+    /* Remove from callers list of the callee.  */
+    cgraph_edge_remove_callee (e);
 
   /* Remove from callees list of the callers.  */
   cgraph_edge_remove_caller (e);
 
   /* Put the edge onto the free list.  */
   cgraph_free_edge (e);
+}
+
+/* Set callee of call graph edge E and add it to the corresponding set of
+   callers. */
+
+static void
+cgraph_set_edge_callee (struct cgraph_edge *e, struct cgraph_node *n)
+{
+  e->prev_caller = NULL;
+  if (n->callers)
+    n->callers->prev_caller = e;
+  e->next_caller = n->callers;
+  n->callers = e;
+  e->callee = n;
 }
 
 /* Redirect callee of E to N.  The function does not update underlying
@@ -1056,12 +1147,37 @@ cgraph_redirect_edge_callee (struct cgraph_edge *e, struct cgraph_node *n)
   cgraph_edge_remove_callee (e);
 
   /* Insert to callers list of the new callee.  */
-  e->prev_caller = NULL;
-  if (n->callers)
-    n->callers->prev_caller = e;
-  e->next_caller = n->callers;
-  n->callers = e;
-  e->callee = n;
+  cgraph_set_edge_callee (e, n);
+}
+
+/* Make an indirect EDGE with an unknown callee an ordinary edge leading to
+   CALLEE.  */
+
+void
+cgraph_make_edge_direct (struct cgraph_edge *edge, struct cgraph_node *callee)
+{
+  edge->indirect_unknown_callee = 0;
+
+  /* Get the edge out of the indirect edge list. */
+  if (edge->prev_callee)
+    edge->prev_callee->next_callee = edge->next_callee;
+  if (edge->next_callee)
+    edge->next_callee->prev_callee = edge->prev_callee;
+  if (!edge->prev_callee)
+    edge->caller->indirect_calls = edge->next_callee;
+
+  /* Put it into the normal callee list */
+  edge->prev_callee = NULL;
+  edge->next_callee = edge->caller->callees;
+  if (edge->caller->callees)
+    edge->caller->callees->prev_callee = edge;
+  edge->caller->callees = edge;
+
+  /* Insert to callers list of the new callee.  */
+  cgraph_set_edge_callee (edge, callee);
+
+  /* We need to re-determine the inlining status of the edge.  */
+  initialize_inline_failed (edge);
 }
 
 
@@ -1090,9 +1206,10 @@ cgraph_update_edges_for_call_stmt_node (struct cgraph_node *node,
 
       if (e)
 	{
-	  /* See if the call is already there.  It might be because of indirect
-	     inlining already found it.  */
-	  if (new_call && e->callee->decl == new_call)
+	  /* See if the edge is already there and has the correct callee.  It
+	     might be so because of indirect inlining has already updated
+	     it.  */
+	  if (new_call && e->callee && e->callee->decl == new_call)
 	    return;
 
 	  /* Otherwise remove edge and create new one; we can't simply redirect
@@ -1170,7 +1287,8 @@ cgraph_node_remove_callees (struct cgraph_node *node)
     {
       f = e->next_callee;
       cgraph_call_edge_removal_hooks (e);
-      cgraph_edge_remove_callee (e);
+      if (!e->indirect_unknown_callee)
+	cgraph_edge_remove_callee (e);
       cgraph_free_edge (e);
     }
   node->callees = NULL;
@@ -1295,6 +1413,8 @@ cgraph_remove_node (struct cgraph_node *node)
   cgraph_call_node_removal_hooks (node);
   cgraph_node_remove_callers (node);
   cgraph_node_remove_callees (node);
+  ipa_remove_all_references (&node->ref_list);
+  ipa_remove_all_refering (&node->ref_list);
   VEC_free (ipa_opt_pass, heap,
             node->ipa_transforms_to_apply);
 
@@ -1467,7 +1587,8 @@ cgraph_remove_node (struct cgraph_node *node)
       struct cgraph_node *n = (struct cgraph_node *) *slot;
       if (!n->clones && !n->clone_of && !n->global.inlined_to
 	  && (cgraph_global_info_ready
-	      && (TREE_ASM_WRITTEN (n->decl) || DECL_EXTERNAL (n->decl))))
+	      && (TREE_ASM_WRITTEN (n->decl) || DECL_EXTERNAL (n->decl)
+		  || n->in_other_partition)))
 	kill_body = true;
     }
   if (assembler_name_hash)
@@ -1625,9 +1746,13 @@ void
 dump_cgraph_node (FILE *f, struct cgraph_node *node)
 {
   struct cgraph_edge *edge;
+  int indirect_calls_count = 0;
+
   fprintf (f, "%s/%i(%i)", cgraph_node_name (node), node->uid,
 	   node->pid);
   dump_addr (f, " @", (void *)node);
+  if (DECL_ASSEMBLER_NAME_SET_P (node->decl))
+    fprintf (f, " (asm: %s)", IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (node->decl)));
   if (node->global.inlined_to)
     fprintf (f, " (inline copy in %s/%i)",
 	     cgraph_node_name (node->global.inlined_to),
@@ -1639,6 +1764,10 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
   if (cgraph_function_flags_ready)
     fprintf (f, " availability:%s",
 	     cgraph_availability_names [cgraph_function_body_availability (node)]);
+  if (node->analyzed)
+    fprintf (f, " analyzed");
+  if (node->in_other_partition)
+    fprintf (f, " in_other_partition");
   if (node->count)
     fprintf (f, " executed "HOST_WIDEST_INT_PRINT_DEC"x",
 	     (HOST_WIDEST_INT)node->count);
@@ -1666,6 +1795,8 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
     fprintf (f, " address_taken");
   else if (node->reachable)
     fprintf (f, " reachable");
+  else if (node->reachable_from_other_partition)
+    fprintf (f, " reachable_from_other_partition");
   if (gimple_has_body_p (node->decl))
     fprintf (f, " body");
   if (node->process)
@@ -1698,8 +1829,8 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
 		 edge->frequency / (double)CGRAPH_FREQ_BASE);
       if (!edge->inline_failed)
 	fprintf(f, "(inlined) ");
-      if (edge->indirect_call)
-	fprintf(f, "(indirect) ");
+      if (edge->indirect_inlining_edge)
+	fprintf(f, "(indirect_inlining) ");
       if (edge->can_throw_external)
 	fprintf(f, "(can throw external) ");
     }
@@ -1711,8 +1842,8 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
 	       edge->callee->uid);
       if (!edge->inline_failed)
 	fprintf(f, "(inlined) ");
-      if (edge->indirect_call)
-	fprintf(f, "(indirect) ");
+      if (edge->indirect_inlining_edge)
+	fprintf(f, "(indirect_inlining) ");
       if (edge->count)
 	fprintf (f, "("HOST_WIDEST_INT_PRINT_DEC"x) ",
 		 (HOST_WIDEST_INT)edge->count);
@@ -1725,6 +1856,16 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
 	fprintf(f, "(can throw external) ");
     }
   fprintf (f, "\n");
+  fprintf (f, "  References: ");
+  ipa_dump_references (f, &node->ref_list);
+  fprintf (f, "  Refering this function: ");
+  ipa_dump_refering (f, &node->ref_list);
+
+  for (edge = node->indirect_calls; edge; edge = edge->next_callee)
+    indirect_calls_count++;
+  if (indirect_calls_count)
+    fprintf (f, "  has %i outgoing edges for indirect calls.\n",
+	     indirect_calls_count);
 
   if (node->same_body)
     {
@@ -1743,6 +1884,8 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
 		       (int)n->thunk.virtual_offset_p);
 	      fprintf (f, ")");
 	    }
+	  if (DECL_ASSEMBLER_NAME_SET_P (n->decl))
+	    fprintf (f, " (asm: %s)", IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (n->decl)));
 	}
       fprintf (f, "\n");
     }
@@ -1845,11 +1988,30 @@ cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
   freq = e->frequency * (gcov_type) freq_scale / CGRAPH_FREQ_BASE;
   if (freq > CGRAPH_FREQ_MAX)
     freq = CGRAPH_FREQ_MAX;
-  new_edge = cgraph_create_edge (n, e->callee, call_stmt, count, freq,
-			    e->loop_nest + loop_nest);
+
+  if (e->indirect_unknown_callee)
+    {
+      tree decl;
+
+      if (call_stmt && (decl = gimple_call_fndecl (call_stmt)))
+	{
+	  struct cgraph_node *callee = cgraph_node (decl);
+	  new_edge = cgraph_create_edge (n, callee, call_stmt, count, freq,
+					 e->loop_nest + loop_nest);
+	}
+      else
+	{
+	  new_edge = cgraph_create_indirect_edge (n, call_stmt, count, freq,
+						  e->loop_nest + loop_nest);
+	  new_edge->indirect_info->param_index = e->indirect_info->param_index;
+	}
+    }
+  else
+    new_edge = cgraph_create_edge (n, e->callee, call_stmt, count, freq,
+				   e->loop_nest + loop_nest);
 
   new_edge->inline_failed = e->inline_failed;
-  new_edge->indirect_call = e->indirect_call;
+  new_edge->indirect_inlining_edge = e->indirect_inlining_edge;
   new_edge->lto_stmt_uid = stmt_uid;
   if (update_original)
     {
@@ -1887,9 +2049,12 @@ cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq,
   new_node->analyzed = n->analyzed;
   new_node->local = n->local;
   new_node->local.externally_visible = false;
+  new_node->local.local = true;
+  new_node->local.vtable_method = false;
   new_node->global = n->global;
   new_node->rtl = n->rtl;
   new_node->count = count;
+  new_node->frequency = n->frequency;
   new_node->clone = n->clone;
   new_node->clone.tree_map = 0;
   if (n->count)
@@ -1919,6 +2084,11 @@ cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq,
   for (e = n->callees;e; e=e->next_callee)
     cgraph_clone_edge (e, new_node, e->call_stmt, e->lto_stmt_uid,
 		       count_scale, freq, loop_nest, update_original);
+
+  for (e = n->indirect_calls; e; e = e->next_callee)
+    cgraph_clone_edge (e, new_node, e->call_stmt, e->lto_stmt_uid,
+		       count_scale, freq, loop_nest, update_original);
+  ipa_clone_references (new_node, NULL, &n->ref_list);
 
   new_node->next_sibling_clone = n->clones;
   if (n->clones)
@@ -2294,6 +2464,69 @@ cgraph_set_looping_const_or_pure_flag (struct cgraph_node *node,
   DECL_LOOPING_CONST_OR_PURE_P (node->decl) = looping_const_or_pure;
   for (alias = node->same_body; alias; alias = alias->next)
     DECL_LOOPING_CONST_OR_PURE_P (alias->decl) = looping_const_or_pure;
+}
+
+/* See if the frequency of NODE can be updated based on frequencies of its
+   callers.  */
+bool
+cgraph_propagate_frequency (struct cgraph_node *node)
+{
+  bool maybe_unlikely_executed = true, maybe_executed_once = true;
+  struct cgraph_edge *edge;
+  if (!node->local.local)
+    return false;
+  gcc_assert (node->analyzed);
+  if (node->frequency == NODE_FREQUENCY_HOT)
+    return false;
+  if (node->frequency == NODE_FREQUENCY_UNLIKELY_EXECUTED)
+    return false;
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "Processing frequency %s\n", cgraph_node_name (node));
+  for (edge = node->callers;
+       edge && (maybe_unlikely_executed || maybe_executed_once);
+       edge = edge->next_caller)
+    {
+      if (!edge->frequency)
+	continue;
+      switch (edge->caller->frequency)
+        {
+	case NODE_FREQUENCY_UNLIKELY_EXECUTED:
+	  break;
+	case NODE_FREQUENCY_EXECUTED_ONCE:
+	  if (dump_file && (dump_flags & TDF_DETAILS))
+	    fprintf (dump_file, "  Called by %s that is executed once\n", cgraph_node_name (node));
+	  maybe_unlikely_executed = false;
+	  if (edge->loop_nest)
+	    {
+	      maybe_executed_once = false;
+	      if (dump_file && (dump_flags & TDF_DETAILS))
+	        fprintf (dump_file, "  Called in loop\n");
+	    }
+	  break;
+	case NODE_FREQUENCY_HOT:
+	case NODE_FREQUENCY_NORMAL:
+	  if (dump_file && (dump_flags & TDF_DETAILS))
+	    fprintf (dump_file, "  Called by %s that is normal or hot\n", cgraph_node_name (node));
+	  maybe_unlikely_executed = false;
+	  maybe_executed_once = false;
+	  break;
+	}
+    }
+   if (maybe_unlikely_executed)
+     {
+       node->frequency = NODE_FREQUENCY_UNLIKELY_EXECUTED;
+       if (dump_file)
+         fprintf (dump_file, "Node %s promoted to unlikely executed.\n", cgraph_node_name (node));
+       return true;
+     }
+   if (maybe_executed_once && node->frequency != NODE_FREQUENCY_EXECUTED_ONCE)
+     {
+       node->frequency = NODE_FREQUENCY_EXECUTED_ONCE;
+       if (dump_file)
+         fprintf (dump_file, "Node %s promoted to executed once.\n", cgraph_node_name (node));
+       return true;
+     }
+   return false;
 }
 
 #include "gt-cgraph.h"

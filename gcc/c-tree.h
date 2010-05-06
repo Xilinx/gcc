@@ -1,6 +1,6 @@
 /* Definitions for C parsing and type checking.
    Copyright (C) 1987, 1993, 1994, 1995, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -160,6 +160,9 @@ enum c_typespec_kind {
 struct c_typespec {
   /* What kind of type specifier this is.  */
   enum c_typespec_kind kind;
+  /* Whether the expression has operands suitable for use in constant
+     expressions.  */
+  bool expr_const_operands;
   /* The specifier itself.  */
   tree spec;
   /* An expression to be evaluated before the type specifier, in the
@@ -171,9 +174,6 @@ struct c_typespec {
      expression itself (as opposed to the array sizes) forms no part
      of the type and so needs to be recorded separately.  */
   tree expr;
-  /* Whether the expression has operands suitable for use in constant
-     expressions.  */
-  bool expr_const_operands;
 };
 
 /* A storage class specifier.  */
@@ -220,11 +220,11 @@ struct c_declspecs {
      NULL; attributes (possibly from multiple lists) will be passed
      separately.  */
   tree attrs;
-  /* Any type specifier keyword used such as "int", not reflecting
-     modifiers such as "short", or cts_none if none.  */
-  enum c_typespec_keyword typespec_word;
   /* The storage class specifier, or csc_none if none.  */
   enum c_storage_class storage_class;
+  /* Any type specifier keyword used such as "int", not reflecting
+     modifiers such as "short", or cts_none if none.  */
+  ENUM_BITFIELD (c_typespec_keyword) typespec_word : 8;
   /* Whether any expressions in typeof specifiers may appear in
      constant expressions.  */
   BOOL_BITFIELD expr_const_operands : 1;
@@ -252,7 +252,7 @@ struct c_declspecs {
   BOOL_BITFIELD deprecated_p : 1;
   /* Whether the type defaulted to "int" because there were no type
      specifiers.  */
-  BOOL_BITFIELD default_int_p;
+  BOOL_BITFIELD default_int_p : 1;
   /* Whether "long" was specified.  */
   BOOL_BITFIELD long_p : 1;
   /* Whether "long" was specified more than once.  */
@@ -306,11 +306,11 @@ struct c_arg_info {
   /* A list of non-parameter decls (notably enumeration constants)
      defined with the parameters.  */
   tree others;
-  /* A list of VLA sizes from the parameters.  In a function
+  /* A VEC of VLA sizes from the parameters.  In a function
      definition, these are used to ensure that side-effects in sizes
      of arrays converted to pointers (such as a parameter int i[n++])
      take place; otherwise, they are ignored.  */
-  tree pending_sizes;
+  VEC(tree,gc) *pending_sizes;
   /* True when these arguments had [*].  */
   BOOL_BITFIELD had_vla_unspec : 1;
 };
@@ -319,9 +319,9 @@ struct c_arg_info {
 struct c_declarator {
   /* The kind of declarator.  */
   enum c_declarator_kind kind;
+  location_t id_loc; /* Currently only set for cdk_id, cdk_array. */
   /* Except for cdk_id, the contained declarator.  For cdk_id, NULL.  */
   struct c_declarator *declarator;
-  location_t id_loc; /* Currently only set for cdk_id, cdk_array. */
   union {
     /* For identifiers, an IDENTIFIER_NODE or NULL_TREE if an abstract
        declarator.  */
@@ -511,7 +511,10 @@ extern bool c_mark_addressable (tree);
 extern void c_incomplete_type_error (const_tree, const_tree);
 extern tree c_type_promotes_to (tree);
 extern struct c_expr default_function_array_conversion (location_t,
-    							struct c_expr);
+							struct c_expr);
+extern struct c_expr default_function_array_read_conversion (location_t,
+							     struct c_expr);
+extern void mark_exp_read (tree);
 extern tree composite_type (tree, tree);
 extern tree build_component_ref (location_t, tree, tree);
 extern tree build_array_ref (location_t, tree, tree);
@@ -536,11 +539,11 @@ extern void maybe_warn_string_init (tree, struct c_expr);
 extern void start_init (tree, tree, int);
 extern void finish_init (void);
 extern void really_start_incremental_init (tree);
-extern void push_init_level (int);
-extern struct c_expr pop_init_level (int);
-extern void set_init_index (tree, tree);
-extern void set_init_label (tree);
-extern void process_init_element (struct c_expr, bool);
+extern void push_init_level (int, struct obstack *);
+extern struct c_expr pop_init_level (int, struct obstack *);
+extern void set_init_index (tree, tree, struct obstack *);
+extern void set_init_label (tree, struct obstack *);
+extern void process_init_element (struct c_expr, bool, struct obstack *);
 extern tree build_compound_literal (location_t, tree, tree, bool);
 extern void check_compound_literal_type (location_t, struct c_type_name *);
 extern tree c_start_case (location_t, location_t, tree);
@@ -608,8 +611,8 @@ extern void c_write_global_declarations (void);
 extern void pedwarn_c90 (location_t, int opt, const char *, ...) ATTRIBUTE_GCC_CDIAG(3,4);
 extern void pedwarn_c99 (location_t, int opt, const char *, ...) ATTRIBUTE_GCC_CDIAG(3,4);
 
-extern bool c_cpp_error (cpp_reader *, int, location_t, unsigned int,
+extern bool c_cpp_error (cpp_reader *, int, int, location_t, unsigned int,
 			 const char *, va_list *)
-     ATTRIBUTE_GCC_CDIAG(5,0);
+     ATTRIBUTE_GCC_CDIAG(6,0);
 
 #endif /* ! GCC_C_TREE_H */

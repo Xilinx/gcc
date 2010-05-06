@@ -135,32 +135,6 @@ struct ipcp_lattice
   tree constant;
 };
 
-/* Each instance of the following  structure describes a statement that calls a
-   function parameter.  Those referring  to statements within the same function
-   are linked in a list.  */
-struct ipa_param_call_note
-{
-  /* Expected number of executions: calculated in profile.c.  */
-  gcov_type count;
-  /* Linked list's next */
-  struct ipa_param_call_note *next;
-  /* Statement that contains the call to the parameter above.  */
-  gimple stmt;
-  /* When in LTO, we the above stmt will be NULL and we need an uid. */
-  unsigned int lto_stmt_uid;
-  /* Index of the parameter that is called.  */
-  int formal_id;
-  /* Expected frequency of executions within the function. see cgraph_edge in
-     cgraph.h for more on this. */
-  int frequency;
-  /* Depth of loop nest, 1 means no loop nest.  */
-  unsigned short int loop_nest;
-  /* Set when we have already found the target to be a compile time constant
-     and turned this into an edge or when the note was found unusable for some
-     reason.  */
-  bool processed;
-};
-
 /* Structure describing a single formal parameter.  */
 struct ipa_param_descriptor
 {
@@ -181,21 +155,6 @@ struct ipa_node_params
      this function's parameters would not be analyzed by the different
      stages of IPA CP.  */
   int param_count;
-  /* Pointer to an array of structures describing individual formal
-     parameters.  */
-  struct ipa_param_descriptor *params;
-  /* List of structures enumerating calls to a formal parameter.  */
-  struct ipa_param_call_note *param_calls;
-  /* Only for versioned nodes this field would not be NULL,
-     it points to the node that IPA cp cloned from.  */
-  struct cgraph_node *ipcp_orig_node;
-  /* Meaningful only for original functions.  Expresses the
-     ratio between the direct calls and sum of all invocations of
-     this function (given by profiling info).  It is used to calculate
-     the profiling information of the original function and the versioned
-     one.  */
-  gcov_type count_scale;
-
   /* Whether this function is called with variable number of actual
      arguments.  */
   unsigned called_with_var_arguments : 1;
@@ -205,6 +164,18 @@ struct ipa_node_params
   unsigned uses_analysis_done : 1;
   /* Whether the function is enqueued in an ipa_func_list.  */
   unsigned node_enqueued : 1;
+  /* Pointer to an array of structures describing individual formal
+     parameters.  */
+  struct ipa_param_descriptor *params;
+  /* Only for versioned nodes this field would not be NULL,
+     it points to the node that IPA cp cloned from.  */
+  struct cgraph_node *ipcp_orig_node;
+  /* Meaningful only for original functions.  Expresses the
+     ratio between the direct calls and sum of all invocations of
+     this function (given by profiling info).  It is used to calculate
+     the profiling information of the original function and the versioned
+     one.  */
+  gcov_type count_scale;
 };
 
 /* ipa_node_params access functions.  Please use these to access fields that
@@ -338,8 +309,9 @@ void ipa_free_edge_args_substructures (struct ipa_edge_args *);
 void ipa_free_node_params_substructures (struct ipa_node_params *);
 void ipa_free_all_node_params (void);
 void ipa_free_all_edge_args (void);
-void free_all_ipa_structures_after_ipa_cp (void);
-void free_all_ipa_structures_after_iinln (void);
+void ipa_create_all_structures_for_iinln (void);
+void ipa_free_all_structures_after_ipa_cp (void);
+void ipa_free_all_structures_after_iinln (void);
 void ipa_register_cgraph_hooks (void);
 
 /* This function ensures the array of node param infos is big enough to

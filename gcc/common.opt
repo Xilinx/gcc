@@ -89,6 +89,10 @@ Wcast-align
 Common Var(warn_cast_align) Warning
 Warn about pointer casts which increase alignment
 
+Wcpp
+Common Var(warn_cpp) Init(1) Warning
+Warn when a #warning directive is encountered
+
 Wdeprecated-declarations
 Common Var(warn_deprecated_decl) Init(1) Warning
 Warn about uses of __attribute__((deprecated)) declarations
@@ -176,6 +180,14 @@ Wstrict-overflow=
 Common Joined UInteger Var(warn_strict_overflow) Init(-1) Warning
 Warn about optimizations that assume that signed overflow is undefined
 
+Wsuggest-attribute=const
+Common Var(warn_suggest_attribute_const) Warning
+Warn about functions which might be candidates for __attribute__((const))
+
+Wsuggest-attribute=pure
+Common Var(warn_suggest_attribute_pure) Warning
+Warn about functions which might be candidates for __attribute__((pure))
+
 Wswitch
 Common Var(warn_switch) Warning
 Warn about enumerated switches, with no default, missing a case
@@ -208,6 +220,14 @@ Wunused
 Common Var(warn_unused) Init(0) Warning
 Enable all -Wunused- warnings
 
+Wunused-but-set-parameter
+Common Var(warn_unused_but_set_parameter) Init(-1) Warning
+Warn when a function parameter is only set, otherwise unused
+
+Wunused-but-set-variable
+Common Var(warn_unused_but_set_variable) Init(-1) Warning
+Warn when a variable is only set, otherwise unused
+
 Wunused-function
 Common Var(warn_unused_function) Init(-1) Warning
 Warn when a function is unused
@@ -229,8 +249,8 @@ Common Var(warn_unused_variable) Init(-1) Warning
 Warn when a variable is unused
 
 Wcoverage-mismatch
-Common RejectNegative Var(warn_coverage_mismatch) Warning
-Warn instead of error in case profiles in -fprofile-use do not match
+Common Var(warn_coverage_mismatch) Init(1) Warning
+Warn in case profiles in -fprofile-use do not match
 
 aux-info
 Common Separate
@@ -307,29 +327,21 @@ Align the start of loops
 falign-loops=
 Common RejectNegative Joined UInteger
 
-; This flag is only tested if alias checking is enabled.
-; 0 if pointer arguments may alias each other.  True in C.
-; 1 if pointer arguments may not alias each other but may alias
-;   global variables.
-; 2 if pointer arguments may not alias each other and may not
-;   alias global variables.
-; 3 if pointer arguments may not alias anything.  True in Fortran.
-;   Set by the front end.
 fargument-alias
-Common Report Var(flag_argument_noalias,0) Optimization
-Specify that arguments may alias each other and globals
+Common
+Does nothing. Preserved for backward compatibility.
 
 fargument-noalias
-Common Report Var(flag_argument_noalias,1) VarExists Optimization
-Assume arguments may alias globals but not each other
+Common
+Does nothing. Preserved for backward compatibility.
 
 fargument-noalias-global
-Common Report Var(flag_argument_noalias,2) VarExists Optimization
-Assume arguments alias neither each other nor globals
+Common
+Does nothing. Preserved for backward compatibility.
 
 fargument-noalias-anything
-Common Report Var(flag_argument_noalias,3) VarExists Optimization
-Assume arguments alias no other storage
+Common
+Does nothing. Preserved for backward compatibility.
 
 fasynchronous-unwind-tables
 Common Report Var(flag_asynchronous_unwind_tables) Optimization
@@ -461,7 +473,7 @@ Common Joined RejectNegative
 -fdiagnostics-show-location=[once|every-line]	How often to emit source location at the beginning of line-wrapped diagnostics
 
 fdiagnostics-show-option
-Common
+Common Var(flag_diagnostics_show_option) Init(1)
 Amend appropriate diagnostic messages with the command line option that controls them
 
 fdump-
@@ -705,13 +717,17 @@ fipa-cp-clone
 Common Report Var(flag_ipa_cp_clone) Optimization
 Perform cloning to make Interprocedural constant propagation stronger
 
-fipa-pure-const
-Common Report Var(flag_ipa_pure_const) Init(0) Optimization
-Discover pure and const functions
+fipa-profile
+Common Report Var(flag_ipa_profile) Init(0) Optimization
+Perform interprocedural profile propagation
 
 fipa-pta
 Common Report Var(flag_ipa_pta) Init(0) Optimization
 Perform interprocedural points-to analysis
+
+fipa-pure-const
+Common Report Var(flag_ipa_pure_const) Init(0) Optimization
+Discover pure and const functions
 
 fipa-reference
 Common Report Var(flag_ipa_reference) Init(0) Optimization
@@ -1550,6 +1566,10 @@ Generate debug information in XCOFF format
 gxcoff+
 Common JoinedOrMissing Negative(gcoff)
 Generate debug information in extended XCOFF format
+
+iplugindir=
+Common Joined Var(plugindir_string) Init(0)
+-iplugindir=<dir>	Set <dir> to be the default plugin directory
 
 o
 Common Joined Separate

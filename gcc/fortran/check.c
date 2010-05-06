@@ -1,5 +1,5 @@
 /* Check functions
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -31,6 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "gfortran.h"
 #include "intrinsic.h"
+#include "constructor.h"
 
 
 /* Make sure an expression is a scalar.  */
@@ -182,6 +183,32 @@ double_check (gfc_expr *d, int n)
 }
 
 
+/* Check whether an expression is a coarray (without array designator).  */
+
+static bool
+is_coarray (gfc_expr *e)
+{
+  bool coarray = false;
+  gfc_ref *ref;
+
+  if (e->expr_type != EXPR_VARIABLE)
+    return false;
+
+  coarray = e->symtree->n.sym->attr.codimension;
+
+  for (ref = e->ref; ref; ref = ref->next)
+    {
+      if (ref->type == REF_COMPONENT)
+	coarray = ref->u.c.component->attr.codimension;
+      else if (ref->type != REF_ARRAY || ref->u.ar.dimen != 0
+	       || ref->u.ar.codimen != 0) 
+	coarray = false;
+    }
+
+  return coarray;
+}
+
+
 /* Make sure the expression is a logical array.  */
 
 static gfc_try
@@ -323,6 +350,36 @@ dim_check (gfc_expr *dim, int n, bool optional)
 
   if (!optional && nonoptional_check (dim, n) == FAILURE)
     return FAILURE;
+
+  return SUCCESS;
+}
+
+
+/* If a coarray DIM parameter is a constant, make sure that it is greater than
+   zero and less than or equal to the corank of the given array.  */
+
+static gfc_try
+dim_corank_check (gfc_expr *dim, gfc_expr *array)
+{
+  gfc_array_ref *ar;
+  int corank;
+
+  gcc_assert (array->expr_type == EXPR_VARIABLE);
+
+  if (dim->expr_type != EXPR_CONSTANT)
+    return SUCCESS;
+
+  ar = gfc_find_array_ref (array);
+  corank = ar->as->corank;
+
+  if (mpz_cmp_ui (dim->value.integer, 1) < 0
+      || mpz_cmp_ui (dim->value.integer, corank) > 0)
+    {
+      gfc_error ("'dim' argument of '%s' intrinsic at %L is not a valid "
+		 "codimension index", gfc_current_intrinsic, &dim->where);
+
+      return FAILURE;
+    }
 
   return SUCCESS;
 }
@@ -1640,6 +1697,38 @@ gfc_check_lbound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 
 
 gfc_try
+gfc_check_lcobound (gfc_expr *coarray, gfc_expr *dim, gfc_expr *kind)
+{
+  if (gfc_option.coarray == GFC_FCOARRAY_NONE)
+    {
+      gfc_fatal_error ("Coarrays disabled at %C, use -fcoarray= to enable");
+      return FAILURE;
+    }
+
+  if (!is_coarray (coarray))
+    {
+      gfc_error ("Expected coarray variable as '%s' argument to the LCOBOUND "
+                 "intrinsic at %L", gfc_current_intrinsic_arg[0], &coarray->where);
+      return FAILURE;
+    }
+
+  if (dim != NULL)
+    {
+      if (dim_check (dim, 1, false) == FAILURE)
+        return FAILURE;
+
+      if (dim_corank_check (dim, coarray) == FAILURE)
+        return FAILURE;
+    }
+
+  if (kind_check (kind, 2, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+gfc_try
 gfc_check_len_lentrim (gfc_expr *s, gfc_expr *kind)
 {
   if (type_check (s, 0, BT_CHARACTER) == FAILURE)
@@ -2266,7 +2355,8 @@ gfc_check_pack (gfc_expr *array, gfc_expr *mask, gfc_expr *vector)
 
 	  if (mask->expr_type == EXPR_ARRAY)
 	    {
-	      gfc_constructor *mask_ctor = mask->value.constructor;
+	      gfc_constructor *mask_ctor;
+	      mask_ctor = gfc_constructor_first (mask->value.constructor);
 	      while (mask_ctor)
 		{
 		  if (mask_ctor->expr->expr_type != EXPR_CONSTANT)
@@ -2278,7 +2368,7 @@ gfc_check_pack (gfc_expr *array, gfc_expr *mask, gfc_expr *vector)
 		  if (mask_ctor->expr->value.logical)
 		    mask_true_values++;
 
-		  mask_ctor = mask_ctor->next;
+		  mask_ctor = gfc_constructor_next (mask_ctor);
 		}
 	    }
 	  else if (mask->expr_type == EXPR_CONSTANT && mask->value.logical)
@@ -2508,12 +2598,9 @@ gfc_check_reshape (gfc_expr *source, gfc_expr *shape,
       int i, extent;
       for (i = 0; i < shape_size; ++i)
 	{
-	  e = gfc_get_array_element (shape, i);
+	  e = gfc_constructor_lookup_expr (shape->value.constructor, i);
 	  if (e->expr_type != EXPR_CONSTANT)
-	    {
-	      gfc_free_expr (e);
-	      continue;
-	    }
+	    continue;
 
 	  gfc_extract_int (e, &extent);
 	  if (extent < 0)
@@ -2523,8 +2610,6 @@ gfc_check_reshape (gfc_expr *source, gfc_expr *shape,
 			 gfc_current_intrinsic, &e->where, extent);
 	      return FAILURE;
 	    }
-
-	  gfc_free_expr (e);
 	}
     }
 
@@ -2569,12 +2654,9 @@ gfc_check_reshape (gfc_expr *source, gfc_expr *shape,
 
 	  for (i = 1; i <= order_size; ++i)
 	    {
-	      e = gfc_get_array_element (order, i-1);
+	      e = gfc_constructor_lookup_expr (order->value.constructor, i-1);
 	      if (e->expr_type != EXPR_CONSTANT)
-		{
-		  gfc_free_expr (e);
-		  continue;
-		}
+		continue;
 
 	      gfc_extract_int (e, &dim);
 
@@ -2597,7 +2679,6 @@ gfc_check_reshape (gfc_expr *source, gfc_expr *shape,
 		}
 
 	      perm[dim-1] = 1;
-	      gfc_free_expr (e);
 	    }
 	}
     }
@@ -2613,9 +2694,10 @@ gfc_check_reshape (gfc_expr *source, gfc_expr *shape,
 	  gfc_constructor *c;
 	  bool test;
 
-	  c = shape->value.constructor;
+	  
 	  mpz_init_set_ui (size, 1);
-	  for (; c; c = c->next)
+	  for (c = gfc_constructor_first (shape->value.constructor);
+	       c; c = gfc_constructor_next (c))
 	    mpz_mul (size, size, c->expr->value.integer);
 
 	  test = mpz_cmp (nelems, size) < 0 && mpz_cmp_ui (size, 0) > 0;
@@ -3144,6 +3226,72 @@ gfc_check_stat_sub (gfc_expr *name, gfc_expr *array, gfc_expr *status)
 
 
 gfc_try
+gfc_check_image_index (gfc_expr *coarray, gfc_expr *sub)
+{
+  if (gfc_option.coarray == GFC_FCOARRAY_NONE)
+    {
+      gfc_fatal_error ("Coarrays disabled at %C, use -fcoarray= to enable");
+      return FAILURE;
+    }
+
+  if (!is_coarray (coarray))
+    {
+      gfc_error ("Expected coarray variable as '%s' argument to IMAGE_INDEX "
+                "intrinsic at %L", gfc_current_intrinsic_arg[0], &coarray->where);
+      return FAILURE;
+    }
+
+  if (sub->rank != 1)
+    {
+      gfc_error ("%s argument to IMAGE_INDEX must be a rank one array at %L",
+                gfc_current_intrinsic_arg[1], &sub->where);
+      return FAILURE;
+    }
+
+  return SUCCESS;
+}
+
+
+gfc_try
+gfc_check_this_image (gfc_expr *coarray, gfc_expr *dim)
+{
+  if (gfc_option.coarray == GFC_FCOARRAY_NONE)
+    {
+      gfc_fatal_error ("Coarrays disabled at %C, use -fcoarray= to enable");
+      return FAILURE;
+    }
+
+  if (dim != NULL &&  coarray == NULL)
+    {
+      gfc_error ("DIM argument without ARRAY argument not allowed for THIS_IMAGE "
+                "intrinsic at %L", &dim->where);
+      return FAILURE;
+    }
+
+  if (coarray == NULL)
+    return SUCCESS;
+
+  if (!is_coarray (coarray))
+    {
+      gfc_error ("Expected coarray variable as '%s' argument to THIS_IMAGE "
+                "intrinsic at %L", gfc_current_intrinsic_arg[0], &coarray->where);
+      return FAILURE;
+    }
+
+  if (dim != NULL)
+    {
+      if (dim_check (dim, 1, false) == FAILURE)
+       return FAILURE;
+
+      if (dim_corank_check (dim, coarray) == FAILURE)
+       return FAILURE;
+    }
+
+  return SUCCESS;
+}
+
+
+gfc_try
 gfc_check_transfer (gfc_expr *source ATTRIBUTE_UNUSED,
 		    gfc_expr *mold ATTRIBUTE_UNUSED, gfc_expr *size)
 {
@@ -3204,6 +3352,38 @@ gfc_check_ubound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 
 
 gfc_try
+gfc_check_ucobound (gfc_expr *coarray, gfc_expr *dim, gfc_expr *kind)
+{
+  if (gfc_option.coarray == GFC_FCOARRAY_NONE)
+    {
+      gfc_fatal_error ("Coarrays disabled at %C, use -fcoarray= to enable");
+      return FAILURE;
+    }
+
+  if (!is_coarray (coarray))
+    {
+      gfc_error ("Expected coarray variable as '%s' argument to the UCOBOUND "
+                "intrinsic at %L", gfc_current_intrinsic_arg[0], &coarray->where);
+      return FAILURE;
+    }
+
+  if (dim != NULL)
+    {
+      if (dim_check (dim, 1, false) == FAILURE)
+        return FAILURE;
+
+      if (dim_corank_check (dim, coarray) == FAILURE)
+        return FAILURE;
+    }
+
+  if (kind_check (kind, 2, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+gfc_try
 gfc_check_unpack (gfc_expr *vector, gfc_expr *mask, gfc_expr *field)
 {
   mpz_t vector_size;
@@ -3224,7 +3404,8 @@ gfc_check_unpack (gfc_expr *vector, gfc_expr *mask, gfc_expr *field)
       && gfc_array_size (vector, &vector_size) == SUCCESS)
     {
       int mask_true_count = 0;
-      gfc_constructor *mask_ctor = mask->value.constructor;
+      gfc_constructor *mask_ctor;
+      mask_ctor = gfc_constructor_first (mask->value.constructor);
       while (mask_ctor)
 	{
 	  if (mask_ctor->expr->expr_type != EXPR_CONSTANT)
@@ -3236,7 +3417,7 @@ gfc_check_unpack (gfc_expr *vector, gfc_expr *mask, gfc_expr *field)
 	  if (mask_ctor->expr->value.logical)
 	    mask_true_count++;
 
-	  mask_ctor = mask_ctor->next;
+	  mask_ctor = gfc_constructor_next (mask_ctor);
 	}
 
       if (mpz_get_si (vector_size) < mask_true_count)

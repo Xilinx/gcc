@@ -35,6 +35,10 @@ along with GCC; see the file COPYING3.  If not see
 #  define SIGCHLD SIGCLD
 #endif
 
+/* TARGET_64BIT may be defined to use driver specific functionality. */
+#undef TARGET_64BIT
+#define TARGET_64BIT TARGET_64BIT_DEFAULT
+
 #ifndef LIBRARY_PATH_ENV
 #define LIBRARY_PATH_ENV "LIBRARY_PATH"
 #endif
@@ -174,7 +178,7 @@ struct head
   int number;
 };
 
-int vflag;				/* true if -v */
+bool vflag;				/* true if -v or --version */ 
 static int rflag;			/* true if -r */
 static int strip_flag;			/* true if -s */
 static const char *demangle_flag;
@@ -193,7 +197,8 @@ enum lto_mode_d {
 /* Current LTO mode.  */
 static enum lto_mode_d lto_mode = LTO_MODE_NONE;
 
-int debug;				/* true if -debug */
+bool debug;				/* true if -debug */
+bool helpflag;			/* true if --help */
 
 static int shared_obj;			/* true if -shared */
 
@@ -1239,7 +1244,7 @@ main (int argc, char **argv)
     for (i = 1; argv[i] != NULL; i ++)
       {
 	if (! strcmp (argv[i], "-debug"))
-	  debug = 1;
+	  debug = true;
         else if (! strcmp (argv[i], "-flto") && ! use_plugin)
 	  {
 	    use_verbose = true;
@@ -1469,7 +1474,7 @@ main (int argc, char **argv)
       if (use_verbose && *q == '-' && q[1] == 'v' && q[2] == 0)
 	{
 	  /* Turn on trace in collect2 if needed.  */
-	  vflag = 1;
+	  vflag = true;
 	}
     }
   obstack_free (&temporary_obstack, temporary_firstobj);
@@ -1599,7 +1604,7 @@ main (int argc, char **argv)
 
 	    case 'v':
 	      if (arg[2] == '\0')
-		vflag = 1;
+		vflag = true;
 	      break;
 
 	    case '-':
@@ -1630,6 +1635,10 @@ main (int argc, char **argv)
 		}
 	      else if (strncmp (arg, "--sysroot=", 10) == 0)
 		target_system_root = arg + 10;
+	      else if (strncmp (arg, "--version", 9) == 0)
+		vflag = true;
+	      else if (strncmp (arg, "--help", 9) == 0)
+		helpflag = true;
 	      break;
 	    }
 	}
@@ -1729,6 +1738,20 @@ main (int argc, char **argv)
       TARGET_VERSION;
 #endif
       fprintf (stderr, "\n");
+    }
+
+  if (helpflag)
+    {
+      fprintf (stderr, "Usage: collect2 [options]\n");
+      fprintf (stderr, " Wrap linker and generate constructor code if needed.\n");
+      fprintf (stderr, " Options:\n");
+      fprintf (stderr, "  -debug          Enable debug output\n");
+      fprintf (stderr, "  --help          Display this information\n");
+      fprintf (stderr, "  -v, --version   Display this program's version number\n");
+      fprintf (stderr, "Overview: http://gcc.gnu.org/onlinedocs/gccint/Collect2.html\n");
+      fprintf (stderr, "Report bugs: %s\n", bug_report_url);
+
+      collect_exit (0);
     }
 
   if (debug)
@@ -2548,19 +2571,21 @@ write_aix_file (FILE *stream, struct id *list)
    be in ELF format.  */
 
 static bool
-is_elf (const char *prog_name)
+is_elf_or_coff (const char *prog_name)
 {
   FILE *f;
   char buf[4];
   static char magic[4] = { 0x7f, 'E', 'L', 'F' };
+  static char coffmag[2] = { 0x4c, 0x01 };
 
-  f = fopen (prog_name, "r");
+  f = fopen (prog_name, "rb");
   if (f == NULL)
     return false;
   if (fread (buf, sizeof (buf), 1, f) != 1)
     buf[0] = 0;
   fclose (f);
-  return memcmp (buf, magic, sizeof (magic)) == 0;
+  return memcmp (buf, magic, sizeof (magic)) == 0
+	|| memcmp (buf, coffmag, sizeof (coffmag)) == 0;
 }
 
 /* Generic version to scan the name list of the loaded program for
@@ -2587,10 +2612,10 @@ scan_prog_file (const char *prog_name, scanpass which_pass,
   if (which_pass == PASS_SECOND)
     return;
 
-  /* LTO objects must be in ELF format.  This check prevents
+  /* LTO objects must be in a known format.  This check prevents
      us from accepting an archive containing LTO objects, which
      gcc cannnot currently handle.  */
-  if (which_pass == PASS_LTOINFO && !is_elf (prog_name))
+  if (which_pass == PASS_LTOINFO && !is_elf_or_coff (prog_name))
     return;
 
   /* If we do not have an `nm', complain.  */
@@ -2670,9 +2695,9 @@ scan_prog_file (const char *prog_name, scanpass which_pass,
           /* Look for the LTO info marker symbol, and add filename to
              the LTO objects list if found.  */
           for (p = buf; (ch = *p) != '\0' && ch != '\n'; p++)
-            if (ch == ' '
-		&& (strncmp (p + 1, "__gnu_lto_v1", 12) == 0)
-		&& ISSPACE (p[13]))
+            if (ch == ' '  && p[1] == '_' && p[2] == '_'
+		&& (strncmp (p + (p[3] == '_' ? 2 : 1), "__gnu_lto_v1", 12) == 0)
+		&& ISSPACE (p[p[3] == '_' ? 14 : 13]))
               {
                 add_lto_object (&lto_objects, prog_name);
 

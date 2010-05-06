@@ -1,3 +1,23 @@
+2010-05-04  Andrew Haley  <aph@redhat.com>
+
+	* lib/gen-classlist.sh.in: Use absolute pathnames for all the
+	directory names in the output file.
+
+2010-04-27  Andrew Haley  <aph@redhat.com>
+
+	* java/util/concurrent/CopyOnWriteArrayList.java: Fix for empty
+	list.
+
+2010-04-27  Andrew Haley  <aph@redhat.com>
+
+	* gnu/javax/print/ipp/IppResponse.java (parseAttributes): Handle
+	IppValueTag.UNKNOWN.  
+	* gnu/javax/print/ipp/IppRequest.java (writeOperationAttributes):
+	Handle RequestedAttributes.
+	* gnu/javax/print/ipp/IppPrintService.java (processResponse): Add
+	DocFlavor.SERVICE_FORMATTED.PAGEABLE and
+	DocFlavor.SERVICE_FORMATTED.PRINTABLE.
+
 2010-04-02  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* HACKING: Update required Automake version.

@@ -73,6 +73,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "match.h"
 #include "parse.h" /* FIXME */
 #include "md5.h"
+#include "constructor.h"
 
 #define MODULE_EXTENSION ".mod"
 
@@ -1673,7 +1674,7 @@ typedef enum
   AB_POINTER_COMP, AB_PRIVATE_COMP, AB_VALUE, AB_VOLATILE, AB_PROTECTED,
   AB_IS_BIND_C, AB_IS_C_INTEROP, AB_IS_ISO_C, AB_ABSTRACT, AB_ZERO_COMP,
   AB_IS_CLASS, AB_PROCEDURE, AB_PROC_POINTER, AB_ASYNCHRONOUS, AB_CODIMENSION,
-  AB_COARRAY_COMP
+  AB_COARRAY_COMP, AB_VTYPE, AB_VTAB
 }
 ab_attribute;
 
@@ -1719,6 +1720,8 @@ static const mstring attr_bits[] =
     minit ("IS_CLASS", AB_IS_CLASS),
     minit ("PROCEDURE", AB_PROCEDURE),
     minit ("PROC_POINTER", AB_PROC_POINTER),
+    minit ("VTYPE", AB_VTYPE),
+    minit ("VTAB", AB_VTAB),
     minit (NULL, -1)
 };
 
@@ -1879,6 +1882,10 @@ mio_symbol_attribute (symbol_attribute *attr)
 	MIO_NAME (ab_attribute) (AB_PROCEDURE, attr_bits);
       if (attr->proc_pointer)
 	MIO_NAME (ab_attribute) (AB_PROC_POINTER, attr_bits);
+      if (attr->vtype)
+	MIO_NAME (ab_attribute) (AB_VTYPE, attr_bits);
+      if (attr->vtab)
+	MIO_NAME (ab_attribute) (AB_VTAB, attr_bits);
 
       mio_rparen ();
 
@@ -2014,6 +2021,12 @@ mio_symbol_attribute (symbol_attribute *attr)
 	      break;
 	    case AB_PROC_POINTER:
 	      attr->proc_pointer = 1;
+	      break;
+	    case AB_VTYPE:
+	      attr->vtype = 1;
+	      break;
+	    case AB_VTAB:
+	      attr->vtab = 1;
 	      break;
 	    }
 	}
@@ -2628,15 +2641,15 @@ done:
 
 
 static void
-mio_constructor (gfc_constructor **cp)
+mio_constructor (gfc_constructor_base *cp)
 {
-  gfc_constructor *c, *tail;
+  gfc_constructor *c;
 
   mio_lparen ();
 
   if (iomode == IO_OUTPUT)
     {
-      for (c = *cp; c; c = c->next)
+      for (c = gfc_constructor_first (*cp); c; c = gfc_constructor_next (c))
 	{
 	  mio_lparen ();
 	  mio_expr (&c->expr);
@@ -2646,19 +2659,9 @@ mio_constructor (gfc_constructor **cp)
     }
   else
     {
-      *cp = NULL;
-      tail = NULL;
-
       while (peek_atom () != ATOM_RPAREN)
 	{
-	  c = gfc_get_constructor ();
-
-	  if (tail == NULL)
-	    *cp = c;
-	  else
-	    tail->next = c;
-
-	  tail = c;
+	  c = gfc_constructor_append_expr (cp, NULL, NULL);
 
 	  mio_lparen ();
 	  mio_expr (&c->expr);
@@ -4210,6 +4213,9 @@ check_for_ambiguous (gfc_symbol *st_sym, pointer_info *info)
   if (st_sym == rsym)
     return false;
 
+  if (st_sym->attr.vtab || st_sym->attr.vtype)
+    return false;
+
   /* If the existing symbol is generic from a different module and
      the new symbol is generic there can be no ambiguity.  */
   if (st_sym->attr.generic
@@ -5343,7 +5349,7 @@ create_int_parameter (const char *name, int value, const char *modname,
   sym->attr.flavor = FL_PARAMETER;
   sym->ts.type = BT_INTEGER;
   sym->ts.kind = gfc_default_integer_kind;
-  sym->value = gfc_int_expr (value);
+  sym->value = gfc_get_int_expr (gfc_default_integer_kind, NULL, value);
   sym->attr.use_assoc = 1;
   sym->from_intmod = module;
   sym->intmod_sym_id = id;
@@ -5431,9 +5437,6 @@ use_iso_fortran_env_module (void)
 	{
 	  local_name = NULL;
 
-	  if ((gfc_option.allow_std & symbol[i].standard) == 0)
-	    break;
-
 	  for (u = gfc_rename_list; u; u = u->next)
 	    {
 	      if (strcmp (symbol[i].name, u->use_name) == 0)
@@ -5443,6 +5446,13 @@ use_iso_fortran_env_module (void)
 		  break;
 		}
 	    }
+
+	  if (u && gfc_notify_std (symbol[i].standard, "The symbol '%s', "
+				   "referrenced at %C, is not in the selected "
+				   "standard", symbol[i].name) == FAILURE)
+	    continue;
+	  else if ((gfc_option.allow_std & symbol[i].standard) == 0)
+	    continue;
 
 	  if ((gfc_option.flag_default_integer || gfc_option.flag_default_real)
 	      && symbol[i].id == ISOFORTRANENV_NUMERIC_STORAGE_SIZE)

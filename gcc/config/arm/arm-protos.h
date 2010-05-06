@@ -45,6 +45,7 @@ extern void arm_output_fn_unwind (FILE *, bool);
 
 #ifdef RTX_CODE
 extern bool arm_vector_mode_supported_p (enum machine_mode);
+extern bool arm_small_register_classes_for_mode_p (enum machine_mode);
 extern int arm_hard_regno_mode_ok (unsigned int, enum machine_mode);
 extern int const_ok_for_arm (HOST_WIDE_INT);
 extern int arm_split_constant (RTX_CODE, enum machine_mode, rtx,
@@ -212,5 +213,17 @@ extern void arm_lang_object_attributes_init(void);
 extern const char *arm_mangle_type (const_tree);
 
 extern void arm_order_regs_for_local_alloc (void);
+
+#ifdef RTX_CODE
+/* This needs to be here because we need RTX_CODE and similar.  */
+
+struct tune_params
+{
+  bool (*rtx_costs) (rtx, RTX_CODE, RTX_CODE, int *, bool);
+  int constant_limit;
+};
+
+extern const struct tune_params *current_tune;
+#endif /* RTX_CODE */
 
 #endif /* ! GCC_ARM_PROTOS_H */

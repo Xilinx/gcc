@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-pragma.h"
 #include "rtl.h"
 #include "ggc.h"
-#include "varray.h"
 #include "expr.h"
 #include "c-common.h"
 #include "tm_p.h"
@@ -280,9 +279,13 @@ int flag_cond_mismatch;
 
 int flag_isoc94;
 
-/* Nonzero means use the ISO C99 dialect of C.  */
+/* Nonzero means use the ISO C99 (or C1X) dialect of C.  */
 
 int flag_isoc99;
+
+/* Nonzero means use the ISO C1X dialect of C.  */
+
+int flag_isoc1x;
 
 /* Nonzero means that we have builtin functions, and main is an int.  */
 
@@ -423,10 +426,6 @@ int flag_threadsafe_statics = 1;
    template signature followed by the arguments.  */
 
 int flag_pretty_templates = 1;
-
-/* Nonzero means warn about implicit declarations.  */
-
-int warn_implicit = 1;
 
 /* Maximum template instantiation depth.  This limit exists to limit the
    time it takes to notice infinite template instantiations; the default
@@ -657,6 +656,7 @@ const struct c_common_resword c_common_reswords[] =
   { "mutable",		RID_MUTABLE,	D_CXXONLY | D_CXXWARN },
   { "namespace",	RID_NAMESPACE,	D_CXXONLY | D_CXXWARN },
   { "new",		RID_NEW,	D_CXXONLY | D_CXXWARN },
+  { "nullptr",		RID_NULLPTR,	D_CXXONLY | D_CXX0X | D_CXXWARN },
   { "operator",		RID_OPERATOR,	D_CXXONLY | D_CXXWARN },
   { "private",		RID_PRIVATE,	D_CXX_OBJC | D_CXXWARN },
   { "protected",	RID_PROTECTED,	D_CXX_OBJC | D_CXXWARN },
@@ -3806,12 +3806,18 @@ pointer_int_sum (location_t loc, enum tree_code resultcode,
 					     TYPE_UNSIGNED (sizetype)), intop);
 
   /* Replace the integer argument with a suitable product by the object size.
-     Do this multiplication as signed, then convert to the appropriate
-     type for the pointer operation.  */
-  intop = convert (sizetype,
-		   build_binary_op (loc,
-				    MULT_EXPR, intop,
-				    convert (TREE_TYPE (intop), size_exp), 1));
+     Do this multiplication as signed, then convert to the appropriate type
+     for the pointer operation and disregard an overflow that occured only
+     because of the sign-extension change in the latter conversion.  */
+  {
+    tree t = build_binary_op (loc,
+			      MULT_EXPR, intop,
+			      convert (TREE_TYPE (intop), size_exp), 1);
+    intop = convert (sizetype, t);
+    if (TREE_OVERFLOW_P (intop) && !TREE_OVERFLOW (t))
+      intop = build_int_cst_wide (TREE_TYPE (intop), TREE_INT_CST_LOW (intop),
+				  TREE_INT_CST_HIGH (intop));
+  }
 
   /* Create the sum or difference.  */
   if (resultcode == MINUS_EXPR)
@@ -4390,7 +4396,7 @@ c_sizeof_or_alignof_type (location_t loc,
       if (complain)
 	error_at (loc, "invalid application of %qs to incomplete type %qT ",
 		  op_name, type);
-      value = size_zero_node;
+      return error_mark_node;
     }
   else
     {
@@ -5803,6 +5809,20 @@ c_init_attributes (void)
 #undef DEF_ATTR_TREE_LIST
 }
 
+/* Returns TRUE iff the attribute indicated by ATTR_ID takes a plain
+   identifier as an argument, so the front end shouldn't look it up.  */
+
+bool
+attribute_takes_identifier_p (const_tree attr_id)
+{
+  if (is_attribute_p ("mode", attr_id)
+      || is_attribute_p ("format", attr_id)
+      || is_attribute_p ("cleanup", attr_id))
+    return true;
+  else
+    return targetm.attribute_takes_identifier_p (attr_id);
+}
+
 /* Attribute handlers common to C front ends.  */
 
 /* Handle a "packed" attribute; arguments as in
@@ -6121,6 +6141,8 @@ handle_used_attribute (tree *pnode, tree name, tree ARG_UNUSED (args),
     {
       TREE_USED (node) = 1;
       DECL_PRESERVE_P (node) = 1;
+      if (TREE_CODE (node) == VAR_DECL)
+	DECL_READ_P (node) = 1;
     }
   else
     {
@@ -6147,7 +6169,12 @@ handle_unused_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 	  || TREE_CODE (decl) == FUNCTION_DECL
 	  || TREE_CODE (decl) == LABEL_DECL
 	  || TREE_CODE (decl) == TYPE_DECL)
-	TREE_USED (decl) = 1;
+	{
+	  TREE_USED (decl) = 1;
+	  if (TREE_CODE (decl) == VAR_DECL
+	      || TREE_CODE (decl) == PARM_DECL)
+	    DECL_READ_P (decl) = 1;
+	}
       else
 	{
 	  warning (OPT_Wattributes, "%qE attribute ignored", name);
@@ -6665,10 +6692,12 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
     }
   else if (is_type)
     {
+      if ((flags & (int) ATTR_FLAG_TYPE_IN_PLACE))
+	/* OK, modify the type in place.  */;
       /* If we have a TYPE_DECL, then copy the type, so that we
 	 don't accidentally modify a builtin type.  See pushdecl.  */
-      if (decl && TREE_TYPE (decl) != error_mark_node
-	  && DECL_ORIGINAL_TYPE (decl) == NULL_TREE)
+      else if (decl && TREE_TYPE (decl) != error_mark_node
+	       && DECL_ORIGINAL_TYPE (decl) == NULL_TREE)
 	{
 	  tree tt = TREE_TYPE (decl);
 	  *type = build_variant_type_copy (*type);
@@ -6677,7 +6706,7 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
 	  TREE_USED (*type) = TREE_USED (decl);
 	  TREE_TYPE (decl) = *type;
 	}
-      else if (!(flags & (int) ATTR_FLAG_TYPE_IN_PLACE))
+      else
 	*type = build_variant_type_copy (*type);
 
       TYPE_ALIGN (*type) = (1U << i) * BITS_PER_UNIT;
@@ -8253,8 +8282,52 @@ c_parse_error (const char *gmsgid, enum cpp_ttype token_type,
 #undef catenate_messages
 }
 
+/* Mapping for cpp message reasons to the options that enable them.  */
+
+struct reason_option_codes_t
+{
+  const int reason;		/* cpplib message reason.  */
+  const int option_code;	/* gcc option that controls this message.  */
+};
+
+static const struct reason_option_codes_t option_codes[] = {
+  {CPP_W_DEPRECATED,			OPT_Wdeprecated},
+  {CPP_W_COMMENTS,			OPT_Wcomments},
+  {CPP_W_TRIGRAPHS,			OPT_Wtrigraphs},
+  {CPP_W_MULTICHAR,			OPT_Wmultichar},
+  {CPP_W_TRADITIONAL,			OPT_Wtraditional},
+  {CPP_W_LONG_LONG,			OPT_Wlong_long},
+  {CPP_W_ENDIF_LABELS,			OPT_Wendif_labels},
+  {CPP_W_VARIADIC_MACROS,		OPT_Wvariadic_macros},
+  {CPP_W_BUILTIN_MACRO_REDEFINED,	OPT_Wbuiltin_macro_redefined},
+  {CPP_W_UNDEF,				OPT_Wundef},
+  {CPP_W_UNUSED_MACROS,			OPT_Wunused_macros},
+  {CPP_W_CXX_OPERATOR_NAMES,		OPT_Wc___compat},
+  {CPP_W_NORMALIZE,			OPT_Wnormalized_},
+  {CPP_W_INVALID_PCH,			OPT_Winvalid_pch},
+  {CPP_W_WARNING_DIRECTIVE,		OPT_Wcpp},
+  {CPP_W_NONE,				0}
+};
+
+/* Return the gcc option code associated with the reason for a cpp
+   message, or 0 if none.  */
+
+static int
+c_option_controlling_cpp_error (int reason)
+{
+  const struct reason_option_codes_t *entry;
+
+  for (entry = option_codes; entry->reason != CPP_W_NONE; entry++)
+    {
+      if (entry->reason == reason)
+	return entry->option_code;
+    }
+  return 0;
+}
+
 /* Callback from cpp_error for PFILE to print diagnostics from the
-   preprocessor.  The diagnostic is of type LEVEL, at location
+   preprocessor.  The diagnostic is of type LEVEL, with REASON set
+   to the reason code if LEVEL is represents a warning, at location
    LOCATION unless this is after lexing and the compiler's location
    should be used instead, with column number possibly overridden by
    COLUMN_OVERRIDE if not zero; MSG is the translated message and AP
@@ -8262,7 +8335,7 @@ c_parse_error (const char *gmsgid, enum cpp_ttype token_type,
    otherwise.  */
 
 bool
-c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
+c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
 	     location_t location, unsigned int column_override,
 	     const char *msg, va_list *ap)
 {
@@ -8309,6 +8382,8 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
 				  location, dlevel);
   if (column_override)
     diagnostic_override_column (&diagnostic, column_override);
+  diagnostic_override_option_index (&diagnostic,
+                                    c_option_controlling_cpp_error (reason));
   ret = report_diagnostic (&diagnostic);
   if (level == CPP_DL_WARNING_SYSHDR)
     warn_system_headers = save_warn_system_headers;

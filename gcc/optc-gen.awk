@@ -170,11 +170,7 @@ for (i = 0; i < n_opts; i++) {
 	}
 
 	len = length (opts[i]);
-	enum = "OPT_" opts[i]
-	if (opts[i] == "finline-limit=" || opts[i] == "Wlarger-than=" \
-	    || opts[i] == "ftemplate-depth=")
-		enum = enum "eq"
-	gsub ("[^A-Za-z0-9]", "_", enum)
+	enum = opt_enum(opts[i])
 
 	# If this switch takes joined arguments, back-chain all
 	# subsequent switches to it for which it is a prefix.  If
@@ -343,7 +339,7 @@ print "{";
 print "  fputs (\"\\n\", file);";
 for (i = 0; i < n_opt_other; i++) {
 	print "  if (ptr->" var_opt_other[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%lx)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#lx)\\n\",";
 	print "             indent_to, \"\",";
 	print "             \"" var_opt_other[i] "\",";
 	print "             (unsigned long)ptr->" var_opt_other[i] ");";
@@ -352,7 +348,7 @@ for (i = 0; i < n_opt_other; i++) {
 
 for (i = 0; i < n_opt_int; i++) {
 	print "  if (ptr->" var_opt_int[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%x)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
 	print "             indent_to, \"\",";
 	print "             \"" var_opt_int[i] "\",";
 	print "             ptr->" var_opt_int[i] ");";
@@ -361,7 +357,7 @@ for (i = 0; i < n_opt_int; i++) {
 
 for (i = 0; i < n_opt_short; i++) {
 	print "  if (ptr->" var_opt_short[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%x)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
 	print "             indent_to, \"\",";
 	print "             \"" var_opt_short[i] "\",";
 	print "             ptr->" var_opt_short[i] ");";
@@ -370,7 +366,7 @@ for (i = 0; i < n_opt_short; i++) {
 
 for (i = 0; i < n_opt_char; i++) {
 	print "  if (ptr->" var_opt_char[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%x)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
 	print "             indent_to, \"\",";
 	print "             \"" var_opt_char[i] "\",";
 	print "             ptr->" var_opt_char[i] ");";
@@ -498,7 +494,7 @@ print "{";
 print "  fputs (\"\\n\", file);";
 for (i = 0; i < n_target_other; i++) {
 	print "  if (ptr->" var_target_other[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%lx)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#lx)\\n\",";
 	print "             indent, \"\",";
 	print "             \"" var_target_other[i] "\",";
 	print "             (unsigned long)ptr->" var_target_other[i] ");";
@@ -507,7 +503,7 @@ for (i = 0; i < n_target_other; i++) {
 
 for (i = 0; i < n_target_int; i++) {
 	print "  if (ptr->" var_target_int[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%x)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
 	print "             indent, \"\",";
 	print "             \"" var_target_int[i] "\",";
 	print "             ptr->" var_target_int[i] ");";
@@ -516,7 +512,7 @@ for (i = 0; i < n_target_int; i++) {
 
 for (i = 0; i < n_target_short; i++) {
 	print "  if (ptr->" var_target_short[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%x)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
 	print "             indent, \"\",";
 	print "             \"" var_target_short[i] "\",";
 	print "             ptr->" var_target_short[i] ");";
@@ -525,7 +521,7 @@ for (i = 0; i < n_target_short; i++) {
 
 for (i = 0; i < n_target_char; i++) {
 	print "  if (ptr->" var_target_char[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%x)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
 	print "             indent, \"\",";
 	print "             \"" var_target_char[i] "\",";
 	print "             ptr->" var_target_char[i] ");";

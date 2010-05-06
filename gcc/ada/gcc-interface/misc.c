@@ -6,7 +6,7 @@
  *                                                                          *
  *                           C Implementation File                          *
  *                                                                          *
- *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2010, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -66,7 +66,7 @@
 
 static bool gnat_init			(void);
 static unsigned int gnat_init_options	(unsigned int, const char **);
-static int gnat_handle_option		(size_t, const char *, int);
+static int gnat_handle_option		(size_t, const char *, int, int);
 static bool gnat_post_options		(const char **);
 static alias_set_type gnat_get_alias_set (tree);
 static void gnat_print_decl		(FILE *, tree, int);
@@ -74,7 +74,6 @@ static void gnat_print_type		(FILE *, tree, int);
 static const char *gnat_printable_name	(tree, int);
 static const char *gnat_dwarf_name	(tree, int);
 static tree gnat_return_tree		(tree);
-static int gnat_eh_type_covers		(tree, tree);
 static void gnat_parse_file		(int);
 static void internal_error_function	(const char *, va_list *);
 static tree gnat_type_max_size		(const_tree);
@@ -185,7 +184,7 @@ gnat_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
    that have been successfully decoded or 0 on failure.  */
 
 static int
-gnat_handle_option (size_t scode, const char *arg, int value)
+gnat_handle_option (size_t scode, const char *arg, int value, int kind ATTRIBUTE_UNUSED)
 {
   const struct cl_option *option = &cl_options[scode];
   enum opt_code code = (enum opt_code) scode;
@@ -389,9 +388,38 @@ internal_error_function (const char *msgid, va_list *ap)
 static bool
 gnat_init (void)
 {
-  /* Performs whatever initialization steps needed by the language-dependent
-     lexical analyzer.  */
-  gnat_init_decl_processing ();
+  /* Do little here, most of the standard declarations are set up after the
+     front-end has been run.  Use the same `char' as C, this doesn't really
+     matter since we'll use the explicit `unsigned char' for Character.  */
+  build_common_tree_nodes (flag_signed_char);
+
+  /* In Ada, we use the unsigned type corresponding to the width of Pmode as
+     SIZETYPE.  In most cases when ptr_mode and Pmode differ, C will use the
+     width of ptr_mode for SIZETYPE, but we get better code using the width
+     of Pmode.  Note that, although we manipulate negative offsets for some
+     internal constructs and rely on compile time overflow detection in size
+     computations, using unsigned types for SIZETYPEs is fine since they are
+     treated specially by the middle-end, in particular sign-extended.  */
+  size_type_node = gnat_type_for_mode (Pmode, 1);
+  set_sizetype (size_type_node);
+  TYPE_NAME (sizetype) = get_identifier ("size_type");
+
+  /* In Ada, we use an unsigned 8-bit type for the default boolean type.  */
+  boolean_type_node = make_unsigned_type (8);
+  TREE_SET_CODE (boolean_type_node, BOOLEAN_TYPE);
+  SET_TYPE_RM_MAX_VALUE (boolean_type_node,
+			 build_int_cst (boolean_type_node, 1));
+  SET_TYPE_RM_SIZE (boolean_type_node, bitsize_int (1));
+
+  build_common_tree_nodes_2 (0);
+  sbitsize_one_node = sbitsize_int (1);
+  sbitsize_unit_node = sbitsize_int (BITS_PER_UNIT);
+  boolean_true_node = TYPE_MAX_VALUE (boolean_type_node);
+
+  ptr_void_type_node = build_pointer_type (void_type_node);
+
+  /* Show that REFERENCE_TYPEs are internal and should be Pmode.  */
+  internal_reference_types ();
 
   /* Add the input filename as the last argument.  */
   if (main_input_filename)
@@ -401,10 +429,8 @@ gnat_init (void)
       gnat_argv[gnat_argc] = NULL;
     }
 
+  /* Register our internal error function.  */
   global_dc->internal_error = &internal_error_function;
-
-  /* Show that REFERENCE_TYPEs are internal and should be Pmode.  */
-  internal_reference_types ();
 
   return true;
 }
@@ -433,8 +459,6 @@ gnat_init_gcc_eh (void)
      nonetheless necessary to ensure that fixup code gets assigned to the
      right exception regions.  */
   using_eh_for_cleanups ();
-
-  lang_eh_type_covers = gnat_eh_type_covers;
 
   /* Turn on -fexceptions and -fnon-call-exceptions. The first one triggers
      the generation of the necessary exception runtime tables. The second one
@@ -580,20 +604,6 @@ gnat_return_tree (tree t)
   return t;
 }
 
-/* Return true if type A catches type B. Callback for flow analysis from
-   the exception handling part of the back-end.  */
-
-static int
-gnat_eh_type_covers (tree a, tree b)
-{
-  /* a catches b if they represent the same exception id or if a
-     is an "others".
-
-     ??? integer_zero_node for "others" is hardwired in too many places
-     currently.  */
-  return (a == b || a == integer_zero_node);
-}
-
 /* Get the alias set corresponding to a type or expression.  */
 
 static alias_set_type
@@ -700,7 +710,7 @@ must_pass_by_ref (tree gnu_type)
      and does not produce compatibility problems with C, since C does
      not have such objects.  */
   return (TREE_CODE (gnu_type) == UNCONSTRAINED_ARRAY_TYPE
-	  || (AGGREGATE_TYPE_P (gnu_type) && TYPE_BY_REFERENCE_P (gnu_type))
+	  || TREE_ADDRESSABLE (gnu_type)
 	  || (TYPE_SIZE (gnu_type)
 	      && TREE_CODE (TYPE_SIZE (gnu_type)) != INTEGER_CST));
 }

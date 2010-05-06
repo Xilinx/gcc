@@ -31,6 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "expr.h"
 #include "optabs.h"
+#include "reload.h"
 #include "function.h"
 #include "regs.h"
 #include "hard-reg-set.h"
@@ -188,6 +189,7 @@ static void pop (int);
 static void push_regs (HARD_REG_SET *, int);
 static int calc_live_regs (HARD_REG_SET *);
 static HOST_WIDE_INT rounded_frame_size (int);
+static bool sh_frame_pointer_required (void);
 static rtx mark_constant_pool_use (rtx);
 static tree sh_handle_interrupt_handler_attribute (tree *, tree, tree, int, bool *);
 static tree sh_handle_resbank_handler_attribute (tree *, tree,
@@ -502,6 +504,9 @@ static const struct attribute_spec sh_attribute_table[] =
 #undef TARGET_DWARF_CALLING_CONVENTION
 #define TARGET_DWARF_CALLING_CONVENTION sh_dwarf_calling_convention
 
+#undef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED sh_frame_pointer_required
+
 /* Return regmode weight for insn.  */
 #define INSN_REGMODE_WEIGHT(INSN, MODE)  regmode_weight[((MODE) == SImode) ? 0 : 1][INSN_UID (INSN)]
 
@@ -665,7 +670,6 @@ sh_optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
 {
   if (level)
     {
-      flag_omit_frame_pointer = 2;
       if (!size)
 	sh_div_str = "inv:minlat";
     }
@@ -855,22 +859,13 @@ sh_override_options (void)
     if (! VALID_REGISTER_P (ADDREGNAMES_REGNO (regno)))
       sh_additional_register_names[regno][0] = '\0';
 
-  if (flag_omit_frame_pointer == 2)
-   {
-     /* The debugging information is sufficient,
-        but gdb doesn't implement this yet */
-     if (0)
-      flag_omit_frame_pointer
-        = (PREFERRED_DEBUGGING_TYPE == DWARF2_DEBUG);
-     else
-      flag_omit_frame_pointer = 0;
-   }
+  flag_omit_frame_pointer = (PREFERRED_DEBUGGING_TYPE == DWARF2_DEBUG);
 
   if ((flag_pic && ! TARGET_PREFERGOT)
       || (TARGET_SHMEDIA && !TARGET_PT_FIXED))
     flag_no_function_cse = 1;
 
-  if (SMALL_REGISTER_CLASSES)
+  if (targetm.small_register_classes_for_mode_p (VOIDmode))		\
     {
       /* Never run scheduling before reload, since that can
 	 break global alloc, and generates slower code anyway due
@@ -894,6 +889,24 @@ sh_override_options (void)
 	}
       else if (flag_schedule_insns == 2)
 	flag_schedule_insns = 0;
+    }
+
+    if ((target_flags_explicit & MASK_ACCUMULATE_OUTGOING_ARGS) == 0)
+       target_flags |= MASK_ACCUMULATE_OUTGOING_ARGS;
+
+  /* Unwind info is not correct around the CFG unless either a frame 
+     pointer is present or M_A_O_A is set.  Fixing this requires rewriting 
+     unwind info generation to be aware of the CFG and propagating states 
+     around edges.  */
+  if ((flag_unwind_tables || flag_asynchronous_unwind_tables
+       || flag_exceptions || flag_non_call_exceptions)   
+      && flag_omit_frame_pointer
+      && !(target_flags & MASK_ACCUMULATE_OUTGOING_ARGS))
+    {
+      if (target_flags_explicit & MASK_ACCUMULATE_OUTGOING_ARGS)
+	warning (0, "unwind tables currently require either a frame pointer "
+		 "or -maccumulate-outgoing-args for correctness");
+      target_flags |= MASK_ACCUMULATE_OUTGOING_ARGS;
     }
 
   /* Unwinding with -freorder-blocks-and-partition does not work on this
@@ -4397,6 +4410,7 @@ find_barrier (int num_mova, rtx mova, rtx from)
   int hi_limit;
   rtx orig = from;
   rtx last_got = NULL_RTX;
+  rtx last_symoff = NULL_RTX;
 
   /* For HImode: range is 510, add 4 because pc counts from address of
      second instruction after this one, subtract 2 for the jump instruction
@@ -4538,6 +4552,16 @@ find_barrier (int num_mova, rtx mova, rtx from)
 	{
 	  switch (untangle_mova (&num_mova, &mova, from))
 	    {
+	      case 1:
+		if (flag_pic)
+		  {
+		    rtx src = SET_SRC (PATTERN (from));
+		    if (GET_CODE (src) == CONST
+			&& GET_CODE (XEXP (src, 0)) == UNSPEC
+			&& XINT (XEXP (src, 0), 1) == UNSPEC_SYMOFF)
+		      last_symoff = from;
+		  }
+		break;
 	      case 0:	return find_barrier (0, 0, mova);
 	      case 2:
 		{
@@ -4640,6 +4664,12 @@ find_barrier (int num_mova, rtx mova, rtx from)
       /* We didn't find a barrier in time to dump our stuff,
 	 so we'll make one.  */
       rtx label = gen_label_rtx ();
+
+      /* Don't emit a constant table in the middle of insns for
+	 casesi_worker_2.  This is a bit overkill but is enough
+	 because casesi_worker_2 wouldn't appear so frequently.  */
+      if (last_symoff)
+	from = last_symoff;
 
       /* If we exceeded the range, then we must back up over the last
 	 instruction we looked at.  Otherwise, we just need to undo the
@@ -6582,6 +6612,9 @@ rounded_frame_size (int pushed)
   HOST_WIDE_INT size = get_frame_size ();
   HOST_WIDE_INT align = STACK_BOUNDARY / BITS_PER_UNIT;
 
+  if (ACCUMULATE_OUTGOING_ARGS)
+    size += crtl->outgoing_args_size;
+
   return ((size + pushed + align - 1) & -align) - pushed;
 }
 
@@ -7430,7 +7463,11 @@ sh_set_return_address (rtx ra, rtx tmp)
     pr_offset = rounded_frame_size (d);
 
   emit_insn (GEN_MOV (tmp, GEN_INT (pr_offset)));
-  emit_insn (GEN_ADD3 (tmp, tmp, hard_frame_pointer_rtx));
+
+  if (frame_pointer_needed)
+    emit_insn (GEN_ADD3 (tmp, tmp, hard_frame_pointer_rtx));
+  else
+    emit_insn (GEN_ADD3 (tmp, tmp, stack_pointer_rtx));
 
   tmp = gen_frame_mem (Pmode, tmp);
   emit_insn (GEN_MOV (tmp, ra));
@@ -9274,7 +9311,7 @@ get_free_reg (HARD_REG_SET regs_live)
   if (! TEST_HARD_REG_BIT (regs_live, 1))
     return gen_rtx_REG (Pmode, 1);
 
-  /* Hard reg 1 is live; since this is a SMALL_REGISTER_CLASSES target,
+  /* Hard reg 1 is live; since this is a small register classes target,
      there shouldn't be anything but a jump before the function end.  */
   gcc_assert (!TEST_HARD_REG_BIT (regs_live, 7));
   return gen_rtx_REG (Pmode, 7);
@@ -9623,6 +9660,87 @@ sh_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
     }
 
   return x;
+}
+
+/* Attempt to replace *P, which is an address that needs reloading, with
+   a valid memory address for an operand of mode MODE.
+   Like for sh_legitimize_address, for the SH we try to get a normal form
+   of the address.  That will allow inheritance of the address reloads.  */
+
+bool
+sh_legitimize_reload_address (rtx *p, enum machine_mode mode, int opnum,
+			      int itype)
+{
+  enum reload_type type = (enum reload_type) itype;
+
+  if (GET_CODE (*p) == PLUS
+      && (GET_MODE_SIZE (mode) == 4 || GET_MODE_SIZE (mode) == 8)
+      && CONST_INT_P (XEXP (*p, 1))
+      && MAYBE_BASE_REGISTER_RTX_P (XEXP (*p, 0), true)
+      && ! TARGET_SHMEDIA
+      && ! (TARGET_SH4 && mode == DFmode)
+      && ! (mode == PSImode && type == RELOAD_FOR_INPUT_ADDRESS)
+      && (ALLOW_INDEXED_ADDRESS
+	  || XEXP (*p, 0) == stack_pointer_rtx
+	  || XEXP (*p, 0) == hard_frame_pointer_rtx))
+    {
+      rtx index_rtx = XEXP (*p, 1);
+      HOST_WIDE_INT offset = INTVAL (index_rtx), offset_base;
+      rtx sum;
+
+      if (TARGET_SH2A && mode == DFmode && (offset & 0x7))
+	{
+	  push_reload (*p, NULL_RTX, p, NULL,
+		       BASE_REG_CLASS, Pmode, VOIDmode, 0, 0, opnum, type);
+	  goto win;
+	}
+      if (TARGET_SH2E && mode == SFmode)
+	{
+	  *p = copy_rtx (*p);
+	  push_reload (*p, NULL_RTX, p, NULL,
+		       BASE_REG_CLASS, Pmode, VOIDmode, 0, 0, opnum, type);
+	  goto win;
+	}
+      /* Instead of offset_base 128..131 use 124..127, so that
+	 simple add suffices.  */
+      if (offset > 127)
+	offset_base = ((offset + 4) & ~60) - 4;
+      else
+	offset_base = offset & ~60;
+      /* Sometimes the normal form does not suit DImode.  We could avoid
+	 that by using smaller ranges, but that would give less optimized
+	 code when SImode is prevalent.  */
+      if (GET_MODE_SIZE (mode) + offset - offset_base <= 64)
+	{
+	  sum = gen_rtx_PLUS (Pmode, XEXP (*p, 0), GEN_INT (offset_base));
+	  *p = gen_rtx_PLUS (Pmode, sum, GEN_INT (offset - offset_base));
+	  push_reload (sum, NULL_RTX, &XEXP (*p, 0), NULL,
+		       BASE_REG_CLASS, Pmode, VOIDmode, 0, 0, opnum, type);
+	  goto win;
+	}
+    }
+  /* We must re-recognize what we created before.  */
+  else if (GET_CODE (*p) == PLUS
+	   && (GET_MODE_SIZE (mode) == 4 || GET_MODE_SIZE (mode) == 8)
+	   && GET_CODE (XEXP (*p, 0)) == PLUS
+	   && CONST_INT_P (XEXP (XEXP (*p, 0), 1))
+	   && MAYBE_BASE_REGISTER_RTX_P (XEXP (XEXP (*p, 0), 0), true)
+	   && CONST_INT_P (XEXP (*p, 1))
+	   && ! TARGET_SHMEDIA
+	   && ! (TARGET_SH2E && mode == SFmode))
+    {
+      /* Because this address is so complex, we know it must have
+	 been created by LEGITIMIZE_RELOAD_ADDRESS before; thus,
+	 it is already unshared, and needs no further unsharing.  */
+      push_reload (XEXP (*p, 0), NULL_RTX, &XEXP (*p, 0), NULL,
+		   BASE_REG_CLASS, Pmode, VOIDmode, 0, 0, opnum, type);
+      goto win;
+    }
+
+  return false;
+
+ win:
+  return true;
 }
 
 /* Mark the use of a constant in the literal table. If the constant
@@ -10854,6 +10972,20 @@ sh_vector_mode_supported_p (enum machine_mode mode)
   return false;
 }
 
+bool
+sh_frame_pointer_required (void)
+{
+/* If needed override this in other tm.h files to cope with various OS 
+   lossage requiring a frame pointer.  */
+  if (SUBTARGET_FRAME_POINTER_REQUIRED)
+    return true;
+
+  if (crtl->profile)
+    return true;
+
+  return false;
+}
+
 /* Implements target hook dwarf_calling_convention.  Return an enum
    of dwarf_calling_convention.  */
 int
@@ -11120,6 +11252,14 @@ sh_cannot_change_mode_class (enum machine_mode from, enum machine_mode to,
   return 0;
 }
 
+/* Return true if registers in machine mode MODE will likely be
+   allocated to registers in small register classes.  */
+
+bool
+sh_small_register_classes_for_mode_p (enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  return (! TARGET_SHMEDIA);
+}
 
 /* If ADDRESS refers to a CODE_LABEL, add NUSES to the number of times
    that label is used.  */

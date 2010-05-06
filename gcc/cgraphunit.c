@@ -382,6 +382,7 @@ cgraph_process_new_functions (void)
   tree fndecl;
   struct cgraph_node *node;
 
+  varpool_analyze_pending_decls ();
   /*  Note that this queue may grow as its being processed, as the new
       functions may generate new ones.  */
   while (cgraph_new_nodes)
@@ -437,6 +438,7 @@ cgraph_process_new_functions (void)
 	  break;
 	}
       cgraph_call_function_insertion_hooks (node);
+      varpool_analyze_pending_decls ();
     }
   return output;
 }
@@ -607,6 +609,24 @@ verify_cgraph_node (struct cgraph_node *node)
       error ("Inline clone is needed");
       error_found = true;
     }
+  for (e = node->indirect_calls; e; e = e->next_callee)
+    {
+      if (e->aux)
+	{
+	  error ("aux field set for indirect edge from %s",
+		 identifier_to_locale (cgraph_node_name (e->caller)));
+	  error_found = true;
+	}
+      if (!e->indirect_unknown_callee
+	  || !e->indirect_info)
+	{
+	  error ("An indirect edge from %s is not marked as indirect or has "
+		 "associated indirect_info, the corresponding statement is: ",
+		 identifier_to_locale (cgraph_node_name (e->caller)));
+	  debug_gimple_stmt (e->call_stmt);
+	  error_found = true;
+	}
+    }
   for (e = node->callers; e; e = e->next_caller)
     {
       if (e->count < 0)
@@ -714,6 +734,32 @@ verify_cgraph_node (struct cgraph_node *node)
       error ("double linked list of clones corrupted");
       error_found = true;
     }
+  if (node->same_comdat_group)
+    {
+      struct cgraph_node *n = node->same_comdat_group;
+
+      if (!DECL_ONE_ONLY (node->decl))
+	{
+	  error ("non-DECL_ONE_ONLY node in a same_comdat_group list");
+	  error_found = true;
+	}
+      if (n == node)
+	{
+	  error ("node is alone in a comdat group");
+	  error_found = true;
+	}
+      do
+	{
+	  if (!n->same_comdat_group)
+	    {
+	      error ("same_comdat_group is not a circular list");
+	      error_found = true;
+	      break;
+	    }
+	  n = n->same_comdat_group;
+	}
+      while (n != node);
+    }
 
   if (node->analyzed && gimple_has_body_p (node->decl)
       && !TREE_ASM_WRITTEN (node->decl)
@@ -733,10 +779,10 @@ verify_cgraph_node (struct cgraph_node *node)
                  gsi_next (&gsi))
 	      {
 		gimple stmt = gsi_stmt (gsi);
-		tree decl;
-		if (is_gimple_call (stmt) && (decl = gimple_call_fndecl (stmt)))
+		if (is_gimple_call (stmt))
 		  {
 		    struct cgraph_edge *e = cgraph_edge (node, stmt);
+		    tree decl = gimple_call_fndecl (stmt);
 		    if (e)
 		      {
 			if (e->aux)
@@ -745,25 +791,38 @@ verify_cgraph_node (struct cgraph_node *node)
 			    debug_gimple_stmt (stmt);
 			    error_found = true;
 			  }
-			if (e->callee->same_body_alias)
+			if (!e->indirect_unknown_callee)
 			  {
-			    error ("edge points to same body alias:");
-			    debug_tree (e->callee->decl);
-			    error_found = true;
+			    if (e->callee->same_body_alias)
+			      {
+				error ("edge points to same body alias:");
+				debug_tree (e->callee->decl);
+				error_found = true;
+			      }
+			    else if (!node->global.inlined_to
+				     && !e->callee->global.inlined_to
+				     && decl
+				     && !clone_of_p (cgraph_node (decl),
+						     e->callee))
+			      {
+				error ("edge points to wrong declaration:");
+				debug_tree (e->callee->decl);
+				fprintf (stderr," Instead of:");
+				debug_tree (decl);
+				error_found = true;
+			      }
 			  }
-			else if (!node->global.inlined_to
-				 && !e->callee->global.inlined_to
-				 && !clone_of_p (cgraph_node (decl), e->callee))
+			else if (decl)
 			  {
-			    error ("edge points to wrong declaration:");
-			    debug_tree (e->callee->decl);
-			    fprintf (stderr," Instead of:");
-			    debug_tree (decl);
+			    error ("an indirect edge with unknown callee "
+				   "corresponding to a call_stmt with "
+				   "a known declaration:");
 			    error_found = true;
+			    debug_gimple_stmt (e->call_stmt);
 			  }
 			e->aux = (void *)1;
 		      }
-		    else
+		    else if (decl)
 		      {
 			error ("missing callgraph edge for call stmt:");
 			debug_gimple_stmt (stmt);
@@ -779,11 +838,22 @@ verify_cgraph_node (struct cgraph_node *node)
 
       for (e = node->callees; e; e = e->next_callee)
 	{
-	  if (!e->aux && !e->indirect_call)
+	  if (!e->aux)
 	    {
 	      error ("edge %s->%s has no corresponding call_stmt",
 		     identifier_to_locale (cgraph_node_name (e->caller)),
 		     identifier_to_locale (cgraph_node_name (e->callee)));
+	      debug_gimple_stmt (e->call_stmt);
+	      error_found = true;
+	    }
+	  e->aux = 0;
+	}
+      for (e = node->indirect_calls; e; e = e->next_callee)
+	{
+	  if (!e->aux)
+	    {
+	      error ("an indirect edge from %s has no corresponding call_stmt",
+		     identifier_to_locale (cgraph_node_name (e->caller)));
 	      debug_gimple_stmt (e->call_stmt);
 	      error_found = true;
 	    }
@@ -1130,7 +1200,7 @@ cgraph_mark_functions_to_output (void)
 	 outside the current compilation unit.  */
       if (node->analyzed
 	  && !node->global.inlined_to
-	  && (node->needed
+	  && (node->needed || node->reachable_from_other_partition
 	      || (e && node->reachable))
 	  && !TREE_ASM_WRITTEN (decl)
 	  && !DECL_EXTERNAL (decl))
@@ -1157,6 +1227,10 @@ cgraph_mark_functions_to_output (void)
 #ifdef ENABLE_CHECKING
 	  if (!node->global.inlined_to
 	      && gimple_has_body_p (decl)
+	      /* FIXME: in ltrans unit when offline copy is outside partition but inline copies
+		 are inside partition, we can end up not removing the body since we no longer
+		 have analyzed node pointing to it.  */
+	      && !node->in_other_partition
 	      && !DECL_EXTERNAL (decl))
 	    {
 	      dump_cgraph_node (stderr, node);
@@ -1165,6 +1239,7 @@ cgraph_mark_functions_to_output (void)
 #endif
 	  gcc_assert (node->global.inlined_to
 		      || !gimple_has_body_p (decl)
+		      || node->in_other_partition
 		      || DECL_EXTERNAL (decl));
 
 	}
@@ -1178,6 +1253,10 @@ cgraph_mark_functions_to_output (void)
 	  tree decl = node->decl;
 	  if (!node->global.inlined_to
 	      && gimple_has_body_p (decl)
+	      /* FIXME: in ltrans unit when offline copy is outside partition but inline copies
+		 are inside partition, we can end up not removing the body since we no longer
+		 have analyzed node pointing to it.  */
+	      && !node->in_other_partition
 	      && !DECL_EXTERNAL (decl))
 	    {
 	      dump_cgraph_node (stderr, node);
@@ -2018,7 +2097,7 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
 				 VEC(cgraph_edge_p,heap) *redirect_callers)
  {
    struct cgraph_node *new_version;
-   struct cgraph_edge *e, *new_e;
+   struct cgraph_edge *e;
    struct cgraph_edge *next_callee;
    unsigned i;
 
@@ -2037,10 +2116,10 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
       also cloned.  */
    for (e = old_version->callees;e; e=e->next_callee)
      {
-       new_e = cgraph_clone_edge (e, new_version, e->call_stmt,
-				  e->lto_stmt_uid, 0, e->frequency,
-				  e->loop_nest, true);
-       new_e->count = e->count;
+       cgraph_clone_edge (e, new_version, e->call_stmt,
+			  e->lto_stmt_uid, REG_BR_PROB_BASE,
+			  CGRAPH_FREQ_BASE,
+			  e->loop_nest, true);
      }
    /* Fix recursive calls.
       If OLD_VERSION has a recursive call after the
@@ -2260,6 +2339,7 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
 
   gsi = gsi_for_stmt (e->call_stmt);
   gsi_replace (&gsi, new_stmt, true);
+  update_stmt (new_stmt);
 
   /* Update EH information too, just in case.  */
   maybe_clean_or_replace_eh_stmt (e->call_stmt, new_stmt);
@@ -2363,6 +2443,7 @@ cgraph_materialize_all_clones (void)
         push_cfun (DECL_STRUCT_FUNCTION (node->decl));
 	for (e = node->callees; e; e = e->next_callee)
 	  cgraph_redirect_edge_call_stmt_to_callee (e);
+	gcc_assert (!need_ssa_update_p (cfun));
 	pop_cfun ();
 	current_function_decl = NULL;
 #ifdef ENABLE_CHECKING

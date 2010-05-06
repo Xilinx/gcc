@@ -114,7 +114,7 @@ enum rid
   RID_IS_UNION,
 
   /* C++0x */
-  RID_STATIC_ASSERT, RID_CONSTEXPR, RID_DECLTYPE,
+  RID_CONSTEXPR, RID_DECLTYPE, RID_NULLPTR, RID_STATIC_ASSERT,
 
   /* Objective-C */
   RID_AT_ENCODE,   RID_AT_END,
@@ -155,8 +155,8 @@ enum rid
   RID_FIRST_MODIFIER = RID_STATIC,
   RID_LAST_MODIFIER = RID_ONEWAY,
 
-  RID_FIRST_CXX0X = RID_STATIC_ASSERT,
-  RID_LAST_CXX0X = RID_DECLTYPE,
+  RID_FIRST_CXX0X = RID_CONSTEXPR,
+  RID_LAST_CXX0X = RID_STATIC_ASSERT,
   RID_FIRST_AT = RID_AT_ENCODE,
   RID_LAST_AT = RID_AT_IMPLEMENTATION,
   RID_FIRST_PQ = RID_IN,
@@ -595,9 +595,13 @@ extern int flag_cond_mismatch;
 
 extern int flag_isoc94;
 
-/* Nonzero means use the ISO C99 dialect of C.  */
+/* Nonzero means use the ISO C99 (or C1X) dialect of C.  */
 
 extern int flag_isoc99;
+
+/* Nonzero means use the ISO C1X dialect of C.  */
+
+extern int flag_isoc1x;
 
 /* Nonzero means that we have builtin functions, and main is an int.  */
 
@@ -746,10 +750,6 @@ extern int flag_threadsafe_statics;
 
 extern int flag_pretty_templates;
 
-/* Nonzero means warn about implicit declarations.  */
-
-extern int warn_implicit;
-
 /* Warn about using __null (as NULL in C++) as sentinel.  For code compiled
    with GCC this doesn't matter as __null is guaranteed to have the right
    size.  */
@@ -822,7 +822,8 @@ extern void check_function_format (tree, int, tree *);
 extern void set_Wformat (int);
 extern tree handle_format_attribute (tree *, tree, tree, int, bool *);
 extern tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
-extern int c_common_handle_option (size_t code, const char *arg, int value);
+extern bool attribute_takes_identifier_p (const_tree);
+extern int c_common_handle_option (size_t code, const char *arg, int value, int kind);
 extern bool c_common_missing_argument (const char *opt, size_t code);
 extern tree c_common_type_for_mode (enum machine_mode, int);
 extern tree c_common_type_for_size (unsigned int, int);
@@ -845,7 +846,6 @@ extern tree c_alignof_expr (location_t, tree);
    NOP_EXPR is used as a special case (see truthvalue_conversion).  */
 extern void binary_op_error (location_t, enum tree_code, tree, tree);
 extern tree fix_string_type (tree);
-struct varray_head_tag;
 extern void constant_expression_warning (tree);
 extern void constant_expression_error (tree);
 extern bool strict_aliasing_warning (tree, tree, tree);

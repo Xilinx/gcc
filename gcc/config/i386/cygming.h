@@ -39,6 +39,11 @@ along with GCC; see the file COPYING3.  If not see
 #undef DEFAULT_ABI
 #define DEFAULT_ABI (TARGET_64BIT ? MS_ABI : SYSV_ABI)
 
+#if ! defined (USE_MINGW64_LEADING_UNDERSCORES)
+#undef USER_LABEL_PREFIX
+#define USER_LABEL_PREFIX (TARGET_64BIT ? "" : "_")
+#endif
+
 #undef DBX_REGISTER_NUMBER
 #define DBX_REGISTER_NUMBER(n)				\
   (TARGET_64BIT ? dbx64_register_map[n]			\
@@ -79,11 +84,13 @@ along with GCC; see the file COPYING3.  If not see
 	builtin_assert ("system=winnt");				\
 	builtin_define ("__stdcall=__attribute__((__stdcall__))");	\
 	builtin_define ("__fastcall=__attribute__((__fastcall__))");	\
+	builtin_define ("__thiscall=__attribute__((__thiscall__))");	\
 	builtin_define ("__cdecl=__attribute__((__cdecl__))");		\
 	if (!flag_iso)							\
 	  {								\
 	    builtin_define ("_stdcall=__attribute__((__stdcall__))");	\
 	    builtin_define ("_fastcall=__attribute__((__fastcall__))");	\
+	    builtin_define ("_thiscall=__attribute__((__thiscall__))");	\
 	    builtin_define ("_cdecl=__attribute__((__cdecl__))");	\
 	  }								\
 	/* Even though linkonce works with static libs, this is needed 	\

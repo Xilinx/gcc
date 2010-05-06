@@ -1058,7 +1058,7 @@ compile_file (void)
      what's left of the symbol table output.  */
   timevar_pop (TV_PARSE);
 
-  if (flag_syntax_only)
+  if (flag_syntax_only || flag_wpa)
     return;
 
   ggc_protect_identifiers = false;
@@ -1728,6 +1728,7 @@ general_init (const char *argv0)
   /* Set a default printer.  Language specific initializations will
      override it later.  */
   pp_format_decoder (global_dc->printer) = &default_tree_printer;
+  global_dc->show_option_requested = flag_diagnostics_show_option;
 
   /* Trap fatal signals, e.g. SIGSEGV, and convert them to ICE messages.  */
 #ifdef SIGSEGV
@@ -1830,6 +1831,12 @@ process_options (void)
     warn_unused_parameter = (warn_unused && extra_warnings);
   if (warn_unused_variable == -1)
     warn_unused_variable = warn_unused;
+  /* Wunused-but-set-parameter is enabled if both -Wunused -Wextra are
+     enabled.  */
+  if (warn_unused_but_set_parameter == -1)
+    warn_unused_but_set_parameter = (warn_unused && extra_warnings);
+  if (warn_unused_but_set_variable == -1)
+    warn_unused_but_set_variable = warn_unused;
   if (warn_unused_value == -1)
     warn_unused_value = warn_unused;
 
@@ -2374,7 +2381,6 @@ dump_memory_report (bool final)
   dump_tree_statistics ();
   dump_gimple_statistics ();
   dump_rtx_statistics ();
-  dump_varray_statistics ();
   dump_alloc_pool_statistics ();
   dump_bitmap_statistics ();
   dump_vec_loc_statistics ();
@@ -2494,6 +2500,7 @@ toplev_main (int argc, char **argv)
 
   if (warningcount || errorcount)
     print_ignored_options ();
+  diagnostic_finish (global_dc);
 
   /* Invoke registered plugin callbacks if any.  */
   invoke_plugin_callbacks (PLUGIN_FINISH, NULL);

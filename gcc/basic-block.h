@@ -23,7 +23,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "bitmap.h"
 #include "sbitmap.h"
-#include "varray.h"
 #include "partition.h"
 #include "hard-reg-set.h"
 #include "predict.h"
@@ -894,6 +893,10 @@ extern void rtl_make_eh_edge (sbitmap, basic_block, rtx);
 
 /* In cfgcleanup.c.  */
 extern bool cleanup_cfg (int);
+extern int flow_find_cross_jump (basic_block, basic_block, rtx *, rtx *);
+extern int flow_find_head_matching_sequence (basic_block, basic_block,
+					     rtx *, rtx *, int);
+
 extern bool delete_unreachable_blocks (void);
 
 extern bool mark_dfs_back_edges (void);

@@ -1,6 +1,7 @@
 /* Implement classes and message passing for Objective C.
    Copyright (C) 1992, 1993, 1994, 1995, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Steve Naroff.
 
 This file is part of GCC.
@@ -66,7 +67,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "toplev.h"
 #include "ggc.h"
-#include "varray.h"
 #include "debug.h"
 #include "target.h"
 #include "diagnostic.h"
@@ -545,6 +545,13 @@ objc_init (void)
 	 structure-returning methods.  */
       default_constant_string_class_name = "NXConstantString";
       flag_typed_selectors = 1;
+      /* GNU runtime does not need the compiler to change code
+         in order to do GC. */
+      if (flag_objc_gc)
+	{
+	  warning_at (0, 0, "%<-fobjc-gc%> is ignored for %<-fgnu-runtime%>");
+	  flag_objc_gc=0;
+	}
     }
 
   init_objc ();
@@ -1524,6 +1531,7 @@ finish_var_decl (tree var, tree initializer)
   mark_decl_referenced (var);
   /* Mark the decl to avoid "defined but not used" warning.  */
   TREE_USED (var) = 1;
+  DECL_READ_P (var) = 1;
   /* We reserve the right for the runtime to use/modify these variables
      in ways that are opaque to us.  */
   DECL_PRESERVE_P (var) = 1;
@@ -2391,11 +2399,17 @@ build_module_initializer_routine (void)
 
   objc_push_parm (build_decl (input_location,
 			      PARM_DECL, NULL_TREE, void_type_node));
+#ifdef OBJCPLUS
+  objc_start_function (get_identifier (TAG_GNUINIT),
+		       build_function_type (void_type_node,
+					    OBJC_VOID_AT_END),
+		       NULL_TREE, NULL_TREE);
+#else
   objc_start_function (get_identifier (TAG_GNUINIT),
 		       build_function_type (void_type_node,
 					    OBJC_VOID_AT_END),
 		       NULL_TREE, objc_get_parm_info (0));
-
+#endif
   body = c_begin_compound_stmt (true);
   add_stmt (build_function_call
 	    (input_location,
@@ -3854,6 +3868,7 @@ objc_begin_catch_clause (tree decl)
   /* ??? As opposed to __attribute__((unused))?  Anyway, this appears to
      be what the previous objc implementation did.  */
   TREE_USED (decl) = 1;
+  DECL_READ_P (decl) = 1;
 
   /* Verify that the type of the catch is valid.  It must be a pointer
      to an Objective-C class, or "id" (which is catch-all).  */
@@ -8114,15 +8129,21 @@ encode_aggregate_within (tree type, int curtype, int format, int left,
 
   /* Encode the struct/union tag name, or '?' if a tag was
      not provided.  Typedef aliases do not qualify.  */
-  if (name && TREE_CODE (name) == IDENTIFIER_NODE
 #ifdef OBJCPLUS
+  /* For compatibility with the NeXT runtime, ObjC++ encodes template
+     args as a composite struct tag name. */
+  if (name && TREE_CODE (name) == IDENTIFIER_NODE
       /* Did this struct have a tag?  */
-      && !TYPE_WAS_ANONYMOUS (type)
-#endif
-      )
+      && !TYPE_WAS_ANONYMOUS (type))
+    obstack_grow (&util_obstack,
+		  decl_as_string (type, TFF_DECL_SPECIFIERS | TFF_UNQUALIFIED_NAME),
+		  strlen (decl_as_string (type, TFF_DECL_SPECIFIERS | TFF_UNQUALIFIED_NAME)));
+#else
+  if (name && TREE_CODE (name) == IDENTIFIER_NODE)
     obstack_grow (&util_obstack,
 		  IDENTIFIER_POINTER (name),
 		  strlen (IDENTIFIER_POINTER (name)));
+#endif
   else
     obstack_1grow (&util_obstack, '?');
 
@@ -8709,7 +8730,9 @@ really_start_method (tree method,
 
   /* Suppress unused warnings.  */
   TREE_USED (self_decl) = 1;
+  DECL_READ_P (self_decl) = 1;
   TREE_USED (TREE_CHAIN (self_decl)) = 1;
+  DECL_READ_P (TREE_CHAIN (self_decl)) = 1;
 #ifdef OBJCPLUS
   pop_lang_context ();
 #endif
@@ -8786,6 +8809,7 @@ get_super_receiver (void)
 				       objc_super_template);
 	/* This prevents `unused variable' warnings when compiling with -Wall.  */
 	TREE_USED (UOBJC_SUPER_decl) = 1;
+	DECL_READ_P (UOBJC_SUPER_decl) = 1;
 	lang_hooks.decls.pushdecl (UOBJC_SUPER_decl);
         finish_decl (UOBJC_SUPER_decl, input_location, NULL_TREE, NULL_TREE,
 	    	     NULL_TREE);
@@ -9409,6 +9433,7 @@ handle_class_ref (tree chain)
   DECL_INITIAL (decl) = exp;
   TREE_STATIC (decl) = 1;
   TREE_USED (decl) = 1;
+  DECL_READ_P (decl) = 1;
   /* Force the output of the decl as this forces the reference of the class.  */
   mark_decl_referenced (decl);
 

@@ -132,9 +132,6 @@ gfc_init_options (unsigned int argc, const char **argv)
   gfc_option.rtcheck = 0;
   gfc_option.coarray = GFC_FCOARRAY_NONE;
 
-  /* Argument pointers cannot point to anything but their argument.  */
-  flag_argument_noalias = 3;
-
   flag_errno_math = 0;
 
   set_default_std_flags ();
@@ -535,7 +532,8 @@ gfc_handle_runtime_check_option (const char *arg)
    recognized and handled.  */
 
 int
-gfc_handle_option (size_t scode, const char *arg, int value)
+gfc_handle_option (size_t scode, const char *arg, int value,
+		   int kind ATTRIBUTE_UNUSED)
 {
   int result = 1;
   enum opt_code code = (enum opt_code) scode;

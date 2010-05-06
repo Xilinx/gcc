@@ -126,8 +126,9 @@ typedef enum
      scalarization loop.  */
   GFC_SS_SCALAR,
 
-  /* Like GFC_SS_SCALAR except it evaluates a pointer to the expression.
-     Used for elemental function parameters.  */
+  /* Like GFC_SS_SCALAR it evaluates the expression outside the
+     loop. Is always evaluated as a reference to the temporary.
+     Used for elemental function arguments.  */
   GFC_SS_REFERENCE,
 
   /* An array section.  Scalarization indices will be substituted during
@@ -450,7 +451,7 @@ extern GTY(()) tree gfc_static_ctors;
 void gfc_generate_constructors (void);
 
 /* Get the string length of an array constructor.  */
-bool get_array_ctor_strlen (stmtblock_t *, gfc_constructor *, tree *);
+bool get_array_ctor_strlen (stmtblock_t *, gfc_constructor_base, tree *);
 
 /* Generate a runtime error call.  */
 tree gfc_trans_runtime_error (bool, locus*, const char*, ...);
@@ -490,6 +491,9 @@ tree gfc_trans_assignment (gfc_expr *, gfc_expr *, bool, bool);
 
 /* Generate code for a pointer assignment.  */
 tree gfc_trans_pointer_assignment (gfc_expr *, gfc_expr *);
+
+/* Generate code to assign typebound procedures to a derived vtab.  */
+void gfc_trans_assign_vtab_procs (stmtblock_t*, gfc_symbol*, gfc_symbol*);
 
 /* Initialize function decls for library functions.  */
 void gfc_build_intrinsic_lib_fndecls (void);
@@ -773,7 +777,6 @@ void gfc_apply_interface_mapping (gfc_interface_mapping *,
 
 
 /* Standard error messages used in all the trans-*.c files.  */
-extern const char gfc_msg_bounds[];
 extern const char gfc_msg_fault[];
 extern const char gfc_msg_wrong_return[];
 

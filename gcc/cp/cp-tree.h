@@ -1,6 +1,6 @@
 /* Definitions for C++ parsing and type checking.
    Copyright (C) 1987, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -28,7 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "splay-tree.h"
 #include "vec.h"
-#include "varray.h"
 #include "c-common.h"
 #include "name-lookup.h"
 
@@ -74,7 +73,6 @@ framework extensions, you must include this file before toplev.h, not after.
       BASELINK_QUALIFIED_P (in BASELINK)
       TARGET_EXPR_IMPLICIT_P (in TARGET_EXPR)
       TEMPLATE_PARM_PARAMETER_PACK (in TEMPLATE_PARM_INDEX)
-      TYPE_REF_IS_RVALUE (in REFERENCE_TYPE)
       ATTR_IS_DEPENDENT (in the TREE_LIST for an attribute)
       CONSTRUCTOR_IS_DIRECT_INIT (in CONSTRUCTOR)
       LAMBDA_EXPR_CAPTURES_THIS_P (in LAMBDA_EXPR)
@@ -121,7 +119,6 @@ framework extensions, you must include this file before toplev.h, not after.
    3: TYPE_FOR_JAVA.
    4: TYPE_HAS_NONTRIVIAL_DESTRUCTOR
    5: CLASS_TYPE_P (in RECORD_TYPE and UNION_TYPE)
-      SCOPED_ENUM_P (in ENUMERAL_TYPE)
    6: TYPE_DEPENDENT_P_VALID
 
    Usage of DECL_LANG_FLAG_?:
@@ -778,6 +775,8 @@ enum cp_tree_index
 
     CPTI_KEYED_CLASSES,
 
+    CPTI_NULLPTR,
+
     CPTI_MAX
 };
 
@@ -812,6 +811,7 @@ extern GTY(()) tree cp_global_trees[CPTI_MAX];
 #define abort_fndecl			cp_global_trees[CPTI_ABORT_FNDECL]
 #define global_delete_fndecl		cp_global_trees[CPTI_GLOBAL_DELETE_FNDECL]
 #define current_aggr			cp_global_trees[CPTI_AGGR_TAG]
+#define nullptr_node			cp_global_trees[CPTI_NULLPTR]
 
 /* We cache these tree nodes so as to call get_identifier less
    frequently.  */
@@ -1758,7 +1758,7 @@ struct GTY(()) lang_decl_base {
   unsigned threadprivate_or_deleted_p : 1; /* var or fn */
   unsigned anticipated_p : 1;		   /* fn or type */
   unsigned friend_attr : 1;		   /* fn or type */
-  unsigned template_conv_p : 1;		   /* template only? */
+  unsigned template_conv_p : 1;		   /* var or template */
   unsigned odr_used : 1;		   /* var or fn */
   unsigned u2sel : 1;
   /* 1 spare bit */
@@ -2087,6 +2087,15 @@ struct GTY(()) lang_decl {
    args.  */
 #define DECL_TEMPLATE_CONV_FN_P(NODE) \
   (DECL_LANG_SPECIFIC (TEMPLATE_DECL_CHECK (NODE))->u.base.template_conv_p)
+
+/* Nonzero if NODE, a static data member, was declared in its class as an
+   array of unknown bound.  */
+#define VAR_HAD_UNKNOWN_BOUND(NODE)			\
+  (DECL_LANG_SPECIFIC (VAR_DECL_CHECK (NODE))		\
+   ? DECL_LANG_SPECIFIC (NODE)->u.base.template_conv_p	\
+   : false)
+#define SET_VAR_HAD_UNKNOWN_BOUND(NODE) \
+  (DECL_LANG_SPECIFIC (VAR_DECL_CHECK (NODE))->u.base.template_conv_p = true)
 
 /* Set the overloaded operator code for NODE to CODE.  */
 #define SET_OVERLOADED_OPERATOR_CODE(NODE, CODE) \
@@ -2995,8 +3004,9 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 
 /* [basic.types]
 
-   Arithmetic types, enumeration types, pointer types, and
-   pointer-to-member types, are collectively called scalar types.
+   Arithmetic types, enumeration types, pointer types,
+   pointer-to-member types, and std::nullptr_t are collectively called
+   scalar types.
    
    Keep these checks in ascending code order.  */
 #define SCALAR_TYPE_P(TYPE)			\
@@ -3004,7 +3014,8 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    || TREE_CODE (TYPE) == ENUMERAL_TYPE		\
    || ARITHMETIC_TYPE_P (TYPE)			\
    || TYPE_PTR_P (TYPE)				\
-   || TYPE_PTRMEMFUNC_P (TYPE))
+   || TYPE_PTRMEMFUNC_P (TYPE)                  \
+   || TREE_CODE (TYPE) == NULLPTR_TYPE)
 
 /* Determines whether this type is a C++0x scoped enumeration
    type. Scoped enumerations types are introduced via "enum class" or
@@ -3027,17 +3038,17 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 
      - The underlying type of the enum is well-defined.  */
 #define SCOPED_ENUM_P(TYPE)                                             \
-  (TREE_CODE (TYPE) == ENUMERAL_TYPE && TYPE_LANG_FLAG_5 (TYPE))
+  (TREE_CODE (TYPE) == ENUMERAL_TYPE && ENUM_IS_SCOPED (TYPE))
 
 /* Determine whether this is an unscoped enumeration type.  */
 #define UNSCOPED_ENUM_P(TYPE)                                           \
-  (TREE_CODE (TYPE) == ENUMERAL_TYPE && !TYPE_LANG_FLAG_5 (TYPE))
+  (TREE_CODE (TYPE) == ENUMERAL_TYPE && !ENUM_IS_SCOPED (TYPE))
 
 /* Set the flag indicating whether an ENUMERAL_TYPE is a C++0x scoped
    enumeration type (1) or a normal (unscoped) enumeration type
    (0).  */
 #define SET_SCOPED_ENUM_P(TYPE, VAL)                    \
-  (TYPE_LANG_FLAG_5 (ENUMERAL_TYPE_CHECK (TYPE)) = (VAL))
+  (ENUM_IS_SCOPED (TYPE) = (VAL))
 
 /* Returns the underlying type of the given enumeration type. The
    underlying type is determined in different ways, depending on the
@@ -3191,10 +3202,6 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    in ascending tree code order.  */
 #define TYPE_REF_OBJ_P(NODE)					\
   (TREE_CODE (NODE) == REFERENCE_TYPE && TYPE_OBJ_P (TREE_TYPE (NODE)))
-
-/* True if reference type NODE is an rvalue reference */
-#define TYPE_REF_IS_RVALUE(NODE) \
-  TREE_LANG_FLAG_0 (REFERENCE_TYPE_CHECK (NODE))
 
 /* Returns true if NODE is a pointer to an object, or a pointer to
    void.  Keep these checks in ascending tree code order.  */
@@ -4566,7 +4573,8 @@ extern void validate_conversion_obstack		(void);
 extern tree build_vfield_ref			(tree, tree);
 extern tree build_base_path			(enum tree_code, tree,
 						 tree, int);
-extern tree convert_to_base			(tree, tree, bool, bool);
+extern tree convert_to_base			(tree, tree, bool, bool,
+						 tsubst_flags_t);
 extern tree convert_to_base_statically		(tree, tree);
 extern tree build_vtbl_ref			(tree, tree);
 extern tree build_vfn_ref			(tree, tree);
@@ -4576,6 +4584,7 @@ extern void resort_type_method_vec		(void *, void *,
 extern bool add_method				(tree, tree, tree);
 extern bool currently_open_class		(tree);
 extern tree currently_open_derived_class	(tree);
+extern tree current_nonlambda_class_type	(void);
 extern tree finish_struct			(tree, tree);
 extern void finish_struct_1			(tree);
 extern int resolves_to_fixed_type_p		(tree, int *);
@@ -4608,6 +4617,7 @@ extern void check_for_override			(tree, tree);
 extern void push_class_stack			(void);
 extern void pop_class_stack			(void);
 extern bool type_has_user_nondefault_constructor (tree);
+extern tree in_class_defaulted_default_constructor (tree);
 extern bool user_provided_p			(tree);
 extern bool type_has_user_provided_constructor  (tree);
 extern bool type_has_user_provided_default_constructor (tree);
@@ -4644,6 +4654,7 @@ extern tree pushdecl_top_level_and_finish	(tree, tree);
 extern tree check_for_out_of_scope_variable	(tree);
 extern void print_other_binding_stack		(struct cp_binding_level *);
 extern tree maybe_push_decl			(tree);
+extern tree current_decl_namespace		(void);
 
 /* decl.c */
 extern tree poplevel				(int, int, int);
@@ -4809,6 +4820,10 @@ extern tree build_eh_type_type			(tree);
 
 /* in expr.c */
 extern tree cplus_expand_constant		(tree);
+extern tree mark_rvalue_use			(tree);
+extern tree mark_lvalue_use			(tree);
+extern tree mark_type_use			(tree);
+extern void mark_exp_read			(tree);
 
 /* friend.c */
 extern int is_friend				(tree, tree);
@@ -4842,6 +4857,7 @@ extern tree create_temporary_var		(tree);
 extern void initialize_vtbl_ptrs		(tree);
 extern tree build_java_class_ref		(tree);
 extern tree integral_constant_value		(tree);
+extern void diagnose_uninitialized_cst_or_ref_member (tree, bool);
 
 /* in lex.c */
 extern void cxx_dup_lang_specific_decl		(tree);
@@ -4975,6 +4991,7 @@ extern void pop_tinst_level                     (void);
 extern struct tinst_level *outermost_tinst_level(void);
 extern bool parameter_of_template_p		(tree, tree);
 extern void init_template_processing		(void);
+extern void print_template_statistics		(void);
 bool template_template_parameter_p		(const_tree);
 extern bool primary_template_instantiation_p    (const_tree);
 extern tree get_primary_template_innermost_parameters	(const_tree);
@@ -5204,6 +5221,7 @@ extern tree add_capture                         (tree, tree, tree, bool, bool);
 extern tree add_default_capture                 (tree, tree, tree);
 extern void register_capture_members		(tree);
 extern tree lambda_expr_this_capture            (tree);
+extern tree nonlambda_method_basetype		(void);
 extern void maybe_add_lambda_conv_op            (tree);
 
 /* in tree.c */
@@ -5249,6 +5267,7 @@ extern tree hash_tree_cons			(tree, tree, tree);
 extern tree hash_tree_chain			(tree, tree);
 extern tree build_qualified_name		(tree, tree, tree, bool);
 extern int is_overloaded_fn			(tree);
+extern tree get_fns				(tree);
 extern tree get_first_fn			(tree);
 extern tree ovl_cons				(tree, tree);
 extern tree build_overload			(tree, tree);
@@ -5391,6 +5410,7 @@ extern tree composite_pointer_type		(tree, tree, tree, tree,
 						 composite_pointer_operation, 
 						 tsubst_flags_t);
 extern tree merge_types				(tree, tree);
+extern tree strip_array_domain			(tree);
 extern tree check_return_expr			(tree, bool *);
 extern tree cp_build_binary_op                  (location_t,
 						 enum tree_code, tree, tree,

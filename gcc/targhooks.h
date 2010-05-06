@@ -72,7 +72,7 @@ extern const char * default_invalid_within_doloop (const_rtx);
 
 extern tree default_builtin_vectorized_function (tree, tree, tree);
 
-extern tree default_builtin_vectorized_conversion (unsigned int, tree);
+extern tree default_builtin_vectorized_conversion (unsigned int, tree, tree);
 
 extern tree default_builtin_reciprocal (unsigned int, bool, bool);
 
@@ -99,6 +99,7 @@ extern const char *hook_invalid_arg_for_unprototyped_fn
 extern bool hook_bool_const_rtx_commutative_p (const_rtx, int);
 extern rtx default_function_value (const_tree, const_tree, bool);
 extern rtx default_libcall_value (enum machine_mode, const_rtx);
+extern bool default_function_value_regno_p (const unsigned int);
 extern rtx default_internal_arg_pointer (void);
 extern rtx default_static_chain (const_tree, bool);
 extern void default_trampoline_init (rtx, tree, rtx);

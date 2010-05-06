@@ -897,6 +897,7 @@ static bool no_global_regs_above (int, bool);
 static void rs6000_assemble_visibility (tree, int);
 #endif
 static int rs6000_ra_ever_killed (void);
+static bool rs6000_attribute_takes_identifier_p (const_tree);
 static tree rs6000_handle_longcall_attribute (tree *, tree, tree, int, bool *);
 static tree rs6000_handle_altivec_attribute (tree *, tree, tree, int, bool *);
 static bool rs6000_ms_bitfield_layout_p (const_tree);
@@ -990,7 +991,7 @@ static tree rs6000_builtin_reciprocal (unsigned int, bool, bool);
 static tree rs6000_builtin_mask_for_load (void);
 static tree rs6000_builtin_mul_widen_even (tree);
 static tree rs6000_builtin_mul_widen_odd (tree);
-static tree rs6000_builtin_conversion (unsigned int, tree);
+static tree rs6000_builtin_conversion (unsigned int, tree, tree);
 static tree rs6000_builtin_vec_perm (tree, tree *);
 static bool rs6000_builtin_support_vector_misalignment (enum
 							machine_mode,
@@ -1279,6 +1280,8 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #define TARGET_ATTRIBUTE_TABLE rs6000_attribute_table
 #undef TARGET_SET_DEFAULT_TYPE_ATTRIBUTES
 #define TARGET_SET_DEFAULT_TYPE_ATTRIBUTES rs6000_set_default_type_attributes
+#undef TARGET_ATTRIBUTE_TAKES_IDENTIFIER_P
+#define TARGET_ATTRIBUTE_TAKES_IDENTIFIER_P rs6000_attribute_takes_identifier_p
 
 #undef TARGET_ASM_ALIGNED_DI_OP
 #define TARGET_ASM_ALIGNED_DI_OP DOUBLE_INT_ASM_OP
@@ -2883,24 +2886,24 @@ rs6000_builtin_mask_for_load (void)
 
 /* Implement targetm.vectorize.builtin_conversion.
    Returns a decl of a function that implements conversion of an integer vector
-   into a floating-point vector, or vice-versa. TYPE is the type of the integer
-   side of the conversion.
+   into a floating-point vector, or vice-versa.  DEST_TYPE is the
+   destination type and SRC_TYPE the source type of the conversion.
    Return NULL_TREE if it is not available.  */
 static tree
-rs6000_builtin_conversion (unsigned int tcode, tree type)
+rs6000_builtin_conversion (unsigned int tcode, tree dest_type, tree src_type)
 {
   enum tree_code code = (enum tree_code) tcode;
 
   switch (code)
     {
     case FIX_TRUNC_EXPR:
-      switch (TYPE_MODE (type))
+      switch (TYPE_MODE (dest_type))
 	{
 	case V2DImode:
 	  if (!VECTOR_UNIT_VSX_P (V2DFmode))
 	    return NULL_TREE;
 
-	  return TYPE_UNSIGNED (type)
+	  return TYPE_UNSIGNED (dest_type)
 	    ? rs6000_builtin_decls[VSX_BUILTIN_XVCVDPUXDS_UNS]
 	    : rs6000_builtin_decls[VSX_BUILTIN_XVCVDPSXDS];
 
@@ -2908,7 +2911,7 @@ rs6000_builtin_conversion (unsigned int tcode, tree type)
 	  if (VECTOR_UNIT_NONE_P (V4SImode) || VECTOR_UNIT_NONE_P (V4SFmode))
 	    return NULL_TREE;
 
-	  return TYPE_UNSIGNED (type)
+	  return TYPE_UNSIGNED (dest_type)
 	    ? rs6000_builtin_decls[VECTOR_BUILTIN_FIXUNS_V4SF_V4SI]
 	    : rs6000_builtin_decls[VECTOR_BUILTIN_FIX_V4SF_V4SI];
 
@@ -2917,13 +2920,13 @@ rs6000_builtin_conversion (unsigned int tcode, tree type)
 	}
 
     case FLOAT_EXPR:
-      switch (TYPE_MODE (type))
+      switch (TYPE_MODE (src_type))
 	{
 	case V2DImode:
 	  if (!VECTOR_UNIT_VSX_P (V2DFmode))
 	    return NULL_TREE;
 
-	  return TYPE_UNSIGNED (type)
+	  return TYPE_UNSIGNED (src_type)
 	    ? rs6000_builtin_decls[VSX_BUILTIN_XVCVUXDDP]
 	    : rs6000_builtin_decls[VSX_BUILTIN_XVCVSXDDP];
 
@@ -2931,7 +2934,7 @@ rs6000_builtin_conversion (unsigned int tcode, tree type)
 	  if (VECTOR_UNIT_NONE_P (V4SImode) || VECTOR_UNIT_NONE_P (V4SFmode))
 	    return NULL_TREE;
 
-	  return TYPE_UNSIGNED (type)
+	  return TYPE_UNSIGNED (src_type)
 	    ? rs6000_builtin_decls[VECTOR_BUILTIN_UNSFLOAT_V4SI_V4SF]
 	    : rs6000_builtin_decls[VECTOR_BUILTIN_FLOAT_V4SI_V4SF];
 
@@ -4183,7 +4186,7 @@ paired_emit_vector_compare (enum rtx_code rcode,
                             rtx cc_op0, rtx cc_op1)
 {
   rtx tmp = gen_reg_rtx (V2SFmode);
-  rtx tmp1, max, min, equal_zero;
+  rtx tmp1, max, min;
 
   gcc_assert (TARGET_PAIRED_FLOAT);
   gcc_assert (GET_MODE (op0) == GET_MODE (op1));
@@ -4210,8 +4213,8 @@ paired_emit_vector_compare (enum rtx_code rcode,
       tmp1 = gen_reg_rtx (V2SFmode);
       max = gen_reg_rtx (V2SFmode);
       min = gen_reg_rtx (V2SFmode);
-      equal_zero = gen_reg_rtx (V2SFmode);
-
+      gen_reg_rtx (V2SFmode);
+      
       emit_insn (gen_subv2sf3 (tmp, cc_op0, cc_op1));
       emit_insn (gen_selv2sf4
                  (max, tmp, cc_op0, cc_op1, CONST0_RTX (SFmode)));
@@ -5412,14 +5415,14 @@ rs6000_legitimize_tls_address (rtx addr, enum tls_model model)
 	      else
 		{
 		  rtx tmp3, mem;
-		  rtx first, last;
+		  rtx last;
 
 		  tmp1 = gen_reg_rtx (Pmode);
 		  tmp2 = gen_reg_rtx (Pmode);
 		  tmp3 = gen_reg_rtx (Pmode);
 		  mem = gen_const_mem (Pmode, tmp1);
 
-		  first = emit_insn (gen_load_toc_v4_PIC_1b (gsym));
+		  emit_insn (gen_load_toc_v4_PIC_1b (gsym));
 		  emit_move_insn (tmp1,
 				  gen_rtx_REG (Pmode, LR_REGNO));
 		  emit_move_insn (tmp2, mem);
@@ -10148,7 +10151,7 @@ altivec_expand_dst_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
   tree fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
   unsigned int fcode = DECL_FUNCTION_CODE (fndecl);
   tree arg0, arg1, arg2;
-  enum machine_mode mode0, mode1, mode2;
+  enum machine_mode mode0, mode1;
   rtx pat, op0, op1, op2;
   const struct builtin_description *d;
   size_t i;
@@ -10168,7 +10171,6 @@ altivec_expand_dst_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
 	op2 = expand_normal (arg2);
 	mode0 = insn_data[d->icode].operand[0].mode;
 	mode1 = insn_data[d->icode].operand[1].mode;
-	mode2 = insn_data[d->icode].operand[2].mode;
 
 	/* Invalid arguments, bail out before generating bad rtl.  */
 	if (arg0 == error_mark_node
@@ -23321,6 +23323,15 @@ rs6000_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
 }
 
 
+/* Returns TRUE iff the target attribute indicated by ATTR_ID takes a plain
+   identifier as an argument, so the front end shouldn't look it up.  */
+
+static bool
+rs6000_attribute_takes_identifier_p (const_tree attr_id)
+{
+  return is_attribute_p ("altivec", attr_id);
+}
+
 /* Handle the "altivec" attribute.  The attribute may have
    arguments as follows:
 

@@ -1,3 +1,23 @@
+2010-05-06  Magnus Fromreide  <magfr@lysator.liu.se>
+	    Jason Merrill  <jason@redhat.com>
+
+	* cp-demangle.c (cplus_demangle_builtin_types): Add nullptr.
+	(cplus_demangle_type): Handle nullptr.
+	* testsuite/demangle-expected: Test it.
+
+2010-04-23  Pedro Alves  <pedro@codesourcery.com>
+
+	* lbasename.c (lbasename): Split into ...
+	(unix_lbasename, dos_basename): ... these.
+	(lbasename): ... and reimplement on top of them.
+	* Makefile.in (lbasename.o): Add dependency on
+	$(INCDIR)/filenames.h.
+
+2010-04-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* regex.c (byte_re_match_2_internal): Avoid set but not used
+	warning.
+
 2010-03-22  Jason Merrill  <jason@redhat.com>
 
 	* cp-demangle.c (d_print_mod): Use () rather than [] for vectors.

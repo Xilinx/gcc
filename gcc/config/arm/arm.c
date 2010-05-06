@@ -151,7 +151,6 @@ static bool arm_memory_load_p (rtx);
 static bool arm_cirrus_insn_p (rtx);
 static void cirrus_reorg (rtx);
 static void arm_init_builtins (void);
-static rtx arm_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
 static void arm_init_iwmmxt_builtins (void);
 static rtx safe_vector_operand (rtx, enum machine_mode);
 static rtx arm_expand_binop_builtin (enum insn_code, tree, rtx);
@@ -224,6 +223,7 @@ static bool arm_can_eliminate (const int, const int);
 static void arm_asm_trampoline_template (FILE *);
 static void arm_trampoline_init (rtx, tree, rtx);
 static rtx arm_trampoline_adjust_address (rtx);
+static rtx arm_pic_static_addr (rtx orig, rtx reg);
 
 
 /* Table of machine attributes.  */
@@ -525,6 +525,9 @@ int making_const_table;
 /* The processor for which instructions should be scheduled.  */
 enum processor_type arm_tune = arm_none;
 
+/* The current tuning set.  */
+const struct tune_params *current_tune;
+
 /* The default processor used if not overridden by commandline.  */
 static enum processor_type arm_default_cpu = arm_none;
 
@@ -697,9 +700,6 @@ unsigned arm_pic_register = INVALID_REGNUM;
    the next function.  */
 static int after_arm_reorg = 0;
 
-/* The maximum number of insns to be used when loading a constant.  */
-static int arm_constant_limit = 3;
-
 static enum arm_pcs arm_pcs_default;
 
 /* For an explanation of these variables, see final_prescan_insn below.  */
@@ -738,7 +738,31 @@ struct processors
   enum processor_type core;
   const char *arch;
   const unsigned long flags;
-  bool (* rtx_costs) (rtx, enum rtx_code, enum rtx_code, int *, bool);
+  const struct tune_params *const tune;
+};
+
+const struct tune_params arm_slowmul_tune =
+{
+  arm_slowmul_rtx_costs,
+  3
+};
+
+const struct tune_params arm_fastmul_tune =
+{
+  arm_fastmul_rtx_costs,
+  1
+};
+
+const struct tune_params arm_xscale_tune =
+{
+  arm_xscale_rtx_costs,
+  2
+};
+
+const struct tune_params arm_9e_tune =
+{
+  arm_9e_rtx_costs,
+  1
 };
 
 /* Not all of these give usefully different compilation alternatives,
@@ -747,7 +771,7 @@ static const struct processors all_cores[] =
 {
   /* ARM Cores */
 #define ARM_CORE(NAME, IDENT, ARCH, FLAGS, COSTS) \
-  {NAME, arm_none, #ARCH, FLAGS | FL_FOR_ARCH##ARCH, arm_##COSTS##_rtx_costs},
+  {NAME, arm_none, #ARCH, FLAGS | FL_FOR_ARCH##ARCH, &arm_##COSTS##_tune},
 #include "arm-cores.def"
 #undef ARM_CORE
   {NULL, arm_none, NULL, 0, NULL}
@@ -756,7 +780,7 @@ static const struct processors all_cores[] =
 static const struct processors all_architectures[] =
 {
   /* ARM Architectures */
-  /* We don't specify rtx_costs here as it will be figured out
+  /* We don't specify tuning costs here as it will be figured out
      from the core.  */
 
   {"armv2",   arm2,       "2",   FL_CO_PROC | FL_MODE26 | FL_FOR_ARCH2, NULL},
@@ -904,6 +928,13 @@ enum tls_reloc {
   TLS_IE32,
   TLS_LE32
 };
+
+/* The maximum number of insns to be used when loading a constant.  */
+inline static int
+arm_constant_limit (bool size_p)
+{
+  return size_p ? 1 : current_tune->constant_limit;
+}
 
 /* Emit an insn that's a simple single-set.  Both the operands must be known
    to be valid.  */
@@ -1445,6 +1476,7 @@ arm_override_options (void)
   gcc_assert (arm_tune != arm_none);
 
   tune_flags = all_cores[(int)arm_tune].flags;
+  current_tune = all_cores[(int)arm_tune].tune;
 
   if (target_fp16_format_name)
     {
@@ -1841,26 +1873,12 @@ arm_override_options (void)
 
   if (optimize_size)
     {
-      arm_constant_limit = 1;
-
       /* If optimizing for size, bump the number of instructions that we
          are prepared to conditionally execute (even on a StrongARM).  */
       max_insns_skipped = 6;
     }
   else
     {
-      /* For processors with load scheduling, it never costs more than
-         2 cycles to load a constant, and the load scheduler may well
-	 reduce that to 1.  */
-      if (arm_ld_sched)
-        arm_constant_limit = 1;
-
-      /* On XScale the longer latency of a load makes it more difficult
-         to achieve a good schedule, so it's faster to synthesize
-	 constants that can be done in two insns.  */
-      if (arm_tune_xscale)
-        arm_constant_limit = 2;
-
       /* StrongARM has early execution of branches, so a sequence
          that is worth skipping is shorter.  */
       if (arm_tune_strongarm)
@@ -2361,7 +2379,8 @@ arm_split_constant (enum rtx_code code, enum machine_mode mode, rtx insn,
 	  && !cond
 	  && (arm_gen_constant (code, mode, NULL_RTX, val, target, source,
 				1, 0)
-	      > arm_constant_limit + (code != SET)))
+	      > (arm_constant_limit (optimize_function_for_size_p (cfun))
+		 + (code != SET))))
 	{
 	  if (code == SET)
 	    {
@@ -2521,7 +2540,6 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
   int can_negate = 0;
   int final_invert = 0;
   int can_negate_initial = 0;
-  int can_shift = 0;
   int i;
   int num_bits_set = 0;
   int set_sign_bit_copies = 0;
@@ -2540,7 +2558,6 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
     {
     case SET:
       can_invert = 1;
-      can_shift = 1;
       can_negate = 1;
       break;
 
@@ -4905,28 +4922,15 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
     {
       rtx pic_ref, address;
       rtx insn;
-      int subregs = 0;
-
-      /* If this function doesn't have a pic register, create one now.  */
-      require_pic_register ();
 
       if (reg == 0)
 	{
 	  gcc_assert (can_create_pseudo_p ());
 	  reg = gen_reg_rtx (Pmode);
-
-	  subregs = 1;
+	  address = gen_reg_rtx (Pmode);
 	}
-
-      if (subregs)
-	address = gen_reg_rtx (Pmode);
       else
 	address = reg;
-
-      if (TARGET_32BIT)
-	emit_insn (gen_pic_load_addr_32bit (address, orig));
-      else /* TARGET_THUMB1 */
-	emit_insn (gen_pic_load_addr_thumb1 (address, orig));
 
       /* VxWorks does not impose a fixed gap between segments; the run-time
 	 gap can be different from the object-file gap.  We therefore can't
@@ -4939,15 +4943,22 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 	       SYMBOL_REF_LOCAL_P (orig)))
 	  && NEED_GOT_RELOC
 	  && !TARGET_VXWORKS_RTP)
-	pic_ref = gen_rtx_PLUS (Pmode, cfun->machine->pic_reg, address);
+	insn = arm_pic_static_addr (orig, reg);
       else
 	{
+	  /* If this function doesn't have a pic register, create one now.  */
+	  require_pic_register ();
+
+	  if (TARGET_32BIT)
+	    emit_insn (gen_pic_load_addr_32bit (address, orig));
+	  else /* TARGET_THUMB1 */
+	    emit_insn (gen_pic_load_addr_thumb1 (address, orig));
+
 	  pic_ref = gen_const_mem (Pmode,
 				   gen_rtx_PLUS (Pmode, cfun->machine->pic_reg,
 					         address));
+	  insn = emit_move_insn (reg, pic_ref);
 	}
-
-      insn = emit_move_insn (reg, pic_ref);
 
       /* Put a REG_EQUAL note on this insn, so that it can be optimized
 	 by loop.  */
@@ -5155,6 +5166,43 @@ arm_load_pic_register (unsigned long saved_regs ATTRIBUTE_UNUSED)
   emit_use (pic_reg);
 }
 
+/* Generate code to load the address of a static var when flag_pic is set.  */
+static rtx
+arm_pic_static_addr (rtx orig, rtx reg)
+{
+  rtx l1, labelno, offset_rtx, insn;
+
+  gcc_assert (flag_pic);
+
+  /* We use an UNSPEC rather than a LABEL_REF because this label
+     never appears in the code stream.  */
+  labelno = GEN_INT (pic_labelno++);
+  l1 = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, labelno), UNSPEC_PIC_LABEL);
+  l1 = gen_rtx_CONST (VOIDmode, l1);
+
+  /* On the ARM the PC register contains 'dot + 8' at the time of the
+     addition, on the Thumb it is 'dot + 4'.  */
+  offset_rtx = plus_constant (l1, TARGET_ARM ? 8 : 4);
+  offset_rtx = gen_rtx_UNSPEC (Pmode, gen_rtvec (2, orig, offset_rtx),
+                               UNSPEC_SYMBOL_OFFSET);
+  offset_rtx = gen_rtx_CONST (Pmode, offset_rtx);
+
+  if (TARGET_32BIT)
+    {
+      emit_insn (gen_pic_load_addr_32bit (reg, offset_rtx));
+      if (TARGET_ARM)
+        insn = emit_insn (gen_pic_add_dot_plus_eight (reg, reg, labelno));
+      else
+        insn = emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
+    }
+  else /* TARGET_THUMB1 */
+    {
+      emit_insn (gen_pic_load_addr_thumb1 (reg, offset_rtx));
+      insn = emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
+    }
+
+  return insn;
+}
 
 /* Return nonzero if X is valid as an ARM state addressing register.  */
 static int
@@ -6308,7 +6356,6 @@ arm_rtx_costs_1 (rtx x, enum rtx_code outer, int* total, bool speed)
   enum rtx_code subcode;
   rtx operand;
   enum rtx_code code = GET_CODE (x);
-  int extra_cost;
   *total = 0;
 
   switch (code)
@@ -6532,7 +6579,6 @@ arm_rtx_costs_1 (rtx x, enum rtx_code outer, int* total, bool speed)
       /* Fall through */
 
     case AND: case XOR: case IOR:
-      extra_cost = 0;
 
       /* Normally the frame registers will be spilt into reg+const during
 	 reload, so it is a bad idea to combine them with other instructions,
@@ -6884,6 +6930,130 @@ arm_rtx_costs_1 (rtx x, enum rtx_code outer, int* total, bool speed)
     }
 }
 
+/* Estimates the size cost of thumb1 instructions.
+   For now most of the code is copied from thumb1_rtx_costs. We need more
+   fine grain tuning when we have more related test cases.  */
+static inline int
+thumb1_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
+{
+  enum machine_mode mode = GET_MODE (x);
+
+  switch (code)
+    {
+    case ASHIFT:
+    case ASHIFTRT:
+    case LSHIFTRT:
+    case ROTATERT:
+    case PLUS:
+    case MINUS:
+    case COMPARE:
+    case NEG:
+    case NOT:
+      return COSTS_N_INSNS (1);
+
+    case MULT:
+      if (GET_CODE (XEXP (x, 1)) == CONST_INT)
+        {
+          /* Thumb1 mul instruction can't operate on const. We must Load it
+             into a register first.  */
+          int const_size = thumb1_size_rtx_costs (XEXP (x, 1), CONST_INT, SET);
+          return COSTS_N_INSNS (1) + const_size;
+        }
+      return COSTS_N_INSNS (1);
+
+    case SET:
+      return (COSTS_N_INSNS (1)
+              + 4 * ((GET_CODE (SET_SRC (x)) == MEM)
+                     + GET_CODE (SET_DEST (x)) == MEM));
+
+    case CONST_INT:
+      if (outer == SET)
+        {
+          if ((unsigned HOST_WIDE_INT) INTVAL (x) < 256)
+            return 0;
+          if (thumb_shiftable_const (INTVAL (x)))
+            return COSTS_N_INSNS (2);
+          return COSTS_N_INSNS (3);
+        }
+      else if ((outer == PLUS || outer == COMPARE)
+               && INTVAL (x) < 256 && INTVAL (x) > -256)
+        return 0;
+      else if ((outer == IOR || outer == XOR || outer == AND)
+               && INTVAL (x) < 256 && INTVAL (x) >= -256)
+        return COSTS_N_INSNS (1);
+      else if (outer == AND)
+        {
+          int i;
+          /* This duplicates the tests in the andsi3 expander.  */
+          for (i = 9; i <= 31; i++)
+            if ((((HOST_WIDE_INT) 1) << i) - 1 == INTVAL (x)
+                || (((HOST_WIDE_INT) 1) << i) - 1 == ~INTVAL (x))
+              return COSTS_N_INSNS (2);
+        }
+      else if (outer == ASHIFT || outer == ASHIFTRT
+               || outer == LSHIFTRT)
+        return 0;
+      return COSTS_N_INSNS (2);
+
+    case CONST:
+    case CONST_DOUBLE:
+    case LABEL_REF:
+    case SYMBOL_REF:
+      return COSTS_N_INSNS (3);
+
+    case UDIV:
+    case UMOD:
+    case DIV:
+    case MOD:
+      return 100;
+
+    case TRUNCATE:
+      return 99;
+
+    case AND:
+    case XOR:
+    case IOR:
+      /* XXX guess.  */
+      return 8;
+
+    case MEM:
+      /* XXX another guess.  */
+      /* Memory costs quite a lot for the first word, but subsequent words
+         load at the equivalent of a single insn each.  */
+      return (10 + 4 * ((GET_MODE_SIZE (mode) - 1) / UNITS_PER_WORD)
+              + ((GET_CODE (x) == SYMBOL_REF && CONSTANT_POOL_ADDRESS_P (x))
+                 ? 4 : 0));
+
+    case IF_THEN_ELSE:
+      /* XXX a guess.  */
+      if (GET_CODE (XEXP (x, 1)) == PC || GET_CODE (XEXP (x, 2)) == PC)
+        return 14;
+      return 2;
+
+    case ZERO_EXTEND:
+      /* XXX still guessing.  */
+      switch (GET_MODE (XEXP (x, 0)))
+        {
+          case QImode:
+            return (1 + (mode == DImode ? 4 : 0)
+                    + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
+
+          case HImode:
+            return (4 + (mode == DImode ? 4 : 0)
+                    + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
+
+          case SImode:
+            return (1 + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
+
+          default:
+            return 99;
+        }
+
+    default:
+      return 99;
+    }
+}
+
 /* RTX costs when optimizing for size.  */
 static bool
 arm_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code,
@@ -6892,8 +7062,7 @@ arm_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code,
   enum machine_mode mode = GET_MODE (x);
   if (TARGET_THUMB1)
     {
-      /* XXX TBD.  For now, use the standard costs.  */
-      *total = thumb1_rtx_costs (x, code, outer_code);
+      *total = thumb1_size_rtx_costs (x, code, outer_code);
       return true;
     }
 
@@ -7143,9 +7312,9 @@ arm_rtx_costs (rtx x, int code, int outer_code, int *total,
     return arm_size_rtx_costs (x, (enum rtx_code) code,
 			       (enum rtx_code) outer_code, total);
   else
-    return all_cores[(int)arm_tune].rtx_costs (x, (enum rtx_code) code,
-					       (enum rtx_code) outer_code,
-					       total, speed);
+    return current_tune->rtx_costs (x, (enum rtx_code) code,
+				    (enum rtx_code) outer_code,
+				    total, speed);
 }
 
 /* RTX costs for cores with a slow MUL implementation.  Thumb-2 is not
@@ -7290,7 +7459,8 @@ arm_fastmul_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code,
    so it can be ignored.  */
 
 static bool
-arm_xscale_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code, int *total, bool speed)
+arm_xscale_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code,
+		      int *total, bool speed)
 {
   enum machine_mode mode = GET_MODE (x);
 
@@ -8903,21 +9073,105 @@ adjacent_mem_locations (rtx a, rtx b)
   return 0;
 }
 
+/* Return true iff it would be profitable to turn a sequence of NOPS loads
+   or stores (depending on IS_STORE) into a load-multiple or store-multiple
+   instruction.  ADD_OFFSET is nonzero if the base address register needs
+   to be modified with an add instruction before we can use it.  */
+
+static bool
+multiple_operation_profitable_p (bool is_store ATTRIBUTE_UNUSED,
+				 int nops, HOST_WIDE_INT add_offset)
+ {
+  /* For ARM8,9 & StrongARM, 2 ldr instructions are faster than an ldm
+     if the offset isn't small enough.  The reason 2 ldrs are faster
+     is because these ARMs are able to do more than one cache access
+     in a single cycle.  The ARM9 and StrongARM have Harvard caches,
+     whilst the ARM8 has a double bandwidth cache.  This means that
+     these cores can do both an instruction fetch and a data fetch in
+     a single cycle, so the trick of calculating the address into a
+     scratch register (one of the result regs) and then doing a load
+     multiple actually becomes slower (and no smaller in code size).
+     That is the transformation
+
+ 	ldr	rd1, [rbase + offset]
+ 	ldr	rd2, [rbase + offset + 4]
+
+     to
+
+ 	add	rd1, rbase, offset
+ 	ldmia	rd1, {rd1, rd2}
+
+     produces worse code -- '3 cycles + any stalls on rd2' instead of
+     '2 cycles + any stalls on rd2'.  On ARMs with only one cache
+     access per cycle, the first sequence could never complete in less
+     than 6 cycles, whereas the ldm sequence would only take 5 and
+     would make better use of sequential accesses if not hitting the
+     cache.
+
+     We cheat here and test 'arm_ld_sched' which we currently know to
+     only be true for the ARM8, ARM9 and StrongARM.  If this ever
+     changes, then the test below needs to be reworked.  */
+  if (nops == 2 && arm_ld_sched && add_offset != 0)
+    return false;
+
+  return true;
+}
+
+/* Subroutine of load_multiple_sequence and store_multiple_sequence.
+   Given an array of UNSORTED_OFFSETS, of which there are NOPS, compute
+   an array ORDER which describes the sequence to use when accessing the
+   offsets that produces an ascending order.  In this sequence, each
+   offset must be larger by exactly 4 than the previous one.  ORDER[0]
+   must have been filled in with the lowest offset by the caller.
+   If UNSORTED_REGS is nonnull, it is an array of register numbers that
+   we use to verify that ORDER produces an ascending order of registers.
+   Return true if it was possible to construct such an order, false if
+   not.  */
+
+static bool
+compute_offset_order (int nops, HOST_WIDE_INT *unsorted_offsets, int *order,
+		      int *unsorted_regs)
+{
+  int i;
+  for (i = 1; i < nops; i++)
+    {
+      int j;
+
+      order[i] = order[i - 1];
+      for (j = 0; j < nops; j++)
+	if (unsorted_offsets[j] == unsorted_offsets[order[i - 1]] + 4)
+	  {
+	    /* We must find exactly one offset that is higher than the
+	       previous one by 4.  */
+	    if (order[i] != order[i - 1])
+	      return false;
+	    order[i] = j;
+	  }
+      if (order[i] == order[i - 1])
+	return false;
+      /* The register numbers must be ascending.  */
+      if (unsorted_regs != NULL
+	  && unsorted_regs[order[i]] <= unsorted_regs[order[i - 1]])
+	return false;
+    }
+  return true;
+}
+
 int
 load_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
 			HOST_WIDE_INT *load_offset)
 {
-  int unsorted_regs[4];
-  HOST_WIDE_INT unsorted_offsets[4];
-  int order[4];
+  int unsorted_regs[MAX_LDM_STM_OPS];
+  HOST_WIDE_INT unsorted_offsets[MAX_LDM_STM_OPS];
+  int order[MAX_LDM_STM_OPS];
   int base_reg = -1;
-  int i;
+  int i, ldm_case;
 
-  /* Can only handle 2, 3, or 4 insns at present,
-     though could be easily extended if required.  */
-  gcc_assert (nops >= 2 && nops <= 4);
+  /* Can only handle up to MAX_LDM_STM_OPS insns at present, though could be
+     easily extended if required.  */
+  gcc_assert (nops >= 2 && nops <= MAX_LDM_STM_OPS);
 
-  memset (order, 0, 4 * sizeof (int));
+  memset (order, 0, MAX_LDM_STM_OPS * sizeof (int));
 
   /* Loop over the operands and check that the memory references are
      suitable (i.e. immediate offsets from the same base register).  At
@@ -8953,25 +9207,16 @@ load_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
 		  == CONST_INT)))
 	{
 	  if (i == 0)
-	    {
-	      base_reg = REGNO (reg);
-	      unsorted_regs[0] = (GET_CODE (operands[i]) == REG
-				  ? REGNO (operands[i])
-				  : REGNO (SUBREG_REG (operands[i])));
-	      order[0] = 0;
-	    }
+	    base_reg = REGNO (reg);
 	  else
 	    {
 	      if (base_reg != (int) REGNO (reg))
 		/* Not addressed from the same base register.  */
 		return 0;
-
-	      unsorted_regs[i] = (GET_CODE (operands[i]) == REG
-				  ? REGNO (operands[i])
-				  : REGNO (SUBREG_REG (operands[i])));
-	      if (unsorted_regs[i] < unsorted_regs[order[0]])
-		order[0] = i;
 	    }
+	  unsorted_regs[i] = (GET_CODE (operands[i]) == REG
+			      ? REGNO (operands[i])
+			      : REGNO (SUBREG_REG (operands[i])));
 
 	  /* If it isn't an integer register, or if it overwrites the
 	     base register but isn't the last insn in the list, then
@@ -8981,6 +9226,8 @@ load_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
 	    return 0;
 
 	  unsorted_offsets[i] = INTVAL (offset);
+	  if (i == 0 || unsorted_offsets[i] < unsorted_offsets[order[0]])
+	    order[0] = i;
 	}
       else
 	/* Not a suitable memory address.  */
@@ -8989,30 +9236,11 @@ load_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
 
   /* All the useful information has now been extracted from the
      operands into unsorted_regs and unsorted_offsets; additionally,
-     order[0] has been set to the lowest numbered register in the
-     list.  Sort the registers into order, and check that the memory
-     offsets are ascending and adjacent.  */
-
-  for (i = 1; i < nops; i++)
-    {
-      int j;
-
-      order[i] = order[i - 1];
-      for (j = 0; j < nops; j++)
-	if (unsorted_regs[j] > unsorted_regs[order[i - 1]]
-	    && (order[i] == order[i - 1]
-		|| unsorted_regs[j] < unsorted_regs[order[i]]))
-	  order[i] = j;
-
-      /* Have we found a suitable register? if not, one must be used more
-	 than once.  */
-      if (order[i] == order[i - 1])
-	return 0;
-
-      /* Is the memory address adjacent and ascending? */
-      if (unsorted_offsets[order[i]] != unsorted_offsets[order[i - 1]] + 4)
-	return 0;
-    }
+     order[0] has been set to the lowest offset in the list.  Sort
+     the offsets into order, verifying that they are adjacent, and
+     check that the register numbers are ascending.  */
+  if (!compute_offset_order (nops, unsorted_offsets, order, unsorted_regs))
+    return 0;
 
   if (base)
     {
@@ -9025,59 +9253,31 @@ load_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
     }
 
   if (unsorted_offsets[order[0]] == 0)
-    return 1; /* ldmia */
-
-  if (TARGET_ARM && unsorted_offsets[order[0]] == 4)
-    return 2; /* ldmib */
-
-  if (TARGET_ARM && unsorted_offsets[order[nops - 1]] == 0)
-    return 3; /* ldmda */
-
-  if (unsorted_offsets[order[nops - 1]] == -4)
-    return 4; /* ldmdb */
-
-  /* For ARM8,9 & StrongARM, 2 ldr instructions are faster than an ldm
-     if the offset isn't small enough.  The reason 2 ldrs are faster
-     is because these ARMs are able to do more than one cache access
-     in a single cycle.  The ARM9 and StrongARM have Harvard caches,
-     whilst the ARM8 has a double bandwidth cache.  This means that
-     these cores can do both an instruction fetch and a data fetch in
-     a single cycle, so the trick of calculating the address into a
-     scratch register (one of the result regs) and then doing a load
-     multiple actually becomes slower (and no smaller in code size).
-     That is the transformation
-
- 	ldr	rd1, [rbase + offset]
- 	ldr	rd2, [rbase + offset + 4]
-
-     to
-
- 	add	rd1, rbase, offset
- 	ldmia	rd1, {rd1, rd2}
-
-     produces worse code -- '3 cycles + any stalls on rd2' instead of
-     '2 cycles + any stalls on rd2'.  On ARMs with only one cache
-     access per cycle, the first sequence could never complete in less
-     than 6 cycles, whereas the ldm sequence would only take 5 and
-     would make better use of sequential accesses if not hitting the
-     cache.
-
-     We cheat here and test 'arm_ld_sched' which we currently know to
-     only be true for the ARM8, ARM9 and StrongARM.  If this ever
-     changes, then the test below needs to be reworked.  */
-  if (nops == 2 && arm_ld_sched)
+    ldm_case = 1; /* ldmia */
+  else if (TARGET_ARM && unsorted_offsets[order[0]] == 4)
+    ldm_case = 2; /* ldmib */
+  else if (TARGET_ARM && unsorted_offsets[order[nops - 1]] == 0)
+    ldm_case = 3; /* ldmda */
+  else if (unsorted_offsets[order[nops - 1]] == -4)
+    ldm_case = 4; /* ldmdb */
+  else if (const_ok_for_arm (unsorted_offsets[order[0]])
+	   || const_ok_for_arm (-unsorted_offsets[order[0]]))
+    ldm_case = 5;
+  else
     return 0;
 
-  /* Can't do it without setting up the offset, only do this if it takes
-     no more than one insn.  */
-  return (const_ok_for_arm (unsorted_offsets[order[0]])
-	  || const_ok_for_arm (-unsorted_offsets[order[0]])) ? 5 : 0;
+  if (!multiple_operation_profitable_p (false, nops,
+					ldm_case == 5
+					? unsorted_offsets[order[0]] : 0))
+    return 0;
+
+  return ldm_case;
 }
 
 const char *
 emit_ldm_seq (rtx *operands, int nops)
 {
-  int regs[4];
+  int regs[MAX_LDM_STM_OPS];
   int base_reg;
   HOST_WIDE_INT offset;
   char buf[100];
@@ -9136,17 +9336,17 @@ int
 store_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
 			 HOST_WIDE_INT * load_offset)
 {
-  int unsorted_regs[4];
-  HOST_WIDE_INT unsorted_offsets[4];
-  int order[4];
+  int unsorted_regs[MAX_LDM_STM_OPS];
+  HOST_WIDE_INT unsorted_offsets[MAX_LDM_STM_OPS];
+  int order[MAX_LDM_STM_OPS];
   int base_reg = -1;
-  int i;
+  int i, stm_case;
 
-  /* Can only handle 2, 3, or 4 insns at present, though could be easily
-     extended if required.  */
-  gcc_assert (nops >= 2 && nops <= 4);
+  /* Can only handle up to MAX_LDM_STM_OPS insns at present, though could be
+     easily extended if required.  */
+  gcc_assert (nops >= 2 && nops <= MAX_LDM_STM_OPS);
 
-  memset (order, 0, 4 * sizeof (int));
+  memset (order, 0, MAX_LDM_STM_OPS * sizeof (int));
 
   /* Loop over the operands and check that the memory references are
      suitable (i.e. immediate offsets from the same base register).  At
@@ -9181,32 +9381,22 @@ store_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
 	      && (GET_CODE (offset = XEXP (XEXP (operands[nops + i], 0), 1))
 		  == CONST_INT)))
 	{
+	  unsorted_regs[i] = (GET_CODE (operands[i]) == REG
+			      ? REGNO (operands[i])
+			      : REGNO (SUBREG_REG (operands[i])));
 	  if (i == 0)
-	    {
-	      base_reg = REGNO (reg);
-	      unsorted_regs[0] = (GET_CODE (operands[i]) == REG
-				  ? REGNO (operands[i])
-				  : REGNO (SUBREG_REG (operands[i])));
-	      order[0] = 0;
-	    }
-	  else
-	    {
-	      if (base_reg != (int) REGNO (reg))
-		/* Not addressed from the same base register.  */
-		return 0;
-
-	      unsorted_regs[i] = (GET_CODE (operands[i]) == REG
-				  ? REGNO (operands[i])
-				  : REGNO (SUBREG_REG (operands[i])));
-	      if (unsorted_regs[i] < unsorted_regs[order[0]])
-		order[0] = i;
-	    }
+	    base_reg = REGNO (reg);
+	  else if (base_reg != (int) REGNO (reg))
+	    /* Not addressed from the same base register.  */
+	    return 0;
 
 	  /* If it isn't an integer register, then we can't do this.  */
 	  if (unsorted_regs[i] < 0 || unsorted_regs[i] > 14)
 	    return 0;
 
 	  unsorted_offsets[i] = INTVAL (offset);
+	  if (i == 0 || unsorted_offsets[i] < unsorted_offsets[order[0]])
+	    order[0] = i;
 	}
       else
 	/* Not a suitable memory address.  */
@@ -9215,30 +9405,11 @@ store_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
 
   /* All the useful information has now been extracted from the
      operands into unsorted_regs and unsorted_offsets; additionally,
-     order[0] has been set to the lowest numbered register in the
-     list.  Sort the registers into order, and check that the memory
-     offsets are ascending and adjacent.  */
-
-  for (i = 1; i < nops; i++)
-    {
-      int j;
-
-      order[i] = order[i - 1];
-      for (j = 0; j < nops; j++)
-	if (unsorted_regs[j] > unsorted_regs[order[i - 1]]
-	    && (order[i] == order[i - 1]
-		|| unsorted_regs[j] < unsorted_regs[order[i]]))
-	  order[i] = j;
-
-      /* Have we found a suitable register? if not, one must be used more
-	 than once.  */
-      if (order[i] == order[i - 1])
-	return 0;
-
-      /* Is the memory address adjacent and ascending? */
-      if (unsorted_offsets[order[i]] != unsorted_offsets[order[i - 1]] + 4)
-	return 0;
-    }
+     order[0] has been set to the lowest offset in the list.  Sort
+     the offsets into order, verifying that they are adjacent, and
+     check that the register numbers are ascending.  */
+  if (!compute_offset_order (nops, unsorted_offsets, order, unsorted_regs))
+    return 0;
 
   if (base)
     {
@@ -9251,24 +9422,26 @@ store_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
     }
 
   if (unsorted_offsets[order[0]] == 0)
-    return 1; /* stmia */
+    stm_case = 1; /* stmia */
+  else if (TARGET_ARM && unsorted_offsets[order[0]] == 4)
+    stm_case = 2; /* stmib */
+  else if (TARGET_ARM && unsorted_offsets[order[nops - 1]] == 0)
+    stm_case = 3; /* stmda */
+  else if (unsorted_offsets[order[nops - 1]] == -4)
+    stm_case = 4; /* stmdb */
+  else
+    return 0;
 
-  if (unsorted_offsets[order[0]] == 4)
-    return 2; /* stmib */
+  if (!multiple_operation_profitable_p (false, nops, 0))
+    return 0;
 
-  if (unsorted_offsets[order[nops - 1]] == 0)
-    return 3; /* stmda */
-
-  if (unsorted_offsets[order[nops - 1]] == -4)
-    return 4; /* stmdb */
-
-  return 0;
+  return stm_case;
 }
 
 const char *
 emit_stm_seq (rtx *operands, int nops)
 {
-  int regs[4];
+  int regs[MAX_LDM_STM_OPS];
   int base_reg;
   HOST_WIDE_INT offset;
   char buf[100];
@@ -19233,6 +19406,51 @@ thumb_compute_initial_elimination_offset (unsigned int from, unsigned int to)
     }
 }
 
+/* Given the stack offsets and register mask in OFFSETS, decide
+   how many additional registers to push instead of subtracting
+   a constant from SP.  */
+static int
+thumb1_extra_regs_pushed (arm_stack_offsets *offsets)
+{
+  HOST_WIDE_INT amount = offsets->outgoing_args - offsets->saved_regs;
+  unsigned long live_regs_mask = offsets->saved_regs_mask;
+  /* Extract a mask of the ones we can give to the Thumb's push instruction.  */
+  unsigned long l_mask = live_regs_mask & 0x40ff;
+  /* Then count how many other high registers will need to be pushed.  */
+  unsigned long high_regs_pushed = bit_count (live_regs_mask & 0x0f00);
+  int n_free;
+
+  /* If the stack frame size is 512 exactly, we can save one load
+     instruction, which should make this a win even when optimizing
+     for speed.  */
+  if (!optimize_size && amount != 512)
+    return 0;
+
+  /* Can't do this if there are high registers to push, or if we
+     are not going to do a push at all.  */
+  if (high_regs_pushed != 0 || l_mask == 0)
+    return 0;
+
+  /* Don't do this if thumb1_expand_prologue wants to emit instructions
+     between the push and the stack frame allocation.  */
+  if ((flag_pic && arm_pic_register != INVALID_REGNUM)
+      || (!frame_pointer_needed && CALLER_INTERWORKING_SLOT_SIZE > 0))
+    return 0;
+
+  for (n_free = 0; n_free < 8 && !(live_regs_mask & 1); live_regs_mask >>= 1)
+    n_free++;
+
+  if (n_free == 0)
+    return 0;
+  gcc_assert (amount / 4 * 4 == amount);
+
+  if (amount >= 512 && (amount - n_free * 4) < 512)
+    return (amount - 508) / 4;
+  if (amount <= n_free * 4)
+    return amount / 4;
+  return 0;
+}
+
 /* Generate the rest of a function's prologue.  */
 void
 thumb1_expand_prologue (void)
@@ -19269,6 +19487,7 @@ thumb1_expand_prologue (void)
 		    stack_pointer_rtx);
 
   amount = offsets->outgoing_args - offsets->saved_regs;
+  amount -= 4 * thumb1_extra_regs_pushed (offsets);
   if (amount)
     {
       if (amount < 512)
@@ -19573,7 +19792,11 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
      register.  */
   else if ((l_mask & 0xff) != 0
 	   || (high_regs_pushed == 0 && l_mask))
-    thumb_pushpop (f, l_mask, 1, &cfa_offset, l_mask);
+    {
+      unsigned long mask = l_mask;
+      mask |= (1 << thumb1_extra_regs_pushed (offsets)) - 1;
+      thumb_pushpop (f, mask, 1, &cfa_offset, mask);
+    }
 
   if (high_regs_pushed)
     {
@@ -20726,6 +20949,13 @@ arm_vector_mode_supported_p (enum machine_mode mode)
   return false;
 }
 
+/* Implements target hook small_register_classes_for_mode_p.  */
+bool
+arm_small_register_classes_for_mode_p (enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  return TARGET_THUMB1;
+}
+
 /* Implement TARGET_SHIFT_TRUNCATION_MASK.  SImode shifts use normal
    ARM insns and therefore guarantee that the shift count is modulo 256.
    DImode shifts (those implemented by lib1funcs.asm or by optabs.c)
@@ -20968,7 +21198,7 @@ arm_unwind_emit_set (FILE * asm_out_file, rtx p)
 	      offset = INTVAL (XEXP (e1, 1));
 	      asm_fprintf (asm_out_file, "\t.setfp %r, %r, #%wd\n",
 			   HARD_FRAME_POINTER_REGNUM, reg,
-			   INTVAL (XEXP (e1, 1)));
+			   offset);
 	    }
 	  else if (GET_CODE (e1) == REG)
 	    {
@@ -21204,6 +21434,16 @@ arm_output_addr_const_extra (FILE *fp, rtx x)
       fputc (')', fp);
       return TRUE;
     }
+  else if (GET_CODE (x) == UNSPEC && XINT (x, 1) == UNSPEC_SYMBOL_OFFSET)
+    {
+      output_addr_const (fp, XVECEXP (x, 0, 0));
+      if (GOT_PCREL)
+        fputs ("+.", fp);
+      fputs ("-(", fp);
+      output_addr_const (fp, XVECEXP (x, 0, 1));
+      fputc (')', fp);
+      return TRUE;
+    }
   else if (GET_CODE (x) == CONST_VECTOR)
     return arm_emit_vector_const (fp, x);
 
@@ -21248,11 +21488,8 @@ const char *
 thumb1_output_casesi (rtx *operands)
 {
   rtx diff_vec = PATTERN (next_real_insn (operands[0]));
-  addr_diff_vec_flags flags;
 
   gcc_assert (GET_CODE (diff_vec) == ADDR_DIFF_VEC);
-
-  flags = ADDR_DIFF_VEC_FLAGS (diff_vec);
 
   switch (GET_MODE(diff_vec))
     {

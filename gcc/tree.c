@@ -1,6 +1,6 @@
 /* Language-independent node constructors for parse phase of GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -883,7 +883,10 @@ make_node_stat (enum tree_code code MEM_STAT_DECL)
       if (TREE_CODE (t) == DEBUG_EXPR_DECL)
 	DECL_UID (t) = --next_debug_decl_uid;
       else
-	DECL_UID (t) = next_decl_uid++;
+	{
+	  DECL_UID (t) = next_decl_uid++;
+	  SET_DECL_PT_UID (t, -1);
+	}
       if (TREE_CODE (t) == LABEL_DECL)
 	LABEL_DECL_UID (t) = -1;
 
@@ -963,7 +966,11 @@ copy_node_stat (tree node MEM_STAT_DECL)
       if (code == DEBUG_EXPR_DECL)
 	DECL_UID (t) = --next_debug_decl_uid;
       else
-	DECL_UID (t) = next_decl_uid++;
+	{
+	  DECL_UID (t) = next_decl_uid++;
+	  if (DECL_PT_UID_SET_P (node))
+	    SET_DECL_PT_UID (t, DECL_PT_UID (node));
+	}
       if ((TREE_CODE (node) == PARM_DECL || TREE_CODE (node) == VAR_DECL)
 	  && DECL_HAS_VALUE_EXPR_P (node))
 	{
@@ -1073,6 +1080,30 @@ build_int_cst_wide_type (tree type,
 {
   fit_double_type (low, high, &low, &high, type);
   return build_int_cst_wide (type, low, high);
+}
+
+/* Constructs tree in type TYPE from with value given by CST.  Signedness
+   of CST is assumed to be the same as the signedness of TYPE.  */
+
+tree
+double_int_to_tree (tree type, double_int cst)
+{
+  cst = double_int_ext (cst, TYPE_PRECISION (type), TYPE_UNSIGNED (type));
+
+  return build_int_cst_wide (type, cst.low, cst.high);
+}
+
+/* Returns true if CST fits into range of TYPE.  Signedness of CST is assumed
+   to be the same as the signedness of TYPE.  */
+
+bool
+double_int_fits_to_tree_p (const_tree type, double_int cst)
+{
+  double_int ext = double_int_ext (cst,
+				   TYPE_PRECISION (type),
+				   TYPE_UNSIGNED (type));
+
+  return double_int_equal_p (cst, ext);
 }
 
 /* These are the hash table functions for the hash table of INTEGER_CST
@@ -1221,32 +1252,18 @@ build_int_cst_wide (tree type, unsigned HOST_WIDE_INT low, HOST_WIDE_INT hi)
 tree
 build_low_bits_mask (tree type, unsigned bits)
 {
-  unsigned HOST_WIDE_INT low;
-  HOST_WIDE_INT high;
-  unsigned HOST_WIDE_INT all_ones = ~(unsigned HOST_WIDE_INT) 0;
+  double_int mask;
 
   gcc_assert (bits <= TYPE_PRECISION (type));
 
   if (bits == TYPE_PRECISION (type)
       && !TYPE_UNSIGNED (type))
-    {
-      /* Sign extended all-ones mask.  */
-      low = all_ones;
-      high = -1;
-    }
-  else if (bits <= HOST_BITS_PER_WIDE_INT)
-    {
-      low = all_ones >> (HOST_BITS_PER_WIDE_INT - bits);
-      high = 0;
-    }
+    /* Sign extended all-ones mask.  */
+    mask = double_int_minus_one;
   else
-    {
-      bits -= HOST_BITS_PER_WIDE_INT;
-      low = all_ones;
-      high = all_ones >> (HOST_BITS_PER_WIDE_INT - bits);
-    }
+    mask = double_int_mask (bits);
 
-  return build_int_cst_wide (type, low, high);
+  return build_int_cst_wide (type, mask.low, mask.high);
 }
 
 /* Checks that X is integer constant that can be expressed in (unsigned)
@@ -3652,9 +3669,9 @@ build1_stat (enum tree_code code, tree type, tree node MEM_STAT_DECL)
 	  side_effects = 1;			\
         if (!TREE_READONLY (arg##N)		\
 	    && !CONSTANT_CLASS_P (arg##N))	\
-	  read_only = 0;			\
+	  (void) (read_only = 0);		\
         if (!TREE_CONSTANT (arg##N))		\
-	  constant = 0;				\
+	  (void) (constant = 0);		\
       }						\
   } while (0)
 
@@ -4157,6 +4174,26 @@ build_type_attribute_variant (tree ttype, tree attribute)
 }
 
 
+/* Reset the expression *EXPR_P, a size or position.
+
+   ??? We could reset all non-constant sizes or positions.  But it's cheap
+   enough to not do so and refrain from adding workarounds to dwarf2out.c.
+
+   We need to reset self-referential sizes or positions because they cannot
+   be gimplified and thus can contain a CALL_EXPR after the gimplification
+   is finished, which will run afoul of LTO streaming.  And they need to be
+   reset to something essentially dummy but not constant, so as to preserve
+   the properties of the object they are attached to.  */
+
+static inline void
+free_lang_data_in_one_sizepos (tree *expr_p)
+{
+  tree expr = *expr_p;
+  if (CONTAINS_PLACEHOLDER_P (expr))
+    *expr_p = build0 (PLACEHOLDER_EXPR, TREE_TYPE (expr));
+}
+
+
 /* Reset all the fields in a binfo node BINFO.  We only keep
    BINFO_VIRTUALS, which is used by gimple_fold_obj_type_ref.  */
 
@@ -4263,9 +4300,25 @@ free_lang_data_in_type (tree type)
       /* For non-aggregate types, clear out the language slot (which
 	 overloads TYPE_BINFO).  */
       TYPE_LANG_SLOT_1 (type) = NULL_TREE;
+
+      if (INTEGRAL_TYPE_P (type)
+	  || SCALAR_FLOAT_TYPE_P (type)
+	  || FIXED_POINT_TYPE_P (type))
+	{
+	  free_lang_data_in_one_sizepos (&TYPE_MIN_VALUE (type));
+	  free_lang_data_in_one_sizepos (&TYPE_MAX_VALUE (type));
+	}
     }
 
-  TYPE_CONTEXT (type) = NULL_TREE;
+  free_lang_data_in_one_sizepos (&TYPE_SIZE (type));
+  free_lang_data_in_one_sizepos (&TYPE_SIZE_UNIT (type));
+
+  if (debug_info_level < DINFO_LEVEL_TERSE
+      || (TYPE_CONTEXT (type)
+	  && TREE_CODE (TYPE_CONTEXT (type)) != FUNCTION_DECL
+	  && TREE_CODE (TYPE_CONTEXT (type)) != NAMESPACE_DECL))
+    TYPE_CONTEXT (type) = NULL_TREE;
+
   if (debug_info_level < DINFO_LEVEL_TERSE)
     TYPE_STUB_DECL (type) = NULL_TREE;
 }
@@ -4368,7 +4421,8 @@ free_lang_data_in_decl (tree decl)
 
   /* Ignore any intervening types, because we are going to clear their
      TYPE_CONTEXT fields.  */
-  if (TREE_CODE (decl) != FIELD_DECL)
+  if (TREE_CODE (decl) != FIELD_DECL
+      && TREE_CODE (decl) != FUNCTION_DECL)
     DECL_CONTEXT (decl) = decl_function_context (decl);
 
   if (DECL_CONTEXT (decl)
@@ -4394,9 +4448,10 @@ free_lang_data_in_decl (tree decl)
        }
    }
 
- /* ???  We could free non-constant DECL_SIZE, DECL_SIZE_UNIT
-    and DECL_FIELD_OFFSET.  But it's cheap enough to not do
-    that and refrain from adding workarounds to dwarf2out.c  */
+  free_lang_data_in_one_sizepos (&DECL_SIZE (decl));
+  free_lang_data_in_one_sizepos (&DECL_SIZE_UNIT (decl));
+  if (TREE_CODE (decl) == FIELD_DECL)
+    free_lang_data_in_one_sizepos (&DECL_FIELD_OFFSET (decl));
 
  /* DECL_FCONTEXT is only used for debug info generation.  */
  if (TREE_CODE (decl) == FIELD_DECL
@@ -4609,6 +4664,10 @@ find_decls_types_r (tree *tp, int *ws, void *data)
 	  fld_worklist_push (DECL_SECTION_NAME (t), fld);
 	  fld_worklist_push (DECL_COMDAT_GROUP (t), fld);
 	}
+
+      if ((TREE_CODE (t) == VAR_DECL || TREE_CODE (t) == PARM_DECL)
+	  && DECL_HAS_VALUE_EXPR_P (t))
+	fld_worklist_push (DECL_VALUE_EXPR (t), fld);
 
       if (TREE_CODE (t) != FIELD_DECL)
 	fld_worklist_push (TREE_CHAIN (t), fld);
@@ -6568,11 +6627,12 @@ iterative_hash_expr (const_tree t, hashval_t val)
       return iterative_hash_expr (TREE_IMAGPART (t), val);
     case VECTOR_CST:
       return iterative_hash_expr (TREE_VECTOR_CST_ELTS (t), val);
-
     case SSA_NAME:
-      /* we can just compare by pointer.  */
+      /* We can just compare by pointer.  */
       return iterative_hash_host_wide_int (SSA_NAME_VERSION (t), val);
-
+    case PLACEHOLDER_EXPR:
+      /* The node itself doesn't matter.  */
+      return val;
     case TREE_LIST:
       /* A list of expressions, for a CALL_EXPR or as the elements of a
 	 VECTOR_CST.  */
@@ -6876,6 +6936,10 @@ build_index_type (tree maxval)
     }
 }
 
+#define MAX_INT_CACHED_PREC \
+  (HOST_BITS_PER_WIDE_INT > 64 ? HOST_BITS_PER_WIDE_INT : 64)
+static GTY(()) tree nonstandard_integer_type_cache[2 * MAX_INT_CACHED_PREC + 2];
+
 /* Builds a signed or unsigned integer type of precision PRECISION.
    Used for C bitfields whose precision does not match that of
    built-in target types.  */
@@ -6883,8 +6947,19 @@ tree
 build_nonstandard_integer_type (unsigned HOST_WIDE_INT precision,
 				int unsignedp)
 {
-  tree itype = make_node (INTEGER_TYPE);
+  tree itype, ret;
 
+  if (unsignedp)
+    unsignedp = MAX_INT_CACHED_PREC + 1;
+    
+  if (precision <= MAX_INT_CACHED_PREC)
+    {
+      itype = nonstandard_integer_type_cache[precision + unsignedp];
+      if (itype)
+	return itype;
+    }
+
+  itype = make_node (INTEGER_TYPE);
   TYPE_PRECISION (itype) = precision;
 
   if (unsignedp)
@@ -6892,10 +6967,13 @@ build_nonstandard_integer_type (unsigned HOST_WIDE_INT precision,
   else
     fixup_signed_type (itype);
 
+  ret = itype;
   if (host_integerp (TYPE_MAX_VALUE (itype), 1))
-    return type_hash_canon (tree_low_cst (TYPE_MAX_VALUE (itype), 1), itype);
+    ret = type_hash_canon (tree_low_cst (TYPE_MAX_VALUE (itype), 1), itype);
+  if (precision <= MAX_INT_CACHED_PREC && lang_hooks.types.hash_types)
+    nonstandard_integer_type_cache[precision + unsignedp] = ret;
 
-  return itype;
+  return ret;
 }
 
 /* Create a range of some discrete type TYPE (an INTEGER_TYPE,
@@ -7919,7 +7997,8 @@ bool
 auto_var_in_fn_p (const_tree var, const_tree fn)
 {
   return (DECL_P (var) && DECL_CONTEXT (var) == fn
-	  && (((TREE_CODE (var) == VAR_DECL || TREE_CODE (var) == PARM_DECL)
+	  && ((((TREE_CODE (var) == VAR_DECL && ! DECL_EXTERNAL (var))
+		|| TREE_CODE (var) == PARM_DECL)
 	       && ! TREE_STATIC (var))
 	      || TREE_CODE (var) == LABEL_DECL
 	      || TREE_CODE (var) == RESULT_DECL));
@@ -8736,12 +8815,12 @@ make_or_reuse_accum_type (unsigned size, int unsignedp, int satp)
    this function to select one of the types as sizetype.  */
 
 void
-build_common_tree_nodes (bool signed_char, bool signed_sizetype)
+build_common_tree_nodes (bool signed_char)
 {
   error_mark_node = make_node (ERROR_MARK);
   TREE_TYPE (error_mark_node) = error_mark_node;
 
-  initialize_sizetypes (signed_sizetype);
+  initialize_sizetypes ();
 
   /* Define both `signed char' and `unsigned char'.  */
   signed_char_type_node = make_signed_type (CHAR_TYPE_SIZE);
@@ -9332,6 +9411,19 @@ initializer_zerop (const_tree init)
 	FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (init), idx, elt)
 	  if (!initializer_zerop (elt))
 	    return false;
+	return true;
+      }
+
+    case STRING_CST:
+      {
+	int i;
+
+	/* We need to loop through all elements to handle cases like
+	   "\0" and "\0foobar".  */
+	for (i = 0; i < TREE_STRING_LENGTH (init); ++i)
+	  if (TREE_STRING_POINTER (init)[i] != '\0')
+	    return false;
+
 	return true;
       }
 
@@ -10644,6 +10736,9 @@ tree_nop_conversion (const_tree exp)
 
   outer_type = TREE_TYPE (exp);
   inner_type = TREE_TYPE (TREE_OPERAND (exp, 0));
+
+  if (!inner_type)
+    return false;
 
   /* Use precision rather then machine mode when we can, which gives
      the correct answer even for submode (bit-field) types.  */

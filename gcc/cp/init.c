@@ -1,6 +1,6 @@
 /* Handle initialization things in C++.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -54,6 +54,7 @@ static tree dfs_initialize_vtbl_ptrs (tree, void *);
 static tree build_dtor_call (tree, special_function_kind, int);
 static tree build_field_list (tree, tree, int *);
 static tree build_vtbl_address (tree);
+static void diagnose_uninitialized_cst_or_ref_member_1 (tree, tree, bool);
 
 /* We are about to generate some complex initialization code.
    Conceptually, it is all a single expression.  However, we may want
@@ -505,6 +506,7 @@ perform_member_init (tree member, tree init)
     {
       if (init == NULL_TREE)
 	{
+	  tree core_type;
 	  /* member traversal: note it leaves init NULL */
 	  if (TREE_CODE (type) == REFERENCE_TYPE)
 	    permerror (DECL_SOURCE_LOCATION (current_function_decl),
@@ -514,6 +516,13 @@ perform_member_init (tree member, tree init)
 	    permerror (DECL_SOURCE_LOCATION (current_function_decl),
 		       "uninitialized member %qD with %<const%> type %qT",
 		       member, type);
+
+	  core_type = strip_array_types (type);
+	  if (CLASS_TYPE_P (core_type)
+	      && (CLASSTYPE_READONLY_FIELDS_NEED_INIT (core_type)
+		  || CLASSTYPE_REF_FIELDS_NEED_INIT (core_type)))
+	    diagnose_uninitialized_cst_or_ref_member (core_type,
+						      /*using_new=*/false);
 	}
       else if (TREE_CODE (init) == TREE_LIST)
 	/* There was an explicit member initialization.  Do some work
@@ -1657,7 +1666,14 @@ constant_value_1 (tree decl, bool integral_p)
 	  init = DECL_INITIAL (decl);
 	}
       if (init == error_mark_node)
-	return decl;
+	{
+	  if (DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl))
+	    /* Treat the error as a constant to avoid cascading errors on
+	       excessively recursive template instantiation (c++/9335).  */
+	    return init;
+	  else
+	    return decl;
+	}
       /* Initializers in templates are generally expanded during
 	 instantiation, so before that for const int i(2)
 	 INIT is a TREE_LIST with the actual initializer as
@@ -1753,6 +1769,62 @@ build_raw_new_expr (VEC(tree,gc) *placement, tree type, tree nelts,
   return new_expr;
 }
 
+/* Diagnose uninitialized const members or reference members of type
+   TYPE. USING_NEW is used to disambiguate the diagnostic between a
+   new expression without a new-initializer and a declaration */
+
+static void
+diagnose_uninitialized_cst_or_ref_member_1 (tree type, tree origin,
+					    bool using_new)
+{
+  tree field;
+
+  if (type_has_user_provided_constructor (type))
+    return;
+
+  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+    {
+      tree field_type;
+
+      if (TREE_CODE (field) != FIELD_DECL)
+	continue;
+
+      field_type = strip_array_types (TREE_TYPE (field));
+
+      if (TREE_CODE (field_type) == REFERENCE_TYPE)
+	{
+	  if (using_new)
+	    error ("uninitialized reference member in %q#T "
+		   "using %<new%> without new-initializer", origin);
+	  else
+	    error ("uninitialized reference member in %q#T", origin);
+	  inform (DECL_SOURCE_LOCATION (field),
+		  "%qD should be initialized", field);
+	}
+
+      if (CP_TYPE_CONST_P (field_type))
+	{
+	  if (using_new)
+	    error ("uninitialized const member in %q#T "
+		   "using %<new%> without new-initializer", origin);
+	  else
+	    error ("uninitialized const member in %q#T", origin);
+	  inform (DECL_SOURCE_LOCATION (field),
+		  "%qD should be initialized", field);
+	}
+
+      if (CLASS_TYPE_P (field_type))
+	diagnose_uninitialized_cst_or_ref_member_1 (field_type,
+						    origin, using_new);
+    }
+}
+
+void
+diagnose_uninitialized_cst_or_ref_member (tree type, bool using_new)
+{
+  diagnose_uninitialized_cst_or_ref_member_1 (type, type, using_new);
+}
+
 /* Generate code for a new-expression, including calling the "operator
    new" function, initializing the object, and, if an exception occurs
    during construction, cleaning up.  The arguments are as for
@@ -1838,6 +1910,38 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
     return error_mark_node;
 
   is_initialized = (TYPE_NEEDS_CONSTRUCTING (elt_type) || *init != NULL);
+
+  if (*init == NULL && !type_has_user_provided_constructor (elt_type))
+    {
+      bool uninitialized_error = false;
+      /* A program that calls for default-initialization [...] of an
+	 entity of reference type is ill-formed. */
+      if (CLASSTYPE_REF_FIELDS_NEED_INIT (elt_type))
+	uninitialized_error = true;
+
+      /* A new-expression that creates an object of type T initializes
+	 that object as follows:
+      - If the new-initializer is omitted:
+        -- If T is a (possibly cv-qualified) non-POD class type
+	   (or array thereof), the object is default-initialized (8.5).
+	   [...]
+        -- Otherwise, the object created has indeterminate
+	   value. If T is a const-qualified type, or a (possibly
+	   cv-qualified) POD class type (or array thereof)
+	   containing (directly or indirectly) a member of
+	   const-qualified type, the program is ill-formed; */
+
+      if (CLASSTYPE_READONLY_FIELDS_NEED_INIT (elt_type))
+	uninitialized_error = true;
+
+      if (uninitialized_error)
+	{
+	  if (complain & tf_error)
+	    diagnose_uninitialized_cst_or_ref_member (elt_type,
+						      /*using_new*/true);
+	  return error_mark_node;
+	}
+    }
 
   if (CP_TYPE_CONST_P (elt_type) && *init == NULL
       && !type_has_user_provided_default_constructor (elt_type))
@@ -2361,6 +2465,7 @@ build_new (VEC(tree,gc) **placement, tree type, tree nelts,
           else
             return error_mark_node;
         }
+      nelts = mark_rvalue_use (nelts);
       nelts = cp_save_expr (cp_convert (sizetype, nelts));
     }
 
@@ -3015,6 +3120,8 @@ build_delete (tree type, tree addr, special_function_kind auto_delete,
     return error_mark_node;
 
   type = TYPE_MAIN_VARIANT (type);
+
+  addr = mark_rvalue_use (addr);
 
   if (TREE_CODE (type) == POINTER_TYPE)
     {

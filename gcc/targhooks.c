@@ -430,7 +430,8 @@ default_builtin_vectorized_function (tree fndecl ATTRIBUTE_UNUSED,
 
 tree
 default_builtin_vectorized_conversion (unsigned int code ATTRIBUTE_UNUSED,
-				       tree type ATTRIBUTE_UNUSED)
+				       tree dest_type ATTRIBUTE_UNUSED,
+				       tree src_type ATTRIBUTE_UNUSED)
 {
   return NULL_TREE;
 }
@@ -613,6 +614,18 @@ default_libcall_value (enum machine_mode mode ATTRIBUTE_UNUSED,
 {
 #ifdef LIBCALL_VALUE
   return LIBCALL_VALUE (mode);
+#else
+  gcc_unreachable ();
+#endif
+}
+
+/* The default hook for TARGET_FUNCTION_VALUE_REGNO_P.  */
+
+bool
+default_function_value_regno_p (const unsigned int regno ATTRIBUTE_UNUSED)
+{
+#ifdef FUNCTION_VALUE_REGNO_P
+  return FUNCTION_VALUE_REGNO_P (regno);
 #else
   gcc_unreachable ();
 #endif

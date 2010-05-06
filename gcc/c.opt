@@ -263,21 +263,22 @@ C ObjC C++ ObjC++ Var(warn_init_self) Warning
 Warn about variables which are initialized to themselves
 
 Wimplicit
-C ObjC C++ ObjC++ Warning
+C ObjC Var(warn_implicit) Init(-1) Warning
+Warn about implicit declarations
 
 Wimplicit-function-declaration
 C ObjC Var(warn_implicit_function_declaration) Init(-1) Warning
 Warn about implicit function declarations
 
 Wimplicit-int
-C ObjC Var(warn_implicit_int) Warning
+C ObjC Var(warn_implicit_int) Init(-1) Warning
 Warn when a declaration does not specify a type
 
 Wimport
 C ObjC C++ ObjC++ Undocumented
 
 Wint-to-pointer-cast
-C ObjC Var(warn_int_to_pointer_cast) Init(1) Warning
+C ObjC C++ ObjC++ Var(warn_int_to_pointer_cast) Init(1) Warning
 Warn when there is a cast to a pointer from an integer of a different size
 
 Winvalid-offsetof
@@ -783,6 +784,10 @@ fstats
 C++ ObjC++
 Display statistics accumulated during compilation
 
+fstrict-enums
+C++ ObjC++ Optimization Var(flag_strict_enums)
+Assume that values of enumeration type are always within the minimum range of that type
+
 fstrict-prototype
 C++ ObjC++
 
@@ -961,6 +966,10 @@ become a part of the upcoming ISO C++ standard, dubbed C++0x. Note that the
 extensions enabled by this mode are experimental and may be removed in
 future releases of GCC.
 
+std=c1x
+C ObjC
+Conform to the ISO 201X C standard draft (experimental and incomplete support)
+
 std=c89
 C ObjC
 Conform to the ISO 1990 C standard
@@ -987,6 +996,10 @@ Conform to the ISO 1998 C++ standard, with GNU extensions and
 extensions that are likely to become a part of the upcoming ISO C++
 standard, dubbed C++0x. Note that the extensions enabled by this mode
 are experimental and may be removed in future releases of GCC.
+
+std=gnu1x
+C ObjC
+Conform to the ISO 201X C standard draft with GNU extensions (experimental and incomplete support)
 
 std=gnu89
 C ObjC

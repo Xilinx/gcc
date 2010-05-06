@@ -77,7 +77,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-dump.h"
 #include "timevar.h"
 #include "cfgloop.h"
-#include "varray.h"
 #include "expr.h"
 #include "tree-pass.h"
 #include "ggc.h"
@@ -120,8 +119,8 @@ struct version_info
   struct iv *iv;	/* Induction variable description.  */
   bool has_nonlin_use;	/* For a loop-level invariant, whether it is used in
 			   an expression that is not an induction variable.  */
-  unsigned inv_id;	/* Id of an invariant.  */
   bool preserve_biv;	/* For the original biv, whether to preserve it.  */
+  unsigned inv_id;	/* Id of an invariant.  */
 };
 
 /* Types of uses.  */
@@ -192,7 +191,7 @@ struct iv_cand
   unsigned id;		/* The number of the candidate.  */
   bool important;	/* Whether this is an "important" candidate, i.e. such
 			   that it should be considered by all uses.  */
-  enum iv_position pos;	/* Where it is computed.  */
+  ENUM_BITFIELD(iv_position) pos : 8;	/* Where it is computed.  */
   gimple incremented_at;/* For original biv, the statement where it is
 			   incremented.  */
   tree var_before;	/* The variable used for it before increment.  */
@@ -1537,16 +1536,18 @@ may_be_unaligned_p (tree ref, tree step)
 
   if (mode != BLKmode)
     {
-      double_int mul;
-      tree al = build_int_cst (TREE_TYPE (step),
-			       GET_MODE_ALIGNMENT (mode) / BITS_PER_UNIT);
+      unsigned mode_align = GET_MODE_ALIGNMENT (mode);
 
-      if (base_align < GET_MODE_ALIGNMENT (mode)
-	  || bitpos % GET_MODE_ALIGNMENT (mode) != 0
-	  || bitpos % BITS_PER_UNIT != 0)
+      if (base_align < mode_align
+	  || (bitpos % mode_align) != 0
+	  || (bitpos % BITS_PER_UNIT) != 0)
 	return true;
 
-      if (!constant_multiple_of (step, al, &mul))
+      if (toffset
+	  && (highest_pow2_factor (toffset) * BITS_PER_UNIT) < mode_align)
+	return true;
+
+      if ((highest_pow2_factor (step) * BITS_PER_UNIT) < mode_align)
 	return true;
     }
 
@@ -2738,9 +2739,10 @@ computation_cost (tree expr, bool speed)
   unsigned cost;
   /* Avoid using hard regs in ways which may be unsupported.  */
   int regno = LAST_VIRTUAL_REGISTER + 1;
-  enum function_frequency real_frequency = cfun->function_frequency;
+  struct cgraph_node *node = cgraph_node (current_function_decl);
+  enum node_frequency real_frequency = node->frequency;
 
-  cfun->function_frequency = FUNCTION_FREQUENCY_NORMAL;
+  node->frequency = NODE_FREQUENCY_NORMAL;
   crtl->maybe_hot_insn_p = speed;
   walk_tree (&expr, prepare_decl_rtl, &regno, NULL);
   start_sequence ();
@@ -2748,7 +2750,7 @@ computation_cost (tree expr, bool speed)
   seq = get_insns ();
   end_sequence ();
   default_rtl_profile ();
-  cfun->function_frequency = real_frequency;
+  node->frequency = real_frequency;
 
   cost = seq_cost (seq, speed);
   if (MEM_P (rslt))

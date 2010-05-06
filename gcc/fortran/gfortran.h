@@ -404,6 +404,7 @@ enum gfc_isym_id
   GFC_ISYM_IDATE,
   GFC_ISYM_IEOR,
   GFC_ISYM_IERRNO,
+  GFC_ISYM_IMAGE_INDEX,
   GFC_ISYM_INDEX,
   GFC_ISYM_INT,
   GFC_ISYM_INT2,
@@ -423,6 +424,7 @@ enum gfc_isym_id
   GFC_ISYM_KILL,
   GFC_ISYM_KIND,
   GFC_ISYM_LBOUND,
+  GFC_ISYM_LCOBOUND,
   GFC_ISYM_LEADZ,
   GFC_ISYM_LEN,
   GFC_ISYM_LEN_TRIM,
@@ -509,6 +511,7 @@ enum gfc_isym_id
   GFC_ISYM_SYSTEM_CLOCK,
   GFC_ISYM_TAN,
   GFC_ISYM_TANH,
+  GFC_ISYM_THIS_IMAGE,
   GFC_ISYM_TIME,
   GFC_ISYM_TIME8,
   GFC_ISYM_TINY,
@@ -518,6 +521,7 @@ enum gfc_isym_id
   GFC_ISYM_TRIM,
   GFC_ISYM_TTYNAM,
   GFC_ISYM_UBOUND,
+  GFC_ISYM_UCOBOUND,
   GFC_ISYM_UMASK,
   GFC_ISYM_UNLINK,
   GFC_ISYM_UNPACK,
@@ -687,7 +691,8 @@ typedef struct
   unsigned extension:8;		/* extension level of a derived type.  */
   unsigned is_class:1;		/* is a CLASS container.  */
   unsigned class_ok:1;		/* is a CLASS object with correct attributes.  */
-  unsigned vtab:1;		/* is a derived type vtab.  */
+  unsigned vtab:1;		/* is a derived type vtab, pointed to by CLASS objects.  */
+  unsigned vtype:1;		/* is a derived type of a vtab.  */
 
   /* These flags are both in the typespec and attribute.  The attribute
      list is what gets read from/written to a module file.  The typespec
@@ -1444,13 +1449,15 @@ extern gfc_interface_info current_interface;
 
 enum gfc_array_ref_dimen_type
 {
-  DIMEN_ELEMENT = 1, DIMEN_RANGE, DIMEN_VECTOR, DIMEN_UNKNOWN
+  DIMEN_ELEMENT = 1, DIMEN_RANGE, DIMEN_VECTOR, DIMEN_STAR, DIMEN_UNKNOWN
 };
 
 typedef struct gfc_array_ref
 {
   ar_type type;
   int dimen;			/* # of components in the reference */
+  int codimen;
+  bool in_allocate;		/* For coarray checks. */
   locus where;
   gfc_array_spec *as;
 
@@ -1609,17 +1616,6 @@ typedef struct gfc_intrinsic_sym
 gfc_intrinsic_sym;
 
 
-typedef struct gfc_class_esym_list
-{
-  gfc_symbol *derived;
-  gfc_symbol *esym;
-  struct gfc_expr *hash_value;
-  struct gfc_class_esym_list *next;
-}
-gfc_class_esym_list;
-
-#define gfc_get_class_esym_list() XCNEW (gfc_class_esym_list)
-
 /* Expression nodes.  The expression node types deserve explanations,
    since the last couple can be easily misconstrued:
 
@@ -1640,6 +1636,8 @@ gfc_class_esym_list;
 #include <mpc.h>
 #define GFC_RND_MODE GMP_RNDN
 #define GFC_MPC_RND_MODE MPC_RNDNN
+
+typedef splay_tree gfc_constructor_base;
 
 typedef struct gfc_expr
 {
@@ -1671,9 +1669,6 @@ typedef struct gfc_expr
   /* Mark and expression where a user operator has been substituted by
      a function call in interface.c(gfc_extend_expr).  */
   unsigned int user_operator : 1;
-
-  /* Used to quickly find a given constructor by its offset.  */
-  splay_tree con_by_offset;
 
   /* If an expression comes from a Hollerith constant or compile-time
      evaluation of a transfer statement, it may have a prescribed target-
@@ -1712,7 +1707,6 @@ typedef struct gfc_expr
       const char *name;	/* Points to the ultimate name of the function */
       gfc_intrinsic_sym *isym;
       gfc_symbol *esym;
-      gfc_class_esym_list *class_esym;
     }
     function;
 
@@ -1743,7 +1737,7 @@ typedef struct gfc_expr
     }
     character;
 
-    struct gfc_constructor *constructor;
+    gfc_constructor_base constructor;
   }
   value;
 
@@ -2180,19 +2174,19 @@ extern gfc_option_t gfc_option;
 /* Constructor nodes for array and structure constructors.  */
 typedef struct gfc_constructor
 {
+  gfc_constructor_base base;
+  mpz_t offset;               /* Offset within a constructor, used as
+				 key within base. */
+
   gfc_expr *expr;
   gfc_iterator *iterator;
   locus where;
-  struct gfc_constructor *next;
-  struct
+
+  union
   {
-    mpz_t offset; /* Record the offset of array element which appears in
-                     data statement like "data a(5)/4/".  */
-    gfc_component *component; /* Record the component being initialized.  */
+     gfc_component *component; /* Record the component being initialized.  */
   }
   n;
-  mpz_t repeat; /* Record the repeat number of initial values in data
-                 statement like "data a/5*10/".  */
 }
 gfc_constructor;
 
@@ -2316,7 +2310,7 @@ int get_c_kind (const char *, CInteropKind_t *);
 
 /* options.c */
 unsigned int gfc_init_options (unsigned int, const char **);
-int gfc_handle_option (size_t, const char *, int);
+int gfc_handle_option (size_t, const char *, int, int);
 bool gfc_post_options (const char **);
 
 /* f95-lang.c */
@@ -2519,8 +2513,8 @@ gfc_gsymbol *gfc_get_gsymbol (const char *);
 gfc_gsymbol *gfc_find_gsymbol (gfc_gsymbol *, const char *);
 
 gfc_try gfc_build_class_symbol (gfc_typespec *, symbol_attribute *,
-				gfc_array_spec **);
-gfc_symbol *gfc_find_derived_vtab (gfc_symbol *);
+				gfc_array_spec **, bool);
+gfc_symbol *gfc_find_derived_vtab (gfc_symbol *, bool);
 gfc_typebound_proc* gfc_get_typebound_proc (void);
 gfc_symbol* gfc_get_derived_super_type (gfc_symbol*);
 gfc_symbol* gfc_get_ultimate_derived_super_type (gfc_symbol*);
@@ -2608,10 +2602,18 @@ gfc_try gfc_simplify_expr (gfc_expr *, int);
 int gfc_has_vector_index (gfc_expr *);
 
 gfc_expr *gfc_get_expr (void);
+gfc_expr *gfc_get_array_expr (bt type, int kind, locus *);
+gfc_expr *gfc_get_null_expr (locus *);
+gfc_expr *gfc_get_operator_expr (locus *, gfc_intrinsic_op,gfc_expr *, gfc_expr *);
+gfc_expr *gfc_get_structure_constructor_expr (bt, int, locus *);
+gfc_expr *gfc_get_constant_expr (bt, int, locus *);
+gfc_expr *gfc_get_character_expr (int, locus *, const char *, int len);
+gfc_expr *gfc_get_int_expr (int, locus *, int);
+gfc_expr *gfc_get_logical_expr (int, locus *, bool);
+gfc_expr *gfc_get_iokind_expr (locus *, io_kind);
+
 void gfc_free_expr (gfc_expr *);
 void gfc_replace_expr (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_int_expr (int);
-gfc_expr *gfc_logical_expr (int, locus *);
 mpz_t *gfc_copy_shape (mpz_t *, int);
 mpz_t *gfc_copy_shape_excluding (mpz_t *, int, gfc_expr *);
 gfc_expr *gfc_copy_expr (gfc_expr *);
@@ -2642,6 +2644,11 @@ void gfc_expr_replace_comp (gfc_expr *, gfc_component *);
 
 bool gfc_is_proc_ptr_comp (gfc_expr *, gfc_component **);
 
+bool gfc_is_coindexed (gfc_expr *);
+bool gfc_has_ultimate_allocatable (gfc_expr *);
+bool gfc_has_ultimate_pointer (gfc_expr *);
+
+
 /* st.c */
 extern gfc_code new_st;
 
@@ -2670,6 +2677,8 @@ bool gfc_type_is_extensible (gfc_symbol *sym);
 
 
 /* array.c */
+gfc_iterator *gfc_copy_iterator (gfc_iterator *);
+
 void gfc_free_array_spec (gfc_array_spec *);
 gfc_array_ref *gfc_copy_array_ref (gfc_array_ref *);
 
@@ -2679,9 +2688,6 @@ gfc_try gfc_resolve_array_spec (gfc_array_spec *, int);
 
 int gfc_compare_array_spec (gfc_array_spec *, gfc_array_spec *);
 
-gfc_expr *gfc_start_constructor (bt, int, locus *);
-void gfc_append_constructor (gfc_expr *, gfc_expr *);
-void gfc_free_constructor (gfc_constructor *);
 void gfc_simplify_iterator_var (gfc_expr *);
 gfc_try gfc_expand_constructor (gfc_expr *);
 int gfc_constant_ac (gfc_expr *);
@@ -2691,14 +2697,10 @@ gfc_try gfc_resolve_array_constructor (gfc_expr *);
 gfc_try gfc_check_constructor_type (gfc_expr *);
 gfc_try gfc_check_iter_variable (gfc_expr *);
 gfc_try gfc_check_constructor (gfc_expr *, gfc_try (*)(gfc_expr *));
-gfc_constructor *gfc_copy_constructor (gfc_constructor *);
-gfc_expr *gfc_get_array_element (gfc_expr *, int);
 gfc_try gfc_array_size (gfc_expr *, mpz_t *);
 gfc_try gfc_array_dimen_size (gfc_expr *, int, mpz_t *);
 gfc_try gfc_array_ref_shape (gfc_array_ref *, mpz_t *);
 gfc_array_ref *gfc_find_array_ref (gfc_expr *);
-void gfc_insert_constructor (gfc_expr *, gfc_constructor *);
-gfc_constructor *gfc_get_constructor (void);
 tree gfc_conv_array_initializer (tree type, gfc_expr *);
 gfc_try spec_size (gfc_array_spec *, mpz_t *);
 gfc_try spec_dimen_size (gfc_array_spec *, int, mpz_t *);

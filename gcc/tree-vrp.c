@@ -764,6 +764,27 @@ range_is_null (value_range_t *vr)
 	 && integer_zerop (vr->max);
 }
 
+/* Return true if max and min of VR are INTEGER_CST.  It's not necessary
+   a singleton.  */
+
+static inline bool
+range_int_cst_p (value_range_t *vr)
+{
+  return (vr->type == VR_RANGE
+	  && TREE_CODE (vr->max) == INTEGER_CST
+	  && TREE_CODE (vr->min) == INTEGER_CST
+	  && !TREE_OVERFLOW (vr->max)
+	  && !TREE_OVERFLOW (vr->min));
+}
+
+/* Return true if VR is a INTEGER_CST singleton.  */
+
+static inline bool
+range_int_cst_singleton_p (value_range_t *vr)
+{
+  return (range_int_cst_p (vr)
+	  && tree_int_cst_equal (vr->min, vr->max));
+}
 
 /* Return true if value range VR involves at least one symbol.  */
 
@@ -1342,6 +1363,10 @@ bool
 ssa_name_nonnegative_p (const_tree t)
 {
   value_range_t *vr = get_value_range (t);
+
+  if (INTEGRAL_TYPE_P (t)
+      && TYPE_UNSIGNED (t))
+    return true;
 
   if (!vr)
     return false;
@@ -2058,6 +2083,7 @@ extract_range_from_binary_expr (value_range_t *vr,
       && code != CEIL_DIV_EXPR
       && code != EXACT_DIV_EXPR
       && code != ROUND_DIV_EXPR
+      && code != TRUNC_MOD_EXPR
       && code != RSHIFT_EXPR
       && code != MIN_EXPR
       && code != MAX_EXPR
@@ -2126,6 +2152,7 @@ extract_range_from_binary_expr (value_range_t *vr,
       && code != CEIL_DIV_EXPR
       && code != EXACT_DIV_EXPR
       && code != ROUND_DIV_EXPR
+      && code != TRUNC_MOD_EXPR
       && (vr0.type == VR_VARYING
 	  || vr1.type == VR_VARYING
 	  || vr0.type != vr1.type
@@ -2476,6 +2503,31 @@ extract_range_from_binary_expr (value_range_t *vr,
 	    }
 	}
     }
+  else if (code == TRUNC_MOD_EXPR)
+    {
+      bool sop = false;
+      if (vr1.type != VR_RANGE
+	  || symbolic_range_p (&vr1)
+	  || range_includes_zero_p (&vr1)
+	  || vrp_val_is_min (vr1.min))
+	{
+	  set_value_range_to_varying (vr);
+	  return;
+	}
+      type = VR_RANGE;
+      /* Compute MAX <|vr1.min|, |vr1.max|> - 1.  */
+      max = fold_unary_to_constant (ABS_EXPR, TREE_TYPE (vr1.min), vr1.min);
+      if (tree_int_cst_lt (max, vr1.max))
+	max = vr1.max;
+      max = int_const_binop (MINUS_EXPR, max, integer_one_node, 0);
+      /* If the dividend is non-negative the modulus will be
+	 non-negative as well.  */
+      if (TYPE_UNSIGNED (TREE_TYPE (max))
+	  || (vrp_expr_computes_nonnegative (op0, &sop) && !sop))
+	min = build_int_cst (TREE_TYPE (max), 0);
+      else
+	min = fold_unary_to_constant (NEGATE_EXPR, TREE_TYPE (max), max);
+    }
   else if (code == MINUS_EXPR)
     {
       /* If we have a MINUS_EXPR with two VR_ANTI_RANGEs, drop to
@@ -2498,19 +2550,20 @@ extract_range_from_binary_expr (value_range_t *vr,
     }
   else if (code == BIT_AND_EXPR)
     {
-      if (vr0.type == VR_RANGE
-	  && vr0.min == vr0.max
-	  && TREE_CODE (vr0.max) == INTEGER_CST
-	  && !TREE_OVERFLOW (vr0.max)
-	  && tree_int_cst_sgn (vr0.max) >= 0)
+      bool vr0_int_cst_singleton_p, vr1_int_cst_singleton_p;
+
+      vr0_int_cst_singleton_p = range_int_cst_singleton_p (&vr0);
+      vr1_int_cst_singleton_p = range_int_cst_singleton_p (&vr1);
+
+      if (vr0_int_cst_singleton_p && vr1_int_cst_singleton_p)
+	min = max = int_const_binop (code, vr0.max, vr1.max, 0);
+      else if (vr0_int_cst_singleton_p
+	       && tree_int_cst_sgn (vr0.max) >= 0)
 	{
 	  min = build_int_cst (expr_type, 0);
 	  max = vr0.max;
 	}
-      else if (vr1.type == VR_RANGE
-	       && vr1.min == vr1.max
-	       && TREE_CODE (vr1.max) == INTEGER_CST
-	       && !TREE_OVERFLOW (vr1.max)
+      else if (vr1_int_cst_singleton_p
 	       && tree_int_cst_sgn (vr1.max) >= 0)
 	{
 	  type = VR_RANGE;
@@ -2525,12 +2578,8 @@ extract_range_from_binary_expr (value_range_t *vr,
     }
   else if (code == BIT_IOR_EXPR)
     {
-      if (vr0.type == VR_RANGE
-          && vr1.type == VR_RANGE
-	  && TREE_CODE (vr0.min) == INTEGER_CST
-	  && TREE_CODE (vr1.min) == INTEGER_CST
-	  && TREE_CODE (vr0.max) == INTEGER_CST
-	  && TREE_CODE (vr1.max) == INTEGER_CST
+      if (range_int_cst_p (&vr0)
+	  && range_int_cst_p (&vr1)
 	  && tree_int_cst_sgn (vr0.min) >= 0
 	  && tree_int_cst_sgn (vr1.min) >= 0)
 	{
@@ -3153,7 +3202,7 @@ static void
 adjust_range_with_scev (value_range_t *vr, struct loop *loop,
 			gimple stmt, tree var)
 {
-  tree init, step, chrec, tmin, tmax, min, max, type;
+  tree init, step, chrec, tmin, tmax, min, max, type, tem;
   enum ev_direction dir;
 
   /* TODO.  Don't adjust anti-ranges.  An anti-range may provide
@@ -3174,7 +3223,13 @@ adjust_range_with_scev (value_range_t *vr, struct loop *loop,
     return;
 
   init = initial_condition_in_loop_num (chrec, loop->num);
+  tem = op_with_constant_singleton_value_range (init);
+  if (tem)
+    init = tem;
   step = evolution_part_in_loop_num (chrec, loop->num);
+  tem = op_with_constant_singleton_value_range (step);
+  if (tem)
+    step = tem;
 
   /* If STEP is symbolic, we can't know whether INIT will be the
      minimum or maximum value in the range.  Also, unless INIT is
@@ -4998,23 +5053,46 @@ check_array_ref (location_t location, tree ref, bool ignore_off_by_one)
 {
   value_range_t* vr = NULL;
   tree low_sub, up_sub;
-  tree low_bound, up_bound = array_ref_up_bound (ref);
+  tree low_bound, up_bound, up_bound_p1;
+  tree base;
 
-  low_sub = up_sub = TREE_OPERAND (ref, 1);
-
-  if (!up_bound || TREE_NO_WARNING (ref)
-      || TREE_CODE (up_bound) != INTEGER_CST
-      /* Can not check flexible arrays.  */
-      || (TYPE_SIZE (TREE_TYPE (ref)) == NULL_TREE
-          && TYPE_DOMAIN (TREE_TYPE (ref)) != NULL_TREE
-          && TYPE_MAX_VALUE (TYPE_DOMAIN (TREE_TYPE (ref))) == NULL_TREE)
-      /* Accesses after the end of arrays of size 0 (gcc
-         extension) and 1 are likely intentional ("struct
-         hack").  */
-      || compare_tree_int (up_bound, 1) <= 0)
+  if (TREE_NO_WARNING (ref))
     return;
 
+  low_sub = up_sub = TREE_OPERAND (ref, 1);
+  up_bound = array_ref_up_bound (ref);
+
+  /* Can not check flexible arrays.  */
+  if (!up_bound
+      || TREE_CODE (up_bound) != INTEGER_CST)
+    return;
+
+  /* Accesses to trailing arrays via pointers may access storage
+     beyond the types array bounds.  */
+  base = get_base_address (ref);
+  if (base
+      && INDIRECT_REF_P (base))
+    {
+      tree cref, next = NULL_TREE;
+
+      if (TREE_CODE (TREE_OPERAND (ref, 0)) != COMPONENT_REF)
+	return;
+
+      cref = TREE_OPERAND (ref, 0);
+      if (TREE_CODE (TREE_TYPE (TREE_OPERAND (cref, 0))) == RECORD_TYPE)
+	for (next = TREE_CHAIN (TREE_OPERAND (cref, 1));
+	     next && TREE_CODE (next) != FIELD_DECL;
+	     next = TREE_CHAIN (next))
+	  ;
+
+      /* If this is the last field in a struct type or a field in a
+	 union type do not warn.  */
+      if (!next)
+	return;
+    }
+
   low_bound = array_ref_low_bound (ref);
+  up_bound_p1 = int_const_binop (PLUS_EXPR, up_bound, integer_one_node, 0);
 
   if (TREE_CODE (low_sub) == SSA_NAME)
     {
@@ -5039,14 +5117,11 @@ check_array_ref (location_t location, tree ref, bool ignore_off_by_one)
         }
     }
   else if (TREE_CODE (up_sub) == INTEGER_CST
-           && tree_int_cst_lt (up_bound, up_sub)
-           && !tree_int_cst_equal (up_bound, up_sub)
-           && (!ignore_off_by_one
-               || !tree_int_cst_equal (int_const_binop (PLUS_EXPR,
-                                                        up_bound,
-                                                        integer_one_node,
-                                                        0),
-                                       up_sub)))
+	   && (ignore_off_by_one
+	       ? (tree_int_cst_lt (up_bound, up_sub)
+		  && !tree_int_cst_equal (up_bound_p1, up_sub))
+	       : (tree_int_cst_lt (up_bound, up_sub)
+		  || tree_int_cst_equal (up_bound_p1, up_sub))))
     {
       warning_at (location, OPT_Warray_bounds,
 		  "array subscript is above array bounds");
@@ -6412,7 +6487,18 @@ vrp_visit_phi_node (gimple phi)
   /* If the new range is different than the previous value, keep
      iterating.  */
   if (update_value_range (lhs, &vr_result))
-    return SSA_PROP_INTERESTING;
+    {
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	{
+	  fprintf (dump_file, "Found new range for ");
+	  print_generic_expr (dump_file, lhs, 0);
+	  fprintf (dump_file, ": ");
+	  dump_value_range (dump_file, &vr_result);
+	  fprintf (dump_file, "\n\n");
+	}
+
+      return SSA_PROP_INTERESTING;
+    }
 
   /* Nothing changed, don't add outgoing edges.  */
   return SSA_PROP_NOT_INTERESTING;

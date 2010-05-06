@@ -1880,6 +1880,7 @@ static bool ext_80387_constants_init = 0;
 
 static struct machine_function * ix86_init_machine_status (void);
 static rtx ix86_function_value (const_tree, const_tree, bool);
+static bool ix86_function_value_regno_p (const unsigned int);
 static rtx ix86_static_chain (const_tree, bool);
 static int ix86_function_regparm (const_tree, const_tree);
 static void ix86_compute_frame_layout (struct ix86_frame *);
@@ -2512,7 +2513,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
   if (isa && add_nl_p)
     {
       opts[num++][0] = isa_other;
-      sprintf (isa_other, "(other isa: 0x%x)", isa);
+      sprintf (isa_other, "(other isa: %#x)", isa);
     }
 
   /* Add flag options.  */
@@ -2528,7 +2529,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
   if (flags && add_nl_p)
     {
       opts[num++][0] = target_other;
-      sprintf (target_other, "(other flags: 0x%x)", isa);
+      sprintf (target_other, "(other flags: %#x)", flags);
     }
 
   /* Add -fpmath= option.  */
@@ -4395,8 +4396,8 @@ ix86_function_ok_for_sibcall (tree decl, tree exp)
   return true;
 }
 
-/* Handle "cdecl", "stdcall", "fastcall", "regparm" and "sseregparm"
-   calling convention attributes;
+/* Handle "cdecl", "stdcall", "fastcall", "regparm", "thiscall",
+   and "sseregparm" calling convention attributes;
    arguments as in struct attribute_spec.handler.  */
 
 static tree
@@ -4426,6 +4427,11 @@ ix86_handle_cconv_attribute (tree *node, tree name,
 	  error ("fastcall and regparm attributes are not compatible");
 	}
 
+      if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("regparam and thiscall attributes are not compatible");
+	}
+
       cst = TREE_VALUE (args);
       if (TREE_CODE (cst) != INTEGER_CST)
 	{
@@ -4447,7 +4453,8 @@ ix86_handle_cconv_attribute (tree *node, tree name,
   if (TARGET_64BIT)
     {
       /* Do not warn when emulating the MS ABI.  */
-      if (TREE_CODE (*node) != FUNCTION_TYPE
+      if ((TREE_CODE (*node) != FUNCTION_TYPE
+	   && TREE_CODE (*node) != METHOD_TYPE)
 	  || ix86_function_type_abi (*node) != MS_ABI)
 	warning (OPT_Wattributes, "%qE attribute ignored",
 	         name);
@@ -4470,6 +4477,10 @@ ix86_handle_cconv_attribute (tree *node, tree name,
         {
 	  error ("fastcall and regparm attributes are not compatible");
 	}
+      if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("fastcall and thiscall attributes are not compatible");
+	}
     }
 
   /* Can combine stdcall with fastcall (redundant), regparm and
@@ -4484,6 +4495,10 @@ ix86_handle_cconv_attribute (tree *node, tree name,
         {
 	  error ("stdcall and fastcall attributes are not compatible");
 	}
+      if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("stdcall and thiscall attributes are not compatible");
+	}
     }
 
   /* Can combine cdecl with regparm and sseregparm.  */
@@ -4496,6 +4511,28 @@ ix86_handle_cconv_attribute (tree *node, tree name,
       if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (*node)))
         {
 	  error ("fastcall and cdecl attributes are not compatible");
+	}
+      if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("cdecl and thiscall attributes are not compatible");
+	}
+    }
+  else if (is_attribute_p ("thiscall", name))
+    {
+      if (TREE_CODE (*node) != METHOD_TYPE && pedantic)
+	warning (OPT_Wattributes, "%qE attribute is used for none class-method",
+	         name);
+      if (lookup_attribute ("stdcall", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("stdcall and thiscall attributes are not compatible");
+	}
+      if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("fastcall and thiscall attributes are not compatible");
+	}
+      if (lookup_attribute ("cdecl", TYPE_ATTRIBUTES (*node)))
+	{
+	  error ("cdecl and thiscall attributes are not compatible");
 	}
     }
 
@@ -4530,6 +4567,11 @@ ix86_comp_type_attributes (const_tree type1, const_tree type2)
       != !lookup_attribute ("sseregparm", TYPE_ATTRIBUTES (type2)))
     return 0;
 
+  /* Check for mismatched thiscall types.  */
+  if (!lookup_attribute ("thiscall", TYPE_ATTRIBUTES (type1))
+      != !lookup_attribute ("thiscall", TYPE_ATTRIBUTES (type2)))
+    return 0;
+
   /* Check for mismatched return types (cdecl vs stdcall).  */
   if (!lookup_attribute (rtdstr, TYPE_ATTRIBUTES (type1))
       != !lookup_attribute (rtdstr, TYPE_ATTRIBUTES (type2)))
@@ -4562,6 +4604,9 @@ ix86_function_regparm (const_tree type, const_tree decl)
 
   if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (type)))
     return 2;
+
+  if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (type)))
+    return 1;
 
   /* Use register calling convention for local functions when possible.  */
   if (decl
@@ -4700,7 +4745,8 @@ ix86_return_pops_args (tree fundecl, tree funtype, int size)
       /* Stdcall and fastcall functions will pop the stack if not
          variable args.  */
       if (lookup_attribute ("stdcall", TYPE_ATTRIBUTES (funtype))
-          || lookup_attribute ("fastcall", TYPE_ATTRIBUTES (funtype)))
+	  || lookup_attribute ("fastcall", TYPE_ATTRIBUTES (funtype))
+          || lookup_attribute ("thiscall", TYPE_ATTRIBUTES (funtype)))
 	rtd = 1;
 
       if (rtd && ! stdarg_p (funtype))
@@ -4963,7 +5009,12 @@ init_cumulative_args (CUMULATIVE_ARGS *cum,  /* Argument info to initialize */
 	 else look for regparm information.  */
       if (fntype)
 	{
-	  if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (fntype)))
+	  if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (fntype)))
+	    {
+	      cum->nregs = 1;
+	      cum->fastcall = 1; /* Same first register as in fastcall.  */
+	    }
+	  else if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (fntype)))
 	    {
 	      cum->nregs = 2;
 	      cum->fastcall = 1;
@@ -6281,8 +6332,8 @@ ix86_function_arg_boundary (enum machine_mode mode, tree type)
 
 /* Return true if N is a possible register number of function value.  */
 
-bool
-ix86_function_value_regno_p (int regno)
+static bool
+ix86_function_value_regno_p (const unsigned int regno)
 {
   switch (regno)
     {
@@ -6740,7 +6791,6 @@ setup_incoming_varargs_64 (CUMULATIVE_ARGS *cum)
 {
   rtx save_area, mem;
   rtx label;
-  rtx label_ref;
   rtx tmp_reg;
   rtx nsse_reg;
   alias_set_type set;
@@ -6791,35 +6841,9 @@ setup_incoming_varargs_64 (CUMULATIVE_ARGS *cum)
 	 SSE saves.  We need some preparation work to get this working.  */
 
       label = gen_label_rtx ();
-      label_ref = gen_rtx_LABEL_REF (Pmode, label);
 
-      /* Compute address to jump to :
-         label - eax*4 + nnamed_sse_arguments*4 Or
-         label - eax*5 + nnamed_sse_arguments*5 for AVX.  */
-      tmp_reg = gen_reg_rtx (Pmode);
       nsse_reg = gen_reg_rtx (Pmode);
       emit_insn (gen_zero_extendqidi2 (nsse_reg, gen_rtx_REG (QImode, AX_REG)));
-      emit_insn (gen_rtx_SET (VOIDmode, tmp_reg,
-			      gen_rtx_MULT (Pmode, nsse_reg,
-					    GEN_INT (4))));
-
-      /* vmovaps is one byte longer than movaps.  */
-      if (TARGET_AVX)
-	emit_insn (gen_rtx_SET (VOIDmode, tmp_reg,
-				gen_rtx_PLUS (Pmode, tmp_reg,
-					      nsse_reg)));
-
-      if (cum->sse_regno)
-	emit_move_insn
-	  (nsse_reg,
-	   gen_rtx_CONST (DImode,
-			  gen_rtx_PLUS (DImode,
-					label_ref,
-					GEN_INT (cum->sse_regno
-						 * (TARGET_AVX ? 5 : 4)))));
-      else
-	emit_move_insn (nsse_reg, label_ref);
-      emit_insn (gen_subdi3 (nsse_reg, nsse_reg, tmp_reg));
 
       /* Compute address of memory block we save into.  We always use pointer
 	 pointing 127 bytes after first byte to store - this is needed to keep
@@ -6832,11 +6856,12 @@ setup_incoming_varargs_64 (CUMULATIVE_ARGS *cum)
       mem = gen_rtx_MEM (BLKmode, plus_constant (tmp_reg, -127));
       MEM_NOTRAP_P (mem) = 1;
       set_mem_alias_set (mem, set);
-      set_mem_align (mem, BITS_PER_WORD);
+      set_mem_align (mem, 64);
 
       /* And finally do the dirty job!  */
       emit_insn (gen_sse_prologue_save (mem, nsse_reg,
-					GEN_INT (cum->sse_regno), label));
+					GEN_INT (cum->sse_regno), label,
+					gen_reg_rtx (Pmode)));
     }
 }
 
@@ -6997,7 +7022,7 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
   int indirect_p = 0;
   tree ptrtype;
   enum machine_mode nat_mode;
-  int arg_boundary;
+  unsigned int arg_boundary;
 
   /* Only 64bit target needs something special.  */
   if (!TARGET_64BIT || is_va_list_char_pointer (TREE_TYPE (valist)))
@@ -7229,6 +7254,8 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
       t = build2 (BIT_AND_EXPR, TREE_TYPE (t), t,
 		  size_int (-align));
       t = fold_convert (TREE_TYPE (ovf), t);
+      if (crtl->stack_alignment_needed < arg_boundary)
+	crtl->stack_alignment_needed = arg_boundary;
     }
   gimplify_expr (&t, pre_p, NULL, is_gimple_val, fb_rvalue);
   gimplify_assign (addr, t, pre_p);
@@ -7984,6 +8011,7 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
       && cfun->machine->use_fast_prologue_epilogue_nregs != frame->nregs)
     {
       int count = frame->nregs;
+      struct cgraph_node *node = cgraph_node (current_function_decl);
 
       cfun->machine->use_fast_prologue_epilogue_nregs = count;
       /* The fast prologue uses move instead of push to save registers.  This
@@ -7998,9 +8026,9 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
 	 slow to use many of them.  */
       if (count)
 	count = (count - 1) * FAST_PROLOGUE_INSN_COUNT;
-      if (cfun->function_frequency < FUNCTION_FREQUENCY_NORMAL
+      if (node->frequency < NODE_FREQUENCY_NORMAL
 	  || (flag_branch_probabilities
-	      && cfun->function_frequency < FUNCTION_FREQUENCY_HOT))
+	      && node->frequency < NODE_FREQUENCY_HOT))
         cfun->machine->use_fast_prologue_epilogue = false;
       else
         cfun->machine->use_fast_prologue_epilogue
@@ -8302,6 +8330,8 @@ find_drap_reg (void)
          passing.  */
       if (ix86_function_regparm (TREE_TYPE (decl), decl) <= 2
 	  && !lookup_attribute ("fastcall",
+    				TYPE_ATTRIBUTES (TREE_TYPE (decl)))
+	  && !lookup_attribute ("thiscall",
     				TYPE_ATTRIBUTES (TREE_TYPE (decl))))
 	return CX_REG;
       else
@@ -9329,6 +9359,7 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
   rtx base_reg, index_reg;
   HOST_WIDE_INT scale = 1;
   rtx scale_rtx = NULL_RTX;
+  rtx tmp;
   int retval = 1;
   enum ix86_address_seg seg = SEG_DEFAULT;
 
@@ -9362,6 +9393,19 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 		return 0;
 	      index = XEXP (op, 0);
 	      scale_rtx = XEXP (op, 1);
+	      break;
+
+	    case ASHIFT:
+	      if (index)
+		return 0;
+	      index = XEXP (op, 0);
+	      tmp = XEXP (op, 1);
+	      if (!CONST_INT_P (tmp))
+		return 0;
+	      scale = INTVAL (tmp);
+	      if ((unsigned HOST_WIDE_INT) scale > 3)
+		return 0;
+	      scale = 1 << scale;
 	      break;
 
 	    case UNSPEC:
@@ -9404,8 +9448,6 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
     }
   else if (GET_CODE (addr) == ASHIFT)
     {
-      rtx tmp;
-
       /* We're called for lea too, which implements ashift on occasion.  */
       index = XEXP (addr, 0);
       tmp = XEXP (addr, 1);
@@ -10972,7 +11014,10 @@ ix86_delegitimize_address (rtx x)
 	  || XINT (XEXP (x, 0), 1) != UNSPEC_GOTPCREL
 	  || !MEM_P (orig_x))
 	return orig_x;
-      return XVECEXP (XEXP (x, 0), 0, 0);
+      x = XVECEXP (XEXP (x, 0), 0, 0);
+      if (GET_MODE (orig_x) != Pmode)
+	return simplify_gen_subreg (GET_MODE (orig_x), x, Pmode, 0);
+      return x;
     }
 
   if (GET_CODE (x) != PLUS
@@ -11039,6 +11084,8 @@ ix86_delegitimize_address (rtx x)
       else
 	return orig_x;
     }
+  if (GET_MODE (orig_x) != Pmode && MEM_P (orig_x))
+    return simplify_gen_subreg (GET_MODE (orig_x), result, Pmode, 0);
   return result;
 }
 
@@ -11379,7 +11426,7 @@ get_some_local_dynamic_name (void)
     return cfun->machine->some_ld_name;
 
   for (insn = get_insns (); insn ; insn = NEXT_INSN (insn))
-    if (INSN_P (insn)
+    if (NONDEBUG_INSN_P (insn)
 	&& for_each_rtx (&PATTERN (insn), get_some_local_dynamic_name_1, 0))
       return cfun->machine->some_ld_name;
 
@@ -13625,7 +13672,7 @@ distance_non_agu_define (unsigned int regno1, unsigned int regno2,
       rtx prev = PREV_INSN (insn);
       while (prev && distance < LEA_SEARCH_THRESHOLD)
 	{
-	  if (INSN_P (prev))
+	  if (NONDEBUG_INSN_P (prev))
 	    {
 	      distance++;
               for (def_rec = DF_INSN_DEFS (prev); *def_rec; def_rec++)
@@ -13665,7 +13712,7 @@ distance_non_agu_define (unsigned int regno1, unsigned int regno2,
 		 && prev != insn
 		 && distance < LEA_SEARCH_THRESHOLD)
 	    {
-	      if (INSN_P (prev))
+	      if (NONDEBUG_INSN_P (prev))
 		{
 		  distance++;
 		  for (def_rec = DF_INSN_DEFS (prev); *def_rec; def_rec++)
@@ -13711,7 +13758,7 @@ distance_agu_use (unsigned int regno0, rtx insn)
       rtx next = NEXT_INSN (insn);
       while (next && distance < LEA_SEARCH_THRESHOLD)
 	{
-	  if (INSN_P (next))
+	  if (NONDEBUG_INSN_P (next))
 	    {
 	      distance++;
 
@@ -13760,7 +13807,7 @@ distance_agu_use (unsigned int regno0, rtx insn)
 		 && next != insn
 		 && distance < LEA_SEARCH_THRESHOLD)
 	    {
-	      if (INSN_P (next))
+	      if (NONDEBUG_INSN_P (next))
 		{
 		  distance++;
 
@@ -17078,20 +17125,22 @@ ix86_split_ashl (rtx *operands, rtx scratch, enum machine_mode mode)
 		  : gen_x86_64_shld) (high[0], low[0], operands[2]));
     }
 
-  emit_insn ((mode == DImode ? gen_ashlsi3 : gen_ashldi3) (low[0], low[0], operands[2]));
+  emit_insn ((mode == DImode
+	      ? gen_ashlsi3
+	      : gen_ashldi3) (low[0], low[0], operands[2]));
 
   if (TARGET_CMOVE && scratch)
     {
       ix86_expand_clear (scratch);
       emit_insn ((mode == DImode
-		  ? gen_x86_shift_adj_1
-		  : gen_x86_64_shift_adj_1) (high[0], low[0], operands[2],
-					     scratch));
+		  ? gen_x86_shiftsi_adj_1
+		  : gen_x86_shiftdi_adj_1) (high[0], low[0], operands[2],
+					    scratch));
     }
   else
     emit_insn ((mode == DImode
-		? gen_x86_shift_adj_2
-		: gen_x86_64_shift_adj_2) (high[0], low[0], operands[2]));
+		? gen_x86_shiftsi_adj_2
+		: gen_x86_shiftdi_adj_2) (high[0], low[0], operands[2]));
 }
 
 void
@@ -17164,14 +17213,14 @@ ix86_split_ashr (rtx *operands, rtx scratch, enum machine_mode mode)
 		      : gen_ashrdi3) (scratch, scratch,
 				      GEN_INT (single_width - 1)));
 	  emit_insn ((mode == DImode
-		      ? gen_x86_shift_adj_1
-		      : gen_x86_64_shift_adj_1) (low[0], high[0], operands[2],
-						 scratch));
+		      ? gen_x86_shiftsi_adj_1
+		      : gen_x86_shiftdi_adj_1) (low[0], high[0], operands[2],
+						scratch));
 	}
       else
 	emit_insn ((mode == DImode
-		    ? gen_x86_shift_adj_3
-		    : gen_x86_64_shift_adj_3) (low[0], high[0], operands[2]));
+		    ? gen_x86_shiftsi_adj_3
+		    : gen_x86_shiftdi_adj_3) (low[0], high[0], operands[2]));
     }
 }
 
@@ -17229,14 +17278,14 @@ ix86_split_lshr (rtx *operands, rtx scratch, enum machine_mode mode)
 	{
 	  ix86_expand_clear (scratch);
 	  emit_insn ((mode == DImode
-		      ? gen_x86_shift_adj_1
-		      : gen_x86_64_shift_adj_1) (low[0], high[0], operands[2],
-						 scratch));
+		      ? gen_x86_shiftsi_adj_1
+		      : gen_x86_shiftdi_adj_1) (low[0], high[0], operands[2],
+						scratch));
 	}
       else
 	emit_insn ((mode == DImode
-		    ? gen_x86_shift_adj_2
-		    : gen_x86_64_shift_adj_2) (low[0], high[0], operands[2]));
+		    ? gen_x86_shiftsi_adj_2
+		    : gen_x86_shiftdi_adj_2) (low[0], high[0], operands[2]));
     }
 }
 
@@ -20045,10 +20094,26 @@ ix86_local_alignment (tree exp, enum machine_mode mode,
     }
 
   /* x86-64 ABI requires arrays greater than 16 bytes to be aligned
-     to 16byte boundary.  */
-  if (TARGET_64BIT)
+     to 16byte boundary.  Exact wording is:
+
+     An array uses the same alignment as its elements, except that a local or
+     global array variable of length at least 16 bytes or
+     a C99 variable-length array variable always has alignment of at least 16 bytes.
+
+     This was added to allow use of aligned SSE instructions at arrays.  This
+     rule is meant for static storage (where compiler can not do the analysis
+     by itself).  We follow it for automatic variables only when convenient.
+     We fully control everything in the function compiled and functions from
+     other unit can not rely on the alignment.
+
+     Exclude va_list type.  It is the common case of local array where
+     we can not benefit from the alignment.  */
+  if (TARGET_64BIT && optimize_function_for_speed_p (cfun)
+      && TARGET_SSE)
     {
       if (AGGREGATE_TYPE_P (type)
+	   && (TYPE_MAIN_VARIANT (type)
+	       != TYPE_MAIN_VARIANT (va_list_type_node))
 	   && TYPE_SIZE (type)
 	   && TREE_CODE (TYPE_SIZE (type)) == INTEGER_CST
 	   && (TREE_INT_CST_LOW (TYPE_SIZE (type)) >= 16
@@ -20153,6 +20218,12 @@ ix86_static_chain (const_tree fndecl, bool incoming_p)
       if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (fntype)))
 	{
 	  /* Fastcall functions use ecx/edx for arguments, which leaves
+	     us with EAX for the static chain.  */
+	  regno = AX_REG;
+	}
+      else if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (fntype)))
+	{
+	  /* Thiscall functions use ecx for arguments, which leaves
 	     us with EAX for the static chain.  */
 	  regno = AX_REG;
 	}
@@ -24633,43 +24704,92 @@ ix86_veclibabi_acml (enum built_in_function fn, tree type_out, tree type_in)
 
 
 /* Returns a decl of a function that implements conversion of an integer vector
-   into a floating-point vector, or vice-versa. TYPE is the type of the integer
-   side of the conversion.
+   into a floating-point vector, or vice-versa.  DEST_TYPE and SRC_TYPE
+   are the types involved when converting according to CODE.
    Return NULL_TREE if it is not available.  */
 
 static tree
-ix86_vectorize_builtin_conversion (unsigned int code, tree type)
+ix86_vectorize_builtin_conversion (unsigned int code,
+				   tree dest_type, tree src_type)
 {
-  if (! (TARGET_SSE2 && TREE_CODE (type) == VECTOR_TYPE))
+  if (! TARGET_SSE2)
     return NULL_TREE;
 
   switch (code)
     {
     case FLOAT_EXPR:
-      switch (TYPE_MODE (type))
+      switch (TYPE_MODE (src_type))
 	{
 	case V4SImode:
-	  return TYPE_UNSIGNED (type)
-	    ? ix86_builtins[IX86_BUILTIN_CVTUDQ2PS]
-	    : ix86_builtins[IX86_BUILTIN_CVTDQ2PS];
+	  switch (TYPE_MODE (dest_type))
+	    {
+	    case V4SFmode:
+	      return (TYPE_UNSIGNED (src_type)
+		      ? ix86_builtins[IX86_BUILTIN_CVTUDQ2PS]
+		      : ix86_builtins[IX86_BUILTIN_CVTDQ2PS]);
+	    case V4DFmode:
+	      return (TYPE_UNSIGNED (src_type)
+		      ? NULL_TREE
+		      : ix86_builtins[IX86_BUILTIN_CVTDQ2PD256]);
+	    default:
+	      return NULL_TREE;
+	    }
+	  break;
+	case V8SImode:
+	  switch (TYPE_MODE (dest_type))
+	    {
+	    case V8SFmode:
+	      return (TYPE_UNSIGNED (src_type)
+		      ? NULL_TREE
+		      : ix86_builtins[IX86_BUILTIN_CVTDQ2PS]);
+	    default:
+	      return NULL_TREE;
+	    }
+	  break;
 	default:
 	  return NULL_TREE;
 	}
 
     case FIX_TRUNC_EXPR:
-      switch (TYPE_MODE (type))
+      switch (TYPE_MODE (dest_type))
 	{
 	case V4SImode:
-	  return TYPE_UNSIGNED (type)
-	    ? NULL_TREE
-	    : ix86_builtins[IX86_BUILTIN_CVTTPS2DQ];
+	  switch (TYPE_MODE (src_type))
+	    {
+	    case V4SFmode:
+	      return (TYPE_UNSIGNED (dest_type)
+		      ? NULL_TREE
+		      : ix86_builtins[IX86_BUILTIN_CVTTPS2DQ]);
+	    case V4DFmode:
+	      return (TYPE_UNSIGNED (dest_type)
+		      ? NULL_TREE
+		      : ix86_builtins[IX86_BUILTIN_CVTTPD2DQ256]);
+	    default:
+	      return NULL_TREE;
+	    }
+	  break;
+
+	case V8SImode:
+	  switch (TYPE_MODE (src_type))
+	    {
+	    case V8SFmode:
+	      return (TYPE_UNSIGNED (dest_type)
+		      ? NULL_TREE
+		      : ix86_builtins[IX86_BUILTIN_CVTTPS2DQ256]);
+	    default:
+	      return NULL_TREE;
+	    }
+	  break;
+
 	default:
 	  return NULL_TREE;
 	}
+
     default:
       return NULL_TREE;
-
     }
+
+  return NULL_TREE;
 }
 
 /* Returns a code for a target-specific builtin that implements
@@ -26123,6 +26243,13 @@ x86_this_parameter (tree function)
 
       if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (type)))
 	regno = aggr ? DX_REG : CX_REG;
+      else if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (type)))
+        {
+	  regno = CX_REG;
+	  if (aggr)
+	    return gen_rtx_MEM (SImode,
+				plus_constant (stack_pointer_rtx, 4));
+	}
       else
         {
 	  regno = AX_REG;
@@ -26234,7 +26361,9 @@ x86_output_mi_thunk (FILE *file,
 	{
 	  int tmp_regno = CX_REG;
 	  if (lookup_attribute ("fastcall",
-				TYPE_ATTRIBUTES (TREE_TYPE (function))))
+				TYPE_ATTRIBUTES (TREE_TYPE (function)))
+	      || lookup_attribute ("thiscall",
+				   TYPE_ATTRIBUTES (TREE_TYPE (function))))
 	    tmp_regno = AX_REG;
 	  tmp = gen_rtx_REG (SImode, tmp_regno);
 	}
@@ -26584,7 +26713,7 @@ ix86_pad_returns (void)
 	    replace = true;
 	  /* Empty functions get branch mispredict even when the jump destination
 	     is not visible to us.  */
-	  if (!prev && cfun->function_frequency > FUNCTION_FREQUENCY_UNLIKELY_EXECUTED)
+	  if (!prev && !optimize_function_for_size_p (cfun))
 	    replace = true;
 	}
       if (replace)
@@ -28974,6 +29103,9 @@ static const struct attribute_spec ix86_attribute_table[] =
   /* Fastcall attribute says callee is responsible for popping arguments
      if they are not variable.  */
   { "fastcall",  0, 0, false, true,  true,  ix86_handle_cconv_attribute },
+  /* Thiscall attribute says callee is responsible for popping arguments
+     if they are not variable.  */
+  { "thiscall",  0, 0, false, true,  true,  ix86_handle_cconv_attribute },
   /* Cdecl attribute says the callee is a normal C declaration */
   { "cdecl",     0, 0, false, true,  true,  ix86_handle_cconv_attribute },
   /* Regparm attribute specifies how many integer arguments are to be
@@ -30529,6 +30661,9 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 
 #undef TARGET_FUNCTION_VALUE
 #define TARGET_FUNCTION_VALUE ix86_function_value
+
+#undef TARGET_FUNCTION_VALUE_REGNO_P
+#define TARGET_FUNCTION_VALUE_REGNO_P ix86_function_value_regno_p
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD ix86_secondary_reload

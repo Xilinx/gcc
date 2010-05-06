@@ -179,7 +179,7 @@ eq_name (const void *p1, const void *p2)
    the start and size of each section in the .o file.  */
 
 htab_t
-lto_elf_build_section_table (lto_file *lto_file) 
+lto_obj_build_section_table (lto_file *lto_file) 
 {
   lto_elf_file *elf_file = (lto_elf_file *)lto_file;
   htab_t section_hash_table;
@@ -322,7 +322,7 @@ lto_elf_begin_section_with_type (const char *name, size_t type)
 /* Begin a new ELF section named NAME in the current output file.  */
 
 void
-lto_elf_begin_section (const char *name)
+lto_obj_begin_section (const char *name)
 {
   lto_elf_begin_section_with_type (name, SHT_PROGBITS);
 }
@@ -333,7 +333,7 @@ lto_elf_begin_section (const char *name)
    been written.  */
 
 void
-lto_elf_append_data (const void *data, size_t len, void *block)
+lto_obj_append_data (const void *data, size_t len, void *block)
 {
   lto_elf_file *file;
   Elf_Data *elf_data;
@@ -370,7 +370,7 @@ lto_elf_append_data (const void *data, size_t len, void *block)
    and sets the current output file's scn member to NULL.  */
 
 void
-lto_elf_end_section (void)
+lto_obj_end_section (void)
 {
   lto_elf_file *file;
 
@@ -454,6 +454,22 @@ validate_ehdr##BITS (lto_elf_file *elf_file)			\
 DEFINE_VALIDATE_EHDR (32)
 DEFINE_VALIDATE_EHDR (64)
 
+
+#ifndef HAVE_ELF_GETSHDRSTRNDX
+/* elf_getshdrstrndx replacement for systems that lack it, but provide
+   either the gABI conformant or Solaris 2 variant of elf_getshstrndx
+   instead.  */
+
+static int
+elf_getshdrstrndx (Elf *elf, size_t *dst)
+{
+#ifdef HAVE_ELF_GETSHSTRNDX_GABI
+  return elf_getshstrndx (elf, dst);
+#else
+  return elf_getshstrndx (elf, dst) ? 0 : -1;
+#endif
+}
+#endif
 
 /* Validate's ELF_FILE's executable header and, if cached_file_attrs is
    uninitialized, caches the results.  Also records the section header string
@@ -588,7 +604,7 @@ init_ehdr (lto_elf_file *elf_file)
    Returns the opened file.  */
 
 lto_file *
-lto_elf_file_open (const char *filename, bool writable)
+lto_obj_file_open (const char *filename, bool writable)
 {
   lto_elf_file *elf_file;
   lto_file *result = NULL;
@@ -688,7 +704,7 @@ lto_elf_file_open (const char *filename, bool writable)
 
  fail:
   if (result)
-    lto_elf_file_close (result);
+    lto_obj_file_close (result);
   return NULL;
 }
 
@@ -698,7 +714,7 @@ lto_elf_file_open (const char *filename, bool writable)
    any cached data buffers are freed.  */
 
 void
-lto_elf_file_close (lto_file *file)
+lto_obj_file_close (lto_file *file)
 {
   lto_elf_file *elf_file = (lto_elf_file *) file;
   struct lto_char_ptr_base *cur, *tmp;
@@ -734,7 +750,7 @@ lto_elf_file_close (lto_file *file)
       if (gelf_update_ehdr (elf_file->elf, ehdr_p) == 0)
 	fatal_error ("gelf_update_ehdr() failed: %s", elf_errmsg (-1));
       lto_write_stream (elf_file->shstrtab_stream);
-      lto_elf_end_section ();
+      lto_obj_end_section ();
 
       lto_set_current_out_file (old_file);
       free (elf_file->shstrtab_stream);

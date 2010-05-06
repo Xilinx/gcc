@@ -1496,14 +1496,13 @@ dot_all_scops (VEC (scop_p, heap) *scops)
   /* When debugging, enable the following code.  This cannot be used
      in production compilers because it calls "system".  */
 #if 1
-  int x;
   FILE *stream = fopen ("/tmp/allscops.dot", "w");
   gcc_assert (stream);
 
   dot_all_scops_1 (stream, scops);
   fclose (stream);
 
-  x = system ("dotty /tmp/allscops.dot &");
+  system ("dotty /tmp/allscops.dot &");
 #else
   dot_all_scops_1 (stderr, scops);
 #endif
@@ -1523,13 +1522,12 @@ dot_scop (scop_p scop)
      in production compilers because it calls "system".  */
 #if 1
   {
-    int x;
     FILE *stream = fopen ("/tmp/allscops.dot", "w");
     gcc_assert (stream);
 
     dot_all_scops_1 (stream, scops);
     fclose (stream);
-    x = system ("dotty /tmp/allscops.dot &");
+    system ("dotty /tmp/allscops.dot &");
   }
 #else
   dot_all_scops_1 (stderr, scops);
