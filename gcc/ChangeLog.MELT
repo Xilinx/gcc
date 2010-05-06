@@ -1,3 +1,8 @@
+2010-05-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: added class_nrep_match_flag; added
+	namatch_flags field to class_nrep_altmatch. Exporting both
+	classes. More of altmatch_normalize, which is still incomplete.
+
 2010-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: a flag setting for the translation
 	of a new pattern variable is a match step on the data... So

@@ -2593,6 +2593,16 @@ $MSTMA_OUTS is the tuple of output matched data.}#
 	   mstma_outs))
 
 
+(defclass class_nrep_match_flag
+  :super class_nrep_simple
+  :doc #{The $CLASS_NREP_MATCH_FLAG is the normalized representation
+of match flags, instances of $CLASS_MATCH_FLAG. $NRPFLA_FLAG is the
+matched flag, and $NRPFLA_NMATCH is the instance of
+$CLASS_NREP_ALTMATCH using that match flag.}#
+  :fields (nrpfla_flag
+	   nrpfla_nmatch
+	   ))
+  
 
 ;;;;;;;;;;;;;;;;
 ;;; make a flag for a given source pattern in a given matching context
@@ -4406,13 +4416,15 @@ the flags of the $STEP with an extra context $CTX.}#
 (defclass class_nrep_altmatch
   :super class_nrep_typed_expression
   :doc #{The $CLASS_NREP_ALTMATCH is the representation for normal
-  matches. Field $NAMATCH_MATCHED is the normal matched
-  stuff. $NAMATCH_RESULT gives if any the result of the
-  match. $NAMATCH_BLOCKS is the tuple of match blocks.}#
+matches. Field $NAMATCH_MATCHED is the normal matched
+stuff. $NAMATCH_RESULT gives if any the result of the
+match. $NAMATCH_BLOCKS is the tuple of match blocks. $NAMATCH_FLAGS is
+the tuple of normal flags, instances of $CLASS_NREP_MATCH_FLAG.}#
   :fields (
 	   namatch_matched		;the normal matched stuff
 	   namatch_result		;the local for the result
 	   namatch_blocks		;the tuple of match blocks
+	   namatch_flags		;the tuple of normalized flags
 	   ))
 
 (defclass class_nrep_match_block
@@ -4422,7 +4434,8 @@ the flags of the $STEP with an extra context $CTX.}#
   tuple of matched data, a body tuple $NMABL_BODY, and a tuple of
   jumped blocks [or nil to exit the block in sequence]
   $NMABL_JUMPS. Actually, each jump also clears all the local data of
-  the block.}#
+  the block. Each match step, instance of $CLASS_MATCH_STEP, is
+  translated into a match block.}#
   :fields ( nmabl_locdata
 	    nmabl_body
 	    nmabl_jumps
@@ -4447,29 +4460,91 @@ the flags of the $STEP with an extra context $CTX.}#
   (debug_msg firststep "altmatch_normalize firststep")
   (debug_msg matctyp "altmatch_normalize matctyp")
   (debug_msg sloc "altmatch_normalize sloc")
+  (if (is_a firststep class_match_step_test_group)
+      (progn
+	(setq firststep (unsafe_get_field :mstgroup_start firststep))
+	(debug_msg firststep "altmatch_normalize updated firststep")))
   (let ( (nmatch (instance class_nrep_altmatch
 			   :nexpr_ctyp matctyp
 			   :nrep_loc sloc
 			   :namatch_matched ()
 			   :namatch_result ()
 			   :namatch_blocks ()
+			   :namatch_flags ()
 			   ))
 	 ;; maybe we should handle particularily the case when matctyp
 	 ;; is :void
 	 (mrsymb  (clone_symbol '_matchres))
 	 (mrbind (instance class_normal_let_binding
-				   :letbind_loc sloc
-				   :binder mrsymb
-				   :letbind_type matctyp 
-				   :letbind_expr ()))
-	 (mcalocc  (instance  class_nrep_locsymocc
-				       :nrep_loc sloc
-				       :nocc_ctyp matctyp
-				       :nocc_symb mrsymb
-				       :nocc_bind mrbind
-				       ))
-	 (blocklist (make_list discr_list))
-	)
+			   :letbind_loc sloc
+			   :binder mrsymb
+			   :letbind_type matctyp 
+			   :letbind_expr ()))
+	 (mcalocc  (instance class_nrep_locsymocc
+			     :nrep_loc sloc
+			     :nocc_ctyp matctyp
+			     :nocc_symb mrsymb
+			     :nocc_bind mrbind
+			     ))
+	 ;; the list of blocks
+	 (blockslist (make_list discr_list))
+	 ;; associate match flags to normal flags
+	 (flagmap (make_mapobject discr_map_objects 83)) 
+	 ;; associate steps to match blocks, which can be possibly
+	 ;; empty 
+	 (stepmap (make_mapobject discr_map_objects 229))
+	 ;; the queue of steps to translate; queued steps are
+	 ;; associated to empty blocks in the stepmap
+	 (stepsqueue (make_list discr_list))
+	 ;;normalize a flag
+	 (normalizeflag
+	  (lambda (flag)
+	    (assert_msg "altmatch_normalize.normalizeflag check flag"
+			(is_a flag class_match_flag))
+	    (let ( 
+		  (nfla (mapobject_get flagmap flag))
+		  )
+	      (if (null nfla)
+		  (progn 
+		    (setq nfla
+			  (instance class_nrep_match_flag
+				    :nrpfla_flag flag
+				    :nrpfla_nmatch nmatch))
+		    (mapobject_put flagmap flag nfla)))
+	      (assert_msg "altmatch_normalize.normalizeflag check nfla"
+			  (is_a nfla class_nrep_match_flag))
+	      (return nfla)
+	      )))
+	 ;; normalize a step into a block
+	 (normalizestep 
+	  (lambda (step)
+	    (assert_msg "altmatch_normalize.normalizestep check step"
+			(is_a step class_match_step))
+	    (let ( (nblock (mapobject_get stepmap step))
+		   )
+	      (if (null nblock)
+		  (progn
+		    (setq nblock (instance class_nrep_match_block
+					   :nrep_loc (get_field :loca_location step)
+					   ))
+		    (debug_msg step "altmatch_normalize.normalizestep fresh step")
+		    (debug_msg nblock "altmatch_normalize.normalizestep new block")
+		    (mapobject_put stepmap step nblock)
+		    (list_append stepsqueue step)))
+	      (assert_msg "altmatch_normalize.normalizestep check nblock"
+			  (is_a nblock class_nrep_match_block))
+	      (return nblock)
+	      )))
+	 )
+    (debug_msg firststep "altmatch_normalize starting with firststep")
+    (normalizestep firststep)
+    (forever 
+     matchnormalizeloop
+     (let ( (freshstep (list_popfirst stepsqueue)) 
+	    )
+       (debug_msg freshstep "altmatch_normalize freshstep start loop")
+       (if (null freshstep) (exit matchnormalizeloop))
+       ))
     (error_plain sloc "@@unimplemented altmatch_normalize")
     (assert_msg "@@unimplemented altmatch_normalize")
     ))
@@ -4968,6 +5043,9 @@ the flags of the $STEP with an extra context $CTX.}#
  class_match_step_test_group
  class_match_step_test_instance
  class_match_step_test_matcher
+ ;;
+ class_nrep_altmatch
+ class_nrep_match_flag
  )
 
 ;;; export our values
