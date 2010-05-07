@@ -1,3 +1,15 @@
+2010-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: added
+	class_match_normalization_context.  added
+	altmatch_normalize_with_block selector. Added
+	altmatch_normalize_flag & altmatch_normalize_step. Renamed
+	altmatch_normalize as altmatch_normalize_case
+
+	{{TO BE FIXED ELSEWHERE: prohibit setting a field in an INSTANCE
+	expression to a literal integer like (instance class_nrep_setq
+	:nstq_var normflag :nstq_exp 1). This is incorrectly accepted by
+	MELT}}
+
 2010-05-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: added class_nrep_match_flag; added
 	namatch_flags field to class_nrep_altmatch. Exporting both
