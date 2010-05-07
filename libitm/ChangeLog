@@ -1,3 +1,22 @@
+2010-05-07  Aldy Hernandez  <aldyh@redhat.com>
+
+	* libitm_i.h (struct gtm_transaction): Remove
+	get_allocation_size.
+	(record_allocation): Remove size parameter.
+	* libitm.map (_ITM_realloc): Remove.
+	* alloc_c.cc (_ITM_realloc): Remove.
+	(_ITM_malloc): Remove size argument to record_allocation.
+	(_ITM_calloc): Same.
+	* alloc_cpp.cc (_ZGTtnwm): Same.
+	(_ZGTtnwmRKSt9nothrow_t): Same.
+	(_ZGTtnam): Same.
+	(_ZGTtnamRKSt9nothrow_t): Same.
+	* alloc.cc (struct gtm_alloc_action): Remove size.
+	(get_allocation_size): Remove.
+	(commit_allocations): Add comment.
+	(record_allocation): Remove size parameter.
+	(forget_allocation): Remove set of size.
+
 2010-04-19  Aldy Hernandez  <aldyh@redhat.com>
 
 	* Makefile.am (abi_version): New.

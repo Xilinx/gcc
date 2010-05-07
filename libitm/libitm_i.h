@@ -219,9 +219,8 @@ struct gtm_transaction
 
   // In alloc.cc
   void commit_allocations (bool);
-  void record_allocation (void *, size_t, void (*)(void *));
+  void record_allocation (void *, void (*)(void *));
   void forget_allocation (void *, void (*)(void *));
-  size_t get_allocation_size (void *);
 
   // In beginend.cc
   void rollback ();

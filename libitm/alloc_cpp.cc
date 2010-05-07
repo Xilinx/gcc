@@ -66,7 +66,7 @@ _ZGTtnwm (size_t sz)
 {
   void *r = _Znwm (sz);
   if (r)
-    gtm_tx()->record_allocation (r, sz, _ZdlPv);
+    gtm_tx()->record_allocation (r, _ZdlPv);
   return r;
 }
 
@@ -76,7 +76,7 @@ _ZGTtnwmRKSt9nothrow_t (size_t sz, c_nothrow_p nt)
 {
   void *r = _ZnwmRKSt9nothrow_t (sz, nt);
   if (r)
-    gtm_tx()->record_allocation (r, sz, del_opnt);
+    gtm_tx()->record_allocation (r, del_opnt);
   return r;
 }
 
@@ -86,7 +86,7 @@ _ZGTtnam (size_t sz)
 {
   void *r = _Znam (sz);
   if (r)
-    gtm_tx()->record_allocation (r, sz, _ZdaPv);
+    gtm_tx()->record_allocation (r, _ZdaPv);
   return r;
 }
 
@@ -96,7 +96,7 @@ _ZGTtnamRKSt9nothrow_t (size_t sz, c_nothrow_p nt)
 {
   void *r = _ZnamRKSt9nothrow_t (sz, nt);
   if (r)
-    gtm_tx()->record_allocation (r, sz, del_opvnt);
+    gtm_tx()->record_allocation (r, del_opvnt);
   return r;
 }
 

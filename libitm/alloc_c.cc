@@ -34,7 +34,7 @@ _ITM_malloc (size_t sz)
 {
   void *r = malloc (sz);
   if (r)
-    gtm_tx()->record_allocation (r, sz, free);
+    gtm_tx()->record_allocation (r, free);
   return r;
 }
 
@@ -44,54 +44,7 @@ _ITM_calloc (size_t nm, size_t sz)
 {
   void *r = calloc (nm, sz);
   if (r)
-    gtm_tx()->record_allocation (r, nm*sz, free);
-  return r;
-}
-
-/* Wrap: realloc (void *ptr, size_t sz)  */
-void *
-_ITM_realloc (void *ptr, size_t sz)
-{
-  gtm_transaction *tx = gtm_tx();
-  void *r;
-  if (sz == 0)
-    {
-      /* If sz == 0, then realloc == free.  */
-      if (ptr)
-	tx->forget_allocation (ptr, free);
-      r = NULL;
-    }
-  else if (ptr == NULL)
-    {
-      /* If ptr == NULL, then realloc == malloc.  */
-      r = malloc (sz);
-      if (r)
-	tx->record_allocation (r, sz, free);
-    }
-  else if (ptr)
-    {
-      /* We may have recorded the size of the allocation earlier in
-	 this transaction.  If so, fine, we can reallocate.  Otherwise
-	 we're stuck and we'll have to go irrevokable.  */
-      size_t osz = tx->get_allocation_size (ptr);
-      if (osz == 0)
-	{
-	  tx->serialirr_mode ();
-	  return realloc (ptr, sz);
-	}
-
-      r = malloc (sz);
-      if (r)
-	{
-	  /* ??? We don't really need to get locks, since we know this
-	     memory is local to the transaction.  However, if the STM
-	     method is write-back, we have to be careful to use memory
-	     from the cache if locks were taken.  */
-	  _ITM_memcpyRnWt (r, ptr, (sz < osz ? sz : osz));
-	  tx->record_allocation (r, sz, free);
-	  tx->forget_allocation (ptr, free);
-	}
-    }
+    gtm_tx()->record_allocation (r, free);
   return r;
 }
 

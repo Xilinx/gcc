@@ -166,7 +166,6 @@ LIBITM_1.0 {
 
 	_ITM_malloc;
 	_ITM_calloc;
-	_ITM_realloc;
 	_ITM_free;
 
 	_ZGTtnwm;

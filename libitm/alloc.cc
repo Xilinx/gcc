@@ -29,14 +29,12 @@ namespace GTM HIDDEN {
 struct gtm_alloc_action
 {
   void (*free_fn)(void *);
-  size_t size;
   bool allocated;
 };
 
 
 void
-gtm_transaction::record_allocation (void *ptr, size_t size,
-				    void (*free_fn)(void *))
+gtm_transaction::record_allocation (void *ptr, void (*free_fn)(void *))
 {
   uintptr_t iptr = (uintptr_t) ptr;
 
@@ -45,7 +43,6 @@ gtm_transaction::record_allocation (void *ptr, size_t size,
     a = this->alloc_actions.insert(iptr);
 
   a->free_fn = free_fn;
-  a->size = size;
   a->allocated = true;
 }
 
@@ -59,17 +56,7 @@ gtm_transaction::forget_allocation (void *ptr, void (*free_fn)(void *))
     a = this->alloc_actions.insert(iptr);
 
   a->free_fn = free_fn;
-  a->size = 0;
   a->allocated = false;
-}
-
-size_t
-gtm_transaction::get_allocation_size (void *ptr)
-{
-  uintptr_t iptr = (uintptr_t) ptr;
-
-  gtm_alloc_action *a = this->alloc_actions.find(iptr);
-  return a ? a->size : 0;
 }
 
 static void
@@ -82,6 +69,10 @@ commit_allocations_1 (uintptr_t key, gtm_alloc_action *a, void *cb_data)
     a->free_fn (ptr);
 }
 
+/* Permanently commit allocated memory during transaction.
+
+   REVERT_P is true if instead of committing the allocations, we want
+   to roll them back (and vice versa).  */
 void
 gtm_transaction::commit_allocations (bool revert_p)
 {
