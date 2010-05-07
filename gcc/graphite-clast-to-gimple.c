@@ -1034,16 +1034,16 @@ graphite_create_new_loop_guard (sese region, edge entry_edge,
      loop iteration count of "PARAMETER - 1".  For PARAMETER == 0 this becomes
      2^{32|64}, and the condition lb <= ub is true, even if we do not want this.
      However lb < ub + 1 is false, as expected.  */
-  tree one;
-  mpz_t gmp_one;
-  
-  mpz_init (gmp_one);
-  mpz_set_si (gmp_one, 1);
-  one = gmp_cst_to_tree (type, gmp_one);
-  mpz_clear (gmp_one);
-
-  ub_one = fold_build2 (POINTER_TYPE_P (type) ? POINTER_PLUS_EXPR : PLUS_EXPR,
-			type, ub, one);
+  if (POINTER_TYPE_P (type))
+    {
+      tree one = fold_convert (sizetype, integer_one_node);
+      ub_one = fold_build2 (POINTER_PLUS_EXPR, type, ub, one);
+    }
+  else
+    {
+      tree one = fold_convert (type, integer_one_node);
+      ub_one = fold_build2 (PLUS_EXPR, type, ub, one);
+    }
 
   /* When ub + 1 wraps around, use lb <= ub.  */
   if (integer_zerop (ub_one))
