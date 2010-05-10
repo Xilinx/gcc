@@ -2554,7 +2554,9 @@ source location.}#
       (lambda (fla :long ix) 
 	(assert_msg "check fla" (is_a fla class_source_fieldassign))
 	(let ( (fld (unsafe_get_field :sfla_field fla))
-	       (exp (unsafe_get_field :sfla_expr fla)) )
+	       (exp (unsafe_get_field :sfla_expr fla)) 
+	       (fsloc (or (unsafe_get_field :loca_location fla) sloc))
+	       )
 	  (assert_msg "check fld" (is_a fld class_field))
 	  (multicall
 	   (nexp nexpbind)
@@ -2565,6 +2567,13 @@ source location.}#
 				  :nfla_field fld
 				  :nfla_val nexp)) )
 	     (multiple_put_nth nfields ix nfla)
+	     (let ( (fctyp (get_ctype nexp env)) )
+	       (debug_msg fctyp "normexp_instance fctyp")
+	       (if (!= fctyp ctype_value)
+		   (error_strv 
+		    fsloc 
+		    "invalid field type in (UNSAFE_PUT_FIELDS ..); expecting a :value"
+		    (get_field :named_name fld))))
 	     )))))
      (let ( (npuf (instance class_nrep_unsafe_put_fields
 			    :nrep_loc sloc
@@ -2617,7 +2626,9 @@ source location.}#
       (debug_msg clabox "normexp_put_fields clabox")
       (assert_msg "check fla" (is_a fla class_source_fieldassign))
       (let ( (fld (unsafe_get_field :sfla_field fla))
-	     (exp (unsafe_get_field :sfla_expr fla)) )
+	     (exp (unsafe_get_field :sfla_expr fla)) 
+	     (fsloc (or (unsafe_get_field :loca_location fla) sloc))
+	     )
 	(assert_msg "check fld" (is_a fld class_field))
 	(let ( (fcla (unsafe_get_field :fld_ownclass fld)) 
 	       (precla (box_content clabox))
@@ -2652,6 +2663,15 @@ source location.}#
 				:nrep_loc sloc
 				:nfla_field fld
 				:nfla_val nexp)) )
+	   (let ( (fctyp (get_ctype nexp env)) 
+		  )
+	     (if (!= fctyp ctype_value)
+		   (error_strv 
+		    fsloc 
+		    "invalid field type in (PUT_FIELDS ..); expecting a :value"
+		    (get_field :named_name fld))
+		 )
+	     )
 	   (multiple_put_nth nfields ix nfla)
 	   ))))
      (let (
@@ -2767,6 +2787,13 @@ source location.}#
 		  (nexp nbind)
 		  (normal_exp curexp env ncx curfloc)
 		  (assert_msg "check nbind" (is_list_or_null nbind))
+		  (let ( (fctyp (get_ctype nexp env)) )
+		    (debug_msg fctyp "normexp_instance fctyp")
+		    (if (!= fctyp ctype_value)
+			(error_strv 
+			 curfloc 
+			 "invalid field type in (INSTANCE ..); expecting a :value"
+			 (get_field :named_name curfield))))
 		  (list_append2list bindlist  nbind)
 		  (instance class_nrep_fieldassign
 			    :nrep_loc curfloc
@@ -3956,9 +3983,17 @@ source location.}#
        (debug_msg curnfieldass "normletrec_instance curnfieldass")
        (let ( (curfield (get_field :nfla_field curnfieldass)) 
 	      (curfval (get_field :nfla_val curnfieldass))
+	      (curfloc (get_field :nrep_loc curnfieldass))
 	      (:long curfoff (get_int curfield))
 	      )
 	 (assert_msg "check curfield " (is_a curfield class_field))
+	 (let ( (fctyp (get_ctype curfval env))
+		)
+	   (if (!= fctyp ctype_value)
+	       (error_strv
+			 curfloc 
+			 "invalid field type in (LETREC .. (INSTANCE ..); expecting a :value"
+			 (get_field :named_name curfield))))
 	 (multiple_put_nth bslots curfoff curfval)
        ))
       (list_append2list nrecbinds bindlist)
