@@ -411,7 +411,8 @@ struct GTY(()) tree_common {
    addressable_flag:
 
        TREE_ADDRESSABLE in
-           VAR_DECL, FUNCTION_DECL, FIELD_DECL, LABEL_DECL
+           VAR_DECL, PARM_DECL, RESULT_DECL, FUNCTION_DECL, FIELD_DECL
+           LABEL_DECL
            all types
            CONSTRUCTOR, IDENTIFIER_NODE
            STMT_EXPR, it means we want the result of the enclosed expression
@@ -1106,8 +1107,8 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 
 /* Define many boolean fields that all tree nodes have.  */
 
-/* In VAR_DECL nodes, nonzero means address of this is needed.
-   So it cannot be in a register.
+/* In VAR_DECL, PARM_DECL and RESULT_DECL nodes, nonzero means address
+   of this is needed.  So it cannot be in a register.
    In a FUNCTION_DECL, nonzero means its address is needed.
    So it must be compiled even if it is an inline function.
    In a FIELD_DECL node, it means that the programmer is permitted to
@@ -1973,8 +1974,6 @@ struct GTY(()) tree_omp_clause {
   tree GTY ((length ("omp_clause_num_ops[OMP_CLAUSE_CODE ((tree)&%h)]"))) ops[1];
 };
 
-
-struct varray_head_tag;
 
 /* In a BLOCK node.  */
 #define BLOCK_VARS(NODE) (BLOCK_CHECK (NODE)->block.vars)
@@ -4005,6 +4004,17 @@ extern tree build_var_debug_value_stat (tree, tree MEM_STAT_DECL);
 #define build_var_debug_value(t1,t2) \
   build_var_debug_value_stat (t1,t2 MEM_STAT_INFO)
 
+/* Constructs double_int from tree CST.  */
+
+static inline double_int
+tree_to_double_int (const_tree cst)
+{
+  return TREE_INT_CST (cst);
+}
+
+extern tree double_int_to_tree (tree, double_int);
+extern bool double_int_fits_to_tree_p (const_tree, double_int);
+
 extern tree build_int_cst (tree, HOST_WIDE_INT);
 extern tree build_int_cst_type (tree, HOST_WIDE_INT);
 extern tree build_int_cstu (tree, unsigned HOST_WIDE_INT);
@@ -4420,9 +4430,9 @@ extern tree size_diffop_loc (location_t, tree, tree);
 extern tree round_up_loc (location_t, tree, int);
 #define round_down(T,N) round_down_loc (UNKNOWN_LOCATION, T, N)
 extern tree round_down_loc (location_t, tree, int);
-extern tree get_pending_sizes (void);
+extern VEC(tree,gc) *get_pending_sizes (void);
 extern void put_pending_size (tree);
-extern void put_pending_sizes (tree);
+extern void put_pending_sizes (VEC(tree,gc) *);
 extern void finalize_size_functions (void);
 
 /* Type for sizes of data-type.  */
@@ -5163,6 +5173,30 @@ extern tree build_duplicate_type (tree);
 
 extern int flags_from_decl_or_type (const_tree);
 extern int call_expr_flags (const_tree);
+
+/* Call argument flags.  */
+
+/* Nonzero if the argument is not dereferenced recursively, thus only
+   directly reachable memory is read or written.  */
+#define EAF_DIRECT		(1 << 0)
+/* Nonzero if memory reached by the argument is not clobbered.  */
+#define EAF_NOCLOBBER		(1 << 1)
+/* Nonzero if the argument does not escape.  */
+#define EAF_NOESCAPE		(1 << 2)
+/* Nonzero if the argument is not used by the function.  */
+#define EAF_UNUSED		(1 << 3)
+
+/* Call return flags.  */
+
+/* Mask for the argument number that is returned.  Lower two bits of
+   the return flags, encodes argument slots zero to three.  */
+#define ERF_RETURN_ARG_MASK	(3)
+/* Nonzero if the return value is equal to the argument number
+   flags & ERF_RETURN_ARG_MASK.  */
+#define ERF_RETURNS_ARG		(1 << 2)
+/* Nonzero if the return value does not alias with anything.  Functions
+   with the malloc attribute have this set on their return value.  */
+#define ERF_NOALIAS		(1 << 3)
 
 extern int setjmp_call_p (const_tree);
 extern bool gimple_alloca_call_p (const_gimple);

@@ -23,6 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 #define GCC_CGRAPH_H
 #include "tree.h"
 #include "basic-block.h"
+#include "ipa-ref.h"
 
 enum availability
 {
@@ -87,7 +88,7 @@ struct GTY(()) cgraph_thunk_info {
 
 struct GTY(()) cgraph_local_info {
   /* File stream where this node is being written to.  */
-  struct lto_file_decl_data * GTY ((skip)) lto_file_data;
+  struct lto_file_decl_data * lto_file_data;
 
   struct inline_summary inline_summary;
 
@@ -110,10 +111,6 @@ struct GTY(()) cgraph_local_info {
   /* True when the function has been originally extern inline, but it is
      redefined now.  */
   unsigned redefined_extern_inline : 1;
-
-  /* True if statics_read_for_function and
-     statics_written_for_function contain valid data.  */
-  unsigned for_functions_valid : 1;
 
   /* True if the function is going to be emitted in some other translation
      unit, referenced from vtable.  */
@@ -139,9 +136,6 @@ struct GTY(()) cgraph_global_info {
 
   /* Estimated growth after inlining.  INT_MIN if not computed.  */
   int estimated_growth;
-
-  /* Set iff the function has been inlined at least once.  */
-  bool inlined;
 };
 
 /* Information about the function that is propagated by the RTL backend.
@@ -231,6 +225,7 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
      per-function in order to allow IPA passes to introduce new functions.  */
   VEC(ipa_opt_pass,heap) * GTY((skip)) ipa_transforms_to_apply;
 
+  struct ipa_ref_list ref_list;
   struct cgraph_local_info local;
   struct cgraph_global_info global;
   struct cgraph_rtl_info rtl;
@@ -434,7 +429,7 @@ DEF_VEC_ALLOC_P(cgraph_edge_p,heap);
 /* The varpool data structure.
    Each static variable decl has assigned varpool_node.  */
 
-struct GTY((chain_next ("%h.next"))) varpool_node {
+struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) varpool_node {
   tree decl;
   /* Pointer to the next function in varpool_nodes.  */
   struct varpool_node *next, *prev;
@@ -443,6 +438,7 @@ struct GTY((chain_next ("%h.next"))) varpool_node {
   /* For normal nodes a pointer to the first extra name alias.  For alias
      nodes a pointer to the normal node.  */
   struct varpool_node *extra_name;
+  struct ipa_ref_list ref_list;
   /* Ordering of all cgraph nodes.  */
   int order;
 
@@ -721,24 +717,6 @@ unsigned int compute_inline_parameters (struct cgraph_node *);
 /* Create a new static variable of type TYPE.  */
 tree add_new_static_var (tree type);
 
-/* lto-cgraph.c */
-
-enum LTO_cgraph_tags
-{
-  /* Must leave 0 for the stopper.  */
-  LTO_cgraph_avail_node = 1,
-  LTO_cgraph_overwritable_node,
-  LTO_cgraph_unavail_node,
-  LTO_cgraph_edge,
-  LTO_cgraph_indirect_edge,
-  LTO_cgraph_last_tag
-};
-
-extern const char * LTO_cgraph_tag_names[LTO_cgraph_last_tag];
-
-#define LCC_NOT_FOUND	(-1)
-
-
 /* Return true if iterator CSI points to nothing.  */
 static inline bool
 csi_end_p (cgraph_node_set_iterator csi)
@@ -852,6 +830,20 @@ struct GTY(()) constant_descriptor_tree {
   hashval_t hash;
 };
 
+/* Return true if set is nonempty.  */
+static inline bool
+cgraph_node_set_nonempty_p (cgraph_node_set set)
+{
+  return VEC_length (cgraph_node_ptr, set->nodes);
+}
+
+/* Return true if set is nonempty.  */
+static inline bool
+varpool_node_set_nonempty_p (varpool_node_set set)
+{
+  return VEC_length (varpool_node_ptr, set->nodes);
+}
+
 /* Return true when function NODE is only called directly.
    i.e. it is not externally visible, address was not taken and
    it is not used in any other non-standard way.  */
@@ -874,5 +866,7 @@ cgraph_can_remove_if_no_direct_calls_p (struct cgraph_node *node)
 
 /* Constant pool accessor function.  */
 htab_t constant_pool_htab (void);
+
+#include "ipa-ref-inline.h"
 
 #endif  /* GCC_CGRAPH_H  */

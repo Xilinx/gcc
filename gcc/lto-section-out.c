@@ -28,7 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "params.h"
 #include "input.h"
-#include "varray.h"
 #include "hashtab.h"
 #include "basic-block.h"
 #include "tree-flow.h"
@@ -542,8 +541,6 @@ lto_new_out_decl_state (void)
 	}
       lto_init_tree_ref_encoder (&state->streams[i], hash_fn, eq_fn);
     }
-
-  state->cgraph_node_encoder = lto_cgraph_encoder_new ();
 
   return state;
 }

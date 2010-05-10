@@ -61,6 +61,7 @@ static void casts_away_constness_r (tree *, tree *);
 static bool casts_away_constness (tree, tree);
 static void maybe_warn_about_returning_address_of_local (tree);
 static tree lookup_destructor (tree, tree, tree);
+static void warn_args_num (location_t, tree, bool);
 static int convert_arguments (tree, VEC(tree,gc) **, tree, int,
                               tsubst_flags_t);
 
@@ -1630,6 +1631,8 @@ cxx_sizeof_expr (tree e, tsubst_flags_t complain)
       && DECL_TEMPLATE_INSTANTIATION (e))
     instantiate_decl (e, /*defer_ok*/true, /*expl_inst_mem*/false);
 
+  e = mark_type_use (e);
+
   if (TREE_CODE (e) == COMPONENT_REF
       && TREE_CODE (TREE_OPERAND (e, 1)) == FIELD_DECL
       && DECL_C_BIT_FIELD (TREE_OPERAND (e, 1)))
@@ -1684,6 +1687,8 @@ cxx_alignof_expr (tree e, tsubst_flags_t complain)
 
       return e;
     }
+
+  e = mark_type_use (e);
 
   if (TREE_CODE (e) == VAR_DECL)
     t = size_int (DECL_ALIGN_UNIT (e));
@@ -1834,7 +1839,9 @@ unlowered_expr_type (const_tree exp)
    in an rvalue context: the lvalue-to-rvalue, array-to-pointer, and
    function-to-pointer conversions.  In addition, manifest constants
    are replaced by their values, and bitfield references are converted
-   to their declared types.
+   to their declared types. Note that this function does not perform the
+   lvalue-to-rvalue conversion for class types. If you need that conversion
+   to for class types, then you probably need to use force_rvalue.
 
    Although the returned value is being used as an rvalue, this
    function does not wrap the returned expression in a
@@ -1850,6 +1857,8 @@ decay_conversion (tree exp)
   type = TREE_TYPE (exp);
   if (type == error_mark_node)
     return error_mark_node;
+
+  exp = mark_rvalue_use (exp);
 
   exp = resolve_nondeduced_context (exp);
   if (type_unknown_p (exp))
@@ -1974,6 +1983,8 @@ perform_integral_promotions (tree expr)
 {
   tree type;
   tree promoted_type;
+
+  expr = mark_rvalue_use (expr);
 
   /* [conv.prom]
 
@@ -3286,6 +3297,44 @@ cp_build_function_call_vec (tree function, VEC(tree,gc) **params,
   return ret;
 }
 
+/* Subroutine of convert_arguments.
+   Warn about wrong number of args are genereted. */
+
+static void
+warn_args_num (location_t loc, tree fndecl, bool too_many_p)
+{
+  if (fndecl)
+    {
+      if (TREE_CODE (TREE_TYPE (fndecl)) == METHOD_TYPE)
+	{
+	  if (DECL_NAME (fndecl) == NULL_TREE
+	      || IDENTIFIER_HAS_TYPE_VALUE (DECL_NAME (fndecl)))
+	    error_at (loc,
+		      too_many_p
+		      ? G_("too many arguments to constructor %q#D")
+		      : G_("too few arguments to constructor %q#D"),
+		      fndecl);
+	  else
+	    error_at (loc,
+		      too_many_p
+		      ? G_("too many arguments to member function %q#D")
+		      : G_("too few arguments to member function %q#D"),
+		      fndecl);
+	}
+      else
+	error_at (loc,
+		  too_many_p
+		  ? G_("too many arguments to function %q#D")
+		  : G_("too few arguments to function %q#D"),
+		  fndecl);
+      inform (DECL_SOURCE_LOCATION (fndecl),
+	      "declared here");
+    }
+  else
+    error_at (loc, too_many_p ? G_("too many arguments to function")
+		      	      : G_("too few arguments to function"));
+}
+
 /* Convert the actual parameter expressions in the list VALUES to the
    types in the list TYPELIST.  The converted expressions are stored
    back in the VALUES vector.
@@ -3307,25 +3356,10 @@ convert_arguments (tree typelist, VEC(tree,gc) **values, tree fndecl,
 		   int flags, tsubst_flags_t complain)
 {
   tree typetail;
-  const char *called_thing = 0;
   unsigned int i;
 
   /* Argument passing is always copy-initialization.  */
   flags |= LOOKUP_ONLYCONVERTING;
-
-  if (fndecl)
-    {
-      if (TREE_CODE (TREE_TYPE (fndecl)) == METHOD_TYPE)
-	{
-	  if (DECL_NAME (fndecl) == NULL_TREE
-	      || IDENTIFIER_HAS_TYPE_VALUE (DECL_NAME (fndecl)))
-	    called_thing = "constructor";
-	  else
-	    called_thing = "member function";
-	}
-      else
-	called_thing = "function";
-    }
 
   for (i = 0, typetail = typelist;
        i < VEC_length (tree, *values);
@@ -3341,15 +3375,7 @@ convert_arguments (tree typelist, VEC(tree,gc) **values, tree fndecl,
 	{
           if (complain & tf_error)
             {
-              if (fndecl)
-                {
-                  error_at (input_location, "too many arguments to %s %q#D", 
-			    called_thing, fndecl);
-		  inform (DECL_SOURCE_LOCATION (fndecl),
-			  "declared here");
-                }
-              else
-                error ("too many arguments to function");
+	      warn_args_num (input_location, fndecl, /*too_many_p=*/true);
               return i;
             }
           else
@@ -3454,17 +3480,7 @@ convert_arguments (tree typelist, VEC(tree,gc) **values, tree fndecl,
       else
 	{
           if (complain & tf_error)
-            {
-              if (fndecl)
-                {
-                  error_at (input_location, "too few arguments to %s %q#D", 
-			    called_thing, fndecl);
-		  inform (DECL_SOURCE_LOCATION (fndecl),
-			  "declared here");
-                }
-              else
-                error ("too few arguments to function");
-            }
+	    warn_args_num (input_location, fndecl, /*too_many_p=*/false);
 	  return -1;
 	}
     }
@@ -3977,6 +3993,9 @@ cp_build_binary_op (location_t location,
 	    }
 	  result_type = type1;
 	}
+      else if (null_ptr_cst_p (op0) && null_ptr_cst_p (op1))
+	/* One of the operands must be of nullptr_t type.  */
+        result_type = TREE_TYPE (nullptr_node);
       else if (code0 == POINTER_TYPE && code1 == INTEGER_TYPE)
 	{
 	  result_type = type0;
@@ -4168,18 +4187,21 @@ cp_build_binary_op (location_t location,
 	}
 
       build_type = boolean_type_node;
-      if ((code0 == INTEGER_TYPE || code0 == REAL_TYPE)
-	   && (code1 == INTEGER_TYPE || code1 == REAL_TYPE))
+      if ((code0 == INTEGER_TYPE || code0 == REAL_TYPE
+	   || code0 == ENUMERAL_TYPE)
+	   && (code1 == INTEGER_TYPE || code1 == REAL_TYPE
+	       || code1 == ENUMERAL_TYPE))
 	short_compare = 1;
       else if (code0 == POINTER_TYPE && code1 == POINTER_TYPE)
 	result_type = composite_pointer_type (type0, type1, op0, op1,
 					      CPO_COMPARISON, complain);
-      else if (code0 == POINTER_TYPE && TREE_CODE (op1) == INTEGER_CST
-	       && integer_zerop (op1))
+      else if (code0 == POINTER_TYPE && null_ptr_cst_p (op1))
 	result_type = type0;
-      else if (code1 == POINTER_TYPE && TREE_CODE (op0) == INTEGER_CST
-	       && integer_zerop (op0))
+      else if (code1 == POINTER_TYPE && null_ptr_cst_p (op0))
 	result_type = type1;
+      else if (null_ptr_cst_p (op0) && null_ptr_cst_p (op1))
+	/* One of the operands must be of nullptr_t type.  */
+        result_type = TREE_TYPE (nullptr_node);
       else if (code0 == POINTER_TYPE && code1 == INTEGER_TYPE)
 	{
 	  result_type = type0;
@@ -4799,6 +4821,8 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
       if (val != 0)
 	return val;
 
+      arg = mark_lvalue_use (arg);
+
       /* Increment or decrement the real part of the value,
 	 and don't change the imaginary part.  */
       if (TREE_CODE (TREE_TYPE (arg)) == COMPLEX_TYPE)
@@ -4931,6 +4955,8 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	 regardless of NOCONVERT.  */
 
       argtype = lvalue_type (arg);
+
+      arg = mark_lvalue_use (arg);
 
       if (TREE_CODE (arg) == OFFSET_REF)
 	goto offset_ref;
@@ -6020,8 +6046,11 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
 
   /* [expr.reinterpret.cast]
      A pointer can be converted to any integral type large enough to
-     hold it.  */
-  if (CP_INTEGRAL_TYPE_P (type) && TYPE_PTR_P (intype))
+     hold it. ... A value of type std::nullptr_t can be converted to
+     an integral type; the conversion has the same meaning and
+     validity as a conversion of (void*)0 to the integral type.  */
+  if (CP_INTEGRAL_TYPE_P (type)
+      && (TYPE_PTR_P (intype) || TREE_CODE (intype) == NULLPTR_TYPE))
     {
       if (TYPE_PRECISION (type) < TYPE_PRECISION (intype))
         {
@@ -6031,6 +6060,8 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
           else
             return error_mark_node;
         }
+      if (TREE_CODE (intype) == NULLPTR_TYPE)
+        return build_int_cst (type, 0);
     }
   /* [expr.reinterpret.cast]
      A value of integral or enumeration type can be explicitly
@@ -8056,3 +8087,4 @@ lvalue_or_else (tree ref, enum lvalue_use use, tsubst_flags_t complain)
 
   return win;
 }
+

@@ -30,6 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "vec.h"
 #include "vecprim.h"
+#include "alloc-pool.h"
 
 /* Define when debugging the LTO streamer.  This causes the writer
    to output the numeric value for the memory address of the tree node
@@ -257,6 +258,7 @@ enum lto_section_type
   LTO_section_static_initializer,
   LTO_section_cgraph,
   LTO_section_varpool,
+  LTO_section_refs,
   LTO_section_jump_functions,
   LTO_section_ipa_pure_const,
   LTO_section_ipa_reference,
@@ -344,6 +346,9 @@ struct lto_streamer_cache_d
 {
   /* The mapping between tree nodes and slots into the nodes array.  */
   htab_t node_map;
+
+  /* Node map to store entries into.  */
+  alloc_pool node_map_entries;
 
   /* Next available slot in the nodes and offsets arrays.  */
   unsigned next_slot;
@@ -466,11 +471,25 @@ struct lto_cgraph_encoder_d
 
 typedef struct lto_cgraph_encoder_d *lto_cgraph_encoder_t;
 
+/* Encoder data structure used to stream callgraph nodes.  */
+struct lto_varpool_encoder_d
+{
+  /* Map nodes to reference number. */
+  struct pointer_map_t *map;
+
+  /* Map reference number to node. */
+  VEC(varpool_node_ptr,heap) *nodes;
+
+  /* Map of nodes where we want to output initializer.  */
+  struct pointer_set_t *initializer;
+};
+typedef struct lto_varpool_encoder_d *lto_varpool_encoder_t;
+
 /* Mapping from indices to trees.  */
-struct lto_tree_ref_table
+struct GTY(()) lto_tree_ref_table
 {
   /* Array of referenced trees . */
-  tree *trees;
+  tree * GTY((length ("%h.size"))) trees;
 
   /* Size of array. */
   unsigned int size;
@@ -496,7 +515,7 @@ struct lto_tree_ref_encoder
 
 
 /* Structure to hold states of input scope.  */
-struct lto_in_decl_state
+struct GTY(()) lto_in_decl_state
 {
   /* Array of lto_in_decl_buffers to store type and decls streams. */
   struct lto_tree_ref_table streams[LTO_N_DECL_STREAMS];
@@ -520,6 +539,9 @@ struct lto_out_decl_state
   /* Encoder for cgraph nodes.  */
   lto_cgraph_encoder_t cgraph_node_encoder;
 
+  /* Encoder for varpool nodes.  */
+  lto_varpool_encoder_t varpool_node_encoder;
+
   /* If this out-decl state belongs to a function, fn_decl points to that
      function.  Otherwise, it is NULL. */
   tree fn_decl;
@@ -534,7 +556,7 @@ DEF_VEC_ALLOC_P(lto_out_decl_state_ptr, heap);
    by lto.  This structure contains the tables that are needed by the
    serialized functions and ipa passes to connect themselves to the
    global types and decls as they are reconstituted.  */
-struct lto_file_decl_data
+struct GTY(()) lto_file_decl_data
 {
   /* Decl state currently used. */
   struct lto_in_decl_state *current_decl_state;
@@ -544,22 +566,22 @@ struct lto_file_decl_data
   struct lto_in_decl_state *global_decl_state;
 
   /* Table of cgraph nodes present in this file.  */
-  lto_cgraph_encoder_t cgraph_node_encoder;
+  lto_cgraph_encoder_t GTY((skip)) cgraph_node_encoder;
+
+  /* Table of varpool nodes present in this file.  */
+  lto_varpool_encoder_t GTY((skip)) varpool_node_encoder;
 
   /* Hash table maps lto-related section names to location in file.  */
-  htab_t function_decl_states;
+  htab_t GTY((param_is (struct lto_in_decl_state))) function_decl_states;
 
   /* The .o file that these offsets relate to.  */
-  const char *file_name;
-
-  /* Nonzero if this file should be recompiled with LTRANS.  */
-  unsigned needs_ltrans_p : 1;
+  const char *GTY((skip)) file_name;
 
   /* Hash table maps lto-related section names to location in file.  */
-  htab_t section_hash_table;
+  htab_t GTY((skip)) section_hash_table;
 
   /* Hash new name of renamed global declaration to its original name.  */
-  htab_t renaming_hash_table;
+  htab_t GTY((skip)) renaming_hash_table;
 };
 
 struct lto_char_ptr_base
@@ -828,11 +850,19 @@ struct cgraph_node *lto_cgraph_encoder_deref (lto_cgraph_encoder_t, int);
 int lto_cgraph_encoder_lookup (lto_cgraph_encoder_t, struct cgraph_node *);
 lto_cgraph_encoder_t lto_cgraph_encoder_new (void);
 int lto_cgraph_encoder_encode (lto_cgraph_encoder_t, struct cgraph_node *);
-void lto_cgraph_encoder_delete (lto_cgraph_encoder_t encoder);
-void output_cgraph (cgraph_node_set);
+void lto_cgraph_encoder_delete (lto_cgraph_encoder_t);
+struct varpool_node *lto_varpool_encoder_deref (lto_varpool_encoder_t, int);
+int lto_varpool_encoder_lookup (lto_varpool_encoder_t, struct varpool_node *);
+lto_varpool_encoder_t lto_varpool_encoder_new (void);
+int lto_varpool_encoder_encode (lto_varpool_encoder_t, struct varpool_node *);
+void lto_varpool_encoder_delete (lto_varpool_encoder_t);
+bool lto_varpool_encoder_encode_initializer_p (lto_varpool_encoder_t,
+					       struct varpool_node *);
+void output_cgraph (cgraph_node_set, varpool_node_set);
 void input_cgraph (void);
-void output_varpool (varpool_node_set);
-void input_varpool (void);
+bool referenced_from_other_partition_p (struct ipa_ref_list *,
+				        cgraph_node_set,
+				        varpool_node_set vset);
 
 
 /* In lto-symtab.c.  */
@@ -921,38 +951,6 @@ lto_tag_to_tree_code (enum LTO_tags tag)
   gcc_assert (lto_tag_is_tree_code_p (tag));
   return (enum tree_code) ((unsigned) tag - 1);
 }
-
-
-/* Return true if FILE needs to be compiled with LTRANS.  */
-static inline bool
-lto_file_needs_ltrans_p (struct lto_file_decl_data *file)
-{
-  return file->needs_ltrans_p != 0;
-}
-
-
-/* Mark FILE to be compiled with LTRANS.  */
-static inline void
-lto_mark_file_for_ltrans (struct lto_file_decl_data *file)
-{
-  file->needs_ltrans_p = 1;
-}
-
-
-/* Return true if any files in node set SET need to be compiled
-   with LTRANS.  */
-static inline bool
-cgraph_node_set_needs_ltrans_p (cgraph_node_set set)
-{
-  cgraph_node_set_iterator csi;
-
-  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
-    if (lto_file_needs_ltrans_p (csi_node (csi)->local.lto_file_data))
-      return true;
-
-  return false;
-}
-
 
 /* Initialize an lto_out_decl_buffer ENCODER.  */
 static inline void

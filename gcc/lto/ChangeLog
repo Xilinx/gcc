@@ -1,3 +1,67 @@
+2010-05-07  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* lto.h (struct lto_file_struct): Document offset member.
+	* lto-endian.h: New file.
+	* lto-macho.h: New file.
+	* lto-macho.c: New file.
+	* Make-lang.in: Add rule for lto-macho.o.
+
+2010-05-07  Richard Guenther <rguenther@suse.de>
+
+	PR lto/43857
+	PR lto/43371
+	* lang.opt (fresolution): Change to ...
+	(fresolution=): ... this.
+	* lto-lang.c (lto_handle_option): Adjust.
+
+2010-05-07  Richard Guenther  <rguenther@suse.de>
+
+	* lto.c (DUMPBASE_SUFFIX): Remove.
+	(lto_execute_ltrans): Move functionality to lto-wrapper.c.
+	Rename to ...
+	(lto_write_ltrans_list): ... only output the list of ltrans files.
+	(lto_maybe_unlink): Remove.
+	(do_whole_program_analysis): Do not execute LTRANS phase
+	from here.
+
+2010-05-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* lto-lang.c (lto_handle_option): Add argument kind.
+
+2010-05-05  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_promote_cross_file_statics): Compute boundary based on
+	refs.
+
+2010-05-05  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_1_to_1_map): Partition only needed nodes.
+
+2010-04-30  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (get_filename_for_set): Look for cgraph node and if none found, use
+	default name.
+	(lto_wpa_write_files): Write any non-empty partition.
+
+2010-04-30  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c: Do not attempt to make constant pool references global.
+
+2010-04-28  Jan Hubicka  <jh@suse.cz>
+
+	* lto/lto.c (lto_read_in_decl_state): Use GGC.
+	(lto_wpa_write_files): Announce what we are writting.
+	(all_file_decl_data): New.
+	(read_cgraph_and_symbols): Use GGC; correct timevars.
+	(do_whole_program_analysis): Collect.
+	* lto/Make-lang.in (lto.o): Fix dependency.
+	* Makefile.in (GTFILES): Add lto-streamer.h.
+	* varpool.c (varpool_analyze_pending_decls): Use TV_VARPOOL.
+	(varpool_assemble_pending_decls): Use VAROUT.
+	* lto-streamer.h (lto_tree_ref_table): Annotate.
+	(lto_in_decl_state): Annotate.
+	(lto_file_decl_data): Annotate.
+
 2010-04-28  Jan Hubicka  <jh@suse.cz>
 
 	* lto.c (lto_varpool_node_sets): New.

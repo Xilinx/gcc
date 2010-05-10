@@ -616,14 +616,15 @@ lto_init_options (unsigned int argc ATTRIBUTE_UNUSED,
 
 const char *resolution_file_name;
 static int
-lto_handle_option (size_t scode, const char *arg, int value ATTRIBUTE_UNUSED)
+lto_handle_option (size_t scode, const char *arg,
+		   int value ATTRIBUTE_UNUSED, int kind ATTRIBUTE_UNUSED)
 {
   enum opt_code code = (enum opt_code) scode;
   int result = 1;
 
   switch (code)
     {
-    case OPT_fresolution:
+    case OPT_fresolution_:
       resolution_file_name = arg;
       result = 1;
       break;

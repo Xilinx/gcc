@@ -1531,8 +1531,6 @@ AC_ARG_WITH(boot-ldflags,
 AC_SUBST(poststage1_ldflags)
 
 # Check for PPL
-ppl_major_version=0
-ppl_minor_version=10
 ppllibs=" -lppl_c -lppl -lgmpxx"
 pplinc=
 
@@ -1573,9 +1571,9 @@ ENABLE_PPL_CHECK=yes)
 if test "x$with_ppl" != "xno" -a "${ENABLE_PPL_CHECK}" = "yes"; then
   saved_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $pplinc $gmpinc"
-  AC_MSG_CHECKING([for version $ppl_major_version.$ppl_minor_version of PPL])
+  AC_MSG_CHECKING([for version 0.10 (or later revision) of PPL])
   AC_TRY_COMPILE([#include "ppl_c.h"],[
-  #if PPL_VERSION_MAJOR != $ppl_major_version || PPL_VERSION_MINOR != $ppl_minor_version
+  #if PPL_VERSION_MAJOR != 0 || PPL_VERSION_MINOR < 10
   choke me
   #endif
   ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); ppllibs= ; pplinc= ; with_ppl=no ])
@@ -1805,6 +1803,7 @@ fi],[if test x"$default_enable_lto" = x"yes" ; then
   # -flto it won't be needed until after installation anyway.
     case $target in
       *-cygwin*|*-mingw*) ;;
+      x86_64-apple-darwin*) ;;
       *) if test x"$enable_lto" = x"yes"; then
 	AC_MSG_ERROR([LTO support is not enabled for this target.])
         fi

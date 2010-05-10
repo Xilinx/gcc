@@ -1,8 +1,1215 @@
+2010-05-10  Jan Hubicka  <jh@suse.cz>
+
+	* lto-stramer-out.c (produce_asm_for_decls): Correct accidentally commited change.
+
+2010-05-10  Jan Hubicka  <jh@suse.cz>
+
+	* passes.c (ipa_write_summaries_1, ipa_write_optimization_summaries): Allocate
+	encoders.
+	* lto-section-out.c (lto_new_out_decl_state): Do not allocate it here.
+	* lto-streamer.c (lto_streamer_cache_insert_1): Use alloc pool.
+	(lto_streamer_cache_create): Init alloc pool.
+	(lto_streamer_cache_delete): Free alloc pool.
+	* lto-streamer.h: Include alloc pool.
+	(lto_streamer_cache_d): Use alloc pool.
+	* lto-stramer-out.c (produce_asm_for_decls): Delete fn_out_states.
+
+2010-05-10  Jan Hubicka  <jh@suse.cz>
+
+	* Makefile.in (cgraphbuild.o): Add dependency on except.h.
+	* cgraphbuild.c: Include except.h
+	(record_type_list, record_eh_tables): New function.
+	(build_cgraph_edges, rebuild_cgraph_edges): Use it.
+
+2010-05-10  Jan Hubicka  <jh@suse.cz>
+
+	* crtstuff.c (force_to_data, __do_global_dtors_aux_fini_array_entry,
+	__frame_dummy_init_array_entry, force_to_data): Attribute as used
+	rather than unused.
+
+2010-05-10  Michael Matz  <matz@suse.de>
+
+	* tree-ssa-reassoc.c (undistribute_ops_list): Use create_tmp_reg.
+	(can_reassociate_p): Use FLOAT_TYPE_P.
+	* tree-vectorizer.h (vect_is_simple_reduction): Rename to ...
+	(vect_force_simple_reduction): ... this.
+	* tree-parloops.c (gather_scalar_reductions): Use
+	vect_force_simple_reduction.
+	* tree-vect-loop.c (vect_is_simple_reduction_1): Rename from
+	vect_is_simple_reduction, add modify argument, if true rewrite
+	"a-b" into "a+(-b)".
+	(vect_is_simple_reduction, vect_force_simple_reduction): New
+	functions.
+	(vect_analyze_scalar_cycles_1): Use vect_force_simple_reduction.
+
+2010-05-10  H.J. Lu  <hongjiu.lu@intel.com>
+	    Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/44012
+	* ira-build.c (remove_unnecessary_allocnos): Nullify
+	regno_allocno_map of the removed allocno.
+
+2010-05-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gcc_cv_ld_eh_gc_sections): Redirect objdump errors
+	to /dev/null.
+	* configure: Regenerate.
+
+2010-05-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/sol2.c (solaris_assemble_visibility): Declare decl, vis
+	unused.
+	Define visibility_types, name, type inside HAVE_GAS_HIDDEN.
+	* configure.ac (gcc_cv_ld_hidden): Explain stages of visibility
+	support in Sun ld.
+	* configure: Regenerate.
+
+2010-05-10  Richard Guenther  <rguenther@suse.de>
+
+	* lto-symtab.c (lto_symtab_entry_marked_p): Make entry
+	marked if the entry identifier is marked.
+
+2010-05-10  Richard Guenther  <rguenther@suse.de>
+
+	* c-common.c (struct c_common_attributes): Add fnspec attribute.
+	(handle_fnspec_attribute): New function.
+	* gimple.h (gimple_call_return_flags): Declare.
+	(gimple_call_arg_flags): Likewise.
+	* gimple.c (gimple_call_arg_flags): New function.
+	(gimple_call_return_flags): Likewise.
+	* tree.h (EAF_DIRECT, EAF_NOCLOBBER, EAF_NOESCAPE, EAF_UNUSED):
+	New argument flags.
+	(ERF_RETURN_ARG_MASK, ERF_RETURNS_ARG, ERF_NOALIAS): New function
+	return value flags.
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Skip unused args.
+	* tree-ssa-structalias.c (make_constraint_from_heapvar): Split
+	main work to ...
+	(make_heapvar_for): ... this new function.
+	(handle_rhs_call): Handle fnspec attribute argument specifiers.
+	(handle_lhs_call): Likewise.
+	(find_func_aliases): Adjust.
+
+2010-05-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44050
+	* tree-inline.c (tree_function_versioning): Clone the ipa-pta flag.
+
+2010-05-10  Wei Guozhi  <carrot@google.com>
+
+	PR target/42879
+	* config/arm/thumb2.md (thumb2_tlobits_cbranch): New insn pattern.
+
+2010-05-09  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/10676
+	* c-typeck.c (lookup_field): Take a type directly.  Update
+	recursive calls.
+	(build_component_ref): Update call to lookup_field.
+	(set_init_label): Use lookup_field to find initialized field.
+	Handle returned list of fields like a sequence of designators.
+
+2010-05-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44024
+	* fold-const.c (tree_single_nonzero_warnv_p): Properly
+	handle &FUNCTION_DECL.
+
+2010-05-09  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/4784
+	* c-decl.c (detect_field_duplicates_hash): New.  Handle anonymous
+	structures and unions recursively.
+	(detect_field_duplicates): Move duplicate detection with a hash to
+	detect_field_duplicates_hash.  Always use a hash if anonymous
+	structures or unions are present.
+	* doc/extend.texi (Unnamed Fields): Document that duplicate fields
+	give errors.
+
+2010-05-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44046
+	* config/i386/driver-i386.c (host_detect_local_cpu): Properly
+	detect Atom, Core 2 and Core i7.
+
+2010-05-09  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c (store_arg): Handle temporary file deletion for
+	joined arguments.
+
+2010-05-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44043
+	* ipa-inline.c (estimate_function_body_sizes): Return after
+	disregarding inline limits.
+
+2010-05-09  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c (store_arg): Revert last change.
+
+2010-05-08  Sandra Loosemore  <sandra@codesourcery.com>
+
+	PR middle-end/28685
+	* tree-ssa-reassoc.c (eliminate_redundant_comparison): New function.
+	(optimize_ops_list): Call it.
+
+2010-05-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44030
+	* tree-ssa-pre.c (eliminate): Copy NECESSARY flag.  Set
+	NECESSARY flag if we propagate from a inserted expression.
+
+2010-05-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gimple.c (gimple_types_compatible_p) <ARRAY_TYPE>: Treat bounds of
+	domain types as equal if they are both PLACEHOLDER_EXPRs.
+
+2010-05-08  Richard Guenther  <rguenther@suse.de>
+
+	* lto-wrapper.c (run_gcc): Remove linker output from
+	command line for LTRANS invocation.
+
+2010-05-07  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* config.gcc (i[34567]86-*-darwin*, x86_64-*-darwin*): Add
+	lto-macho as lto_binary_reader.
+	* target.h (struct gcc_target): New hooks lto_start and	lto_end.
+	* target-def.h (TARGET_ASM_LTO_START, TARGET_ASM_LTO_END): Define.
+	* cgraphunit.c (ipa_passes): Wrap LTO assembler output generation
+	in lto_start and lto_end calls.
+	(is_elf_or_coff): Rename to maybe_lto_object_file.  Add Mach-O
+	magic numbers.
+	(scan_prog_file): Update is_elf_or_coff call.
+	* doc/tm.text (TARGET_ASM_LTO_START, TARGET_ASM_LTO_END): Document.
+
+	* collect2.c (main): Fix enum comparison.
+
+	* config/darwin-protos.h (darwin_asm_lto_start, darwin_asm_lto_end):
+	Add prototypes.
+	* darwin9.h (LINK_COMMAND_SPEC): Pass -flto and -fwhopr to the linker.
+	* darwin.h (LINK_COMMAND_SPEC): Likewise.  Define TARGET_ASM_LTO_START
+	and TARGET_ASM_LTO_END.
+	* darwin.c: Include obstack.h and lto-streamer.h.
+	(lto_section_names_offset, lto_section_names_obstack,
+	lto_asm_out_file, lto_asm_out_name, saved_asm_out_file): New static
+	global variables.
+	(LTO_SEGMENT_NAME, LTO_NAMES_SECTION): New defines.
+	(darwin_asm_lto_start): New function.  Redirect output to asm_out_file
+	to a temporary file.
+	(darwin_asm_lto_end): New function.  Restore asm_out_file.
+	(darwin_asm_named_section): For LTO sections, replace the name with
+	the offset of the section name in a string table, and build this
+	table.
+	(darwin_file_start): Initialize global vars for LTO support.
+	(darwin_file_end): If output to asm_out_file was redirected, append it
+	to the proper asm_out_file here.  Add the section names section.
+
+2010-05-07  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c-pragma.c (pending_weak_d, pending_weak): New.
+	(pending_weaks): Change the type to VEC((pending_weak,gc) *.
+	(maybe_apply_pragma_weak, maybe_apply_pending_pragma_weaks,
+	handle_pragma_weak): Update the uses of pending_weaks.
+
+2010-05-07  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR documentation/44016
+	* doc/standards.texi (Standards): Link to unversioned
+	cxx0x_status.html page.
+
+2010-05-07  Iain Sandoe <iains@gcc.gnu.org>
+
+	PR target/43708
+	* config/darwin-c.c (darwin_pragma_unused): Set DECL_READ_P
+	in addition to TREE_USED, to avoid "set but unused" warnings.
+
+2010-05-07  Changpeng Fang  <changpeng.fang@amd.com>
+
+	* tree-ssa-loop-prefetch.c (TRIP_COUNT_TO_AHEAD_RATIO): New.
+	(is_loop_prefetching_profitable): Do not insert prefetches
+	when the trip count is not at least TRIP_COUNT_TO_AHEAD_RATIO
+	times the prefetch ahead distance.
+
+2010-05-07  Changpeng Fang  <changpeng.fang@amd.com>
+
+	* tree-ssa-loop-prefetch.c (is_loop_prefetching_profitable):
+	Account for loop unrolling in the insn-to-prefetch ratio heuristic.
+	(loop_prefetch_arrays): Pass to is_loop_prefetching_profitable
+	the unroll_factor.
+
+2010-05-07  Changpeng Fang  <changpeng.fang@amd.com>
+
+	* tree-ssa-loop-prefetch.c (is_loop_prefetching_profitable): Dump
+	a diagnostic info when the insn-to-mem ratio is too small.
+
+2010-05-07  Richard Guenther <rguenther@suse.de>
+
+	* gcc.c (LINK_COMMAND_SPEC): Provide a resolution file to
+	the linker plugin.
+	(store_arg): Queue temp_filename for deletion instead of
+	the whole argument.
+
+2010-05-07  Richard Guenther  <rguenther@suse.de>
+
+	* lto-wrapper.c (DUMPBASE_SUFFIX): Define.
+	(run_gcc): Handle LTRANS phase invocation.
+	* collect2.c (maybe_run_lto_and_relink): Do not set WPA_SAVE_LTRANS.
+
+2010-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree.h (TREE_ADDRESSABLE): Adjust comment to say that
+	this is also meaningful on PARM_DECLs and RESULT_DECLs.
+
+2010-05-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/mips/iris6.h (LINK_SPEC): Don't pass -init, -fini with -r.
+
+2010-05-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44020
+	* tree-ssa-pre.c (execute_pre): Do not remove dead inserted
+	code when PRE is not yet initialized.
+
+2010-05-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/mips/dbxmdebug.h: Remove.
+	* config.gcc (mips-sgi-irix6.5*): Remove mips/dbxmdebug.h.
+
+2010-05-07  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* c-typeck.c (build_binary_op): Warn ordered comparison of pointer
+	with null pointer and also warn about ordered comparison of zero with
+	pointer if -Wextra.
+
+2010-05-05  Andreas Simbuerger  <simbuerg@fim.uni-passau.de>
+
+	* graphite-blocking.c
+	(pbb_strip_mine_profitable_p): Replace Value with mpz_t.
+	* graphite-clast-to-gimple.c
+	(clast_to_gcc_expression): Same.
+	(precision_for_value): Same.
+	(precision_for_interval): Same.
+	(gcc_type_for_interval): Same.
+	(graphite_create_new_guard): Same.
+	(compute_bounds_for_level): Same.
+	(graphite_create_new_loop_guard): Same.
+	* graphite-interchange.c
+	(build_linearized_memory_access): Same.
+	(pdr_stride_in_loop): Same.
+	(memory_strides_in_loop_1): Same.
+	(memory_strides_in_loop): Same.
+	(extend_scattering): Same.
+	(psct_scattering_dim_for_loop_depth): Same.
+	(pbb_number_of_iterations): Same.
+	* graphite-poly.h
+	(debug_iteration_domains): Same.
+	* graphite-ppl.c
+	(new_Cloog_Domain_from_ppl_Pointset_Powerset): Same.
+	(ppl_set_inhomogeneous_gmp): Same.
+	(ppl_strip_loop): Same.
+	(ppl_lexico_compare_linear_expressions): Same.
+	(ppl_read_polyhedron_matrix): Same.
+	(ppl_max_for_le_pointset): Same.
+	* graphite-ppl.h
+	(ppl_read_polyhedron_matrix): Same.
+	(tree_int_to_gmp): Same.
+	(gmp_cst_to_tree): Same.
+	(ppl_set_inhomogeneous): Same.
+	(ppl_set_inhomogeneous_tree): Same.
+	(ppl_set_coef): Same.
+	(ppl_set_coef_tree): Same.
+	* graphite-sese-to-poly.c
+	(build_pbb_scattering_polyhedrons): Same.
+	(build_scop_scattering): Same.
+	(scan_tree_for_params_right_scev): Same.
+	(scan_tree_for_params): Same.
+	(find_params_in_bb): Same.
+	(find_scop_parameters): Same.
+	(add_upper_bounds_from_estimated_nit): Same.
+	(build_loop_iteration_domains): Same.
+	(add_condition_to_domain): Same.
+	(pdr_add_memory_accesses): Same.
+
+2010-05-05  Andreas Simbuerger  <simbuerg@fim.uni-passau.de>
+
+	* graphite-blocking.c (pbb_strip_mine_profitable_p): Resolve
+	CLooG's value_* macros to their respective mpz_* counterparts.
+	* graphite-clast-to-gimple.c (clast_to_gcc_expression): Same.
+	(graphite_create_new_loop_guard): Same.
+	* graphite-interchange.c (build_linearized_memory_access): Same.
+	(pdr_stride_in_loop): Same.
+	(memory_strides_in_loop_1): Same.
+	(1st_interchange_profitable_p): Same.
+	* graphite-poly.c (extend_scattering): Same.
+	(psct_scattering_dim_for_loop_depth): Same.
+	(pbb_number_of_iterations): Same.
+	(pbb_number_of_iterations_at_time): Same.
+	* graphite-poly.h (new_1st_loop): Same.
+	* graphite-ppl.c (cloog_matrix_to_ppl_constraint): Same.
+	(oppose_constraint): Same.
+	(insert_constraint_into_matrix): Same.
+	(ppl_set_inhomogeneous_gmp): Same.
+	(ppl_set_coef_gmp): Same.
+	(ppl_strip_loop): Same.
+	(ppl_lexico_compare_linear_expressions): Same.
+	(ppl_max_for_le_pointset): Same.
+	(ppl_min_for_le_pointset): Same.
+	(ppl_build_realtion): Same.
+	* graphite-ppl.h (gmp_cst_to_tree): Same.
+	(ppl_set_inhomogeneous): Same.
+	(ppl_set_inhomogeneous_tree): Same.
+	(ppl_set_coef): Same.
+	(ppl_set_coef_tree): Same.
+	* graphite-sese-to-poly.c (build_pbb_scattering_polyhedrons): Same.
+	(build_scop_scattering): Same.
+	(add_value_to_dim): Same.
+	(scan_tree_for_params_right_scev): Same.
+	(scan_tree_for_params_int): Same.
+	(scan_tree_for_params): Same.
+	(find_params_in_bb): Same.
+	(find_scop_parameters): Same.
+	(add_upper_bounds_from_estimated_nit): Same.
+	(build_loop_iteration_domains): Same.
+	(create_linear_expr_from_tree): Same.
+	(add_condition_to_domain): Same.
+	(pdr_add_memory_accesses): Same.
+
+2010-05-06  Magnus Fromreide  <magfr@lysator.liu.se>
+	    Jason Merrill  <jason@redhat.com>
+
+	* c-common.c (c_common_reswords): Add nullptr.
+	* c-common.h: Add RID_NULLPTR.  Reorganize C++0x rids.
+	* dwarf2out.c (is_base_type): Handle NULLPTR_TYPE.
+	(gen_type_die_with_usage): Likewise.
+	* dbxout.c (dbxout_type): Likewise.
+	* sdbout.c (plain_type_1): Likewise.
+
+2010-05-06  Jason Merrill  <jason@redhat.com>
+
+	* gimplify.c (gimplify_expr): Set GS_ALL_DONE when appropriate.
+	Don't change GS_OK to GS_ALL_DONE.  Make sure that all cases set
+	ret appropriately.
+	(gimplify_compound_lval): Return GS_ALL_DONE as appropriate.
+
+	* gimplify.c (gimplify_modify_expr_rhs): Don't return GS_OK for
+	stripping WITH_SIZE_EXPR.
+	(gimplify_expr) [MODIFY_EXPR]: Trust GS_OK even if the rhs didn't
+	change.
+
+2010-05-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.gcc: Removed mips-sgi-irix5*, mips-sgi-irix6.[0-4]* from
+	list of obsolete configurations.
+	Disabled check for obsolete configurations.
+	(mips-sgi-irix[56]*): Restrict to mips-sgi-irix6.5*.
+	Removed support for previous versions.
+	* config/mips/iris.h: Removed.
+	* config/mips/iris5.h: Removed.
+	* config/mips/iris6.h: Merged old iris.h contents.
+	(TARGET_IRIX): Removed.
+	(DRIVER_SELF_SPECS): Removed mabi=32.
+	(IDENT_ASM_OP): Removed undef.
+	(STARTFILE_SPEC): Removed mabi=32.
+	(ENDFILE_SPEC): Likewise.
+	(IRIX_SUBTARGET_LINK_SPEC): Likewise.
+	(MACHINE_TYPE): Update for IRIX 6.5.
+	* config/mips/mips.c (mips_build_builtin_va_list): Replaced
+	TARGET_IRIX by TARGET_IRIX6.
+	(mips_file_start): Likewise.
+	(mips_output_external): Remove IRIX 5/6 O32 support.
+	(mips_output_function_prologue): Likewise.
+	* config/mips/mips.h (TARGET_GPWORD): Replaced TARGET_IRIX by
+	TARGET_IRIX6.
+	(TARGET_CPU_CPP_BUILTINS): Likewise.
+	(TARGET_IRIX): Removed.
+	* config/mips/t-iris6 (MULTILIB_OPTIONS): Removed mabi=32.
+	(MULTILIB_DIRNAMES): Removed 32.
+	(MULTILIB_OSDIRNAMES): Removed ../lib.
+	* doc/install.texi (Prerequisites): Don't reference IRIX before 6.5.
+	(Specific, mips-sgi-irix5): Document removal.
+	(Specific, mips-sgi-irix6): Document IRIX 6.[0-4] and O32 ABI removal.
+	Remove references to older IRIX 6 releases and the O32 ABI.
+
+2010-05-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/43994
+	* df-problems.c (dead_debug_insert_before): Use *DF_REF_REAL_LOC
+	instead of DF_REF_REAL_REG.
+
+2010-05-06  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR target/43888
+	* config/i386/winnt.c (i386_pe_binds_local_p): Tweak weak symbol
+	handling to still return true for x64 targets.
+
+2010-05-06  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/m68k/uclinux.h (LIB_SPEC): Bring in sync with config/linux.h.
+
+2010-05-06  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/43791
+	* ipa-inline.c (update_caller_keys): Remove bogus
+	disregard_inline_limits check.
+
+2010-05-06  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/43984
+	* tree-ssa-pre.c (inserted_phi_names): Remove.
+	(inserted_exprs): Change to bitmap.
+	(create_expression_by_pieces): Set bits, don't append to vector.
+	(insert_into_preds_of_block): Don't handle inserted_phi_names.
+	(eliminate): Don't look at inserted_phi_names, remove deleted
+	insns from inserted_exprs.
+	(remove_dead_inserted_code): Adjust to use bitmaps instead of vectors.
+	(init_pre, fini_pre): Allocate and free bitmaps.
+	(execute_pre): Insert insns on edges before elimination.
+
+2010-05-06  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* tree.c (initializer_zerop): Handle STRING_CST.
+
+2010-05-06  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 40989
+	* doc/invoke.texi (Wimplicit): Document as C only.
+	* opts.c (common_handle_option): Add argument kind.
+	(handle_option): Rename as read_cmdline_option. Factor out code to...
+	(handle_option): ... here. New.
+	(handle_options): Rename as read_cmdline_options.
+	(decode_options): Update call.
+	(set_option): Use option index instead of option pointer. Classify
+	diagnostics correctly.
+	(enable_warning_as_error): Call handle_option.
+	* opts.h (set_option): Update declaration.
+	(handle_option): Declare.
+	* langhooks.h (struct lang_hooks): Add argument kind to handle_option.
+	* c.opt (Wimplicit,Wimplicit-int): Initialize to -1.
+	* c-opts.c (set_Wimplicit): Delete.
+	(c_family_lang_mask): New static constant.
+	(c_common_handle_option): Add argument kind. Use handle_option
+	instead of set_Wimplicit.
+	(c_common_post_options): warn_implicit and warn_implicit_int
+	are disabled by default.
+	* c-common.c (warn_implicit): Do not define here.
+	* c-common.h (warn_implicit): Do not declare here.
+	(c_common_handle_option): Update declaration.
+	* lto-opts.c (lto_reissue_options): Update call to set_option.
+
+2010-05-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43571
+	* domwalk.c (walk_dominator_tree): Walk the dominator
+	sons in more optimal order.
+
+2010-05-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43934
+	* tree-ssa-loop-im.c (movement_possibility): Handle PHI nodes.
+	(stmt_cost): Likewise.
+	(extract_true_false_args_from_phi): New helper.
+	(determine_max_movement): For PHI nodes verify we can hoist them
+	and compute their cost.
+	(determine_invariantness_stmt): Handle PHI nodes.
+	(move_computations_stmt): Likewise.  Hoist PHI nodes in
+	if-converted form using COND_EXPRs.
+	(move_computations): Return TODO_cleanup_cfg if we hoisted PHI nodes.
+	(tree_ssa_lim): Likewise.
+	* tree-flow.h (tree_ssa_lim): Adjust prototype.
+	* tree-ssa-loop.c (tree_ssa_loop_im): Return todo.
+
+2010-05-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43987
+	* tree-ssa-structalias.c (could_have_pointers): For possibly
+	address-taken variables force pointers to be recorded.
+	(create_variable_info_for_1): Likewise.
+	(push_fields_onto_fieldstack): Pass in wheter all fields
+	must have pointers.
+	(find_func_aliases): Query types instead of vars whether
+	they contain pointers where appropriate.
+
+2010-05-06  Jan Hubicka  <jh@suse.cz>
+
+	* cgraphbuild.c (record_reference_ctx): Add varpool_node.
+	(record_reference, mark_address, mark_load, mark_store): Record
+	references.
+	(record_references_in_initializer): Update call of record_references.
+	(rebuild_cgraph_edges): Remove all references before rebuiding.
+	* cgraph.c (cgraph_create_node): Clear ref list.
+	(cgraph_remove_node): Remove references.
+	(dump_cgraph_node): Dump references.
+	(cgraph_clone_node): Clone references.
+	* cgraph.h: Include ipa-ref.h and ipa-ref-inline.h
+	(struct cgraph_node, varpool_node): Add ref_lst.
+	* ipa-ref.c: New file.
+	* ipa-ref.h: New file.
+	* ipa-ref-inline.h: New file.
+	* lto-cgraph.c (output_varpool): Take cgrag node set argument.
+	(referenced_from_other_partition_p): New function.
+	(lto_output_varpool_node): Take set arugment; call
+	referenced_from_other_partition.
+	(lto_output_ref): New.
+	(add_references): New.
+	(output_refs): New.
+	(output_cgraph): Compute boundary based on references; output refs.
+	(output_varpool): Accept cgraph_node_set argument.
+	(input_ref): New.
+	(input_refs): New.
+	(input_cgraph): Call input_refs.
+	* lto-section-in.c (lto_section_name): Add refs.
+	* Makefile.in: (cgraph.h): Include ipa-ref.h and ipa-ref-inline.h
+	(ipa-ref.o): New file.
+	* varpool.c (varpool_node): Clear ipa ref list.
+	(varpool_remove_node): Remove references.
+	(dump_varpool_node): Dump references.
+	(varpool_assemble_decl): Only compile finalized ones.
+	(varpool_extra_name_alias): Initialize ref list.
+	* lto-streamer.c (lto-get_section_name): Add .refs section.
+	* lto-streamer.h (lto_section_type): Add LTO_section_refs.
+	(referenced_from_other_partition_p): Declared.
+
+2010-05-06  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/43901
+	* tree-vect-stmts.c (vectorizable_call): Assert that vector
+	type is not NULL if it's transformation phase, and return
+	FALSE if it's analysis.
+	(vectorizable_conversion, vectorizable_operation,
+	vectorizable_type_demotion, vectorizable_type_promotion): Likewise.
+
+2010-05-05  Andrew Pinski  <andrew.pinski@caviumnetworks.com>
+
+	* config/mips/mips.h (TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P):
+	Delete.
+	* config/mips/mips.c (TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P):
+	New define.
+	* config/mips/mips-protos.h
+	(mips_small_register_classes_for_mode_p): Delete prototype.
+
+2010-05-06  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* config/arm/arm.h (MAX_LDM_STM_OPS): New macro.
+	* config/arm/arm.c (multiple_operation_profitable_p,
+	compute_offset_order): New static functions.
+	(load_multiple_sequence, store_multiple_sequence): Use them.
+	Replace constant 4 with MAX_LDM_STM_OPS.  Compute order[0] from
+	memory offsets, not register numbers.
+	(emit_ldm_seq, emit_stm_seq): Replace constant 4 with MAX_LDM_STM_OPS.
+
+2010-05-05  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* stor-layout.c (pending_sizes): Change the type to VEC(tree,gc) *.
+	(get_pending_sizes, put_pending_size, put_pending_sizes):
+	Update the uses of pending_sizes.
+	* c-decl.c (store_parm_decls): Likewise.
+	* c-tree.h (struct c_arg_info): Likewise.
+	* tree.h: Update the prototype for get_pending_sizes and
+	put_pending_sizes.
+
+2010-05-05  Jason Merrill  <jason@redhat.com>
+
+	PR debug/43370
+	* c-common.c (handle_aligned_attribute): Respect
+	ATTR_FLAG_TYPE_IN_PLACE.
+
+	PR testsuite/43758
+	* target.h (struct gcc_target): Add attribute_takes_identifier_p.
+	* target_def.h (TARGET_ATTRIBUTE_TAKES_IDENTIFIER_P): Define.
+	(TARGET_INITIALIZER): Use it.
+	* c-common.c (attribute_takes_identifier_p): Call it.
+	* c-common.h: Update prototype.
+	* config/rs6000/rs6000.c (rs6000_attribute_takes_identifier_p): New.
+	(TARGET_ATTRIBUTE_TAKES_IDENTIFIER_P): Define.
+
+2010-05-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43950
+	* dwarf2out.c (gen_compile_unit_die): Add DW_AT_identifier_case
+	DW_ID_down_case for Fortran compilation units.
+
+2010-05-05  Jan Hubicka  <jh@suse.cz>
+
+	* lto-cgraph.c (lto_output_varpool_node, input_varpool_node): Correctly
+	handle aliases.
+
+2010-05-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gimplify.c (gimplify_return_expr): Gimplify the size expressions of
+	a variable-sized RESULT_DECL.
+
+2010-05-05  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* doc/invoke.texi (-mfix-cortex-m3-ldrd): Move from ARC section to ARM.
+
+2010-05-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43787
+	* gimplify.c (gimplify_expr): Keep working if gimplify_modify_expr
+	returns GS_OK.
+	(gimplify_modify_expr_rhs): Return GS_OK if anything changed.
+
+2010-05-05  Alexandre Oliva  <aoliva@redhat.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43478
+	* df-problems.c (struct dead_debug_use, struct dead_debug): New.
+	(dead_debug_init, dead_debug_finish): New functions.
+	(dead_debug_add, dead_debug_insert_before): Likewise.
+	(df_note_bb_compute): Initialize a dead_debug object, add dead
+	debug uses to it, insert debug bind insns before death insns,
+	reset debug insns that refer to pending uses at the end.
+	* rtl.h (make_debug_expr_from_rtl): New prototype.
+	* varasm.c (make_debug_expr_from_rtl): New function.
+
+2010-05-05  Jan Hubicka  <jh@suse.cz>
+
+	* lto-cgraph.c (output_varpool): Forward declare; work on encoder.
+	(lto_varpool_encoder_new, lto_varpool_encoder_delete,
+	lto_varpool_encoder_encode, lto_varpool_encoder_lookup,
+	lto_varpool_encoder_deref, lto_varpool_encoder_size,
+	lto_varpool_encoder_encode_initializer_p,
+	lto_set_varpool_encoder_encode_initializer): New functions.
+	(lto_output_cgraph): Take vset parameter too; compute varpool encoder;
+	call output_varpool.
+	(input_varpool_node): Do not always set analyzed.
+	(input_cgraph_1): Return vector of cgraph nodes.
+	(input_varpool_1): Return vector of varpools.
+	(input_cgraph): Free the vectors.
+	* lto-streamer-out.c (lto_output_ts_decl_common_tree_pointers):
+	output only initializers needed.
+	(lto_output): Only call output_cgraph.
+	(produce_asm_for_decls): Call lto_varpool_encoder_delete.
+	* lto-section-out.c (lto_new_out_decl_state): Initialize
+	state->varpool_node_encoder.
+	* lto-streamer.h (lto_varpool_encoder_d): New.
+	(lto_out_decl_state, lto_file_decl_data): Add varpool_node_encoder.
+	(lto_cgraph_encoder_delete, output_cgraph): Update prototype.
+	(lto_varpool_encoder_deref, lto_varpool_encoder_lookup,
+	lto_varpool_encoder_encode, lto_varpool_encoder_delete,
+	lto_varpool_encoder_encode_initializer_p, lto_varpool_encoder_new):
+	Declare.
+	(output_varpool, input_varpool): Remove declarations.
+
+2010-05-05  Jan Hubicka  <jh@suse.cz>
+
+	* lto-symtab.c (lto_symtab_resolve_can_prevail_p): Alias of variable
+	with body can prevail.
+
+2010-05-05  Jan Hubicka  <jh@suse.cz>
+
+	* lto-symtab.c (lto_symtab_merge_decls_1): Prefer declarations with
+	size.
+
+2010-05-05  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* Makefile.in (build/gengtype.o): Add $(HASHTAB_H) to dependencies.
+
+	* gengtype.h (erro_at_line): Constify pos argument.
+
+	* gengtype.c: Include hashtab.h.
+	(enum gc_used): Document GC_MAYBE_POINTED_TO.
+	(error_at_line): Constify pos argument.
+	(do_typedef): Initialize p->opt field.
+	(get_file_gtfilename): Fix comment typo.
+	(struct walk_type_data): Constify line field.
+	(get_output_file_for_structure): New function.
+	(write_local_func_for_structure): Constify orig_s argument.
+	Use get_output_file_for_structure.
+	(write_func_for_structure): Use get_output_file_for_structure.
+	(INDENT): New define.
+	(dump_pair, dump_type, dump_type_list, dump_typekind)
+	(dump_gc_used, dump_options, dump_fileloc, dump_type_u_s)
+	(dump_type_u_a, dump_type_u_param_struct, dump_everything): New
+	functions.
+	(seen_types): New variable.
+	(main): New variable do_dump.  Process "-d" command line option.
+	Call dump_everything if dump requested.
+
+2010-05-05  Jakub Jelinek  <jakub@redhat.com>
+
+	* var-tracking.c (var_debug_decl): Save DECL_DEBUG_EXPR value
+	in a temporary instead of invoking the macro multiple times.
+	(track_expr_p): Likewise.
+
+2010-05-04  Neil Vachharajani <nvachhar@google.com>
+
+	* doc/invoke.texi (-Wcoverage-mismatch): Updated documentation as
+	per new semantics.
+	* opts.c (decode_options): Enable -Werror=coverage-mismatch.
+	* coverage.c (get_coverage_counts): Always emit a warning.  Adjust
+	conditions for printing notes.
+	* common.opt (-Wcoverage-mismatch): Allow negative, default to
+	true, update documentation.
+	* Makefile.in (coverage.o): Add dependence on DIAGNOSTIC_H and intl.h.
+
+2010-05-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/43981
+	* c-parser.c (c_parser_direct_declarator_inner): Call mark_exp_read
+	on dimen.
+
+2010-05-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/43799
+	* config/i386/i386.md (sse_prologue_save): Clobber CC register.
+	(*sse_prologue_save_insn1): Likewise.
+	(SSE prologue save splitter): Likewise.
+
+2010-05-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.c (free_lang_data_in_one_sizepos): New inline function.
+	(free_lang_data_in_type): Call it on TYPE_{MIN|MAX}_VALUE of numerical
+	types.  Call it on TYPE_SIZE and TYPE_SIZE_UNIT of all types.
+	(free_lang_data_in_decl): Call it on DECL_SIZE and DECL_SIZE_UNIT of
+	all decls.  Call it on DECL_FIELD_OFFSET of fields.
+	(find_decls_types_r): Follow DECL_VALUE_EXPR.
+	(iterative_hash_expr) <PLACEHOLDER_EXPR>: New case.
+
+2010-05-04  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (build_access_from_expr_1): The first parameter type
+	changed to simple tree.
+	(build_access_from_expr): Likewise, gsi parameter was eliminated.
+	(scan_assign_result): Renamed to assignment_mod_result, enum elements
+	renamed as well.
+	(build_accesses_from_assign): Removed all parameters except for a
+	simple gimple statement.  Now returns a simple bool.
+	(scan_function): All non-analysis parts moved to separate functions
+	sra_modify_function_body and ipa_sra_modify_function_body.  Removed all
+	parameters and updated both callers.
+	(sra_modify_expr): Removed parameter data.
+	(sra_modify_function_body): New function.
+	(perform_intra_sra): Call sra_modify_function_body to modify the
+	function body.
+	(replace_removed_params_ssa_names): Parameter data changed into
+	adjustments vector.
+	(sra_ipa_modify_expr): Likewise.  Also removed unused parameter gsi and
+	changed the parameter dont_convert to convert with the opposite
+	meaning.
+	(sra_ipa_modify_assign): Parameter data changed into adjustments
+	vector, return value changed to bool.
+	(ipa_sra_modify_function_body): New function.
+	(sra_ipa_reset_debug_stmts): Updated a comment.
+	(modify_function): Use ipa_sra_modify_function_body to modify function
+	body.
+
+2010-05-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/43671
+	* alias.c (true_dependence): Handle the same VALUE in x and mem.
+	(canon_true_dependence): Likewise.
+	(write_dependence_p): Likewise.
+
+2010-05-04  Jan Hubicka  <jh@suse.cz>
+
+	* Makefile.in (cgraphbuild.o): Add dependency on ipa-utils.h
+	* cgraphbuild.c: Include ipa-utils.h
+	(record_reference_ctx): New struct.
+	(record_reference): Simplify to work on initializers; not statements.
+	(mark_address, mark_load, mark_store): New.
+	(build_cgraph_edges): Simplify using walk_stmt_load_store_addr_ops;
+	walk PHI nodes too.
+	(record_references_in_initializer): Update use of record_reference.
+	(rebuild_cgraph_edges): Simplify using walk_stmt_load_store_addr_ops;
+	walk PHI nodes too.
+
+2010-05-04  Jan Hubicka  <jh@suse.cz>
+
+	* lto-symtab.c (lto_cgraph_replace_node): Do not remove edges;
+	node will be removed anyway.
+	(lto_varpool_replace_node): Allow also unanalyzed nodes;
+	relink aliases of node into prevailing node.
+	* varpool.c (varpool_remove_node): Remove aliases properly;
+	when removing node, remove all its aliases too; remove DECL_INITIAL
+	of removed node; ggc_free the varpool node.
+
+2010-05-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43879
+	* tree-ssa-structalias.c (alias_get_name): Use
+	DECL_ASSEMBLER_NAME if available.
+	(create_function_info_for): Return the varinfo node.
+	(ipa_pta_execute): Associate same-body aliases and extra names
+	with their origin nodes varinfo.  Dump DECL_ASSEMBLER_NAME.
+
+2010-05-04  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (sh_small_register_classes_for_mode_p): Remove static.
+
+2010-05-04  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR bootstrap/43964
+	* ira-color.c (assign_hard_reg): Declare rclass and add_cost
+	only if HONOR_REG_ALLOC_ORDER is not defined.
+
+2010-05-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43949
+	* tree-vrp.c (extract_range_from_binary_expr): Only handle
+	TRUNC_MOD_EXPR.
+
+2010-04-26  Jason Merrill  <jason@redhat.com>
+
+	* c.opt (-fstrict-enums): New.
+	* doc/invoke.texi (C++ Dialect Options): Document -fstrict-enums.
+
+2010-05-03  David Ung <davidu@mips.com>
+	    James E. Wilson  <wilson@codesourcery.com>
+
+	* config/mips/mips.c (mips_output_division): If GENERATE_DIVIDE_TRAPS,
+	emit the trap instruction before the divide for TUNE_74K.
+
+2010-05-03  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* doc/tm.texi (defmac SMALL_REGISTER_CLASSES): Remove.
+	(TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P): Add documentation,
+	based on the above, for new target hook.
+
+	* hooks.c (hook_bool_mode_true): New generic hook.
+	* hooks.h (hook_bool_mode_true): Add prototype.
+
+	* target.h (struct gcc_target): Add small_register_classes_for_mode_p
+	target hook.
+	* target-def.h (TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P): New default
+	target hook, set to hook_bool_mode_false.
+	* regs.h: Remove default definition of SMALL_REGISTER_CLASSES.
+	* reload.c (push_secondary_reload): Replace SMALL_REGISTER_CLASSES
+	with targetm.small_register_classes_for_mode_p.
+	(find_reusable_reload): Likewise.
+	(combine_reloads): Likewise.
+	* reload1.c (reload_as_needed): Likewise.
+	* cse.c (approx_reg_cost_1, hash_rtx_cb): Likewise.
+	* ifcvt.c (noce_process_if_block, check_cond_move_block,
+	dead_or_predicable): Likewise.
+	* regmove.c (optimize_reg_copy_1): Likewise.
+	* calls.c (prepare_call_address): Likewise.
+	(precompute_register_parameters): Likewise.
+
+	* config/sh/sh.h: Replace SMALL_REGISTER_CLASSES with new target
+	hook definition.
+	* config/sh/sh.c (sh_small_register_classes_for_mode_p): Add
+	implementation of the hook that considers all register classes
+	small except for SH64.
+	(sh_override_options): Use the new hook.
+	* config/sh/sh-protos.h (sh_small_register_classes_for_mode_p):
+	Add prototype.
+
+	* config/arm/arm.h: Replace SMALL_REGISTER_CLASSES with new target
+	hook definition.
+	* config/arm/arm.c (arm_small_register_classes_for_mode_p): Add
+	implementation of the hook that considers all register classes
+	small for THUMB1.
+	* config/arm/arm-protos.h (arm_small_register_classes_for_mode_p):
+	Add prototype.
+
+	* config/mips/mips.h: Replace SMALL_REGISTER_CLASSES with new target
+	hook definition.
+	* config/mips/mips.c (mips_small_register_classes_for_mode_p): Add
+	implementation of the hook that considers all register classes
+	small for MIPS16.
+	* config/mips/mips-protos.h (mips_small_register_classes_for_mode_p):
+	Add prototype.
+
+	* config/i386/i386.h: Replace SMALL_REGISTER_CLASSES with new target
+	hook definition.
+	* config/m32c/m32c.h: Likewise.
+	* config/pdp11/pdp11.h: Likewise.
+	* config/avr/avr.h: Likewise.
+	* config/xtensa/xtensa.h: Likewise.
+	* config/m68hc11/m68hc11.h: Likewise.
+	* config/mn10300/mn10300.h: Likewise.
+	* config/mcore/mcore.h: Likewise.
+	* config/h8300/h8300.h: Likewise.
+	* config/bfin/bfin.h: Likewise.
+
+	* config/iq2000/iq2000.h: Remove SMALL_REGISTER_CLASSES definition.
+	* config/rx/rx.h: Remove SMALL_REGISTER_CLASSES definition.
+
+2010-05-03  Anatoly Sokolov  <aesok@post.ru>
+
+	* double-int.h (tree_to_double_int): Remove macro.
+	(double_int_to_tree, double_int_fits_to_tree_p): Move prototypes ...
+	* tree.h (double_int_to_tree, double_int_fits_to_tree_p): ... here.
+	(tree_to_double_int): New function.
+	* double-int.c (double_int_to_tree, double_int_fits_to_tree_p):
+	Move ...
+	* tree.c (double_int_to_tree, double_int_fits_to_tree_p): ... here.
+
+2010-05-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43971
+	* tree-ssa-structalias.c (get_constraint_for_1): Fix
+	constraints in the !flag_delete_null_pointer_checks case.
+
+2010-05-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43972
+	* config/i386/i386.c (ix86_delegitimize_address): Make sure the
+	result mode matches original rtl mode.
+
+2010-05-03  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR target/43888
+	* config/i386/winnt.c (i386_pe_binds_local_p): Handle weak decls.
+
+2010-05-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_target_string): Output 'flags', not 'isa',
+	when processing flag options.
+
+2010-05-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcov-iov.c (main): Change format string placeholder
+	from %#08x to 0x%08x.
+	* genchecksum.c (dosum): Change format string placeholder
+	from %#02x to 0x%02x.
+
+2010-05-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43879
+	* tree-tailcall.c (find_tail_calls): Clobbers also prevent tail calls.
+
+2010-05-02  Bruno Haible  <bruno@clisp.org>
+
+	* doc/extend.texi (Function Attributes): Fix a typo.
+
+2010-05-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	Revert:
+	* hwint.h (HOST_WIDE_INT_PRINT_DOUBLE_HEX): Change format string
+	placeholder from 0x%x to %#x.
+	(HOST_WIDEST_INT_PRINT_DOUBLE_HEX): Ditto.
+	* config/i386/i386elf.h (ASM_OUTPUT_ASCII): Ditto.
+	* config/i386/i386-interix.h (ASM_OUTPUT_ASCII): Ditto.
+	* config/i386/att.h (ASM_OUTPUT_ASCII): Ditto.
+	* config/i386/sysv4.h (ASM_OUTPUT_ASCII): Ditto.
+	* config/i386/i386.c (ix86_target_string): Ditto.
+	* config/i386/i386.c (output_pic_addr_const): Ditto.
+	(print_operand): Ditto.
+
+2010-05-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* vmsdbgout.c (ASM_OUTPUT_DEBUG_DATA1): Change format string
+	placeholder from 0x%x to %#x.
+	(ASM_OUTPUT_DEBUG_DATA1): Ditto.
+	(ASM_OUTPUT_DEBUG_DATA4): Ditto.
+	(ASM_OUTPUT_DEBUG_DATA): Ditto.
+	(ASM_OUTPUT_DEBUG_ADDR_DATA): Ditto.
+	(ASM_OUTPUT_DEBUG_DATA8): Ditto.
+	* optc-gen.awk: Ditto.
+	* hwint.h (HOST_WIDE_INT_PRINT_DOUBLE_HEX): Ditto.
+	(HOST_WIDE_INT_PRINT_HEX): Ditto.
+	(HOST_WIDEST_INT_PRINT_HEX): Ditto.
+	(HOST_WIDEST_INT_PRINT_DOUBLE_HEX): Ditto.
+
+2010-05-01  Anatoly Sokolov  <aesok@post.ru>
+
+	* target.h (struct calls): Add function_value_regno_p field.
+	* target-def.h (TARGET_FUNCTION_VALUE_REGNO_P): Define.
+	(TARGET_INITIALIZER): Use TARGET_FUNCTION_VALUE_REGNO_P.
+	* targhooks.c (default_function_value_regno_p): New function.
+	* targhooks.h (default_function_value_regno_p): Declare function.
+	* rtlanal.c (keep_with_call_p): Use function_value_regno_p hook.
+	* builtins.c. (apply_result_size): (Ditto.).
+	* combine.c. (likely_spilled_retval_p): (Ditto.).
+	* mode-switching.c. Include 'target.h'.
+	(create_pre_exit): Use function_value_regno_p hook.
+	* Makefile.in (mode-switching.o): Add dependency on TARGET_H.
+	* doc/tm.texi (FUNCTION_VALUE_REGNO_P,
+	TARGET_FUNCTION_VALUE_REGNO_P): Revise documentation.
+
+	* config/i386/i386.h (TARGET_FUNCTION_VALUE_REGNO_P): Remove macro.
+	* config/i386/i386.c (TARGET_FUNCTION_VALUE_REGNO_P): Define macro.
+	(ix86_function_value_regno_p): Declare as static, change argument
+	type to const unsigned int.
+	* config/i386/i386-protos.h (ix86_function_value_regno_p): Remove.
+
+2010-05-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43949
+	* tree-vrp.c (ssa_name_nonnegative_p): Return true for unsigned
+	types.
+	(extract_range_from_binary_expr): Handle *_MOD_EXPR.
+
+2010-05-01  Anatoly Sokolov  <aesok@post.ru>
+
+	* rtl.h (CONST_DOUBLE_P): Define.
+	(rtx_to_double_int): Declare.
+	* emit-rtl.c (rtx_to_double_int): New function.
+	* dwarf2out.c (insert_double): New function.
+	(loc_descriptor, add_const_value_attribute): Clean up, use
+	rtx_to_double_int and insert_double functions.
+
+2010-05-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/extend.texi (Inline): Add missing return keyword to examples.
+	(Function Attributes, Variable Attributes, Pragmas): Hyphenate
+	"command-line".
+
+2010-04-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-loop-ivopts.c (may_be_unaligned_p): Check the alignment of
+	the variable part of the offset as well.  Use highest_pow2_factor for
+	all alignment checks.
+
+2010-04-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43879
+	* tree-ssa-structalias.c (type_could_have_pointers): Functions
+	can have pointers.
+
+2010-04-30  Jan Hubicka  <jh@suse.cz>
+
+	* lto-symtab.c (lto_symtab_resolve_can_prevail_p): Chose var with
+	varpool.
+	(lto_symtab_merge_decls_1): Remove logic looking for an initializer.
+
+2010-04-30  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.h (cgraph_node_set_nonempty_p, varpool_node_set_nonempty_p):
+	New.
+	* lto-cgraph.c (input_cgraph): Remove call to lto_mark_file_for_ltrans.
+	* lto-streamer.h (lto_file_decl_data): Remove needs_ltrans_p.
+	(lto_file_needs_ltrans_p, lto_mark_file_for_ltrans,
+	cgraph_node_set_needs_ltrans_p): Remove.
+
+2010-04-30  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* sdbout.c: Include vec.h, do not include varray.h.
+	(deferred_global_decls, sdbout_global_decl,
+	sdbout_finish, sdbout_init): Use VEC instead of VARRAY.
+	* toplev.c: Do not include varray.h.
+	(dump_memory_report): Do not dump VARRAY statistics.
+	* gengtype.c (open_base_file): Ignore varray.h.
+	* Makefile.in: Update for abovementioned changes.
+	Remove all traces of varray.c and varray.h.
+	* varray.c: Remove file.
+	* varray.h: Remove file.
+
+2010-04-30  Jan Hubicka  <jh@suse.cz>
+
+	* lto-cgraph.c (lto_output_varpool_node): Always output constant pool
+	references.
+
+2010-04-30  Jan Hubicka  <jh@suse.cz>
+
+	* tree-profile.c (tree_init_ic_make_global_vars): Mark new decls as
+	needed.
+
+2010-04-30  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (get_constraint_for_1): Generate
+	constraints for CONSTRUCTOR.
+
+2010-04-30  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43946
+	* passes.c (init_optimization_passes): Move pass_ipa_free_lang_data
+	first after all lowering passes.
+
+2010-04-30  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* toplev.c: Include varray.h for statistics dumping.
+	* tree.h: Do not declare varray_head_tag.
+	* tree-into-ssa.c, tree-ssa-uninit.c, tree-phinodes.c, omega.c,
+	regs.h, lto-cgraph.c, tree-ssa-loop-ivopts.c, tree-nomudflap.c,
+	c-objc-common.c, lto-streamer-out.c, tree-ssa-propagate.c,
+	gimple-low.c, c-semantics.c, dwarf2out.c, lto-streamer-in.c,
+	lto-section-in.c, alias.c, tree-if-conv.c, gimplify.c, ggc-zone.c,
+	tree-ssa.c, tree-ssa-loop-prefetch.c, integrate.h, c-gimplify.c,
+	c-common.c, c-common.h, reg-stack.c, basic-block.h,
+	tree-ssa-structalias.c, lto-section-out.c, tree-ssanames.c: Do not
+	include varray.h.
+	* Makefile.in: Update for abovementioned changes.
+
+2010-04-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43942
+	* tree.c (auto_var_in_fn_p): Return false for DECL_EXTERNAL vars.
+
+2010-04-30  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	* config/picochip/picochip.c (picochip_legitimize_address): Define.
+	Use this function to do machine-specific conversion.
+	(picochip_legitimize_reload_address): Likewise.
+	(picochip_legitimate_address_p): Check valid base register only if
+	strict.
+	(picochip_check_conditional_copy): Check for modw only if opnd is
+	register.
+	* config/picochip/picochip.h (LEGITIMIZE_RELOAD_ADDRESS): Use this
+	to call the function in c.
+	* config/picochip/picochip-protos.h
+	(picochip_legitimize_reload_address): Define.
+	* config/picochip/picochip.md (supported_compare1): Define.
+
+2010-04-30  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.h (cgraph_local_info): Remove for_functions_valid.
+	(cgraph_global_info): Remove inlined.
+	(LTO_cgraph_tag_names): Remove.
+	(LTO_cgraph_tags, LCC_NOT_FOUND): Move to ...
+	* lto-cgraph.c (LTO_cgraph_tags, LCC_NOT_FOUND): ... here;
+	simplify cgraph tags and document.
+	(lto_output_node): Use only LTO_cgraph_unavail_node and
+	LTO_cgraph_analyzed_node; Do not save analzed, reachable,
+	for_functions_valid, global info, process and output flags.
+	(input_overwrite_node): Initialize estimated stack size and
+	estimated growth.  Do not read flags we no longer store.
+	(input_node): Likewise do not read info no longer stored.
+	* ipa-inline.c (cgraph_mark_inline_edge): Do not set global.inlined
+	flag.
+
+2010-04-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43879
+	* tree-ssa-structalias.c (get_constraint_for_1): Properly
+	handle non-zero initializers.
+
+2010-04-30  Richard Guenther  <rguenther@suse.de>
+
+	* builtins.c (fold_builtin_1): Delete free (0).
+
+2010-04-29  Jan Hubicka  <jh@suse.cz>
+
+	* gengtype.c (open_base_files): Add lto-streamer.h
+	* cgraph.h (cgraph_local_info): lto_file_data is now in GGC.
+	(pass_ipa_cp): GGC collect.
+	* toplev. (compile_file): Do not output symbols.
+	* ipa-inline.c (pass_ipa_inline): Add ggc collect.
+	* timevar.def (TV_VARPOOL, TV_IPA_LTO_DECL_INIT_IO,
+	TV_IPA_LTO_DECL_MERGE, TV_IPA_LTO_CGRAPH_MERGE, TV_VAROUT): New.
+	* lto-section-in.c: Include ggc.h
+	(lto_new_in_decl_state): Alloc in GGC.
+	(lto_delete_in_decl_state): Likewise.
+	* ipa.c (pass_ipa_function_visibility, pass_ipa_whole_program):
+	Collect.
+
+2010-04-29  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/42895
+	* doc/tm.texi (ADJUST_REG_ALLOC_ORDER): Renamed from
+	ORDER_REGS_FOR_LOCAL_ALLOC.  All instances of this macro changed.
+	(HONOR_REG_ALLOC_ORDER): Describe new macro.
+	* ira.c (setup_alloc_regs): Use ADJUST_REG_ALLOC_ORDER if defined.
+	* ira-color.c (assign_hard_reg): Take prologue/epilogue costs into
+	account only if HONOR_REG_ALLOC_ORDER is not defined.
+	* config/arm/arm.h (HONOR_REG_ALLOC_ORDER): Define.
+	* system.h (ORDER_REGS_FOR_LOCAL_ALLOC): Poison.
+
+2010-04-29  Jon Grant  <04@jguk.org>
+
+	* collect2.c (vflag): Change type from int to bool.
+	(debug): Likewise.
+	(helpflag): New global bool.
+	(main): Set vflag and debug with boolean, not integer truth values.
+	Accept new "--help" option and output usage text if found.
+	* collect2.h (vflag): Update prototype.
+	(debug): Likewise.
+
 2010-04-29  H.J. Lu  <hongjiu.lu@intel.com>
 
-	PR bootstrap/43935
-	* plugin.h (flag_plugin_added): Moved out of
-	invoke_plugin_callbacks.
+	PR bootstrap/43936
+	* plugin.h (flag_plugin_added): Moved out of invoke_plugin_callbacks.
 
 2010-04-29  Richard Guenther  <rguenther@suse.de>
 
@@ -25,7 +1232,7 @@
 	* ifcvt.c (dead_or_predicable): Use df_simulate_find_defs to compute
 	test_set.
 
-2010-04-29  Brian Hackett   <bhackett1024@gmail.com>
+2010-04-29  Brian Hackett  <bhackett1024@gmail.com>
 
 	* plugin.h (invoke_plugin_callbacks): New inline function.
 	* plugin.c (flag_plugin_added): New global flag.
@@ -73,7 +1280,8 @@
 	(output_alias_pair_p): Handle variables.
 	(output_unreferenced_globals): Output only needed partition of varpool.
 	* ipa-inline.c (inline_write_summary): Update.
-	* lto-streamer-in.c (lto_input_tree_ref, lto_input_tree): Do not build cgraph.
+	* lto-streamer-in.c (lto_input_tree_ref, lto_input_tree): Do not build
+	cgraph.
 	* lto-section-in.c (lto_section_name): Add varpool and jump funcs.
 	* ipa.c (hash_varpool_node_set_element, eq_varpool_node_set_element,
 	varpool_node_set_new, varpool_node_set_add,
@@ -260,7 +1468,7 @@
 	(free_all_ipa_structures_after_ipa_cp): Renamed to
 	ipa_free_all_structures_after_ipa_cp.
 	(free_all_ipa_structures_after_iinln): Renamed to
-	ipa_free_all_structures_after_iinln.g
+	ipa_free_all_structures_after_iinln.
 	(ipa_write_param_call_note): Removed.
 	(ipa_read_param_call_note): Removed.
 	(ipa_write_indirect_edge_info): New function.
@@ -292,8 +1500,7 @@
 	* tree-ssa-structalias.c (struct variable_info): Add
 	only_restrict_pointers flag.
 	(new_var_info): Initialize it.  Increment stats.total_vars here.
-	(create_function_info_for): Do not increment stats.total_vars
-	here.
+	(create_function_info_for): Do not increment stats.total_vars here.
 	(get_function_part_constraint): Fix build with C++.
 	(insert_into_field_list): Remove.
 	(push_fields_onto_fieldstack): Properly merge fields.
@@ -305,8 +1512,7 @@
 2010-04-28  Richard Guenther  <rguenther@suse.de>
 
 	PR c++/43880
-	* tree-inline.c (copy_bind_expr): Also copy bind expr vars
-	value-exprs.
+	* tree-inline.c (copy_bind_expr): Also copy bind expr vars value-exprs.
 
 2010-04-27  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 	    Jan Hubicka <hubicka@ucw.cz>

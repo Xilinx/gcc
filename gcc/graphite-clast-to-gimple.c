@@ -311,7 +311,7 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
 
 	if (t->var)
 	  {
-	    if (value_one_p (t->val))
+	    if (mpz_cmp_si (t->val, 1) == 0)
 	      {
 		tree name = clast_name_to_gcc (t->var, region, newivs,
 					       newivs_index, params_index);
@@ -323,7 +323,7 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
 		return name;
 	      }
 
-	    else if (value_mone_p (t->val))
+	    else if (mpz_cmp_si (t->val, -1) == 0)
 	      {
 		tree name = clast_name_to_gcc (t->var, region, newivs,
 					       newivs_index, params_index);
@@ -421,9 +421,9 @@ clast_to_gcc_expression (tree type, struct clast_expr *e,
 /* Return the precision needed to represent the value VAL.  */
 
 static int
-precision_for_value (Value val)
+precision_for_value (mpz_t val)
 {
-  Value x, y, two;
+  mpz_t x, y, two;
   int precision;
 
   value_init (x);
@@ -454,9 +454,9 @@ precision_for_value (Value val)
    UP.  */
 
 static int
-precision_for_interval (Value low, Value up)
+precision_for_interval (mpz_t low, mpz_t up)
 {
-  Value diff;
+  mpz_t diff;
   int precision;
 
   gcc_assert (value_le (low, up));
@@ -473,7 +473,7 @@ precision_for_interval (Value low, Value up)
    otherwise return NULL_TREE.  */
 
 static tree
-gcc_type_for_interval (Value low, Value up, tree old_type)
+gcc_type_for_interval (mpz_t low, mpz_t up, tree old_type)
 {
   bool unsigned_p = true;
   int precision, prec_up, prec_int;
@@ -504,7 +504,7 @@ gcc_type_for_interval (Value low, Value up, tree old_type)
    otherwise return NULL_TREE.  */
 
 static tree
-gcc_type_for_value (Value val)
+gcc_type_for_value (mpz_t val)
 {
   return gcc_type_for_interval (val, val, NULL_TREE);
 }
@@ -694,7 +694,7 @@ graphite_create_new_guard (sese region, edge entry_edge,
    the iteration domain, and G the context parameters.  */
 
 static void
-compute_bounds_for_level (poly_bb_p pbb, int level, Value low, Value up)
+compute_bounds_for_level (poly_bb_p pbb, int level, mpz_t low, mpz_t up)
 {
   ppl_Pointset_Powerset_C_Polyhedron_t ps;
   ppl_Linear_Expression_t le;
@@ -722,7 +722,7 @@ compute_bounds_for_level (poly_bb_p pbb, int level, Value low, Value up)
 static tree
 compute_type_for_level_1 (poly_bb_p pbb, int level, tree old_type)
 {
-  Value low, up;
+  mpz_t low, up;
   tree type;
 
   value_init (low);
@@ -1035,12 +1035,12 @@ graphite_create_new_loop_guard (sese region, edge entry_edge,
      2^{32|64}, and the condition lb <= ub is true, even if we do not want this.
      However lb < ub + 1 is false, as expected.  */
   tree one;
-  Value gmp_one;
-
-  value_init (gmp_one);
-  value_set_si (gmp_one, 1);
+  mpz_t gmp_one;
+  
+  mpz_init (gmp_one);
+  mpz_set_si (gmp_one, 1);
   one = gmp_cst_to_tree (type, gmp_one);
-  value_clear (gmp_one);
+  mpz_clear (gmp_one);
 
   ub_one = fold_build2 (POINTER_TYPE_P (type) ? POINTER_PLUS_EXPR : PLUS_EXPR,
 			type, ub, one);

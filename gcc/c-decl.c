@@ -6646,6 +6646,31 @@ grokfield (location_t loc,
   return value;
 }
 
+/* Subroutine of detect_field_duplicates: add the fields of FIELDLIST
+   to HTAB, giving errors for any duplicates.  */
+
+static void
+detect_field_duplicates_hash (tree fieldlist, htab_t htab)
+{
+  tree x, y;
+  void **slot;
+
+  for (x = fieldlist; x ; x = TREE_CHAIN (x))
+    if ((y = DECL_NAME (x)) != 0)
+      {
+	slot = htab_find_slot (htab, y, INSERT);
+	if (*slot)
+	  {
+	    error ("duplicate member %q+D", x);
+	    DECL_NAME (x) = NULL_TREE;
+	  }
+	*slot = y;
+      }
+    else if (TREE_CODE (TREE_TYPE (x)) == RECORD_TYPE
+	     || TREE_CODE (TREE_TYPE (x)) == UNION_TYPE)
+      detect_field_duplicates_hash (TYPE_FIELDS (TREE_TYPE (x)), htab);
+}
+
 /* Generate an error for any duplicate field names in FIELDLIST.  Munge
    the list such that this does not present a problem later.  */
 
@@ -6664,11 +6689,16 @@ detect_field_duplicates (tree fieldlist)
     return;
   do {
     timeout--;
+    if (DECL_NAME (x) == NULL_TREE
+	&& (TREE_CODE (TREE_TYPE (x)) == RECORD_TYPE
+	    || TREE_CODE (TREE_TYPE (x)) == UNION_TYPE))
+      timeout = 0;
     x = TREE_CHAIN (x);
   } while (timeout > 0 && x);
 
-  /* If there were "few" fields, avoid the overhead of allocating
-     a hash table.  Instead just do the nested traversal thing.  */
+  /* If there were "few" fields and no anonymous structures or unions,
+     avoid the overhead of allocating a hash table.  Instead just do
+     the nested traversal thing.  */
   if (timeout > 0)
     {
       for (x = TREE_CHAIN (fieldlist); x ; x = TREE_CHAIN (x))
@@ -6685,20 +6715,8 @@ detect_field_duplicates (tree fieldlist)
   else
     {
       htab_t htab = htab_create (37, htab_hash_pointer, htab_eq_pointer, NULL);
-      void **slot;
 
-      for (x = fieldlist; x ; x = TREE_CHAIN (x))
-	if ((y = DECL_NAME (x)) != 0)
-	  {
-	    slot = htab_find_slot (htab, y, INSERT);
-	    if (*slot)
-	      {
-		error ("duplicate member %q+D", x);
-		DECL_NAME (x) = NULL_TREE;
-	      }
-	    *slot = y;
-	  }
-
+      detect_field_duplicates_hash (fieldlist, htab);
       htab_delete (htab);
     }
 }
@@ -8012,9 +8030,12 @@ store_parm_decls (void)
      thus won't naturally see the SAVE_EXPR containing the increment.  All
      other pending sizes would be handled by gimplify_parameters.  */
   {
+    VEC(tree,gc) *pending_sizes = get_pending_sizes ();
     tree t;
-    for (t = nreverse (get_pending_sizes ()); t ; t = TREE_CHAIN (t))
-      add_stmt (TREE_VALUE (t));
+    int i;
+
+    for (i = 0; VEC_iterate (tree, pending_sizes, i, t); i++)
+      add_stmt (t);
   }
 
   /* Even though we're inside a function body, we still don't want to

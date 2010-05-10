@@ -691,7 +691,8 @@ typedef struct
   unsigned extension:8;		/* extension level of a derived type.  */
   unsigned is_class:1;		/* is a CLASS container.  */
   unsigned class_ok:1;		/* is a CLASS object with correct attributes.  */
-  unsigned vtab:1;		/* is a derived type vtab.  */
+  unsigned vtab:1;		/* is a derived type vtab, pointed to by CLASS objects.  */
+  unsigned vtype:1;		/* is a derived type of a vtab.  */
 
   /* These flags are both in the typespec and attribute.  The attribute
      list is what gets read from/written to a module file.  The typespec
@@ -1615,17 +1616,6 @@ typedef struct gfc_intrinsic_sym
 gfc_intrinsic_sym;
 
 
-typedef struct gfc_class_esym_list
-{
-  gfc_symbol *derived;
-  gfc_symbol *esym;
-  struct gfc_expr *hash_value;
-  struct gfc_class_esym_list *next;
-}
-gfc_class_esym_list;
-
-#define gfc_get_class_esym_list() XCNEW (gfc_class_esym_list)
-
 /* Expression nodes.  The expression node types deserve explanations,
    since the last couple can be easily misconstrued:
 
@@ -1717,7 +1707,6 @@ typedef struct gfc_expr
       const char *name;	/* Points to the ultimate name of the function */
       gfc_intrinsic_sym *isym;
       gfc_symbol *esym;
-      gfc_class_esym_list *class_esym;
     }
     function;
 
@@ -2198,8 +2187,6 @@ typedef struct gfc_constructor
      gfc_component *component; /* Record the component being initialized.  */
   }
   n;
-  mpz_t repeat; /* Record the repeat number of initial values in data
-                  statement like "data a/5*10/".  */
 }
 gfc_constructor;
 
@@ -2323,7 +2310,7 @@ int get_c_kind (const char *, CInteropKind_t *);
 
 /* options.c */
 unsigned int gfc_init_options (unsigned int, const char **);
-int gfc_handle_option (size_t, const char *, int);
+int gfc_handle_option (size_t, const char *, int, int);
 bool gfc_post_options (const char **);
 
 /* f95-lang.c */
@@ -2526,8 +2513,8 @@ gfc_gsymbol *gfc_get_gsymbol (const char *);
 gfc_gsymbol *gfc_find_gsymbol (gfc_gsymbol *, const char *);
 
 gfc_try gfc_build_class_symbol (gfc_typespec *, symbol_attribute *,
-				gfc_array_spec **);
-gfc_symbol *gfc_find_derived_vtab (gfc_symbol *);
+				gfc_array_spec **, bool);
+gfc_symbol *gfc_find_derived_vtab (gfc_symbol *, bool);
 gfc_typebound_proc* gfc_get_typebound_proc (void);
 gfc_symbol* gfc_get_derived_super_type (gfc_symbol*);
 gfc_symbol* gfc_get_ultimate_derived_super_type (gfc_symbol*);

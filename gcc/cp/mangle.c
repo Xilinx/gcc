@@ -55,7 +55,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "real.h"
 #include "obstack.h"
 #include "toplev.h"
-#include "varray.h"
 #include "flags.h"
 #include "target.h"
 #include "cgraph.h"
@@ -1760,6 +1759,7 @@ write_local_name (tree function, const tree local_entity,
      <type> ::= Dt <expression> # decltype of an id-expression or 
                                 # class member access
      <type> ::= DT <expression> # decltype of an expression
+     <type> ::= Dn              # decltype of nullptr
 
    TYPE is a type node.  */
 
@@ -1931,6 +1931,10 @@ write_type (tree type)
               write_expression (DECLTYPE_TYPE_EXPR (type));
 	      --cp_unevaluated_operand;
               write_char ('E');
+              break;
+
+	    case NULLPTR_TYPE:
+              write_string ("Dn");
               break;
 
 	    case TYPEOF_TYPE:

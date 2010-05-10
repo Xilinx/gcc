@@ -1,3 +1,136 @@
+2010-05-07  Fabien Chêne  <fabien.chene@gmail.com>
+
+	PR c++/43951
+	* init.c (diagnose_uninitialized_cst_or_ref_member_1): Returns the
+	error count. Emit errors only if compain is true.
+	(build_new_1): Do not return error_mark_node if
+	diagnose_uninitialized_cst_or_ref_member_1 does not diagnose any
+	errors. Delay the check for user-provided constructor.
+	(perform_member_init): Adjust.
+	* cp-tree.h (diagnose_uninitialized_cst_or_ref_member): Change the
+	prototype.
+
+2010-05-06  Magnus Fromreide  <magfr@lysator.liu.se>
+	    Jason Merrill  <jason@redhat.com>
+
+	Add support for C++0x nullptr.
+	* cp-tree.def: Add NULLPTR_TYPE.
+	* cp-tree.h: Add nullptr_node.
+	(cp_tree_index): Add CPTI_NULLPTR.
+	(SCALAR_TYPE_P): Add NULLPTR_TYPE.
+	* call.c (null_ptr_cst_p): Handle nullptr.
+	(standard_conversion): Likewise.
+	(convert_arg_to_ellipsis): Likewise.
+	* mangle.c (write_type): Likewise.
+	* name-lookup.c (arg_assoc_type): Likewise.
+	* parser.c (cp_parser_primary_expression): Likewise.
+	* typeck.c (cp_build_binary_op): Likewise.
+	(build_reinterpret_cast_1): Likewise.
+	* error.c (dump_type): Likewise.
+	(dump_type_prefix, dump_type_suffix): Likewise.
+	* decl.c (cxx_init_decl_processing): Likewise.
+	* cxx-pretty-print.c (pp_cxx_constant): Likewise.
+	* cvt.c (ocp_convert): Likewise.
+	* rtti.c (typeinfo_in_lib_p, emit_support_tinfos): Put
+	nullptr_t tinfo in libsupc++.
+
+2010-05-06  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (simplify_aggr_init_expr): Use INIT_EXPR.
+
+2010-04-22  Jakub Jelinek <jakub@redhat.com>
+	    Dodji Seketeli <dodji@redhat.com>
+
+	PR c/18624
+	* cp-tree.h (mark_exp_read, rvalue_use, lvalue_use, type_use):
+	Declare ...
+	* expr.c (mark_exp_read, rvalue_use, lvalue_use, type_use): ... new fns.
+	* typeck.c (cxx_sizeof_expr, cxx_alignof_expr): Call type_use.
+	(decay_conversion, perform_integral_promotions): Call rvalue_use.
+	(cp_build_unary_op): Call lvalue_use.
+	* decl.c (unused_but_set_errorcount): New variable.
+	(poplevel): Issue -Wunused-but-set-variable diagnostics.
+	(duplicate_decls): Merge DECL_READ_P flags.
+	(start_cleanup_fn): Set DECL_READ_P flag.
+	(finish_function): Issue -Wunused-but-set-parameter diagnostics.
+	* tree.c (rvalue): Call rvalue_use.
+	* pt.c (convert_nontype_argument): Likewise.
+	* semantics.c (finish_expr_stmt, finish_asm_stmt, finish_typeof,
+	finish_decltype_type): Likewise.
+	* call.c (convert_like_real) <ck_identity, ck_user>: Call rvalue use.
+	(build_x_va_arg, build_new_method_call, build_over_call): Call lvalue_use
+	or rvalue_use depending on the expr.
+	* init.c (build_new, build_delete): Likewise.
+	* rtti.c (build_typeid, build_dynamic_cast_1): Likewise.
+
+2010-05-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43787
+	* cp-gimplify.c (cp_gimplify_expr): Remove copies of empty classes.
+	* call.c (build_over_call): Don't try to avoid INIT_EXPR copies here.
+
+2010-05-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/43028
+	* pt.c (unify): Check each elt for error_mark_node.
+
+2010-05-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38064
+	* typeck.c (cp_build_binary_op): Allow enums for <> as well.
+
+2010-05-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/43705
+	* call.c (build_new_method_call): Return error_mark_node if fns is
+	NULL_TREE.
+
+2010-05-03  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/43953
+	* pt.c (most_specialized_class): Pretend we are processing
+	a template decl during the call to coerce_template_parms.
+
+2010-05-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42810
+	PR c++/43680
+	* decl.c (finish_enum): Use the TYPE_MIN_VALUE and TYPE_MAX_VALUE
+	from the selected underlying type unless -fstrict-enums.  Set
+	ENUM_UNDERLYING_TYPE to	have the restricted range.
+	* cvt.c (type_promotes_to): Use ENUM_UNDERLYING_TYPE.
+	* class.c (check_bitfield_decl): Likewise.
+
+2010-05-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/43951
+	* init.c (build_new_1): Revert the accidental checkin in
+	revision 158918.
+
+2010-04-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43868
+	* cxx-pretty-print.c (pp_cxx_decl_specifier_seq): Move pmf handling...
+	(pp_cxx_type_specifier_seq): ...here.
+
+2010-04-30  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* optimize.c, parser.c, mangle.c, cp-tree.h: Do not include varray.h.
+	* Make-lang.in: Don't include varray.h dependency in CXX_TREE_H.
+
+2010-04-30  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c++/43779
+	* typeck.c (warn_args_num): New function.
+	(convert_arguments): Use warn_args_num to print the diagnostic
+	messages. 
+
+2010-04-29  Fabien Chêne  <fabien.chene@gmail.com>
+
+	PR c++/43890
+	* init.c (diagnose_uninitialized_cst_or_ref_member): check for
+	user-provided constructor while recursing.
+
 2010-04-28  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
 	PR c++/9335
@@ -175,6 +308,7 @@
 	* typeck.c (cxx_sizeof_expr): Likewise.
 	(strip_array_domain): New.
 
+	PR c++/43145
 	* name-lookup.c (current_decl_namespace): Non-static.
 	(pop_nested_namespace): Sanity check.
 	* cp-tree.h: Declare current_decl_namespace.

@@ -460,9 +460,11 @@ null_ptr_cst_p (tree t)
   /* [conv.ptr]
 
      A null pointer constant is an integral constant expression
-     (_expr.const_) rvalue of integer type that evaluates to zero.  */
+     (_expr.const_) rvalue of integer type that evaluates to zero or
+     an rvalue of type std::nullptr_t. */
   t = integral_constant_value (t);
-  if (t == null_node)
+  if (t == null_node
+      || TREE_CODE (TREE_TYPE (t)) == NULLPTR_TYPE)
     return true;
   if (CP_INTEGRAL_TYPE_P (TREE_TYPE (t)) && integer_zerop (t))
     {
@@ -781,7 +783,12 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
   if (same_type_p (from, to))
     return conv;
 
-  if ((tcode == POINTER_TYPE || TYPE_PTR_TO_MEMBER_P (to))
+  /* [conv.ptr]
+     A null pointer constant can be converted to a pointer type; ... A
+     null pointer constant of integral type can be converted to an
+     rvalue of type std::nullptr_t. */
+  if ((tcode == POINTER_TYPE || TYPE_PTR_TO_MEMBER_P (to)
+       || tcode == NULLPTR_TYPE)
       && expr && null_ptr_cst_p (expr))
     conv = build_conv (ck_std, to, conv);
   else if ((tcode == INTEGER_TYPE && fcode == POINTER_TYPE)
@@ -916,17 +923,20 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
 
 	  An rvalue of arithmetic, unscoped enumeration, pointer, or
 	  pointer to member type can be converted to an rvalue of type
-	  bool.  */
+	  bool. ... An rvalue of type std::nullptr_t can be converted
+	  to an rvalue of type bool;  */
       if (ARITHMETIC_TYPE_P (from)
 	  || UNSCOPED_ENUM_P (from)
 	  || fcode == POINTER_TYPE
-	  || TYPE_PTR_TO_MEMBER_P (from))
+	  || TYPE_PTR_TO_MEMBER_P (from)
+	  || fcode == NULLPTR_TYPE)
 	{
 	  conv = build_conv (ck_std, to, conv);
 	  if (fcode == POINTER_TYPE
 	      || TYPE_PTRMEM_P (from)
 	      || (TYPE_PTRMEMFUNC_P (from)
-		  && conv->rank < cr_pbool))
+		  && conv->rank < cr_pbool)
+              || fcode == NULLPTR_TYPE)
 	    conv->rank = cr_pbool;
 	  return conv;
 	}
@@ -4893,6 +4903,8 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	tree convfn = cand->fn;
 	unsigned i;
 
+	expr = mark_rvalue_use (expr);
+
 	/* When converting from an init list we consider explicit
 	   constructors, but actually trying to call one is an error.  */
 	if (DECL_NONCONVERTING_P (convfn) && DECL_CONSTRUCTOR_P (convfn))
@@ -4925,6 +4937,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	return expr;
       }
     case ck_identity:
+      expr = mark_rvalue_use (expr);
       if (BRACE_ENCLOSED_INITIALIZER_P (expr))
 	{
 	  int nelts = CONSTRUCTOR_NELTS (expr);
@@ -5194,6 +5207,8 @@ convert_arg_to_ellipsis (tree arg)
 	  < TYPE_PRECISION (double_type_node))
       && !DECIMAL_FLOAT_MODE_P (TYPE_MODE (TREE_TYPE (arg))))
     arg = convert_to_real (double_type_node, arg);
+  else if (TREE_CODE (TREE_TYPE (arg)) == NULLPTR_TYPE)
+    arg = null_pointer_node;
   else if (INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (arg)))
     arg = perform_integral_promotions (arg);
 
@@ -5234,6 +5249,8 @@ build_x_va_arg (tree expr, tree type)
 
   if (expr == error_mark_node || !type)
     return error_mark_node;
+
+  expr = mark_lvalue_use (expr);
 
   if (type_has_nontrivial_copy_init (type)
       || TYPE_HAS_NONTRIVIAL_DESTRUCTOR (type)
@@ -5703,7 +5720,8 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
     {
       tree a = VEC_index (tree, args, arg_index);
       if (magic_varargs_p (fn))
-	/* Do no conversions for magic varargs.  */;
+	/* Do no conversions for magic varargs.  */
+	a = mark_type_use (a);
       else
 	a = convert_arg_to_ellipsis (a);
       argarray[j++] = a;
@@ -5783,20 +5801,8 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	{
 	  tree to = stabilize_reference (cp_build_indirect_ref (fa, RO_NULL,
 								complain));
-	  tree type = TREE_TYPE (to);
 
-	  if (TREE_CODE (arg) != TARGET_EXPR
-	      && TREE_CODE (arg) != AGGR_INIT_EXPR
-	      && is_really_empty_class (type))
-	    {
-	      /* Avoid copying empty classes.  */
-	      val = build2 (COMPOUND_EXPR, void_type_node, to, arg);
-	      TREE_NO_WARNING (val) = 1;
-	      val = build2 (COMPOUND_EXPR, type, val, to);
-	      TREE_NO_WARNING (val) = 1;
-	    }
-	  else
-	    val = build2 (INIT_EXPR, DECL_CONTEXT (fn), to, arg);
+	  val = build2 (INIT_EXPR, DECL_CONTEXT (fn), to, arg);
 	  return val;
 	}
     }
@@ -6224,7 +6230,7 @@ build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
     *fn_p = NULL_TREE;
 
   if (error_operand_p (instance)
-      || error_operand_p (fns))
+      || !fns || error_operand_p (fns))
     return error_mark_node;
 
   if (!BASELINK_P (fns))
@@ -6799,9 +6805,8 @@ compare_ics (conversion *ics1, conversion *ics2)
     Two conversion sequences with the same rank are indistinguishable
     unless one of the following rules applies:
 
-    --A conversion that is not a conversion of a pointer, or pointer
-      to member, to bool is better than another conversion that is such
-      a conversion.
+    --A conversion that does not a convert a pointer, pointer to member,
+      or std::nullptr_t to bool is better than one that does.
 
     The ICS_STD_RANK automatically handles the pointer-to-bool rule,
     so that we do not have to check it explicitly.  */

@@ -24,7 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "dyn-string.h"
-#include "varray.h"
 #include "cpplib.h"
 #include "tree.h"
 #include "cp-tree.h"
@@ -3368,6 +3367,11 @@ cp_parser_primary_expression (cp_parser *parser,
 	case RID_NULL:
 	  cp_lexer_consume_token (parser->lexer);
 	  return null_node;
+
+	  /* The `nullptr' literal.  */
+	case RID_NULLPTR:
+	  cp_lexer_consume_token (parser->lexer);
+	  return nullptr_node;
 
 	  /* Recognize the `this' keyword.  */
 	case RID_THIS:

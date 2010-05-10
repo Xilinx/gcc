@@ -79,7 +79,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "dwarf2out.h"
 #include "dwarf2asm.h"
 #include "toplev.h"
-#include "varray.h"
 #include "ggc.h"
 #include "md5.h"
 #include "tm_p.h"
@@ -6117,6 +6116,7 @@ static void add_AT_location_description	(dw_die_ref, enum dwarf_attribute,
 static void add_data_member_location_attribute (dw_die_ref, tree);
 static bool add_const_value_attribute (dw_die_ref, rtx);
 static void insert_int (HOST_WIDE_INT, unsigned, unsigned char *);
+static void insert_double (double_int, unsigned char *);
 static void insert_float (const_rtx, unsigned char *);
 static rtx rtl_for_decl_location (tree);
 static bool add_location_or_const_value_attribute (dw_die_ref, tree,
@@ -12108,6 +12108,7 @@ is_base_type (tree type)
     case ENUMERAL_TYPE:
     case FUNCTION_TYPE:
     case METHOD_TYPE:
+    case NULLPTR_TYPE:
     case POINTER_TYPE:
     case REFERENCE_TYPE:
     case OFFSET_TYPE:
@@ -13888,10 +13889,8 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	  else
 	    {
 	      loc_result->dw_loc_oprnd2.val_class = dw_val_class_const_double;
-	      loc_result->dw_loc_oprnd2.v.val_double.high
-		= CONST_DOUBLE_HIGH (rtl);
-	      loc_result->dw_loc_oprnd2.v.val_double.low
-		= CONST_DOUBLE_LOW (rtl);
+	      loc_result->dw_loc_oprnd2.v.val_double
+	        = rtx_to_double_int (rtl);
 	    }
 	}
       break;
@@ -13915,39 +13914,14 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	      for (i = 0, p = array; i < length; i++, p += elt_size)
 		{
 		  rtx elt = CONST_VECTOR_ELT (rtl, i);
-		  HOST_WIDE_INT lo, hi;
-
-		  switch (GET_CODE (elt))
-		    {
-		    case CONST_INT:
-		      lo = INTVAL (elt);
-		      hi = -(lo < 0);
-		      break;
-
-		    case CONST_DOUBLE:
-		      lo = CONST_DOUBLE_LOW (elt);
-		      hi = CONST_DOUBLE_HIGH (elt);
-		      break;
-
-		    default:
-		      gcc_unreachable ();
-		    }
+		  double_int val = rtx_to_double_int (elt);
 
 		  if (elt_size <= sizeof (HOST_WIDE_INT))
-		    insert_int (lo, elt_size, p);
+		    insert_int (double_int_to_shwi (val), elt_size, p);
 		  else
 		    {
-		      unsigned char *p0 = p;
-		      unsigned char *p1 = p + sizeof (HOST_WIDE_INT);
-
 		      gcc_assert (elt_size == 2 * sizeof (HOST_WIDE_INT));
-		      if (WORDS_BIG_ENDIAN)
-			{
-			  p0 = p1;
-			  p1 = p;
-			}
-		      insert_int (lo, sizeof (HOST_WIDE_INT), p0);
-		      insert_int (hi, sizeof (HOST_WIDE_INT), p1);
+		      insert_double (val, p);
 		    }
 		}
 	      break;
@@ -15335,6 +15309,24 @@ extract_int (const unsigned char *src, unsigned int size)
   return val;
 }
 
+/* Writes double_int values to dw_vec_const array.  */
+
+static void
+insert_double (double_int val, unsigned char *dest)
+{
+  unsigned char *p0 = dest;
+  unsigned char *p1 = dest + sizeof (HOST_WIDE_INT);
+
+  if (WORDS_BIG_ENDIAN)
+    {
+      p0 = p1;
+      p1 = dest;
+    }
+
+  insert_int ((HOST_WIDE_INT) val.low, sizeof (HOST_WIDE_INT), p0);
+  insert_int ((HOST_WIDE_INT) val.high, sizeof (HOST_WIDE_INT), p1);
+}
+
 /* Writes floating point values to dw_vec_const array.  */
 
 static void
@@ -15414,39 +15406,14 @@ add_const_value_attribute (dw_die_ref die, rtx rtl)
 	    for (i = 0, p = array; i < length; i++, p += elt_size)
 	      {
 		rtx elt = CONST_VECTOR_ELT (rtl, i);
-		HOST_WIDE_INT lo, hi;
-
-		switch (GET_CODE (elt))
-		  {
-		  case CONST_INT:
-		    lo = INTVAL (elt);
-		    hi = -(lo < 0);
-		    break;
-
-		  case CONST_DOUBLE:
-		    lo = CONST_DOUBLE_LOW (elt);
-		    hi = CONST_DOUBLE_HIGH (elt);
-		    break;
-
-		  default:
-		    gcc_unreachable ();
-		  }
+		double_int val = rtx_to_double_int (elt);
 
 		if (elt_size <= sizeof (HOST_WIDE_INT))
-		  insert_int (lo, elt_size, p);
+		  insert_int (double_int_to_shwi (val), elt_size, p);
 		else
 		  {
-		    unsigned char *p0 = p;
-		    unsigned char *p1 = p + sizeof (HOST_WIDE_INT);
-
 		    gcc_assert (elt_size == 2 * sizeof (HOST_WIDE_INT));
-		    if (WORDS_BIG_ENDIAN)
-		      {
-			p0 = p1;
-			p1 = p;
-		      }
-		    insert_int (lo, sizeof (HOST_WIDE_INT), p0);
-		    insert_int (hi, sizeof (HOST_WIDE_INT), p1);
+		    insert_double (val, p);
 		  }
 	      }
 	    break;
@@ -18781,6 +18748,20 @@ gen_compile_unit_die (const char *filename)
     }
 
   add_AT_unsigned (die, DW_AT_language, language);
+
+  switch (language)
+    {
+    case DW_LANG_Fortran77:
+    case DW_LANG_Fortran90:
+    case DW_LANG_Fortran95:
+      /* Fortran has case insensitive identifiers and the front-end
+	 lowercases everything.  */
+      add_AT_unsigned (die, DW_AT_identifier_case, DW_ID_down_case);
+      break;
+    default:
+      /* The default DW_ID_case_sensitive doesn't need to be specified.  */
+      break;
+    }
   return die;
 }
 
@@ -19189,6 +19170,18 @@ gen_type_die_with_usage (tree type, dw_die_ref context_die,
       /* Don't set TREE_ASM_WRITTEN on an incomplete struct; we want to fix
 	 it up if it is ever completed.  gen_*_type_die will set it for us
 	 when appropriate.  */
+      return;
+
+    case NULLPTR_TYPE:
+      {
+        dw_die_ref type_die = lookup_type_die (type);
+        if (type_die == NULL)
+          {
+            type_die = new_die (DW_TAG_unspecified_type, comp_unit_die, type);
+            add_name_attribute (type_die, "decltype(nullptr)");
+            equate_type_number_to_die (type, type_die);
+          }
+      }
       return;
 
     case VOID_TYPE:

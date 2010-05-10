@@ -1,3 +1,226 @@
+2010-05-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/27866
+	PR fortran/35003
+	PR fortran/42809
+	* intrinsic.c (gfc_convert_type_warn): Be more dicsriminative
+	about conversion warnings.
+
+2010-05-10  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44044
+	* match.c (gfc_match_select_type): Move error message to
+	resolve_select_type.
+	* resolve.c (resolve_select_type): Error message moved here from
+	gfc_match_select_type. Correctly set type of temporary.
+
+2010-05-10  Richard Guenther  <rguenther@suse.de>
+
+	* trans-decl.c (gfc_build_library_function_decl): Split out
+	worker to ...
+	(build_library_function_decl_1): ... this new function.
+	Set a fnspec attribute if a specification was provided.
+	(gfc_build_library_function_decl_with_spec): New function.
+	(gfc_build_intrinsic_function_decls): Annotate internal_pack
+	and internal_unpack.
+
+2010-05-07  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/40728
+	* intrinc.c (gfc_is_intrinsic): Do not prematurely mark symbol
+        as external
+
+2010-05-07  Jason Merrill  <jason@redhat.com>
+
+	* trans-expr.c (gfc_conv_procedure_call): Rename nullptr to null_ptr
+	to avoid -Wc++-compat warning.
+
+2010-05-06  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 40989
+	* options.c (gfc_handle_option): Add argument kind.
+	* gfortran.h (gfc_handle_option): Update declaration.
+
+2010-05-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43985
+	* trans-types.c (gfc_sym_type): Mark Cray pointees as
+	GFC_POINTER_TYPE_P.
+
+2010-05-05  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/32331
+	* resolve.c (traverse_data_list): Rephrase error message for
+	non-constant bounds in data-implied-do.
+
+2010-05-05  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/24978
+	* gfortran.h: Removed repeat count from constructor, removed
+	all usages.
+	* data.h (gfc_assign_data_value_range): Changed return value from
+	void to gfc_try.
+	* data.c (gfc_assign_data_value): Add location to constructor element.
+	(gfc_assign_data_value_range): Call gfc_assign_data_value()
+	for each element in range. Return early if an error was generated.
+	* resolve.c (check_data_variable): Stop early if range assignment
+	generated an error.
+
+2010-05-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/43696
+	* resolve.c (resolve_fl_derived): Some fixes for class variables.
+	* symbol.c (gfc_build_class_symbol): Add separate class container for
+	class pointers.
+
+2010-05-03  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/43592
+	* fortran/parse.c (parse_interface): Do not dereference a NULL pointer.
+
+2010-05-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* intrinsic.c (add_functions): Fix GFC_STD and add gfc_resolve_ calls
+	for lcobound, ucobound, image_index and this_image.
+	* intrinsic.h (gfc_resolve_lcobound, gfc_resolve_this_image,
+	gfc_resolve_image_index, gfc_resolve_ucobound): New prototypes.
+	* iresolve.c (gfc_resolve_lcobound, gfc_resolve_this_image,
+	gfc_resolve_image_index, gfc_resolve_ucobound, resolve_bound): New
+	functions.
+	(gfc_resolve_lbound, gfc_resolve_ubound): Use resolve_bound.
+
+2010-04-30  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	PR fortran/43931
+	*  trans-types.c (gfc_get_array_descriptor_base): Fix index
+	calculation for array descriptor types.
+
+2010-04-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/43896
+	* symbol.c (add_proc_component,copy_vtab_proc_comps): Remove
+	initializers for PPC members of the vtabs.
+
+2010-04-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42274
+	* symbol.c (add_proc_component,add_proc_comps): Correctly set the 'ppc'
+	attribute for all PPC members of the vtypes.
+	(copy_vtab_proc_comps): Copy the correct interface.
+	* trans.h (gfc_trans_assign_vtab_procs): Modified prototype.
+	* trans-expr.c (gfc_trans_assign_vtab_procs): Pass the derived type as
+	a dummy argument and make sure all PPC members of the vtab are
+	initialized correctly.
+	(gfc_conv_derived_to_class,gfc_trans_class_assign): Additional argument
+	in call to gfc_trans_assign_vtab_procs.
+	* trans-stmt.c (gfc_trans_allocate): Ditto.
+
+2010-04-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/43326
+	* resolve.c (resolve_typebound_function): Renamed
+	resolve_class_compcall.Do all the detection of class references
+	here.
+	(resolve_typebound_subroutine): resolve_class_typebound_call
+	renamed. Otherwise same as resolve_typebound_function.
+	(gfc_resolve_expr): Call resolve_typebound_function.
+	(resolve_code): Call resolve_typebound_subroutine.
+
+2010-04-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/43492
+	* resolve.c (resolve_typebound_generic_call): For CLASS methods
+	pass back the specific symtree name, rather than the target
+	name.
+
+2010-04-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/42353
+	* resolve.c (resolve_structure_cons): Make the initializer of
+	the vtab component 'extends' the same type as the component.
+
+2010-04-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/42680
+	* interface.c (check_interface1): Pass symbol name rather than NULL to
+	gfc_compare_interfaces.(gfc_compare_interfaces): Add assert to
+	trap MULL. (gfc_compare_derived_types): Revert previous change
+	incorporated incorrectly during merge from trunk, r155778.
+	* resolve.c (check_generic_tbp_ambiguity): Pass symbol name rather
+	than NULL to gfc_compare_interfaces.
+	* symbol.c (add_generic_specifics): Likewise.
+
+2010-02-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42353
+	* interface.c (gfc_compare_derived_types): Add condition for vtype.
+	* symbol.c (gfc_find_derived_vtab): Sey access to private.
+	(gfc_find_derived_vtab): Likewise.
+	* module.c (ab_attribute): Add enumerator AB_VTAB.
+	(mio_symbol_attribute): Use new attribute, AB_VTAB.
+	(check_for_ambiguous): Likewise.
+
+2010-04-29  Paul Thomas  <pault@gcc.gnu.org>
+	    Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41829
+	* trans-expr.c (select_class_proc): Remove function.
+	(conv_function_val): Delete reference to previous.
+	(gfc_conv_derived_to_class): Add second argument to the call to
+	gfc_find_derived_vtab.
+	(gfc_conv_structure): Exclude proc_pointer components when
+	accessing $data field of class objects.
+	(gfc_trans_assign_vtab_procs): New function.
+	(gfc_trans_class_assign): Add second argument to the call to
+	gfc_find_derived_vtab.
+	* symbol.c (gfc_build_class_symbol): Add delayed_vtab arg and
+	implement holding off searching for the vptr derived type.
+	(add_proc_component): New function.
+	(add_proc_comps): New function.
+	(add_procs_to_declared_vtab1): New function.
+	(copy_vtab_proc_comps): New function.
+	(add_procs_to_declared_vtab): New function.
+	(void add_generic_specifics): New function.
+	(add_generics_to_declared_vtab): New function.
+	(gfc_find_derived_vtab): Add second argument to the call to
+	gfc_find_derived_vtab. Add the calls to
+	add_procs_to_declared_vtab and add_generics_to_declared_vtab.
+	* decl.c (build_sym, build_struct): Use new arg in calls to
+	gfc_build_class_symbol.
+	* gfortran.h : Add vtype bitfield to symbol_attr. Remove the
+	definition of struct gfc_class_esym_list. Modify prototypes
+	of gfc_build_class_symbol and gfc_find_derived_vtab.
+	* trans-stmt.c (gfc_trans_allocate): Add second argument to the
+	call to gfc_find_derived_vtab.
+	* module.c : Add the vtype attribute.
+	* trans.h : Add prototype for gfc_trans_assign_vtab_procs.
+	* resolve.c (resolve_typebound_generic_call): Add second arg
+	to pass along the generic name for class methods.
+	(resolve_typebound_call): The same.
+	(resolve_compcall): Use the second arg to carry the generic
+	name from the above. Remove the reference to class_esym.
+	(check_members, check_class_members, resolve_class_esym,
+	hash_value_expr): Remove functions.
+	(resolve_class_compcall, resolve_class_typebound_call): Modify
+	to use vtable rather than member by member calls.
+	(gfc_resolve_expr): Modify second arg in call to
+	resolve_compcall.
+	(resolve_select_type): Add second arg in call to
+	gfc_find_derived_vtab.
+	(resolve_code): Add second arg in call resolve_typebound_call.
+	(resolve_fl_derived): Exclude vtypes from check for late
+	procedure definitions. Likewise for checking of explicit
+	interface and checking of pass arg.
+	* iresolve.c (gfc_resolve_extends_type_of): Add second arg in
+	calls to gfc_find_derived_vtab.
+	* match.c (select_type_set_tmp): Use new arg in call to
+	gfc_build_class_symbol.
+	* trans-decl.c (gfc_get_symbol_decl): Complete vtable if
+	necessary.
+	* parse.c (endType): Finish incomplete classes.
+
 2010-04-28  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/18918
