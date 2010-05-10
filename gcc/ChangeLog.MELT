@@ -1,4 +1,8 @@
 2010-05-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: the alternate matching normalization
+	should probably focus on matched data, not on steps...
+
+2010-05-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{field initialization is checked to be a :value}}
 	* melt/warmelt-normal.melt: Added check of ctype of field value.
 	* testsuite/gcc/melt/tbad-1.melt: added new file.
