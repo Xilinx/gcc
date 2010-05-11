@@ -697,6 +697,52 @@ vect_analyze_data_ref_dependences (loop_vec_info loop_vinfo,
 }
 
 
+/* Function vect_set_data_ref_stmt_vectypes.
+
+   Set the vector type of all data-reference statements according
+   to the vectorization factor VF.  */
+
+bool
+vect_set_data_ref_stmt_vectypes (loop_vec_info loop_vinfo,
+				 bb_vec_info bb_vinfo, int vf)
+{
+  VEC (data_reference_p, heap) *drs = NULL;
+  data_reference_p dr;
+  unsigned i;
+
+  if (vect_print_dump_info (REPORT_DETAILS))
+    fprintf (vect_dump, "=== vect_set_data_ref_stmt_vectypes ===");
+
+  if (loop_vinfo)
+    drs = LOOP_VINFO_DATAREFS (loop_vinfo);
+  else
+    drs = BB_VINFO_DATAREFS (bb_vinfo);
+
+  for (i = 0; VEC_iterate (data_reference_p, drs, i, dr); ++i)
+    {
+      tree scalar_type = TREE_TYPE (DR_REF (dr));
+      gimple stmt = DR_STMT (dr);
+      stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
+      STMT_VINFO_VECTYPE (stmt_info)
+	  = get_vectype_for_scalar_type (scalar_type, vf);
+      if (!STMT_VINFO_VECTYPE (stmt_info))
+	{
+	  if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
+	    {
+	      fprintf (vect_dump,
+		       "not vectorized: no vectype for stmt: ");
+	      print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
+	      fprintf (vect_dump, " scalar_type: ");
+	      print_generic_expr (vect_dump, scalar_type, TDF_DETAILS);
+	    }
+	  return false;
+	}
+    }
+
+  return true;
+}
+
+
 /* Function vect_compute_data_ref_alignment
 
    Compute the misalignment of the data reference DR.
@@ -2208,12 +2254,9 @@ vect_analyze_data_refs (loop_vec_info loop_vinfo,
 
       STMT_VINFO_DATA_REF (stmt_info) = dr;
 
-      /* Set vectype for STMT.  */
-      scalar_type = TREE_TYPE (DR_REF (dr));
-      STMT_VINFO_VECTYPE (stmt_info) =
-                get_vectype_for_scalar_type (scalar_type);
-      if (!STMT_VINFO_VECTYPE (stmt_info))
-        {
+      /* There will be no vector type for BLKmode.  */
+      if (TYPE_MODE (TREE_TYPE (DR_REF (dr))) == BLKmode)
+	{
           if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
             {
               fprintf (vect_dump,
@@ -2231,11 +2274,12 @@ vect_analyze_data_refs (loop_vec_info loop_vinfo,
             }
           else
             return false;
-        }
+	}
 
-      /* Adjust the minimal vectorization factor according to the
-	 vector type.  */
-      vf = TYPE_VECTOR_SUBPARTS (STMT_VINFO_VECTYPE (stmt_info));
+      /* Adjust the minimal vectorization factor according to the smallest
+	 vector mode for the type.  */
+      vf = (UNITS_PER_SIMD_WORD (TYPE_MODE (TREE_TYPE (DR_REF (dr))), *min_vf)
+	    / GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (DR_REF (dr)))));
       if (vf > *min_vf)
 	*min_vf = vf;
     }

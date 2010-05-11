@@ -371,7 +371,11 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
 	}
 
       scalar_type = vect_get_smallest_scalar_type (stmt, &dummy, &dummy);
-      vectype = get_vectype_for_scalar_type (scalar_type);
+      if (loop_vinfo)
+	vectype = get_vectype_for_scalar_type (scalar_type,
+					       vectorization_factor);
+      else
+	vectype = get_vectype_for_scalar_type (scalar_type, group_size);
       if (!vectype)
         {
           if (vect_print_dump_info (REPORT_SLP))
@@ -713,6 +717,31 @@ vect_print_slp_tree (slp_tree node)
 }
 
 
+/* Adjust the data-ref vector types of NODE according to the SLP group
+   size VF.  */
+
+static void
+vect_set_slp_vectypes (slp_tree node, int vf)
+{
+  int i;
+  gimple stmt;
+
+  if (!node)
+    return;
+
+  for (i = 0; VEC_iterate (gimple, SLP_TREE_SCALAR_STMTS (node), i, stmt); i++)
+    {
+      stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
+      if (STMT_VINFO_DATA_REF (stmt_info))
+	STMT_VINFO_VECTYPE (stmt_info)
+	    = get_vectype_for_scalar_type (TREE_TYPE (DR_REF (STMT_VINFO_DATA_REF (stmt_info))), vf);
+    }
+
+  vect_set_slp_vectypes (SLP_TREE_LEFT (node), vf);
+  vect_set_slp_vectypes (SLP_TREE_RIGHT (node), vf);
+}
+
+
 /* Mark the tree rooted at NODE with MARK (PURE_SLP or HYBRID).
    If MARK is HYBRID, it refers to a specific stmt in NODE (the stmt at index
    J). Otherwise, MARK is PURE_SLP and J is -1, which indicates that all the
@@ -1037,11 +1066,18 @@ vect_analyze_slp_instance (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
   VEC (slp_tree, heap) *loads;
   struct data_reference *dr = STMT_VINFO_DATA_REF (vinfo_for_stmt (stmt));
 
+  if (loop_vinfo)
+    vectorization_factor = LOOP_VINFO_VECT_FACTOR (loop_vinfo);
+
   if (dr)
     {
       scalar_type = TREE_TYPE (DR_REF (dr));
-      vectype = get_vectype_for_scalar_type (scalar_type);
       group_size = DR_GROUP_SIZE (vinfo_for_stmt (stmt));
+      if (loop_vinfo)
+	vectype = get_vectype_for_scalar_type (scalar_type,
+					       vectorization_factor);
+      else
+	vectype = get_vectype_for_scalar_type (scalar_type, group_size);
     }
   else
     {
@@ -1062,10 +1098,8 @@ vect_analyze_slp_instance (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
     }
 
   nunits = TYPE_VECTOR_SUBPARTS (vectype);
-  if (loop_vinfo)
-    vectorization_factor = LOOP_VINFO_VECT_FACTOR (loop_vinfo);
-  else
-    /* No multitypes in BB SLP.  */
+  /* No multitypes in BB SLP.  */
+  if (!loop_vinfo)
     vectorization_factor = nunits;
 
   /* Calculate the unrolling factor.  */
@@ -1382,7 +1416,8 @@ destroy_bb_vec_info (bb_vec_info bb_vinfo)
    the subtree. Return TRUE if the operations are supported.  */
 
 static bool
-vect_slp_analyze_node_operations (bb_vec_info bb_vinfo, slp_tree node)
+vect_slp_analyze_node_operations (bb_vec_info bb_vinfo,
+				  slp_instance instance, slp_tree node)
 {
   bool dummy;
   int i;
@@ -1391,8 +1426,10 @@ vect_slp_analyze_node_operations (bb_vec_info bb_vinfo, slp_tree node)
   if (!node)
     return true;
 
-  if (!vect_slp_analyze_node_operations (bb_vinfo, SLP_TREE_LEFT (node))
-      || !vect_slp_analyze_node_operations (bb_vinfo, SLP_TREE_RIGHT (node)))
+  if (!vect_slp_analyze_node_operations (bb_vinfo,
+					 instance, SLP_TREE_LEFT (node))
+      || !vect_slp_analyze_node_operations (bb_vinfo,
+					    instance, SLP_TREE_RIGHT (node)))
     return false;
 
   for (i = 0; VEC_iterate (gimple, SLP_TREE_SCALAR_STMTS (node), i, stmt); i++)
@@ -1401,7 +1438,7 @@ vect_slp_analyze_node_operations (bb_vec_info bb_vinfo, slp_tree node)
       gcc_assert (stmt_info);
       gcc_assert (PURE_SLP_STMT (stmt_info));
 
-      if (!vect_analyze_stmt (stmt, &dummy, node))
+      if (!vect_analyze_stmt (stmt, &dummy, instance, node))
         return false;
     }
 
@@ -1421,7 +1458,7 @@ vect_slp_analyze_operations (bb_vec_info bb_vinfo)
 
   for (i = 0; VEC_iterate (slp_instance, slp_instances, i, instance); )
     {
-      if (!vect_slp_analyze_node_operations (bb_vinfo,
+      if (!vect_slp_analyze_node_operations (bb_vinfo, instance,
                                              SLP_INSTANCE_TREE (instance)))
         {
  	  vect_free_slp_instance (instance);
@@ -1486,6 +1523,8 @@ vect_slp_analyze_bb (basic_block bb)
       destroy_bb_vec_info (bb_vinfo);
       return NULL;
     }
+  if (vect_print_dump_info (REPORT_DETAILS))
+    fprintf (vect_dump, "minimum vectorization factor %i.", min_vf);
 
   ddrs = BB_VINFO_DDRS (bb_vinfo);
   if (!VEC_length (ddr_p, ddrs))
@@ -1505,6 +1544,16 @@ vect_slp_analyze_bb (basic_block bb)
 	 fprintf (vect_dump, "not vectorized: unhandled data dependence "
 		  "in basic block.\n");
 
+       destroy_bb_vec_info (bb_vinfo);
+       return NULL;
+     }
+
+   /* After this we need to set vector types on all data-refs.
+      ???  Rather we should analyze the SLP first, so force the
+      minimal vectorization factor for now.  We should also set
+      the data-ref vector types per SLP instance, which we do below.  */
+   if (!vect_set_data_ref_stmt_vectypes (NULL, bb_vinfo, min_vf))
+     {
        destroy_bb_vec_info (bb_vinfo);
        return NULL;
      }
@@ -1554,9 +1603,12 @@ vect_slp_analyze_bb (basic_block bb)
   slp_instances = BB_VINFO_SLP_INSTANCES (bb_vinfo);
 
   /* Mark all the statements that we want to vectorize as pure SLP and
-     relevant.  */
+     relevant and adjust the DRs vector types.  */
   for (i = 0; VEC_iterate (slp_instance, slp_instances, i, instance); i++)
     {
+      vect_set_slp_vectypes (SLP_INSTANCE_TREE (instance),
+			     MIN ((unsigned)max_vf,
+				  SLP_INSTANCE_GROUP_SIZE (instance)));
       vect_mark_slp_stmts (SLP_INSTANCE_TREE (instance), pure_slp, -1);
       vect_mark_slp_stmts_relevant (SLP_INSTANCE_TREE (instance));
     }
@@ -1688,7 +1740,8 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
   else
     constant_p = false;
 
-  vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
+  vector_type = get_same_sized_vectype (TREE_TYPE (op),
+					STMT_VINFO_VECTYPE (stmt_vinfo));
   gcc_assert (vector_type);
 
   nunits = TYPE_VECTOR_SUBPARTS (vector_type);
@@ -2092,7 +2145,7 @@ vect_transform_slp_perm_load (gimple stmt, VEC (tree, heap) *dr_chain,
        return false;
     }
 
-  mask_type = get_vectype_for_scalar_type (mask_element_type);
+  mask_type = get_same_sized_vectype (mask_element_type, vectype);
   mask_nunits = TYPE_VECTOR_SUBPARTS (mask_type);
   mask = (int *) xmalloc (sizeof (int) * mask_nunits);
   nunits = TYPE_VECTOR_SUBPARTS (vectype);
@@ -2247,6 +2300,7 @@ vect_schedule_slp_instance (slp_tree node, slp_instance instance,
      one scalar iteration (GROUP_SIZE) multiplied by VF divided by vector
      size.  */
   vec_stmts_size = (vectorization_factor * group_size) / nunits;
+  gcc_assert (vec_stmts_size >= 1);
 
   /* In case of load permutation we have to allocate vectorized statements for
      all the nodes that participate in that permutation.  */

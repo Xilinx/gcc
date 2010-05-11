@@ -142,9 +142,10 @@ along with GCC; see the file COPYING3.  If not see
 
    Determine the vectorization factor (VF). VF is the number of data elements
    that are operated upon in parallel in a single iteration of the vectorized
-   loop. For example, when vectorizing a loop that operates on 4byte elements,
+   loop.  For example, when vectorizing a loop that operates on 4byte elements,
    on a target with vector size (VS) 16byte, the VF is set to 4, since 4
-   elements can fit in a single vector register.
+   elements can fit in a single vector register.  MAX_VF is the maximum
+   supported vectorization factor according to data-ref analysis.
 
    We currently support vectorization of loops in which all types operated upon
    are of the same size. Therefore this function currently sets VF according to
@@ -164,20 +165,20 @@ along with GCC; see the file COPYING3.  If not see
 */
 
 static bool
-vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
+vect_determine_vectorization_factor (loop_vec_info loop_vinfo,
+				     int *min_vf, int *max_vf)
 {
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
   basic_block *bbs = LOOP_VINFO_BBS (loop_vinfo);
-  int nbbs = loop->num_nodes;
+  unsigned int nbbs = loop->num_nodes;
   gimple_stmt_iterator si;
-  unsigned int vectorization_factor = 0;
   tree scalar_type;
   gimple phi;
   tree vectype;
-  unsigned int nunits;
+  int nunits;
   stmt_vec_info stmt_info;
-  int i;
-  HOST_WIDE_INT dummy;
+  unsigned int i, j;
+  int desired_vf = 0;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "=== vect_determine_vectorization_factor ===");
@@ -199,9 +200,9 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	  gcc_assert (stmt_info);
 
 	  if (STMT_VINFO_RELEVANT_P (stmt_info))
-            {
+	    {
 	      gcc_assert (!STMT_VINFO_VECTYPE (stmt_info));
-              scalar_type = TREE_TYPE (PHI_RESULT (phi));
+	      scalar_type = TREE_TYPE (PHI_RESULT (phi));
 
 	      if (vect_print_dump_info (REPORT_DETAILS))
 		{
@@ -209,38 +210,43 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 		  print_generic_expr (vect_dump, scalar_type, TDF_SLIM);
 		}
 
-	      vectype = get_vectype_for_scalar_type (scalar_type);
-	      if (!vectype)
+	      vectype = get_vectype_for_scalar_type_1 (scalar_type, *min_vf, true);
+	      if (!vectype
+		  || (int)TYPE_VECTOR_SUBPARTS (vectype) > *max_vf)
 		{
 		  if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
 		    {
 		      fprintf (vect_dump,
-		               "not vectorized: unsupported data-type ");
+			       "not vectorized: unsupported data-type ");
 		      print_generic_expr (vect_dump, scalar_type, TDF_SLIM);
 		    }
 		  return false;
 		}
-	      STMT_VINFO_VECTYPE (stmt_info) = vectype;
-
-	      if (vect_print_dump_info (REPORT_DETAILS))
-		{
-		  fprintf (vect_dump, "vectype: ");
-		  print_generic_expr (vect_dump, vectype, TDF_SLIM);
-		}
 
 	      nunits = TYPE_VECTOR_SUBPARTS (vectype);
-	      if (vect_print_dump_info (REPORT_DETAILS))
-		fprintf (vect_dump, "nunits = %d", nunits);
+	      if (nunits > *min_vf)
+		{
+		  *min_vf = nunits;
+		  if (vect_print_dump_info (REPORT_DETAILS))
+		    fprintf (vect_dump, "increasing minimal vectorization "
+			     "factor to %d\n", *min_vf);
+		}
 
-	      if (!vectorization_factor
-		  || (nunits > vectorization_factor))
-		vectorization_factor = nunits;
+	      vectype = get_vectype_for_scalar_type (scalar_type, *max_vf);
+	      nunits = TYPE_VECTOR_SUBPARTS (vectype);
+	      if (desired_vf == 0
+		  || nunits > desired_vf)
+		{
+		  desired_vf = nunits;
+		  if (vect_print_dump_info (REPORT_DETAILS))
+		    fprintf (vect_dump, "increasing desired vectorization "
+			     "factor to %d\n", desired_vf);
+		}
 	    }
 	}
 
       for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
-        {
-	  tree vf_vectype;
+	{
 	  gimple stmt = gsi_stmt (si);
 	  stmt_info = vinfo_for_stmt (stmt);
 
@@ -257,15 +263,20 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      && !STMT_VINFO_LIVE_P (stmt_info))
 	    {
 	      if (vect_print_dump_info (REPORT_DETAILS))
-	        fprintf (vect_dump, "skip.");
+		fprintf (vect_dump, "skip.");
 	      continue;
 	    }
+
+	  /* The data-ref part has already been dealt with regarding
+	     to vectorization factor computation during data-ref analysis.  */
+	  if (STMT_VINFO_DATA_REF (stmt_info))
+	    continue;
 
 	  if (gimple_get_lhs (stmt) == NULL_TREE)
 	    {
 	      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
 		{
-	          fprintf (vect_dump, "not vectorized: irregular stmt.");
+		  fprintf (vect_dump, "not vectorized: irregular stmt.");
 		  print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
 		}
 	      return false;
@@ -274,34 +285,171 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	  if (VECTOR_MODE_P (TYPE_MODE (gimple_expr_type (stmt))))
 	    {
 	      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
-	        {
-	          fprintf (vect_dump, "not vectorized: vector stmt in loop:");
-	          print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
-	        }
+		{
+		  fprintf (vect_dump, "not vectorized: vector stmt in loop:");
+		  print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
+		}
 	      return false;
 	    }
 
 	  if (STMT_VINFO_VECTYPE (stmt_info))
 	    {
 	      /* The only case when a vectype had been already set is for stmts
-	         that contain a dataref, or for "pattern-stmts" (stmts generated
+		 that contain a dataref, or for "pattern-stmts" (stmts generated
 		 by the vectorizer to represent/replace a certain idiom).  */
-	      gcc_assert (STMT_VINFO_DATA_REF (stmt_info)
-			  || is_pattern_stmt_p (stmt_info));
+	      gcc_assert (is_pattern_stmt_p (stmt_info));
 	      vectype = STMT_VINFO_VECTYPE (stmt_info);
+	      nunits = TYPE_VECTOR_SUBPARTS (vectype);
+	      if (nunits > *min_vf)
+		{
+		  *min_vf = nunits;
+		  if (vect_print_dump_info (REPORT_DETAILS))
+		    fprintf (vect_dump, "increasing minimal vectorization "
+			     "factor to %d\n", *min_vf);
+		}
+	      if (desired_vf == 0
+		  || nunits > desired_vf)
+		{
+		  desired_vf = nunits;
+		  if (vect_print_dump_info (REPORT_DETAILS))
+		    fprintf (vect_dump, "increasing desired vectorization "
+			     "factor to %d\n", desired_vf);
+		}
 	    }
 	  else
 	    {
-	      gcc_assert (!STMT_VINFO_DATA_REF (stmt_info)
-			  && !is_pattern_stmt_p (stmt_info));
+	      gcc_assert (!is_pattern_stmt_p (stmt_info));
 
-	      scalar_type = TREE_TYPE (gimple_get_lhs (stmt));
+	      /* Iterate over all scalar types of the stmt operands and
+		 determine the minimal and maximal vectorization factors.  */
+	      for (j = 0; j < gimple_num_ops (stmt); ++j)
+		{
+		  tree op = gimple_op (stmt, j);
+		  if (!op
+		      || TYPE_P (op))
+		    continue;
+
+		  scalar_type = TREE_TYPE (op);
+		  vectype = get_vectype_for_scalar_type_1 (scalar_type,
+							   *min_vf, true);
+		  if (!vectype
+		      || (int)TYPE_VECTOR_SUBPARTS (vectype) > *max_vf)
+		    {
+		      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
+			{
+			  fprintf (vect_dump,
+				   "not vectorized: unsupported data-type ");
+			  print_generic_expr (vect_dump, scalar_type, TDF_SLIM);
+			}
+		      return false;
+		    }
+
+		  nunits = TYPE_VECTOR_SUBPARTS (vectype);
+		  if (nunits > *min_vf)
+		    {
+		      *min_vf = nunits;
+		      if (vect_print_dump_info (REPORT_DETAILS))
+			fprintf (vect_dump, "increasing minimal vectorization "
+				 "factor to %d\n", *min_vf);
+		    }
+
+		  vectype = get_vectype_for_scalar_type (scalar_type, *max_vf);
+		  nunits = TYPE_VECTOR_SUBPARTS (vectype);
+		  if (desired_vf == 0
+		      || nunits > desired_vf)
+		    {
+		      desired_vf = nunits;
+		      if (vect_print_dump_info (REPORT_DETAILS))
+			fprintf (vect_dump, "increasing desired vectorization "
+				 "factor to %d\n", desired_vf);
+		    }
+		}
+	    }
+	}
+    }
+
+  /* If we do not support the desired vectorization factor, adjust it.  */
+  if (desired_vf > *max_vf)
+    desired_vf = *max_vf;
+
+  /* Restrict the vectorization factor to a known loop-trip count.  */
+  if (LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
+      && ((int)LOOP_VINFO_INT_NITERS (loop_vinfo) < desired_vf))
+    {
+      desired_vf = LOOP_VINFO_INT_NITERS (loop_vinfo);
+      if (vect_print_dump_info (REPORT_DETAILS))
+	fprintf (vect_dump, "reducing desired vectorization factor to "
+		 "known loop-trip count %d.", desired_vf);
+    }
+
+  /* If we didn't have any interesting statements that shows what we
+     desire, use the maximal (??? for now minimal) vectorization factor.  */
+  if (desired_vf == 0
+      || desired_vf < *min_vf)
+    desired_vf = *min_vf;
+
+  if (desired_vf == 0
+      || *min_vf > *max_vf)
+    {
+      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
+	fprintf (vect_dump, "not vectorized: unsupported data-type");
+      return false;
+    }
+
+  /* TODO: Analyze cost. Decide if worth while to vectorize.  */
+  if (vect_print_dump_info (REPORT_DETAILS))
+    fprintf (vect_dump, "vectorization factor = %d", desired_vf);
+
+  /* The vectorization factor is now determined.  */
+  LOOP_VINFO_VECT_FACTOR (loop_vinfo) = desired_vf;
+
+  return true;
+}
+
+static bool
+vect_determine_vectorization_types (loop_vec_info loop_vinfo, int vf)
+{
+  struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
+  basic_block *bbs = LOOP_VINFO_BBS (loop_vinfo);
+  int nbbs = loop->num_nodes;
+  gimple_stmt_iterator si;
+  tree scalar_type;
+  gimple phi;
+  tree vectype;
+  stmt_vec_info stmt_info;
+  int i;
+
+  if (vect_print_dump_info (REPORT_DETAILS))
+    fprintf (vect_dump, "=== vect_determine_vectorization_types ===");
+
+  for (i = 0; i < nbbs; i++)
+    {
+      basic_block bb = bbs[i];
+
+      for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
+	{
+	  phi = gsi_stmt (si);
+	  stmt_info = vinfo_for_stmt (phi);
+	  if (vect_print_dump_info (REPORT_DETAILS))
+	    {
+	      fprintf (vect_dump, "==> examining phi: ");
+	      print_gimple_stmt (vect_dump, phi, 0, TDF_SLIM);
+	    }
+
+	  gcc_assert (stmt_info);
+
+	  if (STMT_VINFO_RELEVANT_P (stmt_info))
+	    {
+	      gcc_assert (!STMT_VINFO_VECTYPE (stmt_info));
+	      scalar_type = TREE_TYPE (PHI_RESULT (phi));
+
 	      if (vect_print_dump_info (REPORT_DETAILS))
 		{
 		  fprintf (vect_dump, "get vectype for scalar type:  ");
 		  print_generic_expr (vect_dump, scalar_type, TDF_SLIM);
 		}
-	      vectype = get_vectype_for_scalar_type (scalar_type);
+
+	      vectype = get_vectype_for_scalar_type (scalar_type, vf);
 	      if (!vectype)
 		{
 		  if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
@@ -312,22 +460,55 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 		    }
 		  return false;
 		}
-
 	      STMT_VINFO_VECTYPE (stmt_info) = vectype;
-            }
 
-	  /* The vectorization factor is according to the smallest
-	     scalar type (or the largest vector size, but we only
-	     support one vector size per loop).  */
-	  scalar_type = vect_get_smallest_scalar_type (stmt, &dummy,
-						       &dummy);
+	      if (vect_print_dump_info (REPORT_DETAILS))
+		{
+		  fprintf (vect_dump, "vectype: ");
+		  print_generic_expr (vect_dump, vectype, TDF_SLIM);
+		}
+	    }
+	}
+
+      for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
+	{
+	  gimple stmt = gsi_stmt (si);
+	  stmt_info = vinfo_for_stmt (stmt);
+
+	  if (vect_print_dump_info (REPORT_DETAILS))
+	    {
+	      fprintf (vect_dump, "==> examining statement: ");
+	      print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
+	    }
+
+	  gcc_assert (stmt_info);
+
+	  /* skip stmts which do not need to be vectorized.  */
+	  if (!STMT_VINFO_RELEVANT_P (stmt_info)
+	      && !STMT_VINFO_LIVE_P (stmt_info))
+	    {
+	      if (vect_print_dump_info (REPORT_DETAILS))
+		fprintf (vect_dump, "skip.");
+	      continue;
+	    }
+
+	  /* The data-ref part has already been dealt with regarding
+	     to vectorization factor computation during data-ref analysis.  */
+	  if (STMT_VINFO_DATA_REF (stmt_info))
+	    continue;
+
+	  if (STMT_VINFO_VECTYPE (stmt_info))
+	    continue;
+
+	  scalar_type = TREE_TYPE (gimple_get_lhs (stmt));
 	  if (vect_print_dump_info (REPORT_DETAILS))
 	    {
 	      fprintf (vect_dump, "get vectype for scalar type:  ");
 	      print_generic_expr (vect_dump, scalar_type, TDF_SLIM);
 	    }
-	  vf_vectype = get_vectype_for_scalar_type (scalar_type);
-	  if (!vf_vectype)
+
+	  vectype = get_vectype_for_scalar_type (scalar_type, vf);
+	  if (!vectype)
 	    {
 	      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
 		{
@@ -338,47 +519,15 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      return false;
 	    }
 
-	  if ((GET_MODE_SIZE (TYPE_MODE (vectype))
-	       != GET_MODE_SIZE (TYPE_MODE (vf_vectype))))
-	    {
-	      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
-		{
-		  fprintf (vect_dump,
-			   "not vectorized: different sized vector "
-			   "types in statement, ");
-		  print_generic_expr (vect_dump, vectype, TDF_SLIM);
-		  fprintf (vect_dump, " and ");
-		  print_generic_expr (vect_dump, vf_vectype, TDF_SLIM);
-		}
-	      return false;
-	    }
+	  STMT_VINFO_VECTYPE (stmt_info) = vectype;
 
 	  if (vect_print_dump_info (REPORT_DETAILS))
 	    {
 	      fprintf (vect_dump, "vectype: ");
-	      print_generic_expr (vect_dump, vf_vectype, TDF_SLIM);
+	      print_generic_expr (vect_dump, vectype, TDF_SLIM);
 	    }
-
-	  nunits = TYPE_VECTOR_SUBPARTS (vf_vectype);
-	  if (vect_print_dump_info (REPORT_DETAILS))
-	    fprintf (vect_dump, "nunits = %d", nunits);
-
-	  if (!vectorization_factor
-	      || (nunits > vectorization_factor))
-	    vectorization_factor = nunits;
-        }
+	}
     }
-
-  /* TODO: Analyze cost. Decide if worth while to vectorize.  */
-  if (vect_print_dump_info (REPORT_DETAILS))
-    fprintf (vect_dump, "vectorization factor = %d", vectorization_factor);
-  if (vectorization_factor <= 1)
-    {
-      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
-        fprintf (vect_dump, "not vectorized: unsupported data-type");
-      return false;
-    }
-  LOOP_VINFO_VECT_FACTOR (loop_vinfo) = vectorization_factor;
 
   return true;
 }
@@ -1224,7 +1373,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo)
 
           gcc_assert (stmt_info);
 
-	  if (!vect_analyze_stmt (stmt, &need_to_vectorize, NULL))
+	  if (!vect_analyze_stmt (stmt, &need_to_vectorize, NULL, NULL))
 	    return false;
 
           if ((STMT_VINFO_RELEVANT_P (stmt_info)
@@ -1400,13 +1549,18 @@ vect_analyze_loop (struct loop *loop)
       destroy_loop_vec_info (loop_vinfo, true);
       return NULL;
     }
+  if (vect_print_dump_info (REPORT_DETAILS))
+    fprintf (vect_dump, "minimum vectorization factor %i.", min_vf);
 
   /* Classify all cross-iteration scalar data-flow cycles.
      Cross-iteration cycles caused by virtual phis are analyzed separately.  */
 
   vect_analyze_scalar_cycles (loop_vinfo);
 
-  vect_pattern_recog (loop_vinfo);
+  /* Pattern recognition requires vectory types and thus knowledge
+     of the vectorization factor.  Use the minimal required vector size
+     according to data-ref analysis.  */
+  vect_pattern_recog (loop_vinfo, min_vf);
 
   /* Data-flow analysis to detect stmts that do not need to be vectorized.  */
 
@@ -1433,8 +1587,11 @@ vect_analyze_loop (struct loop *loop)
       destroy_loop_vec_info (loop_vinfo, true);
       return NULL;
     }
+  if (vect_print_dump_info (REPORT_DETAILS))
+    fprintf (vect_dump, "maximum vectorization factor %i.", max_vf);
 
-  ok = vect_determine_vectorization_factor (loop_vinfo);
+  /* Determine the vectorization factor.  */
+  ok = vect_determine_vectorization_factor (loop_vinfo, &min_vf, &max_vf);
   if (!ok)
     {
       if (vect_print_dump_info (REPORT_DETAILS))
@@ -1442,10 +1599,24 @@ vect_analyze_loop (struct loop *loop)
       destroy_loop_vec_info (loop_vinfo, true);
       return NULL;
     }
-  if (max_vf < LOOP_VINFO_VECT_FACTOR (loop_vinfo))
+
+  /* Set the vector type on all statements according to the vector
+     size.  */
+  ok = vect_determine_vectorization_types (loop_vinfo,
+					   LOOP_VINFO_VECT_FACTOR (loop_vinfo));
+  if (!ok)
     {
       if (vect_print_dump_info (REPORT_DETAILS))
-	fprintf (vect_dump, "bad data dependence.");
+	fprintf (vect_dump, "unsupported data-types.");
+      destroy_loop_vec_info (loop_vinfo, true);
+      return NULL;
+    }
+
+  /* Set the vector type on all data-reference statements according to
+     the vector size.  */
+  if (!vect_set_data_ref_stmt_vectypes (loop_vinfo, NULL,
+					LOOP_VINFO_VECT_FACTOR (loop_vinfo)))
+    {
       destroy_loop_vec_info (loop_vinfo, true);
       return NULL;
     }
@@ -2366,7 +2537,7 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
       gcc_unreachable ();
     }
 
-  vectype = get_vectype_for_scalar_type (TREE_TYPE (reduction_op));
+  vectype = STMT_VINFO_VECTYPE (stmt_info);
   if (!vectype)
     {
       if (vect_print_dump_info (REPORT_COST))
@@ -2500,7 +2671,7 @@ get_initial_def_for_induction (gimple iv_phi)
   basic_block bb = gimple_bb (iv_phi);
   tree stepvectype;
 
-  vectype = get_vectype_for_scalar_type (scalar_type);
+  vectype = get_vectype_for_scalar_type (scalar_type, vf);
   gcc_assert (vectype);
   nunits = TYPE_VECTOR_SUBPARTS (vectype);
   ncopies = vf / nunits;
@@ -2608,7 +2779,7 @@ get_initial_def_for_induction (gimple iv_phi)
   for (i = 0; i < nunits; i++)
     t = tree_cons (NULL_TREE, unshare_expr (new_name), t);
   gcc_assert (CONSTANT_CLASS_P (new_name));
-  stepvectype = get_vectype_for_scalar_type (TREE_TYPE (new_name));
+  stepvectype = get_vectype_for_scalar_type (TREE_TYPE (new_name), vf);
   gcc_assert (stepvectype);
   vec = build_vector (stepvectype, t);
   vec_step = vect_init_vector (iv_phi, vec, stepvectype, NULL);
@@ -2784,7 +2955,8 @@ get_initial_def_for_reduction (gimple stmt, tree init_val,
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_vinfo);
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
   tree scalar_type = TREE_TYPE (init_val);
-  tree vectype = get_vectype_for_scalar_type (scalar_type);
+  int vf = LOOP_VINFO_VECT_FACTOR (loop_vinfo);
+  tree vectype = get_vectype_for_scalar_type (scalar_type, vf);
   int nunits;
   enum tree_code code = gimple_assign_rhs_code (stmt);
   tree def_for_init;
@@ -3046,7 +3218,8 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
       gcc_unreachable ();
     }
 
-  vectype = get_vectype_for_scalar_type (TREE_TYPE (reduction_op));
+  vectype = get_vectype_for_scalar_type (TREE_TYPE (reduction_op),
+					 TYPE_VECTOR_SUBPARTS (STMT_VINFO_VECTYPE (stmt_info)));
   gcc_assert (vectype);
   mode = TYPE_MODE (vectype);
 

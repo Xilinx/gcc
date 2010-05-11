@@ -39,15 +39,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 
 /* Function prototypes */
-static void vect_pattern_recog_1
-  (gimple (* ) (gimple, tree *, tree *), gimple_stmt_iterator);
 static bool widened_name_p (tree, gimple, tree *, gimple *);
 
 /* Pattern recognition functions  */
-static gimple vect_recog_widen_sum_pattern (gimple, tree *, tree *);
-static gimple vect_recog_widen_mult_pattern (gimple, tree *, tree *);
-static gimple vect_recog_dot_prod_pattern (gimple, tree *, tree *);
-static gimple vect_recog_pow_pattern (gimple, tree *, tree *);
+static gimple vect_recog_widen_sum_pattern (gimple, tree *, tree *, int);
+static gimple vect_recog_widen_mult_pattern (gimple, tree *, tree *, int);
+static gimple vect_recog_dot_prod_pattern (gimple, tree *, tree *, int);
+static gimple vect_recog_pow_pattern (gimple, tree *, tree *, int);
 static vect_recog_func_ptr vect_vect_recog_func_ptrs[NUM_PATTERNS] = {
 	vect_recog_widen_mult_pattern,
 	vect_recog_widen_sum_pattern,
@@ -168,7 +166,8 @@ vect_recog_temp_ssa_var (tree type, gimple stmt)
          inner-loop nested in an outer-loop that us being vectorized).  */
 
 static gimple
-vect_recog_dot_prod_pattern (gimple last_stmt, tree *type_in, tree *type_out)
+vect_recog_dot_prod_pattern (gimple last_stmt, tree *type_in, tree *type_out,
+			     int vectorization_factor ATTRIBUTE_UNUSED)
 {
   gimple stmt;
   tree oprnd0, oprnd1;
@@ -356,7 +355,7 @@ vect_recog_dot_prod_pattern (gimple last_stmt, tree *type_in, tree *type_out)
 static gimple
 vect_recog_widen_mult_pattern (gimple last_stmt,
 			       tree *type_in,
-			       tree *type_out)
+			       tree *type_out, int vectorization_factor)
 {
   gimple def_stmt0, def_stmt1;
   tree oprnd0, oprnd1;
@@ -404,8 +403,8 @@ vect_recog_widen_mult_pattern (gimple last_stmt,
     fprintf (vect_dump, "vect_recog_widen_mult_pattern: detected: ");
 
   /* Check target support  */
-  vectype = get_vectype_for_scalar_type (half_type0);
-  vectype_out = get_vectype_for_scalar_type (type);
+  vectype = get_vectype_for_scalar_type (half_type0, vectorization_factor);
+  vectype_out = get_vectype_for_scalar_type (type, vectorization_factor);
   if (!vectype
       || !supportable_widening_operation (WIDEN_MULT_EXPR, last_stmt,
 					  vectype_out, vectype,
@@ -456,7 +455,8 @@ vect_recog_widen_mult_pattern (gimple last_stmt,
 */
 
 static gimple
-vect_recog_pow_pattern (gimple last_stmt, tree *type_in, tree *type_out)
+vect_recog_pow_pattern (gimple last_stmt, tree *type_in, tree *type_out,
+			int vectorization_factor)
 {
   tree fn, base, exp = NULL;
   gimple stmt;
@@ -507,7 +507,8 @@ vect_recog_pow_pattern (gimple last_stmt, tree *type_in, tree *type_out)
       && REAL_VALUES_EQUAL (TREE_REAL_CST (exp), dconsthalf))
     {
       tree newfn = mathfn_built_in (TREE_TYPE (base), BUILT_IN_SQRT);
-      *type_in = get_vectype_for_scalar_type (TREE_TYPE (base));
+      *type_in = get_vectype_for_scalar_type (TREE_TYPE (base),
+					      vectorization_factor);
       if (*type_in)
 	{
 	  gimple stmt = gimple_build_call (newfn, 1, base);
@@ -565,7 +566,8 @@ vect_recog_pow_pattern (gimple last_stmt, tree *type_in, tree *type_out)
 	 inner-loop nested in an outer-loop that us being vectorized).  */
 
 static gimple
-vect_recog_widen_sum_pattern (gimple last_stmt, tree *type_in, tree *type_out)
+vect_recog_widen_sum_pattern (gimple last_stmt, tree *type_in, tree *type_out,
+			      int vectorization_factor ATTRIBUTE_UNUSED)
 {
   gimple stmt;
   tree oprnd0, oprnd1;
@@ -660,20 +662,21 @@ vect_recog_widen_sum_pattern (gimple last_stmt, tree *type_in, tree *type_out)
 
 static void
 vect_pattern_recog_1 (
-	gimple (* vect_recog_func) (gimple, tree *, tree *),
-	gimple_stmt_iterator si)
+	gimple (* vect_recog_func) (gimple, tree *, tree *, int),
+	gimple_stmt_iterator si, loop_vec_info loop_vinfo,
+	int vectorization_factor)
 {
   gimple stmt = gsi_stmt (si), pattern_stmt;
   stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
   stmt_vec_info pattern_stmt_info;
-  loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_info);
   tree pattern_vectype;
   tree type_in, type_out;
   enum tree_code code;
   int i;
   gimple next;
 
-  pattern_stmt = (* vect_recog_func) (stmt, &type_in, &type_out);
+  pattern_stmt = (* vect_recog_func) (stmt, &type_in, &type_out,
+				      vectorization_factor);
   if (!pattern_stmt)
     return;
 
@@ -692,11 +695,11 @@ vect_pattern_recog_1 (
       optab optab;
 
       /* Check target support  */
-      type_in = get_vectype_for_scalar_type (type_in);
+      type_in = get_vectype_for_scalar_type (type_in, vectorization_factor);
       if (!type_in)
 	return;
       if (type_out)
-	type_out = get_vectype_for_scalar_type (type_out);
+	type_out = get_vectype_for_scalar_type (type_out, vectorization_factor);
       else
 	type_out = type_in;
       pattern_vectype = type_out;
@@ -817,14 +820,14 @@ vect_pattern_recog_1 (
 */
 
 void
-vect_pattern_recog (loop_vec_info loop_vinfo)
+vect_pattern_recog (loop_vec_info loop_vinfo, int min_vf)
 {
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
   basic_block *bbs = LOOP_VINFO_BBS (loop_vinfo);
   unsigned int nbbs = loop->num_nodes;
   gimple_stmt_iterator si;
   unsigned int i, j;
-  gimple (* vect_recog_func_ptr) (gimple, tree *, tree *);
+  gimple (* vect_recog_func_ptr) (gimple, tree *, tree *, int);
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "=== vect_pattern_recog ===");
@@ -840,7 +843,8 @@ vect_pattern_recog (loop_vec_info loop_vinfo)
           for (j = 0; j < NUM_PATTERNS; j++)
             {
               vect_recog_func_ptr = vect_vect_recog_func_ptrs[j];
-              vect_pattern_recog_1 (vect_recog_func_ptr, si);
+              vect_pattern_recog_1 (vect_recog_func_ptr, si,
+				    loop_vinfo, min_vf);
             }
         }
     }

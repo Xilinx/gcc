@@ -1,5 +1,69 @@
 2010-05-11  Richard Guenther  <rguenther@suse.de>
 
+	* tree-vect-data-refs.c (vect_analyze_data_ref_dependence): Adjust
+	maximal vectorization factor according to dependences.  Move
+	alignment handling ...
+	(vect_find_same_alignment_drs): ... here.  New function.
+	(vect_analyze_data_ref_dependences): Adjust.
+	(vect_analyze_data_refs_alignment): Call vect_find_same_alignment_drs.
+	(vect_analyze_data_refs): Adjust minimal vectorization factor
+	according to data references.  Do not set vector types here,
+	but ...
+	(vect_set_data_ref_stmt_vectypes): ... here.  New function.
+	* tree-vect-loop.c (vect_determine_vectorization_factor): Compute
+	minimal, maximal and desired vectorization factor.  Do not
+	set vector types here, but ...
+	(vect_determine_vectorization_types): ... here.  New function.
+	(vect_analyze_loop_operations): Adjust.
+	(vect_analyze_loop): Delay computing vector types.
+	(vect_model_reduction_cost): Use the stmt vector type.
+	(get_initial_def_for_induction): Get a vector type according
+	to the vectorization factor.
+	(get_initial_def_for_reduction): Likewise.
+	(vect_create_epilog_for_reduction): Likewise.
+	* tree-vect-patterns.c (vect_recog_dot_prod_pattern): Pass in
+	the vectorization factor.
+	(vect_recog_widen_mult_pattern): Likewise.  Use it.
+	(vect_recog_pow_pattern): Likewise.
+	(vect_recog_widen_sum_pattern): Likewise.
+	(vect_pattern_recog_1): Likewise.
+	(vect_pattern_recog): Likewise.
+	* tree-vect-slp.c (vect_build_slp_tree): Use the vectorization
+	factor or the SLP group size to determine the vector type.
+	(vect_analyze_slp_instance): Likewise.
+	(vect_slp_analyze_node_operations): Pass in the SLP instance.
+	(vect_slp_analyze_node_operations): Likewise.
+	(vect_set_slp_vectypes): New function.
+	(vect_slp_analyze_bb): Adjust for data-ref changes.  Re-set
+	vector types.
+	(vect_get_constant_vectors): Get a vector of the same size as
+	that of the stmt.
+	(vect_transform_slp_perm_load): Likewise.
+	(vect_schedule_slp_instance): Assert vec_stmts_size makes sense.
+	* tree-vect-stmts.c (vect_get_vec_def_for_operand): Allow
+	vectors with more elements.
+	(vect_analyze_stmt): Pass in the SLP instance.  Set stmt
+	types according to the SLP group size.
+	(get_vectype_for_scalar_type_1): Get vectorization factor and flag
+	whether larger vectors are ok.
+	(get_vectype_for_scalar_type): Wrap get_vectype_for_scalar_type_1.
+	(get_vectype_for_scalar_type_and_size): Likewise.
+	(get_same_sized_vectype): Adjust.
+	* tree-vectorizer.c (increase_alignment): Increase alignment
+	according to the maximal vector size.
+	* tree-vectorizer.h (get_vectype_for_scalar_type): Adjust.
+	(get_vectype_for_scalar_type_1): Declare.
+	(get_vectype_for_scalar_type_and_size): Likewise.
+	(get_same_sized_vectype): Likewise.
+	(vect_analyze_stmt): Adjust.
+	(vect_analyze_data_ref_dependences): Likewise.
+	(vect_analyze_data_refs): Likewise.
+	(vect_set_data_ref_stmt_vectypes): Declare.
+	(vect_recog_func_ptr): Adjust.
+	(vect_pattern_recog): Likewise.
+
+2010-05-11  Richard Guenther  <rguenther@suse.de>
+
 	* defaults.h (UNITS_PER_SIMD_WORD): Adjust.
 	* config/i386/i386.h (UNITS_PER_SIMD_WORD): Allow 32byte float
 	vectors.

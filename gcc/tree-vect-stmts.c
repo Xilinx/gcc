@@ -929,8 +929,10 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
     /* Case 1: operand is a constant.  */
     case vect_constant_def:
       {
-	vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
+	vector_type = get_vectype_for_scalar_type_1 (TREE_TYPE (op),
+						     nunits, true);
 	gcc_assert (vector_type);
+	nunits = TYPE_VECTOR_SUBPARTS (vector_type);
 
 	if (scalar_def)
 	  *scalar_def = op;
@@ -950,7 +952,8 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
     /* Case 2: operand is defined outside the loop - loop invariant.  */
     case vect_external_def:
       {
-	vector_type = get_vectype_for_scalar_type (TREE_TYPE (def));
+	vector_type = get_vectype_for_scalar_type_1 (TREE_TYPE (def),
+						     nunits, true);
 	gcc_assert (vector_type);
 	nunits = TYPE_VECTOR_SUBPARTS (vector_type);
 
@@ -4000,7 +4003,8 @@ vectorizable_condition (gimple stmt, gimple_stmt_iterator *gsi,
 /* Make sure the statement is vectorizable.  */
 
 bool
-vect_analyze_stmt (gimple stmt, bool *need_to_vectorize, slp_tree node)
+vect_analyze_stmt (gimple stmt, bool *need_to_vectorize,
+		   slp_instance instance, slp_tree node)
 {
   stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
   bb_vec_info bb_vinfo = STMT_VINFO_BB_VINFO (stmt_info);
@@ -4059,7 +4063,8 @@ vect_analyze_stmt (gimple stmt, bool *need_to_vectorize, slp_tree node)
         gcc_unreachable ();
     }
 
-  if (bb_vinfo)
+  if (bb_vinfo
+      && !STMT_VINFO_DATA_REF (stmt_info))
     {
       gcc_assert (PURE_SLP_STMT (stmt_info));
 
@@ -4070,7 +4075,8 @@ vect_analyze_stmt (gimple stmt, bool *need_to_vectorize, slp_tree node)
           print_generic_expr (vect_dump, scalar_type, TDF_SLIM);
         }
 
-      vectype = get_vectype_for_scalar_type (scalar_type);
+      vectype = get_vectype_for_scalar_type (scalar_type,
+					     SLP_INSTANCE_GROUP_SIZE (instance));
       if (!vectype)
         {
           if (vect_print_dump_info (REPORT_DETAILS))
@@ -4459,18 +4465,18 @@ free_stmt_vec_info (gimple stmt)
 /* Function get_vectype_for_scalar_type.
 
    Returns the vector type corresponding to SCALAR_TYPE as supported
-   by the target.  */
+   by the target.  Prefer a vector type with VF elements if available.
+   Fail if there is only a bigger vector type and BIGGER_OK_P is false.  */
 
 tree
-get_vectype_for_scalar_type (tree scalar_type)
+get_vectype_for_scalar_type_1 (tree scalar_type, int vf, bool bigger_ok_p)
 {
   enum machine_mode inner_mode = TYPE_MODE (scalar_type);
   unsigned int nbytes = GET_MODE_SIZE (inner_mode);
   int nunits;
   tree vectype;
 
-  if (nbytes == 0 || nbytes >= UNITS_PER_SIMD_WORD (inner_mode,
-						    MAX_VECTORIZATION_FACTOR))
+  if (nbytes == 0 || nbytes >= UNITS_PER_SIMD_WORD (inner_mode, vf))
     return NULL_TREE;
 
   /* We can't build a vector type of elements with alignment bigger than
@@ -4486,9 +4492,17 @@ get_vectype_for_scalar_type (tree scalar_type)
       && GET_MODE_BITSIZE (inner_mode) != TYPE_PRECISION (scalar_type))
     return NULL_TREE;
 
-  /* FORNOW: Only a single vector size per mode (UNITS_PER_SIMD_WORD)
-     is expected.  */
-  nunits = UNITS_PER_SIMD_WORD (inner_mode, MAX_VECTORIZATION_FACTOR) / nbytes;
+  nunits = UNITS_PER_SIMD_WORD (inner_mode, vf) / nbytes;
+
+  /* A vector with more elements than the requested vectorization factor
+     is not ok.  */
+  if (!bigger_ok_p
+      && nunits > vf)
+    {
+      if (vect_print_dump_info (REPORT_DETAILS))
+	fprintf (vect_dump, "no vector type for vectorization factor %d ", vf);
+      return NULL_TREE;
+    }
 
   vectype = build_vector_type (scalar_type, nunits);
   if (vect_print_dump_info (REPORT_DETAILS))
@@ -4517,15 +4531,44 @@ get_vectype_for_scalar_type (tree scalar_type)
   return vectype;
 }
 
+/* Function get_vectype_for_scalar_type.
+
+   Returns the vector type corresponding to SCALAR_TYPE with at
+   most VF elements as supported by the target.  */
+
+tree
+get_vectype_for_scalar_type (tree scalar_type, int vf)
+{
+  return get_vectype_for_scalar_type_1 (scalar_type, vf, false);
+}
+
+/* Function get_vectype_for_scalar_type_and_size
+
+   Returns a vector type corresponding to SCALAR_TYPE of size
+   VEC_SIZE if supported by the target.  */
+
+tree
+get_vectype_for_scalar_type_and_size (tree scalar_type, int vec_size)
+{
+  int vf = vec_size / GET_MODE_SIZE (TYPE_MODE (scalar_type));
+  tree vectype = get_vectype_for_scalar_type_1 (scalar_type, vf, false);
+  if (vectype
+      && GET_MODE_SIZE (TYPE_MODE (vectype)) != vec_size)
+    return NULL_TREE;
+  return vectype;
+}
+
 /* Function get_same_sized_vectype
 
    Returns a vector type corresponding to SCALAR_TYPE of size
    VECTOR_TYPE if supported by the target.  */
 
 tree
-get_same_sized_vectype (tree scalar_type, tree vector_type ATTRIBUTE_UNUSED)
+get_same_sized_vectype (tree scalar_type, tree vector_type)
 {
-  return get_vectype_for_scalar_type (scalar_type);
+  int vsize = GET_MODE_SIZE (TYPE_MODE (vector_type));
+  int ssize = GET_MODE_SIZE (TYPE_MODE (scalar_type));
+  return get_vectype_for_scalar_type (scalar_type, vsize / ssize);
 }
 
 /* Function vect_is_simple_use.

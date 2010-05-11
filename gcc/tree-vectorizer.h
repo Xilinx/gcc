@@ -772,7 +772,9 @@ extern LOC find_loop_location (struct loop *);
 extern bool vect_can_advance_ivs_p (loop_vec_info);
 
 /* In tree-vect-stmts.c.  */
-extern tree get_vectype_for_scalar_type (tree);
+extern tree get_vectype_for_scalar_type_1 (tree, int, bool);
+extern tree get_vectype_for_scalar_type (tree, int);
+extern tree get_vectype_for_scalar_type_and_size (tree, int);
 extern tree get_same_sized_vectype (tree, tree);
 extern bool vect_is_simple_use (tree, loop_vec_info, bb_vec_info, gimple *,
                                 tree *,  enum vect_def_type *);
@@ -805,7 +807,7 @@ extern tree vect_get_vec_def_for_stmt_copy (enum vect_def_type, tree);
 extern bool vect_transform_stmt (gimple, gimple_stmt_iterator *,
                                  bool *, slp_tree, slp_instance);
 extern void vect_remove_stores (gimple);
-extern bool vect_analyze_stmt (gimple, bool *, slp_tree);
+extern bool vect_analyze_stmt (gimple, bool *, slp_instance, slp_tree);
 extern bool vectorizable_condition (gimple, gimple_stmt_iterator *, gimple *,
                                     tree, int);
 
@@ -817,6 +819,7 @@ extern tree vect_get_smallest_scalar_type (gimple, HOST_WIDE_INT *,
                                            HOST_WIDE_INT *);
 extern bool vect_analyze_data_ref_dependences (loop_vec_info, bb_vec_info,
 					       int *);
+extern bool vect_set_data_ref_stmt_vectypes (loop_vec_info, bb_vec_info, int);
 extern bool vect_enhance_data_refs_alignment (loop_vec_info);
 extern bool vect_analyze_data_refs_alignment (loop_vec_info, bb_vec_info);
 extern bool vect_verify_datarefs_alignment (loop_vec_info, bb_vec_info);
@@ -882,9 +885,9 @@ extern void vect_slp_transform_bb (basic_block);
 /* Pattern recognition functions.
    Additional pattern recognition functions can (and will) be added
    in the future.  */
-typedef gimple (* vect_recog_func_ptr) (gimple, tree *, tree *);
+typedef gimple (* vect_recog_func_ptr) (gimple, tree *, tree *, int);
 #define NUM_PATTERNS 4
-void vect_pattern_recog (loop_vec_info);
+void vect_pattern_recog (loop_vec_info, int);
 
 /* In tree-vectorizer.c.  */
 unsigned vectorize_loops (void);

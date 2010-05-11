@@ -343,7 +343,8 @@ increase_alignment (void)
       t = TREE_TYPE(decl);
       if (TREE_CODE (t) != ARRAY_TYPE)
         continue;
-      vectype = get_vectype_for_scalar_type (strip_array_types (t));
+      vectype = get_vectype_for_scalar_type (strip_array_types (t),
+					     MAX_VECTORIZATION_FACTOR);
       if (!vectype)
         continue;
       alignment = TYPE_ALIGN (vectype);

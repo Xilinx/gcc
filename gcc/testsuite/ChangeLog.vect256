@@ -1,0 +1,7 @@
+2010-05-11  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/vect/bb-slp-11.c: Adjust.
+
+	* gcc.target/i386/vect-sizes-1.c: New testcase.
+	* gcc.target/i386/vect-sizes-2.c: Likewise.
+	* gfortran.fortran-torture/compile/20100303-1.f: Likewise.

@@ -1,0 +1,21 @@
+      SUBROUTINE CONSTS(COORD,XSP,LABC)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      PARAMETER (LENABC=2000)
+      DIMENSION COORD(3,*),XSP(3,LABC)
+      DIMENSION PHISET(50),ISET(50)
+      COMMON /MOLKST/ NUMAT
+      COMMON /SOLV  / COSURF(3,LENABC)
+      PI=2.0D+00*ACOS(0.D+00)
+      DO 3800 IA=1,NUMAT-1
+          COSURF(IX,NPS)=(XSP(IX,NPS)-COORD(IX,III))/(SRAD(III)-RDS)
+          IF (NTRP+NTRP2 .EQ.0) THEN
+            PHISET(1)=0
+            PHISET(2)=2*PI
+            ISET(1)=1
+            ISET(2)=-1
+          END IF
+          IF (PHISET(L).LT.PHISET(L-1)) THEN
+            III=ISET(L)
+          END IF
+3800  END DO
+      END
