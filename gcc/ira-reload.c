@@ -948,6 +948,14 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 	  create_new_allocno_for_spilling (nregno, i);
 	}
 
+      /* Now look for any pseudos >= orig_max_reg_num which do not have
+	 an associated allocno.  These must have been created as temporaries
+	 by emit_move_insn.  We'll need allocnos for them.  */
+      for (i = orig_max_reg_num; i < (int)max_regno; i++)
+	if (ira_regno_allocno_map[i] == NULL)
+	  abort ();
+
+
       /* Now reallocate a few IRA arrays.  */
       ira_finish_assign ();
       ira_initiate_assign ();
