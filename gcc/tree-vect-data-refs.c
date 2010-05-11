@@ -2034,7 +2034,6 @@ vect_analyze_data_refs (loop_vec_info loop_vinfo,
   unsigned int i;
   VEC (data_reference_p, heap) *datarefs;
   struct data_reference *dr;
-  tree scalar_type;
   bool res;
 
   if (vect_print_dump_info (REPORT_DETAILS))
@@ -2259,6 +2258,7 @@ vect_analyze_data_refs (loop_vec_info loop_vinfo,
 	{
           if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
             {
+	      tree scalar_type = TREE_TYPE (DR_REF (dr));
               fprintf (vect_dump,
                        "not vectorized: no vectype for stmt: ");
               print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
