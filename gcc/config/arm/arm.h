@@ -536,7 +536,7 @@ extern int arm_arch_hwdiv;
 /* Use the option -mvectorize-with-neon-quad to override the use of doubleword
    registers when autovectorizing for Neon, at least until multiple vector
    widths are supported properly by the middle-end.  */
-#define UNITS_PER_SIMD_WORD(MODE) \
+#define UNITS_PER_SIMD_WORD(MODE, VF) \
   (TARGET_NEON ? (TARGET_NEON_VECTORIZE_QUAD ? 16 : 8) : UNITS_PER_WORD)
 
 /* True if natural alignment is used for doubleword types.  */

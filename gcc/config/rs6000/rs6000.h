@@ -1074,7 +1074,7 @@ extern unsigned rs6000_pointer_size;
 #define PAIRED_VECTOR_MODE(MODE)        \
          ((MODE) == V2SFmode)            
 
-#define UNITS_PER_SIMD_WORD(MODE)					\
+#define UNITS_PER_SIMD_WORD(MODE, VF)					\
 	(TARGET_VSX ? UNITS_PER_VSX_WORD				\
 	 : (TARGET_ALTIVEC ? UNITS_PER_ALTIVEC_WORD			\
 	 : (TARGET_SPE ? UNITS_PER_SPE_WORD				\
