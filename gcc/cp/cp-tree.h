@@ -775,6 +775,8 @@ enum cp_tree_index
 
     CPTI_KEYED_CLASSES,
 
+    CPTI_NULLPTR,
+
     CPTI_MAX
 };
 
@@ -809,6 +811,7 @@ extern GTY(()) tree cp_global_trees[CPTI_MAX];
 #define abort_fndecl			cp_global_trees[CPTI_ABORT_FNDECL]
 #define global_delete_fndecl		cp_global_trees[CPTI_GLOBAL_DELETE_FNDECL]
 #define current_aggr			cp_global_trees[CPTI_AGGR_TAG]
+#define nullptr_node			cp_global_trees[CPTI_NULLPTR]
 
 /* We cache these tree nodes so as to call get_identifier less
    frequently.  */
@@ -3001,8 +3004,9 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 
 /* [basic.types]
 
-   Arithmetic types, enumeration types, pointer types, and
-   pointer-to-member types, are collectively called scalar types.
+   Arithmetic types, enumeration types, pointer types,
+   pointer-to-member types, and std::nullptr_t are collectively called
+   scalar types.
    
    Keep these checks in ascending code order.  */
 #define SCALAR_TYPE_P(TYPE)			\
@@ -3010,7 +3014,8 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    || TREE_CODE (TYPE) == ENUMERAL_TYPE		\
    || ARITHMETIC_TYPE_P (TYPE)			\
    || TYPE_PTR_P (TYPE)				\
-   || TYPE_PTRMEMFUNC_P (TYPE))
+   || TYPE_PTRMEMFUNC_P (TYPE)                  \
+   || TREE_CODE (TYPE) == NULLPTR_TYPE)
 
 /* Determines whether this type is a C++0x scoped enumeration
    type. Scoped enumerations types are introduced via "enum class" or
@@ -4815,6 +4820,10 @@ extern tree build_eh_type_type			(tree);
 
 /* in expr.c */
 extern tree cplus_expand_constant		(tree);
+extern tree mark_rvalue_use			(tree);
+extern tree mark_lvalue_use			(tree);
+extern tree mark_type_use			(tree);
+extern void mark_exp_read			(tree);
 
 /* friend.c */
 extern int is_friend				(tree, tree);
@@ -4848,7 +4857,7 @@ extern tree create_temporary_var		(tree);
 extern void initialize_vtbl_ptrs		(tree);
 extern tree build_java_class_ref		(tree);
 extern tree integral_constant_value		(tree);
-extern void diagnose_uninitialized_cst_or_ref_member (tree, bool);
+extern int diagnose_uninitialized_cst_or_ref_member (tree, bool, bool);
 
 /* in lex.c */
 extern void cxx_dup_lang_specific_decl		(tree);

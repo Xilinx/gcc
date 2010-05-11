@@ -4924,6 +4924,8 @@ tree_function_versioning (tree old_decl, tree new_decl,
     (DECL_STRUCT_FUNCTION (old_decl));
   initialize_cfun (new_decl, old_decl,
 		   old_entry_block->count);
+  DECL_STRUCT_FUNCTION (new_decl)->gimple_df->ipa_pta
+    = id.src_cfun->gimple_df->ipa_pta;
   push_cfun (DECL_STRUCT_FUNCTION (new_decl));
 
   /* Copy the function's static chain.  */
@@ -5035,6 +5037,8 @@ tree_function_versioning (tree old_decl, tree new_decl,
   pointer_set_destroy (id.statements_to_fold);
   fold_cond_expr_cond ();
   delete_unreachable_blocks_update_callgraph (&id);
+  if (id.dst_node->analyzed)
+    cgraph_rebuild_references ();
   update_ssa (TODO_update_ssa);
   free_dominance_info (CDI_DOMINATORS);
   free_dominance_info (CDI_POST_DOMINATORS);

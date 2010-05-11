@@ -96,6 +96,7 @@ The callgraph:
 #include "except.h"
 #include "diagnostic.h"
 #include "rtl.h"
+#include "ipa-utils.h"
 
 static void cgraph_node_remove_callers (struct cgraph_node *node);
 static inline void cgraph_edge_remove_caller (struct cgraph_edge *e);
@@ -463,6 +464,7 @@ cgraph_create_node (void)
   node->previous = NULL;
   node->global.estimated_growth = INT_MIN;
   node->frequency = NODE_FREQUENCY_NORMAL;
+  ipa_empty_ref_list (&node->ref_list);
   cgraph_nodes = node;
   cgraph_n_nodes++;
   return node;
@@ -1412,6 +1414,8 @@ cgraph_remove_node (struct cgraph_node *node)
   cgraph_call_node_removal_hooks (node);
   cgraph_node_remove_callers (node);
   cgraph_node_remove_callees (node);
+  ipa_remove_all_references (&node->ref_list);
+  ipa_remove_all_refering (&node->ref_list);
   VEC_free (ipa_opt_pass, heap,
             node->ipa_transforms_to_apply);
 
@@ -1639,9 +1643,16 @@ cgraph_mark_reachable_node (struct cgraph_node *node)
 {
   if (!node->reachable && node->local.finalized)
     {
-      notice_global_symbol (node->decl);
+      if (cgraph_global_info_ready)
+        {
+	  /* Verify that function does not appear to be needed out of blue
+	     during the optimization process.  This can happen for extern
+	     inlines when bodies was removed after inlining.  */
+	  gcc_assert ((node->analyzed || DECL_EXTERNAL (node->decl)));
+	}
+      else
+        notice_global_symbol (node->decl);
       node->reachable = 1;
-      gcc_assert (!cgraph_global_info_ready);
 
       node->next_needed = cgraph_nodes_queue;
       cgraph_nodes_queue = node;
@@ -1853,6 +1864,10 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
 	fprintf(f, "(can throw external) ");
     }
   fprintf (f, "\n");
+  fprintf (f, "  References: ");
+  ipa_dump_references (f, &node->ref_list);
+  fprintf (f, "  Refering this function: ");
+  ipa_dump_refering (f, &node->ref_list);
 
   for (edge = node->indirect_calls; edge; edge = edge->next_callee)
     indirect_calls_count++;
@@ -2081,6 +2096,7 @@ cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq,
   for (e = n->indirect_calls; e; e = e->next_callee)
     cgraph_clone_edge (e, new_node, e->call_stmt, e->lto_stmt_uid,
 		       count_scale, freq, loop_nest, update_original);
+  ipa_clone_references (new_node, NULL, &n->ref_list);
 
   new_node->next_sibling_clone = n->clones;
   if (n->clones)
@@ -2131,6 +2147,8 @@ cgraph_create_virtual_clone (struct cgraph_node *old_node,
   struct cgraph_node *new_node = NULL;
   tree new_decl;
   struct cgraph_node key, **slot;
+  size_t i;
+  struct ipa_replace_map *map;
 
   gcc_assert  (tree_versionable_function_p (old_decl));
 
@@ -2162,6 +2180,26 @@ cgraph_create_virtual_clone (struct cgraph_node *old_node,
   DECL_WEAK (new_node->decl) = 0;
   new_node->clone.tree_map = tree_map;
   new_node->clone.args_to_skip = args_to_skip;
+  for (i = 0; VEC_iterate (ipa_replace_map_p, tree_map, i, map); i++)
+    {
+      tree var = map->new_tree;
+
+      STRIP_NOPS (var);
+      if (TREE_CODE (var) != ADDR_EXPR)
+	continue;
+      var = get_base_var (var);
+      if (!var)
+	continue;
+
+      /* Record references of the future statement initializing the constant
+	 argument.  */
+      if (TREE_CODE (var) == FUNCTION_DECL)
+	ipa_record_reference (new_node, NULL, cgraph_node (var),
+			      NULL, IPA_REF_ADDR, NULL);
+      else if (TREE_CODE (var) == VAR_DECL)
+	ipa_record_reference (new_node, NULL, NULL, varpool_node (var),
+			      IPA_REF_ADDR, NULL);
+    }
   if (!args_to_skip)
     new_node->clone.combined_args_to_skip = old_node->clone.combined_args_to_skip;
   else if (old_node->clone.combined_args_to_skip)

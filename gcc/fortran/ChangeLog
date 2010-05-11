@@ -1,3 +1,85 @@
+2010-05-11  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/31820
+	* resolve.c (validate_case_label_expr): Removed FIXME.
+	(resolve_select): Raise default warning on case labels out of range
+	of the case expression.
+
+2010-05-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/27866
+	PR fortran/35003
+	PR fortran/42809
+	* intrinsic.c (gfc_convert_type_warn): Be more discriminative
+	about conversion warnings.
+
+2010-05-10  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44044
+	* match.c (gfc_match_select_type): Move error message to
+	resolve_select_type.
+	* resolve.c (resolve_select_type): Error message moved here from
+	gfc_match_select_type. Correctly set type of temporary.
+
+2010-05-10  Richard Guenther  <rguenther@suse.de>
+
+	* trans-decl.c (gfc_build_library_function_decl): Split out
+	worker to ...
+	(build_library_function_decl_1): ... this new function.
+	Set a fnspec attribute if a specification was provided.
+	(gfc_build_library_function_decl_with_spec): New function.
+	(gfc_build_intrinsic_function_decls): Annotate internal_pack
+	and internal_unpack.
+
+2010-05-07  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/40728
+	* intrinc.c (gfc_is_intrinsic): Do not prematurely mark symbol
+        as external
+
+2010-05-07  Jason Merrill  <jason@redhat.com>
+
+	* trans-expr.c (gfc_conv_procedure_call): Rename nullptr to null_ptr
+	to avoid -Wc++-compat warning.
+
+2010-05-06  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 40989
+	* options.c (gfc_handle_option): Add argument kind.
+	* gfortran.h (gfc_handle_option): Update declaration.
+
+2010-05-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43985
+	* trans-types.c (gfc_sym_type): Mark Cray pointees as
+	GFC_POINTER_TYPE_P.
+
+2010-05-05  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/32331
+	* resolve.c (traverse_data_list): Rephrase error message for
+	non-constant bounds in data-implied-do.
+
+2010-05-05  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/24978
+	* gfortran.h: Removed repeat count from constructor, removed
+	all usages.
+	* data.h (gfc_assign_data_value_range): Changed return value from
+	void to gfc_try.
+	* data.c (gfc_assign_data_value): Add location to constructor element.
+	(gfc_assign_data_value_range): Call gfc_assign_data_value()
+	for each element in range. Return early if an error was generated.
+	* resolve.c (check_data_variable): Stop early if range assignment
+	generated an error.
+
+2010-05-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/43696
+	* resolve.c (resolve_fl_derived): Some fixes for class variables.
+	* symbol.c (gfc_build_class_symbol): Add separate class container for
+	class pointers.
+
 2010-05-03  Steven G. Kargl  <kargl@gcc.gnu.org>
 
 	PR fortran/43592

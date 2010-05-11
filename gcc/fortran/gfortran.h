@@ -2187,8 +2187,6 @@ typedef struct gfc_constructor
      gfc_component *component; /* Record the component being initialized.  */
   }
   n;
-  mpz_t repeat; /* Record the repeat number of initial values in data
-                  statement like "data a/5*10/".  */
 }
 gfc_constructor;
 
@@ -2312,7 +2310,7 @@ int get_c_kind (const char *, CInteropKind_t *);
 
 /* options.c */
 unsigned int gfc_init_options (unsigned int, const char **);
-int gfc_handle_option (size_t, const char *, int);
+int gfc_handle_option (size_t, const char *, int, int);
 bool gfc_post_options (const char **);
 
 /* f95-lang.c */

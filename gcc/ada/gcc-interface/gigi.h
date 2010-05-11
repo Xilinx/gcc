@@ -595,15 +595,15 @@ extern void record_global_renaming_pointer (tree decl);
 extern void invalidate_global_renaming_pointers (void);
 
 /* Return a FIELD_DECL node.  FIELD_NAME is the field's name, FIELD_TYPE is
-   its type and RECORD_TYPE is the type of the enclosing record.  PACKED is
-   1 if the enclosing record is packed, -1 if it has Component_Alignment of
-   Storage_Unit.  If SIZE is nonzero, it is the specified size of the field.
-   If POS is nonzero, it is the bit position.  If ADDRESSABLE is nonzero, it
+   its type and RECORD_TYPE is the type of the enclosing record.  If SIZE is
+   nonzero, it is the specified size of the field.  If POS is nonzero, it is
+   the bit position.  PACKED is 1 if the enclosing record is packed, -1 if it
+   has Component_Alignment of Storage_Unit.  If ADDRESSABLE is nonzero, it
    means we are allowed to take the address of the field; if it is negative,
    we should not make a bitfield, which is used by make_aligning_type.  */
 extern tree create_field_decl (tree field_name, tree field_type,
-                               tree record_type, int packed, tree size,
-                               tree pos, int addressable);
+			       tree record_type, tree size, tree pos,
+			       int packed, int addressable);
 
 /* Returns a PARM_DECL node. PARAM_NAME is the name of the parameter,
    PARAM_TYPE is its type.  READONLY is true if the parameter is
@@ -658,19 +658,20 @@ extern tree build_vms_descriptor32 (tree type, Mechanism_Type mech,
    and the GNAT node GNAT_SUBPROG.  */
 extern void build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog);
 
-/* Build a type to be used to represent an aliased object whose nominal
-   type is an unconstrained array.  This consists of a RECORD_TYPE containing
-   a field of TEMPLATE_TYPE and a field of OBJECT_TYPE, which is an
-   ARRAY_TYPE.  If ARRAY_TYPE is that of the unconstrained array, this
-   is used to represent an arbitrary unconstrained object.  Use NAME
-   as the name of the record.  */
+/* Build a type to be used to represent an aliased object whose nominal type
+   is an unconstrained array.  This consists of a RECORD_TYPE containing a
+   field of TEMPLATE_TYPE and a field of OBJECT_TYPE, which is an ARRAY_TYPE.
+   If ARRAY_TYPE is that of an unconstrained array, this is used to represent
+   an arbitrary unconstrained object.  Use NAME as the name of the record.
+   DEBUG_INFO_P is true if we need to write debug information for the type.  */
 extern tree build_unc_object_type (tree template_type, tree object_type,
-                                   tree name);
+				   tree name, bool debug_info_p);
 
 /* Same as build_unc_object_type, but taking a thin or fat pointer type
    instead of the template type.  */
 extern tree build_unc_object_type_from_ptr (tree thin_fat_ptr_type,
-					    tree object_type, tree name);
+					    tree object_type, tree name,
+					    bool debug_info_p);
 
 /* Shift the component offsets within an unconstrained object TYPE to make it
    suitable for use as a designated type for thin pointers.  */

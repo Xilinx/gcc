@@ -318,7 +318,7 @@ typeid_ok_p (void)
 tree
 build_typeid (tree exp)
 {
-  tree cond = NULL_TREE;
+  tree cond = NULL_TREE, initial_expr = exp;
   int nonnull = 0;
 
   if (exp == error_mark_node || !typeid_ok_p ())
@@ -333,6 +333,9 @@ build_typeid (tree exp)
       && ! resolves_to_fixed_type_p (exp, &nonnull)
       && ! nonnull)
     {
+      /* So we need to look into the vtable of the type of exp.
+         This is an lvalue use of expr then.  */
+      exp = mark_lvalue_use (exp);
       exp = stabilize_reference (exp);
       cond = cp_convert (boolean_type_node, TREE_OPERAND (exp, 0));
     }
@@ -348,6 +351,8 @@ build_typeid (tree exp)
 
       exp = build3 (COND_EXPR, TREE_TYPE (exp), cond, exp, bad);
     }
+  else
+    mark_type_use (initial_expr);
 
   return exp;
 }
@@ -546,6 +551,8 @@ build_dynamic_cast_1 (tree type, tree expr, tsubst_flags_t complain)
       /* If T is a pointer type, v shall be an rvalue of a pointer to
 	 complete class type, and the result is an rvalue of type T.  */
 
+      expr = mark_rvalue_use (expr);
+
       if (TREE_CODE (exprtype) != POINTER_TYPE)
 	{
 	  errstr = _("source is not a pointer");
@@ -564,6 +571,8 @@ build_dynamic_cast_1 (tree type, tree expr, tsubst_flags_t complain)
     }
   else
     {
+      expr = mark_lvalue_use (expr);
+
       exprtype = build_reference_type (exprtype);
 
       /* T is a reference type, v shall be an lvalue of a complete class
@@ -1035,6 +1044,7 @@ typeinfo_in_lib_p (tree type)
     case BOOLEAN_TYPE:
     case REAL_TYPE:
     case VOID_TYPE:
+    case NULLPTR_TYPE:
       return true;
 
     default:
@@ -1440,6 +1450,9 @@ create_tinfo_types (void)
 void
 emit_support_tinfos (void)
 {
+  /* Dummy static variable so we can put nullptr in the array; it will be
+     set before we actually start to walk the array.  */
+  static tree nullptr_type_node;
   static tree *const fundamentals[] =
   {
     &void_type_node,
@@ -1452,6 +1465,7 @@ emit_support_tinfos (void)
     &long_long_integer_type_node, &long_long_unsigned_type_node,
     &float_type_node, &double_type_node, &long_double_type_node,
     &dfloat32_type_node, &dfloat64_type_node, &dfloat128_type_node,
+    &nullptr_type_node,
     0
   };
   int ix;
@@ -1468,6 +1482,7 @@ emit_support_tinfos (void)
   if (!dtor || DECL_EXTERNAL (dtor))
     return;
   doing_runtime = 1;
+  nullptr_type_node = TREE_TYPE (nullptr_node);
   for (ix = 0; fundamentals[ix]; ix++)
     {
       tree bltn = *fundamentals[ix];

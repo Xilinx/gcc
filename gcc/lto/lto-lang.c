@@ -616,14 +616,15 @@ lto_init_options (unsigned int argc ATTRIBUTE_UNUSED,
 
 const char *resolution_file_name;
 static int
-lto_handle_option (size_t scode, const char *arg, int value ATTRIBUTE_UNUSED)
+lto_handle_option (size_t scode, const char *arg,
+		   int value ATTRIBUTE_UNUSED, int kind ATTRIBUTE_UNUSED)
 {
   enum opt_code code = (enum opt_code) scode;
   int result = 1;
 
   switch (code)
     {
-    case OPT_fresolution:
+    case OPT_fresolution_:
       resolution_file_name = arg;
       result = 1;
       break;
@@ -1018,6 +1019,12 @@ lto_build_c_type_nodes (void)
       uintmax_type_node = long_unsigned_type_node;
       signed_size_type_node = long_integer_type_node;
     }
+  else if (strcmp (SIZE_TYPE, "long long unsigned int") == 0)
+    {
+      intmax_type_node = long_long_integer_type_node;
+      uintmax_type_node = long_long_unsigned_type_node;
+      signed_size_type_node = long_long_integer_type_node;
+    }
   else
     gcc_unreachable ();
 
@@ -1060,6 +1067,11 @@ lto_init (void)
     {
       set_sizetype (long_unsigned_type_node);
       size_type_node = long_unsigned_type_node;
+    }
+  else if (strcmp (SIZE_TYPE, "long long unsigned int") == 0)
+    {
+      set_sizetype (long_long_unsigned_type_node);
+      size_type_node = long_long_unsigned_type_node;
     }
   else
     gcc_unreachable ();

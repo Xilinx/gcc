@@ -238,6 +238,14 @@ struct gcc_target
        translation unit.  */
     void (*file_end) (void);
 
+    /* Output any boilerplate text needed at the beginning of an
+       LTO output stream.  */
+    void (*lto_start) (void);
+
+    /* Output any boilerplate text needed at the end of an
+       LTO output stream.  */
+    void (*lto_end) (void);
+
     /* Output any boilerplace text needed at the end of a
        translation unit before debug and unwind info is emitted.  */
     void (*code_end) (void);
@@ -548,6 +556,10 @@ struct gcc_target
   /* Table of machine attributes and functions to handle them.
      Ignored if NULL.  */
   const struct attribute_spec *attribute_table;
+
+  /* Return true iff attribute NAME expects a plain identifier as its first
+     argument.  */
+  bool (*attribute_takes_identifier_p) (const_tree name);
 
   /* Return zero if the attributes on TYPE1 and TYPE2 are incompatible,
      one if they are compatible and two if they are nearly compatible

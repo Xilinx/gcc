@@ -367,8 +367,8 @@ extern void debug_iteration_domains (scop_p, int);
 extern bool scop_do_interchange (scop_p);
 extern bool scop_do_strip_mine (scop_p);
 extern bool scop_do_block (scop_p);
-extern void pbb_number_of_iterations (poly_bb_p, graphite_dim_t, Value);
-extern void pbb_number_of_iterations_at_time (poly_bb_p, graphite_dim_t, Value);
+extern void pbb_number_of_iterations (poly_bb_p, graphite_dim_t, mpz_t);
+extern void pbb_number_of_iterations_at_time (poly_bb_p, graphite_dim_t, mpz_t);
 extern void pbb_remove_duplicate_pdrs (poly_bb_p);
 
 /* Return the number of write data references in PBB.  */
@@ -648,7 +648,7 @@ struct lst {
   lst_p loop_father;
 
   /* The sum of all the memory strides for an LST loop.  */
-  Value memory_strides;
+  mpz_t memory_strides;
 
   /* Loop nodes contain a sequence SEQ of LST nodes, statements
      contain a pointer to their polyhedral representation PBB.  */
@@ -681,8 +681,8 @@ new_lst_loop (VEC (lst_p, heap) *seq)
   LST_LOOP_P (lst) = true;
   LST_SEQ (lst) = seq;
   LST_LOOP_FATHER (lst) = NULL;
-  value_init (LST_LOOP_MEMORY_STRIDES (lst));
-  value_set_si (LST_LOOP_MEMORY_STRIDES (lst), -1);
+  mpz_init (LST_LOOP_MEMORY_STRIDES (lst));
+  mpz_set_si (LST_LOOP_MEMORY_STRIDES (lst), -1);
 
   for (i = 0; VEC_iterate (lst_p, seq, i, l); i++)
     LST_LOOP_FATHER (l) = lst;
@@ -719,7 +719,7 @@ free_lst (lst_p lst)
       for (i = 0; VEC_iterate (lst_p, LST_SEQ (lst), i, l); i++)
 	free_lst (l);
 
-      value_clear (LST_LOOP_MEMORY_STRIDES (lst));
+      mpz_clear (LST_LOOP_MEMORY_STRIDES (lst));
       VEC_free (lst_p, heap, LST_SEQ (lst));
     }
 

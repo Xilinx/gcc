@@ -1,3 +1,336 @@
+2010-05-11  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/31820
+	* gfortran.dg/select_5.f90: Updated.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimize/44063
+	* gcc.c-torture/compile/pr44063.c: New testcase.
+
+2010-05-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/44023
+	* gcc.dg/pr44023.c: New test.
+
+2010-05-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto7.adb: New test.
+	* gnat.dg/lto7_pkg.ad[sb]: New helper.
+
+2010-05-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44017
+	* g++.dg/template/inherit5.C: New.
+
+	PR c++/44045
+	* g++.dg/cpp0x/initlist33.C: New.
+	* g++.dg/cpp0x/initlist26.C: Adjust.
+	* g++.dg/cpp0x/initlist28.C: Adjust.
+
+2010-05-10  Fabien Chêne  <fabien.chene@gmail.com>
+
+	PR c++/43719
+	* g++.dg/init/pr43719.C: New.
+	* g++.dg/anon-struct4.C: Adjust.
+
+2010-05-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/44028
+	* gcc.dg/pr44028.c: New test.
+
+2010-05-08  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/27866
+	PR fortran/35003
+	PR fortran/42809
+	* gfortran.dg/array_constructor_type_17.f03: Updated match string.
+	* gfortran.dg/warn_conversion.f90: New.
+
+2010-05-10  Michael Matz  <matz@suse.de>
+
+	* gcc.dg/vect/fast-math-vect-reduc-8.c: New test.
+
+2010-05-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/44012
+	* gcc.dg/pr44012.c: New.
+
+2010-05-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/lto.exp (lto_prune_vis_warns): Renamed to lto_prune_warns.
+	Log text on entry and exit.
+	Prune Sun ld warnings for common symbols with differing sizes.
+	(lto-link-and-maybe-run): Change caller.
+
+2010-05-10  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44044
+	* gfortran.dg/class_7.f03: Modified.
+	* gfortran.dg/select_type_1.f03: Modified.
+	* gfortran.dg/select_type_12.f03: New.
+
+2010-05-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44050
+	* gcc.dg/torture/pr44050.c: New testcase.
+
+2010-05-10  Wei Guozhi  <carrot@google.com>
+
+	PR target/42879
+	* gcc.target/arm/pr42879.c: New testcase.
+
+2010-05-09  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/44051
+	* gcc.dg/anon-struct-9.c: Avoid generating identifier i386.
+
+2010-05-09  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/10676
+	* gcc.dg/anon-struct-10.c: New test.
+
+2010-05-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44024
+	* gcc.dg/pr44024.c: New testcase.
+
+2010-05-09  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/4784
+	* gcc.dg/anon-struct-9.c: New test.
+
+2010-05-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44043
+	* gcc.c-torture/compile/pr44043.c: New testcase.
+
+2010-05-09  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/ipa/ipa-pta-11.c: Make p and q referenced.
+
+2010-05-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto6.adb: Remove superfluous -gnat05 switch.
+
+2010-05-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto[12456].adb: Add "target lto" marker.
+	* gnat.dg/specs/lto3.ads: Likewise.
+
+2010-05-08  Sandra Loosemore  <sandra@codesourcery.com>
+
+	PR middle-end/28685
+	* gcc.dg/pr28685-1.c: New file.
+
+2010-05-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44030
+	* gcc.c-torture/compile/pr44030.c: New testcase.
+
+2010-05-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto6.adb: New test.
+	* gnat.dg/lto6_pkg.ads: New helper.
+
+2010-05-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto5.adb: New test.
+	* gnat.dg/lto5_pkg.ad[sb]: New helper.
+
+2010-05-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto4.ad[sb]: New test.
+
+2010-05-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/lto3.ads: New test.
+	* gnat.dg/specs/lto3_pkg1.ad[sb]: New helper.
+	* gnat.dg/specs/lto3_pkg2.ad[sb]: Likewise.
+
+2010-05-08  Quentin Ochem  <ochem@adacore.com>
+
+	* gnat.dg/sizetype3.ad[sb]: New test.
+	* gnat.dg/sizetype3_pkg.ads: New helper.
+
+2010-05-07  Fabien Chêne  <fabien.chene@gmail.com>
+
+	PR c++/43951
+	* g++.dg/init/new29.C: New.
+
+2010-05-07  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/40728
+	* gfortran.dg/coarray_1.f90: Fixed error message.
+	* gfortran.dg/selected_char_kind_3.f90: Fixed error message.
+	* gfortran.dg/intrinsic_std_1.f90: Fixed bogus message.
+	* gfortran.dg/intrinsic_std_5.f90: New.
+
+2010-05-07  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/nullptr20.C: Use sprintf.
+
+2010-05-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/lto/20100423-2_0.c: Include <stdio.h>.
+	(size_t, stderr): Remove.
+	(read_error): Replaced __builtin_fprintf by fprintf.
+
+2010-05-07  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* gcc.dg/ordered-comparison-1.c: New test.
+	* gcc.dg/ordered-comparison-2.c: New test.
+	* gcc.dg/ordered-comparison-3.c: New test.
+	* gcc.dg/ordered-comparison-4.c: New test.
+
+2010-05-06  Mike Stump  <mikestump@comcast.net>
+
+	PR objc/35165
+	* obj-c++.dg/cxx-ivars-2.mm: Restore running of testcase.
+
+2010-05-06  Magnus Fromreide  <magfr@lysator.liu.se>
+	    Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/nullptr01.C: New.
+	* g++.dg/cpp0x/nullptr02.C: New.
+	* g++.dg/cpp0x/nullptr03.C: New.
+	* g++.dg/cpp0x/nullptr04.C: New.
+	* g++.dg/cpp0x/nullptr05.C: New.
+	* g++.dg/cpp0x/nullptr06.C: New.
+	* g++.dg/cpp0x/nullptr07.C: New.
+	* g++.dg/cpp0x/nullptr08.C: New.
+	* g++.dg/cpp0x/nullptr09.C: New.
+	* g++.dg/cpp0x/nullptr10.C: New.
+	* g++.dg/cpp0x/nullptr11.C: New.
+	* g++.dg/cpp0x/nullptr12.C: New.
+	* g++.dg/cpp0x/nullptr13.C: New.
+	* g++.dg/cpp0x/nullptr14.C: New.
+	* g++.dg/cpp0x/nullptr15.C: New.
+	* g++.dg/cpp0x/nullptr16.C: New.
+	* g++.dg/cpp0x/nullptr17.C: New.
+	* g++.dg/cpp0x/nullptr18.C: New.
+	* g++.dg/cpp0x/nullptr19.C: New.
+	* g++.dg/cpp0x/nullptr20.C: New.
+	* g++.dg/cpp0x/nullptr21.C: New.
+	* g++.dg/cpp0x/nullptr22.C: New.
+	* g++.dg/debug/nullptr01.C: New.
+	* gcc.dg/Wcxx-compat-2.c: Test nullptr and constexpr.
+
+2010-05-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/Wunused-var-8.c: Move to...
+	* c-c++-common/Wunused-var-6.c: ... here.  New test.
+
+2010-05-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/40406
+	* g++.dg/template/crash96.C: New.
+
+2010-05-06  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/43791
+	* gcc.c-torture/compile/pr43791.c: New file.
+
+2010-05-06  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/43984
+	* gfortran.dg/pr43984.f90: New test.
+
+2010-05-06  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 40989
+	* gcc.dg/pr40989.c: New.
+
+2010-05-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43934
+	* gcc.dg/tree-ssa/ssa-lim-9.c: New testcase.
+
+2010-05-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43987
+	* gcc.c-torture/execute/pr43987.c: New testcase.
+	* gcc.dg/torture/pta-escape-1.c: Adjust.
+	* gcc.dg/tree-ssa/pta-escape-1.c: Likewise.
+	* gcc.dg/tree-ssa/pta-escape-2.c: Likewise.
+	* gcc.dg/tree-ssa/pta-escape-3.c: Likewise.
+	* gcc.dg/ipa/ipa-pta-11.c: Likewise.
+
+2010-04-22  Jakub Jelinek <jakub@redhat.com>
+	    Dodji Seketeli  <dodji@redhat.com>
+
+	PR c/18624
+	* g++.dg/warn/Wunused-7.C: Add dg-warning.
+	* g++.dg/template/sfinae16.C: Likewise.
+	* gcc.dg/Wunused-var-1.c: Moved to...
+	* c-c++-common/Wunused-var-1.c: ...here. New test.
+	* gcc.dg/Wunused-var-2.c: Moved to...
+	* c-c++-common/Wunused-var-2.c: ...here. New test.
+	* gcc.dg/Wunused-var-3.c: Moved to...
+	* c-c++-common/Wunused-var-3.c: ...here. New test.
+	* gcc.dg/Wunused-var-4.c: Moved to...
+	* gcc.dg/Wunused-var-1.c: ... here.
+	* gcc.dg/Wunused-var-5.c: Moved to...
+	* c-c++-common/Wunused-var-4.c: ...here. New test.
+	* gcc.dg/Wunused-var-7.c: Moved to...
+	* c-c++-common/Wunused-var-5.c: ...here. New test.
+	* gcc.dg/Wunused-var-6.c: Moved to...
+	* gcc.dg/Wunused-var-2.c: ... here.
+	* c-c++-common/Wunused-var-1.c: New test.
+	* c-c++-common/Wunused-var-2.c: New test.
+	* c-c++-common/Wunused-var-3.c: New test.
+	* c-c++-common/Wunused-var-4.c: New test.
+	* c-c++-common/Wunused-var-5.c: New test.
+	* g++.dg/warn/Wunused-var-1.C: New test.
+	* g++.dg/warn/Wunused-var-2.C: New test.
+	* g++.dg/warn/Wunused-var-3.C: New test.
+	* g++.dg/warn/Wunused-var-4.C: New test.
+	* g++.dg/warn/Wunused-var-5.C: New test.
+	* g++.dg/warn/Wunused-var-6.C: New test.
+	* g++.dg/warn/Wunused-var-7.C: New test.
+	* g++.dg/warn/Wunused-var-8.C: New test.
+	* g++.dg/warn/Wunused-parm-1.C: New test.
+	* g++.dg/warn/Wunused-parm-2.C: New test.
+	* g++.dg/warn/Wunused-parm-3.C: New test.
+
+2010-05-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43985
+	* gfortran.dg/gomp/crayptr5.f90: New test case.
+
+2010-05-05  Jason Merrill  <jason@redhat.com>
+
+	PR debug/43370
+	* g++.dg/ext/attrib39.C: New.
+
+2010-05-05  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/24978
+	* gfortran.dg/data_invalid.f90: New.
+
+2010-05-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto2.adb: New test.
+
+2010-05-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43787
+	* g++.dg/opt/empty1.C: New.
+
+2010-05-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/43696
+	* gfortran.dg/class_17.f03: New.
+
+2010-05-04  Neil Vachharajani <nvachhar@google.com>
+
+	* gcc.dg/tree-prof/wcoverage-mismatch.c: Adjusted.
+
+2010-05-04  Mike Stump  <mikestump@comcast.net>
+
+	PR objc/35165
+	* encode-8.mm: Restore running of testcase, skip for gnu-runtime.
+
 2010-05-04  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/43668
@@ -292,10 +625,10 @@
 2010-04-28  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
 	PR c++/9335
-        * g++.dg/template/recurse2.C: Update
-        * g++.dg/template/recurse.C: Update.
-        * g++.dg/template/pr23510.C: Update.
-        * lib/prune.exp: Filter out 'recursively instantiated'.
+	* g++.dg/template/recurse2.C: Update
+	* g++.dg/template/recurse.C: Update.
+	* g++.dg/template/pr23510.C: Update.
+	* lib/prune.exp: Filter out 'recursively instantiated'.
 
 2010-04-27  Fabien Chêne  <fabien.chene@gmail.com>
 

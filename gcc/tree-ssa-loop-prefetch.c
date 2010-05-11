@@ -199,6 +199,18 @@ along with GCC; see the file COPYING3.  If not see
 #define FENCE_FOLLOWING_MOVNT NULL_TREE
 #endif
 
+/* It is not profitable to prefetch when the trip count is not at
+   least TRIP_COUNT_TO_AHEAD_RATIO times the prefetch ahead distance.
+   For example, in a loop with a prefetch ahead distance of 10,
+   supposing that TRIP_COUNT_TO_AHEAD_RATIO is equal to 4, it is
+   profitable to prefetch when the trip count is greater or equal to
+   40.  In that case, 30 out of the 40 iterations will benefit from
+   prefetching.  */
+
+#ifndef TRIP_COUNT_TO_AHEAD_RATIO
+#define TRIP_COUNT_TO_AHEAD_RATIO 4
+#endif
+
 /* The group of references between that reuse may occur.  */
 
 struct mem_ref_group
@@ -704,6 +716,9 @@ prune_ref_by_group_reuse (struct mem_ref *ref, struct mem_ref *by,
       hit_from = ddown (delta_b, PREFETCH_BLOCK) * PREFETCH_BLOCK;
       prefetch_before = (hit_from - delta_r + step - 1) / step;
 
+      /* Do not reduce prefetch_before if we meet beyond cache size.  */
+      if (prefetch_before > abs (L2_CACHE_SIZE_BYTES / step))
+        prefetch_before = PREFETCH_ALL;
       if (prefetch_before < ref->prefetch_before)
 	ref->prefetch_before = prefetch_before;
 
@@ -734,6 +749,9 @@ prune_ref_by_group_reuse (struct mem_ref *ref, struct mem_ref *by,
 				reduced_prefetch_block, align_unit);
   if (miss_rate <= ACCEPTABLE_MISS_RATE)
     {
+      /* Do not reduce prefetch_before if we meet beyond cache size.  */
+      if (prefetch_before > L2_CACHE_SIZE_BYTES / PREFETCH_BLOCK)
+        prefetch_before = PREFETCH_ALL;
       if (prefetch_before < ref->prefetch_before)
 	ref->prefetch_before = prefetch_before;
 
@@ -848,11 +866,20 @@ should_issue_prefetch_p (struct mem_ref *ref)
   /* For now do not issue prefetches for only first few of the
      iterations.  */
   if (ref->prefetch_before != PREFETCH_ALL)
-    return false;
+    {
+      if (dump_file && (dump_flags & TDF_DETAILS))
+        fprintf (dump_file, "Ignoring %p due to prefetch_before\n",
+		 (void *) ref);
+      return false;
+    }
 
   /* Do not prefetch nontemporal stores.  */
   if (ref->storent_p)
-    return false;
+    {
+      if (dump_file && (dump_flags & TDF_DETAILS))
+        fprintf (dump_file, "Ignoring nontemporal store %p\n", (void *) ref);
+      return false;
+    }
 
   return true;
 }
@@ -1532,7 +1559,7 @@ determine_loop_nest_reuse (struct loop *loop, struct mem_ref_group *refs,
 static bool
 is_loop_prefetching_profitable (unsigned ahead, HOST_WIDE_INT est_niter,
 				unsigned ninsns, unsigned prefetch_count,
-				unsigned mem_ref_count)
+				unsigned mem_ref_count, unsigned unroll_factor)
 {
   int insn_to_mem_ratio, insn_to_prefetch_ratio;
 
@@ -1551,7 +1578,13 @@ is_loop_prefetching_profitable (unsigned ahead, HOST_WIDE_INT est_niter,
   insn_to_mem_ratio = ninsns / mem_ref_count;
 
   if (insn_to_mem_ratio < PREFETCH_MIN_INSN_TO_MEM_RATIO)
-    return false;
+    {
+      if (dump_file && (dump_flags & TDF_DETAILS))
+        fprintf (dump_file,
+		 "Not prefetching -- instruction to memory reference ratio (%d) too small\n",
+		 insn_to_mem_ratio);
+      return false;
+    }
 
   /* Profitability of prefetching is highly dependent on the trip count.
      For a given AHEAD distance, the first AHEAD iterations do not benefit
@@ -1564,17 +1597,22 @@ is_loop_prefetching_profitable (unsigned ahead, HOST_WIDE_INT est_niter,
      by taking the ratio between the number of prefetches and the total
      number of instructions.  Since we are using integer arithmetic, we
      compute the reciprocal of this ratio.
-     TODO: Account for loop unrolling, which may reduce the costs of
-     shorter stride prefetches.  Note that not accounting for loop
-     unrolling over-estimates the cost and hence gives more conservative
-     results.  */
+     (unroll_factor * ninsns) is used to estimate the number of instructions in
+     the unrolled loop.  This implementation is a bit simplistic -- the number
+     of issued prefetch instructions is also affected by unrolling.  So,
+     prefetch_mod and the unroll factor should be taken into account when
+     determining prefetch_count.  Also, the number of insns of the unrolled
+     loop will usually be significantly smaller than the number of insns of the
+     original loop * unroll_factor (at least the induction variable increases
+     and the exit branches will get eliminated), so it might be better to use
+     tree_estimate_loop_size + estimated_unrolled_size.  */
   if (est_niter < 0)
     {
-      insn_to_prefetch_ratio = ninsns / prefetch_count;
+      insn_to_prefetch_ratio = (unroll_factor * ninsns) / prefetch_count;
       return insn_to_prefetch_ratio >= MIN_INSN_TO_PREFETCH_RATIO;
     }
 
-  if (est_niter <= (HOST_WIDE_INT) ahead)
+  if (est_niter < (HOST_WIDE_INT) (TRIP_COUNT_TO_AHEAD_RATIO * ahead))
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file,
@@ -1637,8 +1675,8 @@ loop_prefetch_arrays (struct loop *loop)
 	     ahead, unroll_factor, est_niter,
 	     ninsns, mem_ref_count, prefetch_count);
 
-  if (!is_loop_prefetching_profitable (ahead, est_niter, ninsns,
-				       prefetch_count, mem_ref_count))
+  if (!is_loop_prefetching_profitable (ahead, est_niter, ninsns, prefetch_count,
+				       mem_ref_count, unroll_factor))
     goto fail;
 
   mark_nontemporal_stores (loop, refs);

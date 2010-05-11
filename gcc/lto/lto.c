@@ -556,13 +556,11 @@ lto_1_to_1_map (void)
       if (node->global.inlined_to || node->clone_of)
 	continue;
       /* Nodes without a body do not need partitioning.  */
-      if (!node->analyzed || node->same_body_alias)
+      if (!node->analyzed)
 	continue;
-      /* We only need to partition the nodes that we read from the
-	 gimple bytecode files.  */
+
       file_data = node->local.lto_file_data;
-      if (file_data == NULL)
-	continue;
+      gcc_assert (!node->same_body_alias && file_data);
 
       slot = pointer_map_contains (pmap, file_data);
       if (slot)
@@ -584,7 +582,7 @@ lto_1_to_1_map (void)
 
   for (vnode = varpool_nodes; vnode; vnode = vnode->next)
     {
-      if (vnode->alias)
+      if (vnode->alias || !vnode->needed)
 	continue;
       slot = pointer_map_contains (vpmap, file_data);
       if (slot)
@@ -718,46 +716,32 @@ lto_promote_cross_file_statics (void)
   struct varpool_node *vnode;
   unsigned i, n_sets;
   cgraph_node_set set;
+  varpool_node_set vset;
   cgraph_node_set_iterator csi;
+  varpool_node_set_iterator vsi;
 
   gcc_assert (flag_wpa);
 
-  /* At moment we make no attempt to figure out who is refering the variables,
-     so all must become global.  
-
-     Constant pool references use internal labels and thus can not be made global.
-     It is sensible to keep those ltrans local to allow better optimization.  */
-  for (vnode = varpool_nodes; vnode; vnode = vnode->next)
-    if (!vnode->externally_visible && vnode->analyzed
-	&& !DECL_IN_CONSTANT_POOL (vnode->decl))
-       {
-	  TREE_PUBLIC (vnode->decl) = 1;
-	  DECL_VISIBILITY (vnode->decl) = VISIBILITY_HIDDEN;
-       }
   n_sets = VEC_length (cgraph_node_set, lto_cgraph_node_sets);
   for (i = 0; i < n_sets; i++)
     {
       set = VEC_index (cgraph_node_set, lto_cgraph_node_sets, i);
+      vset = VEC_index (varpool_node_set, lto_varpool_node_sets, i);
 
       /* If node has either address taken (and we have no clue from where)
 	 or it is called from other partition, it needs to be globalized.  */
       for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
 	{
 	  struct cgraph_node *node = csi_node (csi);
-	  bool globalize = node->address_taken || node->local.vtable_method;
-	  struct cgraph_edge *e;
 	  if (node->local.externally_visible)
 	    continue;
-	  for (e = node->callers; e && !globalize; e = e->next_caller)
-	    {
-	      struct cgraph_node *caller = e->caller;
-	      if (caller->global.inlined_to)
-		caller = caller->global.inlined_to;
-	      if (!cgraph_node_in_set_p (caller, set))
-		globalize = true;
-	    }
-	  if (globalize)
+	  if (node->clone_of || node->global.inlined_to)
+	    continue;
+	  if (!DECL_EXTERNAL (node->decl)
+	      && (referenced_from_other_partition_p (&node->ref_list, set, vset)
+		  || reachable_from_other_partition_p (node, set)))
 	     {
+		gcc_assert (flag_wpa);
 		TREE_PUBLIC (node->decl) = 1;
 		DECL_VISIBILITY (node->decl) = VISIBILITY_HIDDEN;
 		if (node->same_body)
@@ -771,6 +755,21 @@ lto_promote_cross_file_statics (void)
 		      }
 		  }
 	     }
+	}
+      for (vsi = vsi_start (vset); !vsi_end_p (vsi); vsi_next (&vsi))
+	{
+	  vnode = vsi_node (vsi);
+	  /* Constant pool references use internal labels and thus can not
+	     be made global.  It is sensible to keep those ltrans local to
+	     allow better optimization.  */
+	  if (!DECL_IN_CONSTANT_POOL (vnode->decl)
+	      && !vnode->externally_visible && vnode->analyzed
+	      && referenced_from_other_partition_p (&vnode->ref_list, set, vset))
+	    {
+	      gcc_assert (flag_wpa);
+	      TREE_PUBLIC (vnode->decl) = 1;
+	      DECL_VISIBILITY (vnode->decl) = VISIBILITY_HIDDEN;
+	    }
 	}
 
     }
@@ -963,187 +962,39 @@ lto_wpa_write_files (void)
   return output_files;
 }
 
-/* Template of LTRANS dumpbase suffix.  */
-#define DUMPBASE_SUFFIX	".ltrans18446744073709551615"
-
 /* Perform local transformations (LTRANS) on the files in the NULL-terminated
    FILES array.  These should have been written previously by
    lto_wpa_write_files ().  Transformations are performed via executing
    COLLECT_GCC for reach file.  */
 
 static void
-lto_execute_ltrans (char *const *files)
+lto_write_ltrans_list (char *const *files)
 {
-  struct pex_obj *pex;
-  const char *collect_gcc_options, *collect_gcc;
-  struct obstack env_obstack;
-  const char **argv;
-  const char **argv_ptr;
-  const char *errmsg;
-  size_t i, j;
-  int err;
-  int status;
   FILE *ltrans_output_list_stream = NULL;
-  bool seen_dumpbase = false;
-  char *dumpbase_suffix = NULL;
-
-  timevar_push (TV_WHOPR_WPA_LTRANS_EXEC);
-
-  /* Get the driver and options.  */
-  collect_gcc = getenv ("COLLECT_GCC");
-  if (!collect_gcc)
-    fatal_error ("environment variable COLLECT_GCC must be set");
-
-  /* Set the CFLAGS environment variable.  */
-  collect_gcc_options = getenv ("COLLECT_GCC_OPTIONS");
-  if (!collect_gcc_options)
-    fatal_error ("environment variable COLLECT_GCC_OPTIONS must be set");
-
-  /* Count arguments.  */
-  i = 0;
-  for (j = 0; collect_gcc_options[j] != '\0'; ++j)
-    if (collect_gcc_options[j] == '\'')
-      ++i;
-
-  if (i % 2 != 0)
-    fatal_error ("malformed COLLECT_GCC_OPTIONS");
-
-  /* Initalize the arguments for the LTRANS driver.  */
-  argv = XNEWVEC (const char *, 8 + i / 2);
-  argv_ptr = argv;
-  *argv_ptr++ = collect_gcc;
-  *argv_ptr++ = "-xlto";
-  for (j = 0; collect_gcc_options[j] != '\0'; ++j)
-    if (collect_gcc_options[j] == '\'')
-      {
-	char *option;
-
-	++j;
-	i = j;
-	while (collect_gcc_options[j] != '\'')
-	  ++j;
-	obstack_init (&env_obstack);
-	obstack_grow (&env_obstack, &collect_gcc_options[i], j - i);
-	if (seen_dumpbase)
-	  obstack_grow (&env_obstack, DUMPBASE_SUFFIX,
-			sizeof (DUMPBASE_SUFFIX));
-	else
-	  obstack_1grow (&env_obstack, 0);
-	option = XOBFINISH (&env_obstack, char *);
-	if (seen_dumpbase)
-	  {
-	    dumpbase_suffix = option + 7 + j - i;
-	    seen_dumpbase = false;
-	  }
-
-	/* LTRANS does not need -fwpa nor -fltrans-*.  */
-	if (strncmp (option, "-fwpa", 5) != 0
-	    && strncmp (option, "-fltrans-", 9) != 0)
-	  {
-	    if (strncmp (option, "-dumpbase", 9) == 0)
-	      seen_dumpbase = true;
-	    *argv_ptr++ = option;
-	  }
-      }
-  *argv_ptr++ = "-fltrans";
+  unsigned i;
 
   /* Open the LTRANS output list.  */
-  if (ltrans_output_list)
-    {
-      ltrans_output_list_stream = fopen (ltrans_output_list, "w");
-      if (ltrans_output_list_stream == NULL)
-	error ("opening LTRANS output list %s: %m", ltrans_output_list);
-    }
+  if (!ltrans_output_list)
+    error ("no LTRANS output filename provided");
+
+  ltrans_output_list_stream = fopen (ltrans_output_list, "w");
+  if (ltrans_output_list_stream == NULL)
+    error ("opening LTRANS output list %s: %m", ltrans_output_list);
 
   for (i = 0; files[i]; ++i)
     {
       size_t len;
 
-      /* If the file is prefixed with a '*', it means that we do not
-	 need to re-compile it with LTRANS because it has not been
-	 modified by WPA.  Skip it from the command line to
-	 lto_execute_ltrans, but add it to ltrans_output_list_stream
-	 so it is linked after we are done.  */
-      if (files[i][0] == '*')
-	{
-	  size_t len = strlen (files[i]) - 1;
-	  if (ltrans_output_list_stream)
-	    if (fwrite (&files[i][1], 1, len, ltrans_output_list_stream) < len
-		|| fwrite ("\n", 1, 1, ltrans_output_list_stream) < 1)
-	      error ("writing to LTRANS output list %s: %m",
-		     ltrans_output_list);
-	}
-      else
-	{
-	  char *output_name;
-
-	  /* Otherwise, add FILES[I] to lto_execute_ltrans command line
-	     and add the resulting file to LTRANS output list.  */
-
-	  /* Replace the .o suffix with a .ltrans.o suffix and write
-	     the resulting name to the LTRANS output list.  */
-	  obstack_init (&env_obstack);
-	  obstack_grow (&env_obstack, files[i], strlen (files[i]) - 2);
-	  obstack_grow (&env_obstack, ".ltrans.o", sizeof (".ltrans.o"));
-	  output_name = XOBFINISH (&env_obstack, char *);
-	  if (ltrans_output_list_stream)
-	    {
-	      len = strlen (output_name);
-
-	      if (fwrite (output_name, 1, len, ltrans_output_list_stream) < len
-		  || fwrite ("\n", 1, 1, ltrans_output_list_stream) < 1)
-		error ("writing to LTRANS output list %s: %m",
-		       ltrans_output_list);
-	    }
-
-	  argv_ptr[0] = "-o";
-	  argv_ptr[1] = output_name;
-	  argv_ptr[2] = files[i];
-	  argv_ptr[3] = NULL;
-
-	  /* Append a sequence number to -dumpbase for LTRANS.  */
-	  if (dumpbase_suffix)
-	    snprintf (dumpbase_suffix, sizeof (DUMPBASE_SUFFIX) - 7,
-		      "%lu", (unsigned long) i);
-
-	  /* Execute the driver.  */
-	  pex = pex_init (0, "lto1", NULL);
-	  if (pex == NULL)
-	    fatal_error ("pex_init failed: %s", xstrerror (errno));
-
-	  errmsg = pex_run (pex, PEX_LAST | PEX_SEARCH, argv[0],
-			    CONST_CAST (char **, argv), NULL, NULL, &err);
-	  if (errmsg)
-	    fatal_error ("%s: %s", errmsg, xstrerror (err));
-
-	  if (!pex_get_status (pex, 1, &status))
-	    fatal_error ("can't get program status: %s", xstrerror (errno));
-
-	  if (status)
-	    {
-	      if (WIFSIGNALED (status))
-		{
-		  int sig = WTERMSIG (status);
-		  fatal_error ("%s terminated with signal %d [%s]%s",
-			       argv[0], sig, strsignal (sig),
-			       WCOREDUMP (status) ? ", core dumped" : "");
-		}
-	      else
-		fatal_error ("%s terminated with status %d", argv[0], status);
-	    }
-
-	  pex_free (pex);
-	}
+      len = strlen (files[i]);
+      if (fwrite (files[i], 1, len, ltrans_output_list_stream) < len
+	  || fwrite ("\n", 1, 1, ltrans_output_list_stream) < 1)
+	error ("writing to LTRANS output list %s: %m",
+	       ltrans_output_list);
     }
 
   /* Close the LTRANS output list.  */
-  if (ltrans_output_list_stream && fclose (ltrans_output_list_stream))
+  if (fclose (ltrans_output_list_stream))
     error ("closing LTRANS output list %s: %m", ltrans_output_list);
-
-  obstack_free (&env_obstack, NULL);
-  free (argv);
-
-  timevar_pop (TV_WHOPR_WPA_LTRANS_EXEC);
 }
 
 
@@ -1457,7 +1308,7 @@ lto_fixup_tree (tree *tp, int *walk_subtrees, void *data)
 
   t = *tp;
   *walk_subtrees = 0;
-  if (pointer_set_contains (fixup_data->seen, t))
+  if (!t || pointer_set_contains (fixup_data->seen, t))
     return NULL;
 
   if (TREE_CODE (t) == VAR_DECL || TREE_CODE (t) == FUNCTION_DECL)
@@ -1603,21 +1454,9 @@ lto_fixup_decls (struct lto_file_decl_data **files)
 	VEC_replace (tree, lto_global_var_decls, i, decl);
     }
 
+  VEC_free (tree, gc, lto_global_var_decls);
+  lto_global_var_decls = NULL;
   pointer_set_destroy (seen);
-}
-
-/* Unlink a temporary LTRANS file unless requested otherwise.  */
-
-static void
-lto_maybe_unlink (const char *file)
-{
-  if (!getenv ("WPA_SAVE_LTRANS"))
-    {
-      if (unlink_if_ordinary (file))
-        error ("deleting LTRANS input file %s: %m", file);
-    }
-  else
-    fprintf (stderr, "[Leaving LTRANS input file %s]\n", file);
 }
 
 /* Read the options saved from each file in the command line.  Called
@@ -1792,6 +1631,8 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
 			 node->ipa_transforms_to_apply,
 			 (ipa_opt_pass)&pass_ipa_inline);
       }
+  lto_symtab_free ();
+
   timevar_pop (TV_IPA_LTO_CGRAPH_MERGE);
 
   timevar_push (TV_IPA_LTO_DECL_INIT_IO);
@@ -1883,7 +1724,6 @@ static void
 do_whole_program_analysis (void)
 {
   char **output_files;
-  size_t i;
 
   /* Note that since we are in WPA mode, materialize_cgraph will not
      actually read in all the function bodies.  It only materializes
@@ -1934,15 +1774,7 @@ do_whole_program_analysis (void)
   if (flag_lto_report)
     print_lto_report ();
 
-  lto_execute_ltrans (output_files);
-
-  for (i = 0; output_files[i]; ++i)
-    {
-      if (output_files[i][0] != '*')
-	lto_maybe_unlink (output_files[i]);
-
-      free (output_files[i]);
-    }
+  lto_write_ltrans_list (output_files);
 
   XDELETEVEC (output_files);
 }
