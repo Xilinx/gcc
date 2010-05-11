@@ -1,0 +1,11 @@
+2010-05-10  Richard Guenther  <rguenther@suse.de>
+
+	* config/i386/sse.md (reduc_splus_v8sf): Add.
+	(reduc_splus_v4df): Likewise.
+	(vec_unpacks_hi_v8sf): Likewise.
+	(vec_unpacks_lo_v8sf): Likewise.
+	(*avx_cvtps2pd256_2): Likewise.
+	(vec_unpacks_float_hi_v8si): Likewise.
+	(vec_unpacks_float_lo_v8si): Likewise.
+	(vec_interleave_highv4df): Likewise.
+	(vec_interleave_lowv4df): Likewise.
