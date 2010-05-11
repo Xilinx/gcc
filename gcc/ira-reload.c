@@ -254,7 +254,7 @@ emit_localizing_loads (rtx use, rtx insn)
 	      emit_insn_before (insns, insn);
 
 	      /* Inform the DF framework about the new insns.  */
-	      for (temp = insns; temp != insn; temp = NEXT_INSN (insns))
+	      for (temp = insns; temp != insn; temp = NEXT_INSN (temp))
 	        df_insn_rescan (temp);
 
 	      /* Note it is no longer necessary to load this pseudo.  */
