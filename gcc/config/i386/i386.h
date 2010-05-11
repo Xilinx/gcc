@@ -1036,10 +1036,8 @@ enum target_cpu_default
 		    : 16))						\
    	      : (TARGET_SSE ? 16 : UNITS_PER_WORD))
 
-/* Similar to UNITS_PER_SIMD_WORD, assuming VF is maximum.  */
-#define UNITS_PER_SIMD_WORD_MAX(MODE)					\
-  (TARGET_AVX ? ((MODE) == DFmode || (MODE) == SFmode) ? 32 : 16	\
-   	      : (TARGET_SSE ? 16 : UNITS_PER_WORD))
+/* Similar to UNITS_PER_SIMD_WORD, assuming VF is 128 byte.  */
+#define UNITS_PER_SIMD_WORD_MAX(MODE) UNITS_PER_SIMD_WORD ((MODE), 128)
 
 #define VALID_DFP_MODE_P(MODE) \
   ((MODE) == SDmode || (MODE) == DDmode || (MODE) == TDmode)

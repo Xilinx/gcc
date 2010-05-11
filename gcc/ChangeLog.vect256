@@ -1,5 +1,10 @@
 2010-05-11  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.h (UNITS_PER_SIMD_WORD_MAX): Use
+	UNITS_PER_SIMD_WORD.
+
+2010-05-11  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.h (UNITS_PER_SIMD_WORD_MAX): New.
 	* config/i386/i386.c (ix86_build_const_vector): Check
 	UNITS_PER_SIMD_WORD_MAX.
