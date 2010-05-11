@@ -1,3 +1,7 @@
+2010-05-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* i386/recip-vec-divf-avx.c: New.
+
 2010-05-11  Richard Guenther  <rguenther@suse.de>
 
 	* gcc.dg/vect/bb-slp-11.c: Adjust.

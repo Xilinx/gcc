@@ -14210,17 +14210,40 @@ ix86_build_const_vector (enum machine_mode mode, bool vect, rtx value)
     {
     case SImode:
       gcc_assert (vect);
-      v = gen_rtvec (4, value, value, value, value);
-      return gen_rtx_CONST_VECTOR (V4SImode, v);
+      switch (UNITS_PER_SIMD_WORD_MAX (SImode))
+	{
+	case 16:
+	  v = gen_rtvec (4, value, value, value, value);
+	  return gen_rtx_CONST_VECTOR (V4SImode, v);
+	default:
+	  gcc_unreachable ();
+	}
 
     case DImode:
       gcc_assert (vect);
-      v = gen_rtvec (2, value, value);
-      return gen_rtx_CONST_VECTOR (V2DImode, v);
+      switch (UNITS_PER_SIMD_WORD_MAX (DImode))
+	{
+	case 16:
+	  v = gen_rtvec (2, value, value);
+	  return gen_rtx_CONST_VECTOR (V2DImode, v);
+	default:
+	  gcc_unreachable ();
+	}
 
     case SFmode:
       if (vect)
-	v = gen_rtvec (4, value, value, value, value);
+	switch (UNITS_PER_SIMD_WORD_MAX (SFmode))
+	  {
+	  case 32:
+	    v = gen_rtvec (8, value, value, value, value,
+			   value, value, value, value);
+	    return gen_rtx_CONST_VECTOR (V8SFmode, v);
+	  case 16:
+	    v = gen_rtvec (4, value, value, value, value);
+	    break;
+	  default:
+	    gcc_unreachable ();
+	  }
       else
 	v = gen_rtvec (4, value, CONST0_RTX (SFmode),
 		       CONST0_RTX (SFmode), CONST0_RTX (SFmode));
@@ -14228,7 +14251,17 @@ ix86_build_const_vector (enum machine_mode mode, bool vect, rtx value)
 
     case DFmode:
       if (vect)
-	v = gen_rtvec (2, value, value);
+	switch (UNITS_PER_SIMD_WORD_MAX (DFmode))
+	  {
+	  case 32:
+	    v = gen_rtvec (4, value, value, value, value);
+	    return gen_rtx_CONST_VECTOR (V4DFmode, v);
+	  case 16:
+	    v = gen_rtvec (2, value, value);
+	    break;
+	  default:
+	    gcc_unreachable ();
+	}
       else
 	v = gen_rtvec (2, value, CONST0_RTX (DFmode));
       return gen_rtx_CONST_VECTOR (V2DFmode, v);
@@ -14257,16 +14290,72 @@ ix86_build_signbit_mask (enum machine_mode mode, bool vect, bool invert)
   switch (mode)
     {
     case SImode:
+      switch (UNITS_PER_SIMD_WORD_MAX (SImode))
+	{
+	case 32:
+	  vec_mode = V8SImode;
+	  break;
+	case 16:
+	  vec_mode = V4SImode;
+	  break;
+	default:
+	  gcc_unreachable ();
+	}
+      goto simode;
+
     case SFmode:
+      if (vect)
+	switch (UNITS_PER_SIMD_WORD_MAX (SFmode))
+	  {
+	  case 32:
+	    vec_mode = V8SFmode;
+	    break;
+	  case 16:
+	    vec_mode = V4SFmode;
+	    break;
+	  default:
+	    gcc_unreachable ();
+	}
+      else
+	vec_mode = V4SFmode;
+
+simode:
       imode = SImode;
-      vec_mode = (mode == SImode) ? V4SImode : V4SFmode;
       lo = 0x80000000, hi = lo < 0;
       break;
 
     case DImode:
+      switch (UNITS_PER_SIMD_WORD_MAX (DImode))
+	{
+	case 32:
+	  vec_mode = V4DImode;
+	  break;
+	case 16:
+	  vec_mode = V2DImode;
+	  break;
+	default:
+	  gcc_unreachable ();
+	}
+      goto dimode;
+
     case DFmode:
+      if (vect)
+	switch (UNITS_PER_SIMD_WORD_MAX (DFmode))
+	  {
+	  case 32:
+	    vec_mode = V4DFmode;
+	    break;
+	  case 16:
+	    vec_mode = V2DFmode;
+	    break;
+	  default:
+	    gcc_unreachable ();
+	}
+      else
+	vec_mode = V2DFmode;
+
+dimode:
       imode = DImode;
-      vec_mode = (mode == DImode) ? V2DImode : V2DFmode;
       if (HOST_BITS_PER_WIDE_INT >= 64)
 	lo = (HOST_WIDE_INT)1 << shift, hi = -1;
       else
