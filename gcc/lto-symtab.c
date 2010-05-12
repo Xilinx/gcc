@@ -65,6 +65,15 @@ static GTY ((if_marked ("lto_symtab_entry_marked_p"),
 	     param_is (struct lto_symtab_entry_def)))
   htab_t lto_symtab_identifiers;
 
+/* Free symtab hashtable.  */
+
+void
+lto_symtab_free (void)
+{
+  htab_delete (lto_symtab_identifiers);
+  lto_symtab_identifiers = NULL;
+}
+
 /* Return the hash value of an lto_symtab_entry_t object pointed to by P.  */
 
 static hashval_t
@@ -282,6 +291,9 @@ lto_varpool_replace_node (struct varpool_node *vnode,
     prevailing_node = prevailing_node->extra_name;
   ipa_clone_refering (NULL, prevailing_node, &vnode->ref_list);
 
+  /* Be sure we can garbage collect the initializer.  */
+  if (DECL_INITIAL (vnode->decl))
+    DECL_INITIAL (vnode->decl) = error_mark_node;
   /* Finally remove the replaced node.  */
   varpool_remove_node (vnode);
 }

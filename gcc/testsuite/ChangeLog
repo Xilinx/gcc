@@ -1,3 +1,88 @@
+2010-05-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44088
+	* gcc.target/i386/avx-cmpsd-1.c: New.
+	* gcc.target/i386/avx-cmpsd-2.c: Likewise.
+	* gcc.target/i386/avx-cmpss-1.c: Likewise.
+	* gcc.target/i386/avx-cmpss-2.c: Likewise.
+	* gcc.target/i386/sse-cmpss-1.c: Likewise.
+	* gcc.target/i386/sse2-cmpsd-1.c: Likewise.
+
+2010-05-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/44085
+	* gcc.dg/gomp/pr44085.c: New test.
+	* gfortran.dg/gomp/pr44085.f90: New test.
+
+2010-05-12  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc-obj-c++-shared/Object1.m: New.
+	* objc.dg/torture: New directory.
+	* objc.dg/torture/tls: Ditto.
+	* objc.dg/tls: Ditto.
+	* objc.dg/torture/tls/trivial.m: New test.
+	* objc.dg/torture/tls/thr-init-2.m: New test.
+	* objc.dg/torture/tls/thr-init-3.m: New test.
+	* objc.dg/torture/tls/thr-init.m: New test.
+	* objc.dg/torture/tls/diag-1.m: New test.
+	* objc.dg/torture/tls/tls.exp: New.
+	* objc.dg/torture/trivial.m: New test.
+	* objc.dg/torture/dg-torture.exp: New.
+	* objc.dg/tls/diag-3.m: New test.
+	* objc.dg/tls/diag-4.m: New test.
+	* objc.dg/tls/diag-5.m: New test.
+	* objc.dg/tls/init-1.m: New test.
+	* objc.dg/tls/init-2.m: New test.
+	* objc.dg/tls/tls.exp: New.
+	* objc.dg/tls/diag-2.m: New test.
+	* lib/objc.exp: Respond to dg-additional-files.
+
+2010-05-12  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.target/m68k/20100512-1.c: New.
+
+2010-05-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto8.adb: New test.
+	* gnat.dg/lto8_pkg.ad[sb]: New helper.
+	* gnat.dg/frame_overflow.adb: XFAIL if -flto is specified.
+
+2010-05-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/34272
+	PR c++/43630
+	PR c++/34491
+	* g++.dg/template/crash97.C: New.
+	* g++.dg/template/crash98.C: Likewise.
+	* g++.dg/template/crash99.C: Likewise.
+	* g++.dg/cpp0x/pr31439.C: Adjust.
+	* g++.dg/template/crash95.C: Likewise.
+
+2010-05-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/44071
+	* c-c++-common/asmgoto-4.c: New test.
+	* gcc.target/i386/pr44071.c: New test.
+
+	PR c++/44062
+	* c-c++-common/Wunused-var-7.c: New test.
+	* g++.dg/warn/Wunused-var-9.C: New test.
+
+2010-05-11  Daniel Franke  <franke.daniel@gmail.com>
+
+        PR fortran/43711
+        * gfortran.dg/gomp/pr43711.f90: New.
+
+2010-05-11  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/31820
+	* gfortran.dg/select_5.f90: Updated.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimize/44063
+	* gcc.c-torture/compile/pr44063.c: New testcase.
+
 2010-05-11  Jakub Jelinek  <jakub@redhat.com>
 
 	PR debug/44023

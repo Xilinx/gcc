@@ -1,3 +1,108 @@
+2010-05-12  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.h (struct varpool_node): Add aux.
+	* varasm.c (find_decl_and_mark_needed): Force output of varpool nodes.
+	* varpool.c (varpool_remove_node): Do not remove initializer.
+	(varpool_reset_queue): Export.
+	(varpool_finalize_decl): Volatile vars are forced to be output.
+	* lto-symtab.c (lto_varpool_replace_node): Clear out initializer of
+	replaced decl.
+	* ipa.c (enqueue_cgraph_node, enqueue_varpool_node,
+	process_references, varpool_can_remove_if_no_refs): New functions.
+	(cgraph_remove_unreachable_nodes): Handle variables too.
+
+2010-05-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44088
+	* config/i386/sse.md (*avx_vmmaskcmp<mode>3): New.
+
+2010-05-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/44085
+	* gimplify.c (enum omp_region_type): Add ORT_UNTIED_TASK,
+	change value of ORT_TASK.
+	(new_omp_context): Handle ORT_UNTIED_TASK like ORT_TASK.
+	(omp_notice_threadprivate_variable): New function.
+	(omp_notice_variable): Call it for threadprivate variables.
+	If enclosing ctx is a task, print enclosing task rather than
+	enclosing parallel.  Handle ORT_UNTIED_TASK like ORT_TASK.
+	(gimplify_omp_task): Pass ORT_UNTIED_TASK instead of ORT_TASK
+	if task has untied clause.
+
+	PR debug/42278
+	* dwarf2out.c (base_type_die): Don't add name attribute here.
+	(modified_type_die): Instead of sizetype use
+	its underlying original type.  If a DW_TAG_base_type doesn't
+	have name added, add __unknown__.
+	(dwarf2out_imported_module_or_decl_1): Don't call base_type_die,
+	always call force_type_die instead.
+
+2010-05-12  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* targhooks.c (default_stack_protect_guard): Avoid sharing RTL
+	for __stack_chk_guard.
+
+2010-05-11  Jakub Jelinek  <jakub@redhat.com>
+
+	* c-opts.c (c_common_parse_file): If start_end_main_source_file,
+	don't call start_source_file debug hook here...
+	(finish_options): ... but here, after outputting predefined and
+	command line defines and undefs.
+
+	PR middle-end/44071
+	* cfglayout.c (fixup_reorder_chain): Allow asm goto to have
+	no fallthru edge.
+	* cfgcleanup.c (try_optimize_cfg): When in cfglayout mode
+	optimizing away empty bb with no successors, move over its
+	footer chain to fallthru predecessor.
+	* cfgrtl.c (patch_jump_insn): Update also REG_LABEL_OPERAND.
+	(rtl_split_edge): For asm goto call patch_jump_insn even if
+	splitting fallthru edge.
+
+	PR c++/44059
+	* config/elfos.h (ASM_DECLARE_OBJECT_NAME): Use qnu_unique_object
+	even for DECL_ONE_ONLY DECL_ARTIFICIAL !TREE_READONLY decls.
+	* config/alpha/elf.h (ASM_DECLARE_OBJECT_NAME): Likewise.
+	* dwarf2asm.c (dw2_output_indirect_constant_1): Set TREE_READONLY
+	on DW.ref.* decls.
+
+	PR c++/44062
+	* c-parser.c (c_parser_expression): Mark LHS of a comma
+	expression as read if it is a decl, handled component or
+	COMPOUND_EXPR with that on the RHS.
+	* c-typeck.c (c_process_expr_stmt): Mark RHS of COMPOUND_EXPR
+	if it is a decl or handled component.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	* lto-symtab.c (lto_symtab_free): New function.
+	* lto-streamer.h (lto_symtab_free): Declare.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	* lto-cgraph.c (reachable_from_other_partition_p): Export; do not assume
+	that if function is needed it is reachable.
+	(lto_output_node): See if it the function is reachable or referenced.
+	(output_cgraph): Update call of lto_output_node.
+	* lto-streamer.h (reachable_from_other_partition_p): Declare.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	* crtstuff.c (__JCR_LIST__, __DTOR_END__, __JCR_END__, __FRAME_END__):
+	Mark as used.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimize/44063
+	* ipa-inline.c (cgraph_edge_badness): Move always inlines to top of queue.
+	(cgraph_decide_inlining_of_small_function): Skip check when disrgarding
+	limits.
+	(estimate_function_body_sizes): Compute sizes even when disregarding.
+
+2010-05-11  Kai Tietz  <kai.tietz@onevision.com>
+
+	* collect2.c (maybe_lto_object_file): Add x64-coff magic and check.
+
 2010-05-11  Jan Hubicka  <jh@suse.cz>
 
 	* lto-cgraph.c (output_cgraph): Remove loop adding all varpool nodes
