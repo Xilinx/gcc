@@ -14356,14 +14356,10 @@ ix86_expand_fp_absneg_operator (enum rtx_code code, enum machine_mode mode,
   rtx mask, set, use, clob, dst, src;
   bool use_sse = false;
   bool vector_mode = VECTOR_MODE_P (mode);
-  enum machine_mode vmode, elt_mode = mode;
+  enum machine_mode vmode = mode;
 
-  vmode = mode;
   if (vector_mode)
-    {
-      elt_mode = GET_MODE_INNER (mode);
-      use_sse = true;
-    }
+    use_sse = true;
   else if (mode == TFmode)
     use_sse = true;
   else if (TARGET_SSE_MATH)
