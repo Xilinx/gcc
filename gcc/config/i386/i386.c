@@ -14279,6 +14279,7 @@ ix86_build_signbit_mask (enum machine_mode mode, bool vect, bool invert)
     case V8SFmode:
     case V4SFmode:
       vec_mode = mode;
+      mode = GET_MODE_INNER (mode);
       imode = SImode;
       lo = 0x80000000, hi = lo < 0;
       break;
@@ -14287,6 +14288,7 @@ ix86_build_signbit_mask (enum machine_mode mode, bool vect, bool invert)
     case V4DFmode:
     case V2DFmode:
       vec_mode = mode;
+      mode = GET_MODE_INNER (mode);
       imode = DImode;
       if (HOST_BITS_PER_WIDE_INT >= 64)
 	lo = (HOST_WIDE_INT)1 << shift, hi = -1;
@@ -14354,8 +14356,9 @@ ix86_expand_fp_absneg_operator (enum rtx_code code, enum machine_mode mode,
   rtx mask, set, use, clob, dst, src;
   bool use_sse = false;
   bool vector_mode = VECTOR_MODE_P (mode);
-  enum machine_mode elt_mode = mode;
+  enum machine_mode vmode, elt_mode = mode;
 
+  vmode = mode;
   if (vector_mode)
     {
       elt_mode = GET_MODE_INNER (mode);
@@ -14364,12 +14367,18 @@ ix86_expand_fp_absneg_operator (enum rtx_code code, enum machine_mode mode,
   else if (mode == TFmode)
     use_sse = true;
   else if (TARGET_SSE_MATH)
-    use_sse = SSE_FLOAT_MODE_P (mode);
+    {
+      use_sse = SSE_FLOAT_MODE_P (mode);
+      if (mode == SFmode)
+	vmode = V4SFmode;
+      else if (mode == DFmode)
+	vmode = V2DFmode;
+    }
 
   /* NEG and ABS performed with SSE use bitwise mask operations.
      Create the appropriate mask now.  */
   if (use_sse)
-    mask = ix86_build_signbit_mask (mode, vector_mode, code == ABS);
+    mask = ix86_build_signbit_mask (vmode, vector_mode, code == ABS);
   else
     mask = NULL_RTX;
 
@@ -14412,14 +14421,12 @@ ix86_expand_copysign (rtx operands[])
 
   mode = GET_MODE (dest);
 
-  if (VECTOR_MODE_P (mode))
-    vmode = mode;
-  else if (mode == SFmode)
+  if (mode == SFmode)
     vmode = V4SFmode;
   else if (mode == DFmode)
     vmode = V2DFmode;
   else
-    gcc_unreachable ();
+    vmode = mode;
 
   if (GET_CODE (op0) == CONST_DOUBLE)
     {
@@ -28568,17 +28575,15 @@ ix86_sse_copysign_to_positive (rtx result, rtx abs_value, rtx sign, rtx mask)
     {
       enum machine_mode vmode;
 
-      if (VECTOR_MODE_P (mode))
-	vmode = mode;
-      else if (mode == SFmode)
+      if (mode == SFmode)
 	vmode = V4SFmode;
       else if (mode == DFmode)
 	vmode = V2DFmode;
       else
-	gcc_unreachable ();
+	vmode = mode;
 
-      mask = ix86_build_signbit_mask (vmode, mode == vmode, false);
-      if (mode != vmode)
+      mask = ix86_build_signbit_mask (vmode, VECTOR_MODE_P (mode), false);
+      if (!VECTOR_MODE_P (mode))
 	{
 	  /* We need to generate a scalar mode mask in this case.  */
 	  rtx tmp = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (1, const0_rtx));
@@ -28605,16 +28610,14 @@ ix86_expand_sse_fabs (rtx op0, rtx *smask)
   rtx xa, mask;
 
   xa = gen_reg_rtx (mode);
-  if (VECTOR_MODE_P (mode))
-    vmode = mode;
-  else if (mode == SFmode)
+  if (mode == SFmode)
     vmode = V4SFmode;
   else if (mode == DFmode)
     vmode = V2DFmode;
   else
-    gcc_unreachable ();
-  mask = ix86_build_signbit_mask (vmode, mode == vmode, true);
-  if (mode != vmode)
+    vmode = mode;
+  mask = ix86_build_signbit_mask (vmode, VECTOR_MODE_P (mode), true);
+  if (!VECTOR_MODE_P (mode))
     {
       /* We need to generate a scalar mode mask in this case.  */
       rtx tmp = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (1, const0_rtx));

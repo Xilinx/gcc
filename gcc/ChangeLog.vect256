@@ -1,5 +1,15 @@
 2010-05-12  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_build_signbit_mask): Get scalar mode
+	for vector mode.
+	(ix86_expand_fp_absneg_operator): Call ix86_build_signbit_mask
+	with vector mode.
+	(ix86_expand_copysign): Properly get vector mode.
+	(ix86_sse_copysign_to_positive): Likewise.
+	(ix86_expand_sse_fabs): Likewise.
+
+2010-05-12  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_build_const_vector): Check vector
 	mode instead of scalar mode.
 	(ix86_build_signbit_mask): Likewise.
