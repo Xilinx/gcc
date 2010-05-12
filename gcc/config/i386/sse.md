@@ -1676,6 +1676,24 @@
 
 (define_expand "copysign<mode>3"
   [(set (match_dup 4)
+	(and:AVX256MODEF2P 
+	  (not:AVX256MODEF2P (match_dup 3))
+	  (match_operand:AVX256MODEF2P 1 "nonimmediate_operand" "")))
+   (set (match_dup 5)
+	(and:AVX256MODEF2P (match_dup 3)
+			   (match_operand:AVX256MODEF2P 2 "nonimmediate_operand" "")))
+   (set (match_operand:AVX256MODEF2P 0 "register_operand" "")
+	(ior:AVX256MODEF2P (match_dup 4) (match_dup 5)))]
+  "AVX256_VEC_FLOAT_MODE_P (<MODE>mode)"
+{
+  operands[3] = ix86_build_signbit_mask (<MODE>mode, 1, 0);
+
+  operands[4] = gen_reg_rtx (<MODE>mode);
+  operands[5] = gen_reg_rtx (<MODE>mode);
+})
+
+(define_expand "copysign<mode>3"
+  [(set (match_dup 4)
 	(and:SSEMODEF2P 
 	  (not:SSEMODEF2P (match_dup 3))
 	  (match_operand:SSEMODEF2P 1 "nonimmediate_operand" "")))

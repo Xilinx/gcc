@@ -1,5 +1,15 @@
 2010-05-12  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_builtins): Add
+	IX86_BUILTIN_CPYSGNPS256 and IX86_BUILTIN_CPYSGNPD256.
+	(bdesc_args): Likewise.
+	(ix86_builtin_vectorized_function): Support 
+	IX86_BUILTIN_CPYSGNPS256 and IX86_BUILTIN_CPYSGNPD256.
+
+	* config/i386/sse.md (copysign<mode>3): New.
+
+2010-05-12  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_build_signbit_mask): Get scalar mode
 	for vector mode.
 	(ix86_expand_fp_absneg_operator): Call ix86_build_signbit_mask

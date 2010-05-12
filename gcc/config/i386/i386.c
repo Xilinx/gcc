@@ -21224,6 +21224,8 @@ enum ix86_builtins
   /* Vectorizer support builtins.  */
   IX86_BUILTIN_CPYSGNPS,
   IX86_BUILTIN_CPYSGNPD,
+  IX86_BUILTIN_CPYSGNPS256,
+  IX86_BUILTIN_CPYSGNPD256,
 
   IX86_BUILTIN_CVTUDQ2PS,
 
@@ -22324,6 +22326,9 @@ static const struct builtin_description bdesc_args[] =
 
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movmskpd256, "__builtin_ia32_movmskpd256", IX86_BUILTIN_MOVMSKPD256, UNKNOWN, (int) INT_FTYPE_V4DF  },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movmskps256, "__builtin_ia32_movmskps256", IX86_BUILTIN_MOVMSKPS256, UNKNOWN, (int) INT_FTYPE_V8SF },
+
+  { OPTION_MASK_ISA_AVX, CODE_FOR_copysignv8sf3,  "__builtin_ia32_copysignps256", IX86_BUILTIN_CPYSGNPS256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_copysignv4df3,  "__builtin_ia32_copysignpd256", IX86_BUILTIN_CPYSGNPD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_V4DF },
 
   { OPTION_MASK_ISA_ABM, CODE_FOR_clzhi2_abm,   "__builtin_clzs",   IX86_BUILTIN_CLZS,    UNKNOWN,     (int) UINT16_FTYPE_UINT16 },
 };
@@ -24525,15 +24530,23 @@ ix86_builtin_vectorized_function (tree fndecl, tree type_out,
       break;
 
     case BUILT_IN_COPYSIGN:
-      if (out_mode == DFmode && out_n == 2
-	  && in_mode == DFmode && in_n == 2)
-	return ix86_builtins[IX86_BUILTIN_CPYSGNPD];
+      if (out_mode == DFmode && in_mode == DFmode)
+	{
+	  if (out_n == 2 && in_n == 2)
+	    return ix86_builtins[IX86_BUILTIN_CPYSGNPD];
+	  else if (out_n == 4 && in_n == 4)
+	    return ix86_builtins[IX86_BUILTIN_CPYSGNPD256];
+	}
       break;
 
     case BUILT_IN_COPYSIGNF:
-      if (out_mode == SFmode && out_n == 4
-	  && in_mode == SFmode && in_n == 4)
-	return ix86_builtins[IX86_BUILTIN_CPYSGNPS];
+      if (out_mode == SFmode && in_mode == SFmode)
+	{
+	  if (out_n == 4 && in_n == 4)
+	    return ix86_builtins[IX86_BUILTIN_CPYSGNPS];
+	  else if (out_n == 8 && in_n == 8)
+	    return ix86_builtins[IX86_BUILTIN_CPYSGNPS256];
+	}
       break;
 
     default:
