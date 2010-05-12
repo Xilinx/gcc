@@ -1,5 +1,10 @@
 2010-05-11  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/sse.md (storent<mode>): New for AVX.
+	(<code><mode>2: absneg): Likewise.
+
+2010-05-11  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.h (UNITS_PER_SIMD_WORD_MAX): Use
 	UNITS_PER_SIMD_WORD.
 

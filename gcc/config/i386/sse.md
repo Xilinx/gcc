@@ -496,6 +496,14 @@
 ; define patterns for other modes that would expand to several insns.
 
 (define_expand "storent<mode>"
+  [(set (match_operand:AVX256MODEF2P 0 "memory_operand" "")
+	(unspec:AVX256MODEF2P
+	  [(match_operand:AVX256MODEF2P 1 "register_operand" "")]
+	  UNSPEC_MOVNT))]
+  "AVX256_VEC_FLOAT_MODE_P (<MODE>mode)"
+  "")
+
+(define_expand "storent<mode>"
   [(set (match_operand:SSEMODEF2P 0 "memory_operand" "")
 	(unspec:SSEMODEF2P
 	  [(match_operand:SSEMODEF2P 1 "register_operand" "")]
@@ -530,6 +538,13 @@
 ;; Parallel floating point arithmetic
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define_expand "<code><mode>2"
+  [(set (match_operand:AVX256MODEF2P 0 "register_operand" "")
+	(absneg:AVX256MODEF2P
+	  (match_operand:AVX256MODEF2P 1 "register_operand" "")))]
+  "AVX256_VEC_FLOAT_MODE_P (<MODE>mode)"
+  "ix86_expand_fp_absneg_operator (<CODE>, <MODE>mode, operands); DONE;")
 
 (define_expand "<code><mode>2"
   [(set (match_operand:SSEMODEF2P 0 "register_operand" "")
