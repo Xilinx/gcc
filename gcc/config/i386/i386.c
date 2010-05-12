@@ -14208,60 +14208,46 @@ ix86_build_const_vector (enum machine_mode mode, bool vect, rtx value)
   rtvec v;
   switch (mode)
     {
-    case SImode:
+    case V4SImode:
       gcc_assert (vect);
-      switch (UNITS_PER_SIMD_WORD_MAX (SImode))
-	{
-	case 16:
-	  v = gen_rtvec (4, value, value, value, value);
-	  return gen_rtx_CONST_VECTOR (V4SImode, v);
-	default:
-	  gcc_unreachable ();
-	}
+      v = gen_rtvec (4, value, value, value, value);
+      return gen_rtx_CONST_VECTOR (V4SImode, v);
 
-    case DImode:
+    case V2DImode:
       gcc_assert (vect);
-      switch (UNITS_PER_SIMD_WORD_MAX (DImode))
-	{
-	case 16:
-	  v = gen_rtvec (2, value, value);
-	  return gen_rtx_CONST_VECTOR (V2DImode, v);
-	default:
-	  gcc_unreachable ();
-	}
+      v = gen_rtvec (2, value, value);
+      return gen_rtx_CONST_VECTOR (V2DImode, v);
 
-    case SFmode:
+    case V8SFmode:
       if (vect)
-	switch (UNITS_PER_SIMD_WORD_MAX (SFmode))
-	  {
-	  case 32:
-	    v = gen_rtvec (8, value, value, value, value,
-			   value, value, value, value);
-	    return gen_rtx_CONST_VECTOR (V8SFmode, v);
-	  case 16:
-	    v = gen_rtvec (4, value, value, value, value);
-	    break;
-	  default:
-	    gcc_unreachable ();
-	  }
+	v = gen_rtvec (8, value, value, value, value,
+		       value, value, value, value);
+      else
+	v = gen_rtvec (8, value, CONST0_RTX (SFmode),
+		       CONST0_RTX (SFmode), CONST0_RTX (SFmode),
+		       CONST0_RTX (SFmode), CONST0_RTX (SFmode),
+		       CONST0_RTX (SFmode), CONST0_RTX (SFmode));
+      return gen_rtx_CONST_VECTOR (V8SFmode, v);
+
+    case V4SFmode:
+      if (vect)
+	v = gen_rtvec (4, value, value, value, value);
       else
 	v = gen_rtvec (4, value, CONST0_RTX (SFmode),
 		       CONST0_RTX (SFmode), CONST0_RTX (SFmode));
       return gen_rtx_CONST_VECTOR (V4SFmode, v);
 
-    case DFmode:
+    case V4DFmode:
       if (vect)
-	switch (UNITS_PER_SIMD_WORD_MAX (DFmode))
-	  {
-	  case 32:
-	    v = gen_rtvec (4, value, value, value, value);
-	    return gen_rtx_CONST_VECTOR (V4DFmode, v);
-	  case 16:
-	    v = gen_rtvec (2, value, value);
-	    break;
-	  default:
-	    gcc_unreachable ();
-	}
+	v = gen_rtvec (4, value, value, value, value);
+      else
+	v = gen_rtvec (4, value, CONST0_RTX (DFmode),
+		       CONST0_RTX (DFmode), CONST0_RTX (DFmode));
+      return gen_rtx_CONST_VECTOR (V4DFmode, v);
+
+    case V2DFmode:
+      if (vect)
+	v = gen_rtvec (2, value, value);
       else
 	v = gen_rtvec (2, value, CONST0_RTX (DFmode));
       return gen_rtx_CONST_VECTOR (V2DFmode, v);
@@ -14289,72 +14275,18 @@ ix86_build_signbit_mask (enum machine_mode mode, bool vect, bool invert)
   /* Find the sign bit, sign extended to 2*HWI.  */
   switch (mode)
     {
-    case SImode:
-      switch (UNITS_PER_SIMD_WORD_MAX (SImode))
-	{
-	case 32:
-	  vec_mode = V8SImode;
-	  break;
-	case 16:
-	  vec_mode = V4SImode;
-	  break;
-	default:
-	  gcc_unreachable ();
-	}
-      goto simode;
-
-    case SFmode:
-      if (vect)
-	switch (UNITS_PER_SIMD_WORD_MAX (SFmode))
-	  {
-	  case 32:
-	    vec_mode = V8SFmode;
-	    break;
-	  case 16:
-	    vec_mode = V4SFmode;
-	    break;
-	  default:
-	    gcc_unreachable ();
-	}
-      else
-	vec_mode = V4SFmode;
-
-simode:
+    case V4SImode:
+    case V8SFmode:
+    case V4SFmode:
+      vec_mode = mode;
       imode = SImode;
       lo = 0x80000000, hi = lo < 0;
       break;
 
-    case DImode:
-      switch (UNITS_PER_SIMD_WORD_MAX (DImode))
-	{
-	case 32:
-	  vec_mode = V4DImode;
-	  break;
-	case 16:
-	  vec_mode = V2DImode;
-	  break;
-	default:
-	  gcc_unreachable ();
-	}
-      goto dimode;
-
-    case DFmode:
-      if (vect)
-	switch (UNITS_PER_SIMD_WORD_MAX (DFmode))
-	  {
-	  case 32:
-	    vec_mode = V4DFmode;
-	    break;
-	  case 16:
-	    vec_mode = V2DFmode;
-	    break;
-	  default:
-	    gcc_unreachable ();
-	}
-      else
-	vec_mode = V2DFmode;
-
-dimode:
+    case V2DImode:
+    case V4DFmode:
+    case V2DFmode:
+      vec_mode = mode;
       imode = DImode;
       if (HOST_BITS_PER_WIDE_INT >= 64)
 	lo = (HOST_WIDE_INT)1 << shift, hi = -1;
@@ -14409,7 +14341,7 @@ dimode:
   if (vec_mode == VOIDmode)
     return force_reg (mode, mask);
 
-  v = ix86_build_const_vector (mode, vect, mask);
+  v = ix86_build_const_vector (vec_mode, vect, mask);
   return force_reg (vec_mode, v);
 }
 
@@ -14437,7 +14369,7 @@ ix86_expand_fp_absneg_operator (enum rtx_code code, enum machine_mode mode,
   /* NEG and ABS performed with SSE use bitwise mask operations.
      Create the appropriate mask now.  */
   if (use_sse)
-    mask = ix86_build_signbit_mask (elt_mode, vector_mode, code == ABS);
+    mask = ix86_build_signbit_mask (mode, vector_mode, code == ABS);
   else
     mask = NULL_RTX;
 
@@ -14471,7 +14403,7 @@ ix86_expand_fp_absneg_operator (enum rtx_code code, enum machine_mode mode,
 void
 ix86_expand_copysign (rtx operands[])
 {
-  enum machine_mode mode;
+  enum machine_mode mode, vmode;
   rtx dest, op0, op1, mask, nmask;
 
   dest = operands[0];
@@ -14479,6 +14411,15 @@ ix86_expand_copysign (rtx operands[])
   op1 = operands[2];
 
   mode = GET_MODE (dest);
+
+  if (VECTOR_MODE_P (mode))
+    vmode = mode;
+  else if (mode == SFmode)
+    vmode = V4SFmode;
+  else if (mode == DFmode)
+    vmode = V2DFmode;
+  else
+    gcc_unreachable ();
 
   if (GET_CODE (op0) == CONST_DOUBLE)
     {
@@ -14489,15 +14430,11 @@ ix86_expand_copysign (rtx operands[])
 
       if (mode == SFmode || mode == DFmode)
 	{
-	  enum machine_mode vmode;
-
-	  vmode = mode == SFmode ? V4SFmode : V2DFmode;
-
 	  if (op0 == CONST0_RTX (mode))
 	    op0 = CONST0_RTX (vmode);
 	  else
 	    {
-	      rtx v = ix86_build_const_vector (mode, false, op0);
+	      rtx v = ix86_build_const_vector (vmode, false, op0);
 
 	      op0 = force_reg (vmode, v);
 	    }
@@ -14505,7 +14442,7 @@ ix86_expand_copysign (rtx operands[])
       else if (op0 != CONST0_RTX (mode))
 	op0 = force_reg (mode, op0);
 
-      mask = ix86_build_signbit_mask (mode, 0, 0);
+      mask = ix86_build_signbit_mask (vmode, 0, 0);
 
       if (mode == SFmode)
 	copysign_insn = gen_copysignsf3_const;
@@ -14520,8 +14457,8 @@ ix86_expand_copysign (rtx operands[])
     {
       rtx (*copysign_insn)(rtx, rtx, rtx, rtx, rtx, rtx);
 
-      nmask = ix86_build_signbit_mask (mode, 0, 1);
-      mask = ix86_build_signbit_mask (mode, 0, 0);
+      nmask = ix86_build_signbit_mask (vmode, 0, 1);
+      mask = ix86_build_signbit_mask (vmode, 0, 0);
 
       if (mode == SFmode)
 	copysign_insn = gen_copysignsf3_var;
@@ -16459,8 +16396,7 @@ ix86_expand_int_vcond (rtx operands[])
 
 		  /* Subtract (-(INT MAX) - 1) from both operands to make
 		     them signed.  */
-		  mask = ix86_build_signbit_mask (GET_MODE_INNER (mode),
-						  true, false);
+		  mask = ix86_build_signbit_mask (mode, true, false);
 		  gen_sub3 = (mode == V4SImode
 			      ? gen_subv4si3 : gen_subv2di3);
 		  t1 = gen_reg_rtx (mode);
@@ -28437,7 +28373,7 @@ void ix86_emit_swdivsf (rtx res, rtx a, rtx b, enum machine_mode mode)
   two = CONST_DOUBLE_FROM_REAL_VALUE (dconst2, SFmode);
 
   if (VECTOR_MODE_P (mode))
-    two = ix86_build_const_vector (SFmode, true, two);
+    two = ix86_build_const_vector (mode, true, two);
 
   two = force_reg (mode, two);
 
@@ -28484,8 +28420,8 @@ void ix86_emit_swsqrtsf (rtx res, rtx a, enum machine_mode mode,
 
   if (VECTOR_MODE_P (mode))
     {
-      mthree = ix86_build_const_vector (SFmode, true, mthree);
-      mhalf = ix86_build_const_vector (SFmode, true, mhalf);
+      mthree = ix86_build_const_vector (mode, true, mthree);
+      mhalf = ix86_build_const_vector (mode, true, mhalf);
     }
 
   /* sqrt(a)  = -0.5 * a * rsqrtss(a) * (a * rsqrtss(a) * rsqrtss(a) - 3.0)
@@ -28630,8 +28566,19 @@ ix86_sse_copysign_to_positive (rtx result, rtx abs_value, rtx sign, rtx mask)
   rtx sgn = gen_reg_rtx (mode);
   if (mask == NULL_RTX)
     {
-      mask = ix86_build_signbit_mask (mode, VECTOR_MODE_P (mode), false);
-      if (!VECTOR_MODE_P (mode))
+      enum machine_mode vmode;
+
+      if (VECTOR_MODE_P (mode))
+	vmode = mode;
+      else if (mode == SFmode)
+	vmode = V4SFmode;
+      else if (mode == DFmode)
+	vmode = V2DFmode;
+      else
+	gcc_unreachable ();
+
+      mask = ix86_build_signbit_mask (vmode, mode == vmode, false);
+      if (mode != vmode)
 	{
 	  /* We need to generate a scalar mode mask in this case.  */
 	  rtx tmp = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (1, const0_rtx));
@@ -28654,12 +28601,20 @@ ix86_sse_copysign_to_positive (rtx result, rtx abs_value, rtx sign, rtx mask)
 static rtx
 ix86_expand_sse_fabs (rtx op0, rtx *smask)
 {
-  enum machine_mode mode = GET_MODE (op0);
+  enum machine_mode vmode, mode = GET_MODE (op0);
   rtx xa, mask;
 
   xa = gen_reg_rtx (mode);
-  mask = ix86_build_signbit_mask (mode, VECTOR_MODE_P (mode), true);
-  if (!VECTOR_MODE_P (mode))
+  if (VECTOR_MODE_P (mode))
+    vmode = mode;
+  else if (mode == SFmode)
+    vmode = V4SFmode;
+  else if (mode == DFmode)
+    vmode = V2DFmode;
+  else
+    gcc_unreachable ();
+  mask = ix86_build_signbit_mask (vmode, mode == vmode, true);
+  if (mode != vmode)
     {
       /* We need to generate a scalar mode mask in this case.  */
       rtx tmp = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (1, const0_rtx));

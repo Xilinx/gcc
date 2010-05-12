@@ -1672,7 +1672,7 @@
 	(ior:SSEMODEF2P (match_dup 4) (match_dup 5)))]
   "SSE_VEC_FLOAT_MODE_P (<MODE>mode)"
 {
-  operands[3] = ix86_build_signbit_mask (<ssescalarmode>mode, 1, 0);
+  operands[3] = ix86_build_signbit_mask (<MODE>mode, 1, 0);
 
   operands[4] = gen_reg_rtx (<MODE>mode);
   operands[5] = gen_reg_rtx (<MODE>mode);
@@ -2659,7 +2659,8 @@
   x = const_double_from_real_value (TWO32r, SFmode);
 
   operands[3] = force_reg (V4SFmode, CONST0_RTX (V4SFmode));
-  operands[4] = force_reg (V4SFmode, ix86_build_const_vector (SFmode, 1, x));
+  operands[4] = force_reg (V4SFmode,
+			   ix86_build_const_vector (V4SFmode, 1, x));
 
   for (i = 5; i < 8; i++)
     operands[i] = gen_reg_rtx (V4SFmode);
@@ -3289,7 +3290,8 @@
   x = const_double_from_real_value (TWO32r, DFmode);
 
   operands[3] = force_reg (V2DFmode, CONST0_RTX (V2DFmode));
-  operands[4] = force_reg (V2DFmode, ix86_build_const_vector (DFmode, 1, x));
+  operands[4] = force_reg (V2DFmode,
+			   ix86_build_const_vector (V2DFmode, 1, x));
 
   operands[5] = gen_reg_rtx (V4SImode);
  
@@ -3319,7 +3321,8 @@
   x = const_double_from_real_value (TWO32r, DFmode);
 
   operands[3] = force_reg (V2DFmode, CONST0_RTX (V2DFmode));
-  operands[4] = force_reg (V2DFmode, ix86_build_const_vector (DFmode, 1, x));
+  operands[4] = force_reg (V2DFmode,
+			   ix86_build_const_vector (V2DFmode, 1, x));
 
   for (i = 5; i < 8; i++)
     operands[i] = gen_reg_rtx (V2DFmode);
