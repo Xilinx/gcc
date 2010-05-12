@@ -1,5 +1,17 @@
 2010-05-12  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/sse.md (vec_interleave_highv8sf): New.
+	(vec_interleave_lowv8sf): Likewise.
+	(vec_extract<mode>): Likewise.
+	(*vec_concat_lo_<mode>_avx): Likewise.
+	(*vec_concat_hi_<mode>_avx): Likewise.
+	(*vec_concat_lo_<mode>_avx"): Likewise.
+	(*vec_concat_hi_<mode>_avx): Likewise.
+	(vec_interleave_highv4df): Defined as expander.
+	(vec_interleave_lowv4df): Likewise.
+
+2010-05-12  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/sse.md (vec_pack_trunc_v4df): New.
 
 2010-05-12  H.J. Lu  <hongjiu.lu@intel.com>
