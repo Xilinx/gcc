@@ -3360,6 +3360,23 @@
     operands[i] = gen_reg_rtx (V2DFmode);
 })
 
+(define_expand "vec_pack_trunc_v4df"
+  [(set (match_dup 3)
+	(float_truncate:V4SF
+	  (match_operand:V4DF 1 "nonimmediate_operand" "")))
+   (set (match_dup 4)
+	(float_truncate:V4SF
+	  (match_operand:V4DF 2 "nonimmediate_operand" "")))
+   (set (match_operand:V8SF 0 "register_operand" "")
+	(vec_concat:V8SF
+	  (match_dup 3)
+	  (match_dup 4)))]
+  "TARGET_AVX"
+{
+  operands[3] = gen_reg_rtx (V4SFmode);
+  operands[4] = gen_reg_rtx (V4SFmode);
+})
+
 (define_expand "vec_pack_trunc_v2df"
   [(match_operand:V4SF 0 "register_operand" "")
    (match_operand:V2DF 1 "nonimmediate_operand" "")
