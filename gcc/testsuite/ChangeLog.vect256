@@ -1,6 +1,6 @@
 2010-05-11  H.J. Lu  <hongjiu.lu@intel.com>
 
-	* i386/recip-vec-divf-avx.c: New.
+	* gcc.target/i386/recip-vec-divf-avx.c: New.
 
 2010-05-11  Richard Guenther  <rguenther@suse.de>
 
