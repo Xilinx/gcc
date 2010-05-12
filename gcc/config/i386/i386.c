@@ -24546,15 +24546,23 @@ ix86_builtin_vectorized_function (tree fndecl, tree type_out,
   switch (fn)
     {
     case BUILT_IN_SQRT:
-      if (out_mode == DFmode && out_n == 2
-	  && in_mode == DFmode && in_n == 2)
-	return ix86_builtins[IX86_BUILTIN_SQRTPD];
+      if (out_mode == DFmode && in_mode == DFmode)
+	{
+	  if (out_n == 2 && in_n == 2)
+	    return ix86_builtins[IX86_BUILTIN_SQRTPD];
+	  else if (out_n == 4 && in_n == 4)
+	    return ix86_builtins[IX86_BUILTIN_SQRTPD256];
+	}
       break;
 
     case BUILT_IN_SQRTF:
-      if (out_mode == SFmode && out_n == 4
-	  && in_mode == SFmode && in_n == 4)
-	return ix86_builtins[IX86_BUILTIN_SQRTPS_NR];
+      if (out_mode == SFmode && in_mode == SFmode)
+	{
+	  if (out_n == 4 && in_n == 4)
+	    return ix86_builtins[IX86_BUILTIN_SQRTPS_NR];
+	  else if (out_n == 8 && in_n == 8)
+	    return ix86_builtins[IX86_BUILTIN_SQRTPS_NR256];
+	}
       break;
 
     case BUILT_IN_LRINT:
@@ -24564,9 +24572,13 @@ ix86_builtin_vectorized_function (tree fndecl, tree type_out,
       break;
 
     case BUILT_IN_LRINTF:
-      if (out_mode == SImode && out_n == 4
-	  && in_mode == SFmode && in_n == 4)
-	return ix86_builtins[IX86_BUILTIN_CVTPS2DQ];
+      if (out_mode == SImode && in_mode == SFmode)
+	{
+	  if (out_n == 4 && in_n == 4)
+	    return ix86_builtins[IX86_BUILTIN_CVTPS2DQ];
+	  else if (out_n == 8 && in_n == 8)
+	    return ix86_builtins[IX86_BUILTIN_CVTPS2DQ256];
+	}
       break;
 
     case BUILT_IN_COPYSIGN:
@@ -24900,6 +24912,9 @@ ix86_builtin_reciprocal (unsigned int fn, bool md_fn,
 	/* Vectorized version of sqrt to rsqrt conversion.  */
       case IX86_BUILTIN_SQRTPS_NR:
 	return ix86_builtins[IX86_BUILTIN_RSQRTPS_NR];
+
+      case IX86_BUILTIN_SQRTPS_NR256:
+	return ix86_builtins[IX86_BUILTIN_RSQRTPS_NR256];
 
       default:
 	return NULL_TREE;

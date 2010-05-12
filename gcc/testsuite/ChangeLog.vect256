@@ -1,5 +1,10 @@
 2010-05-11  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.target/i386/recip-vec-sqrtf-avx.c: New.
+	* gcc.target/i386/vectorize4-avx.c: Likewise.
+
+2010-05-11  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.target/i386/recip-vec-divf-avx.c: New.
 
 2010-05-11  Richard Guenther  <rguenther@suse.de>

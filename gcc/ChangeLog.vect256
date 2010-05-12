@@ -1,5 +1,12 @@
 2010-05-11  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_builtin_vectorized_function):
+	Support IX86_BUILTIN_SQRTPD256, IX86_BUILTIN_SQRTPS_NR256,
+	IX86_BUILTIN_CVTPS2DQ256.
+	(ix86_builtin_reciprocal): Support IX86_BUILTIN_SQRTPS_NR256.
+
+2010-05-11  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/sse.md (storent<mode>): New for AVX.
 	(<code><mode>2: absneg): Likewise.
 
