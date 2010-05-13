@@ -27,6 +27,7 @@
 
 using namespace GTM;
 
+extern "C" {
 
 /* Wrap: malloc (size_t sz)  */
 void *
@@ -55,3 +56,5 @@ _ITM_free (void *ptr)
   if (ptr)
     gtm_tx()->forget_allocation (ptr, free);
 }
+
+} // extern "C"

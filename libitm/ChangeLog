@@ -1,3 +1,8 @@
+2010-05-13  Richard Henderson  <rth@redhat.com>
+
+	* alloc_c.cc (_ITM_malloc, _ITM_calloc, _ITM_free): Wrap functions
+	in extern "C".
+
 2010-05-07  Aldy Hernandez  <aldyh@redhat.com>
 
 	* libitm_i.h (struct gtm_transaction): Remove
