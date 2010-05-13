@@ -1,3 +1,13 @@
+2010-05-12  Aldy Hernandez  <aldyh@redhat.com>
+
+	* tree.h: Add documentation for TRANSACTION_EXPR_OUTER AND
+	TRANSACTION_EXPR_RELAXED.
+	* gimplify.c (voidify_wrapper_expr): Handle TRANSACTION_EXPR.
+	(gimplify_transaction): Call and handle voidify_wrapper_expr.
+	* tree.def (TRANSACTION_EXPR): Change into an expression.
+	* c-parser.c (c_parser_unary_expression): Handle RID_TRANSACTION.
+	(c_parser_transaction_expression): New.
+
 2010-05-03  Aldy Hernandez  <aldyh@redhat.com>
 
 	* tree.h (tm_malloc_replacement): Protoize.

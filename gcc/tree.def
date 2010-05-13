@@ -1047,8 +1047,8 @@ DEFTREECODE (OMP_ATOMIC, "omp_atomic", tcc_statement, 2)
 DEFTREECODE (OMP_CLAUSE, "omp_clause", tcc_exceptional, 0)
 
 /* TRANSACTION_EXPR tree code.
-   Operand 0: BODY: contains body of the transaction.*/
-DEFTREECODE (TRANSACTION_EXPR, "transaction_expr", tcc_statement, 1)
+   Operand 0: BODY: contains body of the transaction.  */
+DEFTREECODE (TRANSACTION_EXPR, "transaction_expr", tcc_expression, 1)
 
 /* Reduction operations.
    Operations that take a vector of elements and "reduce" it to a scalar

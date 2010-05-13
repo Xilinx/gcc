@@ -1024,6 +1024,12 @@ voidify_wrapper_expr (tree wrapper, tree temp)
 		}
 	      break;
 
+	    case TRANSACTION_EXPR:
+	      TREE_SIDE_EFFECTS (*p) = 1;
+	      TREE_TYPE (*p) = void_type_node;
+	      p = &TRANSACTION_EXPR_BODY (*p);
+	      break;
+
 	    default:
 	      goto out;
 	    }
@@ -6373,19 +6379,20 @@ gimplify_omp_atomic (tree *expr_p, gimple_seq *pre_p)
    return GS_ALL_DONE;
 }
 
-/* Gimplify the contents of a TRANSACTION_EXPR statement.  This involves
-   gimplification of the body, and adding some EH bits.  */
+/* Gimplify a TRANSACTION_EXPR.  This involves gimplification of the
+   body, and adding some EH bits.  */
 
 static enum gimplify_status
 gimplify_transaction (tree *expr_p, gimple_seq *pre_p)
 {
-  tree expr = *expr_p;
+  tree expr = *expr_p, temp;
   gimple g;
   gimple_seq body = NULL;
   struct gimplify_ctx gctx;
   int subcode = 0;
 
   push_gimplify_context (&gctx);
+  temp = voidify_wrapper_expr (*expr_p, NULL);
 
   g = gimplify_and_return_first (TRANSACTION_EXPR_BODY (expr), &body);
   if (g && gimple_code (g) == GIMPLE_BIND)
@@ -6401,8 +6408,14 @@ gimplify_transaction (tree *expr_p, gimple_seq *pre_p)
   gimple_transaction_set_subcode (g, subcode);
 
   gimplify_seq_add_stmt (pre_p, g);
-  *expr_p = NULL_TREE;
 
+  if (temp)
+    {
+      *expr_p = temp;
+      return GS_OK;
+    }
+
+  *expr_p = NULL_TREE;
   return GS_ALL_DONE;
 }
 

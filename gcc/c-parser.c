@@ -941,6 +941,7 @@ static struct c_expr c_parser_postfix_expression_after_primary (c_parser *,
 								location_t loc,
 								struct c_expr);
 static tree c_parser_transaction (c_parser *);
+static struct c_expr c_parser_transaction_expression (c_parser *);
 static tree c_parser_transaction_cancel (c_parser *);
 static struct c_expr c_parser_expression (c_parser *);
 static struct c_expr c_parser_expression_conv (c_parser *);
@@ -5106,6 +5107,11 @@ c_parser_cast_expression (c_parser *parser, struct c_expr *after)
    unary-operator: one of
      __extension__ __real__ __imag__
 
+   Transactional Memory:
+
+   unary-expression:
+     transaction-expression
+
    In addition, the GNU syntax treats ++ and -- as unary operators, so
    they may be applied to cast expressions with errors for non-lvalues
    given later.  */
@@ -5213,6 +5219,8 @@ c_parser_unary_expression (c_parser *parser)
 	  op = c_parser_cast_expression (parser, NULL);
 	  op = default_function_array_conversion (exp_loc, op);
 	  return parser_build_unary_op (op_loc, IMAGPART_EXPR, op);
+	case RID_TRANSACTION:
+	  return c_parser_transaction_expression (parser);
 	default:
 	  return c_parser_postfix_expression (parser);
 	}
@@ -8819,6 +8827,62 @@ c_parser_transaction (c_parser *parser)
 	      "transactional memory support enabled");
 
   return stmt;
+}
+
+/* Parse a __transaction expression (GCC Extension).
+
+   transaction-expression:
+     __transaction attributes[opt] ( expression )
+
+   Note that the only valid attributes are: "atomic" and "relaxed".
+*/
+
+static struct c_expr
+c_parser_transaction_expression (c_parser *parser)
+{
+  struct c_expr ret;
+  unsigned int old_in = parser->in_transaction;
+  unsigned int this_in = 1;
+  location_t loc = c_parser_peek_token (parser)->location;
+  tree attrs;
+
+  gcc_assert (c_parser_next_token_is_keyword (parser, RID_TRANSACTION));
+  c_parser_consume_token (parser);
+
+  attrs = c_parser_transaction_attributes (parser);
+  if (attrs)
+    {
+      this_in |= parse_tm_stmt_attr (attrs, (TM_STMT_ATTR_ATOMIC
+					     | TM_STMT_ATTR_RELAXED));
+      /* The [[ atomic ]] attribute is the same as no attribute.  */
+      this_in &= ~TM_STMT_ATTR_ATOMIC;
+    }
+
+  parser->in_transaction = this_in;
+  if (c_parser_next_token_is (parser, CPP_OPEN_PAREN))
+    {
+      tree expr = c_parser_expression (parser).value;
+      ret.original_type = TREE_TYPE (expr);
+      ret.value = build1 (TRANSACTION_EXPR, ret.original_type, expr);
+      if (this_in & TM_STMT_ATTR_RELAXED)
+	TRANSACTION_EXPR_RELAXED (ret.value) = 1;
+      SET_EXPR_LOCATION (ret.value, loc);
+      ret.original_code = TRANSACTION_EXPR;
+    }
+  else
+    {
+      c_parser_error (parser, "expected %<(%>");
+      ret.value = error_mark_node;
+      ret.original_code = ERROR_MARK;
+      ret.original_type = NULL;
+    }
+  parser->in_transaction = old_in;
+
+  if (!flag_tm)
+    error_at (loc, "%<__transaction%> without "
+	      "transactional memory support enabled");
+
+  return ret;
 }
 
 /* Parse a __transaction_cancel statement (GCC Extension).
