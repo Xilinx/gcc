@@ -2571,6 +2571,14 @@ vect_create_data_ref_ptr (gimple stmt, struct loop *at_loop,
      in LOOP.  */
   base_name = build_fold_indirect_ref (unshare_expr (DR_BASE_ADDRESS (dr)));
 
+  if (DECL_ALIGN (base_name) < TYPE_ALIGN (vectype))
+    {
+      DECL_ALIGN (base_name) = TYPE_ALIGN (vectype);
+      DECL_USER_ALIGN (base_name) = 1;
+      if (vect_print_dump_info (REPORT_DETAILS))
+	fprintf (vect_dump, "increase alignment");
+    }
+
   if (vect_print_dump_info (REPORT_DETAILS))
     {
       tree data_ref_base = base_name;
