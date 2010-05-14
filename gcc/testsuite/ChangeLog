@@ -1,3 +1,137 @@
+2010-05-14  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/44135
+	* gfortran.dg/actual_array_interface_2.f90: New test.
+
+2010-05-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44119
+	* gcc.c-torture/compile/pr44119.c: New testcase.
+
+2010-05-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44127
+	* g++.dg/eh/terminate1.C: New.
+
+2010-05-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* gfortran.dg/gomp/pr44036-1.f90: Adjust.
+
+	PR debug/44136
+	* gcc.dg/pr44136.c: New test.
+
+2010-05-14  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c++/30566
+	* testsuite/g++.dg/warn/Wshadow-4.C: Adjust.
+	* testsuite/g++.dg/warn/Wshadow-5.C: New test.
+	* testsuite/g++.dg/warn/Wshadow-6.C: New test
+
+2010-05-13  Daniel Franke  <franke.daniel@gmail.com>
+
+        PR fortran/35779
+        * gfortran.dg/initialization_25.f90: New.
+
+2010-05-13  Martin Jambor  <mjambor@suse.cz>
+
+	* g++.dg/otr-fold-1.C: New test.
+	* g++.dg/otr-fold-2.C: New test.
+
+2010-05-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/44036
+	* gfortran.dg/gomp/pr44036-1.f90: New test.
+	* gfortran.dg/gomp/pr44036-2.f90: New test.
+	* gfortran.dg/gomp/pr44036-3.f90: New test.
+
+	PR debug/43983
+	* gcc.dg/guality/sra-1.c: New test.
+
+2010-05-12  Jan Hubicka  <jh@suse.cz>
+
+	* tree-ssa/unreachable.c: New test.
+
+2010-05-12  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/sfinae1.C: New.
+
+2010-05-12  Sriraman Tallam  <tmsriram@google.com>
+
+	* gcc.target/i386/zee.c: New file.
+
+2010-05-12  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/conversion/op1.C: Expect template candidate message.
+	* g++.dg/cpp0x/nullptr15.C: Likewise.
+	* g++.dg/cpp0x/pr31431-2.C: Likewise.
+	* g++.dg/cpp0x/pr31431.C: Likewise.
+	* g++.dg/cpp0x/temp_default2.C: Likewise.
+	* g++.dg/cpp0x/trailing4.C: Likewise.
+	* g++.dg/cpp0x/variadic-ex3.C: Likewise.
+	* g++.dg/cpp0x/variadic-ex4.C: Likewise.
+	* g++.dg/cpp0x/variadic-throw.C: Likewise.
+	* g++.dg/cpp0x/variadic35.C: Likewise.
+	* g++.dg/cpp0x/vt-35147.C: Likewise.
+	* g++.dg/cpp0x/vt-37737-1.C: Likewise.
+	* g++.dg/cpp0x/vt-37737-2.C: Likewise.
+	* g++.dg/ext/visibility/anon8.C: Likewise.
+	* g++.dg/ext/vla2.C: Likewise.
+	* g++.dg/other/pr28114.C: Likewise.
+	* g++.dg/other/ptrmem10.C: Likewise.
+	* g++.dg/other/ptrmem11.C: Likewise.
+	* g++.dg/overload/unknown1.C: Likewise.
+	* g++.dg/parse/template7.C: Likewise.
+	* g++.dg/parse/typename7.C: Likewise.
+	* g++.dg/template/conv11.C: Likewise.
+	* g++.dg/template/copy1.C: Likewise.
+	* g++.dg/template/deduce3.C: Likewise.
+	* g++.dg/template/dependent-expr5.C: Likewise.
+	* g++.dg/template/friend.C: Likewise.
+	* g++.dg/template/incomplete2.C: Likewise.
+	* g++.dg/template/local4.C: Likewise.
+	* g++.dg/template/local6.C: Likewise.
+	* g++.dg/template/operator10.C: Likewise.
+	* g++.dg/template/overload6.C: Likewise.
+	* g++.dg/template/ptrmem2.C: Likewise.
+	* g++.dg/template/ptrmem20.C: Likewise.
+	* g++.dg/template/ptrmem8.C: Likewise.
+	* g++.dg/template/sfinae2.C: Likewise.
+	* g++.dg/template/ttp25.C: Likewise.
+	* g++.dg/template/unify10.C: Likewise.
+	* g++.dg/template/unify11.C: Likewise.
+	* g++.dg/template/unify6.C: Likewise.
+	* g++.dg/template/unify7.C: Likewise.
+	* g++.dg/template/unify9.C: Likewise.
+	* g++.dg/template/varmod1.C: Likewise.
+	* g++.old-deja/g++.brendan/crash56.C: Likewise.
+	* g++.old-deja/g++.law/operators32.C: Likewise.
+	* g++.old-deja/g++.pt/crash28.C: Likewise.
+	* g++.old-deja/g++.pt/crash60.C: Likewise.
+	* g++.old-deja/g++.pt/explicit38.C: Likewise.
+	* g++.old-deja/g++.pt/explicit39.C: Likewise.
+	* g++.old-deja/g++.pt/explicit41.C: Likewise.
+	* g++.old-deja/g++.pt/explicit67.C: Likewise.
+	* g++.old-deja/g++.pt/explicit77.C: Likewise.
+	* g++.old-deja/g++.pt/expr2.C: Likewise.
+	* g++.old-deja/g++.pt/overload7.C: Likewise.
+	* g++.old-deja/g++.pt/ptrmem6.C: Likewise.
+	* g++.old-deja/g++.pt/spec5.C: Likewise.
+	* g++.old-deja/g++.pt/spec6.C: Likewise.
+	* g++.old-deja/g++.pt/t24.C: Likewise.
+	* g++.old-deja/g++.pt/unify4.C: Likewise.
+	* g++.old-deja/g++.pt/unify6.C: Likewise.
+	* g++.old-deja/g++.pt/unify8.C: Likewise.
+	* g++.old-deja/g++.robertl/eb119.C: Likewise.
+	* g++.old-deja/g++.robertl/eb79.C: Likewise.
+	* g++.old-deja/g++.robertl/eb98.C: Likewise.
+
+	* g++.dg/cpp0x/initlist32.C: New.
+
+	* g++.dg/template/conv11.C: New.
+	* g++.dg/conversion/op1.C: Adjust expected error.
+
+	* g++.old-deja/g++.robertl/eb43.C: Prune "candidates" messages.
+
 2010-05-12  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/44088

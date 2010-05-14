@@ -115,14 +115,16 @@ typedef struct rs6000_stack {
    This is added to the cfun structure.  */
 typedef struct GTY(()) machine_function
 {
-  /* Flags if __builtin_return_address (n) with n >= 1 was used.  */
-  int ra_needs_full_frame;
   /* Some local-dynamic symbol.  */
   const char *some_ld_name;
   /* Whether the instruction chain has been scanned already.  */
   int insn_chain_scanned_p;
+  /* Flags if __builtin_return_address (n) with n >= 1 was used.  */
+  int ra_needs_full_frame;
   /* Flags if __builtin_return_address (0) was used.  */
   int ra_need_lr;
+  /* Cache lr_save_p after expansion of builtin_eh_return.  */
+  int lr_save_state;
   /* Offset from virtual_stack_vars_rtx to the start of the ABI_V4
      varargs save area.  */
   HOST_WIDE_INT varargs_save_offset;
@@ -1118,9 +1120,9 @@ rtx (*rs6000_legitimize_reload_address_ptr) (rtx, enum machine_mode, int, int,
 					     int, int *)
   = rs6000_legitimize_reload_address;
 
-static bool rs6000_mode_dependent_address (rtx);
-static bool rs6000_debug_mode_dependent_address (rtx);
-bool (*rs6000_mode_dependent_address_ptr) (rtx)
+static bool rs6000_mode_dependent_address (const_rtx);
+static bool rs6000_debug_mode_dependent_address (const_rtx);
+bool (*rs6000_mode_dependent_address_ptr) (const_rtx)
   = rs6000_mode_dependent_address;
 
 static enum reg_class rs6000_secondary_reload_class (enum reg_class,
@@ -5896,7 +5898,7 @@ rs6000_debug_legitimate_address_p (enum machine_mode mode, rtx x,
    sub-words of a TFmode operand, which is what we had before.  */
 
 static bool
-rs6000_mode_dependent_address (rtx addr)
+rs6000_mode_dependent_address (const_rtx addr)
 {
   switch (GET_CODE (addr))
     {
@@ -5936,7 +5938,7 @@ rs6000_mode_dependent_address (rtx addr)
 
 /* Debug version of rs6000_mode_dependent_address.  */
 static bool
-rs6000_debug_mode_dependent_address (rtx addr)
+rs6000_debug_mode_dependent_address (const_rtx addr)
 {
   bool ret = rs6000_mode_dependent_address (addr);
 
@@ -17729,6 +17731,9 @@ rs6000_ra_ever_killed (void)
   if (cfun->is_thunk)
     return 0;
 
+  if (cfun->machine->lr_save_state)
+    return cfun->machine->lr_save_state - 1;
+
   /* regs_ever_live has LR marked as used if any sibcalls are present,
      but this should not force saving and restoring in the
      pro/epilogue.  Likewise, reg_set_between_p thinks a sibcall
@@ -17898,6 +17903,12 @@ rs6000_emit_eh_reg_restore (rtx source, rtx scratch)
     }
   else
     emit_move_insn (gen_rtx_REG (Pmode, LR_REGNO), operands[0]);
+
+  /* Freeze lr_save_p.  We've just emitted rtl that depends on the
+     state of lr_save_p so any change from here on would be a bug.  In
+     particular, stop rs6000_ra_ever_killed from considering the SET
+     of lr we may have added just above.  */ 
+  cfun->machine->lr_save_state = info->lr_save_p + 1;
 }
 
 static GTY(()) alias_set_type set = -1;

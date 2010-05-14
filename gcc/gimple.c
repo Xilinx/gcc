@@ -297,6 +297,7 @@ gimple_build_call_from_tree (tree t)
   gimple_call_set_return_slot_opt (call, CALL_EXPR_RETURN_SLOT_OPT (t));
   gimple_call_set_from_thunk (call, CALL_FROM_THUNK_P (t));
   gimple_call_set_va_arg_pack (call, CALL_EXPR_VA_ARG_PACK (t));
+  gimple_call_set_nothrow (call, TREE_NOTHROW (t));
   gimple_set_no_warning (call, TREE_NO_WARNING (t));
 
   return call;
@@ -636,7 +637,7 @@ gimple_build_eh_filter (tree types, gimple_seq failure)
 gimple
 gimple_build_eh_must_not_throw (tree decl)
 {
-  gimple p = gimple_alloc (GIMPLE_EH_MUST_NOT_THROW, 1);
+  gimple p = gimple_alloc (GIMPLE_EH_MUST_NOT_THROW, 0);
 
   gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
   gcc_assert (flags_from_decl_or_type (decl) & ECF_NORETURN);
@@ -1752,6 +1753,9 @@ gimple_call_flags (const_gimple stmt)
       else
 	flags = 0;
     }
+
+  if (stmt->gsbase.subcode & GF_CALL_NOTHROW)
+    flags |= ECF_NOTHROW;
 
   return flags;
 }
@@ -4683,45 +4687,6 @@ gimple_decl_printable_name (tree decl, int verbosity)
     }
 
   return IDENTIFIER_POINTER (DECL_NAME (decl));
-}
-
-
-/* Fold a OBJ_TYPE_REF expression to the address of a function.
-   KNOWN_TYPE carries the true type of OBJ_TYPE_REF_OBJECT(REF).  Adapted
-   from cp_fold_obj_type_ref, but it tolerates types with no binfo
-   data.  */
-
-tree
-gimple_fold_obj_type_ref (tree ref, tree known_type)
-{
-  HOST_WIDE_INT index;
-  HOST_WIDE_INT i;
-  tree v;
-  tree fndecl;
-
-  if (TYPE_BINFO (known_type) == NULL_TREE)
-    return NULL_TREE;
-
-  v = BINFO_VIRTUALS (TYPE_BINFO (known_type));
-  index = tree_low_cst (OBJ_TYPE_REF_TOKEN (ref), 1);
-  i = 0;
-  while (i != index)
-    {
-      i += (TARGET_VTABLE_USES_DESCRIPTORS
-	    ? TARGET_VTABLE_USES_DESCRIPTORS : 1);
-      v = TREE_CHAIN (v);
-    }
-
-  fndecl = TREE_VALUE (v);
-
-#ifdef ENABLE_CHECKING
-  gcc_assert (tree_int_cst_equal (OBJ_TYPE_REF_TOKEN (ref),
-				  DECL_VINDEX (fndecl)));
-#endif
-
-  cgraph_node (fndecl)->local.vtable_method = true;
-
-  return build_fold_addr_expr (fndecl);
 }
 
 #include "gt-gimple.h"

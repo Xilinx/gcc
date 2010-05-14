@@ -376,6 +376,8 @@ struct GTY(()) cgraph_indirect_call_info
 {
   /* Index of the parameter that is called.  */
   int param_index;
+  /* ECF flags determined from the caller.  */
+  int ecf_flags;
 };
 
 struct GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_caller"))) cgraph_edge {
@@ -519,7 +521,7 @@ void cgraph_node_remove_callees (struct cgraph_node *node);
 struct cgraph_edge *cgraph_create_edge (struct cgraph_node *,
 					struct cgraph_node *,
 					gimple, gcov_type, int, int);
-struct cgraph_edge *cgraph_create_indirect_edge (struct cgraph_node *, gimple,
+struct cgraph_edge *cgraph_create_indirect_edge (struct cgraph_node *, gimple, int,
 						 gcov_type, int, int);
 struct cgraph_node * cgraph_get_node (tree);
 struct cgraph_node *cgraph_node (tree);
@@ -854,7 +856,17 @@ varpool_node_set_nonempty_p (varpool_node_set set)
 static inline bool
 cgraph_only_called_directly_p (struct cgraph_node *node)
 {
-  return !node->needed && !node->local.externally_visible;
+  return !node->needed && !node->address_taken && !node->local.externally_visible;
+}
+
+/* Return true when function NODE can be removed from callgraph
+   if all direct calls are eliminated.  */
+
+static inline bool
+cgraph_can_remove_if_no_direct_calls_and_refs_p (struct cgraph_node *node)
+{
+  return (!node->needed && !node->reachable_from_other_partition
+  	  && (DECL_COMDAT (node->decl) || !node->local.externally_visible));
 }
 
 /* Return true when function NODE can be removed from callgraph
@@ -863,8 +875,7 @@ cgraph_only_called_directly_p (struct cgraph_node *node)
 static inline bool
 cgraph_can_remove_if_no_direct_calls_p (struct cgraph_node *node)
 {
-  return (!node->needed && !node->reachable_from_other_partition
-  	  && (DECL_COMDAT (node->decl) || !node->local.externally_visible));
+  return !node->address_taken && cgraph_can_remove_if_no_direct_calls_and_refs_p (node);
 }
 
 /* Constant pool accessor function.  */

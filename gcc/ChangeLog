@@ -1,3 +1,332 @@
+2010-05-14  Jan Hubicka  <jh@suse.cz>
+
+	* ipa.c (cgraph_remove_unreachable_nodes): Revert accidental commit.
+
+2010-05-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44119
+	* tree-ssa-pre.c (eliminate): Properly mark replacement of
+	a PHI node necessary.
+
+2010-05-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.h (TREE_ADDRESSABLE): Remove bogus usage for FIELD_DECL.
+
+2010-05-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44127
+	* gimple.h (enum gf_mask): Add GF_CALL_NOTHROW.
+	(gimple_call_set_nothrow): New.
+	* gimple.c (gimple_build_call_from_tree): Call it.
+	(gimple_call_flags): Set ECF_NOTHROW from GF_CALL_NOTHROW.
+
+	PR c++/44127
+	* gimplify.c (gimplify_seq_add_stmt): No longer static.
+	* gimple.h: Declare it.
+	* gimple.c (gimple_build_eh_filter): No ops.
+
+2010-05-14  Jan Hubicka  <jh@suse.cz>
+
+	* ipa.c (enqueue_cgraph_node): Update comment; do not re-enqueue
+	nodes already in queue.
+	(cgraph_remove_unreachable_nodes): Cleanup; fix problem with
+	re-enqueueing node.
+
+2010-05-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/44136
+	* cfgexpand.c (expand_debug_expr): If non-memory op0
+	has BLKmode, return NULL.
+
+2010-05-14  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	* config.gcc: Add support for --with-cpu option for bdver1.
+	* config/i386/i386.h (TARGET_BDVER1): New macro.
+	(ix86_tune_indices): Change SSE_UNALIGNED_MOVE_OPTIMAL
+	to SSE_UNALIGNED_LOAD_OPTIMAL. Add SSE_UNALIGNED_STORE_OPTIMAL.
+	(ix86_tune_features) :Change SSE_UNALIGNED_MOVE_OPTIMAL
+	to SSE_UNALIGNED_LOAD_OPTIMAL. Add SSE_UNALIGNED_STORE_OPTIMAL.
+	Add SSE_PACKED_SINGLE_INSN_OPTIMAL.
+	(TARGET_CPU_DEFAULT_NAMES): Add bdver1.
+	(processor_type): Add PROCESSOR_BDVER1.
+	* config/i386/i386.md: Add bdver1 as a new cpu attribute to match
+	processor_type in config/i386/i386.h.
+	Add check for TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL to emit
+	movaps <reg, reg> instead of movapd <reg, reg> when replacing
+	movsd <reg, reg> or movss <reg, reg> for SSE and AVX.
+	Add check for  TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL
+	to emit packed xor instead of packed double/packed integer
+	xor for SSE and AVX when moving a zero value.
+	* config/i386/sse.md: Add check for
+	TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL to emit movaps instead of
+	movapd/movdqa for SSE and AVX.
+	Add check for TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL to emit packed
+	single logical operations i.e and, or and xor instead of packed double
+	logical operations for SSE and AVX.
+	* config/i386/i386-c.c: 
+	(ix86_target_macros_internal): Add PROCESSOR_BDVER1.
+	* config/i386/driver-i386.c: Turn on -mtune=native for BDVER1.
+	(has_fma4, has_xop): New.
+	* config/i386/i386.c (bdver1_cost): New variable.
+	(m_BDVER1): New macro.
+	(m_AMD_MULTIPLE): Add m_BDVER1.
+	(x86_tune_use_leave, x86_tune_push_memory, x86_tune_unroll_strlen,
+	x86_tune_deep_branch_prediction, x86_tune_use_sahf, x86_tune_movx,
+	x86_tune_use_simode_fiop, x86_tune_promote_qimode,
+	x86_tune_add_esp_8, x86_tune_tune_sub_esp_4, x86_tune_sub_esp_8,
+	x86_tune_integer_dfmode_moves, x86_tune_partial_reg_dependency,
+	x86_tune_sse_partial_reg_dependency,
+	x86_tune_sse_unaligned_load_optimal,
+	x86_tune_sse_unaligned_store_optimal, x86_tune_sse_typeless_stores,
+	x86_tune_memory_mismatch_stall, x86_tune_use_ffreep,
+	x86_tune_inter_unit_moves, x86_tune_inter_unit_conversions,
+	x86_tune_use_bt, x86_tune_pad_returns, x86_tune_slow_imul_imm32_mem,
+	x86_tune_slow_imul_imm8, x86_tune_fuse_cmp_and_branch):
+	Enable/disable for bdver1.
+	(processor_target_table): Add bdver1_cost.
+	(cpu_names): Add bdver1.
+	(override_options): Set up PROCESSOR_BDVER1 for bdver1 entry in
+	 processor_alias_table.
+	(ix86_expand_vector_move_misalign): Change.
+	TARGET_SSE_UNALIGNED_MOVE_OPTIMAL to TARGET_SSE_UNALIGNED_LOAD_OPTIMAL.
+	Check for TARGET_SSE_UNALIGNED_STORE_OPTIMAL.
+	Check for TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL to emit movups instead
+	of movupd/movdqu for SSE and AVX.
+	(ix86_tune_issue_rate): Add PROCESSOR_BDVER1.
+	(ix86_tune_adjust_cost): Add code for bdver1.
+	(standard_sse_constant_opcode): Add check for
+	TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL to emit packed single xor instead
+	of packed double xor for SSE and AVX.
+
+2010-05-14  Pat Haugen  <pthaugen@us.ibm.com>
+
+	* tree-ssa-loop.prefetch.c (prune_ref_by_group_reuse): Cast abs()
+	result to unsigned.
+
+2010-05-14  Tristan Gingold  <gingold@adacore.com>
+
+	* toplev.c (default_debug_hooks): Remove this variable.
+	(process_options): Remove assignments to default_debug_hooks.
+
+2010-05-14  Martin Jambor  <mjambor@suse.cz>
+
+	* langhooks-def.h (LANG_HOOKS_FOLD_OBJ_TYPE_REF): Remove.
+	(LANG_HOOKS_INITIALIZER): Remove LANG_HOOKS_FOLD_OBJ_TYPE_REF.
+	* langhooks.h (struct lang_hooks_for_decls): Removed field
+	fold_obj_type_ref.
+	* tree.c (free_lang_data): Remove assignment to
+	lang_hooks.fold_obj_type_ref.
+	* tree.def (OBJ_TYPE_REF): Update comment.
+
+2010-05-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44124
+	* tree-ssa-sccvn.c (vn_nary_may_trap): Fix invalid memory access.
+
+2010-05-14  Alan Modra  <amodra@gmail.com>
+
+	PR target/44075
+	* config/rs6000/rs6000.c (struct machine_function): Reorder
+	fields for better packing.  Add lr_save_state.
+	(rs6000_ra_ever_killed): Return lr_save_state if set.
+	(rs6000_emit_eh_reg_restore): Set lr_save_state.
+
+2010-05-13  Jan Hubicka  <jh@suse.cz>
+
+	* varpool.c (decide_is_variable_needed): Drop code checking
+	TREE_SYMBOL_REFERENCED.
+
+2010-05-13  Jan Hubicka  <jh@suse.cz>
+
+	* final.c (output_addr_const): Do not call mark_decl_referenced.
+	* cgraphunit.c (process_function_and_variable_attributes): Use
+	mark_needed_node dirrectly.
+	(assemble_thunk): Do not call mark_decl_referenced.
+
+2010-05-13  Anatoly Sokolov  <aesok@post.ru>
+
+	* targhooks.c (default_mode_dependent_address_p): Cast 'addr' to rtx.
+
+2010-05-13  Jeff Law  <law@redhat.com>
+
+	* ira-conflicts.c (print_allocno_conflicts): New function broken out
+	from...
+	(print_conflicts): Call print_allocno_conflicts.
+
+2010-05-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/44104
+	* dwarf2out.c (modified_type_die): Don't dereference mod_type_die
+	if it is NULL.
+
+2010-05-13  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config.gcc (i[34567]86-*-mingw* | x86_64-*-mingw*): Choose
+	t-mingw-w64 or t-mingw-w32 for multilib configuration.
+	* config/i386/t-mingw-w32: New.
+	* config/i386/t-mingw-w64 (MULTILIB_OSDIRNAMES): Change lib64 to lib.
+	
+2010-05-13  Martin Jambor  <mjambor@suse.cz>
+
+	* gimple.c (gimple_fold_obj_type_ref): Removed (a replacement moved to
+	gimple-fold.c).
+	* gimple-fold.c (get_base_binfo_for_type): New function.
+	(gimple_get_relevant_ref_binfo): Likewise.
+	(gimple_fold_obj_type_ref_known_binfo): Likewise.
+	(gimple_fold_obj_type_ref): Likewise.
+	(fold_gimple_call): Simplify condition for folding virtual calls
+	and call gimple_fold_obj_type_ref.
+	* gimple.h (gimple_get_relevant_ref_binfo): Declare.
+	(gimple_fold_obj_type_ref_known_binfo): Likewise.
+
+2010-05-13  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* config/rs6000/rs6000-protos.h
+	(rs6000_mode_dependent_address_ptr): Change argument to const_rtx.
+	* config/rs6000/rs6000.c (rs6000_mode_dependent_address)
+	(rs6000_debug_mode_dependent_address)
+	(rs6000_mode_dependent_address_ptr): Likewise.
+
+2010-05-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43983
+	* var-tracking.c (track_expr_p): Allow tracking of variables optimized
+	by SRA.
+	* Makefile.in (dwarf2out.o): Depend on $(TREE_FLOW_H).
+	* tree-sra.c (create_access_replacement): Call unshare_expr before
+	passing expr to SET_DECL_DEBUG_EXPR, and remove any SSA_NAMEs from
+	it.
+	* dwarf2out.c: Include tree-flow.h.
+	(struct var_loc_node): Rename var_loc_note field to loc, add comment.
+	(size_of_loc_descr, output_loc_operands, output_loc_operands_raw):
+	Handle DW_OP_bit_piece.
+	(decl_piece_bitsize, decl_piece_varloc_ptr, decl_piece_node,
+	construct_piece_list, adjust_piece_list): New functions.
+	(add_var_loc_to_decl): Handle SRA optimized variables.
+	Adjust for var_loc_note to loc field renaming.
+	(dw_loc_list_1): For WANT_ADDRESS == 2 prefer DECL_MODE of decl
+	in VAR_LOCATION note.
+	(new_loc_descr_op_bit_piece): New function.
+	(dw_sra_loc_expr): New function.
+	(dw_loc_list): Use it.  Don't handle the last range after the
+	loop, handle it inside of the loop.  Adjust for var_loc_note
+	to loc field renaming.
+	(add_location_or_const_value_attribute): Only special case
+	single entry loc lists if loc is NOTE_P.  Adjust for
+	var_loc_note to loc field renaming.
+	(dwarf2out_var_location): Don't set newloc->var_loc_note
+	and newloc->next here.
+
+2010-05-12  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (cgraph_mark_address_taken_node): No longer imply needed
+	flag.
+	* cgraph.h (cgraph_only_called_directly_p,
+	cgraph_can_remove_if_no_direct_calls_p): test address_taken flag.
+	(cgraph_can_remove_if_no_direct_calls_and_refs_p): New function.
+	* cgraphunit.c (cgraph_mark_functions_to_output): Test address_taken.
+	(assemble
+	* ipa.c (cgraph_remove_unreachable_nodes): Use
+	cgraph_can_remove_if_no_direct_calls_and_refs_p; clear address_taken
+	flags.
+	* tree-inline.c (copy_bb): Check address_taken flag.
+	* tree-profile.c (tree_gen_ic_func_profiler): Check address_taken and
+	externally_visible flag.
+
+2010-05-12  Jason Merrill  <jason@redhat.com>
+
+	PR bootstrap/44048
+	PR target/44099
+	* dbxout.c (dbxout_type): Remove NULLPTR_TYPE handling.
+	* sdbout.c (plain_type_1): Likewise.
+	* dwarf2out.c (is_base_type): Likewise.
+	(gen_type_die_with_usage): Likewise.  Generate
+	DW_TAG_unspecified_type for any LANG_TYPE.
+
+2010-05-12  Jan Hubicka  <jh@suse.cz>
+
+	* cgraphbuild.c (build_cgraph_edges, rebuild_cgraph_edges): Build
+	indrect edges too.
+	* cgraph.c (cgraph_create_indirect_edge): Take ecf_flags argument.
+	(cgraph_clone_edge): Update.
+	(cgraph_node_remove_callees): Remove indirect calls too.
+	* cgraph.h (cgraph_indirect_call_info): Add ecf_flags.
+	(cgraph_create_indirect_edge): Update prototype.
+	* ipa-reference.c (has_proper_scope_for_analysis): Rename to
+	is_proper_for_analysis.
+	(add_new_function, visited_nodes, function_insertion_hook_holder,
+	get_local_reference_vars_info, mark_address_taken, mark_address,
+	mark_load, mark_store, check_asm_memory_clobber, check_call,
+	scan_stmt_for_static_refs, scan_initializer_for_static_refs): Remove.
+	(ipa_init): Do not initialize visited_nodes;
+	function_insertion_hook_holder.
+	(analyze_variable): Rewrite.
+	(analyze_function): Rewrite.
+	(copy_local_bitmap): Remove.
+	(duplicate_node_dat): Do not duplicate local info.
+	(generate_summary): Simplify to only walk cgraph.
+	(write_node_summary_p, ipa_reference_write_summary,
+	ipa_reference_read_summary): Remove.
+	(propagate): Do not remove function insertion;
+	generate summary.
+	(pass_ipa_reference): NULLify summary handling fields.
+	* lto-cgraph.c (lto_output_edge): Output ecf_flags.
+	(input_edge): Input ecf_flags.
+	* ipa-prop.c (ipa_note_parm_call): Expect edge to be around.
+	(update_indirect_edges_after_inlining): Ignore edges with unknown
+	param.
+
+2010-05-12  Sriraman Tallam  <tmsriram@google.com>
+
+	* implicit-zee.c: New file.
+	* tree-pass.h (pass_implicit_zee): Declare.
+	* passes.c (init_optimization_passes): Add zee pass.
+	* common.opt (fzee): New flag.
+	* timevar.def (TV_ZEE): Define.
+	* config/i386/i386.c (optimization_options): Turn on ZEE for level 2
+	and beyond.
+	* Makefile.in (implicit-zee.o): Add new build file.
+
+2010-05-12  Kazu Hirata  <kazu@codesourcery.com>
+	    Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-common.c (sync_resolve_params): Remove write-only variable.
+
+2010-05-12  Anatoly Sokolov  <aesok@post.ru>
+
+	* target.h (struct gcc_target): Add mode_dependent_address_p field.
+	* target-def.h (TARGET_MODE_DEPENDENT_ADDRESS_P): New.
+	(TARGET_INITIALIZER): Use TARGET_MODE_DEPENDENT_ADDRESS_P.
+	* targhooks.c (default_mode_dependent_address_p): New function.
+	* targhooks.h (default_mode_dependent_address_p): Declare function.
+	* doc/tm.texi (TARGET_MODE_DEPENDENT_ADDRESS_P): New.
+	(GO_IF_MODE_DEPENDENT_ADDRESS): Update.
+	* recog.c: (mode_dependent_address_p): Call mode_dependent_address_p
+	target hook. Change return type to bool.
+	* recog.h: (mode_dependent_address_p): Change return type to bool.
+
+2010-05-12  Kazu Hirata  <kazu@codesourcery.com>
+	    Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree-mudflap.c (build_function_type_0, build_function_type_1,
+	build_function_type_2, build_function_type_3): Remove.
+	(mudflap_init): Use build_function_type_list.
+
+2010-05-12  Kazu Hirata  <kazu@codesourcery.com>
+	    Nathan Froyd  <froydnj@codesourcery.com>
+
+	* coverage.c (build_fn_info_value): Call build_constructor instead of
+	build_constructor_from_list.
+	(build_ctr_info_value): Likewise.
+	(build_gcov_info): Likewise.
+
+2010-05-12  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.c (build_constructor): Compute TREE_CONSTANT for the
+	resultant constructor.
+	(build_constructor_single): Don't set TREE_CONSTANT.
+	(build_constructor_from_list): Don't compute TREE_CONSTANT.
+
 2010-05-12  Jan Hubicka  <jh@suse.cz>
 
 	* cgraph.h (struct varpool_node): Add aux.
@@ -94,7 +423,8 @@
 2010-05-11  Jan Hubicka  <jh@suse.cz>
 
 	PR tree-optimize/44063
-	* ipa-inline.c (cgraph_edge_badness): Move always inlines to top of queue.
+	* ipa-inline.c (cgraph_edge_badness): Move always inlines to top of
+	queue.
 	(cgraph_decide_inlining_of_small_function): Skip check when disrgarding
 	limits.
 	(estimate_function_body_sizes): Compute sizes even when disregarding.
@@ -136,13 +466,13 @@
 
 2010-05-11  Christian Borntraeger  <borntraeger@de.ibm.com>
 
-        * tree-ssa-loop-prefetch.c (prune_ref_by_group_reuse): Reset
+	* tree-ssa-loop-prefetch.c (prune_ref_by_group_reuse): Reset
 	prefetch_before to PREFETCH_ALL if to accesses "meet" beyond
 	cache size.
 
 2010-05-11  Christian Borntraeger  <borntraeger@de.ibm.com>
 
-        * tree-ssa-loop-prefetch.c: Add debug for dropped prefetches.
+	* tree-ssa-loop-prefetch.c: Add debug for dropped prefetches.
 
 2010-05-11  Jakub Jelinek  <jakub@redhat.com>
 
@@ -172,12 +502,13 @@
 
 2010-05-10  Jan Hubicka  <jh@suse.cz>
 
-	* lto-stramer-out.c (produce_asm_for_decls): Correct accidentally commited change.
+	* lto-stramer-out.c (produce_asm_for_decls): Correct accidentally
+	commited change.
 
 2010-05-10  Jan Hubicka  <jh@suse.cz>
 
-	* passes.c (ipa_write_summaries_1, ipa_write_optimization_summaries): Allocate
-	encoders.
+	* passes.c (ipa_write_summaries_1, ipa_write_optimization_summaries):
+	Allocate encoders.
 	* lto-section-out.c (lto_new_out_decl_state): Do not allocate it here.
 	* lto-streamer.c (lto_streamer_cache_insert_1): Use alloc pool.
 	(lto_streamer_cache_create): Init alloc pool.
@@ -3878,9 +4209,9 @@
 
 2010-04-08  Wolfgang Gellerich  <gellerich@de.ibm.com>
 
-	* config/s390/s390.c (override_options): Adjust the z10
-	  defaults for max-unroll-times, max-completely-peeled-insns
-	  and max-completely-peel-times.
+	* config/s390/s390.c (override_options): Adjust the z10 defaults
+	for max-unroll-times, max-completely-peeled-insns
+	and max-completely-peel-times.
 
 2010-04-08  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
 
