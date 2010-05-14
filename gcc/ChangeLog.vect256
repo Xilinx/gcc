@@ -1,3 +1,9 @@
+2010-05-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/44144
+	* tree-vect-data-refs.c (vect_create_data_ref_ptr): Increase
+	base_name alignment only if base_name is a variable.
+
 2010-05-13  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/44130

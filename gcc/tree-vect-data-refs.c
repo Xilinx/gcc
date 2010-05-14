@@ -2571,7 +2571,8 @@ vect_create_data_ref_ptr (gimple stmt, struct loop *at_loop,
      in LOOP.  */
   base_name = build_fold_indirect_ref (unshare_expr (DR_BASE_ADDRESS (dr)));
 
-  if (DECL_ALIGN (base_name) < TYPE_ALIGN (vectype))
+  if (TREE_CODE (base_name) == VAR_DECL
+      && DECL_ALIGN (base_name) < TYPE_ALIGN (vectype))
     {
       DECL_ALIGN (base_name) = TYPE_ALIGN (vectype);
       DECL_USER_ALIGN (base_name) = 1;
