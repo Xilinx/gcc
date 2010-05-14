@@ -2927,6 +2927,18 @@
    (set_attr "prefix" "vex")
    (set_attr "mode" "V4DF")])
 
+(define_insn "*avx_cvtdq2pd256_2"
+  [(set (match_operand:V4DF 0 "register_operand" "=x")
+	(float:V4DF
+	  (vec_select:V4SI
+	    (match_operand:V8SI 1 "nonimmediate_operand" "xm")
+	    (parallel [(const_int 0) (const_int 1) (const_int 2) (const_int 3)]))))]
+  "TARGET_AVX"
+  "vcvtdq2pd\t{%x1, %0|%0, %x1}"
+  [(set_attr "type" "ssecvt")
+   (set_attr "prefix" "vex")
+   (set_attr "mode" "V4DF")])
+
 (define_insn "sse2_cvtdq2pd"
   [(set (match_operand:V2DF 0 "register_operand" "=x")
 	(float:V2DF
@@ -3111,7 +3123,7 @@
   [(set (match_operand:V4DF 0 "register_operand" "=x")
 	(float_extend:V4DF
 	  (vec_select:V4SF
-	    (match_operand:V8SF 1 "nonimmediate_operand" "x")
+	    (match_operand:V8SF 1 "nonimmediate_operand" "xm")
 	    (parallel [(const_int 0) (const_int 1) (const_int 2) (const_int 3)]))))]
   "TARGET_AVX"
   "vcvtps2pd\t{%x1, %0|%0, %x1}"
@@ -3155,26 +3167,18 @@
 
 (define_expand "vec_unpacks_hi_v8sf"
   [(set (match_dup 2)
-   (vec_select:V8SF
-     (vec_concat:V16SF
-       (match_dup 2)
-       (match_operand:V8SF 1 "nonimmediate_operand" ""))
-     (parallel [(const_int 12)
-		(const_int 13)
-		(const_int 14)
-		(const_int 15)
-		(const_int 4)
-		(const_int 5)
-		(const_int 6)
-		(const_int 7)])))
-  (set (match_operand:V4DF 0 "register_operand" "")
-   (float_extend:V4DF
-     (vec_select:V4SF
-       (match_dup 2)
-       (parallel [(const_int 0) (const_int 1) (const_int 2) (const_int 3)]))))]
- "TARGET_AVX"
+	(vec_select:V4SF
+	  (match_operand:V8SF 1 "nonimmediate_operand" "")
+	  (parallel [(const_int 4)
+		     (const_int 5)
+		     (const_int 6)
+		     (const_int 7)])))
+   (set (match_operand:V4DF 0 "register_operand" "")
+	(float_extend:V4DF
+	  (match_dup 2)))]
+  "TARGET_AVX"
 {
- operands[2] = gen_reg_rtx (V8SFmode);
+  operands[2] = gen_reg_rtx (V4SFmode);
 })
 
 (define_expand "vec_unpacks_lo_v4sf"
@@ -3267,23 +3271,17 @@
 
 (define_expand "vec_unpacks_float_hi_v8si"
   [(set (match_dup 2)
-	(vec_select:V8SI
-	  (match_operand:V4SI 1 "nonimmediate_operand" "")
+	(vec_select:V4SI
+	  (match_operand:V8SI 1 "nonimmediate_operand" "")
 	  (parallel [(const_int 4)
-		     (const_int 5)
-		     (const_int 6)
-		     (const_int 7)
-		     (const_int 4)
 		     (const_int 5)
 		     (const_int 6)
 		     (const_int 7)])))
    (set (match_operand:V4DF 0 "register_operand" "")
         (float:V4DF
-	  (vec_select:V4SI
-	  (match_dup 2)
-	    (parallel [(const_int 0) (const_int 1) (const_int 2) (const_int 3)]))))]
- "TARGET_AVX"
- "operands[2] = gen_reg_rtx (V8SImode);")
+	  (match_dup 2)))]
+  "TARGET_AVX"
+  "operands[2] = gen_reg_rtx (V4SImode);")
 
 (define_expand "vec_unpacks_float_lo_v8si"
   [(set (match_operand:V4DF 0 "register_operand" "")

@@ -1,5 +1,12 @@
 2010-05-14  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/sse.md (*avx_cvtdq2pd256_2): New.
+	(*avx_cvtps2pd256_2): Allow memory source.
+	(vec_unpacks_hi_v8sf): Fixed.
+	(vec_unpacks_float_hi_v8si): Likewise.
+
+2010-05-14  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR middle-end/44144
 	* tree-vect-data-refs.c (vect_create_data_ref_ptr): Increase
 	base_name alignment only if base_name is a variable.
