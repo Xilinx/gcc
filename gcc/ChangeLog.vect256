@@ -1,3 +1,9 @@
+2010-05-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44180
+	* config/i386/i386.c (expand_vec_perm_even_odd_1): Rewritten
+	for V8SFmode.
+
 2010-05-14  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/sse.md (*avx_cvtdq2pd256_2): New.

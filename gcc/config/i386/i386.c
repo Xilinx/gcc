@@ -30095,7 +30095,7 @@ expand_vec_perm_pshufb2 (struct expand_vec_perm_d *d)
 static bool
 expand_vec_perm_even_odd_1 (struct expand_vec_perm_d *d, unsigned odd)
 {
-  rtx t1, t2, t3, t4;
+  rtx t1, t2, t3;
 
   switch (d->vmode)
     {
@@ -30117,34 +30117,34 @@ expand_vec_perm_even_odd_1 (struct expand_vec_perm_d *d, unsigned odd)
 
     case V8SFmode:
       {
-	static const unsigned char perm1[8] = { 0, 2, 1, 3, 5, 6, 5, 7 };
-	static const unsigned char perme[8] = { 0, 1,  8,  9, 4, 5, 12, 13 };
-	static const unsigned char permo[8] = { 2, 3, 10, 11, 6, 7, 14, 15 };
+	int mask = odd ? 0xdd : 0x88;
 
 	t1 = gen_reg_rtx (V8SFmode);
 	t2 = gen_reg_rtx (V8SFmode);
 	t3 = gen_reg_rtx (V8SFmode);
-	t4 = gen_reg_rtx (V8SFmode);
 
 	/* Shuffle within the 128-bit lanes to produce:
-	   { 0 2 1 3 4 6 5 7 } and { 8 a 9 b c e d f }.  */
-	expand_vselect (t1, d->op0, perm1, 8);
-	expand_vselect (t2, d->op1, perm1, 8);
+	   { 0 2 8 a 4 6 c e } | { 1 3 9 b 5 7 d f }.  */
+	emit_insn (gen_avx_shufps256 (t1, d->op0, d->op1,
+				      GEN_INT (mask)));
 
 	/* Shuffle the lanes around to produce:
-	   { 0 2 1 3 8 a 9 b } and { 4 6 5 7 c e d f }.  */
-	emit_insn (gen_avx_vperm2f128v8sf3 (t3, t1, t2, GEN_INT (0x20)));
-	emit_insn (gen_avx_vperm2f128v8sf3 (t4, t1, t2, GEN_INT (0x31)));
+	   { 4 6 c e 0 2 8 a } and { 5 7 d f 1 3 9 b }.  */
+	emit_insn (gen_avx_vperm2f128v8sf3 (t2, t1, t1,
+					    GEN_INT (0x3)));
 
-	/* Now a vpermil2p will produce the result required.  */
-	/* ??? The vpermil2p requires a vector constant.  Another option
-	   is a unpck[lh]ps to merge the two vectors to produce
-	   { 0 4 2 6 8 c a e } or { 1 5 3 7 9 d b f }.  Then use another
-	   vpermilps to get the elements into the final order.  */
-	d->op0 = t3;
-	d->op1 = t4;
-	memcpy (d->perm, odd ? permo: perme, 8);
-	expand_vec_perm_vpermil (d);
+	/* Shuffle within the 128-bit lanes to produce:
+	   { 0 2 4 6 4 6 0 2 } | { 1 3 5 7 5 7 1 3 }.  */
+	emit_insn (gen_avx_shufps256 (t3, t1, t2, GEN_INT (0x44)));
+
+	/* Shuffle within the 128-bit lanes to produce:
+	   { 8 a c e c e 8 a } | { 9 b d f d f 9 b }.  */
+	emit_insn (gen_avx_shufps256 (t2, t1, t2, GEN_INT (0xee)));
+
+	/* Shuffle the lanes around to produce:
+	   { 0 2 4 6 8 a c e } | { 1 3 5 7 9 b d f }.  */
+	emit_insn (gen_avx_vperm2f128v8sf3 (d->target, t3, t2,
+					    GEN_INT (0x20)));
       }
       break;
 
