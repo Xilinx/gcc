@@ -4266,8 +4266,6 @@ lab_endgetargs:;
    
    {
    MELT_LOCATION("warmelt-outobj.melt:3521:/ locexp");
-#ifndef MELTGCC_NOLINENUMBERING
-#endif /*MELTGCC_NOLINENUMBERING*/
    meltgc_add_strbuf_ccomment((melt_ptr_t)((/*~DECLBUF*/ meltfclos->tabval[0])), melt_string_str((melt_ptr_t)(/*_.SCOMM__V8*/ meltfptr[7])));}
    ;
    

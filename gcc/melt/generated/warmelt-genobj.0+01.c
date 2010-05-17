@@ -1653,8 +1653,6 @@ lab_endgetargs:;
  
  {
  MELT_LOCATION("warmelt-genobj.melt:1510:/ locexp");
-#ifndef MELTGCC_NOLINENUMBERING
-#endif /*MELTGCC_NOLINENUMBERING*/
  meltgc_add_strbuf_ccomment((melt_ptr_t)(/*_.SBUF__V13*/ meltfptr[12]), melt_string_str((melt_ptr_t)(/*_.COMS__V11*/ meltfptr[10])));}
  ;
  
@@ -5185,8 +5183,6 @@ lab_endgetargs:;
  
  {
  MELT_LOCATION("warmelt-genobj.melt:1752:/ locexp");
-#ifndef MELTGCC_NOLINENUMBERING
-#endif /*MELTGCC_NOLINENUMBERING*/
  meltgc_add_strbuf_ccomment((melt_ptr_t)(/*_.SBUF__V12*/ meltfptr[11]), melt_string_str((melt_ptr_t)(/*_.SCOMM__V10*/ meltfptr[9])));}
  ;
  
