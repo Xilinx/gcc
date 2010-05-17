@@ -116,6 +116,15 @@ given a string $MSG, with gdb when desperate.}#
 (defprimitive !=i (:long a b) :long  :doc #{Integer test that $A is unequal to $B.}#
   #{(($a) != ($b))}#)
 
+;;; maximal & minimal of two longs
+(defprimitive maxi (:long a b) :long 
+  :doc #{$MAXI gives the maximum of two integers $A and $B}# 
+#{MAX(($a),($b))}#)
+
+(defprimitive mini (:long a b) :long 
+  :doc #{$MINI gives the maximum of two integers $A and $B}# 
+#{MIN(($a),($b))}#)
+
 
 ;;; long integer arithmetics; some primitives stay in warmelt-first.melt
 (defprimitive -i (:long a b) :long  :doc #{Integer binary substraction of $a and $b.}#
@@ -957,6 +966,8 @@ significant iff ENABLE_CHECKING.}# #{(melt_application_depth() <
  !=i
  -i
  *i
+ maxi
+ mini
  andi
  ori
  xori

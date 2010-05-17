@@ -613,9 +613,10 @@ $EXIT loops. The field $SEXI_BODY is the body sequence.}#
 ;;; source patterns
 (defclass class_source_pattern
   :doc #{Common internal super-class $CLASS_SOURCE_PATTERN for
-abstract syntax of patterns.}#
+abstract syntax of patterns. The $PAT_WEIGHT field contains the weight
+of the pattern, in a boxed integer.}#
   :super class_source
-  :fields (
+  :fields (pat_weight
 	   ))
 
 ;;; or patterns
@@ -1202,6 +1203,39 @@ the object-map for pattern variables.}#
     (return inargs outpats)
     ))
 
+(defun pattern_weight_tuple (spats)
+  :doc #{The function $PATTERN_WEIGHT_TUPLE compute the tuple, and
+  their maximum, their minimum, and their sum, of the pattern weights of
+  the $SPATS tuple argument made of instances of
+  $CLASS_SOURCE_PATTERN.}#
+  (assert_msg "check spats" (is_multiple spats))
+  (let
+      ( (bsum (make_integerbox discr_integer 0))
+	(bmax (make_integerbox discr_integer 0))
+	(bmin (make_integerbox discr_integer 0))
+	(restup
+	 (multiple_map 
+	  spats
+	  (lambda (subpat :long subix)
+	    (let ( (boxsubw (get_field :pat_weight subpat))
+		   (:long subw (get_int boxsubw))
+		   (:long isum (get_int bsum))
+		   (:long imin (get_int bmin))
+		   (:long imax (get_int bmax))
+		   )
+	      (if subw
+		  (progn 
+		    (setq isum (+i isum subw))
+		    (setq imin (mini imin subw))
+		    (setq imax (maxi imax subw))
+		    (put_int bsum isum)
+		    (put_int bmin imin)
+		    (put_int bmax imax)
+		    (return (make_integerbox discr_constant_integer subw))))))))
+	)
+    (return restup (get_int bmax) (get_int bmin) (get_int bsum))))
+
+
 ;; pattern expansion of a pattern expression like (question SEXPR)
 (defun patternexpand_expr (sexpr env pctx psloc)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -1241,17 +1275,22 @@ the object-map for pattern variables.}#
 	    (patmacexpand_for_matcher (pair_tail curpair) cmat env sloc pctx)
 	    (debug_msg args "patternexpand_expr cmatcher args")
 	    (debug_msg pats "patternexpand_expr cmatcher pats")
-	    (let ( (pcomp (instance class_source_pattern_c_match
-				    :loca_location sloc
-				    :spac_operator cmat
-				    :spac_operbind opbind
-				    :spac_inargs args
-				    :spac_outargs pats
-				    ))
-		   )
-	      (debug_msg pcomp "patternexpand_expr cmatcher return pcomp")
-	      (return pcomp)
-	      ))))
+	    (multicall
+	     (subpatw :long imax imin isum)
+	     (pattern_weight_tuple pats)
+	     (let ( (pcomp (instance class_source_pattern_c_match
+				     :loca_location sloc
+				     :pat_weight 
+				     (make_integerbox discr_constant_integer (+i 1 isum))
+				     :spac_operator cmat
+				     :spac_operbind opbind
+				     :spac_inargs args
+				     :spac_outargs pats
+				     ))
+		    )
+	       (debug_msg pcomp "patternexpand_expr cmatcher return pcomp")
+	       (return pcomp)
+	       )))))
        ;; funmatcher binding
        ( (is_a opbind class_funmatcher_binding)
 	 (let ( (fmat (unsafe_get_field :fmbind_funmatcher opbind)) 
@@ -1266,16 +1305,21 @@ the object-map for pattern variables.}#
 	    (patmacexpand_for_matcher (pair_tail curpair) fmat env sloc pctx)
 	    (debug_msg args "patternexpand_expr funmatcher args")
 	    (debug_msg pats "patternexpand_expr funmatcher pats")
-	    (let ( (pcomp (instance class_source_pattern_fun_match
-				    :loca_location sloc
-				    :spac_operator fmat
-				    :spac_operbind opbind
-				    :spac_inargs args
-				    :spac_outargs pats
-				    )) )
-	      (debug_msg pcomp "patternexpand_expr funmatcher return pcomp")
-	      (return pcomp)
-	      ))))
+	    (multicall
+	     (subpatw :long imax imin isum)
+	     (pattern_weight_tuple pats)
+	     (let ( (pcomp (instance class_source_pattern_fun_match
+				     :loca_location sloc
+				     :pat_weight 
+				     (make_integerbox discr_constant_integer (+i 1 isum))
+				     :spac_operator fmat
+				     :spac_operbind opbind
+				     :spac_inargs args
+				     :spac_outargs pats
+				     )) )
+	       (debug_msg pcomp "patternexpand_expr funmatcher return pcomp")
+	       (return pcomp)
+	       )))))
        ;; imported values 
        ( (is_a opbind class_value_binding)
 	 (let ( (opval (unsafe_get_field :vbind_value opbind)) )
@@ -1286,17 +1330,22 @@ the object-map for pattern variables.}#
 	       (patmacexpand_for_matcher (pair_tail curpair) opval env sloc pctx)
 	       (debug_msg args "patternexpand_expr imported cmatcher args")
 	       (debug_msg pats "patternexpand_expr imported cmatcher pats")
-	       (let ( (pcomp (instance class_source_pattern_c_match
-				       :loca_location sloc
-				       :spac_operator opval
-				       :spac_operbind opbind
-				       :spac_inargs args
-				       :spac_outargs pats
-				       ))
-		      )
-		 (debug_msg pcomp "patternexpand_expr cmatcher value pcomp")
-		 (return pcomp)
-		 )))
+	       (multicall
+		(subpatw :long imax imin isum)
+		(pattern_weight_tuple pats)
+		(let ( (pcomp (instance class_source_pattern_c_match
+					:loca_location sloc
+					:pat_weight 
+					(make_integerbox discr_constant_integer (+i 1 isum))
+					:spac_operator opval
+					:spac_operbind opbind
+					:spac_inargs args
+					:spac_outargs pats
+					))
+		       )
+		  (debug_msg pcomp "patternexpand_expr cmatcher value pcomp")
+		  (return pcomp)
+		  ))))
 	    ( (is_a opval class_funmatcher) 
 	      (debug_msg opval "patternexpand_expr funmatcher value opval")
 	      (multicall
@@ -1304,18 +1353,23 @@ the object-map for pattern variables.}#
 	       (patmacexpand_for_matcher (pair_tail curpair) opval env sloc pctx)
 	       (debug_msg args "patternexpand_expr imported funmatcher args")
 	       (debug_msg pats "patternexpand_expr imported funmatcher pats")
-	       (let ( (pcomp (instance class_source_pattern_fun_match
-				       :loca_location sloc
-				       :spac_operator opval
-				       :spac_operbind opbind
-				       :spac_inargs args
-				       :spac_outargs pats
-				       ))
-		      )
-		 (debug_msg pcomp "patternexpand_expr funmatcher value pcomp")
-		 (return pcomp)
-		 ))
-	      )
+	       (multicall
+		(subpatw :long imax imin isum)
+		(pattern_weight_tuple pats)
+		(let ( (pcomp (instance class_source_pattern_fun_match
+					:loca_location sloc
+					:pat_weight
+					(make_integerbox discr_constant_integer (+i 1 isum))
+					:spac_operator opval
+					:spac_operbind opbind
+					:spac_inargs args
+					:spac_outargs pats
+					))
+		       )
+		  (debug_msg pcomp "patternexpand_expr funmatcher value pcomp")
+		  (return pcomp)
+		  ))
+	       ))
 	    (:else
 	     (error_strv sloc "invalid pattern operator value" opnam)
 	     (return)))))
@@ -1346,6 +1400,7 @@ the object-map for pattern variables.}#
 		  (exp (macroexpand_1 sexpr env mexpander))
 		  (pat (instance class_source_pattern_constant
 				 :loca_location sloc
+				 :pat_weight '1
 				 :spat_constx exp))
 		  )
 	     (debug_msg pat "patternexpand_1 return const pat")
@@ -1359,6 +1414,7 @@ the object-map for pattern variables.}#
 	    ((== parg1 '_)		;  ?_ is a joker
 	     (let ( (jokp (instance class_source_pattern_joker_variable
 				    :loca_location sloc
+				    :pat_weight '1
 				    :spatvar_symb parg1
 				    :spatvar_nbocc (make_integerbox discr_integer 0)
 				    )) )
@@ -1377,6 +1433,7 @@ the object-map for pattern variables.}#
 		     (return pavr)
 		     )
 		 (let ( (newpavr (instance class_source_pattern_variable
+					   :pat_weight '1
 					   :loca_location sloc
 					   :spatvar_symb parg1
 					   :spatvar_nbocc (make_integerbox discr_integer 0)
@@ -1402,6 +1459,7 @@ the object-map for pattern variables.}#
     ;; not an s-expr, return the constant pattern with...
     (let ( (mexpander (unsafe_get_field :pctx_mexpander pctx)) 
 	   (pat (instance class_source_pattern_constant
+			  :pat_weight '1
 			  :loca_location psloc
 			  :spat_constx sexpr))
 	   )
@@ -3086,11 +3144,25 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
 	       ))))
        (setq curpair (pair_tail curpair))
        )
-      (let ( (spati (instance class_source_pattern_instance
+      (let (
+	    (spatfields  (list_to_multiple fldlist discr_multiple))
+	    (subpats (multiple_map spatfields 
+				   (lambda (curpatfld :long curix)
+				     (get_field :spaf_pattern curpatfld))))
+	    (spati (instance class_source_pattern_instance
 			      :loca_location loc
+			      :pat_weight () ;; set below
 			      :spat_class cla
-			      :spat_fields (list_to_multiple fldlist discr_multiple)))
+			      :spat_fields  spatfields))
 	     )
+	(multicall 
+	 (subpatw :long imax imin isum)
+	 (pattern_weight_tuple subpats)
+	 (unsafe_put_fields 
+	  spati 
+	  :pat_weight 
+	  (make_integerbox discr_constant_integer (+i 1 isum)))
+	 )
 	(debug_msg spati "patexpand_instance return spati")
 	(return spati)
 	))
@@ -3167,14 +3239,26 @@ all the specified fields.}# )
 	       ))))
        (setq curpair (pair_tail curpair))
        )
-      (let ( (spati (instance class_source_pattern_object
+      (let ( 
+	    (patfields  (list_to_multiple fldlist discr_multiple))
+	    (subpats (multiple_map patfields
+				   (lambda (curpatfld :long ix)
+				     (get_field  :spaf_pattern curpatfld))))
+	    (spati (instance class_source_pattern_object
 			      :loca_location loc
 			      :spat_class cla
-			      :spat_fields (list_to_multiple fldlist discr_multiple)))
+			      :spat_fields patfields))
 	     )
+	(multicall 
+	 (subpatw :long imax imin isum)
+	 (pattern_weight_tuple subpats)
+	 (unsafe_put_fields 
+	  spati 
+	  :pat_weight 
+	  (make_integerbox discr_constant_integer (+i 1 isum)))
 	(debug_msg spati "patexpand_object return spati")
 	(return spati)
-	))
+	)))
     ))
 
 (defun mexpand_object (sexpr env mexpander)
@@ -3796,8 +3880,10 @@ condition is a string such as "4.5." or a list of strings.}#)
 	    (return)))
       (warning_plain loc "deprecated AS pattern - use AND pattern instead")
       (let (
+	    (:long subw (get_int (get_field :pat_weight argsub)))
 	    (res (instance class_source_pattern_and
 			   :loca_location loc
+			   :pat_weight (make_integerbox discr_constant_integer (+i 2 subw))
 			   :andpat_conj (tuple argvar argsub)))
 	    )
 	(debug_msg res "patexpand_as returns res")
@@ -3862,10 +3948,16 @@ condition is a string such as "4.5." or a list of strings.}#)
 		       :loca_location loc
 		       :andpat_conj argsp))
 	)
+    (multicall
+     (subpatw :long imax imin isum)
+     (pattern_weight_tuple argsp)
+     (unsafe_put_fields res
+			:pat_weight (make_integerbox discr_constant_integer
+						     (+i (+i 1 imax) isum))))
     (debug_msg res "patexpand_and res")
     (return res)
-    )
-  )
+    ))
+
 (install_initial_patmacro 
  'and patexpand_and mexpand_and)
 (export_patmacro 
@@ -3902,9 +3994,9 @@ condition is a string such as "4.5." or a list of strings.}#)
 	      (instance class_source_or
 			:loca_location loc
 			:sor_disj cxtup)) )
-	(debug_msg res "mexpand_or res")
-	(return res)
-	))))
+	 (debug_msg res "mexpand_or res")
+	 (return res)
+	 ))))
 
 ;;;; the OR pattern expander
 (defun patexpand_or (sexpr env pctx)
@@ -3921,10 +4013,15 @@ condition is a string such as "4.5." or a list of strings.}#)
 		       :loca_location loc
 		       :orpat_disj argsp))
 	)
-    (debug_msg res "patexpand_or res")
-    (return res)
-    )
-  )
+    (multicall
+     (subpatw :long imax imin isum)
+     (pattern_weight_tuple argsp)
+     (unsafe_put_fields
+      res 
+      :pat_weight (make_integerbox discr_constant_integer (+i 1 imin)))
+     (debug_msg res "patexpand_or res")
+     (return res)
+     )))
 (install_initial_patmacro 'or patexpand_or mexpand_or)
 (export_patmacro 
  or patexpand_or mexpand_or
@@ -5341,6 +5438,7 @@ condition is a string such as "4.5." or a list of strings.}#)
  patternexpand_1
  patternexpand_expr
  patternexpand_pairlist_as_tuple
+ pattern_weight_tuple
  )			  ;end of values for source representations
 
 

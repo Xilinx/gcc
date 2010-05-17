@@ -4441,8 +4441,9 @@ the tuple of normal flags, instances of $CLASS_NREP_MATCH_FLAG.}#
   tuple of output local matched data -cleared when going outside of
   this block-, a body tuple $NMABL_BODY, and a tuple of jumped blocks
   [or nil to exit the block in sequence] $NMABL_JUMPS. Actually, each
-  jump also clears all the local data of the block. Each match step,
-  instance of $CLASS_MATCH_STEP, is translated into a match block.}#
+  jump also clears all the local data of the block. Each match data,
+  instance of $CLASS_MATCHED_DATA., is associated to a block
+  containing all its tests...}#
   :fields ( nmabl_locdata
 	    nmabl_body
 	    nmabl_jumps
