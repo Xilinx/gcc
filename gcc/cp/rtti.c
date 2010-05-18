@@ -255,7 +255,8 @@ get_tinfo_decl_dynamic (tree exp)
   type = TYPE_MAIN_VARIANT (type);
 
   /* For UNKNOWN_TYPEs call complete_type_or_else to get diagnostics.  */
-  if (CLASS_TYPE_P (type) || TREE_CODE (type) == UNKNOWN_TYPE)
+  if (CLASS_TYPE_P (type) || type == unknown_type_node
+      || type == init_list_type_node)
     type = complete_type_or_else (type, exp);
 
   if (!type)
@@ -482,7 +483,8 @@ get_typeid (tree type)
   type = TYPE_MAIN_VARIANT (type);
 
   /* For UNKNOWN_TYPEs call complete_type_or_else to get diagnostics.  */
-  if (CLASS_TYPE_P (type) || TREE_CODE (type) == UNKNOWN_TYPE)
+  if (CLASS_TYPE_P (type) || type == unknown_type_node
+      || type == init_list_type_node)
     type = complete_type_or_else (type, NULL_TREE);
 
   if (!type)
@@ -1044,8 +1046,12 @@ typeinfo_in_lib_p (tree type)
     case BOOLEAN_TYPE:
     case REAL_TYPE:
     case VOID_TYPE:
-    case NULLPTR_TYPE:
       return true;
+
+    case LANG_TYPE:
+      if (NULLPTR_TYPE_P (type))
+	return true;
+      /* else fall through.  */
 
     default:
       return false;
@@ -1452,7 +1458,6 @@ emit_support_tinfos (void)
 {
   /* Dummy static variable so we can put nullptr in the array; it will be
      set before we actually start to walk the array.  */
-  static tree nullptr_type_node;
   static tree *const fundamentals[] =
   {
     &void_type_node,
@@ -1482,7 +1487,6 @@ emit_support_tinfos (void)
   if (!dtor || DECL_EXTERNAL (dtor))
     return;
   doing_runtime = 1;
-  nullptr_type_node = TREE_TYPE (nullptr_node);
   for (ix = 0; fundamentals[ix]; ix++)
     {
       tree bltn = *fundamentals[ix];

@@ -204,6 +204,14 @@
 #define TARGET_ASM_FILE_END hook_void_void
 #endif
 
+#ifndef TARGET_ASM_LTO_START
+#define TARGET_ASM_LTO_START hook_void_void
+#endif
+
+#ifndef TARGET_ASM_LTO_END
+#define TARGET_ASM_LTO_END hook_void_void
+#endif
+
 #ifndef TARGET_ASM_CODE_END
 #define TARGET_ASM_CODE_END hook_void_void
 #endif
@@ -296,6 +304,8 @@
                         TARGET_ASM_CAN_OUTPUT_MI_THUNK,         \
                         TARGET_ASM_FILE_START,                  \
                         TARGET_ASM_FILE_END,			\
+                        TARGET_ASM_LTO_START,			\
+                        TARGET_ASM_LTO_END,			\
                         TARGET_ASM_CODE_END,			\
 			TARGET_ASM_EXTERNAL_LIBCALL,            \
                         TARGET_ASM_MARK_DECL_PRESERVED,		\
@@ -587,6 +597,10 @@
 
 #ifndef TARGET_IN_SMALL_DATA_P
 #define TARGET_IN_SMALL_DATA_P hook_bool_const_tree_false
+#endif
+
+#ifndef TARGET_MODE_DEPENDENT_ADDRESS_P
+#define TARGET_MODE_DEPENDENT_ADDRESS_P default_mode_dependent_address_p
 #endif
 
 #ifndef TARGET_MANGLE_DECL_ASSEMBLER_NAME
@@ -960,6 +974,7 @@
   TARGET_CANNOT_FORCE_CONST_MEM,		\
   TARGET_CANNOT_COPY_INSN_P,			\
   TARGET_COMMUTATIVE_P,				\
+  TARGET_MODE_DEPENDENT_ADDRESS_P,		\
   TARGET_LEGITIMIZE_ADDRESS,			\
   TARGET_DELEGITIMIZE_ADDRESS,			\
   TARGET_LEGITIMATE_ADDRESS_P,			\

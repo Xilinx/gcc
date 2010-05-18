@@ -4347,10 +4347,15 @@ eliminate (void)
 
 	  remove_phi_node (&gsi, false);
 
+	  if (!bitmap_bit_p (inserted_exprs, SSA_NAME_VERSION (res))
+	      && TREE_CODE (sprime) == SSA_NAME)
+	    gimple_set_plf (SSA_NAME_DEF_STMT (sprime), NECESSARY, true);
+
 	  if (!useless_type_conversion_p (TREE_TYPE (res), TREE_TYPE (sprime)))
 	    sprime = fold_convert (TREE_TYPE (res), sprime);
 	  stmt = gimple_build_assign (res, sprime);
 	  SSA_NAME_DEF_STMT (res) = stmt;
+	  gimple_set_plf (stmt, NECESSARY, gimple_plf (phi, NECESSARY));
 
 	  gsi2 = gsi_after_labels (b);
 	  gsi_insert_before (&gsi2, stmt, GSI_NEW_STMT);
@@ -4381,8 +4386,11 @@ eliminate (void)
 	  && single_imm_use (lhs, &use_p, &use_stmt)
 	  && may_propagate_copy (USE_FROM_PTR (use_p), rhs))
 	{
-	  SET_USE (use_p, gimple_assign_rhs1 (stmt));
+	  SET_USE (use_p, rhs);
 	  update_stmt (use_stmt);
+	  if (bitmap_bit_p (inserted_exprs, SSA_NAME_VERSION (lhs))
+	      && TREE_CODE (rhs) == SSA_NAME)
+	    gimple_set_plf (SSA_NAME_DEF_STMT (rhs), NECESSARY, true);
 	}
 
       /* If this is a store or a now unused copy, remove it.  */
@@ -4710,16 +4718,13 @@ execute_pre (bool do_fre)
   if (!run_scc_vn (do_fre))
     {
       if (!do_fre)
-	{
-	  remove_dead_inserted_code ();
-	  loop_optimizer_finalize ();
-	}
+	loop_optimizer_finalize ();
 
       return 0;
     }
+
   init_pre (do_fre);
   scev_initialize ();
-
 
   /* Collect and value number expressions computed in each basic block.  */
   compute_avail ();

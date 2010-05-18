@@ -2225,6 +2225,8 @@ else
 	gcc_cv_ld_hidden=yes
 	;;
       *-*-solaris2.9* | *-*-solaris2.1[0-9]*)
+	# Support for .hidden in Sun ld appeared in Solaris 9 FCS, but
+	# .symbolic was only added in Solaris 9 12/02.
         gcc_cv_ld_hidden=yes
 	;;
       *)
@@ -3274,7 +3276,7 @@ foo:	nop
       [AC_DEFINE(HAVE_AS_IX86_DIFF_SECT_DELTA, 1,
         [Define if your assembler supports the subtraction of symbols in different sections.])])
 
-    # This one is used unconditionally by i386.[ch]; it is to be defined
+    # These two are used unconditionally by i386.[ch]; it is to be defined
     # to 1 if the feature is present, 0 otherwise.
     gcc_GAS_CHECK_FEATURE([GOTOFF in data],
         gcc_cv_as_ix86_gotoff_in_data, [2,11,0],,
@@ -3286,6 +3288,15 @@ foo:	nop
     AC_DEFINE_UNQUOTED(HAVE_AS_GOTOFF_IN_DATA,
       [`if test $gcc_cv_as_ix86_gotoff_in_data = yes; then echo 1; else echo 0; fi`],
       [Define true if the assembler supports '.long foo@GOTOFF'.])
+
+    gcc_GAS_CHECK_FEATURE([rep and lock prefix],
+        gcc_cv_as_ix86_rep_lock_prefix,,,
+	[rep movsl
+	 lock orl $0, (%esp)])
+    AC_DEFINE_UNQUOTED(HAVE_AS_IX86_REP_LOCK_PREFIX,
+      [`if test $gcc_cv_as_ix86_rep_lock_prefix = yes; then echo 1; else echo 0; fi`],
+      [Define true if the assembler supports 'rep <insn>, lock <insn>'.])
+
     ;;
 
   ia64*-*-*)
@@ -3837,7 +3848,8 @@ EOF
     if $gcc_cv_ld -o conftest conftest.o --entry=_start --gc-sections 2>&1 \
 	 | grep "gc-sections option ignored" > /dev/null; then
       gcc_cv_ld_eh_gc_sections=no
-    elif $gcc_cv_objdump -h conftest | grep gcc_except_table > /dev/null; then
+    elif $gcc_cv_objdump -h conftest 2> /dev/null \
+         | grep gcc_except_table > /dev/null; then
       gcc_cv_ld_eh_gc_sections=yes
       # If no COMDAT groups, the compiler will emit .gnu.linkonce.t. sections.
       if test x$gcc_cv_as_comdat_group != xyes; then
@@ -3864,7 +3876,8 @@ EOF
 	  if $gcc_cv_ld -o conftest conftest.o --entry=_start --gc-sections 2>&1 \
 	       | grep "gc-sections option ignored" > /dev/null; then
 	    gcc_cv_ld_eh_gc_sections=no
-	  elif $gcc_cv_objdump -h conftest | grep gcc_except_table > /dev/null; then
+	  elif $gcc_cv_objdump -h conftest 2> /dev/null \
+	       | grep gcc_except_table > /dev/null; then
 	    gcc_cv_ld_eh_gc_sections=yes
 	  fi
 	fi

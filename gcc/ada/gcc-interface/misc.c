@@ -184,7 +184,8 @@ gnat_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
    that have been successfully decoded or 0 on failure.  */
 
 static int
-gnat_handle_option (size_t scode, const char *arg, int value, int kind ATTRIBUTE_UNUSED)
+gnat_handle_option (size_t scode, const char *arg, int value,
+		    int kind ATTRIBUTE_UNUSED)
 {
   const struct cl_option *option = &cl_options[scode];
   enum opt_code code = (enum opt_code) scode;
@@ -208,12 +209,7 @@ gnat_handle_option (size_t scode, const char *arg, int value, int kind ATTRIBUTE
 
     case OPT_Wall:
       warn_unused = value;
-
-      /* We save the value of warn_uninitialized, since if they put
-	 -Wuninitialized on the command line, we need to generate a
-	 warning about not using it without also specifying -O.  */
-      if (warn_uninitialized != 1)
-	warn_uninitialized = (value ? 2 : 0);
+      warn_uninitialized = value;
       break;
 
       /* These are used in the GCC Makefile.  */

@@ -1,3 +1,189 @@
+2010-05-17  Jason Merrill  <jason@redhat.com>
+
+	* call.c (struct z_candidate): Add explicit_targs field.
+	(add_template_candidate_real): Set it.
+	(build_over_call): Use it to control init-list warning.
+
+	PR c++/44157
+	* call.c (build_over_call): Limit init-list deduction warning to
+	cases where the argument is actually an init-list.
+
+	PR c++/44158
+	* call.c (build_over_call): Don't do bitwise copy for move ctor.
+
+2010-05-17  Dodji Seketeli  <dodji@redhat.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	PR c++/44108
+	* decl.c (compute_array_index_type): Call mark_rvalue_use.
+
+2010-05-15  Jason Merrill  <jason@redhat.com>
+
+	* cp-tree.h (TYPE_NOEXCEPT_P): New macro.
+	* except.c (begin_eh_spec_block): Use MUST_NOT_THROW_EXPR if
+	TYPE_NOEXCEPT_P.
+	(finish_eh_spec_block): Adjust.
+
+2010-05-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44148
+	* pt.c (tsubst): Unshare template argument.
+
+2010-05-15  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* decl.c: Include tree-iterator.h, as fixup for tree-inline.h changes.
+	* Make-lang.in: Fix dependencies accordingly.
+
+2010-05-14  Jason Merrill  <jason@redhat.com>
+
+	C++ DR 475
+	* except.c (build_throw): Simplify, adjust for DR 475.
+
+	PR c++/44127
+	* except.c (dtor_nothrow): Return nonzero for type with
+	trivial destructor.
+
+	PR c++/44127
+	* cp-gimplify.c (gimplify_must_not_throw_expr): Use
+	gimple_build_eh_must_not_throw.
+
+2010-05-14  Martin Jambor  <mjambor@suse.cz>
+
+	* cp-lang.c (LANG_HOOKS_FOLD_OBJ_TYPE_REF): Remove both its undef
+	and define.
+
+2010-05-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* call.c (build_new_method_call): Change warning text.
+	* typeck2.c (build_functional_cast): Change error text.
+
+2010-05-14  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c++/30566
+	* name-lookup.c (pushdecl_maybe_friend): Avoid the warnings about
+	shadowing the outer parameter or variables by the declaration of
+	nested function in nested structure or class. Warn the shadowing by
+	the declaration of nested lambda expression.
+
+2010-05-13  Jason Merrill  <jason@redhat.com>
+
+	* typeck.c (cp_build_array_ref): Factor out from...
+	(build_array_ref): ...here.  Drop complain parm.
+	(build_new_op): Adjust.
+	* class.c (build_vtbl_ref_1): Adjust.
+	* decl2.c (grok_array_decl): Adjust.
+	* cp-tree.h: Adjust prototypes.
+
+2010-05-13  Jan Hubicka  <jh@suse.cz>
+
+	* decl.c (cp_finish_decl): Do not worry about used attribute.
+
+2010-05-12  Jason Merrill  <jason@redhat.com>
+
+	* typeck.c (build_array_ref): Take complain parm.
+	* cp-tree.h: Add it to prototype.
+	* call.c (build_new_op): Pass it.
+	* class.c (build_vtbl_ref): Pass it.
+	* decl2.c (grok_array_decl): Pass it.
+
+	PR bootstrap/44048
+	PR target/44099
+	* cp-tree.def (NULLPTR_TYPE): Remove.
+	* cp-tree.h (NULLPTR_TYPE_P): New.
+	(SCALAR_TYPE_P): Use it.
+	(nullptr_type_node): New.
+	(cp_tree_index): Add CPTI_NULLPTR_TYPE.
+	* decl.c (cxx_init_decl_processing): Call record_builtin_type on
+	nullptr_type_node.
+	* cvt.c (ocp_convert): Use NULLPTR_TYPE_P instead of NULLPTR_TYPE.
+	* cxx-pretty-print.c (pp_cxx_constant): Likewise.
+	* error.c (dump_type, dump_type_prefix, dump_type_suffix): Likewise.
+	* mangle.c (write_type): Likewise.
+	* name-lookup.c (arg_assoc_type): Likewise.
+	* typeck.c (build_reinterpret_cast_1): Likewise.
+	* rtti.c (typeinfo_in_lib_p): Likewise.
+	(emit_support_tinfos): Remove local nullptr_type_node.
+
+	* cp-tree.h (UNKNOWN_TYPE): Remove.
+	* decl.c (cxx_init_decl_processing): Use LANG_TYPE instead.
+	* error.c (dumy_type, dump_type_prefix, dump_type_suffix): Likewise.
+	* typeck2.c (cxx_incomplete_type_diagnostic): Likewise.
+	* class.c (instantiate_type): Check unknown_type_node rather than
+	UNKNOWN_TYPE.
+	* name-lookup.c (maybe_push_decl): Likewise.
+	* rtti.c (get_tinfo_decl_dynamic): Likewise.
+	(get_typeid): Likewise.
+	* semantics.c (finish_offsetof): Likewise.
+
+	PR c++/20669
+	* call.c (add_template_candidate_real): If deduction fails, still
+	add the template as a non-viable candidate.
+	(equal_functions): Handle template candidates.
+	(print_z_candidate): Likewise.
+	(print_z_candidates): Likewise.
+	(build_new_function_call): Likewise.
+
+	* cp-tree.h (LOOKUP_LIST_ONLY): New.
+	* call.c (add_candidates): Enforce it.
+	(build_new_method_call): Try non-list ctor if no viable list ctor.
+	(build_user_type_conversion_1): Likewise.
+
+	* call.c (add_candidates): Distinguish between type(x) and
+	x.operator type().
+	(convert_class_to_reference): Set LOOKUP_NO_CONVERSION.
+	(build_new_method_call): Give better error for conversion op.
+
+	* call.c (add_candidates): Add first_arg and return_type parms.
+	Add special constructor/conversion op handling.
+	(convert_class_to_reference): Use it.
+	(build_user_type_conversion_1): Likewise.
+	(build_op_call): Likewise.
+	(build_new_method_call): Likewise.
+	(build_new_op): Adjust.
+	(perform_overload_resolution): Adjust.
+
+2010-05-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/34272
+	PR c++/43630
+	PR c++/34491
+	* pt.c (process_partial_specialization): Return error_mark_node
+	in case of unused template parameters in partial specialization.
+
+2010-05-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44062
+	* semantics.c (finish_expr_stmt): Don't call mark_exp_read here...
+	* cvt.c (convert_to_void): ... but here.  If expr is a COMPOUND_EXPR,
+	look at its second operand.
+
+2010-05-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44017
+	* semantics.c (baselink_for_fns): Revert earlier change.
+
+	PR c++/44045
+	* typeck.c (cp_build_modify_expr): Complain about assignment to
+	array from init list.
+
+2010-05-10  Fabien Chêne  <fabien.chene@gmail.com>
+
+	PR c++/43719
+	* decl.c (check_initializer): strip array type before checking for
+	uninitialized const or ref members.
+
+2010-05-07  Fabien Chêne  <fabien.chene@gmail.com>
+
+	PR c++/43951
+	* init.c (diagnose_uninitialized_cst_or_ref_member_1): Returns the
+	error count. Emit errors only if compain is true.
+	(build_new_1): Do not return error_mark_node if
+	diagnose_uninitialized_cst_or_ref_member_1 does not diagnose any
+	errors. Delay the check for user-provided constructor.
+	(perform_member_init): Adjust.
+	* cp-tree.h (diagnose_uninitialized_cst_or_ref_member): Change the
+	prototype.
+
 2010-05-06  Magnus Fromreide  <magfr@lysator.liu.se>
 	    Jason Merrill  <jason@redhat.com>
 

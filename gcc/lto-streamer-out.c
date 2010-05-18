@@ -1702,6 +1702,7 @@ output_gimple_stmt (struct output_block *ob, gimple stmt)
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_ninputs (stmt));
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_noutputs (stmt));
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_nclobbers (stmt));
+      lto_output_uleb128_stream (ob->main_stream, gimple_asm_nlabels (stmt));
       output_string (ob, ob->main_stream, gimple_asm_string (stmt));
       /* Fallthru  */
 
@@ -2090,18 +2091,25 @@ lto_output (cgraph_node_set set, varpool_node_set vset)
 {
   struct cgraph_node *node;
   struct lto_out_decl_state *decl_state;
-  cgraph_node_set_iterator csi;
+#ifdef ENABLE_CHECKING
   bitmap output = lto_bitmap_alloc ();
+#endif
+  int i, n_nodes;
+  lto_cgraph_encoder_t encoder = lto_get_out_decl_state ()->cgraph_node_encoder;
 
   lto_writer_init ();
 
+  n_nodes = lto_cgraph_encoder_size (encoder);
   /* Process only the functions with bodies.  */
-  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
+  for (i = 0; i < n_nodes; i++)
     {
-      node = csi_node (csi);
-      if (node->analyzed && !bitmap_bit_p (output, DECL_UID (node->decl)))
+      node = lto_cgraph_encoder_deref (encoder, i);
+      if (lto_cgraph_encoder_encode_body_p (encoder, node))
 	{
+#ifdef ENABLE_CHECKING
+	  gcc_assert (!bitmap_bit_p (output, DECL_UID (node->decl)));
 	  bitmap_set_bit (output, DECL_UID (node->decl));
+#endif
 	  decl_state = lto_new_out_decl_state ();
 	  lto_push_out_decl_state (decl_state);
 	  if (!flag_wpa)
@@ -2120,7 +2128,9 @@ lto_output (cgraph_node_set set, varpool_node_set vset)
      statements using the statement UIDs.  */
   output_cgraph (set, vset);
 
+#ifdef ENABLE_CHECKING
   lto_bitmap_free (output);
+#endif
 }
 
 struct ipa_opt_pass_d pass_ipa_lto_gimple_out =
@@ -2521,6 +2531,12 @@ produce_asm_for_decls (cgraph_node_set set, varpool_node_set vset)
   lto_write_options ();
 
   /* Deallocate memory and clean up.  */
+  for (idx = 0; idx < num_fns; idx++)
+    {
+      fn_out_state =
+	VEC_index (lto_out_decl_state_ptr, lto_function_decl_states, idx);
+      lto_delete_out_decl_state (fn_out_state);
+    }
   lto_cgraph_encoder_delete (ob->decl_state->cgraph_node_encoder);
   lto_varpool_encoder_delete (ob->decl_state->varpool_node_encoder);
   VEC_free (lto_out_decl_state_ptr, heap, lto_function_decl_states);

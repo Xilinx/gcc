@@ -178,6 +178,9 @@ lto_get_section_name (int section_type, const char *name)
     case LTO_section_opts:
       return concat (LTO_SECTION_NAME_PREFIX, ".opts", NULL);
 
+    case LTO_section_cgraph_opt_sum:
+      return concat (LTO_SECTION_NAME_PREFIX, ".cgraphopt", NULL);
+
     default:
       internal_error ("bytecode stream: unexpected LTO section %s", name);
     }
@@ -458,7 +461,7 @@ lto_streamer_cache_add_to_node_array (struct lto_streamer_cache_d *cache,
   if (ix >= (int) VEC_length (tree, cache->nodes))
     {
       size_t sz = ix + (20 + ix) / 4;
-      VEC_safe_grow_cleared (tree, gc, cache->nodes, sz);
+      VEC_safe_grow_cleared (tree, heap, cache->nodes, sz);
       VEC_safe_grow_cleared (unsigned, heap, cache->offsets, sz);
     }
 
@@ -500,7 +503,7 @@ lto_streamer_cache_insert_1 (struct lto_streamer_cache_d *cache,
       else
 	ix = *ix_p;
 
-      entry = XCNEW (struct tree_int_map);
+      entry = (struct tree_int_map *)pool_alloc (cache->node_map_entries);
       entry->base.from = t;
       entry->to = (unsigned) ix;
       *slot = entry;
@@ -762,6 +765,10 @@ lto_streamer_cache_create (void)
 
   cache->node_map = htab_create (101, tree_int_map_hash, tree_int_map_eq, NULL);
 
+  cache->node_map_entries = create_alloc_pool ("node map",
+					       sizeof (struct tree_int_map),
+					       100);
+
   /* Load all the well-known tree nodes that are always created by
      the compiler on startup.  This prevents writing them out
      unnecessarily.  */
@@ -785,7 +792,8 @@ lto_streamer_cache_delete (struct lto_streamer_cache_d *c)
     return;
 
   htab_delete (c->node_map);
-  VEC_free (tree, gc, c->nodes);
+  free_alloc_pool (c->node_map_entries);
+  VEC_free (tree, heap, c->nodes);
   VEC_free (unsigned, heap, c->offsets);
   free (c);
 }

@@ -30,7 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-pragma.h"
 #include "rtl.h"
 #include "ggc.h"
-#include "expr.h"
+#include "expr.h" /* For vector_mode_valid_p */
 #include "c-common.h"
 #include "tm_p.h"
 #include "obstack.h"
@@ -48,7 +48,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "real.h"
 #include "cgraph.h"
 #include "target-def.h"
-#include "gimple.h"
 #include "fixed-value.h"
 #include "libfuncs.h"
 
@@ -529,6 +528,7 @@ static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
 static tree handle_target_attribute (tree *, tree, tree, int, bool *);
 static tree handle_optimize_attribute (tree *, tree, tree, int, bool *);
+static tree handle_fnspec_attribute (tree *, tree, tree, int, bool *);
 
 static void check_function_nonnull (tree, int, tree *);
 static void check_nonnull_arg (void *, tree, unsigned HOST_WIDE_INT);
@@ -563,6 +563,7 @@ const struct c_common_resword c_common_reswords[] =
   { "_Fract",           RID_FRACT,     D_CONLY | D_EXT },
   { "_Accum",           RID_ACCUM,     D_CONLY | D_EXT },
   { "_Sat",             RID_SAT,       D_CONLY | D_EXT },
+  { "_Static_assert",   RID_STATIC_ASSERT, D_CONLY },
   { "__FUNCTION__",	RID_FUNCTION_NAME, 0 },
   { "__PRETTY_FUNCTION__", RID_PRETTY_FUNCTION_NAME, 0 },
   { "__alignof",	RID_ALIGNOF,	0 },
@@ -829,6 +830,10 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_target_attribute },
   { "optimize",               1, -1, true, false, false,
 			      handle_optimize_attribute },
+  /* For internal use (marking of builtins and runtime functions) only.
+     The name contains space to prevent its usage in source code.  */
+  { "fn spec",	 	      1, 1, false, true, true,
+			      handle_fnspec_attribute },
   { NULL,                     0, 0, false, false, false, NULL }
 };
 
@@ -7138,6 +7143,20 @@ handle_alloc_size_attribute (tree *node, tree ARG_UNUSED (name), tree args,
   return NULL_TREE;
 }
 
+/* Handle a "fn spec" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_fnspec_attribute (tree *node ATTRIBUTE_UNUSED, tree ARG_UNUSED (name),
+			 tree args, int ARG_UNUSED (flags),
+			 bool *no_add_attrs ATTRIBUTE_UNUSED)
+{
+  gcc_assert (args
+	      && TREE_CODE (TREE_VALUE (args)) == STRING_CST
+	      && !TREE_CHAIN (args));
+  return NULL_TREE;
+}
+
 /* Handle a "returns_twice" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -8761,7 +8780,6 @@ sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
 {
   tree arg_types = TYPE_ARG_TYPES (TREE_TYPE (function));
   tree ptype;
-  int number;
   unsigned int parmnum;
 
   /* We've declared the implementation functions to use "volatile void *"
@@ -8769,7 +8787,6 @@ sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
      call to check_function_arguments what ever type the user used.  */
   arg_types = TREE_CHAIN (arg_types);
   ptype = TREE_TYPE (TREE_TYPE (VEC_index (tree, params, 0)));
-  number = 2;
 
   /* For the rest of the values, we need to cast these to FTYPE, so that we
      don't get warnings for passing pointer types, etc.  */
@@ -8794,7 +8811,6 @@ sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
       VEC_replace (tree, params, parmnum, val);
 
       arg_types = TREE_CHAIN (arg_types);
-      number++;
     }
 
   /* The definition of these primitives is variadic, with the remaining

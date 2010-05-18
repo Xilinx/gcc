@@ -2860,13 +2860,15 @@ cp_build_indirect_ref (tree ptr, ref_operator errorstring,
    LOC is the location to use in building the array reference.  */
 
 tree
-build_array_ref (location_t loc, tree array, tree idx)
+cp_build_array_ref (location_t loc, tree array, tree idx,
+		    tsubst_flags_t complain)
 {
   tree ret;
 
   if (idx == 0)
     {
-      error_at (loc, "subscript missing in array reference");
+      if (complain & tf_error)
+	error_at (loc, "subscript missing in array reference");
       return error_mark_node;
     }
 
@@ -2880,7 +2882,8 @@ build_array_ref (location_t loc, tree array, tree idx)
     {
     case COMPOUND_EXPR:
       {
-	tree value = build_array_ref (loc, TREE_OPERAND (array, 1), idx);
+	tree value = cp_build_array_ref (loc, TREE_OPERAND (array, 1), idx,
+					 complain);
 	ret = build2 (COMPOUND_EXPR, TREE_TYPE (value),
 		      TREE_OPERAND (array, 0), value);
 	SET_EXPR_LOCATION (ret, loc);
@@ -2890,8 +2893,10 @@ build_array_ref (location_t loc, tree array, tree idx)
     case COND_EXPR:
       ret = build_conditional_expr
 	      (TREE_OPERAND (array, 0),
-	       build_array_ref (loc, TREE_OPERAND (array, 1), idx),
-	       build_array_ref (loc, TREE_OPERAND (array, 2), idx),
+	       cp_build_array_ref (loc, TREE_OPERAND (array, 1), idx,
+				   complain),
+	       cp_build_array_ref (loc, TREE_OPERAND (array, 2), idx,
+				   complain),
 	       tf_warning_or_error);
       protected_set_expr_location (ret, loc);
       return ret;
@@ -2908,7 +2913,8 @@ build_array_ref (location_t loc, tree array, tree idx)
 
       if (!INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (TREE_TYPE (idx)))
 	{
-	  error_at (loc, "array subscript is not an integer");
+	  if (complain & tf_error)
+	    error_at (loc, "array subscript is not an integer");
 	  return error_mark_node;
 	}
 
@@ -2944,7 +2950,7 @@ build_array_ref (location_t loc, tree array, tree idx)
 	    return error_mark_node;
 	}
 
-      if (!lvalue_p (array))
+      if (!lvalue_p (array) && (complain & tf_error))
 	pedwarn (loc, OPT_pedantic, 
 	         "ISO C++ forbids subscripting non-lvalue array");
 
@@ -2956,7 +2962,8 @@ build_array_ref (location_t loc, tree array, tree idx)
 	  tree foo = array;
 	  while (TREE_CODE (foo) == COMPONENT_REF)
 	    foo = TREE_OPERAND (foo, 0);
-	  if (TREE_CODE (foo) == VAR_DECL && DECL_REGISTER (foo))
+	  if (TREE_CODE (foo) == VAR_DECL && DECL_REGISTER (foo)
+	      && (complain & tf_warning))
 	    warning_at (loc, OPT_Wextra,
 			"subscripting array declared %<register%>");
 	}
@@ -2993,12 +3000,14 @@ build_array_ref (location_t loc, tree array, tree idx)
 
     if (TREE_CODE (TREE_TYPE (ar)) != POINTER_TYPE)
       {
-	error_at (loc, "subscripted value is neither array nor pointer");
+	if (complain & tf_error)
+	  error_at (loc, "subscripted value is neither array nor pointer");
 	return error_mark_node;
       }
     if (TREE_CODE (TREE_TYPE (ind)) != INTEGER_TYPE)
       {
-	error_at (loc, "array subscript is not an integer");
+	if (complain & tf_error)
+	  error_at (loc, "array subscript is not an integer");
 	return error_mark_node;
       }
 
@@ -3006,12 +3015,20 @@ build_array_ref (location_t loc, tree array, tree idx)
 
     ret = cp_build_indirect_ref (cp_build_binary_op (input_location,
 						     PLUS_EXPR, ar, ind,
-						     tf_warning_or_error),
+						     complain),
                                  RO_ARRAY_INDEXING,
-                                 tf_warning_or_error);
+                                 complain);
     protected_set_expr_location (ret, loc);
     return ret;
   }
+}
+
+/* Entry point for Obj-C++.  */
+
+tree
+build_array_ref (location_t loc, tree array, tree idx)
+{
+  return cp_build_array_ref (loc, array, idx, tf_warning_or_error);
 }
 
 /* Resolve a pointer to member function.  INSTANCE is the object
@@ -6028,7 +6045,7 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
      an integral type; the conversion has the same meaning and
      validity as a conversion of (void*)0 to the integral type.  */
   if (CP_INTEGRAL_TYPE_P (type)
-      && (TYPE_PTR_P (intype) || TREE_CODE (intype) == NULLPTR_TYPE))
+      && (TYPE_PTR_P (intype) || NULLPTR_TYPE_P (intype)))
     {
       if (TYPE_PRECISION (type) < TYPE_PRECISION (intype))
         {
@@ -6038,7 +6055,7 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
           else
             return error_mark_node;
         }
-      if (TREE_CODE (intype) == NULLPTR_TYPE)
+      if (NULLPTR_TYPE_P (intype))
         return build_int_cst (type, 0);
     }
   /* [expr.reinterpret.cast]
@@ -6634,6 +6651,12 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 
       if (BRACE_ENCLOSED_INITIALIZER_P (newrhs))
 	{
+	  if (modifycode != INIT_EXPR)
+	    {
+	      if (complain & tf_error)
+		error ("assigning to an array from an initializer list");
+	      return error_mark_node;
+	    }
 	  if (check_array_initializer (lhs, lhstype, newrhs))
 	    return error_mark_node;
 	  newrhs = digest_init (lhstype, newrhs);

@@ -30,7 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 /* Namespace to hold the resolved symbols for intrinsic subroutines.  */
 static gfc_namespace *gfc_intrinsic_namespace;
 
-int gfc_init_expr = 0;
+bool gfc_init_expr_flag = false;
 
 /* Pointers to an intrinsic function and its argument names that are being
    checked.  */
@@ -956,17 +956,14 @@ gfc_is_intrinsic (gfc_symbol* sym, int subroutine_flag, locus loc)
   /* See if this intrinsic is allowed in the current standard.  */
   if (gfc_check_intrinsic_standard (isym, &symstd, false, loc) == FAILURE)
     {
-      if (sym->attr.proc == PROC_UNKNOWN)
-	{
-	  if (gfc_option.warn_intrinsics_std)
-	    gfc_warning_now ("The intrinsic '%s' at %L is not included in the"
-			     " selected standard but %s and '%s' will be"
-			     " treated as if declared EXTERNAL.  Use an"
-			     " appropriate -std=* option or define"
-			     " -fall-intrinsics to allow this intrinsic.",
-			     sym->name, &loc, symstd, sym->name);
-	  gfc_add_external (&sym->attr, &loc);
-	}
+      if (sym->attr.proc == PROC_UNKNOWN
+	  && gfc_option.warn_intrinsics_std)
+	gfc_warning_now ("The intrinsic '%s' at %L is not included in the"
+			 " selected standard but %s and '%s' will be"
+			 " treated as if declared EXTERNAL.  Use an"
+			 " appropriate -std=* option or define"
+			 " -fall-intrinsics to allow this intrinsic.",
+			 sym->name, &loc, symstd, sym->name);
 
       return false;
     }
@@ -3806,7 +3803,7 @@ gfc_intrinsic_func_interface (gfc_expr *expr, int error_flag)
 
   if ((isym->id == GFC_ISYM_REAL || isym->id == GFC_ISYM_DBLE
        || isym->id == GFC_ISYM_CMPLX)
-      && gfc_init_expr
+      && gfc_init_expr_flag
       && gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Function '%s' "
 			 "as initialization expression at %L", name,
 			 &expr->where) == FAILURE)
@@ -3882,7 +3879,7 @@ got_specific:
      (4)   A reference to an elemental standard intrinsic function,
            where each argument is an initialization expression  */
 
-  if (gfc_init_expr && isym->elemental && flag
+  if (gfc_init_expr_flag && isym->elemental && flag
       && gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Elemental function "
 			"as initialization expression with non-integer/non-"
 		        "character arguments at %L", &expr->where) == FAILURE)
@@ -4019,8 +4016,40 @@ gfc_convert_type_warn (gfc_expr *expr, gfc_typespec *ts, int eflag, int wflag)
     gfc_warning_now ("Extension: Conversion from %s to %s at %L",
 		     gfc_typename (&from_ts), gfc_typename (ts), &expr->where);
   else if (wflag && gfc_option.warn_conversion)
-    gfc_warning_now ("Conversion from %s to %s at %L",
-		     gfc_typename (&from_ts), gfc_typename (ts), &expr->where);
+    {
+      /* If the types are the same (but not LOGICAL), and if from-kind
+	 is larger than to-kind, this may indicate a loss of precision.
+	 The same holds for conversions from REAL to COMPLEX.  */
+      if (((from_ts.type == ts->type && from_ts.type != BT_LOGICAL)
+	     && from_ts.kind > ts->kind)
+	  || ((from_ts.type == BT_REAL && ts->type == BT_COMPLEX)
+	      && from_ts.kind > ts->kind))
+	gfc_warning_now ("Possible loss of precision in conversion "
+			 "from %s to %s at %L", gfc_typename (&from_ts),
+			 gfc_typename (ts), &expr->where);
+
+      /* If INTEGER is converted to REAL/COMPLEX, this is generally ok if
+	 the kind of the INTEGER value is less or equal to the kind of the
+	 REAL/COMPLEX one. Otherwise the value may not fit.
+	 Assignment of an overly large integer constant also generates
+	 an overflow error with range checking. */
+      else if (from_ts.type == BT_INTEGER
+	       && (ts->type == BT_REAL || ts->type == BT_COMPLEX)
+	       && from_ts.kind > ts->kind)
+	gfc_warning_now ("Possible loss of digits in conversion "
+			 "from %s to %s at %L", gfc_typename (&from_ts),
+			 gfc_typename (ts), &expr->where);
+
+      /* If REAL/COMPLEX is converted to INTEGER, or COMPLEX is converted
+        to REAL we almost certainly have a loss of digits, regardless of
+        the respective kinds.  */
+      else if (((from_ts.type == BT_REAL || from_ts.type == BT_COMPLEX)
+		 && ts->type == BT_INTEGER)
+	       || (from_ts.type == BT_COMPLEX && ts->type == BT_REAL))
+	gfc_warning_now ("Likely loss of digits in conversion from"
+			"%s to %s at %L", gfc_typename (&from_ts),
+			gfc_typename (ts), &expr->where);
+    }
 
   /* Insert a pre-resolved function call to the right function.  */
   old_where = expr->where;

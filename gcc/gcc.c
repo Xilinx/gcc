@@ -781,14 +781,9 @@ proper position among the other output files.  */
     %{fuse-linker-plugin: \
     -plugin %(linker_plugin_file) \
     -plugin-opt=%(lto_wrapper) \
-    -plugin-opt=%(lto_gcc) \
+    -plugin-opt=-fresolution=%u.res \
     %{static|static-libgcc:-plugin-opt=-pass-through=%(lto_libgcc)}	\
     %{static:-plugin-opt=-pass-through=-lc}	\
-    %{O*:-plugin-opt=-O%*} \
-    %{w:-plugin-opt=-w} \
-    %{f*:-plugin-opt=-f%*} \
-    %{m*:-plugin-opt=-m%*} \
-    %{v:-plugin-opt=-v} \
     } \
     %{flto} %{fwhopr} %l " LINK_PIE_SPEC \
    "%X %{o*} %{A} %{d} %{e*} %{m} %{N} %{n} %{r}\
@@ -2081,7 +2076,15 @@ store_arg (const char *arg, int delete_always, int delete_failure)
   if (strcmp (arg, "-o") == 0)
     have_o_argbuf_index = argbuf_index;
   if (delete_always || delete_failure)
-    record_temp_file (arg, delete_always, delete_failure);
+    {
+      const char *p;
+      /* If the temporary file we should delete is specified as
+	 part of a joined argument extract the filename.  */
+      if (arg[0] == '-'
+	  && (p = strrchr (arg, '=')))
+	arg = p + 1;
+      record_temp_file (arg, delete_always, delete_failure);
+    }
 }
 
 /* Load specs from a file name named FILENAME, replacing occurrences of
@@ -3011,14 +3014,23 @@ execute (void)
 	      for (j = commands[i].argv; *j; j++)
 		{
 		  const char *p;
-		  fprintf (stderr, " \"");
 		  for (p = *j; *p; ++p)
+		    if (!ISALNUM ((unsigned char) *p)
+			&& *p != '_' && *p != '/' && *p != '-' && *p != '.')
+		      break;
+		  if (*p || !*j)
 		    {
-		      if (*p == '"' || *p == '\\' || *p == '$')
-			fputc ('\\', stderr);
-		      fputc (*p, stderr);
+		      fprintf (stderr, " \"");
+		      for (p = *j; *p; ++p)
+			{
+			  if (*p == '"' || *p == '\\' || *p == '$')
+			    fputc ('\\', stderr);
+			  fputc (*p, stderr);
+			}
+		      fputc ('"', stderr);
 		    }
-		  fputc ('"', stderr);
+		  else
+		    fprintf (stderr, " %s", *j);
 		}
 	    }
 	  else

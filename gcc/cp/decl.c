@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "flags.h"
 #include "cp-tree.h"
+#include "tree-iterator.h"
 #include "tree-inline.h"
 #include "decl.h"
 #include "intl.h"
@@ -3452,7 +3453,7 @@ cxx_init_decl_processing (void)
 
   /* C++ extensions */
 
-  unknown_type_node = make_node (UNKNOWN_TYPE);
+  unknown_type_node = make_node (LANG_TYPE);
   record_unknown_type (unknown_type_node, "unknown type");
 
   /* Indirecting an UNKNOWN_TYPE node yields an UNKNOWN_TYPE node.  */
@@ -3463,7 +3464,7 @@ cxx_init_decl_processing (void)
   TYPE_POINTER_TO (unknown_type_node) = unknown_type_node;
   TYPE_REFERENCE_TO (unknown_type_node) = unknown_type_node;
 
-  init_list_type_node = make_node (UNKNOWN_TYPE);
+  init_list_type_node = make_node (LANG_TYPE);
   record_unknown_type (init_list_type_node, "init list");
 
   {
@@ -3527,16 +3528,15 @@ cxx_init_decl_processing (void)
     global_delete_fndecl = push_cp_library_fn (DELETE_EXPR, deltype);
     push_cp_library_fn (VEC_DELETE_EXPR, deltype);
 
-    {
-      tree nullptr_type_node = make_node (NULLPTR_TYPE);
-      TYPE_SIZE (nullptr_type_node) = bitsize_int (GET_MODE_BITSIZE (ptr_mode));
-      TYPE_SIZE_UNIT (nullptr_type_node) = size_int (GET_MODE_SIZE (ptr_mode));
-      TYPE_UNSIGNED (nullptr_type_node) = 1;
-      TYPE_PRECISION (nullptr_type_node) = GET_MODE_BITSIZE (ptr_mode);
-      SET_TYPE_MODE (nullptr_type_node, Pmode);
-      nullptr_node = make_node (INTEGER_CST);
-      TREE_TYPE (nullptr_node) = nullptr_type_node;
-    }
+    nullptr_type_node = make_node (LANG_TYPE);
+    TYPE_SIZE (nullptr_type_node) = bitsize_int (GET_MODE_BITSIZE (ptr_mode));
+    TYPE_SIZE_UNIT (nullptr_type_node) = size_int (GET_MODE_SIZE (ptr_mode));
+    TYPE_UNSIGNED (nullptr_type_node) = 1;
+    TYPE_PRECISION (nullptr_type_node) = GET_MODE_BITSIZE (ptr_mode);
+    SET_TYPE_MODE (nullptr_type_node, Pmode);
+    record_builtin_type (RID_MAX, "decltype(nullptr)", nullptr_type_node);
+    nullptr_node = make_node (INTEGER_CST);
+    TREE_TYPE (nullptr_node) = nullptr_type_node;
   }
 
   abort_fndecl
@@ -5207,6 +5207,7 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 {
   tree type = TREE_TYPE (decl);
   tree init_code = NULL;
+  tree core_type;
 
   /* Things that are going to be initialized need to have complete
      type.  */
@@ -5318,14 +5319,12 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
       check_for_uninitialized_const_var (decl);
       return build_aggr_init_full_exprs (decl, init, flags);
     }
-  else if (MAYBE_CLASS_TYPE_P (type))
+  else if (MAYBE_CLASS_TYPE_P (core_type = strip_array_types (type)))
     {
-      tree core_type = strip_array_types (type);
-
-      if (CLASSTYPE_READONLY_FIELDS_NEED_INIT (core_type))
-	error ("structure %qD with uninitialized const members", decl);
-      if (CLASSTYPE_REF_FIELDS_NEED_INIT (core_type))
-	error ("structure %qD with uninitialized reference members", decl);
+      if (CLASSTYPE_READONLY_FIELDS_NEED_INIT (core_type)
+	  || CLASSTYPE_REF_FIELDS_NEED_INIT (core_type))
+	diagnose_uninitialized_cst_or_ref_member (core_type, /*using_new=*/false,
+						  /*complain=*/true);
 
       check_for_uninitialized_const_var (decl);
     }
@@ -6024,10 +6023,6 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 
   if (was_readonly)
     TREE_READONLY (decl) = 1;
-
-  /* If this was marked 'used', be sure it will be output.  */
-  if (lookup_attribute ("used", DECL_ATTRIBUTES (decl)))
-    mark_decl_referenced (decl);
 }
 
 /* Returns a declaration for a VAR_DECL as if:
@@ -7373,6 +7368,8 @@ compute_array_index_type (tree name, tree size)
 
   /* The size might be the result of a cast.  */
   STRIP_TYPE_NOPS (size);
+
+  size = mark_rvalue_use (size);
 
   /* It might be a const variable or enumeration constant.  */
   size = integral_constant_value (size);

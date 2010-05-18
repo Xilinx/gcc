@@ -22,14 +22,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
 #include "tree.h"
 #include "c-common.h"
 #include "c-pragma.h"
 #include "flags.h"
 #include "toplev.h"
 #include "langhooks.h"
-#include "tree-inline.h"
 #include "diagnostic.h"
 #include "intl.h"
 #include "cppdefault.h"
@@ -38,8 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "options.h"
 #include "mkdeps.h"
-#include "target.h"
-#include "tm_p.h"
+#include "target.h"		/* For gcc_targetcm.  */
 #include "c-tree.h"		/* For c_cpp_error.  */
 
 #ifndef DOLLARS_IN_IDENTIFIERS
@@ -1388,9 +1385,6 @@ c_common_parse_file (int set_yydebug)
   i = 0;
   for (;;)
     {
-      /* Start the main input file, if the debug writer wants it. */
-      if (debug_hooks->start_end_main_source_file)
-	(*debug_hooks->start_source_file) (0, this_input_filename);
       finish_options ();
       pch_init ();
       push_file_scope ();
@@ -1649,6 +1643,11 @@ finish_options (void)
 	    }
 	}
 
+      /* Start the main input file, if the debug writer wants it. */
+      if (debug_hooks->start_end_main_source_file
+	  && !flag_preprocess_only)
+	(*debug_hooks->start_source_file) (0, this_input_filename);
+
       /* Handle -imacros after -D and -U.  */
       for (i = 0; i < deferred_count; i++)
 	{
@@ -1663,8 +1662,16 @@ finish_options (void)
 	    }
 	}
     }
-  else if (cpp_opts->directives_only)
-    cpp_init_special_builtins (parse_in);
+  else
+    {
+      if (cpp_opts->directives_only)
+	cpp_init_special_builtins (parse_in);
+
+      /* Start the main input file, if the debug writer wants it. */
+      if (debug_hooks->start_end_main_source_file
+	  && !flag_preprocess_only)
+	(*debug_hooks->start_source_file) (0, this_input_filename);
+    }
 
   include_cursor = 0;
   push_command_line_include ();

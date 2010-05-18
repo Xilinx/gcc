@@ -346,7 +346,7 @@ Objective-C and Objective-C++ Dialects}.
 -finline-functions -finline-functions-called-once -finline-limit=@var{n} @gol
 -finline-small-functions -fipa-cp -fipa-cp-clone -fipa-matrix-reorg -fipa-pta @gol
 -fipa-profile -fipa-pure-const -fipa-reference -fipa-struct-reorg @gol
--fipa-type-escape -fira-algorithm=@var{algorithm} @gol
+-fira-algorithm=@var{algorithm} @gol
 -fira-region=@var{region} -fira-coalesce @gol
 -fira-loop-pressure -fno-ira-share-save-slots @gol
 -fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
@@ -1172,9 +1172,9 @@ program and of the preprocessor and the compiler proper.
 
 @item -###
 @opindex ###
-Like @option{-v} except the commands are not executed and all command
-arguments are quoted.  This is useful for shell scripts to capture the
-driver-generated command lines.
+Like @option{-v} except the commands are not executed and arguments
+are quoted unless they contain only alphanumeric characters or @code{./-_}.
+This is useful for shell scripts to capture the driver-generated command lines.
 
 @item -pipe
 @opindex pipe
@@ -1928,6 +1928,15 @@ int and getting a pointer to member function via non-standard syntax.
 Disable built-in declarations of functions that are not mandated by
 ANSI/ISO C@.  These include @code{ffs}, @code{alloca}, @code{_exit},
 @code{index}, @code{bzero}, @code{conjf}, and other related functions.
+
+@item -fnothrow-opt
+@opindex fnothrow-opt
+Treat a @code{throw()} exception specification as though it were a
+@code{noexcept} specification to reduce or eliminate the text size
+overhead relative to a function with no exception specification.  The
+semantic effect is that an exception thrown out of a function with
+such an exception specification will result in a call to
+@code{terminate} rather than @code{unexpected}.
 
 @item -fno-operator-names
 @opindex fno-operator-names
@@ -6624,8 +6633,7 @@ Perform structure reorganization optimization, that change C-like structures
 layout in order to better utilize spatial locality.  This transformation is
 affective for programs containing arrays of structures.  Available in two
 compilation modes: profile-based (enabled with @option{-fprofile-generate})
-or static (which uses built-in heuristics).  Require @option{-fipa-type-escape}
-to provide the safety of this transformation.  It works only in whole program
+or static (which uses built-in heuristics).  It works only in whole program
 mode, so it requires @option{-fwhole-program} and @option{-combine} to be
 enabled.  Structures considered @samp{cold} by this transformation are not
 affected (see @option{--param struct-reorg-cold-struct-ratio=@var{value}}).
@@ -7447,8 +7455,6 @@ that otherwise would not fit in memory.  This option enables
 @option{-fwpa} and @option{-fltrans} automatically.
 
 Disabled by default.
-
-This option is experimental.
 
 @item -fwpa
 @opindex fwpa
@@ -8510,8 +8516,7 @@ The size of L2 cache, in kilobytes.
 
 @item min-insn-to-prefetch-ratio
 The minimum ratio between the number of instructions and the
-number of prefetches to enable prefetching in a loop with an
-unknown trip count.
+number of prefetches to enable prefetching in a loop.
 
 @item prefetch-min-insn-to-mem-ratio
 The minimum ratio between the number of instructions and the

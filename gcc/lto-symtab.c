@@ -65,6 +65,15 @@ static GTY ((if_marked ("lto_symtab_entry_marked_p"),
 	     param_is (struct lto_symtab_entry_def)))
   htab_t lto_symtab_identifiers;
 
+/* Free symtab hashtable.  */
+
+void
+lto_symtab_free (void)
+{
+  htab_delete (lto_symtab_identifiers);
+  lto_symtab_identifiers = NULL;
+}
+
 /* Return the hash value of an lto_symtab_entry_t object pointed to by P.  */
 
 static hashval_t
@@ -72,7 +81,7 @@ lto_symtab_entry_hash (const void *p)
 {
   const struct lto_symtab_entry_def *base =
     (const struct lto_symtab_entry_def *) p;
-  return htab_hash_string (IDENTIFIER_POINTER (base->id));
+  return IDENTIFIER_HASH_VALUE (base->id);
 }
 
 /* Return non-zero if P1 and P2 points to lto_symtab_entry_def structs
@@ -97,9 +106,10 @@ lto_symtab_entry_marked_p (const void *p)
   const struct lto_symtab_entry_def *base =
      (const struct lto_symtab_entry_def *) p;
 
-  /* Keep this only if the decl or the chain is marked.  */
-  return (ggc_marked_p (base->decl)
-	  || (base->next && ggc_marked_p (base->next)));
+  /* Keep this only if the common IDENTIFIER_NODE of the symtab chain
+     is marked which it will be if at least one of the DECLs in the
+     chain is marked.  */
+  return ggc_marked_p (base->id);
 }
 
 /* Lazily initialize resolution hash tables.  */
@@ -281,6 +291,9 @@ lto_varpool_replace_node (struct varpool_node *vnode,
     prevailing_node = prevailing_node->extra_name;
   ipa_clone_refering (NULL, prevailing_node, &vnode->ref_list);
 
+  /* Be sure we can garbage collect the initializer.  */
+  if (DECL_INITIAL (vnode->decl))
+    DECL_INITIAL (vnode->decl) = error_mark_node;
   /* Finally remove the replaced node.  */
   varpool_remove_node (vnode);
 }

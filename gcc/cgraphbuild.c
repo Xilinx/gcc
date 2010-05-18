@@ -32,6 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 #include "tree-pass.h"
 #include "ipa-utils.h"
+#include "except.h"
 
 /* Context of record_reference.  */
 struct record_reference_ctx
@@ -103,6 +104,86 @@ record_reference (tree *tp, int *walk_subtrees, void *data)
     }
 
   return NULL_TREE;
+}
+
+/* Record references to typeinfos in the type list LIST.  */
+
+static void
+record_type_list (struct cgraph_node *node, tree list)
+{
+  for (; list; list = TREE_CHAIN (list))
+    {
+      tree type = TREE_VALUE (list);
+      
+      if (TYPE_P (type))
+	type = lookup_type_for_runtime (type);
+      STRIP_NOPS (type);
+      if (TREE_CODE (type) == ADDR_EXPR)
+	{
+	  type = TREE_OPERAND (type, 0);
+	  if (TREE_CODE (type) == VAR_DECL)
+	    {
+	      struct varpool_node *vnode = varpool_node (type);
+	      varpool_mark_needed_node (vnode);
+	      ipa_record_reference (node, NULL,
+				    NULL, vnode,
+				    IPA_REF_ADDR, NULL);
+	    }
+	}
+    }
+}
+
+/* Record all references we will introduce by producing EH tables
+   for NODE.  */
+
+static void
+record_eh_tables (struct cgraph_node *node, struct function *fun)
+{
+  eh_region i;
+
+  i = fun->eh->region_tree;
+  if (!i)
+    return;
+
+  while (1)
+    {
+      switch (i->type)
+	{
+	case ERT_CLEANUP:
+	case ERT_MUST_NOT_THROW:
+	  break;
+
+	case ERT_TRY:
+	  {
+	    eh_catch c;
+	    for (c = i->u.eh_try.first_catch; c; c = c->next_catch)
+	      record_type_list (node, c->type_list);
+	  }
+	  break;
+
+	case ERT_ALLOWED_EXCEPTIONS:
+	  record_type_list (node, i->u.allowed.type_list);
+	  break;
+	}
+      /* If there are sub-regions, process them.  */
+      if (i->inner)
+	i = i->inner;
+      /* If there are peers, process them.  */
+      else if (i->next_peer)
+	i = i->next_peer;
+      /* Otherwise, step back up the tree to the next peer.  */
+      else
+	{
+	  do
+	    {
+	      i = i->outer;
+	      if (i == NULL)
+		return;
+	    }
+	  while (i->next_peer == NULL);
+	  i = i->next_peer;
+	}
+    }
 }
 
 /* Reset inlining information of all incoming call edges of NODE.  */
@@ -258,12 +339,21 @@ build_cgraph_edges (void)
 	  gimple stmt = gsi_stmt (gsi);
 	  tree decl;
 
-	  if (is_gimple_call (stmt) && (decl = gimple_call_fndecl (stmt)))
-	    cgraph_create_edge (node, cgraph_node (decl), stmt,
-				bb->count,
-				compute_call_stmt_bb_frequency
-				  (current_function_decl, bb),
-				bb->loop_depth);
+	  if (is_gimple_call (stmt))
+	    {
+	      int freq = compute_call_stmt_bb_frequency (current_function_decl,
+							 bb);
+	      decl = gimple_call_fndecl (stmt);
+	      if (decl)
+		cgraph_create_edge (node, cgraph_node (decl), stmt,
+				    bb->count, freq,
+				    bb->loop_depth);
+	      else
+		cgraph_create_indirect_edge (node, stmt,
+					     gimple_call_flags (stmt),
+					     bb->count, freq,
+					     bb->loop_depth);
+	    }
 	  walk_stmt_load_store_addr_ops (stmt, node, mark_load,
 					 mark_store, mark_address);
 	  if (gimple_code (stmt) == GIMPLE_OMP_PARALLEL
@@ -297,6 +387,7 @@ build_cgraph_edges (void)
 	  && (TREE_STATIC (decl) && !DECL_EXTERNAL (decl)))
 	varpool_finalize_decl (decl);
     }
+  record_eh_tables (node, cfun);
 
   pointer_set_destroy (visited_nodes);
   return 0;
@@ -361,12 +452,21 @@ rebuild_cgraph_edges (void)
 	  gimple stmt = gsi_stmt (gsi);
 	  tree decl;
 
-	  if (is_gimple_call (stmt) && (decl = gimple_call_fndecl (stmt)))
-	    cgraph_create_edge (node, cgraph_node (decl), stmt,
-				bb->count,
-				compute_call_stmt_bb_frequency
-				  (current_function_decl, bb),
-				bb->loop_depth);
+	  if (is_gimple_call (stmt))
+	    {
+	      int freq = compute_call_stmt_bb_frequency (current_function_decl,
+							 bb);
+	      decl = gimple_call_fndecl (stmt);
+	      if (decl)
+		cgraph_create_edge (node, cgraph_node (decl), stmt,
+				    bb->count, freq,
+				    bb->loop_depth);
+	      else
+		cgraph_create_indirect_edge (node, stmt,
+					     gimple_call_flags (stmt),
+					     bb->count, freq,
+					     bb->loop_depth);
+	    }
 	  walk_stmt_load_store_addr_ops (stmt, node, mark_load,
 					 mark_store, mark_address);
 
@@ -375,9 +475,41 @@ rebuild_cgraph_edges (void)
 	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), node,
 				       mark_load, mark_store, mark_address);
     }
+  record_eh_tables (node, cfun);
   gcc_assert (!node->global.inlined_to);
 
   return 0;
+}
+
+/* Rebuild cgraph edges for current function node.  This needs to be run after
+   passes that don't update the cgraph.  */
+
+void
+cgraph_rebuild_references (void)
+{
+  basic_block bb;
+  struct cgraph_node *node = cgraph_node (current_function_decl);
+  gimple_stmt_iterator gsi;
+
+  ipa_remove_all_references (&node->ref_list);
+
+  node->count = ENTRY_BLOCK_PTR->count;
+
+  FOR_EACH_BB (bb)
+    {
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	{
+	  gimple stmt = gsi_stmt (gsi);
+
+	  walk_stmt_load_store_addr_ops (stmt, node, mark_load,
+					 mark_store, mark_address);
+
+	}
+      for (gsi = gsi_start (phi_nodes (bb)); !gsi_end_p (gsi); gsi_next (&gsi))
+	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), node,
+				       mark_load, mark_store, mark_address);
+    }
+  record_eh_tables (node, cfun);
 }
 
 struct gimple_opt_pass pass_rebuild_cgraph_edges =

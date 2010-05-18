@@ -297,6 +297,7 @@ gimple_build_call_from_tree (tree t)
   gimple_call_set_return_slot_opt (call, CALL_EXPR_RETURN_SLOT_OPT (t));
   gimple_call_set_from_thunk (call, CALL_FROM_THUNK_P (t));
   gimple_call_set_va_arg_pack (call, CALL_EXPR_VA_ARG_PACK (t));
+  gimple_call_set_nothrow (call, TREE_NOTHROW (t));
   gimple_set_no_warning (call, TREE_NO_WARNING (t));
 
   return call;
@@ -636,7 +637,7 @@ gimple_build_eh_filter (tree types, gimple_seq failure)
 gimple
 gimple_build_eh_must_not_throw (tree decl)
 {
-  gimple p = gimple_alloc (GIMPLE_EH_MUST_NOT_THROW, 1);
+  gimple p = gimple_alloc (GIMPLE_EH_MUST_NOT_THROW, 0);
 
   gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
   gcc_assert (flags_from_decl_or_type (decl) & ECF_NORETURN);
@@ -1753,9 +1754,86 @@ gimple_call_flags (const_gimple stmt)
 	flags = 0;
     }
 
+  if (stmt->gsbase.subcode & GF_CALL_NOTHROW)
+    flags |= ECF_NOTHROW;
+
   return flags;
 }
 
+/* Detects argument flags for argument number ARG on call STMT.  */
+
+int
+gimple_call_arg_flags (const_gimple stmt, unsigned arg)
+{
+  tree type = TREE_TYPE (TREE_TYPE (gimple_call_fn (stmt)));
+  tree attr = lookup_attribute ("fn spec", TYPE_ATTRIBUTES (type));
+  if (!attr)
+    return 0;
+
+  attr = TREE_VALUE (TREE_VALUE (attr));
+  if (1 + arg >= (unsigned) TREE_STRING_LENGTH (attr))
+    return 0;
+
+  switch (TREE_STRING_POINTER (attr)[1 + arg])
+    {
+    case 'x':
+    case 'X':
+      return EAF_UNUSED;
+
+    case 'R':
+      return EAF_DIRECT | EAF_NOCLOBBER | EAF_NOESCAPE;
+
+    case 'r':
+      return EAF_NOCLOBBER | EAF_NOESCAPE;
+
+    case 'W':
+      return EAF_DIRECT | EAF_NOESCAPE;
+
+    case 'w':
+      return EAF_NOESCAPE;
+
+    case '.':
+    default:
+      return 0;
+    }
+}
+
+/* Detects return flags for the call STMT.  */
+
+int
+gimple_call_return_flags (const_gimple stmt)
+{
+  tree type;
+  tree attr = NULL_TREE;
+
+  if (gimple_call_flags (stmt) & ECF_MALLOC)
+    return ERF_NOALIAS;
+
+  type = TREE_TYPE (TREE_TYPE (gimple_call_fn (stmt)));
+  attr = lookup_attribute ("fn spec", TYPE_ATTRIBUTES (type));
+  if (!attr)
+    return 0;
+
+  attr = TREE_VALUE (TREE_VALUE (attr));
+  if (TREE_STRING_LENGTH (attr) < 1)
+    return 0;
+
+  switch (TREE_STRING_POINTER (attr)[0])
+    {
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+      return ERF_RETURNS_ARG | (TREE_STRING_POINTER (attr)[0] - '1');
+
+    case 'm':
+      return ERF_NOALIAS;
+
+    case '.':
+    default:
+      return 0;
+    }
+}
 
 /* Return true if GS is a copy assignment.  */
 
@@ -3141,16 +3219,35 @@ compare_type_names_p (tree t1, tree t2, bool for_completion_p)
   return false;
 }
 
-/* Return true if the field decls F1 and F2 are at the same offset.  */
+/* Return true if the field decls F1 and F2 are at the same offset.
+
+   This is intended to be used on GIMPLE types only.  In order to
+   compare GENERIC types, use fields_compatible_p instead.  */
 
 bool
-compare_field_offset (tree f1, tree f2)
+gimple_compare_field_offset (tree f1, tree f2)
 {
   if (DECL_OFFSET_ALIGN (f1) == DECL_OFFSET_ALIGN (f2))
-    return (operand_equal_p (DECL_FIELD_OFFSET (f1),
-			     DECL_FIELD_OFFSET (f2), 0)
-	    && tree_int_cst_equal (DECL_FIELD_BIT_OFFSET (f1),
-				   DECL_FIELD_BIT_OFFSET (f2)));
+    {
+      tree offset1 = DECL_FIELD_OFFSET (f1);
+      tree offset2 = DECL_FIELD_OFFSET (f2);
+      return ((offset1 == offset2
+	       /* Once gimplification is done, self-referential offsets are
+		  instantiated as operand #2 of the COMPONENT_REF built for
+		  each access and reset.  Therefore, they are not relevant
+		  anymore and fields are interchangeable provided that they
+		  represent the same access.  */
+	       || (TREE_CODE (offset1) == PLACEHOLDER_EXPR
+		   && TREE_CODE (offset2) == PLACEHOLDER_EXPR
+		   && (DECL_SIZE (f1) == DECL_SIZE (f2)
+		       || (TREE_CODE (DECL_SIZE (f1)) == PLACEHOLDER_EXPR
+			   && TREE_CODE (DECL_SIZE (f2)) == PLACEHOLDER_EXPR)
+		       || operand_equal_p (DECL_SIZE (f1), DECL_SIZE (f2), 0))
+		   && DECL_ALIGN (f1) == DECL_ALIGN (f2))
+	       || operand_equal_p (offset1, offset2, 0))
+	      && tree_int_cst_equal (DECL_FIELD_BIT_OFFSET (f1),
+				     DECL_FIELD_BIT_OFFSET (f2)));
+    }
 
   /* Fortran and C do not always agree on what DECL_OFFSET_ALIGN
      should be, so handle differing ones specially by decomposing
@@ -3305,9 +3402,15 @@ gimple_types_compatible_p (tree t1, tree t2)
 
 	      /* The minimum/maximum values have to be the same.  */
 	      if ((min1 == min2
-		   || (min1 && min2 && operand_equal_p (min1, min2, 0)))
+		   || (min1 && min2
+		       && ((TREE_CODE (min1) == PLACEHOLDER_EXPR
+			    && TREE_CODE (min2) == PLACEHOLDER_EXPR)
+		           || operand_equal_p (min1, min2, 0))))
 		  && (max1 == max2
-		      || (max1 && max2 && operand_equal_p (max1, max2, 0))))
+		      || (max1 && max2
+			  && ((TREE_CODE (max1) == PLACEHOLDER_EXPR
+			       && TREE_CODE (max2) == PLACEHOLDER_EXPR)
+			      || operand_equal_p (max1, max2, 0)))))
 		goto same_types;
 	      else
 		goto different_types;
@@ -3492,7 +3595,7 @@ gimple_types_compatible_p (tree t1, tree t2)
 	    /* The fields must have the same name, offset and type.  */
 	    if (DECL_NAME (f1) != DECL_NAME (f2)
 		|| DECL_NONADDRESSABLE_P (f1) != DECL_NONADDRESSABLE_P (f2)
-		|| !compare_field_offset (f1, f2)
+		|| !gimple_compare_field_offset (f1, f2)
 		|| !gimple_types_compatible_p (TREE_TYPE (f1),
 					       TREE_TYPE (f2)))
 	      goto different_types;
@@ -4603,45 +4706,6 @@ gimple_decl_printable_name (tree decl, int verbosity)
     }
 
   return IDENTIFIER_POINTER (DECL_NAME (decl));
-}
-
-
-/* Fold a OBJ_TYPE_REF expression to the address of a function.
-   KNOWN_TYPE carries the true type of OBJ_TYPE_REF_OBJECT(REF).  Adapted
-   from cp_fold_obj_type_ref, but it tolerates types with no binfo
-   data.  */
-
-tree
-gimple_fold_obj_type_ref (tree ref, tree known_type)
-{
-  HOST_WIDE_INT index;
-  HOST_WIDE_INT i;
-  tree v;
-  tree fndecl;
-
-  if (TYPE_BINFO (known_type) == NULL_TREE)
-    return NULL_TREE;
-
-  v = BINFO_VIRTUALS (TYPE_BINFO (known_type));
-  index = tree_low_cst (OBJ_TYPE_REF_TOKEN (ref), 1);
-  i = 0;
-  while (i != index)
-    {
-      i += (TARGET_VTABLE_USES_DESCRIPTORS
-	    ? TARGET_VTABLE_USES_DESCRIPTORS : 1);
-      v = TREE_CHAIN (v);
-    }
-
-  fndecl = TREE_VALUE (v);
-
-#ifdef ENABLE_CHECKING
-  gcc_assert (tree_int_cst_equal (OBJ_TYPE_REF_TOKEN (ref),
-				  DECL_VINDEX (fndecl)));
-#endif
-
-  cgraph_node (fndecl)->local.vtable_method = true;
-
-  return build_fold_addr_expr (fndecl);
 }
 
 #include "gt-gimple.h"

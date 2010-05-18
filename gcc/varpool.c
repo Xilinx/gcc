@@ -196,8 +196,6 @@ varpool_remove_node (struct varpool_node *node)
     }
   ipa_remove_all_references (&node->ref_list);
   ipa_remove_all_refering (&node->ref_list);
-  if (DECL_INITIAL (node->decl))
-    DECL_INITIAL (node->decl) = error_mark_node;
   ggc_free (node);
 }
 
@@ -302,7 +300,7 @@ varpool_mark_needed_node (struct varpool_node *node)
 }
 
 /* Reset the queue of needed nodes.  */
-static void
+void
 varpool_reset_queue (void)
 {
   varpool_last_needed_node = NULL;
@@ -321,13 +319,6 @@ decide_is_variable_needed (struct varpool_node *node, tree decl)
   /* If the user told us it is used, then it must be so.  */
   if ((node->externally_visible && !DECL_COMDAT (decl))
       || node->force_output)
-    return true;
-
-  /* ??? If the assembler name is set by hand, it is possible to assemble
-     the name later after finalizing the function and the fact is noticed
-     in assemble_name then.  This is arguably a bug.  */
-  if (DECL_ASSEMBLER_NAME_SET_P (decl)
-      && TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)))
     return true;
 
   /* Externally visible variables must be output.  The exception is
@@ -383,6 +374,8 @@ varpool_finalize_decl (tree decl)
   if (node->needed)
     varpool_enqueue_needed_node (node);
   node->finalized = true;
+  if (TREE_THIS_VOLATILE (decl) || DECL_PRESERVE_P (decl))
+    node->force_output = true;
 
   if (decide_is_variable_needed (node, decl))
     varpool_mark_needed_node (node);
