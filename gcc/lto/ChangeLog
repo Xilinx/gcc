@@ -1,3 +1,92 @@
+2010-05-18  Jan Hubicka  <jh@suse.cz>
+
+	* lto/lto.c (lto_1_to_1_map): Partition non-inline clones.
+	(lto_promote_cross_file_statics): Deal with non-inline clones.
+
+2010-05-18  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_materialize_function): Announce function when
+	reading body; allocate_struct_function only when reading body;
+	do not finalize local statics; ggc_collect after reading;
+	do not mark reachable node.
+	(materialize_cgraph): Do not announce function.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (materialize_cgraph): Revert my previous patch.
+
+2010-05-11  Kai Tietz  <kai.tietz@onevision.com>
+
+	* lto-coff.c (IMAGE_FILE_MACHINE_ADM64): Rename to
+	IMAGE_FILE_MACHINE_AMD64.
+	* lto-coff.c (IMAGE_FILE_MACHINE_ADM64): Likewise.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_fixup_decls): Remove global var decls freeing here.
+	(materialize_cgraph): Add it here.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_fixup_decls): Free no longer needed lto_global_var_decls
+	vector.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_1_to_1_map): Remove some no longer needed checks.
+	(lto_promote_cross_file_statics): Never promote DECL_EXTERNAL;
+	use reachable_from_other_partition_p and
+	referenced_from_other_partition_p test.
+
+2010-05-11  Kai Tietz  <kai.tietz@onevision.com>
+
+	* lto-coff.c (validate_file): Add x64-coff support.
+	* lto-coff.h (IMAGE_FILE_MACHINE_ADM64): New.
+	(COFF_KNOWN_MACHINES): Add IMAGE_FILE_MACHINE_ADM64.
+	* lto-lang.c (lto_build_c_type_nodes): Add check for
+	'long long unsigned int' for x64-windows.
+	(lto_init): Likewise.
+
+
+2010-05-07  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* lto.h (struct lto_file_struct): Document offset member.
+	* lto-endian.h: New file.
+	* lto-macho.h: New file.
+	* lto-macho.c: New file.
+	* Make-lang.in: Add rule for lto-macho.o.
+
+2010-05-07  Richard Guenther <rguenther@suse.de>
+
+	PR lto/43857
+	PR lto/43371
+	* lang.opt (fresolution): Change to ...
+	(fresolution=): ... this.
+	* lto-lang.c (lto_handle_option): Adjust.
+
+2010-05-07  Richard Guenther  <rguenther@suse.de>
+
+	* lto.c (DUMPBASE_SUFFIX): Remove.
+	(lto_execute_ltrans): Move functionality to lto-wrapper.c.
+	Rename to ...
+	(lto_write_ltrans_list): ... only output the list of ltrans files.
+	(lto_maybe_unlink): Remove.
+	(do_whole_program_analysis): Do not execute LTRANS phase
+	from here.
+
+2010-05-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* lto-lang.c (lto_handle_option): Add argument kind.
+
+2010-05-05  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_promote_cross_file_statics): Compute boundary based on
+	refs.
+
+2010-05-05  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_1_to_1_map): Partition only needed nodes.
+
 2010-04-30  Jan Hubicka  <jh@suse.cz>
 
 	* lto.c (get_filename_for_set): Look for cgraph node and if none found, use

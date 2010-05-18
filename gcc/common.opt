@@ -249,8 +249,8 @@ Common Var(warn_unused_variable) Init(-1) Warning
 Warn when a variable is unused
 
 Wcoverage-mismatch
-Common RejectNegative Var(warn_coverage_mismatch) Warning
-Warn instead of error in case profiles in -fprofile-use do not match
+Common Var(warn_coverage_mismatch) Init(1) Warning
+Warn in case profiles in -fprofile-use do not match
 
 aux-info
 Common Separate
@@ -717,10 +717,6 @@ fipa-reference
 Common Report Var(flag_ipa_reference) Init(0) Optimization
 Discover readonly and non addressable static variables
 
-fipa-type-escape
-Common Report Var(flag_ipa_type_escape) Init(0) Optimization
-Type based escape and alias analysis
-
 fipa-matrix-reorg
 Common Report Var(flag_ipa_matrix_reorg) Optimization
 Perform matrix layout flattening and transposing based
@@ -1146,6 +1142,10 @@ Access data in the same section from shared anchor points
 fsee
 Common
 Does nothing.  Preserved for backward compatibility.
+
+fzee
+Common Report Var(flag_zee) Init(0)
+Eliminate redundant zero extensions on targets that support implicit extensions.
 
 fshow-column
 Common C ObjC C++ ObjC++ Report Var(flag_show_column) Init(1)

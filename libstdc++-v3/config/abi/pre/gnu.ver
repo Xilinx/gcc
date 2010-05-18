@@ -1311,8 +1311,14 @@ CXXABI_1.3.4 {
     _ZTID[fde];
     _ZTIPD[fde];
     _ZTIPKD[fde];
-    _ZTID[fde];
-    _ZTIPD[fde];
-    _ZTIPKD[fde];
 
 } CXXABI_1.3.3;
+
+CXXABI_1.3.5 {
+
+    # typeinfo for decltype(nullptr)
+    _ZTIDn;
+    _ZTIPDn;
+    _ZTIPKDn;
+
+} CXXABI_1.3.4;

@@ -339,6 +339,14 @@ pp_cxx_constant (cxx_pretty_printer *pp, tree t)
       }
       break;
 
+    case INTEGER_CST:
+      if (NULLPTR_TYPE_P (TREE_TYPE (t)))
+	{
+	  pp_string (pp, "nullptr");
+	  break;
+	}
+      /* else fall through.  */
+
     default:
       pp_c_constant (pp_c_base (pp), t);
       break;

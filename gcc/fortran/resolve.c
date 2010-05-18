@@ -6747,8 +6747,9 @@ validate_case_label_expr (gfc_expr *e, gfc_expr *case_expr)
       return FAILURE;
     }
 
-  /* Convert the case value kind to that of case expression kind, if needed.
-     FIXME:  Should a warning be issued?  */
+  /* Convert the case value kind to that of case expression kind,
+     if needed */
+
   if (e->ts.kind != case_expr->ts.kind)
     gfc_convert_type_warn (e, &case_expr->ts, 2, 0);
 
@@ -6834,6 +6835,31 @@ resolve_select (gfc_code *code)
       return;
     }
 
+
+  /* Raise a warning if an INTEGER case value exceeds the range of
+     the case-expr. Later, all expressions will be promoted to the
+     largest kind of all case-labels.  */
+
+  if (type == BT_INTEGER)
+    for (body = code->block; body; body = body->block)
+      for (cp = body->ext.case_list; cp; cp = cp->next)
+	{
+	  if (cp->low
+	      && gfc_check_integer_range (cp->low->value.integer,
+					  case_expr->ts.kind) != ARITH_OK)
+	    gfc_warning ("Expression in CASE statement at %L is "
+			 "not in the range of %s", &cp->low->where,
+			 gfc_typename (&case_expr->ts));
+
+	  if (cp->high
+	      && cp->low != cp->high
+	      && gfc_check_integer_range (cp->high->value.integer,
+					  case_expr->ts.kind) != ARITH_OK)
+	    gfc_warning ("Expression in CASE statement at %L is "
+			 "not in the range of %s", &cp->high->where,
+			 gfc_typename (&case_expr->ts));
+	}
+
   /* PR 19168 has a long discussion concerning a mismatch of the kinds
      of the SELECT CASE expression and its CASE values.  Walk the lists
      of case values, and if we find a mismatch, promote case_expr to
@@ -6856,7 +6882,6 @@ resolve_select (gfc_code *code)
 		  && gfc_compare_expr (cp->low, cp->high, INTRINSIC_GT) > 0)
 		continue;
 
-	      /* FIXME: Should a warning be issued?  */
 	      if (cp->low != NULL
 		  && case_expr->ts.kind != gfc_kind_max(case_expr, cp->low))
 		gfc_convert_type_warn (case_expr, &cp->low->ts, 2, 0);
@@ -6907,8 +6932,8 @@ resolve_select (gfc_code *code)
 
 	  /* Deal with single value cases and case ranges.  Errors are
 	     issued from the validation function.  */
-	  if(validate_case_label_expr (cp->low, case_expr) != SUCCESS
-	     || validate_case_label_expr (cp->high, case_expr) != SUCCESS)
+	  if (validate_case_label_expr (cp->low, case_expr) != SUCCESS
+	      || validate_case_label_expr (cp->high, case_expr) != SUCCESS)
 	    {
 	      t = FAILURE;
 	      break;
@@ -6930,7 +6955,7 @@ resolve_select (gfc_code *code)
 	      value = cp->low->value.logical == 0 ? 2 : 1;
 	      if (value & seen_logical)
 		{
-		  gfc_error ("constant logical value in CASE statement "
+		  gfc_error ("Constant logical value in CASE statement "
 			     "is repeated at %L",
 			     &cp->low->where);
 		  t = FAILURE;
@@ -7078,8 +7103,21 @@ resolve_select_type (gfc_code *code)
   ns = code->ext.ns;
   gfc_resolve (ns);
 
+  /* Check for F03:C813.  */
+  if (code->expr1->ts.type != BT_CLASS
+      && !(code->expr2 && code->expr2->ts.type == BT_CLASS))
+    {
+      gfc_error ("Selector shall be polymorphic in SELECT TYPE statement "
+		 "at %L", &code->loc);
+      return;
+    }
+
   if (code->expr2)
-    selector_type = code->expr2->ts.u.derived->components->ts.u.derived;
+    {
+      if (code->expr1->symtree->n.sym->attr.untyped)
+	code->expr1->symtree->n.sym->ts = code->expr2->ts;
+      selector_type = code->expr2->ts.u.derived->components->ts.u.derived;
+    }
   else
     selector_type = code->expr1->ts.u.derived->components->ts.u.derived;
 
@@ -9105,6 +9143,29 @@ resolve_fl_var_and_proc (gfc_symbol *sym, int mp_flag)
 	  return FAILURE;
 	 }
     }
+
+  /* Constraints on polymorphic variables.  */
+  if (sym->ts.type == BT_CLASS && !(sym->result && sym->result != sym))
+    {
+      /* F03:C502.  */
+      if (!gfc_type_is_extensible (sym->ts.u.derived->components->ts.u.derived))
+	{
+	  gfc_error ("Type '%s' of CLASS variable '%s' at %L is not extensible",
+		     sym->ts.u.derived->components->ts.u.derived->name,
+		     sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+
+      /* F03:C509.  */
+      /* Assume that use associated symbols were checked in the module ns.  */ 
+      if (!sym->attr.class_ok && !sym->attr.use_assoc)
+	{
+	  gfc_error ("CLASS variable '%s' at %L must be dummy, allocatable "
+		     "or pointer", sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+    }
+    
   return SUCCESS;
 }
 
@@ -9155,27 +9216,6 @@ resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
 			 "the default initialization", sym->name,
 			 &sym->declared_at) == FAILURE)
     return FAILURE;
-
-  if (sym->ts.type == BT_CLASS)
-    {
-      /* C502.  */
-      if (!gfc_type_is_extensible (sym->ts.u.derived->components->ts.u.derived))
-	{
-	  gfc_error ("Type '%s' of CLASS variable '%s' at %L is not extensible",
-		     sym->ts.u.derived->components->ts.u.derived->name,
-		     sym->name, &sym->declared_at);
-	  return FAILURE;
-	}
-
-      /* C509.  */
-      /* Assume that use associated symbols were checked in the module ns.  */ 
-      if (!sym->attr.class_ok && !sym->attr.use_assoc)
-	{
-	  gfc_error ("CLASS variable '%s' at %L must be dummy, allocatable "
-		     "or pointer", sym->name, &sym->declared_at);
-	  return FAILURE;
-	}
-    }
 
   /* Assign default initializer.  */
   if (!(sym->value || sym->attr.pointer || sym->attr.allocatable)
@@ -10794,7 +10834,7 @@ resolve_fl_derived (gfc_symbol *sym)
       
       /* If this type is an extension, see if this component has the same name
 	 as an inherited type-bound procedure.  */
-      if (super_type
+      if (super_type && !sym->attr.is_class
 	  && gfc_find_typebound_proc (super_type, NULL, c->name, true, NULL))
 	{
 	  gfc_error ("Component '%s' of '%s' at %L has the same name as an"
@@ -10841,9 +10881,19 @@ resolve_fl_derived (gfc_symbol *sym)
 	    }
 	}
 
-      if (c->ts.type == BT_DERIVED && c->attr.pointer
+      if (!sym->attr.is_class && c->ts.type == BT_DERIVED && c->attr.pointer
 	  && c->ts.u.derived->components == NULL
 	  && !c->ts.u.derived->attr.zero_comp)
+	{
+	  gfc_error ("The pointer component '%s' of '%s' at %L is a type "
+		     "that has not been declared", c->name, sym->name,
+		     &c->loc);
+	  return FAILURE;
+	}
+
+      if (c->ts.type == BT_CLASS && c->ts.u.derived->components->attr.pointer
+	  && c->ts.u.derived->components->ts.u.derived->components == NULL
+	  && !c->ts.u.derived->components->ts.u.derived->attr.zero_comp)
 	{
 	  gfc_error ("The pointer component '%s' of '%s' at %L is a type "
 		     "that has not been declared", c->name, sym->name,
@@ -11082,6 +11132,10 @@ resolve_symbol (gfc_symbol *sym)
   gfc_namespace *ns;
   gfc_component *c;
 
+  /* Avoid double resolution of function result symbols.  */
+  if ((sym->result || sym->attr.result) && (sym->ns != gfc_current_ns))
+    return;
+  
   if (sym->attr.flavor == FL_UNKNOWN)
     {
 
@@ -11771,11 +11825,14 @@ check_data_variable (gfc_data_variable *var, locus *where)
 	      mpz_set_ui (size, 0);
 	    }
 
-	  gfc_assign_data_value_range (var->expr, values.vnode->expr,
-				       offset, range);
+	  t = gfc_assign_data_value_range (var->expr, values.vnode->expr,
+					   offset, range);
 
 	  mpz_add (offset, offset, range);
 	  mpz_clear (range);
+
+	  if (t == FAILURE)
+	    break;
 	}
 
       /* Assign initial value to symbol.  */
@@ -11824,6 +11881,7 @@ traverse_data_list (gfc_data_variable *var, locus *where)
   gfc_try retval = SUCCESS;
 
   mpz_init (frame.value);
+  mpz_init (trip);
 
   start = gfc_copy_expr (var->iter.start);
   end = gfc_copy_expr (var->iter.end);
@@ -11832,26 +11890,29 @@ traverse_data_list (gfc_data_variable *var, locus *where)
   if (gfc_simplify_expr (start, 1) == FAILURE
       || start->expr_type != EXPR_CONSTANT)
     {
-      gfc_error ("iterator start at %L does not simplify", &start->where);
+      gfc_error ("start of implied-do loop at %L could not be "
+		 "simplified to a constant value", &start->where);
       retval = FAILURE;
       goto cleanup;
     }
   if (gfc_simplify_expr (end, 1) == FAILURE
       || end->expr_type != EXPR_CONSTANT)
     {
-      gfc_error ("iterator end at %L does not simplify", &end->where);
+      gfc_error ("end of implied-do loop at %L could not be "
+		 "simplified to a constant value", &start->where);
       retval = FAILURE;
       goto cleanup;
     }
   if (gfc_simplify_expr (step, 1) == FAILURE
       || step->expr_type != EXPR_CONSTANT)
     {
-      gfc_error ("iterator step at %L does not simplify", &step->where);
+      gfc_error ("step of implied-do loop at %L could not be "
+		 "simplified to a constant value", &start->where);
       retval = FAILURE;
       goto cleanup;
     }
 
-  mpz_init_set (trip, end->value.integer);
+  mpz_set (trip, end->value.integer);
   mpz_sub (trip, trip, start->value.integer);
   mpz_add (trip, trip, step->value.integer);
 
@@ -11867,7 +11928,6 @@ traverse_data_list (gfc_data_variable *var, locus *where)
     {
       if (traverse_data_var (var->list, where) == FAILURE)
 	{
-	  mpz_clear (trip);
 	  retval = FAILURE;
 	  goto cleanup;
 	}
@@ -11876,7 +11936,6 @@ traverse_data_list (gfc_data_variable *var, locus *where)
       if (gfc_simplify_expr (e, 1) == FAILURE)
 	{
 	  gfc_free_expr (e);
-	  mpz_clear (trip);
 	  retval = FAILURE;
 	  goto cleanup;
 	}
@@ -11886,9 +11945,9 @@ traverse_data_list (gfc_data_variable *var, locus *where)
       mpz_sub_ui (trip, trip, 1);
     }
 
-  mpz_clear (trip);
 cleanup:
   mpz_clear (frame.value);
+  mpz_clear (trip);
 
   gfc_free_expr (start);
   gfc_free_expr (end);

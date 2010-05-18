@@ -214,10 +214,10 @@ do_begin_catch (void)
 static int
 dtor_nothrow (tree type)
 {
-  if (type == NULL_TREE)
+  if (type == NULL_TREE || type == error_mark_node)
     return 0;
 
-  if (!CLASS_TYPE_P (type))
+  if (TYPE_HAS_TRIVIAL_DESTRUCTOR (type))
     return 1;
 
   if (CLASSTYPE_LAZY_DESTRUCTOR (type))
@@ -369,6 +369,7 @@ initialize_handler_parm (tree decl, tree exp)
   /* Make sure we mark the catch param as used, otherwise we'll get a
      warning about an unused ((anonymous)).  */
   TREE_USED (decl) = 1;
+  DECL_READ_P (decl) = 1;
 
   /* Figure out the type that the initializer is.  Pointers are returned
      adjusted by value from __cxa_begin_catch.  Others are returned by
@@ -512,9 +513,18 @@ expand_end_catch_block (void)
 tree
 begin_eh_spec_block (void)
 {
-  tree r = build_stmt (input_location, EH_SPEC_BLOCK, NULL_TREE, NULL_TREE);
+  tree r;
+  /* A noexcept specification (or throw() with -fnothrow-opt) is a
+     MUST_NOT_THROW_EXPR.  */
+  if (TYPE_NOEXCEPT_P (TREE_TYPE (current_function_decl)))
+    {
+      r = build_stmt (input_location, MUST_NOT_THROW_EXPR, NULL_TREE);
+      TREE_SIDE_EFFECTS (r) = 1;
+    }
+  else
+    r = build_stmt (input_location, EH_SPEC_BLOCK, NULL_TREE, NULL_TREE);
   add_stmt (r);
-  EH_SPEC_STMTS (r) = push_stmt_list ();
+  TREE_OPERAND (r, 0) = push_stmt_list ();
   return r;
 }
 
@@ -523,7 +533,11 @@ finish_eh_spec_block (tree raw_raises, tree eh_spec_block)
 {
   tree raises;
 
-  EH_SPEC_STMTS (eh_spec_block) = pop_stmt_list (EH_SPEC_STMTS (eh_spec_block));
+  TREE_OPERAND (eh_spec_block, 0)
+    = pop_stmt_list (TREE_OPERAND (eh_spec_block, 0));
+
+  if (TREE_CODE (eh_spec_block) == MUST_NOT_THROW_EXPR)
+    return;
 
   /* Strip cv quals, etc, from the specification types.  */
   for (raises = NULL_TREE;
@@ -664,8 +678,7 @@ build_throw (tree exp)
       tree cleanup;
       tree object, ptr;
       tree tmp;
-      tree temp_expr, allocate_expr;
-      bool elided;
+      tree allocate_expr;
 
       /* The CLEANUP_TYPE is the internal type of a destructor.  */
       if (!cleanup_type)
@@ -718,10 +731,11 @@ build_throw (tree exp)
       allocate_expr = do_allocate_exception (temp_type);
       allocate_expr = get_target_expr (allocate_expr);
       ptr = TARGET_EXPR_SLOT (allocate_expr);
+      TARGET_EXPR_CLEANUP (allocate_expr) = do_free_exception (ptr);
+      CLEANUP_EH_ONLY (allocate_expr) = 1;
+
       object = build_nop (build_pointer_type (temp_type), ptr);
       object = cp_build_indirect_ref (object, RO_NULL, tf_warning_or_error);
-
-      elided = (TREE_CODE (exp) == TARGET_EXPR);
 
       /* And initialize the exception object.  */
       if (CLASS_TYPE_P (temp_type))
@@ -760,54 +774,16 @@ build_throw (tree exp)
 	  exp = build2 (INIT_EXPR, temp_type, object, tmp);
 	}
 
-      /* Pre-evaluate the thrown expression first, since if we allocated
-	 the space first we would have to deal with cleaning it up if
-	 evaluating this expression throws.
-
-	 The case where EXP the initializer is a cast or a function
-	 returning a class is a bit of a grey area in the standard; it's
-	 unclear whether or not it should be allowed to throw.  We used to
-	 say no, as that allowed us to optimize this case without worrying
-	 about deallocating the exception object if it does.  But that
-	 conflicted with expectations (PR 13944) and the EDG compiler; now
-	 we wrap the initialization in a TRY_CATCH_EXPR to call
-	 do_free_exception rather than in a MUST_NOT_THROW_EXPR, for this
-	 case only.
-
-	 BUT: Issue 475 may do away with this inconsistency by removing the
-	 terminate() in this situation.
-
-	 Note that we don't check the return value from stabilize_init
-	 because it will only return false in cases where elided is true,
-	 and therefore we don't need to work around the failure to
-	 preevaluate.  */
-      temp_expr = NULL_TREE;
-      stabilize_init (exp, &temp_expr);
-
-      /* Wrap the initialization in a CLEANUP_POINT_EXPR so that cleanups
-	 for temporaries within the initialization are run before the one
-	 for the exception object, preserving LIFO order.  */
-      exp = build1 (CLEANUP_POINT_EXPR, void_type_node, exp);
-
-      if (elided)
-	exp = build2 (TRY_CATCH_EXPR, void_type_node, exp,
-		      do_free_exception (ptr));
-      else
-	exp = build1 (MUST_NOT_THROW_EXPR, void_type_node, exp);
+      /* Mark any cleanups from the initialization as MUST_NOT_THROW, since
+	 they are run after the exception object is initialized.  */
+      cp_walk_tree_without_duplicates (&exp, wrap_cleanups_r, 0);
 
       /* Prepend the allocation.  */
       exp = build2 (COMPOUND_EXPR, TREE_TYPE (exp), allocate_expr, exp);
-      if (temp_expr)
-	{
-	  /* Prepend the calculation of the throw expression.  Also, force
-	     any cleanups from the expression to be evaluated here so that
-	     we don't have to do them during unwinding.  But first wrap
-	     them in MUST_NOT_THROW_EXPR, since they are run after the
-	     exception object is initialized.  */
-	  cp_walk_tree_without_duplicates (&temp_expr, wrap_cleanups_r, 0);
-	  exp = build2 (COMPOUND_EXPR, TREE_TYPE (exp), temp_expr, exp);
-	  exp = build1 (CLEANUP_POINT_EXPR, TREE_TYPE (exp), exp);
-	}
+
+      /* Force all the cleanups to be evaluated here so that we don't have
+	 to do them during unwinding.  */
+      exp = build1 (CLEANUP_POINT_EXPR, void_type_node, exp);
 
       throw_type = build_eh_type_type (prepare_eh_type (TREE_TYPE (object)));
 

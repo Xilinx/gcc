@@ -263,14 +263,15 @@ C ObjC C++ ObjC++ Var(warn_init_self) Warning
 Warn about variables which are initialized to themselves
 
 Wimplicit
-C ObjC C++ ObjC++ Warning
+C ObjC Var(warn_implicit) Init(-1) Warning
+Warn about implicit declarations
 
 Wimplicit-function-declaration
 C ObjC Var(warn_implicit_function_declaration) Init(-1) Warning
 Warn about implicit function declarations
 
 Wimplicit-int
-C ObjC Var(warn_implicit_int) Warning
+C ObjC Var(warn_implicit_int) Init(-1) Warning
 Warn when a declaration does not specify a type
 
 Wimport
@@ -687,6 +688,10 @@ C++ ObjC++
 
 fnonnull-objects
 C++ ObjC++
+
+fnothrow-opt
+C++ ObjC++ Optimization Var(flag_nothrow_opt)
+Treat a throw() exception specification as noexcept to improve code size
 
 ; Generate special '- .cxx_construct' and '- .cxx_destruct' methods
 ; to initialize any non-POD ivars in Objective-C++ classes.

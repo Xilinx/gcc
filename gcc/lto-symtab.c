@@ -65,6 +65,15 @@ static GTY ((if_marked ("lto_symtab_entry_marked_p"),
 	     param_is (struct lto_symtab_entry_def)))
   htab_t lto_symtab_identifiers;
 
+/* Free symtab hashtable.  */
+
+void
+lto_symtab_free (void)
+{
+  htab_delete (lto_symtab_identifiers);
+  lto_symtab_identifiers = NULL;
+}
+
 /* Return the hash value of an lto_symtab_entry_t object pointed to by P.  */
 
 static hashval_t
@@ -72,7 +81,7 @@ lto_symtab_entry_hash (const void *p)
 {
   const struct lto_symtab_entry_def *base =
     (const struct lto_symtab_entry_def *) p;
-  return htab_hash_string (IDENTIFIER_POINTER (base->id));
+  return IDENTIFIER_HASH_VALUE (base->id);
 }
 
 /* Return non-zero if P1 and P2 points to lto_symtab_entry_def structs
@@ -97,9 +106,10 @@ lto_symtab_entry_marked_p (const void *p)
   const struct lto_symtab_entry_def *base =
      (const struct lto_symtab_entry_def *) p;
 
-  /* Keep this only if the decl or the chain is marked.  */
-  return (ggc_marked_p (base->decl)
-	  || (base->next && ggc_marked_p (base->next)));
+  /* Keep this only if the common IDENTIFIER_NODE of the symtab chain
+     is marked which it will be if at least one of the DECLs in the
+     chain is marked.  */
+  return ggc_marked_p (base->id);
 }
 
 /* Lazily initialize resolution hash tables.  */
@@ -214,15 +224,8 @@ lto_cgraph_replace_node (struct cgraph_node *node,
       next = e->next_caller;
       cgraph_redirect_edge_callee (e, prevailing_node);
     }
-
-  /* There are not supposed to be any outgoing edges from a node we
-     replace.  Still this can happen for multiple instances of weak
-     functions.  */
-  for (e = node->callees; e; e = next)
-    {
-      next = e->next_callee;
-      cgraph_remove_edge (e);
-    }
+  /* Redirect incomming references.  */
+  ipa_clone_refering (prevailing_node, NULL, &node->ref_list);
 
   if (node->same_body)
     {
@@ -257,12 +260,40 @@ lto_varpool_replace_node (struct varpool_node *vnode,
   /* Merge node flags.  */
   if (vnode->needed)
     {
-      gcc_assert (prevailing_node->analyzed);
+      gcc_assert (!vnode->analyzed || prevailing_node->analyzed);
       varpool_mark_needed_node (prevailing_node);
+    }
+  /* Relink aliases.  */
+  if (vnode->extra_name && !vnode->alias)
+    {
+      struct varpool_node *alias, *last;
+      for (alias = vnode->extra_name;
+	   alias; alias = alias->next)
+	{
+	  last = alias;
+	  alias->extra_name = prevailing_node;
+	}
+
+      if (prevailing_node->extra_name)
+	{
+	  last->next = prevailing_node->extra_name;
+	  prevailing_node->extra_name->prev = last;
+	}
+      prevailing_node->extra_name = vnode->extra_name;
+      vnode->extra_name = NULL;
     }
   gcc_assert (!vnode->finalized || prevailing_node->finalized);
   gcc_assert (!vnode->analyzed || prevailing_node->analyzed);
 
+  /* When replacing by an alias, the references goes to the original
+     variable.  */
+  if (prevailing_node->alias && prevailing_node->extra_name)
+    prevailing_node = prevailing_node->extra_name;
+  ipa_clone_refering (NULL, prevailing_node, &vnode->ref_list);
+
+  /* Be sure we can garbage collect the initializer.  */
+  if (DECL_INITIAL (vnode->decl))
+    DECL_INITIAL (vnode->decl) = error_mark_node;
   /* Finally remove the replaced node.  */
   varpool_remove_node (vnode);
 }
@@ -406,7 +437,13 @@ lto_symtab_resolve_can_prevail_p (lto_symtab_entry_t e)
 
   /* A variable should have a size.  */
   else if (TREE_CODE (e->decl) == VAR_DECL)
-    return (e->vnode && e->vnode->finalized);
+    {
+      if (!e->vnode)
+	return false;
+      if (e->vnode->finalized)
+	return true;
+      return e->vnode->alias && e->vnode->extra_name->finalized;
+    }
 
   gcc_unreachable ();
 }
@@ -580,10 +617,22 @@ lto_symtab_merge_decls_1 (void **slot, void *data ATTRIBUTE_UNUSED)
 	while (!prevailing->node
 	       && prevailing->next)
 	  prevailing = prevailing->next;
+      /* For variables chose with a priority variant with vnode
+	 attached (i.e. from unit where external declaration of
+	 variable is actually used).
+	 When there are multiple variants, chose one with size.
+	 This is needed for C++ typeinfos, for example in
+	 lto/20081204-1 there are typeifos in both units, just
+	 one of them do have size.  */
       if (TREE_CODE (prevailing->decl) == VAR_DECL)
-	while (!prevailing->vnode
-	       && prevailing->next)
-	  prevailing = prevailing->next;
+	{
+	  for (e = prevailing->next; e; e = e->next)
+	    if ((!prevailing->vnode && e->vnode)
+		|| ((prevailing->vnode != NULL) == (e->vnode != NULL)
+		    && !COMPLETE_TYPE_P (TREE_TYPE (prevailing->decl))
+		    && COMPLETE_TYPE_P (TREE_TYPE (e->decl))))
+	      prevailing = e;
+	}
     }
 
   /* Move it first in the list.  */

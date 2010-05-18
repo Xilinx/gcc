@@ -2759,10 +2759,14 @@ lookup_vi_for_tree (tree t)
 static const char *
 alias_get_name (tree decl)
 {
-  const char *res = get_name (decl);
+  const char *res;
   char *temp;
   int num_printed = 0;
 
+  if (DECL_ASSEMBLER_NAME_SET_P (decl))
+    res = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+  else
+    res= get_name (decl);
   if (res != NULL)
     return res;
 
@@ -2955,7 +2959,11 @@ type_could_have_pointers (tree type)
 static bool
 could_have_pointers (tree t)
 {
-  return type_could_have_pointers (TREE_TYPE (t));
+  return (((TREE_CODE (t) == VAR_DECL
+	    || TREE_CODE (t) == PARM_DECL
+	    || TREE_CODE (t) == RESULT_DECL)
+	   && (TREE_PUBLIC (t) || DECL_EXTERNAL (t) || TREE_ADDRESSABLE (t)))
+	  || type_could_have_pointers (TREE_TYPE (t)));
 }
 
 /* Return the position, in bits, of FIELD_DECL from the beginning of its
@@ -3591,11 +3599,11 @@ make_transitive_closure_constraints (varinfo_t vi)
   process_constraint (new_constraint (lhs, rhs));
 }
 
-/* Create a new artificial heap variable with NAME and make a
-   constraint from it to LHS.  Return the created variable.  */
+/* Create a new artificial heap variable with NAME.
+   Return the created variable.  */
 
 static varinfo_t
-make_constraint_from_heapvar (varinfo_t lhs, const char *name)
+make_heapvar_for (varinfo_t lhs, const char *name)
 {
   varinfo_t vi;
   tree heapvar = heapvar_lookup (lhs->decl, lhs->offset);
@@ -3627,6 +3635,16 @@ make_constraint_from_heapvar (varinfo_t lhs, const char *name)
   vi->is_full_var = true;
   insert_vi_for_tree (heapvar, vi);
 
+  return vi;
+}
+
+/* Create a new artificial heap variable with NAME and make a
+   constraint from it to LHS.  Return the created variable.  */
+
+static varinfo_t
+make_constraint_from_heapvar (varinfo_t lhs, const char *name)
+{
+  varinfo_t vi = make_heapvar_for (lhs, name);
   make_constraint_from (lhs, vi->id);
 
   return vi;
@@ -3701,15 +3719,59 @@ handle_rhs_call (gimple stmt, VEC(ce_s, heap) **results)
 {
   struct constraint_expr rhsc;
   unsigned i;
+  bool returns_uses = false;
 
   for (i = 0; i < gimple_call_num_args (stmt); ++i)
     {
       tree arg = gimple_call_arg (stmt, i);
+      int flags = gimple_call_arg_flags (stmt, i);
 
-      /* Find those pointers being passed, and make sure they end up
-	 pointing to anything.  */
-      if (could_have_pointers (arg))
+      /* If the argument is not used or it does not contain pointers
+	 we can ignore it.  */
+      if ((flags & EAF_UNUSED)
+	  || !could_have_pointers (arg))
+	continue;
+
+      /* As we compute ESCAPED context-insensitive we do not gain
+         any precision with just EAF_NOCLOBBER but not EAF_NOESCAPE
+	 set.  The argument would still get clobbered through the
+	 escape solution.
+	 ???  We might get away with less (and more precise) constraints
+	 if using a temporary for transitively closing things.  */
+      if ((flags & EAF_NOCLOBBER)
+	   && (flags & EAF_NOESCAPE))
+	{
+	  varinfo_t uses = get_call_use_vi (stmt);
+	  if (!(flags & EAF_DIRECT))
+	    make_transitive_closure_constraints (uses);
+	  make_constraint_to (uses->id, arg);
+	  returns_uses = true;
+	}
+      else if (flags & EAF_NOESCAPE)
+	{
+	  varinfo_t uses = get_call_use_vi (stmt);
+	  varinfo_t clobbers = get_call_clobber_vi (stmt);
+	  if (!(flags & EAF_DIRECT))
+	    {
+	      make_transitive_closure_constraints (uses);
+	      make_transitive_closure_constraints (clobbers);
+	    }
+	  make_constraint_to (uses->id, arg);
+	  make_constraint_to (clobbers->id, arg);
+	  returns_uses = true;
+	}
+      else
 	make_escape_constraint (arg);
+    }
+
+  /* If we added to the calls uses solution make sure we account for
+     pointers to it to be returned.  */
+  if (returns_uses)
+    {
+      rhsc.var = get_call_use_vi (stmt)->id;
+      rhsc.offset = 0;
+      rhsc.type = SCALAR;
+      VEC_safe_push (ce_s, heap, *results, &rhsc);
     }
 
   /* The static chain escapes as well.  */
@@ -3744,44 +3806,63 @@ handle_rhs_call (gimple stmt, VEC(ce_s, heap) **results)
    the LHS point to global and escaped variables.  */
 
 static void
-handle_lhs_call (tree lhs, int flags, VEC(ce_s, heap) *rhsc, tree fndecl)
+handle_lhs_call (gimple stmt, tree lhs, int flags, VEC(ce_s, heap) *rhsc,
+		 tree fndecl)
 {
   VEC(ce_s, heap) *lhsc = NULL;
 
   get_constraint_for (lhs, &lhsc);
+  /* If the store is to a global decl make sure to
+     add proper escape constraints.  */
+  lhs = get_base_address (lhs);
+  if (lhs
+      && DECL_P (lhs)
+      && is_global_var (lhs))
+    {
+      struct constraint_expr tmpc;
+      tmpc.var = escaped_id;
+      tmpc.offset = 0;
+      tmpc.type = SCALAR;
+      VEC_safe_push (ce_s, heap, lhsc, &tmpc);
+    }
 
-  if (flags & ECF_MALLOC)
+  /* If the call returns an argument unmodified override the rhs
+     constraints.  */
+  flags = gimple_call_return_flags (stmt);
+  if (flags & ERF_RETURNS_ARG
+      && (flags & ERF_RETURN_ARG_MASK) < gimple_call_num_args (stmt))
+    {
+      tree arg;
+      rhsc = NULL;
+      arg = gimple_call_arg (stmt, flags & ERF_RETURN_ARG_MASK);
+      get_constraint_for (arg, &rhsc);
+      process_all_all_constraints (lhsc, rhsc);
+      VEC_free (ce_s, heap, rhsc);
+    }
+  else if (flags & ERF_NOALIAS)
     {
       varinfo_t vi;
-      vi = make_constraint_from_heapvar (get_vi_for_tree (lhs), "HEAP");
+      struct constraint_expr tmpc;
+      rhsc = NULL;
+      vi = make_heapvar_for (get_vi_for_tree (lhs), "HEAP");
       /* We delay marking allocated storage global until we know if
          it escapes.  */
       DECL_EXTERNAL (vi->decl) = 0;
       vi->is_global_var = 0;
       /* If this is not a real malloc call assume the memory was
-         initialized and thus may point to global memory.  All
+	 initialized and thus may point to global memory.  All
 	 builtin functions with the malloc attribute behave in a sane way.  */
       if (!fndecl
 	  || DECL_BUILT_IN_CLASS (fndecl) != BUILT_IN_NORMAL)
 	make_constraint_from (vi, nonlocal_id);
+      tmpc.var = vi->id;
+      tmpc.offset = 0;
+      tmpc.type = ADDRESSOF;
+      VEC_safe_push (ce_s, heap, rhsc, &tmpc);
     }
-  else if (VEC_length (ce_s, rhsc) > 0)
-    {
-      /* If the store is to a global decl make sure to
-	 add proper escape constraints.  */
-      lhs = get_base_address (lhs);
-      if (lhs
-	  && DECL_P (lhs)
-	  && is_global_var (lhs))
-	{
-	  struct constraint_expr tmpc;
-	  tmpc.var = escaped_id;
-	  tmpc.offset = 0;
-	  tmpc.type = SCALAR;
-	  VEC_safe_push (ce_s, heap, lhsc, &tmpc);
-	}
-      process_all_all_constraints (lhsc, rhsc);
-    }
+
+  process_all_all_constraints (lhsc, rhsc);
+
   VEC_free (ce_s, heap, lhsc);
 }
 
@@ -4194,7 +4275,7 @@ find_func_aliases (gimple origt)
 	    handle_rhs_call (t, &rhsc);
 	  if (gimple_call_lhs (t)
 	      && could_have_pointers (gimple_call_lhs (t)))
-	    handle_lhs_call (gimple_call_lhs (t), flags, rhsc, fndecl);
+	    handle_lhs_call (t, gimple_call_lhs (t), flags, rhsc, fndecl);
 	  VEC_free (ce_s, heap, rhsc);
 	}
       else
@@ -4228,7 +4309,7 @@ find_func_aliases (gimple origt)
 	  /* If we are returning a value, assign it to the result.  */
 	  lhsop = gimple_call_lhs (t);
 	  if (lhsop
-	      && could_have_pointers (lhsop))
+	      && type_could_have_pointers (TREE_TYPE (lhsop)))
 	    {
 	      struct constraint_expr rhs;
 	      struct constraint_expr *lhsp;
@@ -4282,7 +4363,7 @@ find_func_aliases (gimple origt)
      operations with pointer result, others are dealt with as escape
      points if they have pointer operands.  */
   else if (is_gimple_assign (t)
-	   && could_have_pointers (gimple_assign_lhs (t)))
+	   && type_could_have_pointers (TREE_TYPE (gimple_assign_lhs (t))))
     {
       /* Otherwise, just a regular assignment statement.  */
       tree lhsop = gimple_assign_lhs (t);
@@ -4851,7 +4932,7 @@ var_can_have_subvars (const_tree v)
 
 static bool
 push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
-			     HOST_WIDE_INT offset)
+			     HOST_WIDE_INT offset, bool must_have_pointers_p)
 {
   tree field;
   bool empty_p = true;
@@ -4876,7 +4957,8 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
 	    || TREE_CODE (TREE_TYPE (field)) == UNION_TYPE)
 	  push = true;
 	else if (!push_fields_onto_fieldstack
-		    (TREE_TYPE (field), fieldstack, offset + foff)
+		    (TREE_TYPE (field), fieldstack, offset + foff,
+		     must_have_pointers_p)
 		 && (DECL_SIZE (field)
 		     && !integer_zerop (DECL_SIZE (field))))
 	  /* Empty structures may have actual size, like in C++.  So
@@ -4902,6 +4984,7 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
 		&& !pair->has_unknown_size
 		&& !has_unknown_size
 		&& pair->offset + (HOST_WIDE_INT)pair->size == offset + foff
+		&& !must_have_pointers_p
 		&& !could_have_pointers (field))
 	      {
 		pair->size += TREE_INT_CST_LOW (DECL_SIZE (field));
@@ -4915,7 +4998,8 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
 		  pair->size = TREE_INT_CST_LOW (DECL_SIZE (field));
 		else
 		  pair->size = -1;
-		pair->may_have_pointers = could_have_pointers (field);
+		pair->may_have_pointers
+		  = must_have_pointers_p || could_have_pointers (field);
 		pair->only_restrict_pointers
 		  = (!has_unknown_size
 		     && POINTER_TYPE_P (TREE_TYPE (field))
@@ -4956,7 +5040,7 @@ count_num_arguments (tree decl, bool *is_varargs)
 /* Creation function node for DECL, using NAME, and return the index
    of the variable we've created for the function.  */
 
-static unsigned int
+static varinfo_t
 create_function_info_for (tree decl, const char *name)
 {
   struct function *fn = DECL_STRUCT_FUNCTION (decl);
@@ -5129,7 +5213,7 @@ create_function_info_for (tree decl, const char *name)
       prev_vi = argvi;
     }
 
-  return vi->id;
+  return vi;
 }
 
 
@@ -5192,7 +5276,10 @@ create_variable_info_for_1 (tree decl, const char *name)
       bool notokay = false;
       unsigned int i;
 
-      push_fields_onto_fieldstack (decl_type, &fieldstack, 0);
+      push_fields_onto_fieldstack (decl_type, &fieldstack, 0,
+				   TREE_PUBLIC (decl)
+				   || DECL_EXTERNAL (decl)
+				   || TREE_ADDRESSABLE (decl));
 
       for (i = 0; !notokay && VEC_iterate (fieldoff_s, fieldstack, i, fo); i++)
 	if (fo->has_unknown_size
@@ -6565,6 +6652,9 @@ ipa_pta_execute (void)
   /* Build the constraints.  */
   for (node = cgraph_nodes; node; node = node->next)
     {
+      struct cgraph_node *alias;
+      varinfo_t vi;
+
       /* Nodes without a body are not interesting.  Especially do not
          visit clones at this point for now - we get duplicate decls
 	 there for inline clones at least.  */
@@ -6572,13 +6662,26 @@ ipa_pta_execute (void)
 	  || node->clone_of)
 	continue;
 
-      create_function_info_for (node->decl,
-				cgraph_node_name (node));
+      vi = create_function_info_for (node->decl,
+				     alias_get_name (node->decl));
+
+      /* Associate the varinfo node with all aliases.  */
+      for (alias = node->same_body; alias; alias = alias->next)
+	insert_vi_for_tree (alias->decl, vi);
     }
 
   /* Create constraints for global variables and their initializers.  */
   for (var = varpool_nodes; var; var = var->next)
-    get_vi_for_tree (var->decl);
+    {
+      struct varpool_node *alias;
+      varinfo_t vi;
+
+      vi = get_vi_for_tree (var->decl);
+
+      /* Associate the varinfo node with all aliases.  */
+      for (alias = var->extra_name; alias; alias = alias->next)
+	insert_vi_for_tree (alias->decl, vi);
+    }
 
   if (dump_file)
     {
@@ -6601,9 +6704,14 @@ ipa_pta_execute (void)
 	continue;
 
       if (dump_file)
-	fprintf (dump_file,
-		 "Generating constraints for %s\n",
-		 cgraph_node_name (node));
+	{
+	  fprintf (dump_file,
+		   "Generating constraints for %s", cgraph_node_name (node));
+	  if (DECL_ASSEMBLER_NAME_SET_P (node->decl))
+	    fprintf (dump_file, " (%s)",
+		     IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (node->decl)));
+	  fprintf (dump_file, "\n");
+	}
 
       func = DECL_STRUCT_FUNCTION (node->decl);
       old_func_decl = current_function_decl;

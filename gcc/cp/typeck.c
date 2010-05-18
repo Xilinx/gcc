@@ -1631,6 +1631,8 @@ cxx_sizeof_expr (tree e, tsubst_flags_t complain)
       && DECL_TEMPLATE_INSTANTIATION (e))
     instantiate_decl (e, /*defer_ok*/true, /*expl_inst_mem*/false);
 
+  e = mark_type_use (e);
+
   if (TREE_CODE (e) == COMPONENT_REF
       && TREE_CODE (TREE_OPERAND (e, 1)) == FIELD_DECL
       && DECL_C_BIT_FIELD (TREE_OPERAND (e, 1)))
@@ -1685,6 +1687,8 @@ cxx_alignof_expr (tree e, tsubst_flags_t complain)
 
       return e;
     }
+
+  e = mark_type_use (e);
 
   if (TREE_CODE (e) == VAR_DECL)
     t = size_int (DECL_ALIGN_UNIT (e));
@@ -1835,7 +1839,9 @@ unlowered_expr_type (const_tree exp)
    in an rvalue context: the lvalue-to-rvalue, array-to-pointer, and
    function-to-pointer conversions.  In addition, manifest constants
    are replaced by their values, and bitfield references are converted
-   to their declared types.
+   to their declared types. Note that this function does not perform the
+   lvalue-to-rvalue conversion for class types. If you need that conversion
+   to for class types, then you probably need to use force_rvalue.
 
    Although the returned value is being used as an rvalue, this
    function does not wrap the returned expression in a
@@ -1851,6 +1857,8 @@ decay_conversion (tree exp)
   type = TREE_TYPE (exp);
   if (type == error_mark_node)
     return error_mark_node;
+
+  exp = mark_rvalue_use (exp);
 
   exp = resolve_nondeduced_context (exp);
   if (type_unknown_p (exp))
@@ -1975,6 +1983,8 @@ perform_integral_promotions (tree expr)
 {
   tree type;
   tree promoted_type;
+
+  expr = mark_rvalue_use (expr);
 
   /* [conv.prom]
 
@@ -2850,13 +2860,15 @@ cp_build_indirect_ref (tree ptr, ref_operator errorstring,
    LOC is the location to use in building the array reference.  */
 
 tree
-build_array_ref (location_t loc, tree array, tree idx)
+cp_build_array_ref (location_t loc, tree array, tree idx,
+		    tsubst_flags_t complain)
 {
   tree ret;
 
   if (idx == 0)
     {
-      error_at (loc, "subscript missing in array reference");
+      if (complain & tf_error)
+	error_at (loc, "subscript missing in array reference");
       return error_mark_node;
     }
 
@@ -2870,7 +2882,8 @@ build_array_ref (location_t loc, tree array, tree idx)
     {
     case COMPOUND_EXPR:
       {
-	tree value = build_array_ref (loc, TREE_OPERAND (array, 1), idx);
+	tree value = cp_build_array_ref (loc, TREE_OPERAND (array, 1), idx,
+					 complain);
 	ret = build2 (COMPOUND_EXPR, TREE_TYPE (value),
 		      TREE_OPERAND (array, 0), value);
 	SET_EXPR_LOCATION (ret, loc);
@@ -2880,8 +2893,10 @@ build_array_ref (location_t loc, tree array, tree idx)
     case COND_EXPR:
       ret = build_conditional_expr
 	      (TREE_OPERAND (array, 0),
-	       build_array_ref (loc, TREE_OPERAND (array, 1), idx),
-	       build_array_ref (loc, TREE_OPERAND (array, 2), idx),
+	       cp_build_array_ref (loc, TREE_OPERAND (array, 1), idx,
+				   complain),
+	       cp_build_array_ref (loc, TREE_OPERAND (array, 2), idx,
+				   complain),
 	       tf_warning_or_error);
       protected_set_expr_location (ret, loc);
       return ret;
@@ -2898,7 +2913,8 @@ build_array_ref (location_t loc, tree array, tree idx)
 
       if (!INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (TREE_TYPE (idx)))
 	{
-	  error_at (loc, "array subscript is not an integer");
+	  if (complain & tf_error)
+	    error_at (loc, "array subscript is not an integer");
 	  return error_mark_node;
 	}
 
@@ -2934,7 +2950,7 @@ build_array_ref (location_t loc, tree array, tree idx)
 	    return error_mark_node;
 	}
 
-      if (!lvalue_p (array))
+      if (!lvalue_p (array) && (complain & tf_error))
 	pedwarn (loc, OPT_pedantic, 
 	         "ISO C++ forbids subscripting non-lvalue array");
 
@@ -2946,7 +2962,8 @@ build_array_ref (location_t loc, tree array, tree idx)
 	  tree foo = array;
 	  while (TREE_CODE (foo) == COMPONENT_REF)
 	    foo = TREE_OPERAND (foo, 0);
-	  if (TREE_CODE (foo) == VAR_DECL && DECL_REGISTER (foo))
+	  if (TREE_CODE (foo) == VAR_DECL && DECL_REGISTER (foo)
+	      && (complain & tf_warning))
 	    warning_at (loc, OPT_Wextra,
 			"subscripting array declared %<register%>");
 	}
@@ -2983,12 +3000,14 @@ build_array_ref (location_t loc, tree array, tree idx)
 
     if (TREE_CODE (TREE_TYPE (ar)) != POINTER_TYPE)
       {
-	error_at (loc, "subscripted value is neither array nor pointer");
+	if (complain & tf_error)
+	  error_at (loc, "subscripted value is neither array nor pointer");
 	return error_mark_node;
       }
     if (TREE_CODE (TREE_TYPE (ind)) != INTEGER_TYPE)
       {
-	error_at (loc, "array subscript is not an integer");
+	if (complain & tf_error)
+	  error_at (loc, "array subscript is not an integer");
 	return error_mark_node;
       }
 
@@ -2996,12 +3015,20 @@ build_array_ref (location_t loc, tree array, tree idx)
 
     ret = cp_build_indirect_ref (cp_build_binary_op (input_location,
 						     PLUS_EXPR, ar, ind,
-						     tf_warning_or_error),
+						     complain),
                                  RO_ARRAY_INDEXING,
-                                 tf_warning_or_error);
+                                 complain);
     protected_set_expr_location (ret, loc);
     return ret;
   }
+}
+
+/* Entry point for Obj-C++.  */
+
+tree
+build_array_ref (location_t loc, tree array, tree idx)
+{
+  return cp_build_array_ref (loc, array, idx, tf_warning_or_error);
 }
 
 /* Resolve a pointer to member function.  INSTANCE is the object
@@ -3983,6 +4010,9 @@ cp_build_binary_op (location_t location,
 	    }
 	  result_type = type1;
 	}
+      else if (null_ptr_cst_p (op0) && null_ptr_cst_p (op1))
+	/* One of the operands must be of nullptr_t type.  */
+        result_type = TREE_TYPE (nullptr_node);
       else if (code0 == POINTER_TYPE && code1 == INTEGER_TYPE)
 	{
 	  result_type = type0;
@@ -4174,18 +4204,21 @@ cp_build_binary_op (location_t location,
 	}
 
       build_type = boolean_type_node;
-      if ((code0 == INTEGER_TYPE || code0 == REAL_TYPE)
-	   && (code1 == INTEGER_TYPE || code1 == REAL_TYPE))
+      if ((code0 == INTEGER_TYPE || code0 == REAL_TYPE
+	   || code0 == ENUMERAL_TYPE)
+	   && (code1 == INTEGER_TYPE || code1 == REAL_TYPE
+	       || code1 == ENUMERAL_TYPE))
 	short_compare = 1;
       else if (code0 == POINTER_TYPE && code1 == POINTER_TYPE)
 	result_type = composite_pointer_type (type0, type1, op0, op1,
 					      CPO_COMPARISON, complain);
-      else if (code0 == POINTER_TYPE && TREE_CODE (op1) == INTEGER_CST
-	       && integer_zerop (op1))
+      else if (code0 == POINTER_TYPE && null_ptr_cst_p (op1))
 	result_type = type0;
-      else if (code1 == POINTER_TYPE && TREE_CODE (op0) == INTEGER_CST
-	       && integer_zerop (op0))
+      else if (code1 == POINTER_TYPE && null_ptr_cst_p (op0))
 	result_type = type1;
+      else if (null_ptr_cst_p (op0) && null_ptr_cst_p (op1))
+	/* One of the operands must be of nullptr_t type.  */
+        result_type = TREE_TYPE (nullptr_node);
       else if (code0 == POINTER_TYPE && code1 == INTEGER_TYPE)
 	{
 	  result_type = type0;
@@ -4805,6 +4838,8 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
       if (val != 0)
 	return val;
 
+      arg = mark_lvalue_use (arg);
+
       /* Increment or decrement the real part of the value,
 	 and don't change the imaginary part.  */
       if (TREE_CODE (TREE_TYPE (arg)) == COMPLEX_TYPE)
@@ -4937,6 +4972,8 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	 regardless of NOCONVERT.  */
 
       argtype = lvalue_type (arg);
+
+      arg = mark_lvalue_use (arg);
 
       if (TREE_CODE (arg) == OFFSET_REF)
 	goto offset_ref;
@@ -6004,8 +6041,11 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
 
   /* [expr.reinterpret.cast]
      A pointer can be converted to any integral type large enough to
-     hold it.  */
-  if (CP_INTEGRAL_TYPE_P (type) && TYPE_PTR_P (intype))
+     hold it. ... A value of type std::nullptr_t can be converted to
+     an integral type; the conversion has the same meaning and
+     validity as a conversion of (void*)0 to the integral type.  */
+  if (CP_INTEGRAL_TYPE_P (type)
+      && (TYPE_PTR_P (intype) || NULLPTR_TYPE_P (intype)))
     {
       if (TYPE_PRECISION (type) < TYPE_PRECISION (intype))
         {
@@ -6015,6 +6055,8 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
           else
             return error_mark_node;
         }
+      if (NULLPTR_TYPE_P (intype))
+        return build_int_cst (type, 0);
     }
   /* [expr.reinterpret.cast]
      A value of integral or enumeration type can be explicitly
@@ -6609,6 +6651,12 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 
       if (BRACE_ENCLOSED_INITIALIZER_P (newrhs))
 	{
+	  if (modifycode != INIT_EXPR)
+	    {
+	      if (complain & tf_error)
+		error ("assigning to an array from an initializer list");
+	      return error_mark_node;
+	    }
 	  if (check_array_initializer (lhs, lhstype, newrhs))
 	    return error_mark_node;
 	  newrhs = digest_init (lhstype, newrhs);
@@ -8040,3 +8088,4 @@ lvalue_or_else (tree ref, enum lvalue_use use, tsubst_flags_t complain)
 
   return win;
 }
+

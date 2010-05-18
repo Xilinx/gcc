@@ -844,7 +844,23 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
   lto_output_tree_or_ref (ob, DECL_SIZE_UNIT (expr), ref_p);
 
   if (TREE_CODE (expr) != FUNCTION_DECL)
-    lto_output_tree_or_ref (ob, DECL_INITIAL (expr), ref_p);
+    {
+      tree initial = DECL_INITIAL (expr);
+      if (TREE_CODE (expr) == VAR_DECL
+	  && (TREE_STATIC (expr) || DECL_EXTERNAL (expr))
+	  && initial)
+	{
+	  lto_varpool_encoder_t varpool_encoder = ob->decl_state->varpool_node_encoder;
+	  struct varpool_node *vnode = varpool_get_node (expr);
+	  if (!vnode)
+	    initial = error_mark_node;
+	  else if (!lto_varpool_encoder_encode_initializer_p (varpool_encoder,
+							      vnode))
+	    initial = NULL;
+	}
+    
+      lto_output_tree_or_ref (ob, initial, ref_p);
+    }
 
   lto_output_tree_or_ref (ob, DECL_ATTRIBUTES (expr), ref_p);
   lto_output_tree_or_ref (ob, DECL_ABSTRACT_ORIGIN (expr), ref_p);
@@ -2074,18 +2090,25 @@ lto_output (cgraph_node_set set, varpool_node_set vset)
 {
   struct cgraph_node *node;
   struct lto_out_decl_state *decl_state;
-  cgraph_node_set_iterator csi;
+#ifdef ENABLE_CHECKING
   bitmap output = lto_bitmap_alloc ();
+#endif
+  int i, n_nodes;
+  lto_cgraph_encoder_t encoder = lto_get_out_decl_state ()->cgraph_node_encoder;
 
   lto_writer_init ();
 
+  n_nodes = lto_cgraph_encoder_size (encoder);
   /* Process only the functions with bodies.  */
-  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
+  for (i = 0; i < n_nodes; i++)
     {
-      node = csi_node (csi);
-      if (node->analyzed && !bitmap_bit_p (output, DECL_UID (node->decl)))
+      node = lto_cgraph_encoder_deref (encoder, i);
+      if (lto_cgraph_encoder_encode_body_p (encoder, node))
 	{
+#ifdef ENABLE_CHECKING
+	  gcc_assert (!bitmap_bit_p (output, DECL_UID (node->decl)));
 	  bitmap_set_bit (output, DECL_UID (node->decl));
+#endif
 	  decl_state = lto_new_out_decl_state ();
 	  lto_push_out_decl_state (decl_state);
 	  if (!flag_wpa)
@@ -2102,10 +2125,11 @@ lto_output (cgraph_node_set set, varpool_node_set vset)
      be done now to make sure that all the statements in every function
      have been renumbered so that edges can be associated with call
      statements using the statement UIDs.  */
-  output_cgraph (set);
-  output_varpool (vset);
+  output_cgraph (set, vset);
 
+#ifdef ENABLE_CHECKING
   lto_bitmap_free (output);
+#endif
 }
 
 struct ipa_opt_pass_d pass_ipa_lto_gimple_out =
@@ -2506,7 +2530,14 @@ produce_asm_for_decls (cgraph_node_set set, varpool_node_set vset)
   lto_write_options ();
 
   /* Deallocate memory and clean up.  */
+  for (idx = 0; idx < num_fns; idx++)
+    {
+      fn_out_state =
+	VEC_index (lto_out_decl_state_ptr, lto_function_decl_states, idx);
+      lto_delete_out_decl_state (fn_out_state);
+    }
   lto_cgraph_encoder_delete (ob->decl_state->cgraph_node_encoder);
+  lto_varpool_encoder_delete (ob->decl_state->varpool_node_encoder);
   VEC_free (lto_out_decl_state_ptr, heap, lto_function_decl_states);
   lto_function_decl_states = NULL;
   destroy_output_block (ob);

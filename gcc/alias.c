@@ -2196,43 +2196,21 @@ nonoverlapping_memrefs_p (const_rtx x, const_rtx y)
   moffsetx = MEM_OFFSET (x);
   if (TREE_CODE (exprx) == COMPONENT_REF)
     {
-      if (TREE_CODE (expry) == VAR_DECL
-	  && POINTER_TYPE_P (TREE_TYPE (expry)))
-	{
-	 tree field = TREE_OPERAND (exprx, 1);
-	 tree fieldcontext = DECL_FIELD_CONTEXT (field);
-	 if (ipa_type_escape_field_does_not_clobber_p (fieldcontext,
-						       TREE_TYPE (field)))
-	   return 1;
-	}
-      {
-	tree t = decl_for_component_ref (exprx);
-	if (! t)
-	  return 0;
-	moffsetx = adjust_offset_for_component_ref (exprx, moffsetx);
-	exprx = t;
-      }
+      tree t = decl_for_component_ref (exprx);
+      if (! t)
+	return 0;
+      moffsetx = adjust_offset_for_component_ref (exprx, moffsetx);
+      exprx = t;
     }
 
   moffsety = MEM_OFFSET (y);
   if (TREE_CODE (expry) == COMPONENT_REF)
     {
-      if (TREE_CODE (exprx) == VAR_DECL
-	  && POINTER_TYPE_P (TREE_TYPE (exprx)))
-	{
-	 tree field = TREE_OPERAND (expry, 1);
-	 tree fieldcontext = DECL_FIELD_CONTEXT (field);
-	 if (ipa_type_escape_field_does_not_clobber_p (fieldcontext,
-						       TREE_TYPE (field)))
-	   return 1;
-	}
-      {
-	tree t = decl_for_component_ref (expry);
-	if (! t)
-	  return 0;
-	moffsety = adjust_offset_for_component_ref (expry, moffsety);
-	expry = t;
-      }
+      tree t = decl_for_component_ref (expry);
+      if (! t)
+	return 0;
+      moffsety = adjust_offset_for_component_ref (expry, moffsety);
+      expry = t;
     }
 
   if (! DECL_P (exprx) || ! DECL_P (expry))
@@ -2357,8 +2335,18 @@ true_dependence (const_rtx mem, enum machine_mode mem_mode, const_rtx x,
   if (mem_mode == VOIDmode)
     mem_mode = GET_MODE (mem);
 
-  x_addr = get_addr (XEXP (x, 0));
-  mem_addr = get_addr (XEXP (mem, 0));
+  x_addr = XEXP (x, 0);
+  mem_addr = XEXP (mem, 0);
+  if (!((GET_CODE (x_addr) == VALUE
+	 && GET_CODE (mem_addr) != VALUE
+	 && reg_mentioned_p (x_addr, mem_addr))
+	|| (GET_CODE (x_addr) != VALUE
+	    && GET_CODE (mem_addr) == VALUE
+	    && reg_mentioned_p (mem_addr, x_addr))))
+    {
+      x_addr = get_addr (x_addr);
+      mem_addr = get_addr (mem_addr);
+    }
 
   base = find_base_term (x_addr);
   if (base && (GET_CODE (base) == LABEL_REF
@@ -2440,7 +2428,16 @@ canon_true_dependence (const_rtx mem, enum machine_mode mem_mode, rtx mem_addr,
     return 1;
 
   if (! x_addr)
-    x_addr = get_addr (XEXP (x, 0));
+    {
+      x_addr = XEXP (x, 0);
+      if (!((GET_CODE (x_addr) == VALUE
+	     && GET_CODE (mem_addr) != VALUE
+	     && reg_mentioned_p (x_addr, mem_addr))
+	    || (GET_CODE (x_addr) != VALUE
+		&& GET_CODE (mem_addr) == VALUE
+		&& reg_mentioned_p (mem_addr, x_addr))))
+	x_addr = get_addr (x_addr);
+    }
 
   if (! base_alias_check (x_addr, mem_addr, GET_MODE (x), mem_mode))
     return 0;
@@ -2509,8 +2506,18 @@ write_dependence_p (const_rtx mem, const_rtx x, int writep)
   if (MEM_ADDR_SPACE (mem) != MEM_ADDR_SPACE (x))
     return 1;
 
-  x_addr = get_addr (XEXP (x, 0));
-  mem_addr = get_addr (XEXP (mem, 0));
+  x_addr = XEXP (x, 0);
+  mem_addr = XEXP (mem, 0);
+  if (!((GET_CODE (x_addr) == VALUE
+	 && GET_CODE (mem_addr) != VALUE
+	 && reg_mentioned_p (x_addr, mem_addr))
+	|| (GET_CODE (x_addr) != VALUE
+	    && GET_CODE (mem_addr) == VALUE
+	    && reg_mentioned_p (mem_addr, x_addr))))
+    {
+      x_addr = get_addr (x_addr);
+      mem_addr = get_addr (mem_addr);
+    }
 
   if (! writep)
     {

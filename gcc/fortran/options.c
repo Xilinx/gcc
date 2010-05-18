@@ -413,14 +413,7 @@ set_Wall (int setting)
   warn_unused = setting;
   warn_return_type = setting;
   warn_switch = setting;
-
-  /* We save the value of warn_uninitialized, since if they put
-     -Wuninitialized on the command line, we need to generate a
-     warning about not using it without also specifying -O.  */
-  if (setting == 0)
-    warn_uninitialized = 0;
-  else if (warn_uninitialized != 1)
-    warn_uninitialized = 2;
+  warn_uninitialized = setting;
 }
 
 
@@ -532,7 +525,8 @@ gfc_handle_runtime_check_option (const char *arg)
    recognized and handled.  */
 
 int
-gfc_handle_option (size_t scode, const char *arg, int value)
+gfc_handle_option (size_t scode, const char *arg, int value,
+		   int kind ATTRIBUTE_UNUSED)
 {
   int result = 1;
   enum opt_code code = (enum opt_code) scode;

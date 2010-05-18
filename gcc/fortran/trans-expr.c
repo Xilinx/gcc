@@ -3077,7 +3077,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		 it is invalid to pass a non-present argument on, even
 		 though there is no technical reason for this in gfortran.
 		 See Fortran 2003, Section 12.4.1.6 item (7)+(8).  */
-	      tree present, nullptr, type;
+	      tree present, null_ptr, type;
 
 	      if (attr->allocatable
 		  && (fsym == NULL || !fsym->attr.allocatable))
@@ -3101,10 +3101,10 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	      present = fold_build2 (EQ_EXPR, boolean_type_node, present,
 				     fold_convert (type, null_pointer_node));
 	      type = TREE_TYPE (parmse.expr);
-	      nullptr = fold_build2 (EQ_EXPR, boolean_type_node, parmse.expr,
-				     fold_convert (type, null_pointer_node));
+	      null_ptr = fold_build2 (EQ_EXPR, boolean_type_node, parmse.expr,
+				      fold_convert (type, null_pointer_node));
 	      cond = fold_build2 (TRUTH_ORIF_EXPR, boolean_type_node,
-				  present, nullptr);
+				  present, null_ptr);
 	    }
           else
 	    {
@@ -3894,7 +3894,10 @@ gfc_conv_initializer (gfc_expr * expr, gfc_typespec * ts, tree type,
 	case BT_DERIVED:
 	case BT_CLASS:
 	  gfc_init_se (&se, NULL);
-	  gfc_conv_structure (&se, expr, 1);
+	  if (ts->type == BT_CLASS && expr->expr_type == EXPR_NULL)
+	    gfc_conv_structure (&se, gfc_class_null_initializer(ts), 1);
+	  else
+	    gfc_conv_structure (&se, expr, 1);
 	  return se.expr;
 
 	case BT_CHARACTER:
@@ -4202,7 +4205,7 @@ gfc_trans_subcomponent_assign (tree dest, gfc_component * cm, gfc_expr * expr)
     {
       /* NULL initialization for CLASS components.  */
       tmp = gfc_trans_structure_assign (dest,
-					gfc_default_initializer (&cm->ts));
+					gfc_class_null_initializer (&cm->ts));
       gfc_add_expr_to_block (&block, tmp);
     }
   else if (cm->attr.dimension)
@@ -4334,20 +4337,7 @@ gfc_conv_structure (gfc_se * se, gfc_expr * expr, int init)
       if (!c->expr || cm->attr.allocatable)
         continue;
 
-      if (cm->ts.type == BT_CLASS && !cm->attr.proc_pointer)
-	{
-	  gfc_component *data;
-	  data = gfc_find_component (cm->ts.u.derived, "$data", true, true);
-	  if (!data->backend_decl)
-	    gfc_get_derived_type (cm->ts.u.derived);
-	  val = gfc_conv_initializer (c->expr, &cm->ts,
-				      TREE_TYPE (data->backend_decl),
-				      data->attr.dimension,
-				      data->attr.pointer);
-
-	  CONSTRUCTOR_APPEND_ELT (v, data->backend_decl, val);
-	}
-      else if (strcmp (cm->name, "$size") == 0)
+      if (strcmp (cm->name, "$size") == 0)
 	{
 	  val = TYPE_SIZE_UNIT (gfc_get_derived_type (cm->ts.u.derived));
 	  CONSTRUCTOR_APPEND_ELT (v, cm->backend_decl, val);

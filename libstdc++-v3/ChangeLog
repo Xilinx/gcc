@@ -1,3 +1,103 @@
+2010-05-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/functional (result_of): Move...
+	* include/std/type_traits: ... here.
+	* testsuite/20_util/declval/requirements/1_neg.cc: Adjust dg-error
+	line number.
+
+2010-05-12  Jason Merrill  <jason@redhat.com>
+
+	* testsuite/20_util/auto_ptr/assign_neg.cc: Expect template
+	candidate messages.
+	* testsuite/20_util/unique_ptr/assign/assign_neg.cc: Likewise.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Likewise.
+
+2010-05-11  Silvius Rus  <silvius.rus@gmail.com>
+
+	PR libstdc++/43259
+	* include/profile/impl/profiler_algos.h: New.
+	* include/Makefile.am: Add.
+	* include/Makefile.in: Regenerate.
+	* include/profile/impl/profiler.h
+	(_GLIBCXX_PROFILE_DEFINE_UNINIT_DATA): Add.
+	* include/profile/impl/profiler_trace.h
+	(__mutex_t, __lock, __unlock): Remove.
+	(__lock_object_table, __lock_stack_table): Remove. Replace uses with
+	calls to __gnu_cxx::__mutex::lock.
+	(__unlock_object_table, __unlock_stack_table): Remove. Replace uses
+	with calls to __gnu_cxx::__mutex::unlock.
+	(__warn, __cost_factor_writer, __cost_factor_setter): Add.
+	* testsuite/ext/profile/profiler_algos.cc: New.
+
+2010-05-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* libsupc++/exception_ptr.h (make_exception_ptr): Add.
+	* testsuite/18_support/exception_ptr/make_exception_ptr.cc: New.
+
+2010-05-06  Jason Merrill  <jason@redhat.com>
+
+	* config/abi/pre/gnu.ver: Move decltype(nullptr) into CXXABI_1.3.5.
+	* testsuite/util/testsuite_abi.cc (check_version): Add CXXABI_1.3.5.
+
+	* config/abi/pre/gnu.ver: Add typeinfo for decltype(nullptr).
+
+2010-05-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/basic_string.h: Escape class names in doxygen docs.
+
+2010-05-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/44014
+	* include/bits/stringfwd.h: Add doxygen comments and new group.
+	* include/bits/basic_string.h: Add to new doxygen group.
+	* doc/doxygen/user.cfg.in (ALIASES): Link to correct group.
+
+2010-05-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.host: Removed irix[1-6], irix[1-5].*, irix6.[0-4]*
+	support.
+	* config/os/irix/irix5.2: Removed.
+
+2010-05-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/vector/bool/capacity/29134.cc: Adjust
+	for profile-mode too.
+	* testsuite/23_containers/vector/bool/modifiers/insert/31370.cc:
+	Likewise.
+
+2010-05-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/profile/unordered_map (unordered_map<>::insert(_InputIter,
+	_InputIter), unordered_multimap<>::insert(_InputIter, _InputIter)):
+	Fix typo, don't call base() on __first and __last.
+
+2010-05-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Fix profile-mode vs -std=c++0x
+	* include/profile/impl/profiler_trace.h: Do not include the
+	whole <algorithm>, include <bits/stl_heap.h> (additionally
+	to <bits/stl_algobase.h>).
+	(__write_cost_factors): Replace std::for_each with open-coding.
+	(__set_cost_factors): Likewise.
+	(__report): Likewise; use std::make_heap / std::sort_heap
+	instead of std::sort.
+	(__report_cost_factors): Replace std::remove with open-coding.
+	(__warn, __cost_factor_writer, __cost_factor_setter): Remove.
+
+2010-05-04  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR other/43620
+	* configure.ac (AM_INIT_AUTOMAKE): Add no-dist.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+	* doc/Makefile.in: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* libsupc++/Makefile.in: Regenerate.
+	* po/Makefile.in: Regenerate.
+	* python/Makefile.in: Regenerate.
+	* src/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
 2010-05-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* doc/xml/faq.xml: Fix anachronisms.

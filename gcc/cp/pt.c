@@ -1,6 +1,6 @@
 /* Handle parameterized types (templates) for GNU C++.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Written by Ken Raeburn (raeburn@cygnus.com) while at Watchmaker Computing.
    Rewritten by Jason Merrill (jason@cygnus.com).
@@ -3837,7 +3837,7 @@ process_partial_specialization (tree decl)
   int nargs = TREE_VEC_LENGTH (inner_args);
   int ntparms;
   int  i;
-  int did_error_intro = 0;
+  bool did_error_intro = false;
   struct template_parm_data tpd;
   struct template_parm_data tpd2;
 
@@ -3899,11 +3899,14 @@ process_partial_specialization (tree decl)
 	if (!did_error_intro)
 	  {
 	    error ("template parameters not used in partial specialization:");
-	    did_error_intro = 1;
+	    did_error_intro = true;
 	  }
 
 	error ("        %qD", TREE_VALUE (TREE_VEC_ELT (inner_parms, i)));
       }
+
+  if (did_error_intro)
+    return error_mark_node;
 
   /* [temp.class.spec]
 
@@ -4930,6 +4933,7 @@ convert_nontype_argument (tree type, tree expr)
   if (error_operand_p (expr))
     return error_mark_node;
   expr_type = TREE_TYPE (expr);
+  expr = mark_rvalue_use (expr);
 
   /* HACK: Due to double coercion, we can get a
      NOP_EXPR<REFERENCE_TYPE>(ADDR_EXPR<POINTER_TYPE> (arg)) here,
@@ -10146,7 +10150,7 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	      }
 	    else
 	      /* TEMPLATE_TEMPLATE_PARM or TEMPLATE_PARM_INDEX.  */
-	      return arg;
+	      return unshare_expr (arg);
 	  }
 
 	if (level == 1)
@@ -14468,6 +14472,10 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
       FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (arg), i, elt)
 	{
 	  int elt_strict = strict;
+
+	  if (elt == error_mark_node)
+	    return 1;
+
 	  if (!BRACE_ENCLOSED_INITIALIZER_P (elt))
 	    {
 	      tree type = TREE_TYPE (elt);
@@ -15941,11 +15949,12 @@ most_specialized_class (tree type, tree tmpl)
       tree parms = TREE_VALUE (t);
 
       partial_spec_args = CLASSTYPE_TI_ARGS (TREE_TYPE (t));
+
+      ++processing_template_decl;
+
       if (outer_args)
 	{
 	  int i;
-
-	  ++processing_template_decl;
 
 	  /* Discard the outer levels of args, and then substitute in the
 	     template args from the enclosing class.  */
@@ -15963,7 +15972,6 @@ most_specialized_class (tree type, tree tmpl)
 	    TREE_VEC_ELT (parms, i) =
 	      tsubst (TREE_VEC_ELT (parms, i), outer_args, tf_none, NULL_TREE);
 
-	  --processing_template_decl;
 	}
 
       partial_spec_args =
@@ -15973,6 +15981,8 @@ most_specialized_class (tree type, tree tmpl)
 				 tmpl, tf_none,
 				 /*require_all_args=*/true,
 				 /*use_default_args=*/true);
+
+      --processing_template_decl;
 
       if (partial_spec_args == error_mark_node)
 	return error_mark_node;
