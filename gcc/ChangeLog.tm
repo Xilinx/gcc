@@ -1,3 +1,17 @@
+2010-05-17  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (expand_regions_1): New.
+	(expand_regions): New.
+	(execute_tm_edge): Call expand_regions.
+	(tm_memopt_compute_avin): Check that AUX field is set.
+	(struct tm_log_entry): Add entry_block field.
+	(tm_log_add): Add new parameter.  Set entry_block.
+	(tm_log_emit_saves): Only save current transaction locals.
+	(tm_log_emit_restores): Same.
+	(tm_log_emit_save_or_restores): Add new parameter.
+	(expand_transaction): Pass entry block to tm_log_emit_saves and
+	tm_log_emit_save_or_restores.
+
 2010-05-12  Aldy Hernandez  <aldyh@redhat.com>
 
 	* tree.h: Add documentation for TRANSACTION_EXPR_OUTER AND

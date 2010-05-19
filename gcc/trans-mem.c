@@ -803,6 +803,8 @@ typedef struct tm_log_entry
 {
   /* Address to save.  */
   tree addr;
+  /* Entry block for the transaction this address occurs in.  */
+  basic_block entry_block;
   /* Dominating statements the store occurs in.  */
   gimple_vec stmts;
   /* Initially, while we are building the log, we place a nonzero
@@ -905,6 +907,8 @@ transaction_invariant_address_p (const_tree mem, basic_block region_entry_block)
    making sure to keep only the addresses highest in the dominator
    tree.
 
+   ENTRY_BLOCK is the entry_block for the transaction.
+
    If we find the address in the log, make sure it's either the same
    address, or an equivalent one that dominates ADDR.
 
@@ -944,6 +948,7 @@ tm_log_add (basic_block entry_block, tree addr, gimple stmt)
 	  lp->save_var = create_tmp_var (TREE_TYPE (lp->addr), "tm_save");
 	  add_referenced_var (lp->save_var);
 	  lp->stmts = NULL;
+	  lp->entry_block = entry_block;
 	  /* Save addresses separately in dominator order so we don't
 	     get confused by overlapping addresses in the save/restore
 	     sequence.  */
@@ -1084,9 +1089,10 @@ tm_log_emit (void)
 }
 
 /* Emit the save sequence for the corresponding addresses in the log.
+   ENTRY_BLOCK is the entry block for the transaction.
    BB is the basic block to insert the code in.  */
 static void
-tm_log_emit_saves (basic_block bb)
+tm_log_emit_saves (basic_block entry_block, basic_block bb)
 {
   size_t i;
   gimple_stmt_iterator gsi = gsi_last_bb (bb);
@@ -1098,6 +1104,10 @@ tm_log_emit_saves (basic_block bb)
       l.addr = VEC_index (tree, tm_log_save_addresses, i);
       lp = (struct tm_log_entry *) *htab_find_slot (tm_log, &l, NO_INSERT);
       gcc_assert (lp->save_var != NULL);
+
+      /* We only care about variables in the current transaction.  */
+      if (lp->entry_block != entry_block)
+	continue;
 
       stmt = gimple_build_assign (lp->save_var, unshare_expr (lp->addr));
 
@@ -1115,9 +1125,10 @@ tm_log_emit_saves (basic_block bb)
 }
 
 /* Emit the restore sequence for the corresponding addresses in the log.
+   ENTRY_BLOCK is the entry block for the transaction.
    BB is the basic block to insert the code in.  */
 static void
-tm_log_emit_restores (basic_block bb)
+tm_log_emit_restores (basic_block entry_block, basic_block bb)
 {
   int i;
   struct tm_log_entry l, *lp;
@@ -1129,6 +1140,10 @@ tm_log_emit_restores (basic_block bb)
       l.addr = VEC_index (tree, tm_log_save_addresses, i);
       lp = (struct tm_log_entry *) *htab_find_slot (tm_log, &l, NO_INSERT);
       gcc_assert (lp->save_var != NULL);
+
+      /* We only care about variables in the current transaction.  */
+      if (lp->entry_block != entry_block)
+	continue;
 
       /* Restores are in LIFO order from the saves in case we have
 	 overlaps.  */
@@ -1148,14 +1163,16 @@ tm_log_emit_restores (basic_block bb)
    FALLTHRU_EDGE.
 
    STATUS is the return value from _ITM_beginTransaction.
+   ENTRY_BLOCK is the entry block for the transaction.
    EMITF is a callback to emit the actual save/restore code.
 
    The basic block containing the conditional checking for TRXN_PROP
    is returned.  */
 static basic_block
-tm_log_emit_save_or_restores (unsigned trxn_prop,
+tm_log_emit_save_or_restores (basic_block entry_block,
+			      unsigned trxn_prop,
 			      tree status,
-			      void (*emitf)(basic_block),
+			      void (*emitf)(basic_block, basic_block),
 			      basic_block before_bb,
 			      edge fallthru_edge,
 			      basic_block *end_bb)
@@ -1189,7 +1206,7 @@ tm_log_emit_save_or_restores (unsigned trxn_prop,
   cond_stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
   gsi_insert_after (&gsi, cond_stmt, GSI_CONTINUE_LINKING);
 
-  emitf (code_bb);
+  emitf (entry_block, code_bb);
 
   make_edge (cond_bb, code_bb, EDGE_TRUE_VALUE);
   make_edge (cond_bb, *end_bb, EDGE_FALSE_VALUE);
@@ -2371,7 +2388,7 @@ expand_transaction (struct tm_region *region)
   atomic_bb = gimple_bb (region->transaction_stmt);
 
   if (!VEC_empty (tree, tm_log_save_addresses))
-    tm_log_emit_saves (atomic_bb);
+    tm_log_emit_saves (region->entry_block, atomic_bb);
 
   gsi = gsi_last_bb (atomic_bb);
   gsi_insert_before (&gsi, g, GSI_SAME_STMT);
@@ -2379,7 +2396,8 @@ expand_transaction (struct tm_region *region)
 
   if (!VEC_empty (tree, tm_log_save_addresses))
     region->entry_block =
-      tm_log_emit_save_or_restores (A_RESTORELIVEVARIABLES,
+      tm_log_emit_save_or_restores (region->entry_block,
+				    A_RESTORELIVEVARIABLES,
 				    status,
 				    tm_log_emit_restores,
 				    atomic_bb,
@@ -2444,32 +2462,54 @@ expand_transaction (struct tm_region *region)
   region->transaction_stmt = NULL;
 }
 
+static void expand_regions (struct tm_region *);
+
+/* Helper function for expand_regions.  Expand REGION and recurse to
+   the inner region.  */
+
+static void
+expand_regions_1 (struct tm_region *region)
+{
+  if (region->exit_blocks)
+    {
+      unsigned int i;
+      basic_block bb;
+      VEC (basic_block, heap) *queue;
+
+      /* Collect the set of blocks in this region.  Do this before
+	 splitting edges, so that we don't have to play with the
+	 dominator tree in the middle.  */
+      queue = get_tm_region_blocks (region->entry_block,
+				    region->exit_blocks,
+				    region->irr_blocks,
+				    /*stop_at_irr_p=*/false);
+      expand_transaction (region);
+      for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
+	expand_block_edges (region, bb);
+      VEC_free (basic_block, heap, queue);
+    }
+  if (region->inner)
+    expand_regions (region->inner);
+}
+
+/* Expand regions starting at REGION.  */
+
+static void
+expand_regions (struct tm_region *region)
+{
+  while (region)
+    {
+      expand_regions_1 (region);
+      region = region->next;
+    }
+}
+
 /* Entry point to the final expansion of transactional nodes. */
 
 static unsigned int
 execute_tm_edges (void)
 {
-  struct tm_region *region;
-  VEC (basic_block, heap) *queue;
-
-  for (region = all_tm_regions; region ; region = region->next)
-    if (region->exit_blocks)
-      {
-	unsigned int i;
-	basic_block bb;
-
-	/* Collect the set of blocks in this region.  Do this before
-	   splitting edges, so that we don't have to play with the
-	   dominator tree in the middle.  */
-	queue = get_tm_region_blocks (region->entry_block,
-				      region->exit_blocks,
-				      region->irr_blocks,
-				      /*stop_at_irr_p=*/false);
-	expand_transaction (region);
-	for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
-	  expand_block_edges (region, bb);
-	VEC_free (basic_block, heap, queue);
-      }
+  expand_regions (all_tm_regions);
   tm_log_delete ();
 
   /* We've got to release the dominance info now, to indicate that it
@@ -2709,8 +2749,12 @@ tm_memopt_compute_avin (basic_block bb)
     {
       e = EDGE_PRED (bb, ix);
       /* Make sure we have already visited this BB, and is thus
-	 initialized.  */
-      if (BB_VISITED_P (e->src))
+	 initialized.
+
+	  If e->src->aux is NULL, this predecessor is actually on an
+	  enclosing transaction.  We only care about the current
+	  transaction, so ignore it.  */
+      if (e->src->aux && BB_VISITED_P (e->src))
 	{
 	  bitmap_copy (STORE_AVAIL_IN (bb), STORE_AVAIL_OUT (e->src));
 	  bitmap_copy (READ_AVAIL_IN (bb), READ_AVAIL_OUT (e->src));
@@ -2721,7 +2765,7 @@ tm_memopt_compute_avin (basic_block bb)
   for (; ix < EDGE_COUNT (bb->preds); ix++)
     {
       e = EDGE_PRED (bb, ix);
-      if (BB_VISITED_P (e->src))
+      if (e->src->aux && BB_VISITED_P (e->src))
 	{
 	  bitmap_and_into (STORE_AVAIL_IN (bb), STORE_AVAIL_OUT (e->src));
 	  bitmap_and_into (READ_AVAIL_IN (bb), READ_AVAIL_OUT (e->src));
