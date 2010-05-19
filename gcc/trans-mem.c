@@ -2029,6 +2029,8 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
     }
   if (!gcall)
     {
+      tree lhs_addr, rhs_addr;
+
       if (load_p)
 	transaction_subcode_ior (region, GTMA_HAVE_LOAD);
       if (store_p)
@@ -2036,9 +2038,10 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
 
       /* ??? Figure out if there's any possible overlap between the LHS
 	 and the RHS and if not, use MEMCPY.  */
+      lhs_addr = gimplify_addr (gsi, lhs);
+      rhs_addr = gimplify_addr (gsi, rhs);
       gcall = gimple_build_call (built_in_decls [BUILT_IN_TM_MEMMOVE], 3,
-				 build_fold_addr_expr (lhs),
-				 build_fold_addr_expr (rhs),
+				 lhs_addr, rhs_addr,
 				 TYPE_SIZE_UNIT (TREE_TYPE (lhs)));
       gimple_set_location (gcall, loc);
       gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
