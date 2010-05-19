@@ -1,3 +1,7 @@
+
+2010-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: removing blocks..
+
 2010-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated all}}
 	* melt/generated/warmelt-first.0.c: regenerated.

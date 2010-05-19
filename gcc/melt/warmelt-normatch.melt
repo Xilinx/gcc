@@ -2432,6 +2432,7 @@ ctype. $MDATA_ORIG is the origin step or data. $MDATA_STEPS is the list of match
 	    mdata_steps
 	    ))
 
+(compile_warning "class_normal_let_match_binding is obsolete")
 (defclass class_normal_let_match_binding
   :super class_normal_let_binding
   :doc #{The $CLASS_NORMAL_LET_BINDING is a normal let binding for
@@ -4434,6 +4435,41 @@ the tuple of normal flags, instances of $CLASS_NREP_MATCH_FLAG.}#
 	   namatch_flags		;the tuple of normalized flags
 	   ))
 
+(defclass class_nrep_match_label
+  :super class_nrep_expression
+  :doc #{ A normal match label of $CLASS_NREP_MATCH_LABEL is just a
+point which can be jumped to. It corresponds to a match step given by
+the field $NMLAB_STEP. }#
+  :fields (nmlab_step))
+
+(defclass class_nrep_match_jump
+  :super class_nrep_expression
+  :doc #{ A normal match jump of $CLASS_NREP_MATCH_JUMP is just a goto
+to a match label given by field $NMJMP_LABEL. }#
+  :fields (nmjmp_label))
+
+(defclass class_nrep_match_data_action
+  :super class_nrep_expression
+  :doc #{The $CLASS_NREP_MATCH_DATA_ACTION is the common super-class
+for actions concerning a normal match data $NMDAC_DATA.}# 
+  :fields (nmdac_data))
+
+(defclass class_nrep_match_data_initializer
+  :super class_nrep_match_data_action
+  :doc #{ A normal match data initializer of
+$CLASS_NREP_MATCH_DATA_INITIALIZER initializes and clear a normal
+match data given by field $NMDAC_DATA.}#
+  :fields ())
+
+(defclass class_nrep_match_data_finalizer
+  :super class_nrep_match_data_action
+  :doc #{ A normal match data finalizer of
+  $CLASS_NREP_MATCH_DATA_FINALIZER finalizes and unleash any resources
+  associated with a normal match data given by field $NMDAC_DATA.}#
+  :fields ())
+
+(compile_warning "the class_nrep_match_block is obsolete")
+#|
 (defclass class_nrep_match_block
   :super class_nrep_expression
   :doc #{ A match block, instance of $CLASS_NREP_MATCH_BLOCK has no
@@ -4458,7 +4494,7 @@ the tuple of normal flags, instances of $CLASS_NREP_MATCH_FLAG.}#
   :fields ( nmajmp_from
 	    nmajmp_index
 	 ))
-
+|#
 
 (defclass class_match_normalization_context
   :super class_root
@@ -4467,68 +4503,67 @@ the tuple of normal flags, instances of $CLASS_NREP_MATCH_FLAG.}#
   $CLASS_MATCH_STEP. Field $MATNORX_RESLOC gives the instance of
   $CLASS_NREP_LOCSYMOCC for the result of the match. $MATNORX_NMATCH
   gives the partially built normal representation, instance of
-  $CLASS_NREP_ALTMATCH, of the match. $MATNORX_BLOCKS is the
-  incomplete growing list of blocks of $CLASS_NREP_MATCH_BLOCK. Field
-  $MATNORX_FLAGMAP is the read-mostly map associating match flags to
-  normalized flags. Field $MATNORX_STEPMAP is the read-mostly map
-  associating match steps to blocks. Field $MATNORX_MDATAMAP is the
-  read-mostly map associating match datas to their
-  normalization. $MATPNORX_MDATAQUEUE is the read-mostly queue list of
-  match datas to process.}#
+  $CLASS_NREP_ALTMATCH, of the match. Field $MATNORX_FLAGMAP is the
+  read-mostly map associating match flags to normalized flags. Field
+  $MATNORX_STEPMAP is the read-mostly map associating match steps to
+  blocks. Field $MATNORX_MDATAMAP is the read-mostly map associating
+  match datas to their normalization. $MATPNORX_MDATAQUEUE is the
+  read-mostly queue list of match datas to process.}#
   :fields (matnorx_resloc
 	   matnorx_nmatch
-	   matnorx_blocks
+					;matnorx_blocks
 	   matnorx_datamap
 	   matnorx_flagmap
 	   matnorx_stepmap
 	   matnorx_mdataqueue 
 	   ))
 
-;;; selector to normalize a step with a block
-(defselector altmatch_normalize_with_block class_selector
-  :formals (step block nmctxt)
-  :doc #{Normalize the given $STEP into the given $BLOCK with the
-given match normalization context $NMCTXT.}#)
+;; ;;; selector to normalize a step with a block
+;; (defselector altmatch_normalize_with_block class_selector
+;;   :formals (step block nmctxt)
+;;   :doc #{Normalize the given $STEP into the given $BLOCK with the
+;; given match normalization context $NMCTXT.}#)
+;; 
+;; ;; catch-all for altmatch_normalize_with_block on any reciever
+;; (defun matnwblock_anyrecv (recv block nmctxt)
+;;   (assert_msg "check nmctxt" (is_a nmctxt class_match_normalization_context))
+;;   (let ( (dis (discrim recv))
+;; 	 (disnam (get_field :named_name dis))
+;; 	 )
+;;     (errormsg_strv "unexpected reciever discriminant for ALTMATCH_NORMALIZE_WITH_BLOCK"
+;; 		   disnam)
+;;     (debug_msg recv "matnstep_anyrecv recv")
+;;     (assert_msg "unexpected reciever for ALTMATCH_NORMALIZE_WITH_BLOCK" ())))
+;; 
+;; (install_method discr_any_receiver altmatch_normalize_with_block matnwblock_anyrecv)
+;; 
 
-;; catch-all for altmatch_normalize_with_block on any reciever
-(defun matnwblock_anyrecv (recv block nmctxt)
-  (assert_msg "check nmctxt" (is_a nmctxt class_match_normalization_context))
-  (let ( (dis (discrim recv))
-	 (disnam (get_field :named_name dis))
-	 )
-    (errormsg_strv "unexpected reciever discriminant for ALTMATCH_NORMALIZE_WITH_BLOCK"
-		   disnam)
-    (debug_msg recv "matnstep_anyrecv recv")
-    (assert_msg "unexpected reciever for ALTMATCH_NORMALIZE_WITH_BLOCK" ())))
-
-(install_method discr_any_receiver altmatch_normalize_with_block matnwblock_anyrecv)
-
-;; altmatch_normalize_with_block on a class_match_step_flag_set
-(defun matnwblock_stepflagset (step block nmctxt)
-  (debug_msg step "matnwblock_stepflagset step")
-  (debug_msg block "matnwblock_stepflagset block")
-  (assert_msg "check nmctxt" (is_a nmctxt class_match_normalization_context))
-  (assert_msg "check step" (is_a step class_match_step_flag_set))
-  (assert_msg "check block" (is_a block class_nrep_match_block))
-  (let ( (sloc (unsafe_get_field :loca_location step))
-	 (mflag (unsafe_get_field :mstep_flag step))
-	 (mthen (unsafe_get_field :mstep_then step))
-	 (normflag (altmatch_normalize_flag mflag nmctxt))
-	 (nsetq (instance class_nrep_setq
-			  :nrep_loc sloc
-			  :nstq_var normflag
-			  :nstq_exp '1))
-	 (lins (make_list discr_list))
-	)
-    (list_append lins nsetq)
-    (debug_msg nsetq "matnwblock_stepflagset nsetq")
-    (put_fields block
-		:nmabl_locdata ()
-		:nmabl_body ()
-		:nmabl_jumps ())
-    (assert_msg "$@$incomplete matnwblock_stepflagset")
-    ))
-(install_method class_match_step_flag_set altmatch_normalize_with_block matnwblock_stepflagset)
+;; ;; altmatch_normalize_with_block on a class_match_step_flag_set
+;; (defun matnwblock_stepflagset (step block nmctxt)
+;;   (debug_msg step "matnwblock_stepflagset step")
+;;   (debug_msg block "matnwblock_stepflagset block")
+;;   (assert_msg "check nmctxt" (is_a nmctxt class_match_normalization_context))
+;;   (assert_msg "check step" (is_a step class_match_step_flag_set))
+;;   (assert_msg "check block" (is_a block class_nrep_match_block))
+;;   (let ( (sloc (unsafe_get_field :loca_location step))
+;; 	 (mflag (unsafe_get_field :mstep_flag step))
+;; 	 (mthen (unsafe_get_field :mstep_then step))
+;; 	 (normflag (altmatch_normalize_flag mflag nmctxt))
+;; 	 (nsetq (instance class_nrep_setq
+;; 			  :nrep_loc sloc
+;; 			  :nstq_var normflag
+;; 			  :nstq_exp '1))
+;; 	 (lins (make_list discr_list))
+;; 	)
+;;     (list_append lins nsetq)
+;;     (debug_msg nsetq "matnwblock_stepflagset nsetq")
+;;     (put_fields block
+;; 		:nmabl_locdata ()
+;; 		:nmabl_body ()
+;; 		:nmabl_jumps ())
+;;     (assert_msg "$@$incomplete matnwblock_stepflagset")
+;;     ))
+;; (install_method class_match_step_flag_set altmatch_normalize_with_block matnwblock_stepflagset)
 
 ;;; utility to normalize a flag with a match normalization context
 (defun altmatch_normalize_flag (flag nmctxt)
@@ -4559,21 +4594,13 @@ given match normalization context $NMCTXT.}#)
   (assert_msg "altmatch_normalize_step check step" (is_a step class_match_step))
   (assert_msg "altmatch_normalize_step check nmctxt" (is_a nmctxt class_match_normalization_context))
   (let ( (stepmap (unsafe_get_field :matnorx_stepmap nmctxt))
-	 (nblock (mapobject_get stepmap step))
+	 (nstepx (mapobject_get stepmap step))
 	 )
-    (if (null nblock)
+    (if (null nstepx)
 	(progn
-	  (setq nblock (instance class_nrep_match_block
-				 :nrep_loc (get_field :loca_location step)
-				 ))
-	  (debug_msg step "altmatch_normalize_step fresh step")
-	  (debug_msg nblock "altmatch_normalize_step new block")
-	  (mapobject_put stepmap step nblock)
 	  (compile_warning "altmatch_normalize_step should do something")
 	  ))
-    (assert_msg "altmatch_normalize_step check nblock"
-		(is_a nblock class_nrep_match_block))
-    (return nblock)
+    (return nstepx)
     ))
 
 ;;; utility to normalize a matched data with a match normalization context
@@ -4650,8 +4677,6 @@ given match normalization context $NMCTXT.}#)
 			     :nocc_symb mrsymb
 			     :nocc_bind mrbind
 			     ))
-	 ;; the list of blocks
-	 (blockslist (make_list discr_list))
 	 ;; associate match flags to normal flags
 	 (flagmap (make_mapobject discr_map_objects 83)) 
 	 ;; associate steps to match blocks, which can be possibly
@@ -4665,7 +4690,7 @@ given match normalization context $NMCTXT.}#)
 	 (nmctxt (instance  class_match_normalization_context
 			    :matnorx_resloc mcalocc
 			    :matnorx_nmatch nmatch
-			    :matnorx_blocks blockslist
+			    ;:matnorx_blocks blockslist
 			    :matnorx_datamap datamap
 			    :matnorx_flagmap flagmap
 			    :matnorx_stepmap stepmap
