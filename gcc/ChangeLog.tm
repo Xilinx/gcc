@@ -1,5 +1,10 @@
 2010-05-19  Aldy Hernandez  <aldyh@redhat.com>
 
+	* gtm-builtins.def (_ITM_memmoveRtWt): Make TM pure.
+	(_ITM_memcpyRtWt): Same.
+
+2010-05-19  Aldy Hernandez  <aldyh@redhat.com>
+
 	* trans-mem.c (expand_assign_tm): Do not die on TARGET_MEM_REFs.
 
 2010-05-17  Aldy Hernandez  <aldyh@redhat.com>
