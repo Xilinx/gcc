@@ -1,5 +1,11 @@
 
 2010-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: Adding class_nrep_match_data_clear
+	class_nrep_match_data_action class_nrep_match_data_finalizer and
+	fields matnorx_bodylist & matnorx_endlabel & selector
+	normalize_step...
+
+2010-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: removing blocks..
 
 2010-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
