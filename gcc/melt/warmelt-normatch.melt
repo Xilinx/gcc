@@ -2432,13 +2432,6 @@ ctype. $MDATA_ORIG is the origin step or data. $MDATA_STEPS is the list of match
 	    mdata_steps
 	    ))
 
-(compile_warning "class_normal_let_match_binding is obsolete")
-(defclass class_normal_let_match_binding
-  :super class_normal_let_binding
-  :doc #{The $CLASS_NORMAL_LET_BINDING is a normal let binding for
-matched data.  Field $LETBINDMATCH_MDATA gives the associated match data,
-instance of $CLASS_MATCHED_DATA.}#
-  :fields (letbindmatch_mdata))
 
 
 (defclass class_matched_normal_data
@@ -2610,6 +2603,16 @@ $CLASS_NREP_ALTMATCH using that match flag.}#
   :fields (nrpfla_flag
 	   nrpfla_nmatch
 	   ))
+
+(defclass class_nrep_matched_data
+  :super class_nrep_simple
+  :doc #{The $CLASS_NREP_MATCHED_DATA is the normalize representation
+of match data, instance of $CLASS_MATCHED_DATA. Field $NRPMATD_CTYPE
+gives the ctype of the data. Field $NRMATD_MDATA gives the
+originating matched data. Field $NRMATD_RANK is a unique rank.}#
+  :fields (nrmatd_ctype
+	   nrmatd_mdata
+	   nrmatd_rank))
   
 
 ;;;;;;;;;;;;;;;;
@@ -4594,9 +4597,10 @@ field $NMDAC_DATA.}#
   (debug_msg mdata "altmatch_normalize_mdata mdata")
   (assert_msg "altmatch_normalize_mdata check mdata" (is_a mdata class_matched_data))
   (assert_msg "altmatch_normalize_mdata check nmctxt" (is_a nmctxt class_match_normalization_context))
-  (let ( (mdsteps (unsafe_get_field :mdata_steps mdata))
-	 (datamap (unsafe_get_field :matnorx_datamap nmctxt))
+  (let ( (datamap (unsafe_get_field :matnorx_datamap nmctxt))
 	 (ndata (mapobject_get datamap mdata))
+	 (mdataqueue (unsafe_get_field :matnorx_mdataqueue  nmctxt))
+	 (bodyl (unsafe_get_field :matnorx_bodylist nmctxt))
 	 )
     (if ndata
 	(progn
@@ -4610,29 +4614,33 @@ field $NMDAC_DATA.}#
 	     (mctyp (unsafe_get_field :mdata_ctype mdata))
 	     (sloc (get_field :loca_location 
 				   (get_field :mdata_orig mdata)))
-	     (nbind (instance 
-			class_normal_let_match_binding
-			:letbind_loc sloc
-			:binder msymb
-			:letbind_type mctyp
-			:letbind_expr ()
-			:letbindmatch_mdata mdata))
-	     (nlocc (instance class_nrep_locsymocc
+	     (:long datacount (mapobject_count datamap))
+	     (newdata (instance class_nrep_matched_data
 				:nrep_loc sloc
-				:nocc_ctyp mctyp
-				:nocc_symb msymb
-				:nocc_bind nbind))
+				:nrmatd_ctype mctyp
+				:nrmatd_mdata mdata
+				:nrmatd_rank (make_integerbox discr_constant_integer
+							      (+i datacount 1))
+		       ))
+	     (newdatainit (instance class_nrep_match_data_initializer
+				    :nrep_loc ()
+				    :nmdac_data newdata))
 	    )
-	(mapobject_put datamap mdata nlocc)
-	(setq ndata nlocc)
-	;; the nbind should be stored in the block???
-	(compile_warning 
-	 "altmatch_normalize_mdata should store the nbind somewhere")
-	(debug_msg nlocc "altmatch_normalize_mdata made nlocc")
+	(mapobject_put datamap mdata newdata)
+	(setq ndata newdata)
+	(list_append mdataqueue mdata)
+	(list_append bodyl newdatainit)
+	(debug_msg newdata "altmatch_normalize_mdata made newdata")
 	))
-    (debug_msg mdsteps "altmatch_normalize_mdata mdsteps")
-    )
-  (assert_msg "altmatch_normalize_mdata unimplemented")
+    (debug_msg ndata "altmatch_normalize_mdata final ndata")
+    (return ndata)
+    ))
+
+
+(defun altmatch_handle_normalized_mdata (matdata ndata nmctxt)
+  (debug_msg matdata "altmatch_handle_normalized_mdata matdata")
+  (debug_msg ndata "altmatch_handle_normalized_mdata ndata")
+  (assert_msg "@$@unimplemented altmatch_handle_normalized_mdata")
 )
 
 ;;; function to really normalize an alternate match
@@ -4671,15 +4679,17 @@ field $NMDAC_DATA.}#
 	 (datamap (make_mapobject discr_map_objects 229))
 	 ;; the queue of matched data to process
 	 (mdataqueue (make_list discr_list))
+	 ;; the body queue
+	 (bodyl (make_list discr_list))
 	 ;; the normal matching context
 	 (nmctxt (instance  class_match_normalization_context
 			    :matnorx_resloc mcalocc
 			    :matnorx_nmatch nmatch
-			    ;:matnorx_blocks blockslist
 			    :matnorx_datamap datamap
 			    :matnorx_flagmap flagmap
 			    :matnorx_stepmap stepmap
 			    :matnorx_mdataqueue mdataqueue
+			    :matnorx_bodylist bodyl
 		  ))
 	 )
     (compile_warning "altmatch_normalize_case perhaps we need a queue of data, not of steps...")
@@ -4689,13 +4699,16 @@ field $NMDAC_DATA.}#
     (forever 
      matchnormalizeloop
      (let ( (freshmdata (list_popfirst mdataqueue)) 
+	    (ndata (mapobject_get datamap freshmdata))
 	    )
        (debug_msg freshmdata "altmatch_normalize_case freshmdata start loop")
        (if (null freshmdata) (exit matchnormalizeloop))
-	 (assert_msg "altmatch_normalize_case check freshblock" 
-		     (is_a freshmdata class_matched_data))
-	 (altmatch_normalize_mdata freshmdata nmctxt)
-	 (debug_msg freshmdata "altmatch_normalize_case freshmdata after altmatch_normalize_mdata")
+       (assert_msg "altmatch_normalize_case check freshmdata" 
+		   (is_a freshmdata class_matched_data))
+       (assert_msg "altmatch_normalize_case check ndata"
+		   (is_a ndata class_nrep_matched_data))
+       (altmatch_handle_normalized_mdata freshmdata ndata nmctxt)
+       (debug_msg freshmdata "altmatch_normalize_case freshmdata after altmatch_handle_normalized_mdata")
        )))
     (error_plain sloc "@@unimplemented altmatch_normalize_case")
     (assert_msg "@@unimplemented altmatch_normalize_case")
