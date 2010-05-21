@@ -1234,7 +1234,6 @@ $SBUF.}#
 (defun get_free_objlocptr (gcx nam)
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nam "get_free_objlocptr start nam")
-  (shortbacktrace_dbg "get_free_objlocptr start" 12)
   (let ( (orout (unsafe_get_field :gncx_objrout gcx))
 	 (freeli (unsafe_get_field :gncx_freeptrlist gcx)) 
 	 (pfree (list_popfirst freeli))
@@ -1286,7 +1285,7 @@ $SBUF.}#
 (defun get_free_objloclong (gcx nam)
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nam "get_free_objloclong start nam")
-  (shortbacktrace_dbg "get_free_objloclong start" 12)
+  ;(shortbacktrace_dbg "get_free_objloclong start" 12)
   (let ( (orout (unsafe_get_field :gncx_objrout gcx))
 	 (freeli (unsafe_get_field :gncx_freelonglist gcx)) 
 	 (pfree (list_popfirst freeli))
@@ -1341,7 +1340,7 @@ $SBUF.}#
 	(:else 
 	 (debug_msg nam "get_free_objloctyped otherctyp nam")
 	 (debug_msg ctyp "get_free_objloctyped otherctyp ctyp")
-	 (shortbacktrace_dbg "get_free_objloctyped otherctyp" 15)
+	 ;(shortbacktrace_dbg "get_free_objloctyped otherctyp" 15)
 	 (let ( (freemap (unsafe_get_field :gncx_freeothermaps gcx)) 
 		(orout (unsafe_get_field :gncx_objrout gcx))
 		(:long off -1)
@@ -1390,7 +1389,7 @@ $SBUF.}#
 ;; function to dispose, i.e. mark as free and reusable, an  objlocation
 (defun dispose_objloc (oldloc gcx)
   (debug_msg oldloc "dispose_objloc freeeing oldloc")
-  (shortbacktrace_dbg "dispose_objloc" 15)
+  ;(shortbacktrace_dbg "dispose_objloc" 15)
   (assert_msg "check oldloc" (is_a oldloc class_objlocv))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   ;; the obl_proc iff it has already been freed
@@ -2232,7 +2231,7 @@ $SBUF.}#
 	     (list_append obodl oputs)
 	     )))) 
     (list_append obodl otouch)
-    (shortbacktrace_dbg "compiletrec_instance ending" 14)
+    ;(shortbacktrace_dbg "compiletrec_instance ending" 14)
     (debug_msg obodl "compiletrec_instance final obodl")
     ))
 (install_method class_normal_constructed_instance_binding compile_letrec_fill compiletrec_instance)

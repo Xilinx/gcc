@@ -1,4 +1,13 @@
 
+2010-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: added nbothersteps argument to
+	several functions or selectors. Added complete_normstep_if_last
+	function. Adding normstep_mflagset method implementation &
+	incomplete stub for normstep_mtestinstance. Completed
+	altmatch_handle_normalized_mdata
+
+	* melt/warmelt-genobj.melt: removed some shortbacktrace_dbg.
+
 2010-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: Removed
 	class_normal_let_match_binding. Adding class_nrep_matched_data.
