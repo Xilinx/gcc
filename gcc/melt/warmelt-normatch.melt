@@ -4480,6 +4480,15 @@ field $NMDAC_DATA.}#
   :fields ())
 
 
+(defclass class_nrep_jump_when_is_a
+  :super class_nrep_expression
+  :doc #{The $CLASS_NREP_JUMP_WHEN_IS_A is testing if a simple value
+$NTESTISA_VALUE us an instance of $NTESTISA_CLASS. If yes, it jumps to
+$NTESTISA_JUMP.}#
+  :fields (ntestisa_value 
+	  ntestisa_class 
+	  ntestisa_jump))
+
 (defclass class_match_normalization_context
   :super class_root
   :doc #{The $CLASS_MATCH_NORMALIZATION_CONTEXT is agreggating data
@@ -4627,8 +4636,20 @@ normalized expressions, or a single such normalized expression.}#
   (debug_msg step "normstep_mtestinstance step")
   (assert_msg "check step" (is_a step class_match_step_test_instance))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
-  (assert_msg "$@$unimplemented normstep_mtestinstance")
-)
+  (let ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
+	 (matdata (unsafe_get_field :mstep_data step))
+	 (matthen (unsafe_get_field :mstep_then step))
+	 (matelse (unsafe_get_field :mstep_else step))
+	 (matclass (unsafe_get_field :mstins_class step))
+	 (matslots (unsafe_get_field :mstins_slots step))
+	 (ndata (altmatch_normalize_mdata matdata nmctxt))
+	 ;;(nthen (altmatch_normalize_step matthen nmctxt nbothersteps))
+	 ;;(nelse (altmatch_normalize_step matelse nmctxt nbothersteps))
+	 )
+    (debug_msg matclass "normstep_mtestinstance matclass")
+    (debug_msg ndata "normstep_mtestinstance ndata")
+    (assert_msg "$@$unimplemented normstep_mtestinstance")
+    ))
 (install_method class_match_step_test_instance normalize_step normstep_mtestinstance)
 
 ;;; utility to normalize a step with a match normalization context

@@ -1,5 +1,9 @@
 
 2010-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: adding normstep_mtestinstance &
+	class_nrep_jump_when_is_a.
+
+2010-05-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: added nbothersteps argument to
 	several functions or selectors. Added complete_normstep_if_last
 	function. Adding normstep_mflagset method implementation &
