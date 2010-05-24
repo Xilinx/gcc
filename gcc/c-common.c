@@ -30,7 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-pragma.h"
 #include "rtl.h"
 #include "ggc.h"
-#include "expr.h"
+#include "expr.h" /* For vector_mode_valid_p */
 #include "c-common.h"
 #include "tm_p.h"
 #include "obstack.h"
@@ -45,11 +45,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "tree-mudflap.h"
 #include "opts.h"
-#include "real.h"
 #include "cgraph.h"
 #include "target-def.h"
-#include "gimple.h"
-#include "fixed-value.h"
 #include "libfuncs.h"
 
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
@@ -564,6 +561,7 @@ const struct c_common_resword c_common_reswords[] =
   { "_Fract",           RID_FRACT,     D_CONLY | D_EXT },
   { "_Accum",           RID_ACCUM,     D_CONLY | D_EXT },
   { "_Sat",             RID_SAT,       D_CONLY | D_EXT },
+  { "_Static_assert",   RID_STATIC_ASSERT, D_CONLY },
   { "__FUNCTION__",	RID_FUNCTION_NAME, 0 },
   { "__PRETTY_FUNCTION__", RID_PRETTY_FUNCTION_NAME, 0 },
   { "__alignof",	RID_ALIGNOF,	0 },
@@ -8780,7 +8778,6 @@ sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
 {
   tree arg_types = TYPE_ARG_TYPES (TREE_TYPE (function));
   tree ptype;
-  int number;
   unsigned int parmnum;
 
   /* We've declared the implementation functions to use "volatile void *"
@@ -8788,7 +8785,6 @@ sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
      call to check_function_arguments what ever type the user used.  */
   arg_types = TREE_CHAIN (arg_types);
   ptype = TREE_TYPE (TREE_TYPE (VEC_index (tree, params, 0)));
-  number = 2;
 
   /* For the rest of the values, we need to cast these to FTYPE, so that we
      don't get warnings for passing pointer types, etc.  */
@@ -8813,7 +8809,6 @@ sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
       VEC_replace (tree, params, parmnum, val);
 
       arg_types = TREE_CHAIN (arg_types);
-      number++;
     }
 
   /* The definition of these primitives is variadic, with the remaining

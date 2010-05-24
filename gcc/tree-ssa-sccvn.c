@@ -23,10 +23,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "ggc.h"
 #include "tree.h"
 #include "basic-block.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-inline.h"
 #include "tree-flow.h"
 #include "gimple.h"
@@ -35,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "fibheap.h"
 #include "hashtab.h"
 #include "tree-iterator.h"
-#include "real.h"
 #include "alloc-pool.h"
 #include "tree-pass.h"
 #include "flags.h"
@@ -3408,7 +3408,7 @@ bool
 vn_nary_may_trap (vn_nary_op_t nary)
 {
   tree type;
-  tree rhs2;
+  tree rhs2 = NULL_TREE;
   bool honor_nans = false;
   bool honor_snans = false;
   bool fp_operation = false;
@@ -3431,7 +3431,8 @@ vn_nary_may_trap (vn_nary_op_t nary)
 	       && TYPE_OVERFLOW_TRAPS (type))
 	honor_trapv = true;
     }
-  rhs2 = nary->op[1];
+  if (nary->length >= 2)
+    rhs2 = nary->op[1];
   ret = operation_could_trap_helper_p (nary->opcode, fp_operation,
 				       honor_trapv,
 				       honor_nans, honor_snans, rhs2,

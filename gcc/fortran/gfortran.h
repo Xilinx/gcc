@@ -34,7 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "libgfortran.h"
 
 
-#include "system.h"
 #include "intl.h"
 #include "coretypes.h"
 #include "input.h"
@@ -2105,6 +2104,7 @@ typedef struct
   int warn_aliasing;
   int warn_ampersand;
   int warn_conversion;
+  int warn_conversion_extra;
   int warn_implicit_interface;
   int warn_implicit_procedure;
   int warn_line_truncation;
@@ -2116,6 +2116,7 @@ typedef struct
   int warn_character_truncation;
   int warn_array_temp;
   int warn_align_commons;
+  int warn_unused_dummy_argument;
   int max_errors;
 
   int flag_all_intrinsics;
@@ -2512,22 +2513,11 @@ void gfc_free_dt_list (void);
 gfc_gsymbol *gfc_get_gsymbol (const char *);
 gfc_gsymbol *gfc_find_gsymbol (gfc_gsymbol *, const char *);
 
-gfc_try gfc_build_class_symbol (gfc_typespec *, symbol_attribute *,
-				gfc_array_spec **, bool);
-gfc_symbol *gfc_find_derived_vtab (gfc_symbol *, bool);
 gfc_typebound_proc* gfc_get_typebound_proc (void);
 gfc_symbol* gfc_get_derived_super_type (gfc_symbol*);
 gfc_symbol* gfc_get_ultimate_derived_super_type (gfc_symbol*);
 bool gfc_type_is_extension_of (gfc_symbol *, gfc_symbol *);
 bool gfc_type_compatible (gfc_typespec *, gfc_typespec *);
-gfc_symtree* gfc_find_typebound_proc (gfc_symbol*, gfc_try*,
-				      const char*, bool, locus*);
-gfc_symtree* gfc_find_typebound_user_op (gfc_symbol*, gfc_try*,
-					 const char*, bool, locus*);
-gfc_typebound_proc* gfc_find_typebound_intrinsic_op (gfc_symbol*, gfc_try*,
-						     gfc_intrinsic_op, bool,
-						     locus*);
-gfc_symtree* gfc_get_tbp_symtree (gfc_symtree**, const char*);
 
 void gfc_copy_formal_args (gfc_symbol *, gfc_symbol *);
 void gfc_copy_formal_args_intr (gfc_symbol *, gfc_intrinsic_sym *);
@@ -2537,8 +2527,8 @@ void gfc_free_finalizer (gfc_finalizer *el); /* Needed in resolve.c, too  */
 
 gfc_try gfc_check_symbol_typed (gfc_symbol*, gfc_namespace*, bool, locus);
 
-/* intrinsic.c */
-extern int gfc_init_expr;
+/* intrinsic.c -- true if working in an init-expr, false otherwise.  */
+extern bool gfc_init_expr_flag;
 
 /* Given a symbol that we have decided is intrinsic, mark it as such
    by placing it into a special module that is otherwise impossible to
@@ -2593,7 +2583,6 @@ gfc_actual_arglist *gfc_copy_actual_arglist (gfc_actual_arglist *);
 const char *gfc_extract_int (gfc_expr *, int *);
 bool is_subref_array (gfc_expr *);
 
-void gfc_add_component_ref (gfc_expr *, const char *);
 gfc_expr *gfc_build_conversion (gfc_expr *);
 void gfc_free_ref_list (gfc_ref *);
 void gfc_type_convert_binary (gfc_expr *, int);
@@ -2629,6 +2618,7 @@ gfc_try gfc_check_assign (gfc_expr *, gfc_expr *, int);
 gfc_try gfc_check_pointer_assign (gfc_expr *, gfc_expr *);
 gfc_try gfc_check_assign_symbol (gfc_symbol *, gfc_expr *);
 
+bool gfc_has_default_initializer (gfc_symbol *);
 gfc_expr *gfc_default_initializer (gfc_typespec *);
 gfc_expr *gfc_get_variable_expr (gfc_symtree *);
 
@@ -2783,5 +2773,20 @@ int gfc_is_data_pointer (gfc_expr *);
 
 /* check.c */
 gfc_try gfc_check_same_strlen (const gfc_expr*, const gfc_expr*, const char*);
+
+/* class.c */
+void gfc_add_component_ref (gfc_expr *, const char *);
+gfc_expr *gfc_class_null_initializer (gfc_typespec *);
+gfc_try gfc_build_class_symbol (gfc_typespec *, symbol_attribute *,
+				gfc_array_spec **, bool);
+gfc_symbol *gfc_find_derived_vtab (gfc_symbol *, bool);
+gfc_symtree* gfc_find_typebound_proc (gfc_symbol*, gfc_try*,
+				      const char*, bool, locus*);
+gfc_symtree* gfc_find_typebound_user_op (gfc_symbol*, gfc_try*,
+					 const char*, bool, locus*);
+gfc_typebound_proc* gfc_find_typebound_intrinsic_op (gfc_symbol*, gfc_try*,
+						     gfc_intrinsic_op, bool,
+						     locus*);
+gfc_symtree* gfc_get_tbp_symtree (gfc_symtree**, const char*);
 
 #endif /* GCC_GFORTRAN_H  */

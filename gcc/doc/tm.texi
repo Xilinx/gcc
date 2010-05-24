@@ -5609,6 +5609,22 @@ It is not necessary for this macro to come up with a legitimate
 address;  but often a machine-dependent strategy can generate better code.
 @end defmac
 
+@deftypefn {Target Hook} bool TARGET_MODE_DEPENDENT_ADDRESS_P (const_rtx @var{addr})
+This hook returns @code{true} if memory address @var{addr} can have
+different meanings depending on the machine mode of the memory
+reference it is used for or if the address is valid for some modes
+but not others.
+
+Autoincrement and autodecrement addresses typically have mode-dependent
+effects because the amount of the increment or decrement is the size
+of the operand being addressed.  Some machines have other mode-dependent
+addresses.  Many RISC machines have no mode-dependent addresses.
+
+You may assume that @var{addr} is a valid address for the machine.
+
+The default version of this hook returns @code{false}.
+@end deftypefn
+
 @defmac GO_IF_MODE_DEPENDENT_ADDRESS (@var{addr}, @var{label})
 A C statement or compound statement with a conditional @code{goto
 @var{label};} executed if memory address @var{x} (an RTX) can have
@@ -5622,6 +5638,9 @@ of the operand being addressed.  Some machines have other mode-dependent
 addresses.  Many RISC machines have no mode-dependent addresses.
 
 You may assume that @var{addr} is a valid address for the machine.
+
+These are obsolete macros, replaced by the
+@code{TARGET_MODE_DEPENDENT_ADDRESS_P} target hook.
 @end defmac
 
 @defmac LEGITIMATE_CONSTANT_P (@var{x})
@@ -10765,14 +10784,14 @@ another @code{CALL_EXPR}.
 @var{arglist} really has type @samp{VEC(tree,gc)*}
 @end deftypefn
 
-@deftypefn {Target Hook} tree TARGET_FOLD_BUILTIN (tree @var{fndecl}, tree @var{arglist}, bool @var{ignore})
+@deftypefn {Target Hook} tree TARGET_FOLD_BUILTIN (tree @var{fndecl}, int @var{n_args}, tree *@var{argp}, bool @var{ignore})
 
 Fold a call to a machine specific built-in function that was set up by
 @samp{TARGET_INIT_BUILTINS}.  @var{fndecl} is the declaration of the
-built-in function.  @var{arglist} is the list of arguments passed to
-the built-in function.  The result is another tree containing a
-simplified expression for the call's result.  If @var{ignore} is true
-the value will be ignored.
+built-in function.  @var{n_args} is the number of arguments passed to
+the function; the arguments themselves are pointed to by @var{argp}.
+The result is another tree containing a simplified expression for the
+call's result.  If @var{ignore} is true the value will be ignored.
 @end deftypefn
 
 @deftypefn {Target Hook} {const char *} TARGET_INVALID_WITHIN_DOLOOP (const_rtx @var{insn})

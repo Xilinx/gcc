@@ -41,7 +41,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "reload.h"
 #include "ggc.h"
-#include "real.h"
 #include "basic-block.h"
 #include "target.h"
 
@@ -6032,7 +6031,7 @@ static GTY ((param_is (union tree_node))) htab_t libfunc_decls;
 static hashval_t
 libfunc_decl_hash (const void *entry)
 {
-  return htab_hash_string (IDENTIFIER_POINTER (DECL_NAME ((const_tree) entry)));
+  return IDENTIFIER_HASH_VALUE (DECL_NAME ((const_tree) entry));
 }
 
 static int

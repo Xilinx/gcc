@@ -83,6 +83,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "ipa-prop.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "statistics.h"
 #include "tree-dump.h"
 #include "timevar.h"
@@ -1586,14 +1587,15 @@ sort_and_splice_var_accesses (tree var)
    ACCESS->replacement.  */
 
 static tree
-create_access_replacement (struct access *access)
+create_access_replacement (struct access *access, bool rename)
 {
   tree repl;
 
   repl = create_tmp_var (access->type, "SR");
   get_var_ann (repl);
   add_referenced_var (repl);
-  mark_sym_for_renaming (repl);
+  if (rename)
+    mark_sym_for_renaming (repl);
 
   if (!access->grp_partial_lhs
       && (TREE_CODE (access->type) == COMPLEX_TYPE
@@ -1609,11 +1611,38 @@ create_access_replacement (struct access *access)
       && !DECL_ARTIFICIAL (access->base))
     {
       char *pretty_name = make_fancy_name (access->expr);
+      tree debug_expr = unshare_expr (access->expr), d;
 
       DECL_NAME (repl) = get_identifier (pretty_name);
       obstack_free (&name_obstack, pretty_name);
 
-      SET_DECL_DEBUG_EXPR (repl, access->expr);
+      /* Get rid of any SSA_NAMEs embedded in debug_expr,
+	 as DECL_DEBUG_EXPR isn't considered when looking for still
+	 used SSA_NAMEs and thus they could be freed.  All debug info
+	 generation cares is whether something is constant or variable
+	 and that get_ref_base_and_extent works properly on the
+	 expression.  */
+      for (d = debug_expr; handled_component_p (d); d = TREE_OPERAND (d, 0))
+	switch (TREE_CODE (d))
+	  {
+	  case ARRAY_REF:
+	  case ARRAY_RANGE_REF:
+	    if (TREE_OPERAND (d, 1)
+		&& TREE_CODE (TREE_OPERAND (d, 1)) == SSA_NAME)
+	      TREE_OPERAND (d, 1) = SSA_NAME_VAR (TREE_OPERAND (d, 1));
+	    if (TREE_OPERAND (d, 3)
+		&& TREE_CODE (TREE_OPERAND (d, 3)) == SSA_NAME)
+	      TREE_OPERAND (d, 3) = SSA_NAME_VAR (TREE_OPERAND (d, 3));
+	    /* FALLTHRU */
+	  case COMPONENT_REF:
+	    if (TREE_OPERAND (d, 2)
+		&& TREE_CODE (TREE_OPERAND (d, 2)) == SSA_NAME)
+	      TREE_OPERAND (d, 2) = SSA_NAME_VAR (TREE_OPERAND (d, 2));
+	    break;
+	  default:
+	    break;
+	  }
+      SET_DECL_DEBUG_EXPR (repl, debug_expr);
       DECL_DEBUG_EXPR_IS_FROM (repl) = 1;
       TREE_NO_WARNING (repl) = TREE_NO_WARNING (access->base);
     }
@@ -1642,9 +1671,23 @@ get_access_replacement (struct access *access)
   gcc_assert (access->grp_to_be_replaced);
 
   if (!access->replacement_decl)
-    access->replacement_decl = create_access_replacement (access);
+    access->replacement_decl = create_access_replacement (access, true);
   return access->replacement_decl;
 }
+
+/* Return ACCESS scalar replacement, create it if it does not exist yet but do
+   not mark it for renaming.  */
+
+static inline tree
+get_unrenamed_access_replacement (struct access *access)
+{
+  gcc_assert (!access->grp_to_be_replaced);
+
+  if (!access->replacement_decl)
+    access->replacement_decl = create_access_replacement (access, false);
+  return access->replacement_decl;
+}
+
 
 /* Build a subtree of accesses rooted in *ACCESS, and move the pointer in the
    linked list along the way.  Stop when *ACCESS is NULL or the access pointed
@@ -2480,29 +2523,21 @@ sra_modify_constructor_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 }
 
 /* Create a new suitable default definition SSA_NAME and replace all uses of
-   SSA with it.  */
+   SSA with it, RACC is access describing the uninitialized part of an
+   aggregate that is being loaded.  */
 
 static void
-replace_uses_with_default_def_ssa_name (tree ssa)
+replace_uses_with_default_def_ssa_name (tree ssa, struct access *racc)
 {
-  tree repl, decl = SSA_NAME_VAR (ssa);
-  if (TREE_CODE (decl) == PARM_DECL)
-    {
-      tree tmp = create_tmp_reg (TREE_TYPE (decl), "SR");
+  tree repl, decl;
 
-      get_var_ann (tmp);
-      add_referenced_var (tmp);
-      repl = make_ssa_name (tmp, gimple_build_nop ());
-      set_default_def (tmp, repl);
-    }
-  else
+  decl = get_unrenamed_access_replacement (racc);
+
+  repl = gimple_default_def (cfun, decl);
+  if (!repl)
     {
-      repl = gimple_default_def (cfun, decl);
-      if (!repl)
-	{
-	  repl = make_ssa_name (decl, gimple_build_nop ());
-	  set_default_def (decl, repl);
-	}
+      repl = make_ssa_name (decl, gimple_build_nop ());
+      set_default_def (decl, repl);
     }
 
   replace_uses_by (ssa, repl);
@@ -2690,7 +2725,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 					     false, false);
 		  gcc_assert (*stmt == gsi_stmt (*gsi));
 		  if (TREE_CODE (lhs) == SSA_NAME)
-		    replace_uses_with_default_def_ssa_name (lhs);
+		    replace_uses_with_default_def_ssa_name (lhs, racc);
 
 		  unlink_stmt_vdef (*stmt);
 		  gsi_remove (gsi, true);

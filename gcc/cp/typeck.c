@@ -633,10 +633,10 @@ composite_pointer_type (tree t1, tree t2, tree arg1, tree arg2,
 
       if (DERIVED_FROM_P (class1, class2))
 	t2 = (build_pointer_type
-	      (cp_build_qualified_type (class1, TYPE_QUALS (class2))));
+	      (cp_build_qualified_type (class1, cp_type_quals (class2))));
       else if (DERIVED_FROM_P (class2, class1))
 	t1 = (build_pointer_type
-	      (cp_build_qualified_type (class2, TYPE_QUALS (class1))));
+	      (cp_build_qualified_type (class2, cp_type_quals (class1))));
       else
         {
           if (complain & tf_error)
@@ -810,6 +810,7 @@ merge_types (tree t1, tree t2)
 	tree valtype = merge_types (TREE_TYPE (t1), TREE_TYPE (t2));
 	tree p1 = TYPE_ARG_TYPES (t1);
 	tree p2 = TYPE_ARG_TYPES (t2);
+	tree parms;
 	tree rval, raises;
 
 	/* Save space: see if the result is identical to one of the args.  */
@@ -821,21 +822,25 @@ merge_types (tree t1, tree t2)
 	/* Simple way if one arg fails to specify argument types.  */
 	if (p1 == NULL_TREE || TREE_VALUE (p1) == void_type_node)
 	  {
-	    rval = build_function_type (valtype, p2);
-	    if ((raises = TYPE_RAISES_EXCEPTIONS (t2)))
-	      rval = build_exception_variant (rval, raises);
-	    return cp_build_type_attribute_variant (rval, attributes);
+	    parms = p2;
+	    raises = TYPE_RAISES_EXCEPTIONS (t2);
 	  }
-	raises = TYPE_RAISES_EXCEPTIONS (t1);
-	if (p2 == NULL_TREE || TREE_VALUE (p2) == void_type_node)
+	else if (p2 == NULL_TREE || TREE_VALUE (p2) == void_type_node)
 	  {
-	    rval = build_function_type (valtype, p1);
-	    if (raises)
-	      rval = build_exception_variant (rval, raises);
-	    return cp_build_type_attribute_variant (rval, attributes);
+	    parms = p1;
+	    raises = TYPE_RAISES_EXCEPTIONS (t1);
+	  }
+	else
+	  {
+	    parms = commonparms (p1, p2);
+	    /* In cases where we're merging a real declaration with a
+	       built-in declaration, t1 is the real one.  */
+	    raises = TYPE_RAISES_EXCEPTIONS (t1);
 	  }
 
-	rval = build_function_type (valtype, commonparms (p1, p2));
+	rval = build_function_type (valtype, parms);
+	gcc_assert (type_memfn_quals (t1) == type_memfn_quals (t2));
+	rval = apply_memfn_quals (rval, type_memfn_quals (t1));
 	t1 = build_exception_variant (rval, raises);
 	break;
       }
@@ -1245,7 +1250,10 @@ structural_comptypes (tree t1, tree t2, int strict)
   /* Qualifiers must match.  For array types, we will check when we
      recur on the array element types.  */
   if (TREE_CODE (t1) != ARRAY_TYPE
-      && TYPE_QUALS (t1) != TYPE_QUALS (t2))
+      && cp_type_quals (t1) != cp_type_quals (t2))
+    return false;
+  if (TREE_CODE (t1) == FUNCTION_TYPE
+      && type_memfn_quals (t1) != type_memfn_quals (t2))
     return false;
   if (TYPE_FOR_JAVA (t1) != TYPE_FOR_JAVA (t2))
     return false;
@@ -2027,7 +2035,7 @@ string_conv_p (const_tree totype, const_tree exp, int warn)
   else
     {
       /* Is this a string constant which has decayed to 'const char *'?  */
-      t = build_pointer_type (build_qualified_type (t, TYPE_QUAL_CONST));
+      t = build_pointer_type (cp_build_qualified_type (t, TYPE_QUAL_CONST));
       if (!same_type_p (TREE_TYPE (exp), t))
 	return 0;
       STRIP_NOPS (exp);
@@ -2860,13 +2868,15 @@ cp_build_indirect_ref (tree ptr, ref_operator errorstring,
    LOC is the location to use in building the array reference.  */
 
 tree
-build_array_ref (location_t loc, tree array, tree idx)
+cp_build_array_ref (location_t loc, tree array, tree idx,
+		    tsubst_flags_t complain)
 {
   tree ret;
 
   if (idx == 0)
     {
-      error_at (loc, "subscript missing in array reference");
+      if (complain & tf_error)
+	error_at (loc, "subscript missing in array reference");
       return error_mark_node;
     }
 
@@ -2880,7 +2890,8 @@ build_array_ref (location_t loc, tree array, tree idx)
     {
     case COMPOUND_EXPR:
       {
-	tree value = build_array_ref (loc, TREE_OPERAND (array, 1), idx);
+	tree value = cp_build_array_ref (loc, TREE_OPERAND (array, 1), idx,
+					 complain);
 	ret = build2 (COMPOUND_EXPR, TREE_TYPE (value),
 		      TREE_OPERAND (array, 0), value);
 	SET_EXPR_LOCATION (ret, loc);
@@ -2890,8 +2901,10 @@ build_array_ref (location_t loc, tree array, tree idx)
     case COND_EXPR:
       ret = build_conditional_expr
 	      (TREE_OPERAND (array, 0),
-	       build_array_ref (loc, TREE_OPERAND (array, 1), idx),
-	       build_array_ref (loc, TREE_OPERAND (array, 2), idx),
+	       cp_build_array_ref (loc, TREE_OPERAND (array, 1), idx,
+				   complain),
+	       cp_build_array_ref (loc, TREE_OPERAND (array, 2), idx,
+				   complain),
 	       tf_warning_or_error);
       protected_set_expr_location (ret, loc);
       return ret;
@@ -2908,7 +2921,8 @@ build_array_ref (location_t loc, tree array, tree idx)
 
       if (!INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (TREE_TYPE (idx)))
 	{
-	  error_at (loc, "array subscript is not an integer");
+	  if (complain & tf_error)
+	    error_at (loc, "array subscript is not an integer");
 	  return error_mark_node;
 	}
 
@@ -2944,7 +2958,7 @@ build_array_ref (location_t loc, tree array, tree idx)
 	    return error_mark_node;
 	}
 
-      if (!lvalue_p (array))
+      if (!lvalue_p (array) && (complain & tf_error))
 	pedwarn (loc, OPT_pedantic, 
 	         "ISO C++ forbids subscripting non-lvalue array");
 
@@ -2956,7 +2970,8 @@ build_array_ref (location_t loc, tree array, tree idx)
 	  tree foo = array;
 	  while (TREE_CODE (foo) == COMPONENT_REF)
 	    foo = TREE_OPERAND (foo, 0);
-	  if (TREE_CODE (foo) == VAR_DECL && DECL_REGISTER (foo))
+	  if (TREE_CODE (foo) == VAR_DECL && DECL_REGISTER (foo)
+	      && (complain & tf_warning))
 	    warning_at (loc, OPT_Wextra,
 			"subscripting array declared %<register%>");
 	}
@@ -2993,12 +3008,14 @@ build_array_ref (location_t loc, tree array, tree idx)
 
     if (TREE_CODE (TREE_TYPE (ar)) != POINTER_TYPE)
       {
-	error_at (loc, "subscripted value is neither array nor pointer");
+	if (complain & tf_error)
+	  error_at (loc, "subscripted value is neither array nor pointer");
 	return error_mark_node;
       }
     if (TREE_CODE (TREE_TYPE (ind)) != INTEGER_TYPE)
       {
-	error_at (loc, "array subscript is not an integer");
+	if (complain & tf_error)
+	  error_at (loc, "array subscript is not an integer");
 	return error_mark_node;
       }
 
@@ -3006,12 +3023,20 @@ build_array_ref (location_t loc, tree array, tree idx)
 
     ret = cp_build_indirect_ref (cp_build_binary_op (input_location,
 						     PLUS_EXPR, ar, ind,
-						     tf_warning_or_error),
+						     complain),
                                  RO_ARRAY_INDEXING,
-                                 tf_warning_or_error);
+                                 complain);
     protected_set_expr_location (ret, loc);
     return ret;
   }
+}
+
+/* Entry point for Obj-C++.  */
+
+tree
+build_array_ref (location_t loc, tree array, tree idx)
+{
+  return cp_build_array_ref (loc, array, idx, tf_warning_or_error);
 }
 
 /* Resolve a pointer to member function.  INSTANCE is the object
@@ -6028,7 +6053,7 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
      an integral type; the conversion has the same meaning and
      validity as a conversion of (void*)0 to the integral type.  */
   if (CP_INTEGRAL_TYPE_P (type)
-      && (TYPE_PTR_P (intype) || TREE_CODE (intype) == NULLPTR_TYPE))
+      && (TYPE_PTR_P (intype) || NULLPTR_TYPE_P (intype)))
     {
       if (TYPE_PRECISION (type) < TYPE_PRECISION (intype))
         {
@@ -6038,7 +6063,7 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
           else
             return error_mark_node;
         }
-      if (TREE_CODE (intype) == NULLPTR_TYPE)
+      if (NULLPTR_TYPE_P (intype))
         return build_int_cst (type, 0);
     }
   /* [expr.reinterpret.cast]
@@ -7620,7 +7645,7 @@ check_return_expr (tree retval, bool *no_warning)
       if ((cxx_dialect != cxx98) 
           && named_return_value_okay_p
           /* The variable must not have the `volatile' qualifier.  */
-	  && !(cp_type_quals (TREE_TYPE (retval)) & TYPE_QUAL_VOLATILE)
+	  && !CP_TYPE_VOLATILE_P (TREE_TYPE (retval))
 	  /* The return type must be a class type.  */
 	  && CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (current_function_decl))))
 	flags = flags | LOOKUP_PREFER_RVALUE;
@@ -7834,24 +7859,50 @@ comp_ptr_ttypes_const (tree to, tree from)
 int
 cp_type_quals (const_tree type)
 {
+  int quals;
   /* This CONST_CAST is okay because strip_array_types returns its
      argument unmodified and we assign it to a const_tree.  */
-  type = strip_array_types (CONST_CAST_TREE(type));
-  if (type == error_mark_node)
+  type = strip_array_types (CONST_CAST_TREE (type));
+  if (type == error_mark_node
+      /* Quals on a FUNCTION_TYPE are memfn quals.  */
+      || TREE_CODE (type) == FUNCTION_TYPE)
     return TYPE_UNQUALIFIED;
-  return TYPE_QUALS (type);
+  quals = TYPE_QUALS (type);
+  /* METHOD and REFERENCE_TYPEs should never have quals.  */
+  gcc_assert ((TREE_CODE (type) != METHOD_TYPE
+	       && TREE_CODE (type) != REFERENCE_TYPE)
+	      || ((quals & (TYPE_QUAL_CONST|TYPE_QUAL_VOLATILE))
+		  == TYPE_UNQUALIFIED));
+  return quals;
 }
 
-/* Returns nonzero if the TYPE is const from a C++ perspective: look inside
-   arrays.  */
+/* Returns the function-cv-quals for TYPE, which must be a FUNCTION_TYPE or
+   METHOD_TYPE.  */
 
-bool
-cp_type_readonly (const_tree type)
+int
+type_memfn_quals (const_tree type)
 {
-  /* This CONST_CAST is okay because strip_array_types returns its
-     argument unmodified and we assign it to a const_tree.  */
-  type = strip_array_types (CONST_CAST_TREE(type));
-  return TYPE_READONLY (type);
+  if (TREE_CODE (type) == FUNCTION_TYPE)
+    return TYPE_QUALS (type);
+  else if (TREE_CODE (type) == METHOD_TYPE)
+    return cp_type_quals (TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (type))));
+  else
+    gcc_unreachable ();
+}
+
+/* Returns the FUNCTION_TYPE TYPE with its function-cv-quals changed to
+   MEMFN_QUALS.  */
+
+tree
+apply_memfn_quals (tree type, cp_cv_quals memfn_quals)
+{
+  /* Could handle METHOD_TYPE here if necessary.  */
+  gcc_assert (TREE_CODE (type) == FUNCTION_TYPE);
+  if (TYPE_QUALS (type) == memfn_quals)
+    return type;
+  /* This should really have a different TYPE_MAIN_VARIANT, but that gets
+     complex.  */
+  return build_qualified_type (type, memfn_quals);
 }
 
 /* Returns nonzero if TYPE is const or volatile.  */
@@ -7898,23 +7949,8 @@ cp_apply_type_quals_to_decl (int type_quals, tree decl)
   if (TREE_CODE (decl) == TYPE_DECL)
     return;
 
-  if (TREE_CODE (type) == FUNCTION_TYPE
-      && type_quals != TYPE_UNQUALIFIED)
-    {
-      /* This was an error in C++98 (cv-qualifiers cannot be added to
-	 a function type), but DR 295 makes the code well-formed by
-	 dropping the extra qualifiers. */
-      if (pedantic)
-	{
-	  tree bad_type = build_qualified_type (type, type_quals);
-	  pedwarn (input_location, OPT_pedantic, 
-		   "ignoring %qV qualifiers added to function type %qT",
-		   bad_type, type);
-	}
-
-      TREE_TYPE (decl) = TYPE_MAIN_VARIANT (type);
-      return;
-    }
+  gcc_assert (!(TREE_CODE (type) == FUNCTION_TYPE
+		&& type_quals != TYPE_UNQUALIFIED));
 
   /* Avoid setting TREE_READONLY incorrectly.  */
   if (/* If the object has a constructor, the constructor may modify

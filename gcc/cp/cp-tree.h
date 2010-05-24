@@ -776,6 +776,7 @@ enum cp_tree_index
     CPTI_KEYED_CLASSES,
 
     CPTI_NULLPTR,
+    CPTI_NULLPTR_TYPE,
 
     CPTI_MAX
 };
@@ -812,6 +813,7 @@ extern GTY(()) tree cp_global_trees[CPTI_MAX];
 #define global_delete_fndecl		cp_global_trees[CPTI_GLOBAL_DELETE_FNDECL]
 #define current_aggr			cp_global_trees[CPTI_AGGR_TAG]
 #define nullptr_node			cp_global_trees[CPTI_NULLPTR]
+#define nullptr_type_node		cp_global_trees[CPTI_NULLPTR_TYPE]
 
 /* We cache these tree nodes so as to call get_identifier less
    frequently.  */
@@ -1738,6 +1740,12 @@ struct GTY(()) lang_type {
 #define TYPE_NOTHROW_P(NODE) \
   (TYPE_RAISES_EXCEPTIONS (NODE) \
    && TREE_VALUE (TYPE_RAISES_EXCEPTIONS (NODE)) == NULL_TREE)
+
+/* For FUNCTION_TYPE or METHOD_TYPE, true if NODE is noexcept.  This is the
+   case for things declared noexcept(true) and, with -fnothrow-opt, for
+   throw() functions.  */
+#define TYPE_NOEXCEPT_P(NODE) \
+  (flag_nothrow_opt && TYPE_NOTHROW_P(NODE))
 
 /* The binding level associated with the namespace.  */
 #define NAMESPACE_LEVEL(NODE) \
@@ -3002,6 +3010,11 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    || TREE_CODE (TYPE) == REAL_TYPE \
    || TREE_CODE (TYPE) == COMPLEX_TYPE)
 
+/* True iff TYPE is cv decltype(nullptr).  */
+#define NULLPTR_TYPE_P(TYPE)				\
+  (TREE_CODE (TYPE) == LANG_TYPE			\
+   && TYPE_MAIN_VARIANT (TYPE) == nullptr_type_node)
+
 /* [basic.types]
 
    Arithmetic types, enumeration types, pointer types,
@@ -3015,7 +3028,7 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    || ARITHMETIC_TYPE_P (TYPE)			\
    || TYPE_PTR_P (TYPE)				\
    || TYPE_PTRMEMFUNC_P (TYPE)                  \
-   || TREE_CODE (TYPE) == NULLPTR_TYPE)
+   || NULLPTR_TYPE_P (TYPE))
 
 /* Determines whether this type is a C++0x scoped enumeration
    type. Scoped enumerations types are introduced via "enum class" or
@@ -3343,8 +3356,6 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 /* Nonzero if TYPE is an anonymous union type.  */
 #define ANON_UNION_TYPE_P(NODE) \
   (TREE_CODE (NODE) == UNION_TYPE && ANON_AGGR_TYPE_P (NODE))
-
-#define UNKNOWN_TYPE LANG_TYPE
 
 /* Define fields and accessors for nodes representing declared names.  */
 
@@ -4109,8 +4120,8 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
    have already generated a temporary, such as reference
    initialization and the catch parameter.  */
 #define DIRECT_BIND (1 << 4)
-/* User-defined conversions are not permitted.  (Built-in conversions
-   are permitted.)  */
+/* We're performing a user-defined conversion, so more user-defined
+   conversions are not permitted (only built-in conversions).  */
 #define LOOKUP_NO_CONVERSION (1 << 5)
 /* The user has explicitly called a destructor.  (Therefore, we do
    not need to check that the object is non-NULL before calling the
@@ -4137,6 +4148,8 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 #define LOOKUP_NO_COPY_CTOR_CONVERSION (LOOKUP_NO_NARROWING << 1)
 /* This is the first parameter of a copy constructor.  */
 #define LOOKUP_COPY_PARM (LOOKUP_NO_COPY_CTOR_CONVERSION << 1)
+/* We only want to consider list constructors.  */
+#define LOOKUP_LIST_ONLY (LOOKUP_COPY_PARM << 1)
 
 #define LOOKUP_NAMESPACES_ONLY(F)  \
   (((F) & LOOKUP_PREFER_NAMESPACES) && !((F) & LOOKUP_PREFER_TYPES))
@@ -5359,6 +5372,8 @@ extern tree build_x_indirect_ref		(tree, ref_operator,
 extern tree cp_build_indirect_ref		(tree, ref_operator,
                                                  tsubst_flags_t);
 extern tree build_array_ref			(location_t, tree, tree);
+extern tree cp_build_array_ref			(location_t, tree, tree,
+						 tsubst_flags_t);
 extern tree get_member_function_from_ptrfunc	(tree *, tree);
 extern tree cp_build_function_call              (tree, tree, tsubst_flags_t);
 extern tree cp_build_function_call_vec		(tree, VEC(tree,gc) **,
@@ -5398,7 +5413,8 @@ extern bool error_type_p			(const_tree);
 extern int ptr_reasonably_similar		(const_tree, const_tree);
 extern tree build_ptrmemfunc			(tree, tree, int, bool);
 extern int cp_type_quals			(const_tree);
-extern bool cp_type_readonly			(const_tree);
+extern int type_memfn_quals			(const_tree);
+extern tree apply_memfn_quals			(tree, cp_cv_quals);
 extern bool cp_has_mutable_p			(const_tree);
 extern bool at_least_as_qualified_p		(const_tree, const_tree);
 extern void cp_apply_type_quals_to_decl		(int, tree);

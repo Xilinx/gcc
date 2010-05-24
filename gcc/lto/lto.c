@@ -84,7 +84,6 @@ lto_materialize_function (struct cgraph_node *node)
   struct lto_file_decl_data *file_data;
   const char *data, *name;
   size_t len;
-  tree step;
 
   /* Ignore clone nodes.  Read the body only from the original one.
      We may find clone nodes during LTRANS after WPA has made inlining
@@ -103,46 +102,33 @@ lto_materialize_function (struct cgraph_node *node)
 			       name, &len);
   if (data)
     {
-      struct function *fn;
-
       gcc_assert (!DECL_IS_BUILTIN (decl));
 
       /* This function has a definition.  */
       TREE_STATIC (decl) = 1;
 
       gcc_assert (DECL_STRUCT_FUNCTION (decl) == NULL);
-      allocate_struct_function (decl, false);
 
       /* Load the function body only if not operating in WPA mode.  In
 	 WPA mode, the body of the function is not needed.  */
       if (!flag_wpa)
 	{
+         allocate_struct_function (decl, false);
+	  announce_function (node->decl);
 	  lto_input_function_body (file_data, decl, data);
 	  lto_stats.num_function_bodies++;
 	}
 
-      fn = DECL_STRUCT_FUNCTION (decl);
       lto_free_section_data (file_data, LTO_section_function_body, name,
 			     data, len);
-
-      /* Look for initializers of constant variables and private
-	 statics.  */
-      for (step = fn->local_decls; step; step = TREE_CHAIN (step))
-	{
-	  tree decl = TREE_VALUE (step);
-	  if (TREE_CODE (decl) == VAR_DECL
-	      && (TREE_STATIC (decl) && !DECL_EXTERNAL (decl))
-	      && flag_unit_at_a_time)
-	    varpool_finalize_decl (decl);
-	}
+      if (!flag_wpa)
+	ggc_collect ();
     }
   else
     DECL_EXTERNAL (decl) = 1;
 
   /* Let the middle end know about the function.  */
   rest_of_decl_compilation (decl, 1, 0);
-  if (cgraph_node (decl)->needed)
-    cgraph_mark_reachable_node (cgraph_node (decl));
 }
 
 
@@ -551,9 +537,8 @@ lto_1_to_1_map (void)
 
   for (node = cgraph_nodes; node; node = node->next)
     {
-      /* We will get proper partition based on function they are inlined to or
-	 cloned from.  */
-      if (node->global.inlined_to || node->clone_of)
+      /* We will get proper partition based on function they are inlined to.  */
+      if (node->global.inlined_to)
 	continue;
       /* Nodes without a body do not need partitioning.  */
       if (!node->analyzed)
@@ -706,6 +691,42 @@ lto_add_all_inlinees (cgraph_node_set set)
   lto_bitmap_free (original_decls);
 }
 
+/* Promote variable VNODE to be static.  */
+
+static bool
+promote_var (struct varpool_node *vnode)
+{
+  if (TREE_PUBLIC (vnode->decl) || DECL_EXTERNAL (vnode->decl))
+    return false;
+  gcc_assert (flag_wpa);
+  TREE_PUBLIC (vnode->decl) = 1;
+  DECL_VISIBILITY (vnode->decl) = VISIBILITY_HIDDEN;
+  return true;
+}
+
+/* Promote function NODE to be static.  */
+
+static bool
+promote_fn (struct cgraph_node *node)
+{
+  gcc_assert (flag_wpa);
+  if (TREE_PUBLIC (node->decl) || DECL_EXTERNAL (node->decl))
+    return false;
+  TREE_PUBLIC (node->decl) = 1;
+  DECL_VISIBILITY (node->decl) = VISIBILITY_HIDDEN;
+  if (node->same_body)
+    {
+      struct cgraph_node *alias;
+      for (alias = node->same_body;
+	   alias; alias = alias->next)
+	{
+	  TREE_PUBLIC (alias->decl) = 1;
+	  DECL_VISIBILITY (alias->decl) = VISIBILITY_HIDDEN;
+	}
+    }
+  return true;
+}
+
 /* Find out all static decls that need to be promoted to global because
    of cross file sharing.  This function must be run in the WPA mode after
    all inlinees are added.  */
@@ -719,6 +740,8 @@ lto_promote_cross_file_statics (void)
   varpool_node_set vset;
   cgraph_node_set_iterator csi;
   varpool_node_set_iterator vsi;
+  VEC(varpool_node_ptr, heap) *promoted_initializers = NULL;
+  struct pointer_set_t *inserted = pointer_set_create ();
 
   gcc_assert (flag_wpa);
 
@@ -735,26 +758,12 @@ lto_promote_cross_file_statics (void)
 	  struct cgraph_node *node = csi_node (csi);
 	  if (node->local.externally_visible)
 	    continue;
-	  if (node->clone_of || node->global.inlined_to)
+	  if (node->global.inlined_to)
 	    continue;
 	  if (!DECL_EXTERNAL (node->decl)
 	      && (referenced_from_other_partition_p (&node->ref_list, set, vset)
 		  || reachable_from_other_partition_p (node, set)))
-	     {
-		gcc_assert (flag_wpa);
-		TREE_PUBLIC (node->decl) = 1;
-		DECL_VISIBILITY (node->decl) = VISIBILITY_HIDDEN;
-		if (node->same_body)
-		  {
-		    struct cgraph_node *alias;
-		    for (alias = node->same_body;
-			 alias; alias = alias->next)
-		      {
-			TREE_PUBLIC (alias->decl) = 1;
-			DECL_VISIBILITY (alias->decl) = VISIBILITY_HIDDEN;
-		      }
-		  }
-	     }
+	    promote_fn (node);
 	}
       for (vsi = vsi_start (vset); !vsi_end_p (vsi); vsi_next (&vsi))
 	{
@@ -763,16 +772,73 @@ lto_promote_cross_file_statics (void)
 	     be made global.  It is sensible to keep those ltrans local to
 	     allow better optimization.  */
 	  if (!DECL_IN_CONSTANT_POOL (vnode->decl)
-	      && !vnode->externally_visible && vnode->analyzed
-	      && referenced_from_other_partition_p (&vnode->ref_list, set, vset))
-	    {
-	      gcc_assert (flag_wpa);
-	      TREE_PUBLIC (vnode->decl) = 1;
-	      DECL_VISIBILITY (vnode->decl) = VISIBILITY_HIDDEN;
-	    }
+	     && !vnode->externally_visible && vnode->analyzed
+	     && referenced_from_other_partition_p (&vnode->ref_list,
+						   set, vset))
+	    promote_var (vnode);
 	}
 
+      /* We export initializers of read-only var into each partition
+	 referencing it.  Folding might take declarations from the
+	 initializers and use it; so everything referenced from the
+	 initializers needs can be accessed from this partition after
+	 folding.
+
+	 This means that we need to promote all variables and functions
+	 referenced from all initializers from readonly vars referenced
+	 from this partition that are not in this partition.
+	 This needs to be done recursively.  */
+      for (vnode = varpool_nodes; vnode; vnode = vnode->next)
+	if ((TREE_READONLY (vnode->decl) || DECL_IN_CONSTANT_POOL (vnode->decl))
+	    && DECL_INITIAL (vnode->decl)
+	    && !varpool_node_in_set_p (vnode, vset)
+	    && referenced_from_this_partition_p (&vnode->ref_list, set, vset)
+	    && !pointer_set_insert (inserted, vnode))
+	VEC_safe_push (varpool_node_ptr, heap, promoted_initializers, vnode);
+      while (!VEC_empty (varpool_node_ptr, promoted_initializers))
+	{
+	  int i;
+	  struct ipa_ref *ref;
+
+	  vnode = VEC_pop (varpool_node_ptr, promoted_initializers);
+	  for (i = 0; ipa_ref_list_reference_iterate (&vnode->ref_list, i, ref); i++)
+	    {
+	      if (ref->refered_type == IPA_REF_CGRAPH)
+		{
+		  struct cgraph_node *n = ipa_ref_node (ref);
+		  gcc_assert (!n->global.inlined_to);
+		  if (!n->local.externally_visible
+		      && !cgraph_node_in_set_p (n, set))
+		    promote_fn (n);
+		}
+	      else
+		{
+		  struct varpool_node *v = ipa_ref_varpool_node (ref);
+		  if (varpool_node_in_set_p (v, vset))
+		    continue;
+		  /* Constant pool references use internal labels and thus can not
+		     be made global.  It is sensible to keep those ltrans local to
+		     allow better optimization.  */
+		  if (DECL_IN_CONSTANT_POOL (v->decl))
+		    {
+		      if (!pointer_set_insert (inserted, vnode))
+			VEC_safe_push (varpool_node_ptr, heap,
+				       promoted_initializers, v);
+		    }
+		  else if (!DECL_IN_CONSTANT_POOL (v->decl)
+			   && !v->externally_visible && v->analyzed)
+		    {
+		      if (promote_var (v)
+			  && DECL_INITIAL (v->decl) && TREE_READONLY (v->decl)
+			  && !pointer_set_insert (inserted, vnode))
+			VEC_safe_push (varpool_node_ptr, heap,
+				       promoted_initializers, v);
+		    }
+		}
+	    }
+	}
     }
+  pointer_set_destroy (inserted);
 }
 
 
@@ -1454,8 +1520,6 @@ lto_fixup_decls (struct lto_file_decl_data **files)
 	VEC_replace (tree, lto_global_var_decls, i, decl);
     }
 
-  VEC_free (tree, gc, lto_global_var_decls);
-  lto_global_var_decls = NULL;
   pointer_set_destroy (seen);
 }
 
@@ -1569,7 +1633,8 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
 
       lto_obj_file_close (current_lto_file);
       current_lto_file = NULL;
-      ggc_collect ();
+      /* ???  We'd want but can't ggc_collect () here as the type merging
+         code in gimple.c uses hashtables that are not ggc aware.  */
     }
 
   if (resolution_file_name)
@@ -1688,7 +1753,6 @@ materialize_cgraph (void)
       if (node->local.lto_file_data
           && !DECL_IS_BUILTIN (node->decl))
 	{
-	  announce_function (node->decl);
 	  lto_materialize_function (node);
 	  lto_stats.num_input_cgraph_nodes++;
 	}

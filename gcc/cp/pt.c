@@ -1,6 +1,6 @@
 /* Handle parameterized types (templates) for GNU C++.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Written by Ken Raeburn (raeburn@cygnus.com) while at Watchmaker Computing.
    Rewritten by Jason Merrill (jason@cygnus.com).
@@ -3837,7 +3837,7 @@ process_partial_specialization (tree decl)
   int nargs = TREE_VEC_LENGTH (inner_args);
   int ntparms;
   int  i;
-  int did_error_intro = 0;
+  bool did_error_intro = false;
   struct template_parm_data tpd;
   struct template_parm_data tpd2;
 
@@ -3899,11 +3899,14 @@ process_partial_specialization (tree decl)
 	if (!did_error_intro)
 	  {
 	    error ("template parameters not used in partial specialization:");
-	    did_error_intro = 1;
+	    did_error_intro = true;
 	  }
 
 	error ("        %qD", TREE_VALUE (TREE_VEC_ELT (inner_parms, i)));
       }
+
+  if (did_error_intro)
+    return error_mark_node;
 
   /* [temp.class.spec]
 
@@ -8757,7 +8760,7 @@ tsubst_aggr_type (tree t,
 	    {
 	      r = lookup_template_class (t, argvec, in_decl, context,
 					 entering_scope, complain);
-	      r = cp_build_qualified_type_real (r, TYPE_QUALS (t), complain);
+	      r = cp_build_qualified_type_real (r, cp_type_quals (t), complain);
 	    }
 
 	  cp_unevaluated_operand = saved_unevaluated_operand;
@@ -9788,7 +9791,10 @@ tsubst_function_type (tree t,
 
   /* Construct a new type node and return it.  */
   if (TREE_CODE (t) == FUNCTION_TYPE)
-    fntype = build_function_type (return_type, arg_types);
+    {
+      fntype = build_function_type (return_type, arg_types);
+      fntype = apply_memfn_quals (fntype, type_memfn_quals (t));
+    }
   else
     {
       tree r = TREE_TYPE (TREE_VALUE (arg_types));
@@ -9810,7 +9816,6 @@ tsubst_function_type (tree t,
       fntype = build_method_type_directly (r, return_type,
 					   TREE_CHAIN (arg_types));
     }
-  fntype = cp_build_qualified_type_real (fntype, TYPE_QUALS (t), complain);
   fntype = cp_build_type_attribute_variant (fntype, TYPE_ATTRIBUTES (t));
 
   return fntype;
@@ -10108,14 +10113,7 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 		int quals;
 		gcc_assert (TYPE_P (arg));
 
-		/* cv-quals from the template are discarded when
-		   substituting in a function or reference type.  */
-		if (TREE_CODE (arg) == FUNCTION_TYPE
-		    || TREE_CODE (arg) == METHOD_TYPE
-		    || TREE_CODE (arg) == REFERENCE_TYPE)
-		  quals = cp_type_quals (arg);
-		else
-		  quals = cp_type_quals (arg) | cp_type_quals (t);
+		quals = cp_type_quals (arg) | cp_type_quals (t);
 		  
 		return cp_build_qualified_type_real
 		  (arg, quals, complain | tf_ignore_bad_quals);
@@ -10143,11 +10141,11 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 					    /*entering_scope=*/0,
 					   complain);
 		return cp_build_qualified_type_real
-		  (r, TYPE_QUALS (t), complain);
+		  (r, cp_type_quals (t), complain);
 	      }
 	    else
 	      /* TEMPLATE_TEMPLATE_PARM or TEMPLATE_PARM_INDEX.  */
-	      return arg;
+	      return unshare_expr (arg);
 	  }
 
 	if (level == 1)
@@ -10333,7 +10331,7 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	       TYPE_REF_IS_RVALUE (t) && TYPE_REF_IS_RVALUE (type));
 	else
 	  r = cp_build_reference_type (type, TYPE_REF_IS_RVALUE (t));
-	r = cp_build_qualified_type_real (r, TYPE_QUALS (t), complain);
+	r = cp_build_qualified_type_real (r, cp_type_quals (t), complain);
 
 	if (r != error_mark_node)
 	  /* Will this ever be needed for TYPE_..._TO values?  */
@@ -10375,14 +10373,14 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	    /* The type of the implicit object parameter gets its
 	       cv-qualifiers from the FUNCTION_TYPE. */
 	    tree memptr;
-	    tree method_type = build_memfn_type (type, r, cp_type_quals (type));
+	    tree method_type = build_memfn_type (type, r, type_memfn_quals (type));
 	    memptr = build_ptrmemfunc_type (build_pointer_type (method_type));
 	    return cp_build_qualified_type_real (memptr, cp_type_quals (t),
 						 complain);
 	  }
 	else
 	  return cp_build_qualified_type_real (build_ptrmem_type (r, type),
-					       TYPE_QUALS (t),
+					       cp_type_quals (t),
 					       complain);
       }
     case FUNCTION_TYPE:
@@ -14101,9 +14099,9 @@ check_cv_quals_for_unify (int strict, tree arg, tree parm)
     {
       /*  Although a CVR qualifier is ignored when being applied to a
 	  substituted template parameter ([8.3.2]/1 for example), that
-	  does not apply during deduction [14.8.2.4]/1, (even though
-	  that is not explicitly mentioned, [14.8.2.4]/9 indicates
-	  this).  Except when we're allowing additional CV qualifiers
+	  does not allow us to unify "const T" with "int&" because both
+	  types are not of the form "cv-list T" [14.8.2.5 temp.deduct.type].
+	  It is ok when we're allowing additional CV qualifiers
 	  at the outer level [14.8.2.1]/3,1st bullet.  */
       if ((TREE_CODE (arg) == REFERENCE_TYPE
 	   || TREE_CODE (arg) == FUNCTION_TYPE
@@ -15039,7 +15037,6 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
 	{
 	  tree method_type;
 	  tree fntype;
-	  cp_cv_quals cv_quals;
 
 	  /* Check top-level cv qualifiers */
 	  if (!check_cv_quals_for_unify (UNIFY_ALLOW_NONE, arg, parm))
@@ -15058,9 +15055,7 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
 	  /* Extract the cv-qualifiers of the member function from the
 	     implicit object parameter and place them on the function
 	     type to be restored later. */
-	  cv_quals =
-	    cp_type_quals(TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (method_type))));
-	  fntype = build_qualified_type (fntype, cv_quals);
+	  fntype = apply_memfn_quals (fntype, type_memfn_quals (method_type));
 	  return unify (tparms, targs, TREE_TYPE (parm), fntype, strict);
 	}
 

@@ -155,7 +155,7 @@ init_rtti_processing (void)
 			     /*tag_scope=*/ts_current, false);
   pop_namespace ();
   const_type_info_type_node
-    = build_qualified_type (type_info_type, TYPE_QUAL_CONST);
+    = cp_build_qualified_type (type_info_type, TYPE_QUAL_CONST);
   type_info_ptr_type = build_pointer_type (const_type_info_type_node);
 
   unemitted_tinfo_decls = VEC_alloc (tree, gc, 124);
@@ -192,8 +192,8 @@ build_headof (tree exp)
                                                   tf_warning_or_error), 
                            index);
 
-  type = build_qualified_type (ptr_type_node,
-			       cp_type_quals (TREE_TYPE (exp)));
+  type = cp_build_qualified_type (ptr_type_node,
+				  cp_type_quals (TREE_TYPE (exp)));
   return build2 (POINTER_PLUS_EXPR, type, exp,
 		 convert_to_integer (sizetype, offset));
 }
@@ -255,7 +255,8 @@ get_tinfo_decl_dynamic (tree exp)
   type = TYPE_MAIN_VARIANT (type);
 
   /* For UNKNOWN_TYPEs call complete_type_or_else to get diagnostics.  */
-  if (CLASS_TYPE_P (type) || TREE_CODE (type) == UNKNOWN_TYPE)
+  if (CLASS_TYPE_P (type) || type == unknown_type_node
+      || type == init_list_type_node)
     type = complete_type_or_else (type, exp);
 
   if (!type)
@@ -482,7 +483,8 @@ get_typeid (tree type)
   type = TYPE_MAIN_VARIANT (type);
 
   /* For UNKNOWN_TYPEs call complete_type_or_else to get diagnostics.  */
-  if (CLASS_TYPE_P (type) || TREE_CODE (type) == UNKNOWN_TYPE)
+  if (CLASS_TYPE_P (type) || type == unknown_type_node
+      || type == init_list_type_node)
     type = complete_type_or_else (type, NULL_TREE);
 
   if (!type)
@@ -724,7 +726,7 @@ build_dynamic_cast_1 (tree type, tree expr, tsubst_flags_t complain)
 				    /*tag_scope=*/ts_current, false);
 
 	      tinfo_ptr = build_pointer_type
-		(build_qualified_type
+		(cp_build_qualified_type
 		 (tinfo_ptr, TYPE_QUAL_CONST));
 	      name = "__dynamic_cast";
 	      tmp = tree_cons
@@ -869,7 +871,7 @@ tinfo_base_init (tinfo_s *ti, tree target)
 
     /* Generate the NTBS array variable.  */
     tree name_type = build_cplus_array_type
-		     (build_qualified_type (char_type_node, TYPE_QUAL_CONST),
+		     (cp_build_qualified_type (char_type_node, TYPE_QUAL_CONST),
 		     NULL_TREE);
 
     /* Determine the name of the variable -- and remember with which
@@ -1044,8 +1046,12 @@ typeinfo_in_lib_p (tree type)
     case BOOLEAN_TYPE:
     case REAL_TYPE:
     case VOID_TYPE:
-    case NULLPTR_TYPE:
       return true;
+
+    case LANG_TYPE:
+      if (NULLPTR_TYPE_P (type))
+	return true;
+      /* else fall through.  */
 
     default:
       return false;
@@ -1452,7 +1458,6 @@ emit_support_tinfos (void)
 {
   /* Dummy static variable so we can put nullptr in the array; it will be
      set before we actually start to walk the array.  */
-  static tree nullptr_type_node;
   static tree *const fundamentals[] =
   {
     &void_type_node,
@@ -1482,7 +1487,6 @@ emit_support_tinfos (void)
   if (!dtor || DECL_EXTERNAL (dtor))
     return;
   doing_runtime = 1;
-  nullptr_type_node = TREE_TYPE (nullptr_node);
   for (ix = 0; fundamentals[ix]; ix++)
     {
       tree bltn = *fundamentals[ix];
@@ -1491,8 +1495,8 @@ emit_support_tinfos (void)
 
       types[0] = bltn;
       types[1] = build_pointer_type (bltn);
-      types[2] = build_pointer_type (build_qualified_type (bltn,
-							   TYPE_QUAL_CONST));
+      types[2] = build_pointer_type (cp_build_qualified_type (bltn,
+							      TYPE_QUAL_CONST));
 
       for (i = 0; i < 3; ++i)
 	{

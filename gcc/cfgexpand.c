@@ -36,6 +36,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "flags.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "toplev.h"
 #include "debug.h"
 #include "params.h"
@@ -43,7 +45,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "value-prof.h"
 #include "target.h"
 #include "ssaexpand.h"
-
+#include "bitmap.h"
+#include "sbitmap.h"
 
 /* This variable holds information helping the rewriting of SSA trees
    into RTL.  */
@@ -2561,12 +2564,13 @@ expand_debug_expr (tree exp)
         if (bitpos < 0)
           return NULL;
 
+	if (GET_MODE (op0) == BLKmode)
+	  return NULL;
+
 	if ((bitpos % BITS_PER_UNIT) == 0
 	    && bitsize == GET_MODE_BITSIZE (mode1))
 	  {
 	    enum machine_mode opmode = GET_MODE (op0);
-
-	    gcc_assert (opmode != BLKmode);
 
 	    if (opmode == VOIDmode)
 	      opmode = mode1;

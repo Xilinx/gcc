@@ -4,7 +4,7 @@
    and during the instantiation of template functions.
 
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-		 2008, 2009 Free Software Foundation, Inc.
+		 2008, 2009, 2010 Free Software Foundation, Inc.
    Written by Mark Mitchell (mmitchell@usa.net) based on code found
    formerly in parse.y and pt.c.
 
@@ -47,6 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "vec.h"
 #include "target.h"
 #include "gimple.h"
+#include "bitmap.h"
 
 /* There routines provide a modular interface to perform many parsing
    operations.  They may therefore be used during actual parsing, or
@@ -610,13 +611,6 @@ finish_expr_stmt (tree expr)
 	{
 	  if (warn_sequence_point)
 	    verify_sequence_points (expr);
-	  if (TREE_CODE (expr) != MODIFY_EXPR)
-	    /* Expr is not being 'used' here, otherwise we whould have
-	       called mark_{rl}value_use use here, which would have in turn
-	       called mark_exp_read. Rather, we call mark_exp_read directly
-	       to avoid some warnings when
-	        -Wunused-but-set-{variable,parameter} is in effect.  */
-	    mark_exp_read (expr);
 	  expr = convert_to_void (expr, "statement", tf_warning_or_error);
 	}
       else if (!type_dependent_expression_p (expr))
@@ -2219,7 +2213,7 @@ finish_compound_literal (tree type, tree compound_literal)
   if (TREE_CODE (type) == ARRAY_TYPE)
     cp_complete_array_type (&type, compound_literal, false);
   compound_literal = digest_init (type, compound_literal);
-  if ((!at_function_scope_p () || cp_type_readonly (type))
+  if ((!at_function_scope_p () || CP_TYPE_CONST_P (type))
       && initializer_constant_valid_p (compound_literal, type))
     {
       tree decl = create_temporary_var (type);
@@ -3217,7 +3211,7 @@ finish_offsetof (tree expr)
     }
   if (TREE_CODE (TREE_TYPE (expr)) == FUNCTION_TYPE
       || TREE_CODE (TREE_TYPE (expr)) == METHOD_TYPE
-      || TREE_CODE (TREE_TYPE (expr)) == UNKNOWN_TYPE)
+      || TREE_TYPE (expr) == unknown_type_node)
     {
       if (TREE_CODE (expr) == COMPONENT_REF
 	  || TREE_CODE (expr) == COMPOUND_EXPR)
@@ -5636,7 +5630,7 @@ capture_decltype (tree decl)
   if (TREE_CODE (type) != REFERENCE_TYPE)
     {
       if (!LAMBDA_EXPR_MUTABLE_P (lam))
-	type = cp_build_qualified_type (type, (TYPE_QUALS (type)
+	type = cp_build_qualified_type (type, (cp_type_quals (type)
 					       |TYPE_QUAL_CONST));
       type = build_reference_type (type);
     }

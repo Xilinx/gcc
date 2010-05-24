@@ -191,7 +191,6 @@ static void Compilation_Unit_to_gnu (Node_Id);
 static void record_code_position (Node_Id);
 static void insert_code_for (Node_Id);
 static void add_cleanup (tree, Node_Id);
-static tree unshare_save_expr (tree *, int *, void *);
 static void add_stmt_list (List_Id);
 static void push_exception_label_stack (tree *, Entity_Id);
 static tree build_stmt_group (List_Id, bool);
@@ -400,6 +399,10 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 
   /* Name of the _Parent field in tagged record types.  */
   parent_name_id = get_identifier (Get_Name_String (Name_uParent));
+
+  /* Name of the Exception_Data type defined in System.Standard_Library.  */
+  exception_data_name_id
+    = get_identifier ("system__standard_library__exception_data");
 
   /* Make the types and functions used for exception processing.  */
   jmpbuf_type
@@ -631,16 +634,6 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
   for (info = elab_info_list; info; info = info->next)
     {
       tree gnu_body = DECL_SAVED_TREE (info->elab_proc), gnu_stmts;
-
-      /* Unshare SAVE_EXPRs between subprograms.  These are not unshared by
-	 the gimplifier for obvious reasons, but it turns out that we need to
-	 unshare them for the global level because of SAVE_EXPRs made around
-	 checks for global objects and around allocators for global objects
-	 of variable size, in order to prevent node sharing in the underlying
-	 expression.  Note that this implicitly assumes that the SAVE_EXPR
-	 nodes themselves are not shared between subprograms, which would be
-	 an upstream bug for which we would not change the outcome.  */
-      walk_tree_without_duplicates (&gnu_body, unshare_save_expr, NULL);
 
       /* We should have a BIND_EXPR but it may not have any statements in it.
 	 If it doesn't have any, we have nothing to do except for setting the
@@ -2619,7 +2612,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
   tree gnu_subprog_addr = build_unary_op (ADDR_EXPR, NULL_TREE, gnu_subprog);
   Entity_Id gnat_formal;
   Node_Id gnat_actual;
-  tree gnu_actual_list = NULL_TREE;
+  VEC(tree,gc) *gnu_actual_vec = NULL;
   tree gnu_name_list = NULL_TREE;
   tree gnu_before_list = NULL_TREE;
   tree gnu_after_list = NULL_TREE;
@@ -2969,11 +2962,11 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	    gnu_actual = convert (DECL_ARG_TYPE (gnu_formal), gnu_actual);
 	}
 
-      gnu_actual_list = tree_cons (NULL_TREE, gnu_actual, gnu_actual_list);
+      VEC_safe_push (tree, gc, gnu_actual_vec, gnu_actual);
     }
 
-  gnu_call = build_call_list (TREE_TYPE (gnu_subprog_type), gnu_subprog_addr,
-			      nreverse (gnu_actual_list));
+  gnu_call = build_call_vec (TREE_TYPE (gnu_subprog_type), gnu_subprog_addr,
+                             gnu_actual_vec);
   set_expr_location_from_node (gnu_call, gnat_node);
 
   /* If it's a function call, the result is the call expression unless a target
@@ -5859,20 +5852,6 @@ void
 mark_visited (tree t)
 {
   walk_tree (&t, mark_visited_r, NULL, NULL);
-}
-
-/* Utility function to unshare expressions wrapped up in a SAVE_EXPR.  */
-
-static tree
-unshare_save_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
-		   void *data ATTRIBUTE_UNUSED)
-{
-  tree t = *tp;
-
-  if (TREE_CODE (t) == SAVE_EXPR)
-    TREE_OPERAND (t, 0) = unshare_expr (TREE_OPERAND (t, 0));
-
-  return NULL_TREE;
 }
 
 /* Add GNU_CLEANUP, a cleanup action, to the current code group and

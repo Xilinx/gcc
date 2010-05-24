@@ -37,15 +37,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "addresses.h"
 #include "basic-block.h"
+#include "df.h"
 #include "reload.h"
 #include "recog.h"
 #include "output.h"
-#include "real.h"
 #include "toplev.h"
 #include "except.h"
 #include "tree.h"
 #include "ira.h"
-#include "df.h"
 #include "target.h"
 #include "emit-rtl.h"
 
@@ -701,6 +700,8 @@ has_nonexceptional_receiver (void)
 static int something_needs_elimination;
 /* Set during calculate_needs if an insn needs an operand changed.  */
 static int something_needs_operands_changed;
+/* Set by alter_regs if we spilled a register to the stack.  */
+static bool something_was_spilled;
 
 /* Nonzero means we couldn't get enough spill regs.  */
 static int failure;
@@ -860,6 +861,7 @@ reload (rtx first, int global)
       HOST_WIDE_INT starting_frame_size;
 
       starting_frame_size = get_frame_size ();
+      something_was_spilled = false;
 
       set_initial_elim_offsets ();
       set_initial_label_offsets ();
@@ -925,7 +927,7 @@ reload (rtx first, int global)
 	setup_save_areas ();
 
       /* If we allocated another stack slot, redo elimination bookkeeping.  */
-      if (starting_frame_size != get_frame_size ())
+      if (something_was_spilled || starting_frame_size != get_frame_size ())
 	continue;
       if (starting_frame_size && crtl->stack_alignment_needed)
 	{
@@ -963,7 +965,7 @@ reload (rtx first, int global)
 
       /* If we allocated any new memory locations, make another pass
 	 since it might have changed elimination offsets.  */
-      if (starting_frame_size != get_frame_size ())
+      if (something_was_spilled || starting_frame_size != get_frame_size ())
 	something_changed = 1;
 
       /* Even if the frame size remained the same, we might still have
@@ -2225,6 +2227,8 @@ alter_reg (int i, int from_reg, bool dont_share_p)
       unsigned int total_size = MAX (inherent_size, reg_max_ref_width[i]);
       unsigned int min_align = reg_max_ref_width[i] * BITS_PER_UNIT;
       int adjust = 0;
+
+      something_was_spilled = true;
 
       if (ira_conflicts_p)
 	{

@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "tree.h"
 #include "tree-inline.h"
-#include "rtl.h"
 #include "expr.h"
 #include "flags.h"
 #include "params.h"
@@ -43,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "tree-flow.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "except.h"
 #include "debug.h"
 #include "pointer-set.h"
@@ -688,7 +688,7 @@ copy_bind_expr (tree *tp, int *walk_subtrees, copy_body_data *id)
 /* Create a new gimple_seq by remapping all the statements in BODY
    using the inlining information in ID.  */
 
-gimple_seq
+static gimple_seq
 remap_gimple_seq (gimple_seq body, copy_body_data *id)
 {
   gimple_stmt_iterator si;
@@ -1711,6 +1711,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		     other cases we hit a bug (incorrect node sharing is the
 		     most common reason for missing edges).  */
 		  gcc_assert (dest->needed || !dest->analyzed
+			      || dest->address_taken
 		  	      || !id->src_node->analyzed);
 		  if (id->transform_call_graph_edges == CB_CGE_MOVE_CLONES)
 		    cgraph_create_edge_including_clones
@@ -4944,6 +4945,15 @@ tree_function_versioning (tree old_decl, tree new_decl,
 	if (replace_info->replace_p)
 	  {
 	    tree op = replace_info->new_tree;
+	    if (!replace_info->old_tree)
+	      {
+		int i = replace_info->parm_num;
+		tree parm;
+		for (parm = DECL_ARGUMENTS (old_decl); i; parm = TREE_CHAIN (parm))
+		  i --;
+		replace_info->old_tree = parm;
+	      }
+		
 
 	    STRIP_NOPS (op);
 

@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "rtl.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "insn-codes.h"
 #include "conditions.h"
@@ -386,7 +385,7 @@ static void sparc_init_libfuncs (void);
 static void sparc_init_builtins (void);
 static void sparc_vis_init_builtins (void);
 static rtx sparc_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
-static tree sparc_fold_builtin (tree, tree, bool);
+static tree sparc_fold_builtin (tree, int, tree *, bool);
 static int sparc_vis_mul8x16 (int, int);
 static tree sparc_handle_vis_mul8x16 (int, tree, tree, tree);
 static void sparc_output_mi_thunk (FILE *, tree, HOST_WIDE_INT,
@@ -413,6 +412,7 @@ static bool sparc_tls_referenced_p (rtx);
 static rtx legitimize_tls_address (rtx);
 static rtx legitimize_pic_address (rtx, rtx);
 static rtx sparc_legitimize_address (rtx, rtx, enum machine_mode);
+static bool sparc_mode_dependent_address_p (const_rtx);
 static bool sparc_pass_by_reference (CUMULATIVE_ARGS *,
 				     enum machine_mode, const_tree, bool);
 static int sparc_arg_partial_bytes (CUMULATIVE_ARGS *,
@@ -500,6 +500,8 @@ static bool fpu_option_set = false;
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS sparc_legitimize_address
+#undef TARGET_MODE_DEPENDENT_ADDRESS_P
+#define TARGET_MODE_DEPENDENT_ADDRESS_P sparc_mode_dependent_address_p
 
 #undef TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN sparc_expand_builtin
@@ -3518,6 +3520,35 @@ sparc_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
     x = copy_to_suggested_reg (x, NULL_RTX, Pmode);
 
   return x;
+}
+
+/* Return true if ADDR (a legitimate address expression)
+   has an effect that depends on the machine mode it is used for.
+
+   In PIC mode,
+
+      (mem:HI [%l7+a])
+
+   is not equivalent to
+
+      (mem:QI [%l7+a]) (mem:QI [%l7+a+1])
+
+   because [%l7+a+1] is interpreted as the address of (a+1).  */
+
+
+static bool
+sparc_mode_dependent_address_p (const_rtx addr)
+{
+  if (flag_pic && GET_CODE (addr) == PLUS)
+    {
+      rtx op0 = XEXP (addr, 0);
+      rtx op1 = XEXP (addr, 1);
+      if (op0 == pic_offset_table_rtx
+	  && SYMBOLIC_CONST (op1))
+	return true;
+    }
+
+  return false;
 }
 
 #ifdef HAVE_GAS_HIDDEN
@@ -8372,7 +8403,8 @@ sparc_handle_vis_mul8x16 (int fncode, tree inner_type, tree elts0, tree elts1)
    function could not be folded.  */
 
 static tree
-sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
+sparc_fold_builtin (tree fndecl, int n_args ATTRIBUTE_UNUSED,
+		    tree *args, bool ignore)
 {
   tree arg0, arg1, arg2;
   tree rtype = TREE_TYPE (TREE_TYPE (fndecl));
@@ -8386,7 +8418,7 @@ sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
   switch (icode)
     {
     case CODE_FOR_fexpand_vis:
-      arg0 = TREE_VALUE (arglist);
+      arg0 = args[0];
       STRIP_NOPS (arg0);
 
       if (TREE_CODE (arg0) == VECTOR_CST)
@@ -8409,8 +8441,8 @@ sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
     case CODE_FOR_fmul8x16_vis:
     case CODE_FOR_fmul8x16au_vis:
     case CODE_FOR_fmul8x16al_vis:
-      arg0 = TREE_VALUE (arglist);
-      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
+      arg0 = args[0];
+      arg1 = args[1];
       STRIP_NOPS (arg0);
       STRIP_NOPS (arg1);
 
@@ -8427,8 +8459,8 @@ sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
       break;
 
     case CODE_FOR_fpmerge_vis:
-      arg0 = TREE_VALUE (arglist);
-      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
+      arg0 = args[0];
+      arg1 = args[1];
       STRIP_NOPS (arg0);
       STRIP_NOPS (arg1);
 
@@ -8450,9 +8482,9 @@ sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
       break;
 
     case CODE_FOR_pdist_vis:
-      arg0 = TREE_VALUE (arglist);
-      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
-      arg2 = TREE_VALUE (TREE_CHAIN (TREE_CHAIN (arglist)));
+      arg0 = args[0];
+      arg1 = args[1];
+      arg2 = args[2];
       STRIP_NOPS (arg0);
       STRIP_NOPS (arg1);
       STRIP_NOPS (arg2);

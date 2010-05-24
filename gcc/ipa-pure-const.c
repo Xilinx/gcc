@@ -51,6 +51,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "toplev.h"
 #include "diagnostic.h"
+#include "gimple-pretty-print.h"
 #include "langhooks.h"
 #include "target.h"
 #include "lto-streamer.h"
@@ -533,7 +534,7 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
       for (i = 0; i < gimple_asm_nclobbers (stmt); i++)
 	{
 	  tree op = gimple_asm_clobber_op (stmt, i);
-	  if (simple_cst_equal(TREE_VALUE (op), memory_identifier_string) == 1)
+	  if (strcmp (TREE_STRING_POINTER (TREE_VALUE (op)), "memory") == 0)
 	    {
               if (dump_file)
                 fprintf (dump_file, "    memory asm clobber is not const/pure");

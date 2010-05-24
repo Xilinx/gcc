@@ -1,3 +1,46 @@
+2010-05-24  Richard Guenther  <rguenther@suse.de>
+
+	* lto-elf.c (lto_obj_build_section_table): Work around
+	FreeBSD libelf issue.
+
+2010-05-22  Richard Guenther  <rguenther@suse.de>
+
+	* lto.c (read_cgraph_and_symbols): Do not collect.
+
+2010-05-20  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (promote_var, promote_fn): New functions.
+	(lto_promote_cross_file_statics): Compute correctly boundary including
+	static initializers of readonly vars.
+
+2010-05-18  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_1_to_1_map): Partition non-inline clones.
+	(lto_promote_cross_file_statics): Deal with non-inline clones.
+
+2010-05-18  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_materialize_function): Announce function when
+	reading body; allocate_struct_function only when reading body;
+	do not finalize local statics; ggc_collect after reading;
+	do not mark reachable node.
+	(materialize_cgraph): Do not announce function.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (materialize_cgraph): Revert my previous patch.
+
+2010-05-11  Kai Tietz  <kai.tietz@onevision.com>
+
+	* lto-coff.c (IMAGE_FILE_MACHINE_ADM64): Rename to
+	IMAGE_FILE_MACHINE_AMD64.
+	* lto-coff.c (IMAGE_FILE_MACHINE_ADM64): Likewise.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_fixup_decls): Remove global var decls freeing here.
+	(materialize_cgraph): Add it here.
+
 2010-05-11  Jan Hubicka  <jh@suse.cz>
 
 	* lto.c (lto_fixup_decls): Free no longer needed lto_global_var_decls

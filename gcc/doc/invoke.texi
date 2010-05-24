@@ -187,7 +187,7 @@ in the following sections.
 -fno-implicit-templates @gol
 -fno-implicit-inline-templates @gol
 -fno-implement-inlines  -fms-extensions @gol
--fno-nonansi-builtins  -fno-operator-names @gol
+-fno-nonansi-builtins  -fnothrow-opt  -fno-operator-names @gol
 -fno-optional-diags  -fpermissive @gol
 -fno-pretty-templates @gol
 -frepo  -fno-rtti  -fstats  -ftemplate-depth=@var{n} @gol
@@ -346,7 +346,7 @@ Objective-C and Objective-C++ Dialects}.
 -finline-functions -finline-functions-called-once -finline-limit=@var{n} @gol
 -finline-small-functions -fipa-cp -fipa-cp-clone -fipa-matrix-reorg -fipa-pta @gol
 -fipa-profile -fipa-pure-const -fipa-reference -fipa-struct-reorg @gol
--fipa-type-escape -fira-algorithm=@var{algorithm} @gol
+-fira-algorithm=@var{algorithm} @gol
 -fira-region=@var{region} -fira-coalesce @gol
 -fira-loop-pressure -fno-ira-share-save-slots @gol
 -fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
@@ -391,7 +391,7 @@ Objective-C and Objective-C++ Dialects}.
 -funit-at-a-time -funroll-all-loops -funroll-loops @gol
 -funsafe-loop-optimizations -funsafe-math-optimizations -funswitch-loops @gol
 -fvariable-expansion-in-unroller -fvect-cost-model -fvpt -fweb @gol
--fwhole-program -fwhopr -fwpa -fuse-linker-plugin @gol
+-fwhole-program -fwhopr[=@var{n}] -fwpa -fuse-linker-plugin @gol
 --param @var{name}=@var{value}
 -O  -O0  -O1  -O2  -O3  -Os}
 
@@ -1928,6 +1928,18 @@ int and getting a pointer to member function via non-standard syntax.
 Disable built-in declarations of functions that are not mandated by
 ANSI/ISO C@.  These include @code{ffs}, @code{alloca}, @code{_exit},
 @code{index}, @code{bzero}, @code{conjf}, and other related functions.
+
+@item -fnothrow-opt
+@opindex fnothrow-opt
+Treat a @code{throw()} exception specification as though it were a
+@code{noexcept} specification to reduce or eliminate the text size
+overhead relative to a function with no exception specification.  If
+the function has local variables of types with non-trivial
+destructors, the exception specification will actually make the
+function smaller because the EH cleanups for those variables can be
+optimized away.  The semantic effect is that an exception thrown out of
+a function with such an exception specification will result in a call
+to @code{terminate} rather than @code{unexpected}.
 
 @item -fno-operator-names
 @opindex fno-operator-names
@@ -6624,8 +6636,7 @@ Perform structure reorganization optimization, that change C-like structures
 layout in order to better utilize spatial locality.  This transformation is
 affective for programs containing arrays of structures.  Available in two
 compilation modes: profile-based (enabled with @option{-fprofile-generate})
-or static (which uses built-in heuristics).  Require @option{-fipa-type-escape}
-to provide the safety of this transformation.  It works only in whole program
+or static (which uses built-in heuristics).  It works only in whole program
 mode, so it requires @option{-fwhole-program} and @option{-combine} to be
 enabled.  Structures considered @samp{cold} by this transformation are not
 affected (see @option{--param struct-reorg-cold-struct-ratio=@var{value}}).
@@ -7434,7 +7445,7 @@ information.  Combining @option{-flto} or @option{-fwhopr} with
 
 This option is disabled by default.
 
-@item -fwhopr
+@item -fwhopr[=@var{n}]
 @opindex fwhopr
 This option is identical in functionality to @option{-flto} but it
 differs in how the final link stage is executed.  Instead of loading
@@ -7446,9 +7457,12 @@ LTRANS)@.  This process allows optimizations on very large programs
 that otherwise would not fit in memory.  This option enables
 @option{-fwpa} and @option{-fltrans} automatically.
 
-Disabled by default.
+If you specify the optional @var{n} the link stage is executed in
+parallel using @var{n} parallel jobs by utilizing an installed
+@command{make} program.  The environment variable @env{MAKE} may be
+used to override the program used.
 
-This option is experimental.
+Disabled by default.
 
 @item -fwpa
 @opindex fwpa
@@ -8510,8 +8524,7 @@ The size of L2 cache, in kilobytes.
 
 @item min-insn-to-prefetch-ratio
 The minimum ratio between the number of instructions and the
-number of prefetches to enable prefetching in a loop with an
-unknown trip count.
+number of prefetches to enable prefetching in a loop.
 
 @item prefetch-min-insn-to-mem-ratio
 The minimum ratio between the number of instructions and the

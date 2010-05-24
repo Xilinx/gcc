@@ -27,6 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "input.h"
 #include "real.h"
 #include "vec.h"
+#include "vecir.h"
 #include "fixed-value.h"
 #include "alias.h"
 
@@ -173,7 +174,6 @@ union rtunion_def
   enum machine_mode rt_type;
   addr_diff_vec_flags rt_addr_diff_vec_flags;
   struct cselib_val_struct *rt_cselib;
-  struct bitmap_head_def *rt_bit;
   tree rt_tree;
   struct basic_block_def *rt_bb;
   mem_attrs *rt_mem;
@@ -196,10 +196,6 @@ struct GTY(()) block_symbol {
      if the symbol has not yet been assigned an offset.  */
   HOST_WIDE_INT offset;
 };
-
-DEF_VEC_P(rtx);
-DEF_VEC_ALLOC_P(rtx,heap);
-DEF_VEC_ALLOC_P(rtx,gc);
 
 /* Describes a group of objects that are to be placed together in such
    a way that their relative positions are known.  */
@@ -708,7 +704,6 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 #define XEXP(RTX, N)	(RTL_CHECK2 (RTX, N, 'e', 'u').rt_rtx)
 #define XVEC(RTX, N)	(RTL_CHECK2 (RTX, N, 'E', 'V').rt_rtvec)
 #define XMODE(RTX, N)	(RTL_CHECK1 (RTX, N, 'M').rt_type)
-#define XBITMAP(RTX, N) (RTL_CHECK1 (RTX, N, 'b').rt_bit)
 #define XTREE(RTX, N)   (RTL_CHECK1 (RTX, N, 't').rt_tree)
 #define XBBDEF(RTX, N)	(RTL_CHECK1 (RTX, N, 'B').rt_bb)
 #define XTMPL(RTX, N)	(RTL_CHECK1 (RTX, N, 'T').rt_str)
@@ -725,7 +720,6 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 #define X0EXP(RTX, N)	   (RTL_CHECK1 (RTX, N, '0').rt_rtx)
 #define X0VEC(RTX, N)	   (RTL_CHECK1 (RTX, N, '0').rt_rtvec)
 #define X0MODE(RTX, N)	   (RTL_CHECK1 (RTX, N, '0').rt_type)
-#define X0BITMAP(RTX, N)   (RTL_CHECK1 (RTX, N, '0').rt_bit)
 #define X0TREE(RTX, N)	   (RTL_CHECK1 (RTX, N, '0').rt_tree)
 #define X0BBDEF(RTX, N)	   (RTL_CHECK1 (RTX, N, '0').rt_bb)
 #define X0ADVFLAGS(RTX, N) (RTL_CHECK1 (RTX, N, '0').rt_addr_diff_vec_flags)
@@ -743,7 +737,6 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 #define XCEXP(RTX, N, C)      (RTL_CHECKC1 (RTX, N, C).rt_rtx)
 #define XCVEC(RTX, N, C)      (RTL_CHECKC1 (RTX, N, C).rt_rtvec)
 #define XCMODE(RTX, N, C)     (RTL_CHECKC1 (RTX, N, C).rt_type)
-#define XCBITMAP(RTX, N, C)   (RTL_CHECKC1 (RTX, N, C).rt_bit)
 #define XCTREE(RTX, N, C)     (RTL_CHECKC1 (RTX, N, C).rt_tree)
 #define XCBBDEF(RTX, N, C)    (RTL_CHECKC1 (RTX, N, C).rt_bb)
 #define XCCSELIB(RTX, N, C)   (RTL_CHECKC1 (RTX, N, C).rt_cselib)

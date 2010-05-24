@@ -703,21 +703,6 @@ resolve_entries (gfc_namespace *ns)
 }
 
 
-static bool
-has_default_initializer (gfc_symbol *der)
-{
-  gfc_component *c;
-
-  gcc_assert (der->attr.flavor == FL_DERIVED);
-  for (c = der->components; c; c = c->next)
-    if ((c->ts.type != BT_DERIVED && c->initializer)
-	|| (c->ts.type == BT_DERIVED
-	    && (!c->attr.pointer && has_default_initializer (c->ts.u.derived))))
-      break;
-
-  return c != NULL;
-}
-
 /* Resolve common variables.  */
 static void
 resolve_common_vars (gfc_symbol *sym, bool named_common)
@@ -751,7 +736,7 @@ resolve_common_vars (gfc_symbol *sym, bool named_common)
 	gfc_error_now ("Derived type variable '%s' in COMMON at %L "
 		       "has an ultimate component that is "
 		       "allocatable", csym->name, &csym->declared_at);
-      if (has_default_initializer (csym->ts.u.derived))
+      if (gfc_has_default_initializer (csym->ts.u.derived))
 	gfc_error_now ("Derived type variable '%s' in COMMON at %L "
 		       "may not have default initializer", csym->name,
 		       &csym->declared_at);
@@ -8056,7 +8041,7 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
 	 and rhs is the same symbol as the lhs.  */
       if ((*rhsptr)->expr_type == EXPR_VARIABLE
 	    && (*rhsptr)->symtree->n.sym->ts.type == BT_DERIVED
-	    && has_default_initializer ((*rhsptr)->symtree->n.sym->ts.u.derived)
+	    && gfc_has_default_initializer ((*rhsptr)->symtree->n.sym->ts.u.derived)
 	    && (lhs->symtree->n.sym == (*rhsptr)->symtree->n.sym))
 	*rhsptr = gfc_get_parentheses (*rhsptr);
 
@@ -9143,6 +9128,29 @@ resolve_fl_var_and_proc (gfc_symbol *sym, int mp_flag)
 	  return FAILURE;
 	 }
     }
+
+  /* Constraints on polymorphic variables.  */
+  if (sym->ts.type == BT_CLASS && !(sym->result && sym->result != sym))
+    {
+      /* F03:C502.  */
+      if (!gfc_type_is_extensible (sym->ts.u.derived->components->ts.u.derived))
+	{
+	  gfc_error ("Type '%s' of CLASS variable '%s' at %L is not extensible",
+		     sym->ts.u.derived->components->ts.u.derived->name,
+		     sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+
+      /* F03:C509.  */
+      /* Assume that use associated symbols were checked in the module ns.  */ 
+      if (!sym->attr.class_ok && !sym->attr.use_assoc)
+	{
+	  gfc_error ("CLASS variable '%s' at %L must be dummy, allocatable "
+		     "or pointer", sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+    }
+    
   return SUCCESS;
 }
 
@@ -9181,39 +9189,18 @@ resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
      or POINTER attribute, the object shall have the SAVE attribute."
 
      The check for initializers is performed with
-     has_default_initializer because gfc_default_initializer generates
+     gfc_has_default_initializer because gfc_default_initializer generates
      a hidden default for allocatable components.  */
   if (!(sym->value || no_init_flag) && sym->ns->proc_name
       && sym->ns->proc_name->attr.flavor == FL_MODULE
       && !sym->ns->save_all && !sym->attr.save
       && !sym->attr.pointer && !sym->attr.allocatable
-      && has_default_initializer (sym->ts.u.derived)
+      && gfc_has_default_initializer (sym->ts.u.derived)
       && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Implied SAVE for "
 			 "module variable '%s' at %L, needed due to "
 			 "the default initialization", sym->name,
 			 &sym->declared_at) == FAILURE)
     return FAILURE;
-
-  if (sym->ts.type == BT_CLASS)
-    {
-      /* C502.  */
-      if (!gfc_type_is_extensible (sym->ts.u.derived->components->ts.u.derived))
-	{
-	  gfc_error ("Type '%s' of CLASS variable '%s' at %L is not extensible",
-		     sym->ts.u.derived->components->ts.u.derived->name,
-		     sym->name, &sym->declared_at);
-	  return FAILURE;
-	}
-
-      /* C509.  */
-      /* Assume that use associated symbols were checked in the module ns.  */ 
-      if (!sym->attr.class_ok && !sym->attr.use_assoc)
-	{
-	  gfc_error ("CLASS variable '%s' at %L must be dummy, allocatable "
-		     "or pointer", sym->name, &sym->declared_at);
-	  return FAILURE;
-	}
-    }
 
   /* Assign default initializer.  */
   if (!(sym->value || sym->attr.pointer || sym->attr.allocatable)
@@ -10554,7 +10541,10 @@ ensure_not_abstract (gfc_symbol* sub, gfc_symbol* ancestor)
      This is not the most efficient way to do this, but it should be ok and is
      clearer than something sophisticated.  */
 
-  gcc_assert (ancestor && ancestor->attr.abstract && !sub->attr.abstract);
+  gcc_assert (ancestor && !sub->attr.abstract);
+  
+  if (!ancestor->attr.abstract)
+    return SUCCESS;
 
   /* Walk bindings of this ancestor.  */
   if (ancestor->f2k_derived)
@@ -10587,6 +10577,22 @@ resolve_fl_derived (gfc_symbol *sym)
   int i;
 
   super_type = gfc_get_derived_super_type (sym);
+  
+  if (sym->attr.is_class && sym->ts.u.derived == NULL)
+    {
+      /* Fix up incomplete CLASS symbols.  */
+      gfc_component *data;
+      gfc_component *vptr;
+      gfc_symbol *vtab;
+      data = gfc_find_component (sym, "$data", true, true);
+      vptr = gfc_find_component (sym, "$vptr", true, true);
+      if (vptr->ts.u.derived == NULL)
+	{
+	  vtab = gfc_find_derived_vtab (data->ts.u.derived, false);
+	  gcc_assert (vtab);
+	  vptr->ts.u.derived = vtab->ts.u.derived;
+	}
+    }
 
   /* F2008, C432. */
   if (super_type && sym->attr.coarray_comp && !super_type->attr.coarray_comp)
@@ -11130,6 +11136,10 @@ resolve_symbol (gfc_symbol *sym)
   gfc_namespace *ns;
   gfc_component *c;
 
+  /* Avoid double resolution of function result symbols.  */
+  if ((sym->result || sym->attr.result) && (sym->ns != gfc_current_ns))
+    return;
+  
   if (sym->attr.flavor == FL_UNKNOWN)
     {
 
@@ -12239,7 +12249,7 @@ resolve_equivalence_derived (gfc_symbol *derived, gfc_symbol *sym, gfc_expr *e)
       return FAILURE;
     }
 
-  if (sym->attr.in_common && has_default_initializer (sym->ts.u.derived))
+  if (sym->attr.in_common && gfc_has_default_initializer (sym->ts.u.derived))
     {
       gfc_error ("Derived type variable '%s' at %L with default "
 		 "initialization cannot be in EQUIVALENCE with a variable "

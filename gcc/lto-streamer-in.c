@@ -1044,6 +1044,7 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 	stmt->gimple_asm.ni = lto_input_uleb128 (ib);
 	stmt->gimple_asm.no = lto_input_uleb128 (ib);
 	stmt->gimple_asm.nc = lto_input_uleb128 (ib);
+	stmt->gimple_asm.nl = lto_input_uleb128 (ib);
 	str = input_string_cst (data_in, ib);
 	stmt->gimple_asm.string = TREE_STRING_POINTER (str);
       }
@@ -1094,7 +1095,9 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 		    {
 		      if (tem == field
 			  || (TREE_TYPE (tem) == TREE_TYPE (field)
-			      && compare_field_offset (tem, field)))
+			      && DECL_NONADDRESSABLE_P (tem)
+				 == DECL_NONADDRESSABLE_P (field)
+			      && gimple_compare_field_offset (tem, field)))
 			break;
 		    }
 		  /* In case of type mismatches across units we can fail

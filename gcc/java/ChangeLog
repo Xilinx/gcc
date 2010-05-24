@@ -1,3 +1,98 @@
+2010-05-24  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* expr.c (quick_stack): Change type to a VEC.  Update comment.
+	(tree_list_free_list): Delete.
+	(flush_quick_stack): Update for quick_stack type change.
+	(push_value): Likewise.
+	(pop_value): Likewise.
+
+2010-05-23  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* java-gimplify.c: Do not include tm.h, toplev.h.
+	* typeck.c: Do not include tm.h.
+	* mangle_name.c: Do not include tm.h.
+	* jcf-dump.c: Do not include tm.h, ggc.h.
+	* class.c: Do not include rtl.h, tm_p.h, target.h, except.h, cgraph.h.
+	* decl.c: Do not include tm.h, rtl.h, function.h, expr.h, except.h,
+	and timevar.h.
+	* jcf-parse.c: Do not include tm.h and tm_p.h.
+	* resource.c: Do not include tm.h, rtl.h, flags.h, obstack.h,
+	target.h, and expr.h.
+	* except.c: Do not include tm.h, rtl.h, function.h.
+	* builtins.c: Do not include convert.h.  Explain why RTL headers
+	have to be included here.
+	* verify-glue.c: Do not include tm.h.
+	* jcf-depend.c: Do not include tm.h.
+	* jcf-reader.c: Include ggc.h.
+	* jcf-io.c: Do not include tm.h, toplev.h.
+	* expr.c: Do not include tm.h, rtl.h, expr.h, except.h, tm_p.h,
+	gimple.h.
+	* lang.c: Do not include rtl.h, expr.h.
+	* Make-lang.in: Update dependencies.
+
+2010-05-23  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* jcf-parse.c: Include bitmap.h.
+	* Make-lang.in: Update dependencies.
+
+2010-05-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/43521
+	* decl.c (start_java_method): Set DECL_ARTIFICIAL on the 'this'
+	PARM_DECL.
+
+2010-05-19  Anatoly Sokolov  <aesok@post.ru>
+
+	* jcf-parse.c (get_constant): Use double_int_to_tree instead of
+	build_int_cst_wide_type.
+
+2010-05-18  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* expr.c (pop_arguments): Fix use of undeclared variable.
+
+2010-05-18  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* expr.c (expand_java_multianewarray): Use build_call_vec instead of
+	build_call_list.
+	(pop_arguments): Return a VEC instead of a tree.  Take a method type
+	rather than a list of argument types.
+	(rewrite_rule): Change signature. of rewrite_arglist member.
+	(rewrite_arglist_getcaller): Update signature.
+	(rewrite_arglist_getclass): Likewise.
+	(maybe_rewrite_invocation): Update for rewrite_arglist change.
+	(build_known_method_ref): Take a VEC instead of a tree.
+	(invoke_build_dtable): Likewise.
+	(expand_invoke): Update calls to pop_arguments.  Use build_call_vec
+	instead of build_call_list.
+	(build_jni_stub): Use build_call_vec instead of build_call_list.
+	* java-tree.h (maybe_rewrite_invocation): Update declaration.
+	(build_known_method_ref): Likewise.
+	(invoke_build_dtable): Likewise.
+
+2010-05-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR 44103
+	* java-tree.h (START_RECORD_CONSTRUCTOR): Change first argument to a
+	vector.  Move call to build_constructor...
+	(FINISH_RECORD_CONSTRUCTOR): ...here.  Add necessary arguments.  Clear
+	TREE_CONSTANT on the constructor.
+	(PUSH_SUPER_VALUE): Change first argument to a vector.
+	(PUSH_FIELD_VALUE): Likewise.
+	* resource.c (compile_resource_data): Update calls to above macros.
+	* constants.c (build_constants_constructor): Likewise.
+	* class.c (build_utf8_ref): Likewise.
+	(make_field_value): Likewise.
+	(make_method_value): Likewise.
+	(add_table_and_syms): New function.
+	(make_class_data): Call it.  Update calls to above macros.
+	(build_symbol_table_entry): New function.
+	(build_symbol_entry): Call it.  Update calls to above macros.
+	(emit_symbol_table): Likewise.
+	(make_catch_class_record): Update calls to above macros.
+	(build_assertion_table_entry): New function.
+	(add_assertion_table_entry): Call it.
+	(emit_assertion_table): Likewise.
+
 2010-05-06  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
 	PR 40989

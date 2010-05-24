@@ -26,23 +26,25 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
 #include "tm_p.h"
-#include "hard-reg-set.h"
 #include "basic-block.h"
 #include "output.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "tree-pass.h"
 #include "timevar.h"
 #include "flags.h"
 #include "tree-inline.h"
+#include "tree-affine.h"
+
+/* FIXME: We compute address costs using RTL.  */
 #include "insn-config.h"
+#include "rtl.h"
 #include "recog.h"
 #include "expr.h"
 #include "ggc.h"
-#include "tree-affine.h"
 #include "target.h"
 
 /* TODO -- handling of symbols (according to Richard Hendersons

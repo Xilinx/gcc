@@ -21,9 +21,12 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef GCC_CGRAPH_H
 #define GCC_CGRAPH_H
+
+#include "vec.h"
 #include "tree.h"
 #include "basic-block.h"
-#include "ipa-ref.h"
+#include "function.h"
+#include "ipa-ref.h"	/* FIXME: inappropriate dependency of cgraph on IPA.  */
 
 enum availability
 {
@@ -105,6 +108,10 @@ struct GTY(()) cgraph_local_info {
   /* False when there something makes inlining impossible (such as va_arg).  */
   unsigned inlinable : 1;
 
+  /* False when there something makes versioning impossible.
+     Currently computed and used only by ipa-cp.  */
+  unsigned versionable : 1;
+
   /* True when function should be inlined independently on its size.  */
   unsigned disregard_inline_limits : 1;
 
@@ -153,6 +160,8 @@ struct GTY(()) ipa_replace_map
   tree old_tree;
   /* The new (replacing) tree.  */
   tree new_tree;
+  /* Parameter number to replace, when old_tree is NULL.  */
+  int parm_num;
   /* True when a substitution should be done, false otherwise.  */
   bool replace_p;
   /* True when we replace a reference to old_tree.  */
@@ -374,8 +383,21 @@ typedef enum {
 
 struct GTY(()) cgraph_indirect_call_info
 {
+  /* Offset accumulated from ancestor jump functions of inlined call graph
+     edges.  */
+  HOST_WIDE_INT anc_offset;
+  /* OBJ_TYPE_REF_TOKEN of a polymorphic call (if polymorphic is set).  */
+  HOST_WIDE_INT otr_token;
+  /* Type of the object from OBJ_TYPE_REF_OBJECT. */
+  tree otr_type;
   /* Index of the parameter that is called.  */
   int param_index;
+  /* ECF flags determined from the caller.  */
+  int ecf_flags;
+
+  /* Set when the call is a virtual call with the parameter being the
+     associated object pointer rather than a simple direct call.  */
+  unsigned polymorphic : 1;
 };
 
 struct GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_caller"))) cgraph_edge {
@@ -438,7 +460,10 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) varpool_node {
   /* For normal nodes a pointer to the first extra name alias.  For alias
      nodes a pointer to the normal node.  */
   struct varpool_node *extra_name;
+  /* Circular list of nodes in the same comdat group if non-NULL.  */
+  struct varpool_node *same_comdat_group;
   struct ipa_ref_list ref_list;
+  PTR GTY ((skip)) aux;
   /* Ordering of all cgraph nodes.  */
   int order;
 
@@ -518,7 +543,7 @@ void cgraph_node_remove_callees (struct cgraph_node *node);
 struct cgraph_edge *cgraph_create_edge (struct cgraph_node *,
 					struct cgraph_node *,
 					gimple, gcov_type, int, int);
-struct cgraph_edge *cgraph_create_indirect_edge (struct cgraph_node *, gimple,
+struct cgraph_edge *cgraph_create_indirect_edge (struct cgraph_node *, gimple, int,
 						 gcov_type, int, int);
 struct cgraph_node * cgraph_get_node (tree);
 struct cgraph_node *cgraph_node (tree);
@@ -541,7 +566,7 @@ const char * cgraph_node_name (struct cgraph_node *);
 struct cgraph_edge * cgraph_clone_edge (struct cgraph_edge *,
 					struct cgraph_node *, gimple,
 					unsigned, gcov_type, int, int, bool);
-struct cgraph_node * cgraph_clone_node (struct cgraph_node *, gcov_type, int,
+struct cgraph_node * cgraph_clone_node (struct cgraph_node *, tree, gcov_type, int,
 					int, bool, VEC(cgraph_edge_p,heap) *);
 
 void cgraph_redirect_edge_callee (struct cgraph_edge *, struct cgraph_node *);
@@ -641,6 +666,7 @@ void varpool_node_set_add (varpool_node_set, struct varpool_node *);
 void varpool_node_set_remove (varpool_node_set, struct varpool_node *);
 void dump_varpool_node_set (FILE *, varpool_node_set);
 void debug_varpool_node_set (varpool_node_set);
+void ipa_discover_readonly_nonaddressable_vars (void);
 
 /* In predict.c  */
 bool cgraph_maybe_hot_edge_p (struct cgraph_edge *e);
@@ -673,6 +699,7 @@ void varpool_remove_unreferenced_decls (void);
 void varpool_empty_needed_queue (void);
 bool varpool_extra_name_alias (tree, tree);
 const char * varpool_node_name (struct varpool_node *node);
+void varpool_reset_queue (void);
 
 /* Walk all reachable static variables.  */
 #define FOR_EACH_STATIC_VARIABLE(node) \
@@ -852,7 +879,17 @@ varpool_node_set_nonempty_p (varpool_node_set set)
 static inline bool
 cgraph_only_called_directly_p (struct cgraph_node *node)
 {
-  return !node->needed && !node->local.externally_visible;
+  return !node->needed && !node->address_taken && !node->local.externally_visible;
+}
+
+/* Return true when function NODE can be removed from callgraph
+   if all direct calls are eliminated.  */
+
+static inline bool
+cgraph_can_remove_if_no_direct_calls_and_refs_p (struct cgraph_node *node)
+{
+  return (!node->needed && !node->reachable_from_other_partition
+  	  && (DECL_COMDAT (node->decl) || !node->local.externally_visible));
 }
 
 /* Return true when function NODE can be removed from callgraph
@@ -861,13 +898,26 @@ cgraph_only_called_directly_p (struct cgraph_node *node)
 static inline bool
 cgraph_can_remove_if_no_direct_calls_p (struct cgraph_node *node)
 {
-  return (!node->needed && !node->reachable_from_other_partition
-  	  && (DECL_COMDAT (node->decl) || !node->local.externally_visible));
+  return !node->address_taken && cgraph_can_remove_if_no_direct_calls_and_refs_p (node);
+}
+
+/* Return true when all references to VNODE must be visible in ipa_ref_list.
+   i.e. if the variable is not externally visible or not used in some magic
+   way (asm statement or such).
+   The magic uses are all sumarized in force_output flag.  */
+
+static inline bool
+varpool_all_refs_explicit_p (struct varpool_node *vnode)
+{
+  return (!vnode->externally_visible
+	  && !vnode->used_from_other_partition
+	  && !vnode->force_output);
 }
 
 /* Constant pool accessor function.  */
 htab_t constant_pool_htab (void);
 
+/* FIXME: inappropriate dependency of cgraph on IPA.  */
 #include "ipa-ref-inline.h"
 
 #endif  /* GCC_CGRAPH_H  */

@@ -717,10 +717,6 @@ fipa-reference
 Common Report Var(flag_ipa_reference) Init(0) Optimization
 Discover readonly and non addressable static variables
 
-fipa-type-escape
-Common Report Var(flag_ipa_type_escape) Init(0) Optimization
-Type based escape and alias analysis
-
 fipa-matrix-reorg
 Common Report Var(flag_ipa_matrix_reorg) Optimization
 Perform matrix layout flattening and transposing based
@@ -1147,6 +1143,10 @@ fsee
 Common
 Does nothing.  Preserved for backward compatibility.
 
+fzee
+Common Report Var(flag_zee) Init(0)
+Eliminate redundant zero extensions on targets that support implicit extensions.
+
 fshow-column
 Common C ObjC C++ ObjC++ Report Var(flag_show_column) Init(1)
 Show column numbers in diagnostics, when available.  Default on
@@ -1484,8 +1484,12 @@ Common Report Var(flag_web) Init(2) Optimization
 Construct webs and split unrelated uses of single variable
 
 fwhopr
-Common Var(flag_whopr)
-Enable partitioned link-time optimization.
+Common
+Enable partitioned link-time optimization
+
+fwhopr=
+Common RejectNegative UInteger Joined Var(flag_whopr)
+Enable partitioned link-time optimization with specified number of parallel jobs
 
 ftree-builtin-call-dce
 Common Report Var(flag_tree_builtin_call_dce) Init(0) Optimization

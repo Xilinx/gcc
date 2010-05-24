@@ -31,6 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-iterator.h"
 #include "tree-inline.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "tree-flow.h"
@@ -39,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "hashtab.h"
 #include "flags.h"
-#include "real.h"
 #include "function.h"
 #include "output.h"
 #include "expr.h"
@@ -74,9 +74,10 @@ enum gimplify_omp_var_data
 enum omp_region_type
 {
   ORT_WORKSHARE = 0,
-  ORT_TASK = 1,
   ORT_PARALLEL = 2,
-  ORT_COMBINED_PARALLEL = 3
+  ORT_COMBINED_PARALLEL = 3,
+  ORT_TASK = 4,
+  ORT_UNTIED_TASK = 5
 };
 
 struct gimplify_omp_ctx
@@ -157,7 +158,7 @@ gimple_tree_eq (const void *p1, const void *p2)
    During gimplification, we need to manipulate statement sequences
    before the def/use vectors have been constructed.  */
 
-static void
+void
 gimplify_seq_add_stmt (gimple_seq *seq_p, gimple gs)
 {
   gimple_stmt_iterator si;
@@ -318,7 +319,7 @@ new_omp_context (enum omp_region_type region_type)
   c->privatized_types = pointer_set_create ();
   c->location = input_location;
   c->region_type = region_type;
-  if (region_type != ORT_TASK)
+  if ((region_type & ORT_TASK) == 0)
     c->default_kind = OMP_CLAUSE_DEFAULT_SHARED;
   else
     c->default_kind = OMP_CLAUSE_DEFAULT_UNSPECIFIED;
@@ -338,47 +339,6 @@ delete_omp_context (struct gimplify_omp_ctx *c)
 
 static void omp_add_variable (struct gimplify_omp_ctx *, tree, unsigned int);
 static bool omp_notice_variable (struct gimplify_omp_ctx *, tree, bool);
-
-/* A subroutine of append_to_statement_list{,_force}.  T is not NULL.  */
-
-static void
-append_to_statement_list_1 (tree t, tree *list_p)
-{
-  tree list = *list_p;
-  tree_stmt_iterator i;
-
-  if (!list)
-    {
-      if (t && TREE_CODE (t) == STATEMENT_LIST)
-	{
-	  *list_p = t;
-	  return;
-	}
-      *list_p = list = alloc_stmt_list ();
-    }
-
-  i = tsi_last (list);
-  tsi_link_after (&i, t, TSI_CONTINUE_LINKING);
-}
-
-/* Add T to the end of the list container pointed to by LIST_P.
-   If T is an expression with no effects, it is ignored.  */
-
-void
-append_to_statement_list (tree t, tree *list_p)
-{
-  if (t && TREE_SIDE_EFFECTS (t))
-    append_to_statement_list_1 (t, list_p);
-}
-
-/* Similar, but the statement is always added, regardless of side effects.  */
-
-void
-append_to_statement_list_force (tree t, tree *list_p)
-{
-  if (t != NULL_TREE)
-    append_to_statement_list_1 (t, list_p);
-}
 
 /* Both gimplify the statement T and append it to *SEQ_P.  This function
    behaves exactly as gimplify_stmt, but you don't have to pass T as a
@@ -860,9 +820,44 @@ annotate_all_with_location (gimple_seq stmt_p, location_t location)
       annotate_one_with_location (gs, location);
     }
 }
+
+/* This page contains routines to unshare tree nodes, i.e. to duplicate tree
+   nodes that are referenced more than once in GENERIC functions.  This is
+   necessary because gimplification (translation into GIMPLE) is performed
+   by modifying tree nodes in-place, so gimplication of a shared node in a
+   first context could generate an invalid GIMPLE form in a second context.
 
+   This is achieved with a simple mark/copy/unmark algorithm that walks the
+   GENERIC representation top-down, marks nodes with TREE_VISITED the first
+   time it encounters them, duplicates them if they already have TREE_VISITED
+   set, and finally removes the TREE_VISITED marks it has set.
 
-/* Similar to copy_tree_r() but do not copy SAVE_EXPR or TARGET_EXPR nodes.
+   The algorithm works only at the function level, i.e. it generates a GENERIC
+   representation of a function with no nodes shared within the function when
+   passed a GENERIC function (except for nodes that are allowed to be shared).
+
+   At the global level, it is also necessary to unshare tree nodes that are
+   referenced in more than one function, for the same aforementioned reason.
+   This requires some cooperation from the front-end.  There are 2 strategies:
+
+     1. Manual unsharing.  The front-end needs to call unshare_expr on every
+        expression that might end up being shared across functions.
+
+     2. Deep unsharing.  This is an extension of regular unsharing.  Instead
+        of calling unshare_expr on expressions that might be shared across
+        functions, the front-end pre-marks them with TREE_VISITED.  This will
+        ensure that they are unshared on the first reference within functions
+        when the regular unsharing algorithm runs.  The counterpart is that
+        this algorithm must look deeper than for manual unsharing, which is
+        specified by LANG_HOOKS_DEEP_UNSHARING.
+
+  If there are only few specific cases of node sharing across functions, it is
+  probably easier for a front-end to unshare the expressions manually.  On the
+  contrary, if the expressions generated at the global level are as widespread
+  as expressions generated within functions, deep unsharing is very likely the
+  way to go.  */
+
+/* Similar to copy_tree_r but do not copy SAVE_EXPR or TARGET_EXPR nodes.
    These nodes model computations that should only be done once.  If we
    were to unshare something like SAVE_EXPR(i++), the gimplification
    process would create wrong code.  */
@@ -870,21 +865,39 @@ annotate_all_with_location (gimple_seq stmt_p, location_t location)
 static tree
 mostly_copy_tree_r (tree *tp, int *walk_subtrees, void *data)
 {
-  enum tree_code code = TREE_CODE (*tp);
-  /* Don't unshare types, decls, constants and SAVE_EXPR nodes.  */
-  if (TREE_CODE_CLASS (code) == tcc_type
-      || TREE_CODE_CLASS (code) == tcc_declaration
-      || TREE_CODE_CLASS (code) == tcc_constant
-      || code == SAVE_EXPR || code == TARGET_EXPR
-      /* We can't do anything sensible with a BLOCK used as an expression,
-	 but we also can't just die when we see it because of non-expression
-	 uses.  So just avert our eyes and cross our fingers.  Silly Java.  */
-      || code == BLOCK)
+  tree t = *tp;
+  enum tree_code code = TREE_CODE (t);
+
+  /* Do not copy SAVE_EXPR or TARGET_EXPR nodes themselves, but copy
+     their subtrees if we can make sure to do it only once.  */
+  if (code == SAVE_EXPR || code == TARGET_EXPR)
+    {
+      if (data && !pointer_set_insert ((struct pointer_set_t *)data, t))
+	;
+      else
+	*walk_subtrees = 0;
+    }
+
+  /* Stop at types, decls, constants like copy_tree_r.  */
+  else if (TREE_CODE_CLASS (code) == tcc_type
+	   || TREE_CODE_CLASS (code) == tcc_declaration
+	   || TREE_CODE_CLASS (code) == tcc_constant
+	   /* We can't do anything sensible with a BLOCK used as an
+	      expression, but we also can't just die when we see it
+	      because of non-expression uses.  So we avert our eyes
+	      and cross our fingers.  Silly Java.  */
+	   || code == BLOCK)
     *walk_subtrees = 0;
+
+  /* Cope with the statement expression extension.  */
+  else if (code == STATEMENT_LIST)
+    ;
+
+  /* Leave the bulk of the work to copy_tree_r itself.  */
   else
     {
       gcc_assert (code != BIND_EXPR);
-      copy_tree_r (tp, walk_subtrees, data);
+      copy_tree_r (tp, walk_subtrees, NULL);
     }
 
   return NULL_TREE;
@@ -892,16 +905,10 @@ mostly_copy_tree_r (tree *tp, int *walk_subtrees, void *data)
 
 /* Callback for walk_tree to unshare most of the shared trees rooted at
    *TP.  If *TP has been visited already (i.e., TREE_VISITED (*TP) == 1),
-   then *TP is deep copied by calling copy_tree_r.
-
-   This unshares the same trees as copy_tree_r with the exception of
-   SAVE_EXPR nodes.  These nodes model computations that should only be
-   done once.  If we were to unshare something like SAVE_EXPR(i++), the
-   gimplification process would create wrong code.  */
+   then *TP is deep copied by calling mostly_copy_tree_r.  */
 
 static tree
-copy_if_shared_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
-		  void *data ATTRIBUTE_UNUSED)
+copy_if_shared_r (tree *tp, int *walk_subtrees, void *data)
 {
   tree t = *tp;
   enum tree_code code = TREE_CODE (t);
@@ -924,27 +931,29 @@ copy_if_shared_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
      any deeper.  */
   else if (TREE_VISITED (t))
     {
-      walk_tree (tp, mostly_copy_tree_r, NULL, NULL);
+      walk_tree (tp, mostly_copy_tree_r, data, NULL);
       *walk_subtrees = 0;
     }
 
-  /* Otherwise, mark the tree as visited and keep looking.  */
+  /* Otherwise, mark the node as visited and keep looking.  */
   else
     TREE_VISITED (t) = 1;
 
   return NULL_TREE;
 }
 
-static tree
-unmark_visited_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
-		  void *data ATTRIBUTE_UNUSED)
-{
-  if (TREE_VISITED (*tp))
-    TREE_VISITED (*tp) = 0;
-  else
-    *walk_subtrees = 0;
+/* Unshare most of the shared trees rooted at *TP. */
 
-  return NULL_TREE;
+static inline void
+copy_if_shared (tree *tp)
+{
+  /* If the language requires deep unsharing, we need a pointer set to make
+     sure we don't repeatedly unshare subtrees of unshareable nodes.  */
+  struct pointer_set_t *visited
+    = lang_hooks.deep_unsharing ? pointer_set_create () : NULL;
+  walk_tree (tp, copy_if_shared_r, visited, NULL);
+  if (visited)
+    pointer_set_destroy (visited);
 }
 
 /* Unshare all the trees in BODY_P, a pointer into the body of FNDECL, and the
@@ -956,10 +965,38 @@ unshare_body (tree *body_p, tree fndecl)
 {
   struct cgraph_node *cgn = cgraph_node (fndecl);
 
-  walk_tree (body_p, copy_if_shared_r, NULL, NULL);
+  copy_if_shared (body_p);
+
   if (body_p == &DECL_SAVED_TREE (fndecl))
     for (cgn = cgn->nested; cgn; cgn = cgn->next_nested)
       unshare_body (&DECL_SAVED_TREE (cgn->decl), cgn->decl);
+}
+
+/* Callback for walk_tree to unmark the visited trees rooted at *TP.
+   Subtrees are walked until the first unvisited node is encountered.  */
+
+static tree
+unmark_visited_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
+{
+  tree t = *tp;
+
+  /* If this node has been visited, unmark it and keep looking.  */
+  if (TREE_VISITED (t))
+    TREE_VISITED (t) = 0;
+
+  /* Otherwise, don't look any deeper.  */
+  else
+    *walk_subtrees = 0;
+
+  return NULL_TREE;
+}
+
+/* Unmark the visited trees rooted at *TP.  */
+
+static inline void
+unmark_visited (tree *tp)
+{
+  walk_tree (tp, unmark_visited_r, NULL, NULL);
 }
 
 /* Likewise, but mark all trees as not visited.  */
@@ -969,7 +1006,8 @@ unvisit_body (tree *body_p, tree fndecl)
 {
   struct cgraph_node *cgn = cgraph_node (fndecl);
 
-  walk_tree (body_p, unmark_visited_r, NULL, NULL);
+  unmark_visited (body_p);
+
   if (body_p == &DECL_SAVED_TREE (fndecl))
     for (cgn = cgn->nested; cgn; cgn = cgn->next_nested)
       unvisit_body (&DECL_SAVED_TREE (cgn->decl), cgn->decl);
@@ -3775,8 +3813,11 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 		if (notify_temp_creation)
 		  return GS_ERROR;
 
-	        walk_tree (&ctor, force_labels_r, NULL, NULL);
-		TREE_OPERAND (*expr_p, 1) = tree_output_constant_def (ctor);
+		walk_tree (&ctor, force_labels_r, NULL, NULL);
+		ctor = tree_output_constant_def (ctor);
+		if (!useless_type_conversion_p (type, TREE_TYPE (ctor)))
+		  ctor = build1 (VIEW_CONVERT_EXPR, type, ctor);
+		TREE_OPERAND (*expr_p, 1) = ctor;
 
 		/* This is no longer an assignment of a CONSTRUCTOR, but
 		   we still may have processing to do on the LHS.  So
@@ -5470,6 +5511,31 @@ omp_add_variable (struct gimplify_omp_ctx *ctx, tree decl, unsigned int flags)
   splay_tree_insert (ctx->variables, (splay_tree_key)decl, flags);
 }
 
+/* Notice a threadprivate variable DECL used in OpenMP context CTX.
+   This just prints out diagnostics about threadprivate variable uses
+   in untied tasks.  If DECL2 is non-NULL, prevent this warning
+   on that variable.  */
+
+static bool
+omp_notice_threadprivate_variable (struct gimplify_omp_ctx *ctx, tree decl,
+				   tree decl2)
+{
+  splay_tree_node n;
+
+  if (ctx->region_type != ORT_UNTIED_TASK)
+    return false;
+  n = splay_tree_lookup (ctx->variables, (splay_tree_key)decl);
+  if (n == NULL)
+    {
+      error ("threadprivate variable %qE used in untied task", DECL_NAME (decl));
+      error_at (ctx->location, "enclosing task");
+      splay_tree_insert (ctx->variables, (splay_tree_key)decl, 0);
+    }
+  if (decl2)
+    splay_tree_insert (ctx->variables, (splay_tree_key)decl2, 0);
+  return false;
+}
+
 /* Record the fact that DECL was used within the OpenMP context CTX.
    IN_CODE is true when real code uses DECL, and false when we should
    merely emit default(none) errors.  Return true if DECL is going to
@@ -5490,14 +5556,14 @@ omp_notice_variable (struct gimplify_omp_ctx *ctx, tree decl, bool in_code)
   if (is_global_var (decl))
     {
       if (DECL_THREAD_LOCAL_P (decl))
-	return false;
+	return omp_notice_threadprivate_variable (ctx, decl, NULL_TREE);
 
       if (DECL_HAS_VALUE_EXPR_P (decl))
 	{
 	  tree value = get_base_address (DECL_VALUE_EXPR (decl));
 
 	  if (value && DECL_P (value) && DECL_THREAD_LOCAL_P (value))
-	    return false;
+	    return omp_notice_threadprivate_variable (ctx, decl, value);
 	}
     }
 
@@ -5523,7 +5589,10 @@ omp_notice_variable (struct gimplify_omp_ctx *ctx, tree decl, bool in_code)
 	case OMP_CLAUSE_DEFAULT_NONE:
 	  error ("%qE not specified in enclosing parallel",
 		 DECL_NAME (decl));
-	  error_at (ctx->location, "enclosing parallel");
+	  if ((ctx->region_type & ORT_TASK) != 0)
+	    error_at (ctx->location, "enclosing task");
+	  else
+	    error_at (ctx->location, "enclosing parallel");
 	  /* FALLTHRU */
 	case OMP_CLAUSE_DEFAULT_SHARED:
 	  flags |= GOVD_SHARED;
@@ -5536,7 +5605,7 @@ omp_notice_variable (struct gimplify_omp_ctx *ctx, tree decl, bool in_code)
 	  break;
 	case OMP_CLAUSE_DEFAULT_UNSPECIFIED:
 	  /* decl will be either GOVD_FIRSTPRIVATE or GOVD_SHARED.  */
-	  gcc_assert (ctx->region_type == ORT_TASK);
+	  gcc_assert ((ctx->region_type & ORT_TASK) != 0);
 	  if (ctx->outer_context)
 	    omp_notice_variable (ctx->outer_context, decl, in_code);
 	  for (octx = ctx->outer_context; octx; octx = octx->outer_context)
@@ -6039,7 +6108,10 @@ gimplify_omp_task (tree *expr_p, gimple_seq *pre_p)
   gimple_seq body = NULL;
   struct gimplify_ctx gctx;
 
-  gimplify_scan_omp_clauses (&OMP_TASK_CLAUSES (expr), pre_p, ORT_TASK);
+  gimplify_scan_omp_clauses (&OMP_TASK_CLAUSES (expr), pre_p,
+			     find_omp_clause (OMP_TASK_CLAUSES (expr),
+					      OMP_CLAUSE_UNTIED)
+			     ? ORT_UNTIED_TASK : ORT_TASK);
 
   push_gimplify_context (&gctx);
 

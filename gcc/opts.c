@@ -502,24 +502,30 @@ handle_option (int opt_index, int value, const char *arg,
     {
       if (lang_hooks.handle_option (opt_index, arg, value, kind) == 0)
 	return false;
+#ifdef ENABLE_LTO
       else
 	lto_register_user_option (opt_index, arg, value, lang_mask);
+ #endif
     }
 
   if (option->flags & CL_COMMON)
     {
       if (common_handle_option (opt_index, arg, value, lang_mask, kind) == 0)
 	return false;
+#ifdef ENABLE_LTO
       else
 	lto_register_user_option (opt_index, arg, value, CL_COMMON);
+#endif
     }
 
   if (option->flags & CL_TARGET)
     {
       if (!targetm.handle_option (opt_index, arg, value))
 	return false;
+#ifdef ENABLE_LTO
       else
 	lto_register_user_option (opt_index, arg, value, CL_TARGET);
+#endif
     }
   return true;
 }
@@ -980,8 +986,10 @@ decode_options (unsigned int argc, const char **argv)
       flag_unwind_tables = targetm.unwind_tables_default;
     }
 
+#ifdef ENABLE_LTO
   /* Clear any options currently held for LTO.  */
   lto_clear_user_options ();
+#endif
 
 #ifdef OPTIMIZATION_OPTIONS
   /* Allow default optimizations to be specified on a per-machine basis.  */
@@ -1142,9 +1150,6 @@ decode_options (unsigned int argc, const char **argv)
   if (flag_wpa || flag_ltrans)
     {
       /* These passes are not WHOPR compatible yet.  */
-      flag_ipa_cp = 0;
-      flag_ipa_reference = 0;
-      flag_ipa_type_escape = 0;
       flag_ipa_pta = 0;
       flag_ipa_struct_reorg = 0;
     }
@@ -2142,6 +2147,10 @@ common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_pedantic_errors:
       flag_pedantic_errors = pedantic = 1;
+      break;
+
+    case OPT_fwhopr:
+      flag_whopr = value;
       break;
 
     case OPT_fsee:

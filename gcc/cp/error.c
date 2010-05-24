@@ -1,7 +1,7 @@
 /* Call-backs for C++ error reporting.
    This code is non-reentrant.
-   Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2002, 2003,
+   2004, 2005, 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
@@ -24,13 +24,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "cp-tree.h"
-#include "real.h"
 #include "toplev.h"
 #include "flags.h"
 #include "diagnostic.h"
+#include "tree-diagnostic.h"
 #include "langhooks-def.h"
 #include "intl.h"
 #include "cxx-pretty-print.h"
+#include "tree-pretty-print.h"
 #include "pointer-set.h"
 
 #define pp_separate_with_comma(PP) pp_cxx_separate_with (PP, ',')
@@ -333,11 +334,16 @@ dump_type (tree t, int flags)
 
   switch (TREE_CODE (t))
     {
-    case UNKNOWN_TYPE:
+    case LANG_TYPE:
       if (t == init_list_type_node)
 	pp_string (cxx_pp, M_("<brace-enclosed initializer list>"));
-      else
+      else if (t == unknown_type_node)
 	pp_string (cxx_pp, M_("<unresolved overloaded function type>"));
+      else
+	{
+	  pp_cxx_cv_qualifier_seq (cxx_pp, t);
+	  pp_cxx_tree_identifier (cxx_pp, TYPE_IDENTIFIER (t));
+	}
       break;
 
     case TREE_LIST:
@@ -473,10 +479,6 @@ dump_type (tree t, int flags)
       pp_cxx_left_paren (cxx_pp);
       dump_expr (DECLTYPE_TYPE_EXPR (t), flags & ~TFF_EXPR_IN_PARENS);
       pp_cxx_right_paren (cxx_pp);
-      break;
-
-    case NULLPTR_TYPE:
-      pp_string (cxx_pp, "std::nullptr_t");
       break;
 
     default:
@@ -698,7 +700,7 @@ dump_type_prefix (tree t, int flags)
     case TYPE_DECL:
     case TREE_VEC:
     case UNION_TYPE:
-    case UNKNOWN_TYPE:
+    case LANG_TYPE:
     case VOID_TYPE:
     case TYPENAME_TYPE:
     case COMPLEX_TYPE:
@@ -707,7 +709,6 @@ dump_type_prefix (tree t, int flags)
     case DECLTYPE_TYPE:
     case TYPE_PACK_EXPANSION:
     case FIXED_POINT_TYPE:
-    case NULLPTR_TYPE:
       dump_type (t, flags);
       pp_base (cxx_pp)->padding = pp_before;
       break;
@@ -801,7 +802,7 @@ dump_type_suffix (tree t, int flags)
     case TYPE_DECL:
     case TREE_VEC:
     case UNION_TYPE:
-    case UNKNOWN_TYPE:
+    case LANG_TYPE:
     case VOID_TYPE:
     case TYPENAME_TYPE:
     case COMPLEX_TYPE:
@@ -810,7 +811,6 @@ dump_type_suffix (tree t, int flags)
     case DECLTYPE_TYPE:
     case TYPE_PACK_EXPANSION:
     case FIXED_POINT_TYPE:
-    case NULLPTR_TYPE:
       break;
 
     default:
@@ -2570,7 +2570,7 @@ cp_print_error_function (diagnostic_context *context,
     {
       const char *old_prefix = context->printer->prefix;
       const char *file = LOCATION_FILE (diagnostic->location);
-      tree abstract_origin = diagnostic->abstract_origin;
+      tree abstract_origin = diagnostic_abstract_origin (diagnostic);
       char *new_prefix = (file && abstract_origin == NULL)
 			 ? file_name_as_prefix (file) : NULL;
 
@@ -2927,6 +2927,10 @@ cp_printer (pretty_printer *pp, text_info *text, const char *spec,
     case 'Q': result = assop_to_string (next_tcode);		break;
     case 'T': result = type_to_string (next_tree, verbose);	break;
     case 'V': result = cv_to_string (next_tree, verbose);	break;
+
+    case 'K':
+      percent_K_format (text);
+      return true;
 
     default:
       return false;
