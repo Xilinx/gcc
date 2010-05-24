@@ -1,4 +1,4 @@
 language="python"
 compilers="gpy1\$(exeext)"
-# target_libs="target-libpy"
+target_libs="target-libpy"
 gtfiles="\$(srcdir)/python/gpy-lang.c"

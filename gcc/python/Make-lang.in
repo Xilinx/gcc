@@ -84,4 +84,4 @@ gpy.stageprofile: stageprofile-start
 gpy.stagefeedback: stagefeedback-start
 	-mv gpy/*$(objext) stagefeedback/gpy
 
-config.status: gpy/config-lang.in
+config.status: python/config-lang.in
