@@ -1,0 +1,15 @@
+Language
+Python
+
+I
+Python Joined Separate
+-I<directory>	Add a directory for import searching
+
+L
+Python Joined Separate
+-L<directory>	Add a directory for import searching
+
+Wall
+Python
+; Documented in c.opt
+

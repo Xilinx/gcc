@@ -1,0 +1,87 @@
+GPY_EXES = python
+
+.phony: python
+
+python: ggpy$(exeext) gpy1$(exeext)
+
+# core compiler gpy1
+gpy1$(exeext): gpy/gpy1.o $(BACKEND) $(LIBSDEPS) attribs.o 
+	echo "DEBUG: gpy1 - $(BACKEND) .. $(LIBSDEPS) .. $(LIBS) .. attribs.o .. $(GMPLIBS) .. $(BACKENDLIBS)"
+	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ gpy/gpy1.o \
+	$(BACKEND) $(LIBS) attribs.o $(GMPLIBS) $(BACKENDLIBS) 
+
+gpy/gpy1.o: gpy/gpy1.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H)  \
+  input.h options.h opts.h \
+  gtype-gpy.h
+
+# compiler driver gpy 
+ggpy$(exeext): $(GCC_OBJS) version.o prefix.o intl.o $(EXTRA_GCC_OBJS) \
+  $(LIBDEPS) gpy/ggpy.o
+	echo "DEBUG: ggpy - $(EXTRA_GCC_OBJS) .. $(LIBS) .. $(GCC_OBJS) .. $(ALL_CFLAGS) .. $(LDFLAGS)" 
+	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ gpy/ggpy.o \
+	  $(GCC_OBJS) version.o prefix.o intl.o $(EXTRA_GCC_OBJS) $(LIBS)
+
+gpy/ggpy.o: gpy/ggpy.c $(CONFIG_H) $(SYSTEM_H) \
+  coretypes.h $(DIAGNOSTIC_H) $(TREE_H) $(FLAGS_H) toplev.h langhooks.h $(TM_H)
+
+gpy.srcextra: 
+
+gpy.all.cross:
+
+gpy.start.encap:
+gpy.rest.encap:
+gpy.man:
+gpy.srcman:
+
+gpy.tags: force
+	cd $(srcdir)/gpy; etags -o TAGS.sub *.y *.l *.c *.h; \
+	etags --include TAGS.sub --include ../TAGS.sub
+
+gpy.info: 
+gpy.srcinfo: 
+gpy.dvi: 
+gpy.pdf: 
+doc/gpy.info: 
+doc/gpy.dvi: 
+doc/gpy.pdf: 
+gpy.html: 
+
+.phony:gpy.install.common
+.phony:gpy.install
+
+gpy.install gpy.install.common gpy.install-common: gpy.install.common.done
+
+gpy.install.common.done:  installdirs 
+	for name in $(GPY_EXES); \
+	do \
+	   if [ -f $$name ] ; then \
+	    name2="`echo \`basename $$name\` | sed -e '$(program_transform_name)' `"; \
+	    rm -f $(DESTDIR)$(bindir)/$$name2$(exeext); \
+	    echo $(INSTALL_PROGRAM) $$name$(exeext) $(DESTDIR)$(bindir)/$$name2$(exeext); \
+	    $(INSTALL_PROGRAM) $$name$(exeext) $(DESTDIR)$(bindir)/$$name2$(exeext); \
+	    chmod a+x $(DESTDIR)$(bindir)/$$name2$(exeext); \
+	  fi ; \
+	done
+
+gpy.install-info: 
+gpy.install-pdf: 
+gpy.install-man:
+
+# Stage hooks:
+# The main makefile has already created stage?/gpy.
+
+gpy.stage1: stage1-start
+	-mv gpy/*$(objext) stage1/gpy
+gpy.stage2: stage2-start
+	-mv gpy/*$(objext) stage2/gpy
+gpy.stage3: stage3-start
+	-mv gpy/*$(objext) stage3/gpy
+gpy.stage4: stage4-start
+	-mv gpy/*$(objext) stage4/gpy
+gpy.stageprofile: stageprofile-start
+	-mv gpy/*$(objext) stageprofile/gpy
+gpy.stagefeedback: stagefeedback-start
+	-mv gpy/*$(objext) stagefeedback/gpy
+
+config.status: gpy/config-lang.in
