@@ -1,3 +1,7 @@
+2010-05-24  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (expand_block_tm): Do not advance GSI blindly.
+
 2010-05-19  Aldy Hernandez  <aldyh@redhat.com>
 
 	* gtm-builtins.def (_ITM_memmoveRtWt): Make TM pure.

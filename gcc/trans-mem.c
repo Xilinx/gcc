@@ -2163,7 +2163,8 @@ expand_block_tm (struct tm_region *region, basic_block bb)
 	default:
 	  break;
 	}
-      gsi_next (&gsi);
+      if (!gsi_end_p (gsi))
+        gsi_next (&gsi);
     }
 }
 
