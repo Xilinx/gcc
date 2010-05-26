@@ -1,5 +1,15 @@
 
 2010-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{when a symbol appears at the top level, we have no location for
+	it. Perhaps the reader should parse differently top-level symbols
+	as located occurrences...?}}
+
+	* melt/warmelt-normal.melt: Print short backtrace when null
+	location.
+
+	* melt/warmelt-normatch.melt: postponing step normalization...
+
+2010-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: altmatch_normalize_step should
 	postpone the step normalization
 

@@ -1099,14 +1099,14 @@ source location.}#
    (debug_msg bind "normexp_symbol after find_enclosing_env bind")
    (debug_msg procs "normexp_symbol after find_enclosing_env procs")
    (assert_msg "normexp_symbol check recv" (is_a recv class_symbol))
+   (if (null psloc)
+       (shortbacktrace_dbg "normex_symbol null psloc" 10)
+     )
    (if (null bind)
        (progn
 	 (error_strv psloc "unbound symbol to normalize"
 		     (unsafe_get_field :named_name recv))
 	 (return ())))
-   (if (null psloc)
-       (shortbacktrace_dbg "normex_symbol null psloc" 10)
-     )
    (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
 	  (syca (mapobject_get sycmap recv)) )
      (assert_msg "check sycmap" (is_mapobject sycmap))

@@ -2397,7 +2397,8 @@ expression. $MCTX_NMATBIND the corresponding bindings. $MCTX_CASES is
 the tuple of cases each of $CLASS_MATCH_CASE. $MCTX_ENV is the
 environment of the match. $MCTX_MDATA is the initial matched data of
 $CLASS_MATCHED_DATA. $MCTX_VARHANDLERS is the list of pattern variable
-handlers. $MCTX_FLAGS is the list of match flags.}#
+handlers. $MCTX_FLAGS is the list of match flags. $MCTX_ENDLABEL may
+hold the ending label.}#
   :fields ( mctx_normctxt
 	    mctx_source 
 	    mctx_nmatched 
@@ -2407,6 +2408,7 @@ handlers. $MCTX_FLAGS is the list of match flags.}#
 	    mctx_mdata
 	    mctx_varhandlers
 	    mctx_flags
+	    mctx_endlabel
 	    ))
 
 (defclass class_match_case
@@ -4443,8 +4445,14 @@ instances of $CLASS_NREP_MATCH_FLAG.}#
   :super class_nrep_expression
   :doc #{ A normal match label of $CLASS_NREP_MATCH_LABEL is just a
 point which can be jumped to. It corresponds to a match step given by
-the field $NMLAB_STEP. }#
-  :fields (nmlab_step))
+the field $NMLAB_STEP. Field $NMLAB_NBREMSTEPS gives the boxed number
+of remaining other steps for the same matched data.}#
+  :fields (nmlab_step
+	   nmlab_nbremsteps))
+
+(defclass class_nrep_match_label_end
+  :super class_nrep_match_label
+  :doc #{The $CLASS_NREP_MATCH_LABEL_END is for the end label.}#)
 
 (defclass class_nrep_match_jump
   :super class_nrep_expression
@@ -4502,14 +4510,17 @@ $NTESTISA_JUMP.}#
   labels of $CLASS_NREP_MATCH_LABEL. Field $MATNORX_MDATAMAP is the
   read-mostly map associating match datas to their
   normalization. $MATNORX_MDATAQUEUE is the read-mostly queue list of
-  match datas to process. $MATNORX_BODYLIST is the incomplete list of
-  the match body. $MATNORX_ENDLABEL is the ending label.}#
+  match datas to process. $MATNORX_MSTEPQUEUE is the read-mostly queue
+  list of match steps, with already an associated label, to
+  process. $MATNORX_BODYLIST is the incomplete list of the match
+  body. $MATNORX_ENDLABEL is the ending label.}#
   :fields (matnorx_resloc
 	   matnorx_nmatch
 	   matnorx_datamap
 	   matnorx_flagmap
 	   matnorx_stepmap
 	   matnorx_mdataqueue 
+	   matnorx_mstepqueue 
 	   matnorx_bodylist
 	   matnorx_endlabel
 	   ))
@@ -4670,35 +4681,18 @@ normalized expressions, or a single such normalized expression.}#
 	 (sloc  (get_field :loca_location step))
 	 )
     (if (null nlab)
-	(let ( (newlab (instance class_nrep_match_label
-				 :nrep_loc sloc
-				 :nmlab_step step
+	(let ( (newlab 
+		(instance class_nrep_match_label
+			  :nrep_loc sloc
+			  :nmlab_step step
+			  :nmlab_nbremsteps
+			  (make_integerbox discr_constant_integer nbothersteps)
 				 ))
 	       )
 	  (debug_msg newlab "altmatch_normalize_step newlab")
 	  (mapobject_put stepmap step newlab)
-	  (compile_warning "altmatch_normalize_step should return the newlab and postpone the step normalization")
-	  (let ( (normstep (normalize_step step nmctxt sloc nbothersteps)) 
-		 )
-	    (debug_msg normstep "altmatch_normalize_step normstep")
-	    (cond ( (is_a normstep class_nrep_expression)
-		    (list_append bodyl normstep))
-		  ( (is_multiple normstep)
-		    (foreach_in_multiple
-		     (normstep)
-		     (curnstep :long curix)
-		     (assert_msg "check curnstep" (is_a curnstep class_nrep_expression))
-		     (list_append bodyl curnstep)))
-		  ( (is_list normstep)
-		    (foreach_in_list
-		     (normstep)
-		     (curpair curnstep)
-		     (assert_msg "check curnstep" (is_a curnstep class_nrep_expression))
-		     (list_append bodyl curnstep)))
-		  (:else
-		   (assert_msg "invalid normstep in altmatch_normalize_step" ())))		     
-	    (setq nlab newlab)
-	    )))
+	  (setq nlab newlab)
+	  ))
     (assert_msg "check good nlab" (is_a nlab class_nrep_match_label))
     (return nlab)
     ))
@@ -4771,11 +4765,12 @@ normalized expressions, or a single such normalized expression.}#
     ))
 
 ;;; function to really normalize an alternate match
-(defun altmatch_normalize_case (mdata mcasetup matctyp sloc)
+(defun altmatch_normalize_case (mdata mcasetup matctyp sloc matctx)
   (debug_msg mdata "altmatch_normalize_case mdata")
   (debug_msg mcasetup "altmatch_normalize_case mcasetup")
   (debug_msg matctyp "altmatch_normalize_case matctyp")
   (debug_msg sloc "altmatch_normalize_case sloc")
+  (debug_msg matctx "altmatch_normalize_case matctx")
   (let ( (nmatch (instance class_nrep_altmatch
 			   :nexpr_ctyp matctyp
 			   :nrep_loc sloc
@@ -4806,6 +4801,8 @@ normalized expressions, or a single such normalized expression.}#
 	 (datamap (make_mapobject discr_map_objects 229))
 	 ;; the queue of matched data to process
 	 (mdataqueue (make_list discr_list))
+	 ;; the queue of match steps to process
+	 (mstepqueue (make_list discr_list))
 	 ;; the body queue
 	 (bodyl (make_list discr_list))
 	 ;; the normal matching context
@@ -4816,33 +4813,64 @@ normalized expressions, or a single such normalized expression.}#
 			    :matnorx_flagmap flagmap
 			    :matnorx_stepmap stepmap
 			    :matnorx_mdataqueue mdataqueue
+			    :matnorx_mstepqueue mstepqueue
 			    :matnorx_bodylist bodyl
-		  ))
+			    ))
 	 )
-    (compile_warning "altmatch_normalize_case perhaps we need a queue of data, not of steps...")
     (debug_msg mdata "altmatch_normalize_case starting with first mdata")
     (altmatch_normalize_mdata mdata nmctxt)
     (debug_msg nmctxt "altmatch_normalize_case nmctxt")
     (debug_msg mdataqueue "altmatch_normalize_case initial mdataqueue")
     (debug_msg datamap "altmatch_normalize_case initial datamap")
     (forever 
-     matchnormalizeloop
+     matchdatanormalizeloop
      (let ( (freshmdata (list_popfirst mdataqueue)) 
 	    (ndata (mapobject_get datamap freshmdata))
 	    )
        (debug_msg freshmdata "altmatch_normalize_case freshmdata start loop")
        (debug_msg ndata "altmatch_normalize_case ndata start loop")
-       (if (null freshmdata) (exit matchnormalizeloop))
+       (if (null freshmdata) (exit matchdatanormalizeloop))
        (assert_msg "altmatch_normalize_case check freshmdata" 
 		   (is_a freshmdata class_matched_data))
        (assert_msg "altmatch_normalize_case check ndata"
 		   (is_a ndata class_nrep_simple))
        (altmatch_handle_normalized_mdata freshmdata ndata nmctxt)
        (debug_msg freshmdata "altmatch_normalize_case freshmdata after altmatch_handle_normalized_mdata")
+       (debug_msg mstepqueue "altmatch_normalize_case mstepqueue")
+       (forever
+	matchstepnormalizeloop
+	(let ( (freshmstep (list_popfirst mstepqueue)) 
+	       (freshlab (mapobject_get stepmap freshmstep))
+	       )
+	  (debug_msg freshmstep "altmatch_normalize_case freshmstep")
+	  (if (null freshmstep) (exit matchstepnormalizeloop))
+	  (debug_msg freshlab "altmatch_normalize_case freshlab")
+	  (let ( (nbothersteps (get_int (get_field :nmlab_nbremsteps freshlab))) 
+		 (normstep (normalize_step freshmstep nmctxt sloc nbothersteps)) 
+		 )
+	    (list_append bodyl freshlab)
+	    (debug_msg normstep "altmatch_normalize_case normstep")
+	    (cond ( (is_a normstep class_nrep_expression)
+		    (list_append bodyl normstep))
+		  ( (is_multiple normstep)
+		    (foreach_in_multiple
+		     (normstep)
+		     (curnstep :long curix)
+		     (assert_msg "check curnstep" (is_a curnstep class_nrep_expression))
+		     (list_append bodyl curnstep)))
+		  ( (is_list normstep)
+		    (foreach_in_list
+		     (normstep)
+		     (curpair curnstep)
+		     (assert_msg "check curnstep" (is_a curnstep class_nrep_expression))
+		     (list_append bodyl curnstep)))
+		  (:else
+		   (assert_msg "invalid normstep in altmatch_normalize_case" ())))		     
+	    )
+
+	  ))
        )))
-    (error_plain sloc "@@unimplemented altmatch_normalize_case")
-    (assert_msg "@@unimplemented altmatch_normalize_case")
-    )
+  )
 
 ;;; normalize a match alternate
 (defun normexp_altmatch (recv env ncx psloc)
@@ -4874,6 +4902,12 @@ normalized expressions, or a single such normalized expression.}#
 			     :mdata_orig nmatx
 			     :mdata_steps msteplist
 			     ))
+	    ;; the end label
+	    (endlab (instance class_nrep_match_label_end
+			      :nrep_loc sloc
+			      :nmlab_step ()
+			      :nmlab_nbremsteps '-1)
+		    )
 	    (matctx (instance class_matching_context
 			      :mctx_normctxt ncx
 			      :mctx_source recv
@@ -4884,6 +4918,7 @@ normalized expressions, or a single such normalized expression.}#
 			      :mctx_mdata mdata
 			      :mctx_varhandlers (make_list discr_list)
 			      :mctx_flags (make_list discr_list)
+			      :mctx_endlabel endlab
 			      ))
 	    )
        (debug_msg matctyp "normexp_altmatch matctyp")
@@ -4898,7 +4933,7 @@ normalized expressions, or a single such normalized expression.}#
 				   :mcase_mctxt matctx
 				   :mcase_source curscas
 				   :mcase_index 
-				   (make_integerbox discr_integer curix)
+				   (make_integerbox discr_constant_integer curix)
 				   )
 			 )
 	       )
@@ -4973,7 +5008,7 @@ normalized expressions, or a single such normalized expression.}#
        ;;
        (multicall
 	(normatch norbindmatch)
-	(altmatch_normalize_case mdata mcasetup matctyp sloc)
+	(altmatch_normalize_case mdata mcasetup matctyp sloc matctx)
 	(error_plain sloc "@@unimplemented normexp_altmatch")
 	(compile_warning "@@unimplemented normexp_altmatch")
 	(return)
