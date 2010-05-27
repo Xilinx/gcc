@@ -50,6 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "graphite.h"
 #include "graphite-poly.h"
 #include "graphite-scop-detection.h"
+#include "refined-regions.h"
 
 /* The type of the analyzed basic block.  */
 
@@ -1325,6 +1326,10 @@ build_scops (VEC (scop_p, heap) **scops)
 {
   struct loop *loop = current_loops->tree_root;
   VEC (sd_region, heap) *regions = VEC_alloc (sd_region, heap, 3);
+
+  /* Run new scop detection in parallel.  */
+  refined_region_p new_region = calculate_region_tree ();
+  free_region_tree (new_region);
 
   canonicalize_loop_closed_ssa_form ();
   build_scops_1 (single_succ (ENTRY_BLOCK_PTR), ENTRY_BLOCK_PTR->loop_father,
