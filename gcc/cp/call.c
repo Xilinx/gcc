@@ -32,9 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "output.h"
 #include "flags.h"
-#include "rtl.h"
 #include "toplev.h"
-#include "expr.h"
 #include "diagnostic.h"
 #include "intl.h"
 #include "target.h"
@@ -6350,7 +6348,8 @@ build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
       && BRACE_ENCLOSED_INITIALIZER_P (VEC_index (tree, *args, 0))
       && CONSTRUCTOR_IS_DIRECT_INIT (VEC_index (tree, *args, 0)))
     {
-      gcc_assert (VEC_length (tree, *args) == 1);
+      gcc_assert (VEC_length (tree, *args) == 1
+		  && !(flags & LOOKUP_ONLYCONVERTING));
       list = VEC_index (tree, *args, 0);
 
       if (TYPE_HAS_LIST_CTOR (basetype))

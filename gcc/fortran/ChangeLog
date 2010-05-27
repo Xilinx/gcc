@@ -1,3 +1,33 @@
+2010-05-26  Joseph Myers  <joseph@codesourcery.com>
+
+	* cpp.c (cb_cpp_error): Save and restore
+	global_dc->warn_system_headers, not variable warn_system_headers.
+
+2010-05-26  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* fortran/f95-lang.c: Do not include libfuncs.h, expr.h, and except.h.
+
+2010-05-26  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* trans-common.c: Do not include rtl.h, include output.h instead.
+	* trans-decl.c: Likewise.
+
+2010-05-26  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40011
+	* resolve.c (resolve_global_procedure): Resolve the gsymbol's
+	namespace before trying to reorder the gsymbols.
+
+2010-05-25  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/30668
+	PR fortran/31346
+	PR fortran/34260
+	* resolve.c (resolve_global_procedure): Add check for global
+	procedures with implicit interfaces and assumed-shape or optional
+	dummy arguments. Verify that function return type, kind and string
+	lengths match.
+
 2010-05-21  Tobias Burnus  <burnus@net-b.de>
 
 	* gfortran.h: Do not include system.h.

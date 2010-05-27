@@ -28,9 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "output.h"
 #include "c-pragma.h"
-#include "rtl.h"
 #include "ggc.h"
-#include "expr.h" /* For vector_mode_valid_p */
 #include "c-common.h"
 #include "tm_p.h"
 #include "obstack.h"
@@ -49,6 +47,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "target-def.h"
 #include "libfuncs.h"
 
+/* FIXME: Still need to include rtl.h here (via expr.h) in a front-end file.
+   Pretend this is a back-end file.  */
+#define IN_GCC_BACKEND
+#include "expr.h" /* For vector_mode_valid_p */
+
+/* FIXME: Needed for TARGET_ENUM_VA_LIST, which should be a target hook.  */
+#include "tm_p.h"
+
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
 /* The following symbols are subsumed in the c_global_trees array, and
@@ -59,10 +65,12 @@ cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 	tree short_integer_type_node;
 	tree long_integer_type_node;
 	tree long_long_integer_type_node;
+	tree int128_integer_type_node;
 
 	tree short_unsigned_type_node;
 	tree long_unsigned_type_node;
 	tree long_long_unsigned_type_node;
+	tree int128_unsigned_type_node;
 
 	tree truthvalue_type_node;
 	tree truthvalue_false_node;
@@ -589,6 +597,7 @@ const struct c_common_resword c_common_reswords[] =
   { "__has_trivial_copy", RID_HAS_TRIVIAL_COPY, D_CXXONLY },
   { "__has_trivial_destructor", RID_HAS_TRIVIAL_DESTRUCTOR, D_CXXONLY },
   { "__has_virtual_destructor", RID_HAS_VIRTUAL_DESTRUCTOR, D_CXXONLY },
+  { "__int128",		RID_INT128,	0 },
   { "__is_abstract",	RID_IS_ABSTRACT, D_CXXONLY },
   { "__is_base_of",	RID_IS_BASE_OF, D_CXXONLY },
   { "__is_class",	RID_IS_CLASS,	D_CXXONLY },
@@ -709,11 +718,6 @@ const struct c_common_resword c_common_reswords[] =
   { "inout",		RID_INOUT,		D_OBJC },
   { "oneway",		RID_ONEWAY,		D_OBJC },
   { "out",		RID_OUT,		D_OBJC },
-
-#ifdef TARGET_ADDR_SPACE_KEYWORDS
-  /* Any address space keywords recognized by the target.  */
-  TARGET_ADDR_SPACE_KEYWORDS,
-#endif
 };
 
 const unsigned int num_c_common_reswords =
@@ -848,17 +852,34 @@ const struct attribute_spec c_common_format_attribute_table[] =
   { NULL,                     0, 0, false, false, false, NULL }
 };
 
+
+/* Register reserved keyword WORD as qualifier for address space AS.  */
+
+void
+c_register_addr_space (const char *word, addr_space_t as)
+{
+  int rid = RID_FIRST_ADDR_SPACE + as;
+  tree id;
+
+  /* Address space qualifiers are only supported
+     in C with GNU extensions enabled.  */
+  if (c_dialect_cxx () || c_dialect_objc () || flag_no_asm)
+    return;
+
+  id = get_identifier (word);
+  C_SET_RID_CODE (id, rid);
+  C_IS_RESERVED_WORD (id) = 1;
+  ridpointers [rid] = id;
+}
+
 /* Return identifier for address space AS.  */
+
 const char *
 c_addr_space_name (addr_space_t as)
 {
-  unsigned int i;
-
-  for (i = 0; i < num_c_common_reswords; i++)
-    if (c_common_reswords[i].rid == RID_FIRST_ADDR_SPACE + as)
-      return c_common_reswords[i].word;
-
-  gcc_unreachable ();
+  int rid = RID_FIRST_ADDR_SPACE + as;
+  gcc_assert (ridpointers [rid]);
+  return IDENTIFIER_POINTER (ridpointers [rid]);
 }
 
 /* Push current bindings for the function name VAR_DECLS.  */
@@ -2851,6 +2872,11 @@ c_common_type_for_size (unsigned int bits, int unsignedp)
     return (unsignedp ? long_long_unsigned_type_node
 	    : long_long_integer_type_node);
 
+  if (int128_integer_type_node
+      && bits == TYPE_PRECISION (int128_integer_type_node))
+    return (unsignedp ? int128_unsigned_type_node
+	    : int128_integer_type_node);
+
   if (bits == TYPE_PRECISION (widest_integer_literal_type_node))
     return (unsignedp ? widest_unsigned_literal_type_node
 	    : widest_integer_literal_type_node);
@@ -2928,6 +2954,10 @@ c_common_type_for_mode (enum machine_mode mode, int unsignedp)
 
   if (mode == TYPE_MODE (long_long_integer_type_node))
     return unsignedp ? long_long_unsigned_type_node : long_long_integer_type_node;
+
+  if (int128_integer_type_node
+      && mode == TYPE_MODE (int128_integer_type_node))
+    return unsignedp ? int128_unsigned_type_node : int128_integer_type_node;
 
   if (mode == TYPE_MODE (widest_integer_literal_type_node))
     return unsignedp ? widest_unsigned_literal_type_node
@@ -3142,6 +3172,10 @@ c_common_signed_or_unsigned_type (int unsignedp, tree type)
     return unsignedp ? long_unsigned_type_node : long_integer_type_node;
   if (type1 == long_long_integer_type_node || type1 == long_long_unsigned_type_node)
     return unsignedp ? long_long_unsigned_type_node : long_long_integer_type_node;
+  if (int128_integer_type_node
+      && (type1 == int128_integer_type_node
+	  || type1 == int128_unsigned_type_node))
+    return unsignedp ? int128_unsigned_type_node : int128_integer_type_node;
   if (type1 == widest_integer_literal_type_node || type1 == widest_unsigned_literal_type_node)
     return unsignedp ? widest_unsigned_literal_type_node : widest_integer_literal_type_node;
 #if HOST_BITS_PER_WIDE_INT >= 64
@@ -3256,6 +3290,9 @@ c_common_signed_or_unsigned_type (int unsignedp, tree type)
   if (TYPE_OK (long_long_integer_type_node))
     return (unsignedp ? long_long_unsigned_type_node
 	    : long_long_integer_type_node);
+  if (int128_integer_type_node && TYPE_OK (int128_integer_type_node))
+    return (unsignedp ? int128_unsigned_type_node
+	    : int128_integer_type_node);
   if (TYPE_OK (widest_integer_literal_type_node))
     return (unsignedp ? widest_unsigned_literal_type_node
 	    : widest_integer_literal_type_node);
@@ -3299,6 +3336,10 @@ c_build_bitfield_integer_type (unsigned HOST_WIDE_INT width, int unsignedp)
   if (width == TYPE_PRECISION (long_long_integer_type_node))
     return (unsignedp ? long_long_unsigned_type_node
 	    : long_long_integer_type_node);
+  if (int128_integer_type_node
+      && width == TYPE_PRECISION (int128_integer_type_node))
+    return (unsignedp ? int128_unsigned_type_node
+	    : int128_integer_type_node);
   return build_nonstandard_integer_type (width, unsignedp);
 }
 
@@ -4691,6 +4732,13 @@ c_common_nodes_and_builtins (void)
   record_builtin_type (RID_UNSIGNED, "unsigned int", unsigned_type_node);
   record_builtin_type (RID_MAX, "long unsigned int",
 		       long_unsigned_type_node);
+  if (int128_integer_type_node != NULL_TREE)
+    {
+      record_builtin_type (RID_INT128, "__int128",
+			   int128_integer_type_node);
+      record_builtin_type (RID_MAX, "__int128 unsigned",
+			   int128_unsigned_type_node);
+    }
   if (c_dialect_cxx ())
     record_builtin_type (RID_MAX, "unsigned long", long_unsigned_type_node);
   record_builtin_type (RID_MAX, "long long int",
@@ -8358,7 +8406,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
 {
   diagnostic_info diagnostic;
   diagnostic_t dlevel;
-  int save_warn_system_headers = warn_system_headers;
+  bool save_warn_system_headers = global_dc->warn_system_headers;
   bool ret;
 
   switch (level)
@@ -8366,7 +8414,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
     case CPP_DL_WARNING_SYSHDR:
       if (flag_no_output)
 	return false;
-      warn_system_headers = 1;
+      global_dc->warn_system_headers = 1;
       /* Fall through.  */
     case CPP_DL_WARNING:
       if (flag_no_output)
@@ -8403,7 +8451,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
                                     c_option_controlling_cpp_error (reason));
   ret = report_diagnostic (&diagnostic);
   if (level == CPP_DL_WARNING_SYSHDR)
-    warn_system_headers = save_warn_system_headers;
+    global_dc->warn_system_headers = save_warn_system_headers;
   return ret;
 }
 

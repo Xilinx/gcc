@@ -69,6 +69,7 @@ enum rid
 
   /* C */
   RID_INT,     RID_CHAR,   RID_FLOAT,    RID_DOUBLE, RID_VOID,
+  RID_INT128,
   RID_ENUM,    RID_STRUCT, RID_UNION,    RID_IF,     RID_ELSE,
   RID_WHILE,   RID_DO,     RID_FOR,      RID_SWITCH, RID_CASE,
   RID_DEFAULT, RID_BREAK,  RID_CONTINUE, RID_RETURN, RID_GOTO,
@@ -286,10 +287,6 @@ struct c_common_resword
 #define D_OBJC		0x080	/* In Objective C and neither C nor C++.  */
 #define D_CXX_OBJC	0x100	/* In Objective C, and C++, but not C.  */
 #define D_CXXWARN	0x200	/* In C warn with -Wcxx-compat.  */
-
-/* Macro for backends to define named address keywords.  */
-#define ADDR_SPACE_KEYWORD(STRING, VALUE) \
-  { STRING, RID_FIRST_ADDR_SPACE + (VALUE), D_CONLY | D_EXT }
 
 /* The reserved keyword table.  */
 extern const struct c_common_resword c_common_reswords[];
@@ -802,6 +799,7 @@ extern const struct attribute_spec c_common_format_attribute_table[];
 
 extern tree (*make_fname_decl) (location_t, tree, int);
 
+extern void c_register_addr_space (const char *str, addr_space_t as);
 extern const char *c_addr_space_name (addr_space_t as);
 extern tree identifier_global_value (tree);
 extern void record_builtin_type (enum rid, const char *, tree);

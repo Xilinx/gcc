@@ -31,10 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "expr.h"
 #include "cp-tree.h"
-#include "tm_p.h"
 #include "flags.h"
 #include "output.h"
 #include "toplev.h"
@@ -351,6 +348,17 @@ cp_common_type (tree t1, tree t2)
 	  tree t = ((TYPE_UNSIGNED (t1) || TYPE_UNSIGNED (t2))
 		    ? long_long_unsigned_type_node
 		    : long_long_integer_type_node);
+	  return build_type_attribute_variant (t, attributes);
+	}
+      if (int128_integer_type_node != NULL_TREE
+	  && (same_type_p (TYPE_MAIN_VARIANT (t1),
+			   int128_integer_type_node)
+	      || same_type_p (TYPE_MAIN_VARIANT (t2),
+			      int128_integer_type_node)))
+	{
+	  tree t = ((TYPE_UNSIGNED (t1) || TYPE_UNSIGNED (t2))
+		    ? int128_unsigned_type_node
+		    : int128_integer_type_node);
 	  return build_type_attribute_variant (t, attributes);
 	}
 
@@ -5022,6 +5030,20 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	    /* Don't let this be an lvalue.  */
 	    arg = rvalue (arg);
 	  return arg;
+	}
+
+      /* ??? Cope with user tricks that amount to offsetof.  */
+      if (TREE_CODE (argtype) != FUNCTION_TYPE
+	  && TREE_CODE (argtype) != METHOD_TYPE
+	  && argtype != unknown_type_node
+	  && (val = get_base_address (arg))
+	  && TREE_CODE (val) == INDIRECT_REF
+	  && TREE_CONSTANT (TREE_OPERAND (val, 0)))
+	{
+	  tree type = build_pointer_type (argtype);
+	  tree op0 = fold_convert (type, TREE_OPERAND (val, 0));
+	  tree op1 = fold_convert (sizetype, fold_offsetof (arg, val));
+	  return fold_build2 (POINTER_PLUS_EXPR, type, op0, op1);
 	}
 
       /* Uninstantiated types are all functions.  Taking the

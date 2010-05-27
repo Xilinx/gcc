@@ -1824,20 +1824,7 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
 	&& not_in_recursive (sym, gsym->ns)
 	&& not_entry_self_reference (sym, gsym->ns))
     {
-      /* Make sure that translation for the gsymbol occurs before
-	 the procedure currently being resolved.  */
-      ns = gsym->ns->resolved ? NULL : gfc_global_ns_list;
-      for (; ns && ns != gsym->ns; ns = ns->sibling)
-	{
-	  if (ns->sibling == gsym->ns)
-	    {
-	      ns->sibling = gsym->ns->sibling;
-	      gsym->ns->sibling = gfc_global_ns_list;
-	      gfc_global_ns_list = gsym->ns;
-	      break;
-	    }
-	}
-
+      /* Resolve the gsymbol namespace if needed.  */
       if (!gsym->ns->resolved)
 	{
 	  gfc_dt_list *old_dt_list;
@@ -1857,6 +1844,20 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
 	  gfc_derived_types = old_dt_list;
 	}
 
+      /* Make sure that translation for the gsymbol occurs before
+	 the procedure currently being resolved.  */
+      ns = gfc_global_ns_list;
+      for (; ns && ns != gsym->ns; ns = ns->sibling)
+	{
+	  if (ns->sibling == gsym->ns)
+	    {
+	      ns->sibling = gsym->ns->sibling;
+	      gsym->ns->sibling = gfc_global_ns_list;
+	      gfc_global_ns_list = gsym->ns;
+	      break;
+	    }
+	}
+
       if (gsym->ns->proc_name->attr.function
 	    && gsym->ns->proc_name->as
 	    && gsym->ns->proc_name->as->rank
@@ -1864,7 +1865,7 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
 	gfc_error ("The reference to function '%s' at %L either needs an "
 		   "explicit INTERFACE or the rank is incorrect", sym->name,
 		   where);
-     
+
       /* Non-assumed length character functions.  */
       if (sym->attr.function && sym->ts.type == BT_CHARACTER
 	  && gsym->ns->proc_name->ts.u.cl->length != NULL)
@@ -1872,18 +1873,69 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
 	  gfc_charlen *cl = sym->ts.u.cl;
 
 	  if (!sym->attr.entry_master && sym->attr.if_source == IFSRC_UNKNOWN
-              && cl && cl->length && cl->length->expr_type != EXPR_CONSTANT)
+	      && cl && cl->length && cl->length->expr_type != EXPR_CONSTANT)
 	    {
-              gfc_error ("Nonconstant character-length function '%s' at %L "
+	      gfc_error ("Nonconstant character-length function '%s' at %L "
 			 "must have an explicit interface", sym->name,
 			 &sym->declared_at);
 	    }
 	}
 
+      /* Differences in constant character lengths.  */
+      if (sym->attr.function && sym->ts.type == BT_CHARACTER)
+	{
+	  long int l1 = 0, l2 = 0;
+	  gfc_charlen *cl1 = sym->ts.u.cl;
+	  gfc_charlen *cl2 = gsym->ns->proc_name->ts.u.cl;
+
+	  if (cl1 != NULL
+	      && cl1->length != NULL
+	      && cl1->length->expr_type == EXPR_CONSTANT)
+	    l1 = mpz_get_si (cl1->length->value.integer);
+
+  	  if (cl2 != NULL
+	      && cl2->length != NULL
+	      && cl2->length->expr_type == EXPR_CONSTANT)
+	    l2 = mpz_get_si (cl2->length->value.integer);
+
+	  if (l1 && l2 && l1 != l2)
+	    gfc_error ("Character length mismatch in return type of "
+		       "function '%s' at %L (%ld/%ld)", sym->name,
+		       &sym->declared_at, l1, l2);
+	}
+
+     /* Type mismatch of function return type and expected type.  */
+     if (sym->attr.function
+	 && !gfc_compare_types (&sym->ts, &gsym->ns->proc_name->ts))
+	gfc_error ("Return type mismatch of function '%s' at %L (%s/%s)",
+		   sym->name, &sym->declared_at, gfc_typename (&sym->ts),
+		   gfc_typename (&gsym->ns->proc_name->ts));
+
+      /* Assumed shape arrays as dummy arguments.  */
+      if (gsym->ns->proc_name->formal)
+	{
+	  gfc_formal_arglist *arg = gsym->ns->proc_name->formal;
+	  for ( ; arg; arg = arg->next)
+	    if (arg->sym && arg->sym->as
+	        && arg->sym->as->type == AS_ASSUMED_SHAPE)
+	      {
+		gfc_error ("Procedure '%s' at %L with assumed-shape dummy "
+			   "'%s' argument must have an explicit interface",
+			   sym->name, &sym->declared_at, arg->sym->name);
+		break;
+	      }
+	    else if (arg->sym && arg->sym->attr.optional)
+	      {
+		gfc_error ("Procedure '%s' at %L with optional dummy argument "
+			   "'%s' must have an explicit interface",
+			   sym->name, &sym->declared_at, arg->sym->name);
+		break;
+	      }
+	}
+
       if (gfc_option.flag_whole_file == 1
-	    || ((gfc_option.warn_std & GFC_STD_LEGACY)
-		  &&
-	       !(gfc_option.warn_std & GFC_STD_GNU)))
+	  || ((gfc_option.warn_std & GFC_STD_LEGACY)
+	      && !(gfc_option.warn_std & GFC_STD_GNU)))
 	gfc_errors_to_warnings (1);
 
       gfc_procedure_use (gsym->ns->proc_name, actual, where);

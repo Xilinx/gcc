@@ -858,7 +858,7 @@ REVISION_s  := "\"\""
 endif
 
 # Shorthand variables for dependency lists.
-EXCEPT_H = except.h $(HASHTAB_) vecprim.h vecir.h
+EXCEPT_H = except.h $(HASHTAB_H) vecprim.h vecir.h
 TOPLEV_H = toplev.h $(INPUT_H) bversion.h
 TARGET_H = $(TM_H) target.h insn-modes.h
 MACHMODE_H = machmode.h mode-classes.def insn-modes.h
@@ -942,7 +942,7 @@ TREE_SSA_LIVE_H = tree-ssa-live.h $(PARTITION_H) vecprim.h
 TREE_VECTORIZER_H = tree-vectorizer.h $(TREE_DATA_REF_H)
 SSAEXPAND_H = ssaexpand.h $(TREE_SSA_LIVE_H)
 PRETTY_PRINT_H = pretty-print.h $(INPUT_H) $(OBSTACK_H)
-DIAGNOSTIC_H = diagnostic.h diagnostic.def $(PRETTY_PRINT_H) options.h
+DIAGNOSTIC_H = diagnostic.h diagnostic.def $(PRETTY_PRINT_H)
 C_PRETTY_PRINT_H = c-pretty-print.h $(PRETTY_PRINT_H) $(C_COMMON_H) $(TREE_H)
 SCEV_H = tree-scalar-evolution.h $(GGC_H) tree-chrec.h $(PARAMS_H)
 LAMBDA_H = lambda.h $(TREE_H) vec.h $(GGC_H)
@@ -1020,7 +1020,7 @@ BACKENDLIBS = $(CLOOGLIBS) $(PPLLIBS) $(GMPLIBS) $(PLUGINLIBS) $(HOST_LIBS) \
 # Any system libraries needed just for GNAT.
 SYSLIBS = @GNAT_LIBEXC@
 
-# Used from ada/Make-lang.in
+# Used from ada/gcc-interface/Make-lang.in
 GNATBIND = @GNATBIND@
 GNATMAKE = @GNATMAKE@
 
@@ -1055,7 +1055,6 @@ INCLUDES = -I. -I$(@D) -I$(srcdir) -I$(srcdir)/$(@D) \
 # C can be supported this way too (leave for later).
 
 LANG_MAKEFRAGS = @all_lang_makefrags@
-LANG_MAKEFILES = @all_lang_makefiles@
 
 # Flags to pass to recursive makes.
 # CC is set by configure.
@@ -1234,6 +1233,7 @@ OBJS-common = \
 	ifcvt.o \
 	implicit-zee.o \
 	init-regs.o \
+	input.o \
 	integrate.o \
 	intl.o \
 	ira.o \
@@ -2076,7 +2076,7 @@ c-cppbuiltin.o : c-cppbuiltin.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 # A file used by all variants of C and some other languages.
 
 attribs.o : attribs.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
-	$(FLAGS_H) $(TOPLEV_H) output.h $(RTL_H) $(GGC_H) $(TM_P_H) \
+	$(FLAGS_H) $(TOPLEV_H) output.h $(GGC_H) $(TM_P_H) \
 	$(TARGET_H) langhooks.h $(CPPLIB_H) $(PLUGIN_H)
 
 c-format.o : c-format.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) langhooks.h \
@@ -2735,13 +2735,13 @@ fold-const.o : fold-const.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(GGC_H) $(TM_P_H) langhooks.h $(MD5_H) intl.h $(TARGET_H) \
    $(GIMPLE_H) realmpfr.h
 diagnostic.o : diagnostic.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
-   version.h $(FLAGS_H) $(INPUT_H) $(TOPLEV_H) intl.h $(DIAGNOSTIC_H) \
-   diagnostic.def opts.h $(PLUGIN_H)
+   version.h $(INPUT_H) $(TOPLEV_H) intl.h $(DIAGNOSTIC_H) \
+   diagnostic.def
 opts.o : opts.c opts.h options.h $(TOPLEV_H) $(CONFIG_H) $(SYSTEM_H) \
    coretypes.h $(TREE_H) $(TM_H) langhooks.h $(GGC_H) $(EXPR_H) $(RTL_H) \
    output.h $(DIAGNOSTIC_H) $(TM_P_H) $(INSN_ATTR_H) intl.h $(TARGET_H) \
    $(FLAGS_H) $(PARAMS_H) $(TREE_PASS_H) $(DBGCNT_H) debug.h \
-   $(PLUGIN_H) $(EXCEPT_H) $(LTO_STREAMER_H)
+   $(PLUGIN_H) $(EXCEPT_H) $(LTO_STREAMER_H) opts-diagnostic.h
 opts-common.o : opts-common.c opts.h $(CONFIG_H) $(SYSTEM_H) \
    coretypes.h intl.h
 targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
@@ -2757,6 +2757,8 @@ s-bversion: BASE-VER
 	echo "#define BUILDING_GCC_VERSION (BUILDING_GCC_MAJOR * 1000 + BUILDING_GCC_MINOR)" >> bversion.h
 	$(STAMP) s-bversion
 
+input.o : input.c $(CONFIG_H) $(SYSTEM_H) coretypes.h intl.h $(INPUT_H)
+
 toplev.o : toplev.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
    version.h $(RTL_H) $(FUNCTION_H) $(FLAGS_H) xcoffout.h $(INPUT_H) \
    $(INSN_ATTR_H) output.h $(DIAGNOSTIC_H) debug.h insn-config.h intl.h \
@@ -2767,7 +2769,7 @@ toplev.o : toplev.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
    $(CGRAPH_H) $(COVERAGE_H) alloc-pool.h $(GGC_H) $(INTEGRATE_H) \
    opts.h params.def tree-mudflap.h $(TREE_PASS_H) $(GIMPLE_H) \
    tree-ssa-alias.h $(PLUGIN_H) realmpfr.h tree-diagnostic.h \
-   tree-pretty-print.h
+   tree-pretty-print.h opts-diagnostic.h
 	$(COMPILER) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
 	  -DTARGET_NAME=\"$(target_noncanonical)\" \
 	  -c $(srcdir)/toplev.c $(OUTPUT_OPTION)
@@ -3399,8 +3401,7 @@ params.o : params.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(PARAMS_H) \
    $(TOPLEV_H)
 pointer-set.o: pointer-set.c pointer-set.h $(CONFIG_H) $(SYSTEM_H)
 hooks.o: hooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(HOOKS_H)
-pretty-print.o: $(CONFIG_H) $(SYSTEM_H) coretypes.h intl.h $(PRETTY_PRINT_H) \
-   $(GGC_H)
+pretty-print.o: $(CONFIG_H) $(SYSTEM_H) coretypes.h intl.h $(PRETTY_PRINT_H)
 errors.o : errors.c $(CONFIG_H) $(SYSTEM_H) errors.h $(BCONFIG_H)
 dbgcnt.o: dbgcnt.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TOPLEV_H) $(DBGCNT_H) \
    $(TM_H) $(RTL_H) output.h
