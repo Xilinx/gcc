@@ -32,7 +32,7 @@ gpy1.o: $(srcdir)/python/gpy1.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 GCCPY_C_OBJS = gpy1.o $(BACKEND) $(LIBSDEPS) attribs.o
 gpy1$(exeext): $(GCCPY_C_OBJS)
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(GCCPY_C_OBJS) \
-	$(GMPLIBS) $(BACKENDLIBS) 
+	$(GMPLIBS) $(BACKEND) $(LIBS) $(BACKENDLIBS) 
 
 gccpy.o: $(srcdir)/python/gccpy.c $(CONFIG_H) $(SYSTEM_H) \
   coretypes.h $(DIAGNOSTIC_H) $(TREE_H) $(FLAGS_H) toplev.h langhooks.h $(TM_H)
