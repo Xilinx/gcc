@@ -18,31 +18,29 @@ PYTHON_EXES = python
 
 .phony: python
 
-python: ggpy$(exeext) gpy1$(exeext)
+python: gccpy$(exeext) gpy1$(exeext)
 
-# core compiler gpy1
-gpy1$(exeext): python/gpy1.o $(BACKEND) $(LIBSDEPS) attribs.o 
-	echo "DEBUG: gpy1 - $(BACKEND) .. $(LIBSDEPS) .. $(LIBS) .. attribs.o .. $(GMPLIBS) .. $(BACKENDLIBS)"
-	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ python/gpy1.o \
-	$(BACKEND) $(LIBS) attribs.o $(GMPLIBS) $(BACKENDLIBS) 
-
-python/gpy1.o: python/gpy1.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H)  \
-  input.h options.h opts.h \
+gpy1.o: $(srcdir)/python/gpy1.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gtype-gpy.h
+	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(srcdir)/python/gpy1.c
 
-# compiler driver gpy 
-ggpy$(exeext): $(GCC_OBJS) version.o prefix.o intl.o $(EXTRA_GCC_OBJS) \
-  $(LIBDEPS) gpy/ggpy.o
-	echo "DEBUG: ggpy - $(EXTRA_GCC_OBJS) .. $(LIBS) .. $(GCC_OBJS) .. $(ALL_CFLAGS) .. $(LDFLAGS)" 
-	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ gpy/ggpy.o \
-	  $(GCC_OBJS) version.o prefix.o intl.o $(EXTRA_GCC_OBJS) $(LIBS)
+GCCPY_C_OBJS = gpy1.o $(BACKEND) $(LIBSDEPS) attribs.o
+gpy1$(exeext): $(GCCPY_C_OBJS)
+	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(GCCPY_C_OBJS) \
+	$(GMPLIBS) $(BACKENDLIBS) 
 
-python/ggpy.o: python/ggpy.c $(CONFIG_H) $(SYSTEM_H) \
+gccpy.o: $(srcdir)/python/gccpy.c $(CONFIG_H) $(SYSTEM_H) \
   coretypes.h $(DIAGNOSTIC_H) $(TREE_H) $(FLAGS_H) toplev.h langhooks.h $(TM_H)
+	$(CC) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(DRIVER_DEFINES) \
+		$(INCLUDES) $(LDFLAGS) -o $@ $(srcdir)/python/gccpy.c
+
+GCCPY_D_OBJS = $(GCC_OBJS) gccpy.o version.o prefix.o intl.o
+gccpy$(exeext): $(GCCPY_D_OBJS) $(EXTRA_GCC_OBJS) $(LIBDEPS)
+	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
+	  $(GCCPY_D_OBJS) $(EXTRA_GCC_OBJS) $(LIBS)
 
 python.srcextra: 
-
 python.all.cross:
 
 python.start.encap:
