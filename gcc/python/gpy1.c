@@ -1,3 +1,19 @@
+/* This file is part of GCC.
+
+GCC is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option)
+any later version.
+
+GCC is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>. */
+
 #include "config.h"
 #include "system.h"
 #include "ansidecl.h"
@@ -68,7 +84,7 @@ gpy_langhook_init_options (unsigned int argc ATTRIBUTE_UNUSED,
 
 static int
 gpy_langhook_handle_option (size_t scode, const char *arg,
-			   int value ATTRIBUTE_UNUSED)
+			    int value ATTRIBUTE_UNUSED)
 {
   return 1;
 }
@@ -161,7 +177,7 @@ void gpy_preserve_from_gc( tree t )
 #undef LANG_HOOKS_WRITE_GLOBALS
 #undef LANG_HOOKS_GIMPLIFY_EXPR
 
-#define LANG_HOOKS_NAME			"GNU Python"
+#define LANG_HOOKS_NAME			"Python"
 #define LANG_HOOKS_INIT			gpy_langhook_init
 #define LANG_HOOKS_INIT_OPTIONS		gpy_langhook_init_options
 #define LANG_HOOKS_HANDLE_OPTION	gpy_langhook_handle_option
