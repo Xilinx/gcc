@@ -33,7 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-objcp-common.h"
 #include "hashtab.h"
 #include "except.h"
-#include "expr.h"
 
 enum c_language_kind c_language = clk_cxx;
 static void cp_init_ts (void);
@@ -77,8 +76,6 @@ static tree cp_eh_personality (void);
 #define LANG_HOOKS_DECL_PRINTABLE_NAME	cxx_printable_name
 #undef LANG_HOOKS_DWARF_NAME
 #define LANG_HOOKS_DWARF_NAME cxx_dwarf_name
-#undef LANG_HOOKS_FOLD_OBJ_TYPE_REF
-#define LANG_HOOKS_FOLD_OBJ_TYPE_REF cp_fold_obj_type_ref
 #undef LANG_HOOKS_INIT_TS
 #define LANG_HOOKS_INIT_TS cp_init_ts
 #undef LANG_HOOKS_EH_PERSONALITY

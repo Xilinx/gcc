@@ -1,6 +1,6 @@
 /* Implementation of subroutines for the GNU C++ pretty-printer.
    Copyright (C) 2003, 2004, 2005, 2007, 2008,
-   2009 Free Software Foundation, Inc.
+   2009, 2010 Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@integrable-solutions.net>
 
 This file is part of GCC.
@@ -23,10 +23,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "real.h"
 #include "intl.h"
-#include "cxx-pretty-print.h"
 #include "cp-tree.h"
+#include "cxx-pretty-print.h"
+#include "tree-pretty-print.h"
 #include "toplev.h"
 
 /* Translate if being used for diagnostics, but not for dump files or
@@ -338,6 +338,14 @@ pp_cxx_constant (cxx_pretty_printer *pp, tree t)
 	  pp_cxx_right_paren (pp);
       }
       break;
+
+    case INTEGER_CST:
+      if (NULLPTR_TYPE_P (TREE_TYPE (t)))
+	{
+	  pp_string (pp, "nullptr");
+	  break;
+	}
+      /* else fall through.  */
 
     default:
       pp_c_constant (pp_c_base (pp), t);

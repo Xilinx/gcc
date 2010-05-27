@@ -131,6 +131,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "timevar.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "tree-dump.h"
 #include "tree-inline.h"
 #include "fibheap.h"
@@ -183,6 +184,7 @@ ipcp_analyze_node (struct cgraph_node *node)
   /* Unreachable nodes should have been eliminated before ipcp.  */
   gcc_assert (node->needed || node->reachable);
 
+  node->local.versionable = tree_versionable_function_p (node->decl);
   ipa_initialize_node_params (node);
   ipa_detect_param_modifications (node);
 }
@@ -415,35 +417,21 @@ ipcp_print_all_lattices (FILE * f)
 static bool
 ipcp_versionable_function_p (struct cgraph_node *node)
 {
-  tree decl = node->decl;
-  basic_block bb;
+  struct cgraph_edge *edge;
 
   /* There are a number of generic reasons functions cannot be versioned.  */
-  if (!tree_versionable_function_p (decl))
+  if (!node->local.versionable)
     return false;
 
-  /* Removing arguments doesn't work if the function takes varargs.  */
-  if (DECL_STRUCT_FUNCTION (decl)->stdarg)
-    return false;
-
-  /* Removing arguments doesn't work if we use __builtin_apply_args.  */
-  FOR_EACH_BB_FN (bb, DECL_STRUCT_FUNCTION (decl))
+  /* Removing arguments doesn't work if the function takes varargs
+     or use __builtin_apply_args. */
+  for (edge = node->callees; edge; edge = edge->next_callee)
     {
-      gimple_stmt_iterator gsi;
-      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-	{
-	  const_gimple stmt = gsi_stmt (gsi);
-	  tree t;
-
-	  if (!is_gimple_call (stmt))
-	    continue;
-	  t = gimple_call_fndecl (stmt);
-	  if (t == NULL_TREE)
-	    continue;
-	  if (DECL_BUILT_IN_CLASS (t) == BUILT_IN_NORMAL
-	      && DECL_FUNCTION_CODE (t) == BUILT_IN_APPLY_ARGS)
-	    return false;
-	}
+      tree t = edge->callee->decl;
+      if (DECL_BUILT_IN_CLASS (t) == BUILT_IN_NORMAL
+	  && (DECL_FUNCTION_CODE (t) == BUILT_IN_APPLY_ARGS
+	     || DECL_FUNCTION_CODE (t) == BUILT_IN_VA_START))
+	return false;
     }
 
   return true;
@@ -627,7 +615,6 @@ static void
 ipcp_init_stage (void)
 {
   struct cgraph_node *node;
-  struct cgraph_edge *cs;
 
   for (node = cgraph_nodes; node; node = node->next)
     if (node->analyzed)
@@ -636,19 +623,10 @@ ipcp_init_stage (void)
     {
       if (!node->analyzed)
 	continue;
+
+      ipa_analyze_params_uses (node);
       /* building jump functions  */
-      for (cs = node->callees; cs; cs = cs->next_callee)
-	{
-	  /* We do not need to bother analyzing calls to unknown
-	     functions unless they may become known during lto/whopr.  */
-	  if (!cs->callee->analyzed && !flag_lto && !flag_whopr)
-	    continue;
-	  ipa_count_arguments (cs);
-	  if (ipa_get_cs_argument_count (IPA_EDGE_REF (cs))
-	      != ipa_get_param_count (IPA_NODE_REF (cs->callee)))
-	    ipa_set_called_with_variable_arg (IPA_NODE_REF (cs->callee));
-	  ipa_compute_jump_functions (cs);
-	}
+      ipa_compute_jump_functions (node);
     }
 }
 
@@ -930,12 +908,9 @@ ipcp_update_callgraph (void)
 	for (i = 0; i < count; i++)
 	  {
 	    struct ipcp_lattice *lat = ipcp_get_lattice (info, i);
-	    tree parm_tree = ipa_get_param (info, i);
 
 	    /* We can proactively remove obviously unused arguments.  */
-	    if (is_gimple_reg (parm_tree)
-		&& !gimple_default_def (DECL_STRUCT_FUNCTION (orig_node->decl),
-					parm_tree))
+	    if (!ipa_is_param_used (info, i))
 	      {
 		bitmap_set_bit (args_to_skip, i);
 		continue;
@@ -1008,12 +983,9 @@ ipcp_estimate_growth (struct cgraph_node *node)
   for (i = 0; i < count; i++)
     {
       struct ipcp_lattice *lat = ipcp_get_lattice (info, i);
-      tree parm_tree = ipa_get_param (info, i);
 
       /* We can proactively remove obviously unused arguments.  */
-      if (is_gimple_reg (parm_tree)
-	  && !gimple_default_def (DECL_STRUCT_FUNCTION (node->decl),
-				  parm_tree))
+      if (!ipa_is_param_used (info, i))
 	removable_args++;
 
       if (lat->type == IPA_CONST_VALUE)
@@ -1081,12 +1053,9 @@ ipcp_const_param_count (struct cgraph_node *node)
   for (i = 0; i < count; i++)
     {
       struct ipcp_lattice *lat = ipcp_get_lattice (info, i);
-      tree parm_tree = ipa_get_param (info, i);
       if (ipcp_lat_is_insertable (lat)
 	  /* Do not count obviously unused arguments.  */
-	  && (!is_gimple_reg (parm_tree)
-	      || gimple_default_def (DECL_STRUCT_FUNCTION (node->decl),
-				     parm_tree)))
+          && ipa_is_param_used (info, i))
 	const_param++;
     }
   return const_param;
@@ -1190,9 +1159,7 @@ ipcp_insert_stage (void)
 	  parm_tree = ipa_get_param (info, i);
 
 	  /* We can proactively remove obviously unused arguments.  */
-	  if (is_gimple_reg (parm_tree)
-	      && !gimple_default_def (DECL_STRUCT_FUNCTION (node->decl),
-				      parm_tree))
+          if (!ipa_is_param_used (info, i))
 	    {
 	      bitmap_set_bit (args_to_skip, i);
 	      continue;

@@ -33,10 +33,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "expr.h"
 #include "flags.h"
 #include "cp-tree.h"
+#include "tree-iterator.h"
 #include "tree-inline.h"
 #include "decl.h"
 #include "intl.h"
@@ -54,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "tree-flow.h"
 #include "pointer-set.h"
+#include "splay-tree.h"
 #include "plugin.h"
 
 static tree grokparms (tree parmlist, tree *);
@@ -498,6 +498,10 @@ poplevel_named_label_1 (void **slot, void *data)
   return 1;
 }
 
+/* Saved errorcount to avoid -Wunused-but-set-{parameter,variable} warnings
+   when errors were reported, except for -Werror-unused-but-set-*.  */
+static int unused_but_set_errorcount;
+
 /* Exit a binding level.
    Pop the level off, and restore the state of the identifier-decl mappings
    that were in effect when this level was entered.
@@ -589,14 +593,28 @@ poplevel (int keep, int reverse, int functionbody)
     = current_binding_level->kind == sk_for && flag_new_for_scope == 1;
 
   /* Before we remove the declarations first check for unused variables.  */
-  if (warn_unused_variable
+  if ((warn_unused_variable || warn_unused_but_set_variable)
       && !processing_template_decl)
     for (decl = getdecls (); decl; decl = TREE_CHAIN (decl))
       if (TREE_CODE (decl) == VAR_DECL
-	  && ! TREE_USED (decl)
+	  && (! TREE_USED (decl) || !DECL_READ_P (decl))
 	  && ! DECL_IN_SYSTEM_HEADER (decl)
 	  && DECL_NAME (decl) && ! DECL_ARTIFICIAL (decl))
-	warning (OPT_Wunused_variable, "unused variable %q+D", decl);
+	{
+	  if (! TREE_USED (decl))
+	    warning (OPT_Wunused_variable, "unused variable %q+D", decl);
+	  else if (DECL_CONTEXT (decl) == current_function_decl
+		   && TREE_TYPE (decl) != error_mark_node
+		   && TREE_CODE (TREE_TYPE (decl)) != REFERENCE_TYPE
+		   && errorcount == unused_but_set_errorcount
+		   && (!CLASS_TYPE_P (TREE_TYPE (decl))
+		       || !TYPE_HAS_NONTRIVIAL_DESTRUCTOR (TREE_TYPE (decl))))
+	    {
+	      warning (OPT_Wunused_but_set_variable,
+		       "variable %q+D set but not used", decl); 
+	      unused_but_set_errorcount = errorcount;
+	    }
+	}
 
   /* Remove declarations for all the DECLs in this level.  */
   for (link = decls; link; link = TREE_CHAIN (link))
@@ -2096,6 +2114,13 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
     TREE_USED (newdecl) = 1;
   else if (TREE_USED (newdecl))
     TREE_USED (olddecl) = 1;
+  if (TREE_CODE (newdecl) == VAR_DECL)
+    {
+      if (DECL_READ_P (olddecl))
+	DECL_READ_P (newdecl) = 1;
+      else if (DECL_READ_P (newdecl))
+	DECL_READ_P (olddecl) = 1;
+    }
   if (DECL_PRESERVE_P (olddecl))
     DECL_PRESERVE_P (newdecl) = 1;
   else if (DECL_PRESERVE_P (newdecl))
@@ -3427,7 +3452,7 @@ cxx_init_decl_processing (void)
 
   /* C++ extensions */
 
-  unknown_type_node = make_node (UNKNOWN_TYPE);
+  unknown_type_node = make_node (LANG_TYPE);
   record_unknown_type (unknown_type_node, "unknown type");
 
   /* Indirecting an UNKNOWN_TYPE node yields an UNKNOWN_TYPE node.  */
@@ -3438,7 +3463,7 @@ cxx_init_decl_processing (void)
   TYPE_POINTER_TO (unknown_type_node) = unknown_type_node;
   TYPE_REFERENCE_TO (unknown_type_node) = unknown_type_node;
 
-  init_list_type_node = make_node (UNKNOWN_TYPE);
+  init_list_type_node = make_node (LANG_TYPE);
   record_unknown_type (init_list_type_node, "init list");
 
   {
@@ -3456,7 +3481,7 @@ cxx_init_decl_processing (void)
   vtbl_type_node
     = build_cplus_array_type (vtable_entry_type, NULL_TREE);
   layout_type (vtbl_type_node);
-  vtbl_type_node = build_qualified_type (vtbl_type_node, TYPE_QUAL_CONST);
+  vtbl_type_node = cp_build_qualified_type (vtbl_type_node, TYPE_QUAL_CONST);
   record_builtin_type (RID_MAX, NULL, vtbl_type_node);
   vtbl_ptr_type_node = build_pointer_type (vtable_entry_type);
   layout_type (vtbl_ptr_type_node);
@@ -3501,6 +3526,16 @@ cxx_init_decl_processing (void)
     push_cp_library_fn (VEC_NEW_EXPR, newtype);
     global_delete_fndecl = push_cp_library_fn (DELETE_EXPR, deltype);
     push_cp_library_fn (VEC_DELETE_EXPR, deltype);
+
+    nullptr_type_node = make_node (LANG_TYPE);
+    TYPE_SIZE (nullptr_type_node) = bitsize_int (GET_MODE_BITSIZE (ptr_mode));
+    TYPE_SIZE_UNIT (nullptr_type_node) = size_int (GET_MODE_SIZE (ptr_mode));
+    TYPE_UNSIGNED (nullptr_type_node) = 1;
+    TYPE_PRECISION (nullptr_type_node) = GET_MODE_BITSIZE (ptr_mode);
+    SET_TYPE_MODE (nullptr_type_node, Pmode);
+    record_builtin_type (RID_MAX, "decltype(nullptr)", nullptr_type_node);
+    nullptr_node = make_node (INTEGER_CST);
+    TREE_TYPE (nullptr_node) = nullptr_type_node;
   }
 
   abort_fndecl
@@ -3544,7 +3579,7 @@ cp_fname_init (const char* name, tree *type_p)
       init = build_string (length + 1, name);
     }
 
-  type = build_qualified_type (char_type_node, TYPE_QUAL_CONST);
+  type = cp_build_qualified_type (char_type_node, TYPE_QUAL_CONST);
   type = build_cplus_array_type (type, domain);
 
   *type_p = type;
@@ -4284,7 +4319,7 @@ start_decl (const cp_declarator *declarator,
       /* This is a const variable with implicit 'static'.  Set
 	 DECL_THIS_STATIC so we can tell it from variables that are
 	 !TREE_PUBLIC because of the anonymous namespace.  */
-      gcc_assert (cp_type_readonly (TREE_TYPE (decl)));
+      gcc_assert (CP_TYPE_CONST_P (TREE_TYPE (decl)));
       DECL_THIS_STATIC (decl) = 1;
     }
 
@@ -5171,6 +5206,7 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 {
   tree type = TREE_TYPE (decl);
   tree init_code = NULL;
+  tree core_type;
 
   /* Things that are going to be initialized need to have complete
      type.  */
@@ -5241,7 +5277,6 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 		error ("in C++98 %qD must be initialized by constructor, "
 		       "not by %<{...}%>",
 		       decl);
-	      init = build_tree_list (NULL_TREE, init);
 	    }
 	  else if (TREE_CODE (type) == VECTOR_TYPE && TYPE_VECTOR_OPAQUE (type))
 	    {
@@ -5282,14 +5317,12 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
       check_for_uninitialized_const_var (decl);
       return build_aggr_init_full_exprs (decl, init, flags);
     }
-  else if (MAYBE_CLASS_TYPE_P (type))
+  else if (MAYBE_CLASS_TYPE_P (core_type = strip_array_types (type)))
     {
-      tree core_type = strip_array_types (type);
-
-      if (CLASSTYPE_READONLY_FIELDS_NEED_INIT (core_type))
-	error ("structure %qD with uninitialized const members", decl);
-      if (CLASSTYPE_REF_FIELDS_NEED_INIT (core_type))
-	error ("structure %qD with uninitialized reference members", decl);
+      if (CLASSTYPE_READONLY_FIELDS_NEED_INIT (core_type)
+	  || CLASSTYPE_REF_FIELDS_NEED_INIT (core_type))
+	diagnose_uninitialized_cst_or_ref_member (core_type, /*using_new=*/false,
+						  /*complain=*/true);
 
       check_for_uninitialized_const_var (decl);
     }
@@ -5988,10 +6021,6 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 
   if (was_readonly)
     TREE_READONLY (decl) = 1;
-
-  /* If this was marked 'used', be sure it will be output.  */
-  if (lookup_attribute ("used", DECL_ATTRIBUTES (decl)))
-    mark_decl_referenced (decl);
 }
 
 /* Returns a declaration for a VAR_DECL as if:
@@ -6181,6 +6210,7 @@ start_cleanup_fn (void)
       parmdecl = cp_build_parm_decl (NULL_TREE, ptr_type_node);
       DECL_CONTEXT (parmdecl) = fndecl;
       TREE_USED (parmdecl) = 1;
+      DECL_READ_P (parmdecl) = 1;
       DECL_ARGUMENTS (fndecl) = parmdecl;
     }
 
@@ -7233,8 +7263,7 @@ build_ptrmem_type (tree class_type, tree member_type)
 {
   if (TREE_CODE (member_type) == METHOD_TYPE)
     {
-      tree arg_types = TYPE_ARG_TYPES (member_type);
-      cp_cv_quals quals = cp_type_quals (TREE_TYPE (TREE_VALUE (arg_types)));
+      cp_cv_quals quals = type_memfn_quals (member_type);
       member_type = build_memfn_type (member_type, class_type, quals);
       return build_ptrmemfunc_type (build_pointer_type (member_type));
     }
@@ -7336,6 +7365,8 @@ compute_array_index_type (tree name, tree size)
 
   /* The size might be the result of a cast.  */
   STRIP_TYPE_NOPS (size);
+
+  size = mark_rvalue_use (size);
 
   /* It might be a const variable or enumeration constant.  */
   size = integral_constant_value (size);
@@ -8045,8 +8076,8 @@ grokdeclarator (const cp_declarator *declarator,
   if (long_p && !longlong && TYPE_MAIN_VARIANT (type) == double_type_node)
     {
       long_p = false;
-      type = build_qualified_type (long_double_type_node,
-				   cp_type_quals (type));
+      type = cp_build_qualified_type (long_double_type_node,
+				      cp_type_quals (type));
     }
 
   /* Check all other uses of type modifiers.  */
@@ -8191,21 +8222,6 @@ grokdeclarator (const cp_declarator *declarator,
     error ("qualifiers are not allowed on declaration of %<operator %T%>",
 	   ctor_return_type);
 
-  if (TREE_CODE (type) == FUNCTION_TYPE
-      && type_quals != TYPE_UNQUALIFIED)
-    {
-      /* This was an error in C++98 (cv-qualifiers cannot be added to
-	 a function type), but DR 295 makes the code well-formed by
-	 dropping the extra qualifiers. */
-      if (pedantic && cxx_dialect == cxx98)
-	{
-	  tree bad_type = build_qualified_type (type, type_quals);
-	  pedwarn (input_location, OPT_pedantic, 
-		   "ignoring %qV qualifiers added to function type %qT",
-		   bad_type, type);
-	}
-      type_quals = TYPE_UNQUALIFIED;
-    }
   type_quals |= cp_type_quals (type);
   type = cp_build_qualified_type_real
     (type, type_quals, ((typedef_decl && !DECL_ARTIFICIAL (typedef_decl)
@@ -8649,7 +8665,7 @@ grokdeclarator (const cp_declarator *declarator,
 	      && (TREE_CODE (type) == FUNCTION_TYPE
 		  || (memfn_quals && TREE_CODE (type) == METHOD_TYPE)))
 	    {
-	      memfn_quals |= cp_type_quals (type);
+	      memfn_quals |= type_memfn_quals (type);
 	      type = build_memfn_type (type,
 				       declarator->u.pointer.class_type,
 				       memfn_quals);
@@ -8657,7 +8673,7 @@ grokdeclarator (const cp_declarator *declarator,
 	    }
 
 	  if (TREE_CODE (type) == FUNCTION_TYPE
-	      && cp_type_quals (type) != TYPE_UNQUALIFIED)
+	      && type_memfn_quals (type) != TYPE_UNQUALIFIED)
             error (declarator->kind == cdk_reference
                    ? G_("cannot declare reference to qualified function type %qT")
                    : G_("cannot declare pointer to qualified function type %qT"),
@@ -8960,7 +8976,7 @@ grokdeclarator (const cp_declarator *declarator,
 	 function type.  */
       if (memfn_quals && TREE_CODE (type) == FUNCTION_TYPE)
         {
-          type = cp_build_qualified_type (type, memfn_quals);
+          type = apply_memfn_quals (type, memfn_quals);
           
           /* We have now dealt with these qualifiers.  */
           memfn_quals = TYPE_UNQUALIFIED;
@@ -9080,7 +9096,7 @@ grokdeclarator (const cp_declarator *declarator,
 	{
 	  /* A cv-qualifier-seq shall only be part of the function type
 	     for a non-static member function. [8.3.5/4 dcl.fct] */
-	  if (cp_type_quals (type) != TYPE_UNQUALIFIED
+	  if (type_memfn_quals (type) != TYPE_UNQUALIFIED
 	      && (current_class_type == NULL_TREE || staticp) )
 	    {
 	      error (staticp
@@ -9093,7 +9109,7 @@ grokdeclarator (const cp_declarator *declarator,
 
 	  /* The qualifiers on the function type become the qualifiers on
 	     the non-static member function. */
-	  memfn_quals |= cp_type_quals (type);
+	  memfn_quals |= type_memfn_quals (type);
 	  type_quals = TYPE_UNQUALIFIED;
 	}
     }
@@ -9161,7 +9177,7 @@ grokdeclarator (const cp_declarator *declarator,
 	    type = build_memfn_type (type, ctype, memfn_quals);
 	  /* Core issue #547: need to allow this in template type args.  */
 	  else if (template_type_arg && TREE_CODE (type) == FUNCTION_TYPE)
-	    type = cp_build_qualified_type (type, memfn_quals);
+	    type = apply_memfn_quals (type, memfn_quals);
 	  else
 	    error ("invalid qualifiers on non-member function type");
 	}
@@ -11007,7 +11023,12 @@ xref_basetypes (tree ref, tree base_list)
 
   /* The binfo slot should be empty, unless this is an (ill-formed)
      redefinition.  */
-  gcc_assert (!TYPE_BINFO (ref) || TYPE_SIZE (ref));
+  if (TYPE_BINFO (ref) && !TYPE_SIZE (ref))
+    {
+      error ("redefinition of %q#T", ref);
+      return false;
+    }
+
   gcc_assert (TYPE_MAIN_VARIANT (ref) == ref);
 
   binfo = make_tree_binfo (max_bases);
@@ -12596,6 +12617,33 @@ finish_function (int flags)
      info for the epilogue.  */
   cfun->function_end_locus = input_location;
 
+  /* Complain about parameters that are only set, but never otherwise used.  */
+  if (warn_unused_but_set_parameter
+      && !processing_template_decl
+      && errorcount == unused_but_set_errorcount
+      && !DECL_CLONED_FUNCTION_P (fndecl))
+    {
+      tree decl;
+
+      for (decl = DECL_ARGUMENTS (fndecl);
+	   decl;
+	   decl = TREE_CHAIN (decl))
+	if (TREE_USED (decl)
+	    && TREE_CODE (decl) == PARM_DECL
+	    && !DECL_READ_P (decl)
+	    && DECL_NAME (decl)
+	    && !DECL_ARTIFICIAL (decl)
+	    && !TREE_NO_WARNING (decl)
+	    && !DECL_IN_SYSTEM_HEADER (decl)
+	    && TREE_TYPE (decl) != error_mark_node
+	    && TREE_CODE (TREE_TYPE (decl)) != REFERENCE_TYPE
+	    && (!CLASS_TYPE_P (TREE_TYPE (decl))
+	        || !TYPE_HAS_NONTRIVIAL_DESTRUCTOR (TREE_TYPE (decl))))
+	  warning (OPT_Wunused_but_set_parameter,
+		   "parameter %q+D set but not used", decl);
+      unused_but_set_errorcount = errorcount;
+    }
+
   /* Genericize before inlining.  */
   if (!processing_template_decl)
     {
@@ -12883,7 +12931,6 @@ static_fn_type (tree memfntype)
 {
   tree fntype;
   tree args;
-  int quals;
 
   if (TYPE_PTRMEMFUNC_P (memfntype))
     memfntype = TYPE_PTRMEMFUNC_FN_TYPE (memfntype);
@@ -12895,8 +12942,7 @@ static_fn_type (tree memfntype)
   gcc_assert (TREE_CODE (memfntype) == METHOD_TYPE);
   args = TYPE_ARG_TYPES (memfntype);
   fntype = build_function_type (TREE_TYPE (memfntype), TREE_CHAIN (args));
-  quals = cp_type_quals (TREE_TYPE (TREE_VALUE (args)));
-  fntype = build_qualified_type (fntype, quals);
+  fntype = apply_memfn_quals (fntype, type_memfn_quals (memfntype));
   fntype = (cp_build_type_attribute_variant
 	    (fntype, TYPE_ATTRIBUTES (memfntype)));
   fntype = (build_exception_variant

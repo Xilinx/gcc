@@ -25,8 +25,6 @@ along with GCC; see the file COPYING3.  If not see
    Error messages and low-level interface to malloc also handled here.  */
 
 #include "config.h"
-#undef FLOAT /* This is for hpux. They should change hpux.  */
-#undef FFS  /* Some systems define this in param.h.  */
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
@@ -67,7 +65,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "reload.h"
 #include "dwarf2asm.h"
 #include "integrate.h"
-#include "real.h"
 #include "debug.h"
 #include "target.h"
 #include "langhooks.h"
@@ -1031,6 +1028,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_postreload_cse);
 	  NEXT_PASS (pass_gcse2);
 	  NEXT_PASS (pass_split_after_reload);
+	  NEXT_PASS (pass_implicit_zee);
 	  NEXT_PASS (pass_branch_target_load_optimize1);
 	  NEXT_PASS (pass_thread_prologue_and_epilogue);
 	  NEXT_PASS (pass_rtl_dse2);
@@ -1694,6 +1692,8 @@ static void
 ipa_write_summaries_1 (cgraph_node_set set, varpool_node_set vset)
 {
   struct lto_out_decl_state *state = lto_new_out_decl_state ();
+  compute_ltrans_boundary (state, set, vset);
+
   lto_push_out_decl_state (state);
 
   gcc_assert (!flag_wpa);
@@ -1745,7 +1745,7 @@ ipa_write_summaries (void)
 	  renumber_gimple_stmt_uids ();
 	  pop_cfun ();
 	}
-      if (node->needed || node->reachable || node->address_taken)
+      if (node->analyzed)
 	cgraph_node_set_add (set, node);
     }
   vset = varpool_node_set_new ();
@@ -1805,6 +1805,8 @@ void
 ipa_write_optimization_summaries (cgraph_node_set set, varpool_node_set vset)
 {
   struct lto_out_decl_state *state = lto_new_out_decl_state ();
+  compute_ltrans_boundary (state, set, vset);
+
   lto_push_out_decl_state (state);
 
   gcc_assert (flag_wpa);

@@ -44,7 +44,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "target.h"
 #include "target-def.h"
-#include "real.h"
 #include "langhooks.h"
 #include "basic-block.h"
 #include "df.h"
@@ -11255,7 +11254,7 @@ sh_cannot_change_mode_class (enum machine_mode from, enum machine_mode to,
 /* Return true if registers in machine mode MODE will likely be
    allocated to registers in small register classes.  */
 
-static bool
+bool
 sh_small_register_classes_for_mode_p (enum machine_mode mode ATTRIBUTE_UNUSED)
 {
   return (! TARGET_SHMEDIA);

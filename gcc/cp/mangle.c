@@ -52,7 +52,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "tm_p.h"
 #include "cp-tree.h"
-#include "real.h"
 #include "obstack.h"
 #include "toplev.h"
 #include "flags.h"
@@ -1759,6 +1758,7 @@ write_local_name (tree function, const tree local_entity,
      <type> ::= Dt <expression> # decltype of an id-expression or 
                                 # class member access
      <type> ::= DT <expression> # decltype of an expression
+     <type> ::= Dn              # decltype of nullptr
 
    TYPE is a type node.  */
 
@@ -1936,6 +1936,14 @@ write_type (tree type)
 	      sorry ("mangling typeof, use decltype instead");
 	      break;
 
+	    case LANG_TYPE:
+	      if (NULLPTR_TYPE_P (type))
+		{
+		  write_string ("Dn");
+		  break;
+		}
+	      /* else fall through.  */
+
 	    default:
 	      gcc_unreachable ();
 	    }
@@ -1966,18 +1974,19 @@ write_CV_qualifiers_for_type (const tree type)
      Note that we do not use cp_type_quals below; given "const
      int[3]", the "const" is emitted with the "int", not with the
      array.  */
+  cp_cv_quals quals = TYPE_QUALS (type);
 
-  if (TYPE_QUALS (type) & TYPE_QUAL_RESTRICT)
+  if (quals & TYPE_QUAL_RESTRICT)
     {
       write_char ('r');
       ++num_qualifiers;
     }
-  if (TYPE_QUALS (type) & TYPE_QUAL_VOLATILE)
+  if (quals & TYPE_QUAL_VOLATILE)
     {
       write_char ('V');
       ++num_qualifiers;
     }
-  if (TYPE_QUALS (type) & TYPE_QUAL_CONST)
+  if (quals & TYPE_QUAL_CONST)
     {
       write_char ('K');
       ++num_qualifiers;

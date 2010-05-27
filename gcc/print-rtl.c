@@ -36,11 +36,11 @@ along with GCC; see the file COPYING3.  If not see
    generator programs.  */
 #ifndef GENERATOR_FILE
 #include "tree.h"
-#include "real.h"
 #include "flags.h"
 #include "hard-reg-set.h"
 #include "basic-block.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "cselib.h"
 #include "tree-pass.h"
 #endif
@@ -509,16 +509,6 @@ print_rtx (const_rtx in_rtx)
 	  }
 	else
 	  fputs (" 0", outfile);
-	sawclose = 0;
-	break;
-
-      case 'b':
-#ifndef GENERATOR_FILE
-	if (XBITMAP (in_rtx, i) == NULL)
-	  fputs (" {null}", outfile);
-	else
-	  bitmap_print (outfile, XBITMAP (in_rtx, i), " {", "}");
-#endif
 	sawclose = 0;
 	break;
 

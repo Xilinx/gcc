@@ -69,7 +69,7 @@
 	typed allocation definition.
 	(write_typed_struct_alloc_def): Use write_typed_alloc_def.
 	(write_typed_typedef_alloc_def): Likewise.
-	(write_typed_alloc_defns): Properly output zone allocators.xo
+	(write_typed_alloc_defns): Properly output zone allocators.
 
 	* Makefile.in (GGC_H): Add coretypes.h.
 

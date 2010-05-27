@@ -1,7 +1,7 @@
 /* Garbage collection for the GNU compiler.  Internal definitions
    for ggc-*.c and stringpool.c.
 
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -43,7 +43,6 @@ extern void gt_pch_restore_stringpool (void);
 
 /* PCH and GGC handling for strings, mostly trivial.  */
 extern void gt_pch_p_S (void *, void *, gt_pointer_operator, void *);
-
 
 /* PCH.  */
 

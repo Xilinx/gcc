@@ -1,5 +1,6 @@
 /* Forward propagation of expressions for single use variables.
-   Copyright (C) 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -21,13 +22,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "ggc.h"
 #include "tree.h"
-#include "rtl.h"
 #include "tm_p.h"
 #include "basic-block.h"
 #include "timevar.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "tree-flow.h"
 #include "tree-pass.h"
 #include "tree-dump.h"
@@ -730,6 +730,7 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
   gimple use_stmt = gsi_stmt (*use_stmt_gsi);
   enum tree_code rhs_code;
   bool res = true;
+  bool addr_p = false;
 
   gcc_assert (TREE_CODE (def_rhs) == ADDR_EXPR);
 
@@ -802,8 +803,12 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
   /* Strip away any outer COMPONENT_REF, ARRAY_REF or ADDR_EXPR
      nodes from the RHS.  */
   rhsp = gimple_assign_rhs1_ptr (use_stmt);
-  while (handled_component_p (*rhsp)
-	 || TREE_CODE (*rhsp) == ADDR_EXPR)
+  if (TREE_CODE (*rhsp) == ADDR_EXPR)
+    {
+      rhsp = &TREE_OPERAND (*rhsp, 0);
+      addr_p = true;
+    }
+  while (handled_component_p (*rhsp))
     rhsp = &TREE_OPERAND (*rhsp, 0);
   rhs = *rhsp;
 
@@ -852,11 +857,14 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
 	 return res;
        }
      /* If the defining rhs comes from an indirect reference, then do not
-        convert into a VIEW_CONVERT_EXPR.  */
+        convert into a VIEW_CONVERT_EXPR.  Likewise if we'll end up taking
+	the address of a V_C_E of a constant.  */
      def_rhs_base = TREE_OPERAND (def_rhs, 0);
      while (handled_component_p (def_rhs_base))
        def_rhs_base = TREE_OPERAND (def_rhs_base, 0);
-     if (!INDIRECT_REF_P (def_rhs_base))
+     if (!INDIRECT_REF_P (def_rhs_base)
+	 && (!addr_p
+	     || !is_gimple_min_invariant (def_rhs)))
        {
 	 /* We may have arbitrary VIEW_CONVERT_EXPRs in a nested component
 	    reference.  Place it there and fold the thing.  */

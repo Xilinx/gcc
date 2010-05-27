@@ -28,6 +28,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "basic-block.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-flow.h"
 #include "toplev.h"
 #include "tree-dump.h"
@@ -80,11 +82,11 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
   ppl_dimension_type nb_old_dims, nb_new_dims;
   int nb_added_dims, i;
   ppl_Coefficient_t coef;
-  Value one;
+  mpz_t one;
 
   nb_added_dims = max_scattering - pbb_nb_scattering_transform (pbb);
-  value_init (one);
-  value_set_si (one, 1);
+  mpz_init (one);
+  mpz_set_si (one, 1);
   ppl_new_Coefficient (&coef);
   ppl_assign_Coefficient_from_mpz_t (coef, one);
 
@@ -113,7 +115,7 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
     }
 
   ppl_delete_Coefficient (coef);
-  value_clear (one);
+  mpz_clear (one);
 }
 
 /* All scattering matrices in SCOP will have the same number of scattering
@@ -998,10 +1000,10 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
   ppl_dimension_type iter = psct_iterator_dim (pbb, loop_depth);
   ppl_Linear_Expression_t expr;
   ppl_Coefficient_t coef;
-  Value val;
+  mpz_t val;
   graphite_dim_t i;
 
-  value_init (val);
+  mpz_init (val);
   ppl_new_Coefficient (&coef);
   ppl_Polyhedron_get_constraints (ph, &pcs);
   ppl_new_Constraint_System_const_iterator (&cit);
@@ -1017,7 +1019,7 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
       ppl_Linear_Expression_coefficient (expr, iter, coef);
       ppl_Coefficient_to_mpz_t (coef, val);
 
-      if (value_zero_p (val))
+      if (mpz_sgn (val))
 	{
 	  ppl_delete_Linear_Expression (expr);
 	  continue;
@@ -1032,7 +1034,7 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
 
 	  if (value_notzero_p (val))
 	    {
-	      value_clear (val);
+	      mpz_clear (val);
 	      ppl_delete_Linear_Expression (expr);
 	      ppl_delete_Coefficient (coef);
 	      ppl_delete_Constraint_System_const_iterator (cit);
@@ -1052,7 +1054,7 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
 void
 pbb_number_of_iterations (poly_bb_p pbb,
 			  graphite_dim_t loop_depth,
-			  Value niter)
+			  mpz_t niter)
 {
   ppl_Linear_Expression_t le;
   ppl_dimension_type dim;
@@ -1060,7 +1062,7 @@ pbb_number_of_iterations (poly_bb_p pbb,
   ppl_Pointset_Powerset_C_Polyhedron_space_dimension (PBB_DOMAIN (pbb), &dim);
   ppl_new_Linear_Expression_with_dimension (&le, dim);
   ppl_set_coef (le, pbb_iterator_dim (pbb, loop_depth), 1);
-  value_set_si (niter, -1);
+  mpz_set_si (niter, -1);
   ppl_max_for_le_pointset (PBB_DOMAIN (pbb), le, niter);
   ppl_delete_Linear_Expression (le);
 }
@@ -1071,7 +1073,7 @@ pbb_number_of_iterations (poly_bb_p pbb,
 void
 pbb_number_of_iterations_at_time (poly_bb_p pbb,
 				  graphite_dim_t time_depth,
-				  Value niter)
+				  mpz_t niter)
 {
   ppl_Pointset_Powerset_C_Polyhedron_t ext_domain, sctr;
   ppl_Linear_Expression_t le;
@@ -1106,7 +1108,7 @@ pbb_number_of_iterations_at_time (poly_bb_p pbb,
   ppl_Pointset_Powerset_C_Polyhedron_space_dimension (sctr, &dim);
   ppl_new_Linear_Expression_with_dimension (&le, dim);
   ppl_set_coef (le, time_depth, 1);
-  value_set_si (niter, -1);
+  mpz_set_si (niter, -1);
   ppl_max_for_le_pointset (sctr, le, niter);
 
   ppl_delete_Linear_Expression (le);

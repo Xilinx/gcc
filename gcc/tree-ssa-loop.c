@@ -22,9 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
 #include "tm_p.h"
-#include "hard-reg-set.h"
 #include "basic-block.h"
 #include "output.h"
 #include "diagnostic.h"
@@ -109,8 +107,7 @@ tree_ssa_loop_im (void)
   if (number_of_loops () <= 1)
     return 0;
 
-  tree_ssa_lim ();
-  return 0;
+  return tree_ssa_lim ();
 }
 
 static bool

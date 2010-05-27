@@ -2006,41 +2006,22 @@ gfc_match_cycle (void)
 static match
 gfc_match_stopcode (gfc_statement st)
 {
-  int stop_code;
   gfc_expr *e;
   match m;
-  int cnt;
 
-  stop_code = -1;
   e = NULL;
 
   if (gfc_match_eos () != MATCH_YES)
     {
-      m = gfc_match_small_literal_int (&stop_code, &cnt);
+      m = gfc_match_init_expr (&e);
       if (m == MATCH_ERROR)
 	goto cleanup;
-
-      if (m == MATCH_YES && cnt > 5)
-	{
-	  gfc_error ("Too many digits in STOP code at %C");
-	  goto cleanup;
-	}
-
       if (m == MATCH_NO)
-	{
-	  /* Try a character constant.  */
-	  m = gfc_match_expr (&e);
-	  if (m == MATCH_ERROR)
-	    goto cleanup;
-	  if (m == MATCH_NO)
-	    goto syntax;
-	  if (e->ts.type != BT_CHARACTER || e->expr_type != EXPR_CONSTANT)
-	    goto syntax;
-	}
-
-      if (gfc_match_eos () != MATCH_YES)
 	goto syntax;
     }
+
+  if (gfc_match_eos () != MATCH_YES)
+    goto syntax;
 
   if (gfc_pure (NULL))
     {
@@ -2052,7 +2033,40 @@ gfc_match_stopcode (gfc_statement st)
   if (st == ST_STOP && gfc_find_state (COMP_CRITICAL) == SUCCESS)
     {
       gfc_error ("Image control statement STOP at %C in CRITICAL block");
-      return MATCH_ERROR;
+      goto cleanup;
+    }
+
+  if (e != NULL)
+    {
+      if (!(e->ts.type == BT_CHARACTER || e->ts.type == BT_INTEGER))
+	{
+	  gfc_error ("STOP code at %L must be either INTEGER or CHARACTER type",
+		     &e->where);
+	  goto cleanup;
+	}
+
+      if (e->rank != 0)
+	{
+	  gfc_error ("STOP code at %L must be scalar",
+		     &e->where);
+	  goto cleanup;
+	}
+
+      if (e->ts.type == BT_CHARACTER
+	  && e->ts.kind != gfc_default_character_kind)
+	{
+	  gfc_error ("STOP code at %L must be default character KIND=%d",
+		     &e->where, (int) gfc_default_character_kind);
+	  goto cleanup;
+	}
+
+      if (e->ts.type == BT_INTEGER
+	  && e->ts.kind != gfc_default_integer_kind)
+	{
+	  gfc_error ("STOP code at %L must be default integer KIND=%d",
+		     &e->where, (int) gfc_default_integer_kind);
+	  goto cleanup;
+	}
     }
 
   switch (st)
@@ -2071,7 +2085,7 @@ gfc_match_stopcode (gfc_statement st)
     }
 
   new_st.expr1 = e;
-  new_st.ext.stop_code = stop_code;
+  new_st.ext.stop_code = -1;
 
   return MATCH_YES;
 
@@ -4313,8 +4327,14 @@ gfc_match_select_type (void)
       expr1 = gfc_get_expr();
       expr1->expr_type = EXPR_VARIABLE;
       if (gfc_get_sym_tree (name, NULL, &expr1->symtree, false))
-	return MATCH_ERROR;
-      expr1->symtree->n.sym->ts = expr2->ts;
+	{
+	  m = MATCH_ERROR;
+	  goto cleanup;
+	}
+      if (expr2->ts.type == BT_UNKNOWN)
+	expr1->symtree->n.sym->attr.untyped = 1;
+      else
+	expr1->symtree->n.sym->ts = expr2->ts;
       expr1->symtree->n.sym->attr.referenced = 1;
       expr1->symtree->n.sym->attr.class_ok = 1;
     }
@@ -4322,27 +4342,20 @@ gfc_match_select_type (void)
     {
       m = gfc_match (" %e ", &expr1);
       if (m != MATCH_YES)
-	return m;
+	goto cleanup;
     }
 
   m = gfc_match (" )%t");
   if (m != MATCH_YES)
-    return m;
+    goto cleanup;
 
   /* Check for F03:C811.  */
   if (!expr2 && (expr1->expr_type != EXPR_VARIABLE || expr1->ref != NULL))
     {
       gfc_error ("Selector in SELECT TYPE at %C is not a named variable; "
 		 "use associate-name=>");
-      return MATCH_ERROR;
-    }
-
-  /* Check for F03:C813.  */
-  if (expr1->ts.type != BT_CLASS && !(expr2 && expr2->ts.type == BT_CLASS))
-    {
-      gfc_error ("Selector shall be polymorphic in SELECT TYPE statement "
-		 "at %C");
-      return MATCH_ERROR;
+      m = MATCH_ERROR;
+      goto cleanup;
     }
 
   new_st.op = EXEC_SELECT_TYPE;
@@ -4353,6 +4366,10 @@ gfc_match_select_type (void)
   select_type_push (expr1->symtree->n.sym);
 
   return MATCH_YES;
+  
+cleanup:
+  gfc_current_ns = gfc_current_ns->parent;
+  return m;
 }
 
 

@@ -1,5 +1,5 @@
 /* An expandable hash tables datatype.  
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2009
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Vladimir Makarov (vmakarov@cygnus.com).
 
@@ -291,17 +291,17 @@ htab_t
 htab_create_alloc (size_t size, htab_hash hash_f, htab_eq eq_f,
                    htab_del del_f, htab_alloc alloc_f, htab_free free_f)
 {
-  return htab_create_alloc_with_separate_allocators (size, hash_f, eq_f, del_f,
-						     alloc_f, alloc_f, free_f);
+  return htab_create_typed_alloc (size, hash_f, eq_f, del_f, alloc_f, alloc_f,
+				  free_f);
 }
 
-/* As above, but use the variants of alloc_f and free_f which accept
+/* As above, but uses the variants of ALLOC_F and FREE_F which accept
    an extra argument.  */
 
 htab_t
 htab_create_alloc_ex (size_t size, htab_hash hash_f, htab_eq eq_f,
-                      htab_del del_f, void *alloc_arg,
-                      htab_alloc_with_arg alloc_f,
+		      htab_del del_f, void *alloc_arg,
+		      htab_alloc_with_arg alloc_f,
 		      htab_free_with_arg free_f)
 {
   htab_t result;
@@ -331,12 +331,31 @@ htab_create_alloc_ex (size_t size, htab_hash hash_f, htab_eq eq_f,
   return result;
 }
 
+/*
+
+@deftypefn Supplemental htab_t htab_create_typed_alloc (size_t @var{size},
+htab_hash @var{hash_f}, htab_eq @var{eq_f}, htab_del @var{del_f},
+htab_alloc @var{alloc_tab_f}, htab_alloc @var{alloc_f},
+htab_free @var{free_f})
+
+This function creates a hash table that uses two different allocators
+@var{alloc_tab_f} and @var{alloc_f} to use for allocating the table itself
+and its entries respectively.  This is useful when variables of different
+types need to be allocated with different allocators.
+
+The created hash table is slightly larger than @var{size} and it is
+initially empty (all the hash table entries are @code{HTAB_EMPTY_ENTRY}).
+The function returns the created hash table, or @code{NULL} if memory
+allocation fails.
+
+@end deftypefn
+
+*/
+
 htab_t
-htab_create_alloc_with_separate_allocators (size_t size, htab_hash hash_f,
-					    htab_eq eq_f, htab_del del_f,
-					    htab_alloc alloc_tab_f,
-					    htab_alloc alloc_f,
-					    htab_free free_f)
+htab_create_typed_alloc (size_t size, htab_hash hash_f, htab_eq eq_f,
+			 htab_del del_f, htab_alloc alloc_tab_f,
+			 htab_alloc alloc_f, htab_free free_f)
 {
   htab_t result;
   unsigned int size_prime_index;

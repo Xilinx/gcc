@@ -283,7 +283,7 @@ struct lang_hooks
 
      Return 1 if the switch is valid, 0 if invalid, and -1 if it's
      valid and should not be treated as language-independent too.  */
-  int (*handle_option) (size_t code, const char *arg, int value);
+  int (*handle_option) (size_t code, const char *arg, int value, int kind);
 
   /* Return false to use the default complaint about a missing
      argument, otherwise output a complaint and return true.  */
@@ -417,10 +417,6 @@ struct lang_hooks
      enum gimplify_status, though we can't see that type here.  */
   int (*gimplify_expr) (tree *, gimple_seq *, gimple_seq *);
 
-  /* Fold an OBJ_TYPE_REF expression to the address of a function.
-     KNOWN_TYPE carries the true type of the OBJ_TYPE_REF_OBJECT.  */
-  tree (*fold_obj_type_ref) (tree, tree);
-
   /* Do language specific processing in the builtin function DECL  */
   tree (*builtin_function) (tree decl);
 
@@ -449,6 +445,10 @@ struct lang_hooks
   /* True if this language uses __cxa_end_cleanup when the ARM EABI
      is enabled.  */
   bool eh_use_cxa_end_cleanup;
+
+  /* True if this language requires deep unsharing of tree nodes prior to
+     gimplification.  */
+  bool deep_unsharing;
 
   /* Whenever you add entries here, make sure you adjust langhooks-def.h
      and langhooks.c accordingly.  */

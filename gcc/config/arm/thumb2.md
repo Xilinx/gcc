@@ -1054,6 +1054,19 @@
    (set_attr "length" "20")]
 )
 
+;; Note: this is not predicable, to avoid issues with linker-generated
+;; interworking stubs.
+(define_insn "*thumb2_return"
+  [(return)]
+  "TARGET_THUMB2 && USE_RETURN_INSN (FALSE)"
+  "*
+  {
+    return output_return_instruction (const_true_rtx, TRUE, FALSE);
+  }"
+  [(set_attr "type" "load1")
+   (set_attr "length" "12")]
+)
+
 (define_insn_and_split "thumb2_eh_return"
   [(unspec_volatile [(match_operand:SI 0 "s_register_operand" "r")]
 		    VUNSPEC_EH_RETURN)
@@ -1441,4 +1454,90 @@
   "
   [(set_attr "length" "4,4,16")
    (set_attr "predicable" "yes")]
+)
+
+(define_insn "*thumb2_tlobits_cbranch"
+  [(set (pc)
+	(if_then_else
+	 (match_operator 0 "equality_operator"
+	  [(zero_extract:SI (match_operand:SI 1 "s_register_operand" "l,h,h")
+			    (match_operand:SI 2 "const_int_operand" "i,Pu,i")
+			    (const_int 0))
+	   (const_int 0)])
+	 (label_ref (match_operand 3 "" ""))
+	 (pc)))
+   (clobber (match_scratch:SI 4 "=l,X,r"))
+   (clobber (reg:CC CC_REGNUM))]
+  "TARGET_THUMB2"
+  "*
+  {
+  if (which_alternative == 0)
+    {
+      rtx op[3];
+      op[0] = operands[4];
+      op[1] = operands[1];
+      op[2] = GEN_INT (32 - INTVAL (operands[2]));
+
+      output_asm_insn (\"lsls\\t%0, %1, %2\", op);
+      switch (get_attr_length (insn))
+	{
+	  case 4:  return \"b%d0\\t%l3\";
+	  case 6:  return \"b%D0\\t.LCB%=\;b\\t%l3\\t%@long jump\\n.LCB%=:\";
+	  default: return \"b%D0\\t.LCB%=\;bl\\t%l3\\t%@far jump\\n.LCB%=:\";
+	}
+    }
+  else
+    {
+      rtx op[3];
+
+      if (which_alternative == 1)
+	{
+	  op[0] = operands[1];
+	  op[1] = GEN_INT ((1 << INTVAL (operands[2])) - 1);
+	  output_asm_insn (\"tst\\t%0, %1\", op);
+	}
+      else
+	{
+	  op[0] = operands[4];
+	  op[1] = operands[1];
+	  op[2] = GEN_INT (32 - INTVAL (operands[2]));
+	  output_asm_insn (\"lsls\\t%0, %1, %2\", op);
+	}
+
+      switch (get_attr_length (insn))
+	{
+	  case 6:  return \"b%d0\\t%l3\";
+	  case 8:  return \"b%D0\\t.LCB%=\;b\\t%l3\\t%@long jump\\n.LCB%=:\";
+	  default: return \"b%D0\\t.LCB%=\;bl\\t%l3\\t%@far jump\\n.LCB%=:\";
+	}
+    }
+  }"
+  [(set (attr "far_jump")
+	(if_then_else
+	    (and (ge (minus (match_dup 3) (pc)) (const_int -2040))
+		 (le (minus (match_dup 3) (pc)) (const_int 2048)))
+	    (const_string "no")
+	    (const_string "yes")))
+   (set (attr "length")
+	(if_then_else
+	  (eq (symbol_ref ("which_alternative"))
+			  (const_int 0))
+	  (if_then_else
+	    (and (ge (minus (match_dup 3) (pc)) (const_int -250))
+		 (le (minus (match_dup 3) (pc)) (const_int 256)))
+	    (const_int 4)
+	    (if_then_else
+		(and (ge (minus (match_dup 3) (pc)) (const_int -2040))
+		     (le (minus (match_dup 3) (pc)) (const_int 2048)))
+		(const_int 6)
+		(const_int 8)))
+	  (if_then_else
+	    (and (ge (minus (match_dup 3) (pc)) (const_int -250))
+		 (le (minus (match_dup 3) (pc)) (const_int 256)))
+	    (const_int 6)
+	    (if_then_else
+		(and (ge (minus (match_dup 3) (pc)) (const_int -2040))
+		     (le (minus (match_dup 3) (pc)) (const_int 2048)))
+		(const_int 8)
+		(const_int 10)))))]
 )

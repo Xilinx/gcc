@@ -23,8 +23,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "tm_p.h"
 #include "flags.h"
 #include "function.h"
 #include "except.h"
@@ -1519,6 +1517,20 @@ decide_copy_try_finally (int ndests, gimple_seq finally)
     return f_estimate < 40 || f_estimate * 2 < sw_estimate * 3;
 }
 
+/* REG is the enclosing region for a possible cleanup region, or the region
+   itself.  Returns TRUE if such a region would be unreachable.
+
+   Cleanup regions within a must-not-throw region aren't actually reachable
+   even if there are throwing stmts within them, because the personality
+   routine will call terminate before unwinding.  */
+
+static bool
+cleanup_is_dead_in (eh_region reg)
+{
+  while (reg && reg->type == ERT_CLEANUP)
+    reg = reg->outer;
+  return (reg && reg->type == ERT_MUST_NOT_THROW);
+}
 
 /* A subroutine of lower_eh_constructs_1.  Lower a GIMPLE_TRY_FINALLY nodes
    to a sequence of labels and blocks, plus the exception region trees
@@ -1539,12 +1551,17 @@ lower_try_finally (struct leh_state *state, gimple tp)
   this_tf.try_finally_expr = tp;
   this_tf.top_p = tp;
   this_tf.outer = state;
-  if (using_eh_for_cleanups_p)
-    this_tf.region = gen_eh_region_cleanup (state->cur_region);
+  if (using_eh_for_cleanups_p && !cleanup_is_dead_in (state->cur_region))
+    {
+      this_tf.region = gen_eh_region_cleanup (state->cur_region);
+      this_state.cur_region = this_tf.region;
+    }
   else
-    this_tf.region = NULL;
+    {
+      this_tf.region = NULL;
+      this_state.cur_region = state->cur_region;
+    }
 
-  this_state.cur_region = this_tf.region;
   this_state.ehp_region = state->ehp_region;
   this_state.tf = &this_tf;
 
@@ -1557,7 +1574,7 @@ lower_try_finally (struct leh_state *state, gimple tp)
   this_tf.may_fallthru = gimple_seq_may_fallthru (gimple_try_eval (tp));
 
   /* Determine if any exceptions are possible within the try block.  */
-  if (using_eh_for_cleanups_p)
+  if (this_tf.region)
     this_tf.may_throw = eh_region_may_contain_throw (this_tf.region);
   if (this_tf.may_throw)
     honor_protect_cleanup_actions (state, &this_state, &this_tf);
@@ -1781,8 +1798,9 @@ lower_cleanup (struct leh_state *state, gimple tp)
   eh_region this_region = NULL;
   struct leh_tf_state fake_tf;
   gimple_seq result;
+  bool cleanup_dead = cleanup_is_dead_in (state->cur_region);
 
-  if (flag_exceptions)
+  if (flag_exceptions && !cleanup_dead)
     {
       this_region = gen_eh_region_cleanup (state->cur_region);
       this_state.cur_region = this_region;
@@ -1790,7 +1808,7 @@ lower_cleanup (struct leh_state *state, gimple tp)
 
   lower_eh_constructs_1 (&this_state, gimple_try_eval (tp));
 
-  if (!eh_region_may_contain_throw (this_region))
+  if (cleanup_dead || !eh_region_may_contain_throw (this_region))
     return gimple_try_eval (tp);
 
   /* Build enough of a try-finally state so that we can reuse
@@ -2508,12 +2526,12 @@ stmt_could_throw_p (gimple stmt)
 
     case GIMPLE_ASSIGN:
     case GIMPLE_COND:
-      if (!flag_non_call_exceptions)
+      if (!cfun->can_throw_non_call_exceptions)
         return false;
       return stmt_could_throw_1_p (stmt);
 
     case GIMPLE_ASM:
-      if (!flag_non_call_exceptions)
+      if (!cfun->can_throw_non_call_exceptions)
         return false;
       return gimple_asm_volatile_p (stmt);
 
@@ -2532,7 +2550,7 @@ tree_could_throw_p (tree t)
     return false;
   if (TREE_CODE (t) == MODIFY_EXPR)
     {
-      if (flag_non_call_exceptions
+      if (cfun->can_throw_non_call_exceptions
           && tree_could_trap_p (TREE_OPERAND (t, 0)))
         return true;
       t = TREE_OPERAND (t, 1);
@@ -2542,7 +2560,7 @@ tree_could_throw_p (tree t)
     t = TREE_OPERAND (t, 0);
   if (TREE_CODE (t) == CALL_EXPR)
     return (call_expr_flags (t) & ECF_NOTHROW) == 0;
-  if (flag_non_call_exceptions)
+  if (cfun->can_throw_non_call_exceptions)
     return tree_could_trap_p (t);
   return false;
 }

@@ -30,13 +30,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cp-tree.h"
 #include "flags.h"
-#include "rtl.h"
 #include "output.h"
 #include "toplev.h"
 #include "target.h"
 #include "convert.h"
 #include "cgraph.h"
 #include "tree-dump.h"
+#include "splay-tree.h"
 
 /* The number of nested classes being processed.  If we are not in the
    scope of any class, this is zero.  */
@@ -1048,8 +1048,8 @@ add_method (tree type, tree method, tree using_decl)
 	  && ! DECL_STATIC_FUNCTION_P (method)
 	  && TREE_TYPE (TREE_VALUE (parms1)) != error_mark_node
 	  && TREE_TYPE (TREE_VALUE (parms2)) != error_mark_node
-	  && (TYPE_QUALS (TREE_TYPE (TREE_VALUE (parms1)))
-	      != TYPE_QUALS (TREE_TYPE (TREE_VALUE (parms2)))))
+	  && (cp_type_quals (TREE_TYPE (TREE_VALUE (parms1)))
+	      != cp_type_quals (TREE_TYPE (TREE_VALUE (parms2)))))
 	continue;
 
       /* For templates, the return type and template parameters
@@ -1868,8 +1868,8 @@ same_signature_p (const_tree fndecl, const_tree base_fndecl)
       tree types, base_types;
       types = TYPE_ARG_TYPES (TREE_TYPE (fndecl));
       base_types = TYPE_ARG_TYPES (TREE_TYPE (base_fndecl));
-      if ((TYPE_QUALS (TREE_TYPE (TREE_VALUE (base_types)))
-	   == TYPE_QUALS (TREE_TYPE (TREE_VALUE (types))))
+      if ((cp_type_quals (TREE_TYPE (TREE_VALUE (base_types)))
+	   == cp_type_quals (TREE_TYPE (TREE_VALUE (types))))
 	  && compparms (TREE_CHAIN (base_types), TREE_CHAIN (types)))
 	return 1;
     }
@@ -3955,7 +3955,7 @@ build_clone (tree fn, tree name)
     }
 
   /* Create the RTL for this function.  */
-  SET_DECL_RTL (clone, NULL_RTX);
+  SET_DECL_RTL (clone, NULL);
   rest_of_decl_compilation (clone, /*top_level=*/1, at_eof);
 
   if (pch_file)
@@ -5102,7 +5102,7 @@ layout_class_type (tree t, tree *virtuals_p)
 						 TYPE_UNSIGNED (ftype));
 	      TREE_TYPE (field)
 		= cp_build_qualified_type (TREE_TYPE (field),
-					   TYPE_QUALS (ftype));
+					   cp_type_quals (ftype));
 	    }
 	}
 
@@ -6397,7 +6397,7 @@ instantiate_type (tree lhstype, tree rhs, tsubst_flags_t flags)
 
   flags &= ~tf_ptrmem_ok;
 
-  if (TREE_CODE (lhstype) == UNKNOWN_TYPE)
+  if (lhstype == unknown_type_node)
     {
       if (flags & tf_error)
 	error ("not enough type information");

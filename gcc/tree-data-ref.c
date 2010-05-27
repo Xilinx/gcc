@@ -83,9 +83,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 
 /* These RTL headers are needed for basic-block.h.  */
-#include "rtl.h"
 #include "basic-block.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "timevar.h"

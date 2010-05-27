@@ -47,17 +47,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "ggc.h"
-
-/* These RTL headers are needed for basic-block.h.  */
-#include "rtl.h"
-#include "tm_p.h"
-#include "hard-reg-set.h"
-#include "obstack.h"
-#include "basic-block.h"
 
 #include "tree.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
+#include "basic-block.h"
 #include "tree-flow.h"
 #include "gimple.h"
 #include "tree-dump.h"
@@ -277,10 +272,10 @@ static void
 mark_stmt_if_obviously_necessary (gimple stmt, bool aggressive)
 {
   tree lhs = NULL_TREE;
+
   /* With non-call exceptions, we have to assume that all statements could
      throw.  If a statement may throw, it is inherently necessary.  */
-  if (flag_non_call_exceptions
-      && stmt_could_throw_p (stmt))
+  if (cfun->can_throw_non_call_exceptions && stmt_could_throw_p (stmt))
     {
       mark_stmt_necessary (stmt, true);
       return;

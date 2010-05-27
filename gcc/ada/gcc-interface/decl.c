@@ -129,6 +129,8 @@ static void prepend_attributes (Entity_Id, struct attrib **);
 static tree elaborate_expression (Node_Id, Entity_Id, tree, bool, bool, bool);
 static bool is_variable_size (tree);
 static tree elaborate_expression_1 (tree, Entity_Id, tree, bool, bool);
+static tree elaborate_expression_2 (tree, Entity_Id, tree, bool, bool,
+				    unsigned int);
 static tree make_packable_type (tree, bool);
 static tree gnat_to_gnu_component_type (Entity_Id, bool, bool);
 static tree gnat_to_gnu_param (Entity_Id, Mechanism_Type, Entity_Id, bool,
@@ -558,7 +560,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	     && (((Nkind (Declaration_Node (gnat_entity))
 		   == N_Object_Declaration)
 		  && Present (Expression (Declaration_Node (gnat_entity))))
-		 || Present (Renamed_Object (gnat_entity))));
+		 || Present (Renamed_Object (gnat_entity))
+		 || imported_p));
 	bool inner_const_flag = const_flag;
 	bool static_p = Is_Statically_Allocated (gnat_entity);
 	bool mutable_p = false;
@@ -578,6 +581,13 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 	/* Get the type after elaborating the renamed object.  */
 	gnu_type = gnat_to_gnu_type (Etype (gnat_entity));
+
+	/* If this is a standard exception definition, then use the standard
+	   exception type.  This is necessary to make sure that imported and
+	   exported views of exceptions are properly merged in LTO mode.  */
+	if (TREE_CODE (TYPE_NAME (gnu_type)) == TYPE_DECL
+	    && DECL_NAME (TYPE_NAME (gnu_type)) == exception_data_name_id)
+	  gnu_type = except_type_node;
 
 	/* For a debug renaming declaration, build a pure debug entity.  */
 	if (Present (Debug_Renaming_Link (gnat_entity)))
@@ -739,6 +749,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		    && kind != E_Out_Parameter
 		    && Is_Composite_Type (Etype (gnat_entity))
 		    && !Is_Constr_Subt_For_UN_Aliased (Etype (gnat_entity))
+		    && !Is_Exported (gnat_entity)
 		    && !imported_p
 		    && No (Renamed_Object (gnat_entity))
 		    && No (Address_Clause (gnat_entity))))
@@ -807,7 +818,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	  gnu_type
 	    = build_unc_object_type_from_ptr (gnu_fat, gnu_type,
 					      concat_name (gnu_entity_name,
-							   "UNC"));
+							   "UNC"),
+					      debug_info_p);
 	}
 
 #ifdef MINIMUM_ATOMIC_ALIGNMENT
@@ -995,8 +1007,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   and disallow any optimizations for such a non-constant object.  */
 	if ((Treat_As_Volatile (gnat_entity)
 	     || (!const_flag
+		 && gnu_type != except_type_node
 		 && (Is_Exported (gnat_entity)
-		     || Is_Imported (gnat_entity)
+		     || imported_p
 		     || Present (Address_Clause (gnat_entity)))))
 	    && !TYPE_VOLATILE (gnu_type))
 	  gnu_type = build_qualified_type (gnu_type,
@@ -1667,9 +1680,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	  /* Don't notify the field as "addressable", since we won't be taking
 	     it's address and it would prevent create_field_decl from making a
 	     bitfield.  */
-	  gnu_field = create_field_decl (get_identifier ("OBJECT"),
-					 gnu_field_type, gnu_type, 1,
-					 NULL_TREE, bitsize_zero_node, 0);
+	  gnu_field
+	    = create_field_decl (get_identifier ("OBJECT"), gnu_field_type,
+				 gnu_type, NULL_TREE, bitsize_zero_node, 1, 0);
 
 	  /* Do not emit debug info until after the parallel type is added.  */
 	  finish_record_type (gnu_type, gnu_field, 2, false);
@@ -1718,9 +1731,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	  /* Don't notify the field as "addressable", since we won't be taking
 	     it's address and it would prevent create_field_decl from making a
 	     bitfield.  */
-	  gnu_field = create_field_decl (get_identifier ("F"),
-					 gnu_field_type, gnu_type, 1,
-					 NULL_TREE, bitsize_zero_node, 0);
+	  gnu_field
+	    = create_field_decl (get_identifier ("F"), gnu_field_type,
+				 gnu_type, NULL_TREE, bitsize_zero_node, 1, 0);
 
 	  finish_record_type (gnu_type, gnu_field, 2, debug_info_p);
 	  compute_record_mode (gnu_type);
@@ -1853,12 +1866,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	tem = chainon (chainon (NULL_TREE,
 				create_field_decl (get_identifier ("P_ARRAY"),
 						   ptr_void_type_node,
-						   gnu_fat_type, 0,
-						   NULL_TREE, NULL_TREE, 0)),
+						   gnu_fat_type, NULL_TREE,
+						   NULL_TREE, 0, 0)),
 		       create_field_decl (get_identifier ("P_BOUNDS"),
 					  gnu_ptr_template,
-					  gnu_fat_type, 0,
-					  NULL_TREE, NULL_TREE, 0));
+					  gnu_fat_type, NULL_TREE,
+					  NULL_TREE, 0, 0));
 
 	/* Make sure we can put this into a register.  */
 	TYPE_ALIGN (gnu_fat_type) = MIN (BIGGEST_ALIGNMENT, 2 * POINTER_SIZE);
@@ -1898,16 +1911,16 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    sprintf (field_name, "LB%d", index);
 	    gnu_lb_field = create_field_decl (get_identifier (field_name),
 					      gnu_index_base_type,
-					      gnu_template_type, 0,
-					      NULL_TREE, NULL_TREE, 0);
+					      gnu_template_type, NULL_TREE,
+					      NULL_TREE, 0, 0);
 	    Sloc_to_locus (Sloc (gnat_entity),
 			   &DECL_SOURCE_LOCATION (gnu_lb_field));
 
 	    field_name[0] = 'U';
 	    gnu_hb_field = create_field_decl (get_identifier (field_name),
 					      gnu_index_base_type,
-					      gnu_template_type, 0,
-					      NULL_TREE, NULL_TREE, 0);
+					      gnu_template_type, NULL_TREE,
+					      NULL_TREE, 0, 0);
 	    Sloc_to_locus (Sloc (gnat_entity),
 			   &DECL_SOURCE_LOCATION (gnu_hb_field));
 
@@ -2066,7 +2079,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   a record type for the object and its template with the fields
 	   shifted to have the template at a negative offset.  */
 	tem = build_unc_object_type (gnu_template_type, tem,
-				     create_concat_name (gnat_name, "XUT"));
+				     create_concat_name (gnat_name, "XUT"),
+				     debug_info_p);
 	shift_unc_components_for_thin_pointers (tem);
 
 	SET_TYPE_UNCONSTRAINED_ARRAY (tem, gnu_type);
@@ -2352,35 +2366,30 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	     inner dimensions.   */
 	  if (global_bindings_p () && ndim > 1)
 	    {
-	      tree gnu_str_name = get_identifier ("ST");
+	      tree gnu_st_name = get_identifier ("ST");
 	      tree gnu_arr_type;
 
 	      for (gnu_arr_type = TREE_TYPE (gnu_type);
 		   TREE_CODE (gnu_arr_type) == ARRAY_TYPE;
 		   gnu_arr_type = TREE_TYPE (gnu_arr_type),
-		   gnu_str_name = concat_name (gnu_str_name, "ST"))
+		   gnu_st_name = concat_name (gnu_st_name, "ST"))
 		{
 		  tree eltype = TREE_TYPE (gnu_arr_type);
 
 		  TYPE_SIZE (gnu_arr_type)
 		    = elaborate_expression_1 (TYPE_SIZE (gnu_arr_type),
-					      gnat_entity, gnu_str_name,
+					      gnat_entity, gnu_st_name,
 					      definition, false);
 
 		  /* ??? For now, store the size as a multiple of the
 		     alignment of the element type in bytes so that we
 		     can see the alignment from the tree.  */
 		  TYPE_SIZE_UNIT (gnu_arr_type)
-		    = build_binary_op
-		      (MULT_EXPR, sizetype,
-		       elaborate_expression_1
-		       (build_binary_op (EXACT_DIV_EXPR, sizetype,
-					 TYPE_SIZE_UNIT (gnu_arr_type),
-					 size_int (TYPE_ALIGN (eltype)
-						   / BITS_PER_UNIT)),
-			gnat_entity, concat_name (gnu_str_name, "A_U"),
-			definition, false),
-		       size_int (TYPE_ALIGN (eltype) / BITS_PER_UNIT));
+		    = elaborate_expression_2 (TYPE_SIZE_UNIT (gnu_arr_type),
+					      gnat_entity,
+					      concat_name (gnu_st_name, "A_U"),
+					      definition, false,
+					      TYPE_ALIGN (eltype));
 
 		  /* ??? create_type_decl is not invoked on the inner types so
 		     the MULT_EXPR node built above will never be marked.  */
@@ -2414,8 +2423,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		  /* Make sure to reference the types themselves, and not just
 		     their names, as the debugger may fall back on them.  */
 		  gnu_field = create_field_decl (gnu_index_name, gnu_index,
-						 gnu_bound_rec,
-						 0, NULL_TREE, NULL_TREE, 0);
+						 gnu_bound_rec, NULL_TREE,
+						 NULL_TREE, 0, 0);
 		  TREE_CHAIN (gnu_field) = gnu_field_list;
 		  gnu_field_list = gnu_field;
 		}
@@ -2847,11 +2856,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    /* ...and reference the _Parent field of this record.  */
 	    gnu_field
 	      = create_field_decl (parent_name_id,
-				   gnu_parent, gnu_type, 0,
+				   gnu_parent, gnu_type,
 				   has_rep
 				   ? TYPE_SIZE (gnu_parent) : NULL_TREE,
 				   has_rep
-				   ? bitsize_zero_node : NULL_TREE, 1);
+				   ? bitsize_zero_node : NULL_TREE,
+				   0, 1);
 	    DECL_INTERNAL_P (gnu_field) = 1;
 	    TREE_OPERAND (gnu_get_parent, 1) = gnu_field;
 	    TYPE_FIELDS (gnu_type) = gnu_field;
@@ -2920,6 +2930,21 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      && Is_Itype (Etype (gnat_temp))
 	      && !present_gnu_tree (gnat_temp))
 	    gnat_to_gnu_entity (Etype (gnat_temp), NULL_TREE, 0);
+
+	/* If this is a record type associated with an exception definition,
+	   equate its fields to those of the standard exception type.  This
+	   will make it possible to convert between them.  */
+	if (gnu_entity_name == exception_data_name_id)
+	  {
+	    tree gnu_std_field;
+	    for (gnu_field = TYPE_FIELDS (gnu_type),
+		 gnu_std_field = TYPE_FIELDS (except_type_node);
+		 gnu_field;
+		 gnu_field = TREE_CHAIN (gnu_field),
+		 gnu_std_field = TREE_CHAIN (gnu_std_field))
+	      SET_DECL_ORIGINAL_FIELD_TO_FIELD (gnu_field, gnu_std_field);
+	    gcc_assert (!gnu_std_field);
+	  }
       }
       break;
 
@@ -2973,6 +2998,20 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    {
 	      maybe_present = true;
 	      break;
+	    }
+
+	  /* If this is a record subtype associated with a dispatch table,
+	     strip the suffix.  This is necessary to make sure 2 different
+	     subtypes associated with the imported and exported views of a
+	     dispatch table are properly merged in LTO mode.  */
+	  if (Is_Dispatch_Table_Entity (gnat_entity))
+	    {
+	      char *p;
+	      Get_Encoded_Name (gnat_entity);
+	      p = strchr (Name_Buffer, '_');
+	      gcc_assert (p);
+	      strcpy (p+2, "dtS");
+	      gnu_entity_name = get_identifier (Name_Buffer);
 	    }
 
 	  /* When the subtype has discriminants and these discriminants affect
@@ -3248,8 +3287,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 							 build_reference_type
 							 (gnu_unpad_base_type),
 							 gnu_subtype_marker,
-							 0, NULL_TREE,
-							 NULL_TREE, 0),
+							 NULL_TREE, NULL_TREE,
+							 0, 0),
 				      0, true);
 
 		  add_parallel_type (TYPE_STUB_DECL (gnu_type),
@@ -3342,13 +3381,14 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
     case E_Anonymous_Access_Type:
     case E_General_Access_Type:
       {
+	/* The designated type and its equivalent type for gigi.  */
 	Entity_Id gnat_desig_type = Directly_Designated_Type (gnat_entity);
 	Entity_Id gnat_desig_equiv = Gigi_Equivalent_Type (gnat_desig_type);
+	/* Whether it comes from a limited with.  */
 	bool is_from_limited_with
 	  = (IN (Ekind (gnat_desig_equiv), Incomplete_Kind)
 	     && From_With_Type (gnat_desig_equiv));
-
-	/* Get the "full view" of this entity.  If this is an incomplete
+	/* The "full view" of the designated type.  If this is an incomplete
 	   entity from a limited with, treat its non-limited view as the full
 	   view.  Otherwise, if this is an incomplete or private type, use the
 	   full view.  In the former case, we might point to a private type,
@@ -3356,7 +3396,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   actual type used for the representation, so this takes a total of
 	   three steps.  */
 	Entity_Id gnat_desig_full_direct_first
-	  = (is_from_limited_with ? Non_Limited_View (gnat_desig_equiv)
+	  = (is_from_limited_with
+	     ? Non_Limited_View (gnat_desig_equiv)
 	     : (IN (Ekind (gnat_desig_equiv), Incomplete_Or_Private_Kind)
 		? Full_View (gnat_desig_equiv) : Empty));
 	Entity_Id gnat_desig_full_direct
@@ -3367,27 +3408,25 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	     : gnat_desig_full_direct_first);
 	Entity_Id gnat_desig_full
 	  = Gigi_Equivalent_Type (gnat_desig_full_direct);
-
-	/* This the type actually used to represent the designated type,
-	   either gnat_desig_full or gnat_desig_equiv.  */
+	/* The type actually used to represent the designated type, either
+	   gnat_desig_full or gnat_desig_equiv.  */
 	Entity_Id gnat_desig_rep;
-
 	/* True if this is a pointer to an unconstrained array.  */
 	bool is_unconstrained_array;
-
 	/* We want to know if we'll be seeing the freeze node for any
 	   incomplete type we may be pointing to.  */
 	bool in_main_unit
 	  = (Present (gnat_desig_full)
 	     ? In_Extended_Main_Code_Unit (gnat_desig_full)
 	     : In_Extended_Main_Code_Unit (gnat_desig_type));
-
 	/* True if we make a dummy type here.  */
-	bool got_fat_p = false;
-	/* True if the dummy is a fat pointer.  */
 	bool made_dummy = false;
-	tree gnu_desig_type = NULL_TREE;
+	/* True if the dummy type is a fat pointer.  */
+	bool got_fat_p = false;
+	/* The mode to be used for the pointer type.  */
 	enum machine_mode p_mode = mode_for_size (esize, MODE_INT, 0);
+	/* The GCC type used for the designated type.  */
+	tree gnu_desig_type = NULL_TREE;
 
 	if (!targetm.valid_pointer_mode (p_mode))
 	  p_mode = ptr_mode;
@@ -3400,22 +3439,21 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   issues.  This can lose some code efficiency, but there is no
 	   alternative.  */
 	if (Ekind (gnat_desig_equiv) == E_Array_Subtype
-	    && ! Is_Constrained (gnat_desig_equiv))
+	    && !Is_Constrained (gnat_desig_equiv))
 	  gnat_desig_equiv = Etype (gnat_desig_equiv);
 	if (Present (gnat_desig_full)
 	    && ((Ekind (gnat_desig_full) == E_Array_Subtype
-		 && ! Is_Constrained (gnat_desig_full))
+		 && !Is_Constrained (gnat_desig_full))
 		|| (Ekind (gnat_desig_full) == E_Record_Subtype
 		    && Ekind (Etype (gnat_desig_full)) == E_Record_Type)))
 	  gnat_desig_full = Etype (gnat_desig_full);
 
-	/* Now set the type that actually marks the representation of
-	   the designated type and also flag whether we have a unconstrained
-	   array.  */
-	gnat_desig_rep = gnat_desig_full ? gnat_desig_full : gnat_desig_equiv;
+	/* Set the type that's actually the representation of the designated
+	   type and also flag whether we have a unconstrained array.  */
+	gnat_desig_rep
+	  = Present (gnat_desig_full) ? gnat_desig_full : gnat_desig_equiv;
 	is_unconstrained_array
-	  = (Is_Array_Type (gnat_desig_rep)
-	     && ! Is_Constrained (gnat_desig_rep));
+	  = Is_Array_Type (gnat_desig_rep) && !Is_Constrained (gnat_desig_rep);
 
 	/* If we are pointing to an incomplete type whose completion is an
 	   unconstrained array, make a fat pointer type.  The two types in our
@@ -3426,31 +3464,28 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	if (is_unconstrained_array
 	    && (Present (gnat_desig_full)
 		|| (present_gnu_tree (gnat_desig_equiv)
-		    && TYPE_IS_DUMMY_P (TREE_TYPE
-					(get_gnu_tree (gnat_desig_equiv))))
-		|| (No (gnat_desig_full) && ! in_main_unit
-		    && defer_incomplete_level != 0
-		    && ! present_gnu_tree (gnat_desig_equiv))
-		|| (in_main_unit && is_from_limited_with
-		    && Present (Freeze_Node (gnat_desig_rep)))))
+		    && TYPE_IS_DUMMY_P
+		       (TREE_TYPE (get_gnu_tree (gnat_desig_equiv))))
+		|| (!in_main_unit
+		    && defer_incomplete_level
+		    && !present_gnu_tree (gnat_desig_equiv))
+		|| (in_main_unit
+		    && is_from_limited_with
+		    && Present (Freeze_Node (gnat_desig_equiv)))))
 	  {
-	    tree gnu_old;
-
 	    if (present_gnu_tree (gnat_desig_rep))
-	      gnu_old = TREE_TYPE (get_gnu_tree (gnat_desig_rep));
+	      gnu_desig_type = TREE_TYPE (get_gnu_tree (gnat_desig_rep));
 	    else
 	      {
-		gnu_old = make_dummy_type (gnat_desig_rep);
-
+		gnu_desig_type = make_dummy_type (gnat_desig_rep);
 		/* Show the dummy we get will be a fat pointer.  */
 		got_fat_p = made_dummy = true;
 	      }
 
-	    /* If the call above got something that has a pointer, that
-	       pointer is our type.  This could have happened either
-	       because the type was elaborated or because somebody
-	       else executed the code below.  */
-	    gnu_type = TYPE_POINTER_TO (gnu_old);
+	    /* If the call above got something that has a pointer, the pointer
+	       is our type.  This could have happened either because the type
+	       was elaborated or because somebody else executed the code.  */
+	    gnu_type = TYPE_POINTER_TO (gnu_desig_type);
 	    if (!gnu_type)
 	      {
 		tree gnu_template_type = make_node (ENUMERAL_TYPE);
@@ -3468,18 +3503,17 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		TYPE_DUMMY_P (gnu_array_type) = 1;
 
 		gnu_type = make_node (RECORD_TYPE);
-		SET_TYPE_UNCONSTRAINED_ARRAY (gnu_type, gnu_old);
-		TYPE_POINTER_TO (gnu_old) = gnu_type;
+		SET_TYPE_UNCONSTRAINED_ARRAY (gnu_type, gnu_desig_type);
+		TYPE_POINTER_TO (gnu_desig_type) = gnu_type;
 
 		fields
-		  = chainon (chainon (NULL_TREE,
-				      create_field_decl
-				      (get_identifier ("P_ARRAY"),
-				       gnu_ptr_array,
-				       gnu_type, 0, 0, 0, 0)),
-			     create_field_decl (get_identifier ("P_BOUNDS"),
-						gnu_ptr_template,
-						gnu_type, 0, 0, 0, 0));
+		  = create_field_decl (get_identifier ("P_ARRAY"),
+				       gnu_ptr_array, gnu_type,
+				       NULL_TREE, NULL_TREE, 0, 0);
+		TREE_CHAIN (fields)
+		  = create_field_decl (get_identifier ("P_BOUNDS"),
+				       gnu_ptr_template, gnu_type,
+				       NULL_TREE, NULL_TREE, 0, 0);
 
 		/* Make sure we can place this into a register.  */
 		TYPE_ALIGN (gnu_type)
@@ -3490,10 +3524,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		   of its fields are incomplete.  */
 		finish_record_type (gnu_type, fields, 0, false);
 
-		TYPE_OBJECT_RECORD_TYPE (gnu_old) = make_node (RECORD_TYPE);
-		TYPE_NAME (TYPE_OBJECT_RECORD_TYPE (gnu_old))
+		TYPE_OBJECT_RECORD_TYPE (gnu_desig_type)
+		  = make_node (RECORD_TYPE);
+		TYPE_NAME (TYPE_OBJECT_RECORD_TYPE (gnu_desig_type))
 		  = create_concat_name (gnat_desig_equiv, "XUT");
-		TYPE_DUMMY_P (TYPE_OBJECT_RECORD_TYPE (gnu_old)) = 1;
+		TYPE_DUMMY_P (TYPE_OBJECT_RECORD_TYPE (gnu_desig_type)) = 1;
 	      }
 	  }
 
@@ -3502,35 +3537,35 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		 && present_gnu_tree (gnat_desig_full))
 	  gnu_desig_type = TREE_TYPE (get_gnu_tree (gnat_desig_full));
 
-	/* Get the type of the thing we are to point to and build a pointer
-	   to it.  If it is a reference to an incomplete or private type with a
+	/* Get the type of the thing we are to point to and build a pointer to
+	   it.  If it is a reference to an incomplete or private type with a
 	   full view that is a record, make a dummy type node and get the
 	   actual type later when we have verified it is safe.  */
-	else if ((! in_main_unit
-		  && ! present_gnu_tree (gnat_desig_equiv)
+	else if ((!in_main_unit
+		  && !present_gnu_tree (gnat_desig_equiv)
 		  && Present (gnat_desig_full)
-		  && ! present_gnu_tree (gnat_desig_full)
+		  && !present_gnu_tree (gnat_desig_full)
 		  && Is_Record_Type (gnat_desig_full))
-		 /* Likewise if we are pointing to a record or array and we
-		    are to defer elaborating incomplete types.  We do this
-		    since this access type may be the full view of some
-		    private type.  Note that the unconstrained array case is
-		    handled above.  */
-		 || ((! in_main_unit || imported_p)
-		     && defer_incomplete_level != 0
-		     && ! present_gnu_tree (gnat_desig_equiv)
-		     && ((Is_Record_Type (gnat_desig_rep)
-			  || Is_Array_Type (gnat_desig_rep))))
+		 /* Likewise if we are pointing to a record or array and we are
+		    to defer elaborating incomplete types.  We do this as this
+		    access type may be the full view of a private type.  Note
+		    that the unconstrained array case is handled above.  */
+		 || ((!in_main_unit || imported_p)
+		     && defer_incomplete_level
+		     && !present_gnu_tree (gnat_desig_equiv)
+		     && (Is_Record_Type (gnat_desig_rep)
+			 || Is_Array_Type (gnat_desig_rep)))
 		 /* If this is a reference from a limited_with type back to our
-		    main unit and there's a Freeze_Node for it, either we have
+		    main unit and there's a freeze node for it, either we have
 		    already processed the declaration and made the dummy type,
 		    in which case we just reuse the latter, or we have not yet,
 		    in which case we make the dummy type and it will be reused
-		    when the declaration is processed.  In both cases, the
-		    pointer eventually created below will be automatically
-		    adjusted when the Freeze_Node is processed.  Note that the
+		    when the declaration is finally processed.  In both cases,
+		    the pointer eventually created below will be automatically
+		    adjusted when the freeze node is processed.  Note that the
 		    unconstrained array case is handled above.  */
-		 ||  (in_main_unit && is_from_limited_with
+		 ||  (in_main_unit
+		      && is_from_limited_with
 		      && Present (Freeze_Node (gnat_desig_rep))))
 	  {
 	    gnu_desig_type = make_dummy_type (gnat_desig_equiv);
@@ -3546,13 +3581,13 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    TREE_TYPE (gnu_type) = TYPE_POINTER_TO (gnu_type) = gnu_type;
 	  }
 
-	/* If expansion is disabled, the equivalent type of a concurrent
-	   type is absent, so build a dummy pointer type.  */
+	/* If expansion is disabled, the equivalent type of a concurrent type
+	   is absent, so build a dummy pointer type.  */
 	else if (type_annotate_only && No (gnat_desig_equiv))
 	  gnu_type = ptr_void_type_node;
 
-	/* Finally, handle the straightforward case where we can just
-	   elaborate our designated type and point to it.  */
+	/* Finally, handle the default case where we can just elaborate our
+	   designated type.  */
 	else
 	  gnu_desig_type = gnat_to_gnu_type (gnat_desig_equiv);
 
@@ -3564,11 +3599,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    break;
 	  }
 
-	/* If we have a GCC type for the designated type, possibly modify it
-	   if we are pointing only to constant objects and then make a pointer
-	   to it.  Don't do this for unconstrained arrays.  */
-	if (!gnu_type && gnu_desig_type)
+	/* If we have not done it yet, build the pointer type the usual way.  */
+	if (!gnu_type)
 	  {
+	    /* Modify the designated type if we are pointing only to constant
+	       objects, but don't do it for unconstrained arrays.  */
 	    if (Is_Access_Constant (gnat_entity)
 		&& TREE_CODE (gnu_desig_type) != UNCONSTRAINED_ARRAY_TYPE)
 	      {
@@ -3607,17 +3642,20 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 					     No_Strict_Aliasing (gnat_entity));
 	  }
 
-	/* If we are not defining this object and we made a dummy pointer,
+	/* If we are not defining this object and we have made a dummy pointer,
 	   save our current definition, evaluate the actual type, and replace
 	   the tentative type we made with the actual one.  If we are to defer
-	   actually looking up the actual type, make an entry in the
-	   deferred list.  If this is from a limited with, we have to defer
-	   to the end of the current spec in two cases: first if the
-	   designated type is in the current unit and second if the access
-	   type is.  */
-	if ((! in_main_unit || is_from_limited_with) && made_dummy)
+	   actually looking up the actual type, make an entry in the deferred
+	   list.  If this is from a limited with, we have to defer to the end
+	   of the current spec in two cases: first if the designated type is
+	   in the current unit and second if the access type itself is.  */
+	if ((!in_main_unit || is_from_limited_with) && made_dummy)
 	  {
-	    tree gnu_old_type
+	    bool is_from_limited_with_in_main_unit
+	      = (is_from_limited_with
+		 && (in_main_unit
+		     || In_Extended_Main_Code_Unit (gnat_entity)));
+	    tree gnu_old_desig_type
 	      = TYPE_IS_FAT_POINTER_P (gnu_type)
 		? TYPE_UNCONSTRAINED_ARRAY (gnu_type) : TREE_TYPE (gnu_type);
 
@@ -3636,37 +3674,27 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    save_gnu_tree (gnat_entity, gnu_decl, false);
 	    saved = true;
 
-	    if (defer_incomplete_level == 0
-		&& ! (is_from_limited_with
-		      && (in_main_unit
-			  || In_Extended_Main_Code_Unit (gnat_entity))))
-	      update_pointer_to (TYPE_MAIN_VARIANT (gnu_old_type),
+	    /* Note that the call to gnat_to_gnu_type on gnat_desig_equiv might
+	       update gnu_old_desig_type directly, in which case it will not be
+	       a dummy type any more when we get into update_pointer_to.
+
+	       This can happen e.g. when the designated type is a record type,
+	       because their elaboration starts with an initial node from
+	       make_dummy_type, which may be the same node as the one we got.
+
+	       Besides, variants of this non-dummy type might have been created
+	       along the way.  update_pointer_to is expected to properly take
+	       care of those situations.  */
+	    if (!defer_incomplete_level && !is_from_limited_with_in_main_unit)
+	      update_pointer_to (TYPE_MAIN_VARIANT (gnu_old_desig_type),
 				 gnat_to_gnu_type (gnat_desig_equiv));
-
-	      /* Note that the call to gnat_to_gnu_type here might have
-		 updated gnu_old_type directly, in which case it is not a
-		 dummy type any more when we get into update_pointer_to.
-
-		 This may happen for instance when the designated type is a
-		 record type, because their elaboration starts with an
-		 initial node from make_dummy_type, which may yield the same
-		 node as the one we got.
-
-		 Besides, variants of this non-dummy type might have been
-		 created along the way.  update_pointer_to is expected to
-		 properly take care of those situations.  */
 	    else
 	      {
-		struct incomplete *p
-		  = (struct incomplete *) xmalloc (sizeof
-						   (struct incomplete));
+		struct incomplete *p = XNEW (struct incomplete);
 		struct incomplete **head
-		  = (is_from_limited_with
-		     && (in_main_unit
-			 || In_Extended_Main_Code_Unit (gnat_entity))
+		  = (is_from_limited_with_in_main_unit
 		     ? &defer_limited_with : &defer_incomplete_list);
-
-		p->old_type = gnu_old_type;
+		p->old_type = gnu_old_desig_type;
 		p->full_type = gnat_desig_equiv;
 		p->next = *head;
 		*head = p;
@@ -4088,8 +4116,10 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		    has_copy_in_out = true;
 		  }
 
-		gnu_field = create_field_decl (gnu_param_name, gnu_param_type,
-					       gnu_return_type, 0, 0, 0, 0);
+		gnu_field
+		  = create_field_decl (gnu_param_name, gnu_param_type,
+				       gnu_return_type, NULL_TREE, NULL_TREE,
+				       0, 0);
 		Sloc_to_locus (Sloc (gnat_param),
 			       &DECL_SOURCE_LOCATION (gnu_field));
 		TREE_CHAIN (gnu_field) = gnu_field_list;
@@ -4493,45 +4523,92 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	  && !TREE_CONSTANT (TYPE_SIZE (gnu_type))
 	  && !CONTAINS_PLACEHOLDER_P (TYPE_SIZE (gnu_type)))
 	{
-	  if (TREE_CODE (gnu_type) == RECORD_TYPE
-	      && operand_equal_p (TYPE_ADA_SIZE (gnu_type),
-				  TYPE_SIZE (gnu_type), 0))
+	  tree size = TYPE_SIZE (gnu_type);
+
+	  TYPE_SIZE (gnu_type)
+	    = elaborate_expression_1 (size, gnat_entity,
+				      get_identifier ("SIZE"),
+				      definition, false);
+
+	  /* ??? For now, store the size as a multiple of the alignment in
+	     bytes so that we can see the alignment from the tree.  */
+	  TYPE_SIZE_UNIT (gnu_type)
+	    = elaborate_expression_2 (TYPE_SIZE_UNIT (gnu_type), gnat_entity,
+				      get_identifier ("SIZE_A_UNIT"),
+				      definition, false,
+				      TYPE_ALIGN (gnu_type));
+
+	  /* ??? gnu_type may come from an existing type so the MULT_EXPR node
+	     may not be marked by the call to create_type_decl below.  */
+	  MARK_VISITED (TYPE_SIZE_UNIT (gnu_type));
+
+	  if (TREE_CODE (gnu_type) == RECORD_TYPE)
 	    {
-	      TYPE_SIZE (gnu_type)
-		= elaborate_expression_1 (TYPE_SIZE (gnu_type),
-					  gnat_entity, get_identifier ("SIZE"),
-					  definition, false);
-	      SET_TYPE_ADA_SIZE (gnu_type, TYPE_SIZE (gnu_type));
+	      tree variant_part = get_variant_part (gnu_type);
+	      tree ada_size = TYPE_ADA_SIZE (gnu_type);
+
+	      if (variant_part)
+		{
+		  tree union_type = TREE_TYPE (variant_part);
+		  tree offset = DECL_FIELD_OFFSET (variant_part);
+
+		  /* If the position of the variant part is constant, subtract
+		     it from the size of the type of the parent to get the new
+		     size.  This manual CSE reduces the data size.  */
+		  if (TREE_CODE (offset) == INTEGER_CST)
+		    {
+		      tree bitpos = DECL_FIELD_BIT_OFFSET (variant_part);
+		      TYPE_SIZE (union_type)
+			= size_binop (MINUS_EXPR, TYPE_SIZE (gnu_type),
+				      bit_from_pos (offset, bitpos));
+		      TYPE_SIZE_UNIT (union_type)
+			= size_binop (MINUS_EXPR, TYPE_SIZE_UNIT (gnu_type),
+				      byte_from_pos (offset, bitpos));
+		    }
+		  else
+		    {
+		      TYPE_SIZE (union_type)
+			= elaborate_expression_1 (TYPE_SIZE (union_type),
+						  gnat_entity,
+						  get_identifier ("VSIZE"),
+						  definition, false);
+
+		      /* ??? For now, store the size as a multiple of the
+			 alignment in bytes so that we can see the alignment
+			 from the tree.  */
+		      TYPE_SIZE_UNIT (union_type)
+			= elaborate_expression_2 (TYPE_SIZE_UNIT (union_type),
+						  gnat_entity,
+						  get_identifier
+						  ("VSIZE_A_UNIT"),
+						  definition, false,
+						  TYPE_ALIGN (union_type));
+
+		      /* ??? For now, store the offset as a multiple of the
+			 alignment in bytes so that we can see the alignment
+			 from the tree.  */
+		      DECL_FIELD_OFFSET (variant_part)
+			= elaborate_expression_2 (offset,
+						  gnat_entity,
+						  get_identifier ("VOFFSET"),
+						  definition, false,
+						  DECL_OFFSET_ALIGN
+						  (variant_part));
+		    }
+
+		  DECL_SIZE (variant_part) = TYPE_SIZE (union_type);
+		  DECL_SIZE_UNIT (variant_part) = TYPE_SIZE_UNIT (union_type);
+		}
+
+	      if (operand_equal_p (ada_size, size, 0))
+		ada_size = TYPE_SIZE (gnu_type);
+	      else
+		ada_size
+		  = elaborate_expression_1 (ada_size, gnat_entity,
+					    get_identifier ("RM_SIZE"),
+					    definition, false);
+	      SET_TYPE_ADA_SIZE (gnu_type, ada_size);
 	    }
-	  else
-	    {
-	      TYPE_SIZE (gnu_type)
-		= elaborate_expression_1 (TYPE_SIZE (gnu_type),
-					  gnat_entity, get_identifier ("SIZE"),
-					  definition, false);
-
-	      /* ??? For now, store the size as a multiple of the alignment
-		 in bytes so that we can see the alignment from the tree.  */
-	      TYPE_SIZE_UNIT (gnu_type)
-		= build_binary_op
-		  (MULT_EXPR, sizetype,
-		   elaborate_expression_1
-		   (build_binary_op (EXACT_DIV_EXPR, sizetype,
-				     TYPE_SIZE_UNIT (gnu_type),
-				     size_int (TYPE_ALIGN (gnu_type)
-					       / BITS_PER_UNIT)),
-		    gnat_entity, get_identifier ("SIZE_A_UNIT"),
-		    definition, false),
-		   size_int (TYPE_ALIGN (gnu_type) / BITS_PER_UNIT));
-
-	      if (TREE_CODE (gnu_type) == RECORD_TYPE)
-		SET_TYPE_ADA_SIZE
-		  (gnu_type,
-		   elaborate_expression_1 (TYPE_ADA_SIZE (gnu_type),
-					   gnat_entity,
-					   get_identifier ("RM_SIZE"),
-					   definition, false));
-		 }
 	}
 
       /* If this is a record type or subtype, call elaborate_expression_1 on
@@ -4545,30 +4622,22 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    {
 	      tree gnu_field = get_gnu_tree (gnat_temp);
 
-	      /* ??? Unfortunately, GCC needs to be able to prove the
-		 alignment of this offset and if it's a variable, it can't.
-		 In GCC 3.4, we'll use DECL_OFFSET_ALIGN in some way, but
-		 right now, we have to put in an explicit multiply and
-		 divide by that value.  */
+	      /* ??? For now, store the offset as a multiple of the alignment
+		 in bytes so that we can see the alignment from the tree.  */
 	      if (!CONTAINS_PLACEHOLDER_P (DECL_FIELD_OFFSET (gnu_field)))
 		{
-		DECL_FIELD_OFFSET (gnu_field)
-		  = build_binary_op
-		    (MULT_EXPR, sizetype,
-		     elaborate_expression_1
-		     (build_binary_op (EXACT_DIV_EXPR, sizetype,
-				       DECL_FIELD_OFFSET (gnu_field),
-				       size_int (DECL_OFFSET_ALIGN (gnu_field)
-						 / BITS_PER_UNIT)),
-		      gnat_temp, get_identifier ("OFFSET"),
-		      definition, false),
-		     size_int (DECL_OFFSET_ALIGN (gnu_field) / BITS_PER_UNIT));
+		  DECL_FIELD_OFFSET (gnu_field)
+		    = elaborate_expression_2 (DECL_FIELD_OFFSET (gnu_field),
+					      gnat_temp,
+					      get_identifier ("OFFSET"),
+					      definition, false,
+					      DECL_OFFSET_ALIGN (gnu_field));
 
-		/* ??? The context of gnu_field is not necessarily gnu_type so
-		   the MULT_EXPR node built above may not be marked by the call
-		   to create_type_decl below.  */
-		if (global_bindings_p ())
-		  MARK_VISITED (DECL_FIELD_OFFSET (gnu_field));
+		  /* ??? The context of gnu_field is not necessarily gnu_type
+		     so the MULT_EXPR node built above may not be marked by
+		     the call to create_type_decl below.  */
+		  if (global_bindings_p ())
+		    MARK_VISITED (DECL_FIELD_OFFSET (gnu_field));
 		}
 	    }
 
@@ -5857,6 +5926,23 @@ elaborate_expression_1 (tree gnu_expr, Entity_Id gnat_entity, tree gnu_name,
 
   return expr_variable ? gnat_save_expr (gnu_expr) : gnu_expr;
 }
+
+/* Similar, but take an alignment factor and make it explicit in the tree.  */
+
+static tree
+elaborate_expression_2 (tree gnu_expr, Entity_Id gnat_entity, tree gnu_name,
+			bool definition, bool need_debug, unsigned int align)
+{
+  tree unit_align = size_int (align / BITS_PER_UNIT);
+  return
+    size_binop (MULT_EXPR,
+		elaborate_expression_1 (size_binop (EXACT_DIV_EXPR,
+						    gnu_expr,
+						    unit_align),
+					gnat_entity, gnu_name, definition,
+					need_debug),
+		unit_align);
+}
 
 /* Create a record type that contains a SIZE bytes long field of TYPE with a
    starting bit position so that it is aligned to ALIGN bits, and leaving at
@@ -5897,8 +5983,8 @@ make_aligning_type (tree type, unsigned int align, tree size,
 
   if (TREE_CODE (name) == TYPE_DECL)
     name = DECL_NAME (name);
-
-  TYPE_NAME (record_type) = concat_name (name, "_ALIGN");
+  name = concat_name (name, "ALIGN");
+  TYPE_NAME (record_type) = name;
 
   /* Compute VOFFSET and then POS.  The next byte position multiple of some
      alignment after some address is obtained by "and"ing the alignment minus
@@ -5926,8 +6012,8 @@ make_aligning_type (tree type, unsigned int align, tree size,
      consequences on the alignment computation, and create_field_decl would
      make one without this special argument, for instance because of the
      complex position expression.  */
-  field = create_field_decl (get_identifier ("F"), type, record_type,
-                             1, size, pos, -1);
+  field = create_field_decl (get_identifier ("F"), type, record_type, size,
+			     pos, 1, -1);
   TYPE_FIELDS (record_type) = field;
 
   TYPE_ALIGN (record_type) = base_align;
@@ -5943,8 +6029,12 @@ make_aligning_type (tree type, unsigned int align, tree size,
 		  size_int (room + align / BITS_PER_UNIT));
 
   SET_TYPE_MODE (record_type, BLKmode);
-
   relate_alias_sets (record_type, type, ALIAS_SET_COPY);
+
+  /* Declare it now since it will never be declared otherwise.  This is
+     necessary to ensure that its subtrees are properly marked.  */
+  create_type_decl (name, record_type, NULL, true, false, Empty);
+
   return record_type;
 }
 
@@ -6048,10 +6138,11 @@ make_packable_type (tree type, bool in_record)
       else
 	new_size = DECL_SIZE (old_field);
 
-      new_field = create_field_decl (DECL_NAME (old_field), new_field_type,
-				     new_type, TYPE_PACKED (type), new_size,
-				     bit_position (old_field),
-				     !DECL_NONADDRESSABLE_P (old_field));
+      new_field
+	= create_field_decl (DECL_NAME (old_field), new_field_type, new_type,
+			     new_size, bit_position (old_field),
+			     TYPE_PACKED (type),
+			     !DECL_NONADDRESSABLE_P (old_field));
 
       DECL_INTERNAL_P (new_field) = DECL_INTERNAL_P (old_field);
       SET_DECL_ORIGINAL_FIELD_TO_FIELD (new_field, old_field);
@@ -6215,8 +6306,8 @@ maybe_pad_type (tree type, tree size, unsigned int align,
     }
 
   /* Now create the field with the original size.  */
-  field  = create_field_decl (get_identifier ("F"), type, record, 0,
-			      orig_size, bitsize_zero_node, 1);
+  field  = create_field_decl (get_identifier ("F"), type, record, orig_size,
+			      bitsize_zero_node, 0, 1);
   DECL_INTERNAL_P (field) = 1;
 
   /* Do not emit debug info until after the auxiliary record is built.  */
@@ -6249,8 +6340,8 @@ maybe_pad_type (tree type, tree size, unsigned int align,
       finish_record_type (marker,
 			  create_field_decl (orig_name,
 					     build_reference_type (type),
-					     marker, 0, NULL_TREE, NULL_TREE,
-					     0),
+					     marker, NULL_TREE, NULL_TREE,
+					     0, 0),
 			  0, true);
 
       add_parallel_type (TYPE_STUB_DECL (record), marker);
@@ -6678,9 +6769,9 @@ gnat_to_gnu_field (Entity_Id gnat_field, tree gnu_record_type, int packed,
 	      || !TYPE_CONTAINS_TEMPLATE_P (gnu_field_type));
 
   /* Now create the decl for the field.  */
-  gnu_field = create_field_decl (gnu_field_id, gnu_field_type, gnu_record_type,
-				 packed, gnu_size, gnu_pos,
-				 Is_Aliased (gnat_field));
+  gnu_field
+    = create_field_decl (gnu_field_id, gnu_field_type, gnu_record_type,
+			 gnu_size, gnu_pos, packed, Is_Aliased (gnat_field));
   Sloc_to_locus (Sloc (gnat_field), &DECL_SOURCE_LOCATION (gnu_field));
   TREE_THIS_VOLATILE (gnu_field) = Treat_As_Volatile (gnat_field);
 
@@ -6932,14 +7023,14 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
 	      create_type_decl (TYPE_NAME (gnu_variant_type), gnu_variant_type,
 				NULL, true, debug_info_p, gnat_component_list);
 
-	      gnu_field = create_field_decl (gnu_inner_name, gnu_variant_type,
-					     gnu_union_type, field_packed,
-					     (all_rep_and_size
-					      ? TYPE_SIZE (gnu_variant_type)
-					      : 0),
-					     (all_rep_and_size
-					      ? bitsize_zero_node : 0),
-					     0);
+	      gnu_field
+		= create_field_decl (gnu_inner_name, gnu_variant_type,
+				     gnu_union_type,
+				     all_rep_and_size
+				     ? TYPE_SIZE (gnu_variant_type) : 0,
+				     all_rep_and_size
+				     ? bitsize_zero_node : 0,
+				     field_packed, 0);
 
 	      DECL_INTERNAL_P (gnu_field) = 1;
 
@@ -6986,9 +7077,9 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
 
 	  gnu_union_field
 	    = create_field_decl (gnu_var_name, gnu_union_type, gnu_record_type,
-				 union_field_packed,
 				 all_rep ? TYPE_SIZE (gnu_union_type) : 0,
-				 all_rep ? bitsize_zero_node : 0, 0);
+				 all_rep ? bitsize_zero_node : 0,
+				 union_field_packed, 0);
 
 	  DECL_INTERNAL_P (gnu_union_field) = 1;
 	  TREE_CHAIN (gnu_union_field) = gnu_field_list;
@@ -7059,7 +7150,7 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
 	  finish_record_type (gnu_rep_type, gnu_our_rep_list, 1, debug_info_p);
 	  gnu_field
 	    = create_field_decl (get_identifier ("REP"), gnu_rep_type,
-				 gnu_record_type, 0, NULL_TREE, NULL_TREE, 1);
+				 gnu_record_type, NULL_TREE, NULL_TREE, 0, 1);
 	  DECL_INTERNAL_P (gnu_field) = 1;
 	  gnu_field_list = chainon (gnu_field_list, gnu_field);
 	}
@@ -8001,7 +8092,7 @@ create_field_decl_from (tree old_field, tree field_type, tree record_type,
 
   new_field
     = create_field_decl (DECL_NAME (old_field), field_type, record_type,
-			 DECL_PACKED (old_field), size, new_pos,
+			 size, new_pos, DECL_PACKED (old_field),
 			 !DECL_NONADDRESSABLE_P (old_field));
 
   if (!new_pos)
@@ -8069,7 +8160,6 @@ create_variant_part_from (tree old_variant_part, tree variant_list,
 			  tree record_type, tree pos_list, tree subst_list)
 {
   tree offset = DECL_FIELD_OFFSET (old_variant_part);
-  tree bitpos = DECL_FIELD_BIT_OFFSET (old_variant_part);
   tree old_union_type = TREE_TYPE (old_variant_part);
   tree new_union_type, new_variant_part, t;
   tree union_field_list = NULL_TREE;
@@ -8081,8 +8171,9 @@ create_variant_part_from (tree old_variant_part, tree variant_list,
   /* If the position of the variant part is constant, subtract it from the
      size of the type of the parent to get the new size.  This manual CSE
      reduces the code size when not optimizing.  */
-  if (TREE_CODE (offset) == INTEGER_CST && TREE_CODE (bitpos) == INTEGER_CST)
+  if (TREE_CODE (offset) == INTEGER_CST)
     {
+      tree bitpos = DECL_FIELD_BIT_OFFSET (old_variant_part);
       tree first_bit = bit_from_pos (offset, bitpos);
       TYPE_SIZE (new_union_type)
 	= size_binop (MINUS_EXPR, TYPE_SIZE (record_type), first_bit);

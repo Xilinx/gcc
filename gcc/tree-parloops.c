@@ -25,12 +25,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
 #include "tree-flow.h"
 #include "cfgloop.h"
-#include "ggc.h"
 #include "tree-data-ref.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-pass.h"
 #include "tree-scalar-evolution.h"
 #include "hashtab.h"
@@ -64,7 +64,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /*
   Reduction handling:
-  currently we use vect_is_simple_reduction() to detect reduction patterns.
+  currently we use vect_force_simple_reduction() to detect reduction patterns.
   The code transformation will be introduced by an example.
 
 
@@ -1745,7 +1745,9 @@ gather_scalar_reductions (loop_p loop, htab_t reduction_list)
       if (!simple_iv (loop, loop, res, &iv, true)
 	&& simple_loop_info)
 	{
-           gimple reduc_stmt = vect_is_simple_reduction (simple_loop_info, phi, true, &double_reduc);
+           gimple reduc_stmt = vect_force_simple_reduction (simple_loop_info,
+							    phi, true,
+							    &double_reduc);
 	   if (reduc_stmt && !double_reduc)
               build_new_reduction (reduction_list, reduc_stmt, phi);
         }

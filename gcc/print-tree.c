@@ -25,12 +25,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "real.h"
-#include "fixed-value.h"
 #include "ggc.h"
 #include "langhooks.h"
 #include "tree-iterator.h"
 #include "diagnostic.h"
+#include "gimple-pretty-print.h"
 #include "tree-flow.h"
 #include "tree-pass.h"
 

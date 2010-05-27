@@ -25,14 +25,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "version.h"
 #include "flags.h"
-#include "real.h"
 #include "c-common.h"
 #include "c-pragma.h"
 #include "output.h"
 #include "except.h"		/* For USING_SJLJ_EXCEPTIONS.  */
-#include "debug.h"		/* For dwarf2out_do_frame.  */
+#include "debug.h"		/* For dwarf2out_do_cfi_asm.  */
 #include "toplev.h"
-#include "tm_p.h"		/* Target prototypes.  */
+#include "tm_p.h"		/* For TARGET_CPU_CPP_BUILTINS & friends.  */
 #include "target.h"
 
 #ifndef TARGET_OS_CPP_BUILTINS

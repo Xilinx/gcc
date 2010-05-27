@@ -38,7 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "output.h"
 #include "diagnostic.h"
-#include "real.h"
 
 static tree
 process_init_constructor (tree type, tree init);
@@ -515,7 +514,8 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type,
 		       "invalid use of dependent type %qT", type);
       break;
 
-    case UNKNOWN_TYPE:
+    case LANG_TYPE:
+      gcc_assert (type == unknown_type_node);
       if (value && TREE_CODE (value) == COMPONENT_REF)
 	goto bad_member;
       else if (value && TREE_CODE (value) == ADDR_EXPR)
@@ -1579,7 +1579,7 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
 
   if (TREE_CODE (type) == REFERENCE_TYPE && !parms)
     {
-      error ("invalid value-initialization of reference types");
+      error ("invalid value-initialization of reference type");
       return error_mark_node;
     }
 

@@ -30,12 +30,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "rtl.h"
 #include "flags.h"
-#include "output.h"
 #include "regs.h"
 #include "expr.h"
 #include "function.h"
+#include "basic-block.h"
 #include "toplev.h"
 #include "coverage.h"
 #include "tree.h"
@@ -44,7 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "timevar.h"
 #include "value-prof.h"
-#include "ggc.h"
 #include "cgraph.h"
 
 static GTY(()) tree gcov_type_node;
@@ -345,7 +343,7 @@ tree_gen_ic_func_profiler (void)
   gimple stmt1, stmt2;
   tree tree_uid, cur_func;
 
-  if (!c_node->needed)
+  if (cgraph_only_called_directly_p (c_node))
     return;
 
   tree_init_edge_profiler ();

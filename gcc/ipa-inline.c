@@ -128,6 +128,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "cgraph.h"
 #include "diagnostic.h"
+#include "gimple-pretty-print.h"
 #include "timevar.h"
 #include "params.h"
 #include "fibheap.h"
@@ -268,7 +269,8 @@ cgraph_clone_inlined_nodes (struct cgraph_edge *e, bool duplicate,
       else
 	{
 	  struct cgraph_node *n;
-	  n = cgraph_clone_node (e->callee, e->count, e->frequency, e->loop_nest,
+	  n = cgraph_clone_node (e->callee, e->callee->decl,
+				 e->count, e->frequency, e->loop_nest,
 				 update_original, NULL);
 	  cgraph_redirect_edge_callee (e, n);
 	}
@@ -541,6 +543,9 @@ cgraph_edge_badness (struct cgraph_edge *edge, bool dump)
     (cgraph_estimate_size_after_inlining (1, edge->caller, edge->callee)
      - edge->caller->global.size);
 
+  if (edge->callee->local.disregard_inline_limits)
+    return INT_MIN;
+
   if (dump)
     {
       fprintf (dump_file, "    Badness calculcation for %s -> %s\n",
@@ -664,7 +669,7 @@ update_caller_keys (fibheap_t heap, struct cgraph_node *node,
   struct cgraph_edge *edge;
   cgraph_inline_failed_t failed_reason;
 
-  if (!node->local.inlinable || node->local.disregard_inline_limits
+  if (!node->local.inlinable
       || node->global.inlined_to)
     return;
   if (bitmap_bit_p (updated_nodes, node->uid))
@@ -805,7 +810,8 @@ cgraph_decide_recursive_inlining (struct cgraph_node *node,
 	     cgraph_node_name (node));
 
   /* We need original clone to copy around.  */
-  master_clone = cgraph_clone_node (node, node->count, CGRAPH_FREQ_BASE, 1,
+  master_clone = cgraph_clone_node (node, node->decl,
+				    node->count, CGRAPH_FREQ_BASE, 1,
   				    false, NULL);
   master_clone->needed = true;
   for (e = master_clone->callees; e; e = e->next_callee)
@@ -1068,12 +1074,14 @@ cgraph_decide_inlining_of_small_functions (void)
 	    }
 	}
 
-      if (!cgraph_maybe_hot_edge_p (edge))
+      if (edge->callee->local.disregard_inline_limits)
+	;
+      else if (!cgraph_maybe_hot_edge_p (edge))
  	not_good = CIF_UNLIKELY_CALL;
-      if (!flag_inline_functions
+      else if (!flag_inline_functions
 	  && !DECL_DECLARED_INLINE_P (edge->callee->decl))
  	not_good = CIF_NOT_DECLARED_INLINED;
-      if (optimize_function_for_size_p (DECL_STRUCT_FUNCTION(edge->caller->decl)))
+      else if (optimize_function_for_size_p (DECL_STRUCT_FUNCTION(edge->caller->decl)))
  	not_good = CIF_OPTIMIZING_FOR_SIZE;
       if (not_good && growth > 0 && cgraph_estimate_growth (edge->callee) > 0)
 	{
@@ -1833,14 +1841,6 @@ estimate_function_body_sizes (struct cgraph_node *node)
   int freq;
   tree funtype = TREE_TYPE (node->decl);
 
-  if (node->local.disregard_inline_limits)
-    {
-      inline_summary (node)->self_time = 0;
-      inline_summary (node)->self_size = 0;
-      inline_summary (node)->time_inlining_benefit = 0;
-      inline_summary (node)->size_inlining_benefit = 0;
-    }
-
   if (dump_file)
     fprintf (dump_file, "Analyzing function body size: %s\n",
 	     cgraph_node_name (node));
@@ -1972,21 +1972,10 @@ struct gimple_opt_pass pass_inline_parameters =
 static void
 inline_indirect_intraprocedural_analysis (struct cgraph_node *node)
 {
-  struct cgraph_edge *cs;
-
-  if (!flag_ipa_cp)
-    {
-      ipa_initialize_node_params (node);
-      ipa_detect_param_modifications (node);
-    }
+  ipa_initialize_node_params (node);
+  ipa_detect_param_modifications (node);
   ipa_analyze_params_uses (node);
-
-  if (!flag_ipa_cp)
-    for (cs = node->callees; cs; cs = cs->next_callee)
-      {
-	ipa_count_arguments (cs);
-	ipa_compute_jump_functions (cs);
-      }
+  ipa_compute_jump_functions (node);
 
   if (dump_file)
     {

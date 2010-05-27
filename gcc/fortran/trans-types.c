@@ -27,18 +27,16 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "langhooks.h"
-#include "tm.h"
+#include "langhooks.h"	/* For iso-c-bindings.def.  */
 #include "target.h"
 #include "ggc.h"
-#include "toplev.h"
+#include "toplev.h"	/* For rest_of_decl_compilation/fatal_error.  */
 #include "gfortran.h"
 #include "trans.h"
 #include "trans-types.h"
 #include "trans-const.h"
-#include "real.h"
 #include "flags.h"
-#include "dwarf2out.h"
+#include "dwarf2out.h"	/* For struct array_descr_info.  */
 
 
 #if (GFC_MAX_DIMENSIONS < 10)
@@ -870,7 +868,7 @@ gfc_init_types (void)
   ppvoid_type_node = build_pointer_type (pvoid_type_node);
   pchar_type_node = build_pointer_type (gfc_character1_type_node);
   pfunc_type_node
-    = build_pointer_type (build_function_type (void_type_node, NULL_TREE));
+    = build_pointer_type (build_function_type_list (void_type_node, NULL_TREE));
 
   gfc_array_index_type = gfc_get_int_type (gfc_index_integer_kind);
   /* We cannot use gfc_index_zero_node in definition of gfc_array_range_type,
@@ -1793,6 +1791,9 @@ gfc_sym_type (gfc_symbol * sym)
 						restricted);
 	      byref = 0;
 	    }
+
+	  if (sym->attr.cray_pointee)
+	    GFC_POINTER_TYPE_P (type) = 1;
         }
       else
 	{
@@ -1808,7 +1809,7 @@ gfc_sym_type (gfc_symbol * sym)
     {
       if (sym->attr.allocatable || sym->attr.pointer)
 	type = gfc_build_pointer_type (sym, type);
-      if (sym->attr.pointer)
+      if (sym->attr.pointer || sym->attr.cray_pointee)
 	GFC_POINTER_TYPE_P (type) = 1;
     }
 
@@ -1931,7 +1932,7 @@ gfc_get_ppc_type (gfc_component* c)
   else
     t = void_type_node;
 
-  return build_pointer_type (build_function_type (t, NULL_TREE));
+  return build_pointer_type (build_function_type_list (t, NULL_TREE));
 }
 
 

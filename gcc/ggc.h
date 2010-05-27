@@ -1,7 +1,7 @@
 /* Garbage collection for the GNU compiler.
 
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007,
-   2008, 2009 Free Software Foundation, Inc.
+   2008, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -21,7 +21,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef GCC_GGC_H
 #define GCC_GGC_H
-#include "coretypes.h"
 #include "statistics.h"
 
 /* Symbols are marked with `ggc' for `gcc gc' so as not to interfere with
@@ -44,10 +43,6 @@ typedef void (*gt_pointer_operator) (void *, void *);
 typedef void (*gt_note_pointers) (void *, void *, gt_pointer_operator,
 				  void *);
 
-/* Used by the gt_pch_n_* routines.  Register an object in the hash table.  */
-extern int gt_pch_note_object (void *, void *, gt_note_pointers,
-			       enum gt_types_enum);
-
 /* One of these is called before objects are re-ordered in memory.
    The first parameter is the original object, the second is the
    subobject that has had its pointers reordered, the third parameter
@@ -55,6 +50,10 @@ extern int gt_pch_note_object (void *, void *, gt_note_pointers,
    the fourth parameter.  */
 typedef void (*gt_handle_reorder) (void *, void *, gt_pointer_operator,
 				   void *);
+
+/* Used by the gt_pch_n_* routines.  Register an object in the hash table.  */
+extern int gt_pch_note_object (void *, void *, gt_note_pointers,
+			       enum gt_types_enum);
 
 /* Used by the gt_pch_n_* routines.  Register that an object has a reorder
    function.  */
@@ -206,15 +205,14 @@ extern void * ggc_cleared_alloc_htab_ignore_args (size_t, size_t);
 extern void * ggc_cleared_alloc_ptr_array_two_args (size_t, size_t);
 
 #define htab_create_ggc(SIZE, HASH, EQ, DEL) \
-  htab_create_alloc_with_separate_allocators (SIZE, HASH, EQ, DEL,	\
-					      ggc_cleared_alloc_htab_ignore_args, \
-					      ggc_cleared_alloc_ptr_array_two_args, \
-					      ggc_free)
+  htab_create_typed_alloc (SIZE, HASH, EQ, DEL,	\
+			   ggc_cleared_alloc_htab_ignore_args,		\
+			   ggc_cleared_alloc_ptr_array_two_args,	\
+			   ggc_free)
 
-#define splay_tree_new_ggc(COMPARE, ALLOC_TREE, ALLOC_NODE)		      \
-  splay_tree_new_with_separate_allocators (COMPARE, NULL, NULL,	&ALLOC_TREE,  \
-					   &ALLOC_NODE, &ggc_splay_dont_free, \
-					   NULL)
+#define splay_tree_new_ggc(COMPARE, ALLOC_TREE, ALLOC_NODE)		     \
+  splay_tree_new_typed_alloc (COMPARE, NULL, NULL, &ALLOC_TREE, &ALLOC_NODE, \
+			      &ggc_splay_dont_free, NULL)
 
 extern void *ggc_splay_alloc (enum gt_types_enum, int, void *);
 

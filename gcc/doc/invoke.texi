@@ -187,7 +187,7 @@ in the following sections.
 -fno-implicit-templates @gol
 -fno-implicit-inline-templates @gol
 -fno-implement-inlines  -fms-extensions @gol
--fno-nonansi-builtins  -fno-operator-names @gol
+-fno-nonansi-builtins  -fnothrow-opt  -fno-operator-names @gol
 -fno-optional-diags  -fpermissive @gol
 -fno-pretty-templates @gol
 -frepo  -fno-rtti  -fstats  -ftemplate-depth=@var{n} @gol
@@ -346,7 +346,7 @@ Objective-C and Objective-C++ Dialects}.
 -finline-functions -finline-functions-called-once -finline-limit=@var{n} @gol
 -finline-small-functions -fipa-cp -fipa-cp-clone -fipa-matrix-reorg -fipa-pta @gol
 -fipa-profile -fipa-pure-const -fipa-reference -fipa-struct-reorg @gol
--fipa-type-escape -fira-algorithm=@var{algorithm} @gol
+-fira-algorithm=@var{algorithm} @gol
 -fira-region=@var{region} -fira-coalesce @gol
 -fira-loop-pressure -fno-ira-share-save-slots @gol
 -fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
@@ -391,9 +391,9 @@ Objective-C and Objective-C++ Dialects}.
 -funit-at-a-time -funroll-all-loops -funroll-loops @gol
 -funsafe-loop-optimizations -funsafe-math-optimizations -funswitch-loops @gol
 -fvariable-expansion-in-unroller -fvect-cost-model -fvpt -fweb @gol
--fwhole-program -fwhopr -fwpa -fuse-linker-plugin @gol
+-fwhole-program -fwhopr[=@var{n}] -fwpa -fuse-linker-plugin @gol
 --param @var{name}=@var{value}
--O  -O0  -O1  -O2  -O3  -Os}
+-O  -O0  -O1  -O2  -O3  -Os -Ofast}
 
 @item Preprocessor Options
 @xref{Preprocessor Options,,Options Controlling the Preprocessor}.
@@ -1172,9 +1172,9 @@ program and of the preprocessor and the compiler proper.
 
 @item -###
 @opindex ###
-Like @option{-v} except the commands are not executed and all command
-arguments are quoted.  This is useful for shell scripts to capture the
-driver-generated command lines.
+Like @option{-v} except the commands are not executed and arguments
+are quoted unless they contain only alphanumeric characters or @code{./-_}.
+This is useful for shell scripts to capture the driver-generated command lines.
 
 @item -pipe
 @opindex pipe
@@ -1928,6 +1928,18 @@ int and getting a pointer to member function via non-standard syntax.
 Disable built-in declarations of functions that are not mandated by
 ANSI/ISO C@.  These include @code{ffs}, @code{alloca}, @code{_exit},
 @code{index}, @code{bzero}, @code{conjf}, and other related functions.
+
+@item -fnothrow-opt
+@opindex fnothrow-opt
+Treat a @code{throw()} exception specification as though it were a
+@code{noexcept} specification to reduce or eliminate the text size
+overhead relative to a function with no exception specification.  If
+the function has local variables of types with non-trivial
+destructors, the exception specification will actually make the
+function smaller because the EH cleanups for those variables can be
+optimized away.  The semantic effect is that an exception thrown out of
+a function with such an exception specification will result in a call
+to @code{terminate} rather than @code{unexpected}.
 
 @item -fno-operator-names
 @opindex fno-operator-names
@@ -2755,12 +2767,13 @@ Warn if feedback profiles do not match when using the
 If a source file was changed between @option{-fprofile-gen} and
 @option{-fprofile-use}, the files with the profile feedback can fail
 to match the source file and GCC can not use the profile feedback
-information.  By default, GCC emits an error message in this case.
-The option @option{-Wcoverage-mismatch} emits a warning instead of an
-error.  GCC does not use appropriate feedback profiles, so using this
-option can result in poorly optimized code.  This option is useful
-only in the case of very minor changes such as bug fixes to an
-existing code-base.
+information.  By default, this warning is enabled and is treated as an
+error.  @option{-Wno-coverage-mismatch} can be used to disable the
+warning or @option{-Wno-error=coverage-mismatch} can be used to
+disable the error.  Disable the error for this warning can result in
+poorly optimized code, so disabling the error is useful only in the
+case of very minor changes such as bug fixes to an existing code-base.
+Completely disabling the warning is not recommended.
 
 @end table
 
@@ -2900,8 +2913,8 @@ Options} and @ref{Objective-C and Objective-C++ Dialect Options}.
 -Wc++0x-compat  @gol
 -Wchar-subscripts  @gol
 -Wenum-compare @r{(in C/Objc; this is on by default in C++)} @gol
--Wimplicit-int  @gol
--Wimplicit-function-declaration  @gol
+-Wimplicit-int @r{(C and Objective-C only)} @gol
+-Wimplicit-function-declaration @r{(C and Objective-C only)} @gol
 -Wcomment  @gol
 -Wformat   @gol
 -Wmain @r{(only for C/ObjC and unless} @option{-ffreestanding}@r{)}  @gol
@@ -3144,7 +3157,7 @@ enabled by default and it is made into an error by
 @option{-pedantic-errors}. This warning is also enabled by
 @option{-Wall}.
 
-@item -Wimplicit
+@item -Wimplicit @r{(C and Objective-C only)}
 @opindex Wimplicit
 @opindex Wno-implicit
 Same as @option{-Wimplicit-int} and @option{-Wimplicit-function-declaration}.
@@ -5878,6 +5891,13 @@ optimizations designed to reduce code size.
 -falign-labels  -freorder-blocks  -freorder-blocks-and-partition @gol
 -fprefetch-loop-arrays  -ftree-vect-loop-version}
 
+@item -Ofast
+@opindex Ofast
+Disregard strict standards compliance.  @option{-Ofast} enables all
+@option{-O3} optimizations.  It also enables optimizations that are not
+valid for all standard compliant programs.
+It turns on @option{-ffast-math}.
+
 If you use multiple @option{-O} options, with or without level numbers,
 the last such option is the one that is effective.
 @end table
@@ -6623,8 +6643,7 @@ Perform structure reorganization optimization, that change C-like structures
 layout in order to better utilize spatial locality.  This transformation is
 affective for programs containing arrays of structures.  Available in two
 compilation modes: profile-based (enabled with @option{-fprofile-generate})
-or static (which uses built-in heuristics).  Require @option{-fipa-type-escape}
-to provide the safety of this transformation.  It works only in whole program
+or static (which uses built-in heuristics).  It works only in whole program
 mode, so it requires @option{-fwhole-program} and @option{-combine} to be
 enabled.  Structures considered @samp{cold} by this transformation are not
 affected (see @option{--param struct-reorg-cold-struct-ratio=@var{value}}).
@@ -7433,7 +7452,7 @@ information.  Combining @option{-flto} or @option{-fwhopr} with
 
 This option is disabled by default.
 
-@item -fwhopr
+@item -fwhopr[=@var{n}]
 @opindex fwhopr
 This option is identical in functionality to @option{-flto} but it
 differs in how the final link stage is executed.  Instead of loading
@@ -7445,9 +7464,12 @@ LTRANS)@.  This process allows optimizations on very large programs
 that otherwise would not fit in memory.  This option enables
 @option{-fwpa} and @option{-fltrans} automatically.
 
-Disabled by default.
+If you specify the optional @var{n} the link stage is executed in
+parallel using @var{n} parallel jobs by utilizing an installed
+@command{make} program.  The environment variable @env{MAKE} may be
+used to override the program used.
 
-This option is experimental.
+Disabled by default.
 
 @item -fwpa
 @opindex fwpa
@@ -8509,8 +8531,7 @@ The size of L2 cache, in kilobytes.
 
 @item min-insn-to-prefetch-ratio
 The minimum ratio between the number of instructions and the
-number of prefetches to enable prefetching in a loop with an
-unknown trip count.
+number of prefetches to enable prefetching in a loop.
 
 @item prefetch-min-insn-to-mem-ratio
 The minimum ratio between the number of instructions and the
@@ -9741,13 +9762,6 @@ Put functions, data, and readonly data in @var{text-section},
 by default.  This can be overridden with the @code{section} attribute.
 @xref{Variable Attributes}.
 
-@item -mfix-cortex-m3-ldrd
-@opindex mfix-cortex-m3-ldrd
-Some Cortex-M3 cores can cause data corruption when @code{ldrd} instructions
-with overlapping destination and base registers are used.  This option avoids
-generating these instructions.  This option is enabled by default when
-@option{-mcpu=cortex-m3} is specified.
-
 @end table
 
 @node ARM Options
@@ -10093,6 +10107,13 @@ Only generate absolute relocations on word sized values (i.e. R_ARM_ABS32).
 This is enabled by default on targets (uClinux, SymbianOS) where the runtime
 loader imposes this restriction, and when @option{-fpic} or @option{-fPIC}
 is specified.
+
+@item -mfix-cortex-m3-ldrd
+@opindex mfix-cortex-m3-ldrd
+Some Cortex-M3 cores can cause data corruption when @code{ldrd} instructions
+with overlapping destination and base registers are used.  This option avoids
+generating these instructions.  This option is enabled by default when
+@option{-mcpu=cortex-m3} is specified.
 
 @end table
 

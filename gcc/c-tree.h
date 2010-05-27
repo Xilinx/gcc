@@ -306,11 +306,11 @@ struct c_arg_info {
   /* A list of non-parameter decls (notably enumeration constants)
      defined with the parameters.  */
   tree others;
-  /* A list of VLA sizes from the parameters.  In a function
+  /* A VEC of VLA sizes from the parameters.  In a function
      definition, these are used to ensure that side-effects in sizes
      of arrays converted to pointers (such as a parameter int i[n++])
      take place; otherwise, they are ignored.  */
-  tree pending_sizes;
+  VEC(tree,gc) *pending_sizes;
   /* True when these arguments had [*].  */
   BOOL_BITFIELD had_vla_unspec : 1;
 };
@@ -506,6 +506,7 @@ extern tree c_objc_common_truthvalue_conversion (location_t, tree);
 extern tree require_complete_type (tree);
 extern int same_translation_unit_p (const_tree, const_tree);
 extern int comptypes (tree, tree);
+extern int comptypes_check_different_types (tree, tree, bool *);
 extern bool c_vla_type_p (const_tree);
 extern bool c_mark_addressable (tree);
 extern void c_incomplete_type_error (const_tree, const_tree);

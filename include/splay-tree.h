@@ -1,5 +1,5 @@
 /* A splay-tree datatype.  
-   Copyright 1998, 1999, 2000, 2002, 2005, 2007, 2009
+   Copyright 1998, 1999, 2000, 2002, 2005, 2007, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Mark Mitchell (mark@markmitchell.com).
 
@@ -120,7 +120,7 @@ struct GTY(()) splay_tree_s {
   splay_tree_delete_value_fn delete_value;
 
   /* Node allocate function.  Takes allocate_data as a parameter. */
-  splay_tree_allocate_fn allocate_node;
+  splay_tree_allocate_fn allocate;
 
   /* Free function for nodes and trees.  Takes allocate_data as a parameter.  */
   splay_tree_deallocate_fn deallocate;
@@ -140,13 +140,13 @@ extern splay_tree splay_tree_new_with_allocator (splay_tree_compare_fn,
 						 splay_tree_allocate_fn,
 						 splay_tree_deallocate_fn,
 						 void *);
-extern splay_tree splay_tree_new_with_separate_allocators (splay_tree_compare_fn,
-							   splay_tree_delete_key_fn,
-							   splay_tree_delete_value_fn,
-							   splay_tree_allocate_fn,
-							   splay_tree_allocate_fn,
-							   splay_tree_deallocate_fn,
-							   void *);
+extern splay_tree splay_tree_new_typed_alloc (splay_tree_compare_fn,
+					      splay_tree_delete_key_fn,
+					      splay_tree_delete_value_fn,
+					      splay_tree_allocate_fn,
+					      splay_tree_allocate_fn,
+					      splay_tree_deallocate_fn,
+					      void *);
 extern void splay_tree_delete (splay_tree);
 extern splay_tree_node splay_tree_insert (splay_tree,
 					  splay_tree_key,
