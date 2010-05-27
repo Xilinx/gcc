@@ -18,12 +18,16 @@ PYTHON_EXES = python
 
 .phony: python
 
+GCCPY_INSTALL_NAME := $(shell echo gccpy|sed '$(program_transform_name)')
+GCCPY_TARGET_INSTALL_NAME := $(target_noncanonical)-$(shell echo gccpy|sed '$(program_transform_name)')
+
 python: gccpy$(exeext) gpy1$(exeext)
 
 gpy1.o: $(srcdir)/python/gpy1.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
-  gtype-gpy.h
-	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(srcdir)/python/gpy1.c
+  gt-python-gpy1.h gtype-python.h
+	$(CC) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(LDFLAGS) -c -o $@ $(srcdir)/python/gpy1.c
 
 GCCPY_C_OBJS = gpy1.o $(BACKEND) $(LIBSDEPS) attribs.o
 gpy1$(exeext): $(GCCPY_C_OBJS)
@@ -33,7 +37,7 @@ gpy1$(exeext): $(GCCPY_C_OBJS)
 gccpy.o: $(srcdir)/python/gccpy.c $(CONFIG_H) $(SYSTEM_H) \
   coretypes.h $(DIAGNOSTIC_H) $(TREE_H) $(FLAGS_H) toplev.h langhooks.h $(TM_H)
 	$(CC) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(DRIVER_DEFINES) \
-		$(INCLUDES) $(LDFLAGS) -o $@ $(srcdir)/python/gccpy.c
+		$(INCLUDES) $(LDFLAGS) -c -o $@ $(srcdir)/python/gccpy.c
 
 GCCPY_D_OBJS = $(GCC_OBJS) gccpy.o version.o prefix.o intl.o
 gccpy$(exeext): $(GCCPY_D_OBJS) $(EXTRA_GCC_OBJS) $(LIBDEPS)

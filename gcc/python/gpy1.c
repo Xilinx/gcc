@@ -32,6 +32,22 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks-def.h"
 #include "target.h"
 
+/* Language-dependent contents of an identifier.  */
+
+struct GTY(()) lang_identifier {
+  struct tree_identifier common;
+};
+
+/* The resulting tree type.  */
+union GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
+     chain_next ("(union lang_tree_node *)TREE_CHAIN (&%h.generic)")))
+
+lang_tree_node {
+  union tree_node GTY((tag ("0"),
+		       desc ("tree_node_structure (&%h)"))) generic;
+  struct lang_identifier GTY((tag ("1"))) identifier;
+};
+
 struct GTY(()) lang_type
 {
   char dummy;
@@ -40,20 +56,6 @@ struct GTY(()) lang_type
 struct GTY(()) lang_decl
 {
   char dummy;
-};
-
-struct GTY(()) lang_identifier
-{
-  struct tree_identifier common;
-};
-
-union GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
-	   chain_next ("(union lang_tree_node *) TREE_CHAIN (&%h.generic)")))
-lang_tree_node
-{
-  union tree_node GTY((tag ("0"),
-		       desc ("tree_node_structure (&%h)"))) generic;
-  struct lang_identifier GTY((tag ("1"))) identifier;
 };
 
 /* We don't use language_function.  */
@@ -74,8 +76,8 @@ bool gpy_langhook_init( void )
 /* Initialize before parsing options.  */
 
 static unsigned int
-gpy_langhook_init_options (unsigned int argc ATTRIBUTE_UNUSED,
-			  const char** argv ATTRIBUTE_UNUSED)
+gpy_langhook_init_options( unsigned int argc ATTRIBUTE_UNUSED,
+			   const char** argv ATTRIBUTE_UNUSED )
 {
   return 0;
 }
@@ -83,8 +85,9 @@ gpy_langhook_init_options (unsigned int argc ATTRIBUTE_UNUSED,
 /* Handle Go specific options.  Return 0 if we didn't do anything.  */
 
 static int
-gpy_langhook_handle_option (size_t scode, const char *arg,
-			    int value ATTRIBUTE_UNUSED)
+gpy_langhook_handle_option( size_t scode ATTRIBUTE_UNUSED,
+			    const char *arg ATTRIBUTE_UNUSED,
+			    int value ATTRIBUTE_UNUSED )
 {
   return 1;
 }
@@ -104,19 +107,20 @@ gpy_langhook_parse_file( int set_yy_debug ATTRIBUTE_UNUSED )
 }
 
 static tree
-gpy_langhook_type_for_size (unsigned int bits, int unsignedp)
+gpy_langhook_type_for_size( unsigned int bits ATTRIBUTE_UNUSED,
+			    int unsignedp ATTRIBUTE_UNUSED )
 {
   return 0;
 }
 
 static tree
-gpy_langhook_type_for_mode (enum machine_mode mode, int unsignedp)
+gpy_langhook_type_for_mode( enum machine_mode mode ATTRIBUTE_UNUSED,
+			    int unsignedp ATTRIBUTE_UNUSED )
 {
   return 0;
 }
 
 /* Record a builtin function.  We just ignore builtin functions.  */
-
 static tree
 gpy_langhook_builtin_function( tree decl )
 {
@@ -132,6 +136,7 @@ gpy_langhook_global_bindings_p( void )
 static tree
 gpy_langhook_pushdecl( tree decl ATTRIBUTE_UNUSED )
 {
+  gcc_unreachable( );
   return NULL;
 }
 
@@ -141,8 +146,6 @@ tree gpy_langhook_getdecls( void )
   return NULL;
 }
 
-/* Write out globals.  */
-
 static void
 gpy_langhook_write_globals( void )
 {
@@ -150,17 +153,21 @@ gpy_langhook_write_globals( void )
 }
 
 static int
-gpy_langhook_gimplify_expr( tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p )
+gpy_langhook_gimplify_expr( tree *expr_p ATTRIBUTE_UNUSED,
+			    gimple_seq *pre_p ATTRIBUTE_UNUSED,
+			    gimple_seq *post_p ATTRIBUTE_UNUSED )
 {
   return 0;
 }
 
 static GTY(()) tree gpy_gc_root;
 
-void gpy_preserve_from_gc( tree t )
+void
+gpy_preserve_from_gc( tree t ATTRIBUTE_UNUSED )
 {
   return;
 }
+
 
 #undef LANG_HOOKS_NAME
 #undef LANG_HOOKS_INIT
@@ -177,7 +184,7 @@ void gpy_preserve_from_gc( tree t )
 #undef LANG_HOOKS_WRITE_GLOBALS
 #undef LANG_HOOKS_GIMPLIFY_EXPR
 
-#define LANG_HOOKS_NAME			"Python"
+#define LANG_HOOKS_NAME			"GNU Python"
 #define LANG_HOOKS_INIT			gpy_langhook_init
 #define LANG_HOOKS_INIT_OPTIONS		gpy_langhook_init_options
 #define LANG_HOOKS_HANDLE_OPTION	gpy_langhook_handle_option
@@ -194,4 +201,5 @@ void gpy_preserve_from_gc( tree t )
 
 struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
-#include "gtype-gpy.h"
+#include "gt-python-gpy1.h"
+#include "gtype-python.h"
