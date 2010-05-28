@@ -32,7 +32,7 @@ py-lang.o: $(srcdir)/python/py-lang.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H
 GCCPY_C_OBJS = py-lang.o $(BACKEND) $(LIBSDEPS) attribs.o
 gpy1$(exeext): $(GCCPY_C_OBJS)
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(GCCPY_C_OBJS) \
-	$(GMPLIBS) $(BACKEND) $(LIBS) $(BACKENDLIBS) 
+	$(GMPLIBS) $(LIBS) $(BACKENDLIBS) 
 
 pyspec.o: $(srcdir)/python/pyspec.c $(CONFIG_H) $(SYSTEM_H) \
   coretypes.h $(DIAGNOSTIC_H) $(TREE_H) $(FLAGS_H) toplev.h langhooks.h $(TM_H)

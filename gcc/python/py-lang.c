@@ -85,7 +85,8 @@ gpy_langhook_init_options( unsigned int argc ATTRIBUTE_UNUSED,
 static int
 gpy_langhook_handle_option( size_t scode,
 			    const char *arg ATTRIBUTE_UNUSED,
-			    int value ATTRIBUTE_UNUSED )
+			    int value ATTRIBUTE_UNUSED,
+			    int kind ATTRIBUTE_UNUSED )
 {
   enum opt_code code = (enum opt_code) scode;
   int retval = 1;
@@ -188,7 +189,7 @@ gpy_preserve_from_gc( tree t ATTRIBUTE_UNUSED )
 }
 
 #undef LANG_HOOKS_NAME
-#undef LANG_HOOKS_INIT
+#undef LANG_HOOKS_INIT 
 #undef LANG_HOOKS_INIT_OPTIONS
 #undef LANG_HOOKS_HANDLE_OPTION
 #undef LANG_HOOKS_POST_OPTIONS
@@ -219,5 +220,5 @@ gpy_preserve_from_gc( tree t ATTRIBUTE_UNUSED )
 
 struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
-#include "gt-python-gpy1.h"
+#include "gt-python-py-lang.h"
 #include "gtype-python.h"
