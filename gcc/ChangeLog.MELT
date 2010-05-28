@@ -1,5 +1,13 @@
 
 2010-05-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: The field MDATA_STEPS of
+	class_matched_data is transformed to a tuple once mature.  Added
+	field mstep_index to class_match_step. Removed field
+	nmlab_nbremsteps from class_nrep_match_label. Removed formal
+	nbothersteps from normalize_step selector & methods, and from
+	complete_normstep_if_last & altmatch_normalize_step.
+
+2010-05-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{the compiler can be bootstrapped with a non gcc-4.5 compiler;
 	however the compare fail for melt-runtime.o because it is compiled
 	with varying -DMELT_MODULE_CFLAGS}}

@@ -2427,7 +2427,9 @@ objectmap from symbols to the list of their pattern variables.}#
   :super class_proped
   :doc #{The $CLASS_MATCHED_DATA describes some matched data. Field
 $MDATA_SYMB gives the symbol, $MDATA_CTYPE gives the
-ctype. $MDATA_ORIG is the origin step or data. $MDATA_STEPS is the list of match steps.}#
+ctype. $MDATA_ORIG is the origin step or data. $MDATA_STEPS is the
+list of match steps, transformed into a tuple when all steps have been
+made.}#
   :fields ( mdata_symb
 	    mdata_ctype
 	    mdata_orig
@@ -2478,9 +2480,12 @@ $MATCHBIND_NBOCC is the number of occurrences.}#
 (defclass class_match_step
   :super class_located
   :doc #{The $CLASS_MATCH_STEP describes an elementary step of pattern
-matching, like tests, success, etc... The $MSTEP_DATA is the matched
-data.}#
+matching, like tests, success, etc... The $MSTEP_DATA field is the
+matched data. The $MSTEP_INDEX field is the boxed integer index
+counting from 1 of this step within its data, it is filled when all
+steps have been made.}#
   :fields ( mstep_data
+	    mstep_index 
 	    ))
 
 (defclass class_match_flag
@@ -4445,10 +4450,8 @@ instances of $CLASS_NREP_MATCH_FLAG.}#
   :super class_nrep_expression
   :doc #{ A normal match label of $CLASS_NREP_MATCH_LABEL is just a
 point which can be jumped to. It corresponds to a match step given by
-the field $NMLAB_STEP. Field $NMLAB_NBREMSTEPS gives the boxed number
-of remaining other steps for the same matched data.}#
-  :fields (nmlab_step
-	   nmlab_nbremsteps))
+the field $NMLAB_STEP.}#
+  :fields (nmlab_step))
 
 (defclass class_nrep_match_label_end
   :super class_nrep_match_label
@@ -4552,22 +4555,37 @@ $NTESTISA_JUMP.}#
 ;;;;;;;;;;;;;;;;
 (defselector normalize_step class_selector
   :doc #{The selector $NORMALIZE_STEP normalize a given $STEP within a
-match normalization context $NMCTXT, a source location $SLOC, a number
-of remaining other steps $NBOTHERSTEPS and returns a list or tuple of
-normalized expressions, or a single such normalized expression.}#
-  :formals (step nmctxt sloc :long nbothersteps)
+match normalization context $NMCTXT, a source location $SLOC, and
+returns a list or tuple of normalized expressions, or a single such
+normalized expression.}#
+  :formals (step nmctxt sloc)
 )
 
-
-(defun complete_normstep_if_last (step normstep nmctxt :long nbothersteps)
+;; this utility function completes a normstep if the step is the last
+;; in its data, or else return the normstep unchanged...
+(defun complete_normstep_if_last (step normstep nmctxt)
+  (debug_msg step "complete_normstep_if_last step")
   (assert_msg "check step" (is_a step class_match_step))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
-  (if nbothersteps
-      (return normstep)
-    (let ( (matdata (unsafe_get_field :mstep_data step))
-	   (datamap (unsafe_get_field :matnorx_datamap nmctxt))
-	   (ndata (mapobject_get datamap matdata))
-	   )
+  (let ( (matdata (unsafe_get_field :mstep_data step))
+	 (matindex (unsafe_get_field :mstep_index step))
+	 (datamap (unsafe_get_field :matnorx_datamap nmctxt))
+	 (ndata (mapobject_get datamap matdata))
+	 )
+    (assert_msg "check matdata" (is_a matdata class_matched_data))
+    (assert_msg "check matindex" (is_integerbox matindex))
+    (let ( (:long numindex (get_int matindex))
+	   (datasteps (unsafe_get_field :mdata_steps matdata))
+	   (:long nbdatasteps (multiple_length datasteps))
+	  )
+      (assert_msg "check numindex" (>i numindex 0))
+      (assert_msg "check nbdatasteps" (>i nbdatasteps 0))
+      (assert_msg "good numindex" (<=i numindex nbdatasteps))
+      (if (<i numindex nbdatasteps)
+	  (progn
+	    (debug_msg normstep "complete_normstep_if_last return non-last normstep")
+	    (return normstep)
+	    ))
       (debug_msg step "complete_normstep_if_last last step")
       (debug_msg ndata "complete_normstep_if_last ndata")
       (assert_msg "check ndata" (is_a ndata class_nrep_simple))
@@ -4600,13 +4618,9 @@ normalized expressions, or a single such normalized expression.}#
 		  (:else
 		   (debug_msg normstep "complete_normstep_if_last bad normstep")
 		   (assert_msg "complete_normstep_if_last unexpected normstep" ())
-		   )))
-	(progn
-	  (debug_msg normstep "complete_normstep_if_last keep normstep")
-	  (return normstep)
-	  )))))
+		   )))))))
 
-(defun normstep_anyrecv (recv nmctxt sloc :long nbothersteps)
+(defun normstep_anyrecv (recv nmctxt sloc)
   (debug_msg recv "normstep_anyrecv recv")
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let ( (dis (discrim recv))
@@ -4619,14 +4633,14 @@ normalized expressions, or a single such normalized expression.}#
 (install_method  discr_any_receiver normalize_step normstep_anyrecv)
 
 
-(defun normstep_mflagset (step nmctxt sloc :long nbothersteps)
+(defun normstep_mflagset (step nmctxt sloc)
   (debug_msg step "normstep_mflagset step")
   (assert_msg "check step" (is_a step class_match_step_flag_set))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
 	  (matflag (unsafe_get_field :mstep_flag step))
 	  (matthen (unsafe_get_field :mstep_then step))
-	  (nthen (altmatch_normalize_step matthen nmctxt nbothersteps))
+	  (nthen (altmatch_normalize_step matthen nmctxt))
 	  (nflag (altmatch_normalize_flag matflag nmctxt))
 	  (nsetflag (instance  class_nrep_setq 
 			       :nrep_loc nsloc
@@ -4637,13 +4651,13 @@ normalized expressions, or a single such normalized expression.}#
 	  (nlisti (list nsetflag njump))
 	  )
     (debug_msg nlisti "normstep_mflagset nlisti")
-    (let ( (res (complete_normstep_if_last step nlisti nmctxt nbothersteps)) )
+    (let ( (res (complete_normstep_if_last step nlisti nmctxt)) )
       (debug_msg res "normstep_mflagset return res")
       (return res)
       )))
 (install_method class_match_step_flag_set normalize_step normstep_mflagset)
 
-(defun normstep_mtestinstance (step nmctxt sloc :long nbothersteps)
+(defun normstep_mtestinstance (step nmctxt sloc)
   (debug_msg step "normstep_mtestinstance step")
   (assert_msg "check step" (is_a step class_match_step_test_instance))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
@@ -4661,8 +4675,8 @@ normalized expressions, or a single such normalized expression.}#
     (debug_msg matthen "normstep_mtestinstance matthen")
     (debug_msg matelse "normstep_mtestinstance matelse")
     (let (
-	  (nthen (altmatch_normalize_step matthen nmctxt nbothersteps))
-	  (nelse (altmatch_normalize_step matelse nmctxt nbothersteps))
+	  (nthen (altmatch_normalize_step matthen nmctxt))
+	  (nelse (altmatch_normalize_step matelse nmctxt))
 	  )
       (debug_msg nthen "normstep_mtestinstance nthen")
       (debug_msg nelse "normstep_mtestinstance nelse")
@@ -4670,8 +4684,28 @@ normalized expressions, or a single such normalized expression.}#
       )))
 (install_method class_match_step_test_instance normalize_step normstep_mtestinstance)
 
+(defun normstep_mtestvar (step nmctxt sloc)
+  (debug_msg step "normstep_mtestvar step")
+  (assert_msg "check step" (is_a step class_match_step_test_variable))
+  (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
+  (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
+	  (matflag (unsafe_get_field :mstep_flag step))
+	  (matthen (unsafe_get_field :mstep_then step))
+	  (matelse (unsafe_get_field :mstep_else step))
+	  )
+    (debug_msg matthen "normstep_mtestvar matthen")
+    (debug_msg matelse "normstep_mtestvar matelse")
+    (let (
+	  (nthen (altmatch_normalize_step matthen nmctxt))
+	  (nelse (altmatch_normalize_step matelse nmctxt))
+	  )
+      (debug_msg nthen "normstep_mtestvar nthen")
+      (debug_msg nelse "normstep_mtestvar nelse")
+      (assert_msg "$@$unimplemented normstep_mtestvar"))))
+(install_method class_match_step_test_variable normalize_step normstep_mtestvar)
+    
 ;;; utility to normalize a step with a match normalization context
-(defun altmatch_normalize_step (step nmctxt :long nbothersteps)
+(defun altmatch_normalize_step (step nmctxt)
   (debug_msg step "altmatch_normalize_step step")
   (assert_msg "altmatch_normalize_step check step" (is_a step class_match_step))
   (assert_msg "altmatch_normalize_step check nmctxt" (is_a nmctxt class_match_normalization_context))
@@ -4684,10 +4718,7 @@ normalized expressions, or a single such normalized expression.}#
 	(let ( (newlab 
 		(instance class_nrep_match_label
 			  :nrep_loc sloc
-			  :nmlab_step step
-			  :nmlab_nbremsteps
-			  (make_integerbox discr_constant_integer nbothersteps)
-				 ))
+			  :nmlab_step step))
 	       )
 	  (debug_msg newlab "altmatch_normalize_step newlab")
 	  (mapobject_put stepmap step newlab)
@@ -4747,20 +4778,27 @@ normalized expressions, or a single such normalized expression.}#
   (debug_msg ndata "altmatch_handle_normalized_mdata ndata")
   (assert_msg "check matdata" (is_a matdata class_matched_data))
   (assert_msg "check ndata" (is_a ndata class_nrep_simple))
-  (let ( (msteps (unsafe_get_field :mdata_steps matdata))
-	 (boxcountsteps (make_integerbox discr_integer (list_length msteps)))
+  (let ( (mstepslist (unsafe_get_field :mdata_steps matdata))
+	 (mstepstupl (list_to_multiple mstepslist))
 	 )
-    (debug_msg msteps "altmatch_handle_normalized_mdata msteps")
-    (assert_msg "check msteps" (is_list msteps))
-    (foreach_in_list
-     (msteps)
-     (curpair curstep)
+    (debug_msg mstepslist "altmatch_handle_normalized_mdata mstepslist")
+    (assert_msg "check mstepslist" (is_list mstepslist))
+    (foreach_in_multiple
+     (mstepstupl)
+     (curmstep :long stepix)
+     (assert_msg "check curmstep" (is_a curmstep class_match_step))
+     (put_fields curmstep 
+		 :mstep_index
+		 (make_integerbox discr_constant_integer (+i stepix 1)))
+     )
+    (unsafe_put_fields matdata :mdata_steps mstepstupl)
+    (debug_msg mstepstupl "altmatch_handle_normalized_mdata mstepstupl")
+    (foreach_in_multiple
+     (mstepstupl)
+     (curstep :long stepix)
      (debug_msg curstep "altmatch_handle_normalized_mdata curstep")
-     (let ( (:long prevcnt (-i (get_int boxcountsteps) 1))
-	    )
-       (altmatch_normalize_step curstep nmctxt prevcnt)
-       (put_int boxcountsteps prevcnt)
-       ))
+     (altmatch_normalize_step curstep nmctxt)
+     )
     (debug_msg nmctxt "altmatch_normalize_step final nmctxt")
     ))
 
@@ -4845,8 +4883,8 @@ normalized expressions, or a single such normalized expression.}#
 	  (debug_msg freshmstep "altmatch_normalize_case freshmstep")
 	  (if (null freshmstep) (exit matchstepnormalizeloop))
 	  (debug_msg freshlab "altmatch_normalize_case freshlab")
-	  (let ( (nbothersteps (get_int (get_field :nmlab_nbremsteps freshlab))) 
-		 (normstep (normalize_step freshmstep nmctxt sloc nbothersteps)) 
+	  (let ( 
+		 (normstep (normalize_step freshmstep nmctxt sloc)) 
 		 )
 	    (list_append bodyl freshlab)
 	    (debug_msg normstep "altmatch_normalize_case normstep")
@@ -4905,8 +4943,7 @@ normalized expressions, or a single such normalized expression.}#
 	    ;; the end label
 	    (endlab (instance class_nrep_match_label_end
 			      :nrep_loc sloc
-			      :nmlab_step ()
-			      :nmlab_nbremsteps '-1)
+			      :nmlab_step ())
 		    )
 	    (matctx (instance class_matching_context
 			      :mctx_normctxt ncx
