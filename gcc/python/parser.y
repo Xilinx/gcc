@@ -15,16 +15,42 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+#include "config.h"
+#include "system.h"
+#include "ansidecl.h"
+#include "coretypes.h"
+#include "opts.h"
+#include "tree.h"
+#include "gimple.h"
+#include "toplev.h"
+#include "debug.h"
+#include "options.h"
+#include "flags.h"
+#include "convert.h"
+#include "diagnostic-core.h"
+#include "langhooks.h"
+#include "langhooks-def.h"
+#include "target.h"
+
+#include "vec.h"
+
+#include "gpy.h"
+#include "y.py.h"
+
+#include <gmp.h>
+#include <mpfr.h>
+
+extern int yylineno;
+
 extern int yylex( void );
 extern void yyerror( const char * );
 %}
 
 %union {
   char * string;
+  long int integer;
 }
 
-%language "c"
-%locations
 %error-verbose
 
 %token CLASS
@@ -34,7 +60,7 @@ extern void yyerror( const char * );
 %token RETURN
 %token FOR
 %token WHILE
-%token print
+%token PRINT
 
 %token IF
 %token ELIF
@@ -54,9 +80,6 @@ extern void yyerror( const char * );
 %token IDENTIFIER
 %token INTEGER
 %token STRING
-%token FLOAT
-%token FALSE
-%token TRUE
 
 %left '-' '+'
 %left '*' '/'
@@ -134,13 +157,16 @@ argument_list: argument_list ',' expression
              ;
 
 primary: INTEGER
-       | FLOAT
        | STRING
        | NONE
-       | TRUE
-       | FALSE
        | accessor
        | call
        ;
 
 %%
+
+void yyerror( const char *msg )
+{
+  error( "syntax error :: line %i:'%s'\n",
+	 yylineno, msg );
+}

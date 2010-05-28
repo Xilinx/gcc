@@ -14,24 +14,28 @@
 #along with GCC; see the file COPYING3.  If not see
 #<http://www.gnu.org/licenses/>.
 
+.SUFFIXES:
+.SUFFIXES: .c .o
+
 PYTHON_EXES = python
 
 .phony: python
+
+# Use strict warnings for this front end.
+python-warn = $(STRICT_WARN)
 
 GCCPY_INSTALL_NAME := $(shell echo gccpy|sed '$(program_transform_name)')
 GCCPY_TARGET_INSTALL_NAME := $(target_noncanonical)-$(shell echo gccpy|sed '$(program_transform_name)')
 
 python: gccpy$(exeext) gpy1$(exeext)
 
-py-lang.o: $(srcdir)/python/py-lang.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
-  gt-python-py-lang.h gtype-python.h
-	$(CC) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
-	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-lang.c
+FLEX_C_FLAGS := -g -O2 -fomit-frame-pointer -gtoggle -DIN_GCC -W -Wall -Wwrite-strings -Wcast-qual \
+-Wstrict-prototypes -Wmissing-prototypes -Wmissing-format-attribute -pedantic -Wno-long-long \
+-Wno-variadic-macros -Wno-overlength-strings -Wold-style-definition -Wc++-compat -fno-common -DHAVE_CONFIG_H
 
 lexer.o: $(srcdir)/python/lexer.l parser.o
 	$(FLEX) --outfile=$(srcdir)/python/lex.py.c $(srcdir)/python/lexer.l
-	$(CC) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(CC) $(FLEX_C_FLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/lex.py.c
 
 parser.o: $(srcdir)/python/parser.y
@@ -40,7 +44,16 @@ parser.o: $(srcdir)/python/parser.y
 	$(CC) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/y.py.c
 
-GCCPY_C_OBJS = py-lang.o parser.o lexer.o $(BACKEND) $(LIBSDEPS) attribs.o
+py-lang.o: $(srcdir)/python/py-lang.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
+  gt-python-py-lang.h gtype-python.h
+	$(CC) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-lang.c
+
+GPY_OBJS = \
+	py-lang.o
+
+GCCPY_C_OBJS = parser.o lexer.o $(GPY_OBJS) $(BACKEND) $(LIBSDEPS) attribs.o
 gpy1$(exeext): $(GCCPY_C_OBJS)
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(GCCPY_C_OBJS) \
 	$(GMPLIBS) $(LIBS) $(BACKENDLIBS) 

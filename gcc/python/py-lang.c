@@ -21,13 +21,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "tree.h"
 #include "gimple.h"
-#include "ggc.h"
 #include "toplev.h"
 #include "debug.h"
 #include "options.h"
 #include "flags.h"
 #include "convert.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "target.h"
@@ -114,7 +113,13 @@ gpy_langhook_post_options (const char **pfilename ATTRIBUTE_UNUSED)
 static void
 gpy_langhook_parse_file( int set_yy_debug ATTRIBUTE_UNUSED )
 {
-  return;
+  /*  go_parse_input_files (in_fnames, num_in_fnames);*/
+  unsigned int idx = 0;
+  for( ; idx<num_in_fnames; ++idx )
+    {
+      const char * t = in_fnames[idx];
+      debug("t = <%s>!\n>", t);
+    }
 }
 
 static tree
@@ -186,6 +191,17 @@ void
 gpy_preserve_from_gc( tree t ATTRIBUTE_UNUSED )
 {
   return;
+}
+
+void __gcc_debug__( const char * file, unsigned int lineno,
+		    const char * fmt, ... )
+{
+  va_list args;
+  fprintf( stderr, "debug: <%s:%i> -> ",
+           file, lineno );
+  va_start( args, fmt );
+  vfprintf( stderr, fmt, args );
+  va_end( args );
 }
 
 #undef LANG_HOOKS_NAME

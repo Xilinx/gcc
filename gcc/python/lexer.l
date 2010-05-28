@@ -21,17 +21,34 @@ along with GCC; see the file COPYING3.  If not see
  * IMPORTANT: We now requite Flex to generate the lexer now!
  **/
 
+#include "config.h"
+#include "system.h"
+#include "ansidecl.h"
+#include "coretypes.h"
+#include "opts.h"
+#include "tree.h"
+#include "gimple.h"
+#include "toplev.h"
+#include "debug.h"
+#include "options.h"
+#include "flags.h"
+#include "convert.h"
+#include "diagnostic-core.h"
+#include "langhooks.h"
+#include "langhooks-def.h"
+#include "target.h"
+
 #include "vec.h"
 
+#include "gpy.h"
 #include "y.py.h"
 
 #include <gmp.h>
 #include <mpfr.h>
 
+extern int yyparse( void );
 %}
 
-%option 8bit reentrant bison-bridge
-%option warn nodefault
 %option yylineno
 
 DIGIT    [0-9]
@@ -65,6 +82,7 @@ else                    {  return ELSE; }
 
 ","                     {  return ','; }
 "."                     {  return '.'; }
+":"                     {  return ':'; }
 
 "="                     { return '='; }
 "+"                     { return '+'; }
@@ -74,10 +92,6 @@ else                    {  return ELSE; }
 "^"                     { return '^'; }
 
 "=="                    { return EQUAL; }
-"+="                    { return PLUS_EQUAL; }
-"*="                    { return MULTIPLY_EQUAL; }
-"-="                    { return MINUS_EQUAL; }
-"/="                    { return DIVIDE_EQUAL; }
 
 "!="                    { return NOT_EQUAL; }
 "<"                     { return LESS; }
@@ -89,9 +103,9 @@ else                    {  return ELSE; }
 "and"                   { return AND; }
 
 {qstring}               {
-                          yylval.string= crl_strdup( (yytext+1) );
+                          yylval.string= xstrdup( (yytext+1) );
                           if( yylval.string[ yyleng-2 ] != '\"' ) {
-                            crl_error("Un-termintated character string!\n");
+                            error("Un-termintated character string!\n");
                           }
                           else {
                             yylval.string[yyleng-2] = '\0';
@@ -100,27 +114,19 @@ else                    {  return ELSE; }
                         }
 
 {DIGIT}+                {
-                          mpfr_t x; // folding the constants to avoid overflow
-			  mpfr_init2( x, SIZEOF_INT*8 );
+                          mpfr_t x;
+			  mpfr_init2( x, 32 );
 			  if( mpfr_set_str( x, yytext, 10, GMP_RNDU) )
-			    crl_fatal("error initilizing integer value <%s>!\n", yytext );
+                            {
+                              error("error initilizing integer value <%s>!\n", yytext );
+                            }
                           yylval.integer = mpfr_get_si( x, GMP_RNDU );
 			  mpfr_clear( x );
                           return INTEGER;
                         }
 
-{DIGIT}+"."{DIGIT}*     {
-                          mpfr_t x; // folding the constants to avoid overflow
-			  mpfr_init2( x, SIZEOF_DOUBLE*8 );
-			  if( mpfr_set_str( x, yytext, 10, GMP_RNDU) )
-			    crl_fatal("error initilizing floating point value <%s>!\n", yytext );
-                          yylval.floating_point= mpfr_get_ld( x, GMP_RNDU );
-			  mpfr_clear( x );
-                          return DOUBLE;
-                        }
-
 {ID}                    {
-                          yylval.string= crl_strdup( yytext );
+                          yylval.string= xstrdup( yytext );
                           return IDENTIFIER;
                         }
 
@@ -129,12 +135,15 @@ else                    {  return ELSE; }
 
 %%
 
-int yywrap( )
+int yywrap( void )
 {
   return 1;
 }
 
 int gcc_lex_parse( FILE * in )
 {
-  return 0;
+  int retval = 1;
+  yyin = in;
+  retval = yyparse( );
+  return retval;
 }

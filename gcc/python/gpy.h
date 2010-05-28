@@ -29,5 +29,13 @@ extern void gpy_write_globals (void );
 extern tree gpy_type_for_size( unsigned int, int );
 extern tree gpy_type_for_mode( enum machine_mode, int );
 
+extern int gcc_lex_parse( FILE * );
+
+extern void __gcc_debug__( const char *, unsigned int,
+			   const char *, ... )
+  __attribute__ ((format (printf, 3, 4))) ;
+
+#define debug( ... )				\
+  __gcc_debug__( __FILE__, __LINE__, __VA_ARGS__ );
 
 #endif /* __GPY_H_ */
