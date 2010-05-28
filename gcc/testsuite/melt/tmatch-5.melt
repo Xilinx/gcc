@@ -2,7 +2,7 @@
 ;; file tmatch-5.melt
 
 #| run in buildir/gcc
- ./cc1 -fmelt=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+ ./cc1 -fmelt-mode=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
     -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
     -fmelt-option=match_graphic=/tmp/melt5graph,alternate_match \
     -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tmatch-5.melt \

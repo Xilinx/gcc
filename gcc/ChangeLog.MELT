@@ -1,5 +1,14 @@
 
 2010-05-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: altmatch_normalize_step handles
+	specially a null step. Added
+	altmatch_make_match_normalization_context function. Renamed
+	altmatch_normalize_case as altmatch_normalize_match_case &
+	revamped it.
+
+	* gcc/testsuite/melt/tmatch-5.melt: updated comment.
+
+2010-05-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: The field MDATA_STEPS of
 	class_matched_data is transformed to a tuple once mature.  Added
 	field mstep_index to class_match_step. Removed field
