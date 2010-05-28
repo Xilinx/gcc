@@ -21,13 +21,17 @@ along with GCC; see the file COPYING3.  If not see
  * IMPORTANT: We now requite Flex to generate the lexer now!
  **/
 
-#include <vec.h>
+#include "vec.h"
+
+#include "y.py.h"
 
 #include <gmp.h>
 #include <mpfr.h>
 
 %}
 
+%option 8bit reentrant bison-bridge
+%option warn nodefault
 %option yylineno
 
 DIGIT    [0-9]

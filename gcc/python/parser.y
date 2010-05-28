@@ -15,14 +15,12 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-//to prototype's to get rid of gcc warnings...
 extern int yylex( void );
 extern void yyerror( const char * );
 %}
 
 %union {
   char * string;
-  // ....
 }
 
 %language "c"
@@ -52,6 +50,13 @@ extern void yyerror( const char * );
 %token AND
 
 %token DELIMITER
+%token NONE
+%token IDENTIFIER
+%token INTEGER
+%token STRING
+%token FLOAT
+%token FALSE
+%token TRUE
 
 %left '-' '+'
 %left '*' '/'
@@ -61,7 +66,6 @@ extern void yyerror( const char * );
 %left AND OR
 %right '^' '='
 %nonassoc UMINUS
-
 
 %%
 
