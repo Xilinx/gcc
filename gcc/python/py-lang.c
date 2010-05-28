@@ -34,72 +34,80 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "gpy.h"
 
-/* Language-dependent contents of an identifier.  */
+/* Language-dependent contents of a type.  */
+struct GTY(()) lang_type {
+  char dummy;
+} ;
 
+/* Language-dependent contents of a decl.  */
+struct GTY(()) lang_decl {
+  char dummy;
+} ;
+
+/* Language-dependent contents of an identifier.  This must include a
+   tree_identifier.
+*/
 struct GTY(()) lang_identifier {
   struct tree_identifier common;
-};
+} ;
 
 /* The resulting tree type.  */
 union GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
-     chain_next ("(union lang_tree_node *)TREE_CHAIN (&%h.generic)")))
-
-lang_tree_node {
+	   chain_next ("(union lang_tree_node *) TREE_CHAIN (&%h.generic)")))
+lang_tree_node
+{
   union tree_node GTY((tag ("0"),
 		       desc ("tree_node_structure (&%h)"))) generic;
   struct lang_identifier GTY((tag ("1"))) identifier;
 };
 
-struct GTY(()) lang_type
-{
-  char dummy;
-};
-
-struct GTY(()) lang_decl
-{
-  char dummy;
-};
-
 /* We don't use language_function.  */
-
-struct GTY(()) language_function
-{
+struct GTY(()) language_function {
   int dummy;
 };
 
 /* Language hooks.  */
-
-static
-bool gpy_langhook_init( void )
+static bool
+gpy_langhook_init( void )
 {
   return true;
 }
 
 /* Initialize before parsing options.  */
-
 static unsigned int
 gpy_langhook_init_options( unsigned int argc ATTRIBUTE_UNUSED,
 			   const char** argv ATTRIBUTE_UNUSED )
 {
-  return 0;
-}
-
-/* Handle Go specific options.  Return 0 if we didn't do anything.  */
-
-static int
-gpy_langhook_handle_option( size_t scode ATTRIBUTE_UNUSED,
-			    const char *arg ATTRIBUTE_UNUSED,
-			    int value ATTRIBUTE_UNUSED )
-{
   return 1;
 }
 
-/* Run after parsing options.  */
-
-static bool
-gpy_langhook_post_options( const char **pfilename ATTRIBUTE_UNUSED )
+/* Handle gpy specific options.  Return 0 if we didn't do anything.  */
+static int
+gpy_langhook_handle_option( size_t scode,
+			    const char *arg ATTRIBUTE_UNUSED,
+			    int value ATTRIBUTE_UNUSED )
 {
-  return true;
+  enum opt_code code = (enum opt_code) scode;
+  int retval = 1;
+
+  switch( code )
+    {
+    default:
+      /* Just return 1 to indicate that the option is valid.  */
+      break;
+    }
+
+  return retval;
+}
+
+/* Run after parsing options.  */
+static bool
+gpy_langhook_post_options (const char **pfilename ATTRIBUTE_UNUSED)
+{
+  gcc_assert( num_in_fnames > 0 );
+
+  /* Returning false means that the backend should be used.  */
+  return false;
 }
 
 static void
@@ -112,42 +120,43 @@ static tree
 gpy_langhook_type_for_size( unsigned int bits ATTRIBUTE_UNUSED,
 			    int unsignedp ATTRIBUTE_UNUSED )
 {
-  return 0;
+  return NULL;
 }
 
 static tree
 gpy_langhook_type_for_mode( enum machine_mode mode ATTRIBUTE_UNUSED,
 			    int unsignedp ATTRIBUTE_UNUSED )
 {
-  return 0;
+  return NULL;
 }
 
 /* Record a builtin function.  We just ignore builtin functions.  */
 static tree
-gpy_langhook_builtin_function( tree decl )
+gpy_langhook_builtin_function( tree decl ATTRIBUTE_UNUSED )
 {
-  return decl;
+  return NULL;
 }
 
 static int
 gpy_langhook_global_bindings_p( void )
 {
-  return 0;
+  return 1;
 }
 
 static tree
 gpy_langhook_pushdecl( tree decl ATTRIBUTE_UNUSED )
 {
-  gcc_unreachable( );
+  gcc_unreachable ();
   return NULL;
 }
 
-static
-tree gpy_langhook_getdecls( void )
+static tree
+gpy_langhook_getdecls( void )
 {
   return NULL;
 }
 
+/* Write out globals.  */
 static void
 gpy_langhook_write_globals( void )
 {
@@ -159,7 +168,15 @@ gpy_langhook_gimplify_expr( tree *expr_p ATTRIBUTE_UNUSED,
 			    gimple_seq *pre_p ATTRIBUTE_UNUSED,
 			    gimple_seq *post_p ATTRIBUTE_UNUSED )
 {
-  return 0;
+  return GS_UNHANDLED;
+}
+
+/* Functions called directly by the generic backend.  */
+tree convert( tree type ATTRIBUTE_UNUSED,
+	      tree expr ATTRIBUTE_UNUSED )
+{
+  gcc_unreachable ();
+  return NULL;
 }
 
 static GTY(()) tree gpy_gc_root;
@@ -169,7 +186,6 @@ gpy_preserve_from_gc( tree t ATTRIBUTE_UNUSED )
 {
   return;
 }
-
 
 #undef LANG_HOOKS_NAME
 #undef LANG_HOOKS_INIT
