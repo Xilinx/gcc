@@ -14,4 +14,20 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>. */
 
+#ifndef __GPY_H_
+#define __GPY_H_
 
+extern int gpy_enable_dump( const char * );
+extern void gpy_set_prefix( const char * );
+
+extern void gpy_preserve_from_gc( tree );
+
+extern void gpy_add_search_path( const char * );
+extern void gpy_parse_input_files( const char **, unsigned int );
+extern void gpy_write_globals (void );
+
+extern tree gpy_type_for_size( unsigned int, int );
+extern tree gpy_type_for_mode( enum machine_mode, int );
+
+
+#endif /* __GPY_H_ */

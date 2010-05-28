@@ -18,4 +18,4 @@ language="python"
 compilers="gpy1\$(exeext)"
 # target_libs="target-libpy"
 # build_by_default=no
-gtfiles="\$(srcdir)/python/gpy1.c"
+gtfiles="\$(srcdir)/python/py-lang.c"

@@ -32,6 +32,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks-def.h"
 #include "target.h"
 
+#include "gpy.h"
+
 /* Language-dependent contents of an identifier.  */
 
 struct GTY(()) lang_identifier {
