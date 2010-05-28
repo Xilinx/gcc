@@ -174,7 +174,6 @@ union rtunion_def
   enum machine_mode rt_type;
   addr_diff_vec_flags rt_addr_diff_vec_flags;
   struct cselib_val_struct *rt_cselib;
-  struct bitmap_head_def *rt_bit;
   tree rt_tree;
   struct basic_block_def *rt_bb;
   mem_attrs *rt_mem;
@@ -705,7 +704,6 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 #define XEXP(RTX, N)	(RTL_CHECK2 (RTX, N, 'e', 'u').rt_rtx)
 #define XVEC(RTX, N)	(RTL_CHECK2 (RTX, N, 'E', 'V').rt_rtvec)
 #define XMODE(RTX, N)	(RTL_CHECK1 (RTX, N, 'M').rt_type)
-#define XBITMAP(RTX, N) (RTL_CHECK1 (RTX, N, 'b').rt_bit)
 #define XTREE(RTX, N)   (RTL_CHECK1 (RTX, N, 't').rt_tree)
 #define XBBDEF(RTX, N)	(RTL_CHECK1 (RTX, N, 'B').rt_bb)
 #define XTMPL(RTX, N)	(RTL_CHECK1 (RTX, N, 'T').rt_str)
@@ -722,7 +720,6 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 #define X0EXP(RTX, N)	   (RTL_CHECK1 (RTX, N, '0').rt_rtx)
 #define X0VEC(RTX, N)	   (RTL_CHECK1 (RTX, N, '0').rt_rtvec)
 #define X0MODE(RTX, N)	   (RTL_CHECK1 (RTX, N, '0').rt_type)
-#define X0BITMAP(RTX, N)   (RTL_CHECK1 (RTX, N, '0').rt_bit)
 #define X0TREE(RTX, N)	   (RTL_CHECK1 (RTX, N, '0').rt_tree)
 #define X0BBDEF(RTX, N)	   (RTL_CHECK1 (RTX, N, '0').rt_bb)
 #define X0ADVFLAGS(RTX, N) (RTL_CHECK1 (RTX, N, '0').rt_addr_diff_vec_flags)
@@ -740,7 +737,6 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 #define XCEXP(RTX, N, C)      (RTL_CHECKC1 (RTX, N, C).rt_rtx)
 #define XCVEC(RTX, N, C)      (RTL_CHECKC1 (RTX, N, C).rt_rtvec)
 #define XCMODE(RTX, N, C)     (RTL_CHECKC1 (RTX, N, C).rt_type)
-#define XCBITMAP(RTX, N, C)   (RTL_CHECKC1 (RTX, N, C).rt_bit)
 #define XCTREE(RTX, N, C)     (RTL_CHECKC1 (RTX, N, C).rt_tree)
 #define XCBBDEF(RTX, N, C)    (RTL_CHECKC1 (RTX, N, C).rt_bb)
 #define XCCSELIB(RTX, N, C)   (RTL_CHECKC1 (RTX, N, C).rt_cselib)
@@ -1552,7 +1548,6 @@ extern int currently_expanding_to_rtl;
 extern int ceil_log2 (unsigned HOST_WIDE_INT);
 
 /* In explow.c */
-extern void set_stack_check_libfunc (rtx);
 extern HOST_WIDE_INT trunc_int_for_mode	(HOST_WIDE_INT, enum machine_mode);
 extern rtx plus_constant (rtx, HOST_WIDE_INT);
 
@@ -2377,7 +2372,6 @@ extern rtx emit_library_call_value (rtx, rtx, enum libcall_type,
 
 /* In varasm.c */
 extern void init_varasm_once (void);
-extern enum tls_model decl_default_tls_model (const_tree);
 
 extern rtx make_debug_expr_from_rtl (const_rtx);
 

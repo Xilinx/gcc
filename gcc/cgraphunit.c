@@ -123,6 +123,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "cgraph.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "timevar.h"
 #include "params.h"
 #include "fibheap.h"
@@ -555,6 +557,7 @@ cgraph_mark_if_needed (tree decl)
     cgraph_mark_needed_node (node);
 }
 
+#ifdef ENABLE_CHECKING
 /* Return TRUE if NODE2 is equivalent to NODE or its clone.  */
 static bool
 clone_of_p (struct cgraph_node *node, struct cgraph_node *node2)
@@ -563,6 +566,7 @@ clone_of_p (struct cgraph_node *node, struct cgraph_node *node2)
     node2 = node2->clone_of;
   return node2 != NULL;
 }
+#endif
 
 /* Verify cgraph nodes of given cgraph node.  */
 void
@@ -575,7 +579,7 @@ verify_cgraph_node (struct cgraph_node *node)
   gimple_stmt_iterator gsi;
   bool error_found = false;
 
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return;
 
   timevar_push (TV_CGRAPH_VERIFY);
@@ -799,9 +803,12 @@ verify_cgraph_node (struct cgraph_node *node)
 				debug_tree (e->callee->decl);
 				error_found = true;
 			      }
-			    else if (!node->global.inlined_to
-				     && !e->callee->global.inlined_to
+#ifdef ENABLE_CHECKING
+			    else if (!e->callee->global.inlined_to
 				     && decl
+				     && cgraph_get_node (decl)
+				     && (e->callee->former_clone_of
+					 != cgraph_get_node (decl)->decl)
 				     && !clone_of_p (cgraph_node (decl),
 						     e->callee))
 			      {
@@ -811,6 +818,7 @@ verify_cgraph_node (struct cgraph_node *node)
 				debug_tree (decl);
 				error_found = true;
 			      }
+#endif
 			  }
 			else if (decl)
 			  {
@@ -875,7 +883,7 @@ verify_cgraph (void)
 {
   struct cgraph_node *node;
 
-  if (sorrycount || errorcount)
+  if (seen_error ())
     return;
 
   for (node = cgraph_nodes; node; node = node->next)
@@ -889,7 +897,7 @@ cgraph_output_pending_asms (void)
 {
   struct cgraph_asm_node *can;
 
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return;
 
   for (can = cgraph_asm_nodes; can; can = can->next)
@@ -1887,7 +1895,7 @@ ipa_passes (void)
 void
 cgraph_optimize (void)
 {
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return;
 
 #ifdef ENABLE_CHECKING
@@ -1909,11 +1917,11 @@ cgraph_optimize (void)
   cgraph_state = CGRAPH_STATE_IPA;
 
   /* Don't run the IPA passes if there was any error or sorry messages.  */
-  if (errorcount == 0 && sorrycount == 0)
+  if (!seen_error ())
     ipa_passes ();
 
   /* Do nothing else if any IPA pass found errors.  */
-  if (errorcount || sorrycount)
+  if (seen_error ())
     {
       timevar_pop (TV_CGRAPHOPT);
       return;
@@ -1971,7 +1979,7 @@ cgraph_optimize (void)
   verify_cgraph ();
   /* Double check that all inline clones are gone and that all
      function bodies have been released from memory.  */
-  if (!(sorrycount || errorcount))
+  if (!seen_error ())
     {
       struct cgraph_node *node;
       bool error_found = false;
@@ -2282,6 +2290,11 @@ static void
 cgraph_materialize_clone (struct cgraph_node *node)
 {
   bitmap_obstack_initialize (NULL);
+#ifdef ENABLE_CHECKING
+  node->former_clone_of = node->clone_of->decl;
+  if (node->clone_of->former_clone_of)
+    node->former_clone_of = node->clone_of->former_clone_of;
+#endif
   /* Copy the OLD_VERSION_NODE function tree to the new version.  */
   tree_function_versioning (node->clone_of->decl, node->decl,
   			    node->clone.tree_map, true,
@@ -2322,12 +2335,19 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
       || cgraph_get_node (decl) == cgraph_get_node (e->callee->decl))
     return e->call_stmt;
 
+  gcc_assert (!cgraph_node (decl)->clone.combined_args_to_skip);
+
   if (cgraph_dump_file)
     {
       fprintf (cgraph_dump_file, "updating call of %s/%i -> %s/%i: ",
 	       cgraph_node_name (e->caller), e->caller->uid,
 	       cgraph_node_name (e->callee), e->callee->uid);
       print_gimple_stmt (cgraph_dump_file, e->call_stmt, 0, dump_flags);
+      if (e->callee->clone.combined_args_to_skip)
+        {
+          fprintf (cgraph_dump_file, " combined args to skip: ");
+          dump_bitmap (cgraph_dump_file, e->callee->clone.combined_args_to_skip);
+	}
     }
 
   if (e->callee->clone.combined_args_to_skip)
@@ -2434,31 +2454,7 @@ cgraph_materialize_all_clones (void)
     if (!node->analyzed && node->callees)
       cgraph_node_remove_callees (node);
   if (cgraph_dump_file)
-    fprintf (cgraph_dump_file, "Updating call sites\n");
-  for (node = cgraph_nodes; node; node = node->next)
-    if (node->analyzed && !node->clone_of
-	&& gimple_has_body_p (node->decl))
-      {
-        struct cgraph_edge *e;
-
-	current_function_decl = node->decl;
-        push_cfun (DECL_STRUCT_FUNCTION (node->decl));
-	for (e = node->callees; e; e = e->next_callee)
-	  cgraph_redirect_edge_call_stmt_to_callee (e);
-	gcc_assert (!need_ssa_update_p (cfun));
-	pop_cfun ();
-	current_function_decl = NULL;
-#ifdef ENABLE_CHECKING
-        verify_cgraph_node (node);
-#endif
-      }
-  if (cgraph_dump_file)
     fprintf (cgraph_dump_file, "Materialization Call site updates done.\n");
-  /* All changes to parameters have been performed.  In order not to
-     incorrectly repeat them, we simply dispose of the bitmaps that drive the
-     changes. */
-  for (node = cgraph_nodes; node; node = node->next)
-    node->clone.combined_args_to_skip = NULL;
 #ifdef ENABLE_CHECKING
   verify_cgraph ();
 #endif

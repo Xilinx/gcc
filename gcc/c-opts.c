@@ -304,6 +304,8 @@ c_common_init_options (unsigned int argc, const char **argv)
       diagnostic_prefixing_rule (global_dc) = DIAGNOSTICS_SHOW_PREFIX_ONCE;
     }
 
+  global_dc->opt_permissive = OPT_fpermissive;
+
   parse_in = cpp_create_reader (c_dialect_cxx () ? CLK_GNUCXX: CLK_GNUC89,
 				ident_hash, line_table);
   cb = cpp_get_callbacks (parse_in);
@@ -848,7 +850,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_fpermissive:
-      flag_permissive = value;
+      global_dc->permissive = flag_permissive = value;
       break;
 
     case OPT_fpreprocessed:
@@ -1414,7 +1416,7 @@ c_common_finish (void)
   FILE *deps_stream = NULL;
 
   /* Don't write the deps file if there are errors.  */
-  if (cpp_opts->deps.style != DEPS_NONE && errorcount == 0)
+  if (cpp_opts->deps.style != DEPS_NONE && !seen_error ())
     {
       /* If -M or -MM was seen without -MF, default output to the
 	 output stream.  */

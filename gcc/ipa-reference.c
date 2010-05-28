@@ -835,13 +835,15 @@ propagate (void)
     }
 
   /* Cleanup. */
-  for (i = 0; i < order_pos; i++ )
+  for (node = cgraph_nodes; node; node = node->next)
     {
       ipa_reference_vars_info_t node_info;
       ipa_reference_global_vars_info_t node_g;
       ipa_reference_optimization_summary_t opt;
 
-      node = order[i];
+      if (!node->analyzed)
+        continue;
+
       node_info = get_reference_vars_info (node);
       if (cgraph_function_body_availability (node) > AVAIL_OVERWRITABLE)
 	{
@@ -1094,7 +1096,7 @@ gate_reference (void)
 {
   return (flag_ipa_reference
 	  /* Don't bother doing anything if the program has errors.  */
-	  && !(errorcount || sorrycount));
+	  && !seen_error ());
 }
 
 struct ipa_opt_pass_d pass_ipa_reference =

@@ -34,7 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "tree.h"
 #include "tree-inline.h"
-#include "rtl.h"
 #include "flags.h"
 #include "function.h"
 #include "output.h"
@@ -52,7 +51,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "tree-mudflap.h"
 #include "tree-iterator.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "tree-dump.h"
 #include "cgraph.h"
 #include "hashtab.h"
@@ -1786,18 +1785,48 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 
   /* Redeclaration of a type is a constraint violation (6.7.2.3p1),
      but silently ignore the redeclaration if either is in a system
-     header.  (Conflicting redeclarations were handled above.)  */
+     header.  (Conflicting redeclarations were handled above.)  This
+     is allowed for C1X if the types are the same, not just
+     compatible.  */
   if (TREE_CODE (newdecl) == TYPE_DECL)
     {
+      bool types_different = false;
+      int comptypes_result;
+
+      comptypes_result
+	= comptypes_check_different_types (oldtype, newtype, &types_different);
+
+      if (comptypes_result != 1 || types_different)
+	{
+	  error ("redefinition of typedef %q+D with different type", newdecl);
+	  locate_old_decl (olddecl);
+	  return false;
+	}
+
       if (DECL_IN_SYSTEM_HEADER (newdecl)
 	  || DECL_IN_SYSTEM_HEADER (olddecl)
 	  || TREE_NO_WARNING (newdecl)
 	  || TREE_NO_WARNING (olddecl))
 	return true;  /* Allow OLDDECL to continue in use.  */
 
-      error ("redefinition of typedef %q+D", newdecl);
-      locate_old_decl (olddecl);
-      return false;
+      if (pedantic && !flag_isoc1x)
+	{
+	  pedwarn (input_location, OPT_pedantic,
+		   "redefinition of typedef %q+D", newdecl);
+	  locate_old_decl (olddecl);
+	}
+      else if (variably_modified_type_p (newtype, NULL))
+	{
+	  /* Whether there is a constraint violation for the types not
+	     being the same cannot be determined at compile time; a
+	     warning that there may be one at runtime is considered
+	     appropriate (WG14 reflector message 11743, 8 May 2009).  */
+	  warning (0, "redefinition of typedef %q+D may be a constraint "
+		   "violation at runtime", newdecl);
+	  locate_old_decl (olddecl);
+	}
+
+      return true;
     }
 
   /* Function declarations can either be 'static' or 'extern' (no
@@ -3506,7 +3535,7 @@ c_make_fname_decl (location_t loc, tree id, int type_dep)
 	 the __FUNCTION__ is believed to appear in K&R style function
 	 parameter declarator.  In that case we still don't have
 	 function_scope.  */
-      && (!errorcount || current_function_scope))
+      && (!seen_error () || current_function_scope))
     {
       DECL_CONTEXT (decl) = current_function_decl;
       bind (id, decl, current_function_scope,
@@ -8604,6 +8633,10 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
 		error_at (loc,
 			  ("both %<long%> and %<void%> in "
 			   "declaration specifiers"));
+	      else if (specs->typespec_word == cts_int128)
+		  error_at (loc,
+			    ("both %<long%> and %<__int128%> in "
+			     "declaration specifiers"));
 	      else if (specs->typespec_word == cts_bool)
 		error_at (loc,
 			  ("both %<long%> and %<_Bool%> in "
@@ -8640,6 +8673,10 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
 	      else if (specs->typespec_word == cts_void)
 		error_at (loc,
 			  ("both %<short%> and %<void%> in "
+			   "declaration specifiers"));
+	      else if (specs->typespec_word == cts_int128)
+		error_at (loc,
+			  ("both %<short%> and %<__int128%> in "
 			   "declaration specifiers"));
 	      else if (specs->typespec_word == cts_bool)
 		error_at (loc,
@@ -8790,7 +8827,13 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
 	      dupe = specs->saturating_p;
 	      pedwarn (loc, OPT_pedantic,
 		       "ISO C does not support saturating types");
-	      if (specs->typespec_word == cts_void)
+	      if (specs->typespec_word == cts_int128)
+	        {
+		  error_at (loc,
+			    ("both %<_Sat%> and %<__int128%> in "
+			     "declaration specifiers"));
+	        }
+	      else if (specs->typespec_word == cts_void)
 		error_at (loc,
 			  ("both %<_Sat%> and %<void%> in "
 			   "declaration specifiers"));
@@ -8845,7 +8888,7 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
       else
 	{
 	  /* "void", "_Bool", "char", "int", "float", "double", "_Decimal32",
-	     "_Decimal64", "_Decimal128", "_Fract" or "_Accum".  */
+	     "__int128", "_Decimal64", "_Decimal128", "_Fract" or "_Accum".  */
 	  if (specs->typespec_word != cts_none)
 	    {
 	      error_at (loc,
@@ -8854,6 +8897,31 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
 	    }
 	  switch (i)
 	    {
+	    case RID_INT128:
+	      if (int128_integer_type_node == NULL_TREE)
+		{
+		  error_at (loc, "%<__int128%> is not supported for this target");
+		  return specs;
+		}
+	      if (!in_system_header)
+		pedwarn (loc, OPT_pedantic,
+			 "ISO C does not support %<__int128%> type");
+
+	      if (specs->long_p)
+		error_at (loc,
+			  ("both %<__int128%> and %<long%> in "
+			   "declaration specifiers"));
+	      else if (specs->saturating_p)
+		error_at (loc,
+			  ("both %<_Sat%> and %<__int128%> in "
+			   "declaration specifiers"));
+	      else if (specs->short_p)
+		error_at (loc,
+			  ("both %<__int128%> and %<short%> in "
+			   "declaration specifiers"));
+	      else
+		specs->typespec_word = cts_int128;
+	      return specs;
 	    case RID_VOID:
 	      if (specs->long_p)
 		error_at (loc,
@@ -9326,6 +9394,19 @@ finish_declspecs (struct c_declspecs *specs)
 	  specs->type = build_complex_type (specs->type);
 	}
       break;
+    case cts_int128:
+      gcc_assert (!specs->long_p && !specs->short_p && !specs->long_long_p);
+      gcc_assert (!(specs->signed_p && specs->unsigned_p));
+      specs->type = (specs->unsigned_p
+		     ? int128_unsigned_type_node
+		     : int128_integer_type_node);
+      if (specs->complex_p)
+	{
+	  pedwarn (input_location, OPT_pedantic,
+		   "ISO C does not support complex integer types");
+	  specs->type = build_complex_type (specs->type);
+	}
+      break;
     case cts_int:
       gcc_assert (!(specs->long_p && specs->short_p));
       gcc_assert (!(specs->signed_p && specs->unsigned_p));
@@ -9579,7 +9660,7 @@ c_write_global_declarations (void)
 
   /* After cgraph has had a chance to emit everything that's going to
      be emitted, output debug information for globals.  */
-  if (errorcount == 0 && sorrycount == 0)
+  if (!seen_error ())
     {
       timevar_push (TV_SYMOUT);
       for (t = all_translation_units; t; t = TREE_CHAIN (t))

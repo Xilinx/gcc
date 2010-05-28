@@ -1,6 +1,44 @@
+2010-05-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* lto.c: Include diagnostic-core.h instead of diagnostic.h.
+	(read_cgraph_and_symbols, lto_main): Use seen_error.
+	* Make-lang.in (lto/lto.o): Update dependencies.
+
+2010-05-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR lto/44230
+	* lto.h (lto_eh_personality): New prototype.
+	* lto.c: Include debug.h.
+	(first_personality_decl): New static variable.
+	(lto_materialize_function): Set it to DECL_FUNCTION_PERSONALITY of the
+	first function for which it is non-null.
+	(lto_eh_personality_decl): New static variable.
+	(lto_eh_personality): New function.
+	* lto-lang.c (LANG_HOOKS_EH_PERSONALITY): Redefine to above function.
+	* Make-lang.in (lto/lto.o): Add dependency on debug.h.
+
+2010-05-26  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* lto-lang.c: Do not include expr.h.
+
+2010-05-24  Richard Guenther  <rguenther@suse.de>
+
+	* lto-elf.c (lto_obj_build_section_table): Work around
+	FreeBSD libelf issue.
+
+2010-05-22  Richard Guenther  <rguenther@suse.de>
+
+	* lto.c (read_cgraph_and_symbols): Do not collect.
+
+2010-05-20  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (promote_var, promote_fn): New functions.
+	(lto_promote_cross_file_statics): Compute correctly boundary including
+	static initializers of readonly vars.
+
 2010-05-18  Jan Hubicka  <jh@suse.cz>
 
-	* lto/lto.c (lto_1_to_1_map): Partition non-inline clones.
+	* lto.c (lto_1_to_1_map): Partition non-inline clones.
 	(lto_promote_cross_file_statics): Deal with non-inline clones.
 
 2010-05-18  Jan Hubicka  <jh@suse.cz>

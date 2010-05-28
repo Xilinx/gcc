@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "output.h"
@@ -1475,9 +1474,6 @@ optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
      without maintaining a stack frame back-chain.  */
   flag_asynchronous_unwind_tables = 1;
 
-  if (HAVE_prefetch || optimize >= 3)
-      flag_prefetch_loop_arrays = 1;
-
   /* Use MVCLE instructions to decrease code size if requested.  */
   if (size != 0)
     target_flags |= MASK_MVCLE;
@@ -1658,7 +1654,7 @@ override_options (void)
       if (!PARAM_SET_P (PARAM_MAX_UNROLL_TIMES))
 	set_param_value ("max-unroll-times", 32);
       if (!PARAM_SET_P (PARAM_MAX_COMPLETELY_PEELED_INSNS))
-	set_param_value ("max-completely-peeled-insns", 800);
+	set_param_value ("max-completely-peeled-insns", 2000);
       if (!PARAM_SET_P (PARAM_MAX_COMPLETELY_PEEL_TIMES))
 	set_param_value ("max-completely-peel-times", 64);
     }
@@ -1677,6 +1673,11 @@ override_options (void)
     set_param_value ("prefetch-min-insn-to-mem-ratio", 2);
   if (!PARAM_SET_P (PARAM_SIMULTANEOUS_PREFETCHES))
     set_param_value ("simultaneous-prefetches", 6);
+
+  /* This cannot reside in optimization_options since HAVE_prefetch
+     requires the arch flags to be evaluated already.  */
+  if (HAVE_prefetch && optimize >= 3)
+    flag_prefetch_loop_arrays = 1;
 }
 
 /* Map for smallest class containing reg regno.  */
@@ -7965,11 +7966,10 @@ s390_emit_prologue (void)
 	  insn = emit_insn (gen_move_insn (addr, temp_reg));
 	}
 
-      /* If we support asynchronous exceptions (e.g. for Java),
+      /* If we support non-call exceptions (e.g. for Java),
 	 we need to make sure the backchain pointer is set up
 	 before any possibly trapping memory access.  */
-
-      if (TARGET_BACKCHAIN && flag_non_call_exceptions)
+      if (TARGET_BACKCHAIN && cfun->can_throw_non_call_exceptions)
 	{
 	  addr = gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (VOIDmode));
 	  emit_clobber (addr);

@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "tree.h"
 #include "tree-inline.h"
-#include "rtl.h"
 #include "expr.h"
 #include "flags.h"
 #include "params.h"
@@ -43,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "tree-flow.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "except.h"
 #include "debug.h"
 #include "pointer-set.h"
@@ -574,6 +574,19 @@ remap_decls (tree decls, VEC(tree,gc) **nonlocalized_list, copy_body_data *id)
 	  gcc_assert (DECL_P (new_var));
 	  TREE_CHAIN (new_var) = new_decls;
 	  new_decls = new_var;
+ 
+	  /* Also copy value-expressions.  */
+	  if (TREE_CODE (new_var) == VAR_DECL
+	      && DECL_HAS_VALUE_EXPR_P (new_var))
+	    {
+	      tree tem = DECL_VALUE_EXPR (new_var);
+	      bool old_regimplify = id->regimplify;
+	      id->remapping_type_depth++;
+	      walk_tree (&tem, copy_tree_body_r, id, NULL);
+	      id->remapping_type_depth--;
+	      id->regimplify = old_regimplify;
+	      SET_DECL_VALUE_EXPR (new_var, tem);
+	    }
 	}
     }
 
@@ -665,23 +678,9 @@ copy_bind_expr (tree *tp, int *walk_subtrees, copy_body_data *id)
     }
 
   if (BIND_EXPR_VARS (*tp))
-    {
-      tree t;
-
-      /* This will remap a lot of the same decls again, but this should be
-	 harmless.  */
-      BIND_EXPR_VARS (*tp) = remap_decls (BIND_EXPR_VARS (*tp), NULL, id);
- 
-      /* Also copy value-expressions.  */
-      for (t = BIND_EXPR_VARS (*tp); t; t = TREE_CHAIN (t))
-	if (TREE_CODE (t) == VAR_DECL
-	    && DECL_HAS_VALUE_EXPR_P (t))
-	  {
-	    tree tem = DECL_VALUE_EXPR (t);
-	    walk_tree (&tem, copy_tree_body_r, id, NULL);
-	    SET_DECL_VALUE_EXPR (t, tem);
-	  }
-    }
+    /* This will remap a lot of the same decls again, but this should be
+       harmless.  */
+    BIND_EXPR_VARS (*tp) = remap_decls (BIND_EXPR_VARS (*tp), NULL, id);
 }
 
 
@@ -1116,8 +1115,9 @@ copy_tree_body_r (tree *tp, int *walk_subtrees, void *data)
 	      tree *n;
 	      n = (tree *) pointer_map_contains (id->decl_map,
 						 TREE_BLOCK (*tp));
-	      gcc_assert (n);
-	      new_block = *n;
+	      gcc_assert (n || id->remapping_type_depth != 0);
+	      if (n)
+		new_block = *n;
 	    }
 	  TREE_BLOCK (*tp) = new_block;
 	}
@@ -2028,6 +2028,8 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
   cfun->stdarg = src_cfun->stdarg;
   cfun->dont_save_pending_sizes_p = src_cfun->dont_save_pending_sizes_p;
   cfun->after_inlining = src_cfun->after_inlining;
+  cfun->can_throw_non_call_exceptions
+    = src_cfun->can_throw_non_call_exceptions;
   cfun->returns_struct = src_cfun->returns_struct;
   cfun->returns_pcc_struct = src_cfun->returns_pcc_struct;
   cfun->after_tree_profile = src_cfun->after_tree_profile;
@@ -2960,6 +2962,29 @@ inline_forbidden_p (tree fndecl)
   return forbidden_p;
 }
 
+/* Return true if CALLEE cannot be inlined into CALLER.  */
+
+static bool
+inline_forbidden_into_p (tree caller, tree callee)
+{
+  /* Don't inline if the functions have different EH personalities.  */
+  if (DECL_FUNCTION_PERSONALITY (caller)
+      && DECL_FUNCTION_PERSONALITY (callee)
+      && (DECL_FUNCTION_PERSONALITY (caller)
+	  != DECL_FUNCTION_PERSONALITY (callee)))
+    return true;
+
+  /* Don't inline if the callee can throw non-call exceptions but the
+     caller cannot.  */
+  if (DECL_STRUCT_FUNCTION (callee)
+      && DECL_STRUCT_FUNCTION (callee)->can_throw_non_call_exceptions
+      && !(DECL_STRUCT_FUNCTION (caller)
+	   && DECL_STRUCT_FUNCTION (caller)->can_throw_non_call_exceptions))
+    return true;
+
+  return false;
+}
+
 /* Returns nonzero if FN is a function that does not have any
    fundamental inline blocking properties.  */
 
@@ -3622,15 +3647,11 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 
   cg_edge = cgraph_edge (id->dst_node, stmt);
 
-  /* Don't inline functions with different EH personalities.  */
-  if (DECL_FUNCTION_PERSONALITY (cg_edge->caller->decl)
-      && DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl)
-      && (DECL_FUNCTION_PERSONALITY (cg_edge->caller->decl)
-	  != DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl)))
+  /* First check that inlining isn't simply forbidden in this case.  */
+  if (inline_forbidden_into_p (cg_edge->caller->decl, cg_edge->callee->decl))
     goto egress;
 
-  /* Don't try to inline functions that are not well-suited to
-     inlining.  */
+  /* Don't try to inline functions that are not well-suited to inlining.  */
   if (!cgraph_inline_p (cg_edge, &reason))
     {
       /* If this call was originally indirect, we do not want to emit any
@@ -4039,7 +4060,7 @@ optimize_inline_calls (tree fn)
   /* There is no point in performing inlining if errors have already
      occurred -- and we might crash if we try to inline invalid
      code.  */
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return 0;
 
   /* Clear out ID.  */
@@ -5180,12 +5201,8 @@ tree_can_inline_p (struct cgraph_edge *e)
   caller = e->caller->decl;
   callee = e->callee->decl;
 
-  /* We cannot inline a function that uses a different EH personality
-     than the caller.  */
-  if (DECL_FUNCTION_PERSONALITY (caller)
-      && DECL_FUNCTION_PERSONALITY (callee)
-      && (DECL_FUNCTION_PERSONALITY (caller)
-	  != DECL_FUNCTION_PERSONALITY (callee)))
+  /* First check that inlining isn't simply forbidden in this case.  */
+  if (inline_forbidden_into_p (caller, callee))
     {
       e->inline_failed = CIF_UNSPECIFIED;
       gimple_call_set_cannot_inline (e->call_stmt, true);

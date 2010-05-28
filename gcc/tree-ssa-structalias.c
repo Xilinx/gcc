@@ -27,9 +27,6 @@
 #include "obstack.h"
 #include "bitmap.h"
 #include "flags.h"
-#include "rtl.h"
-#include "tm_p.h"
-#include "hard-reg-set.h"
 #include "basic-block.h"
 #include "output.h"
 #include "tree.h"
@@ -6629,7 +6626,7 @@ gate_ipa_pta (void)
   return (optimize
 	  && flag_ipa_pta
 	  /* Don't bother doing anything if the program has errors.  */
-	  && !(errorcount || sorrycount));
+	  && !seen_error ());
 }
 
 /* IPA PTA solutions for ESCAPED.  */

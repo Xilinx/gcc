@@ -24,9 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
 #include "tm_p.h"
-#include "hard-reg-set.h"
 #include "basic-block.h"
 #include "output.h"
 #include "flags.h"
@@ -35,6 +33,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "langhooks.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-flow.h"
 #include "timevar.h"
 #include "tree-dump.h"
@@ -964,7 +964,7 @@ label_to_block_fn (struct function *ifun, tree dest)
   /* We would die hard when faced by an undefined label.  Emit a label to
      the very first basic block.  This will hopefully make even the dataflow
      and undefined variable warnings quite right.  */
-  if ((errorcount || sorrycount) && uid < 0)
+  if (seen_error () && uid < 0)
     {
       gimple_stmt_iterator gsi = gsi_start_bb (BASIC_BLOCK (NUM_FIXED_BLOCKS));
       gimple stmt;

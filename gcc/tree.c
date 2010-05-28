@@ -35,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "flags.h"
 #include "tree.h"
-#include "real.h"
 #include "tm_p.h"
 #include "function.h"
 #include "obstack.h"
@@ -51,10 +50,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "params.h"
 #include "pointer-set.h"
-#include "fixed-value.h"
 #include "tree-pass.h"
 #include "langhooks-def.h"
 #include "diagnostic.h"
+#include "tree-diagnostic.h"
+#include "tree-pretty-print.h"
 #include "cgraph.h"
 #include "timevar.h"
 #include "except.h"
@@ -1041,14 +1041,6 @@ build_int_cst (tree type, HOST_WIDE_INT low)
   return build_int_cst_wide (type, low, low < 0 ? -1 : 0);
 }
 
-/* Create an INT_CST node with a LOW value zero extended.  */
-
-tree
-build_int_cstu (tree type, unsigned HOST_WIDE_INT low)
-{
-  return build_int_cst_wide (type, low, 0);
-}
-
 /* Create an INT_CST node with a LOW value in TYPE.  The value is sign extended
    if it is negative.  This function is similar to build_int_cst, but
    the extra bits outside of the type precision are cleared.  Constants
@@ -1071,24 +1063,18 @@ build_int_cst_type (tree type, HOST_WIDE_INT low)
   return build_int_cst_wide (type, low1, hi);
 }
 
-/* Create an INT_CST node of TYPE and value HI:LOW.  The value is truncated
-   and sign extended according to the value range of TYPE.  */
-
-tree
-build_int_cst_wide_type (tree type,
-			 unsigned HOST_WIDE_INT low, HOST_WIDE_INT high)
-{
-  fit_double_type (low, high, &low, &high, type);
-  return build_int_cst_wide (type, low, high);
-}
-
 /* Constructs tree in type TYPE from with value given by CST.  Signedness
    of CST is assumed to be the same as the signedness of TYPE.  */
 
 tree
 double_int_to_tree (tree type, double_int cst)
 {
-  cst = double_int_ext (cst, TYPE_PRECISION (type), TYPE_UNSIGNED (type));
+  /* Size types *are* sign extended.  */
+  bool sign_extended_type = (!TYPE_UNSIGNED (type)
+			     || (TREE_CODE (type) == INTEGER_TYPE
+				 && TYPE_IS_SIZETYPE (type)));
+
+  cst = double_int_ext (cst, TYPE_PRECISION (type), !sign_extended_type);
 
   return build_int_cst_wide (type, cst.low, cst.high);
 }
@@ -1099,9 +1085,13 @@ double_int_to_tree (tree type, double_int cst)
 bool
 double_int_fits_to_tree_p (const_tree type, double_int cst)
 {
-  double_int ext = double_int_ext (cst,
-				   TYPE_PRECISION (type),
-				   TYPE_UNSIGNED (type));
+  /* Size types *are* sign extended.  */
+  bool sign_extended_type = (!TYPE_UNSIGNED (type)
+			     || (TREE_CODE (type) == INTEGER_TYPE
+				 && TYPE_IS_SIZETYPE (type)));
+
+  double_int ext
+    = double_int_ext (cst, TYPE_PRECISION (type), !sign_extended_type);
 
   return double_int_equal_p (cst, ext);
 }
@@ -3960,28 +3950,6 @@ build_block (tree vars, tree subblocks, tree supercontext, tree chain)
   return block;
 }
 
-expanded_location
-expand_location (source_location loc)
-{
-  expanded_location xloc;
-  if (loc <= BUILTINS_LOCATION)
-    {
-      xloc.file = loc == UNKNOWN_LOCATION ? NULL : _("<built-in>");
-      xloc.line = 0;
-      xloc.column = 0;
-      xloc.sysp = 0;
-    }
-  else
-    {
-      const struct line_map *map = linemap_lookup (line_table, loc);
-      xloc.file = map->to_file;
-      xloc.line = SOURCE_LINE (map, loc);
-      xloc.column = SOURCE_COLUMN (map, loc);
-      xloc.sysp = map->sysp != 0;
-    };
-  return xloc;
-}
-
 
 /* Like SET_EXPR_LOCATION, but make sure the tree can have a location.
 
@@ -4712,6 +4680,15 @@ find_decls_types_r (tree *tp, int *ws, void *data)
       fld_worklist_push (TREE_CHAIN (t), fld);
       *ws = 0;
     }
+  else if (TREE_CODE (t) == BLOCK)
+    {
+      tree tem;
+      for (tem = BLOCK_VARS (t); tem; tem = TREE_CHAIN (tem))
+	fld_worklist_push (tem, fld);
+      for (tem = BLOCK_SUBBLOCKS (t); tem; tem = BLOCK_CHAIN (tem))
+	fld_worklist_push (tem, fld);
+      fld_worklist_push (BLOCK_ABSTRACT_ORIGIN (t), fld);
+    }
 
   fld_worklist_push (TREE_TYPE (t), fld);
 
@@ -5022,7 +4999,7 @@ free_lang_data (void)
   lang_hooks.set_decl_assembler_name = lhd_set_decl_assembler_name;
 
   /* Reset diagnostic machinery.  */
-  diagnostic_starter (global_dc) = default_diagnostic_starter;
+  diagnostic_starter (global_dc) = default_tree_diagnostic_starter;
   diagnostic_finalizer (global_dc) = default_diagnostic_finalizer;
   diagnostic_format_decoder (global_dc) = default_tree_printer;
 
@@ -7291,7 +7268,7 @@ build_function_type_skip_args (tree orig_type, bitmap args_to_skip)
 /* Build variant of function type ORIG_TYPE skipping ARGS_TO_SKIP.
 
    Arguments from DECL_ARGUMENTS list can't be removed now, since they are
-   linked by TREE_CHAIN directly.  It is caller responsibility to eliminate
+   linked by TREE_CHAIN directly.  The caller is responsible for eliminating
    them when they are being duplicated (i.e. copy_arguments_for_versioning).  */
 
 tree
@@ -7313,8 +7290,8 @@ build_function_decl_skip_args (tree orig_decl, bitmap args_to_skip)
 }
 
 /* Build a function type.  The RETURN_TYPE is the type returned by the
-   function. If VAARGS is set, no void_type_node is appended to the
-   the list. ARGP muse be alway be terminated be a NULL_TREE.  */
+   function.  If VAARGS is set, no void_type_node is appended to the
+   the list.  ARGP must be always be terminated be a NULL_TREE.  */
 
 static tree
 build_function_type_list_1 (bool vaargs, tree return_type, va_list argp)
@@ -8710,6 +8687,9 @@ make_or_reuse_type (unsigned size, int unsignedp)
   if (size == LONG_LONG_TYPE_SIZE)
     return (unsignedp ? long_long_unsigned_type_node
             : long_long_integer_type_node);
+  if (size == 128 && int128_integer_type_node)
+    return (unsignedp ? int128_unsigned_type_node
+            : int128_integer_type_node);
 
   if (unsignedp)
     return make_unsigned_type (size);
@@ -8825,7 +8805,17 @@ build_common_tree_nodes (bool signed_char)
   long_unsigned_type_node = make_unsigned_type (LONG_TYPE_SIZE);
   long_long_integer_type_node = make_signed_type (LONG_LONG_TYPE_SIZE);
   long_long_unsigned_type_node = make_unsigned_type (LONG_LONG_TYPE_SIZE);
-
+#if HOST_BITS_PER_WIDE_INT >= 64
+    /* TODO: This isn't correct, but as logic depends at the moment on
+       host's instead of target's wide-integer.
+       If there is a target not supporting TImode, but has an 128-bit
+       integer-scalar register, this target check needs to be adjusted. */
+    if (targetm.scalar_mode_supported_p (TImode))
+      {
+        int128_integer_type_node = make_signed_type (128);
+        int128_unsigned_type_node = make_unsigned_type (128);
+      }
+#endif
   /* Define a boolean type.  This type only represents boolean values but
      may be larger than char depending on the value of BOOL_TYPE_SIZE.
      Front ends which want to override this size (i.e. Java) can redefine

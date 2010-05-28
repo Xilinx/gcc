@@ -24,13 +24,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
+#include "tm.h"
 #include "tree.h"
 #include "tree-dump.h"
-#include "gimple.h"
+#include "gimple.h"	/* For create_tmp_var_raw.  */
 #include "ggc.h"
-#include "toplev.h"
-#include "tm.h"
-#include "rtl.h"
+#include "toplev.h"	/* For announce_function/internal_error.  */
+#include "output.h"	/* For decl_default_tls_model.  */
 #include "target.h"
 #include "function.h"
 #include "flags.h"
@@ -86,6 +86,7 @@ tree gfor_fndecl_pause_numeric;
 tree gfor_fndecl_pause_string;
 tree gfor_fndecl_stop_numeric;
 tree gfor_fndecl_stop_string;
+tree gfor_fndecl_error_stop_numeric;
 tree gfor_fndecl_error_stop_string;
 tree gfor_fndecl_runtime_error;
 tree gfor_fndecl_runtime_error_at;
@@ -2774,22 +2775,32 @@ gfc_build_builtin_function_decls (void)
   gfor_fndecl_stop_numeric =
     gfc_build_library_function_decl (get_identifier (PREFIX("stop_numeric")),
 				     void_type_node, 1, gfc_int4_type_node);
-  /* Stop doesn't return.  */
+  /* STOP doesn't return.  */
   TREE_THIS_VOLATILE (gfor_fndecl_stop_numeric) = 1;
+
 
   gfor_fndecl_stop_string =
     gfc_build_library_function_decl (get_identifier (PREFIX("stop_string")),
 				     void_type_node, 2, pchar_type_node,
-                                     gfc_int4_type_node);
-  /* Stop doesn't return.  */
+				     gfc_int4_type_node);
+  /* STOP doesn't return.  */
   TREE_THIS_VOLATILE (gfor_fndecl_stop_string) = 1;
+
+
+  gfor_fndecl_error_stop_numeric =
+    gfc_build_library_function_decl (get_identifier (PREFIX("error_stop_numeric")),
+				     void_type_node, 1, gfc_int4_type_node);
+  /* ERROR STOP doesn't return.  */
+  TREE_THIS_VOLATILE (gfor_fndecl_error_stop_numeric) = 1;
+
 
   gfor_fndecl_error_stop_string =
     gfc_build_library_function_decl (get_identifier (PREFIX("error_stop_string")),
 				     void_type_node, 2, pchar_type_node,
-                                     gfc_int4_type_node);
+				     gfc_int4_type_node);
   /* ERROR STOP doesn't return.  */
   TREE_THIS_VOLATILE (gfor_fndecl_error_stop_string) = 1;
+
 
   gfor_fndecl_pause_numeric =
     gfc_build_library_function_decl (get_identifier (PREFIX("pause_numeric")),
@@ -2798,7 +2809,7 @@ gfc_build_builtin_function_decls (void)
   gfor_fndecl_pause_string =
     gfc_build_library_function_decl (get_identifier (PREFIX("pause_string")),
 				     void_type_node, 2, pchar_type_node,
-                                     gfc_int4_type_node);
+				     gfc_int4_type_node);
 
   gfor_fndecl_runtime_error =
     gfc_build_library_function_decl (get_identifier (PREFIX("runtime_error")),
@@ -3867,20 +3878,29 @@ generate_local_decl (gfc_symbol * sym)
 
       if (sym->attr.referenced)
 	gfc_get_symbol_decl (sym);
-      /* INTENT(out) dummy arguments are likely meant to be set.  */
-      else if (warn_unused_variable
-	       && sym->attr.dummy
-	       && sym->attr.intent == INTENT_OUT)
+
+      /* Warnings for unused dummy arguments.  */
+      else if (sym->attr.dummy)
 	{
-	  if (!(sym->ts.type == BT_DERIVED
-		&& sym->ts.u.derived->components->initializer))
-	    gfc_warning ("Dummy argument '%s' at %L was declared INTENT(OUT) "
-		         "but was not set",  sym->name, &sym->declared_at);
+	  /* INTENT(out) dummy arguments are likely meant to be set.  */
+	  if (gfc_option.warn_unused_dummy_argument
+	      && sym->attr.intent == INTENT_OUT)
+	    {
+	      if (sym->ts.type != BT_DERIVED)
+		gfc_warning ("Dummy argument '%s' at %L was declared "
+			     "INTENT(OUT) but was not set",  sym->name,
+			     &sym->declared_at);
+	      else if (!gfc_has_default_initializer (sym->ts.u.derived))
+		gfc_warning ("Derived-type dummy argument '%s' at %L was "
+			     "declared INTENT(OUT) but was not set and "
+			     "does not have a default initializer",
+			     sym->name, &sym->declared_at);
+	    }
+	  else if (gfc_option.warn_unused_dummy_argument)
+	    gfc_warning ("Unused dummy argument '%s' at %L", sym->name,
+			 &sym->declared_at);
 	}
-      /* Specific warning for unused dummy arguments. */
-      else if (warn_unused_variable && sym->attr.dummy)
-	gfc_warning ("Unused dummy argument '%s' at %L", sym->name,
-		     &sym->declared_at);
+
       /* Warn for unused variables, but not if they're inside a common
 	 block or are use-associated.  */
       else if (warn_unused_variable

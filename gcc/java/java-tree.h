@@ -1,7 +1,7 @@
 /* Definitions for parsing and type checking for the GNU compiler for
    the Java(TM) language.
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -101,10 +101,6 @@ struct JCF;
 /* The class we are currently generating.  Really.  */
 #define output_class \
   java_global_trees[JTI_OUTPUT_CLASS]
-
-/* List of all class DECLs seen so far.  */
-#define all_class_list \
-  java_global_trees[JTI_ALL_CLASS_LIST]
 
 /* List of virtual decls referred to by this translation unit, used to
    generate virtual method offset symbol table.  */
@@ -370,9 +366,6 @@ enum java_tree_index
   JTI_MAIN_CLASS,
   JTI_CURRENT_CLASS,
   JTI_OUTPUT_CLASS,
-  JTI_ALL_CLASS_LIST,
-
-  JTI_PREDEF_FILENAMES,
 
   JTI_MAX
 };
@@ -630,9 +623,6 @@ extern GTY(()) tree java_global_trees[JTI_MAX];
 #define nativecode_ptr_array_type_node \
   java_global_trees[JTI_NATIVECODE_PTR_ARRAY_TYPE_NODE]
 
-#define predef_filenames \
-  java_global_trees[JTI_PREDEF_FILENAMES]
-
 #define nativecode_ptr_type_node ptr_type_node
 
 /* The decl for "_Jv_ResolvePoolEntry".  */
@@ -786,7 +776,7 @@ struct GTY(()) lang_decl_func {
   int max_stack;
   int arg_slot_count;
   source_location last_line;	/* End line number for a function decl */
-  tree throws_list;		/* Exception specified by `throws' */
+  VEC(tree,gc) *throws_list;	/* Exception specified by `throws' */
   tree exc_obj;			/* Decl holding the exception object.  */
 
   /* Class initialization test variables  */
@@ -1067,14 +1057,14 @@ extern void initialize_builtins (void);
 
 extern tree lookup_name (tree);
 extern bool special_method_p (tree);
-extern void maybe_rewrite_invocation (tree *, tree *, tree *, tree *);
-extern tree build_known_method_ref (tree, tree, tree, tree, tree, tree);
+extern void maybe_rewrite_invocation (tree *, VEC(tree,gc) **, tree *, tree *);
+extern tree build_known_method_ref (tree, tree, tree, tree, VEC(tree,gc) *, tree);
 extern tree build_class_init (tree, tree);
 extern int attach_init_test_initialization_flags (void **, void *);
 extern tree build_invokevirtual (tree, tree, tree);
 extern tree build_invokeinterface (tree, tree);
 extern tree build_jni_stub (tree);
-extern tree invoke_build_dtable (int, tree);
+extern tree invoke_build_dtable (int, VEC(tree,gc) *);
 extern tree build_field_ref (tree, tree, tree);
 extern tree java_modify_addr_for_volatile (tree);
 extern void pushdecl_force_head (tree);
@@ -1230,6 +1220,10 @@ extern void java_read_sourcefilenames (const char *fsource_filename);
 extern void rewrite_reflection_indexes (void *);
 
 int cxx_keyword_p (const char *name, int length);
+
+extern GTY(()) VEC(tree,gc) *pending_static_fields;
+
+extern void java_write_globals (void);   
 
 #define DECL_FINAL(DECL) DECL_LANG_FLAG_3 (DECL)
 

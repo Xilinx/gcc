@@ -1044,6 +1044,7 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 	stmt->gimple_asm.ni = lto_input_uleb128 (ib);
 	stmt->gimple_asm.no = lto_input_uleb128 (ib);
 	stmt->gimple_asm.nc = lto_input_uleb128 (ib);
+	stmt->gimple_asm.nl = lto_input_uleb128 (ib);
 	str = input_string_cst (data_in, ib);
 	stmt->gimple_asm.string = TREE_STRING_POINTER (str);
       }
@@ -1308,6 +1309,7 @@ input_function (tree fn_decl, struct data_in *data_in,
   fn->after_tree_profile = bp_unpack_value (bp, 1);
   fn->returns_pcc_struct = bp_unpack_value (bp, 1);
   fn->returns_struct = bp_unpack_value (bp, 1);
+  fn->can_throw_non_call_exceptions = bp_unpack_value (bp, 1);
   fn->always_inline_functions_inlined = bp_unpack_value (bp, 1);
   fn->after_inlining = bp_unpack_value (bp, 1);
   fn->dont_save_pending_sizes_p = bp_unpack_value (bp, 1);

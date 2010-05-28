@@ -139,6 +139,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "cgraph.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "tree-pass.h"
 #include "timevar.h"
 #include "tree-flow.h"
@@ -1618,7 +1619,7 @@ insn_could_throw_p (const_rtx insn)
 {
   if (CALL_P (insn))
     return true;
-  if (INSN_P (insn) && flag_non_call_exceptions)
+  if (INSN_P (insn) && cfun->can_throw_non_call_exceptions)
     return may_trap_p (PATTERN (insn));
   return false;
 }

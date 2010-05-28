@@ -310,6 +310,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "bitmap.h"
 #include "hard-reg-set.h"
 #include "basic-block.h"
+#include "df.h"
 #include "expr.h"
 #include "recog.h"
 #include "params.h"
@@ -318,9 +319,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "except.h"
 #include "reload.h"
-#include "errors.h"
+#include "toplev.h"
 #include "integrate.h"
-#include "df.h"
 #include "ggc.h"
 #include "ira-int.h"
 
@@ -413,6 +413,11 @@ static HARD_REG_SET no_unit_alloc_regs;
    allocation order.  */
 short ira_class_hard_regs[N_REG_CLASSES][FIRST_PSEUDO_REGISTER];
 
+/* Array of the number of hard registers of given class which are
+   available for allocation.  The order is defined by the
+   the hard register numbers.  */
+short ira_non_ordered_class_hard_regs[N_REG_CLASSES][FIRST_PSEUDO_REGISTER];
+
 /* The number of elements of the above array for given register
    class.  */
 int ira_class_hard_regs_num[N_REG_CLASSES];
@@ -437,7 +442,10 @@ setup_class_hard_regs (void)
       AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
       CLEAR_HARD_REG_SET (processed_hard_reg_set);
       for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
-	ira_class_hard_reg_index[cl][0] = -1;
+	{
+	  ira_non_ordered_class_hard_regs[cl][0] = -1;
+	  ira_class_hard_reg_index[cl][0] = -1;
+	}
       for (n = 0, i = 0; i < FIRST_PSEUDO_REGISTER; i++)
 	{
 #ifdef REG_ALLOC_ORDER
@@ -457,6 +465,10 @@ setup_class_hard_regs (void)
 	    }
 	}
       ira_class_hard_regs_num[cl] = n;
+      for (n = 0, i = 0; i < FIRST_PSEUDO_REGISTER; i++)
+	if (TEST_HARD_REG_BIT (temp_hard_regset, i))
+	  ira_non_ordered_class_hard_regs[cl][n++] = i;
+      ira_assert (ira_class_hard_regs_num[cl] == n);
     }
 }
 
@@ -1385,13 +1397,11 @@ insn_contains_asm (rtx insn)
   return for_each_rtx (&insn, insn_contains_asm_1, NULL);
 }
 
-/* Set up regs_asm_clobbered.  */
+/* Add register clobbers from asm statements.  */
 static void
-compute_regs_asm_clobbered (char *regs_asm_clobbered)
+compute_regs_asm_clobbered (void)
 {
   basic_block bb;
-
-  memset (regs_asm_clobbered, 0, sizeof (char) * FIRST_PSEUDO_REGISTER);
 
   FOR_EACH_BB (bb)
     {
@@ -1413,7 +1423,7 @@ compute_regs_asm_clobbered (char *regs_asm_clobbered)
 		      + hard_regno_nregs[dregno][mode] - 1;
 
 		    for (i = dregno; i <= end; ++i)
-		      regs_asm_clobbered[i] = 1;
+		      SET_HARD_REG_BIT(crtl->asm_clobbers, i);
 		  }
 	      }
 	}
@@ -1425,12 +1435,6 @@ compute_regs_asm_clobbered (char *regs_asm_clobbered)
 void
 ira_setup_eliminable_regset (void)
 {
-  /* Like regs_ever_live, but 1 if a reg is set or clobbered from an
-     asm.  Unlike regs_ever_live, elements of this array corresponding
-     to eliminable regs (like the frame pointer) are set if an asm
-     sets them.  */
-  char *regs_asm_clobbered
-    = (char *) alloca (FIRST_PSEUDO_REGISTER * sizeof (char));
 #ifdef ELIMINABLE_REGS
   int i;
   static const struct {const int from, to; } eliminables[] = ELIMINABLE_REGS;
@@ -1454,7 +1458,8 @@ ira_setup_eliminable_regset (void)
   COPY_HARD_REG_SET (ira_no_alloc_regs, no_unit_alloc_regs);
   CLEAR_HARD_REG_SET (eliminable_regset);
 
-  compute_regs_asm_clobbered (regs_asm_clobbered);
+  compute_regs_asm_clobbered ();
+
   /* Build the regset of all eliminable registers and show we can't
      use those that we already know won't be eliminated.  */
 #ifdef ELIMINABLE_REGS
@@ -1464,7 +1469,7 @@ ira_setup_eliminable_regset (void)
 	= (! targetm.can_eliminate (eliminables[i].from, eliminables[i].to)
 	   || (eliminables[i].to == STACK_POINTER_REGNUM && need_fp));
 
-      if (! regs_asm_clobbered[eliminables[i].from])
+      if (!TEST_HARD_REG_BIT (crtl->asm_clobbers, eliminables[i].from))
 	{
 	    SET_HARD_REG_BIT (eliminable_regset, eliminables[i].from);
 
@@ -1478,7 +1483,7 @@ ira_setup_eliminable_regset (void)
 	df_set_regs_ever_live (eliminables[i].from, true);
     }
 #if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
-  if (! regs_asm_clobbered[HARD_FRAME_POINTER_REGNUM])
+  if (!TEST_HARD_REG_BIT (crtl->asm_clobbers, HARD_FRAME_POINTER_REGNUM))
     {
       SET_HARD_REG_BIT (eliminable_regset, HARD_FRAME_POINTER_REGNUM);
       if (need_fp)
@@ -1492,7 +1497,7 @@ ira_setup_eliminable_regset (void)
 #endif
 
 #else
-  if (! regs_asm_clobbered[FRAME_POINTER_REGNUM])
+  if (!TEST_HARD_REG_BIT (crtl->asm_clobbers, HARD_FRAME_POINTER_REGNUM))
     {
       SET_HARD_REG_BIT (eliminable_regset, FRAME_POINTER_REGNUM);
       if (need_fp)
@@ -1887,7 +1892,7 @@ mark_elimination (int from, int to)
   FOR_EACH_BB (bb)
     {
       /* We don't use LIVE info in IRA.  */
-      regset r = DF_LR_IN (bb);
+      bitmap r = DF_LR_IN (bb);
 
       if (REGNO_REG_SET_P (r, from))
 	{

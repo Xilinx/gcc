@@ -33,8 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "expr.h"
 #include "flags.h"
 #include "cp-tree.h"
 #include "tree-iterator.h"
@@ -55,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "tree-flow.h"
 #include "pointer-set.h"
+#include "splay-tree.h"
 #include "plugin.h"
 
 static tree grokparms (tree parmlist, tree *);
@@ -3482,7 +3481,7 @@ cxx_init_decl_processing (void)
   vtbl_type_node
     = build_cplus_array_type (vtable_entry_type, NULL_TREE);
   layout_type (vtbl_type_node);
-  vtbl_type_node = build_qualified_type (vtbl_type_node, TYPE_QUAL_CONST);
+  vtbl_type_node = cp_build_qualified_type (vtbl_type_node, TYPE_QUAL_CONST);
   record_builtin_type (RID_MAX, NULL, vtbl_type_node);
   vtbl_ptr_type_node = build_pointer_type (vtable_entry_type);
   layout_type (vtbl_ptr_type_node);
@@ -3580,7 +3579,7 @@ cp_fname_init (const char* name, tree *type_p)
       init = build_string (length + 1, name);
     }
 
-  type = build_qualified_type (char_type_node, TYPE_QUAL_CONST);
+  type = cp_build_qualified_type (char_type_node, TYPE_QUAL_CONST);
   type = build_cplus_array_type (type, domain);
 
   *type_p = type;
@@ -4320,7 +4319,7 @@ start_decl (const cp_declarator *declarator,
       /* This is a const variable with implicit 'static'.  Set
 	 DECL_THIS_STATIC so we can tell it from variables that are
 	 !TREE_PUBLIC because of the anonymous namespace.  */
-      gcc_assert (cp_type_readonly (TREE_TYPE (decl)));
+      gcc_assert (CP_TYPE_CONST_P (TREE_TYPE (decl)));
       DECL_THIS_STATIC (decl) = 1;
     }
 
@@ -5278,7 +5277,6 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 		error ("in C++98 %qD must be initialized by constructor, "
 		       "not by %<{...}%>",
 		       decl);
-	      init = build_tree_list (NULL_TREE, init);
 	    }
 	  else if (TREE_CODE (type) == VECTOR_TYPE && TYPE_VECTOR_OPAQUE (type))
 	    {
@@ -7265,8 +7263,7 @@ build_ptrmem_type (tree class_type, tree member_type)
 {
   if (TREE_CODE (member_type) == METHOD_TYPE)
     {
-      tree arg_types = TYPE_ARG_TYPES (member_type);
-      cp_cv_quals quals = cp_type_quals (TREE_TYPE (TREE_VALUE (arg_types)));
+      cp_cv_quals quals = type_memfn_quals (member_type);
       member_type = build_memfn_type (member_type, class_type, quals);
       return build_ptrmemfunc_type (build_pointer_type (member_type));
     }
@@ -7704,6 +7701,7 @@ grokdeclarator (const cp_declarator *declarator,
 {
   tree type = NULL_TREE;
   int longlong = 0;
+  int explicit_int128 = 0;
   int virtualp, explicitp, friendp, inlinep, staticp;
   int explicit_int = 0;
   int explicit_char = 0;
@@ -7767,6 +7765,7 @@ grokdeclarator (const cp_declarator *declarator,
   short_p = declspecs->specs[(int)ds_short];
   long_p = declspecs->specs[(int)ds_long];
   longlong = declspecs->specs[(int)ds_long] >= 2;
+  explicit_int128 = declspecs->explicit_int128_p;
   thread_p = declspecs->specs[(int)ds_thread];
 
   if (decl_context == FUNCDEF)
@@ -8079,8 +8078,8 @@ grokdeclarator (const cp_declarator *declarator,
   if (long_p && !longlong && TYPE_MAIN_VARIANT (type) == double_type_node)
     {
       long_p = false;
-      type = build_qualified_type (long_double_type_node,
-				   cp_type_quals (type));
+      type = cp_build_qualified_type (long_double_type_node,
+				      cp_type_quals (type));
     }
 
   /* Check all other uses of type modifiers.  */
@@ -8095,12 +8094,16 @@ grokdeclarator (const cp_declarator *declarator,
 	error ("%<signed%> and %<unsigned%> specified together for %qs", name);
       else if (longlong && TREE_CODE (type) != INTEGER_TYPE)
 	error ("%<long long%> invalid for %qs", name);
+      else if (explicit_int128 && TREE_CODE (type) != INTEGER_TYPE)
+	error ("%<__int128%> invalid for %qs", name);
       else if (long_p && TREE_CODE (type) == REAL_TYPE)
 	error ("%<long%> invalid for %qs", name);
       else if (short_p && TREE_CODE (type) == REAL_TYPE)
 	error ("%<short%> invalid for %qs", name);
       else if ((long_p || short_p) && TREE_CODE (type) != INTEGER_TYPE)
 	error ("%<long%> or %<short%> invalid for %qs", name);
+      else if ((long_p || short_p || explicit_char || explicit_int) && explicit_int128)
+	error ("%<long%>, %<int%>, %<short%>, or %<char%> invalid for %qs", name);
       else if ((long_p || short_p) && explicit_char)
 	error ("%<long%> or %<short%> specified with char for %qs", name);
       else if (long_p && short_p)
@@ -8115,13 +8118,29 @@ grokdeclarator (const cp_declarator *declarator,
       else
 	{
 	  ok = 1;
-	  if (!explicit_int && !defaulted_int && !explicit_char && pedantic)
+	  if (!explicit_int && !defaulted_int && !explicit_char && !explicit_int128 && pedantic)
 	    {
 	      pedwarn (input_location, OPT_pedantic, 
 		       "long, short, signed or unsigned used invalidly for %qs",
 		       name);
 	      if (flag_pedantic_errors)
 		ok = 0;
+	    }
+	  if (explicit_int128)
+	    {
+	      if (int128_integer_type_node == NULL_TREE)
+	        {
+		  error ("%<__int128%> is not supported by this target");
+		  ok = 0;
+	        }
+	      else if (pedantic)
+		{
+		  pedwarn (input_location, OPT_pedantic,
+			   "ISO C++ does not support %<__int128%> for %qs",
+			   name);
+		  if (flag_pedantic_errors)
+		    ok = 0;
+		}
 	    }
 	}
 
@@ -8133,6 +8152,7 @@ grokdeclarator (const cp_declarator *declarator,
 	  long_p = false;
 	  short_p = false;
 	  longlong = 0;
+	  explicit_int128 = false;
 	}
     }
 
@@ -8157,7 +8177,9 @@ grokdeclarator (const cp_declarator *declarator,
 	  && TREE_CODE (type) == INTEGER_TYPE
 	  && !same_type_p (TYPE_MAIN_VARIANT (type), wchar_type_node)))
     {
-      if (longlong)
+      if (explicit_int128)
+	type = int128_unsigned_type_node;
+      else if (longlong)
 	type = long_long_unsigned_type_node;
       else if (long_p)
 	type = long_unsigned_type_node;
@@ -8172,6 +8194,8 @@ grokdeclarator (const cp_declarator *declarator,
     }
   else if (signed_p && type == char_type_node)
     type = signed_char_type_node;
+  else if (explicit_int128)
+    type = int128_integer_type_node;
   else if (longlong)
     type = long_long_integer_type_node;
   else if (long_p)
@@ -8187,8 +8211,7 @@ grokdeclarator (const cp_declarator *declarator,
 	 "complex double", but if any modifiers at all are specified it is
 	 the complex form of TYPE.  E.g, "complex short" is
 	 "complex short int".  */
-
-      else if (defaulted_int && ! longlong
+      else if (defaulted_int && ! longlong && ! explicit_int128
 	       && ! (long_p || short_p || signed_p || unsigned_p))
 	type = complex_double_type_node;
       else if (type == integer_type_node)
@@ -8225,21 +8248,6 @@ grokdeclarator (const cp_declarator *declarator,
     error ("qualifiers are not allowed on declaration of %<operator %T%>",
 	   ctor_return_type);
 
-  if (TREE_CODE (type) == FUNCTION_TYPE
-      && type_quals != TYPE_UNQUALIFIED)
-    {
-      /* This was an error in C++98 (cv-qualifiers cannot be added to
-	 a function type), but DR 295 makes the code well-formed by
-	 dropping the extra qualifiers. */
-      if (pedantic && cxx_dialect == cxx98)
-	{
-	  tree bad_type = build_qualified_type (type, type_quals);
-	  pedwarn (input_location, OPT_pedantic, 
-		   "ignoring %qV qualifiers added to function type %qT",
-		   bad_type, type);
-	}
-      type_quals = TYPE_UNQUALIFIED;
-    }
   type_quals |= cp_type_quals (type);
   type = cp_build_qualified_type_real
     (type, type_quals, ((typedef_decl && !DECL_ARTIFICIAL (typedef_decl)
@@ -8683,7 +8691,7 @@ grokdeclarator (const cp_declarator *declarator,
 	      && (TREE_CODE (type) == FUNCTION_TYPE
 		  || (memfn_quals && TREE_CODE (type) == METHOD_TYPE)))
 	    {
-	      memfn_quals |= cp_type_quals (type);
+	      memfn_quals |= type_memfn_quals (type);
 	      type = build_memfn_type (type,
 				       declarator->u.pointer.class_type,
 				       memfn_quals);
@@ -8691,11 +8699,39 @@ grokdeclarator (const cp_declarator *declarator,
 	    }
 
 	  if (TREE_CODE (type) == FUNCTION_TYPE
-	      && cp_type_quals (type) != TYPE_UNQUALIFIED)
+	      && type_memfn_quals (type) != TYPE_UNQUALIFIED)
             error (declarator->kind == cdk_reference
                    ? G_("cannot declare reference to qualified function type %qT")
                    : G_("cannot declare pointer to qualified function type %qT"),
 		   type);
+
+	  /* When the pointed-to type involves components of variable size,
+	     care must be taken to ensure that the size evaluation code is
+	     emitted early enough to dominate all the possible later uses
+	     and late enough for the variables on which it depends to have
+	     been assigned.
+
+	     This is expected to happen automatically when the pointed-to
+	     type has a name/declaration of it's own, but special attention
+	     is required if the type is anonymous.
+
+	     We handle the NORMAL and FIELD contexts here by inserting a
+	     dummy statement that just evaluates the size at a safe point
+	     and ensures it is not deferred until e.g. within a deeper
+	     conditional context (c++/43555).
+
+	     We expect nothing to be needed here for PARM or TYPENAME.
+	     Evaluating the size at this point for TYPENAME would
+	     actually be incorrect, as we might be in the middle of an
+	     expression with side effects on the pointed-to type size
+	     "arguments" prior to the pointer declaration point and the
+	     size evaluation could end up prior to the side effects.  */
+
+	  if (!TYPE_NAME (type)
+	      && (decl_context == NORMAL || decl_context == FIELD)
+	      && at_function_scope_p ()
+	      && variably_modified_type_p (type, NULL_TREE))
+	    finish_expr_stmt (TYPE_SIZE (type));
 
 	  if (declarator->kind == cdk_reference)
 	    {
@@ -8994,7 +9030,7 @@ grokdeclarator (const cp_declarator *declarator,
 	 function type.  */
       if (memfn_quals && TREE_CODE (type) == FUNCTION_TYPE)
         {
-          type = cp_build_qualified_type (type, memfn_quals);
+          type = apply_memfn_quals (type, memfn_quals);
           
           /* We have now dealt with these qualifiers.  */
           memfn_quals = TYPE_UNQUALIFIED;
@@ -9114,7 +9150,7 @@ grokdeclarator (const cp_declarator *declarator,
 	{
 	  /* A cv-qualifier-seq shall only be part of the function type
 	     for a non-static member function. [8.3.5/4 dcl.fct] */
-	  if (cp_type_quals (type) != TYPE_UNQUALIFIED
+	  if (type_memfn_quals (type) != TYPE_UNQUALIFIED
 	      && (current_class_type == NULL_TREE || staticp) )
 	    {
 	      error (staticp
@@ -9127,7 +9163,7 @@ grokdeclarator (const cp_declarator *declarator,
 
 	  /* The qualifiers on the function type become the qualifiers on
 	     the non-static member function. */
-	  memfn_quals |= cp_type_quals (type);
+	  memfn_quals |= type_memfn_quals (type);
 	  type_quals = TYPE_UNQUALIFIED;
 	}
     }
@@ -9195,7 +9231,7 @@ grokdeclarator (const cp_declarator *declarator,
 	    type = build_memfn_type (type, ctype, memfn_quals);
 	  /* Core issue #547: need to allow this in template type args.  */
 	  else if (template_type_arg && TREE_CODE (type) == FUNCTION_TYPE)
-	    type = cp_build_qualified_type (type, memfn_quals);
+	    type = apply_memfn_quals (type, memfn_quals);
 	  else
 	    error ("invalid qualifiers on non-member function type");
 	}
@@ -11041,7 +11077,12 @@ xref_basetypes (tree ref, tree base_list)
 
   /* The binfo slot should be empty, unless this is an (ill-formed)
      redefinition.  */
-  gcc_assert (!TYPE_BINFO (ref) || TYPE_SIZE (ref));
+  if (TYPE_BINFO (ref) && !TYPE_SIZE (ref))
+    {
+      error ("redefinition of %q#T", ref);
+      return false;
+    }
+
   gcc_assert (TYPE_MAIN_VARIANT (ref) == ref);
 
   binfo = make_tree_binfo (max_bases);
@@ -11389,7 +11430,8 @@ finish_enum (tree enumtype)
            itk++)
         {
           underlying_type = integer_types[itk];
-          if (TYPE_PRECISION (underlying_type) >= precision
+          if (underlying_type != NULL_TREE
+	      && TYPE_PRECISION (underlying_type) >= precision
               && TYPE_UNSIGNED (underlying_type) == unsignedp)
             break;
         }
@@ -12944,7 +12986,6 @@ static_fn_type (tree memfntype)
 {
   tree fntype;
   tree args;
-  int quals;
 
   if (TYPE_PTRMEMFUNC_P (memfntype))
     memfntype = TYPE_PTRMEMFUNC_FN_TYPE (memfntype);
@@ -12956,8 +12997,7 @@ static_fn_type (tree memfntype)
   gcc_assert (TREE_CODE (memfntype) == METHOD_TYPE);
   args = TYPE_ARG_TYPES (memfntype);
   fntype = build_function_type (TREE_TYPE (memfntype), TREE_CHAIN (args));
-  quals = cp_type_quals (TREE_TYPE (TREE_VALUE (args)));
-  fntype = build_qualified_type (fntype, quals);
+  fntype = apply_memfn_quals (fntype, type_memfn_quals (memfntype));
   fntype = (cp_build_type_attribute_variant
 	    (fntype, TYPE_ATTRIBUTES (memfntype)));
   fntype = (build_exception_variant

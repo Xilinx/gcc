@@ -37,7 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "function.h"
 #include "ggc.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "except.h"
 #include "vec.h"
 #include "lto-symtab.h"
@@ -1702,6 +1702,7 @@ output_gimple_stmt (struct output_block *ob, gimple stmt)
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_ninputs (stmt));
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_noutputs (stmt));
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_nclobbers (stmt));
+      lto_output_uleb128_stream (ob->main_stream, gimple_asm_nlabels (stmt));
       output_string (ob, ob->main_stream, gimple_asm_string (stmt));
       /* Fallthru  */
 
@@ -1876,6 +1877,7 @@ output_function (struct cgraph_node *node)
   bp_pack_value (bp, fn->after_tree_profile, 1);
   bp_pack_value (bp, fn->returns_pcc_struct, 1);
   bp_pack_value (bp, fn->returns_struct, 1);
+  bp_pack_value (bp, fn->can_throw_non_call_exceptions, 1);
   bp_pack_value (bp, fn->always_inline_functions_inlined, 1);
   bp_pack_value (bp, fn->after_inlining, 1);
   bp_pack_value (bp, fn->dont_save_pending_sizes_p, 1);

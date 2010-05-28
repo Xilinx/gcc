@@ -1,5 +1,5 @@
 /* Top-level control of tree optimizations.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -24,12 +24,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
 #include "tm_p.h"
-#include "hard-reg-set.h"
 #include "basic-block.h"
 #include "output.h"
-#include "expr.h"
 #include "diagnostic.h"
 #include "basic-block.h"
 #include "flags.h"
@@ -50,7 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfgloop.h"
 #include "except.h"
 #include "plugin.h"
-
+#include "regset.h"	/* FIXME: For reg_obstack.  */
 
 /* Gate: execute, or not, all of the non-trivial optimizations.  */
 
@@ -60,7 +57,7 @@ gate_all_optimizations (void)
   return (optimize >= 1
 	  /* Don't bother doing anything if the program has errors.
 	     We have to pass down the queue if we already went into SSA */
-	  && (!(errorcount || sorrycount) || gimple_in_ssa_p (cfun)));
+	  && (!seen_error () || gimple_in_ssa_p (cfun)));
 }
 
 struct gimple_opt_pass pass_all_optimizations =
@@ -88,7 +85,7 @@ static bool
 gate_all_early_local_passes (void)
 {
 	  /* Don't bother doing anything if the program has errors.  */
-  return (!errorcount && !sorrycount && !in_lto_p);
+  return (!seen_error () && !in_lto_p);
 }
 
 struct simple_ipa_opt_pass pass_early_local_passes =
@@ -129,7 +126,7 @@ gate_all_early_optimizations (void)
 {
   return (optimize >= 1
 	  /* Don't bother doing anything if the program has errors.  */
-	  && !(errorcount || sorrycount));
+	  && !seen_error ());
 }
 
 struct gimple_opt_pass pass_all_early_optimizations =

@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "function.h"
 #include "hashtab.h"
-#include "splay-tree.h"
 #include "vec.h"
 #include "c-common.h"
 #include "name-lookup.h"
@@ -244,9 +243,6 @@ typedef struct template_parm_index_s template_parm_index;
 
 struct GTY(()) ptrmem_cst {
   struct tree_common common;
-  /* This isn't used, but the middle-end expects all constants to have
-     this field.  */
-  rtx rtl;
   tree member;
 };
 typedef struct ptrmem_cst * ptrmem_cst_t;
@@ -4406,6 +4402,8 @@ typedef struct cp_decl_specifier_seq {
   BOOL_BITFIELD any_type_specifiers_p : 1;
   /* True iff "int" was explicitly provided.  */
   BOOL_BITFIELD explicit_int_p : 1;
+  /* True iff "__int128" was explicitly provided.  */
+  BOOL_BITFIELD explicit_int128_p : 1;
   /* True iff "char" was explicitly provided.  */
   BOOL_BITFIELD explicit_char_p : 1;
 } cp_decl_specifier_seq;
@@ -5413,7 +5411,8 @@ extern bool error_type_p			(const_tree);
 extern int ptr_reasonably_similar		(const_tree, const_tree);
 extern tree build_ptrmemfunc			(tree, tree, int, bool);
 extern int cp_type_quals			(const_tree);
-extern bool cp_type_readonly			(const_tree);
+extern int type_memfn_quals			(const_tree);
+extern tree apply_memfn_quals			(tree, cp_cv_quals);
 extern bool cp_has_mutable_p			(const_tree);
 extern bool at_least_as_qualified_p		(const_tree, const_tree);
 extern void cp_apply_type_quals_to_decl		(int, tree);

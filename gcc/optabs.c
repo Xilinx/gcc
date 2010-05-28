@@ -41,7 +41,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "reload.h"
 #include "ggc.h"
-#include "real.h"
 #include "basic-block.h"
 #include "target.h"
 
@@ -3881,7 +3880,7 @@ emit_libcall_block (rtx insns, rtx target, rtx result, rtx equiv)
   /* If we're using non-call exceptions, a libcall corresponding to an
      operation that may trap may also trap.  */
   /* ??? See the comment in front of make_reg_eh_region_note.  */
-  if (flag_non_call_exceptions && may_trap_p (equiv))
+  if (cfun->can_throw_non_call_exceptions && may_trap_p (equiv))
     {
       for (insn = insns; insn; insn = NEXT_INSN (insn))
 	if (CALL_P (insn))
@@ -4127,7 +4126,7 @@ prepare_cmp_insn (rtx x, rtx y, enum rtx_code comparison, rtx size,
 
   /* Don't allow operands to the compare to trap, as that can put the
      compare and branch in different basic blocks.  */
-  if (flag_non_call_exceptions)
+  if (cfun->can_throw_non_call_exceptions)
     {
       if (may_trap_p (x))
 	x = force_reg (mode, x);
@@ -4332,6 +4331,7 @@ prepare_float_lib_cmp (rtx x, rtx y, enum rtx_code comparison,
   enum rtx_code reversed = reverse_condition_maybe_unordered (comparison);
   enum machine_mode orig_mode = GET_MODE (x);
   enum machine_mode mode, cmp_mode;
+  rtx true_rtx, false_rtx;
   rtx value, target, insns, equiv;
   rtx libfunc = 0;
   bool reversed_p = false;
@@ -4355,8 +4355,7 @@ prepare_float_lib_cmp (rtx x, rtx y, enum rtx_code comparison,
 	}
 
       if (code_to_optab[reversed]
-	  && (libfunc = optab_libfunc (code_to_optab[reversed], mode))
-	  && FLOAT_LIB_COMPARE_RETURNS_BOOL (mode, reversed))
+	  && (libfunc = optab_libfunc (code_to_optab[reversed], mode)))
 	{
 	  comparison = reversed;
 	  reversed_p = true;
@@ -4375,6 +4374,51 @@ prepare_float_lib_cmp (rtx x, rtx y, enum rtx_code comparison,
   /* Attach a REG_EQUAL note describing the semantics of the libcall to
      the RTL.  The allows the RTL optimizers to delete the libcall if the
      condition can be determined at compile-time.  */
+  if (comparison == UNORDERED
+      || FLOAT_LIB_COMPARE_RETURNS_BOOL (mode, comparison))
+    {
+      true_rtx = const_true_rtx;
+      false_rtx = const0_rtx;
+    }
+  else
+    {
+      switch (comparison)
+        {
+        case EQ:
+          true_rtx = const0_rtx;
+          false_rtx = const_true_rtx;
+          break;
+
+        case NE:
+          true_rtx = const_true_rtx;
+          false_rtx = const0_rtx;
+          break;
+
+        case GT:
+          true_rtx = const1_rtx;
+          false_rtx = const0_rtx;
+          break;
+
+        case GE:
+          true_rtx = const0_rtx;
+          false_rtx = constm1_rtx;
+          break;
+
+        case LT:
+          true_rtx = constm1_rtx;
+          false_rtx = const0_rtx;
+          break;
+
+        case LE:
+          true_rtx = const0_rtx;
+          false_rtx = const1_rtx;
+          break;
+
+        default:
+          gcc_unreachable ();
+        }
+    }
+
   if (comparison == UNORDERED)
     {
       rtx temp = simplify_gen_relational (NE, cmp_mode, mode, x, x);
@@ -4386,47 +4430,8 @@ prepare_float_lib_cmp (rtx x, rtx y, enum rtx_code comparison,
     {
       equiv = simplify_gen_relational (comparison, cmp_mode, mode, x, y);
       if (! FLOAT_LIB_COMPARE_RETURNS_BOOL (mode, comparison))
-	{
-	  rtx true_rtx, false_rtx;
-
-	  switch (comparison)
-	    {
-	    case EQ:
-	      true_rtx = const0_rtx;
-	      false_rtx = const_true_rtx;
-	      break;
-
-	    case NE:
-	      true_rtx = const_true_rtx;
-	      false_rtx = const0_rtx;
-	      break;
-
-	    case GT:
-	      true_rtx = const1_rtx;
-	      false_rtx = const0_rtx;
-	      break;
-
-	    case GE:
-	      true_rtx = const0_rtx;
-	      false_rtx = constm1_rtx;
-	      break;
-
-	    case LT:
-	      true_rtx = constm1_rtx;
-	      false_rtx = const0_rtx;
-	      break;
-
-	    case LE:
-	      true_rtx = const0_rtx;
-	      false_rtx = const1_rtx;
-	      break;
-
-	    default:
-	      gcc_unreachable ();
-	    }
-	  equiv = simplify_gen_ternary (IF_THEN_ELSE, cmp_mode, cmp_mode,
-					equiv, true_rtx, false_rtx);
-	}
+        equiv = simplify_gen_ternary (IF_THEN_ELSE, cmp_mode, cmp_mode,
+                                      equiv, true_rtx, false_rtx);
     }
 
   start_sequence ();
@@ -4439,10 +4444,12 @@ prepare_float_lib_cmp (rtx x, rtx y, enum rtx_code comparison,
   emit_libcall_block (insns, target, value, equiv);
 
   if (comparison == UNORDERED
-      || FLOAT_LIB_COMPARE_RETURNS_BOOL (mode, comparison))
-    comparison = reversed_p ? EQ : NE;
+      || FLOAT_LIB_COMPARE_RETURNS_BOOL (mode, comparison)
+      || reversed_p)
+    *ptest = gen_rtx_fmt_ee (reversed_p ? EQ : NE, VOIDmode, target, false_rtx);
+  else
+    *ptest = gen_rtx_fmt_ee (comparison, VOIDmode, target, const0_rtx);
 
-  *ptest = gen_rtx_fmt_ee (comparison, VOIDmode, target, const0_rtx);
   *pmode = cmp_mode;
 }
 

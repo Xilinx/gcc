@@ -53,8 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "flags.h"
 #include "tree.h"
-#include "real.h"
-#include "fixed-value.h"
+#include "realmpfr.h"
 #include "rtl.h"
 #include "expr.h"
 #include "tm_p.h"
@@ -7408,13 +7407,14 @@ native_interpret_int (tree type, const unsigned char *ptr, int len)
   int total_bytes = GET_MODE_SIZE (TYPE_MODE (type));
   int byte, offset, word, words;
   unsigned char value;
-  unsigned int HOST_WIDE_INT lo = 0;
-  HOST_WIDE_INT hi = 0;
+  double_int result;
 
   if (total_bytes > len)
     return NULL_TREE;
   if (total_bytes * BITS_PER_UNIT > 2 * HOST_BITS_PER_WIDE_INT)
     return NULL_TREE;
+
+  result = double_int_zero;
   words = total_bytes / UNITS_PER_WORD;
 
   for (byte = 0; byte < total_bytes; byte++)
@@ -7436,13 +7436,13 @@ native_interpret_int (tree type, const unsigned char *ptr, int len)
       value = ptr[offset];
 
       if (bitpos < HOST_BITS_PER_WIDE_INT)
-	lo |= (unsigned HOST_WIDE_INT) value << bitpos;
+	result.low |= (unsigned HOST_WIDE_INT) value << bitpos;
       else
-	hi |= (unsigned HOST_WIDE_INT) value
-	      << (bitpos - HOST_BITS_PER_WIDE_INT);
+	result.high |= (unsigned HOST_WIDE_INT) value
+		       << (bitpos - HOST_BITS_PER_WIDE_INT);
     }
 
-  return build_int_cst_wide_type (type, lo, hi);
+  return double_int_to_tree (type, result);
 }
 
 
@@ -8978,7 +8978,7 @@ fold_comparison (location_t loc, enum tree_code code, tree type,
 	    return fold_build2_loc (loc, swap_tree_comparison (code), type,
 				TREE_OPERAND (arg0, 0),
 				build_real (TREE_TYPE (arg1),
-					    REAL_VALUE_NEGATE (cst)));
+					    real_value_negate (&cst)));
 
 	  /* IEEE doesn't distinguish +0 and -0 in comparisons.  */
 	  /* a CMP (-0) -> a CMP 0  */
@@ -15167,7 +15167,7 @@ fold_negate_const (tree arg0, tree type)
       }
 
     case REAL_CST:
-      t = build_real (type, REAL_VALUE_NEGATE (TREE_REAL_CST (arg0)));
+      t = build_real (type, real_value_negate (&TREE_REAL_CST (arg0)));
       break;
 
     case FIXED_CST:
@@ -15226,7 +15226,7 @@ fold_abs_const (tree arg0, tree type)
 
     case REAL_CST:
       if (REAL_VALUE_NEGATIVE (TREE_REAL_CST (arg0)))
-	t = build_real (type, REAL_VALUE_NEGATE (TREE_REAL_CST (arg0)));
+	t = build_real (type, real_value_negate (&TREE_REAL_CST (arg0)));
       else
 	t =  arg0;
       break;

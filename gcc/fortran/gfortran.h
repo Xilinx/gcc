@@ -34,7 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "libgfortran.h"
 
 
-#include "system.h"
 #include "intl.h"
 #include "coretypes.h"
 #include "input.h"
@@ -2105,6 +2104,7 @@ typedef struct
   int warn_aliasing;
   int warn_ampersand;
   int warn_conversion;
+  int warn_conversion_extra;
   int warn_implicit_interface;
   int warn_implicit_procedure;
   int warn_line_truncation;
@@ -2116,6 +2116,7 @@ typedef struct
   int warn_character_truncation;
   int warn_array_temp;
   int warn_align_commons;
+  int warn_unused_dummy_argument;
   int max_errors;
 
   int flag_all_intrinsics;
@@ -2617,6 +2618,7 @@ gfc_try gfc_check_assign (gfc_expr *, gfc_expr *, int);
 gfc_try gfc_check_pointer_assign (gfc_expr *, gfc_expr *);
 gfc_try gfc_check_assign_symbol (gfc_symbol *, gfc_expr *);
 
+bool gfc_has_default_initializer (gfc_symbol *);
 gfc_expr *gfc_default_initializer (gfc_typespec *);
 gfc_expr *gfc_get_variable_expr (gfc_symtree *);
 

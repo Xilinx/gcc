@@ -2152,7 +2152,35 @@ gcc_GAS_CHECK_FEATURE([.nsubspa comdat], gcc_cv_as_nsubspa_comdat,
 gcc_GAS_CHECK_FEATURE([.hidden], gcc_cv_as_hidden,
  [elf,2,13,0],,
 [	.hidden foobar
-foobar:])
+foobar:],[
+# Solaris 9/x86 as incorrectly emits an alias for a hidden symbol with
+# STV_HIDDEN, so disable .hidden support if so.
+case "${target}" in
+  i?86-*-solaris2*)
+    if test x$gcc_cv_as != x && test x$gcc_cv_objdump != x; then
+      cat > conftest.s <<EOF
+.globl hidden
+        .hidden hidden
+hidden:
+.globl default
+        .set    default,hidden
+EOF
+      if $gcc_cv_as -o conftest.o conftest.s > /dev/null 2>&1 \
+        && $gcc_cv_objdump -t conftest.o 2>/dev/null | \
+        grep '\.hidden default' > /dev/null; then
+        gcc_cv_as_hidden=no
+      else
+        gcc_cv_as_hidden=yes
+      fi
+    else
+      # Assume bug is present if objdump is missing.
+      gcc_cv_as_hidden=no
+    fi
+    ;;
+  *)
+    gcc_cv_as_hidden=yes
+    ;;
+esac])
 
 changequote(,)dnl
 if test $in_tree_ld != yes ; then
@@ -3252,11 +3280,18 @@ foo:	nop
       [AC_DEFINE(HAVE_AS_IX86_FFREEP, 1,
         [Define if your assembler supports the ffreep mnemonic.])])
 
+    gcc_GAS_CHECK_FEATURE([.quad directive],
+      gcc_cv_as_ix86_quad,,,
+      [.quad 0],,
+      [AC_DEFINE(HAVE_AS_IX86_QUAD, 1,
+        [Define if your assembler supports the .quad directive.])])
+
     gcc_GAS_CHECK_FEATURE([sahf mnemonic],
       gcc_cv_as_ix86_sahf,,,
-      [sahf],,
+      [.code64
+       sahf],,
       [AC_DEFINE(HAVE_AS_IX86_SAHF, 1,
-        [Define if your assembler supports the sahf mnemonic.])])
+        [Define if your assembler supports the sahf mnemonic in 64bit mode.])])
 
     gcc_GAS_CHECK_FEATURE([swap suffix],
       gcc_cv_as_ix86_swap,,,
@@ -3566,8 +3601,8 @@ x:
         echo '	.end x' >> conftest.s
         if $gcc_cv_as -o conftest.o conftest.s >/dev/null 2>&AS_MESSAGE_LOG_FD \
            && $gcc_cv_ld -shared -o conftest.so conftest.o >/dev/null 2>&AS_MESSAGE_LOG_FD; then
-	  if $gcc_cv_objdump -d conftest.so | grep -q jalr \
-	     && $gcc_cv_objdump -d conftest.so | grep -q "bal.*<x>"; then
+	  if $gcc_cv_objdump -d conftest.so | grep jalr >/dev/null 2>&1 \
+	     && $gcc_cv_objdump -d conftest.so | grep "bal.*<x>" >/dev/null 2>&1; then
             gcc_cv_as_ld_jalr_reloc=yes
 	  fi
         fi
@@ -4197,8 +4232,6 @@ all_compilers=
 all_outputs='Makefile gccbug'
 # List of language makefile fragments.
 all_lang_makefrags=
-# List of language subdirectory makefiles.  Deprecated.
-all_lang_makefiles=
 # Additional files for gengtype
 all_gtfiles="$target_gtfiles"
 
@@ -4291,9 +4324,6 @@ changequote([,])dnl
 	fi
 	if test -f $srcdir/$gcc_subdir/$subdir-tree.def; then
 	    lang_tree_files="$lang_tree_files $srcdir/$gcc_subdir/$subdir-tree.def"
-	fi
-	if test -f ${srcdir}/$gcc_subdir/Makefile.in
-		then all_lang_makefiles="$gcc_subdir/Makefile"
 	fi
 	all_languages="$all_languages $language"
 	all_compilers="$all_compilers $compilers"
@@ -4400,7 +4430,6 @@ AC_SUBST(srcdir)
 AC_SUBST(all_compilers)
 AC_SUBST(all_gtfiles)
 AC_SUBST(all_lang_makefrags)
-AC_SUBST(all_lang_makefiles)
 AC_SUBST(all_languages)
 AC_SUBST(all_selected_languages)
 AC_SUBST(build_exeext)

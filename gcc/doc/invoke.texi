@@ -187,7 +187,7 @@ in the following sections.
 -fno-implicit-templates @gol
 -fno-implicit-inline-templates @gol
 -fno-implement-inlines  -fms-extensions @gol
--fno-nonansi-builtins  -fno-operator-names @gol
+-fno-nonansi-builtins  -fnothrow-opt  -fno-operator-names @gol
 -fno-optional-diags  -fpermissive @gol
 -fno-pretty-templates @gol
 -frepo  -fno-rtti  -fstats  -ftemplate-depth=@var{n} @gol
@@ -391,9 +391,9 @@ Objective-C and Objective-C++ Dialects}.
 -funit-at-a-time -funroll-all-loops -funroll-loops @gol
 -funsafe-loop-optimizations -funsafe-math-optimizations -funswitch-loops @gol
 -fvariable-expansion-in-unroller -fvect-cost-model -fvpt -fweb @gol
--fwhole-program -fwhopr -fwpa -fuse-linker-plugin @gol
+-fwhole-program -fwhopr[=@var{n}] -fwpa -fuse-linker-plugin @gol
 --param @var{name}=@var{value}
--O  -O0  -O1  -O2  -O3  -Os}
+-O  -O0  -O1  -O2  -O3  -Os -Ofast}
 
 @item Preprocessor Options
 @xref{Preprocessor Options,,Options Controlling the Preprocessor}.
@@ -559,7 +559,8 @@ Objective-C and Objective-C++ Dialects}.
 -mcpu=@var{cpu}}
 
 @emph{GNU/Linux Options}
-@gccoptlist{-muclibc}
+@gccoptlist{-mglibc -muclibc -mbionic -mandroid @gol
+-tno-android-cc -tno-android-ld}
 
 @emph{H8/300 Options}
 @gccoptlist{-mrelax  -mh  -ms  -mn  -mint32  -malign-300}
@@ -888,6 +889,7 @@ See i386 and x86-64 Options.
 @emph{Xtensa Options}
 @gccoptlist{-mconst16 -mno-const16 @gol
 -mfused-madd  -mno-fused-madd @gol
+-mforce-no-pic @gol
 -mserialize-volatile  -mno-serialize-volatile @gol
 -mtext-section-literals  -mno-text-section-literals @gol
 -mtarget-align  -mno-target-align @gol
@@ -1933,10 +1935,13 @@ ANSI/ISO C@.  These include @code{ffs}, @code{alloca}, @code{_exit},
 @opindex fnothrow-opt
 Treat a @code{throw()} exception specification as though it were a
 @code{noexcept} specification to reduce or eliminate the text size
-overhead relative to a function with no exception specification.  The
-semantic effect is that an exception thrown out of a function with
-such an exception specification will result in a call to
-@code{terminate} rather than @code{unexpected}.
+overhead relative to a function with no exception specification.  If
+the function has local variables of types with non-trivial
+destructors, the exception specification will actually make the
+function smaller because the EH cleanups for those variables can be
+optimized away.  The semantic effect is that an exception thrown out of
+a function with such an exception specification will result in a call
+to @code{terminate} rather than @code{unexpected}.
 
 @item -fno-operator-names
 @opindex fno-operator-names
@@ -5888,6 +5893,13 @@ optimizations designed to reduce code size.
 -falign-labels  -freorder-blocks  -freorder-blocks-and-partition @gol
 -fprefetch-loop-arrays  -ftree-vect-loop-version}
 
+@item -Ofast
+@opindex Ofast
+Disregard strict standards compliance.  @option{-Ofast} enables all
+@option{-O3} optimizations.  It also enables optimizations that are not
+valid for all standard compliant programs.
+It turns on @option{-ffast-math}.
+
 If you use multiple @option{-O} options, with or without level numbers,
 the last such option is the one that is effective.
 @end table
@@ -7442,7 +7454,7 @@ information.  Combining @option{-flto} or @option{-fwhopr} with
 
 This option is disabled by default.
 
-@item -fwhopr
+@item -fwhopr[=@var{n}]
 @opindex fwhopr
 This option is identical in functionality to @option{-flto} but it
 differs in how the final link stage is executed.  Instead of loading
@@ -7454,9 +7466,12 @@ LTRANS)@.  This process allows optimizations on very large programs
 that otherwise would not fit in memory.  This option enables
 @option{-fwpa} and @option{-fltrans} automatically.
 
-Disabled by default.
+If you specify the optional @var{n} the link stage is executed in
+parallel using @var{n} parallel jobs by utilizing an installed
+@command{make} program.  The environment variable @env{MAKE} may be
+used to override the program used.
 
-This option is experimental.
+Disabled by default.
 
 @item -fwpa
 @opindex fwpa
@@ -11464,13 +11479,41 @@ These @samp{-m} options are defined for GNU/Linux targets:
 @table @gcctabopt
 @item -mglibc
 @opindex mglibc
-Use the GNU C library instead of uClibc.  This is the default except
-on @samp{*-*-linux-*uclibc*} targets.
+Use the GNU C library.  This is the default except
+on @samp{*-*-linux-*uclibc*} and @samp{*-*-linux-*android*} targets.
 
 @item -muclibc
 @opindex muclibc
-Use uClibc instead of the GNU C library.  This is the default on
+Use uClibc C library.  This is the default on
 @samp{*-*-linux-*uclibc*} targets.
+
+@item -mbionic
+@opindex mbionic
+Use Bionic C library.  This is the default on
+@samp{*-*-linux-*android*} targets.
+
+@item -mandroid
+@opindex mandroid
+Compile code compatible with Android platform.  This is the default on
+@samp{*-*-linux-*android*} targets.
+
+When compiling, this option enables @option{-mbionic}, @option{-fPIC},
+@option{-fno-exceptions} and @option{-fno-rtti} by default.  When linking,
+this option makes the GCC driver pass Android-specific options to the linker.
+Finally, this option causes the preprocessor macro @code{__ANDROID__}
+to be defined.
+
+@item -tno-android-cc
+@opindex tno-android-cc
+Disable compilation effects of @option{-mandroid}, i.e., do not enable
+@option{-mbionic}, @option{-fPIC}, @option{-fno-exceptions} and
+@option{-fno-rtti} by default.
+
+@item -tno-android-ld
+@opindex tno-android-ld
+Disable linking effects of @option{-mandroid}, i.e., pass standard Linux
+linking options to the linker.
+
 @end table
 
 @node H8/300 Options
@@ -17039,6 +17082,12 @@ When this option is enabled, GCC inserts @code{MEMW} instructions before
 @code{volatile} memory references to guarantee sequential consistency.
 The default is @option{-mserialize-volatile}.  Use
 @option{-mno-serialize-volatile} to omit the @code{MEMW} instructions.
+
+@item -mforce-no-pic
+@opindex mforce-no-pic
+For targets, like GNU/Linux, where all user-mode Xtensa code must be
+position-independent code (PIC), this option disables PIC for compiling
+kernel code.
 
 @item -mtext-section-literals
 @itemx -mno-text-section-literals

@@ -1,6 +1,6 @@
 /* Mainly the interface between cpplib and the C front ends.
    Copyright (C) 1987, 1988, 1989, 1992, 1994, 1995, 1996, 1997
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -24,8 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 
-#include "real.h"
-#include "fixed-value.h"
 #include "tree.h"
 #include "input.h"
 #include "output.h"
@@ -324,7 +322,6 @@ c_lex_with_flags (tree *value, location_t *loc, unsigned char *cpp_flags,
 	  case CPP_N_INVALID:
 	    /* cpplib has issued an error.  */
 	    *value = error_mark_node;
-	    errorcount++;
 	    break;
 
 	  case CPP_N_INTEGER:
@@ -482,7 +479,11 @@ narrowest_unsigned_type (unsigned HOST_WIDE_INT low,
 
   for (; itk < itk_none; itk += 2 /* skip unsigned types */)
     {
-      tree upper = TYPE_MAX_VALUE (integer_types[itk]);
+      tree upper;
+
+      if (integer_types[itk] == NULL_TREE)
+	continue;
+      upper = TYPE_MAX_VALUE (integer_types[itk]);
 
       if ((unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (upper) > high
 	  || ((unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (upper) == high
@@ -510,7 +511,11 @@ narrowest_signed_type (unsigned HOST_WIDE_INT low,
 
   for (; itk < itk_none; itk += 2 /* skip signed types */)
     {
-      tree upper = TYPE_MAX_VALUE (integer_types[itk]);
+      tree upper;
+
+      if (integer_types[itk] == NULL_TREE)
+	continue;
+      upper = TYPE_MAX_VALUE (integer_types[itk]);
 
       if ((unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (upper) > high
 	  || ((unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (upper) == high
@@ -662,7 +667,6 @@ interpret_float (const cpp_token *token, unsigned int flags)
 	if (mode == VOIDmode)
 	  {
 	    error ("unsupported non-standard suffix on floating constant");
-	    errorcount++;
 
 	    return error_mark_node;
 	  }

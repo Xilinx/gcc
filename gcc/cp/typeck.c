@@ -31,10 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "expr.h"
 #include "cp-tree.h"
-#include "tm_p.h"
 #include "flags.h"
 #include "output.h"
 #include "toplev.h"
@@ -353,6 +350,17 @@ cp_common_type (tree t1, tree t2)
 		    : long_long_integer_type_node);
 	  return build_type_attribute_variant (t, attributes);
 	}
+      if (int128_integer_type_node != NULL_TREE
+	  && (same_type_p (TYPE_MAIN_VARIANT (t1),
+			   int128_integer_type_node)
+	      || same_type_p (TYPE_MAIN_VARIANT (t2),
+			      int128_integer_type_node)))
+	{
+	  tree t = ((TYPE_UNSIGNED (t1) || TYPE_UNSIGNED (t2))
+		    ? int128_unsigned_type_node
+		    : int128_integer_type_node);
+	  return build_type_attribute_variant (t, attributes);
+	}
 
       /* Go through the same procedure, but for longs.  */
       if (same_type_p (TYPE_MAIN_VARIANT (t1), long_unsigned_type_node)
@@ -633,10 +641,10 @@ composite_pointer_type (tree t1, tree t2, tree arg1, tree arg2,
 
       if (DERIVED_FROM_P (class1, class2))
 	t2 = (build_pointer_type
-	      (cp_build_qualified_type (class1, TYPE_QUALS (class2))));
+	      (cp_build_qualified_type (class1, cp_type_quals (class2))));
       else if (DERIVED_FROM_P (class2, class1))
 	t1 = (build_pointer_type
-	      (cp_build_qualified_type (class2, TYPE_QUALS (class1))));
+	      (cp_build_qualified_type (class2, cp_type_quals (class1))));
       else
         {
           if (complain & tf_error)
@@ -810,6 +818,7 @@ merge_types (tree t1, tree t2)
 	tree valtype = merge_types (TREE_TYPE (t1), TREE_TYPE (t2));
 	tree p1 = TYPE_ARG_TYPES (t1);
 	tree p2 = TYPE_ARG_TYPES (t2);
+	tree parms;
 	tree rval, raises;
 
 	/* Save space: see if the result is identical to one of the args.  */
@@ -821,21 +830,25 @@ merge_types (tree t1, tree t2)
 	/* Simple way if one arg fails to specify argument types.  */
 	if (p1 == NULL_TREE || TREE_VALUE (p1) == void_type_node)
 	  {
-	    rval = build_function_type (valtype, p2);
-	    if ((raises = TYPE_RAISES_EXCEPTIONS (t2)))
-	      rval = build_exception_variant (rval, raises);
-	    return cp_build_type_attribute_variant (rval, attributes);
+	    parms = p2;
+	    raises = TYPE_RAISES_EXCEPTIONS (t2);
 	  }
-	raises = TYPE_RAISES_EXCEPTIONS (t1);
-	if (p2 == NULL_TREE || TREE_VALUE (p2) == void_type_node)
+	else if (p2 == NULL_TREE || TREE_VALUE (p2) == void_type_node)
 	  {
-	    rval = build_function_type (valtype, p1);
-	    if (raises)
-	      rval = build_exception_variant (rval, raises);
-	    return cp_build_type_attribute_variant (rval, attributes);
+	    parms = p1;
+	    raises = TYPE_RAISES_EXCEPTIONS (t1);
+	  }
+	else
+	  {
+	    parms = commonparms (p1, p2);
+	    /* In cases where we're merging a real declaration with a
+	       built-in declaration, t1 is the real one.  */
+	    raises = TYPE_RAISES_EXCEPTIONS (t1);
 	  }
 
-	rval = build_function_type (valtype, commonparms (p1, p2));
+	rval = build_function_type (valtype, parms);
+	gcc_assert (type_memfn_quals (t1) == type_memfn_quals (t2));
+	rval = apply_memfn_quals (rval, type_memfn_quals (t1));
 	t1 = build_exception_variant (rval, raises);
 	break;
       }
@@ -1245,7 +1258,10 @@ structural_comptypes (tree t1, tree t2, int strict)
   /* Qualifiers must match.  For array types, we will check when we
      recur on the array element types.  */
   if (TREE_CODE (t1) != ARRAY_TYPE
-      && TYPE_QUALS (t1) != TYPE_QUALS (t2))
+      && cp_type_quals (t1) != cp_type_quals (t2))
+    return false;
+  if (TREE_CODE (t1) == FUNCTION_TYPE
+      && type_memfn_quals (t1) != type_memfn_quals (t2))
     return false;
   if (TYPE_FOR_JAVA (t1) != TYPE_FOR_JAVA (t2))
     return false;
@@ -2027,7 +2043,7 @@ string_conv_p (const_tree totype, const_tree exp, int warn)
   else
     {
       /* Is this a string constant which has decayed to 'const char *'?  */
-      t = build_pointer_type (build_qualified_type (t, TYPE_QUAL_CONST));
+      t = build_pointer_type (cp_build_qualified_type (t, TYPE_QUAL_CONST));
       if (!same_type_p (TREE_TYPE (exp), t))
 	return 0;
       STRIP_NOPS (exp);
@@ -5016,6 +5032,20 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	  return arg;
 	}
 
+      /* ??? Cope with user tricks that amount to offsetof.  */
+      if (TREE_CODE (argtype) != FUNCTION_TYPE
+	  && TREE_CODE (argtype) != METHOD_TYPE
+	  && argtype != unknown_type_node
+	  && (val = get_base_address (arg))
+	  && TREE_CODE (val) == INDIRECT_REF
+	  && TREE_CONSTANT (TREE_OPERAND (val, 0)))
+	{
+	  tree type = build_pointer_type (argtype);
+	  tree op0 = fold_convert (type, TREE_OPERAND (val, 0));
+	  tree op1 = fold_convert (sizetype, fold_offsetof (arg, val));
+	  return fold_build2 (POINTER_PLUS_EXPR, type, op0, op1);
+	}
+
       /* Uninstantiated types are all functions.  Taking the
 	 address of a function is a no-op, so just return the
 	 argument.  */
@@ -7637,7 +7667,7 @@ check_return_expr (tree retval, bool *no_warning)
       if ((cxx_dialect != cxx98) 
           && named_return_value_okay_p
           /* The variable must not have the `volatile' qualifier.  */
-	  && !(cp_type_quals (TREE_TYPE (retval)) & TYPE_QUAL_VOLATILE)
+	  && !CP_TYPE_VOLATILE_P (TREE_TYPE (retval))
 	  /* The return type must be a class type.  */
 	  && CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (current_function_decl))))
 	flags = flags | LOOKUP_PREFER_RVALUE;
@@ -7851,24 +7881,50 @@ comp_ptr_ttypes_const (tree to, tree from)
 int
 cp_type_quals (const_tree type)
 {
+  int quals;
   /* This CONST_CAST is okay because strip_array_types returns its
      argument unmodified and we assign it to a const_tree.  */
-  type = strip_array_types (CONST_CAST_TREE(type));
-  if (type == error_mark_node)
+  type = strip_array_types (CONST_CAST_TREE (type));
+  if (type == error_mark_node
+      /* Quals on a FUNCTION_TYPE are memfn quals.  */
+      || TREE_CODE (type) == FUNCTION_TYPE)
     return TYPE_UNQUALIFIED;
-  return TYPE_QUALS (type);
+  quals = TYPE_QUALS (type);
+  /* METHOD and REFERENCE_TYPEs should never have quals.  */
+  gcc_assert ((TREE_CODE (type) != METHOD_TYPE
+	       && TREE_CODE (type) != REFERENCE_TYPE)
+	      || ((quals & (TYPE_QUAL_CONST|TYPE_QUAL_VOLATILE))
+		  == TYPE_UNQUALIFIED));
+  return quals;
 }
 
-/* Returns nonzero if the TYPE is const from a C++ perspective: look inside
-   arrays.  */
+/* Returns the function-cv-quals for TYPE, which must be a FUNCTION_TYPE or
+   METHOD_TYPE.  */
 
-bool
-cp_type_readonly (const_tree type)
+int
+type_memfn_quals (const_tree type)
 {
-  /* This CONST_CAST is okay because strip_array_types returns its
-     argument unmodified and we assign it to a const_tree.  */
-  type = strip_array_types (CONST_CAST_TREE(type));
-  return TYPE_READONLY (type);
+  if (TREE_CODE (type) == FUNCTION_TYPE)
+    return TYPE_QUALS (type);
+  else if (TREE_CODE (type) == METHOD_TYPE)
+    return cp_type_quals (TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (type))));
+  else
+    gcc_unreachable ();
+}
+
+/* Returns the FUNCTION_TYPE TYPE with its function-cv-quals changed to
+   MEMFN_QUALS.  */
+
+tree
+apply_memfn_quals (tree type, cp_cv_quals memfn_quals)
+{
+  /* Could handle METHOD_TYPE here if necessary.  */
+  gcc_assert (TREE_CODE (type) == FUNCTION_TYPE);
+  if (TYPE_QUALS (type) == memfn_quals)
+    return type;
+  /* This should really have a different TYPE_MAIN_VARIANT, but that gets
+     complex.  */
+  return build_qualified_type (type, memfn_quals);
 }
 
 /* Returns nonzero if TYPE is const or volatile.  */
@@ -7915,23 +7971,8 @@ cp_apply_type_quals_to_decl (int type_quals, tree decl)
   if (TREE_CODE (decl) == TYPE_DECL)
     return;
 
-  if (TREE_CODE (type) == FUNCTION_TYPE
-      && type_quals != TYPE_UNQUALIFIED)
-    {
-      /* This was an error in C++98 (cv-qualifiers cannot be added to
-	 a function type), but DR 295 makes the code well-formed by
-	 dropping the extra qualifiers. */
-      if (pedantic)
-	{
-	  tree bad_type = build_qualified_type (type, type_quals);
-	  pedwarn (input_location, OPT_pedantic, 
-		   "ignoring %qV qualifiers added to function type %qT",
-		   bad_type, type);
-	}
-
-      TREE_TYPE (decl) = TYPE_MAIN_VARIANT (type);
-      return;
-    }
+  gcc_assert (!(TREE_CODE (type) == FUNCTION_TYPE
+		&& type_quals != TYPE_UNQUALIFIED));
 
   /* Avoid setting TREE_READONLY incorrectly.  */
   if (/* If the object has a constructor, the constructor may modify
