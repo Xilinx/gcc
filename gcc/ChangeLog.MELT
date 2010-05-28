@@ -1,4 +1,16 @@
 
+2010-05-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{the compiler can be bootstrapped with a non gcc-4.5 compiler;
+	however the compare fail for melt-runtime.o because it is compiled
+	with varying -DMELT_MODULE_CFLAGS}}
+	* melt-make.mk: added debugging echo.
+	* Makefile.in: (MELT_C): renamed as MELT_RUNTIME_C.
+	(MELT_OBJ) added comment for fixme of failed compare step.
+	(MELT_RAW_CFLAGS) used PLUGINCLAGS.
+	(MELTHERE_CFLAGS):removed -gtoggle with filter-out make function.
+	Added export.
+	(melt.encap) more verbose echo.
+
 2010-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{when a symbol appears at the top level, we have no location for
 	it. Perhaps the reader should parse differently top-level symbols

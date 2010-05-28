@@ -76,6 +76,7 @@ vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 MELT_MAKE_MODULE=$(MAKE) -f $(melt_make_module_makefile) $(MELT_MAKE_MODULE_XTRAMAKEFLAGS) VPATH=$(VPATH):.
 
 warmelt-%.0.so: warmelt-%.0.c $(melt_make_module_makefile)
+	echo in melt-make.mk melt_cflags= $(melt_cflags) 
 	$(MELT_MAKE_MODULE) meltmodule \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
@@ -175,7 +176,7 @@ WARMELT_BASE2SO= $(patsubst %, %.2.so, $(WARMELT_BASE))
 WARMELT_BASE2NSO= $(patsubst %, %.2.n.so, $(WARMELT_BASE))
 WARMELT_BASE2C= $(patsubst %, %.2.c, $(WARMELT_BASE))
 WARMELT_BASE2ROW:=$(shell echo $(WARMELT_BASE2)|sed 's/ /:/g')
-
+##
 WARMELT_BASESO= $(patsubst %, %.so, $(WARMELT_BASE))
 WARMELT_BASENSO= $(patsubst %, %.n.so, $(WARMELT_BASE))
 WARMELT_BASEC= $(patsubst %, %.c, $(WARMELT_BASE))
@@ -504,7 +505,7 @@ warmelt-first.c: $(melt_make_source_dir)/warmelt-first.melt warmelt2.modlis $(WA
 
 ####
 diff-warmelt.2.: $(WARMELT_BASESO)
-	echo WARMELT_BASE3ROW= $(WARMELT_BASEROW)
+	echo WARMELT_BASEROW= $(WARMELT_BASEROW)
 	for f in $(WARMELT_BASE); do; \
 	  diff $$f.2.c $$f.c || true; \
 	done
