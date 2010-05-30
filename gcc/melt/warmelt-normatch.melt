@@ -4516,7 +4516,8 @@ $NTESTISA_JUMP.}#
   match datas to process. $MATNORX_MSTEPQUEUE is the read-mostly queue
   list of match steps, with already an associated label, to
   process. $MATNORX_BODYLIST is the incomplete list of the match
-  body. $MATNORX_ENDLABEL is the ending label.}#
+  body. $MATNORX_ENDLABEL is the ending label. $MATNORX_MATCHCTXT
+  gives the matching context of $CLASS_MATCHING_CONTEXT.}#
   :fields (matnorx_resloc
 	   matnorx_nmatch
 	   matnorx_datamap
@@ -4526,6 +4527,7 @@ $NTESTISA_JUMP.}#
 	   matnorx_mstepqueue 
 	   matnorx_bodylist
 	   matnorx_endlabel
+	   matnorx_matchctxt
 	   ))
 
 
@@ -4601,6 +4603,10 @@ normalized expression.}#
 		    (let ( (normsteptup (tuple normstep clearndata finalndata)) )
 		      (debug_msg normsteptup "complete_normstep_if_last new normsteptup")
 		      (return normsteptup)))
+		  ( (null normstep)
+		    (let ( (steptupn (tuple clearndata finalndata)) )
+		      (debug_msg steptupn "complete_normstep_if_last new steptupn for nil")
+		      (return steptupn)))
 		  ( (is_multiple normstep)
 		    (let ( (normsteplist (multiple_to_list normstep))
 			   )
@@ -4667,6 +4673,7 @@ normalized expression.}#
 	 (matelse (unsafe_get_field :mstep_else step))
 	 (matclass (unsafe_get_field :mstins_class step))
 	 (matslots (unsafe_get_field :mstins_slots step))
+	 (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
 	 (ndata (altmatch_normalize_mdata matdata nmctxt))
 	 )
     (debug_msg matclass "normstep_mtestinstance matclass")
@@ -4677,9 +4684,22 @@ normalized expression.}#
     (let (
 	  (nthen (altmatch_normalize_step matthen nmctxt))
 	  (nelse (altmatch_normalize_step matelse nmctxt))
+	  (ncx (get_field :mctx_normctxt matctx))
+	  (env (get_field :mctx_env matctx))
+	  (ncla (normal_exp matclass env ncx sloc))
+	  (niflist (make_list discr_list))
+	  (nelselist (make_list discr_list))
+	  (nifisa (instance class_nrep_ifisa
+			    :nrep_loc sloc
+			    :nifa_val ndata
+			    :nifa_class ncla
+			    :nexpr_ctyp ctype_void
+			    :nif_then ()
+			    :nif_else ()))
 	  )
       (debug_msg nthen "normstep_mtestinstance nthen")
       (debug_msg nelse "normstep_mtestinstance nelse")
+      (debug_msg nifisa "normstep_mtestinstance nifisa")
       (assert_msg "$@$unimplemented normstep_mtestinstance")
       )))
 (install_method class_match_step_test_instance normalize_step normstep_mtestinstance)
@@ -4869,6 +4889,7 @@ normalized expression.}#
 			   :matnorx_mstepqueue mstepqueue
 			   :matnorx_bodylist bodyl
 			   :matnorx_endlabel endlab
+			   :matnorx_matchctxt matctx
 			   ))
 	)
     (debug_msg nmctxt "altmatch_make_match_normalization_context result nmctxt")

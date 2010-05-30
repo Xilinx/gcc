@@ -1,4 +1,8 @@
 
+2010-05-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: using class_nrep_ifisa in
+	normstep_mtestinstance
+
 2010-05-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: altmatch_normalize_step handles
 	specially a null step. Added
