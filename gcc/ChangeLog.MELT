@@ -1,4 +1,10 @@
 
+2010-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: complete_normstep_if_last leaves
+	normstep unchanged if the matched data is not comming from a
+	pattern.
+	normstep_mtestinstance is probably complete.
+
 2010-05-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: using class_nrep_ifisa in
 	normstep_mtestinstance

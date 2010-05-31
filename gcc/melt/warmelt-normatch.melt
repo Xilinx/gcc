@@ -4566,7 +4566,8 @@ normalized expression.}#
 ;; this utility function completes a normstep if the step is the last
 ;; in its data, or else return the normstep unchanged...
 (defun complete_normstep_if_last (step normstep nmctxt)
-  (debug_msg step "complete_normstep_if_last step")
+  (debug_msg step "complete_normstep_if_last start step")
+  (debug_msg normstep "complete_normstep_if_last start normstep")
   (assert_msg "check step" (is_a step class_match_step))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let ( (matdata (unsafe_get_field :mstep_data step))
@@ -4579,7 +4580,7 @@ normalized expression.}#
     (let ( (:long numindex (get_int matindex))
 	   (datasteps (unsafe_get_field :mdata_steps matdata))
 	   (:long nbdatasteps (multiple_length datasteps))
-	  )
+	   )
       (assert_msg "check numindex" (>i numindex 0))
       (assert_msg "check nbdatasteps" (>i nbdatasteps 0))
       (assert_msg "good numindex" (<=i numindex nbdatasteps))
@@ -4599,6 +4600,7 @@ normalized expression.}#
 		 )
 	    (debug_msg clearndata "complete_normstep_if_last clearndata")
 	    (debug_msg finalndata "complete_normstep_if_last finalndata")
+	    (debug_msg normstep "complete_normstep_if_last normstep")
 	    (cond ( (is_object normstep)
 		    (let ( (normsteptup (tuple normstep clearndata finalndata)) )
 		      (debug_msg normsteptup "complete_normstep_if_last new normsteptup")
@@ -4624,7 +4626,12 @@ normalized expression.}#
 		  (:else
 		   (debug_msg normstep "complete_normstep_if_last bad normstep")
 		   (assert_msg "complete_normstep_if_last unexpected normstep" ())
-		   )))))))
+		   )))
+	(progn
+	  (debug_msg ndata "complete_normstep_if_last ndata not a matched data")
+	  (debug_msg normstep "complete_normstep_if_last unchanged normstep")
+	  (return normstep))
+	))))
 
 (defun normstep_anyrecv (recv nmctxt sloc)
   (debug_msg recv "normstep_anyrecv recv")
@@ -4681,14 +4688,21 @@ normalized expression.}#
     (debug_msg matslots "normstep_mtestinstance matslots")
     (debug_msg matthen "normstep_mtestinstance matthen")
     (debug_msg matelse "normstep_mtestinstance matelse")
+    (assert_msg "check matclass" (is_a matclass class_class))
     (let (
 	  (nthen (altmatch_normalize_step matthen nmctxt))
 	  (nelse (altmatch_normalize_step matelse nmctxt))
+	  (jumpthen (instance class_nrep_match_jump
+			      :nmjmp_label nthen))
+	  (jumpelse (instance class_nrep_match_jump
+			      :nmjmp_label nelse))
+	  (njthen (complete_normstep_if_last step jumpthen nmctxt))
+	  (njelse (complete_normstep_if_last step jumpelse nmctxt))
 	  (ncx (get_field :mctx_normctxt matctx))
 	  (env (get_field :mctx_env matctx))
 	  (ncla (normal_exp matclass env ncx sloc))
+	  (clafields (unsafe_get_field :class_fields matclass))
 	  (niflist (make_list discr_list))
-	  (nelselist (make_list discr_list))
 	  (nifisa (instance class_nrep_ifisa
 			    :nrep_loc sloc
 			    :nifa_val ndata
@@ -4699,8 +4713,70 @@ normalized expression.}#
 	  )
       (debug_msg nthen "normstep_mtestinstance nthen")
       (debug_msg nelse "normstep_mtestinstance nelse")
+      (assert_msg "check nthen" (is_a nthen class_nrep_match_label))
+      (assert_msg "check nelse" (is_a nelse class_nrep_match_label))
+      (debug_msg njthen "normstep_mtestinstance njthen")
+      (debug_msg njelse "normstep_mtestinstance njelse")
+      (foreach_in_multiple
+       (matslots)
+       (curmslot :long curix)
+       (if curmslot
+	   (progn
+	     (debug_msg curmslot "normstep_mtestinstance curmslot")
+	     (assert_msg "check curmslot" (is_a curmslot class_matched_data))
+	     (let ( (nslot (altmatch_normalize_mdata curmslot nmctxt))
+		    (curfld (multiple_nth clafields curix))
+		    (nflexp (instance class_nrep_unsafe_get_field
+				      :nrep_loc nsloc
+				      :nuget_obj nslot
+				      :nuget_field curfld))
+		    (nsetf (instance class_nrep_setq
+				     :nrep_loc nsloc
+				     :nstq_var nslot
+				     :nstq_exp nflexp))
+		    )
+	       (debug_msg nslot "normstep_mtestinstance nslot")
+	       (debug_msg curfld "normstep_mtestinstance curfld")
+	       (debug_msg nsetf "normstep_mtestinstance nsetf")
+	       (assert_msg "check curfld" (is_a curfld class_field))
+	       (list_append niflist nsetf)
+	       ))))
       (debug_msg nifisa "normstep_mtestinstance nifisa")
-      (assert_msg "$@$unimplemented normstep_mtestinstance")
+      (cond ( (is_object njthen)
+	      (list_append niflist njthen))
+	    ( (is_list njthen)
+	      (list_append2list niflist njthen))
+	    ( (is_multiple njthen)
+	      (foreach_in_multiple
+	       (njthen)
+	       (curjthen :long jix)
+	       (list_append niflist curjthen)))
+	    (:else
+	     (debug_msg njthen "normstep_mtestinstance unexpected njthen")
+	     (assert_msg "normstep_mtestinstance unexpected njthen" ())))
+      (debug_msg niflist "normstep_mtestinstance niflist")
+      (let ( (nthenprogn (instance class_nrep_progn
+				   :nrep_loc nsloc
+				   :nprogn_seq (list_to_multiple niflist)
+				   :nprogn_last ()
+				   ))
+	     (npelse 
+	      (cond 
+	       ( (is_object njelse) 
+		 njelse)
+	       ( (is_multiple njelse)
+		 (instance class_nrep_progn
+			   :nrep_loc nsloc
+			   :nprogn_seq njelse
+			   :nprogn_last ()))
+	       (:else
+		(debug_msg njelse "unexpected njelse")
+		(assert_msg "normstep_mtestinstance unexpected njelse" ()))))
+	     )
+	(unsafe_put_fields nifisa :nif_then nthenprogn :nif_else npelse)
+	)
+      (debug_msg nifisa "normstep_mtestinstance updated nifisa")
+      (return nifisa)
       )))
 (install_method class_match_step_test_instance normalize_step normstep_mtestinstance)
 
