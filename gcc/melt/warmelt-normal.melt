@@ -176,9 +176,11 @@ returned things are thru $NRET_REST tuple.}#
 	   nret_rest			;tuple of normal expr...
 	   ))
 
-(compile_warning "should add documentation below")
 ;; common normal for if & ifisa
 (defclass class_nrep_ifcommon
+  :doc #{The $CLASS_NREP_IFCOMMON is the common superclass for
+normalized if-like tests. $NIF_THEN gives the then branch, and
+$NIF_ELSE gives the else branch.}#
   :super class_nrep_typed_expression
   :fields (nif_then
 	   nif_else
@@ -186,19 +188,36 @@ returned things are thru $NRET_REST tuple.}#
 
 ;; normal if is_a(value,class) then else
 (defclass class_nrep_ifisa
+  :doc #{The $CLASS_NREP_IFISA is for normalized $IS_A tests. $NIFA_VAL
+  gives the value to be tested, and $NIFA_CLASS gives the normalized
+  class data in which the value is tested for membership.}#
   :super class_nrep_ifcommon
   :fields (nifa_val			;normal value to be tested
 	   nifa_class			;normal class 
 ))
 
+
+;; normal if same (t1,t2) then else
+(defclass class_nrep_ifsame
+  :doc #{The $CLASS_NREP_IFSAME is for normalized identity tests for matching. $NIFS_LEFT and $NIFS_RIGHT are the simple stuff to compare for identity.}#
+  :super class_nrep_ifcommon
+  :fields (nifs_left 
+	   nifs_right))
+
 ;; normal if have simple test, then, else clauses & a ctype
 (defclass class_nrep_if
+  :doc #{The $CLASS_NREP_IF is for usual normalized if-test. $NIF_TEST
+gives the tested thing.}#
   :super class_nrep_ifcommon
   :fields (nif_test
 	   ))
 
-;; normal ifcpp have a symbol and a ctyp
+;; normal ifcpp have a symbol and a ctyp. Perhaps it should be
+;; refactored using class_nrep_ifcommon?
 (defclass class_nrep_cppif
+  :doc #{The $CLASS_NREP_CPPIF is for cppif compile-time
+tests. $NIFP_COND is the tested cpp symbol. $NIFP_THEN the then
+part, $NIFP_ELSE the else part, $NIFP_CTYP the ctype.}#
   :super class_nrep_expression
   :fields (nifp_cond
 	   nifp_then
@@ -208,11 +227,16 @@ returned things are thru $NRET_REST tuple.}#
 
 ;; normal progn has a distingished last
 (defclass class_nrep_progn
+  :doc #{The $CLASS_NREP_PROGN is for normalized $PROGN sequences. The
+  $NPROGN_SEQ field is the tuple of all-but-last subexpressions, and
+  the last one is given in $NPROGN_LAST.}#
   :super class_nrep_expression
   :fields (nprogn_seq			;tuple of all but last
 	   nprogn_last
 	   ))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(compile_warning ":doc missing below")
 ;; normalized unsafe get field
 (defclass class_nrep_unsafe_get_field
   :super class_nrep_expression
@@ -625,6 +649,7 @@ routine procedures.}#
  class_nrep_if
  class_nrep_ifcommon
  class_nrep_ifisa
+ class_nrep_ifsame
  class_nrep_importedval
  class_nrep_initproc
  class_nrep_instance

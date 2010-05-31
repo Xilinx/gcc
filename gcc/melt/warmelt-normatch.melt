@@ -2567,8 +2567,8 @@ $MSTEP_ELSE is the else branch.}#
 (defclass class_match_step_test_variable
   :super class_match_step_test
   :doc #{The $CLASS_MATCH_STEP_TEST_VARIABLE is for tests if the
-variable $MSTEPTESTVAR_SYMB is the same as the matched data.}#
-  :fields (msteptestvar_symb))
+data $MSTEPTESTVAR_DATA is the same as the matched data.}#
+  :fields (msteptestvar_data))
 
 (defclass class_match_step_test_group
   :super class_match_step_test
@@ -3299,7 +3299,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	 (curpair curteststep)
 	 (cond
 	  ( (and (is_a curteststep class_match_step_test_variable)
-		 (== (unsafe_get_field :msteptestvar_symb curteststep) symb)
+		 (== (unsafe_get_field :msteptestvar_data curteststep) symbval)
 		 (== (unsafe_get_field :mstep_data curteststep) mdata))
 	    (progn
 	      (debug_msg curteststep "translpat_varpat found curteststep")
@@ -3318,7 +3318,7 @@ the flags of the $STEP with an extra context $CTX.}#
 				   :loca_location sloc
 				   :mstep_data mdata
 				   :mstep_then flagstep
-				   :msteptestvar_symb symb
+				   :msteptestvar_data symbval
 				   ))
 	       )
 	  (list_append steplist steptest)
@@ -3786,7 +3786,7 @@ the flags of the $STEP with an extra context $CTX.}#
   (let ( (loca (unsafe_get_field :loca_location step))
 	 (sthen (unsafe_get_field :mstep_then step))
 	 (selse (unsafe_get_field :mstep_else step))
-	 (testsymb (unsafe_get_field :msteptestvar_symb step))
+	 (testdata (unsafe_get_field :msteptestvar_data step))
 	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
 	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
 	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
@@ -3811,9 +3811,10 @@ the flags of the $STEP with an extra context $CTX.}#
     (add2out_strconst nodebuf "</font></td></tr>")
     (add2out_indentnl nodebuf 0)
     (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font face=\"Time-Roman Italics\" point-size=\"7\" color=\"navy\">")
-    (add2out_string nodebuf (get_field :named_name testsymb))
-    (if (is_a testsymb class_cloned_symbol)
-	(let ( (:long syrank (get_int (get_field :csym_urank testsymb)))
+    (compile_warning "testdata is usually not a symbol but a matched data...")
+    (add2out_string nodebuf (get_field :named_name testdata))
+    (if (is_a testdata class_cloned_symbol)
+	(let ( (:long syrank (get_int (get_field :csym_urank testdata)))
 	      )
 	  (add2out_strconst nodebuf "$")
 	  (add2out_longdec nodebuf syrank)
@@ -4788,15 +4789,40 @@ normalized expression.}#
 	  (matflag (unsafe_get_field :mstep_flag step))
 	  (matthen (unsafe_get_field :mstep_then step))
 	  (matelse (unsafe_get_field :mstep_else step))
+	  (matdata (unsafe_get_field :mstep_data step))
+	  (matestdata (unsafe_get_field :msteptestvar_data step))
 	  )
     (debug_msg matthen "normstep_mtestvar matthen")
     (debug_msg matelse "normstep_mtestvar matelse")
+    (debug_msg matdata "normstep_mtestvar matdata")
+    (debug_msg matestdata "normstep_mtestvar matestdata")
     (let (
 	  (nthen (altmatch_normalize_step matthen nmctxt))
 	  (nelse (altmatch_normalize_step matelse nmctxt))
+	  (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
+	  (ndata (altmatch_normalize_mdata matdata nmctxt))
+	  (ntestdata (altmatch_normalize_mdata matestdata nmctxt))
+	  (jumpthen (instance class_nrep_match_jump
+			      :nmjmp_label nthen))
+	  (jumpelse (instance class_nrep_match_jump
+			      :nmjmp_label nelse))
+	  (njthen (complete_normstep_if_last step jumpthen nmctxt))
+	  (njelse (complete_normstep_if_last step jumpelse nmctxt))
+	  (ntestsame (instance class_nrep_ifsame
+			       :nrep_loc nsloc
+			       :nifs_left ndata
+			       :nifs_right ntestdata
+			       :nif_then ()
+			       :nif_else ()))
 	  )
       (debug_msg nthen "normstep_mtestvar nthen")
       (debug_msg nelse "normstep_mtestvar nelse")
+      (debug_msg ndata "normstep_mtestvar ndata")
+      (debug_msg ntestdata "normstep_mtestvar ntestdata")
+      (debug_msg step "normstep_mtestvar step")
+      (debug_msg ntestsame "normstep_mtestvar ntestsame")
+      ;; should complete the nif_then & nif_else of ntestsame using
+      ;; njthen & njelse
       (assert_msg "$@$unimplemented normstep_mtestvar"))))
 (install_method class_match_step_test_variable normalize_step normstep_mtestvar)
     

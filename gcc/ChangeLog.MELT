@@ -1,5 +1,11 @@
 
 2010-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt: Added a bit more :doc.
+	Added class_nrep_ifsame.
+
+	* melt/warmelt-normatch.melt: Adding more in normstep_mtestvar.
+
+2010-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: complete_normstep_if_last leaves
 	normstep unchanged if the matched data is not comming from a
 	pattern.
