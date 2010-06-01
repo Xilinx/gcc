@@ -568,8 +568,12 @@ make_edges (void)
 		 create abnormal edges to them.  */
 	      make_eh_edges (last);
 
+	      /* BUILTIN_RETURN is really a return statement.  */
+	      if (gimple_call_builtin_p (last, BUILT_IN_RETURN))
+		make_edge (bb, EXIT_BLOCK_PTR, 0), fallthru = false;
 	      /* Some calls are known not to return.  */
-	      fallthru = !(gimple_call_flags (last) & ECF_NORETURN);
+	      else
+	        fallthru = !(gimple_call_flags (last) & ECF_NORETURN);
 	      break;
 
 	    case GIMPLE_ASSIGN:
@@ -964,7 +968,7 @@ label_to_block_fn (struct function *ifun, tree dest)
   /* We would die hard when faced by an undefined label.  Emit a label to
      the very first basic block.  This will hopefully make even the dataflow
      and undefined variable warnings quite right.  */
-  if ((errorcount || sorrycount) && uid < 0)
+  if (seen_error () && uid < 0)
     {
       gimple_stmt_iterator gsi = gsi_start_bb (BASIC_BLOCK (NUM_FIXED_BLOCKS));
       gimple stmt;
@@ -2110,7 +2114,7 @@ dump_cfg_stats (FILE *file)
 /* Dump CFG statistics on stderr.  Keep extern so that it's always
    linked in the final executable.  */
 
-void
+DEBUG_FUNCTION void
 debug_cfg_stats (void)
 {
   dump_cfg_stats (stderr);
@@ -2247,6 +2251,10 @@ is_ctrl_altering_stmt (gimple t)
 
 	/* A call also alters control flow if it does not return.  */
 	if (flags & ECF_NORETURN)
+	  return true;
+
+	/* BUILT_IN_RETURN call is same as return statement.  */
+	if (gimple_call_builtin_p (t, BUILT_IN_RETURN))
 	  return true;
       }
       break;
@@ -3608,6 +3616,20 @@ verify_gimple_assign_single (gimple stmt)
       return res;
 
     case COND_EXPR:
+      if (!is_gimple_reg (lhs)
+	  || (!is_gimple_reg (TREE_OPERAND (rhs1, 0))
+	      && !COMPARISON_CLASS_P (TREE_OPERAND (rhs1, 0)))
+	  || (!is_gimple_reg (TREE_OPERAND (rhs1, 1))
+	      && !is_gimple_min_invariant (TREE_OPERAND (rhs1, 1)))
+	  || (!is_gimple_reg (TREE_OPERAND (rhs1, 2))
+	      && !is_gimple_min_invariant (TREE_OPERAND (rhs1, 2))))
+	{
+	  error ("invalid COND_EXPR in gimple assignment");
+	  debug_generic_stmt (rhs1);
+	  return true;
+	}
+      return res;
+
     case CONSTRUCTOR:
     case OBJ_TYPE_REF:
     case ASSERT_EXPR:
@@ -3981,14 +4003,8 @@ verify_stmt (gimple_stmt_iterator *gsi)
     {
       if (!stmt_could_throw_p (stmt))
 	{
-	  /* During IPA passes, ipa-pure-const sets nothrow flags on calls
-	     and they are updated on statements only after fixup_cfg
-	     is executed at beggining of expansion stage.  */
-	  if (cgraph_state != CGRAPH_STATE_IPA_SSA)
-	    {
-	      error ("statement marked for throw, but doesn%'t");
-	      goto fail;
-	    }
+	  error ("statement marked for throw, but doesn%'t");
+	  goto fail;
 	}
       else if (lp_nr > 0 && !last_in_block && stmt_can_throw_internal (stmt))
 	{
@@ -4074,7 +4090,7 @@ verify_eh_throw_stmt_node (void **slot, void *data)
 
 /* Verify the GIMPLE statements in every basic block.  */
 
-void
+DEBUG_FUNCTION void
 verify_stmts (void)
 {
   basic_block bb;
@@ -4422,6 +4438,10 @@ gimple_verify_flow_info (void)
 	    }
 	  break;
 
+	case GIMPLE_CALL:
+	  if (!gimple_call_builtin_p (stmt, BUILT_IN_RETURN))
+	    break;
+	  /* ... fallthru ... */
 	case GIMPLE_RETURN:
 	  if (!single_succ_p (bb)
 	      || (single_succ_edge (bb)->flags
@@ -6314,7 +6334,7 @@ dump_function_to_file (tree fn, FILE *file, int flags)
 
 /* Dump FUNCTION_DECL FN to stderr using FLAGS (see TDF_* in tree.h)  */
 
-void
+DEBUG_FUNCTION void
 debug_function (tree fn, int flags)
 {
   dump_function_to_file (fn, stderr, flags);
@@ -6455,7 +6475,7 @@ print_loops (FILE *file, int verbosity)
 
 /* Debugging loops structure at tree level, at some VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_loops (int verbosity)
 {
   print_loops (stderr, verbosity);
@@ -6463,7 +6483,7 @@ debug_loops (int verbosity)
 
 /* Print on stderr the code of LOOP, at some VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_loop (struct loop *loop, int verbosity)
 {
   print_loop (stderr, loop, 0, verbosity);
@@ -6472,7 +6492,7 @@ debug_loop (struct loop *loop, int verbosity)
 /* Print on stderr the code of loop number NUM, at some VERBOSITY
    level.  */
 
-void
+DEBUG_FUNCTION void
 debug_loop_num (unsigned num, int verbosity)
 {
   debug_loop (get_loop (num), verbosity);
@@ -7036,7 +7056,9 @@ split_critical_edges (void)
 	      gsi = gsi_last_bb (e->src);
 	      if (!gsi_end_p (gsi)
 		  && stmt_ends_bb_p (gsi_stmt (gsi))
-		  && gimple_code (gsi_stmt (gsi)) != GIMPLE_RETURN)
+		  && (gimple_code (gsi_stmt (gsi)) != GIMPLE_RETURN
+		      && !gimple_call_builtin_p (gsi_stmt (gsi),
+						 BUILT_IN_RETURN)))
 		split_edge (e);
 	    }
 	}
@@ -7134,7 +7156,8 @@ execute_warn_function_return (void)
       FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
 	{
 	  last = last_stmt (e->src);
-	  if (gimple_code (last) == GIMPLE_RETURN
+	  if ((gimple_code (last) == GIMPLE_RETURN
+	       || gimple_call_builtin_p (last, BUILT_IN_RETURN))
 	      && (location = gimple_location (last)) != UNKNOWN_LOCATION)
 	    break;
 	}

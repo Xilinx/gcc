@@ -531,6 +531,9 @@ struct gcc_target
      form was.  Return true if the switch was valid.  */
   bool (* handle_option) (size_t code, const char *arg, int value);
 
+  /* Handle target-specific parts of specifying -Ofast.  */
+  void (* handle_ofast) (void);
+
   /* Display extra, target specific information in response to a
      --target-help switch.  */
   void (* target_help) (void);
@@ -840,6 +843,9 @@ struct gcc_target
 
   /* Create the __builtin_va_list type.  */
   tree (* build_builtin_va_list) (void);
+
+  /* Enumerate the va list variants.  */
+  int (* enum_va_list) (int, const char **, tree *);
 
   /* Get the cfun/fndecl calling abi __builtin_va_list type.  */
   tree (* fn_abi_va_list) (tree);

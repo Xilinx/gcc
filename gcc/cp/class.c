@@ -30,13 +30,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cp-tree.h"
 #include "flags.h"
-#include "rtl.h"
 #include "output.h"
 #include "toplev.h"
 #include "target.h"
 #include "convert.h"
 #include "cgraph.h"
 #include "tree-dump.h"
+#include "splay-tree.h"
 
 /* The number of nested classes being processed.  If we are not in the
    scope of any class, this is zero.  */
@@ -3955,7 +3955,7 @@ build_clone (tree fn, tree name)
     }
 
   /* Create the RTL for this function.  */
-  SET_DECL_RTL (clone, NULL_RTX);
+  SET_DECL_RTL (clone, NULL);
   rest_of_decl_compilation (clone, /*top_level=*/1, at_eof);
 
   if (pch_file)
@@ -4975,14 +4975,19 @@ layout_class_type (tree t, tree *virtuals_p)
 	     of the field.  Then, we are supposed to use the left over
 	     bits as additional padding.  */
 	  for (itk = itk_char; itk != itk_none; ++itk)
-	    if (INT_CST_LT (DECL_SIZE (field),
-			    TYPE_SIZE (integer_types[itk])))
+	    if (integer_types[itk] != NULL_TREE
+		&& INT_CST_LT (DECL_SIZE (field),
+			       TYPE_SIZE (integer_types[itk])))
 	      break;
 
 	  /* ITK now indicates a type that is too large for the
 	     field.  We have to back up by one to find the largest
 	     type that fits.  */
-	  integer_type = integer_types[itk - 1];
+	  do
+	  {
+            --itk;
+	    integer_type = integer_types[itk];
+	  } while (itk > 0 && integer_type == NULL_TREE);
 
 	  /* Figure out how much additional padding is required.  GCC
 	     3.2 always created a padding field, even if it had zero

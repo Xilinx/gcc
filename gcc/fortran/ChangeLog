@@ -1,3 +1,83 @@
+2010-05-31  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* fortran/gfortran.texi:  Fix typos in description of variable-format-
+	expressions.
+
+2010-05-31  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/36928
+	* dependency.c (gfc_check_section_vs_section):  Check
+	for interleaving array assignments without conflicts.
+
+2010-05-30  Janus Weil  <janus@gcc.gnu.org>
+
+	* gcc/fortran/gfortran.h (CLASS_DATA): New macro for accessing the
+	$data component of a class container.
+	* gcc/fortran/decl.c (attr_decl1): Use macro CLASS_DATA.
+	* gcc/fortran/expr.c (gfc_check_pointer_assign,gfc_check_assign_symbol,
+	gfc_has_ultimate_allocatable,gfc_has_ultimate_pointer): Ditto.
+	* gcc/fortran/interface.c (matching_typebound_op): Ditto.
+	* gcc/fortran/match.c (gfc_match_allocate, gfc_match_deallocate): Ditto.
+	* gcc/fortran/parse.c (parse_derived): Ditto.
+	* gcc/fortran/primary.c (gfc_match_varspec, gfc_variable_attr,
+	gfc_expr_attr): Ditto.
+	* gcc/fortran/resolve.c (resolve_structure_cons, find_array_spec,
+	resolve_deallocate_expr, resolve_allocate_expr, resolve_select_type,
+	resolve_fl_var_and_proc, resolve_typebound_procedure,
+	resolve_fl_derived): Ditto.
+	* gcc/fortran/symbol.c (gfc_type_compatible): Restructured.
+	* gcc/fortran/trans-array.c (structure_alloc_comps): Use macro
+	CLASS_DATA.
+	* gcc/fortran/trans-decl.c (gfc_get_symbol_decl,
+	gfc_trans_deferred_vars): Ditto.
+	* gcc/fortran/trans-stmt.c (gfc_trans_allocate): Ditto.
+
+2010-05-28  Tobias Burnus  <burnus@net-b.de>
+
+	* options.c (gfc_handle_option): Fix handling of -fno-whole-file.
+
+2010-05-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* gfortranspec.c (append_arg, lang_specific_driver): Use
+	fatal_error instead of fatal.  Use warning instead of fprintf for
+	warnings.
+
+2010-05-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* cpp.c (gfc_cpp_init_0): Use xstrerror instead of strerror.
+	* module.c (write_char, gfc_dump_module, gfc_use_module): Use
+	xstrerror instead of strerror.
+
+2010-05-26  Joseph Myers  <joseph@codesourcery.com>
+
+	* cpp.c (cb_cpp_error): Save and restore
+	global_dc->warn_system_headers, not variable warn_system_headers.
+
+2010-05-26  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* fortran/f95-lang.c: Do not include libfuncs.h, expr.h, and except.h.
+
+2010-05-26  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* trans-common.c: Do not include rtl.h, include output.h instead.
+	* trans-decl.c: Likewise.
+
+2010-05-26  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40011
+	* resolve.c (resolve_global_procedure): Resolve the gsymbol's
+	namespace before trying to reorder the gsymbols.
+
+2010-05-25  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/30668
+	PR fortran/31346
+	PR fortran/34260
+	* resolve.c (resolve_global_procedure): Add check for global
+	procedures with implicit interfaces and assumed-shape or optional
+	dummy arguments. Verify that function return type, kind and string
+	lengths match.
+
 2010-05-21  Tobias Burnus  <burnus@net-b.de>
 
 	* gfortran.h: Do not include system.h.

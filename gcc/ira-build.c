@@ -1,5 +1,5 @@
 /* Building internal representation for IRA.
-   Copyright (C) 2006, 2007, 2008, 2009
+   Copyright (C) 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Vladimir Makarov <vmakarov@redhat.com>.
 
@@ -2805,6 +2805,9 @@ check_allocno_creation (void)
 }
 #endif
 
+/* Identify allocnos which prefer a register class with a single hard register.
+   Adjust ALLOCNO_CONFLICT_HARD_REG_COSTS so that conflicting allocnos are
+   less likely to use the preferred singleton register.  */
 static void
 update_conflict_hard_reg_costs (void)
 {

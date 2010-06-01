@@ -2271,6 +2271,7 @@ cleanup_auto_inc_dec (rtx src, bool after, enum machine_mode mem_mode)
 
   return x;
 }
+#endif
 
 /* Auxiliary data structure for propagate_for_debug_stmt.  */
 
@@ -2294,12 +2295,16 @@ propagate_for_debug_subst (rtx from, const_rtx old_rtx, void *data)
   if (!pair->adjusted)
     {
       pair->adjusted = true;
+#ifdef AUTO_INC_DEC
       pair->to = cleanup_auto_inc_dec (pair->to, pair->after, VOIDmode);
+#else
+      pair->to = copy_rtx (pair->to);
+#endif
+      pair->to = make_compound_operation (pair->to, SET);
       return pair->to;
     }
   return copy_rtx (pair->to);
 }
-#endif
 
 /* Replace occurrences of DEST with SRC in DEBUG_INSNs between INSN
    and LAST.  If MOVE holds, debug insns must also be moved past
@@ -2309,16 +2314,12 @@ static void
 propagate_for_debug (rtx insn, rtx last, rtx dest, rtx src, bool move)
 {
   rtx next, move_pos = move ? last : NULL_RTX, loc;
-  bool first_p;
 
-#ifdef AUTO_INC_DEC
   struct rtx_subst_pair p;
   p.to = src;
   p.adjusted = false;
   p.after = move;
-#endif
 
-  first_p = true;
   next = NEXT_INSN (insn);
   while (next != last)
     {
@@ -2326,17 +2327,8 @@ propagate_for_debug (rtx insn, rtx last, rtx dest, rtx src, bool move)
       next = NEXT_INSN (insn);
       if (DEBUG_INSN_P (insn))
 	{
-	  if (first_p)
-	    {
-	      src = make_compound_operation (src, SET);
-	      first_p = false;
-	    }
-#ifdef AUTO_INC_DEC
 	  loc = simplify_replace_fn_rtx (INSN_VAR_LOCATION_LOC (insn),
 					 dest, propagate_for_debug_subst, &p);
-#else
-	  loc = simplify_replace_rtx (INSN_VAR_LOCATION_LOC (insn), dest, src);
-#endif
 	  if (loc == INSN_VAR_LOCATION_LOC (insn))
 	    continue;
 	  INSN_VAR_LOCATION_LOC (insn) = loc;
@@ -2595,74 +2587,20 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 
       if (offset >= 0
 	  && (GET_MODE_BITSIZE (GET_MODE (SET_DEST (temp)))
-	      <= HOST_BITS_PER_WIDE_INT * 2))
+	      <= HOST_BITS_PER_DOUBLE_INT))
 	{
-	  HOST_WIDE_INT mhi, ohi, ihi;
-	  HOST_WIDE_INT mlo, olo, ilo;
+	  double_int m, o, i;
 	  rtx inner = SET_SRC (PATTERN (i3));
 	  rtx outer = SET_SRC (temp);
 
-	  if (CONST_INT_P (outer))
-	    {
-	      olo = INTVAL (outer);
-	      ohi = olo < 0 ? -1 : 0;
-	    }
-	  else
-	    {
-	      olo = CONST_DOUBLE_LOW (outer);
-	      ohi = CONST_DOUBLE_HIGH (outer);
-	    }
+	  o = rtx_to_double_int (outer);
+	  i = rtx_to_double_int (inner);
 
-	  if (CONST_INT_P (inner))
-	    {
-	      ilo = INTVAL (inner);
-	      ihi = ilo < 0 ? -1 : 0;
-	    }
-	  else
-	    {
-	      ilo = CONST_DOUBLE_LOW (inner);
-	      ihi = CONST_DOUBLE_HIGH (inner);
-	    }
-
-	  if (width < HOST_BITS_PER_WIDE_INT)
-	    {
-	      mlo = ((unsigned HOST_WIDE_INT) 1 << width) - 1;
-	      mhi = 0;
-	    }
-	  else if (width < HOST_BITS_PER_WIDE_INT * 2)
-	    {
-	      mhi = ((unsigned HOST_WIDE_INT) 1
-		     << (width - HOST_BITS_PER_WIDE_INT)) - 1;
-	      mlo = -1;
-	    }
-	  else
-	    {
-	      mlo = -1;
-	      mhi = -1;
-	    }
-
-	  ilo &= mlo;
-	  ihi &= mhi;
-
-	  if (offset >= HOST_BITS_PER_WIDE_INT)
-	    {
-	      mhi = mlo << (offset - HOST_BITS_PER_WIDE_INT);
-	      mlo = 0;
-	      ihi = ilo << (offset - HOST_BITS_PER_WIDE_INT);
-	      ilo = 0;
-	    }
-	  else if (offset > 0)
-	    {
-	      mhi = (mhi << offset) | ((unsigned HOST_WIDE_INT) mlo
-		     		       >> (HOST_BITS_PER_WIDE_INT - offset));
-	      mlo = mlo << offset;
-	      ihi = (ihi << offset) | ((unsigned HOST_WIDE_INT) ilo
-		     		       >> (HOST_BITS_PER_WIDE_INT - offset));
-	      ilo = ilo << offset;
-	    }
-
-	  olo = (olo & ~mlo) | ilo;
-	  ohi = (ohi & ~mhi) | ihi;
+	  m = double_int_mask (width);
+	  i = double_int_and (i, m);
+	  m = double_int_lshift (m, offset, HOST_BITS_PER_DOUBLE_INT, false);
+	  i = double_int_lshift (i, offset, HOST_BITS_PER_DOUBLE_INT, false);
+	  o = double_int_ior (double_int_and (o, double_int_not (m)), i);
 
 	  combine_merges++;
 	  subst_insn = i3;
@@ -2675,7 +2613,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	     resulting insn the new pattern for I3.  Then skip to where we
 	     validate the pattern.  Everything was set up above.  */
 	  SUBST (SET_SRC (temp),
-		 immed_double_const (olo, ohi, GET_MODE (SET_DEST (temp))));
+		 immed_double_int_const (o, GET_MODE (SET_DEST (temp))));
 
 	  newpat = PATTERN (i2);
 
@@ -12788,7 +12726,7 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 	    place = i2;
 	  else
 	    {
-	      gcc_assert (flag_non_call_exceptions);
+	      gcc_assert (cfun->can_throw_non_call_exceptions);
 	      if (may_trap_p (i3))
 		place = i3;
 	      else if (i2 && may_trap_p (i2))

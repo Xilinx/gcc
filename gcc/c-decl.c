@@ -34,7 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "tree.h"
 #include "tree-inline.h"
-#include "rtl.h"
 #include "flags.h"
 #include "function.h"
 #include "output.h"
@@ -52,13 +51,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "tree-mudflap.h"
 #include "tree-iterator.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "tree-dump.h"
 #include "cgraph.h"
 #include "hashtab.h"
 #include "langhooks-def.h"
 #include "pointer-set.h"
 #include "plugin.h"
+#include "c-ada-spec.h"
 
 /* In grokdeclarator, distinguish syntactic contexts of declarators.  */
 enum decl_context
@@ -3536,7 +3536,7 @@ c_make_fname_decl (location_t loc, tree id, int type_dep)
 	 the __FUNCTION__ is believed to appear in K&R style function
 	 parameter declarator.  In that case we still don't have
 	 function_scope.  */
-      && (!errorcount || current_function_scope))
+      && (!seen_error () || current_function_scope))
     {
       DECL_CONTEXT (decl) = current_function_decl;
       bind (id, decl, current_function_scope,
@@ -8634,6 +8634,10 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
 		error_at (loc,
 			  ("both %<long%> and %<void%> in "
 			   "declaration specifiers"));
+	      else if (specs->typespec_word == cts_int128)
+		  error_at (loc,
+			    ("both %<long%> and %<__int128%> in "
+			     "declaration specifiers"));
 	      else if (specs->typespec_word == cts_bool)
 		error_at (loc,
 			  ("both %<long%> and %<_Bool%> in "
@@ -8670,6 +8674,10 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
 	      else if (specs->typespec_word == cts_void)
 		error_at (loc,
 			  ("both %<short%> and %<void%> in "
+			   "declaration specifiers"));
+	      else if (specs->typespec_word == cts_int128)
+		error_at (loc,
+			  ("both %<short%> and %<__int128%> in "
 			   "declaration specifiers"));
 	      else if (specs->typespec_word == cts_bool)
 		error_at (loc,
@@ -8820,7 +8828,13 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
 	      dupe = specs->saturating_p;
 	      pedwarn (loc, OPT_pedantic,
 		       "ISO C does not support saturating types");
-	      if (specs->typespec_word == cts_void)
+	      if (specs->typespec_word == cts_int128)
+	        {
+		  error_at (loc,
+			    ("both %<_Sat%> and %<__int128%> in "
+			     "declaration specifiers"));
+	        }
+	      else if (specs->typespec_word == cts_void)
 		error_at (loc,
 			  ("both %<_Sat%> and %<void%> in "
 			   "declaration specifiers"));
@@ -8875,7 +8889,7 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
       else
 	{
 	  /* "void", "_Bool", "char", "int", "float", "double", "_Decimal32",
-	     "_Decimal64", "_Decimal128", "_Fract" or "_Accum".  */
+	     "__int128", "_Decimal64", "_Decimal128", "_Fract" or "_Accum".  */
 	  if (specs->typespec_word != cts_none)
 	    {
 	      error_at (loc,
@@ -8884,6 +8898,31 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
 	    }
 	  switch (i)
 	    {
+	    case RID_INT128:
+	      if (int128_integer_type_node == NULL_TREE)
+		{
+		  error_at (loc, "%<__int128%> is not supported for this target");
+		  return specs;
+		}
+	      if (!in_system_header)
+		pedwarn (loc, OPT_pedantic,
+			 "ISO C does not support %<__int128%> type");
+
+	      if (specs->long_p)
+		error_at (loc,
+			  ("both %<__int128%> and %<long%> in "
+			   "declaration specifiers"));
+	      else if (specs->saturating_p)
+		error_at (loc,
+			  ("both %<_Sat%> and %<__int128%> in "
+			   "declaration specifiers"));
+	      else if (specs->short_p)
+		error_at (loc,
+			  ("both %<__int128%> and %<short%> in "
+			   "declaration specifiers"));
+	      else
+		specs->typespec_word = cts_int128;
+	      return specs;
 	    case RID_VOID:
 	      if (specs->long_p)
 		error_at (loc,
@@ -9356,6 +9395,19 @@ finish_declspecs (struct c_declspecs *specs)
 	  specs->type = build_complex_type (specs->type);
 	}
       break;
+    case cts_int128:
+      gcc_assert (!specs->long_p && !specs->short_p && !specs->long_long_p);
+      gcc_assert (!(specs->signed_p && specs->unsigned_p));
+      specs->type = (specs->unsigned_p
+		     ? int128_unsigned_type_node
+		     : int128_integer_type_node);
+      if (specs->complex_p)
+	{
+	  pedwarn (input_location, OPT_pedantic,
+		   "ISO C does not support complex integer types");
+	  specs->type = build_complex_type (specs->type);
+	}
+      break;
     case cts_int:
       gcc_assert (!(specs->long_p && specs->short_p));
       gcc_assert (!(specs->signed_p && specs->unsigned_p));
@@ -9563,6 +9615,43 @@ c_write_global_declarations_2 (tree globals)
     debug_hooks->global_decl (decl);
 }
 
+/* Callback to collect a source_ref from a DECL.  */
+
+static void
+collect_source_ref_cb (tree decl)
+{
+  if (!DECL_IS_BUILTIN (decl))
+    collect_source_ref (LOCATION_FILE (decl_sloc (decl, false)));
+}
+
+/* Collect all references relevant to SOURCE_FILE.  */
+
+static void
+collect_all_refs (const char *source_file)
+{
+  tree t;
+
+  for (t = all_translation_units; t; t = TREE_CHAIN (t))
+    collect_ada_nodes (BLOCK_VARS (DECL_INITIAL (t)), source_file);
+}
+
+/* Iterate over all global declarations and call CALLBACK.  */
+
+static void
+for_each_global_decl (void (*callback) (tree decl))
+{
+  tree t;
+  tree decls;
+  tree decl;
+
+  for (t = all_translation_units; t; t = TREE_CHAIN (t))
+    { 
+      decls = DECL_INITIAL (t);
+      for (decl = BLOCK_VARS (decls); decl; decl = TREE_CHAIN (decl))
+	callback (decl);
+    }
+}
+
 /* Preserve the external declarations scope across a garbage collect.  */
 static GTY(()) tree ext_block;
 
@@ -9584,6 +9673,18 @@ c_write_global_declarations (void)
   ext_block = pop_scope ();
   external_scope = 0;
   gcc_assert (!current_scope);
+
+  /* Handle -fdump-ada-spec[-slim]. */
+  if (dump_enabled_p (TDI_ada))
+    {
+      /* Build a table of files to generate specs for */
+      if (get_dump_file_info (TDI_ada)->flags & TDF_SLIM)
+	collect_source_ref (main_input_filename);
+      else
+	for_each_global_decl (collect_source_ref_cb);
+
+      dump_ada_specs (collect_all_refs, NULL);
+    }
 
   if (ext_block)
     {
@@ -9609,7 +9710,7 @@ c_write_global_declarations (void)
 
   /* After cgraph has had a chance to emit everything that's going to
      be emitted, output debug information for globals.  */
-  if (errorcount == 0 && sorrycount == 0)
+  if (!seen_error ())
     {
       timevar_push (TV_SYMOUT);
       for (t = all_translation_units; t; t = TREE_CHAIN (t))
@@ -9619,6 +9720,25 @@ c_write_global_declarations (void)
     }
 
   ext_block = NULL;
+}
+
+/* Register reserved keyword WORD as qualifier for address space AS.  */
+
+void
+c_register_addr_space (const char *word, addr_space_t as)
+{
+  int rid = RID_FIRST_ADDR_SPACE + as;
+  tree id;
+
+  /* Address space qualifiers are only supported
+     in C with GNU extensions enabled.  */
+  if (c_dialect_objc () || flag_no_asm)
+    return;
+
+  id = get_identifier (word);
+  C_SET_RID_CODE (id, rid);
+  C_IS_RESERVED_WORD (id) = 1;
+  ridpointers [rid] = id;
 }
 
 #include "gt-c-decl.h"
