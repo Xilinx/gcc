@@ -506,6 +506,11 @@ struct gcc_target
        is true if the access is defined in a packed struct.  */
     bool (* builtin_support_vector_misalignment) (enum machine_mode,
                                                   const_tree, int, bool);
+
+    /* Target builtin that implements transactional memory load.  */
+    tree (* builtin_tm_load) (tree);
+    /* Target builtin that implements transactional memory store.  */
+    tree (* builtin_tm_store) (tree);
   } vectorize;
 
   /* The initial value of target_flags.  */

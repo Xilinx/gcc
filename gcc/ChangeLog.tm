@@ -1,3 +1,35 @@
+2010-05-28  Aldy Hernandez  <aldyh@redhat.com>
+
+	* targhooks.c (default_builtin_tm_load_store): New.
+	* targhooks.h (default_builtin_tm_load_store): Declare.
+	* target.h (struct gcc_target): Add builtin_tm_load,
+	builtin_tm_store.
+	* trans-mem.c (is_tm_simple_load): Handle 64/128/256 bit
+	variants.
+	(is_tm_simple_store): Same.
+	(transaction_invariant_address_p): Handle MISALIGNED_INDIRECT_REF.
+	(tm_log_emit_stmt): Add FIXME note.
+	(requires_barrier): Handle MISALIGNED_INDIRECT_REF.
+	(build_tm_load): Call builtin_tm_load callback.
+	(build_tm_store): Call builtin_tm_store callback.
+	* target-def.h (TARGET_VECTORIZE_BUILTIN_TM_LOAD): Define.
+	(TARGET_VECTORIZE_BUILTIN_TM_STORE): Same.
+	(TARGET_VECTORIZE): Add TM callbacks.
+	* gtm-builtins.def: Add BUILT_IN_TM_STORE_*M{64,128,256}.
+	Add BUILT_IN_TM_LOAD_*M{64,128,256}.
+	* config/i386/i386-builtin-types.def (PV2SI): Define.
+	(PCV2SI): Define.
+	Define V2SI_FTYPE_PCV2SI.
+	Define V4SF_FTYPE_PCV4SF.
+	Define V8SF_FTYPE_PCV8SF.
+	Define VOID_PV2SI_V2SI.
+	* config/i386/i386.c: Declare bdesc_tm.
+	(ix86_init_tm_builtins): New.
+	(ix86_init_builtins): Initialize TM builtins.
+	(ix86_builtin_tm_load): New.
+	(ix86_builtin_tm_store): New.
+	Define TARGET_VECTORIZE* transactional variants.
+
 2010-05-24  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (expand_block_tm): Do not advance GSI blindly.

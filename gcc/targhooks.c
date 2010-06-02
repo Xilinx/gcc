@@ -1009,4 +1009,9 @@ default_have_conditional_execution (void)
 #endif
 }
 
+tree
+default_builtin_tm_load_store (tree ARG_UNUSED (type))
+{
+  return NULL_TREE;
+}
 #include "gt-targhooks.h"

@@ -346,7 +346,10 @@ is_tm_simple_load (gimple stmt)
 	      || fcode == BUILT_IN_TM_LOAD_8
 	      || fcode == BUILT_IN_TM_LOAD_FLOAT
 	      || fcode == BUILT_IN_TM_LOAD_DOUBLE
-	      || fcode == BUILT_IN_TM_LOAD_LDOUBLE);
+	      || fcode == BUILT_IN_TM_LOAD_LDOUBLE
+	      || fcode == BUILT_IN_TM_LOAD_M64
+	      || fcode == BUILT_IN_TM_LOAD_M128
+	      || fcode == BUILT_IN_TM_LOAD_M256);
     }
   return false;
 }
@@ -387,7 +390,10 @@ is_tm_simple_store (gimple stmt)
 	      || fcode == BUILT_IN_TM_STORE_8
 	      || fcode == BUILT_IN_TM_STORE_FLOAT
 	      || fcode == BUILT_IN_TM_STORE_DOUBLE
-	      || fcode == BUILT_IN_TM_STORE_LDOUBLE);
+	      || fcode == BUILT_IN_TM_STORE_LDOUBLE
+	      || fcode == BUILT_IN_TM_STORE_M64
+	      || fcode == BUILT_IN_TM_STORE_M128
+	      || fcode == BUILT_IN_TM_STORE_M256);
     }
   return false;
 }
@@ -889,7 +895,8 @@ tm_log_delete (void)
 static bool
 transaction_invariant_address_p (const_tree mem, basic_block region_entry_block)
 {
-  if (TREE_CODE (mem) == INDIRECT_REF
+  if ((TREE_CODE (mem) == INDIRECT_REF
+       || TREE_CODE (mem) == MISALIGNED_INDIRECT_REF)
       && TREE_CODE (TREE_OPERAND (mem, 0)) == SSA_NAME)
     {
       basic_block def_bb;
@@ -1039,6 +1046,7 @@ tm_log_emit_stmt (tree addr, gimple stmt)
 	code = BUILT_IN_TM_LOG_8;
 	break;
       default:
+	/* FIXME: Add support for vector logging functions.  */
 	code = BUILT_IN_TM_LOG;
 	break;
       }
@@ -1358,6 +1366,7 @@ requires_barrier (basic_block entry_block, tree x, gimple stmt)
   switch (TREE_CODE (x))
     {
     case INDIRECT_REF:
+    case MISALIGNED_INDIRECT_REF:
       {
 	enum thread_memory_type ret;
 
@@ -1376,7 +1385,6 @@ requires_barrier (basic_block entry_block, tree x, gimple stmt)
       }
 
     case ALIGN_INDIRECT_REF:
-    case MISALIGNED_INDIRECT_REF:
       /* ??? Insert an irrevocable when it comes to vectorized loops,
 	 or handle these somehow.  */
       gcc_unreachable ();
@@ -1870,7 +1878,7 @@ static gimple
 build_tm_load (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 {
   enum built_in_function code = END_BUILTINS;
-  tree t, type = TREE_TYPE (rhs);
+  tree t, type = TREE_TYPE (rhs), decl;
   gimple gcall;
 
   if (type == float_type_node)
@@ -1900,13 +1908,19 @@ build_tm_load (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
     }
 
   if (code == END_BUILTINS)
-    return NULL;
+    {
+      decl = targetm.vectorize.builtin_tm_load (type);
+      if (!decl)
+	return NULL;
+    }
+  else
+    decl = built_in_decls[code];
 
   t = gimplify_addr (gsi, rhs);
-  gcall = gimple_build_call (built_in_decls[code], 1, t);
+  gcall = gimple_build_call (decl, 1, t);
   gimple_set_location (gcall, loc);
 
-  t = TREE_TYPE (TREE_TYPE (built_in_decls[code]));
+  t = TREE_TYPE (TREE_TYPE (decl));
   if (useless_type_conversion_p (type, t))
     {
       gimple_call_set_lhs (gcall, lhs);
@@ -1966,9 +1980,14 @@ build_tm_store (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
     }
 
   if (code == END_BUILTINS)
-    return NULL;
+    {
+      fn = targetm.vectorize.builtin_tm_store (type);
+      if (!fn)
+	return NULL;
+    }
+  else
+    fn = built_in_decls[code];
 
-  fn = built_in_decls[code];
   simple_type = TREE_VALUE (TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (fn))));
 
   if (!useless_type_conversion_p (simple_type, type))
@@ -1986,7 +2005,7 @@ build_tm_store (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
     }
 
   t = gimplify_addr (gsi, lhs);
-  gcall = gimple_build_call (built_in_decls[code], 2, t, rhs);
+  gcall = gimple_build_call (fn, 2, t, rhs);
   gimple_set_location (gcall, loc);
   gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
   

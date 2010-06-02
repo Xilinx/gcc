@@ -400,6 +400,10 @@
   hook_bool_tree_tree_true
 #define TARGET_SUPPORT_VECTOR_MISALIGNMENT \
   default_builtin_support_vector_misalignment
+#define TARGET_VECTORIZE_BUILTIN_TM_LOAD \
+  default_builtin_tm_load_store
+#define TARGET_VECTORIZE_BUILTIN_TM_STORE \
+  default_builtin_tm_load_store
 
 
 #define TARGET_VECTORIZE                                                \
@@ -413,7 +417,9 @@
     TARGET_VECTOR_ALIGNMENT_REACHABLE,                                  \
     TARGET_VECTORIZE_BUILTIN_VEC_PERM,					\
     TARGET_VECTORIZE_BUILTIN_VEC_PERM_OK,				\
-    TARGET_SUPPORT_VECTOR_MISALIGNMENT					\
+    TARGET_SUPPORT_VECTOR_MISALIGNMENT,					\
+    TARGET_VECTORIZE_BUILTIN_TM_LOAD,                                   \
+    TARGET_VECTORIZE_BUILTIN_TM_STORE                                   \
   }
 
 #define TARGET_DEFAULT_TARGET_FLAGS 0

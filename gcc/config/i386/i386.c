@@ -22572,6 +22572,140 @@ static const struct builtin_description bdesc_multi_arg[] =
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_vpermil2v8sf3,     "__builtin_ia32_vpermil2ps256", IX86_BUILTIN_VPERMIL2PS256, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I1 },
 
 };
+
+/* TM vector builtins.  */
+
+/* Reuse the existing x86-specific `struct builtin_description' cause
+   we're lazy.  Add casts to make them fit.  */
+static const struct builtin_description bdesc_tm[] =
+{
+  { OPTION_MASK_ISA_MMX, 0, "__builtin__ITM_WM64", (enum ix86_builtins) BUILT_IN_TM_STORE_M64, UNKNOWN, VOID_FTYPE_PV2SI_V2SI },
+  { OPTION_MASK_ISA_MMX, 0, "__builtin__ITM_WaRM64", (enum ix86_builtins) BUILT_IN_TM_STORE_WAR_M64, UNKNOWN, VOID_FTYPE_PV2SI_V2SI },
+  { OPTION_MASK_ISA_MMX, 0, "__builtin__ITM_WaWM64", (enum ix86_builtins) BUILT_IN_TM_STORE_WAW_M64, UNKNOWN, VOID_FTYPE_PV2SI_V2SI },
+  { OPTION_MASK_ISA_MMX, 0, "__builtin__ITM_RM64", (enum ix86_builtins) BUILT_IN_TM_LOAD_M64, UNKNOWN, V2SI_FTYPE_PCV2SI },
+  { OPTION_MASK_ISA_MMX, 0, "__builtin__ITM_RaRM64", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAR_M64, UNKNOWN, V2SI_FTYPE_PCV2SI },
+  { OPTION_MASK_ISA_MMX, 0, "__builtin__ITM_RaWM64", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAW_M64, UNKNOWN, V2SI_FTYPE_PCV2SI },
+  { OPTION_MASK_ISA_MMX, 0, "__builtin__ITM_RfWM64", (enum ix86_builtins) BUILT_IN_TM_LOAD_RFW_M64, UNKNOWN, V2SI_FTYPE_PCV2SI },
+
+  { OPTION_MASK_ISA_SSE, 0, "__builtin__ITM_WM128", (enum ix86_builtins) BUILT_IN_TM_STORE_M128, UNKNOWN, VOID_FTYPE_PV4SF_V4SF },
+  { OPTION_MASK_ISA_SSE, 0, "__builtin__ITM_WaRM128", (enum ix86_builtins) BUILT_IN_TM_STORE_WAR_M128, UNKNOWN, VOID_FTYPE_PV4SF_V4SF },
+  { OPTION_MASK_ISA_SSE, 0, "__builtin__ITM_WaWM128", (enum ix86_builtins) BUILT_IN_TM_STORE_WAW_M128, UNKNOWN, VOID_FTYPE_PV4SF_V4SF },
+  { OPTION_MASK_ISA_SSE, 0, "__builtin__ITM_RM128", (enum ix86_builtins) BUILT_IN_TM_LOAD_M128, UNKNOWN, V4SF_FTYPE_PCV4SF },
+  { OPTION_MASK_ISA_SSE, 0, "__builtin__ITM_RaRM128", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAR_M128, UNKNOWN, V4SF_FTYPE_PCV4SF },
+  { OPTION_MASK_ISA_SSE, 0, "__builtin__ITM_RaWM128", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAW_M128, UNKNOWN, V4SF_FTYPE_PCV4SF },
+  { OPTION_MASK_ISA_SSE, 0, "__builtin__ITM_RfWM128", (enum ix86_builtins) BUILT_IN_TM_LOAD_RFW_M128, UNKNOWN, V4SF_FTYPE_PCV4SF },
+
+  { OPTION_MASK_ISA_AVX, 0, "__builtin__ITM_WM256", (enum ix86_builtins) BUILT_IN_TM_STORE_M256, UNKNOWN, VOID_FTYPE_PV8SF_V8SF },
+  { OPTION_MASK_ISA_AVX, 0, "__builtin__ITM_WaRM256", (enum ix86_builtins) BUILT_IN_TM_STORE_WAR_M256, UNKNOWN, VOID_FTYPE_PV8SF_V8SF },
+  { OPTION_MASK_ISA_AVX, 0, "__builtin__ITM_WaWM256", (enum ix86_builtins) BUILT_IN_TM_STORE_WAW_M256, UNKNOWN, VOID_FTYPE_PV8SF_V8SF },
+  { OPTION_MASK_ISA_AVX, 0, "__builtin__ITM_RM256", (enum ix86_builtins) BUILT_IN_TM_LOAD_M256, UNKNOWN, V8SF_FTYPE_PCV8SF },
+  { OPTION_MASK_ISA_AVX, 0, "__builtin__ITM_RaRM256", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAR_M256, UNKNOWN, V8SF_FTYPE_PCV8SF },
+  { OPTION_MASK_ISA_AVX, 0, "__builtin__ITM_RaWM256", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAW_M256, UNKNOWN, V8SF_FTYPE_PCV8SF },
+  { OPTION_MASK_ISA_AVX, 0, "__builtin__ITM_RfWM256", (enum ix86_builtins) BUILT_IN_TM_LOAD_RFW_M256, UNKNOWN, V8SF_FTYPE_PCV8SF },
+};
+
+/* TM callbacks.  */
+
+/* Return the builtin decl needed to load a vector of TYPE.  */
+
+static tree
+ix86_builtin_tm_load (tree type)
+{
+  if (TREE_CODE (type) == VECTOR_TYPE)
+    {
+      switch (tree_low_cst (TYPE_SIZE (type), 1))
+	{
+	case 64:
+	  return built_in_decls[BUILT_IN_TM_LOAD_M64];
+	case 128:
+	  return built_in_decls[BUILT_IN_TM_LOAD_M128];
+	case 256:
+	  return built_in_decls[BUILT_IN_TM_LOAD_M256];
+	}
+    }
+  return NULL_TREE;
+}
+
+/* Return the builtin decl needed to store a vector of TYPE.  */
+
+static tree
+ix86_builtin_tm_store (tree type)
+{
+  if (TREE_CODE (type) == VECTOR_TYPE)
+    {
+      switch (tree_low_cst (TYPE_SIZE (type), 1))
+	{
+	case 64:
+	  return built_in_decls[BUILT_IN_TM_STORE_M64];
+	case 128:
+	  return built_in_decls[BUILT_IN_TM_STORE_M128];
+	case 256:
+	  return built_in_decls[BUILT_IN_TM_STORE_M256];
+	}
+    }
+  return NULL_TREE;
+}
+
+/* Initialize the transactional memory vector load/store builtins.  */
+
+static void
+ix86_init_tm_builtins (void)
+{
+  enum ix86_builtin_func_type ftype;
+  const struct builtin_description *d;
+  size_t i;
+  tree decl;
+  tree attrs_load, attrs_type_load, attrs_store, attrs_type_store;
+
+  if (!flag_tm)
+    return;
+
+  /* Use whatever attributes a normal TM load has.  */
+  decl = built_in_decls[BUILT_IN_TM_LOAD_1];
+  attrs_load = DECL_ATTRIBUTES (decl);
+  attrs_type_load = TYPE_ATTRIBUTES (TREE_TYPE (decl));
+  /* Use whatever attributes a normal TM store has.  */
+  decl = built_in_decls[BUILT_IN_TM_STORE_1];
+  attrs_store = DECL_ATTRIBUTES (decl);
+  attrs_type_store = TYPE_ATTRIBUTES (TREE_TYPE (decl));
+
+  for (i = 0, d = bdesc_tm;
+       i < ARRAY_SIZE (bdesc_tm);
+       i++, d++)
+    {
+      if ((d->mask & ix86_isa_flags) != 0
+	  || (lang_hooks.builtin_function
+	      == lang_hooks.builtin_function_ext_scope))
+	{
+	  tree type, attrs, attrs_type;
+	  enum built_in_function code = (enum built_in_function) d->code;
+
+	  ftype = (enum ix86_builtin_func_type) d->flag;
+	  type = ix86_get_builtin_func_type (ftype);
+
+	  if (BUILTIN_TM_LOAD_P (code))
+	    {
+	      attrs = attrs_load;
+	      attrs_type = attrs_type_load;
+	    }
+	  else
+	    {
+	      attrs = attrs_store;
+	      attrs_type = attrs_type_store;
+	    }
+	  decl = add_builtin_function (d->name, type, code, BUILT_IN_NORMAL,
+				       /* The builtin without the prefix for
+					  calling it directly.  */
+				       d->name + strlen ("__builtin_"),
+				       attrs);
+	  /* add_builtin_function() will set the DECL_ATTRIBUTES, now
+	     set the TYPE_ATTRIBUTES.  */
+	  decl_attributes (&TREE_TYPE (decl), attrs_type, ATTR_FLAG_BUILT_IN);
+
+	  built_in_decls[(int) code] = decl;
+	}
+    }
+}
 
 /* Set up all the MMX/SSE builtins, even builtins for instructions that are not
    in the current target ISA to allow the user to compile particular modules
@@ -22855,6 +22989,7 @@ ix86_init_builtins (void)
   TREE_READONLY (t) = 1;
   ix86_builtins[(int) IX86_BUILTIN_COPYSIGNQ] = t;
 
+  ix86_init_tm_builtins ();
   ix86_init_mmx_sse_builtins ();
 
   if (TARGET_64BIT)
@@ -24978,7 +25113,6 @@ avx_vperm2f128_parallel (rtx par, enum machine_mode mode)
   return mask + 1;
 }
 
-
 /* Store OPERAND to the memory after reload is completed.  This means
    that we can't easily use assign_stack_local.  */
 rtx
@@ -30513,6 +30647,12 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 
 #undef TARGET_VECTORIZE_BUILTIN_CONVERSION
 #define TARGET_VECTORIZE_BUILTIN_CONVERSION ix86_vectorize_builtin_conversion
+
+#undef TARGET_VECTORIZE_BUILTIN_TM_LOAD
+#define TARGET_VECTORIZE_BUILTIN_TM_LOAD ix86_builtin_tm_load
+
+#undef TARGET_VECTORIZE_BUILTIN_TM_STORE
+#define TARGET_VECTORIZE_BUILTIN_TM_STORE ix86_builtin_tm_store
 
 #undef TARGET_BUILTIN_RECIPROCAL
 #define TARGET_BUILTIN_RECIPROCAL ix86_builtin_reciprocal
