@@ -69,6 +69,8 @@ struct GTY(()) language_function {
 static bool
 gpy_langhook_init( void )
 {
+  debug("init!\n");
+
   return true;
 }
 
@@ -77,6 +79,7 @@ static unsigned int
 gpy_langhook_init_options( unsigned int argc ATTRIBUTE_UNUSED,
 			   const char** argv ATTRIBUTE_UNUSED )
 {
+  debug("init options!\n");
   return 1;
 }
 
@@ -87,6 +90,7 @@ gpy_langhook_handle_option( size_t scode,
 			    int value ATTRIBUTE_UNUSED,
 			    int kind ATTRIBUTE_UNUSED )
 {
+  debug("inside handle option!\n");
   enum opt_code code = (enum opt_code) scode;
   int retval = 1;
 
@@ -104,6 +108,7 @@ gpy_langhook_handle_option( size_t scode,
 static bool
 gpy_langhook_post_options (const char **pfilename ATTRIBUTE_UNUSED)
 {
+  debug("post options!\n");
   gcc_assert( num_in_fnames > 0 );
 
   /* Returning false means that the backend should be used.  */
@@ -113,6 +118,7 @@ gpy_langhook_post_options (const char **pfilename ATTRIBUTE_UNUSED)
 static void
 gpy_langhook_parse_file( int set_yy_debug ATTRIBUTE_UNUSED )
 {
+  debug("parse file!\n");
   /*  go_parse_input_files (in_fnames, num_in_fnames);*/
   unsigned int idx = 0;
   for( ; idx<num_in_fnames; ++idx )
@@ -126,6 +132,7 @@ static tree
 gpy_langhook_type_for_size( unsigned int bits ATTRIBUTE_UNUSED,
 			    int unsignedp ATTRIBUTE_UNUSED )
 {
+  debug("type for size!\n");
   return NULL;
 }
 
@@ -133,6 +140,7 @@ static tree
 gpy_langhook_type_for_mode( enum machine_mode mode ATTRIBUTE_UNUSED,
 			    int unsignedp ATTRIBUTE_UNUSED )
 {
+  debug("type for mode!\n");
   return NULL;
 }
 
@@ -140,18 +148,21 @@ gpy_langhook_type_for_mode( enum machine_mode mode ATTRIBUTE_UNUSED,
 static tree
 gpy_langhook_builtin_function( tree decl ATTRIBUTE_UNUSED )
 {
+  debug("builtin function!\n");
   return NULL;
 }
 
 static int
 gpy_langhook_global_bindings_p( void )
 {
+  debug("global bindings!\n");
   return 1;
 }
 
 static tree
 gpy_langhook_pushdecl( tree decl ATTRIBUTE_UNUSED )
 {
+  debug("pushdecl!\n");
   gcc_unreachable ();
   return NULL;
 }
@@ -159,6 +170,7 @@ gpy_langhook_pushdecl( tree decl ATTRIBUTE_UNUSED )
 static tree
 gpy_langhook_getdecls( void )
 {
+  debug("get decls!\n");
   return NULL;
 }
 
@@ -166,6 +178,7 @@ gpy_langhook_getdecls( void )
 static void
 gpy_langhook_write_globals( void )
 {
+  debug("write globals!\n");
   return;
 }
 
@@ -174,6 +187,7 @@ gpy_langhook_gimplify_expr( tree *expr_p ATTRIBUTE_UNUSED,
 			    gimple_seq *pre_p ATTRIBUTE_UNUSED,
 			    gimple_seq *post_p ATTRIBUTE_UNUSED )
 {
+  debug("gimplify expression!\n");
   return GS_UNHANDLED;
 }
 
@@ -190,6 +204,7 @@ static GTY(()) tree gpy_gc_root;
 void
 gpy_preserve_from_gc( tree t ATTRIBUTE_UNUSED )
 {
+  debug("preserver from gc!\n");
   return;
 }
 

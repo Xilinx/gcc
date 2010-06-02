@@ -14,9 +14,6 @@
 #along with GCC; see the file COPYING3.  If not see
 #<http://www.gnu.org/licenses/>.
 
-.SUFFIXES:
-.SUFFIXES: .c .o
-
 PYTHON_EXES = python
 
 .phony: python
