@@ -90,9 +90,10 @@ gpy_langhook_handle_option( size_t scode,
 			    int value ATTRIBUTE_UNUSED,
 			    int kind ATTRIBUTE_UNUSED )
 {
-  debug("inside handle option!\n");
   enum opt_code code = (enum opt_code) scode;
   int retval = 1;
+
+  debug("inside handle option!\n");
 
   switch( code )
     {
@@ -118,9 +119,10 @@ gpy_langhook_post_options (const char **pfilename ATTRIBUTE_UNUSED)
 static void
 gpy_langhook_parse_file( int set_yy_debug ATTRIBUTE_UNUSED )
 {
-  debug("parse file!\n");
   /*  go_parse_input_files (in_fnames, num_in_fnames);*/
   unsigned int idx = 0;
+  debug("parse file!\n");
+
   for( ; idx<num_in_fnames; ++idx )
     {
       const char * t = in_fnames[idx];
