@@ -26,33 +26,30 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
 #include "gimple.h"
 #include "tree-iterator.h"
 #include "tree-inline.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "langhooks.h"
-#include "langhooks-def.h"
 #include "tree-flow.h"
 #include "cgraph.h"
 #include "timevar.h"
-#include "except.h"
 #include "hashtab.h"
 #include "flags.h"
 #include "function.h"
 #include "output.h"
-#include "expr.h"
 #include "ggc.h"
 #include "toplev.h"
 #include "target.h"
-#include "optabs.h"
 #include "pointer-set.h"
 #include "splay-tree.h"
 #include "vec.h"
 #include "gimple.h"
 #include "tree-pass.h"
 
+#include "langhooks-def.h"	/* FIXME: for lhd_set_decl_assembler_name.  */
+#include "expr.h"		/* FIXME: for can_move_by_pieces
+				   and STACK_CHECK_MAX_VAR_SIZE.  */
 
 enum gimplify_omp_var_data
 {
@@ -1906,7 +1903,7 @@ gimplify_var_or_parm_decl (tree *expr_p)
 	      tree copy = copy_node (decl), block;
 
 	      lang_hooks.dup_lang_specific_decl (copy);
-	      SET_DECL_RTL (copy, NULL_RTX);
+	      SET_DECL_RTL (copy, 0);
 	      TREE_USED (copy) = 1;
 	      block = DECL_INITIAL (current_function_decl);
 	      TREE_CHAIN (copy) = BLOCK_VARS (block);

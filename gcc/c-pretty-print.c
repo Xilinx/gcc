@@ -27,7 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "c-pretty-print.h"
 #include "tree-pretty-print.h"
-#include "c-tree.h"
 #include "tree-iterator.h"
 #include "diagnostic.h"
 
@@ -2232,7 +2231,7 @@ print_c_tree (FILE *file, tree t)
 
 /* Print the tree T in full, on stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_c_tree (tree t)
 {
   print_c_tree (stderr, t);

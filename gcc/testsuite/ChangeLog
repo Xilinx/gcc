@@ -1,3 +1,104 @@
+2010-06-02  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* lib/lto.exp (lto-link-and-maybe-run): Show the options in
+	the link fail message.
+
+2010-06-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44360
+	* gfortran.dg/use_13.f90: New test case.
+
+2010-06-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/44371
+	* gfortran.dg/error_stop_2.f08: Minor update.
+
+2010-06-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/44371
+	* gfortran.dg/error_stop_1.f08: New test.
+	* gfortran.dg/error_stop_2.f08: New test.
+
+2010-06-01  Jason Merrill  <jason@redhat.com>
+
+	DR 990
+	* g++.dg/cpp0x/initlist37.C: New.
+	* g++.dg/cpp0x/initlist38.C: New.
+
+	PR c++/44358
+	* g++.dg/cpp0x/initlist36.C: New.
+
+2010-05-31 Jan Hubicka  <jh@suse.cz>
+
+	* testsuite/gcc.dg/noreturn-8.c: New testcase.
+
+2010-05-31 Jan Hubicka  <jh@suse.cz>
+
+	* testsuite/gcc.dg/lto/noreturn-1_1.c: Remove dg-do annotations.
+	* testsuite/gcc.dg/lto/noreturn-1_0.c: Move it here.
+
+2010-05-31 Jan Hubicka  <jh@suse.cz>
+
+	* testsuite/gcc.dg/lto/noreturn-1_1.c: New testcase.
+	* testsuite/gcc.dg/lto/noreturn-1_0.c: New testcase.
+
+2010-05-31  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/36928
+	* gfortran.dg/dependency_27.f90:  New test.
+	* gfortran.dg/array_assign_1.F90:  New test.
+
+2010-05-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/44338
+	* gcc.target/i386/sse-24.c: New test.
+
+2010-05-31  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/builtin-apply4.c: Compile with -Wmissing-return.
+
+2010-05-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/44337
+	* gcc.dg/pr44337.c: New test.
+
+	PR tree-optimization/44182
+	* g++.dg/debug/pr44182.C: New test.
+
+2010-05-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/nested-func-7.c: New test.
+	* gnat.dg/frame_overflow.adb: Adjust directives.
+
+2010-05-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/prot2.ad[sb]: New test.
+	* gnat.dg/prot2_pkg1.ads: New helper.
+	* gnat.dg/prot2_pkg2.ad[sb]: Likewise.
+
+2010-05-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/array11.adb: Adjust dg-warning directive.
+	* gnat.dg/object_overflow.adb: Likewise.
+
+2010-05-29  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/44306
+	* gcc.dg/tree-ssa/pr44306.c: New.
+
+2010-05-29  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/ipa-cp-1.c: Update testcase.
+
+2010-05-28  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/vect/vect-outer-fir-lb.c: Un-XFAIL-ed.
+
+2010-05-28  Mike Stump  <mikestump@comcast.net>
+
+	PR objc/44125
+	* objc.dg/const-str-9.m: Remove static.
+
 2010-05-28  Jakub Jelinek  <jakub@redhat.com>
 
 	PR target/43636
@@ -35,7 +136,7 @@
 	* obj-c++.dg/torture/tls/thr-init-2.mm: Ditto.
 	* obj-c++.dg/torture/tls/thr-init-3.mm: Ditto.
 	* obj-c++.dg/torture/trivial.mm: Ditto.
-	
+
 2010-05-27  Jack Howarth  <howarth@bromo.med.uc.edu>
 
 	* g++.dg/lto/20100302_0.C: Skip on darwin.

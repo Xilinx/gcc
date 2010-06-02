@@ -37,7 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "options.h"
 #include "mkdeps.h"
 #include "target.h"		/* For gcc_targetcm.  */
-#include "c-tree.h"		/* For c_cpp_error.  */
 
 #ifndef DOLLARS_IN_IDENTIFIERS
 # define DOLLARS_IN_IDENTIFIERS true
@@ -850,7 +849,8 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_fpermissive:
-      global_dc->permissive = flag_permissive = value;
+      flag_permissive = value;
+      global_dc->permissive = value;
       break;
 
     case OPT_fpreprocessed:

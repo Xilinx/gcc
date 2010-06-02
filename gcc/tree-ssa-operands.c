@@ -25,7 +25,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "flags.h"
 #include "function.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "tree-flow.h"
@@ -1180,7 +1179,7 @@ swap_tree_operands (gimple stmt, tree *exp0, tree *exp1)
 /* Scan the immediate_use list for VAR making sure its linked properly.
    Return TRUE if there is a problem and emit an error message to F.  */
 
-bool
+DEBUG_FUNCTION bool
 verify_imm_links (FILE *f, tree var)
 {
   use_operand_p ptr, prev, list;
@@ -1304,7 +1303,7 @@ dump_immediate_uses (FILE *file)
 
 /* Dump def-use edges on stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_immediate_uses (void)
 {
   dump_immediate_uses (stderr);
@@ -1313,7 +1312,7 @@ debug_immediate_uses (void)
 
 /* Dump def-use edges on stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_immediate_uses_for (tree var)
 {
   dump_immediate_uses_for (stderr, var);

@@ -117,7 +117,9 @@ varpool_get_node (tree decl)
     return NULL;
   key.decl = decl;
   slot = (struct varpool_node **)
-    htab_find_slot (varpool_hash, &key, INSERT);
+    htab_find_slot (varpool_hash, &key, NO_INSERT);
+  if (!slot)
+    return NULL;
   return *slot;
 }
 
@@ -261,7 +263,7 @@ dump_varpool (FILE *f)
 
 /* Dump the variable pool to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_varpool (void)
 {
   dump_varpool (stderr);

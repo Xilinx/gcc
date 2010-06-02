@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "langhooks.h"
 #include "tree-inline.h"
-#include "c-tree.h"
 #include "toplev.h"
 #include "diagnostic.h"
 #include "tree-iterator.h"
@@ -852,26 +851,6 @@ const struct attribute_spec c_common_format_attribute_table[] =
 			      handle_format_arg_attribute },
   { NULL,                     0, 0, false, false, false, NULL }
 };
-
-
-/* Register reserved keyword WORD as qualifier for address space AS.  */
-
-void
-c_register_addr_space (const char *word, addr_space_t as)
-{
-  int rid = RID_FIRST_ADDR_SPACE + as;
-  tree id;
-
-  /* Address space qualifiers are only supported
-     in C with GNU extensions enabled.  */
-  if (c_dialect_cxx () || c_dialect_objc () || flag_no_asm)
-    return;
-
-  id = get_identifier (word);
-  C_SET_RID_CODE (id, rid);
-  C_IS_RESERVED_WORD (id) = 1;
-  ridpointers [rid] = id;
-}
 
 /* Return identifier for address space AS.  */
 
@@ -2726,7 +2705,7 @@ verify_tree (tree x, struct tlist **pbefore_sp, struct tlist **pno_sp,
 /* Try to warn for undefined behavior in EXPR due to missing sequence
    points.  */
 
-void
+DEBUG_FUNCTION void
 verify_sequence_points (tree expr)
 {
   struct tlist *before_sp = 0, *after_sp = 0;

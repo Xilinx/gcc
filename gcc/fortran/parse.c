@@ -2082,15 +2082,13 @@ endType:
     {
       /* Look for allocatable components.  */
       if (c->attr.allocatable
-	  || (c->ts.type == BT_CLASS
-	      && c->ts.u.derived->components->attr.allocatable)
+	  || (c->ts.type == BT_CLASS && CLASS_DATA (c)->attr.allocatable)
 	  || (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.alloc_comp))
 	sym->attr.alloc_comp = 1;
 
       /* Look for pointer components.  */
       if (c->attr.pointer
-	  || (c->ts.type == BT_CLASS
-	      && c->ts.u.derived->components->attr.pointer)
+	  || (c->ts.type == BT_CLASS && CLASS_DATA (c)->attr.pointer)
 	  || (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.pointer_comp))
 	sym->attr.pointer_comp = 1;
 
@@ -3669,6 +3667,7 @@ gfc_fixup_sibling_symbols (gfc_symbol *sym, gfc_namespace *siblings)
 		  || (old_sym->ts.type != BT_UNKNOWN
 			&& !old_sym->attr.implicit_type)
 		  || old_sym->attr.flavor == FL_PARAMETER
+		  || old_sym->attr.use_assoc
 		  || old_sym->attr.in_common
 		  || old_sym->attr.in_equivalence
 		  || old_sym->attr.data
