@@ -1318,18 +1318,78 @@ canonicalize_loop_closed_ssa_form (void)
 #endif
 }
 
-/* Find Static Control Parts (SCoP) in the current function and pushes
-   them to SCOPS.  */
+/* Check if REGION is a valid SCoP.  */
 
-void
-build_scops (VEC (scop_p, heap) **scops)
+static bool
+is_scop_p (refined_region_p region ATTRIBUTE_UNUSED)
+{
+  /* TODO: Are there any harmful bbs in the region?  */
+  /* TODO: Do all loops have a number of iterations that can be expressed
+	   by an affine linear function.  */
+  /* TODO: Is there only well structured control flow in the region?
+	   * All loops have just one exit?
+	   * All loops are detected by gcc's loop detection?
+	   * All conditions are well nested?  */
+
+  return false;
+}
+
+/* Find in a structured way Static Control Parts (SCoP) in the current
+   function.  */
+
+static void
+build_scops_new (void)
+{
+
+  VEC (refined_region_p, heap) *scops = VEC_alloc (refined_region_p, heap, 3);
+  VEC (refined_region_p, heap) *check = VEC_alloc (refined_region_p, heap, 3);
+
+  /* TODO: Call canonicalize_loop_closed_ssa_form() at the right place.  */
+
+  /* Build new region tree.  */
+  refined_region_p new_region = calculate_region_tree ();
+
+  /* Find the maximal valid regions.  */
+  VEC_safe_push (refined_region_p, heap, check, new_region);
+
+  while (VEC_length (refined_region_p, check) != 0)
+    {
+      refined_region_p region = VEC_last (refined_region_p, check);
+      VEC_pop (refined_region_p, check);
+
+      if (is_scop_p (region))
+	VEC_safe_push (refined_region_p, heap, scops, region);
+      else
+	{
+	  int ix;
+	  refined_region_p subregion;
+
+	  for (ix = 0;
+	       VEC_iterate (refined_region_p, region->children, ix, subregion);
+	       ix++)
+	    VEC_safe_push (refined_region_p, heap, check, subregion);
+	}
+    }
+
+  /* TODO: Check if we can create even bigger regions by combining
+	   canonical regions,  that are executed one after another.  */
+  /* TODO: Create sese edges.  */
+  /* TODO: Create graphite scops.  */
+
+  VEC_free (refined_region_p, heap, check);
+  VEC_free (refined_region_p, heap, scops);
+  free_region_tree (new_region);
+}
+
+
+/* Find Static Control Parts (SCoP) in the current function and pushes
+   them to SCOPS.  (Old version)  */
+
+static void
+build_scops_old (VEC (scop_p, heap) **scops)
 {
   struct loop *loop = current_loops->tree_root;
   VEC (sd_region, heap) *regions = VEC_alloc (sd_region, heap, 3);
-
-  /* Run new scop detection in parallel.  */
-  refined_region_p new_region = calculate_region_tree ();
-  free_region_tree (new_region);
 
   canonicalize_loop_closed_ssa_form ();
   build_scops_1 (single_succ (ENTRY_BLOCK_PTR), ENTRY_BLOCK_PTR->loop_father,
@@ -1346,6 +1406,17 @@ build_scops (VEC (scop_p, heap) **scops)
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "\nnumber of SCoPs: %d\n",
 	     VEC_length (scop_p, *scops));
+}
+
+/* Find Static Control Parts (SCoP) in the current function and pushes
+   them to SCOPS.  */
+
+void
+build_scops (VEC (scop_p, heap) **scops)
+{
+  /* Run the new version in parallel to check it.  */
+  build_scops_new ();
+  build_scops_old (scops);
 }
 
 /* Pretty print to FILE all the SCoPs in DOT format and mark them with
