@@ -170,11 +170,9 @@ bool in_cold_section_p;
 static GTY(()) section *unnamed_sections;
 
 /* Return a nonzero value if DECL has a section attribute.  */
-#ifndef IN_NAMED_SECTION
 #define IN_NAMED_SECTION(DECL) \
   ((TREE_CODE (DECL) == FUNCTION_DECL || TREE_CODE (DECL) == VAR_DECL) \
    && DECL_SECTION_NAME (DECL) != NULL_TREE)
-#endif
 
 /* Hash table of named sections.  */
 static GTY((param_is (section))) htab_t section_htab;
@@ -2818,6 +2816,11 @@ decode_addr_const (tree exp, struct addr_const *value)
 		     * tree_low_cst (TREE_OPERAND (target, 1), 0));
 	  target = TREE_OPERAND (target, 0);
 	}
+      else if (TREE_CODE (target) == INDIRECT_REF
+	       && TREE_CODE (TREE_OPERAND (target, 0)) == NOP_EXPR
+	       && TREE_CODE (TREE_OPERAND (TREE_OPERAND (target, 0), 0))
+		  == ADDR_EXPR)
+	target = TREE_OPERAND (TREE_OPERAND (TREE_OPERAND (target, 0), 0), 0);
       else
 	break;
     }
@@ -2909,6 +2912,18 @@ const_hash_1 (const tree exp)
     case COMPLEX_CST:
       return (const_hash_1 (TREE_REALPART (exp)) * 5
 	      + const_hash_1 (TREE_IMAGPART (exp)));
+
+    case VECTOR_CST:
+      {
+	tree link;
+
+	hi = 7 + TYPE_VECTOR_SUBPARTS (TREE_TYPE (exp));
+
+	for (link = TREE_VECTOR_CST_ELTS (exp); link; link = TREE_CHAIN (link))
+	    hi = hi * 563 + const_hash_1 (TREE_VALUE (link));
+
+	return hi;
+      }
 
     case CONSTRUCTOR:
       {
@@ -3038,6 +3053,27 @@ compare_constant (const tree t1, const tree t2)
       return (compare_constant (TREE_REALPART (t1), TREE_REALPART (t2))
 	      && compare_constant (TREE_IMAGPART (t1), TREE_IMAGPART (t2)));
 
+    case VECTOR_CST:
+      {
+        tree link1, link2;
+
+        if (TYPE_VECTOR_SUBPARTS (TREE_TYPE (t1))
+	    != TYPE_VECTOR_SUBPARTS (TREE_TYPE (t2)))
+	  return 0;
+
+	link2 = TREE_VECTOR_CST_ELTS (t2);
+	for (link1 = TREE_VECTOR_CST_ELTS (t1);
+	     link1;
+	     link1 = TREE_CHAIN (link1))
+	  {
+	    if (!compare_constant (TREE_VALUE (link1), TREE_VALUE (link2)))
+	      return 0;
+	    link2 = TREE_CHAIN (link2);
+	  }
+	
+	return 1;
+      }
+
     case CONSTRUCTOR:
       {
 	VEC(constructor_elt, gc) *v1, *v2;
@@ -3098,11 +3134,34 @@ compare_constant (const tree t1, const tree t2)
     case FDESC_EXPR:
       {
 	struct addr_const value1, value2;
+	enum rtx_code code;
+	int ret;
 
 	decode_addr_const (t1, &value1);
 	decode_addr_const (t2, &value2);
-	return (value1.offset == value2.offset
-		&& strcmp (XSTR (value1.base, 0), XSTR (value2.base, 0)) == 0);
+
+	if (value1.offset != value2.offset)
+	  return 0;
+
+	code = GET_CODE (value1.base);
+	if (code != GET_CODE (value2.base))
+	  return 0;
+
+	switch (code)
+	  {
+	  case SYMBOL_REF:
+	    ret = (strcmp (XSTR (value1.base, 0), XSTR (value2.base, 0)) == 0);
+	    break;
+
+	  case LABEL_REF:
+	    ret = (CODE_LABEL_NUMBER (XEXP (value1.base, 0))
+	           == CODE_LABEL_NUMBER (XEXP (value2.base, 0)));
+	    break;
+
+	  default:
+	    gcc_unreachable ();
+	  }
+	return ret;
       }
 
     case PLUS_EXPR:
@@ -3162,6 +3221,10 @@ copy_constant (tree exp)
     case VIEW_CONVERT_EXPR:
       return build1 (TREE_CODE (exp), TREE_TYPE (exp),
 		     copy_constant (TREE_OPERAND (exp, 0)));
+
+    case VECTOR_CST:
+      return build_vector (TREE_TYPE (exp),
+			   copy_list (TREE_VECTOR_CST_ELTS (exp)));
 
     case CONSTRUCTOR:
       {
@@ -5826,8 +5889,10 @@ assemble_alias (tree decl, tree target)
    the visibility type VIS, which must not be VISIBILITY_DEFAULT.  */
 
 void
-default_assemble_visibility (tree decl, int vis)
+default_assemble_visibility (tree decl ATTRIBUTE_UNUSED, 
+			     int vis ATTRIBUTE_UNUSED)
 {
+#ifdef HAVE_GAS_HIDDEN
   static const char * const visibility_types[] = {
     NULL, "protected", "hidden", "internal"
   };
@@ -5837,7 +5902,6 @@ default_assemble_visibility (tree decl, int vis)
   name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
   type = visibility_types[vis];
 
-#ifdef HAVE_GAS_HIDDEN
   fprintf (asm_out_file, "\t.%s\t", type);
   assemble_name (asm_out_file, name);
   fprintf (asm_out_file, "\n");

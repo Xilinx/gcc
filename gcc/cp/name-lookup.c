@@ -3174,7 +3174,7 @@ set_decl_namespace (tree decl, tree scope, bool friendp)
 
 /* Return the namespace where the current declaration is declared.  */
 
-static tree
+tree
 current_decl_namespace (void)
 {
   tree result;
@@ -3346,6 +3346,7 @@ void
 pop_nested_namespace (tree ns)
 {
   timevar_push (TV_NAME_LOOKUP);
+  gcc_assert (current_namespace == ns);
   while (ns != global_namespace)
     {
       pop_namespace ();
@@ -3809,6 +3810,10 @@ qualify_lookup (tree val, int flags)
   /* In unevaluated context, look past normal capture fields.  */
   if (cp_unevaluated_operand && TREE_CODE (val) == FIELD_DECL
       && DECL_NORMAL_CAPTURE_P (val))
+    return false;
+  /* None of the lookups that use qualify_lookup want the op() from the
+     lambda; they want the one from the enclosing class.  */
+  if (TREE_CODE (val) == FUNCTION_DECL && LAMBDA_FUNCTION_P (val))
     return false;
   return true;
 }

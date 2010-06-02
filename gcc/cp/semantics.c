@@ -1424,17 +1424,18 @@ finish_non_static_data_member (tree decl, tree object, tree qualifying_scope)
 {
   gcc_assert (TREE_CODE (decl) == FIELD_DECL);
 
-  if (!object && cp_unevaluated_operand != 0)
+  if (!object)
     {
-      /* DR 613: Can use non-static data members without an associated
-         object in sizeof/decltype/alignof.  */
       tree scope = qualifying_scope;
       if (scope == NULL_TREE)
 	scope = context_for_name_lookup (decl);
       object = maybe_dummy_object (scope, NULL);
     }
 
-  if (!object)
+  /* DR 613: Can use non-static data members without an associated
+     object in sizeof/decltype/alignof.  */
+  if (is_dummy_object (object) && cp_unevaluated_operand == 0
+      && (!processing_template_decl || !current_class_ref))
     {
       if (current_function_decl
 	  && DECL_STATIC_FUNCTION_P (current_function_decl))
@@ -1445,19 +1446,6 @@ finish_non_static_data_member (tree decl, tree object, tree qualifying_scope)
 
       return error_mark_node;
     }
-
-  /* If decl is a non-capture field and object has a lambda type,
-     then we have a reference to a member of 'this' from a
-     lambda inside a non-static member function, and we must get to decl
-     through the 'this' capture.  If decl is not a member of that object,
-     either, then its access will still fail later.  */
-  if (LAMBDA_TYPE_P (TREE_TYPE (object))
-      && !LAMBDA_TYPE_P (DECL_CONTEXT (decl)))
-    object = cp_build_indirect_ref (lambda_expr_this_capture
-				    (CLASSTYPE_LAMBDA_EXPR
-				     (TREE_TYPE (object))),
-                                    RO_NULL,
-                                    /*complain=*/tf_warning_or_error);
 
   if (current_class_ptr)
     TREE_USED (current_class_ptr) = 1;
@@ -1494,21 +1482,6 @@ finish_non_static_data_member (tree decl, tree object, tree qualifying_scope)
   else
     {
       tree access_type = TREE_TYPE (object);
-      tree lookup_context = context_for_name_lookup (decl);
-
-      while (!DERIVED_FROM_P (lookup_context, access_type))
-	{
-	  access_type = TYPE_CONTEXT (access_type);
-	  while (access_type && DECL_P (access_type))
-	    access_type = DECL_CONTEXT (access_type);
-
-	  if (!access_type)
-	    {
-	      error ("object missing in reference to %q+D", decl);
-	      error ("from this location");
-	      return error_mark_node;
-	    }
-	}
 
       perform_or_defer_access_check (TYPE_BINFO (access_type), decl,
 				     decl);
@@ -1683,24 +1656,21 @@ finish_qualified_id_expr (tree qualifying_class,
   else if (TREE_CODE (expr) == FIELD_DECL)
     {
       push_deferring_access_checks (dk_no_check);
-      expr = finish_non_static_data_member (expr, current_class_ref,
+      expr = finish_non_static_data_member (expr, NULL_TREE,
 					    qualifying_class);
       pop_deferring_access_checks ();
     }
   else if (BASELINK_P (expr) && !processing_template_decl)
     {
-      tree fns;
+      tree ob;
 
       /* See if any of the functions are non-static members.  */
-      fns = BASELINK_FUNCTIONS (expr);
-      if (TREE_CODE (fns) == TEMPLATE_ID_EXPR)
-	fns = TREE_OPERAND (fns, 0);
       /* If so, the expression may be relative to 'this'.  */
-      if (!shared_member_p (fns)
-	  && current_class_ref
-	  && DERIVED_FROM_P (qualifying_class, TREE_TYPE (current_class_ref)))
+      if (!shared_member_p (expr)
+	  && (ob = maybe_dummy_object (qualifying_class, NULL),
+	      !is_dummy_object (ob)))
 	expr = (build_class_member_access_expr
-		(maybe_dummy_object (qualifying_class, NULL),
+		(ob,
 		 expr,
 		 BASELINK_ACCESS_BINFO (expr),
 		 /*preserve_reference=*/false,
@@ -2006,31 +1976,18 @@ finish_call_expr (tree fn, VEC(tree,gc) **args, bool disallow_virtual,
 	   . operator.... [Otherwise] a contrived object of type T
 	   becomes the implied object argument.
 
-	This paragraph is unclear about this situation:
+	In this situation:
 
 	  struct A { void f(); };
 	  struct B : public A {};
 	  struct C : public A { void g() { B::f(); }};
 
-	In particular, for `B::f', this paragraph does not make clear
-	whether "the class of that member function" refers to `A' or
-	to `B'.  We believe it refers to `B'.  */
-      if (current_class_type
-	  && DERIVED_FROM_P (BINFO_TYPE (BASELINK_ACCESS_BINFO (fn)),
-			     current_class_type)
-	  && current_class_ref)
-	object = maybe_dummy_object (BINFO_TYPE (BASELINK_ACCESS_BINFO (fn)),
-				     NULL);
-      else
-	{
-	  tree representative_fn;
+	"the class of that member function" refers to `A'.  But 11.2
+	[class.access.base] says that we need to convert 'this' to B* as
+	part of the access, so we pass 'B' to maybe_dummy_object.  */
 
-	  representative_fn = BASELINK_FUNCTIONS (fn);
-	  if (TREE_CODE (representative_fn) == TEMPLATE_ID_EXPR)
-	    representative_fn = TREE_OPERAND (representative_fn, 0);
-	  representative_fn = get_first_fn (representative_fn);
-	  object = build_dummy_object (DECL_CONTEXT (representative_fn));
-	}
+      object = maybe_dummy_object (BINFO_TYPE (BASELINK_ACCESS_BINFO (fn)),
+				   NULL);
 
       if (processing_template_decl)
 	{
@@ -2413,9 +2370,6 @@ begin_class_definition (tree t, tree attributes)
       pushtag (make_anon_name (), t, /*tag_scope=*/ts_current);
     }
 
-  /* Update the location of the decl.  */
-  DECL_SOURCE_LOCATION (TYPE_NAME (t)) = input_location;
-
   if (TYPE_BEING_DEFINED (t))
     {
       t = make_class_type (TREE_CODE (t));
@@ -2699,7 +2653,8 @@ baselink_for_fns (tree fns)
   if (!cl)
     cl = DECL_CONTEXT (fn);
   cl = TYPE_BINFO (cl);
-  return build_baselink (cl, cl, fns, /*optype=*/NULL_TREE);
+  return build_baselink (TYPE_BINFO (DECL_CONTEXT (fn)), cl, fns,
+			 /*optype=*/NULL_TREE);
 }
 
 /* Returns true iff DECL is an automatic variable from a function outside
@@ -3080,7 +3035,7 @@ finish_id_expression (tree id_expression,
 		 already.  Turn off checking to avoid duplicate errors.  */
 	      push_deferring_access_checks (dk_no_check);
 	      decl = finish_non_static_data_member
-		       (decl, current_class_ref,
+		       (decl, NULL_TREE,
 			/*qualifying_scope=*/NULL_TREE);
 	      pop_deferring_access_checks ();
 	      return decl;
@@ -3161,7 +3116,7 @@ finish_id_expression (tree id_expression,
 	     Access checking has been performed during name lookup
 	     already.  Turn off checking to avoid duplicate errors.  */
 	  push_deferring_access_checks (dk_no_check);
-	  decl = finish_non_static_data_member (decl, current_class_ref,
+	  decl = finish_non_static_data_member (decl, NULL_TREE,
 						/*qualifying_scope=*/NULL_TREE);
 	  pop_deferring_access_checks ();
 	}
@@ -3169,10 +3124,7 @@ finish_id_expression (tree id_expression,
 	{
 	  tree first_fn;
 
-	  first_fn = decl;
-	  if (TREE_CODE (first_fn) == TEMPLATE_ID_EXPR)
-	    first_fn = TREE_OPERAND (first_fn, 0);
-	  first_fn = get_first_fn (first_fn);
+	  first_fn = get_first_fn (decl);
 	  if (TREE_CODE (first_fn) == TEMPLATE_DECL)
 	    first_fn = DECL_TEMPLATE_RESULT (first_fn);
 
@@ -3464,7 +3416,9 @@ expand_or_defer_fn_1 (tree fn)
 	 this function as needed so that finish_file will make sure to
 	 output it later.  Similarly, all dllexport'd functions must
 	 be emitted; there may be callers in other DLLs.  */
-      if ((flag_keep_inline_functions && DECL_DECLARED_INLINE_P (fn))
+      if ((flag_keep_inline_functions
+	   && DECL_DECLARED_INLINE_P (fn)
+	   && !DECL_REALLY_EXTERN (fn))
 	  || lookup_attribute ("dllexport", DECL_ATTRIBUTES (fn)))
 	mark_needed (fn);
     }
@@ -4854,6 +4808,14 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
   /* The type denoted by decltype(e) is defined as follows:  */
 
   expr = resolve_nondeduced_context (expr);
+
+  /* To get the size of a static data member declared as an array of
+     unknown bound, we need to instantiate it.  */
+  if (TREE_CODE (expr) == VAR_DECL
+      && VAR_HAD_UNKNOWN_BOUND (expr)
+      && DECL_TEMPLATE_INSTANTIATION (expr))
+    instantiate_decl (expr, /*defer_ok*/true, /*expl_inst_mem*/false);
+
   if (id_expression_or_member_access_p)
     {
       /* If e is an id-expression or a class member access (5.2.5
@@ -5529,6 +5491,11 @@ tree
 lambda_return_type (tree expr)
 {
   tree type;
+  if (BRACE_ENCLOSED_INITIALIZER_P (expr))
+    {
+      warning (0, "cannot deduce lambda return type from a braced-init-list");
+      return void_type_node;
+    }
   if (type_dependent_expression_p (expr))
     {
       type = cxx_make_type (DECLTYPE_TYPE);
@@ -5858,7 +5825,7 @@ lambda_expr_this_capture (tree lambda)
       gcc_assert (TYPE_MAIN_VARIANT (TREE_TYPE (current_class_ref)) == TREE_TYPE (lambda));
 
       result = finish_non_static_data_member (this_capture,
-                                              current_class_ref,
+                                              NULL_TREE,
                                               /*qualifying_scope=*/NULL_TREE);
 
       /* If 'this' is captured, each use of 'this' is transformed into an
@@ -5869,6 +5836,32 @@ lambda_expr_this_capture (tree lambda)
     }
 
   return result;
+}
+
+/* Returns the method basetype of the innermost non-lambda function, or
+   NULL_TREE if none.  */
+
+tree
+nonlambda_method_basetype (void)
+{
+  tree fn, type;
+  if (!current_class_ref)
+    return NULL_TREE;
+
+  type = current_class_type;
+  if (!LAMBDA_TYPE_P (type))
+    return type;
+
+  /* Find the nearest enclosing non-lambda function.  */
+  fn = TYPE_NAME (type);
+  do
+    fn = decl_function_context (fn);
+  while (fn && LAMBDA_FUNCTION_P (fn));
+
+  if (!fn || !DECL_NONSTATIC_MEMBER_FUNCTION_P (fn))
+    return NULL_TREE;
+
+  return TYPE_METHOD_BASETYPE (TREE_TYPE (fn));
 }
 
 /* If the closure TYPE has a static op(), also add a conversion to function
@@ -5976,9 +5969,12 @@ maybe_add_lambda_conv_op (tree type)
   VEC_quick_push (tree, argvec, arg);
   for (arg = DECL_ARGUMENTS (statfn); arg; arg = TREE_CHAIN (arg))
     VEC_safe_push (tree, gc, argvec, arg);
-  call = build_cxx_call (callop, VEC_length (tree, argvec),
-			 VEC_address (tree, argvec));
+  call = build_call_a (callop, VEC_length (tree, argvec),
+		       VEC_address (tree, argvec));
   CALL_FROM_THUNK_P (call) = 1;
+  if (MAYBE_CLASS_TYPE_P (TREE_TYPE (call)))
+    call = build_cplus_new (TREE_TYPE (call), call);
+  call = convert_from_reference (call);
   finish_return_stmt (call);
 
   finish_compound_stmt (compound_stmt);

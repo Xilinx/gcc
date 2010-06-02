@@ -1157,6 +1157,10 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 	}
     }
 
+  /* Reset alias information.  */
+  if (code == GIMPLE_CALL)
+    gimple_call_reset_alias_info (stmt);
+
   /* Fixup reference tree operands for substituted prevailing decls
      with mismatched types.  */
   maybe_fixup_decls (stmt);
@@ -1310,7 +1314,6 @@ input_function (tree fn_decl, struct data_in *data_in,
   fn->has_nonlocal_label = bp_unpack_value (bp, 1);
   fn->calls_alloca = bp_unpack_value (bp, 1);
   fn->calls_setjmp = bp_unpack_value (bp, 1);
-  fn->function_frequency = (enum function_frequency) bp_unpack_value (bp, 2);
   fn->va_list_fpr_size = bp_unpack_value (bp, 8);
   fn->va_list_gpr_size = bp_unpack_value (bp, 8);
   bitpack_delete (bp);

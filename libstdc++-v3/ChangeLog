@@ -1,3 +1,76 @@
+2010-04-27  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/43865
+	* include/c_global/cstdlib (abort, exit): _GLIBCXX_NORETURN typo.
+
+2010-04-27  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx200x.xml: Update quick_exit status.
+	* doc/html/*: Regenerate.
+
+2010-04-27  Fabien Chêne  <fabien.chene@gmail.com>
+
+	* testsuite/util/testsuite_error.h: Add empty default constructor
+	to __gnu_test::test_category and
+	__gnu_test::test_derived_category.
+	* src/future.cc: Add empty default constructor to
+	future_error_category.
+	* src/system_error.cc: Add default ctor to generic_error_category
+	and system_error_category.
+
+2010-04-27  Alexander Monakov  <amonakov@ispras.ru>
+
+	* testsuite/22_locale/codecvt/unshift/char/1.c (test01): Clarify size
+	definition.  Use memcpy and memcmp to avoid access beyond allocated
+	memory.
+
+2010-04-27  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx200x.xml: Update to match n3092.
+	* doc/html/*: Regenerate.
+
+2010-04-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx200x.xml: Update Threads status.
+	* doc/html/manual/status.html: Regenerate.
+
+2010-04-24  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/unique_ptr (unique_ptr::pointer): Use deleter's
+	pointer type if it exists.
+	* testsuite/20_util/unique_ptr/requirements/pointer_type.cc: New.
+	* testsuite/20_util/unique_ptr/assign/assign_neg.cc: Adjust.
+	* testsuite/20_util/unique_ptr/modifiers/reset_neg.cc: Adjust.
+
+2010-04-22  Johannes Singler  <singler@kit.edu>
+
+        * include/parallel/partition.h (__parallel_partition):
+        Improve scalability by:
+        -introducing new variables __leftold, __rightold, __dist, thus
+        -getting rid of omp lock by using atomic operations
+        -getting rid of two omp barriers
+
+2010-04-22  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/faq.xml: Link to manual.
+	* doc/xml/manual/using.xml: Expand dynamic libraries section.
+	* doc/xml/manual/strings.xml: Mention shrink_to_fit() member.
+	* doc/xml/manual/prerequisites.xml: Link to doxygen requirements.
+	* doc/xml/manual/appendix_contributing.xml: Update Bash version.
+	* doc/html/*: Regenerate.
+
+2010-04-13  Ian Lance Taylor  <iant@google.com>
+
+	* include/backward/hash_map: Don't #include "backward_warning.h"
+	if _GLIBCXX_PERMIT_BACKWARD_HASH is defined.
+	* include/backward/hash_set: Likewise.
+
+2010-04-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.host (os_include_dir): Removed solaris2.7 support.
+	* crossconfig.m4 (GLIBCXX_CROSSCONFIG): Likewise.
+	* configure: Regenerate.
+
 2010-04-06  Matthias Klose  <doko@ubuntu.com>
 
 	* acinclude.m4 (GLIBCXX_ENABLE_LIBSTDCXX_TIME): Show test result.

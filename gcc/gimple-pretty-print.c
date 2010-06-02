@@ -477,6 +477,60 @@ dump_gimple_call_args (pretty_printer *buffer, gimple gs, int flags)
     }
 }
 
+/* Dump the points-to solution *PT to BUFFER.  */
+
+static void
+pp_points_to_solution (pretty_printer *buffer, struct pt_solution *pt)
+{
+  if (pt->anything)
+    {
+      pp_string (buffer, "anything ");
+      return;
+    }
+  if (pt->nonlocal)
+    pp_string (buffer, "nonlocal ");
+  if (pt->escaped)
+    pp_string (buffer, "escaped ");
+  if (pt->ipa_escaped)
+    pp_string (buffer, "unit-escaped ");
+  if (pt->null)
+    pp_string (buffer, "null ");
+  if (pt->vars
+      && !bitmap_empty_p (pt->vars))
+    {
+      bitmap_iterator bi;
+      unsigned i;
+      pp_string (buffer, "{ ");
+      EXECUTE_IF_SET_IN_BITMAP (pt->vars, 0, i, bi)
+	{
+	  struct tree_decl_minimal in;
+	  tree var;
+	  in.uid = i;
+	  var = (tree) htab_find_with_hash (gimple_referenced_vars (cfun),
+					    &in, i);
+	  if (var)
+	    {
+	      dump_generic_node (buffer, var, 0, dump_flags, false);
+	      if (DECL_PT_UID (var) != DECL_UID (var))
+		{
+		  pp_string (buffer, "ptD.");
+		  pp_decimal_int (buffer, DECL_PT_UID (var));
+		}
+	    }
+	  else
+	    {
+	      pp_string (buffer, "D.");
+	      pp_decimal_int (buffer, i);
+	    }
+	  pp_character (buffer, ' ');
+	}
+      pp_character (buffer, '}');
+      if (pt->vars_contains_global)
+	pp_string (buffer, " (glob)");
+      if (pt->vars_contains_restrict)
+	pp_string (buffer, " (restr)");
+    }
+}
 
 /* Dump the call statement GS.  BUFFER, SPC and FLAGS are as in
    dump_gimple_stmt.  */
@@ -485,6 +539,25 @@ static void
 dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
 {
   tree lhs = gimple_call_lhs (gs);
+
+  if (flags & TDF_ALIAS)
+    {
+      struct pt_solution *pt;
+      pt = gimple_call_use_set (gs);
+      if (!pt_solution_empty_p (pt))
+	{
+	  pp_string (buffer, "# USE = ");
+	  pp_points_to_solution (buffer, pt);
+	  newline_and_indent (buffer, spc);
+	}
+      pt = gimple_call_clobber_set (gs);
+      if (!pt_solution_empty_p (pt))
+	{
+	  pp_string (buffer, "# CLB = ");
+	  pp_points_to_solution (buffer, pt);
+	  newline_and_indent (buffer, spc);
+	}
+    }
 
   if (flags & TDF_RAW)
     {
@@ -1257,13 +1330,24 @@ static void
 dump_gimple_phi (pretty_printer *buffer, gimple phi, int spc, int flags)
 {
   size_t i;
+  tree lhs = gimple_phi_result (phi);
+
+  if (flags & TDF_ALIAS
+      && POINTER_TYPE_P (TREE_TYPE (lhs))
+      && SSA_NAME_PTR_INFO (lhs))
+    {
+      pp_string (buffer, "PT = ");
+      pp_points_to_solution (buffer, &SSA_NAME_PTR_INFO (lhs)->pt);
+      newline_and_indent (buffer, spc);
+      pp_string (buffer, "# ");
+    }
 
   if (flags & TDF_RAW)
       dump_gimple_fmt (buffer, spc, flags, "%G <%T, ", phi,
                        gimple_phi_result (phi));
   else
     {
-      dump_generic_node (buffer, gimple_phi_result (phi), spc, flags, false);
+      dump_generic_node (buffer, lhs, spc, flags, false);
       pp_string (buffer, " = PHI <");
     }
   for (i = 0; i < gimple_phi_num_args (phi); i++)
@@ -1530,6 +1614,20 @@ dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)
   if ((flags & (TDF_VOPS|TDF_MEMSYMS))
       && gimple_has_mem_ops (gs))
     dump_gimple_mem_ops (buffer, gs, spc, flags);
+
+  if ((flags & TDF_ALIAS)
+      && gimple_has_lhs (gs))
+    {
+      tree lhs = gimple_get_lhs (gs);
+      if (TREE_CODE (lhs) == SSA_NAME
+	  && POINTER_TYPE_P (TREE_TYPE (lhs))
+	  && SSA_NAME_PTR_INFO (lhs))
+	{
+	  pp_string (buffer, "# PT = ");
+	  pp_points_to_solution (buffer, &SSA_NAME_PTR_INFO (lhs)->pt);
+	  newline_and_indent (buffer, spc);
+	}
+    }
 
   switch (gimple_code (gs))
     {

@@ -1580,7 +1580,8 @@ typedef struct ix86_args {
   int words;			/* # words passed so far */
   int nregs;			/* # registers available for passing */
   int regno;			/* next available register number */
-  int fastcall;			/* fastcall calling convention is used */
+  int fastcall;			/* fastcall or thiscall calling convention
+				   is used */
   int sse_words;		/* # sse words passed so far */
   int sse_nregs;		/* # sse registers available for passing */
   int warn_avx;			/* True when we want to warn about AVX ABI.  */
@@ -2147,9 +2148,12 @@ do {									\
 /* Switch to init or fini section via SECTION_OP, emit a call to FUNC,
    and switch back.  For x86 we do this only to save a few bytes that
    would otherwise be unused in the text section.  */
-#define CRT_CALL_STATIC_FUNCTION(SECTION_OP, FUNC)	\
-   asm (SECTION_OP "\n\t"				\
-	"call " USER_LABEL_PREFIX #FUNC "\n"		\
+#define CRT_MKSTR2(VAL) #VAL
+#define CRT_MKSTR(x) CRT_MKSTR2(x)
+
+#define CRT_CALL_STATIC_FUNCTION(SECTION_OP, FUNC)		\
+   asm (SECTION_OP "\n\t"					\
+	"call " CRT_MKSTR(__USER_LABEL_PREFIX__) #FUNC "\n"	\
 	TEXT_SECTION_ASM_OP);
 
 /* Print operand X (an rtx) in assembler syntax to file FILE.

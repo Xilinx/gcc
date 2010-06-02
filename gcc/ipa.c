@@ -71,6 +71,12 @@ cgraph_postorder (struct cgraph_node **order)
 		    node2->aux = edge->next_caller;
 		  else
 		    node2->aux = &last;
+		  /* Break possible cycles involving always-inline
+		     functions by ignoring edges from always-inline
+		     functions to non-always-inline functions.  */
+		  if (edge->caller->local.disregard_inline_limits
+		      && !edge->callee->local.disregard_inline_limits)
+		    continue;
 		  if (!edge->caller->aux)
 		    {
 		      if (!edge->caller->callers)
@@ -271,15 +277,18 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 		      node->analyzed = false;
 		      node->local.inlinable = false;
 		    }
+		  else
+		    if (clone)
+		      gcc_assert (!clone->in_other_partition);
 		  if (!cgraph_is_aux_decl_external (node))
                     {
-                      if (node->prev_sibling_clone)
-                        node->prev_sibling_clone->next_sibling_clone = node->next_sibling_clone;
-                      else if (node->clone_of)
-                        node->clone_of->clones = node->next_sibling_clone;
-                      if (node->next_sibling_clone)
-                        node->next_sibling_clone->prev_sibling_clone = node->prev_sibling_clone;
 		      cgraph_node_remove_callees (node);
+		      if (node->prev_sibling_clone)
+			node->prev_sibling_clone->next_sibling_clone = node->next_sibling_clone;
+		      else if (node->clone_of)
+			node->clone_of->clones = node->next_sibling_clone;
+		      if (node->next_sibling_clone)
+			node->next_sibling_clone->prev_sibling_clone = node->prev_sibling_clone;
 		      node->clone_of = NULL;
 		      node->next_sibling_clone = NULL;
 		      node->prev_sibling_clone = NULL;
@@ -370,6 +379,21 @@ cgraph_externally_visible_p (struct cgraph_node *node, bool whole_program)
   return false;
 }
 
+/* Dissolve the same_comdat_group list in which NODE resides.  */
+
+static void
+dissolve_same_comdat_group_list (struct cgraph_node *node)
+{
+  struct cgraph_node *n = node, *next;
+  do
+    {
+      next = n->same_comdat_group;
+      n->same_comdat_group = NULL;
+      n = next;
+    }
+  while (n != node);
+}
+
 /* Mark visibility of all functions.
 
    A local function is one whose calls can occur only in the current
@@ -400,17 +424,17 @@ function_and_variable_visibility (bool whole_program)
 	 and simplifies later passes.  */
       if (node->same_comdat_group && DECL_EXTERNAL (node->decl))
 	{
-	  struct cgraph_node *n = node, *next;
-	  do
-	    {
+#ifdef ENABLE_CHECKING
+	  struct cgraph_node *n;
+
+	  for (n = node->same_comdat_group;
+	       n != node;
+	       n = n->same_comdat_group)
 	      /* If at least one of same comdat group functions is external,
 		 all of them have to be, otherwise it is a front-end bug.  */
 	      gcc_assert (DECL_EXTERNAL (n->decl));
-	      next = n->same_comdat_group;
-	      n->same_comdat_group = NULL;
-	      n = next;
-	    }
-	  while (n != node);
+#endif
+	  dissolve_same_comdat_group_list (node);
 	}
       gcc_assert ((!DECL_WEAK (node->decl) && !DECL_COMDAT (node->decl))
       	          || TREE_PUBLIC (node->decl) || DECL_EXTERNAL (node->decl));
@@ -426,6 +450,12 @@ function_and_variable_visibility (bool whole_program)
 	{
 	  gcc_assert (whole_program || !TREE_PUBLIC (node->decl));
 	  cgraph_make_decl_local (node->decl);
+	  if (node->same_comdat_group)
+	    /* cgraph_externally_visible_p has already checked all other nodes
+	       in the group and they will all be made local.  We need to
+	       dissolve the group at once so that the predicate does not
+	       segfault though. */
+	    dissolve_same_comdat_group_list (node);
 	}
       node->local.local = (cgraph_only_called_directly_p (node)
 			   && node->analyzed
@@ -594,7 +624,8 @@ struct ipa_opt_pass_d pass_ipa_whole_program_visibility =
  NULL,					/* generate_summary */
  NULL,					/* write_summary */
  NULL,					/* read_summary */
- NULL,					/* function_read_summary */
+ NULL,					/* write_optimization_summary */
+ NULL,					/* read_optimization_summary */
  NULL,					/* stmt_fixup */
  0,					/* TODOs */
  NULL,					/* function_transform */
@@ -757,3 +788,84 @@ debug_cgraph_node_set (cgraph_node_set set)
 {
   dump_cgraph_node_set (stderr, set);
 }
+
+/* Simple ipa profile pass propagating frequencies across the callgraph.  */
+
+static unsigned int
+ipa_profile (void)
+{
+  struct cgraph_node **order = XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
+  struct cgraph_edge *e;
+  int order_pos;
+  bool something_changed = false;
+  int i;
+
+  order_pos = cgraph_postorder (order);
+  for (i = order_pos - 1; i >= 0; i--)
+    {
+      if (order[i]->local.local && cgraph_propagate_frequency (order[i]))
+	{
+	  for (e = order[i]->callees; e; e = e->next_callee)
+	    if (e->callee->local.local && !e->callee->aux)
+	      {
+	        something_changed = true;
+	        e->callee->aux = (void *)1;
+	      }
+	}
+      order[i]->aux = NULL;
+    }
+
+  while (something_changed)
+    {
+      something_changed = false;
+      for (i = order_pos - 1; i >= 0; i--)
+	{
+	  if (order[i]->aux && cgraph_propagate_frequency (order[i]))
+	    {
+	      for (e = order[i]->callees; e; e = e->next_callee)
+		if (e->callee->local.local && !e->callee->aux)
+		  {
+		    something_changed = true;
+		    e->callee->aux = (void *)1;
+		  }
+	    }
+	  order[i]->aux = NULL;
+	}
+    }
+  free (order);
+  return 0;
+}
+
+static bool
+gate_ipa_profile (void)
+{
+  return flag_ipa_profile;
+}
+
+struct ipa_opt_pass_d pass_ipa_profile =
+{
+ {
+  IPA_PASS,
+  "ipa-profile",			/* name */
+  gate_ipa_profile,			/* gate */
+  ipa_profile,			        /* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_IPA_PROFILE,		        /* tv_id */
+  0,	                                /* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  0                                     /* todo_flags_finish */
+ },
+ NULL,				        /* generate_summary */
+ NULL,					/* write_summary */
+ NULL,					/* read_summary */
+ NULL,					/* write_optimization_summary */
+ NULL,					/* read_optimization_summary */
+ NULL,					/* stmt_fixup */
+ 0,					/* TODOs */
+ NULL,			                /* function_transform */
+ NULL					/* variable_transform */
+};

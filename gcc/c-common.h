@@ -595,9 +595,13 @@ extern int flag_cond_mismatch;
 
 extern int flag_isoc94;
 
-/* Nonzero means use the ISO C99 dialect of C.  */
+/* Nonzero means use the ISO C99 (or C1X) dialect of C.  */
 
 extern int flag_isoc99;
+
+/* Nonzero means use the ISO C1X dialect of C.  */
+
+extern int flag_isoc1x;
 
 /* Nonzero means that we have builtin functions, and main is an int.  */
 
@@ -822,6 +826,7 @@ extern void check_function_format (tree, int, tree *);
 extern void set_Wformat (int);
 extern tree handle_format_attribute (tree *, tree, tree, int, bool *);
 extern tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
+extern bool attribute_takes_identifier_p (tree);
 extern int c_common_handle_option (size_t code, const char *arg, int value);
 extern bool c_common_missing_argument (const char *opt, size_t code);
 extern tree c_common_type_for_mode (enum machine_mode, int);

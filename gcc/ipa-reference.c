@@ -361,9 +361,9 @@ static bool
 mark_address (gimple stmt ATTRIBUTE_UNUSED, tree addr,
 	      void *data ATTRIBUTE_UNUSED)
 {
-  while (handled_component_p (addr))
-    addr = TREE_OPERAND (addr, 0);
-  mark_address_taken (addr);
+  addr = get_base_address (addr);
+  if (addr)
+    mark_address_taken (addr);
   return false;
 }
 
@@ -373,7 +373,8 @@ static bool
 mark_load (gimple stmt ATTRIBUTE_UNUSED, tree t, void *data)
 {
   ipa_reference_local_vars_info_t local = (ipa_reference_local_vars_info_t)data;
-  if (TREE_CODE (t) == VAR_DECL
+  t = get_base_address (t);
+  if (t && TREE_CODE (t) == VAR_DECL
       && has_proper_scope_for_analysis (t))
     bitmap_set_bit (local->statics_read, DECL_UID (t));
   return false;
@@ -385,7 +386,8 @@ static bool
 mark_store (gimple stmt ATTRIBUTE_UNUSED, tree t, void *data)
 {
   ipa_reference_local_vars_info_t local = (ipa_reference_local_vars_info_t)data;
-  if (TREE_CODE (t) == VAR_DECL
+  t = get_base_address (t);
+  if (t && TREE_CODE (t) == VAR_DECL
       && has_proper_scope_for_analysis (t))
     {
       if (local)
@@ -1521,7 +1523,8 @@ struct ipa_opt_pass_d pass_ipa_reference =
  generate_summary,		        /* generate_summary */
  ipa_reference_write_summary,		/* write_summary */
  ipa_reference_read_summary,		/* read_summary */
- NULL,					/* function_read_summary */
+ NULL,					/* write_optimization_summary */
+ NULL,					/* read_optimization_summary */
  NULL,					/* stmt_fixup */
  0,					/* TODOs */
  NULL,			                /* function_transform */

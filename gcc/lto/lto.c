@@ -378,7 +378,7 @@ lto_file_read (lto_file *file, FILE *resolution_file)
 
   file_data = XCNEW (struct lto_file_decl_data);
   file_data->file_name = file->filename;
-  file_data->section_hash_table = lto_elf_build_section_table (file);
+  file_data->section_hash_table = lto_obj_build_section_table (file);
   file_data->renaming_hash_table = lto_create_renaming_table ();
 
   data = lto_get_section_data (file_data, LTO_section_decls, NULL, &len);
@@ -554,6 +554,10 @@ lto_1_to_1_map (void)
 
   for (node = cgraph_nodes; node; node = node->next)
     {
+      /* We will get proper partition based on function they are inlined to or
+	 cloned from.  */
+      if (node->global.inlined_to || node->clone_of)
+	continue;
       /* We only need to partition the nodes that we read from the
 	 gimple bytecode files.  */
       file_data = node->local.lto_file_data;
@@ -589,22 +593,19 @@ finish:
 
 static void
 lto_add_inline_clones (cgraph_node_set set, struct cgraph_node *node,
-		       bitmap original_decls, bitmap inlined_decls)
+		       bitmap original_decls)
 {
    struct cgraph_node *callee;
    struct cgraph_edge *edge;
 
    cgraph_node_set_add (set, node);
 
-   if (!bitmap_bit_p (original_decls, DECL_UID (node->decl)))
-     bitmap_set_bit (inlined_decls, DECL_UID (node->decl));
-
    /* Check to see if NODE has any inlined callee.  */
    for (edge = node->callees; edge != NULL; edge = edge->next_callee)
      {
 	callee = edge->callee;
 	if (callee->global.inlined_to != NULL)
-	  lto_add_inline_clones (set, callee, original_decls, inlined_decls);
+	  lto_add_inline_clones (set, callee, original_decls);
      }
 }
 
@@ -612,14 +613,13 @@ lto_add_inline_clones (cgraph_node_set set, struct cgraph_node *node,
    information in the callgraph.  Returns a bitmap of decls that have
    been inlined into SET indexed by UID.  */
 
-static bitmap
+static void
 lto_add_all_inlinees (cgraph_node_set set)
 {
   cgraph_node_set_iterator csi;
   struct cgraph_node *node;
   bitmap original_nodes = lto_bitmap_alloc ();
   bitmap original_decls = lto_bitmap_alloc ();
-  bitmap inlined_decls = lto_bitmap_alloc ();
   bool changed;
 
   /* We are going to iterate SET while adding to it, mark all original
@@ -659,19 +659,17 @@ lto_add_all_inlinees (cgraph_node_set set)
     }
   while (changed);
 
-  /* Transitively add to SET all the inline clones for every node that
-     has been inlined.  */
-  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
-    {
-      node = csi_node (csi);
-      if (bitmap_bit_p (original_nodes, node->uid))
-	lto_add_inline_clones (set, node, original_decls, inlined_decls);
-    }
+ /* Transitively add to SET all the inline clones for every node that
+    has been inlined.  */
+ for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
+   {
+     node = csi_node (csi);
+     if (bitmap_bit_p (original_nodes, node->uid))
+      lto_add_inline_clones (set, node, original_decls);
+   }
 
   lto_bitmap_free (original_nodes);
   lto_bitmap_free (original_decls);
-
-  return inlined_decls;
 }
 
 /* Owing to inlining, we may need to promote a file-scope variable
@@ -762,7 +760,8 @@ globalize_cross_file_statics (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
     }
   else if (TREE_CODE (t) == FUNCTION_DECL && !TREE_PUBLIC (t))
     {
-      if (!cgraph_node_in_set_p (cgraph_node (t), context->set))
+      if (!cgraph_node_in_set_p (cgraph_node (t), context->set)
+	  || cgraph_node (t)->address_taken)
 	{
 	  /* This file-scope static function is reachable from a set
 	     which does not contain the function DECL.  Make it global
@@ -1000,8 +999,6 @@ lto_wpa_write_files (void)
   unsigned i, n_sets, last_out_file_ix, num_out_files;
   lto_file *file;
   cgraph_node_set set;
-  bitmap decls;
-  VEC(bitmap,heap) *inlined_decls = NULL;
 
   timevar_push (TV_WHOPR_WPA);
 
@@ -1011,8 +1008,7 @@ lto_wpa_write_files (void)
      compiled by LTRANS.  */
   for (i = 0; VEC_iterate (cgraph_node_set, lto_cgraph_node_sets, i, set); i++)
     {
-      decls = lto_add_all_inlinees (set);
-      VEC_safe_push (bitmap, heap, inlined_decls, decls);
+      lto_add_all_inlinees (set);
       lto_stats.num_output_cgraph_nodes += VEC_length (cgraph_node_ptr,
 						       set->nodes);
     }
@@ -1044,21 +1040,16 @@ lto_wpa_write_files (void)
       if (cgraph_node_set_needs_ltrans_p (set))
 	{
 	  /* Write all the nodes in SET to TEMP_FILENAME.  */
-	  file = lto_elf_file_open (temp_filename, true);
+	  file = lto_obj_file_open (temp_filename, true);
 	  if (!file)
-	    fatal_error ("lto_elf_file_open() failed");
+	    fatal_error ("lto_obj_file_open() failed");
 
 	  lto_set_current_out_file (file);
-	  lto_new_extern_inline_states ();
 
-	  decls = VEC_index (bitmap, inlined_decls, i);
-	  lto_force_functions_extern_inline (decls);
-
-	  ipa_write_summaries_of_cgraph_node_set (set);
-	  lto_delete_extern_inline_states ();
+	  ipa_write_optimization_summaries (set);
 
 	  lto_set_current_out_file (NULL);
-	  lto_elf_file_close (file);
+	  lto_obj_file_close (file);
 	}
     }
 
@@ -1067,10 +1058,6 @@ lto_wpa_write_files (void)
   lto_stats.num_output_files += n_sets;
 
   output_files[last_out_file_ix] = NULL;
-
-  for (i = 0; VEC_iterate (bitmap, inlined_decls, i, decls); i++)
-    lto_bitmap_free (decls);
-  VEC_free (bitmap, heap, inlined_decls);
 
   timevar_pop (TV_WHOPR_WPA_IO);
 
@@ -1435,7 +1422,13 @@ lto_fixup_type (tree t, void *data)
   /* Accessor is for derived node types only. */
   LTO_FIXUP_SUBTREE (t->type.binfo);
 
-  LTO_REGISTER_TYPE_AND_FIXUP_SUBTREE (TYPE_CONTEXT (t));
+  if (TYPE_CONTEXT (t))
+    {
+      if (TYPE_P (TYPE_CONTEXT (t)))
+	LTO_REGISTER_TYPE_AND_FIXUP_SUBTREE (TYPE_CONTEXT (t));
+      else
+	LTO_FIXUP_SUBTREE (TYPE_CONTEXT (t));
+    }
   LTO_REGISTER_TYPE_AND_FIXUP_SUBTREE (TYPE_CANONICAL (t));
 
   /* The following re-creates proper variant lists while fixing up
@@ -1574,28 +1567,6 @@ lto_fixup_tree (tree *tp, int *walk_subtrees, void *data)
 
       if (t != prevailing)
 	{
-	  if (TREE_CODE (t) == FUNCTION_DECL
-	      && TREE_NOTHROW (prevailing) != TREE_NOTHROW (t))
-	    {
-	      /* If the prevailing definition does not throw but the
-		 declaration (T) was considered throwing, then we
-		 simply add PREVAILING to the list of throwing
-		 functions.  However, if the opposite is true, then
-		 the call to PREVAILING was generated assuming that
-		 the function didn't throw, which means that CFG
-		 cleanup may have removed surrounding try/catch
-		 regions.
-
-		 Note that we currently accept these cases even when
-		 they occur within a single file.  It's certainly a
-		 user error, but we silently allow the compiler to
-		 remove surrounding try/catch regions.  Perhaps we
-		 could emit a warning here, instead of silently
-		 accepting the conflicting declaration.  */
-	      if (TREE_NOTHROW (prevailing))
-		lto_mark_nothrow_fndecl (prevailing);
-	    }
-
 	   /* Also replace t with prevailing defintion.  We don't want to
 	      insert the other defintion in the seen set as we want to
 	      replace all instances of it.  */
@@ -1775,17 +1746,17 @@ lto_read_all_file_options (void)
   for (i = 0; i < num_in_fnames; i++)
     {
       struct lto_file_decl_data *file_data;
-      lto_file *file = lto_elf_file_open (in_fnames[i], false);
+      lto_file *file = lto_obj_file_open (in_fnames[i], false);
       if (!file)
 	break;
 
       file_data = XCNEW (struct lto_file_decl_data);
       file_data->file_name = file->filename;
-      file_data->section_hash_table = lto_elf_build_section_table (file);
+      file_data->section_hash_table = lto_obj_build_section_table (file);
 
       lto_read_file_options (file_data);
 
-      lto_elf_file_close (file);
+      lto_obj_file_close (file);
       htab_delete (file_data->section_hash_table);
       free (file_data);
     }
@@ -1835,12 +1806,20 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
       gcc_assert (num_objects == nfiles);
     }
 
+  if (!quiet_flag)
+    fprintf (stderr, "Reading object files:");
+
   /* Read all of the object files specified on the command line.  */
   for (i = 0, last_file_ix = 0; i < nfiles; ++i)
     {
       struct lto_file_decl_data *file_data = NULL;
+      if (!quiet_flag)
+	{
+	  fprintf (stderr, " %s", fnames[i]);
+	  fflush (stderr);
+	}
 
-      current_lto_file = lto_elf_file_open (fnames[i], false);
+      current_lto_file = lto_obj_file_open (fnames[i], false);
       if (!current_lto_file)
 	break;
 
@@ -1850,7 +1829,7 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
 
       all_file_decl_data[last_file_ix++] = file_data;
 
-      lto_elf_file_close (current_lto_file);
+      lto_obj_file_close (current_lto_file);
       current_lto_file = NULL;
     }
 
@@ -1865,8 +1844,14 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
   /* Each pass will set the appropriate timer.  */
   timevar_pop (TV_IPA_LTO_DECL_IO);
 
+  if (!quiet_flag)
+    fprintf (stderr, "\nReading the callgraph\n");
+
   /* Read the callgraph.  */
   input_cgraph ();
+
+  if (!quiet_flag)
+    fprintf (stderr, "Merging declarations\n");
 
   /* Merge global decls.  */
   lto_symtab_merge_decls ();
@@ -1875,25 +1860,21 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
   lto_fixup_decls (all_file_decl_data);
   free_gimple_type_tables ();
 
+  if (!quiet_flag)
+    fprintf (stderr, "Reading summaries\n");
+
   /* Read the IPA summary data.  */
-  ipa_read_summaries ();
+  if (flag_ltrans)
+    ipa_read_optimization_summaries ();
+  else
+    ipa_read_summaries ();
 
   /* Finally merge the cgraph according to the decl merging decisions.  */
   lto_symtab_merge_cgraph_nodes ();
 
-  /* Mark cgraph nodes needed in the merged cgraph
-     This normally happens in whole-program pass, but for
-     ltrans the pass was already run at WPA phase.
-     
-     FIXME:  This is not valid way to do so; nodes can be needed
-     for non-obvious reasons.  We should stream the flags from WPA
-     phase. */
   if (flag_ltrans)
     for (node = cgraph_nodes; node; node = node->next)
       {
-        if (!node->global.inlined_to
-	    && cgraph_decide_is_function_needed (node, node->decl))
-          cgraph_mark_needed_node (node);
 	/* FIXME: ipa_transforms_to_apply holds list of passes that have optimization
 	   summaries computed and needs to apply changes.  At the moment WHOPR only
 	   supports inlining, so we can push it here by hand.  In future we need to stream
@@ -1932,6 +1913,11 @@ materialize_cgraph (void)
   unsigned i;
   timevar_id_t lto_timer;
 
+  if (!quiet_flag)
+    fprintf (stderr,
+	     flag_wpa ? "Materializing decls:" : "Reading function bodies:");
+
+
   /* Now that we have input the cgraph, we need to clear all of the aux
      nodes and read the functions if we are not running in WPA mode.  */
   timevar_push (TV_IPA_LTO_GIMPLE_IO);
@@ -1950,6 +1936,7 @@ materialize_cgraph (void)
       if (node->local.lto_file_data
           && !DECL_IS_BUILTIN (node->decl))
 	{
+	  announce_function (node->decl);
 	  lto_materialize_function (node);
 	  lto_stats.num_input_cgraph_nodes++;
 	}
@@ -1971,8 +1958,8 @@ materialize_cgraph (void)
   for (i = 0; VEC_iterate (tree, lto_global_var_decls, i, decl); i++)
     rest_of_decl_compilation (decl, 1, 0);
 
-  /* Fix up any calls to DECLs that have become not exception throwing.  */
-  lto_fixup_nothrow_decls ();
+  if (!quiet_flag)
+    fprintf (stderr, "\n");
 
   timevar_pop (lto_timer);
 }
@@ -1986,9 +1973,6 @@ do_whole_program_analysis (void)
 {
   char **output_files;
   size_t i;
-  struct cgraph_node *node; 
-
-  lto_1_to_1_map ();
 
   /* Note that since we are in WPA mode, materialize_cgraph will not
      actually read in all the function bodies.  It only materializes
@@ -1998,20 +1982,12 @@ do_whole_program_analysis (void)
   /* Reading in the cgraph uses different timers, start timing WPA now.  */
   timevar_push (TV_WHOPR_WPA);
 
-  /* FIXME lto. Hack. We should use the IPA passes.  There are a
-     number of issues with this now. 1. There is no convenient way to
-     do this. 2. Some passes may depend on properties that requires
-     the function bodies to compute.  */
   cgraph_function_flags_ready = true;
   bitmap_obstack_initialize (NULL);
   ipa_register_cgraph_hooks ();
+  cgraph_state = CGRAPH_STATE_IPA_SSA;
 
-  /* Reset inlining information before running IPA inliner.  */
-  for (node = cgraph_nodes; node; node = node->next)
-    reset_inline_failed (node);
-
-  /* FIXME lto.  We should not call this function directly. */
-  pass_ipa_inline.pass.execute ();
+  execute_ipa_pass_list (all_regular_ipa_passes);
 
   verify_cgraph ();
   bitmap_obstack_release (NULL);
@@ -2019,7 +1995,16 @@ do_whole_program_analysis (void)
   /* We are about to launch the final LTRANS phase, stop the WPA timer.  */
   timevar_pop (TV_WHOPR_WPA);
 
+  lto_1_to_1_map ();
+
+  if (!quiet_flag)
+    {
+      fprintf (stderr, "\nStreaming out");
+      fflush (stderr);
+    }
   output_files = lto_wpa_write_files ();
+  if (!quiet_flag)
+    fprintf (stderr, "\n");
 
   /* Show the LTO report before launching LTRANS.  */
   if (flag_lto_report)

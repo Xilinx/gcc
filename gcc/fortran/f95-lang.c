@@ -1,5 +1,5 @@
 /* gfortran backend interface
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010
    Free Software Foundation, Inc.
    Contributed by Paul Brook.
 
@@ -542,7 +542,7 @@ gfc_init_decl_processing (void)
   /* Build common tree nodes. char_type_node is unsigned because we
      only use it for actual characters, not for INTEGER(1). Also, we
      want double_type_node to actually have double precision.  */
-  build_common_tree_nodes (false, false);
+  build_common_tree_nodes (false);
   /* x86_64 mingw32 has a sizetype of "unsigned long long", most other hosts
      have a sizetype of "unsigned long". Therefore choose the correct size
      in mostly target independent way.  */
@@ -608,6 +608,7 @@ gfc_define_builtin (const char *name,
 			       library_name, NULL_TREE);
   if (const_p)
     TREE_READONLY (decl) = 1;
+  TREE_NOTHROW (decl) = 1;
 
   built_in_decls[code] = decl;
   implicit_built_in_decls[code] = decl;

@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hard-reg-set.h"
 #include "basic-block.h"
 #include "tree-ssa-operands.h"
+#include "tree-ssa-alias.h"
 
 DEF_VEC_P(gimple);
 DEF_VEC_ALLOC_P(gimple,heap);
@@ -390,6 +391,25 @@ struct GTY(()) gimple_statement_with_memory_ops
 };
 
 
+/* Call statements that take both memory and register operands.  */
+
+struct GTY(()) gimple_statement_call
+{
+  /* [ WORD 1-8 ]  */
+  struct gimple_statement_with_memory_ops_base membase;
+
+  /* [ WORD 9-12 ]  */
+  struct pt_solution call_used;
+  struct pt_solution call_clobbered;
+
+  /* [ WORD 13 ]
+     Operand vector.  NOTE!  This must always be the last field
+     of this structure.  In particular, this means that this
+     structure cannot be embedded inside another one.  */
+  tree GTY((length ("%h.membase.opbase.gsbase.num_ops"))) op[1];
+};
+
+
 /* OpenMP statements (#pragma omp).  */
 
 struct GTY(()) gimple_statement_omp {
@@ -739,6 +759,7 @@ union GTY ((desc ("gimple_statement_structure (&%h)"))) gimple_statement_d {
   struct gimple_statement_with_ops GTY ((tag ("GSS_WITH_OPS"))) gsops;
   struct gimple_statement_with_memory_ops_base GTY ((tag ("GSS_WITH_MEM_OPS_BASE"))) gsmembase;
   struct gimple_statement_with_memory_ops GTY ((tag ("GSS_WITH_MEM_OPS"))) gsmem;
+  struct gimple_statement_call GTY ((tag ("GSS_CALL"))) gimple_call;
   struct gimple_statement_omp GTY ((tag ("GSS_OMP"))) omp;
   struct gimple_statement_bind GTY ((tag ("GSS_BIND"))) gimple_bind;
   struct gimple_statement_catch GTY ((tag ("GSS_CATCH"))) gimple_catch;
@@ -836,6 +857,7 @@ void gimple_seq_free (gimple_seq);
 void gimple_seq_add_seq (gimple_seq *, gimple_seq);
 gimple_seq gimple_seq_copy (gimple_seq);
 int gimple_call_flags (const_gimple);
+void gimple_call_reset_alias_info (gimple);
 bool gimple_assign_copy_p (gimple);
 bool gimple_assign_ssa_name_copy_p (gimple);
 bool gimple_assign_single_p (gimple);
@@ -942,6 +964,7 @@ extern bool gimple_ior_addresses_taken (bitmap, gimple);
 extern tree create_tmp_var_raw (tree, const char *);
 extern tree create_tmp_var_name (const char *);
 extern tree create_tmp_var (tree, const char *);
+extern tree create_tmp_reg (tree, const char *);
 extern tree get_initialized_tmp_var (tree, gimple_seq *, gimple_seq *);
 extern tree get_formal_tmp_var (tree, gimple_seq *);
 extern void declare_vars (tree, gimple, bool);
@@ -2197,6 +2220,28 @@ gimple_call_copy_flags (gimple dest_call, gimple orig_call)
   GIMPLE_CHECK (dest_call, GIMPLE_CALL);
   GIMPLE_CHECK (orig_call, GIMPLE_CALL);
   dest_call->gsbase.subcode = orig_call->gsbase.subcode;
+}
+
+
+/* Return a pointer to the points-to solution for the set of call-used
+   variables of the call CALL.  */
+
+static inline struct pt_solution *
+gimple_call_use_set (gimple call)
+{
+  GIMPLE_CHECK (call, GIMPLE_CALL);
+  return &call->gimple_call.call_used;
+}
+
+
+/* Return a pointer to the points-to solution for the set of call-used
+   variables of the call CALL.  */
+
+static inline struct pt_solution *
+gimple_call_clobber_set (gimple call)
+{
+  GIMPLE_CHECK (call, GIMPLE_CALL);
+  return &call->gimple_call.call_clobbered;
 }
 
 
@@ -4742,5 +4787,17 @@ gimple_alloc_kind (enum gimple_code code)
 #endif /* GATHER_STATISTICS */
 
 extern void dump_gimple_statistics (void);
+
+/* In gimple-fold.c.  */
+void gimplify_and_update_call_from_tree (gimple_stmt_iterator *, tree);
+tree gimple_fold_builtin (gimple);
+bool fold_stmt (gimple_stmt_iterator *);
+bool fold_stmt_inplace (gimple);
+tree maybe_fold_offset_to_reference (location_t, tree, tree, tree);
+tree maybe_fold_offset_to_address (location_t, tree, tree, tree);
+tree maybe_fold_stmt_addition (location_t, tree, tree, tree);
+tree get_symbol_constant_value (tree);
+bool may_propagate_address_into_dereference (tree, tree);
+
 
 #endif  /* GCC_GIMPLE_H */

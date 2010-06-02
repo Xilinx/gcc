@@ -1024,6 +1024,22 @@ AC_CHECK_FUNCS(times clock kill getrlimit setrlimit atoll atoq \
 	gettimeofday mbstowcs wcswidth mmap mincore setlocale \
 	gcc_UNLOCKED_FUNCS)
 
+save_CPPFLAGS="$CPPFLAGS"
+save_LIBS="$LIBS"
+LIBS="$LIBS $LIBELFLIBS"
+AC_CHECK_FUNCS(elf_getshdrstrndx,,
+  [AC_CHECK_FUNCS(elf_getshstrndx,
+    [AC_RUN_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
+#include <libelf.h>
+int main()
+{
+  return elf_getshstrndx (NULL, 0) == 0;
+}]])], AC_DEFINE(HAVE_ELF_GETSHSTRNDX_GABI, 1,
+        [Define if elf_getshstrndx has gABI conformant return values.]))])]
+  )
+LIBS="$save_LIBS"
+CPPFLAGS="$save_CPPFLAGS"
+
 if test x$ac_cv_func_mbstowcs = xyes; then
   AC_CACHE_CHECK(whether mbstowcs works, gcc_cv_func_mbstowcs_works,
 [    AC_RUN_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
@@ -1552,6 +1568,14 @@ AC_ARG_ENABLE(secureplt,
 [  --enable-secureplt      enable -msecure-plt by default for PowerPC],
 [], [])
 
+AC_ARG_ENABLE(leading-mingw64-underscores,
+  AS_HELP_STRING([--enable-leading-mingw64-underscores],
+                 [Enable leading underscores on 64 bit mingw targets]),
+  [],[])
+AS_IF([ test x"$enable_leading_mingw64_underscores" = xyes ],
+  [AC_DEFINE(USE_MINGW64_LEADING_UNDERSCORES, 1,
+    [Define if we should use leading underscore on 64 bit mingw targets])])
+
 AC_ARG_ENABLE(cld,
 [  --enable-cld            enable -mcld by default for 32bit x86], [],
 [enable_cld=no])
@@ -1934,6 +1958,17 @@ AC_ARG_WITH(plugin-ld,
 AC_SUBST(ORIGINAL_PLUGIN_LD_FOR_TARGET)
 AC_DEFINE_UNQUOTED(PLUGIN_LD, "$PLUGIN_LD", [Specify plugin linker])
 
+# Check to see if we are using gold instead of ld
+AC_MSG_CHECKING(whether we are using gold)
+ld_is_gold=no
+if test x$gcc_cv_ld != x; then
+  if $gcc_cv_ld --version 2>/dev/null | sed 1q \
+     | grep "GNU gold" > /dev/null; then
+    ld_is_gold=yes
+  fi
+fi
+AC_MSG_RESULT($ld_is_gold)
+
 ORIGINAL_LD_FOR_TARGET=$gcc_cv_ld
 AC_SUBST(ORIGINAL_LD_FOR_TARGET)
 case "$ORIGINAL_LD_FOR_TARGET" in
@@ -2122,13 +2157,36 @@ foobar:])
 changequote(,)dnl
 if test $in_tree_ld != yes ; then
   ld_ver=`$gcc_cv_ld --version 2>/dev/null | sed 1q`
-  if echo "$ld_ver" | grep GNU > /dev/null; then
+  if test x"$ld_is_gold" = xyes; then
+    gcc_cv_ld_hidden=yes
+  elif echo "$ld_ver" | grep GNU > /dev/null; then
     ld_vers=`echo $ld_ver | sed -n \
 	-e 's,^.*[	 ]\([0-9][0-9]*\.[0-9][0-9]*.*\)$,\1,p'`
     ld_date=`echo $ld_ver | sed -n 's,^.*\([2-9][0-9][0-9][0-9]\)[-]*\([01][0-9]\)[-]*\([0-3][0-9]\).*$,\1\2\3,p'`
     ld_vers_major=`expr "$ld_vers" : '\([0-9]*\)'`
     ld_vers_minor=`expr "$ld_vers" : '[0-9]*\.\([0-9]*\)'`
     ld_vers_patch=`expr "$ld_vers" : '[0-9]*\.[0-9]*\.\([0-9]*\)'`
+  else
+    case "${target}" in
+      *-*-solaris2*)
+	#
+	# Solaris 2 ld -V output looks like this for a regular version:
+	#
+	# ld: Software Generation Utilities - Solaris Link Editors: 5.11-1.1699
+	#
+	# but test versions add stuff at the end:
+	#
+	# ld: Software Generation Utilities - Solaris Link Editors: 5.11-1.1701:onnv-ab196087-6931056-03/25/10
+	#
+	ld_ver=`$gcc_cv_ld -V 2>&1`
+	if echo "$ld_ver" | grep 'Solaris Link Editors' > /dev/null; then
+	  ld_vers=`echo $ld_ver | sed -n \
+	    -e 's,^.*: 5\.[0-9][0-9]*-\([0-9]\.[0-9][0-9]*\).*$,\1,p'`
+	  ld_vers_major=`expr "$ld_vers" : '\([0-9]*\)'`
+	  ld_vers_minor=`expr "$ld_vers" : '[0-9]*\.\([0-9]*\)'`
+	fi
+	;;
+    esac
   fi
 fi
 changequote([,])dnl
@@ -2441,13 +2499,15 @@ else
    [elf,2,16,0], [--fatal-warnings],
    [.section .text,"axG",%progbits,.foo,comdat])
 fi
-if test $in_tree_ld = yes ; then
+if test x"$ld_is_gold" = xyes; then
+  comdat_group=yes
+elif test $in_tree_ld = yes ; then
   comdat_group=no
   if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 16 -o "$gcc_cv_gld_major_version" -gt 2 \
      && test $in_tree_ld_is_elf = yes; then
      comdat_group=yes
   fi
-elif test x"$ld_vers" != x; then
+elif echo "$ld_ver" | grep GNU > /dev/null; then
   comdat_group=yes
   if test 0"$ld_date" -lt 20050308; then
     if test -n "$ld_date"; then
@@ -2460,9 +2520,32 @@ elif test x"$ld_vers" != x; then
     fi
   fi
 else
-  # assume linkers other than GNU ld don't support COMDAT group
-  comdat_group=no
+changequote(,)dnl
+  case "${target}" in
+    *-*-solaris2.1[1-9]*)
+      # Sun ld has COMDAT group support since Solaris 9, but it doesn't
+      # interoperate with GNU as until Solaris 11 build 130, i.e. ld
+      # version 1.688.
+      #
+      # FIXME: Maybe need to refine later when COMDAT group support with
+      # Sun as is implemented.
+      if test "$ld_vers_major" -gt 1 || test "$ld_vers_minor" -ge 1688; then
+        comdat_group=yes
+      else
+        comdat_group=no
+      fi
+      ;;
+    *)
+      # Assume linkers other than GNU ld don't support COMDAT group.
+      comdat_group=no
+      ;;
+  esac
+changequote([,])dnl
 fi
+# Allow overriding the automatic COMDAT group tests above.
+AC_ARG_ENABLE(comdat,
+  [AS_HELP_STRING([--enable-comdat], [enable COMDAT group support])],
+  [comdat_group="$enable_comdat"])
 if test $comdat_group = no; then
   gcc_cv_as_comdat_group=no
   gcc_cv_as_comdat_group_percent=no
@@ -2574,7 +2657,7 @@ foo:	.long	25
 	;;
   i[34567]86-*-*)
     case "$target" in
-      i[34567]86-*-solaris2.[56789]*)
+      i[34567]86-*-solaris2.[89]*)
 	# TLS was introduced in the Solaris 9 4/04 release but
 	# we do not enable it by default on Solaris 9 either.
 	if test "x$enable_tls" = xyes ; then
@@ -2800,7 +2883,7 @@ foo:	.long	25
 	;;
   sparc*-*-*)
     case "$target" in
-      sparc*-sun-solaris2.[56789]*)
+      sparc*-sun-solaris2.[89]*)
 	# TLS was introduced in the Solaris 9 4/04 release but
 	# we do not enable it by default on Solaris 9 either.
 	if test "x$enable_tls" = xyes ; then
@@ -3127,6 +3210,19 @@ foo:	nop
 	   rm -f conftest],
 	  [AC_DEFINE(HAVE_GAS_PE_SECREL32_RELOC, 1,
 	    [Define if your assembler and linker support 32-bit section relative relocs via '.secrel32 label'.])])
+	# Test if the assembler supports the extended form of the .section
+	# directive that specifies section alignment.  LTO support uses this,
+	# but normally only after installation, so we warn but don't fail the
+	# configure if LTO is enabled but the assembler does not support it.
+	gcc_GAS_CHECK_FEATURE([.section with alignment], gcc_cv_as_section_has_align,
+	  [2,20,1],-fatal-warnings,[.section lto_test,"dr0"])
+	if test x$gcc_cv_as_section_has_align != xyes; then
+	  case ",$enable_languages," in
+	    *,lto,*)
+	      AC_MSG_WARN([LTO for $target requires binutils >= 2.20.1, but version found appears insufficient; LTO will not work until binutils is upgraded.])
+	      ;;
+	  esac
+	fi
 	;;
     esac
 
@@ -4195,6 +4291,17 @@ changequote([,])dnl
 		    AC_DEFINE(ENABLE_LTO, 1, [Define to enable LTO support.])
 		    enable_lto=yes
 		    AC_SUBST(enable_lto)
+		    # LTO needs to speak the platform's object file format, and has a
+		    # number of implementations of the required binary file access APIs.
+		    # ELF is the most common, and default.  We only link libelf if ELF
+		    # is indeed the selected format.
+		    LTO_BINARY_READER=${lto_binary_reader}
+		    LTO_USE_LIBELF=-lelf
+		    if test "x$lto_binary_reader" != "xlto-elf" ; then
+		      LTO_USE_LIBELF=
+		    fi
+		    AC_SUBST(LTO_BINARY_READER)
+		    AC_SUBST(LTO_USE_LIBELF)
 		    ;;
 		*) ;;
 	esac
@@ -4381,19 +4488,30 @@ enable_plugin=yes; default_plugin=yes)
 pluginlibs=
 if test x"$enable_plugin" = x"yes"; then
 
+  case "${host}" in
+    *-*-darwin*)
+      export_sym_check="$gcc_cv_nm -g"
+    ;;
+    *)
+      export_sym_check="$gcc_cv_objdump -T"
+    ;;
+  esac
   AC_MSG_CHECKING([for exported symbols])
   echo "int main() {return 0;} int foobar() {return 0;}" > conftest.c
   ${CC} ${CFLAGS} ${LDFLAGS} conftest.c -o conftest > /dev/null 2>&1
-  if $gcc_cv_objdump -T conftest | grep foobar > /dev/null; then
+  if $export_sym_check conftest | grep foobar > /dev/null; then
     : # No need to use a flag
   else
     AC_MSG_CHECKING([for -rdynamic])
     ${CC} ${CFLAGS} ${LDFLAGS} -rdynamic conftest.c -o conftest > /dev/null 2>&1
-    if $gcc_cv_objdump -T conftest | grep foobar > /dev/null; then
+    if $export_sym_check conftest | grep foobar > /dev/null; then
+      plugin_rdynamic=yes
       pluginlibs="-rdynamic"
     else
+      plugin_rdynamic=no
       enable_plugin=no
     fi
+    AC_MSG_RESULT([$plugin_rdynamic])
   fi
 
   # Check -ldl
@@ -4406,7 +4524,14 @@ if test x"$enable_plugin" = x"yes"; then
 
   # Check that we can build shared objects with -fPIC -shared
   saved_LDFLAGS="$LDFLAGS"
-  LDFLAGS="$LDFLAGS -fPIC -shared"
+  case "${host}" in
+    *-*-darwin*)
+      LDFLAGS="$LDFLAGS -fPIC -shared -undefined dynamic_lookup"
+    ;;
+    *)
+      LDFLAGS="$LDFLAGS -fPIC -shared"
+    ;;
+  esac
   AC_MSG_CHECKING([for -fPIC -shared])
   AC_TRY_LINK(
     [extern int X;],[return X == 0;],
