@@ -52,7 +52,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "tm_p.h"
 #include "cp-tree.h"
-#include "real.h"
 #include "obstack.h"
 #include "toplev.h"
 #include "flags.h"
@@ -149,7 +148,9 @@ integer_type_codes[itk_none] =
   'l',  /* itk_long */
   'm',  /* itk_unsigned_long */
   'x',  /* itk_long_long */
-  'y'   /* itk_unsigned_long_long */
+  'y',  /* itk_unsigned_long_long */
+  'n',  /* itk_int128 */
+  'o',  /* itk_unsigned_int128  */
 };
 
 static int decl_is_template_id (const tree, tree* const);
@@ -1975,18 +1976,19 @@ write_CV_qualifiers_for_type (const tree type)
      Note that we do not use cp_type_quals below; given "const
      int[3]", the "const" is emitted with the "int", not with the
      array.  */
+  cp_cv_quals quals = TYPE_QUALS (type);
 
-  if (TYPE_QUALS (type) & TYPE_QUAL_RESTRICT)
+  if (quals & TYPE_QUAL_RESTRICT)
     {
       write_char ('r');
       ++num_qualifiers;
     }
-  if (TYPE_QUALS (type) & TYPE_QUAL_VOLATILE)
+  if (quals & TYPE_QUAL_VOLATILE)
     {
       write_char ('V');
       ++num_qualifiers;
     }
-  if (TYPE_QUALS (type) & TYPE_QUAL_CONST)
+  if (quals & TYPE_QUAL_CONST)
     {
       write_char ('K');
       ++num_qualifiers;
@@ -2053,7 +2055,8 @@ write_builtin_type (tree type)
 	     it in the array of these nodes.  */
 	iagain:
 	  for (itk = 0; itk < itk_none; ++itk)
-	    if (type == integer_types[itk])
+	    if (integer_types[itk] != NULL_TREE
+		&& type == integer_types[itk])
 	      {
 		/* Print the corresponding single-letter code.  */
 		write_char (integer_type_codes[itk]);

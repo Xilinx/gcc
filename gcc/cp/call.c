@@ -1,6 +1,6 @@
 /* Functions related to invoking methods and overloaded functions.
    Copyright (C) 1987, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) and
    modified by Brendan Kehoe (brendan@cygnus.com).
@@ -32,10 +32,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "output.h"
 #include "flags.h"
-#include "rtl.h"
 #include "toplev.h"
-#include "expr.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "intl.h"
 #include "target.h"
 #include "convert.h"
@@ -447,6 +445,7 @@ struct z_candidate {
      indicated by the CONVERSION_PATH.  */
   tree conversion_path;
   tree template_decl;
+  tree explicit_targs;
   candidate_warning *warnings;
   z_candidate *next;
 };
@@ -590,6 +589,12 @@ build_list_conv (tree type, tree ctor, int flags)
   unsigned i;
   tree val;
 
+  /* Within a list-initialization we can have more user-defined
+     conversions.  */
+  flags &= ~LOOKUP_NO_CONVERSION;
+  /* But no narrowing conversions.  */
+  flags |= LOOKUP_NO_NARROWING;
+
   FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (ctor), i, val)
     {
       conversion *sub
@@ -629,6 +634,7 @@ build_aggr_conv (tree type, tree ctor, int flags)
   unsigned HOST_WIDE_INT i = 0;
   conversion *c;
   tree field = next_initializable_field (TYPE_FIELDS (type));
+  tree empty_ctor = NULL_TREE;
 
   for (; field; field = next_initializable_field (TREE_CHAIN (field)))
     {
@@ -642,8 +648,14 @@ build_aggr_conv (tree type, tree ctor, int flags)
 	  if (TREE_CODE (type) == UNION_TYPE)
 	    break;
 	}
-      else if (build_value_init (TREE_TYPE (field)) == error_mark_node)
-	return NULL;
+      else
+	{
+	  if (empty_ctor == NULL_TREE)
+	    empty_ctor = build_constructor (init_list_type_node, NULL);
+	  if (!can_convert_arg (TREE_TYPE (field), TREE_TYPE (empty_ctor),
+				empty_ctor, flags))
+	    return NULL;
+	}
     }
 
   if (i < CONSTRUCTOR_NELTS (ctor))
@@ -1245,7 +1257,7 @@ reference_binding (tree rto, tree rfrom, tree expr, bool c_cast_p, int flags)
      type, so that we can later do a const_cast to the desired type.  */
   if (related_p && c_cast_p
       && !at_least_as_qualified_p (to, tfrom))
-    to = build_qualified_type (to, cp_type_quals (tfrom));
+    to = cp_build_qualified_type (to, cp_type_quals (tfrom));
   compatible_p = reference_compatible_p (to, tfrom);
 
   /* Directly bind reference when target expression's type is compatible with
@@ -1456,7 +1468,8 @@ implicit_conversion (tree to, tree from, tree expr, bool c_cast_p,
       && (flags & LOOKUP_NO_CONVERSION) == 0)
     {
       struct z_candidate *cand;
-      int convflags = (flags & (LOOKUP_NO_TEMP_BIND|LOOKUP_ONLYCONVERTING));
+      int convflags = (flags & (LOOKUP_NO_TEMP_BIND|LOOKUP_ONLYCONVERTING
+				|LOOKUP_NO_NARROWING));
 
       if (CLASS_TYPE_P (to)
 	  && !CLASSTYPE_NON_AGGREGATE (complete_type (to))
@@ -1616,9 +1629,8 @@ add_function_candidate (struct z_candidate **candidates,
 	     parameter, we can just change the parm type.  */
 	  if (ctype && is_this)
 	    {
-	      parmtype
-		= build_qualified_type (ctype,
-					TYPE_QUALS (TREE_TYPE (parmtype)));
+	      parmtype = cp_build_qualified_type
+		(ctype, cp_type_quals (TREE_TYPE (parmtype)));
 	      parmtype = build_pointer_type (parmtype);
 	    }
 
@@ -2573,6 +2585,7 @@ add_template_candidate_real (struct z_candidate **candidates, tree tmpl,
     cand->template_decl = build_template_info (tmpl, targs);
   else
     cand->template_decl = DECL_TEMPLATE_INFO (fn);
+  cand->explicit_targs = explicit_targs;
 
   return cand;
  fail:
@@ -2808,6 +2821,65 @@ merge_conversion_sequences (conversion *user_seq, conversion *std_seq)
   return std_seq;
 }
 
+/* Handle overload resolution for initializing an object of class type from
+   an initializer list.  First we look for a suitable constructor that
+   takes a std::initializer_list; if we don't find one, we then look for a
+   non-list constructor.
+
+   Parameters are as for add_candidates, except that the arguments are in
+   the form of a CONSTRUCTOR (the initializer list) rather than a VEC, and
+   the RETURN_TYPE parameter is replaced by TOTYPE, the desired type.  */
+
+static void
+add_list_candidates (tree fns, tree first_arg,
+		     tree init_list, tree totype,
+		     tree explicit_targs, bool template_only,
+		     tree conversion_path, tree access_path,
+		     int flags,
+		     struct z_candidate **candidates)
+{
+  VEC(tree,gc) *args;
+
+  gcc_assert (*candidates == NULL);
+
+  /* For list-initialization we consider explicit constructors, but
+     give an error if one is selected.  */
+  flags &= ~LOOKUP_ONLYCONVERTING;
+  /* And we don't allow narrowing conversions.  We also use this flag to
+     avoid the copy constructor call for copy-list-initialization.  */
+  flags |= LOOKUP_NO_NARROWING;
+
+  /* Always use the default constructor if the list is empty (DR 990).  */
+  if (CONSTRUCTOR_NELTS (init_list) == 0
+      && TYPE_HAS_DEFAULT_CONSTRUCTOR (totype))
+    ;
+  /* If the class has a list ctor, try passing the list as a single
+     argument first, but only consider list ctors.  */
+  else if (TYPE_HAS_LIST_CTOR (totype))
+    {
+      flags |= LOOKUP_LIST_ONLY;
+      args = make_tree_vector_single (init_list);
+      add_candidates (fns, first_arg, args, NULL_TREE,
+		      explicit_targs, template_only, conversion_path,
+		      access_path, flags, candidates);
+      if (any_strictly_viable (*candidates))
+	return;
+    }
+
+  args = ctor_to_vec (init_list);
+
+  /* We aren't looking for list-ctors anymore.  */
+  flags &= ~LOOKUP_LIST_ONLY;
+  /* We allow more user-defined conversions within an init-list.  */
+  flags &= ~LOOKUP_NO_CONVERSION;
+  /* But not for the copy ctor.  */
+  flags |= LOOKUP_NO_COPY_CTOR_CONVERSION;
+
+  add_candidates (fns, first_arg, args, NULL_TREE,
+		  explicit_targs, template_only, conversion_path,
+		  access_path, flags, candidates);
+}
+
 /* Returns the best overload candidate to perform the requested
    conversion.  This function is used for three the overloading situations
    described in [over.match.copy], [over.match.conv], and [over.match.ref].
@@ -2867,49 +2939,25 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
   if (ctors)
     {
       int ctorflags = flags;
-      bool try_single_arg = true;
       ctors = BASELINK_FUNCTIONS (ctors);
 
       first_arg = build_int_cst (build_pointer_type (totype), 0);
-      if (BRACE_ENCLOSED_INITIALIZER_P (expr))
-	{
-	  /* For list-initialization we consider explicit constructors, but
-	     give an error if one is selected.  */
-	  ctorflags &= ~LOOKUP_ONLYCONVERTING;
-	  /* If the class has a list ctor, try passing the list as a single
-	     argument first, but only consider list ctors.  */
-	  if (TYPE_HAS_LIST_CTOR (totype))
-	    ctorflags |= LOOKUP_LIST_ONLY;
-	  else
-	    try_single_arg = false;
-	}
 
       /* We should never try to call the abstract or base constructor
 	 from here.  */
       gcc_assert (!DECL_HAS_IN_CHARGE_PARM_P (OVL_CURRENT (ctors))
 		  && !DECL_HAS_VTT_PARM_P (OVL_CURRENT (ctors)));
 
-      /* If EXPR is not an initializer-list, or if totype has a list
-	 constructor, try EXPR as a single argument.  */
-      if (try_single_arg)
+      if (BRACE_ENCLOSED_INITIALIZER_P (expr))
+	{
+	  /* List-initialization.  */
+	  add_list_candidates (ctors, first_arg, expr, totype, NULL_TREE,
+			       false, TYPE_BINFO (totype), TYPE_BINFO (totype),
+			       ctorflags, &candidates);
+	}
+      else
 	{
 	  args = make_tree_vector_single (expr);
-	  add_candidates (ctors, first_arg, args, NULL_TREE, NULL_TREE, false,
-			  TYPE_BINFO (totype), TYPE_BINFO (totype),
-			  ctorflags, &candidates);
-	}
-
-      /* If we didn't find a suitable list constructor for an initializer-list,
-	 try breaking it apart.  */
-      if (!candidates && BRACE_ENCLOSED_INITIALIZER_P (expr))
-	{
-	  args = ctor_to_vec (expr);
-	  /* We aren't looking for list-ctors anymore.  */
-	  ctorflags &= ~LOOKUP_LIST_ONLY;
-	  /* We still allow more conversions within an init-list.  */
-	  ctorflags &= ~LOOKUP_NO_CONVERSION;
-	  /* But not for the copy ctor.  */
-	  ctorflags |= LOOKUP_NO_COPY_CTOR_CONVERSION;
 	  add_candidates (ctors, first_arg, args, NULL_TREE, NULL_TREE, false,
 			  TYPE_BINFO (totype), TYPE_BINFO (totype),
 			  ctorflags, &candidates);
@@ -3775,11 +3823,11 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
 	 the type of the other.  */
       if ((conv2 || conv3)
 	  && CLASS_TYPE_P (arg2_type)
-	  && TYPE_QUALS (arg2_type) != TYPE_QUALS (arg3_type))
+	  && cp_type_quals (arg2_type) != cp_type_quals (arg3_type))
 	arg2_type = arg3_type =
 	  cp_build_qualified_type (arg2_type,
-				   TYPE_QUALS (arg2_type)
-				   | TYPE_QUALS (arg3_type));
+				   cp_type_quals (arg2_type)
+				   | cp_type_quals (arg3_type));
     }
 
   /* [expr.cond]
@@ -4995,7 +5043,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  }
 	/* Build up the array.  */
 	elttype = cp_build_qualified_type
-	  (elttype, TYPE_QUALS (elttype) | TYPE_QUAL_CONST);
+	  (elttype, cp_type_quals (elttype) | TYPE_QUAL_CONST);
 	array = build_array_of_n_type (elttype, len);
 	array = finish_compound_literal (array, new_ctor);
 
@@ -5376,7 +5424,7 @@ type_passed_as (tree type)
     {
       type = build_reference_type (type);
       /* There are no other pointers to this temporary.  */
-      type = build_qualified_type (type, TYPE_QUAL_RESTRICT);
+      type = cp_build_qualified_type (type, TYPE_QUAL_RESTRICT);
     }
   else if (targetm.calls.promote_prototypes (type)
 	   && INTEGRAL_TYPE_P (type)
@@ -5666,6 +5714,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
        parm = TREE_CHAIN (parm), ++arg_index, ++i)
     {
       tree type = TREE_VALUE (parm);
+      tree arg = VEC_index (tree, args, arg_index);
 
       conv = convs[i];
 
@@ -5680,7 +5729,8 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       if (cxx_dialect > cxx98
 	  && flag_deduce_init_list
 	  && cand->template_decl
-	  && is_std_init_list (non_reference (type)))
+	  && is_std_init_list (non_reference (type))
+	  && BRACE_ENCLOSED_INITIALIZER_P (arg))
 	{
 	  tree tmpl = TI_TEMPLATE (cand->template_decl);
 	  tree realparm = chain_index (j, DECL_ARGUMENTS (cand->fn));
@@ -5690,7 +5740,10 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	    pattype = PACK_EXPANSION_PATTERN (pattype);
 	  pattype = non_reference (pattype);
 
-	  if (!is_std_init_list (pattype))
+	  if (TREE_CODE (pattype) == TEMPLATE_TYPE_PARM
+	      && (cand->explicit_targs == NULL_TREE
+		  || (TREE_VEC_LENGTH (cand->explicit_targs)
+		      <= TEMPLATE_TYPE_IDX (pattype))))
 	    {
 	      pedwarn (input_location, 0, "deducing %qT as %qT",
 		       non_reference (TREE_TYPE (patparm)),
@@ -5701,9 +5754,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	    }
 	}
 
-      val = convert_like_with_context
-	(conv, VEC_index (tree, args, arg_index), fn, i - is_method,
-	 complain);
+      val = convert_like_with_context (conv, arg, fn, i-is_method, complain);
 
       val = convert_for_arg_passing (type, val);
       if (val == error_mark_node)
@@ -5776,7 +5827,8 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	}
       /* [class.copy]: the copy constructor is implicitly defined even if
 	 the implementation elided its use.  */
-      else if (TYPE_HAS_COMPLEX_INIT_REF (DECL_CONTEXT (fn)))
+      else if (TYPE_HAS_COMPLEX_INIT_REF (DECL_CONTEXT (fn))
+	       || move_fn_p (fn))
 	{
 	  mark_used (fn);
 	  already_used = true;
@@ -5794,7 +5846,8 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	{
 	  if (TREE_CODE (arg) == TARGET_EXPR)
 	    return arg;
-	  else if (TYPE_HAS_TRIVIAL_INIT_REF (DECL_CONTEXT (fn)))
+	  else if (TYPE_HAS_TRIVIAL_INIT_REF (DECL_CONTEXT (fn))
+		   && !move_fn_p (fn))
 	    return build_target_expr_with_type (arg, DECL_CONTEXT (fn));
 	}
       else if (TREE_CODE (arg) == TARGET_EXPR
@@ -6223,8 +6276,6 @@ build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
   tree orig_fns;
   VEC(tree,gc) *orig_args = NULL;
   void *p;
-  tree list = NULL_TREE;
-  bool try_normal;
 
   gcc_assert (instance != NULL_TREE);
 
@@ -6336,46 +6387,32 @@ build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
   if (DECL_DESTRUCTOR_P (fn))
     name = complete_dtor_identifier;
 
-  /* If CONSTRUCTOR_IS_DIRECT_INIT is set, this was a T{ } form
-     initializer, not T({ }).  If the type doesn't have a list ctor (or no
-     viable list ctor), break apart the list into separate ctor args.  */
-  try_normal = true;
-  if (DECL_CONSTRUCTOR_P (fn) && args != NULL && !VEC_empty (tree, *args)
-      && BRACE_ENCLOSED_INITIALIZER_P (VEC_index (tree, *args, 0))
-      && CONSTRUCTOR_IS_DIRECT_INIT (VEC_index (tree, *args, 0)))
-    {
-      gcc_assert (VEC_length (tree, *args) == 1);
-      list = VEC_index (tree, *args, 0);
-
-      if (TYPE_HAS_LIST_CTOR (basetype))
-	flags |= LOOKUP_LIST_ONLY;
-      else
-	try_normal = false;
-    }
-
   first_mem_arg = instance_ptr;
 
   /* Get the high-water mark for the CONVERSION_OBSTACK.  */
   p = conversion_obstack_alloc (0);
 
-  any_viable_p = false;
-  if (try_normal)
+  /* If CONSTRUCTOR_IS_DIRECT_INIT is set, this was a T{ } form
+     initializer, not T({ }).  */
+  if (DECL_CONSTRUCTOR_P (fn) && args != NULL && !VEC_empty (tree, *args)
+      && BRACE_ENCLOSED_INITIALIZER_P (VEC_index (tree, *args, 0))
+      && CONSTRUCTOR_IS_DIRECT_INIT (VEC_index (tree, *args, 0)))
+    {
+      gcc_assert (VEC_length (tree, *args) == 1
+		  && !(flags & LOOKUP_ONLYCONVERTING));
+
+      add_list_candidates (fns, first_mem_arg, VEC_index (tree, *args, 0),
+			   basetype, explicit_targs, template_only,
+			   conversion_path, access_binfo, flags, &candidates);
+    }
+  else
     {
       add_candidates (fns, first_mem_arg, user_args, optype,
 		      explicit_targs, template_only, conversion_path,
 		      access_binfo, flags, &candidates);
-      candidates = splice_viable (candidates, pedantic, &any_viable_p);
     }
-
-  if (!any_viable_p && list)
-    {
-      VEC(tree,gc) *list_args = ctor_to_vec (list);
-      flags &= ~LOOKUP_LIST_ONLY;
-      add_candidates (fns, first_mem_arg, list_args, optype,
-		      explicit_targs, template_only, conversion_path,
-		      access_binfo, flags, &candidates);
-      candidates = splice_viable (candidates, pedantic, &any_viable_p);
-    }
+  any_viable_p = false;
+  candidates = splice_viable (candidates, pedantic, &any_viable_p);
 
   if (!any_viable_p)
     {
@@ -7728,7 +7765,7 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup,
     {
       if (complain & tf_error)
 	{
-	  if (!(TYPE_QUALS (TREE_TYPE (type)) & TYPE_QUAL_CONST)
+	  if (!CP_TYPE_CONST_P (TREE_TYPE (type))
 	      && !TYPE_REF_IS_RVALUE (type)
 	      && !real_lvalue_p (expr))
 	    error ("invalid initialization of non-const reference of "

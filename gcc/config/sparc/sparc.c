@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "rtl.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "insn-codes.h"
 #include "conditions.h"
@@ -386,7 +385,7 @@ static void sparc_init_libfuncs (void);
 static void sparc_init_builtins (void);
 static void sparc_vis_init_builtins (void);
 static rtx sparc_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
-static tree sparc_fold_builtin (tree, tree, bool);
+static tree sparc_fold_builtin (tree, int, tree *, bool);
 static int sparc_vis_mul8x16 (int, int);
 static tree sparc_handle_vis_mul8x16 (int, tree, tree, tree);
 static void sparc_output_mi_thunk (FILE *, tree, HOST_WIDE_INT,
@@ -401,6 +400,9 @@ static const char *get_some_local_dynamic_name (void);
 static int get_some_local_dynamic_name_1 (rtx *, void *);
 static bool sparc_rtx_costs (rtx, int, int, int *, bool);
 static bool sparc_promote_prototypes (const_tree);
+static rtx sparc_function_value (const_tree, const_tree, bool);
+static rtx sparc_libcall_value (enum machine_mode, const_rtx);
+static bool sparc_function_value_regno_p (const unsigned int);
 static rtx sparc_struct_value_rtx (tree, int);
 static enum machine_mode sparc_promote_function_mode (const_tree, enum machine_mode,
 						      int *, const_tree, int);
@@ -413,6 +415,7 @@ static bool sparc_tls_referenced_p (rtx);
 static rtx legitimize_tls_address (rtx);
 static rtx legitimize_pic_address (rtx, rtx);
 static rtx sparc_legitimize_address (rtx, rtx, enum machine_mode);
+static bool sparc_mode_dependent_address_p (const_rtx);
 static bool sparc_pass_by_reference (CUMULATIVE_ARGS *,
 				     enum machine_mode, const_tree, bool);
 static int sparc_arg_partial_bytes (CUMULATIVE_ARGS *,
@@ -500,6 +503,8 @@ static bool fpu_option_set = false;
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS sparc_legitimize_address
+#undef TARGET_MODE_DEPENDENT_ADDRESS_P
+#define TARGET_MODE_DEPENDENT_ADDRESS_P sparc_mode_dependent_address_p
 
 #undef TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN sparc_expand_builtin
@@ -529,6 +534,13 @@ static bool fpu_option_set = false;
 
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES sparc_promote_prototypes
+
+#undef TARGET_FUNCTION_VALUE
+#define TARGET_FUNCTION_VALUE sparc_function_value
+#undef TARGET_LIBCALL_VALUE
+#define TARGET_LIBCALL_VALUE sparc_libcall_value
+#undef TARGET_FUNCTION_VALUE_REGNO_P
+#define TARGET_FUNCTION_VALUE_REGNO_P sparc_function_value_regno_p
 
 #undef TARGET_STRUCT_VALUE_RTX
 #define TARGET_STRUCT_VALUE_RTX sparc_struct_value_rtx
@@ -3520,6 +3532,35 @@ sparc_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
   return x;
 }
 
+/* Return true if ADDR (a legitimate address expression)
+   has an effect that depends on the machine mode it is used for.
+
+   In PIC mode,
+
+      (mem:HI [%l7+a])
+
+   is not equivalent to
+
+      (mem:QI [%l7+a]) (mem:QI [%l7+a+1])
+
+   because [%l7+a+1] is interpreted as the address of (a+1).  */
+
+
+static bool
+sparc_mode_dependent_address_p (const_rtx addr)
+{
+  if (flag_pic && GET_CODE (addr) == PLUS)
+    {
+      rtx op0 = XEXP (addr, 0);
+      rtx op1 = XEXP (addr, 1);
+      if (op0 == pic_offset_table_rtx
+	  && SYMBOLIC_CONST (op1))
+	return true;
+    }
+
+  return false;
+}
+
 #ifdef HAVE_GAS_HIDDEN
 # define USE_HIDDEN_LINKONCE 1
 #else
@@ -5119,10 +5160,10 @@ function_arg_record_value_2 (const_tree type, HOST_WIDE_INT startbitpos,
     }
 }
 
-/* Used by function_arg and function_value to implement the complex
+/* Used by function_arg and sparc_function_value_1 to implement the complex
    conventions of the 64-bit ABI for passing and returning structures.
-   Return an expression valid as a return value for the two macros
-   FUNCTION_ARG and FUNCTION_VALUE.
+   Return an expression valid as a return value for the FUNCTION_ARG
+   and TARGET_FUNCTION_VALUE.
 
    TYPE is the data type of the argument (as a tree).
     This is null for libcalls where that information may
@@ -5220,10 +5261,10 @@ function_arg_record_value (const_tree type, enum machine_mode mode,
   return parms.ret;
 }
 
-/* Used by function_arg and function_value to implement the conventions
+/* Used by function_arg and sparc_function_value_1 to implement the conventions
    of the 64-bit ABI for passing and returning unions.
-   Return an expression valid as a return value for the two macros
-   FUNCTION_ARG and FUNCTION_VALUE.
+   Return an expression valid as a return value for the FUNCTION_ARG
+   and TARGET_FUNCTION_VALUE.
 
    SIZE is the size in bytes of the union.
    MODE is the argument's machine mode.
@@ -5258,10 +5299,10 @@ function_arg_union_value (int size, enum machine_mode mode, int slotno,
   return regs;
 }
 
-/* Used by function_arg and function_value to implement the conventions
+/* Used by function_arg and sparc_function_value_1 to implement the conventions
    for passing and returning large (BLKmode) vectors.
-   Return an expression valid as a return value for the two macros
-   FUNCTION_ARG and FUNCTION_VALUE.
+   Return an expression valid as a return value for the FUNCTION_ARG
+   and TARGET_FUNCTION_VALUE.
 
    SIZE is the size in bytes of the vector (at least 8 bytes).
    REGNO is the FP hard register the vector will be passed in.  */
@@ -5716,17 +5757,18 @@ sparc_struct_value_rtx (tree fndecl, int incoming)
     }
 }
 
-/* Handle FUNCTION_VALUE, FUNCTION_OUTGOING_VALUE, and LIBCALL_VALUE macros.
+/* Handle TARGET_FUNCTION_VALUE, and TARGET_LIBCALL_VALUE target hook.
    For v9, function return values are subject to the same rules as arguments,
    except that up to 32 bytes may be returned in registers.  */
 
-rtx
-function_value (const_tree type, enum machine_mode mode, int incoming_p)
+static rtx
+sparc_function_value_1 (const_tree type, enum machine_mode mode,
+			bool outgoing)
 {
   /* Beware that the two values are swapped here wrt function_arg.  */
-  int regbase = (incoming_p
-		 ? SPARC_OUTGOING_INT_ARG_FIRST
-		 : SPARC_INCOMING_INT_ARG_FIRST);
+  int regbase = (outgoing
+		 ? SPARC_INCOMING_INT_ARG_FIRST
+		 : SPARC_OUTGOING_INT_ARG_FIRST);
   enum mode_class mclass = GET_MODE_CLASS (mode);
   int regno;
 
@@ -5807,6 +5849,38 @@ function_value (const_tree type, enum machine_mode mode, int incoming_p)
     regno = regbase;
 
   return gen_rtx_REG (mode, regno);
+}
+
+/* Handle TARGET_FUNCTION_VALUE.
+
+   On SPARC the value is found in the first "output" register, but the called
+   function leaves it in the first "input" register.  */
+
+static rtx
+sparc_function_value (const_tree valtype,
+		      const_tree fn_decl_or_type ATTRIBUTE_UNUSED,
+		      bool outgoing)
+{
+  return sparc_function_value_1 (valtype, TYPE_MODE (valtype), outgoing);
+}
+
+/* Handle TARGET_LIBCALL_VALUE.  */
+
+static rtx
+sparc_libcall_value (enum machine_mode mode,
+		     const_rtx fun ATTRIBUTE_UNUSED)
+{
+  return sparc_function_value_1 (NULL_TREE, mode, false);
+}
+
+/* Handle FUNCTION_VALUE_REGNO_P.  
+   On SPARC, the first "output" reg is used for integer values, and
+   the first floating point register is used for floating point values.  */
+
+static bool
+sparc_function_value_regno_p (const unsigned int regno)
+{
+  return (regno == 8 || regno == 32);
 }
 
 /* Do what is necessary for `va_start'.  We look at the current function
@@ -8372,7 +8446,8 @@ sparc_handle_vis_mul8x16 (int fncode, tree inner_type, tree elts0, tree elts1)
    function could not be folded.  */
 
 static tree
-sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
+sparc_fold_builtin (tree fndecl, int n_args ATTRIBUTE_UNUSED,
+		    tree *args, bool ignore)
 {
   tree arg0, arg1, arg2;
   tree rtype = TREE_TYPE (TREE_TYPE (fndecl));
@@ -8386,7 +8461,7 @@ sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
   switch (icode)
     {
     case CODE_FOR_fexpand_vis:
-      arg0 = TREE_VALUE (arglist);
+      arg0 = args[0];
       STRIP_NOPS (arg0);
 
       if (TREE_CODE (arg0) == VECTOR_CST)
@@ -8409,8 +8484,8 @@ sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
     case CODE_FOR_fmul8x16_vis:
     case CODE_FOR_fmul8x16au_vis:
     case CODE_FOR_fmul8x16al_vis:
-      arg0 = TREE_VALUE (arglist);
-      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
+      arg0 = args[0];
+      arg1 = args[1];
       STRIP_NOPS (arg0);
       STRIP_NOPS (arg1);
 
@@ -8427,8 +8502,8 @@ sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
       break;
 
     case CODE_FOR_fpmerge_vis:
-      arg0 = TREE_VALUE (arglist);
-      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
+      arg0 = args[0];
+      arg1 = args[1];
       STRIP_NOPS (arg0);
       STRIP_NOPS (arg1);
 
@@ -8450,9 +8525,9 @@ sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
       break;
 
     case CODE_FOR_pdist_vis:
-      arg0 = TREE_VALUE (arglist);
-      arg1 = TREE_VALUE (TREE_CHAIN (arglist));
-      arg2 = TREE_VALUE (TREE_CHAIN (TREE_CHAIN (arglist)));
+      arg0 = args[0];
+      arg1 = args[1];
+      arg2 = args[2];
       STRIP_NOPS (arg0);
       STRIP_NOPS (arg1);
       STRIP_NOPS (arg2);

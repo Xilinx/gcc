@@ -24,24 +24,14 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "pointer-set.h"
 #include "vec.h"
+#include "vecprim.h"
+#include "vecir.h"
 #include "ggc.h"
 #include "tm.h"
 #include "hard-reg-set.h"
 #include "basic-block.h"
 #include "tree-ssa-operands.h"
 #include "tree-ssa-alias.h"
-
-DEF_VEC_P(gimple);
-DEF_VEC_ALLOC_P(gimple,heap);
-DEF_VEC_ALLOC_P(gimple,gc);
-
-typedef gimple *gimple_p;
-DEF_VEC_P(gimple_p);
-DEF_VEC_ALLOC_P(gimple_p,heap);
-
-DEF_VEC_P(gimple_seq);
-DEF_VEC_ALLOC_P(gimple_seq,gc);
-DEF_VEC_ALLOC_P(gimple_seq,heap);
 
 /* For each block, the PHI nodes that need to be rewritten are stored into
    these vectors.  */
@@ -954,7 +944,7 @@ extern bool is_gimple_call_addr (tree);
 extern tree get_call_expr_in (tree t);
 
 extern void recalculate_side_effects (tree);
-extern bool compare_field_offset (tree, tree);
+extern bool gimple_compare_field_offset (tree, tree);
 extern tree gimple_register_type (tree);
 extern void print_gimple_types_stats (void);
 extern void free_gimple_type_tables (void);
@@ -971,6 +961,7 @@ extern bool walk_stmt_load_store_ops (gimple, void *,
 				      bool (*)(gimple, tree, void *),
 				      bool (*)(gimple, tree, void *));
 extern bool gimple_ior_addresses_taken (bitmap, gimple);
+extern bool gimple_call_builtin_p (gimple, enum built_in_function);
 
 /* In gimplify.c  */
 extern tree create_tmp_var_raw (tree, const char *);
@@ -1048,8 +1039,6 @@ extern gimple gimple_current_bind_expr (void);
 extern VEC(gimple, heap) *gimple_bind_expr_stack (void);
 extern tree voidify_wrapper_expr (tree, tree);
 extern tree build_and_jump (tree *);
-extern tree alloc_stmt_list (void);
-extern void free_stmt_list (tree);
 extern tree force_labels_r (tree *, int *, void *);
 extern enum gimplify_status gimplify_va_arg_expr (tree *, gimple_seq *,
 						  gimple_seq *);

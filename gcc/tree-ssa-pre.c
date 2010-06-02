@@ -24,10 +24,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "ggc.h"
 #include "tree.h"
 #include "basic-block.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-inline.h"
 #include "tree-flow.h"
 #include "gimple.h"
@@ -36,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "fibheap.h"
 #include "hashtab.h"
 #include "tree-iterator.h"
-#include "real.h"
 #include "alloc-pool.h"
 #include "obstack.h"
 #include "tree-pass.h"
@@ -986,7 +985,7 @@ print_pre_expr (FILE *outfile, const pre_expr expr)
 void debug_pre_expr (pre_expr);
 
 /* Like print_pre_expr but always prints to stderr.  */
-void
+DEBUG_FUNCTION void
 debug_pre_expr (pre_expr e)
 {
   print_pre_expr (stderr, e);
@@ -1023,7 +1022,7 @@ print_bitmap_set (FILE *outfile, bitmap_set_t set,
 
 void debug_bitmap_set (bitmap_set_t);
 
-void
+DEBUG_FUNCTION void
 debug_bitmap_set (bitmap_set_t set)
 {
   print_bitmap_set (stderr, set, "debug", 0);
@@ -1044,7 +1043,7 @@ print_value_expressions (FILE *outfile, unsigned int val)
 }
 
 
-void
+DEBUG_FUNCTION void
 debug_value_expressions (unsigned int val)
 {
   print_value_expressions (stderr, val);

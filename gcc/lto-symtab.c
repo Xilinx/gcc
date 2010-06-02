@@ -81,7 +81,7 @@ lto_symtab_entry_hash (const void *p)
 {
   const struct lto_symtab_entry_def *base =
     (const struct lto_symtab_entry_def *) p;
-  return htab_hash_string (IDENTIFIER_POINTER (base->id));
+  return IDENTIFIER_HASH_VALUE (base->id);
 }
 
 /* Return non-zero if P1 and P2 points to lto_symtab_entry_def structs
@@ -463,7 +463,13 @@ lto_symtab_resolve_symbols (void **slot)
       if (TREE_CODE (e->decl) == FUNCTION_DECL)
 	e->node = cgraph_get_node (e->decl);
       else if (TREE_CODE (e->decl) == VAR_DECL)
-	e->vnode = varpool_get_node (e->decl);
+	{
+	  e->vnode = varpool_get_node (e->decl);
+	  /* The LTO plugin for gold doesn't handle common symbols
+	     properly.  Let us choose manually.  */
+	  if (DECL_COMMON (e->decl))
+	    e->resolution = LDPR_UNKNOWN;
+	}
     }
 
   e = (lto_symtab_entry_t) *slot;

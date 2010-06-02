@@ -27,7 +27,6 @@
 #include "rtl.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "insn-attr.h"
@@ -883,7 +882,6 @@ static bool spe_func_has_64bit_regs_p (void);
 static void emit_frame_save (rtx, rtx, enum machine_mode, unsigned int,
 			     int, HOST_WIDE_INT);
 static rtx gen_frame_mem_offset (enum machine_mode, rtx, int);
-static void rs6000_emit_allocate_stack (HOST_WIDE_INT, int, int);
 static unsigned rs6000_hash_constant (rtx);
 static unsigned toc_hash_function (const void *);
 static int toc_hash_eq (const void *, const void *);
@@ -1120,9 +1118,10 @@ rtx (*rs6000_legitimize_reload_address_ptr) (rtx, enum machine_mode, int, int,
 					     int, int *)
   = rs6000_legitimize_reload_address;
 
+static bool rs6000_mode_dependent_address_p (const_rtx);
 static bool rs6000_mode_dependent_address (const_rtx);
 static bool rs6000_debug_mode_dependent_address (const_rtx);
-bool (*rs6000_mode_dependent_address_ptr) (const_rtx)
+static bool (*rs6000_mode_dependent_address_ptr) (const_rtx)
   = rs6000_mode_dependent_address;
 
 static enum reg_class rs6000_secondary_reload_class (enum reg_class,
@@ -1211,7 +1210,7 @@ char rs6000_reg_names[][8] =
      "24", "25", "26", "27", "28", "29", "30", "31",
      "mq", "lr", "ctr","ap",
       "0",  "1",  "2",  "3",  "4",  "5",  "6",  "7",
-      "xer",
+      "ca",
       /* AltiVec registers.  */
       "0",  "1",  "2",  "3",  "4",  "5",  "6", "7",
       "8",  "9",  "10", "11", "12", "13", "14", "15",
@@ -1237,7 +1236,7 @@ static const char alt_reg_names[][8] =
   "%f24",  "%f25", "%f26", "%f27", "%f28", "%f29", "%f30", "%f31",
     "mq",    "lr",  "ctr",   "ap",
   "%cr0",  "%cr1", "%cr2", "%cr3", "%cr4", "%cr5", "%cr6", "%cr7",
-   "xer",
+   "ca",
   /* AltiVec registers.  */
    "%v0",  "%v1",  "%v2",  "%v3",  "%v4",  "%v5",  "%v6", "%v7",
    "%v8",  "%v9", "%v10", "%v11", "%v12", "%v13", "%v14", "%v15",
@@ -1544,6 +1543,9 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P rs6000_legitimate_address_p
 
+#undef TARGET_MODE_DEPENDENT_ADDRESS_P
+#define TARGET_MODE_DEPENDENT_ADDRESS_P rs6000_mode_dependent_address_p
+
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE rs6000_can_eliminate
 
@@ -1647,8 +1649,8 @@ rs6000_hard_regno_mode_ok (int regno, enum machine_mode mode)
   if (CR_REGNO_P (regno))
     return GET_MODE_CLASS (mode) == MODE_CC;
 
-  if (XER_REGNO_P (regno))
-    return mode == PSImode;
+  if (CA_REGNO_P (regno))
+    return mode == BImode;
 
   /* AltiVec only in AldyVec registers.  */
   if (ALTIVEC_REGNO_P (regno))
@@ -1769,7 +1771,7 @@ rs6000_debug_reg_global (void)
   rs6000_debug_reg_print (CTR_REGNO, CTR_REGNO, "ctr");
   rs6000_debug_reg_print (CR0_REGNO, CR7_REGNO, "cr");
   rs6000_debug_reg_print (MQ_REGNO, MQ_REGNO, "mq");
-  rs6000_debug_reg_print (XER_REGNO, XER_REGNO, "xer");
+  rs6000_debug_reg_print (CA_REGNO, CA_REGNO, "ca");
   rs6000_debug_reg_print (VRSAVE_REGNO, VRSAVE_REGNO, "vrsave");
   rs6000_debug_reg_print (VSCR_REGNO, VSCR_REGNO, "vscr");
   rs6000_debug_reg_print (SPE_ACC_REGNO, SPE_ACC_REGNO, "spe_a");
@@ -1894,7 +1896,7 @@ rs6000_init_hard_regno_mode_ok (void)
   rs6000_regno_regclass[MQ_REGNO] = MQ_REGS;
   rs6000_regno_regclass[LR_REGNO] = LINK_REGS;
   rs6000_regno_regclass[CTR_REGNO] = CTR_REGS;
-  rs6000_regno_regclass[XER_REGNO] = XER_REGS;
+  rs6000_regno_regclass[CA_REGNO] = CA_REGS;
   rs6000_regno_regclass[VRSAVE_REGNO] = VRSAVE_REGS;
   rs6000_regno_regclass[VSCR_REGNO] = VRSAVE_REGS;
   rs6000_regno_regclass[SPE_ACC_REGNO] = SPE_ACC_REGS;
@@ -5395,7 +5397,7 @@ rs6000_legitimize_tls_address (rtx addr, enum tls_model model)
     }
   else
     {
-      rtx r3, got, tga, tmp1, tmp2, eqv;
+      rtx r3, got, tga, tmp1, tmp2, call_insn;
 
       /* We currently use relocations like @got@tlsgd for tls, which
 	 means the linker will handle allocation of tls entries, placing
@@ -5439,6 +5441,7 @@ rs6000_legitimize_tls_address (rtx addr, enum tls_model model)
 	{
 	  r3 = gen_rtx_REG (Pmode, 3);
 	  tga = rs6000_tls_get_addr ();
+	  emit_library_call_value (tga, dest, LCT_CONST, Pmode, 1, r3, Pmode);
 
 	  if (DEFAULT_ABI == ABI_AIX && TARGET_64BIT)
 	    insn = gen_tls_gd_aix64 (r3, got, addr, tga, const0_rtx);
@@ -5448,21 +5451,18 @@ rs6000_legitimize_tls_address (rtx addr, enum tls_model model)
 	    insn = gen_tls_gd_sysvsi (r3, got, addr, tga, const0_rtx);
 	  else
 	    gcc_unreachable ();
-
-	  start_sequence ();
-	  insn = emit_call_insn (insn);
-	  RTL_CONST_CALL_P (insn) = 1;
-	  use_reg (&CALL_INSN_FUNCTION_USAGE (insn), r3);
+	  call_insn = last_call_insn ();
+	  PATTERN (call_insn) = insn;
 	  if (DEFAULT_ABI == ABI_V4 && TARGET_SECURE_PLT && flag_pic)
-	    use_reg (&CALL_INSN_FUNCTION_USAGE (insn), pic_offset_table_rtx);
-	  insn = get_insns ();
-	  end_sequence ();
-	  emit_libcall_block (insn, dest, r3, addr);
+	    use_reg (&CALL_INSN_FUNCTION_USAGE (call_insn),
+		     pic_offset_table_rtx);
 	}
       else if (model == TLS_MODEL_LOCAL_DYNAMIC)
 	{
 	  r3 = gen_rtx_REG (Pmode, 3);
 	  tga = rs6000_tls_get_addr ();
+	  tmp1 = gen_reg_rtx (Pmode);
+	  emit_library_call_value (tga, tmp1, LCT_CONST, Pmode, 1, r3, Pmode);
 
 	  if (DEFAULT_ABI == ABI_AIX && TARGET_64BIT)
 	    insn = gen_tls_ld_aix64 (r3, got, tga, const0_rtx);
@@ -5472,19 +5472,12 @@ rs6000_legitimize_tls_address (rtx addr, enum tls_model model)
 	    insn = gen_tls_ld_sysvsi (r3, got, tga, const0_rtx);
 	  else
 	    gcc_unreachable ();
-
-	  start_sequence ();
-	  insn = emit_call_insn (insn);
-	  RTL_CONST_CALL_P (insn) = 1;
-	  use_reg (&CALL_INSN_FUNCTION_USAGE (insn), r3);
+	  call_insn = last_call_insn ();
+	  PATTERN (call_insn) = insn;
 	  if (DEFAULT_ABI == ABI_V4 && TARGET_SECURE_PLT && flag_pic)
-	    use_reg (&CALL_INSN_FUNCTION_USAGE (insn), pic_offset_table_rtx);
-	  insn = get_insns ();
-	  end_sequence ();
-	  tmp1 = gen_reg_rtx (Pmode);
-	  eqv = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const0_rtx),
-				UNSPEC_TLSLD);
-	  emit_libcall_block (insn, tmp1, r3, eqv);
+	    use_reg (&CALL_INSN_FUNCTION_USAGE (call_insn),
+		     pic_offset_table_rtx);
+
 	  if (rs6000_tls_size == 16)
 	    {
 	      if (TARGET_64BIT)
@@ -5884,6 +5877,14 @@ rs6000_debug_legitimate_address_p (enum machine_mode mode, rtx x,
   debug_rtx (x);
 
   return ret;
+}
+
+/* Implement TARGET_MODE_DEPENDENT_ADDRESS_P.  */
+
+static bool
+rs6000_mode_dependent_address_p (const_rtx addr)
+{
+  return rs6000_mode_dependent_address_ptr (addr);
 }
 
 /* Go to LABEL if ADDR (a legitimate address expression)
@@ -14298,10 +14299,8 @@ rs6000_output_function_entry (FILE *file, const char *fname)
 	  break;
 	}
     }
-  if (TARGET_AIX)
-    RS6000_OUTPUT_BASENAME (file, fname);
-  else
-    assemble_name (file, fname);
+
+  RS6000_OUTPUT_BASENAME (file, fname);
 }
 
 /* Print an operand.  Recognize special options, documented below.  */
@@ -18035,13 +18034,11 @@ rs6000_emit_stack_tie (void)
 }
 
 /* Emit the correct code for allocating stack space, as insns.
-   If COPY_R12, make sure a copy of the old frame is left in r12.
-   If COPY_R11, make sure a copy of the old frame is left in r11,
-   in preference to r12 if COPY_R12.
+   If COPY_REG, make sure a copy of the old frame is left there.
    The generated code may use hard register 0 as a temporary.  */
 
 static void
-rs6000_emit_allocate_stack (HOST_WIDE_INT size, int copy_r12, int copy_r11)
+rs6000_emit_allocate_stack (HOST_WIDE_INT size, rtx copy_reg)
 {
   rtx insn;
   rtx stack_reg = gen_rtx_REG (Pmode, STACK_POINTER_REGNUM);
@@ -18084,11 +18081,8 @@ rs6000_emit_allocate_stack (HOST_WIDE_INT size, int copy_r12, int copy_r11)
 	warning (0, "stack limit expression is not supported");
     }
 
-  if (copy_r12 || copy_r11)
-    emit_move_insn (copy_r11
-                    ? gen_rtx_REG (Pmode, 11)
-                    : gen_rtx_REG (Pmode, 12),
-                    stack_reg);
+  if (copy_reg)
+    emit_move_insn (copy_reg, stack_reg);
 
   if (size > 32767)
     {
@@ -18774,20 +18768,33 @@ rs6000_emit_prologue (void)
 		       ? (!saving_GPRs_inline
 			  && info->spe_64bit_regs_used == 0)
 		       : (!saving_FPRs_inline || !saving_GPRs_inline));
+      rtx copy_reg = need_r11 ? gen_rtx_REG (Pmode, 11) : NULL;
+
       if (info->total_size < 32767)
 	sp_offset = info->total_size;
+      else if (need_r11)
+	frame_reg_rtx = copy_reg;
+      else if (info->cr_save_p
+	       || info->lr_save_p
+	       || info->first_fp_reg_save < 64
+	       || info->first_gp_reg_save < 32
+	       || info->altivec_size != 0
+	       || info->vrsave_mask != 0
+	       || crtl->calls_eh_return)
+	{
+	  copy_reg = frame_ptr_rtx;
+	  frame_reg_rtx = copy_reg;
+	}
       else
-	frame_reg_rtx = (need_r11
-			 ? gen_rtx_REG (Pmode, 11)
-			 : frame_ptr_rtx);
-      rs6000_emit_allocate_stack (info->total_size,
-				  (frame_reg_rtx != sp_reg_rtx
-				   && (info->cr_save_p
-				       || info->lr_save_p
-				       || info->first_fp_reg_save < 64
-				       || info->first_gp_reg_save < 32
-				       )),
-				  need_r11);
+	{
+	  /* The prologue won't be saving any regs so there is no need
+	     to set up a frame register to access any frame save area.
+	     We also won't be using sp_offset anywhere below, but set
+	     the correct value anyway to protect against future
+	     changes to this function.  */
+	  sp_offset = info->total_size;
+	}
+      rs6000_emit_allocate_stack (info->total_size, copy_reg);
       if (frame_reg_rtx != sp_reg_rtx)
 	rs6000_emit_stack_tie ();
     }
@@ -19222,16 +19229,19 @@ rs6000_emit_prologue (void)
   if (!WORLD_SAVE_P (info) && info->push_p
       && !(DEFAULT_ABI == ABI_V4 || crtl->calls_eh_return))
     {
+      rtx copy_reg = NULL;
+
       if (info->total_size < 32767)
-      sp_offset = info->total_size;
+	sp_offset = info->total_size;
+      else if (info->altivec_size != 0
+	       || info->vrsave_mask != 0)
+	{
+	  copy_reg = frame_ptr_rtx;
+	  frame_reg_rtx = copy_reg;
+	}
       else
-	frame_reg_rtx = frame_ptr_rtx;
-      rs6000_emit_allocate_stack (info->total_size,
-				  (frame_reg_rtx != sp_reg_rtx
-				   && ((info->altivec_size != 0)
-				       || (info->vrsave_mask != 0)
-				       )),
-				  FALSE);
+	sp_offset = info->total_size;
+      rs6000_emit_allocate_stack (info->total_size, copy_reg);
       if (frame_reg_rtx != sp_reg_rtx)
 	rs6000_emit_stack_tie ();
     }
@@ -19775,6 +19785,16 @@ rs6000_emit_epilogue (int sibcall)
       frame_reg_rtx = sp_reg_rtx;
       if (DEFAULT_ABI == ABI_V4)
 	frame_reg_rtx = gen_rtx_REG (Pmode, 11);
+      /* Prevent reordering memory accesses against stack pointer restore.  */
+      else if (cfun->calls_alloca
+	       || offset_below_red_zone_p (-info->total_size))
+	{
+	  rtx mem1 = gen_rtx_MEM (BLKmode, hard_frame_pointer_rtx);
+	  rtx mem2 = gen_rtx_MEM (BLKmode, sp_reg_rtx);
+	  MEM_NOTRAP_P (mem1) = 1;
+	  MEM_NOTRAP_P (mem2) = 1;
+	  emit_insn (gen_frame_tie (mem1, mem2));
+	}
 
       insn = emit_insn (gen_add3_insn (frame_reg_rtx, hard_frame_pointer_rtx,
 				       GEN_INT (info->total_size)));
@@ -19784,6 +19804,14 @@ rs6000_emit_epilogue (int sibcall)
 	   && DEFAULT_ABI != ABI_V4
 	   && !crtl->calls_eh_return)
     {
+      /* Prevent reordering memory accesses against stack pointer restore.  */
+      if (cfun->calls_alloca
+	  || offset_below_red_zone_p (-info->total_size))
+	{
+	  rtx mem = gen_rtx_MEM (BLKmode, sp_reg_rtx);
+	  MEM_NOTRAP_P (mem) = 1;
+	  emit_insn (gen_stack_tie (mem));
+	}
       insn = emit_insn (gen_add3_insn (sp_reg_rtx, sp_reg_rtx,
 				       GEN_INT (info->total_size)));
       sp_offset = 0;
@@ -20494,10 +20522,7 @@ rs6000_output_function_epilogue (FILE *file,
       /* Offset from start of code to tb table.  */
       fputs ("\t.long ", file);
       ASM_OUTPUT_INTERNAL_LABEL_PREFIX (file, "LT");
-      if (TARGET_AIX)
-	RS6000_OUTPUT_BASENAME (file, fname);
-      else
-	assemble_name (file, fname);
+      RS6000_OUTPUT_BASENAME (file, fname);
       putc ('-', file);
       rs6000_output_function_entry (file, fname);
       putc ('\n', file);
@@ -25706,8 +25731,8 @@ rs6000_dbx_register_number (unsigned int regno)
     return 109;
   if (CR_REGNO_P (regno))
     return regno - CR0_REGNO + 86;
-  if (regno == XER_REGNO)
-    return 101;
+  if (regno == CA_REGNO)
+    return 101;  /* XER */
   if (ALTIVEC_REGNO_P (regno))
     return regno - FIRST_ALTIVEC_REGNO + 1124;
   if (regno == VRSAVE_REGNO)

@@ -27,6 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "gimple.h"
 #include "ggc.h"
+#include "flags.h"
 
 /* Fill array order with all nodes with output flag set in the reverse
    topological order.  */
@@ -194,6 +195,19 @@ varpool_can_remove_if_no_refs (struct varpool_node *node)
   	  && (DECL_COMDAT (node->decl) || !node->externally_visible));
 }
 
+/* Return true when function can be marked local.  */
+
+static bool
+cgraph_local_node_p (struct cgraph_node *node)
+{
+   return (cgraph_only_called_directly_p (node)
+	   && node->analyzed
+	   && !DECL_EXTERNAL (node->decl)
+	   && !node->local.externally_visible
+	   && !node->reachable_from_other_partition
+	   && !node->in_other_partition);
+}
+
 /* Perform reachability analysis and reclaim all unreachable nodes.
    If BEFORE_INLINING_P is true this function is called before inlining
    decisions has been made.  If BEFORE_INLINING_P is false this function also
@@ -270,16 +284,19 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	     reachable too, unless they are direct calls to extern inline functions
 	     we decided to not inline.  */
 	  if (node->reachable)
-	    for (e = node->callees; e; e = e->next_callee)
-	      if (!e->callee->reachable
-		  && node->analyzed
-		  && (!e->inline_failed || !e->callee->analyzed
-		      || (!DECL_EXTERNAL (e->callee->decl))
-		      || before_inlining_p))
-		{
-		  e->callee->reachable = true;
-		  enqueue_cgraph_node (e->callee, &first);
-		}
+	    {
+	      for (e = node->callees; e; e = e->next_callee)
+		if (!e->callee->reachable
+		    && node->analyzed
+		    && (!e->inline_failed || !e->callee->analyzed
+			|| (!DECL_EXTERNAL (e->callee->decl))
+			|| before_inlining_p))
+		  {
+		    e->callee->reachable = true;
+		    enqueue_cgraph_node (e->callee, &first);
+		  }
+	      process_references (&node->ref_list, &first, &first_varpool, before_inlining_p);
+	    }
 
 	  /* If any function in a comdat group is reachable, force
 	     all other functions in the same comdat group to be
@@ -302,7 +319,8 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	     function is clone of real clone, we must keep it around in order to
 	     make materialize_clones produce function body with the changes
 	     applied.  */
-	  while (node->clone_of && !node->clone_of->aux && !gimple_has_body_p (node->decl))
+	  while (node->clone_of && !node->clone_of->aux
+	         && !gimple_has_body_p (node->decl))
 	    {
 	      bool noninline = node->clone_of->decl != node->decl;
 	      node = node->clone_of;
@@ -312,7 +330,6 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 		  break;
 		}
 	    }
-	  process_references (&node->ref_list, &first, &first_varpool, before_inlining_p);
 	}
       if (first_varpool != (struct varpool_node *) (void *) 1)
 	{
@@ -320,6 +337,21 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	  first_varpool = (struct varpool_node *)first_varpool->aux;
 	  vnode->aux = NULL;
 	  process_references (&vnode->ref_list, &first, &first_varpool, before_inlining_p);
+	  /* If any function in a comdat group is reachable, force
+	     all other functions in the same comdat group to be
+	     also reachable.  */
+	  if (vnode->same_comdat_group)
+	    {
+	      struct varpool_node *next;
+	      for (next = vnode->same_comdat_group;
+		   next != vnode;
+		   next = next->same_comdat_group)
+		if (!next->needed)
+		  {
+		    varpool_mark_needed_node (next);
+		    enqueue_varpool_node (next, &first_varpool);
+		  }
+	    }
 	}
     }
 
@@ -338,6 +370,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
       if (node->aux && !node->reachable)
         {
 	  cgraph_node_remove_callees (node);
+	  ipa_remove_all_references (&node->ref_list);
 	  node->analyzed = false;
 	  node->local.inlinable = false;
 	}
@@ -408,18 +441,31 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	}
       node->aux = NULL;
     }
+
   if (file)
-    fprintf (file, "\nReclaiming variables:");
+    fprintf (file, "\n");
+
+  /* We must release unused extern inlines or sanity checking will fail.  Rest of transformations
+     are undesirable at -O0 since we do not want to remove anything.  */
+  if (!optimize)
+    return changed;
+
+  if (file)
+    fprintf (file, "Reclaiming variables:");
   for (vnode = varpool_nodes; vnode; vnode = vnext)
     {
       vnext = vnode->next;
       if (!vnode->needed)
         {
-	   if (file)
-	     fprintf (file, " %s", varpool_node_name (vnode));
-	   varpool_remove_node (vnode);
+	  if (file)
+	    fprintf (file, " %s", varpool_node_name (vnode));
+	  varpool_remove_node (vnode);
+	  changed = true;
 	}
     }
+
+  /* Now update address_taken flags and try to promote functions to be local.  */
+
   if (file)
     fprintf (file, "\nClearing address taken flags:");
   for (node = cgraph_nodes; node; node = node->next)
@@ -431,12 +477,22 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	bool found = false;
         for (i = 0; ipa_ref_list_refering_iterate (&node->ref_list, i, ref)
 		    && !found; i++)
-	  found = true;
+	  {
+	    gcc_assert (ref->use == IPA_REF_ADDR);
+	    found = true;
+	  }
 	if (!found)
 	  {
 	    if (file)
 	      fprintf (file, " %s", cgraph_node_name (node));
 	    node->address_taken = false;
+	    changed = true;
+	    if (cgraph_local_node_p (node))
+	      {
+		node->local.local = true;
+		if (file)
+		  fprintf (file, " (local)");
+	      }
 	  }
       }
 
@@ -450,6 +506,64 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 
   return changed;
 }
+
+/* Discover variables that have no longer address taken or that are read only
+   and update their flags.
+
+   FIXME: This can not be done in between gimplify and omp_expand since
+   readonly flag plays role on what is shared and what is not.  Currently we do
+   this transformation as part of ipa-reference pass, but it would make sense
+   to do it before early optimizations.  */
+
+void
+ipa_discover_readonly_nonaddressable_vars (void)
+{
+  struct varpool_node *vnode;
+  if (dump_file)
+    fprintf (dump_file, "Clearing variable flags:");
+  for (vnode = varpool_nodes; vnode; vnode = vnode->next)
+    if (vnode->finalized && varpool_all_refs_explicit_p (vnode)
+	&& (TREE_ADDRESSABLE (vnode->decl) || !TREE_READONLY (vnode->decl)))
+      {
+	bool written = false;
+	bool address_taken = false;
+	int i;
+        struct ipa_ref *ref;
+        for (i = 0; ipa_ref_list_refering_iterate (&vnode->ref_list, i, ref)
+		    && (!written || !address_taken); i++)
+	  switch (ref->use)
+	    {
+	    case IPA_REF_ADDR:
+	      address_taken = true;
+	      break;
+	    case IPA_REF_LOAD:
+	      break;
+	    case IPA_REF_STORE:
+	      written = true;
+	      break;
+	    }
+	if (TREE_ADDRESSABLE (vnode->decl) && !address_taken)
+	  {
+	    if (dump_file)
+	      fprintf (dump_file, " %s (addressable)", varpool_node_name (vnode));
+	    TREE_ADDRESSABLE (vnode->decl) = 0;
+	  }
+	if (!TREE_READONLY (vnode->decl) && !address_taken && !written
+	    /* Making variable in explicit section readonly can cause section
+	       type conflict. 
+	       See e.g. gcc.c-torture/compile/pr23237.c */
+	    && DECL_SECTION_NAME (vnode->decl) == NULL)
+	  {
+	    if (dump_file)
+	      fprintf (dump_file, " %s (read-only)", varpool_node_name (vnode));
+	    TREE_READONLY (vnode->decl) = 1;
+	  }
+      }
+  if (dump_file)
+    fprintf (dump_file, "\n");
+}
+
+/* Return true when function NODE should be considered externally visible.  */
 
 static bool
 cgraph_externally_visible_p (struct cgraph_node *node, bool whole_program)
@@ -560,8 +674,11 @@ function_and_variable_visibility (bool whole_program)
       if (!node->local.externally_visible && node->analyzed
 	  && !DECL_EXTERNAL (node->decl))
 	{
+          struct cgraph_node *alias;
 	  gcc_assert (whole_program || !TREE_PUBLIC (node->decl));
 	  cgraph_make_decl_local (node->decl);
+	  for (alias = node->same_body; alias; alias = alias->next)
+	    cgraph_make_decl_local (alias->decl);
 	  if (node->same_comdat_group)
 	    /* cgraph_externally_visible_p has already checked all other nodes
 	       in the group and they will all be made local.  We need to
@@ -569,10 +686,7 @@ function_and_variable_visibility (bool whole_program)
 	       segfault though. */
 	    dissolve_same_comdat_group_list (node);
 	}
-      node->local.local = (cgraph_only_called_directly_p (node)
-			   && node->analyzed
-			   && !DECL_EXTERNAL (node->decl)
-			   && !node->local.externally_visible);
+      node->local.local = cgraph_local_node_p (node);
     }
   for (vnode = varpool_nodes; vnode; vnode = vnode->next)
     {
@@ -888,13 +1002,14 @@ dump_cgraph_node_set (FILE *f, cgraph_node_set set)
   for (iter = csi_start (set); !csi_end_p (iter); csi_next (&iter))
     {
       struct cgraph_node *node = csi_node (iter);
-      dump_cgraph_node (f, node);
+      fprintf (f, " %s/%i", cgraph_node_name (node), node->uid);
     }
+  fprintf (f, "\n");
 }
 
 /* Dump content of SET to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_cgraph_node_set (cgraph_node_set set)
 {
   dump_cgraph_node_set (stderr, set);
@@ -1045,13 +1160,14 @@ dump_varpool_node_set (FILE *f, varpool_node_set set)
   for (iter = vsi_start (set); !vsi_end_p (iter); vsi_next (&iter))
     {
       struct varpool_node *node = vsi_node (iter);
-      dump_varpool_node (f, node);
+      fprintf (f, " %s", varpool_node_name (node));
     }
+  fprintf (f, "\n");
 }
 
 /* Dump content of SET to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_varpool_node_set (varpool_node_set set)
 {
   dump_varpool_node_set (stderr, set);

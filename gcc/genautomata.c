@@ -9565,12 +9565,13 @@ main (int argc, char **argv)
 		"#include \"insn-config.h\"\n"
 		"#include \"recog.h\"\n"
 		"#include \"regs.h\"\n"
-		"#include \"real.h\"\n"
 		"#include \"output.h\"\n"
 		"#include \"insn-attr.h\"\n"
 		"#include \"toplev.h\"\n"
 		"#include \"flags.h\"\n"
-		"#include \"function.h\"\n");
+		"#include \"function.h\"\n"
+		"#include \"emit-rtl.h\"\n");
+	         /* FIXME: emit-rtl.h can go away once crtl is in rtl.h.  */
 
 	  write_automata ();
 	}

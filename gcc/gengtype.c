@@ -1,5 +1,5 @@
 /* Process source files and output type information.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -392,7 +392,7 @@ read_input_list (const char *listname)
 {
   FILE *list = fopen (listname, "r");
   if (!list)
-    fatal ("cannot open %s: %s", listname, strerror (errno));
+    fatal ("cannot open %s: %s", listname, xstrerror (errno));
   else
     {
       struct fileloc epos;
@@ -508,7 +508,7 @@ read_input_list (const char *listname)
   }
 
   if (ferror (list))
-    fatal ("error reading %s: %s", listname, strerror (errno));
+    fatal ("error reading %s: %s", listname, xstrerror (errno));
 
   fclose (list);
 }
@@ -1008,7 +1008,7 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
   options_p nodot;
   int i;
   type_p rtx_tp, rtvec_tp, tree_tp, mem_attrs_tp, note_union_tp, scalar_tp;
-  type_p bitmap_tp, basic_block_tp, reg_attrs_tp, constant_tp, symbol_union_tp;
+  type_p basic_block_tp, reg_attrs_tp, constant_tp, symbol_union_tp;
 
   if (t->kind != TYPE_UNION)
     {
@@ -1024,7 +1024,6 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
   tree_tp = create_pointer (find_structure ("tree_node", 1));
   mem_attrs_tp = create_pointer (find_structure ("mem_attrs", 0));
   reg_attrs_tp = create_pointer (find_structure ("reg_attrs", 0));
-  bitmap_tp = create_pointer (find_structure ("bitmap_element_def", 0));
   basic_block_tp = create_pointer (find_structure ("basic_block_def", 0));
   constant_tp = create_pointer (find_structure ("constant_descriptor_rtx", 0));
   scalar_tp = &scalar_nonchar;  /* rtunion int */
@@ -1169,11 +1168,6 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
 	    case 't':
 	      t = tree_tp;
 	      subname = "rt_tree";
-	      break;
-
-	    case 'b':
-	      t = bitmap_tp;
-	      subname = "rt_bit";
 	      break;
 
 	    case 'B':
@@ -1844,11 +1838,11 @@ close_output_files (void)
       {
         FILE *newfile = fopen (of->name, "w");
         if (newfile == NULL)
-          fatal ("opening output file %s: %s", of->name, strerror (errno));
+          fatal ("opening output file %s: %s", of->name, xstrerror (errno));
         if (fwrite (of->buf, 1, of->bufused, newfile) != of->bufused)
-          fatal ("writing output file %s: %s", of->name, strerror (errno));
+          fatal ("writing output file %s: %s", of->name, xstrerror (errno));
         if (fclose (newfile) != 0)
-          fatal ("closing output file %s: %s", of->name, strerror (errno));
+          fatal ("closing output file %s: %s", of->name, xstrerror (errno));
       }
       free(of->buf);
       of->buf = NULL;

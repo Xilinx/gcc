@@ -92,6 +92,10 @@ Wconversion
 Fortran Warning
 ; Documented in C
 
+Wconversion-extra
+Fortran Warning
+Warn about most implicit conversions
+
 Wimplicit-interface
 Fortran Warning
 Warn about calls with implicit interface
@@ -127,6 +131,10 @@ Warn about underflow of numerical constant expressions
 Wintrinsic-shadow
 Fortran Warning
 Warn if a user-procedure has the same name as an intrinsic
+
+Wunused-dummy-argument
+Fortran Warning
+Warn about unused dummy arguments.
 
 cpp
 Fortran Joined Separate Negative(nocpp)

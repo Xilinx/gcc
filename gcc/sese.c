@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "rtl.h"
 #include "basic-block.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "tree-flow.h"
 #include "toplev.h"
 #include "tree-dump.h"
@@ -68,7 +69,7 @@ debug_rename_map_1 (void **slot, void *s ATTRIBUTE_UNUSED)
 
 /* Print to stderr all the elements of MAP.  */
 
-void
+DEBUG_FUNCTION void
 debug_rename_map (htab_t map)
 {
   htab_traverse (map, debug_rename_map_1, NULL);
@@ -117,7 +118,7 @@ debug_ivtype_map_1 (void **slot, void *s ATTRIBUTE_UNUSED)
 
 /* Print to stderr all the elements of MAP.  */
 
-void
+DEBUG_FUNCTION void
 debug_ivtype_map (htab_t map)
 {
   htab_traverse (map, debug_ivtype_map_1, NULL);

@@ -1,6 +1,6 @@
 /* Java(TM) language-specific utility routines.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -30,8 +30,6 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "tm.h"
 #include "tree.h"
 #include "input.h"
-#include "rtl.h"
-#include "expr.h"
 #include "java-tree.h"
 #include "jcf.h"
 #include "toplev.h"
@@ -45,7 +43,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "tree-dump.h"
 #include "opts.h"
 #include "options.h"
-#include "except.h"
+#include "except.h"	/* For USING_SJLJ_EXCEPTIONS.  */
 
 static bool java_init (void);
 static void java_finish (void);
@@ -138,6 +136,8 @@ struct GTY(()) language_function {
 #define LANG_HOOKS_DECL_PRINTABLE_NAME lang_printable_name
 #undef LANG_HOOKS_PRINT_ERROR_FUNCTION
 #define LANG_HOOKS_PRINT_ERROR_FUNCTION	java_print_error_function
+#undef LANG_HOOKS_WRITE_GLOBALS
+#define LANG_HOOKS_WRITE_GLOBALS java_write_globals
 
 #undef LANG_HOOKS_TYPE_FOR_MODE
 #define LANG_HOOKS_TYPE_FOR_MODE java_type_for_mode
@@ -882,9 +882,7 @@ java_classify_record (tree type)
   if (! CLASS_P (type))
     return RECORD_IS_STRUCT;
 
-  /* ??? GDB does not support DW_TAG_interface_type as of December,
-     2007.  Re-enable this at a later time.  */
-  if (0 && CLASS_INTERFACE (TYPE_NAME (type)))
+  if (CLASS_INTERFACE (TYPE_NAME (type)))
     return RECORD_IS_INTERFACE;
 
   return RECORD_IS_CLASS;

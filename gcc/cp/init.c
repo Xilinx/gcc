@@ -27,8 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "expr.h"
 #include "cp-tree.h"
 #include "flags.h"
 #include "output.h"
@@ -1240,7 +1238,9 @@ build_aggr_init (tree exp, tree init, int flags, tsubst_flags_t complain)
   TREE_READONLY (exp) = 0;
   TREE_THIS_VOLATILE (exp) = 0;
 
-  if (init && TREE_CODE (init) != TREE_LIST)
+  if (init && TREE_CODE (init) != TREE_LIST
+      && !(BRACE_ENCLOSED_INITIALIZER_P (init)
+	   && CONSTRUCTOR_IS_DIRECT_INIT (init)))
     flags |= LOOKUP_ONLYCONVERTING;
 
   if (TREE_CODE (type) == ARRAY_TYPE)
@@ -1308,6 +1308,18 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
   tree rval;
   VEC(tree,gc) *parms;
 
+  if (init && BRACE_ENCLOSED_INITIALIZER_P (init)
+      && CP_AGGREGATE_TYPE_P (type))
+    {
+      /* A brace-enclosed initializer for an aggregate.  In C++0x this can
+	 happen for direct-initialization, too.  */
+      init = digest_init (type, init);
+      init = build2 (INIT_EXPR, TREE_TYPE (exp), exp, init);
+      TREE_SIDE_EFFECTS (init) = 1;
+      finish_expr_stmt (init);
+      return;
+    }
+
   if (init && TREE_CODE (init) != TREE_LIST
       && (flags & LOOKUP_ONLYCONVERTING))
     {
@@ -1320,12 +1332,6 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
 	   to run a new constructor; and catching an exception, where we
 	   have already built up the constructor call so we could wrap it
 	   in an exception region.  */;
-      else if (BRACE_ENCLOSED_INITIALIZER_P (init)
-	       && CP_AGGREGATE_TYPE_P (type))
-	{
-	  /* A brace-enclosed initializer for an aggregate.  */
-	  init = digest_init (type, init);
-	}
       else
 	init = ocp_convert (type, init, CONV_IMPLICIT|CONV_FORCE_TEMP, flags);
 
@@ -2200,7 +2206,7 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
   /* But we want to operate on a non-const version to start with,
      since we'll be modifying the elements.  */
   non_const_pointer_type = build_pointer_type
-    (cp_build_qualified_type (type, TYPE_QUALS (type) & ~TYPE_QUAL_CONST));
+    (cp_build_qualified_type (type, cp_type_quals (type) & ~TYPE_QUAL_CONST));
 
   data_addr = fold_convert (non_const_pointer_type, data_addr);
   /* Any further uses of alloc_node will want this type, too.  */

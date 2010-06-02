@@ -58,7 +58,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "conditions.h"
 #include "flags.h"
-#include "real.h"
 #include "hard-reg-set.h"
 #include "output.h"
 #include "except.h"
@@ -4364,8 +4363,8 @@ rest_of_clean_state (void)
       final_output = fopen (flag_dump_final_insns, "a");
       if (!final_output)
 	{
-	  error ("could not open final insn dump file %qs: %s",
-		 flag_dump_final_insns, strerror (errno));
+	  error ("could not open final insn dump file %qs: %m",
+		 flag_dump_final_insns);
 	  flag_dump_final_insns = NULL;
 	}
       else
@@ -4425,8 +4424,8 @@ rest_of_clean_state (void)
 
       if (fclose (final_output))
 	{
-	  error ("could not close final insn dump file %qs: %s",
-		 flag_dump_final_insns, strerror (errno));
+	  error ("could not close final insn dump file %qs: %m",
+		 flag_dump_final_insns);
 	  flag_dump_final_insns = NULL;
 	}
     }

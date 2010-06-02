@@ -36,11 +36,11 @@ along with GCC; see the file COPYING3.  If not see
    generator programs.  */
 #ifndef GENERATOR_FILE
 #include "tree.h"
-#include "real.h"
 #include "flags.h"
 #include "hard-reg-set.h"
 #include "basic-block.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "cselib.h"
 #include "tree-pass.h"
 #endif
@@ -512,16 +512,6 @@ print_rtx (const_rtx in_rtx)
 	sawclose = 0;
 	break;
 
-      case 'b':
-#ifndef GENERATOR_FILE
-	if (XBITMAP (in_rtx, i) == NULL)
-	  fputs (" {null}", outfile);
-	else
-	  bitmap_print (outfile, XBITMAP (in_rtx, i), " {", "}");
-#endif
-	sawclose = 0;
-	break;
-
       case 't':
 #ifndef GENERATOR_FILE
 	dump_addr (outfile, " ", XTREE (in_rtx, i));
@@ -636,7 +626,7 @@ print_inline_rtx (FILE *outf, const_rtx x, int ind)
 
 /* Call this function from the debugger to see what X looks like.  */
 
-void
+DEBUG_FUNCTION void
 debug_rtx (const_rtx x)
 {
   outfile = stderr;
@@ -648,7 +638,7 @@ debug_rtx (const_rtx x)
 /* Count of rtx's to print with debug_rtx_list.
    This global exists because gdb user defined commands have no arguments.  */
 
-int debug_rtx_count = 0;	/* 0 is treated as equivalent to 1 */
+DEBUG_VARIABLE int debug_rtx_count = 0;	/* 0 is treated as equivalent to 1 */
 
 /* Call this function to print list from X on.
 
@@ -656,7 +646,7 @@ int debug_rtx_count = 0;	/* 0 is treated as equivalent to 1 */
    rtx on.  Negative values print a window around the rtx.
    EG: -5 prints 2 rtx's on either side (in addition to the specified rtx).  */
 
-void
+DEBUG_FUNCTION void
 debug_rtx_list (const_rtx x, int n)
 {
   int i,count;
@@ -683,7 +673,7 @@ debug_rtx_list (const_rtx x, int n)
 
 /* Call this function to print an rtx list from START to END inclusive.  */
 
-void
+DEBUG_FUNCTION void
 debug_rtx_range (const_rtx start, const_rtx end)
 {
   while (1)
@@ -700,7 +690,7 @@ debug_rtx_range (const_rtx start, const_rtx end)
    and then call debug_rtx_list to print it, using DEBUG_RTX_COUNT.
    The found insn is returned to enable further debugging analysis.  */
 
-const_rtx
+DEBUG_FUNCTION const_rtx
 debug_rtx_find (const_rtx x, int uid)
 {
   while (x != 0 && INSN_UID (x) != uid)

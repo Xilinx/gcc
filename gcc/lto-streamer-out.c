@@ -37,7 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "function.h"
 #include "ggc.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "except.h"
 #include "vec.h"
 #include "lto-symtab.h"
@@ -387,6 +387,7 @@ pack_ts_fixed_cst_value_fields (struct bitpack_d *bp, tree expr)
   struct fixed_value fv = TREE_FIXED_CST (expr);
   bp_pack_value (bp, fv.data.low, HOST_BITS_PER_WIDE_INT);
   bp_pack_value (bp, fv.data.high, HOST_BITS_PER_WIDE_INT);
+  bp_pack_value (bp, fv.mode, HOST_BITS_PER_INT);
 }
 
 
@@ -513,8 +514,8 @@ pack_ts_function_decl_value_fields (struct bitpack_d *bp, tree expr)
 static void
 pack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
 {
-  bp_pack_value (bp, TYPE_PRECISION (expr), 9);
-  bp_pack_value (bp, TYPE_MODE (expr), 7);
+  bp_pack_value (bp, TYPE_PRECISION (expr), 10);
+  bp_pack_value (bp, TYPE_MODE (expr), 8);
   bp_pack_value (bp, TYPE_STRING_FLAG (expr), 1);
   bp_pack_value (bp, TYPE_NO_FORCE_BLK (expr), 1);
   bp_pack_value (bp, TYPE_NEEDS_CONSTRUCTING (expr), 1);
@@ -1702,6 +1703,7 @@ output_gimple_stmt (struct output_block *ob, gimple stmt)
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_ninputs (stmt));
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_noutputs (stmt));
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_nclobbers (stmt));
+      lto_output_uleb128_stream (ob->main_stream, gimple_asm_nlabels (stmt));
       output_string (ob, ob->main_stream, gimple_asm_string (stmt));
       /* Fallthru  */
 
@@ -1876,6 +1878,7 @@ output_function (struct cgraph_node *node)
   bp_pack_value (bp, fn->after_tree_profile, 1);
   bp_pack_value (bp, fn->returns_pcc_struct, 1);
   bp_pack_value (bp, fn->returns_struct, 1);
+  bp_pack_value (bp, fn->can_throw_non_call_exceptions, 1);
   bp_pack_value (bp, fn->always_inline_functions_inlined, 1);
   bp_pack_value (bp, fn->after_inlining, 1);
   bp_pack_value (bp, fn->dont_save_pending_sizes_p, 1);
@@ -2090,18 +2093,25 @@ lto_output (cgraph_node_set set, varpool_node_set vset)
 {
   struct cgraph_node *node;
   struct lto_out_decl_state *decl_state;
-  cgraph_node_set_iterator csi;
+#ifdef ENABLE_CHECKING
   bitmap output = lto_bitmap_alloc ();
+#endif
+  int i, n_nodes;
+  lto_cgraph_encoder_t encoder = lto_get_out_decl_state ()->cgraph_node_encoder;
 
   lto_writer_init ();
 
+  n_nodes = lto_cgraph_encoder_size (encoder);
   /* Process only the functions with bodies.  */
-  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
+  for (i = 0; i < n_nodes; i++)
     {
-      node = csi_node (csi);
-      if (node->analyzed && !bitmap_bit_p (output, DECL_UID (node->decl)))
+      node = lto_cgraph_encoder_deref (encoder, i);
+      if (lto_cgraph_encoder_encode_body_p (encoder, node))
 	{
+#ifdef ENABLE_CHECKING
+	  gcc_assert (!bitmap_bit_p (output, DECL_UID (node->decl)));
 	  bitmap_set_bit (output, DECL_UID (node->decl));
+#endif
 	  decl_state = lto_new_out_decl_state ();
 	  lto_push_out_decl_state (decl_state);
 	  if (!flag_wpa)
@@ -2120,7 +2130,9 @@ lto_output (cgraph_node_set set, varpool_node_set vset)
      statements using the statement UIDs.  */
   output_cgraph (set, vset);
 
+#ifdef ENABLE_CHECKING
   lto_bitmap_free (output);
+#endif
 }
 
 struct ipa_opt_pass_d pass_ipa_lto_gimple_out =

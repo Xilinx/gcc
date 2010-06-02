@@ -1054,6 +1054,19 @@
    (set_attr "length" "20")]
 )
 
+;; Note: this is not predicable, to avoid issues with linker-generated
+;; interworking stubs.
+(define_insn "*thumb2_return"
+  [(return)]
+  "TARGET_THUMB2 && USE_RETURN_INSN (FALSE)"
+  "*
+  {
+    return output_return_instruction (const_true_rtx, TRUE, FALSE);
+  }"
+  [(set_attr "type" "load1")
+   (set_attr "length" "12")]
+)
+
 (define_insn_and_split "thumb2_eh_return"
   [(unspec_volatile [(match_operand:SI 0 "s_register_operand" "r")]
 		    VUNSPEC_EH_RETURN)
@@ -1239,6 +1252,56 @@
   "sub%!\\t%0, %1, %2"
   [(set_attr "predicable" "yes")
    (set_attr "length" "2")]
+)
+
+(define_insn "*thumb2_addsi3_compare0"
+  [(set (reg:CC_NOOV CC_REGNUM)
+	(compare:CC_NOOV
+	  (plus:SI (match_operand:SI 1 "s_register_operand" "l,  0, r")
+		   (match_operand:SI 2 "arm_add_operand"    "lPt,Ps,rIL"))
+	  (const_int 0)))
+   (set (match_operand:SI 0 "s_register_operand" "=l,l,r")
+	(plus:SI (match_dup 1) (match_dup 2)))]
+  "TARGET_THUMB2"
+  "*
+    HOST_WIDE_INT val;
+
+    if (GET_CODE (operands[2]) == CONST_INT)
+      val = INTVAL (operands[2]);
+    else
+      val = 0;
+
+    if (val < 0 && const_ok_for_arm (ARM_SIGN_EXTEND (-val)))
+      return \"subs\\t%0, %1, #%n2\";
+    else
+      return \"adds\\t%0, %1, %2\";
+  "
+  [(set_attr "conds" "set")
+   (set_attr "length" "2,2,4")]
+)
+
+(define_insn "*thumb2_addsi3_compare0_scratch"
+  [(set (reg:CC_NOOV CC_REGNUM)
+	(compare:CC_NOOV
+	  (plus:SI (match_operand:SI 0 "s_register_operand" "l,  r")
+		   (match_operand:SI 1 "arm_add_operand"    "lPv,rIL"))
+	  (const_int 0)))]
+  "TARGET_THUMB2"
+  "*
+    HOST_WIDE_INT val;
+
+    if (GET_CODE (operands[1]) == CONST_INT)
+      val = INTVAL (operands[1]);
+    else
+      val = 0;
+
+    if (val < 0 && const_ok_for_arm (ARM_SIGN_EXTEND (-val)))
+      return \"cmp\\t%0, #%n1\";
+    else
+      return \"cmn\\t%0, %1\";
+  "
+  [(set_attr "conds" "set")
+   (set_attr "length" "2,4")]
 )
 
 ;; 16-bit encodings of "muls" and "mul<c>".  We only use these when
@@ -1447,13 +1510,14 @@
   [(set (pc)
 	(if_then_else
 	 (match_operator 0 "equality_operator"
-	  [(zero_extract:SI (match_operand:SI 1 "s_register_operand" "l,?h")
-			    (match_operand:SI 2 "const_int_operand" "i,i")
+	  [(zero_extract:SI (match_operand:SI 1 "s_register_operand" "l,h,h")
+			    (match_operand:SI 2 "const_int_operand" "i,Pu,i")
 			    (const_int 0))
 	   (const_int 0)])
 	 (label_ref (match_operand 3 "" ""))
 	 (pc)))
-   (clobber (match_scratch:SI 4 "=l,X"))]
+   (clobber (match_scratch:SI 4 "=l,X,r"))
+   (clobber (reg:CC CC_REGNUM))]
   "TARGET_THUMB2"
   "*
   {
@@ -1474,11 +1538,22 @@
     }
   else
     {
-      rtx op[2];
-      op[0] = operands[1];
-      op[1] = GEN_INT ((1 << INTVAL (operands[2])) - 1);
+      rtx op[3];
 
-      output_asm_insn (\"tst\\t%0, %1\", op);
+      if (which_alternative == 1)
+	{
+	  op[0] = operands[1];
+	  op[1] = GEN_INT ((1 << INTVAL (operands[2])) - 1);
+	  output_asm_insn (\"tst\\t%0, %1\", op);
+	}
+      else
+	{
+	  op[0] = operands[4];
+	  op[1] = operands[1];
+	  op[2] = GEN_INT (32 - INTVAL (operands[2]));
+	  output_asm_insn (\"lsls\\t%0, %1, %2\", op);
+	}
+
       switch (get_attr_length (insn))
 	{
 	  case 6:  return \"b%d0\\t%l3\";

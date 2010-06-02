@@ -23,6 +23,10 @@
  *                                                                          *
  ****************************************************************************/
 
+/* FIXME: Still need to include rtl.h here (via expr.h) because this file
+   actually generates RTL (search for gen_rtx_* in gnat_to_gnu_entity).  */
+#undef IN_GCC_FRONTEND
+
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -444,7 +448,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	 the regular processing take place, which leaves us with a regular
 	 exception data object for VMS exceptions too.  The condition code
 	 mapping is taken care of by the front end and the bitmasking by the
-	 runtime library.  */
+	 run-time library.  */
       goto object;
 
     case E_Discriminant:
@@ -581,6 +585,13 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 	/* Get the type after elaborating the renamed object.  */
 	gnu_type = gnat_to_gnu_type (Etype (gnat_entity));
+
+	/* If this is a standard exception definition, then use the standard
+	   exception type.  This is necessary to make sure that imported and
+	   exported views of exceptions are properly merged in LTO mode.  */
+	if (TREE_CODE (TYPE_NAME (gnu_type)) == TYPE_DECL
+	    && DECL_NAME (TYPE_NAME (gnu_type)) == exception_data_name_id)
+	  gnu_type = except_type_node;
 
 	/* For a debug renaming declaration, build a pure debug entity.  */
 	if (Present (Debug_Renaming_Link (gnat_entity)))
@@ -1000,6 +1011,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   and disallow any optimizations for such a non-constant object.  */
 	if ((Treat_As_Volatile (gnat_entity)
 	     || (!const_flag
+		 && gnu_type != except_type_node
 		 && (Is_Exported (gnat_entity)
 		     || imported_p
 		     || Present (Address_Clause (gnat_entity)))))
@@ -1208,7 +1220,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		if (TREE_CODE (TYPE_SIZE_UNIT (gnu_alloc_type)) == INTEGER_CST
 		    && TREE_OVERFLOW (TYPE_SIZE_UNIT (gnu_alloc_type))
 		    && !Is_Imported (gnat_entity))
-		  post_error ("?Storage_Error will be raised at run-time!",
+		  post_error ("?`Storage_Error` will be raised at run time!",
 			      gnat_entity);
 
 		gnu_expr
@@ -2922,6 +2934,21 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      && Is_Itype (Etype (gnat_temp))
 	      && !present_gnu_tree (gnat_temp))
 	    gnat_to_gnu_entity (Etype (gnat_temp), NULL_TREE, 0);
+
+	/* If this is a record type associated with an exception definition,
+	   equate its fields to those of the standard exception type.  This
+	   will make it possible to convert between them.  */
+	if (gnu_entity_name == exception_data_name_id)
+	  {
+	    tree gnu_std_field;
+	    for (gnu_field = TYPE_FIELDS (gnu_type),
+		 gnu_std_field = TYPE_FIELDS (except_type_node);
+		 gnu_field;
+		 gnu_field = TREE_CHAIN (gnu_field),
+		 gnu_std_field = TREE_CHAIN (gnu_std_field))
+	      SET_DECL_ORIGINAL_FIELD_TO_FIELD (gnu_field, gnu_std_field);
+	    gcc_assert (!gnu_std_field);
+	  }
       }
       break;
 
@@ -3686,7 +3713,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	gnu_type = ptr_void_type_node;
       else
 	{
-	  /* The runtime representation is the equivalent type.  */
+	  /* The run-time representation is the equivalent type.  */
 	  gnu_type = gnat_to_gnu_type (gnat_equiv_type);
 	  maybe_present = true;
 	}
@@ -4355,11 +4382,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
     case E_Task_Subtype:
     case E_Protected_Type:
     case E_Protected_Subtype:
+      /* Concurrent types are always transformed into their record type.  */
       if (type_annotate_only && No (gnat_equiv_type))
 	gnu_type = void_type_node;
       else
-	gnu_type = gnat_to_gnu_type (gnat_equiv_type);
-
+	gnu_decl = gnat_to_gnu_entity (gnat_equiv_type, NULL_TREE, 0);
       maybe_present = true;
       break;
 

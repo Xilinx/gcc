@@ -23,11 +23,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "real.h"
-#include "fixed-value.h"
+#include "tree.h"
 #include "intl.h"
 #include "c-pretty-print.h"
-#include "c-tree.h"
+#include "tree-pretty-print.h"
 #include "tree-iterator.h"
 #include "diagnostic.h"
 
@@ -864,6 +863,9 @@ pp_c_integer_constant (c_pretty_printer *pp, tree i)
   else if (type == long_long_integer_type_node
 	   || type == long_long_unsigned_type_node)
     pp_string (pp, "ll");
+  else if (type == int128_integer_type_node
+           || type == int128_unsigned_type_node)
+    pp_string (pp, "I128");
 }
 
 /* Print out a CHARACTER literal.  */
@@ -2229,7 +2231,7 @@ print_c_tree (FILE *file, tree t)
 
 /* Print the tree T in full, on stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_c_tree (tree t)
 {
   print_c_tree (stderr, t);

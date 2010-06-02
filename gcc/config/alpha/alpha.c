@@ -29,7 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "output.h"
@@ -7138,26 +7137,27 @@ alpha_fold_builtin_ctpop (unsigned HOST_WIDE_INT opint[], long op_const)
 /* Fold one of our builtin functions.  */
 
 static tree
-alpha_fold_builtin (tree fndecl, tree arglist, bool ignore ATTRIBUTE_UNUSED)
+alpha_fold_builtin (tree fndecl, int n_args, tree *op,
+		    bool ignore ATTRIBUTE_UNUSED)
 {
-  tree op[MAX_ARGS], t;
   unsigned HOST_WIDE_INT opint[MAX_ARGS];
-  long op_const = 0, arity = 0;
+  long op_const = 0;
+  int i;
 
-  for (t = arglist; t ; t = TREE_CHAIN (t), ++arity)
+  if (n_args >= MAX_ARGS)
+    return NULL;
+
+  for (i = 0; i < n_args; i++)
     {
-      tree arg = TREE_VALUE (t);
+      tree arg = op[i];
       if (arg == error_mark_node)
 	return NULL;
-      if (arity >= MAX_ARGS)
-	return NULL;
 
-      op[arity] = arg;
-      opint[arity] = 0;
+      opint[i] = 0;
       if (TREE_CODE (arg) == INTEGER_CST)
 	{
-          op_const |= 1L << arity;
-	  opint[arity] = int_cst_value (arg);
+          op_const |= 1L << i;
+	  opint[i] = int_cst_value (arg);
 	}
     }
 

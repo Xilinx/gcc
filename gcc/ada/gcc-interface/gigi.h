@@ -342,6 +342,9 @@ enum standard_datatypes
   /* Identifier for the name of the _Parent field in tagged record types.  */
   ADT_parent_name_id,
 
+  /* Identifier for the name of the Exception_Data type.  */
+  ADT_exception_data_name_id,
+
   /* Types and decls used by our temporary exception mechanism.  See
      init_gigi_decls for details.  */
   ADT_jmpbuf_type,
@@ -376,6 +379,7 @@ extern GTY(()) tree gnat_raise_decls[(int) LAST_REASON_CODE + 1];
 #define free_decl gnat_std_decls[(int) ADT_free_decl]
 #define mulv64_decl gnat_std_decls[(int) ADT_mulv64_decl]
 #define parent_name_id gnat_std_decls[(int) ADT_parent_name_id]
+#define exception_data_name_id gnat_std_decls[(int) ADT_exception_data_name_id]
 #define jmpbuf_type gnat_std_decls[(int) ADT_jmpbuf_type]
 #define jmpbuf_ptr_type gnat_std_decls[(int) ADT_jmpbuf_ptr_type]
 #define get_jmpbuf_decl gnat_std_decls[(int) ADT_get_jmpbuf_decl]
@@ -858,20 +862,6 @@ extern bool default_pass_by_ref (tree gnu_type);
 /* GNU_TYPE is the type of a subprogram parameter.  Determine from the type
    if it should be passed by reference.  */
 extern bool must_pass_by_ref (tree gnu_type);
-
-/* This function is called by the front end to enumerate all the supported
-   modes for the machine.  We pass a function which is called back with
-   the following integer parameters:
-
-   FLOAT_P	nonzero if this represents a floating-point mode
-   COMPLEX_P	nonzero is this represents a complex mode
-   COUNT	count of number of items, nonzero for vector mode
-   PRECISION	number of bits in data representation
-   MANTISSA	number of bits in mantissa, if FP and known, else zero.
-   SIZE		number of bits used to store data
-   ALIGN	number of bits to which mode is aligned.  */
-extern void enumerate_modes (void (*f) (int, int, int, int, int, int,
-					unsigned int));
 
 /* Return the size of the FP mode with precision PREC.  */
 extern int fp_prec_to_size (int prec);
