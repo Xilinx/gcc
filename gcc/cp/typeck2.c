@@ -1,7 +1,7 @@
 /* Report error messages, build initializers, and perform
    some front-end optimizations for C++ compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -37,8 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "toplev.h"
 #include "output.h"
-#include "diagnostic.h"
-#include "real.h"
+#include "diagnostic-core.h"
 
 static tree
 process_init_constructor (tree type, tree init);
@@ -515,7 +514,8 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type,
 		       "invalid use of dependent type %qT", type);
       break;
 
-    case UNKNOWN_TYPE:
+    case LANG_TYPE:
+      gcc_assert (type == unknown_type_node);
       if (value && TREE_CODE (value) == COMPONENT_REF)
 	goto bad_member;
       else if (value && TREE_CODE (value) == ADDR_EXPR)
@@ -1170,17 +1170,15 @@ process_init_constructor_record (tree type, tree init)
 	     default-initialization, we can't rely on the back end to do it
 	     for us, so build up TARGET_EXPRs.  If the type in question is
 	     a class, just build one up; if it's an array, recurse.  */
+	  next = build_constructor (init_list_type_node, NULL);
 	  if (MAYBE_CLASS_TYPE_P (TREE_TYPE (field)))
 	    {
-	      next = build_functional_cast (TREE_TYPE (field), NULL_TREE,
-					    tf_warning_or_error);
+	      next = finish_compound_literal (TREE_TYPE (field), next);
 	      /* direct-initialize the target. No temporary is going
 		  to be involved.  */
 	      if (TREE_CODE (next) == TARGET_EXPR)
 		TARGET_EXPR_DIRECT_INIT_P (next) = true;
 	    }
-	  else
-	    next = build_constructor (init_list_type_node, NULL);
 
 	  next = digest_init_r (TREE_TYPE (field), next, true, LOOKUP_IMPLICIT);
 
@@ -1405,9 +1403,9 @@ tree
 build_x_arrow (tree expr)
 {
   tree orig_expr = expr;
-  tree types_memoized = NULL_TREE;
   tree type = TREE_TYPE (expr);
   tree last_rval = NULL_TREE;
+  VEC(tree,gc) *types_memoized = NULL;
 
   if (type == error_mark_node)
     return error_mark_node;
@@ -1426,19 +1424,20 @@ build_x_arrow (tree expr)
 				   /*overloaded_p=*/NULL, 
 				   tf_warning_or_error)))
 	{
+	  tree t;
+	  unsigned ix;
+
 	  if (expr == error_mark_node)
 	    return error_mark_node;
 
-	  if (value_member (TREE_TYPE (expr), types_memoized))
-	    {
-	      error ("circular pointer delegation detected");
-	      return error_mark_node;
-	    }
-	  else
-	    {
-	      types_memoized = tree_cons (NULL_TREE, TREE_TYPE (expr),
-					  types_memoized);
-	    }
+	  for (ix = 0; VEC_iterate (tree, types_memoized, ix, t); ix++)
+	    if (TREE_TYPE (expr) == t)
+	      {
+		error ("circular pointer delegation detected");
+		return error_mark_node;
+	      }
+
+	  VEC_safe_push (tree, gc, types_memoized, TREE_TYPE (expr));
 	  last_rval = expr;
 	}
 
@@ -1584,7 +1583,7 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
 
   if (TREE_CODE (type) == REFERENCE_TYPE && !parms)
     {
-      error ("invalid value-initialization of reference types");
+      error ("invalid value-initialization of reference type");
       return error_mark_node;
     }
 

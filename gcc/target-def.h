@@ -204,6 +204,14 @@
 #define TARGET_ASM_FILE_END hook_void_void
 #endif
 
+#ifndef TARGET_ASM_LTO_START
+#define TARGET_ASM_LTO_START hook_void_void
+#endif
+
+#ifndef TARGET_ASM_LTO_END
+#define TARGET_ASM_LTO_END hook_void_void
+#endif
+
 #ifndef TARGET_ASM_CODE_END
 #define TARGET_ASM_CODE_END hook_void_void
 #endif
@@ -296,6 +304,8 @@
                         TARGET_ASM_CAN_OUTPUT_MI_THUNK,         \
                         TARGET_ASM_FILE_START,                  \
                         TARGET_ASM_FILE_END,			\
+                        TARGET_ASM_LTO_START,			\
+                        TARGET_ASM_LTO_END,			\
                         TARGET_ASM_CODE_END,			\
 			TARGET_ASM_EXTERNAL_LIBCALL,            \
                         TARGET_ASM_MARK_DECL_PRESERVED,		\
@@ -421,6 +431,7 @@
 #define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE hook_void_void
 
 #define TARGET_HANDLE_OPTION hook_bool_size_t_constcharptr_int_true
+#define TARGET_HANDLE_OFAST hook_void_void
 #define TARGET_HELP NULL
 
 /* In except.c */
@@ -446,7 +457,7 @@
 #define TARGET_INIT_BUILTINS hook_void_void
 #define TARGET_EXPAND_BUILTIN default_expand_builtin
 #define TARGET_RESOLVE_OVERLOADED_BUILTIN NULL
-#define TARGET_FOLD_BUILTIN hook_tree_tree_tree_bool_null
+#define TARGET_FOLD_BUILTIN hook_tree_tree_int_treep_bool_null
 #define TARGET_BUILTIN_DECL NULL
 
 /* In tree-ssa-math-opts.c  */
@@ -527,6 +538,10 @@
 #define TARGET_SCALAR_MODE_SUPPORTED_P default_scalar_mode_supported_p
 #endif
 
+#ifndef TARGET_ENUM_VA_LIST_P
+#define TARGET_ENUM_VA_LIST_P NULL
+#endif
+
 #ifndef TARGET_DECIMAL_FLOAT_SUPPORTED_P
 #define TARGET_DECIMAL_FLOAT_SUPPORTED_P default_decimal_float_supported_p
 #endif
@@ -587,6 +602,10 @@
 
 #ifndef TARGET_IN_SMALL_DATA_P
 #define TARGET_IN_SMALL_DATA_P hook_bool_const_tree_false
+#endif
+
+#ifndef TARGET_MODE_DEPENDENT_ADDRESS_P
+#define TARGET_MODE_DEPENDENT_ADDRESS_P default_mode_dependent_address_p
 #endif
 
 #ifndef TARGET_MANGLE_DECL_ASSEMBLER_NAME
@@ -925,6 +944,7 @@
   TARGET_DEFAULT_TARGET_FLAGS,			\
   TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE,		\
   TARGET_HANDLE_OPTION,				\
+  TARGET_HANDLE_OFAST,				\
   TARGET_HELP,					\
   TARGET_EH_RETURN_FILTER_MODE,			\
   TARGET_LIBGCC_CMP_RETURN_MODE,                \
@@ -960,6 +980,7 @@
   TARGET_CANNOT_FORCE_CONST_MEM,		\
   TARGET_CANNOT_COPY_INSN_P,			\
   TARGET_COMMUTATIVE_P,				\
+  TARGET_MODE_DEPENDENT_ADDRESS_P,		\
   TARGET_LEGITIMIZE_ADDRESS,			\
   TARGET_DELEGITIMIZE_ADDRESS,			\
   TARGET_LEGITIMATE_ADDRESS_P,			\
@@ -992,6 +1013,7 @@
   TARGET_CC_MODES_COMPATIBLE,			\
   TARGET_MACHINE_DEPENDENT_REORG,		\
   TARGET_BUILD_BUILTIN_VA_LIST,			\
+  TARGET_ENUM_VA_LIST_P,			\
   TARGET_FN_ABI_VA_LIST,			\
   TARGET_CANONICAL_VA_LIST_TYPE,		\
   TARGET_EXPAND_BUILTIN_VA_START,		\

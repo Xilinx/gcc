@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "output.h"
@@ -1655,12 +1654,30 @@ override_options (void)
       if (!PARAM_SET_P (PARAM_MAX_UNROLL_TIMES))
 	set_param_value ("max-unroll-times", 32);
       if (!PARAM_SET_P (PARAM_MAX_COMPLETELY_PEELED_INSNS))
-	set_param_value ("max-completely-peeled-insns", 800);
+	set_param_value ("max-completely-peeled-insns", 2000);
       if (!PARAM_SET_P (PARAM_MAX_COMPLETELY_PEEL_TIMES))
 	set_param_value ("max-completely-peel-times", 64);
     }
 
   set_param_value ("max-pending-list-length", 256);
+  /* values for loop prefetching */
+  set_param_value ("l1-cache-line-size", 256);
+  if (!PARAM_SET_P (PARAM_L1_CACHE_SIZE))
+    set_param_value ("l1-cache-size", 128);
+  /* s390 has more than 2 levels and the size is much larger.  Since
+     we are always running virtualized assume that we only get a small
+     part of the caches above l1.  */
+  if (!PARAM_SET_P (PARAM_L2_CACHE_SIZE))
+    set_param_value ("l2-cache-size", 1500);
+  if (!PARAM_SET_P (PARAM_PREFETCH_MIN_INSN_TO_MEM_RATIO))
+    set_param_value ("prefetch-min-insn-to-mem-ratio", 2);
+  if (!PARAM_SET_P (PARAM_SIMULTANEOUS_PREFETCHES))
+    set_param_value ("simultaneous-prefetches", 6);
+
+  /* This cannot reside in optimization_options since HAVE_prefetch
+     requires the arch flags to be evaluated already.  */
+  if (HAVE_prefetch && optimize >= 3)
+    flag_prefetch_loop_arrays = 1;
 }
 
 /* Map for smallest class containing reg regno.  */
@@ -2790,11 +2807,6 @@ legitimate_reload_constant_p (rtx op)
   /* Accept larl operands.  */
   if (TARGET_CPU_ZARCH
       && larl_operand (op, VOIDmode))
-    return true;
-
-  /* Accept lzXX operands.  */
-  if (GET_CODE (op) == CONST_DOUBLE
-      && CONST_DOUBLE_OK_FOR_CONSTRAINT_P (op, 'G', "G"))
     return true;
 
   /* Accept double-word operands that can be split.  */
@@ -7949,11 +7961,10 @@ s390_emit_prologue (void)
 	  insn = emit_insn (gen_move_insn (addr, temp_reg));
 	}
 
-      /* If we support asynchronous exceptions (e.g. for Java),
+      /* If we support non-call exceptions (e.g. for Java),
 	 we need to make sure the backchain pointer is set up
 	 before any possibly trapping memory access.  */
-
-      if (TARGET_BACKCHAIN && flag_non_call_exceptions)
+      if (TARGET_BACKCHAIN && cfun->can_throw_non_call_exceptions)
 	{
 	  addr = gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (VOIDmode));
 	  emit_clobber (addr);

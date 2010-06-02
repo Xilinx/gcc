@@ -26,11 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "convert.h"
-#include "ggc.h"
-#include "toplev.h"
-#include "real.h"
-#include "gimple.h"
+#include "toplev.h"	/* For fatal_error.  */
 #include "langhooks.h"
 #include "flags.h"
 #include "gfortran.h"
@@ -1114,8 +1110,6 @@ gfc_conv_string_tmp (gfc_se * se, tree type, tree len)
 {
   tree var;
   tree tmp;
-
-  gcc_assert (types_compatible_p (TREE_TYPE (len), gfc_charlen_type_node));
 
   if (gfc_can_put_var_on_stack (len))
     {
@@ -3894,7 +3888,10 @@ gfc_conv_initializer (gfc_expr * expr, gfc_typespec * ts, tree type,
 	case BT_DERIVED:
 	case BT_CLASS:
 	  gfc_init_se (&se, NULL);
-	  gfc_conv_structure (&se, expr, 1);
+	  if (ts->type == BT_CLASS && expr->expr_type == EXPR_NULL)
+	    gfc_conv_structure (&se, gfc_class_null_initializer(ts), 1);
+	  else
+	    gfc_conv_structure (&se, expr, 1);
 	  return se.expr;
 
 	case BT_CHARACTER:
@@ -4202,7 +4199,7 @@ gfc_trans_subcomponent_assign (tree dest, gfc_component * cm, gfc_expr * expr)
     {
       /* NULL initialization for CLASS components.  */
       tmp = gfc_trans_structure_assign (dest,
-					gfc_default_initializer (&cm->ts));
+					gfc_class_null_initializer (&cm->ts));
       gfc_add_expr_to_block (&block, tmp);
     }
   else if (cm->attr.dimension)
@@ -4334,20 +4331,7 @@ gfc_conv_structure (gfc_se * se, gfc_expr * expr, int init)
       if (!c->expr || cm->attr.allocatable)
         continue;
 
-      if (cm->ts.type == BT_CLASS && !cm->attr.proc_pointer)
-	{
-	  gfc_component *data;
-	  data = gfc_find_component (cm->ts.u.derived, "$data", true, true);
-	  if (!data->backend_decl)
-	    gfc_get_derived_type (cm->ts.u.derived);
-	  val = gfc_conv_initializer (c->expr, &cm->ts,
-				      TREE_TYPE (data->backend_decl),
-				      data->attr.dimension,
-				      data->attr.pointer);
-
-	  CONSTRUCTOR_APPEND_ELT (v, data->backend_decl, val);
-	}
-      else if (strcmp (cm->name, "$size") == 0)
+      if (strcmp (cm->name, "$size") == 0)
 	{
 	  val = TYPE_SIZE_UNIT (gfc_get_derived_type (cm->ts.u.derived));
 	  CONSTRUCTOR_APPEND_ELT (v, cm->backend_decl, val);

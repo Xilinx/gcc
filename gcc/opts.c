@@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "params.h"
 #include "diagnostic.h"
+#include "opts-diagnostic.h"
 #include "tm_p.h"		/* For OPTIMIZATION_OPTIONS.  */
 #include "insn-attr.h"		/* For INSN_SCHEDULING.  */
 #include "target.h"
@@ -63,7 +64,7 @@ bool warn_larger_than;
 HOST_WIDE_INT larger_than_size;
 
 /* True to warn about any function whose frame size is larger
- * than N bytes. */
+   than N bytes. */
 bool warn_frame_larger_than;
 HOST_WIDE_INT frame_larger_than_size;
 
@@ -502,24 +503,30 @@ handle_option (int opt_index, int value, const char *arg,
     {
       if (lang_hooks.handle_option (opt_index, arg, value, kind) == 0)
 	return false;
+#ifdef ENABLE_LTO
       else
 	lto_register_user_option (opt_index, arg, value, lang_mask);
+ #endif
     }
 
   if (option->flags & CL_COMMON)
     {
       if (common_handle_option (opt_index, arg, value, lang_mask, kind) == 0)
 	return false;
+#ifdef ENABLE_LTO
       else
 	lto_register_user_option (opt_index, arg, value, CL_COMMON);
+#endif
     }
 
   if (option->flags & CL_TARGET)
     {
       if (!targetm.handle_option (opt_index, arg, value))
 	return false;
+#ifdef ENABLE_LTO
       else
 	lto_register_user_option (opt_index, arg, value, CL_TARGET);
+#endif
     }
   return true;
 }
@@ -798,6 +805,7 @@ decode_options (unsigned int argc, const char **argv)
   int opt2;
   int opt3;
   int opt1_max;
+  int ofast = 0;
 
   if (first_time_p)
     {
@@ -825,6 +833,7 @@ decode_options (unsigned int argc, const char **argv)
 	{
 	  optimize = 1;
 	  optimize_size = 0;
+	  ofast = 0;
 	}
       else if (argv[i][0] == '-' && argv[i][1] == 'O')
 	{
@@ -837,6 +846,14 @@ decode_options (unsigned int argc, const char **argv)
 
 	      /* Optimizing for size forces optimize to be 2.  */
 	      optimize = 2;
+	      ofast = 0;
+	    }
+	  else if (strcmp (p, "fast") == 0)
+	    {
+	      /* -Ofast only adds flags to -O3.  */
+	      optimize_size = 0;
+	      optimize = 3;
+	      ofast = 1;
 	    }
 	  else
 	    {
@@ -847,6 +864,7 @@ decode_options (unsigned int argc, const char **argv)
 		  if ((unsigned int) optimize > 255)
 		    optimize = 255;
 		  optimize_size = 0;
+		  ofast = 0;
 		}
 	    }
 	}
@@ -961,6 +979,17 @@ decode_options (unsigned int argc, const char **argv)
   else
     set_param_value ("min-crossjump-insns", initial_min_crossjump_insns);
 
+  /* -Ofast adds optimizations to -O3.  */
+  if (ofast)
+    {
+      /* Which is -ffast-math for now.  */
+      set_fast_math_flags (1);
+      /* Allow targets to enable extra options with -Ofast
+	 before general options processing so disabling them
+	 again afterwards works.  */
+      targetm.handle_ofast ();
+    }
+
   /* Enable -Werror=coverage-mismatch by default */
   enable_warning_as_error("coverage-mismatch", 1, lang_mask);
 
@@ -980,8 +1009,10 @@ decode_options (unsigned int argc, const char **argv)
       flag_unwind_tables = targetm.unwind_tables_default;
     }
 
+#ifdef ENABLE_LTO
   /* Clear any options currently held for LTO.  */
   lto_clear_user_options ();
+#endif
 
 #ifdef OPTIMIZATION_OPTIONS
   /* Allow default optimizations to be specified on a per-machine basis.  */
@@ -1142,9 +1173,6 @@ decode_options (unsigned int argc, const char **argv)
   if (flag_wpa || flag_ltrans)
     {
       /* These passes are not WHOPR compatible yet.  */
-      flag_ipa_cp = 0;
-      flag_ipa_reference = 0;
-      flag_ipa_type_escape = 0;
       flag_ipa_pta = 0;
       flag_ipa_struct_reorg = 0;
     }
@@ -1659,6 +1687,7 @@ common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_O:
     case OPT_Os:
+    case OPT_Ofast:
       /* Currently handled in a prescan.  */
       break;
 
@@ -1674,6 +1703,10 @@ common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wlarger_than_eq:
       larger_than_size = value;
       warn_larger_than = value != -1;
+      break;
+
+    case OPT_Wfatal_errors:
+      global_dc->fatal_errors = value;
       break;
 
     case OPT_Wframe_larger_than_:
@@ -1697,6 +1730,10 @@ common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_Wstrict_overflow_:
       warn_strict_overflow = value;
+      break;
+
+    case OPT_Wsystem_headers:
+      global_dc->warn_system_headers = value;
       break;
 
     case OPT_Wunused:
@@ -1928,6 +1965,10 @@ common_handle_option (size_t scode, const char *arg, int value,
       flag_profile_values_set = true;
       break;
 
+    case OPT_fshow_column:
+      global_dc->show_column = value;
+      break;
+
     case OPT_fvisibility_:
       {
         if (!strcmp(arg, "default"))
@@ -2142,6 +2183,15 @@ common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_pedantic_errors:
       flag_pedantic_errors = pedantic = 1;
+      global_dc->pedantic_errors = 1;
+      break;
+
+    case OPT_fwhopr:
+      flag_whopr = value;
+      break;
+
+    case OPT_w:
+      global_dc->inhibit_warnings = true;
       break;
 
     case OPT_fsee:
@@ -2478,4 +2528,39 @@ enable_warning_as_error (const char *arg, int value, unsigned int lang_mask)
 	}
     }
   free (new_option);
+}
+
+/* Return malloced memory for the name of the option OPTION_INDEX
+   which enabled a diagnostic (context CONTEXT), originally of type
+   ORIG_DIAG_KIND but possibly converted to DIAG_KIND by options such
+   as -Werror.  */
+
+char *
+option_name (diagnostic_context *context, int option_index,
+	     diagnostic_t orig_diag_kind, diagnostic_t diag_kind)
+{
+  if (option_index)
+    {
+      /* A warning classified as an error.  */
+      if ((orig_diag_kind == DK_WARNING || orig_diag_kind == DK_PEDWARN)
+	  && diag_kind == DK_ERROR)
+	return concat (cl_options[OPT_Werror_].opt_text,
+		       /* Skip over "-W".  */
+		       cl_options[option_index].opt_text + 2,
+		       NULL);
+      /* A warning with option.  */
+      else
+	return xstrdup (cl_options[option_index].opt_text);
+    }
+  /* A warning without option classified as an error.  */
+  else if (orig_diag_kind == DK_WARNING || orig_diag_kind == DK_PEDWARN
+	   || diag_kind == DK_WARNING)
+    {
+      if (context->warning_as_error_requested)
+	return xstrdup (cl_options[OPT_Werror].opt_text);
+      else
+	return xstrdup (_("enabled by default"));
+    }
+  else
+    return NULL;
 }

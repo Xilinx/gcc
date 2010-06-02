@@ -25,20 +25,17 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "flags.h"
-#include "rtl.h"
 #include "tm_p.h"
-#include "ggc.h"
 #include "basic-block.h"
 #include "cfgloop.h"
 #include "output.h"
-#include "expr.h"
 #include "function.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "timevar.h"
 #include "tree-dump.h"
 #include "tree-flow.h"
 #include "domwalk.h"
-#include "real.h"
 #include "tree-pass.h"
 #include "tree-ssa-propagate.h"
 #include "langhooks.h"
@@ -1043,7 +1040,7 @@ dump_dominator_optimization_stats (FILE *file)
 
 /* Dump SSA statistics on stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_dominator_optimization_stats (void)
 {
   dump_dominator_optimization_stats (stderr);

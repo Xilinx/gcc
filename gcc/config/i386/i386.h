@@ -240,6 +240,7 @@ extern const struct processor_costs ix86_size_cost;
 #define TARGET_GENERIC64 (ix86_tune == PROCESSOR_GENERIC64)
 #define TARGET_GENERIC (TARGET_GENERIC32 || TARGET_GENERIC64)
 #define TARGET_AMDFAM10 (ix86_tune == PROCESSOR_AMDFAM10)
+#define TARGET_BDVER1 (ix86_tune == PROCESSOR_BDVER1)
 #define TARGET_ATOM (ix86_tune == PROCESSOR_ATOM)
 
 /* Feature tests against the various tunings.  */
@@ -277,7 +278,9 @@ enum ix86_tune_indices {
   X86_TUNE_INTEGER_DFMODE_MOVES,
   X86_TUNE_PARTIAL_REG_DEPENDENCY,
   X86_TUNE_SSE_PARTIAL_REG_DEPENDENCY,
-  X86_TUNE_SSE_UNALIGNED_MOVE_OPTIMAL,
+  X86_TUNE_SSE_UNALIGNED_LOAD_OPTIMAL,
+  X86_TUNE_SSE_UNALIGNED_STORE_OPTIMAL,
+  X86_TUNE_SSE_PACKED_SINGLE_INSN_OPTIMAL,
   X86_TUNE_SSE_SPLIT_REGS,
   X86_TUNE_SSE_TYPELESS_STORES,
   X86_TUNE_SSE_LOAD0_BY_PXOR,
@@ -352,8 +355,12 @@ extern unsigned char ix86_tune_features[X86_TUNE_LAST];
 	ix86_tune_features[X86_TUNE_PARTIAL_REG_DEPENDENCY]
 #define TARGET_SSE_PARTIAL_REG_DEPENDENCY \
 	ix86_tune_features[X86_TUNE_SSE_PARTIAL_REG_DEPENDENCY]
-#define TARGET_SSE_UNALIGNED_MOVE_OPTIMAL \
-	ix86_tune_features[X86_TUNE_SSE_UNALIGNED_MOVE_OPTIMAL]
+#define TARGET_SSE_UNALIGNED_LOAD_OPTIMAL \
+	ix86_tune_features[X86_TUNE_SSE_UNALIGNED_LOAD_OPTIMAL]
+#define TARGET_SSE_UNALIGNED_STORE_OPTIMAL \
+	ix86_tune_features[X86_TUNE_SSE_UNALIGNED_STORE_OPTIMAL]
+#define TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL \
+	ix86_tune_features[X86_TUNE_SSE_PACKED_SINGLE_INSN_OPTIMAL]
 #define TARGET_SSE_SPLIT_REGS	ix86_tune_features[X86_TUNE_SSE_SPLIT_REGS]
 #define TARGET_SSE_TYPELESS_STORES \
 	ix86_tune_features[X86_TUNE_SSE_TYPELESS_STORES]
@@ -591,6 +598,7 @@ enum target_cpu_default
   TARGET_CPU_DEFAULT_athlon_sse,
   TARGET_CPU_DEFAULT_k8,
   TARGET_CPU_DEFAULT_amdfam10,
+  TARGET_CPU_DEFAULT_bdver1,
 
   TARGET_CPU_DEFAULT_max
 };
@@ -2193,6 +2201,7 @@ enum processor_type
   PROCESSOR_GENERIC32,
   PROCESSOR_GENERIC64,
   PROCESSOR_AMDFAM10,
+  PROCESSOR_BDVER1,
   PROCESSOR_ATOM,
   PROCESSOR_max
 };
@@ -2365,12 +2374,9 @@ struct GTY(()) machine_function {
      has been computed for.  */
   int use_fast_prologue_epilogue_nregs;
 
-  /* The CFA state at the end of the prologue.  */
-  struct machine_cfa_state cfa;
-
   /* This value is used for amd64 targets and specifies the current abi
      to be used. MS_ABI means ms abi. Otherwise SYSV_ABI means sysv abi.  */
-  enum calling_abi call_abi;
+  ENUM_BITFIELD(calling_abi) call_abi : 8;
 
   /* Nonzero if the function accesses a previous frame.  */
   BOOL_BITFIELD accesses_prev_frame : 1;
@@ -2396,6 +2402,9 @@ struct GTY(()) machine_function {
   /* If true, the current function has a STATIC_CHAIN is placed on the
      stack below the return address.  */
   BOOL_BITFIELD static_chain_on_stack : 1;
+
+  /* The CFA state at the end of the prologue.  */
+  struct machine_cfa_state cfa;
 };
 #endif
 
@@ -2440,11 +2449,6 @@ struct GTY(()) machine_function {
 /* Cost of conditional branch.  */
 #undef TARG_COND_BRANCH_COST
 #define TARG_COND_BRANCH_COST           ix86_cost->branch_cost
-
-/* Enum through the target specific extra va_list types.
-   Please, do not iterate the base va_list type name.  */
-#define TARGET_ENUM_VA_LIST(IDX, PNAME, PTYPE) \
-  (TARGET_64BIT ? ix86_enum_va_list (IDX, PNAME, PTYPE) : 0)
 
 /* Cost of any scalar operation, excluding load and store.  */
 #undef TARG_SCALAR_STMT_COST

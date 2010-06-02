@@ -27,7 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "hard-reg-set.h"
 #include "flags.h"
-#include "real.h"
 #include "insn-config.h"
 #include "recog.h"
 #include "basic-block.h"
@@ -37,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "timevar.h"
 #include "df.h"
+#include "emit-rtl.h"
 
 /* We want target macros for the mode switching code to be able to refer
    to instruction attribute values.  */

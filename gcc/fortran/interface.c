@@ -1645,8 +1645,8 @@ get_sym_storage_size (gfc_symbol *sym)
 	  || sym->as->lower[i]->expr_type != EXPR_CONSTANT)
 	return 0;
 
-      elements *= mpz_get_ui (sym->as->upper[i]->value.integer)
-		  - mpz_get_ui (sym->as->lower[i]->value.integer) + 1L;
+      elements *= mpz_get_si (sym->as->upper[i]->value.integer)
+		  - mpz_get_si (sym->as->lower[i]->value.integer) + 1L;
     }
 
   return strlen*elements;
@@ -2734,7 +2734,7 @@ matching_typebound_op (gfc_expr** tb_base,
 	gfc_try result;
 
 	if (base->expr->ts.type == BT_CLASS)
-	  derived = base->expr->ts.u.derived->components->ts.u.derived;
+	  derived = CLASS_DATA (base->expr)->ts.u.derived;
 	else
 	  derived = base->expr->ts.u.derived;
 

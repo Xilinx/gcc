@@ -25,12 +25,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
+#include "tm.h"		/* For UNITS_PER_WORD.  */
 #include "tree.h"
 #include "ggc.h"
-#include "toplev.h"
-#include "real.h"
-#include "gimple.h"
+#include "toplev.h"	/* For rest_of_decl_compilation/internal_error.  */
 #include "flags.h"
 #include "gfortran.h"
 #include "arith.h"
@@ -4529,6 +4527,8 @@ gfc_conv_allocated (gfc_se *se, gfc_expr *expr)
     {
       /* Allocatable scalar.  */
       arg1se.want_pointer = 1;
+      if (arg1->expr->ts.type == BT_CLASS)
+	gfc_add_component_ref (arg1->expr, "$data");
       gfc_conv_expr (&arg1se, arg1->expr);
       tmp = arg1se.expr;
     }

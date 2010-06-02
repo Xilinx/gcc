@@ -100,18 +100,17 @@ a register with any other reload.  */
 #include "expr.h"
 #include "optabs.h"
 #include "recog.h"
+#include "df.h"
 #include "reload.h"
 #include "regs.h"
 #include "addresses.h"
 #include "hard-reg-set.h"
 #include "flags.h"
-#include "real.h"
 #include "output.h"
 #include "function.h"
 #include "toplev.h"
 #include "params.h"
 #include "target.h"
-#include "df.h"
 #include "ira.h"
 
 /* True if X is a constant that can be forced into the constant pool.  */
@@ -7338,7 +7337,7 @@ static const char *const reload_when_needed_name[] =
 
 /* These functions are used to print the variables set by 'find_reloads' */
 
-void
+DEBUG_FUNCTION void
 debug_reload_to_stream (FILE *f)
 {
   int r;
@@ -7433,7 +7432,7 @@ debug_reload_to_stream (FILE *f)
     }
 }
 
-void
+DEBUG_FUNCTION void
 debug_reload (void)
 {
   debug_reload_to_stream (stderr);

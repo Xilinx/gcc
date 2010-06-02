@@ -45,6 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target-def.h"
 #include "df.h"
 #include "tree-pass.h"
+#include "emit-rtl.h"  /* FIXME: Can go away once crtl is moved to rtl.h.  */
 
 DEF_VEC_P(df_ref);
 DEF_VEC_ALLOC_P_STACK(df_ref);
@@ -2396,7 +2397,7 @@ df_ref_compare (const void *r1, const void *r2)
       if (DF_REF_EXTRACT_MODE (ref1) != DF_REF_EXTRACT_MODE (ref2))
 	return DF_REF_EXTRACT_MODE (ref1) - DF_REF_EXTRACT_MODE (ref2);
     }
-  return 0;
+  return (int)DF_REF_ORDER (ref1) - (int)DF_REF_ORDER (ref2);
 }
 
 static void

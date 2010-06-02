@@ -19,6 +19,10 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+/* FIXME: Still need to include rtl.h here (via expr.h) in a front-end file.
+   Pretend this is a back-end file.  */
+#undef IN_GCC_FRONTEND
+
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -28,9 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "output.h"
 #include "c-pragma.h"
-#include "rtl.h"
 #include "ggc.h"
-#include "expr.h"
 #include "c-common.h"
 #include "tm_p.h"
 #include "obstack.h"
@@ -38,19 +40,20 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "langhooks.h"
 #include "tree-inline.h"
-#include "c-tree.h"
 #include "toplev.h"
 #include "diagnostic.h"
 #include "tree-iterator.h"
 #include "hashtab.h"
 #include "tree-mudflap.h"
 #include "opts.h"
-#include "real.h"
 #include "cgraph.h"
 #include "target-def.h"
-#include "gimple.h"
-#include "fixed-value.h"
 #include "libfuncs.h"
+
+#include "expr.h" /* For vector_mode_valid_p */
+
+/* FIXME: Needed for TARGET_ENUM_VA_LIST, which should be a target hook.  */
+#include "tm_p.h"
 
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
@@ -62,10 +65,12 @@ cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 	tree short_integer_type_node;
 	tree long_integer_type_node;
 	tree long_long_integer_type_node;
+	tree int128_integer_type_node;
 
 	tree short_unsigned_type_node;
 	tree long_unsigned_type_node;
 	tree long_long_unsigned_type_node;
+	tree int128_unsigned_type_node;
 
 	tree truthvalue_type_node;
 	tree truthvalue_false_node;
@@ -529,6 +534,7 @@ static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
 static tree handle_target_attribute (tree *, tree, tree, int, bool *);
 static tree handle_optimize_attribute (tree *, tree, tree, int, bool *);
+static tree handle_fnspec_attribute (tree *, tree, tree, int, bool *);
 
 static void check_function_nonnull (tree, int, tree *);
 static void check_nonnull_arg (void *, tree, unsigned HOST_WIDE_INT);
@@ -563,6 +569,7 @@ const struct c_common_resword c_common_reswords[] =
   { "_Fract",           RID_FRACT,     D_CONLY | D_EXT },
   { "_Accum",           RID_ACCUM,     D_CONLY | D_EXT },
   { "_Sat",             RID_SAT,       D_CONLY | D_EXT },
+  { "_Static_assert",   RID_STATIC_ASSERT, D_CONLY },
   { "__FUNCTION__",	RID_FUNCTION_NAME, 0 },
   { "__PRETTY_FUNCTION__", RID_PRETTY_FUNCTION_NAME, 0 },
   { "__alignof",	RID_ALIGNOF,	0 },
@@ -590,6 +597,7 @@ const struct c_common_resword c_common_reswords[] =
   { "__has_trivial_copy", RID_HAS_TRIVIAL_COPY, D_CXXONLY },
   { "__has_trivial_destructor", RID_HAS_TRIVIAL_DESTRUCTOR, D_CXXONLY },
   { "__has_virtual_destructor", RID_HAS_VIRTUAL_DESTRUCTOR, D_CXXONLY },
+  { "__int128",		RID_INT128,	0 },
   { "__is_abstract",	RID_IS_ABSTRACT, D_CXXONLY },
   { "__is_base_of",	RID_IS_BASE_OF, D_CXXONLY },
   { "__is_class",	RID_IS_CLASS,	D_CXXONLY },
@@ -710,11 +718,6 @@ const struct c_common_resword c_common_reswords[] =
   { "inout",		RID_INOUT,		D_OBJC },
   { "oneway",		RID_ONEWAY,		D_OBJC },
   { "out",		RID_OUT,		D_OBJC },
-
-#ifdef TARGET_ADDR_SPACE_KEYWORDS
-  /* Any address space keywords recognized by the target.  */
-  TARGET_ADDR_SPACE_KEYWORDS,
-#endif
 };
 
 const unsigned int num_c_common_reswords =
@@ -829,6 +832,10 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_target_attribute },
   { "optimize",               1, -1, true, false, false,
 			      handle_optimize_attribute },
+  /* For internal use (marking of builtins and runtime functions) only.
+     The name contains space to prevent its usage in source code.  */
+  { "fn spec",	 	      1, 1, false, true, true,
+			      handle_fnspec_attribute },
   { NULL,                     0, 0, false, false, false, NULL }
 };
 
@@ -846,16 +853,13 @@ const struct attribute_spec c_common_format_attribute_table[] =
 };
 
 /* Return identifier for address space AS.  */
+
 const char *
 c_addr_space_name (addr_space_t as)
 {
-  unsigned int i;
-
-  for (i = 0; i < num_c_common_reswords; i++)
-    if (c_common_reswords[i].rid == RID_FIRST_ADDR_SPACE + as)
-      return c_common_reswords[i].word;
-
-  gcc_unreachable ();
+  int rid = RID_FIRST_ADDR_SPACE + as;
+  gcc_assert (ridpointers [rid]);
+  return IDENTIFIER_POINTER (ridpointers [rid]);
 }
 
 /* Push current bindings for the function name VAR_DECLS.  */
@@ -2701,7 +2705,7 @@ verify_tree (tree x, struct tlist **pbefore_sp, struct tlist **pno_sp,
 /* Try to warn for undefined behavior in EXPR due to missing sequence
    points.  */
 
-void
+DEBUG_FUNCTION void
 verify_sequence_points (tree expr)
 {
   struct tlist *before_sp = 0, *after_sp = 0;
@@ -2848,6 +2852,11 @@ c_common_type_for_size (unsigned int bits, int unsignedp)
     return (unsignedp ? long_long_unsigned_type_node
 	    : long_long_integer_type_node);
 
+  if (int128_integer_type_node
+      && bits == TYPE_PRECISION (int128_integer_type_node))
+    return (unsignedp ? int128_unsigned_type_node
+	    : int128_integer_type_node);
+
   if (bits == TYPE_PRECISION (widest_integer_literal_type_node))
     return (unsignedp ? widest_unsigned_literal_type_node
 	    : widest_integer_literal_type_node);
@@ -2925,6 +2934,10 @@ c_common_type_for_mode (enum machine_mode mode, int unsignedp)
 
   if (mode == TYPE_MODE (long_long_integer_type_node))
     return unsignedp ? long_long_unsigned_type_node : long_long_integer_type_node;
+
+  if (int128_integer_type_node
+      && mode == TYPE_MODE (int128_integer_type_node))
+    return unsignedp ? int128_unsigned_type_node : int128_integer_type_node;
 
   if (mode == TYPE_MODE (widest_integer_literal_type_node))
     return unsignedp ? widest_unsigned_literal_type_node
@@ -3139,6 +3152,10 @@ c_common_signed_or_unsigned_type (int unsignedp, tree type)
     return unsignedp ? long_unsigned_type_node : long_integer_type_node;
   if (type1 == long_long_integer_type_node || type1 == long_long_unsigned_type_node)
     return unsignedp ? long_long_unsigned_type_node : long_long_integer_type_node;
+  if (int128_integer_type_node
+      && (type1 == int128_integer_type_node
+	  || type1 == int128_unsigned_type_node))
+    return unsignedp ? int128_unsigned_type_node : int128_integer_type_node;
   if (type1 == widest_integer_literal_type_node || type1 == widest_unsigned_literal_type_node)
     return unsignedp ? widest_unsigned_literal_type_node : widest_integer_literal_type_node;
 #if HOST_BITS_PER_WIDE_INT >= 64
@@ -3253,6 +3270,9 @@ c_common_signed_or_unsigned_type (int unsignedp, tree type)
   if (TYPE_OK (long_long_integer_type_node))
     return (unsignedp ? long_long_unsigned_type_node
 	    : long_long_integer_type_node);
+  if (int128_integer_type_node && TYPE_OK (int128_integer_type_node))
+    return (unsignedp ? int128_unsigned_type_node
+	    : int128_integer_type_node);
   if (TYPE_OK (widest_integer_literal_type_node))
     return (unsignedp ? widest_unsigned_literal_type_node
 	    : widest_integer_literal_type_node);
@@ -3296,6 +3316,10 @@ c_build_bitfield_integer_type (unsigned HOST_WIDE_INT width, int unsignedp)
   if (width == TYPE_PRECISION (long_long_integer_type_node))
     return (unsignedp ? long_long_unsigned_type_node
 	    : long_long_integer_type_node);
+  if (int128_integer_type_node
+      && width == TYPE_PRECISION (int128_integer_type_node))
+    return (unsignedp ? int128_unsigned_type_node
+	    : int128_integer_type_node);
   return build_nonstandard_integer_type (width, unsignedp);
 }
 
@@ -4688,6 +4712,13 @@ c_common_nodes_and_builtins (void)
   record_builtin_type (RID_UNSIGNED, "unsigned int", unsigned_type_node);
   record_builtin_type (RID_MAX, "long unsigned int",
 		       long_unsigned_type_node);
+  if (int128_integer_type_node != NULL_TREE)
+    {
+      record_builtin_type (RID_INT128, "__int128",
+			   int128_integer_type_node);
+      record_builtin_type (RID_MAX, "__int128 unsigned",
+			   int128_unsigned_type_node);
+    }
   if (c_dialect_cxx ())
     record_builtin_type (RID_MAX, "unsigned long", long_unsigned_type_node);
   record_builtin_type (RID_MAX, "long long int",
@@ -5062,21 +5093,21 @@ c_common_nodes_and_builtins (void)
     (build_decl (UNKNOWN_LOCATION,
 		 TYPE_DECL, get_identifier ("__builtin_va_list"),
 		 va_list_type_node));
-#ifdef TARGET_ENUM_VA_LIST
-  {
-    int l;
-    const char *pname;
-    tree ptype;
-    for (l = 0; TARGET_ENUM_VA_LIST (l, &pname, &ptype); ++l)
-      {
-	lang_hooks.decls.pushdecl
-	  (build_decl (UNKNOWN_LOCATION,
-		       TYPE_DECL, get_identifier (pname),
-	  	       ptype));
+  if (targetm.enum_va_list)
+    {
+      int l;
+      const char *pname;
+      tree ptype;
 
-      }
-  }
-#endif
+      for (l = 0; targetm.enum_va_list (l, &pname, &ptype); ++l)
+	{
+	  lang_hooks.decls.pushdecl
+	    (build_decl (UNKNOWN_LOCATION,
+		         TYPE_DECL, get_identifier (pname),
+	  	         ptype));
+
+	}
+    }
 
   if (TREE_CODE (va_list_type_node) == ARRAY_TYPE)
     {
@@ -7138,6 +7169,20 @@ handle_alloc_size_attribute (tree *node, tree ARG_UNUSED (name), tree args,
   return NULL_TREE;
 }
 
+/* Handle a "fn spec" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_fnspec_attribute (tree *node ATTRIBUTE_UNUSED, tree ARG_UNUSED (name),
+			 tree args, int ARG_UNUSED (flags),
+			 bool *no_add_attrs ATTRIBUTE_UNUSED)
+{
+  gcc_assert (args
+	      && TREE_CODE (TREE_VALUE (args)) == STRING_CST
+	      && !TREE_CHAIN (args));
+  return NULL_TREE;
+}
+
 /* Handle a "returns_twice" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -8341,7 +8386,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
 {
   diagnostic_info diagnostic;
   diagnostic_t dlevel;
-  int save_warn_system_headers = warn_system_headers;
+  bool save_warn_system_headers = global_dc->warn_system_headers;
   bool ret;
 
   switch (level)
@@ -8349,7 +8394,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
     case CPP_DL_WARNING_SYSHDR:
       if (flag_no_output)
 	return false;
-      warn_system_headers = 1;
+      global_dc->warn_system_headers = 1;
       /* Fall through.  */
     case CPP_DL_WARNING:
       if (flag_no_output)
@@ -8386,7 +8431,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
                                     c_option_controlling_cpp_error (reason));
   ret = report_diagnostic (&diagnostic);
   if (level == CPP_DL_WARNING_SYSHDR)
-    warn_system_headers = save_warn_system_headers;
+    global_dc->warn_system_headers = save_warn_system_headers;
   return ret;
 }
 
@@ -8761,7 +8806,6 @@ sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
 {
   tree arg_types = TYPE_ARG_TYPES (TREE_TYPE (function));
   tree ptype;
-  int number;
   unsigned int parmnum;
 
   /* We've declared the implementation functions to use "volatile void *"
@@ -8769,7 +8813,6 @@ sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
      call to check_function_arguments what ever type the user used.  */
   arg_types = TREE_CHAIN (arg_types);
   ptype = TREE_TYPE (TREE_TYPE (VEC_index (tree, params, 0)));
-  number = 2;
 
   /* For the rest of the values, we need to cast these to FTYPE, so that we
      don't get warnings for passing pointer types, etc.  */
@@ -8794,7 +8837,6 @@ sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
       VEC_replace (tree, params, parmnum, val);
 
       arg_types = TREE_CHAIN (arg_types);
-      number++;
     }
 
   /* The definition of these primitives is variadic, with the remaining

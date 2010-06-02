@@ -31,7 +31,6 @@
 #include "obstack.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "output.h"
@@ -4795,8 +4794,8 @@ arm_function_ok_for_sibcall (tree decl, tree exp)
     return false;
 
   /* Never tailcall something for which we have no decl, or if we
-     are in Thumb mode.  */
-  if (decl == NULL || TARGET_THUMB)
+     are generating code for Thumb-1.  */
+  if (decl == NULL || TARGET_THUMB1)
     return false;
 
   /* The PIC register is live on entry to VxWorks PLT entries, so we
@@ -7800,7 +7799,7 @@ neg_const_double_rtx_ok_for_fpa (rtx x)
     init_fp_table ();
 
   REAL_VALUE_FROM_CONST_DOUBLE (r, x);
-  r = REAL_VALUE_NEGATE (r);
+  r = real_value_negate (&r);
   if (REAL_VALUE_MINUS_ZERO (r))
     return 0;
 
@@ -7851,7 +7850,7 @@ vfp3_const_double_index (rtx x)
 
   /* Extract sign, exponent and mantissa.  */
   sign = REAL_VALUE_NEGATIVE (r) ? 1 : 0;
-  r = REAL_VALUE_ABS (r);
+  r = real_value_abs (&r);
   exponent = REAL_EXP (&r);
   /* For the mantissa, we expand into two HOST_WIDE_INTS, apart from the
      highest (sign) bit, with a fixed binary point at bit point_pos.
@@ -15006,7 +15005,7 @@ arm_expand_prologue (void)
      using the EABI unwinder, to prevent faulting instructions from being
      swapped with a stack adjustment.  */
   if (crtl->profile || !TARGET_SCHED_PROLOG
-      || (ARM_EABI_UNWIND_TABLES && flag_non_call_exceptions))
+      || (ARM_EABI_UNWIND_TABLES && cfun->can_throw_non_call_exceptions))
     emit_insn (gen_blockage ());
 
   /* If the link register is being kept alive, with the return address in it,
@@ -15134,7 +15133,7 @@ arm_print_operand (FILE *stream, rtx x, int code)
       {
 	REAL_VALUE_TYPE r;
 	REAL_VALUE_FROM_CONST_DOUBLE (r, x);
-	r = REAL_VALUE_NEGATE (r);
+	r = real_value_negate (&r);
 	fprintf (stream, "%s", fp_const_from_val (&r));
       }
       return;
@@ -19542,7 +19541,7 @@ thumb1_expand_prologue (void)
      using the EABI unwinder, to prevent faulting instructions from being
      swapped with a stack adjustment.  */
   if (crtl->profile || !TARGET_SCHED_PROLOG
-      || (ARM_EABI_UNWIND_TABLES && flag_non_call_exceptions))
+      || (ARM_EABI_UNWIND_TABLES && cfun->can_throw_non_call_exceptions))
     emit_insn (gen_blockage ());
 
   cfun->machine->lr_save_eliminated = !thumb_force_lr_save ();

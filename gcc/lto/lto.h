@@ -1,5 +1,5 @@
 /* LTO declarations.
-   Copyright 2009 Free Software Foundation, Inc.
+   Copyright 2009, 2010 Free Software Foundation, Inc.
    Contributed by CodeSourcery, Inc.
 
 This file is part of GCC.
@@ -28,6 +28,7 @@ typedef struct lto_file_struct
 {
   /* The name of the file.  */
   const char *filename;
+  /* The offset for the object inside an ar archive file (or zero).  */
   off_t offset;
 } lto_file;
 
@@ -35,6 +36,7 @@ typedef struct lto_file_struct
 extern const char *resolution_file_name;
 
 /* In lto.c  */
+extern tree lto_eh_personality (void);
 extern void lto_main (int);
 extern void lto_read_all_file_options (void);
 

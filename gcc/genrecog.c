@@ -2474,7 +2474,6 @@ write_header (void)
 #include \"function.h\"\n\
 #include \"insn-config.h\"\n\
 #include \"recog.h\"\n\
-#include \"real.h\"\n\
 #include \"output.h\"\n\
 #include \"flags.h\"\n\
 #include \"hard-reg-set.h\"\n\
@@ -2898,13 +2897,13 @@ debug_decision_0 (struct decision *d, int indent, int maxdepth)
     debug_decision_0 (n, indent + 2, maxdepth - 1);
 }
 
-void
+DEBUG_FUNCTION void
 debug_decision (struct decision *d)
 {
   debug_decision_0 (d, 0, 1000000);
 }
 
-void
+DEBUG_FUNCTION void
 debug_decision_list (struct decision *d)
 {
   while (d)

@@ -1,6 +1,6 @@
 /* Input functions for reading LTO sections.
 
-   Copyright 2009 Free Software Foundation, Inc.
+   Copyright 2009, 2010 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
@@ -35,7 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "function.h"
 #include "ggc.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "except.h"
 #include "vec.h"
 #include "timevar.h"
@@ -58,7 +58,8 @@ const char *lto_section_name[LTO_N_SECTION_TYPES] =
   "ipa_pure_const",
   "ipa_reference",
   "symtab",
-  "opts"
+  "opts",
+  "cgraphopt"
 };
 
 unsigned char

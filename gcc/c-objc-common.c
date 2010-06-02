@@ -1,6 +1,6 @@
 /* Some code common to C and ObjC front ends.
    Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007,
-   2009 Free Software Foundation, Inc.
+   2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -21,23 +21,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "insn-config.h"
-#include "integrate.h"
 #include "c-tree.h"
 #include "intl.h"
 #include "c-pretty-print.h"
-#include "function.h"
 #include "flags.h"
-#include "toplev.h"
 #include "diagnostic.h"
-#include "tree-inline.h"
-#include "ggc.h"
+#include "tree-pretty-print.h"
 #include "langhooks.h"
-#include "tree-mudflap.h"
-#include "target.h"
 #include "c-objc-common.h"
 
 static bool c_tree_printer (pretty_printer *, text_info *, const char *,
@@ -97,13 +88,21 @@ static bool
 c_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
 		int precision, bool wide, bool set_locus, bool hash)
 {
-  tree t = va_arg (*text->args_ptr, tree);
+  tree t;
   tree name;
   c_pretty_printer *cpp = (c_pretty_printer *) pp;
   pp->padding = pp_none;
 
   if (precision != 0 || wide || hash)
     return false;
+
+  if (*spec == 'K')
+    {
+      percent_K_format (text);
+      return true;
+    }
+
+  t = va_arg (*text->args_ptr, tree);
 
   if (set_locus && text->locus)
     *text->locus = DECL_SOURCE_LOCATION (t);

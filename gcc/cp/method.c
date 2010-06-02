@@ -29,8 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "cp-tree.h"
-#include "rtl.h"
-#include "expr.h"
 #include "output.h"
 #include "flags.h"
 #include "toplev.h"
@@ -372,7 +370,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
       tree x = copy_node (a);
       TREE_CHAIN (x) = t;
       DECL_CONTEXT (x) = thunk_fndecl;
-      SET_DECL_RTL (x, NULL_RTX);
+      SET_DECL_RTL (x, NULL);
       DECL_HAS_VALUE_EXPR_P (x) = 0;
       t = x;
     }
@@ -494,7 +492,7 @@ do_build_copy_constructor (tree fndecl)
 
 	      if (DECL_MUTABLE_P (field))
 		quals &= ~TYPE_QUAL_CONST;
-	      quals |= TYPE_QUALS (expr_type);
+	      quals |= cp_type_quals (expr_type);
 	      expr_type = cp_build_qualified_type (expr_type, quals);
 	    }
 
@@ -934,7 +932,7 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
       if (const_p)
 	{
 	  data.quals = TYPE_QUAL_CONST;
-	  rhs_parm_type = build_qualified_type (type, TYPE_QUAL_CONST);
+	  rhs_parm_type = cp_build_qualified_type (type, TYPE_QUAL_CONST);
 	}
       else
 	rhs_parm_type = type;

@@ -23,12 +23,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "gimple.h"
+#include "gimple.h"	/* For create_tmp_var_raw.  */
 #include "tree-iterator.h"
-#include "ggc.h"
-#include "toplev.h"
+#include "toplev.h"	/* For internal_error.  */
 #include "defaults.h"
-#include "real.h"
 #include "flags.h"
 #include "gfortran.h"
 #include "trans.h"
@@ -704,7 +702,7 @@ gfc_allocate_with_status (stmtblock_t * block, tree size, tree status)
 	  return mem;
 	}
 	else
-	  runtime_error ("Attempting to allocate already allocated array");
+	  runtime_error ("Attempting to allocate already allocated variable");
       }
     }
     
@@ -743,13 +741,13 @@ gfc_allocate_array_with_status (stmtblock_t * block, tree mem, tree size,
 
       error = gfc_trans_runtime_error (true, &expr->where,
 				       "Attempting to allocate already"
-				       " allocated array '%s'",
+				       " allocated variable '%s'",
 				       varname);
     }
   else
     error = gfc_trans_runtime_error (true, NULL,
 				     "Attempting to allocate already allocated"
-				     "array");
+				     "variable");
 
   if (status != NULL_TREE && !integer_zerop (status))
     {
@@ -1066,6 +1064,8 @@ trans_code (gfc_code * code, tree cond)
 	  res = gfc_trans_label_here (code);
 	  gfc_add_expr_to_block (&block, res);
 	}
+
+      gfc_set_backend_locus (&code->loc);
 
       switch (code->op)
 	{

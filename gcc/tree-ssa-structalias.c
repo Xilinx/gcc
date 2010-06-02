@@ -27,15 +27,11 @@
 #include "obstack.h"
 #include "bitmap.h"
 #include "flags.h"
-#include "rtl.h"
-#include "tm_p.h"
-#include "hard-reg-set.h"
 #include "basic-block.h"
 #include "output.h"
 #include "tree.h"
 #include "tree-flow.h"
 #include "tree-inline.h"
-#include "diagnostic.h"
 #include "toplev.h"
 #include "gimple.h"
 #include "hashtab.h"
@@ -719,7 +715,7 @@ void debug_sa_points_to_info (void);
 
 /* Print out constraint C to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_constraint (constraint_t c)
 {
   dump_constraint (stderr, c);
@@ -738,7 +734,7 @@ dump_constraints (FILE *file, int from)
 
 /* Print out all constraints to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_constraints (void)
 {
   dump_constraints (stderr, 0);
@@ -828,7 +824,7 @@ dump_constraint_graph (FILE *file)
 
 /* Print out the constraint graph to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_constraint_graph (void)
 {
   dump_constraint_graph (stderr);
@@ -3599,11 +3595,11 @@ make_transitive_closure_constraints (varinfo_t vi)
   process_constraint (new_constraint (lhs, rhs));
 }
 
-/* Create a new artificial heap variable with NAME and make a
-   constraint from it to LHS.  Return the created variable.  */
+/* Create a new artificial heap variable with NAME.
+   Return the created variable.  */
 
 static varinfo_t
-make_constraint_from_heapvar (varinfo_t lhs, const char *name)
+make_heapvar_for (varinfo_t lhs, const char *name)
 {
   varinfo_t vi;
   tree heapvar = heapvar_lookup (lhs->decl, lhs->offset);
@@ -3635,6 +3631,16 @@ make_constraint_from_heapvar (varinfo_t lhs, const char *name)
   vi->is_full_var = true;
   insert_vi_for_tree (heapvar, vi);
 
+  return vi;
+}
+
+/* Create a new artificial heap variable with NAME and make a
+   constraint from it to LHS.  Return the created variable.  */
+
+static varinfo_t
+make_constraint_from_heapvar (varinfo_t lhs, const char *name)
+{
+  varinfo_t vi = make_heapvar_for (lhs, name);
   make_constraint_from (lhs, vi->id);
 
   return vi;
@@ -3709,15 +3715,59 @@ handle_rhs_call (gimple stmt, VEC(ce_s, heap) **results)
 {
   struct constraint_expr rhsc;
   unsigned i;
+  bool returns_uses = false;
 
   for (i = 0; i < gimple_call_num_args (stmt); ++i)
     {
       tree arg = gimple_call_arg (stmt, i);
+      int flags = gimple_call_arg_flags (stmt, i);
 
-      /* Find those pointers being passed, and make sure they end up
-	 pointing to anything.  */
-      if (could_have_pointers (arg))
+      /* If the argument is not used or it does not contain pointers
+	 we can ignore it.  */
+      if ((flags & EAF_UNUSED)
+	  || !could_have_pointers (arg))
+	continue;
+
+      /* As we compute ESCAPED context-insensitive we do not gain
+         any precision with just EAF_NOCLOBBER but not EAF_NOESCAPE
+	 set.  The argument would still get clobbered through the
+	 escape solution.
+	 ???  We might get away with less (and more precise) constraints
+	 if using a temporary for transitively closing things.  */
+      if ((flags & EAF_NOCLOBBER)
+	   && (flags & EAF_NOESCAPE))
+	{
+	  varinfo_t uses = get_call_use_vi (stmt);
+	  if (!(flags & EAF_DIRECT))
+	    make_transitive_closure_constraints (uses);
+	  make_constraint_to (uses->id, arg);
+	  returns_uses = true;
+	}
+      else if (flags & EAF_NOESCAPE)
+	{
+	  varinfo_t uses = get_call_use_vi (stmt);
+	  varinfo_t clobbers = get_call_clobber_vi (stmt);
+	  if (!(flags & EAF_DIRECT))
+	    {
+	      make_transitive_closure_constraints (uses);
+	      make_transitive_closure_constraints (clobbers);
+	    }
+	  make_constraint_to (uses->id, arg);
+	  make_constraint_to (clobbers->id, arg);
+	  returns_uses = true;
+	}
+      else
 	make_escape_constraint (arg);
+    }
+
+  /* If we added to the calls uses solution make sure we account for
+     pointers to it to be returned.  */
+  if (returns_uses)
+    {
+      rhsc.var = get_call_use_vi (stmt)->id;
+      rhsc.offset = 0;
+      rhsc.type = SCALAR;
+      VEC_safe_push (ce_s, heap, *results, &rhsc);
     }
 
   /* The static chain escapes as well.  */
@@ -3752,44 +3802,63 @@ handle_rhs_call (gimple stmt, VEC(ce_s, heap) **results)
    the LHS point to global and escaped variables.  */
 
 static void
-handle_lhs_call (tree lhs, int flags, VEC(ce_s, heap) *rhsc, tree fndecl)
+handle_lhs_call (gimple stmt, tree lhs, int flags, VEC(ce_s, heap) *rhsc,
+		 tree fndecl)
 {
   VEC(ce_s, heap) *lhsc = NULL;
 
   get_constraint_for (lhs, &lhsc);
+  /* If the store is to a global decl make sure to
+     add proper escape constraints.  */
+  lhs = get_base_address (lhs);
+  if (lhs
+      && DECL_P (lhs)
+      && is_global_var (lhs))
+    {
+      struct constraint_expr tmpc;
+      tmpc.var = escaped_id;
+      tmpc.offset = 0;
+      tmpc.type = SCALAR;
+      VEC_safe_push (ce_s, heap, lhsc, &tmpc);
+    }
 
-  if (flags & ECF_MALLOC)
+  /* If the call returns an argument unmodified override the rhs
+     constraints.  */
+  flags = gimple_call_return_flags (stmt);
+  if (flags & ERF_RETURNS_ARG
+      && (flags & ERF_RETURN_ARG_MASK) < gimple_call_num_args (stmt))
+    {
+      tree arg;
+      rhsc = NULL;
+      arg = gimple_call_arg (stmt, flags & ERF_RETURN_ARG_MASK);
+      get_constraint_for (arg, &rhsc);
+      process_all_all_constraints (lhsc, rhsc);
+      VEC_free (ce_s, heap, rhsc);
+    }
+  else if (flags & ERF_NOALIAS)
     {
       varinfo_t vi;
-      vi = make_constraint_from_heapvar (get_vi_for_tree (lhs), "HEAP");
+      struct constraint_expr tmpc;
+      rhsc = NULL;
+      vi = make_heapvar_for (get_vi_for_tree (lhs), "HEAP");
       /* We delay marking allocated storage global until we know if
          it escapes.  */
       DECL_EXTERNAL (vi->decl) = 0;
       vi->is_global_var = 0;
       /* If this is not a real malloc call assume the memory was
-         initialized and thus may point to global memory.  All
+	 initialized and thus may point to global memory.  All
 	 builtin functions with the malloc attribute behave in a sane way.  */
       if (!fndecl
 	  || DECL_BUILT_IN_CLASS (fndecl) != BUILT_IN_NORMAL)
 	make_constraint_from (vi, nonlocal_id);
+      tmpc.var = vi->id;
+      tmpc.offset = 0;
+      tmpc.type = ADDRESSOF;
+      VEC_safe_push (ce_s, heap, rhsc, &tmpc);
     }
-  else if (VEC_length (ce_s, rhsc) > 0)
-    {
-      /* If the store is to a global decl make sure to
-	 add proper escape constraints.  */
-      lhs = get_base_address (lhs);
-      if (lhs
-	  && DECL_P (lhs)
-	  && is_global_var (lhs))
-	{
-	  struct constraint_expr tmpc;
-	  tmpc.var = escaped_id;
-	  tmpc.offset = 0;
-	  tmpc.type = SCALAR;
-	  VEC_safe_push (ce_s, heap, lhsc, &tmpc);
-	}
-      process_all_all_constraints (lhsc, rhsc);
-    }
+
+  process_all_all_constraints (lhsc, rhsc);
+
   VEC_free (ce_s, heap, lhsc);
 }
 
@@ -4171,6 +4240,25 @@ find_func_aliases (gimple origt)
 	  /* va_end doesn't have any effect that matters.  */
 	  case BUILT_IN_VA_END:
 	    return;
+	  /* Alternate return.  Simply give up for now.  */
+	  case BUILT_IN_RETURN:
+	    {
+	      fi = NULL;
+	      if (!in_ipa_mode
+		  || !(fi = get_vi_for_tree (cfun->decl)))
+		make_constraint_from (get_varinfo (escaped_id), anything_id);
+	      else if (in_ipa_mode
+		       && fi != NULL)
+		{
+		  struct constraint_expr lhs, rhs;
+		  lhs = get_function_part_constraint (fi, fi_result);
+		  rhs.var = anything_id;
+		  rhs.offset = 0;
+		  rhs.type = SCALAR;
+		  process_constraint (new_constraint (lhs, rhs));
+		}
+	      return;
+	    }
 	  /* printf-style functions may have hooks to set pointers to
 	     point to somewhere into the generated string.  Leave them
 	     for a later excercise...  */
@@ -4202,7 +4290,7 @@ find_func_aliases (gimple origt)
 	    handle_rhs_call (t, &rhsc);
 	  if (gimple_call_lhs (t)
 	      && could_have_pointers (gimple_call_lhs (t)))
-	    handle_lhs_call (gimple_call_lhs (t), flags, rhsc, fndecl);
+	    handle_lhs_call (t, gimple_call_lhs (t), flags, rhsc, fndecl);
 	  VEC_free (ce_s, heap, rhsc);
 	}
       else
@@ -5364,7 +5452,7 @@ dump_solution_for_var (FILE *file, unsigned int var)
 
 /* Print the points-to solution for VAR to stdout.  */
 
-void
+DEBUG_FUNCTION void
 debug_solution_for_var (unsigned int var)
 {
   dump_solution_for_var (stdout, var);
@@ -5965,7 +6053,7 @@ dump_sa_points_to_info (FILE *outfile)
 
 /* Debug points-to information to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_sa_points_to_info (void)
 {
   dump_sa_points_to_info (stderr);
@@ -6556,7 +6644,7 @@ gate_ipa_pta (void)
   return (optimize
 	  && flag_ipa_pta
 	  /* Don't bother doing anything if the program has errors.  */
-	  && !(errorcount || sorrycount));
+	  && !seen_error ());
 }
 
 /* IPA PTA solutions for ESCAPED.  */

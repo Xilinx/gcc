@@ -29,7 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "name-lookup.h"
 #include "timevar.h"
 #include "toplev.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "debug.h"
 #include "c-pragma.h"
 
@@ -1016,15 +1016,18 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	  else if (oldlocal != NULL_TREE && !DECL_EXTERNAL (x)
 		   /* Inline decls shadow nothing.  */
 		   && !DECL_FROM_INLINE (x)
-		   && TREE_CODE (oldlocal) == PARM_DECL
+		   && (TREE_CODE (oldlocal) == PARM_DECL
+		       || TREE_CODE (oldlocal) == VAR_DECL)
 		   /* Don't check the `this' parameter.  */
-		   && !DECL_ARTIFICIAL (oldlocal))
+		   && !DECL_ARTIFICIAL (oldlocal)
+		   && !DECL_ARTIFICIAL (x))
 	    {
-	      bool err = false;
+	      bool nowarn = false;
 
 	      /* Don't complain if it's from an enclosing function.  */
 	      if (DECL_CONTEXT (oldlocal) == current_function_decl
-		  && TREE_CODE (x) != PARM_DECL)
+		  && TREE_CODE (x) != PARM_DECL
+		  && TREE_CODE (oldlocal) == PARM_DECL)
 		{
 		  /* Go to where the parms should be and see if we find
 		     them there.  */
@@ -1038,16 +1041,41 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 		  if (b->kind == sk_function_parms)
 		    {
 		      error ("declaration of %q#D shadows a parameter", x);
-		      err = true;
+		      nowarn = true;
 		    }
 		}
 
-	      if (warn_shadow && !err)
+	      /* The local structure or class can't use parameters of
+		 the containing function anyway.  */
+	      if (DECL_CONTEXT (oldlocal) != current_function_decl)
 		{
-		  warning_at (input_location, OPT_Wshadow,
-			      "declaration of %q#D shadows a parameter", x);
-		  warning_at (DECL_SOURCE_LOCATION (oldlocal), OPT_Wshadow,
-			      "shadowed declaration is here");
+		  cxx_scope *scope = current_binding_level;
+		  tree context = DECL_CONTEXT (oldlocal);
+		  for (; scope; scope = scope->level_chain)
+		   {
+		     if (scope->kind == sk_function_parms
+			 && scope->this_entity == context)
+		      break;
+		     if (scope->kind == sk_class
+			 && !LAMBDA_TYPE_P (scope->this_entity))
+		       {
+			 nowarn = true;
+			 break;
+		       }
+		   }
+		}
+
+	      if (warn_shadow && !nowarn)
+		{
+		  if (TREE_CODE (oldlocal) == PARM_DECL)
+		    warning_at (input_location, OPT_Wshadow,
+				"declaration of %q#D shadows a parameter", x);
+		  else
+		    warning_at (input_location, OPT_Wshadow,
+				"declaration of %qD shadows a previous local",
+				x);
+		   warning_at (DECL_SOURCE_LOCATION (oldlocal), OPT_Wshadow,
+			       "shadowed declaration is here");
 		}
 	    }
 
@@ -1073,14 +1101,6 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 		  /* Location of previous decl is not useful in this case.  */
 		  warning (OPT_Wshadow, "declaration of %qD shadows a member of 'this'",
 			   x);
-		}
-	      else if (oldlocal != NULL_TREE
-		       && TREE_CODE (oldlocal) == VAR_DECL)
-		{
-		  warning_at (input_location, OPT_Wshadow,
-			      "declaration of %qD shadows a previous local", x);
-		  warning_at (DECL_SOURCE_LOCATION (oldlocal), OPT_Wshadow,
-			      "shadowed declaration is here");
 		}
 	      else if (oldglobal != NULL_TREE
 		       && TREE_CODE (oldglobal) == VAR_DECL)
@@ -1133,7 +1153,7 @@ maybe_push_decl (tree decl)
 	     possible.  */
 	  && TREE_CODE (DECL_CONTEXT (decl)) != NAMESPACE_DECL)
       || (TREE_CODE (decl) == TEMPLATE_DECL && !namespace_bindings_p ())
-      || TREE_CODE (type) == UNKNOWN_TYPE
+      || type == unknown_type_node
       /* The declaration of a template specialization does not affect
 	 the functions available for overload resolution, so we do not
 	 call pushdecl.  */
@@ -3678,6 +3698,31 @@ merge_functions (tree s1, tree s2)
   return s1;
 }
 
+/* Returns TRUE iff OLD and NEW are the same entity.
+
+   3 [basic]/3: An entity is a value, object, reference, function,
+   enumerator, type, class member, template, template specialization,
+   namespace, parameter pack, or this.
+
+   7.3.4 [namespace.udir]/4: If name lookup finds a declaration for a name
+   in two different namespaces, and the declarations do not declare the
+   same entity and do not declare functions, the use of the name is
+   ill-formed.  */
+
+static bool
+same_entity_p (tree one, tree two)
+{
+  if (one == two)
+    return true;
+  if (!one || !two)
+    return false;
+  if (TREE_CODE (one) == TYPE_DECL
+      && TREE_CODE (two) == TYPE_DECL
+      && same_type_p (TREE_TYPE (one), TREE_TYPE (two)))
+    return true;
+  return false;
+}
+
 /* This should return an error not all definitions define functions.
    It is not an error if we find two functions with exactly the
    same signature, only if these are selected in overload resolution.
@@ -3743,7 +3788,7 @@ ambiguous_decl (struct scope_binding *old, cxx_binding *new_binding, int flags)
 
   if (!old->value)
     old->value = val;
-  else if (val && val != old->value)
+  else if (val && !same_entity_p (val, old->value))
     {
       if (is_overloaded_fn (old->value) && is_overloaded_fn (val))
 	old->value = merge_functions (old->value, val);
@@ -4859,7 +4904,6 @@ arg_assoc_type (struct arg_lookup *k, tree type)
     case BOOLEAN_TYPE:
     case FIXED_POINT_TYPE:
     case DECLTYPE_TYPE:
-    case NULLPTR_TYPE:
       return false;
     case RECORD_TYPE:
       if (TYPE_PTRMEMFUNC_P (type))
@@ -4891,6 +4935,7 @@ arg_assoc_type (struct arg_lookup *k, tree type)
       return false;
     case LANG_TYPE:
       gcc_assert (type == unknown_type_node
+		  || NULLPTR_TYPE_P (type)
 		  || type == init_list_type_node);
       return false;
     case TYPE_PACK_EXPANSION:
@@ -5485,7 +5530,7 @@ void
 cp_emit_debug_info_for_using (tree t, tree context)
 {
   /* Don't try to emit any debug information if we have errors.  */
-  if (sorrycount || errorcount)
+  if (seen_error ())
     return;
 
   /* Ignore this FUNCTION_DECL if it refers to a builtin declaration

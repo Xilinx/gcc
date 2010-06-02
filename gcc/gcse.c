@@ -151,7 +151,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "hard-reg-set.h"
 #include "flags.h"
-#include "real.h"
 #include "insn-config.h"
 #include "recog.h"
 #include "basic-block.h"
@@ -625,7 +624,7 @@ static void
 alloc_gcse_mem (void)
 {
   /* Allocate vars to track sets of regs.  */
-  reg_set_bitmap = BITMAP_ALLOC (NULL);
+  reg_set_bitmap = ALLOC_REG_SET (NULL);
 
   /* Allocate array to keep a list of insns which modify memory in each
      basic block.  */
@@ -4668,9 +4667,9 @@ simple_mem (const_rtx x)
     return 0;
 
   /* If we are handling exceptions, we must be careful with memory references
-     that may trap. If we are not, the behavior is undefined, so we may just
+     that may trap.  If we are not, the behavior is undefined, so we may just
      continue.  */
-  if (flag_non_call_exceptions && may_trap_p (x))
+  if (cfun->can_throw_non_call_exceptions && may_trap_p (x))
     return 0;
 
   if (side_effects_p (x))

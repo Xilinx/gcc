@@ -111,6 +111,7 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 #define LANG_HOOKS_EH_PERSONALITY	lhd_gcc_personality
 #define LANG_HOOKS_EH_RUNTIME_TYPE	lhd_pass_through_t
 #define LANG_HOOKS_EH_USE_CXA_END_CLEANUP	false
+#define LANG_HOOKS_DEEP_UNSHARING	false
 
 /* Attribute hooks.  */
 #define LANG_HOOKS_ATTRIBUTE_TABLE		NULL
@@ -133,7 +134,6 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 
 /* Hooks for tree gimplification.  */
 #define LANG_HOOKS_GIMPLIFY_EXPR lhd_gimplify_expr
-#define LANG_HOOKS_FOLD_OBJ_TYPE_REF NULL
 
 /* Tree dump hooks.  */
 extern bool lhd_tree_dump_dump_tree (void *, tree);
@@ -291,7 +291,6 @@ extern void lhd_end_section (void);
   LANG_HOOKS_GET_INNERMOST_GENERIC_ARGS, \
   LANG_HOOKS_FUNCTION_PARAMETER_PACK_P, \
   LANG_HOOKS_GIMPLIFY_EXPR, \
-  LANG_HOOKS_FOLD_OBJ_TYPE_REF, \
   LANG_HOOKS_BUILTIN_FUNCTION, \
   LANG_HOOKS_BUILTIN_FUNCTION_EXT_SCOPE, \
   LANG_HOOKS_INIT_TS,          \
@@ -299,6 +298,7 @@ extern void lhd_end_section (void);
   LANG_HOOKS_EH_PERSONALITY, \
   LANG_HOOKS_EH_RUNTIME_TYPE, \
   LANG_HOOKS_EH_USE_CXA_END_CLEANUP, \
+  LANG_HOOKS_DEEP_UNSHARING \
 }
 
 #endif /* GCC_LANG_HOOKS_DEF_H */

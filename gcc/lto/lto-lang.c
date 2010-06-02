@@ -24,7 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "tm.h"
 #include "tree.h"
-#include "expr.h"
 #include "target.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
@@ -624,7 +623,7 @@ lto_handle_option (size_t scode, const char *arg,
 
   switch (code)
     {
-    case OPT_fresolution:
+    case OPT_fresolution_:
       resolution_file_name = arg;
       result = 1;
       break;
@@ -1019,6 +1018,12 @@ lto_build_c_type_nodes (void)
       uintmax_type_node = long_unsigned_type_node;
       signed_size_type_node = long_integer_type_node;
     }
+  else if (strcmp (SIZE_TYPE, "long long unsigned int") == 0)
+    {
+      intmax_type_node = long_long_integer_type_node;
+      uintmax_type_node = long_long_unsigned_type_node;
+      signed_size_type_node = long_long_integer_type_node;
+    }
   else
     gcc_unreachable ();
 
@@ -1061,6 +1066,11 @@ lto_init (void)
     {
       set_sizetype (long_unsigned_type_node);
       size_type_node = long_unsigned_type_node;
+    }
+  else if (strcmp (SIZE_TYPE, "long long unsigned int") == 0)
+    {
+      set_sizetype (long_long_unsigned_type_node);
+      size_type_node = long_long_unsigned_type_node;
     }
   else
     gcc_unreachable ();
@@ -1151,6 +1161,8 @@ static void lto_init_ts (void)
 #define LANG_HOOKS_REDUCE_BIT_FIELD_OPERATIONS true
 #undef LANG_HOOKS_TYPES_COMPATIBLE_P
 #define LANG_HOOKS_TYPES_COMPATIBLE_P NULL
+#undef LANG_HOOKS_EH_PERSONALITY
+#define LANG_HOOKS_EH_PERSONALITY lto_eh_personality
 
 /* Attribute hooks.  */
 #undef LANG_HOOKS_COMMON_ATTRIBUTE_TABLE

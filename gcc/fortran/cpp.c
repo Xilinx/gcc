@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -523,7 +523,8 @@ gfc_cpp_init_0 (void)
 	  print.outf = fopen (gfc_cpp_option.output_filename, "w");
 	  if (print.outf == NULL)
 	    gfc_fatal_error ("opening output file %s: %s",
-			     gfc_cpp_option.output_filename, strerror(errno));
+			     gfc_cpp_option.output_filename,
+			     xstrerror (errno));
 	}
       else
 	print.outf = stdout;
@@ -533,7 +534,7 @@ gfc_cpp_init_0 (void)
       print.outf = fopen (gfc_cpp_option.temporary_filename, "w");
       if (print.outf == NULL)
 	gfc_fatal_error ("opening output file %s: %s",
-			 gfc_cpp_option.temporary_filename, strerror(errno));
+			 gfc_cpp_option.temporary_filename, xstrerror (errno));
     }
 
   gcc_assert(cpp_in);
@@ -975,13 +976,13 @@ cb_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
 {
   diagnostic_info diagnostic;
   diagnostic_t dlevel;
-  int save_warn_system_headers = warn_system_headers;
+  bool save_warn_system_headers = global_dc->warn_system_headers;
   bool ret;
 
   switch (level)
     {
     case CPP_DL_WARNING_SYSHDR:
-      warn_system_headers = 1;
+      global_dc->warn_system_headers = 1;
       /* Fall through.  */
     case CPP_DL_WARNING:
       dlevel = DK_WARNING;
@@ -1012,7 +1013,7 @@ cb_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
     diagnostic_override_option_index (&diagnostic, OPT_Wcpp);
   ret = report_diagnostic (&diagnostic);
   if (level == CPP_DL_WARNING_SYSHDR)
-    warn_system_headers = save_warn_system_headers;
+    global_dc->warn_system_headers = save_warn_system_headers;
   return ret;
 }
 

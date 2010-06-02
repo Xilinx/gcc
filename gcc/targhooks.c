@@ -499,6 +499,8 @@ default_stack_protect_guard (void)
 
   if (t == NULL)
     {
+      rtx x;
+
       t = build_decl (UNKNOWN_LOCATION,
 		      VAR_DECL, get_identifier ("__stack_chk_guard"),
 		      ptr_type_node);
@@ -509,6 +511,11 @@ default_stack_protect_guard (void)
       TREE_THIS_VOLATILE (t) = 1;
       DECL_ARTIFICIAL (t) = 1;
       DECL_IGNORED_P (t) = 1;
+
+      /* Do not share RTL as the declaration is visible outside of
+	 current function.  */
+      x = DECL_RTL (t);
+      RTX_FLAG (x, used) = 1;
 
       stack_chk_guard_decl = t;
     }
@@ -949,6 +956,26 @@ bool
 default_hard_regno_scratch_ok (unsigned int regno ATTRIBUTE_UNUSED)
 {
   return true;
+}
+
+/* The default implementation of TARGET_MODE_DEPENDENT_ADDRESS_P.  */
+
+bool
+default_mode_dependent_address_p (const_rtx addr ATTRIBUTE_UNUSED)
+{
+#ifdef GO_IF_MODE_DEPENDENT_ADDRESS
+
+  GO_IF_MODE_DEPENDENT_ADDRESS (CONST_CAST_RTX (addr), win);
+  return false;
+  /* Label `win' might (not) be used via GO_IF_MODE_DEPENDENT_ADDRESS.  */
+ win: ATTRIBUTE_UNUSED_LABEL
+  return true;
+
+#else
+
+  return false;
+
+#endif
 }
 
 bool

@@ -24,10 +24,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "ggc.h"
 #include "tree.h"
 #include "basic-block.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-inline.h"
 #include "tree-flow.h"
 #include "gimple.h"
@@ -36,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "fibheap.h"
 #include "hashtab.h"
 #include "tree-iterator.h"
-#include "real.h"
 #include "alloc-pool.h"
 #include "obstack.h"
 #include "tree-pass.h"
@@ -986,7 +985,7 @@ print_pre_expr (FILE *outfile, const pre_expr expr)
 void debug_pre_expr (pre_expr);
 
 /* Like print_pre_expr but always prints to stderr.  */
-void
+DEBUG_FUNCTION void
 debug_pre_expr (pre_expr e)
 {
   print_pre_expr (stderr, e);
@@ -1023,7 +1022,7 @@ print_bitmap_set (FILE *outfile, bitmap_set_t set,
 
 void debug_bitmap_set (bitmap_set_t);
 
-void
+DEBUG_FUNCTION void
 debug_bitmap_set (bitmap_set_t set)
 {
   print_bitmap_set (stderr, set, "debug", 0);
@@ -1044,7 +1043,7 @@ print_value_expressions (FILE *outfile, unsigned int val)
 }
 
 
-void
+DEBUG_FUNCTION void
 debug_value_expressions (unsigned int val)
 {
   print_value_expressions (stderr, val);
@@ -4347,10 +4346,15 @@ eliminate (void)
 
 	  remove_phi_node (&gsi, false);
 
+	  if (!bitmap_bit_p (inserted_exprs, SSA_NAME_VERSION (res))
+	      && TREE_CODE (sprime) == SSA_NAME)
+	    gimple_set_plf (SSA_NAME_DEF_STMT (sprime), NECESSARY, true);
+
 	  if (!useless_type_conversion_p (TREE_TYPE (res), TREE_TYPE (sprime)))
 	    sprime = fold_convert (TREE_TYPE (res), sprime);
 	  stmt = gimple_build_assign (res, sprime);
 	  SSA_NAME_DEF_STMT (res) = stmt;
+	  gimple_set_plf (stmt, NECESSARY, gimple_plf (phi, NECESSARY));
 
 	  gsi2 = gsi_after_labels (b);
 	  gsi_insert_before (&gsi2, stmt, GSI_NEW_STMT);
@@ -4381,8 +4385,11 @@ eliminate (void)
 	  && single_imm_use (lhs, &use_p, &use_stmt)
 	  && may_propagate_copy (USE_FROM_PTR (use_p), rhs))
 	{
-	  SET_USE (use_p, gimple_assign_rhs1 (stmt));
+	  SET_USE (use_p, rhs);
 	  update_stmt (use_stmt);
+	  if (bitmap_bit_p (inserted_exprs, SSA_NAME_VERSION (lhs))
+	      && TREE_CODE (rhs) == SSA_NAME)
+	    gimple_set_plf (SSA_NAME_DEF_STMT (rhs), NECESSARY, true);
 	}
 
       /* If this is a store or a now unused copy, remove it.  */
@@ -4710,16 +4717,13 @@ execute_pre (bool do_fre)
   if (!run_scc_vn (do_fre))
     {
       if (!do_fre)
-	{
-	  remove_dead_inserted_code ();
-	  loop_optimizer_finalize ();
-	}
+	loop_optimizer_finalize ();
 
       return 0;
     }
+
   init_pre (do_fre);
   scev_initialize ();
-
 
   /* Collect and value number expressions computed in each basic block.  */
   compute_avail ();

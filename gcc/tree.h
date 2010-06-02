@@ -27,7 +27,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "input.h"
 #include "statistics.h"
 #include "vec.h"
+#include "vecir.h"
 #include "double-int.h"
+#include "real.h"
+#include "fixed-value.h"
 #include "alias.h"
 #include "options.h"
 
@@ -187,11 +190,6 @@ extern const unsigned char tree_code_length[];
 /* Names of tree components.  */
 
 extern const char *const tree_code_name[];
-
-/* A vectors of trees.  */
-DEF_VEC_P(tree);
-DEF_VEC_ALLOC_P(tree,gc);
-DEF_VEC_ALLOC_P(tree,heap);
 
 /* We have to be able to tell cgraph about the needed-ness of the target
    of an alias.  This requires that the decl have been defined.  Aliases
@@ -421,7 +419,7 @@ struct GTY(()) tree_common {
    addressable_flag:
 
        TREE_ADDRESSABLE in
-           VAR_DECL, FUNCTION_DECL, FIELD_DECL, LABEL_DECL
+           VAR_DECL, PARM_DECL, RESULT_DECL, FUNCTION_DECL, LABEL_DECL
            all types
            CONSTRUCTOR, IDENTIFIER_NODE
            STMT_EXPR, it means we want the result of the enclosed expression
@@ -897,7 +895,8 @@ extern void tree_class_check_failed (const_tree, const enum tree_code_class,
     ATTRIBUTE_NORETURN;
 extern void tree_range_check_failed (const_tree, const char *, int,
 				     const char *, enum tree_code,
-				     enum tree_code);
+				     enum tree_code)
+    ATTRIBUTE_NORETURN;
 extern void tree_not_class_check_failed (const_tree,
 					 const enum tree_code_class,
 					 const char *, int, const char *)
@@ -1116,13 +1115,10 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 
 /* Define many boolean fields that all tree nodes have.  */
 
-/* In VAR_DECL nodes, nonzero means address of this is needed.
-   So it cannot be in a register.
+/* In VAR_DECL, PARM_DECL and RESULT_DECL nodes, nonzero means address
+   of this is needed.  So it cannot be in a register.
    In a FUNCTION_DECL, nonzero means its address is needed.
    So it must be compiled even if it is an inline function.
-   In a FIELD_DECL node, it means that the programmer is permitted to
-   construct the address of this field.  This is used for aliasing
-   purposes: see record_component_aliases.
    In CONSTRUCTOR nodes, it means object constructed must be in memory.
    In LABEL_DECL nodes, it means a goto for this label has been seen
    from a place outside all binding contours that restore stack levels.
@@ -1712,7 +1708,6 @@ extern void protected_set_expr_location (tree, location_t);
  */
 #define CALL_EXPR_FN(NODE) TREE_OPERAND (CALL_EXPR_CHECK (NODE), 1)
 #define CALL_EXPR_STATIC_CHAIN(NODE) TREE_OPERAND (CALL_EXPR_CHECK (NODE), 2)
-#define CALL_EXPR_ARGS(NODE) call_expr_arglist (NODE)
 #define CALL_EXPR_ARG(NODE, I) TREE_OPERAND (CALL_EXPR_CHECK (NODE), (I) + 3)
 #define call_expr_nargs(NODE) (VL_EXP_OPERAND_LENGTH(NODE) - 3)
 
@@ -3861,6 +3856,8 @@ enum integer_type_kind
   itk_unsigned_long,
   itk_long_long,
   itk_unsigned_long_long,
+  itk_int128,
+  itk_unsigned_int128,
   itk_none
 };
 
@@ -3881,6 +3878,8 @@ extern GTY(()) tree integer_types[itk_none];
 #define long_unsigned_type_node		integer_types[itk_unsigned_long]
 #define long_long_integer_type_node	integer_types[itk_long_long]
 #define long_long_unsigned_type_node	integer_types[itk_unsigned_long_long]
+#define int128_integer_type_node	integer_types[itk_int128]
+#define int128_unsigned_type_node	integer_types[itk_unsigned_int128]
 
 /* Set to the default thread-local storage (tls) model to use.  */
 
@@ -3982,7 +3981,6 @@ extern tree maybe_get_identifier (const char *);
 /* Construct various types of nodes.  */
 
 extern tree build_nt (enum tree_code, ...);
-extern tree build_nt_call_list (tree, tree);
 extern tree build_nt_call_vec (tree, VEC(tree,gc) *);
 
 extern tree build0_stat (enum tree_code, tree MEM_STAT_DECL);
@@ -4019,12 +4017,17 @@ tree_to_double_int (const_tree cst)
 extern tree double_int_to_tree (tree, double_int);
 extern bool double_int_fits_to_tree_p (const_tree, double_int);
 
+/* Create an INT_CST node with a CST value zero extended.  */
+
+static inline tree
+build_int_cstu (tree type, unsigned HOST_WIDE_INT cst)
+{
+  return double_int_to_tree (type, uhwi_to_double_int (cst));
+}
+
 extern tree build_int_cst (tree, HOST_WIDE_INT);
 extern tree build_int_cst_type (tree, HOST_WIDE_INT);
-extern tree build_int_cstu (tree, unsigned HOST_WIDE_INT);
 extern tree build_int_cst_wide (tree, unsigned HOST_WIDE_INT, HOST_WIDE_INT);
-extern tree build_int_cst_wide_type (tree,
-				     unsigned HOST_WIDE_INT, HOST_WIDE_INT);
 extern tree build_vector (tree, tree);
 extern tree build_vector_from_ctor (tree, VEC(constructor_elt,gc) *);
 extern tree build_constructor (tree, VEC(constructor_elt,gc) *);
@@ -4488,10 +4491,6 @@ extern tree first_field (const_tree);
 
 extern bool initializer_zerop (const_tree);
 
-/* Given a CONSTRUCTOR CTOR, return the elements as a TREE_LIST.  */
-
-extern tree ctor_to_list (tree);
-
 /* Given a CONSTRUCTOR CTOR, return the element values as a vector.  */
 
 extern VEC(tree,gc) *ctor_to_vec (tree);
@@ -4827,7 +4826,6 @@ extern tree lower_bound_in_type (tree, tree);
 extern int operand_equal_for_phi_arg_p (const_tree, const_tree);
 extern tree call_expr_arg (tree, int);
 extern tree *call_expr_argp (tree, int);
-extern tree call_expr_arglist (tree);
 extern tree create_artificial_label (location_t);
 extern const char *get_name (tree);
 extern bool stdarg_p (tree);
@@ -5096,6 +5094,8 @@ extern location_t tree_nonartificial_location (tree);
 
 extern tree block_ultimate_origin (const_tree);
 
+extern tree get_binfo_at_offset (tree, HOST_WIDE_INT, tree);
+
 /* In tree-nested.c */
 extern tree build_addr (tree, tree);
 
@@ -5130,9 +5130,11 @@ extern void print_rtl (FILE *, const_rtx);
 
 /* In print-tree.c */
 extern void debug_tree (tree);
+extern void debug_vec_tree (VEC(tree,gc) *);
 #ifdef BUFSIZ
 extern void dump_addr (FILE*, const char *, const void *);
 extern void print_node (FILE *, const char *, tree, int);
+extern void print_vec_tree (FILE *, const char *, VEC(tree,gc) *, int);
 extern void print_node_brief (FILE *, const char *, const_tree, int);
 extern void indent_to (FILE *, int);
 #endif
@@ -5177,6 +5179,30 @@ extern tree build_duplicate_type (tree);
 
 extern int flags_from_decl_or_type (const_tree);
 extern int call_expr_flags (const_tree);
+
+/* Call argument flags.  */
+
+/* Nonzero if the argument is not dereferenced recursively, thus only
+   directly reachable memory is read or written.  */
+#define EAF_DIRECT		(1 << 0)
+/* Nonzero if memory reached by the argument is not clobbered.  */
+#define EAF_NOCLOBBER		(1 << 1)
+/* Nonzero if the argument does not escape.  */
+#define EAF_NOESCAPE		(1 << 2)
+/* Nonzero if the argument is not used by the function.  */
+#define EAF_UNUSED		(1 << 3)
+
+/* Call return flags.  */
+
+/* Mask for the argument number that is returned.  Lower two bits of
+   the return flags, encodes argument slots zero to three.  */
+#define ERF_RETURN_ARG_MASK	(3)
+/* Nonzero if the return value is equal to the argument number
+   flags & ERF_RETURN_ARG_MASK.  */
+#define ERF_RETURNS_ARG		(1 << 2)
+/* Nonzero if the return value does not alias with anything.  Functions
+   with the malloc attribute have this set on their return value.  */
+#define ERF_NOALIAS		(1 << 3)
 
 extern int setjmp_call_p (const_tree);
 extern bool gimple_alloca_call_p (const_gimple);
@@ -5411,9 +5437,6 @@ extern tree build_personality_function (const char *);
 /* In tree-inline.c.  */
 
 void init_inline_once (void);
-
-/* In ipa-reference.c.  Used for parsing attributes of asm code.  */
-extern GTY(()) tree memory_identifier_string;
 
 /* Compute the number of operands in an expression node NODE.  For
    tcc_vl_exp nodes like CALL_EXPRs, this is stored in the node itself,
