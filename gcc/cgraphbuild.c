@@ -137,8 +137,9 @@ bool cgraph_need_artificial_indirect_call_edges = true;
 bool
 cgraph_is_fake_indirect_call_edge (struct cgraph_edge *e)
 {
- return !e->call_stmt && e->indirect_call;
+  return !e->call_stmt;
 }
+
 
 /* Add fake cgraph edges from NODE to its indirect call callees
    using profile data.  */
@@ -199,7 +200,6 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
 	                          cgraph_lipo_get_resolved_node (decl),
 				  NULL,
                                   count1, 0, 0);
-          e->indirect_call = 1;
         }
 
       if (val2 == 0 || count2 == 0)
@@ -213,7 +213,6 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
 	                          cgraph_lipo_get_resolved_node (decl),
 				  NULL,
                                   count2, 0, 0);
-          e->indirect_call = 1;
         }
     }
 }
