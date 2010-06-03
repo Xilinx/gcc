@@ -31,6 +31,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks-def.h"
 #include "target.h"
 
+#include <gmp.h>
+#include <mpfr.h>
+
 #include "gpy.h"
 
 /* Language-dependent contents of a type.  */
@@ -66,9 +69,32 @@ struct GTY(()) language_function {
 };
 
 /* Language hooks.  */
-static bool
-gpy_langhook_init( void )
+static
+bool gpy_langhook_init( void )
 {
+  build_common_tree_nodes( false );
+
+  /* The sizetype may be "unsigned long" or "unsigned long long".  */
+  if( TYPE_MODE (long_unsigned_type_node) == ptr_mode )
+    {
+      size_type_node = long_unsigned_type_node;
+    }
+  else if( TYPE_MODE (long_long_unsigned_type_node) == ptr_mode )
+    {
+      size_type_node = long_long_unsigned_type_node;
+    }
+  else
+    {
+      size_type_node = long_unsigned_type_node;
+    }
+
+  set_sizetype( size_type_node );
+  build_common_tree_nodes_2( 0 );
+  /* build_common_builtin_nodes( ); */
+
+  /* I don't know why this is not done by any of the above.  */
+  void_list_node = build_tree_list( NULL_TREE, void_type_node );
+
   debug("init!\n");
 
   return true;
@@ -79,7 +105,11 @@ static unsigned int
 gpy_langhook_init_options( unsigned int argc ATTRIBUTE_UNUSED,
 			   const char** argv ATTRIBUTE_UNUSED )
 {
+  flag_strict_aliasing = 1;
   debug("init options!\n");
+
+  mpfr_set_default_prec (128);
+
   return 1;
 }
 
@@ -112,6 +142,11 @@ gpy_langhook_post_options (const char **pfilename ATTRIBUTE_UNUSED)
   debug("post options!\n");
   gcc_assert( num_in_fnames > 0 );
 
+  if( flag_excess_precision_cmdline == EXCESS_PRECISION_DEFAULT )
+    {
+      flag_excess_precision_cmdline = EXCESS_PRECISION_STANDARD;
+    }
+
   /* Returning false means that the backend should be used.  */
   return false;
 }
@@ -143,6 +178,8 @@ gpy_langhook_type_for_mode( enum machine_mode mode ATTRIBUTE_UNUSED,
 			    int unsignedp ATTRIBUTE_UNUSED )
 {
   debug("type for mode!\n");
+
+
   return NULL;
 }
 
@@ -151,7 +188,8 @@ static tree
 gpy_langhook_builtin_function( tree decl ATTRIBUTE_UNUSED )
 {
   debug("builtin function!\n");
-  return NULL;
+
+  return decl;
 }
 
 static int
@@ -206,6 +244,7 @@ static GTY(()) tree gpy_gc_root;
 void
 gpy_preserve_from_gc( tree t ATTRIBUTE_UNUSED )
 {
+  gpy_gc_root = tree_cons( NULL_TREE, t, gpy_gc_root );
   debug("preserver from gc!\n");
   return;
 }
