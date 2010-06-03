@@ -1,3 +1,13 @@
+2010-06-03  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_insert_gettmclone_call): Mark clones as used
+	for inlining.
+	* varasm.c (record_tm_clone_pair): Rewrite to use hash.
+	(get_tm_clone_pair): New.
+	(finish_tm_clone_pairs_1): New.
+	(finish_tm_clone_pairs): Rewrite to use hash.
+	* output.h (get_tm_clone_pair): Declare.
+
 2010-05-28  Aldy Hernandez  <aldyh@redhat.com>
 
 	* targhooks.c (default_builtin_tm_load_store): New.

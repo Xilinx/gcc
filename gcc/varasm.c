@@ -5803,47 +5803,83 @@ assemble_alias (tree decl, tree target)
    to its transaction aware clone.  Note that tm_pure functions are
    considered to be their own clone.  */
 
-static GTY(()) VEC(tree,gc) *tm_clone_pairs;
+static GTY((if_marked ("tree_map_marked_p"), param_is (struct tree_map)))
+     htab_t tm_clone_pairs;
 
 void
 record_tm_clone_pair (tree o, tree n)
 {
-  VEC_safe_push (tree, gc, tm_clone_pairs, o);
-  VEC_safe_push (tree, gc, tm_clone_pairs, n);
+  struct tree_map **slot, *h;
+
+  if (tm_clone_pairs == NULL)
+    tm_clone_pairs = htab_create_ggc (32, tree_map_hash, tree_map_eq, 0);
+
+  h = GGC_NEW (struct tree_map);
+  h->hash = htab_hash_pointer (o);
+  h->base.from = o;
+  h->to = n;
+
+  slot = (struct tree_map **)
+    htab_find_slot_with_hash (tm_clone_pairs, h, h->hash, INSERT);
+  *slot = h;
+}
+
+tree
+get_tm_clone_pair (tree o)
+{
+  if (tm_clone_pairs)
+    {
+      struct tree_map *h, in;
+
+      in.base.from = o;
+      in.hash = htab_hash_pointer (o);
+      h = (struct tree_map *) htab_find_with_hash (tm_clone_pairs,
+						   &in, in.hash);
+      if (h)
+	return h->to;
+    }
+  return NULL_TREE;
+}
+
+/* Helper function for finish_tm_clone_pairs.  Dump the clone table.  */
+
+int
+finish_tm_clone_pairs_1 (void **slot, void *info ATTRIBUTE_UNUSED)
+{
+  struct tree_map *map = (struct tree_map *) *slot;
+  bool *switched = (bool *) info;
+  tree src = map->base.from;
+  tree dst = map->to;
+  struct cgraph_node *src_n = cgraph_node (src);
+
+  if (!src_n->needed)
+    return 1;
+
+  if (!*switched)
+    {
+      switch_to_section (get_named_section (NULL, ".tm_clone_table", 3));
+      assemble_align (POINTER_SIZE);
+      *switched = true;
+    }
+
+  assemble_integer (XEXP (DECL_RTL (src), 0),
+		    POINTER_SIZE / BITS_PER_UNIT, POINTER_SIZE, 1);
+  assemble_integer (XEXP (DECL_RTL (dst), 0),
+		    POINTER_SIZE / BITS_PER_UNIT, POINTER_SIZE, 1);
+  return 1;
 }
 
 void
 finish_tm_clone_pairs (void)
 {
-  unsigned i, n;
   bool switched = false;
 
   if (tm_clone_pairs == NULL)
     return;
 
-  n = VEC_length (tree, tm_clone_pairs);
-  for (i = 0; i < n; i += 2)
-    {
-      tree src = VEC_index (tree, tm_clone_pairs, i);
-      tree dst = VEC_index (tree, tm_clone_pairs, i + 1);
-      struct cgraph_node *src_n = cgraph_node (src);
-
-      if (!src_n->needed)
-	continue;
-
-      if (!switched)
-	{
-	  switch_to_section (get_named_section (NULL, ".tm_clone_table", 3));
-	  assemble_align (POINTER_SIZE);
-	  switched = true;
-	}
-
-      assemble_integer (XEXP (DECL_RTL (src), 0),
-			POINTER_SIZE / BITS_PER_UNIT, POINTER_SIZE, 1);
-      assemble_integer (XEXP (DECL_RTL (dst), 0),
-			POINTER_SIZE / BITS_PER_UNIT, POINTER_SIZE, 1);
-    }
-
+  htab_traverse_noresize (tm_clone_pairs, finish_tm_clone_pairs_1,
+			  (void *) &switched);
+  htab_delete (tm_clone_pairs);
   tm_clone_pairs = NULL;
 }
 

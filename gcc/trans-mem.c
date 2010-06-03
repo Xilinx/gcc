@@ -3971,10 +3971,15 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   if (TREE_CODE (old_fn) == ADDR_EXPR)
     {
       tree fndecl = TREE_OPERAND (old_fn, 0);
-      /* We're technically taking the address of the original function
-	 by transforming the call into a TM_GETTMCLONE.  Explain this
-	 so inlining will know this function is needed.  */
+      tree clone = get_tm_clone_pair (fndecl);
+
+      /* By transforming the call into a TM_GETTMCLONE, we are
+         technically taking the address of the original function and
+         its clone.  Explain this so inlining will know this function
+         is needed.  */
       cgraph_mark_address_taken_node (cgraph_node (fndecl));
+      if (clone)
+	cgraph_mark_address_taken_node (cgraph_node (clone));
     }
 
   safe = is_tm_safe (TREE_TYPE (old_fn));
