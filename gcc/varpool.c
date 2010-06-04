@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cgraph.h"
 #include "langhooks.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "hashtab.h"
 #include "ggc.h"
 #include "timevar.h"
@@ -117,7 +117,9 @@ varpool_get_node (tree decl)
     return NULL;
   key.decl = decl;
   slot = (struct varpool_node **)
-    htab_find_slot (varpool_hash, &key, INSERT);
+    htab_find_slot (varpool_hash, &key, NO_INSERT);
+  if (!slot)
+    return NULL;
   return *slot;
 }
 
@@ -261,7 +263,7 @@ dump_varpool (FILE *f)
 
 /* Dump the variable pool to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_varpool (void)
 {
   dump_varpool (stderr);
@@ -517,7 +519,7 @@ varpool_remove_unreferenced_decls (void)
 
   varpool_reset_queue ();
 
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return;
 
   while (node)
@@ -549,7 +551,7 @@ varpool_assemble_pending_decls (void)
 {
   bool changed = false;
 
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return false;
 
   timevar_push (TV_VAROUT);

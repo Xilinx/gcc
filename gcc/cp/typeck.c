@@ -350,6 +350,17 @@ cp_common_type (tree t1, tree t2)
 		    : long_long_integer_type_node);
 	  return build_type_attribute_variant (t, attributes);
 	}
+      if (int128_integer_type_node != NULL_TREE
+	  && (same_type_p (TYPE_MAIN_VARIANT (t1),
+			   int128_integer_type_node)
+	      || same_type_p (TYPE_MAIN_VARIANT (t2),
+			      int128_integer_type_node)))
+	{
+	  tree t = ((TYPE_UNSIGNED (t1) || TYPE_UNSIGNED (t2))
+		    ? int128_unsigned_type_node
+		    : int128_integer_type_node);
+	  return build_type_attribute_variant (t, attributes);
+	}
 
       /* Go through the same procedure, but for longs.  */
       if (same_type_p (TYPE_MAIN_VARIANT (t1), long_unsigned_type_node)
@@ -3209,6 +3220,25 @@ cp_build_function_call (tree function, tree params, tsubst_flags_t complain)
   vec = make_tree_vector ();
   for (; params != NULL_TREE; params = TREE_CHAIN (params))
     VEC_safe_push (tree, gc, vec, TREE_VALUE (params));
+  ret = cp_build_function_call_vec (function, &vec, complain);
+  release_tree_vector (vec);
+  return ret;
+}
+
+/* Build a function call using varargs.  */
+
+tree
+cp_build_function_call_nary (tree function, tsubst_flags_t complain, ...)
+{
+  VEC(tree,gc) *vec;
+  va_list args;
+  tree ret, t;
+
+  vec = make_tree_vector ();
+  va_start (args, complain);
+  for (t = va_arg (args, tree); t != NULL_TREE; t = va_arg (args, tree))
+    VEC_safe_push (tree, gc, vec, t);
+  va_end (args);
   ret = cp_build_function_call_vec (function, &vec, complain);
   release_tree_vector (vec);
   return ret;

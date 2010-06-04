@@ -22,7 +22,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tree.h"
 #include "output.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "tree-dump.h"
 #include "pointer-set.h"
@@ -818,7 +817,7 @@ print_aff (FILE *file, aff_tree *val)
 
 /* Prints the affine VAL to the standard error, used for debugging.  */
 
-void
+DEBUG_FUNCTION void
 debug_aff (aff_tree *val)
 {
   print_aff (stderr, val);

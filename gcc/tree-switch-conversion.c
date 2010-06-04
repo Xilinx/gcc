@@ -93,7 +93,6 @@ eight) times the number of the actual switch branches. */
 #include "output.h"
 #include "input.h"
 #include "tree-pass.h"
-#include "diagnostic.h"
 #include "gimple-pretty-print.h"
 #include "tree-dump.h"
 #include "timevar.h"
@@ -526,6 +525,7 @@ build_one_array (gimple swtch, int num, tree arr_index_type, gimple phi,
       DECL_NAME (decl) = create_tmp_var_name ("CSWTCH");
       DECL_ARTIFICIAL (decl) = 1;
       TREE_CONSTANT (decl) = 1;
+      TREE_READONLY (decl) = 1;
       add_referenced_var (decl);
       varpool_mark_needed_node (varpool_node (decl));
       varpool_finalize_decl (decl);

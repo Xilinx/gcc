@@ -392,7 +392,7 @@ read_input_list (const char *listname)
 {
   FILE *list = fopen (listname, "r");
   if (!list)
-    fatal ("cannot open %s: %s", listname, strerror (errno));
+    fatal ("cannot open %s: %s", listname, xstrerror (errno));
   else
     {
       struct fileloc epos;
@@ -508,7 +508,7 @@ read_input_list (const char *listname)
   }
 
   if (ferror (list))
-    fatal ("error reading %s: %s", listname, strerror (errno));
+    fatal ("error reading %s: %s", listname, xstrerror (errno));
 
   fclose (list);
 }
@@ -1838,11 +1838,11 @@ close_output_files (void)
       {
         FILE *newfile = fopen (of->name, "w");
         if (newfile == NULL)
-          fatal ("opening output file %s: %s", of->name, strerror (errno));
+          fatal ("opening output file %s: %s", of->name, xstrerror (errno));
         if (fwrite (of->buf, 1, of->bufused, newfile) != of->bufused)
-          fatal ("writing output file %s: %s", of->name, strerror (errno));
+          fatal ("writing output file %s: %s", of->name, xstrerror (errno));
         if (fclose (newfile) != 0)
-          fatal ("closing output file %s: %s", of->name, strerror (errno));
+          fatal ("closing output file %s: %s", of->name, xstrerror (errno));
       }
       free(of->buf);
       of->buf = NULL;
@@ -3742,8 +3742,8 @@ write_typed_alloc_def (bool variable_size, const char * type_specifier,
 		       enum alloc_quantity quantity, enum alloc_zone zone)
 {
   bool two_args = variable_size && (quantity == vector);
-  bool third_arg = (zone == specific_zone) && (variable_size
-					       || (quantity == vector));
+  bool third_arg = ((zone == specific_zone)
+		    && (variable_size || (quantity == vector)));
 
   oprintf (header_file, "#define ggc_alloc_%s%s",allocator_type, type_name);
   oprintf (header_file, "(%s%s%s%s%s) ",
@@ -3871,8 +3871,8 @@ output_typename (outf_p of, const_type_p t)
     }
 }
 
-/*  Writes a typed GC allocator for type S that is suitable as a callback for
-    the splay tree implementation in libiberty.  */
+/* Writes a typed GC allocator for type S that is suitable as a callback for
+   the splay tree implementation in libiberty.  */
 
 static void
 write_splay_tree_allocator_def (const_type_p s)

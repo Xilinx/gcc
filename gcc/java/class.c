@@ -929,8 +929,6 @@ hashUtf8String (const char *str, int len)
   return hash;
 }
 
-static GTY(()) tree utf8_decl_list = NULL_TREE;
-
 tree
 build_utf8_ref (tree name)
 {
@@ -995,14 +993,12 @@ build_utf8_ref (tree name)
 	}
     }
 
-  TREE_CHAIN (decl) = utf8_decl_list;
   layout_decl (decl, 0);
   DECL_SIZE (decl) = TYPE_SIZE (ctype);
   DECL_SIZE_UNIT (decl) = TYPE_SIZE_UNIT (ctype);
   pushdecl (decl);
   rest_of_decl_compilation (decl, global_bindings_p (), 0);
   varpool_mark_needed_node (varpool_node (decl));
-  utf8_decl_list = decl;
   ref = build1 (ADDR_EXPR, utf8const_ptr_type, decl);
   IDENTIFIER_UTF8_REF (name) = ref;
   return ref;
@@ -1522,18 +1518,19 @@ make_method_value (tree mdecl)
   {
     /* Compute the `throws' information for the method.  */
     tree table = null_pointer_node;
-    if (DECL_FUNCTION_THROWS (mdecl) != NULL_TREE)
+    if (DECL_FUNCTION_THROWS (mdecl) != NULL)
       {
-	int length = 1 + list_length (DECL_FUNCTION_THROWS (mdecl));
-	tree iter, type, array;
+	int length = 1 + VEC_length (tree, DECL_FUNCTION_THROWS (mdecl));
+	tree t, type, array;
 	char buf[60];
+        unsigned ix;
 
 	table = tree_cons (NULL_TREE, table, NULL_TREE);
-	for (iter = DECL_FUNCTION_THROWS (mdecl);
-	     iter != NULL_TREE;
-	     iter = TREE_CHAIN (iter))
+	for (ix = 0;
+	     VEC_iterate (tree, DECL_FUNCTION_THROWS (mdecl), ix, t);
+	     ix++)
 	  {
-	    tree sig = DECL_NAME (TYPE_NAME (TREE_VALUE (iter)));
+	    tree sig = DECL_NAME (TYPE_NAME (t));
 	    tree utf8
 	      = build_utf8_ref (unmangle_classname (IDENTIFIER_POINTER (sig),
 						    IDENTIFIER_LENGTH (sig)));
@@ -1722,11 +1719,11 @@ supers_all_compiled (tree type)
 
 static void
 add_table_and_syms (VEC(constructor_elt,gc) **v,
-                    tree method_slot,
+                    VEC(method_entry,gc) *methods,
                     const char *table_name, tree table_slot, tree table_type,
                     const char *syms_name, tree syms_slot)
 {
-  if (method_slot == NULL_TREE)
+  if (methods == NULL)
     {
       PUSH_FIELD_VALUE (*v, table_name, null_pointer_node);
       PUSH_FIELD_VALUE (*v, syms_name, null_pointer_node);
@@ -2888,31 +2885,27 @@ build_symbol_entry (tree decl, tree special)
 /* Emit a symbol table: used by -findirect-dispatch.  */
 
 tree
-emit_symbol_table (tree name, tree the_table, tree decl_list,
+emit_symbol_table (tree name, tree the_table,
+		   VEC(method_entry,gc) *decl_table,
                    tree the_syms_decl, tree the_array_element_type,
 		   int element_size)
 {
-  tree method_list, method, table, list, null_symbol;
+  tree table, list, null_symbol;
   tree table_size, the_array_type;
-  int index;
+  unsigned index;
+  method_entry *e;
   
   /* Only emit a table if this translation unit actually made any
      references via it. */
-  if (decl_list == NULL_TREE)
+  if (decl_table == NULL)
     return the_table;
 
   /* Build a list of _Jv_MethodSymbols for each entry in otable_methods. */
-  index = 0;
-  method_list = decl_list;
-  list = NULL_TREE;  
-  while (method_list != NULL_TREE)
-    {
-      tree special = TREE_PURPOSE (method_list);
-      method = TREE_VALUE (method_list);
-      list = tree_cons (NULL_TREE, build_symbol_entry (method, special), list);
-      method_list = TREE_CHAIN (method_list);
-      index++;
-    }
+  list = NULL_TREE;
+  for (index = 0; VEC_iterate (method_entry, decl_table, index, e); index++)
+    list = tree_cons (NULL_TREE,
+		      build_symbol_entry (e->method, e->special),
+		      list);
 
   /* Terminate the list with a "null" entry. */
   null_symbol = build_symbol_table_entry (null_pointer_node,

@@ -1,3 +1,262 @@
+2010-06-02  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/44218
+	* gcc.target/powerpc/recip-1.c: New test for -mrecip support.
+	* gcc.target/powerpc/recip-2.c: Ditto.
+	* gcc.target/powerpc/recip-3.c: Ditto.
+	* gcc.target/powerpc/recip-4.c: Ditto.
+	* gcc.target/powerpc/recip-5.c: Ditto.
+	* gcc.target/powerpc/recip-6.c: Ditto.
+	* gcc.target/powerpc/recip-7.c: Ditto.
+	* gcc.target/powerpc/recip-test.h: Ditto.
+	* gcc.target/powerpc/recip-test2.h: Ditto.
+
+2010-06-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* g++.dg/torture/pr44295.C (size_t): Use __SIZE_TYPE__.
+
+2010-06-02  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/ext/vector9.C: Expect typedef in error message.
+
+	PR c++/9726
+	PR c++/23594
+	PR c++/44333
+	* g++.dg/tc1/dr101.C: Remove xfails.
+
+2010-06-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/44372
+	* g++.dg/ipa/pr44372.C: New.
+
+2010-06-02  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/44295
+	* g++.dg/torture/pr44295.C: Neww testcase.
+
+2010-06-02  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/loadpre6.c: Update.
+
+2010-06-02  Richard Guenther  <rguenther@suse.de>
+
+	* g++.dg/plugin/header_plugin.c: Include cp-tree.h before
+	diagnostic.h.
+
+2010-06-02  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* lib/lto.exp (lto-link-and-maybe-run): Show the options in
+	the link fail message.
+
+2010-06-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44360
+	* gfortran.dg/use_13.f90: New test case.
+
+2010-06-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/44371
+	* gfortran.dg/error_stop_2.f08: Minor update.
+
+2010-06-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/44371
+	* gfortran.dg/error_stop_1.f08: New test.
+	* gfortran.dg/error_stop_2.f08: New test.
+
+2010-06-01  Jason Merrill  <jason@redhat.com>
+
+	DR 990
+	* g++.dg/cpp0x/initlist37.C: New.
+	* g++.dg/cpp0x/initlist38.C: New.
+
+	PR c++/44358
+	* g++.dg/cpp0x/initlist36.C: New.
+
+2010-05-31 Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/noreturn-8.c: New testcase.
+
+2010-05-31 Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/lto/noreturn-1_1.c: Remove dg-do annotations.
+	* gcc.dg/lto/noreturn-1_0.c: Move it here.
+
+2010-05-31 Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/lto/noreturn-1_1.c: New testcase.
+	* gcc.dg/lto/noreturn-1_0.c: New testcase.
+
+2010-05-31  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/36928
+	* gfortran.dg/dependency_27.f90:  New test.
+	* gfortran.dg/array_assign_1.F90:  New test.
+
+2010-05-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/44338
+	* gcc.target/i386/sse-24.c: New test.
+
+2010-05-31  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/builtin-apply4.c: Compile with -Wmissing-return.
+
+2010-05-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/44337
+	* gcc.dg/pr44337.c: New test.
+
+	PR tree-optimization/44182
+	* g++.dg/debug/pr44182.C: New test.
+
+2010-05-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/nested-func-7.c: New test.
+	* gnat.dg/frame_overflow.adb: Adjust directives.
+
+2010-05-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/prot2.ad[sb]: New test.
+	* gnat.dg/prot2_pkg1.ads: New helper.
+	* gnat.dg/prot2_pkg2.ad[sb]: Likewise.
+
+2010-05-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/array11.adb: Adjust dg-warning directive.
+	* gnat.dg/object_overflow.adb: Likewise.
+
+2010-05-29  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/44306
+	* gcc.dg/tree-ssa/pr44306.c: New.
+
+2010-05-29  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/ipa-cp-1.c: Update testcase.
+
+2010-05-28  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/vect/vect-outer-fir-lb.c: Un-XFAIL-ed.
+
+2010-05-28  Mike Stump  <mikestump@comcast.net>
+
+	PR objc/44125
+	* objc.dg/const-str-9.m: Remove static.
+
+2010-05-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/43636
+	* gcc.c-torture/compile/pr43636.c: New test.
+
+2010-05-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR objc++/23616
+	* obj-c++.dg/try-catch-2.mm: Adjust xfail.
+	* obj-c++.dg/try-catch-9.mm: Ditto.
+
+2010-05-28  Dodji Seketeli  <dodji@redhat.com>
+
+	Revert patch for PR c++/44188
+	* g++.dg/debug/dwarf2/typedef3.C: Revert new test.
+
+2010-05-25  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/44188
+	* g++.dg/debug/dwarf2/typedef3.C: New test.
+
+2010-05-27  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43555
+	* g++.dg/ext/vla9.C: New.
+
+2010-05-27  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR objc/44140
+	* objc.dg/torture/tls/thr-init-2.m: Skip for -flto, -fwhopr.
+	* objc.dg/torture/tls/thr-init-3.m: Ditto.
+	* objc.dg/torture/tls/thr-init.m: Ditto.
+	* objc.dg/torture/trivial.m: Ditto.
+	* obj-c++.dg/torture/tls/thr-init-1.mm: Ditto.
+	* obj-c++.dg/torture/tls/thr-init-2.mm: Ditto.
+	* obj-c++.dg/torture/tls/thr-init-3.mm: Ditto.
+	* obj-c++.dg/torture/trivial.mm: Ditto.
+
+2010-05-27  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* g++.dg/lto/20100302_0.C: Skip on darwin.
+
+2010-05-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44284
+	* gcc.dg/vect/vect-118.c: New testcase.
+	* gcc.dg/vect/bb-slp-20.c: Adjust.
+	* gcc.dg/vect/no-section-anchors-vect-36.c: Likewise.
+	* gcc.dg/vect/slp-9.c: Likewise.
+	* gcc.dg/vect/slp-reduc-4.c: Likewise.
+	* gcc.dg/vect/vect-10.c: Likewise.
+	* gcc.dg/vect/vect-109.c: Likewise.
+	* gcc.dg/vect/vect-12.c: Likewise.
+	* gcc.dg/vect/vect-36.c: Likewise.
+	* gcc.dg/vect/vect-7.c: Likewise.
+	* gcc.dg/vect/vect-iv-8.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-10.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-13.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-14.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-15.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-7.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-8.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-9.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-s16b.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-s8a.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-s8b.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-u16b.c: Likewise.
+	* gcc.dg/vect/vect-strided-a-u32-mult.c: Likewise.
+	* gcc.dg/vect/vect-strided-u32-mult.c: Likewise.
+	* gcc.dg/vect/vect-widen-mult-s16.c: Likewise.
+	* gcc.dg/vect/vect-widen-mult-s8.c: Likewise.
+	* gcc.dg/vect/vect-widen-mult-sum.c: Likewise.
+	* gcc.dg/vect/vect-widen-mult-u16.c: Likewise.
+
+2010-05-27  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.dg/glibc-uclibc-1.c, gcc.dg/glibc-uclibc-2.c: Remove, no longer
+	necessary.
+
+2010-05-26  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/lto/materialize-1_0.c: New file.
+	* gcc.dg/lto/materialize-1_1.c: New file.
+
+2010-05-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto10.adb: New test.
+	* gnat.dg/lto10_pkg.ads: New helper.
+
+2010-05-26  Kai Tietz  <kai.tietz@onevision.com>
+
+	* lib/target-supports.exp (check_effective_target_int128): New
+	function to check if __int128 types are available for target.
+	* c-c++-common/int128-types-1.c: New.
+	* c-c++-common/int128-1.c: New.
+	* c-c++-common/int128-2.c: New.
+	* g++.dg/abi/mangle43.C: New.
+	* g++.dg/init/enum1.C: Handle __int128 case and add -Wno-overflow.
+	* g++.dg/cpp0x/nullptr04.C: Use __SIZE_TYPE__ for getting
+	pointer-wide scalar.
+	* g++.dg/other/pr25632.C: Likewise.
+	* g++.dg/other/large-size-array.C (DIM): Use ULLONG_MAX for win64 case.
+	* g++.dg/warn/pr13358-2.C: Add llp64 for check of special
+	overflow warnings.
+	* g++.dg/warn/pr13358-4.C: Likewise.
+	* g++.dg/warn/Wconversion-null-2.C:  Add 'long long' case.
+	* g++.dg/warn/Wconversion-null.C: Likewise.
+
+2010-05-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43382
+	* g++.dg/cpp0x/variadic101.C: New.
+
 2010-05-26  Richard Guenther  <rguenther@suse.de>
 
 	PR rtl-optimization/44164
@@ -44,7 +303,7 @@
 
 2010-05-25  Iain Sandoe  <iains@gcc.gnu.org>
 
-	PR ObjC/44140
+	PR objc/44140
 	* objc.dg/torture/tls/thr-init-3.m: XFAIL lto/whopr for all.
 
 2010-05-25  Iain Sandoe  <iains@gcc.gnu.org>
@@ -74,7 +333,7 @@
 
 2010-05-24  Iain Sandoe  <iains@gcc.gnu.org>
 
-	PR ObjC++/43689
+	PR objc++/43689
 	* obj-c++.dg/const-str-5.mm: Name pointer equivalence union.
 	* obj-c++.dg/const-str-6.mm: Ditto.
 
@@ -95,7 +354,7 @@
 	* gcc.target/arm/neon/polytypes.c,
 	gcc.target/arm/neon-vmla-1.c, gcc.target/arm/neon-vmls-1.c,
 	gcc.target/arm/neon-cond-1.c, gcc.target/arm/neon/vfp-shift-a2t2.c,
-	gcc.target/arm/neon-thumb2-move.c, gcc.dg/torture/arm-fp16-ops-8.c, 
+	gcc.target/arm/neon-thumb2-move.c, gcc.dg/torture/arm-fp16-ops-8.c,
 	gcc.dg/torture/arm-fp16-ops-7.c, g++.dg/ext/arm-fp16/arm-fp16-ops-7.C,
 	g++.dg/ext/arm-fp16/arm-fp16-ops-8.C, g++.dg/abi/mangle-neon.C: Use
 	dg-add-options arm_neon.
@@ -185,9 +444,9 @@
 
 2010-05-20  Daniel Franke  <franke.daniel@gmail.com>
 
-        PR fortran/38407
-        * warn_unused_dummy_argument_1.f90: New.
-        * warn_unused_dummy_argument_2.f90: New.
+	PR fortran/38407
+	* warn_unused_dummy_argument_1.f90: New.
+	* warn_unused_dummy_argument_2.f90: New.
 
 2010-05-20  Paolo Carlini  <paolo.carlini@oracle.com>
 
@@ -206,7 +465,7 @@
 	* gcc.dg/tree-ssa/prefetch-6.c: Add
 	--param min-insn-to-prefetch-ratio=6.
 	* gcc.dg/tree-ssa/prefetch-7.c: Remove --param max-unrolled-insns=1 to
-        allow unrolling, and adjust the movnti count.
+	allow unrolling, and adjust the movnti count.
 
 2010-05-20  Jan Hubicka  <jh@suse.cz>
 
@@ -283,7 +542,7 @@
 	* gcc.target/i386/3dnowA-2.c: Likewise.
 	* gcc.target/i386/pr42549.c: Likewise.
 
-	* gcc.target/i386/sse3-lddqu.c: Use dg-require-effective-target sse3. 
+	* gcc.target/i386/sse3-lddqu.c: Use dg-require-effective-target sse3.
 	* gcc.target/i386/sse3-addsubpd.c: Likewise.
 	* gcc.target/i386/sse3-addsubps.c: Likewise.
 	* gcc.target/i386/sse3-haddpd.c: Likewise.
@@ -839,9 +1098,9 @@
 2010-05-14  Shujing Zhao  <pearly.zhao@oracle.com>
 
 	PR c++/30566
-	* testsuite/g++.dg/warn/Wshadow-4.C: Adjust.
-	* testsuite/g++.dg/warn/Wshadow-5.C: New test.
-	* testsuite/g++.dg/warn/Wshadow-6.C: New test
+	* g++.dg/warn/Wshadow-4.C: Adjust.
+	* g++.dg/warn/Wshadow-5.C: New test.
+	* g++.dg/warn/Wshadow-6.C: New test
 
 2010-05-13  Daniel Franke  <franke.daniel@gmail.com>
 
@@ -1776,7 +2035,7 @@
 2010-04-26  Jack Howarth <howarth@bromo.med.uc.edu>
 
 	PR 43715
-	* testsuite/lib/plugin-support.exp: Use "-undefined
+	* lib/plugin-support.exp: Use "-undefined
 	dynamic_lookup" on darwin.
 
 2010-04-26  Richard Guenther  <rguenther@suse.de>
@@ -2201,7 +2460,7 @@
 2010-04-14  Michael Matz  <matz@suse.de>
 
 	PR tree-optimization/42963
-	* testsuite/gcc.dg/pr42963.c: New testcase.
+	* gcc.dg/pr42963.c: New testcase.
 
 2010-04-14  Eric Botcazou  <ebotcazou@adacore.com>
 
@@ -2773,9 +3032,9 @@
 	* obj-c++.dg/stubify-2.mm: Change dump file name.
 
 	PR objc++/23613
-	* gcc/testsuite/objc-obj-c++-shared/next-mapping.h (CLASSPTRFIELD):
+	* objc-obj-c++-shared/next-mapping.h (CLASSPTRFIELD):
 	New macro.
-	* gcc/testsuite/obj-c++.dg/isa-field-1.mm: Use new CLASSPTRFIELD macro.
+	* obj-c++.dg/isa-field-1.mm: Use new CLASSPTRFIELD macro.
 	Remove dg-xfail-if.
 
 2010-03-31  Martin Jambor  <mjambor@suse.cz>
@@ -2912,19 +3171,19 @@
 
 2010-03-26  Martin Jambor  <mjambor@suse.cz>
 
-	* gcc/testsuite/gcc.dg/tree-ssa/loadpre1.c: Delete trailing
+	* gcc.dg/tree-ssa/loadpre1.c: Delete trailing
 	whitespace, rename main to foo.
-	* gcc/testsuite/gcc.dg/tree-ssa/loadpre14.c: Likewise.
-	* gcc/testsuite/gcc.dg/tree-ssa/loadpre15.c: Likewise.
-	* gcc/testsuite/gcc.dg/tree-ssa/loadpre16.c: Likewise.
-	* gcc/testsuite/gcc.dg/tree-ssa/loadpre17.c: Likewise.
-	* gcc/testsuite/gcc.dg/tree-ssa/loadpre19.c: Likewise.
-	* gcc/testsuite/gcc.dg/tree-ssa/loadpre20.c: Likewise.
-	* gcc/testsuite/gcc.dg/tree-ssa/loadpre3.c: Likewise.
-	* gcc/testsuite/gcc.dg/tree-ssa/loadpre5.c: Likewise.
-	* gcc/testsuite/gcc.dg/tree-ssa/ssa-pre-1.c: Likewise.
-	* gcc/testsuite/gcc.dg/tree-ssa/ssa-pre-4.c: Likewise.
-	* gcc/testsuite/gcc.dg/tree-ssa/ssa-pre-6.c: Likewise.
+	* gcc.dg/tree-ssa/loadpre14.c: Likewise.
+	* gcc.dg/tree-ssa/loadpre15.c: Likewise.
+	* gcc.dg/tree-ssa/loadpre16.c: Likewise.
+	* gcc.dg/tree-ssa/loadpre17.c: Likewise.
+	* gcc.dg/tree-ssa/loadpre19.c: Likewise.
+	* gcc.dg/tree-ssa/loadpre20.c: Likewise.
+	* gcc.dg/tree-ssa/loadpre3.c: Likewise.
+	* gcc.dg/tree-ssa/loadpre5.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-pre-1.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-pre-4.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-pre-6.c: Likewise.
 
 2010-03-26  Dodji Seketeli  <dodji@redhat.com>
 
@@ -4653,7 +4912,7 @@
 
 2010-01-27  Stephen Thomas  <stephen.thomas@arm.com>
 
-	* testsuite/gcc.dg/optimize-bswap*.c: Add ARM target
+	* gcc.dg/optimize-bswap*.c: Add ARM target
 
 2010-01-27  Richard Guenther  <rguenther@suse.de>
 

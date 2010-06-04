@@ -630,6 +630,9 @@ enum gfc_array_kind
 };
 
 /* Array types only.  */
+/* FIXME: the variable_size annotation here is needed because these types are
+   variable-sized in some other frontends.  Due to gengtype deficiency the GTY
+   options of such types have to agree across all frontends. */
 struct GTY((variable_size))	lang_type	 {
   int rank;
   enum gfc_array_kind akind;

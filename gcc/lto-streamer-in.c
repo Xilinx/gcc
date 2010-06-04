@@ -1072,7 +1072,7 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 	  if (TREE_CODE (op) == ADDR_EXPR
 	      && TREE_CODE (TREE_OPERAND (op, 0)) == VAR_DECL
 	      && !useless_type_conversion_p (TREE_TYPE (TREE_TYPE (op)),
-					     TREE_TYPE (op)))
+					     TREE_TYPE (TREE_OPERAND (op, 0))))
 	    {
 	      TREE_OPERAND (op, 0)
 		= build1 (VIEW_CONVERT_EXPR, TREE_TYPE (TREE_TYPE (op)),
@@ -1637,6 +1637,7 @@ unpack_ts_fixed_cst_value_fields (struct bitpack_d *bp, tree expr)
 
   fv.data.low = (HOST_WIDE_INT) bp_unpack_value (bp, HOST_BITS_PER_WIDE_INT);
   fv.data.high = (HOST_WIDE_INT) bp_unpack_value (bp, HOST_BITS_PER_WIDE_INT);
+  fv.mode = (enum machine_mode) bp_unpack_value (bp, HOST_BITS_PER_INT);
   TREE_FIXED_CST (expr) = fv;
 }
 
@@ -1770,8 +1771,8 @@ unpack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
 {
   enum machine_mode mode;
 
-  TYPE_PRECISION (expr) = (unsigned) bp_unpack_value (bp, 9);
-  mode = (enum machine_mode) bp_unpack_value (bp, 7);
+  TYPE_PRECISION (expr) = (unsigned) bp_unpack_value (bp, 10);
+  mode = (enum machine_mode) bp_unpack_value (bp, 8);
   SET_TYPE_MODE (expr, mode);
   TYPE_STRING_FLAG (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_NO_FORCE_BLK (expr) = (unsigned) bp_unpack_value (bp, 1);

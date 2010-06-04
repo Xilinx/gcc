@@ -7419,7 +7419,7 @@ set_nonincremental_init_from_string (tree str,
 
       value = build_int_cst_wide (type, val[1], val[0]);
       add_pending_init (purpose, value, NULL_TREE, false,
-			braced_init_obstack);
+                        braced_init_obstack);
     }
 
   constructor_incremental = 0;

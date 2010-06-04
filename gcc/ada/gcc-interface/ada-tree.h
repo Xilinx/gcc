@@ -32,7 +32,10 @@ union GTY((desc ("0"),
 		       desc ("tree_node_structure (&%h)"))) generic;
 };
 
-/* Ada uses the lang_decl and lang_type fields to hold a tree.  */
+/* Ada uses the lang_decl and lang_type fields to hold a tree.
+   FIXME: the variable_size annotation here is needed because these types are
+   variable-sized in some other frontends.  Due to gengtype deficiency the GTY
+   options of such types have to agree across all frontends. */
 struct GTY((variable_size)) lang_type { tree t; };
 struct GTY((variable_size)) lang_decl { tree t; };
 
