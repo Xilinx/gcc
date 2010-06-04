@@ -80,6 +80,7 @@ else                    {  return ELSE; }
 \{                      {  return '{'; }
 \}                      {  return '}'; }
 
+";"                     {  return ';'; }
 ","                     {  return ','; }
 "."                     {  return '.'; }
 ":"                     {  return ':'; }
@@ -140,10 +141,22 @@ int yywrap( void )
   return 1;
 }
 
-int gcc_lex_parse( FILE * in )
+int gpy_lex_parse( const char * gpy_in )
 {
   int retval = 1;
-  yyin = in;
-  retval = yyparse( );
+  debug("trying to open <%s>!\n", gpy_in);
+  FILE * fd = fopen( gpy_in, "rb" );
+  if( fd )
+    {
+      yyin = fd;
+      retval = yyparse( );
+      fclose( fd );
+      yylex_destroy( );
+    }
+  else
+    {
+      fprintf(stderr, "error opening <%s>!\n", gpy_in );
+      retval = 0;
+    }
   return retval;
 }

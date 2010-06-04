@@ -77,8 +77,8 @@ extern void yyerror( const char * );
 
 %token DELIMITER
 %token NONE
-%token IDENTIFIER
-%token INTEGER
+%token<string> IDENTIFIER
+%token<integer> INTEGER
 %token STRING
 
 %left '-' '+'
@@ -94,18 +94,18 @@ extern void yyerror( const char * );
 
 declarations:
             | declarations decl
-            | declarations function
             ;
 
-decl: expression DELIMITER
+decl: expression ';'
     | loop_while
+    | function
     ;
 
-function: DEF IDENTIFIER '(' parameters ')' ':'  pblock
-        | DEF IDENTIFIER '(' ')' ':' pblock
+function: DEF IDENTIFIER '(' parameters ')' ':' '{' pblock '}'
+        | DEF IDENTIFIER '(' ')' ':' '{' pblock '}'
         ;
 
-loop_while: WHILE expression ':' pblock
+loop_while: WHILE expression ':' '{' pblock '}'
           ;
 
 expression: expr
@@ -118,8 +118,14 @@ statement_block: statement_block decl
                | decl
                ;
 
-expr: accessor '=' expr
+expr: IDENTIFIER '=' expr
+    {
+      debug("accessor = expr!\n");
+    }
     | expr '+' expr
+    {
+      debug("expr + expr!\n");
+    }
     | expr '-' expr
     | expr '*' expr
     | expr '/' expr
@@ -136,9 +142,10 @@ expr: accessor '=' expr
     ;
 
 accessor: IDENTIFIER
+        | arbitrary_call
         ;
 
-call: IDENTIFIER '(' arguments ')'
+arbitrary_call: IDENTIFIER '(' arguments ')'
     | IDENTIFIER '(' ')'
     ;
 
@@ -156,11 +163,10 @@ argument_list: argument_list ',' expression
              | expression
              ;
 
-primary: INTEGER
+primary: accessor
+       | INTEGER
        | STRING
        | NONE
-       | accessor
-       | call
        ;
 
 %%

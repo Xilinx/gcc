@@ -161,7 +161,8 @@ gpy_langhook_parse_file( int set_yy_debug ATTRIBUTE_UNUSED )
   for( ; idx<num_in_fnames; ++idx )
     {
       const char * t = in_fnames[idx];
-      debug("t = <%s>!\n>", t);
+      debug("t = <%s>!\n", t);
+      gpy_lex_parse( t );
     }
 }
 
@@ -249,7 +250,7 @@ gpy_preserve_from_gc( tree t ATTRIBUTE_UNUSED )
   return;
 }
 
-void __gcc_debug__( const char * file, unsigned int lineno,
+void __gpy_debug__( const char * file, unsigned int lineno,
 		    const char * fmt, ... )
 {
   va_list args;
