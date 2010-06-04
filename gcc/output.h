@@ -590,6 +590,7 @@ extern void output_section_asm_op (const void *);
 
 extern void record_tm_clone_pair (tree, tree);
 extern void finish_tm_clone_pairs (void);
+extern int finish_tm_clone_pairs_1 (void **, void *);
 extern tree get_tm_clone_pair (tree);
 
 extern unsigned int default_section_type_flags (tree, const char *, int);

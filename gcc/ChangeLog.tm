@@ -1,3 +1,8 @@
+2010-06-04  Aldy Hernandez  <aldyh@redhat.com>
+
+	* output.h (finish_tm_clone_pairs_1): Declare.
+	* config/i386/i386.c: Fix conversion problems.
+
 2010-06-03  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (ipa_tm_insert_gettmclone_call): Mark clones as used
