@@ -1,4 +1,8 @@
 2010-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt: macroexpand_toplevel_list issues a
+	warning for an s-expr followed by an atom.
+
+2010-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: normexp_symbol gives a better message
 	for unknown names.
 
