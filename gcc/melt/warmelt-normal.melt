@@ -1129,7 +1129,7 @@ source location.}#
      )
    (if (null bind)
        (progn
-	 (error_strv psloc "unbound symbol to normalize"
+	 (error_strv psloc "unknown name; symbol is not bound"
 		     (unsafe_get_field :named_name recv))
 	 (return ())))
    (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))

@@ -1,3 +1,7 @@
+2010-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt: normexp_symbol gives a better message
+	for unknown names.
+
 2010-06-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (MELT_RAW_CFLAGS): Don't use PLUGINCFLAGS here but
 	explicitly add CPPINC PPLINC .... so make bootsrap works
