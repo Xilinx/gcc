@@ -22,12 +22,14 @@ typedef unsigned short gpy_opcode_t;
 typedef struct gpy_symbol_table_t {
   char * identifier; crl_opcode_t exp;
   crl_opcode_t type, op_a_t, op_b_t;
-   union {
-    // literal primitive semantic types!
+  union {
+    /* literal primitive semantic types! */
     long int integer;
+    char * string;
   } op_a;
   union {
     long int integer;
+    char * string;
   } op_b;
   struct gpy_symbol_table_t *next;
 } gpy_symbol_obj ;
