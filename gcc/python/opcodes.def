@@ -81,4 +81,4 @@ along with GCC; see the file COPYING3.  If not see
 #define SYMBOL_RET_BREAK       0xF044
 #define SYMBOL_RET_CONTINUE    0xF045
 
-#endif // __OPCODES_H_
+#endif /* __OPCODES_H_ */

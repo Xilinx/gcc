@@ -20,16 +20,18 @@ along with GCC; see the file COPYING3.  If not see
 typedef unsigned short gpy_opcode_t;
 
 typedef struct gpy_symbol_table_t {
-  char * identifier; crl_opcode_t exp;
-  crl_opcode_t type, op_a_t, op_b_t;
+  char * identifier; gpy_opcode_t exp;
+  gpy_opcode_t type, op_a_t, op_b_t;
   union {
     /* literal primitive semantic types! */
     long int integer;
     char * string;
+    struct gpy_symbol_table_t * symbol_table;
   } op_a;
   union {
     long int integer;
     char * string;
+    struct gpy_symbol_table_t * symbol_table;
   } op_b;
   struct gpy_symbol_table_t *next;
 } gpy_symbol_obj ;

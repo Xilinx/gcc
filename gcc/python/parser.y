@@ -35,6 +35,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "vec.h"
 
 #include "gpy.h"
+#include "symbols.h"
+#include "opcodes.def"
 #include "y.py.h"
 
 #include <gmp.h>
@@ -49,6 +51,7 @@ extern void yyerror( const char * );
 %union {
   char * string;
   long int integer;
+  gpy_symbol_obj * symbol;
 }
 
 %error-verbose
@@ -80,6 +83,11 @@ extern void yyerror( const char * );
 %token<string> IDENTIFIER
 %token<integer> INTEGER
 %token STRING
+
+%type<symbol> expr
+%type<symbol> symbol_accessor
+%type<symbol> accessor
+%type<symbol> primary
 
 %left '-' '+'
 %left '*' '/'
@@ -118,12 +126,35 @@ statement_block: statement_block decl
                | decl
                ;
 
-expr: IDENTIFIER '=' expr
+expr: symbol_accessor '=' expr
     {
+      gpy_symbol_obj* sym;
+      Gpy_Symbol_Init( sym );
+
+      sym->exp= OP_EXPRESS;
+      sym->type= OP_ASSIGN_EVAL;
+      sym->op_a_t= TYPE_SYMBOL;
+      sym->op_b_t= TYPE_SYMBOL;
+
+      sym->op_a.symbol_table= $1;
+      sym->op_b.symbol_table= $3;
+      $$= sym;
+
       debug("accessor = expr!\n");
     }
     | expr '+' expr
     {
+      gpy_symbol_obj* sym;
+      Gpy_Symbol_Init( sym );
+
+      sym->exp= OP_EXPRESS;
+      sym->type= OP_BIN_ADDITION;
+      sym->op_a_t= TYPE_SYMBOL;
+      sym->op_b_t= TYPE_SYMBOL;
+
+      sym->op_a.symbol_table= $1;
+      sym->op_b.symbol_table= $3;
+      $$= sym;
       debug("expr + expr!\n");
     }
     | expr '-' expr
@@ -138,11 +169,30 @@ expr: IDENTIFIER '=' expr
     | expr AND expr
     | expr OR expr
     | '(' expr ')'
+    {
+      $$ = $2;
+    }
     | primary
     ;
 
-accessor: IDENTIFIER
+symbol_accessor: IDENTIFIER
+               {
+		 gpy_symbol_obj *sym;
+		 Gpy_Symbol_Init( sym );
+
+		 sym->type= SYMBOL_REFERENCE;
+		 sym->op_a_t= TYPE_STRING;
+
+		 sym->op_a.string= $1;
+		 $$= sym;
+	       }
+               ;
+
+accessor: symbol_accessor
         | arbitrary_call
+        {
+	  $$ = NULL;
+	}
         ;
 
 arbitrary_call: IDENTIFIER '(' arguments ')'
@@ -165,8 +215,22 @@ argument_list: argument_list ',' expression
 
 primary: accessor
        | INTEGER
-       | STRING
+       {
+	 gpy_symbol_obj *sym;
+	 Gpy_Symbol_Init( sym );
+
+	 sym->type= SYMBOL_PRIMARY;
+	 sym->op_a_t= TYPE_INTEGER;
+	 
+	 sym->op_a.integer= $1;
+	 $$= sym;
+       }
        | NONE
+       {
+	 gpy_symbol_obj *sym;
+	 Gpy_Symbol_Init( sym );
+	 $$= sym;
+       }
        ;
 
 %%
