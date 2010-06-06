@@ -25,6 +25,35 @@
 ;; the copyright notice above apply both to warmelt-first.melt and 
 ;; to the generated file  warmelt-first*.c
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Permission is granted to copy, distribute and/or modify this document
+;; under the terms of the GNU Free Documentation License, Version 1.3 or
+;; any later version published by the Free Software Foundation.  
+;; A copy of the license is included in the section 
+;; entitled ``GNU Free Documentation License''.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Explanatory Notice:
+
+;; The copyright notice with GPLv3+ above apply both to
+;; warmelt-first.melt and to the generated files warmelt-first*.c. The
+;; GPLv3+ license is useful to use, distribute, modify (and do
+;; anything permitted by the GPLv3+) GCC MELT as a software.
+
+;; This source file is dual-licensed as GPLv3+ & GFDL1.3+ because
+;; parts of it [the :doc annotations] are used to generate a GFDL1.3+
+;; documentation.  The GFDL1.3+ license permits the generation of
+;; GFDL1.3+ documentation chunks from this file.
+
+;; Dual licensed with explicit permission from FSF, after a question
+;; to licensing@fsf.org positively replied by Karl Berry on May 31st
+;; 2010, [gnu.org #579118]. See also
+;; http://gcc.gnu.org/ml/gcc/2010-05/msg00674.html
+;; http://gcc.gnu.org/ml/gcc/2010-05/msg00125.html
+;; http://gcc.gnu.org/ml/gcc/2010-05/msg00749.html 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 ;;    This file is the first part of a bootstrapping compiler for the
 ;;    MELT lisp dialect, compiler which should be able to
 ;;    compile itself (into generated C file[s])

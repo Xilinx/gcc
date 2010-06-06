@@ -1,3 +1,22 @@
+2010-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: Changed notice to also add GFD1.3+
+	license for generated documentation.
+	Dual licensed with explicit permission from FSF, after a question
+	to licensing@fsf.org positively replied by Karl Berry on May 31st
+	2010, [gnu.org #579118]. See also
+	http://gcc.gnu.org/ml/gcc/2010-05/msg00674.html
+	http://gcc.gnu.org/ml/gcc/2010-05/msg00125.html
+	http://gcc.gnu.org/ml/gcc/2010-05/msg00749.html etc.
+
+	* melt/warmelt-base.melt: Likewise.
+	* melt/warmelt-debug.melt: Likewise.
+	* melt/warmelt-macro.melt: Likewise.
+	* melt/warmelt-normal.melt: Likewise.
+	* melt/warmelt-normatch.melt: Likewise.
+	* melt/warmelt-genobj.melt: Likewise.
+	* melt/warmelt-outobj.melt: Likewise. Also output the GFDL notice
+	in the generated documentation.
+
 2010-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt: macroexpand_toplevel_list issues a
 	warning for an s-expr followed by an atom.
