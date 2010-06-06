@@ -1,3 +1,7 @@
+
+2010-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh: Use warmelt not warmelt3.
+
 2010-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* gcc_update: force LANG & LC_ALL to C locale
 
@@ -63,3 +67,7 @@
 2008-03-20   Basile Starynkevitch  <basile@starynkevitch.net>
 	* cold-basilys.lisp: removed invocation if indent & basilys-gcc programs.
 	(output_ccode) added newline emission after outputting preprocessor directives.
+
+/// Local Variables:
+/// mode: change-log
+/// End:

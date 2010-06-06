@@ -307,11 +307,11 @@ bootstrap_melt() {
 	error_echo Failure in MELT second stage
     fi
     ## third stage
-    verbose_echo Starting MELT third stage
-    if do_melt_make warmelt3 ; then
-	verbose_echo Did MELT third stage successfully
+    verbose_echo Starting MELT third and final stage
+    if do_melt_make warmelt ; then
+	verbose_echo Did MELT final stage successfully
     else
-	error_echo Failure in MELT third stage
+	error_echo Failure in MELT third and final stage
     fi
     ## default list of modules & documentation
     verbose_echo Building MELT default modules

@@ -5258,7 +5258,7 @@ upgrade-warmelt: $(WARMELT_BASESO) gt-melt-runtime-plugin.h
 	for r in $(WARMELT_REST); do \
 	  rm -f $$r.0*.c ; \
 	  echo upgrade-warmelt generating $$r.0 C files; \
-	  $(MELTCCFILE1) $(meltarg_init)="@warmelt3" \
+	  $(MELTCCFILE1) $(meltarg_init)="@warmelt" \
 	      $(meltarg_arg)=$(srcdir)/melt/$$r.melt \
 	      $(meltarg_output)=$$r.0.c  empty-file-for-melt.c ; \
 	  rm -f $(srcdir)/melt/generated/$$r.0*.c; \
