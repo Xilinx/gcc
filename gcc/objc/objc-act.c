@@ -67,7 +67,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "toplev.h"
 #include "ggc.h"
-#include "varray.h"
 #include "debug.h"
 #include "target.h"
 #include "diagnostic.h"
@@ -8130,15 +8129,21 @@ encode_aggregate_within (tree type, int curtype, int format, int left,
 
   /* Encode the struct/union tag name, or '?' if a tag was
      not provided.  Typedef aliases do not qualify.  */
-  if (name && TREE_CODE (name) == IDENTIFIER_NODE
 #ifdef OBJCPLUS
+  /* For compatibility with the NeXT runtime, ObjC++ encodes template
+     args as a composite struct tag name. */
+  if (name && TREE_CODE (name) == IDENTIFIER_NODE
       /* Did this struct have a tag?  */
-      && !TYPE_WAS_ANONYMOUS (type)
-#endif
-      )
+      && !TYPE_WAS_ANONYMOUS (type))
+    obstack_grow (&util_obstack,
+		  decl_as_string (type, TFF_DECL_SPECIFIERS | TFF_UNQUALIFIED_NAME),
+		  strlen (decl_as_string (type, TFF_DECL_SPECIFIERS | TFF_UNQUALIFIED_NAME)));
+#else
+  if (name && TREE_CODE (name) == IDENTIFIER_NODE)
     obstack_grow (&util_obstack,
 		  IDENTIFIER_POINTER (name),
 		  strlen (IDENTIFIER_POINTER (name)));
+#endif
   else
     obstack_1grow (&util_obstack, '?');
 

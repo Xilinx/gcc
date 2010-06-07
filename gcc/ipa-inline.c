@@ -313,10 +313,7 @@ cgraph_mark_inline_edge (struct cgraph_edge *e, bool update_original,
 
   gcc_assert (e->inline_failed);
   e->inline_failed = CIF_OK;
-
-  if (!e->callee->global.inlined)
-    DECL_POSSIBLY_INLINED (e->callee->decl) = true;
-  e->callee->global.inlined = true;
+  DECL_POSSIBLY_INLINED (e->callee->decl) = true;
 
   cgraph_clone_inlined_nodes (e, true, update_original);
 
@@ -719,7 +716,7 @@ update_caller_keys (fibheap_t heap, struct cgraph_node *node,
   struct cgraph_edge *edge;
   cgraph_inline_failed_t failed_reason;
 
-  if (!node->local.inlinable || node->local.disregard_inline_limits
+  if (!node->local.inlinable
       || node->global.inlined_to)
     return;
   if (bitmap_bit_p (updated_nodes, node->uid))
@@ -1923,10 +1920,13 @@ estimate_function_body_sizes (struct cgraph_node *node)
 
   if (node->local.disregard_inline_limits)
     {
+      if (dump_file)
+	fprintf (dump_file, "Disregarding inline limits.\n");
       inline_summary (node)->self_time = 0;
       inline_summary (node)->self_size = 0;
       inline_summary (node)->time_inlining_benefit = 0;
       inline_summary (node)->size_inlining_benefit = 0;
+      return;
     }
 
   if (dump_file)
@@ -2190,7 +2190,8 @@ inline_read_summary (void)
    active, we don't need to write them twice.  */
 
 static void
-inline_write_summary (cgraph_node_set set)
+inline_write_summary (cgraph_node_set set,
+		      varpool_node_set vset ATTRIBUTE_UNUSED)
 {
   if (flag_indirect_inlining && !flag_ipa_cp)
     ipa_prop_write_jump_functions (set);
@@ -2226,7 +2227,7 @@ struct ipa_opt_pass_d pass_ipa_inline =
   0,					/* properties_destroyed */
   TODO_remove_functions,		/* todo_flags_finish */
   TODO_dump_cgraph | TODO_dump_func
-  | TODO_remove_functions		/* todo_flags_finish */
+  | TODO_remove_functions | TODO_ggc_collect	/* todo_flags_finish */
  },
  inline_generate_summary,		/* generate_summary */
  inline_write_summary,			/* write_summary */

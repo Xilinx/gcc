@@ -191,7 +191,11 @@ rest_of_decl_compilation (tree decl,
 	   || DECL_INITIAL (decl))
 	  && !DECL_EXTERNAL (decl))
 	{
-	  if (TREE_CODE (decl) != FUNCTION_DECL)
+	  /* When reading LTO unit, we also read varpool, so do not
+	     rebuild it.  */
+	  if (in_lto_p && !at_end)
+	    ;
+	  else if (TREE_CODE (decl) != FUNCTION_DECL)
 	    varpool_finalize_decl (decl);
 	  else
 	    assemble_variable (decl, top_level, at_end, 0);
@@ -227,7 +231,9 @@ rest_of_decl_compilation (tree decl,
     }
 
   /* Let cgraph know about the existence of variables.  */
-  if (TREE_CODE (decl) == VAR_DECL && !DECL_EXTERNAL (decl))
+  if (in_lto_p && !at_end)
+    ;
+  else if (TREE_CODE (decl) == VAR_DECL && !DECL_EXTERNAL (decl))
     varpool_node (decl);
 }
 
@@ -751,6 +757,7 @@ init_optimization_passes (void)
 
   /* Interprocedural optimization passes.  */
   p = &all_small_ipa_passes;
+  NEXT_PASS (pass_ipa_free_lang_data);
   NEXT_PASS (pass_ipa_function_and_variable_visibility);
   NEXT_PASS (pass_ipa_early_inline);
     {
@@ -759,7 +766,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_inline_parameters);
       NEXT_PASS (pass_rebuild_cgraph_edges);
     }
-  NEXT_PASS (pass_ipa_free_lang_data);
   NEXT_PASS (pass_early_local_passes);
     {
       struct opt_pass **p = &pass_early_local_passes.pass.sub;
@@ -1664,6 +1670,7 @@ execute_pass_list (struct opt_pass *pass)
 
 static void
 ipa_write_summaries_2 (struct opt_pass *pass, cgraph_node_set set,
+		       varpool_node_set vset,
 		       struct lto_out_decl_state *state)
 {
   while (pass)
@@ -1680,7 +1687,7 @@ ipa_write_summaries_2 (struct opt_pass *pass, cgraph_node_set set,
 	  if (pass->tv_id)
 	    timevar_push (pass->tv_id);
 
-	  ipa_pass->write_summary (set);
+	  ipa_pass->write_summary (set,vset);
 
 	  /* If a timevar is present, start it.  */
 	  if (pass->tv_id)
@@ -1688,7 +1695,7 @@ ipa_write_summaries_2 (struct opt_pass *pass, cgraph_node_set set,
 	}
 
       if (pass->sub && pass->sub->type != GIMPLE_PASS)
-	ipa_write_summaries_2 (pass->sub, set, state);
+	ipa_write_summaries_2 (pass->sub, set, vset, state);
 
       pass = pass->next;
     }
@@ -1699,14 +1706,14 @@ ipa_write_summaries_2 (struct opt_pass *pass, cgraph_node_set set,
    summaries.  SET is the set of nodes to be written.  */
 
 static void
-ipa_write_summaries_1 (cgraph_node_set set)
+ipa_write_summaries_1 (cgraph_node_set set, varpool_node_set vset)
 {
   struct lto_out_decl_state *state = lto_new_out_decl_state ();
   lto_push_out_decl_state (state);
 
   gcc_assert (!flag_wpa);
-  ipa_write_summaries_2 (all_regular_ipa_passes, set, state);
-  ipa_write_summaries_2 (all_lto_gen_passes, set, state);
+  ipa_write_summaries_2 (all_regular_ipa_passes, set, vset, state);
+  ipa_write_summaries_2 (all_lto_gen_passes, set, vset, state);
 
   gcc_assert (lto_get_out_decl_state () == state);
   lto_pop_out_decl_state ();
@@ -1719,7 +1726,9 @@ void
 ipa_write_summaries (void)
 {
   cgraph_node_set set;
+  varpool_node_set vset;
   struct cgraph_node **order;
+  struct varpool_node *vnode;
   int i, order_pos;
 
   if (!flag_generate_lto || errorcount || sorrycount)
@@ -1751,13 +1760,20 @@ ipa_write_summaries (void)
 	  renumber_gimple_stmt_uids ();
 	  pop_cfun ();
 	}
-      cgraph_node_set_add (set, node);
+      if (node->needed || node->reachable || node->address_taken)
+	cgraph_node_set_add (set, node);
     }
+  vset = varpool_node_set_new ();
 
-  ipa_write_summaries_1 (set);
+  for (vnode = varpool_nodes; vnode; vnode = vnode->next)
+    if (vnode->needed && !vnode->alias)
+      varpool_node_set_add (vset, vnode);
+
+  ipa_write_summaries_1 (set, vset);
 
   free (order);
   ggc_free (set);
+  ggc_free (vset);
 }
 
 /* Same as execute_pass_list but assume that subpasses of IPA passes
@@ -1766,6 +1782,7 @@ ipa_write_summaries (void)
 
 static void
 ipa_write_optimization_summaries_1 (struct opt_pass *pass, cgraph_node_set set,
+		       varpool_node_set vset,
 		       struct lto_out_decl_state *state)
 {
   while (pass)
@@ -1782,7 +1799,7 @@ ipa_write_optimization_summaries_1 (struct opt_pass *pass, cgraph_node_set set,
 	  if (pass->tv_id)
 	    timevar_push (pass->tv_id);
 
-	  ipa_pass->write_optimization_summary (set);
+	  ipa_pass->write_optimization_summary (set, vset);
 
 	  /* If a timevar is present, start it.  */
 	  if (pass->tv_id)
@@ -1790,7 +1807,7 @@ ipa_write_optimization_summaries_1 (struct opt_pass *pass, cgraph_node_set set,
 	}
 
       if (pass->sub && pass->sub->type != GIMPLE_PASS)
-	ipa_write_optimization_summaries_1 (pass->sub, set, state);
+	ipa_write_optimization_summaries_1 (pass->sub, set, vset, state);
 
       pass = pass->next;
     }
@@ -1800,14 +1817,14 @@ ipa_write_optimization_summaries_1 (struct opt_pass *pass, cgraph_node_set set,
    NULL, write out all summaries of all nodes. */
 
 void
-ipa_write_optimization_summaries (cgraph_node_set set)
+ipa_write_optimization_summaries (cgraph_node_set set, varpool_node_set vset)
 {
   struct lto_out_decl_state *state = lto_new_out_decl_state ();
   lto_push_out_decl_state (state);
 
   gcc_assert (flag_wpa);
-  ipa_write_optimization_summaries_1 (all_regular_ipa_passes, set, state);
-  ipa_write_optimization_summaries_1 (all_lto_gen_passes, set, state);
+  ipa_write_optimization_summaries_1 (all_regular_ipa_passes, set, vset, state);
+  ipa_write_optimization_summaries_1 (all_lto_gen_passes, set, vset, state);
 
   gcc_assert (lto_get_out_decl_state () == state);
   lto_pop_out_decl_state ();

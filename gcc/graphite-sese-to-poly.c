@@ -515,11 +515,11 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
   int nb_params = scop_nb_params (scop);
   ppl_Coefficient_t c;
   ppl_dimension_type dim = scattering_dimensions + nb_iterators + nb_params;
-  Value v;
+  mpz_t v;
 
   gcc_assert (scattering_dimensions >= used_scattering_dimensions);
 
-  value_init (v);
+  mpz_init (v);
   ppl_new_Coefficient (&c);
   PBB_TRANSFORMED (pbb) = poly_scattering_new ();
   ppl_new_C_Polyhedron_from_space_dimension
@@ -533,7 +533,7 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
       ppl_Linear_Expression_t expr;
 
       ppl_new_Linear_Expression_with_dimension (&expr, dim);
-      value_set_si (v, 1);
+      mpz_set_si (v, 1);
       ppl_assign_Coefficient_from_mpz_t (c, v);
       ppl_Linear_Expression_add_to_coefficient (expr, i, c);
 
@@ -542,7 +542,7 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
 	{
 	  ppl_Linear_Expression_coefficient (static_schedule, i / 2, c);
 	  ppl_Coefficient_to_mpz_t (c, v);
-	  value_oppose (v, v);
+	  mpz_neg (v, v);
 	  ppl_assign_Coefficient_from_mpz_t (c, v);
 	  ppl_Linear_Expression_add_to_inhomogeneous (expr, c);
 	}
@@ -552,7 +552,7 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
 	{
 	  int loop = (i - 1) / 2;
 
-	  value_set_si (v, -1);
+	  mpz_set_si (v, -1);
 	  ppl_assign_Coefficient_from_mpz_t (c, v);
 	  ppl_Linear_Expression_add_to_coefficient
 	    (expr, scattering_dimensions + loop, c);
@@ -564,7 +564,7 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
       ppl_delete_Constraint (cstr);
     }
 
-  value_clear (v);
+  mpz_clear (v);
   ppl_delete_Coefficient (c);
 
   PBB_ORIGINAL (pbb) = poly_scattering_copy (PBB_TRANSFORMED (pbb));
@@ -614,9 +614,9 @@ build_scop_scattering (scop_p scop)
   gimple_bb_p previous_gbb = NULL;
   ppl_Linear_Expression_t static_schedule;
   ppl_Coefficient_t c;
-  Value v;
+  mpz_t v;
 
-  value_init (v);
+  mpz_init (v);
   ppl_new_Coefficient (&c);
   ppl_new_Linear_Expression (&static_schedule);
 
@@ -624,7 +624,7 @@ build_scop_scattering (scop_p scop)
      because we cannot compare_prefix_loops against a previous loop,
      prefix will be equal to zero, and that index will be
      incremented before copying.  */
-  value_set_si (v, -1);
+  mpz_set_si (v, -1);
   ppl_assign_Coefficient_from_mpz_t (c, v);
   ppl_Linear_Expression_add_to_coefficient (static_schedule, 0, c);
 
@@ -645,7 +645,7 @@ build_scop_scattering (scop_p scop)
       ppl_assign_Linear_Expression_from_Linear_Expression (common,
 							   static_schedule);
 
-      value_set_si (v, 1);
+      mpz_set_si (v, 1);
       ppl_assign_Coefficient_from_mpz_t (c, v);
       ppl_Linear_Expression_add_to_coefficient (common, prefix, c);
       ppl_assign_Linear_Expression_from_Linear_Expression (static_schedule,
@@ -656,7 +656,7 @@ build_scop_scattering (scop_p scop)
       ppl_delete_Linear_Expression (common);
     }
 
-  value_clear (v);
+  mpz_clear (v);
   ppl_delete_Coefficient (c);
   ppl_delete_Linear_Expression (static_schedule);
 }
@@ -665,21 +665,21 @@ build_scop_scattering (scop_p scop)
 
 static void
 add_value_to_dim (ppl_dimension_type d, ppl_Linear_Expression_t expr,
-		  Value k)
+		  mpz_t k)
 {
-  Value val;
+  mpz_t val;
   ppl_Coefficient_t coef;
 
   ppl_new_Coefficient (&coef);
   ppl_Linear_Expression_coefficient (expr, d, coef);
-  value_init (val);
+  mpz_init (val);
   ppl_Coefficient_to_mpz_t (coef, val);
 
-  value_addto (val, val, k);
+  mpz_add (val, val, k);
 
   ppl_assign_Coefficient_from_mpz_t (coef, val);
   ppl_Linear_Expression_add_to_coefficient (expr, d, coef);
-  value_clear (val);
+  mpz_clear (val);
   ppl_delete_Coefficient (coef);
 }
 
@@ -695,7 +695,7 @@ scan_tree_for_params_right_scev (sese s, tree e, int var,
     {
       loop_p loop = get_loop (var);
       ppl_dimension_type l = sese_loop_depth (s, loop) - 1;
-      Value val;
+      mpz_t val;
 
       /* Scalar evolutions should happen in the sese region.  */
       gcc_assert (sese_loop_depth (s, loop) > 0);
@@ -708,10 +708,10 @@ scan_tree_for_params_right_scev (sese s, tree e, int var,
       |   a [i * p] = ...   */
       gcc_assert (TREE_CODE (e) == INTEGER_CST);
 
-      value_init (val);
-      value_set_si (val, int_cst_value (e));
+      mpz_init (val);
+      mpz_set_si (val, int_cst_value (e));
       add_value_to_dim (l, expr, val);
-      value_clear (val);
+      mpz_clear (val);
     }
 }
 
@@ -719,26 +719,26 @@ scan_tree_for_params_right_scev (sese s, tree e, int var,
    linear expression EXPR.  K is the multiplier of the constant.  */
 
 static void
-scan_tree_for_params_int (tree cst, ppl_Linear_Expression_t expr, Value k)
+scan_tree_for_params_int (tree cst, ppl_Linear_Expression_t expr, mpz_t k)
 {
-  Value val;
+  mpz_t val;
   ppl_Coefficient_t coef;
   int v = int_cst_value (cst);
 
-  value_init (val);
-  value_set_si (val, 0);
+  mpz_init (val);
+  mpz_set_si (val, 0);
 
   /* Necessary to not get "-1 = 2^n - 1". */
   if (v < 0)
-    value_sub_int (val, val, -v);
+    mpz_sub_ui (val, val, -v);
   else
-    value_add_int (val, val, v);
+    mpz_add_ui (val, val, v);
 
-  value_multiply (val, val, k);
+  mpz_mul (val, val, k);
   ppl_new_Coefficient (&coef);
   ppl_assign_Coefficient_from_mpz_t (coef, val);
   ppl_Linear_Expression_add_to_inhomogeneous (expr, coef);
-  value_clear (val);
+  mpz_clear (val);
   ppl_delete_Coefficient (coef);
 }
 
@@ -789,7 +789,7 @@ parameter_index_in_region (tree name, sese region)
 
 static void
 scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
-		      Value k)
+		      mpz_t k)
 {
   if (e == chrec_dont_know)
     return;
@@ -807,13 +807,13 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 	{
 	  if (c)
 	    {
-	      Value val;
+	      mpz_t val;
 	      gcc_assert (host_integerp (TREE_OPERAND (e, 1), 0));
-	      value_init (val);
-	      value_set_si (val, int_cst_value (TREE_OPERAND (e, 1)));
-	      value_multiply (val, val, k);
+	      mpz_init (val);
+	      mpz_set_si (val, int_cst_value (TREE_OPERAND (e, 1)));
+	      mpz_mul (val, val, k);
 	      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, val);
-	      value_clear (val);
+	      mpz_clear (val);
 	    }
 	  else
 	    scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k);
@@ -822,13 +822,13 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 	{
 	  if (c)
 	    {
-	      Value val;
+	      mpz_t val;
 	      gcc_assert (host_integerp (TREE_OPERAND (e, 0), 0));
-	      value_init (val);
-	      value_set_si (val, int_cst_value (TREE_OPERAND (e, 0)));
-	      value_multiply (val, val, k);
+	      mpz_init (val);
+	      mpz_set_si (val, int_cst_value (TREE_OPERAND (e, 0)));
+	      mpz_mul (val, val, k);
 	      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, val);
-	      value_clear (val);
+	      mpz_clear (val);
 	    }
 	  else
 	    scan_tree_for_params (s, TREE_OPERAND (e, 1), c, k);
@@ -904,16 +904,16 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 	if (c)
 	  {
 	    ppl_Coefficient_t coef;
-	    Value minus_one;
+	    mpz_t minus_one;
 
 	    ppl_subtract_Linear_Expression_from_Linear_Expression (c,
 								   tmp_expr);
 	    ppl_delete_Linear_Expression (tmp_expr);
-	    value_init (minus_one);
-	    value_set_si (minus_one, -1);
+	    mpz_init (minus_one);
+	    mpz_set_si (minus_one, -1);
 	    ppl_new_Coefficient_from_mpz_t (&coef, minus_one);
 	    ppl_Linear_Expression_add_to_inhomogeneous (c, coef);
-	    value_clear (minus_one);
+	    mpz_clear (minus_one);
 	    ppl_delete_Coefficient (coef);
 	  }
 
@@ -961,10 +961,10 @@ find_params_in_bb (sese region, gimple_bb_p gbb)
   data_reference_p dr;
   gimple stmt;
   loop_p loop = GBB_BB (gbb)->loop_father;
-  Value one;
+  mpz_t one;
 
-  value_init (one);
-  value_set_si (one, 1);
+  mpz_init (one);
+  mpz_set_si (one, 1);
 
   /* Find parameters in the access functions of data references.  */
   for (i = 0; VEC_iterate (data_reference_p, GBB_DATA_REFS (gbb), i, dr); i++)
@@ -983,7 +983,7 @@ find_params_in_bb (sese region, gimple_bb_p gbb)
       scan_tree_for_params (region, rhs, NULL, one);
     }
 
-  value_clear (one);
+  mpz_clear (one);
 }
 
 /* Record the parameters used in the SCOP.  A variable is a parameter
@@ -996,10 +996,10 @@ find_scop_parameters (scop_p scop)
   unsigned i;
   sese region = SCOP_REGION (scop);
   struct loop *loop;
-  Value one;
+  mpz_t one;
 
-  value_init (one);
-  value_set_si (one, 1);
+  mpz_init (one);
+  mpz_set_si (one, 1);
 
   /* Find the parameters used in the loop bounds.  */
   for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop); i++)
@@ -1013,7 +1013,7 @@ find_scop_parameters (scop_p scop)
       scan_tree_for_params (region, nb_iters, NULL, one);
     }
 
-  value_clear (one);
+  mpz_clear (one);
 
   /* Find the parameters used in data accesses.  */
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
@@ -1044,7 +1044,7 @@ add_upper_bounds_from_estimated_nit (scop_p scop, double_int nit,
 				     ppl_dimension_type dim,
 				     ppl_Linear_Expression_t ub_expr)
 {
-  Value val;
+  mpz_t val;
   ppl_Linear_Expression_t nb_iters_le;
   ppl_Polyhedron_t pol;
   ppl_Coefficient_t coef;
@@ -1056,10 +1056,10 @@ add_upper_bounds_from_estimated_nit (scop_p scop, double_int nit,
 						    ub_expr);
 
   /* Construct the negated number of last iteration in VAL.  */
-  value_init (val);
+  mpz_init (val);
   mpz_set_double_int (val, nit, false);
-  value_sub_int (val, val, 1);
-  value_oppose (val, val);
+  mpz_sub_ui (val, val, 1);
+  mpz_neg (val, val);
 
   /* NB_ITERS_LE holds the number of last iteration in
      parametrical form.  Subtract estimated number of last
@@ -1099,7 +1099,7 @@ add_upper_bounds_from_estimated_nit (scop_p scop, double_int nit,
   ppl_delete_Polyhedron (pol);
   ppl_delete_Linear_Expression (nb_iters_le);
   ppl_delete_Constraint (ub);
-  value_clear (val);
+  mpz_clear (val);
 }
 
 /* Builds the constraint polyhedra for LOOP in SCOP.  OUTER_PH gives
@@ -1165,17 +1165,17 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
     }
   else if (!chrec_contains_undetermined (nb_iters))
     {
-      Value one;
+      mpz_t one;
       ppl_Constraint_t ub;
       ppl_Linear_Expression_t ub_expr;
       double_int nit;
 
-      value_init (one);
-      value_set_si (one, 1);
+      mpz_init (one);
+      mpz_set_si (one, 1);
       ppl_new_Linear_Expression_with_dimension (&ub_expr, dim);
       nb_iters = scalar_evolution_in_region (region, loop, nb_iters);
       scan_tree_for_params (SCOP_REGION (scop), nb_iters, ub_expr, one);
-      value_clear (one);
+      mpz_clear (one);
 
       if (estimated_loop_iterations (loop, true, &nit))
 	add_upper_bounds_from_estimated_nit (scop, nit, dim, ub_expr);
@@ -1209,7 +1209,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 static ppl_Linear_Expression_t
 create_linear_expr_from_tree (poly_bb_p pbb, tree t)
 {
-  Value one;
+  mpz_t one;
   ppl_Linear_Expression_t res;
   ppl_dimension_type dim;
   sese region = SCOP_REGION (PBB_SCOP (pbb));
@@ -1221,10 +1221,10 @@ create_linear_expr_from_tree (poly_bb_p pbb, tree t)
   t = scalar_evolution_in_region (region, loop, t);
   gcc_assert (!automatically_generated_chrec_p (t));
 
-  value_init (one);
-  value_set_si (one, 1);
+  mpz_init (one);
+  mpz_set_si (one, 1);
   scan_tree_for_params (region, t, res, one);
-  value_clear (one);
+  mpz_clear (one);
 
   return res;
 }
@@ -1265,7 +1265,7 @@ static void
 add_condition_to_domain (ppl_Pointset_Powerset_C_Polyhedron_t ps, gimple stmt,
 			 poly_bb_p pbb, enum tree_code code)
 {
-  Value v;
+  mpz_t v;
   ppl_Coefficient_t c;
   ppl_Linear_Expression_t left, right;
   ppl_Constraint_t cstr;
@@ -1278,25 +1278,25 @@ add_condition_to_domain (ppl_Pointset_Powerset_C_Polyhedron_t ps, gimple stmt,
      the left or the right side of the expression. */
   if (code == LT_EXPR)
     {
-      value_init (v);
-      value_set_si (v, 1);
+      mpz_init (v);
+      mpz_set_si (v, 1);
       ppl_new_Coefficient (&c);
       ppl_assign_Coefficient_from_mpz_t (c, v);
       ppl_Linear_Expression_add_to_inhomogeneous (left, c);
       ppl_delete_Coefficient (c);
-      value_clear (v);
+      mpz_clear (v);
 
       code = LE_EXPR;
     }
   else if (code == GT_EXPR)
     {
-      value_init (v);
-      value_set_si (v, 1);
+      mpz_init (v);
+      mpz_set_si (v, 1);
       ppl_new_Coefficient (&c);
       ppl_assign_Coefficient_from_mpz_t (c, v);
       ppl_Linear_Expression_add_to_inhomogeneous (right, c);
       ppl_delete_Coefficient (c);
-      value_clear (v);
+      mpz_clear (v);
 
       code = GE_EXPR;
     }
@@ -1651,11 +1651,11 @@ pdr_add_memory_accesses (ppl_Polyhedron_t accesses, data_reference_p dr,
 			 poly_bb_p pbb)
 {
   int i, nb_subscripts = DR_NUM_DIMENSIONS (dr);
-  Value v;
+  mpz_t v;
   scop_p scop = PBB_SCOP (pbb);
   sese region = SCOP_REGION (scop);
 
-  value_init (v);
+  mpz_init (v);
 
   for (i = 0; i < nb_subscripts; i++)
     {
@@ -1667,7 +1667,7 @@ pdr_add_memory_accesses (ppl_Polyhedron_t accesses, data_reference_p dr,
       ppl_new_Linear_Expression_with_dimension (&fn, dom_nb_dims);
       ppl_new_Linear_Expression_with_dimension (&access, accessp_nb_dims);
 
-      value_set_si (v, 1);
+      mpz_set_si (v, 1);
       scan_tree_for_params (region, afn, fn, v);
       ppl_assign_Linear_Expression_from_Linear_Expression (access, fn);
 
@@ -1680,7 +1680,7 @@ pdr_add_memory_accesses (ppl_Polyhedron_t accesses, data_reference_p dr,
       ppl_delete_Constraint (cstr);
     }
 
-  value_clear (v);
+  mpz_clear (v);
 }
 
 /* Add constrains representing the size of the accessed data to the

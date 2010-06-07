@@ -559,8 +559,9 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 
       for (j = 0; j < TARGET_VTABLE_USES_DESCRIPTORS; j++)
 	{
-	  tree field = create_field_decl (NULL_TREE, ptr_void_ftype,
-					  fdesc_type_node, 0, 0, 0, 1);
+	  tree field
+	    = create_field_decl (NULL_TREE, ptr_void_ftype, fdesc_type_node,
+				 NULL_TREE, NULL_TREE, 0, 1);
 	  TREE_CHAIN (field) = field_list;
 	  field_list = field;
 	  null_list = tree_cons (field, null_node, null_list);
@@ -1446,7 +1447,8 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 		  gnu_type
 		    = build_unc_object_type_from_ptr (gnu_ptr_type,
 						      gnu_actual_obj_type,
-						      get_identifier ("SIZE"));
+						      get_identifier ("SIZE"),
+						      false);
 		}
 
 	      gnu_result = TYPE_SIZE (gnu_type);
@@ -5386,8 +5388,8 @@ gnat_to_gnu (Node_Id gnat_node)
 		gnu_actual_obj_type
 		  = build_unc_object_type_from_ptr (gnu_ptr_type,
 						    gnu_actual_obj_type,
-						    get_identifier
-						    ("DEALLOC"));
+						    get_identifier ("DEALLOC"),
+						    false);
 	    }
 	  else
 	    gnu_actual_obj_type = gnu_obj_type;
@@ -6036,16 +6038,8 @@ gnat_gimplify_expr (tree *expr_p, gimple_seq *pre_p,
 	     the reference is in an elaboration procedure.  */
 	  if (TREE_CONSTANT (op))
 	    {
-	      tree new_var = create_tmp_var_raw (TREE_TYPE (op), "C");
-	      TREE_ADDRESSABLE (new_var) = 1;
-	      gimple_add_tmp_var (new_var);
-
-	      TREE_READONLY (new_var) = 1;
-	      TREE_STATIC (new_var) = 1;
-	      DECL_INITIAL (new_var) = op;
-
-	      TREE_OPERAND (expr, 0) = new_var;
-	      recompute_tree_invariant_for_addr_expr (expr);
+	      tree addr = build_fold_addr_expr (tree_output_constant_def (op));
+	      *expr_p = fold_convert (TREE_TYPE (expr), addr);
 	    }
 
 	  /* Otherwise explicitly create the local temporary.  That's required

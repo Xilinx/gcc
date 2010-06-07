@@ -955,7 +955,7 @@ enum target_cpu_default
    registers listed in CALL_USED_REGISTERS, keeping the others
    available for storage of persistent values.
 
-   The ORDER_REGS_FOR_LOCAL_ALLOC actually overwrite the order,
+   The ADJUST_REG_ALLOC_ORDER actually overwrite the order,
    so this is just empty initializer for array.  */
 
 #define REG_ALLOC_ORDER 					\
@@ -964,11 +964,11 @@ enum target_cpu_default
    33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,  \
    48, 49, 50, 51, 52 }
 
-/* ORDER_REGS_FOR_LOCAL_ALLOC is a macro which permits reg_alloc_order
+/* ADJUST_REG_ALLOC_ORDER is a macro which permits reg_alloc_order
    to be rearranged based on a particular function.  When using sse math,
    we want to allocate SSE before x87 registers and vice versa.  */
 
-#define ORDER_REGS_FOR_LOCAL_ALLOC x86_order_regs_for_local_alloc ()
+#define ADJUST_REG_ALLOC_ORDER x86_order_regs_for_local_alloc ()
 
 
 #define OVERRIDE_ABI_FORMAT(FNDECL) ix86_call_abi_override (FNDECL)
@@ -1296,11 +1296,11 @@ enum reg_class
 
 #define REGNO_REG_CLASS(REGNO) (regclass_map[REGNO])
 
-/* When defined, the compiler allows registers explicitly used in the
-   rtl to be used as spill registers but prevents the compiler from
-   extending the lifetime of these registers.  */
-
-#define SMALL_REGISTER_CLASSES 1
+/* When this hook returns true for MODE, the compiler allows
+   registers explicitly used in the rtl to be used as spill registers
+   but prevents the compiler from extending the lifetime of these
+   registers.  */
+#define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
 
 #define QI_REG_P(X) (REG_P (X) && REGNO (X) <= BX_REG)
 
@@ -1553,8 +1553,6 @@ enum reg_class
 
 #define RETURN_POPS_ARGS(FUNDECL, FUNTYPE, SIZE) \
   ix86_return_pops_args ((FUNDECL), (FUNTYPE), (SIZE))
-
-#define FUNCTION_VALUE_REGNO_P(N) ix86_function_value_regno_p (N)
 
 /* Define how to find the value returned by a library function
    assuming the value has mode MODE.  */

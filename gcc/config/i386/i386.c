@@ -1880,6 +1880,7 @@ static bool ext_80387_constants_init = 0;
 
 static struct machine_function * ix86_init_machine_status (void);
 static rtx ix86_function_value (const_tree, const_tree, bool);
+static bool ix86_function_value_regno_p (const unsigned int);
 static rtx ix86_static_chain (const_tree, bool);
 static int ix86_function_regparm (const_tree, const_tree);
 static void ix86_compute_frame_layout (struct ix86_frame *);
@@ -2528,7 +2529,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
   if (flags && add_nl_p)
     {
       opts[num++][0] = target_other;
-      sprintf (target_other, "(other flags: %#x)", isa);
+      sprintf (target_other, "(other flags: %#x)", flags);
     }
 
   /* Add -fpmath= option.  */
@@ -6331,8 +6332,8 @@ ix86_function_arg_boundary (enum machine_mode mode, tree type)
 
 /* Return true if N is a possible register number of function value.  */
 
-bool
-ix86_function_value_regno_p (int regno)
+static bool
+ix86_function_value_regno_p (const unsigned int regno)
 {
   switch (regno)
     {
@@ -10842,7 +10843,7 @@ output_pic_addr_const (FILE *file, rtx x, int code)
 	{
 	  /* We can use %d if the number is <32 bits and positive.  */
 	  if (CONST_DOUBLE_HIGH (x) || CONST_DOUBLE_LOW (x) < 0)
-	    fprintf (file, "%#lx%08lx",
+	    fprintf (file, "0x%lx%08lx",
 		     (unsigned long) CONST_DOUBLE_HIGH (x),
 		     (unsigned long) CONST_DOUBLE_LOW (x));
 	  else
@@ -11013,7 +11014,10 @@ ix86_delegitimize_address (rtx x)
 	  || XINT (XEXP (x, 0), 1) != UNSPEC_GOTPCREL
 	  || !MEM_P (orig_x))
 	return orig_x;
-      return XVECEXP (XEXP (x, 0), 0, 0);
+      x = XVECEXP (XEXP (x, 0), 0, 0);
+      if (GET_MODE (orig_x) != Pmode)
+	return simplify_gen_subreg (GET_MODE (orig_x), x, Pmode, 0);
+      return x;
     }
 
   if (GET_CODE (x) != PLUS
@@ -11080,6 +11084,8 @@ ix86_delegitimize_address (rtx x)
       else
 	return orig_x;
     }
+  if (GET_MODE (orig_x) != Pmode && MEM_P (orig_x))
+    return simplify_gen_subreg (GET_MODE (orig_x), result, Pmode, 0);
   return result;
 }
 
@@ -11420,7 +11426,7 @@ get_some_local_dynamic_name (void)
     return cfun->machine->some_ld_name;
 
   for (insn = get_insns (); insn ; insn = NEXT_INSN (insn))
-    if (INSN_P (insn)
+    if (NONDEBUG_INSN_P (insn)
 	&& for_each_rtx (&PATTERN (insn), get_some_local_dynamic_name_1, 0))
       return cfun->machine->some_ld_name;
 
@@ -12006,7 +12012,7 @@ print_operand (FILE *file, rtx x, int code)
 
       if (ASSEMBLER_DIALECT == ASM_ATT)
 	putc ('$', file);
-      fprintf (file, "%#08lx", (long unsigned int) l);
+      fprintf (file, "0x%08lx", (long unsigned int) l);
     }
 
   /* These float cases don't actually occur as immediate operands.  */
@@ -13666,7 +13672,7 @@ distance_non_agu_define (unsigned int regno1, unsigned int regno2,
       rtx prev = PREV_INSN (insn);
       while (prev && distance < LEA_SEARCH_THRESHOLD)
 	{
-	  if (INSN_P (prev))
+	  if (NONDEBUG_INSN_P (prev))
 	    {
 	      distance++;
               for (def_rec = DF_INSN_DEFS (prev); *def_rec; def_rec++)
@@ -13706,7 +13712,7 @@ distance_non_agu_define (unsigned int regno1, unsigned int regno2,
 		 && prev != insn
 		 && distance < LEA_SEARCH_THRESHOLD)
 	    {
-	      if (INSN_P (prev))
+	      if (NONDEBUG_INSN_P (prev))
 		{
 		  distance++;
 		  for (def_rec = DF_INSN_DEFS (prev); *def_rec; def_rec++)
@@ -13752,7 +13758,7 @@ distance_agu_use (unsigned int regno0, rtx insn)
       rtx next = NEXT_INSN (insn);
       while (next && distance < LEA_SEARCH_THRESHOLD)
 	{
-	  if (INSN_P (next))
+	  if (NONDEBUG_INSN_P (next))
 	    {
 	      distance++;
 
@@ -13801,7 +13807,7 @@ distance_agu_use (unsigned int regno0, rtx insn)
 		 && next != insn
 		 && distance < LEA_SEARCH_THRESHOLD)
 	    {
-	      if (INSN_P (next))
+	      if (NONDEBUG_INSN_P (next))
 		{
 		  distance++;
 
@@ -30655,6 +30661,9 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 
 #undef TARGET_FUNCTION_VALUE
 #define TARGET_FUNCTION_VALUE ix86_function_value
+
+#undef TARGET_FUNCTION_VALUE_REGNO_P
+#define TARGET_FUNCTION_VALUE_REGNO_P ix86_function_value_regno_p
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD ix86_secondary_reload

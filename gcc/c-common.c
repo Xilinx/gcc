@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-pragma.h"
 #include "rtl.h"
 #include "ggc.h"
-#include "varray.h"
 #include "expr.h"
 #include "c-common.h"
 #include "tm_p.h"
@@ -428,10 +427,6 @@ int flag_threadsafe_statics = 1;
 
 int flag_pretty_templates = 1;
 
-/* Nonzero means warn about implicit declarations.  */
-
-int warn_implicit = 1;
-
 /* Maximum template instantiation depth.  This limit exists to limit the
    time it takes to notice infinite template instantiations; the default
    value of 1024 is likely to be in the next C++ standard.  */
@@ -661,6 +656,7 @@ const struct c_common_resword c_common_reswords[] =
   { "mutable",		RID_MUTABLE,	D_CXXONLY | D_CXXWARN },
   { "namespace",	RID_NAMESPACE,	D_CXXONLY | D_CXXWARN },
   { "new",		RID_NEW,	D_CXXONLY | D_CXXWARN },
+  { "nullptr",		RID_NULLPTR,	D_CXXONLY | D_CXX0X | D_CXXWARN },
   { "operator",		RID_OPERATOR,	D_CXXONLY | D_CXXWARN },
   { "private",		RID_PRIVATE,	D_CXX_OBJC | D_CXXWARN },
   { "protected",	RID_PROTECTED,	D_CXX_OBJC | D_CXXWARN },
@@ -5817,11 +5813,14 @@ c_init_attributes (void)
    identifier as an argument, so the front end shouldn't look it up.  */
 
 bool
-attribute_takes_identifier_p (tree attr_id)
+attribute_takes_identifier_p (const_tree attr_id)
 {
-  return (is_attribute_p ("mode", attr_id)
-	  || is_attribute_p ("format", attr_id)
-	  || is_attribute_p ("cleanup", attr_id));
+  if (is_attribute_p ("mode", attr_id)
+      || is_attribute_p ("format", attr_id)
+      || is_attribute_p ("cleanup", attr_id))
+    return true;
+  else
+    return targetm.attribute_takes_identifier_p (attr_id);
 }
 
 /* Attribute handlers common to C front ends.  */
@@ -6693,10 +6692,12 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
     }
   else if (is_type)
     {
+      if ((flags & (int) ATTR_FLAG_TYPE_IN_PLACE))
+	/* OK, modify the type in place.  */;
       /* If we have a TYPE_DECL, then copy the type, so that we
 	 don't accidentally modify a builtin type.  See pushdecl.  */
-      if (decl && TREE_TYPE (decl) != error_mark_node
-	  && DECL_ORIGINAL_TYPE (decl) == NULL_TREE)
+      else if (decl && TREE_TYPE (decl) != error_mark_node
+	       && DECL_ORIGINAL_TYPE (decl) == NULL_TREE)
 	{
 	  tree tt = TREE_TYPE (decl);
 	  *type = build_variant_type_copy (*type);
@@ -6705,7 +6706,7 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
 	  TREE_USED (*type) = TREE_USED (decl);
 	  TREE_TYPE (decl) = *type;
 	}
-      else if (!(flags & (int) ATTR_FLAG_TYPE_IN_PLACE))
+      else
 	*type = build_variant_type_copy (*type);
 
       TYPE_ALIGN (*type) = (1U << i) * BITS_PER_UNIT;

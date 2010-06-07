@@ -575,6 +575,8 @@ extern void flush_pending_stmts (edge);
 extern void verify_ssa (bool);
 extern void delete_tree_ssa (void);
 extern bool ssa_undefined_value_p (tree);
+extern void warn_uninit (tree, const char *, void *);
+extern unsigned int warn_uninitialized_vars (bool);
 extern void execute_update_addresses_taken (bool);
 
 /* Call-back function for walk_use_def_chains().  At each reaching
@@ -683,7 +685,7 @@ basic_block *blocks_in_phiopt_order (void);
 
 /* In tree-ssa-loop*.c  */
 
-void tree_ssa_lim (void);
+unsigned int tree_ssa_lim (void);
 unsigned int tree_ssa_unswitch_loops (void);
 unsigned int canonicalize_induction_variables (void);
 unsigned int tree_unroll_loops_completely (bool, bool);

@@ -782,6 +782,7 @@ proper position among the other output files.  */
     -plugin %(linker_plugin_file) \
     -plugin-opt=%(lto_wrapper) \
     -plugin-opt=%(lto_gcc) \
+    -plugin-opt=-fresolution=%u.res \
     %{static|static-libgcc:-plugin-opt=-pass-through=%(lto_libgcc)}	\
     %{static:-plugin-opt=-pass-through=-lc}	\
     %{O*:-plugin-opt=-O%*} \

@@ -339,6 +339,14 @@ pp_cxx_constant (cxx_pretty_printer *pp, tree t)
       }
       break;
 
+    case INTEGER_CST:
+      if (TREE_CODE (TREE_TYPE (t)) == NULLPTR_TYPE)
+	{
+	  pp_string (pp, "nullptr");
+	  break;
+	}
+      /* else fall through.  */
+
     default:
       pp_c_constant (pp_c_base (pp), t);
       break;
@@ -1170,16 +1178,6 @@ pp_cxx_decl_specifier_seq (cxx_pretty_printer *pp, tree t)
       pp_cxx_decl_specifier_seq (pp, TREE_TYPE (t));
       break;
 
-    case RECORD_TYPE:
-      if (TYPE_PTRMEMFUNC_P (t))
-	{
-	  tree pfm = TYPE_PTRMEMFUNC_FN_TYPE (t);
-	  pp_cxx_decl_specifier_seq (pp, TREE_TYPE (TREE_TYPE (pfm)));
-	  pp_cxx_whitespace (pp);
-	  pp_cxx_ptr_operator (pp, t);
-	}
-      break;
-
     case FUNCTION_DECL:
       /* Constructors don't have return types.  And conversion functions
 	 do not have a type-specifier in their return types.  */
@@ -1274,6 +1272,17 @@ pp_cxx_type_specifier_seq (cxx_pretty_printer *pp, tree t)
       pp_cxx_expression (pp, DECLTYPE_TYPE_EXPR (t));
       pp_cxx_right_paren (pp);
       break;
+
+    case RECORD_TYPE:
+      if (TYPE_PTRMEMFUNC_P (t))
+	{
+	  tree pfm = TYPE_PTRMEMFUNC_FN_TYPE (t);
+	  pp_cxx_decl_specifier_seq (pp, TREE_TYPE (TREE_TYPE (pfm)));
+	  pp_cxx_whitespace (pp);
+	  pp_cxx_ptr_operator (pp, t);
+	  break;
+	}
+      /* else fall through */
 
     default:
       if (!(TREE_CODE (t) == FUNCTION_DECL && DECL_CONSTRUCTOR_P (t)))

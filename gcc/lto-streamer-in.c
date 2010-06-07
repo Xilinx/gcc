@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "params.h"
 #include "input.h"
-#include "varray.h"
 #include "hashtab.h"
 #include "basic-block.h"
 #include "tree-flow.h"
@@ -358,8 +357,6 @@ lto_input_tree_ref (struct lto_input_block *ib, struct data_in *data_in,
     case LTO_label_decl_ref:
       ix_u = lto_input_uleb128 (ib);
       result = lto_file_decl_data_get_var_decl (data_in->file_data, ix_u);
-      if (TREE_CODE (result) == VAR_DECL)
-	varpool_mark_needed_node (varpool_node (result));
       break;
 
     default:
@@ -1720,6 +1717,7 @@ unpack_ts_decl_with_vis_value_fields (struct bitpack_d *bp, tree expr)
     {
       DECL_HARD_REGISTER (expr) = (unsigned) bp_unpack_value (bp, 1);
       DECL_IN_TEXT_SECTION (expr) = (unsigned) bp_unpack_value (bp, 1);
+      DECL_IN_CONSTANT_POOL (expr) = (unsigned) bp_unpack_value (bp, 1);
       DECL_TLS_MODEL (expr) = (enum tls_model) bp_unpack_value (bp,  3);
     }
 
@@ -1773,8 +1771,8 @@ unpack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
   SET_TYPE_MODE (expr, mode);
   TYPE_STRING_FLAG (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_NO_FORCE_BLK (expr) = (unsigned) bp_unpack_value (bp, 1);
-  TYPE_NEEDS_CONSTRUCTING(expr) = (unsigned) bp_unpack_value (bp, 1);
-  if (TREE_CODE (expr) == UNION_TYPE || TREE_CODE (expr) == RECORD_TYPE)
+  TYPE_NEEDS_CONSTRUCTING (expr) = (unsigned) bp_unpack_value (bp, 1);
+  if (RECORD_OR_UNION_TYPE_P (expr))
     TYPE_TRANSPARENT_AGGR (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_PACKED (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_RESTRICT (expr) = (unsigned) bp_unpack_value (bp, 1);
@@ -2166,9 +2164,10 @@ lto_input_ts_type_tree_pointers (struct lto_input_block *ib,
     TYPE_VALUES (expr) = lto_input_tree (ib, data_in);
   else if (TREE_CODE (expr) == ARRAY_TYPE)
     TYPE_DOMAIN (expr) = lto_input_tree (ib, data_in);
-  else if (TREE_CODE (expr) == RECORD_TYPE || TREE_CODE (expr) == UNION_TYPE)
+  else if (RECORD_OR_UNION_TYPE_P (expr))
     TYPE_FIELDS (expr) = lto_input_tree (ib, data_in);
-  else if (TREE_CODE (expr) == FUNCTION_TYPE || TREE_CODE (expr) == METHOD_TYPE)
+  else if (TREE_CODE (expr) == FUNCTION_TYPE
+	   || TREE_CODE (expr) == METHOD_TYPE)
     TYPE_ARG_TYPES (expr) = lto_input_tree (ib, data_in);
   else if (TREE_CODE (expr) == VECTOR_TYPE)
     TYPE_DEBUG_REPRESENTATION_TYPE (expr) = lto_input_tree (ib, data_in);
@@ -2724,17 +2723,6 @@ lto_input_tree (struct lto_input_block *ib, struct data_in *data_in)
       /* If we are going to read a built-in function, all we need is
 	 the code and class.  */
       result = lto_get_builtin_tree (ib, data_in);
-    }
-  else if (tag == LTO_var_decl_alias)
-    {
-      /* An extra_name alias for a variable.  */
-      unsigned HOST_WIDE_INT ix;
-      tree target;
-      ix = lto_input_uleb128 (ib);
-      result = lto_file_decl_data_get_var_decl (data_in->file_data, ix);
-      ix = lto_input_uleb128 (ib);
-      target = lto_file_decl_data_get_var_decl (data_in->file_data, ix);
-      varpool_extra_name_alias (result, target);
     }
   else if (tag == lto_tree_code_to_tag (INTEGER_CST))
     {

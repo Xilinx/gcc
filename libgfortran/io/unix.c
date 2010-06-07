@@ -3,7 +3,7 @@
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
 
-This file is part of the GNU Fortran 95 runtime library (libgfortran).
+This file is part of the GNU Fortran runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -308,7 +308,7 @@ raw_truncate (unix_stream * s, gfc_offset length)
       errno = EBADF;
       return -1;
     }
-  h = _get_osfhandle (s->fd);
+  h = (HANDLE) _get_osfhandle (s->fd);
   if (h == INVALID_HANDLE_VALUE)
     {
       errno = EBADF;
@@ -351,7 +351,7 @@ raw_close (unix_stream * s)
     retval = close (s->fd);
   else
     retval = 0;
-  free_mem (s);
+  free (s);
   return retval;
 }
 
@@ -564,7 +564,7 @@ buf_close (unix_stream * s)
 {
   if (buf_flush (s) != 0)
     return -1;
-  free_mem (s->buffer);
+  free (s->buffer);
   return raw_close (s);
 }
 
@@ -739,7 +739,7 @@ static int
 mem_close (unix_stream * s)
 {
   if (s != NULL)
-    free_mem (s);
+    free (s);
 
   return 0;
 }
@@ -877,20 +877,45 @@ tempfile (st_parameter_open *opp)
 {
   const char *tempdir;
   char *template;
+  const char *slash = "/";
   int fd;
 
   tempdir = getenv ("GFORTRAN_TMPDIR");
+#ifdef __MINGW32__
+  if (tempdir == NULL)
+    {
+      char buffer[MAX_PATH + 1];
+      DWORD ret;
+      ret = GetTempPath (MAX_PATH, buffer);
+      /* If we are not able to get a temp-directory, we use
+	 current directory.  */
+      if (ret > MAX_PATH || !ret)
+        buffer[0] = 0;
+      else
+        buffer[ret] = 0;
+      tempdir = strdup (buffer);
+    }
+#else
   if (tempdir == NULL)
     tempdir = getenv ("TMP");
   if (tempdir == NULL)
     tempdir = getenv ("TEMP");
   if (tempdir == NULL)
     tempdir = DEFAULT_TEMPDIR;
+#endif
+  /* Check for special case that tempdir contains slash
+     or backslash at end.  */
+  if (*tempdir == 0 || tempdir[strlen (tempdir) - 1] == '/'
+#ifdef __MINGW32__
+      || tempdir[strlen (tempdir) - 1] == '\\'
+#endif
+     )
+    slash = "";
 
   template = get_mem (strlen (tempdir) + 20);
 
 #ifdef HAVE_MKSTEMP
-  sprintf (template, "%s/gfortrantmpXXXXXX", tempdir);
+  sprintf (template, "%s%sgfortrantmpXXXXXX", tempdir, slash);
 
   fd = mkstemp (template);
 
@@ -898,7 +923,7 @@ tempfile (st_parameter_open *opp)
   fd = -1;
   do
     {
-      sprintf (template, "%s/gfortrantmpXXXXXX", tempdir);
+      sprintf (template, "%s%sgfortrantmpXXXXXX", tempdir, slash);
       if (!mktemp (template))
 	break;
 #if defined(HAVE_CRLF) && defined(O_BINARY)
@@ -909,11 +934,10 @@ tempfile (st_parameter_open *opp)
 #endif
     }
   while (fd == -1 && errno == EEXIST);
-
 #endif /* HAVE_MKSTEMP */
 
   if (fd < 0)
-    free_mem (template);
+    free (template);
   else
     {
       opp->file = template;
@@ -1371,7 +1395,7 @@ retry:
 	  __gthread_mutex_lock (&unit_lock);
 	  __gthread_mutex_unlock (&u->lock);
 	  if (predec_waiting_locked (u) == 0)
-	    free_mem (u);
+	    free (u);
 	  goto retry;
 	}
 
@@ -1436,7 +1460,7 @@ flush_all_units (void)
 	  __gthread_mutex_lock (&unit_lock);
 	  __gthread_mutex_unlock (&u->lock);
 	  if (predec_waiting_locked (u) == 0)
-	    free_mem (u);
+	    free (u);
 	}
     }
   while (1);

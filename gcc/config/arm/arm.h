@@ -1121,7 +1121,11 @@ extern int arm_structure_size_boundary;
 }
 
 /* Use different register alloc ordering for Thumb.  */
-#define ORDER_REGS_FOR_LOCAL_ALLOC arm_order_regs_for_local_alloc ()
+#define ADJUST_REG_ALLOC_ORDER arm_order_regs_for_local_alloc ()
+
+/* Tell IRA to use the order we define rather than messing it up with its
+   own cost calculations.  */
+#define HONOR_REG_ALLOC_ORDER
 
 /* Interrupt functions can only use registers that have already been
    saved by the prologue, even if they would normally be
@@ -1263,11 +1267,12 @@ enum reg_class
    instead of BASE_REGS.  */
 #define MODE_BASE_REG_REG_CLASS(MODE) BASE_REG_CLASS
 
-/* When SMALL_REGISTER_CLASSES is nonzero, the compiler allows
+/* When this hook returns true for MODE, the compiler allows
    registers explicitly used in the rtl to be used as spill registers
    but prevents the compiler from extending the lifetime of these
    registers.  */
-#define SMALL_REGISTER_CLASSES   TARGET_THUMB1
+#define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P \
+  arm_small_register_classes_for_mode_p 
 
 /* Given an rtx X being reloaded into a reg required to be
    in class CLASS, return the class of reg to actually use.
@@ -2763,5 +2768,9 @@ enum arm_builtins
 #ifndef NEED_INDICATE_EXEC_STACK
 #define NEED_INDICATE_EXEC_STACK	0
 #endif
+
+/* The maximum number of parallel loads or stores we support in an ldm/stm
+   instruction.  */
+#define MAX_LDM_STM_OPS 4
 
 #endif /* ! GCC_ARM_H */

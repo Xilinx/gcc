@@ -204,6 +204,14 @@
 #define TARGET_ASM_FILE_END hook_void_void
 #endif
 
+#ifndef TARGET_ASM_LTO_START
+#define TARGET_ASM_LTO_START hook_void_void
+#endif
+
+#ifndef TARGET_ASM_LTO_END
+#define TARGET_ASM_LTO_END hook_void_void
+#endif
+
 #ifndef TARGET_ASM_CODE_END
 #define TARGET_ASM_CODE_END hook_void_void
 #endif
@@ -296,6 +304,8 @@
                         TARGET_ASM_CAN_OUTPUT_MI_THUNK,         \
                         TARGET_ASM_FILE_START,                  \
                         TARGET_ASM_FILE_END,			\
+                        TARGET_ASM_LTO_START,			\
+                        TARGET_ASM_LTO_END,			\
                         TARGET_ASM_CODE_END,			\
 			TARGET_ASM_EXTERNAL_LIBCALL,            \
                         TARGET_ASM_MARK_DECL_PRESERVED,		\
@@ -539,6 +549,10 @@
 #define TARGET_VECTOR_MODE_SUPPORTED_P hook_bool_mode_false
 #endif
 
+#ifndef TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P
+#define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_false
+#endif
+
 /* In hooks.c.  */
 #define TARGET_CANNOT_MODIFY_JUMPS_P hook_bool_void_false
 #define TARGET_BRANCH_TARGET_REGISTER_CLASS \
@@ -557,6 +571,7 @@
 #define TARGET_MAX_ANCHOR_OFFSET 0
 #define TARGET_USE_ANCHORS_FOR_SYMBOL_P default_use_anchors_for_symbol_p
 #define TARGET_FUNCTION_OK_FOR_SIBCALL hook_bool_tree_tree_false
+#define TARGET_ATTRIBUTE_TAKES_IDENTIFIER_P hook_bool_const_tree_false
 #define TARGET_COMP_TYPE_ATTRIBUTES hook_int_const_tree_const_tree_1
 #ifndef TARGET_SET_DEFAULT_TYPE_ATTRIBUTES
 #define TARGET_SET_DEFAULT_TYPE_ATTRIBUTES hook_void_tree
@@ -661,6 +676,7 @@
 
 #define TARGET_FUNCTION_VALUE default_function_value
 #define TARGET_LIBCALL_VALUE default_libcall_value
+#define TARGET_FUNCTION_VALUE_REGNO_P default_function_value_regno_p
 #define TARGET_INTERNAL_ARG_POINTER default_internal_arg_pointer
 #define TARGET_UPDATE_STACK_BOUNDARY NULL
 #define TARGET_GET_DRAP_RTX NULL
@@ -687,6 +703,7 @@
    TARGET_INVALID_ARG_FOR_UNPROTOTYPED_FN,			\
    TARGET_FUNCTION_VALUE,					\
    TARGET_LIBCALL_VALUE,					\
+   TARGET_FUNCTION_VALUE_REGNO_P,				\
    TARGET_INTERNAL_ARG_POINTER,					\
    TARGET_UPDATE_STACK_BOUNDARY,				\
    TARGET_GET_DRAP_RTX,						\
@@ -926,6 +943,7 @@
   TARGET_MERGE_DECL_ATTRIBUTES,			\
   TARGET_MERGE_TYPE_ATTRIBUTES,			\
   TARGET_ATTRIBUTE_TABLE,			\
+  TARGET_ATTRIBUTE_TAKES_IDENTIFIER_P,		\
   TARGET_COMP_TYPE_ATTRIBUTES,			\
   TARGET_SET_DEFAULT_TYPE_ATTRIBUTES,		\
   TARGET_INSERT_ATTRIBUTES,			\
@@ -973,6 +991,7 @@
   TARGET_ADDR_SPACE_HOOKS,			\
   TARGET_SCALAR_MODE_SUPPORTED_P,		\
   TARGET_VECTOR_MODE_SUPPORTED_P,               \
+  TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P,	\
   TARGET_RTX_COSTS,				\
   TARGET_ADDRESS_COST,				\
   TARGET_ALLOCATE_INITIAL_VALUE,		\
@@ -984,7 +1003,7 @@
   TARGET_MACHINE_DEPENDENT_REORG,		\
   TARGET_BUILD_BUILTIN_VA_LIST,			\
   TARGET_FN_ABI_VA_LIST,			\
-  TARGET_CANONICAL_VA_LIST_TYPE,			\
+  TARGET_CANONICAL_VA_LIST_TYPE,		\
   TARGET_EXPAND_BUILTIN_VA_START,		\
   TARGET_GIMPLIFY_VA_ARG_EXPR,			\
   TARGET_GET_PCH_VALIDITY,			\

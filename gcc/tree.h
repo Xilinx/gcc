@@ -411,7 +411,8 @@ struct GTY(()) tree_common {
    addressable_flag:
 
        TREE_ADDRESSABLE in
-           VAR_DECL, FUNCTION_DECL, FIELD_DECL, LABEL_DECL
+           VAR_DECL, PARM_DECL, RESULT_DECL, FUNCTION_DECL, FIELD_DECL
+           LABEL_DECL
            all types
            CONSTRUCTOR, IDENTIFIER_NODE
            STMT_EXPR, it means we want the result of the enclosed expression
@@ -1106,8 +1107,8 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 
 /* Define many boolean fields that all tree nodes have.  */
 
-/* In VAR_DECL nodes, nonzero means address of this is needed.
-   So it cannot be in a register.
+/* In VAR_DECL, PARM_DECL and RESULT_DECL nodes, nonzero means address
+   of this is needed.  So it cannot be in a register.
    In a FUNCTION_DECL, nonzero means its address is needed.
    So it must be compiled even if it is an inline function.
    In a FIELD_DECL node, it means that the programmer is permitted to
@@ -1973,8 +1974,6 @@ struct GTY(()) tree_omp_clause {
   tree GTY ((length ("omp_clause_num_ops[OMP_CLAUSE_CODE ((tree)&%h)]"))) ops[1];
 };
 
-
-struct varray_head_tag;
 
 /* In a BLOCK node.  */
 #define BLOCK_VARS(NODE) (BLOCK_CHECK (NODE)->block.vars)
@@ -2963,6 +2962,11 @@ struct GTY(()) tree_parm_decl {
 #define DECL_IN_TEXT_SECTION(NODE) \
   (VAR_DECL_CHECK (NODE)->decl_with_vis.in_text_section)
 
+/* In a VAR_DECL that's static,
+   nonzero if it belongs to the global constant pool.  */
+#define DECL_IN_CONSTANT_POOL(NODE) \
+  (VAR_DECL_CHECK (NODE)->decl_with_vis.in_constant_pool)
+
 /* Nonzero for a given ..._DECL node means that this node should be
    put in .common, if possible.  If a DECL_INITIAL is given, and it
    is not error_mark_node, then the decl cannot be put in .common.  */
@@ -3102,9 +3106,8 @@ struct GTY(()) tree_decl_with_vis {
  unsigned thread_local : 1;
  unsigned common_flag : 1;
  unsigned in_text_section : 1;
+ unsigned in_constant_pool : 1;
  unsigned dllimport_flag : 1;
- /* Used by C++.  Might become a generic decl flag.  */
- unsigned shadowed_for_var_p : 1;
  /* Don't belong to VAR_DECL exclusively.  */
  unsigned weak_flag : 1;
 
@@ -3117,7 +3120,9 @@ struct GTY(()) tree_decl_with_vis {
 
  /* Belong to FUNCTION_DECL exclusively.  */
  unsigned init_priority_p : 1;
- /* 15 unused bits. */
+ /* Used by C++ only.  Might become a generic decl flag.  */
+ unsigned shadowed_for_var_p : 1;
+ /* 14 unused bits. */
 };
 
 extern tree decl_debug_expr_lookup (tree);
@@ -3994,6 +3999,17 @@ extern tree build_var_debug_value_stat (tree, tree MEM_STAT_DECL);
 #define build_var_debug_value(t1,t2) \
   build_var_debug_value_stat (t1,t2 MEM_STAT_INFO)
 
+/* Constructs double_int from tree CST.  */
+
+static inline double_int
+tree_to_double_int (const_tree cst)
+{
+  return TREE_INT_CST (cst);
+}
+
+extern tree double_int_to_tree (tree, double_int);
+extern bool double_int_fits_to_tree_p (const_tree, double_int);
+
 extern tree build_int_cst (tree, HOST_WIDE_INT);
 extern tree build_int_cst_type (tree, HOST_WIDE_INT);
 extern tree build_int_cstu (tree, unsigned HOST_WIDE_INT);
@@ -4409,9 +4425,9 @@ extern tree size_diffop_loc (location_t, tree, tree);
 extern tree round_up_loc (location_t, tree, int);
 #define round_down(T,N) round_down_loc (UNKNOWN_LOCATION, T, N)
 extern tree round_down_loc (location_t, tree, int);
-extern tree get_pending_sizes (void);
+extern VEC(tree,gc) *get_pending_sizes (void);
 extern void put_pending_size (tree);
-extern void put_pending_sizes (tree);
+extern void put_pending_sizes (VEC(tree,gc) *);
 extern void finalize_size_functions (void);
 
 /* Type for sizes of data-type.  */
@@ -5184,6 +5200,7 @@ extern void internal_reference_types (void);
 extern unsigned int update_alignment_for_field (record_layout_info, tree,
                                                 unsigned int);
 /* varasm.c */
+extern tree tree_output_constant_def (tree);
 extern void make_decl_rtl (tree);
 extern rtx make_decl_rtl_for_debug (tree);
 extern void make_decl_one_only (tree, tree);

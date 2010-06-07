@@ -127,8 +127,13 @@ tree_init_ic_make_global_vars (void)
 
   DECL_ARTIFICIAL (ic_void_ptr_var) = 1;
   DECL_ARTIFICIAL (ic_gcov_type_ptr_var) = 1;
-  varpool_finalize_decl (ic_void_ptr_var);
-  varpool_finalize_decl (ic_gcov_type_ptr_var);
+  if (!flag_dyn_ipa)
+    {
+      varpool_finalize_decl (ic_void_ptr_var);
+      varpool_mark_needed_node (varpool_node (ic_void_ptr_var));
+      varpool_finalize_decl (ic_gcov_type_ptr_var);
+      varpool_mark_needed_node (varpool_node (ic_gcov_type_ptr_var));
+    }
 }
 
 static void
