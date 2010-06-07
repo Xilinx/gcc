@@ -3861,30 +3861,17 @@ ipa_tm_region_init (struct cgraph_node *node)
   return regions;
 }
 
-/* Create a copy of the function (possibly declaration only) of OLD_NODE,
-   appropriate for the transactional clone.  */
+/* Return a transactional mangled name for the DECL_ASSEMBLER_NAME in
+   OLD_DECL.  The returned value is a freshly malloced pointer that
+   should be freed by the caller.  */
 
-static void
-ipa_tm_create_version (struct cgraph_node *old_node)
+static char *
+tm_mangle (tree old_decl)
 {
-  tree new_decl, old_decl;
-  struct cgraph_node *new_node;
   const char *old_asm_name;
-  struct demangle_component *dc;
   char *tm_name;
   void *alloc = NULL;
-
-  old_decl = old_node->decl;
-  new_decl = copy_node (old_decl);
-  new_node = cgraph_copy_node_for_versioning (old_node, new_decl, NULL);
-  get_cg_data (old_node)->clone = new_node;
-
-  if (!DECL_EXTERNAL (old_decl))
-    tree_function_versioning (old_decl, new_decl, NULL, false, NULL);
-
-  /* ?? We should be able to remove DECL_IS_TM_CLONE.  We have enough
-     bits in cgraph to calculate all this.  */
-  DECL_IS_TM_CLONE (new_decl) = 1;
+  struct demangle_component *dc;
 
   /* Determine if the symbol is already a valid C++ mangled name.  Do this
      even for C, which might be interfacing with C++ code via appropriately
@@ -3927,17 +3914,80 @@ ipa_tm_create_version (struct cgraph_node *old_node)
 
       tm_name = concat ("_ZGTt", old_asm_name, NULL);
     }
+  free (alloc);
+  return tm_name;
+}
 
+/* Create a copy of the function (possibly declaration only) of OLD_NODE,
+   appropriate for the transactional clone.  */
+
+static void
+ipa_tm_create_version (struct cgraph_node *old_node)
+{
+  tree new_decl, old_decl;
+  struct cgraph_node *new_node;
+  char *tm_name;
+
+  old_decl = old_node->decl;
+  new_decl = copy_node (old_decl);
+  new_node = cgraph_copy_node_for_versioning (old_node, new_decl, NULL);
+  get_cg_data (old_node)->clone = new_node;
+
+  if (!DECL_EXTERNAL (old_decl))
+    tree_function_versioning (old_decl, new_decl, NULL, false, NULL);
+
+  /* ?? We should be able to remove DECL_IS_TM_CLONE.  We have enough
+     bits in cgraph to calculate all this.  */
+  DECL_IS_TM_CLONE (new_decl) = 1;
+
+  tm_name = tm_mangle (old_decl);
   SET_DECL_ASSEMBLER_NAME (new_decl, get_identifier (tm_name));
   SET_DECL_RTL (new_decl, NULL);
   free (tm_name);
-  free (alloc);
 
   record_tm_clone_pair (old_decl, new_decl);
 
   cgraph_call_function_insertion_hooks (new_node);
   if (old_node->needed)
     cgraph_mark_needed_node (new_node);
+
+  /* Do the same thing, but for any aliases of the original node.  */
+  if (old_node->same_body)
+    {
+      struct cgraph_node *alias;
+      tree tm_alias;
+
+      for (alias = old_node->same_body; alias; alias = alias->next)
+	{
+	  tm_name = tm_mangle (alias->decl);
+	  tm_alias = build_decl (DECL_SOURCE_LOCATION (alias->decl),
+				   TREE_CODE (alias->decl),
+				   get_identifier (tm_name),
+				   TREE_TYPE (alias->decl));
+
+	  SET_DECL_ASSEMBLER_NAME (tm_alias, get_identifier (tm_name));
+	  SET_DECL_RTL (tm_alias, NULL);
+	  free (tm_name);
+
+	  /* Based loosely on C++'s make_alias_for().  */
+	  TREE_PUBLIC (tm_alias) = TREE_PUBLIC (alias->decl);
+	  /* ?? Do we need all of these too.  ??  */
+	  DECL_CONTEXT (tm_alias) = NULL;
+	  TREE_READONLY (tm_alias) = TREE_READONLY (alias->decl);
+	  DECL_EXTERNAL (tm_alias) = 0;
+	  DECL_ARTIFICIAL (tm_alias) = 1;
+	  TREE_ADDRESSABLE (tm_alias) = 1;
+	  TREE_USED (tm_alias) = 1;
+	  TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (tm_alias)) = 1;
+
+	  cgraph_same_body_alias (tm_alias, new_decl);
+
+	  record_tm_clone_pair (alias->decl, tm_alias);
+
+	  if (old_node->needed)
+	    cgraph_mark_needed_node (cgraph_node (tm_alias));
+	}
+    }
 }
 
 /* Construct a call to TM_IRREVOCABLE and insert it at the beginning of BB.  */

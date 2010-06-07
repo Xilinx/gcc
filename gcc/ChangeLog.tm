@@ -1,5 +1,11 @@
 2010-06-07  Aldy Hernandez  <aldyh@redhat.com>
 
+	* trans-mem.c (tm_mangle): New.
+	(ipa_tm_create_version): Create transactional clones for cgraph
+	clones.
+
+2010-06-07  Aldy Hernandez  <aldyh@redhat.com>
+
 	* trans-mem.c (thread_private_new_memory): Insert into hash table
 	at the end.
 
