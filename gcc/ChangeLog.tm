@@ -1,3 +1,8 @@
+2010-06-07  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (thread_private_new_memory): Insert into hash table
+	at the end.
+
 2010-06-04  Aldy Hernandez  <aldyh@redhat.com>
 
 	* output.h (finish_tm_clone_pairs_1): Declare.
