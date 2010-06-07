@@ -41,6 +41,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "vec.h"
 
 #include "gpy.h"
+#include "symbols.h"
+#include "opcodes.def"
 #include "y.py.h"
 
 #include <gmp.h>
@@ -144,8 +146,8 @@ int yywrap( void )
 int gpy_lex_parse( const char * gpy_in )
 {
   int retval = 1;
-  debug("trying to open <%s>!\n", gpy_in);
   FILE * fd = fopen( gpy_in, "rb" );
+  debug("trying to open <%s>!\n", gpy_in);
   if( fd )
     {
       yyin = fd;

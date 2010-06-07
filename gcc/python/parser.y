@@ -37,7 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "gpy.h"
 #include "symbols.h"
 #include "opcodes.def"
-#include "y.py.h"
 
 #include <gmp.h>
 #include <mpfr.h>
@@ -49,9 +48,9 @@ extern void yyerror( const char * );
 %}
 
 %union {
-  char * string;
+  char *string;
   long int integer;
-  gpy_symbol_obj * symbol;
+  gpy_symbol_obj *symbol;
 }
 
 %error-verbose

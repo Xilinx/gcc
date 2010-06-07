@@ -44,7 +44,6 @@ along with GCC; see the file COPYING3.  If not see
 void gpy_symbol_init_ctx( gpy_symbol_obj * x )
 {
   x->identifier= NULL;
-  x->n_ref = 0;
   x->exp = TYPE_SYMBOL_NIL;
   x->type= SYMBOL_PRIMARY;
   x->op_a_t= TYPE_SYMBOL_NIL;

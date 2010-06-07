@@ -36,6 +36,8 @@ typedef struct gpy_symbol_table_t {
   struct gpy_symbol_table_t *next;
 } gpy_symbol_obj ;
 
+extern void gpy_symbol_init_ctx( gpy_symbol_obj * );
+
 #define Gpy_Symbol_Init( x )				\
   x = (gpy_symbol_obj*)					\
     xmalloc( sizeof(gpy_symbol_obj) );			\
