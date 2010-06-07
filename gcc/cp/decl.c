@@ -45,8 +45,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "tm_p.h"
 #include "target.h"
-#include "c-common.h"
-#include "c-pragma.h"
+#include "c-family/c-common.h"
+#include "c-family/c-pragma.h"
 #include "diagnostic.h"
 #include "intl.h"
 #include "debug.h"
@@ -1104,10 +1104,10 @@ check_redeclaration_exception_specification (tree new_decl,
   if ((pedantic || ! DECL_IN_SYSTEM_HEADER (old_decl))
       && ! DECL_IS_BUILTIN (old_decl)
       && flag_exceptions
-      && !comp_except_specs (new_exceptions, old_exceptions,
-			     /*exact=*/true))
+      && !comp_except_specs (new_exceptions, old_exceptions, ce_normal))
     {
-      error ("declaration of %qF throws different exceptions", new_decl);
+      error ("declaration of %qF has a different exception specifier",
+	     new_decl);
       error ("from previous declaration %q+F", old_decl);
     }
 }
@@ -1286,7 +1286,7 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
       /* Even if the types match, prefer the new declarations type for
 	 built-ins which have not been explicitly declared, for
 	 exception lists, etc...  */
-      else if (DECL_ANTICIPATED (olddecl))
+      else if (DECL_SOURCE_LOCATION (olddecl) == BUILTINS_LOCATION)
 	{
 	  tree type = TREE_TYPE (newdecl);
 	  tree attribs = (*targetm.merge_type_attributes)
@@ -3433,6 +3433,8 @@ cxx_init_decl_processing (void)
   truthvalue_true_node = boolean_true_node;
 
   empty_except_spec = build_tree_list (NULL_TREE, NULL_TREE);
+  noexcept_true_spec = build_tree_list (boolean_true_node, NULL_TREE);
+  noexcept_false_spec = build_tree_list (boolean_false_node, NULL_TREE);
 
 #if 0
   record_builtin_type (RID_MAX, NULL, string_type_node);
@@ -3498,29 +3500,37 @@ cxx_init_decl_processing (void)
   current_lang_name = lang_name_cplusplus;
 
   {
-    tree bad_alloc_id;
-    tree bad_alloc_type_node;
-    tree bad_alloc_decl;
     tree newtype, deltype;
     tree ptr_ftype_sizetype;
-
-    push_namespace (std_identifier);
-    bad_alloc_id = get_identifier ("bad_alloc");
-    bad_alloc_type_node = make_class_type (RECORD_TYPE);
-    TYPE_CONTEXT (bad_alloc_type_node) = current_namespace;
-    bad_alloc_decl
-      = create_implicit_typedef (bad_alloc_id, bad_alloc_type_node);
-    DECL_CONTEXT (bad_alloc_decl) = current_namespace;
-    pop_namespace ();
+    tree new_eh_spec;
 
     ptr_ftype_sizetype
       = build_function_type (ptr_type_node,
 			     tree_cons (NULL_TREE,
 					size_type_node,
 					void_list_node));
-    newtype = build_exception_variant
-      (ptr_ftype_sizetype, add_exception_specifier
-       (NULL_TREE, bad_alloc_type_node, -1));
+    if (cxx_dialect == cxx98)
+      {
+	tree bad_alloc_id;
+	tree bad_alloc_type_node;
+	tree bad_alloc_decl;
+
+	push_namespace (std_identifier);
+	bad_alloc_id = get_identifier ("bad_alloc");
+	bad_alloc_type_node = make_class_type (RECORD_TYPE);
+	TYPE_CONTEXT (bad_alloc_type_node) = current_namespace;
+	bad_alloc_decl
+	  = create_implicit_typedef (bad_alloc_id, bad_alloc_type_node);
+	DECL_CONTEXT (bad_alloc_decl) = current_namespace;
+	pop_namespace ();
+
+	new_eh_spec
+	  = add_exception_specifier (NULL_TREE, bad_alloc_type_node, -1);
+      }
+    else
+      new_eh_spec = noexcept_false_spec;
+
+    newtype = build_exception_variant (ptr_ftype_sizetype, new_eh_spec);
     deltype = build_exception_variant (void_ftype_ptr, empty_except_spec);
     push_cp_library_fn (NEW_EXPR, newtype);
     push_cp_library_fn (VEC_NEW_EXPR, newtype);
@@ -5542,16 +5552,15 @@ initialize_local_var (tree decl, tree init)
 
 /* DECL is a VAR_DECL for a compiler-generated variable with static
    storage duration (like a virtual table) whose initializer is a
-   compile-time constant.  INIT must be either a TREE_LIST of values,
-   or a CONSTRUCTOR.  Initialize the variable and provide it to the
+   compile-time constant.  Initialize the variable and provide it to the
    back end.  */
 
 void
-initialize_artificial_var (tree decl, tree init)
+initialize_artificial_var (tree decl, VEC(constructor_elt,gc) *v)
 {
+  tree init;
   gcc_assert (DECL_ARTIFICIAL (decl));
-  if (TREE_CODE (init) == TREE_LIST)
-    init = build_constructor_from_list (TREE_TYPE (decl), init);
+  init = build_constructor (TREE_TYPE (decl), v);
   gcc_assert (TREE_CODE (init) == CONSTRUCTOR);
   DECL_INITIAL (decl) = init;
   DECL_INITIALIZED_P (decl) = 1;
@@ -9079,10 +9088,12 @@ grokdeclarator (const cp_declarator *declarator,
 	  for (t = TYPE_MAIN_VARIANT (type); t; t = TYPE_NEXT_VARIANT (t))
 	    {
 	      if (ANON_AGGRNAME_P (TYPE_IDENTIFIER (t)))
-		{
-		  debug_hooks->set_name (t, decl);
-		  TYPE_NAME (t) = decl;
-		}
+		/* We do not rename the debug info representing the
+		   anonymous tagged type because the standard says in
+		   [dcl.typedef] that the naming applies only for
+		   linkage purposes.  */
+		/*debug_hooks->set_name (t, decl);*/
+		TYPE_NAME (t) = decl;
   	    }
 
 	  if (TYPE_LANG_SPECIFIC (type))
@@ -12199,7 +12210,7 @@ use_eh_spec_block (tree fn)
 {
   return (flag_exceptions && flag_enforce_eh_specs
 	  && !processing_template_decl
-	  && TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn))
+	  && !type_throw_all_p (TREE_TYPE (fn))
 	  /* We insert the EH_SPEC_BLOCK only in the original
 	     function; then, it is copied automatically to the
 	     clones.  */

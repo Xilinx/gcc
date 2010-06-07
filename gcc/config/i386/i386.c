@@ -10962,7 +10962,7 @@ output_pic_addr_const (FILE *file, rtx x, int code)
 	}
       else
 	/* We can't handle floating point constants;
-	   PRINT_OPERAND must handle them.  */
+	   TARGET_PRINT_OPERAND must handle them.  */
 	output_operand_lossage ("floating constant misused");
       break;
 
@@ -11580,7 +11580,7 @@ get_some_local_dynamic_name (void)
  */
 
 void
-print_operand (FILE *file, rtx x, int code)
+ix86_print_operand (FILE *file, rtx x, int code)
 {
   if (code)
     {
@@ -11615,7 +11615,7 @@ print_operand (FILE *file, rtx x, int code)
 	      if (!REG_P (x))
 		{
 		  putc ('[', file);
-		  PRINT_OPERAND (file, x, 0);
+		  ix86_print_operand (file, x, 0);
 		  putc (']', file);
 		  return;
 		}
@@ -11625,7 +11625,7 @@ print_operand (FILE *file, rtx x, int code)
 	      gcc_unreachable ();
 	    }
 
-	  PRINT_OPERAND (file, x, 0);
+	  ix86_print_operand (file, x, 0);
 	  return;
 
 
@@ -11780,7 +11780,7 @@ print_operand (FILE *file, rtx x, int code)
 	case 's':
 	  if (CONST_INT_P (x) || ! SHIFT_DOUBLE_OMITS_COUNT)
 	    {
-	      PRINT_OPERAND (file, x, 0);
+	      ix86_print_operand (file, x, 0);
 	      fputs (", ", file);
 	    }
 	  return;
@@ -12177,11 +12177,17 @@ print_operand (FILE *file, rtx x, int code)
 	output_addr_const (file, x);
     }
 }
+
+static bool
+ix86_print_operand_punct_valid_p (unsigned char code)
+{
+  return (code == '*' || code == '+' || code == '&' || code == ';');
+}
 
 /* Print a memory operand whose address is ADDR.  */
 
-void
-print_operand_address (FILE *file, rtx addr)
+static void
+ix86_print_operand_address (FILE *file, rtx addr)
 {
   struct ix86_address parts;
   rtx base, index, disp;
@@ -25573,10 +25579,11 @@ inline_memory_move_cost (enum machine_mode mode, enum reg_class regclass,
     }
 }
 
-int
-ix86_memory_move_cost (enum machine_mode mode, enum reg_class regclass, int in)
+static int
+ix86_memory_move_cost (enum machine_mode mode, enum reg_class regclass,
+		       bool in)
 {
-  return inline_memory_move_cost (mode, regclass, in);
+  return inline_memory_move_cost (mode, regclass, in ? 1 : 0);
 }
 
 
@@ -30675,6 +30682,13 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 #undef TARGET_ASM_UNALIGNED_DI_OP
 #define TARGET_ASM_UNALIGNED_DI_OP TARGET_ASM_ALIGNED_DI_OP
 
+#undef TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND ix86_print_operand
+#undef TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS ix86_print_operand_address
+#undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P ix86_print_operand_punct_valid_p
+
 #undef TARGET_SCHED_ADJUST_COST
 #define TARGET_SCHED_ADJUST_COST ix86_adjust_cost
 #undef TARGET_SCHED_ISSUE_RATE
@@ -30728,6 +30742,8 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION ix86_handle_option
 
+#undef TARGET_MEMORY_MOVE_COST
+#define TARGET_MEMORY_MOVE_COST ix86_memory_move_cost
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS ix86_rtx_costs
 #undef TARGET_ADDRESS_COST

@@ -63,6 +63,9 @@ extern bool hook_callee_copies_named
   (CUMULATIVE_ARGS *ca, enum machine_mode, const_tree, bool);
 
 extern void default_unwind_emit (FILE *, rtx);
+extern void default_print_operand (FILE *, rtx, int);
+extern void default_print_operand_address (FILE *, rtx);
+extern bool default_print_operand_punct_valid_p (unsigned char);
 
 extern bool default_scalar_mode_supported_p (enum machine_mode);
 extern bool default_decimal_float_supported_p (void);
@@ -134,3 +137,4 @@ extern bool default_addr_space_subset_p (addr_space_t, addr_space_t);
 extern rtx default_addr_space_convert (rtx, tree, tree);
 extern unsigned int default_case_values_threshold (void);
 extern bool default_have_conditional_execution (void);
+extern int default_memory_move_cost (enum machine_mode, enum reg_class, bool);

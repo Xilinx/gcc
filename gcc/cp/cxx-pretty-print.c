@@ -791,6 +791,14 @@ pp_cxx_unary_expression (cxx_pretty_printer *pp, tree t)
 	pp_unary_expression (pp, TREE_OPERAND (t, 0));
       break;
 
+    case NOEXCEPT_EXPR:
+      pp_cxx_ws_string (pp, "noexcept");
+      pp_cxx_whitespace (pp);
+      pp_cxx_left_paren (pp);
+      pp_cxx_expression (pp, TREE_OPERAND (t, 0));
+      pp_cxx_right_paren (pp);
+      break;
+
     case UNARY_PLUS_EXPR:
       pp_plus (pp);
       pp_cxx_cast_expression (pp, TREE_OPERAND (t, 0));
@@ -1061,6 +1069,7 @@ pp_cxx_expression (cxx_pretty_printer *pp, tree t)
 
     case SIZEOF_EXPR:
     case ALIGNOF_EXPR:
+    case NOEXCEPT_EXPR:
       pp_cxx_unary_expression (pp, t);
       break;
 
@@ -1418,8 +1427,17 @@ pp_cxx_exception_specification (cxx_pretty_printer *pp, tree t)
   tree ex_spec = TYPE_RAISES_EXCEPTIONS (t);
   bool need_comma = false;
 
-  if (!TYPE_NOTHROW_P (t) && ex_spec == NULL)
+  if (ex_spec == NULL)
     return;
+  if (TREE_PURPOSE (ex_spec))
+    {
+      pp_cxx_ws_string (pp, "noexcept");
+      pp_cxx_whitespace (pp);
+      pp_cxx_left_paren (pp);
+      pp_cxx_expression (pp, TREE_PURPOSE (ex_spec));
+      pp_cxx_right_paren (pp);
+      return;
+    }
   pp_cxx_ws_string (pp, "throw");
   pp_cxx_left_paren (pp);
   for (; ex_spec && TREE_VALUE (ex_spec); ex_spec = TREE_CHAIN (ex_spec))

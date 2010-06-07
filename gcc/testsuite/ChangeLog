@@ -1,3 +1,144 @@
+2010-05-25  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/44188
+	* g++.dg/debug/dwarf2/typedef3.C: New test.
+
+2010-06-06  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/20000
+        * c-c++-common/pr20000.c: New.
+
+2010-06-05  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/44086
+	* g++.dg/init/pr44086.C: New.
+	* g++.dg/cpp0x/decltype4.C: Adjust.
+
+2010-06-05  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/43945
+	* gfortran.dg/generic_23.f03: New test.
+
+2010-06-05  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/43895
+	* gfortran.dg/alloc_comp_class_1.f90 : New test.
+
+2010-06-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44361
+	* c-c++-common/Wunused-var-9.c: New test.
+
+2010-06-05  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/noexcept06.C: Call set_unexpected.
+
+2010-06-05  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/44322
+	* gcc.dg/c99-restrict-4.c: New test.
+
+2010-06-04  Magnus Fromreide  <magfr@lysator.liu.se>
+
+	* g++.dg/cpp0x/nullptr01.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr02.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr03.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr04.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr05.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr06.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr07.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr08.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr09.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr10.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr11.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr12.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr13.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr14.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr15.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr16.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr17.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr18.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr19.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr20.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr21.C: Test nullptr_t variable.
+	* g++.dg/cpp0x/nullptr22.C: Test nullptr_t variable.
+
+2010-06-04  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/noexcept06.C: New.
+	* g++.dg/cpp0x/noexcept07.C: New.
+
+	* g++.dg/cpp0x/noexcept01.C: New.
+	* g++.dg/cpp0x/noexcept02.C: New.
+	* g++.dg/cpp0x/noexcept03.C: New.
+	* g++.dg/cpp0x/noexcept04.C: New.
+	* g++.dg/cpp0x/noexcept05.C: New.
+
+2010-06-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44412
+	* g++.dg/warn/Wunused-var-10.C: New test.
+	* g++.dg/warn/Wunused-var-11.C: New test.
+
+	PR c++/44362
+	* c-c++-common/Wunused-var-10.c: New test.
+
+2010-06-04  Manuel LÃ³pez-IbÃ¡Ã±ez  <manu@gcc.gnu.org>
+
+	PR c/25880
+	* gcc.dg/assign-warn-2.c: Update.
+	* gcc.dg/cpp/line3.c: Update.
+	* gcc.dg/c99-array-lval-8.c: Update.
+	* gcc.dg/cast-qual-2.c: Update.
+	* gcc.dg/c99-arraydecl-3.c:  Update.
+	* gcc.dg/assign-warn-1.c:  Update.
+	* gcc.dg/format/gcc_diag-1.c:  Update.
+
+2010-06-04  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR rtl-optimization/39871
+	PR rtl-optimization/40615
+	PR rtl-optimization/42500
+	PR rtl-optimization/42502
+	* gcc.target/arm/eliminate.c: New test.
+
+2010-06-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/44410
+	* g++.old-deja/g++.jason/new.C: Qualify size_t with std::.
+	* g++.old-deja/g++.other/delete3.C: Likewise.
+	* g++.old-deja/g++.other/new.C: Likewise.
+	* g++.old-deja/g++.law/operators27.C: Likewise.
+	* g++.old-deja/g++.mike/p755.C: Likewise.
+	* g++.dg/eh/new1.C: Likewise.
+	* g++.dg/init/new5.C: Likewise.
+
+2010-06-03  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* gfortran.dg/unpack_bounds_1.f90:  Remove execute property.
+	* gfortran.dg/unpack_bounds_2.f90:  Likewise.
+	* gfortran.dg/unpack_bounds_3.f90:  Likewise.
+
+2010-06-03  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41921
+	* lib/lto.exp: Always load gcc.exp.
+	(lto-obj): For C source files invoke gcc_target_compile.
+	* g++.dg/lto/20100603-1_0.C: New testcase.
+	* g++.dg/lto/20100603-1_1.c: Likewise.
+
+2010-06-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR tree-optimization/43688
+	* gfortran.dg/pr43688.f90: New.
+
+2010-06-03  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41584
+	* gcc.dg/lto/20100603-1_0.c: New testcase.
+	* gcc.dg/lto/20100603-2_0.c: Likewise.
+	* gcc.dg/lto/20100603-3_0.c: Likewise.
+
 2010-06-02  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	PR target/44218

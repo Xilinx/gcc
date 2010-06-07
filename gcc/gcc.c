@@ -399,6 +399,7 @@ static const char *replace_outfile_spec_function (int, const char **);
 static const char *version_compare_spec_function (int, const char **);
 static const char *include_spec_function (int, const char **);
 static const char *find_file_spec_function (int, const char **);
+static const char *find_plugindir_spec_function (int, const char **);
 static const char *print_asm_header_spec_function (int, const char **);
 static const char *compare_debug_dump_opt_spec_function (int, const char **);
 static const char *compare_debug_self_opt_spec_function (int, const char **);
@@ -862,7 +863,7 @@ static const char *cpp_unique_options =
  %{M} %{MM} %{MF*} %{MG} %{MP} %{MQ*} %{MT*}\
  %{!E:%{!M:%{!MM:%{!MT:%{!MQ:%{MD|MMD:%{o*:-MQ %*}}}}}}}\
  %{remap} %{g3|ggdb3|gstabs3|gcoff3|gxcoff3|gvms3:-dD}\
- %{!iplugindir*:%{fplugin*:-iplugindir=%:find-file(plugin)}}\
+ %{!iplugindir*:%{fplugin*:%:find-plugindir()}}\
  %{H} %C %{D*&U*&A*} %{i*} %Z %i\
  %{fmudflap:-D_MUDFLAP -include mf-runtime.h}\
  %{fmudflapth:-D_MUDFLAP -D_MUDFLAPTH -include mf-runtime.h}\
@@ -885,7 +886,7 @@ static const char *cpp_debug_options = "%{d*}";
 /* NB: This is shared amongst all front-ends, except for Ada.  */
 static const char *cc1_options =
 "%{pg:%{fomit-frame-pointer:%e-pg and -fomit-frame-pointer are incompatible}}\
- %{!iplugindir*:%{fplugin*:-iplugindir=%:find-file(plugin)}}\
+ %{!iplugindir*:%{fplugin*:%:find-plugindir()}}\
  %1 %{!Q:-quiet} %{!dumpbase:-dumpbase %B} %{d*} %{m*} %{a*}\
  %{fcompare-debug-second:%:compare-debug-auxbase-opt(%b)} \
  %{!fcompare-debug-second:%{c|S:%{o*:-auxbase-strip %*}%{!o*:-auxbase %b}}}%{!c:%{!S:-auxbase %b}} \
@@ -1392,7 +1393,7 @@ translate_options (int *argcp, const char *const **argvp)
 
 		  else if (strchr (arginfo, '*') != 0)
 		    {
-		      error ("incomplete '%s' option", option_map[j].name);
+		      error ("incomplete %qs option", option_map[j].name);
 		      break;
 		    }
 
@@ -1403,7 +1404,7 @@ translate_options (int *argcp, const char *const **argvp)
 			{
 			  if (i + 1 == argc)
 			    {
-			      error ("missing argument to '%s' option",
+			      error ("missing argument to %qs option",
 				     option_map[j].name);
 			      break;
 			    }
@@ -1416,7 +1417,7 @@ translate_options (int *argcp, const char *const **argvp)
 		  else if (strchr (arginfo, 'o') == 0)
 		    {
 		      if (arg != 0)
-			error ("extraneous argument to '%s' option",
+			error ("extraneous argument to %qs option",
 			       option_map[j].name);
 		      arg = 0;
 		    }
@@ -1719,6 +1720,7 @@ static const struct spec_function static_spec_functions[] =
   { "version-compare",		version_compare_spec_function },
   { "include",			include_spec_function },
   { "find-file",		find_file_spec_function },
+  { "find-plugindir",		find_plugindir_spec_function },
   { "print-asm-header",		print_asm_header_spec_function },
   { "compare-debug-dump-opt",	compare_debug_dump_opt_spec_function },
   { "compare-debug-self-opt",	compare_debug_self_opt_spec_function },
@@ -2281,8 +2283,8 @@ read_specs (const char *filename, int main_p)
 
 	      for (newsl = specs; newsl; newsl = newsl->next)
 		if (strcmp (newsl->name, p2) == 0)
-		  fatal_error ("%s: attempt to rename spec '%s' to "
-			       "already defined spec '%s'",
+		  fatal_error ("%s: attempt to rename spec %qs to "
+			       "already defined spec %qs",
 		    filename, p1, p2);
 
 	      if (verbose_flag)
@@ -2907,7 +2909,7 @@ add_sysrooted_prefix (struct path_prefix *pprefix, const char *prefix,
 		      int require_machine_suffix, int os_multilib)
 {
   if (!IS_ABSOLUTE_PATH (prefix))
-    fatal_error ("system path '%s' is not absolute", prefix);
+    fatal_error ("system path %qs is not absolute", prefix);
 
   if (target_system_root)
     {
@@ -3095,7 +3097,7 @@ execute (void)
 				   ? PEX_RECORD_TIMES : 0),
 		  progname, temp_filename);
   if (pex == NULL)
-    pfatal_with_name (_("pex_init failed"));
+    fatal_error ("pex_init failed: %m");
 
   for (i = 0; i < n_commands; i++)
     {
@@ -3134,13 +3136,13 @@ execute (void)
 
     statuses = (int *) alloca (n_commands * sizeof (int));
     if (!pex_get_status (pex, n_commands, statuses))
-      pfatal_with_name (_("failed to get exit status"));
+      fatal_error ("failed to get exit status: %m");
 
     if (report_times || report_times_to_file)
       {
 	times = (struct pex_time *) alloca (n_commands * sizeof (struct pex_time));
 	if (!pex_get_times (pex, n_commands, times))
-	  pfatal_with_name (_("failed to get process times"));
+	  fatal_error ("failed to get process times: %m");
       }
 
     pex_free (pex);
@@ -3906,7 +3908,7 @@ process_command (int argc, const char **argv)
       else if (strcmp (argv[i], "-Xlinker") == 0)
 	{
 	  if (i + 1 == argc)
-	    fatal_error ("argument to '-Xlinker' is missing");
+	    fatal_error ("argument to %<-Xlinker%> is missing");
 
 	  n_infiles++;
 	  i++;
@@ -3914,21 +3916,21 @@ process_command (int argc, const char **argv)
       else if (strcmp (argv[i], "-Xpreprocessor") == 0)
 	{
 	  if (i + 1 == argc)
-	    fatal_error ("argument to '-Xpreprocessor' is missing");
+	    fatal_error ("argument to %<-Xpreprocessor%> is missing");
 
 	  add_preprocessor_option (argv[i+1], strlen (argv[i+1]));
 	}
       else if (strcmp (argv[i], "-Xassembler") == 0)
 	{
 	  if (i + 1 == argc)
-	    fatal_error ("argument to '-Xassembler' is missing");
+	    fatal_error ("argument to %<-Xassembler%> is missing");
 
 	  add_assembler_option (argv[i+1], strlen (argv[i+1]));
 	}
       else if (strcmp (argv[i], "-l") == 0)
 	{
 	  if (i + 1 == argc)
-	    fatal_error ("argument to '-l' is missing");
+	    fatal_error ("argument to %<-l%> is missing");
 
 	  n_infiles++;
 	  i++;
@@ -3949,7 +3951,7 @@ process_command (int argc, const char **argv)
 		   || strcmp (argv[i]+12, "object") == 0)
 	    save_temps_flag = SAVE_TEMPS_OBJ;
 	  else
-	    fatal_error ("'%s' is an unknown -save-temps option", argv[i]);
+	    fatal_error ("%qs is an unknown -save-temps option", argv[i]);
 	}
       else if (strcmp (argv[i], "-no-canonical-prefixes") == 0)
 	/* Already handled as a special case, so ignored here.  */
@@ -3963,7 +3965,7 @@ process_command (int argc, const char **argv)
 	{
 	  struct user_specs *user = XNEW (struct user_specs);
 	  if (++i >= argc)
-	    fatal_error ("argument to '-specs' is missing");
+	    fatal_error ("argument to %<-specs%> is missing");
 
 	  user->next = (struct user_specs *) 0;
 	  user->filename = argv[i];
@@ -3977,7 +3979,7 @@ process_command (int argc, const char **argv)
 	{
 	  struct user_specs *user = XNEW (struct user_specs);
 	  if (strlen (argv[i]) == 7)
-	    fatal_error ("argument to '-specs=' is missing");
+	    fatal_error ("argument to %<-specs=%> is missing");
 
 	  user->next = (struct user_specs *) 0;
 	  user->filename = argv[i] + 7;
@@ -4005,7 +4007,7 @@ process_command (int argc, const char **argv)
       else if (strcmp (argv[i], "-wrapper") == 0)
         {
 	  if (++i >= argc)
-	    fatal_error ("argument to '-wrapper' is missing");
+	    fatal_error ("argument to %<-wrapper%> is missing");
 
           wrapper_string = argv[i];
 	  n_switches++;
@@ -4033,7 +4035,7 @@ process_command (int argc, const char **argv)
 		int len;
 
 		if (p[1] == 0 && i + 1 == argc)
-		  fatal_error ("argument to '-B' is missing");
+		  fatal_error ("argument to %<-B%> is missing");
 		if (p[1] == 0)
 		  value = argv[++i];
 		else
@@ -4426,7 +4428,7 @@ process_command (int argc, const char **argv)
 	  if (c == 'x')
 	    {
 	      if (p[1] == 0 && i + 1 == argc)
-		fatal_error ("argument to '-x' is missing");
+		fatal_error ("argument to %<-x%> is missing");
 	      if (p[1] == 0)
 		spec_lang = argv[++i];
 	      else
@@ -4454,7 +4456,7 @@ process_command (int argc, const char **argv)
 		  n_args = SWITCH_TAKES_ARG (c) - (p[1] != 0);
 		}
 	      if (i + n_args >= argc)
-		fatal_error ("argument to '-%s' is missing", p);
+		fatal_error ("argument to %<-%s%> is missing", p);
 	      switches[n_switches].args
 		= XNEWVEC (const char *, n_args + 1);
 	      while (j < n_args)
@@ -4543,7 +4545,7 @@ process_command (int argc, const char **argv)
     }
 
   if (n_infiles == last_language_n_infiles && spec_lang != 0)
-    warning (0, "'-x %s' after last input file has no effect", spec_lang);
+    warning (0, "%<-x %s%> after last input file has no effect", spec_lang);
 
   if (compare_debug == 2 || compare_debug == 3)
     {
@@ -4706,7 +4708,7 @@ end_going_arg (void)
 
 	  if (full_script_path == NULL)
 	    {
-	      error ("unable to locate default linker script '%s' in the library search paths", string);
+	      error ("unable to locate default linker script %qs in the library search paths", string);
 	      /* Script was not found on search path.  */
 	      return;
 	    }
@@ -4894,7 +4896,7 @@ do_self_spec (const char *spec)
 
 	  /* Each switch should start with '-'.  */
 	  if (c != '-')
-	    fatal_error ("switch '%s' does not start with '-'", argbuf[i]);
+	    fatal_error ("switch %qs does not start with %<-%>", argbuf[i]);
 
 	  p++;
 	  c = *p;
@@ -4918,7 +4920,7 @@ do_self_spec (const char *spec)
 		  n_args = SWITCH_TAKES_ARG (c) - (p[1] != 0);
 		}
 	      if (i + n_args >= argbuf_index)
-		fatal_error ("argument to '-%s' is missing", p);
+		fatal_error ("argument to %<-%s%> is missing", p);
 	      sw->args
 		= XNEWVEC (const char *, n_args + 1);
 	      while (j < n_args)
@@ -5124,7 +5126,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	switch (c = *p++)
 	  {
 	  case 0:
-	    fatal_error ("spec '%s' invalid", spec);
+	    fatal_error ("spec %qs invalid", spec);
 
 	  case 'b':
 	    if (save_temps_length)
@@ -5273,7 +5275,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 		    p += 2;
 		    /* We don't support extra suffix characters after %O.  */
 		    if (*p == '.' || ISALNUM ((unsigned char) *p))
-		      fatal_error ("spec '%s' has invalid '%%0%c'", spec, *p);
+		      fatal_error ("spec %qs has invalid %<%%0%c%>", spec, *p);
 		    if (suffix_length == 0)
 		      suffix = TARGET_OBJECT_SUFFIX;
 		    else
@@ -5584,7 +5586,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	      int cur_index = argbuf_index;
 	      /* Handle the {...} following the %W.  */
 	      if (*p != '{')
-		fatal_error ("spec '%s' has invalid '%%W%c", spec, *p);
+		fatal_error ("spec %qs has invalid %<%%W%c%>", spec, *p);
 	      p = handle_braces (p + 1);
 	      if (p == 0)
 		return -1;
@@ -5604,7 +5606,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 
 	      /* Skip past the option value and make a copy.  */
 	      if (*p != '{')
-		fatal_error ("spec '%s' has invalid '%%x%c'", spec, *p);
+		fatal_error ("spec %qs has invalid %<%%x%c%>", spec, *p);
 	      while (*p++ != '}')
 		;
 	      string = save_string (p1 + 1, p - p1 - 2);
@@ -5799,7 +5801,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	      /* Catch the case where a spec string contains something like
 		 '%{foo:%*}'.  i.e. there is no * in the pattern on the left
 		 hand side of the :.  */
-	      error ("spec failure: '%%*' has not been initialized by pattern match");
+	      error ("spec failure: %<%%*%> has not been initialized by pattern match");
 	    break;
 
 	    /* Process a string found as the value of a spec given by name.
@@ -5889,7 +5891,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	    break;
 
 	  default:
-	    error ("spec failure: unrecognized spec option '%c'", c);
+	    error ("spec failure: unrecognized spec option %qc", c);
 	    break;
 	  }
 	break;
@@ -5951,7 +5953,7 @@ eval_spec_function (const char *func, const char *args)
 
   sf = lookup_spec_function (func);
   if (sf == NULL)
-    fatal_error ("unknown spec function '%s'", func);
+    fatal_error ("unknown spec function %qs", func);
 
   /* Push the spec processing context.  */
   save_argbuf_index = argbuf_index;
@@ -5971,7 +5973,7 @@ eval_spec_function (const char *func, const char *args)
 
   alloc_args ();
   if (do_spec_2 (args) < 0)
-    fatal_error ("error in args to spec function '%s'", func);
+    fatal_error ("error in args to spec function %qs", func);
 
   /* argbuf_index is an index for the next argument to be inserted, and
      so contains the count of the args already inserted.  */
@@ -6288,7 +6290,7 @@ handle_braces (const char *p)
   return p;
 
  invalid:
-  fatal_error ("braced spec '%s' is invalid at '%c'", orig, *p);
+  fatal_error ("braced spec %qs is invalid at %qc", orig, *p);
 
 #undef SKIP_WHITE
 }
@@ -6376,7 +6378,7 @@ process_brace_body (const char *p, const char *atom, const char *end_atom,
   return p;
 
  invalid:
-  fatal_error ("braced spec body '%s' is invalid", body);
+  fatal_error ("braced spec body %qs is invalid", body);
 }
 
 /* Return 0 iff switch number SWITCHNUM is obsoleted by a later switch
@@ -7074,7 +7076,7 @@ main (int argc, char **argv)
 
   for (i = 0; (int) i < n_switches; i++)
     if (! switches[i].validated)
-      error ("unrecognized option '-%s'", switches[i].part1);
+      error ("unrecognized option %<-%s%>", switches[i].part1);
 
   /* Obey some of the options.  */
 
@@ -7317,7 +7319,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 		  value = do_spec (input_file_compiler->spec);
 		  infiles[i].preprocessed = true;
 		  if (!have_o_argbuf_index)
-		    fatal_error ("spec '%s' is invalid",
+		    fatal_error ("spec %qs is invalid",
 				 input_file_compiler->spec);
 		  infiles[i].name = argbuf[have_o_argbuf_index];
 		  infiles[i].incompiler
@@ -7654,7 +7656,7 @@ pfatal_with_name (const char *name)
 static void
 perror_with_name (const char *name)
 {
-  error ("%s: %s", name, xstrerror (errno));
+  error ("%s: %m", name);
 }
 
 static inline void
@@ -7809,7 +7811,7 @@ used_arg (const char *p, int len)
 	      if (*q == '\0')
 		{
 		invalid_matches:
-		  fatal_error ("multilib spec '%s' is invalid",
+		  fatal_error ("multilib spec %qs is invalid",
 			       multilib_matches);
 		}
 	      q++;
@@ -8001,7 +8003,7 @@ set_multilib_dir (void)
 	  if (*p == '\0')
 	    {
 	    invalid_exclusions:
-	      fatal_error ("multilib exclusions '%s' is invalid",
+	      fatal_error ("multilib exclusions %qs is invalid",
 			   multilib_exclusions);
 	    }
 
@@ -8059,7 +8061,7 @@ set_multilib_dir (void)
 	  if (*p == '\0')
 	    {
 	    invalid_select:
-	      fatal_error ("multilib select '%s' is invalid",
+	      fatal_error ("multilib select %qs is invalid",
 			   multilib_select);
 	    }
 	  ++p;
@@ -8200,7 +8202,7 @@ print_multilib_info (void)
 	  if (*p == '\0')
 	    {
 	    invalid_select:
-	      fatal_error ("multilib select '%s' is invalid", multilib_select);
+	      fatal_error ("multilib select %qs is invalid", multilib_select);
 	    }
 
 	  ++p;
@@ -8238,7 +8240,7 @@ print_multilib_info (void)
 		if (*e == '\0')
 		  {
 		  invalid_exclusion:
-		    fatal_error ("multilib exclusion '%s' is invalid",
+		    fatal_error ("multilib exclusion %qs is invalid",
 				 multilib_exclusions);
 		  }
 
@@ -8444,7 +8446,7 @@ getenv_spec_function (int argc, const char **argv)
 
   value = getenv (argv[0]);
   if (!value)
-    fatal_error ("environment variable \"%s\" not defined", argv[0]);
+    fatal_error ("environment variable %qs not defined", argv[0]);
 
   /* We have to escape every character of the environment variable so
      they are not interpreted as active spec characters.  A
@@ -8535,12 +8537,12 @@ compare_version_strings (const char *v1, const char *v2)
     abort ();
   rresult = regexec (&r, v1, 0, NULL, 0);
   if (rresult == REG_NOMATCH)
-    fatal_error ("invalid version number `%s'", v1);
+    fatal_error ("invalid version number %qs", v1);
   else if (rresult != 0)
     abort ();
   rresult = regexec (&r, v2, 0, NULL, 0);
   if (rresult == REG_NOMATCH)
-    fatal_error ("invalid version number `%s'", v2);
+    fatal_error ("invalid version number %qs", v2);
   else if (rresult != 0)
     abort ();
 
@@ -8630,7 +8632,7 @@ version_compare_spec_function (int argc, const char **argv)
       break;
 
     default:
-      fatal_error ("unknown operator '%s' in %%:version-compare", argv[0]);
+      fatal_error ("unknown operator %qs in %%:version-compare", argv[0]);
     }
   if (! result)
     return NULL;
@@ -8657,11 +8659,11 @@ include_spec_function (int argc, const char **argv)
   return NULL;
 }
 
-/* %:find-file spec function.  This function replace its argument by
+/* %:find-file spec function.  This function replaces its argument by
     the file found thru find_file, that is the -print-file-name gcc
     program option. */
 static const char *
-find_file_spec_function (int argc, const char**argv)
+find_file_spec_function (int argc, const char **argv)
 {
   const char *file;
 
@@ -8670,6 +8672,22 @@ find_file_spec_function (int argc, const char**argv)
 
   file = find_file (argv[0]);
   return file;
+}
+
+
+/* %:find-plugindir spec function.  This function replaces its argument
+    by the -iplugindir=<dir> option.  `dir' is found thru find_file, that
+    is the -print-file-name gcc program option. */
+static const char *
+find_plugindir_spec_function (int argc, const char **argv ATTRIBUTE_UNUSED)
+{
+  const char *option;
+
+  if (argc != 0)
+    abort ();
+
+  option = concat ("-iplugindir=", find_file ("plugin"), NULL);
+  return option;
 }
 
 

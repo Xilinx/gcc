@@ -31,7 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "diagnostic-core.h"
 #include "debug.h"
-#include "c-pragma.h"
+#include "c-family/c-pragma.h"
 
 /* The bindings for a particular name in a particular scope.  */
 
@@ -805,7 +805,7 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 				TYPE_RAISES_EXCEPTIONS (TREE_TYPE (previous));
 		  if (!comp_except_specs (previous_exception_spec,
 					  x_exception_spec,
-					  true))
+					  ce_normal))
 		    {
 		      pedwarn (input_location, 0, "declaration of %q#D with C language linkage",
 			       x);

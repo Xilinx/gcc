@@ -342,7 +342,7 @@ self_referential_size (tree size)
   VEC_safe_push (tree, gc, size_functions, fndecl);
 
   /* Replace the original expression with a call to the size function.  */
-  return build_function_call_expr (input_location, fndecl, arg_list);
+  return build_function_call_expr (UNKNOWN_LOCATION, fndecl, arg_list);
 }
 
 /* Take, queue and compile all the size functions.  It is essential that
@@ -369,10 +369,6 @@ finalize_size_functions (void)
   VEC_free (tree, gc, size_functions);
 }
 
-#ifndef MAX_FIXED_MODE_SIZE
-#define MAX_FIXED_MODE_SIZE GET_MODE_BITSIZE (DImode)
-#endif
-
 /* Return the machine mode to use for a nonscalar of SIZE bits.  The
    mode must be in class MCLASS, and have exactly that many value bits;
    it may have padding as well.  If LIMIT is nonzero, modes of wider
