@@ -312,12 +312,10 @@ referenced_from_other_partition_p (struct ipa_ref_list *list, cgraph_node_set se
 
 /* Return true when node is reachable from other partition.  */
 
-static bool
+bool
 reachable_from_other_partition_p (struct cgraph_node *node, cgraph_node_set set)
 {
   struct cgraph_edge *e;
-  if (node->needed)
-    return true;
   if (!node->analyzed)
     return false;
   if (node->global.inlined_to)
@@ -339,6 +337,7 @@ reachable_from_other_partition_p (struct cgraph_node *node, cgraph_node_set set)
 static void
 lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
 		 lto_cgraph_encoder_t encoder, cgraph_node_set set,
+		 varpool_node_set vset,
 		 bitmap written_decls)
 {
   unsigned int tag;
@@ -400,7 +399,9 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
   bp_pack_value (bp, node->address_taken, 1);
   bp_pack_value (bp, node->abstract_and_needed, 1);
   bp_pack_value (bp, tag == LTO_cgraph_analyzed_node
-		 && reachable_from_other_partition_p (node, set), 1);
+		 && !DECL_EXTERNAL (node->decl)
+		 && (reachable_from_other_partition_p (node, set)
+		     || referenced_from_other_partition_p (&node->ref_list, set, vset)), 1);
   bp_pack_value (bp, node->lowered, 1);
   bp_pack_value (bp, in_other_partition, 1);
   bp_pack_value (bp, node->alias, 1);
@@ -694,7 +695,6 @@ output_cgraph (cgraph_node_set set, varpool_node_set vset)
   lto_cgraph_encoder_t encoder;
   lto_varpool_encoder_t varpool_encoder;
   struct cgraph_asm_node *can;
-  struct varpool_node *vnode;
 
   ob = lto_create_simple_output_block (LTO_section_cgraph);
 
@@ -727,11 +727,6 @@ output_cgraph (cgraph_node_set set, varpool_node_set vset)
       lto_set_varpool_encoder_encode_initializer (varpool_encoder, vnode);
       add_references (encoder, varpool_encoder, &vnode->ref_list);
     }
-  /* FIXME: We can not currenlty remove any varpool nodes or we get ICE merging
-     binfos.  */
-  for (vnode = varpool_nodes; vnode; vnode = vnode->next)
-    if (vnode->needed)
-      lto_varpool_encoder_encode (varpool_encoder, vnode);
   /* Pickle in also the initializer of all referenced readonly variables
      to help folding.  Constant pool variables are not shared, so we must
      pickle those too.  */
@@ -773,7 +768,7 @@ output_cgraph (cgraph_node_set set, varpool_node_set vset)
   for (i = 0; i < n_nodes; i++)
     {
       node = lto_cgraph_encoder_deref (encoder, i);
-      lto_output_node (ob, node, encoder, set, written_decls);
+      lto_output_node (ob, node, encoder, set, vset, written_decls);
     }
 
   lto_bitmap_free (written_decls);

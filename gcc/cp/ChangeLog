@@ -1,3 +1,33 @@
+2010-05-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/34272
+	PR c++/43630
+	PR c++/34491
+	* pt.c (process_partial_specialization): Return error_mark_node
+	in case of unused template parameters in partial specialization.
+
+2010-05-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44062
+	* semantics.c (finish_expr_stmt): Don't call mark_exp_read here...
+	* cvt.c (convert_to_void): ... but here.  If expr is a COMPOUND_EXPR,
+	look at its second operand.
+
+2010-05-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44017
+	* semantics.c (baselink_for_fns): Revert earlier change.
+
+	PR c++/44045
+	* typeck.c (cp_build_modify_expr): Complain about assignment to
+	array from init list.
+
+2010-05-10  Fabien Chêne  <fabien.chene@gmail.com>
+
+	PR c++/43719
+	* decl.c (check_initializer): strip array type before checking for
+	uninitialized const or ref members.
+
 2010-05-07  Fabien Chêne  <fabien.chene@gmail.com>
 
 	PR c++/43951

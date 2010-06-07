@@ -1,3 +1,180 @@
+2010-05-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44088
+	* gcc.target/i386/avx-cmpsd-1.c: New.
+	* gcc.target/i386/avx-cmpsd-2.c: Likewise.
+	* gcc.target/i386/avx-cmpss-1.c: Likewise.
+	* gcc.target/i386/avx-cmpss-2.c: Likewise.
+	* gcc.target/i386/sse-cmpss-1.c: Likewise.
+	* gcc.target/i386/sse2-cmpsd-1.c: Likewise.
+
+2010-05-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/44085
+	* gcc.dg/gomp/pr44085.c: New test.
+	* gfortran.dg/gomp/pr44085.f90: New test.
+
+2010-05-12  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc-obj-c++-shared/Object1.m: New.
+	* objc.dg/torture: New directory.
+	* objc.dg/torture/tls: Ditto.
+	* objc.dg/tls: Ditto.
+	* objc.dg/torture/tls/trivial.m: New test.
+	* objc.dg/torture/tls/thr-init-2.m: New test.
+	* objc.dg/torture/tls/thr-init-3.m: New test.
+	* objc.dg/torture/tls/thr-init.m: New test.
+	* objc.dg/torture/tls/diag-1.m: New test.
+	* objc.dg/torture/tls/tls.exp: New.
+	* objc.dg/torture/trivial.m: New test.
+	* objc.dg/torture/dg-torture.exp: New.
+	* objc.dg/tls/diag-3.m: New test.
+	* objc.dg/tls/diag-4.m: New test.
+	* objc.dg/tls/diag-5.m: New test.
+	* objc.dg/tls/init-1.m: New test.
+	* objc.dg/tls/init-2.m: New test.
+	* objc.dg/tls/tls.exp: New.
+	* objc.dg/tls/diag-2.m: New test.
+	* lib/objc.exp: Respond to dg-additional-files.
+
+2010-05-12  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.target/m68k/20100512-1.c: New.
+
+2010-05-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto8.adb: New test.
+	* gnat.dg/lto8_pkg.ad[sb]: New helper.
+	* gnat.dg/frame_overflow.adb: XFAIL if -flto is specified.
+
+2010-05-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/34272
+	PR c++/43630
+	PR c++/34491
+	* g++.dg/template/crash97.C: New.
+	* g++.dg/template/crash98.C: Likewise.
+	* g++.dg/template/crash99.C: Likewise.
+	* g++.dg/cpp0x/pr31439.C: Adjust.
+	* g++.dg/template/crash95.C: Likewise.
+
+2010-05-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/44071
+	* c-c++-common/asmgoto-4.c: New test.
+	* gcc.target/i386/pr44071.c: New test.
+
+	PR c++/44062
+	* c-c++-common/Wunused-var-7.c: New test.
+	* g++.dg/warn/Wunused-var-9.C: New test.
+
+2010-05-11  Daniel Franke  <franke.daniel@gmail.com>
+
+        PR fortran/43711
+        * gfortran.dg/gomp/pr43711.f90: New.
+
+2010-05-11  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/31820
+	* gfortran.dg/select_5.f90: Updated.
+
+2010-05-11  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimize/44063
+	* gcc.c-torture/compile/pr44063.c: New testcase.
+
+2010-05-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/44023
+	* gcc.dg/pr44023.c: New test.
+
+2010-05-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto7.adb: New test.
+	* gnat.dg/lto7_pkg.ad[sb]: New helper.
+
+2010-05-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44017
+	* g++.dg/template/inherit5.C: New.
+
+	PR c++/44045
+	* g++.dg/cpp0x/initlist33.C: New.
+	* g++.dg/cpp0x/initlist26.C: Adjust.
+	* g++.dg/cpp0x/initlist28.C: Adjust.
+
+2010-05-10  Fabien Chêne  <fabien.chene@gmail.com>
+
+	PR c++/43719
+	* g++.dg/init/pr43719.C: New.
+	* g++.dg/anon-struct4.C: Adjust.
+
+2010-05-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/44028
+	* gcc.dg/pr44028.c: New test.
+
+2010-05-08  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/27866
+	PR fortran/35003
+	PR fortran/42809
+	* gfortran.dg/array_constructor_type_17.f03: Updated match string.
+	* gfortran.dg/warn_conversion.f90: New.
+
+2010-05-10  Michael Matz  <matz@suse.de>
+
+	* gcc.dg/vect/fast-math-vect-reduc-8.c: New test.
+
+2010-05-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/44012
+	* gcc.dg/pr44012.c: New.
+
+2010-05-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/lto.exp (lto_prune_vis_warns): Renamed to lto_prune_warns.
+	Log text on entry and exit.
+	Prune Sun ld warnings for common symbols with differing sizes.
+	(lto-link-and-maybe-run): Change caller.
+
+2010-05-10  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44044
+	* gfortran.dg/class_7.f03: Modified.
+	* gfortran.dg/select_type_1.f03: Modified.
+	* gfortran.dg/select_type_12.f03: New.
+
+2010-05-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44050
+	* gcc.dg/torture/pr44050.c: New testcase.
+
+2010-05-10  Wei Guozhi  <carrot@google.com>
+
+	PR target/42879
+	* gcc.target/arm/pr42879.c: New testcase.
+
+2010-05-09  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/44051
+	* gcc.dg/anon-struct-9.c: Avoid generating identifier i386.
+
+2010-05-09  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/10676
+	* gcc.dg/anon-struct-10.c: New test.
+
+2010-05-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44024
+	* gcc.dg/pr44024.c: New testcase.
+
+2010-05-09  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/4784
+	* gcc.dg/anon-struct-9.c: New test.
+
 2010-05-09  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/44043
@@ -58,11 +235,11 @@
 
 2010-05-07  Daniel Franke  <franke.daniel@gmail.com>
 
-        PR fortran/40728
-        * gfortran.dg/coarray_1.f90: Fixed error message.
-        * gfortran.dg/selected_char_kind_3.f90: Fixed error message.
-        * gfortran.dg/intrinsic_std_1.f90: Fixed bogus message.
-        * gfortran.dg/intrinsic_std_5.f90: New.
+	PR fortran/40728
+	* gfortran.dg/coarray_1.f90: Fixed error message.
+	* gfortran.dg/selected_char_kind_3.f90: Fixed error message.
+	* gfortran.dg/intrinsic_std_1.f90: Fixed bogus message.
+	* gfortran.dg/intrinsic_std_5.f90: New.
 
 2010-05-07  Jason Merrill  <jason@redhat.com>
 
@@ -113,6 +290,11 @@
 	* g++.dg/cpp0x/nullptr22.C: New.
 	* g++.dg/debug/nullptr01.C: New.
 	* gcc.dg/Wcxx-compat-2.c: Test nullptr and constexpr.
+
+2010-05-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/Wunused-var-8.c: Move to...
+	* c-c++-common/Wunused-var-6.c: ... here.  New test.
 
 2010-05-06  Paolo Carlini  <paolo.carlini@oracle.com>
 
@@ -518,10 +700,10 @@
 2010-04-28  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
 	PR c++/9335
-        * g++.dg/template/recurse2.C: Update
-        * g++.dg/template/recurse.C: Update.
-        * g++.dg/template/pr23510.C: Update.
-        * lib/prune.exp: Filter out 'recursively instantiated'.
+	* g++.dg/template/recurse2.C: Update
+	* g++.dg/template/recurse.C: Update.
+	* g++.dg/template/pr23510.C: Update.
+	* lib/prune.exp: Filter out 'recursively instantiated'.
 
 2010-04-27  Fabien Chêne  <fabien.chene@gmail.com>
 

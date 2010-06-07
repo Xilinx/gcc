@@ -1981,7 +1981,7 @@ default_conversion (tree exp)
   return exp;
 }
 
-/* Look up COMPONENT in a structure or union DECL.
+/* Look up COMPONENT in a structure or union TYPE.
 
    If the component name is not found, returns NULL_TREE.  Otherwise,
    the return value is a TREE_LIST, with each TREE_VALUE a FIELD_DECL
@@ -1991,9 +1991,8 @@ default_conversion (tree exp)
    unions, the list steps down the chain to the component.  */
 
 static tree
-lookup_field (tree decl, tree component)
+lookup_field (tree type, tree component)
 {
-  tree type = TREE_TYPE (decl);
   tree field;
 
   /* If TYPE_LANG_SPECIFIC is set, then it is a sorted array of pointers
@@ -2023,7 +2022,7 @@ lookup_field (tree decl, tree component)
 		  if (TREE_CODE (TREE_TYPE (field)) == RECORD_TYPE
 		      || TREE_CODE (TREE_TYPE (field)) == UNION_TYPE)
 		    {
-		      tree anon = lookup_field (field, component);
+		      tree anon = lookup_field (TREE_TYPE (field), component);
 
 		      if (anon)
 			return tree_cons (NULL_TREE, field, anon);
@@ -2059,7 +2058,7 @@ lookup_field (tree decl, tree component)
 	      && (TREE_CODE (TREE_TYPE (field)) == RECORD_TYPE
 		  || TREE_CODE (TREE_TYPE (field)) == UNION_TYPE))
 	    {
-	      tree anon = lookup_field (field, component);
+	      tree anon = lookup_field (TREE_TYPE (field), component);
 
 	      if (anon)
 		return tree_cons (NULL_TREE, field, anon);
@@ -2102,7 +2101,7 @@ build_component_ref (location_t loc, tree datum, tree component)
 	  return error_mark_node;
 	}
 
-      field = lookup_field (datum, component);
+      field = lookup_field (type, component);
 
       if (!field)
 	{
@@ -7011,7 +7010,7 @@ set_init_index (tree first, tree last,
 void
 set_init_label (tree fieldname, struct obstack * braced_init_obstack)
 {
-  tree tail;
+  tree field;
 
   if (set_designator (0, braced_init_obstack))
     return;
@@ -7025,23 +7024,26 @@ set_init_label (tree fieldname, struct obstack * braced_init_obstack)
       return;
     }
 
-  for (tail = TYPE_FIELDS (constructor_type); tail;
-       tail = TREE_CHAIN (tail))
-    {
-      if (DECL_NAME (tail) == fieldname)
-	break;
-    }
+  field = lookup_field (constructor_type, fieldname);
 
-  if (tail == 0)
+  if (field == 0)
     error ("unknown field %qE specified in initializer", fieldname);
   else
-    {
-      constructor_fields = tail;
-      designator_depth++;
-      designator_erroneous = 0;
-      if (constructor_range_stack)
-	push_range_stack (NULL_TREE, braced_init_obstack);
-    }
+    do
+      {
+	constructor_fields = TREE_VALUE (field);
+	designator_depth++;
+	designator_erroneous = 0;
+	if (constructor_range_stack)
+	  push_range_stack (NULL_TREE, braced_init_obstack);
+	field = TREE_CHAIN (field);
+	if (field)
+	  {
+	    if (set_designator (0, braced_init_obstack))
+	      return;
+	  }
+      }
+    while (field != NULL_TREE);
 }
 
 /* Add a new initializer to the tree of pending initializers.  PURPOSE
@@ -8867,6 +8869,8 @@ emit_side_effect_warnings (location_t loc, tree expr)
 tree
 c_process_expr_stmt (location_t loc, tree expr)
 {
+  tree exprv;
+
   if (!expr)
     return NULL_TREE;
 
@@ -8887,8 +8891,11 @@ c_process_expr_stmt (location_t loc, tree expr)
       && warn_unused_value)
     emit_side_effect_warnings (loc, expr);
 
-  if (DECL_P (expr) || handled_component_p (expr))
-    mark_exp_read (expr);
+  exprv = expr;
+  while (TREE_CODE (exprv) == COMPOUND_EXPR)
+    exprv = TREE_OPERAND (exprv, 1);
+  if (DECL_P (exprv) || handled_component_p (exprv))
+    mark_exp_read (exprv);
 
   /* If the expression is not of a type to which we cannot assign a line
      number, wrap the thing in a no-op NOP_EXPR.  */

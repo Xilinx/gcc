@@ -716,6 +716,9 @@ prune_ref_by_group_reuse (struct mem_ref *ref, struct mem_ref *by,
       hit_from = ddown (delta_b, PREFETCH_BLOCK) * PREFETCH_BLOCK;
       prefetch_before = (hit_from - delta_r + step - 1) / step;
 
+      /* Do not reduce prefetch_before if we meet beyond cache size.  */
+      if (prefetch_before > abs (L2_CACHE_SIZE_BYTES / step))
+        prefetch_before = PREFETCH_ALL;
       if (prefetch_before < ref->prefetch_before)
 	ref->prefetch_before = prefetch_before;
 
@@ -746,6 +749,9 @@ prune_ref_by_group_reuse (struct mem_ref *ref, struct mem_ref *by,
 				reduced_prefetch_block, align_unit);
   if (miss_rate <= ACCEPTABLE_MISS_RATE)
     {
+      /* Do not reduce prefetch_before if we meet beyond cache size.  */
+      if (prefetch_before > L2_CACHE_SIZE_BYTES / PREFETCH_BLOCK)
+        prefetch_before = PREFETCH_ALL;
       if (prefetch_before < ref->prefetch_before)
 	ref->prefetch_before = prefetch_before;
 
@@ -860,11 +866,20 @@ should_issue_prefetch_p (struct mem_ref *ref)
   /* For now do not issue prefetches for only first few of the
      iterations.  */
   if (ref->prefetch_before != PREFETCH_ALL)
-    return false;
+    {
+      if (dump_file && (dump_flags & TDF_DETAILS))
+        fprintf (dump_file, "Ignoring %p due to prefetch_before\n",
+		 (void *) ref);
+      return false;
+    }
 
   /* Do not prefetch nontemporal stores.  */
   if (ref->storent_p)
-    return false;
+    {
+      if (dump_file && (dump_flags & TDF_DETAILS))
+        fprintf (dump_file, "Ignoring nontemporal store %p\n", (void *) ref);
+      return false;
+    }
 
   return true;
 }
