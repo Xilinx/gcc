@@ -32,7 +32,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "flags.h"
 #include "regs.h"
-#include "expr.h"
 #include "function.h"
 #include "basic-block.h"
 #include "toplev.h"
@@ -466,6 +465,10 @@ tree_profiling (void)
      child function from already instrumented body).  */
   if (cgraph_state == CGRAPH_STATE_FINISHED
       || cfun->after_tree_profile)
+    return 0;
+
+  /* Don't profile functions produced for builtin stuff.  */
+  if (DECL_SOURCE_LOCATION (current_function_decl) == BUILTINS_LOCATION)
     return 0;
 
   /* Re-set global shared temporary variable for edge-counters.  */

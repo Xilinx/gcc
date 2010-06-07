@@ -2891,6 +2891,8 @@ override_options (bool main_args_p)
      in case they weren't overwritten by command line options.  */
   if (TARGET_64BIT)
     {
+      if (flag_zee == 2)
+        flag_zee = 1;
       /* Mach-O doesn't support omitting the frame pointer for now.  */
       if (flag_omit_frame_pointer == 2)
 	flag_omit_frame_pointer = (TARGET_MACHO ? 0 : 1);
@@ -2901,6 +2903,8 @@ override_options (bool main_args_p)
     }
   else
     {
+      if (flag_zee == 2)
+        flag_zee = 0;
       if (flag_omit_frame_pointer == 2)
 	flag_omit_frame_pointer = 0;
       if (flag_asynchronous_unwind_tables == 2)
@@ -4390,10 +4394,6 @@ optimization_options (int level, int size ATTRIBUTE_UNUSED)
     flag_schedule_insns = 0;
 #endif
 
-  /* For -O2 and beyond, turn on -fzee for x86_64 target. */
-  if (level > 1 && TARGET_64BIT)
-    flag_zee = 1;
-
   if (TARGET_MACHO)
     /* The Darwin libraries never set errno, so we might as well
        avoid calling them when that's the only reason we would.  */
@@ -4405,6 +4405,11 @@ optimization_options (int level, int size ATTRIBUTE_UNUSED)
      specifying them, we will set the defaults in override_options.  */
   if (optimize >= 1)
     flag_omit_frame_pointer = 2;
+
+  /* For -O2 and beyond, turn on -fzee for x86_64 target. */
+  if (level > 1)
+    flag_zee = 2;
+
   flag_pcc_struct_return = 2;
   flag_asynchronous_unwind_tables = 2;
   flag_vect_cost_model = 1;
@@ -10962,7 +10967,7 @@ output_pic_addr_const (FILE *file, rtx x, int code)
 	}
       else
 	/* We can't handle floating point constants;
-	   PRINT_OPERAND must handle them.  */
+	   TARGET_PRINT_OPERAND must handle them.  */
 	output_operand_lossage ("floating constant misused");
       break;
 
@@ -11580,7 +11585,7 @@ get_some_local_dynamic_name (void)
  */
 
 void
-print_operand (FILE *file, rtx x, int code)
+ix86_print_operand (FILE *file, rtx x, int code)
 {
   if (code)
     {
@@ -11615,7 +11620,7 @@ print_operand (FILE *file, rtx x, int code)
 	      if (!REG_P (x))
 		{
 		  putc ('[', file);
-		  PRINT_OPERAND (file, x, 0);
+		  ix86_print_operand (file, x, 0);
 		  putc (']', file);
 		  return;
 		}
@@ -11625,7 +11630,7 @@ print_operand (FILE *file, rtx x, int code)
 	      gcc_unreachable ();
 	    }
 
-	  PRINT_OPERAND (file, x, 0);
+	  ix86_print_operand (file, x, 0);
 	  return;
 
 
@@ -11780,7 +11785,7 @@ print_operand (FILE *file, rtx x, int code)
 	case 's':
 	  if (CONST_INT_P (x) || ! SHIFT_DOUBLE_OMITS_COUNT)
 	    {
-	      PRINT_OPERAND (file, x, 0);
+	      ix86_print_operand (file, x, 0);
 	      fputs (", ", file);
 	    }
 	  return;
@@ -12177,11 +12182,17 @@ print_operand (FILE *file, rtx x, int code)
 	output_addr_const (file, x);
     }
 }
+
+static bool
+ix86_print_operand_punct_valid_p (unsigned char code)
+{
+  return (code == '*' || code == '+' || code == '&' || code == ';');
+}
 
 /* Print a memory operand whose address is ADDR.  */
 
-void
-print_operand_address (FILE *file, rtx addr)
+static void
+ix86_print_operand_address (FILE *file, rtx addr)
 {
   struct ix86_address parts;
   rtx base, index, disp;
@@ -25574,10 +25585,11 @@ inline_memory_move_cost (enum machine_mode mode, enum reg_class regclass,
     }
 }
 
-int
-ix86_memory_move_cost (enum machine_mode mode, enum reg_class regclass, int in)
+static int
+ix86_memory_move_cost (enum machine_mode mode, enum reg_class regclass,
+		       bool in)
 {
-  return inline_memory_move_cost (mode, regclass, in);
+  return inline_memory_move_cost (mode, regclass, in ? 1 : 0);
 }
 
 
@@ -29284,27 +29296,51 @@ static const struct attribute_spec ix86_attribute_table[] =
 
 /* Implement targetm.vectorize.builtin_vectorization_cost.  */
 static int
-ix86_builtin_vectorization_cost (bool runtime_test)
+ix86_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
 {
-  /* If the branch of the runtime test is taken - i.e. - the vectorized
-     version is skipped - this incurs a misprediction cost (because the
-     vectorized version is expected to be the fall-through).  So we subtract
-     the latency of a mispredicted branch from the costs that are incured
-     when the vectorized version is executed.
-
-     TODO: The values in individual target tables have to be tuned or new
-     fields may be needed. For eg. on K8, the default branch path is the
-     not-taken path. If the taken path is predicted correctly, the minimum
-     penalty of going down the taken-path is 1 cycle. If the taken-path is
-     not predicted correctly, then the minimum penalty is 10 cycles.  */
-
-  if (runtime_test)
+  switch (type_of_cost)
     {
-      return (-(ix86_cost->cond_taken_branch_cost));
+      case scalar_stmt:
+        return ix86_cost->scalar_stmt_cost;
+
+      case scalar_load:
+        return ix86_cost->scalar_load_cost;
+
+      case scalar_store:
+        return ix86_cost->scalar_store_cost;
+
+      case vector_stmt:
+        return ix86_cost->vec_stmt_cost;
+
+      case vector_load:
+        return ix86_cost->vec_align_load_cost;
+
+      case vector_store:
+        return ix86_cost->vec_store_cost;
+
+      case vec_to_scalar:
+        return ix86_cost->vec_to_scalar_cost;
+
+      case scalar_to_vec:
+        return ix86_cost->scalar_to_vec_cost;
+
+      case unaligned_load:
+        return ix86_cost->vec_unalign_load_cost;
+
+      case cond_branch_taken:
+        return ix86_cost->cond_taken_branch_cost;
+
+      case cond_branch_not_taken:
+        return ix86_cost->cond_not_taken_branch_cost;
+
+      case vec_perm:
+        return 1;
+
+      default:
+        gcc_unreachable ();
     }
-  else
-    return 0;
 }
+
 
 /* Implement targetm.vectorize.builtin_vec_perm.  */
 
@@ -30676,6 +30712,13 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 #undef TARGET_ASM_UNALIGNED_DI_OP
 #define TARGET_ASM_UNALIGNED_DI_OP TARGET_ASM_ALIGNED_DI_OP
 
+#undef TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND ix86_print_operand
+#undef TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS ix86_print_operand_address
+#undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P ix86_print_operand_punct_valid_p
+
 #undef TARGET_SCHED_ADJUST_COST
 #define TARGET_SCHED_ADJUST_COST ix86_adjust_cost
 #undef TARGET_SCHED_ISSUE_RATE
@@ -30729,6 +30772,8 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION ix86_handle_option
 
+#undef TARGET_MEMORY_MOVE_COST
+#define TARGET_MEMORY_MOVE_COST ix86_memory_move_cost
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS ix86_rtx_costs
 #undef TARGET_ADDRESS_COST

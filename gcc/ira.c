@@ -358,9 +358,10 @@ HARD_REG_SET eliminable_regset;
    of given mode starting with given hard register.  */
 HARD_REG_SET ira_reg_mode_hard_regset[FIRST_PSEUDO_REGISTER][NUM_MACHINE_MODES];
 
-/* The following two variables are array analogs of the macros
-   MEMORY_MOVE_COST and REGISTER_MOVE_COST.  */
+/* Array analogous to target hook TARGET_MEMORY_MOVE_COST.  */
 short int ira_memory_move_cost[MAX_MACHINE_MODE][N_REG_CLASSES][2];
+
+/* Array analogous to macro REGISTER_MOVE_COST.  */
 move_table *ira_register_move_cost[MAX_MACHINE_MODE];
 
 /* Similar to may_move_in_cost but it is calculated in IRA instead of
@@ -527,11 +528,11 @@ setup_class_subset_and_memory_move_costs (void)
 	for (mode = 0; mode < MAX_MACHINE_MODE; mode++)
 	  {
 	    ira_memory_move_cost[mode][cl][0] =
-	      MEMORY_MOVE_COST ((enum machine_mode) mode,
-				(enum reg_class) cl, 0);
+	      memory_move_cost ((enum machine_mode) mode,
+				(enum reg_class) cl, false);
 	    ira_memory_move_cost[mode][cl][1] =
-	      MEMORY_MOVE_COST ((enum machine_mode) mode,
-				(enum reg_class) cl, 1);
+	      memory_move_cost ((enum machine_mode) mode,
+				(enum reg_class) cl, true);
 	    /* Costs for NO_REGS are used in cost calculation on the
 	       1st pass when the preferred register classes are not
 	       known yet.  In this case we take the best scenario.  */
@@ -3149,8 +3150,19 @@ build_insn_chain (void)
   if (dump_file)
     print_insn_chains (dump_file);
 }
-
 
+/* Allocate memory for reg_equiv_memory_loc.  */
+static void
+init_reg_equiv_memory_loc (void)
+{
+  max_regno = max_reg_num ();
+
+  /* And the reg_equiv_memory_loc array.  */
+  VEC_safe_grow (rtx, gc, reg_equiv_memory_loc_vec, max_regno);
+  memset (VEC_address (rtx, reg_equiv_memory_loc_vec), 0,
+	  sizeof (rtx) * max_regno);
+  reg_equiv_memory_loc = VEC_address (rtx, reg_equiv_memory_loc_vec);
+}
 
 /* All natural loops.  */
 struct loops ira_loops;
@@ -3255,6 +3267,8 @@ ira (FILE *f)
   record_loop_exits ();
   current_loops = &ira_loops;
 
+  init_reg_equiv_memory_loc ();
+
   if (internal_flag_ira_verbose > 0 && ira_dump_file != NULL)
     fprintf (ira_dump_file, "Building IRA IR\n");
   loops_p = ira_build (optimize
@@ -3315,13 +3329,8 @@ ira (FILE *f)
 #endif
 
   delete_trivially_dead_insns (get_insns (), max_reg_num ());
-  max_regno = max_reg_num ();
 
-  /* And the reg_equiv_memory_loc array.  */
-  VEC_safe_grow (rtx, gc, reg_equiv_memory_loc_vec, max_regno);
-  memset (VEC_address (rtx, reg_equiv_memory_loc_vec), 0,
-	  sizeof (rtx) * max_regno);
-  reg_equiv_memory_loc = VEC_address (rtx, reg_equiv_memory_loc_vec);
+  init_reg_equiv_memory_loc ();
 
   if (max_regno != max_regno_before_ira)
     {

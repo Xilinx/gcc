@@ -30,12 +30,9 @@ along with GCC; see the file COPYING3.  If not see
   SECONDARY_RELOAD_CLASS (CLASS, MODE, X)
 #endif
 
-/* If MEMORY_MOVE_COST isn't defined, give it a default here.  */
-#ifndef MEMORY_MOVE_COST
-#define MEMORY_MOVE_COST(MODE,CLASS,IN) \
-  (4 + memory_move_secondary_cost ((MODE), (CLASS), (IN)))
-#endif
-extern int memory_move_secondary_cost (enum machine_mode, enum reg_class, int);
+extern int memory_move_cost (enum machine_mode, enum reg_class, bool);
+extern int memory_move_secondary_cost (enum machine_mode, enum reg_class,
+				       bool);
 
 /* Maximum number of reloads we can need.  */
 #define MAX_RELOADS (2 * MAX_RECOG_OPERANDS * (MAX_REGS_PER_ADDRESS + 1))
@@ -349,6 +346,10 @@ extern void mark_home_live (int);
    replacement (such as sp), plus an offset.  */
 extern rtx eliminate_regs (rtx, enum machine_mode, rtx);
 extern bool elimination_target_reg_p (rtx);
+
+/* Called from the register allocator to estimate costs of eliminating
+   invariant registers.  */
+extern void calculate_elim_costs_all_insns (void);
 
 /* Deallocate the reload register used by reload number R.  */
 extern void deallocate_reload_reg (int r);

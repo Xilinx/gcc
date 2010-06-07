@@ -52,9 +52,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "expr.h" /* For vector_mode_valid_p */
 
-/* FIXME: Needed for TARGET_ENUM_VA_LIST, which should be a target hook.  */
-#include "tm_p.h"
-
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
 /* The following symbols are subsumed in the c_global_trees array, and
@@ -664,6 +661,7 @@ const struct c_common_resword c_common_reswords[] =
   { "mutable",		RID_MUTABLE,	D_CXXONLY | D_CXXWARN },
   { "namespace",	RID_NAMESPACE,	D_CXXONLY | D_CXXWARN },
   { "new",		RID_NEW,	D_CXXONLY | D_CXXWARN },
+  { "noexcept",		RID_NOEXCEPT,	D_CXXONLY | D_CXX0X | D_CXXWARN },
   { "nullptr",		RID_NULLPTR,	D_CXXONLY | D_CXX0X | D_CXXWARN },
   { "operator",		RID_OPERATOR,	D_CXXONLY | D_CXXWARN },
   { "private",		RID_PRIVATE,	D_CXX_OBJC | D_CXXWARN },
@@ -9366,15 +9364,6 @@ set_underlying_type (tree x)
     }
 }
 
-/* Returns true if X is a typedef decl.  */
-
-bool
-is_typedef_decl (tree x)
-{
-  return (x && TREE_CODE (x) == TYPE_DECL
-          && DECL_ORIGINAL_TYPE (x) != NULL_TREE);
-}
-
 /* Record the types used by the current global variable declaration
    being parsed, so that we can decide later to emit their debug info.
    Those types are in types_used_by_cur_var_decl, and we are going to
@@ -9465,4 +9454,4 @@ make_tree_vector_copy (const VEC(tree,gc) *orig)
   return ret;
 }
 
-#include "gt-c-common.h"
+#include "gt-c-family-c-common.h"

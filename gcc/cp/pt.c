@@ -35,7 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "flags.h"
 #include "cp-tree.h"
-#include "c-common.h"
+#include "c-family/c-common.h"
 #include "cp-objcp-common.h"
 #include "tree-inline.h"
 #include "decl.h"
@@ -9838,7 +9838,15 @@ tsubst_exception_specification (tree fntype,
 
   specs = TYPE_RAISES_EXCEPTIONS (fntype);
   new_specs = NULL_TREE;
-  if (specs)
+  if (specs && TREE_PURPOSE (specs))
+    {
+      /* A noexcept-specifier.  */
+      new_specs = tsubst_copy_and_build
+	(TREE_PURPOSE (specs), args, complain, in_decl, /*function_p=*/false,
+	 /*integral_constant_expression_p=*/true);
+      new_specs = build_noexcept_spec (new_specs, complain);
+    }
+  else if (specs)
     {
       if (! TREE_VALUE (specs))
 	new_specs = specs;
@@ -12244,6 +12252,17 @@ tsubst_copy_and_build (tree t,
       else
 	return cxx_sizeof_or_alignof_expr (op1, TREE_CODE (t), 
                                            complain & tf_error);
+
+    case NOEXCEPT_EXPR:
+      op1 = TREE_OPERAND (t, 0);
+      ++cp_unevaluated_operand;
+      ++c_inhibit_evaluation_warnings;
+      op1 = tsubst_copy_and_build (op1, args, complain, in_decl,
+				   /*function_p=*/false,
+				   /*integral_constant_expression_p=*/false);
+      --cp_unevaluated_operand;
+      --c_inhibit_evaluation_warnings;
+      return finish_noexcept_expr (op1);
 
     case MODOP_EXPR:
       {
@@ -17579,6 +17598,12 @@ value_dependent_expression_p (tree expression)
 	return dependent_type_p (expression);
       return type_dependent_expression_p (expression);
 
+    case NOEXCEPT_EXPR:
+      expression = TREE_OPERAND (expression, 0);
+      /* FIXME why check value-dependency?  */
+      return (type_dependent_expression_p (expression)
+	      || value_dependent_expression_p (expression));
+
     case SCOPE_REF:
       return dependent_scope_ref_p (expression, value_dependent_expression_p);
 
@@ -17680,6 +17705,7 @@ type_dependent_expression_p (tree expression)
   if (TREE_CODE (expression) == PSEUDO_DTOR_EXPR
       || TREE_CODE (expression) == SIZEOF_EXPR
       || TREE_CODE (expression) == ALIGNOF_EXPR
+      || TREE_CODE (expression) == NOEXCEPT_EXPR
       || TREE_CODE (expression) == TRAIT_EXPR
       || TREE_CODE (expression) == TYPEID_EXPR
       || TREE_CODE (expression) == DELETE_EXPR

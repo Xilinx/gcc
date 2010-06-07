@@ -53,8 +53,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-lang.h"
 #endif
 
-#include "c-common.h"
-#include "c-pragma.h"
+#include "c-family/c-common.h"
+#include "c-family/c-pragma.h"
 #include "flags.h"
 #include "langhooks.h"
 #include "objc-act.h"
@@ -4092,7 +4092,7 @@ build_next_objc_exception_stuff (void)
   /* int _setjmp(...); */
   /* If the user includes <setjmp.h>, this shall be superseded by
      'int _setjmp(jmp_buf);' */
-  temp_type = build_function_type_list (integer_type_node, NULL_TREE);
+  temp_type = build_varargs_function_type_list (integer_type_node, NULL_TREE);
   objc_setjmp_decl
     = add_builtin_function (TAG_SETJMP, temp_type, 0, NOT_BUILT_IN, NULL, NULL_TREE);
 

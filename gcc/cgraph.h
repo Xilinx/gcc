@@ -466,6 +466,8 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) varpool_node {
   /* Circular list of nodes in the same comdat group if non-NULL.  */
   struct varpool_node *same_comdat_group;
   struct ipa_ref_list ref_list;
+  /* File stream where this node is being written to.  */
+  struct lto_file_decl_data * lto_file_data;
   PTR GTY ((skip)) aux;
   /* Ordering of all cgraph nodes.  */
   int order;
@@ -616,8 +618,10 @@ void init_cgraph (void);
 struct cgraph_node *cgraph_function_versioning (struct cgraph_node *,
 						VEC(cgraph_edge_p,heap)*,
 						VEC(ipa_replace_map_p,gc)*,
-						bitmap, const char *);
-void tree_function_versioning (tree, tree, VEC (ipa_replace_map_p,gc)*, bool, bitmap);
+						bitmap, bitmap, basic_block,
+						const char *);
+void tree_function_versioning (tree, tree, VEC (ipa_replace_map_p,gc)*, bool, bitmap,
+			       bitmap, basic_block);
 struct cgraph_node *save_inline_function_body (struct cgraph_node *);
 void record_references_in_initializer (tree, bool);
 bool cgraph_process_new_functions (void);

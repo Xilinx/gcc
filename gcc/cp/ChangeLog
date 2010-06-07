@@ -1,3 +1,199 @@
+2010-05-25  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/44188
+	* cp-tree.h (typedef_variant_p): Move this declaration to
+	gcc/tree.h.
+	* tree.c (typedef_variant_p): Move this definition to gcc/tree.c.
+	* decl.c (grokdeclarator): Do not rename debug info of an
+	anonymous tagged type named by a typedef.
+
+2010-06-05  Fabien Chêne  <fabien@gcc.gnu.org>
+	
+	PR c++/44086
+	* class.c (check_field_decls): Move the call to
+	check_bitfield_decl before trying to set the
+	CLASSTYPE_READONLY_FIELDS_NEED_INIT flag.
+
+2010-06-05  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* typeck.c: Update include path for moved files.
+	* decl.c: Likewise.
+	* rtti.c: Likewise.
+	* cp-gimplify.c: Likewise.
+	* cp-lang.c: Likewise.
+	* pt.c: Likewise.
+	* semantics.c: Likewise.
+	* cxx-pretty-print.h: Likewise.
+	* decl2.c: Likewise.
+	* parser.c: Likewise.
+	* cp-objcp-common.c: Likewise.
+	* cp-tree.h: Likewise.
+	* name-lookup.c: Likewise.
+	* lex.c: Likewise.
+	* name-lookup.h: Likewise.
+	* config-lang.in: Update paths in gtfiles for files in c-family/.
+	* Make-lang.in: Likewise.
+
+2010-06-04  Magnus Fromreide  <magfr@lysator.liu.se>
+
+	* cvt.c (cp_convert_to_pointer): Use null_ptr_cst_p.
+	* typeck.c (build_ptrmemfunc): Likewise.
+
+2010-06-04  Jason Merrill  <jason@redhat.com>
+
+	* typeck2.c (merge_exception_specifiers): Adjust merging of
+	throw() and noexcept(true).
+
+	* pt.c (value_dependent_expression_p) [NOEXCEPT_EXPR]: Avoid
+	using an uninitialized variable.
+
+	* cxx-pretty-print.c (pp_cxx_unary_expression): Handle NOEXCEPT_EXPR.
+	(pp_cxx_expression): Likewise.
+
+	Implement noexcept-specification (15.4)
+	* parser.c (cp_parser_exception_specification_opt): Parse it.
+	Give -Wdeprecated warning about throw() specs.
+	* pt.c (tsubst_exception_specification): Handle it.
+	* error.c (dump_exception_spec): Handle it.
+	(dump_expr): Handle NOEXCEPT_EXPR.
+	* cxx-pretty-print.c (pp_cxx_exception_specification): Likewise.
+	* typeck.c (comp_except_specs): Handle compatibility rules.
+	Change exact parm to take an enum.
+	* typeck2.c (merge_exception_specifiers): Handle noexcept.
+	* except.c (nothrow_spec_p, type_noexcept_p): New fns.
+	(type_throw_all_p, build_noexcept_spec): New fns.
+	* cp-tree.h (TYPE_NOTHROW_P, TYPE_NOEXCEPT_P): Use them.
+	(comp_except_specs): Define ce_derived, ce_normal, ce_exact enums.
+	(cp_tree_index): Add CPTI_NOEXCEPT_TRUE_SPEC, CPTI_NOEXCEPT_FALSE_SPEC.
+	(noexcept_true_spec, noexcept_false_spec): New macros.
+	* name-lookup.c (pushdecl_maybe_friend): Adjust.
+	* search.c (check_final_overrider): Adjust.
+	* decl.c (check_redeclaration_exception_specification): Adjust.
+	(use_eh_spec_block): Use type_throw_all_p.
+	(cxx_init_decl_processing): Set noexcept_false_spec,noexcept_true_spec.
+	Give operator new a noexcept-specification in C++0x mode.
+	* tree.c (build_exception_variant, cxx_type_hash_eq): Adjust.
+	(cp_build_type_attribute_variant): Don't test TYPE_RAISES_EXCEPTIONS.
+
+	Implement noexcept operator (5.3.7)
+	* cp-tree.def (NOEXCEPT_EXPR): New.
+	* except.c (check_noexcept_r, finish_noexcept_expr): New.
+	* cp-tree.h: Declare finish_noexcept_expr.
+	* parser.c (cp_parser_unary_expression): Parse noexcept-expression.
+	* pt.c (tsubst_copy_and_build): And tsubst it.
+	(type_dependent_expression_p): Handle it.
+	(value_dependent_expression_p): Handle it.
+
+	* call.c (build_conditional_expr): Never fold in unevaluated context.
+	* tree.c (build_aggr_init_expr): Propagate TREE_NOTHROW.
+	* semantics.c (simplify_aggr_init_expr): Likewise.
+	* typeck.c (merge_types): Call merge_exception_specifiers.
+	* decl.c (duplicate_decls): Check DECL_SOURCE_LOCATION rather than
+	DECL_ANTICIPATED for preferring new type.
+
+2010-06-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* g++spec.c (lang_specific_driver): Use GCC-specific formats in
+	diagnostics.
+
+2010-06-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44412
+	* typeck.c (build_class_member_access_expr): Call mark_exp_read
+	on object for static data members.
+
+2010-06-04  Jakub Jelinek  <jakub@redhat.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	PR c++/44362
+	* call.c (build_conditional_expr): If both arg2 and arg3 are lvalues
+	with the same type, call mark_lvalue_use on both.
+
+2010-06-03  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* class.c (struct vtbl_init_data_s): Remove last_init field.
+	(struct secondary_vptr_vtt_init_data_s): Change type of inits field
+	to a VEC.
+	(finish_vtbls): Use a VEC rather than a TREE_LIST for the accumulated
+	initializers.
+	(build_vtt): Likewise.
+	(initialize_vtable): Take a VEC instead of a tree.
+	(build_vtt_inits): Change return type to void.  Take a VEC **
+	instead of a tree *; accumulate results into said VEC.
+	(build_ctor_vtbl_group): Use a VEC rather than a TREE_LIST for the
+	accumulated initializers.  Pass the vtable to accumulate_vtbl_inits.
+	(accumulate_vtbl_inits): Add extra vtable tree parameter; take a VEC
+	instead of a tree.
+	(dfs_accumulate_vtbl_inits): Likewise.  Change return type to void.
+	(build_vtbl_initializer): Add VEC parameter; accumulate initializers
+	into it.
+	(dfs_build_secondary_vptr_vtt_inits): Use CONSTRUCTOR_APPEND_ELT
+	rather than tree_cons.
+	(build_vbase_offset_vtbl_entries): Likewise.
+	(add_vcall_offset): Likewise.
+	(build_rtti_vtbl_entries): Likewise.
+	* cp-tree.h (initialize_artificial_var): Take a VEC instead of a tree.
+	* decl.c (initialize_artificial_var): Use build_constructor instead
+	of build_constructor_from_list.
+
+2010-06-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/44294
+	* class.c (layout_class_type): Check MAX_FIXED_MODE_SIZE on
+	bit-field.
+
+2010-06-02  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* parser.c (cp_parser_mem_initializer_list): Change error text.
+
+2010-06-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* cp-objcp-common.c (shadowed_var_for_decl): Change into
+	tree_decl_map hashtab from tree_map.
+	(decl_shadowed_for_var_lookup, decl_shadowed_for_var_insert): Adjust.
+	(init_shadowed_var_for_decl): Adjust initialization.
+
+	PR c++/44361
+	* cvt.c (convert_to_void): If implicit is NULL, call mark_rvalue_use
+	instead of calling mark_exp_read only when not an assignment.
+
+	PR debug/44367
+	* semantics.c (finalize_nrv): Don't copy DECL_ARTIFICIAL, DECL_IGNORED_P,
+	DECL_SOURCE_LOCATION and DECL_ABSTRACT_ORIGIN from var to result.
+	Set DECL_VALUE_EXPR on var.
+
+2010-06-02  Jason Merrill  <jason@redhat.com>
+
+	* error.c (dump_type): Improve typedef handling.
+
+	PR c++/9726
+	PR c++/23594
+	PR c++/44333
+	* name-lookup.c (same_entity_p): New.
+	(ambiguous_decl): Multiple declarations of the same entity
+	are not ambiguous.
+
+2010-06-01  Jason Merrill  <jason@redhat.com>
+
+	DR 990
+	* call.c (add_list_candidates): Prefer the default constructor.
+	(build_aggr_conv): Treat missing initializers like { }.
+	* typeck2.c (process_init_constructor_record): Likewise.
+	* init.c (expand_default_init): Use digest_init for
+	direct aggregate initialization, too.
+
+	* call.c (add_list_candidates): Split out...
+	(build_user_type_conversion_1): ...from here.
+	(build_new_method_call): And here.
+	(implicit_conversion): Propagate LOOKUP_NO_NARROWING.
+
+	PR c++/44358
+	* call.c (build_list_conv): Set list-initialization flags properly.
+
+2010-06-01  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* typeck2.c (build_x_arrow): Make types_memoized a VEC.
+
 2010-06-01  Arnaud Charlet  <charlet@adacore.com>
 	    Matthew Gingell  <gingell@adacore.com>
 

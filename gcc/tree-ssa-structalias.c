@@ -32,7 +32,6 @@
 #include "tree.h"
 #include "tree-flow.h"
 #include "tree-inline.h"
-#include "diagnostic.h"
 #include "toplev.h"
 #include "gimple.h"
 #include "hashtab.h"
@@ -4256,7 +4255,6 @@ find_func_aliases (gimple origt)
 		  rhs.var = anything_id;
 		  rhs.offset = 0;
 		  rhs.type = SCALAR;
-		  get_constraint_for (gimple_return_retval (t), &rhsc);
 		  process_constraint (new_constraint (lhs, rhs));
 		}
 	      return;

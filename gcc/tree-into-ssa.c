@@ -29,9 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "basic-block.h"
 #include "output.h"
-#include "expr.h"
 #include "function.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "bitmap.h"
@@ -454,9 +452,8 @@ static void
 mark_block_for_update (basic_block bb)
 {
   gcc_assert (blocks_to_update != NULL);
-  if (bitmap_bit_p (blocks_to_update, bb->index))
+  if (!bitmap_set_bit (blocks_to_update, bb->index))
     return;
-  bitmap_set_bit (blocks_to_update, bb->index);
   initialize_flags_in_bb (bb);
 }
 
@@ -1146,7 +1143,7 @@ insert_phi_nodes_for (tree var, bitmap phi_insertion_points, bool update_p)
    the flowgraph.  */
 
 static void
-insert_phi_nodes (bitmap *dfs)
+insert_phi_nodes (bitmap_head *dfs)
 {
   referenced_var_iterator rvi;
   bitmap_iterator bi;
@@ -2352,7 +2349,7 @@ fini_ssa_renamer (void)
 static unsigned int
 rewrite_into_ssa (void)
 {
-  bitmap *dfs;
+  bitmap_head *dfs;
   basic_block bb;
 
   timevar_push (TV_TREE_SSA_OTHER);
@@ -2370,9 +2367,9 @@ rewrite_into_ssa (void)
   sbitmap_zero (interesting_blocks);
 
   /* Initialize dominance frontier.  */
-  dfs = XNEWVEC (bitmap, last_basic_block);
+  dfs = XNEWVEC (bitmap_head, last_basic_block);
   FOR_EACH_BB (bb)
-    dfs[bb->index] = BITMAP_ALLOC (NULL);
+    bitmap_initialize (&dfs[bb->index], &bitmap_default_obstack);
 
   /* 1- Compute dominance frontiers.  */
   calculate_dominance_info (CDI_DOMINATORS);
@@ -2389,7 +2386,7 @@ rewrite_into_ssa (void)
 
   /* Free allocated memory.  */
   FOR_EACH_BB (bb)
-    BITMAP_FREE (dfs[bb->index]);
+    bitmap_clear (&dfs[bb->index]);
   free (dfs);
 
   sbitmap_free (interesting_blocks);
@@ -3008,7 +3005,7 @@ release_ssa_name_after_update_ssa (tree name)
      names is not pruned.  PHI nodes are inserted at every IDF block.  */
 
 static void
-insert_updated_phi_nodes_for (tree var, bitmap *dfs, bitmap blocks,
+insert_updated_phi_nodes_for (tree var, bitmap_head *dfs, bitmap blocks,
                               unsigned update_flags)
 {
   basic_block entry;
@@ -3335,13 +3332,13 @@ update_ssa (unsigned update_flags)
      and for symbols in SYMS_TO_RENAME.  */
   if (insert_phi_p)
     {
-      bitmap *dfs;
+      bitmap_head *dfs;
 
       /* If the caller requested PHI nodes to be added, compute
 	 dominance frontiers.  */
-      dfs = XNEWVEC (bitmap, last_basic_block);
+      dfs = XNEWVEC (bitmap_head, last_basic_block);
       FOR_EACH_BB (bb)
-	dfs[bb->index] = BITMAP_ALLOC (NULL);
+	bitmap_initialize (&dfs[bb->index], &bitmap_default_obstack);
       compute_dominance_frontiers (dfs);
 
       if (sbitmap_first_set_bit (old_ssa_names) >= 0)
@@ -3366,7 +3363,7 @@ update_ssa (unsigned update_flags)
 	                              update_flags);
 
       FOR_EACH_BB (bb)
-	BITMAP_FREE (dfs[bb->index]);
+	bitmap_clear (&dfs[bb->index]);
       free (dfs);
 
       /* Insertion of PHI nodes may have added blocks to the region.
