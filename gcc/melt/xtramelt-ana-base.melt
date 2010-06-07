@@ -1284,6 +1284,20 @@
   }#  )
 
 
+
+;;; pattern for pointer types
+(defcmatcher tree_pointer_type_p
+  :doc #{The $TREE_POINTER_TYPE_P cmatchers matches pointer &
+  reference type trees.}#
+  (:tree tr)
+  (:tree typetr)
+  treeisptrt
+  ;; test
+  #{ /*$treeisptrt ?*/ (($tr) && POINTER_TYPE_P(($tr))) }#
+  ;; fill
+  #{ /*$treeisptrt !*/ $typetr = TREE_TYPE($tr); }#
+)
+
 ;;;; matcher for patter ssa_name
 (defcmatcher tree_ssa_name 
   (:tree tr)
@@ -2221,6 +2235,7 @@
  tree_integer_type
  tree_list
  tree_of_type
+ tree_pointer_type_p
  tree_parm_decl
  tree_ssa_name 
  tree_type

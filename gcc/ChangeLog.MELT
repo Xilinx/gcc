@@ -1,4 +1,7 @@
 2010-06-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt: added tree_pointer_type_p cmatcher.
+
+2010-06-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{a debug_msg on a tree crashed the generated C}}
 	* testsuite/melt/tdebugmsg-1.melt: new file.
 	* melt/warmelt-normal.melt: normexp_apply tests the ctype of the
