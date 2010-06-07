@@ -4605,6 +4605,7 @@ normalized expression.}#
 	 (ndata (mapobject_get datamap matdata))
 	 )
     (assert_msg "check matdata" (is_a matdata class_matched_data))
+    (debug_msg matindex "complete_normstep_if_last matindex")
     (assert_msg "check matindex" (is_integerbox matindex))
     (let ( (:long numindex (get_int matindex))
 	   (datasteps (unsafe_get_field :mdata_steps matdata))
@@ -4949,6 +4950,7 @@ normalized expression.}#
      (put_fields curmstep 
 		 :mstep_index
 		 (make_integerbox discr_constant_integer (+i stepix 1)))
+     (debug_msg curmstep "altmatch_handle_normalized_mdata updated curmstep")
      )
     (unsafe_put_fields matdata :mdata_steps mstepstupl)
     (debug_msg mstepstupl "altmatch_handle_normalized_mdata mstepstupl")

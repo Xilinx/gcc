@@ -1,3 +1,10 @@
+2010-06-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{a debug_msg on a tree crashed the generated C}}
+	* testsuite/melt/tdebugmsg-1.melt: new file.
+	* melt/warmelt-normal.melt: normexp_apply tests the ctype of the
+	function and of the first argument.
+	* melt/warmelt-normatch.melt: added more debug_msg.
+
 2010-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated all files}}
 	* Makefile.in (upgrade-warmelt): Use  @warmelt not @warmelt3!

@@ -1,0 +1,15 @@
+;; -*- lisp -*-
+;; file tmatch-5.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt-mode=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-option=match_graphic=/tmp/melt5graph,alternate_match \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tdebugmsg-1.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+;; this should be rejected by MELT!
+(defun badfun (x :tree t)
+  (debug_msg t "badfun"))
+;; eof tdebugmsg-1.melt
