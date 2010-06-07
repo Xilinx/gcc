@@ -30,20 +30,16 @@
 #include "tree.h"
 #include "flags.h"
 #include "toplev.h"
-#include "rtl.h"
 #include "output.h"
 #include "ggc.h"
 #include "debug.h"
 #include "convert.h"
 #include "target.h"
-#include "function.h"
 #include "langhooks.h"
-#include "pointer-set.h"
 #include "cgraph.h"
 #include "tree-dump.h"
 #include "tree-inline.h"
 #include "tree-iterator.h"
-#include "gimple.h"
 
 #include "ada.h"
 #include "types.h"
@@ -1384,7 +1380,7 @@ create_var_decl_1 (tree var_name, tree asm_name, tree type, tree var_init,
 
   /* For an external constant whose initializer is not absolute, do not emit
      debug info.  In DWARF this would mean a global relocation in a read-only
-     section which runs afoul of the PE-COFF runtime relocation mechanism.  */
+     section which runs afoul of the PE-COFF run-time relocation mechanism.  */
   if (extern_flag
       && constant_p
       && initializer_constant_valid_p (var_init, TREE_TYPE (var_init))
@@ -2449,7 +2445,7 @@ build_vms_descriptor32 (tree type, Mechanism_Type mech, Entity_Id gnat_entity)
 	       make_descriptor_field ("CLASS", gnat_type_for_size (8, 1),
 				      record_type, size_int (klass)));
 
-  /* Of course this will crash at run-time if the address space is not
+  /* Of course this will crash at run time if the address space is not
      within the low 32 bits, but there is nothing else we can do.  */
   pointer32_type = build_pointer_type_for_mode (type, SImode, false);
 
@@ -3245,12 +3241,12 @@ void
 build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
 {
   tree gnu_subprog_type, gnu_subprog_addr, gnu_subprog_call;
-  tree gnu_stub_param, gnu_param_list, gnu_arg_types, gnu_param;
+  tree gnu_stub_param, gnu_arg_types, gnu_param;
   tree gnu_stub_decl = DECL_FUNCTION_STUB (gnu_subprog);
   tree gnu_body;
+  VEC(tree,gc) *gnu_param_vec = NULL;
 
   gnu_subprog_type = TREE_TYPE (gnu_subprog);
-  gnu_param_list = NULL_TREE;
 
   begin_subprog_body (gnu_stub_decl);
   gnat_pushlevel ();
@@ -3274,7 +3270,7 @@ build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
       else
 	gnu_param = gnu_stub_param;
 
-      gnu_param_list = tree_cons (NULL_TREE, gnu_param, gnu_param_list);
+      VEC_safe_push (tree, gc, gnu_param_vec, gnu_param);
     }
 
   gnu_body = end_stmt_group ();
@@ -3282,9 +3278,8 @@ build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
   /* Invoke the internal subprogram.  */
   gnu_subprog_addr = build1 (ADDR_EXPR, build_pointer_type (gnu_subprog_type),
 			     gnu_subprog);
-  gnu_subprog_call = build_call_list (TREE_TYPE (gnu_subprog_type),
-				      gnu_subprog_addr,
-				      nreverse (gnu_param_list));
+  gnu_subprog_call = build_call_vec (TREE_TYPE (gnu_subprog_type),
+                                     gnu_subprog_addr, gnu_param_vec);
 
   /* Propagate the return value, if any.  */
   if (VOID_TYPE_P (TREE_TYPE (gnu_subprog_type)))
@@ -5315,7 +5310,7 @@ handle_vector_size_attribute (tree *node, tree name, tree args,
   new_type = build_vector_type (type, nunits);
 
   /* Build back pointers if needed.  */
-  *node = lang_hooks.types.reconstruct_complex_type (*node, new_type);
+  *node = reconstruct_complex_type (*node, new_type);
 
   return NULL_TREE;
 }

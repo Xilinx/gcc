@@ -3299,8 +3299,7 @@ gimple_types_compatible_p (tree t1, tree t2)
   if (TREE_CODE (t1) == VOID_TYPE)
     return 1;
 
-  /* For numerical types do some simple checks before doing three
-     hashtable queries.  */
+  /* Do some simple checks before doing three hashtable queries.  */
   if (INTEGRAL_TYPE_P (t1)
       || SCALAR_FLOAT_TYPE_P (t1)
       || FIXED_POINT_TYPE_P (t1)
@@ -3332,6 +3331,14 @@ gimple_types_compatible_p (tree t1, tree t2)
 	return gimple_types_compatible_p (TREE_TYPE (t1), TREE_TYPE (t2));
 
       /* For integral types fall thru to more complex checks.  */
+    }
+
+  else if (AGGREGATE_TYPE_P (t1) || POINTER_TYPE_P (t1))
+    {
+      /* Can't be the same type if they have different alignment or mode.  */
+      if (TYPE_ALIGN (t1) != TYPE_ALIGN (t2)
+	  || TYPE_MODE (t1) != TYPE_MODE (t2))
+	return 0;
     }
 
   /* If the hash values of t1 and t2 are different the types can't
@@ -3481,11 +3488,20 @@ gimple_types_compatible_p (tree t1, tree t2)
 	    && RECORD_OR_UNION_TYPE_P (TREE_TYPE (t1))
 	    && (!COMPLETE_TYPE_P (TREE_TYPE (t1))
 		|| !COMPLETE_TYPE_P (TREE_TYPE (t2)))
+	    && TYPE_QUALS (TREE_TYPE (t1)) == TYPE_QUALS (TREE_TYPE (t2))
 	    && compare_type_names_p (TYPE_MAIN_VARIANT (TREE_TYPE (t1)),
 				     TYPE_MAIN_VARIANT (TREE_TYPE (t2)), true))
 	  {
 	    /* Replace the pointed-to incomplete type with the
-	       complete one.  */
+	       complete one.
+	       ???  This simple name-based merging causes at least some
+	       of the ICEs in canonicalizing FIELD_DECLs during stmt
+	       read.  For example in GCC we have two different struct deps
+	       and we mismatch the use in struct cpp_reader in sched-int.h
+	       vs. mkdeps.c.  Of course the whole exercise is for TBAA
+	       with structs which contain pointers to incomplete types
+	       in one unit and to complete ones in another.  So we
+	       probably should merge these types only with more context.  */
 	    if (COMPLETE_TYPE_P (TREE_TYPE (t2)))
 	      TREE_TYPE (t1) = TREE_TYPE (t2);
 	    else
@@ -4089,6 +4105,10 @@ gimple_signed_or_unsigned_type (bool unsignedp, tree type)
     return unsignedp
            ? long_long_unsigned_type_node
 	   : long_long_integer_type_node;
+  if (int128_integer_type_node && (type1 == int128_integer_type_node || type1 == int128_unsigned_type_node))
+    return unsignedp
+           ? int128_unsigned_type_node
+	   : int128_integer_type_node;
 #if HOST_BITS_PER_WIDE_INT >= 64
   if (type1 == intTI_type_node || type1 == unsigned_intTI_type_node)
     return unsignedp ? unsigned_intTI_type_node : intTI_type_node;
@@ -4201,6 +4221,10 @@ gimple_signed_or_unsigned_type (bool unsignedp, tree type)
     return (unsignedp
 	    ? long_long_unsigned_type_node
 	    : long_long_integer_type_node);
+  if (int128_integer_type_node && TYPE_OK (int128_integer_type_node))
+    return (unsignedp
+	    ? int128_unsigned_type_node
+	    : int128_integer_type_node);
 
 #if HOST_BITS_PER_WIDE_INT >= 64
   if (TYPE_OK (intTI_type_node))
@@ -4706,6 +4730,18 @@ gimple_decl_printable_name (tree decl, int verbosity)
     }
 
   return IDENTIFIER_POINTER (DECL_NAME (decl));
+}
+
+/* Return true when STMT is builtins call to CODE.  */
+
+bool
+gimple_call_builtin_p (gimple stmt, enum built_in_function code)
+{
+  tree fndecl;
+  return (is_gimple_call (stmt)
+	  && (fndecl = gimple_call_fndecl (stmt)) != NULL
+	  && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
+	  && DECL_FUNCTION_CODE (fndecl) == code);
 }
 
 #include "gt-gimple.h"

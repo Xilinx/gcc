@@ -22,17 +22,16 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "ggc.h"
 #include "tree.h"
 #include "basic-block.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-inline.h"
 #include "tree-flow.h"
 #include "gimple.h"
 #include "tree-dump.h"
 #include "timevar.h"
 #include "tree-iterator.h"
-#include "real.h"
 #include "tree-pass.h"
 #include "alloc-pool.h"
 #include "vec.h"
@@ -2147,7 +2146,7 @@ dump_ops_vector (FILE *file, VEC (operand_entry_t, heap) *ops)
 
 /* Dump the operand entry vector OPS to STDERR.  */
 
-void
+DEBUG_FUNCTION void
 debug_ops_vector (VEC (operand_entry_t, heap) *ops)
 {
   dump_ops_vector (stderr, ops);

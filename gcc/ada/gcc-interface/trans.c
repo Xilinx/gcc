@@ -29,9 +29,9 @@
 #include "tm.h"
 #include "tree.h"
 #include "flags.h"
-#include "expr.h"
 #include "ggc.h"
 #include "output.h"
+#include "libfuncs.h"	/* For set_stack_check_libfunc.  */
 #include "tree-iterator.h"
 #include "gimple.h"
 
@@ -191,7 +191,6 @@ static void Compilation_Unit_to_gnu (Node_Id);
 static void record_code_position (Node_Id);
 static void insert_code_for (Node_Id);
 static void add_cleanup (tree, Node_Id);
-static tree unshare_save_expr (tree *, int *, void *);
 static void add_stmt_list (List_Id);
 static void push_exception_label_stack (tree *, Entity_Id);
 static tree build_stmt_group (List_Id, bool);
@@ -312,7 +311,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 
   /* Enable GNAT stack checking method if needed */
   if (!Stack_Check_Probes_On_Target)
-    set_stack_check_libfunc (gen_rtx_SYMBOL_REF (Pmode, "_gnat_stack_check"));
+    set_stack_check_libfunc ("_gnat_stack_check");
 
   /* Retrieve alignment settings.  */
   double_float_alignment = get_target_double_float_alignment ();
@@ -359,7 +358,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
   void_ftype = build_function_type (void_type_node, NULL_TREE);
   ptr_void_ftype = build_pointer_type (void_ftype);
 
-  /* Now declare runtime functions.  */
+  /* Now declare run-time functions.  */
   t = tree_cons (NULL_TREE, void_type_node, NULL_TREE);
 
   /* malloc is a function declaration tree for a function to allocate
@@ -635,16 +634,6 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
   for (info = elab_info_list; info; info = info->next)
     {
       tree gnu_body = DECL_SAVED_TREE (info->elab_proc), gnu_stmts;
-
-      /* Unshare SAVE_EXPRs between subprograms.  These are not unshared by
-	 the gimplifier for obvious reasons, but it turns out that we need to
-	 unshare them for the global level because of SAVE_EXPRs made around
-	 checks for global objects and around allocators for global objects
-	 of variable size, in order to prevent node sharing in the underlying
-	 expression.  Note that this implicitly assumes that the SAVE_EXPR
-	 nodes themselves are not shared between subprograms, which would be
-	 an upstream bug for which we would not change the outcome.  */
-      walk_tree_without_duplicates (&gnu_body, unshare_save_expr, NULL);
 
       /* We should have a BIND_EXPR but it may not have any statements in it.
 	 If it doesn't have any, we have nothing to do except for setting the
@@ -1694,7 +1683,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	gnu_result = SUBSTITUTE_PLACEHOLDER_IN_EXPR (gnu_result, gnu_prefix);
 
 	/* Cache the expression we have just computed.  Since we want to do it
-	   at runtime, we force the use of a SAVE_EXPR and let the gimplifier
+	   at run time, we force the use of a SAVE_EXPR and let the gimplifier
 	   create the temporary.  */
 	if (pa)
 	  {
@@ -1941,8 +1930,8 @@ Case_Statement_to_gnu (Node_Id gnat_node)
       is parenthesized. This still has the Etype of the name, but since it is
       not a name, para 7 does not apply, and we need to go to the base type.
       This is the only case where parenthesization affects the dynamic
-      semantics (i.e. the range of possible values at runtime that is covered
-      by the others alternative.
+      semantics (i.e. the range of possible values at run time that is covered
+      by the others alternative).
 
       Another exception is if the subtype of the expression is non-static.  In
       that case, we also have to use the base type.  */
@@ -2013,7 +2002,7 @@ Case_Statement_to_gnu (Node_Id gnat_node)
 	    }
 
 	  /* If the case value is a subtype that raises Constraint_Error at
-	     run-time because of a wrong bound, then gnu_low or gnu_high is
+	     run time because of a wrong bound, then gnu_low or gnu_high is
 	     not translated into an INTEGER_CST.  In such a case, we need
 	     to ensure that the when statement is not added in the tree,
 	     otherwise it will crash the gimplifier.  */
@@ -2623,7 +2612,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
   tree gnu_subprog_addr = build_unary_op (ADDR_EXPR, NULL_TREE, gnu_subprog);
   Entity_Id gnat_formal;
   Node_Id gnat_actual;
-  tree gnu_actual_list = NULL_TREE;
+  VEC(tree,gc) *gnu_actual_vec = NULL;
   tree gnu_name_list = NULL_TREE;
   tree gnu_before_list = NULL_TREE;
   tree gnu_after_list = NULL_TREE;
@@ -2973,11 +2962,11 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	    gnu_actual = convert (DECL_ARG_TYPE (gnu_formal), gnu_actual);
 	}
 
-      gnu_actual_list = tree_cons (NULL_TREE, gnu_actual, gnu_actual_list);
+      VEC_safe_push (tree, gc, gnu_actual_vec, gnu_actual);
     }
 
-  gnu_call = build_call_list (TREE_TYPE (gnu_subprog_type), gnu_subprog_addr,
-			      nreverse (gnu_actual_list));
+  gnu_call = build_call_vec (TREE_TYPE (gnu_subprog_type), gnu_subprog_addr,
+                             gnu_actual_vec);
   set_expr_location_from_node (gnu_call, gnat_node);
 
   /* If it's a function call, the result is the call expression unless a target
@@ -5577,7 +5566,7 @@ gnat_to_gnu (Node_Id gnat_node)
   /* If the result is a constant that overflowed, raise Constraint_Error.  */
   if (TREE_CODE (gnu_result) == INTEGER_CST && TREE_OVERFLOW (gnu_result))
     {
-      post_error ("Constraint_Error will be raised at run-time?", gnat_node);
+      post_error ("?`Constraint_Error` will be raised at run time", gnat_node);
       gnu_result
 	= build1 (NULL_EXPR, gnu_result_type,
 		  build_call_raise (CE_Overflow_Check_Failed, gnat_node,
@@ -5863,20 +5852,6 @@ void
 mark_visited (tree t)
 {
   walk_tree (&t, mark_visited_r, NULL, NULL);
-}
-
-/* Utility function to unshare expressions wrapped up in a SAVE_EXPR.  */
-
-static tree
-unshare_save_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
-		   void *data ATTRIBUTE_UNUSED)
-{
-  tree t = *tp;
-
-  if (TREE_CODE (t) == SAVE_EXPR)
-    TREE_OPERAND (t, 0) = unshare_expr (TREE_OPERAND (t, 0));
-
-  return NULL_TREE;
 }
 
 /* Add GNU_CLEANUP, a cleanup action, to the current code group and

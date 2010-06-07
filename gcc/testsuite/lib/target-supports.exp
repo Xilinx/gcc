@@ -992,6 +992,30 @@ proc check_vmx_hw_available { } {
     }]
 }
 
+proc check_ppc_recip_hw_available { } {
+    return [check_cached_effective_target ppc_recip_hw_available {
+	# Some simulators may not support FRE/FRES/FRSQRTE/FRSQRTES
+	# For now, disable on Darwin
+	if { [istarget powerpc-*-eabi] || [istarget powerpc*-*-eabispe] || [istarget *-*-darwin*]} {
+	    expr 0
+	} else {
+	    set options "-mpowerpc-gfxopt -mpowerpc-gpopt -mpopcntb"
+	    check_runtime_nocache ppc_recip_hw_available {
+		volatile double d_recip, d_rsqrt, d_four = 4.0;
+		volatile float f_recip, f_rsqrt, f_four = 4.0f;
+		int main()
+		{
+		  asm volatile ("fres %0,%1" : "=f" (f_recip) : "f" (f_four));
+		  asm volatile ("fre %0,%1" : "=d" (d_recip) : "d" (d_four));
+		  asm volatile ("frsqrtes %0,%1" : "=f" (f_rsqrt) : "f" (f_four));
+		  asm volatile ("frsqrte %0,%1" : "=f" (d_rsqrt) : "d" (d_four));
+		  return 0;
+		}
+	    } $options
+	}
+    }]
+}
+
 # Return 1 if the target supports executing AltiVec and Cell PPU
 # instructions, 0 otherwise.  Cache the result.
 
@@ -1500,6 +1524,19 @@ proc check_effective_target_vect_intfloat_cvt { } {
     return $et_vect_intfloat_cvt_saved
 }
 
+#Return 1 if we're supporting __int128 for target, 0 otherwise.
+
+proc check_effective_target_int128 { } {
+    return [check_no_compiler_messages int128 object {
+	int dummy[
+    	#ifndef __SIZEOF_INT128__
+    	-1
+    	#else
+    	1
+    	#endif
+	];
+    }]
+}
 
 # Return 1 if the target supports unsigned int->float conversion 
 #
@@ -1603,19 +1640,87 @@ proc check_effective_target_arm_hard_vfp_ok { } {
     }
 }
 
+# Add the options needed for NEON.  We need either -mfloat-abi=softfp
+# or -mfloat-abi=hard, but if one is already specified by the
+# multilib, use it.  Similarly, if a -mfpu option already enables
+# NEON, do not add -mfpu=neon.
+
+proc add_options_for_arm_neon { flags } {
+    if { ! [check_effective_target_arm_neon_ok] } {
+	return "$flags"
+    }
+    global et_arm_neon_flags
+    return "$flags $et_arm_neon_flags"
+}
+
 # Return 1 if this is an ARM target supporting -mfpu=neon
-# -mfloat-abi=softfp.  Some multilibs may be incompatible with these
-# options.
+# -mfloat-abi=softfp or equivalent options.  Some multilibs may be
+# incompatible with these options.  Also set et_arm_neon_flags to the
+# best options to add.
+
+proc check_effective_target_arm_neon_ok_nocache { } {
+    global et_arm_neon_flags
+    set et_arm_neon_flags ""
+    if { [check_effective_target_arm32] } {
+	foreach flags {"" "-mfloat-abi=softfp" "-mfpu=neon" "-mfpu=neon -mfloat-abi=softfp"} {
+	    if { [check_no_compiler_messages_nocache arm_neon_ok object {
+		#include "arm_neon.h"
+		int dummy;
+	    } "$flags"] } {
+		set et_arm_neon_flags $flags
+		return 1
+	    }
+	}
+    }
+
+    return 0
+}
 
 proc check_effective_target_arm_neon_ok { } {
-    if { [check_effective_target_arm32] } {
-        return [check_no_compiler_messages arm_neon_ok object {
-	    #include "arm_neon.h"
-            int dummy;
-        } "-mfpu=neon -mfloat-abi=softfp"]
-    } else {
-        return 0
+    return [check_cached_effective_target arm_neon_ok \
+		check_effective_target_arm_neon_ok_nocache]
+}
+
+# Add the options needed for NEON.  We need either -mfloat-abi=softfp
+# or -mfloat-abi=hard, but if one is already specified by the
+# multilib, use it.
+
+proc add_options_for_arm_neon_fp16 { flags } {
+    if { ! [check_effective_target_arm_neon_fp16_ok] } {
+	return "$flags"
     }
+    global et_arm_neon_fp16_flags
+    return "$flags $et_arm_neon_fp16_flags"
+}
+
+# Return 1 if this is an ARM target supporting -mfpu=neon-fp16
+# -mfloat-abi=softfp or equivalent options.  Some multilibs may be
+# incompatible with these options.  Also set et_arm_neon_flags to the
+# best options to add.
+
+proc check_effective_target_arm_neon_fp16_ok_nocache { } {
+    global et_arm_neon_fp16_flags
+    set et_arm_neon_fp16_flags ""
+    if { [check_effective_target_arm32] } {
+	# Always add -mfpu=neon-fp16, since there is no preprocessor
+	# macro for FP16 support.
+	foreach flags {"-mfpu=neon-fp16" "-mfpu=neon-fp16 -mfloat-abi=softfp"} {
+	    if { [check_no_compiler_messages_nocache arm_neon_fp16_ok object {
+		#include "arm_neon.h"
+		int dummy;
+	    } "$flags"] } {
+		set et_arm_neon_fp16_flags $flags
+		return 1
+	    }
+	}
+    }
+
+    return 0
+}
+
+proc check_effective_target_arm_neon_fp16_ok { } {
+    return [check_cached_effective_target arm_neon_fp16_ok \
+		check_effective_target_arm_neon_fp16_ok_nocache]
 }
 
 # Return 1 is this is an ARM target where -mthumb causes Thumb-1 to be
@@ -1654,7 +1759,7 @@ proc check_effective_target_arm_neon_hw { } {
 	       : "0" (a), "w" (b));
 	  return (a != 1);
 	}
-    } "-mfpu=neon -mfloat-abi=softfp"]
+    } [add_options_for_arm_neon ""]]
 }
 
 # Return 1 if this is a ARM target with NEON enabled.
@@ -2891,6 +2996,8 @@ proc is-effective-target { arg } {
     } else {
 	switch $arg {
 	  "vmx_hw"         { set selected [check_vmx_hw_available] }
+	  "vsx_hw"         { set selected [check_vsx_hw_available] }
+	  "ppc_recip_hw"   { set selected [check_ppc_recip_hw_available] }
 	  "named_sections" { set selected [check_named_sections_available] }
 	  "gc_sections"    { set selected [check_gc_sections_available] }
 	  "cxa_atexit"     { set selected [check_cxa_atexit_available] }
@@ -2910,6 +3017,8 @@ proc is-effective-target-keyword { arg } {
 	# These have different names for their check_* procs.
 	switch $arg {
 	  "vmx_hw"         { return 1 }
+	  "vsx_hw"         { return 1 }
+	  "ppc_recip_hw"   { return 1 }
 	  "named_sections" { return 1 }
 	  "gc_sections"    { return 1 }
 	  "cxa_atexit"     { return 1 }
@@ -3150,6 +3259,18 @@ proc check_effective_target_avx { } {
 	   __builtin_ia32_vzeroall ();
 	}
     } "-O2 -mavx" ]
+}
+
+# Return 1 if sse2 instructions can be compiled.
+proc check_effective_target_sse2 { } {
+    return [check_no_compiler_messages sse2 object {
+	typedef long long __m128i __attribute__ ((__vector_size__ (16)));
+	
+	__m128i _mm_srli_si128 (__m128i __A, int __N)
+	{
+	    return (__m128i)__builtin_ia32_psrldqi128 (__A, 8);
+	}
+    } "-O2 -msse2" ]
 }
 
 # Return 1 if C wchar_t type is compatible with char16_t.

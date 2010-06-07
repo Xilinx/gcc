@@ -24,21 +24,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "flags.h"
-#include "rtl.h"
-#include "tm_p.h"
-#include "ggc.h"
-#include "basic-block.h"
-#include "output.h"
-#include "expr.h"
 #include "function.h"
-#include "diagnostic.h"
-#include "timevar.h"
 #include "tree-dump.h"
 #include "tree-flow.h"
 #include "tree-pass.h"
 #include "tree-ssa-propagate.h"
-#include "value-prof.h"
-#include "langhooks.h"
 #include "target.h"
 
 
@@ -638,6 +628,18 @@ maybe_fold_stmt_addition (location_t loc, tree res_type, tree op0, tree op1)
 	{
 	  gimple offset_def = SSA_NAME_DEF_STMT (op1);
 	  if (!is_gimple_assign (offset_def))
+	    return NULL_TREE;
+
+	  /* As we will end up creating a variable index array access
+	     in the outermost array dimension make sure there isn't
+	     a more inner array that the index could overflow to.  */
+	  if (TREE_CODE (TREE_OPERAND (op0, 0)) == ARRAY_REF)
+	    return NULL_TREE;
+
+	  /* Do not build array references of something that we can't
+	     see the true number of array dimensions for.  */
+	  if (!DECL_P (TREE_OPERAND (op0, 0))
+	      && !handled_component_p (TREE_OPERAND (op0, 0)))
 	    return NULL_TREE;
 
 	  if (gimple_assign_rhs_code (offset_def) == MULT_EXPR

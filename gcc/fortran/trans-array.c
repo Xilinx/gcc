@@ -80,10 +80,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "gimple.h"
-#include "ggc.h"
-#include "toplev.h"
-#include "real.h"
+#include "toplev.h"	/* For internal_error/fatal_error.  */
 #include "flags.h"
 #include "gfortran.h"
 #include "constructor.h"
@@ -5268,8 +5265,6 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
       gfc_trans_scalarizing_loops (&loop, &block);
 
       desc = loop.temp_ss->data.info.descriptor;
-
-      gcc_assert (is_gimple_lvalue (desc));
     }
   else if (expr->expr_type == EXPR_FUNCTION)
     {
@@ -6084,14 +6079,13 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 				 build_int_cst (TREE_TYPE (comp), 0));
 	      gfc_add_expr_to_block (&fnblock, tmp);
 	    }
-	  else if (c->ts.type == BT_CLASS
-		   && c->ts.u.derived->components->attr.allocatable)
+	  else if (c->ts.type == BT_CLASS && CLASS_DATA (c)->attr.allocatable)
 	    {
 	      /* Allocatable scalar CLASS components.  */
 	      comp = fold_build3 (COMPONENT_REF, ctype, decl, cdecl, NULL_TREE);
 	      
 	      /* Add reference to '$data' component.  */
-	      tmp = c->ts.u.derived->components->backend_decl;
+	      tmp = CLASS_DATA (c)->backend_decl;
 	      comp = fold_build3 (COMPONENT_REF, TREE_TYPE (tmp),
 				  comp, tmp, NULL_TREE);
 
@@ -6121,13 +6115,12 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 				 build_int_cst (TREE_TYPE (comp), 0));
 	      gfc_add_expr_to_block (&fnblock, tmp);
 	    }
-	  else if (c->ts.type == BT_CLASS
-		   && c->ts.u.derived->components->attr.allocatable)
+	  else if (c->ts.type == BT_CLASS && CLASS_DATA (c)->attr.allocatable)
 	    {
 	      /* Allocatable scalar CLASS components.  */
 	      comp = fold_build3 (COMPONENT_REF, ctype, decl, cdecl, NULL_TREE);
 	      /* Add reference to '$data' component.  */
-	      tmp = c->ts.u.derived->components->backend_decl;
+	      tmp = CLASS_DATA (c)->backend_decl;
 	      comp = fold_build3 (COMPONENT_REF, TREE_TYPE (tmp),
 				  comp, tmp, NULL_TREE);
 	      tmp = fold_build2 (MODIFY_EXPR, void_type_node, comp,
@@ -6223,25 +6216,6 @@ gfc_copy_only_alloc_comp (gfc_symbol * der_type, tree decl, tree dest, int rank)
 }
 
 
-/* Check for default initializer; sym->value is not enough as it is also
-   set for EXPR_NULL of allocatables.  */
-
-static bool
-has_default_initializer (gfc_symbol *der)
-{
-  gfc_component *c;
-
-  gcc_assert (der->attr.flavor == FL_DERIVED);
-  for (c = der->components; c; c = c->next)
-    if ((c->ts.type != BT_DERIVED && c->initializer)
-        || (c->ts.type == BT_DERIVED
-            && (!c->attr.pointer && has_default_initializer (c->ts.u.derived))))
-      break;
-
-  return c != NULL;
-}
-
-
 /* NULLIFY an allocatable/pointer array on function entry, free it on exit.
    Do likewise, recursively if necessary, with the allocatable components of
    derived types.  */
@@ -6308,7 +6282,8 @@ gfc_trans_deferred_array (gfc_symbol * sym, tree body)
       if (!sym->attr.save
 	  && !(TREE_STATIC (sym->backend_decl) && sym->attr.is_main_program))
 	{
-	  if (sym->value == NULL || !has_default_initializer (sym->ts.u.derived))
+	  if (sym->value == NULL
+	      || !gfc_has_default_initializer (sym->ts.u.derived))
 	    {
 	      rank = sym->as ? sym->as->rank : 0;
 	      tmp = gfc_nullify_alloc_comp (sym->ts.u.derived, descriptor, rank);

@@ -191,14 +191,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "flags.h"
-#include "rtl.h"
 #include "tm_p.h"
-#include "ggc.h"
 #include "basic-block.h"
 #include "output.h"
-#include "expr.h"
 #include "function.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "timevar.h"
 #include "tree-dump.h"
 #include "tree-flow.h"
@@ -261,7 +259,7 @@ dump_lattice_value (FILE *outf, const char *prefix, prop_value_t val)
 
 void debug_lattice_value (prop_value_t val);
 
-void
+DEBUG_FUNCTION void
 debug_lattice_value (prop_value_t val)
 {
   dump_lattice_value (stderr, "", val);

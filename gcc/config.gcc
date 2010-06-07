@@ -408,6 +408,7 @@ esac
 # Common parts for widely ported systems.
 case ${target} in
 *-*-darwin*)
+  tmake_file="t-darwin ${cpu_type}/t-darwin"
   tm_file="${tm_file} darwin.h"
   case ${target} in
   *-*-darwin9*)
@@ -419,7 +420,6 @@ case ${target} in
   esac
   tm_file="${tm_file} ${cpu_type}/darwin.h"
   tm_p_file="${tm_p_file} darwin-protos.h"
-  tmake_file="t-darwin ${cpu_type}/t-darwin t-slibgcc-darwin"
   target_gtfiles="\$(srcdir)/config/darwin.c"
   extra_options="${extra_options} darwin.opt"
   c_target_objs="${c_target_objs} darwin-c.o"
@@ -508,26 +508,48 @@ case ${target} in
     *-*-gnu*)
       tmake_file="$tmake_file t-gnu";;
   esac
-  # glibc / uclibc switch.  uclibc isn't usable for GNU/Hurd and neither for
-  # GNU/k*BSD.
+  # Common C libraries.
+  tm_defines="$tm_defines LIBC_GLIBC=1 LIBC_UCLIBC=2 LIBC_BIONIC=3"
+  # glibc / uclibc / bionic switch.
+  # uclibc and bionic aren't usable for GNU/Hurd and neither for GNU/k*BSD.
   case $target in
     *linux*)
       extra_options="$extra_options linux.opt";;
     *)
       tm_defines="$tm_defines OPTION_GLIBC=1";;
   esac
-  case ${target} in
+  case $target in
+    *-*-*android*)
+      tm_defines="$tm_defines DEFAULT_LIBC=LIBC_BIONIC"
+      ;;
     *-*-*uclibc*)
-      tm_defines="${tm_defines} UCLIBC_DEFAULT=1"
+      tm_defines="$tm_defines DEFAULT_LIBC=LIBC_UCLIBC"
       ;;
     *)
-      tm_defines="${tm_defines} UCLIBC_DEFAULT=0"
+      tm_defines="$tm_defines DEFAULT_LIBC=LIBC_GLIBC"
       ;;
   esac
-  # Assume that glibc or uClibc are being used and so __cxa_atexit is provided.
+  # Assume that glibc or uClibc or Bionic are being used and so __cxa_atexit
+  # is provided.
   default_use_cxa_atexit=yes
   use_gcc_tgmath=no
   use_gcc_stdint=wrap
+  # Add Android userspace support to Linux targets.
+  case $target in
+    *linux*)
+      tm_file="$tm_file linux-android.h"
+      extra_options="$extra_options linux-android.opt"
+      ;;
+  esac
+  # Enable compilation for Android by default for *android* targets.
+  case $target in
+    *-*-*android*)
+      tm_defines="$tm_defines ANDROID_DEFAULT=1"
+      ;;
+    *)
+      tm_defines="$tm_defines ANDROID_DEFAULT=0"
+      ;;
+  esac
   ;;
 *-*-netbsd*)
   tmake_file="t-slibgcc-elf-ver t-libc-ok t-netbsd t-libgcc-pic"
@@ -711,7 +733,7 @@ arm*-*-netbsd*)
 	use_collect2=yes
 	;;
 arm*-*-linux*)			# ARM GNU/Linux with ELF
-	tm_file="dbxelf.h elfos.h linux.h glibc-stdint.h arm/elf.h arm/linux-gas.h arm/linux-elf.h"
+	tm_file="dbxelf.h elfos.h linux.h linux-android.h glibc-stdint.h arm/elf.h arm/linux-gas.h arm/linux-elf.h"
 	case $target in
 	arm*b-*)
 		tm_defines="${tm_defines} TARGET_BIG_ENDIAN_DEFAULT=1"
@@ -722,6 +744,12 @@ arm*-*-linux*)			# ARM GNU/Linux with ELF
 	arm*-*-linux-*eabi)
 	    tm_file="$tm_file arm/bpabi.h arm/linux-eabi.h"
 	    tmake_file="$tmake_file arm/t-arm-elf arm/t-bpabi arm/t-linux-eabi t-slibgcc-libgcc"
+	    # Define multilib configuration for arm-linux-androideabi.
+	    case ${target} in
+	    *-androideabi)
+		tmake_file="$tmake_file arm/t-linux-androideabi"
+		;;
+	    esac
   	    # The BPABI long long divmod functions return a 128-bit value in
 	    # registers r0-r3.  Correctly modeling that requires the use of
 	    # TImode.
@@ -768,9 +796,8 @@ arm*-*-eabi* | arm*-*-symbianelf* )
 	tmake_file="arm/t-arm arm/t-arm-elf"
 	case ${target} in
 	arm*-*-eabi*)
-	  tm_file="$tm_file arm/eabi.h newlib-stdint.h"
+	  tm_file="$tm_file newlib-stdint.h"
 	  tmake_file="${tmake_file} arm/t-bpabi"
-	  extra_options="${extra_options} arm/eabi.opt"
 	  use_gcc_stdint=wrap
 	  ;;
 	arm*-*-symbianelf*)
@@ -826,7 +853,7 @@ bfin*-elf*)
 bfin*-uclinux*)
 	tm_file="${tm_file} dbxelf.h elfos.h bfin/elf.h linux.h glibc-stdint.h bfin/uclinux.h"
 	tmake_file=bfin/t-bfin-uclinux
-	tm_defines="${tm_defines} UCLIBC_DEFAULT=1"
+	tm_defines="${tm_defines} DEFAULT_LIBC=LIBC_UCLIBC"
 	extra_options="${extra_options} linux.opt"
 	use_collect2=no
 	;;
@@ -907,7 +934,7 @@ moxie-*-uclinux*)
 	tm_file="dbxelf.h elfos.h svr4.h ${tm_file} linux.h glibc-stdint.h moxie/uclinux.h"
 	extra_parts="crti.o crtn.o crtbegin.o crtend.o"
 	tmake_file="${tmake_file} moxie/t-moxie moxie/t-moxie-softfp soft-fp/t-softfp"
-	tm_defines="${tm_defines} UCLIBC_DEFAULT=1"
+	tm_defines="${tm_defines} DEFAULT_LIBC=LIBC_UCLIBC"
 	extra_options="${extra_options} linux.opt"
 	;;
 h8300-*-rtems*)
@@ -1076,12 +1103,12 @@ i[34567]86-*-darwin*)
 	# then this file using that to set --with-cpu=i386 which has no -m64
 	# support.
 	with_cpu=${with_cpu:-generic}
-	tmake_file="${tmake_file} i386/t-crtpc i386/t-crtfm"
+	tmake_file="${tmake_file} t-slibgcc-darwin i386/t-crtpc i386/t-crtfm"
 	lto_binary_reader=lto-macho
 	;;
 x86_64-*-darwin*)
 	with_cpu=${with_cpu:-generic}
-	tmake_file="${tmake_file} t-darwin ${cpu_type}/t-darwin64 t-slibgcc-darwin i386/t-crtpc i386/t-crtfm"
+	tmake_file="${tmake_file} ${cpu_type}/t-darwin64 t-slibgcc-darwin i386/t-crtpc i386/t-crtfm"
 	tm_file="${tm_file} ${cpu_type}/darwin64.h"
 	lto_binary_reader=lto-macho
 	;;
@@ -1225,7 +1252,19 @@ i[34567]86-*-solaris2*)
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h svr4.h i386/sysv4.h sol2.h"
 	# Set default arch_32 to pentium4, tune_32 to generic like the other
 	# i386 targets, although config.guess defaults to i386-pc-solaris2*.
-	with_arch_32=${with_arch_32:-pentium4}
+	case ${target} in
+	*-*-solaris2.8*)
+		if test x$gas = xyes; then
+			with_arch_32=${with_arch_32:-pentium4}
+		else
+			# Solaris 8/x86 as cannot handle sse2.
+			with_arch_32=${with_arch_32:-pentiumpro}
+		fi
+		;;
+	*)
+		with_arch_32=${with_arch_32:-pentium4}
+		;;
+	esac
 	with_tune_32=${with_tune_32:-generic}
 	case ${target} in
 	*-*-solaris2.1[0-9]*)
@@ -1620,7 +1659,7 @@ m68k-*-uclinux*)		# Motorola m68k/ColdFire running uClinux
 	default_m68k_cpu=68020
 	default_cf_cpu=5206
 	tm_file="${tm_file} dbxelf.h elfos.h svr4.h linux.h glibc-stdint.h flat.h m68k/linux.h m68k/uclinux.h ./sysroot-suffix.h"
- 	tm_defines="${tm_defines} MOTOROLA=1 UCLIBC_DEFAULT=1"
+ 	tm_defines="${tm_defines} MOTOROLA=1 DEFAULT_LIBC=LIBC_UCLIBC"
 	extra_options="${extra_options} linux.opt"
 	tmake_file="m68k/t-floatlib m68k/t-uclinux m68k/t-mlibs"
 	;;
@@ -1748,7 +1787,6 @@ mips*-sde-elf*)
 	    # MIPS toolkit libraries.
 	    tm_file="$tm_file mips/sdemtk.h"
 	    tmake_file="$tmake_file mips/t-sdemtk"
-	    extra_options="$extra_options mips/sdemtk.opt"
 	    case ${enable_threads} in
 	      "" | yes | mipssde)
 		thread_file='mipssde'
@@ -1891,13 +1929,15 @@ powerpc-*-darwin*)
 	  *-darwin[0-6]*)
 	    ;;
 	esac
+	tmake_file="${tmake_file} t-slibgcc-darwin"
 	lto_binary_reader=lto-macho
 	extra_headers=altivec.h
 	;;
 powerpc64-*-darwin*)
-	tm_file="${tm_file} ${cpu_type}/darwin8.h ${cpu_type}/darwin64.h"
 	extra_options="${extra_options} ${cpu_type}/darwin.opt"
-	# We're omitting t-darwin8 to avoid building any multilibs
+	extra_parts="crt2.o"
+	tmake_file="${tmake_file} ${cpu_type}/t-darwin64 t-slibgcc-darwin"
+	tm_file="${tm_file} ${cpu_type}/darwin8.h ${cpu_type}/darwin64.h"
 	lto_binary_reader=lto-macho
 	extra_headers=altivec.h
 	;;
@@ -2364,6 +2404,12 @@ sparc-*-rtems*)
 	tm_file="${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sparc/sp-elf.h sparc/rtemself.h rtems.h newlib-stdint.h"
 	tmake_file="sparc/t-elf sparc/t-crtfm t-rtems"
 	extra_parts="crti.o crtn.o crtbegin.o crtend.o"
+	;;
+sparc64-*-rtems*)
+	tm_file="${tm_file} dbxelf.h elfos.h svr4.h newlib-stdint.h sparc/sysv4.h sparc/sp64-elf.h sparc/rtemself.h rtems.h"
+	extra_options="${extra_options} sparc/little-endian.opt"
+	tmake_file="${tmake_file} sparc/t-crtfm t-rtems"
+	extra_parts="crtbegin.o crtend.o"
 	;;
 sparc*-*-solaris2*)
 	tm_file="sparc/biarch64.h ${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sol2.h"

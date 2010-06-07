@@ -24,7 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "machmode.h"
-#include "real.h"
 #include "rtl.h"
 #include "tree.h"
 #include "flags.h"
@@ -4269,8 +4268,19 @@ expand_assignment (tree to, tree from, bool nontemporal)
 				   				   offset));
 	}
 
+      /* No action is needed if the target is not a memory and the field
+	 lies completely outside that target.  This can occur if the source
+	 code contains an out-of-bounds access to a small array.  */
+      if (!MEM_P (to_rtx)
+	  && GET_MODE (to_rtx) != BLKmode
+	  && (unsigned HOST_WIDE_INT) bitpos
+	     >= GET_MODE_BITSIZE (GET_MODE (to_rtx)))
+	{
+	  expand_normal (from);
+	  result = NULL;
+	}
       /* Handle expand_expr of a complex value returning a CONCAT.  */
-      if (GET_CODE (to_rtx) == CONCAT)
+      else if (GET_CODE (to_rtx) == CONCAT)
 	{
 	  if (COMPLEX_MODE_P (TYPE_MODE (TREE_TYPE (from))))
 	    {
@@ -8424,6 +8434,19 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
     expand_decl_rtl:
       gcc_assert (decl_rtl);
       decl_rtl = copy_rtx (decl_rtl);
+      /* Record writes to register variables.  */
+      if (modifier == EXPAND_WRITE && REG_P (decl_rtl)
+	  && REGNO (decl_rtl) < FIRST_PSEUDO_REGISTER)
+	{
+	    int i = REGNO (decl_rtl);
+	    int nregs = hard_regno_nregs[i][GET_MODE (decl_rtl)];
+	    while (nregs)
+	      {
+		SET_HARD_REG_BIT (crtl->asm_clobbers, i);
+		i++;
+		nregs--;
+	      }
+	}
 
       /* Ensure variable marked as used even if it doesn't go through
 	 a parser.  If it hasn't be used yet, write out an external

@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "basic-block.h"
 #include "timevar.h"
+#include "bitmap.h"
 
 #include "refined-regions.h"
 #include "domwalk.h"

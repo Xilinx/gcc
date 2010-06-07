@@ -28,6 +28,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "basic-block.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-flow.h"
 #include "toplev.h"
 #include "tree-dump.h"
@@ -240,7 +242,7 @@ print_iteration_domains (FILE *file, scop_p scop, int verbosity)
 /* Prints to STDERR the scattering function of PBB, at some VERBOSITY
    level.  */
 
-void
+DEBUG_FUNCTION void
 debug_scattering_function (poly_bb_p pbb, int verbosity)
 {
   print_scattering_function (stderr, pbb, verbosity);
@@ -249,7 +251,7 @@ debug_scattering_function (poly_bb_p pbb, int verbosity)
 /* Prints to STDERR the iteration domain of PBB, at some VERBOSITY
    level.  */
 
-void
+DEBUG_FUNCTION void
 debug_iteration_domain (poly_bb_p pbb, int verbosity)
 {
   print_iteration_domain (stderr, pbb, verbosity);
@@ -258,7 +260,7 @@ debug_iteration_domain (poly_bb_p pbb, int verbosity)
 /* Prints to STDERR the scattering functions of every PBB of SCOP, at
    some VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_scattering_functions (scop_p scop, int verbosity)
 {
   print_scattering_functions (stderr, scop, verbosity);
@@ -267,7 +269,7 @@ debug_scattering_functions (scop_p scop, int verbosity)
 /* Prints to STDERR the iteration domains of every PBB of SCOP, at
    some VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_iteration_domains (scop_p scop, int verbosity)
 {
   print_iteration_domains (stderr, scop, verbosity);
@@ -534,7 +536,7 @@ print_pdr (FILE *file, poly_dr_p pdr, int verbosity)
 /* Prints to STDERR the polyhedral data reference PDR, at some
    VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_pdr (poly_dr_p pdr, int verbosity)
 {
   print_pdr (stderr, pdr, verbosity);
@@ -737,7 +739,7 @@ print_pdrs (FILE *file, poly_bb_p pbb, int verbosity)
 
 /* Print to STDERR all the data references of PBB.  */
 
-void
+DEBUG_FUNCTION void
 debug_pdrs (poly_bb_p pbb, int verbosity)
 {
   print_pdrs (stderr, pbb, verbosity);
@@ -971,7 +973,7 @@ print_cloog (FILE *file, scop_p scop, int verbosity)
 
 /* Print to STDERR the domain of PBB, at some VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_pbb_domain (poly_bb_p pbb, int verbosity)
 {
   print_pbb_domain (stderr, pbb, verbosity);
@@ -980,7 +982,7 @@ debug_pbb_domain (poly_bb_p pbb, int verbosity)
 /* Print to FILE the domain and scattering function of PBB, at some
    VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_pbb (poly_bb_p pbb, int verbosity)
 {
   print_pbb (stderr, pbb, verbosity);
@@ -988,7 +990,7 @@ debug_pbb (poly_bb_p pbb, int verbosity)
 
 /* Print to STDERR the context of SCOP, at some VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_scop_context (scop_p scop, int verbosity)
 {
   print_scop_context (stderr, scop, verbosity);
@@ -996,7 +998,7 @@ debug_scop_context (scop_p scop, int verbosity)
 
 /* Print to STDERR the SCOP, at some VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_scop (scop_p scop, int verbosity)
 {
   print_scop (stderr, scop, verbosity);
@@ -1005,7 +1007,7 @@ debug_scop (scop_p scop, int verbosity)
 /* Print to STDERR the SCOP under CLooG format, at some VERBOSITY
    level.  */
 
-void
+DEBUG_FUNCTION void
 debug_cloog (scop_p scop, int verbosity)
 {
   print_cloog (stderr, scop, verbosity);
@@ -1014,7 +1016,7 @@ debug_cloog (scop_p scop, int verbosity)
 /* Print to STDERR the parameters of SCOP, at some VERBOSITY
    level.  */
 
-void
+DEBUG_FUNCTION void
 debug_scop_params (scop_p scop, int verbosity)
 {
   print_scop_params (stderr, scop, verbosity);
@@ -1260,7 +1262,7 @@ print_lst (FILE *file, lst_p lst, int indent)
 
 /* Print LST to STDERR.  */
 
-void
+DEBUG_FUNCTION void
 debug_lst (lst_p lst)
 {
   print_lst (stderr, lst, 0);

@@ -29,6 +29,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "vec.h"
 #include "vecir.h"
 #include "double-int.h"
+#include "real.h"
+#include "fixed-value.h"
 #include "alias.h"
 #include "options.h"
 
@@ -883,7 +885,8 @@ extern void tree_class_check_failed (const_tree, const enum tree_code_class,
     ATTRIBUTE_NORETURN;
 extern void tree_range_check_failed (const_tree, const char *, int,
 				     const char *, enum tree_code,
-				     enum tree_code);
+				     enum tree_code)
+    ATTRIBUTE_NORETURN;
 extern void tree_not_class_check_failed (const_tree,
 					 const enum tree_code_class,
 					 const char *, int, const char *)
@@ -3843,6 +3846,8 @@ enum integer_type_kind
   itk_unsigned_long,
   itk_long_long,
   itk_unsigned_long_long,
+  itk_int128,
+  itk_unsigned_int128,
   itk_none
 };
 
@@ -3863,6 +3868,8 @@ extern GTY(()) tree integer_types[itk_none];
 #define long_unsigned_type_node		integer_types[itk_unsigned_long]
 #define long_long_integer_type_node	integer_types[itk_long_long]
 #define long_long_unsigned_type_node	integer_types[itk_unsigned_long_long]
+#define int128_integer_type_node	integer_types[itk_int128]
+#define int128_unsigned_type_node	integer_types[itk_unsigned_int128]
 
 /* Set to the default thread-local storage (tls) model to use.  */
 
@@ -3964,7 +3971,6 @@ extern tree maybe_get_identifier (const char *);
 /* Construct various types of nodes.  */
 
 extern tree build_nt (enum tree_code, ...);
-extern tree build_nt_call_list (tree, tree);
 extern tree build_nt_call_vec (tree, VEC(tree,gc) *);
 
 extern tree build0_stat (enum tree_code, tree MEM_STAT_DECL);
@@ -4001,12 +4007,17 @@ tree_to_double_int (const_tree cst)
 extern tree double_int_to_tree (tree, double_int);
 extern bool double_int_fits_to_tree_p (const_tree, double_int);
 
+/* Create an INT_CST node with a CST value zero extended.  */
+
+static inline tree
+build_int_cstu (tree type, unsigned HOST_WIDE_INT cst)
+{
+  return double_int_to_tree (type, uhwi_to_double_int (cst));
+}
+
 extern tree build_int_cst (tree, HOST_WIDE_INT);
 extern tree build_int_cst_type (tree, HOST_WIDE_INT);
-extern tree build_int_cstu (tree, unsigned HOST_WIDE_INT);
 extern tree build_int_cst_wide (tree, unsigned HOST_WIDE_INT, HOST_WIDE_INT);
-extern tree build_int_cst_wide_type (tree,
-				     unsigned HOST_WIDE_INT, HOST_WIDE_INT);
 extern tree build_vector (tree, tree);
 extern tree build_vector_from_ctor (tree, VEC(constructor_elt,gc) *);
 extern tree build_constructor (tree, VEC(constructor_elt,gc) *);
@@ -5109,9 +5120,11 @@ extern void print_rtl (FILE *, const_rtx);
 
 /* In print-tree.c */
 extern void debug_tree (tree);
+extern void debug_vec_tree (VEC(tree,gc) *);
 #ifdef BUFSIZ
 extern void dump_addr (FILE*, const char *, const void *);
 extern void print_node (FILE *, const char *, tree, int);
+extern void print_vec_tree (FILE *, const char *, VEC(tree,gc) *, int);
 extern void print_node_brief (FILE *, const char *, const_tree, int);
 extern void indent_to (FILE *, int);
 #endif
@@ -5367,6 +5380,17 @@ struct GTY(()) tree_map {
 #define tree_map_eq tree_map_base_eq
 extern unsigned int tree_map_hash (const void *);
 #define tree_map_marked_p tree_map_base_marked_p
+
+/* Map from a decl tree to another tree.  */
+
+struct GTY(()) tree_decl_map {
+  struct tree_map_base base;
+  tree to;
+};
+
+#define tree_decl_map_eq tree_map_base_eq
+extern unsigned int tree_decl_map_hash (const void *);
+#define tree_decl_map_marked_p tree_map_base_marked_p
 
 /* Map from a tree to an int.  */
 

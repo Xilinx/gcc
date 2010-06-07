@@ -36,17 +36,15 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "toplev.h"
 #include "flags.h"
-#include "rtl.h"
-#include "expr.h"
 #include "output.h"
 #include "timevar.h"
-#include "debug.h"
 #include "diagnostic.h"
 #include "cgraph.h"
 #include "tree-iterator.h"
 #include "vec.h"
 #include "target.h"
 #include "gimple.h"
+#include "bitmap.h"
 
 /* There routines provide a modular interface to perform many parsing
    operations.  They may therefore be used during actual parsing, or
@@ -2212,7 +2210,7 @@ finish_compound_literal (tree type, tree compound_literal)
   if (TREE_CODE (type) == ARRAY_TYPE)
     cp_complete_array_type (&type, compound_literal, false);
   compound_literal = digest_init (type, compound_literal);
-  if ((!at_function_scope_p () || cp_type_readonly (type))
+  if ((!at_function_scope_p () || CP_TYPE_CONST_P (type))
       && initializer_constant_valid_p (compound_literal, type))
     {
       tree decl = create_temporary_var (type);
@@ -3506,14 +3504,15 @@ finalize_nrv (tree *tp, tree var, tree result)
 {
   struct nrv_data data;
 
-  /* Copy debugging information from VAR to RESULT.  */
+  /* Copy name from VAR to RESULT.  */
   DECL_NAME (result) = DECL_NAME (var);
-  DECL_ARTIFICIAL (result) = DECL_ARTIFICIAL (var);
-  DECL_IGNORED_P (result) = DECL_IGNORED_P (var);
-  DECL_SOURCE_LOCATION (result) = DECL_SOURCE_LOCATION (var);
-  DECL_ABSTRACT_ORIGIN (result) = DECL_ABSTRACT_ORIGIN (var);
   /* Don't forget that we take its address.  */
   TREE_ADDRESSABLE (result) = TREE_ADDRESSABLE (var);
+  /* Finally set DECL_VALUE_EXPR to avoid assigning
+     a stack slot at -O0 for the original var and debug info
+     uses RESULT location for VAR.  */
+  SET_DECL_VALUE_EXPR (var, result);
+  DECL_HAS_VALUE_EXPR_P (var) = 1;
 
   data.var = var;
   data.result = result;
@@ -5629,7 +5628,7 @@ capture_decltype (tree decl)
   if (TREE_CODE (type) != REFERENCE_TYPE)
     {
       if (!LAMBDA_EXPR_MUTABLE_P (lam))
-	type = cp_build_qualified_type (type, (TYPE_QUALS (type)
+	type = cp_build_qualified_type (type, (cp_type_quals (type)
 					       |TYPE_QUAL_CONST));
       type = build_reference_type (type);
     }

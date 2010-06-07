@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "output.h"
 #include "cselib.h"
-#include "real.h"
 #include "toplev.h"
 #include "except.h"
 #include "tree.h"
@@ -1591,7 +1590,7 @@ rest_of_handle_postreload (void)
   reload_cse_regs (get_insns ());
   /* Reload_cse_regs can eliminate potentially-trapping MEMs.
      Remove any EH edges associated with them.  */
-  if (flag_non_call_exceptions)
+  if (cfun->can_throw_non_call_exceptions)
     purge_all_dead_edges ();
 
   return 0;

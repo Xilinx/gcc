@@ -46,19 +46,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "ggc.h"
 #include "tree.h"
-#include "target.h"
-
-#include "rtl.h"
 #include "basic-block.h"
-#include "diagnostic.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "timevar.h"
 #include "cfgloop.h"
-#include "expr.h"
-#include "optabs.h"
 #include "tree-chrec.h"
 #include "tree-data-ref.h"
 #include "tree-scalar-evolution.h"
@@ -974,7 +967,7 @@ dump_rdg_partitions (FILE *file, VEC (bitmap, heap) *partitions)
 /* Debug PARTITIONS.  */
 extern void debug_rdg_partitions (VEC (bitmap, heap) *);
 
-void
+DEBUG_FUNCTION void
 debug_rdg_partitions (VEC (bitmap, heap) *partitions)
 {
   dump_rdg_partitions (stderr, partitions);

@@ -64,7 +64,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "version.h"
 #include "flags.h"
-#include "real.h"
 #include "rtl.h"
 #include "hard-reg-set.h"
 #include "regs.h"
@@ -83,6 +82,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "md5.h"
 #include "tm_p.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "debug.h"
 #include "target.h"
 #include "langhooks.h"
@@ -305,15 +305,16 @@ typedef struct GTY(()) dw_fde_struct {
   const char *dw_fde_unlikely_section_end_label;
   dw_cfi_ref dw_fde_cfi;
   dw_cfi_ref dw_fde_switch_cfi; /* Last CFI before switching sections.  */
-  unsigned funcdef_number;
   HOST_WIDE_INT stack_realignment;
+  unsigned funcdef_number;
   /* Dynamic realign argument pointer register.  */
   unsigned int drap_reg;
   /* Virtual dynamic realign argument pointer register.  */
   unsigned int vdrap_reg;
+  /* These 3 flags are copied from rtl_data in function.h.  */
   unsigned all_throwers_are_sibcalls : 1;
-  unsigned nothrow : 1;
   unsigned uses_eh_lsda : 1;
+  unsigned nothrow : 1;
   /* Whether we did stack realign in this call frame.  */
   unsigned stack_realign : 1;
   /* Whether dynamic realign argument pointer register has been saved.  */
@@ -3602,6 +3603,27 @@ output_fde (dw_fde_ref fde, bool for_eh, bool second,
   j += 2;
 }
 
+/* Return true if frame description entry FDE is needed for EH.  */
+
+static bool
+fde_needed_for_eh_p (dw_fde_ref fde)
+{
+  if (flag_asynchronous_unwind_tables)
+    return true;
+
+  if (TARGET_USES_WEAK_UNWIND_INFO && DECL_WEAK (fde->decl))
+    return true;
+
+  if (fde->uses_eh_lsda)
+    return true;
+
+  /* If exceptions are enabled, we have collected nothrow info.  */
+  if (flag_exceptions && (fde->all_throwers_are_sibcalls || fde->nothrow))
+    return false;
+
+  return true;
+}
+
 /* Output the call frame information used to record information
    that relates to calculating the frame pointer, and records the
    location of saved registers.  */
@@ -3631,41 +3653,25 @@ output_call_frame_info (int for_eh)
   if (dwarf2out_do_cfi_asm ())
     return;
 
-  /* If we make FDEs linkonce, we may have to emit an empty label for
-     an FDE that wouldn't otherwise be emitted.  We want to avoid
-     having an FDE kept around when the function it refers to is
-     discarded.  Example where this matters: a primary function
-     template in C++ requires EH information, but an explicit
-     specialization doesn't.  */
-  if (TARGET_USES_WEAK_UNWIND_INFO
-      && ! flag_asynchronous_unwind_tables
-      && flag_exceptions
-      && for_eh)
-    for (i = 0; i < fde_table_in_use; i++)
-      if ((fde_table[i].nothrow || fde_table[i].all_throwers_are_sibcalls)
-	  && !fde_table[i].uses_eh_lsda
-	  && ! DECL_WEAK (fde_table[i].decl))
-	targetm.asm_out.unwind_label (asm_out_file, fde_table[i].decl,
-				      for_eh, /* empty */ 1);
-
-  /* If we don't have any functions we'll want to unwind out of, don't
-     emit any EH unwind information.  Note that if exceptions aren't
-     enabled, we won't have collected nothrow information, and if we
-     asked for asynchronous tables, we always want this info.  */
+  /* If we don't have any functions we'll want to unwind out of, don't emit
+     any EH unwind information.  If we make FDEs linkonce, we may have to
+     emit an empty label for an FDE that wouldn't otherwise be emitted.  We
+     want to avoid having an FDE kept around when the function it refers to
+     is discarded.  Example where this matters: a primary function template
+     in C++ requires EH information, an explicit specialization doesn't.  */
   if (for_eh)
     {
-      bool any_eh_needed = !flag_exceptions || flag_asynchronous_unwind_tables;
+      bool any_eh_needed = false;
 
       for (i = 0; i < fde_table_in_use; i++)
 	if (fde_table[i].uses_eh_lsda)
 	  any_eh_needed = any_lsda_needed = true;
-	else if (TARGET_USES_WEAK_UNWIND_INFO && DECL_WEAK (fde_table[i].decl))
+	else if (fde_needed_for_eh_p (&fde_table[i]))
 	  any_eh_needed = true;
-	else if (! fde_table[i].nothrow
-		 && ! fde_table[i].all_throwers_are_sibcalls)
-	  any_eh_needed = true;
+	else if (TARGET_USES_WEAK_UNWIND_INFO)
+	  targetm.asm_out.unwind_label (asm_out_file, fde_table[i].decl, 1, 1);
 
-      if (! any_eh_needed)
+      if (!any_eh_needed)
 	return;
     }
 
@@ -3822,10 +3828,7 @@ output_call_frame_info (int for_eh)
       fde = &fde_table[i];
 
       /* Don't emit EH unwind info for leaf functions that don't need it.  */
-      if (for_eh && !flag_asynchronous_unwind_tables && flag_exceptions
-	  && (fde->nothrow || fde->all_throwers_are_sibcalls)
-	  && ! (TARGET_USES_WEAK_UNWIND_INFO && DECL_WEAK (fde_table[i].decl))
-	  && !fde->uses_eh_lsda)
+      if (for_eh && !fde_needed_for_eh_p (fde))
 	continue;
 
       for (k = 0; k < (fde->dw_fde_switched_sections ? 2 : 1); k++)
@@ -3961,9 +3964,9 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   fde->dw_fde_cfi = NULL;
   fde->dw_fde_switch_cfi = NULL;
   fde->funcdef_number = current_function_funcdef_no;
-  fde->nothrow = crtl->nothrow;
-  fde->uses_eh_lsda = crtl->uses_eh_lsda;
   fde->all_throwers_are_sibcalls = crtl->all_throwers_are_sibcalls;
+  fde->uses_eh_lsda = crtl->uses_eh_lsda;
+  fde->nothrow = crtl->nothrow;
   fde->drap_reg = INVALID_REGNUM;
   fde->vdrap_reg = INVALID_REGNUM;
   if (flag_reorder_blocks_and_partition)
@@ -4006,12 +4009,11 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
         current_unit_personality = personality;
 
       /* We cannot keep a current personality per function as without CFI
-	 asm at the point where we emit the CFI data there is no current
+	 asm, at the point where we emit the CFI data, there is no current
 	 function anymore.  */
-      if (personality
-	  && current_unit_personality != personality)
-	sorry ("Multiple EH personalities are supported only with assemblers "
-	       "supporting .cfi.personality directive.");
+      if (personality && current_unit_personality != personality)
+	sorry ("multiple EH personalities are supported only with assemblers "
+	       "supporting .cfi_personality directive");
     }
 }
 
@@ -4677,8 +4679,8 @@ loc_descr_plus_const (dw_loc_descr_ref *list_head, HOST_WIDE_INT offset)
 
   else
     {
-      loc->dw_loc_next = int_loc_descriptor (offset);
-      add_loc_descr (&loc->dw_loc_next, new_loc_descr (DW_OP_plus, 0, 0));
+      loc->dw_loc_next = int_loc_descriptor (-offset);
+      add_loc_descr (&loc->dw_loc_next, new_loc_descr (DW_OP_minus, 0, 0));
     }
 }
 
@@ -8236,7 +8238,7 @@ print_dwarf_line_table (FILE *outfile)
 
 /* Print the information collected for a given DIE.  */
 
-void
+DEBUG_FUNCTION void
 debug_dwarf_die (dw_die_ref die)
 {
   print_die (die, stderr);
@@ -8245,7 +8247,7 @@ debug_dwarf_die (dw_die_ref die)
 /* Print all DWARF information collected for the compilation unit.
    This routine is a debugging aid only.  */
 
-void
+DEBUG_FUNCTION void
 debug_dwarf (void)
 {
   print_indent = 0;
@@ -12351,6 +12353,21 @@ simple_type_size_in_bits (const_tree type)
     return TYPE_ALIGN (type);
 }
 
+/* Similarly, but return a double_int instead of UHWI.  */
+
+static inline double_int
+double_int_type_size_in_bits (const_tree type)
+{
+  if (TREE_CODE (type) == ERROR_MARK)
+    return uhwi_to_double_int (BITS_PER_WORD);
+  else if (TYPE_SIZE (type) == NULL_TREE)
+    return double_int_zero;
+  else if (TREE_CODE (TYPE_SIZE (type)) == INTEGER_CST)
+    return tree_to_double_int (TYPE_SIZE (type));
+  else
+    return uhwi_to_double_int (TYPE_ALIGN (type));
+}
+
 /*  Given a pointer to a tree node for a subrange type, return a pointer
     to a DIE that describes the given type.  */
 
@@ -14356,12 +14373,12 @@ dw_loc_list_1 (tree loc, rtx varloc, int want_address,
    if it is not possible.  */
 
 static dw_loc_descr_ref
-new_loc_descr_op_bit_piece (HOST_WIDE_INT bitsize)
+new_loc_descr_op_bit_piece (HOST_WIDE_INT bitsize, HOST_WIDE_INT offset)
 {
-  if ((bitsize % BITS_PER_UNIT) == 0)
+  if ((bitsize % BITS_PER_UNIT) == 0 && offset == 0)
     return new_loc_descr (DW_OP_piece, bitsize / BITS_PER_UNIT, 0);
   else if (dwarf_version >= 3 || !dwarf_strict)
-    return new_loc_descr (DW_OP_bit_piece, bitsize, 0);
+    return new_loc_descr (DW_OP_bit_piece, bitsize, offset);
   else
     return NULL;
 }
@@ -14440,7 +14457,7 @@ dw_sra_loc_expr (tree decl, rtx loc)
 	  if (padsize > decl_size)
 	    return NULL;
 	  decl_size -= padsize;
-	  *descr_tail = new_loc_descr_op_bit_piece (padsize);
+	  *descr_tail = new_loc_descr_op_bit_piece (padsize, 0);
 	  if (*descr_tail == NULL)
 	    return NULL;
 	  descr_tail = &(*descr_tail)->dw_loc_next;
@@ -14453,7 +14470,47 @@ dw_sra_loc_expr (tree decl, rtx loc)
       decl_size -= bitsize;
       if (last == NULL)
 	{
-	  *descr_tail = new_loc_descr_op_bit_piece (bitsize);
+	  HOST_WIDE_INT offset = 0;
+	  if (GET_CODE (varloc) == VAR_LOCATION
+	      && GET_CODE (PAT_VAR_LOCATION_LOC (varloc)) != PARALLEL)
+	    {
+	      varloc = PAT_VAR_LOCATION_LOC (varloc);
+	      if (GET_CODE (varloc) == EXPR_LIST)
+		varloc = XEXP (varloc, 0);
+	    }
+	  do 
+	    {
+	      if (GET_CODE (varloc) == CONST
+		  || GET_CODE (varloc) == SIGN_EXTEND
+		  || GET_CODE (varloc) == ZERO_EXTEND)
+		varloc = XEXP (varloc, 0);
+	      else if (GET_CODE (varloc) == SUBREG)
+		varloc = SUBREG_REG (varloc);
+	      else
+		break;
+	    }
+	  while (1);
+	  /* DW_OP_bit_size offset should be zero for register
+	     or implicit location descriptions and empty location
+	     descriptions, but for memory addresses needs big endian
+	     adjustment.  */
+	  if (MEM_P (varloc))
+	    {
+	      unsigned HOST_WIDE_INT memsize
+		= INTVAL (MEM_SIZE (varloc)) * BITS_PER_UNIT;
+	      if (memsize != bitsize)
+		{
+		  if (BYTES_BIG_ENDIAN != WORDS_BIG_ENDIAN
+		      && (memsize > BITS_PER_WORD || bitsize > BITS_PER_WORD))
+		    return NULL;
+		  if (memsize < bitsize)
+		    return NULL;
+		  if (BITS_BIG_ENDIAN)
+		    offset = memsize - bitsize;
+		}
+	    }
+
+	  *descr_tail = new_loc_descr_op_bit_piece (bitsize, offset);
 	  if (*descr_tail == NULL)
 	    return NULL;
 	  descr_tail = &(*descr_tail)->dw_loc_next;
@@ -14464,7 +14521,7 @@ dw_sra_loc_expr (tree decl, rtx loc)
      the decl.  */
   if (descr != NULL && decl_size != 0)
     {
-      *descr_tail = new_loc_descr_op_bit_piece (decl_size);
+      *descr_tail = new_loc_descr_op_bit_piece (decl_size, 0);
       if (*descr_tail == NULL)
 	return NULL;
     }
@@ -15089,8 +15146,7 @@ loc_list_from_tree (tree loc, int want_address)
 
     case POINTER_PLUS_EXPR:
     case PLUS_EXPR:
-      if (TREE_CODE (TREE_OPERAND (loc, 1)) == INTEGER_CST
-	  && host_integerp (TREE_OPERAND (loc, 1), 0))
+      if (host_integerp (TREE_OPERAND (loc, 1), 0))
 	{
 	  list_ret = loc_list_from_tree (TREE_OPERAND (loc, 0), 0);
 	  if (list_ret == 0)
@@ -15361,20 +15417,15 @@ simple_decl_align_in_bits (const_tree decl)
 
 /* Return the result of rounding T up to ALIGN.  */
 
-static inline HOST_WIDE_INT
-round_up_to_align (HOST_WIDE_INT t, unsigned int align)
+static inline double_int
+round_up_to_align (double_int t, unsigned int align)
 {
-  /* We must be careful if T is negative because HOST_WIDE_INT can be
-     either "above" or "below" unsigned int as per the C promotion
-     rules, depending on the host, thus making the signedness of the
-     direct multiplication and division unpredictable.  */
-  unsigned HOST_WIDE_INT u = (unsigned HOST_WIDE_INT) t;
-
-  u += align - 1;
-  u /= align;
-  u *= align;
-
-  return (HOST_WIDE_INT) u;
+  double_int alignd = uhwi_to_double_int (align);
+  t = double_int_add (t, alignd);
+  t = double_int_add (t, double_int_minus_one);
+  t = double_int_div (t, alignd, true, TRUNC_DIV_EXPR);
+  t = double_int_mul (t, alignd);
+  return t;
 }
 
 /* Given a pointer to a FIELD_DECL, compute and return the byte offset of the
@@ -15387,8 +15438,9 @@ round_up_to_align (HOST_WIDE_INT t, unsigned int align)
 static HOST_WIDE_INT
 field_byte_offset (const_tree decl)
 {
-  HOST_WIDE_INT object_offset_in_bits;
-  HOST_WIDE_INT bitpos_int;
+  double_int object_offset_in_bits;
+  double_int object_offset_in_bytes;
+  double_int bitpos_int;
 
   if (TREE_CODE (decl) == ERROR_MARK)
     return 0;
@@ -15398,24 +15450,24 @@ field_byte_offset (const_tree decl)
   /* We cannot yet cope with fields whose positions are variable, so
      for now, when we see such things, we simply return 0.  Someday, we may
      be able to handle such cases, but it will be damn difficult.  */
-  if (! host_integerp (bit_position (decl), 0))
+  if (TREE_CODE (bit_position (decl)) != INTEGER_CST)
     return 0;
 
-  bitpos_int = int_bit_position (decl);
+  bitpos_int = tree_to_double_int (bit_position (decl));
 
 #ifdef PCC_BITFIELD_TYPE_MATTERS
   if (PCC_BITFIELD_TYPE_MATTERS)
     {
       tree type;
       tree field_size_tree;
-      HOST_WIDE_INT deepest_bitpos;
-      unsigned HOST_WIDE_INT field_size_in_bits;
+      double_int deepest_bitpos;
+      double_int field_size_in_bits;
       unsigned int type_align_in_bits;
       unsigned int decl_align_in_bits;
-      unsigned HOST_WIDE_INT type_size_in_bits;
+      double_int type_size_in_bits;
 
       type = field_type (decl);
-      type_size_in_bits = simple_type_size_in_bits (type);
+      type_size_in_bits = double_int_type_size_in_bits (type);
       type_align_in_bits = simple_type_align_in_bits (type);
 
       field_size_tree = DECL_SIZE (decl);
@@ -15426,85 +15478,92 @@ field_byte_offset (const_tree decl)
 	field_size_tree = bitsize_zero_node;
 
       /* If the size of the field is not constant, use the type size.  */
-      if (host_integerp (field_size_tree, 1))
-        field_size_in_bits = tree_low_cst (field_size_tree, 1);
+      if (TREE_CODE (field_size_tree) == INTEGER_CST)
+	field_size_in_bits = tree_to_double_int (field_size_tree);
       else
-        field_size_in_bits = type_size_in_bits;
+	field_size_in_bits = type_size_in_bits;
 
       decl_align_in_bits = simple_decl_align_in_bits (decl);
 
       /* The GCC front-end doesn't make any attempt to keep track of the
-         starting bit offset (relative to the start of the containing
-         structure type) of the hypothetical "containing object" for a
-         bit-field.  Thus, when computing the byte offset value for the
-         start of the "containing object" of a bit-field, we must deduce
-         this information on our own. This can be rather tricky to do in
-         some cases.  For example, handling the following structure type
-         definition when compiling for an i386/i486 target (which only
-         aligns long long's to 32-bit boundaries) can be very tricky:
+	 starting bit offset (relative to the start of the containing
+	 structure type) of the hypothetical "containing object" for a
+	 bit-field.  Thus, when computing the byte offset value for the
+	 start of the "containing object" of a bit-field, we must deduce
+	 this information on our own. This can be rather tricky to do in
+	 some cases.  For example, handling the following structure type
+	 definition when compiling for an i386/i486 target (which only
+	 aligns long long's to 32-bit boundaries) can be very tricky:
 
 	 struct S { int field1; long long field2:31; };
 
-         Fortunately, there is a simple rule-of-thumb which can be used
-         in such cases.  When compiling for an i386/i486, GCC will
-         allocate 8 bytes for the structure shown above.  It decides to
-         do this based upon one simple rule for bit-field allocation.
-         GCC allocates each "containing object" for each bit-field at
-         the first (i.e. lowest addressed) legitimate alignment boundary
-         (based upon the required minimum alignment for the declared
-         type of the field) which it can possibly use, subject to the
-         condition that there is still enough available space remaining
-         in the containing object (when allocated at the selected point)
-         to fully accommodate all of the bits of the bit-field itself.
+	 Fortunately, there is a simple rule-of-thumb which can be used
+	 in such cases.  When compiling for an i386/i486, GCC will
+	 allocate 8 bytes for the structure shown above.  It decides to
+	 do this based upon one simple rule for bit-field allocation.
+	 GCC allocates each "containing object" for each bit-field at
+	 the first (i.e. lowest addressed) legitimate alignment boundary
+	 (based upon the required minimum alignment for the declared
+	 type of the field) which it can possibly use, subject to the
+	 condition that there is still enough available space remaining
+	 in the containing object (when allocated at the selected point)
+	 to fully accommodate all of the bits of the bit-field itself.
 
-         This simple rule makes it obvious why GCC allocates 8 bytes for
-         each object of the structure type shown above.  When looking
-         for a place to allocate the "containing object" for `field2',
-         the compiler simply tries to allocate a 64-bit "containing
-         object" at each successive 32-bit boundary (starting at zero)
-         until it finds a place to allocate that 64- bit field such that
-         at least 31 contiguous (and previously unallocated) bits remain
-         within that selected 64 bit field.  (As it turns out, for the
-         example above, the compiler finds it is OK to allocate the
-         "containing object" 64-bit field at bit-offset zero within the
-         structure type.)
+	 This simple rule makes it obvious why GCC allocates 8 bytes for
+	 each object of the structure type shown above.  When looking
+	 for a place to allocate the "containing object" for `field2',
+	 the compiler simply tries to allocate a 64-bit "containing
+	 object" at each successive 32-bit boundary (starting at zero)
+	 until it finds a place to allocate that 64- bit field such that
+	 at least 31 contiguous (and previously unallocated) bits remain
+	 within that selected 64 bit field.  (As it turns out, for the
+	 example above, the compiler finds it is OK to allocate the
+	 "containing object" 64-bit field at bit-offset zero within the
+	 structure type.)
 
-         Here we attempt to work backwards from the limited set of facts
-         we're given, and we try to deduce from those facts, where GCC
-         must have believed that the containing object started (within
-         the structure type). The value we deduce is then used (by the
-         callers of this routine) to generate DW_AT_location and
-         DW_AT_bit_offset attributes for fields (both bit-fields and, in
-         the case of DW_AT_location, regular fields as well).  */
+	 Here we attempt to work backwards from the limited set of facts
+	 we're given, and we try to deduce from those facts, where GCC
+	 must have believed that the containing object started (within
+	 the structure type). The value we deduce is then used (by the
+	 callers of this routine) to generate DW_AT_location and
+	 DW_AT_bit_offset attributes for fields (both bit-fields and, in
+	 the case of DW_AT_location, regular fields as well).  */
 
       /* Figure out the bit-distance from the start of the structure to
-         the "deepest" bit of the bit-field.  */
-      deepest_bitpos = bitpos_int + field_size_in_bits;
+	 the "deepest" bit of the bit-field.  */
+      deepest_bitpos = double_int_add (bitpos_int, field_size_in_bits);
 
       /* This is the tricky part.  Use some fancy footwork to deduce
-         where the lowest addressed bit of the containing object must
-         be.  */
-      object_offset_in_bits = deepest_bitpos - type_size_in_bits;
+	 where the lowest addressed bit of the containing object must
+	 be.  */
+      object_offset_in_bits
+	= double_int_add (deepest_bitpos, double_int_neg (type_size_in_bits));
 
       /* Round up to type_align by default.  This works best for
-         bitfields.  */
+	 bitfields.  */
       object_offset_in_bits
-        = round_up_to_align (object_offset_in_bits, type_align_in_bits);
+	= round_up_to_align (object_offset_in_bits, type_align_in_bits);
 
-      if (object_offset_in_bits > bitpos_int)
-        {
-          object_offset_in_bits = deepest_bitpos - type_size_in_bits;
+      if (double_int_ucmp (object_offset_in_bits, bitpos_int) > 0)
+	{
+	  object_offset_in_bits
+	    = double_int_add (deepest_bitpos,
+			      double_int_neg (type_size_in_bits));
 
-          /* Round up to decl_align instead.  */
-          object_offset_in_bits
-            = round_up_to_align (object_offset_in_bits, decl_align_in_bits);
-        }
+	  /* Round up to decl_align instead.  */
+	  object_offset_in_bits
+	    = round_up_to_align (object_offset_in_bits, decl_align_in_bits);
+	}
     }
   else
 #endif
     object_offset_in_bits = bitpos_int;
 
-  return object_offset_in_bits / BITS_PER_UNIT;
+  object_offset_in_bytes
+    = double_int_div (object_offset_in_bits,
+		      uhwi_to_double_int (BITS_PER_UNIT), true,
+		      TRUNC_DIV_EXPR);
+  return double_int_to_shwi (object_offset_in_bytes);
 }
 
 /* The following routines define various Dwarf attributes and any data
@@ -15871,8 +15930,8 @@ reference_to_unused (tree * tp, int * walk_subtrees,
     return *tp;
   else if (TREE_CODE (*tp) == VAR_DECL)
     {
-      struct varpool_node *node = varpool_node (*tp);
-      if (!node->needed)
+      struct varpool_node *node = varpool_get_node (*tp);
+      if (!node || !node->needed)
 	return *tp;
     }
   else if (TREE_CODE (*tp) == FUNCTION_DECL
@@ -17859,22 +17918,26 @@ gen_formal_parameter_die (tree node, tree origin, bool emit_name_p,
 	origin = ultimate_origin;
       if (origin != NULL)
 	add_abstract_origin_attribute (parm_die, origin);
-      else
+      else if (emit_name_p)
+	add_name_and_src_coords_attributes (parm_die, node);
+      if (origin == NULL
+	  || (! DECL_ABSTRACT (node_or_origin)
+	      && variably_modified_type_p (TREE_TYPE (node_or_origin),
+					   decl_function_context
+							    (node_or_origin))))
 	{
-	  tree type = TREE_TYPE (node);
-	  if (emit_name_p)
-	    add_name_and_src_coords_attributes (parm_die, node);
-	  if (decl_by_reference_p (node))
+	  tree type = TREE_TYPE (node_or_origin);
+	  if (decl_by_reference_p (node_or_origin))
 	    add_type_attribute (parm_die, TREE_TYPE (type), 0, 0,
 				context_die);
 	  else
 	    add_type_attribute (parm_die, type,
-				TREE_READONLY (node),
-				TREE_THIS_VOLATILE (node),
+				TREE_READONLY (node_or_origin),
+				TREE_THIS_VOLATILE (node_or_origin),
 				context_die);
-	  if (DECL_ARTIFICIAL (node))
-	    add_AT_flag (parm_die, DW_AT_artificial, 1);
 	}
+      if (origin == NULL && DECL_ARTIFICIAL (node))
+	add_AT_flag (parm_die, DW_AT_artificial, 1);
 
       if (node && node != origin)
         equate_decl_number_to_die (node, parm_die);
@@ -18142,8 +18205,8 @@ premark_types_used_by_global_vars_helper (void **slot,
     {
       /* Ask cgraph if the global variable really is to be emitted.
          If yes, then we'll keep the DIE of ENTRY->TYPE.  */
-      struct varpool_node *node = varpool_node (entry->var_decl);
-      if (node->needed)
+      struct varpool_node *node = varpool_get_node (entry->var_decl);
+      if (node && node->needed)
 	{
 	  die->die_perennial_p = 1;
 	  /* Keep the parent DIEs as well.  */
@@ -18577,8 +18640,9 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
   dw_die_ref var_die;
   dw_die_ref old_die = decl ? lookup_decl_die (decl) : NULL;
   dw_die_ref origin_die;
-  int declaration = (DECL_EXTERNAL (decl_or_origin)
-		     || class_or_namespace_scope_p (context_die));
+  bool declaration = (DECL_EXTERNAL (decl_or_origin)
+		      || class_or_namespace_scope_p (context_die));
+  bool specialization_p = false;
 
   ultimate_origin = decl_ultimate_origin (decl_or_origin);
   if (decl || ultimate_origin)
@@ -18722,6 +18786,7 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
     {
       /* This is a definition of a C++ class level static.  */
       add_AT_specification (var_die, old_die);
+      specialization_p = true;
       if (DECL_NAME (decl))
 	{
 	  expanded_location s = expand_location (DECL_SOURCE_LOCATION (decl));
@@ -18735,16 +18800,26 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
 	}
     }
   else
-    {
-      tree type = TREE_TYPE (decl);
+    add_name_and_src_coords_attributes (var_die, decl);
 
-      add_name_and_src_coords_attributes (var_die, decl);
-      if (decl_by_reference_p (decl))
+  if ((origin == NULL && !specialization_p)
+      || (origin != NULL
+	  && !DECL_ABSTRACT (decl_or_origin)
+	  && variably_modified_type_p (TREE_TYPE (decl_or_origin),
+				       decl_function_context
+							(decl_or_origin))))
+    {
+      tree type = TREE_TYPE (decl_or_origin);
+
+      if (decl_by_reference_p (decl_or_origin))
 	add_type_attribute (var_die, TREE_TYPE (type), 0, 0, context_die);
       else
-	add_type_attribute (var_die, type, TREE_READONLY (decl),
-			    TREE_THIS_VOLATILE (decl), context_die);
+	add_type_attribute (var_die, type, TREE_READONLY (decl_or_origin),
+			    TREE_THIS_VOLATILE (decl_or_origin), context_die);
+    }
 
+  if (origin == NULL && !specialization_p)
+    {
       if (TREE_PUBLIC (decl))
 	add_AT_flag (var_die, DW_AT_external, 1);
 
@@ -21746,7 +21821,7 @@ dwarf2out_finish (const char *filename)
 	    add_child_die (origin->die_parent, die);
 	  else if (die == comp_unit_die)
 	    ;
-	  else if (errorcount > 0 || sorrycount > 0)
+	  else if (seen_error ())
 	    /* It's OK to be confused by errors in the input.  */
 	    add_child_die (comp_unit_die, die);
 	  else

@@ -31,7 +31,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "rtl.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "insn-attr.h"
@@ -8172,10 +8171,27 @@ mips_file_start (void)
 		 "\t.previous\n", TARGET_LONG64 ? 64 : 32);
 
 #ifdef HAVE_AS_GNU_ATTRIBUTE
-      fprintf (asm_out_file, "\t.gnu_attribute 4, %d\n",
-	       (TARGET_HARD_FLOAT_ABI
-		? (TARGET_DOUBLE_FLOAT
-		   ? ((!TARGET_64BIT && TARGET_FLOAT64) ? 4 : 1) : 2) : 3));
+      {
+	int attr;
+
+	/* No floating-point operations, -mno-float.  */
+	if (TARGET_NO_FLOAT)
+	  attr = 0;
+	/* Soft-float code, -msoft-float.  */
+	else if (!TARGET_HARD_FLOAT_ABI)
+	  attr = 3;
+	/* Single-float code, -msingle-float.  */
+	else if (!TARGET_DOUBLE_FLOAT)
+	  attr = 2;
+	/* 64-bit FP registers on a 32-bit target, -mips32r2 -mfp64.  */
+	else if (!TARGET_64BIT && TARGET_FLOAT64)
+	  attr = 4;
+	/* Regular FP code, FP regs same size as GP regs, -mdouble-float.  */
+	else
+	  attr = 1;
+
+	fprintf (asm_out_file, "\t.gnu_attribute 4, %d\n", attr);
+      }
 #endif
     }
 
@@ -14006,23 +14022,35 @@ r10k_insert_cache_barriers (void)
 }
 
 /* If INSN is a call, return the underlying CALL expr.  Return NULL_RTX
-   otherwise.  */
+   otherwise.  If INSN has two call rtx, then store the second one in
+   SECOND_CALL.  */
 
 static rtx
-mips_call_expr_from_insn (rtx insn)
+mips_call_expr_from_insn (rtx insn, rtx *second_call)
 {
   rtx x;
+  rtx x2;
 
   if (!CALL_P (insn))
     return NULL_RTX;
 
   x = PATTERN (insn);
   if (GET_CODE (x) == PARALLEL)
-    x = XVECEXP (x, 0, 0);
+    {
+      /* Calls returning complex values have two CALL rtx.  Look for the second
+	 one here, and return it via the SECOND_CALL arg.  */
+      x2 = XVECEXP (x, 0, 1);
+      if (GET_CODE (x2) == SET)
+	x2 = XEXP (x2, 1);
+      if (GET_CODE (x2) == CALL)
+	*second_call = x2;
+
+      x = XVECEXP (x, 0, 0);
+    }
   if (GET_CODE (x) == SET)
     x = XEXP (x, 1);
-
   gcc_assert (GET_CODE (x) == CALL);
+
   return x;
 }
 
@@ -14154,9 +14182,10 @@ mips_annotate_pic_calls (void)
   FOR_EACH_BB (bb)
     FOR_BB_INSNS (bb, insn)
     {
-      rtx call, reg, symbol;
+      rtx call, reg, symbol, second_call;
 
-      call = mips_call_expr_from_insn (insn);
+      second_call = 0;
+      call = mips_call_expr_from_insn (insn, &second_call);
       if (!call)
 	continue;
       gcc_assert (MEM_P (XEXP (call, 0)));
@@ -14166,7 +14195,11 @@ mips_annotate_pic_calls (void)
 
       symbol = mips_find_pic_call_symbol (insn, reg);
       if (symbol)
-	mips_annotate_pic_call_expr (call, symbol);
+	{
+	  mips_annotate_pic_call_expr (call, symbol);
+	  if (second_call)
+	    mips_annotate_pic_call_expr (second_call, symbol);
+	}
     }
 }
 
@@ -15387,6 +15420,13 @@ mips_override_options (void)
 #ifdef SUBTARGET_OVERRIDE_OPTIONS
   SUBTARGET_OVERRIDE_OPTIONS;
 #endif
+
+  /* -mno-float overrides -mhard-float and -msoft-float.  */
+  if (TARGET_NO_FLOAT)
+    {
+      target_flags |= MASK_SOFT_FLOAT_ABI;
+      target_flags_explicit |= MASK_SOFT_FLOAT_ABI;
+    }
 
   /* Set the small data limit.  */
   mips_small_data_threshold = (g_switch_set
