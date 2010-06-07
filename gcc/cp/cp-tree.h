@@ -138,6 +138,7 @@ c-common.h, not after.
    5: DECL_INTERFACE_KNOWN.
    6: DECL_THIS_STATIC (in VAR_DECL or FUNCTION_DECL).
       DECL_FIELD_IS_BASE (in FIELD_DECL)
+      TYPE_DECL_ALIAS_P (in TYPE_DECL)
    7: DECL_DEAD_FOR_LOCAL (in VAR_DECL).
       DECL_THUNK_P (in a member FUNCTION_DECL)
       DECL_NORMAL_CAPTURE_P (in FIELD_DECL)
@@ -2529,16 +2530,17 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    ? ENUM_TEMPLATE_INFO (NODE) :			\
    (TREE_CODE (NODE) == BOUND_TEMPLATE_TEMPLATE_PARM	\
     ? TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (NODE) :	\
-    (TYPE_LANG_SPECIFIC (NODE)				\
+    (CLASS_TYPE_P (NODE)				\
      ? CLASSTYPE_TEMPLATE_INFO (NODE)			\
-     : NULL_TREE)))
+     : (DECL_TEMPLATE_INFO (TYPE_NAME (NODE))))))
 
 /* Set the template information for an ENUMERAL_, RECORD_, or
    UNION_TYPE to VAL.  */
-#define SET_TYPE_TEMPLATE_INFO(NODE, VAL)	\
-  (TREE_CODE (NODE) == ENUMERAL_TYPE		\
-   ? (ENUM_TEMPLATE_INFO (NODE) = (VAL))	\
-   : (CLASSTYPE_TEMPLATE_INFO (NODE) = (VAL)))
+#define SET_TYPE_TEMPLATE_INFO(NODE, VAL)				\
+  (TREE_CODE (NODE) == ENUMERAL_TYPE					\
+   ? (ENUM_TEMPLATE_INFO (NODE) = (VAL))				\
+   : CLASS_TYPE_P (NODE) ? (CLASSTYPE_TEMPLATE_INFO (NODE) = (VAL))	\
+   : (DECL_TEMPLATE_INFO (TYPE_NAME (NODE)) = (VAL)))
 
 #define TI_TEMPLATE(NODE) TREE_TYPE (TEMPLATE_INFO_CHECK (NODE))
 #define TI_ARGS(NODE) TREE_CHAIN (TEMPLATE_INFO_CHECK (NODE))
@@ -3391,6 +3393,10 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define DECL_FIELD_IS_BASE(NODE) \
   DECL_LANG_FLAG_6 (FIELD_DECL_CHECK (NODE))
 
+/* Nonzero for TYPE_DECL means that it was written 'using name = type'.  */
+#define TYPE_DECL_ALIAS_P(NODE) \
+  DECL_LANG_FLAG_6 (TYPE_DECL_CHECK (NODE))
+
 /* Nonzero for FIELD_DECL node means that this field is a simple (no
    explicit initializer) lambda capture field, making it invisible to
    name lookup in unevaluated contexts.  */
@@ -3530,10 +3536,18 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    && TREE_CODE (DECL_TEMPLATE_RESULT (NODE)) == FUNCTION_DECL)
 
 /* Nonzero for a DECL that represents a template class.  */
-#define DECL_CLASS_TEMPLATE_P(NODE)				\
+#define DECL_TYPE_TEMPLATE_P(NODE)				\
   (TREE_CODE (NODE) == TEMPLATE_DECL				\
    && DECL_TEMPLATE_RESULT (NODE) != NULL_TREE			\
+   && TREE_CODE (DECL_TEMPLATE_RESULT (NODE)) == TYPE_DECL)
+
+#define DECL_CLASS_TEMPLATE_P(NODE)				\
+  (DECL_TYPE_TEMPLATE_P (NODE)					\
    && DECL_IMPLICIT_TYPEDEF_P (DECL_TEMPLATE_RESULT (NODE)))
+
+#define DECL_ALIAS_TEMPLATE_P(NODE)			\
+  (DECL_TYPE_TEMPLATE_P (NODE)				\
+   && !DECL_ARTIFICIAL (DECL_TEMPLATE_RESULT (NODE)))
 
 /* Nonzero if NODE which declares a type.  */
 #define DECL_DECLARES_TYPE_P(NODE) \
@@ -4442,6 +4456,7 @@ typedef enum cp_decl_spec {
   ds_explicit,
   ds_friend,
   ds_typedef,
+  ds_alias,
   ds_constexpr,
   ds_complex,
   ds_thread,

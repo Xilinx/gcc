@@ -4749,6 +4749,11 @@ push_template_decl_real (tree decl, bool is_friend)
       else if (DECL_IMPLICIT_TYPEDEF_P (decl)
 	       && CLASS_TYPE_P (TREE_TYPE (decl)))
 	/* OK */;
+      else if (TREE_CODE (decl) == TYPE_DECL)
+	{
+	  /* alias-declaration */
+	  gcc_assert (!DECL_ARTIFICIAL (decl));
+	}
       else
 	{
 	  error ("template declaration of %q#D", decl);
@@ -5013,8 +5018,13 @@ template arguments to %qD do not match original template %qD",
 
   if (DECL_IMPLICIT_TYPEDEF_P (decl))
     SET_TYPE_TEMPLATE_INFO (TREE_TYPE (tmpl), info);
-  else if (DECL_LANG_SPECIFIC (decl))
-    DECL_TEMPLATE_INFO (decl) = info;
+  else
+    {
+      if (primary && !DECL_LANG_SPECIFIC (decl))
+	retrofit_lang_decl (decl);
+      if (DECL_LANG_SPECIFIC (decl))
+	DECL_TEMPLATE_INFO (decl) = info;
+    }
 
   return DECL_TEMPLATE_RESULT (tmpl);
 }
@@ -7001,7 +7011,7 @@ lookup_template_class (tree d1,
 	  ENUM_FIXED_UNDERLYING_TYPE_P (t)
 	    = ENUM_FIXED_UNDERLYING_TYPE_P (template_type);
 	}
-      else
+      else if (CLASS_TYPE_P (template_type))
 	{
 	  t = make_class_type (TREE_CODE (template_type));
 	  CLASSTYPE_DECLARED_CLASS (t)
@@ -7023,6 +7033,13 @@ lookup_template_class (tree d1,
 	       equality testing, so this template class requires
 	       structural equality testing. */
 	    SET_TYPE_STRUCTURAL_EQUALITY (t);
+	}
+      else
+	{
+	  /* A template alias.  */
+	  type_decl = tsubst (DECL_TEMPLATE_RESULT (templ), arglist,
+			      complain, in_decl);
+	  t = TREE_TYPE (type_decl);
 	}
 
       /* If we called start_enum or pushtag above, this information

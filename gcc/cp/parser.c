@@ -1664,6 +1664,8 @@ static bool cp_parser_using_declaration
   (cp_parser *, bool);
 static void cp_parser_using_directive
   (cp_parser *);
+static tree cp_parser_alias_declaration
+  (cp_parser *);
 static void cp_parser_asm_definition
   (cp_parser *);
 static void cp_parser_linkage_specification
@@ -9298,8 +9300,8 @@ cp_parser_block_declaration (cp_parser *parser,
      namespace-alias-definition.  */
   else if (token1->keyword == RID_NAMESPACE)
     cp_parser_namespace_alias_definition (parser);
-  /* If the next keyword is `using', we have either a
-     using-declaration or a using-directive.  */
+  /* If the next keyword is `using', we have a
+     using-declaration, a using-directive, or an alias-declaration.  */
   else if (token1->keyword == RID_USING)
     {
       cp_token *token2;
@@ -9311,6 +9313,12 @@ cp_parser_block_declaration (cp_parser *parser,
       token2 = cp_lexer_peek_nth_token (parser->lexer, 2);
       if (token2->keyword == RID_NAMESPACE)
 	cp_parser_using_directive (parser);
+      /* If the second token after 'using' is '=', then we have an
+	 alias-declaration.  */
+      else if (cxx_dialect >= cxx0x
+	       && token2->type == CPP_NAME
+	       && cp_lexer_peek_nth_token (parser->lexer, 3)->type == CPP_EQ)
+	cp_parser_alias_declaration (parser);
       /* Otherwise, it's a using-declaration.  */
       else
 	cp_parser_using_declaration (parser,
@@ -11436,7 +11444,7 @@ cp_parser_template_id (cp_parser *parser,
   /* Build a representation of the specialization.  */
   if (TREE_CODE (templ) == IDENTIFIER_NODE)
     template_id = build_min_nt (TEMPLATE_ID_EXPR, templ, arguments);
-  else if (DECL_CLASS_TEMPLATE_P (templ)
+  else if (DECL_TYPE_TEMPLATE_P (templ)
 	   || DECL_TEMPLATE_TEMPLATE_PARM_P (templ))
     {
       bool entering_scope;
@@ -13879,6 +13887,57 @@ cp_parser_using_declaration (cp_parser* parser,
   cp_parser_require (parser, CPP_SEMICOLON, RT_SEMICOLON);
   
   return true;
+}
+
+/* Parse an alias-declaration.
+
+   alias-declaration:
+     using identifier = type-id  */
+
+static tree
+cp_parser_alias_declaration (cp_parser* parser)
+{
+  tree id, type, decl, dummy;
+  location_t id_location;
+  cp_declarator *declarator;
+  cp_decl_specifier_seq decl_specs;
+
+  /* Look for the `using' keyword.  */
+  cp_parser_require_keyword (parser, RID_USING, RT_USING);
+  id_location = cp_lexer_peek_token (parser->lexer)->location;
+  id = cp_parser_identifier (parser);
+  cp_parser_require (parser, CPP_EQ, RT_EQ);
+
+  decl = build_decl (id_location, TYPE_DECL, id, unknown_type_node);
+  if (at_class_scope () || template_parm_scope_p ())
+    retrofit_lang_decl (decl);
+  
+  type = cp_parser_type_id (parser);
+
+  /* A typedef-name can also be introduced by an alias-declaration. The
+     identifier following the using keyword becomes a typedef-name. It has
+     the same semantics as if it were introduced by the typedef
+     specifier. In particular, it does not define a new type and it shall
+     not appear in the type-id.  */
+
+  clear_decl_specs (&decl_specs);
+  decl_specs.type = type;
+  ++decl_specs.specs[(int) ds_typedef];
+
+  declarator = make_id_declarator (NULL_TREE, id, sfk_none);
+  declarator->id_loc = id_location;
+
+  if (at_class_scope_p ())
+    decl = grokfield (declarator, &decl_specs, NULL_TREE, false,
+		      NULL_TREE, NULL_TREE);
+  else
+    decl = start_decl (declarator, &decl_specs, 0,
+		       NULL_TREE, NULL_TREE, &dummy);
+  if (decl == error_mark_node)
+    return decl;
+  cp_finish_decl (decl, NULL_TREE, 0, NULL_TREE, 0);
+
+  return decl;
 }
 
 /* Parse a using-directive.
@@ -17395,6 +17454,7 @@ cp_parser_member_specification_opt (cp_parser* parser)
      :: [opt] nested-name-specifier template [opt] unqualified-id ;
      using-declaration
      template-declaration
+     alias-declaration
 
    member-declarator-list:
      member-declarator
@@ -19704,6 +19764,9 @@ cp_parser_template_declaration_after_export (cp_parser* parser, bool member_p)
   if (cp_lexer_next_token_is_keyword (parser->lexer,
 				      RID_TEMPLATE))
     cp_parser_template_declaration_after_export (parser, member_p);
+  else if (cxx_dialect >= cxx0x
+	   && cp_lexer_next_token_is_keyword (parser->lexer, RID_USING))
+    decl = cp_parser_alias_declaration (parser);
   else
     {
       /* There are no access checks when parsing a template, as we do not

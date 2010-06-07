@@ -933,6 +933,16 @@ dump_decl (tree t, int flags)
 	  dump_type (TREE_TYPE (t), flags);
 	  break;
 	}
+      if (TYPE_DECL_ALIAS_P (t))
+	{
+	  pp_cxx_ws_string (cxx_pp, "using");
+	  dump_decl (DECL_NAME (t), flags);
+	  pp_cxx_whitespace (cxx_pp);
+	  pp_cxx_ws_string (cxx_pp, "=");
+	  pp_cxx_whitespace (cxx_pp);
+	  dump_type (DECL_ORIGINAL_TYPE (t), flags);
+	  break;
+	}
       if ((flags & TFF_DECL_SPECIFIERS)
 	  && !DECL_SELF_REFERENCE_P (t))
 	pp_cxx_ws_string (cxx_pp, "typedef");
