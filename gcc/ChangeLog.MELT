@@ -1,3 +1,43 @@
+2010-06-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Removed every GFDL license in code.
+	http://gcc.gnu.org/ml/gcc-patches/2010-06/msg00767.html
+	and regenerted everything.}}
+	* melt/warmelt-debug.melt: reverted copyright notice to GPLv3+ only.
+	* melt/warmelt-first.melt: ditto.
+	* melt/warmelt-normal.melt: ditto.
+	* melt/warmelt-base.melt: ditto.
+	* melt/warmelt-normatch.melt: ditto.
+	* melt/warmelt-macro.melt: ditto.
+	* melt/warmelt-outobj.melt: ditto. Also removed code outputing
+	GFDL notice in generated documentation.
+	* melt/warmelt-genobj.melt: ditto.
+	* melt/generated/warmelt-normatch.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+03.c: regenerated.
+	* melt/generated/warmelt-macro.0.c: regenerated.
+	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-debug.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0.c: regenerated.
+	* melt/generated/warmelt-normal.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0+03.c: regenerated.
+	* melt/generated/warmelt-base.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0.c: regenerated.
+	* melt/generated/warmelt-macro.0+01.c: regenerated.
+	* melt/generated/warmelt-macro.0+02.c: regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: regenerated.
+	* melt/generated/warmelt-macro.0+03.c: regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: regenerated.
+	* melt/generated/warmelt-debug.0.c: regenerated.
+
 2010-06-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: added tree_pointer_type_p cmatcher.
 
