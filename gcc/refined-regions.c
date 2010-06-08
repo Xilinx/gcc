@@ -337,28 +337,16 @@ get_next_postdom (basic_block bb, htab_t shortcut)
   return get_immediate_dominator (CDI_POST_DOMINATORS, bb);
 }
 
-/* Create a new region starting at ENTRY, finishing at EXIT and
-   being a subregion of parent.  The region is automatically inserted
-   in the parent region.  If parent is NULL no parent is assigned to
-   the new region.
-   Also a mapping from entry to the new region into the BBMAP.  */
+/* Create a new region starting at ENTRY and finishing at EXIT.  */
 
 static refined_region_p
-create_region (basic_block entry, basic_block exit, refined_region_p parent,
-	       htab_t bbmap)
+create_region (basic_block entry, basic_block exit)
 {
   refined_region_p r = XNEW (struct refined_region);
   r->entry = entry;
   r->exit = exit;
-  r->parent = parent;
+  r->parent = 0;
   r->children = VEC_alloc (refined_region_p, heap, 16);
-
-  if (parent)
-    VEC_safe_push (refined_region_p, heap, parent->children, r);
-
-  /* Do not insert the outermost region in the bbmap.  */
-  if (exit)
-    insert_new_reg (entry, r, bbmap);
 
   return r;
 }
@@ -379,8 +367,18 @@ find_regions_with_entry (basic_block entry, struct find_regions_global_data *gd)
 
       if (is_region (entry, exit, gd->dfs))
 	{
-	  refined_region_p new_region = create_region (entry, exit, last_region,
-						       gd->bbmap);
+	  refined_region_p new_region = create_region (entry, exit);
+
+	  /* new_region becomes the parent of last_region.  */
+	  if (last_region)
+	    {
+	      VEC_safe_push (refined_region_p, heap, new_region->children,
+			     last_region);
+	      last_region->parent = new_region;
+	    }
+	  else
+	    insert_new_reg (entry, new_region, gd->bbmap);
+
 	  last_region = new_region;
 	  last_exit = exit;
 	}
@@ -463,17 +461,18 @@ build_regions_tree (basic_block bb, refined_region_p outer_region, htab_t bbmap)
   refined_region_p region;
   VEC (basic_block, heap) *dominated_bbs = get_dominated_by (CDI_DOMINATORS,
 							     bb);
-
   /* Passed region exit.  */
   while (bb == outer_region->exit)
     outer_region = outer_region->parent;
 
-  region = get_topmost_parent (find_new_region (bb, bbmap));
+  region = find_new_region (bb, bbmap);
 
   if (region)
     {
-      VEC_safe_push (refined_region_p, heap, outer_region->children, region);
-      region->parent = outer_region;
+      refined_region_p topmost_parent = get_topmost_parent (region);
+      VEC_safe_push (refined_region_p, heap, outer_region->children,
+		     topmost_parent);
+      topmost_parent->parent = outer_region;
       outer_region = region;
     }
 
@@ -511,7 +510,7 @@ calculate_region_tree (void)
   compute_dominance_frontiers (dfs);
 
   find_regions (dfs, bbmap);
-  outermost_region = create_region (ENTRY_BLOCK_PTR, 0, 0, bbmap);
+  outermost_region = create_region (ENTRY_BLOCK_PTR, 0);
   build_regions_tree (ENTRY_BLOCK_PTR, outermost_region, bbmap);
 
   /* Free dominance frontier */
