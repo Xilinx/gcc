@@ -41,7 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
-void gpy_symbol_init_ctx( gpy_symbol_obj * x )
+void gpy_symbol_init_ctx( gpy_symbol_obj * const x )
 {
   x->identifier= NULL;
   x->exp = TYPE_SYMBOL_NIL;
