@@ -39,7 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "target.h"
 #include "convert.h"
-#include "c-common.h"
+#include "c-family/c-common.h"
 #include "params.h"
 
 static tree pfn_from_ptrmemfunc (tree);
@@ -829,26 +829,17 @@ merge_types (tree t1, tree t2)
 
 	/* Simple way if one arg fails to specify argument types.  */
 	if (p1 == NULL_TREE || TREE_VALUE (p1) == void_type_node)
-	  {
-	    parms = p2;
-	    raises = TYPE_RAISES_EXCEPTIONS (t2);
-	  }
+	  parms = p2;
 	else if (p2 == NULL_TREE || TREE_VALUE (p2) == void_type_node)
-	  {
-	    parms = p1;
-	    raises = TYPE_RAISES_EXCEPTIONS (t1);
-	  }
+	  parms = p1;
 	else
-	  {
-	    parms = commonparms (p1, p2);
-	    /* In cases where we're merging a real declaration with a
-	       built-in declaration, t1 is the real one.  */
-	    raises = TYPE_RAISES_EXCEPTIONS (t1);
-	  }
+	  parms = commonparms (p1, p2);
 
 	rval = build_function_type (valtype, parms);
 	gcc_assert (type_memfn_quals (t1) == type_memfn_quals (t2));
 	rval = apply_memfn_quals (rval, type_memfn_quals (t1));
+	raises = merge_exception_specifiers (TYPE_RAISES_EXCEPTIONS (t1),
+					     TYPE_RAISES_EXCEPTIONS (t2));
 	t1 = build_exception_variant (rval, raises);
 	break;
       }
@@ -858,7 +849,8 @@ merge_types (tree t1, tree t2)
 	/* Get this value the long way, since TYPE_METHOD_BASETYPE
 	   is just the main variant of this.  */
 	tree basetype = TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (t2)));
-	tree raises = TYPE_RAISES_EXCEPTIONS (t1);
+	tree raises = merge_exception_specifiers (TYPE_RAISES_EXCEPTIONS (t1),
+						  TYPE_RAISES_EXCEPTIONS (t2));
 	tree t3;
 
 	/* If this was a member function type, get back to the
@@ -989,29 +981,56 @@ comp_except_types (tree a, tree b, bool exact)
 }
 
 /* Return true if TYPE1 and TYPE2 are equivalent exception specifiers.
-   If EXACT is false, T2 can be stricter than T1 (according to 15.4/7),
-   otherwise it must be exact. Exception lists are unordered, but
-   we've already filtered out duplicates. Most lists will be in order,
-   we should try to make use of that.  */
+   If EXACT is ce_derived, T2 can be stricter than T1 (according to 15.4/5).
+   If EXACT is ce_normal, the compatibility rules in 15.4/3 apply.
+   If EXACT is ce_exact, the specs must be exactly the same. Exception lists
+   are unordered, but we've already filtered out duplicates. Most lists will
+   be in order, we should try to make use of that.  */
 
 bool
-comp_except_specs (const_tree t1, const_tree t2, bool exact)
+comp_except_specs (const_tree t1, const_tree t2, int exact)
 {
   const_tree probe;
   const_tree base;
   int  length = 0;
+  const_tree noexcept_spec = NULL_TREE;
+  const_tree other_spec;
 
   if (t1 == t2)
     return true;
 
+  /* First test noexcept compatibility.  */
+  if (t1 && TREE_PURPOSE (t1))
+    noexcept_spec = t1, other_spec = t2;
+  else if (t2 && TREE_PURPOSE (t2))
+    noexcept_spec = t2, other_spec = t1;
+  if (noexcept_spec)
+    {
+      tree p = TREE_PURPOSE (noexcept_spec);
+      /* Two noexcept-specs are equivalent iff their exprs are.  */
+      if (other_spec && TREE_PURPOSE (other_spec))
+	return cp_tree_equal (p, TREE_PURPOSE (other_spec));
+      /* noexcept(true) is compatible with throw().  */
+      else if (exact < ce_exact && p == boolean_true_node)
+	return nothrow_spec_p (other_spec);
+      /* noexcept(false) is compatible with any throwing
+	 dynamic-exception-spec.  */
+      else if (exact < ce_exact && p == boolean_false_node)
+	return !nothrow_spec_p (other_spec);
+      /* A dependent noexcept-spec is not compatible with any
+	 dynamic-exception-spec.  */
+      else
+	return false;
+    }
+
   if (t1 == NULL_TREE)			   /* T1 is ...  */
-    return t2 == NULL_TREE || !exact;
+    return t2 == NULL_TREE || exact == ce_derived;
   if (!TREE_VALUE (t1))			   /* t1 is EMPTY */
     return t2 != NULL_TREE && !TREE_VALUE (t2);
   if (t2 == NULL_TREE)			   /* T2 is ...  */
     return false;
   if (TREE_VALUE (t1) && !TREE_VALUE (t2)) /* T2 is EMPTY, T1 is not */
-    return !exact;
+    return exact == ce_derived;
 
   /* Neither set is ... or EMPTY, make sure each part of T2 is in T1.
      Count how many we find, to determine exactness. For exact matching and
@@ -1026,7 +1045,7 @@ comp_except_specs (const_tree t1, const_tree t2, bool exact)
 
 	  if (comp_except_types (a, b, exact))
 	    {
-	      if (probe == base && exact)
+	      if (probe == base && exact > ce_derived)
 		base = TREE_CHAIN (probe);
 	      length++;
 	      break;
@@ -1035,7 +1054,7 @@ comp_except_specs (const_tree t1, const_tree t2, bool exact)
       if (probe == NULL_TREE)
 	return false;
     }
-  return !exact || base == NULL_TREE || length == list_length (t1);
+  return exact == ce_derived || base == NULL_TREE || length == list_length (t1);
 }
 
 /* Compare the array types T1 and T2.  ALLOW_REDECLARATION is true if
@@ -2229,6 +2248,7 @@ build_class_member_access_expr (tree object, tree member,
     {
       /* A static data member.  */
       result = member;
+      mark_exp_read (object);
       /* If OBJECT has side-effects, they are supposed to occur.  */
       if (TREE_SIDE_EFFECTS (object))
 	result = build2 (COMPOUND_EXPR, TREE_TYPE (result), object, result);
@@ -7019,7 +7039,7 @@ build_ptrmemfunc (tree type, tree pfn, int force, bool c_cast_p)
     }
 
   /* Handle null pointer to member function conversions.  */
-  if (integer_zerop (pfn))
+  if (null_ptr_cst_p (pfn))
     {
       pfn = build_c_cast (input_location, type, integer_zero_node);
       return build_ptrmemfunc1 (to_type,

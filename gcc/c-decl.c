@@ -45,8 +45,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "opts.h"
 #include "timevar.h"
-#include "c-common.h"
-#include "c-pragma.h"
+#include "c-family/c-common.h"
+#include "c-family/c-pragma.h"
 #include "c-lang.h"
 #include "langhooks.h"
 #include "tree-mudflap.h"
@@ -58,7 +58,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks-def.h"
 #include "pointer-set.h"
 #include "plugin.h"
-#include "c-ada-spec.h"
+#include "c-family/c-ada-spec.h"
 
 /* In grokdeclarator, distinguish syntactic contexts of declarators.  */
 enum decl_context
@@ -5900,12 +5900,6 @@ grokdeclarator (const struct c_declarator *declarator,
 	if (pedantic && type_quals && !DECL_IN_SYSTEM_HEADER (decl))
 	  pedwarn (loc, OPT_pedantic,
 		   "ISO C forbids qualified function types");
-
-	/* GNU C interprets a volatile-qualified function type to indicate
-	   that the function does not return.  */
-	if ((type_quals & TYPE_QUAL_VOLATILE)
-	    && !VOID_TYPE_P (TREE_TYPE (TREE_TYPE (decl))))
-	  warning_at (loc, 0, "%<noreturn%> function returns non-void value");
 
 	/* Every function declaration is an external reference
 	   (DECL_EXTERNAL) except for those which are not at file

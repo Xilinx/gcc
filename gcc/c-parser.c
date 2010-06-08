@@ -46,13 +46,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "input.h"
 #include "cpplib.h"
 #include "timevar.h"
-#include "c-pragma.h"
+#include "c-family/c-pragma.h"
 #include "c-tree.h"
 #include "flags.h"
 #include "output.h"
 #include "toplev.h"
 #include "ggc.h"
-#include "c-common.h"
+#include "c-family/c-common.h"
 #include "vec.h"
 #include "target.h"
 #include "cgraph.h"
@@ -5601,6 +5601,7 @@ c_parser_postfix_expression (c_parser *parser)
 	  pedwarn (loc, OPT_pedantic,
 		   "ISO C forbids braced-groups within expressions");
 	  expr.value = c_finish_stmt_expr (brace_loc, stmt);
+	  mark_exp_read (expr.value);
 	}
       else if (c_token_starts_typename (c_parser_peek_2nd_token (parser)))
 	{
