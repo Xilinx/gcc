@@ -920,6 +920,42 @@
   $tlabeld = gimple_goto_dest($gr);
   }# )
 
+
+;;; match a gimple error mark or a nil; probably not very useful!
+(defcmatcher gimple_error_mark_or_nil
+  (:gimple gr)
+  ()
+  gimperrnil
+  ;; test
+  #{ /*$gimperrnil ? */ (!$gr ||  gimple_code($gr) == GIMPLE_ERROR_MARK) }#
+  ;; no fill
+)
+
+
+;; match any gimple_debug 
+(defcmatcher gimple_debug
+  (:gimple gr)
+  ()
+  gimpdbg
+  ;; test
+  #{ (($gr) && is_gimple_debug(($gr))) }#
+  ;; no fill
+)
+
+
+;; match a gimple_debug_bind
+(defcmatcher gimple_debug_bind
+  (:gimple gr)
+  (:tree tvar tval)
+  gimpdbgbind
+  ;; test
+  #{ /* $gimpdbgbind ? */ (($gr) && gimple_debug_bind_p (($gr))) }#
+  ;; fill
+  #{ /* $gimpdbgbind ! */ 
+  $tvar = gimple_debug_bind_get_var ($gr);
+  $tval = gimple_debug_bind_get_value ($gr);
+  }#)
+
 ;;; match a label
 (defcmatcher gimple_label
   (:gimple gr)
@@ -931,6 +967,7 @@
   #{ /* $gimplab ! */ 
   $tlabel = gimple_label_label($gr);
   }# )
+
 
 
 
@@ -2148,6 +2185,9 @@
  gimple_cond_notequal
  gimple_cond_true 
  gimple_content
+ gimple_debug
+ gimple_debug_bind
+ gimple_error_mark_or_nil
  gimple_goto
  gimple_label
  gimple_nop

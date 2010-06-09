@@ -1,3 +1,9 @@
+2010-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: added is_non_empty_list.
+	* melt/warmelt-normatch.melt: added & using match_step_index utility function.
+	* melt/xtramelt-ana-simple.melt: added gimple_debug
+	gimple_debug_bind gimple_error_mark_or_nil cmatchers.
+
 2010-06-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Removed every GFDL license in code.
 	http://gcc.gnu.org/ml/gcc-patches/2010-06/msg00767.html

@@ -2429,8 +2429,8 @@ objectmap from symbols to the list of their pattern variables.}#
   :doc #{The $CLASS_MATCHED_DATA describes some matched data. Field
 $MDATA_SYMB gives the symbol, $MDATA_CTYPE gives the
 ctype. $MDATA_ORIG is the origin step or data. $MDATA_STEPS is the
-list of match steps, transformed into a tuple when all steps have been
-made.}#
+list of match steps, lazily transformed into a tuple when all steps
+have been made.}#
   :fields ( mdata_symb
 	    mdata_ctype
 	    mdata_orig
@@ -2483,8 +2483,8 @@ $MATCHBIND_NBOCC is the number of occurrences.}#
   :doc #{The $CLASS_MATCH_STEP describes an elementary step of pattern
 matching, like tests, success, etc... The $MSTEP_DATA field is the
 matched data. The $MSTEP_INDEX field is the boxed integer index
-counting from 1 of this step within its data, it is filled when all
-steps have been made.}#
+counting from 1 of this step within its data, it is lazily filled when
+all steps of the matched data have been made.}#
   :fields ( mstep_data
 	    mstep_index 
 	    ))
@@ -4565,6 +4565,46 @@ normalized expression.}#
   :formals (step nmctxt sloc)
 )
 
+;; utility function to compute the index of a match step and update
+;; the mdata_steps of its data to a tuple
+(defun match_step_index (mstep)
+  (assert_msg "check mstep" (is_a mstep class_match_step))
+  (let ( (matindex (unsafe_get_field :mstep_index mstep))
+	 )
+    (if matindex
+	(progn
+	  (assert_msg "check matindex" (is_integerbox matindex))
+	  (return matindex))
+      (let ( (matdata (unsafe_get_field :mstep_data mstep))
+	     (msteps (get_field :mdata_steps matdata))
+	     (msteptup 
+	      (if (is_list msteps)
+		  (let ( (mtupsteps  (list_to_multiple msteps))
+			 )
+		    (put_fields matdata :mdata_steps mtupsteps)
+		    mtupsteps)
+		msteps))
+	     )
+	(debug_msg mstep "match_step_index mstep")
+	(debug_msg matdata "match_step_index matdata")
+	(debug_msg msteptup "match_step_index msteptup")
+	(foreach_in_multiple
+	 (msteptup)
+	 (curstep :long curix)
+	 (debug_msg curstep "match_step_index curstep")
+	 (assert_msg "check curstep" (is_a curstep class_match_step))
+	 (assert_msg "check samedata curstep"
+		     (== matdata (unsafe_get_field :mstep_data curstep)))
+	 (assert_msg "check noindex curstep"
+		     (null (unsafe_get_field :mstep_index curstep)))
+	 (let ( (curboxindex (make_integerbox discr_constant_integer (+i curix 1))) 
+		)
+	   (put_fields curstep :mstep_index curboxindex)
+	   ))
+	(setq matindex  (unsafe_get_field :mstep_index mstep))
+	(return matindex)
+	))))
+
 ;; this utility function completes a normstep if the step is the last
 ;; in its data, or else return the normstep unchanged...
 (defun complete_normstep_if_last (step normstep nmctxt)
@@ -4573,7 +4613,7 @@ normalized expression.}#
   (assert_msg "check step" (is_a step class_match_step))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let ( (matdata (unsafe_get_field :mstep_data step))
-	 (matindex (unsafe_get_field :mstep_index step))
+	 (matindex (match_step_index step))
 	 (datamap (unsafe_get_field :matnorx_datamap nmctxt))
 	 (ndata (mapobject_get datamap matdata))
 	 )
@@ -4911,30 +4951,33 @@ normalized expression.}#
   (debug_msg ndata "altmatch_handle_normalized_mdata ndata")
   (assert_msg "check matdata" (is_a matdata class_matched_data))
   (assert_msg "check ndata" (is_a ndata class_nrep_simple))
-  (let ( (mstepslist (unsafe_get_field :mdata_steps matdata))
-	 (mstepstupl (list_to_multiple mstepslist))
+  (let ( (msteps (unsafe_get_field :mdata_steps matdata))
 	 )
-    (debug_msg mstepslist "altmatch_handle_normalized_mdata mstepslist")
-    (assert_msg "check mstepslist" (is_list mstepslist))
+    (debug_msg msteps "altmatch_handle_normalized_mdata msteps")
+    (cond
+     ((is_multiple msteps)
+      (void))
+     ((is_non_empty_list msteps)
+      (let ( (firststep (list_first_element msteps))
+	     )
+	(assert_msg "check firststep" (is_a firststep class_match_step))
+	;; the call to match_step_index will as a side effect change
+	;; msteps to a list!
+	(match_step_index firststep)
+	(setq msteps  (unsafe_get_field :mdata_steps matdata))
+	))
+     (:else
+      (setq msteps (make_multiple discr_multiple 0))))
+    (debug_msg msteps "altmatch_handle_normalized_mdata updated msteps")
+    (assert_msg "good tuple msteps" (is_multiple msteps))
     (foreach_in_multiple
-     (mstepstupl)
-     (curmstep :long stepix)
-     (assert_msg "check curmstep" (is_a curmstep class_match_step))
-     (put_fields curmstep 
-		 :mstep_index
-		 (make_integerbox discr_constant_integer (+i stepix 1)))
-     (debug_msg curmstep "altmatch_handle_normalized_mdata updated curmstep")
-     )
-    (unsafe_put_fields matdata :mdata_steps mstepstupl)
-    (debug_msg mstepstupl "altmatch_handle_normalized_mdata mstepstupl")
-    (foreach_in_multiple
-     (mstepstupl)
+     (msteps)
      (curstep :long stepix)
      (debug_msg curstep "altmatch_handle_normalized_mdata befora normalizing curstep")
      (let ( (nlab (altmatch_normalize_step curstep nmctxt))
 	    )
-     (debug_msg nlab "altmatch_handle_normalized_mdata after normalizing nlab")
-     ))
+       (debug_msg nlab "altmatch_handle_normalized_mdata after normalizing nlab")
+       ))
     (debug_msg nmctxt "altmatch_normalize_step final nmctxt")
     ))
 
