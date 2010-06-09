@@ -90,6 +90,7 @@ static void check_function_type (tree, tree);
 static void finish_constructor_body (void);
 static void begin_destructor_body (void);
 static void finish_destructor_body (void);
+static void record_key_method_defined (tree);
 static tree create_array_type_for_decl (tree, tree, tree);
 static tree get_atexit_node (void);
 static tree get_dso_handle_node (void);
@@ -2449,7 +2450,7 @@ make_label_decl (tree id, int local_p)
   /* Record this label on the list of labels used in this function.
      We do this before calling make_label_decl so that we get the
      IDENTIFIER_LABEL_VALUE before the new label is declared.  */
-  ent = GGC_CNEW (struct named_label_entry);
+  ent = ggc_alloc_cleared_named_label_entry ();
   ent->label_decl = decl;
 
   slot = htab_find_slot (named_labels, ent, INSERT);
@@ -2669,7 +2670,7 @@ check_goto (tree decl)
 	  && ent->uses->names_in_scope == current_binding_level->names)
 	return;
 
-      new_use = GGC_NEW (struct named_label_use_entry);
+      new_use = ggc_alloc_named_label_use_entry ();
       new_use->binding_level = current_binding_level;
       new_use->names_in_scope = current_binding_level->names;
       new_use->o_goto_locus = input_location;
@@ -3444,11 +3445,9 @@ cxx_init_decl_processing (void)
   vtable_index_type = ptrdiff_type_node;
 
   vtt_parm_type = build_pointer_type (const_ptr_type_node);
-  void_ftype = build_function_type (void_type_node, void_list_node);
-  void_ftype_ptr = build_function_type (void_type_node,
-					tree_cons (NULL_TREE,
-						   ptr_type_node,
-						   void_list_node));
+  void_ftype = build_function_type_list (void_type_node, NULL_TREE);
+  void_ftype_ptr = build_function_type_list (void_type_node,
+					     ptr_type_node, NULL_TREE);
   void_ftype_ptr
     = build_exception_variant (void_ftype_ptr, empty_except_spec);
 
@@ -3505,10 +3504,7 @@ cxx_init_decl_processing (void)
     tree new_eh_spec;
 
     ptr_ftype_sizetype
-      = build_function_type (ptr_type_node,
-			     tree_cons (NULL_TREE,
-					size_type_node,
-					void_list_node));
+      = build_function_type_list (ptr_type_node, size_type_node, NULL_TREE);
     if (cxx_dialect == cxx98)
       {
 	tree bad_alloc_id;
@@ -4129,6 +4125,7 @@ start_decl (const cp_declarator *declarator,
   tree context;
   bool was_public;
   int flags;
+  bool alias;
 
   *pushed_scope_p = NULL_TREE;
 
@@ -4190,6 +4187,10 @@ start_decl (const cp_declarator *declarator,
       if (toplevel_bindings_p ())
 	TREE_STATIC (decl) = 1;
     }
+  alias = lookup_attribute ("alias", DECL_ATTRIBUTES (decl)) != 0;
+  
+  if (alias && TREE_CODE (decl) == FUNCTION_DECL)
+    record_key_method_defined (decl);
 
   /* If this is a typedef that names the class for linkage purposes
      (7.1.3p8), apply any attributes directly to the type.  */
@@ -4292,7 +4293,9 @@ start_decl (const cp_declarator *declarator,
 	    DECL_EXTERNAL (decl) = 1;
 	}
 
-      if (DECL_EXTERNAL (decl) && ! DECL_TEMPLATE_SPECIALIZATION (decl))
+      if (DECL_EXTERNAL (decl) && ! DECL_TEMPLATE_SPECIALIZATION (decl)
+	  /* Aliases are definitions. */
+	  && !alias)
 	permerror (input_location, "declaration of %q#D outside of class is not definition",
 		   decl);
 
@@ -6069,20 +6072,21 @@ declare_global_var (tree name, tree type)
 static tree
 get_atexit_fn_ptr_type (void)
 {
-  tree arg_types;
   tree fn_type;
 
   if (!atexit_fn_ptr_type_node)
     {
+      tree arg_type;
       if (flag_use_cxa_atexit 
 	  && !targetm.cxx.use_atexit_for_cxa_atexit ())
 	/* The parameter to "__cxa_atexit" is "void (*)(void *)".  */
-	arg_types = tree_cons (NULL_TREE, ptr_type_node, void_list_node);
+	arg_type = ptr_type_node;
       else
 	/* The parameter to "atexit" is "void (*)(void)".  */
-	arg_types = void_list_node;
+	arg_type = NULL_TREE;
       
-      fn_type = build_function_type (void_type_node, arg_types);
+      fn_type = build_function_type_list (void_type_node,
+					  arg_type, NULL_TREE);
       atexit_fn_ptr_type_node = build_pointer_type (fn_type);
     }
 
@@ -6097,7 +6101,6 @@ static tree
 get_atexit_node (void)
 {
   tree atexit_fndecl;
-  tree arg_types;
   tree fn_type;
   tree fn_ptr_type;
   const char *name;
@@ -6114,25 +6117,28 @@ get_atexit_node (void)
 
 	 We build up the argument types and then then function type
 	 itself.  */
+      tree argtype0, argtype1, argtype2;
 
       use_aeabi_atexit = targetm.cxx.use_aeabi_atexit ();
       /* First, build the pointer-to-function type for the first
 	 argument.  */
       fn_ptr_type = get_atexit_fn_ptr_type ();
       /* Then, build the rest of the argument types.  */
-      arg_types = tree_cons (NULL_TREE, ptr_type_node, void_list_node);
+      argtype2 = ptr_type_node;
       if (use_aeabi_atexit)
 	{
-	  arg_types = tree_cons (NULL_TREE, fn_ptr_type, arg_types);
-	  arg_types = tree_cons (NULL_TREE, ptr_type_node, arg_types);
+	  argtype1 = fn_ptr_type;
+	  argtype0 = ptr_type_node;
 	}
       else
 	{
-	  arg_types = tree_cons (NULL_TREE, ptr_type_node, arg_types);
-	  arg_types = tree_cons (NULL_TREE, fn_ptr_type, arg_types);
+	  argtype1 = ptr_type_node;
+	  argtype0 = fn_ptr_type;
 	}
       /* And the final __cxa_atexit type.  */
-      fn_type = build_function_type (integer_type_node, arg_types);
+      fn_type = build_function_type_list (integer_type_node,
+					  argtype0, argtype1, argtype2,
+					  NULL_TREE);
       fn_ptr_type = build_pointer_type (fn_type);
       if (use_aeabi_atexit)
 	name = "__aeabi_atexit";
@@ -6148,9 +6154,9 @@ get_atexit_node (void)
 	 We build up the argument types and then then function type
 	 itself.  */
       fn_ptr_type = get_atexit_fn_ptr_type ();
-      arg_types = tree_cons (NULL_TREE, fn_ptr_type, void_list_node);
       /* Build the final atexit type.  */
-      fn_type = build_function_type (integer_type_node, arg_types);
+      fn_type = build_function_type_list (integer_type_node,
+					  fn_ptr_type, NULL_TREE);
       name = "atexit";
     }
 
@@ -6430,11 +6436,13 @@ expand_static_init (tree decl, tree init)
 	  abort_fn = get_identifier ("__cxa_guard_abort");
 	  if (!get_global_value_if_present (acquire_fn, &acquire_fn))
 	    {
-	      tree argtypes = tree_cons (NULL_TREE, TREE_TYPE (guard_addr),
-					 void_list_node);
-	      tree vfntype = build_function_type (void_type_node, argtypes);
+	      tree vfntype = build_function_type_list (void_type_node,
+						       TREE_TYPE (guard_addr),
+						       NULL_TREE);
 	      acquire_fn = push_library_fn
-		(acquire_fn, build_function_type (integer_type_node, argtypes),
+		(acquire_fn, build_function_type_list (integer_type_node,
+						       TREE_TYPE (guard_addr),
+						       NULL_TREE),
 		 NULL_TREE);
 	      release_fn = push_library_fn (release_fn, vfntype, NULL_TREE);
 	      abort_fn = push_library_fn (abort_fn, vfntype, NULL_TREE);
@@ -12016,7 +12024,7 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
 
   /* Initialize the language data structures.  Whenever we start
      a new function, we destroy temporaries in the usual way.  */
-  cfun->language = GGC_CNEW (struct language_function);
+  cfun->language = ggc_alloc_cleared_language_function ();
   current_stmt_tree ()->stmts_are_full_exprs_p = 1;
   current_binding_level = bl;
 
@@ -12317,7 +12325,7 @@ save_function_data (tree decl)
   gcc_assert (!DECL_PENDING_INLINE_P (decl));
 
   /* Make a copy.  */
-  f = GGC_NEW (struct language_function);
+  f = ggc_alloc_language_function ();
   memcpy (f, cp_function_chain, sizeof (struct language_function));
   DECL_SAVED_FUNCTION_DATA (decl) = f;
 
@@ -12502,6 +12510,22 @@ outer_curly_brace_block (tree fndecl)
   return block;
 }
 
+/* If FNDECL is a class's key method, add the class to the list of
+   keyed classes that should be emitted.  */
+
+static void
+record_key_method_defined (tree fndecl)
+{
+  if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fndecl)
+      && DECL_VIRTUAL_P (fndecl)
+      && !processing_template_decl)
+    {
+      tree fnclass = DECL_CONTEXT (fndecl);
+      if (fndecl == CLASSTYPE_KEY_METHOD (fnclass))
+	keyed_classes = tree_cons (NULL_TREE, fnclass, keyed_classes);
+    }
+}
+
 /* Finish up a function declaration and compile that function
    all the way to assembler language output.  The free the storage
    for the function definition.
@@ -12528,14 +12552,7 @@ finish_function (int flags)
   gcc_assert (!defer_mark_used_calls);
   defer_mark_used_calls = true;
 
-  if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fndecl)
-      && DECL_VIRTUAL_P (fndecl)
-      && !processing_template_decl)
-    {
-      tree fnclass = DECL_CONTEXT (fndecl);
-      if (fndecl == CLASSTYPE_KEY_METHOD (fnclass))
-	keyed_classes = tree_cons (NULL_TREE, fnclass, keyed_classes);
-    }
+  record_key_method_defined (fndecl);
 
   nested = function_depth > 1;
   fntype = TREE_TYPE (fndecl);

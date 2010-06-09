@@ -282,7 +282,7 @@ build_call_n (tree function, int n, ...)
     return build_call_a (function, 0, NULL);
   else
     {
-      tree *argarray = (tree *) alloca (n * sizeof (tree));
+      tree *argarray = XALLOCAVEC (tree, n);
       va_list ap;
       int i;
 
@@ -4756,7 +4756,7 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 	  /* The placement args might not be suitable for overload
 	     resolution at this point, so build the call directly.  */
 	  int nargs = call_expr_nargs (placement);
-	  tree *argarray = (tree *) alloca (nargs * sizeof (tree));
+	  tree *argarray = XALLOCAVEC (tree, nargs);
 	  int i;
 	  argarray[0] = addr;
 	  for (i = 1; i < nargs; i++)
@@ -5624,7 +5624,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
   nargs = VEC_length (tree, args) + (first_arg != NULL_TREE ? 1 : 0);
   if (parmlen > nargs)
     nargs = parmlen;
-  argarray = (tree *) alloca (nargs * sizeof (tree));
+  argarray = XALLOCAVEC (tree, nargs);
 
   /* The implicit parameters to a constructor are not considered by overload
      resolution, and must be of the proper type.  */
@@ -6008,14 +6008,11 @@ build_java_interface_fn_ref (tree fn, tree instance)
 
   if (!java_iface_lookup_fn)
     {
-      tree endlink = build_void_list_node ();
-      tree t = tree_cons (NULL_TREE, ptr_type_node,
-			  tree_cons (NULL_TREE, ptr_type_node,
-				     tree_cons (NULL_TREE, java_int_type_node,
-						endlink)));
+      tree ftype = build_function_type_list (ptr_type_node,
+					     ptr_type_node, ptr_type_node,
+					     java_int_type_node, NULL_TREE);
       java_iface_lookup_fn
-	= add_builtin_function ("_Jv_LookupInterfaceMethodIdx",
-				build_function_type (ptr_type_node, t),
+	= add_builtin_function ("_Jv_LookupInterfaceMethodIdx", ftype,
 				0, NOT_BUILT_IN, NULL, NULL_TREE);
     }
 

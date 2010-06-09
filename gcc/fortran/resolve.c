@@ -5415,6 +5415,9 @@ resolve_typebound_function (gfc_expr* e)
   if (st == NULL)
     return resolve_compcall (e, NULL);
 
+  if (resolve_ref (e) == FAILURE)
+    return FAILURE;
+
   /* Get the CLASS declared type.  */
   declared = get_declared_from_expr (&class_ref, &new_ref, e);
 
@@ -5486,6 +5489,9 @@ resolve_typebound_subroutine (gfc_code *code)
   st = code->expr1->symtree;
   if (st == NULL)
     return resolve_typebound_call (code, NULL);
+
+  if (resolve_ref (code->expr1) == FAILURE)
+    return FAILURE;
 
   /* Get the CLASS declared type.  */
   declared = get_declared_from_expr (&class_ref, &new_ref, code->expr1);
@@ -6065,6 +6071,7 @@ resolve_deallocate_expr (gfc_expr *e)
     bad:
       gfc_error ("Allocate-object at %L must be ALLOCATABLE or a POINTER",
 		 &e->where);
+      return FAILURE;
     }
 
   if (check_intent_in && sym->attr.intent == INTENT_IN)
@@ -6196,7 +6203,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
   symbol_attribute attr;
   gfc_ref *ref, *ref2;
   gfc_array_ref *ar;
-  gfc_symbol *sym;
+  gfc_symbol *sym = NULL;
   gfc_alloc *a;
   gfc_component *c;
   gfc_expr *init_e;
@@ -11309,6 +11316,19 @@ resolve_symbol (gfc_symbol *sym)
 		    sym->ts.interface->name, sym->name, &sym->declared_at);
 	  return;
 	}
+    }
+
+  if (sym->attr.is_protected && !sym->attr.proc_pointer
+      && (sym->attr.procedure || sym->attr.external))
+    {
+      if (sym->attr.external)
+	gfc_error ("PROTECTED attribute conflicts with EXTERNAL attribute "
+	           "at %L", &sym->declared_at);
+      else
+	gfc_error ("PROCEDURE attribute conflicts with PROTECTED attribute "
+	           "at %L", &sym->declared_at);
+
+      return;
     }
 
   if (sym->attr.flavor == FL_DERIVED && resolve_fl_derived (sym) == FAILURE)

@@ -1374,6 +1374,10 @@ simplify_replace_tree (tree expr, tree old, tree new_tree)
   if (!expr)
     return NULL_TREE;
 
+  /* Do not bother to replace constants.  */
+  if (CONSTANT_CLASS_P (old))
+    return expr;
+
   if (expr == old
       || operand_equal_p (expr, old, 0))
     return unshare_expr (new_tree);
@@ -2521,7 +2525,7 @@ record_estimate (struct loop *loop, tree bound, double_int i_bound,
      list.  */
   if (upper)
     {
-      struct nb_iter_bound *elt = GGC_NEW (struct nb_iter_bound);
+      struct nb_iter_bound *elt = ggc_alloc_nb_iter_bound ();
 
       elt->bound = i_bound;
       elt->stmt = at_stmt;

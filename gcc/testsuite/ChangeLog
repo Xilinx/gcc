@@ -1,3 +1,53 @@
+2010-06-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44366
+	* g++.dg/cpp0x/decltype23.C: Move to...
+	* g++.dg/diagnostic/parm1.C: ...here, and remove decltype.
+
+2010-06-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44211
+	* gfortran.dg/typebound_call_14.f03: New test.
+
+2010-06-09  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/44423
+	* gcc.dg/tree-ssa/pr44423.c: New test.
+
+2010-06-09  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR testsuite/42843
+	* gcc.dg/plugin/selfassign.c (pass_warn_self_assign): Use enumerator
+	TV_NONE to initialize tv_id field.
+	* g++.dg/plugin/selfassign.c (pass_warn_self_assign): Likewise.
+	* gcc.dg/plugin/one_time_plugin.c (one_pass): Likewise.
+	* g++.dg/plugin/dumb_plugin.c (pass_dumb_plugin_example): Likewise.
+	Include toplev.h .
+	* gcc.dg/plugin/finish_unit_plugin.c: Include cgraph.h.
+	* g++.dg/plugin/attribute_plugin.c: Include toplev.h and plugin.h .
+	* g++.dg/plugin/pragma_plugin.c: Include toplev.h .
+
+2010-06-08  Sandra Loosemore  <sandra@codesourcery.com>
+
+	PR tree-optimization/39874
+	PR middle-end/28685
+	* gcc.dg/pr39874.c: New file.
+
+2010-06-08  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* g++.dg/ext/attr-alias-1.C: New.
+	* g++.dg/ext/attr-alias-2.C: New.
+
+2010-06-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44446
+	* gfortran.dg/proc_ptr_27.f90: New.
+
+2010-06-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44366
+	* g++.dg/cpp0x/decltype23.C: New.
+
 2010-06-08  Andrew Pinski <pinskia@gmail.com>
 	    Shujing Zhao  <pearly.zhao@oracle.com>
 	
