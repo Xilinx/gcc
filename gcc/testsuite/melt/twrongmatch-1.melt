@@ -1,0 +1,21 @@
+; -*- lisp -*-
+;; file twrongmatch-1.melt
+
+#| run in buildir/gcc - it should fail!
+ ./cc1 -fmelt-mode=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2:xtramelt-ana-base \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/twrongmatch-1.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+;; a bug reported by Jeremie Salvucci; when a cmatcher invocation has
+;; the wrong number of subpatterns a warning should be emitted
+
+(defun basic_block_lvalue (grdata :tree lvalue)
+  (match lvalue
+	 ;; this pattern is wrong, since tree_var_decl takes only one subpattern!
+         (?(tree_var_decl ?_ ?variable_name)
+           (code_chunk lvalue_printf #{printf("Lvalue : %s\n", $variable_name);}#))
+         (?_ )))
+
+;; eof twrongmatch-1.melt

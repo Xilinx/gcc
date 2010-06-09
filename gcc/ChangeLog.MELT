@@ -1,4 +1,9 @@
 2010-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/twrongmatch-1.melt: added new test which should fail.
+	* melt/warmelt-macro.melt: patmacexpand_for_matcher issues a
+	warning when something is extra.
+
+2010-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: added is_non_empty_list.
 	* melt/warmelt-normatch.melt: added & using match_step_index utility function.
 	* melt/xtramelt-ana-simple.melt: added gimple_debug

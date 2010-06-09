@@ -1201,6 +1201,10 @@ the object-map for pattern variables.}#
 				     (get_field :named_name matcher))
 			 )))))
 	 )
+    (let ( (curpair (box_content pairbox)) )
+      (if (is_pair curpair)
+	  (warning_strv psloc "ignored extra sub-{pattern | expression} in matcher"
+			(get_field :named_name matcher))))
     (return inargs outpats)
     ))
 
@@ -1324,6 +1328,7 @@ the object-map for pattern variables.}#
        ;; imported values 
        ( (is_a opbind class_value_binding)
 	 (let ( (opval (unsafe_get_field :vbind_value opbind)) )
+	   (debug_msg opval "patternexpand_expr imported opval")
 	   (cond 
 	    ( (is_a opval class_cmatcher) 
 	      (multicall
@@ -1343,7 +1348,13 @@ the object-map for pattern variables.}#
 					:spac_inargs args
 					:spac_outargs pats
 					))
+		       (aouts (get_field :amatch_out opval))
 		       )
+		  (debug_msg pats "patternexpand_expr imported cmatcher pats again")
+		  (debug_msg aouts "patternexpand_expr aouts")
+		  (if (!=i (multiple_length pats) (multiple_length aouts))
+		      (warning_strv sloc "incompatible number of formal and actual subpatterns of cmatcher"
+				    (get_field :named_name opval)))
 		  (debug_msg pcomp "patternexpand_expr cmatcher value pcomp")
 		  (return pcomp)
 		  ))))
