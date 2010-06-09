@@ -24,12 +24,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
 #include "tm_p.h"
-#include "hard-reg-set.h"
 #include "basic-block.h"
 #include "output.h"
-#include "expr.h"
 #include "diagnostic.h"
 #include "basic-block.h"
 #include "flags.h"
@@ -50,7 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfgloop.h"
 #include "except.h"
 #include "plugin.h"
-
+#include "regset.h"	/* FIXME: For reg_obstack.  */
 
 /* Gate: execute, or not, all of the non-trivial optimizations.  */
 

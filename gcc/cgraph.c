@@ -1069,6 +1069,7 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
 
 struct cgraph_edge *
 cgraph_create_indirect_edge (struct cgraph_node *caller, gimple call_stmt,
+			     int ecf_flags,
 			     gcov_type count, int freq, int nest)
 {
   struct cgraph_edge *edge = cgraph_create_edge_1 (caller, NULL, call_stmt,
@@ -1077,8 +1078,9 @@ cgraph_create_indirect_edge (struct cgraph_node *caller, gimple call_stmt,
   edge->indirect_unknown_callee = 1;
   initialize_inline_failed (edge);
 
-  edge->indirect_info = GGC_NEW (struct cgraph_indirect_call_info);
+  edge->indirect_info = GGC_CNEW (struct cgraph_indirect_call_info);
   edge->indirect_info->param_index = -1;
+  edge->indirect_info->ecf_flags = ecf_flags;
 
   edge->next_callee = caller->indirect_calls;
   if (caller->indirect_calls)
@@ -1345,6 +1347,15 @@ cgraph_node_remove_callees (struct cgraph_node *node)
 	cgraph_edge_remove_callee (e);
       cgraph_free_edge (e);
     }
+  for (e = node->indirect_calls; e; e = f)
+    {
+      f = e->next_callee;
+      cgraph_call_edge_removal_hooks (e);
+      if (!e->indirect_unknown_callee)
+	cgraph_edge_remove_callee (e);
+      cgraph_free_edge (e);
+    }
+  node->indirect_calls = NULL;
   node->callees = NULL;
   if (node->call_site_hash)
     {
@@ -1725,8 +1736,8 @@ cgraph_mark_needed_node (struct cgraph_node *node)
 void
 cgraph_mark_address_taken_node (struct cgraph_node *node)
 {
+  cgraph_mark_reachable_node (node);
   node->address_taken = 1;
-  cgraph_mark_needed_node (node);
 }
 
 /* Return local info for the compiled function.  */
@@ -1869,6 +1880,8 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
     fprintf (f, " always_inline");
   else if (node->local.inlinable)
     fprintf (f, " inlinable");
+  else if (node->local.versionable)
+    fprintf (f, " versionable");
   if (node->local.redefined_extern_inline)
     fprintf (f, " redefined_extern_inline");
   if (TREE_ASM_WRITTEN (node->decl))
@@ -2059,9 +2072,11 @@ cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
 	}
       else
 	{
-	  new_edge = cgraph_create_indirect_edge (n, call_stmt, count, freq,
+	  new_edge = cgraph_create_indirect_edge (n, call_stmt,
+						  e->indirect_info->ecf_flags,
+						  count, freq,
 						  e->loop_nest + loop_nest);
-	  new_edge->indirect_info->param_index = e->indirect_info->param_index;
+	  *new_edge->indirect_info = *e->indirect_info;
 	}
     }
   else
@@ -2083,12 +2098,14 @@ cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
 
 /* Create node representing clone of N executed COUNT times.  Decrease
    the execution counts from original node too.
+   The new clone will have decl set to DECL that may or may not be the same
+   as decl of N.
 
    When UPDATE_ORIGINAL is true, the counts are subtracted from the original
    function's profile to reflect the fact that part of execution is handled
    by node.  */
 struct cgraph_node *
-cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq,
+cgraph_clone_node (struct cgraph_node *n, tree decl, gcov_type count, int freq,
 		   int loop_nest, bool update_original,
 		   VEC(cgraph_edge_p,heap) *redirect_callers)
 {
@@ -2097,7 +2114,7 @@ cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq,
   gcov_type count_scale;
   unsigned i;
 
-  new_node->decl = n->decl;
+  new_node->decl = decl;
   new_node->origin = n->origin;
   if (new_node->origin)
     {
@@ -2156,6 +2173,15 @@ cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq,
   new_node->clone_of = n;
 
   cgraph_call_node_duplication_hooks (n, new_node);
+  if (n->decl != decl)
+    {
+      struct cgraph_node **slot;
+      slot = (struct cgraph_node **) htab_find_slot (cgraph_hash, new_node, INSERT);
+      gcc_assert (!*slot);
+      *slot = new_node;
+      cgraph_add_assembler_hash_node (new_node);
+      cgraph_link_node (new_node);
+    }
   return new_node;
 }
 
@@ -2197,11 +2223,13 @@ cgraph_create_virtual_clone (struct cgraph_node *old_node,
   tree old_decl = old_node->decl;
   struct cgraph_node *new_node = NULL;
   tree new_decl;
-  struct cgraph_node key, **slot;
   size_t i;
   struct ipa_replace_map *map;
 
-  gcc_assert  (tree_versionable_function_p (old_decl));
+#ifdef ENABLE_CHECKING
+  if (!flag_wpa)
+    gcc_assert  (tree_versionable_function_p (old_decl));
+#endif
 
   /* Make a new FUNCTION_DECL tree node */
   if (!args_to_skip)
@@ -2215,10 +2243,9 @@ cgraph_create_virtual_clone (struct cgraph_node *old_node,
   SET_DECL_ASSEMBLER_NAME (new_decl, DECL_NAME (new_decl));
   SET_DECL_RTL (new_decl, NULL);
 
-  new_node = cgraph_clone_node (old_node, old_node->count,
+  new_node = cgraph_clone_node (old_node, new_decl, old_node->count,
 				CGRAPH_FREQ_BASE, 0, false,
 				redirect_callers);
-  new_node->decl = new_decl;
   /* Update the properties.
      Make clone visible only within this translation unit.  Make sure
      that is not weak also.
@@ -2282,12 +2309,6 @@ cgraph_create_virtual_clone (struct cgraph_node *old_node,
   new_node->lowered = true;
   new_node->reachable = true;
 
-  key.decl = new_decl;
-  slot = (struct cgraph_node **) htab_find_slot (cgraph_hash, &key, INSERT);
-  gcc_assert (!*slot);
-  *slot = new_node;
-  cgraph_add_assembler_hash_node (new_node);
-  cgraph_link_node (new_node);
 
   return new_node;
 }

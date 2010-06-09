@@ -20,7 +20,6 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
-/* stdio.h must precede rtl.h for FFS.  */
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
@@ -30,7 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "basic-block.h"
 #include "flags.h"
-#include "real.h"
 #include "insn-config.h"
 #include "recog.h"
 #include "function.h"
@@ -6390,7 +6388,7 @@ cse_extended_basic_block (struct cse_basic_block_data *ebb_data)
       /* With non-call exceptions, we are not always able to update
 	 the CFG properly inside cse_insn.  So clean up possibly
 	 redundant EH edges here.  */
-      if (flag_non_call_exceptions && have_eh_succ_edges (bb))
+      if (cfun->can_throw_non_call_exceptions && have_eh_succ_edges (bb))
 	cse_cfg_altered |= purge_dead_edges (bb);
 
       /* If we changed a conditional jump, we may have terminated

@@ -25,14 +25,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "version.h"
 #include "flags.h"
-#include "real.h"
 #include "c-common.h"
 #include "c-pragma.h"
 #include "output.h"
 #include "except.h"		/* For USING_SJLJ_EXCEPTIONS.  */
-#include "debug.h"		/* For dwarf2out_do_frame.  */
+#include "debug.h"		/* For dwarf2out_do_cfi_asm.  */
 #include "toplev.h"
-#include "tm_p.h"		/* Target prototypes.  */
+#include "tm_p.h"		/* For TARGET_CPU_CPP_BUILTINS & friends.  */
 #include "target.h"
 
 #ifndef TARGET_OS_CPP_BUILTINS
@@ -815,6 +814,9 @@ c_cpp_builtins (cpp_reader *pfile)
   builtin_define_type_sizeof ("__SIZEOF_LONG__", long_integer_type_node);
   builtin_define_type_sizeof ("__SIZEOF_LONG_LONG__",
 			      long_long_integer_type_node);
+  if (int128_integer_type_node != NULL_TREE)
+    builtin_define_type_sizeof ("__SIZEOF_INT128__",
+			        int128_integer_type_node);
   builtin_define_type_sizeof ("__SIZEOF_SHORT__", short_integer_type_node);
   builtin_define_type_sizeof ("__SIZEOF_FLOAT__", float_type_node);
   builtin_define_type_sizeof ("__SIZEOF_DOUBLE__", double_type_node);

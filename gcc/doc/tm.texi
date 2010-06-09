@@ -5609,6 +5609,22 @@ It is not necessary for this macro to come up with a legitimate
 address;  but often a machine-dependent strategy can generate better code.
 @end defmac
 
+@deftypefn {Target Hook} bool TARGET_MODE_DEPENDENT_ADDRESS_P (const_rtx @var{addr})
+This hook returns @code{true} if memory address @var{addr} can have
+different meanings depending on the machine mode of the memory
+reference it is used for or if the address is valid for some modes
+but not others.
+
+Autoincrement and autodecrement addresses typically have mode-dependent
+effects because the amount of the increment or decrement is the size
+of the operand being addressed.  Some machines have other mode-dependent
+addresses.  Many RISC machines have no mode-dependent addresses.
+
+You may assume that @var{addr} is a valid address for the machine.
+
+The default version of this hook returns @code{false}.
+@end deftypefn
+
 @defmac GO_IF_MODE_DEPENDENT_ADDRESS (@var{addr}, @var{label})
 A C statement or compound statement with a conditional @code{goto
 @var{label};} executed if memory address @var{x} (an RTX) can have
@@ -5622,6 +5638,9 @@ of the operand being addressed.  Some machines have other mode-dependent
 addresses.  Many RISC machines have no mode-dependent addresses.
 
 You may assume that @var{addr} is a valid address for the machine.
+
+These are obsolete macros, replaced by the
+@code{TARGET_MODE_DEPENDENT_ADDRESS_P} target hook.
 @end defmac
 
 @defmac LEGITIMATE_CONSTANT_P (@var{x})
@@ -10245,8 +10264,8 @@ In order to enforce the representation of @code{mode},
 @defmac STORE_FLAG_VALUE
 A C expression describing the value returned by a comparison operator
 with an integral mode and stored by a store-flag instruction
-(@samp{s@var{cond}}) when the condition is true.  This description must
-apply to @emph{all} the @samp{s@var{cond}} patterns and all the
+(@samp{cstore@var{mode}4}) when the condition is true.  This description must
+apply to @emph{all} the @samp{cstore@var{mode}4} patterns and all the
 comparison operators whose results have a @code{MODE_INT} mode.
 
 A value of 1 or @minus{}1 means that the instruction implementing the
@@ -10255,7 +10274,7 @@ and 0 when the comparison is false.  Otherwise, the value indicates
 which bits of the result are guaranteed to be 1 when the comparison is
 true.  This value is interpreted in the mode of the comparison
 operation, which is given by the mode of the first operand in the
-@samp{s@var{cond}} pattern.  Either the low bit or the sign bit of
+@samp{cstore@var{mode}4} pattern.  Either the low bit or the sign bit of
 @code{STORE_FLAG_VALUE} be on.  Presently, only those bits are used by
 the compiler.
 
@@ -10328,7 +10347,7 @@ those cases, e.g., one matching
 
 Some machines can also perform @code{and} or @code{plus} operations on
 condition code values with less instructions than the corresponding
-@samp{s@var{cond}} insn followed by @code{and} or @code{plus}.  On those
+@samp{cstore@var{mode}4} insn followed by @code{and} or @code{plus}.  On those
 machines, define the appropriate patterns.  Use the names @code{incscc}
 and @code{decscc}, respectively, for the patterns which perform
 @code{plus} or @code{minus} operations on condition code values.  See
@@ -10765,14 +10784,14 @@ another @code{CALL_EXPR}.
 @var{arglist} really has type @samp{VEC(tree,gc)*}
 @end deftypefn
 
-@deftypefn {Target Hook} tree TARGET_FOLD_BUILTIN (tree @var{fndecl}, tree @var{arglist}, bool @var{ignore})
+@deftypefn {Target Hook} tree TARGET_FOLD_BUILTIN (tree @var{fndecl}, int @var{n_args}, tree *@var{argp}, bool @var{ignore})
 
 Fold a call to a machine specific built-in function that was set up by
 @samp{TARGET_INIT_BUILTINS}.  @var{fndecl} is the declaration of the
-built-in function.  @var{arglist} is the list of arguments passed to
-the built-in function.  The result is another tree containing a
-simplified expression for the call's result.  If @var{ignore} is true
-the value will be ignored.
+built-in function.  @var{n_args} is the number of arguments passed to
+the function; the arguments themselves are pointed to by @var{argp}.
+The result is another tree containing a simplified expression for the
+call's result.  If @var{ignore} is true the value will be ignored.
 @end deftypefn
 
 @deftypefn {Target Hook} {const char *} TARGET_INVALID_WITHIN_DOLOOP (const_rtx @var{insn})

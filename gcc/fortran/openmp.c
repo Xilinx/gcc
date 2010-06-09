@@ -26,8 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "match.h"
 #include "parse.h"
 #include "pointer-set.h"
-#include "target.h"
-#include "toplev.h"
 
 /* Match an end of OpenMP directive.  End of OpenMP directive is optional
    whitespace, followed by '\n' or comment '!'.  */
@@ -837,6 +835,8 @@ resolve_omp_clauses (gfc_code *code)
 		if (el)
 		  continue;
 	      }
+	    if (n->sym->attr.proc_pointer)
+	      continue;
 	  }
 	gfc_error ("Object '%s' is not a variable at %L", n->sym->name,
 		   &code->loc);

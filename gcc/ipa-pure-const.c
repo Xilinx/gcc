@@ -51,6 +51,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "toplev.h"
 #include "diagnostic.h"
+#include "gimple-pretty-print.h"
 #include "langhooks.h"
 #include "target.h"
 #include "lto-streamer.h"
@@ -339,7 +340,7 @@ check_call (funct_state local, gimple call, bool ipa)
         if (gimple_op (call, i)
 	    && tree_could_throw_p (gimple_op (call, i)))
 	  {
-	    if (possibly_throws && flag_non_call_exceptions)
+	    if (possibly_throws && cfun->can_throw_non_call_exceptions)
 	      {
 		if (dump_file)
 		  fprintf (dump_file, "    operand can throw; looping\n");
@@ -404,7 +405,7 @@ check_call (funct_state local, gimple call, bool ipa)
      those bits. */
   else if (!ipa || !callee_t)
     {
-      if (possibly_throws && flag_non_call_exceptions)
+      if (possibly_throws && cfun->can_throw_non_call_exceptions)
         {
 	  if (dump_file)
 	    fprintf (dump_file, "    can throw; looping\n");
@@ -502,7 +503,7 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
   if (gimple_code (stmt) != GIMPLE_CALL
       && stmt_could_throw_p (stmt))
     {
-      if (flag_non_call_exceptions)
+      if (cfun->can_throw_non_call_exceptions)
 	{
 	  if (dump_file)
 	    fprintf (dump_file, "    can throw; looping");
@@ -533,7 +534,7 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
       for (i = 0; i < gimple_asm_nclobbers (stmt); i++)
 	{
 	  tree op = gimple_asm_clobber_op (stmt, i);
-	  if (simple_cst_equal(TREE_VALUE (op), get_memory_identifier_string ()) == 1)
+	  if (strcmp (TREE_STRING_POINTER (TREE_VALUE (op)), "memory") == 0)
 	    {
               if (dump_file)
                 fprintf (dump_file, "    memory asm clobber is not const/pure");

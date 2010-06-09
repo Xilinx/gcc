@@ -33,8 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "expr.h"
 #include "flags.h"
 #include "cp-tree.h"
 #include "decl.h"
@@ -53,6 +51,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "gimple.h"
 #include "pointer-set.h"
+#include "splay-tree.h"
 
 extern cpp_reader *parse_in;
 
@@ -150,7 +149,10 @@ change_return_type (tree new_ret, tree fntype)
     return fntype;
 
   if (TREE_CODE (fntype) == FUNCTION_TYPE)
-    newtype = build_function_type (new_ret, args);
+    {
+      newtype = build_function_type (new_ret, args);
+      newtype = apply_memfn_quals (newtype, type_memfn_quals (fntype));
+    }
   else
     newtype = build_method_type_directly
       (TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (fntype))),
@@ -1242,6 +1244,7 @@ cp_reconstruct_complex_type (tree type, tree bottom)
     {
       inner = cp_reconstruct_complex_type (TREE_TYPE (type), bottom);
       outer = build_function_type (inner, TYPE_ARG_TYPES (type));
+      outer = apply_memfn_quals (outer, type_memfn_quals (type));
     }
   else if (TREE_CODE (type) == METHOD_TYPE)
     {
@@ -1264,7 +1267,7 @@ cp_reconstruct_complex_type (tree type, tree bottom)
 
   if (TYPE_ATTRIBUTES (type))
     outer = cp_build_type_attribute_variant (outer, TYPE_ATTRIBUTES (type));
-  return cp_build_qualified_type (outer, TYPE_QUALS (type));
+  return cp_build_qualified_type (outer, cp_type_quals (type));
 }
 
 /* Like decl_attributes, but handle C++ complexity.  */
@@ -1800,6 +1803,7 @@ maybe_emit_vtables (tree ctype)
   tree vtbl;
   tree primary_vtbl;
   int needed = 0;
+  struct varpool_node *current = NULL, *last = NULL, *first = NULL;
 
   /* If the vtables for this class have already been emitted there is
      nothing more to do.  */
@@ -1857,7 +1861,19 @@ maybe_emit_vtables (tree ctype)
 	 actually marking the variable as written.  */
       if (flag_syntax_only)
 	TREE_ASM_WRITTEN (vtbl) = 1;
+      else if (DECL_COMDAT (vtbl))
+	{
+	  current = varpool_node (vtbl);
+	  if (last)
+	    last->same_comdat_group = current;
+	  last = current;
+	  if (!first)
+	    first = current;
+	}
     }
+
+  if (first != last)
+    last->same_comdat_group = first;
 
   /* Since we're writing out the vtable here, also write the debug
      info.  */
@@ -3355,20 +3371,10 @@ cxx_callgraph_analyze_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED)
 	cgraph_mark_address_taken_node (cgraph_node (BASELINK_FUNCTIONS (t)));
       break;
     case VAR_DECL:
-      if (DECL_VTABLE_OR_VTT_P (t))
-	{
-	  /* The ABI requires that all virtual tables be emitted
-	     whenever one of them is.  */
-	  tree vtbl;
-	  for (vtbl = CLASSTYPE_VTABLES (DECL_CONTEXT (t));
-	       vtbl;
-	       vtbl = TREE_CHAIN (vtbl))
-	    mark_decl_referenced (vtbl);
-	}
-      else if (DECL_CONTEXT (t)
-	       && flag_use_repository
-	       && TREE_CODE (DECL_CONTEXT (t)) == FUNCTION_DECL
-	       && !cgraph_is_auxiliary (DECL_CONTEXT (t)))
+      if (DECL_CONTEXT (t)
+	  && flag_use_repository
+	  && TREE_CODE (DECL_CONTEXT (t)) == FUNCTION_DECL
+	  && !cgraph_is_auxiliary (DECL_CONTEXT (t)))
 	/* If we need a static variable in a function, then we
 	   need the containing function.  */
 	mark_decl_referenced (DECL_CONTEXT (t));

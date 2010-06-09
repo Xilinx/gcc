@@ -169,7 +169,7 @@ varpool_remove_node (struct varpool_node *node)
     node->prev->next = node->next;
   else
     {
-      if (node->alias)
+      if (node->alias && node->extra_name)
 	{
           gcc_assert (node->extra_name->extra_name == node);
 	  node->extra_name->extra_name = node->next;
@@ -195,6 +195,19 @@ varpool_remove_node (struct varpool_node *node)
     {
       gcc_assert (varpool_nodes_queue == node);
       varpool_nodes_queue = node->next_needed;
+    }
+  if (node->same_comdat_group)
+    {
+      struct varpool_node *prev;
+      for (prev = node->same_comdat_group;
+	   prev->same_comdat_group != node;
+	   prev = prev->same_comdat_group)
+	;
+      if (node->same_comdat_group == prev)
+	prev->same_comdat_group = NULL;
+      else
+	prev->same_comdat_group = node->same_comdat_group;
+      node->same_comdat_group = NULL;
     }
   ipa_remove_all_references (&node->ref_list);
   ipa_remove_all_refering (&node->ref_list);
@@ -324,13 +337,6 @@ decide_is_variable_needed (struct varpool_node *node, tree decl)
       || node->force_output)
     return true;
 
-  /* ??? If the assembler name is set by hand, it is possible to assemble
-     the name later after finalizing the function and the fact is noticed
-     in assemble_name then.  This is arguably a bug.  */
-  if (DECL_ASSEMBLER_NAME_SET_P (decl)
-      && TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)))
-    return true;
-
   /* Externally visible variables must be output.  The exception is
      COMDAT variables that must be output only when they are needed.  */
   if (TREE_PUBLIC (decl)
@@ -384,7 +390,7 @@ varpool_finalize_decl (tree decl)
   if (node->needed)
     varpool_enqueue_needed_node (node);
   node->finalized = true;
-  if (TREE_THIS_VOLATILE (decl))
+  if (TREE_THIS_VOLATILE (decl) || DECL_PRESERVE_P (decl))
     node->force_output = true;
 
   if (decide_is_variable_needed (node, decl))
@@ -426,8 +432,9 @@ varpool_analyze_pending_decls (void)
   timevar_push (TV_VARPOOL);
   while (varpool_first_unanalyzed_node)
     {
-      tree decl = varpool_first_unanalyzed_node->decl;
-      bool analyzed = varpool_first_unanalyzed_node->analyzed;
+      struct varpool_node *node = varpool_first_unanalyzed_node, *next;
+      tree decl = node->decl;
+      bool analyzed = node->analyzed;
 
       varpool_first_unanalyzed_node->analyzed = true;
 
@@ -445,6 +452,13 @@ varpool_analyze_pending_decls (void)
 	}
       if (DECL_INITIAL (decl))
 	record_references_in_initializer (decl, analyzed);
+      if (node->same_comdat_group)
+	{
+	  for (next = node->same_comdat_group;
+	       next != node;
+	       next = next->same_comdat_group)
+	    varpool_mark_needed_node (next);
+	}
       changed = true;
     }
   timevar_pop (TV_VARPOOL);

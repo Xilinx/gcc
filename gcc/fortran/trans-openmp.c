@@ -1,5 +1,6 @@
 /* OpenMP directive translation -- generate GCC trees from gfc_code.
-   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Jakub Jelinek <jakub@redhat.com>
 
 This file is part of GCC.
@@ -23,10 +24,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "gimple.h"
-#include "ggc.h"
-#include "toplev.h"
-#include "real.h"
+#include "gimple.h"	/* For create_tmp_var_raw.  */
+#include "toplev.h"	/* For internal_error.  */
 #include "gfortran.h"
 #include "trans.h"
 #include "trans-stmt.h"
@@ -57,7 +56,8 @@ gfc_omp_privatize_by_reference (const_tree decl)
       if (GFC_POINTER_TYPE_P (type))
 	return false;
 
-      if (!DECL_ARTIFICIAL (decl))
+      if (!DECL_ARTIFICIAL (decl)
+	  && TREE_CODE (TREE_TYPE (type)) != FUNCTION_TYPE)
 	return true;
 
       /* Some arrays are expanded as DECL_ARTIFICIAL pointers
@@ -95,6 +95,15 @@ gfc_omp_predetermined_sharing (tree decl)
 				GFC_TYPE_ARRAY_RANK (TREE_TYPE (decl)) - 1)
 	 == NULL)
     return OMP_CLAUSE_DEFAULT_SHARED;
+
+  /* Dummy procedures aren't considered variables by OpenMP, thus are
+     disallowed in OpenMP clauses.  They are represented as PARM_DECLs
+     in the middle-end, so return OMP_CLAUSE_DEFAULT_FIRSTPRIVATE here
+     to avoid complaining about their uses with default(none).  */
+  if (TREE_CODE (decl) == PARM_DECL
+      && TREE_CODE (TREE_TYPE (decl)) == POINTER_TYPE
+      && TREE_CODE (TREE_TYPE (TREE_TYPE (decl))) == FUNCTION_TYPE)
+    return OMP_CLAUSE_DEFAULT_FIRSTPRIVATE;
 
   /* COMMON and EQUIVALENCE decls are shared.  They
      are only referenced through DECL_VALUE_EXPR of the variables

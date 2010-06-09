@@ -123,6 +123,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "cgraph.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "timevar.h"
 #include "params.h"
 #include "fibheap.h"
@@ -983,11 +985,7 @@ process_function_and_variable_attributes (struct cgraph_node *first,
     {
       tree decl = node->decl;
       if (DECL_PRESERVE_P (decl))
-	{
-	  mark_decl_referenced (decl);
-	  if (node->local.finalized)
-	     cgraph_mark_needed_node (node);
-	}
+	cgraph_mark_needed_node (node);
       if (lookup_attribute ("externally_visible", DECL_ATTRIBUTES (decl)))
 	{
 	  if (! TREE_PUBLIC (node->decl))
@@ -1003,7 +1001,6 @@ process_function_and_variable_attributes (struct cgraph_node *first,
       tree decl = vnode->decl;
       if (DECL_PRESERVE_P (decl))
 	{
-	  mark_decl_referenced (decl);
 	  vnode->force_output = true;
 	  if (vnode->finalized)
 	    varpool_mark_needed_node (vnode);
@@ -1352,6 +1349,7 @@ cgraph_mark_functions_to_output (void)
       if (node->analyzed
 	  && !node->global.inlined_to
 	  && (node->needed || node->reachable_from_other_partition
+	      || node->address_taken
 	      || (e && node->reachable))
 	  && !TREE_ASM_WRITTEN (decl)
 	  && !(DECL_EXTERNAL (decl) || cgraph_is_aux_decl_external (node)))
@@ -1756,7 +1754,6 @@ assemble_thunk (struct cgraph_node *node)
       cgraph_remove_same_body_alias (node);
       /* Since we want to emit the thunk, we explicitly mark its name as
 	 referenced.  */
-      mark_decl_referenced (thunk_fndecl);
       cgraph_add_new_function (thunk_fndecl, true);
       bitmap_obstack_release (NULL);
     }
@@ -2619,9 +2616,8 @@ cgraph_materialize_all_clones (void)
 			}
 		    }
 		  cgraph_materialize_clone (node);
+		  stabilized = false;
 	        }
-	      else
-		stabilized = false;
 	    }
 	}
     }

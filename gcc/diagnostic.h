@@ -23,7 +23,6 @@ along with GCC; see the file COPYING3.  If not see
 #define GCC_DIAGNOSTIC_H
 
 #include "pretty-print.h"
-#include "options.h"
 
 /* Constants used to discriminate diagnostics.  */
 typedef enum
@@ -42,9 +41,8 @@ typedef struct diagnostic_info
   text_info message;
   location_t location;
   unsigned int override_column;
-  /* TREE_BLOCK if the diagnostic is to be reported in some inline
-     function inlined into other function, otherwise NULL.  */
-  tree abstract_origin;
+  /* Auxiliary data for client.  */
+  void *x_data;
   /* The kind of diagnostic it is about.  */
   diagnostic_t kind;
   /* Which OPT_* directly controls this diagnostic.  */
@@ -74,12 +72,17 @@ struct diagnostic_context
   /* True if it has been requested that warnings be treated as errors.  */
   bool warning_as_error_requested;
 
-  /* For each option index that can be passed to warning() et all
-     (OPT_* from options.h), this array may contain a new kind that
-     the diagnostic should be changed to before reporting, or
-     DK_UNSPECIFIED to leave it as the reported kind, or DK_IGNORED to
-     not report it at all.  N_OPTS is from <options.h>.  */
-  diagnostic_t classify_diagnostic[N_OPTS];
+  /* The number of option indexes that can be passed to warning() et
+     al.  */
+  int n_opts;
+
+  /* For each option index that can be passed to warning() et al
+     (OPT_* from options.h when using this code with the core GCC
+     options), this array may contain a new kind that the diagnostic
+     should be changed to before reporting, or DK_UNSPECIFIED to leave
+     it as the reported kind, or DK_IGNORED to not report it at
+     all.  */
+  diagnostic_t *classify_diagnostic;
 
   /* True if we should print the command line option which controls
      each diagnostic, if known.  */
@@ -87,6 +90,28 @@ struct diagnostic_context
 
   /* True if we should raise a SIGABRT on errors.  */
   bool abort_on_error;
+
+  /* True if we should show the column number on diagnostics.  */
+  bool show_column;
+
+  /* True if pedwarns are errors.  */
+  bool pedantic_errors;
+
+  /* True if permerrors are warnings.  */
+  bool permissive;
+
+  /* The index of the option to associate with turning permerrors into
+     warnings.  */
+  int opt_permissive;
+
+  /* True if errors are fatal.  */
+  bool fatal_errors;
+
+  /* True if all warnings should be disabled.  */
+  bool inhibit_warnings;
+
+  /* True if warnings should be given in system headers.  */
+  bool warn_system_headers;
 
   /* This function is called before any message is printed out.  It is
      responsible for preparing message prefix and such.  For example, it
@@ -101,12 +126,22 @@ struct diagnostic_context
   diagnostic_finalizer_fn end_diagnostic;
 
   /* Client hook to report an internal error.  */
-  void (*internal_error) (const char *, va_list *);
+  void (*internal_error) (diagnostic_context *, const char *, va_list *);
 
-  /* Function of last diagnostic message; more generally, function such that
-     if next diagnostic message is in it then we don't have to mention the
-     function name.  */
-  tree last_function;
+  /* Client hook to say whether the option controlling a diagnostic is
+     enabled.  Returns nonzero if enabled, zero if disabled.  */
+  int (*option_enabled) (int);
+
+  /* Client hook to return the name of an option that controls a
+     diagnostic.  Returns malloced memory.  The first diagnostic_t
+     argument is the kind of diagnostic before any reclassification
+     (of warnings as errors, etc.); the second is the kind after any
+     reclassification.  May return NULL if no name is to be printed.
+     May be passed 0 as well as the index of a particular option.  */
+  char *(*option_name) (diagnostic_context *, int, diagnostic_t, diagnostic_t);
+
+  /* Auxiliary data for client.  */
+  void *x_data;
 
   /* Used to detect when the input file stack has changed since last
      described.  */
@@ -131,8 +166,9 @@ diagnostic_inhibit_notes (diagnostic_context * context)
    displayed.  */
 #define diagnostic_finalizer(DC) (DC)->end_diagnostic
 
-/* Extension hook for client.  */
-#define diagnostic_auxiliary_data(DC) (DC)->x_data
+/* Extension hooks for client.  */
+#define diagnostic_context_auxiliary_data(DC) (DC)->x_data
+#define diagnostic_info_auxiliary_data(DI) (DI)->x_data
 
 /* Same as pp_format_decoder.  Works on 'diagnostic_context *'.  */
 #define diagnostic_format_decoder(DC) ((DC)->printer->format_decoder)
@@ -145,18 +181,6 @@ diagnostic_inhibit_notes (diagnostic_context * context)
 #define diagnostic_line_cutoff(DC) ((DC)->printer->wrapping.line_cutoff)
 
 #define diagnostic_flush_buffer(DC) pp_base_flush ((DC)->printer)
-
-/* True if the last function in which a diagnostic was reported is
-   different from the current one.  */
-#define diagnostic_last_function_changed(DC, DI) \
-  ((DC)->last_function != ((DI)->abstract_origin \
-			   ? (DI)->abstract_origin : current_function_decl))
-
-/* Remember the current function as being the last one in which we report
-   a diagnostic.  */
-#define diagnostic_set_last_function(DC, DI) \
-  (DC)->last_function = (((DI) && (DI)->abstract_origin) \
-			 ? (DI)->abstract_origin : current_function_decl)
 
 /* True if the last module or file in which a diagnostic was reported is
    different from the current one.  */
@@ -189,9 +213,9 @@ extern diagnostic_context *global_dc;
 #define sorrycount diagnostic_kind_count (global_dc, DK_SORRY)
 
 /* Returns nonzero if warnings should be emitted.  */
-#define diagnostic_report_warnings_p(LOC)			\
-  (!inhibit_warnings					\
-   && !(in_system_header_at (LOC) && !warn_system_headers))
+#define diagnostic_report_warnings_p(DC, LOC)				\
+  (!(DC)->inhibit_warnings						\
+   && !(in_system_header_at (LOC) && !(DC)->warn_system_headers))
 
 #define report_diagnostic(D) diagnostic_report_diagnostic (global_dc, D)
 
@@ -205,11 +229,9 @@ extern diagnostic_context *global_dc;
     ((DI)->option_index = (OPTIDX))
 
 /* Diagnostic related functions.  */
-extern void diagnostic_initialize (diagnostic_context *);
+extern void diagnostic_initialize (diagnostic_context *, int);
 extern void diagnostic_finish (diagnostic_context *);
 extern void diagnostic_report_current_module (diagnostic_context *);
-extern void diagnostic_report_current_function (diagnostic_context *,
-						diagnostic_info *);
 
 /* Force diagnostics controlled by OPTIDX to be kind KIND.  */
 extern diagnostic_t diagnostic_classify_diagnostic (diagnostic_context *,
@@ -227,37 +249,11 @@ extern void diagnostic_set_info_translated (diagnostic_info *, const char *,
 extern bool emit_diagnostic (diagnostic_t, location_t, int,
 			     const char *, ...) ATTRIBUTE_GCC_DIAG(4,5);
 #endif
-extern char *diagnostic_build_prefix (diagnostic_info *);
+extern char *diagnostic_build_prefix (diagnostic_context *, diagnostic_info *);
 void default_diagnostic_starter (diagnostic_context *, diagnostic_info *);
 void default_diagnostic_finalizer (diagnostic_context *, diagnostic_info *);
 
 /* Pure text formatting support functions.  */
 extern char *file_name_as_prefix (const char *);
-
-/* In tree-pretty-print.c  */
-extern void print_declaration (pretty_printer *, tree, int, int);
-extern int dump_generic_node (pretty_printer *, tree, int, int, bool);
-extern void print_generic_stmt (FILE *, tree, int);
-extern void print_generic_stmt_indented (FILE *, tree, int, int);
-extern void print_generic_expr (FILE *, tree, int);
-extern void print_generic_decl (FILE *, tree, int);
-extern void debug_c_tree (tree);
-extern void dump_omp_clauses (pretty_printer *, tree, int, int);
-extern void print_call_name (pretty_printer *, tree, int);
-
-/* In gimple-pretty-print.c  */
-extern void debug_generic_expr (tree);
-extern void debug_generic_stmt (tree);
-extern void debug_tree_chain (tree);
-extern void debug_gimple_stmt (gimple);
-extern void debug_gimple_seq (gimple_seq);
-extern void print_gimple_seq (FILE *, gimple_seq, int, int);
-extern void print_gimple_stmt (FILE *, gimple, int, int);
-extern void print_gimple_expr (FILE *, gimple, int, int);
-extern void dump_gimple_stmt (pretty_printer *, gimple, int, int);
-
-/* In toplev.c  */
-extern bool default_tree_printer (pretty_printer *, text_info *, const char *,
-				  int, bool, bool, bool);
 
 #endif /* ! GCC_DIAGNOSTIC_H */

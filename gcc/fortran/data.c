@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
    trans-array.c.  */
 
 #include "config.h"
+#include "system.h"
 #include "gfortran.h"
 #include "data.h"
 #include "constructor.h"
@@ -154,9 +155,10 @@ create_character_intializer (gfc_expr *init, gfc_typespec *ts,
 
   if (len > end - start)
     {
+      gfc_warning_now ("Initialization string starting at %L was "
+		       "truncated to fit the variable (%d/%d)",
+		       &rvalue->where, end - start, len);
       len = end - start;
-      gfc_warning_now ("initialization string truncated to match variable "
-		       "at %L", &rvalue->where);
     }
 
   if (rvalue->ts.type == BT_HOLLERITH)

@@ -25,9 +25,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "ggc.h"
-#include "toplev.h"
-#include "real.h"
+#include "realmpfr.h"
+#include "toplev.h"	/* For fatal_error.  */
 #include "double-int.h"
 #include "gfortran.h"
 #include "trans.h"

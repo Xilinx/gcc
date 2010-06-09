@@ -58,7 +58,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "conditions.h"
 #include "flags.h"
-#include "real.h"
 #include "hard-reg-set.h"
 #include "output.h"
 #include "except.h"
@@ -3529,10 +3528,7 @@ output_addr_const (FILE *file, rtx x)
 
     case SYMBOL_REF:
       if (SYMBOL_REF_DECL (x))
-	{
-	  mark_decl_referenced (SYMBOL_REF_DECL (x));
-	  assemble_external (SYMBOL_REF_DECL (x));
-	}
+	assemble_external (SYMBOL_REF_DECL (x));
 #ifdef ASM_OUTPUT_SYMBOL_REF
       ASM_OUTPUT_SYMBOL_REF (file, x);
 #else

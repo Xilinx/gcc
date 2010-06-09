@@ -531,6 +531,9 @@ struct gcc_target
      form was.  Return true if the switch was valid.  */
   bool (* handle_option) (size_t code, const char *arg, int value);
 
+  /* Handle target-specific parts of specifying -Ofast.  */
+  void (* handle_ofast) (void);
+
   /* Display extra, target specific information in response to a
      --target-help switch.  */
   void (* target_help) (void);
@@ -616,7 +619,7 @@ struct gcc_target
       				      tree decl, void *params);
 
   /* Fold a target-specific builtin.  */
-  tree (* fold_builtin) (tree fndecl, tree arglist, bool ignore);
+  tree (* fold_builtin) (tree fndecl, int nargs, tree *argp, bool ignore);
 
   /* Returns a code for a target-specific builtin that implements
      reciprocal of the function, or NULL_TREE if not available.  */
@@ -663,6 +666,10 @@ struct gcc_target
 
   /* True if X is considered to be commutative.  */
   bool (* commutative_p) (const_rtx, int);
+  
+  /* True if ADDR is an address-expression whose effect depends
+     on the mode of the memory reference it is used in.  */
+  bool (* mode_dependent_address_p) (const_rtx addr);
 
   /* Given an invalid address X for a given machine mode, try machine-specific
      ways to make it legitimate.  Return X or an invalid address on failure.  */

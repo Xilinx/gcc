@@ -676,36 +676,6 @@ gfc_has_vector_index (gfc_expr *e)
 }
 
 
-/* Insert a reference to the component of the given name.
-   Only to be used with CLASS containers.  */
-
-void
-gfc_add_component_ref (gfc_expr *e, const char *name)
-{
-  gfc_ref **tail = &(e->ref);
-  gfc_ref *next = NULL;
-  gfc_symbol *derived = e->symtree->n.sym->ts.u.derived;
-  while (*tail != NULL)
-    {
-      if ((*tail)->type == REF_COMPONENT)
-	derived = (*tail)->u.c.component->ts.u.derived;
-      if ((*tail)->type == REF_ARRAY && (*tail)->next == NULL)
-	break;
-      tail = &((*tail)->next);
-    }
-  if (*tail != NULL && strcmp (name, "$data") == 0)
-    next = *tail;
-  (*tail) = gfc_get_ref();
-  (*tail)->next = next;
-  (*tail)->type = REF_COMPONENT;
-  (*tail)->u.c.sym = derived;
-  (*tail)->u.c.component = gfc_find_component (derived, name, true, true);
-  gcc_assert((*tail)->u.c.component);
-  if (!next)
-    e->ts = (*tail)->u.c.component->ts;
-}
-
-
 /* Copy a shape array.  */
 
 mpz_t *
@@ -1895,7 +1865,7 @@ gfc_simplify_expr (gfc_expr *p, int type)
       /* Only substitute array parameter variables if we are in an
 	 initialization expression, or we want a subsection.  */
       if (p->symtree->n.sym->attr.flavor == FL_PARAMETER
-	  && (gfc_init_expr || p->ref
+	  && (gfc_init_expr_flag || p->ref
 	      || p->symtree->n.sym->value->expr_type != EXPR_ARRAY))
 	{
 	  if (simplify_parameter_variable (p, type) == FAILURE)
@@ -2626,11 +2596,11 @@ gfc_reduce_init_expr (gfc_expr *expr)
 {
   gfc_try t;
 
-  gfc_init_expr = 1;
+  gfc_init_expr_flag = true;
   t = gfc_resolve_expr (expr);
   if (t == SUCCESS)
     t = check_init_expr (expr);
-  gfc_init_expr = 0;
+  gfc_init_expr_flag = false;
 
   if (t == FAILURE)
     return FAILURE;
@@ -2648,11 +2618,7 @@ gfc_reduce_init_expr (gfc_expr *expr)
 
 
 /* Match an initialization expression.  We work by first matching an
-   expression, then reducing it to a constant.  The reducing it to 
-   constant part requires a global variable to flag the prohibition
-   of a non-integer exponent in -std=f95 mode.  */
-
-bool init_flag = false;
+   expression, then reducing it to a constant.  */
 
 match
 gfc_match_init_expr (gfc_expr **result)
@@ -2663,12 +2629,12 @@ gfc_match_init_expr (gfc_expr **result)
 
   expr = NULL;
 
-  init_flag = true;
+  gfc_init_expr_flag = true;
 
   m = gfc_match_expr (&expr);
   if (m != MATCH_YES)
     {
-      init_flag = false;
+      gfc_init_expr_flag = false;
       return m;
     }
 
@@ -2676,12 +2642,12 @@ gfc_match_init_expr (gfc_expr **result)
   if (t != SUCCESS)
     {
       gfc_free_expr (expr);
-      init_flag = false;
+      gfc_init_expr_flag = false;
       return MATCH_ERROR;
     }
 
   *result = expr;
-  init_flag = false;
+  gfc_init_expr_flag = false;
 
   return MATCH_YES;
 }
@@ -3591,6 +3557,31 @@ gfc_check_assign_symbol (gfc_symbol *sym, gfc_expr *rvalue)
 }
 
 
+/* Check for default initializer; sym->value is not enough
+   as it is also set for EXPR_NULL of allocatables.  */
+
+bool
+gfc_has_default_initializer (gfc_symbol *der)
+{
+  gfc_component *c;
+
+  gcc_assert (der->attr.flavor == FL_DERIVED);
+  for (c = der->components; c; c = c->next)
+    if (c->ts.type == BT_DERIVED)
+      {
+        if (!c->attr.pointer
+	     && gfc_has_default_initializer (c->ts.u.derived))
+	  return true;
+      }
+    else
+      {
+        if (c->initializer)
+	  return true;
+      }
+
+  return false;
+}
+
 /* Get an expression for a default initializer.  */
 
 gfc_expr *
@@ -3599,7 +3590,8 @@ gfc_default_initializer (gfc_typespec *ts)
   gfc_expr *init;
   gfc_component *comp;
 
-  /* See if we have a default initializer.  */
+  /* See if we have a default initializer in this, but not in nested
+     types (otherwise we could use gfc_has_default_initializer()).  */
   for (comp = ts->u.derived->components; comp; comp = comp->next)
     if (comp->initializer || comp->attr.allocatable)
       break;

@@ -22,14 +22,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
 #include "tree.h"
 #include "c-common.h"
 #include "c-pragma.h"
 #include "flags.h"
 #include "toplev.h"
 #include "langhooks.h"
-#include "tree-inline.h"
 #include "diagnostic.h"
 #include "intl.h"
 #include "cppdefault.h"
@@ -39,7 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "options.h"
 #include "mkdeps.h"
 #include "target.h"
-#include "tm_p.h"
 #include "function.h"
 #include "c-tree.h"		/* For c_cpp_error.  */
 
@@ -307,6 +304,8 @@ c_common_init_options (unsigned int argc, const char **argv)
 	 diagnostic message.  */
       diagnostic_prefixing_rule (global_dc) = DIAGNOSTICS_SHOW_PREFIX_ONCE;
     }
+
+  global_dc->opt_permissive = OPT_fpermissive;
 
   parse_in = cpp_create_reader (c_dialect_cxx () ? CLK_GNUCXX: CLK_GNUC89,
 				ident_hash, line_table);
@@ -853,7 +852,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_fpermissive:
-      flag_permissive = value;
+      global_dc->permissive = flag_permissive = value;
       break;
 
     case OPT_fpreprocessed:

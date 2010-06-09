@@ -25,6 +25,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "hashtab.h"
 #include "vecprim.h"
+#include "tm.h"		/* For CUMULATIVE_ARGS.  */
+#include "hard-reg-set.h"
 
 /* Stack of pending (incomplete) sequences saved by `start_sequence'.
    Each element describes one pending sequence.
@@ -231,6 +233,17 @@ struct GTY(()) function_subsections {
   const char *unlikely_text_section_name;
 };
 
+/* Describe an empty area of space in the stack frame.  These can be chained
+   into a list; this is used to keep track of space wasted for alignment
+   reasons.  */
+struct GTY(()) frame_space
+{
+  struct frame_space *next;
+
+  HOST_WIDE_INT start;
+  HOST_WIDE_INT length;
+};
+
 /* Datastructures maintained for currently processed function in RTL form.  */
 struct GTY(()) rtl_data {
   struct expr_status expr;
@@ -277,6 +290,9 @@ struct GTY(()) rtl_data {
   /* List (chain of EXPR_LISTs) of all stack slots in this function.
      Made for the sake of unshare_all_rtl.  */
   rtx x_stack_slot_list;
+
+  /* List of empty areas in the stack frame.  */
+  struct frame_space *frame_space_list;
 
   /* Place after which to insert the tail_recursion_label if we need one.  */
   rtx x_stack_check_probe_note;
@@ -422,6 +438,12 @@ struct GTY(()) rtl_data {
      TREE_NOTHROW (current_function_decl) it is set even for overwritable
      function where currently compiled version of it is nothrow.  */
   bool nothrow;
+
+  /* Like regs_ever_live, but 1 if a reg is set or clobbered from an
+     asm.  Unlike regs_ever_live, elements of this array corresponding
+     to eliminable regs (like the frame pointer) are set if an asm
+     sets them.  */
+  HARD_REG_SET asm_clobbers;
 };
 
 #define return_label (crtl->x_return_label)
@@ -560,6 +582,10 @@ struct GTY(()) function {
 
   unsigned int after_inlining : 1;
   unsigned int always_inline_functions_inlined : 1;
+
+  /* Nonzero if function being compiled can throw synchronous non-call
+     exceptions.  */
+  unsigned int can_throw_non_call_exceptions : 1;
 
   /* Fields below this point are not set for abstract functions; see
      allocate_struct_function.  */
@@ -730,4 +756,9 @@ extern int get_current_funcdef_no (void);
 
 extern void reset_funcdef_no (void);
 extern void set_funcdef_no (int);
+
+/* In predict.c */
+extern bool optimize_function_for_size_p (struct function *);
+extern bool optimize_function_for_speed_p (struct function *);
+
 #endif  /* GCC_FUNCTION_H */
