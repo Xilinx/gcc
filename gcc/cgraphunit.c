@@ -822,9 +822,17 @@ verify_cgraph_node (struct cgraph_node *node)
 				debug_tree (e->callee->decl);
 				error_found = true;
 			      }
-			    else if (!node->global.inlined_to
-				     && !e->callee->global.inlined_to
+#ifdef ENABLE_CHECKING
+			    else if (!e->callee->global.inlined_to
 				     && decl
+				     && cgraph_get_node (decl)
+				     && (e->callee->former_clone_of
+					 != cgraph_get_node (decl)->decl)
+				     && (!L_IPO_COMP_MODE
+					 || (e->callee->former_clone_of
+					     && cgraph_lipo_get_resolved_node
+					     (e->callee->former_clone_of)->decl
+					     != cgraph_lipo_get_resolved_node (decl)->decl))
 				     && !clone_of_p (cgraph_node (decl),
 						     e->callee)
 				     && (!L_IPO_COMP_MODE
@@ -837,6 +845,7 @@ verify_cgraph_node (struct cgraph_node *node)
 				debug_tree (decl);
 				error_found = true;
 			      }
+#endif
 			  }
 			else if (decl)
 			  {
@@ -2458,6 +2467,11 @@ static void
 cgraph_materialize_clone (struct cgraph_node *node)
 {
   bitmap_obstack_initialize (NULL);
+#ifdef ENABLE_CHECKING
+  node->former_clone_of = node->clone_of->decl;
+  if (node->clone_of->former_clone_of)
+    node->former_clone_of = node->clone_of->former_clone_of;
+#endif
   /* Copy the OLD_VERSION_NODE function tree to the new version.  */
   tree_function_versioning (node->clone_of->decl, node->decl,
   			    node->clone.tree_map, true,
@@ -2512,12 +2526,19 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
 	      == cgraph_lipo_get_resolved_node (e->callee->decl))))
     return e->call_stmt;
 
+  gcc_assert (!cgraph_node (decl)->clone.combined_args_to_skip);
+
   if (cgraph_dump_file)
     {
       fprintf (cgraph_dump_file, "updating call of %s/%i -> %s/%i: ",
 	       cgraph_node_name (e->caller), e->caller->uid,
 	       cgraph_node_name (e->callee), e->callee->uid);
       print_gimple_stmt (cgraph_dump_file, e->call_stmt, 0, dump_flags);
+      if (e->callee->clone.combined_args_to_skip)
+        {
+          fprintf (cgraph_dump_file, " combined args to skip: ");
+          dump_bitmap (cgraph_dump_file, e->callee->clone.combined_args_to_skip);
+	}
     }
 
   if (e->callee->clone.combined_args_to_skip)
@@ -2625,40 +2646,7 @@ cgraph_materialize_all_clones (void)
     if (!node->analyzed && node->callees)
       cgraph_node_remove_callees (node);
   if (cgraph_dump_file)
-    fprintf (cgraph_dump_file, "Updating call sites\n");
-  for (node = cgraph_nodes; node; node = node->next)
-    if (node->analyzed && gimple_has_body_p (node->decl)
-        && (!node->clone_of
-            /* A clone node may be unreachable (and not needed) and
-               the node will be removed in unreachable node removal.
-               However its caller node which is external (inline extern,
-               or node from aux module) may still be reachable. Such
-               node (the caller) will need to be kept in the callgraph.
-               As a result, we will have a live caller node with the callee
-               edge to the cloned node be removed. This will lead to a missing
-               call edge fixup. */
-            || L_IPO_COMP_MODE))
-      {
-        struct cgraph_edge *e;
-
-	current_function_decl = node->decl;
-        push_cfun (DECL_STRUCT_FUNCTION (node->decl));
-	for (e = node->callees; e; e = e->next_callee)
-	  cgraph_redirect_edge_call_stmt_to_callee (e);
-	gcc_assert (!need_ssa_update_p (cfun));
-	pop_cfun ();
-	current_function_decl = NULL;
-#ifdef ENABLE_CHECKING
-        verify_cgraph_node (node);
-#endif
-      }
-  if (cgraph_dump_file)
     fprintf (cgraph_dump_file, "Materialization Call site updates done.\n");
-  /* All changes to parameters have been performed.  In order not to
-     incorrectly repeat them, we simply dispose of the bitmaps that drive the
-     changes. */
-  for (node = cgraph_nodes; node; node = node->next)
-    node->clone.combined_args_to_skip = NULL;
 #ifdef ENABLE_CHECKING
   verify_cgraph ();
 #endif

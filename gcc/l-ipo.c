@@ -1375,10 +1375,6 @@ cgraph_lipo_get_resolved_node (tree decl)
       || DECL_BUILT_IN (decl))
     return cgraph_node (decl);
 
-  /* if (gimple_has_body_p (decl)) */
-  if (TREE_STATIC (decl))
-    return cgraph_node (decl);
-
   node = cgraph_lipo_get_resolved_node_1 (decl, true);
   return node;
 }
