@@ -42,6 +42,11 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
+typedef gpy_symbol_obj *gpy_sym;
+
+DEF_VEC_P( gpy_sym );
+DEF_VEC_ALLOC_P( gpy_sym,gc );
+static VEC( gpy_sym,gc ) * gpy_decls;
 
 inline
 void gpy_symbol_init_ctx( gpy_symbol_obj * const x )
@@ -186,12 +191,16 @@ gpy_symbol_obj * gpy_process_AST( gpy_symbol_obj **sym )
 
 void gpy_process_decl( gpy_symbol_obj * sym )
 {
-  debug("processing declaration of type: '0x%X'\n", sym->type );
+  debug( "processing declaration <%p> of type: '0x%X'\n",
+	 (void*)sym, sym->type );
+
   if( sym->exp == OP_EXPRESS )
     {
       sym = gpy_process_AST( &sym );
     }
   /* Push the declaration! */
+  VEC_safe_push( gpy_sym, gc, gpy_decls, sym );
+  debug("decl <%p> was pushed!\n", (void*)sym );
 }
 
 void gpy_write_globals( void )
@@ -226,6 +235,14 @@ void gpy_write_globals( void )
     free (vec);
   */
 
-  cgraph_finalize_compilation_unit( );
+  unsigned decl_len = VEC_length( gpy_sym, gpy_decls );
+  unsigned idx = 0; gpy_symbol_obj *it = NULL;
 
+  debug("decl_len <%u>!\n", decl_len);
+  for( ; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )
+    {
+      debug("decl <%p>!\n", (void*)it );
+    }
+
+  cgraph_finalize_compilation_unit( );
 }

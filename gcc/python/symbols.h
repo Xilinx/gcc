@@ -19,7 +19,7 @@ along with GCC; see the file COPYING3.  If not see
 
 typedef unsigned short gpy_opcode_t;
 
-typedef struct GTY(()) gpy_symbol_table_t {
+struct GTY(()) gpy_symbol_table_t {
   char * identifier; gpy_opcode_t exp;
   gpy_opcode_t type, op_a_t, op_b_t;
   union {
@@ -34,7 +34,8 @@ typedef struct GTY(()) gpy_symbol_table_t {
     struct gpy_symbol_table_t * symbol_table;
   } op_b;
   struct gpy_symbol_table_t *next;
-} gpy_symbol_obj ;
+};
+typedef struct gpy_symbol_table_t gpy_symbol_obj;
 
 extern void gpy_process_decl( gpy_symbol_obj * );
 
