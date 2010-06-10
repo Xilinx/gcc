@@ -219,7 +219,7 @@ static void
 gpy_langhook_write_globals( void )
 {
   debug("write globals!\n");
-  return;
+  gpy_write_globals( );
 }
 
 static int
@@ -294,3 +294,4 @@ struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 #include "gt-python-py-lang.h"
 #include "gtype-python.h"
+#include "symbols.h"

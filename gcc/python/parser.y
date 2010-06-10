@@ -84,8 +84,12 @@ extern void yyerror( const char * );
 %token STRING
 
 %type<symbol> expr
+%type<symbol> expression
 %type<symbol> symbol_accessor
+%type<symbol> function
+%type<symbol> loop_while
 %type<symbol> accessor
+%type<symbol> decl
 %type<symbol> primary
 
 %left '-' '+'
@@ -101,6 +105,9 @@ extern void yyerror( const char * );
 
 declarations:
             | declarations decl
+            {
+	      gpy_process_decl( $2 );
+	    }
             ;
 
 decl: expression ';'
@@ -109,10 +116,13 @@ decl: expression ';'
     ;
 
 function: DEF IDENTIFIER '(' parameters ')' ':' '{' pblock '}'
+        { $$ = NULL; }
         | DEF IDENTIFIER '(' ')' ':' '{' pblock '}'
+	{ $$ = NULL; }
         ;
 
 loop_while: WHILE expression ':' '{' pblock '}'
+          { $$ = NULL; }
           ;
 
 expression: expr
