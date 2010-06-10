@@ -137,7 +137,7 @@ gpy_langhook_handle_option( size_t scode,
 
 /* Run after parsing options.  */
 static bool
-gpy_langhook_post_options (const char **pfilename ATTRIBUTE_UNUSED)
+gpy_langhook_post_options( const char **pfilename ATTRIBUTE_UNUSED )
 {
   debug("post options!\n");
   gcc_assert( num_in_fnames > 0 );
@@ -154,7 +154,6 @@ gpy_langhook_post_options (const char **pfilename ATTRIBUTE_UNUSED)
 static void
 gpy_langhook_parse_file( int set_yy_debug ATTRIBUTE_UNUSED )
 {
-  /*  go_parse_input_files (in_fnames, num_in_fnames);*/
   unsigned int idx = 0;
   debug("parse file!\n");
 
