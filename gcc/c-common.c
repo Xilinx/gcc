@@ -19,6 +19,10 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+/* FIXME: Still need to include rtl.h here (via expr.h) in a front-end file.
+   Pretend this is a back-end file.  */
+#undef IN_GCC_FRONTEND
+
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -36,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "langhooks.h"
 #include "tree-inline.h"
-#include "c-tree.h"
 #include "toplev.h"
 #include "diagnostic.h"
 #include "tree-iterator.h"
@@ -47,13 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target-def.h"
 #include "libfuncs.h"
 
-/* FIXME: Still need to include rtl.h here (via expr.h) in a front-end file.
-   Pretend this is a back-end file.  */
-#define IN_GCC_BACKEND
 #include "expr.h" /* For vector_mode_valid_p */
-
-/* FIXME: Needed for TARGET_ENUM_VA_LIST, which should be a target hook.  */
-#include "tm_p.h"
 
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
@@ -718,11 +715,6 @@ const struct c_common_resword c_common_reswords[] =
   { "inout",		RID_INOUT,		D_OBJC },
   { "oneway",		RID_ONEWAY,		D_OBJC },
   { "out",		RID_OUT,		D_OBJC },
-
-#ifdef TARGET_ADDR_SPACE_KEYWORDS
-  /* Any address space keywords recognized by the target.  */
-  TARGET_ADDR_SPACE_KEYWORDS,
-#endif
 };
 
 const unsigned int num_c_common_reswords =
@@ -858,16 +850,13 @@ const struct attribute_spec c_common_format_attribute_table[] =
 };
 
 /* Return identifier for address space AS.  */
+
 const char *
 c_addr_space_name (addr_space_t as)
 {
-  unsigned int i;
-
-  for (i = 0; i < num_c_common_reswords; i++)
-    if (c_common_reswords[i].rid == RID_FIRST_ADDR_SPACE + as)
-      return c_common_reswords[i].word;
-
-  gcc_unreachable ();
+  int rid = RID_FIRST_ADDR_SPACE + as;
+  gcc_assert (ridpointers [rid]);
+  return IDENTIFIER_POINTER (ridpointers [rid]);
 }
 
 /* Push current bindings for the function name VAR_DECLS.  */
@@ -2713,7 +2702,7 @@ verify_tree (tree x, struct tlist **pbefore_sp, struct tlist **pno_sp,
 /* Try to warn for undefined behavior in EXPR due to missing sequence
    points.  */
 
-void
+DEBUG_FUNCTION void
 verify_sequence_points (tree expr)
 {
   struct tlist *before_sp = 0, *after_sp = 0;
@@ -5101,21 +5090,21 @@ c_common_nodes_and_builtins (void)
     (build_decl (UNKNOWN_LOCATION,
 		 TYPE_DECL, get_identifier ("__builtin_va_list"),
 		 va_list_type_node));
-#ifdef TARGET_ENUM_VA_LIST
-  {
-    int l;
-    const char *pname;
-    tree ptype;
-    for (l = 0; TARGET_ENUM_VA_LIST (l, &pname, &ptype); ++l)
-      {
-	lang_hooks.decls.pushdecl
-	  (build_decl (UNKNOWN_LOCATION,
-		       TYPE_DECL, get_identifier (pname),
-	  	       ptype));
+  if (targetm.enum_va_list)
+    {
+      int l;
+      const char *pname;
+      tree ptype;
 
-      }
-  }
-#endif
+      for (l = 0; targetm.enum_va_list (l, &pname, &ptype); ++l)
+	{
+	  lang_hooks.decls.pushdecl
+	    (build_decl (UNKNOWN_LOCATION,
+		         TYPE_DECL, get_identifier (pname),
+	  	         ptype));
+
+	}
+    }
 
   if (TREE_CODE (va_list_type_node) == ARRAY_TYPE)
     {

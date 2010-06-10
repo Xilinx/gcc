@@ -287,17 +287,20 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	     reachable too, unless they are direct calls to extern inline functions
 	     we decided to not inline.  */
 	  if (node->reachable)
-	    for (e = node->callees; e; e = e->next_callee)
-	      if (!e->callee->reachable
-		  && node->analyzed
-		  && (!e->inline_failed || !e->callee->analyzed
-		      || !(DECL_EXTERNAL (e->callee->decl)
-			   || cgraph_is_aux_decl_external (e->callee))
-		      || before_inlining_p))
-		{
-		  e->callee->reachable = true;
-		  enqueue_cgraph_node (e->callee, &first);
-		}
+	    {
+	      for (e = node->callees; e; e = e->next_callee)
+		if (!e->callee->reachable
+		    && node->analyzed
+		    && (!e->inline_failed || !e->callee->analyzed
+			|| !(DECL_EXTERNAL (e->callee->decl)
+			     || cgraph_is_aux_decl_external (e->callee))
+			|| before_inlining_p))
+		  {
+		    e->callee->reachable = true;
+		    enqueue_cgraph_node (e->callee, &first);
+		  }
+	      process_references (&node->ref_list, &first, &first_varpool, before_inlining_p);
+	    }
 
 	  /* If any function in a comdat group is reachable, force
 	     all other functions in the same comdat group to be
@@ -320,7 +323,8 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	     function is clone of real clone, we must keep it around in order to
 	     make materialize_clones produce function body with the changes
 	     applied.  */
-	  while (node->clone_of && !node->clone_of->aux && !gimple_has_body_p (node->decl))
+	  while (node->clone_of && !node->clone_of->aux
+	         && !gimple_has_body_p (node->decl))
 	    {
 	      bool noninline = node->clone_of->decl != node->decl;
 	      node = node->clone_of;
@@ -330,7 +334,6 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 		  break;
 		}
 	    }
-	  process_references (&node->ref_list, &first, &first_varpool, before_inlining_p);
 	}
       if (first_varpool != (struct varpool_node *) (void *) 1)
 	{
@@ -371,6 +374,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
       if (node->aux && !node->reachable)
         {
 	  cgraph_node_remove_callees (node);
+	  ipa_remove_all_references (&node->ref_list);
 	  node->analyzed = false;
 	  node->local.inlinable = false;
 	}
@@ -1031,13 +1035,14 @@ dump_cgraph_node_set (FILE *f, cgraph_node_set set)
   for (iter = csi_start (set); !csi_end_p (iter); csi_next (&iter))
     {
       struct cgraph_node *node = csi_node (iter);
-      dump_cgraph_node (f, node);
+      fprintf (f, " %s/%i", cgraph_node_name (node), node->uid);
     }
+  fprintf (f, "\n");
 }
 
 /* Dump content of SET to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_cgraph_node_set (cgraph_node_set set)
 {
   dump_cgraph_node_set (stderr, set);
@@ -1188,13 +1193,14 @@ dump_varpool_node_set (FILE *f, varpool_node_set set)
   for (iter = vsi_start (set); !vsi_end_p (iter); vsi_next (&iter))
     {
       struct varpool_node *node = vsi_node (iter);
-      dump_varpool_node (f, node);
+      fprintf (f, " %s", varpool_node_name (node));
     }
+  fprintf (f, "\n");
 }
 
 /* Dump content of SET to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_varpool_node_set (varpool_node_set set)
 {
   dump_varpool_node_set (stderr, set);

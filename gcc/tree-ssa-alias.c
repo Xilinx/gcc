@@ -27,12 +27,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "basic-block.h"
 #include "timevar.h"
-#include "expr.h"
 #include "ggc.h"
 #include "langhooks.h"
 #include "flags.h"
 #include "function.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "tree-dump.h"
 #include "gimple.h"
@@ -360,7 +358,7 @@ dump_alias_info (FILE *file)
 
 /* Dump alias information on stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_alias_info (void)
 {
   dump_alias_info (stderr);
@@ -439,7 +437,7 @@ dump_points_to_info_for (FILE *file, tree ptr)
 
 /* Dump points-to information for VAR into stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_points_to_info_for (tree var)
 {
   dump_points_to_info_for (stderr, var);

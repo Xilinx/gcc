@@ -885,7 +885,8 @@ extern void tree_class_check_failed (const_tree, const enum tree_code_class,
     ATTRIBUTE_NORETURN;
 extern void tree_range_check_failed (const_tree, const char *, int,
 				     const char *, enum tree_code,
-				     enum tree_code);
+				     enum tree_code)
+    ATTRIBUTE_NORETURN;
 extern void tree_not_class_check_failed (const_tree,
 					 const enum tree_code_class,
 					 const char *, int, const char *)
@@ -3970,7 +3971,6 @@ extern tree maybe_get_identifier (const char *);
 /* Construct various types of nodes.  */
 
 extern tree build_nt (enum tree_code, ...);
-extern tree build_nt_call_list (tree, tree);
 extern tree build_nt_call_vec (tree, VEC(tree,gc) *);
 
 extern tree build0_stat (enum tree_code, tree MEM_STAT_DECL);
@@ -5120,9 +5120,11 @@ extern void print_rtl (FILE *, const_rtx);
 
 /* In print-tree.c */
 extern void debug_tree (tree);
+extern void debug_vec_tree (VEC(tree,gc) *);
 #ifdef BUFSIZ
 extern void dump_addr (FILE*, const char *, const void *);
 extern void print_node (FILE *, const char *, tree, int);
+extern void print_vec_tree (FILE *, const char *, VEC(tree,gc) *, int);
 extern void print_node_brief (FILE *, const char *, const_tree, int);
 extern void indent_to (FILE *, int);
 #endif
@@ -5378,6 +5380,17 @@ struct GTY(()) tree_map {
 #define tree_map_eq tree_map_base_eq
 extern unsigned int tree_map_hash (const void *);
 #define tree_map_marked_p tree_map_base_marked_p
+
+/* Map from a decl tree to another tree.  */
+
+struct GTY(()) tree_decl_map {
+  struct tree_map_base base;
+  tree to;
+};
+
+#define tree_decl_map_eq tree_map_base_eq
+extern unsigned int tree_decl_map_hash (const void *);
+#define tree_decl_map_marked_p tree_map_base_marked_p
 
 /* Map from a tree to an int.  */
 

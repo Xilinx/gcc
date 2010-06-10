@@ -30,9 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "basic-block.h"
 #include "output.h"
-#include "expr.h"
 #include "function.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "bitmap.h"
@@ -857,7 +855,7 @@ error:
 /* Verify common invariants in the SSA web.
    TODO: verify the variable annotations.  */
 
-void
+DEBUG_FUNCTION void
 verify_ssa (bool check_modified_stmt)
 {
   size_t i;

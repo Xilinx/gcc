@@ -34,8 +34,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "pointer-set.h"
 #include "flags.h"
-#include "c-common.h"
 #include "cp-tree.h"
+#include "c-common.h"
 #include "cp-objcp-common.h"
 #include "tree-inline.h"
 #include "decl.h"
@@ -1566,7 +1566,7 @@ iterative_hash_template_arg (tree arg, hashval_t val)
     case LAMBDA_EXPR:
       /* A lambda can't appear in a template arg, but don't crash on
 	 erroneous input.  */
-      gcc_assert (errorcount > 0);
+      gcc_assert (seen_error ());
       return val;
 
     default:

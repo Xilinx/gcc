@@ -5568,16 +5568,15 @@ initialize_local_var (tree decl, tree init)
 
 /* DECL is a VAR_DECL for a compiler-generated variable with static
    storage duration (like a virtual table) whose initializer is a
-   compile-time constant.  INIT must be either a TREE_LIST of values,
-   or a CONSTRUCTOR.  Initialize the variable and provide it to the
+   compile-time constant.  Initialize the variable and provide it to the
    back end.  */
 
 void
-initialize_artificial_var (tree decl, tree init)
+initialize_artificial_var (tree decl, VEC(constructor_elt,gc) *v)
 {
+  tree init;
   gcc_assert (DECL_ARTIFICIAL (decl));
-  if (TREE_CODE (init) == TREE_LIST)
-    init = build_constructor_from_list (TREE_TYPE (decl), init);
+  init = build_constructor (TREE_TYPE (decl), v);
   gcc_assert (TREE_CODE (init) == CONSTRUCTOR);
   DECL_INITIAL (decl) = init;
   DECL_INITIALIZED_P (decl) = 1;
@@ -6266,10 +6265,10 @@ register_dtor_fn (tree decl)
 {
   tree cleanup;
   tree compound_stmt;
-  tree args;
   tree fcall;
   tree type;
   bool use_dtor;
+  tree arg0, arg1 = NULL_TREE, arg2 = NULL_TREE;
 
   type = TREE_TYPE (decl);
   if (TYPE_HAS_TRIVIAL_DESTRUCTOR (type))
@@ -6347,25 +6346,23 @@ register_dtor_fn (tree decl)
 	   in, and, in general, it's cheaper to pass NULL than any
 	   other value.  */
 	addr = null_pointer_node;
-      args = tree_cons (NULL_TREE,
-			cp_build_unary_op (ADDR_EXPR, get_dso_handle_node (), 0,
-                                        tf_warning_or_error),
-			NULL_TREE);
+      arg2 = cp_build_unary_op (ADDR_EXPR, get_dso_handle_node (), 0,
+                                tf_warning_or_error);
       if (targetm.cxx.use_aeabi_atexit ())
 	{
-	  args = tree_cons (NULL_TREE, cleanup, args);
-	  args = tree_cons (NULL_TREE, addr, args);
+	  arg1 = cleanup;
+	  arg0 = addr;
 	}
       else
 	{
-	  args = tree_cons (NULL_TREE, addr, args);
-	  args = tree_cons (NULL_TREE, cleanup, args);
+	  arg1 = addr;
+	  arg0 = cleanup;
 	}
     }
   else
-    args = tree_cons (NULL_TREE, cleanup, NULL_TREE);
-  return cp_build_function_call (get_atexit_node (), args, 
-				 tf_warning_or_error);
+    arg0 = cleanup;
+  return cp_build_function_call_nary (get_atexit_node (), tf_warning_or_error,
+				      arg0, arg1, arg2, NULL_TREE);
 }
 
 /* DECL is a VAR_DECL with static storage duration.  INIT, if present,
@@ -8730,6 +8727,34 @@ grokdeclarator (const cp_declarator *declarator,
                    ? G_("cannot declare reference to qualified function type %qT")
                    : G_("cannot declare pointer to qualified function type %qT"),
 		   type);
+
+	  /* When the pointed-to type involves components of variable size,
+	     care must be taken to ensure that the size evaluation code is
+	     emitted early enough to dominate all the possible later uses
+	     and late enough for the variables on which it depends to have
+	     been assigned.
+
+	     This is expected to happen automatically when the pointed-to
+	     type has a name/declaration of it's own, but special attention
+	     is required if the type is anonymous.
+
+	     We handle the NORMAL and FIELD contexts here by inserting a
+	     dummy statement that just evaluates the size at a safe point
+	     and ensures it is not deferred until e.g. within a deeper
+	     conditional context (c++/43555).
+
+	     We expect nothing to be needed here for PARM or TYPENAME.
+	     Evaluating the size at this point for TYPENAME would
+	     actually be incorrect, as we might be in the middle of an
+	     expression with side effects on the pointed-to type size
+	     "arguments" prior to the pointer declaration point and the
+	     size evaluation could end up prior to the side effects.  */
+
+	  if (!TYPE_NAME (type)
+	      && (decl_context == NORMAL || decl_context == FIELD)
+	      && at_function_scope_p ()
+	      && variably_modified_type_p (type, NULL_TREE))
+	    finish_expr_stmt (TYPE_SIZE (type));
 
 	  if (declarator->kind == cdk_reference)
 	    {
@@ -11428,7 +11453,8 @@ finish_enum (tree enumtype)
            itk++)
         {
           underlying_type = integer_types[itk];
-          if (TYPE_PRECISION (underlying_type) >= precision
+          if (underlying_type != NULL_TREE
+	      && TYPE_PRECISION (underlying_type) >= precision
               && TYPE_UNSIGNED (underlying_type) == unsignedp)
             break;
         }
@@ -12933,9 +12959,8 @@ cxx_maybe_build_cleanup (tree decl)
       fn = lookup_name (id);
       arg = build_address (decl);
       mark_used (decl);
-      cleanup = cp_build_function_call (fn, build_tree_list (NULL_TREE,
-							     arg),
-					tf_warning_or_error);
+      cleanup = cp_build_function_call_nary (fn, tf_warning_or_error,
+					     arg, NULL_TREE);
     }
   /* Handle ordinary C++ destructors.  */
   type = TREE_TYPE (decl);

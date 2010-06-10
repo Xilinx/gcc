@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "tree.h"
 #include "tree-inline.h"
-#include "expr.h"
 #include "flags.h"
 #include "params.h"
 #include "input.h"
@@ -41,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "function.h"
 #include "tree-flow.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "except.h"
 #include "debug.h"
@@ -52,6 +50,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "integrate.h"
 #include "langhooks.h"
+
+#include "rtl.h"	/* FIXME: For asm_str_count.  */
 
 /* I'm not real happy about this, but we need to handle gimple and
    non-gimple trees.  */
@@ -1489,11 +1489,17 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
   basic_block copy_basic_block;
   tree decl;
   gcov_type freq;
+  basic_block prev;
+
+  /* Search for previous copied basic block.  */
+  prev = bb->prev_bb;
+  while (!prev->aux)
+    prev = prev->prev_bb;
 
   /* create_basic_block() will append every new block to
      basic_block_info automatically.  */
   copy_basic_block = create_basic_block (NULL, (void *) 0,
-                                         (basic_block) bb->prev_bb->aux);
+                                         (basic_block) prev->aux);
   copy_basic_block->count = (double)bb->count * count_scale / REG_BR_PROB_BASE;
 
   /* We are going to rebuild frequencies from scratch.  These values
@@ -1729,7 +1735,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		      = CIF_ORIGINALLY_INDIRECT_CALL;
 		  if (dump_file)
 		    {
-		      fprintf (dump_file, "Created new direct edge to %s",
+		      fprintf (dump_file, "Created new direct edge to %s\n",
 			       cgraph_node_name (dest));
 		    }
 		}
@@ -1835,9 +1841,10 @@ update_ssa_across_abnormal_edges (basic_block bb, basic_block ret_bb,
 
 /* Copy edges from BB into its copy constructed earlier, scale profile
    accordingly.  Edges will be taken care of later.  Assume aux
-   pointers to point to the copies of each BB.  */
+   pointers to point to the copies of each BB.  Return true if any
+   debug stmts are left after a statement that must end the basic block.  */
 
-static void
+static bool
 copy_edges_for_bb (basic_block bb, gcov_type count_scale, basic_block ret_bb)
 {
   basic_block new_bb = (basic_block) bb->aux;
@@ -1845,6 +1852,7 @@ copy_edges_for_bb (basic_block bb, gcov_type count_scale, basic_block ret_bb)
   edge old_edge;
   gimple_stmt_iterator si;
   int flags;
+  bool need_debug_cleanup = false;
 
   /* Use the indices from the original blocks to create edges for the
      new ones.  */
@@ -1866,7 +1874,7 @@ copy_edges_for_bb (basic_block bb, gcov_type count_scale, basic_block ret_bb)
       }
 
   if (bb->index == ENTRY_BLOCK || bb->index == EXIT_BLOCK)
-    return;
+    return false;
 
   for (si = gsi_start_bb (new_bb); !gsi_end_p (si);)
     {
@@ -1901,6 +1909,13 @@ copy_edges_for_bb (basic_block bb, gcov_type count_scale, basic_block ret_bb)
       if (can_throw || nonlocal_goto)
 	{
 	  if (!gsi_end_p (si))
+	    {
+	      while (!gsi_end_p (si) && is_gimple_debug (gsi_stmt (si)))
+		gsi_next (&si);
+	      if (gsi_end_p (si))
+		need_debug_cleanup = true;
+	    }
+	  if (!gsi_end_p (si))
 	    /* Note that bb's predecessor edges aren't necessarily
 	       right at this point; split_block doesn't care.  */
 	    {
@@ -1925,6 +1940,7 @@ copy_edges_for_bb (basic_block bb, gcov_type count_scale, basic_block ret_bb)
 	update_ssa_across_abnormal_edges (gimple_bb (copy_stmt), ret_bb,
 					  can_throw, nonlocal_goto);
     }
+  return need_debug_cleanup;
 }
 
 /* Copy the PHIs.  All blocks and edges are copied, some blocks
@@ -2061,12 +2077,70 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
   pop_cfun ();
 }
 
+/* Helper function for copy_cfg_body.  Move debug stmts from the end
+   of NEW_BB to the beginning of successor basic blocks when needed.  If the
+   successor has multiple predecessors, reset them, otherwise keep
+   their value.  */
+
+static void
+maybe_move_debug_stmts_to_successors (copy_body_data *id, basic_block new_bb)
+{
+  edge e;
+  edge_iterator ei;
+  gimple_stmt_iterator si = gsi_last_nondebug_bb (new_bb);
+
+  if (gsi_end_p (si)
+      || gsi_one_before_end_p (si)
+      || !(stmt_can_throw_internal (gsi_stmt (si))
+	   || stmt_can_make_abnormal_goto (gsi_stmt (si))))
+    return;
+
+  FOR_EACH_EDGE (e, ei, new_bb->succs)
+    {
+      gimple_stmt_iterator ssi = gsi_last_bb (new_bb);
+      gimple_stmt_iterator dsi = gsi_after_labels (e->dest);
+      while (is_gimple_debug (gsi_stmt (ssi)))
+	{
+	  gimple stmt = gsi_stmt (ssi), new_stmt;
+	  tree var;
+	  tree value;
+
+	  /* For the last edge move the debug stmts instead of copying
+	     them.  */
+	  if (ei_one_before_end_p (ei))
+	    {
+	      si = ssi;
+	      gsi_prev (&ssi);
+	      if (!single_pred_p (e->dest))
+		gimple_debug_bind_reset_value (stmt);
+	      gsi_remove (&si, false);
+	      gsi_insert_before (&dsi, stmt, GSI_SAME_STMT);
+	      continue;
+	    }
+
+	  var = gimple_debug_bind_get_var (stmt);
+	  if (single_pred_p (e->dest))
+	    {
+	      value = gimple_debug_bind_get_value (stmt);
+	      value = unshare_expr (value);
+	    }
+	  else
+	    value = NULL_TREE;
+	  new_stmt = gimple_build_debug_bind (var, value, stmt);
+	  gsi_insert_before (&dsi, new_stmt, GSI_SAME_STMT);
+	  VEC_safe_push (gimple, heap, id->debug_stmts, new_stmt);
+	  gsi_prev (&ssi);
+	}
+    }
+}
+
 /* Make a copy of the body of FN so that it can be inserted inline in
    another function.  Walks FN via CFG, returns new fndecl.  */
 
 static tree
 copy_cfg_body (copy_body_data * id, gcov_type count, int frequency_scale,
-	       basic_block entry_block_map, basic_block exit_block_map)
+	       basic_block entry_block_map, basic_block exit_block_map,
+	       bitmap blocks_to_copy, basic_block new_entry)
 {
   tree callee_fndecl = id->src_fn;
   /* Original cfun for the callee, doesn't change.  */
@@ -2074,6 +2148,7 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency_scale,
   struct function *cfun_to_copy;
   basic_block bb;
   tree new_fndecl = NULL;
+  bool need_debug_cleanup = false;
   gcov_type count_scale;
   int last;
 
@@ -2104,32 +2179,54 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency_scale,
 
   /* Use aux pointers to map the original blocks to copy.  */
   FOR_EACH_BB_FN (bb, cfun_to_copy)
-    {
-      basic_block new_bb = copy_bb (id, bb, frequency_scale, count_scale);
-      bb->aux = new_bb;
-      new_bb->aux = bb;
-    }
+    if (!blocks_to_copy || bitmap_bit_p (blocks_to_copy, bb->index))
+      {
+	basic_block new_bb = copy_bb (id, bb, frequency_scale, count_scale);
+	bb->aux = new_bb;
+	new_bb->aux = bb;
+      }
 
   last = last_basic_block;
 
   /* Now that we've duplicated the blocks, duplicate their edges.  */
   FOR_ALL_BB_FN (bb, cfun_to_copy)
-    copy_edges_for_bb (bb, count_scale, exit_block_map);
+    if (!blocks_to_copy
+        || (bb->index > 0 && bitmap_bit_p (blocks_to_copy, bb->index)))
+      need_debug_cleanup |= copy_edges_for_bb (bb, count_scale, exit_block_map);
 
   if (gimple_in_ssa_p (cfun))
     FOR_ALL_BB_FN (bb, cfun_to_copy)
-      copy_phis_for_bb (bb, id);
+      if (!blocks_to_copy
+	  || (bb->index > 0 && bitmap_bit_p (blocks_to_copy, bb->index)))
+	copy_phis_for_bb (bb, id);
+
+  if (new_entry)
+    {
+      edge e;
+      e = make_edge (entry_block_map, (basic_block)new_entry->aux, EDGE_FALLTHRU);
+      e->probability = REG_BR_PROB_BASE;
+      e->count = entry_block_map->count;
+    }
 
   FOR_ALL_BB_FN (bb, cfun_to_copy)
-    {
-      ((basic_block)bb->aux)->aux = NULL;
-      bb->aux = NULL;
-    }
+    if (bb->aux)
+      {
+	if (need_debug_cleanup
+	    && bb->index != ENTRY_BLOCK
+	    && bb->index != EXIT_BLOCK)
+	  maybe_move_debug_stmts_to_successors (id, (basic_block) bb->aux);
+	((basic_block)bb->aux)->aux = NULL;
+	bb->aux = NULL;
+      }
 
   /* Zero out AUX fields of newly created block during EH edge
      insertion. */
   for (; last < last_basic_block; last++)
-    BASIC_BLOCK (last)->aux = NULL;
+    {
+      if (need_debug_cleanup)
+	maybe_move_debug_stmts_to_successors (id, BASIC_BLOCK (last));
+      BASIC_BLOCK (last)->aux = NULL;
+    }
   entry_block_map->aux = NULL;
   exit_block_map->aux = NULL;
 
@@ -2243,14 +2340,16 @@ copy_tree_body (copy_body_data *id)
 
 static tree
 copy_body (copy_body_data *id, gcov_type count, int frequency_scale,
-	   basic_block entry_block_map, basic_block exit_block_map)
+	   basic_block entry_block_map, basic_block exit_block_map,
+	   bitmap blocks_to_copy, basic_block new_entry)
 {
   tree fndecl = id->src_fn;
   tree body;
 
   /* If this body has a CFG, walk CFG and copy.  */
   gcc_assert (ENTRY_BLOCK_PTR_FOR_FUNCTION (DECL_STRUCT_FUNCTION (fndecl)));
-  body = copy_cfg_body (id, count, frequency_scale, entry_block_map, exit_block_map);
+  body = copy_cfg_body (id, count, frequency_scale, entry_block_map, exit_block_map,
+		        blocks_to_copy, new_entry);
   copy_debug_stmts (id);
 
   return body;
@@ -3298,6 +3397,7 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
 	tree decl = gimple_call_fndecl (stmt);
 	tree addr = gimple_call_fn (stmt);
 	tree funtype = TREE_TYPE (addr);
+	bool stdarg = false;
 
 	if (POINTER_TYPE_P (funtype))
 	  funtype = TREE_TYPE (funtype);
@@ -3406,17 +3506,26 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
 
 	if (!VOID_TYPE_P (TREE_TYPE (funtype)))
 	  cost += estimate_move_cost (TREE_TYPE (funtype));
+
+	if (funtype)
+	  stdarg = stdarg_p (funtype);
+
 	/* Our cost must be kept in sync with
 	   cgraph_estimate_size_after_inlining that does use function
-	   declaration to figure out the arguments.  */
-	if (decl && DECL_ARGUMENTS (decl))
+	   declaration to figure out the arguments.
+
+	   For functions taking variable list of arguments we must
+	   look into call statement intself.  This is safe because
+	   we will get only higher costs and in most cases we will
+	   not inline these anyway.  */
+	if (decl && DECL_ARGUMENTS (decl) && !stdarg)
 	  {
 	    tree arg;
 	    for (arg = DECL_ARGUMENTS (decl); arg; arg = TREE_CHAIN (arg))
 	      if (!VOID_TYPE_P (TREE_TYPE (arg)))
 	        cost += estimate_move_cost (TREE_TYPE (arg));
 	  }
-	else if (funtype && prototype_p (funtype))
+	else if (funtype && prototype_p (funtype) && !stdarg)
 	  {
 	    tree t;
 	    for (t = TYPE_ARG_TYPES (funtype); t && t != void_list_node;
@@ -3845,7 +3954,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
      duplicate our body before altering anything.  */
   copy_body (id, bb->count,
   	     cg_edge->frequency * REG_BR_PROB_BASE / CGRAPH_FREQ_BASE,
-	     bb, return_block);
+	     bb, return_block, NULL, NULL);
 
   /* Reset the escaped solution.  */
   if (cfun->gimple_df)
@@ -4067,7 +4176,7 @@ optimize_inline_calls (tree fn)
   /* There is no point in performing inlining if errors have already
      occurred -- and we might crash if we try to inline invalid
      code.  */
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return 0;
 
   /* Clear out ID.  */
@@ -4568,7 +4677,7 @@ debug_find_tree_1 (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED, void *data)
     return NULL;
 }
 
-bool
+DEBUG_FUNCTION bool
 debug_find_tree (tree top, tree search)
 {
   return walk_tree_without_duplicates (&top, debug_find_tree_1, search) != 0;
@@ -4612,7 +4721,7 @@ copy_decl_for_dup_finish (copy_body_data *id, tree decl, tree copy)
   /* The new variable/label has no RTL, yet.  */
   if (CODE_CONTAINS_STRUCT (TREE_CODE (copy), TS_DECL_WRTL)
       && !TREE_STATIC (copy) && !DECL_EXTERNAL (copy))
-    SET_DECL_RTL (copy, NULL_RTX);
+    SET_DECL_RTL (copy, 0);
 
   /* These args would always appear unused, if not for this.  */
   TREE_USED (copy) = 1;
@@ -4895,11 +5004,18 @@ update_clone_info (copy_body_data * id)
    tree with another tree while duplicating the function's
    body, TREE_MAP represents the mapping between these
    trees. If UPDATE_CLONES is set, the call_stmt fields
-   of edges of clones of the function will be updated.  */
+   of edges of clones of the function will be updated.  
+
+   If non-NULL ARGS_TO_SKIP determine function parameters to remove
+   from new version.
+   If non-NULL BLOCK_TO_COPY determine what basic blocks to copy.
+   If non_NULL NEW_ENTRY determine new entry BB of the clone.
+*/
 void
 tree_function_versioning (tree old_decl, tree new_decl,
 			  VEC(ipa_replace_map_p,gc)* tree_map,
-			  bool update_clones, bitmap args_to_skip)
+			  bool update_clones, bitmap args_to_skip,
+			  bitmap blocks_to_copy, basic_block new_entry)
 {
   struct cgraph_node *old_version_node;
   struct cgraph_node *new_version_node;
@@ -5051,7 +5167,7 @@ tree_function_versioning (tree old_decl, tree new_decl,
 
   /* Copy the Function's body.  */
   copy_body (&id, old_entry_block->count, REG_BR_PROB_BASE,
-	     ENTRY_BLOCK_PTR, EXIT_BLOCK_PTR);
+	     ENTRY_BLOCK_PTR, EXIT_BLOCK_PTR, blocks_to_copy, new_entry);
 
   if (DECL_RESULT (old_decl) != NULL_TREE)
     {

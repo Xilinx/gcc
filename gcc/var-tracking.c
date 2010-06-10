@@ -1098,7 +1098,7 @@ dv_from_value (rtx value)
 
 extern void debug_dv (decl_or_value dv);
 
-void
+DEBUG_FUNCTION void
 debug_dv (decl_or_value dv)
 {
   if (dv_is_value_p (dv))
@@ -3693,6 +3693,11 @@ dataflow_set_equiv_regs (dataflow_set *set)
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     {
       rtx canon[NUM_MACHINE_MODES];
+
+      /* If the list is empty or one entry, no need to canonicalize
+	 anything.  */
+      if (set->regs[i] == NULL || set->regs[i]->next == NULL)
+	continue;
 
       memset (canon, 0, sizeof (canon));
 

@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "basic-block.h"
 #include "output.h"
-#include "diagnostic.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "timevar.h"
@@ -441,7 +440,7 @@ check_loop_closed_ssa_stmt (basic_block bb, gimple stmt)
 /* Checks that invariants of the loop closed ssa form are preserved.
    Call verify_ssa when VERIFY_SSA_P is true.  */
 
-void
+DEBUG_FUNCTION void
 verify_loop_closed_ssa (bool verify_ssa_p)
 {
   basic_block bb;

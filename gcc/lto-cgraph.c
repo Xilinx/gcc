@@ -1,7 +1,7 @@
 /* Write and read the cgraph to the memory mapped representation of a
    .o file.
 
-   Copyright 2009 Free Software Foundation, Inc.
+   Copyright 2009, 2010 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
@@ -37,7 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "function.h"
 #include "ggc.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "except.h"
 #include "vec.h"
 #include "timevar.h"
@@ -233,14 +233,6 @@ lto_varpool_encoder_deref (lto_varpool_encoder_t encoder, int ref)
   return VEC_index (varpool_node_ptr, encoder->nodes, ref);
 }
 
-
-/* Return number of encoded nodes in ENCODER.  */
-
-static int
-lto_varpool_encoder_size (lto_varpool_encoder_t encoder)
-{
-  return VEC_length (varpool_node_ptr, encoder->nodes);
-}
 
 /* Return TRUE if we should encode initializer of NODE (if any).  */
 

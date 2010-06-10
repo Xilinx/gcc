@@ -3864,7 +3864,7 @@ cleanup_all_empty_eh (void)
 */
 
 static unsigned int
-execute_cleanup_eh (void)
+execute_cleanup_eh_1 (void)
 {
   /* Do this first: unsplit_all_eh and cleanup_all_empty_eh can die
      looking up unreachable landing pads.  */
@@ -3898,6 +3898,21 @@ execute_cleanup_eh (void)
   return 0;
 }
 
+static unsigned int
+execute_cleanup_eh (void)
+{
+  int ret = execute_cleanup_eh_1 ();
+
+  /* If the function no longer needs an EH personality routine
+     clear it.  This exposes cross-language inlining opportunities
+     and avoids references to a never defined personality routine.  */
+  if (DECL_FUNCTION_PERSONALITY (current_function_decl)
+      && function_needs_eh_personality (cfun) != eh_personality_lang)
+    DECL_FUNCTION_PERSONALITY (current_function_decl) = NULL_TREE;
+
+  return ret;
+}
+
 static bool
 gate_cleanup_eh (void)
 {
@@ -3925,7 +3940,7 @@ struct gimple_opt_pass pass_cleanup_eh = {
 /* Verify that BB containing STMT as the last statement, has precisely the
    edge that make_eh_edges would create.  */
 
-bool
+DEBUG_FUNCTION bool
 verify_eh_edges (gimple stmt)
 {
   basic_block bb = gimple_bb (stmt);
@@ -3986,7 +4001,7 @@ verify_eh_edges (gimple stmt)
 
 /* Similarly, but handle GIMPLE_EH_DISPATCH specifically.  */
 
-bool
+DEBUG_FUNCTION bool
 verify_eh_dispatch_edge (gimple stmt)
 {
   eh_region r;

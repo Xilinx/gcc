@@ -789,6 +789,12 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
   VA_FIXEDARG VA_CLOSE VA_START
 #endif /* IN_GCC */
 
+/* Front ends should never have to include middle-end headers.  Enforce
+   this by poisoning the header double-include protection defines.  */
+#ifdef IN_GCC_FRONTEND
+#pragma GCC poison GCC_RTL_H
+#endif
+
 /* Note: not all uses of the `index' token (e.g. variable names and
    structure members) have been eliminated.  */
 #undef bcopy
@@ -865,6 +871,16 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 #define VALGRIND_DISCARD(x)
 #define VALGRIND_MALLOCLIKE_BLOCK(w,x,y,z)
 #define VALGRIND_FREELIKE_BLOCK(x,y)
+#endif
+
+/* In LTO -fwhole-program build we still want to keep the debug functions available
+   for debugger.  Mark them as used to prevent removal.  */
+#if (GCC_VERSION > 4000)
+#define DEBUG_FUNCTION __attribute__ ((__used__))
+#define DEBUG_VARIABLE __attribute__ ((__used__))
+#else
+#define DEBUG_FUNCTION
+#define DEBUG_VARIABLE
 #endif
 
 #endif /* ! GCC_SYSTEM_H */

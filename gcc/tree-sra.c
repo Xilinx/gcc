@@ -77,12 +77,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 #include "tm.h"
 #include "tree.h"
-#include "expr.h"
 #include "gimple.h"
 #include "cgraph.h"
 #include "tree-flow.h"
 #include "ipa-prop.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "statistics.h"
 #include "tree-dump.h"
@@ -4225,7 +4223,7 @@ convert_callers (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
 static GTY(()) unsigned int clone_fn_id_num;
 
 static tree
-clone_function_name (tree decl)
+clone_func_name (tree decl)
 {
   tree name = DECL_ASSEMBLER_NAME (decl);
   size_t len = IDENTIFIER_LENGTH (name);
@@ -4288,7 +4286,7 @@ modify_function (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
   if (L_IPO_COMP_MODE)
     {
       cgraph_remove_assembler_hash_node (node);
-      DECL_NAME (node->decl) = clone_function_name (node->decl);
+      DECL_NAME (node->decl) = clone_func_name (node->decl);
       SET_DECL_ASSEMBLER_NAME (node->decl, DECL_NAME (node->decl));
       cgraph_add_assembler_hash_node (node);
       SET_DECL_RTL (node->decl, NULL);

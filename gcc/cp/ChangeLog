@@ -1,3 +1,184 @@
+2010-06-03  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* class.c (struct vtbl_init_data_s): Remove last_init field.
+	(struct secondary_vptr_vtt_init_data_s): Change type of inits field
+	to a VEC.
+	(finish_vtbls): Use a VEC rather than a TREE_LIST for the accumulated
+	initializers.
+	(build_vtt): Likewise.
+	(initialize_vtable): Take a VEC instead of a tree.
+	(build_vtt_inits): Change return type to void.  Take a VEC **
+	instead of a tree *; accumulate results into said VEC.
+	(build_ctor_vtbl_group): Use a VEC rather than a TREE_LIST for the
+	accumulated initializers.  Pass the vtable to accumulate_vtbl_inits.
+	(accumulate_vtbl_inits): Add extra vtable tree parameter; take a VEC
+	instead of a tree.
+	(dfs_accumulate_vtbl_inits): Likewise.  Change return type to void.
+	(build_vtbl_initializer): Add VEC parameter; accumulate initializers
+	into it.
+	(dfs_build_secondary_vptr_vtt_inits): Use CONSTRUCTOR_APPEND_ELT
+	rather than tree_cons.
+	(build_vbase_offset_vtbl_entries): Likewise.
+	(add_vcall_offset): Likewise.
+	(build_rtti_vtbl_entries): Likewise.
+	* cp-tree.h (initialize_artificial_var): Take a VEC instead of a tree.
+	* decl.c (initialize_artificial_var): Use build_constructor instead
+	of build_constructor_from_list.
+
+2010-06-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/44294
+	* class.c (layout_class_type): Check MAX_FIXED_MODE_SIZE on
+	bit-field.
+
+2010-06-02  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* parser.c (cp_parser_mem_initializer_list): Change error text.
+
+2010-06-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* cp-objcp-common.c (shadowed_var_for_decl): Change into
+	tree_decl_map hashtab from tree_map.
+	(decl_shadowed_for_var_lookup, decl_shadowed_for_var_insert): Adjust.
+	(init_shadowed_var_for_decl): Adjust initialization.
+
+	PR c++/44361
+	* cvt.c (convert_to_void): If implicit is NULL, call mark_rvalue_use
+	instead of calling mark_exp_read only when not an assignment.
+
+	PR debug/44367
+	* semantics.c (finalize_nrv): Don't copy DECL_ARTIFICIAL, DECL_IGNORED_P,
+	DECL_SOURCE_LOCATION and DECL_ABSTRACT_ORIGIN from var to result.
+	Set DECL_VALUE_EXPR on var.
+
+2010-06-02  Jason Merrill  <jason@redhat.com>
+
+	* error.c (dump_type): Improve typedef handling.
+
+	PR c++/9726
+	PR c++/23594
+	PR c++/44333
+	* name-lookup.c (same_entity_p): New.
+	(ambiguous_decl): Multiple declarations of the same entity
+	are not ambiguous.
+
+2010-06-01  Jason Merrill  <jason@redhat.com>
+
+	DR 990
+	* call.c (add_list_candidates): Prefer the default constructor.
+	(build_aggr_conv): Treat missing initializers like { }.
+	* typeck2.c (process_init_constructor_record): Likewise.
+	* init.c (expand_default_init): Use digest_init for
+	direct aggregate initialization, too.
+
+	* call.c (add_list_candidates): Split out...
+	(build_user_type_conversion_1): ...from here.
+	(build_new_method_call): And here.
+	(implicit_conversion): Propagate LOOKUP_NO_NARROWING.
+
+	PR c++/44358
+	* call.c (build_list_conv): Set list-initialization flags properly.
+
+2010-06-01  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* typeck2.c (build_x_arrow): Make types_memoized a VEC.
+
+2010-06-01  Arnaud Charlet  <charlet@adacore.com>
+	    Matthew Gingell  <gingell@adacore.com>
+
+	* Make-lang.in (CXX_C_OBJS): Add c-ada-spec.o.
+	* decl2.c: Include langhooks.h and c-ada-spec.h.
+	(cpp_check, collect_source_refs, collect_ada_namespace,
+	collect_all_refs): New functions.
+	(cp_write_global_declarations): Add handling of -fdump-ada-spec.
+	* lang-specs.h: Ditto.
+
+2010-05-29  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cp-tree.h (cp_build_function_call_nary): Declare.
+	* typeck.c (cp_build_function_call_nary): Define.
+	* decl.c (register_dtor_fn): Use it instead of
+	cp_build_function_call.
+	(cxx_maybe_build_cleanup): Likewise.
+	* decl2.c (generate_ctor_or_dtor_function): Likewise.
+	* except.c (do_get_exception_ptr): Likewise.
+	(do_begin_catch): Likewise.
+	(do_allocate_exception): Likewise.
+	(do_free_exception): Likewise.
+	(build_throw): Likewise.  Use cp_build_function_call_vec instead
+	of cp_build_function_call.
+	(do_end_catch): Likewise.
+
+2010-05-29  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cp-tree.h (struct cp_decl_specifier_seq): Move type_location field up.
+	(struct cp_declarator): Move id_loc field up.
+
+2010-05-29  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* cp-tree.h (ATTRIBUTE_GCC_CXXDIAG): Remove.  Require that
+	this file is included before c-common.h.  Define GCC_DIAG_STYLE
+	before including diagnostic-core.h and toplev.h.
+	(pedwarn_cxx98): Use ATTRIBUTE_GCC_DIAG.
+	* pt.c: Include cp-tree.h before c-common.h.
+
+2010-05-29  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* tree.c (c_register_addr_space): Add stub.
+
+2010-05-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* g++spec.c (lang_specific_driver): Use fatal_error instead of
+	fatal.
+
+2010-05-28  Dodji Seketeli  <dodji@redhat.com>
+
+	Revert fix of PR c++/44188
+	* cp-tree.h (typedef_variant_p): Revert moving this declaration to
+	gcc/tree.h.
+	* tree.c (typedef_variant_p): Revert moving this definition to
+	gcc/tree.c.
+	* decl.c (grokdeclarator): Revert naming typedef handling.
+
+2010-05-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* call.c: Include diagnostic-core.h instead of diagnostic.h.
+	* cp-lang.c: Don't include diagnostic.h
+	* name-lookup.c: Include diagnostic-core.h instead of
+	diagnostic.h.
+	(cp_emit_debug_info_for_using): Use seen_error.
+	* optimize.c: Include diagnostic-core.h instead of diagnostic.h.
+	* parser.c: Include diagnostic-core.h instead of diagnostic.h.
+	* pt.c (iterative_hash_template_arg): Use seen_error.
+	* repo.c: Include diagnostic-core.h instead of diagnostic.h.
+	* typeck2.c: Include diagnostic-core.h instead of diagnostic.h.
+	* Make-lang.in (cp/cp-lang.o, cp/typeck2.o, cp/call.o, cp/repo.o,
+	cp/optimize.o, cp/parser.o, cp/name-lookup.o): Update
+	dependencies.
+
+2010-05-25  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/44188
+	* cp-tree.h (typedef_variant_p): Move this declaration to
+	gcc/tree.h.
+	* tree.c (typedef_variant_p): Move this definition to gcc/tree.c.
+	* decl.c (grokdeclarator): Do not rename debug info of an
+	anonymous tagged type named by a typedef.
+
+2010-05-27  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43555
+	* decl.c (grokdeclarator) [cdk_pointer et al]: Force evaluation of
+	anonymous VLA size.
+
+2010-05-27  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR bootstrap/44287
+	* rtti.c (emit_support_tinfos): Check for NULL_TREE.
+	* class.c (layout_class_type): Likewise.
+	* decl.c (finish_enum): Likewise.
+	* mangle.c (write_builitin_type): Likewise.
+
 2010-05-26  Kai Tietz  <kai.tietz@onevision.com>
 
 	* cp-tree.h (cp_decl_specifier_seq): Add new bifield
@@ -13,7 +194,7 @@
 2010-05-26  Jason Merrill  <jason@redhat.com>
 
 	PR c++/43382
-	* pt.c (fn_type_unification): Don't get confused by recursive
+	* pt.c (tsubst_pack_expansion): Don't get confused by recursive
 	unification.
 
 2010-05-26  Steven Bosscher  <steven@gcc.gnu.org>

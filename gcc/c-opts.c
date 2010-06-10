@@ -38,7 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "mkdeps.h"
 #include "target.h"
 #include "function.h"
-#include "c-tree.h"		/* For c_cpp_error.  */
 
 #ifndef DOLLARS_IN_IDENTIFIERS
 # define DOLLARS_IN_IDENTIFIERS true
@@ -852,7 +851,8 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_fpermissive:
-      global_dc->permissive = flag_permissive = value;
+      flag_permissive = value;
+      global_dc->permissive = value;
       break;
 
     case OPT_fpreprocessed:
@@ -1426,7 +1426,7 @@ c_common_finish (void)
   FILE *deps_stream = NULL;
 
   /* Don't write the deps file if there are errors.  */
-  if (cpp_opts->deps.style != DEPS_NONE && errorcount == 0)
+  if (cpp_opts->deps.style != DEPS_NONE && !seen_error ())
     {
       /* If -M or -MM was seen without -MF, default output to the
 	 output stream.  */

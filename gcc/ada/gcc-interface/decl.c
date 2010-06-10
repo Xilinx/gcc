@@ -23,6 +23,10 @@
  *                                                                          *
  ****************************************************************************/
 
+/* FIXME: Still need to include rtl.h here (via expr.h) because this file
+   actually generates RTL (search for gen_rtx_* in gnat_to_gnu_entity).  */
+#undef IN_GCC_FRONTEND
+
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -50,10 +54,6 @@
 #include "einfo.h"
 #include "ada-tree.h"
 #include "gigi.h"
-
-#ifndef MAX_FIXED_MODE_SIZE
-#define MAX_FIXED_MODE_SIZE GET_MODE_BITSIZE (DImode)
-#endif
 
 /* Convention_Stdcall should be processed in a specific way on Windows targets
    only.  The macro below is a helper to avoid having to check for a Windows
@@ -444,7 +444,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	 the regular processing take place, which leaves us with a regular
 	 exception data object for VMS exceptions too.  The condition code
 	 mapping is taken care of by the front end and the bitmasking by the
-	 runtime library.  */
+	 run-time library.  */
       goto object;
 
     case E_Discriminant:
@@ -1216,7 +1216,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		if (TREE_CODE (TYPE_SIZE_UNIT (gnu_alloc_type)) == INTEGER_CST
 		    && TREE_OVERFLOW (TYPE_SIZE_UNIT (gnu_alloc_type))
 		    && !Is_Imported (gnat_entity))
-		  post_error ("?Storage_Error will be raised at run-time!",
+		  post_error ("?`Storage_Error` will be raised at run time!",
 			      gnat_entity);
 
 		gnu_expr
@@ -3709,7 +3709,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	gnu_type = ptr_void_type_node;
       else
 	{
-	  /* The runtime representation is the equivalent type.  */
+	  /* The run-time representation is the equivalent type.  */
 	  gnu_type = gnat_to_gnu_type (gnat_equiv_type);
 	  maybe_present = true;
 	}
@@ -4378,11 +4378,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
     case E_Task_Subtype:
     case E_Protected_Type:
     case E_Protected_Subtype:
+      /* Concurrent types are always transformed into their record type.  */
       if (type_annotate_only && No (gnat_equiv_type))
 	gnu_type = void_type_node;
       else
-	gnu_type = gnat_to_gnu_type (gnat_equiv_type);
-
+	gnu_decl = gnat_to_gnu_entity (gnat_equiv_type, NULL_TREE, 0);
       maybe_present = true;
       break;
 

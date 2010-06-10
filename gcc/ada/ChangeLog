@@ -1,3 +1,34 @@
+2010-06-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/44294
+	* gcc-interface/decl.c (MAX_FIXED_MODE_SIZE): Removed.
+
+2010-06-01  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat_ugn.texi: Improve doc on -fdump-ada-spec, mention limitations.
+
+2010-05-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Task_Type>: Reuse the
+	TYPE_DECL of the equivalent type instead of building a new one.
+
+2010-05-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity): Adjust warning message.
+	Fix nits in comments.
+	* gcc-interface/misc.c (gnat_init_gcc_eh): Likewise.
+	* gcc-interface/trans.c (gigi): Likewise.
+	(Attribute_to_gnu): Likewise.
+	(Case_Statement_to_gnu): Likewise.
+	(gnat_to_gnu): Adjust warning message.
+	* gcc-interface/utils.c (create_var_decl_1): Fix nits in comments.
+	(build_vms_descriptor32): Likewise.
+
+2010-05-27  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* gcc-interface/decl.c: Pretend to be a backend file by undefining
+	IN_GCC_FRONTEND (still need rtl.h here).
+
 2010-05-26  Steven Bosscher  <steven@gcc.gnu.org>
 
 	* gcc-interface/trans.c: Do not include rtl.h, insclude libfuncs.h.

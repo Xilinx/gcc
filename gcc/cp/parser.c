@@ -30,7 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-pragma.h"
 #include "decl.h"
 #include "flags.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "output.h"
 #include "target.h"
@@ -10136,7 +10136,7 @@ cp_parser_mem_initializer_list (cp_parser* parser)
      mem-initializer-list.  */
   if (!DECL_CONSTRUCTOR_P (current_function_decl))
     error_at (token->location,
-	      "only constructors take base initializers");
+	      "only constructors take member initializers");
 
   /* Loop through the list.  */
   while (true)
