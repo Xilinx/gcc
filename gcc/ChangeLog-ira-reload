@@ -1,3 +1,12 @@
+2010-06-09  Jeff Law <law@redhat.com>
+
+	* ira-build.c (initiate_cost_vectors): Initiate a cost vector for
+	NO_REGS.
+	* ira-reload.c (ira_bad_reload_regno, ira_bad_reload_regno_1): Delete.
+	* ira.h (ira_bad_reload_regno): Delete redundant prototype.
+	* ira-costs.c (ira_costs): Do not call calculate_elim_costs_all_insns
+	when computing costs for pseudos/allocnos created by ira-reload.
+
 2010-05-10  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (localize_pseudos): Abort if we discover newly created

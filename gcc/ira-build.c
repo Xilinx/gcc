@@ -1371,6 +1371,11 @@ initiate_cost_vectors (void)
 			     * ira_class_hard_regs_num[cover_class],
 			     100);
     }
+  cost_vector_pool[NO_REGS]
+    = create_alloc_pool ("cost vectors",
+			  sizeof (int)
+			  * ira_class_hard_regs_num[NO_REGS],
+			  100);
 }
 
 /* Allocate and return a cost vector VEC for COVER_CLASS.  */

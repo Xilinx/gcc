@@ -1727,7 +1727,8 @@ ira_costs (int min_regno)
   init_costs ();
   total_allocno_costs = (struct costs *) ira_allocate (max_struct_costs_size
 						       * ira_allocnos_num);
-  calculate_elim_costs_all_insns ();
+  if (min_regno == FIRST_PSEUDO_REGISTER)
+    calculate_elim_costs_all_insns ();
   find_costs_and_classes (ira_dump_file, min_regno);
   setup_allocno_cover_class_and_costs (min_regno);
   finish_costs ();
