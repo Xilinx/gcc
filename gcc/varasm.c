@@ -5850,9 +5850,15 @@ finish_tm_clone_pairs_1 (void **slot, void *info ATTRIBUTE_UNUSED)
   bool *switched = (bool *) info;
   tree src = map->base.from;
   tree dst = map->to;
-  struct cgraph_node *src_n = cgraph_node (src);
+  struct cgraph_node *dst_n = cgraph_node (dst);
 
-  if (!src_n->needed)
+  /* The function ipa_tm_create_version() marks the clone as needed if
+     the original function was needed.  But we also mark the clone as
+     needed if we ever called the clone indirectly through
+     TM_GETTMCLONE.  If neither of these are true, we didn't generate
+     a clone, and we didn't call it indirectly... no sense keeping it
+     in the clone table.  */
+  if (!dst_n->needed)
     return 1;
 
   if (!*switched)

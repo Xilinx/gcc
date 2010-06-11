@@ -1,3 +1,10 @@
+2010-06-10  Aldy Hernandez  <aldyh@redhat.com>
+
+	* varasm.c (finish_tm_clone_pairs_1): Do not output pair if clone
+	is not needed.
+	* tree-cfg.c (dump_function_to_file): Display [tm-clone] if
+	applicable.
+
 2010-06-07  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (tm_mangle): New.
