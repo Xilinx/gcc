@@ -1954,6 +1954,14 @@
 		  $opcod, tree_code_name[$opcod]);
 }#)
 
+
+(defprimitive make_gimple_mixloc (:gimple g :long num :value val dis) :value
+:doc #{Make a mixed location for the location of gimple $G with value $VAL 
+and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
+#{ (($g && gimple_location($g))?
+    meltgc_new_mixloc((meltobject_ptr_t)($dis), (melt_ptr_t)($val), 
+		      ($num), (location_t)gimple_location(($g))):NULL) }#)
+
 ;; debug_gimple_stmt is ok even for nil gimples
 (defprimitive debuggimple(:cstring msg :gimple g) :void
   #{ do{debugeprintfnonl("debuggimple %s @%p /%s ", $msg , (void*)$g, 
@@ -2212,6 +2220,7 @@
  make_basicblock
  make_gimple
  make_gimpleseq
+ make_gimple_mixloc
  make_mapbasicblock
  make_maptree
  make_ppl_constraint 

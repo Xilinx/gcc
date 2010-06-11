@@ -1,4 +1,7 @@
 2010-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt: added make_gimple_mixloc.
+
+2010-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: The dot-generated graph is good in
 	mgaltstep_steptestvar.
 
