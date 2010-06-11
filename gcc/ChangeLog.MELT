@@ -1,3 +1,7 @@
+2010-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: The dot-generated graph is good in
+	mgaltstep_steptestvar.
+
 2010-06-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/twrongmatch-1.melt: added new test which should fail.
 	* melt/warmelt-macro.melt: patmacexpand_for_matcher issues a
