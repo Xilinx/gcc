@@ -212,28 +212,28 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
     }
   else
     {
-      debug("expression evalution <0x%X>!\n", sym->type );
-      crl_symbol_obj *opa= NULL, *opb= NULL, *res= NULL;
+      gpy_symbol_obj *opa= NULL, *opb= NULL; tree res = NULL;
+      debug("expression evalution <0x%x>!\n", sym->type );
 
       opa= sym->op_a.symbol_table;
       opb= sym->op_b.symbol_table;
 
-      debug( "opa->type = <%X>, opb->type = <%X>!\n",
+      debug( "opa->type = <0x%x>, opb->type = <0x%x>!\n",
 	     opa->type, opb->type );
 
       switch( sym->type )
 	{
 	case OP_ASSIGN_EVAL:
-	  res= crl_runtime_assign( &opa, &opb, context );
+	  res = gpy_process_assign( &opa, &opb );
 	  break;
 
 	default:
-	  error( "invalid expression evaluation symbol type >0x%X>!\n",
-		 sym->type );
+	  fatal_error( "invalid expression evaluation symbol type <0x%x>!\n",
+		       sym->type );
 	  break;
 	}
       if( res ) { retval = res; }
-      else { fatal("Error evaluating expression!\n"); }
+      else { fatal_error("error evaluating expression!\n"); }
     }
 
   return retval;
@@ -257,7 +257,7 @@ tree gpy_get_tree( gpy_symbol_obj * sym )
 	  switch( sym->type )
 	    {
 	    default:
-	      error("unhandled symbol type <0x%X>\n", o->type );
+	      fatal_error("unhandled symbol type <0x%x>\n", o->type );
 	      break;
 	    }
 	}

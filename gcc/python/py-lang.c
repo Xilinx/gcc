@@ -246,7 +246,6 @@ gpy_preserve_from_gc( tree t ATTRIBUTE_UNUSED )
 {
   gpy_gc_root = tree_cons( NULL_TREE, t, gpy_gc_root );
   debug("preserver from gc!\n");
-  return;
 }
 
 void __gpy_debug__( const char * file, unsigned int lineno,

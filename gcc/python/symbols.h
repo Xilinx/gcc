@@ -37,8 +37,12 @@ struct GTY(()) gpy_symbol_table_t {
 };
 typedef struct gpy_symbol_table_t gpy_symbol_obj;
 
+extern tree gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj ** );
+
 extern tree gpy_process_expression( const gpy_symbol_obj * const );
+
 extern tree gpy_get_tree( gpy_symbol_obj * );
+
 extern void gpy_process_decl( gpy_symbol_obj * );
 
 extern void gpy_symbol_init_ctx( gpy_symbol_obj * const );

@@ -53,9 +53,16 @@ pypy.o: $(srcdir)/python/pypy.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	$(CC) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/pypy.c
 
+expression.o: $(srcdir)/python/expression.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
+  gt-python-py-lang.h gtype-python.h
+	$(CC) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(LDFLAGS) -c -o $@ $(srcdir)/python/expression.c
+
 GPY_OBJS = \
 	py-lang.o \
-	pypy.o
+	pypy.o \
+	expression.o
 
 GCCPY_C_OBJS = parser.o lexer.o $(GPY_OBJS) $(BACKEND) $(LIBSDEPS) attribs.o
 gpy1$(exeext): $(GCCPY_C_OBJS)
