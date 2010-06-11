@@ -64,9 +64,6 @@ void gpy_symbol_init_ctx( gpy_symbol_obj * const x )
 /**
  * Fairly Confusing Function to read.
  *
- * Will convert ANY Expression AST into a kind of SSA (Single-Assignment Form)!
- * But preserves any syntax tree except with the assignment operator! @see below
- *
  * example:
  *    >>> x = y = z = 2 + 2 + 2;
  *
@@ -203,46 +200,94 @@ void gpy_process_decl( gpy_symbol_obj * sym )
   debug("decl <%p> was pushed!\n", (void*)sym );
 }
 
+tree gpy_process_expression( const gpy_symbol_obj * const sym )
+{
+  tree retval = NULL;
+
+  if( sym->type == SYMBOL_PRIMARY )
+    {
+    }
+  else if( sym->type == SYMBOL_REFERENCE )
+    {
+    }
+  else
+    {
+      debug("expression evalution <0x%X>!\n", sym->type );
+      crl_symbol_obj *opa= NULL, *opb= NULL, *res= NULL;
+
+      opa= sym->op_a.symbol_table;
+      opb= sym->op_b.symbol_table;
+
+      debug( "opa->type = <%X>, opb->type = <%X>!\n",
+	     opa->type, opb->type );
+
+      switch( sym->type )
+	{
+	case OP_ASSIGN_EVAL:
+	  res= crl_runtime_assign( &opa, &opb, context );
+	  break;
+
+	default:
+	  error( "invalid expression evaluation symbol type >0x%X>!\n",
+		 sym->type );
+	  break;
+	}
+      if( res ) { retval = res; }
+      else { fatal("Error evaluating expression!\n"); }
+    }
+
+  return retval;
+}
+
+tree gpy_get_tree( gpy_symbol_obj * sym )
+{
+  tree retval_decl = NULL; gpy_symbol_obj * o = sym;
+  while( o )
+    {
+      debug( "processing decl of type <0x%X> object <%p>\n",
+	     o->type, (void*) o );
+
+      if( o->exp == OP_EXPRESS )
+	{
+	  /* Should already be pre-processed ... */
+	  retval_decl = gpy_process_expression( o );
+	}
+      else
+	{
+	  switch( sym->type )
+	    {
+	    default:
+	      error("unhandled symbol type <0x%X>\n", o->type );
+	      break;
+	    }
+	}
+
+      o = o->next;
+    }
+
+  return retval_decl;
+}
+
 void gpy_write_globals( void )
 {
-  /*
-    tree globals, decl, *vec;
-    int len, i;
-    
-    This lang hook is dual-purposed, and also finalizes the
-    compilation unit.  
-    cgraph_finalize_compilation_unit ();
-    
-    Really define vars that have had only a tentative definition.
-    Really output inline functions that must actually be callable
-    and have not been output so far.  
-    
-    globals = lang_hooks.decls.getdecls ();
-    len = list_length (globals);
-    vec = XNEWVEC (tree, len);
-    
-    Process the decls in reverse order--earliest first.
-    Put them into VEC from back to front, then take out from front.  
-    
-    for (i = 0, decl = globals; i < len; i++, decl = TREE_CHAIN (decl))
-    vec[len - i - 1] = decl;
-    
-    wrapup_global_declarations (vec, len);
-    check_global_declarations (vec, len);
-    emit_debug_global_declarations (vec, len);
-    
-    Clean up.  
-    free (vec);
-  */
-
+  tree *vec;
   unsigned decl_len = VEC_length( gpy_sym, gpy_decls );
   unsigned idx = 0; gpy_symbol_obj *it = NULL;
+
+  cgraph_finalize_compilation_unit( );
+
+  vec = XNEWVEC( tree, decl_len );
 
   debug("decl_len <%u>!\n", decl_len);
   for( ; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )
     {
       debug("decl <%p>!\n", (void*)it );
+      vec[ idx ] = gpy_get_tree( it );
     }
 
-  cgraph_finalize_compilation_unit( );
+  wrapup_global_declarations( vec, decl_len );
+  check_global_declarations( vec, decl_len);
+  emit_debug_global_declarations( vec, decl_len );
+
+  free( vec );
 }
