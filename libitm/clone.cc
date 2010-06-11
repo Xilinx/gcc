@@ -113,7 +113,7 @@ clone_entry_compare (const void *a, const void *b)
 
   if (aa->orig < bb->orig)
     return -1;
-  else if (aa->orig < bb->orig)
+  else if (aa->orig > bb->orig)
     return 1;
   else
     return 0;
