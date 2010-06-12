@@ -963,7 +963,7 @@ dot_deps (scop_p scop)
   dot_deps_1 (stream, scop);
   fclose (stream);
 
-  system ("dotty /tmp/scopdeps.dot");
+  system ("dotty /tmp/scopdeps.dot &");
 #else
   dot_deps_1 (stderr, scop);
 #endif
@@ -983,7 +983,7 @@ dot_deps_stmt (scop_p scop)
   dot_deps_stmt_1 (stream, scop);
   fclose (stream);
 
-  system ("dotty /tmp/scopdeps.dot");
+  system ("dotty /tmp/scopdeps.dot &");
 #else
   dot_deps_stmt_1 (stderr, scop);
 #endif

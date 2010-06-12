@@ -1320,7 +1320,7 @@ dot_lst (lst_p lst)
   fputs ("}\n\n", stream);
   fclose (stream);
 
-  system ("dotty /tmp/lst.dot");
+  system ("dotty /tmp/lst.dot &");
 #else
   fputs ("digraph all {\n", stderr);
   dot_lst_1 (stderr, lst);
