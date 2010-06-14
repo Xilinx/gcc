@@ -22602,6 +22602,10 @@ static const struct builtin_description bdesc_tm[] =
   { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin__ITM_RaRM256", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAR_M256, UNKNOWN, V8SF_FTYPE_PCV8SF },
   { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin__ITM_RaWM256", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAW_M256, UNKNOWN, V8SF_FTYPE_PCV8SF },
   { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin__ITM_RfWM256", (enum ix86_builtins) BUILT_IN_TM_LOAD_RFW_M256, UNKNOWN, V8SF_FTYPE_PCV8SF },
+
+  { OPTION_MASK_ISA_MMX, CODE_FOR_nothing, "__builtin__ITM_LM64", (enum ix86_builtins) BUILT_IN_TM_LOG_M64, UNKNOWN, VOID_FTYPE_PCVOID },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_nothing, "__builtin__ITM_LM128", (enum ix86_builtins) BUILT_IN_TM_LOG_M128, UNKNOWN, VOID_FTYPE_PCVOID },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin__ITM_LM256", (enum ix86_builtins) BUILT_IN_TM_LOG_M256, UNKNOWN, VOID_FTYPE_PCVOID },
 };
 
 /* TM callbacks.  */
@@ -22656,6 +22660,7 @@ ix86_init_tm_builtins (void)
   size_t i;
   tree decl;
   tree attrs_load, attrs_type_load, attrs_store, attrs_type_store;
+  tree attrs_log, attrs_type_log;
 
   if (!flag_tm)
     return;
@@ -22668,6 +22673,10 @@ ix86_init_tm_builtins (void)
   decl = built_in_decls[BUILT_IN_TM_STORE_1];
   attrs_store = DECL_ATTRIBUTES (decl);
   attrs_type_store = TYPE_ATTRIBUTES (TREE_TYPE (decl));
+  /* Use whatever attributes a normal TM log has.  */
+  decl = built_in_decls[BUILT_IN_TM_LOG];
+  attrs_log = DECL_ATTRIBUTES (decl);
+  attrs_type_log = TYPE_ATTRIBUTES (TREE_TYPE (decl));
 
   for (i = 0, d = bdesc_tm;
        i < ARRAY_SIZE (bdesc_tm);
@@ -22688,10 +22697,15 @@ ix86_init_tm_builtins (void)
 	      attrs = attrs_load;
 	      attrs_type = attrs_type_load;
 	    }
-	  else
+	  else if (BUILTIN_TM_STORE_P (code))
 	    {
 	      attrs = attrs_store;
 	      attrs_type = attrs_type_store;
+	    }
+	  else
+	    {
+	      attrs = attrs_log;
+	      attrs_type = attrs_type_log;
 	    }
 	  decl = add_builtin_function (d->name, type, code, BUILT_IN_NORMAL,
 				       /* The builtin without the prefix for

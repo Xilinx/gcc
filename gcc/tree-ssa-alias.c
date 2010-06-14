@@ -1030,12 +1030,26 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
         /* The following functions read memory pointed to by their
 	   first argument.  */
 	CASE_BUILT_IN_TM_LOAD (1):
-        CASE_BUILT_IN_TM_LOAD (2):
+	CASE_BUILT_IN_TM_LOAD (2):
 	CASE_BUILT_IN_TM_LOAD (4):
 	CASE_BUILT_IN_TM_LOAD (8):
         CASE_BUILT_IN_TM_LOAD (FLOAT):
 	CASE_BUILT_IN_TM_LOAD (DOUBLE):
 	CASE_BUILT_IN_TM_LOAD (LDOUBLE):
+	CASE_BUILT_IN_TM_LOAD (M64):
+	CASE_BUILT_IN_TM_LOAD (M128):
+	CASE_BUILT_IN_TM_LOAD (M256):
+        case BUILT_IN_TM_LOG:
+        case BUILT_IN_TM_LOG_1:
+        case BUILT_IN_TM_LOG_2:
+        case BUILT_IN_TM_LOG_4:
+        case BUILT_IN_TM_LOG_8:
+        case BUILT_IN_TM_LOG_FLOAT:
+        case BUILT_IN_TM_LOG_DOUBLE:
+        case BUILT_IN_TM_LOG_LDOUBLE:
+        case BUILT_IN_TM_LOG_M64:
+        case BUILT_IN_TM_LOG_M128:
+        case BUILT_IN_TM_LOG_M256:
 	  return ptr_deref_may_alias_ref_p_1 (gimple_call_arg (call, 0), ref);
 
 	/* The following builtins do not read from memory.  */
@@ -1227,6 +1241,9 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
         CASE_BUILT_IN_TM_STORE (FLOAT):
         CASE_BUILT_IN_TM_STORE (DOUBLE):
         CASE_BUILT_IN_TM_STORE (LDOUBLE):
+        CASE_BUILT_IN_TM_STORE (M64):
+        CASE_BUILT_IN_TM_STORE (M128):
+        CASE_BUILT_IN_TM_STORE (M256):
         case BUILT_IN_TM_MEMCPY:
         case BUILT_IN_TM_MEMMOVE:
 	  {

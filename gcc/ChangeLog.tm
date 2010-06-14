@@ -1,3 +1,18 @@
+2010-06-14  Aldy Hernandez  <aldyh@redhat.com>
+
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Add support for
+	TM vector loads.  Add support for TM logging builtins.
+	(call_may_clobber_ref_p_1): Add support for vector stores.
+	* trans-mem.c (tm_log_emit_stmt): Add support for vectors.
+	* calls.c (special_function_p): Add support for TM vector loads.
+	Add support for TM logging builtins.
+	* gtm-builtins.def (BUILT_IN_TM_LOG*): Remove 'pure' attribute.
+	Add vector log variants.
+	* tree-ssa-structalias.c (find_func_aliases): Add support for TM
+	vector stores and loads.
+	* config/i386/i386.c (bdesc_tm): Add BUILT_IN_TM_LOG* variants.
+	(ix86_init_tm_builtins): Add support for TM logging builtins.
+
 2010-06-10  Aldy Hernandez  <aldyh@redhat.com>
 
 	* varasm.c (finish_tm_clone_pairs_1): Do not output pair if clone

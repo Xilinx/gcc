@@ -1031,25 +1031,36 @@ tm_log_emit_stmt (tree addr, gimple stmt)
   else if (type == long_double_type_node)
     code = BUILT_IN_TM_LOG_LDOUBLE;
   else if (host_integerp (size, 1))
-    switch (tree_low_cst (size, 1))
-      {
-      case 1:
-	code = BUILT_IN_TM_LOG_1;
-	break;
-      case 2:
-	code = BUILT_IN_TM_LOG_2;
-	break;
-      case 4:
-	code = BUILT_IN_TM_LOG_4;
-	break;
-      case 8:
-	code = BUILT_IN_TM_LOG_8;
-	break;
-      default:
-	/* FIXME: Add support for vector logging functions.  */
-	code = BUILT_IN_TM_LOG;
-	break;
-      }
+    {
+      unsigned int n = tree_low_cst (size, 1);
+      switch (n)
+	{
+	case 1:
+	  code = BUILT_IN_TM_LOG_1;
+	  break;
+	case 2:
+	  code = BUILT_IN_TM_LOG_2;
+	  break;
+	case 4:
+	  code = BUILT_IN_TM_LOG_4;
+	  break;
+	case 8:
+	  code = BUILT_IN_TM_LOG_8;
+	  break;
+	default:
+	  code = BUILT_IN_TM_LOG;
+	  if (TREE_CODE (type) == VECTOR_TYPE)
+	    {
+	      if (n == 8 && built_in_decls[BUILT_IN_TM_LOG_M64])
+		code = BUILT_IN_TM_LOG_M64;
+	      else if (n == 16 && built_in_decls[BUILT_IN_TM_LOG_M128])
+		code = BUILT_IN_TM_LOG_M128;
+	      else if (n == 32 && built_in_decls[BUILT_IN_TM_LOG_M256])
+		code = BUILT_IN_TM_LOG_M256;
+	    }
+	  break;
+	}
+    }
 
   addr = gimplify_addr (&gsi, addr);
   if (code == BUILT_IN_TM_LOG)

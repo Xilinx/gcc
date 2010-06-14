@@ -3760,6 +3760,9 @@ find_func_aliases (gimple t)
 	  CASE_BUILT_IN_TM_STORE (FLOAT):
 	  CASE_BUILT_IN_TM_STORE (DOUBLE):
 	  CASE_BUILT_IN_TM_STORE (LDOUBLE):
+	  CASE_BUILT_IN_TM_STORE (M64):
+	  CASE_BUILT_IN_TM_STORE (M128):
+	  CASE_BUILT_IN_TM_STORE (M256):
 	    {
 	      tree addr = gimple_call_arg (t, 0);
 	      tree src = gimple_call_arg (t, 1);
@@ -3779,6 +3782,9 @@ find_func_aliases (gimple t)
 	  CASE_BUILT_IN_TM_LOAD (FLOAT):
 	  CASE_BUILT_IN_TM_LOAD (DOUBLE):
 	  CASE_BUILT_IN_TM_LOAD (LDOUBLE):
+	  CASE_BUILT_IN_TM_LOAD (M64):
+	  CASE_BUILT_IN_TM_LOAD (M128):
+	  CASE_BUILT_IN_TM_LOAD (M256):
 	    {
 	      tree dest = gimple_call_lhs (t);
 	      tree addr = gimple_call_arg (t, 0);
