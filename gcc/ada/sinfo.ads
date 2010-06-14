@@ -1395,6 +1395,12 @@ package Sinfo is
    --    scope are chained, and this field is used as the forward pointer for
    --    this list. See Einfo for further details.
 
+   --  Next_Exit_Statement (Node3-Sem)
+   --    Present in N_Exit_Statement nodes. The exit statements for a loop are
+   --    chained (in reverse order of appearence) from the First_Exit_Statement
+   --    field of the E_Loop entity for the loop. Next_Exit_Statement points to
+   --    the next entry on this chain (Empty = end of list).
+
    --  Next_Implicit_With (Node3-Sem)
    --    Present in N_With_Clause. Part of a chain of with_clauses generated
    --    in rtsfind to indicate implicit dependencies on predefined units. Used
@@ -1723,6 +1729,12 @@ package Sinfo is
    --    Original_Node here because of the case of nested instantiations where
    --    the substituted node can be copied.
 
+   --  Withed_Body (Node1-Sem)
+   --    Present in N_With_Clause nodes. Set if the unit in whose context
+   --    the with_clause appears instantiates a generic contained in the
+   --    library unit of the with_clause and as a result loads its body.
+   --    Used for a more precise unit traversal for CodePeer.
+
    --  Zero_Cost_Handling (Flag5-Sem)
    --    This flag is set in all handled sequence of statement and exception
    --    handler nodes if exceptions are to be handled using the zero-cost
@@ -1974,7 +1986,7 @@ package Sinfo is
       --  which are explicitly documented.
 
       --  N_Pragma
-      --  Sloc points to pragma identifier
+      --  Sloc points to PRAGMA
       --  Next_Pragma (Node1-Sem)
       --  Pragma_Argument_Associations (List2) (set to No_List if none)
       --  Debug_Statement (Node3) (set to Empty if not Debug, Assert)
@@ -4034,6 +4046,13 @@ package Sinfo is
       --  Is_Null_Loop (Flag16)
       --  Suppress_Loop_Warnings (Flag17)
 
+      --  Note: the parser fills in the Identifier field if there is an
+      --  explicit loop identifier. Otherwise the parser leaves this field
+      --  set to Empty, and then the semantic processing for a loop statement
+      --  creates an identifier, setting the Has_Created_Identifier flag to
+      --  True. So after semantic anlaysis, the Identifier is always set,
+      --  referencing an identifier whose entity has an Ekind of E_Loop.
+
       --------------------------
       -- 5.5 Iteration Scheme --
       --------------------------
@@ -4122,7 +4141,8 @@ package Sinfo is
       --  N_Exit_Statement
       --  Sloc points to EXIT
       --  Name (Node2) (set to Empty if no loop name present)
-      --  Condition (Node1) (set to Empty if no when part present)
+      --  Condition (Node1) (set to Empty if no WHEN part present)
+      --  Next_Exit_Statement (Node3-Sem): Next exit on chain
 
       -------------------------
       -- 5.9  Goto Statement --
@@ -5530,6 +5550,7 @@ package Sinfo is
 
       --  N_With_Clause
       --  Sloc points to first token of library unit name
+      --  Withed_Body (Node1-Sem)
       --  Name (Node2)
       --  Next_Implicit_With (Node3-Sem)
       --  Library_Unit (Node4-Sem)
@@ -5543,7 +5564,7 @@ package Sinfo is
       --  Elaborate_Desirable (Flag11-Sem)
       --  Private_Present (Flag15) set if with_clause has private keyword
       --  Implicit_With (Flag16-Sem)
-      --  Limited_Present (Flag17)  set if LIMITED is present
+      --  Limited_Present (Flag17) set if LIMITED is present
       --  Limited_View_Installed (Flag18-Sem)
       --  Unreferenced_In_Spec (Flag7-Sem)
       --  No_Entities_Ref_In_Spec (Flag8-Sem)
@@ -8240,6 +8261,9 @@ package Sinfo is
    function Next_Entity
      (N : Node_Id) return Node_Id;    -- Node2
 
+   function Next_Exit_Statement
+     (N : Node_Id) return Node_Id;    -- Node3
+
    function Next_Implicit_With
      (N : Node_Id) return Node_Id;    -- Node3
 
@@ -8521,6 +8545,9 @@ package Sinfo is
 
    function Was_Originally_Stub
      (N : Node_Id) return Boolean;    -- Flag13
+
+   function Withed_Body
+     (N : Node_Id) return Node_Id;    -- Node1
 
    function Zero_Cost_Handling
      (N : Node_Id) return Boolean;    -- Flag5
@@ -9158,6 +9185,9 @@ package Sinfo is
    procedure Set_Next_Entity
      (N : Node_Id; Val : Node_Id);            -- Node2
 
+   procedure Set_Next_Exit_Statement
+     (N : Node_Id; Val : Node_Id);            -- Node3
+
    procedure Set_Next_Implicit_With
      (N : Node_Id; Val : Node_Id);            -- Node3
 
@@ -9439,6 +9469,9 @@ package Sinfo is
 
    procedure Set_Was_Originally_Stub
      (N : Node_Id; Val : Boolean := True);    -- Flag13
+
+   procedure Set_Withed_Body
+     (N : Node_Id; Val : Node_Id);            -- Node1
 
    procedure Set_Zero_Cost_Handling
      (N : Node_Id; Val : Boolean := True);    -- Flag5
@@ -11347,6 +11380,7 @@ package Sinfo is
    pragma Inline (Name);
    pragma Inline (Names);
    pragma Inline (Next_Entity);
+   pragma Inline (Next_Exit_Statement);
    pragma Inline (Next_Implicit_With);
    pragma Inline (Next_Named_Actual);
    pragma Inline (Next_Pragma);
@@ -11441,6 +11475,7 @@ package Sinfo is
    pragma Inline (Variants);
    pragma Inline (Visible_Declarations);
    pragma Inline (Was_Originally_Stub);
+   pragma Inline (Withed_Body);
    pragma Inline (Zero_Cost_Handling);
 
    pragma Inline (Set_ABE_Is_Certain);
@@ -11650,6 +11685,7 @@ package Sinfo is
    pragma Inline (Set_Name);
    pragma Inline (Set_Names);
    pragma Inline (Set_Next_Entity);
+   pragma Inline (Set_Next_Exit_Statement);
    pragma Inline (Set_Next_Implicit_With);
    pragma Inline (Set_Next_Named_Actual);
    pragma Inline (Set_Next_Pragma);
@@ -11743,6 +11779,7 @@ package Sinfo is
    pragma Inline (Set_Variants);
    pragma Inline (Set_Visible_Declarations);
    pragma Inline (Set_Was_Originally_Stub);
+   pragma Inline (Set_Withed_Body);
    pragma Inline (Set_Zero_Cost_Handling);
 
    N_Simple_Return_Statement : constant Node_Kind := N_Return_Statement;

@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "rtl.h"
 #include "errors.h"
+#include "read-md.h"
 #include "gensupport.h"
 
 
@@ -48,27 +49,33 @@ gen_attr (rtx attr)
   printf ("#define HAVE_ATTR_%s\n", XSTR (attr, 0));
 
   /* If numeric attribute, don't need to write an enum.  */
-  p = XSTR (attr, 1);
-  if (*p == '\0')
-    printf ("extern int get_attr_%s (%s);\n", XSTR (attr, 0),
-	    (is_const ? "void" : "rtx"));
+  if (GET_CODE (attr) == DEFINE_ENUM_ATTR)
+    printf ("extern enum %s get_attr_%s (%s);\n\n",
+	    XSTR (attr, 1), XSTR (attr, 0), (is_const ? "void" : "rtx"));
   else
     {
-      printf ("enum attr_%s {", XSTR (attr, 0));
-
-      while ((tag = scan_comma_elt (&p)) != 0)
+      p = XSTR (attr, 1);
+      if (*p == '\0')
+	printf ("extern int get_attr_%s (%s);\n", XSTR (attr, 0),
+		(is_const ? "void" : "rtx"));
+      else
 	{
-	  write_upcase (XSTR (attr, 0));
-	  putchar ('_');
-	  while (tag != p)
-	    putchar (TOUPPER (*tag++));
-	  if (*p == ',')
-	    fputs (", ", stdout);
-	}
+	  printf ("enum attr_%s {", XSTR (attr, 0));
 
-      fputs ("};\n", stdout);
-      printf ("extern enum attr_%s get_attr_%s (%s);\n\n",
-	      XSTR (attr, 0), XSTR (attr, 0), (is_const ? "void" : "rtx"));
+	  while ((tag = scan_comma_elt (&p)) != 0)
+	    {
+	      write_upcase (XSTR (attr, 0));
+	      putchar ('_');
+	      while (tag != p)
+		putchar (TOUPPER (*tag++));
+	      if (*p == ',')
+		fputs (", ", stdout);
+	    }
+	  fputs ("};\n", stdout);
+
+	  printf ("extern enum attr_%s get_attr_%s (%s);\n\n",
+		  XSTR (attr, 0), XSTR (attr, 0), (is_const ? "void" : "rtx"));
+	}
     }
 
   /* If `length' attribute, write additional function definitions and define
@@ -97,7 +104,7 @@ main (int argc, char **argv)
 
   progname = "genattr";
 
-  if (init_md_reader_args (argc, argv) != SUCCESS_EXIT_CODE)
+  if (!init_rtx_reader_args (argc, argv))
     return (FATAL_EXIT_CODE);
 
   puts ("/* Generated automatically by the program `genattr'");
@@ -121,7 +128,8 @@ main (int argc, char **argv)
       if (desc == NULL)
 	break;
 
-      if (GET_CODE (desc) == DEFINE_ATTR)
+      if (GET_CODE (desc) == DEFINE_ATTR
+	  || GET_CODE (desc) == DEFINE_ENUM_ATTR)
 	gen_attr (desc);
 
       else if (GET_CODE (desc) == DEFINE_DELAY)

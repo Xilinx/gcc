@@ -2021,6 +2021,14 @@ package body Sinfo is
       return Node2 (N);
    end Next_Entity;
 
+   function Next_Exit_Statement
+     (N : Node_Id) return Node_Id is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Exit_Statement);
+      return Node3 (N);
+   end Next_Exit_Statement;
+
    function Next_Implicit_With
      (N : Node_Id) return Node_Id is
    begin
@@ -2930,6 +2938,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Task_Body);
       return Flag13 (N);
    end Was_Originally_Stub;
+
+   function Withed_Body
+      (N : Node_Id) return Node_Id is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_With_Clause);
+      return Node1 (N);
+   end Withed_Body;
 
    function Zero_Cost_Handling
       (N : Node_Id) return Boolean is
@@ -4899,6 +4915,14 @@ package body Sinfo is
       Set_Node2 (N, Val); -- semantic field, no parent set
    end Set_Next_Entity;
 
+   procedure Set_Next_Exit_Statement
+      (N : Node_Id; Val : Node_Id) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Exit_Statement);
+      Set_Node3 (N, Val); -- semantic field, no parent set
+   end Set_Next_Exit_Statement;
+
    procedure Set_Next_Implicit_With
       (N : Node_Id; Val : Node_Id) is
    begin
@@ -5808,6 +5832,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Task_Body);
       Set_Flag13 (N, Val);
    end Set_Was_Originally_Stub;
+
+   procedure Set_Withed_Body
+     (N : Node_Id; Val : Node_Id) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_With_Clause);
+      Set_Node1 (N, Val);
+   end Set_Withed_Body;
 
    procedure Set_Zero_Cost_Handling
       (N : Node_Id; Val : Boolean := True) is

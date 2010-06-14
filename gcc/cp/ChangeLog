@@ -1,3 +1,35 @@
+2010-06-13  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* typeck.c (convert_for_assignment): Fix comment. Change message
+	format from %d to %qP.
+	(convert_for_initialization): Fix comment. 
+
+2010-06-11  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* cp-tree.h (expr_list_kind): New type.
+	(impl_conv_rhs): New type.
+	(build_x_compound_expr_from_list, convert_for_initialization): Adjust
+	prototype.
+	(typeck.c (convert_arguments): Use impl_conv_rhs and emit the
+	diagnostics for easy translation. Change caller.
+	(convert_for_initialization): Use impl_conv_rhs and change caller.
+	(build_x_compound_expr_from_list): Use expr_list_kind and emit the
+	diagnostics for easy translation. Change caller.
+	* decl.c (bad_spec_place): New enum.
+	(bad_specifiers): Use it and emit the diagnostics for easy
+	translation. Change caller.
+	* pt.c (coerce_template_parms): Put the diagnostics in full sentence.
+
+2010-06-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cp-tree.h (struct saved_scope): Change decl_ns_list field type
+	to a VEC.
+	* decl2.c (cp_write_global_declarations): Adjust for new type of
+	decl_namespace_list.
+	* name-lookup.c (current_decl_namespace): Likewise.
+	(push_decl_namespace): Likewise.
+	(pop_decl_namespace): Likewise.
+
 2010-06-09  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* call.c (build_java_interface_fn_ref): Call build_function_type_list
@@ -1726,3 +1758,4 @@ Copyright (C) 2010 Free Software Foundation, Inc.
 Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright
 notice and this notice are preserved.
+

@@ -382,7 +382,7 @@ bp_unpack_value (struct bitpack_d *bp, unsigned nbits)
   unsigned ix;
 
   /* We cannot decode more bits than BITS_PER_BITPACK_WORD.  */
-  gcc_assert (nbits > 0 && nbits <= BITS_PER_BITPACK_WORD);
+  gcc_checking_assert (nbits > 0 && nbits <= BITS_PER_BITPACK_WORD);
 
   /* Compute which word contains the next NBITS.  */
   ix = bp_get_next_word (bp, nbits);
@@ -674,7 +674,12 @@ lto_record_common_node (tree *nodep, VEC(tree, heap) **common_nodes,
     return;
 
   if (TYPE_P (node))
-    *nodep = node = gimple_register_type (node);
+    {
+      /* Type merging will get confused by the canonical types as they
+	 are set by the middle-end.  */
+      TYPE_CANONICAL (node) = NULL_TREE;
+      *nodep = node = gimple_register_type (node);
+    }
 
   /* Return if node is already seen.  */
   if (pointer_set_insert (seen_nodes, node))
