@@ -54,6 +54,9 @@
 
 (defprimitive null_gimple () :gimple #{((gimple)0)}#)
 
+(defprimitive gimple_seq_of_basic_block (:basic_block bb) :gimple_seq
+  #{(($bb)?bb_seq(($bb)):NULL)}#)
+
 ;; match a gimple value & extract the gimple of it
 (defcmatcher gimpleval
   (gv)					;match & no ins
@@ -2210,6 +2213,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_phi_nth_arg_def
  gimple_phi_nth_arg_edge
  gimple_return
+ gimple_seq_of_basic_block 
  gimpleseq_content 
  gimpleval
  has_cfun

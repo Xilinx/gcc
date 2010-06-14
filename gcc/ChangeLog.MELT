@@ -1,4 +1,7 @@
 2010-06-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt: Added gimple_seq_of_basic_block.
+
+2010-06-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: Added more debug printing.
 
 	* melt/xtramelt-ana-base.melt: Removed the truelab & falselab of
