@@ -1,3 +1,13 @@
+2010-06-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: Added more debug printing.
+
+	* melt/xtramelt-ana-base.melt: Removed the truelab & falselab of
+	many gimple_cond_* cmatchers. Added the not very useful
+	gimple_cond_with_true_false_labels & the needed
+	gimple_cond_with_edges cmatchers.
+
+	* melt/xtramelt-ana-simple.melt: updated accordingly.
+
 2010-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: added make_gimple_mixloc.
 

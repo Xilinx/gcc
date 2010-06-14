@@ -419,30 +419,22 @@
       ;;(shortbacktrace_dbg "smallana_gimple gimple_assign_binaryop unexpected" 15)
       (assert_msg "smallana_gimple gimple_assign_binaryop unhandled" ())
       )
-   ( ?(gimple_cond_lessequal ?lhs ?rhs ?truelab ?falselab)
+   ( ?(gimple_cond_lessequal ?lhs ?rhs)
       (debugtree "smallana_gimple gimple_cond_lessequal lhs" lhs)
       (debugtree "smallana_gimple gimple_cond_lessequal rhs" rhs)
-      (debugtree "smallana_gimple gimple_cond_lessequal truelab" truelab)
-      (debugtree "smallana_gimple gimple_cond_lessequal falselab" falselab)
       (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_lessequal" 15)
       )
-   ( ?(gimple_cond_notequal ?lhs ?rhs ?truelab ?falselab)
+   ( ?(gimple_cond_notequal ?lhs ?rhs)
       (debugtree "smallana_gimple gimple_cond_notequal lhs" lhs)
       (debugtree "smallana_gimple gimple_cond_notequal rhs" rhs)
-      (debugtree "smallana_gimple gimple_cond_notequal truelab" truelab)
-      (debugtree "smallana_gimple gimple_cond_notequal falselab" falselab)
       (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_notequal" 15)
       )
-   ( ?(gimple_cond_greater ?lhs ?rhs ?truelab ?falselab)
+   ( ?(gimple_cond_greater ?lhs ?rhs)
       (debugtree "smallana_gimple gimple_cond_greater lhs" lhs)
       (debugtree "smallana_gimple gimple_cond_greater rhs" rhs)
-      (debugtree "smallana_gimple gimple_cond_greater truelab" truelab)
-      (debugtree "smallana_gimple gimple_cond_greater falselab" falselab)
       (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_greater" 15)
       )
-   ( ?(gimple_cond_true ?truelab ?falselab)
-      (debugtree "smallana_gimple gimple_cond_true truelab" truelab)
-      (debugtree "smallana_gimple gimple_cond_true falselab" falselab)
+   ( ?(gimple_cond_true)
       (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_true" 15)
       )
    ( ?(gimple_call ?lhs ?fndecl ?_)
@@ -745,8 +737,8 @@
   (sman abenv
 ;;; the entire gimple and its containing basicblock
 	:gimple g :basic_block bb 
-;;; the extracted lefthandside righthandside truelab falselab
-	:tree lhs rhs truelab falselab 
+;;; the extracted lefthandside righthandside 
+	:tree lhs rhs 
 ;;; the relation string [eg "<="] its opposite for negative numbers [eg ">="] and
 ;;; its negation [eg ">"] and the opposite of the negation [eg "<"]
 	:cstring rel opprel notrel notopprel)
@@ -771,7 +763,6 @@
 	  (debuggimple "sman_arithm_compare true branch impossible" g)
 	  )
       (progn
-	(debugtree "sman_arithm_compare true branch truelab" truelab)
 	(debuggimple "sman_arithm_compare true branch possible g" g)
 	(debugbasicblock "sman_arithm_compare true branch possible bb" bb)
 	(foreach_basicblock_succ_edge 
@@ -800,7 +791,6 @@
 	  (debuggimple "sman_arithm_compare false branch impossible" g)
 	  )
       (progn
-	(debugtree "sman_arithm_compare false branch falselab" falselab)
 	(debuggimple "sman_arithm_compare false branch possible" g)
 	(debugbasicblock "sman_arithm_compare false branch possible bb" bb)
 	(foreach_basicblock_succ_edge 
@@ -888,48 +878,38 @@
        )
      )
    ;; handle conditional <=
-   ( ?(gimple_cond_lessequal ?lhs ?rhs ?truelab ?falselab)
+   ( ?(gimple_cond_lessequal ?lhs ?rhs)
       (debugtree "smaninterp_gimple cond<= lhs" lhs)
       (debugtree "smaninterp_gimple cond<= rhs" rhs)
-      (debugtree "smaninterp_gimple cond<= truelab" truelab)
-      (debugtree "smaninterp_gimple cond<= falselab" falselab)
       (debug_msg abenv "smaninterp_gimple cond<= abenv before sman_arithm_compare")
       (sman_arithm_compare sman abenv
 			   g bb
-			   lhs rhs truelab falselab
+			   lhs rhs
 			   "<=" ">=" ">" "<")
       (debug_msg abenv "smaninterp_gimple cond<= abenv after sman_arithm_compare")
       (assert_msg "@$@unimplemented smaninterp_gimple cond<=" ())
       )
    ;; handle conditional <
-   ( ?(gimple_cond_less ?lhs ?rhs ?truelab ?falselab)
+   ( ?(gimple_cond_less ?lhs ?rhs)
       (debugtree "smaninterp_gimple cond< lhs" lhs)
       (debugtree "smaninterp_gimple cond< rhs" rhs)
-      (debugtree "smaninterp_gimple cond< truelab" truelab)
-      (debugtree "smaninterp_gimple cond< falselab" falselab)
       (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<" 15)
       (assert_msg "@$@unimplemented smaninterp_gimple cond<" ())
       )
    ;; handle conditional >
-   ( ?(gimple_cond_greater ?lhs ?rhs ?truelab ?falselab)
+   ( ?(gimple_cond_greater ?lhs ?rhs)
       (debugtree "smaninterp_gimple cond> lhs" lhs)
       (debugtree "smaninterp_gimple cond> rhs" rhs)
-      (debugtree "smaninterp_gimple cond> truelab" truelab)
-      (debugtree "smaninterp_gimple cond> falselab" falselab)
       (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond>" 15)
       (assert_msg "@$@unimplemented smaninterp_gimple cond>" ())
       )
    ;; handle conditional true
-   ( ?(gimple_cond_true ?truelab ?falselab)
-      (debugtree "smaninterp_gimple condtrue truelab" truelab)
-      (debugtree "smaninterp_gimple condtrue falselab" falselab)
+   ( ?(gimple_cond_true)
       ;;(shortbacktrace_dbg "@$@unimplemented smaninterp_gimple condtrue" 15)
       (assert_msg "@$@unimplemented smaninterp_gimple condtrue" ())
       )
    ;; handle conditional false
-   ( ?(gimple_cond_false ?truelab ?falselab)
-      (debugtree "smaninterp_gimple condfalse truelab" truelab)
-      (debugtree "smaninterp_gimple condfalse falselab" falselab)
+   ( ?(gimple_cond_false)
       ;;(shortbacktrace_dbg "@$@unimplemented smaninterp_gimple condfalse" 15)
       (assert_msg "@$@unimplemented smaninterp_gimple condfalse" ())
       )

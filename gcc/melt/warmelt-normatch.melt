@@ -4571,6 +4571,7 @@ normalized expression.}#
 ;; utility function to compute the index of a match step and update
 ;; the mdata_steps of its data to a tuple
 (defun match_step_index (mstep)
+  (debug_msg mstep "match_step_index mstep start")
   (assert_msg "check mstep" (is_a mstep class_match_step))
   (let ( (matindex (unsafe_get_field :mstep_index mstep))
 	 )
@@ -4589,6 +4590,7 @@ normalized expression.}#
 		msteps))
 	     )
 	(debug_msg mstep "match_step_index mstep")
+	(debug_msg msteps "match_step_index msteps")
 	(debug_msg matdata "match_step_index matdata")
 	(debug_msg msteptup "match_step_index msteptup")
 	(foreach_in_multiple
@@ -5048,7 +5050,8 @@ normalized expression.}#
     ))
 
 ;;; function to really normalize an alternate match case
-(defun altmatch_normalize_match_case (mdata mcasetup matctyp sloc nmctxt)
+(defun altmatch_normalize_match_case (mdata mcasetup matctyp sloc
+nmctxt)
   (debug_msg mdata "altmatch_normalize_match_case mdata")
   (debug_msg mcasetup "altmatch_normalize_match_case mcasetup")
   (debug_msg matctyp "altmatch_normalize_match_case matctyp")
@@ -5060,7 +5063,7 @@ normalized expression.}#
 	 (datamap (unsafe_get_field :matnorx_datamap nmctxt))
 	 (stepmap (unsafe_get_field :matnorx_stepmap nmctxt))
 	 (bodyl (unsafe_get_field :matnorx_bodylist nmctxt))
-	)
+	 )
     (debug_msg mdata "altmatch_normalize_match_case starting with first mdata")
     (altmatch_normalize_mdata mdata nmctxt)
     (debug_msg mdataqueue "altmatch_normalize_match_case initial mdataqueue")
@@ -5088,11 +5091,13 @@ normalized expression.}#
 	  (debug_msg freshmstep "altmatch_normalize_match_case freshmstep")
 	  (if (null freshmstep) (exit matchstepnormalizeloop))
 	  (debug_msg freshlab "altmatch_normalize_match_case freshlab")
+	  (debug_msg bodyl "altmatch_normalize_match_case bodyl before normalize_step")
 	  (let ( 
-		 (normstep (normalize_step freshmstep nmctxt sloc)) 
-		 )
+		(normstep (normalize_step freshmstep nmctxt sloc)) 
+		)
 	    (list_append bodyl freshlab)
 	    (debug_msg normstep "altmatch_normalize_match_case normstep")
+	    (debug_msg bodyl "altmatch_normalize_match_case bodyl after normalize_step")
 	    (cond ( (is_a normstep class_nrep_expression)
 		    (list_append bodyl normstep))
 		  ( (is_multiple normstep)
@@ -5108,7 +5113,8 @@ normalized expression.}#
 		     (assert_msg "check curnstep" (is_a curnstep class_nrep_expression))
 		     (list_append bodyl curnstep)))
 		  (:else
-		   (assert_msg "invalid normstep in altmatch_normalize_match_case" ())))		     
+		   (assert_msg "invalid normstep in altmatch_normalize_match_case" ())))
+	    (debug_msg bodyl "altmatch_normalize_match_case final bodyl")
 	    )
 
 	  ))
@@ -5257,11 +5263,21 @@ normalized expression.}#
 	   (multicall
 	    (normatch norbindmatch)
 	    (altmatch_normalize_match_case mdata mcasetup matctyp sloc nmctxt)
-	    (debug_msg nmctxt "normexp_match after altmatch_normalize_case nmctxt")
-	    (error_plain sloc "@@unimplemented normexp_altmatch")
-	    (assert_msg "@@unimplemented normexp_altmatch")
-	    (return)
-	    )))))))
+	    (debug_msg nmctxt "normexp_altmatch after altmatch_normalize_case nmctxt")
+	    (let ( 
+		  (nresloc (unsafe_get_field :matnorx_resloc nmctxt))
+		  (nresmatch (unsafe_get_field :matnorx_nmatch nmctxt))
+		  (nresbind (get_field :nocc_bind nresloc))
+		  )
+	      (debug_msg nresloc "normexp_altmatch nresloc")
+	      (put_fields nresbind
+			  :letbind_expr nresmatch)
+	      (debug_msg nresbind "normexp_altmatch updated nresbind")
+	      (debug_msg nresmatch "normexp_altmatch nresmatch")
+	      (error_plain sloc "@@unimplemented normexp_altmatch")
+	      (assert_msg "@@unimplemented normexp_altmatch")
+	    (return nresloc nresbind)
+	    ))))))))
 
 (defun alternate_match_optset (optsymb :cstring opts)
   (debug_msg optsymb "alternate_match_optset optsymb")

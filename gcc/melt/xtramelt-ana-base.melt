@@ -426,8 +426,6 @@
   (:gimple gc)
   (:tree lhs 
    :tree rhs
-   :tree truelab
-   :tree falselab
    )
   gimpcondle
   ;; test expansion
@@ -437,8 +435,6 @@
   #{
    $lhs = gimple_cond_lhs($gc);
    $rhs = gimple_cond_rhs($gc);
-   $truelab = gimple_cond_true_label($gc);
-   $falselab = gimple_cond_false_label($gc);
   }# )
 
 ;;; match a gimple cond less 
@@ -446,8 +442,6 @@
   (:gimple gc)
   (:tree lhs 
    :tree rhs
-   :tree truelab
-   :tree falselab
    )
   gimpcondle
   ; test expansion
@@ -457,8 +451,6 @@
   #{
    $lhs = gimple_cond_lhs($gc);
    $rhs = gimple_cond_rhs($gc);
-   $truelab = gimple_cond_true_label($gc);
-   $falselab = gimple_cond_false_label($gc);
   }# )
 
 ;;;;;;;;;;;;;;;;
@@ -467,8 +459,6 @@
   (:gimple gc)
   (:tree lhs 
    :tree rhs
-   :tree truelab
-   :tree falselab
    )
   gimpcondle
   ;; test expansion
@@ -478,8 +468,6 @@
   #{
    $lhs = gimple_cond_lhs($gc);
    $rhs = gimple_cond_rhs($gc);
-   $truelab = gimple_cond_true_label($gc);
-   $falselab = gimple_cond_false_label($gc);
   }# )
 
 ;;; match a gimple cond greater
@@ -487,8 +475,6 @@
   (:gimple gc)
   (:tree lhs 
    :tree rhs
-   :tree truelab
-   :tree falselab
    )
   gimpcondle
   ;; test expansion
@@ -498,38 +484,58 @@
   #{
    $lhs = gimple_cond_lhs($gc);
    $rhs = gimple_cond_rhs($gc);
-   $truelab = gimple_cond_true_label($gc);
-   $falselab = gimple_cond_false_label($gc);
   }# )
 
 ;; match a gimple cond true
 (defcmatcher gimple_cond_true
   (:gimple gc)
-  (:tree truelab falselab)
+  ()
   gimpcondtr
   ;;test
-  #{($gc && gimple_code($gc)==GIMPLE_COND 
+  #{/*$gimpcondtr ? */ ($gc && gimple_code($gc)==GIMPLE_COND 
      && gimple_cond_true_p($gc))}#
   ;;fill
-  #{
-   $truelab = gimple_cond_true_label($gc);
-   $falselab = gimple_cond_false_label($gc);
+  #{ /*$gimpcondtr !*/
   }# )
 
 
 ;; match a gimple cond false
 (defcmatcher gimple_cond_false
   (:gimple gc)
-  (:tree truelab falselab)
+  ()
   gimpcondtr
   ;;test
-  #{($gc && gimple_code($gc)==GIMPLE_COND
-	 && gimple_cond_false_p($gc))}#
+  #{/*$gimpcondtr ?*/ ($gc && gimple_code($gc)==GIMPLE_COND
+	 && gimple_cond_false_p($gc))}# )
+
+
+;; rarely used pattern to extract the true & false labels. These are
+;; often null!
+(defcmatcher gimple_cond_with_true_false_labels
+  (:gimple gc)
+  (:tree truelab falselab)
+  gimpcondtrlab
+  ;; test
+  #{/*$gimpcondtrlab ?*/ ($gc && gimple_code($gc)==GIMPLE_COND)}#
   ;;fill
   #{
    $truelab = gimple_cond_true_label($gc);
    $falselab = gimple_cond_false_label($gc);
-   }# )
+   }#
+)
+
+;; pattern to extract the true & false edges of a gimple_cond.
+(defcmatcher gimple_cond_with_edges
+  (:gimple gc)
+  (:edge truedge falsedge)
+  gimpcondtredges
+  ;; test
+  #{/*$gimpcondtredges ?*/  ($gc && gimple_code($gc)==GIMPLE_COND)}#
+  ;;fill
+  #{ /*$gimpcondtredges !*/
+  extract_cond_bb_edges (($gc), &($truedge), &($falsedge));
+  }#)
+
 
 ;;; match a gimple call to a direct function of any matched arity
 (defcmatcher gimple_call
@@ -2188,10 +2194,11 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_call_nth_arg  
  gimple_cond_false
  gimple_cond_greater
- gimple_cond_less 
+ gimple_cond_less  
  gimple_cond_lessequal
  gimple_cond_notequal
- gimple_cond_true 
+ gimple_cond_true  
+ gimple_cond_with_true_false_labels
  gimple_content
  gimple_debug
  gimple_debug_bind
