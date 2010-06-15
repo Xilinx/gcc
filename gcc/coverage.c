@@ -66,6 +66,7 @@ struct function_list
   unsigned ident;		 /* function ident */
   unsigned checksum;	         /* function checksum */
   unsigned n_ctrs[GCOV_COUNTERS];/* number of counters.  */
+  unsigned dc_offset;            /* offset of counters to direct calls.  */
 };
 
 /* Linked list of -D/-U/-imacro/-include strings for a source module.  */
@@ -985,6 +986,7 @@ coverage_dc_end_function (void)
 	}
 
       item->n_ctrs[idx] += fn_n_ctrs[idx];
+      item->dc_offset = prg_n_ctrs[idx];
       prg_n_ctrs[idx] += fn_n_ctrs[idx];
       fn_n_ctrs[idx] = fn_b_ctrs[idx] = 0;
       prg_ctr_mask |= fn_ctr_mask;
@@ -1007,6 +1009,12 @@ build_fn_info_type (unsigned int counters)
 		       FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
 
   /* checksum */
+  field = build_decl (BUILTINS_LOCATION,
+		      FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+
+  /* dc offset */
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
   TREE_CHAIN (field) = fields;
@@ -1049,6 +1057,12 @@ build_fn_info_value (const struct function_list *function, tree type)
   CONSTRUCTOR_APPEND_ELT (v1, fields,
 			  build_int_cstu (get_gcov_unsigned_t (),
 					  function->checksum));
+  fields = TREE_CHAIN (fields);
+
+  /* dc offset */
+  CONSTRUCTOR_APPEND_ELT (v1, fields,
+			  build_int_cstu (get_gcov_unsigned_t (),
+					  function->dc_offset));
   fields = TREE_CHAIN (fields);
 
   /* counters */
@@ -1881,3 +1895,4 @@ coverage_has_asm_stmt (void)
 }
 
 #include "gt-coverage.h"
+

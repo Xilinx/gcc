@@ -499,6 +499,7 @@ struct gcov_fn_info
 {
   gcov_unsigned_t ident;	/* unique ident of function */
   gcov_unsigned_t checksum;	/* function checksum */
+  gcov_unsigned_t dc_offset;    /* direct call offset */
   unsigned n_ctrs[0];		/* instrumented counters */
 };
 

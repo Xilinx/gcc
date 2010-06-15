@@ -1918,6 +1918,7 @@ cgraph_output_in_order (void)
   nodes = XCNEWVEC (struct cgraph_order_sort, max);
 
   varpool_analyze_pending_decls ();
+  varpool_remove_duplicate_weak_decls ();
 
   for (pf = cgraph_nodes; pf; pf = pf->next)
     {
@@ -2138,6 +2139,7 @@ cgraph_optimize (void)
 
       cgraph_expand_all_functions ();
       varpool_remove_unreferenced_decls ();
+      varpool_remove_duplicate_weak_decls ();
 
       varpool_assemble_pending_decls ();
     }

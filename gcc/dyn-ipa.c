@@ -489,9 +489,12 @@ gcov_build_callgraph (void)
           caller = &the_dyn_call_graph.call_graph_nodes[m_ix][fi_ptr->ident];
           if (dcall_profile_values)
             {
+              unsigned offset;
               n_counts = fi_ptr->n_ctrs[dp_cix];
-              gcov_build_callgraph_dc_fn (caller, dcall_profile_values, n_counts);
-              dcall_profile_values += n_counts;
+              offset = fi_ptr->dc_offset;
+              gcov_build_callgraph_dc_fn (caller,
+                                          dcall_profile_values + offset,
+                                          n_counts);
             }
           if (icall_profile_values)
             {

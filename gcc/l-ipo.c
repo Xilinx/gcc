@@ -1730,12 +1730,8 @@ promote_static_var_func (unsigned module_id, tree decl, bool is_extern)
 
 /* Externalize global variables from aux modules and promote
    static variables.
-   WEAK variables need special treatment. If there is a definition in the
-   primary module, all the definitions of this weak variable in auxiliary
-   modules are externalized. Otherwise, all but one definition in the
-   auxiliary modules is externalized. For this reason, before the first
-   call to this function, we must have a record of all the weak variables
-   emitted from the primary module.  */
+   WEAK variables are treated especially in
+   varpool_remove_duplicate_weak_decls.  */
 
 static void
 process_module_scope_static_var (struct varpool_node *vnode)
@@ -1747,11 +1743,8 @@ process_module_scope_static_var (struct varpool_node *vnode)
       gcc_assert (vnode->module_id != primary_module_id);
       if (TREE_PUBLIC (decl))
         {
-          /* Externalize non-weak variables, and those weak variables that
-	     we have seen one non-external copy of.  */
-	  if (!DECL_WEAK (decl)
-	      || (!DECL_EXTERNAL (decl)
-		  && get_name_seq_num (IDENTIFIER_POINTER (DECL_NAME (decl)))))
+          /* Externalize non-weak variables.  */
+	  if (!DECL_WEAK (decl))
 	    {
 	      DECL_EXTERNAL (decl) = 1;
 	      TREE_STATIC (decl) = 0;
@@ -1823,18 +1816,53 @@ cgraph_process_module_scope_statics (void)
                                     promo_ent_eq, promo_ent_del);
 
   /* Process variable first.  */
-  /* Keep track of weak variables emitted from the primary module (see
-     comment for the process_module_scope_static_var function for why
-     this needs to be done). We use the get_name_seq_name function for
-     this.  */
-  for (pv = varpool_nodes_queue; pv; pv = pv->next_needed)
-    if (!varpool_is_auxiliary (pv) && DECL_WEAK (pv->decl) && !DECL_EXTERNAL (pv->decl))
-      get_name_seq_num (IDENTIFIER_POINTER (DECL_NAME (pv->decl)));
   for (pv = varpool_nodes_queue; pv; pv = pv->next_needed)
     process_module_scope_static_var (pv);
 
   for (pf = cgraph_nodes; pf; pf = pf->next)
     process_module_scope_static_func (pf);
+
+  htab_delete (promo_ent_hash_tab);
+}
+
+/* There could be duplicate non-extern WEAK decls in the varpool queue,
+   coming from different modules. All but one of these need to be externalized
+   and removed from the varpool queue.
+   Duplicate WEAK decls can be added to varpool queue as late as
+   cgraph_expand_function, when a WEAK decl is marked referenced as assembler
+   is being output. Therefore, a call to this function should be made after
+   cgraph_expand_function.  */
+
+void
+varpool_remove_duplicate_weak_decls (void)
+{
+  struct varpool_node *next, *node = varpool_nodes_queue;
+
+  if (!L_IPO_COMP_MODE)
+    return;
+
+  varpool_reset_queue ();
+
+  promo_ent_hash_tab = htab_create (10, promo_ent_hash,
+                                    promo_ent_eq, promo_ent_del);
+
+  while (node)
+    {
+      tree decl = node->decl;
+      next = node->next_needed;
+      node->needed = 0;
+      if (TREE_PUBLIC (decl) && DECL_WEAK (decl) && !DECL_EXTERNAL (decl)
+	  && get_name_seq_num (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl))))
+        {
+	  DECL_EXTERNAL (decl) = 1;
+	  TREE_STATIC (decl) = 0;
+	  DECL_INITIAL (decl) = NULL;
+	  DECL_CONTEXT (decl) = NULL;
+	}
+      else
+	varpool_mark_needed_node (node);
+      node = next;
+    }
 
   htab_delete (promo_ent_hash_tab);
 }

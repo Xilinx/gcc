@@ -671,6 +671,8 @@ struct varpool_node *real_varpool_node (tree decl);
 bool varpool_is_auxiliary (struct varpool_node *node);
 void varpool_get_referenced_asm_ids (VEC(tree, gc) **);
 void varpool_clear_asm_id_reference_bit (void);
+void varpool_reset_queue (void);
+void varpool_remove_duplicate_weak_decls (void);
 
 bool cgraph_decide_is_function_needed (struct cgraph_node *, tree);
 
