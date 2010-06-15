@@ -18,7 +18,7 @@ Copyright @copyright{} 1995-2009 Free Software Foundation,
 Inc.
 
 Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.2 or
+under the terms of the GNU Free Documentation License, Version 1.3 or
 any later version published by the Free Software Foundation; with no
 Invariant Sections, with no Front-Cover Texts and with no Back-Cover
 Texts.  A copy of the license is included in the section entitled
@@ -107,6 +107,13 @@ Texts.  A copy of the license is included in the section entitled
 @macro ovar{varname}
 @r{[}@var{\varname\}@r{]}@c
 @end macro
+@c Status as of November 2009:
+@c Unfortunately texi2pdf and texi2html treat the trailing "@c"
+@c differently, and faulty output is produced by one or the other
+@c depending on whether the "@c" is present or absent.
+@c As a result, the @ovar macro is not used, and all invocations
+@c of the @ovar macro have been expanded inline.
+
 
 @settitle @value{EDITION} User's Guide @value{PLATFORM}
 @dircategory GNU Ada tools
@@ -340,6 +347,7 @@ Performance Considerations
 Reducing Size of Ada Executables with gnatelim
 * About gnatelim::
 * Running gnatelim::
+* Processing Precompiled Libraries::
 * Correcting the List of Eliminate Pragmas::
 * Making Your Executables Smaller::
 * Summary of the gnatelim Usage Cycle::
@@ -597,6 +605,8 @@ Platform-Specific Information for the Run-Time Libraries
 * Linux-Specific Considerations::
 * AIX-Specific Considerations::
 * Irix-Specific Considerations::
+* RTX-Specific Considerations::
+* HP-UX-Specific Considerations::
 
 Example of Binder Output File
 
@@ -3873,7 +3883,9 @@ without generating code, then use the @option{-gnatc} switch.
 The basic command for compiling a file containing an Ada unit is
 
 @smallexample
-$ gcc -c @ovar{switches} @file{file name}
+@c $ gcc -c @ovar{switches} @file{file name}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gcc -c @r{[}@var{switches}@r{]} @file{file name}
 @end smallexample
 
 @noindent
@@ -4419,7 +4431,9 @@ Inhibit the search of the default location for the GNAT Run Time
 Library (RTL) ALI files.
 
 @ifclear vms
-@item -O@ovar{n}
+@c @item -O@ovar{n}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+@item -O@r{[}@var{n}@r{]}
 @cindex @option{-O} (@command{gcc})
 @var{n} controls the optimization level.
 
@@ -7187,7 +7201,9 @@ Shows the storage pool associated with a @code{free} statement.
 Used to list an equivalent declaration for an internally generated
 type that is referenced elsewhere in the listing.
 
-@item freeze @var{type-name} @ovar{actions}
+@c @item freeze @var{type-name} @ovar{actions}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+@item freeze @var{type-name} @r{[}@var{actions}@r{]}
 Shows the point at which @var{type-name} is frozen, with possible
 associated actions to be performed at the freeze point.
 
@@ -7886,7 +7902,9 @@ to be read by the @command{gnatlink} utility used to link the Ada application.
 The form of the @code{gnatbind} command is
 
 @smallexample
-$ gnatbind @ovar{switches} @var{mainprog}@r{[}.ali@r{]} @ovar{switches}
+@c $ gnatbind @ovar{switches} @var{mainprog}@r{[}.ali@r{]} @ovar{switches}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatbind @r{[}@var{switches}@r{]} @var{mainprog}@r{[}.ali@r{]} @r{[}@var{switches}@r{]}
 @end smallexample
 
 @noindent
@@ -8865,8 +8883,12 @@ driver (see @ref{The GNAT Driver and Project Files}).
 The form of the @command{gnatlink} command is
 
 @smallexample
-$ gnatlink @ovar{switches} @var{mainprog}@r{[}.ali@r{]}
-           @ovar{non-Ada objects} @ovar{linker options}
+@c $ gnatlink @ovar{switches} @var{mainprog}@r{[}.ali@r{]}
+@c            @ovar{non-Ada objects} @ovar{linker options}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatlink @r{[}@var{switches}@r{]} @var{mainprog}@r{[}.ali@r{]}
+           @r{[}@var{non-Ada objects}@r{]} @r{[}@var{linker options}@r{]}
+
 @end smallexample
 
 @noindent
@@ -9144,8 +9166,11 @@ dependencies, they will always be tracked exactly correctly by
 The usual form of the @command{gnatmake} command is
 
 @smallexample
-$ gnatmake @ovar{switches} @var{file_name}
-      @ovar{file_names} @ovar{mode_switches}
+@c $ gnatmake @ovar{switches} @var{file_name}
+@c       @ovar{file_names} @ovar{mode_switches}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatmake @r{[}@var{switches}@r{]} @var{file_name}
+      @r{[}@var{file_names}@r{]} @r{[}@var{mode_switches}@r{]}
 @end smallexample
 
 @noindent
@@ -10670,6 +10695,7 @@ program.
 @menu
 * About gnatelim::
 * Running gnatelim::
+* Processing Precompiled Libraries::
 * Correcting the List of Eliminate Pragmas::
 * Making Your Executables Smaller::
 * Summary of the gnatelim Usage Cycle::
@@ -10693,20 +10719,24 @@ because the compiler will not generate the code for 'eliminated' subprograms.
 @xref{Pragma Eliminate,,, gnat_rm, GNAT Reference Manual}, for more
 information about this pragma.
 
-@code{gnatelim} needs as its input data the name of the main subprogram
-and a bind file for a main subprogram.
+@code{gnatelim} needs as its input data the name of the main subprogram.
 
-To create a bind file for @code{gnatelim}, run @code{gnatbind} for
-the main subprogram. @code{gnatelim} can work with both Ada and C
-bind files; when both are present, it uses the Ada bind file.
-The following commands will build the program and create the bind file:
+If a set of source files is specified as @code{gnatelim} arguments, it
+treats these files as a complete set of sources making up a program to
+analyse, and analyses only these sources.
+
+After a full successful build of the main subprogram @code{gnatelim} can be
+called without  specifying sources to analyse, in this case it computes
+the source closure of the main unit from the @file{ALI} files.
+
+The following command will create the set of @file{ALI} files needed for
+@code{gnatelim}:
 
 @smallexample
 $ gnatmake ^-c Main_Prog^/ACTIONS=COMPILE MAIN_PROG^
-$ gnatbind main_prog
 @end smallexample
 
-Note that @code{gnatelim} needs neither object nor ALI files.
+Note that @code{gnatelim} does not need object files.
 
 @node Running gnatelim
 @subsection Running @code{gnatelim}
@@ -10715,22 +10745,59 @@ Note that @code{gnatelim} needs neither object nor ALI files.
 @code{gnatelim} has the following command-line interface:
 
 @smallexample
-$ gnatelim @ovar{options} name
+$ gnatelim [@var{switches}] ^-main^?MAIN^=@var{main_unit_name} @{@var{filename}@} @r{[}-cargs @var{gcc_switches}@r{]}
 @end smallexample
 
 @noindent
-@code{name} should be a name of a source file that contains the main subprogram
-of a program (partition).
+@var{main_unit_name} should be a name of a source file that contains the main
+subprogram of a program (partition).
+
+Each @var{filename} is the name (including the extension) of a source
+file to process. ``Wildcards'' are allowed, and
+the file name may contain path information.
+
+@samp{@var{gcc_switches}} is a list of switches for
+@command{gcc}. They will be passed on to all compiler invocations made by
+@command{gnatelim} to generate the ASIS trees. Here you can provide
+@option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
+use the @option{-gnatec} switch to set the configuration file etc.
 
 @code{gnatelim} has the following switches:
 
 @table @option
 @c !sort!
+@item ^-files^/FILES^=@var{filename}
+@cindex @option{^-files^/FILES^} (@code{gnatelim})
+Take the argument source files from the specified file. This file should be an
+ordinary text file containing file names separated by spaces or
+line breaks. You can use this switch more than once in the same call to
+@command{gnatelim}. You also can combine this switch with
+an explicit list of files.
+
+@item ^-log^/LOG^
+@cindex @option{^-log^/LOG^} (@command{gnatelim})
+Duplicate all the output sent to @file{stderr} into a log file. The log file
+is named @file{gnatelim.log} and is located in the current directory.
+
+@item ^-log^/LOGFILE^=@var{filename}
+@cindex @option{^-log^/LOGFILE^} (@command{gnatelim})
+Duplicate all the output sent to @file{stderr} into a specified log file.
+
+@cindex @option{^-o^/OUTPUT^} (@command{gnatelim})
+@item ^-o^/OUTPUT^=@var{report_file}
+Put @command{gnatelim} output into a specified file. If this file already exists,
+it is overridden. If this switch is not used, @command{gnatelim} outputs its results
+into @file{stderr}
+
 @item ^-q^/QUIET^
 @cindex @option{^-q^/QUIET^} (@command{gnatelim})
 Quiet mode: by default @code{gnatelim} outputs to the standard error
 stream the number of program units left to be processed. This option turns
 this trace off.
+
+@cindex @option{^-t^/TIME^} (@command{gnatelim})
+@item ^-t^/TIME^
+Print out execution time.
 
 @item ^-v^/VERBOSE^
 @cindex @option{^-v^/VERBOSE^} (@command{gnatelim})
@@ -10739,67 +10806,24 @@ comments to the standard output stream. Also, in addition to the number of
 program units left @code{gnatelim} will output the name of the current unit
 being processed.
 
-@item ^-a^/ALL^
-@cindex @option{^-a^/ALL^} (@command{gnatelim})
-Also look for subprograms from the GNAT run time that can be eliminated. Note
-that when @file{gnat.adc} is produced using this switch, the entire program
-must be recompiled with switch @option{^-a^/ALL_FILES^} to @command{gnatmake}.
-
-@item ^-I^/INCLUDE_DIRS=^@var{dir}
-@cindex @option{^-I^/INCLUDE_DIRS^} (@command{gnatelim})
-When looking for source files also look in directory @var{dir}. Specifying
-@option{^-I-^/INCLUDE_DIRS=-^} instructs @code{gnatelim} not to look for
-sources in the current directory.
-
-@item ^-b^/BIND_FILE=^@var{bind_file}
-@cindex @option{^-b^/BIND_FILE^} (@command{gnatelim})
-Specifies @var{bind_file} as the bind file to process. If not set, the name
-of the bind file is computed from the full expanded Ada name
-of a main subprogram.
-
-@item ^-C^/CONFIG_FILE=^@var{config_file}
-@cindex @option{^-C^/CONFIG_FILE^} (@command{gnatelim})
-Specifies a file @var{config_file} that contains configuration pragmas. The
-file must be specified with full path.
-
-@item ^--GCC^/COMPILER^=@var{compiler_name}
-@cindex @option{^-GCC^/COMPILER^} (@command{gnatelim})
-Instructs @code{gnatelim} to use specific @command{gcc} compiler instead of one
-available on the path.
-
-@item ^--GNATMAKE^/GNATMAKE^=@var{gnatmake_name}
-@cindex @option{^--GNATMAKE^/GNATMAKE^} (@command{gnatelim})
-Instructs @code{gnatelim} to use specific @command{gnatmake} instead of one
-available on the path.
+@item ^-wq^/WARNINGS=QUIET^
+@cindex @option{^-wq^/WARNINGS=QUIET^} (@command{gnatelim})
+Quet warning mode - some warnings are suppressed. In particular warnings that
+indicate that the analysed set of sources is incomplete to make up a
+partition and that some subprogram bodies are missing are not generated.
 @end table
 
-@noindent
-@code{gnatelim} sends its output to the standard output stream, and all the
-tracing and debug information is sent to the standard error stream.
-In order to produce a proper GNAT configuration file
-@file{gnat.adc}, redirection must be used:
-
-@smallexample
-@ifset vms
-$ PIPE GNAT ELIM MAIN_PROG.ADB > GNAT.ADC
-@end ifset
-@ifclear vms
-$ gnatelim main_prog.adb > gnat.adc
-@end ifclear
-@end smallexample
-
-@ifclear vms
-@noindent
-or
-
-@smallexample
-$ gnatelim main_prog.adb >> gnat.adc
-@end smallexample
+@node Processing Precompiled Libraries
+@subsection Processing Precompiled Libraries
 
 @noindent
-in order to append the @code{gnatelim} output to the existing contents of
-@file{gnat.adc}.
-@end ifclear
+If some program uses a precompiled Ada library, it can be processed by
+@code{gnatelim} in a usual way. @code{gnatelim} will newer generate an
+Eliminate pragma for a subprogram if the body of this subprogram has not
+been analysed, this is a typical case for subprograms from precompiled
+libraries. Switch @option{^-wq^/WARNINGS=QUIET^} may be used to suppress
+warnings about missing source files and non-analyzed subprogram bodies
+that can be generated when processing precompiled Ada libraries.
 
 @node Correcting the List of Eliminate Pragmas
 @subsection Correcting the List of Eliminate Pragmas
@@ -10810,22 +10834,23 @@ subprograms that are actually called in the program. In this case, the
 compiler will generate an error message of the form:
 
 @smallexample
-file.adb:106:07: cannot call eliminated subprogram "My_Prog"
+main.adb:4:08: cannot reference subprogram "P" eliminated at elim.out:5
 @end smallexample
 
 @noindent
 You will need to manually remove the wrong @code{Eliminate} pragmas from
-the @file{gnat.adc} file. You should recompile your program
-from scratch after that, because you need a consistent @file{gnat.adc} file
-during the entire compilation.
+the configuration file indicated in the error message. You should recompile
+your program from scratch after that, because you need a consistent
+configuration file(s) during the entire compilation.
 
 @node Making Your Executables Smaller
 @subsection Making Your Executables Smaller
 
 @noindent
 In order to get a smaller executable for your program you now have to
-recompile the program completely with the new @file{gnat.adc} file
-created by @code{gnatelim} in your current directory:
+recompile the program completely with the configuration file containing
+pragmas Eliminate generated by gnatelim. If these pragmas are placed in
+@file{gnat.adc} file located in your current directory, just do:
 
 @smallexample
 $ gnatmake ^-f main_prog^/FORCE_COMPILE MAIN_PROG^
@@ -10839,10 +10864,10 @@ with the set of pragmas @code{Eliminate} that you have obtained with
 
 Be aware that the set of @code{Eliminate} pragmas is specific to each
 program. It is not recommended to merge sets of @code{Eliminate}
-pragmas created for different programs in one @file{gnat.adc} file.
+pragmas created for different programs in one configuration file.
 
 @node Summary of the gnatelim Usage Cycle
-@subsection Summary of the gnatelim Usage Cycle
+@subsection Summary of the @code{gnatelim} Usage Cycle
 
 @noindent
 Here is a quick summary of the steps to be taken in order to reduce
@@ -10852,15 +10877,16 @@ to produce the debugging information, to set search path, etc.
 
 @enumerate
 @item
-Produce a bind file
+Create a complete set of @file{ALI} files (if the program has not been
+built already)
 
 @smallexample
 $ gnatmake ^-c main_prog^/ACTIONS=COMPILE MAIN_PROG^
-$ gnatbind main_prog
 @end smallexample
 
 @item
-Generate a list of @code{Eliminate} pragmas
+Generate a list of @code{Eliminate} pragmas in default configuration file
+@file{gnat.adc} in the current directory
 @smallexample
 @ifset vms
 $ PIPE GNAT ELIM MAIN_PROG > GNAT.ADC
@@ -11119,8 +11145,11 @@ in which GNAT processes the ACVC tests.
 The @code{gnatchop} command has the form:
 
 @smallexample
+@c $ gnatchop switches @var{file name} @r{[}@var{file name} @dots{}@r{]}
+@c      @ovar{directory}
+@c Expanding @ovar macro inline (explanation in macro def comments)
 $ gnatchop switches @var{file name} @r{[}@var{file name} @dots{}@r{]}
-      @ovar{directory}
+      @r{[}@var{directory}@r{]}
 @end smallexample
 
 @noindent
@@ -11546,8 +11575,11 @@ set of files.
 The usual form of the @code{gnatname} command is
 
 @smallexample
-$ gnatname @ovar{switches} @var{naming_pattern} @ovar{naming_patterns}
-      @r{[}--and @ovar{switches} @var{naming_pattern} @ovar{naming_patterns}@r{]}
+@c $ gnatname @ovar{switches} @var{naming_pattern} @ovar{naming_patterns}
+@c       @r{[}--and @ovar{switches} @var{naming_pattern} @ovar{naming_patterns}@r{]}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatname @r{[}@var{switches}@r{]} @var{naming_pattern} @r{[}@var{naming_patterns}@r{]}
+      @r{[}--and @r{[}@var{switches}@r{]} @var{naming_pattern} @r{[}@var{naming_patterns}@r{]}@r{]}
 @end smallexample
 
 @noindent
@@ -14769,9 +14801,9 @@ to @command{gnatmake} that the binder generated file should be compiled
 @noindent
 A number of GNAT tools, other than @command{^gnatmake^gnatmake^}
 can benefit from project files:
-@command{^gnatbind^gnatbind^},
-@command{^gnatcheck^gnatcheck^}),
-@command{^gnatclean^gnatclean^}),
+(@command{^gnatbind^gnatbind^},
+@command{^gnatcheck^gnatcheck^},
+@command{^gnatclean^gnatclean^},
 @command{^gnatelim^gnatelim^},
 @command{^gnatfind^gnatfind^},
 @command{^gnatlink^gnatlink^},
@@ -14779,7 +14811,7 @@ can benefit from project files:
 @command{^gnatmetric^gnatmetric^},
 @command{^gnatpp^gnatpp^},
 @command{^gnatstub^gnatstub^},
-and @command{^gnatxref^gnatxref^}. However, none of these tools can be invoked
+and @command{^gnatxref^gnatxref^}). However, none of these tools can be invoked
 directly with a project file switch (@option{^-P^/PROJECT_FILE=^}).
 They must be invoked through the @command{gnat} driver.
 
@@ -15055,8 +15087,8 @@ found in the package corresponding to the tool:
 except @code{^Switches^Switches^ ("main.adb")}
 for @code{^gnatlink^gnatlink^}.
 It is also possible to invoke some of the tools,
-@code{^gnatcheck^gnatcheck^}),
-@code{^gnatmetric^gnatmetric^}),
+(@code{^gnatcheck^gnatcheck^},
+@code{^gnatmetric^gnatmetric^},
 and @code{^gnatpp^gnatpp^})
 on a set of project units thanks to the combination of the switches
 @option{-P}, @option{-U} and possibly the main unit when one is interested
@@ -15076,7 +15108,10 @@ gnat metric -Pproj -U main_unit
 @end smallexample
 will compute the metrics for the closure of units rooted at
 @code{main_unit}. This last possibility relies implicitly
-on @command{gnatbind}'s option @option{-R}.
+on @command{gnatbind}'s option @option{-R}. But if the argument files for the
+tool invoked by the the @command{gnat} driver are explicitly  specified
+either directly or through the tool @option{-files} option, then the tool
+is called only for these explicitly specified files.
 
 @c **********************
 @node An Extended Example
@@ -15403,7 +15438,9 @@ use the @code{gnat} driver (see @ref{The GNAT Driver and Project Files}).
 @noindent
 The command invocation for @code{gnatxref} is:
 @smallexample
-$ gnatxref @ovar{switches} @var{sourcefile1} @r{[}@var{sourcefile2} @dots{}@r{]}
+@c $ gnatxref @ovar{switches} @var{sourcefile1} @r{[}@var{sourcefile2} @dots{}@r{]}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatxref @r{[}@var{switches}@r{]} @var{sourcefile1} @r{[}@var{sourcefile2} @dots{}@r{]}
 @end smallexample
 
 @noindent
@@ -15535,8 +15572,11 @@ you can say @samp{gnatxref ^-ag^/ALL_FILES/IGNORE_LOCALS^} instead of
 The command line for @code{gnatfind} is:
 
 @smallexample
-$ gnatfind @ovar{switches} @var{pattern}@r{[}:@var{sourcefile}@r{[}:@var{line}@r{[}:@var{column}@r{]]]}
-      @r{[}@var{file1} @var{file2} @dots{}]
+@c $ gnatfind @ovar{switches} @var{pattern}@r{[}:@var{sourcefile}@r{[}:@var{line}@r{[}:@var{column}@r{]]]}
+@c       @r{[}@var{file1} @var{file2} @dots{}]
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatfind @r{[}@var{switches}@r{]} @var{pattern}@r{[}:@var{sourcefile}@r{[}:@var{line}@r{[}:@var{column}@r{]]]}
+      @r{[}@var{file1} @var{file2} @dots{}@r{]}
 @end smallexample
 
 @noindent
@@ -16122,7 +16162,9 @@ call @command{gnatpp} through the @command{gnat} driver
 The @command{gnatpp} command has the form
 
 @smallexample
-$ gnatpp @ovar{switches} @var{filename}
+@c $ gnatpp @ovar{switches} @var{filename}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatpp @r{[}@var{switches}@r{]} @var{filename} @r{[}-cargs @var{gcc_switches}@r{]}
 @end smallexample
 
 @noindent
@@ -16138,6 +16180,13 @@ output source file
 reformat; ``wildcards'' or several file names on the same gnatpp command are
 allowed.  The file name may contain path information; it does not have to
 follow the GNAT file naming rules
+
+@item
+@samp{@var{gcc_switches}} is a list of switches for
+@command{gcc}. They will be passed on to all compiler invocations made by
+@command{gnatelim} to generate the ASIS trees. Here you can provide
+@option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
+use the @option{-gnatec} switch to set the configuration file etc.
 @end itemize
 
 @menu
@@ -16635,12 +16684,12 @@ with @option{^-pipe^/STANDARD_OUTPUT^} option.
 The additional @command{gnatpp} switches are defined in this subsection.
 
 @table @option
-@item ^-files @var{filename}^/FILES=@var{output_file}^
+@item ^-files @var{filename}^/FILES=@var{filename}^
 @cindex @option{^-files^/FILES^} (@code{gnatpp})
 Take the argument source files from the specified file. This file should be an
-ordinary textual file containing file names separated by spaces or
-line breaks. You can use this switch more then once in the same call to
-@command{gnatpp}. You also can combine this switch with explicit list of
+ordinary text file containing file names separated by spaces or
+line breaks. You can use this switch more than once in the same call to
+@command{gnatpp}. You also can combine this switch with an explicit list of
 files.
 
 @item ^-v^/VERBOSE^
@@ -17224,7 +17273,9 @@ through the @command{gnat} driver.
 The @command{gnatmetric} command has the form
 
 @smallexample
-$ gnatmetric @ovar{switches} @{@var{filename}@} @r{[}-cargs @var{gcc_switches}@r{]}
+@c $ gnatmetric @ovar{switches} @{@var{filename}@} @r{[}-cargs @var{gcc_switches}@r{]}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatmetric @r{[}@var{switches}@r{]} @{@var{filename}@} @r{[}-cargs @var{gcc_switches}@r{]}
 @end smallexample
 
 @noindent
@@ -17245,7 +17296,7 @@ Including both a @option{-files} switch and one or more
 @var{filename} arguments is permitted.
 
 @item
-@samp{-cargs @var{gcc_switches}} is a list of switches for
+@samp{@var{gcc_switches}} is a list of switches for
 @command{gcc}. They will be passed on to all compiler invocations made by
 @command{gnatmetric} to generate the ASIS trees. Here you can provide
 @option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
@@ -17319,7 +17370,7 @@ Do not generate the output in text form (implies @option{^-x^/XML^})
 
 @cindex @option{^-d^/DIRECTORY^} (@command{gnatmetric})
 @item ^-d @var{output_dir}^/DIRECTORY=@var{output_dir}^
-Put textual files with detailed metrics into @var{output_dir}
+Put text files with detailed metrics into @var{output_dir}
 
 @cindex @option{^-o^/SUFFIX_DETAILS^} (@command{gnatmetric})
 @item ^-o @var{file_suffix}^/SUFFIX_DETAILS=@var{file_suffix}^
@@ -17896,7 +17947,7 @@ Additional @command{gnatmetric} switches are as follows:
 @cindex @option{^-files^/FILES^} (@code{gnatmetric})
 Take the argument source files from the specified file. This file should be an
 ordinary text file containing file names separated by spaces or
-line breaks. You can use this switch more then once in the same call to
+line breaks. You can use this switch more than once in the same call to
 @command{gnatmetric}. You also can combine this switch with
 an explicit list of files.
 
@@ -18006,7 +18057,9 @@ The @code{gnatkr} command has the form
 
 @ifclear vms
 @smallexample
-$ gnatkr @var{name} @ovar{length}
+@c $ gnatkr @var{name} @ovar{length}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatkr @var{name} @r{[}@var{length}@r{]}
 @end smallexample
 @end ifclear
 
@@ -18194,7 +18247,9 @@ all characters need to be in the ASCII set (no accented letters).
 To call @code{gnatprep} use
 
 @smallexample
-$ gnatprep @ovar{switches} @var{infile} @var{outfile} @ovar{deffile}
+@c $ gnatprep @ovar{switches} @var{infile} @var{outfile} @ovar{deffile}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatprep @r{[}@var{switches}@r{]} @var{infile} @var{outfile} @r{[}@var{deffile}@r{]}
 @end smallexample
 
 @noindent
@@ -20170,7 +20225,9 @@ Solaris and Windows NT/2000/XP (x86).
 The @code{gnatmem} command has the form
 
 @smallexample
-   $ gnatmem @ovar{switches} user_program
+@c    $ gnatmem @ovar{switches} user_program
+@c Expanding @ovar macro inline (explanation in macro def comments)
+      $ gnatmem @r{[}@var{switches}@r{]} @var{user_program}
 @end smallexample
 
 @noindent
@@ -20698,7 +20755,11 @@ driver (see @ref{The GNAT Driver and Project Files}).
 Invoking @command{gnatcheck} on the command line has the form:
 
 @smallexample
-$ gnatcheck @ovar{switches}  @{@var{filename}@}
+@c $ gnatcheck @ovar{switches}  @{@var{filename}@}
+@c       @r{[}^-files^/FILES^=@{@var{arg_list_filename}@}@r{]}
+@c       @r{[}-cargs @var{gcc_switches}@r{]} -rules @var{rule_options}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatcheck @r{[}@var{switches}@r{]}  @{@var{filename}@}
       @r{[}^-files^/FILES^=@{@var{arg_list_filename}@}@r{]}
       @r{[}-cargs @var{gcc_switches}@r{]} -rules @var{rule_options}
 @end smallexample
@@ -20845,13 +20906,6 @@ a trace of sources being processed.
 Set name of report file file to @var{report_file} .
 
 @end table
-
-@noindent
-Note that if any of the options @option{^-s1^/COMPILER_STYLE^},
-@option{^-s2^/BY_RULES^} or
-@option{^-s3^/BY_FILES_BY_RULES^} is specified,
-then the  @command{gnatcheck} report file will only contain sections
-explicitly denoted by these options.
 
 @node gnatcheck Rule Options
 @section @command{gnatcheck} Rule Options
@@ -23157,7 +23211,9 @@ option @option{^--no-exception^/NO_EXCEPTION^} (see below).
 @command{gnatstub} has the command-line interface of the form
 
 @smallexample
-$ gnatstub @ovar{switches} @var{filename} @ovar{directory}
+@c $ gnatstub @ovar{switches} @var{filename} @ovar{directory}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatstub @r{[}@var{switches}@r{]} @var{filename} @r{[}@var{directory}@r{]} @r{[}-cargs @var{gcc_switches}@r{]}
 @end smallexample
 
 @noindent
@@ -23184,6 +23240,12 @@ with the @file{.adb} suffix.
 indicates the directory in which the body stub is to be placed (the default
 is the
 current directory)
+
+@item @samp{@var{gcc_switches}} is a list of switches for
+@command{gcc}. They will be passed on to all compiler invocations made by
+@command{gnatelim} to generate the ASIS trees. Here you can provide
+@option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
+use the @option{-gnatec} switch to set the configuration file etc.
 
 @item switches
 is an optional sequence of switches as described in the next section
@@ -23689,7 +23751,9 @@ be able to click on any identifier and go to its declaration.
 
 The command line is as follow:
 @smallexample
-$ perl gnathtml.pl @ovar{^switches^options^} @var{ada-files}
+@c $ perl gnathtml.pl @ovar{^switches^options^} @var{ada-files}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ perl gnathtml.pl @r{[}@var{^switches^options^}@r{]} @var{ada-files}
 @end smallexample
 
 @noindent
@@ -23795,7 +23859,9 @@ is. The syntax of this line is:
 Alternatively, you may run the script using the following command line:
 
 @smallexample
-$ perl gnathtml.pl @ovar{switches} @var{files}
+@c $ perl gnathtml.pl @ovar{switches} @var{files}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ perl gnathtml.pl @r{[}@var{switches}@r{]} @var{files}
 @end smallexample
 
 @ifset vms
@@ -26919,6 +26985,7 @@ information about several specific platforms.
 * AIX-Specific Considerations::
 * Irix-Specific Considerations::
 * RTX-Specific Considerations::
+* HP-UX-Specific Considerations::
 @end menu
 
 @node Summary of Run-Time Configurations
@@ -27281,6 +27348,42 @@ performance can be optimized with RTSS applications taking precedent
 over all Windows applications (@emph{rts-rtx-rtss}).
 
 @end itemize
+
+@node HP-UX-Specific Considerations
+@section HP-UX-Specific Considerations
+@cindex HP-UX Scheduling
+
+@noindent
+On HP-UX, appropriate privileges are required to change the scheduling
+parameters of a task. The calling process must have appropriate
+privileges or be a member of a group having @code{PRIV_RTSCHED} access to
+successfully change the scheduling parameters.
+
+By default, GNAT uses the @code{SCHED_HPUX} policy. To have access to the
+priority range 0-31 either the @code{FIFO_Within_Priorities} or the
+@code{Round_Robin_Within_Priorities} scheduling policies need to be set.
+
+To specify the @code{FIFO_Within_Priorities} scheduling policy you can use
+one of the following:
+
+@itemize @bullet
+@item
+@code{pragma Time_Slice (0.0)}
+@cindex pragma Time_Slice
+@item
+the corresponding binder option @option{-T0}
+@cindex @option{-T0} option
+@item
+@code{pragma Task_Dispatching_Policy (FIFO_Within_Priorities)}
+@cindex pragma Task_Dispatching_Policy
+@end itemize
+
+@noindent
+To specify the @code{Round_Robin_Within_Priorities}, scheduling policy
+you should use @code{pragma Time_Slice} with a
+value greater than @code{0.0}, or use the corresponding @option{-T}
+binder option, or set the @code{pragma Task_Dispatching_Policy
+(Round_Robin_Within_Priorities)}.
 
 @c *******************************
 @node Example of Binder Output File
@@ -33270,7 +33373,9 @@ static import library for the DLL and the actual DLL. The form of the
 
 @smallexample
 @cartouche
-$ gnatdll @ovar{switches} @var{list-of-files} @r{[}-largs @var{opts}@r{]}
+@c $ gnatdll @ovar{switches} @var{list-of-files} @r{[}-largs @var{opts}@r{]}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatdll @r{[}@var{switches}@r{]} @var{list-of-files} @r{[}-largs @var{opts}@r{]}
 @end cartouche
 @end smallexample
 
@@ -33286,7 +33391,9 @@ missing, only the static import library is generated.
 You may specify any of the following switches to @code{gnatdll}:
 
 @table @code
-@item -a@ovar{address}
+@c @item -a@ovar{address}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+@item -a@r{[}@var{address}@r{]}
 @cindex @option{-a} (@code{gnatdll})
 Build a non-relocatable DLL at @var{address}. If @var{address} is not
 specified the default address @var{0x11000000} will be used. By default,
@@ -33489,7 +33596,9 @@ common @code{dlltool} switches. The form of the @code{dlltool} command
 is
 
 @smallexample
-$ dlltool @ovar{switches}
+@c $ dlltool @ovar{switches}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ dlltool @r{[}@var{switches}@r{]}
 @end smallexample
 
 @noindent

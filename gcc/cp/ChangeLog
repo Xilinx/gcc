@@ -1,3 +1,144 @@
+2010-06-13  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* typeck.c (convert_for_assignment): Fix comment. Change message
+	format from %d to %qP.
+	(convert_for_initialization): Fix comment. 
+
+2010-06-11  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* cp-tree.h (expr_list_kind): New type.
+	(impl_conv_rhs): New type.
+	(build_x_compound_expr_from_list, convert_for_initialization): Adjust
+	prototype.
+	(typeck.c (convert_arguments): Use impl_conv_rhs and emit the
+	diagnostics for easy translation. Change caller.
+	(convert_for_initialization): Use impl_conv_rhs and change caller.
+	(build_x_compound_expr_from_list): Use expr_list_kind and emit the
+	diagnostics for easy translation. Change caller.
+	* decl.c (bad_spec_place): New enum.
+	(bad_specifiers): Use it and emit the diagnostics for easy
+	translation. Change caller.
+	* pt.c (coerce_template_parms): Put the diagnostics in full sentence.
+
+2010-06-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cp-tree.h (struct saved_scope): Change decl_ns_list field type
+	to a VEC.
+	* decl2.c (cp_write_global_declarations): Adjust for new type of
+	decl_namespace_list.
+	* name-lookup.c (current_decl_namespace): Likewise.
+	(push_decl_namespace): Likewise.
+	(pop_decl_namespace): Likewise.
+
+2010-06-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* call.c (build_java_interface_fn_ref): Call build_function_type_list
+	instead of build_function_type.
+	* decl.c (cxx_init_decl_processing): Likewise.
+	(declare_global_var): Likewise.
+	(get_atexit_node): Likewise.
+	(expand_static_init): Likewise.
+	* decl2.c (start_objects): Likewise.
+	(start_static_storage_duration_function): Likewise.
+	* except.c (init_exception_processing): Likewise.
+	(build_exc_ptr): Likewise.
+	(build_throw): Likewise.
+	* rtti.c (throw_bad_cast): Likewise.
+	(throw_bad_typeid): Likewise.
+	(build_dynamic_cast_1): Likewise.
+
+2010-06-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* call.c (build_call_n): Call XALLOCAVEC instead of alloca.
+	(build_op_delete_call): Likewise.
+	(build_over_call): Likewise.
+	* cp-gimplify.c (cxx_omp_clause_apply_fn): Likewise.
+	* pt.c (process_partial_specialization): Likewise.
+	(tsubst_template_args): Likewise.
+	* semantics.c (finish_asm_stmt): Likewise.
+
+2010-06-08  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* decl.c (record_key_method_defined): New, broken out of ...
+	(finish_function): ... here.  Call it.	
+	(start_decl): Treat aliases as definitions.
+
+2010-06-08  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* typeck2.c (abstract_virtuals_error): Use typed GC allocation.
+
+	* pt.c (maybe_process_partial_specialization): Likewise.
+	(register_specialization): Likewise.
+	(add_pending_template): Likewise.
+	(lookup_template_class): Likewise.
+	(push_tinst_level): Likewise.
+
+	* parser.c (cp_lexer_new_main): Likewise.
+	(cp_lexer_new_from_tokens): Likewise.
+	(cp_token_cache_new): Likewise.
+	(cp_parser_context_new): Likewise.
+	(cp_parser_new): Likewise.
+	(cp_parser_nested_name_specifier_opt): Likewise.
+	(cp_parser_template_id): Likewise.
+
+	* name-lookup.c (binding_entry_make): Likewise.
+	(binding_table_construct): Likewise.
+	(binding_table_new): Likewise.
+	(cxx_binding_make): Likewise.
+	(pushdecl_maybe_friend): Likewise.
+	(begin_scope): Likewise.
+	(push_to_top_level): Likewise.
+
+	* lex.c (init_reswords): Likewise.
+	(retrofit_lang_decl): Likewise.
+	(cxx_dup_lang_specific_decl): Likewise.
+	(copy_lang_type): Likewise.
+	(cxx_make_type): Likewise.
+
+	* decl.c (make_label_decl): Likewise.
+	(check_goto): Likewise.
+	(start_preparsed_function): Likewise.
+	(save_function_data): Likewise.
+
+	* cp-tree.h (TYPE_SET_PTRMEMFUNC_TYPE): Likewise.
+
+	* cp-objcp-common.c (decl_shadowed_for_var_insert): Likewise.
+
+	* class.c (finish_struct_1): Likewise.
+
+	* cp-tree.h (struct lang_type): Add variable_size GTY option.
+	(struct lang_decl): Likewise.
+
+	* parser.c (cp_parser_new): Update comment to not reference
+	ggc_alloc.
+
+2010-06-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44366
+	* error.c (dump_parameters): Mask out TFF_SCOPE.
+	(dump_simple_decl): Don't print the scope of a PARM_DECL.
+	(dump_scope): Remove no-op mask.
+
+	PR c++/44401
+	* parser.c (cp_parser_lookup_name): Fix naming the constructor.
+
+	* cp-tree.h (COMPLETE_OR_OPEN_TYPE_P): New macro.
+	* init.c (build_offset_ref): Use it.
+	* pt.c (maybe_process_partial_specialization): Use it.
+	(instantiate_class_template): Use it.
+	* search.c (lookup_base): Use it.
+
+2010-06-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44444
+	* expr.c (mark_exp_read): Handle INDIRECT_REF.
+	* cvt.c (convert_to_void): Handle INDIRECT_REF like
+	handled_component_p.
+
+	PR c++/44443
+	* decl.c (initialize_local_var): If TREE_USED is set on the type,
+	set also DECL_READ_P on the decl.
+
 2010-05-25  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/44188
@@ -7,8 +148,8 @@
 	* decl.c (grokdeclarator): Do not rename debug info of an
 	anonymous tagged type named by a typedef.
 
-2010-06-05  Fabien Chêne  <fabien@gcc.gnu.org>
-	
+2010-06-05  Fabien ChÃªne  <fabien@gcc.gnu.org>
+
 	PR c++/44086
 	* class.c (check_field_decls): Move the call to
 	check_bitfield_decl before trying to set the
@@ -1617,3 +1758,4 @@ Copyright (C) 2010 Free Software Foundation, Inc.
 Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright
 notice and this notice are preserved.
+

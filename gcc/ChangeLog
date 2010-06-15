@@ -1,3 +1,1620 @@
+2010-06-14  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer.c (cached_bp): Remove.
+	(bitpack_delete): Likewise.
+	(bitpack_create): Likewise.
+	(bp_get_next_word): Likewise.
+	(bp_pack_value, bp_unpack_value): Move ...
+	* lto-streamer.h (bp_pack_value, bp_unpack_value): ... here.
+	Re-implement.
+	(struct bitpack_d): Likewise.
+	(bitpack_create, lto_output_bitpack, lto_input_bitpack):
+	New inline functions.
+	* lto-streamer-out.c (lto_output_bitpack): Remove.
+	(pack_ts_base_value_fields): Adjust.  Avoid conditional
+	bitpacking.
+	(pack_value_fields): Adjust.
+	(lto_write_tree): Likewise.
+	(output_gimple_stmt): Likewise.
+	(output_function): Likewise.
+	* lto-streamer-in.c (input_gimple_stmt): Adjust.
+	(input_function): Likewise.
+	(unpack_ts_base_value_fields): Adjust.  Avoid conditional
+	bitpacking.
+	(lto_input_bitpack): Remove.
+	(lto_materialize_tree): Adjust.
+	* Makefile.in (ipa-prop.o): Add $(LTO_STREAMER_H) dependency.
+	* lto-cgraph.c (lto_output_edge): Adjust.
+	(lto_output_node): Likewise.
+	(lto_output_varpool_node): Likewise.
+	(lto_output_ref): Likewise.
+	(input_node): Likewise.
+	(input_varpool_node): Likewise.
+	(input_ref): Likewise.
+	(input_edge): Likewise.
+	(output_node_opt_summary): Likewise.
+	(input_node_opt_summary): Likewise.
+	* ipa-pure-const.c (pure_const_write_summary): Likewise.
+	(pure_const_read_summary): Likewise.
+	* ipa-prop.c (ipa_write_indirect_edge_info): Likewise.
+	(ipa_read_indirect_edge_info): Likewise.
+	(ipa_write_node_info): Likewise.
+	(ipa_read_node_info): Likewise.
+
+2010-06-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44534
+	* config/i386/sse.md (vec_extract_lo_<mode>): Replace 0x1 with
+	0x0.
+	(vec_extract_lo_v16hi): Likewise.
+	(vec_extract_lo_v32qi): Likewise.
+
+2010-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/44426
+	* tree.h (build_call_expr): Don't define as vararg macro, instead
+	add a prototype.
+	* builtins.c (build_call_nofold): Remove.
+	(expand_builtin_int_roundingfn, expand_builtin_pow,
+	expand_builtin_mempcpy_args, expand_builtin_stpcpy,
+	expand_builtin_memset_args, expand_builtin_strcmp,
+	expand_builtin_strncmp, expand_builtin_memory_chk): Use
+	build_call_nofold_loc instead of build_call_nofold.
+	(build_call_expr): New function.
+
+	PR tree-optimization/44508
+	* tree-ssa-propagate.h (substitute_and_fold): Add DO_DCE
+	argument.
+	* tree-ssa-propagate.c (substitute_and_fold): If !DO_DCE,
+	don't eliminate trivially dead stmts.
+	* tree-vrp.c (vrp_finalize): Pass false as last argument
+	to substitute_and_fold.
+	* tree-ssa-copy.c (fini_copy_prop): Pass true as last argument
+	to substitute_and_fold.
+	* tree-ssa-ccp.c (ccp_finalize): Likewise.
+
+	PR bootstrap/44509
+	* c-config-lang.in (gtfiles): Add c-family/c-cppbuiltin.c.
+	* c-family/c-cppbuiltin.c: Include gt-c-family-c-cppbuiltin.h.
+	(lazy_hex_fp_values, lazy_hex_fp_value_count): Add GTY(()) markers.
+	(lazy_hex_fp_value, builtin_define_with_hex_fp_value): Use
+	ggc_strdup instead of xstrdup.
+
+2010-06-14  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/44507 
+	* tree-vect-loop.c (get_initial_def_for_reduction): Use -1
+	to build initial vector for BIT_AND_EXPR.
+	* tree-vect-slp.c (vect_get_constant_vectors): Likewise.
+
+2010-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/s390/s390.md (*mov<mode>_64 DD_DF, mov<mode>): Properly
+	adjust z10prop set_attr.
+
+2010-06-13  Jan Hubicka  <jh@suse.cz>
+
+	* bitmap.c (bitmap_and, bitmap_and_into, bitmap_and_compl,
+	bitmap_and_compl_into, bitmap_compl_and_into, bitmap_ior,
+	bitmap_ior_into, bitmap_xor, bitmap_xor_into,
+	bitmap_ior_and_compl, bitmap_ior_and_compl): Turn internal
+	datastructure checks into checking asserts.
+	* rtlanal.c (find_reg_note): Use gcc_checking_assert.
+	* tree-ssa-sccvn.c (VN_INFO): Likewise.
+	* df-scan.c (df_reorganize_refs_by_reg_by_reg, df_install_ref,
+	df_ref_create_structure): Likewise.
+	* alloc-pool.c (create_alloc_pool, empty_alloc_pool, pool_alloc,
+	pool_free): Use gcc_checking_assert.
+	* alias.c (get_alias_set): Likewise.
+	* var-tracking.c (variable_htab_free, shared_hash_copy,
+	canonicalize_values_mark, variable_merge_over_cur): Likewise.
+	* lto-streamer.c (bp_unpack_value): Likewise.
+
+2010-06-13  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer-in.c (lto_input_ts_type_tree_pointers):
+	Do not stream but initialize TYPE_CANONICAL to NULL.
+	(lto_output_ts_type_tree_pointers): Do not stream TYPE_CANONICAL.
+	* gimple.c (gimple_types_compatible_p): Disregard
+	TYPE_STRUCTURAL_EQUALITY_P.
+	(gimple_register_type): Use TYPE_CANONICAL as cache.
+	* lto-streamer.c (lto_record_common_node): Zero TYPE_CANONICAL
+	before registering common types.
+	* config/i386/i386.c (ix86_function_arg_boundary): Do not
+	use TYPE_CANONICAL, instead use TYPE_MAIN_VARIANT.
+	* tree.h (TYPE_CANONICAL): Clarify documentation.
+
+2010-06-13  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/ia64/ia64.h (FUNCTION_VALUE_REGNO_P, FUNCTION_VALUE,
+	LIBCALL_VALUE): Remove macros.
+	* config/ia64/ia64-protos.h (ia64_function_value): Remove.
+	* config/ia64/ia64.c (TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE,
+	TARGET_FUNCTION_VALUE_REGNO_P): Define.
+	(ia64_libcall_value, ia64_function_value_regno_p): New functions.
+	(ia64_function_value): Make static. Handle receiving the function
+	type in 'fn_decl_or_type' argunent. Add 'outgoing' argument.
+
+2010-06-12  Jan Hubicka  <jh@suse.cz>
+
+	* cse.c (cse_extended_basic_block): Move optimize_bb_for_speed_p
+	at correct place.
+
+2010-06-12  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* config/arm/arm.c (thumb2_reorg): Fix errors in previous change.
+
+2010-06-12  Jan Hubicka  <jh@suse.cz>
+
+	* df-core.c (df_clear_bb_info): New function.
+	(df_set_blocks): bb_info is always allocated.
+	(df_get_bb_info): Use block_info_elt_size.
+	(df_set_bb_info): Likewise.
+	(df_compact_blocks): Update for new block_info.
+	(grow_bb_info): New function.
+	* df-problems.c (df_grow_bb_info): Move to df-core.c
+	(df_rd_set_bb_info): Remove.
+	(df_rd_free_bb_info): Do not free block pool.
+	(df_rd_alloc): Do not create pool, use check for
+	obstack presence instead of NULL pointer for new blocks.
+	(df_rd_free): DO not free alloc pool; clear block_info.
+	(problem_RD): Add size of block info structure.
+	(df_lr_set_bb_info): Remove.
+	(df_lr_free_bb_info): Do not free block pool.
+	(df_lr_alloc): Do not create pool, use check for
+	obstack presence instead of NULL pointer for new blocks.
+	(df_lr_free): DO not free alloc pool; clear block_info.
+	(problem_LR): Add size of block info structure.
+	(df_live_set_bb_info): Remove.
+	(df_live_free_bb_info): Do not free block pool.
+	(df_live_alloc): Do not create pool, use check for
+	obstack presence instead of NULL pointer for new blocks.
+	(df_live_free): DO not free alloc pool; clear block_info.
+	(problem_LIVE): Add size of block info structure.
+	(problem_CHAIN): Add size of block info structure.
+	(df_byte_lr_set_bb_info): Remove.
+	(df_byte_lr_free_bb_info): Do not free block pool.
+	(df_byte_lr_alloc): Do not create pool, use check for
+	obstack presence instead of NULL pointer for new blocks.
+	(df_byte_lr_free): DO not free alloc pool; clear block_info.
+	(problem_BYTE_LR): Add size of block info structure.
+	(problem_NOTE): Add size of block info structure.
+	(df_byte_MD_set_bb_info): Remove.
+	(df_byte_MD_free_bb_info): Do not free block pool.
+	(df_byte_MD_alloc): Do not create pool, use check for
+	obstack presence instead of NULL pointer for new blocks.
+	(df_byte_MD_free): DO not free alloc pool; clear block_info.
+	(problem_BD): Add size of block info structure.
+	* df-scan.c (df_scan_free_internal): Free block pool.
+	(df_scan_set_bb_info): Remove.
+	(df_scan_free_bb_info): Check for artificial_defs instead
+	of bb_info being non-NULL.
+	(df_scan_alloc): DO not create df_scan_block pool.
+	(problem_SCAN): Set size of block info.
+	(df_bb_refs_record): Do not allocate bb_info.
+	* df.h (df_problem): Add block_info_elt_size.
+	(struct dataflow): Change block_info to void *.
+	(df_scan_get_bb_info, df_rd_get_bb_info, df_lr_get_bb_info,
+	df_md_get_bb_info, df_live_get_bb_info, df_byte_lr_get_bb_info): Return
+	in-line structures.
+
+2010-06-12  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimize/44485
+	* tree-cfgcleanup.c (fixup_noreturn_call): Remove basic blocks
+	containing use of return value of noreturn function.
+
+2010-06-12  Anatoly Sokolov  <aesok@post.ru>
+
+	* targhooks.c (default_function_value): Don't use
+	FUNCTION_OUTGOING_VALUE.
+	* system.h (FUNCTION_OUTGOING_VALUE): Poison.
+	* doc/tm.texi (FUNCTION_OUTGOING_VALUE): Removed.
+
+2010-06-12  Kazu Hirata  <kazu@codesourcery.com>
+
+	* config.gcc (mips64*-*-linux*, mipsisa64*-*-linux*,
+	mips*-*-linux*): Add crtfastmath.o to extra_parts.
+	* config/mips/crtfastmath.c: New.
+	* config/mips/linux.h (ENDFILE_SPEC): New.
+
+2010-06-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (gcc_type_for_interval): Do not pass
+	old_type in parameter.
+	(gcc_type_for_value): Update call to gcc_type_for_interval.
+	(compute_type_for_level_1): Renamed compute_type_for_level.
+	Update call to gcc_type_for_interval.
+
+2010-06-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt (Wstrict-aliasing=, Wstrict-overflow=, fabi-version=,
+	flto-compression-level=, ftree-parallelize-loops=): Add
+	RejectNegative.
+
+2010-06-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* opts-common.c: Include options.h.
+	(integral_argument): Move from opts.c.
+	(decode_cmdline_option): New.  Based on read_cmdline_option.
+	* opts.c (integral_argument): Move to opts-common.c.
+	(read_cmdline_option): Move most contents to
+	decode_cmdline_option.  Use %qs in diagnostics.
+	* opts.h (CL_ERR_DISABLED, CL_ERR_MISSING_ARG, CL_ERR_WRONG_LANG,
+	CL_ERR_UINT_ARG, struct cl_decoded_option, integral_argument,
+	decode_cmdline_option): New.
+
+2010-06-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/44481
+	* config/i386/i386.md (UNSPEC_PARITY): New unspec.
+	(paritydi2_cmp): Use UNSPEC_PARITY unspec insted of parity RTX.
+	(partiysi2_cmp): Ditto.
+	(*partiyhi2_cmp): Ditto.
+	(*parityqi2_cmp): Remove.
+
+2010-06-11  Jan Hubicka  <jh@suse.cz>
+
+	* bitmap.h (bmp_iter_next_bit): New.
+	(bmp_iter_set, bmp_iter_and, bmp_iter_and_compl): Use it.
+
+2010-06-11  Sandra Loosemore  <sandra@codesourcery.com>
+            Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-loop-ivopts.c (get_computation_cost_at): Return again the
+	computed cost.
+
+2010-06-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (unspec): New define_c_enum.
+	(unspecv): Ditto.
+
+2010-06-10  Jakub Jelinek  <jakub@redhat.com>
+
+	* c-family/c-cppbuiltin.c: Include cpp-id-data.h.
+	(lazy_hex_fp_values, lazy_hex_fp_value_count): New variables.
+	(lazy_hex_fp_value): New function.
+	(builtin_define_with_hex_fp_value): Provide definitions lazily.
+	* Makefile.in (c-family/c-cppbuiltin.o): Depend on $(CPP_ID_DATA_H).
+
+2010-06-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/44483
+	* tree-if-conv.c (bb_predicate_s): New struct.
+	(bb_predicate_p): New.
+	(bb_has_predicate): New.
+	(bb_predicate): New.
+	(set_bb_predicate): New.
+	(bb_predicate_gimplified_stmts): New.
+	(set_bb_predicate_gimplified_stmts): New.
+	(add_bb_predicate_gimplified_stmts): New.
+	(init_bb_predicate): New.
+	(free_bb_predicate): New.
+	(is_predicated): Use bb_predicate.
+	(add_to_predicate_list): Use bb_predicate and set_bb_predicate.
+	(predicate_bbs): Same.  Gimplify the condition of the basic blocks
+	before processing their successors.
+	(clean_predicate_lists): Removed.
+	(find_phi_replacement_condition): Use bb_predicate.
+	(process_phi_nodes): Renamed ifconvert_phi_nodes.  Avoid useless
+	computations.
+	(insert_gimplified_predicates): New.
+	(combine_blocks): Call insert_gimplified_predicates.
+	(tree_if_conversion): Call free_bb_predicate instead of
+	clean_predicate_lists.
+
+2010-10-11  Paul Brook  <paul@codesourcery.com>
+
+	* doc/invoke.texi: Document ARM -mcpu=cortex-m4.
+	* config/arm/arm.c (all_architectures): Change v7e-m default to
+	cortexm4.
+	* config/arm/arm-cores.def: Add cortex-m4.
+	* config/arm/arm-tune.md: Regenerate.
+
+2010-06-11  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-pure-const.c (special_builtlin_state): New function.
+	(check_call): Use it instead of special casign BUILT_IN_RETURN.
+	(propagate_pure_const): Use it.
+
+2010-06-11  Jan Hubicka  <jh@suse.cz>
+
+	* df-problems.c (df_live_scratch): Convert to bitmap_head.
+	(df_live_alloc): Initialize df_live_scratch when initializing
+	problem_data.
+	(df_live_transfer_function): Update uses of df_live_scratch.
+	(df_live_free): Free problem_data; clear df_live_scratch before
+	releasing the obstack.
+	(df_md_free): Free problem data.
+
+2010-06-11  Jan Hubicka  <jh@suse.cz>
+
+	* doc/invoke.texi (Wsuggest-attribute): Document.
+	(Wmissing-noreturn): Remove.
+	* ipa-pure-const.c (warn_function_noreturn): New function.
+	* opts.c (decode_options): Set warn_suggest_attribute_noreturn on
+	warn_missing_noreturn.
+	* common.opt (Wsuggest-attribute=noreturn): New.
+	* tree-flow.h (warn_function_noreturn): Declare.
+	* tree-cfg.c (execute_warn_function_noreturn): Use
+	warn_function_noreturn.
+	(gate_warn_function_noreturn): New.
+	(pass_warn_function_noreturn): Update.
+
+2010-06-11  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c-typeck.c (handle_warn_cast_qual): Add loc
+	parameter. Improve warning message.
+	(build_c_cast): Pass location to handle_warn_cast_qual.
+
+2010-06-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (pro_epilogue_adjust_stack_1) <TYPE_ALU>: Assert
+	that operand 0 == operand 1.  Use x86_maybe_negate_const_int to output
+	insn mnemonic.
+	(pro_epilogue_adjust_stack_rex64) <TYPE_ALU>: Ditto.
+
+2010-06-10  Dodji Seketeli  <dodji@redhat.com>
+
+	Fix bootstap on mips
+	* dwarf2out.c (is_naming_typedef_dec): Built-in TYPE_DECLs cannot
+	be naming typedefs.
+
+2010-06-11  Kai Tietz  <kai.tietz@onevision.com>
+
+	* system.h (helper_const_non_const_cast): New inline for
+	gcc version <= 4.0.
+	(CONST_CAST2): For gcc version <= 4.0 use
+	new helper to do const/non-const casting.
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* doc/md.texi: Document the "unspec" and "unspecv" enum names.
+	* Makefile.in (OBJS-common): Include insn-enums.o.
+	(insn-enums.o): New rule.
+	(simple_generated_c): Add insn-enums.c.
+	(build/genenums.o): New rule.
+	(genprogmd): Add "enums".
+	* genconstants.c (print_enum_type): Declare a C string array
+	for each enum.
+	* genenums.c: New file.
+	* print-rtl.c (print_rtx): If defined, use the "unspecv" enum
+	for UNSPEC_VOLATILE.  If defined, use the "unspec" enum for both
+	UNSPEC and (as a fallback) for UNSPEC_VOLATILE.
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* doc/md.texi (define_enum_attr): Document.
+	* rtl.def (DEFINE_ENUM_ATTR): New rtx.
+	* read-md.h (lookup_enum_type): Declare.
+	* read-md.c (lookup_enum_type): New function.
+	* genattr.c (gen_attr, main): Handle DEFINE_ENUM_ATTR.
+	* genattrtab.c (attr_desc): Add an enum_name field.
+	(evaluate_eq_attr): Take the associated attribute as argument.
+	Get the enum prefix from the enum_name field, if defined.
+	Use ACONCAT rather than a fixed-length buffer.  Update recursive calls.
+	(simplify_test_exp): Pass attr to evaluate_eq_attr.
+	(add_attr_value): New function, split out from...
+	(gen_attr): ...here.  Handle DEFINE_ENUM_ATTR.
+	(write_test_expr): Pass attr to evaluate_eq_attr.
+	(write_attr_get): Use the enum_name as the enum tag, if defined.
+	(write_attr_valueq): Use the enum_name as a prefix, if defined.
+	(find_attr): Initialize enum_name.
+	(main): Handle DEFINE_ENUM_ATTR.
+	* gensupport.c (process_rtx): Likewise.
+	* config/mips/mips.h (mips_tune_attr): Delete.
+	* config/mips/mips.md (cpu): Use define_attr_enum.
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* doc/md.texi (define_c_enum, define_enum): Document.
+	* read-md.h (md_constant): Add a parent_enum field.
+	(enum_value, enum_type): New structures.
+	(upcase_string, traverse_enum_types): Declare.
+	* read-md.c (enum_types): New variable.
+	(upcase_string, add_constant): New functions.
+	(handle_constants): Don't create the hash table here.
+	Use add_constant.
+	(traverse_md_constants): Don't check for a null md_constants.
+	(decimal_string, handle_enum, traverse_enum_types): New functions.
+	(read_md_files): Initialize md_constants and md_enums.
+	* genconstants.c (print_md_constant): Ignore info argument.
+	Only print constants that belong to no enum.
+	(print_enum_type): New function.
+	(main): Don't pass stdout to print_md_constant.  Call print_enum_type
+	for each defined enum type.
+	* config/mips/mips.md (processor): New define_enum.
+	(unspec): New define_c_enum.
+	(UNSPEC_COMPARE_AND_SWAP, UNSPEC_COMPARE_AND_SWAP_12)
+	(UNSPEC_SYNC_OLD_OP, UNSPEC_SYNC_NEW_OP, UNSPEC_SYNC_NEW_OP_12)
+	(UNSPEC_SYNC_OLD_OP_12, UNSPEC_SYNC_EXCHANGE, UNSPEC_SYNC_EXCHANGE_12)
+	(UNSPEC_MEMORY_BARRIER): Moved to sync.md.
+	(UNSPEC_ADDQ, UNSPEC_ADDQ_S, UNSPEC_SUBQ, UNSPEC_SUBQ_S, UNSPEC_ADDSC)
+	(UNSPEC_ADDWC, UNSPEC_MODSUB, UNSPEC_RADDU_W_QB, UNSPEC_ABSQ_S)
+	(UNSPEC_PRECRQ_QB_PH, UNSPEC_PRECRQ_PH_W, UNSPEC_PRECRQ_RS_PH_W)
+	(UNSPEC_PRECRQU_S_QB_PH, UNSPEC_PRECEQ_W_PHL, UNSPEC_PRECEQ_W_PHR)
+	(UNSPEC_PRECEQU_PH_QBL, UNSPEC_PRECEQU_PH_QBR, UNSPEC_PRECEQU_PH_QBLA)
+	(UNSPEC_PRECEQU_PH_QBRA, UNSPEC_PRECEU_PH_QBL, UNSPEC_PRECEU_PH_QBR)
+	(UNSPEC_PRECEU_PH_QBLA, UNSPEC_PRECEU_PH_QBRA, UNSPEC_SHLL)
+	(UNSPEC_SHLL_S, UNSPEC_SHRL_QB, UNSPEC_SHRA_PH, UNSPEC_SHRA_R)
+	(UNSPEC_MULEU_S_PH_QBL, UNSPEC_MULEU_S_PH_QBR, UNSPEC_MULQ_RS_PH)
+	(UNSPEC_MULEQ_S_W_PHL, UNSPEC_MULEQ_S_W_PHR, UNSPEC_DPAU_H_QBL)
+	(UNSPEC_DPAU_H_QBR, UNSPEC_DPSU_H_QBL, UNSPEC_DPSU_H_QBR)
+	(UNSPEC_DPAQ_S_W_PH, UNSPEC_DPSQ_S_W_PH, UNSPEC_MULSAQ_S_W_PH)
+	(UNSPEC_DPAQ_SA_L_W, UNSPEC_DPSQ_SA_L_W, UNSPEC_MAQ_S_W_PHL)
+	(UNSPEC_MAQ_S_W_PHR, UNSPEC_MAQ_SA_W_PHL, UNSPEC_MAQ_SA_W_PHR)
+	(UNSPEC_BITREV, UNSPEC_INSV, UNSPEC_REPL_QB, UNSPEC_REPL_PH)
+	(UNSPEC_CMP_EQ, UNSPEC_CMP_LT, UNSPEC_CMP_LE, UNSPEC_CMPGU_EQ_QB)
+	(UNSPEC_CMPGU_LT_QB, UNSPEC_CMPGU_LE_QB, UNSPEC_PICK, UNSPEC_PACKRL_PH)
+	(UNSPEC_EXTR_W, UNSPEC_EXTR_R_W, UNSPEC_EXTR_RS_W, UNSPEC_EXTR_S_H)
+	(UNSPEC_EXTP, UNSPEC_EXTPDP, UNSPEC_SHILO, UNSPEC_MTHLIP, UNSPEC_WRDSP)
+	(UNSPEC_RDDSP): Move to mips-dsp.md.
+	(UNSPEC_ABSQ_S_QB, UNSPEC_ADDU_PH, UNSPEC_ADDU_S_PH, UNSPEC_ADDUH_QB)
+	(UNSPEC_ADDUH_R_QB, UNSPEC_APPEND, UNSPEC_BALIGN, UNSPEC_CMPGDU_EQ_QB)
+	(UNSPEC_CMPGDU_LT_QB, UNSPEC_CMPGDU_LE_QB, UNSPEC_DPA_W_PH)
+	(UNSPEC_DPS_W_PH, UNSPEC_MADD, UNSPEC_MADDU, UNSPEC_MSUB, UNSPEC_MSUBU)
+	(UNSPEC_MUL_PH, UNSPEC_MUL_S_PH, UNSPEC_MULQ_RS_W, UNSPEC_MULQ_S_PH)
+	(UNSPEC_MULQ_S_W, UNSPEC_MULSA_W_PH, UNSPEC_MULT, UNSPEC_MULTU)
+	(UNSPEC_PRECR_QB_PH, UNSPEC_PRECR_SRA_PH_W, UNSPEC_PRECR_SRA_R_PH_W)
+	(UNSPEC_PREPEND, UNSPEC_SHRA_QB, UNSPEC_SHRA_R_QB, UNSPEC_SHRL_PH)
+	(UNSPEC_SUBU_PH, UNSPEC_SUBU_S_PH, UNSPEC_SUBUH_QB, UNSPEC_SUBUH_R_QB)
+	(UNSPEC_ADDQH_PH, UNSPEC_ADDQH_R_PH, UNSPEC_ADDQH_W, UNSPEC_ADDQH_R_W)
+	(UNSPEC_SUBQH_PH, UNSPEC_SUBQH_R_PH, UNSPEC_SUBQH_W, UNSPEC_SUBQH_R_W)
+	(UNSPEC_DPAX_W_PH, UNSPEC_DPSX_W_PH, UNSPEC_DPAQX_S_W_PH)
+	(UNSPEC_DPAQX_SA_W_PH, UNSPEC_DPSQX_S_W_PH, UNSPEC_DPSQX_SA_W_PH):
+	Moved to mips-dspr2.md.
+	(UNSPEC_MOVE_TF_PS, UNSPEC_C, UNSPEC_ALNV_PS, UNSPEC_CABS)
+	(UNSPEC_ADDR_PS, UNSPEC_CVT_PW_PS, UNSPEC_CVT_PS_PW, UNSPEC_MULR_PS)
+	(UNSPEC_ABS_PS, UNSPEC_RSQRT1, UNSPEC_RSQRT2, UNSPEC_RECIP1)
+	(UNSPEC_RECIP2, UNSPEC_SINGLE_CC, UNSPEC_SCC): Move from mips-ps-3d.md.
+	(UNSPEC_LOONGSON_PAVG, UNSPEC_LOONGSON_PCMPEQ, UNSPEC_LOONGSON_PCMPGT)
+	(UNSPEC_LOONGSON_PEXTR, UNSPEC_LOONGSON_PINSR_0)
+	(UNSPEC_LOONGSON_PINSR_1, UNSPEC_LOONGSON_PINSR_2)
+	(UNSPEC_LOONGSON_PINSR_3, UNSPEC_LOONGSON_PMADD)
+	(UNSPEC_LOONGSON_PMOVMSK, UNSPEC_LOONGSON_PMULHU)
+	(UNSPEC_LOONGSON_PMULH, UNSPEC_LOONGSON_PMULL, UNSPEC_LOONGSON_PMULU)
+	(UNSPEC_LOONGSON_PASUBUB, UNSPEC_LOONGSON_BIADD,
+	UNSPEC_LOONGSON_PSADBH)
+	(UNSPEC_LOONGSON_PSHUFH, UNSPEC_LOONGSON_PUNPCKH)
+	(UNSPEC_LOONGSON_PUNPCKL, UNSPEC_LOONGSON_PADDD)
+	(UNSPEC_LOONGSON_PSUBD): Move to mips-loongson.md.
+	(UNSPEC_LOONGSON_ALU1_TURN_ENABLED_INSN)
+	(UNSPEC_LOONGSON_ALU2_TURN_ENABLED_INSN)
+	(UNSPEC_LOONGSON_FALU1_TURN_ENABLED_INSN)
+	(UNSPEC_LOONGSON_FALU2_TURN_ENABLED_INSN): Move to mips-loongson2ef.md.
+	(cpu): Update comment.
+	* config/mips/sync.md (UNSPEC_COMPARE_AND_SWAP)
+	(UNSPEC_COMPARE_AND_SWAP_12, UNSPEC_SYNC_OLD_OP, UNSPEC_SYNC_NEW_OP)
+	(UNSPEC_SYNC_NEW_OP_12, UNSPEC_SYNC_OLD_OP_12, UNSPEC_SYNC_EXCHANGE)
+	(UNSPEC_SYNC_EXCHANGE_12, UNSPEC_MEMORY_BARRIER): Moved from mips.md.
+	* config/mips/loongson.md (UNSPEC_LOONGSON_PAVG,
+	UNSPEC_LOONGSON_PCMPEQ)
+	(UNSPEC_LOONGSON_PCMPGT, UNSPEC_LOONGSON_PEXTR,
+	UNSPEC_LOONGSON_PINSR_0)
+	(UNSPEC_LOONGSON_PINSR_1, UNSPEC_LOONGSON_PINSR_2)
+	(UNSPEC_LOONGSON_PINSR_3, UNSPEC_LOONGSON_PMADD)
+	(UNSPEC_LOONGSON_PMOVMSK, UNSPEC_LOONGSON_PMULHU)
+	(UNSPEC_LOONGSON_PMULH, UNSPEC_LOONGSON_PMULL, UNSPEC_LOONGSON_PMULU)
+	(UNSPEC_LOONGSON_PASUBUB, UNSPEC_LOONGSON_BIADD,
+	UNSPEC_LOONGSON_PSADBH)
+	(UNSPEC_LOONGSON_PSHUFH, UNSPEC_LOONGSON_PUNPCKH)
+	(UNSPEC_LOONGSON_PUNPCKL, UNSPEC_LOONGSON_PADDD)
+	(UNSPEC_LOONGSON_PSUBD): Moved from mips.md
+	* config/mips/loongson2ef.md (UNSPEC_LOONGSON_ALU1_TURN_ENABLED_INSN)
+	(UNSPEC_LOONGSON_ALU2_TURN_ENABLED_INSN)
+	(UNSPEC_LOONGSON_FALU1_TURN_ENABLED_INSN)
+	(UNSPEC_LOONGSON_FALU2_TURN_ENABLED_INSN): Moved from mips.md
+	* config/mips/mips-dsp.md (UNSPEC_ADDQ, UNSPEC_ADDQ_S, UNSPEC_SUBQ)
+	(UNSPEC_SUBQ_S, UNSPEC_ADDSC, UNSPEC_ADDWC, UNSPEC_MODSUB)
+	(UNSPEC_RADDU_W_QB, UNSPEC_ABSQ_S, UNSPEC_PRECRQ_QB_PH)
+	(UNSPEC_PRECRQ_PH_W, UNSPEC_PRECRQ_RS_PH_W, UNSPEC_PRECRQU_S_QB_PH)
+	(UNSPEC_PRECEQ_W_PHL, UNSPEC_PRECEQ_W_PHR, UNSPEC_PRECEQU_PH_QBL)
+	(UNSPEC_PRECEQU_PH_QBR, UNSPEC_PRECEQU_PH_QBLA, UNSPEC_PRECEQU_PH_QBRA)
+	(UNSPEC_PRECEU_PH_QBL, UNSPEC_PRECEU_PH_QBR, UNSPEC_PRECEU_PH_QBLA)
+	(UNSPEC_PRECEU_PH_QBRA, UNSPEC_SHLL, UNSPEC_SHLL_S, UNSPEC_SHRL_QB)
+	(UNSPEC_SHRA_PH, UNSPEC_SHRA_R, UNSPEC_MULEU_S_PH_QBL)
+	(UNSPEC_MULEU_S_PH_QBR, UNSPEC_MULQ_RS_PH, UNSPEC_MULEQ_S_W_PHL)
+	(UNSPEC_MULEQ_S_W_PHR, UNSPEC_DPAU_H_QBL, UNSPEC_DPAU_H_QBR)
+	(UNSPEC_DPSU_H_QBL, UNSPEC_DPSU_H_QBR, UNSPEC_DPAQ_S_W_PH)
+	(UNSPEC_DPSQ_S_W_PH, UNSPEC_MULSAQ_S_W_PH, UNSPEC_DPAQ_SA_L_W)
+	(UNSPEC_DPSQ_SA_L_W, UNSPEC_MAQ_S_W_PHL, UNSPEC_MAQ_S_W_PHR)
+	(UNSPEC_MAQ_SA_W_PHL, UNSPEC_MAQ_SA_W_PHR, UNSPEC_BITREV, UNSPEC_INSV)
+	(UNSPEC_REPL_QB, UNSPEC_REPL_PH, UNSPEC_CMP_EQ, UNSPEC_CMP_LT)
+	(UNSPEC_CMP_LE, UNSPEC_CMPGU_EQ_QB, UNSPEC_CMPGU_LT_QB)
+	(UNSPEC_CMPGU_LE_QB, UNSPEC_PICK, UNSPEC_PACKRL_PH, UNSPEC_EXTR_W)
+	(UNSPEC_EXTR_R_W, UNSPEC_EXTR_RS_W, UNSPEC_EXTR_S_H, UNSPEC_EXTP)
+	(UNSPEC_EXTPDP, UNSPEC_SHILO, UNSPEC_MTHLIP, UNSPEC_WRDSP)
+	(UNSPEC_RDDSP): Moved from mips.md.
+	* config/mips/mips-dspr2.md (UNSPEC_ABSQ_S_QB, UNSPEC_ADDU_PH)
+	(UNSPEC_ADDU_S_PH, UNSPEC_ADDUH_QB, UNSPEC_ADDUH_R_QB, UNSPEC_APPEND)
+	(UNSPEC_BALIGN, UNSPEC_CMPGDU_EQ_QB, UNSPEC_CMPGDU_LT_QB)
+	(UNSPEC_CMPGDU_LE_QB, UNSPEC_DPA_W_PH, UNSPEC_DPS_W_PH, UNSPEC_MADD)
+	(UNSPEC_MADDU, UNSPEC_MSUB, UNSPEC_MSUBU, UNSPEC_MUL_PH)
+	(UNSPEC_MUL_S_PH, UNSPEC_MULQ_RS_W, UNSPEC_MULQ_S_PH, UNSPEC_MULQ_S_W)
+	(UNSPEC_MULSA_W_PH, UNSPEC_MULT, UNSPEC_MULTU, UNSPEC_PRECR_QB_PH)
+	(UNSPEC_PRECR_SRA_PH_W, UNSPEC_PRECR_SRA_R_PH_W, UNSPEC_PREPEND)
+	(UNSPEC_SHRA_QB, UNSPEC_SHRA_R_QB, UNSPEC_SHRL_PH, UNSPEC_SUBU_PH)
+	(UNSPEC_SUBU_S_PH, UNSPEC_SUBUH_QB, UNSPEC_SUBUH_R_QB, UNSPEC_ADDQH_PH)
+	(UNSPEC_ADDQH_R_PH, UNSPEC_ADDQH_W, UNSPEC_ADDQH_R_W, UNSPEC_SUBQH_PH)
+	(UNSPEC_SUBQH_R_PH, UNSPEC_SUBQH_W, UNSPEC_SUBQH_R_W, UNSPEC_DPAX_W_PH)
+	(UNSPEC_DPSX_W_PH, UNSPEC_DPAQX_S_W_PH, UNSPEC_DPAQX_SA_W_PH)
+	(UNSPEC_DPSQX_S_W_PH, UNSPEC_DPSQX_SA_W_PH): Moved from mips.md.
+	* config/mips/mips-ps-3d.md (UNSPEC_MOVE_TF_PS, UNSPEC_C)
+	(UNSPEC_ALNV_PS, UNSPEC_CABS, UNSPEC_ADDR_PS, UNSPEC_CVT_PW_PS)
+	(UNSPEC_CVT_PS_PW, UNSPEC_MULR_PS, UNSPEC_ABS_PS, UNSPEC_RSQRT1)
+	(UNSPEC_RSQRT2, UNSPEC_RECIP1, UNSPEC_RECIP2, UNSPEC_SINGLE_CC)
+	(UNSPEC_SCC): Moved from mips.md.
+	* config/mips/mips.c (mips_arch, mips_tune): Change enum from
+	"processor_type" to "processor".
+	(mips_rtx_cost_data): Replace PROCESSOR_MAX with NUM_PROCESSOR_VALUES.
+	* config/mips/mips.h (processor_type): Delete.
+	(mips_cpu_info.cpu, mips_arch, mips_tune): Change enum from
+	"processor_type" to "processor".
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* configure.ac (tm_include_list): Add insn-constants.h.
+	* configure: Regenerate.
+	* Makefile.in (GTM_H): Move insn-constants.h here from...
+	(TM_H): ...here.
+	* mkconfig.sh: Remove special handling for insn-constants.h.
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* Makefile.in (BUILD_RTL): Move build/read-md.o to...
+	(BUILD_MD): ...this new variable.
+	(simple_generated_rtl_h, simple_generated_rtl_c): New variables
+	that include the old contents of simple_generated_h and
+	simple_generated_c.
+	(simple_generated_h, simple_generated_c): Include them.  Add
+	insn-constants.h.
+	(s-%): Make simple_generated_{h,c} stamps depend on $(MD_DEPS)
+	and simple_generated_rtl_{h,c} stamps depend on insn-conditions.md.
+	Remove these dependencies from the main rule and include
+	insn-conditions.md in the command line only if it appears
+	in the dependency list.
+	(insn-constants.h, s-constants): Delete.
+	(build/genconstants.o): Don't depend on $(RTL_BASE_H), $(GTM_H)
+	or gensupport.h.
+	(build/genmddeps.o): Likewise.
+	(genprogrtl): New variable that contains everything from genprogmd
+	except mddeps and constants.
+	(genprogmd): Redefine in terms of genprogrtl.  Make these programs
+	depend on $(BUILD_MD)
+	(genprog): New variable.  Make these programs depend on
+	$(BUILD_ERRORS).
+	* genmddeps.c: Don't include tm.h, rtl.h or gensupport.h.
+	(main): Use read_md_files instead of init_rtx_reader_args.
+	* genconstants.c: As for genmddeps.c.
+	* read-md.h (read_skip_construct): Declare.
+	* read-md.c (read_skip_construct): New function.
+	(handle_file): Allow a null handle_directive, skipping the
+	construct if so.
+	(parse_include): Update the comment accordingly.
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* Makefile.in (build/genmddeps.o): Depend on $(READ_MD_H).
+	* genmddeps.c: Include read-md.h.
+	(main): Call init_rtx_reader_args instead of init_md_reader_args.
+	* genattr.c (main): Likewise.
+	* genattrtab.c (main): Likewise.
+	* genautomata.c (main): Likewise.
+	* gencodes.c (main): Likewise.
+	* genconditions.c (main): Likewise.
+	* genconfig.c (main): Likewise.
+	* genconstants.c (main): Likewise.
+	* genemit.c (main): Likewise.
+	* genextract.c (main): Likewise.
+	* genflags.c (main): Likewise.
+	* genopinit.c (main): Likewise.
+	* genoutput.c (main): Likewise.
+	* genpeep.c (main): Likewise.
+	* genrecog.c (main): Likewise.
+	* genpreds.c (main): Likewise.
+	* gensupport.h (in_fname): Move to read-md.h.
+	(init_md_reader_args_cb): Rename to...
+	(init_rtx_reader_args_cb): ...this and return a bool.
+	(init_md_reader_args): Rename to...
+	(init_rtx_reader_args): ...this and return a bool.
+	(include_callback): Move to read-md.h.
+	* gensupport.c (in_fname, include_callback, base_dir, max_include_len)
+	(file_name_list, first_dir_md_include): Move to read-md.c
+	(first_bracket_include): Delete unused variable.
+	(last_dir_md_include): Move to read-md.c.
+	(process_include): Delete, moving code to read-md.c:handle_include.
+	(process_rtx): Don't handle INCLUDE.
+	(save_string): Delete.
+	(rtx_handle_directive): New function.
+	(init_md_reader_args_cb): Rename to...
+	(init_rtx_reader_args_cb): ...this and return a boolean success value.
+	Use read_md_args.
+	(init_md_reader_args): Rename to...
+	(init_rtx_reader_args): ...this and return a boolean success value.
+	* rtl.def (INCLUDE): Delete.
+	* rtl.h (read_rtx): Remove "int *" argument.  Add "const char *"
+	argument.
+	* read-rtl.c (read_conditions): Don't gobble ')' here.
+	(read_mapping): Likewise.
+	(read_rtx): Remove LINENO argument.  Add RTX_NAME argument.
+	Handle top-level non-rtx constructs here rather than in read_rtx_1.
+	Store the whole queue in *X.  Remove call to init_md_reader.
+	(read_rtx_1): Rename to...
+	(read_rtx_code): ...this.  Call read_nested_rtx to read subrtxes.
+	Don't handle top-level non-rtx constructs here.  Don't handle (nil)
+	here.
+	(read_nested_rtx): New function.  Handle (nil) here rather than
+	in read_rtx_code.
+	(read_rtx_variadic): Call read_nested_rtx to read subrtxes.  Don't
+	gobble ')' here.
+	* read-md.h (directive_handler_t): New type.
+	(in_fname, include_callback): Moved from read-md.h.
+	(read_constants, init_md_reader): Delete.
+	(read_md_files): Declare.
+	* read-md.c (file_name_list, in_fname, base_dir, first_dir_md_include)
+	(last_dir_md_include_ptr, include_callback, max_include_len): Moved
+	from gensupport.c.
+	(read_constants): Rename to...
+	(handle_constants): ...this.  Don't gobble ')' here.
+	(handle_include, handle_file, handle_toplevel_file)
+	(parse_include): New functions, mostly taken from gensupport.c.
+	(init_md_reader): Subsume into...
+	(read_md_files): ...this new function.
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* read-md.h (read_char): Increment read_md_lineno after reading '\n'.
+	(unread_char): Decrement read_md_lineno after putting back '\n'.
+	* read-md.c (fatal_with_file_and_line): Push back any characters
+	that we decide not to add to the context.
+	(read_skip_spaces): Don't increment read_md_lineno here.  Avoid using
+	fatal_expected_char in cases where '/' ends a line (for example).
+	(read_name): Don't increment read_md_lineno here.
+	(read_escape): Likewise.
+	(read_quoted_string): Likewise.
+	(read_braced_string): Likewise.
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* Makefile.in (READ_MD_H): Add $(HASHTAB_H).
+	(build/genconstants.o): Depend on $(READ_MD_H) gensupport.h.
+	* genconstants.c: Include read-md.h.
+	* read-rtl.c (md_constants): Move to read-md.c.
+	(md_name): Move to read-md.h.
+	(initialize_iterators): Use leading_string_hash instead of def_hash
+	and leading_string_eq_p instead of def_name_eq_p.
+	(read_name): Move to read-md.c.
+	(def_hash, def_name_eq_p): Delete.
+	(read_constants, traverse_md_constants): Move to read-md.c.
+	* rtl.h (md_constant, traverse_md_constants): Move to read-md.h.
+	* read-md.h: Include hashtab.h.
+	(md_name): Moved from read-rtl.c.
+	(md_constant): Moved from read-md.h.
+	(leading_string_hash, leading_string_eq_p, read_name)
+	(read_constants, traverse_md_constants): Declare.
+	* read-md.c (md_constants): Moved from read-rtl.c.
+	(leading_string_hash, leading_string_eq_p): New functions.
+	(read_name, read_constants, traverse_md_constants): Moved from
+	read-rtl.c.
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* read-rtl.c (md_name): New structure.
+	(read_name): Take an md_name instead of a buffer pointer.
+	Use the "string" field instead of strcpy when expanding constants.
+	(read_constants): Remove the tmp_char argument.  Update the calls
+	to read_name, using two local name buffers instead of the tmp_char
+	argument.  Merge the constant-creation code.
+	(read_conditions): Remove the tmp_char argument.  Update the calls
+	to read_name, using a local name buffer instead of the tmp_char
+	argument.
+	(read_mapping): Replace tmp_char variable with a local name buffer.
+	Update the calls to read_name.
+	(read_rtx_1): Likewise.  Update the calls to read_constants and
+	read_conditions.
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* Makefile.in (build/read-md.o): Depend on errors.h.
+	* read-md.h (error_with_line): Declare.
+	* read-md.c: Include errors.h.
+	(message_with_line_1): New function, extracted from...
+	(message_with_line): ...here.
+	(error_with_line): New function.
+	* genattrtab.c: If a call to message_with_line is followed by
+	"have_error = 1;", replace both statements with a call to
+	error_with_line.
+	* genoutput.c: Likewise.
+	* genpreds.c: Likewise.
+	* genrecog.c: If a call to message_with_line is followed by
+	"error_count++;", replace both statements with a call to
+	error_with_line.
+	(errorcount): Delete.
+	(main): Don't check it.
+	* gensupport.c: If a call to message_with_line is followed by
+	"errors = 1;", replace both statements with a call to error_with_line.
+	(errors): Delete.
+	(process_define_cond_exec): Check have_error instead of errors.
+	(init_md_reader_args_cb): Likewise.  Don't set errors.
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* read-md.h (read_md_file): Declare.
+	(read_char, unread_char): New functions.
+	(fatal_with_file_and_line, fatal_expected_char, read_skip_spaces)
+	(read_quoted_string, read_string): Remove FILE * argument.
+	* read-md.c (read_md_file): New variable.
+	(read_md_filename, read_md_lineno): Update comments and remove
+	unnecessary initialization.
+	(fatal_with_file_and_line, fatal_expected_char, read_skip_spaces)
+	(read_escape, read_quoted_string, read_braced_string, read_string):
+	Remove FILE * argument.  Update calls accordingly, using read_char
+	and unread_char instead of getc and ungetc.
+	* rtl.h (read_rtx): Remove FILE * argument.
+	* read-rtl.c (iterator_group): Remove FILE * argument from
+	"find_builtin".
+	(iterator_traverse_data): Remove "infile" field.
+	(find_mode, find_code, apply_mode_maps, apply_iterator_to_rtx)
+	(add_mapping, read_name, read_constants, read_conditions)
+	(validate_const_int, find_iterator, read_mapping, check_code_iterator)
+	(read_rtx, read_rtx_1, read_rtx_variadic): Remove FILE * argument.
+	Remove file arguments from all calls, using read_char and unread_char
+	instead of getc and ungetc.
+	* gensupport.c (process_include): Preserve read_md_file around
+	the include.  Set read_md_file to the handle of the included file.
+	Update call to read_rtx.
+	(init_md_reader_args_cb): Set read_md_file to the handle of the file
+	and remove local FILE *.  Update calls to read_rtx.
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* read-md.h (read_rtx_lineno): Rename to...
+	(read_md_lineno): ...this.
+	(read_rtx_filename): Rename to...
+	(read_md_filename): ...this.
+	(copy_rtx_ptr_loc): Rename to...
+	(copy_md_ptr_loc): ...this.
+	(print_rtx_ptr_loc): Rename to...
+	(print_md_ptr_loc): ...this.
+	* read-md.c: Likewise.  Update references after renaming.
+	(string_obstack): Replace RTL with MD in comment.
+	(set_rtx_ptr_loc): Rename to...
+	(set_md_ptr_loc): ...this.
+	(get_rtx_ptr_loc): Rename to...
+	(get_md_ptr_loc): ...this.
+	* genconditions.c: Update references after renaming.
+	* genemit.c: Likewise.
+	* genoutput.c: Likewise.
+	* genpreds.c: Likewise.
+	* gensupport.c: Likewise.
+	* read-rtl.c: Likewise.
+
+2010-06-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* Makefile.in (READ_MD_H): New variable.
+	(BUILD_RTL): Add build/read-md.o.
+	(lto-wrapper.o): Depend on coretypes.h instead of defaults.h.
+	(build/gensupport.o, build/read-rtl.o, build/genattr.o)
+	(build/genattrtab.o, build/genconditions.o build/genemit.o)
+	(build/genextract.o, build/genflags.o, build/genoutput.o)
+	(build/genpreds.o, build/genrecog.o): Depend on $(READ_MD_H).
+	(build/read-md.o): New rule.
+	* defaults.h (obstack_chunk_alloc, obstack_chunk_free)
+	(OBSTACK_CHUNK_SIZE, gcc_obstack_init): Move to...
+	* coretypes.h: ...here.
+	* lto-wrapper.c: Include coretypes.h instead of defaults.h.
+	* pretty-print.c (obstack_chunk_alloc, obstack_chunk_free): Delete.
+	* genattr.c: Include read-md.h.
+	* genattrtab.c: Likewise.
+	* genconditions.c: Likewise.
+	* genemit.c: Likewise.
+	* genextract.c: Likewise.
+	* genflags.c: Likewise.
+	* genoutput.c: Likewise.
+	* genpreds.c: Likewise.
+	* genrecog.c: Likewise.
+	* rtl.h (read_skip_spaces, copy_rtx_ptr_loc, print_rtx_ptr_loc)
+	(join_c_conditions, print_c_condition, read_rtx_filename)
+	(read_rtx_lineno): Move to read-md.h.
+	* read-rtl.c: Include read-md.h.
+	(ptr_loc, string_obstack, ptr_locs, ptr_loc_obstack)
+	(joined_conditions, joined_conditions_obstack, read_rtx_lineno)
+	(read_rtx_filename, fatal_with_file_and_line, fatal_expected_char)
+	(leading_ptr_hash, leading_ptr_eq_p, set_rtx_ptr_loc, get_rtx_ptr_loc)
+	(copy_rtx_ptr_loc, print_rtx_ptr_loc, join_c_conditions)
+	(print_c_condition, read_skip_spaces, read_escape, read_quoted_string)
+	(read_braced_string, read_string): Move to read-md.c.
+	(read_rtx): Move some initialization to init_md_reader and call
+	init_md_reader here.
+	* gensupport.h (message_with_line, n_comma_elts, scan_comma_elt):
+	Move to read-md.h.
+	* gensupport.c: Include read-md.h.
+	(message_with_line, n_comma_elts, scan_comma_elt): Move to read-md.c.
+	* read-md.h, read-md.c: New files.
+
+2010-06-10  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/moxie/moxie.h (FUNCTION_VALUE, FUNCTION_OUTGOING_VALUE,
+	LIBCALL_VALUE, FUNCTION_VALUE_REGNO_P): Remove macros.
+	* config/moxie/moxie-protos.h (moxie_function_value): Remove.
+	* config/moxie/moxie.c (moxie_function_value): Make static.
+	(moxie_libcall_value, moxie_function_value_regno_p): New functions.
+	(TARGET_LIBCALL_VALUE, TARGET_FUNCTION_VALUE_REGNO_P): Define.
+
+2010-06-10  Martin Jambor  <mjambor@suse.cz>
+
+	* Makefile.in (tree-sra.o): Add DBGCNT_H to dependencies.
+	* dbgcnt.def (tree_sra): New counter.
+	* tree-sra.c: Include dbgcnt.h.
+	(gate_intra_sra): Check tree_sra debug counter.
+
+2010-06-10  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/44258
+	* tree-sra.c (build_access_subtree): Return false iff there is a
+	partial overlap.
+	(build_access_trees): Likewise.
+	(analyze_all_variable_accesses): Disqualify candidates if
+	build_access_trees returns true for them.
+
+2010-06-10  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41371
+	* var-tracking.c (find_loc_in_1pdv): Remove recursion, only
+	tail-recurse into canonical node.  Fast-forward over
+	non-canonical VALUEs.
+
+2010-06-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR boostrap/44470
+	* config/i386/i386.md (*add<mode>_1): Revert revision 160394.
+	(*addsi_1_zext) <TYPE_LEA>: Likewise.
+	(add lea splitter): Likewise.
+	(add_zext lea splitter): Likewise.
+
+2010-06-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt (fshow-column): Don't mark as C ObjC C++ ObjC++.
+
+2010-06-10  Jan Hubicka  <jh@suse.cz>
+
+	* df-problems.c (df_live_problem_data): Add live_bitmaps.
+	(df_live_alloc): Initialize problem data and live_osbtacks.
+	(df_live_finalize): Remove obstack, problem data; do not
+	clear all bitmaps.
+	(df_live_top_dump, df_live_bottom_dump): Do not dump old
+	data when not allocated.
+	(df_live_verify_solution_start): Do not allocate problem data.
+	(df_live_verify_solution_end): Check if out is allocated.
+	(struct df_md_problem_data): New structure.
+	(df_md_alloc): Allocate problem data.
+	(df_md_free): Free problem data; do not clear bitmaps.
+
+2010-06-10  Jan Beulich  <jbeulich@novell.com>
+
+	PR bootstrap/37304
+	* configure.ac: Replace $() with ${} when intending to expand
+	variables rather than invoking commands.
+	* configure: Re-generate.
+
+2010-06-10  Jan Hubicka  <jh@suse.cz>
+
+	PR rtl-optimization/44460
+	* emit-rtl.c (set_mem_attributes_minus_bitpos): Remove
+	TYPE_NEEDS_CONSTRUCTING sanity check.
+
+2010-06-10  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/include/fdl.texi: Move to GFDL version 1.3.
+
+	* doc/cpp.texi: Move to GFDL version 1.3.
+	* doc/gcc.texi: Move to GFDL version 1.3.  Fix copyright years.
+	* doc/gccint.texi: Move to GFDL version 1.3.
+	* doc/gcov.texi: Move to GFDL version 1.3.  Update copyright years.
+	* doc/install.texi: Move to GFDL version 1.3.  Fix copyright years.
+	* doc/invoke.texi: Move to GFDL version 1.3.
+
+2010-06-09  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-pure-const.c (propagate_pure_const, propagate_noreturn):
+	Break out from ...
+	(propagate) ... here; swap the order.
+
+2010-06-09  Jan Hubicka  <jh@suse.cz>
+
+	* bitmap.c (bitmap_elt_insert_after, bitmap_first_set_bit,
+	bitmap_first_set_bit, bitmap_last_set_bit, bitmap_last_set_bit,
+	bitmap_and_into, bitmap_and_compl_into, bitmap_set_range,
+	bitmap_compl_and_into, bitmap_elt_ior): Use checking asserts.
+
+2010-06-09  Changpeng Fang  <changpeng.fang@amd.com>
+
+	* tree-ssa-loop-prefetch.c (gather_memory_references_ref):
+	Do not the gather memory reference in the outer loop if the step
+	is not a constant.
+
+2010-06-09  Changpeng Fang  <changpeng.fang@amd.com>
+
+	* tree-ssa-loop-prefetch.c (PREFETCH_MOD_TO_UNROLL_FACTOR_RATIO) :
+	Change the PREFETCH_MOD_TO_UNROLL_FACTOR_RATIO threshold value from
+	8 to 4.  Minor change of the related comments.
+
+2010-06-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-scalar-evolution.c (instantiate_scev_name): Do not fail
+	the scev analysis when the variable is not used outside the loop
+	in a close phi node: call compute_overall_effect_of_inner_loop.
+
+2010-06-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (single_pred_cond): Renamed
+	single_pred_cond_non_loop_exit.  Return NULL for loop exit edges.
+	(build_sese_conditions_before): Renamed call to single_pred_cond.
+	(build_sese_conditions_after): Same.
+
+2010-06-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.h: Fix comments and indentation.
+	* graphite-sese-to-poly.c: Same.
+	(build_sese_conditions_before): Compute stmt and gbb only when needed.
+	* tree-chrec.c: Fix comments and indentation.
+	(tree-ssa-loop-niter.c): Same.
+
+2010-06-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/42461
+	* dce.c (deletable_insn_p): Return true for const or pure calls again.
+	* except.c (insn_could_throw_p): Return false if !flag_exceptions.
+
+2010-06-09  Jan Hubicka  <jh@suse.cz>
+
+	* bitmap.c (bitmap_and): Walk array forward.
+	(bitmap_and_compl_into): Likewise.
+	(bitmap_xor): Likewise.
+	(bitmap_xor_into):  Likewise.
+	(bitmap_equal_p): Likewise.
+	(bitmap_intersect_p): Likewise.
+	(bitmap_intersect_compl_p): Likewise.
+	(bitmap_ior_and_into): Likewise.
+	(bitmap_elt_copy): Likewise.
+	(bitmap_and_compl): Likewise.
+	(bitmap_elt_ior): Likewise.
+
+2010-06-09  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* opts-common.c (prune_options): Ensure replacement argv array
+	is correctly terminated by a NULL entry.
+
+2010-06-09  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.h (varpool_first_static_initializer,
+	varpool_next_static_initializer): Make checking only when
+	checking enabled.
+	* tree-vectorizer.h (vinfo_for_stmt): Remove check.
+	(set_vinfo_for_stmt, get_earlier_stmt, is_loop_header_bb_p): Change
+	gcc_assert to gcc_checking_assert.
+	* tree-flow-inline.h (gimple_vop, get_var_ann, relink_imm_use,
+	phi_nodes, set_phi_nodes, phi_arg_index_from_use, op_iter_next_use,
+	op_iter_next_def, op_iter_next_tree, op_iter_init, op_iter_init_use,
+	op_iter_init_phiuse, op_iter_init_phidef,
+	array_ref_contains_indirect_ref, ref_contains_array_ref): Use
+	gcc_checking_assert.
+	* emit-rtl.h (set_first_insn, set_last_insn): Likewise.
+	* tree-ssa-live.h (var_to_partition, var_to_partition_to_var,
+	partition_is_global, live_on_entry, live_on_exit,
+	live_merge_and_clear): Likewise.
+	* system.h (gcc_checking_assert): New macro.
+	* gimple.h (set_bb_seq): Use gcc_checking_assert.
+
+2010-06-09  Jason Merrill  <jason@redhat.com>
+
+	* Makefile.in (TAGS): Collect tags info from c-family.
+
+2010-06-09  Jan Hubicka  <jh@suse.cz>
+
+	* gimple.h (gcc_gimple_checking_assert): New macro.
+	(gimple_set_def_ops, gimple_set_use_ops,
+	gimple_set_vuse, gimple_set_vdef,
+	gimple_omp_subcode, gimple_omp_set_subcode, gimple_ops, gimple_op,
+	gimple_op_ptr, gimple_op_ptr, gimple_set_op, gimple_bind_set_block,
+	gimple_asm_input_op, gimple_asm_input_op_ptr, gimple_asm_set_input_op,
+	gimple_asm_output_op, gimple_asm_output_op_ptr,
+	gimple_asm_set_output_op, gimple_asm_clobber_op,
+	gimple_asm_set_clobber_op, gimple_asm_label_op,
+	gimple_asm_set_label_op, gimple_try_set_kind,
+	gimple_try_catch_is_cleanup, gimple_try_set_catch_is_cleanup,
+	gimple_phi_arg, gimple_switch_num_labels, gimple_switch_set_index,
+	gimple_switch_label, gimple_switch_set_label, gimple_omp_for_index,
+	gimple_omp_for_index_ptr, gimple_omp_for_set_index,
+	gimple_omp_for_initial, gimple_omp_for_initial_ptr,
+	gimple_omp_for_set_initial, gimple_omp_for_final,
+	gimple_omp_for_final_ptr, gimple_omp_for_set_final,
+	gimple_omp_for_incr, gimple_omp_for_incr_ptr, gimple_omp_for_set_incr,
+	gimple_omp_for_set_cond, gimple_omp_for_cond): Make checking
+	conditional with ENABLE_GIMPLE_CHECKING.
+	(gimple_phi_set_arg): Likewise; replace memcpy by assignment.
+
+2010-06-09  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* tree-ssa-loop-ivopts.c (adjust_setup_cost): New function.
+	(get_computation_cost_at): Use it.
+	(determine_use_iv_cost_condition): Likewise.
+	(determine_iv_cost): Likewise.
+
+2010-06-09  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-loop-niter.c (simplify_replace_tree): Do not
+	replace constants.
+
+2010-06-09  Kai Tietz  <kai.tietz@onevision.com>
+
+	* c-objc-common.c (c_tree_printer): Pre-intialize t by NULL_TREE.
+
+2010-06-09  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/44423
+	* tree-sra.c (dump_access): Dump also grp_assignment_read.
+	(analyze_access_subtree): Pass negative allow_replacements to children
+	if the current type is scalar.
+
+2010-06-09  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR testsuite/42843
+	* gcc-plugin.h (int plugin_is_GPL_compatible): Declare as extern "C".
+	* doc/plugins.texi (Plugin license check): Update information
+	on type of plugin_is_GPL_compatible.
+	* Makefile.in (PLUGINCC): Define as $(COMPILER).
+	(PLUGINCFLAGS): Define as $(COMPILER_FLAGS).
+
+2010-06-09  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* config/arm/arm.c (thumb2_reorg): New function.
+	(arm_reorg): Call it.
+	* config/arm/thumb2.md (define_peephole2 for flag clobbering
+	arithmetic operations): Delete.
+
+2010-06-09  Edmar Wienskoski  <edmar@freescale.com>
+
+	PR target/44067
+	* config/rs6000/rs6000.md (DIFD): Do not split dpfp values for
+	e500v2 target.
+
+2010-06-09  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR plugins/44459
+	* gcc-plugin.h: Encapsulate all declarations in extern "C".
+
+2010-06-08  Jan Hubicka  <jh@suse.cz>
+
+	* basic-block.h (single_succ_edge, single_pred_edge, ei_container,
+	ei_next, ei_prev): Do sanity checking with ENABLE_CHECKING only.
+
+2010-06-08  Sandra Loosemore  <sandra@codesourcery.com>
+
+	PR tree-optimization/39874
+	PR middle-end/28685
+	* gimple.h (maybe_fold_and_comparisons, maybe_fold_or_comparisons):
+	Declare.
+	* gimple-fold.c (canonicalize_bool, same_bool_comparison_p,
+	same_bool_result_p): New.
+	(and_var_with_comparison, and_var_with_comparison_1,
+	and_comparisons_1, and_comparisons, maybe_fold_and_comparisons): New.
+	(or_var_with_comparison, or_var_with_comparison_1,
+	or_comparisons_1, or_comparisons, maybe_fold_or_comparisons): New.
+	* tree-ssa-reassoc.c (eliminate_redundant_comparison): Use
+	maybe_fold_and_comparisons or maybe_fold_or_comparisons instead
+	of combine_comparisons.
+	* tree-ssa-ifcombine.c (ifcombine_ifandif, ifcombine_iforif): Likewise.
+
+2010-06-08  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/pdp11/pdp11.h (FUNCTION_VALUE, FUNCTION_OUTGOING_VALUE,
+	LIBCALL_VALUE, FUNCTION_VALUE_REGNO_P): Remove macros.
+	* config/pdp11/pdp11.c (pdp11_function_value, pdp11_libcall_value,
+	pdp11_function_value_regno_p): New functions.
+	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE,
+	TARGET_FUNCTION_VALUE_REGNO_P): Define.
+
+2010-06-08  Kazu Hirata  <kazu@codesourcery.com>
+
+	* config/arm/arm.c (arm_rtx_costs_1): Don't special case for
+	Thumb-2 in the MINUS case.
+
+2010-06-08  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* doc/tm.texi (Per-Function Data): Do not reference ggc_alloc.
+
+	* doc/gty.texi (GTY Options): Document typed GC allocation and
+	variable_size GTY option.
+
+	* ggc-internal.h: New.
+
+	* ggc.h: Update copyright year.
+	(digit_string): Move to stringpool.c.
+	(ggc_mark_stringpool, ggc_purge_stringpool, ggc_mark_roots)
+	(gt_pch_save_stringpool, gt_pch_fixup_stringpool)
+	(gt_pach_restore_stringpool, gt_pch_p_S, gt_pch_note_object)
+	(init_ggc_pch, ggc_pch_count_object, ggc_pch_total_size)
+	(ggc_pch_this_base, ggc_pch_alloc_object, ggc_pch_prepare_write)
+	(ggc_pch_write_object, ggc_pch_finish, ggc_pch_read)
+	(ggc_force_collect, ggc_get_size, ggc_statistics)
+	(ggc_print_common_statistics): Move to ggc-internal.h.
+	(digit_vector, new_ggc_zone, destroy_ggc_zone, ggc_alloc_stat)
+	(ggc_alloc, ggc_alloc_cleared, ggc_realloc, ggc_calloc, GGC_NEW)
+	(GGC_CNEW, GGC_NEWVEC, GGC_CNEWVEC, GGC_NEWVAR, ggc_alloc_rtvec)
+	(ggc_alloc_tree, gt_pch_save, ggc_min_expand_heuristic)
+	(ggc_min_heapsize_heuristic, ggc_alloc_zone)
+	(ggc_alloc_zone_pass_stat): Remove.
+	(ggc_internal_alloc_stat, ggc_internal_alloc)
+	(ggc_internal_cleared_alloc_stat): New.
+	(GGC_RESIZEVEC, GGC_RESIZEVAR): Redefine.
+	(ggc_internal_vec_alloc_stat)
+	(ggc_internal_cleared_vec_alloc_stat)
+	(ggc_internal_vec_alloc_stat, ggc_internal_cleared_vec_alloc)
+	(ggc_alloc_atomic_stat, ggc_alloc_atomic)
+	(ggc_alloc_cleared_atomic, ggc_cleared_alloc_htab_ignore_args)
+	(ggc_cleared_alloc_ptr_array_two_args): New.
+	(htab_create_ggc, splay_tree_new_ggc): Redefine.
+	(ggc_splay_alloc): Change the type of the first argument to
+	enum gt_types_enum.
+	(ggc_alloc_string): Make macro.
+	(ggc_alloc_string_stat): New.
+	(ggc_strdup): Redefine.
+	(rtl_zone, tree_zone, tree_id_zone): Declare unconditionally.
+	(ggc_alloc_rtvec_sized): New.
+	(ggc_alloc_zone_stat): Rename to ggc_internal_alloc_zone_stat.
+	(ggc_internal_alloc_zone_pass_stat, ggc_internal_alloc_zone_stat)
+	(ggc_internal_cleared_alloc_zone_stat)
+	(ggc_internal_zone_alloc_stat)
+	(ggc_internal_zone_cleared_alloc_stat)
+	(ggc_internal_zone_vec_alloc_stat)
+	(ggc_alloc_zone_rtx_def_stat)
+	(ggc_alloc_zone_tree_node_stat)
+	(ggc_alloc_zone_cleared_tree_node_stat)
+	(ggc_alloc_cleared_gimple_statement_d_stat): New.
+
+	* ggc-common.c: Include ggc-internal.h.
+	(ggc_internal_cleared_alloc_stat): Rename from
+	ggc_alloc_cleared_stat.
+	(ggc_realloc_stat): Use ggc_internal_alloc_stat.
+	(ggc_calloc): Remove.
+	(ggc_cleared_alloc_htab_ignore_args): New.
+	(ggc_cleared_alloc_ptr_array_two_args): New.
+	(ggc_splay_alloc): Add obj_type parameter.
+	(init_ggc_heuristics): Formatting fixes.
+
+	* ggc-none.c: Update copyright year.
+	(ggc_alloc_stat): Rename to ggc_alloc_stat.
+	(ggc_alloc_cleared_stat): Rename to
+	ggc_internal_cleared_alloc_stat.
+	(struct alloc_zone, rtl_zone, tree_zone, tree_id_zone): New.
+
+	* ggc-page.c: Update copyright year.  Include ggc-internal.h.
+	Remove references to ggc_alloc in comments.
+	(ggc_alloc_typed_stat): Call ggc_internal_alloc_stat.
+	(ggc_alloc_stat): Rename to ggc_internal_alloc_stat.
+	(new_ggc_zone, destroy_ggc_zone): Remove.
+	(struct alloc_zone, rtl_zone, tree_zone, tree_id_zone): New.
+
+	* ggc-zone.c: Include ggc-internal.h.  Remove references to
+	ggc_alloc in comments.
+	(ggc_alloc_zone_stat): ggc_internal_alloc_zone_stat.
+	(ggc_internal_alloc_zone_pass_stat): New.
+	(ggc_internal_cleared_alloc_zone_stat): New.
+	(ggc_alloc_typed_stat): Use ggc_internal_alloc_zone_pass_stat.
+	(ggc_alloc_stat): Rename ggc_internal_alloc_stat.
+	(new_ggc_zone, destroy_ggc_zone): Remove.
+
+	* stringpool.c: Update copyright year.  Include ggc-internal.h
+	(digit_vector): Make static.
+	(digit_string): Moved from ggc.h.
+	(stringpool_ggc_alloc): Use ggc_alloc_atomic.
+	(ggc_alloc_string): Rename to ggc_alloc_string_stat.
+
+	* Makefile.in (GGC_INTERNAL_H): New.
+	(ggc_common.o, ggc-page.o, ggc-zone.o, stringpool.o): Add
+	$(GGC_INTERNAL_H) to dependencies.
+
+	* gentype.c: Update copyright year.
+	(walk_type): Accept variable_size GTY option.
+	(USED_BY_TYPED_GC_P): New macro.
+	(write_enum_defn): Use USED_BY_TYPED_GC_P.  Do not output
+	whitespace at the end of strings.
+	(get_type_specifier, variable_size_p): New functions.
+	(alloc_quantity, alloc_zone): New enums.
+	(write_typed_alloc_def): New function.
+	(write_typed_struct_alloc_def): Likewise.
+	(write_typed_typed_typedef_alloc_def): Likewise.
+	(write_typed_alloc_defns): Likewise.
+	(output_typename, write_splay_tree_allocator_def): Likewise.
+	(write_splay_tree_allocators): Likewise.
+	(main): Call write_typed_alloc_defns and
+	write_splay_tree_allocators.
+
+	* lto-streamer.h (lto_file_decl_data_ptr): New.
+
+	* passes.c (order): Define using cgraph_node_ptr.
+
+	* strinpool.c (struct string_pool_data): Declare nested_ptr using
+	ht_identifier_ptr.
+
+	* gimple.h (union gimple_statement_d): Likewise.
+
+	* rtl.h (struct rtx_def): Likewise.
+	(struct rtvec_def): Likewise.
+
+	* tree.h (union tree_node): Likewise.
+
+	* tree-ssa-operands.h (struct ssa_operand_memory_d): Likewise.
+
+	* cfgloop.c (record_loop_exits): Use htab_create_ggc.
+
+	* tree-scalar-evolution.c (scev_initialize): Likewise.
+
+	* alias.c (record_alias_subset): Update splay_tree_new_ggc call.
+
+	* dwarf2asm.c (dw2_force_const_mem): Likewise.
+
+	* omp-low.c (lower_omp_critical): Likewise.
+
+	* bitmap.h (struct bitmap_head_def): Update comment to not
+	reference ggc_alloc.
+
+	* config/pa/pa.c (get_deferred_label): Use GGC_RESIZEVEC.
+
+	* ira.c (fix_reg_equiv_init): Use GGC_RESIZEVEC.
+
+	* ipa-prop.c (duplicate_ggc_array): Rename to
+	duplicate_ipa_jump_func_array.  Use typed GC allocation.
+	(ipa_edge_duplication_hook): Call duplicate_ipa_jump_func_array.
+
+	* gimple.c (gimple_alloc_stat): Use
+	ggc_alloc_cleared_gimple_statement_d_stat.
+
+	* varasm.c (create_block_symbol): Use ggc_alloc_zone_rtx_def.
+
+	* tree.c (make_node_stat): Use
+	ggc_alloc_zone_cleared_tree_node_stat.
+	(make_tree_vec_stat): Likewise.
+	(build_vl_exp_stat): Likewise.
+	(copy_node_stat): Use ggc_alloc_zone_tree_node_stat.
+	(make_tree_binfo_stat): Likewise.
+	(tree_cons_stat): Likewise.
+
+	* rtl.c (rtx_alloc_stat): Use ggc_alloc_zone_rtx_def_stat.
+	(shallow_copy_rtx_stat): Likewise.
+	(make_node_stat): Likewise.
+
+	* lto-symtab.c: Fix comment.
+
+	* tree-cfg.c (create_bb): Update comment to not reference
+	ggc_alloc_cleared.
+	* tree-ssa-structalias.c (struct heapvar_for_stmt): Fix param_is value.
+
+	* varpool.c (varpool_node): Use typed GC allocation.
+	(varpool_extra_name_alias): Likewise.
+
+	* varasm.c (emutls_decl): Likewise.
+	(get_unnamed_section): Likewise.
+	(get_noswitch_section): Likewise.
+	(get_section): Likewise.
+	(get_block_for_section): Likewise.
+	(build_constant_desc): Likewise.
+	(create_constant_pool): Likewise.
+	(force_const_mem): Likewise.
+
+	* tree.c (build_vl_exp_stat): Likewise.
+	(build_real): Likewise.
+	(build_string): Likewise.
+	(decl_debug_expr_insert): Likewise.
+	(decl_value_expr_insert): Likewise.
+	(type_hash_add): Likewise.
+	(build_omp_clause): Likewise.
+
+	* tree-ssanames.c (duplicate_ssa_name_ptr_info): Likewise.
+
+	* tree-ssa.c (init_tree_ssa): Likewise.
+
+	* tree-ssa-structalias.c (heapvar_insert): Likewise.
+
+	* tree-ssa-operands.c (ssa_operand_alloc): Likewise.
+
+	* tree-ssa-loop-niter.c (record_estimate): Likewise.
+
+	* tree-ssa-alias.c (get_ptr_info): Likewise.
+
+	* tree-scalar-evolution.c (new_scev_info_str): Likewise.
+
+	* tree-phinodes.c (allocate_phi_node): Likewise.
+
+	* tree-iterator.c (tsi_link_before): Likewise.
+	(tsi_link_after): Likewise.
+
+	* tree-eh.c (add_stmt_to_eh_lp_fn): Likewise.
+
+	* tree-dfa.c (create_var_ann): Likewise.
+
+	* tree-cfg.c (create_bb): Likewise.
+
+	* toplev.c (alloc_for_identifier_to_locale): Likewise.
+	(general_init): Likewise.
+
+	* stringpool.c (stringpool_ggc_alloc): Likewise.
+	(gt_pch_save_stringpool): Likewise.
+
+	* sese.c (if_region_set_false_region): Likewise.
+
+	* passes.c (do_per_function_toporder): Likewise.
+
+	* optabs.c (set_optab_libfunc): Likewise.
+	(set_conv_libfunc): Likewise.
+
+	* lto-symtab.c (lto_symtab_register_decl): Likewise.
+
+	* lto-streamer-in.c (lto_input_eh_catch_list): Likewise.
+	(input_eh_region): Likewise.
+	(input_eh_lp): Likewise.
+	(make_new_block): Likewise.
+	(unpack_ts_real_cst_value_fields): Likewise.
+
+	* lto-section-in.c (lto_new_in_decl_state): Likewise.
+
+	* lto-cgraph.c (input_node_opt_summary): Likewise.
+
+	* loop-init.c (loop_optimizer_init): Likewise.
+
+	* lambda.h (lambda_vector_new): Likewise.
+
+	* lambda-code.c (replace_uses_equiv_to_x_with_y): Likewise.
+
+	* ira.c (update_equiv_regs): Likewise.
+
+	* ipa.c (cgraph_node_set_new): Likewise.
+	(cgraph_node_set_add): Likewise.
+	(varpool_node_set_new): Likewise.
+	(varpool_node_set_add): Likewise.
+
+	* ipa-prop.c (ipa_compute_jump_functions_for_edge): Likewise.
+	(duplicate_ipa_jump_func_array): Likewise.
+	(ipa_read_node_info): Likewise.
+
+	* ipa-cp.c (ipcp_create_replace_map): Likewise.
+
+	* integrate.c (get_hard_reg_initial_val): Likewise.
+
+	* gimple.c (gimple_alloc_stat): Likewise.
+	(gimple_build_omp_for): Likewise.
+	(gimple_seq_alloc): Likewise.
+	(gimple_copy): Likewise.
+
+	* gimple-iterator.c (gsi_insert_before_without_update): Likewise.
+	(gsi_insert_after_without_update): Likewise.
+
+	* function.c (add_frame_space): Likewise.
+	(insert_temp_slot_address): Likewise.
+	(assign_stack_temp_for_type): Likewise.
+	(allocate_struct_function): Likewise.
+	(types_used_by_var_decl_insert): Likewise.
+
+	* except.c (init_eh_for_function): Likewise.
+	(gen_eh_region): Likewise.
+	(gen_eh_region_catch): Likewise.
+	(gen_eh_landing_pad): Likewise.
+	(add_call_site): Likewise.
+
+	* emit-rtl.c (get_mem_attrs): Likewise.
+	(get_reg_attrs): Likewise.
+	(start_sequence): Likewise.
+	(init_emit): Likewise.
+
+	* dwarf2out.c (new_cfi): Likewise.
+	(queue_reg_save): Likewise.
+	(dwarf2out_frame_init): Likewise.
+	(new_loc_descr): Likewise.
+	(find_AT_string): Likewise.
+	(new_die): Likewise.
+	(add_var_loc_to_decl): Likewise.
+	(clone_die): Likewise.
+	(clone_as_declaration): Likewise.
+	(break_out_comdat_types): Likewise.
+	(new_loc_list): Likewise.
+	(loc_descriptor): Likewise.
+	(add_loc_descr_to_each): Likewise.
+	(add_const_value_attribute): Likewise.
+	(tree_add_const_value_attribute): Likewise.
+	(add_comp_dir_attribute): Likewise.
+	(add_name_and_src_coords_attributes): Likewise.
+	(lookup_filename): Likewise.
+	(store_vcall_insn): Likewise.
+	(dwarf2out_init): Likewise.
+
+	* dbxout.c (dbxout_init): Likewise.
+
+	* config/xtensa/xtensa.c (xtensa_init_machine_status): Likewise.
+
+	* config/sparc/sparc.c (sparc_init_machine_status): Likewise.
+
+	* config/score/score7.c (score7_output_external): Likewise.
+
+	* config/score/score3.c (score3_output_external): Likewise.
+
+	* config/s390/s390.c (s390_init_machine_status): Likewise.
+
+	* config/rs6000/rs6000.c (builtin_function_type): Likewise.
+	(rs6000_init_machine_status): Likewise.
+	(output_toc): Likewise.
+
+	* config/pa/pa.c (pa_init_machine_status): Likewise.
+	(get_deferred_plabel): Likewise.
+
+	* config/moxie/moxie.c (moxie_init_machine_status): Likewise.
+
+	* config/mmix/mmix.c (mmix_init_machine_status): Likewise.
+
+	* config/mips/mips.c (mflip_mips16_use_mips16_p): Likewise.
+
+	* config/mep/mep.c (mep_init_machine_status): Likewise.
+	(mep_note_pragma_flag): Likewise.
+
+	* config/m32c/m32c.c (m32c_init_machine_status): Likewise.
+
+	* config/iq2000/iq2000.c (iq2000_init_machine_status): Likewise.
+
+	* config/ia64/ia64.c (ia64_init_machine_status): Likewise.
+
+	* config/i386/winnt.c (i386_pe_record_external_function): Likewise.
+	(i386_pe_maybe_record_exported_symbol): Likewise.
+
+	* config/i386/i386.c (get_dllimport_decl): Likewise.
+	(ix86_init_machine_status): Likewise.
+	(assign_386_stack_local): Likewise.
+
+	* config/frv/frv.c (frv_init_machine_status): Likewise.
+
+	* config/darwin.c (machopic_indirection_name): Likewise.
+
+	* config/cris/cris.c (cris_init_machine_status): Likewise.
+
+	* config/bfin/bfin.c (bfin_init_machine_status): Likewise.
+
+	* config/avr/avr.c (avr_init_machine_status): Likewise.
+
+	* config/arm/arm.c (arm_init_machine_status): Likewise.
+
+	* config/alpha/alpha.c (alpha_init_machine_status): Likewise.
+	(alpha_need_linkage): Likewise.
+	(alpha_use_linkage): Likewise.
+
+	* cgraph.c (cgraph_allocate_node): Likewise.
+	(cgraph_create_edge_1): Likewise.
+	(cgraph_create_indirect_edge): Likewise.
+	(cgraph_add_asm_node): Likewise.
+
+	* cfgrtl.c (init_rtl_bb_info): Likewise.
+
+	* cfgloop.c (alloc_loop): Likewise.
+	(rescan_loop_exit): Likewise.
+
+	* cfg.c (init_flow): Likewise.
+	(alloc_block): Likewise.
+	(unchecked_make_edge): Likewise.
+
+	* c-parser.c (c_parse_init): Likewise.
+	(c_parse_file): Likewise.
+
+	* c-decl.c (bind): Likewise.
+	(record_inline_static): Likewise.
+	(push_scope): Likewise.
+	(make_label): Likewise.
+	(lookup_label_for_goto): Likewise.
+	(finish_struct): Likewise.
+	(finish_enum): Likewise.
+	(c_push_function_context): Likewise.
+
+	* bitmap.c (bitmap_element_allocate): Likewise.
+	(bitmap_gc_alloc_stat): Likewise.
+
+	* alias.c (record_alias_subset): Likewise.
+	(init_alias_analysis): Likewise.
+
+2010-06-08  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* fold-const.c (fold_comparison): Remove redundant parenthesis.
+	* tree-inline.c (expand_call_inline): Pass translated return value of
+	cgraph_inline_failed_string to diagnostic function.
+
+2010-06-08  Andrew Pinski <pinskia@gmail.com>
+	    Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c/37724
+	* c-typeck.c (convert_for_assignment): Call pedwarn_init if the
+	implicit bad conversions is initialization.
+	(error_init): Use gmsgid instead of msgid for argument name and change
+	the call for error.
+	(pedwarn_init): Use gmsgid instead of msgid for argument name and
+	change the call for pedwarn.
+	(warning_init): Use gmsgid instead of msgid for argument name and
+	change the call for warning.
+
+2010-06-07  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/mips/mips-protos.h (mips_print_operand): Delete.
+	(mips_print_operand_address): Delete.
+	* config/mips/mips.h (mips_print_operand_punct): Delete.
+	(PRINT_OPERAND): Delete.
+	(PRINT_OPERAND_PUNCT_VALID_P): Delete.
+	(PRINT_OPERAND_ADDRESS): Delete.
+	* config/mips/mips.c (mips_print_operand_punct): Make static.
+	(mips_print_operand_address): Make static.
+	(mips_print_operand): Make static.  Call
+	mips_print_operand_punct_valid_p.
+	(mips_print_operand_punct_valid_p): New function.
+	(TARGET_PRINT_OPERAND, TARGET_PRINT_OPERAND_ADDRESS): Define.
+	(TARGET_PRINT_OPERAND_PUNCT_VALID_P): Define.
+
+2010-06-07  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/44454
+	(df_lr_top_dump, df_lr_bottom_dump): Check that in/out bitmaps
+	are allocated.
+
+2010-06-07  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (sh_build_builtin_va_list): Set tree type
+	name of RECORD.
+
+2010-06-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/sourcebuild.texi (Effective-Target Keywords, Other
+	attributes): Document gas.
+
+2010-06-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*add<mode>_1): Remove alternative 2.
+	<TYPE_LEA>: Split instruction.
+	<default>: Remove alternative 2 handling.
+	(*addsi_1_zext) <TYPE_LEA>: Split instruction.
+	(add lea splitter): Generate SImode lea for mode sizes <= SImode.
+	(add_zext lea splitter): Use ix86_lea_for_add_ok in insn predicate.
+
+	(*movsi_1) <TYPE_LEA>: Use %a modifier to output operand 1.
+	(ashift_zext lea splitter): Use DImode for multiplication.
+
+	* config/i386/i386.c (ix86_expand_epilogue): Do not use ix86_gen_add
+	to generate addition.
+
+2010-06-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt (fira-verbose): Use Var.
+	(fpcc-struct-return): Use Init instead of VarExists.
+	* defaults.h (DEFAULT_PCC_STRUCT_RETURN): Move definition from
+	toplev.c.
+	* flags.h (flag_signed_char, flag_short_enums,
+	flag_pcc_struct_return, flag_ira_verbose,
+	flag_detailed_statistics, flag_remove_unreachable_functions): Remove.
+	* toplev.c (flag_detailed_statistics, flag_signed_char,
+	flag_short_enums, flag_pcc_struct_return, flag_ira_verbose): Remove.
+	(DEFAULT_PCC_STRUCT_RETURN): Move definition to defaults.h.
+	* toplev.h (flag_crossjumping, flag_if_conversion,
+	flag_if_conversion2, flag_keep_static_consts, flag_peel_loops,
+	flag_rerun_cse_after_loop, flag_thread_jumps, flag_tracer,
+	flag_unroll_loops, flag_unroll_all_loops, flag_unswitch_loops,
+	flag_cprop_registers, time_report, flag_ira_loop_pressure,
+	flag_ira_coalesce, flag_ira_move_spills,
+	flag_ira_share_save_slots, flag_ira_share_spill_slots): Remove.
+
+2010-06-07  Jan Hubicka  <jh@suse.cz>
+
+	* df-core.c (df_analyze_problem): Do verification after allocation.
+
+	* df-problems.c (df_lr_problem_data): Add lr_bitmaps.
+	(df_lr_alloc): Initialize problem data; move bitmaps to
+	lr_bitmaps obstack.
+	(df_lr_finalize): Free problem data; do not bother to free bitmaps.
+	(df_lr_verify_solution_start): Do not initialize problem data;
+	allocate bitmaps in lr_bitmaps.
+	(df_lr_verify_solution_end): Do not free problem data.
+
 2010-06-07  Jan Hubicka  <jh@suse.cz>
 
 	* cgraph.c (cgraph_edge_cannot_lead_to_return): Also check
@@ -19,7 +1636,7 @@
 
 	PR rtl-optimization/44404
 	* auto-inc-dec.c (find_inc): Use reg_overlap_mentioned_p instead
-	of count_occurrences to see if it's safe to modify mem_insn.insn.
+	of count_occurrences to see if it's safe to modify mem_insn.
 
 2010-06-07  Richard Guenther  <rguenther@suse.de>
 
@@ -63,7 +1680,7 @@
 	and above and defer till target is known.
 	(optimization_options): Turn on zee pass if TARGET_64BIT is set and
 	turn off otherwise.
-	
+
 2010-05-25  Jan Hubicka  <jh@suse.cz>
 
 	* df-core.c (df_set_blocks): Use bitmap_head instead of bitmap.
@@ -104,7 +1721,7 @@
 2010-06-06  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
 	PR c/20000
-        * c-decl.c (grokdeclarator): Delete warning.
+	* c-decl.c (grokdeclarator): Delete warning.
 
 2010-06-06  Eric Botcazou  <ebotcazou@adacore.com>
 
@@ -195,10 +1812,12 @@
 
 2010-06-05  Jan Hubicka  <jh@suse.cz>
 
+	* basic-block.h (compute_dominance_frontiers): Updated.
+	(compute_idf): Likewise.
+
 	* tree-into-ssa.c (insert_phi_nodes): Use bitmap heads
 	for dominance frontiers.
-	(rewrite_into_ssa): Update for bitmap heads in dominance
-	frontiers.
+	(rewrite_into_ssa): Update for bitmap heads in dominance frontiers.
 	(insert_updated_phi_nodes_for): Likewise.
 	(update_ssa): Likewise.
 	* cfganal.c (compute_dominance_frontiers_1): Likewise.
@@ -295,8 +1914,7 @@
 2010-06-04  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR boostrap/44421
-	* df-problems.c (df_lr_bb_local_compute): Updated for embedded
-	bitmaps.
+	* df-problems.c (df_lr_bb_local_compute): Updated for embedded bitmaps.
 	(df_byte_lr_bb_local_compute): Likewise.
 
 2010-06-03  Jason Merrill  <jason@redhat.com>
@@ -326,11 +1944,11 @@
 	(*addqi_1_lea) <TYPE_INCDEC, default>: Ditto.
 	(*add<mode>_2) <TYPE_INCDEC>: Remove assert that operand 0
 	and operand 1 are equal.
-	<default>: Ditto. Remove ??? comment.
+	<default>: Ditto.  Remove ??? comment.
 	(*add<mode>_3) <TYPE_INCDEC>: Remove assert that operand 0
 	and operand 1 are equal.
-	<default>: Ditto. Remove ??? comment.
-	(*adddi_4) <default>:  Remove assert that operand 0 and operand 1
+	<default>: Ditto.  Remove ??? comment.
+	(*adddi_4) <default>: Remove assert that operand 0 and operand 1
 	are equal.
 	(*add<mode>_4) <default>: Ditto.
 	(*add<mode>_5) <TYPE_INCDEC, default>: Ditto.
@@ -1485,10 +3103,10 @@
 
 2010-05-29  Steven Bosscher  <steven@gcc.gnu.org>
 
- 	* c-lex.c: Do not include c-tree.h.
- 	* c-pretty-print.c: Likewise.
- 	* c-opts.c: Likewise.
- 	* c-gimplify.c: Likewise.
+	* c-lex.c: Do not include c-tree.h.
+	* c-pretty-print.c: Likewise.
+	* c-opts.c: Likewise.
+	* c-gimplify.c: Likewise.
 	* c-common.c: Likewise.
 	* c-dump.c: Likewise.  Include c-common.h.
 
@@ -6913,7 +8531,7 @@
 	(next_operand_entry_id): New static variable.
 	(sort_by_operand_rank): Stabilize qsort comparator by using unique IDs.
 	(add_to_ops_vec): Assigned unique ID to operand entry.
- 	(struct oecount_s): New field ID.
+	(struct oecount_s): New field ID.
 	(oecount_cmp): Stabilize qsort comparotor by using unique IDs.
 	(undistribute_ops_list): Assign unique IDs to oecounts.
 	(init_reassoc): reset next_operand_entry_id.

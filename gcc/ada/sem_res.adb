@@ -1669,6 +1669,10 @@ package body Sem_Res is
       --  Try and fix up a literal so that it matches its expected type. New
       --  literals are manufactured if necessary to avoid cascaded errors.
 
+      procedure Report_Ambiguous_Argument;
+      --  Additional diagnostics when an ambiguous call has an ambiguous
+      --  argument (typically a controlling actual).
+
       procedure Resolution_Failed;
       --  Called when attempt at resolving current expression fails
 
@@ -1732,6 +1736,39 @@ package body Sem_Res is
             Patch_Up_Value (High_Bound (N), Typ);
          end if;
       end Patch_Up_Value;
+
+      -------------------------------
+      -- Report_Ambiguous_Argument --
+      -------------------------------
+
+      procedure Report_Ambiguous_Argument is
+         Arg : constant Node_Id := First (Parameter_Associations (N));
+         I   : Interp_Index;
+         It  : Interp;
+
+      begin
+         if Nkind (Arg) = N_Function_Call
+           and then Is_Entity_Name (Name (Arg))
+           and then Is_Overloaded (Name (Arg))
+         then
+            Error_Msg_NE ("ambiguous call to&", Arg, Name (Arg));
+
+            --  Could use comments on what is going on here ???
+
+            Get_First_Interp (Name (Arg), I, It);
+            while Present (It.Nam) loop
+               Error_Msg_Sloc := Sloc (It.Nam);
+
+               if Nkind (Parent (It.Nam)) = N_Full_Type_Declaration then
+                  Error_Msg_N ("interpretation (inherited) #!", Arg);
+               else
+                  Error_Msg_N ("interpretation #!", Arg);
+               end if;
+
+               Get_Next_Interp (I, It);
+            end loop;
+         end if;
+      end Report_Ambiguous_Argument;
 
       -----------------------
       -- Resolution_Failed --
@@ -2036,6 +2073,13 @@ package body Sem_Res is
                         else
                            Error_Msg_N -- CODEFIX
                              ("\\possible interpretation#!", N);
+                        end if;
+
+                        if Nkind_In
+                          (N, N_Procedure_Call_Statement, N_Function_Call)
+                          and then Present (Parameter_Associations (N))
+                        then
+                           Report_Ambiguous_Argument;
                         end if;
                      end if;
 
@@ -4719,6 +4763,28 @@ package body Sem_Res is
       Scop    : Entity_Id;
       Rtype   : Entity_Id;
 
+      function Same_Or_Aliased_Subprograms
+        (S : Entity_Id;
+         E : Entity_Id) return Boolean;
+      --  Returns True if the subprogram entity S is the same as E or else
+      --  S is an alias of E.
+
+      ---------------------------------
+      -- Same_Or_Aliased_Subprograms --
+      ---------------------------------
+
+      function Same_Or_Aliased_Subprograms
+        (S : Entity_Id;
+         E : Entity_Id) return Boolean
+      is
+         Subp_Alias : constant Entity_Id := Alias (S);
+      begin
+         return S = E
+           or else (Present (Subp_Alias) and then Subp_Alias = E);
+      end Same_Or_Aliased_Subprograms;
+
+   --  Start of processing for Resolve_Call
+
    begin
       --  The context imposes a unique interpretation with type Typ on a
       --  procedure or function call. Find the entity of the subprogram that
@@ -5051,7 +5117,7 @@ package body Sem_Res is
          --  Issue warning for possible infinite recursion in the absence
          --  of the No_Recursion restriction.
 
-         if Nam = Scop
+         if Same_Or_Aliased_Subprograms (Nam, Scop)
            and then not Restriction_Active (No_Recursion)
            and then Check_Infinite_Recursion (N)
          then
@@ -5068,7 +5134,7 @@ package body Sem_Res is
 
          else
             Scope_Loop : while Scop /= Standard_Standard loop
-               if Nam = Scop then
+               if Same_Or_Aliased_Subprograms (Nam, Scop) then
 
                   --  Although in general case, recursion is not statically
                   --  checkable, the case of calling an immediately containing
@@ -6699,13 +6765,18 @@ package body Sem_Res is
          B_Typ := Base_Type (Typ);
       end if;
 
+      --  OK if this is a VMS-specific intrinsic operation
+
+      if Is_VMS_Operator (Entity (N)) then
+         null;
+
       --  The following test is required because the operands of the operation
       --  may be literals, in which case the resulting type appears to be
       --  compatible with a signed integer type, when in fact it is compatible
       --  only with modular types. If the context itself is universal, the
       --  operation is illegal.
 
-      if not Valid_Boolean_Arg (Typ) then
+      elsif not Valid_Boolean_Arg (Typ) then
          Error_Msg_N ("invalid context for logical operation", N);
          Set_Etype (N, Any_Type);
          return;
@@ -7249,9 +7320,12 @@ package body Sem_Res is
          B_Typ := Base_Type (Typ);
       end if;
 
+      if Is_VMS_Operator (Entity (N)) then
+         null;
+
       --  Straightforward case of incorrect arguments
 
-      if not Valid_Boolean_Arg (Typ) then
+      elsif not Valid_Boolean_Arg (Typ) then
          Error_Msg_N ("invalid operand type for operator&", N);
          Set_Etype (N, Any_Type);
          return;
@@ -7772,15 +7846,15 @@ package body Sem_Res is
                   then
                      null;
                   else
-                     --  Issue warning. Note that we don't want to make this
-                     --  an unconditional warning, because if the assert is
-                     --  within deleted code we do not want the warning. But
-                     --  we do not want the deletion of the IF/AND-THEN to
-                     --  take this message with it. We achieve this by making
-                     --  sure that the expanded code points to the Sloc of
-                     --  the expression, not the original pragma.
+                     --  Issue warning. We do not want the deletion of the
+                     --  IF/AND-THEN to take this message with it. We achieve
+                     --  this by making sure that the expanded code points to
+                     --  the Sloc of the expression, not the original pragma.
 
-                     Error_Msg_N ("?assertion would fail at run-time", Orig);
+                     Error_Msg_N
+                       ("?assertion would fail at run-time!",
+                        Expression
+                          (First (Pragma_Argument_Associations (Orig))));
                   end if;
                end;
 
@@ -7803,7 +7877,10 @@ package body Sem_Res is
                   then
                      null;
                   else
-                     Error_Msg_N ("?check would fail at run-time", Orig);
+                     Error_Msg_N
+                       ("?check would fail at run-time!",
+                        Expression
+                          (Last (Pragma_Argument_Associations (Orig))));
                   end if;
                end;
             end if;

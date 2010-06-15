@@ -1,3 +1,262 @@
+2010-06-13  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/31588
+	PR fortran/43954
+	* gfortranspec.c (lang_specific_driver): Removed deprecation
+	warning for -M.
+	* lang.opt: Add options -M, -MM, -MD, -MMD, -MF, -MG, -MP, -MT, -MQ.
+	* lang-specs.h (CPP_FORWARD_OPTIONS): Add -M* options.
+	* cpp.h (gfc_cpp_makedep): New.
+	(gfc_cpp_add_dep): New.
+	(gfc_cpp_add_target): New.
+	* cpp.c (gfc_cpp_option): Add deps* members.
+	(gfc_cpp_makedep): New.
+	(gfc_cpp_add_dep): New.
+	(gfc_cpp_add_target): New.
+	(gfc_cpp_init_options): Initialize new options.
+	(gfc_cpp_handle_option): Handle new options.
+	(gfc_cpp_post_options): Map new options to libcpp-options.
+	(gfc_cpp_init): Handle deferred -MQ and -MT options.
+	(gfc_cpp_done): If requested, write dependencies to file.
+	* module.c (gfc_dump_module): Add a module filename as target.
+	* scanner.c (open_included_file): New parameter system; add the
+	included file as dependency.
+	(gfc_open_included_file): Add the included file as dependency.
+	(gfc_open_intrinsic_module): Likewise.
+	* invoke.texi: Removed deprecation warning for -M.
+	* gfortran.texi: Removed Makefile-dependencies project.
+
+2010-06-12  Daniel Franke  <franke.daniel@gmail.com>
+
+        * resolve.c (resolve_global_procedure): Improved checking if an
+        explicit interface is required.
+
+2010-06-12  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* trans-decl.c (gfc_build_intrinsic_function_decls): Fix
+	return type.
+	* trans-intrinsic.c (gfc_conv_intrinsic_fdate): Fix argument type.
+	(gfc_conv_intrinsic_ttynam): Likewise.
+	(gfc_conv_intrinsic_trim): Likewise.
+
+2010-06-12  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40117
+	* decl.c (match_procedure_in_type): Allow procedure lists (F08).
+
+2010-06-11  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* trans-intrinsic.c (gfc_build_intrinsic_lib_fndecls): Fix comment.
+
+2010-06-11  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* mathbuiltins.def: Add builtins that do not directly correspond
+	to a Fortran intrinsic, with new macro OTHER_BUILTIN.
+	* f95-lang.c (gfc_init_builtin_functions): Define OTHER_BUILTIN.
+	* trans-intrinsic.c (gfc_intrinsic_map_t): Remove
+	code_{r,c}{4,8,10,16} fields. Add
+	{,complex}{float,double,long_double}_built_in fields.
+	(gfc_intrinsic_map): Adjust definitions of DEFINE_MATH_BUILTIN,
+	DEFINE_MATH_BUILTIN_C and LIB_FUNCTION accordingly. Add
+	definition of OTHER_BUILTIN.
+	(real_compnt_info): Remove unused struct.
+	(builtin_decl_for_precision, builtin_decl_for_float_kind): New
+	functions.
+	(build_round_expr): Call builtin_decl_for_precision instead of
+	series of if-else.
+	(gfc_conv_intrinsic_aint): Call builtin_decl_for_float_kind
+	instead of a switch.
+	(gfc_build_intrinsic_lib_fndecls): Match
+	{real,complex}{4,8,10,16}decl into the C-style built_in_decls.
+	(gfc_get_intrinsic_lib_fndecl): Do not hardcode floating-point
+	kinds.
+	(gfc_conv_intrinsic_lib_function): Go through all the extended
+	gfc_intrinsic_map.
+	(gfc_trans_same_strlen_check): Call builtin_decl_for_float_kind
+	instead of a switch.
+	(gfc_conv_intrinsic_abs): Likewise.
+	(gfc_conv_intrinsic_mod): Likewise.
+	(gfc_conv_intrinsic_sign): Likewise.
+	(gfc_conv_intrinsic_fraction): Likewise.
+	(gfc_conv_intrinsic_nearest): Likewise.
+	(gfc_conv_intrinsic_spacing): Likewise.
+	(gfc_conv_intrinsic_rrspacing): Likewise.
+	(gfc_conv_intrinsic_scale): Likewise.
+	(gfc_conv_intrinsic_set_exponent): Likewise.
+
+2010-06-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/42051
+	PR fortran/43896
+	* trans-expr.c (gfc_conv_derived_to_class): Handle array-valued
+	functions with CLASS formal arguments.
+
+2010-06-10  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44207
+	* resolve.c (conformable_arrays): Handle allocatable components.
+
+2010-06-10  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/38273
+	* gfortran.texi: Document that Cray pointers cannot be function
+	results.
+
+2010-06-10  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/36234
+	* gfortran.texi: Document lack of support for syntax
+	"complex FUNCTION name*16()", and existence of alternative
+	legacy syntax "complex*16 FUNCTION name()".
+
+2010-06-10  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/43032
+	* intrinsic.texi (FLUSH): Note the difference between FLUSH and
+	POSIX's fsync(), and how to call the latter from Fortran code.
+
+2010-06-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/44457
+	* interface.c (compare_actual_formal): Reject actual arguments with
+	array subscript passed to ASYNCHRONOUS dummys.
+
+2010-06-10  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38936
+	* gfortran.h (enum gfc_statement): Add ST_ASSOCIATE, ST_END_ASSOCIATE.
+	(struct gfc_symbol): New field `assoc'.
+	(struct gfc_association_list): New struct.
+	(struct gfc_code): New struct `block' in union, move `ns' there
+	and add association list.
+	(gfc_free_association_list): New method.
+	(gfc_has_vector_subscript): Made public;
+	* match.h (gfc_match_associate): New method.
+	* parse.h (enum gfc_compile_state): Add COMP_ASSOCIATE.
+	* decl.c (gfc_match_end): Handle ST_END_ASSOCIATE.
+	* interface.c (gfc_has_vector_subscript): Made public.
+	(compare_actual_formal): Rename `has_vector_subscript' accordingly.
+	* match.c (gfc_match_associate): New method.
+	(gfc_match_select_type): Change reference to gfc_code's `ns' field.
+	* primary.c (match_variable): Don't allow names associated to expr here.
+	* parse.c (decode_statement): Try matching ASSOCIATE statement.
+	(case_exec_markers, case_end): Add ASSOCIATE statement.
+	(gfc_ascii_statement): Hande ST_ASSOCIATE and ST_END_ASSOCIATE.
+	(parse_associate): New method.
+	(parse_executable): Handle ST_ASSOCIATE.
+	(parse_block_construct): Change reference to gfc_code's `ns' field.
+	* resolve.c (resolve_select_type): Ditto.
+	(resolve_code): Ditto.
+	(resolve_block_construct): Ditto and add comment.
+	(resolve_select_type): Set association list in generated BLOCK to NULL.
+	(resolve_symbol): Resolve associate names.
+	* st.c (gfc_free_statement): Change reference to gfc_code's `ns' field
+	and free association list.
+	(gfc_free_association_list): New method.
+	* symbol.c (gfc_new_symbol): NULL new field `assoc'.
+	* trans-stmt.c (gfc_trans_block_construct): Change reference to
+	gfc_code's `ns' field.
+
+2010-06-10  Kai Tietz  <kai.tietz@onevision.com>
+
+	* error.c (error_print): Pre-initialize loc by NULL.
+	* openmp.c (resolve_omp_clauses): Add explicit
+	braces to avoid ambigous else.
+	* array.c (match_subscript): Pre-initialize m to MATCH_ERROR.
+
+2010-06-10  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* gfc-internals.texi: Move to GFDL 1.3.
+	* gfortran.texi: Ditto.
+	* intrinsic.texi: Ditto.
+	* invoke.texi: Ditto.
+
+2010-06-09  Daniel Franke  <franke.daniel@gmail.com>
+
+        PR fortran/44347
+        * check.c (gfc_check_selected_real_kind): Verify that the
+        actual arguments are scalar.
+
+2010-06-09  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/44359
+	* intrinsic.c (gfc_convert_type_warn): Further improve -Wconversion.
+
+2010-06-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44430
+	* dump-parse-tree.c (show_symbol): Avoid infinite loop.
+
+2010-06-09  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* fortran/symbol.c (check_conflict):  Remove an invalid conflict check.
+
+2010-06-09  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* fortran/intrinsic.c (add_functions): Change gfc_check_btest,
+	gfc_check_ibclr, and gfc_check_ibset to gfc_check_bitfcn.
+	* fortran/intrinsic.h: Remove prototypes for gfc_check_btest,
+	gfc_check_ibclr, and gfc_check_ibset.  Add prototype for
+	gfc_check_bitfcn.
+	* fortran/check.c (nonnegative_check, less_than_bitsize1, 
+	less_than_bitsize2): New functions.
+	(gfc_check_btest): Renamed to gfc_check_bitfcn.  Use
+	nonnegative_check and less_than_bitsize1.
+	(gfc_check_ibclr, gfc_check_ibset): Removed.
+	(gfc_check_ibits,gfc_check_mvbits): Use nonnegative_check and
+	less_than_bitsize1.
+
+2010-06-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44211
+	* resolve.c (resolve_typebound_function,resolve_typebound_subroutine):
+	Resolve references.
+
+2010-06-09  Kai Tietz  <kai.tietz@onevision.com>
+
+	* resolve.c (resolve_deallocate_expr): Avoid warning
+	about possible use of iunitialized sym.
+	(resolve_allocate_expr): Pre-initialize sym by NULL.
+
+2010-06-09  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/43040
+	* f95-lang.c (gfc_init_builtin_functions): Remove comment.
+
+2010-06-08  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* trans-types.c (gfc_get_nodesc_array_type): Use typed GC
+	allocation.
+	(gfc_get_array_type_bounds): Likewise.
+
+	* trans-decl.c (gfc_allocate_lang_decl): Likewise.
+	(gfc_find_module): Likewise.
+
+	* f95-lang.c (pushlevel): Likewise.
+
+	* trans.h (struct lang_type): Add variable_size GTY option.
+	(struct lang_decl): Likewise.
+
+2010-06-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44446
+	* symbol.c (check_conflict): Move protected--external/procedure check ...
+	* resolve.c (resolve_select_type): ... to the resolution stage.
+
+2010-06-07  Tobias Burnus  <burnus@net-b.de>
+
+	* options.c (gfc_handle_option): Fix -fno-recursive.
+
+2010-06-07  Tobias Burnus  <burnus@net-b.de>
+
+	* gfc-internals.texi (copyrights-gfortran): Fix copyright year format.
+	* gfortran.texi (copyrights-gfortran): Ditto.
+
+2010-06-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (fshort-enums): Define using Var and VarExists.
+	* options.c (gfc_handle_option): Don't set flag_short_enums here.
+
 2010-06-05  Paul Thomas  <pault@gcc.gnu.org>
 	    Janus Weil  <janus@gcc.gnu.org>
 

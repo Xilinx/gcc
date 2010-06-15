@@ -177,6 +177,16 @@ warn_function_const (tree decl, bool known_finite)
     = suggest_attribute (OPT_Wsuggest_attribute_const, decl,
 			 known_finite, warned_about, "const");
 }
+
+void
+warn_function_noreturn (tree decl)
+{
+  static struct pointer_set_t *warned_about;
+  if (!lang_hooks.missing_noreturn_ok_p (decl))
+    warned_about 
+      = suggest_attribute (OPT_Wsuggest_attribute_noreturn, decl,
+			   true, warned_about, "noreturn");
+}
 /* Init the function state.  */
 
 static void
@@ -410,6 +420,40 @@ worse_state (enum pure_const_state_e *state, bool *looping,
   *looping = MAX (*looping, looping2);
 }
 
+/* Recognize special cases of builtins that are by themself not pure or const
+   but function using them is.  */
+static bool
+special_builtlin_state (enum pure_const_state_e *state, bool *looping,
+			tree callee)
+{
+  if (DECL_BUILT_IN_CLASS (callee) == BUILT_IN_NORMAL)
+    switch (DECL_FUNCTION_CODE (callee))
+      {
+	case BUILT_IN_RETURN:
+	case BUILT_IN_UNREACHABLE:
+	case BUILT_IN_ALLOCA:
+	case BUILT_IN_STACK_SAVE:
+	case BUILT_IN_STACK_RESTORE:
+	case BUILT_IN_EH_POINTER:
+	case BUILT_IN_EH_FILTER:
+	case BUILT_IN_UNWIND_RESUME:
+	case BUILT_IN_CXA_END_CLEANUP:
+	case BUILT_IN_EH_COPY_VALUES:
+	case BUILT_IN_FRAME_ADDRESS:
+	case BUILT_IN_APPLY:
+	case BUILT_IN_APPLY_ARGS:
+	case BUILT_IN_ARGS_INFO:
+	  *looping = false;
+	  *state = IPA_CONST;
+	  return true;
+	case BUILT_IN_PREFETCH:
+	  *looping = true;
+	  *state = IPA_CONST;
+	  return true;
+      }
+  return false;
+}
+
 /* Check the parameters of a function call to CALL_EXPR to see if
    there are any references in the parameters that are not allowed for
    pure or const functions.  Also check to see if this is either an
@@ -460,9 +504,15 @@ check_call (funct_state local, gimple call, bool ipa)
      graph.  */
   if (callee_t)
     {
-      /* built_in_return is really just an return statemnt.  */
-      if (gimple_call_builtin_p (call, BUILT_IN_RETURN))
-	return;
+      enum pure_const_state_e call_state;
+      bool call_looping;
+
+      if (special_builtlin_state (&call_state, &call_looping, callee_t))
+	{
+	  worse_state (&local->pure_const_state, &local->looping,
+		       call_state, call_looping);
+	  return;
+	}
       /* When bad things happen to bad functions, they cannot be const
 	 or pure.  */
       if (setjmp_call_p (callee_t))
@@ -893,7 +943,7 @@ pure_const_write_summary (cgraph_node_set set,
       node = csi_node (csi);
       if (node->analyzed && has_function_state (node))
 	{
-	  struct bitpack_d *bp;
+	  struct bitpack_d bp;
 	  funct_state fs;
 	  int node_ref;
 	  lto_cgraph_encoder_t encoder;
@@ -906,14 +956,13 @@ pure_const_write_summary (cgraph_node_set set,
 
 	  /* Note that flags will need to be read in the opposite
 	     order as we are pushing the bitflags into FLAGS.  */
-	  bp = bitpack_create ();
-	  bp_pack_value (bp, fs->pure_const_state, 2);
-	  bp_pack_value (bp, fs->state_previously_known, 2);
-	  bp_pack_value (bp, fs->looping_previously_known, 1);
-	  bp_pack_value (bp, fs->looping, 1);
-	  bp_pack_value (bp, fs->can_throw, 1);
-	  lto_output_bitpack (ob->main_stream, bp);
-	  bitpack_delete (bp);
+	  bp = bitpack_create (ob->main_stream);
+	  bp_pack_value (&bp, fs->pure_const_state, 2);
+	  bp_pack_value (&bp, fs->state_previously_known, 2);
+	  bp_pack_value (&bp, fs->looping_previously_known, 1);
+	  bp_pack_value (&bp, fs->looping, 1);
+	  bp_pack_value (&bp, fs->can_throw, 1);
+	  lto_output_bitpack (&bp);
 	}
     }
 
@@ -948,7 +997,7 @@ pure_const_read_summary (void)
 	    {
 	      unsigned int index;
 	      struct cgraph_node *node;
-	      struct bitpack_d *bp;
+	      struct bitpack_d bp;
 	      funct_state fs;
 	      lto_cgraph_encoder_t encoder;
 
@@ -963,12 +1012,12 @@ pure_const_read_summary (void)
 		 pushed into FLAGS).  */
 	      bp = lto_input_bitpack (ib);
 	      fs->pure_const_state
-			= (enum pure_const_state_e) bp_unpack_value (bp, 2);
+			= (enum pure_const_state_e) bp_unpack_value (&bp, 2);
 	      fs->state_previously_known
-			= (enum pure_const_state_e) bp_unpack_value (bp, 2);
-	      fs->looping_previously_known = bp_unpack_value (bp, 1);
-	      fs->looping = bp_unpack_value (bp, 1);
-	      fs->can_throw = bp_unpack_value (bp, 1);
+			= (enum pure_const_state_e) bp_unpack_value (&bp, 2);
+	      fs->looping_previously_known = bp_unpack_value (&bp, 1);
+	      fs->looping = bp_unpack_value (&bp, 1);
+	      fs->can_throw = bp_unpack_value (&bp, 1);
 	      if (dump_file)
 		{
 		  int flags = flags_from_decl_or_type (node->decl);
@@ -992,7 +1041,6 @@ pure_const_read_summary (void)
 		  if (fs->can_throw)
 		    fprintf (dump_file,"  function is locally throwing\n");
 		}
-	      bitpack_delete (bp);
 	    }
 
 	  lto_destroy_simple_input_block (file_data,
@@ -1021,14 +1069,11 @@ self_recursive_p (struct cgraph_node *node)
   return false;
 }
 
+/* Produce transitive closure over the callgraph and compute pure/const
+   attributes.  */
 
-/* Produce the global information by preforming a transitive closure
-   on the local information that was produced by generate_summary.
-   Note that there is no function_transform pass since this only
-   updates the function_decl.  */
-
-static unsigned int
-propagate (void)
+static void
+propagate_pure_const (void)
 {
   struct cgraph_node *node;
   struct cgraph_node *w;
@@ -1038,9 +1083,6 @@ propagate (void)
   int i;
   struct ipa_dfs_info * w_info;
 
-  cgraph_remove_function_insertion_hook (function_insertion_hook_holder);
-  cgraph_remove_node_duplication_hook (node_duplication_hook_holder);
-  cgraph_remove_node_removal_hook (node_removal_hook_holder);
   order_pos = ipa_utils_reduced_inorder (order, true, false, NULL);
   if (dump_file)
     {
@@ -1149,10 +1191,13 @@ propagate (void)
 		      edge_looping = y_l->looping;
 		    }
 		}
+	      else if (special_builtlin_state (&edge_state, &edge_looping,
+					       y->decl))
+		;
 	      else
 		state_from_flags (&edge_state, &edge_looping,
-			          flags_from_decl_or_type (y->decl),
-			          cgraph_edge_cannot_lead_to_return (e));
+				  flags_from_decl_or_type (y->decl),
+				  cgraph_edge_cannot_lead_to_return (e));
 
 	      /* Merge the results with what we already know.  */
 	      better_state (&edge_state, &edge_looping,
@@ -1301,12 +1346,31 @@ propagate (void)
 	  node->aux = NULL;
 	}
     }
+
+  free (order);
+}
+
+/* Produce transitive closure over the callgraph and compute nothrow
+   attributes.  */
+
+static void
+propagate_nothrow (void)
+{
+  struct cgraph_node *node;
+  struct cgraph_node *w;
+  struct cgraph_node **order =
+    XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
+  int order_pos;
+  int i;
+  struct ipa_dfs_info * w_info;
+
   order_pos = ipa_utils_reduced_inorder (order, true, false, ignore_edge);
   if (dump_file)
     {
       dump_cgraph (dump_file);
       ipa_utils_print_order(dump_file, "reduced for nothrow", order, order_pos);
     }
+
   /* Propagate the local information thru the call graph to produce
      the global information.  All the nodes within a cycle will have
      the same info so we collapse cycles first.  Then we can do the
@@ -1387,12 +1451,33 @@ propagate (void)
 	  free (node->aux);
 	  node->aux = NULL;
 	}
-      if (cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE
-	  && has_function_state (node))
-	free (get_function_state (node));
     }
 
   free (order);
+}
+
+
+/* Produce the global information by preforming a transitive closure
+   on the local information that was produced by generate_summary.  */
+
+static unsigned int
+propagate (void)
+{
+  struct cgraph_node *node;
+
+  cgraph_remove_function_insertion_hook (function_insertion_hook_holder);
+  cgraph_remove_node_duplication_hook (node_duplication_hook_holder);
+  cgraph_remove_node_removal_hook (node_removal_hook_holder);
+
+  /* Nothrow makes more function to not lead to return and improve
+     later analysis.  */
+  propagate_nothrow ();
+  propagate_pure_const ();
+
+  /* Cleanup. */
+  for (node = cgraph_nodes; node; node = node->next)
+    if (has_function_state (node))
+      free (get_function_state (node));
   VEC_free (funct_state, heap, funct_state_vec);
   finish_state ();
   return 0;
@@ -1480,11 +1565,7 @@ local_pure_const (void)
   if (!skip && !TREE_THIS_VOLATILE (current_function_decl)
       && EDGE_COUNT (EXIT_BLOCK_PTR->preds) == 0)
     {
-      if (warn_missing_noreturn
-	  && !lang_hooks.missing_noreturn_ok_p (cfun->decl))
-	warning_at (DECL_SOURCE_LOCATION (cfun->decl), OPT_Wmissing_noreturn,
-		    "function might be possible candidate "
-		    "for attribute %<noreturn%>");
+      warn_function_noreturn (cfun->decl);
       if (dump_file)
         fprintf (dump_file, "Function found to be noreturn: %s\n",
 	         lang_hooks.decl_printable_name (current_function_decl, 2));

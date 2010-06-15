@@ -1858,29 +1858,6 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
 	    }
 	}
 
-      if (gsym->ns->proc_name->attr.function
-	    && gsym->ns->proc_name->as
-	    && gsym->ns->proc_name->as->rank
-	    && (!sym->as || sym->as->rank != gsym->ns->proc_name->as->rank))
-	gfc_error ("The reference to function '%s' at %L either needs an "
-		   "explicit INTERFACE or the rank is incorrect", sym->name,
-		   where);
-
-      /* Non-assumed length character functions.  */
-      if (sym->attr.function && sym->ts.type == BT_CHARACTER
-	  && gsym->ns->proc_name->ts.u.cl->length != NULL)
-	{
-	  gfc_charlen *cl = sym->ts.u.cl;
-
-	  if (!sym->attr.entry_master && sym->attr.if_source == IFSRC_UNKNOWN
-	      && cl && cl->length && cl->length->expr_type != EXPR_CONSTANT)
-	    {
-	      gfc_error ("Nonconstant character-length function '%s' at %L "
-			 "must have an explicit interface", sym->name,
-			 &sym->declared_at);
-	    }
-	}
-
       /* Differences in constant character lengths.  */
       if (sym->attr.function && sym->ts.type == BT_CHARACTER)
 	{
@@ -1911,26 +1888,108 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
 		   sym->name, &sym->declared_at, gfc_typename (&sym->ts),
 		   gfc_typename (&gsym->ns->proc_name->ts));
 
-      /* Assumed shape arrays as dummy arguments.  */
       if (gsym->ns->proc_name->formal)
 	{
 	  gfc_formal_arglist *arg = gsym->ns->proc_name->formal;
 	  for ( ; arg; arg = arg->next)
-	    if (arg->sym && arg->sym->as
-	        && arg->sym->as->type == AS_ASSUMED_SHAPE)
+	    if (!arg->sym)
+	      continue;
+	    /* F2003, 12.3.1.1 (2a); F2008, 12.4.2.2 (2a)  */
+	    else if (arg->sym->attr.allocatable
+		     || arg->sym->attr.asynchronous
+		     || arg->sym->attr.optional
+		     || arg->sym->attr.pointer
+		     || arg->sym->attr.target
+		     || arg->sym->attr.value
+		     || arg->sym->attr.volatile_)
+	      {
+		gfc_error ("Dummy argument '%s' of procedure '%s' at %L "
+			   "has an attribute that requires an explicit "
+			   "interface for this procedure", arg->sym->name,
+			   sym->name, &sym->declared_at);
+		break;
+	      }
+	    /* F2003, 12.3.1.1 (2b); F2008, 12.4.2.2 (2b)  */
+	    else if (arg->sym && arg->sym->as
+		     && arg->sym->as->type == AS_ASSUMED_SHAPE)
 	      {
 		gfc_error ("Procedure '%s' at %L with assumed-shape dummy "
-			   "'%s' argument must have an explicit interface",
+			   "argument '%s' must have an explicit interface",
 			   sym->name, &sym->declared_at, arg->sym->name);
 		break;
 	      }
-	    else if (arg->sym && arg->sym->attr.optional)
+	    /* F2008, 12.4.2.2 (2c)  */
+	    else if (arg->sym->attr.codimension)
 	      {
-		gfc_error ("Procedure '%s' at %L with optional dummy argument "
+		gfc_error ("Procedure '%s' at %L with coarray dummy argument "
 			   "'%s' must have an explicit interface",
 			   sym->name, &sym->declared_at, arg->sym->name);
 		break;
 	      }
+	    /* F2003, 12.3.1.1 (2c); F2008, 12.4.2.2 (2d)   */
+	    else if (false) /* TODO: is a parametrized derived type  */
+	      {
+		gfc_error ("Procedure '%s' at %L with parametrized derived "
+			   "type argument '%s' must have an explicit "
+			   "interface", sym->name, &sym->declared_at,
+			   arg->sym->name);
+		break;
+	      }
+	    /* F2003, 12.3.1.1 (2d); F2008, 12.4.2.2 (2e)   */
+	    else if (arg->sym->ts.type == BT_CLASS)
+	      {
+		gfc_error ("Procedure '%s' at %L with polymorphic dummy "
+			   "argument '%s' must have an explicit interface",
+			   sym->name, &sym->declared_at, arg->sym->name);
+		break;
+	      }
+	}
+
+      if (gsym->ns->proc_name->attr.function)
+	{
+	  /* F2003, 12.3.1.1 (3a); F2008, 12.4.2.2 (3a) */
+	  if (gsym->ns->proc_name->as
+	      && gsym->ns->proc_name->as->rank
+	      && (!sym->as || sym->as->rank != gsym->ns->proc_name->as->rank))
+	    gfc_error ("The reference to function '%s' at %L either needs an "
+		       "explicit INTERFACE or the rank is incorrect", sym->name,
+		       where);
+
+	  /* F2003, 12.3.1.1 (3b); F2008, 12.4.2.2 (3b) */
+	  if (gsym->ns->proc_name->result->attr.pointer
+	      || gsym->ns->proc_name->result->attr.allocatable)
+	    gfc_error ("Function '%s' at %L with a POINTER or ALLOCATABLE "
+		       "result must have an explicit interface", sym->name,
+		       where);
+
+	  /* F2003, 12.3.1.1 (3c); F2008, 12.4.2.2 (3c)  */
+	  if (sym->ts.type == BT_CHARACTER
+	      && gsym->ns->proc_name->ts.u.cl->length != NULL)
+	    {
+	      gfc_charlen *cl = sym->ts.u.cl;
+
+	      if (!sym->attr.entry_master && sym->attr.if_source == IFSRC_UNKNOWN
+		  && cl && cl->length && cl->length->expr_type != EXPR_CONSTANT)
+		{
+		  gfc_error ("Nonconstant character-length function '%s' at %L "
+			     "must have an explicit interface", sym->name,
+			     &sym->declared_at);
+		}
+	    }
+	}
+
+      /* F2003, 12.3.1.1 (4); F2008, 12.4.2.2 (4) */
+      if (gsym->ns->proc_name->attr.elemental)
+	{
+	  gfc_error ("ELEMENTAL procedure '%s' at %L must have an explicit "
+		     "interface", sym->name, &sym->declared_at);
+	}
+
+      /* F2003, 12.3.1.1 (5); F2008, 12.4.2.2 (5) */
+      if (gsym->ns->proc_name->attr.is_bind_c)
+	{
+	  gfc_error ("Procedure '%s' at %L with BIND(C) attribute must have "
+		     "an explicit interface", sym->name, &sym->declared_at);
 	}
 
       if (gfc_option.flag_whole_file == 1
@@ -3615,11 +3674,11 @@ resolve_operator (gfc_expr *e)
 	      e->rank = op1->rank;
 	      if (e->shape == NULL)
 		{
-		  t = compare_shapes(op1, op2);
+		  t = compare_shapes (op1, op2);
 		  if (t == FAILURE)
 		    e->shape = NULL;
 		  else
-		e->shape = gfc_copy_shape (op1->shape, op1->rank);
+		    e->shape = gfc_copy_shape (op1->shape, op1->rank);
 		}
 	    }
 	  else
@@ -5415,6 +5474,9 @@ resolve_typebound_function (gfc_expr* e)
   if (st == NULL)
     return resolve_compcall (e, NULL);
 
+  if (resolve_ref (e) == FAILURE)
+    return FAILURE;
+
   /* Get the CLASS declared type.  */
   declared = get_declared_from_expr (&class_ref, &new_ref, e);
 
@@ -5486,6 +5548,9 @@ resolve_typebound_subroutine (gfc_code *code)
   st = code->expr1->symtree;
   if (st == NULL)
     return resolve_typebound_call (code, NULL);
+
+  if (resolve_ref (code->expr1) == FAILURE)
+    return FAILURE;
 
   /* Get the CLASS declared type.  */
   declared = get_declared_from_expr (&class_ref, &new_ref, code->expr1);
@@ -6065,6 +6130,7 @@ resolve_deallocate_expr (gfc_expr *e)
     bad:
       gfc_error ("Allocate-object at %L must be ALLOCATABLE or a POINTER",
 		 &e->where);
+      return FAILURE;
     }
 
   if (check_intent_in && sym->attr.intent == INTENT_IN)
@@ -6139,8 +6205,11 @@ gfc_expr_to_initialize (gfc_expr *e)
 static gfc_try
 conformable_arrays (gfc_expr *e1, gfc_expr *e2)
 {
+  gfc_ref *tail;
+  for (tail = e2->ref; tail && tail->next; tail = tail->next);
+  
   /* First compare rank.  */
-  if (e2->ref && e1->rank != e2->ref->u.ar.as->rank)
+  if (tail && e1->rank != tail->u.ar.as->rank)
     {
       gfc_error ("Source-expr at %L must be scalar or have the "
 		 "same rank as the allocate-object at %L",
@@ -6157,15 +6226,15 @@ conformable_arrays (gfc_expr *e1, gfc_expr *e2)
 
       for (i = 0; i < e1->rank; i++)
 	{
-	  if (e2->ref->u.ar.end[i])
+	  if (tail->u.ar.end[i])
 	    {
-	      mpz_set (s, e2->ref->u.ar.end[i]->value.integer);
-	      mpz_sub (s, s, e2->ref->u.ar.start[i]->value.integer);
+	      mpz_set (s, tail->u.ar.end[i]->value.integer);
+	      mpz_sub (s, s, tail->u.ar.start[i]->value.integer);
 	      mpz_add_ui (s, s, 1);
 	    }
 	  else
 	    {
-	      mpz_set (s, e2->ref->u.ar.start[i]->value.integer);
+	      mpz_set (s, tail->u.ar.start[i]->value.integer);
 	    }
 
 	  if (mpz_cmp (e1->shape[i], s) != 0)
@@ -6196,7 +6265,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
   symbol_attribute attr;
   gfc_ref *ref, *ref2;
   gfc_array_ref *ar;
-  gfc_symbol *sym;
+  gfc_symbol *sym = NULL;
   gfc_alloc *a;
   gfc_component *c;
   gfc_expr *init_e;
@@ -7151,7 +7220,7 @@ resolve_select_type (gfc_code *code)
   gfc_namespace *ns;
   int error = 0;
 
-  ns = code->ext.ns;
+  ns = code->ext.block.ns;
   gfc_resolve (ns);
 
   /* Check for F03:C813.  */
@@ -7238,6 +7307,7 @@ resolve_select_type (gfc_code *code)
   else
     ns->code->next = new_st;
   code->op = EXEC_BLOCK;
+  code->ext.block.assoc = NULL;
   code->expr1 = code->expr2 =  NULL;
   code->block = NULL;
 
@@ -7981,10 +8051,11 @@ gfc_resolve_forall (gfc_code *code, gfc_namespace *ns, int forall_save)
 static void
 resolve_block_construct (gfc_code* code)
 {
-  /* Eventually, we may want to do some checks here or handle special stuff.
-     But so far the only thing we can do is resolving the local namespace.  */
+  /* For an ASSOCIATE block, the associations (and their targets) are already
+     resolved during gfc_resolve_symbol.  */
 
-  gfc_resolve (code->ext.ns);
+  /* Resolve the BLOCK's namespace.  */
+  gfc_resolve (code->ext.block.ns);
 }
 
 
@@ -8305,7 +8376,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	      gfc_resolve_omp_do_blocks (code, ns);
 	      break;
 	    case EXEC_SELECT_TYPE:
-	      gfc_current_ns = code->ext.ns;
+	      gfc_current_ns = code->ext.block.ns;
 	      gfc_resolve_blocks (code->block, gfc_current_ns);
 	      gfc_current_ns = ns;
 	      break;
@@ -8469,7 +8540,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	  break;
 
 	case EXEC_BLOCK:
-	  gfc_resolve (code->ext.ns);
+	  gfc_resolve (code->ext.block.ns);
 	  break;
 
 	case EXEC_DO:
@@ -11311,6 +11382,19 @@ resolve_symbol (gfc_symbol *sym)
 	}
     }
 
+  if (sym->attr.is_protected && !sym->attr.proc_pointer
+      && (sym->attr.procedure || sym->attr.external))
+    {
+      if (sym->attr.external)
+	gfc_error ("PROTECTED attribute conflicts with EXTERNAL attribute "
+	           "at %L", &sym->declared_at);
+      else
+	gfc_error ("PROCEDURE attribute conflicts with PROTECTED attribute "
+	           "at %L", &sym->declared_at);
+
+      return;
+    }
+
   if (sym->attr.flavor == FL_DERIVED && resolve_fl_derived (sym) == FAILURE)
     return;
 
@@ -11321,13 +11405,24 @@ resolve_symbol (gfc_symbol *sym)
      can.  */
   mp_flag = (sym->result != NULL && sym->result != sym);
 
-
   /* Make sure that the intrinsic is consistent with its internal 
      representation. This needs to be done before assigning a default 
      type to avoid spurious warnings.  */
   if (sym->attr.flavor != FL_MODULE && sym->attr.intrinsic
       && resolve_intrinsic (sym, &sym->declared_at) == FAILURE)
     return;
+
+  /* For associate names, resolve corresponding expression and make sure
+     they get their type-spec set this way.  */
+  if (sym->assoc)
+    {
+      gcc_assert (sym->attr.flavor == FL_VARIABLE);
+      if (gfc_resolve_expr (sym->assoc->target) != SUCCESS)
+	return;
+
+      sym->ts = sym->assoc->target->ts;
+      gcc_assert (sym->ts.type != BT_UNKNOWN);
+    }
 
   /* Assign default type to symbols that need one and don't have one.  */
   if (sym->ts.type == BT_UNKNOWN)

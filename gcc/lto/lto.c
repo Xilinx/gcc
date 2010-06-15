@@ -158,7 +158,7 @@ lto_read_in_decl_state (struct data_in *data_in, const uint32_t *data,
   for (i = 0; i < LTO_N_DECL_STREAMS; i++)
     {
       uint32_t size = *data++;
-      tree *decls = GGC_NEWVEC (tree, size);
+      tree *decls = ggc_alloc_vec_tree (size);
 
       for (j = 0; j < size; j++)
 	{
@@ -317,7 +317,7 @@ lto_resolution_read (FILE *resolution, lto_file *file)
       int t;
       unsigned index;
       char r_str[27];
-      enum ld_plugin_symbol_resolution r;
+      enum ld_plugin_symbol_resolution r = (enum ld_plugin_symbol_resolution) 0;
       unsigned int j;
       unsigned int lto_resolution_str_len =
 	sizeof (lto_resolution_str) / sizeof (char *);
@@ -364,7 +364,7 @@ lto_file_read (lto_file *file, FILE *resolution_file)
   
   resolutions = lto_resolution_read (resolution_file, file);
 
-  file_data = GGC_NEW (struct lto_file_decl_data);
+  file_data = ggc_alloc_lto_file_decl_data ();
   file_data->file_name = file->filename;
   file_data->section_hash_table = lto_obj_build_section_table (file);
   file_data->renaming_hash_table = lto_create_renaming_table ();
@@ -529,7 +529,7 @@ static GTY (()) VEC(ltrans_partition, gc) *ltrans_partitions;
 static ltrans_partition
 new_partition (const char *name)
 {
-  ltrans_partition part = GGC_NEW (struct ltrans_partition_def);
+  ltrans_partition part = ggc_alloc_ltrans_partition_def ();
   part->cgraph_set = cgraph_node_set_new ();
   part->varpool_set = varpool_node_set_new ();
   part->name = name;
@@ -1087,7 +1087,11 @@ lto_fixup_type (tree t, void *data)
       else
 	LTO_FIXUP_SUBTREE (TYPE_CONTEXT (t));
     }
-  LTO_REGISTER_TYPE_AND_FIXUP_SUBTREE (TYPE_CANONICAL (t));
+
+  /* TYPE_CANONICAL does not need to be fixed up, instead it should
+     always point to ourselves at this time as we never fixup
+     non-canonical ones.  */
+  gcc_assert (TYPE_CANONICAL (t) == t);
 
   /* The following re-creates proper variant lists while fixing up
      the variant leaders.  We do not stream TYPE_NEXT_VARIANT so the
@@ -1435,7 +1439,8 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
   timevar_push (TV_IPA_LTO_DECL_IO);
 
   /* Set the hooks so that all of the ipa passes can read in their data.  */
-  all_file_decl_data = GGC_CNEWVEC (struct lto_file_decl_data *, nfiles + 1);
+  all_file_decl_data
+    = ggc_alloc_cleared_vec_lto_file_decl_data_ptr (nfiles + 1);
   lto_set_in_hooks (all_file_decl_data, get_section_data, free_section_data);
 
   /* Read the resolution file.  */

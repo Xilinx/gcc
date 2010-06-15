@@ -350,8 +350,7 @@ getdecls (void)
 void
 pushlevel (int ignore ATTRIBUTE_UNUSED)
 {
-  struct binding_level *newlevel
-    = (struct binding_level *) ggc_alloc (sizeof (struct binding_level));
+  struct binding_level *newlevel = ggc_alloc_binding_level ();
 
   *newlevel = clear_binding_level;
 
@@ -754,10 +753,11 @@ gfc_init_builtin_functions (void)
   func_longdouble_longdoublep_longdoublep =
     build_function_type_list (void_type_node, ptype, ptype, NULL_TREE);
 
+/* Non-math builtins are defined manually, so they're not included here.  */
+#define OTHER_BUILTIN(ID,NAME,TYPE)
+
 #include "mathbuiltins.def"
 
-  /* We define these separately as the fortran versions have different
-     semantics (they return an integer type) */
   gfc_define_builtin ("__builtin_roundl", mfunc_longdouble[0], 
 		      BUILT_IN_ROUNDL, "roundl", true);
   gfc_define_builtin ("__builtin_round", mfunc_double[0], 

@@ -924,7 +924,7 @@ used to initialize the @code{machine} of that structure.
 
 @code{struct machine_function} structures are expected to be freed by GC@.
 Generally, any memory that they reference must be allocated by using
-@code{ggc_alloc}, including the structure itself.
+GC allocation, including the structure itself.
 @end deftypevar
 
 @node Storage Layout
@@ -4441,11 +4441,6 @@ aggregate data types, because these are returned in another way.  See
 @end deftypefn
 
 @defmac FUNCTION_VALUE (@var{valtype}, @var{func})
-This macro has been deprecated.  Use @code{TARGET_FUNCTION_VALUE} for
-a new target instead.
-@end defmac
-
-@defmac FUNCTION_OUTGOING_VALUE (@var{valtype}, @var{func})
 This macro has been deprecated.  Use @code{TARGET_FUNCTION_VALUE} for
 a new target instead.
 @end defmac

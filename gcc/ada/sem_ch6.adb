@@ -1074,9 +1074,13 @@ package body Sem_Ch6 is
          return;
       end if;
 
-      --  If error analyzing prefix, then set Any_Type as result and return
+      --  If there is an error analyzing the name (which may have been
+      --  rewritten if the original call was in prefix notation) then error
+      --  has been emitted already, mark node and return.
 
-      if Etype (P) = Any_Type then
+      if Error_Posted (N)
+        or else Etype (Name (N)) = Any_Type
+      then
          Set_Etype (N, Any_Type);
          return;
       end if;
@@ -2026,10 +2030,13 @@ package body Sem_Ch6 is
          end if;
       end if;
 
-      --  Mark presence of postcondition proc in current scope
+      --  Mark presence of postcondition procedure in current scope and mark
+      --  the procedure itself as needing debug info. The latter is important
+      --  when analyzing decision coverage (for example, for MC/DC coverage).
 
       if Chars (Body_Id) = Name_uPostconditions then
          Set_Has_Postconditions (Current_Scope);
+         Set_Debug_Info_Needed (Body_Id);
       end if;
 
       --  Place subprogram on scope stack, and make formals visible. If there
@@ -2076,6 +2083,15 @@ package body Sem_Ch6 is
                                 Nkind (Unit_Declaration_Node
                                         (Corresponding_Body (Spec_Decl))) =
                                            N_Subprogram_Renaming_Declaration))
+            then
+               Conformant := True;
+
+            --  Conversely, the spec may have been generated for specless body
+            --  with an inline pragma.
+
+            elsif Comes_From_Source (N)
+              and then not Comes_From_Source (Spec_Id)
+              and then Has_Pragma_Inline (Spec_Id)
             then
                Conformant := True;
 
@@ -4404,8 +4420,24 @@ package body Sem_Ch6 is
          end;
       end if;
 
+      --  If there is an overridden subprogram, then check that there is not
+      --  a "not overriding" indicator, and mark the subprogram as overriding.
+      --  This is not done if the overridden subprogram is marked as hidden,
+      --  which can occur for the case of inherited controlled operations
+      --  (see Derive_Subprogram), unless the inherited subprogram's parent
+      --  subprogram is not itself hidden. (Note: This condition could probably
+      --  be simplified, leaving out the testing for the specific controlled
+      --  cases, but it seems safer and clearer this way, and echoes similar
+      --  special-case tests of this kind in other places.)
+
       if Present (Overridden_Subp)
-        and then not Is_Hidden (Overridden_Subp)
+        and then (not Is_Hidden (Overridden_Subp)
+                   or else
+                     ((Chars (Overridden_Subp) = Name_Initialize
+                         or else Chars (Overridden_Subp) = Name_Adjust
+                         or else Chars (Overridden_Subp) = Name_Finalize)
+                       and then Present (Alias (Overridden_Subp))
+                       and then not Is_Hidden (Alias (Overridden_Subp))))
       then
          if Must_Not_Override (Spec) then
             Error_Msg_Sloc := Sloc (Overridden_Subp);

@@ -543,8 +543,8 @@ package body Sem_Util is
                           and then Is_Constrained (Root_Type (T)))
            and then not Has_Unknown_Discriminants (T)
          then
-            --  If the type of the dereference is already constrained, it
-            --  is an actual subtype.
+            --  If the type of the dereference is already constrained, it is an
+            --  actual subtype.
 
             if Is_Array_Type (Etype (N))
               and then Is_Constrained (Etype (N))
@@ -7045,6 +7045,17 @@ package body Sem_Util is
         and then Get_Name_String (Chars (T)) = "valuetype";
    end Is_Value_Type;
 
+   ---------------------
+   -- Is_VMS_Operator --
+   ---------------------
+
+   function Is_VMS_Operator (Op : Entity_Id) return Boolean is
+   begin
+      return Ekind (Op) = E_Function
+        and then Is_Intrinsic_Subprogram (Op)
+        and then Scope (Op) = System_Aux_Id;
+   end Is_VMS_Operator;
+
    -----------------
    -- Is_Delegate --
    -----------------
@@ -10488,6 +10499,9 @@ package body Sem_Util is
                   Next_Entity (Ent);
                end loop;
             end;
+
+            --  For a class wide subtype, we also need debug information
+            --  for the equivalent type.
 
             if Ekind (T) = E_Class_Wide_Subtype then
                Set_Debug_Info_Needed_If_Not_Set (Equivalent_Type (T));
