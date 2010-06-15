@@ -206,9 +206,18 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
 
   if( sym->type == SYMBOL_PRIMARY )
     {
+      debug("tree primary!\n");
+      gcc_assert( sym->op_a_t == TYPE_INTEGER );
+
+      retval = make_signed_type( sym->op_a.integer );
     }
   else if( sym->type == SYMBOL_REFERENCE )
     {
+      gcc_assert( sym->op_a_t == TYPE_STRING );
+      debug("tree reference <%s>!\n", sym->op_a.string);
+
+      retval = get_identifier_with_length( sym->op_a.string,
+					   strlen(sym->op_a.string) );
     }
   else
     {
@@ -225,6 +234,10 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
 	{
 	case OP_ASSIGN_EVAL:
 	  res = gpy_process_assign( &opa, &opb );
+	  break;
+
+	case OP_BIN_ADDITION:
+	  res = gpy_process_bin_expression( &opa, &opb );
 	  break;
 
 	default:
@@ -272,9 +285,7 @@ void gpy_write_globals( void )
 {
   tree *vec;
   unsigned decl_len = VEC_length( gpy_sym, gpy_decls );
-  unsigned idx = 0; gpy_symbol_obj *it = NULL;
-
-  cgraph_finalize_compilation_unit( );
+  unsigned int idx = 0; gpy_symbol_obj *it = NULL;
 
   vec = XNEWVEC( tree, decl_len );
 
@@ -283,10 +294,14 @@ void gpy_write_globals( void )
     {
       debug("decl <%p>!\n", (void*)it );
       vec[ idx ] = gpy_get_tree( it );
+      debug("decl <%p> processed!\n", (void*)it );
     }
 
   wrapup_global_declarations( vec, decl_len );
-  check_global_declarations( vec, decl_len);
+
+  cgraph_finalize_compilation_unit( );
+
+  check_global_declarations( vec, decl_len );
   emit_debug_global_declarations( vec, decl_len );
 
   free( vec );

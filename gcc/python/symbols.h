@@ -39,6 +39,8 @@ typedef struct gpy_symbol_table_t gpy_symbol_obj;
 
 extern tree gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj ** );
 
+extern tree gpy_process_bin_expression( gpy_symbol_obj ** , gpy_symbol_obj ** );
+
 extern tree gpy_process_expression( const gpy_symbol_obj * const );
 
 extern tree gpy_get_tree( gpy_symbol_obj * );

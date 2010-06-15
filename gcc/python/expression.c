@@ -58,7 +58,15 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
       if( opb->type == SYMBOL_PRIMARY )
         {
 	  /* So we should have an x = 2 type expression! */
-	  retval = NULL;
+	  tree reference = gpy_process_expression( opa );
+	  tree initial_value = gpy_process_expression( opb );
+
+	  debug("building decl!\n");
+	  retval = build_decl( UNKNOWN_LOCATION, VAR_DECL, reference,
+			       integer_type_node );
+	  debug("whoop!\n");
+	  DECL_INITIAL( retval ) = initial_value;
+	  debug("built the decl!\n");
         }
       else
         {
@@ -69,5 +77,40 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
     {
       fatal_error("Invalid accessor for assignment <0x%x>!\n", opa->type );
     }
+  return retval;
+}
+
+tree gpy_process_bin_expression( gpy_symbol_obj ** op_a,
+				 gpy_symbol_obj ** op_b )
+{
+  gpy_symbol_obj *opa, *opb; tree retval = NULL;
+  if( op_a && op_b ) { opa= *op_a; opb= *op_b; }
+  else {
+    fatal_error("operands A or B are undefined!\n");
+    return NULL;
+  }
+
+  if( opa->type == SYMBOL_PRIMARY )
+    {
+      if( opb->type == SYMBOL_PRIMARY )
+        {
+	  tree t1 = gpy_process_expression( opa );
+          tree t2 = gpy_process_expression( opb );
+
+          retval = build2( PLUS_EXPR, t1, t2, TREE_TYPE(t1) );
+        }
+      else
+        {
+	  tree t1 = gpy_process_expression( opa );
+          tree t2 = gpy_process_expression( opb );
+
+          retval = build2( PLUS_EXPR, t1, t2, TREE_TYPE(t1) );
+        }
+    }
+  else
+    {
+      fatal_error("symbol undefined error!\n");
+    }
+
   return retval;
 }
