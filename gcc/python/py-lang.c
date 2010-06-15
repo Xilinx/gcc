@@ -90,9 +90,9 @@ bool gpy_langhook_init( void )
 
   set_sizetype( size_type_node );
   build_common_tree_nodes_2( 0 );
+
   /* build_common_builtin_nodes( ); */
 
-  /* I don't know why this is not done by any of the above.  */
   void_list_node = build_tree_list( NULL_TREE, void_type_node );
 
   debug("init!\n");
@@ -235,7 +235,7 @@ gpy_langhook_gimplify_expr( tree *expr_p ATTRIBUTE_UNUSED,
 tree convert( tree type ATTRIBUTE_UNUSED,
 	      tree expr ATTRIBUTE_UNUSED )
 {
-  gcc_unreachable ();
+  gcc_unreachable( );
   return NULL;
 }
 

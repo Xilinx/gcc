@@ -61,12 +61,10 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 	  tree reference = gpy_process_expression( opa );
 	  tree initial_value = gpy_process_expression( opb );
 
-	  debug("building decl!\n");
 	  retval = build_decl( UNKNOWN_LOCATION, VAR_DECL, reference,
 			       integer_type_node );
-	  debug("whoop!\n");
 	  DECL_INITIAL( retval ) = initial_value;
-	  debug("built the decl!\n");
+	  debug("built the decl <%p>!\n", (void*)retval );
         }
       else
         {

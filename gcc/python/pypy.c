@@ -209,15 +209,14 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
       debug("tree primary!\n");
       gcc_assert( sym->op_a_t == TYPE_INTEGER );
 
-      retval = make_signed_type( sym->op_a.integer );
+      retval = build_int_cst( integer_type_node, sym->op_a.integer );
     }
   else if( sym->type == SYMBOL_REFERENCE )
     {
       gcc_assert( sym->op_a_t == TYPE_STRING );
       debug("tree reference <%s>!\n", sym->op_a.string);
 
-      retval = get_identifier_with_length( sym->op_a.string,
-					   strlen(sym->op_a.string) );
+      retval = get_identifier( sym->op_a.string );
     }
   else
     {
@@ -249,6 +248,8 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
       else { fatal_error("error evaluating expression!\n"); }
     }
 
+  /* gpy_preserve_from_gc( retval ); */
+
   return retval;
 }
 
@@ -274,7 +275,6 @@ tree gpy_get_tree( gpy_symbol_obj * sym )
 	      break;
 	    }
 	}
-
       o = o->next;
     }
 
@@ -294,6 +294,7 @@ void gpy_write_globals( void )
     {
       debug("decl <%p>!\n", (void*)it );
       vec[ idx ] = gpy_get_tree( it );
+      debug("decl addr <%p>!\n", (void*) vec[idx] );
       debug("decl <%p> processed!\n", (void*)it );
     }
 
@@ -303,6 +304,8 @@ void gpy_write_globals( void )
 
   check_global_declarations( vec, decl_len );
   emit_debug_global_declarations( vec, decl_len );
+
+  debug("finished!\n");
 
   free( vec );
 }
