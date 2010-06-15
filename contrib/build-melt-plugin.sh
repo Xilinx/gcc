@@ -176,7 +176,7 @@ sanity_checks_gcc_info() {
 	| $GAWK '/^Target:/{printf " gcc_target=%s", $2}
                  /^Configured with.*--enable-plugins/{print " gcc_has_plugins=yes"}
                  /^gcc version/{printf " gcc_version=%s", $3}')
-    if [ $gcc_has_plugins != yes ]; then
+    if [ "$gcc_has_plugins" != yes ]; then
 	error_echo The GCC compiler $GCC does not have plugins enabled
     fi
     case $gcc_version in
@@ -215,7 +215,7 @@ get_gty_melt_header() {
 {print;}" < gtyp-input.list) > $gtypelist_file
 	verbose_echo Generated $(wc -l $gtypelist_file) lines in $gtypelist_file
 	# now generate the gt-melt-runtime.h file itself
-	if [ ! -x $GCC_BUILD_TREE/gcc/build/gengtype ] ; then
+	if [ ! -x "$GCC_BUILD_TREE/gcc/build/gengtype" ] ; then
 	    error_echo Missing or non-executable $GCC_BUILD_TREE/gcc/build/gengtype
 	fi
 	#

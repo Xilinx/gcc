@@ -1,4 +1,7 @@
 
+2010-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh: Protect every if test with double-quotes.
+
 2010-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh: Use warmelt not warmelt3.
 
