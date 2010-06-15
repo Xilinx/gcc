@@ -1,3 +1,8 @@
+2010-06-15  Aldy Hernandez  <aldyh@redhat.com>
+
+	* varasm.c (finish_tm_clone_pairs_1): Do not dump entry if the
+	original function is not needed.
+
 2010-06-14  Aldy Hernandez  <aldyh@redhat.com>
 
 	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Add support for
