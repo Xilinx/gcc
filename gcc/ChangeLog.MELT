@@ -1,4 +1,7 @@
 
+2010-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: added translatedebug mode.
+
 2010-06-16  Jeremie Salvucci  <jeremie.salvucci@free.fr>
         * melt-make.mk (warmelt*): Added dependencies on melt-predef.h.
 

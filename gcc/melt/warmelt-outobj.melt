@@ -3794,7 +3794,7 @@
 	   (:long failremovesrc 0)
 	   )
       (debug_msg basnam "translatetomodule_docmd basnam")
-      (debug_msg tmpsrcnam "translatetomodule_docmd basnam")
+      (debug_msg tmpsrcnam "translatetomodule_docmd tmpsrcnam")
       (compile_one_or_more_files inarg tmpsrcnam curenv)
       (generate_melt_module tmpsrcnam outnam)
       (code_chunk 
@@ -3815,6 +3815,60 @@
   :meltmode_fun translatetomodule_docmd
 )
 (install_melt_mode translatetomodule_mode)
+
+;;;;;;;;;;;;;;;;
+
+(defun translatedebug_docmd (cmd moduldata)
+  (message_dbg "starting translatedebug_docmd")
+  (debug_msg cmd "start translatedebug_docmd cmd")
+  (debug_msg moduldata "start translatedebug_docmd moduldata")
+  (let ( 
+	(parmodenv (parent_module_environment))
+	(curenv (if moduldata moduldata initial_environment))
+	(inarg (make_stringconst discr_string (melt_argument "arg")))
+	(outarg (make_stringconst discr_string (melt_argument "output")))
+	)
+    (debug_msg inarg "translatedebug_docmd inarg")
+    (debug_msg outarg "translatedebug_docmd outarg")
+    (debug_msg parmodenv "before read translatedebug_docmd parmodenv")
+    (debug_msg initial_environment "before read translatedebug_docmd initial_environment")
+    (assert_msg "check curenv" (is_a curenv class_environment))
+    (let ( (basnam (cond
+		    ( (is_string outarg) (make_string_nakedbasename discr_string outarg))
+		    ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
+		    (:else
+		     (errormsg_plain "invalid translatedebug mode")
+		     (return)
+		     )))
+	   (srcnam
+	    (let ( (srcnambuf (make_strbuf discr_strbuf)) )
+	      (add2sbuf_string srcnambuf basnam)
+	      (add2sbuf_strconst srcnambuf ".c")
+	      (strbuf2string discr_string srcnambuf)))
+	   (dbgmodulnam
+	    (or outarg
+		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
+		  (add2sbuf_string dbgnambuf basnam)
+		  (add2sbuf_strconst dbgnambuf ".n.so")
+		  (strbuf2string discr_string dbgnambuf))))
+	   )
+      (debug_msg basnam "translatedebug_docmd basnam")
+      (debug_msg srcnam "translatedebug_docmd srcnam")
+      (compile_one_or_more_files inarg srcnam curenv)
+      (debug_msg dbgmodulnam "translatedebug_docmd dbgmodulnam")
+      (generate_melt_module srcnam dbgmodulnam)
+      )))
+
+
+(definstance translatedebug_mode
+  class_melt_mode
+  :named_name '"translatedebug"
+  :meltmode_help '"MELT 'translatedebug' mode: ARGUMENT= input file;
+OUTPUT= generated module *.so, also *.c and no MELT line
+number. Useful for running gdb on the module."
+  :meltmode_fun translatedebug_docmd
+)
+(install_melt_mode translatedebug_mode)
 
 ;;;;;;;;;;;;;;;;
 ;;;;;
