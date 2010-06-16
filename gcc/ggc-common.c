@@ -1,6 +1,6 @@
 /* Simple garbage collection for the GNU compiler.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
-   Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "hashtab.h"
 #include "ggc.h"
+#include "ggc-internal.h"
 #include "toplev.h"
 #include "params.h"
 #include "hosthooks.h"
@@ -70,7 +71,6 @@ static int compare_ptr_data (const void *, const void *);
 static void relocate_ptrs (void *, void *);
 static void write_pch_globals (const struct ggc_root_tab * const *tab,
 			       struct traversal_state *state);
-static double ggc_rlimit_bound (double);
 
 /* Maintain global roots that are preserved during GC.  */
 
@@ -194,9 +194,9 @@ ggc_mark_roots (void)
 
 /* Allocate a block of memory, then clear it.  */
 void *
-ggc_alloc_cleared_stat (size_t size MEM_STAT_DECL)
+ggc_internal_cleared_alloc_stat (size_t size MEM_STAT_DECL)
 {
-  void *buf = ggc_alloc_stat (size PASS_MEM_STAT);
+  void *buf = ggc_internal_alloc_stat (size PASS_MEM_STAT);
   memset (buf, 0, size);
   return buf;
 }
@@ -209,7 +209,7 @@ ggc_realloc_stat (void *x, size_t size MEM_STAT_DECL)
   size_t old_size;
 
   if (x == NULL)
-    return ggc_alloc_stat (size PASS_MEM_STAT);
+    return ggc_internal_alloc_stat (size PASS_MEM_STAT);
 
   old_size = ggc_get_size (x);
 
@@ -231,7 +231,7 @@ ggc_realloc_stat (void *x, size_t size MEM_STAT_DECL)
       return x;
     }
 
-  r = ggc_alloc_stat (size PASS_MEM_STAT);
+  r = ggc_internal_alloc_stat (size PASS_MEM_STAT);
 
   /* Since ggc_get_size returns the size of the pool, not the size of the
      individually allocated object, we'd access parts of the old object
@@ -247,19 +247,30 @@ ggc_realloc_stat (void *x, size_t size MEM_STAT_DECL)
   return r;
 }
 
-/* Like ggc_alloc_cleared, but performs a multiplication.  */
 void *
-ggc_calloc (size_t s1, size_t s2)
+ggc_cleared_alloc_htab_ignore_args (size_t c ATTRIBUTE_UNUSED,
+				    size_t n ATTRIBUTE_UNUSED)
 {
-  return ggc_alloc_cleared (s1 * s2);
+  gcc_assert (c * n == sizeof (struct htab));
+  return ggc_alloc_cleared_htab ();
+}
+
+/* TODO: once we actually use type information in GGC, create a new tag
+   gt_gcc_ptr_array and use it for pointer arrays.  */
+void *
+ggc_cleared_alloc_ptr_array_two_args (size_t c, size_t n)
+{
+  gcc_assert (sizeof (PTR *) == n);
+  return ggc_internal_cleared_vec_alloc (sizeof (PTR *), c);
 }
 
 /* These are for splay_tree_new_ggc.  */
 void *
-ggc_splay_alloc (int sz, void *nl)
+ggc_splay_alloc (enum gt_types_enum obj_type ATTRIBUTE_UNUSED, int sz,
+		 void *nl)
 {
   gcc_assert (!nl);
-  return ggc_alloc (sz);
+  return ggc_internal_alloc (sz);
 }
 
 void
@@ -517,7 +528,7 @@ gt_pch_save (FILE *f)
 
   /* Prepare the objects for writing, determine addresses and such.  */
   state.f = f;
-  state.d = init_ggc_pch();
+  state.d = init_ggc_pch ();
   state.count = 0;
   htab_traverse (saving_htab, call_count, &state);
 
@@ -742,6 +753,8 @@ mmap_gt_pch_use_address (void *base, size_t size, int fd, size_t offset)
 }
 #endif /* HAVE_MMAP_FILE */
 
+#if !defined ENABLE_GC_CHECKING && !defined ENABLE_GC_ALWAYS_COLLECT
+
 /* Modify the bound based on rlimits.  */
 static double
 ggc_rlimit_bound (double limit)
@@ -776,7 +789,7 @@ ggc_rlimit_bound (double limit)
 }
 
 /* Heuristic to set a default for GGC_MIN_EXPAND.  */
-int
+static int
 ggc_min_expand_heuristic (void)
 {
   double min_expand = physmem_total();
@@ -795,7 +808,7 @@ ggc_min_expand_heuristic (void)
 }
 
 /* Heuristic to set a default for GGC_MIN_HEAPSIZE.  */
-int
+static int
 ggc_min_heapsize_heuristic (void)
 {
   double phys_kbytes = physmem_total();
@@ -824,7 +837,7 @@ ggc_min_heapsize_heuristic (void)
      the limit, whichever is larger.  If GCC does hit the data limit,
      compilation will fail, so this tries to be conservative.  */
   limit_kbytes = MAX (0, limit_kbytes - MAX (limit_kbytes / 4, 20 * 1024));
-  limit_kbytes = (limit_kbytes * 100) / (110 + ggc_min_expand_heuristic());
+  limit_kbytes = (limit_kbytes * 100) / (110 + ggc_min_expand_heuristic ());
   phys_kbytes = MIN (phys_kbytes, limit_kbytes);
 
   phys_kbytes = MAX (phys_kbytes, 4 * 1024);
@@ -832,13 +845,14 @@ ggc_min_heapsize_heuristic (void)
 
   return phys_kbytes;
 }
+#endif
 
 void
 init_ggc_heuristics (void)
 {
 #if !defined ENABLE_GC_CHECKING && !defined ENABLE_GC_ALWAYS_COLLECT
-  set_param_value ("ggc-min-expand", ggc_min_expand_heuristic());
-  set_param_value ("ggc-min-heapsize", ggc_min_heapsize_heuristic());
+  set_param_value ("ggc-min-expand", ggc_min_expand_heuristic ());
+  set_param_value ("ggc-min-heapsize", ggc_min_heapsize_heuristic ());
 #endif
 }
 
@@ -980,7 +994,13 @@ ggc_free_overhead (void *ptr)
 {
   PTR *slot = htab_find_slot_with_hash (ptr_hash, ptr, htab_hash_pointer (ptr),
 					NO_INSERT);
-  struct ptr_hash_entry *p = (struct ptr_hash_entry *) *slot;
+  struct ptr_hash_entry *p;
+  /* The pointer might be not found if a PCH read happened between allocation
+     and ggc_free () call.  FIXME: account memory properly in the presence of
+     PCH. */
+  if (!slot)
+      return;
+  p = (struct ptr_hash_entry *) *slot;
   p->loc->freed += p->size;
   htab_clear_slot (ptr_hash, slot);
   free (p);

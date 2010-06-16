@@ -38,7 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "hard-reg-set.h"
 #include "regs.h"
-#include "real.h"
 #include "output.h"
 #include "toplev.h"
 #include "hashtab.h"
@@ -315,13 +314,14 @@ get_emutls_init_templ_addr (tree decl)
   to = build_decl (DECL_SOURCE_LOCATION (decl),
 		   VAR_DECL, name, TREE_TYPE (decl));
   SET_DECL_ASSEMBLER_NAME (to, DECL_NAME (to));
-  DECL_TLS_MODEL (to) = TLS_MODEL_EMULATED;
+
   DECL_ARTIFICIAL (to) = 1;
   TREE_USED (to) = TREE_USED (decl);
   TREE_READONLY (to) = 1;
   DECL_IGNORED_P (to) = 1;
   DECL_CONTEXT (to) = DECL_CONTEXT (decl);
   DECL_SECTION_NAME (to) = DECL_SECTION_NAME (decl);
+  DECL_PRESERVE_P (to) = DECL_PRESERVE_P (decl);
 
   DECL_WEAK (to) = DECL_WEAK (decl);
   if (DECL_ONE_ONLY (decl))
@@ -334,6 +334,7 @@ get_emutls_init_templ_addr (tree decl)
   else
     TREE_STATIC (to) = 1;
 
+  DECL_VISIBILITY_SPECIFIED (to) = DECL_VISIBILITY_SPECIFIED (decl);
   DECL_INITIAL (to) = DECL_INITIAL (decl);
   DECL_INITIAL (decl) = NULL;
 
@@ -365,7 +366,7 @@ emutls_decl (tree decl)
   /* Note that we use the hash of the decl's name, rather than a hash
      of the decl's pointer.  In emutls_finish we iterate through the
      hash table, and we want this traversal to be predictable.  */
-  in.hash = htab_hash_string (IDENTIFIER_POINTER (name));
+  in.hash = IDENTIFIER_HASH_VALUE (name);
   in.base.from = decl;
   loc = htab_find_slot_with_hash (emutls_htab, &in, in.hash, INSERT);
   h = (struct tree_map *) *loc;
@@ -377,7 +378,7 @@ emutls_decl (tree decl)
 		       VAR_DECL, get_emutls_object_name (name),
 		       get_emutls_object_type ());
 
-      h = GGC_NEW (struct tree_map);
+      h = ggc_alloc_tree_map ();
       h->hash = in.hash;
       h->base.from = decl;
       h->to = to;
@@ -386,6 +387,8 @@ emutls_decl (tree decl)
       DECL_TLS_MODEL (to) = TLS_MODEL_EMULATED;
       DECL_ARTIFICIAL (to) = 1;
       DECL_IGNORED_P (to) = 1;
+      /* FIXME: work around PR44132.  */
+      DECL_PRESERVE_P (to) = 1;
       TREE_READONLY (to) = 0;
       SET_DECL_ASSEMBLER_NAME (to, DECL_NAME (to));
       if (DECL_ONE_ONLY (decl))
@@ -403,6 +406,8 @@ emutls_decl (tree decl)
 	int foo() { return i; }
 	__thread int i = 1;
      in which I goes from external to locally defined and initialized.  */
+  DECL_DLLIMPORT_P (to) = DECL_DLLIMPORT_P (decl);
+  DECL_ATTRIBUTES (to) = targetm.merge_decl_attributes (decl, to);
 
   TREE_STATIC (to) = TREE_STATIC (decl);
   TREE_USED (to) = TREE_USED (decl);
@@ -411,6 +416,10 @@ emutls_decl (tree decl)
   DECL_COMMON (to) = DECL_COMMON (decl);
   DECL_WEAK (to) = DECL_WEAK (decl);
   DECL_VISIBILITY (to) = DECL_VISIBILITY (decl);
+  DECL_VISIBILITY_SPECIFIED (to) = DECL_VISIBILITY_SPECIFIED (decl);
+  
+  /* Fortran might pass this to us.  */
+  DECL_RESTRICTED_P (to) = DECL_RESTRICTED_P (decl);
 
   return to;
 }
@@ -449,15 +458,38 @@ emutls_common_1 (void **loc, void *xstmts)
   return 1;
 }
 
+/* Callback to finalize one emutls control variable.  */
+
+static int
+emutls_finalize_control_var (void **loc, 
+				void *unused ATTRIBUTE_UNUSED)
+{
+  struct tree_map *h = *(struct tree_map **) loc;
+  if (h != NULL) 
+    {
+      struct varpool_node *node = varpool_node (h->to);
+      /* Because varpool_finalize_decl () has side-effects,
+         only apply to un-finalized vars.  */
+      if (node && !node->finalized) 
+	varpool_finalize_decl (h->to);
+    }
+  return 1;
+}
+
+/* Finalize emutls control vars and add a static constructor if
+   required.  */
+
 void
 emutls_finish (void)
 {
+  if (emutls_htab == NULL)
+    return;
+  htab_traverse_noresize (emutls_htab, 
+			  emutls_finalize_control_var, NULL);
+
   if (targetm.emutls.register_common)
     {
       tree body = NULL_TREE;
-
-      if (emutls_htab == NULL)
-	return;
 
       htab_traverse_noresize (emutls_htab, emutls_common_1, &body);
       if (body == NULL_TREE)
@@ -521,7 +553,7 @@ get_unnamed_section (unsigned int flags, void (*callback) (const void *),
 {
   section *sect;
 
-  sect = GGC_NEW (section);
+  sect = ggc_alloc_section ();
   sect->unnamed.common.flags = flags | SECTION_UNNAMED;
   sect->unnamed.callback = callback;
   sect->unnamed.data = data;
@@ -538,7 +570,7 @@ get_noswitch_section (unsigned int flags, noswitch_section_callback callback)
 {
   section *sect;
 
-  sect = GGC_NEW (section);
+  sect = ggc_alloc_section ();
   sect->noswitch.common.flags = flags | SECTION_NOSWITCH;
   sect->noswitch.callback = callback;
 
@@ -559,7 +591,7 @@ get_section (const char *name, unsigned int flags, tree decl)
   flags |= SECTION_NAMED;
   if (*slot == NULL)
     {
-      sect = GGC_NEW (section);
+      sect = ggc_alloc_section ();
       sect->named.common.flags = flags;
       sect->named.name = ggc_strdup (name);
       sect->named.decl = decl;
@@ -608,8 +640,7 @@ get_block_for_section (section *sect)
   block = (struct object_block *) *slot;
   if (block == NULL)
     {
-      block = (struct object_block *)
-	ggc_alloc_cleared (sizeof (struct object_block));
+      block = ggc_alloc_cleared_object_block ();
       block->sect = sect;
       *slot = block;
     }
@@ -629,7 +660,7 @@ create_block_symbol (const char *label, struct object_block *block,
 
   /* Create the extended SYMBOL_REF.  */
   size = RTX_HDR_SIZE + sizeof (struct block_symbol);
-  symbol = (rtx) ggc_alloc_zone (size, &rtl_zone);
+  symbol = ggc_alloc_zone_rtx_def (size, &rtl_zone);
 
   /* Initialize the normal SYMBOL_REF fields.  */
   memset (symbol, 0, size);
@@ -2430,9 +2461,9 @@ assemble_external_libcall (rtx fun)
 /* Assemble a label named NAME.  */
 
 void
-assemble_label (const char *name)
+assemble_label (FILE *file, const char *name)
 {
-  ASM_OUTPUT_LABEL (asm_out_file, name);
+  ASM_OUTPUT_LABEL (file, name);
 }
 
 /* Set the symbol_referenced flag for ID.  */
@@ -3292,7 +3323,7 @@ build_constant_desc (tree exp)
   int labelno;
   tree decl;
 
-  desc = GGC_NEW (struct constant_descriptor_tree);
+  desc = ggc_alloc_constant_descriptor_tree ();
   desc->value = copy_constant (exp);
 
   /* Propagate marked-ness to copied constant.  */
@@ -3444,12 +3475,7 @@ assemble_constant_contents (tree exp, const char *label, unsigned int align)
   size = get_constant_size (exp);
 
   /* Do any machine/system dependent processing of the constant.  */
-#ifdef ASM_DECLARE_CONSTANT_NAME
-  ASM_DECLARE_CONSTANT_NAME (asm_out_file, label, exp, size);
-#else
-  /* Standard thing is just output label for the constant.  */
-  ASM_OUTPUT_LABEL (asm_out_file, label);
-#endif /* ASM_DECLARE_CONSTANT_NAME */
+  targetm.asm_out.declare_constant_name (asm_out_file, label, exp, size);
 
   /* Output the value of EXP.  */
   output_constant (exp, size, align);
@@ -3692,7 +3718,7 @@ create_constant_pool (void)
 {
   struct rtx_constant_pool *pool;
 
-  pool = GGC_NEW (struct rtx_constant_pool);
+  pool = ggc_alloc_rtx_constant_pool ();
   pool->const_rtx_htab = htab_create_ggc (31, const_desc_rtx_hash,
 					  const_desc_rtx_eq, NULL);
   pool->first = NULL;
@@ -3758,7 +3784,7 @@ force_const_mem (enum machine_mode mode, rtx x)
     return copy_rtx (desc->mem);
 
   /* Otherwise, create a new descriptor.  */
-  desc = GGC_NEW (struct constant_descriptor_rtx);
+  desc = ggc_alloc_constant_descriptor_rtx ();
   *slot = desc;
 
   /* Align the location counter as required by EXP's data type.  */
@@ -5650,6 +5676,7 @@ find_decl_and_mark_needed (tree decl, tree target)
   else if (vnode)
     {
       varpool_mark_needed_node (vnode);
+      vnode->force_output = 1;
       return vnode->decl;
     }
   else
@@ -6865,6 +6892,17 @@ default_internal_label (FILE *stream, const char *prefix,
   char *const buf = (char *) alloca (40 + strlen (prefix));
   ASM_GENERATE_INTERNAL_LABEL (buf, prefix, labelno);
   ASM_OUTPUT_INTERNAL_LABEL (stream, buf);
+}
+
+
+/* The default implementation of ASM_DECLARE_CONSTANT_NAME.  */
+
+void
+default_asm_declare_constant_name (FILE *file, const char *name,
+				   const_tree exp ATTRIBUTE_UNUSED,
+				   HOST_WIDE_INT size ATTRIBUTE_UNUSED)
+{
+  assemble_label (file, name);
 }
 
 /* This is the default behavior at the beginning of a file.  It's

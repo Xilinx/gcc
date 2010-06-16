@@ -60,8 +60,7 @@ extern bool legitimate_pic_operand_p (rtx);
 extern int legitimate_pic_address_disp_p (rtx);
 
 extern void print_reg (rtx, int, FILE*);
-extern void print_operand (FILE*, rtx, int);
-extern void print_operand_address (FILE*, rtx);
+extern void ix86_print_operand (FILE *, rtx, int);
 extern bool output_addr_const_extra (FILE*, rtx);
 
 extern void split_di (rtx[], int, rtx[], rtx[]);
@@ -144,9 +143,6 @@ extern void ix86_free_from_memory (enum machine_mode);
 extern enum calling_abi ix86_cfun_abi (void);
 extern enum calling_abi ix86_function_type_abi (const_tree);
 extern void ix86_call_abi_override (const_tree);
-extern tree ix86_fn_abi_va_list (tree);
-extern tree ix86_canonical_va_list_type (tree);
-extern int ix86_enum_va_list (int, const char **, tree *);
 extern int ix86_reg_parm_stack_space (const_tree);
 
 extern void ix86_split_fp_branch (enum rtx_code code, rtx, rtx,
@@ -161,7 +157,6 @@ extern bool ix86_cannot_change_mode_class (enum machine_mode,
 					   enum machine_mode, enum reg_class);
 extern enum reg_class ix86_preferred_reload_class (rtx, enum reg_class);
 extern enum reg_class ix86_preferred_output_reload_class (rtx, enum reg_class);
-extern int ix86_memory_move_cost (enum machine_mode, enum reg_class, int);
 extern int ix86_mode_needed (int, rtx);
 extern void emit_i387_cw_initialization (int);
 extern void x86_order_regs_for_local_alloc (void);
@@ -190,9 +185,9 @@ extern void init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree);
 extern rtx function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
 extern void function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 				  tree, int);
-#endif
+#endif	/* TREE_CODE  */
 
-#endif
+#endif	/* RTX_CODE  */
 
 #ifdef TREE_CODE
 extern int ix86_return_pops_args (tree, tree, int);

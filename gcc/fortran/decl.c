@@ -5483,14 +5483,23 @@ gfc_match_end (gfc_statement *st)
   block_name = gfc_current_block () == NULL
 	     ? NULL : gfc_current_block ()->name;
 
-  if (state == COMP_BLOCK && !strcmp (block_name, "block@"))
-    block_name = NULL;
-
-  if (state == COMP_CONTAINS || state == COMP_DERIVED_CONTAINS)
+  switch (state)
     {
+    case COMP_ASSOCIATE:
+    case COMP_BLOCK:
+      if (!strcmp (block_name, "block@"))
+	block_name = NULL;
+      break;
+
+    case COMP_CONTAINS:
+    case COMP_DERIVED_CONTAINS:
       state = gfc_state_stack->previous->state;
       block_name = gfc_state_stack->previous->sym == NULL
 		 ? NULL : gfc_state_stack->previous->sym->name;
+      break;
+
+    default:
+      break;
     }
 
   switch (state)
@@ -5536,6 +5545,12 @@ gfc_match_end (gfc_statement *st)
     case COMP_DERIVED_CONTAINS:
       *st = ST_END_TYPE;
       target = " type";
+      eos_ok = 0;
+      break;
+
+    case COMP_ASSOCIATE:
+      *st = ST_END_ASSOCIATE;
+      target = " associate";
       eos_ok = 0;
       break;
 
@@ -5622,7 +5637,7 @@ gfc_match_end (gfc_statement *st)
 
       if (*st != ST_ENDDO && *st != ST_ENDIF && *st != ST_END_SELECT
 	  && *st != ST_END_FORALL && *st != ST_END_WHERE && *st != ST_END_BLOCK
-	  && *st != ST_END_CRITICAL)
+	  && *st != ST_END_ASSOCIATE && *st != ST_END_CRITICAL)
 	return MATCH_YES;
 
       if (!block_name)
@@ -5755,19 +5770,16 @@ attr_decl1 (void)
   /* Update symbol table.  DIMENSION attribute is set in
      gfc_set_array_spec().  For CLASS variables, this must be applied
      to the first component, or '$data' field.  */
-  if (sym->ts.type == BT_CLASS && sym->ts.u.derived)
+  if (sym->ts.type == BT_CLASS)
     {
-      gfc_component *comp;
-      comp = gfc_find_component (sym->ts.u.derived, "$data", true, true);
-      if (comp == NULL || gfc_copy_attr (&comp->attr, &current_attr,
-					 &var_locus) == FAILURE)
+      if (gfc_copy_attr (&CLASS_DATA (sym)->attr, &current_attr,&var_locus)
+	  == FAILURE)
 	{
 	  m = MATCH_ERROR;
 	  goto cleanup;
 	}
-      sym->attr.class_ok = (sym->attr.class_ok
-			      || current_attr.allocatable
-			      || current_attr.pointer);
+      sym->attr.class_ok = (sym->attr.class_ok || current_attr.allocatable
+			    || current_attr.pointer);
     }
   else
     {
@@ -7530,7 +7542,7 @@ match_procedure_in_type (void)
 {
   char name[GFC_MAX_SYMBOL_LEN + 1];
   char target_buf[GFC_MAX_SYMBOL_LEN + 1];
-  char* target = NULL;
+  char* target = NULL, *ifc = NULL;
   gfc_typebound_proc* tb;
   bool seen_colons;
   bool seen_attrs;
@@ -7538,6 +7550,7 @@ match_procedure_in_type (void)
   gfc_symtree* stree;
   gfc_namespace* ns;
   gfc_symbol* block;
+  int num;
 
   /* Check current state.  */
   gcc_assert (gfc_state_stack->state == COMP_DERIVED_CONTAINS);
@@ -7562,7 +7575,7 @@ match_procedure_in_type (void)
 	  return MATCH_ERROR;
 	}
 
-      target = target_buf;
+      ifc = target_buf;
     }
 
   /* Construct the data structure.  */
@@ -7576,14 +7589,13 @@ match_procedure_in_type (void)
     return m;
   seen_attrs = (m == MATCH_YES);
 
-  /* Check that attribute DEFERRED is given iff an interface is specified, which
-     means target != NULL.  */
-  if (tb->deferred && !target)
+  /* Check that attribute DEFERRED is given if an interface is specified.  */
+  if (tb->deferred && !ifc)
     {
       gfc_error ("Interface must be specified for DEFERRED binding at %C");
       return MATCH_ERROR;
     }
-  if (target && !tb->deferred)
+  if (ifc && !tb->deferred)
     {
       gfc_error ("PROCEDURE(interface) at %C should be declared DEFERRED");
       return MATCH_ERROR;
@@ -7600,97 +7612,102 @@ match_procedure_in_type (void)
       return MATCH_ERROR;
     }
 
-  /* Match the binding name.  */ 
-  m = gfc_match_name (name);
-  if (m == MATCH_ERROR)
-    return m;
-  if (m == MATCH_NO)
+  /* Match the binding names.  */ 
+  for(num=1;;num++)
     {
-      gfc_error ("Expected binding name at %C");
-      return MATCH_ERROR;
-    }
-
-  /* Try to match the '=> target', if it's there.  */
-  m = gfc_match (" =>");
-  if (m == MATCH_ERROR)
-    return m;
-  if (m == MATCH_YES)
-    {
-      if (tb->deferred)
-	{
-	  gfc_error ("'=> target' is invalid for DEFERRED binding at %C");
-	  return MATCH_ERROR;
-	}
-
-      if (!seen_colons)
-	{
-	  gfc_error ("'::' needed in PROCEDURE binding with explicit target"
-		     " at %C");
-	  return MATCH_ERROR;
-	}
-
-      m = gfc_match_name (target_buf);
+      m = gfc_match_name (name);
       if (m == MATCH_ERROR)
 	return m;
       if (m == MATCH_NO)
 	{
-	  gfc_error ("Expected binding target after '=>' at %C");
+	  gfc_error ("Expected binding name at %C");
 	  return MATCH_ERROR;
 	}
-      target = target_buf;
+
+      if (num>1 && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: PROCEDURE list"
+				   " at %C") == FAILURE)
+	return MATCH_ERROR;
+
+      /* Try to match the '=> target', if it's there.  */
+      target = ifc;
+      m = gfc_match (" =>");
+      if (m == MATCH_ERROR)
+	return m;
+      if (m == MATCH_YES)
+	{
+	  if (tb->deferred)
+	    {
+	      gfc_error ("'=> target' is invalid for DEFERRED binding at %C");
+	      return MATCH_ERROR;
+	    }
+
+	  if (!seen_colons)
+	    {
+	      gfc_error ("'::' needed in PROCEDURE binding with explicit target"
+			 " at %C");
+	      return MATCH_ERROR;
+	    }
+
+	  m = gfc_match_name (target_buf);
+	  if (m == MATCH_ERROR)
+	    return m;
+	  if (m == MATCH_NO)
+	    {
+	      gfc_error ("Expected binding target after '=>' at %C");
+	      return MATCH_ERROR;
+	    }
+	  target = target_buf;
+	}
+
+      /* If no target was found, it has the same name as the binding.  */
+      if (!target)
+	target = name;
+
+      /* Get the namespace to insert the symbols into.  */
+      ns = block->f2k_derived;
+      gcc_assert (ns);
+
+      /* If the binding is DEFERRED, check that the containing type is ABSTRACT.  */
+      if (tb->deferred && !block->attr.abstract)
+	{
+	  gfc_error ("Type '%s' containing DEFERRED binding at %C "
+		     "is not ABSTRACT", block->name);
+	  return MATCH_ERROR;
+	}
+
+      /* See if we already have a binding with this name in the symtree which
+	 would be an error.  If a GENERIC already targetted this binding, it may
+	 be already there but then typebound is still NULL.  */
+      stree = gfc_find_symtree (ns->tb_sym_root, name);
+      if (stree && stree->n.tb)
+	{
+	  gfc_error ("There is already a procedure with binding name '%s' for "
+		     "the derived type '%s' at %C", name, block->name);
+	  return MATCH_ERROR;
+	}
+
+      /* Insert it and set attributes.  */
+
+      if (!stree)
+	{
+	  stree = gfc_new_symtree (&ns->tb_sym_root, name);
+	  gcc_assert (stree);
+	}
+      stree->n.tb = tb;
+
+      if (gfc_get_sym_tree (target, gfc_current_ns, &tb->u.specific, false))
+	return MATCH_ERROR;
+      gfc_set_sym_referenced (tb->u.specific->n.sym);
+  
+      if (gfc_match_eos () == MATCH_YES)
+	return MATCH_YES;
+      if (gfc_match_char (',') != MATCH_YES)
+	goto syntax;
     }
 
-  /* Now we should have the end.  */
-  m = gfc_match_eos ();
-  if (m == MATCH_ERROR)
-    return m;
-  if (m == MATCH_NO)
-    {
-      gfc_error ("Junk after PROCEDURE declaration at %C");
-      return MATCH_ERROR;
-    }
-
-  /* If no target was found, it has the same name as the binding.  */
-  if (!target)
-    target = name;
-
-  /* Get the namespace to insert the symbols into.  */
-  ns = block->f2k_derived;
-  gcc_assert (ns);
-
-  /* If the binding is DEFERRED, check that the containing type is ABSTRACT.  */
-  if (tb->deferred && !block->attr.abstract)
-    {
-      gfc_error ("Type '%s' containing DEFERRED binding at %C is not ABSTRACT",
-		 block->name);
-      return MATCH_ERROR;
-    }
-
-  /* See if we already have a binding with this name in the symtree which would
-     be an error.  If a GENERIC already targetted this binding, it may be
-     already there but then typebound is still NULL.  */
-  stree = gfc_find_symtree (ns->tb_sym_root, name);
-  if (stree && stree->n.tb)
-    {
-      gfc_error ("There's already a procedure with binding name '%s' for the"
-		 " derived type '%s' at %C", name, block->name);
-      return MATCH_ERROR;
-    }
-
-  /* Insert it and set attributes.  */
-
-  if (!stree)
-    {
-      stree = gfc_new_symtree (&ns->tb_sym_root, name);
-      gcc_assert (stree);
-    }
-  stree->n.tb = tb;
-
-  if (gfc_get_sym_tree (target, gfc_current_ns, &tb->u.specific, false))
-    return MATCH_ERROR;
-  gfc_set_sym_referenced (tb->u.specific->n.sym);
-
-  return MATCH_YES;
+syntax:
+  gfc_error ("Syntax error in PROCEDURE statement at %C");
+  return MATCH_ERROR;
 }
 
 

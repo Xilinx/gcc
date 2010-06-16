@@ -111,6 +111,7 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 #define LANG_HOOKS_EH_PERSONALITY	lhd_gcc_personality
 #define LANG_HOOKS_EH_RUNTIME_TYPE	lhd_pass_through_t
 #define LANG_HOOKS_EH_USE_CXA_END_CLEANUP	false
+#define LANG_HOOKS_DEEP_UNSHARING	false
 
 /* Attribute hooks.  */
 #define LANG_HOOKS_ATTRIBUTE_TABLE		NULL
@@ -133,7 +134,6 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 
 /* Hooks for tree gimplification.  */
 #define LANG_HOOKS_GIMPLIFY_EXPR lhd_gimplify_expr
-#define LANG_HOOKS_FOLD_OBJ_TYPE_REF NULL
 
 /* Tree dump hooks.  */
 extern bool lhd_tree_dump_dump_tree (void *, tree);
@@ -202,6 +202,7 @@ extern tree lhd_make_node (enum tree_code);
 #define LANG_HOOKS_DECL_OK_FOR_SIBCALL	lhd_decl_ok_for_sibcall
 #define LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE hook_bool_const_tree_false
 #define LANG_HOOKS_OMP_PREDETERMINED_SHARING lhd_omp_predetermined_sharing
+#define LANG_HOOKS_OMP_REPORT_DECL lhd_pass_through_t
 #define LANG_HOOKS_OMP_DISREGARD_VALUE_EXPR hook_bool_tree_bool_false
 #define LANG_HOOKS_OMP_PRIVATE_DEBUG_CLAUSE hook_bool_tree_bool_false
 #define LANG_HOOKS_OMP_PRIVATE_OUTER_REF hook_bool_tree_false
@@ -224,6 +225,7 @@ extern tree lhd_make_node (enum tree_code);
   LANG_HOOKS_DECL_OK_FOR_SIBCALL, \
   LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE, \
   LANG_HOOKS_OMP_PREDETERMINED_SHARING, \
+  LANG_HOOKS_OMP_REPORT_DECL, \
   LANG_HOOKS_OMP_DISREGARD_VALUE_EXPR, \
   LANG_HOOKS_OMP_PRIVATE_DEBUG_CLAUSE, \
   LANG_HOOKS_OMP_PRIVATE_OUTER_REF, \
@@ -291,7 +293,6 @@ extern void lhd_end_section (void);
   LANG_HOOKS_GET_INNERMOST_GENERIC_ARGS, \
   LANG_HOOKS_FUNCTION_PARAMETER_PACK_P, \
   LANG_HOOKS_GIMPLIFY_EXPR, \
-  LANG_HOOKS_FOLD_OBJ_TYPE_REF, \
   LANG_HOOKS_BUILTIN_FUNCTION, \
   LANG_HOOKS_BUILTIN_FUNCTION_EXT_SCOPE, \
   LANG_HOOKS_INIT_TS,          \
@@ -299,6 +300,7 @@ extern void lhd_end_section (void);
   LANG_HOOKS_EH_PERSONALITY, \
   LANG_HOOKS_EH_RUNTIME_TYPE, \
   LANG_HOOKS_EH_USE_CXA_END_CLEANUP, \
+  LANG_HOOKS_DEEP_UNSHARING \
 }
 
 #endif /* GCC_LANG_HOOKS_DEF_H */

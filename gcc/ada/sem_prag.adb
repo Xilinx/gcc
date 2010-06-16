@@ -376,10 +376,6 @@ package body Sem_Prag is
       --  Any_Integer is OK). If not, given error and raise Pragma_Exit. If
       --  Typ is left Empty, then any static expression is allowed.
 
-      procedure Check_Arg_Is_String_Literal (Arg : Node_Id);
-      --  Check the specified argument Arg to make sure that it is a string
-      --  literal. If not give error and raise Pragma_Exit
-
       procedure Check_Arg_Is_Task_Dispatching_Policy (Arg : Node_Id);
       --  Check the specified argument Arg to make sure that it is a valid task
       --  dispatching policy name. If not give error and raise Pragma_Exit.
@@ -1014,19 +1010,6 @@ package body Sem_Prag is
          end if;
       end Check_Arg_Is_Static_Expression;
 
-      ---------------------------------
-      -- Check_Arg_Is_String_Literal --
-      ---------------------------------
-
-      procedure Check_Arg_Is_String_Literal (Arg : Node_Id) is
-         Argx : constant Node_Id := Get_Pragma_Arg (Arg);
-      begin
-         if Nkind (Argx) /= N_String_Literal then
-            Error_Pragma_Arg
-              ("argument for pragma% must be string literal", Argx);
-         end if;
-      end Check_Arg_Is_String_Literal;
-
       ------------------------------------------
       -- Check_Arg_Is_Task_Dispatching_Policy --
       ------------------------------------------
@@ -1154,14 +1137,6 @@ package body Sem_Prag is
          String_Val : constant String_Id := Strval (Nam);
 
       begin
-         --  We allow duplicated export names in CIL, as they are always
-         --  enclosed in a namespace that differentiates them, and overloaded
-         --  entities are supported by the VM.
-
-         if VM_Target = CLI_Target then
-            return;
-         end if;
-
          --  We are only interested in the export case, and in the case of
          --  generics, it is the instance, not the template, that is the
          --  problem (the template will generate a warning in any case).
@@ -2597,7 +2572,7 @@ package body Sem_Prag is
            and then Ekind (E) /= E_Variable
            and then not
              (Is_Access_Type (E)
-                and then Ekind (Designated_Type (E)) = E_Subprogram_Type)
+               and then Ekind (Designated_Type (E)) = E_Subprogram_Type)
          then
             Error_Pragma_Arg
               ("second argument of pragma% must be subprogram (type)",
@@ -2610,7 +2585,6 @@ package body Sem_Prag is
             Set_Convention_From_Pragma (E);
 
             if Is_Type (E) then
-
                Check_First_Subtype (Arg2);
                Set_Convention_From_Pragma (Base_Type (E));
 
@@ -4140,7 +4114,14 @@ package body Sem_Prag is
 
          Set_Encoded_Interface_Name
            (Get_Base_Subprogram (Subprogram_Def), Link_Nam);
-         Check_Duplicated_Export_Name (Link_Nam);
+
+         --  We allow duplicated export names in CIL, as they are always
+         --  enclosed in a namespace that differentiates them, and overloaded
+         --  entities are supported by the VM.
+
+         if Convention (Subprogram_Def) /= Convention_CIL then
+            Check_Duplicated_Export_Name (Link_Nam);
+         end if;
       end Process_Interface_Name;
 
       -----------------------------------------
@@ -5246,6 +5227,8 @@ package body Sem_Prag is
             GNAT_Pragma;
             Check_At_Least_N_Arguments (1);
             Check_Arg_Is_Identifier (Arg1);
+            Check_No_Identifiers;
+            Store_Note (N);
 
             declare
                Arg : Node_Id;
@@ -5788,8 +5771,13 @@ package body Sem_Prag is
             end if;
 
             Check_Arg_Is_Identifier (Arg1);
+
+            --  Indicate if pragma is enabled. The Original_Node reference here
+            --  is to deal with pragma Assert rewritten as a Check pragma.
+
             Check_On := Check_Enabled (Chars (Get_Pragma_Arg (Arg1)));
             Set_Pragma_Enabled (N, Check_On);
+            Set_Pragma_Enabled (Original_Node (N), Check_On);
 
             --  If expansion is active and the check is not enabled then we
             --  rewrite the Check as:
@@ -7575,6 +7563,7 @@ package body Sem_Prag is
             Check_Arg_Count (1);
             Check_No_Identifiers;
             Check_Arg_Is_Static_Expression (Arg1, Standard_String);
+            Store_Note (N);
 
             --  For pragma Ident, preserve DEC compatibility by requiring the
             --  pragma to appear in a declarative part or package spec.
@@ -11186,7 +11175,8 @@ package body Sem_Prag is
             GNAT_Pragma;
             Check_Arg_Count (1);
             Check_Optional_Identifier (Arg1, Name_Subtitle);
-            Check_Arg_Is_String_Literal (Arg1);
+            Check_Arg_Is_Static_Expression (Arg1, Standard_String);
+            Store_Note (N);
 
          --------------
          -- Suppress --
@@ -11564,10 +11554,11 @@ package body Sem_Prag is
          begin
             GNAT_Pragma;
             Gather_Associations (Names, Args);
+            Store_Note (N);
 
             for J in 1 .. 2 loop
                if Present (Args (J)) then
-                  Check_Arg_Is_String_Literal (Args (J));
+                  Check_Arg_Is_Static_Expression (Args (J), Standard_String);
                end if;
             end loop;
          end Title;

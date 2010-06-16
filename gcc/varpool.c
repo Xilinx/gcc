@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cgraph.h"
 #include "langhooks.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "hashtab.h"
 #include "ggc.h"
 #include "timevar.h"
@@ -117,7 +117,9 @@ varpool_get_node (tree decl)
     return NULL;
   key.decl = decl;
   slot = (struct varpool_node **)
-    htab_find_slot (varpool_hash, &key, INSERT);
+    htab_find_slot (varpool_hash, &key, NO_INSERT);
+  if (!slot)
+    return NULL;
   return *slot;
 }
 
@@ -137,7 +139,7 @@ varpool_node (tree decl)
     htab_find_slot (varpool_hash, &key, INSERT);
   if (*slot)
     return *slot;
-  node = GGC_CNEW (struct varpool_node);
+  node = ggc_alloc_cleared_varpool_node ();
   node->decl = decl;
   node->order = cgraph_order++;
   node->next = varpool_nodes;
@@ -167,7 +169,7 @@ varpool_remove_node (struct varpool_node *node)
     node->prev->next = node->next;
   else
     {
-      if (node->alias)
+      if (node->alias && node->extra_name)
 	{
           gcc_assert (node->extra_name->extra_name == node);
 	  node->extra_name->extra_name = node->next;
@@ -194,10 +196,21 @@ varpool_remove_node (struct varpool_node *node)
       gcc_assert (varpool_nodes_queue == node);
       varpool_nodes_queue = node->next_needed;
     }
+  if (node->same_comdat_group)
+    {
+      struct varpool_node *prev;
+      for (prev = node->same_comdat_group;
+	   prev->same_comdat_group != node;
+	   prev = prev->same_comdat_group)
+	;
+      if (node->same_comdat_group == prev)
+	prev->same_comdat_group = NULL;
+      else
+	prev->same_comdat_group = node->same_comdat_group;
+      node->same_comdat_group = NULL;
+    }
   ipa_remove_all_references (&node->ref_list);
   ipa_remove_all_refering (&node->ref_list);
-  if (DECL_INITIAL (node->decl))
-    DECL_INITIAL (node->decl) = error_mark_node;
   ggc_free (node);
 }
 
@@ -250,7 +263,7 @@ dump_varpool (FILE *f)
 
 /* Dump the variable pool to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_varpool (void)
 {
   dump_varpool (stderr);
@@ -302,7 +315,7 @@ varpool_mark_needed_node (struct varpool_node *node)
 }
 
 /* Reset the queue of needed nodes.  */
-static void
+void
 varpool_reset_queue (void)
 {
   varpool_last_needed_node = NULL;
@@ -321,13 +334,6 @@ decide_is_variable_needed (struct varpool_node *node, tree decl)
   /* If the user told us it is used, then it must be so.  */
   if ((node->externally_visible && !DECL_COMDAT (decl))
       || node->force_output)
-    return true;
-
-  /* ??? If the assembler name is set by hand, it is possible to assemble
-     the name later after finalizing the function and the fact is noticed
-     in assemble_name then.  This is arguably a bug.  */
-  if (DECL_ASSEMBLER_NAME_SET_P (decl)
-      && TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)))
     return true;
 
   /* Externally visible variables must be output.  The exception is
@@ -383,6 +389,8 @@ varpool_finalize_decl (tree decl)
   if (node->needed)
     varpool_enqueue_needed_node (node);
   node->finalized = true;
+  if (TREE_THIS_VOLATILE (decl) || DECL_PRESERVE_P (decl))
+    node->force_output = true;
 
   if (decide_is_variable_needed (node, decl))
     varpool_mark_needed_node (node);
@@ -423,8 +431,9 @@ varpool_analyze_pending_decls (void)
   timevar_push (TV_VARPOOL);
   while (varpool_first_unanalyzed_node)
     {
-      tree decl = varpool_first_unanalyzed_node->decl;
-      bool analyzed = varpool_first_unanalyzed_node->analyzed;
+      struct varpool_node *node = varpool_first_unanalyzed_node, *next;
+      tree decl = node->decl;
+      bool analyzed = node->analyzed;
 
       varpool_first_unanalyzed_node->analyzed = true;
 
@@ -442,6 +451,13 @@ varpool_analyze_pending_decls (void)
 	}
       if (DECL_INITIAL (decl))
 	record_references_in_initializer (decl, analyzed);
+      if (node->same_comdat_group)
+	{
+	  for (next = node->same_comdat_group;
+	       next != node;
+	       next = next->same_comdat_group)
+	    varpool_mark_needed_node (next);
+	}
       changed = true;
     }
   timevar_pop (TV_VARPOOL);
@@ -503,7 +519,7 @@ varpool_remove_unreferenced_decls (void)
 
   varpool_reset_queue ();
 
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return;
 
   while (node)
@@ -535,7 +551,7 @@ varpool_assemble_pending_decls (void)
 {
   bool changed = false;
 
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return false;
 
   timevar_push (TV_VAROUT);
@@ -635,7 +651,7 @@ varpool_extra_name_alias (tree alias, tree decl)
   if (*slot)
     return false;
 
-  alias_node = GGC_CNEW (struct varpool_node);
+  alias_node = ggc_alloc_cleared_varpool_node ();
   alias_node->decl = alias;
   alias_node->alias = 1;
   alias_node->extra_name = decl_node;

@@ -29,7 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "gimple.h"
 #include "tree-flow.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "bitmap.h"
 #include "vec.h"
 #include "lto-streamer.h"
@@ -178,6 +178,9 @@ lto_get_section_name (int section_type, const char *name)
     case LTO_section_opts:
       return concat (LTO_SECTION_NAME_PREFIX, ".opts", NULL);
 
+    case LTO_section_cgraph_opt_sum:
+      return concat (LTO_SECTION_NAME_PREFIX, ".cgraphopt", NULL);
+
     default:
       internal_error ("bytecode stream: unexpected LTO section %s", name);
     }
@@ -264,130 +267,6 @@ print_lto_report (void)
 }
 
 
-/* Create a new bitpack.  */
-
-struct bitpack_d *
-bitpack_create (void)
-{
-  return XCNEW (struct bitpack_d);
-}
-
-
-/* Free the memory used by bitpack BP.  */
-
-void
-bitpack_delete (struct bitpack_d *bp)
-{
-  VEC_free (bitpack_word_t, heap, bp->values);
-  free (bp);
-}
-
-
-/* Return an index to the word in bitpack BP that contains the
-   next NBITS.  */
-
-static inline unsigned
-bp_get_next_word (struct bitpack_d *bp, unsigned nbits)
-{
-  unsigned last, ix;
-
-  /* In principle, the next word to use is determined by the
-     number of bits already processed in BP.  */
-  ix = bp->num_bits / BITS_PER_BITPACK_WORD;
-
-  /* All the encoded bit patterns in BP are contiguous, therefore if
-     the next NBITS would straddle over two different words, move the
-     index to the next word and update the number of encoded bits
-     by adding up the hole of unused bits created by this move.  */
-  bp->first_unused_bit %= BITS_PER_BITPACK_WORD;
-  last = bp->first_unused_bit + nbits - 1;
-  if (last >= BITS_PER_BITPACK_WORD)
-    {
-      ix++;
-      bp->num_bits += (BITS_PER_BITPACK_WORD - bp->first_unused_bit);
-      bp->first_unused_bit = 0;
-    }
-
-  return ix;
-}
-
-
-/* Pack NBITS of value VAL into bitpack BP.  */
-
-void
-bp_pack_value (struct bitpack_d *bp, bitpack_word_t val, unsigned nbits)
-{
-  unsigned ix;
-  bitpack_word_t word;
-
-  /* We cannot encode more bits than BITS_PER_BITPACK_WORD.  */
-  gcc_assert (nbits > 0 && nbits <= BITS_PER_BITPACK_WORD);
-
-  /* Compute which word will contain the next NBITS.  */
-  ix = bp_get_next_word (bp, nbits);
-  if (ix >= VEC_length (bitpack_word_t, bp->values))
-    {
-      /* If there is no room left in the last word of the values
-	 array, add a new word.  Additionally, we should only
-	 need to add a single word, since every pack operation cannot
-	 use more bits than fit in a single word.  */
-      gcc_assert (ix < VEC_length (bitpack_word_t, bp->values) + 1);
-      VEC_safe_push (bitpack_word_t, heap, bp->values, 0);
-    }
-
-  /* Grab the last word to pack VAL into.  */
-  word = VEC_index (bitpack_word_t, bp->values, ix);
-
-  /* To fit VAL in WORD, we need to shift VAL to the left to
-     skip the bottom BP->FIRST_UNUSED_BIT bits.  */
-  gcc_assert (BITS_PER_BITPACK_WORD >= bp->first_unused_bit + nbits);
-  val <<= bp->first_unused_bit;
-
-  /* Update WORD with VAL.  */
-  word |= val;
-
-  /* Update BP.  */
-  VEC_replace (bitpack_word_t, bp->values, ix, word);
-  bp->num_bits += nbits;
-  bp->first_unused_bit += nbits;
-}
-
-
-/* Unpack the next NBITS from bitpack BP.  */
-
-bitpack_word_t
-bp_unpack_value (struct bitpack_d *bp, unsigned nbits)
-{
-  bitpack_word_t val, word, mask;
-  unsigned ix;
-
-  /* We cannot decode more bits than BITS_PER_BITPACK_WORD.  */
-  gcc_assert (nbits > 0 && nbits <= BITS_PER_BITPACK_WORD);
-
-  /* Compute which word contains the next NBITS.  */
-  ix = bp_get_next_word (bp, nbits);
-  word = VEC_index (bitpack_word_t, bp->values, ix);
-
-  /* Compute the mask to get NBITS from WORD.  */
-  mask = (nbits == BITS_PER_BITPACK_WORD)
-	 ? (bitpack_word_t) -1
-	 : ((bitpack_word_t) 1 << nbits) - 1;
-
-  /* Shift WORD to the right to skip over the bits already decoded
-     in word.  */
-  word >>= bp->first_unused_bit;
-
-  /* Apply the mask to obtain the requested value.  */
-  val = word & mask;
-
-  /* Update BP->NUM_BITS for the next unpack operation.  */
-  bp->num_bits += nbits;
-  bp->first_unused_bit += nbits;
-
-  return val;
-}
-
-
 /* Check that all the TS_* structures handled by the lto_output_* and
    lto_input_* routines are exactly ALL the structures defined in
    treestruct.def.  */
@@ -458,7 +337,7 @@ lto_streamer_cache_add_to_node_array (struct lto_streamer_cache_d *cache,
   if (ix >= (int) VEC_length (tree, cache->nodes))
     {
       size_t sz = ix + (20 + ix) / 4;
-      VEC_safe_grow_cleared (tree, gc, cache->nodes, sz);
+      VEC_safe_grow_cleared (tree, heap, cache->nodes, sz);
       VEC_safe_grow_cleared (unsigned, heap, cache->offsets, sz);
     }
 
@@ -654,7 +533,12 @@ lto_record_common_node (tree *nodep, VEC(tree, heap) **common_nodes,
     return;
 
   if (TYPE_P (node))
-    *nodep = node = gimple_register_type (node);
+    {
+      /* Type merging will get confused by the canonical types as they
+	 are set by the middle-end.  */
+      TYPE_CANONICAL (node) = NULL_TREE;
+      *nodep = node = gimple_register_type (node);
+    }
 
   /* Return if node is already seen.  */
   if (pointer_set_insert (seen_nodes, node))
@@ -790,7 +674,7 @@ lto_streamer_cache_delete (struct lto_streamer_cache_d *c)
 
   htab_delete (c->node_map);
   free_alloc_pool (c->node_map_entries);
-  VEC_free (tree, gc, c->nodes);
+  VEC_free (tree, heap, c->nodes);
   VEC_free (unsigned, heap, c->offsets);
   free (c);
 }
@@ -845,7 +729,7 @@ gate_lto_out (void)
 {
   return ((flag_generate_lto || in_lto_p)
 	  /* Don't bother doing anything if the program has errors.  */
-	  && !(errorcount || sorrycount));
+	  && !seen_error ());
 }
 
 

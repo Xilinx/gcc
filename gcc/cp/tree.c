@@ -27,17 +27,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cp-tree.h"
 #include "flags.h"
-#include "real.h"
-#include "rtl.h"
 #include "toplev.h"
-#include "insn-config.h"
-#include "integrate.h"
 #include "tree-inline.h"
 #include "debug.h"
-#include "target.h"
 #include "convert.h"
 #include "tree-flow.h"
 #include "cgraph.h"
+#include "splay-tree.h"
 
 static tree bot_manip (tree *, int *, void *);
 static tree bot_replace (tree *, int *, void *);
@@ -422,6 +418,7 @@ build_aggr_init_expr (tree type, tree init)
 				      AGGR_INIT_EXPR_ARGP (init));
       TREE_SIDE_EFFECTS (rval) = 1;
       AGGR_INIT_VIA_CTOR_P (rval) = is_ctor;
+      TREE_NOTHROW (rval) = TREE_NOTHROW (init);
     }
   else
     rval = init;
@@ -865,14 +862,21 @@ cp_build_qualified_type_real (tree type,
     }
 
   /* A reference or method type shall not be cv-qualified.
-     [dcl.ref], [dcl.fct]  */
+     [dcl.ref], [dcl.fct].  This used to be an error, but as of DR 295
+     (in CD1) we always ignore extra cv-quals on functions.  */
   if (type_quals & (TYPE_QUAL_CONST | TYPE_QUAL_VOLATILE)
       && (TREE_CODE (type) == REFERENCE_TYPE
+	  || TREE_CODE (type) == FUNCTION_TYPE
 	  || TREE_CODE (type) == METHOD_TYPE))
     {
-      bad_quals |= type_quals & (TYPE_QUAL_CONST | TYPE_QUAL_VOLATILE);
+      if (TREE_CODE (type) == REFERENCE_TYPE)
+	bad_quals |= type_quals & (TYPE_QUAL_CONST | TYPE_QUAL_VOLATILE);
       type_quals &= ~(TYPE_QUAL_CONST | TYPE_QUAL_VOLATILE);
     }
+
+  /* But preserve any function-cv-quals on a FUNCTION_TYPE.  */
+  if (TREE_CODE (type) == FUNCTION_TYPE)
+    type_quals |= type_memfn_quals (type);
 
   /* A restrict-qualified type must be a pointer (or reference)
      to object or incomplete type. */
@@ -885,24 +889,16 @@ cp_build_qualified_type_real (tree type,
       type_quals &= ~TYPE_QUAL_RESTRICT;
     }
 
-  if (bad_quals == TYPE_UNQUALIFIED)
+  if (bad_quals == TYPE_UNQUALIFIED
+      || (complain & tf_ignore_bad_quals))
     /*OK*/;
-  else if (!(complain & (tf_error | tf_ignore_bad_quals)))
+  else if (!(complain & tf_error))
     return error_mark_node;
   else
     {
-      if (complain & tf_ignore_bad_quals)
-	/* We're not going to warn about constifying things that can't
-	   be constified.  */
-	bad_quals &= ~TYPE_QUAL_CONST;
-      if (bad_quals)
-	{
-	  tree bad_type = build_qualified_type (ptr_type_node, bad_quals);
-
-	  if (!(complain & tf_ignore_bad_quals))
-	    error ("%qV qualifiers cannot be applied to %qT",
-		   bad_type, type);
-	}
+      tree bad_type = build_qualified_type (ptr_type_node, bad_quals);
+      error ("%qV qualifiers cannot be applied to %qT",
+	     bad_type, type);
     }
 
   /* Retrieve (or create) the appropriately qualified variant.  */
@@ -941,7 +937,7 @@ cv_unqualified (tree type)
   if (type == error_mark_node)
     return type;
 
-  quals = TYPE_QUALS (type);
+  quals = cp_type_quals (type);
   quals &= ~(TYPE_QUAL_CONST|TYPE_QUAL_VOLATILE);
   return cp_build_qualified_type (type, quals);
 }
@@ -1038,8 +1034,11 @@ strip_typedefs (tree t)
 					  TREE_CHAIN (arg_types));
 	  }
 	else
+	  {
 	    result = build_function_type (type,
 					  arg_types);
+	    result = apply_memfn_quals (result, type_memfn_quals (t));
+	  }
 
 	if (TYPE_RAISES_EXCEPTIONS (t))
 	  result = build_exception_variant (result,
@@ -1055,14 +1054,6 @@ strip_typedefs (tree t)
   if (TYPE_ATTRIBUTES (t))
     result = cp_build_type_attribute_variant (result, TYPE_ATTRIBUTES (t));
   return cp_build_qualified_type (result, cp_type_quals (t));
-}
-
-/* Returns true iff TYPE is a type variant created for a typedef. */
-
-bool
-typedef_variant_p (tree type)
-{
-  return is_typedef_decl (TYPE_NAME (type));
 }
 
 /* Setup a TYPE_DECL node as a typedef representation.
@@ -1468,12 +1459,16 @@ cxx_printable_name_translate (tree decl, int v)
 tree
 build_exception_variant (tree type, tree raises)
 {
-  tree v = TYPE_MAIN_VARIANT (type);
-  int type_quals = TYPE_QUALS (type);
+  tree v;
+  int type_quals;
 
-  for (; v; v = TYPE_NEXT_VARIANT (v))
+  if (comp_except_specs (raises, TYPE_RAISES_EXCEPTIONS (type), ce_exact))
+    return type;
+
+  type_quals = TYPE_QUALS (type);
+  for (v = TYPE_MAIN_VARIANT (type); v; v = TYPE_NEXT_VARIANT (v))
     if (check_qualified_type (v, type, type_quals)
-	&& comp_except_specs (raises, TYPE_RAISES_EXCEPTIONS (v), 1))
+	&& comp_except_specs (raises, TYPE_RAISES_EXCEPTIONS (v), ce_exact))
       return v;
 
   /* Need to build a new variant.  */
@@ -1905,9 +1900,9 @@ build_min_non_dep (enum tree_code code, tree non_dep, ...)
   return t;
 }
 
-/* Similar to `build_call_list', but for template definitions of non-dependent
-   expressions. NON_DEP is the non-dependent expression that has been
-   built.  */
+/* Similar to `build_nt_call_vec', but for template definitions of
+   non-dependent expressions. NON_DEP is the non-dependent expression
+   that has been built.  */
 
 tree
 build_min_non_dep_call_vec (tree non_dep, tree fn, VEC(tree,gc) *argvec)
@@ -2646,10 +2641,8 @@ cp_build_type_attribute_variant (tree type, tree attributes)
   tree new_type;
 
   new_type = build_type_attribute_variant (type, attributes);
-  if ((TREE_CODE (new_type) == FUNCTION_TYPE
-       || TREE_CODE (new_type) == METHOD_TYPE)
-      && (TYPE_RAISES_EXCEPTIONS (new_type)
-	  != TYPE_RAISES_EXCEPTIONS (type)))
+  if (TREE_CODE (new_type) == FUNCTION_TYPE
+      || TREE_CODE (new_type) == METHOD_TYPE)
     new_type = build_exception_variant (new_type,
 					TYPE_RAISES_EXCEPTIONS (type));
 
@@ -2670,7 +2663,7 @@ cxx_type_hash_eq (const_tree typea, const_tree typeb)
   gcc_assert (TREE_CODE (typea) == FUNCTION_TYPE);
 
   return comp_except_specs (TYPE_RAISES_EXCEPTIONS (typea),
-			    TYPE_RAISES_EXCEPTIONS (typeb), 1);
+			    TYPE_RAISES_EXCEPTIONS (typeb), ce_exact);
 }
 
 /* Apply FUNC to all language-specific sub-trees of TP in a pre-order
@@ -3199,6 +3192,16 @@ cp_free_lang_data (tree t)
 	  && ANON_AGGRNAME_P (name))
 	TYPE_NAME (t) = NULL_TREE;
     }
+}
+
+/* Stub for c-common.  Please keep in sync with c-decl.c.
+   FIXME: If address space support is target specific, then this
+   should be a C target hook.  But currently this is not possible,
+   because this function is called via REGISTER_TARGET_PRAGMAS.  */
+void
+c_register_addr_space (const char *word ATTRIBUTE_UNUSED,
+		       addr_space_t as ATTRIBUTE_UNUSED)
+{
 }
 
 

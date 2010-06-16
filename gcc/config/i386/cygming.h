@@ -42,6 +42,18 @@ along with GCC; see the file COPYING3.  If not see
 #if ! defined (USE_MINGW64_LEADING_UNDERSCORES)
 #undef USER_LABEL_PREFIX
 #define USER_LABEL_PREFIX (TARGET_64BIT ? "" : "_")
+
+#undef LOCAL_LABEL_PREFIX
+#define LOCAL_LABEL_PREFIX (TARGET_64BIT ? "." : "")
+
+#undef ASM_GENERATE_INTERNAL_LABEL
+#define ASM_GENERATE_INTERNAL_LABEL(BUF,PREFIX,NUMBER)  \
+  sprintf ((BUF), "*%s%s%ld", LOCAL_LABEL_PREFIX, \
+	   (PREFIX), (long)(NUMBER))
+
+#undef LPREFIX
+#define LPREFIX (TARGET_64BIT ? ".L" : "L")
+
 #endif
 
 #undef DBX_REGISTER_NUMBER
@@ -152,7 +164,15 @@ union tree_node;
 #undef  SUBTARGET_OVERRIDE_OPTIONS
 #define SUBTARGET_OVERRIDE_OPTIONS					\
 do {									\
-  if (flag_pic)								\
+  if (TARGET_64BIT && flag_pic != 1)					\
+    {									\
+      if (flag_pic > 1)							\
+        warning (0,							\
+	         "-fPIC ignored for target (all code is position independent)"\
+                 );                         				\
+      flag_pic = 1;							\
+    }									\
+  else if (!TARGET_64BIT && flag_pic)					\
     {									\
       warning (0, "-f%s ignored for target (all code is position independent)",\
 	       (flag_pic > 1) ? "PIC" : "pic");				\

@@ -1797,6 +1797,98 @@ gfc_match_block (void)
 }
 
 
+/* Match an ASSOCIATE statement.  */
+
+match
+gfc_match_associate (void)
+{
+  if (gfc_match_label () == MATCH_ERROR)
+    return MATCH_ERROR;
+
+  if (gfc_match (" associate") != MATCH_YES)
+    return MATCH_NO;
+
+  /* Match the association list.  */
+  if (gfc_match_char ('(') != MATCH_YES)
+    {
+      gfc_error ("Expected association list at %C");
+      return MATCH_ERROR;
+    }
+  new_st.ext.block.assoc = NULL;
+  while (true)
+    {
+      gfc_association_list* newAssoc = gfc_get_association_list ();
+      gfc_association_list* a;
+
+      /* Match the next association.  */
+      if (gfc_match (" %n => %e", newAssoc->name, &newAssoc->target)
+	    != MATCH_YES)
+	{
+	  gfc_error ("Expected association at %C");
+	  goto assocListError;
+	}
+
+      /* Check that the current name is not yet in the list.  */
+      for (a = new_st.ext.block.assoc; a; a = a->next)
+	if (!strcmp (a->name, newAssoc->name))
+	  {
+	    gfc_error ("Duplicate name '%s' in association at %C",
+		       newAssoc->name);
+	    goto assocListError;
+	  }
+
+      /* The target expression must not be coindexed.  */
+      if (gfc_is_coindexed (newAssoc->target))
+	{
+	  gfc_error ("Association target at %C must not be coindexed");
+	  goto assocListError;
+	}
+
+      /* The target is a variable (and may be used as lvalue) if it's an
+	 EXPR_VARIABLE and does not have vector-subscripts.  */
+      newAssoc->variable = (newAssoc->target->expr_type == EXPR_VARIABLE
+			    && !gfc_has_vector_subscript (newAssoc->target));
+
+      /* Put it into the list.  */
+      newAssoc->next = new_st.ext.block.assoc;
+      new_st.ext.block.assoc = newAssoc;
+
+      /* Try next one or end if closing parenthesis is found.  */
+      gfc_gobble_whitespace ();
+      if (gfc_peek_char () == ')')
+	break;
+      if (gfc_match_char (',') != MATCH_YES)
+	{
+	  gfc_error ("Expected ')' or ',' at %C");
+	  return MATCH_ERROR;
+	}
+
+      continue;
+
+assocListError:
+      gfc_free (newAssoc);
+      goto error;
+    }
+  if (gfc_match_char (')') != MATCH_YES)
+    {
+      /* This should never happen as we peek above.  */
+      gcc_unreachable ();
+    }
+
+  if (gfc_match_eos () != MATCH_YES)
+    {
+      gfc_error ("Junk after ASSOCIATE statement at %C");
+      goto error;
+    }
+
+  return MATCH_YES;
+
+error:
+  gfc_free_association_list (new_st.ext.block.assoc);
+  return MATCH_ERROR;
+}
+
+
 /* Match a DO statement.  */
 
 match
@@ -2006,37 +2098,18 @@ gfc_match_cycle (void)
 static match
 gfc_match_stopcode (gfc_statement st)
 {
-  int stop_code;
   gfc_expr *e;
   match m;
-  int cnt;
 
-  stop_code = -1;
   e = NULL;
 
   if (gfc_match_eos () != MATCH_YES)
     {
-      m = gfc_match_small_literal_int (&stop_code, &cnt);
+      m = gfc_match_init_expr (&e);
       if (m == MATCH_ERROR)
 	goto cleanup;
-
-      if (m == MATCH_YES && cnt > 5)
-	{
-	  gfc_error ("Too many digits in STOP code at %C");
-	  goto cleanup;
-	}
-
       if (m == MATCH_NO)
-	{
-	  /* Try a character constant.  */
-	  m = gfc_match_expr (&e);
-	  if (m == MATCH_ERROR)
-	    goto cleanup;
-	  if (m == MATCH_NO)
-	    goto syntax;
-	  if (e->ts.type != BT_CHARACTER || e->expr_type != EXPR_CONSTANT)
-	    goto syntax;
-	}
+	goto syntax;
 
       if (gfc_match_eos () != MATCH_YES)
 	goto syntax;
@@ -2052,7 +2125,40 @@ gfc_match_stopcode (gfc_statement st)
   if (st == ST_STOP && gfc_find_state (COMP_CRITICAL) == SUCCESS)
     {
       gfc_error ("Image control statement STOP at %C in CRITICAL block");
-      return MATCH_ERROR;
+      goto cleanup;
+    }
+
+  if (e != NULL)
+    {
+      if (!(e->ts.type == BT_CHARACTER || e->ts.type == BT_INTEGER))
+	{
+	  gfc_error ("STOP code at %L must be either INTEGER or CHARACTER type",
+		     &e->where);
+	  goto cleanup;
+	}
+
+      if (e->rank != 0)
+	{
+	  gfc_error ("STOP code at %L must be scalar",
+		     &e->where);
+	  goto cleanup;
+	}
+
+      if (e->ts.type == BT_CHARACTER
+	  && e->ts.kind != gfc_default_character_kind)
+	{
+	  gfc_error ("STOP code at %L must be default character KIND=%d",
+		     &e->where, (int) gfc_default_character_kind);
+	  goto cleanup;
+	}
+
+      if (e->ts.type == BT_INTEGER
+	  && e->ts.kind != gfc_default_integer_kind)
+	{
+	  gfc_error ("STOP code at %L must be default integer KIND=%d",
+		     &e->where, (int) gfc_default_integer_kind);
+	  goto cleanup;
+	}
     }
 
   switch (st)
@@ -2071,7 +2177,7 @@ gfc_match_stopcode (gfc_statement st)
     }
 
   new_st.expr1 = e;
-  new_st.ext.stop_code = stop_code;
+  new_st.ext.stop_code = -1;
 
   return MATCH_YES;
 
@@ -2679,16 +2785,16 @@ match
 gfc_match_allocate (void)
 {
   gfc_alloc *head, *tail;
-  gfc_expr *stat, *errmsg, *tmp, *source;
+  gfc_expr *stat, *errmsg, *tmp, *source, *mold;
   gfc_typespec ts;
   gfc_symbol *sym;
   match m;
   locus old_locus;
-  bool saw_stat, saw_errmsg, saw_source, b1, b2, b3;
+  bool saw_stat, saw_errmsg, saw_source, saw_mold, b1, b2, b3;
 
   head = tail = NULL;
-  stat = errmsg = source = tmp = NULL;
-  saw_stat = saw_errmsg = saw_source = false;
+  stat = errmsg = source = mold = tmp = NULL;
+  saw_stat = saw_errmsg = saw_source = saw_mold = false;
 
   if (gfc_match_char ('(') != MATCH_YES)
     goto syntax;
@@ -2771,8 +2877,8 @@ gfc_match_allocate (void)
 	   && (tail->expr->ref->type == REF_COMPONENT
 		|| tail->expr->ref->type == REF_ARRAY));
       if (sym && sym->ts.type == BT_CLASS)
-	b2 = !(sym->ts.u.derived->components->attr.allocatable
-	       || sym->ts.u.derived->components->attr.pointer);
+	b2 = !(CLASS_DATA (sym)->attr.allocatable
+	       || CLASS_DATA (sym)->attr.pointer);
       else
 	b2 = sym && !(sym->attr.allocatable || sym->attr.pointer
 		      || sym->attr.proc_pointer);
@@ -2881,6 +2987,38 @@ alloc_opt_list:
 	    goto alloc_opt_list;
 	}
 
+      m = gfc_match (" mold = %e", &tmp);
+      if (m == MATCH_ERROR)
+	goto cleanup;
+      if (m == MATCH_YES)
+	{
+	  if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: MOLD tag at %L",
+			      &tmp->where) == FAILURE)
+	    goto cleanup;
+
+	  /* Check F08:C636.  */
+	  if (saw_mold)
+	    {
+	      gfc_error ("Redundant MOLD tag found at %L ", &tmp->where);
+	      goto cleanup;
+	    }
+  
+	  /* Check F08:C637.  */
+	  if (ts.type != BT_UNKNOWN)
+	    {
+	      gfc_error ("MOLD tag at %L conflicts with the typespec at %L",
+			 &tmp->where, &old_locus);
+	      goto cleanup;
+	    }
+
+	  mold = tmp;
+	  saw_mold = true;
+	  mold->mold = 1;
+
+	  if (gfc_match_char (',') == MATCH_YES)
+	    goto alloc_opt_list;
+	}
+
 	gfc_gobble_whitespace ();
 
 	if (gfc_peek_char () == ')')
@@ -2891,10 +3029,21 @@ alloc_opt_list:
   if (gfc_match (" )%t") != MATCH_YES)
     goto syntax;
 
+  /* Check F08:C637.  */
+  if (source && mold)
+    {
+      gfc_error ("MOLD tag at %L conflicts with SOURCE tag at %L",
+		  &mold->where, &source->where);
+      goto cleanup;
+    }
+  
   new_st.op = EXEC_ALLOCATE;
   new_st.expr1 = stat;
   new_st.expr2 = errmsg;
-  new_st.expr3 = source;
+  if (source)
+    new_st.expr3 = source;
+  else
+    new_st.expr3 = mold;
   new_st.ext.alloc.list = head;
   new_st.ext.alloc.ts = ts;
 
@@ -2907,7 +3056,8 @@ cleanup:
   gfc_free_expr (errmsg);
   gfc_free_expr (source);
   gfc_free_expr (stat);
-  gfc_free_expr (tmp);
+  gfc_free_expr (mold);
+  if (tmp && tmp->expr_type) gfc_free_expr (tmp);
   gfc_free_alloc_list (head);
   return MATCH_ERROR;
 }
@@ -3033,8 +3183,8 @@ gfc_match_deallocate (void)
 	   && (tail->expr->ref->type == REF_COMPONENT
 	       || tail->expr->ref->type == REF_ARRAY));
       if (sym && sym->ts.type == BT_CLASS)
-	b2 = !(sym->ts.u.derived->components->attr.allocatable
-	       || sym->ts.u.derived->components->attr.pointer);
+	b2 = !(CLASS_DATA (sym)->attr.allocatable
+	       || CLASS_DATA (sym)->attr.pointer);
       else
 	b2 = sym && !(sym->attr.allocatable || sym->attr.pointer
 		      || sym->attr.proc_pointer);
@@ -4313,7 +4463,10 @@ gfc_match_select_type (void)
       expr1 = gfc_get_expr();
       expr1->expr_type = EXPR_VARIABLE;
       if (gfc_get_sym_tree (name, NULL, &expr1->symtree, false))
-	return MATCH_ERROR;
+	{
+	  m = MATCH_ERROR;
+	  goto cleanup;
+	}
       if (expr2->ts.type == BT_UNKNOWN)
 	expr1->symtree->n.sym->attr.untyped = 1;
       else
@@ -4325,29 +4478,34 @@ gfc_match_select_type (void)
     {
       m = gfc_match (" %e ", &expr1);
       if (m != MATCH_YES)
-	return m;
+	goto cleanup;
     }
 
   m = gfc_match (" )%t");
   if (m != MATCH_YES)
-    return m;
+    goto cleanup;
 
   /* Check for F03:C811.  */
   if (!expr2 && (expr1->expr_type != EXPR_VARIABLE || expr1->ref != NULL))
     {
       gfc_error ("Selector in SELECT TYPE at %C is not a named variable; "
 		 "use associate-name=>");
-      return MATCH_ERROR;
+      m = MATCH_ERROR;
+      goto cleanup;
     }
 
   new_st.op = EXEC_SELECT_TYPE;
   new_st.expr1 = expr1;
   new_st.expr2 = expr2;
-  new_st.ext.ns = gfc_current_ns;
+  new_st.ext.block.ns = gfc_current_ns;
 
   select_type_push (expr1->symtree->n.sym);
 
   return MATCH_YES;
+  
+cleanup:
+  gfc_current_ns = gfc_current_ns->parent;
+  return m;
 }
 
 

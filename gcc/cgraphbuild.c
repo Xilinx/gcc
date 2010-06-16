@@ -339,12 +339,21 @@ build_cgraph_edges (void)
 	  gimple stmt = gsi_stmt (gsi);
 	  tree decl;
 
-	  if (is_gimple_call (stmt) && (decl = gimple_call_fndecl (stmt)))
-	    cgraph_create_edge (node, cgraph_node (decl), stmt,
-				bb->count,
-				compute_call_stmt_bb_frequency
-				  (current_function_decl, bb),
-				bb->loop_depth);
+	  if (is_gimple_call (stmt))
+	    {
+	      int freq = compute_call_stmt_bb_frequency (current_function_decl,
+							 bb);
+	      decl = gimple_call_fndecl (stmt);
+	      if (decl)
+		cgraph_create_edge (node, cgraph_node (decl), stmt,
+				    bb->count, freq,
+				    bb->loop_depth);
+	      else
+		cgraph_create_indirect_edge (node, stmt,
+					     gimple_call_flags (stmt),
+					     bb->count, freq,
+					     bb->loop_depth);
+	    }
 	  walk_stmt_load_store_addr_ops (stmt, node, mark_load,
 					 mark_store, mark_address);
 	  if (gimple_code (stmt) == GIMPLE_OMP_PARALLEL
@@ -443,12 +452,21 @@ rebuild_cgraph_edges (void)
 	  gimple stmt = gsi_stmt (gsi);
 	  tree decl;
 
-	  if (is_gimple_call (stmt) && (decl = gimple_call_fndecl (stmt)))
-	    cgraph_create_edge (node, cgraph_node (decl), stmt,
-				bb->count,
-				compute_call_stmt_bb_frequency
-				  (current_function_decl, bb),
-				bb->loop_depth);
+	  if (is_gimple_call (stmt))
+	    {
+	      int freq = compute_call_stmt_bb_frequency (current_function_decl,
+							 bb);
+	      decl = gimple_call_fndecl (stmt);
+	      if (decl)
+		cgraph_create_edge (node, cgraph_node (decl), stmt,
+				    bb->count, freq,
+				    bb->loop_depth);
+	      else
+		cgraph_create_indirect_edge (node, stmt,
+					     gimple_call_flags (stmt),
+					     bb->count, freq,
+					     bb->loop_depth);
+	    }
 	  walk_stmt_load_store_addr_ops (stmt, node, mark_load,
 					 mark_store, mark_address);
 
@@ -461,6 +479,37 @@ rebuild_cgraph_edges (void)
   gcc_assert (!node->global.inlined_to);
 
   return 0;
+}
+
+/* Rebuild cgraph edges for current function node.  This needs to be run after
+   passes that don't update the cgraph.  */
+
+void
+cgraph_rebuild_references (void)
+{
+  basic_block bb;
+  struct cgraph_node *node = cgraph_node (current_function_decl);
+  gimple_stmt_iterator gsi;
+
+  ipa_remove_all_references (&node->ref_list);
+
+  node->count = ENTRY_BLOCK_PTR->count;
+
+  FOR_EACH_BB (bb)
+    {
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	{
+	  gimple stmt = gsi_stmt (gsi);
+
+	  walk_stmt_load_store_addr_ops (stmt, node, mark_load,
+					 mark_store, mark_address);
+
+	}
+      for (gsi = gsi_start (phi_nodes (bb)); !gsi_end_p (gsi); gsi_next (&gsi))
+	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), node,
+				       mark_load, mark_store, mark_address);
+    }
+  record_eh_tables (node, cfun);
 }
 
 struct gimple_opt_pass pass_rebuild_cgraph_edges =

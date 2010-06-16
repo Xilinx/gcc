@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "output.h"
 #include "cselib.h"
-#include "real.h"
 #include "toplev.h"
 #include "except.h"
 #include "tree.h"
@@ -263,7 +262,7 @@ reload_cse_simplify_set (rtx set, rtx insn)
 
   /* If memory loads are cheaper than register copies, don't change them.  */
   if (MEM_P (src))
-    old_cost = MEMORY_MOVE_COST (GET_MODE (src), dclass, 1);
+    old_cost = memory_move_cost (GET_MODE (src), dclass, true);
   else if (REG_P (src))
     old_cost = REGISTER_MOVE_COST (GET_MODE (src),
 				   REGNO_REG_CLASS (REGNO (src)), dclass);
@@ -1591,7 +1590,7 @@ rest_of_handle_postreload (void)
   reload_cse_regs (get_insns ());
   /* Reload_cse_regs can eliminate potentially-trapping MEMs.
      Remove any EH edges associated with them.  */
-  if (flag_non_call_exceptions)
+  if (cfun->can_throw_non_call_exceptions)
     purge_all_dead_edges ();
 
   return 0;

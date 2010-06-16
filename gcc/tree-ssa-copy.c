@@ -24,14 +24,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "flags.h"
-#include "rtl.h"
 #include "tm_p.h"
-#include "ggc.h"
 #include "basic-block.h"
 #include "output.h"
-#include "expr.h"
 #include "function.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "timevar.h"
 #include "tree-dump.h"
 #include "tree-flow.h"
@@ -856,7 +854,7 @@ fini_copy_prop (void)
 	duplicate_ssa_name_ptr_info (tmp[i].value, SSA_NAME_PTR_INFO (var));
     }
 
-  substitute_and_fold (tmp, NULL);
+  substitute_and_fold (tmp, NULL, true);
 
   free (cached_last_copy_of);
   free (copy_of);

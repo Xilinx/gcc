@@ -63,6 +63,9 @@ extern bool hook_callee_copies_named
   (CUMULATIVE_ARGS *ca, enum machine_mode, const_tree, bool);
 
 extern void default_unwind_emit (FILE *, rtx);
+extern void default_print_operand (FILE *, rtx, int);
+extern void default_print_operand_address (FILE *, rtx);
+extern bool default_print_operand_punct_valid_p (unsigned char);
 
 extern bool default_scalar_mode_supported_p (enum machine_mode);
 extern bool default_decimal_float_supported_p (void);
@@ -73,6 +76,8 @@ extern const char * default_invalid_within_doloop (const_rtx);
 extern tree default_builtin_vectorized_function (tree, tree, tree);
 
 extern tree default_builtin_vectorized_conversion (unsigned int, tree, tree);
+
+extern int default_builtin_vectorization_cost (enum vect_cost_for_stmt);
 
 extern tree default_builtin_reciprocal (unsigned int, bool, bool);
 
@@ -117,6 +122,7 @@ extern tree default_mangle_decl_assembler_name (tree, tree);
 extern tree default_emutls_var_fields (tree, tree *);
 extern tree default_emutls_var_init (tree, tree, tree);
 extern bool default_hard_regno_scratch_ok (unsigned int);
+extern bool default_mode_dependent_address_p (const_rtx addr);
 extern bool default_target_option_valid_attribute_p (tree, tree, tree, int);
 extern bool default_target_option_pragma_parse (tree, tree);
 extern bool default_target_can_inline_p (tree, tree);
@@ -133,3 +139,4 @@ extern bool default_addr_space_subset_p (addr_space_t, addr_space_t);
 extern rtx default_addr_space_convert (rtx, tree, tree);
 extern unsigned int default_case_values_threshold (void);
 extern bool default_have_conditional_execution (void);
+extern int default_memory_move_cost (enum machine_mode, enum reg_class, bool);

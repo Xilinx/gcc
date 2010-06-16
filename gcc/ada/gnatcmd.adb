@@ -209,9 +209,9 @@ procedure GNATCmd is
 
    procedure Check_Files;
    --  For GNAT LIST, GNAT PRETTY, GNAT METRIC, and GNAT STACK, check if a
-   --  project file is specified, without any file arguments. If it is the
-   --  case, invoke the GNAT tool with the proper list of files, derived from
-   --  the sources of the project.
+   --  project file is specified, without any file arguments and without a
+   --  switch -files=. If it is the case, invoke the GNAT tool with the proper
+   --  list of files, derived from the sources of the project.
 
    function Check_Project
      (Project      : Project_Id;
@@ -231,6 +231,11 @@ procedure GNATCmd is
    --  specified for Project, otherwise return No_Name. Used for gnatstub (GNAT
    --  STUB), gnatpp (GNAT PRETTY), gnatelim (GNAT ELIM), and gnatmetric (GNAT
    --  METRIC).
+
+   function Mapping_File return Path_Name_Type;
+   --  Create and return the path name of a mapping file. Used for gnatstub
+   --  (GNAT STUB), gnatpp (GNAT PRETTY), gnatelim (GNAT ELIM), and gnatmetric
+   --  (GNAT METRIC).
 
    procedure Delete_Temp_Config_Files;
    --  Delete all temporary config files. The caller is responsible for
@@ -314,10 +319,17 @@ procedure GNATCmd is
       Success     : Boolean;
 
    begin
-      --  Check if there is at least one argument that is not a switch
+      --  Check if there is at least one argument that is not a switch or if
+      --  there is a -files= switch.
 
       for Index in 1 .. Last_Switches.Last loop
-         if Last_Switches.Table (Index) (1) /= '-' then
+         if Last_Switches.Table (Index).all'Length > 7
+           and then Last_Switches.Table (Index) (1 .. 7) = "-files="
+         then
+            Add_Sources := False;
+            exit;
+
+         elsif Last_Switches.Table (Index) (1) /= '-' then
             if Index = 1
               or else
                 (The_Command = Check
@@ -346,13 +358,13 @@ procedure GNATCmd is
          end if;
       end loop;
 
-      --  If all arguments were switches, add the path names of all the sources
-      --  of the main project.
+      --  If all arguments are switches and there is no switch -files=, add
+      --  the path names of all the sources of the main project.
 
       if Add_Sources then
 
-         --  For gnatcheck, gnatpp and gnatmetric , create a temporary file and
-         --  put the list of sources in it.
+         --  For gnatcheck, gnatpp and gnatmetric , create a temporary file
+         --  and put the list of sources in it.
 
          if The_Command = Check  or else
             The_Command = Pretty or else
@@ -881,6 +893,21 @@ procedure GNATCmd is
 
       return 0;
    end Index;
+
+   ------------------
+   -- Mapping_File --
+   ------------------
+
+   function Mapping_File return Path_Name_Type is
+      Result : Path_Name_Type;
+   begin
+      Prj.Env.Create_Mapping_File
+        (Project  => Project,
+         Language => Name_Ada,
+         In_Tree  => Project_Tree,
+         Name     => Result);
+      return Result;
+   end Mapping_File;
 
    ------------------
    -- Process_Link --
@@ -2149,6 +2176,7 @@ begin
 
             declare
                CP_File : constant Path_Name_Type := Configuration_Pragmas_File;
+               M_File  : constant Path_Name_Type := Mapping_File;
 
             begin
                if CP_File /= No_Path then
@@ -2161,6 +2189,11 @@ begin
                      Add_To_Carg_Switches
                        (new String'("-gnatec=" & Get_Name_String (CP_File)));
                   end if;
+               end if;
+
+               if M_File /= No_Path then
+                  Add_To_Carg_Switches
+                    (new String'("-gnatem=" & Get_Name_String (M_File)));
                end if;
             end;
          end if;

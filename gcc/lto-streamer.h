@@ -156,17 +156,14 @@ DEF_VEC_ALLOC_I(bitpack_word_t, heap);
 
 struct bitpack_d
 {
-  /* Total number of bits packed/unpacked so far.  */
-  size_t num_bits;
+  /* The position of the first unused or unconsumed bit in the word.  */
+  unsigned pos;
 
-  /* Values are stored contiguously, so there may be internal
-     fragmentation (words with unused bits).  Therefore, we need to
-     keep track of the first available bit in the last word of the
-     bitpack.  */
-  size_t first_unused_bit;
+  /* The current word we are (un)packing.  */
+  bitpack_word_t word;
 
-  /* Vector of words holding the packed values.  */
-  VEC(bitpack_word_t, heap) *values;
+  /* The lto_output_stream or the lto_input_block we are streaming to/from.  */
+  void *stream;
 };
 
 /* Tags representing the various IL objects written to the bytecode file
@@ -264,6 +261,7 @@ enum lto_section_type
   LTO_section_ipa_reference,
   LTO_section_symtab,
   LTO_section_opts,
+  LTO_section_cgraph_opt_sum,
   LTO_N_SECTION_TYPES		/* Must be last.  */
 };
 
@@ -354,7 +352,7 @@ struct lto_streamer_cache_d
   unsigned next_slot;
 
   /* The nodes pickled so far.  */
-  VEC(tree,gc) *nodes;
+  VEC(tree,heap) *nodes;
 
   /* Offset into the stream where the nodes have been written.  */
   VEC(unsigned,heap) *offsets;
@@ -467,9 +465,21 @@ struct lto_cgraph_encoder_d
 
   /* Map reference number to node. */
   VEC(cgraph_node_ptr,heap) *nodes;
+
+  /* Map of nodes where we want to output body.  */
+  struct pointer_set_t *body;
 };
 
 typedef struct lto_cgraph_encoder_d *lto_cgraph_encoder_t;
+
+/* Return number of encoded nodes in ENCODER.  */
+
+static inline int
+lto_cgraph_encoder_size (lto_cgraph_encoder_t encoder)
+{
+  return VEC_length (cgraph_node_ptr, encoder->nodes);
+}
+
 
 /* Encoder data structure used to stream callgraph nodes.  */
 struct lto_varpool_encoder_d
@@ -484,6 +494,14 @@ struct lto_varpool_encoder_d
   struct pointer_set_t *initializer;
 };
 typedef struct lto_varpool_encoder_d *lto_varpool_encoder_t;
+
+/* Return number of encoded nodes in ENCODER.  */
+
+static inline int
+lto_varpool_encoder_size (lto_varpool_encoder_t encoder)
+{
+  return VEC_length (varpool_node_ptr, encoder->nodes);
+}
 
 /* Mapping from indices to trees.  */
 struct GTY(()) lto_tree_ref_table
@@ -583,6 +601,8 @@ struct GTY(()) lto_file_decl_data
   /* Hash new name of renamed global declaration to its original name.  */
   htab_t GTY((skip)) renaming_hash_table;
 };
+
+typedef struct lto_file_decl_data *lto_file_decl_data_ptr;
 
 struct lto_char_ptr_base
 {
@@ -797,10 +817,6 @@ extern bitmap lto_bitmap_alloc (void);
 extern void lto_bitmap_free (bitmap);
 extern char *lto_get_section_name (int, const char *);
 extern void print_lto_report (void);
-extern struct bitpack_d *bitpack_create (void);
-extern void bitpack_delete (struct bitpack_d *);
-extern void bp_pack_value (struct bitpack_d *, bitpack_word_t, unsigned);
-extern bitpack_word_t bp_unpack_value (struct bitpack_d *, unsigned);
 extern bool lto_streamer_cache_insert (struct lto_streamer_cache_d *, tree,
 				       int *, unsigned *);
 extern bool lto_streamer_cache_insert_at (struct lto_streamer_cache_d *, tree,
@@ -828,7 +844,6 @@ extern void lto_input_function_body (struct lto_file_decl_data *, tree,
 				     const char *);
 extern void lto_input_constructors_and_inits (struct lto_file_decl_data *,
 					      const char *);
-extern struct bitpack_d *lto_input_bitpack (struct lto_input_block *);
 extern void lto_init_reader (void);
 extern struct data_in *lto_data_in_create (struct lto_file_decl_data *,
 				    const char *, unsigned,
@@ -841,7 +856,6 @@ extern void lto_register_decl_definition (tree, struct lto_file_decl_data *);
 extern struct output_block *create_output_block (enum lto_section_type);
 extern void destroy_output_block (struct output_block *);
 extern void lto_output_tree (struct output_block *, tree, bool);
-extern void lto_output_bitpack (struct lto_output_stream *, struct bitpack_d *);
 extern void produce_asm (struct output_block *ob, tree fn);
 
 
@@ -851,6 +865,11 @@ int lto_cgraph_encoder_lookup (lto_cgraph_encoder_t, struct cgraph_node *);
 lto_cgraph_encoder_t lto_cgraph_encoder_new (void);
 int lto_cgraph_encoder_encode (lto_cgraph_encoder_t, struct cgraph_node *);
 void lto_cgraph_encoder_delete (lto_cgraph_encoder_t);
+bool lto_cgraph_encoder_encode_body_p (lto_cgraph_encoder_t,
+				       struct cgraph_node *);
+
+bool lto_varpool_encoder_encode_body_p (lto_varpool_encoder_t,
+				        struct varpool_node *);
 struct varpool_node *lto_varpool_encoder_deref (lto_varpool_encoder_t, int);
 int lto_varpool_encoder_lookup (lto_varpool_encoder_t, struct varpool_node *);
 lto_varpool_encoder_t lto_varpool_encoder_new (void);
@@ -863,6 +882,15 @@ void input_cgraph (void);
 bool referenced_from_other_partition_p (struct ipa_ref_list *,
 				        cgraph_node_set,
 				        varpool_node_set vset);
+bool reachable_from_other_partition_p (struct cgraph_node *,
+				       cgraph_node_set);
+bool referenced_from_this_partition_p (struct ipa_ref_list *,
+				        cgraph_node_set,
+				        varpool_node_set vset);
+bool reachable_from_this_partition_p (struct cgraph_node *,
+				       cgraph_node_set);
+void compute_ltrans_boundary (struct lto_out_decl_state *state,
+			      cgraph_node_set, varpool_node_set);
 
 
 /* In lto-symtab.c.  */
@@ -872,6 +900,7 @@ extern void lto_symtab_merge_decls (void);
 extern void lto_symtab_merge_cgraph_nodes (void);
 extern tree lto_symtab_prevailing_decl (tree decl);
 extern enum ld_plugin_symbol_resolution lto_symtab_get_resolution (tree decl);
+extern void lto_symtab_free (void);
 
 
 /* In lto-opts.c.  */
@@ -1038,5 +1067,86 @@ DEFINE_DECL_STREAM_FUNCS (VAR_DECL, var_decl)
 DEFINE_DECL_STREAM_FUNCS (TYPE_DECL, type_decl)
 DEFINE_DECL_STREAM_FUNCS (NAMESPACE_DECL, namespace_decl)
 DEFINE_DECL_STREAM_FUNCS (LABEL_DECL, label_decl)
+
+/* Returns a new bit-packing context for bit-packing into S.  */
+static inline struct bitpack_d
+bitpack_create (struct lto_output_stream *s)
+{
+  struct bitpack_d bp;
+  bp.pos = 0;
+  bp.word = 0;
+  bp.stream = (void *)s;
+  return bp;
+}
+
+/* Pack the NBITS bit sized value VAL into the bit-packing context BP.  */
+static inline void
+bp_pack_value (struct bitpack_d *bp, bitpack_word_t val, unsigned nbits)
+{
+  bitpack_word_t word = bp->word;
+  int pos = bp->pos;
+  /* If val does not fit into the current bitpack word switch to the
+     next one.  */
+  if (pos + nbits > BITS_PER_BITPACK_WORD)
+    {
+      lto_output_uleb128_stream ((struct lto_output_stream *) bp->stream, word);
+      word = val;
+      pos = nbits;
+    }
+  else
+    {
+      word |= val << pos;
+      pos += nbits;
+    }
+  bp->word = word;
+  bp->pos = pos;
+}
+
+/* Finishes bit-packing of BP.  */
+static inline void
+lto_output_bitpack (struct bitpack_d *bp)
+{
+  lto_output_uleb128_stream ((struct lto_output_stream *) bp->stream,
+			     bp->word);
+  bp->word = 0;
+  bp->pos = 0;
+}
+
+/* Returns a new bit-packing context for bit-unpacking from IB.  */
+static inline struct bitpack_d
+lto_input_bitpack (struct lto_input_block *ib)
+{
+  struct bitpack_d bp;
+  bp.word = lto_input_uleb128 (ib);
+  bp.pos = 0;
+  bp.stream = (void *)ib;
+  return bp;
+}
+
+/* Unpacks NBITS bits from the bit-packing context BP and returns them.  */
+static inline bitpack_word_t
+bp_unpack_value (struct bitpack_d *bp, unsigned nbits)
+{
+  bitpack_word_t mask, val;
+  int pos = bp->pos;
+
+  mask = (nbits == BITS_PER_BITPACK_WORD
+	  ? (bitpack_word_t) -1
+	  : ((bitpack_word_t) 1 << nbits) - 1);
+
+  /* If there are not continuous nbits in the current bitpack word
+     switch to the next one.  */
+  if (pos + nbits > BITS_PER_BITPACK_WORD)
+    {
+      bp->word = val = lto_input_uleb128 ((struct lto_input_block *)bp->stream);
+      bp->pos = nbits;
+      return val & mask;
+    }
+  val = bp->word;
+  val >>= pos;
+  bp->pos = pos + nbits;
+
+  return val & mask;
+}
 
 #endif /* GCC_LTO_STREAMER_H  */

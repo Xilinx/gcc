@@ -72,7 +72,7 @@ along with GCC; see the file COPYING3.  If not see
 #define LOCAL_LABEL_PREFIX "."
 
 /* The 32-bit Solaris assembler does not support .quad.  Do not use it.  */
-#ifndef TARGET_BI_ARCH
+#ifndef HAVE_AS_IX86_QUAD
 #undef ASM_QUAD
 #endif
 
@@ -90,11 +90,6 @@ along with GCC; see the file COPYING3.  If not see
 	fprintf ((FILE), "\n");				\
       }							\
   } while (0)
-
-/* Follow Sun requirements for TLS code sequences and use Sun assembler TLS
-   syntax.  */
-#undef TARGET_SUN_TLS
-#define TARGET_SUN_TLS 1
 
 /* Follow Sun requirements for TLS code sequences and use Sun assembler TLS
    syntax.  */
@@ -150,7 +145,7 @@ along with GCC; see the file COPYING3.  If not see
   do								\
     {								\
       fprintf (FILE, "\tcall\t");				\
-      print_operand (FILE, XEXP (DECL_RTL (FN), 0), 'P');	\
+      ix86_print_operand (FILE, XEXP (DECL_RTL (FN), 0), 'P');	\
       fprintf (FILE, "\n");					\
     }								\
   while (0)

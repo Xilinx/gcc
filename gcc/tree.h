@@ -27,7 +27,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "input.h"
 #include "statistics.h"
 #include "vec.h"
+#include "vecir.h"
 #include "double-int.h"
+#include "real.h"
+#include "fixed-value.h"
 #include "alias.h"
 #include "options.h"
 
@@ -177,11 +180,6 @@ extern const unsigned char tree_code_length[];
 /* Names of tree components.  */
 
 extern const char *const tree_code_name[];
-
-/* A vectors of trees.  */
-DEF_VEC_P(tree);
-DEF_VEC_ALLOC_P(tree,gc);
-DEF_VEC_ALLOC_P(tree,heap);
 
 /* We have to be able to tell cgraph about the needed-ness of the target
    of an alias.  This requires that the decl have been defined.  Aliases
@@ -411,8 +409,7 @@ struct GTY(()) tree_common {
    addressable_flag:
 
        TREE_ADDRESSABLE in
-           VAR_DECL, PARM_DECL, RESULT_DECL, FUNCTION_DECL, FIELD_DECL
-           LABEL_DECL
+           VAR_DECL, PARM_DECL, RESULT_DECL, FUNCTION_DECL, LABEL_DECL
            all types
            CONSTRUCTOR, IDENTIFIER_NODE
            STMT_EXPR, it means we want the result of the enclosed expression
@@ -888,7 +885,8 @@ extern void tree_class_check_failed (const_tree, const enum tree_code_class,
     ATTRIBUTE_NORETURN;
 extern void tree_range_check_failed (const_tree, const char *, int,
 				     const char *, enum tree_code,
-				     enum tree_code);
+				     enum tree_code)
+    ATTRIBUTE_NORETURN;
 extern void tree_not_class_check_failed (const_tree,
 					 const enum tree_code_class,
 					 const char *, int, const char *)
@@ -1111,9 +1109,6 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    of this is needed.  So it cannot be in a register.
    In a FUNCTION_DECL, nonzero means its address is needed.
    So it must be compiled even if it is an inline function.
-   In a FIELD_DECL node, it means that the programmer is permitted to
-   construct the address of this field.  This is used for aliasing
-   purposes: see record_component_aliases.
    In CONSTRUCTOR nodes, it means object constructed must be in memory.
    In LABEL_DECL nodes, it means a goto for this label has been seen
    from a place outside all binding contours that restore stack levels.
@@ -1703,7 +1698,6 @@ extern void protected_set_expr_location (tree, location_t);
  */
 #define CALL_EXPR_FN(NODE) TREE_OPERAND (CALL_EXPR_CHECK (NODE), 1)
 #define CALL_EXPR_STATIC_CHAIN(NODE) TREE_OPERAND (CALL_EXPR_CHECK (NODE), 2)
-#define CALL_EXPR_ARGS(NODE) call_expr_arglist (NODE)
 #define CALL_EXPR_ARG(NODE, I) TREE_OPERAND (CALL_EXPR_CHECK (NODE), (I) + 3)
 #define call_expr_nargs(NODE) (VL_EXP_OPERAND_LENGTH(NODE) - 3)
 
@@ -2096,26 +2090,34 @@ extern enum machine_mode vector_type_mode (const_tree);
 #define SET_TYPE_MODE(NODE, MODE) \
   (TYPE_CHECK (NODE)->type.mode = (MODE))
 
-/* The "canonical" type for this type node, which can be used to
-   compare the type for equality with another type. If two types are
+/* The "canonical" type for this type node, which is used by frontends to
+   compare the type for equality with another type.  If two types are
    equal (based on the semantics of the language), then they will have
    equivalent TYPE_CANONICAL entries.
 
-   As a special case, if TYPE_CANONICAL is NULL_TREE, then it cannot
-   be used for comparison against other types. Instead, the type is
+   As a special case, if TYPE_CANONICAL is NULL_TREE, and thus
+   TYPE_STRUCTURAL_EQUALITY_P is true, then it cannot
+   be used for comparison against other types.  Instead, the type is
    said to require structural equality checks, described in
-   TYPE_STRUCTURAL_EQUALITY_P. */
+   TYPE_STRUCTURAL_EQUALITY_P.
+
+   For unqualified aggregate and function types the middle-end relies on
+   TYPE_CANONICAL to tell whether two variables can be assigned
+   to each other without a conversion.  The middle-end also makes sure
+   to assign the same alias-sets to the type partition with equal
+   TYPE_CANONICAL of their unqualified variants.  */
 #define TYPE_CANONICAL(NODE) (TYPE_CHECK (NODE)->type.canonical)
 /* Indicates that the type node requires structural equality
-   checks. The compiler will need to look at the composition of the
+   checks.  The compiler will need to look at the composition of the
    type to determine whether it is equal to another type, rather than
-   just comparing canonical type pointers. For instance, we would need
+   just comparing canonical type pointers.  For instance, we would need
    to look at the return and parameter types of a FUNCTION_TYPE
-   node. */
+   node.  */
 #define TYPE_STRUCTURAL_EQUALITY_P(NODE) (TYPE_CANONICAL (NODE) == NULL_TREE)
 /* Sets the TYPE_CANONICAL field to NULL_TREE, indicating that the
-   type node requires structural equality. */
+   type node requires structural equality.  */
 #define SET_TYPE_STRUCTURAL_EQUALITY(NODE) (TYPE_CANONICAL (NODE) = NULL_TREE)
+
 #define TYPE_LANG_SPECIFIC(NODE) (TYPE_CHECK (NODE)->type.lang_specific)
 #define TYPE_IBIT(NODE) (GET_MODE_IBIT (TYPE_MODE (NODE)))
 #define TYPE_FBIT(NODE) (GET_MODE_FBIT (TYPE_MODE (NODE)))
@@ -3469,7 +3471,7 @@ extern tree build_target_option_node (void);
    for various types of node.  */
 
 union GTY ((ptr_alias (union lang_tree_node),
-		      desc ("tree_node_structure (&%h)"))) tree_node {
+	    desc ("tree_node_structure (&%h)"), variable_size)) tree_node {
   struct tree_base GTY ((tag ("TS_BASE"))) base;
   struct tree_common GTY ((tag ("TS_COMMON"))) common;
   struct tree_int_cst GTY ((tag ("TS_INT_CST"))) int_cst;
@@ -3857,6 +3859,8 @@ enum integer_type_kind
   itk_unsigned_long,
   itk_long_long,
   itk_unsigned_long_long,
+  itk_int128,
+  itk_unsigned_int128,
   itk_none
 };
 
@@ -3877,6 +3881,8 @@ extern GTY(()) tree integer_types[itk_none];
 #define long_unsigned_type_node		integer_types[itk_unsigned_long]
 #define long_long_integer_type_node	integer_types[itk_long_long]
 #define long_long_unsigned_type_node	integer_types[itk_unsigned_long_long]
+#define int128_integer_type_node	integer_types[itk_int128]
+#define int128_unsigned_type_node	integer_types[itk_unsigned_int128]
 
 /* Set to the default thread-local storage (tls) model to use.  */
 
@@ -3978,7 +3984,6 @@ extern tree maybe_get_identifier (const char *);
 /* Construct various types of nodes.  */
 
 extern tree build_nt (enum tree_code, ...);
-extern tree build_nt_call_list (tree, tree);
 extern tree build_nt_call_vec (tree, VEC(tree,gc) *);
 
 extern tree build0_stat (enum tree_code, tree MEM_STAT_DECL);
@@ -4015,12 +4020,17 @@ tree_to_double_int (const_tree cst)
 extern tree double_int_to_tree (tree, double_int);
 extern bool double_int_fits_to_tree_p (const_tree, double_int);
 
+/* Create an INT_CST node with a CST value zero extended.  */
+
+static inline tree
+build_int_cstu (tree type, unsigned HOST_WIDE_INT cst)
+{
+  return double_int_to_tree (type, uhwi_to_double_int (cst));
+}
+
 extern tree build_int_cst (tree, HOST_WIDE_INT);
 extern tree build_int_cst_type (tree, HOST_WIDE_INT);
-extern tree build_int_cstu (tree, unsigned HOST_WIDE_INT);
 extern tree build_int_cst_wide (tree, unsigned HOST_WIDE_INT, HOST_WIDE_INT);
-extern tree build_int_cst_wide_type (tree,
-				     unsigned HOST_WIDE_INT, HOST_WIDE_INT);
 extern tree build_vector (tree, tree);
 extern tree build_vector_from_ctor (tree, VEC(constructor_elt,gc) *);
 extern tree build_constructor (tree, VEC(constructor_elt,gc) *);
@@ -4484,10 +4494,6 @@ extern tree first_field (const_tree);
 
 extern bool initializer_zerop (const_tree);
 
-/* Given a CONSTRUCTOR CTOR, return the elements as a TREE_LIST.  */
-
-extern tree ctor_to_list (tree);
-
 /* Given a CONSTRUCTOR CTOR, return the element values as a vector.  */
 
 extern VEC(tree,gc) *ctor_to_vec (tree);
@@ -4823,11 +4829,12 @@ extern tree lower_bound_in_type (tree, tree);
 extern int operand_equal_for_phi_arg_p (const_tree, const_tree);
 extern tree call_expr_arg (tree, int);
 extern tree *call_expr_argp (tree, int);
-extern tree call_expr_arglist (tree);
 extern tree create_artificial_label (location_t);
 extern const char *get_name (tree);
 extern bool stdarg_p (tree);
 extern bool prototype_p (tree);
+extern bool is_typedef_decl (tree x);
+extern bool typedef_variant_p (tree);
 extern bool auto_var_in_fn_p (const_tree, const_tree);
 extern tree build_low_bits_mask (tree, unsigned);
 extern tree tree_strip_nop_conversions (tree);
@@ -5015,9 +5022,8 @@ extern bool fold_builtin_next_arg (tree, bool);
 extern enum built_in_function builtin_mathfn_code (const_tree);
 extern tree build_function_call_expr (location_t, tree, tree);
 extern tree fold_builtin_call_array (location_t, tree, tree, int, tree *);
-#define build_call_expr(...)\
-   build_call_expr_loc (UNKNOWN_LOCATION, __VA_ARGS__)
 extern tree build_call_expr_loc (location_t, tree, int, ...);
+extern tree build_call_expr (tree, int, ...);
 extern tree mathfn_built_in (tree, enum built_in_function fn);
 extern tree c_strlen (tree, int);
 extern tree std_gimplify_va_arg_expr (tree, tree, gimple_seq *, gimple_seq *);
@@ -5092,6 +5098,8 @@ extern location_t tree_nonartificial_location (tree);
 
 extern tree block_ultimate_origin (const_tree);
 
+extern tree get_binfo_at_offset (tree, HOST_WIDE_INT, tree);
+
 /* In tree-nested.c */
 extern tree build_addr (tree, tree);
 
@@ -5126,9 +5134,11 @@ extern void print_rtl (FILE *, const_rtx);
 
 /* In print-tree.c */
 extern void debug_tree (tree);
+extern void debug_vec_tree (VEC(tree,gc) *);
 #ifdef BUFSIZ
 extern void dump_addr (FILE*, const char *, const void *);
 extern void print_node (FILE *, const char *, tree, int);
+extern void print_vec_tree (FILE *, const char *, VEC(tree,gc) *, int);
 extern void print_node_brief (FILE *, const char *, const_tree, int);
 extern void indent_to (FILE *, int);
 #endif
@@ -5385,6 +5395,17 @@ struct GTY(()) tree_map {
 extern unsigned int tree_map_hash (const void *);
 #define tree_map_marked_p tree_map_base_marked_p
 
+/* Map from a decl tree to another tree.  */
+
+struct GTY(()) tree_decl_map {
+  struct tree_map_base base;
+  tree to;
+};
+
+#define tree_decl_map_eq tree_map_base_eq
+extern unsigned int tree_decl_map_hash (const void *);
+#define tree_decl_map_marked_p tree_map_base_marked_p
+
 /* Map from a tree to an int.  */
 
 struct GTY(()) tree_int_map {
@@ -5431,9 +5452,6 @@ extern tree build_personality_function (const char *);
 /* In tree-inline.c.  */
 
 void init_inline_once (void);
-
-/* In ipa-reference.c.  Used for parsing attributes of asm code.  */
-extern GTY(()) tree memory_identifier_string;
 
 /* Compute the number of operands in an expression node NODE.  For
    tcc_vl_exp nodes like CALL_EXPRs, this is stored in the node itself,

@@ -10,7 +10,7 @@ template <typename T, typename U>
 inline typename tType_equal<T, U>::type
 type_equal(U) { }
 
-template<typename T> T* g( T* t );
+template<typename T> T* g( T* t ); // { dg-message "candidate" }
 
 void test_g()
 {
@@ -18,4 +18,7 @@ void test_g()
   //
   g(nullptr);               // { dg-error "no matching function for call to " }
   type_equal<float*>(g((float*)nullptr));
+  decltype(nullptr) mynull = 0;
+  g(mynull);                // { dg-error "no matching function for call to " }
+  type_equal<float*>(g((float*)mynull));
 }

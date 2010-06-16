@@ -84,6 +84,10 @@
 #define TARGET_ASM_INTERNAL_LABEL default_internal_label
 #endif
 
+#ifndef TARGET_ASM_DECLARE_CONSTANT_NAME
+#define TARGET_ASM_DECLARE_CONSTANT_NAME default_asm_declare_constant_name
+#endif
+
 #ifndef TARGET_ASM_TTYPE
 #define TARGET_ASM_TTYPE hook_bool_rtx_false
 #endif
@@ -261,6 +265,18 @@
 
 #define TARGET_ASM_TRAMPOLINE_TEMPLATE NULL
 
+#ifndef TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND default_print_operand
+#endif
+
+#ifndef TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS default_print_operand_address
+#endif
+
+#ifndef TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P default_print_operand_punct_valid_p
+#endif
+
 #define TARGET_ASM_ALIGNED_INT_OP				\
 		       {TARGET_ASM_ALIGNED_HI_OP,		\
 			TARGET_ASM_ALIGNED_SI_OP,		\
@@ -285,6 +301,7 @@
 			TARGET_ASM_EMIT_EXCEPT_TABLE_LABEL,	\
 			TARGET_UNWIND_EMIT,			\
 			TARGET_ASM_INTERNAL_LABEL,		\
+			TARGET_ASM_DECLARE_CONSTANT_NAME,	\
 			TARGET_ASM_TTYPE,			\
 			TARGET_ASM_ASSEMBLE_VISIBILITY,		\
 			TARGET_ASM_FUNCTION_PROLOGUE,		\
@@ -314,7 +331,10 @@
 			TARGET_ASM_OUTPUT_ANCHOR,		\
 			TARGET_ASM_OUTPUT_DWARF_DTPREL,		\
 			TARGET_ASM_FINAL_POSTSCAN_INSN,		\
-			TARGET_ASM_TRAMPOLINE_TEMPLATE }
+			TARGET_ASM_TRAMPOLINE_TEMPLATE,		\
+			TARGET_PRINT_OPERAND,			\
+			TARGET_PRINT_OPERAND_ADDRESS,		\
+			TARGET_PRINT_OPERAND_PUNCT_VALID_P }
 
 /* Scheduler hooks.  All of these default to null pointers, which
    haifa-sched.c looks for and handles.  */
@@ -402,7 +422,8 @@
   default_builtin_vectorized_conversion
 #define TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN 0
 #define TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD 0
-#define TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST 0
+#define TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST \
+  default_builtin_vectorization_cost
 #define TARGET_VECTOR_ALIGNMENT_REACHABLE \
   default_builtin_vector_alignment_reachable
 #define TARGET_VECTORIZE_BUILTIN_VEC_PERM 0
@@ -431,6 +452,7 @@
 #define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE hook_void_void
 
 #define TARGET_HANDLE_OPTION hook_bool_size_t_constcharptr_int_true
+#define TARGET_HANDLE_OFAST hook_void_void
 #define TARGET_HELP NULL
 
 /* In except.c */
@@ -452,11 +474,15 @@
 #define TARGET_ADDRESS_COST default_address_cost
 #define TARGET_CONST_ANCHOR 0
 
+#ifndef TARGET_MEMORY_MOVE_COST
+#define TARGET_MEMORY_MOVE_COST default_memory_move_cost
+#endif
+
 /* In builtins.c.  */
 #define TARGET_INIT_BUILTINS hook_void_void
 #define TARGET_EXPAND_BUILTIN default_expand_builtin
 #define TARGET_RESOLVE_OVERLOADED_BUILTIN NULL
-#define TARGET_FOLD_BUILTIN hook_tree_tree_tree_bool_null
+#define TARGET_FOLD_BUILTIN hook_tree_tree_int_treep_bool_null
 #define TARGET_BUILTIN_DECL NULL
 
 /* In tree-ssa-math-opts.c  */
@@ -537,6 +563,10 @@
 #define TARGET_SCALAR_MODE_SUPPORTED_P default_scalar_mode_supported_p
 #endif
 
+#ifndef TARGET_ENUM_VA_LIST_P
+#define TARGET_ENUM_VA_LIST_P NULL
+#endif
+
 #ifndef TARGET_DECIMAL_FLOAT_SUPPORTED_P
 #define TARGET_DECIMAL_FLOAT_SUPPORTED_P default_decimal_float_supported_p
 #endif
@@ -597,6 +627,10 @@
 
 #ifndef TARGET_IN_SMALL_DATA_P
 #define TARGET_IN_SMALL_DATA_P hook_bool_const_tree_false
+#endif
+
+#ifndef TARGET_MODE_DEPENDENT_ADDRESS_P
+#define TARGET_MODE_DEPENDENT_ADDRESS_P default_mode_dependent_address_p
 #endif
 
 #ifndef TARGET_MANGLE_DECL_ASSEMBLER_NAME
@@ -935,6 +969,7 @@
   TARGET_DEFAULT_TARGET_FLAGS,			\
   TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE,		\
   TARGET_HANDLE_OPTION,				\
+  TARGET_HANDLE_OFAST,				\
   TARGET_HELP,					\
   TARGET_EH_RETURN_FILTER_MODE,			\
   TARGET_LIBGCC_CMP_RETURN_MODE,                \
@@ -970,6 +1005,7 @@
   TARGET_CANNOT_FORCE_CONST_MEM,		\
   TARGET_CANNOT_COPY_INSN_P,			\
   TARGET_COMMUTATIVE_P,				\
+  TARGET_MODE_DEPENDENT_ADDRESS_P,		\
   TARGET_LEGITIMIZE_ADDRESS,			\
   TARGET_DELEGITIMIZE_ADDRESS,			\
   TARGET_LEGITIMATE_ADDRESS_P,			\
@@ -991,6 +1027,7 @@
   TARGET_ADDR_SPACE_HOOKS,			\
   TARGET_SCALAR_MODE_SUPPORTED_P,		\
   TARGET_VECTOR_MODE_SUPPORTED_P,               \
+  TARGET_MEMORY_MOVE_COST, 			\
   TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P,	\
   TARGET_RTX_COSTS,				\
   TARGET_ADDRESS_COST,				\
@@ -1002,6 +1039,7 @@
   TARGET_CC_MODES_COMPATIBLE,			\
   TARGET_MACHINE_DEPENDENT_REORG,		\
   TARGET_BUILD_BUILTIN_VA_LIST,			\
+  TARGET_ENUM_VA_LIST_P,			\
   TARGET_FN_ABI_VA_LIST,			\
   TARGET_CANONICAL_VA_LIST_TYPE,		\
   TARGET_EXPAND_BUILTIN_VA_START,		\

@@ -128,6 +128,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "cgraph.h"
 #include "diagnostic.h"
+#include "gimple-pretty-print.h"
 #include "timevar.h"
 #include "params.h"
 #include "fibheap.h"
@@ -200,11 +201,12 @@ cgraph_estimate_time_after_inlining (int frequency, struct cgraph_node *to,
 
 /* Estimate self time of the function after inlining WHAT into TO.  */
 
-static int
+static inline int
 cgraph_estimate_size_after_inlining (int times, struct cgraph_node *to,
 				     struct cgraph_node *what)
 {
-  int size = (what->global.size - inline_summary (what)->size_inlining_benefit) * times + to->global.size;
+  int size = ((what->global.size - inline_summary (what)->size_inlining_benefit)
+	      * times + to->global.size);
   gcc_assert (size >= 0);
   return size;
 }
@@ -268,7 +270,8 @@ cgraph_clone_inlined_nodes (struct cgraph_edge *e, bool duplicate,
       else
 	{
 	  struct cgraph_node *n;
-	  n = cgraph_clone_node (e->callee, e->count, e->frequency, e->loop_nest,
+	  n = cgraph_clone_node (e->callee, e->callee->decl,
+				 e->count, e->frequency, e->loop_nest,
 				 update_original, NULL);
 	  cgraph_redirect_edge_callee (e, n);
 	}
@@ -509,7 +512,7 @@ cgraph_default_inline_p (struct cgraph_node *n, cgraph_inline_failed_t *reason)
    We call recursive inlining all cases where same function appears more than
    once in the single recursion nest path in the inline graph.  */
 
-static bool
+static inline bool
 cgraph_recursive_inlining_p (struct cgraph_node *to,
 			     struct cgraph_node *what,
 			     cgraph_inline_failed_t *reason)
@@ -540,6 +543,9 @@ cgraph_edge_badness (struct cgraph_edge *edge, bool dump)
   int growth =
     (cgraph_estimate_size_after_inlining (1, edge->caller, edge->callee)
      - edge->caller->global.size);
+
+  if (edge->callee->local.disregard_inline_limits)
+    return INT_MIN;
 
   if (dump)
     {
@@ -674,10 +680,16 @@ update_caller_keys (fibheap_t heap, struct cgraph_node *node,
 
   if (!node->local.inlinable)
     return;
+  /* See if there is something to do.  */
+  for (edge = node->callers; edge; edge = edge->next_caller)
+    if (edge->inline_failed)
+      break;
+  if (!edge)
+    return;
   /* Prune out edges we won't inline into anymore.  */
   if (!cgraph_default_inline_p (node, &failed_reason))
     {
-      for (edge = node->callers; edge; edge = edge->next_caller)
+      for (; edge; edge = edge->next_caller)
 	if (edge->aux)
 	  {
 	    fibheap_delete_node (heap, (fibnode_t) edge->aux);
@@ -688,7 +700,7 @@ update_caller_keys (fibheap_t heap, struct cgraph_node *node,
       return;
     }
 
-  for (edge = node->callers; edge; edge = edge->next_caller)
+  for (; edge; edge = edge->next_caller)
     if (edge->inline_failed)
       {
 	int badness = cgraph_edge_badness (edge, false);
@@ -699,33 +711,55 @@ update_caller_keys (fibheap_t heap, struct cgraph_node *node,
 	    if (n->key == badness)
 	      continue;
 
-	    /* fibheap_replace_key only increase the keys.  */
+	    /* fibheap_replace_key only decrease the keys.
+	       When we increase the key we do not update heap
+	       and instead re-insert the element once it becomes
+	       a minium of heap.  */
 	    if (badness < n->key)
 	      {
 		fibheap_replace_key (heap, n, badness);
 		gcc_assert (n->key == badness);
 	        continue;
 	      }
-	    fibheap_delete_node (heap, (fibnode_t) edge->aux);
 	  }
-	edge->aux = fibheap_insert (heap, badness, edge);
+	else
+	  edge->aux = fibheap_insert (heap, badness, edge);
       }
 }
 
-/* Recompute heap nodes for each of caller edges of each of callees.  */
+/* Recompute heap nodes for each of caller edges of each of callees.
+   Walk recursively into all inline clones.  */
 
 static void
 update_callee_keys (fibheap_t heap, struct cgraph_node *node,
 		    bitmap updated_nodes)
 {
-  struct cgraph_edge *e;
+  struct cgraph_edge *e = node->callees;
   node->global.estimated_growth = INT_MIN;
 
-  for (e = node->callees; e; e = e->next_callee)
-    if (e->inline_failed)
-      update_caller_keys (heap, e->callee, updated_nodes);
-    else if (!e->inline_failed)
-      update_callee_keys (heap, e->callee, updated_nodes);
+  if (!e)
+    return;
+  while (true)
+    if (!e->inline_failed && e->callee->callees)
+      e = e->callee->callees;
+    else
+      {
+	if (e->inline_failed)
+	  update_caller_keys (heap, e->callee, updated_nodes);
+	if (e->next_callee)
+	  e = e->next_callee;
+	else
+	  {
+	    do
+	      {
+		if (e->caller == node)
+		  return;
+		e = e->caller->callers;
+	      }
+	    while (!e->next_callee);
+	    e = e->next_callee;
+	  }
+      }
 }
 
 /* Enqueue all recursive calls from NODE into priority queue depending on
@@ -805,7 +839,8 @@ cgraph_decide_recursive_inlining (struct cgraph_node *node,
 	     cgraph_node_name (node));
 
   /* We need original clone to copy around.  */
-  master_clone = cgraph_clone_node (node, node->count, CGRAPH_FREQ_BASE, 1,
+  master_clone = cgraph_clone_node (node, node->decl,
+				    node->count, CGRAPH_FREQ_BASE, 1,
   				    false, NULL);
   master_clone->needed = true;
   for (e = master_clone->callees; e; e = e->next_callee)
@@ -995,6 +1030,7 @@ cgraph_decide_inlining_of_small_functions (void)
       int old_size = overall_size;
       struct cgraph_node *where, *callee;
       int badness = fibheap_min_key (heap);
+      int current_badness;
       int growth;
       cgraph_inline_failed_t not_good = CIF_OK;
 
@@ -1003,9 +1039,18 @@ cgraph_decide_inlining_of_small_functions (void)
       edge->aux = NULL;
       if (!edge->inline_failed)
 	continue;
-#ifdef ENABLE_CHECKING
-      gcc_assert (cgraph_edge_badness (edge, false) == badness);
-#endif
+
+      /* When updating the edge costs, we only decrease badness in the keys.
+	 When the badness increase, we keep the heap as it is and re-insert
+	 key now.  */
+      current_badness = cgraph_edge_badness (edge, false);
+      gcc_assert (current_badness >= badness);
+      if (current_badness != badness)
+	{
+	  edge->aux = fibheap_insert (heap, current_badness, edge);
+	  continue;
+	}
+      
       callee = edge->callee;
 
       growth = (cgraph_estimate_size_after_inlining (1, edge->caller, edge->callee)
@@ -1068,12 +1113,14 @@ cgraph_decide_inlining_of_small_functions (void)
 	    }
 	}
 
-      if (!cgraph_maybe_hot_edge_p (edge))
+      if (edge->callee->local.disregard_inline_limits)
+	;
+      else if (!cgraph_maybe_hot_edge_p (edge))
  	not_good = CIF_UNLIKELY_CALL;
-      if (!flag_inline_functions
+      else if (!flag_inline_functions
 	  && !DECL_DECLARED_INLINE_P (edge->callee->decl))
  	not_good = CIF_NOT_DECLARED_INLINED;
-      if (optimize_function_for_size_p (DECL_STRUCT_FUNCTION(edge->caller->decl)))
+      else if (optimize_function_for_size_p (DECL_STRUCT_FUNCTION(edge->caller->decl)))
  	not_good = CIF_OPTIMIZING_FOR_SIZE;
       if (not_good && growth > 0 && cgraph_estimate_growth (edge->callee) > 0)
 	{
@@ -1186,7 +1233,7 @@ cgraph_decide_inlining_of_small_functions (void)
       if (!edge->inline_failed)
 	continue;
 #ifdef ENABLE_CHECKING
-      gcc_assert (cgraph_edge_badness (edge, false) == badness);
+      gcc_assert (cgraph_edge_badness (edge, false) >= badness);
 #endif
       if (dump_file)
 	{
@@ -1654,7 +1701,7 @@ cgraph_early_inlining (void)
   unsigned int todo = 0;
   int iterations = 0;
 
-  if (sorrycount || errorcount)
+  if (seen_error ())
     return 0;
 
   if (!optimize
@@ -1833,17 +1880,6 @@ estimate_function_body_sizes (struct cgraph_node *node)
   int freq;
   tree funtype = TREE_TYPE (node->decl);
 
-  if (node->local.disregard_inline_limits)
-    {
-      if (dump_file)
-	fprintf (dump_file, "Disregarding inline limits.\n");
-      inline_summary (node)->self_time = 0;
-      inline_summary (node)->self_size = 0;
-      inline_summary (node)->time_inlining_benefit = 0;
-      inline_summary (node)->size_inlining_benefit = 0;
-      return;
-    }
-
   if (dump_file)
     fprintf (dump_file, "Analyzing function body size: %s\n",
 	     cgraph_node_name (node));
@@ -1975,21 +2011,10 @@ struct gimple_opt_pass pass_inline_parameters =
 static void
 inline_indirect_intraprocedural_analysis (struct cgraph_node *node)
 {
-  struct cgraph_edge *cs;
-
-  if (!flag_ipa_cp)
-    {
-      ipa_initialize_node_params (node);
-      ipa_detect_param_modifications (node);
-    }
+  ipa_initialize_node_params (node);
+  ipa_detect_param_modifications (node);
   ipa_analyze_params_uses (node);
-
-  if (!flag_ipa_cp)
-    for (cs = node->callees; cs; cs = cs->next_callee)
-      {
-	ipa_count_arguments (cs);
-	ipa_compute_jump_functions (cs);
-      }
+  ipa_compute_jump_functions (node);
 
   if (dump_file)
     {
@@ -2049,6 +2074,7 @@ inline_transform (struct cgraph_node *node)
 {
   unsigned int todo = 0;
   struct cgraph_edge *e;
+  bool inline_p = false;
 
   /* FIXME: Currently the passmanager is adding inline transform more than once to some
      clones.  This needs revisiting after WPA cleanups.  */
@@ -2061,10 +2087,13 @@ inline_transform (struct cgraph_node *node)
     save_inline_function_body (node);
 
   for (e = node->callees; e; e = e->next_callee)
-    if (!e->inline_failed || warn_inline)
-      break;
+    {
+      cgraph_redirect_edge_call_stmt_to_callee (e);
+      if (!e->inline_failed || warn_inline)
+        inline_p = true;
+    }
 
-  if (e)
+  if (inline_p)
     {
       timevar_push (TV_INTEGRATION);
       todo = optimize_inline_calls (current_function_decl);

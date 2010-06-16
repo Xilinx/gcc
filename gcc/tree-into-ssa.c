@@ -25,15 +25,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "flags.h"
-#include "rtl.h"
 #include "tm_p.h"
 #include "langhooks.h"
-#include "hard-reg-set.h"
 #include "basic-block.h"
 #include "output.h"
-#include "expr.h"
 #include "function.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "bitmap.h"
 #include "tree-flow.h"
 #include "gimple.h"
@@ -44,7 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "cfgloop.h"
 #include "domwalk.h"
-#include "ggc.h"
 #include "params.h"
 #include "vecprim.h"
 
@@ -455,9 +452,8 @@ static void
 mark_block_for_update (basic_block bb)
 {
   gcc_assert (blocks_to_update != NULL);
-  if (bitmap_bit_p (blocks_to_update, bb->index))
+  if (!bitmap_set_bit (blocks_to_update, bb->index))
     return;
-  bitmap_set_bit (blocks_to_update, bb->index);
   initialize_flags_in_bb (bb);
 }
 
@@ -1147,7 +1143,7 @@ insert_phi_nodes_for (tree var, bitmap phi_insertion_points, bool update_p)
    the flowgraph.  */
 
 static void
-insert_phi_nodes (bitmap *dfs)
+insert_phi_nodes (bitmap_head *dfs)
 {
   referenced_var_iterator rvi;
   bitmap_iterator bi;
@@ -1495,7 +1491,7 @@ dump_decl_set (FILE *file, bitmap set)
 
 /* Dump bitmap SET (assumed to contain VAR_DECLs) to FILE.  */
 
-void
+DEBUG_FUNCTION void
 debug_decl_set (bitmap set)
 {
   dump_decl_set (stderr, set);
@@ -1566,7 +1562,7 @@ dump_defs_stack (FILE *file, int n)
    dumped.  New levels are created when the dominator tree traversal
    used for renaming enters a new sub-tree.  */
 
-void
+DEBUG_FUNCTION void
 debug_defs_stack (int n)
 {
   dump_defs_stack (stderr, n);
@@ -1600,7 +1596,7 @@ dump_currdefs (FILE *file)
 
 /* Dump the current reaching definition of every symbol to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_currdefs (void)
 {
   dump_currdefs (stderr);
@@ -1626,7 +1622,7 @@ dump_tree_ssa (FILE *file)
 
 /* Dump SSA information to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_tree_ssa (void)
 {
   dump_tree_ssa (stderr);
@@ -1672,7 +1668,7 @@ dump_tree_ssa_stats (FILE *file)
 
 /* Dump SSA statistics on stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_tree_ssa_stats (void)
 {
   dump_tree_ssa_stats (stderr);
@@ -1740,7 +1736,7 @@ dump_def_blocks (FILE *file)
 
 /* Dump the DEF_BLOCKS hash table on stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_def_blocks (void)
 {
   dump_def_blocks (stderr);
@@ -2353,7 +2349,7 @@ fini_ssa_renamer (void)
 static unsigned int
 rewrite_into_ssa (void)
 {
-  bitmap *dfs;
+  bitmap_head *dfs;
   basic_block bb;
 
   timevar_push (TV_TREE_SSA_OTHER);
@@ -2371,9 +2367,9 @@ rewrite_into_ssa (void)
   sbitmap_zero (interesting_blocks);
 
   /* Initialize dominance frontier.  */
-  dfs = XNEWVEC (bitmap, last_basic_block);
+  dfs = XNEWVEC (bitmap_head, last_basic_block);
   FOR_EACH_BB (bb)
-    dfs[bb->index] = BITMAP_ALLOC (NULL);
+    bitmap_initialize (&dfs[bb->index], &bitmap_default_obstack);
 
   /* 1- Compute dominance frontiers.  */
   calculate_dominance_info (CDI_DOMINATORS);
@@ -2390,7 +2386,7 @@ rewrite_into_ssa (void)
 
   /* Free allocated memory.  */
   FOR_EACH_BB (bb)
-    BITMAP_FREE (dfs[bb->index]);
+    bitmap_clear (&dfs[bb->index]);
   free (dfs);
 
   sbitmap_free (interesting_blocks);
@@ -2693,7 +2689,7 @@ dump_names_replaced_by (FILE *file, tree name)
 
 /* Dump all the names replaced by NAME to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_names_replaced_by (tree name)
 {
   dump_names_replaced_by (stderr, name);
@@ -2758,7 +2754,7 @@ dump_update_ssa (FILE *file)
 
 /* Dump SSA update information to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_update_ssa (void)
 {
   dump_update_ssa (stderr);
@@ -3009,7 +3005,7 @@ release_ssa_name_after_update_ssa (tree name)
      names is not pruned.  PHI nodes are inserted at every IDF block.  */
 
 static void
-insert_updated_phi_nodes_for (tree var, bitmap *dfs, bitmap blocks,
+insert_updated_phi_nodes_for (tree var, bitmap_head *dfs, bitmap blocks,
                               unsigned update_flags)
 {
   basic_block entry;
@@ -3336,13 +3332,13 @@ update_ssa (unsigned update_flags)
      and for symbols in SYMS_TO_RENAME.  */
   if (insert_phi_p)
     {
-      bitmap *dfs;
+      bitmap_head *dfs;
 
       /* If the caller requested PHI nodes to be added, compute
 	 dominance frontiers.  */
-      dfs = XNEWVEC (bitmap, last_basic_block);
+      dfs = XNEWVEC (bitmap_head, last_basic_block);
       FOR_EACH_BB (bb)
-	dfs[bb->index] = BITMAP_ALLOC (NULL);
+	bitmap_initialize (&dfs[bb->index], &bitmap_default_obstack);
       compute_dominance_frontiers (dfs);
 
       if (sbitmap_first_set_bit (old_ssa_names) >= 0)
@@ -3367,7 +3363,7 @@ update_ssa (unsigned update_flags)
 	                              update_flags);
 
       FOR_EACH_BB (bb)
-	BITMAP_FREE (dfs[bb->index]);
+	bitmap_clear (&dfs[bb->index]);
       free (dfs);
 
       /* Insertion of PHI nodes may have added blocks to the region.

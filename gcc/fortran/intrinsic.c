@@ -30,7 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 /* Namespace to hold the resolved symbols for intrinsic subroutines.  */
 static gfc_namespace *gfc_intrinsic_namespace;
 
-int gfc_init_expr = 0;
+bool gfc_init_expr_flag = false;
 
 /* Pointers to an intrinsic function and its argument names that are being
    checked.  */
@@ -1354,7 +1354,7 @@ add_functions (void)
   make_generic ("bit_size", GFC_ISYM_BIT_SIZE, GFC_STD_F95);
 
   add_sym_2 ("btest", GFC_ISYM_BTEST, CLASS_ELEMENTAL, ACTUAL_NO, BT_LOGICAL, dl, GFC_STD_F95,
-	     gfc_check_btest, gfc_simplify_btest, gfc_resolve_btest,
+	     gfc_check_bitfcn, gfc_simplify_btest, gfc_resolve_btest,
 	     i, BT_INTEGER, di, REQUIRED, pos, BT_INTEGER, di, REQUIRED);
 
   make_generic ("btest", GFC_ISYM_BTEST, GFC_STD_F95);
@@ -1475,8 +1475,6 @@ add_functions (void)
   add_sym_1 ("dble", GFC_ISYM_DBLE, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dd, GFC_STD_F77,
 	     gfc_check_dble, gfc_simplify_dble, gfc_resolve_dble,
 	     a, BT_REAL, dr, REQUIRED);
-
-  make_alias ("dfloat", GFC_STD_GNU);
 
   make_generic ("dble", GFC_ISYM_DBLE, GFC_STD_F77);
 
@@ -1740,7 +1738,7 @@ add_functions (void)
   make_generic ("iargc", GFC_ISYM_IARGC, GFC_STD_GNU);
 
   add_sym_2 ("ibclr", GFC_ISYM_IBCLR, CLASS_ELEMENTAL, ACTUAL_NO, BT_INTEGER, di, GFC_STD_F95,
-	     gfc_check_ibclr, gfc_simplify_ibclr, gfc_resolve_ibclr,
+	     gfc_check_bitfcn, gfc_simplify_ibclr, gfc_resolve_ibclr,
 	     i, BT_INTEGER, di, REQUIRED, pos, BT_INTEGER, di, REQUIRED);
 
   make_generic ("ibclr", GFC_ISYM_IBCLR, GFC_STD_F95);
@@ -1753,7 +1751,7 @@ add_functions (void)
   make_generic ("ibits", GFC_ISYM_IBITS, GFC_STD_F95);
 
   add_sym_2 ("ibset", GFC_ISYM_IBSET, CLASS_ELEMENTAL, ACTUAL_NO, BT_INTEGER, di, GFC_STD_F95,
-	     gfc_check_ibset, gfc_simplify_ibset, gfc_resolve_ibset,
+	     gfc_check_bitfcn, gfc_simplify_ibset, gfc_resolve_ibset,
 	     i, BT_INTEGER, di, REQUIRED, pos, BT_INTEGER, di, REQUIRED);
 
   make_generic ("ibset", GFC_ISYM_IBSET, GFC_STD_F95);
@@ -2293,11 +2291,15 @@ add_functions (void)
 	     a, BT_UNKNOWN, dr, REQUIRED);
 
   add_sym_1 ("float", GFC_ISYM_REAL, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F77,
-	     gfc_check_i, gfc_simplify_float, NULL,
+	     gfc_check_float, gfc_simplify_float, NULL,
 	     a, BT_INTEGER, di, REQUIRED);
 
+  add_sym_1 ("dfloat", GFC_ISYM_REAL, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dd, GFC_STD_GNU,
+	     gfc_check_float, gfc_simplify_dble, gfc_resolve_dble,
+	     a, BT_REAL, dr, REQUIRED);
+
   add_sym_1 ("sngl", GFC_ISYM_REAL, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F77,
-	     NULL, gfc_simplify_sngl, NULL,
+	     gfc_check_sngl, gfc_simplify_sngl, NULL,
 	     a, BT_REAL, dd, REQUIRED);
 
   make_generic ("real", GFC_ISYM_REAL, GFC_STD_F77);
@@ -3803,7 +3805,7 @@ gfc_intrinsic_func_interface (gfc_expr *expr, int error_flag)
 
   if ((isym->id == GFC_ISYM_REAL || isym->id == GFC_ISYM_DBLE
        || isym->id == GFC_ISYM_CMPLX)
-      && gfc_init_expr
+      && gfc_init_expr_flag
       && gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Function '%s' "
 			 "as initialization expression at %L", name,
 			 &expr->where) == FAILURE)
@@ -3879,7 +3881,7 @@ got_specific:
      (4)   A reference to an elemental standard intrinsic function,
            where each argument is an initialization expression  */
 
-  if (gfc_init_expr && isym->elemental && flag
+  if (gfc_init_expr_flag && isym->elemental && flag
       && gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Elemental function "
 			"as initialization expression with non-integer/non-"
 		        "character arguments at %L", &expr->where) == FAILURE)
@@ -4013,42 +4015,74 @@ gfc_convert_type_warn (gfc_expr *expr, gfc_typespec *ts, int eflag, int wflag)
 
   /* At this point, a conversion is necessary. A warning may be needed.  */
   if ((gfc_option.warn_std & sym->standard) != 0)
-    gfc_warning_now ("Extension: Conversion from %s to %s at %L",
-		     gfc_typename (&from_ts), gfc_typename (ts), &expr->where);
-  else if (wflag && gfc_option.warn_conversion)
     {
-      /* If the types are the same (but not LOGICAL), and if from-kind
-	 is larger than to-kind, this may indicate a loss of precision.
-	 The same holds for conversions from REAL to COMPLEX.  */
-      if (((from_ts.type == ts->type && from_ts.type != BT_LOGICAL)
-	     && from_ts.kind > ts->kind)
-	  || ((from_ts.type == BT_REAL && ts->type == BT_COMPLEX)
-	      && from_ts.kind > ts->kind))
-	gfc_warning_now ("Possible loss of precision in conversion "
-			 "from %s to %s at %L", gfc_typename (&from_ts),
-			 gfc_typename (ts), &expr->where);
-
-      /* If INTEGER is converted to REAL/COMPLEX, this is generally ok if
-	 the kind of the INTEGER value is less or equal to the kind of the
-	 REAL/COMPLEX one. Otherwise the value may not fit.
-	 Assignment of an overly large integer constant also generates
-	 an overflow error with range checking. */
-      else if (from_ts.type == BT_INTEGER
-	       && (ts->type == BT_REAL || ts->type == BT_COMPLEX)
-	       && from_ts.kind > ts->kind)
-	gfc_warning_now ("Possible loss of digits in conversion "
-			 "from %s to %s at %L", gfc_typename (&from_ts),
-			 gfc_typename (ts), &expr->where);
-
-      /* If REAL/COMPLEX is converted to INTEGER, or COMPLEX is converted
-        to REAL we almost certainly have a loss of digits, regardless of
-        the respective kinds.  */
-      else if (((from_ts.type == BT_REAL || from_ts.type == BT_COMPLEX)
-		 && ts->type == BT_INTEGER)
+      gfc_warning_now ("Extension: Conversion from %s to %s at %L",
+		       gfc_typename (&from_ts), gfc_typename (ts),
+		       &expr->where);
+    }
+  else if (wflag)
+    {
+      if (gfc_option.flag_range_check
+	  && expr->expr_type == EXPR_CONSTANT
+	  && from_ts.type == ts->type)
+	{
+	  /* Do nothing. Constants of the same type are range-checked
+	     elsewhere. If a value too large for the target type is
+	     assigned, an error is generated. Not checking here avoids
+	     duplications of warnings/errors.
+	     If range checking was disabled, but -Wconversion enabled,
+	     a non range checked warning is generated below.  */
+	}
+      else if (from_ts.type == BT_LOGICAL || ts->type == BT_LOGICAL)
+	{
+	  /* Do nothing. This block exists only to simplify the other
+	     else-if expressions.
+	       LOGICAL <> LOGICAL    no warning, independent of kind values
+	       LOGICAL <> INTEGER    extension, warned elsewhere
+	       LOGICAL <> REAL       invalid, error generated elsewhere
+	       LOGICAL <> COMPLEX    invalid, error generated elsewhere  */
+	}
+      else if (from_ts.type == ts->type
+	       || (from_ts.type == BT_INTEGER && ts->type == BT_REAL)
+	       || (from_ts.type == BT_INTEGER && ts->type == BT_COMPLEX)
+	       || (from_ts.type == BT_REAL && ts->type == BT_COMPLEX))
+	{
+	  /* Larger kinds can hold values of smaller kinds without problems.
+	     Hence, only warn if target kind is smaller than the source
+	     kind - or if -Wconversion-extra is specified.  */
+	  if (gfc_option.warn_conversion_extra)
+	    gfc_warning_now ("Conversion from %s to %s at %L",
+			     gfc_typename (&from_ts), gfc_typename (ts),
+			     &expr->where);
+	  else if (gfc_option.warn_conversion
+		   && from_ts.kind > ts->kind)
+	    gfc_warning_now ("Possible change of value in conversion "
+			     "from %s to %s at %L", gfc_typename (&from_ts),
+			     gfc_typename (ts), &expr->where);
+	}
+      else if ((from_ts.type == BT_REAL && ts->type == BT_INTEGER)
+	       || (from_ts.type == BT_COMPLEX && ts->type == BT_INTEGER)
 	       || (from_ts.type == BT_COMPLEX && ts->type == BT_REAL))
-	gfc_warning_now ("Likely loss of digits in conversion from"
-			"%s to %s at %L", gfc_typename (&from_ts),
-			gfc_typename (ts), &expr->where);
+	{
+	  /* Conversion from REAL/COMPLEX to INTEGER or COMPLEX to REAL
+	     usually comes with a loss of information, regardless of kinds.  */
+	  if (gfc_option.warn_conversion_extra
+	      || gfc_option.warn_conversion)
+	    gfc_warning_now ("Possible change of value in conversion "
+			     "from %s to %s at %L", gfc_typename (&from_ts),
+			     gfc_typename (ts), &expr->where);
+	}
+      else if (from_ts.type == BT_HOLLERITH || ts->type == BT_HOLLERITH)
+	{
+	  /* If HOLLERITH is involved, all bets are off.  */
+	  if (gfc_option.warn_conversion_extra
+	      || gfc_option.warn_conversion)
+	    gfc_warning_now ("Conversion from %s to %s at %L",
+			     gfc_typename (&from_ts), gfc_typename (ts),
+			     &expr->where);
+	}
+      else
+        gcc_unreachable ();
     }
 
   /* Insert a pre-resolved function call to the right function.  */

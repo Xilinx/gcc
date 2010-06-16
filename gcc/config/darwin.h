@@ -652,14 +652,8 @@ extern GTY(()) int darwin_ms_struct;
     ASM_OUTPUT_LABEL (FILE, xname);					\
   } while (0)
 
-#define ASM_DECLARE_CONSTANT_NAME(FILE, NAME, EXP, SIZE)	\
-  do {								\
-    ASM_OUTPUT_LABEL (FILE, NAME);				\
-    /* Darwin doesn't support zero-size objects, so give them a	\
-       byte.  */						\
-    if ((SIZE) == 0)						\
-      assemble_zeros (1);					\
-  } while (0)
+#undef TARGET_ASM_DECLARE_CONSTANT_NAME
+#define TARGET_ASM_DECLARE_CONSTANT_NAME darwin_asm_declare_constant_name
 
 /* Wrap new method names in quotes so the assembler doesn't gag.
    Make Objective-C internal symbols local and in doing this, we need 
@@ -725,7 +719,7 @@ int darwin_label_is_anonymous_local_objc_name (const char *name);
 #define ASM_OUTPUT_ALIGNED_DECL_LOCAL(FILE, DECL, NAME, SIZE, ALIGN)	\
   do {									\
     unsigned HOST_WIDE_INT _new_size = SIZE;				\
-    fputs (".lcomm ", (FILE));						\
+    fputs ("\t.lcomm ", (FILE));						\
     assemble_name ((FILE), (NAME));					\
     if (_new_size == 0) _new_size = 1;					\
     fprintf ((FILE), ","HOST_WIDE_INT_PRINT_UNSIGNED",%u\n", _new_size,	\
@@ -793,7 +787,7 @@ extern GTY(()) section * darwin_sections[NUM_DARWIN_SECTIONS];
        } while (0)
 
 /* Globalizing directive for a label.  */
-#define GLOBAL_ASM_OP ".globl "
+#define GLOBAL_ASM_OP "\t.globl "
 #define TARGET_ASM_GLOBALIZE_LABEL darwin_globalize_label
 
 /* Emit an assembler directive to set visibility for a symbol.  Used

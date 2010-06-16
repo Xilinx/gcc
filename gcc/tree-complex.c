@@ -23,15 +23,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "real.h"
 #include "flags.h"
 #include "tree-flow.h"
 #include "gimple.h"
 #include "tree-iterator.h"
 #include "tree-pass.h"
 #include "tree-ssa-propagate.h"
-#include "diagnostic.h"
 
 
 /* For each complex ssa name, a lattice value.  We're interested in finding

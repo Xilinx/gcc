@@ -1,7 +1,7 @@
 /* Process declarations and variables for the GNU compiler for the
    Java(TM) language.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007,
-   2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -28,21 +28,14 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "real.h"
 #include "toplev.h"
 #include "flags.h"
 #include "java-tree.h"
 #include "jcf.h"
-#include "function.h"
-#include "expr.h"
 #include "libfuncs.h"
-#include "except.h"
 #include "java-except.h"
 #include "ggc.h"
-#include "timevar.h"
 #include "cgraph.h"
 #include "tree-inline.h"
 #include "target.h"
@@ -1361,7 +1354,7 @@ static struct binding_level *
 make_binding_level (void)
 {
   /* NOSTRICT */
-  return GGC_CNEW (struct binding_level);
+  return ggc_alloc_cleared_binding_level ();
 }
 
 void
@@ -1703,7 +1696,7 @@ java_dup_lang_specific_decl (tree node)
     return;
 
   lang_decl_size = sizeof (struct lang_decl);
-  x = GGC_NEW (struct lang_decl);
+  x = ggc_alloc_lang_decl (lang_decl_size);
   memcpy (x, DECL_LANG_SPECIFIC (node), lang_decl_size);
   DECL_LANG_SPECIFIC (node) = x;
 }
@@ -1857,6 +1850,10 @@ start_java_method (tree fndecl)
       /* Add parm_decl to the decl_map. */
       push_jvm_slot (i, parm_decl);
 
+      /* The this parameter of methods is artificial.  */
+      if (TREE_CODE (TREE_TYPE (fndecl)) == METHOD_TYPE && i == 0)
+	DECL_ARTIFICIAL (parm_decl) = 1;
+
       type_map[i] = TREE_TYPE (parm_decl);
       if (TYPE_IS_WIDE (TREE_TYPE (parm_decl)))
 	{
@@ -2003,7 +2000,11 @@ java_mark_class_local (tree klass)
 
   for (t = TYPE_FIELDS (klass); t ; t = TREE_CHAIN (t))
     if (FIELD_STATIC (t))
-      java_mark_decl_local (t);
+      {
+	if (DECL_EXTERNAL (t))
+	  VEC_safe_push (tree, gc, pending_static_fields, t);
+	java_mark_decl_local (t);
+      }
 
   for (t = TYPE_METHODS (klass); t ; t = TREE_CHAIN (t))
     if (!METHOD_ABSTRACT (t))

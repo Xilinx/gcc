@@ -63,6 +63,16 @@ extern int dot_symbols;
 
 #define TARGET_PROFILE_KERNEL profile_kernel
 
+#define TARGET_USES_LINUX64_OPT 1
+#ifdef HAVE_LD_LARGE_TOC
+extern enum rs6000_cmodel cmodel;
+#undef TARGET_CMODEL
+#define TARGET_CMODEL cmodel
+#define SET_CMODEL(opt) cmodel = opt
+#else
+#define SET_CMODEL(opt)
+#endif
+
 #undef  PROCESSOR_DEFAULT
 #define PROCESSOR_DEFAULT PROCESSOR_POWER6
 #undef  PROCESSOR_DEFAULT64
@@ -114,6 +124,23 @@ extern int dot_symbols;
 	      target_flags |= MASK_POWERPC64;			\
 	      error ("-m64 requires a PowerPC64 cpu");		\
 	    }							\
+	  if ((target_flags_explicit & MASK_MINIMAL_TOC) != 0)	\
+	    {							\
+	      if (rs6000_explicit_options.cmodel		\
+		  && cmodel != CMODEL_SMALL)			\
+		error ("-mcmodel incompatible with other toc options"); \
+	      SET_CMODEL (CMODEL_SMALL);			\
+	    }							\
+	  else							\
+	    {							\
+	      if (!rs6000_explicit_options.cmodel)		\
+		SET_CMODEL (CMODEL_MEDIUM);			\
+	      if (cmodel != CMODEL_SMALL)			\
+		{						\
+		  TARGET_NO_FP_IN_TOC = 0;			\
+		  TARGET_NO_SUM_IN_TOC = 0;			\
+		}						\
+	    }							\
 	}							\
       else							\
 	{							\
@@ -123,6 +150,11 @@ extern int dot_symbols;
 	    {							\
 	      TARGET_PROFILE_KERNEL = 0;			\
 	      error (INVALID_32BIT, "profile-kernel");		\
+	    }							\
+	  if (rs6000_explicit_options.cmodel)			\
+	    {							\
+	      SET_CMODEL (CMODEL_SMALL);			\
+	      error (INVALID_32BIT, "cmodel");			\
 	    }							\
 	}							\
     }								\
@@ -289,6 +321,8 @@ extern int dot_symbols;
    process.  */
 #define OS_MISSING_POWERPC64 !TARGET_64BIT
 
+#define OPTION_GLIBC  (linux_libc == LIBC_GLIBC)
+
 /* glibc has float and long double forms of math functions.  */
 #undef  TARGET_C99_FUNCTIONS
 #define TARGET_C99_FUNCTIONS (OPTION_GLIBC)
@@ -352,10 +386,12 @@ extern int dot_symbols;
 #define GLIBC_DYNAMIC_LINKER64 "/lib64/ld64.so.1"
 #define UCLIBC_DYNAMIC_LINKER32 "/lib/ld-uClibc.so.0"
 #define UCLIBC_DYNAMIC_LINKER64 "/lib/ld64-uClibc.so.0"
-#if UCLIBC_DEFAULT
-#define CHOOSE_DYNAMIC_LINKER(G, U) "%{mglibc:%{muclibc:%e-mglibc and -muclibc used together}" G ";:" U "}"
+#if DEFAULT_LIBC == LIBC_UCLIBC
+#define CHOOSE_DYNAMIC_LINKER(G, U) "%{mglibc:" G ";:" U "}"
+#elif DEFAULT_LIBC == LIBC_GLIBC
+#define CHOOSE_DYNAMIC_LINKER(G, U) "%{muclibc:" U ";:" G "}"
 #else
-#define CHOOSE_DYNAMIC_LINKER(G, U) "%{muclibc:%{mglibc:%e-mglibc and -muclibc used together}" U ";:" G "}"
+#error "Unsupported DEFAULT_LIBC"
 #endif
 #define LINUX_DYNAMIC_LINKER32 \
   CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER32, UCLIBC_DYNAMIC_LINKER32)

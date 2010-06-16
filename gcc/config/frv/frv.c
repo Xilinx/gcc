@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "insn-flags.h"
@@ -7055,7 +7054,7 @@ frv_assemble_integer (rtx value, unsigned int size, int aligned_p)
 static struct machine_function *
 frv_init_machine_status (void)
 {
-  return GGC_CNEW (struct machine_function);
+  return ggc_alloc_cleared_machine_function ();
 }
 
 /* Implement TARGET_SCHED_ISSUE_RATE.  */

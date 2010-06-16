@@ -30,9 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cp-tree.h"
 #include "intl.h"
-#include "obstack.h"
 #include "flags.h"
-#include "rtl.h"
 #include "output.h"
 #include "toplev.h"
 #include "target.h"
@@ -218,8 +216,7 @@ lookup_base (tree t, tree base, base_access access, base_kind *kind_ptr)
 
   /* If BASE is incomplete, it can't be a base of T--and instantiating it
      might cause an error.  */
-  if (t_binfo && CLASS_TYPE_P (base)
-      && (COMPLETE_TYPE_P (base) || TYPE_BEING_DEFINED (base)))
+  if (t_binfo && CLASS_TYPE_P (base) && COMPLETE_OR_OPEN_TYPE_P (base))
     {
       struct lookup_base_data_s data;
 
@@ -1869,7 +1866,7 @@ check_final_overrider (tree overrider, tree basefn)
     }
 
   /* Check throw specifier is at least as strict.  */
-  if (!comp_except_specs (base_throw, over_throw, 0))
+  if (!comp_except_specs (base_throw, over_throw, ce_derived))
     {
       error ("looser throw specifier for %q+#F", overrider);
       error ("  overriding %q+#F", basefn);

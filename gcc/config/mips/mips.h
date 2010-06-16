@@ -28,53 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 
 /* MIPS external variables defined in mips.c.  */
 
-/* Which processor to schedule for.  Since there is no difference between
-   a R2000 and R3000 in terms of the scheduler, we collapse them into
-   just an R3000.  The elements of the enumeration must match exactly
-   the cpu attribute in the mips.md machine description.  */
-
-enum processor_type {
-  PROCESSOR_R3000,
-  PROCESSOR_4KC,
-  PROCESSOR_4KP,
-  PROCESSOR_5KC,
-  PROCESSOR_5KF,
-  PROCESSOR_20KC,
-  PROCESSOR_24KC,
-  PROCESSOR_24KF2_1,
-  PROCESSOR_24KF1_1,
-  PROCESSOR_74KC,
-  PROCESSOR_74KF2_1,
-  PROCESSOR_74KF1_1,
-  PROCESSOR_74KF3_2,
-  PROCESSOR_LOONGSON_2E,
-  PROCESSOR_LOONGSON_2F,
-  PROCESSOR_M4K,
-  PROCESSOR_OCTEON,
-  PROCESSOR_R3900,
-  PROCESSOR_R6000,
-  PROCESSOR_R4000,
-  PROCESSOR_R4100,
-  PROCESSOR_R4111,
-  PROCESSOR_R4120,
-  PROCESSOR_R4130,
-  PROCESSOR_R4300,
-  PROCESSOR_R4600,
-  PROCESSOR_R4650,
-  PROCESSOR_R5000,
-  PROCESSOR_R5400,
-  PROCESSOR_R5500,
-  PROCESSOR_R7000,
-  PROCESSOR_R8000,
-  PROCESSOR_R9000,
-  PROCESSOR_R10000,
-  PROCESSOR_SB1,
-  PROCESSOR_SB1A,
-  PROCESSOR_SR71000,
-  PROCESSOR_XLR,
-  PROCESSOR_MAX
-};
-
 /* Costs of various operations on the different architectures.  */
 
 struct mips_rtx_cost_data
@@ -121,7 +74,7 @@ struct mips_cpu_info {
   /* The internal processor number that most closely matches this
      entry.  Several processors can have the same value, if there's no
      difference between them from GCC's point of view.  */
-  enum processor_type cpu;
+  enum processor cpu;
 
   /* The ISA level that the processor implements.  */
   int isa;
@@ -536,7 +489,9 @@ enum mips_code_readable_setting {
 									\
       /* These defines reflect the ABI in use, not whether the  	\
 	 FPU is directly accessible.  */				\
-      if (TARGET_HARD_FLOAT_ABI)					\
+      if (TARGET_NO_FLOAT)						\
+	builtin_define ("__mips_no_float");				\
+      else if (TARGET_HARD_FLOAT_ABI)					\
 	builtin_define ("__mips_hard_float");				\
       else								\
 	builtin_define ("__mips_soft_float");				\
@@ -2702,10 +2657,6 @@ typedef struct mips_args {
 
 #define ALL_COP_ADDITIONAL_REGISTER_NAMES
 
-#define PRINT_OPERAND mips_print_operand
-#define PRINT_OPERAND_PUNCT_VALID_P(CODE) mips_print_operand_punct[CODE]
-#define PRINT_OPERAND_ADDRESS mips_print_operand_address
-
 #define DBR_OUTPUT_SEQEND(STREAM)					\
 do									\
   {									\
@@ -3058,7 +3009,6 @@ struct mips_asm_switch {
 
 extern const enum reg_class mips_regno_to_class[];
 extern bool mips_hard_regno_mode_ok[][FIRST_PSEUDO_REGISTER];
-extern bool mips_print_operand_punct[256];
 extern const char *current_function_file; /* filename current function is in */
 extern int num_source_filenames;	/* current .file # */
 extern struct mips_asm_switch mips_noreorder;
@@ -3068,8 +3018,8 @@ extern int mips_dbx_regno[];
 extern int mips_dwarf_regno[];
 extern bool mips_split_p[];
 extern bool mips_split_hi_p[];
-extern enum processor_type mips_arch;   /* which cpu to codegen for */
-extern enum processor_type mips_tune;   /* which cpu to schedule for */
+extern enum processor mips_arch;        /* which cpu to codegen for */
+extern enum processor mips_tune;        /* which cpu to schedule for */
 extern int mips_isa;			/* architectural level */
 extern int mips_abi;			/* which ABI to use */
 extern const struct mips_cpu_info *mips_arch_info;
@@ -3084,10 +3034,6 @@ extern enum mips_code_readable_setting mips_code_readable;
 
 #define FINAL_PRESCAN_INSN(INSN, OPVEC, NOPERANDS)	\
   mips_final_prescan_insn (INSN, OPVEC, NOPERANDS)
-
-/* This is necessary to avoid a warning about comparing different enum
-   types.  */
-#define mips_tune_attr ((enum attr_cpu) mips_tune)
 
 /* As on most targets, we want the .eh_frame section to be read-only where
    possible.  And as on most targets, this means two things:

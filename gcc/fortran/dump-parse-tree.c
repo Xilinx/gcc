@@ -32,6 +32,7 @@ along with GCC; see the file COPYING3.  If not see
    TODO: Dump DATA.  */
 
 #include "config.h"
+#include "system.h"
 #include "gfortran.h"
 #include "constructor.h"
 
@@ -852,7 +853,7 @@ show_symbol (gfc_symbol *sym)
 	}
     }
 
-  if (sym->formal_ns)
+  if (sym->formal_ns && (sym->formal_ns->proc_name != sym))
     {
       show_indent ();
       fputs ("Formal namespace", dumpfile);

@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "cp-tree.h"
-#include "c-common.h"
+#include "c-family/c-common.h"
 #include "toplev.h"
 #include "tree-iterator.h"
 #include "gimple.h"
@@ -480,11 +480,16 @@ gimplify_must_not_throw_expr (tree *expr_p, gimple_seq *pre_p)
   tree stmt = *expr_p;
   tree temp = voidify_wrapper_expr (stmt, NULL);
   tree body = TREE_OPERAND (stmt, 0);
+  gimple_seq try_ = NULL;
+  gimple_seq catch_ = NULL;
+  gimple mnt;
 
-  stmt = build_gimple_eh_filter_tree (body, NULL_TREE,
-				      build_call_n (terminate_node, 0));
+  gimplify_and_add (body, &try_);
+  mnt = gimple_build_eh_must_not_throw (terminate_node);
+  gimplify_seq_add_stmt (&catch_, mnt);
+  mnt = gimple_build_try (try_, catch_, GIMPLE_TRY_CATCH);
 
-  gimplify_and_add (stmt, pre_p);
+  gimplify_seq_add_stmt (pre_p, mnt);
   if (temp)
     {
       *expr_p = temp;
@@ -976,7 +981,7 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
     return NULL;
 
   nargs = list_length (DECL_ARGUMENTS (fn));
-  argarray = (tree *) alloca (nargs * sizeof (tree));
+  argarray = XALLOCAVEC (tree, nargs);
 
   defparm = TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (fn)));
   if (arg2)

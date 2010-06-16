@@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "params.h"
 #include "diagnostic.h"
+#include "opts-diagnostic.h"
 #include "tm_p.h"		/* For OPTIMIZATION_OPTIONS.  */
 #include "insn-attr.h"		/* For INSN_SCHEDULING.  */
 #include "target.h"
@@ -63,7 +64,7 @@ bool warn_larger_than;
 HOST_WIDE_INT larger_than_size;
 
 /* True to warn about any function whose frame size is larger
- * than N bytes. */
+   than N bytes. */
 bool warn_frame_larger_than;
 HOST_WIDE_INT frame_larger_than_size;
 
@@ -380,22 +381,6 @@ static void complain_wrong_lang (const char *, const struct cl_option *,
 static void set_debug_level (enum debug_info_type type, int extended,
 			     const char *arg);
 
-/* If ARG is a non-negative integer made up solely of digits, return its
-   value, otherwise return -1.  */
-static int
-integral_argument (const char *arg)
-{
-  const char *p = arg;
-
-  while (*p && ISDIGIT (*p))
-    p++;
-
-  if (*p == '\0')
-    return atoi (arg);
-
-  return -1;
-}
-
 /* Return a malloced slash-separated list of languages in MASK.  */
 static char *
 write_langs (unsigned int mask)
@@ -502,24 +487,30 @@ handle_option (int opt_index, int value, const char *arg,
     {
       if (lang_hooks.handle_option (opt_index, arg, value, kind) == 0)
 	return false;
+#ifdef ENABLE_LTO
       else
 	lto_register_user_option (opt_index, arg, value, lang_mask);
+ #endif
     }
 
   if (option->flags & CL_COMMON)
     {
       if (common_handle_option (opt_index, arg, value, lang_mask, kind) == 0)
 	return false;
+#ifdef ENABLE_LTO
       else
 	lto_register_user_option (opt_index, arg, value, CL_COMMON);
+#endif
     }
 
   if (option->flags & CL_TARGET)
     {
       if (!targetm.handle_option (opt_index, arg, value))
 	return false;
+#ifdef ENABLE_LTO
       else
 	lto_register_user_option (opt_index, arg, value, CL_TARGET);
+#endif
     }
   return true;
 }
@@ -529,131 +520,61 @@ handle_option (int opt_index, int value, const char *arg,
 static unsigned int
 read_cmdline_option (const char **argv, unsigned int lang_mask)
 {
-  size_t opt_index;
-  const char *opt, *arg = 0;
-  char *dup = 0;
-  int value = 1;
-  unsigned int result = 0;
+  struct cl_decoded_option decoded;
+  unsigned int result;
+  const char *opt;
   const struct cl_option *option;
 
   opt = argv[0];
 
-  opt_index = find_opt (opt + 1, lang_mask | CL_COMMON | CL_TARGET);
-  if (opt_index == cl_options_count
-      && (opt[1] == 'W' || opt[1] == 'f' || opt[1] == 'm')
-      && opt[2] == 'n' && opt[3] == 'o' && opt[4] == '-')
+  result = decode_cmdline_option (argv, lang_mask, &decoded);
+  if (decoded.opt_index == cl_options_count)
     {
-      /* Drop the "no-" from negative switches.  */
-      size_t len = strlen (opt) - 3;
-
-      dup = XNEWVEC (char, len + 1);
-      dup[0] = '-';
-      dup[1] = opt[1];
-      memcpy (dup + 2, opt + 5, len - 2 + 1);
-      opt = dup;
-      value = 0;
-      opt_index = find_opt (opt + 1, lang_mask | CL_COMMON | CL_TARGET);
-      if (opt_index == cl_options_count && opt[1] == 'W')
-	{
-	  /* We don't generate warnings for unknown -Wno-* options
-             unless we issue diagnostics.  */
+      if (opt[1] == 'W' && opt[2] == 'n' && opt[3] == 'o' && opt[4] == '-')
+	/* We don't generate warnings for unknown -Wno-* options
+	   unless we issue diagnostics.  */
 	  postpone_unknown_option_warning (argv[0]);
-	  result = 1;
-	  goto done;
-	}
+      else
+	error ("unrecognized command line option %qs", opt);
+      return result;
     }
 
-  if (opt_index == cl_options_count)
-    goto done;
+  option = &cl_options[decoded.opt_index];
 
-  option = &cl_options[opt_index];
-
-  /* Reject negative form of switches that don't take negatives as
-     unrecognized.  */
-  if (!value && (option->flags & CL_REJECT_NEGATIVE))
-    goto done;
-
-  /* We've recognized this switch.  */
-  result = 1;
-
-  /* Check to see if the option is disabled for this configuration.  */
-  if (option->flags & CL_DISABLED)
+  if (decoded.errors & CL_ERR_DISABLED)
     {
       error ("command line option %qs"
 	     " is not supported by this configuration", opt);
       goto done;
     }
 
-  /* Sort out any argument the switch takes.  */
-  if (option->flags & CL_JOINED)
-    {
-      /* Have arg point to the original switch.  This is because
-	 some code, such as disable_builtin_function, expects its
-	 argument to be persistent until the program exits.  */
-      arg = argv[0] + cl_options[opt_index].opt_len + 1;
-      if (!value)
-	arg += strlen ("no-");
-
-      if (*arg == '\0' && !(option->flags & CL_MISSING_OK))
-	{
-	  if (option->flags & CL_SEPARATE)
-	    {
-	      arg = argv[1];
-	      result = 2;
-	    }
-	  else
-	    /* Missing argument.  */
-	    arg = NULL;
-	}
-    }
-  else if (option->flags & CL_SEPARATE)
-    {
-      arg = argv[1];
-      result = 2;
-    }
-
-  /* Now we've swallowed any potential argument, complain if this
-     is a switch for a different front end.  */
-  if (!(option->flags & (lang_mask | CL_COMMON | CL_TARGET)))
+  if (decoded.errors & CL_ERR_WRONG_LANG)
     {
       complain_wrong_lang (argv[0], option, lang_mask);
       goto done;
     }
-  else if ((option->flags & CL_TARGET)
-	   && (option->flags & CL_LANG_ALL)
-	   && !(option->flags & lang_mask))
+
+  if (decoded.errors & CL_ERR_MISSING_ARG)
     {
-      /* Complain for target flag language mismatches if any languages
-	 are specified.  */
-      complain_wrong_lang (argv[0], option, lang_mask);
+      if (!lang_hooks.missing_argument (opt, decoded.opt_index))
+	error ("missing argument to %qs", opt);
       goto done;
     }
 
-  if (arg == NULL && (option->flags & (CL_JOINED | CL_SEPARATE)))
+  if (decoded.errors & CL_ERR_UINT_ARG)
     {
-      if (!lang_hooks.missing_argument (opt, opt_index))
-	error ("missing argument to \"%s\"", opt);
+      error ("argument to %qs should be a non-negative integer",
+	     option->opt_text);
       goto done;
     }
 
-  /* If the switch takes an integer, convert it.  */
-  if (arg && (option->flags & CL_UINTEGER))
-    {
-      value = integral_argument (arg);
-      if (value == -1)
-	{
-	  error ("argument to \"%s\" should be a non-negative integer",
-		 option->opt_text);
-	  goto done;
-	}
-    }
+  gcc_assert (!decoded.errors);
 
-  if (!handle_option (opt_index, value, arg, lang_mask, DK_UNSPECIFIED))
-    result = 0;
+  if (!handle_option (decoded.opt_index, decoded.value, decoded.arg,
+		      lang_mask, DK_UNSPECIFIED))
+    error ("unrecognized command line option %qs", opt);
 
  done:
-  if (dup)
-    free (dup);
   return result;
 }
 
@@ -773,12 +694,6 @@ read_cmdline_options (unsigned int argc, const char **argv, unsigned int lang_ma
 	}
 
       n = read_cmdline_option (argv + i, lang_mask);
-
-      if (!n)
-	{
-	  n = 1;
-	  error ("unrecognized command line option \"%s\"", opt);
-	}
     }
 }
 
@@ -798,6 +713,7 @@ decode_options (unsigned int argc, const char **argv)
   int opt2;
   int opt3;
   int opt1_max;
+  int ofast = 0;
 
   if (first_time_p)
     {
@@ -825,6 +741,7 @@ decode_options (unsigned int argc, const char **argv)
 	{
 	  optimize = 1;
 	  optimize_size = 0;
+	  ofast = 0;
 	}
       else if (argv[i][0] == '-' && argv[i][1] == 'O')
 	{
@@ -837,6 +754,14 @@ decode_options (unsigned int argc, const char **argv)
 
 	      /* Optimizing for size forces optimize to be 2.  */
 	      optimize = 2;
+	      ofast = 0;
+	    }
+	  else if (strcmp (p, "fast") == 0)
+	    {
+	      /* -Ofast only adds flags to -O3.  */
+	      optimize_size = 0;
+	      optimize = 3;
+	      ofast = 1;
 	    }
 	  else
 	    {
@@ -847,6 +772,7 @@ decode_options (unsigned int argc, const char **argv)
 		  if ((unsigned int) optimize > 255)
 		    optimize = 255;
 		  optimize_size = 0;
+		  ofast = 0;
 		}
 	    }
 	}
@@ -961,6 +887,17 @@ decode_options (unsigned int argc, const char **argv)
   else
     set_param_value ("min-crossjump-insns", initial_min_crossjump_insns);
 
+  /* -Ofast adds optimizations to -O3.  */
+  if (ofast)
+    {
+      /* Which is -ffast-math for now.  */
+      set_fast_math_flags (1);
+      /* Allow targets to enable extra options with -Ofast
+	 before general options processing so disabling them
+	 again afterwards works.  */
+      targetm.handle_ofast ();
+    }
+
   /* Enable -Werror=coverage-mismatch by default */
   enable_warning_as_error("coverage-mismatch", 1, lang_mask);
 
@@ -980,8 +917,10 @@ decode_options (unsigned int argc, const char **argv)
       flag_unwind_tables = targetm.unwind_tables_default;
     }
 
+#ifdef ENABLE_LTO
   /* Clear any options currently held for LTO.  */
   lto_clear_user_options ();
+#endif
 
 #ifdef OPTIMIZATION_OPTIONS
   /* Allow default optimizations to be specified on a per-machine basis.  */
@@ -1031,6 +970,11 @@ decode_options (unsigned int argc, const char **argv)
 	       "is disabled.");
       flag_toplevel_reorder = 0;
     }
+
+  /* -Wmissing-noreturn is alias for -Wsuggest-attribute=noreturn.  */
+  if (warn_missing_noreturn)
+    warn_suggest_attribute_noreturn = true;
+    
   /* Unless the user has asked for section anchors, we disable toplevel
      reordering at -O0 to disable transformations that might be surprising
      to end users and to get -fno-toplevel-reorder tested.  */
@@ -1142,9 +1086,6 @@ decode_options (unsigned int argc, const char **argv)
   if (flag_wpa || flag_ltrans)
     {
       /* These passes are not WHOPR compatible yet.  */
-      flag_ipa_cp = 0;
-      flag_ipa_reference = 0;
-      flag_ipa_type_escape = 0;
       flag_ipa_pta = 0;
       flag_ipa_struct_reorg = 0;
     }
@@ -1659,6 +1600,7 @@ common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_O:
     case OPT_Os:
+    case OPT_Ofast:
       /* Currently handled in a prescan.  */
       break;
 
@@ -1674,6 +1616,10 @@ common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wlarger_than_eq:
       larger_than_size = value;
       warn_larger_than = value != -1;
+      break;
+
+    case OPT_Wfatal_errors:
+      global_dc->fatal_errors = value;
       break;
 
     case OPT_Wframe_larger_than_:
@@ -1697,6 +1643,10 @@ common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_Wstrict_overflow_:
       warn_strict_overflow = value;
+      break;
+
+    case OPT_Wsystem_headers:
+      global_dc->warn_system_headers = value;
       break;
 
     case OPT_Wunused:
@@ -1928,6 +1878,10 @@ common_handle_option (size_t scode, const char *arg, int value,
       flag_profile_values_set = true;
       break;
 
+    case OPT_fshow_column:
+      global_dc->show_column = value;
+      break;
+
     case OPT_fvisibility_:
       {
         if (!strcmp(arg, "default"))
@@ -2142,6 +2096,15 @@ common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_pedantic_errors:
       flag_pedantic_errors = pedantic = 1;
+      global_dc->pedantic_errors = 1;
+      break;
+
+    case OPT_fwhopr:
+      flag_whopr = value;
+      break;
+
+    case OPT_w:
+      global_dc->inhibit_warnings = true;
       break;
 
     case OPT_fsee:
@@ -2478,4 +2441,39 @@ enable_warning_as_error (const char *arg, int value, unsigned int lang_mask)
 	}
     }
   free (new_option);
+}
+
+/* Return malloced memory for the name of the option OPTION_INDEX
+   which enabled a diagnostic (context CONTEXT), originally of type
+   ORIG_DIAG_KIND but possibly converted to DIAG_KIND by options such
+   as -Werror.  */
+
+char *
+option_name (diagnostic_context *context, int option_index,
+	     diagnostic_t orig_diag_kind, diagnostic_t diag_kind)
+{
+  if (option_index)
+    {
+      /* A warning classified as an error.  */
+      if ((orig_diag_kind == DK_WARNING || orig_diag_kind == DK_PEDWARN)
+	  && diag_kind == DK_ERROR)
+	return concat (cl_options[OPT_Werror_].opt_text,
+		       /* Skip over "-W".  */
+		       cl_options[option_index].opt_text + 2,
+		       NULL);
+      /* A warning with option.  */
+      else
+	return xstrdup (cl_options[option_index].opt_text);
+    }
+  /* A warning without option classified as an error.  */
+  else if (orig_diag_kind == DK_WARNING || orig_diag_kind == DK_PEDWARN
+	   || diag_kind == DK_WARNING)
+    {
+      if (context->warning_as_error_requested)
+	return xstrdup (cl_options[OPT_Werror].opt_text);
+      else
+	return xstrdup (_("enabled by default"));
+    }
+  else
+    return NULL;
 }

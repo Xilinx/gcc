@@ -29,7 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "output.h"
@@ -40,7 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "optabs.h"
 #include "toplev.h"
-#include "c-pragma.h"
+#include "c-family/c-pragma.h"	/* ??? */
 #include "tm_p.h"
 #include "ggc.h"
 #include "target.h"

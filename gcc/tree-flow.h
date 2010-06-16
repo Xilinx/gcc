@@ -23,7 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 #define _TREE_FLOW_H 1
 
 #include "bitmap.h"
-#include "hard-reg-set.h"
+#include "sbitmap.h"
 #include "basic-block.h"
 #include "hashtab.h"
 #include "gimple.h"
@@ -870,6 +870,10 @@ tree maybe_fold_tmr (tree);
 
 unsigned int execute_free_datastructures (void);
 unsigned int execute_fixup_cfg (void);
+bool fixup_noreturn_call (gimple stmt);
+
+/* In ipa-pure-const.c  */
+void warn_function_noreturn (tree);
 
 #include "tree-flow-inline.h"
 

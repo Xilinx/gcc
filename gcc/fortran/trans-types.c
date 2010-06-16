@@ -27,18 +27,16 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "langhooks.h"
-#include "tm.h"
+#include "langhooks.h"	/* For iso-c-bindings.def.  */
 #include "target.h"
 #include "ggc.h"
-#include "toplev.h"
+#include "toplev.h"	/* For rest_of_decl_compilation/fatal_error.  */
 #include "gfortran.h"
 #include "trans.h"
 #include "trans-types.h"
 #include "trans-const.h"
-#include "real.h"
 #include "flags.h"
-#include "dwarf2out.h"
+#include "dwarf2out.h"	/* For struct array_descr_info.  */
 
 
 #if (GFC_MAX_DIMENSIONS < 10)
@@ -870,7 +868,7 @@ gfc_init_types (void)
   ppvoid_type_node = build_pointer_type (pvoid_type_node);
   pchar_type_node = build_pointer_type (gfc_character1_type_node);
   pfunc_type_node
-    = build_pointer_type (build_function_type (void_type_node, NULL_TREE));
+    = build_pointer_type (build_function_type_list (void_type_node, NULL_TREE));
 
   gfc_array_index_type = gfc_get_int_type (gfc_index_integer_kind);
   /* We cannot use gfc_index_zero_node in definition of gfc_array_range_type,
@@ -1392,8 +1390,8 @@ gfc_get_nodesc_array_type (tree etype, gfc_array_spec * as, gfc_packed packed,
   type = make_node (ARRAY_TYPE);
 
   GFC_ARRAY_TYPE_P (type) = 1;
-  TYPE_LANG_SPECIFIC (type) = (struct lang_type *)
-    ggc_alloc_cleared (sizeof (struct lang_type));
+  TYPE_LANG_SPECIFIC (type)
+      = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
 
   known_stride = (packed != PACKED_NO);
   known_offset = 1;
@@ -1633,8 +1631,8 @@ gfc_get_array_type_bounds (tree etype, int dimen, int codimen, tree * lbound,
   TYPE_NAME (fat_type) = get_identifier (name);
 
   GFC_DESCRIPTOR_TYPE_P (fat_type) = 1;
-  TYPE_LANG_SPECIFIC (fat_type) = (struct lang_type *)
-    ggc_alloc_cleared (sizeof (struct lang_type));
+  TYPE_LANG_SPECIFIC (fat_type)
+    = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
 
   GFC_TYPE_ARRAY_RANK (fat_type) = dimen;
   GFC_TYPE_ARRAY_DTYPE (fat_type) = NULL_TREE;
@@ -1934,7 +1932,7 @@ gfc_get_ppc_type (gfc_component* c)
   else
     t = void_type_node;
 
-  return build_pointer_type (build_function_type (t, NULL_TREE));
+  return build_pointer_type (build_function_type_list (t, NULL_TREE));
 }
 
 

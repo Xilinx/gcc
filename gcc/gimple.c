@@ -145,7 +145,7 @@ gimple_alloc_stat (enum gimple_code code, unsigned num_ops MEM_STAT_DECL)
   }
 #endif
 
-  stmt = (gimple) ggc_alloc_cleared_stat (size PASS_MEM_STAT);
+  stmt = ggc_alloc_cleared_gimple_statement_d_stat (size PASS_MEM_STAT);
   gimple_set_code (stmt, code);
   gimple_set_num_ops (stmt, num_ops);
 
@@ -297,6 +297,7 @@ gimple_build_call_from_tree (tree t)
   gimple_call_set_return_slot_opt (call, CALL_EXPR_RETURN_SLOT_OPT (t));
   gimple_call_set_from_thunk (call, CALL_FROM_THUNK_P (t));
   gimple_call_set_va_arg_pack (call, CALL_EXPR_VA_ARG_PACK (t));
+  gimple_call_set_nothrow (call, TREE_NOTHROW (t));
   gimple_set_no_warning (call, TREE_NO_WARNING (t));
 
   return call;
@@ -636,7 +637,7 @@ gimple_build_eh_filter (tree types, gimple_seq failure)
 gimple
 gimple_build_eh_must_not_throw (tree decl)
 {
-  gimple p = gimple_alloc (GIMPLE_EH_MUST_NOT_THROW, 1);
+  gimple p = gimple_alloc (GIMPLE_EH_MUST_NOT_THROW, 0);
 
   gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
   gcc_assert (flags_from_decl_or_type (decl) & ECF_NORETURN);
@@ -823,7 +824,8 @@ gimple_build_omp_for (gimple_seq body, tree clauses, size_t collapse,
     gimple_omp_set_body (p, body);
   gimple_omp_for_set_clauses (p, clauses);
   p->gimple_omp_for.collapse = collapse;
-  p->gimple_omp_for.iter = GGC_CNEWVEC (struct gimple_omp_for_iter, collapse);
+  p->gimple_omp_for.iter
+      = ggc_alloc_cleared_vec_gimple_omp_for_iter (collapse);
   if (pre_body)
     gimple_omp_for_set_pre_body (p, pre_body);
 
@@ -1073,7 +1075,7 @@ gimple_seq_alloc (void)
     }
   else
     {
-      seq = (gimple_seq) ggc_alloc_cleared (sizeof (*seq));
+      seq = ggc_alloc_cleared_gimple_seq_d ();
 #ifdef GATHER_STATISTICS
       gimple_alloc_counts[(int) gimple_alloc_kind_seq]++;
       gimple_alloc_sizes[(int) gimple_alloc_kind_seq] += sizeof (*seq);
@@ -1753,6 +1755,9 @@ gimple_call_flags (const_gimple stmt)
 	flags = 0;
     }
 
+  if (stmt->gsbase.subcode & GF_CALL_NOTHROW)
+    flags |= ECF_NOTHROW;
+
   return flags;
 }
 
@@ -2118,8 +2123,8 @@ gimple_copy (gimple stmt)
 	  t = unshare_expr (gimple_omp_for_clauses (stmt));
 	  gimple_omp_for_set_clauses (copy, t);
 	  copy->gimple_omp_for.iter
-	    = GGC_NEWVEC (struct gimple_omp_for_iter,
-			  gimple_omp_for_collapse (stmt));
+	    = ggc_alloc_vec_gimple_omp_for_iter
+	    (gimple_omp_for_collapse (stmt));
 	  for (i = 0; i < gimple_omp_for_collapse (stmt); i++)
 	    {
 	      gimple_omp_for_set_cond (copy, i,
@@ -3215,16 +3220,35 @@ compare_type_names_p (tree t1, tree t2, bool for_completion_p)
   return false;
 }
 
-/* Return true if the field decls F1 and F2 are at the same offset.  */
+/* Return true if the field decls F1 and F2 are at the same offset.
+
+   This is intended to be used on GIMPLE types only.  In order to
+   compare GENERIC types, use fields_compatible_p instead.  */
 
 bool
-compare_field_offset (tree f1, tree f2)
+gimple_compare_field_offset (tree f1, tree f2)
 {
   if (DECL_OFFSET_ALIGN (f1) == DECL_OFFSET_ALIGN (f2))
-    return (operand_equal_p (DECL_FIELD_OFFSET (f1),
-			     DECL_FIELD_OFFSET (f2), 0)
-	    && tree_int_cst_equal (DECL_FIELD_BIT_OFFSET (f1),
-				   DECL_FIELD_BIT_OFFSET (f2)));
+    {
+      tree offset1 = DECL_FIELD_OFFSET (f1);
+      tree offset2 = DECL_FIELD_OFFSET (f2);
+      return ((offset1 == offset2
+	       /* Once gimplification is done, self-referential offsets are
+		  instantiated as operand #2 of the COMPONENT_REF built for
+		  each access and reset.  Therefore, they are not relevant
+		  anymore and fields are interchangeable provided that they
+		  represent the same access.  */
+	       || (TREE_CODE (offset1) == PLACEHOLDER_EXPR
+		   && TREE_CODE (offset2) == PLACEHOLDER_EXPR
+		   && (DECL_SIZE (f1) == DECL_SIZE (f2)
+		       || (TREE_CODE (DECL_SIZE (f1)) == PLACEHOLDER_EXPR
+			   && TREE_CODE (DECL_SIZE (f2)) == PLACEHOLDER_EXPR)
+		       || operand_equal_p (DECL_SIZE (f1), DECL_SIZE (f2), 0))
+		   && DECL_ALIGN (f1) == DECL_ALIGN (f2))
+	       || operand_equal_p (offset1, offset2, 0))
+	      && tree_int_cst_equal (DECL_FIELD_BIT_OFFSET (f1),
+				     DECL_FIELD_BIT_OFFSET (f2)));
+    }
 
   /* Fortran and C do not always agree on what DECL_OFFSET_ALIGN
      should be, so handle differing ones specially by decomposing
@@ -3276,8 +3300,7 @@ gimple_types_compatible_p (tree t1, tree t2)
   if (TREE_CODE (t1) == VOID_TYPE)
     return 1;
 
-  /* For numerical types do some simple checks before doing three
-     hashtable queries.  */
+  /* Do some simple checks before doing three hashtable queries.  */
   if (INTEGRAL_TYPE_P (t1)
       || SCALAR_FLOAT_TYPE_P (t1)
       || FIXED_POINT_TYPE_P (t1)
@@ -3309,6 +3332,14 @@ gimple_types_compatible_p (tree t1, tree t2)
 	return gimple_types_compatible_p (TREE_TYPE (t1), TREE_TYPE (t2));
 
       /* For integral types fall thru to more complex checks.  */
+    }
+
+  else if (AGGREGATE_TYPE_P (t1) || POINTER_TYPE_P (t1))
+    {
+      /* Can't be the same type if they have different alignment or mode.  */
+      if (TYPE_ALIGN (t1) != TYPE_ALIGN (t2)
+	  || TYPE_MODE (t1) != TYPE_MODE (t2))
+	return 0;
     }
 
   /* If the hash values of t1 and t2 are different the types can't
@@ -3458,11 +3489,20 @@ gimple_types_compatible_p (tree t1, tree t2)
 	    && RECORD_OR_UNION_TYPE_P (TREE_TYPE (t1))
 	    && (!COMPLETE_TYPE_P (TREE_TYPE (t1))
 		|| !COMPLETE_TYPE_P (TREE_TYPE (t2)))
+	    && TYPE_QUALS (TREE_TYPE (t1)) == TYPE_QUALS (TREE_TYPE (t2))
 	    && compare_type_names_p (TYPE_MAIN_VARIANT (TREE_TYPE (t1)),
 				     TYPE_MAIN_VARIANT (TREE_TYPE (t2)), true))
 	  {
 	    /* Replace the pointed-to incomplete type with the
-	       complete one.  */
+	       complete one.
+	       ???  This simple name-based merging causes at least some
+	       of the ICEs in canonicalizing FIELD_DECLs during stmt
+	       read.  For example in GCC we have two different struct deps
+	       and we mismatch the use in struct cpp_reader in sched-int.h
+	       vs. mkdeps.c.  Of course the whole exercise is for TBAA
+	       with structs which contain pointers to incomplete types
+	       in one unit and to complete ones in another.  So we
+	       probably should merge these types only with more context.  */
 	    if (COMPLETE_TYPE_P (TREE_TYPE (t2)))
 	      TREE_TYPE (t1) = TREE_TYPE (t2);
 	    else
@@ -3553,12 +3593,6 @@ gimple_types_compatible_p (tree t1, tree t2)
       {
 	tree f1, f2;
 
-	/* If one type requires structural equality checks and the
-	   other doesn't, do not merge the types.  */
-	if (TYPE_STRUCTURAL_EQUALITY_P (t1)
-	    != TYPE_STRUCTURAL_EQUALITY_P (t2))
-	  goto different_types;
-
 	/* The struct tags shall compare equal.  */
 	if (!compare_type_names_p (TYPE_MAIN_VARIANT (t1),
 				   TYPE_MAIN_VARIANT (t2), false))
@@ -3572,7 +3606,7 @@ gimple_types_compatible_p (tree t1, tree t2)
 	    /* The fields must have the same name, offset and type.  */
 	    if (DECL_NAME (f1) != DECL_NAME (f2)
 		|| DECL_NONADDRESSABLE_P (f1) != DECL_NONADDRESSABLE_P (f2)
-		|| !compare_field_offset (f1, f2)
+		|| !gimple_compare_field_offset (f1, f2)
 		|| !gimple_types_compatible_p (TREE_TYPE (f1),
 					       TREE_TYPE (f2)))
 	      goto different_types;
@@ -3915,6 +3949,11 @@ gimple_register_type (tree t)
 
   gcc_assert (TYPE_P (t));
 
+  /* In TYPE_CANONICAL we cache the result of gimple_register_type.
+     It is initially set to NULL during LTO streaming.  */
+  if (TYPE_CANONICAL (t))
+    return TYPE_CANONICAL (t);
+
   /* Always register the main variant first.  This is important so we
      pick up the non-typedef variants as canonical, otherwise we'll end
      up taking typedef ids for structure tags during comparison.  */
@@ -3978,10 +4017,14 @@ gimple_register_type (tree t)
 	  TYPE_NEXT_REF_TO (t) = NULL_TREE;
 	}
 
+      TYPE_CANONICAL (t) = new_type;
       t = new_type;
     }
   else
-    *slot = (void *) t;
+    {
+      TYPE_CANONICAL (t) = t;
+      *slot = (void *) t;
+    }
 
   return t;
 }
@@ -4066,6 +4109,10 @@ gimple_signed_or_unsigned_type (bool unsignedp, tree type)
     return unsignedp
            ? long_long_unsigned_type_node
 	   : long_long_integer_type_node;
+  if (int128_integer_type_node && (type1 == int128_integer_type_node || type1 == int128_unsigned_type_node))
+    return unsignedp
+           ? int128_unsigned_type_node
+	   : int128_integer_type_node;
 #if HOST_BITS_PER_WIDE_INT >= 64
   if (type1 == intTI_type_node || type1 == unsigned_intTI_type_node)
     return unsignedp ? unsigned_intTI_type_node : intTI_type_node;
@@ -4178,6 +4225,10 @@ gimple_signed_or_unsigned_type (bool unsignedp, tree type)
     return (unsignedp
 	    ? long_long_unsigned_type_node
 	    : long_long_integer_type_node);
+  if (int128_integer_type_node && TYPE_OK (int128_integer_type_node))
+    return (unsignedp
+	    ? int128_unsigned_type_node
+	    : int128_integer_type_node);
 
 #if HOST_BITS_PER_WIDE_INT >= 64
   if (TYPE_OK (intTI_type_node))
@@ -4685,43 +4736,16 @@ gimple_decl_printable_name (tree decl, int verbosity)
   return IDENTIFIER_POINTER (DECL_NAME (decl));
 }
 
+/* Return true when STMT is builtins call to CODE.  */
 
-/* Fold a OBJ_TYPE_REF expression to the address of a function.
-   KNOWN_TYPE carries the true type of OBJ_TYPE_REF_OBJECT(REF).  Adapted
-   from cp_fold_obj_type_ref, but it tolerates types with no binfo
-   data.  */
-
-tree
-gimple_fold_obj_type_ref (tree ref, tree known_type)
+bool
+gimple_call_builtin_p (gimple stmt, enum built_in_function code)
 {
-  HOST_WIDE_INT index;
-  HOST_WIDE_INT i;
-  tree v;
   tree fndecl;
-
-  if (TYPE_BINFO (known_type) == NULL_TREE)
-    return NULL_TREE;
-
-  v = BINFO_VIRTUALS (TYPE_BINFO (known_type));
-  index = tree_low_cst (OBJ_TYPE_REF_TOKEN (ref), 1);
-  i = 0;
-  while (i != index)
-    {
-      i += (TARGET_VTABLE_USES_DESCRIPTORS
-	    ? TARGET_VTABLE_USES_DESCRIPTORS : 1);
-      v = TREE_CHAIN (v);
-    }
-
-  fndecl = TREE_VALUE (v);
-
-#ifdef ENABLE_CHECKING
-  gcc_assert (tree_int_cst_equal (OBJ_TYPE_REF_TOKEN (ref),
-				  DECL_VINDEX (fndecl)));
-#endif
-
-  cgraph_node (fndecl)->local.vtable_method = true;
-
-  return build_fold_addr_expr (fndecl);
+  return (is_gimple_call (stmt)
+	  && (fndecl = gimple_call_fndecl (stmt)) != NULL
+	  && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
+	  && DECL_FUNCTION_CODE (fndecl) == code);
 }
 
 #include "gt-gimple.h"

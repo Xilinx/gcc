@@ -24,7 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "tree.h"
 #include "gimple.h"
-#include "ggc.h"	/* lambda.h needs this */
+#include "ggc.h"
 #include "lambda.h"	/* gcd */
 #include "hashtab.h"
 #include "plugin-api.h"
@@ -65,6 +65,15 @@ static GTY ((if_marked ("lto_symtab_entry_marked_p"),
 	     param_is (struct lto_symtab_entry_def)))
   htab_t lto_symtab_identifiers;
 
+/* Free symtab hashtable.  */
+
+void
+lto_symtab_free (void)
+{
+  htab_delete (lto_symtab_identifiers);
+  lto_symtab_identifiers = NULL;
+}
+
 /* Return the hash value of an lto_symtab_entry_t object pointed to by P.  */
 
 static hashval_t
@@ -72,7 +81,7 @@ lto_symtab_entry_hash (const void *p)
 {
   const struct lto_symtab_entry_def *base =
     (const struct lto_symtab_entry_def *) p;
-  return htab_hash_string (IDENTIFIER_POINTER (base->id));
+  return IDENTIFIER_HASH_VALUE (base->id);
 }
 
 /* Return non-zero if P1 and P2 points to lto_symtab_entry_def structs
@@ -143,7 +152,7 @@ lto_symtab_register_decl (tree decl,
   if (TREE_CODE (decl) == FUNCTION_DECL)
     gcc_assert (!DECL_ABSTRACT (decl));
 
-  new_entry = GGC_CNEW (struct lto_symtab_entry_def);
+  new_entry = ggc_alloc_cleared_lto_symtab_entry_def ();
   new_entry->id = DECL_ASSEMBLER_NAME (decl);
   new_entry->decl = decl;
   new_entry->resolution = resolution;
@@ -282,6 +291,9 @@ lto_varpool_replace_node (struct varpool_node *vnode,
     prevailing_node = prevailing_node->extra_name;
   ipa_clone_refering (NULL, prevailing_node, &vnode->ref_list);
 
+  /* Be sure we can garbage collect the initializer.  */
+  if (DECL_INITIAL (vnode->decl))
+    DECL_INITIAL (vnode->decl) = error_mark_node;
   /* Finally remove the replaced node.  */
   varpool_remove_node (vnode);
 }
@@ -451,7 +463,13 @@ lto_symtab_resolve_symbols (void **slot)
       if (TREE_CODE (e->decl) == FUNCTION_DECL)
 	e->node = cgraph_get_node (e->decl);
       else if (TREE_CODE (e->decl) == VAR_DECL)
-	e->vnode = varpool_get_node (e->decl);
+	{
+	  e->vnode = varpool_get_node (e->decl);
+	  /* The LTO plugin for gold doesn't handle common symbols
+	     properly.  Let us choose manually.  */
+	  if (DECL_COMMON (e->decl))
+	    e->resolution = LDPR_UNKNOWN;
+	}
     }
 
   e = (lto_symtab_entry_t) *slot;

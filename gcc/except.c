@@ -139,6 +139,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "cgraph.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "tree-pass.h"
 #include "timevar.h"
 #include "tree-flow.h"
@@ -328,7 +329,7 @@ init_eh (void)
 void
 init_eh_for_function (void)
 {
-  cfun->eh = GGC_CNEW (struct eh_status);
+  cfun->eh = ggc_alloc_cleared_eh_status ();
 
   /* Make sure zero'th entries are used.  */
   VEC_safe_push (eh_region, gc, cfun->eh->region_array, NULL);
@@ -349,7 +350,7 @@ gen_eh_region (enum eh_region_type type, eh_region outer)
 #endif
 
   /* Insert a new blank region as a leaf in the tree.  */
-  new_eh = GGC_CNEW (struct eh_region_d);
+  new_eh = ggc_alloc_cleared_eh_region_d ();
   new_eh->type = type;
   new_eh->outer = outer;
   if (outer)
@@ -406,7 +407,7 @@ gen_eh_region_catch (eh_region t, tree type_or_list)
 	add_type_for_runtime (TREE_VALUE (type_node));
     }
 
-  c = GGC_CNEW (struct eh_catch_d);
+  c = ggc_alloc_cleared_eh_catch_d ();
   c->type_list = type_list;
   l = t->u.eh_try.last_catch;
   c->prev_catch = l;
@@ -440,7 +441,7 @@ gen_eh_region_must_not_throw (eh_region outer)
 eh_landing_pad
 gen_eh_landing_pad (eh_region region)
 {
-  eh_landing_pad lp = GGC_CNEW (struct eh_landing_pad_d);
+  eh_landing_pad lp = ggc_alloc_cleared_eh_landing_pad_d ();
 
   lp->next_lp = region->landing_pads;
   lp->region = region;
@@ -1616,9 +1617,11 @@ make_reg_eh_region_note_nothrow_nononlocal (rtx insn)
 bool
 insn_could_throw_p (const_rtx insn)
 {
+  if (!flag_exceptions)
+    return false;
   if (CALL_P (insn))
     return true;
-  if (INSN_P (insn) && flag_non_call_exceptions)
+  if (INSN_P (insn) && cfun->can_throw_non_call_exceptions)
     return may_trap_p (PATTERN (insn));
   return false;
 }
@@ -2367,7 +2370,7 @@ add_call_site (rtx landing_pad, int action, int section)
 {
   call_site_record record;
 
-  record = GGC_NEW (struct call_site_record_d);
+  record = ggc_alloc_call_site_record_d ();
   record->landing_pad = landing_pad;
   record->action = action;
 
@@ -3306,7 +3309,7 @@ dump_eh_tree (FILE * out, struct function *fun)
 
 /* Dump the EH tree for FN on stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_eh_tree (struct function *fn)
 {
   dump_eh_tree (stderr, fn);
@@ -3314,7 +3317,7 @@ debug_eh_tree (struct function *fn)
 
 /* Verify invariants on EH datastructures.  */
 
-void
+DEBUG_FUNCTION void
 verify_eh_tree (struct function *fun)
 {
   eh_region r, outer;

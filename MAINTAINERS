@@ -101,7 +101,7 @@ v850 port		Nick Clifton		nickc@redhat.com
 vax port		Matt Thomas		matt@3am-software.com
 x86-64 port		Jan Hubicka		jh@suse.cz
 xstormy16 port		Nick Clifton		nickc@redhat.com
-xtensa port		Bob Wilson		bob.wilson@acm.org
+xtensa port		Sterling Augustine	sterling@tensilica.com
 
 			OS Port Maintainers	(OS alphabetical order)
 
@@ -314,6 +314,7 @@ Christian Bruel					christian.bruel@st.com
 Kevin Buettner					kevinb@redhat.com
 Andrew Cagney					cagney@redhat.com
 Chandra Chavva					cchavva@redhat.com
+Fabien Chêne					fabien@gcc.gnu.org
 William Cohen					wcohen@redhat.com
 Josh Conner					jconner@apple.com
 R. Kelley Cook					kcook@gcc.gnu.org
@@ -464,6 +465,7 @@ Andrew Stubbs					ams@codesourcery.com
 Mike Stump					mikestump@comcast.net
 Jeff Sturm					jsturm@gcc.gnu.org
 Gabriele Svelto					gabriele.svelto@st.com
+Sriraman Tallam					tmsriram@google.com
 Samuel Tardieu					sam@rfc1149.net
 Kresten Krab Thorup				krab@gcc.gnu.org
 Caroline Tice					ctice@apple.com

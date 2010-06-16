@@ -523,6 +523,7 @@ bool gfc_get_array_descr_info (const_tree, struct array_descr_info *);
 /* In trans-openmp.c */
 bool gfc_omp_privatize_by_reference (const_tree);
 enum omp_clause_default_kind gfc_omp_predetermined_sharing (tree);
+tree gfc_omp_report_decl (tree);
 tree gfc_omp_clause_default_ctor (tree, tree, tree);
 tree gfc_omp_clause_copy_ctor (tree, tree, tree);
 tree gfc_omp_clause_assign_op (tree, tree, tree);
@@ -538,6 +539,7 @@ extern GTY(()) tree gfor_fndecl_pause_numeric;
 extern GTY(()) tree gfor_fndecl_pause_string;
 extern GTY(()) tree gfor_fndecl_stop_numeric;
 extern GTY(()) tree gfor_fndecl_stop_string;
+extern GTY(()) tree gfor_fndecl_error_stop_numeric;
 extern GTY(()) tree gfor_fndecl_error_stop_string;
 extern GTY(()) tree gfor_fndecl_runtime_error;
 extern GTY(()) tree gfor_fndecl_runtime_error_at;
@@ -629,7 +631,10 @@ enum gfc_array_kind
 };
 
 /* Array types only.  */
-struct GTY(())	lang_type	 {
+/* FIXME: the variable_size annotation here is needed because these types are
+   variable-sized in some other frontends.  Due to gengtype deficiency the GTY
+   options of such types have to agree across all frontends. */
+struct GTY((variable_size))	lang_type	 {
   int rank;
   enum gfc_array_kind akind;
   tree lbound[GFC_MAX_DIMENSIONS];
@@ -643,7 +648,7 @@ struct GTY(())	lang_type	 {
   tree base_decl[2];
 };
 
-struct GTY(()) lang_decl {
+struct GTY((variable_size)) lang_decl {
   /* Dummy variables.  */
   tree saved_descriptor;
   /* Assigned integer nodes.  Stringlength is the IO format string's length.

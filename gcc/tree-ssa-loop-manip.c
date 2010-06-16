@@ -23,12 +23,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
 #include "tm_p.h"
-#include "hard-reg-set.h"
 #include "basic-block.h"
 #include "output.h"
-#include "diagnostic.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "timevar.h"
@@ -443,7 +440,7 @@ check_loop_closed_ssa_stmt (basic_block bb, gimple stmt)
 /* Checks that invariants of the loop closed ssa form are preserved.
    Call verify_ssa when VERIFY_SSA_P is true.  */
 
-void
+DEBUG_FUNCTION void
 verify_loop_closed_ssa (bool verify_ssa_p)
 {
   basic_block bb;
@@ -1084,7 +1081,7 @@ tree_transform_and_unroll_loop (struct loop *loop, unsigned factor,
 
   /* Finally create the new counter for number of iterations and add the new
      exit instruction.  */
-  bsi = gsi_last_bb (exit_bb);
+  bsi = gsi_last_nondebug_bb (exit_bb);
   exit_if = gsi_stmt (bsi);
   create_iv (exit_base, exit_step, NULL_TREE, loop,
 	     &bsi, false, &ctr_before, &ctr_after);
@@ -1220,7 +1217,7 @@ canonicalize_loop_ivs (struct loop *loop, tree *nit, bool bump_in_latch)
 	gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
     }
 
-  gsi = gsi_last_bb (bump_in_latch ? loop->latch : loop->header);
+  gsi = gsi_last_nondebug_bb (bump_in_latch ? loop->latch : loop->header);
   create_iv (build_int_cst_type (type, 0), build_int_cst (type, 1), NULL_TREE,
 	     loop, &gsi, bump_in_latch, &var_before, NULL);
 

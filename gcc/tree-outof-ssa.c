@@ -26,15 +26,19 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "ggc.h"
 #include "basic-block.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "bitmap.h"
 #include "tree-flow.h"
 #include "timevar.h"
 #include "tree-dump.h"
 #include "tree-pass.h"
 #include "toplev.h"
-#include "expr.h"
 #include "ssaexpand.h"
+
+/* FIXME: A lot of code here deals with expanding to RTL.  All that code
+   should be in cfgexpand.c.  */
+#include "expr.h"
 
 
 DEF_VEC_I(source_location);

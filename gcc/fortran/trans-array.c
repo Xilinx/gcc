@@ -80,10 +80,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "gimple.h"
-#include "ggc.h"
-#include "toplev.h"
-#include "real.h"
+#include "toplev.h"	/* For internal_error/fatal_error.  */
 #include "flags.h"
 #include "gfortran.h"
 #include "constructor.h"
@@ -1308,14 +1305,13 @@ gfc_trans_array_constructor_value (stmtblock_t * pblock, tree type,
 	  else
 	    {
 	      /* Collect multiple scalar constants into a constructor.  */
-	      tree list;
+	      VEC(constructor_elt,gc) *v = NULL;
 	      tree init;
 	      tree bound;
 	      tree tmptype;
 	      HOST_WIDE_INT idx = 0;
 
 	      p = c;
-	      list = NULL_TREE;
               /* Count the number of consecutive scalar constants.  */
 	      while (p && !(p->iterator
 			    || p->expr->expr_type != EXPR_CONSTANT))
@@ -1332,8 +1328,10 @@ gfc_trans_array_constructor_value (stmtblock_t * pblock, tree type,
 				(gfc_get_pchar_type (p->expr->ts.kind),
 				 se.expr);
 
-		  list = tree_cons (build_int_cst (gfc_array_index_type,
-						   idx++), se.expr, list);
+                  CONSTRUCTOR_APPEND_ELT (v,
+                                          build_int_cst (gfc_array_index_type,
+                                                         idx++),
+                                          se.expr);
 		  c = p;
 		  p = gfc_constructor_next (p);
 		}
@@ -1344,7 +1342,7 @@ gfc_trans_array_constructor_value (stmtblock_t * pblock, tree type,
 					  gfc_index_zero_node, bound);
 	      tmptype = build_array_type (type, tmptype);
 
-	      init = build_constructor_from_list (tmptype, nreverse (list));
+	      init = build_constructor (tmptype, v);
 	      TREE_CONSTANT (init) = 1;
 	      TREE_STATIC (init) = 1;
 	      /* Create a static variable to hold the data.  */
@@ -1671,17 +1669,17 @@ gfc_constant_array_constructor_p (gfc_constructor_base base)
 tree
 gfc_build_constant_array_constructor (gfc_expr * expr, tree type)
 {
-  tree tmptype, list, init, tmp;
+  tree tmptype, init, tmp;
   HOST_WIDE_INT nelem;
   gfc_constructor *c;
   gfc_array_spec as;
   gfc_se se;
   int i;
+  VEC(constructor_elt,gc) *v = NULL;
 
   /* First traverse the constructor list, converting the constants
      to tree to build an initializer.  */
   nelem = 0;
-  list = NULL_TREE;
   c = gfc_constructor_first (expr->value.constructor);
   while (c)
     {
@@ -1692,8 +1690,8 @@ gfc_build_constant_array_constructor (gfc_expr * expr, tree type)
       else if (POINTER_TYPE_P (type))
 	se.expr = gfc_build_addr_expr (gfc_get_pchar_type (c->expr->ts.kind),
 				       se.expr);
-      list = tree_cons (build_int_cst (gfc_array_index_type, nelem),
-			se.expr, list);
+      CONSTRUCTOR_APPEND_ELT (v, build_int_cst (gfc_array_index_type, nelem),
+                              se.expr);
       c = gfc_constructor_next (c);
       nelem++;
     }
@@ -1723,7 +1721,7 @@ gfc_build_constant_array_constructor (gfc_expr * expr, tree type)
 
   tmptype = gfc_get_nodesc_array_type (type, &as, PACKED_STATIC, true);
 
-  init = build_constructor_from_list (tmptype, nreverse (list));
+  init = build_constructor (tmptype, v);
 
   TREE_CONSTANT (init) = 1;
   TREE_STATIC (init) = 1;
@@ -5267,8 +5265,6 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
       gfc_trans_scalarizing_loops (&loop, &block);
 
       desc = loop.temp_ss->data.info.descriptor;
-
-      gcc_assert (is_gimple_lvalue (desc));
     }
   else if (expr->expr_type == EXPR_FUNCTION)
     {
@@ -5942,6 +5938,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
   gfc_loopinfo loop;
   stmtblock_t fnblock;
   stmtblock_t loopbody;
+  tree decl_type;
   tree tmp;
   tree comp;
   tree dcmp;
@@ -5955,21 +5952,28 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 
   gfc_init_block (&fnblock);
 
-  if (POINTER_TYPE_P (TREE_TYPE (decl)) && rank != 0)
+  decl_type = TREE_TYPE (decl);
+
+  if ((POINTER_TYPE_P (decl_type) && rank != 0)
+	|| (TREE_CODE (decl_type) == REFERENCE_TYPE && rank == 0))
+
     decl = build_fold_indirect_ref_loc (input_location,
 				    decl);
 
+  /* Just in case in gets dereferenced.  */
+  decl_type = TREE_TYPE (decl);
+
   /* If this an array of derived types with allocatable components
      build a loop and recursively call this function.  */
-  if (TREE_CODE (TREE_TYPE (decl)) == ARRAY_TYPE
-	|| GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (decl)))
+  if (TREE_CODE (decl_type) == ARRAY_TYPE
+	|| GFC_DESCRIPTOR_TYPE_P (decl_type))
     {
       tmp = gfc_conv_array_data (decl);
       var = build_fold_indirect_ref_loc (input_location,
 				     tmp);
 	
       /* Get the number of elements - 1 and set the counter.  */
-      if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (decl)))
+      if (GFC_DESCRIPTOR_TYPE_P (decl_type))
 	{
 	  /* Use the descriptor for an allocatable array.  Since this
 	     is a full array reference, we only need the descriptor
@@ -5985,7 +5989,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
       else
 	{
 	  /*  Otherwise use the TYPE_DOMAIN information.  */
-	  tmp =  array_type_nelts (TREE_TYPE (decl));
+	  tmp =  array_type_nelts (decl_type);
 	  tmp = fold_convert (gfc_array_index_type, tmp);
 	}
 
@@ -6002,7 +6006,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
         {
 	  if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (dest)))
 	    {
-	      tmp = gfc_duplicate_allocatable (dest, decl, TREE_TYPE(decl), rank);
+	      tmp = gfc_duplicate_allocatable (dest, decl, decl_type, rank);
 	      gfc_add_expr_to_block (&fnblock, tmp);
 	    }
 	  tmp = build_fold_indirect_ref_loc (input_location,
@@ -6083,14 +6087,13 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 				 build_int_cst (TREE_TYPE (comp), 0));
 	      gfc_add_expr_to_block (&fnblock, tmp);
 	    }
-	  else if (c->ts.type == BT_CLASS
-		   && c->ts.u.derived->components->attr.allocatable)
+	  else if (c->ts.type == BT_CLASS && CLASS_DATA (c)->attr.allocatable)
 	    {
 	      /* Allocatable scalar CLASS components.  */
 	      comp = fold_build3 (COMPONENT_REF, ctype, decl, cdecl, NULL_TREE);
 	      
 	      /* Add reference to '$data' component.  */
-	      tmp = c->ts.u.derived->components->backend_decl;
+	      tmp = CLASS_DATA (c)->backend_decl;
 	      comp = fold_build3 (COMPONENT_REF, TREE_TYPE (tmp),
 				  comp, tmp, NULL_TREE);
 
@@ -6120,13 +6123,12 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 				 build_int_cst (TREE_TYPE (comp), 0));
 	      gfc_add_expr_to_block (&fnblock, tmp);
 	    }
-	  else if (c->ts.type == BT_CLASS
-		   && c->ts.u.derived->components->attr.allocatable)
+	  else if (c->ts.type == BT_CLASS && CLASS_DATA (c)->attr.allocatable)
 	    {
 	      /* Allocatable scalar CLASS components.  */
 	      comp = fold_build3 (COMPONENT_REF, ctype, decl, cdecl, NULL_TREE);
 	      /* Add reference to '$data' component.  */
-	      tmp = c->ts.u.derived->components->backend_decl;
+	      tmp = CLASS_DATA (c)->backend_decl;
 	      comp = fold_build3 (COMPONENT_REF, TREE_TYPE (tmp),
 				  comp, tmp, NULL_TREE);
 	      tmp = fold_build2 (MODIFY_EXPR, void_type_node, comp,
@@ -6222,25 +6224,6 @@ gfc_copy_only_alloc_comp (gfc_symbol * der_type, tree decl, tree dest, int rank)
 }
 
 
-/* Check for default initializer; sym->value is not enough as it is also
-   set for EXPR_NULL of allocatables.  */
-
-static bool
-has_default_initializer (gfc_symbol *der)
-{
-  gfc_component *c;
-
-  gcc_assert (der->attr.flavor == FL_DERIVED);
-  for (c = der->components; c; c = c->next)
-    if ((c->ts.type != BT_DERIVED && c->initializer)
-        || (c->ts.type == BT_DERIVED
-            && (!c->attr.pointer && has_default_initializer (c->ts.u.derived))))
-      break;
-
-  return c != NULL;
-}
-
-
 /* NULLIFY an allocatable/pointer array on function entry, free it on exit.
    Do likewise, recursively if necessary, with the allocatable components of
    derived types.  */
@@ -6307,7 +6290,8 @@ gfc_trans_deferred_array (gfc_symbol * sym, tree body)
       if (!sym->attr.save
 	  && !(TREE_STATIC (sym->backend_decl) && sym->attr.is_main_program))
 	{
-	  if (sym->value == NULL || !has_default_initializer (sym->ts.u.derived))
+	  if (sym->value == NULL
+	      || !gfc_has_default_initializer (sym->ts.u.derived))
 	    {
 	      rank = sym->as ? sym->as->rank : 0;
 	      tmp = gfc_nullify_alloc_comp (sym->ts.u.derived, descriptor, rank);

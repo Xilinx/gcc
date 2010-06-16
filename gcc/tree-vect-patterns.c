@@ -1,5 +1,5 @@
 /* Analysis Utilities for Loop Vectorization.
-   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Dorit Nuzman <dorit@il.ibm.com>
 
 This file is part of GCC.
@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "target.h"
 #include "basic-block.h"
-#include "diagnostic.h"
+#include "gimple-pretty-print.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "cfgloop.h"
@@ -699,6 +699,8 @@ vect_pattern_recog_1 (
 	type_out = get_vectype_for_scalar_type (type_out);
       else
 	type_out = type_in;
+      if (!type_out)
+	return;
       pattern_vectype = type_out;
 
       if (is_gimple_assign (pattern_stmt))

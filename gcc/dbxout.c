@@ -1004,7 +1004,7 @@ dbxout_init (const char *input_file_name)
   const char *mapped_name;
 
   typevec_len = 100;
-  typevec = GGC_CNEWVEC (struct typeinfo, typevec_len);
+  typevec = ggc_alloc_cleared_vec_typeinfo (typevec_len);
 
   /* stabstr_ob contains one string, which will be just fine with
      1-byte alignment.  */
@@ -1867,7 +1867,6 @@ dbxout_type (tree type, int full)
     {
     case VOID_TYPE:
     case LANG_TYPE:
-    case NULLPTR_TYPE:
       /* For a void type, just define it as itself; i.e., "5=5".
 	 This makes us consider it defined
 	 without saying what it is.  The debugger will make it

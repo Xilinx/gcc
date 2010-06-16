@@ -50,8 +50,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "insn-config.h"
 #include "recog.h"
-#include "real.h"
-#include "fixed-value.h"
 #include "bitmap.h"
 #include "basic-block.h"
 #include "ggc.h"
@@ -169,8 +167,6 @@ static GTY ((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
 static GTY ((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
      htab_t const_fixed_htab;
 
-#define first_insn (crtl->emit.x_first_insn)
-#define last_insn (crtl->emit.x_last_insn)
 #define cur_insn_uid (crtl->emit.x_cur_insn_uid)
 #define cur_debug_insn_uid (crtl->emit.x_cur_debug_insn_uid)
 #define last_location (crtl->emit.x_last_location)
@@ -345,7 +341,7 @@ get_mem_attrs (alias_set_type alias, tree expr, rtx offset, rtx size,
   slot = htab_find_slot (mem_attrs_htab, &attrs, INSERT);
   if (*slot == 0)
     {
-      *slot = ggc_alloc (sizeof (mem_attrs));
+      *slot = ggc_alloc_mem_attrs ();
       memcpy (*slot, &attrs, sizeof (mem_attrs));
     }
 
@@ -394,7 +390,7 @@ get_reg_attrs (tree decl, int offset)
   slot = htab_find_slot (reg_attrs_htab, &attrs, INSERT);
   if (*slot == 0)
     {
-      *slot = ggc_alloc (sizeof (reg_attrs));
+      *slot = ggc_alloc_reg_attrs ();
       memcpy (*slot, &attrs, sizeof (reg_attrs));
     }
 
@@ -1672,12 +1668,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
       if (base && DECL_P (base)
 	  && TREE_READONLY (base)
 	  && (TREE_STATIC (base) || DECL_EXTERNAL (base)))
-	{
-	  tree base_type = TREE_TYPE (base);
-	  gcc_assert (!(base_type && TYPE_NEEDS_CONSTRUCTING (base_type))
-		      || DECL_ARTIFICIAL (base));
-	  MEM_READONLY_P (ref) = 1;
-	}
+	MEM_READONLY_P (ref) = 1;
 
       /* If this expression uses it's parent's alias set, mark it such
 	 that we won't change it.  */
@@ -2319,8 +2310,8 @@ set_new_first_and_last_insn (rtx first, rtx last)
 {
   rtx insn;
 
-  first_insn = first;
-  last_insn = last;
+  set_first_insn (first);
+  set_last_insn (last);
   cur_insn_uid = 0;
 
   if (MIN_NONDEBUG_INSN_UID || MAY_HAVE_DEBUG_INSNS)
@@ -2539,7 +2530,7 @@ verify_rtx_sharing (rtx orig, rtx insn)
 /* Go through all the RTL insn bodies and check that there is no unexpected
    sharing in between the subexpressions.  */
 
-void
+DEBUG_FUNCTION void
 verify_rtl_sharing (void)
 {
   rtx p;
@@ -2928,48 +2919,14 @@ make_safe_from (rtx x, rtx other)
 
 /* Emission of insns (adding them to the doubly-linked list).  */
 
-/* Return the first insn of the current sequence or current function.  */
-
-rtx
-get_insns (void)
-{
-  return first_insn;
-}
-
-/* Specify a new insn as the first in the chain.  */
-
-void
-set_first_insn (rtx insn)
-{
-  gcc_assert (!PREV_INSN (insn));
-  first_insn = insn;
-}
-
-/* Return the last insn emitted in current sequence or current function.  */
-
-rtx
-get_last_insn (void)
-{
-  return last_insn;
-}
-
-/* Specify a new insn as the last in the chain.  */
-
-void
-set_last_insn (rtx insn)
-{
-  gcc_assert (!NEXT_INSN (insn));
-  last_insn = insn;
-}
-
 /* Return the last insn emitted, even if it is in a sequence now pushed.  */
 
 rtx
 get_last_insn_anywhere (void)
 {
   struct sequence_stack *stack;
-  if (last_insn)
-    return last_insn;
+  if (get_last_insn ())
+    return get_last_insn ();
   for (stack = seq_stack; stack; stack = stack->next)
     if (stack->last != 0)
       return stack->last;
@@ -2982,7 +2939,7 @@ get_last_insn_anywhere (void)
 rtx
 get_first_nonnote_insn (void)
 {
-  rtx insn = first_insn;
+  rtx insn = get_insns ();
 
   if (insn)
     {
@@ -3008,7 +2965,7 @@ get_first_nonnote_insn (void)
 rtx
 get_last_nonnote_insn (void)
 {
-  rtx insn = last_insn;
+  rtx insn = get_last_insn ();
 
   if (insn)
     {
@@ -3027,14 +2984,6 @@ get_last_nonnote_insn (void)
     }
 
   return insn;
-}
-
-/* Return a number larger than any instruction's uid in this function.  */
-
-int
-get_max_uid (void)
-{
-  return cur_insn_uid;
 }
 
 /* Return the number of actual (non-debug) insns emitted in this
@@ -3627,7 +3576,7 @@ try_split (rtx pat, rtx trial, int last)
   /* Return either the first or the last insn, depending on which was
      requested.  */
   return last
-    ? (after ? PREV_INSN (after) : last_insn)
+    ? (after ? PREV_INSN (after) : get_last_insn ())
     : NEXT_INSN (before);
 }
 
@@ -3730,16 +3679,16 @@ make_call_insn_raw (rtx pattern)
 void
 add_insn (rtx insn)
 {
-  PREV_INSN (insn) = last_insn;
+  PREV_INSN (insn) = get_last_insn();
   NEXT_INSN (insn) = 0;
 
-  if (NULL != last_insn)
-    NEXT_INSN (last_insn) = insn;
+  if (NULL != get_last_insn())
+    NEXT_INSN (get_last_insn ()) = insn;
 
-  if (NULL == first_insn)
-    first_insn = insn;
+  if (NULL == get_insns ())
+    set_first_insn (insn);
 
-  last_insn = insn;
+  set_last_insn (insn);
 }
 
 /* Add INSN into the doubly-linked list after insn AFTER.  This and
@@ -3763,8 +3712,8 @@ add_insn_after (rtx insn, rtx after, basic_block bb)
       if (NONJUMP_INSN_P (next) && GET_CODE (PATTERN (next)) == SEQUENCE)
 	PREV_INSN (XVECEXP (PATTERN (next), 0, 0)) = insn;
     }
-  else if (last_insn == after)
-    last_insn = insn;
+  else if (get_last_insn () == after)
+    set_last_insn (insn);
   else
     {
       struct sequence_stack *stack = seq_stack;
@@ -3828,8 +3777,8 @@ add_insn_before (rtx insn, rtx before, basic_block bb)
 	  NEXT_INSN (XVECEXP (sequence, 0, XVECLEN (sequence, 0) - 1)) = insn;
 	}
     }
-  else if (first_insn == before)
-    first_insn = insn;
+  else if (get_insns () == before)
+    set_first_insn (insn);
   else
     {
       struct sequence_stack *stack = seq_stack;
@@ -3900,8 +3849,12 @@ remove_insn (rtx insn)
 	  NEXT_INSN (XVECEXP (sequence, 0, XVECLEN (sequence, 0) - 1)) = next;
 	}
     }
-  else if (first_insn == insn)
-    first_insn = next;
+  else if (get_insns () == insn)
+    {
+      if (next)
+        PREV_INSN (next) = NULL;
+      set_first_insn (next);
+    }
   else
     {
       struct sequence_stack *stack = seq_stack;
@@ -3922,8 +3875,8 @@ remove_insn (rtx insn)
       if (NONJUMP_INSN_P (next) && GET_CODE (PATTERN (next)) == SEQUENCE)
 	PREV_INSN (XVECEXP (PATTERN (next), 0, 0)) = prev;
     }
-  else if (last_insn == insn)
-    last_insn = prev;
+  else if (get_last_insn () == insn)
+    set_last_insn (prev);
   else
     {
       struct sequence_stack *stack = seq_stack;
@@ -3984,10 +3937,10 @@ void
 delete_insns_since (rtx from)
 {
   if (from == 0)
-    first_insn = 0;
+    set_first_insn (0);
   else
     NEXT_INSN (from) = 0;
-  last_insn = from;
+  set_last_insn (from);
 }
 
 /* This function is deprecated, please use sequences instead.
@@ -4008,10 +3961,10 @@ reorder_insns_nobb (rtx from, rtx to, rtx after)
     NEXT_INSN (PREV_INSN (from)) = NEXT_INSN (to);
   if (NEXT_INSN (to))
     PREV_INSN (NEXT_INSN (to)) = PREV_INSN (from);
-  if (last_insn == to)
-    last_insn = PREV_INSN (from);
-  if (first_insn == from)
-    first_insn = NEXT_INSN (to);
+  if (get_last_insn () == to)
+    set_last_insn (PREV_INSN (from));
+  if (get_insns () == from)
+    set_first_insn (NEXT_INSN (to));
 
   /* Make the new neighbors point to it and it to them.  */
   if (NEXT_INSN (after))
@@ -4020,8 +3973,8 @@ reorder_insns_nobb (rtx from, rtx to, rtx after)
   NEXT_INSN (to) = NEXT_INSN (after);
   PREV_INSN (from) = after;
   NEXT_INSN (after) = from;
-  if (after == last_insn)
-    last_insn = to;
+  if (after == get_last_insn())
+    set_last_insn (to);
 }
 
 /* Same as function above, but take care to update BB boundaries.  */
@@ -4346,8 +4299,8 @@ emit_insn_after_1 (rtx first, rtx after, basic_block bb)
   if (after_after)
     PREV_INSN (after_after) = last;
 
-  if (after == last_insn)
-    last_insn = last;
+  if (after == get_last_insn())
+    set_last_insn (last);
 
   return last;
 }
@@ -4844,7 +4797,7 @@ emit_debug_insn_before (rtx pattern, rtx before)
 rtx
 emit_insn (rtx x)
 {
-  rtx last = last_insn;
+  rtx last = get_last_insn();
   rtx insn;
 
   if (x == NULL_RTX)
@@ -4890,7 +4843,7 @@ emit_insn (rtx x)
 rtx
 emit_debug_insn (rtx x)
 {
-  rtx last = last_insn;
+  rtx last = get_last_insn();
   rtx insn;
 
   if (x == NULL_RTX)
@@ -5282,16 +5235,16 @@ start_sequence (void)
       free_sequence_stack = tem->next;
     }
   else
-    tem = GGC_NEW (struct sequence_stack);
+    tem = ggc_alloc_sequence_stack ();
 
   tem->next = seq_stack;
-  tem->first = first_insn;
-  tem->last = last_insn;
+  tem->first = get_insns ();
+  tem->last = get_last_insn ();
 
   seq_stack = tem;
 
-  first_insn = 0;
-  last_insn = 0;
+  set_first_insn (0);
+  set_last_insn (0);
 }
 
 /* Set up the insn chain starting with FIRST as the current sequence,
@@ -5307,8 +5260,8 @@ push_to_sequence (rtx first)
 
   for (last = first; last && NEXT_INSN (last); last = NEXT_INSN (last));
 
-  first_insn = first;
-  last_insn = last;
+  set_first_insn (first);
+  set_last_insn (last);
 }
 
 /* Like push_to_sequence, but take the last insn as an argument to avoid
@@ -5319,8 +5272,8 @@ push_to_sequence2 (rtx first, rtx last)
 {
   start_sequence ();
 
-  first_insn = first;
-  last_insn = last;
+  set_first_insn (first);
+  set_last_insn (last);
 }
 
 /* Set up the outer-level insn chain
@@ -5336,8 +5289,8 @@ push_topmost_sequence (void)
   for (stack = seq_stack; stack; stack = stack->next)
     top = stack;
 
-  first_insn = top->first;
-  last_insn = top->last;
+  set_first_insn (top->first);
+  set_last_insn (top->last);
 }
 
 /* After emitting to the outer-level insn chain, update the outer-level
@@ -5351,8 +5304,8 @@ pop_topmost_sequence (void)
   for (stack = seq_stack; stack; stack = stack->next)
     top = stack;
 
-  top->first = first_insn;
-  top->last = last_insn;
+  top->first = get_insns ();
+  top->last = get_last_insn ();
 
   end_sequence ();
 }
@@ -5375,8 +5328,8 @@ end_sequence (void)
 {
   struct sequence_stack *tem = seq_stack;
 
-  first_insn = tem->first;
-  last_insn = tem->last;
+  set_first_insn (tem->first);
+  set_last_insn (tem->last);
   seq_stack = tem->next;
 
   memset (tem, 0, sizeof (*tem));
@@ -5578,8 +5531,8 @@ copy_insn (rtx insn)
 void
 init_emit (void)
 {
-  first_insn = NULL;
-  last_insn = NULL;
+  set_first_insn (NULL);
+  set_last_insn (NULL);
   if (MIN_NONDEBUG_INSN_UID)
     cur_insn_uid = MIN_NONDEBUG_INSN_UID;
   else
@@ -5597,8 +5550,7 @@ init_emit (void)
   crtl->emit.regno_pointer_align
     = XCNEWVEC (unsigned char, crtl->emit.regno_pointer_align_length);
 
-  regno_reg_rtx
-    = GGC_NEWVEC (rtx, crtl->emit.regno_pointer_align_length);
+  regno_reg_rtx = ggc_alloc_vec_rtx (crtl->emit.regno_pointer_align_length);
 
   /* Put copies of all the hard registers into regno_reg_rtx.  */
   memcpy (regno_reg_rtx,

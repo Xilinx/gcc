@@ -23,7 +23,6 @@
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
 #include "tm_p.h"
 #include "function.h"
 #include "tree-dump.h"
@@ -32,10 +31,9 @@
 #include "tree-iterator.h"
 #include "tree-flow.h"
 #include "cgraph.h"
-#include "expr.h"
+#include "expr.h"	/* FIXME: For STACK_SAVEAREA_MODE and SAVE_NONLOCAL.  */
 #include "langhooks.h"
 #include "pointer-set.h"
-#include "ggc.h"
 
 
 /* The object of this pass is to lower the representation of a set of nested

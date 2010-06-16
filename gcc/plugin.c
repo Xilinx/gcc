@@ -778,7 +778,7 @@ plugins_active_p (void)
 /* Dump to FILE the names and associated events for all the active
    plugins.  */
 
-void
+DEBUG_FUNCTION void
 dump_active_plugins (FILE *file)
 {
   int event;
@@ -804,10 +804,36 @@ dump_active_plugins (FILE *file)
 
 /* Dump active plugins to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_active_plugins (void)
 {
   dump_active_plugins (stderr);
+}
+
+/* Give a warning if plugins are present, before an ICE message asking
+   to submit a bug report.  */
+
+void
+warn_if_plugins (void)
+{
+  if (plugins_active_p ())
+    {
+      fnotice (stderr, "*** WARNING *** there are active plugins, do not report"
+	       " this as a bug unless you can reproduce it without enabling"
+	       " any plugins.\n");
+      dump_active_plugins (stderr);
+    }
+
+}
+
+/* Likewise, as a callback from the diagnostics code.  */
+
+void
+plugins_internal_error_function (struct diagnostic_context *context ATTRIBUTE_UNUSED,
+				 const char *msgid ATTRIBUTE_UNUSED,
+				 va_list *ap ATTRIBUTE_UNUSED)
+{
+  warn_if_plugins ();
 }
 
 /* The default version check. Compares every field in VERSION. */

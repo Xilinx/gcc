@@ -342,7 +342,7 @@ self_referential_size (tree size)
   VEC_safe_push (tree, gc, size_functions, fndecl);
 
   /* Replace the original expression with a call to the size function.  */
-  return build_function_call_expr (input_location, fndecl, arg_list);
+  return build_function_call_expr (UNKNOWN_LOCATION, fndecl, arg_list);
 }
 
 /* Take, queue and compile all the size functions.  It is essential that
@@ -369,10 +369,6 @@ finalize_size_functions (void)
   VEC_free (tree, gc, size_functions);
 }
 
-#ifndef MAX_FIXED_MODE_SIZE
-#define MAX_FIXED_MODE_SIZE GET_MODE_BITSIZE (DImode)
-#endif
-
 /* Return the machine mode to use for a nonscalar of SIZE bits.  The
    mode must be in class MCLASS, and have exactly that many value bits;
    it may have padding as well.  If LIMIT is nonzero, modes of wider
@@ -813,7 +809,7 @@ normalize_offset (tree *poffset, tree *pbitpos, unsigned int off_align)
 
 /* Print debugging information about the information in RLI.  */
 
-void
+DEBUG_FUNCTION void
 debug_rli (record_layout_info rli)
 {
   print_node_brief (stderr, "type", rli->t, 0);
@@ -2275,9 +2271,7 @@ set_sizetype (tree type)
      sign-extended in a way consistent with force_fit_type.  */
   max = TYPE_MAX_VALUE (sizetype);
   TYPE_MAX_VALUE (sizetype)
-    = build_int_cst_wide_type (sizetype,
-			       TREE_INT_CST_LOW (max),
-			       TREE_INT_CST_HIGH (max));
+    = double_int_to_tree (sizetype, tree_to_double_int (max));
 
   t = make_node (INTEGER_TYPE);
   TYPE_NAME (t) = get_identifier ("bit_size_type");

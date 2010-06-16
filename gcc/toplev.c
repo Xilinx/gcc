@@ -25,8 +25,6 @@ along with GCC; see the file COPYING3.  If not see
    Error messages and low-level interface to malloc also handled here.  */
 
 #include "config.h"
-#undef FLOAT /* This is for hpux. They should change hpux.  */
-#undef FFS  /* Some systems define this in param.h.  */
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
@@ -43,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "line-map.h"
 #include "input.h"
 #include "tree.h"
+#include "realmpfr.h"	/* For GMP/MPFR/MPC versions, in print_version.  */
 #include "version.h"
 #include "rtl.h"
 #include "tm_p.h"
@@ -64,12 +63,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "timevar.h"
 #include "diagnostic.h"
+#include "tree-diagnostic.h"
+#include "tree-pretty-print.h"
 #include "params.h"
 #include "reload.h"
 #include "ira.h"
 #include "dwarf2asm.h"
 #include "integrate.h"
-#include "real.h"
 #include "debug.h"
 #include "target.h"
 #include "langhooks.h"
@@ -78,6 +78,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hosthooks.h"
 #include "cgraph.h"
 #include "opts.h"
+#include "opts-diagnostic.h"
 #include "coverage.h"
 #include "value-prof.h"
 #include "alloc-pool.h"
@@ -125,10 +126,6 @@ static bool no_backend;
 /* Length of line when printing switch values.  */
 #define MAX_LINE 75
 
-/* Name of program invoked, sans directories.  */
-
-const char *progname;
-
 /* Copy of argument vector to toplev_main.  */
 static const char **save_argv;
 
@@ -139,14 +136,8 @@ static const char **save_argv;
 const char *main_input_filename;
 
 /* Used to enable -fvar-tracking, -fweb and -frename-registers according
-   to optimize and default_debug_hooks in process_options ().  */
+   to optimize in process_options ().  */
 #define AUTODETECT_VALUE 2
-
-/* Current position in real source file.  */
-
-location_t input_location;
-
-struct line_maps *line_table;
 
 /* Name to use as base of names for dump output files.  */
 
@@ -171,10 +162,6 @@ int target_flags_explicit;
 /* Debug hooks - dependent upon command line options.  */
 
 const struct gcc_debug_hooks *debug_hooks;
-
-/* Debug hooks - target default.  */
-
-static const struct gcc_debug_hooks *default_debug_hooks;
 
 /* Other flags saying which kinds of debugging dump have been requested.  */
 
@@ -221,10 +208,6 @@ tree current_function_decl;
    if none.  */
 const char * current_function_func_begin_label;
 
-/* Nonzero means to collect statistics which might be expensive
-   and to print them when we are done.  */
-int flag_detailed_statistics = 0;
-
 /* A random sequence of characters, unless overridden by user.  */
 static const char *flag_random_seed;
 
@@ -234,28 +217,6 @@ static const char *flag_random_seed;
 unsigned local_tick;
 
 /* -f flags.  */
-
-/* Nonzero means `char' should be signed.  */
-
-int flag_signed_char;
-
-/* Nonzero means give an enum type only as many bytes as it needs.  A value
-   of 2 means it has not yet been initialized.  */
-
-int flag_short_enums;
-
-/* Nonzero if structures and unions should be returned in memory.
-
-   This should only be defined if compatibility with another compiler or
-   with an ABI is needed, because it results in slower code.  */
-
-#ifndef DEFAULT_PCC_STRUCT_RETURN
-#define DEFAULT_PCC_STRUCT_RETURN 1
-#endif
-
-/* Nonzero for -fpcc-struct-return: return values the same way PCC does.  */
-
-int flag_pcc_struct_return = DEFAULT_PCC_STRUCT_RETURN;
 
 /* 0 means straightforward implementation of complex divide acceptable.
    1 means wide ranges of inputs must work for complex divide.
@@ -293,10 +254,6 @@ enum tls_model flag_tls_default = TLS_MODEL_GLOBAL_DYNAMIC;
 
 enum ira_algorithm flag_ira_algorithm = IRA_ALGORITHM_CB;
 enum ira_region flag_ira_region = IRA_REGION_MIXED;
-
-/* Set the default value for -fira-verbose.  */
-
-unsigned int flag_ira_verbose = 5;
 
 /* Set the default for excess precision.  */
 
@@ -785,17 +742,19 @@ wrapup_global_declaration_2 (tree decl)
     {
       struct varpool_node *node;
       bool needed = true;
-      node = varpool_node (decl);
+      node = varpool_get_node (decl);
 
-      if (node->finalized)
+      if (!node && flag_ltrans)
 	needed = false;
-      else if (node->alias)
+      else if (node && node->finalized)
+	needed = false;
+      else if (node && node->alias)
 	needed = false;
       else if (!cgraph_global_info_ready
 	       && (TREE_USED (decl)
 		   || TREE_USED (DECL_ASSEMBLER_NAME (decl))))
 	/* needed */;
-      else if (node->needed)
+      else if (node && node->needed)
 	/* needed */;
       else if (DECL_COMDAT (decl))
 	needed = false;
@@ -916,7 +875,7 @@ emit_debug_global_declarations (tree *vec, int len)
   int i;
 
   /* Avoid confusing the debug information machinery when there are errors.  */
-  if (errorcount != 0 || sorrycount != 0)
+  if (seen_error ())
     return;
 
   timevar_push (TV_SYMOUT);
@@ -1064,8 +1023,13 @@ compile_file (void)
   /* This must also call cgraph_finalize_compilation_unit.  */
   lang_hooks.decls.final_write_globals ();
 
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return;
+
+  /* Ensure that emulated TLS control vars are finalized and build 
+     a static constructor for them, when it is required.  */
+  if (!targetm.have_tls)
+    emutls_finish ();
 
   varpool_assemble_pending_decls ();
   finish_aliases_2 ();
@@ -1073,10 +1037,6 @@ compile_file (void)
   /* Likewise for mudflap static object registrations.  */
   if (flag_mudflap)
     mudflap_finish_file ();
-
-  /* Likewise for emulated thread-local storage.  */
-  if (!targetm.have_tls)
-    emutls_finish ();
 
   output_shared_constant_pool ();
   output_object_blocks ();
@@ -1638,6 +1598,10 @@ default_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
       t = va_arg (*text->args_ptr, tree);
       break;
 
+    case 'K':
+      percent_K_format (text);
+      return true;
+
     default:
       return false;
     }
@@ -1663,7 +1627,15 @@ default_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
 static void *
 realloc_for_line_map (void *ptr, size_t len)
 {
-  return ggc_realloc (ptr, len);
+  return GGC_RESIZEVAR (void, ptr, len);
+}
+
+/* A helper function: used as the allocator function for
+   identifier_to_locale.  */
+static void *
+alloc_for_identifier_to_locale (size_t len)
+{
+  return ggc_alloc_atomic (len);
 }
 
 /* Initialization of the front end environment, before command line
@@ -1688,13 +1660,21 @@ general_init (const char *argv0)
 
   gcc_init_libintl ();
 
+  identifier_to_locale_alloc = alloc_for_identifier_to_locale;
+  identifier_to_locale_free = ggc_free;
+
   /* Initialize the diagnostics reporting machinery, so option parsing
      can give warnings and errors.  */
-  diagnostic_initialize (global_dc);
+  diagnostic_initialize (global_dc, N_OPTS);
+  diagnostic_starter (global_dc) = default_tree_diagnostic_starter;
   /* Set a default printer.  Language specific initializations will
      override it later.  */
   pp_format_decoder (global_dc->printer) = &default_tree_printer;
   global_dc->show_option_requested = flag_diagnostics_show_option;
+  global_dc->show_column = flag_show_column;
+  global_dc->internal_error = plugins_internal_error_function;
+  global_dc->option_enabled = option_enabled;
+  global_dc->option_name = option_name;
 
   /* Trap fatal signals, e.g. SIGSEGV, and convert them to ICE messages.  */
 #ifdef SIGSEGV
@@ -1723,7 +1703,7 @@ general_init (const char *argv0)
      table.  */
   init_ggc ();
   init_stringpool ();
-  line_table = GGC_NEW (struct line_maps);
+  line_table = ggc_alloc_line_maps ();
   linemap_init (line_table);
   line_table->reallocator = realloc_for_line_map;
   init_ttree ();
@@ -1940,14 +1920,14 @@ process_options (void)
       FILE *final_output = fopen (flag_dump_final_insns, "w");
       if (!final_output)
 	{
-	  error ("could not open final insn dump file %qs: %s",
-		 flag_dump_final_insns, strerror (errno));
+	  error ("could not open final insn dump file %qs: %m",
+		 flag_dump_final_insns);
 	  flag_dump_final_insns = NULL;
 	}
       else if (fclose (final_output))
 	{
-	  error ("could not close zeroed insn dump file %qs: %s",
-		 flag_dump_final_insns, strerror (errno));
+	  error ("could not close zeroed insn dump file %qs: %m",
+		 flag_dump_final_insns);
 	  flag_dump_final_insns = NULL;
 	}
     }
@@ -1961,32 +1941,6 @@ process_options (void)
      level is 0.  */
   if (debug_info_level == DINFO_LEVEL_NONE)
     write_symbols = NO_DEBUG;
-
-  /* Now we know write_symbols, set up the debug hooks based on it.
-     By default we do nothing for debug output.  */
-  if (PREFERRED_DEBUGGING_TYPE == NO_DEBUG)
-    default_debug_hooks = &do_nothing_debug_hooks;
-#if defined(DBX_DEBUGGING_INFO)
-  else if (PREFERRED_DEBUGGING_TYPE == DBX_DEBUG)
-    default_debug_hooks = &dbx_debug_hooks;
-#endif
-#if defined(XCOFF_DEBUGGING_INFO)
-  else if (PREFERRED_DEBUGGING_TYPE == XCOFF_DEBUG)
-    default_debug_hooks = &xcoff_debug_hooks;
-#endif
-#ifdef SDB_DEBUGGING_INFO
-  else if (PREFERRED_DEBUGGING_TYPE == SDB_DEBUG)
-    default_debug_hooks = &sdb_debug_hooks;
-#endif
-#ifdef DWARF2_DEBUGGING_INFO
-  else if (PREFERRED_DEBUGGING_TYPE == DWARF2_DEBUG)
-    default_debug_hooks = &dwarf2_debug_hooks;
-#endif
-#ifdef VMS_DEBUGGING_INFO
-  else if (PREFERRED_DEBUGGING_TYPE == VMS_DEBUG
-	   || PREFERRED_DEBUGGING_TYPE == VMS_AND_DWARF2_DEBUG)
-    default_debug_hooks = &vmsdbg_debug_hooks;
-#endif
 
   if (write_symbols == NO_DEBUG)
     ;
@@ -2364,7 +2318,7 @@ finalize (void)
   if (flag_gen_aux_info)
     {
       fclose (aux_info_file);
-      if (errorcount)
+      if (seen_error ())
 	unlink (aux_info_file_name);
     }
 
@@ -2407,7 +2361,7 @@ do_compile (void)
   process_options ();
 
   /* Don't do any more if an error has already occurred.  */
-  if (!errorcount)
+  if (!seen_error ())
     {
       /* This must be run always, because it is needed to compute the FP
 	 predefined macros, such as __LDBL_MAX__, for targets using non
@@ -2472,7 +2426,7 @@ toplev_main (int argc, char **argv)
   invoke_plugin_callbacks (PLUGIN_FINISH, NULL);
 
   finalize_plugins ();
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return (FATAL_EXIT_CODE);
 
   return (SUCCESS_EXIT_CODE);

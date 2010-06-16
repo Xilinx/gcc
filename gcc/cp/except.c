@@ -28,9 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "expr.h"
-#include "libfuncs.h"
 #include "cp-tree.h"
 #include "flags.h"
 #include "output.h"
@@ -65,15 +62,14 @@ init_exception_processing (void)
 
   /* void std::terminate (); */
   push_namespace (std_identifier);
-  tmp = build_function_type (void_type_node, void_list_node);
+  tmp = build_function_type_list (void_type_node, NULL_TREE);
   terminate_node = build_cp_library_fn_ptr ("terminate", tmp);
   TREE_THIS_VOLATILE (terminate_node) = 1;
   TREE_NOTHROW (terminate_node) = 1;
   pop_namespace ();
 
   /* void __cxa_call_unexpected(void *); */
-  tmp = tree_cons (NULL_TREE, ptr_type_node, void_list_node);
-  tmp = build_function_type (void_type_node, tmp);
+  tmp = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
   call_unexpected_node
     = push_throw_library_fn (get_identifier ("__cxa_call_unexpected"), tmp);
 
@@ -163,8 +159,9 @@ build_exc_ptr (void)
 static tree
 declare_nothrow_library_fn (tree name, tree return_type, tree parm_type)
 {
-  tree tmp = tree_cons (NULL_TREE, parm_type, void_list_node);
-  return push_library_fn (name, build_function_type (return_type, tmp),
+  return push_library_fn (name, build_function_type_list (return_type,
+							  parm_type,
+							  NULL_TREE),
 			  empty_except_spec);
 }
 
@@ -183,9 +180,8 @@ do_get_exception_ptr (void)
       fn = declare_nothrow_library_fn (fn, ptr_type_node, ptr_type_node);
     }
 
-  return cp_build_function_call (fn, tree_cons (NULL_TREE, build_exc_ptr (),
-						NULL_TREE),
-				 tf_warning_or_error);
+  return cp_build_function_call_nary (fn, tf_warning_or_error,
+				      build_exc_ptr (), NULL_TREE);
 }
 
 /* Build up a call to __cxa_begin_catch, to tell the runtime that the
@@ -203,9 +199,8 @@ do_begin_catch (void)
       fn = declare_nothrow_library_fn (fn, ptr_type_node, ptr_type_node);
     }
 
-  return cp_build_function_call (fn, tree_cons (NULL_TREE, build_exc_ptr (),
-						NULL_TREE),
-				 tf_warning_or_error);
+  return cp_build_function_call_nary (fn, tf_warning_or_error,
+				      build_exc_ptr (), NULL_TREE);
 }
 
 /* Returns nonzero if cleaning up an exception of type TYPE (which can be
@@ -214,10 +209,10 @@ do_begin_catch (void)
 static int
 dtor_nothrow (tree type)
 {
-  if (type == NULL_TREE)
+  if (type == NULL_TREE || type == error_mark_node)
     return 0;
 
-  if (!CLASS_TYPE_P (type))
+  if (TYPE_HAS_TRIVIAL_DESTRUCTOR (type))
     return 1;
 
   if (CLASSTYPE_LAZY_DESTRUCTOR (type))
@@ -243,7 +238,7 @@ do_end_catch (tree type)
       TREE_NOTHROW (fn) = 0;
     }
 
-  cleanup = cp_build_function_call (fn, NULL_TREE, tf_warning_or_error);
+  cleanup = cp_build_function_call_vec (fn, NULL, tf_warning_or_error);
   TREE_NOTHROW (cleanup) = dtor_nothrow (type);
 
   return cleanup;
@@ -513,9 +508,18 @@ expand_end_catch_block (void)
 tree
 begin_eh_spec_block (void)
 {
-  tree r = build_stmt (input_location, EH_SPEC_BLOCK, NULL_TREE, NULL_TREE);
+  tree r;
+  /* A noexcept specification (or throw() with -fnothrow-opt) is a
+     MUST_NOT_THROW_EXPR.  */
+  if (TYPE_NOEXCEPT_P (TREE_TYPE (current_function_decl)))
+    {
+      r = build_stmt (input_location, MUST_NOT_THROW_EXPR, NULL_TREE);
+      TREE_SIDE_EFFECTS (r) = 1;
+    }
+  else
+    r = build_stmt (input_location, EH_SPEC_BLOCK, NULL_TREE, NULL_TREE);
   add_stmt (r);
-  EH_SPEC_STMTS (r) = push_stmt_list ();
+  TREE_OPERAND (r, 0) = push_stmt_list ();
   return r;
 }
 
@@ -524,7 +528,11 @@ finish_eh_spec_block (tree raw_raises, tree eh_spec_block)
 {
   tree raises;
 
-  EH_SPEC_STMTS (eh_spec_block) = pop_stmt_list (EH_SPEC_STMTS (eh_spec_block));
+  TREE_OPERAND (eh_spec_block, 0)
+    = pop_stmt_list (TREE_OPERAND (eh_spec_block, 0));
+
+  if (TREE_CODE (eh_spec_block) == MUST_NOT_THROW_EXPR)
+    return;
 
   /* Strip cv quals, etc, from the specification types.  */
   for (raises = NULL_TREE;
@@ -555,10 +563,8 @@ do_allocate_exception (tree type)
       fn = declare_nothrow_library_fn (fn, ptr_type_node, size_type_node);
     }
 
-  return cp_build_function_call (fn, 
-				 tree_cons (NULL_TREE, size_in_bytes (type),
-					    NULL_TREE),
-				 tf_warning_or_error);
+  return cp_build_function_call_nary (fn, tf_warning_or_error,
+				      size_in_bytes (type), NULL_TREE);
 }
 
 /* Call __cxa_free_exception from a cleanup.  This is never invoked
@@ -576,8 +582,7 @@ do_free_exception (tree ptr)
       fn = declare_nothrow_library_fn (fn, void_type_node, ptr_type_node);
     }
 
-  return cp_build_function_call (fn, tree_cons (NULL_TREE, ptr, NULL_TREE),
-				 tf_warning_or_error);
+  return cp_build_function_call_nary (fn, tf_warning_or_error, ptr, NULL_TREE);
 }
 
 /* Wrap all cleanups for TARGET_EXPRs in MUST_NOT_THROW_EXPR.
@@ -645,8 +650,9 @@ build_throw (tree exp)
       if (!get_global_value_if_present (fn, &fn))
 	{
 	  /* Declare void _Jv_Throw (void *).  */
-	  tree tmp = tree_cons (NULL_TREE, ptr_type_node, void_list_node);
-	  tmp = build_function_type (ptr_type_node, tmp);
+	  tree tmp;
+	  tmp = build_function_type_list (ptr_type_node,
+					  ptr_type_node, NULL_TREE);
 	  fn = push_throw_library_fn (fn, tmp);
 	}
       else if (really_overloaded_fn (fn))
@@ -655,8 +661,8 @@ build_throw (tree exp)
 	  return error_mark_node;
 	}
       fn = OVL_CURRENT (fn);
-      exp = cp_build_function_call (fn, tree_cons (NULL_TREE, exp, NULL_TREE),
-				    tf_warning_or_error);
+      exp = cp_build_function_call_nary (fn, tf_warning_or_error,
+					 exp, NULL_TREE);
     }
   else if (exp)
     {
@@ -665,15 +671,13 @@ build_throw (tree exp)
       tree cleanup;
       tree object, ptr;
       tree tmp;
-      tree temp_expr, allocate_expr;
-      bool elided;
+      tree allocate_expr;
 
       /* The CLEANUP_TYPE is the internal type of a destructor.  */
       if (!cleanup_type)
 	{
-	  tmp = void_list_node;
-	  tmp = tree_cons (NULL_TREE, ptr_type_node, tmp);
-	  tmp = build_function_type (void_type_node, tmp);
+	  tmp = build_function_type_list (void_type_node,
+					  ptr_type_node, NULL_TREE);
 	  cleanup_type = build_pointer_type (tmp);
 	}
 
@@ -682,11 +686,9 @@ build_throw (tree exp)
 	{
 	  /* Declare void __cxa_throw (void*, void*, void (*)(void*)).  */
 	  /* ??? Second argument is supposed to be "std::type_info*".  */
-	  tmp = void_list_node;
-	  tmp = tree_cons (NULL_TREE, cleanup_type, tmp);
-	  tmp = tree_cons (NULL_TREE, ptr_type_node, tmp);
-	  tmp = tree_cons (NULL_TREE, ptr_type_node, tmp);
-	  tmp = build_function_type (void_type_node, tmp);
+	  tmp = build_function_type_list (void_type_node,
+					  ptr_type_node, ptr_type_node,
+					  cleanup_type, NULL_TREE);
 	  fn = push_throw_library_fn (fn, tmp);
 	}
 
@@ -719,10 +721,11 @@ build_throw (tree exp)
       allocate_expr = do_allocate_exception (temp_type);
       allocate_expr = get_target_expr (allocate_expr);
       ptr = TARGET_EXPR_SLOT (allocate_expr);
+      TARGET_EXPR_CLEANUP (allocate_expr) = do_free_exception (ptr);
+      CLEANUP_EH_ONLY (allocate_expr) = 1;
+
       object = build_nop (build_pointer_type (temp_type), ptr);
       object = cp_build_indirect_ref (object, RO_NULL, tf_warning_or_error);
-
-      elided = (TREE_CODE (exp) == TARGET_EXPR);
 
       /* And initialize the exception object.  */
       if (CLASS_TYPE_P (temp_type))
@@ -761,54 +764,16 @@ build_throw (tree exp)
 	  exp = build2 (INIT_EXPR, temp_type, object, tmp);
 	}
 
-      /* Pre-evaluate the thrown expression first, since if we allocated
-	 the space first we would have to deal with cleaning it up if
-	 evaluating this expression throws.
-
-	 The case where EXP the initializer is a cast or a function
-	 returning a class is a bit of a grey area in the standard; it's
-	 unclear whether or not it should be allowed to throw.  We used to
-	 say no, as that allowed us to optimize this case without worrying
-	 about deallocating the exception object if it does.  But that
-	 conflicted with expectations (PR 13944) and the EDG compiler; now
-	 we wrap the initialization in a TRY_CATCH_EXPR to call
-	 do_free_exception rather than in a MUST_NOT_THROW_EXPR, for this
-	 case only.
-
-	 BUT: Issue 475 may do away with this inconsistency by removing the
-	 terminate() in this situation.
-
-	 Note that we don't check the return value from stabilize_init
-	 because it will only return false in cases where elided is true,
-	 and therefore we don't need to work around the failure to
-	 preevaluate.  */
-      temp_expr = NULL_TREE;
-      stabilize_init (exp, &temp_expr);
-
-      /* Wrap the initialization in a CLEANUP_POINT_EXPR so that cleanups
-	 for temporaries within the initialization are run before the one
-	 for the exception object, preserving LIFO order.  */
-      exp = build1 (CLEANUP_POINT_EXPR, void_type_node, exp);
-
-      if (elided)
-	exp = build2 (TRY_CATCH_EXPR, void_type_node, exp,
-		      do_free_exception (ptr));
-      else
-	exp = build1 (MUST_NOT_THROW_EXPR, void_type_node, exp);
+      /* Mark any cleanups from the initialization as MUST_NOT_THROW, since
+	 they are run after the exception object is initialized.  */
+      cp_walk_tree_without_duplicates (&exp, wrap_cleanups_r, 0);
 
       /* Prepend the allocation.  */
       exp = build2 (COMPOUND_EXPR, TREE_TYPE (exp), allocate_expr, exp);
-      if (temp_expr)
-	{
-	  /* Prepend the calculation of the throw expression.  Also, force
-	     any cleanups from the expression to be evaluated here so that
-	     we don't have to do them during unwinding.  But first wrap
-	     them in MUST_NOT_THROW_EXPR, since they are run after the
-	     exception object is initialized.  */
-	  cp_walk_tree_without_duplicates (&temp_expr, wrap_cleanups_r, 0);
-	  exp = build2 (COMPOUND_EXPR, TREE_TYPE (exp), temp_expr, exp);
-	  exp = build1 (CLEANUP_POINT_EXPR, TREE_TYPE (exp), exp);
-	}
+
+      /* Force all the cleanups to be evaluated here so that we don't have
+	 to do them during unwinding.  */
+      exp = build1 (CLEANUP_POINT_EXPR, void_type_node, exp);
 
       throw_type = build_eh_type_type (prepare_eh_type (TREE_TYPE (object)));
 
@@ -825,11 +790,9 @@ build_throw (tree exp)
       else
 	cleanup = build_int_cst (cleanup_type, 0);
 
-      tmp = tree_cons (NULL_TREE, cleanup, NULL_TREE);
-      tmp = tree_cons (NULL_TREE, throw_type, tmp);
-      tmp = tree_cons (NULL_TREE, ptr, tmp);
       /* ??? Indicate that this function call throws throw_type.  */
-      tmp = cp_build_function_call (fn, tmp, tf_warning_or_error);
+      tmp = cp_build_function_call_nary (fn, tf_warning_or_error,
+					 ptr, throw_type, cleanup, NULL_TREE);
 
       /* Tack on the initialization stuff.  */
       exp = build2 (COMPOUND_EXPR, TREE_TYPE (tmp), exp, tmp);
@@ -843,12 +806,12 @@ build_throw (tree exp)
 	{
 	  /* Declare void __cxa_rethrow (void).  */
 	  fn = push_throw_library_fn
-	    (fn, build_function_type (void_type_node, void_list_node));
+	    (fn, build_function_type_list (void_type_node, NULL_TREE));
 	}
 
       /* ??? Indicate that this function call allows exceptions of the type
 	 of the enclosing catch block (if known).  */
-      exp = cp_build_function_call (fn, NULL_TREE, tf_warning_or_error);
+      exp = cp_build_function_call_vec (fn, NULL, tf_warning_or_error);
     }
 
   exp = build1 (THROW_EXPR, void_type_node, exp);
@@ -1032,4 +995,129 @@ check_handlers (tree handlers)
 	else
 	  check_handlers_1 (handler, i);
       }
+}
+
+/* walk_tree helper for finish_noexcept_expr.  Returns non-null if the
+   expression *TP causes the noexcept operator to evaluate to false.
+
+   5.3.7 [expr.noexcept]: The result of the noexcept operator is false if
+   in a potentially-evaluated context the expression would contain
+   * a potentially evaluated call to a function, member function,
+     function pointer, or member function pointer that does not have a
+     non-throwing exception-specification (15.4),
+   * a potentially evaluated throw-expression (15.1),
+   * a potentially evaluated dynamic_cast expression dynamic_cast<T>(v),
+     where T is a reference type, that requires a run-time check (5.2.7), or
+   * a potentially evaluated typeid expression (5.2.8) applied to a glvalue
+     expression whose type is a polymorphic class type (10.3).  */
+
+static tree
+check_noexcept_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
+		  void *data ATTRIBUTE_UNUSED)
+{
+  tree t = *tp;
+  enum tree_code code = TREE_CODE (t);
+  if (code == CALL_EXPR
+      || code == AGGR_INIT_EXPR)
+    {
+      /* We can only use the exception specification of the called function
+	 for determining the value of a noexcept expression; we can't use
+	 TREE_NOTHROW, as it might have a different value in another
+	 translation unit, creating ODR problems.
+
+         We could use TREE_NOTHROW (t) for !TREE_PUBLIC fns, though... */
+      tree fn = (code == AGGR_INIT_EXPR
+		 ? AGGR_INIT_EXPR_FN (t) : CALL_EXPR_FN (t));
+      if (TREE_CODE (fn) == ADDR_EXPR)
+	{
+	  /* We do use TREE_NOTHROW for ABI internals like __dynamic_cast,
+	     and for C library functions known not to throw.  */
+	  tree fn2 = TREE_OPERAND (fn, 0);
+	  if (TREE_CODE (fn2) == FUNCTION_DECL
+	      && DECL_EXTERN_C_P (fn2)
+	      && (DECL_ARTIFICIAL (fn2)
+		  || nothrow_libfn_p (fn2)))
+	    return TREE_NOTHROW (fn2) ? NULL_TREE : t;
+	}
+      fn = TREE_TYPE (TREE_TYPE (fn));
+      if (!TYPE_NOTHROW_P (fn))
+	return t;
+    }
+
+  return NULL_TREE;
+}
+
+/* Evaluate noexcept ( EXPR ).  */
+
+tree
+finish_noexcept_expr (tree expr)
+{
+  if (processing_template_decl)
+    return build_min (NOEXCEPT_EXPR, boolean_type_node, expr);
+
+  if (cp_walk_tree_without_duplicates (&expr, check_noexcept_r, 0))
+    return boolean_false_node;
+  else
+    return boolean_true_node;
+}
+
+/* Return true iff SPEC is throw() or noexcept(true).  */
+
+bool
+nothrow_spec_p (const_tree spec)
+{
+  if (spec == NULL_TREE
+      || TREE_VALUE (spec) != NULL_TREE
+      || spec == noexcept_false_spec)
+    return false;
+  if (TREE_PURPOSE (spec) == NULL_TREE
+      || spec == noexcept_true_spec)
+    return true;
+  gcc_assert (processing_template_decl
+	      || TREE_PURPOSE (spec) == error_mark_node);
+  return false;
+}
+
+/* For FUNCTION_TYPE or METHOD_TYPE, true if NODE is noexcept.  This is the
+   case for things declared noexcept(true) and, with -fnothrow-opt, for
+   throw() functions.  */
+
+bool
+type_noexcept_p (const_tree type)
+{
+  tree spec = TYPE_RAISES_EXCEPTIONS (type);
+  if (flag_nothrow_opt)
+    return nothrow_spec_p (spec);
+  else
+    return spec == noexcept_true_spec;
+}
+
+/* For FUNCTION_TYPE or METHOD_TYPE, true if NODE can throw any type,
+   i.e. no exception-specification or noexcept(false).  */
+
+bool
+type_throw_all_p (const_tree type)
+{
+  tree spec = TYPE_RAISES_EXCEPTIONS (type);
+  return spec == NULL_TREE || spec == noexcept_false_spec;
+}
+
+/* Create a representation of the noexcept-specification with
+   constant-expression of EXPR.  COMPLAIN is as for tsubst.  */
+
+tree
+build_noexcept_spec (tree expr, int complain)
+{
+  expr = perform_implicit_conversion_flags (boolean_type_node, expr,
+					    complain,
+					    LOOKUP_NORMAL);
+  if (expr == boolean_true_node)
+    return noexcept_true_spec;
+  else if (expr == boolean_false_node)
+    return noexcept_false_spec;
+  else
+    {
+      gcc_assert (processing_template_decl || expr == error_mark_node);
+      return build_tree_list (expr, NULL_TREE);
+    }
 }

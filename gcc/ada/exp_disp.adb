@@ -1528,14 +1528,19 @@ package body Exp_Disp is
       Formal        := First (Formals);
       while Present (Formal) loop
 
-         --  Handle concurrent types
+         --  Handle concurrent types.
 
          if Ekind (Target_Formal) = E_In_Parameter
            and then Ekind (Etype (Target_Formal)) = E_Anonymous_Access_Type
          then
             Ftyp := Directly_Designated_Type (Etype (Target_Formal));
          else
-            Ftyp := Etype (Target_Formal);
+
+            --  if the parent is a constrained discriminated type. the
+            --  primitive operation will have been defined on a first subtype.
+            --  for proper matching with controlling type, use base type.
+
+            Ftyp := Base_Type (Etype (Target_Formal));
          end if;
 
          if Is_Concurrent_Type (Ftyp) then
@@ -6244,7 +6249,7 @@ package body Exp_Disp is
       DT               : Node_Id := Empty;
       DT_Ptr           : Node_Id;
       Predef_Prims_Ptr : Node_Id;
-      Iface_DT         : Node_Id;
+      Iface_DT         : Node_Id := Empty;
       Iface_DT_Ptr     : Node_Id;
       New_Node         : Node_Id;
       Suffix_Index     : Int;
@@ -6568,6 +6573,11 @@ package body Exp_Disp is
       if Present (DT) then
          Set_Is_Dispatch_Table_Entity (DT);
          Set_Is_Dispatch_Table_Entity (Etype (DT));
+      end if;
+
+      if Present (Iface_DT) then
+         Set_Is_Dispatch_Table_Entity (Iface_DT);
+         Set_Is_Dispatch_Table_Entity (Etype (Iface_DT));
       end if;
 
       Set_Ekind        (DT_Ptr, E_Constant);
