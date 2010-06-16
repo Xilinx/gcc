@@ -47,7 +47,7 @@ struct gtm_thread
   static const unsigned MAX_FREE_TX = 8;
 
   // A queue of free gtm_transaction structs.
-  gtm_transaction *free_tx[MAX_FREE_TX];
+  void *free_tx[MAX_FREE_TX];
   unsigned free_tx_idx, free_tx_count;
 
   // The value returned by _ITM_getThreadnum to identify this thread.

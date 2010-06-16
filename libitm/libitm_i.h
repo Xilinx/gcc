@@ -149,8 +149,13 @@ enum gtm_restart_reason
   NUM_RESTARTS
 };
 
-// This type is private to alloc.c.
-struct gtm_alloc_action;
+// This type is private to alloc.c, but needs to be defined so that
+// the template used inside gtm_transaction can instantiate.
+struct gtm_alloc_action
+{
+  void (*free_fn)(void *);
+  bool allocated;
+};
 
 // This type is private to local.c.
 struct gtm_local_undo;
@@ -227,6 +232,9 @@ struct gtm_transaction
   bool trycommit ();
   bool trycommit_and_finalize ();
   void restart (gtm_restart_reason) ITM_NORETURN;
+
+  static void *operator new(size_t);
+  static void operator delete(void *);
 
   // Invoked from assembly language, thus the "asm" specifier on
   // the name, avoiding complex name mangling.

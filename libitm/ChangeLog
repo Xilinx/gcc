@@ -1,3 +1,12 @@
+2010-06-16  Richard Henderson  <rth@redhat.com>
+
+	* alloc.cc (struct gtm_alloc_action): Move definition ...
+	* libitm_i.h: ... here.
+	(class gtm_transaction): Declare new and delete.
+	* beginend.cc (alloc_tx): Reformulate as operator new.
+	(free_tx): Reformulate as operator delete.
+	* config/generic/tls.h (gtm_thread): Change free_tx member to void *.
+
 2010-06-11  Richard Henderson  <rth@redhat.com>
 
 	* clone.cc (clone_entry_compare): Fix typo.

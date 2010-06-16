@@ -26,13 +26,6 @@
 
 namespace GTM HIDDEN {
 
-struct gtm_alloc_action
-{
-  void (*free_fn)(void *);
-  bool allocated;
-};
-
-
 void
 gtm_transaction::record_allocation (void *ptr, void (*free_fn)(void *))
 {

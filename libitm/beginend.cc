@@ -40,21 +40,23 @@ static _ITM_transactionId_t global_tid;
 
 /* Allocate a transaction structure.  Reuse an old one if possible.  */
 
-static gtm_transaction *
-alloc_tx (void)
+void *
+GTM::gtm_transaction::operator new (size_t s)
 {
-  gtm_transaction *tx;
   gtm_thread *thr = gtm_thr ();
+  void *tx;
+
+  assert(s == sizeof(gtm_transaction));
 
   if (thr->free_tx_count == 0)
-    tx = static_cast<gtm_transaction *>(xmalloc (sizeof (gtm_transaction)));
+    tx = xmalloc (sizeof (gtm_transaction));
   else
     {
       thr->free_tx_count--;
       tx = thr->free_tx[thr->free_tx_idx];
       thr->free_tx_idx = (thr->free_tx_idx + 1) % gtm_thread::MAX_FREE_TX;
     }
-  memset (tx, 0, sizeof (*tx));
+  memset (tx, 0, sizeof (gtm_transaction));
 
   return tx;
 }
@@ -64,8 +66,8 @@ alloc_tx (void)
    as the jmpbuf is used immediately after calling this function.  Thus
    the requirement that this queue be per-thread.  */
 
-static void
-free_tx (gtm_transaction *tx)
+void
+GTM::gtm_transaction::operator delete(void *tx)
 {
   gtm_thread *thr = gtm_thr ();
   unsigned idx
@@ -92,7 +94,7 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 
   setup_gtm_thr ();
 
-  tx = alloc_tx ();
+  tx = new gtm_transaction;
 
   tx->prop = prop;
   tx->prev = gtm_tx();
@@ -185,7 +187,7 @@ _ITM_abortTransaction (_ITM_abortReason reason)
     gtm_transaction::serial_lock.read_unlock ();
 
   set_gtm_tx (tx->prev);
-  free_tx (tx);
+  delete tx;
 
   GTM_longjmp (&tx->jb, a_abortTransaction | a_restoreLiveVariables, tx->prop);
 }
@@ -211,7 +213,7 @@ GTM::gtm_transaction::trycommit_and_finalize ()
     {
       gtm_disp()->fini ();
       set_gtm_tx (this->prev);
-      free_tx (this);
+      delete this;
       if (this->state & gtm_transaction::STATE_SERIAL)
 	gtm_transaction::serial_lock.write_unlock ();
       else
