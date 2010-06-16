@@ -1,3 +1,7 @@
+2010-06-16  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (thread_private_new_memory): Avoid infinite recursion.
+
 2010-06-15  Aldy Hernandez  <aldyh@redhat.com>
 
 	* varasm.c (finish_tm_clone_pairs_1): Do not dump entry if the

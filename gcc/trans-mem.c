@@ -1268,12 +1268,16 @@ thread_private_new_memory (basic_block entry_block, tree x)
 
   /* Look in cache first.  */
   elt.val = x;
-  slot = htab_find_slot (tm_new_mem_hash, &elt, NO_INSERT);
-  if (slot)
-    {
-      elt_p = (tm_new_mem_map_t *) *slot;
-      return elt_p->local_new_memory;
-    }
+  slot = htab_find_slot (tm_new_mem_hash, &elt, INSERT);
+  elt_p = (tm_new_mem_map_t *) *slot;
+  if (elt_p)
+    return elt_p->local_new_memory;
+
+  /* Optimistically assume the memory is transaction local during
+     processing.  This catches recursion into this variable.  */
+  *slot = elt_p = XNEW (tm_new_mem_map_t);
+  elt_p->val = val;
+  elt_p->local_new_memory = mem_transaction_local;
 
   /* Search DEF chain to find the original definition of this address.  */
   do
@@ -1353,15 +1357,7 @@ thread_private_new_memory (basic_block entry_block, tree x)
     retval = mem_non_local;
 
  new_memory_ret:
-  /* A recursive call to thread_private_new_memory() may change the
-     slot from under us if we resize the hash table, so get a fresh
-     slot after all is said and done.  */
-  slot = htab_find_slot (tm_new_mem_hash, &elt, INSERT);
-
-  elt_p = XNEW (tm_new_mem_map_t);
-  elt_p->val = val;
   elt_p->local_new_memory = retval;
-  *slot = elt_p;
   return retval;
 }
 
