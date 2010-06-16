@@ -18,7 +18,7 @@ vpath % $(strip $(search_path))
 
 AM_CPPFLAGS = $(addprefix -I, $(search_path))
 AM_CFLAGS = $(XCFLAGS)
-AM_CXXFLAGS = -std=gnu++0x -fno-rtti $(XCFLAGS) $(abi_version)
+AM_CXXFLAGS = -std=gnu++0x -fno-exceptions -fno-rtti $(XCFLAGS) $(abi_version)
 AM_CCASFLAGS = $(XCFLAGS)
 AM_LDFLAGS = $(XLDFLAGS) $(SECTION_LDFLAGS) $(OPT_LDFLAGS)
 
@@ -32,8 +32,8 @@ libitm_version_script =
 endif
 libitm_version_info = -version-info $(libtool_VERSION)
 
-## Force link with C, not C++.  For now, while we're using C++ we don't
-## want or need libstdc++.
+# Force link with C, not C++.  For now, while we're using C++ we don't
+# want or need libstdc++.
 libitm_la_LINK = $(LINK)
 libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
         -no-undefined
@@ -42,7 +42,7 @@ libitm_la_SOURCES = \
 	aatree.cc alloc.cc alloc_c.cc alloc_cpp.cc barrier.cc beginend.cc \
 	clone.cc cacheline.cc cachepage.cc eh_cpp.cc local.cc memcpy.cc \
 	memset.cc query.cc retry.cc rwlock.cc useraction.cc util.cc \
-	sjlj.S method-serial.cc method-readonly.cc method-wbetl.cc
+	sjlj.S tls.cc method-serial.cc method-readonly.cc method-wbetl.cc
 
 if ARCH_X86
 libitm_la_SOURCES += x86_sse.cc x86_avx.cc

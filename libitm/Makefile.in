@@ -94,15 +94,16 @@ libitm_la_LIBADD =
 am__libitm_la_SOURCES_DIST = aatree.cc alloc.cc alloc_c.cc \
 	alloc_cpp.cc barrier.cc beginend.cc clone.cc cacheline.cc \
 	cachepage.cc eh_cpp.cc local.cc memcpy.cc memset.cc query.cc \
-	retry.cc rwlock.cc useraction.cc util.cc sjlj.S \
+	retry.cc rwlock.cc useraction.cc util.cc sjlj.S tls.cc \
 	method-serial.cc method-readonly.cc method-wbetl.cc x86_sse.cc \
 	x86_avx.cc
 @ARCH_X86_TRUE@am__objects_1 = x86_sse.lo x86_avx.lo
 am_libitm_la_OBJECTS = aatree.lo alloc.lo alloc_c.lo alloc_cpp.lo \
 	barrier.lo beginend.lo clone.lo cacheline.lo cachepage.lo \
 	eh_cpp.lo local.lo memcpy.lo memset.lo query.lo retry.lo \
-	rwlock.lo useraction.lo util.lo sjlj.lo method-serial.lo \
-	method-readonly.lo method-wbetl.lo $(am__objects_1)
+	rwlock.lo useraction.lo util.lo sjlj.lo tls.lo \
+	method-serial.lo method-readonly.lo method-wbetl.lo \
+	$(am__objects_1)
 libitm_la_OBJECTS = $(am_libitm_la_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/../depcomp
@@ -339,7 +340,7 @@ fincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/finclude
 libsubincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
 AM_CPPFLAGS = $(addprefix -I, $(search_path))
 AM_CFLAGS = $(XCFLAGS)
-AM_CXXFLAGS = -std=gnu++0x -fno-rtti $(XCFLAGS) $(abi_version)
+AM_CXXFLAGS = -std=gnu++0x -fno-exceptions -fno-rtti $(XCFLAGS) $(abi_version)
 AM_CCASFLAGS = $(XCFLAGS)
 AM_LDFLAGS = $(XLDFLAGS) $(SECTION_LDFLAGS) $(OPT_LDFLAGS)
 toolexeclib_LTLIBRARIES = libitm.la
@@ -347,6 +348,9 @@ nodist_toolexeclib_HEADERS = libitm.spec
 @LIBITM_BUILD_VERSIONED_SHLIB_FALSE@libitm_version_script = 
 @LIBITM_BUILD_VERSIONED_SHLIB_TRUE@libitm_version_script = -Wl,--version-script,$(top_srcdir)/libitm.map
 libitm_version_info = -version-info $(libtool_VERSION)
+
+# Force link with C, not C++.  For now, while we're using C++ we don't
+# want or need libstdc++.
 libitm_la_LINK = $(LINK)
 libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
         -no-undefined
@@ -354,7 +358,7 @@ libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
 libitm_la_SOURCES = aatree.cc alloc.cc alloc_c.cc alloc_cpp.cc \
 	barrier.cc beginend.cc clone.cc cacheline.cc cachepage.cc \
 	eh_cpp.cc local.cc memcpy.cc memset.cc query.cc retry.cc \
-	rwlock.cc useraction.cc util.cc sjlj.S method-serial.cc \
+	rwlock.cc useraction.cc util.cc sjlj.S tls.cc method-serial.cc \
 	method-readonly.cc method-wbetl.cc $(am__append_1)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -474,6 +478,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/retry.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rwlock.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sjlj.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tls.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/useraction.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x86_avx.Plo@am__quote@

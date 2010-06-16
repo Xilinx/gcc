@@ -285,6 +285,8 @@ extern gtm_dispatch *dispatch_wbetl();
 extern gtm_dispatch *dispatch_readonly();
 extern gtm_dispatch *dispatch_serial();
 
+extern gtm_cacheline_mask gtm_mask_stack(gtm_cacheline *, gtm_cacheline_mask);
+
 } // namespace GTM
 
 #endif // LIBITM_I_H

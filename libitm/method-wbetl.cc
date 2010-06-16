@@ -426,8 +426,13 @@ wbetl_dispatch::trycommit ()
       for (size_t i = 0; i < n; ++i)
 	{
 	  w_entry *w = &m_wset_entries[i];
-	  gtm_cacheline::copy_mask (w->addr, w->value,
-		*gtm_cacheline_page::mask_for_page_line (w->value));
+	  gtm_cacheline_mask mask
+	    = *gtm_cacheline_page::mask_for_page_line (w->value);
+
+	  /* Filter out any updates that overlap the libitm stack.  */
+	  mask = gtm_mask_stack (w->addr, mask);
+
+	  gtm_cacheline::copy_mask (w->addr, w->value, mask);
 	}
 
       /* Only emit barrier after all cachelines are copied.  */

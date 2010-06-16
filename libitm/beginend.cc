@@ -84,7 +84,6 @@ GTM::gtm_transaction::operator delete(void *tx)
   thr->free_tx[idx] = tx;
 }
 
-
 uint32_t
 GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 {
@@ -162,6 +161,8 @@ _ITM_rollbackTransaction (void)
   assert ((tx->prop & pr_hasNoAbort) == 0);
   assert ((tx->state & gtm_transaction::STATE_ABORTING) == 0);
 
+  gtm_stack_marker marker;
+
   tx->rollback ();
   tx->state |= gtm_transaction::STATE_ABORTING;
 }
@@ -177,6 +178,8 @@ _ITM_abortTransaction (_ITM_abortReason reason)
 
   if (tx->state & gtm_transaction::STATE_IRREVOCABLE)
     abort ();
+
+  gtm_stack_marker marker;
 
   tx->rollback ();
   gtm_disp()->fini ();
@@ -251,6 +254,8 @@ void ITM_REGPARM
 _ITM_commitTransaction(void)
 {
   gtm_transaction *tx = gtm_tx();
+  gtm_stack_marker marker;
+
   if (!tx->trycommit_and_finalize ())
     tx->restart (RESTART_VALIDATE_COMMIT);
 }
@@ -259,6 +264,8 @@ void ITM_REGPARM
 _ITM_commitTransactionEH(void *exc_ptr)
 {
   gtm_transaction *tx = gtm_tx();
+  gtm_stack_marker marker;
+
   if (!tx->trycommit_and_finalize ())
     {
       tx->eh_in_flight = exc_ptr;

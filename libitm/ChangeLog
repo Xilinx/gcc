@@ -1,5 +1,23 @@
 2010-06-16  Richard Henderson  <rth@redhat.com>
 
+	* method-wbetl.cc (wbetl_dispatch::trycommit): Discard changes
+	that overlap the libitm stack.
+	* barrier.tpl: Mark incoming stack.
+	* beginend.cc (_ITM_rollbackTransaction, _ITM_abortTransaction,
+	_ITM_commitTransaction, _ITM_commitTransactionEH): Likewise.
+	* clone.cc (_ITM_getTMCloneOrIrrevocable): Likewise.
+	* memcpy.cc, memset.cc: Likewise.
+	* method-serial.cc (_ITM_changeTransactionMode): Likewise.
+	* config/generic/tls.h (gtm_thread): Add stack_top member.
+	(gtm_stack_top, set_gtm_stack_top, struct gtm_stack_marker): New.
+	* libitm_i.h (gtm_mask_stack): Declare.
+	* config/generic/tls.cc: New file.
+	* Makefile.am (libitm_la_SOURCES): Add it.
+	(AM_CXXFLAGS): Turn off exceptions.
+	* Makefile.in: Rebuild.
+	
+2010-06-16  Richard Henderson  <rth@redhat.com>
+
 	* alloc.cc (struct gtm_alloc_action): Move definition ...
 	* libitm_i.h: ... here.
 	(class gtm_transaction): Declare new and delete.
