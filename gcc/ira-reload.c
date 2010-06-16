@@ -899,7 +899,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
       VEC_safe_grow_cleared (rtx, gc, reg_equiv_memory_loc_vec, max_regno);
       reg_equiv_memory_loc = VEC_address (rtx, reg_equiv_memory_loc_vec);
       reg_equiv_init
-	= (rtx *) ggc_realloc (reg_equiv_init, max_regno * sizeof (rtx));
+	= (rtx *) ggc_realloc_stat (reg_equiv_init, max_regno * sizeof (rtx) PASS_MEM_STAT);
       memset (&reg_equiv_init[orig_max_reg_num], 0, nregs * sizeof (rtx));
       regstat_n_sets_and_refs
 	 = ((struct regstat_n_sets_and_refs_t *)
