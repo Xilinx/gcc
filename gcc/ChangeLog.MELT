@@ -1,3 +1,15 @@
+
+2010-06-16  Jeremie Salvucci  <jeremie.salvucci@free.fr>
+        * melt-make.mk (warmelt*): Added dependencies on melt-predef.h.
+
+        * melt-runtime.c: Added meltgc_new_real.
+
+        * melt/warmelt-first.melt: Added instance of discr_real.
+
+        * melt/warmelt-ana-base.melt: Added a cmatcher for real_cst.
+
+        * melt-predef.list: Added discr_real.
+
 2010-06-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: Added gimple_seq_of_basic_block.
 

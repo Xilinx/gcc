@@ -75,12 +75,12 @@ vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 ## the invoking command could set MELT_MAKE_MODULE_XTRAMAKEFLAGS=-j2
 MELT_MAKE_MODULE=$(MAKE) -f $(melt_make_module_makefile) $(MELT_MAKE_MODULE_XTRAMAKEFLAGS) VPATH=$(VPATH):.
 
-warmelt-%.0.so: warmelt-%.0.c $(melt_make_module_makefile)
+warmelt-%.0.so: warmelt-%.0.c $(melt_make_module_makefile) melt-predef.h
 	echo in melt-make.mk melt_cflags= $(melt_cflags) 
 	$(MELT_MAKE_MODULE) meltmodule \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
-warmelt-%.0.d.so: warmelt-%.0.c $(melt_make_module_makefile)
+warmelt-%.0.d.so: warmelt-%.0.c $(melt_make_module_makefile) melt-predef.h
 	$(MELT_MAKE_MODULE) meltmoduledynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$(shell basename $@ .d.so).so
@@ -98,11 +98,11 @@ warm%.n.so: warm%.c $(melt_make_module_makefile)
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 ## warmeltbig*.c is so big that it can only be compiled with -O0
-warmeltbig-%.so: warmeltbig-%.c $(melt_make_module_makefile)
+warmeltbig-%.so: warmeltbig-%.c $(melt_make_module_makefile) melt-predef.h
 	$(MELT_MAKE_MODULE) meltmodule \
 	      GCCMELT_CFLAGS="$(melt_cflags) -O0"   \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
-warm%.so: warm%.c  $(melt_make_module_makefile)
+warm%.so: warm%.c  $(melt_make_module_makefile) melt-predef.h
 	$(MELT_MAKE_MODULE) meltmodule \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(MELT_FINAL_CFLAGS)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@

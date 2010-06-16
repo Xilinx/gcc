@@ -1330,6 +1330,19 @@
   }#  )
 
 
+;;; pattern tree_real_cst
+(defcmatcher tree_real_cst
+  (:tree tr)
+  (:value v)
+  treerealc
+  ;; test expander 
+  #{ /* $treerealc ?*/ (($tr) && TREE_CODE($tr) == REAL_CST) }#
+  ;; fill expander
+  #{ /* treerealc! */
+  $v = meltgc_new_real ((meltobject_ptr_t) MELT_PREDEF (DISCR_REAL), 
+                       TREE_REAL_CST(($tr))); }#
+)
+  
 
 ;;; pattern for pointer types
 (defcmatcher tree_pointer_type_p

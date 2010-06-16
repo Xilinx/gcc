@@ -1974,6 +1974,31 @@ end:
 }
 
 
+melt_ptr_t 
+meltgc_new_real (meltobject_ptr_t discr_p, REAL_VALUE_TYPE r)
+{
+    MELT_ENTERFRAME (2, NULL);
+#define resv   meltfram__.varptr[0]
+#define discrv meltfram__.varptr[1]
+#define object_discrv ((meltobject_ptr_t)(discrv))
+#define real_resv ((struct meltreal_st*) resv)
+    discrv = (void*) discr_p;
+    if (!discrv)
+       discrv = (meltobject_ptr_t) MELT_PREDEF (DISCR_REAL);
+    if (object_discrv->object_magic != OBMAG_REAL)
+       goto end;
+    resv = meltgc_allocate (sizeof (struct meltreal_st), 0);
+    real_resv->discr = object_discrv;
+    real_resv->val = r;
+end:
+    MELT_EXITFRAME ();
+    return (melt_ptr_t) resv;
+#undef resv
+#undef discrv
+#undef object_discrv
+#undef real_resv
+}
+
 /* allocate a new routine object of given DISCR and of length LEN,
    with a DESCR-iptive string a a PROC-edure */
 meltroutine_ptr_t

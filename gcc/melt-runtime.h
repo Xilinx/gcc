@@ -1522,6 +1522,7 @@ meltgc_touch_dest (void *touchedptr, void *destptr)
 /* allocate a boxed long integer (or null if bad DISCR) fillen with NUM */
 melt_ptr_t meltgc_new_int (meltobject_ptr_t discr, long num);
 
+/* Retrieve an integer from a boxed integer or mixnumbers.  */
 static inline long
 melt_get_int (melt_ptr_t v)
 {
@@ -1541,6 +1542,18 @@ melt_get_int (melt_ptr_t v)
 }
 
 
+/* Make a boxed real from a real value.  If discr is NULL, use DISCR_REAL.  */
+melt_ptr_t meltgc_new_real(meltobject_ptr_t discr, REAL_VALUE_TYPE r);
+
+/* Unbox real value. It returns 0 if not a boxed real.  */
+static inline REAL_VALUE_TYPE
+melt_get_real (melt_ptr_t v)
+{
+    if (melt_magic_discr (v) == OBMAG_REAL)
+       return ((struct meltreal_st*) v)->val;
+    return dconst0;
+}
+ 
 
 static inline long
 melt_obj_hash (melt_ptr_t v)
