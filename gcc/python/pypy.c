@@ -195,6 +195,7 @@ void gpy_process_decl( gpy_symbol_obj * sym )
     {
       sym = gpy_process_AST( &sym );
     }
+
   /* Push the declaration! */
   VEC_safe_push( gpy_sym, gc, gpy_decls, sym );
   debug("decl <%p> was pushed!\n", (void*)sym );
@@ -284,9 +285,10 @@ tree gpy_get_tree( gpy_symbol_obj * sym )
 void gpy_write_globals( void )
 {
   tree *vec;
-  unsigned decl_len = VEC_length( gpy_sym, gpy_decls );
+  unsigned decl_len = 0;
   unsigned int idx = 0; gpy_symbol_obj *it = NULL;
 
+  decl_len = VEC_length( gpy_sym, gpy_decls );
   vec = XNEWVEC( tree, decl_len );
 
   debug("decl_len <%u>!\n", decl_len);
@@ -304,8 +306,6 @@ void gpy_write_globals( void )
 
   check_global_declarations( vec, decl_len );
   emit_debug_global_declarations( vec, decl_len );
-
-  debug("finished!\n");
 
   free( vec );
 }

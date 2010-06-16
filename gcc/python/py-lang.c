@@ -235,6 +235,7 @@ gpy_langhook_gimplify_expr( tree *expr_p ATTRIBUTE_UNUSED,
 tree convert( tree type ATTRIBUTE_UNUSED,
 	      tree expr ATTRIBUTE_UNUSED )
 {
+  debug("tree convert!\n");
   gcc_unreachable( );
   return NULL;
 }
@@ -245,7 +246,7 @@ void
 gpy_preserve_from_gc( tree t ATTRIBUTE_UNUSED )
 {
   gpy_gc_root = tree_cons( NULL_TREE, t, gpy_gc_root );
-  debug("preserver from gc!\n");
+  debug("preserve from gc!\n");
 }
 
 void __gpy_debug__( const char * file, unsigned int lineno,

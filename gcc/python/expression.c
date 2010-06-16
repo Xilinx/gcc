@@ -95,14 +95,14 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a,
 	  tree t1 = gpy_process_expression( opa );
           tree t2 = gpy_process_expression( opb );
 
-          retval = build2( PLUS_EXPR, t1, t2, TREE_TYPE(t1) );
+          retval = build2( PLUS_EXPR, t1, t2, integer_type_node );
         }
       else
         {
 	  tree t1 = gpy_process_expression( opa );
           tree t2 = gpy_process_expression( opb );
 
-          retval = build2( PLUS_EXPR, t1, t2, TREE_TYPE(t1) );
+          retval = build2( PLUS_EXPR, t1, t2,  );
         }
     }
   else
