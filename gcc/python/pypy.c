@@ -42,10 +42,9 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
-typedef gpy_symbol_obj *gpy_sym;
-
 DEF_VEC_P( gpy_sym );
 DEF_VEC_ALLOC_P( gpy_sym,gc );
+
 static VEC( gpy_sym,gc ) * gpy_decls;
 
 inline

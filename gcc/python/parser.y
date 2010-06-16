@@ -41,6 +41,11 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
+DEF_VEC_P( gpy_sym );
+DEF_VEC_ALLOC_P( gpy_sym,gc );
+
+static VEC( gpy_sym,gc ) * gpy_symbol_stack;
+
 extern int yylineno;
 
 extern int yylex( void );
@@ -91,6 +96,15 @@ extern void yyerror( const char * );
 %type<symbol> accessor
 %type<symbol> decl
 %type<symbol> primary
+%type<symbol> procedure
+%type<symbol> statement_block
+%type<symbol> parameter
+%type<symbol> parameters
+%type<symbol> parameter_list
+%type<symbol> key_return
+%type<symbol> arguments
+%type<symbol> argument_list
+%type<symbol> arbitrary_call
 
 %left '-' '+'
 %left '*' '/'
@@ -108,31 +122,86 @@ declarations:
             {
 	      gpy_process_decl( $2 );
 	    }
+            | error
+            {
+	      fatal_error("malformed declaration!\n");
+	    }
             ;
 
 decl: expression ';'
     | loop_while
     | function
+    | key_return ';'
     ;
 
-function: DEF IDENTIFIER '(' parameters ')' ':' '{' pblock '}'
-        { $$ = NULL; }
-        | DEF IDENTIFIER '(' ')' ':' '{' pblock '}'
-	{ $$ = NULL; }
+key_return: RETURN expression
+          {
+	    gpy_symbol_obj *sym;
+	    Gpy_Symbol_Init( sym );
+
+	    sym->type = KEY_RETURN;
+	    sym->op_a_t = TYPE_SYMBOL;
+
+	    sym->op_a.symbol_table= $2;
+	    $$= sym;
+	  }
+          ;
+
+function: DEF IDENTIFIER '(' parameters ')' ':' '{' procedure '}'
+        {
+	  gpy_symbol_obj *sym;
+	  Gpy_Symbol_Init( sym );
+
+	  sym->identifier= $2;
+	  sym->type= STRUCTURE_FUNCTION_DEF;
+	  sym->op_a_t= TYPE_SYMBOL;
+	  sym->op_b_t= TYPE_PARAMETERS;
+
+	  sym->op_a.symbol_table = $8;
+	  sym->op_b.symbol_table = $4;
+	  $$= sym;
+	}
+        | DEF IDENTIFIER '(' ')' ':' '{' procedure '}'
+	{
+	  gpy_symbol_obj *sym;
+	  Gpy_Symbol_Init( sym );
+
+	  sym->identifier = $2;
+	  sym->type = STRUCTURE_FUNCTION_DEF;
+	  sym->op_a_t = TYPE_SYMBOL;
+	  sym->op_b_t = TYPE_SYMBOL_NIL;
+	  
+	  sym->op_a.symbol_table= $7;
+	  $$= sym;
+	}
         ;
 
-loop_while: WHILE expression ':' '{' pblock '}'
-          { $$ = NULL; }
+loop_while: WHILE expression ':' '{' procedure '}'
+          {
+	    $$ = NULL;
+	  }
           ;
 
 expression: expr
           ;
 
-pblock: statement_block
-      ;
+procedure: statement_block
+         {
+	   $$ = VEC_pop( gpy_sym, gpy_symbol_stack );
+	 }
+         ;
 
 statement_block: statement_block decl
+               {
+		 $1->next = $2;
+		 $$ = $2;
+	       }
                | decl
+	       {
+		 VEC_safe_push( gpy_sym, gc,
+				gpy_symbol_stack, $1 );
+		 $$ = $1;
+	       }
                ;
 
 expr: symbol_accessor '=' expr
@@ -199,27 +268,85 @@ symbol_accessor: IDENTIFIER
 
 accessor: symbol_accessor
         | arbitrary_call
-        {
-	  $$ = NULL;
-	}
         ;
 
 arbitrary_call: IDENTIFIER '(' arguments ')'
-    | IDENTIFIER '(' ')'
-    ;
+              {
+		gpy_symbol_obj *sym= NULL;
+		Gpy_Symbol_Init( sym );
+
+		sym->exp = OP_EXPRESS;
+		sym->type= OP_CALL_GOTO;
+
+		sym->op_a_t= TYPE_STRING;
+		sym->op_b_t= TYPE_ARGUMENTS;
+
+		sym->op_a.string= $1;
+		sym->op_b.symbol_table= $3;
+		$$= sym;
+	      }
+              | IDENTIFIER '(' ')'
+	      {
+		gpy_symbol_obj *sym = NULL;
+		Gpy_Symbol_Init( sym );
+	  
+		sym->exp = OP_EXPRESS;
+		sym->type = OP_CALL_GOTO;
+
+		sym->op_a_t = TYPE_STRING;
+		sym->op_a.string = $1;
+		$$= sym;
+	      }
+              ;
+
+parameter: IDENTIFIER
+         {
+	    gpy_symbol_obj *sym;
+	    Gpy_Symbol_Init( sym );
+
+	    sym->type= TYPE_PARAMETER;
+	    sym->op_a_t= TYPE_STRING;
+
+	    sym->op_a.string= $1;
+	    $$= sym;
+	 }
+         ;
 
 parameters: parameter_list
+          {
+	    $$ = VEC_pop( gpy_sym, gpy_symbol_stack );
+	  }
           ;
 
-parameter_list: parameter_list ',' IDENTIFIER
-              | IDENTIFIER
+parameter_list: parameter_list ',' parameter
+              {
+		$1->next = $3;
+		$$ = $3;
+	      }
+              | parameter
+              {
+		VEC_safe_push( gpy_sym, gc,
+			       gpy_symbol_stack, $1 );
+		$$ = $1;
+	      }
               ;
 
 arguments: argument_list
+         {
+	   $$ = VEC_pop( gpy_sym, gpy_symbol_stack );
+	 }
          ;
 
 argument_list: argument_list ',' expression
+             {
+	       $1->next = $3;
+	     }
              | expression
+             {
+	       VEC_safe_push( gpy_sym, gc,
+			      gpy_symbol_stack, $1 );
+	       $$ = $1;
+	     }
              ;
 
 primary: accessor

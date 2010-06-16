@@ -705,8 +705,6 @@ sorry (const char *gmsgid, ...)
 bool
 seen_error (void)
 {
-  printf("errorcount = <%i>; sorrycount = <%i>, <%i>!\n",
-	 errorcount, sorrycount, errorcount||sorrycount );
   return errorcount || sorrycount;
 }
 
