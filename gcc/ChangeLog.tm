@@ -1,3 +1,7 @@
+2010-06-17  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_insert_gettmclone_call): Always return true.
+
 2010-06-16  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (thread_private_new_memory): Avoid infinite recursion.

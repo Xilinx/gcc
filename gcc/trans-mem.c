@@ -4103,7 +4103,7 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   gimple_call_set_fn (stmt, callfn);
   update_stmt (stmt);
 
-  return safe;
+  return true;
 }
 
 /* Helper function for ipa_tm_transform_calls.  For a given BB,
