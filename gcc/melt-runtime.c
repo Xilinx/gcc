@@ -5399,7 +5399,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *binfile, const ch
       warning (0, "escaped character[s] in MELT module makefile %s", ourmakefile);
     obstack_1grow (&cmd_obstack, ' ');
     /* add the -C workdir argument if workdir is not the current directory */
-    if (workdir && strcmp(workdir, ".") && strcmp(workdir, mycwd))) {
+    if (workdir && strcmp(workdir, ".") && strcmp(workdir, mycwd)) {
       debugeprintf ("compile_gencsrc_to_binmodule dochdir in workdir %s", workdir);
       obstack_grow0 (&cmd_obstack, MAKECHDIR_ARG, strlen (MAKECHDIR_ARG));
       obstack_1grow (&cmd_obstack, ' ');

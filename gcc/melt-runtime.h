@@ -1858,7 +1858,8 @@ melt_make_raw_object(melt_ptr_t klas, int len, const char*clanam) {
 #define melt_putfield_object(Obj,Off,Val,Fldnam) do {		\
 ((meltobject_ptr_t)(Obj))->obj_vartab[Off] = (melt_ptr_t)(Val);	\
 }while(0)
-#define melt_make_raw_object(Klas,Len) ((melt_ptr_t)meltgc_new_raw_object(Klas,Len))
+#define melt_make_raw_object(Klas,Len,Clanam) \
+  ((melt_ptr_t)meltgc_new_raw_object((meltobject_ptr_t)(Klas),Len))
 #define melt_raw_object_create(Newobj,Klas,Len,Clanam) do { \
   Newobj = melt_make_raw_object(Klas,Len,Clanam); } while(0)
 #endif
@@ -3256,7 +3257,7 @@ melt_output_cfile_decl_impl(melt_ptr_t cfilnam, melt_ptr_t declbuf, melt_ptr_t i
   melt_output_cfile_decl_impl_secondary (cfilnam, declbuf, implbuf, 0);
 }
 
-
+#ifdef ENABLE_CHECKING
 static inline void
 debugeputs_at (const char *fil, int lin, const char *msg)
 {
@@ -3264,6 +3265,7 @@ debugeputs_at (const char *fil, int lin, const char *msg)
 }
 
 #define debugeputs(Msg) debugeputs_at(__FILE__,__LINE__,(Msg))
+#endif /* ENABLE_CHECKING */
 
 static inline void
 debugvalue_at (const char *fil, int lin, const char *msg, void *val)

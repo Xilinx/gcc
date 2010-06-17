@@ -1,3 +1,9 @@
+2010-06-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Jeremie Salvucci  <jeremie.salvucci@free.fr>
+	* melt-runtime.c (compile_gencsrc_to_binmodule):
+	in MELT_IS_PLUGIN variant, removed extra parenthesis.
+	* melt-runtime.h (melt_make_raw_object):
+	in MELT_IS_PLUGIN variant, added a third ignored argument.
 
 2010-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: added translatedebug mode.

@@ -1,3 +1,6 @@
+2010-06-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Jeremie Salvucci  <jeremie.salvucci@free.fr>
+	* build-melt-plugin.sh: added -C argument.
 
 2010-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh: Protect every if test with double-quotes.

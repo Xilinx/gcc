@@ -102,15 +102,19 @@ verbose_sleep() {
 }
 ################ parsing the shell program argument
 parse_args() {
-    while getopts "hqs:S:B:Y:M:" opt ; do
+    while getopts "hqs:S:B:Y:M:C:" opt ; do
 	echo debugMELT opt= $opt OPTARG= $OPTARG
 	case $opt in
 	    h) usage;;
 	    q) quiet=1;;
 	    s) 
 		verbose_echo Evaluating $OPTARG;
-		eval $OPTARG
+		eval "$OPTARG"
 		;;
+           C) HOSTCFLAGS+=" $OPTARG"
+              HOSTMELTCFLAGS+=" $OPTARG"
+               verbose_echo using $OPTARG as host and melt compiler flags
+               ;;
 	    S) GCC_SOURCE_TREE=$($REALPATH "$OPTARG");
 		verbose_echo GCC source tree is $GCC_SOURCE_TREE
 		;;
