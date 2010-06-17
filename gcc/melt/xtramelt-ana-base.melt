@@ -1887,6 +1887,9 @@
    if (TREE_CODE($eachcgrblo#_dcl) != FUNCTION_DECL) continue;
    $eachcgrblo#_fun = DECL_STRUCT_FUNCTION($eachcgrblo#_dcl);
    if (!$eachcgrblo#_fun) continue;
+   /* this assert fails when in a pass without control flow graph */
+   melt_assertmsg ($eachcgrblo#_fun->cfg != NULL, 
+		   "no cfg in each_cgraph_fun_entryblock $eachcgrblo");
    $eachcgrblo#_bb = ENTRY_BLOCK_PTR_FOR_FUNCTION($eachcgrblo#_fun);
    if (! $eachcgrblo#_bb) continue;
    $funtree = $eachcgrblo#_dcl;

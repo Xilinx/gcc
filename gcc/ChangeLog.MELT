@@ -1,3 +1,8 @@
+
+2010-06-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt: added melt_assertmsg in
+	each_cgraph_fun_entryblock.
+
 2010-06-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	    Jeremie Salvucci  <jeremie.salvucci@free.fr>
 	* melt-runtime.c (compile_gencsrc_to_binmodule):
