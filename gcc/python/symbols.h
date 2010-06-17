@@ -44,6 +44,8 @@ extern tree gpy_process_bin_expression( gpy_symbol_obj ** , gpy_symbol_obj ** );
 
 extern tree gpy_process_expression( const gpy_symbol_obj * const );
 
+extern tree gpy_process_functor( const gpy_symbol_obj * const );
+
 extern tree gpy_get_tree( gpy_symbol_obj * );
 
 extern void gpy_process_decl( gpy_symbol_obj * );

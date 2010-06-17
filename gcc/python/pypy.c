@@ -39,6 +39,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "opcodes.def"
 #include "y.py.h"
 
+#include "hashtab.h"
+
 #include <gmp.h>
 #include <mpfr.h>
 
@@ -253,6 +255,46 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
   return retval;
 }
 
+/*
+          void foo()
+          {
+            int a;
+            {
+              int b;
+            }
+            int c;
+          }
+     
+
+you would get the following:
+
+          tree foo = FUNCTION_DECL;
+          tree decl_a = VAR_DECL;
+          tree decl_b = VAR_DECL;
+          tree decl_c = VAR_DECL;
+          tree block_a = BLOCK;
+          tree block_b = BLOCK;
+          tree block_c = BLOCK;
+          BLOCK_VARS(block_a) = decl_a;
+          BLOCK_SUBBLOCKS(block_a) = block_b;
+          BLOCK_CHAIN(block_a) = block_c;
+          BLOCK_SUPERCONTEXT(block_a) = foo;
+          BLOCK_VARS(block_b) = decl_b;
+          BLOCK_SUPERCONTEXT(block_b) = block_a;
+          BLOCK_VARS(block_c) = decl_c;
+          BLOCK_SUPERCONTEXT(block_c) = foo;
+          DECL_INITIAL(foo) = block_a;
+*/
+
+tree gpy_process_functor( const gpy_symbol_obj * const  functor )
+{
+  tree retval = NULL;
+  
+  gcc_assert( functor->type == STRUCTURE_FUNCTION_DEF );
+
+  return retval;
+}
+
 tree gpy_get_tree( gpy_symbol_obj * sym )
 {
   tree retval_decl = NULL; gpy_symbol_obj * o = sym;
@@ -270,6 +312,10 @@ tree gpy_get_tree( gpy_symbol_obj * sym )
 	{
 	  switch( sym->type )
 	    {
+	    case STRUCTURE_FUNCTION_DEF:
+	      retval_decl = gpy_process_functor( o );
+	      break;
+
 	    default:
 	      fatal_error("unhandled symbol type <0x%x>\n", o->type );
 	      break;
@@ -301,10 +347,10 @@ void gpy_write_globals( void )
 
   wrapup_global_declarations( vec, decl_len );
 
-  cgraph_finalize_compilation_unit( );
-
   check_global_declarations( vec, decl_len );
   emit_debug_global_declarations( vec, decl_len );
+
+  cgraph_finalize_compilation_unit( );
 
   free( vec );
 }

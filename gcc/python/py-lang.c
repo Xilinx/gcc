@@ -180,7 +180,7 @@ gpy_langhook_type_for_mode( enum machine_mode mode ATTRIBUTE_UNUSED,
   debug("type for mode!\n");
 
 
-  return NULL;
+  return NULL_TREE;
 }
 
 /* Record a builtin function.  We just ignore builtin functions.  */
