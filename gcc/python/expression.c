@@ -43,10 +43,13 @@ along with GCC; see the file COPYING3.  If not see
 #include <mpfr.h>
 
 
-tree gpy_process_assign( gpy_symbol_obj ** op_a,
-			 gpy_symbol_obj ** op_b )
+tree* gpy_process_assign( gpy_symbol_obj ** op_a,
+			  gpy_symbol_obj ** op_b )
 {
-  gpy_symbol_obj *opa, *opb; tree retval = NULL;
+  gpy_symbol_obj *opa, *opb;
+
+  /* tree *retval = XNEWVEC( tree,  ); */
+
   if( op_a && op_b ) { opa= *op_a; opb= *op_b; }
   else {
     fatal_error("operands A or B are undefined!\n");

@@ -288,40 +288,59 @@ you would get the following:
 
 tree gpy_process_functor( const gpy_symbol_obj * const  functor )
 {
-  tree retval = NULL;
-  
-  gcc_assert( functor->type == STRUCTURE_FUNCTION_DEF );
+  gpy_symbol_obj * o = functor->op_a.symbol_table;
+  tree block = NULL;
+  tree fntype = build_function_type(void_type_node, void_list_node);
+  tree retval = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
+			    get_identifier( functor->identifier ),
+			    fntype );
 
+  SET_DECL_ASSEMBLER_NAME(retval, get_identifier(functor->identifier));
+
+  TREE_PUBLIC(retval) = 1;
+  DECL_EXTERNAL(retval) = 1;
+
+  block = make_node( BLOCK );
+
+  while( o )
+    {
+      tree decl = gpy_get_tree( o );
+      TREE_CHAIN( decl ) = block;
+
+      o = o->next;
+    }
+
+  TREE_USED(block) = 1;
+  BLOCK_SUPERCONTEXT(block) = retval;
+  DECL_INITIAL(retval) = block;
+  
   return retval;
 }
 
 tree gpy_get_tree( gpy_symbol_obj * sym )
 {
   tree retval_decl = NULL; gpy_symbol_obj * o = sym;
-  while( o )
+  
+  debug( "processing decl of type <0x%X> object <%p>\n",
+	 o->type, (void*) o );
+
+  if( o->exp == OP_EXPRESS )
     {
-      debug( "processing decl of type <0x%X> object <%p>\n",
-	     o->type, (void*) o );
-
-      if( o->exp == OP_EXPRESS )
+      /* Should already be pre-processed ... */
+      retval_decl = gpy_process_expression( o );
+    }
+  else
+    {
+      switch( o->type )
 	{
-	  /* Should already be pre-processed ... */
-	  retval_decl = gpy_process_expression( o );
+	case STRUCTURE_FUNCTION_DEF:
+	  retval_decl = gpy_process_functor( o );
+	  break;
+	  
+	default:
+	  fatal_error("unhandled symbol type <0x%x>\n", o->type );
+	  break;
 	}
-      else
-	{
-	  switch( sym->type )
-	    {
-	    case STRUCTURE_FUNCTION_DEF:
-	      retval_decl = gpy_process_functor( o );
-	      break;
-
-	    default:
-	      fatal_error("unhandled symbol type <0x%x>\n", o->type );
-	      break;
-	    }
-	}
-      o = o->next;
     }
 
   return retval_decl;
