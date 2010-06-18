@@ -2386,7 +2386,8 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_cond_less  
  gimple_cond_lessequal
  gimple_cond_notequal
- gimple_cond_true  
+ gimple_cond_true   
+ gimple_cond_with_edges
  gimple_cond_with_true_false_labels
  gimple_content
  gimple_debug

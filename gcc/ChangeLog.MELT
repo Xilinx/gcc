@@ -1,5 +1,8 @@
 
 2010-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt: exporting gimple_cond_with_edges
+
+2010-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{added support of :loop-s}}
 	* run-melt.h: Added include of cfgloop.h
 	* melt-runtime.h:
