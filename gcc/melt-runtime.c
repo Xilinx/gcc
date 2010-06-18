@@ -47,6 +47,7 @@ along with GCC; see the file COPYING3.   If not see
 #include "tree-iterator.h" 
 #include "tree-inline.h" 
 #include "basic-block.h"
+#include "cfgloop.h"
 #include "timevar.h"
 
 
@@ -537,10 +538,12 @@ check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
     case OBMAG_GIMPLESEQ:
     case OBMAG_BASICBLOCK:
     case OBMAG_EDGE:
+    case OBMAG_LOOP:
     case OBMAG_MAPOBJECTS:
     case OBMAG_MAPTREES:
     case OBMAG_MAPGIMPLES:
     case OBMAG_MAPGIMPLESEQS:
+    case OBMAG_MAPLOOPS:
     case OBMAG_MAPSTRINGS:
     case OBMAG_MAPBASICBLOCKS:
     case OBMAG_MAPEDGES:
@@ -1188,6 +1191,15 @@ forwarded_copy (melt_ptr_t p)
 	n = (melt_ptr_t) dst;
 	break;
       }
+    case OBMAG_LOOP:
+      {
+	struct meltloop_st *src = (struct meltloop_st *) p;
+	struct meltloop_st *dst = (struct meltloop_st *)
+	  ggc_alloc_cleared (sizeof (struct meltloop_st));
+	*dst = *src;
+	n = (melt_ptr_t) dst;
+	break;
+      }
     case OBMAG_MAPOBJECTS:
       {
 	struct meltmapobjects_st *src = (struct meltmapobjects_st *) p;
@@ -1343,6 +1355,27 @@ forwarded_copy (melt_ptr_t p)
 								 sizeof
 								 (dst->entab
 								  [0]));
+	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
+	  }
+	else
+	  dst->entab = NULL;
+	n = (melt_ptr_t) dst;
+	break;
+      }
+    case OBMAG_MAPLOOPS:
+      {
+	struct meltmaploops_st *src = (struct meltmaploops_st *) p;
+	int siz = melt_primtab[src->lenix];
+	struct meltmaploops_st *dst = (struct meltmaploops_st *)
+	  ggc_alloc_cleared (sizeof (struct meltmaploops_st));
+	dst->discr = src->discr;
+	dst->count = src->count;
+	dst->lenix = src->lenix;
+	if (siz > 0 && src->entab)
+	  {
+	    dst->entab =
+	      (struct entryloopsmelt_st *)
+	      ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -1682,6 +1715,35 @@ scanning (melt_ptr_t p)
 	  }
 	break;
       }
+    case OBMAG_MAPLOOPS:
+      {
+	struct meltmaploops_st *src = (struct meltmaploops_st *) p;
+	int siz, ix;
+	if (!src->entab)
+	  break;
+	siz = melt_primtab[src->lenix];
+	gcc_assert (siz > 0);
+	if (melt_is_young (src->entab))
+	  {
+	    struct entryloopsmelt_st *newtab
+	      = (struct entryloopsmelt_st *)
+	      ggc_alloc_cleared (siz * sizeof (struct entryloopsmelt_st));
+	    memcpy (newtab, src->entab,
+		    siz * sizeof (struct entryloopsmelt_st));
+	    src->entab = newtab;
+	  }
+	for (ix = 0; ix < siz; ix++)
+	  {
+	    loop_p at = src->entab[ix].e_at;
+	    if (!at || at == (void *) 1)
+	      {
+		src->entab[ix].e_va = NULL;
+		continue;
+	      }
+	    FORWARDED (src->entab[ix].e_va);
+	  }
+	break;
+      }
     case OBMAG_MIXINT:
       {
 	struct meltmixint_st *src = (struct meltmixint_st *) p;
@@ -1727,6 +1789,7 @@ scanning (melt_ptr_t p)
     case OBMAG_GIMPLESEQ:
     case OBMAG_BASICBLOCK:
     case OBMAG_EDGE:
+    case OBMAG_LOOP:
       break;
     default:
       /* gcc_unreachable (); */
@@ -3097,6 +3160,35 @@ end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) bbbv;
 #undef bbbv
+#undef discrv
+#undef object_discrv
+}
+
+
+/* allocate a new boxed loop of given DISCR [or DISCR_LOOP] & content
+   VAL */
+melt_ptr_t
+meltgc_new_loop (meltobject_ptr_t discr_p, loop_p lo)
+{
+  MELT_ENTERFRAME (2, NULL);
+#define loopv   meltfram__.varptr[0]
+#define discrv  meltfram__.varptr[1]
+#define object_discrv ((meltobject_ptr_t)(discrv))
+  discrv = (void *) discr_p;
+  if (!discrv)
+    discrv = MELT_PREDEF (DISCR_LOOP);
+  if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_LOOP)
+    goto end;
+  loopv = meltgc_allocate (sizeof (struct meltloop_st), 0);
+  ((struct meltloop_st *) (loopv))->discr =
+    (meltobject_ptr_t) discrv;
+  ((struct meltloop_st *) (loopv))->val = lo;
+end:
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) loopv;
+#undef loopv
 #undef discrv
 #undef object_discrv
 }

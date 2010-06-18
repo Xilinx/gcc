@@ -1571,6 +1571,7 @@ a single mutable value. See also $CLASS_CONTAINER.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_EDGE")
 
+;;; the discriminant for boxed basic blocks
 (definstance discr_basic_block class_discriminant
   :doc #{The $DISCR_BASIC_BLOCK is the discriminant of boxed GCC basic_block values. See
 also $CTYPE_BASIC_BLOCK.}#
@@ -1578,6 +1579,16 @@ also $CTYPE_BASIC_BLOCK.}#
   :obj_num OBMAG_BASICBLOCK
   :disc_super discr_any_receiver
   :named_name '"DISCR_BASIC_BLOCK")
+
+
+;;; the discriminant for boxed loops
+(definstance discr_loop class_discriminant
+  :doc #{The $DISCR_LOOP is the discriminant of boxed GCC loop_p values. See
+also $CTYPE_LOOP.}#
+  :predef DISCR_LOOP
+  :obj_num OBMAG_LOOP
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_LOOP")
 
 ;;; the discriminant for maps of objects
 (definstance discr_map_objects class_discriminant
@@ -1627,7 +1638,7 @@ to non-nil value. See also $CTYPE_GIMPLE_SEQ.}#
 ;;; the discriminant for maps of edges
 (definstance discr_map_edges class_discriminant
   :doc #{The $DISCR_MAP_EDGES is the discriminant of hash-map values associating raw GCC edge-s 
-to non-nil value. See also $CTYPE_EDGE.}#
+to non-nil values. See also $CTYPE_EDGE.}#
   :predef DISCR_MAP_EDGES
   :obj_num OBMAG_MAPEDGES
   :disc_super discr_any_receiver
@@ -1636,11 +1647,20 @@ to non-nil value. See also $CTYPE_EDGE.}#
 ;;; the discriminant for maps of basic_blocks
 (definstance discr_map_basic_blocks class_discriminant
   :doc #{The $DISCR_MAP_BASIC_BLOCKS is the discriminant of hash-map values associating raw GCC basic_block-s 
-to non-nil value. See also $CTYPE_BASIC_BLOCK.}#
+to non-nil values. See also $CTYPE_BASIC_BLOCK.}#
   :predef DISCR_MAP_BASIC_BLOCKS
   :obj_num OBMAG_MAPBASICBLOCKS
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_BASIC_BLOCKS")
+
+;;; the discriminant for maps of loop-s
+(definstance discr_map_loops class_discriminant
+  :doc #{The $DISCR_MAP_LOOPS is the discriminant of hash-map values associating raw GCC loop-s 
+to non-nil values. See also $CTYPE_LOOP.}#
+  :predef DISCR_MAP_LOOPS
+  :obj_num OBMAG_MAPLOOPS
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_MAP_LOOPS")
 
 
 ;;; the discriminant for PPL constraint system (not predefined)
@@ -1897,6 +1917,22 @@ Keyword is :edge.}#
   :ctype_marker '"gt_ggc_mx_edge_def"
   )
 (install_ctype_descr ctype_edge "GCC edge")
+
+;; the C type for gcc loop-s
+(definstance ctype_loop class_ctype
+  :doc #{The $CTYPE_LOOP is the c-type of raw GCC loop stuff. See also $DISCR_LOOP.
+Keyword is :loop.}#
+  :predef CTYPE_LOOP
+  :named_name  '"CTYPE_LOOP"
+  :ctype_keyword ':loop
+  :ctype_cname '"loop"
+  :ctype_parchar '"BPAR_LOOP"
+  :ctype_parstring '"BPARSTR_LOOP"
+  :ctype_argfield '"bp_loop"
+  :ctype_resfield '"bp_loopptr"
+  :ctype_marker '"gt_ggc_mx_loop"
+  )
+(install_ctype_descr ctype_loop "GCC loop")
 
 ;;; the ctype for PPL coefficients
 (definstance ctype_ppl_coefficient class_ctype
@@ -3512,7 +3548,8 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  ctype_edge                   
  ctype_gimple
  ctype_gimple_seq
- ctype_long   
+ ctype_long 
+ ctype_loop
  ctype_ppl_coefficient
  ctype_ppl_constraint
  ctype_ppl_constraint_system

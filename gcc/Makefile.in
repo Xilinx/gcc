@@ -2729,7 +2729,7 @@ targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
 ## FIXME: melt_installed_cflags may vary from stage1 to stage2 so
 ## melt-runtime.o fails in the compare step.
 $(MELT_OBJ):  $(MELT_RUNTIME_C) Makefile  \
-   $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H)  \
+   $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H)  \
    tree-pass.h $(MELT_H) gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
 	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) \
 	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
@@ -5239,7 +5239,7 @@ gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c $(srcdir)/melt-runtime.h gtyp
 	(cd $(srcdir); md5sum melt-runtime.h melt-runtime.c) >> $@
 	echo "*/" >> $@
 
-upgrade-warmelt: $(WARMELT_BASESO) gt-melt-runtime-plugin.h
+upgrade-warmelt: $(WARMELT_BASESO) gtyp-real-meltplugin-input.list gt-melt-runtime-plugin.h 
 	$(MAKE) Makefile warmelt.modlis
 # we used to have a move-if-change of the generated files, but an mv
 # is better...

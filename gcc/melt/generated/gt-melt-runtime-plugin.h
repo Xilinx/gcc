@@ -962,6 +962,10 @@ gt_ggc_mx_melt_un (void *x_p)
           gt_ggc_m_13meltobject_st ((*x).u_edge.discr);
           gt_ggc_m_8edge_def ((*x).u_edge.val);
           break;
+        case OBMAG_LOOP:
+          gt_ggc_m_13meltobject_st ((*x).u_loop.discr);
+          gt_ggc_m_4loop ((*x).u_loop.val);
+          break;
         case OBMAG_MAPOBJECTS:
           gt_ggc_m_13meltobject_st ((*x).u_mapobjects.discr);
           if ((*x).u_mapobjects.entab != NULL) {
@@ -1047,6 +1051,17 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_mapedges.entab);
           }
           break;
+        case OBMAG_MAPLOOPS:
+          gt_ggc_m_13meltobject_st ((*x).u_maploops.discr);
+          if ((*x).u_maploops.entab != NULL) {
+            size_t i17;
+            for (i17 = 0; i17 != (size_t)(melt_primtab[((*x).u_maploops).lenix]); i17++) {
+              gt_ggc_m_4loop ((*x).u_maploops.entab[i17].e_at);
+              gt_ggc_m_7melt_un ((*x).u_maploops.entab[i17].e_va);
+            }
+            ggc_mark ((*x).u_maploops.entab);
+          }
+          break;
         default:
           break;
         }
@@ -1073,8 +1088,8 @@ EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
-/* gt-melt-runtime-plugin.h file generated Tue Jun  8 18:46:14 2010
+/* gt-melt-runtime-plugin.h file generated Fri 18 Jun 2010 08:34:21 AM CEST
 
-3a1ddae3f9aba546c19e5a12fb162944  melt-runtime.h
-646d9bfac8e38c195c0400e31f6b49b6  melt-runtime.c
+98a4472e971d344cf504d705528a0205  melt-runtime.h
+0da042066c64b5200d2e04c99808e64a  melt-runtime.c
 */

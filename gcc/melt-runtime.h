@@ -199,7 +199,7 @@ union meltparam_un
 #define BPARSTR_BB        "b"
 
   /* readonly constant strings - not in GP nor in heap */
-  const char *bp_cstring;			/* letter S */
+  const char *bp_cstring;			/* letter s */
   const char **bp_cstringptr;		/* for results */
 #define BPAR_CSTRING         's'
 #define BPARSTR_CSTRING      "s"
@@ -235,6 +235,11 @@ union meltparam_un
 #define BPAR_PPL_POLYHEDRON            'E'
 #define BPARSTR_PPL_POLYHEDRON         "E"
 
+  /* loop-s */
+  struct loop *bp_loop;			/* letter L */
+  struct loop **bp_loopptr;		/* for results */
+#define BPAR_LOOP         'L'
+#define BPARSTR_LOOP      "L"
 };
 
 /*** the closures contain routines which are called by applying
@@ -329,6 +334,8 @@ enum obmag_en    {
   OBMAG_MAPBASICBLOCKS,
   OBMAG_MAPEDGES,
   OBMAG_DECAY,
+  OBMAG_LOOP,
+  OBMAG_MAPLOOPS,
   OBMAG__SPARE1,
   OBMAG__SPARE2,
   OBMAG__SPARE3,
@@ -364,8 +371,6 @@ enum obmag_en    {
   OBMAG__SPARE33,
   OBMAG__SPARE34,
   OBMAG__SPARE35,
-  OBMAG__SPARE36,
-  OBMAG__SPARE37,
   OBMAG_SPEC_FILE,		/* closed when deleted */
   OBMAG_SPEC_RAWFILE,		/* not closed when deleted */
   OBMAG_SPEC_MPFR,
@@ -755,6 +760,16 @@ meltedge_st
 };
 
 
+/* when OBMAG_LOOP - boxed loop-s */
+struct 
+GTY (())
+meltloop_st
+{
+  meltobject_ptr_t discr;
+  loop_p val;
+};
+
+
 
 
 /*** hashed maps of objects to melt ***/
@@ -848,6 +863,28 @@ meltmapgimpleseqs_st
   unsigned count;
   unsigned char lenix;
   struct entrygimpleseqsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
+    entab;
+};
+
+/*** hashed maps of loop_p-s to melt values ***/
+struct
+GTY (()) 
+entryloopsmelt_st
+{
+  loop_p e_at;
+  melt_ptr_t e_va;
+};
+
+/* when OBMAG_MAPLOOPS */
+struct
+GTY (()) 
+meltmaploops_st
+{
+  /* change meltmappointers_st when changing this structure */
+  meltobject_ptr_t discr;
+  unsigned count;
+  unsigned char lenix;
+  struct entryloopsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
     entab;
 };
 
@@ -960,6 +997,7 @@ melt_un
   struct meltgimpleseq_st GTY ((tag ("OBMAG_GIMPLESEQ"))) u_gimpleseq;
   struct meltbasicblock_st GTY ((tag ("OBMAG_BASICBLOCK"))) u_basicblock;
   struct meltedge_st GTY ((tag ("OBMAG_EDGE"))) u_edge;
+  struct meltloop_st GTY ((tag ("OBMAG_LOOP"))) u_loop;
   struct meltmapobjects_st GTY ((tag ("OBMAG_MAPOBJECTS"))) u_mapobjects;
   struct meltmapstrings_st GTY ((tag ("OBMAG_MAPSTRINGS"))) u_mapstrings;
   struct meltmaptrees_st GTY ((tag ("OBMAG_MAPTREES"))) u_maptrees;
@@ -968,6 +1006,7 @@ melt_un
   struct meltmapbasicblocks_st GTY ((tag ("OBMAG_MAPBASICBLOCKS")))
     u_mapbasicblocks;
   struct meltmapedges_st GTY ((tag ("OBMAG_MAPEDGES"))) u_mapedges;
+  struct meltmaploops_st GTY ((tag ("OBMAG_MAPLOOPS"))) u_maploops;
 } melt_un_t;
 
 /* return the magic of the discriminant or 0 */
@@ -1090,31 +1129,31 @@ meltgc_raw_remove_mappointers (void *mappointer_p, const void *attr);
 
 
 /* big macro to implement a mapFOOs */
-#define MELT_DEFINE_MAPTR(Obmag,Ptyp,Mapstruct,Newf,Getf,Putf,Removef,Countf,Sizef,Nthattrf,Nthvalf)	\
+#define MELT_DEFINE_MAPTR(Obmag,Ptyp,Mapstruct,Newf,Getf,Putf,Removef,Countf,Sizef,Nthattrf,Nthvalf) \
 									\
 static inline melt_ptr_t						\
 Newf (meltobject_ptr_t discr, unsigned len)				\
 {									\
-  if (melt_magic_discr ((melt_ptr_t) discr) != OBMAG_OBJECT)	\
+  if (melt_magic_discr ((melt_ptr_t) discr) != OBMAG_OBJECT)		\
     return NULL;							\
   if (discr->object_magic != Obmag)					\
     return NULL;							\
-  return (melt_ptr_t) meltgc_raw_new_mappointers (discr, len);	\
+  return (melt_ptr_t) meltgc_raw_new_mappointers (discr, len);		\
 }									\
 									\
 static inline melt_ptr_t						\
 Getf (melt_ptr_t map_p, Ptyp attr)					\
 {									\
-  if (melt_magic_discr ((melt_ptr_t) map_p) != Obmag || !attr)	\
+  if (melt_magic_discr ((melt_ptr_t) map_p) != Obmag || !attr)		\
     return NULL;							\
   return melt_raw_get_mappointers (map_p, attr);			\
 }									\
 									\
 static inline void							\
 Putf (struct Mapstruct *map_p,						\
-	Ptyp attr, melt_ptr_t valu_p)				\
+	Ptyp attr, melt_ptr_t valu_p)					\
 {									\
-  if (melt_magic_discr ((melt_ptr_t) map_p) != Obmag		\
+  if (melt_magic_discr ((melt_ptr_t) map_p) != Obmag			\
       || !attr || !valu_p)						\
     return;								\
   meltgc_raw_put_mappointers (map_p, attr, valu_p);			\
@@ -1123,7 +1162,7 @@ Putf (struct Mapstruct *map_p,						\
 static inline melt_ptr_t						\
 Removef (struct Mapstruct *map, Ptyp attr)				\
 {									\
-  if (melt_magic_discr ((melt_ptr_t) map) != Obmag || !attr)	\
+  if (melt_magic_discr ((melt_ptr_t) map) != Obmag || !attr)		\
     return NULL;							\
   return meltgc_raw_remove_mappointers (map, attr);			\
 }									\
@@ -1225,6 +1264,16 @@ MELT_DEFINE_MAPTR(OBMAG_MAPBASICBLOCKS, basic_block, meltmapbasicblocks_st,
 		      melt_nthattr_mapbasicblocks,
 		      melt_nthval_mapbasicblocks)
 
+MELT_DEFINE_MAPTR(OBMAG_MAPLOOPS, loop_p, meltmaploops_st,
+		      meltgc_new_maploops,
+		      melt_get_maploops,
+		      melt_put_maploops,
+		      melt_remove_maploops,
+		      melt_count_maploops,
+		      melt_size_maploops,
+		      melt_nthattr_maploops,
+		      melt_nthval_maploops)
+
 
 /* do not use MELT_DEFINE_MAPTR elsewhere */
 #undef MELT_DEFINE_MAPTR
@@ -1309,6 +1358,20 @@ melt_basicblock_phinodes(melt_ptr_t box)
   return phi_nodes(b->val);
 }
 
+/* allocate a new boxed loop of given DISCR [DISCR_LOOP if null] &
+   content VAL */
+melt_ptr_t meltgc_new_loop (meltobject_ptr_t discr_p,
+			    loop_p val);
+
+/* return the content of a boxed loop */
+static inline loop_p
+melt_loop_content (melt_ptr_t box)
+{
+  struct meltloop_st* b = (struct meltloop_st*)box;
+  if (!b || b->discr->object_magic != OBMAG_LOOP)
+    return NULL;
+  return b->val;
+}
 /*************************************************************
  * young generation copying garbage collector 
  *

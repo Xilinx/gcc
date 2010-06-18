@@ -1742,7 +1742,7 @@ lab_endgetargs:;
   ;
   MELT_LOCATION("warmelt-normal.melt:3594:/ putpairhead");
   /*putpairhead*/
-  melt_assertmsg("putpairhead /abe146a checkpair", melt_magic_discr((melt_ptr_t)(/*_.CLISTBIND__V55*/ meltfptr[54]))== OBMAG_PAIR);
+  melt_assertmsg("putpairhead /3c54164c checkpair", melt_magic_discr((melt_ptr_t)(/*_.CLISTBIND__V55*/ meltfptr[54]))== OBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CLISTBIND__V55*/ meltfptr[54]))->hd = (melt_ptr_t) (/*_.CLISTBIND__V53*/ meltfptr[52]);
   ;
   /*^touch*/

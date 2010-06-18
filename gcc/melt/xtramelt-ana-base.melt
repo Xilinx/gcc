@@ -57,6 +57,163 @@
 (defprimitive gimple_seq_of_basic_block (:basic_block bb) :gimple_seq
   #{(($bb)?bb_seq(($bb)):NULL)}#)
 
+
+;;;;;;;;;;;;;;;; map associating GCC gimple-s to non-null MELT values
+(defprimitive is_mapgimple (map) :long
+  #{ (melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPGIMPLES) }#)
+(defprimitive mapgimple_size (map) :long
+ #{ (melt_size_mapgimples((struct meltmapgimples_st*)($map))) }#)
+;; primitive to get the attribute count of a mapgimple
+(defprimitive mapgimple_count (map) :long
+  #{ (melt_count_mapgimples((struct meltmapgimples_st*)($map))) }# )
+;; get an entry in a mapgimple from a C gimple
+(defprimitive mapgimple_get (map :gimple bb) :value
+  #{(melt_get_mapgimples(($map), ($bb)))}#)
+;; primitive for making a new map of gimples
+(defprimitive make_mapgimple (discr :long len) :value
+ #{(meltgc_new_mapgimples((meltobject_ptr_t) ($discr), ($len)))}#)
+;; primitive for putting into a map of gimples
+(defprimitive mapgimple_put (map :gimple key :value val) :void
+  #{melt_put_mapgimples( (struct meltmapgimples_st *) ($map), 
+			  ($key), (melt_ptr_t) ($val))}#)
+;; primivite for removing from a map of gimples
+(defprimitive mapgimple_remove (map :gimple key) :void
+  #{meltgc_remove_mapgimples( (struct meltmapgimples_st*) ($map), ($key))}#)
+
+;; primitive to get the nth gimple of a mapgimple
+(defprimitive mapgimple_nth_attr (map :long n) :gimple
+  #{(melt_nthattr_mapgimples((struct meltmapgimples_st*)($map), (int)($n)))}#)
+;; primitive to get the nth value of a mapobject
+(defprimitive mapgimple_nth_val (map :long n) :value
+  #{(melt_nthval_mapgimples((struct meltmapgimples_st*)($map), (int)($n)))}# )
+;; iterator inside mapgimple
+(defciterator foreach_mapgimple 
+  (gimap)				; startformals
+  eachgimap 				;state symbol
+  (:gimple att :value val)	;local formals
+  ;; before expansion
+  #{
+   /*$eachgimap*/ int $eachgimap#_rk=0;
+   for ($eachgimap#_rk=0;
+        $eachgimap#_rk<melt_size_mapgimples((struct meltmapgimples_st*)($gimap));
+	$eachgimap#_rk++) {
+   gimple $eachgimap#_tr=melt_nthattr_mapgimples((struct meltmapgimples_st*)($gimap), $eachgimap#_rk);
+   if (!$eachgimap#_tr) continue;
+   $att = $eachgimap#_tr;
+   $val =melt_nthval_mapgimples((struct meltmapgimples_st*)($gimap), 
+				   $eachgimap#_rk);
+   }#
+  ;;after expansion
+   #{
+   } /*end $eachgimap*/
+   }#
+  )
+
+
+;; We might also want map associating GCC gimple_seq-s to non-null MELT values!
+
+;;;;;;;;;;;;;;;; map associating GCC edge-s to non-null MELT values
+(defprimitive is_mapedge (map) :long
+  #{ (melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPEDGES) }#)
+(defprimitive mapedge_size (map) :long
+ #{ (melt_size_mapedges((struct meltmapedges_st*)($map))) }#)
+;; primitive to get the attribute count of a mapedge
+(defprimitive mapedge_count (map) :long
+  #{ (melt_count_mapedges((struct meltmapedges_st*)($map))) }# )
+;; get an entry in a mapedge from a C edge
+(defprimitive mapedge_get (map :edge bb) :value
+  #{(melt_get_mapedges(($map), ($bb)))}#)
+;; primitive for making a new map of edges
+(defprimitive make_mapedge (discr :long len) :value
+ #{(meltgc_new_mapedges((meltobject_ptr_t) ($discr), ($len)))}#)
+;; primitive for putting into a map of edges
+(defprimitive mapedge_put (map :edge key :value val) :void
+  #{melt_put_mapedges( (struct meltmapedges_st *) ($map), 
+			  ($key), (melt_ptr_t) ($val))}#)
+;; primivite for removing from a map of edges
+(defprimitive mapedge_remove (map :edge key) :void
+  #{meltgc_remove_mapedges( (struct meltmapedges_st*) ($map), ($key))}#)
+
+;; primitive to get the nth edge of a mapedge
+(defprimitive mapedge_nth_attr (map :long n) :edge
+  #{(melt_nthattr_mapedges((struct meltmapedges_st*)($map), (int)($n)))}#)
+;; primitive to get the nth value of a mapedge
+(defprimitive mapedge_nth_val (map :long n) :value
+  #{(melt_nthval_mapedges((struct meltmapedges_st*)($map), (int)($n)))}# )
+;; iterator inside mapedge
+(defciterator foreach_mapedge 
+  (gimap)				; startformals
+  eachgimap 				;state symbol
+  (:edge att :value val)	;local formals
+  ;; before expansion
+  #{
+   /*$eachgimap*/ int $eachgimap#_rk=0;
+   for ($eachgimap#_rk=0;
+        $eachgimap#_rk<melt_size_mapedges((struct meltmapedges_st*)($gimap));
+	$eachgimap#_rk++) {
+   edge $eachgimap#_tr=melt_nthattr_mapedges((struct meltmapedges_st*)($gimap), $eachgimap#_rk);
+   if (!$eachgimap#_tr) continue;
+   $att = $eachgimap#_tr;
+   $val =melt_nthval_mapedges((struct meltmapedges_st*)($gimap), 
+				   $eachgimap#_rk);
+   }#
+  ;;after expansion
+   #{
+   } /*end $eachgimap*/
+   }#
+  )
+
+;;;;;;;;;;;;;;;; map associating GCC loop-s to non-null MELT values
+(defprimitive is_maploop (map) :long
+  #{ (melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPLOOPS) }#)
+(defprimitive maploop_size (map) :long
+ #{ (melt_size_maploops((struct meltmaploops_st*)($map))) }#)
+;; primitive to get the attribute count of a maploop
+(defprimitive maploop_count (map) :long
+  #{ (melt_count_maploops((struct meltmaploops_st*)($map))) }# )
+;; get an entry in a maploop from a C loop
+(defprimitive maploop_get (map :tree bb) :value
+  #{(melt_get_maploops(($map), ($bb)))}#)
+;; primitive for making a new map of loops
+(defprimitive make_maploop (discr :long len) :value
+ #{(meltgc_new_maploops((meltobject_ptr_t) ($discr), ($len)))}#)
+;; primitive for putting into a map of loops
+(defprimitive maploop_put (map :tree key :value val) :void
+  #{melt_put_maploops( (struct meltmaploops_st *) ($map), 
+			  ($key), (melt_ptr_t) ($val))}#)
+;; primivite for removing from a map of trees
+(defprimitive maploop_remove (map :tree key) :void
+  #{meltgc_remove_maploops( (struct meltmaploops_st*) ($map), ($key))}#)
+
+;; primitive to get the nth tree of a maploop
+(defprimitive maploop_nth_attr (map :long n) :tree
+  #{(melt_nthattr_maploops((struct meltmaploops_st*)($map), (int)($n)))}#)
+;; primitive to get the nth value of a mapobject
+(defprimitive maploop_nth_val (map :long n) :value
+  #{(melt_nthval_maploops((struct meltmaploops_st*)($map), (int)($n)))}# )
+;; iterator inside maploop
+(defciterator foreach_maploop 
+  (loomap)				; startformals
+  eachloomap 				;state symbol
+  (:loop att :value val)	;local formals
+  ;; before expansion
+  #{
+   /*$eachloomap*/ int $eachloomap#_rk=0;
+   for ($eachloomap#_rk=0;
+        $eachloomap#_rk<melt_size_maploops((struct meltmaploops_st*)($loomap));
+	$eachloomap#_rk++) {
+   loop_p $eachloomap#_tr=melt_nthattr_maploops((struct meltmaploops_st*)($loomap), $eachloomap#_rk);
+   if (!$eachloomap#_tr) continue;
+   $att = $eachloomap#_tr;
+   $val =melt_nthval_maploops((struct meltmaploops_st*)($loomap), 
+				   $eachloomap#_rk);
+   }#
+  ;;after expansion
+   #{
+   } /*end $eachloomap*/
+   }#
+  )
+
 ;; match a gimple value & extract the gimple of it
 (defcmatcher gimpleval
   (gv)					;match & no ins
@@ -2110,6 +2267,18 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
   }# )
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; loop related operations
+
+(defprimitive is_loop (v) :long
+   #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_LOOP)}# )
+
+(defprimitive make_loop (discr :loop l) :value
+  #{(meltgc_new_loop((meltobject_ptr_t)($discr),($l)))}# )
+
+(defprimitive loop_content (v) :loop
+  #{(melt_loop_content((melt_ptr_t)($v)))}# )
+
 ;;; safe queries to the cfun (when cfun is null, return null or 0)
 (defprimitive has_cfun () :long #{ cfun != NULL }#)
 
@@ -2172,6 +2341,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  edge_src_bb
  foreach_basicblock_succ_edge
  foreach_mapbasicblock
+ foreach_mapgimple
  foreach_maptree
  gimple_asm
  gimple_assign_binaryop
@@ -2241,6 +2411,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  is_gimple
  is_gimpleseq  
  is_mapbasicblock 
+ is_mapgimple 
  is_maptree
  is_tree  
  isnull_basicblock
@@ -2249,6 +2420,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  make_gimpleseq
  make_gimple_mixloc
  make_mapbasicblock
+ make_mapgimple
  make_maptree
  make_ppl_constraint 
  make_ppl_linear_expression  
@@ -2262,6 +2434,27 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  mapbasicblock_put
  mapbasicblock_remove  
  mapbasicblock_size 
+ mapedge_count
+ mapedge_get
+ mapedge_nth_attr
+ mapedge_nth_val
+ mapedge_put
+ mapedge_remove
+ mapedge_size
+ mapgimple_count
+ mapgimple_get
+ mapgimple_nth_attr
+ mapgimple_nth_val
+ mapgimple_put
+ mapgimple_remove
+ mapgimple_size
+ maploop_count
+ maploop_get
+ maploop_nth_attr
+ maploop_nth_val
+ maploop_put
+ maploop_remove
+ maploop_size
  maptree_count
  maptree_get
  maptree_nth_attr

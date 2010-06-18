@@ -47,6 +47,7 @@ along with GCC; see the file COPYING3.   If not see
 #include "tree-iterator.h"
 #include "tree-inline.h"
 #include "basic-block.h"
+#include "cfgloop.h"
 #include "timevar.h"
 #include "ggc.h"
 #include "cgraph.h"
@@ -75,7 +76,7 @@ along with GCC; see the file COPYING3.   If not see
 #define meltfclos meltfram__.clos
 #define meltfrout meltfram__.clos->rout
 
-/* these are added by the *melt-cc-script shell script */
+/* these are added by the melt-module.mk file & make */
 extern const char melt_compiled_timestamp[];
 extern const char melt_md5[];
 
