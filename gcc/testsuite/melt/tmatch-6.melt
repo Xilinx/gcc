@@ -15,7 +15,7 @@
                ?(instance class_symbol :named_name 
                           ?synam)
                 synam)))
-
+#|
 (debug_msg (testnameofsymbol 'asymbol) "testnameofsymbol asymbol")
 
 (defun testnameofclassoffield (fld)
@@ -126,7 +126,7 @@
              )
            (?(instance class_located :loca_location ?fldloc)
              (error_plain fldloc "expecting field in infix notation")))))
-
+|#
 
 
 

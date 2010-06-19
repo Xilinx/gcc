@@ -1344,7 +1344,7 @@ make a $CURAT string.}#
 ;; test if a list is non-empty
 (defprimitive is_non_empty_list (li) :long
   :doc #{Test if value $LI is a non-empty list.}#
-  #{(melt_magic_discr((melt_ptr_t)($li)) == OBMAG_LIST && NULL == melt_list_first((melt_ptr_t)($li)))}#)
+  #{(melt_magic_discr((melt_ptr_t)($li)) == OBMAG_LIST && NULL != melt_list_first((melt_ptr_t)($li)))}#)
 ;; first pair of list
 (defprimitive list_first (li) :value
   :doc #{Safely retrieve the first pair of list value $LI, or null.}#

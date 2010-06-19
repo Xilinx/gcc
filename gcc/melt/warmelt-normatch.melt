@@ -4963,16 +4963,20 @@ normalized expression.}#
      ((is_multiple msteps)
       (void))
      ((is_non_empty_list msteps)
+      (debug_msg msteps "altmatch_handle_normalized_mdata msteps nonemptylist")
       (let ( (firststep (list_first_element msteps))
 	     )
 	(assert_msg "check firststep" (is_a firststep class_match_step))
 	;; the call to match_step_index will as a side effect change
 	;; msteps to a list!
+	(debug_msg msteps "altmatch_handle_normalized_mdata msteps before match_step_index")
 	(match_step_index firststep)
 	(setq msteps  (unsafe_get_field :mdata_steps matdata))
+	(debug_msg msteps "altmatch_handle_normalized_mdata msteps after match_step_index")
 	))
      (:else
-      (setq msteps (make_multiple discr_multiple 0))))
+      (setq msteps (make_multiple discr_multiple 0))
+      (debug_msg msteps "altmatch_handle_normalized_mdata msteps emptytuple")))
     (debug_msg msteps "altmatch_handle_normalized_mdata updated msteps")
     (assert_msg "good tuple msteps" (is_multiple msteps))
     (foreach_in_multiple
