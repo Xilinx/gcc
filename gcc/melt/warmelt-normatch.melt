@@ -4718,6 +4718,67 @@ normalized expression.}#
       )))
 (install_method class_match_step_flag_set normalize_step normstep_mflagset)
 
+(defun normstep_mflagconj (step nmctxt sloc)
+  (debug_msg step "normstep_mflagconj step")
+  (assert_msg "check step" (is_a step class_match_step_flag_conjonction))
+  (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
+  (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
+	  (matflag (unsafe_get_field :mstep_flag step))
+	  (matflagargs (unsafe_get_field :mstep_flagargs step))
+	  (:long matflagnbargs (multiple_length matflagargs))
+	  (matthen (unsafe_get_field :mstep_then step))
+	  (nthen (altmatch_normalize_step matthen nmctxt))
+	  (nflag (altmatch_normalize_flag matflag nmctxt))
+	  (nsetflag (instance  class_nrep_setq 
+			       :nrep_loc nsloc
+			       :nstq_var nflag
+			       :nstq_exp ()))
+	  (njump (instance class_nrep_match_jump
+			   :nmjmp_label nthen))
+	  (nlisti (list nsetflag njump))
+	  )
+    (debug_msg nlisti "normstep_mflagconj nlisti")
+    (debug_msg matflagargs "normstep_mflagconj matflagargs")
+    (cond
+     ( (<=i matflagnbargs 0)
+       (put_fields nsetflag :nstq_exp '0))
+     ;; there are many conjonctions of flags with a single conjunct
+     ;; flag argument, so we optimize it as a setq
+     ( (==i matflagnbargs 1)
+       (let ( (firstflag (multiple_nth matflagargs 0))
+	      (n1stflag (altmatch_normalize_flag firstflag nmctxt))
+	      )
+       (put_fields nsetflag :nstq_exp n1stflag)))
+     (:else
+      (let ( (nconjlist (make_list discr_list))
+	     (nchunk (instance class_nrep_chunk
+					   :nrep_loc ()
+					   :nchunk_oper 'and_match_flags
+					   :nexpr_ctyp ctype_long
+					   :nchunk_expansion ()
+			       ))
+	     )
+	(foreach_in_multiple
+	 (matflagargs)
+	 (curmatflag :long flagix)
+	 (debug_msg curmatflag "normstep_mflagconj curmatflag")
+	 (let ( (curnflag (altmatch_normalize_flag curmatflag nmctxt))
+		)
+	   (debug_msg curnflag "normstep_mflagconj curnflag")
+	 (if (>i flagix 0)
+	     (list_append nconjlist (make_stringconst discr_verbatim_string " && ")))
+	 (list_append nconjlist curnflag)
+	 ))
+	(put_fields nchunk :nchunk_expansion (list_to_multiple nconjlist))
+	(put_fields nsetflag :nstq_exp nchunk)
+      )))
+    (debug_msg nsetflag "normstep_mflagconj nsetflag")
+    (let ( (res (complete_normstep_if_last step nlisti nmctxt)) )
+      (debug_msg res "normstep_mflagconj return res")
+      (return res)
+      )))
+(install_method class_match_step_flag_conjonction normalize_step normstep_mflagconj)
+
 (defun normstep_mtestinstance (step nmctxt sloc)
   (debug_msg step "normstep_mtestinstance step")
   (assert_msg "check step" (is_a step class_match_step_test_instance))

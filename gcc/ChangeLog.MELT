@@ -1,5 +1,8 @@
 
 2010-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: Added normstep_mflagconj.
+
+2010-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: Fixed typo in is_non_empty_list.
 	* melt/warmelt-normatch.melt: Added debug_msg...
 	* testsuite/gcc/melt/tmatch-6.melt: commented some code.
