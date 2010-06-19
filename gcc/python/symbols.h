@@ -36,7 +36,17 @@ typedef struct GTY(()) gpy_symbol_table_t {
   struct gpy_symbol_table_t *next;
 } gpy_symbol_obj ;
 
+typedef struct GTY(()) gpy_context_branch_t {
+  htab_t var_decls;
+  htab_t fnc_decls;
+} gpy_context_branch ;
+
 typedef gpy_symbol_obj *gpy_sym;
+typedef gpy_context_branch *gpy_ctx_t;
+
+DEF_VEC_P( gpy_ctx_t );
+DEF_VEC_ALLOC_P( gpy_ctx_t,gc );
+extern VEC_gpy_ctx_t_gc * gpy_ctx_table;
 
 extern tree gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj ** );
 
@@ -50,7 +60,17 @@ extern tree gpy_get_tree( gpy_symbol_obj * );
 
 extern void gpy_process_decl( gpy_symbol_obj * );
 
-extern void gpy_symbol_init_ctx( gpy_symbol_obj * const );
+extern bool gpy_ctx_lookup_var_decl( const char * );
+
+extern bool gpy_ctx_lookup_func_decl( const char * );
+
+extern bool gpy_ctx_push_decl( tree, const char *, htab_t );
+
+extern void gpy_symbol_init_ctx( gpy_symbol_obj * const )
+  __attribute__((nonnull));
+
+extern void gpy_init_ctx_branch( gpy_context_branch * const * )
+  __attribute__((nonnull));
 
 #define Gpy_Symbol_Init( x )				\
   x = (gpy_symbol_obj*)					\

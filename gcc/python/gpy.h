@@ -31,6 +31,8 @@ extern tree gpy_type_for_mode( enum machine_mode, int );
 
 extern int gpy_lex_parse( const char * );
 
+extern void gpy_init_tbls( void );
+
 extern void __gpy_debug__( const char *, unsigned int,
 			   const char *, ... )
   __attribute__ ((format (printf, 3, 4))) ;

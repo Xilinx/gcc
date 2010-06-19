@@ -50,13 +50,13 @@ py-lang.o: $(srcdir)/python/py-lang.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H
 pypy.o: $(srcdir)/python/pypy.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gt-python-py-lang.h gtype-python.h
-	$(CC) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(CC) $(ALL_COMPILERFLAGS) --save-temps $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/pypy.c
 
 expression.o: $(srcdir)/python/expression.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gt-python-py-lang.h gtype-python.h
-	$(CC) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(CC) $(ALL_COMPILERFLAGS) --save-temps $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/expression.c
 
 GPY_OBJS = \

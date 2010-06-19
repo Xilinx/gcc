@@ -32,19 +32,19 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "cgraph.h"
 
+#include <gmp.h>
+#include <mpfr.h>
+
 #include "vec.h"
+#include "hashtab.h"
 
 #include "gpy.h"
 #include "symbols.h"
 #include "opcodes.def"
 #include "y.py.h"
 
-#include "hashtab.h"
-
-#include <gmp.h>
-#include <mpfr.h>
-
 DEF_VEC_P( gpy_sym );
+
 DEF_VEC_ALLOC_P( gpy_sym,gc );
 
 static VEC( gpy_sym,gc ) * gpy_decls;
@@ -61,6 +61,85 @@ void gpy_symbol_init_ctx( gpy_symbol_obj * const x )
   x->op_b.symbol_table= NULL;
   x->next= NULL;
 }
+
+void gpy_init_ctx_branch( gpy_context_branch * const * o )
+{
+  if( o )
+    {
+      (*o)->var_decls = htab_create_alloc( 512, &htab_hash_string,
+					   tree_decl_map_eq, 0,
+					   xcalloc, free );
+
+      (*o)->fnc_decls = htab_create_alloc( 512, &htab_hash_string,
+					   tree_decl_map_eq, 0,
+					   xcalloc, free );
+    }
+}
+
+void gpy_init_tbls( void )
+{
+  gpy_context_branch *o = (gpy_context_branch *)
+    xmalloc( sizeof(gpy_context_branch) );
+
+  o->var_decls = NULL;
+  o->var_decls = NULL;
+  gpy_init_ctx_branch( &o );
+
+  VEC_safe_push( gpy_ctx_t, gc, gpy_ctx_table, o );
+}
+
+bool gpy_ctx_lookup_var_decl( const char * s )
+{
+  bool retval = false;
+  unsigned int n_ctx = VEC_length( gpy_ctx_t,gpy_ctx_table );
+  unsigned int idx = 0; gpy_context_branch * it = NULL;
+
+  debug("context table length = <%i>!\n", n_ctx );
+
+  for( ; VEC_iterate(gpy_ctx_t,gpy_ctx_table,idx,it); ++idx )
+    {
+      htab_t var_decl_table = it->var_decls;
+      void * o =  htab_find( var_decl_table, s );
+
+      if( o )
+	{
+	  debug("found symbol <%s> in context <%p>!\n", s, (void*)it );
+	  retval = true;
+	}
+    }
+  return retval;
+}
+
+bool gpy_ctx_push_decl( tree decl, const char * s, htab_t t )
+{
+  bool retval = false;
+  void ** slot = htab_find_slot_with_hash( t,);
+
+  return retval;
+}
+
+bool gpy_ctx_lookup_func_decl( const char * s )
+{
+  bool retval = false;
+  unsigned int n_ctx = VEC_length( gpy_ctx_t,gpy_ctx_table );
+  unsigned int idx = 0; gpy_context_branch * it = NULL;
+
+  debug("context table length = <%i>!\n", n_ctx );
+
+  for( ; VEC_iterate(gpy_ctx_t,gpy_ctx_table,idx,it); ++idx )
+    {
+      htab_t func_decl_table = it->fnc_decls;
+      void * o =  htab_find( func_decl_table, s );
+
+      if( o )
+	{
+	  debug("found symbol <%s ( ... ) > in context <%p>!\n", s, (void*)it );
+	  retval = true;
+	}
+    }
+  return retval;
+}
+
 
 /**
  * Fairly Confusing Function to read.

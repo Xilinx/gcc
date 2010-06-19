@@ -42,13 +42,16 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
+/* return the current top context table var_decl table */
+#define Gpy_Ctx_VAR_DEC_TABLE( x, y, z )			\
+  y = VEC_index( gpy_ctx_t, x,					\
+		 ( VEC_length( gpy_ctx_t,x ))-1 );		\
+  y->#z
 
-tree* gpy_process_assign( gpy_symbol_obj ** op_a,
-			  gpy_symbol_obj ** op_b )
+tree gpy_process_assign( gpy_symbol_obj ** op_a,
+			 gpy_symbol_obj ** op_b )
 {
   gpy_symbol_obj *opa, *opb;
-
-  /* tree *retval = XNEWVEC( tree,  ); */
 
   if( op_a && op_b ) { opa= *op_a; opb= *op_b; }
   else {
@@ -115,3 +118,4 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a,
 
   return retval;
 }
+

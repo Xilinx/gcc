@@ -34,6 +34,9 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
+#include "vec.h"
+#include "hashtab.h"
+
 #include "gpy.h"
 
 /* Language-dependent contents of a type.  */
@@ -72,6 +75,7 @@ struct GTY(()) language_function {
 static
 bool gpy_langhook_init( void )
 {
+  gpy_init_tbls( );
   build_common_tree_nodes( false );
 
   /* The sizetype may be "unsigned long" or "unsigned long long".  */
@@ -160,7 +164,7 @@ gpy_langhook_parse_file( int set_yy_debug ATTRIBUTE_UNUSED )
   for( ; idx<num_in_fnames; ++idx )
     {
       const char * t = in_fnames[idx];
-      debug("t = <%s>!\n", t);
+      debug("<%i> input = <%s>!\n", idx, t);
       gpy_lex_parse( t );
     }
 }
