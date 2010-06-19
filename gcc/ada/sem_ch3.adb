@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1364,7 +1364,7 @@ package body Sem_Ch3 is
              Subtype_Indication =>
                New_Occurrence_Of (RTE (RE_Interface_Tag), Loc));
 
-         Tag := Make_Defining_Identifier (Loc, New_Internal_Name ('V'));
+         Tag := Make_Temporary (Loc, 'V');
 
          Decl :=
            Make_Component_Declaration (Loc,
@@ -1406,8 +1406,7 @@ package body Sem_Ch3 is
                 Subtype_Indication =>
                   New_Occurrence_Of (RTE (RE_Storage_Offset), Loc));
 
-            Offset :=
-              Make_Defining_Identifier (Loc, New_Internal_Name ('V'));
+            Offset := Make_Temporary (Loc, 'V');
 
             Decl :=
               Make_Component_Declaration (Loc,
@@ -1913,8 +1912,7 @@ package body Sem_Ch3 is
             if Is_Interface (Root_Type (Current_Scope)) then
                Error_Msg_N
                  ("\limitedness is not inherited from limited interface", N);
-               Error_Msg_N
-                 ("\add LIMITED to type indication", N);
+               Error_Msg_N ("\add LIMITED to type indication", N);
             end if;
 
             Explain_Limited_Type (T, N);
@@ -3285,9 +3283,7 @@ package body Sem_Ch3 is
            ("parent of type extension must be a tagged type ", Indic);
          return;
 
-      elsif Ekind (Parent_Type) = E_Void
-        or else Ekind (Parent_Type) = E_Incomplete_Type
-      then
+      elsif Ekind_In (Parent_Type, E_Void, E_Incomplete_Type) then
          Error_Msg_N ("premature derivation of incomplete type", Indic);
          return;
 
@@ -3750,10 +3746,10 @@ package body Sem_Ch3 is
       if Present (Generic_Parent_Type (N))
         and then
           (Nkind
-             (Parent (Generic_Parent_Type (N))) /= N_Formal_Type_Declaration
+            (Parent (Generic_Parent_Type (N))) /= N_Formal_Type_Declaration
             or else Nkind
               (Formal_Type_Definition (Parent (Generic_Parent_Type (N))))
-                /=  N_Formal_Private_Type_Definition)
+                /= N_Formal_Private_Type_Definition)
       then
          if Is_Tagged_Type (Id) then
 
@@ -4325,9 +4321,7 @@ package body Sem_Ch3 is
                Decl  : Entity_Id;
 
             begin
-               New_E :=
-                 Make_Defining_Identifier (Loc,
-                   Chars => New_Internal_Name ('T'));
+               New_E := Make_Temporary (Loc, 'T');
                Set_Is_Internal (New_E);
 
                Decl :=
@@ -4576,10 +4570,7 @@ package body Sem_Ch3 is
       Curr_Scope : constant Scope_Stack_Entry :=
                      Scope_Stack.Table (Scope_Stack.Last);
 
-      Anon : constant Entity_Id :=
-               Make_Defining_Identifier (Loc,
-                 Chars => New_Internal_Name ('S'));
-
+      Anon : constant Entity_Id := Make_Temporary (Loc, 'S');
       Acc  : Node_Id;
       Comp : Node_Id;
       Decl : Node_Id;
@@ -4921,9 +4912,7 @@ package body Sem_Ch3 is
    is
       Loc : constant Source_Ptr := Sloc (N);
 
-      Corr_Record : constant Entity_Id :=
-                      Make_Defining_Identifier (Loc, New_Internal_Name ('C'));
-
+      Corr_Record      : constant Entity_Id := Make_Temporary (Loc, 'C');
       Corr_Decl        : Node_Id;
       Corr_Decl_Needed : Boolean;
       --  If the derived type has fewer discriminants than its parent, the
@@ -5726,9 +5715,7 @@ package body Sem_Ch3 is
            and then Expander_Active
          then
             declare
-               Full_Der : constant Entity_Id :=
-                            Make_Defining_Identifier (Loc,
-                              Chars => New_Internal_Name ('T'));
+               Full_Der : constant Entity_Id := Make_Temporary (Loc, 'T');
                New_Ext  : constant Node_Id :=
                             Copy_Separate_Tree
                               (Record_Extension_Part (Type_Definition (N)));
@@ -7356,6 +7343,27 @@ package body Sem_Ch3 is
                   Exclude_Parents => True);
 
                Set_Interfaces (Derived_Type, Ifaces_List);
+
+               --  If the derived type is the anonymous type created for
+               --  a declaration whose parent has a constraint, propagate
+               --  the interface list to the source type. This must be done
+               --  prior to the completion of the analysis of the source type
+               --  because the components in the extension may contain current
+               --  instances whose legality depends on some ancestor.
+
+               if Is_Itype (Derived_Type) then
+                  declare
+                     Def : constant Node_Id :=
+                       Associated_Node_For_Itype (Derived_Type);
+                  begin
+                     if Present (Def)
+                       and then Nkind (Def) = N_Full_Type_Declaration
+                     then
+                        Set_Interfaces
+                          (Defining_Identifier (Def), Ifaces_List);
+                     end if;
+                  end;
+               end if;
             end;
          end if;
 
@@ -7527,9 +7535,7 @@ package body Sem_Ch3 is
       begin
          D := First_Entity (Derived_Type);
          while Present (D) loop
-            if Ekind (D) = E_Discriminant
-              or else Ekind (D) = E_Component
-            then
+            if Ekind_In (D, E_Discriminant, E_Component) then
                if Is_Itype (Etype (D))
                   and then Ekind (Etype (D)) = E_Anonymous_Access_Type
                then
@@ -8566,8 +8572,7 @@ package body Sem_Ch3 is
                --  them all, and not just the first one).
 
                Error_Msg_Node_2 := Subp;
-               Error_Msg_N
-                 ("nonabstract type& has abstract subprogram&!", T);
+               Error_Msg_N ("nonabstract type& has abstract subprogram&!", T);
             end if;
          end if;
 
@@ -8720,9 +8725,7 @@ package body Sem_Ch3 is
       begin
          if not Comes_From_Source (E) then
 
-            if Ekind (E) = E_Task_Type
-              or else Ekind (E) = E_Protected_Type
-            then
+            if Ekind_In (E, E_Task_Type, E_Protected_Type) then
                --  It may be an anonymous protected type created for a
                --  single variable. Post error on variable, if present.
 
@@ -8770,8 +8773,7 @@ package body Sem_Ch3 is
                   Error_Msg_NE
                     ("missing full declaration for }", Parent (E), E);
                else
-                  Error_Msg_NE
-                    ("missing body for &", Parent (E), E);
+                  Error_Msg_NE ("missing body for &", Parent (E), E);
                end if;
 
             --  Package body has no completion for a declaration that appears
@@ -8782,8 +8784,7 @@ package body Sem_Ch3 is
                Error_Msg_Sloc := Sloc (E);
 
                if Is_Type (E) then
-                  Error_Msg_NE
-                    ("missing full declaration for }!", Body_Id, E);
+                  Error_Msg_NE ("missing full declaration for }!", Body_Id, E);
 
                elsif Is_Overloadable (E)
                  and then Current_Entity_In_Scope (E) /= E
@@ -9563,7 +9564,14 @@ package body Sem_Ch3 is
       if Is_Tagged_Type (Full_Base) then
          Set_Is_Tagged_Type (Full);
          Set_Primitive_Operations (Full, Primitive_Operations (Full_Base));
-         Set_Class_Wide_Type      (Full, Class_Wide_Type (Full_Base));
+
+         --  Inherit class_wide type of full_base in case the partial view was
+         --  not tagged. Otherwise it has already been created when the private
+         --  subtype was analyzed.
+
+         if No (Class_Wide_Type (Full)) then
+            Set_Class_Wide_Type (Full, Class_Wide_Type (Full_Base));
+         end if;
 
       --  If this is a subtype of a protected or task type, constrain its
       --  corresponding record, unless this is a subtype without constraints,
@@ -9633,14 +9641,11 @@ package body Sem_Ch3 is
          then
             declare
                Loc    : constant Source_Ptr := Sloc (N);
-               Def_Id : constant Entity_Id :=
-                          Make_Defining_Identifier (Loc,
-                            New_Internal_Name ('S'));
-               Decl   : constant Node_Id :=
+               Def_Id : constant Entity_Id  := Make_Temporary (Loc, 'S');
+               Decl   : constant Node_Id    :=
                           Make_Subtype_Declaration (Loc,
-                            Defining_Identifier =>
-                              Def_Id,
-                            Subtype_Indication =>
+                            Defining_Identifier => Def_Id,
+                            Subtype_Indication  =>
                               Relocate_Node (Curr_Obj_Def));
 
             begin
@@ -9802,13 +9807,15 @@ package body Sem_Ch3 is
            and then not In_Private_Part (Current_Scope)
          then
             Error_Msg_Sloc := Sloc (Prev);
-            Error_Msg_N ("full constant for declaration#"
-                         & " must be in private part", N);
+            Error_Msg_N
+              ("full constant for declaration#"
+               & " must be in private part", N);
 
          elsif Ekind (Current_Scope) = E_Package
-           and then List_Containing (Parent (Prev))
-           /= Visible_Declarations
-             (Specification (Unit_Declaration_Node (Current_Scope)))
+           and then
+             List_Containing (Parent (Prev)) /=
+               Visible_Declarations
+                 (Specification (Unit_Declaration_Node (Current_Scope)))
          then
             Error_Msg_N
               ("deferred constant must be declared in visible part",
@@ -10055,8 +10062,7 @@ package body Sem_Ch3 is
       --  is such an array type... (RM 3.6.1)
 
       if Is_Constrained (T) then
-         Error_Msg_N
-           ("array type is already constrained", Subtype_Mark (SI));
+         Error_Msg_N ("array type is already constrained", Subtype_Mark (SI));
          Constraint_OK := False;
 
       else
@@ -10804,8 +10810,7 @@ package body Sem_Ch3 is
             Error_Msg_N
               ("(Ada 2005) incomplete subtype may not be constrained", C);
          else
-            Error_Msg_N
-              ("invalid constraint: type has no discriminant", C);
+            Error_Msg_N ("invalid constraint: type has no discriminant", C);
          end if;
 
          Fixup_Bad_Constraint;
@@ -11043,6 +11048,7 @@ package body Sem_Ch3 is
       else
          Set_Ekind (Def_Id, E_Enumeration_Subtype);
          Set_Is_Character_Type (Def_Id, Is_Character_Type (T));
+         Set_First_Literal     (Def_Id, First_Literal (T));
       end if;
 
       Set_Size_Info      (Def_Id,                (T));
@@ -11283,6 +11289,7 @@ package body Sem_Ch3 is
       Set_Is_Public                  (Full, Is_Public               (Priv));
       Set_Is_Pure                    (Full, Is_Pure                 (Priv));
       Set_Is_Tagged_Type             (Full, Is_Tagged_Type          (Priv));
+      Set_Has_Pragma_Unmodified      (Full, Has_Pragma_Unmodified   (Priv));
       Set_Has_Pragma_Unreferenced    (Full, Has_Pragma_Unreferenced (Priv));
       Set_Has_Pragma_Unreferenced_Objects
                                      (Full, Has_Pragma_Unreferenced_Objects
@@ -11318,10 +11325,10 @@ package body Sem_Ch3 is
             Access_Types_To_Process (Freeze_Node (Priv)));
       end if;
 
-      --  Swap the two entities. Now Privat is the full type entity and
-      --  Full is the private one. They will be swapped back at the end
-      --  of the private part. This swapping ensures that the entity that
-      --  is visible in the private part is the full declaration.
+      --  Swap the two entities. Now Privat is the full type entity and Full is
+      --  the private one. They will be swapped back at the end of the private
+      --  part. This swapping ensures that the entity that is visible in the
+      --  private part is the full declaration.
 
       Exchange_Entities (Priv, Full);
       Append_Entity (Full, Scope (Full));
@@ -12810,14 +12817,12 @@ package body Sem_Ch3 is
             if Need_Search
               or else
                 (Present (Generic_Actual)
-                   and then Present (Act_Subp)
-                   and then not Primitive_Names_Match (Subp, Act_Subp))
+                  and then Present (Act_Subp)
+                  and then not Primitive_Names_Match (Subp, Act_Subp))
             then
                pragma Assert (not Is_Ancestor (Parent_Base, Generic_Actual));
-               pragma Assert (Is_Interface (Parent_Base));
 
-               --  Remember that we need searching for all the pending
-               --  primitives
+               --  Remember that we need searching for all pending primitives
 
                Need_Search := True;
 
@@ -12841,8 +12846,9 @@ package body Sem_Ch3 is
                      Act_Subp := Node (Act_Elmt);
 
                      exit when Primitive_Names_Match (Subp, Act_Subp)
-                       and then Type_Conformant (Subp, Act_Subp,
-                                  Skip_Controlling_Formals => True)
+                       and then Type_Conformant
+                                  (Subp, Act_Subp,
+                                   Skip_Controlling_Formals => True)
                        and then No (Interface_Alias (Act_Subp));
 
                      Next_Elmt (Act_Elmt);
@@ -12871,7 +12877,7 @@ package body Sem_Ch3 is
               and then Is_Interface (Find_Dispatching_Type (Alias_Subp))
               and then not
                 (Nkind (Parent (Alias_Subp)) = N_Procedure_Specification
-                   and then Null_Present (Parent (Alias_Subp)))
+                  and then Null_Present (Parent (Alias_Subp)))
             then
                Derive_Subprogram
                  (New_Subp     => New_Subp,
@@ -13334,9 +13340,7 @@ package body Sem_Ch3 is
 
       --  Check for early use of incomplete or private type
 
-      if Ekind (Parent_Type) = E_Void
-        or else Ekind (Parent_Type) = E_Incomplete_Type
-      then
+      if Ekind_In (Parent_Type, E_Void, E_Incomplete_Type) then
          Error_Msg_N ("premature derivation of incomplete type", Indic);
          return;
 
@@ -13480,8 +13484,9 @@ package body Sem_Ch3 is
              (not Is_Interface (Parent_Type)
                or else not Is_Limited_Interface (Parent_Type))
          then
-            Error_Msg_NE ("parent type& of limited type must be limited",
-              N, Parent_Type);
+            Error_Msg_NE
+              ("parent type& of limited type must be limited",
+               N, Parent_Type);
          end if;
       end if;
    end Derived_Type_Declaration;
@@ -13934,9 +13939,9 @@ package body Sem_Ch3 is
 
             elsif Nkind (Type_Definition (N)) = N_Derived_Type_Definition then
                if No (Record_Extension_Part (Type_Definition (N))) then
-                  Error_Msg_NE (
-                    "full declaration of } must be a record extension",
-                    Prev, Id);
+                  Error_Msg_NE
+                    ("full declaration of } must be a record extension",
+                     Prev, Id);
 
                   --  Set some attributes to produce a usable full view
 
@@ -14757,8 +14762,8 @@ package body Sem_Ch3 is
          then
             null;
 
-         elsif Ekind (Derived_Base) = E_Private_Type
-           or else Ekind (Derived_Base) = E_Limited_Private_Type
+         elsif Ekind_In (Derived_Base, E_Private_Type,
+                                       E_Limited_Private_Type)
          then
             null;
 
@@ -14926,9 +14931,7 @@ package body Sem_Ch3 is
    --  Start of processing for Is_Visible_Component
 
    begin
-      if Ekind (C) = E_Component
-        or else Ekind (C) = E_Discriminant
-      then
+      if Ekind_In (C, E_Component, E_Discriminant) then
          Original_Comp := Original_Record_Component (C);
       end if;
 
@@ -16246,15 +16249,17 @@ package body Sem_Ch3 is
             Iface := Find_Hidden_Interface (Priv_T_Ifaces, Full_T_Ifaces);
 
             if Present (Iface) then
-               Error_Msg_NE ("interface & not implemented by full type " &
-                             "(RM-2005 7.3 (7.3/2))", Priv_T, Iface);
+               Error_Msg_NE
+                 ("interface & not implemented by full type " &
+                  "(RM-2005 7.3 (7.3/2))", Priv_T, Iface);
             end if;
 
             Iface := Find_Hidden_Interface (Full_T_Ifaces, Priv_T_Ifaces);
 
             if Present (Iface) then
-               Error_Msg_NE ("interface & not implemented by partial view " &
-                             "(RM-2005 7.3 (7.3/2))", Full_T, Iface);
+               Error_Msg_NE
+                 ("interface & not implemented by partial view " &
+                  "(RM-2005 7.3 (7.3/2))", Full_T, Iface);
             end if;
          end;
       end if;
@@ -16463,9 +16468,9 @@ package body Sem_Ch3 is
          while Present (Priv_Elmt) loop
             Priv := Node (Priv_Elmt);
 
-            if Ekind (Priv) = E_Private_Subtype
-              or else Ekind (Priv) = E_Limited_Private_Subtype
-              or else Ekind (Priv) = E_Record_Subtype_With_Private
+            if Ekind_In (Priv, E_Private_Subtype,
+                               E_Limited_Private_Subtype,
+                               E_Record_Subtype_With_Private)
             then
                Full := Make_Defining_Identifier (Sloc (Priv), Chars (Priv));
                Set_Is_Itype (Full);
@@ -16613,10 +16618,7 @@ package body Sem_Ch3 is
 
                Prim := Next_Entity (Full_T);
                while Present (Prim) and then Prim /= Priv_T loop
-                  if Ekind (Prim) = E_Procedure
-                       or else
-                     Ekind (Prim) = E_Function
-                  then
+                  if Ekind_In (Prim, E_Procedure, E_Function) then
                      Disp_Typ := Find_Dispatching_Type (Prim);
 
                      if Disp_Typ = Full_T
@@ -17480,19 +17482,27 @@ package body Sem_Ch3 is
            and then Ekind (Current_Entity (Typ)) = E_Incomplete_Type
            and then Full_View (Current_Entity (Typ)) = Typ
          then
+            if Is_Tagged
+              and then Comes_From_Source (Current_Entity (Typ))
+              and then not Is_Tagged_Type (Current_Entity (Typ))
+            then
+               Make_Class_Wide_Type (Typ);
+               Error_Msg_N
+                 ("incomplete view of tagged type should be declared tagged?",
+                  Parent (Current_Entity (Typ)));
+            end if;
             return;
 
          else
             Inc_T := Make_Defining_Identifier (Loc, Chars (Typ));
             Decl  := Make_Incomplete_Type_Declaration (Loc, Inc_T);
 
-            --  Type has already been inserted into the current scope.
-            --  Remove it, and add incomplete declaration for type, so
-            --  that subsequent anonymous access types can use it.
-            --  The entity is unchained from the homonym list and from
-            --  immediate visibility. After analysis, the entity in the
-            --  incomplete declaration becomes immediately visible in the
-            --  record declaration that follows.
+            --  Type has already been inserted into the current scope. Remove
+            --  it, and add incomplete declaration for type, so that subsequent
+            --  anonymous access types can use it. The entity is unchained from
+            --  the homonym list and from immediate visibility. After analysis,
+            --  the entity in the incomplete declaration becomes immediately
+            --  visible in the record declaration that follows.
 
             H := Current_Entity (Typ);
 
@@ -17513,8 +17523,9 @@ package body Sem_Ch3 is
             Set_Full_View (Inc_T, Typ);
 
             if Is_Tagged then
-               --  Create a common class-wide type for both views, and set
-               --  the Etype of the class-wide type to the full view.
+
+               --  Create a common class-wide type for both views, and set the
+               --  Etype of the class-wide type to the full view.
 
                Make_Class_Wide_Type (Inc_T);
                Set_Class_Wide_Type (Typ, Class_Wide_Type (Inc_T));
@@ -17676,9 +17687,7 @@ package body Sem_Ch3 is
                 (Access_Definition (Comp_Def));
 
             Build_Incomplete_Type_Declaration;
-            Anon_Access :=
-              Make_Defining_Identifier (Loc,
-                Chars => New_Internal_Name ('S'));
+            Anon_Access := Make_Temporary (Loc, 'S');
 
             --  Create a declaration for the anonymous access type: either
             --  an access_to_object or an access_to_subprogram.

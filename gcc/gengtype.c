@@ -1,5 +1,5 @@
 /* Process source files and output type information.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -392,7 +392,7 @@ read_input_list (const char *listname)
 {
   FILE *list = fopen (listname, "r");
   if (!list)
-    fatal ("cannot open %s: %s", listname, strerror (errno));
+    fatal ("cannot open %s: %s", listname, xstrerror (errno));
   else
     {
       struct fileloc epos;
@@ -508,7 +508,7 @@ read_input_list (const char *listname)
   }
 
   if (ferror (list))
-    fatal ("error reading %s: %s", listname, strerror (errno));
+    fatal ("error reading %s: %s", listname, xstrerror (errno));
 
   fclose (list);
 }
@@ -1657,13 +1657,21 @@ get_file_langdir (const char *f)
 
   int lang_index;
   const char * srcdir_relative_path = get_file_srcdir_relative_path (f);
+  const char * r;
 
   if (!srcdir_relative_path)
     return NULL;
 
   lang_index = get_prefix_langdir_index (srcdir_relative_path);
+  if (lang_index < 0
+      && strncmp (srcdir_relative_path, "c-family", 8) == 0)
+    r = "c-family";
+  else if (lang_index >= 0)
+    r = lang_dir_names [lang_index];
+  else
+    r = NULL;
 
-  return (lang_index >= 0) ? lang_dir_names [lang_index] : NULL;
+  return r;
 }
 
 /* The gt- output file name for F.  */
@@ -1743,8 +1751,10 @@ get_output_file_with_visibility (const char *input_file)
      (and gengtype doesn't know how to direct spewage into multiple
      gtype-<lang>.h headers at this time).  Instead, we pair up these
      headers with source files (and their special purpose gt-*.h headers).  */
-  else if (strcmp (basename, "c-common.h") == 0)
-    output_name = "gt-c-common.h", for_name = "c-common.c";
+  else if (strncmp (basename, "c-family", 8) == 0
+	   && IS_DIR_SEPARATOR (basename[8])
+	   && strcmp (basename + 9, "c-common.h") == 0)
+    output_name = "gt-c-family-c-common.h", for_name = "c-family/c-common.c";
   else if (strcmp (basename, "c-lang.h") == 0)
     output_name = "gt-c-decl.h", for_name = "c-decl.c";
   else if (strcmp (basename, "c-tree.h") == 0)
@@ -1838,11 +1848,11 @@ close_output_files (void)
       {
         FILE *newfile = fopen (of->name, "w");
         if (newfile == NULL)
-          fatal ("opening output file %s: %s", of->name, strerror (errno));
+          fatal ("opening output file %s: %s", of->name, xstrerror (errno));
         if (fwrite (of->buf, 1, of->bufused, newfile) != of->bufused)
-          fatal ("writing output file %s: %s", of->name, strerror (errno));
+          fatal ("writing output file %s: %s", of->name, xstrerror (errno));
         if (fclose (newfile) != 0)
-          fatal ("closing output file %s: %s", of->name, strerror (errno));
+          fatal ("closing output file %s: %s", of->name, xstrerror (errno));
       }
       free(of->buf);
       of->buf = NULL;
@@ -1885,9 +1895,8 @@ static void output_escaped_param (struct walk_type_data *d,
 				  const char *, const char *);
 static void output_mangled_typename (outf_p, const_type_p);
 static void walk_type (type_p t, struct walk_type_data *d);
-static void write_func_for_structure
-     (type_p orig_s, type_p s, type_p * param,
-      const struct write_types_data *wtd);
+static void write_func_for_structure (type_p orig_s, type_p s, type_p * param,
+				      const struct write_types_data *wtd);
 static void write_types_process_field
      (type_p f, const struct walk_type_data *d);
 static void write_types (outf_p output_header,
@@ -2077,6 +2086,8 @@ walk_type (type_p t, struct walk_type_data *d)
     else if (strcmp (oo->name, "chain_circular") == 0)
       ;
     else if (strcmp (oo->name, "reorder") == 0)
+      ;
+    else if (strcmp (oo->name, "variable_size") == 0)
       ;
     else
       error_at_line (d->line, "unknown option `%s'\n", oo->name);
@@ -3016,6 +3027,20 @@ write_local (outf_p output_header, type_p structures, type_p param_structs)
       }
 }
 
+/* Nonzero if S is a type for which typed GC allocators should be output.  */
+
+#define USED_BY_TYPED_GC_P(s)						\
+  (((s->kind == TYPE_POINTER)						\
+    && ((s->u.p->gc_used == GC_POINTED_TO)				\
+	|| (s->u.p->gc_used == GC_USED)))				\
+   || (UNION_OR_STRUCT_P (s) &&						\
+       (((s)->gc_used == GC_POINTED_TO)					\
+	|| ((s)->gc_used == GC_MAYBE_POINTED_TO				\
+	    && s->u.s.line.file != NULL)				\
+	|| ((s)->gc_used == GC_USED					\
+	    && strncmp (s->u.s.tag, "anonymous", strlen ("anonymous"))))))
+
+
 /* Write out the 'enum' definition for gt_types_enum.  */
 
 static void
@@ -3028,23 +3053,18 @@ write_enum_defn (type_p structures, type_p param_structs)
   oprintf (header_file, "\n/* Enumeration of types known.  */\n");
   oprintf (header_file, "enum gt_types_enum {\n");
   for (s = structures; s; s = s->next)
-    if (s->gc_used == GC_POINTED_TO
-	|| s->gc_used == GC_MAYBE_POINTED_TO)
+    if (USED_BY_TYPED_GC_P (s))
       {
-	if (s->gc_used == GC_MAYBE_POINTED_TO
-	    && s->u.s.line.file == NULL)
-	  continue;
-
 	oprintf (header_file, " gt_ggc_e_");
 	output_mangled_typename (header_file, s);
-	oprintf (header_file, ", \n");
+	oprintf (header_file, ",\n");
       }
   for (s = param_structs; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO)
       {
 	oprintf (header_file, " gt_e_");
 	output_mangled_typename (header_file, s);
-	oprintf (header_file, ", \n");
+	oprintf (header_file, ",\n");
       }
   oprintf (header_file, " gt_types_enum_last\n");
   oprintf (header_file, "};\n");
@@ -3691,6 +3711,213 @@ note_def_vec_alloc (const char *type, const char *astrat, struct fileloc *pos)
   do_typedef (astratname, new_structure (astratname, 0, pos, field, 0), pos);
 }
 
+/* Returns the specifier keyword for a string or union type S, empty string
+   otherwise.  */
+
+static const char *
+get_type_specifier (const type_p s)
+{
+  if (s->kind == TYPE_STRUCT || s->kind == TYPE_LANG_STRUCT)
+    return "struct ";
+  if (s->kind == TYPE_UNION)
+    return "union ";
+  return "";
+}
+
+/* TRUE if type S has the GTY variable_size annotation.  */
+
+static bool
+variable_size_p (const type_p s)
+{
+  options_p o;
+  for (o = s->u.s.opt; o; o = o->next)
+    if (strcmp (o->name, "variable_size") == 0)
+      return true;
+  return false;
+}
+
+enum alloc_quantity { single, vector };
+enum alloc_zone { any_zone, specific_zone };
+
+/* Writes one typed allocator definition for type identifier TYPE_NAME with
+   optional type specifier TYPE_SPECIFIER.  The allocator name will contain
+   ALLOCATOR_TYPE.  If VARIABLE_SIZE is true, the allocator will have an extra
+   parameter specifying number of bytes to allocate.  If QUANTITY is set to
+   VECTOR, a vector allocator will be output, if ZONE is set to SPECIFIC_ZONE,
+   the allocator will be zone-specific.  */
+
+static void
+write_typed_alloc_def (bool variable_size, const char * type_specifier,
+		       const char * type_name, const char * allocator_type,
+		       enum alloc_quantity quantity, enum alloc_zone zone)
+{
+  bool two_args = variable_size && (quantity == vector);
+  bool third_arg = ((zone == specific_zone)
+		    && (variable_size || (quantity == vector)));
+
+  oprintf (header_file, "#define ggc_alloc_%s%s",allocator_type, type_name);
+  oprintf (header_file, "(%s%s%s%s%s) ",
+	   (variable_size ? "SIZE" : ""),
+	   (two_args ? ", " : ""),
+	   (quantity == vector) ? "n" : "",
+	   (third_arg ? ", " : ""), (zone == specific_zone) ? "z" : "");
+  oprintf (header_file, "((%s%s *)", type_specifier, type_name);
+  oprintf (header_file, "(ggc_internal_%salloc_stat (", allocator_type);
+  if (zone == specific_zone)
+    oprintf (header_file, "z, ");
+  if (variable_size)
+    oprintf (header_file, "SIZE");
+  else
+    oprintf (header_file, "sizeof (%s%s)", type_specifier, type_name);
+  if (quantity == vector)
+    oprintf (header_file, ", n");
+  oprintf (header_file, " MEM_STAT_INFO)))\n");
+}
+
+/* Writes a typed allocator definition for a struct or union S.  */
+
+static void
+write_typed_struct_alloc_def (const type_p s, const char * allocator_type,
+			      enum alloc_quantity quantity,
+			      enum alloc_zone zone)
+{
+  write_typed_alloc_def (variable_size_p (s), get_type_specifier (s),
+			 s->u.s.tag, allocator_type, quantity, zone);
+}
+
+/* Writes a typed allocator definition for a typedef P.  */
+
+static void
+write_typed_typedef_alloc_def (const pair_p p, const char * allocator_type,
+			       enum alloc_quantity quantity,
+			       enum alloc_zone zone)
+{
+  write_typed_alloc_def (variable_size_p (p->type), "", p->name,
+			 allocator_type, quantity, zone);
+}
+
+/* Writes typed allocator definitions for the types in STRUCTURES and
+   TYPEDEFS that are used by GC.  */
+
+static void
+write_typed_alloc_defns (const type_p structures, const pair_p typedefs)
+{
+  type_p s;
+  pair_p p;
+
+  oprintf (header_file,
+	   "\n/* Allocators for known structs and unions.  */\n\n");
+  for (s = structures; s; s = s->next)
+    {
+      if (!USED_BY_TYPED_GC_P (s))
+	continue;
+      write_typed_struct_alloc_def (s, "", single, any_zone);
+      write_typed_struct_alloc_def (s, "cleared_", single, any_zone);
+      write_typed_struct_alloc_def (s, "vec_", vector, any_zone);
+      write_typed_struct_alloc_def (s, "cleared_vec_", vector, any_zone);
+      write_typed_struct_alloc_def (s, "zone_", single, specific_zone);
+      write_typed_struct_alloc_def (s, "zone_cleared_", single,
+				    specific_zone);
+      write_typed_struct_alloc_def (s, "zone_vec_", vector, specific_zone);
+      write_typed_struct_alloc_def (s, "zone_cleared_vec_", vector,
+				    specific_zone);
+    }
+
+  oprintf (header_file, "\n/* Allocators for known typedefs.  */\n");
+  for (p = typedefs; p; p = p->next)
+    {
+      s = p->type;
+      if (!USED_BY_TYPED_GC_P (s) || (strcmp (p->name, s->u.s.tag) == 0))
+	continue;
+      write_typed_typedef_alloc_def (p, "", single, any_zone);
+      write_typed_typedef_alloc_def (p, "cleared_", single, any_zone);
+      write_typed_typedef_alloc_def (p, "vec_", vector, any_zone);
+      write_typed_typedef_alloc_def (p, "cleared_vec_", vector, any_zone);
+      write_typed_typedef_alloc_def (p, "zone_", single, specific_zone);
+      write_typed_typedef_alloc_def (p, "zone_cleared_", single,
+				     specific_zone);
+      write_typed_typedef_alloc_def (p, "zone_cleared_vec_", vector,
+				     specific_zone);
+    }
+}
+
+/* Prints not-as-ugly version of a typename of T to OF.  Trades the uniquness
+   guaranteee for somewhat increased readability.  If name conflicts do happen,
+   this funcion will have to be adjusted to be more like
+   output_mangled_typename.  */
+
+static void
+output_typename (outf_p of, const_type_p t)
+{
+  switch (t->kind)
+    {
+    case TYPE_STRING:
+      oprintf (of, "str");
+      break;
+    case TYPE_SCALAR:
+      oprintf (of, "scalar");
+      break;
+    case TYPE_POINTER:
+      output_typename (of, t->u.p);
+      break;
+    case TYPE_STRUCT:
+    case TYPE_UNION:
+    case TYPE_LANG_STRUCT:
+      oprintf (of, "%s", t->u.s.tag);
+      break;
+    case TYPE_PARAM_STRUCT:
+      {
+	int i;
+	for (i = 0; i < NUM_PARAM; i++)
+	  if (t->u.param_struct.param[i] != NULL) {
+	    output_typename (of, t->u.param_struct.param[i]);
+	    oprintf (of, "_");
+	  }
+	output_typename (of, t->u.param_struct.stru);
+	break;
+      }
+    default:
+      gcc_unreachable();
+    }
+}
+
+/* Writes a typed GC allocator for type S that is suitable as a callback for
+   the splay tree implementation in libiberty.  */
+
+static void
+write_splay_tree_allocator_def (const_type_p s)
+{
+  outf_p of = get_output_file_for_structure(s, NULL);
+  oprintf (of, "void * ggc_alloc_splay_tree_");
+  output_typename (of, s);
+  oprintf (of, " (int sz, void * nl)\n");
+  oprintf (of, "{\n");
+  oprintf (of, "  return ggc_splay_alloc (");
+  oprintf (of, "gt_e_");
+  output_mangled_typename (of, s);
+  oprintf (of, ", sz, nl);\n");
+  oprintf (of, "}\n\n");
+}
+
+/* Writes typed GC allocators for PARAM_STRUCTS that are suitable as callbacks
+   for the splay tree implementation in libiberty.  */
+
+static void
+write_splay_tree_allocators (const_type_p param_structs)
+{
+  const_type_p s;
+
+  oprintf (header_file, "\n/* Splay tree callback allocators.  */\n");
+  for (s = param_structs; s; s = s->next)
+    if (s->gc_used == GC_POINTED_TO)
+      {
+	oprintf (header_file, "extern void * ggc_alloc_splay_tree_");
+	output_typename (header_file, s);
+	oprintf (header_file, " (int, void *);\n");
+	write_splay_tree_allocator_def (s);
+      }
+}
+
 static void dump_pair (int indent, pair_p p);
 static void dump_type (int indent, type_p p);
 static void dump_type_list (int indent, type_p p);
@@ -4011,6 +4238,7 @@ main (int argc, char **argv)
 
   open_base_files ();
   write_enum_defn (structures, param_structs);
+  write_typed_alloc_defns (structures, typedefs);
   output_header = plugin_output ? plugin_output : header_file;
   write_types (output_header, structures, param_structs, &ggc_wtd);
   if (plugin_files == NULL)
@@ -4018,6 +4246,7 @@ main (int argc, char **argv)
       write_types (header_file, structures, param_structs, &pch_wtd);
       write_local (header_file, structures, param_structs);
     }
+  write_splay_tree_allocators (param_structs);
   write_roots (variables, plugin_files == NULL);
   write_rtx_next ();
   close_output_files ();

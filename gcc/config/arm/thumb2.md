@@ -319,8 +319,8 @@
   "
   [(set_attr "length" "8,12,16,8,8")
    (set_attr "type" "*,*,*,load2,store2")
-   (set_attr "pool_range" "1020")
-   (set_attr "neg_pool_range" "0")]
+   (set_attr "pool_range" "*,*,*,1020,*")
+   (set_attr "neg_pool_range" "*,*,*,0,*")]
 )
 
 (define_insn "*thumb2_cmpsi_shiftsi"
@@ -1082,29 +1082,6 @@
   }"
 )
 
-;; Peepholes and insns for 16-bit flag clobbering instructions.
-;; The conditional forms of these instructions do not clobber CC.
-;; However by the time peepholes are run it is probably too late to do
-;; anything useful with this information.
-(define_peephole2
-  [(set (match_operand:SI          0 "low_register_operand" "")
-        (match_operator:SI 3 "thumb_16bit_operator"
-	 [(match_operand:SI 1  "low_register_operand" "")
-	  (match_operand:SI 2 "low_register_operand" "")]))]
-  "TARGET_THUMB2
-   && (rtx_equal_p(operands[0], operands[1])
-       || GET_CODE(operands[3]) == PLUS
-       || GET_CODE(operands[3]) == MINUS)
-   && peep2_regno_dead_p(0, CC_REGNUM)"
-  [(parallel
-    [(set (match_dup 0)
-	  (match_op_dup 3
-	   [(match_dup 1)
-	    (match_dup 2)]))
-     (clobber (reg:CC CC_REGNUM))])]
-  ""
-)
-
 (define_insn "*thumb2_alusi3_short"
   [(set (match_operand:SI          0 "s_register_operand" "=l")
         (match_operator:SI 3 "thumb_16bit_operator"
@@ -1252,6 +1229,56 @@
   "sub%!\\t%0, %1, %2"
   [(set_attr "predicable" "yes")
    (set_attr "length" "2")]
+)
+
+(define_insn "*thumb2_addsi3_compare0"
+  [(set (reg:CC_NOOV CC_REGNUM)
+	(compare:CC_NOOV
+	  (plus:SI (match_operand:SI 1 "s_register_operand" "l,  0, r")
+		   (match_operand:SI 2 "arm_add_operand"    "lPt,Ps,rIL"))
+	  (const_int 0)))
+   (set (match_operand:SI 0 "s_register_operand" "=l,l,r")
+	(plus:SI (match_dup 1) (match_dup 2)))]
+  "TARGET_THUMB2"
+  "*
+    HOST_WIDE_INT val;
+
+    if (GET_CODE (operands[2]) == CONST_INT)
+      val = INTVAL (operands[2]);
+    else
+      val = 0;
+
+    if (val < 0 && const_ok_for_arm (ARM_SIGN_EXTEND (-val)))
+      return \"subs\\t%0, %1, #%n2\";
+    else
+      return \"adds\\t%0, %1, %2\";
+  "
+  [(set_attr "conds" "set")
+   (set_attr "length" "2,2,4")]
+)
+
+(define_insn "*thumb2_addsi3_compare0_scratch"
+  [(set (reg:CC_NOOV CC_REGNUM)
+	(compare:CC_NOOV
+	  (plus:SI (match_operand:SI 0 "s_register_operand" "l,  r")
+		   (match_operand:SI 1 "arm_add_operand"    "lPv,rIL"))
+	  (const_int 0)))]
+  "TARGET_THUMB2"
+  "*
+    HOST_WIDE_INT val;
+
+    if (GET_CODE (operands[1]) == CONST_INT)
+      val = INTVAL (operands[1]);
+    else
+      val = 0;
+
+    if (val < 0 && const_ok_for_arm (ARM_SIGN_EXTEND (-val)))
+      return \"cmp\\t%0, #%n1\";
+    else
+      return \"cmn\\t%0, %1\";
+  "
+  [(set_attr "conds" "set")
+   (set_attr "length" "2,4")]
 )
 
 ;; 16-bit encodings of "muls" and "mul<c>".  We only use these when

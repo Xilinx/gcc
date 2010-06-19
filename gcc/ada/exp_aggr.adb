@@ -1347,7 +1347,7 @@ package body Exp_Aggr is
 
          --  Otherwise construct the loop, starting with the loop index L_J
 
-         L_J := Make_Defining_Identifier (Loc, New_Internal_Name ('J'));
+         L_J := Make_Temporary (Loc, 'J', L);
 
          --  Construct "L .. H" in Index_Base. We use a qualified expression
          --  for the bound to convert to the index base, but we don't need
@@ -1455,7 +1455,7 @@ package body Exp_Aggr is
 
          --  Build the decl of W_J
 
-         W_J    := Make_Defining_Identifier (Loc, New_Internal_Name ('J'));
+         W_J    := Make_Temporary (Loc, 'J', L);
          W_Decl :=
            Make_Object_Declaration
              (Loc,
@@ -3008,9 +3008,7 @@ package body Exp_Aggr is
                   --  the corresponding aggregate.
 
                   declare
-                     SubE : constant Entity_Id :=
-                              Make_Defining_Identifier (Loc,
-                                Chars => New_Internal_Name ('T'));
+                     SubE : constant Entity_Id := Make_Temporary (Loc, 'T');
 
                      SubD : constant Node_Id :=
                               Make_Subtype_Declaration (Loc,
@@ -4122,12 +4120,6 @@ package body Exp_Aggr is
       --  array sub-aggregate we start the computation from. Dim is the
       --  dimension corresponding to the sub-aggregate.
 
-      function Has_Address_Clause (D : Node_Id) return Boolean;
-      --  If the aggregate is the expression in an object declaration, it
-      --  cannot be expanded in place. This function does a lookahead in the
-      --  current declarative part to find an address clause for the object
-      --  being declared.
-
       function In_Place_Assign_OK return Boolean;
       --  Simple predicate to determine whether an aggregate assignment can
       --  be done in place, because none of the new values can depend on the
@@ -4145,7 +4137,7 @@ package body Exp_Aggr is
 
       procedure Build_Constrained_Type (Positional : Boolean) is
          Loc      : constant Source_Ptr := Sloc (N);
-         Agg_Type : Entity_Id;
+         Agg_Type : constant Entity_Id  := Make_Temporary (Loc, 'A');
          Comp     : Node_Id;
          Decl     : Node_Id;
          Typ      : constant Entity_Id := Etype (N);
@@ -4154,10 +4146,6 @@ package body Exp_Aggr is
          Sub_Agg  : Node_Id;
 
       begin
-         Agg_Type :=
-           Make_Defining_Identifier (
-             Loc, New_Internal_Name ('A'));
-
          --  If the aggregate is purely positional, all its subaggregates
          --  have the same size. We collect the dimensions from the first
          --  subaggregate at each level.
@@ -4175,19 +4163,16 @@ package body Exp_Aggr is
                   Next (Comp);
                end loop;
 
-               Append (
+               Append_To (Indices,
                  Make_Range (Loc,
-                   Low_Bound => Make_Integer_Literal (Loc, 1),
-                   High_Bound =>
-                          Make_Integer_Literal (Loc, Num)),
-                 Indices);
+                   Low_Bound =>  Make_Integer_Literal (Loc, 1),
+                   High_Bound => Make_Integer_Literal (Loc, Num)));
             end loop;
 
          else
             --  We know the aggregate type is unconstrained and the aggregate
             --  is not processable by the back end, therefore not necessarily
             --  positional. Retrieve each dimension bounds (computed earlier).
-            --  earlier.
 
             for D in 1 .. Number_Dimensions (Typ) loop
                Append (
@@ -4433,35 +4418,6 @@ package body Exp_Aggr is
             end if;
          end if;
       end Compute_Others_Present;
-
-      ------------------------
-      -- Has_Address_Clause --
-      ------------------------
-
-      function Has_Address_Clause (D : Node_Id) return Boolean is
-         Id   : constant Entity_Id := Defining_Identifier (D);
-         Decl : Node_Id;
-
-      begin
-         Decl := Next (D);
-         while Present (Decl) loop
-            if Nkind (Decl) = N_At_Clause
-               and then Chars (Identifier (Decl)) = Chars (Id)
-            then
-               return True;
-
-            elsif Nkind (Decl) = N_Attribute_Definition_Clause
-               and then Chars (Decl) = Name_Address
-               and then Chars (Name (Decl)) = Chars (Id)
-            then
-               return True;
-            end if;
-
-            Next (Decl);
-         end loop;
-
-         return False;
-      end Has_Address_Clause;
 
       ------------------------
       -- In_Place_Assign_OK --
@@ -5162,6 +5118,8 @@ package body Exp_Aggr is
          Build_Activation_Chain_Entity (N);
       end if;
 
+      --  Should document these individual tests ???
+
       if not Has_Default_Init_Comps (N)
          and then Comes_From_Source (Parent (N))
          and then Nkind (Parent (N)) = N_Object_Declaration
@@ -5170,7 +5128,13 @@ package body Exp_Aggr is
          and then N = Expression (Parent (N))
          and then not Is_Bit_Packed_Array (Typ)
          and then not Has_Controlled_Component (Typ)
-         and then not Has_Address_Clause (Parent (N))
+
+      --  If the aggregate is the expression in an object declaration, it
+      --  cannot be expanded in place. Lookahead in the current declarative
+      --  part to find an address clause for the object being declared. If
+      --  one is present, we cannot build in place. Unclear comment???
+
+         and then not Has_Following_Address_Clause (Parent (N))
       then
          Tmp := Defining_Identifier (Parent (N));
          Set_No_Initialization (Parent (N));
@@ -5720,9 +5684,7 @@ package body Exp_Aggr is
 
                   Decl :=
                     Make_Subtype_Declaration (Loc,
-                      Defining_Identifier =>
-                         Make_Defining_Identifier (Loc,
-                            New_Internal_Name ('T')),
+                      Defining_Identifier => Make_Temporary (Loc, 'T'),
                       Subtype_Indication =>
                         Make_Subtype_Indication (Loc,
                           Subtype_Mark =>
@@ -6411,9 +6373,8 @@ package body Exp_Aggr is
         and then Nkind (First (Choices (First (Component_Associations (N)))))
                    = N_Others_Choice
       then
-         Expr :=
-           Expression (First (Component_Associations (N)));
-         L_J := Make_Defining_Identifier (Loc, New_Internal_Name ('J'));
+         Expr := Expression (First (Component_Associations (N)));
+         L_J := Make_Temporary (Loc, 'J');
 
          L_Iter :=
            Make_Iteration_Scheme (Loc,

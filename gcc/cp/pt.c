@@ -34,8 +34,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "pointer-set.h"
 #include "flags.h"
-#include "c-common.h"
 #include "cp-tree.h"
+#include "c-family/c-common.h"
 #include "cp-objcp-common.h"
 #include "tree-inline.h"
 #include "decl.h"
@@ -888,10 +888,10 @@ maybe_process_partial_specialization (tree type)
 
 		  slot = (spec_entry **)
 		    htab_find_slot (type_specializations, &elt, INSERT);
-		  *slot = GGC_NEW (spec_entry);
+		  *slot = ggc_alloc_spec_entry ();
 		  **slot = elt;
 		}
-	      else if (COMPLETE_TYPE_P (inst) || TYPE_BEING_DEFINED (inst))
+	      else if (COMPLETE_OR_OPEN_TYPE_P (inst))
 		/* But if we've had an implicit instantiation, that's a
 		   problem ([temp.expl.spec]/6).  */
 		error ("specialization %qT after instantiation %qT",
@@ -1401,7 +1401,7 @@ register_specialization (tree spec, tree tmpl, tree args, bool is_friend,
   if (!optimize_specialization_lookup_p (tmpl))
     {
       gcc_assert (tmpl && args && spec);
-      *slot = GGC_NEW (spec_entry);
+      *slot = ggc_alloc_spec_entry ();
       **slot = elt;
       if (TREE_CODE (spec) == FUNCTION_DECL && DECL_NAMESPACE_SCOPE_P (spec)
 	  && PRIMARY_TEMPLATE_P (tmpl)
@@ -3875,10 +3875,10 @@ process_partial_specialization (tree decl)
 
      or some such would have been OK.  */
   tpd.level = TMPL_PARMS_DEPTH (current_template_parms);
-  tpd.parms = (int *) alloca (sizeof (int) * ntparms);
+  tpd.parms = XALLOCAVEC (int, ntparms);
   memset (tpd.parms, 0, sizeof (int) * ntparms);
 
-  tpd.arg_uses_template_parms = (int *) alloca (sizeof (int) * nargs);
+  tpd.arg_uses_template_parms = XALLOCAVEC (int, nargs);
   memset (tpd.arg_uses_template_parms, 0, sizeof (int) * nargs);
   for (i = 0; i < nargs; ++i)
     {
@@ -3993,12 +3993,11 @@ process_partial_specialization (tree decl)
                   if (!tpd2.parms)
                     {
                       /* We haven't yet initialized TPD2.  Do so now.  */
-                      tpd2.arg_uses_template_parms 
-                        = (int *) alloca (sizeof (int) * nargs);
+                      tpd2.arg_uses_template_parms = XALLOCAVEC (int, nargs);
                       /* The number of parameters here is the number in the
                          main template, which, as checked in the assertion
                          above, is NARGS.  */
-                      tpd2.parms = (int *) alloca (sizeof (int) * nargs);
+                      tpd2.parms = XALLOCAVEC (int, nargs);
                       tpd2.level = 
                         TMPL_PARMS_DEPTH (DECL_TEMPLATE_PARMS (maintmpl));
                     }
@@ -5922,15 +5921,15 @@ coerce_template_parms (tree parms,
     {
       if (complain & tf_error)
 	{
-          const char *or_more = "";
           if (variadic_p)
             {
-              or_more = " or more";
               --nparms;
+	      error ("wrong number of template arguments "
+		     "(%d, should be %d or more)", nargs, nparms);
             }
-
-	  error ("wrong number of template arguments (%d, should be %d%s)",
-                 nargs, nparms, or_more);
+	  else
+	     error ("wrong number of template arguments "
+		    "(%d, should be %d)", nargs, nparms);
 
 	  if (in_decl)
 	    error ("provided for %q+D", in_decl);
@@ -6155,7 +6154,7 @@ add_pending_template (tree d)
   if (level)
     push_tinst_level (d);
 
-  pt = GGC_NEW (struct pending_template);
+  pt = ggc_alloc_pending_template ();
   pt->next = NULL;
   pt->tinst = current_tinst_level;
   if (last_pending_template)
@@ -6718,7 +6717,7 @@ lookup_template_class (tree d1,
       elt.spec = t;
       slot = (spec_entry **) htab_find_slot_with_hash (type_specializations,
 						       &elt, hash, INSERT);
-      *slot = GGC_NEW (spec_entry);
+      *slot = ggc_alloc_spec_entry ();
       **slot = elt;
 
       /* Note this use of the partial instantiation so we can check it
@@ -7076,7 +7075,7 @@ push_tinst_level (tree d)
       return 0;
     }
 
-  new_level = GGC_NEW (struct tinst_level);
+  new_level = ggc_alloc_tinst_level ();
   new_level->decl = d;
   new_level->locus = input_location;
   new_level->in_system_header_p = in_system_header;
@@ -7699,8 +7698,7 @@ instantiate_class_template (tree type)
   if (type == error_mark_node)
     return error_mark_node;
 
-  if (TYPE_BEING_DEFINED (type)
-      || COMPLETE_TYPE_P (type)
+  if (COMPLETE_OR_OPEN_TYPE_P (type)
       || uses_template_parms (type))
     return type;
 
@@ -7795,8 +7793,7 @@ instantiate_class_template (tree type)
      instantiate it, and that lookup should instantiate the enclosing
      class.  */
   gcc_assert (!DECL_CLASS_SCOPE_P (TYPE_MAIN_DECL (pattern))
-	      || COMPLETE_TYPE_P (TYPE_CONTEXT (type))
-	      || TYPE_BEING_DEFINED (TYPE_CONTEXT (type)));
+	      || COMPLETE_OR_OPEN_TYPE_P (TYPE_CONTEXT (type)));
 
   base_list = NULL_TREE;
   if (BINFO_N_BASE_BINFOS (pbinfo))
@@ -8527,7 +8524,7 @@ tsubst_template_args (tree t, tree args, tsubst_flags_t complain, tree in_decl)
   tree orig_t = t;
   int len = TREE_VEC_LENGTH (t);
   int need_new = 0, i, expanded_len_adjust = 0, out;
-  tree *elts = (tree *) alloca (len * sizeof (tree));
+  tree *elts = XALLOCAVEC (tree, len);
 
   for (i = 0; i < len; i++)
     {
@@ -9838,7 +9835,15 @@ tsubst_exception_specification (tree fntype,
 
   specs = TYPE_RAISES_EXCEPTIONS (fntype);
   new_specs = NULL_TREE;
-  if (specs)
+  if (specs && TREE_PURPOSE (specs))
+    {
+      /* A noexcept-specifier.  */
+      new_specs = tsubst_copy_and_build
+	(TREE_PURPOSE (specs), args, complain, in_decl, /*function_p=*/false,
+	 /*integral_constant_expression_p=*/true);
+      new_specs = build_noexcept_spec (new_specs, complain);
+    }
+  else if (specs)
     {
       if (! TREE_VALUE (specs))
 	new_specs = specs;
@@ -12244,6 +12249,17 @@ tsubst_copy_and_build (tree t,
       else
 	return cxx_sizeof_or_alignof_expr (op1, TREE_CODE (t), 
                                            complain & tf_error);
+
+    case NOEXCEPT_EXPR:
+      op1 = TREE_OPERAND (t, 0);
+      ++cp_unevaluated_operand;
+      ++c_inhibit_evaluation_warnings;
+      op1 = tsubst_copy_and_build (op1, args, complain, in_decl,
+				   /*function_p=*/false,
+				   /*integral_constant_expression_p=*/false);
+      --cp_unevaluated_operand;
+      --c_inhibit_evaluation_warnings;
+      return finish_noexcept_expr (op1, complain);
 
     case MODOP_EXPR:
       {
@@ -17579,6 +17595,12 @@ value_dependent_expression_p (tree expression)
 	return dependent_type_p (expression);
       return type_dependent_expression_p (expression);
 
+    case NOEXCEPT_EXPR:
+      expression = TREE_OPERAND (expression, 0);
+      /* FIXME why check value-dependency?  */
+      return (type_dependent_expression_p (expression)
+	      || value_dependent_expression_p (expression));
+
     case SCOPE_REF:
       return dependent_scope_ref_p (expression, value_dependent_expression_p);
 
@@ -17680,6 +17702,7 @@ type_dependent_expression_p (tree expression)
   if (TREE_CODE (expression) == PSEUDO_DTOR_EXPR
       || TREE_CODE (expression) == SIZEOF_EXPR
       || TREE_CODE (expression) == ALIGNOF_EXPR
+      || TREE_CODE (expression) == NOEXCEPT_EXPR
       || TREE_CODE (expression) == TRAIT_EXPR
       || TREE_CODE (expression) == TYPEID_EXPR
       || TREE_CODE (expression) == DELETE_EXPR

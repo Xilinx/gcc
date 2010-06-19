@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -2384,8 +2384,8 @@ package body Sem_Attr is
            and then Base_Type (Typ) = Typ
            and then Warn_On_Redundant_Constructs
          then
-               Error_Msg_NE
-                 ("?redundant attribute, & is its own base type", N, Typ);
+            Error_Msg_NE -- CODEFIX
+              ("?redundant attribute, & is its own base type", N, Typ);
          end if;
 
          Set_Etype (N, Base_Type (Entity (P)));
@@ -2775,10 +2775,8 @@ package body Sem_Attr is
                exit;
 
             elsif Ekind (Scope (Ent)) in Task_Kind
-              and then Ekind (S) /= E_Loop
-              and then Ekind (S) /= E_Block
-              and then Ekind (S) /= E_Entry
-              and then Ekind (S) /= E_Entry_Family
+              and then
+                not Ekind_In (S, E_Loop, E_Block, E_Entry, E_Entry_Family)
             then
                Error_Attr ("Attribute % cannot appear in inner unit", N);
 
@@ -7645,8 +7643,7 @@ package body Sem_Attr is
          --  know will fail, so generate an appropriate warning.
 
          if In_Instance_Body then
-            Error_Msg_F
-              ("?non-local pointer cannot point to local object", P);
+            Error_Msg_F ("?non-local pointer cannot point to local object", P);
             Error_Msg_F
               ("\?Program_Error will be raised at run time", P);
             Rewrite (N,
@@ -7656,8 +7653,7 @@ package body Sem_Attr is
             return;
 
          else
-            Error_Msg_F
-              ("non-local pointer cannot point to local object", P);
+            Error_Msg_F ("non-local pointer cannot point to local object", P);
 
             --  Check for case where we have a missing access definition
 
@@ -7813,11 +7809,9 @@ package body Sem_Attr is
                --  also be accessibility checks on those, this is where the
                --  checks can eventually be centralized ???
 
-               if Ekind (Btyp) = E_Access_Subprogram_Type
-                    or else
-                  Ekind (Btyp) = E_Anonymous_Access_Subprogram_Type
-                    or else
-                  Ekind (Btyp) = E_Anonymous_Access_Protected_Subprogram_Type
+               if Ekind_In (Btyp, E_Access_Subprogram_Type,
+                                  E_Anonymous_Access_Subprogram_Type,
+                                  E_Anonymous_Access_Protected_Subprogram_Type)
                then
                   --  Deal with convention mismatch
 
@@ -8244,9 +8238,8 @@ package body Sem_Attr is
                end if;
             end if;
 
-            if Ekind (Btyp) = E_Access_Protected_Subprogram_Type
-                 or else
-               Ekind (Btyp) = E_Anonymous_Access_Protected_Subprogram_Type
+            if Ekind_In (Btyp, E_Access_Protected_Subprogram_Type,
+                               E_Anonymous_Access_Protected_Subprogram_Type)
             then
                if Is_Entity_Name (P)
                  and then not Is_Protected_Type (Scope (Entity (P)))
@@ -8268,9 +8261,8 @@ package body Sem_Attr is
                   return;
                end if;
 
-            elsif (Ekind (Btyp) = E_Access_Subprogram_Type
-                     or else
-                   Ekind (Btyp) = E_Anonymous_Access_Subprogram_Type)
+            elsif Ekind_In (Btyp, E_Access_Subprogram_Type,
+                                  E_Anonymous_Access_Subprogram_Type)
               and then Ekind (Etype (N)) = E_Access_Protected_Subprogram_Type
             then
                Error_Msg_F ("context requires a non-protected subprogram", P);

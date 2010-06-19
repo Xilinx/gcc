@@ -27,8 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "hashtab.h"
 #include "vec.h"
-#include "c-common.h"
-#include "name-lookup.h"
 
 /* In order for the format checking to accept the C++ front end
    diagnostic framework extensions, you must include this file before
@@ -36,18 +34,17 @@ along with GCC; see the file COPYING3.  If not see
    in c-common.h.  */
 #undef GCC_DIAG_STYLE
 #define GCC_DIAG_STYLE __gcc_cxxdiag__
-#if GCC_VERSION >= 4001
-#define ATTRIBUTE_GCC_CXXDIAG(m, n) __attribute__ ((__format__ (GCC_DIAG_STYLE, m, n))) ATTRIBUTE_NONNULL(m)
-#else
-#define ATTRIBUTE_GCC_CXXDIAG(m, n) ATTRIBUTE_NONNULL(m)
-#endif
-#ifdef GCC_TOPLEV_H
+#if defined(GCC_TOPLEV_H) || defined (GCC_C_COMMON_H)
 #error \
 In order for the format checking to accept the C++ front end diagnostic \
-framework extensions, you must include this file before toplev.h, not after.
+framework extensions, you must include this file before toplev.h and \
+c-common.h, not after.
 #endif
 #include "toplev.h"
 #include "diagnostic.h"
+#include "c-family/c-common.h"
+
+#include "name-lookup.h"
 
 /* Usage of TREE_LANG_FLAG_?:
    0: IDENTIFIER_MARKED (IDENTIFIER_NODEs)
@@ -421,6 +418,23 @@ typedef enum readonly_error_kind
   REK_DECREMENT
 } readonly_error_kind;
 
+/* Possible cases of expression list used by build_x_compound_expr_from_list. */
+typedef enum expr_list_kind {
+  ELK_INIT,		/* initializer */
+  ELK_MEM_INIT,		/* member initializer */
+  ELK_FUNC_CAST		/* functional cast */
+} expr_list_kind; 
+
+/* Possible cases of implicit bad rhs conversions. */
+typedef enum impl_conv_rhs {
+  ICR_DEFAULT_ARGUMENT, /* default argument */
+  ICR_CONVERTING,       /* converting */
+  ICR_INIT,             /* initialization */
+  ICR_ARGPASS,          /* argument passing */
+  ICR_RETURN,           /* return */
+  ICR_ASSIGN            /* assignment */
+} impl_conv_rhs;
+
 /* Macros for access to language-specific slots in an identifier.  */
 
 #define IDENTIFIER_NAMESPACE_BINDINGS(NODE)	\
@@ -761,6 +775,8 @@ enum cp_tree_index
     CPTI_LANG_NAME_JAVA,
 
     CPTI_EMPTY_EXCEPT_SPEC,
+    CPTI_NOEXCEPT_TRUE_SPEC,
+    CPTI_NOEXCEPT_FALSE_SPEC,
     CPTI_JCLASS,
     CPTI_TERMINATE,
     CPTI_CALL_UNEXPECTED,
@@ -850,6 +866,8 @@ extern GTY(()) tree cp_global_trees[CPTI_MAX];
 
 /* Exception specifier used for throw().  */
 #define empty_except_spec		cp_global_trees[CPTI_EMPTY_EXCEPT_SPEC]
+#define noexcept_true_spec		cp_global_trees[CPTI_NOEXCEPT_TRUE_SPEC]
+#define noexcept_false_spec		cp_global_trees[CPTI_NOEXCEPT_FALSE_SPEC]
 
 /* If non-NULL, a POINTER_TYPE equivalent to (java::lang::Class*).  */
 #define jclass_node			cp_global_trees[CPTI_JCLASS]
@@ -895,7 +913,7 @@ extern GTY(()) tree cp_global_trees[CPTI_MAX];
 struct GTY(()) saved_scope {
   VEC(cxx_saved_binding,gc) *old_bindings;
   tree old_namespace;
-  tree decl_ns_list;
+  VEC(tree,gc) *decl_ns_list;
   tree class_name;
   tree class_type;
   tree access_specifier;
@@ -1332,7 +1350,7 @@ struct GTY(()) lang_type_ptrmem {
   tree record;
 };
 
-struct GTY(()) lang_type {
+struct GTY((variable_size)) lang_type {
   union lang_type_u
   {
     struct lang_type_header GTY((skip (""))) h;
@@ -1431,6 +1449,11 @@ struct GTY(()) lang_type {
 /* Nonzero means that this type is being defined.  I.e., the left brace
    starting the definition of this type has been seen.  */
 #define TYPE_BEING_DEFINED(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->being_defined)
+
+/* Nonzero means that this type is either complete or being defined, so we
+   can do lookup in it.  */
+#define COMPLETE_OR_OPEN_TYPE_P(NODE) \
+  (COMPLETE_TYPE_P (NODE) || (CLASS_TYPE_P (NODE) && TYPE_BEING_DEFINED (NODE)))
 
 /* Mark bits for repeated base checks.  */
 #define TYPE_MARKED_P(NODE) TREE_LANG_FLAG_6 (TYPE_CHECK (NODE))
@@ -1729,19 +1752,18 @@ struct GTY(()) lang_type {
 /* For FUNCTION_TYPE or METHOD_TYPE, a list of the exceptions that
    this type can raise.  Each TREE_VALUE is a _TYPE.  The TREE_VALUE
    will be NULL_TREE to indicate a throw specification of `()', or
-   no exceptions allowed.  */
+   no exceptions allowed.  For a noexcept specification, TREE_VALUE
+   is NULL_TREE and TREE_PURPOSE is the constant-expression. */
 #define TYPE_RAISES_EXCEPTIONS(NODE) TYPE_LANG_SLOT_1 (NODE)
 
-/* For FUNCTION_TYPE or METHOD_TYPE, return 1 iff it is declared `throw()'.  */
-#define TYPE_NOTHROW_P(NODE) \
-  (TYPE_RAISES_EXCEPTIONS (NODE) \
-   && TREE_VALUE (TYPE_RAISES_EXCEPTIONS (NODE)) == NULL_TREE)
+/* For FUNCTION_TYPE or METHOD_TYPE, return 1 iff it is declared `throw()'
+   or noexcept(true).  */
+#define TYPE_NOTHROW_P(NODE) nothrow_spec_p (TYPE_RAISES_EXCEPTIONS (NODE))
 
 /* For FUNCTION_TYPE or METHOD_TYPE, true if NODE is noexcept.  This is the
    case for things declared noexcept(true) and, with -fnothrow-opt, for
    throw() functions.  */
-#define TYPE_NOEXCEPT_P(NODE) \
-  (flag_nothrow_opt && TYPE_NOTHROW_P(NODE))
+#define TYPE_NOEXCEPT_P(NODE) type_noexcept_p (NODE)
 
 /* The binding level associated with the namespace.  */
 #define NAMESPACE_LEVEL(NODE) \
@@ -1879,7 +1901,7 @@ struct GTY(()) lang_decl_parm {
    union rather than a struct containing a union as its only field, but
    tree.h declares it as a struct.  */
 
-struct GTY(()) lang_decl {
+struct GTY((variable_size)) lang_decl {
   union GTY((desc ("%h.base.selector"))) lang_decl_u {
     struct lang_decl_base GTY ((default)) base;
     struct lang_decl_min GTY((tag ("0"))) min;
@@ -3266,8 +3288,8 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
   do {									\
     if (TYPE_LANG_SPECIFIC (NODE) == NULL)				\
       {									\
-	TYPE_LANG_SPECIFIC (NODE) = GGC_CNEWVAR				\
-	 (struct lang_type, sizeof (struct lang_type_ptrmem));		\
+	TYPE_LANG_SPECIFIC (NODE) = ggc_alloc_cleared_lang_type		\
+	 (sizeof (struct lang_type_ptrmem));				\
 	TYPE_LANG_SPECIFIC (NODE)->u.ptrmem.h.is_lang_type_class = 0;	\
       }									\
     TYPE_LANG_SPECIFIC (NODE)->u.ptrmem.record = (VALUE);		\
@@ -4371,14 +4393,14 @@ typedef enum cp_decl_spec {
 typedef struct cp_decl_specifier_seq {
   /* The number of times each of the keywords has been seen.  */
   unsigned specs[(int) ds_last];
+  /* The location of the primary type. Mainly used for error
+     reporting.  */
+  location_t type_location;
   /* The primary type, if any, given by the decl-specifier-seq.
      Modifiers, like "short", "const", and "unsigned" are not
      reflected here.  This field will be a TYPE, unless a typedef-name
      was used, in which case it will be a TYPE_DECL.  */
   tree type;
-  /* The location of the primary type. Mainly used for error
-     reporting.  */
-  location_t type_location;
   /* The attributes, if any, provided with the specifier sequence.  */
   tree attributes;
   /* If non-NULL, a built-in type that the user attempted to redefine
@@ -4448,12 +4470,12 @@ struct cp_declarator {
   /* Whether we parsed an ellipsis (`...') just before the declarator,
      to indicate this is a parameter pack.  */
   BOOL_BITFIELD parameter_pack_p : 1;
+  location_t id_loc; /* Currently only set for cdk_id and cdk_function. */
   /* Attributes that apply to this declarator.  */
   tree attributes;
   /* For all but cdk_id and cdk_error, the contained declarator.  For
      cdk_id and cdk_error, guaranteed to be NULL.  */
   cp_declarator *declarator;
-  location_t id_loc; /* Currently only set for cdk_id and cdk_function. */
   union {
     /* For identifiers.  */
     struct {
@@ -4746,7 +4768,7 @@ extern tree check_elaborated_type_specifier	(enum tag_types, tree, bool);
 extern void warn_extern_redeclared_static	(tree, tree);
 extern tree cxx_comdat_group			(tree);
 extern bool cp_missing_noreturn_ok_p		(tree);
-extern void initialize_artificial_var		(tree, tree);
+extern void initialize_artificial_var		(tree, VEC(constructor_elt,gc) *);
 extern tree check_var_type			(tree, tree);
 extern tree reshape_init (tree, tree);
 extern tree next_initializable_field (tree);
@@ -4813,7 +4835,7 @@ extern const char *class_key_or_enum_as_string	(tree);
 extern void print_instantiation_context		(void);
 extern void maybe_warn_variadic_templates       (void);
 extern void maybe_warn_cpp0x			(cpp0x_warn_str str);
-extern bool pedwarn_cxx98                       (location_t, int, const char *, ...) ATTRIBUTE_GCC_CXXDIAG(3,4);
+extern bool pedwarn_cxx98                       (location_t, int, const char *, ...) ATTRIBUTE_GCC_DIAG(3,4);
 
 /* in except.c */
 extern void init_exception_processing		(void);
@@ -4823,6 +4845,11 @@ extern tree build_exc_ptr			(void);
 extern tree build_throw				(tree);
 extern int nothrow_libfn_p			(const_tree);
 extern void check_handlers			(tree);
+extern tree finish_noexcept_expr		(tree, tsubst_flags_t);
+extern bool nothrow_spec_p			(const_tree);
+extern bool type_noexcept_p			(const_tree);
+extern bool type_throw_all_p			(const_tree);
+extern tree build_noexcept_spec			(tree, int);
 extern void choose_personality_routine		(enum languages);
 extern tree eh_type_info			(tree);
 extern tree begin_eh_spec_block			(void);
@@ -5256,7 +5283,6 @@ extern bool type_has_nontrivial_copy_init	(const_tree);
 extern bool class_tmpl_impl_spec_p		(const_tree);
 extern int zero_init_p				(const_tree);
 extern tree strip_typedefs			(tree);
-extern bool typedef_variant_p			(tree);
 extern void cp_set_underlying_type		(tree);
 extern tree copy_binfo				(tree, tree, tree,
 						 tree *, int);
@@ -5350,7 +5376,8 @@ extern tree require_complete_type		(tree);
 extern tree complete_type			(tree);
 extern tree complete_type_or_else		(tree, tree);
 extern int type_unknown_p			(const_tree);
-extern bool comp_except_specs			(const_tree, const_tree, bool);
+enum { ce_derived, ce_normal, ce_exact };
+extern bool comp_except_specs			(const_tree, const_tree, int);
 extern bool comptypes				(tree, tree, int);
 extern bool compparms				(const_tree, const_tree);
 extern int comp_cv_qualification		(const_tree, const_tree);
@@ -5374,6 +5401,8 @@ extern tree cp_build_array_ref			(location_t, tree, tree,
 						 tsubst_flags_t);
 extern tree get_member_function_from_ptrfunc	(tree *, tree);
 extern tree cp_build_function_call              (tree, tree, tsubst_flags_t);
+extern tree cp_build_function_call_nary         (tree, tsubst_flags_t, ...)
+						ATTRIBUTE_SENTINEL;
 extern tree cp_build_function_call_vec		(tree, VEC(tree,gc) **,
 						 tsubst_flags_t);
 extern tree build_x_binary_op			(enum tree_code, tree,
@@ -5388,7 +5417,7 @@ extern tree cp_build_unary_op                   (enum tree_code, tree, int,
 extern tree unary_complex_lvalue		(enum tree_code, tree);
 extern tree build_x_conditional_expr		(tree, tree, tree, 
                                                  tsubst_flags_t);
-extern tree build_x_compound_expr_from_list	(tree, const char *);
+extern tree build_x_compound_expr_from_list	(tree, expr_list_kind);
 extern tree build_x_compound_expr_from_vec	(VEC(tree,gc) *, const char *);
 extern tree build_x_compound_expr		(tree, tree, tsubst_flags_t);
 extern tree build_compound_expr                 (location_t, tree, tree);
@@ -5403,7 +5432,7 @@ extern tree build_x_modify_expr			(tree, enum tree_code, tree,
 extern tree cp_build_modify_expr		(tree, enum tree_code, tree,
 						 tsubst_flags_t);
 extern tree convert_for_initialization		(tree, tree, tree, int,
-						 const char *, tree, int,
+						 impl_conv_rhs, tree, int,
                                                  tsubst_flags_t);
 extern int comp_ptr_ttypes			(tree, tree);
 extern bool comp_ptr_ttypes_const		(tree, tree);

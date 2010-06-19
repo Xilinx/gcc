@@ -267,130 +267,6 @@ print_lto_report (void)
 }
 
 
-/* Create a new bitpack.  */
-
-struct bitpack_d *
-bitpack_create (void)
-{
-  return XCNEW (struct bitpack_d);
-}
-
-
-/* Free the memory used by bitpack BP.  */
-
-void
-bitpack_delete (struct bitpack_d *bp)
-{
-  VEC_free (bitpack_word_t, heap, bp->values);
-  free (bp);
-}
-
-
-/* Return an index to the word in bitpack BP that contains the
-   next NBITS.  */
-
-static inline unsigned
-bp_get_next_word (struct bitpack_d *bp, unsigned nbits)
-{
-  unsigned last, ix;
-
-  /* In principle, the next word to use is determined by the
-     number of bits already processed in BP.  */
-  ix = bp->num_bits / BITS_PER_BITPACK_WORD;
-
-  /* All the encoded bit patterns in BP are contiguous, therefore if
-     the next NBITS would straddle over two different words, move the
-     index to the next word and update the number of encoded bits
-     by adding up the hole of unused bits created by this move.  */
-  bp->first_unused_bit %= BITS_PER_BITPACK_WORD;
-  last = bp->first_unused_bit + nbits - 1;
-  if (last >= BITS_PER_BITPACK_WORD)
-    {
-      ix++;
-      bp->num_bits += (BITS_PER_BITPACK_WORD - bp->first_unused_bit);
-      bp->first_unused_bit = 0;
-    }
-
-  return ix;
-}
-
-
-/* Pack NBITS of value VAL into bitpack BP.  */
-
-void
-bp_pack_value (struct bitpack_d *bp, bitpack_word_t val, unsigned nbits)
-{
-  unsigned ix;
-  bitpack_word_t word;
-
-  /* We cannot encode more bits than BITS_PER_BITPACK_WORD.  */
-  gcc_assert (nbits > 0 && nbits <= BITS_PER_BITPACK_WORD);
-
-  /* Compute which word will contain the next NBITS.  */
-  ix = bp_get_next_word (bp, nbits);
-  if (ix >= VEC_length (bitpack_word_t, bp->values))
-    {
-      /* If there is no room left in the last word of the values
-	 array, add a new word.  Additionally, we should only
-	 need to add a single word, since every pack operation cannot
-	 use more bits than fit in a single word.  */
-      gcc_assert (ix < VEC_length (bitpack_word_t, bp->values) + 1);
-      VEC_safe_push (bitpack_word_t, heap, bp->values, 0);
-    }
-
-  /* Grab the last word to pack VAL into.  */
-  word = VEC_index (bitpack_word_t, bp->values, ix);
-
-  /* To fit VAL in WORD, we need to shift VAL to the left to
-     skip the bottom BP->FIRST_UNUSED_BIT bits.  */
-  gcc_assert (BITS_PER_BITPACK_WORD >= bp->first_unused_bit + nbits);
-  val <<= bp->first_unused_bit;
-
-  /* Update WORD with VAL.  */
-  word |= val;
-
-  /* Update BP.  */
-  VEC_replace (bitpack_word_t, bp->values, ix, word);
-  bp->num_bits += nbits;
-  bp->first_unused_bit += nbits;
-}
-
-
-/* Unpack the next NBITS from bitpack BP.  */
-
-bitpack_word_t
-bp_unpack_value (struct bitpack_d *bp, unsigned nbits)
-{
-  bitpack_word_t val, word, mask;
-  unsigned ix;
-
-  /* We cannot decode more bits than BITS_PER_BITPACK_WORD.  */
-  gcc_assert (nbits > 0 && nbits <= BITS_PER_BITPACK_WORD);
-
-  /* Compute which word contains the next NBITS.  */
-  ix = bp_get_next_word (bp, nbits);
-  word = VEC_index (bitpack_word_t, bp->values, ix);
-
-  /* Compute the mask to get NBITS from WORD.  */
-  mask = (nbits == BITS_PER_BITPACK_WORD)
-	 ? (bitpack_word_t) -1
-	 : ((bitpack_word_t) 1 << nbits) - 1;
-
-  /* Shift WORD to the right to skip over the bits already decoded
-     in word.  */
-  word >>= bp->first_unused_bit;
-
-  /* Apply the mask to obtain the requested value.  */
-  val = word & mask;
-
-  /* Update BP->NUM_BITS for the next unpack operation.  */
-  bp->num_bits += nbits;
-  bp->first_unused_bit += nbits;
-
-  return val;
-}
-
-
 /* Check that all the TS_* structures handled by the lto_output_* and
    lto_input_* routines are exactly ALL the structures defined in
    treestruct.def.  */
@@ -657,7 +533,12 @@ lto_record_common_node (tree *nodep, VEC(tree, heap) **common_nodes,
     return;
 
   if (TYPE_P (node))
-    *nodep = node = gimple_register_type (node);
+    {
+      /* Type merging will get confused by the canonical types as they
+	 are set by the middle-end.  */
+      TYPE_CANONICAL (node) = NULL_TREE;
+      *nodep = node = gimple_register_type (node);
+    }
 
   /* Return if node is already seen.  */
   if (pointer_set_insert (seen_nodes, node))

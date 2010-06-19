@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1115,6 +1115,13 @@ package Einfo is
 --       record types and subtypes, private types, task types and subtypes).
 --       Points to a list of associated entities using the Next_Entity field
 --       as a chain pointer with Empty marking the end of the list.
+
+--    First_Exit_Statement (Node8)
+--       Present in E_Loop entity. The exit statements for a loop are chained
+--       (in reverse order of appearence) using this field to point to the
+--       first entry in the chain (last exit statement in the loop). The
+--       entries are chained through the Next_Exit_Statement field of the
+--       N_Exit_Statement node with Empty marking the end of the list.
 
 --    First_Formal (synthesized)
 --       Applies to subprograms and subprogram types, and also in entries
@@ -5063,6 +5070,7 @@ package Einfo is
    --    (plus type attributes)
 
    --  E_Loop
+   --    First_Exit_Statement                (Node8)
    --    Has_Exit                            (Flag47)
    --    Has_Master_Entity                   (Flag21)
    --    Has_Nested_Block_With_Handler       (Flag101)
@@ -5201,7 +5209,7 @@ package Einfo is
    --    Spec_PPC_List                       (Node24)
    --    Interface_Alias                     (Node25)
    --    Static_Initialization               (Node26)   (init_proc only)
-   --    Overridden_Operation                (Node26)
+   --    Overridden_Operation                (Node26)   (never for init proc)
    --    Wrapped_Entity                      (Node27)   (non-generic case only)
    --    Extra_Formals                       (Node28)
    --    Body_Needed_For_SAL                 (Flag40)
@@ -5743,6 +5751,7 @@ package Einfo is
    function Finalization_Chain_Entity           (Id : E) return E;
    function Finalize_Storage_Only               (Id : E) return B;
    function First_Entity                        (Id : E) return E;
+   function First_Exit_Statement                (Id : E) return N;
    function First_Index                         (Id : E) return N;
    function First_Literal                       (Id : E) return E;
    function First_Optional_Parameter            (Id : E) return E;
@@ -6179,6 +6188,13 @@ package Einfo is
    --  value is always known static for discrete types (and no other types can
    --  have an RM_Size value of zero).
 
+   --  In two cases, Known_Static_Esize and Known_Static_RM_Size, there is one
+   --  more consideration, which is that we always return False for generic
+   --  types. Within a template, the size can look known, because of the fake
+   --  size values we put in template types, but they are not really known and
+   --  anyone testing if they are known within the template should get False as
+   --  a result to prevent incorrect assumptions.
+
    function Known_Alignment                       (E : Entity_Id) return B;
    function Known_Component_Bit_Offset            (E : Entity_Id) return B;
    function Known_Component_Size                  (E : Entity_Id) return B;
@@ -6291,6 +6307,7 @@ package Einfo is
    procedure Set_Finalization_Chain_Entity       (Id : E; V : E);
    procedure Set_Finalize_Storage_Only           (Id : E; V : B := True);
    procedure Set_First_Entity                    (Id : E; V : E);
+   procedure Set_First_Exit_Statement            (Id : E; V : N);
    procedure Set_First_Index                     (Id : E; V : N);
    procedure Set_First_Literal                   (Id : E; V : E);
    procedure Set_First_Optional_Parameter        (Id : E; V : E);
@@ -6757,6 +6774,11 @@ package Einfo is
    --  value returned is the N_Attribute_Definition_Clause node, otherwise
    --  Empty is returned.
 
+   function Get_Record_Representation_Clause (E : Entity_Id) return Node_Id;
+   --  Searches the Rep_Item chain for a given entyt E, for a record
+   --  representation clause, and if found, returns it. Returns Empty
+   --  if no such clause is found.
+
    function Get_Rep_Pragma (E : Entity_Id; Nam : Name_Id) return Node_Id;
    --  Searches the Rep_Item chain for the given entity E, for an instance
    --  a representation pragma with the given name Nam. If found then the
@@ -6945,6 +6967,7 @@ package Einfo is
    pragma Inline (Can_Use_Internal_Rep);
    pragma Inline (Finalization_Chain_Entity);
    pragma Inline (First_Entity);
+   pragma Inline (First_Exit_Statement);
    pragma Inline (First_Index);
    pragma Inline (First_Literal);
    pragma Inline (First_Optional_Parameter);
@@ -7376,6 +7399,7 @@ package Einfo is
    pragma Inline (Set_Can_Use_Internal_Rep);
    pragma Inline (Set_Finalization_Chain_Entity);
    pragma Inline (Set_First_Entity);
+   pragma Inline (Set_First_Exit_Statement);
    pragma Inline (Set_First_Index);
    pragma Inline (Set_First_Literal);
    pragma Inline (Set_First_Optional_Parameter);

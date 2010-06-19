@@ -28,7 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "rtl.h"
 #include "tm_p.h"
-#include "emit-rtl.h"
 #include "insn-config.h"
 #include "recog.h"
 #include "flags.h"
@@ -40,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfgloop.h"
 #include "tree-pass.h"
 #include "domwalk.h"
+#include "emit-rtl.h"
 
 
 /* This pass does simple forward propagation and simplification when an
@@ -220,8 +220,8 @@ single_def_use_enter_block (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
   struct df_lr_bb_info *lr_bb_info = df_lr_get_bb_info (bb_index);
   rtx insn;
 
-  bitmap_copy (local_md, md_bb_info->in);
-  bitmap_copy (local_lr, lr_bb_info->in);
+  bitmap_copy (local_md, &md_bb_info->in);
+  bitmap_copy (local_lr, &lr_bb_info->in);
 
   /* Push a marker for the leave_block callback.  */
   VEC_safe_push (df_ref, heap, reg_defs_stack, NULL);

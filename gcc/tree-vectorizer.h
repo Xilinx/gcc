@@ -543,70 +543,6 @@ typedef struct _stmt_vec_info {
 #define PURE_SLP_STMT(S)                  ((S)->slp_type == pure_slp)
 #define STMT_SLP_TYPE(S)                   (S)->slp_type
 
-/* These are some defines for the initial implementation of the vectorizer's
-   cost model.  These will later be target specific hooks.  */
-
-/* Cost of conditional taken branch.  */
-#ifndef TARG_COND_TAKEN_BRANCH_COST
-#define TARG_COND_TAKEN_BRANCH_COST        3
-#endif
-
-/* Cost of conditional not taken branch.  */
-#ifndef TARG_COND_NOT_TAKEN_BRANCH_COST
-#define TARG_COND_NOT_TAKEN_BRANCH_COST        1
-#endif
-
-/* Cost of any scalar operation, excluding load and store.  */
-#ifndef TARG_SCALAR_STMT_COST
-#define TARG_SCALAR_STMT_COST           1
-#endif
-
-/* Cost of scalar load.  */
-#ifndef TARG_SCALAR_LOAD_COST
-#define TARG_SCALAR_LOAD_COST           1
-#endif
-
-/* Cost of scalar store.  */
-#ifndef TARG_SCALAR_STORE_COST
-#define TARG_SCALAR_STORE_COST           1
-#endif
-
-/* Cost of any vector operation, excluding load, store or vector to scalar
-   operation.  */
-#ifndef TARG_VEC_STMT_COST
-#define TARG_VEC_STMT_COST           1
-#endif
-
-/* Cost of vector to scalar operation.  */
-#ifndef TARG_VEC_TO_SCALAR_COST
-#define TARG_VEC_TO_SCALAR_COST      1
-#endif
-
-/* Cost of scalar to vector operation.  */
-#ifndef TARG_SCALAR_TO_VEC_COST
-#define TARG_SCALAR_TO_VEC_COST      1
-#endif
-
-/* Cost of aligned vector load.  */
-#ifndef TARG_VEC_LOAD_COST
-#define TARG_VEC_LOAD_COST           1
-#endif
-
-/* Cost of misaligned vector load.  */
-#ifndef TARG_VEC_UNALIGNED_LOAD_COST
-#define TARG_VEC_UNALIGNED_LOAD_COST 2
-#endif
-
-/* Cost of vector store.  */
-#ifndef TARG_VEC_STORE_COST
-#define TARG_VEC_STORE_COST          1
-#endif
-
-/* Cost of vector permutation.  */
-#ifndef TARG_VEC_PERMUTE_COST
-#define TARG_VEC_PERMUTE_COST          1
-#endif
-
 /* The maximum number of intermediate steps required in multi-step type
    conversion.  */
 #define MAX_INTERM_CVT_STEPS         3
@@ -631,7 +567,6 @@ vinfo_for_stmt (gimple stmt)
   if (uid == 0)
     return NULL;
 
-  gcc_assert (uid <= VEC_length (vec_void_p, stmt_vec_info_vec));
   return (stmt_vec_info) VEC_index (vec_void_p, stmt_vec_info_vec, uid - 1);
 }
 
@@ -641,7 +576,7 @@ set_vinfo_for_stmt (gimple stmt, stmt_vec_info info)
   unsigned int uid = gimple_uid (stmt);
   if (uid == 0)
     {
-      gcc_assert (info);
+      gcc_checking_assert (info);
       uid = VEC_length (vec_void_p, stmt_vec_info_vec) + 1;
       gimple_set_uid (stmt, uid);
       VEC_safe_push (vec_void_p, heap, stmt_vec_info_vec, (vec_void_p) info);
@@ -667,8 +602,8 @@ get_earlier_stmt (gimple stmt1, gimple stmt2)
   if (uid1 == 0 || uid2 == 0)
     return NULL;
 
-  gcc_assert (uid1 <= VEC_length (vec_void_p, stmt_vec_info_vec));
-  gcc_assert (uid2 <= VEC_length (vec_void_p, stmt_vec_info_vec));
+  gcc_checking_assert (uid1 <= VEC_length (vec_void_p, stmt_vec_info_vec)
+		       && uid2 <= VEC_length (vec_void_p, stmt_vec_info_vec));
 
   if (uid1 < uid2)
     return stmt1;
@@ -696,7 +631,7 @@ is_loop_header_bb_p (basic_block bb)
 {
   if (bb == (bb->loop_father)->header)
     return true;
-  gcc_assert (EDGE_COUNT (bb->preds) == 1);
+  gcc_checking_assert (EDGE_COUNT (bb->preds) == 1);
   return false;
 }
 

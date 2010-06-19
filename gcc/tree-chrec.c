@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "ggc.h"
 #include "tree.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "cfgloop.h"
 #include "tree-flow.h"
@@ -1231,13 +1230,15 @@ convert_affine_scev (struct loop *loop, tree type,
 }
 
 
-/* Convert CHREC for the right hand side of a CREC.
+/* Convert CHREC for the right hand side of a CHREC.
    The increment for a pointer type is always sizetype.  */
+
 tree
 chrec_convert_rhs (tree type, tree chrec, gimple at_stmt)
 {
   if (POINTER_TYPE_P (type))
-   type = sizetype;
+    type = sizetype;
+
   return chrec_convert (type, chrec, at_stmt);
 }
 

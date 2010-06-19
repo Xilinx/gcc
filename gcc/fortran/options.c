@@ -719,7 +719,7 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_fwhole_file:
-      gfc_option.flag_whole_file = 1;
+      gfc_option.flag_whole_file = value;
       break;
 
     case OPT_fsecond_underscore:
@@ -902,7 +902,7 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_fshort_enums:
-      flag_short_enums = 1;
+      /* Handled in language-independent code.  */
       break;
 
     case OPT_fconvert_little_endian:
@@ -938,7 +938,7 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_frecursive:
-      gfc_option.flag_recursive = 1;
+      gfc_option.flag_recursive = value;
       break;
 
     case OPT_falign_commons:

@@ -117,7 +117,9 @@ varpool_get_node (tree decl)
     return NULL;
   key.decl = decl;
   slot = (struct varpool_node **)
-    htab_find_slot (varpool_hash, &key, INSERT);
+    htab_find_slot (varpool_hash, &key, NO_INSERT);
+  if (!slot)
+    return NULL;
   return *slot;
 }
 
@@ -137,7 +139,7 @@ varpool_node (tree decl)
     htab_find_slot (varpool_hash, &key, INSERT);
   if (*slot)
     return *slot;
-  node = GGC_CNEW (struct varpool_node);
+  node = ggc_alloc_cleared_varpool_node ();
   node->decl = decl;
   node->order = cgraph_order++;
   node->next = varpool_nodes;
@@ -261,7 +263,7 @@ dump_varpool (FILE *f)
 
 /* Dump the variable pool to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_varpool (void)
 {
   dump_varpool (stderr);
@@ -649,7 +651,7 @@ varpool_extra_name_alias (tree alias, tree decl)
   if (*slot)
     return false;
 
-  alias_node = GGC_CNEW (struct varpool_node);
+  alias_node = ggc_alloc_cleared_varpool_node ();
   alias_node->decl = alias;
   alias_node->alias = 1;
   alias_node->extra_name = decl_node;

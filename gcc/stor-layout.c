@@ -342,7 +342,7 @@ self_referential_size (tree size)
   VEC_safe_push (tree, gc, size_functions, fndecl);
 
   /* Replace the original expression with a call to the size function.  */
-  return build_function_call_expr (input_location, fndecl, arg_list);
+  return build_function_call_expr (UNKNOWN_LOCATION, fndecl, arg_list);
 }
 
 /* Take, queue and compile all the size functions.  It is essential that
@@ -369,10 +369,6 @@ finalize_size_functions (void)
   VEC_free (tree, gc, size_functions);
 }
 
-#ifndef MAX_FIXED_MODE_SIZE
-#define MAX_FIXED_MODE_SIZE GET_MODE_BITSIZE (DImode)
-#endif
-
 /* Return the machine mode to use for a nonscalar of SIZE bits.  The
    mode must be in class MCLASS, and have exactly that many value bits;
    it may have padding as well.  If LIMIT is nonzero, modes of wider
@@ -747,7 +743,7 @@ start_record_layout (tree t)
   rli->offset = size_zero_node;
   rli->bitpos = bitsize_zero_node;
   rli->prev_field = 0;
-  rli->pending_statics = 0;
+  rli->pending_statics = NULL;
   rli->packed_maybe_necessary = 0;
   rli->remaining_in_alignment = 0;
 
@@ -813,7 +809,7 @@ normalize_offset (tree *poffset, tree *pbitpos, unsigned int off_align)
 
 /* Print debugging information about the information in RLI.  */
 
-void
+DEBUG_FUNCTION void
 debug_rli (record_layout_info rli)
 {
   print_node_brief (stderr, "type", rli->t, 0);
@@ -831,10 +827,10 @@ debug_rli (record_layout_info rli)
   if (rli->packed_maybe_necessary)
     fprintf (stderr, "packed may be necessary\n");
 
-  if (rli->pending_statics)
+  if (!VEC_empty (tree, rli->pending_statics))
     {
       fprintf (stderr, "pending statics:\n");
-      debug_tree (rli->pending_statics);
+      debug_vec_tree (rli->pending_statics);
     }
 }
 
@@ -1045,8 +1041,7 @@ place_field (record_layout_info rli, tree field)
      it *after* the record is laid out.  */
   if (TREE_CODE (field) == VAR_DECL)
     {
-      rli->pending_statics = tree_cons (NULL_TREE, field,
-					rli->pending_statics);
+      VEC_safe_push (tree, gc, rli->pending_statics, field);
       return;
     }
 
@@ -1722,15 +1717,15 @@ finish_record_layout (record_layout_info rli, int free_p)
 
   /* Lay out any static members.  This is done now because their type
      may use the record's type.  */
-  while (rli->pending_statics)
-    {
-      layout_decl (TREE_VALUE (rli->pending_statics), 0);
-      rli->pending_statics = TREE_CHAIN (rli->pending_statics);
-    }
+  while (!VEC_empty (tree, rli->pending_statics))
+    layout_decl (VEC_pop (tree, rli->pending_statics), 0);
 
   /* Clean up.  */
   if (free_p)
-    free (rli);
+    {
+      VEC_free (tree, gc, rli->pending_statics);
+      free (rli);
+    }
 }
 
 

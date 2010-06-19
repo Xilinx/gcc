@@ -1,3 +1,27 @@
+2010-06-10  Peter O'Gorman  <peter@pogma.com>
+
+	* configure.ac: Set SYSTEMSPEC so that -allow_stack_execute is not
+	passed to the linker for -dynamiclib or -bundle on darwin.
+	* configure: Regenerate. 
+
+2010-06-09  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR bootstrap/43170
+	* configure: Regenerate.
+
+2010-06-03  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2010-06-03  Matthias Klose  <doko@ubuntu.com>
+
+	* libtool-version: Bump soversion.
+
+2010-05-29  Mike Stump  <mikestump@comcast.net>
+
+	* configure.ac: Add multilib support for gmp.  Proper -I and -L
+	flags for gmp are added.
+
 2010-05-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* configure.ac: Redirect grep stdout, stderr to /dev/null instead

@@ -31,7 +31,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "tree-dump.h"
 #include "timevar.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "toplev.h"
@@ -3747,7 +3746,7 @@ dump_value_range (FILE *file, value_range_t *vr)
 
 /* Dump value range VR to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_value_range (value_range_t *vr)
 {
   dump_value_range (stderr, vr);
@@ -3779,7 +3778,7 @@ dump_all_value_ranges (FILE *file)
 
 /* Dump all value ranges to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_all_value_ranges (void)
 {
   dump_all_value_ranges (stderr);
@@ -3935,7 +3934,7 @@ dump_asserts_for (FILE *file, tree name)
 
 /* Dump all the registered assertions for NAME to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_asserts_for (tree name)
 {
   dump_asserts_for (stderr, name);
@@ -3959,7 +3958,7 @@ dump_all_asserts (FILE *file)
 
 /* Dump all the registered assertions for all the names to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_all_asserts (void)
 {
   dump_all_asserts (stderr);
@@ -7344,7 +7343,7 @@ vrp_finalize (void)
       single_val_range = NULL;
     }
 
-  substitute_and_fold (single_val_range, vrp_fold_stmt);
+  substitute_and_fold (single_val_range, vrp_fold_stmt, false);
 
   if (warn_array_bounds)
     check_all_array_refs ();

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -398,9 +398,7 @@ package body Sem_Util is
          end loop;
       end if;
 
-      Subt :=
-        Make_Defining_Identifier (Loc,
-          Chars => New_Internal_Name ('S'));
+      Subt := Make_Temporary (Loc, 'S');
       Set_Is_Internal (Subt);
 
       Decl :=
@@ -543,8 +541,8 @@ package body Sem_Util is
                           and then Is_Constrained (Root_Type (T)))
            and then not Has_Unknown_Discriminants (T)
          then
-            --  If the type of the dereference is already constrained, it
-            --  is an actual subtype.
+            --  If the type of the dereference is already constrained, it is an
+            --  actual subtype.
 
             if Is_Array_Type (Etype (N))
               and then Is_Constrained (Etype (N))
@@ -624,9 +622,7 @@ package body Sem_Util is
          return Empty;
       end if;
 
-      Subt :=
-        Make_Defining_Identifier (Loc,
-          Chars => New_Internal_Name ('S'));
+      Subt := Make_Temporary (Loc, 'S');
       Set_Is_Internal (Subt);
 
       Decl :=
@@ -666,10 +662,7 @@ package body Sem_Util is
       end if;
 
       declare
-         Act : constant Entity_Id :=
-                 Make_Defining_Identifier (Loc,
-                   Chars => New_Internal_Name ('S'));
-
+         Act         : constant Entity_Id := Make_Temporary (Loc, 'S');
          Constraints : constant List_Id := New_List;
          Decl        : Node_Id;
 
@@ -1677,14 +1670,37 @@ package body Sem_Util is
                  and then (not Formal_Derived
                             or else Present (Alias (Id)))
                then
-                  Append_Elmt (Id, Op_List);
+                  --  In the special case of an equality operator aliased to
+                  --  an overriding dispatching equality belonging to the same
+                  --  type, we don't include it in the list of primitives.
+                  --  This avoids inheriting multiple equality operators when
+                  --  deriving from untagged private types whose full type is
+                  --  tagged, which can otherwise cause ambiguities. Note that
+                  --  this should only happen for this kind of untagged parent
+                  --  type, since normally dispatching operations are inherited
+                  --  using the type's Primitive_Operations list.
+
+                  if Chars (Id) = Name_Op_Eq
+                    and then Is_Dispatching_Operation (Id)
+                    and then Present (Alias (Id))
+                    and then Is_Overriding_Operation (Alias (Id))
+                    and then Base_Type (Etype (First_Entity (Id))) =
+                               Base_Type (Etype (First_Entity (Alias (Id))))
+                  then
+                     null;
+
+                  --  Include the subprogram in the list of primitives
+
+                  else
+                     Append_Elmt (Id, Op_List);
+                  end if;
                end if;
             end if;
 
             Next_Entity (Id);
 
-            --  For a type declared in System, some of its operations
-            --  may appear in  the target-specific extension to System.
+            --  For a type declared in System, some of its operations may
+            --  appear in the target-specific extension to System.
 
             if No (Id)
               and then Chars (B_Scope) = Name_System
@@ -2080,9 +2096,7 @@ package body Sem_Util is
                --  so we can continue semantic analysis
 
                elsif Nam = Error then
-                  Err :=
-                    Make_Defining_Identifier (Sloc (N),
-                      Chars => New_Internal_Name ('T'));
+                  Err := Make_Temporary (Sloc (N), 'T');
                   Set_Defining_Unit_Name (N, Err);
 
                   return Err;
@@ -2558,7 +2572,12 @@ package body Sem_Util is
       elsif Ekind (Dynamic_Scope) = E_Task_Type then
          return Get_Task_Body_Procedure (Dynamic_Scope);
 
-      elsif Convention (Dynamic_Scope) = Convention_Protected then
+      --  No body is generated if the protected operation is eliminated
+
+      elsif Convention (Dynamic_Scope) = Convention_Protected
+        and then not Is_Eliminated (Dynamic_Scope)
+        and then Present (Protected_Body_Subprogram (Dynamic_Scope))
+      then
          return Protected_Body_Subprogram (Dynamic_Scope);
 
       else
@@ -2817,9 +2836,7 @@ package body Sem_Util is
                --  Avoid cascaded messages with duplicate components in
                --  derived types.
 
-               if Ekind (E) = E_Component
-                 or else Ekind (E) = E_Discriminant
-               then
+               if Ekind_In (E, E_Component, E_Discriminant) then
                   return;
                end if;
             end if;
@@ -2854,9 +2871,7 @@ package body Sem_Util is
       --  midst of inheriting components in a derived record definition.
       --  Preserve their Ekind and Etype.
 
-      if Ekind (Def_Id) = E_Discriminant
-        or else Ekind (Def_Id) = E_Component
-      then
+      if Ekind_In (Def_Id, E_Discriminant, E_Component) then
          null;
 
       --  If a type is already set, leave it alone (happens whey a type
@@ -2876,8 +2891,7 @@ package body Sem_Util is
       --  Inherited discriminants and components in derived record types are
       --  immediately visible. Itypes are not.
 
-      if Ekind (Def_Id) = E_Discriminant
-        or else Ekind (Def_Id) = E_Component
+      if Ekind_In (Def_Id, E_Discriminant, E_Component)
         or else (No (Corresponding_Remote_Type (Def_Id))
                  and then not Is_Itype (Def_Id))
       then
@@ -4848,10 +4862,8 @@ package body Sem_Util is
 
             --  We are interested only in components and discriminants
 
-            if Ekind (Ent) = E_Component
-                or else
-               Ekind (Ent) = E_Discriminant
-            then
+            if Ekind_In (Ent, E_Component, E_Discriminant) then
+
                --  Get default expression if any. If there is no declaration
                --  node, it means we have an internal entity. The parent and
                --  tag fields are examples of such entities. For these cases,
@@ -5700,7 +5712,14 @@ package body Sem_Util is
    --  Start of processing for Is_Atomic_Object
 
    begin
-      if Is_Atomic (Etype (N))
+      --  Predicate is not relevant to subprograms
+
+      if Is_Entity_Name (N)
+        and then Is_Overloadable (Entity (N))
+      then
+         return False;
+
+      elsif Is_Atomic (Etype (N))
         or else (Is_Entity_Name (N) and then Is_Atomic (Entity (N)))
       then
          return True;
@@ -6376,10 +6395,7 @@ package body Sem_Util is
             Ent : constant Entity_Id := Entity (Expr);
             Sub : constant Entity_Id := Enclosing_Subprogram (Ent);
          begin
-            if Ekind (Ent) /= E_Variable
-                 and then
-               Ekind (Ent) /= E_In_Out_Parameter
-            then
+            if not Ekind_In (Ent, E_Variable, E_In_Out_Parameter) then
                return False;
             else
                return Present (Sub) and then Sub = Current_Subprogram;
@@ -7044,6 +7060,18 @@ package body Sem_Util is
         and then Chars (T) /= No_Name
         and then Get_Name_String (Chars (T)) = "valuetype";
    end Is_Value_Type;
+
+   ---------------------
+   -- Is_VMS_Operator --
+   ---------------------
+
+   function Is_VMS_Operator (Op : Entity_Id) return Boolean is
+   begin
+      return Ekind (Op) = E_Function
+        and then Is_Intrinsic_Subprogram (Op)
+        and then Chars (Scope (Scope (Op))) = Name_System
+        and then OpenVMS_On_Target;
+   end Is_VMS_Operator;
 
    -----------------
    -- Is_Delegate --
@@ -8647,9 +8675,7 @@ package body Sem_Util is
          --  If a record subtype is simply copied, the entity list will be
          --  shared. Thus cloned_Subtype must be set to indicate the sharing.
 
-         if Ekind (Old_Itype) = E_Record_Subtype
-           or else Ekind (Old_Itype) = E_Class_Wide_Subtype
-         then
+         if Ekind_In (Old_Itype, E_Record_Subtype, E_Class_Wide_Subtype) then
             Set_Cloned_Subtype (New_Itype, Old_Itype);
          end if;
 
@@ -8852,8 +8878,7 @@ package body Sem_Util is
       Sloc_Value : Source_Ptr;
       Id_Char    : Character) return Entity_Id
    is
-      N : constant Entity_Id :=
-            Make_Defining_Identifier (Sloc_Value, New_Internal_Name (Id_Char));
+      N : constant Entity_Id := Make_Temporary (Sloc_Value, Id_Char);
 
    begin
       Set_Ekind          (N, Kind);
@@ -9468,15 +9493,112 @@ package body Sem_Util is
       then
          return Object_Access_Level (Expression (Obj));
 
-      --  Function results are objects, so we get either the access level of
-      --  the function or, in the case of an indirect call, the level of the
-      --  access-to-subprogram type.
-
       elsif Nkind (Obj) = N_Function_Call then
-         if Is_Entity_Name (Name (Obj)) then
-            return Subprogram_Access_Level (Entity (Name (Obj)));
+
+         --  Function results are objects, so we get either the access level of
+         --  the function or, in the case of an indirect call, the level of the
+         --  access-to-subprogram type. (This code is used for Ada 95, but it
+         --  looks wrong, because it seems that we should be checking the level
+         --  of the call itself, even for Ada 95. However, using the Ada 2005
+         --  version of the code causes regressions in several tests that are
+         --  compiled with -gnat95. ???)
+
+         if Ada_Version < Ada_05 then
+            if Is_Entity_Name (Name (Obj)) then
+               return Subprogram_Access_Level (Entity (Name (Obj)));
+            else
+               return Type_Access_Level (Etype (Prefix (Name (Obj))));
+            end if;
+
+         --  For Ada 2005, the level of the result object of a function call is
+         --  defined to be the level of the call's innermost enclosing master.
+         --  We determine that by querying the depth of the innermost enclosing
+         --  dynamic scope.
+
          else
-            return Type_Access_Level (Etype (Prefix (Name (Obj))));
+            Return_Master_Scope_Depth_Of_Call : declare
+
+               function Innermost_Master_Scope_Depth
+                 (N : Node_Id) return Uint;
+               --  Returns the scope depth of the given node's innermost
+               --  enclosing dynamic scope (effectively the accessibility
+               --  level of the innermost enclosing master).
+
+               ----------------------------------
+               -- Innermost_Master_Scope_Depth --
+               ----------------------------------
+
+               function Innermost_Master_Scope_Depth
+                 (N : Node_Id) return Uint
+               is
+                  Node_Par : Node_Id := Parent (N);
+
+               begin
+                  --  Locate the nearest enclosing node (by traversing Parents)
+                  --  that Defining_Entity can be applied to, and return the
+                  --  depth of that entity's nearest enclosing dynamic scope.
+
+                  while Present (Node_Par) loop
+                     case Nkind (Node_Par) is
+                        when N_Component_Declaration           |
+                             N_Entry_Declaration               |
+                             N_Formal_Object_Declaration       |
+                             N_Formal_Type_Declaration         |
+                             N_Full_Type_Declaration           |
+                             N_Incomplete_Type_Declaration     |
+                             N_Loop_Parameter_Specification    |
+                             N_Object_Declaration              |
+                             N_Protected_Type_Declaration      |
+                             N_Private_Extension_Declaration   |
+                             N_Private_Type_Declaration        |
+                             N_Subtype_Declaration             |
+                             N_Function_Specification          |
+                             N_Procedure_Specification         |
+                             N_Task_Type_Declaration           |
+                             N_Body_Stub                       |
+                             N_Generic_Instantiation           |
+                             N_Proper_Body                     |
+                             N_Implicit_Label_Declaration      |
+                             N_Package_Declaration             |
+                             N_Single_Task_Declaration         |
+                             N_Subprogram_Declaration          |
+                             N_Generic_Declaration             |
+                             N_Renaming_Declaration            |
+                             N_Block_Statement                 |
+                             N_Formal_Subprogram_Declaration   |
+                             N_Abstract_Subprogram_Declaration |
+                             N_Entry_Body                      |
+                             N_Exception_Declaration           |
+                             N_Formal_Package_Declaration      |
+                             N_Number_Declaration              |
+                             N_Package_Specification           |
+                             N_Parameter_Specification         |
+                             N_Single_Protected_Declaration    |
+                             N_Subunit                         =>
+
+                           return Scope_Depth
+                                    (Nearest_Dynamic_Scope
+                                       (Defining_Entity (Node_Par)));
+
+                        when others =>
+                           null;
+                     end case;
+
+                     Node_Par := Parent (Node_Par);
+                  end loop;
+
+                  pragma Assert (False);
+
+                  --  Should never reach the following return
+
+                  return Scope_Depth (Current_Scope) + 1;
+               end Innermost_Master_Scope_Depth;
+
+            --  Start of processing for Return_Master_Scope_Depth_Of_Call
+
+            begin
+               return Innermost_Master_Scope_Depth (Obj);
+            end Return_Master_Scope_Depth_Of_Call;
          end if;
 
       --  For convenience we handle qualified expressions, even though
@@ -10140,12 +10262,7 @@ package body Sem_Util is
          while R_Scope /= Standard_Standard loop
             exit when R_Scope = E_Scope;
 
-            if Ekind (R_Scope) /= E_Package
-                  and then
-                Ekind (R_Scope) /= E_Block
-                  and then
-                Ekind (R_Scope) /= E_Loop
-            then
+            if not Ekind_In (R_Scope, E_Package, E_Block, E_Loop) then
                return False;
             else
                R_Scope := Scope (R_Scope);
@@ -10488,6 +10605,9 @@ package body Sem_Util is
                   Next_Entity (Ent);
                end loop;
             end;
+
+            --  For a class wide subtype, we also need debug information
+            --  for the equivalent type.
 
             if Ekind (T) = E_Class_Wide_Subtype then
                Set_Debug_Info_Needed_If_Not_Set (Equivalent_Type (T));
@@ -11218,8 +11338,10 @@ package body Sem_Util is
         and then Covers
           (Designated_Type (Expec_Type), Designated_Type (Found_Type))
       then
-         Error_Msg_N ("result must be general access type!", Expr);
-         Error_Msg_NE ("add ALL to }!", Expr, Expec_Type);
+         Error_Msg_N -- CODEFIX
+           ("result must be general access type!", Expr);
+         Error_Msg_NE -- CODEFIX
+           ("add ALL to }!", Expr, Expec_Type);
 
       --  Another special check, if the expected type is an integer type,
       --  but the expression is of type System.Address, and the parent is
@@ -11266,7 +11388,8 @@ package body Sem_Util is
             if From_With_Type (Found_Type) then
                Error_Msg_NE ("\\found incomplete}!", Expr, Found_Type);
                Error_Msg_Qual_Level := 99;
-               Error_Msg_NE ("\\missing `WITH &;", Expr, Scope (Found_Type));
+               Error_Msg_NE -- CODEFIX
+                 ("\\missing `WITH &;", Expr, Scope (Found_Type));
                Error_Msg_Qual_Level := 0;
             else
                Error_Msg_NE ("found}!", Expr, Found_Type);

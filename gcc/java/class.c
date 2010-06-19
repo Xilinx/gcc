@@ -763,13 +763,12 @@ add_method_1 (tree this_class, int access_flags, tree name, tree function_type)
   DECL_CONTEXT (fndecl) = this_class;
 
   DECL_LANG_SPECIFIC (fndecl)
-    = GGC_CNEW (struct lang_decl);
+    = ggc_alloc_cleared_lang_decl(sizeof (struct lang_decl));
   DECL_LANG_SPECIFIC (fndecl)->desc = LANG_DECL_FUNC;
 
   /* Initialize the static initializer test table.  */
-  
-  DECL_FUNCTION_INIT_TEST_TABLE (fndecl) = 
-    java_treetreehash_create (10, 1);
+
+  DECL_FUNCTION_INIT_TEST_TABLE (fndecl) = java_treetreehash_create (10);
 
   /* Initialize the initialized (static) class table. */
   if (access_flags & ACC_STATIC)
@@ -1720,11 +1719,11 @@ supers_all_compiled (tree type)
 
 static void
 add_table_and_syms (VEC(constructor_elt,gc) **v,
-                    tree method_slot,
+                    VEC(method_entry,gc) *methods,
                     const char *table_name, tree table_slot, tree table_type,
                     const char *syms_name, tree syms_slot)
 {
-  if (method_slot == NULL_TREE)
+  if (methods == NULL)
     {
       PUSH_FIELD_VALUE (*v, table_name, null_pointer_node);
       PUSH_FIELD_VALUE (*v, syms_name, null_pointer_node);
@@ -2886,31 +2885,27 @@ build_symbol_entry (tree decl, tree special)
 /* Emit a symbol table: used by -findirect-dispatch.  */
 
 tree
-emit_symbol_table (tree name, tree the_table, tree decl_list,
+emit_symbol_table (tree name, tree the_table,
+		   VEC(method_entry,gc) *decl_table,
                    tree the_syms_decl, tree the_array_element_type,
 		   int element_size)
 {
-  tree method_list, method, table, list, null_symbol;
+  tree table, list, null_symbol;
   tree table_size, the_array_type;
-  int index;
+  unsigned index;
+  method_entry *e;
   
   /* Only emit a table if this translation unit actually made any
      references via it. */
-  if (decl_list == NULL_TREE)
+  if (decl_table == NULL)
     return the_table;
 
   /* Build a list of _Jv_MethodSymbols for each entry in otable_methods. */
-  index = 0;
-  method_list = decl_list;
-  list = NULL_TREE;  
-  while (method_list != NULL_TREE)
-    {
-      tree special = TREE_PURPOSE (method_list);
-      method = TREE_VALUE (method_list);
-      list = tree_cons (NULL_TREE, build_symbol_entry (method, special), list);
-      method_list = TREE_CHAIN (method_list);
-      index++;
-    }
+  list = NULL_TREE;
+  for (index = 0; VEC_iterate (method_entry, decl_table, index, e); index++)
+    list = tree_cons (NULL_TREE,
+		      build_symbol_entry (e->method, e->special),
+		      list);
 
   /* Terminate the list with a "null" entry. */
   null_symbol = build_symbol_table_entry (null_pointer_node,
@@ -3148,7 +3143,7 @@ java_treetreehash_new (htab_t ht, tree t)
   e = htab_find_slot_with_hash (ht, t, hv, INSERT);
   if (*e == NULL)
     {
-      tthe = (struct treetreehash_entry *) (*ht->alloc_f) (1, sizeof (*tthe));
+      tthe = ggc_alloc_cleared_treetreehash_entry ();
       tthe->key = t;
       *e = tthe;
     }
@@ -3158,14 +3153,10 @@ java_treetreehash_new (htab_t ht, tree t)
 }
 
 htab_t
-java_treetreehash_create (size_t size, int gc)
+java_treetreehash_create (size_t size)
 {
-  if (gc)
-    return htab_create_ggc (size, java_treetreehash_hash,
-			    java_treetreehash_compare, NULL);
-  else
-    return htab_create_alloc (size, java_treetreehash_hash,
-			      java_treetreehash_compare, free, xcalloc, free);
+  return htab_create_ggc (size, java_treetreehash_hash,
+			  java_treetreehash_compare, NULL);
 }
 
 /* Break down qualified IDENTIFIER into package and class-name components.

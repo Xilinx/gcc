@@ -30,12 +30,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "output.h"
 #include "timevar.h"
-#include "expr.h"
 #include "ggc.h"
 #include "langhooks.h"
 #include "flags.h"
 #include "function.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "tree-dump.h"
 #include "gimple.h"
@@ -136,7 +134,7 @@ create_var_ann (tree t)
 	      || TREE_CODE (t) == PARM_DECL
 	      || TREE_CODE (t) == RESULT_DECL);
 
-  ann = GGC_CNEW (struct var_ann_d);
+  ann = ggc_alloc_cleared_var_ann_d ();
   *DECL_VAR_ANN_PTR (t) = ann;
 
   return ann;
@@ -232,7 +230,7 @@ dump_referenced_vars (FILE *file)
 
 /* Dump the list of all the referenced variables to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_referenced_vars (void)
 {
   dump_referenced_vars (stderr);
@@ -305,7 +303,7 @@ dump_variable (FILE *file, tree var)
 
 /* Dump variable VAR and its may-aliases to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_variable (tree var)
 {
   dump_variable (stderr, var);
@@ -392,7 +390,7 @@ dump_dfa_stats (FILE *file)
 
 /* Dump DFA statistics on stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_dfa_stats (void)
 {
   dump_dfa_stats (stderr);

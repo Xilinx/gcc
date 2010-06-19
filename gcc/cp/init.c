@@ -526,7 +526,7 @@ perform_member_init (tree member, tree init)
       else if (TREE_CODE (init) == TREE_LIST)
 	/* There was an explicit member initialization.  Do some work
 	   in that case.  */
-	init = build_x_compound_expr_from_list (init, "member initializer");
+	init = build_x_compound_expr_from_list (init, ELK_MEM_INIT);
 
       if (init)
 	finish_expr_stmt (cp_build_modify_expr (decl, INIT_EXPR, init,
@@ -1308,6 +1308,18 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
   tree rval;
   VEC(tree,gc) *parms;
 
+  if (init && BRACE_ENCLOSED_INITIALIZER_P (init)
+      && CP_AGGREGATE_TYPE_P (type))
+    {
+      /* A brace-enclosed initializer for an aggregate.  In C++0x this can
+	 happen for direct-initialization, too.  */
+      init = digest_init (type, init);
+      init = build2 (INIT_EXPR, TREE_TYPE (exp), exp, init);
+      TREE_SIDE_EFFECTS (init) = 1;
+      finish_expr_stmt (init);
+      return;
+    }
+
   if (init && TREE_CODE (init) != TREE_LIST
       && (flags & LOOKUP_ONLYCONVERTING))
     {
@@ -1320,12 +1332,6 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
 	   to run a new constructor; and catching an exception, where we
 	   have already built up the constructor call so we could wrap it
 	   in an exception region.  */;
-      else if (BRACE_ENCLOSED_INITIALIZER_P (init)
-	       && CP_AGGREGATE_TYPE_P (type))
-	{
-	  /* A brace-enclosed initializer for an aggregate.  */
-	  init = digest_init (type, init);
-	}
       else
 	init = ocp_convert (type, init, CONV_IMPLICIT|CONV_FORCE_TEMP, flags);
 
@@ -1514,8 +1520,7 @@ build_offset_ref (tree type, tree member, bool address_p)
   /* Callers should call mark_used before this point.  */
   gcc_assert (!DECL_P (member) || TREE_USED (member));
 
-  if (!COMPLETE_TYPE_P (complete_type (type))
-      && !TYPE_BEING_DEFINED (type))
+  if (!COMPLETE_OR_OPEN_TYPE_P (complete_type (type)))
     {
       error ("incomplete type %qT does not have member %qD", type, member);
       return error_mark_node;

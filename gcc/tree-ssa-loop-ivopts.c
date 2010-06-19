@@ -70,14 +70,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "basic-block.h"
 #include "output.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "timevar.h"
 #include "cfgloop.h"
-#include "expr.h"
 #include "tree-pass.h"
 #include "ggc.h"
 #include "insn-config.h"
@@ -91,6 +89,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "tree-affine.h"
 #include "target.h"
+
+/* FIXME: Expressions are expanded to RTL in this pass to determine the
+   cost of different addressing modes.  This should be moved to a TBD
+   interface between the GIMPLE and RTL worlds.  */
+#include "expr.h"
 
 /* The infinite cost.  */
 #define INFTY 10000000
@@ -680,6 +683,11 @@ contains_abnormal_ssa_name_p (tree expr)
     return !for_each_index (&TREE_OPERAND (expr, 0),
 			    idx_contains_abnormal_ssa_name_p,
 			    NULL);
+
+  if (code == COND_EXPR)
+    return contains_abnormal_ssa_name_p (TREE_OPERAND (expr, 0))
+      || contains_abnormal_ssa_name_p (TREE_OPERAND (expr, 1))
+      || contains_abnormal_ssa_name_p (TREE_OPERAND (expr, 2));
 
   switch (codeclass)
     {
@@ -2928,6 +2936,20 @@ get_computation (struct loop *loop, struct iv_use *use, struct iv_cand *cand)
   return get_computation_at (loop, use, cand, use->stmt);
 }
 
+/* Adjust the cost COST for being in loop setup rather than loop body.
+   If we're optimizing for space, the loop setup overhead is constant;
+   if we're optimizing for speed, amortize it over the per-iteration cost.  */
+static unsigned
+adjust_setup_cost (struct ivopts_data *data, unsigned cost)
+{
+  if (cost == INFTY)
+    return cost;
+  else if (optimize_loop_for_speed_p (data->current_loop))
+    return cost / AVG_LOOP_NITER (data->current_loop);
+  else
+    return cost;
+}
+
 /* Returns cost of addition in MODE.  */
 
 static unsigned
@@ -3840,8 +3862,8 @@ get_computation_cost_at (struct ivopts_data *data,
   /* Symbol + offset should be compile-time computable so consider that they
       are added once to the variable, if present.  */
   if (var_present && (symbol_present || offset))
-    cost.cost += add_cost (TYPE_MODE (ctype), speed)
-		 / AVG_LOOP_NITER (data->current_loop);
+    cost.cost += adjust_setup_cost (data,
+				    add_cost (TYPE_MODE (ctype), speed));
 
   /* Having offset does not affect runtime cost in case it is added to
      symbol, but it increases complexity.  */
@@ -3853,6 +3875,7 @@ get_computation_cost_at (struct ivopts_data *data,
   aratio = ratio > 0 ? ratio : -ratio;
   if (aratio != 1)
     cost.cost += multiply_by_cost (aratio, TYPE_MODE (ctype), speed);
+  return cost;
 
 fallback:
   if (can_autoinc)
@@ -4106,7 +4129,7 @@ determine_use_iv_cost_condition (struct ivopts_data *data,
       elim_cost = force_var_cost (data, bound, &depends_on_elim);
       /* The bound is a loop invariant, so it will be only computed
 	 once.  */
-      elim_cost.cost /= AVG_LOOP_NITER (data->current_loop);
+      elim_cost.cost = adjust_setup_cost (data, elim_cost.cost);
     }
   else
     elim_cost = infinite_cost;
@@ -4353,7 +4376,7 @@ determine_iv_cost (struct ivopts_data *data, struct iv_cand *cand)
   cost_base = force_var_cost (data, base, NULL);
   cost_step = add_cost (TYPE_MODE (TREE_TYPE (base)), data->speed);
 
-  cost = cost_step + cost_base.cost / AVG_LOOP_NITER (current_loop);
+  cost = cost_step + adjust_setup_cost (data, cost_base.cost);
 
   /* Prefer the original ivs unless we may gain something by replacing it.
      The reason is to make debugging simpler; so this is not relevant for

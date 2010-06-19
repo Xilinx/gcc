@@ -399,6 +399,7 @@ are write-only operations.
 
 static void *df_get_bb_info (struct dataflow *, unsigned int);
 static void df_set_bb_info (struct dataflow *, unsigned int, void *);
+static void df_clear_bb_info (struct dataflow *, unsigned int);
 #ifdef DF_DEBUG_CFG
 static void df_set_clean_cfg (void);
 #endif
@@ -504,8 +505,9 @@ df_set_blocks (bitmap blocks)
 	  /* This block is called to change the focus from one subset
 	     to another.  */
 	  int p;
-	  bitmap diff = BITMAP_ALLOC (&df_bitmap_obstack);
-	  bitmap_and_compl (diff, df->blocks_to_analyze, blocks);
+	  bitmap_head diff;
+	  bitmap_initialize (&diff, &df_bitmap_obstack);
+	  bitmap_and_compl (&diff, df->blocks_to_analyze, blocks);
 	  for (p = 0; p < df->num_problems_defined; p++)
 	    {
 	      struct dataflow *dflow = df->problems_in_order[p];
@@ -516,50 +518,47 @@ df_set_blocks (bitmap blocks)
 		  bitmap_iterator bi;
 		  unsigned int bb_index;
 
-		  EXECUTE_IF_SET_IN_BITMAP (diff, 0, bb_index, bi)
+		  EXECUTE_IF_SET_IN_BITMAP (&diff, 0, bb_index, bi)
 		    {
 		      basic_block bb = BASIC_BLOCK (bb_index);
 		      if (bb)
 			{
 			  void *bb_info = df_get_bb_info (dflow, bb_index);
-			  if (bb_info)
-			    {
-			      dflow->problem->free_bb_fun (bb, bb_info);
-			      df_set_bb_info (dflow, bb_index, NULL);
-			    }
+			  dflow->problem->free_bb_fun (bb, bb_info);
+			  df_clear_bb_info (dflow, bb_index);
 			}
 		    }
 		}
 	    }
 
-	  BITMAP_FREE (diff);
+	   bitmap_clear (&diff);
 	}
       else
 	{
 	  /* This block of code is executed to change the focus from
 	     the entire function to a subset.  */
-	  bitmap blocks_to_reset = NULL;
+	  bitmap_head blocks_to_reset;
+	  bool initialized = false;
 	  int p;
 	  for (p = 0; p < df->num_problems_defined; p++)
 	    {
 	      struct dataflow *dflow = df->problems_in_order[p];
 	      if (dflow->optional_p && dflow->problem->reset_fun)
 		{
-		  if (!blocks_to_reset)
+		  if (!initialized)
 		    {
 		      basic_block bb;
-		      blocks_to_reset =
-			BITMAP_ALLOC (&df_bitmap_obstack);
+		      bitmap_initialize (&blocks_to_reset, &df_bitmap_obstack);
 		      FOR_ALL_BB(bb)
 			{
-			  bitmap_set_bit (blocks_to_reset, bb->index);
+			  bitmap_set_bit (&blocks_to_reset, bb->index);
 			}
 		    }
-		  dflow->problem->reset_fun (blocks_to_reset);
+		  dflow->problem->reset_fun (&blocks_to_reset);
 		}
 	    }
-	  if (blocks_to_reset)
-	    BITMAP_FREE (blocks_to_reset);
+	  if (initialized)
+	    bitmap_clear (&blocks_to_reset);
 
 	  df->blocks_to_analyze = BITMAP_ALLOC (&df_bitmap_obstack);
 	}
@@ -1083,14 +1082,14 @@ df_analyze_problem (struct dataflow *dflow,
 {
   timevar_push (dflow->problem->tv_id);
 
+  /* (Re)Allocate the datastructures necessary to solve the problem.  */
+  if (dflow->problem->alloc_fun)
+    dflow->problem->alloc_fun (blocks_to_consider);
+
 #ifdef ENABLE_DF_CHECKING
   if (dflow->problem->verify_start_fun)
     dflow->problem->verify_start_fun ();
 #endif
-
-  /* (Re)Allocate the datastructures necessary to solve the problem.  */
-  if (dflow->problem->alloc_fun)
-    dflow->problem->alloc_fun (blocks_to_consider);
 
   /* Set up the problem and compute the local information.  */
   if (dflow->problem->local_compute_fun)
@@ -1293,7 +1292,8 @@ df_get_bb_info (struct dataflow *dflow, unsigned int index)
     return NULL;
   if (index >= dflow->block_info_size)
     return NULL;
-  return (struct df_scan_bb_info *) dflow->block_info[index];
+  return (void *)((char *)dflow->block_info
+		  + index * dflow->problem->block_info_elt_size);
 }
 
 
@@ -1304,7 +1304,22 @@ df_set_bb_info (struct dataflow *dflow, unsigned int index,
 		void *bb_info)
 {
   gcc_assert (dflow->block_info);
-  dflow->block_info[index] = bb_info;
+  memcpy ((char *)dflow->block_info
+	  + index * dflow->problem->block_info_elt_size,
+	  bb_info, dflow->problem->block_info_elt_size);
+}
+
+
+/* Clear basic block info.  */
+
+static void
+df_clear_bb_info (struct dataflow *dflow, unsigned int index)
+{
+  gcc_assert (dflow->block_info);
+  gcc_assert (dflow->block_info_size > index);
+  memset ((char *)dflow->block_info
+	  + index * dflow->problem->block_info_elt_size,
+	  0, dflow->problem->block_info_elt_size);
 }
 
 
@@ -1377,6 +1392,29 @@ df_set_bb_dirty_nonlr (basic_block bb)
     }
 }
 
+/* Grow the bb_info array.  */
+
+void
+df_grow_bb_info (struct dataflow *dflow)
+{
+  unsigned int new_size = last_basic_block + 1;
+  if (dflow->block_info_size < new_size)
+    {
+      new_size += new_size / 4;
+      dflow->block_info
+         = (void *)XRESIZEVEC (char, (char *)dflow->block_info,
+			       new_size
+			       * dflow->problem->block_info_elt_size);
+      memset ((char *)dflow->block_info
+	      + dflow->block_info_size
+	      * dflow->problem->block_info_elt_size,
+	      0,
+	      (new_size - dflow->block_info_size)
+	      * dflow->problem->block_info_elt_size);
+      dflow->block_info_size = new_size;
+    }
+}
+
 
 /* Clear the dirty bits.  This is called from places that delete
    blocks.  */
@@ -1391,6 +1429,7 @@ df_clear_bb_dirty (basic_block bb)
 	bitmap_clear_bit (dflow->out_of_date_transfer_functions, bb->index);
     }
 }
+
 /* Called from the rtl_compact_blocks to reorganize the problems basic
    block info.  */
 
@@ -1399,11 +1438,10 @@ df_compact_blocks (void)
 {
   int i, p;
   basic_block bb;
-  void **problem_temps;
-  int size = last_basic_block * sizeof (void *);
-  bitmap tmp = BITMAP_ALLOC (&df_bitmap_obstack);
-  problem_temps = XNEWVAR (void *, size);
+  void *problem_temps;
+  bitmap_head tmp;
 
+  bitmap_initialize (&tmp, &df_bitmap_obstack);
   for (p = 0; p < df->num_problems_defined; p++)
     {
       struct dataflow *dflow = df->problems_in_order[p];
@@ -1412,17 +1450,17 @@ df_compact_blocks (void)
 	 dflow problem.  */
       if (dflow->out_of_date_transfer_functions)
 	{
-	  bitmap_copy (tmp, dflow->out_of_date_transfer_functions);
+	  bitmap_copy (&tmp, dflow->out_of_date_transfer_functions);
 	  bitmap_clear (dflow->out_of_date_transfer_functions);
-	  if (bitmap_bit_p (tmp, ENTRY_BLOCK))
+	  if (bitmap_bit_p (&tmp, ENTRY_BLOCK))
 	    bitmap_set_bit (dflow->out_of_date_transfer_functions, ENTRY_BLOCK);
-	  if (bitmap_bit_p (tmp, EXIT_BLOCK))
+	  if (bitmap_bit_p (&tmp, EXIT_BLOCK))
 	    bitmap_set_bit (dflow->out_of_date_transfer_functions, EXIT_BLOCK);
 
 	  i = NUM_FIXED_BLOCKS;
 	  FOR_EACH_BB (bb)
 	    {
-	      if (bitmap_bit_p (tmp, bb->index))
+	      if (bitmap_bit_p (&tmp, bb->index))
 		bitmap_set_bit (dflow->out_of_date_transfer_functions, i);
 	      i++;
 	    }
@@ -1431,6 +1469,8 @@ df_compact_blocks (void)
       /* Now shuffle the block info for the problem.  */
       if (dflow->problem->free_bb_fun)
 	{
+	  int size = last_basic_block * dflow->problem->block_info_elt_size;
+	  problem_temps = XNEWVAR (char, size);
 	  df_grow_bb_info (dflow);
 	  memcpy (problem_temps, dflow->block_info, size);
 
@@ -1440,22 +1480,16 @@ df_compact_blocks (void)
 	  i = NUM_FIXED_BLOCKS;
 	  FOR_EACH_BB (bb)
 	    {
-	      df_set_bb_info (dflow, i, problem_temps[bb->index]);
-	      problem_temps[bb->index] = NULL;
+	      df_set_bb_info (dflow, i,
+			      (char *)problem_temps
+			      + bb->index * dflow->problem->block_info_elt_size);
 	      i++;
 	    }
-	  memset (dflow->block_info + i, 0,
-		  (last_basic_block - i) *sizeof (void *));
-
-	  /* Free any block infos that were not copied (and NULLed).
-	     These are from orphaned blocks.  */
-	  for (i = NUM_FIXED_BLOCKS; i < last_basic_block; i++)
-	    {
-	      basic_block bb = BASIC_BLOCK (i);
-	      if (problem_temps[i] && bb)
-		dflow->problem->free_bb_fun
-		  (bb, problem_temps[i]);
-	    }
+	  memset ((char *)dflow->block_info
+		  + i * dflow->problem->block_info_elt_size, 0,
+		  (last_basic_block - i)
+		  * dflow->problem->block_info_elt_size);
+	  free (problem_temps);
 	}
     }
 
@@ -1463,24 +1497,22 @@ df_compact_blocks (void)
 
   if (df->blocks_to_analyze)
     {
-      if (bitmap_bit_p (tmp, ENTRY_BLOCK))
+      if (bitmap_bit_p (&tmp, ENTRY_BLOCK))
 	bitmap_set_bit (df->blocks_to_analyze, ENTRY_BLOCK);
-      if (bitmap_bit_p (tmp, EXIT_BLOCK))
+      if (bitmap_bit_p (&tmp, EXIT_BLOCK))
 	bitmap_set_bit (df->blocks_to_analyze, EXIT_BLOCK);
-      bitmap_copy (tmp, df->blocks_to_analyze);
+      bitmap_copy (&tmp, df->blocks_to_analyze);
       bitmap_clear (df->blocks_to_analyze);
       i = NUM_FIXED_BLOCKS;
       FOR_EACH_BB (bb)
 	{
-	  if (bitmap_bit_p (tmp, bb->index))
+	  if (bitmap_bit_p (&tmp, bb->index))
 	    bitmap_set_bit (df->blocks_to_analyze, i);
 	  i++;
 	}
     }
 
-  BITMAP_FREE (tmp);
-
-  free (problem_temps);
+  bitmap_clear (&tmp);
 
   i = NUM_FIXED_BLOCKS;
   FOR_EACH_BB (bb)
@@ -1523,7 +1555,6 @@ df_bb_replace (int old_index, basic_block new_block)
       if (dflow->block_info)
 	{
 	  df_grow_bb_info (dflow);
-	  gcc_assert (df_get_bb_info (dflow, old_index) == NULL);
 	  df_set_bb_info (dflow, old_index,
 			  df_get_bb_info (dflow, new_block_index));
 	}
@@ -1559,7 +1590,7 @@ df_bb_delete (int bb_index)
 	  if (bb_info)
 	    {
 	      dflow->problem->free_bb_fun (bb, bb_info);
-	      df_set_bb_info (dflow, bb_index, NULL);
+	      df_clear_bb_info (dflow, bb_index);
 	    }
 	}
     }
@@ -2094,13 +2125,13 @@ df_insn_uid_debug (unsigned int uid,
 }
 
 
-void
+DEBUG_FUNCTION void
 df_insn_debug (rtx insn, bool follow_chain, FILE *file)
 {
   df_insn_uid_debug (INSN_UID (insn), follow_chain, file);
 }
 
-void
+DEBUG_FUNCTION void
 df_insn_debug_regno (rtx insn, FILE *file)
 {
   struct df_insn_info *insn_info = DF_INSN_INFO_GET (insn);
@@ -2118,7 +2149,7 @@ df_insn_debug_regno (rtx insn, FILE *file)
   fprintf (file, "\n");
 }
 
-void
+DEBUG_FUNCTION void
 df_regno_debug (unsigned int regno, FILE *file)
 {
   fprintf (file, "reg %d defs ", regno);
@@ -2131,7 +2162,7 @@ df_regno_debug (unsigned int regno, FILE *file)
 }
 
 
-void
+DEBUG_FUNCTION void
 df_ref_debug (df_ref ref, FILE *file)
 {
   fprintf (file, "%c%d ",
@@ -2159,7 +2190,7 @@ df_ref_debug (df_ref ref, FILE *file)
 
 /* Functions for debugging from GDB.  */
 
-void
+DEBUG_FUNCTION void
 debug_df_insn (rtx insn)
 {
   df_insn_debug (insn, true, stderr);
@@ -2167,42 +2198,42 @@ debug_df_insn (rtx insn)
 }
 
 
-void
+DEBUG_FUNCTION void
 debug_df_reg (rtx reg)
 {
   df_regno_debug (REGNO (reg), stderr);
 }
 
 
-void
+DEBUG_FUNCTION void
 debug_df_regno (unsigned int regno)
 {
   df_regno_debug (regno, stderr);
 }
 
 
-void
+DEBUG_FUNCTION void
 debug_df_ref (df_ref ref)
 {
   df_ref_debug (ref, stderr);
 }
 
 
-void
+DEBUG_FUNCTION void
 debug_df_defno (unsigned int defno)
 {
   df_ref_debug (DF_DEFS_GET (defno), stderr);
 }
 
 
-void
+DEBUG_FUNCTION void
 debug_df_useno (unsigned int defno)
 {
   df_ref_debug (DF_USES_GET (defno), stderr);
 }
 
 
-void
+DEBUG_FUNCTION void
 debug_df_chain (struct df_link *link)
 {
   df_chain_dump (link, stderr);

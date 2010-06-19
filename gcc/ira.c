@@ -358,9 +358,10 @@ HARD_REG_SET eliminable_regset;
    of given mode starting with given hard register.  */
 HARD_REG_SET ira_reg_mode_hard_regset[FIRST_PSEUDO_REGISTER][NUM_MACHINE_MODES];
 
-/* The following two variables are array analogs of the macros
-   MEMORY_MOVE_COST and REGISTER_MOVE_COST.  */
+/* Array analogous to target hook TARGET_MEMORY_MOVE_COST.  */
 short int ira_memory_move_cost[MAX_MACHINE_MODE][N_REG_CLASSES][2];
+
+/* Array analogous to macro REGISTER_MOVE_COST.  */
 move_table *ira_register_move_cost[MAX_MACHINE_MODE];
 
 /* Similar to may_move_in_cost but it is calculated in IRA instead of
@@ -527,11 +528,11 @@ setup_class_subset_and_memory_move_costs (void)
 	for (mode = 0; mode < MAX_MACHINE_MODE; mode++)
 	  {
 	    ira_memory_move_cost[mode][cl][0] =
-	      MEMORY_MOVE_COST ((enum machine_mode) mode,
-				(enum reg_class) cl, 0);
+	      memory_move_cost ((enum machine_mode) mode,
+				(enum reg_class) cl, false);
 	    ira_memory_move_cost[mode][cl][1] =
-	      MEMORY_MOVE_COST ((enum machine_mode) mode,
-				(enum reg_class) cl, 1);
+	      memory_move_cost ((enum machine_mode) mode,
+				(enum reg_class) cl, true);
 	    /* Costs for NO_REGS are used in cost calculation on the
 	       1st pass when the preferred register classes are not
 	       known yet.  In this case we take the best scenario.  */
@@ -1374,6 +1375,46 @@ setup_prohibited_mode_move_regs (void)
 
 
 
+/* Return nonzero if REGNO is a particularly bad choice for reloading X.  */
+static bool
+ira_bad_reload_regno_1 (int regno, rtx x)
+{
+  int x_regno;
+  ira_allocno_t a;
+  enum reg_class pref;
+
+  /* We only deal with pseudo regs.  */
+  if (! x || GET_CODE (x) != REG)
+    return false;
+
+  x_regno = REGNO (x);
+  if (x_regno < FIRST_PSEUDO_REGISTER)
+    return false;
+
+  /* If the pseudo prefers REGNO explicitly, then do not consider
+     REGNO a bad spill choice.  */
+  pref = reg_preferred_class (x_regno);
+  if (reg_class_size[pref] == 1)
+    return !TEST_HARD_REG_BIT (reg_class_contents[pref], regno);
+
+  /* If the pseudo conflicts with REGNO, then we consider REGNO a
+     poor choice for a reload regno.  */
+  a = ira_regno_allocno_map[x_regno];
+  if (TEST_HARD_REG_BIT (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (a), regno))
+    return true;
+
+  return false;
+}
+
+/* Return nonzero if REGNO is a particularly bad choice for reloading
+   IN or OUT.  */
+bool
+ira_bad_reload_regno (int regno, rtx in, rtx out)
+{
+  return (ira_bad_reload_regno_1 (regno, in)
+	  || ira_bad_reload_regno_1 (regno, out));
+}
+
 /* Function specific hard registers that can not be used for the
    register allocation.  */
 HARD_REG_SET ira_no_alloc_regs;
@@ -1545,12 +1586,8 @@ find_reg_equiv_invariant_const (void)
 
 	  x = XEXP (note, 0);
 
-	  if (! function_invariant_p (x)
-	      || ! flag_pic
-	      /* A function invariant is often CONSTANT_P but may
-		 include a register.  We promise to only pass CONSTANT_P
-		 objects to LEGITIMATE_PIC_OPERAND_P.  */
-	      || (CONSTANT_P (x) && LEGITIMATE_PIC_OPERAND_P (x)))
+	  if (! CONSTANT_P (x)
+	      || ! flag_pic || LEGITIMATE_PIC_OPERAND_P (x))
 	    {
 	      /* It can happen that a REG_EQUIV note contains a MEM
 		 that is not a legitimate memory operand.  As later
@@ -1750,8 +1787,7 @@ fix_reg_equiv_init (void)
 
   if (reg_equiv_init_size < max_regno)
     {
-      reg_equiv_init
-	= (rtx *) ggc_realloc (reg_equiv_init, max_regno * sizeof (rtx));
+      reg_equiv_init = GGC_RESIZEVEC (rtx, reg_equiv_init, max_regno);
       while (reg_equiv_init_size < max_regno)
 	reg_equiv_init[reg_equiv_init_size++] = NULL_RTX;
       for (i = FIRST_PSEUDO_REGISTER; i < reg_equiv_init_size; i++)
@@ -2330,7 +2366,7 @@ update_equiv_regs (void)
   recorded_label_ref = 0;
 
   reg_equiv = XCNEWVEC (struct equivalence, max_regno);
-  reg_equiv_init = GGC_CNEWVEC (rtx, max_regno);
+  reg_equiv_init = ggc_alloc_cleared_vec_rtx (max_regno);
   reg_equiv_init_size = max_regno;
 
   init_alias_analysis ();
@@ -3109,8 +3145,19 @@ build_insn_chain (void)
   if (dump_file)
     print_insn_chains (dump_file);
 }
-
 
+/* Allocate memory for reg_equiv_memory_loc.  */
+static void
+init_reg_equiv_memory_loc (void)
+{
+  max_regno = max_reg_num ();
+
+  /* And the reg_equiv_memory_loc array.  */
+  VEC_safe_grow (rtx, gc, reg_equiv_memory_loc_vec, max_regno);
+  memset (VEC_address (rtx, reg_equiv_memory_loc_vec), 0,
+	  sizeof (rtx) * max_regno);
+  reg_equiv_memory_loc = VEC_address (rtx, reg_equiv_memory_loc_vec);
+}
 
 /* All natural loops.  */
 struct loops ira_loops;
@@ -3215,6 +3262,8 @@ ira (FILE *f)
   record_loop_exits ();
   current_loops = &ira_loops;
 
+  init_reg_equiv_memory_loc ();
+
   if (internal_flag_ira_verbose > 0 && ira_dump_file != NULL)
     fprintf (ira_dump_file, "Building IRA IR\n");
   loops_p = ira_build (optimize
@@ -3275,13 +3324,8 @@ ira (FILE *f)
 #endif
 
   delete_trivially_dead_insns (get_insns (), max_reg_num ());
-  max_regno = max_reg_num ();
 
-  /* And the reg_equiv_memory_loc array.  */
-  VEC_safe_grow (rtx, gc, reg_equiv_memory_loc_vec, max_regno);
-  memset (VEC_address (rtx, reg_equiv_memory_loc_vec), 0,
-	  sizeof (rtx) * max_regno);
-  reg_equiv_memory_loc = VEC_address (rtx, reg_equiv_memory_loc_vec);
+  init_reg_equiv_memory_loc ();
 
   if (max_regno != max_regno_before_ira)
     {

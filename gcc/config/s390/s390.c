@@ -1453,7 +1453,7 @@ s390_narrow_logical_operator (enum rtx_code code, rtx *memop, rtx *immop)
 static struct machine_function *
 s390_init_machine_status (void)
 {
-  return GGC_CNEW (struct machine_function);
+  return ggc_alloc_cleared_machine_function ();
 }
 
 /* Change optimizations to be performed, depending on the
@@ -2807,11 +2807,6 @@ legitimate_reload_constant_p (rtx op)
   /* Accept larl operands.  */
   if (TARGET_CPU_ZARCH
       && larl_operand (op, VOIDmode))
-    return true;
-
-  /* Accept lzXX operands.  */
-  if (GET_CODE (op) == CONST_DOUBLE
-      && CONST_DOUBLE_OK_FOR_CONSTRAINT_P (op, 'G', "G"))
     return true;
 
   /* Accept double-word operands that can be split.  */

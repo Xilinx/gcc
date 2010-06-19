@@ -418,6 +418,7 @@ build_aggr_init_expr (tree type, tree init)
 				      AGGR_INIT_EXPR_ARGP (init));
       TREE_SIDE_EFFECTS (rval) = 1;
       AGGR_INIT_VIA_CTOR_P (rval) = is_ctor;
+      TREE_NOTHROW (rval) = TREE_NOTHROW (init);
     }
   else
     rval = init;
@@ -1055,14 +1056,6 @@ strip_typedefs (tree t)
   return cp_build_qualified_type (result, cp_type_quals (t));
 }
 
-/* Returns true iff TYPE is a type variant created for a typedef. */
-
-bool
-typedef_variant_p (tree type)
-{
-  return is_typedef_decl (TYPE_NAME (type));
-}
-
 /* Setup a TYPE_DECL node as a typedef representation.
    See comments of set_underlying_type in c-common.c.  */
 
@@ -1466,12 +1459,16 @@ cxx_printable_name_translate (tree decl, int v)
 tree
 build_exception_variant (tree type, tree raises)
 {
-  tree v = TYPE_MAIN_VARIANT (type);
-  int type_quals = TYPE_QUALS (type);
+  tree v;
+  int type_quals;
 
-  for (; v; v = TYPE_NEXT_VARIANT (v))
+  if (comp_except_specs (raises, TYPE_RAISES_EXCEPTIONS (type), ce_exact))
+    return type;
+
+  type_quals = TYPE_QUALS (type);
+  for (v = TYPE_MAIN_VARIANT (type); v; v = TYPE_NEXT_VARIANT (v))
     if (check_qualified_type (v, type, type_quals)
-	&& comp_except_specs (raises, TYPE_RAISES_EXCEPTIONS (v), 1))
+	&& comp_except_specs (raises, TYPE_RAISES_EXCEPTIONS (v), ce_exact))
       return v;
 
   /* Need to build a new variant.  */
@@ -2644,10 +2641,8 @@ cp_build_type_attribute_variant (tree type, tree attributes)
   tree new_type;
 
   new_type = build_type_attribute_variant (type, attributes);
-  if ((TREE_CODE (new_type) == FUNCTION_TYPE
-       || TREE_CODE (new_type) == METHOD_TYPE)
-      && (TYPE_RAISES_EXCEPTIONS (new_type)
-	  != TYPE_RAISES_EXCEPTIONS (type)))
+  if (TREE_CODE (new_type) == FUNCTION_TYPE
+      || TREE_CODE (new_type) == METHOD_TYPE)
     new_type = build_exception_variant (new_type,
 					TYPE_RAISES_EXCEPTIONS (type));
 
@@ -2668,7 +2663,7 @@ cxx_type_hash_eq (const_tree typea, const_tree typeb)
   gcc_assert (TREE_CODE (typea) == FUNCTION_TYPE);
 
   return comp_except_specs (TYPE_RAISES_EXCEPTIONS (typea),
-			    TYPE_RAISES_EXCEPTIONS (typeb), 1);
+			    TYPE_RAISES_EXCEPTIONS (typeb), ce_exact);
 }
 
 /* Apply FUNC to all language-specific sub-trees of TP in a pre-order
@@ -3197,6 +3192,16 @@ cp_free_lang_data (tree t)
 	  && ANON_AGGRNAME_P (name))
 	TYPE_NAME (t) = NULL_TREE;
     }
+}
+
+/* Stub for c-common.  Please keep in sync with c-decl.c.
+   FIXME: If address space support is target specific, then this
+   should be a C target hook.  But currently this is not possible,
+   because this function is called via REGISTER_TARGET_PRAGMAS.  */
+void
+c_register_addr_space (const char *word ATTRIBUTE_UNUSED,
+		       addr_space_t as ATTRIBUTE_UNUSED)
+{
 }
 
 

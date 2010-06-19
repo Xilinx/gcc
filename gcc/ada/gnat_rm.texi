@@ -18,7 +18,7 @@
 Copyright @copyright{} 1995-2008, Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.2 or
+under the terms of the GNU Free Documentation License, Version 1.3 or
 any later version published by the Free Software Foundation; with no
 Invariant Sections, with the Front-Cover Texts being ``GNAT Reference
 Manual'', and with no Back-Cover Texts.  A copy of the license is
@@ -2856,7 +2856,12 @@ the standard Ada pragma @code{Import}.  It is provided for compatibility
 with Ada 83.  The definition is upwards compatible both with pragma
 @code{Interface} as defined in the Ada 83 Reference Manual, and also
 with some extended implementations of this pragma in certain Ada 83
-implementations.
+implementations.  The only difference between pragma @code{Interface}
+and pragma @code{Import} is that there is special circuitry to allow
+both pragmas to appear for the same subprogram entity (normally it
+is illegal to have multiple @code{Import} pragmas. This is useful in
+maintaining Ada 83/Ada 95 compatibility and is compatible with other
+Ada 83 compilers.
 
 @node Pragma Interface_Name
 @unnumberedsec Pragma Interface_Name
@@ -3967,8 +3972,6 @@ inlining (-gnatN option set) are accepted and legality-checked
 by the compiler, but are ignored at run-time even if postcondition
 checking is enabled.
 
-
-
 @node Pragma Profile (Ravenscar)
 @unnumberedsec Pragma Profile (Ravenscar)
 @findex Ravenscar
@@ -4533,7 +4536,11 @@ gcc -c -gnatyl @dots{}
 The form ALL_CHECKS activates all standard checks (its use is equivalent
 to the use of the @code{gnaty} switch with no options.  @xref{Top,
 @value{EDITION} User's Guide, About This Guide, gnat_ugn,
-@value{EDITION} User's Guide}, for details.
+@value{EDITION} User's Guide}, for details.)
+
+Note: the behavior is slightly different in GNAT mode (@option{-gnatg} used).
+In this case, ALL_CHECKS implies the standard set of GNAT mode style check
+options (i.e. equivalent to -gnatyg).
 
 The forms with @code{Off} and @code{On}
 can be used to temporarily disable style checks
@@ -5249,6 +5256,9 @@ used to cause the compiler to entirely ignore all WARNINGS pragmas. This can
 be useful in checking whether obsolete pragmas in existing programs are hiding
 real problems.
 
+Note: pragma Warnings does not affect the processing of style messages. See
+separate entry for pragma Style_Checks for control of style messages.
+
 @node Pragma Weak_External
 @unnumberedsec Pragma Weak_External
 @findex Weak_External
@@ -5946,7 +5956,7 @@ end record;
 @end smallexample
 
 @noindent
-will have a size of 40 (that is @code{Rec'Size} will be 40.  The
+will have a size of 40 (that is @code{Rec'Size} will be 40).  The
 alignment will be 4, because of the
 integer field, and so the default size of record objects for this type
 will be 64 (8 bytes).
@@ -6574,7 +6584,6 @@ For example:
   Y : Float;
   for Y'Address use X'Address;>>
 @end smallexample
-
 
 @sp 1
 @cartouche
@@ -12225,8 +12234,6 @@ types are @code{Wide_Character} and @code{Wide_String} instead of
 @code{Character} and @code{String}.
 @end table
 
-
-
 @node The Implementation of Standard I/O
 @chapter The Implementation of Standard I/O
 
@@ -15822,7 +15829,6 @@ If any of these conditions are violated, the aggregate will be built in
 a temporary (created either by the front-end or the code generator) and then
 that temporary will be copied onto the target.
 
-
 @node The Size of Discriminated Records with Default Discriminants
 @section The Size of Discriminated Records with Default Discriminants
 
@@ -15938,7 +15944,6 @@ machines that are not fully compliant with this standard, such as Alpha, the
 @option{-mieee} compiler flag must be used for achieving IEEE confirming
 behavior (although at the cost of a significant performance penalty), so
 infinite and and NaN values are properly generated.
-
 
 @node Project File Reference
 @chapter Project File Reference
@@ -16278,7 +16283,7 @@ be copied.  The directory must exist, must be distinct from the project's
 object directory and source directories of all projects in the project tree,
 and must be writable.
 
-@item  Library_Src_Dir
+@item  Library_ALI_Dir
 Expression must be a path name. The attribute defines the
 directory in which the ALI files of a Library will
 be copied.  The directory must exist, must be distinct from the project's
@@ -16646,7 +16651,6 @@ This is a simple attribute, whose
 value is a path name that designates a file that contains configuration pragmas
 to be used in every build of an executable. If both local and global
 configuration pragmas are specified, a compilation makes use of both sets.
-
 
 @item Executable
 This is an associative array attribute. Its domain is

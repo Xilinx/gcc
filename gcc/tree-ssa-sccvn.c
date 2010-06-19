@@ -25,7 +25,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "basic-block.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "tree-inline.h"
@@ -177,7 +176,7 @@ VN_INFO (tree name)
 {
   vn_ssa_aux_t res = VEC_index (vn_ssa_aux_t, vn_ssa_aux_table,
 				SSA_NAME_VERSION (name));
-  gcc_assert (res);
+  gcc_checking_assert (res);
   return res;
 }
 

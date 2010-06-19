@@ -77,12 +77,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 #include "tm.h"
 #include "tree.h"
-#include "expr.h"
 #include "gimple.h"
 #include "cgraph.h"
 #include "tree-flow.h"
 #include "ipa-prop.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "statistics.h"
 #include "tree-dump.h"
@@ -90,6 +88,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "target.h"
 #include "flags.h"
+#include "dbgcnt.h"
+#include "tree-inline.h"
 
 /* Enumeration of all aggregate reductions we can do.  */
 enum sra_mode { SRA_MODE_EARLY_IPA,   /* early call regularization */
@@ -358,13 +358,13 @@ dump_access (FILE *f, struct access *access, bool grp)
   print_generic_expr (f, access->type, 0);
   if (grp)
     fprintf (f, ", grp_write = %d, total_scalarization = %d, "
-	     "grp_read = %d, grp_hint = %d, "
+	     "grp_read = %d, grp_hint = %d, grp_assignment_read = %d,"
 	     "grp_covered = %d, grp_unscalarizable_region = %d, "
 	     "grp_unscalarized_data = %d, grp_partial_lhs = %d, "
 	     "grp_to_be_replaced = %d, grp_maybe_modified = %d, "
 	     "grp_not_necessarilly_dereferenced = %d\n",
 	     access->grp_write, access->total_scalarization,
-	     access->grp_read, access->grp_hint,
+	     access->grp_read, access->grp_hint, access->grp_assignment_read,
 	     access->grp_covered, access->grp_unscalarizable_region,
 	     access->grp_unscalarized_data, access->grp_partial_lhs,
 	     access->grp_to_be_replaced, access->grp_maybe_modified,
@@ -1691,9 +1691,10 @@ get_unrenamed_access_replacement (struct access *access)
 
 /* Build a subtree of accesses rooted in *ACCESS, and move the pointer in the
    linked list along the way.  Stop when *ACCESS is NULL or the access pointed
-   to it is not "within" the root.  */
+   to it is not "within" the root.  Return false iff some accesses partially
+   overlap.  */
 
-static void
+static bool
 build_access_subtree (struct access **access)
 {
   struct access *root = *access, *last_child = NULL;
@@ -1708,24 +1709,32 @@ build_access_subtree (struct access **access)
 	last_child->next_sibling = *access;
       last_child = *access;
 
-      build_access_subtree (access);
+      if (!build_access_subtree (access))
+	return false;
     }
+
+  if (*access && (*access)->offset < limit)
+    return false;
+
+  return true;
 }
 
 /* Build a tree of access representatives, ACCESS is the pointer to the first
-   one, others are linked in a list by the next_grp field.  Decide about scalar
-   replacements on the way, return true iff any are to be created.  */
+   one, others are linked in a list by the next_grp field.  Return false iff
+   some accesses partially overlap.  */
 
-static void
+static bool
 build_access_trees (struct access *access)
 {
   while (access)
     {
       struct access *root = access;
 
-      build_access_subtree (&access);
+      if (!build_access_subtree (&access))
+	return false;
       root->next_grp = access;
     }
+  return true;
 }
 
 /* Return true if expr contains some ARRAY_REFs into a variable bounded
@@ -1793,7 +1802,8 @@ analyze_access_subtree (struct access *root, bool allow_replacements,
       else
 	covered_to += child->size;
 
-      sth_created |= analyze_access_subtree (child, allow_replacements,
+      sth_created |= analyze_access_subtree (child,
+					     allow_replacements && !scalar,
 					     mark_read, mark_write);
 
       root->grp_unscalarized_data |= child->grp_unscalarized_data;
@@ -2063,9 +2073,7 @@ analyze_all_variable_accesses (void)
       struct access *access;
 
       access = sort_and_splice_var_accesses (var);
-      if (access)
-	build_access_trees (access);
-      else
+      if (!access || !build_access_trees (access))
 	disqualify_candidate (var,
 			      "No or inhibitingly overlapping accesses.");
     }
@@ -2930,7 +2938,7 @@ late_intra_sra (void)
 static bool
 gate_intra_sra (void)
 {
-  return flag_tree_sra != 0;
+  return flag_tree_sra != 0 && dbg_cnt (tree_sra);
 }
 
 
@@ -3875,6 +3883,7 @@ replace_removed_params_ssa_names (gimple stmt,
     gimple_phi_set_result (stmt, name);
 
   replace_uses_by (lhs, name);
+  release_ssa_name (lhs);
   return true;
 }
 
@@ -4217,43 +4226,38 @@ convert_callers (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
   return;
 }
 
-/* Create an abstract origin declaration for OLD_DECL and make it an abstract
-   origin of the provided decl so that there are preserved parameters for debug
-   information.  */
-
-static void
-create_abstract_origin (tree old_decl)
-{
-  if (!DECL_ABSTRACT_ORIGIN (old_decl))
-    {
-      tree new_decl = copy_node (old_decl);
-
-      DECL_ABSTRACT (new_decl) = 1;
-      SET_DECL_ASSEMBLER_NAME (new_decl, NULL_TREE);
-      SET_DECL_RTL (new_decl, NULL);
-      DECL_STRUCT_FUNCTION (new_decl) = NULL;
-      DECL_ARTIFICIAL (old_decl) = 1;
-      DECL_ABSTRACT_ORIGIN (old_decl) = new_decl;
-    }
-}
-
 /* Perform all the modification required in IPA-SRA for NODE to have parameters
    as given in ADJUSTMENTS.  */
 
 static void
 modify_function (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
 {
-  struct cgraph_node *alias;
-  for (alias = node->same_body; alias; alias = alias->next)
-    ipa_modify_formal_parameters (alias->decl, adjustments, "ISRA");
-  /* current_function_decl must be handled last, after same_body aliases,
-     as following functions will use what it computed.  */
-  create_abstract_origin (current_function_decl);
+  struct cgraph_node *new_node;
+  struct cgraph_edge *cs;
+  VEC (cgraph_edge_p, heap) * redirect_callers;
+  int node_callers;
+
+  node_callers = 0;
+  for (cs = node->callers; cs != NULL; cs = cs->next_caller)
+    node_callers++;
+  redirect_callers = VEC_alloc (cgraph_edge_p, heap, node_callers);
+  for (cs = node->callers; cs != NULL; cs = cs->next_caller)
+    VEC_quick_push (cgraph_edge_p, redirect_callers, cs);
+
+  rebuild_cgraph_edges ();
+  pop_cfun ();
+  current_function_decl = NULL_TREE;
+
+  new_node = cgraph_function_versioning (node, redirect_callers, NULL, NULL,
+					 NULL, NULL, "isra");
+  current_function_decl = new_node->decl;
+  push_cfun (DECL_STRUCT_FUNCTION (new_node->decl));
+
   ipa_modify_formal_parameters (current_function_decl, adjustments, "ISRA");
   ipa_sra_modify_function_body (adjustments);
   sra_ipa_reset_debug_stmts (adjustments);
-  convert_callers (node, adjustments);
-  cgraph_make_node_local (node);
+  convert_callers (new_node, adjustments);
+  cgraph_make_node_local (new_node);
   return;
 }
 
@@ -4265,6 +4269,13 @@ static bool
 ipa_sra_preliminary_function_checks (struct cgraph_node *node)
 {
   if (!cgraph_node_can_be_local_p (node))
+    {
+      if (dump_file)
+	fprintf (dump_file, "Function not local to this compilation unit.\n");
+      return false;
+    }
+
+  if (!tree_versionable_function_p (node->decl))
     {
       if (dump_file)
 	fprintf (dump_file, "Function not local to this compilation unit.\n");

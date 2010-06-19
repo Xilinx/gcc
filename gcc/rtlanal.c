@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "df.h"
 #include "tree.h"
+#include "emit-rtl.h"  /* FIXME: Can go away once crtl is moved to rtl.h.  */
 
 /* Forward declarations */
 static void set_of_1 (rtx, const_rtx, void *);
@@ -1693,7 +1694,7 @@ find_reg_note (const_rtx insn, enum reg_note kind, const_rtx datum)
 {
   rtx link;
 
-  gcc_assert (insn);
+  gcc_checking_assert (insn);
 
   /* Ignore anything that is not an INSN, JUMP_INSN or CALL_INSN.  */
   if (! INSN_P (insn))

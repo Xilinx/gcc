@@ -1226,11 +1226,12 @@ package body Prj is
    function Create_Flags
      (Report_Error               : Error_Handler;
       When_No_Sources            : Error_Warning;
-      Require_Sources_Other_Lang : Boolean := True;
-      Allow_Duplicate_Basenames  : Boolean := True;
-      Compiler_Driver_Mandatory  : Boolean := False;
-      Error_On_Unknown_Language  : Boolean := True;
-      Require_Obj_Dirs           : Error_Warning := Error)
+      Require_Sources_Other_Lang : Boolean       := True;
+      Allow_Duplicate_Basenames  : Boolean       := True;
+      Compiler_Driver_Mandatory  : Boolean       := False;
+      Error_On_Unknown_Language  : Boolean       := True;
+      Require_Obj_Dirs           : Error_Warning := Error;
+      Allow_Invalid_External     : Error_Warning := Error)
       return Processing_Flags
    is
    begin
@@ -1241,7 +1242,8 @@ package body Prj is
          Allow_Duplicate_Basenames  => Allow_Duplicate_Basenames,
          Error_On_Unknown_Language  => Error_On_Unknown_Language,
          Compiler_Driver_Mandatory  => Compiler_Driver_Mandatory,
-         Require_Obj_Dirs           => Require_Obj_Dirs);
+         Require_Obj_Dirs           => Require_Obj_Dirs,
+         Allow_Invalid_External     => Allow_Invalid_External);
    end Create_Flags;
 
    ------------

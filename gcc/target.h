@@ -110,6 +110,23 @@ struct asm_int_op
   const char *ti;
 };
 
+/* Types of costs for vectorizer cost model.  */
+enum vect_cost_for_stmt
+{
+  scalar_stmt,
+  scalar_load,
+  scalar_store,
+  vector_stmt,
+  vector_load,
+  unaligned_load,
+  vector_store,
+  vec_to_scalar,
+  scalar_to_vec,
+  cond_branch_not_taken,
+  cond_branch_taken,
+  vec_perm
+};
+
 /* The target structure.  This holds all the backend hooks.  */
 
 struct gcc_target
@@ -153,6 +170,10 @@ struct gcc_target
 
     /* Output an internal label.  */
     void (* internal_label) (FILE *, const char *, unsigned long);
+
+    /* Output label for the constant.  */
+    void (* declare_constant_name) (FILE *, const char *, const_tree, 
+				    HOST_WIDE_INT);
 
     /* Emit a ttype table reference to a typeinfo object.  */
     bool (* ttype) (rtx);
@@ -277,6 +298,16 @@ struct gcc_target
 
     /* Emit the trampoline template.  This hook may be NULL.  */
     void (*trampoline_template) (FILE *);
+
+    /* Emit a machine-specific insn operand.  */
+    void (*print_operand) (FILE *, rtx, int);
+
+    /* Emit a machine-specific memory address.  */
+    void (*print_operand_address) (FILE *, rtx);
+
+    /* Determine whether CODE is a valid punctuation character for the
+       `print_operand' hook.  */
+    bool (*print_operand_punct_valid_p)(unsigned char code);
   } asm_out;
 
   /* Functions relating to instruction scheduling.  */
@@ -495,9 +526,9 @@ struct gcc_target
     tree (* builtin_mul_widen_even) (tree);
     tree (* builtin_mul_widen_odd) (tree);
 
-    /* Returns the cost to be added to the overheads involved with
-       executing the vectorized version of a loop.  */
-    int (*builtin_vectorization_cost) (bool);
+    /* Cost of different vector/scalar statements in vectorization cost
+       model.  */ 
+    int (* builtin_vectorization_cost) (enum vect_cost_for_stmt);
 
     /* Return true if vector alignment is reachable (by peeling N
        iterations) for the given type.  */
@@ -781,6 +812,9 @@ struct gcc_target
      for further details.  */
   bool (* vector_mode_supported_p) (enum machine_mode mode);
 
+  /* Compute cost of moving registers to/from memory.  */
+  int (* memory_move_cost) (enum machine_mode, enum reg_class, bool);
+
   /* True for MODE if the target expects that registers in this mode will
      be allocated to registers in a small register class.  The compiler is
      allowed to use registers explicitly used in the rtl as spill registers
@@ -843,6 +877,9 @@ struct gcc_target
 
   /* Create the __builtin_va_list type.  */
   tree (* build_builtin_va_list) (void);
+
+  /* Enumerate the va list variants.  */
+  int (* enum_va_list) (int, const char **, tree *);
 
   /* Get the cfun/fndecl calling abi __builtin_va_list type.  */
   tree (* fn_abi_va_list) (tree);

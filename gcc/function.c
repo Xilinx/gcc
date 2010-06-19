@@ -132,7 +132,7 @@ static GTY((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
 
 
 htab_t types_used_by_vars_hash = NULL;
-tree types_used_by_cur_var_decl = NULL;
+VEC(tree,gc) *types_used_by_cur_var_decl;
 
 /* Forward declarations.  */
 
@@ -340,7 +340,7 @@ try_fit_stack_local (HOST_WIDE_INT start, HOST_WIDE_INT length,
 static void
 add_frame_space (HOST_WIDE_INT start, HOST_WIDE_INT end)
 {
-  struct frame_space *space = GGC_NEW (struct frame_space);
+  struct frame_space *space = ggc_alloc_frame_space ();
   space->next = crtl->frame_space_list;
   crtl->frame_space_list = space;
   space->start = start;
@@ -683,7 +683,7 @@ static void
 insert_temp_slot_address (rtx address, struct temp_slot *temp_slot)
 {
   void **slot;
-  struct temp_slot_address_entry *t = GGC_NEW (struct temp_slot_address_entry);
+  struct temp_slot_address_entry *t = ggc_alloc_temp_slot_address_entry ();
   t->address = address;
   t->temp_slot = temp_slot;
   t->hash = temp_slot_address_compute_hash (t);
@@ -835,7 +835,7 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
 
 	  if (best_p->size - rounded_size >= alignment)
 	    {
-	      p = GGC_NEW (struct temp_slot);
+	      p = ggc_alloc_temp_slot ();
 	      p->in_use = p->addr_taken = 0;
 	      p->size = best_p->size - rounded_size;
 	      p->base_offset = best_p->base_offset + rounded_size;
@@ -859,7 +859,7 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
     {
       HOST_WIDE_INT frame_offset_old = frame_offset;
 
-      p = GGC_NEW (struct temp_slot);
+      p = ggc_alloc_temp_slot ();
 
       /* We are passing an explicit alignment request to assign_stack_local.
 	 One side effect of that is assign_stack_local will not round SIZE
@@ -4084,7 +4084,7 @@ number_blocks (tree fn)
 
 /* If VAR is present in a subblock of BLOCK, return the subblock.  */
 
-tree
+DEBUG_FUNCTION tree
 debug_find_var_in_block_tree (tree var, tree block)
 {
   tree t;
@@ -4196,7 +4196,7 @@ allocate_struct_function (tree fndecl, bool abstract_p)
   tree result;
   tree fntype = fndecl ? TREE_TYPE (fndecl) : NULL_TREE;
 
-  cfun = GGC_CNEW (struct function);
+  cfun = ggc_alloc_cleared_function ();
 
   init_eh_for_function ();
 
@@ -5562,9 +5562,7 @@ used_types_insert (tree t)
 	/* So this might be a type referenced by a global variable.
 	   Record that type so that we can later decide to emit its debug
 	   information.  */
-	types_used_by_cur_var_decl =
-	  tree_cons (t, NULL, types_used_by_cur_var_decl);
-
+        VEC_safe_push (tree, gc, types_used_by_cur_var_decl, t);
     }
 }
 
@@ -5623,8 +5621,7 @@ types_used_by_var_decl_insert (tree type, tree var_decl)
       if (*slot == NULL)
 	{
 	  struct types_used_by_vars_entry *entry;
-	  entry = (struct types_used_by_vars_entry*) ggc_alloc
-		    (sizeof (struct types_used_by_vars_entry));
+	  entry = ggc_alloc_types_used_by_vars_entry ();
 	  entry->type = type;
 	  entry->var_decl = var_decl;
 	  *slot = entry;

@@ -28,7 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "target.h"
 #include "basic-block.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "tree-flow.h"
@@ -646,7 +645,9 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
       if (permutation)
         {
           VEC_safe_push (slp_tree, heap, *loads, *node);
-          *inside_cost += TARG_VEC_PERMUTE_COST * group_size;
+          *inside_cost 
+            += targetm.vectorize.builtin_vectorization_cost (vec_perm) 
+               * group_size;
         }
 
       return true;
@@ -1661,13 +1662,16 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
              break;
 
           case MULT_EXPR:
-          case BIT_AND_EXPR:
              if (SCALAR_FLOAT_TYPE_P (TREE_TYPE (op)))
                neutral_op = build_real (TREE_TYPE (op), dconst1);
              else
                neutral_op = build_int_cst (TREE_TYPE (op), 1);
 
              break;
+
+          case BIT_AND_EXPR:
+            neutral_op = build_int_cst (TREE_TYPE (op), -1);
+            break;
 
           default:
              neutral_op = NULL;
@@ -1925,7 +1929,6 @@ vect_create_mask_and_perm (gimple stmt, gimple next_scalar_stmt,
   stmt_vec_info next_stmt_info;
   int i, stride;
   tree first_vec, second_vec, data_ref;
-  VEC (tree, heap) *params = NULL;
 
   stride = SLP_TREE_NUMBER_OF_VEC_STMTS (node) / ncopies;
 
@@ -1941,15 +1944,9 @@ vect_create_mask_and_perm (gimple stmt, gimple next_scalar_stmt,
       first_vec = VEC_index (tree, dr_chain, first_vec_indx);
       second_vec = VEC_index (tree, dr_chain, second_vec_indx);
 
-      /* Build argument list for the vectorized call.  */
-      VEC_free (tree, heap, params);
-      params = VEC_alloc (tree, heap, 3);
-      VEC_quick_push (tree, params, first_vec);
-      VEC_quick_push (tree, params, second_vec);
-      VEC_quick_push (tree, params, mask);
-
       /* Generate the permute statement.  */
-      perm_stmt = gimple_build_call_vec (builtin_decl, params);
+      perm_stmt = gimple_build_call (builtin_decl,
+				     3, first_vec, second_vec, mask);
       data_ref = make_ssa_name (perm_dest, perm_stmt);
       gimple_call_set_lhs (perm_stmt, data_ref);
       vect_finish_stmt_generation (stmt, perm_stmt, gsi);

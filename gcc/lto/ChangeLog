@@ -1,3 +1,76 @@
+2010-06-13  Richard Guenther  <rguenther@suse.de>
+
+	* lto.c (lto_fixup_type): Do not register or fixup TYPE_CANONICAL.
+
+2010-06-09  Kai Tietz  <kai.tietz@onevision.com>
+
+	* lto.c (lto_resolution_read):  Pre-initialize local variable r.
+	* lto-coff.c (coff_write_object_file): Add braces to if.
+
+2010-06-08  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* lto.c (lto_read_in_decl_state): Use typed GC allocation.
+	(lto_file_read): Likewise.
+	(new_partition): Likewise.
+	(read_cgraph_and_symbols): Likewise.
+
+2010-06-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* lto-lang.c (flag_no_builtin, flag_no_nonansi_builtin): Remove.
+	(lto_handle_option): Don't set flag_signed_char here.
+
+2010-06-04  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41584
+	* lto.c (lto_1_to_1_map): Use the proper file_data for
+	varpool nodes.
+
+2010-05-30  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (promote_var, promote_fn, lto_wpa_write_files): Dump
+	partitioning decisions.
+
+2010-05-29  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (bitmap vector): Remove.
+	(lto_cgraph_node_sets,  lto_varpool_node_sets): Remove.
+	(ltrans_partition_def): New structure.
+	(ltrans_partition): New type and VECtor.
+	(new_partition): New function.
+	(add_cgraph_node_to_partition): New function.
+	(lto_1_to_1_map): Reorganize for partitions.
+	(lto_add_inline_clones): Remove.
+	(lto_add_all_inlinees): Remove.
+	(lto_promote_cross_file_statics): Use partitions.
+	(cmp_partitions): New function.
+	(lto_wpa_write_files): Do not call lto_add_all_inlinees;
+	use partitions; output files sorted by size.
+
+2010-05-29  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* Make-lang.in: Replace vec.h dependency with VEC_H.
+
+2010-05-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* lto-coff.c (coff_errmsg): Remove.
+	(lto_coff_begin_section_with_type, lto_obj_append_data): Use %m in
+	errors instead of coff_errmsg (-1).
+	* lto-macho.c (mach_o_errmsg): Remove.
+	(lto_obj_begin_section, lto_obj_append_data): Use %m in errors
+	instead of mach_o_errmsg (-1).
+	* lto.c (read_cgraph_and_symbols): Use %m in errors instead of
+	xstrerror (errno).
+
+2010-05-28  Richard Guenther  <rguenther@suse.de>
+
+	* lto.c (prefix_name_with_star): Removed.
+	(strip_extension): Likewise.
+	(get_filename_for_set): Likewise.
+	(lto_write_ltrans_list): Fold into ...
+	(lto_wpa_write_files): ... this.  Name LTRANS units
+	by suffixing the ltrans output list filename.
+	(do_whole_program_analysis): Adjust.
+
 2010-05-27  Joseph Myers  <joseph@codesourcery.com>
 
 	* lto.c: Include diagnostic-core.h instead of diagnostic.h.

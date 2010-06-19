@@ -231,6 +231,7 @@ case "${host_os}" in
     ;;
   *djgpp*)      # leading * picks up "msdosdjgpp"
     os_include_dir="os/djgpp"
+    error_constants_dir="os/djgpp"
     ;;
   freebsd*)
     os_include_dir="os/bsd/freebsd"
@@ -238,6 +239,8 @@ case "${host_os}" in
   gnu* | linux* | kfreebsd*-gnu | knetbsd*-gnu)
     if [ "$uclibc" = "yes" ]; then
       os_include_dir="os/uclibc"
+    elif [ "$bionic" = "yes" ]; then
+      os_include_dir="os/bionic"
     else
       os_include_dir="os/gnu-linux"
     fi

@@ -135,6 +135,9 @@ static tree gnat_eh_personality		(void);
 
 struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
+/* This symbol needs to be defined for the front-end.  */
+void *callgraph_info_file = NULL;
+
 /* How much we want of our DWARF extensions.  Some of our dwarf+ extensions
    are incompatible with regular GDB versions, so we must make sure to only
    produce them on explicit request.  This is eventually reflected into the
@@ -460,10 +463,10 @@ gnat_init_gcc_eh (void)
      right exception regions.  */
   using_eh_for_cleanups ();
 
-  /* Turn on -fexceptions and -fnon-call-exceptions. The first one triggers
-     the generation of the necessary exception runtime tables. The second one
-     is useful for two reasons: 1/ we map some asynchronous signals like SEGV
-     to exceptions, so we need to ensure that the insns which can lead to such
+  /* Turn on -fexceptions and -fnon-call-exceptions.  The first one triggers
+     the generation of the necessary exception tables.  The second one is
+     useful for two reasons: 1/ we map some asynchronous signals like SEGV to
+     exceptions, so we need to ensure that the insns which can lead to such
      signals are correctly attached to the exception region they pertain to,
      2/ Some calls to pure subprograms are handled as libcall blocks and then
      marked as "cannot trap" if the flag is not set (see emit_libcall_block).
@@ -574,7 +577,7 @@ static const char *
 gnat_printable_name (tree decl, int verbosity)
 {
   const char *coded_name = IDENTIFIER_POINTER (DECL_NAME (decl));
-  char *ada_name = (char *) ggc_alloc (strlen (coded_name) * 2 + 60);
+  char *ada_name = (char *) ggc_alloc_atomic (strlen (coded_name) * 2 + 60);
 
   __gnat_decode (coded_name, ada_name, 0);
 

@@ -194,9 +194,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "basic-block.h"
 #include "output.h"
-#include "expr.h"
 #include "function.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "timevar.h"
@@ -261,7 +259,7 @@ dump_lattice_value (FILE *outf, const char *prefix, prop_value_t val)
 
 void debug_lattice_value (prop_value_t val);
 
-void
+DEBUG_FUNCTION void
 debug_lattice_value (prop_value_t val)
 {
   dump_lattice_value (stderr, "", val);
@@ -684,7 +682,7 @@ ccp_finalize (void)
 
   do_dbg_cnt ();
   /* Perform substitutions based on the known constant values.  */
-  something_changed = substitute_and_fold (const_val, ccp_fold_stmt);
+  something_changed = substitute_and_fold (const_val, ccp_fold_stmt, true);
 
   free (const_val);
   const_val = NULL;

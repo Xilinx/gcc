@@ -442,7 +442,7 @@ cgraph_allocate_node (void)
     }
   else
     {
-      node = GGC_CNEW (struct cgraph_node);
+      node = ggc_alloc_cleared_cgraph_node ();
       node->uid = cgraph_max_uid++;
     }
 
@@ -970,7 +970,7 @@ cgraph_create_edge_1 (struct cgraph_node *caller, struct cgraph_node *callee,
     }
   else
     {
-      edge = GGC_NEW (struct cgraph_edge);
+      edge = ggc_alloc_cgraph_edge ();
       edge->uid = cgraph_edge_max_uid++;
     }
 
@@ -1045,7 +1045,7 @@ cgraph_create_indirect_edge (struct cgraph_node *caller, gimple call_stmt,
   edge->indirect_unknown_callee = 1;
   initialize_inline_failed (edge);
 
-  edge->indirect_info = GGC_CNEW (struct cgraph_indirect_call_info);
+  edge->indirect_info = ggc_alloc_cleared_cgraph_indirect_call_info ();
   edge->indirect_info->param_index = -1;
   edge->indirect_info->ecf_flags = ecf_flags;
 
@@ -1659,7 +1659,8 @@ cgraph_mark_reachable_node (struct cgraph_node *node)
 	  /* Verify that function does not appear to be needed out of blue
 	     during the optimization process.  This can happen for extern
 	     inlines when bodies was removed after inlining.  */
-	  gcc_assert ((node->analyzed || DECL_EXTERNAL (node->decl)));
+	  gcc_assert ((node->analyzed || node->in_other_partition
+		       || DECL_EXTERNAL (node->decl)));
 	}
       else
         notice_global_symbol (node->decl);
@@ -1915,7 +1916,7 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
 
 /* Dump call graph node NODE to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_cgraph_node (struct cgraph_node *node)
 {
   dump_cgraph_node (stderr, node);
@@ -1937,7 +1938,7 @@ dump_cgraph (FILE *f)
 
 /* Dump the call graph to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_cgraph (void)
 {
   dump_cgraph (stderr);
@@ -1972,7 +1973,7 @@ cgraph_add_asm_node (tree asm_str)
 {
   struct cgraph_asm_node *node;
 
-  node = GGC_CNEW (struct cgraph_asm_node);
+  node = ggc_alloc_cleared_cgraph_asm_node ();
   node->asm_str = asm_str;
   node->order = cgraph_order++;
   node->next = NULL;
@@ -2143,24 +2144,26 @@ cgraph_clone_node (struct cgraph_node *n, tree decl, gcov_type count, int freq,
   return new_node;
 }
 
-/* Create a new name for omp child function.  Returns an identifier.  */
+/* Create a new name for clone of DECL, add SUFFIX.  Returns an identifier.  */
 
 static GTY(()) unsigned int clone_fn_id_num;
 
-static tree
-clone_function_name (tree decl)
+tree
+clone_function_name (tree decl, const char *suffix)
 {
   tree name = DECL_ASSEMBLER_NAME (decl);
   size_t len = IDENTIFIER_LENGTH (name);
   char *tmp_name, *prefix;
 
-  prefix = XALLOCAVEC (char, len + strlen ("_clone") + 1);
+  prefix = XALLOCAVEC (char, len + strlen (suffix) + 2);
   memcpy (prefix, IDENTIFIER_POINTER (name), len);
-  strcpy (prefix + len, "_clone");
+  strcpy (prefix + len + 1, suffix);
 #ifndef NO_DOT_IN_LABEL
   prefix[len] = '.';
 #elif !defined NO_DOLLAR_IN_LABEL
   prefix[len] = '$';
+#else
+  prefix[len] = '_';
 #endif
   ASM_FORMAT_PRIVATE_NAME (tmp_name, prefix, clone_fn_id_num++);
   return get_identifier (tmp_name);
@@ -2176,7 +2179,8 @@ struct cgraph_node *
 cgraph_create_virtual_clone (struct cgraph_node *old_node,
 			     VEC(cgraph_edge_p,heap) *redirect_callers,
 			     VEC(ipa_replace_map_p,gc) *tree_map,
-			     bitmap args_to_skip)
+			     bitmap args_to_skip,
+			     const char * suffix)
 {
   tree old_decl = old_node->decl;
   struct cgraph_node *new_node = NULL;
@@ -2197,7 +2201,7 @@ cgraph_create_virtual_clone (struct cgraph_node *old_node,
   DECL_STRUCT_FUNCTION (new_decl) = NULL;
 
   /* Generate a new name for the new version. */
-  DECL_NAME (new_decl) = clone_function_name (old_decl);
+  DECL_NAME (new_decl) = clone_function_name (old_decl, suffix);
   SET_DECL_ASSEMBLER_NAME (new_decl, DECL_NAME (new_decl));
   SET_DECL_RTL (new_decl, NULL);
 
@@ -2578,6 +2582,43 @@ cgraph_propagate_frequency (struct cgraph_node *node)
        return true;
      }
    return false;
+}
+
+/* Return true when NODE can not return or throw and thus
+   it is safe to ignore its side effects for IPA analysis.  */
+
+bool
+cgraph_node_cannot_return (struct cgraph_node *node)
+{
+  int flags = flags_from_decl_or_type (node->decl);
+  if (!flag_exceptions)
+    return (flags & ECF_NORETURN) != 0;
+  else
+    return ((flags & (ECF_NORETURN | ECF_NOTHROW))
+	     == (ECF_NORETURN | ECF_NOTHROW));
+}
+
+/* Return true when call of E can not lead to return from caller
+   and thus it is safe to ignore its side effects for IPA analysis
+   when computing side effects of the caller.
+   FIXME: We could actually mark all edges that have no reaching
+   patch to EXIT_BLOCK_PTR or throw to get better results.  */
+bool
+cgraph_edge_cannot_lead_to_return (struct cgraph_edge *e)
+{
+  if (cgraph_node_cannot_return (e->caller))
+    return true;
+  if (e->indirect_unknown_callee)
+    {
+      int flags = e->indirect_info->ecf_flags;
+      if (!flag_exceptions)
+	return (flags & ECF_NORETURN) != 0;
+      else
+	return ((flags & (ECF_NORETURN | ECF_NOTHROW))
+		 == (ECF_NORETURN | ECF_NOTHROW));
+    }
+  else
+    return cgraph_node_cannot_return (e->callee);
 }
 
 #include "gt-cgraph.h"

@@ -92,6 +92,10 @@ output_objc_section_asm_op (const void *directive)
 {
   static bool been_here = false;
 
+  /* The NeXT ObjC Runtime requires these sections to be present and in 
+     order in the object.  The code below implements this by emitting 
+     a section header for each ObjC section the first time that an ObjC
+     section is requested.  */
   if (! been_here)
     {
       static const enum darwin_section_enum tomark[] =
@@ -152,7 +156,8 @@ name_needs_quotes (const char *name)
 {
   int c;
   while ((c = *name++) != '\0')
-    if (! ISIDNUM (c) && c != '.' && c != '$')
+    if (! ISIDNUM (c) 
+	  && c != '.' && c != '$' && c != '_' )
       return 1;
   return 0;
 }
@@ -305,7 +310,7 @@ machopic_output_function_base_name (FILE *file)
       ++current_pic_label_num;
       function_base_func_name = current_name;
     }
-  fprintf (file, "\"L%011d$pb\"", current_pic_label_num);
+  fprintf (file, "L%011d$pb", current_pic_label_num);
 }
 
 /* The suffix attached to non-lazy pointer symbols.  */
@@ -424,7 +429,7 @@ machopic_indirection_name (rtx sym_ref, bool stub_p)
     }
   else
     {
-      p = (machopic_indirection *) ggc_alloc (sizeof (machopic_indirection));
+      p = ggc_alloc_machopic_indirection ();
       p->symbol = sym_ref;
       p->ptr_name = xstrdup (buffer);
       p->stub_p = stub_p;
@@ -961,7 +966,7 @@ machopic_output_indirection (void **slot, void *data)
     {
       switch_to_section (data_section);
       assemble_align (GET_MODE_ALIGNMENT (Pmode));
-      assemble_label (ptr_name);
+      assemble_label (asm_out_file, ptr_name);
       assemble_integer (gen_rtx_SYMBOL_REF (Pmode, sym_name),
 			GET_MODE_SIZE (Pmode),
 			GET_MODE_ALIGNMENT (Pmode), 1);
@@ -1076,7 +1081,7 @@ darwin_encode_section_info (tree decl, rtx rtl, int first ATTRIBUTE_UNUSED)
 void
 darwin_mark_decl_preserved (const char *name)
 {
-  fprintf (asm_out_file, ".no_dead_strip ");
+  fprintf (asm_out_file, "\t.no_dead_strip ");
   assemble_name (asm_out_file, name);
   fputc ('\n', asm_out_file);
 }
@@ -1610,6 +1615,20 @@ darwin_non_lazy_pcrel (FILE *file, rtx addr)
   fputs ("\t.long\t", file);
   ASM_OUTPUT_LABELREF (file, nlp_name);
   fputs ("-.", file);
+}
+
+/* The implementation of ASM_DECLARE_CONSTANT_NAME.  */
+
+void
+darwin_asm_declare_constant_name (FILE *file, const char *name,
+				  const_tree exp ATTRIBUTE_UNUSED,
+				  HOST_WIDE_INT size)
+{
+  assemble_label (file, name);
+
+  /* Darwin doesn't support zero-size objects, so give them a byte.  */
+  if ((size) == 0)
+    assemble_zeros (1);
 }
 
 /* Emit an assembler directive to set visibility for a symbol.  The

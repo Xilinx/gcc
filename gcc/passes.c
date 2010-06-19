@@ -121,7 +121,7 @@ print_current_pass (FILE *file)
 
 
 /* Call from the debugger to get the current pass name.  */
-void
+DEBUG_FUNCTION void
 debug_pass (void)
 {
   print_current_pass (stderr);
@@ -809,8 +809,8 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_profile);
   NEXT_PASS (pass_ipa_cp);
   NEXT_PASS (pass_ipa_inline);
-  NEXT_PASS (pass_ipa_reference);
   NEXT_PASS (pass_ipa_pure_const);
+  NEXT_PASS (pass_ipa_reference);
   NEXT_PASS (pass_ipa_type_escape);
   NEXT_PASS (pass_ipa_pta);
   NEXT_PASS (pass_ipa_struct_reorg);
@@ -1120,7 +1120,7 @@ do_per_function (void (*callback) (void *data), void *data)
    keep the array visible to garbage collector to avoid reading collected
    out nodes.  */
 static int nnodes;
-static GTY ((length ("nnodes"))) struct cgraph_node **order;
+static GTY ((length ("nnodes"))) cgraph_node_ptr *order;
 
 /* If we are in IPA mode (i.e., current_function_decl is NULL), call
    function CALLBACK for every function in the call graph.  Otherwise,
@@ -1136,7 +1136,7 @@ do_per_function_toporder (void (*callback) (void *data), void *data)
   else
     {
       gcc_assert (!order);
-      order = GGC_NEWVEC (struct cgraph_node *, cgraph_n_nodes);
+      order = ggc_alloc_vec_cgraph_node_ptr (cgraph_n_nodes);
       nnodes = cgraph_postorder (order);
       for (i = nnodes - 1; i >= 0; i--)
         order[i]->process = 1;
@@ -1171,8 +1171,6 @@ static void
 execute_function_todo (void *data)
 {
   unsigned int flags = (size_t)data;
-  if (cfun->curr_properties & PROP_ssa)
-    flags |= TODO_verify_ssa;
   flags &= ~cfun->last_verified;
   if (!flags)
     return;
@@ -1495,19 +1493,10 @@ execute_one_ipa_transform_pass (struct cgraph_node *node,
 void
 execute_all_ipa_transforms (void)
 {
-  enum cgraph_state old_state = cgraph_state;
   struct cgraph_node *node;
   if (!cfun)
     return;
   node = cgraph_node (current_function_decl);
-
-  /* Statement verification skip verification of nothorw when
-     state is IPA_SSA because we do not modify function bodies
-     after setting the flag on function.  Instead we leave it
-     to fixup_cfg to do such a transformation.  We need to temporarily
-     change the cgraph state so statement verifier before
-     transform do not fire.  */
-  cgraph_state = CGRAPH_STATE_IPA_SSA;
 
   if (node->ipa_transforms_to_apply)
     {
@@ -1522,7 +1511,6 @@ execute_all_ipa_transforms (void)
       VEC_free (ipa_opt_pass, heap, node->ipa_transforms_to_apply);
       node->ipa_transforms_to_apply = NULL;
     }
-  cgraph_state = old_state;
 }
 
 /* Execute PASS. */
@@ -1670,7 +1658,11 @@ ipa_write_summaries_2 (struct opt_pass *pass, cgraph_node_set set,
 	  if (pass->tv_id)
 	    timevar_push (pass->tv_id);
 
+          pass_init_dump_file (pass);
+
 	  ipa_pass->write_summary (set,vset);
+
+          pass_fini_dump_file (pass);
 
 	  /* If a timevar is present, start it.  */
 	  if (pass->tv_id)
@@ -1784,7 +1776,11 @@ ipa_write_optimization_summaries_1 (struct opt_pass *pass, cgraph_node_set set,
 	  if (pass->tv_id)
 	    timevar_push (pass->tv_id);
 
+          pass_init_dump_file (pass);
+
 	  ipa_pass->write_optimization_summary (set, vset);
+
+          pass_fini_dump_file (pass);
 
 	  /* If a timevar is present, start it.  */
 	  if (pass->tv_id)
@@ -1840,7 +1836,11 @@ ipa_read_summaries_1 (struct opt_pass *pass)
 	      if (pass->tv_id)
 		timevar_push (pass->tv_id);
 
+	      pass_init_dump_file (pass);
+
 	      ipa_pass->read_summary ();
+
+	      pass_fini_dump_file (pass);
 
 	      /* Stop timevar.  */
 	      if (pass->tv_id)
@@ -1886,7 +1886,11 @@ ipa_read_optimization_summaries_1 (struct opt_pass *pass)
 	      if (pass->tv_id)
 		timevar_push (pass->tv_id);
 
+	      pass_init_dump_file (pass);
+
 	      ipa_pass->read_optimization_summary ();
+
+	      pass_fini_dump_file (pass);
 
 	      /* Stop timevar.  */
 	      if (pass->tv_id)
@@ -1988,7 +1992,7 @@ execute_all_ipa_stmt_fixups (struct cgraph_node *node, gimple *stmts)
 extern void debug_properties (unsigned int);
 extern void dump_properties (FILE *, unsigned int);
 
-void
+DEBUG_FUNCTION void
 dump_properties (FILE *dump, unsigned int props)
 {
   fprintf (dump, "Properties:\n");
@@ -2012,9 +2016,11 @@ dump_properties (FILE *dump, unsigned int props)
     fprintf (dump, "PROP_gimple_lomp\n");
   if (props & PROP_gimple_lcx)
     fprintf (dump, "PROP_gimple_lcx\n");
+  if (props & PROP_cfglayout)
+    fprintf (dump, "PROP_cfglayout\n");
 }
 
-void
+DEBUG_FUNCTION void
 debug_properties (unsigned int props)
 {
   dump_properties (stderr, props);

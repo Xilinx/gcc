@@ -25,6 +25,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
+#include "tm.h"
 #include "tree.h"
 #include "java-tree.h"
 #include "javaop.h"
@@ -380,7 +381,7 @@ prepare_eh_table_type (tree type)
     return NULL_TREE;
 
   if (TYPE_TO_RUNTIME_MAP (output_class) == NULL)
-    TYPE_TO_RUNTIME_MAP (output_class) = java_treetreehash_create (10, 1);
+    TYPE_TO_RUNTIME_MAP (output_class) = java_treetreehash_create (10);
   
   slot = java_treetreehash_new (TYPE_TO_RUNTIME_MAP (output_class), type);
   if (*slot != NULL)

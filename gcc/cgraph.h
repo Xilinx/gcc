@@ -311,7 +311,6 @@ struct GTY(()) cgraph_node_set_def
 {
   htab_t GTY((param_is (struct cgraph_node_set_element_def))) hashtab;
   VEC(cgraph_node_ptr, gc) *nodes;
-  PTR GTY ((skip)) aux;
 };
 
 typedef struct varpool_node *varpool_node_ptr;
@@ -326,7 +325,6 @@ struct GTY(()) varpool_node_set_def
 {
   htab_t GTY((param_is (struct varpool_node_set_element_def))) hashtab;
   VEC(varpool_node_ptr, gc) *nodes;
-  PTR GTY ((skip)) aux;
 };
 
 typedef struct cgraph_node_set_def *cgraph_node_set;
@@ -468,6 +466,8 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) varpool_node {
   /* Circular list of nodes in the same comdat group if non-NULL.  */
   struct varpool_node *same_comdat_group;
   struct ipa_ref_list ref_list;
+  /* File stream where this node is being written to.  */
+  struct lto_file_decl_data * lto_file_data;
   PTR GTY ((skip)) aux;
   /* Ordering of all cgraph nodes.  */
   int order;
@@ -588,14 +588,19 @@ const char* cgraph_inline_failed_string (cgraph_inline_failed_t);
 struct cgraph_node * cgraph_create_virtual_clone (struct cgraph_node *old_node,
 			                          VEC(cgraph_edge_p,heap)*,
 			                          VEC(ipa_replace_map_p,gc)* tree_map,
-			                          bitmap args_to_skip);
+			                          bitmap args_to_skip,
+						  const char *clone_name);
 
 void cgraph_set_nothrow_flag (struct cgraph_node *, bool);
 void cgraph_set_readonly_flag (struct cgraph_node *, bool);
 void cgraph_set_pure_flag (struct cgraph_node *, bool);
 void cgraph_set_looping_const_or_pure_flag (struct cgraph_node *, bool);
+tree clone_function_name (tree decl, const char *);
+bool cgraph_node_cannot_return (struct cgraph_node *);
+bool cgraph_edge_cannot_lead_to_return (struct cgraph_edge *);
 
 /* In cgraphunit.c  */
+extern FILE *cgraph_dump_file;
 void cgraph_finalize_function (tree, bool);
 void cgraph_mark_if_needed (tree);
 void cgraph_finalize_compilation_unit (void);
@@ -613,8 +618,10 @@ void init_cgraph (void);
 struct cgraph_node *cgraph_function_versioning (struct cgraph_node *,
 						VEC(cgraph_edge_p,heap)*,
 						VEC(ipa_replace_map_p,gc)*,
-						bitmap);
-void tree_function_versioning (tree, tree, VEC (ipa_replace_map_p,gc)*, bool, bitmap);
+						bitmap, bitmap, basic_block,
+						const char *);
+void tree_function_versioning (tree, tree, VEC (ipa_replace_map_p,gc)*, bool, bitmap,
+			       bitmap, basic_block);
 struct cgraph_node *save_inline_function_body (struct cgraph_node *);
 void record_references_in_initializer (tree, bool);
 bool cgraph_process_new_functions (void);
@@ -717,7 +724,7 @@ varpool_first_static_initializer (void)
   struct varpool_node *node;
   for (node = varpool_nodes_queue; node; node = node->next_needed)
     {
-      gcc_assert (TREE_CODE (node->decl) == VAR_DECL);
+      gcc_checking_assert (TREE_CODE (node->decl) == VAR_DECL);
       if (DECL_INITIAL (node->decl))
 	return node;
     }
@@ -730,7 +737,7 @@ varpool_next_static_initializer (struct varpool_node *node)
 {
   for (node = node->next_needed; node; node = node->next_needed)
     {
-      gcc_assert (TREE_CODE (node->decl) == VAR_DECL);
+      gcc_checking_assert (TREE_CODE (node->decl) == VAR_DECL);
       if (DECL_INITIAL (node->decl))
 	return node;
     }
@@ -867,14 +874,14 @@ struct GTY(()) constant_descriptor_tree {
 static inline bool
 cgraph_node_set_nonempty_p (cgraph_node_set set)
 {
-  return VEC_length (cgraph_node_ptr, set->nodes);
+  return !VEC_empty (cgraph_node_ptr, set->nodes);
 }
 
 /* Return true if set is nonempty.  */
 static inline bool
 varpool_node_set_nonempty_p (varpool_node_set set)
 {
-  return VEC_length (varpool_node_ptr, set->nodes);
+  return !VEC_empty (varpool_node_ptr, set->nodes);
 }
 
 /* Return true when function NODE is only called directly.

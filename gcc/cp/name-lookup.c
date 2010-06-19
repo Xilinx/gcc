@@ -31,7 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "diagnostic-core.h"
 #include "debug.h"
-#include "c-pragma.h"
+#include "c-family/c-pragma.h"
 
 /* The bindings for a particular name in a particular scope.  */
 
@@ -102,7 +102,7 @@ binding_entry_make (tree name, tree type)
       free_binding_entry = entry->chain;
     }
   else
-    entry = GGC_NEW (struct binding_entry_s);
+    entry = ggc_alloc_binding_entry_s ();
 
   entry->name = name;
   entry->type = type;
@@ -144,7 +144,7 @@ binding_table_construct (binding_table table, size_t chain_count)
 {
   table->chain_count = chain_count;
   table->entry_count = 0;
-  table->chain = GGC_CNEWVEC (binding_entry, table->chain_count);
+  table->chain = ggc_alloc_cleared_vec_binding_entry (table->chain_count);
 }
 
 /* Make TABLE's entries ready for reuse.  */
@@ -178,7 +178,7 @@ binding_table_free (binding_table table)
 static inline binding_table
 binding_table_new (size_t chain_count)
 {
-  binding_table table = GGC_NEW (struct binding_table_s);
+  binding_table table = ggc_alloc_binding_table_s ();
   table->chain = NULL;
   binding_table_construct (table, chain_count);
   return table;
@@ -292,7 +292,7 @@ cxx_binding_make (tree value, tree type)
       free_bindings = binding->previous;
     }
   else
-    binding = GGC_NEW (cxx_binding);
+    binding = ggc_alloc_cxx_binding ();
 
   cxx_binding_init (binding, value, type);
 
@@ -707,7 +707,7 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 		      = htab_create_ggc (20, cxx_int_tree_map_hash,
 					 cxx_int_tree_map_eq, NULL);
 
-		  h = GGC_NEW (struct cxx_int_tree_map);
+		  h = ggc_alloc_cxx_int_tree_map ();
 		  h->uid = DECL_UID (x);
 		  h->to = t;
 		  loc = htab_find_slot_with_hash
@@ -805,7 +805,7 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 				TYPE_RAISES_EXCEPTIONS (TREE_TYPE (previous));
 		  if (!comp_except_specs (previous_exception_spec,
 					  x_exception_spec,
-					  true))
+					  ce_normal))
 		    {
 		      pedwarn (input_location, 0, "declaration of %q#D with C language linkage",
 			       x);
@@ -1384,7 +1384,7 @@ begin_scope (scope_kind kind, tree entity)
       free_binding_level = scope->level_chain;
     }
   else
-    scope = GGC_CNEW (cxx_scope);
+    scope = ggc_alloc_cleared_cxx_scope ();
 
   scope->this_entity = entity;
   scope->more_cleanups_ok = true;
@@ -3195,8 +3195,8 @@ current_decl_namespace (void)
 {
   tree result;
   /* If we have been pushed into a different namespace, use it.  */
-  if (decl_namespace_list)
-    return TREE_PURPOSE (decl_namespace_list);
+  if (!VEC_empty (tree, decl_namespace_list))
+    return VEC_last (tree, decl_namespace_list);
 
   if (current_class_type)
     result = decl_namespace_context (current_class_type);
@@ -3380,8 +3380,7 @@ push_decl_namespace (tree decl)
 {
   if (TREE_CODE (decl) != NAMESPACE_DECL)
     decl = decl_namespace_context (decl);
-  decl_namespace_list = tree_cons (ORIGINAL_NAMESPACE (decl),
-				   NULL_TREE, decl_namespace_list);
+  VEC_safe_push (tree, gc, decl_namespace_list, ORIGINAL_NAMESPACE (decl));
 }
 
 /* [namespace.memdef]/2 */
@@ -3389,7 +3388,7 @@ push_decl_namespace (tree decl)
 void
 pop_decl_namespace (void)
 {
-  decl_namespace_list = TREE_CHAIN (decl_namespace_list);
+  VEC_pop (tree, decl_namespace_list);
 }
 
 /* Return the namespace that is the common ancestor
@@ -3698,6 +3697,31 @@ merge_functions (tree s1, tree s2)
   return s1;
 }
 
+/* Returns TRUE iff OLD and NEW are the same entity.
+
+   3 [basic]/3: An entity is a value, object, reference, function,
+   enumerator, type, class member, template, template specialization,
+   namespace, parameter pack, or this.
+
+   7.3.4 [namespace.udir]/4: If name lookup finds a declaration for a name
+   in two different namespaces, and the declarations do not declare the
+   same entity and do not declare functions, the use of the name is
+   ill-formed.  */
+
+static bool
+same_entity_p (tree one, tree two)
+{
+  if (one == two)
+    return true;
+  if (!one || !two)
+    return false;
+  if (TREE_CODE (one) == TYPE_DECL
+      && TREE_CODE (two) == TYPE_DECL
+      && same_type_p (TREE_TYPE (one), TREE_TYPE (two)))
+    return true;
+  return false;
+}
+
 /* This should return an error not all definitions define functions.
    It is not an error if we find two functions with exactly the
    same signature, only if these are selected in overload resolution.
@@ -3763,7 +3787,7 @@ ambiguous_decl (struct scope_binding *old, cxx_binding *new_binding, int flags)
 
   if (!old->value)
     old->value = val;
-  else if (val && val != old->value)
+  else if (val && !same_entity_p (val, old->value))
     {
       if (is_overloaded_fn (old->value) && is_overloaded_fn (val))
 	old->value = merge_functions (old->value, val);
@@ -4564,8 +4588,8 @@ struct arg_lookup
 {
   tree name;
   VEC(tree,gc) *args;
-  tree namespaces;
-  tree classes;
+  VEC(tree,gc) *namespaces;
+  VEC(tree,gc) *classes;
   tree functions;
 };
 
@@ -4642,9 +4666,9 @@ arg_assoc_namespace (struct arg_lookup *k, tree scope)
 {
   tree value;
 
-  if (purpose_member (scope, k->namespaces))
-    return 0;
-  k->namespaces = tree_cons (scope, NULL_TREE, k->namespaces);
+  if (vec_member (scope, k->namespaces))
+    return false;
+  VEC_safe_push (tree, gc, k->namespaces, scope);
 
   /* Check out our super-users.  */
   for (value = DECL_NAMESPACE_ASSOCIATIONS (scope); value;
@@ -4825,9 +4849,9 @@ arg_assoc_class (struct arg_lookup *k, tree type)
   if (!CLASS_TYPE_P (type))
     return false;
 
-  if (purpose_member (type, k->classes))
+  if (vec_member (type, k->classes))
     return false;
-  k->classes = tree_cons (type, NULL_TREE, k->classes);
+  VEC_safe_push (tree, gc, k->classes, type);
 
   if (TYPE_CLASS_SCOPE_P (type)
       && arg_assoc_class_only (k, TYPE_CONTEXT (type)))
@@ -5024,14 +5048,14 @@ lookup_arg_dependent (tree name, tree fns, VEC(tree,gc) *args)
   k.name = name;
   k.args = args;
   k.functions = fns;
-  k.classes = NULL_TREE;
+  k.classes = make_tree_vector ();
 
   /* We previously performed an optimization here by setting
      NAMESPACES to the current namespace when it was safe. However, DR
      164 says that namespaces that were already searched in the first
      stage of template processing are searched again (potentially
      picking up later definitions) in the second stage. */
-  k.namespaces = NULL_TREE;
+  k.namespaces = make_tree_vector ();
 
   arg_assoc_args_vec (&k, args);
 
@@ -5045,6 +5069,9 @@ lookup_arg_dependent (tree name, tree fns, VEC(tree,gc) *args)
       error ("  in call to %qD", name);
       fns = error_mark_node;
     }
+
+  release_tree_vector (k.classes);
+  release_tree_vector (k.namespaces);
     
   POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, fns);
 }
@@ -5381,7 +5408,7 @@ push_to_top_level (void)
   bool need_pop;
 
   timevar_push (TV_NAME_LOOKUP);
-  s = GGC_CNEW (struct saved_scope);
+  s = ggc_alloc_cleared_saved_scope ();
 
   b = scope_chain ? current_binding_level : 0;
 

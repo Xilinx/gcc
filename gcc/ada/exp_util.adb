@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -398,7 +398,7 @@ package body Exp_Util is
       Pos : Entity_Id;
       --  Running index for substring assignments
 
-      Pref : Entity_Id;
+      Pref : constant Entity_Id := Make_Temporary (Loc, 'P');
       --  Name of enclosing variable, prefix of resulting name
 
       Res : Entity_Id;
@@ -417,8 +417,6 @@ package body Exp_Util is
       Stats : constant List_Id := New_List;
 
    begin
-      Pref := Make_Defining_Identifier (Loc, New_Internal_Name ('P'));
-
       --  For a dynamic task, the name comes from the target variable.
       --  For a static one it is a formal of the enclosing init proc.
 
@@ -444,7 +442,7 @@ package body Exp_Util is
       Val  := First (Expressions (Id_Ref));
 
       for J in 1 .. Dims loop
-         T := Make_Defining_Identifier (Loc, New_Internal_Name ('T'));
+         T := Make_Temporary (Loc, 'T');
          Temps (J) := T;
 
          Append_To (Decls,
@@ -454,10 +452,8 @@ package body Exp_Util is
                Expression =>
                  Make_Attribute_Reference (Loc,
                    Attribute_Name => Name_Image,
-                   Prefix =>
-                     New_Occurrence_Of (Etype (Indx), Loc),
-                   Expressions => New_List (
-                     New_Copy_Tree (Val)))));
+                   Prefix         => New_Occurrence_Of (Etype (Indx), Loc),
+                   Expressions    => New_List (New_Copy_Tree (Val)))));
 
          Next_Index (Indx);
          Next (Val);
@@ -613,7 +609,7 @@ package body Exp_Util is
       if Restriction_Active (No_Implicit_Heap_Allocations)
         or else Global_Discard_Names
       then
-         T_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('J'));
+         T_Id := Make_Temporary (Loc, 'J');
          Name_Len := 0;
 
          return
@@ -697,9 +693,8 @@ package body Exp_Util is
           Expression => New_Occurrence_Of (Res, Loc)));
 
       Spec := Make_Function_Specification (Loc,
-        Defining_Unit_Name =>
-          Make_Defining_Identifier (Loc, New_Internal_Name ('F')),
-        Result_Definition => New_Occurrence_Of (Standard_String, Loc));
+        Defining_Unit_Name => Make_Temporary (Loc, 'F'),
+        Result_Definition  => New_Occurrence_Of (Standard_String, Loc));
 
       --  Calls to 'Image use the secondary stack, which must be cleaned
       --  up after the task name is built.
@@ -726,15 +721,15 @@ package body Exp_Util is
        Stats  : List_Id)
    is
    begin
-      Len := Make_Defining_Identifier (Loc, New_Internal_Name ('L'));
+      Len := Make_Temporary (Loc, 'L', Sum);
 
       Append_To (Decls,
         Make_Object_Declaration (Loc,
           Defining_Identifier => Len,
-          Object_Definition => New_Occurrence_Of (Standard_Integer, Loc),
-          Expression        => Sum));
+          Object_Definition   => New_Occurrence_Of (Standard_Integer, Loc),
+          Expression          => Sum));
 
-      Res := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+      Res := Make_Temporary (Loc, 'R');
 
       Append_To (Decls,
          Make_Object_Declaration (Loc,
@@ -750,12 +745,12 @@ package body Exp_Util is
                          Low_Bound => Make_Integer_Literal (Loc, 1),
                          High_Bound => New_Occurrence_Of (Len, Loc)))))));
 
-      Pos := Make_Defining_Identifier (Loc, New_Internal_Name ('P'));
+      Pos := Make_Temporary (Loc, 'P');
 
       Append_To (Decls,
          Make_Object_Declaration (Loc,
             Defining_Identifier => Pos,
-            Object_Definition => New_Occurrence_Of (Standard_Integer, Loc)));
+            Object_Definition   => New_Occurrence_Of (Standard_Integer, Loc)));
 
       --  Pos := Prefix'Length;
 
@@ -765,29 +760,29 @@ package body Exp_Util is
             Expression =>
               Make_Attribute_Reference (Loc,
                 Attribute_Name => Name_Length,
-                Prefix => New_Occurrence_Of (Prefix, Loc),
-                Expressions =>
-                    New_List (Make_Integer_Literal (Loc, 1)))));
+                Prefix         => New_Occurrence_Of (Prefix, Loc),
+                Expressions    => New_List (Make_Integer_Literal (Loc, 1)))));
 
       --  Res (1 .. Pos) := Prefix;
 
       Append_To (Stats,
-         Make_Assignment_Statement (Loc,
-           Name => Make_Slice (Loc,
-              Prefix => New_Occurrence_Of (Res, Loc),
+        Make_Assignment_Statement (Loc,
+          Name =>
+            Make_Slice (Loc,
+              Prefix          => New_Occurrence_Of (Res, Loc),
               Discrete_Range  =>
                 Make_Range (Loc,
-                   Low_Bound => Make_Integer_Literal (Loc, 1),
+                   Low_Bound  => Make_Integer_Literal (Loc, 1),
                    High_Bound => New_Occurrence_Of (Pos, Loc))),
 
-           Expression => New_Occurrence_Of (Prefix, Loc)));
+          Expression => New_Occurrence_Of (Prefix, Loc)));
 
       Append_To (Stats,
          Make_Assignment_Statement (Loc,
-            Name => New_Occurrence_Of (Pos, Loc),
+            Name       => New_Occurrence_Of (Pos, Loc),
             Expression =>
               Make_Op_Add (Loc,
-                Left_Opnd => New_Occurrence_Of (Pos, Loc),
+                Left_Opnd  => New_Occurrence_Of (Pos, Loc),
                 Right_Opnd => Make_Integer_Literal (Loc, 1))));
    end Build_Task_Image_Prefix;
 
@@ -809,7 +804,7 @@ package body Exp_Util is
       Res : Entity_Id;
       --  String to hold result
 
-      Pref : Entity_Id;
+      Pref : constant Entity_Id := Make_Temporary (Loc, 'P');
       --  Name of enclosing variable, prefix of resulting name
 
       Sum : Node_Id;
@@ -822,8 +817,6 @@ package body Exp_Util is
       Stats : constant List_Id := New_List;
 
    begin
-      Pref := Make_Defining_Identifier (Loc, New_Internal_Name ('P'));
-
       --  For a dynamic task, the name comes from the target variable.
       --  For a static one it is a formal of the enclosing init proc.
 
@@ -845,15 +838,15 @@ package body Exp_Util is
              Name                => Make_Identifier (Loc, Name_uTask_Name)));
       end if;
 
-      Sel := Make_Defining_Identifier (Loc, New_Internal_Name ('S'));
+      Sel := Make_Temporary (Loc, 'S');
 
       Get_Name_String (Chars (Selector_Name (Id_Ref)));
 
       Append_To (Decls,
          Make_Object_Declaration (Loc,
            Defining_Identifier => Sel,
-           Object_Definition => New_Occurrence_Of (Standard_String, Loc),
-           Expression =>
+           Object_Definition   => New_Occurrence_Of (Standard_String, Loc),
+           Expression          =>
              Make_String_Literal (Loc,
                Strval => String_From_Name_Buffer)));
 
@@ -1300,9 +1293,7 @@ package body Exp_Util is
             end if;
 
          else
-            T :=
-              Make_Defining_Identifier (Loc,
-                Chars => New_Internal_Name ('T'));
+            T := Make_Temporary (Loc, 'T');
 
             Insert_Action (N,
               Make_Subtype_Declaration (Loc,
@@ -2116,9 +2107,7 @@ package body Exp_Util is
    begin
       --  Only consider record types
 
-      if Ekind (Typ) /= E_Record_Type
-        and then Ekind (Typ) /= E_Record_Subtype
-      then
+      if not Ekind_In (Typ, E_Record_Type, E_Record_Subtype) then
          return False;
       end if;
 
@@ -2142,6 +2131,37 @@ package body Exp_Util is
 
       return False;
    end Has_Controlled_Coextensions;
+
+   ------------------------
+   -- Has_Address_Clause --
+   ------------------------
+
+   --  Should this function check the private part in a package ???
+
+   function Has_Following_Address_Clause (D : Node_Id) return Boolean is
+      Id   : constant Entity_Id := Defining_Identifier (D);
+      Decl : Node_Id;
+
+   begin
+      Decl := Next (D);
+      while Present (Decl) loop
+         if Nkind (Decl) = N_At_Clause
+           and then Chars (Identifier (Decl)) = Chars (Id)
+         then
+            return True;
+
+         elsif Nkind (Decl) = N_Attribute_Definition_Clause
+           and then Chars (Decl) = Name_Address
+           and then Chars (Name (Decl)) = Chars (Id)
+         then
+            return True;
+         end if;
+
+         Next (Decl);
+      end loop;
+
+      return False;
+   end Has_Following_Address_Clause;
 
    --------------------
    -- Homonym_Number --
@@ -2396,6 +2416,28 @@ package body Exp_Util is
                      null;
                   end if;
                end;
+
+            --  Alternative of case expression, we place the action in
+            --  the Actions field of the case expression alternative, this
+            --  will be handled when the case expression is expanded.
+
+            when N_Case_Expression_Alternative =>
+               if Present (Actions (P)) then
+                  Insert_List_After_And_Analyze
+                    (Last (Actions (P)), Ins_Actions);
+               else
+                  Set_Actions (P, Ins_Actions);
+                  Analyze_List (Then_Actions (P));
+               end if;
+
+               return;
+
+            --  Case of appearing within an Expressions_With_Actions node. We
+            --  prepend the actions to the list of actions already there.
+
+            when N_Expression_With_Actions =>
+               Prepend_List (Ins_Actions, Actions (P));
+               return;
 
             --  Case of appearing in the condition of a while expression or
             --  elsif. We insert the actions into the Condition_Actions field.
@@ -2652,6 +2694,7 @@ package body Exp_Util is
                N_Access_To_Object_Definition            |
                N_Aggregate                              |
                N_Allocator                              |
+               N_Case_Expression                        |
                N_Case_Statement_Alternative             |
                N_Character_Literal                      |
                N_Compilation_Unit                       |
@@ -3724,24 +3767,27 @@ package body Exp_Util is
       Sizexpr     : Node_Id;
 
    begin
-      if not Has_Discriminants (Root_Typ) then
+      --  If the root type is already constrained, there are no discriminants
+      --  in the expression.
+
+      if not Has_Discriminants (Root_Typ)
+        or else Is_Constrained (Root_Typ)
+      then
          Constr_Root := Root_Typ;
       else
-         Constr_Root :=
-           Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+         Constr_Root := Make_Temporary (Loc, 'R');
 
          --  subtype cstr__n is T (List of discr constraints taken from Exp)
 
          Append_To (List_Def,
            Make_Subtype_Declaration (Loc,
              Defining_Identifier => Constr_Root,
-               Subtype_Indication =>
-                 Make_Subtype_From_Expr (E, Root_Typ)));
+             Subtype_Indication  => Make_Subtype_From_Expr (E, Root_Typ)));
       end if;
 
       --  Generate the range subtype declaration
 
-      Range_Type := Make_Defining_Identifier (Loc, New_Internal_Name ('G'));
+      Range_Type := Make_Temporary (Loc, 'G');
 
       if not Is_Interface (Root_Typ) then
 
@@ -3790,7 +3836,7 @@ package body Exp_Util is
 
       --  subtype str__nn is Storage_Array (rg__x);
 
-      Str_Type := Make_Defining_Identifier (Loc, New_Internal_Name ('S'));
+      Str_Type := Make_Temporary (Loc, 'S');
       Append_To (List_Def,
         Make_Subtype_Declaration (Loc,
           Defining_Identifier => Str_Type,
@@ -3807,7 +3853,7 @@ package body Exp_Util is
       --    E : Str_Type;
       --  end Equiv_T;
 
-      Equiv_Type := Make_Defining_Identifier (Loc, New_Internal_Name ('T'));
+      Equiv_Type := Make_Temporary (Loc, 'T');
       Set_Ekind (Equiv_Type, E_Record_Type);
       Set_Parent_Subtype (Equiv_Type, Constr_Root);
 
@@ -3832,9 +3878,7 @@ package body Exp_Util is
 
       Append_To (Comp_List,
         Make_Component_Declaration (Loc,
-          Defining_Identifier =>
-            Make_Defining_Identifier (Loc,
-              Chars => New_Internal_Name ('C')),
+          Defining_Identifier  => Make_Temporary (Loc, 'C'),
           Component_Definition =>
             Make_Component_Definition (Loc,
               Aliased_Present    => False,
@@ -3960,15 +4004,12 @@ package body Exp_Util is
          --  actual or an explicit subtype.
 
          Utyp        := Underlying_Type (Base_Type (Unc_Typ));
-         Full_Subtyp := Make_Defining_Identifier (Loc,
-                          New_Internal_Name ('C'));
+         Full_Subtyp := Make_Temporary (Loc, 'C');
          Full_Exp    :=
-           Unchecked_Convert_To
-             (Utyp, Duplicate_Subexpr_No_Checks (E));
+           Unchecked_Convert_To (Utyp, Duplicate_Subexpr_No_Checks (E));
          Set_Parent (Full_Exp, Parent (E));
 
-         Priv_Subtyp :=
-           Make_Defining_Identifier (Loc, New_Internal_Name ('P'));
+         Priv_Subtyp := Make_Temporary (Loc, 'P');
 
          Insert_Action (E,
            Make_Subtype_Declaration (Loc,
@@ -4027,6 +4068,20 @@ package body Exp_Util is
             --  additional intermediate type to handle the assignment).
 
             if Expander_Active and then Tagged_Type_Expansion then
+
+               --  If this is the class_wide type of a completion that is
+               --  a record subtype, set the type of the class_wide type
+               --  to be the full base type, for use in the expanded code
+               --  for the equivalent type. Should this be done earlier when
+               --  the completion is analyzed ???
+
+               if Is_Private_Type (Etype (Unc_Typ))
+                 and then
+                   Ekind (Full_View (Etype (Unc_Typ))) = E_Record_Subtype
+               then
+                  Set_Etype (Unc_Typ, Base_Type (Full_View (Etype (Unc_Typ))));
+               end if;
+
                EQ_Typ := Make_CW_Equivalent_Type (Unc_Typ, E);
             end if;
 
@@ -4391,9 +4446,7 @@ package body Exp_Util is
             --  already rewritten a variable node with a constant as
             --  a result of an earlier Force_Evaluation call.
 
-            if Ekind (Entity (N)) = E_Constant
-              or else Ekind (Entity (N)) = E_In_Parameter
-            then
+            if Ekind_In (Entity (N), E_Constant, E_In_Parameter) then
                return True;
 
             --  Functions are not side effect free
@@ -4631,14 +4684,15 @@ package body Exp_Util is
       Scope_Suppress := (others => True);
 
       --  If it is a scalar type and we need to capture the value, just make
-      --  a copy. Likewise for a function call, an attribute reference or an
-      --  operator. And if we have a volatile reference and Name_Req is not
-      --  set (see comments above for Side_Effect_Free).
+      --  a copy. Likewise for a function call, an attribute reference, an
+      --  allocator, or an operator. And if we have a volatile reference and
+      --  Name_Req is not set (see comments above for Side_Effect_Free).
 
       if Is_Elementary_Type (Exp_Type)
         and then (Variable_Ref
                    or else Nkind (Exp) = N_Function_Call
                    or else Nkind (Exp) = N_Attribute_Reference
+                   or else Nkind (Exp) = N_Allocator
                    or else Nkind (Exp) in N_Op
                    or else (not Name_Req and then Is_Volatile_Reference (Exp)))
       then
@@ -4839,7 +4893,7 @@ package body Exp_Util is
             end;
          end if;
 
-         Ref_Type := Make_Defining_Identifier (Loc, New_Internal_Name ('A'));
+         Ref_Type := Make_Temporary (Loc, 'A');
 
          Ptr_Typ_Decl :=
            Make_Full_Type_Declaration (Loc,

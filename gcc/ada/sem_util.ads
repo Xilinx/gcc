@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -712,7 +712,7 @@ package Sem_Util is
    --  by a derived type declarations.
 
    function Is_LHS (N : Node_Id) return Boolean;
-   --  Returns True iff N is used as Name in an assignment statement.
+   --  Returns True iff N is used as Name in an assignment statement
 
    function Is_Library_Level_Entity (E : Entity_Id) return Boolean;
    --  A library-level declaration is one that is accessible from Standard,
@@ -799,6 +799,10 @@ package Sem_Util is
    --  CIL, will always return false for other targets. A value type is a CIL
    --  object that is accessed directly, as opposed to the other CIL objects
    --  that are accessed through managed pointers.
+
+   function Is_VMS_Operator (Op : Entity_Id) return Boolean;
+   --  Determine whether an operator is one of the intrinsics defined
+   --  in the DEC system extension.
 
    function Is_Delegate (T : Entity_Id) return Boolean;
    --  Returns true if type T represents a delegate. A Delegate is the CIL

@@ -6083,7 +6083,7 @@ init_one_libfunc (const char *name)
 
   /* See if we have already created a libfunc decl for this function.  */
   id = get_identifier (name);
-  hash = htab_hash_string (name);
+  hash = IDENTIFIER_HASH_VALUE (id);
   slot = htab_find_slot_with_hash (libfunc_decls, id, hash, INSERT);
   decl = (tree) *slot;
   if (decl == NULL)
@@ -6106,7 +6106,7 @@ set_user_assembler_libfunc (const char *name, const char *asmspec)
   hashval_t hash;
 
   id = get_identifier (name);
-  hash = htab_hash_string (name);
+  hash = IDENTIFIER_HASH_VALUE (id);
   slot = htab_find_slot_with_hash (libfunc_decls, id, hash, NO_INSERT);
   gcc_assert (slot);
   decl = (tree) *slot;
@@ -6132,7 +6132,7 @@ set_optab_libfunc (optab optable, enum machine_mode mode, const char *name)
     val = 0;
   slot = (struct libfunc_entry **) htab_find_slot (libfunc_hash, &e, INSERT);
   if (*slot == NULL)
-    *slot = GGC_NEW (struct libfunc_entry);
+    *slot = ggc_alloc_libfunc_entry ();
   (*slot)->optab = (size_t) (optable - &optab_table[0]);
   (*slot)->mode1 = mode;
   (*slot)->mode2 = VOIDmode;
@@ -6159,7 +6159,7 @@ set_conv_libfunc (convert_optab optable, enum machine_mode tmode,
     val = 0;
   slot = (struct libfunc_entry **) htab_find_slot (libfunc_hash, &e, INSERT);
   if (*slot == NULL)
-    *slot = GGC_NEW (struct libfunc_entry);
+    *slot = ggc_alloc_libfunc_entry ();
   (*slot)->optab = (size_t) (optable - &convert_optab_table[0]);
   (*slot)->mode1 = tmode;
   (*slot)->mode2 = fmode;
@@ -6173,7 +6173,9 @@ void
 init_optabs (void)
 {
   unsigned int i;
+#if GCC_VERSION >= 4000 && HAVE_DESIGNATED_INITIALIZERS
   static bool reinit;
+#endif
 
   libfunc_hash = htab_create_ggc (10, hash_libfunc, eq_libfunc, NULL);
   /* Start by initializing all tables to contain CODE_FOR_nothing.  */
@@ -6670,13 +6672,15 @@ init_optabs (void)
   /* Allow the target to add more libcalls or rename some, etc.  */
   targetm.init_libfuncs ();
 
+#if GCC_VERSION >= 4000 && HAVE_DESIGNATED_INITIALIZERS
   reinit = true;
+#endif
 }
 
 /* Print information about the current contents of the optabs on
    STDERR.  */
 
-void
+DEBUG_FUNCTION void
 debug_optab_libfuncs (void)
 {
   int i;

@@ -850,7 +850,7 @@ gfc_trans_block_construct (gfc_code* code)
   stmtblock_t body;
   tree tmp;
 
-  ns = code->ext.ns;
+  ns = code->ext.block.ns;
   gcc_assert (ns);
   sym = ns->proc_name;
   gcc_assert (sym);
@@ -4155,20 +4155,23 @@ gfc_trans_allocate (gfc_code * code)
 	  /* A scalar or derived type.  */
 
 	  /* Determine allocate size.  */
-	  if (code->expr3 && code->expr3->ts.type == BT_CLASS)
+	  if (al->expr->ts.type == BT_CLASS && code->expr3)
 	    {
-	      gfc_expr *sz;
-	      gfc_se se_sz;
-	      sz = gfc_copy_expr (code->expr3);
-	      gfc_add_component_ref (sz, "$vptr");
-	      gfc_add_component_ref (sz, "$size");
-	      gfc_init_se (&se_sz, NULL);
-	      gfc_conv_expr (&se_sz, sz);
-	      gfc_free_expr (sz);
-	      memsz = se_sz.expr;
+	      if (code->expr3->ts.type == BT_CLASS)
+		{
+		  gfc_expr *sz;
+		  gfc_se se_sz;
+		  sz = gfc_copy_expr (code->expr3);
+		  gfc_add_component_ref (sz, "$vptr");
+		  gfc_add_component_ref (sz, "$size");
+		  gfc_init_se (&se_sz, NULL);
+		  gfc_conv_expr (&se_sz, sz);
+		  gfc_free_expr (sz);
+		  memsz = se_sz.expr;
+		}
+	      else
+		memsz = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->expr3->ts));
 	    }
-	  else if (code->expr3 && code->expr3->ts.type != BT_CLASS)
-	    memsz = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->expr3->ts));
 	  else if (code->ext.alloc.ts.type != BT_UNKNOWN)
 	    memsz = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->ext.alloc.ts));
 	  else
@@ -4230,7 +4233,7 @@ gfc_trans_allocate (gfc_code * code)
       gfc_add_expr_to_block (&block, tmp);
 
       /* Initialization via SOURCE block.  */
-      if (code->expr3)
+      if (code->expr3 && !code->expr3->mold)
 	{
 	  gfc_expr *rhs = gfc_copy_expr (code->expr3);
 	  if (al->expr->ts.type == BT_CLASS)
@@ -4266,7 +4269,7 @@ gfc_trans_allocate (gfc_code * code)
 	  rhs = NULL;
 	  if (code->expr3 && code->expr3->ts.type == BT_CLASS)
 	    {
-	      /* VPTR must be determined at run time.  */
+	      /* Polymorphic SOURCE: VPTR must be determined at run time.  */
 	      rhs = gfc_copy_expr (code->expr3);
 	      gfc_add_component_ref (rhs, "$vptr");
 	      tmp = gfc_trans_pointer_assignment (lhs, rhs);
@@ -4285,7 +4288,7 @@ gfc_trans_allocate (gfc_code * code)
 	      else if (code->ext.alloc.ts.type == BT_DERIVED)
 		ts = &code->ext.alloc.ts;
 	      else if (expr->ts.type == BT_CLASS)
-		ts = &expr->ts.u.derived->components->ts;
+		ts = &CLASS_DATA (expr)->ts;
 	      else
 		ts = &expr->ts;
 

@@ -750,11 +750,12 @@ union GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
     (DECL_LANG_SPECIFIC (NODE)->u.v.vtable)
 
 /* Create a DECL_LANG_SPECIFIC if necessary. */
-#define MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC(T)			\
-  if (DECL_LANG_SPECIFIC (T) == NULL)				\
-    {								\
-      DECL_LANG_SPECIFIC ((T)) = GGC_CNEW (struct lang_decl);	\
-      DECL_LANG_SPECIFIC (T)->desc = LANG_DECL_VAR;		\
+#define MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC(T)                       \
+  if (DECL_LANG_SPECIFIC (T) == NULL)                                \
+    {                                                                \
+      DECL_LANG_SPECIFIC ((T))                                       \
+        = ggc_alloc_cleared_lang_decl (sizeof (struct lang_decl));   \
+      DECL_LANG_SPECIFIC (T)->desc = LANG_DECL_VAR;                  \
     }
 
 /* A ConstantExpression, after folding and name resolution. */
@@ -840,7 +841,7 @@ typedef struct GTY(()) type_assertion {
 
 extern tree java_treetreehash_find (htab_t, tree);
 extern tree * java_treetreehash_new (htab_t, tree);
-extern htab_t java_treetreehash_create (size_t size, int ggc);
+extern htab_t java_treetreehash_create (size_t size);
 
 /* DECL_LANG_SPECIFIC for VAR_DECL, PARM_DECL and sometimes FIELD_DECL
    (access methods on outer class fields) and final fields. */
@@ -861,7 +862,7 @@ struct GTY(()) lang_decl_var {
 
 enum lang_decl_desc {LANG_DECL_FUNC, LANG_DECL_VAR};
 
-struct GTY(()) lang_decl {
+struct GTY((variable_size)) lang_decl {
   enum lang_decl_desc desc;
   union lang_decl_u
     {
@@ -879,7 +880,7 @@ struct GTY(()) lang_decl {
 #define MAYBE_CREATE_TYPE_TYPE_LANG_SPECIFIC(T) \
   if (TYPE_LANG_SPECIFIC ((T)) == NULL)		\
      TYPE_LANG_SPECIFIC ((T))			\
-     = GGC_CNEW (struct lang_type);
+       = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
 
 #define TYPE_DUMMY(T)		(TYPE_LANG_SPECIFIC(T)->dummy_class)
 
@@ -916,25 +917,36 @@ struct GTY(()) lang_decl {
 #define TYPE_REFLECTION_DATASIZE(T)					\
 				(TYPE_LANG_SPECIFIC (T)->reflection_datasize)
 
-struct GTY(()) lang_type {
+typedef struct GTY(()) method_entry_d {
+  tree method;
+  tree special;
+} method_entry;
+
+DEF_VEC_O(method_entry);
+DEF_VEC_ALLOC_O(method_entry,gc);
+
+/* FIXME: the variable_size annotation here is needed because these types are
+   variable-sized in some other frontends.  Due to gengtype deficiency the GTY
+   options of such types have to agree across all frontends. */
+struct GTY((variable_size)) lang_type {
   tree signature;
   struct JCF *jcf;
   struct CPool *cpool;
   tree cpool_data_ref;		/* Cached */
   tree package_list;		/* List of package names, progressive */
 
-  tree otable_methods;          /* List of static decls referred to by this
-				   class.  */
+  VEC(method_entry,gc) *otable_methods; /* List of static decls referred
+					   to by this class.  */
   tree otable_decl;		/* The static address table.  */
   tree otable_syms_decl;
 
-  tree atable_methods;          /* List of static decls referred to by this
-				   class.  */
+  VEC(method_entry,gc) *atable_methods; /* List of abstract methods
+					   referred to by this class.  */
   tree atable_decl;		/* The static address table.  */
   tree atable_syms_decl;
 
-  tree itable_methods;          /* List of interfaces methods referred
-				   to by this class.  */
+  VEC(method_entry,gc) *itable_methods; /* List of interface methods
+					   referred to by this class.  */
   tree itable_decl;		/* The interfaces table.  */
   tree itable_syms_decl;
 
@@ -1103,7 +1115,8 @@ extern void make_class_data (tree);
 extern int alloc_name_constant (int, tree);
 extern int alloc_constant_fieldref (tree, tree);
 extern void emit_register_classes (tree *);
-extern tree emit_symbol_table (tree, tree, tree, tree, tree, int);
+extern tree emit_symbol_table (tree, tree, VEC(method_entry,gc) *,
+			       tree, tree, int);
 extern void lang_init_source (int);
 extern void write_classfile (tree);
 extern char *print_int_node (tree);
@@ -1206,7 +1219,7 @@ extern void register_exception_range(struct eh_range *, int, int);
 extern void finish_method (tree);
 extern void java_expand_body (tree);
 
-extern int get_symbol_table_index (tree, tree, tree *);
+extern int get_symbol_table_index (tree, tree, VEC(method_entry,gc) **);
 
 extern tree make_catch_class_record (tree, tree);
 extern tree emit_catch_table (tree);

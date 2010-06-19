@@ -293,6 +293,20 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define TARGET_SECURE_PLT 0
 #endif
 
+/* Code model for 64-bit linux.
+   small: 16-bit toc offsets.
+   medium: 32-bit toc offsets, static data and code within 2G of TOC pointer.
+   large: 32-bit toc offsets, no limit on static data and code.  */
+enum rs6000_cmodel {
+  CMODEL_SMALL,
+  CMODEL_MEDIUM,
+  CMODEL_LARGE
+};
+
+#ifndef TARGET_CMODEL
+#define TARGET_CMODEL CMODEL_SMALL
+#endif
+
 #define TARGET_32BIT		(! TARGET_64BIT)
 
 #ifndef HAVE_AS_TLS
@@ -542,6 +556,46 @@ extern int rs6000_vector_align[];
 
 /* E500 processors only support plain "sync", not lwsync.  */
 #define TARGET_NO_LWSYNC TARGET_E500
+
+/* Which machine supports the various reciprocal estimate instructions.  */
+#define TARGET_FRES	(TARGET_HARD_FLOAT && TARGET_PPC_GFXOPT \
+			 && TARGET_FPRS && TARGET_SINGLE_FLOAT)
+
+#define TARGET_FRE	(TARGET_HARD_FLOAT && TARGET_FPRS \
+			 && TARGET_DOUBLE_FLOAT \
+			 && (TARGET_POPCNTB || VECTOR_UNIT_VSX_P (DFmode)))
+
+#define TARGET_FRSQRTES	(TARGET_HARD_FLOAT && TARGET_POPCNTB \
+			 && TARGET_FPRS && TARGET_SINGLE_FLOAT)
+
+#define TARGET_FRSQRTE	(TARGET_HARD_FLOAT && TARGET_FPRS \
+			 && TARGET_DOUBLE_FLOAT \
+			 && (TARGET_PPC_GFXOPT || VECTOR_UNIT_VSX_P (DFmode)))
+
+/* Whether the various reciprocal divide/square root estimate instructions
+   exist, and whether we should automatically generate code for the instruction
+   by default.  */
+#define RS6000_RECIP_MASK_HAVE_RE	0x1	/* have RE instruction.  */
+#define RS6000_RECIP_MASK_AUTO_RE	0x2	/* generate RE by default.  */
+#define RS6000_RECIP_MASK_HAVE_RSQRTE	0x4	/* have RSQRTE instruction.  */
+#define RS6000_RECIP_MASK_AUTO_RSQRTE	0x8	/* gen. RSQRTE by default.  */
+
+extern unsigned char rs6000_recip_bits[];
+
+#define RS6000_RECIP_HAVE_RE_P(MODE) \
+  (rs6000_recip_bits[(int)(MODE)] & RS6000_RECIP_MASK_HAVE_RE)
+
+#define RS6000_RECIP_AUTO_RE_P(MODE) \
+  (rs6000_recip_bits[(int)(MODE)] & RS6000_RECIP_MASK_AUTO_RE)
+
+#define RS6000_RECIP_HAVE_RSQRTE_P(MODE) \
+  (rs6000_recip_bits[(int)(MODE)] & RS6000_RECIP_MASK_HAVE_RSQRTE)
+
+#define RS6000_RECIP_AUTO_RSQRTE_P(MODE) \
+  (rs6000_recip_bits[(int)(MODE)] & RS6000_RECIP_MASK_AUTO_RSQRTE)
+
+#define RS6000_RECIP_HIGH_PRECISION_P(MODE) \
+  ((MODE) == SFmode || (MODE) == V4SFmode || TARGET_RECIP_PRECISION)
 
 /* Sometimes certain combinations of command options do not make sense
    on a particular target machine.  You can define a macro

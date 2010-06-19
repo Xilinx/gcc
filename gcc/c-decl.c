@@ -45,8 +45,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "opts.h"
 #include "timevar.h"
-#include "c-common.h"
-#include "c-pragma.h"
+#include "c-family/c-common.h"
+#include "c-family/c-pragma.h"
 #include "c-lang.h"
 #include "langhooks.h"
 #include "tree-mudflap.h"
@@ -58,6 +58,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks-def.h"
 #include "pointer-set.h"
 #include "plugin.h"
+#include "c-family/c-ada-spec.h"
 
 /* In grokdeclarator, distinguish syntactic contexts of declarators.  */
 enum decl_context
@@ -589,7 +590,7 @@ bind (tree name, tree decl, struct c_scope *scope, bool invisible,
       binding_freelist = b->prev;
     }
   else
-    b = GGC_NEW (struct c_binding);
+    b = ggc_alloc_c_binding ();
 
   b->shadowed = 0;
   b->decl = decl;
@@ -703,7 +704,7 @@ void
 record_inline_static (location_t loc, tree func, tree decl,
 		      enum c_inline_static_type type)
 {
-  struct c_inline_static *csi = GGC_NEW (struct c_inline_static);
+  struct c_inline_static *csi = ggc_alloc_c_inline_static ();
   csi->location = loc;
   csi->function = func;
   csi->static_decl = decl;
@@ -927,7 +928,7 @@ push_scope (void)
 	  scope_freelist = scope->outer;
 	}
       else
-	scope = GGC_CNEW (struct c_scope);
+	scope = ggc_alloc_cleared_c_scope ();
 
       /* The FLOAT_CONST_DECIMAL64 pragma applies to nested scopes.  */
       if (current_scope)
@@ -3006,7 +3007,7 @@ make_label (location_t location, tree name, bool defining,
   DECL_CONTEXT (label) = current_function_decl;
   DECL_MODE (label) = VOIDmode;
 
-  label_vars = GGC_NEW (struct c_label_vars);
+  label_vars = ggc_alloc_c_label_vars ();
   label_vars->shadowed = NULL;
   set_spot_bindings (&label_vars->label_bindings, defining);
   label_vars->decls_in_scope = make_tree_vector ();
@@ -3104,7 +3105,7 @@ lookup_label_for_goto (location_t loc, tree name)
     {
       struct c_goto_bindings *g;
 
-      g = GGC_NEW (struct c_goto_bindings);
+      g = ggc_alloc_c_goto_bindings ();
       g->loc = loc;
       set_spot_bindings (&g->goto_bindings, true);
       VEC_safe_push (c_goto_bindings_p, gc, label_vars->gotos, g);
@@ -5900,12 +5901,6 @@ grokdeclarator (const struct c_declarator *declarator,
 	  pedwarn (loc, OPT_pedantic,
 		   "ISO C forbids qualified function types");
 
-	/* GNU C interprets a volatile-qualified function type to indicate
-	   that the function does not return.  */
-	if ((type_quals & TYPE_QUAL_VOLATILE)
-	    && !VOID_TYPE_P (TREE_TYPE (TREE_TYPE (decl))))
-	  warning_at (loc, 0, "%<noreturn%> function returns non-void value");
-
 	/* Every function declaration is an external reference
 	   (DECL_EXTERNAL) except for those which are not at file
 	   scope and are explicitly declared "auto".  This is
@@ -6992,9 +6987,9 @@ finish_struct (location_t loc, tree t, tree fieldlist, tree attributes,
 	  ensure that this lives as long as the rest of the struct decl.
 	  All decls in an inline function need to be saved.  */
 
-	space = GGC_CNEW (struct lang_type);
-	space2 = GGC_NEWVAR (struct sorted_fields_type,
-			     sizeof (struct sorted_fields_type) + len * sizeof (tree));
+	space = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
+	space2 = ggc_alloc_sorted_fields_type
+	  (sizeof (struct sorted_fields_type) + len * sizeof (tree));
 
 	len = 0;
 	space->s = space2;
@@ -7275,7 +7270,7 @@ finish_enum (tree enumtype, tree values, tree attributes)
 
   /* Record the min/max values so that we can warn about bit-field
      enumerations that are too small for the values.  */
-  lt = GGC_CNEW (struct lang_type);
+  lt = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
   lt->enum_min = minnode;
   lt->enum_max = maxnode;
   TYPE_LANG_SPECIFIC (enumtype) = lt;
@@ -8298,7 +8293,7 @@ void
 c_push_function_context (void)
 {
   struct language_function *p;
-  p = GGC_NEW (struct language_function);
+  p = ggc_alloc_language_function ();
   cfun->language = p;
 
   p->base.x_stmt_tree = c_stmt_tree;
@@ -9614,6 +9609,43 @@ c_write_global_declarations_2 (tree globals)
     debug_hooks->global_decl (decl);
 }
 
+/* Callback to collect a source_ref from a DECL.  */
+
+static void
+collect_source_ref_cb (tree decl)
+{
+  if (!DECL_IS_BUILTIN (decl))
+    collect_source_ref (LOCATION_FILE (decl_sloc (decl, false)));
+}
+
+/* Collect all references relevant to SOURCE_FILE.  */
+
+static void
+collect_all_refs (const char *source_file)
+{
+  tree t;
+
+  for (t = all_translation_units; t; t = TREE_CHAIN (t))
+    collect_ada_nodes (BLOCK_VARS (DECL_INITIAL (t)), source_file);
+}
+
+/* Iterate over all global declarations and call CALLBACK.  */
+
+static void
+for_each_global_decl (void (*callback) (tree decl))
+{
+  tree t;
+  tree decls;
+  tree decl;
+
+  for (t = all_translation_units; t; t = TREE_CHAIN (t))
+    { 
+      decls = DECL_INITIAL (t);
+      for (decl = BLOCK_VARS (decls); decl; decl = TREE_CHAIN (decl))
+	callback (decl);
+    }
+}
+
 /* Preserve the external declarations scope across a garbage collect.  */
 static GTY(()) tree ext_block;
 
@@ -9626,15 +9658,22 @@ c_write_global_declarations (void)
   if (pch_file)
     return;
 
-  /* Don't waste time on further processing if -fsyntax-only.
-     Continue for warning and errors issued during lowering though.  */
-  if (flag_syntax_only)
-    return;
-
   /* Close the external scope.  */
   ext_block = pop_scope ();
   external_scope = 0;
   gcc_assert (!current_scope);
+
+  /* Handle -fdump-ada-spec[-slim]. */
+  if (dump_enabled_p (TDI_ada))
+    {
+      /* Build a table of files to generate specs for */
+      if (get_dump_file_info (TDI_ada)->flags & TDF_SLIM)
+	collect_source_ref (main_input_filename);
+      else
+	for_each_global_decl (collect_source_ref_cb);
+
+      dump_ada_specs (collect_all_refs, NULL);
+    }
 
   if (ext_block)
     {
@@ -9670,6 +9709,25 @@ c_write_global_declarations (void)
     }
 
   ext_block = NULL;
+}
+
+/* Register reserved keyword WORD as qualifier for address space AS.  */
+
+void
+c_register_addr_space (const char *word, addr_space_t as)
+{
+  int rid = RID_FIRST_ADDR_SPACE + as;
+  tree id;
+
+  /* Address space qualifiers are only supported
+     in C with GNU extensions enabled.  */
+  if (c_dialect_objc () || flag_no_asm)
+    return;
+
+  id = get_identifier (word);
+  C_SET_RID_CODE (id, rid);
+  C_IS_RESERVED_WORD (id) = 1;
+  ridpointers [rid] = id;
 }
 
 #include "gt-c-decl.h"

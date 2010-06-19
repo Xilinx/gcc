@@ -69,7 +69,7 @@ debug_rename_map_1 (void **slot, void *s ATTRIBUTE_UNUSED)
 
 /* Print to stderr all the elements of MAP.  */
 
-void
+DEBUG_FUNCTION void
 debug_rename_map (htab_t map)
 {
   htab_traverse (map, debug_rename_map_1, NULL);
@@ -118,7 +118,7 @@ debug_ivtype_map_1 (void **slot, void *s ATTRIBUTE_UNUSED)
 
 /* Print to stderr all the elements of MAP.  */
 
-void
+DEBUG_FUNCTION void
 debug_ivtype_map (htab_t map)
 {
   htab_traverse (map, debug_ivtype_map_1, NULL);
@@ -1493,7 +1493,7 @@ if_region_set_false_region (ifsese if_region, sese region)
 
   if (slot)
     {
-      struct loop_exit *loop_exit = GGC_CNEW (struct loop_exit);
+      struct loop_exit *loop_exit = ggc_alloc_cleared_loop_exit ();
 
       memcpy (loop_exit, *((struct loop_exit **) slot), sizeof (struct loop_exit));
       htab_clear_slot (current_loops->exits, slot);

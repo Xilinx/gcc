@@ -18,7 +18,7 @@ Copyright @copyright{} 1995-2009 Free Software Foundation,
 Inc.
 
 Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.2 or
+under the terms of the GNU Free Documentation License, Version 1.3 or
 any later version published by the Free Software Foundation; with no
 Invariant Sections, with no Front-Cover Texts and with no Back-Cover
 Texts.  A copy of the license is included in the section entitled
@@ -107,6 +107,13 @@ Texts.  A copy of the license is included in the section entitled
 @macro ovar{varname}
 @r{[}@var{\varname\}@r{]}@c
 @end macro
+@c Status as of November 2009:
+@c Unfortunately texi2pdf and texi2html treat the trailing "@c"
+@c differently, and faulty output is produced by one or the other
+@c depending on whether the "@c" is present or absent.
+@c As a result, the @ovar macro is not used, and all invocations
+@c of the @ovar macro have been expanded inline.
+
 
 @settitle @value{EDITION} User's Guide @value{PLATFORM}
 @dircategory GNU Ada tools
@@ -340,6 +347,7 @@ Performance Considerations
 Reducing Size of Ada Executables with gnatelim
 * About gnatelim::
 * Running gnatelim::
+* Processing Precompiled Libraries::
 * Correcting the List of Eliminate Pragmas::
 * Making Your Executables Smaller::
 * Summary of the gnatelim Usage Cycle::
@@ -523,6 +531,7 @@ Running and Debugging Ada Programs
 * Ada Exceptions::
 * Ada Tasks::
 * Debugging Generic Units::
+* Remote Debugging using gdbserver::
 * GNAT Abnormal Termination or Failure to Terminate::
 * Naming Conventions for GNAT Source Files::
 * Getting Internal Debugging Information::
@@ -597,6 +606,8 @@ Platform-Specific Information for the Run-Time Libraries
 * Linux-Specific Considerations::
 * AIX-Specific Considerations::
 * Irix-Specific Considerations::
+* RTX-Specific Considerations::
+* HP-UX-Specific Considerations::
 
 Example of Binder Output File
 
@@ -3873,7 +3884,9 @@ without generating code, then use the @option{-gnatc} switch.
 The basic command for compiling a file containing an Ada unit is
 
 @smallexample
-$ gcc -c @ovar{switches} @file{file name}
+@c $ gcc -c @ovar{switches} @file{file name}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gcc -c @r{[}@var{switches}@r{]} @file{file name}
 @end smallexample
 
 @noindent
@@ -4188,7 +4201,7 @@ Note that @option{^-gnatg^/GNAT_INTERNAL^} implies
 @option{^-gnatwae^/WARNINGS=ALL,ERRORS^} and
 @option{^-gnatyg^/STYLE_CHECKS=GNAT^}
 so that all standard warnings and all standard style options are turned on.
-All warnings and style error messages are treated as errors.
+All warnings and style messages are treated as errors.
 
 @ifclear vms
 @item -gnatG=nn
@@ -4282,7 +4295,12 @@ controlled by this switch (division by zero checking is on by default).
 
 @item -gnatp
 @cindex @option{-gnatp} (@command{gcc})
-Suppress all checks. See @ref{Run-Time Checks} for details.
+Suppress all checks. See @ref{Run-Time Checks} for details. This switch
+has no effect if cancelled by a subsequent @option{-gnat-p} switch.
+
+@item -gnat-p
+@cindex @option{-gnat-p} (@command{gcc})
+Cancel effect of previous @option{-gnatp} switch.
 
 @item -gnatP
 @cindex @option{-gnatP} (@command{gcc})
@@ -4419,7 +4437,9 @@ Inhibit the search of the default location for the GNAT Run Time
 Library (RTL) ALI files.
 
 @ifclear vms
-@item -O@ovar{n}
+@c @item -O@ovar{n}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+@item -O@r{[}@var{n}@r{]}
 @cindex @option{-O} (@command{gcc})
 @var{n} controls the optimization level.
 
@@ -4576,6 +4596,9 @@ The switches
 ^^@option{/DISTRIBUTION_STUBS=},^
 @option{-gnatzc} and @option{-gnatzr} may not be combined with any other
 switches, and only one of them may appear in the command line.
+
+@item
+The switch @option{-gnat-p} may not be combined with any other switch.
 
 @ifclear vms
 @item
@@ -5190,12 +5213,14 @@ This switch suppresses warnings for implicit dereferences in
 indexed components, slices, and selected components.
 
 @item -gnatwe
-@emph{Treat warnings as errors.}
+@emph{Treat warnings and style checks as errors.}
 @cindex @option{-gnatwe} (@command{gcc})
 @cindex Warnings, treat as error
-This switch causes warning messages to be treated as errors.
+This switch causes warning messages and style check messages to be
+treated as errors.
 The warning string still appears, but the warning messages are counted
-as errors, and prevent the generation of an object file.
+as errors, and prevent the generation of an object file. Note that this
+is the only -gnatw switch that affects the handling of style check messages.
 
 @item -gnatw.e
 @emph{Activate every optional warning}
@@ -5558,7 +5583,8 @@ This switch completely suppresses the
 output of all warning messages from the GNAT front end.
 Note that it does not suppress warnings from the @command{gcc} back end.
 To suppress these back end warnings as well, use the switch @option{-w}
-in addition to @option{-gnatws}.
+in addition to @option{-gnatws}. Also this switch has no effect on the
+handling of style check messages.
 
 @item -gnatwt
 @emph{Activate warnings for tracking of deleted conditional code.}
@@ -6117,8 +6143,10 @@ causes the compiler to
 enforce specified style rules. A limited set of style rules has been used
 in writing the GNAT sources themselves. This switch allows user programs
 to activate all or some of these checks. If the source program fails a
-specified style check, an appropriate warning message is given, preceded by
-the character sequence ``(style)''.
+specified style check, an appropriate message is given, preceded by
+the character sequence ``(style)''. This message does not prevent
+successful compilation (unless the @option{-gnatwe} switch is used).
+
 @ifset vms
 @code{(option,option,@dots{})} is a sequence of keywords
 @end ifset
@@ -6607,6 +6635,16 @@ do anything else. It might even do exactly what you wanted it to do
 year). The compiler will generate code based on the assumption that
 the condition being checked is true, which can result in disaster if
 that assumption is wrong.
+
+The @option{-gnatp} switch has no effect if a subsequent
+@option{-gnat-p} switch appears.
+
+@item -gnat-p
+@cindex @option{-gnat-p} (@command{gcc})
+@cindex Suppressing checks
+@cindex Checks, suppressing
+@findex Suppress
+This switch cancels the effect of a previous @option{gnatp} switch.
 
 @item -gnato
 @cindex @option{-gnato} (@command{gcc})
@@ -7187,7 +7225,9 @@ Shows the storage pool associated with a @code{free} statement.
 Used to list an equivalent declaration for an internally generated
 type that is referenced elsewhere in the listing.
 
-@item freeze @var{type-name} @ovar{actions}
+@c @item freeze @var{type-name} @ovar{actions}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+@item freeze @var{type-name} @r{[}@var{actions}@r{]}
 Shows the point at which @var{type-name} is frozen, with possible
 associated actions to be performed at the freeze point.
 
@@ -7886,12 +7926,14 @@ to be read by the @command{gnatlink} utility used to link the Ada application.
 The form of the @code{gnatbind} command is
 
 @smallexample
-$ gnatbind @ovar{switches} @var{mainprog}@r{[}.ali@r{]} @ovar{switches}
+@c $ gnatbind @ovar{switches} @var{mainprog}@r{[}.ali@r{]} @ovar{switches}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatbind @r{[}@var{switches}@r{]} @var{mainprog}@r{[}.ali@r{]} @r{[}@var{switches}@r{]}
 @end smallexample
 
 @noindent
 where @file{@var{mainprog}.adb} is the Ada file containing the main program
-unit body. If no switches are specified, @code{gnatbind} constructs an Ada
+unit body. @code{gnatbind} constructs an Ada
 package in two files whose names are
 @file{b~@var{mainprog}.ads}, and @file{b~@var{mainprog}.adb}.
 For example, if given the
@@ -7962,14 +8004,6 @@ the generated main program. It can also be debugged just like any other
 Ada code provided the @option{^-g^/DEBUG^} switch is used for
 @command{gnatbind} and @command{gnatlink}.
 
-However for some purposes it may be convenient to generate the main
-program in C rather than Ada. This may for example be helpful when you
-are generating a mixed language program with the main program in C. The
-GNAT compiler itself is an example.
-The use of the @option{^-C^/BIND_FILE=C^} switch
-for both @code{gnatbind} and @command{gnatlink} will cause the program to
-be generated in C (and compiled using the gnu C compiler).
-
 @node Switches for gnatbind
 @section Switches for @command{gnatbind}
 
@@ -8013,10 +8047,6 @@ Specify directory to be searched for ALI files.
 @cindex @option{^-aI^/SOURCE_SEARCH^} (@command{gnatbind})
 Specify directory to be searched for source file.
 
-@item ^-A^/BIND_FILE=ADA^
-@cindex @option{^-A^/BIND_FILE=ADA^} (@command{gnatbind})
-Generate binder program in Ada (default)
-
 @item ^-b^/REPORT_ERRORS=BRIEF^
 @cindex @option{^-b^/REPORT_ERRORS=BRIEF^} (@command{gnatbind})
 Generate brief messages to @file{stderr} even if verbose mode set.
@@ -8024,10 +8054,6 @@ Generate brief messages to @file{stderr} even if verbose mode set.
 @item ^-c^/NOOUTPUT^
 @cindex @option{^-c^/NOOUTPUT^} (@command{gnatbind})
 Check only, no generation of binder output file.
-
-@item ^-C^/BIND_FILE=C^
-@cindex @option{^-C^/BIND_FILE=C^} (@command{gnatbind})
-Generate binder program in C
 
 @item ^-d^/DEFAULT_STACK_SIZE=^@var{nn}@r{[}k@r{|}m@r{]}
 @cindex @option{^-d^/DEFAULT_STACK_SIZE=^@var{nn}@r{[}k@r{|}m@r{]}} (@command{gnatbind})
@@ -8474,23 +8500,10 @@ generated by the binder.
 @table @option
 @c !sort!
 
-@item ^-A^/BIND_FILE=ADA^
-@cindex @option{^-A^/BIND_FILE=ADA^} (@code{gnatbind})
-Generate binder program in Ada (default). The binder program is named
-@file{b~@var{mainprog}.adb} by default. This can be changed with
-@option{^-o^/OUTPUT^} @code{gnatbind} option.
-
 @item ^-c^/NOOUTPUT^
 @cindex @option{^-c^/NOOUTPUT^} (@code{gnatbind})
 Check only. Do not generate the binder output file. In this mode the
 binder performs all error checks but does not generate an output file.
-
-@item ^-C^/BIND_FILE=C^
-@cindex @option{^-C^/BIND_FILE=C^} (@code{gnatbind})
-Generate binder program in C. The binder program is named
-@file{b_@var{mainprog}.c}.
-This can be changed with @option{^-o^/OUTPUT^} @code{gnatbind}
-option.
 
 @item ^-e^/ELABORATION_DEPENDENCIES^
 @cindex @option{^-e^/ELABORATION_DEPENDENCIES^} (@code{gnatbind})
@@ -8526,8 +8539,7 @@ directory names for the run-time units depend on the system configuration.
 @cindex @option{^-o^/OUTPUT^} (@code{gnatbind})
 Set name of output file to @var{file} instead of the normal
 @file{b~@var{mainprog}.adb} default. Note that @var{file} denote the Ada
-binder generated body filename. In C mode you would normally give
-@var{file} an extension of @file{.c} because it will be a C source program.
+binder generated body filename.
 Note that if this option is used, then linking must be done manually.
 It is not possible to use gnatlink in this case, since it cannot locate
 the binder file.
@@ -8601,9 +8613,7 @@ more quite separate groups of Ada units.
 The binder takes the name of its output file from the last specified ALI
 file, unless overridden by the use of the @option{^-o file^/OUTPUT=file^}.
 @cindex @option{^-o^/OUTPUT^} (@command{gnatbind})
-The output is an Ada unit in source form that can
-be compiled with GNAT unless the -C switch is used in which case the
-output is a C source file, which must be compiled using the C compiler.
+The output is an Ada unit in source form that can be compiled with GNAT.
 This compilation occurs automatically as part of the @command{gnatlink}
 processing.
 
@@ -8800,39 +8810,8 @@ The main program @code{Hello} (source program in @file{hello.adb}) is
 bound using the standard switch settings. The generated main program is
 @file{mainprog.adb} with the associated spec in
 @file{mainprog.ads}. Note that you must specify the body here not the
-spec, in the case where the output is in Ada. Note that if this option
-is used, then linking must be done manually, since gnatlink will not
-be able to find the generated file.
-
-@ifclear vms
-@item gnatbind main -C -o mainprog.c -x
-@end ifclear
-@ifset vms
-@item gnatbind MAIN.ALI /BIND_FILE=C /OUTPUT=Mainprog.C /READ_SOURCES=NONE
-@end ifset
-The main program @code{Main} (source program in
-@file{main.adb}) is bound, excluding source files from the
-consistency checking, generating
-the file @file{mainprog.c}.
-
-@ifclear vms
-@item gnatbind -x main_program -C -o mainprog.c
-This command is exactly the same as the previous example. Switches may
-appear anywhere in the command line, and single letter switches may be
-combined into a single switch.
-@end ifclear
-
-@ifclear vms
-@item gnatbind -n math dbase -C -o ada-control.c
-@end ifclear
-@ifset vms
-@item gnatbind /NOMAIN math dbase /BIND_FILE=C /OUTPUT=ada-control.c
-@end ifset
-The main program is in a language other than Ada, but calls to
-subprograms in packages @code{Math} and @code{Dbase} appear. This call
-to @code{gnatbind} generates the file @file{ada-control.c} containing
-the @code{adainit} and @code{adafinal} routines to be called before and
-after accessing the Ada units.
+spec. Note that if this option is used, then linking must be done manually,
+since gnatlink will not be able to find the generated file.
 @end table
 
 @c ------------------------------------
@@ -8865,8 +8844,12 @@ driver (see @ref{The GNAT Driver and Project Files}).
 The form of the @command{gnatlink} command is
 
 @smallexample
-$ gnatlink @ovar{switches} @var{mainprog}@r{[}.ali@r{]}
-           @ovar{non-Ada objects} @ovar{linker options}
+@c $ gnatlink @ovar{switches} @var{mainprog}@r{[}.ali@r{]}
+@c            @ovar{non-Ada objects} @ovar{linker options}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatlink @r{[}@var{switches}@r{]} @var{mainprog}@r{[}.ali@r{]}
+           @r{[}@var{non-Ada objects}@r{]} @r{[}@var{linker options}@r{]}
+
 @end smallexample
 
 @noindent
@@ -8946,17 +8929,6 @@ Display Copyright and version, then exit disregarding all other options.
 @cindex @option{--help} @command{gnatlink}
 If @option{--version} was not used, display usage, then exit disregarding
 all other options.
-
-@item ^-A^/BIND_FILE=ADA^
-@cindex @option{^-A^/BIND_FILE=ADA^} (@command{gnatlink})
-The binder has generated code in Ada. This is the default.
-
-@item ^-C^/BIND_FILE=C^
-@cindex @option{^-C^/BIND_FILE=C^} (@command{gnatlink})
-If instead of generating a file in Ada, the binder has generated one in
-C, then the linker needs to know about it. Use this switch to signal
-to @command{gnatlink} that the binder has generated C code rather than
-Ada code.
 
 @item ^-f^/FORCE_OBJECT_FILE_LIST^
 @cindex Command line length
@@ -9144,8 +9116,11 @@ dependencies, they will always be tracked exactly correctly by
 The usual form of the @command{gnatmake} command is
 
 @smallexample
-$ gnatmake @ovar{switches} @var{file_name}
-      @ovar{file_names} @ovar{mode_switches}
+@c $ gnatmake @ovar{switches} @var{file_name}
+@c       @ovar{file_names} @ovar{mode_switches}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatmake @r{[}@var{switches}@r{]} @var{file_name}
+      @r{[}@var{file_names}@r{]} @r{[}@var{mode_switches}@r{]}
 @end smallexample
 
 @noindent
@@ -10670,6 +10645,7 @@ program.
 @menu
 * About gnatelim::
 * Running gnatelim::
+* Processing Precompiled Libraries::
 * Correcting the List of Eliminate Pragmas::
 * Making Your Executables Smaller::
 * Summary of the gnatelim Usage Cycle::
@@ -10693,20 +10669,24 @@ because the compiler will not generate the code for 'eliminated' subprograms.
 @xref{Pragma Eliminate,,, gnat_rm, GNAT Reference Manual}, for more
 information about this pragma.
 
-@code{gnatelim} needs as its input data the name of the main subprogram
-and a bind file for a main subprogram.
+@code{gnatelim} needs as its input data the name of the main subprogram.
 
-To create a bind file for @code{gnatelim}, run @code{gnatbind} for
-the main subprogram. @code{gnatelim} can work with both Ada and C
-bind files; when both are present, it uses the Ada bind file.
-The following commands will build the program and create the bind file:
+If a set of source files is specified as @code{gnatelim} arguments, it
+treats these files as a complete set of sources making up a program to
+analyse, and analyses only these sources.
+
+After a full successful build of the main subprogram @code{gnatelim} can be
+called without  specifying sources to analyse, in this case it computes
+the source closure of the main unit from the @file{ALI} files.
+
+The following command will create the set of @file{ALI} files needed for
+@code{gnatelim}:
 
 @smallexample
 $ gnatmake ^-c Main_Prog^/ACTIONS=COMPILE MAIN_PROG^
-$ gnatbind main_prog
 @end smallexample
 
-Note that @code{gnatelim} needs neither object nor ALI files.
+Note that @code{gnatelim} does not need object files.
 
 @node Running gnatelim
 @subsection Running @code{gnatelim}
@@ -10715,22 +10695,63 @@ Note that @code{gnatelim} needs neither object nor ALI files.
 @code{gnatelim} has the following command-line interface:
 
 @smallexample
-$ gnatelim @ovar{options} name
+$ gnatelim [@var{switches}] ^-main^?MAIN^=@var{main_unit_name} @{@var{filename}@} @r{[}-cargs @var{gcc_switches}@r{]}
 @end smallexample
 
 @noindent
-@code{name} should be a name of a source file that contains the main subprogram
-of a program (partition).
+@var{main_unit_name} should be a name of a source file that contains the main
+subprogram of a program (partition).
+
+Each @var{filename} is the name (including the extension) of a source
+file to process. ``Wildcards'' are allowed, and
+the file name may contain path information.
+
+@samp{@var{gcc_switches}} is a list of switches for
+@command{gcc}. They will be passed on to all compiler invocations made by
+@command{gnatelim} to generate the ASIS trees. Here you can provide
+@option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
+use the @option{-gnatec} switch to set the configuration file etc.
 
 @code{gnatelim} has the following switches:
 
 @table @option
 @c !sort!
+@item ^-files^/FILES^=@var{filename}
+@cindex @option{^-files^/FILES^} (@code{gnatelim})
+Take the argument source files from the specified file. This file should be an
+ordinary text file containing file names separated by spaces or
+line breaks. You can use this switch more than once in the same call to
+@command{gnatelim}. You also can combine this switch with
+an explicit list of files.
+
+@item ^-log^/LOG^
+@cindex @option{^-log^/LOG^} (@command{gnatelim})
+Duplicate all the output sent to @file{stderr} into a log file. The log file
+is named @file{gnatelim.log} and is located in the current directory.
+
+@item ^-log^/LOGFILE^=@var{filename}
+@cindex @option{^-log^/LOGFILE^} (@command{gnatelim})
+Duplicate all the output sent to @file{stderr} into a specified log file.
+
+@cindex @option{^--no-elim-dispatch^/NO_DISPATCH^} (@command{gnatelim})
+@item ^--no-elim-dispatch^/NO_DISPATCH^
+Do not generate pragmas for dispatching operations.
+
+@cindex @option{^-o^/OUTPUT^} (@command{gnatelim})
+@item ^-o^/OUTPUT^=@var{report_file}
+Put @command{gnatelim} output into a specified file. If this file already exists,
+it is overridden. If this switch is not used, @command{gnatelim} outputs its results
+into @file{stderr}
+
 @item ^-q^/QUIET^
 @cindex @option{^-q^/QUIET^} (@command{gnatelim})
 Quiet mode: by default @code{gnatelim} outputs to the standard error
 stream the number of program units left to be processed. This option turns
 this trace off.
+
+@cindex @option{^-t^/TIME^} (@command{gnatelim})
+@item ^-t^/TIME^
+Print out execution time.
 
 @item ^-v^/VERBOSE^
 @cindex @option{^-v^/VERBOSE^} (@command{gnatelim})
@@ -10739,67 +10760,24 @@ comments to the standard output stream. Also, in addition to the number of
 program units left @code{gnatelim} will output the name of the current unit
 being processed.
 
-@item ^-a^/ALL^
-@cindex @option{^-a^/ALL^} (@command{gnatelim})
-Also look for subprograms from the GNAT run time that can be eliminated. Note
-that when @file{gnat.adc} is produced using this switch, the entire program
-must be recompiled with switch @option{^-a^/ALL_FILES^} to @command{gnatmake}.
-
-@item ^-I^/INCLUDE_DIRS=^@var{dir}
-@cindex @option{^-I^/INCLUDE_DIRS^} (@command{gnatelim})
-When looking for source files also look in directory @var{dir}. Specifying
-@option{^-I-^/INCLUDE_DIRS=-^} instructs @code{gnatelim} not to look for
-sources in the current directory.
-
-@item ^-b^/BIND_FILE=^@var{bind_file}
-@cindex @option{^-b^/BIND_FILE^} (@command{gnatelim})
-Specifies @var{bind_file} as the bind file to process. If not set, the name
-of the bind file is computed from the full expanded Ada name
-of a main subprogram.
-
-@item ^-C^/CONFIG_FILE=^@var{config_file}
-@cindex @option{^-C^/CONFIG_FILE^} (@command{gnatelim})
-Specifies a file @var{config_file} that contains configuration pragmas. The
-file must be specified with full path.
-
-@item ^--GCC^/COMPILER^=@var{compiler_name}
-@cindex @option{^-GCC^/COMPILER^} (@command{gnatelim})
-Instructs @code{gnatelim} to use specific @command{gcc} compiler instead of one
-available on the path.
-
-@item ^--GNATMAKE^/GNATMAKE^=@var{gnatmake_name}
-@cindex @option{^--GNATMAKE^/GNATMAKE^} (@command{gnatelim})
-Instructs @code{gnatelim} to use specific @command{gnatmake} instead of one
-available on the path.
+@item ^-wq^/WARNINGS=QUIET^
+@cindex @option{^-wq^/WARNINGS=QUIET^} (@command{gnatelim})
+Quet warning mode - some warnings are suppressed. In particular warnings that
+indicate that the analysed set of sources is incomplete to make up a
+partition and that some subprogram bodies are missing are not generated.
 @end table
 
-@noindent
-@code{gnatelim} sends its output to the standard output stream, and all the
-tracing and debug information is sent to the standard error stream.
-In order to produce a proper GNAT configuration file
-@file{gnat.adc}, redirection must be used:
-
-@smallexample
-@ifset vms
-$ PIPE GNAT ELIM MAIN_PROG.ADB > GNAT.ADC
-@end ifset
-@ifclear vms
-$ gnatelim main_prog.adb > gnat.adc
-@end ifclear
-@end smallexample
-
-@ifclear vms
-@noindent
-or
-
-@smallexample
-$ gnatelim main_prog.adb >> gnat.adc
-@end smallexample
+@node Processing Precompiled Libraries
+@subsection Processing Precompiled Libraries
 
 @noindent
-in order to append the @code{gnatelim} output to the existing contents of
-@file{gnat.adc}.
-@end ifclear
+If some program uses a precompiled Ada library, it can be processed by
+@code{gnatelim} in a usual way. @code{gnatelim} will newer generate an
+Eliminate pragma for a subprogram if the body of this subprogram has not
+been analysed, this is a typical case for subprograms from precompiled
+libraries. Switch @option{^-wq^/WARNINGS=QUIET^} may be used to suppress
+warnings about missing source files and non-analyzed subprogram bodies
+that can be generated when processing precompiled Ada libraries.
 
 @node Correcting the List of Eliminate Pragmas
 @subsection Correcting the List of Eliminate Pragmas
@@ -10810,22 +10788,23 @@ subprograms that are actually called in the program. In this case, the
 compiler will generate an error message of the form:
 
 @smallexample
-file.adb:106:07: cannot call eliminated subprogram "My_Prog"
+main.adb:4:08: cannot reference subprogram "P" eliminated at elim.out:5
 @end smallexample
 
 @noindent
 You will need to manually remove the wrong @code{Eliminate} pragmas from
-the @file{gnat.adc} file. You should recompile your program
-from scratch after that, because you need a consistent @file{gnat.adc} file
-during the entire compilation.
+the configuration file indicated in the error message. You should recompile
+your program from scratch after that, because you need a consistent
+configuration file(s) during the entire compilation.
 
 @node Making Your Executables Smaller
 @subsection Making Your Executables Smaller
 
 @noindent
 In order to get a smaller executable for your program you now have to
-recompile the program completely with the new @file{gnat.adc} file
-created by @code{gnatelim} in your current directory:
+recompile the program completely with the configuration file containing
+pragmas Eliminate generated by gnatelim. If these pragmas are placed in
+@file{gnat.adc} file located in your current directory, just do:
 
 @smallexample
 $ gnatmake ^-f main_prog^/FORCE_COMPILE MAIN_PROG^
@@ -10839,10 +10818,10 @@ with the set of pragmas @code{Eliminate} that you have obtained with
 
 Be aware that the set of @code{Eliminate} pragmas is specific to each
 program. It is not recommended to merge sets of @code{Eliminate}
-pragmas created for different programs in one @file{gnat.adc} file.
+pragmas created for different programs in one configuration file.
 
 @node Summary of the gnatelim Usage Cycle
-@subsection Summary of the gnatelim Usage Cycle
+@subsection Summary of the @code{gnatelim} Usage Cycle
 
 @noindent
 Here is a quick summary of the steps to be taken in order to reduce
@@ -10852,15 +10831,16 @@ to produce the debugging information, to set search path, etc.
 
 @enumerate
 @item
-Produce a bind file
+Create a complete set of @file{ALI} files (if the program has not been
+built already)
 
 @smallexample
 $ gnatmake ^-c main_prog^/ACTIONS=COMPILE MAIN_PROG^
-$ gnatbind main_prog
 @end smallexample
 
 @item
-Generate a list of @code{Eliminate} pragmas
+Generate a list of @code{Eliminate} pragmas in default configuration file
+@file{gnat.adc} in the current directory
 @smallexample
 @ifset vms
 $ PIPE GNAT ELIM MAIN_PROG > GNAT.ADC
@@ -11119,8 +11099,11 @@ in which GNAT processes the ACVC tests.
 The @code{gnatchop} command has the form:
 
 @smallexample
+@c $ gnatchop switches @var{file name} @r{[}@var{file name} @dots{}@r{]}
+@c      @ovar{directory}
+@c Expanding @ovar macro inline (explanation in macro def comments)
 $ gnatchop switches @var{file name} @r{[}@var{file name} @dots{}@r{]}
-      @ovar{directory}
+      @r{[}@var{directory}@r{]}
 @end smallexample
 
 @noindent
@@ -11546,8 +11529,11 @@ set of files.
 The usual form of the @code{gnatname} command is
 
 @smallexample
-$ gnatname @ovar{switches} @var{naming_pattern} @ovar{naming_patterns}
-      @r{[}--and @ovar{switches} @var{naming_pattern} @ovar{naming_patterns}@r{]}
+@c $ gnatname @ovar{switches} @var{naming_pattern} @ovar{naming_patterns}
+@c       @r{[}--and @ovar{switches} @var{naming_pattern} @ovar{naming_patterns}@r{]}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatname @r{[}@var{switches}@r{]} @var{naming_pattern} @r{[}@var{naming_patterns}@r{]}
+      @r{[}--and @r{[}@var{switches}@r{]} @var{naming_pattern} @r{[}@var{naming_patterns}@r{]}@r{]}
 @end smallexample
 
 @noindent
@@ -11563,7 +11549,8 @@ regular files.
 
 @noindent
 One or several Naming Patterns may be given as arguments to @code{gnatname}.
-Each Naming Pattern is enclosed between double quotes.
+Each Naming Pattern is enclosed between double quotes (or single
+quotes on Windows).
 A Naming Pattern is a regular expression similar to the wildcard patterns
 used in file names by the Unix shells or the DOS prompt.
 
@@ -14068,9 +14055,9 @@ to be acceptable on all platforms.
 
 The @code{Library_Dir} attribute has a string value that designates the path
 (absolute or relative) of the directory where the library will reside.
-It must designate an existing directory, and this directory must be writable,
-different from the project's object directory and from any source directory
-in the project tree.
+It must designate an existing directory. When the project is not externally
+built, this directory must be writable, different from the project's object
+directory and from any source directory in the project tree.
 
 If both @code{Library_Name} and @code{Library_Dir} are specified and
 are legal, then the project file defines a library project.  The optional
@@ -14093,9 +14080,10 @@ to indicate what kind of library should be build.
 The @code{Library_ALI_Dir} attribute may be specified to indicate the
 directory where the ALI files of the library will be copied. When it is
 not specified, the ALI files are copied to the directory specified in
-attribute @code{Library_Dir}. The directory specified by @code{Library_ALI_Dir}
-must be writable and different from the project's object directory and from
-any source directory in the project tree.
+attribute @code{Library_Dir}. Except when the project is externally built, the
+directory specified by @code{Library_ALI_Dir} must be writable and different
+from the project's object directory and from any source directory in the
+project tree.
 
 The @code{Library_Version} attribute has a string value whose interpretation
 is platform dependent. It has no effect on VMS and Windows. On Unix, it is
@@ -14769,9 +14757,9 @@ to @command{gnatmake} that the binder generated file should be compiled
 @noindent
 A number of GNAT tools, other than @command{^gnatmake^gnatmake^}
 can benefit from project files:
-@command{^gnatbind^gnatbind^},
-@command{^gnatcheck^gnatcheck^}),
-@command{^gnatclean^gnatclean^}),
+(@command{^gnatbind^gnatbind^},
+@command{^gnatcheck^gnatcheck^},
+@command{^gnatclean^gnatclean^},
 @command{^gnatelim^gnatelim^},
 @command{^gnatfind^gnatfind^},
 @command{^gnatlink^gnatlink^},
@@ -14779,7 +14767,7 @@ can benefit from project files:
 @command{^gnatmetric^gnatmetric^},
 @command{^gnatpp^gnatpp^},
 @command{^gnatstub^gnatstub^},
-and @command{^gnatxref^gnatxref^}. However, none of these tools can be invoked
+and @command{^gnatxref^gnatxref^}). However, none of these tools can be invoked
 directly with a project file switch (@option{^-P^/PROJECT_FILE=^}).
 They must be invoked through the @command{gnat} driver.
 
@@ -15055,8 +15043,8 @@ found in the package corresponding to the tool:
 except @code{^Switches^Switches^ ("main.adb")}
 for @code{^gnatlink^gnatlink^}.
 It is also possible to invoke some of the tools,
-@code{^gnatcheck^gnatcheck^}),
-@code{^gnatmetric^gnatmetric^}),
+(@code{^gnatcheck^gnatcheck^},
+@code{^gnatmetric^gnatmetric^},
 and @code{^gnatpp^gnatpp^})
 on a set of project units thanks to the combination of the switches
 @option{-P}, @option{-U} and possibly the main unit when one is interested
@@ -15076,7 +15064,10 @@ gnat metric -Pproj -U main_unit
 @end smallexample
 will compute the metrics for the closure of units rooted at
 @code{main_unit}. This last possibility relies implicitly
-on @command{gnatbind}'s option @option{-R}.
+on @command{gnatbind}'s option @option{-R}. But if the argument files for the
+tool invoked by the the @command{gnat} driver are explicitly  specified
+either directly or through the tool @option{-files} option, then the tool
+is called only for these explicitly specified files.
 
 @c **********************
 @node An Extended Example
@@ -15403,7 +15394,9 @@ use the @code{gnat} driver (see @ref{The GNAT Driver and Project Files}).
 @noindent
 The command invocation for @code{gnatxref} is:
 @smallexample
-$ gnatxref @ovar{switches} @var{sourcefile1} @r{[}@var{sourcefile2} @dots{}@r{]}
+@c $ gnatxref @ovar{switches} @var{sourcefile1} @r{[}@var{sourcefile2} @dots{}@r{]}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatxref @r{[}@var{switches}@r{]} @var{sourcefile1} @r{[}@var{sourcefile2} @dots{}@r{]}
 @end smallexample
 
 @noindent
@@ -15535,8 +15528,11 @@ you can say @samp{gnatxref ^-ag^/ALL_FILES/IGNORE_LOCALS^} instead of
 The command line for @code{gnatfind} is:
 
 @smallexample
-$ gnatfind @ovar{switches} @var{pattern}@r{[}:@var{sourcefile}@r{[}:@var{line}@r{[}:@var{column}@r{]]]}
-      @r{[}@var{file1} @var{file2} @dots{}]
+@c $ gnatfind @ovar{switches} @var{pattern}@r{[}:@var{sourcefile}@r{[}:@var{line}@r{[}:@var{column}@r{]]]}
+@c       @r{[}@var{file1} @var{file2} @dots{}]
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatfind @r{[}@var{switches}@r{]} @var{pattern}@r{[}:@var{sourcefile}@r{[}:@var{line}@r{[}:@var{column}@r{]]]}
+      @r{[}@var{file1} @var{file2} @dots{}@r{]}
 @end smallexample
 
 @noindent
@@ -16122,7 +16118,9 @@ call @command{gnatpp} through the @command{gnat} driver
 The @command{gnatpp} command has the form
 
 @smallexample
-$ gnatpp @ovar{switches} @var{filename}
+@c $ gnatpp @ovar{switches} @var{filename}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatpp @r{[}@var{switches}@r{]} @var{filename} @r{[}-cargs @var{gcc_switches}@r{]}
 @end smallexample
 
 @noindent
@@ -16138,6 +16136,13 @@ output source file
 reformat; ``wildcards'' or several file names on the same gnatpp command are
 allowed.  The file name may contain path information; it does not have to
 follow the GNAT file naming rules
+
+@item
+@samp{@var{gcc_switches}} is a list of switches for
+@command{gcc}. They will be passed on to all compiler invocations made by
+@command{gnatelim} to generate the ASIS trees. Here you can provide
+@option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
+use the @option{-gnatec} switch to set the configuration file etc.
 @end itemize
 
 @menu
@@ -16635,12 +16640,12 @@ with @option{^-pipe^/STANDARD_OUTPUT^} option.
 The additional @command{gnatpp} switches are defined in this subsection.
 
 @table @option
-@item ^-files @var{filename}^/FILES=@var{output_file}^
+@item ^-files @var{filename}^/FILES=@var{filename}^
 @cindex @option{^-files^/FILES^} (@code{gnatpp})
 Take the argument source files from the specified file. This file should be an
-ordinary textual file containing file names separated by spaces or
-line breaks. You can use this switch more then once in the same call to
-@command{gnatpp}. You also can combine this switch with explicit list of
+ordinary text file containing file names separated by spaces or
+line breaks. You can use this switch more than once in the same call to
+@command{gnatpp}. You also can combine this switch with an explicit list of
 files.
 
 @item ^-v^/VERBOSE^
@@ -17224,7 +17229,9 @@ through the @command{gnat} driver.
 The @command{gnatmetric} command has the form
 
 @smallexample
-$ gnatmetric @ovar{switches} @{@var{filename}@} @r{[}-cargs @var{gcc_switches}@r{]}
+@c $ gnatmetric @ovar{switches} @{@var{filename}@} @r{[}-cargs @var{gcc_switches}@r{]}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatmetric @r{[}@var{switches}@r{]} @{@var{filename}@} @r{[}-cargs @var{gcc_switches}@r{]}
 @end smallexample
 
 @noindent
@@ -17245,7 +17252,7 @@ Including both a @option{-files} switch and one or more
 @var{filename} arguments is permitted.
 
 @item
-@samp{-cargs @var{gcc_switches}} is a list of switches for
+@samp{@var{gcc_switches}} is a list of switches for
 @command{gcc}. They will be passed on to all compiler invocations made by
 @command{gnatmetric} to generate the ASIS trees. Here you can provide
 @option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
@@ -17319,7 +17326,7 @@ Do not generate the output in text form (implies @option{^-x^/XML^})
 
 @cindex @option{^-d^/DIRECTORY^} (@command{gnatmetric})
 @item ^-d @var{output_dir}^/DIRECTORY=@var{output_dir}^
-Put textual files with detailed metrics into @var{output_dir}
+Put text files with detailed metrics into @var{output_dir}
 
 @cindex @option{^-o^/SUFFIX_DETAILS^} (@command{gnatmetric})
 @item ^-o @var{file_suffix}^/SUFFIX_DETAILS=@var{file_suffix}^
@@ -17896,7 +17903,7 @@ Additional @command{gnatmetric} switches are as follows:
 @cindex @option{^-files^/FILES^} (@code{gnatmetric})
 Take the argument source files from the specified file. This file should be an
 ordinary text file containing file names separated by spaces or
-line breaks. You can use this switch more then once in the same call to
+line breaks. You can use this switch more than once in the same call to
 @command{gnatmetric}. You also can combine this switch with
 an explicit list of files.
 
@@ -18006,7 +18013,9 @@ The @code{gnatkr} command has the form
 
 @ifclear vms
 @smallexample
-$ gnatkr @var{name} @ovar{length}
+@c $ gnatkr @var{name} @ovar{length}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatkr @var{name} @r{[}@var{length}@r{]}
 @end smallexample
 @end ifclear
 
@@ -18194,7 +18203,9 @@ all characters need to be in the ASCII set (no accented letters).
 To call @code{gnatprep} use
 
 @smallexample
-$ gnatprep @ovar{switches} @var{infile} @var{outfile} @ovar{deffile}
+@c $ gnatprep @ovar{switches} @var{infile} @var{outfile} @ovar{deffile}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatprep @r{[}@var{switches}@r{]} @var{infile} @var{outfile} @r{[}@var{deffile}@r{]}
 @end smallexample
 
 @noindent
@@ -20170,7 +20181,9 @@ Solaris and Windows NT/2000/XP (x86).
 The @code{gnatmem} command has the form
 
 @smallexample
-   $ gnatmem @ovar{switches} user_program
+@c    $ gnatmem @ovar{switches} user_program
+@c Expanding @ovar macro inline (explanation in macro def comments)
+      $ gnatmem @r{[}@var{switches}@r{]} @var{user_program}
 @end smallexample
 
 @noindent
@@ -20698,7 +20711,11 @@ driver (see @ref{The GNAT Driver and Project Files}).
 Invoking @command{gnatcheck} on the command line has the form:
 
 @smallexample
-$ gnatcheck @ovar{switches}  @{@var{filename}@}
+@c $ gnatcheck @ovar{switches}  @{@var{filename}@}
+@c       @r{[}^-files^/FILES^=@{@var{arg_list_filename}@}@r{]}
+@c       @r{[}-cargs @var{gcc_switches}@r{]} -rules @var{rule_options}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatcheck @r{[}@var{switches}@r{]}  @{@var{filename}@}
       @r{[}^-files^/FILES^=@{@var{arg_list_filename}@}@r{]}
       @r{[}-cargs @var{gcc_switches}@r{]} -rules @var{rule_options}
 @end smallexample
@@ -20845,13 +20862,6 @@ a trace of sources being processed.
 Set name of report file file to @var{report_file} .
 
 @end table
-
-@noindent
-Note that if any of the options @option{^-s1^/COMPILER_STYLE^},
-@option{^-s2^/BY_RULES^} or
-@option{^-s3^/BY_FILES_BY_RULES^} is specified,
-then the  @command{gnatcheck} report file will only contain sections
-explicitly denoted by these options.
 
 @node gnatcheck Rule Options
 @section @command{gnatcheck} Rule Options
@@ -21138,1808 +21148,13 @@ release.
 @end ignore
 
 @noindent
-The following subsections document the rules implemented in
-@command{gnatcheck}.
-The subsection title is the same as the rule identifier, which may be
-used as a parameter of the @option{+R} or @option{-R} options.
+The predefined rules implemented in @command{gnatcheck}
+are described in a companion document,
+@cite{GNATcheck Reference Manual -- Predefined Rules}.
+The rule identifier is
+used as a parameter of @command{gnatcheck}'s @option{+R} or @option{-R}
+switches.
 
-
-@menu
-* Abstract_Type_Declarations::
-* Anonymous_Arrays::
-* Anonymous_Subtypes::
-* Blocks::
-* Boolean_Relational_Operators::
-@ignore
-* Ceiling_Violations::
-@end ignore
-* Complex_Inlined_Subprograms::
-* Controlled_Type_Declarations::
-* Declarations_In_Blocks::
-* Deep_Inheritance_Hierarchies::
-* Deeply_Nested_Generics::
-* Deeply_Nested_Inlining::
-@ignore
-* Deeply_Nested_Local_Inlining::
-@end ignore
-* Default_Parameters::
-* Direct_Calls_To_Primitives::
-* Discriminated_Records::
-* Enumeration_Ranges_In_CASE_Statements::
-* Exceptions_As_Control_Flow::
-* Exits_From_Conditional_Loops::
-* EXIT_Statements_With_No_Loop_Name::
-* Expanded_Loop_Exit_Names::
-* Explicit_Full_Discrete_Ranges::
-* Float_Equality_Checks::
-* Forbidden_Attributes::
-* Forbidden_Pragmas::
-* Function_Style_Procedures::
-* Generics_In_Subprograms::
-* GOTO_Statements::
-* Implicit_IN_Mode_Parameters::
-* Implicit_SMALL_For_Fixed_Point_Types::
-* Improperly_Located_Instantiations::
-* Improper_Returns::
-* Library_Level_Subprograms::
-* Local_Packages::
-@ignore
-* Improperly_Called_Protected_Entries::
-@end ignore
-* Metrics::
-* Misnamed_Controlling_Parameters::
-* Misnamed_Identifiers::
-* Multiple_Entries_In_Protected_Definitions::
-* Name_Clashes::
-* Non_Qualified_Aggregates::
-* Non_Short_Circuit_Operators::
-* Non_SPARK_Attributes::
-* Non_Tagged_Derived_Types::
-* Non_Visible_Exceptions::
-* Numeric_Literals::
-* OTHERS_In_Aggregates::
-* OTHERS_In_CASE_Statements::
-* OTHERS_In_Exception_Handlers::
-* Outer_Loop_Exits::
-* Overloaded_Operators::
-* Overly_Nested_Control_Structures::
-* Parameters_Out_Of_Order::
-* Positional_Actuals_For_Defaulted_Generic_Parameters::
-* Positional_Actuals_For_Defaulted_Parameters::
-* Positional_Components::
-* Positional_Generic_Parameters::
-* Positional_Parameters::
-* Predefined_Numeric_Types::
-* Raising_External_Exceptions::
-* Raising_Predefined_Exceptions::
-* Separate_Numeric_Error_Handlers::
-@ignore
-* Recursion::
-* Side_Effect_Functions::
-@end ignore
-* Slices::
-* Too_Many_Parents::
-* Unassigned_OUT_Parameters::
-* Uncommented_BEGIN_In_Package_Bodies::
-* Unconditional_Exits::
-* Unconstrained_Array_Returns::
-* Universal_Ranges::
-* Unnamed_Blocks_And_Loops::
-@ignore
-* Unused_Subprograms::
-@end ignore
-* USE_PACKAGE_Clauses::
-* Visible_Components::
-* Volatile_Objects_Without_Address_Clauses::
-@end menu
-
-
-@node Abstract_Type_Declarations
-@subsection @code{Abstract_Type_Declarations}
-@cindex @code{Abstract_Type_Declarations} rule (for @command{gnatcheck})
-
-@noindent
-Flag all declarations of abstract types. For an abstract private
-type, both the private and full type declarations are flagged.
-
-This rule has no parameters.
-
-
-@node Anonymous_Arrays
-@subsection @code{Anonymous_Arrays}
-@cindex @code{Anonymous_Arrays} rule (for @command{gnatcheck})
-
-@noindent
-Flag all anonymous array type definitions (by Ada semantics these can only
-occur in object declarations).
-
-This rule has no parameters.
-
-@node Anonymous_Subtypes
-@subsection @code{Anonymous_Subtypes}
-@cindex @code{Anonymous_Subtypes} rule (for @command{gnatcheck})
-
-@noindent
-Flag all uses of anonymous subtypes (except cases when subtype indication
-is a part of a record component definition, and this subtype indication
-depends on a discriminant). A use of an anonymous subtype is
-any instance of a subtype indication with a constraint, other than one
-that occurs immediately within a subtype declaration. Any use of a range
-other than as a constraint used immediately within a subtype declaration
-is considered as an anonymous subtype.
-
-An effect of this rule is that @code{for} loops such as the following are
-flagged (since @code{1..N} is formally a ``range''):
-
-@smallexample @c ada
-for I in 1 .. N loop
-   @dots{}
-end loop;
-@end smallexample
-
-@noindent
-Declaring an explicit subtype solves the problem:
-
-@smallexample @c ada
-subtype S is Integer range 1..N;
-@dots{}
-for I in S loop
-   @dots{}
-end loop;
-@end smallexample
-
-@noindent
-This rule has no parameters.
-
-@node Blocks
-@subsection @code{Blocks}
-@cindex @code{Blocks} rule (for @command{gnatcheck})
-
-@noindent
-Flag each block statement.
-
-This rule has no parameters.
-
-@node Boolean_Relational_Operators
-@subsection @code{Boolean_Relational_Operators}
-@cindex @code{Boolean_Relational_Operators} rule (for @command{gnatcheck})
-
-@noindent
-Flag each call to a predefined relational operator (``<'', ``>'', ``<='',
-``>='', ``='' and ``/='') for the predefined Boolean type.
-(This rule is useful in enforcing the SPARK language restrictions.)
-
-Calls to predefined relational operators of any type derived from
-@code{Standard.Boolean} are not detected.  Calls to user-defined functions
-with these designators, and uses of operators that are renamings
-of the predefined relational operators for @code{Standard.Boolean},
-are likewise not detected.
-
-This rule has no parameters.
-
-@ignore
-@node Ceiling_Violations
-@subsection @code{Ceiling5_Violations} (under construction, GLOBAL)
-@cindex @code{Ceiling_Violations} rule (for @command{gnatcheck})
-
-@noindent
-Flag invocations of a protected operation by a task whose priority exceeds
-the protected object's ceiling.
-
-As of @value{NOW}, this rule has the following limitations:
-
-@itemize @bullet
-
-@item
- We consider only pragmas Priority and Interrupt_Priority as means to define
-  a task/protected operation priority. We do not consider the effect of using
-  Ada.Dynamic_Priorities.Set_Priority procedure;
-
-@item
- We consider only base task priorities, and no priority inheritance. That is,
-  we do not make a difference between calls issued during task activation and
-  execution of the sequence of statements from task body;
-
-@item
- Any situation when the priority of protected operation caller is set by a
-  dynamic expression (that is, the corresponding Priority or
-  Interrupt_Priority pragma has a non-static expression as an argument) we
-  treat as a priority inconsistency (and, therefore, detect this situation).
-@end itemize
-
-@noindent
-At the moment the notion of the main subprogram is not implemented in
-gnatcheck, so any pragma Priority in a library level subprogram body (in case
-if this subprogram can be a main subprogram of a partition) changes the
-priority of an environment task. So if we have more then one such pragma in
-the set of processed sources, the pragma that is processed last, defines the
-priority of an environment task.
-
-This rule has no parameters.
-@end ignore
-
-@node Controlled_Type_Declarations
-@subsection @code{Controlled_Type_Declarations}
-@cindex @code{Controlled_Type_Declarations} rule (for @command{gnatcheck})
-
-@noindent
-Flag all declarations of controlled types. A declaration of a private type
-is flagged if its full declaration declares a controlled type. A declaration
-of a derived type is flagged if its ancestor type is controlled. Subtype
-declarations are not checked. A declaration of a type that itself is not a
-descendant of a type declared in @code{Ada.Finalization} but has a controlled
-component is not checked.
-
-This rule has no parameters.
-
-
-@node Complex_Inlined_Subprograms
-@subsection @code{Complex_Inlined_Subprograms}
-@cindex @code{Complex_Inlined_Subprograms} rule (for @command{gnatcheck})
-
-@noindent
-Flags a subprogram (or generic subprogram) if
-pragma Inline is applied to the subprogram and at least one of the following
-conditions is met:
-
-@itemize @bullet
-@item
-it contains at least one complex declaration such as a subprogram body,
-package, task, protected declaration, or a generic instantiation
-(except instantiation of @code{Ada.Unchecked_Conversion});
-
-@item
-it contains at least one complex statement such as a loop, a case
-or a if statement, or a short circuit control form;
-
-@item
-the number of statements exceeds
-a value specified by the @option{N} rule parameter;
-@end itemize
-
-@noindent
-This rule has the following (mandatory) parameter for the @option{+R} option:
-
-@table @emph
-@item N
-Positive integer specifying the maximum allowed total number of statements
-in the subprogram body.
-@end table
-
-
-@node Declarations_In_Blocks
-@subsection @code{Declarations_In_Blocks}
-@cindex @code{Declarations_In_Blocks} rule (for @command{gnatcheck})
-
-@noindent
-Flag all block statements containing local declarations. A @code{declare}
-block with an empty @i{declarative_part} or with a @i{declarative part}
-containing only pragmas and/or @code{use} clauses is not flagged.
-
-This rule has no parameters.
-
-
-@node Deep_Inheritance_Hierarchies
-@subsection @code{Deep_Inheritance_Hierarchies}
-@cindex @code{Deep_Inheritance_Hierarchies} rule (for @command{gnatcheck})
-
-@noindent
-Flags a tagged derived type declaration or an interface type declaration if
-its depth (in its inheritance
-hierarchy) exceeds the value specified by the @option{N} rule parameter.
-
-The inheritance depth of a tagged type or interface type is defined as 0 for
-a type  with no parent and no progenitor, and otherwise as 1 + max of the
-depths of the immediate parent and immediate progenitors.
-
-This rule does not flag private extension
-declarations. In the case of a private extension, the corresponding full
-declaration is checked.
-
-This rule has the following (mandatory) parameter for the @option{+R} option:
-
-@table @emph
-@item N
-Integer not less than -1 specifying the maximal allowed depth of any inheritance
-hierarchy. If the rule parameter is set to -1, the rule flags all the declarations
-of tagged and interface types.
-@end table
-
-
-@node Deeply_Nested_Generics
-@subsection @code{Deeply_Nested_Generics}
-@cindex @code{Deeply_Nested_Generics} rule (for @command{gnatcheck})
-
-@noindent
-Flags a generic declaration nested in another generic declaration if
-the nesting level of the inner generic exceeds
-a value specified by the @option{N} rule parameter.
-The nesting level is the number of generic declaratons that enclose the given
-(generic) declaration. Formal packages are not flagged by this rule.
-
-This rule has the following (mandatory) parameters for the @option{+R} option:
-
-@table @emph
-@item N
-Positive integer specifying the maximal allowed nesting level
-for a generic declaration.
-@end table
-
-@node Deeply_Nested_Inlining
-@subsection @code{Deeply_Nested_Inlining}
-@cindex @code{Deeply_Nested_Inlining} rule (for @command{gnatcheck})
-
-@noindent
-Flags a subprogram (or generic subprogram) if
-pragma Inline has been applied to the subprogram but the subprogram
-calls to another inlined subprogram that results in nested inlining
-with nesting depth exceeding the value specified by the
-@option{N} rule parameter.
-
-This rule requires the global analysis of all the compilation units that
-are @command{gnatcheck} arguments; such analysis may affect the tool's
-performance.
-
-This rule has the following (mandatory) parameter for the @option{+R} option:
-
-@table @emph
-@item N
-Positive integer specifying the maximal allowed level of nested inlining.
-@end table
-
-
-@ignore
-@node Deeply_Nested_Local_Inlining
-@subsection @code{Deeply_Nested_Local_Inlining}
-@cindex @code{Deeply_Nested_Local_Inlining} rule (for @command{gnatcheck})
-
-@noindent
-Flags a subprogram body if a pragma @code{Inline} is applied to the
-corresponding subprogram (or generic subprogram) and the body contains a call
-to another inlined subprogram that results in nested inlining with nesting
-depth more then a value specified by the @option{N} rule parameter.
-This rule is similar to @code{Deeply_Nested_Inlining} rule, but it
-assumes that calls to subprograms in
-with'ed units are not inlided, so all the analysis of the depth of inlining is
-limited by the compilation unit where the subprogram body is located and the
-units it depends semantically upon. Such analysis may be usefull for the case
-when neiter @option{-gnatn} nor @option{-gnatN} option is used when building
-the executable.
-
-This rule has the following (mandatory) parameters for the @option{+R} option:
-
-@table @emph
-@item N
-Positive integer specifying the maximal allowed level of nested inlining.
-@end table
-
-@end ignore
-
-@node Default_Parameters
-@subsection @code{Default_Parameters}
-@cindex @code{Default_Parameters} rule (for @command{gnatcheck})
-
-@noindent
-Flag all default expressions for subprogram parameters. Parameter
-declarations of formal and generic subprograms are also checked.
-
-This rule has no parameters.
-
-
-@node Direct_Calls_To_Primitives
-@subsection @code{Direct_Calls_To_Primitives}
-@cindex @code{Direct_Calls_To_Primitives} rule (for @command{gnatcheck})
-
-@noindent
-Flags any non-dispatching call to a dispatching primitive operation, except
-for the common idiom where a primitive subprogram for a tagged type
-directly calls the same primitive subprogram of the type's immediate ancestor.
-
-This rule has no parameters.
-
-
-@node Discriminated_Records
-@subsection @code{Discriminated_Records}
-@cindex @code{Discriminated_Records} rule (for @command{gnatcheck})
-
-@noindent
-Flag all declarations of record types with discriminants. Only the
-declarations of record and record extension types are checked. Incomplete,
-formal, private, derived and private extension type declarations are not
-checked. Task and protected type declarations also are not checked.
-
-This rule has no parameters.
-
-
-@node Enumeration_Ranges_In_CASE_Statements
-@subsection @code{Enumeration_Ranges_In_CASE_Statements}
-@cindex @code{Enumeration_Ranges_In_CASE_Statements} (for @command{gnatcheck})
-
-@noindent
-Flag each use of a range of enumeration literals as a choice in a
-@code{case} statement.
-All forms for specifying a range (explicit ranges
-such as @code{A .. B}, subtype marks and @code{'Range} attributes) are flagged.
-An enumeration range is
-flagged even if contains exactly one enumeration value or no values at all. A
-type derived from an enumeration type is considered as an enumeration type.
-
-This rule helps prevent maintenance problems arising from adding an
-enumeration value to a type and having it implicitly handled by an existing
-@code{case} statement with an enumeration range that includes the new literal.
-
-This rule has no parameters.
-
-
-@node Exceptions_As_Control_Flow
-@subsection @code{Exceptions_As_Control_Flow}
-@cindex @code{Exceptions_As_Control_Flow} (for @command{gnatcheck})
-
-@noindent
-Flag each place where an exception is explicitly raised and handled in the
-same subprogram body. A @code{raise} statement in an exception handler,
-package body, task body or entry body is not flagged.
-
-The rule has no parameters.
-
-@node Exits_From_Conditional_Loops
-@subsection @code{Exits_From_Conditional_Loops}
-@cindex @code{Exits_From_Conditional_Loops} (for @command{gnatcheck})
-
-@noindent
-Flag any exit statement if it transfers the control out of a @code{for} loop
-or a @code{while} loop. This includes cases when the @code{exit} statement
-applies to a @code{FOR} or @code{while} loop, and cases when it is enclosed
-in some @code{for} or @code{while} loop, but transfers the control from some
-outer (inconditional) @code{loop} statement.
-
-The rule has no parameters.
-
-
-@node EXIT_Statements_With_No_Loop_Name
-@subsection @code{EXIT_Statements_With_No_Loop_Name}
-@cindex @code{EXIT_Statements_With_No_Loop_Name} (for @command{gnatcheck})
-
-@noindent
-Flag each @code{exit} statement that does not specify the name of the loop
-being exited.
-
-The rule has no parameters.
-
-
-@node Expanded_Loop_Exit_Names
-@subsection @code{Expanded_Loop_Exit_Names}
-@cindex @code{Expanded_Loop_Exit_Names} rule (for @command{gnatcheck})
-
-@noindent
-Flag all expanded loop names in @code{exit} statements.
-
-This rule has no parameters.
-
-@node Explicit_Full_Discrete_Ranges
-@subsection @code{Explicit_Full_Discrete_Ranges}
-@cindex @code{Explicit_Full_Discrete_Ranges} rule (for @command{gnatcheck})
-
-@noindent
-Flag each discrete range that has the form @code{A'First .. A'Last}.
-
-This rule has no parameters.
-
-@node Float_Equality_Checks
-@subsection @code{Float_Equality_Checks}
-@cindex @code{Float_Equality_Checks} rule (for @command{gnatcheck})
-
-@noindent
-Flag all calls to the predefined equality operations for floating-point types.
-Both ``@code{=}'' and ``@code{/=}'' operations are checked.
-User-defined equality operations are not flagged, nor are ``@code{=}''
-and ``@code{/=}'' operations for fixed-point types.
-
-This rule has no parameters.
-
-
-@node Forbidden_Attributes
-@subsection @code{Forbidden_Attributes}
-@cindex @code{Forbidden_Attributes} rule (for @command{gnatcheck})
-
-@noindent
-Flag each use of the specified attributes. The attributes to be detected are
-named in the rule's parameters.
-
-This rule has the following parameters:
-
-@itemize @bullet
-@item For the @option{+R} option
-
-@table @asis
-@item @emph{Attribute_Designator}
-Adds the specified attribute to the set of attributes to be detected and sets
-the detection checks for all the specified attributes ON.
-If @emph{Attribute_Designator}
-does not denote any attribute defined in the Ada standard
-or in
-@ref{Implementation Defined Attributes,,, gnat_rm, GNAT Reference
-Manual}, it is treated as the name of unknown attribute.
-
-@item @code{GNAT}
-All the GNAT-specific attributes are detected; this sets
-the detection checks for all the specified attributes ON.
-
-@item @code{ALL}
-All attributes are detected; this sets the rule ON.
-@end table
-
-@item For the @option{-R} option
-@table @asis
-@item @emph{Attribute_Designator}
-Removes the specified attribute from the set of attributes to be
-detected without affecting detection checks for
-other attributes. If @emph{Attribute_Designator} does not correspond to any
-attribute defined in the Ada standard or in
-@ref{Implementation Defined Attributes,,, gnat_rm, GNAT Reference Manual},
-this option is treated as turning OFF detection of all unknown attributes.
-
-@item GNAT
-Turn OFF detection of all GNAT-specific attributes
-
-@item ALL
-Clear the list of the attributes to be detected and
-turn the rule OFF.
-@end table
-@end itemize
-
-@noindent
-Parameters are not case sensitive. If @emph{Attribute_Designator} does not
-have the syntax of an Ada identifier and therefore can not be considered as a
-(part of an) attribute designator, a diagnostic message is generated and the
-corresponding parameter is ignored. (If an attribute allows a static
-expression to be a part of the attribute designator, this expression is
-ignored by this rule.)
-
-When more then one parameter is given in the same rule option, the parameters
-must be separated by commas.
-
-If more then one option for this rule is specified for the gnatcheck call, a
-new option overrides the previous one(s).
-
-The @option{+R} option with no parameters turns the rule ON, with the set of
-attributes to be detected defined by the previous rule options.
-(By default this set is empty, so if the only option specified for the rule is
-@option{+RForbidden_Attributes} (with
-no parameter), then the rule is enabled, but it does not detect anything).
-The @option{-R} option with no parameter turns the rule OFF, but it does not
-affect the set of attributes to be detected.
-
-
-@node Forbidden_Pragmas
-@subsection @code{Forbidden_Pragmas}
-@cindex @code{Forbidden_Pragmas} rule (for @command{gnatcheck})
-
-@noindent
-Flag each use of the specified pragmas.  The pragmas to be detected
-are named in the rule's  parameters.
-
-This rule has the following parameters:
-
-@itemize @bullet
-@item For the @option{+R} option
-
-@table @asis
-@item @emph{Pragma_Name}
-Adds the specified pragma to the set of pragmas to be
-checked and sets the checks for all the specified pragmas
-ON. @emph{Pragma_Name} is treated as a name of a pragma. If it
-does not correspond to any pragma name defined in the Ada
-standard or to the name of a GNAT-specific pragma defined
-in @ref{Implementation Defined Pragmas,,, gnat_rm, GNAT Reference
-Manual}, it is treated as the name of unknown pragma.
-
-@item @code{GNAT}
-All the GNAT-specific pragmas are detected; this sets
-the checks for all the specified pragmas ON.
-
-@item @code{ALL}
-All pragmas are detected; this sets the rule ON.
-@end table
-
-@item For the @option{-R} option
-@table @asis
-@item @emph{Pragma_Name}
-Removes the specified pragma from the set of pragmas to be
-checked without affecting checks for
-other pragmas. @emph{Pragma_Name} is treated as a name
-of a pragma. If it does not correspond to any pragma
-defined in the Ada standard or to any name defined in
-@ref{Implementation Defined Pragmas,,, gnat_rm, GNAT Reference Manual},
-this option is treated as turning OFF detection of all unknown pragmas.
-
-@item GNAT
-Turn OFF detection of all GNAT-specific pragmas
-
-@item ALL
-Clear the list of the pragmas to be detected and
-turn the rule OFF.
-@end table
-@end itemize
-
-@noindent
-Parameters are not case sensitive. If @emph{Pragma_Name} does not have
-the syntax of an Ada identifier and therefore can not be considered
-as a pragma name, a diagnostic message is generated and the corresponding
-parameter is ignored.
-
-When more then one parameter is given in the same rule option, the parameters
-must be separated by a comma.
-
-If more then one option for this rule is specified for the @command{gnatcheck}
-call, a new option overrides the previous one(s).
-
-The @option{+R} option with no parameters turns the rule ON with the set of
-pragmas to be detected defined by the previous rule options.
-(By default this set is empty, so if the only option specified for the rule is
-@option{+RForbidden_Pragmas} (with
-no parameter), then the rule is enabled, but it does not detect anything).
-The @option{-R} option with no parameter turns the rule OFF, but it does not
-affect the set of pragmas to be detected.
-
-
-
-
-@node Function_Style_Procedures
-@subsection @code{Function_Style_Procedures}
-@cindex @code{Function_Style_Procedures} rule (for @command{gnatcheck})
-
-@noindent
-Flag each procedure that can be rewritten as a function. A procedure can be
-converted into a function if it has exactly one parameter of mode @code{out}
-and no parameters of mode @code{in out}. Procedure declarations,
-formal procedure declarations, and generic procedure declarations are always
-checked. Procedure
-bodies and body stubs are flagged only if they do not have corresponding
-separate declarations. Procedure renamings and procedure instantiations are
-not flagged.
-
-If a procedure can be rewritten as a function, but its @code{out} parameter is
-of a limited type, it is not flagged.
-
-Protected procedures are not flagged. Null procedures also are not flagged.
-
-This rule has no parameters.
-
-
-@node Generics_In_Subprograms
-@subsection @code{Generics_In_Subprograms}
-@cindex @code{Generics_In_Subprograms} rule (for @command{gnatcheck})
-
-@noindent
-Flag each declaration of a generic unit in a subprogram. Generic
-declarations in the bodies of generic subprograms are also flagged.
-A generic unit nested in another generic unit is not flagged.
-If a generic unit is
-declared in a local package that is declared in a subprogram body, the
-generic unit is flagged.
-
-This rule has no parameters.
-
-
-@node GOTO_Statements
-@subsection @code{GOTO_Statements}
-@cindex @code{GOTO_Statements} rule (for @command{gnatcheck})
-
-@noindent
-Flag each occurrence of a @code{goto} statement.
-
-This rule has no parameters.
-
-
-@node Implicit_IN_Mode_Parameters
-@subsection @code{Implicit_IN_Mode_Parameters}
-@cindex @code{Implicit_IN_Mode_Parameters} rule (for @command{gnatcheck})
-
-@noindent
-Flag each occurrence of a formal parameter with an implicit @code{in} mode.
-Note that @code{access} parameters, although they technically behave
-like @code{in} parameters, are not flagged.
-
-This rule has no parameters.
-
-
-@node Implicit_SMALL_For_Fixed_Point_Types
-@subsection @code{Implicit_SMALL_For_Fixed_Point_Types}
-@cindex @code{Implicit_SMALL_For_Fixed_Point_Types} rule (for @command{gnatcheck})
-
-@noindent
-Flag each fixed point type declaration that lacks an explicit
-representation  clause to define its @code{'Small} value.
-Since @code{'Small} can be  defined only for ordinary fixed point types,
-decimal fixed point type declarations are not checked.
-
-This rule has no parameters.
-
-
-@node Improperly_Located_Instantiations
-@subsection @code{Improperly_Located_Instantiations}
-@cindex @code{Improperly_Located_Instantiations} rule (for @command{gnatcheck})
-
-@noindent
-Flag all generic instantiations in library-level package specs
-(including library generic packages) and in all subprogram bodies.
-
-Instantiations in task and entry bodies are not flagged. Instantiations in the
-bodies of protected subprograms are flagged.
-
-This rule has no parameters.
-
-
-
-@node Improper_Returns
-@subsection @code{Improper_Returns}
-@cindex @code{Improper_Returns} rule (for @command{gnatcheck})
-
-@noindent
-Flag each explicit @code{return} statement in procedures, and
-multiple @code{return} statements in functions.
-Diagnostic messages are generated for all @code{return} statements
-in a procedure (thus each procedure must be written so that it
-returns implicitly at the end of its statement part),
-and for all @code{return} statements in a function after the first one.
-This rule supports the stylistic convention that each subprogram
-should have no more than one point of normal return.
-
-This rule has no parameters.
-
-
-@node Library_Level_Subprograms
-@subsection @code{Library_Level_Subprograms}
-@cindex @code{Library_Level_Subprograms} rule (for @command{gnatcheck})
-
-@noindent
-Flag all library-level subprograms (including generic subprogram instantiations).
-
-This rule has no parameters.
-
-
-@node Local_Packages
-@subsection @code{Local_Packages}
-@cindex @code{Local_Packages} rule (for @command{gnatcheck})
-
-@noindent
-Flag all local packages declared in package and generic package
-specs.
-Local packages in bodies are not flagged.
-
-This rule has no parameters.
-
-@ignore
-@node Improperly_Called_Protected_Entries
-@subsection @code{Improperly_Called_Protected_Entries} (under construction, GLOBAL)
-@cindex @code{Improperly_Called_Protected_Entries} rule (for @command{gnatcheck})
-
-@noindent
-Flag each protected entry that can be called from more than one task.
-
-This rule has no parameters.
-@end ignore
-
-@node Metrics
-@subsection @code{Metrics}
-@cindex @code{Metrics} rule (for @command{gnatcheck})
-
-@noindent
-There is a set of checks based on computing a metric value and comparing the
-result with the specified upper (or lower, depending on a specific metric)
-value specified for a given metric. A construct is flagged if a given metric
-is applicable (can be computed) for it and the computed value is greater
-then (lover then) the specified upper (lower) bound.
-
-The name of any metric-based rule consists of the prefix @code{Metrics_}
-followed by the name of the corresponding metric (see the table below).
-For @option{+R} option, each metric-based rule has a numeric parameter
-specifying the bound (integer or real, depending on a metric), @option{-R}
-option for metric rules does not have a parameter.
-
-The following table shows the metric names for that the corresponding
-metrics-based checks are supported by gnatcheck, including the
-constraint that must be satisfied by the bound that is specified for the check
-and what bound - upper (U) or lower (L) - should be specified.
-
-@multitable {@code{Cyclomatic_Complexity}}{Cyclomatic complexity}{Positive integer}
-@ifnothtml
-@headitem Check Name @tab Description @tab Bounds Value
-@end ifnothtml
-@ifhtml
-@item @b{Check Name} @tab @b{Description} @tab @b{Bounds Value}
-@end ifhtml
-@c Above conditional code is workaround to bug in texi2html (Feb 2008)
-@item @code{Essential_Complexity} @tab Essential complexity @tab Positive integer (U)
-@item @code{Cyclomatic_Complexity} @tab Cyclomatic complexity @tab Positive integer (U)
-@item @code{LSLOC} @tab Logical Source Lines of Code @tab Positive integer (U)
-@end multitable
-
-@noindent
-The meaning and the computed values for all these metrics are exactly
-the same as for the corresponding metrics in @command{gnatmetric}.
-
-@emph{Example:} the rule
-@smallexample
-+RMetrics_Cyclomatic_Complexity : 7
-@end smallexample
-@noindent
-means that all bodies with cyclomatic complexity exceeding 7 will be flagged.
-
-To turn OFF the check for cyclomatic complexity metric, use the following option:
-@smallexample
--RMetrics_Cyclomatic_Complexity
-@end smallexample
-
-
-@node Misnamed_Controlling_Parameters
-@subsection @code{Misnamed_Controlling_Parameters}
-@cindex @code{Misnamed_Controlling_Parameters} rule (for @command{gnatcheck})
-
-@noindent
-Flags a declaration of a dispatching operation, if the first parameter is
-not a controlling one and its name is not @code{This} (the check for
-parameter name is not case-sensitive). Declarations of dispatching functions
-with controlling result and no controlling parameter are never flagged.
-
-A subprogram body declaration, subprogram renaming declaration or subprogram
-body stub is flagged only if it is not a completion of a prior subprogram
-declaration.
-
-This rule has no parameters.
-
-
-
-@node Misnamed_Identifiers
-@subsection @code{Misnamed_Identifiers}
-@cindex @code{Misnamed_Identifiers} rule (for @command{gnatcheck})
-
-@noindent
-Flag the declaration of each identifier that does not have a suffix
-corresponding to the kind of entity being declared.
-The following declarations are checked:
-
-@itemize @bullet
-@item
-type declarations
-
-@item
-subtype declarations
-
-@item
-constant declarations (but not number declarations)
-
-@item
-package renaming declarations (but not generic package renaming
-declarations)
-@end itemize
-
-@noindent
-This rule may have parameters. When used without parameters, the rule enforces
-the following checks:
-
-@itemize @bullet
-@item
-type-defining names end with @code{_T}, unless the type is an access type,
-in which case the suffix must be @code{_A}
-@item
-constant names end with @code{_C}
-@item
-names defining package renamings end with @code{_R}
-@end itemize
-
-@noindent
-Defining identifiers from incomplete type declarations are never flagged.
-
-For a private type declaration (including private extensions), the defining
-identifier from the private type declaration is checked against the type
-suffix (even if the corresponding full declaration is an access type
-declaration), and the defining identifier from the corresponding full type
-declaration is not checked.
-
-@noindent
-For a deferred constant, the defining name in the corresponding full constant
-declaration is not checked.
-
-Defining names of formal types are not checked.
-
-The rule may have the following parameters:
-
-@itemize @bullet
-@item
-For the @option{+R} option:
-@table @code
-@item Default
-Sets the default listed above for all the names to be checked.
-
-@item Type_Suffix=@emph{string}
-Specifies the suffix for a type name.
-
-@item Access_Suffix=@emph{string}
-Specifies the suffix for an access type name. If
-this parameter is set, it overrides for access
-types the suffix set by the @code{Type_Suffix} parameter.
-For access types, @emph{string} may have the following format:
-@emph{suffix1(suffix2)}. That means that an access type name
-should have the @emph{suffix1} suffix except for the case when
-the designated type is also an access type, in this case the
-type name should have the @emph{suffix1 & suffix2} suffix.
-
-@item Class_Access_Suffix=@emph{string}
-Specifies the suffix for the name of an access type that points to some class-wide
-type. If this parameter is set, it overrides for such access
-types the suffix set by the @code{Type_Suffix} or @code{Access_Suffix}
-parameter.
-
-@item Class_Subtype_Suffix=@emph{string}
-Specifies the suffix for the name of a subtype that denotes a class-wide type.
-
-@item Constant_Suffix=@emph{string}
-Specifies the suffix for a constant name.
-
-@item Renaming_Suffix=@emph{string}
-Specifies the suffix for a package renaming name.
-@end table
-
-@item
-For the @option{-R} option:
-@table @code
-@item All_Suffixes
-Remove all the suffixes specified for the
-identifier suffix checks, whether by default or
-as specified by other rule parameters. All the
-checks for this rule are disabled as a result.
-
-@item Type_Suffix
-Removes the suffix specified for types. This
-disables checks for types but does not disable
-any other checks for this rule (including the
-check for access type names if @code{Access_Suffix} is
-set).
-
-@item Access_Suffix
-Removes the suffix specified for access types.
-This disables checks for access type names but
-does not disable any other checks for this rule.
-If @code{Type_Suffix} is set, access type names are
-checked as ordinary type names.
-
-@item Class_Access_Suffix
-Removes the suffix specified for access types pointing to class-wide
-type. This disables specific checks for names of access types pointing to
-class-wide types but does not disable any other checks for this rule.
-If @code{Type_Suffix} is set, access type names are
-checked as ordinary type names. If @code{Access_Suffix} is set, these
-access types are checked as any other access type name.
-
-@item Class_Subtype_Suffix=@emph{string}
-Removes the suffix specified for subtype names.
-This disables checks for subtype names but
-does not disable any other checks for this rule.
-
-@item Constant_Suffix
-Removes the suffix specified for constants. This
-disables checks for constant names but does not
-disable any other checks for this rule.
-
-@item Renaming_Suffix
-Removes the suffix specified for package
-renamings. This disables checks for package
-renamings but does not disable any other checks
-for this rule.
-@end table
-@end itemize
-
-@noindent
-If more than one parameter is used, parameters must be separated by commas.
-
-If more than one  option is specified for the @command{gnatcheck} invocation,
-a new option overrides the previous one(s).
-
-The @option{+RMisnamed_Identifiers} option (with no parameter) enables
-checks for all the
-name suffixes specified by previous options used for this rule.
-
-The @option{-RMisnamed_Identifiers} option (with no parameter) disables
-all the checks but keeps
-all the suffixes specified by previous options used for this rule.
-
-The @emph{string} value must be a valid suffix for an Ada identifier (after
-trimming all the leading and trailing space characters, if any).
-Parameters are not case sensitive, except the @emph{string} part.
-
-If any error is detected in a rule parameter, the parameter is ignored.
-In such a case the options that are set for the rule are not
-specified.
-
-
-
-@node Multiple_Entries_In_Protected_Definitions
-@subsection @code{Multiple_Entries_In_Protected_Definitions}
-@cindex @code{Multiple_Entries_In_Protected_Definitions} rule (for @command{gnatcheck})
-
-@noindent
-Flag each protected definition (i.e., each protected object/type declaration)
-that defines more than one entry.
-Diagnostic messages are generated for all the entry declarations
-except the first one. An entry family is counted as one entry. Entries from
-the private part of the protected definition are also checked.
-
-This rule has no parameters.
-
-@node Name_Clashes
-@subsection @code{Name_Clashes}
-@cindex @code{Name_Clashes} rule (for @command{gnatcheck})
-
-@noindent
-Check that certain names are not used as defining identifiers. To activate
-this rule, you need to supply a reference to the dictionary file(s) as a rule
-parameter(s) (more then one dictionary file can be specified). If no
-dictionary file is set, this rule will not cause anything to be flagged.
-Only defining occurrences, not references, are checked.
-The check is not case-sensitive.
-
-This rule is enabled by default, but without setting any corresponding
-dictionary file(s); thus the default effect is to do no checks.
-
-A dictionary file is a plain text file. The maximum line length for this file
-is 1024 characters.  If the line is longer then this limit, extra characters
-are ignored.
-
-Each line can be either an empty line, a comment line, or a line containing
-a list of identifiers separated by space or HT characters.
-A comment is an Ada-style comment (from @code{--} to end-of-line).
-Identifiers must follow the Ada syntax for identifiers.
-A line containing one or more identifiers may end with a comment.
-
-@node Non_Qualified_Aggregates
-@subsection @code{Non_Qualified_Aggregates}
-@cindex @code{Non_Qualified_Aggregates} rule (for @command{gnatcheck})
-
-@noindent
-Flag each non-qualified aggregate.
-A non-qualified aggregate is an
-aggregate that is not the expression of a qualified expression. A
-string literal is not considered an aggregate, but an array
-aggregate of a string type is considered as a normal aggregate.
-Aggregates of anonymous array types are not flagged.
-
-This rule has no parameters.
-
-
-@node Non_Short_Circuit_Operators
-@subsection @code{Non_Short_Circuit_Operators}
-@cindex @code{Non_Short_Circuit_Operators} rule (for @command{gnatcheck})
-
-@noindent
-Flag all calls to predefined @code{and} and @code{or} operators for
-any boolean type. Calls to
-user-defined @code{and} and @code{or} and to operators defined by renaming
-declarations are not flagged. Calls to predefined @code{and} and @code{or}
-operators for modular types or boolean array types are not flagged.
-
-This rule has no parameters.
-
-
-
-@node Non_SPARK_Attributes
-@subsection @code{Non_SPARK_Attributes}
-@cindex @code{Non_SPARK_Attributes} rule (for @command{gnatcheck})
-
-@noindent
-The SPARK language defines the following subset of Ada 95 attribute
-designators as those that can be used in SPARK programs. The use of
-any other attribute is flagged.
-
-@itemize @bullet
-@item @code{'Adjacent}
-@item @code{'Aft}
-@item @code{'Base}
-@item @code{'Ceiling}
-@item @code{'Component_Size}
-@item @code{'Compose}
-@item @code{'Copy_Sign}
-@item @code{'Delta}
-@item @code{'Denorm}
-@item @code{'Digits}
-@item @code{'Exponent}
-@item @code{'First}
-@item @code{'Floor}
-@item @code{'Fore}
-@item @code{'Fraction}
-@item @code{'Last}
-@item @code{'Leading_Part}
-@item @code{'Length}
-@item @code{'Machine}
-@item @code{'Machine_Emax}
-@item @code{'Machine_Emin}
-@item @code{'Machine_Mantissa}
-@item @code{'Machine_Overflows}
-@item @code{'Machine_Radix}
-@item @code{'Machine_Rounds}
-@item @code{'Max}
-@item @code{'Min}
-@item @code{'Model}
-@item @code{'Model_Emin}
-@item @code{'Model_Epsilon}
-@item @code{'Model_Mantissa}
-@item @code{'Model_Small}
-@item @code{'Modulus}
-@item @code{'Pos}
-@item @code{'Pred}
-@item @code{'Range}
-@item @code{'Remainder}
-@item @code{'Rounding}
-@item @code{'Safe_First}
-@item @code{'Safe_Last}
-@item @code{'Scaling}
-@item @code{'Signed_Zeros}
-@item @code{'Size}
-@item @code{'Small}
-@item @code{'Succ}
-@item @code{'Truncation}
-@item @code{'Unbiased_Rounding}
-@item @code{'Val}
-@item @code{'Valid}
-@end itemize
-
-@noindent
-This rule has no parameters.
-
-
-@node Non_Tagged_Derived_Types
-@subsection @code{Non_Tagged_Derived_Types}
-@cindex @code{Non_Tagged_Derived_Types} rule (for @command{gnatcheck})
-
-@noindent
-Flag all derived type declarations that do not have a record extension part.
-
-This rule has no parameters.
-
-
-
-@node Non_Visible_Exceptions
-@subsection @code{Non_Visible_Exceptions}
-@cindex @code{Non_Visible_Exceptions} rule (for @command{gnatcheck})
-
-@noindent
-Flag constructs leading to the possibility of propagating an exception
-out of the scope in which the exception is declared.
-Two cases are detected:
-
-@itemize @bullet
-@item
-An exception declaration in a subprogram body, task body or block
-statement is flagged if the body or statement does not contain a handler for
-that exception or a handler with an @code{others} choice.
-
-@item
-A @code{raise} statement in an exception handler of a subprogram body,
-task body or block statement is flagged if it (re)raises a locally
-declared exception.  This may occur under the following circumstances:
-@itemize @minus
-@item
-it explicitly raises a locally declared exception, or
-@item
-it does not specify an exception name (i.e., it is simply @code{raise;})
-and the enclosing handler contains a locally declared exception in its
-exception choices.
-@end itemize
-@end itemize
-
-@noindent
-Renamings of local exceptions are not flagged.
-
-This rule has no parameters.
-
-
-@node Numeric_Literals
-@subsection @code{Numeric_Literals}
-@cindex @code{Numeric_Literals} rule (for @command{gnatcheck})
-
-@noindent
-Flag each use of a numeric literal in an index expression, and in any
-circumstance except for the following:
-
-@itemize @bullet
-@item
-a literal occurring in the initialization expression for a constant
-declaration or a named number declaration, or
-
-@item
-an integer literal that is less than or equal to a value
-specified by the @option{N} rule parameter.
-@end itemize
-
-@noindent
-This rule may have the following parameters for the @option{+R} option:
-
-@table @asis
-@item @emph{N}
-@emph{N} is an integer literal used as the maximal value that is not flagged
-(i.e., integer literals not exceeding this value are allowed)
-
-@item @code{ALL}
-All integer literals are flagged
-@end table
-
-@noindent
-If no parameters are set, the maximum unflagged value is 1.
-
-The last specified check limit (or the fact that there is no limit at
-all) is used when multiple @option{+R} options appear.
-
-The @option{-R} option for this rule has no parameters.
-It disables the rule but retains the last specified maximum unflagged value.
-If the @option{+R} option subsequently appears, this value is used as the
-threshold for the check.
-
-
-@node OTHERS_In_Aggregates
-@subsection @code{OTHERS_In_Aggregates}
-@cindex @code{OTHERS_In_Aggregates} rule (for @command{gnatcheck})
-
-@noindent
-Flag each use of an @code{others} choice in extension aggregates.
-In record and array aggregates, an @code{others} choice is flagged unless
-it is used to refer to all components, or to all but one component.
-
-If, in case of a named array aggregate, there are two associations, one
-with an @code{others} choice and another with a discrete range, the
-@code{others} choice is flagged even if the discrete range specifies
-exactly one component; for example, @code{(1..1 => 0, others => 1)}.
-
-This rule has no parameters.
-
-@node OTHERS_In_CASE_Statements
-@subsection @code{OTHERS_In_CASE_Statements}
-@cindex @code{OTHERS_In_CASE_Statements} rule (for @command{gnatcheck})
-
-@noindent
-Flag any use of an @code{others} choice in a @code{case} statement.
-
-This rule has no parameters.
-
-@node OTHERS_In_Exception_Handlers
-@subsection @code{OTHERS_In_Exception_Handlers}
-@cindex @code{OTHERS_In_Exception_Handlers} rule (for @command{gnatcheck})
-
-@noindent
-Flag any use of an @code{others} choice in an exception handler.
-
-This rule has no parameters.
-
-
-@node Outer_Loop_Exits
-@subsection @code{Outer_Loop_Exits}
-@cindex @code{Outer_Loop_Exits} rule (for @command{gnatcheck})
-
-@noindent
-Flag each @code{exit} statement containing a loop name that is not the name
-of the immediately enclosing @code{loop} statement.
-
-This rule has no parameters.
-
-
-@node Overloaded_Operators
-@subsection @code{Overloaded_Operators}
-@cindex @code{Overloaded_Operators} rule (for @command{gnatcheck})
-
-@noindent
-Flag each function declaration that overloads an operator symbol.
-A function body is checked only if the body does not have a
-separate spec. Formal functions are also checked. For a
-renaming declaration, only renaming-as-declaration is checked
-
-This rule has no parameters.
-
-
-@node Overly_Nested_Control_Structures
-@subsection @code{Overly_Nested_Control_Structures}
-@cindex @code{Overly_Nested_Control_Structures} rule (for @command{gnatcheck})
-
-@noindent
-Flag each control structure whose nesting level exceeds the value provided
-in the rule parameter.
-
-The control structures checked are the following:
-
-@itemize @bullet
-@item    @code{if} statement
-@item    @code{case} statement
-@item    @code{loop} statement
-@item    Selective accept statement
-@item    Timed entry call statement
-@item    Conditional entry call
-@item    Asynchronous select statement
-@end itemize
-
-@noindent
-The rule has the following parameter for the @option{+R} option:
-
-@table @emph
-@item N
-Positive integer specifying the maximal control structure nesting
-level that is not flagged
-@end table
-
-@noindent
-If the parameter for the @option{+R} option is not specified or
-if it is not a positive integer, @option{+R} option is ignored.
-
-If more then one  option is specified for the gnatcheck call, the later option and
-new parameter override the previous one(s).
-
-
-@node Parameters_Out_Of_Order
-@subsection @code{Parameters_Out_Of_Order}
-@cindex @code{Parameters_Out_Of_Order} rule (for @command{gnatcheck})
-
-@noindent
-Flag each subprogram and entry declaration whose formal parameters are not
-ordered according to the following scheme:
-
-@itemize @bullet
-
-@item @code{in} and @code{access} parameters first,
-then @code{in out} parameters,
-and then @code{out} parameters;
-
-@item for @code{in} mode, parameters with default initialization expressions
-occur last
-@end itemize
-
-@noindent
-Only the first violation of the described order is flagged.
-
-The following constructs are checked:
-
-@itemize @bullet
-@item   subprogram declarations (including null procedures);
-@item   generic subprogram declarations;
-@item   formal subprogram declarations;
-@item   entry declarations;
-@item   subprogram bodies and subprogram body stubs that do not
-have separate specifications
-@end itemize
-
-@noindent
-Subprogram renamings are not checked.
-
-This rule has no parameters.
-
-
-@node Positional_Actuals_For_Defaulted_Generic_Parameters
-@subsection @code{Positional_Actuals_For_Defaulted_Generic_Parameters}
-@cindex @code{Positional_Actuals_For_Defaulted_Generic_Parameters} rule (for @command{gnatcheck})
-
-@noindent
-Flag each generic actual parameter corresponding to a generic formal
-parameter with a default initialization, if positional notation is used.
-
-This rule has no parameters.
-
-@node Positional_Actuals_For_Defaulted_Parameters
-@subsection @code{Positional_Actuals_For_Defaulted_Parameters}
-@cindex @code{Positional_Actuals_For_Defaulted_Parameters} rule (for @command{gnatcheck})
-
-@noindent
-Flag each actual parameter to a subprogram or entry call where the
-corresponding formal parameter has a default expression, if positional
-notation is used.
-
-This rule has no parameters.
-
-@node Positional_Components
-@subsection @code{Positional_Components}
-@cindex @code{Positional_Components} rule (for @command{gnatcheck})
-
-@noindent
-Flag each array, record and extension aggregate that includes positional
-notation.
-
-This rule has no parameters.
-
-
-@node Positional_Generic_Parameters
-@subsection @code{Positional_Generic_Parameters}
-@cindex @code{Positional_Generic_Parameters} rule (for @command{gnatcheck})
-
-@noindent
-Flag each positional actual generic parameter except for the case when
-the generic unit being iinstantiated has exactly one generic formal
-parameter.
-
-This rule has no parameters.
-
-
-@node Positional_Parameters
-@subsection @code{Positional_Parameters}
-@cindex @code{Positional_Parameters} rule (for @command{gnatcheck})
-
-@noindent
-Flag each positional parameter notation in a subprogram or entry call,
-except for the following:
-
-@itemize @bullet
-@item
-Parameters of calls to of prefix or infix operators are not flagged
-@item
-If the called subprogram or entry has only one formal parameter,
-the parameter of the call is not flagged;
-@item
-If a subprogram call uses the @emph{Object.Operation} notation, then
-@itemize @minus
-@item
-the first parameter (that is, @emph{Object}) is not flagged;
-@item
-if the called subprogram has only two parameters, the second parameter
-of the call is not flagged;
-@end itemize
-@end itemize
-
-@noindent
-This rule has no parameters.
-
-
-
-
-@node Predefined_Numeric_Types
-@subsection @code{Predefined_Numeric_Types}
-@cindex @code{Predefined_Numeric_Types} rule (for @command{gnatcheck})
-
-@noindent
-Flag each explicit use of the name of any numeric type or subtype defined
-in package @code{Standard}.
-
-The rationale for this rule is to detect when the
-program may depend on platform-specific characteristics of the implementation
-of the predefined numeric types. Note that this rule is over-pessimistic;
-for example, a program that uses @code{String} indexing
-likely needs a variable of type @code{Integer}.
-Another example is the flagging of predefined numeric types with explicit
-constraints:
-
-@smallexample @c ada
-    subtype My_Integer is Integer range Left .. Right;
-    Vy_Var : My_Integer;
-@end smallexample
-
-@noindent
-This rule detects only numeric types and subtypes defined in
-@code{Standard}. The use of numeric types and subtypes defined in other
-predefined packages (such as @code{System.Any_Priority} or
-@code{Ada.Text_IO.Count}) is not flagged
-
-This rule has no parameters.
-
-
-
-@node Raising_External_Exceptions
-@subsection @code{Raising_External_Exceptions}
-@cindex @code{Raising_External_Exceptions} rule (for @command{gnatcheck})
-
-@noindent
-Flag any @code{raise} statement, in a program unit declared in a library
-package or in a generic library package, for an exception that is
-neither a predefined exception nor an exception that is also declared (or
-renamed) in the visible part of the package.
-
-This rule has no parameters.
-
-
-
-@node Raising_Predefined_Exceptions
-@subsection @code{Raising_Predefined_Exceptions}
-@cindex @code{Raising_Predefined_Exceptions} rule (for @command{gnatcheck})
-
-@noindent
-Flag each @code{raise} statement that raises a predefined exception
-(i.e., one of the exceptions @code{Constraint_Error}, @code{Numeric_Error},
-@code{Program_Error}, @code{Storage_Error}, or @code{Tasking_Error}).
-
-This rule has no parameters.
-
-@node Separate_Numeric_Error_Handlers
-@subsection @code{Separate_Numeric_Error_Handlers}
-@cindex @code{Separate_Numeric_Error_Handlers} rule (for @command{gnatcheck})
-
-@noindent
-Flags each exception handler that contains a choice for
-the predefined @code{Constraint_Error} exception, but does not contain
-the choice for the predefined @code{Numeric_Error} exception, or
-that contains the choice for @code{Numeric_Error}, but does not contain the
-choice for @code{Constraint_Error}.
-
-This rule has no parameters.
-
-@ignore
-@node Recursion
-@subsection @code{Recursion} (under construction, GLOBAL)
-@cindex @code{Recursion} rule (for @command{gnatcheck})
-
-@noindent
-Flag recursive subprograms (cycles in the call graph). Declarations, and not
-calls, of recursive subprograms are detected.
-
-This rule has no parameters.
-@end ignore
-
-@ignore
-@node Side_Effect_Functions
-@subsection @code{Side_Effect_Functions} (under construction, GLOBAL)
-@cindex @code{Side_Effect_Functions} rule (for @command{gnatcheck})
-
-@noindent
-Flag functions with side effects.
-
-We define a side effect as changing any data object that is not local for the
-body of this function.
-
-At the moment, we do NOT consider a side effect any input-output operations
-(changing a state or a content of any file).
-
-We do not consider protected functions for this rule (???)
-
-There are the following sources of side effect:
-
-@enumerate
-@item Explicit (or direct) side-effect:
-
-@itemize @bullet
-@item
-direct assignment to a non-local variable;
-
-@item
-direct call to an entity that is known to change some data object that is
-     not local for the body of this function (Note, that if F1 calls F2 and F2
-     does have a side effect, this does not automatically mean that F1 also
-     have a side effect, because it may be the case that F2 is declared in
-     F1's body and it changes some data object that is global for F2, but
-     local for F1);
-@end itemize
-
-@item Indirect side-effect:
-@itemize @bullet
-@item
-Subprogram calls implicitly issued by:
-@itemize @bullet
-@item
-computing initialization expressions from type declarations as a part
-         of object elaboration or allocator evaluation;
-@item
-computing implicit parameters of subprogram or entry calls or generic
-         instantiations;
-@end itemize
-
-@item
-activation of a task that change some non-local data object (directly or
-     indirectly);
-
-@item
-elaboration code of a package that is a result of a package instantiation;
-
-@item
-controlled objects;
-@end itemize
-
-@item Situations when we can suspect a side-effect, but the full static check
-is either impossible or too hard:
-@itemize @bullet
-@item
-assignment to access variables or to the objects pointed by access
-     variables;
-
-@item
-call to a subprogram pointed by access-to-subprogram value
-
-@item
-dispatching calls;
-@end itemize
-@end enumerate
-
-@noindent
-This rule has no parameters.
-@end ignore
-
-@node Slices
-@subsection @code{Slices}
-@cindex @code{Slices} rule (for @command{gnatcheck})
-
-@noindent
-Flag all uses of array slicing
-
-This rule has no parameters.
-
-
-@node Too_Many_Parents
-@subsection @code{Too_Many_Parents}
-@cindex @code{Too_Many_Parents} rule (for @command{gnatcheck})
-
-@noindent
-Flags any type declaration, single task declaration or single protected
-declaration that has more then  @option{N} parents,  @option{N} is a parameter
-of the rule.
-A parent here is either a (sub)type denoted by the subtype mark from the
-parent_subtype_indication (in case of a derived type declaration), or
-any of the progenitors from the interface list, if any.
-
-This rule has the following (mandatory) parameters for the @option{+R} option:
-
-@table @emph
-@item N
-Positive integer specifying the maximal allowed number of parents.
-@end table
-
-
-@node Unassigned_OUT_Parameters
-@subsection @code{Unassigned_OUT_Parameters}
-@cindex @code{Unassigned_OUT_Parameters} rule (for @command{gnatcheck})
-
-@noindent
-Flags procedures' @code{out} parameters that are not assigned, and
-identifies the contexts in which the assignments are missing.
-
-An @code{out} parameter is flagged in the statements in the procedure
-body's handled sequence of statements (before the procedure body's
-@code{exception} part, if any) if this sequence of statements contains
-no assignments to the parameter.
-
-An @code{out} parameter is flagged in an exception handler in the exception
-part of the procedure body's handled sequence of statements if the handler
-contains no assignment to the parameter.
-
-Bodies of generic procedures are also considered.
-
-The following are treated as assignments to an @code{out} parameter:
-
-@itemize @bullet
-@item
-an assignment statement, with the parameter or some component as the target;
-
-@item
-passing the parameter (or one of its components) as an @code{out} or
-@code{in out} parameter.
-@end itemize
-
-@noindent
-This rule does not have any parameters.
-
-
-
-@node Uncommented_BEGIN_In_Package_Bodies
-@subsection @code{Uncommented_BEGIN_In_Package_Bodies}
-@cindex @code{Uncommented_BEGIN_In_Package_Bodies} rule (for @command{gnatcheck})
-
-@noindent
-Flags each package body with declarations and a statement part that does not
-include a trailing comment on the line containing the @code{begin} keyword;
-this trailing comment needs to specify the package name and nothing else.
-The @code{begin} is not flagged if the package body does not
-contain any declarations.
-
-If the @code{begin} keyword is placed on the
-same line as the last declaration or the first statement, it is flagged
-independently of whether the line contains a trailing comment. The
-diagnostic message is attached to the line containing the first statement.
-
-This rule has no parameters.
-
-@node Unconditional_Exits
-@subsection @code{Unconditional_Exits}
-@cindex @code{Unconditional_Exits} rule (for @command{gnatcheck})
-
-@noindent
-Flag unconditional @code{exit} statements.
-
-This rule has no parameters.
-
-@node Unconstrained_Array_Returns
-@subsection @code{Unconstrained_Array_Returns}
-@cindex @code{Unconstrained_Array_Returns} rule (for @command{gnatcheck})
-
-@noindent
-Flag each function returning an unconstrained array. Function declarations,
-function bodies (and body stubs) having no separate specifications,
-and generic function instantiations are checked.
-Function calls and function renamings are
-not checked.
-
-Generic function declarations, and function declarations in generic
-packages are not checked, instead this rule checks the results of
-generic instantiations (that is, expanded specification and expanded
-body corresponding to an instantiation).
-
-This rule has no parameters.
-
-@node Universal_Ranges
-@subsection @code{Universal_Ranges}
-@cindex @code{Universal_Ranges} rule (for @command{gnatcheck})
-
-@noindent
-Flag discrete ranges that are a part of an index constraint, constrained
-array definition, or @code{for}-loop parameter specification, and whose bounds
-are both of type @i{universal_integer}. Ranges that have at least one
-bound of a specific type (such as @code{1 .. N}, where @code{N} is a variable
-or an expression of non-universal type) are not flagged.
-
-This rule has no parameters.
-
-
-@node Unnamed_Blocks_And_Loops
-@subsection @code{Unnamed_Blocks_And_Loops}
-@cindex @code{Unnamed_Blocks_And_Loops} rule (for @command{gnatcheck})
-
-@noindent
-Flag each unnamed block statement and loop statement.
-
-The rule has no parameters.
-
-
-
-@ignore
-@node Unused_Subprograms
-@subsection @code{Unused_Subprograms} (under construction, GLOBAL)
-@cindex @code{Unused_Subprograms} rule (for @command{gnatcheck})
-
-@noindent
-Flag all unused subprograms.
-
-This rule has no parameters.
-@end ignore
-
-
-
-
-@node USE_PACKAGE_Clauses
-@subsection @code{USE_PACKAGE_Clauses}
-@cindex @code{USE_PACKAGE_Clauses} rule (for @command{gnatcheck})
-
-@noindent
-Flag all @code{use} clauses for packages; @code{use type} clauses are
-not flagged.
-
-This rule has no parameters.
-
-
-@node Visible_Components
-@subsection @code{Visible_Components}
-@cindex @code{Visible_Components} rule (for @command{gnatcheck})
-
-@noindent
-Flags all the type declarations located in the visible part of a library
-package or a library generic package that can declare a visible component. A
-type is considered as declaring a visible component if it contains a record
-definition by its own or as a part of a record extension. Type declaration is
-flagged even if it contains a record definition that defines no components.
-
-Declarations located in private parts of local (generic) packages are not
-flagged. Declarations in private packages are not flagged.
-
-This rule has no parameters.
-
-
-@node Volatile_Objects_Without_Address_Clauses
-@subsection @code{Volatile_Objects_Without_Address_Clauses}
-@cindex @code{Volatile_Objects_Without_Address_Clauses} rule (for @command{gnatcheck})
-
-@noindent
-Flag each volatile object that does not have an address clause.
-
-The following check is made: if the pragma @code{Volatile} is applied to a
-data object or to its type, then an address clause must
-be supplied for this object.
-
-This rule does not check the components of data objects,
-array components that are volatile as a result of the pragma
-@code{Volatile_Components}, or objects that are volatile because
-they are atomic as a result of pragmas @code{Atomic} or
-@code{Atomic_Components}.
-
-Only variable declarations, and not constant declarations, are checked.
-
-This rule has no parameters.
 
 @node Example of gnatcheck Usage
 @section Example of @command{gnatcheck} Usage
@@ -23157,7 +21372,9 @@ option @option{^--no-exception^/NO_EXCEPTION^} (see below).
 @command{gnatstub} has the command-line interface of the form
 
 @smallexample
-$ gnatstub @ovar{switches} @var{filename} @ovar{directory}
+@c $ gnatstub @ovar{switches} @var{filename} @ovar{directory}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatstub @r{[}@var{switches}@r{]} @var{filename} @r{[}@var{directory}@r{]} @r{[}-cargs @var{gcc_switches}@r{]}
 @end smallexample
 
 @noindent
@@ -23184,6 +21401,12 @@ with the @file{.adb} suffix.
 indicates the directory in which the body stub is to be placed (the default
 is the
 current directory)
+
+@item @samp{@var{gcc_switches}} is a list of switches for
+@command{gcc}. They will be passed on to all compiler invocations made by
+@command{gnatelim} to generate the ASIS trees. Here you can provide
+@option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
+use the @option{-gnatec} switch to set the configuration file etc.
 
 @item switches
 is an optional sequence of switches as described in the next section
@@ -23326,10 +21549,23 @@ Verbose mode: generate version information.
 @findex binding
 
 @noindent
-GNAT now comes with a new experimental binding generator for C and C++
-headers which is intended to do 95% of the tedious work of generating
-Ada specs from C or C++ header files. Note that this still is a work in
-progress, not designed to generate 100% correct Ada specs.
+GNAT now comes with a binding generator for C and C++ headers which is
+intended to do 95% of the tedious work of generating Ada specs from C
+or C++ header files.
+
+Note that this capability is not intended to generate 100% correct Ada specs,
+and will is some cases require manual adjustments, although it can often
+be used out of the box in practice.
+
+Some of the known limitations include:
+
+@itemize @bullet
+@item only very simple character constant macros are translated into Ada
+constants. Function macros (macros with arguments) are partially translated
+as comments, to be completed manually if needed.
+@item some extensions (e.g. vector types) are not supported
+@item pointers to pointers or complex structures are mapped to System.Address
+@end itemize
 
 The code generated is using the Ada 2005 syntax, which makes it
 easier to interface with other languages than previous versions of Ada.
@@ -23676,7 +21912,9 @@ be able to click on any identifier and go to its declaration.
 
 The command line is as follow:
 @smallexample
-$ perl gnathtml.pl @ovar{^switches^options^} @var{ada-files}
+@c $ perl gnathtml.pl @ovar{^switches^options^} @var{ada-files}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ perl gnathtml.pl @r{[}@var{^switches^options^}@r{]} @var{ada-files}
 @end smallexample
 
 @noindent
@@ -23782,7 +22020,9 @@ is. The syntax of this line is:
 Alternatively, you may run the script using the following command line:
 
 @smallexample
-$ perl gnathtml.pl @ovar{switches} @var{files}
+@c $ perl gnathtml.pl @ovar{switches} @var{files}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ perl gnathtml.pl @r{[}@var{switches}@r{]} @var{files}
 @end smallexample
 
 @ifset vms
@@ -24142,6 +22382,7 @@ the incorrect user program.
 * Ada Exceptions::
 * Ada Tasks::
 * Debugging Generic Units::
+* Remote Debugging using gdbserver::
 * GNAT Abnormal Termination or Failure to Terminate::
 * Naming Conventions for GNAT Source Files::
 * Getting Internal Debugging Information::
@@ -24287,11 +22528,10 @@ and execution encounters the breakpoint, then the program
 stops and @code{GDB} signals that the breakpoint was encountered by
 printing the line of code before which the program is halted.
 
-@item breakpoint exception @var{name}
-A special form of the breakpoint command which breakpoints whenever
-exception @var{name} is raised.
-If @var{name} is omitted,
-then a breakpoint will occur when any exception is raised.
+@item catch exception @var{name}
+This command causes the program execution to stop whenever exception
+@var{name} is raised.  If @var{name} is omitted, then the execution is
+suspended when any exception is raised.
 
 @item print @var{expression}
 This will print the value of the given expression. Most simple
@@ -24453,25 +22693,25 @@ The value returned is always that from the first return statement
 that was stepped through.
 
 @node Ada Exceptions
-@section Breaking on Ada Exceptions
+@section Stopping when Ada Exceptions are Raised
 @cindex Exceptions
 
 @noindent
-You can set breakpoints that trip when your program raises
-selected exceptions.
+You can set catchpoints that stop the program execution when your program
+raises selected exceptions.
 
 @table @code
-@item break exception
-Set a breakpoint that trips whenever (any task in the) program raises
-any exception.
+@item catch exception
+Set a catchpoint that stops execution whenever (any task in the) program
+raises any exception.
 
-@item break exception @var{name}
-Set a breakpoint that trips whenever (any task in the) program raises
-the exception @var{name}.
+@item catch exception @var{name}
+Set a catchpoint that stops execution whenever (any task in the) program
+raises the exception @var{name}.
 
-@item break exception unhandled
-Set a breakpoint that trips whenever (any task in the) program raises an
-exception for which there is no handler.
+@item catch exception unhandled
+Set a catchpoint that stops executino whenever (any task in the) program
+raises an exception for which there is no handler.
 
 @item info exceptions
 @itemx info exceptions @var{regexp}
@@ -24599,6 +22839,56 @@ use the command:
 When the breakpoint occurs, you can step through the code of the
 instance in the normal manner and examine the values of local variables, as for
 other units.
+
+@node Remote Debugging using gdbserver
+@section Remote Debugging using gdbserver
+@cindex Remote Debugging using gdbserver
+
+@noindent
+On platforms where gdbserver is supported, it is possible to use this tool
+to debug your application remotely.  This can be useful in situations
+where the program needs to be run on a target host that is different
+from the host used for development, particularly when the target has
+a limited amount of resources (either CPU and/or memory).
+
+To do so, start your program using gdbserver on the target machine.
+gdbserver then automatically suspends the execution of your program
+at its entry point, waiting for a debugger to connect to it.  The
+following commands starts an application and tells gdbserver to
+wait for a connection with the debugger on localhost port 4444.
+
+@smallexample
+$ gdbserver localhost:4444 program
+Process program created; pid = 5685
+Listening on port 4444
+@end smallexample
+
+Once gdbserver has started listening, we can tell the debugger to establish
+a connection with this gdbserver, and then start the same debugging session
+as if the program was being debugged on the same host, directly under
+the control of GDB.
+
+@smallexample
+$ gdb program
+(gdb) target remote targethost:4444
+Remote debugging using targethost:4444
+0x00007f29936d0af0 in ?? () from /lib64/ld-linux-x86-64.so.
+(gdb) b foo.adb:3
+Breakpoint 1 at 0x401f0c: file foo.adb, line 3.
+(gdb) continue
+Continuing.
+
+Breakpoint 1, foo () at foo.adb:4
+4       end foo;
+@end smallexample
+
+It is also possible to use gdbserver to attach to an already running
+program, in which case the execution of that program is simply suspended
+until the connection between the debugger and gdbserver is established.
+
+For more information on how to use gdbserver, @ref{Top, Server, Using
+the gdbserver Program, gdb, Debugging with GDB}.  GNAT Pro provides support
+for gdbserver on x86-linux, x86-windows and x86_64-linux.
 
 @node GNAT Abnormal Termination or Failure to Terminate
 @section GNAT Abnormal Termination or Failure to Terminate
@@ -26906,6 +25196,7 @@ information about several specific platforms.
 * AIX-Specific Considerations::
 * Irix-Specific Considerations::
 * RTX-Specific Considerations::
+* HP-UX-Specific Considerations::
 @end menu
 
 @node Summary of Run-Time Configurations
@@ -27265,9 +25556,46 @@ Windows executables that run in Ring 3 to utilize memory protection
 @item
 Real-time subsystem (RTSS) executables that run in Ring 0, where
 performance can be optimized with RTSS applications taking precedent
-over all Windows applications (@emph{rts-rtx-rtss}).
+over all Windows applications (@emph{rts-rtx-rtss}). This mode requires
+the Microsoft linker to handle RTSS libraries.
 
 @end itemize
+
+@node HP-UX-Specific Considerations
+@section HP-UX-Specific Considerations
+@cindex HP-UX Scheduling
+
+@noindent
+On HP-UX, appropriate privileges are required to change the scheduling
+parameters of a task. The calling process must have appropriate
+privileges or be a member of a group having @code{PRIV_RTSCHED} access to
+successfully change the scheduling parameters.
+
+By default, GNAT uses the @code{SCHED_HPUX} policy. To have access to the
+priority range 0-31 either the @code{FIFO_Within_Priorities} or the
+@code{Round_Robin_Within_Priorities} scheduling policies need to be set.
+
+To specify the @code{FIFO_Within_Priorities} scheduling policy you can use
+one of the following:
+
+@itemize @bullet
+@item
+@code{pragma Time_Slice (0.0)}
+@cindex pragma Time_Slice
+@item
+the corresponding binder option @option{-T0}
+@cindex @option{-T0} option
+@item
+@code{pragma Task_Dispatching_Policy (FIFO_Within_Priorities)}
+@cindex pragma Task_Dispatching_Policy
+@end itemize
+
+@noindent
+To specify the @code{Round_Robin_Within_Priorities}, scheduling policy
+you should use @code{pragma Time_Slice} with a
+value greater than @code{0.0}, or use the corresponding @option{-T}
+binder option, or set the @code{pragma Task_Dispatching_Policy
+(Round_Robin_Within_Priorities)}.
 
 @c *******************************
 @node Example of Binder Output File
@@ -33257,7 +31585,9 @@ static import library for the DLL and the actual DLL. The form of the
 
 @smallexample
 @cartouche
-$ gnatdll @ovar{switches} @var{list-of-files} @r{[}-largs @var{opts}@r{]}
+@c $ gnatdll @ovar{switches} @var{list-of-files} @r{[}-largs @var{opts}@r{]}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ gnatdll @r{[}@var{switches}@r{]} @var{list-of-files} @r{[}-largs @var{opts}@r{]}
 @end cartouche
 @end smallexample
 
@@ -33273,7 +31603,9 @@ missing, only the static import library is generated.
 You may specify any of the following switches to @code{gnatdll}:
 
 @table @code
-@item -a@ovar{address}
+@c @item -a@ovar{address}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+@item -a@r{[}@var{address}@r{]}
 @cindex @option{-a} (@code{gnatdll})
 Build a non-relocatable DLL at @var{address}. If @var{address} is not
 specified the default address @var{0x11000000} will be used. By default,
@@ -33476,7 +31808,9 @@ common @code{dlltool} switches. The form of the @code{dlltool} command
 is
 
 @smallexample
-$ dlltool @ovar{switches}
+@c $ dlltool @ovar{switches}
+@c Expanding @ovar macro inline (explanation in macro def comments)
+$ dlltool @r{[}@var{switches}@r{]}
 @end smallexample
 
 @noindent

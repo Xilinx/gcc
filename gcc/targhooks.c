@@ -325,6 +325,46 @@ default_unwind_emit (FILE * stream ATTRIBUTE_UNUSED,
   gcc_unreachable ();
 }
 
+/* Emit to STREAM the assembler syntax for insn operand X.  */
+
+void
+default_print_operand (FILE *stream ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
+		       int code ATTRIBUTE_UNUSED)
+{
+#ifdef PRINT_OPERAND
+  PRINT_OPERAND (stream, x, code);
+#else
+  gcc_unreachable ();
+#endif
+}
+
+/* Emit to STREAM the assembler syntax for an insn operand whose memory
+   address is X.  */
+
+void
+default_print_operand_address (FILE *stream ATTRIBUTE_UNUSED,
+			       rtx x ATTRIBUTE_UNUSED)
+{
+#ifdef PRINT_OPERAND_ADDRESS
+  PRINT_OPERAND_ADDRESS (stream, x);
+#else
+  gcc_unreachable ();
+#endif
+}
+
+/* Return true if CODE is a valid punctuation character for the
+   `print_operand' hook.  */
+
+bool
+default_print_operand_punct_valid_p (unsigned char code ATTRIBUTE_UNUSED)
+{
+#ifdef PRINT_OPERAND_PUNCT_VALID_P
+  return PRINT_OPERAND_PUNCT_VALID_P (code);
+#else
+  return false;
+#endif
+}
+
 /* True if MODE is valid for the target.  By "valid", we mean able to
    be manipulated in non-trivial ways.  In particular, this means all
    the arithmetic is supported.
@@ -434,6 +474,36 @@ default_builtin_vectorized_conversion (unsigned int code ATTRIBUTE_UNUSED,
 				       tree src_type ATTRIBUTE_UNUSED)
 {
   return NULL_TREE;
+}
+
+/* Default vectorizer cost model values.  */
+
+int
+default_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
+{
+  switch (type_of_cost)
+    {
+      case scalar_stmt:
+      case scalar_load:
+      case scalar_store:
+      case vector_stmt:
+      case vector_load:
+      case vector_store:
+      case vec_to_scalar:
+      case scalar_to_vec:
+      case cond_branch_not_taken:
+      case vec_perm:
+        return 1;
+
+      case unaligned_load:
+        return 2;
+
+      case cond_branch_taken:
+        return 3;
+
+      default:
+        gcc_unreachable ();
+    }
 }
 
 /* Reciprocal.  */
@@ -602,11 +672,6 @@ default_function_value (const_tree ret_type ATTRIBUTE_UNUSED,
   if (fn_decl_or_type
       && !DECL_P (fn_decl_or_type))
     fn_decl_or_type = NULL;
-
-#ifdef FUNCTION_OUTGOING_VALUE
-  if (outgoing)
-    return FUNCTION_OUTGOING_VALUE (ret_type, fn_decl_or_type);
-#endif
 
 #ifdef FUNCTION_VALUE
   return FUNCTION_VALUE (ret_type, fn_decl_or_type);
@@ -1045,6 +1110,20 @@ default_have_conditional_execution (void)
   return HAVE_conditional_execution;
 #else
   return false;
+#endif
+}
+
+/* Compute cost of moving registers to/from memory.  */
+
+int
+default_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
+			  enum reg_class rclass ATTRIBUTE_UNUSED,
+			  bool in ATTRIBUTE_UNUSED)
+{
+#ifndef MEMORY_MOVE_COST
+    return (4 + memory_move_secondary_cost (mode, rclass, in));
+#else
+    return MEMORY_MOVE_COST (mode, rclass, in);
 #endif
 }
 

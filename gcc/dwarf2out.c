@@ -299,14 +299,16 @@ typedef struct GTY(()) dw_fde_struct {
   const char *dw_fde_begin;
   const char *dw_fde_current_label;
   const char *dw_fde_end;
+  const char *dw_fde_vms_end_prologue;
+  const char *dw_fde_vms_begin_epilogue;
   const char *dw_fde_hot_section_label;
   const char *dw_fde_hot_section_end_label;
   const char *dw_fde_unlikely_section_label;
   const char *dw_fde_unlikely_section_end_label;
   dw_cfi_ref dw_fde_cfi;
   dw_cfi_ref dw_fde_switch_cfi; /* Last CFI before switching sections.  */
-  unsigned funcdef_number;
   HOST_WIDE_INT stack_realignment;
+  unsigned funcdef_number;
   /* Dynamic realign argument pointer register.  */
   unsigned int drap_reg;
   /* Virtual dynamic realign argument pointer register.  */
@@ -506,6 +508,14 @@ static void def_cfa_1 (const char *, dw_cfa_location *);
 
 #ifndef FUNC_END_LABEL
 #define FUNC_END_LABEL		"LFE"
+#endif
+
+#ifndef PROLOGUE_END_LABEL
+#define PROLOGUE_END_LABEL	"LPE"
+#endif
+
+#ifndef EPILOGUE_BEGIN_LABEL
+#define EPILOGUE_BEGIN_LABEL	"LEB"
 #endif
 
 #ifndef FRAME_BEGIN_LABEL
@@ -722,7 +732,7 @@ dwarf_cfi_name (unsigned int cfi_opc)
 static inline dw_cfi_ref
 new_cfi (void)
 {
-  dw_cfi_ref cfi = GGC_NEW (dw_cfi_node);
+  dw_cfi_ref cfi = ggc_alloc_dw_cfi_node ();
 
   cfi->dw_cfi_next = NULL;
   cfi->dw_cfi_oprnd1.dw_cfi_reg_num = 0;
@@ -1694,7 +1704,7 @@ queue_reg_save (const char *label, rtx reg, rtx sreg, HOST_WIDE_INT offset)
 
   if (q == NULL)
     {
-      q = GGC_NEW (struct queued_reg_save);
+      q = ggc_alloc_queued_reg_save ();
       q->next = queued_reg_saves;
       queued_reg_saves = q;
     }
@@ -2789,7 +2799,7 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
    NOTE_INSN_CFA_RESTORE_STATE at the appropriate place in the stream.  */
 
 void
-dwarf2out_begin_epilogue (rtx insn)
+dwarf2out_cfi_begin_epilogue (rtx insn)
 {
   bool saw_frp = false;
   rtx i;
@@ -2862,7 +2872,8 @@ dwarf2out_begin_epilogue (rtx insn)
   cfa_remember.in_use = 1;
 }
 
-/* A "subroutine" of dwarf2out_begin_epilogue.  Emit the restore required.  */
+/* A "subroutine" of dwarf2out_cfi_begin_epilogue.  Emit the restore
+   required.  */
 
 void
 dwarf2out_frame_debug_restore_state (void)
@@ -3961,6 +3972,8 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   fde->dw_fde_switched_sections = 0;
   fde->dw_fde_switched_cold_to_hot = 0;
   fde->dw_fde_end = NULL;
+  fde->dw_fde_vms_end_prologue = NULL;
+  fde->dw_fde_vms_begin_epilogue = NULL;
   fde->dw_fde_cfi = NULL;
   fde->dw_fde_switch_cfi = NULL;
   fde->funcdef_number = current_function_funcdef_no;
@@ -4017,6 +4030,51 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
     }
 }
 
+/* Output a marker (i.e. a label) for the end of the generated code
+   for a function prologue.  This gets called *after* the prologue code has
+   been generated.  */
+
+void
+dwarf2out_vms_end_prologue (unsigned int line ATTRIBUTE_UNUSED,
+			const char *file ATTRIBUTE_UNUSED)
+{
+  dw_fde_ref fde;
+  char label[MAX_ARTIFICIAL_LABEL_BYTES];
+
+  /* Output a label to mark the endpoint of the code generated for this
+     function.  */
+  ASM_GENERATE_INTERNAL_LABEL (label, PROLOGUE_END_LABEL,
+			       current_function_funcdef_no);
+  ASM_OUTPUT_DEBUG_LABEL (asm_out_file, PROLOGUE_END_LABEL,
+			  current_function_funcdef_no);
+  fde = &fde_table[fde_table_in_use - 1];
+  fde->dw_fde_vms_end_prologue = xstrdup (label);
+}
+
+/* Output a marker (i.e. a label) for the beginning of the generated code
+   for a function epilogue.  This gets called *before* the prologue code has
+   been generated.  */
+
+void
+dwarf2out_vms_begin_epilogue (unsigned int line ATTRIBUTE_UNUSED,
+			  const char *file ATTRIBUTE_UNUSED)
+{
+  dw_fde_ref fde;
+  char label[MAX_ARTIFICIAL_LABEL_BYTES];
+
+  fde = &fde_table[fde_table_in_use - 1];
+  if (fde->dw_fde_vms_begin_epilogue)
+    return;
+
+  /* Output a label to mark the endpoint of the code generated for this
+     function.  */
+  ASM_GENERATE_INTERNAL_LABEL (label, EPILOGUE_BEGIN_LABEL,
+			       current_function_funcdef_no);
+  ASM_OUTPUT_DEBUG_LABEL (asm_out_file, EPILOGUE_BEGIN_LABEL,
+			  current_function_funcdef_no);
+  fde->dw_fde_vms_begin_epilogue = xstrdup (label);
+}
+
 /* Output a marker (i.e. a label) for the absolute end of the generated code
    for a function definition.  This gets called *after* the epilogue code has
    been generated.  */
@@ -4049,7 +4107,7 @@ void
 dwarf2out_frame_init (void)
 {
   /* Allocate the initial hunk of the fde_table.  */
-  fde_table = GGC_CNEWVEC (dw_fde_node, FDE_TABLE_INCREMENT);
+  fde_table = ggc_alloc_cleared_vec_dw_fde_node (FDE_TABLE_INCREMENT);
   fde_table_allocated = FDE_TABLE_INCREMENT;
   fde_table_in_use = 0;
 
@@ -4193,7 +4251,8 @@ enum dw_val_class
   dw_val_class_str,
   dw_val_class_macptr,
   dw_val_class_file,
-  dw_val_class_data8
+  dw_val_class_data8,
+  dw_val_class_vms_delta
 };
 
 /* Describe a floating point constant value, or a vector constant value.  */
@@ -4231,6 +4290,11 @@ typedef struct GTY(()) dw_val_struct {
       unsigned char GTY ((tag ("dw_val_class_flag"))) val_flag;
       struct dwarf_file_data * GTY ((tag ("dw_val_class_file"))) val_file;
       unsigned char GTY ((tag ("dw_val_class_data8"))) val_data8[8];
+      struct dw_val_vms_delta_union
+	{
+	  char * lbl1;
+	  char * lbl2;
+	} GTY ((tag ("dw_val_class_vms_delta"))) val_vms_delta;
     }
   GTY ((desc ("%1.val_class"))) v;
 }
@@ -4605,7 +4669,7 @@ static inline dw_loc_descr_ref
 new_loc_descr (enum dwarf_location_atom op, unsigned HOST_WIDE_INT oprnd1,
 	       unsigned HOST_WIDE_INT oprnd2)
 {
-  dw_loc_descr_ref descr = GGC_CNEW (dw_loc_descr_node);
+  dw_loc_descr_ref descr = ggc_alloc_cleared_dw_loc_descr_node ();
 
   descr->dw_loc_opc = op;
   descr->dw_loc_oprnd1.val_class = dw_val_class_unsigned_const;
@@ -5466,7 +5530,13 @@ const struct gcc_debug_hooks dwarf2_debug_hooks =
   dwarf2out_ignore_block,
   dwarf2out_source_line,
   dwarf2out_begin_prologue,
-  debug_nothing_int_charstar,	/* end_prologue */
+#if VMS_DEBUGGING_INFO
+  dwarf2out_vms_end_prologue,
+  dwarf2out_vms_begin_epilogue,
+#else
+  debug_nothing_int_charstar,
+  debug_nothing_int_charstar,
+#endif
   dwarf2out_end_epilogue,
   dwarf2out_begin_function,
   debug_nothing_int,		/* end_function */
@@ -6202,6 +6272,7 @@ static void gen_type_die (tree, dw_die_ref);
 static void gen_block_die (tree, dw_die_ref, int);
 static void decls_for_scope (tree, dw_die_ref, int);
 static int is_redundant_typedef (const_tree);
+static bool is_naming_typedef_decl (const_tree);
 static inline dw_die_ref get_context_die (tree);
 static void gen_namespace_die (tree, dw_die_ref);
 static void gen_decl_die (tree, tree, dw_die_ref);
@@ -6213,6 +6284,8 @@ static struct dwarf_file_data * lookup_filename (const char *);
 static void retry_incomplete_types (void);
 static void gen_type_die_for_member (tree, tree, dw_die_ref);
 static void gen_generic_params_dies (tree);
+static void gen_tagged_type_die (tree, dw_die_ref, enum debug_info_usage);
+static void gen_type_die_with_usage (tree, dw_die_ref, enum debug_info_usage);
 static void splice_child_die (dw_die_ref, dw_die_ref);
 static int file_info_cmp (const void *, const void *);
 static dw_loc_list_ref new_loc_list (dw_loc_descr_ref, const char *,
@@ -6227,6 +6300,10 @@ static void prune_unused_types_walk_attribs (dw_die_ref);
 static void prune_unused_types_prune (dw_die_ref);
 static void prune_unused_types (void);
 static int maybe_emit_file (struct dwarf_file_data *fd);
+static inline const char *AT_vms_delta1 (dw_attr_ref);
+static inline const char *AT_vms_delta2 (dw_attr_ref);
+static inline void add_AT_vms_delta (dw_die_ref, enum dwarf_attribute,
+				     const char *, const char *);
 static void append_entry_to_tmpl_value_parm_die_table (dw_die_ref, tree);
 static void gen_remaining_tmpl_value_param_die_attribute (void);
 
@@ -6734,14 +6811,24 @@ dwarf_attr_name (unsigned int attr)
       return "DW_AT_MIPS_tail_loop_begin";
     case DW_AT_MIPS_epilog_begin:
       return "DW_AT_MIPS_epilog_begin";
+#if VMS_DEBUGGING_INFO
+    case DW_AT_HP_prologue:
+      return "DW_AT_HP_prologue";
+#else
     case DW_AT_MIPS_loop_unroll_factor:
       return "DW_AT_MIPS_loop_unroll_factor";
+#endif
     case DW_AT_MIPS_software_pipeline_depth:
       return "DW_AT_MIPS_software_pipeline_depth";
     case DW_AT_MIPS_linkage_name:
       return "DW_AT_MIPS_linkage_name";
+#if VMS_DEBUGGING_INFO
+    case DW_AT_HP_epilogue:
+      return "DW_AT_HP_epilogue";
+#else
     case DW_AT_MIPS_stride:
       return "DW_AT_MIPS_stride";
+#endif
     case DW_AT_MIPS_abstract_name:
       return "DW_AT_MIPS_abstract_name";
     case DW_AT_MIPS_clone_origin:
@@ -7055,8 +7142,7 @@ find_AT_string (const char *str)
 				   htab_hash_string (str), INSERT);
   if (*slot == NULL)
     {
-      node = (struct indirect_string_node *)
-	       ggc_alloc_cleared (sizeof (struct indirect_string_node));
+      node = ggc_alloc_cleared_indirect_string_node ();
       node->str = ggc_strdup (str);
       *slot = node;
     }
@@ -7308,6 +7394,21 @@ AT_file (dw_attr_ref a)
   return a->dw_attr_val.v.val_file;
 }
 
+/* Add a vms delta attribute value to a DIE.  */
+
+static inline void
+add_AT_vms_delta (dw_die_ref die, enum dwarf_attribute attr_kind,
+		  const char *lbl1, const char *lbl2)
+{
+  dw_attr_node attr;
+
+  attr.dw_attr = attr_kind;
+  attr.dw_attr_val.val_class = dw_val_class_vms_delta;
+  attr.dw_attr_val.v.val_vms_delta.lbl1 = xstrdup (lbl1);
+  attr.dw_attr_val.v.val_vms_delta.lbl2 = xstrdup (lbl2);
+  add_dwarf_attr (die, &attr);
+}
+
 /* Add a label identifier attribute value to a DIE.  */
 
 static inline void
@@ -7377,6 +7478,24 @@ add_AT_range_list (dw_die_ref die, enum dwarf_attribute attr_kind,
   attr.dw_attr_val.val_class = dw_val_class_range_list;
   attr.dw_attr_val.v.val_offset = offset;
   add_dwarf_attr (die, &attr);
+}
+
+/* Return the start label of a delta attribute.  */
+
+static inline const char *
+AT_vms_delta1 (dw_attr_ref a)
+{
+  gcc_assert (a && (AT_class (a) == dw_val_class_vms_delta));
+  return a->dw_attr_val.v.val_vms_delta.lbl1;
+}
+
+/* Return the end label of a delta attribute.  */
+
+static inline const char *
+AT_vms_delta2 (dw_attr_ref a)
+{
+  gcc_assert (a && (AT_class (a) == dw_val_class_vms_delta));
+  return a->dw_attr_val.v.val_vms_delta.lbl2;
 }
 
 static inline const char *
@@ -7681,7 +7800,7 @@ splice_child_die (dw_die_ref parent, dw_die_ref child)
 static inline dw_die_ref
 new_die (enum dwarf_tag tag_value, dw_die_ref parent_die, tree t)
 {
-  dw_die_ref die = GGC_CNEW (die_node);
+  dw_die_ref die = ggc_alloc_cleared_die_node ();
 
   die->die_tag = tag_value;
 
@@ -7691,7 +7810,7 @@ new_die (enum dwarf_tag tag_value, dw_die_ref parent_die, tree t)
     {
       limbo_die_node *limbo_node;
 
-      limbo_node = GGC_CNEW (limbo_die_node);
+      limbo_node = ggc_alloc_cleared_limbo_die_node ();
       limbo_node->die = die;
       limbo_node->created_for = t;
       limbo_node->next = limbo_die_list;
@@ -7954,7 +8073,7 @@ add_var_loc_to_decl (tree decl, rtx loc_note, const char *label)
   slot = htab_find_slot_with_hash (decl_loc_table, decl, decl_id, INSERT);
   if (*slot == NULL)
     {
-      temp = GGC_CNEW (var_loc_list);
+      temp = ggc_alloc_cleared_var_loc_list ();
       temp->decl_id = decl_id;
       *slot = temp;
     }
@@ -8044,7 +8163,7 @@ add_var_loc_to_decl (tree decl, rtx loc_note, const char *label)
 	      memset (loc, '\0', sizeof (*loc));
 	    }
 	  else
-	    loc = GGC_CNEW (struct var_loc_node);
+	    loc = ggc_alloc_cleared_var_loc_node ();
 	  if (bitsize == -1 || piece_loc == NULL)
 	    loc->loc = construct_piece_list (loc_note, bitpos, bitsize);
 	  else
@@ -8061,7 +8180,7 @@ add_var_loc_to_decl (tree decl, rtx loc_note, const char *label)
     }
   else
     {
-      loc = GGC_CNEW (struct var_loc_node);
+      loc = ggc_alloc_cleared_var_loc_node ();
       temp->first = loc;
       temp->last = loc;
       loc->loc = construct_piece_list (loc_note, bitpos, bitsize);
@@ -8176,6 +8295,10 @@ print_die (dw_die_ref die, FILE *outfile)
 	  else
 	    fprintf (outfile, "die -> <null>");
 	  break;
+	case dw_val_class_vms_delta:
+	  fprintf (outfile, "delta: @slotcount(%s-%s)",
+		   AT_vms_delta2 (a), AT_vms_delta1 (a));
+	  break;
 	case dw_val_class_lbl_id:
 	case dw_val_class_lineptr:
 	case dw_val_class_macptr:
@@ -8239,7 +8362,7 @@ print_dwarf_line_table (FILE *outfile)
 
 /* Print the information collected for a given DIE.  */
 
-void
+DEBUG_FUNCTION void
 debug_dwarf_die (dw_die_ref die)
 {
   print_die (die, stderr);
@@ -8248,7 +8371,7 @@ debug_dwarf_die (dw_die_ref die)
 /* Print all DWARF information collected for the compilation unit.
    This routine is a debugging aid only.  */
 
-void
+DEBUG_FUNCTION void
 debug_dwarf (void)
 {
   print_indent = 0;
@@ -8354,6 +8477,7 @@ attr_checksum (dw_attr_ref at, struct md5_ctx *ctx, int *mark)
       break;
 
     case dw_val_class_fde_ref:
+    case dw_val_class_vms_delta:
     case dw_val_class_lbl_id:
     case dw_val_class_lineptr:
     case dw_val_class_macptr:
@@ -9084,6 +9208,7 @@ same_dw_val_p (const dw_val_node *v1, const dw_val_node *v2, int *mark)
       return same_die_p (v1->v.val_die_ref.die, v2->v.val_die_ref.die, mark);
 
     case dw_val_class_fde_ref:
+    case dw_val_class_vms_delta:
     case dw_val_class_lbl_id:
     case dw_val_class_lineptr:
     case dw_val_class_macptr:
@@ -9551,7 +9676,7 @@ clone_die (dw_die_ref die)
   dw_attr_ref a;
   unsigned ix;
 
-  clone = GGC_CNEW (die_node);
+  clone = ggc_alloc_cleared_die_node ();
   clone->die_tag = die->die_tag;
 
   for (ix = 0; VEC_iterate (dw_attr_node, die->die_attr, ix, a); ix++)
@@ -9592,7 +9717,7 @@ clone_as_declaration (dw_die_ref die)
   if (decl != NULL)
     return clone_die (decl);
 
-  clone = GGC_CNEW (die_node);
+  clone = ggc_alloc_cleared_die_node ();
   clone->die_tag = die->die_tag;
 
   for (ix = 0; VEC_iterate (dw_attr_node, die->die_attr, ix, a); ix++)
@@ -9811,7 +9936,7 @@ break_out_comdat_types (dw_die_ref die)
         unit = new_die (DW_TAG_type_unit, NULL, NULL);
         add_AT_unsigned (unit, DW_AT_language,
                          get_AT_unsigned (comp_unit_die, DW_AT_language));
-        type_node = GGC_CNEW (comdat_type_node);
+        type_node = ggc_alloc_cleared_comdat_type_node ();
         type_node->root_die = unit;
         type_node->next = comdat_type_list;
         comdat_type_list = type_node;
@@ -10265,6 +10390,9 @@ size_of_die (dw_die_ref die)
 	case dw_val_class_data8:
 	  size += 8;
 	  break;
+	case dw_val_class_vms_delta:
+	  size += DWARF_OFFSET_SIZE;
+	  break;
 	default:
 	  gcc_unreachable ();
 	}
@@ -10422,6 +10550,7 @@ value_format (dw_attr_ref a)
       if (dwarf_version >= 4)
 	return DW_FORM_sec_offset;
       /* FALLTHRU */
+    case dw_val_class_vms_delta:
     case dw_val_class_offset:
       switch (DWARF_OFFSET_SIZE)
 	{
@@ -10609,7 +10738,7 @@ static inline dw_loc_list_ref
 new_loc_list (dw_loc_descr_ref expr, const char *begin, const char *end,
 	      const char *section)
 {
-  dw_loc_list_ref retlist = GGC_CNEW (dw_loc_list_node);
+  dw_loc_list_ref retlist = ggc_alloc_cleared_dw_loc_list_node ();
 
   retlist->begin = begin;
   retlist->end = end;
@@ -10885,6 +11014,12 @@ output_die (dw_die_ref die)
 	    dw2_asm_output_offset (DWARF_OFFSET_SIZE, l1, debug_frame_section,
 				   "%s", name);
 	  }
+	  break;
+
+	case dw_val_class_vms_delta:
+	  dw2_asm_output_vms_delta (DWARF_OFFSET_SIZE,
+				    AT_vms_delta2 (a), AT_vms_delta1 (a),
+				    "%s", name);
 	  break;
 
 	case dw_val_class_lbl_id:
@@ -12359,6 +12494,21 @@ simple_type_size_in_bits (const_tree type)
     return tree_low_cst (TYPE_SIZE (type), 1);
   else
     return TYPE_ALIGN (type);
+}
+
+/* Similarly, but return a double_int instead of UHWI.  */
+
+static inline double_int
+double_int_type_size_in_bits (const_tree type)
+{
+  if (TREE_CODE (type) == ERROR_MARK)
+    return uhwi_to_double_int (BITS_PER_WORD);
+  else if (TYPE_SIZE (type) == NULL_TREE)
+    return double_int_zero;
+  else if (TREE_CODE (TYPE_SIZE (type)) == INTEGER_CST)
+    return tree_to_double_int (TYPE_SIZE (type));
+  else
+    return uhwi_to_double_int (TYPE_ALIGN (type));
 }
 
 /*  Given a pointer to a tree node for a subrange type, return a pointer
@@ -14115,7 +14265,8 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	  if (SCALAR_FLOAT_MODE_P (mode))
 	    {
 	      unsigned int length = GET_MODE_SIZE (mode);
-	      unsigned char *array = GGC_NEWVEC (unsigned char, length);
+	      unsigned char *array
+                  = (unsigned char*) ggc_alloc_atomic (length);
 
 	      insert_float (rtl, array);
 	      loc_result->dw_loc_oprnd2.val_class = dw_val_class_vec;
@@ -14140,7 +14291,8 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	{
 	  unsigned int elt_size = GET_MODE_UNIT_SIZE (GET_MODE (rtl));
 	  unsigned int length = CONST_VECTOR_NUNITS (rtl);
-	  unsigned char *array = GGC_NEWVEC (unsigned char, length * elt_size);
+	  unsigned char *array = (unsigned char *)
+	    ggc_alloc_atomic (length * elt_size);
 	  unsigned int i;
 	  unsigned char *p;
 
@@ -14624,12 +14776,12 @@ add_loc_descr_to_each (dw_loc_list_ref list, dw_loc_descr_ref ref)
   list = list->dw_loc_next;
   while (list)
     {
-      copy = GGC_CNEW (dw_loc_descr_node);
+      copy = ggc_alloc_dw_loc_descr_node ();
       memcpy (copy, ref, sizeof (dw_loc_descr_node));
       add_loc_descr (&list->expr, copy);
       while (copy->dw_loc_next)
 	{
-	  dw_loc_descr_ref new_copy = GGC_CNEW (dw_loc_descr_node);
+	  dw_loc_descr_ref new_copy = ggc_alloc_dw_loc_descr_node ();
 	  memcpy (new_copy, copy->dw_loc_next, sizeof (dw_loc_descr_node));
 	  copy->dw_loc_next = new_copy;
 	  copy = new_copy;
@@ -15410,20 +15562,15 @@ simple_decl_align_in_bits (const_tree decl)
 
 /* Return the result of rounding T up to ALIGN.  */
 
-static inline HOST_WIDE_INT
-round_up_to_align (HOST_WIDE_INT t, unsigned int align)
+static inline double_int
+round_up_to_align (double_int t, unsigned int align)
 {
-  /* We must be careful if T is negative because HOST_WIDE_INT can be
-     either "above" or "below" unsigned int as per the C promotion
-     rules, depending on the host, thus making the signedness of the
-     direct multiplication and division unpredictable.  */
-  unsigned HOST_WIDE_INT u = (unsigned HOST_WIDE_INT) t;
-
-  u += align - 1;
-  u /= align;
-  u *= align;
-
-  return (HOST_WIDE_INT) u;
+  double_int alignd = uhwi_to_double_int (align);
+  t = double_int_add (t, alignd);
+  t = double_int_add (t, double_int_minus_one);
+  t = double_int_div (t, alignd, true, TRUNC_DIV_EXPR);
+  t = double_int_mul (t, alignd);
+  return t;
 }
 
 /* Given a pointer to a FIELD_DECL, compute and return the byte offset of the
@@ -15436,8 +15583,9 @@ round_up_to_align (HOST_WIDE_INT t, unsigned int align)
 static HOST_WIDE_INT
 field_byte_offset (const_tree decl)
 {
-  HOST_WIDE_INT object_offset_in_bits;
-  HOST_WIDE_INT bitpos_int;
+  double_int object_offset_in_bits;
+  double_int object_offset_in_bytes;
+  double_int bitpos_int;
 
   if (TREE_CODE (decl) == ERROR_MARK)
     return 0;
@@ -15447,24 +15595,24 @@ field_byte_offset (const_tree decl)
   /* We cannot yet cope with fields whose positions are variable, so
      for now, when we see such things, we simply return 0.  Someday, we may
      be able to handle such cases, but it will be damn difficult.  */
-  if (! host_integerp (bit_position (decl), 0))
+  if (TREE_CODE (bit_position (decl)) != INTEGER_CST)
     return 0;
 
-  bitpos_int = int_bit_position (decl);
+  bitpos_int = tree_to_double_int (bit_position (decl));
 
 #ifdef PCC_BITFIELD_TYPE_MATTERS
   if (PCC_BITFIELD_TYPE_MATTERS)
     {
       tree type;
       tree field_size_tree;
-      HOST_WIDE_INT deepest_bitpos;
-      unsigned HOST_WIDE_INT field_size_in_bits;
+      double_int deepest_bitpos;
+      double_int field_size_in_bits;
       unsigned int type_align_in_bits;
       unsigned int decl_align_in_bits;
-      unsigned HOST_WIDE_INT type_size_in_bits;
+      double_int type_size_in_bits;
 
       type = field_type (decl);
-      type_size_in_bits = simple_type_size_in_bits (type);
+      type_size_in_bits = double_int_type_size_in_bits (type);
       type_align_in_bits = simple_type_align_in_bits (type);
 
       field_size_tree = DECL_SIZE (decl);
@@ -15475,85 +15623,92 @@ field_byte_offset (const_tree decl)
 	field_size_tree = bitsize_zero_node;
 
       /* If the size of the field is not constant, use the type size.  */
-      if (host_integerp (field_size_tree, 1))
-        field_size_in_bits = tree_low_cst (field_size_tree, 1);
+      if (TREE_CODE (field_size_tree) == INTEGER_CST)
+	field_size_in_bits = tree_to_double_int (field_size_tree);
       else
-        field_size_in_bits = type_size_in_bits;
+	field_size_in_bits = type_size_in_bits;
 
       decl_align_in_bits = simple_decl_align_in_bits (decl);
 
       /* The GCC front-end doesn't make any attempt to keep track of the
-         starting bit offset (relative to the start of the containing
-         structure type) of the hypothetical "containing object" for a
-         bit-field.  Thus, when computing the byte offset value for the
-         start of the "containing object" of a bit-field, we must deduce
-         this information on our own. This can be rather tricky to do in
-         some cases.  For example, handling the following structure type
-         definition when compiling for an i386/i486 target (which only
-         aligns long long's to 32-bit boundaries) can be very tricky:
+	 starting bit offset (relative to the start of the containing
+	 structure type) of the hypothetical "containing object" for a
+	 bit-field.  Thus, when computing the byte offset value for the
+	 start of the "containing object" of a bit-field, we must deduce
+	 this information on our own. This can be rather tricky to do in
+	 some cases.  For example, handling the following structure type
+	 definition when compiling for an i386/i486 target (which only
+	 aligns long long's to 32-bit boundaries) can be very tricky:
 
 	 struct S { int field1; long long field2:31; };
 
-         Fortunately, there is a simple rule-of-thumb which can be used
-         in such cases.  When compiling for an i386/i486, GCC will
-         allocate 8 bytes for the structure shown above.  It decides to
-         do this based upon one simple rule for bit-field allocation.
-         GCC allocates each "containing object" for each bit-field at
-         the first (i.e. lowest addressed) legitimate alignment boundary
-         (based upon the required minimum alignment for the declared
-         type of the field) which it can possibly use, subject to the
-         condition that there is still enough available space remaining
-         in the containing object (when allocated at the selected point)
-         to fully accommodate all of the bits of the bit-field itself.
+	 Fortunately, there is a simple rule-of-thumb which can be used
+	 in such cases.  When compiling for an i386/i486, GCC will
+	 allocate 8 bytes for the structure shown above.  It decides to
+	 do this based upon one simple rule for bit-field allocation.
+	 GCC allocates each "containing object" for each bit-field at
+	 the first (i.e. lowest addressed) legitimate alignment boundary
+	 (based upon the required minimum alignment for the declared
+	 type of the field) which it can possibly use, subject to the
+	 condition that there is still enough available space remaining
+	 in the containing object (when allocated at the selected point)
+	 to fully accommodate all of the bits of the bit-field itself.
 
-         This simple rule makes it obvious why GCC allocates 8 bytes for
-         each object of the structure type shown above.  When looking
-         for a place to allocate the "containing object" for `field2',
-         the compiler simply tries to allocate a 64-bit "containing
-         object" at each successive 32-bit boundary (starting at zero)
-         until it finds a place to allocate that 64- bit field such that
-         at least 31 contiguous (and previously unallocated) bits remain
-         within that selected 64 bit field.  (As it turns out, for the
-         example above, the compiler finds it is OK to allocate the
-         "containing object" 64-bit field at bit-offset zero within the
-         structure type.)
+	 This simple rule makes it obvious why GCC allocates 8 bytes for
+	 each object of the structure type shown above.  When looking
+	 for a place to allocate the "containing object" for `field2',
+	 the compiler simply tries to allocate a 64-bit "containing
+	 object" at each successive 32-bit boundary (starting at zero)
+	 until it finds a place to allocate that 64- bit field such that
+	 at least 31 contiguous (and previously unallocated) bits remain
+	 within that selected 64 bit field.  (As it turns out, for the
+	 example above, the compiler finds it is OK to allocate the
+	 "containing object" 64-bit field at bit-offset zero within the
+	 structure type.)
 
-         Here we attempt to work backwards from the limited set of facts
-         we're given, and we try to deduce from those facts, where GCC
-         must have believed that the containing object started (within
-         the structure type). The value we deduce is then used (by the
-         callers of this routine) to generate DW_AT_location and
-         DW_AT_bit_offset attributes for fields (both bit-fields and, in
-         the case of DW_AT_location, regular fields as well).  */
+	 Here we attempt to work backwards from the limited set of facts
+	 we're given, and we try to deduce from those facts, where GCC
+	 must have believed that the containing object started (within
+	 the structure type). The value we deduce is then used (by the
+	 callers of this routine) to generate DW_AT_location and
+	 DW_AT_bit_offset attributes for fields (both bit-fields and, in
+	 the case of DW_AT_location, regular fields as well).  */
 
       /* Figure out the bit-distance from the start of the structure to
-         the "deepest" bit of the bit-field.  */
-      deepest_bitpos = bitpos_int + field_size_in_bits;
+	 the "deepest" bit of the bit-field.  */
+      deepest_bitpos = double_int_add (bitpos_int, field_size_in_bits);
 
       /* This is the tricky part.  Use some fancy footwork to deduce
-         where the lowest addressed bit of the containing object must
-         be.  */
-      object_offset_in_bits = deepest_bitpos - type_size_in_bits;
+	 where the lowest addressed bit of the containing object must
+	 be.  */
+      object_offset_in_bits
+	= double_int_add (deepest_bitpos, double_int_neg (type_size_in_bits));
 
       /* Round up to type_align by default.  This works best for
-         bitfields.  */
+	 bitfields.  */
       object_offset_in_bits
-        = round_up_to_align (object_offset_in_bits, type_align_in_bits);
+	= round_up_to_align (object_offset_in_bits, type_align_in_bits);
 
-      if (object_offset_in_bits > bitpos_int)
-        {
-          object_offset_in_bits = deepest_bitpos - type_size_in_bits;
+      if (double_int_ucmp (object_offset_in_bits, bitpos_int) > 0)
+	{
+	  object_offset_in_bits
+	    = double_int_add (deepest_bitpos,
+			      double_int_neg (type_size_in_bits));
 
-          /* Round up to decl_align instead.  */
-          object_offset_in_bits
-            = round_up_to_align (object_offset_in_bits, decl_align_in_bits);
-        }
+	  /* Round up to decl_align instead.  */
+	  object_offset_in_bits
+	    = round_up_to_align (object_offset_in_bits, decl_align_in_bits);
+	}
     }
   else
 #endif
     object_offset_in_bits = bitpos_int;
 
-  return object_offset_in_bits / BITS_PER_UNIT;
+  object_offset_in_bytes
+    = double_int_div (object_offset_in_bits,
+		      uhwi_to_double_int (BITS_PER_UNIT), true,
+		      TRUNC_DIV_EXPR);
+  return double_int_to_shwi (object_offset_in_bytes);
 }
 
 /* The following routines define various Dwarf attributes and any data
@@ -15782,7 +15937,7 @@ add_const_value_attribute (dw_die_ref die, rtx rtl)
 	if (SCALAR_FLOAT_MODE_P (mode))
 	  {
 	    unsigned int length = GET_MODE_SIZE (mode);
-	    unsigned char *array = GGC_NEWVEC (unsigned char, length);
+	    unsigned char *array = (unsigned char *) ggc_alloc_atomic (length);
 
 	    insert_float (rtl, array);
 	    add_AT_vec (die, DW_AT_const_value, length / 4, 4, array);
@@ -15798,7 +15953,8 @@ add_const_value_attribute (dw_die_ref die, rtx rtl)
 	enum machine_mode mode = GET_MODE (rtl);
 	unsigned int elt_size = GET_MODE_UNIT_SIZE (mode);
 	unsigned int length = CONST_VECTOR_NUNITS (rtl);
-	unsigned char *array = GGC_NEWVEC (unsigned char, length * elt_size);
+	unsigned char *array = (unsigned char *) ggc_alloc_atomic
+	  (length * elt_size);
 	unsigned int i;
 	unsigned char *p;
 
@@ -15920,8 +16076,8 @@ reference_to_unused (tree * tp, int * walk_subtrees,
     return *tp;
   else if (TREE_CODE (*tp) == VAR_DECL)
     {
-      struct varpool_node *node = varpool_node (*tp);
-      if (!node->needed)
+      struct varpool_node *node = varpool_get_node (*tp);
+      if (!node || !node->needed)
 	return *tp;
     }
   else if (TREE_CODE (*tp) == FUNCTION_DECL
@@ -16548,7 +16704,8 @@ tree_add_const_value_attribute (dw_die_ref die, tree t)
       HOST_WIDE_INT size = int_size_in_bytes (TREE_TYPE (init));
       if (size > 0 && (int) size == size)
 	{
-	  unsigned char *array = GGC_CNEWVEC (unsigned char, size);
+	  unsigned char *array = (unsigned char *)
+	    ggc_alloc_cleared_atomic (size);
 
 	  if (native_encode_initializer (init, array, size))
 	    {
@@ -16736,7 +16893,7 @@ add_comp_dir_attribute (dw_die_ref die)
       int wdlen;
 
       wdlen = strlen (wd);
-      wd1 = GGC_NEWVEC (char, wdlen + 2);
+      wd1 = (char *) ggc_alloc_atomic (wdlen + 2);
       strcpy (wd1, wd);
       wd1 [wdlen] = DIR_SEPARATOR;
       wd1 [wdlen + 1] = 0;
@@ -17186,7 +17343,7 @@ add_name_and_src_coords_attributes (dw_die_ref die, tree decl)
 	    {
 	      limbo_die_node *asm_name;
 
-	      asm_name = GGC_CNEW (limbo_die_node);
+	      asm_name = ggc_alloc_cleared_limbo_die_node ();
 	      asm_name->die = die;
 	      asm_name->created_for = decl;
 	      asm_name->next = deferred_asm_name;
@@ -18195,8 +18352,8 @@ premark_types_used_by_global_vars_helper (void **slot,
     {
       /* Ask cgraph if the global variable really is to be emitted.
          If yes, then we'll keep the DIE of ENTRY->TYPE.  */
-      struct varpool_node *node = varpool_node (entry->var_decl);
-      if (node->needed)
+      struct varpool_node *node = varpool_get_node (entry->var_decl);
+      if (node && node->needed)
 	{
 	  die->die_perennial_p = 1;
 	  /* Keep the parent DIEs as well.  */
@@ -18410,6 +18567,32 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	  ASM_GENERATE_INTERNAL_LABEL (label_id, FUNC_END_LABEL,
 				       current_function_funcdef_no);
 	  add_AT_lbl_id (subr_die, DW_AT_high_pc, label_id);
+
+#if VMS_DEBUGGING_INFO
+      /* HP OpenVMS Industry Standard 64: DWARF Extensions
+	 Section 2.3 Prologue and Epilogue Attributes:
+	 When a breakpoint is set on entry to a function, it is generally
+	 desirable for execution to be suspended, not on the very first
+	 instruction of the function, but rather at a point after the
+	 function's frame has been set up, after any language defined local
+	 declaration processing has been completed, and before execution of
+	 the first statement of the function begins. Debuggers generally
+	 cannot properly determine where this point is.  Similarly for a
+	 breakpoint set on exit from a function. The prologue and epilogue
+	 attributes allow a compiler to communicate the location(s) to use.  */
+
+      {
+        dw_fde_ref fde = &fde_table[current_funcdef_fde];
+
+        if (fde->dw_fde_vms_end_prologue)
+          add_AT_vms_delta (subr_die, DW_AT_HP_prologue,
+	    fde->dw_fde_begin, fde->dw_fde_vms_end_prologue);
+
+        if (fde->dw_fde_vms_begin_epilogue)
+          add_AT_vms_delta (subr_die, DW_AT_HP_epilogue,
+	    fde->dw_fde_begin, fde->dw_fde_vms_begin_epilogue);
+      }
+#endif
 
 	  add_pubname (decl, subr_die);
 	  add_arange (decl, subr_die);
@@ -19408,10 +19591,36 @@ gen_typedef_die (tree decl, dw_die_ref context_die)
 	  equate_type_number_to_die (TREE_TYPE (decl), type_die);
 	}
       else
-	type = TREE_TYPE (decl);
+	{
+	  type = TREE_TYPE (decl);
+
+	  if (is_naming_typedef_decl (TYPE_NAME (type)))
+	    /* 
+	       Here, we are in the case of decl being a typedef naming
+	       an anonymous type, e.g:
+	             typedef struct {...} foo;
+	       In that case TREE_TYPE (decl) is not a typedef variant
+	       type and TYPE_NAME of the anonymous type is set to the
+	       TYPE_DECL of the typedef. This construct is emitted by
+	       the C++ FE.
+
+	       TYPE is the anonymous struct named by the typedef
+	       DECL. As we need the DW_AT_type attribute of the
+	       DW_TAG_typedef to point to the DIE of TYPE, let's
+	       generate that DIE right away. add_type_attribute
+	       called below will then pick (via lookup_type_die) that
+	       anonymous struct DIE.  */
+	    gen_tagged_type_die (type, context_die, DINFO_USAGE_DIR_USE);
+	}
 
       add_type_attribute (type_die, type, TREE_READONLY (decl),
 			  TREE_THIS_VOLATILE (decl), context_die);
+
+      if (is_naming_typedef_decl (decl))
+	/* We want that all subsequent calls to lookup_type_die with
+	   TYPE in argument yield the DW_TAG_typedef we have just
+	   created.  */
+	equate_type_number_to_die (type, type_die);
     }
 
   if (DECL_ABSTRACT (decl))
@@ -19421,13 +19630,78 @@ gen_typedef_die (tree decl, dw_die_ref context_die)
     add_pubtype (decl, type_die);
 }
 
+/* Generate a DIE for a struct, class, enum or union type.  */
+
+static void
+gen_tagged_type_die (tree type,
+		     dw_die_ref context_die,
+		     enum debug_info_usage usage)
+{
+  int need_pop;
+
+  if (type == NULL_TREE
+      || !is_tagged_type (type))
+    return;
+
+  /* If this is a nested type whose containing class hasn't been written
+     out yet, writing it out will cover this one, too.  This does not apply
+     to instantiations of member class templates; they need to be added to
+     the containing class as they are generated.  FIXME: This hurts the
+     idea of combining type decls from multiple TUs, since we can't predict
+     what set of template instantiations we'll get.  */
+  if (TYPE_CONTEXT (type)
+      && AGGREGATE_TYPE_P (TYPE_CONTEXT (type))
+      && ! TREE_ASM_WRITTEN (TYPE_CONTEXT (type)))
+    {
+      gen_type_die_with_usage (TYPE_CONTEXT (type), context_die, usage);
+
+      if (TREE_ASM_WRITTEN (type))
+	return;
+
+      /* If that failed, attach ourselves to the stub.  */
+      push_decl_scope (TYPE_CONTEXT (type));
+      context_die = lookup_type_die (TYPE_CONTEXT (type));
+      need_pop = 1;
+    }
+  else if (TYPE_CONTEXT (type) != NULL_TREE
+	   && (TREE_CODE (TYPE_CONTEXT (type)) == FUNCTION_DECL))
+    {
+      /* If this type is local to a function that hasn't been written
+	 out yet, use a NULL context for now; it will be fixed up in
+	 decls_for_scope.  */
+      context_die = lookup_decl_die (TYPE_CONTEXT (type));
+      need_pop = 0;
+    }
+  else
+    {
+      context_die = declare_in_namespace (type, context_die);
+      need_pop = 0;
+    }
+
+  if (TREE_CODE (type) == ENUMERAL_TYPE)
+    {
+      /* This might have been written out by the call to
+	 declare_in_namespace.  */
+      if (!TREE_ASM_WRITTEN (type))
+	gen_enumeration_type_die (type, context_die);
+    }
+  else
+    gen_struct_or_union_type_die (type, context_die, usage);
+
+  if (need_pop)
+    pop_decl_scope ();
+
+  /* Don't set TREE_ASM_WRITTEN on an incomplete struct; we want to fix
+     it up if it is ever completed.  gen_*_type_die will set it for us
+     when appropriate.  */
+}
+
 /* Generate a type description DIE.  */
 
 static void
 gen_type_die_with_usage (tree type, dw_die_ref context_die,
 				enum debug_info_usage usage)
 {
-  int need_pop;
   struct array_descr_info info;
 
   if (type == NULL_TREE || type == error_mark_node)
@@ -19435,8 +19709,7 @@ gen_type_die_with_usage (tree type, dw_die_ref context_die,
 
   /* If TYPE is a typedef type variant, let's generate debug info
      for the parent typedef which TYPE is a type of.  */
-  if (TYPE_NAME (type) && TREE_CODE (TYPE_NAME (type)) == TYPE_DECL
-      && DECL_ORIGINAL_TYPE (TYPE_NAME (type)))
+  if (typedef_variant_p (type))
     {
       if (TREE_ASM_WRITTEN (type))
 	return;
@@ -19451,6 +19724,21 @@ gen_type_die_with_usage (tree type, dw_die_ref context_die,
 	context_die = get_context_die (DECL_CONTEXT (TYPE_NAME (type)));
 
       TREE_ASM_WRITTEN (type) = 1;
+
+      gen_decl_die (TYPE_NAME (type), NULL, context_die);
+      return;
+    }
+
+  /* If type is an anonymous tagged type named by a typedef, let's
+     generate debug info for the typedef.  */
+  if (is_naming_typedef_decl (TYPE_NAME (type)))
+    {
+      /* Use the DIE of the containing namespace as the parent DIE of
+         the type description DIE we want to generate.  */
+      if (DECL_CONTEXT (TYPE_NAME (type))
+	  && TREE_CODE (DECL_CONTEXT (TYPE_NAME (type))) == NAMESPACE_DECL)
+	context_die = get_context_die (DECL_CONTEXT (TYPE_NAME (type)));
+      
       gen_decl_die (TYPE_NAME (type), NULL, context_die);
       return;
     }
@@ -19538,57 +19826,7 @@ gen_type_die_with_usage (tree type, dw_die_ref context_die,
     case RECORD_TYPE:
     case UNION_TYPE:
     case QUAL_UNION_TYPE:
-      /* If this is a nested type whose containing class hasn't been written
-	 out yet, writing it out will cover this one, too.  This does not apply
-	 to instantiations of member class templates; they need to be added to
-	 the containing class as they are generated.  FIXME: This hurts the
-	 idea of combining type decls from multiple TUs, since we can't predict
-	 what set of template instantiations we'll get.  */
-      if (TYPE_CONTEXT (type)
-	  && AGGREGATE_TYPE_P (TYPE_CONTEXT (type))
-	  && ! TREE_ASM_WRITTEN (TYPE_CONTEXT (type)))
-	{
-	  gen_type_die_with_usage (TYPE_CONTEXT (type), context_die, usage);
-
-	  if (TREE_ASM_WRITTEN (type))
-	    return;
-
-	  /* If that failed, attach ourselves to the stub.  */
-	  push_decl_scope (TYPE_CONTEXT (type));
-	  context_die = lookup_type_die (TYPE_CONTEXT (type));
-	  need_pop = 1;
-	}
-      else if (TYPE_CONTEXT (type) != NULL_TREE
-	       && (TREE_CODE (TYPE_CONTEXT (type)) == FUNCTION_DECL))
-	{
-	  /* If this type is local to a function that hasn't been written
-	     out yet, use a NULL context for now; it will be fixed up in
-	     decls_for_scope.  */
-	  context_die = lookup_decl_die (TYPE_CONTEXT (type));
-	  need_pop = 0;
-	}
-      else
-	{
-	  context_die = declare_in_namespace (type, context_die);
-	  need_pop = 0;
-	}
-
-      if (TREE_CODE (type) == ENUMERAL_TYPE)
-	{
-	  /* This might have been written out by the call to
-	     declare_in_namespace.  */
-	  if (!TREE_ASM_WRITTEN (type))
-	    gen_enumeration_type_die (type, context_die);
-	}
-      else
-	gen_struct_or_union_type_die (type, context_die, usage);
-
-      if (need_pop)
-	pop_decl_scope ();
-
-      /* Don't set TREE_ASM_WRITTEN on an incomplete struct; we want to fix
-	 it up if it is ever completed.  gen_*_type_die will set it for us
-	 when appropriate.  */
+      gen_tagged_type_die (type, context_die, usage);
       return;
 
     case VOID_TYPE:
@@ -19794,6 +20032,36 @@ is_redundant_typedef (const_tree decl)
     return 1;
 
   return 0;
+}
+
+/* Return TRUE if TYPE is a typedef that names a type for linkage
+   purposes. This kind of typedefs is produced by the C++ FE for
+   constructs like:
+
+   typedef struct {...} foo;
+
+   In that case, there is no typedef variant type produced for foo.
+   Rather, the TREE_TYPE of the TYPE_DECL of foo is the anonymous
+   struct type.  */
+
+static bool
+is_naming_typedef_decl (const_tree decl)
+{
+  if (decl == NULL_TREE
+      || TREE_CODE (decl) != TYPE_DECL
+      || !is_tagged_type (TREE_TYPE (decl))
+      || DECL_IS_BUILTIN (decl)
+      || is_redundant_typedef (decl)
+      /* It looks like Ada produces TYPE_DECLs that are very similar
+         to C++ naming typedefs but that have different
+         semantics. Let's be specific to c++ for now.  */
+      || !is_cxx ())
+    return FALSE;
+
+  return (DECL_ORIGINAL_TYPE (decl) == NULL_TREE
+	  && TYPE_NAME (TREE_TYPE (decl)) == decl
+	  && (TYPE_STUB_DECL (TREE_TYPE (decl))
+	      != TYPE_NAME (TREE_TYPE (decl))));
 }
 
 /* Returns the DIE for a context.  */
@@ -20573,7 +20841,7 @@ lookup_filename (const char *file_name)
   if (*slot)
     return (struct dwarf_file_data *) *slot;
 
-  created = GGC_NEW (struct dwarf_file_data);
+  created = ggc_alloc_dwarf_file_data ();
   created->filename = file_name;
   created->emitted_number = 0;
   *slot = created;
@@ -20729,7 +20997,7 @@ vcall_insn_table_eq (const void *x, const void *y)
 static void
 store_vcall_insn (unsigned int vtable_slot, int insn_uid)
 {
-  struct vcall_insn *item = GGC_NEW (struct vcall_insn);
+  struct vcall_insn *item = ggc_alloc_vcall_insn ();
   struct vcall_insn **slot;
 
   gcc_assert (item);
@@ -21087,13 +21355,15 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
   decl_scope_table = VEC_alloc (tree, gc, 256);
 
   /* Allocate the initial hunk of the abbrev_die_table.  */
-  abbrev_die_table = GGC_CNEWVEC (dw_die_ref, ABBREV_DIE_TABLE_INCREMENT);
+  abbrev_die_table = ggc_alloc_cleared_vec_dw_die_ref
+    (ABBREV_DIE_TABLE_INCREMENT);
   abbrev_die_table_allocated = ABBREV_DIE_TABLE_INCREMENT;
   /* Zero-th entry is allocated, but unused.  */
   abbrev_die_table_in_use = 1;
 
   /* Allocate the initial hunk of the line_info_table.  */
-  line_info_table = GGC_CNEWVEC (dw_line_info_entry, LINE_INFO_TABLE_INCREMENT);
+  line_info_table = ggc_alloc_cleared_vec_dw_line_info_entry
+    (LINE_INFO_TABLE_INCREMENT);
   line_info_table_allocated = LINE_INFO_TABLE_INCREMENT;
 
   /* Zero-th entry is allocated, but unused.  */
@@ -22111,6 +22381,7 @@ const struct gcc_debug_hooks dwarf2_debug_hooks =
   0,		/* source_line */
   0,		/* begin_prologue */
   0,		/* end_prologue */
+  0,		/* begin_epilogue */
   0,		/* end_epilogue */
   0,		/* begin_function */
   0,		/* end_function */

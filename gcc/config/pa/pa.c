@@ -558,7 +558,7 @@ pa_init_builtins (void)
 static struct machine_function *
 pa_init_machine_status (void)
 {
-  return GGC_CNEW (machine_function);
+  return ggc_alloc_cleared_machine_function ();
 }
 
 /* If FROM is a probable pointer register, mark TO as a probable
@@ -1696,10 +1696,6 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
 		  && !REG_POINTER (operand0)
 		  && !HARD_REGISTER_P (operand0))
 		copy_reg_pointer (operand0, operand1);
-	      else if (REG_POINTER (operand0)
-		       && !REG_POINTER (operand1)
-		       && !HARD_REGISTER_P (operand1))
-		copy_reg_pointer (operand1, operand0);
 	    }
 	  
 	  /* When MEMs are broken out, the REG_POINTER flag doesn't
@@ -5375,13 +5371,11 @@ get_deferred_plabel (rtx symbol)
       tree id;
 
       if (deferred_plabels == 0)
-	deferred_plabels = (struct deferred_plabel *)
-	  ggc_alloc (sizeof (struct deferred_plabel));
+	deferred_plabels =  ggc_alloc_deferred_plabel ();
       else
-	deferred_plabels = (struct deferred_plabel *)
-	  ggc_realloc (deferred_plabels,
-		       ((n_deferred_plabels + 1)
-			* sizeof (struct deferred_plabel)));
+        deferred_plabels = GGC_RESIZEVEC (struct deferred_plabel,
+                                          deferred_plabels,
+                                          n_deferred_plabels + 1);
 
       i = n_deferred_plabels++;
       deferred_plabels[i].internal_label = gen_label_rtx ();

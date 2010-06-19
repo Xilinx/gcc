@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1084,12 +1084,32 @@ package body Checks is
       Cond      : Node_Id;
       T_Typ     : Entity_Id;
 
+      function Denotes_Explicit_Dereference (Obj : Node_Id) return Boolean;
+      --  A heap object with an indefinite subtype is constrained by its
+      --  initial value, and assigning to it requires a constraint_check.
+      --  The target may be an explicit dereference, or a renaming of one.
+
       function Is_Aliased_Unconstrained_Component return Boolean;
       --  It is possible for an aliased component to have a nominal
       --  unconstrained subtype (through instantiation). If this is a
       --  discriminated component assigned in the expansion of an aggregate
       --  in an initialization, the check must be suppressed. This unusual
       --  situation requires a predicate of its own.
+
+      ----------------------------------
+      -- Denotes_Explicit_Dereference --
+      ----------------------------------
+
+      function Denotes_Explicit_Dereference (Obj : Node_Id) return Boolean is
+      begin
+         return
+           Nkind (Obj) = N_Explicit_Dereference
+             or else
+               (Is_Entity_Name (Obj)
+                 and then Present (Renamed_Object (Entity (Obj)))
+                 and then Nkind (Renamed_Object (Entity (Obj))) =
+                                              N_Explicit_Dereference);
+      end Denotes_Explicit_Dereference;
 
       ----------------------------------------
       -- Is_Aliased_Unconstrained_Component --
@@ -1164,7 +1184,7 @@ package body Checks is
       --  Ada 2005 (AI-363): For Ada 2005, we limit the building of the actual
       --  subtype to the parameter and dereference cases, since other aliased
       --  objects are unconstrained (unless the nominal subtype is explicitly
-      --  constrained). (But we also need to test for renamings???)
+      --  constrained).
 
       if Present (Lhs)
         and then (Present (Param_Entity (Lhs))
@@ -1174,7 +1194,7 @@ package body Checks is
                              and then not Is_Aliased_Unconstrained_Component)
                    or else (Ada_Version >= Ada_05
                              and then not Is_Constrained (T_Typ)
-                             and then Nkind (Lhs) = N_Explicit_Dereference
+                             and then Denotes_Explicit_Dereference (Lhs)
                              and then Nkind (Original_Node (Lhs)) /=
                                         N_Function_Call))
       then
@@ -1564,9 +1584,7 @@ package body Checks is
 
             pragma Assert (Target_Base /= Target_Typ);
 
-            Temp : constant Entity_Id :=
-                    Make_Defining_Identifier (Loc,
-                      Chars => New_Internal_Name ('T'));
+            Temp : constant Entity_Id := Make_Temporary (Loc, 'T', Par);
 
          begin
             Apply_Float_Conversion_Check (Ck_Node, Target_Base);
@@ -2723,9 +2741,11 @@ package body Checks is
          end case;
 
          if K = N_Op_And then
-            Error_Msg_N ("use `AND THEN` instead of AND?", P);
+            Error_Msg_N -- CODEFIX
+              ("use `AND THEN` instead of AND?", P);
          else
-            Error_Msg_N ("use `OR ELSE` instead of OR?", P);
+            Error_Msg_N -- CODEFIX
+              ("use `OR ELSE` instead of OR?", P);
          end if;
 
          --  If not short-circuited, we need the ckeck
@@ -4687,9 +4707,7 @@ package body Checks is
          --  Then the conversion itself is replaced by an occurrence of Tnn
 
          declare
-            Tnn : constant Entity_Id :=
-                    Make_Defining_Identifier (Loc,
-                      Chars => New_Internal_Name ('T'));
+            Tnn : constant Entity_Id := Make_Temporary (Loc, 'T', N);
 
          begin
             Insert_Actions (N, New_List (
@@ -4840,9 +4858,7 @@ package body Checks is
             --  the value is non-negative
 
             declare
-               Tnn : constant Entity_Id :=
-                       Make_Defining_Identifier (Loc,
-                         Chars => New_Internal_Name ('T'));
+               Tnn : constant Entity_Id := Make_Temporary (Loc, 'T', N);
 
             begin
                Insert_Actions (N, New_List (
@@ -5275,6 +5291,16 @@ package body Checks is
 
                if Nkind (P) = N_Conditional_Expression
                  and then N /= First (Expressions (P))
+               then
+                  return False;
+               end if;
+
+               --  If we are in a case eexpression, and not part of the
+               --  expression, then we return False, since a particular
+               --  branch may not always be elaborated
+
+               if Nkind (P) = N_Case_Expression
+                 and then N /= Expression (P)
                then
                   return False;
                end if;

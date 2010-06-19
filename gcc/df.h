@@ -277,6 +277,7 @@ struct df_problem {
   df_verify_solution_start verify_start_fun;
   df_verify_solution_end verify_end_fun;
   struct df_problem *dependent_problem;
+  unsigned int block_info_elt_size;
 
   /* The timevar id associated with this pass.  */
   timevar_id_t tv_id;
@@ -294,7 +295,7 @@ struct dataflow
 
   /* Array indexed by bb->index, that contains basic block problem and
      solution specific information.  */
-  void **block_info;
+  void *block_info;
   unsigned int block_info_size;
 
   /* The pool to allocate the block_info from. */
@@ -364,6 +365,7 @@ struct df_base_ref
   ENUM_BITFIELD(df_ref_type) type : 8;
 				/* Type of ref.  */
   int flags : 16;		/* Various df_ref_flags.  */
+  unsigned int regno;		/* The register number referenced.  */
   rtx reg;			/* The register referenced.  */
   struct df_link *chain;	/* Head of def-use, use-def.  */
   /* Pointer to the insn info of the containing instruction.  FIXME!
@@ -375,7 +377,6 @@ struct df_base_ref
      themselves rather than using an external structure.  */
   union df_ref_d *next_reg;     /* Next ref with same regno and type.  */
   union df_ref_d *prev_reg;     /* Prev ref with same regno and type.  */
-  unsigned int regno;		/* The register number referenced.  */
   /* Location in the ref table.  This is only valid after a call to
      df_maybe_reorganize_[use,def]_refs which is an expensive operation.  */
   int id;
@@ -564,22 +565,22 @@ struct df
 
   int num_problems_defined;
 
-  bitmap hardware_regs_used;     /* The set of hardware registers used.  */
+  bitmap_head hardware_regs_used;     /* The set of hardware registers used.  */
   /* The set of hard regs that are in the artificial uses at the end
      of a regular basic block.  */
-  bitmap regular_block_artificial_uses;
+  bitmap_head regular_block_artificial_uses;
   /* The set of hard regs that are in the artificial uses at the end
      of a basic block that has an EH pred.  */
-  bitmap eh_block_artificial_uses;
+  bitmap_head eh_block_artificial_uses;
   /* The set of hardware registers live on entry to the function.  */
   bitmap entry_block_defs;
   bitmap exit_block_uses;        /* The set of hardware registers used in exit block.  */
 
   /* Insns to delete, rescan or reprocess the notes at next
      df_rescan_all or df_process_deferred_rescans. */
-  bitmap insns_to_delete;
-  bitmap insns_to_rescan;
-  bitmap insns_to_notes_rescan;
+  bitmap_head insns_to_delete;
+  bitmap_head insns_to_rescan;
+  bitmap_head insns_to_notes_rescan;
   int *postorder;                /* The current set of basic blocks
                                     in reverse postorder.  */
   int *postorder_inverted;       /* The current set of basic blocks
@@ -626,20 +627,20 @@ struct df
 
 /* Most transformations that wish to use live register analysis will
    use these macros.  This info is the and of the lr and live sets.  */
-#define DF_LIVE_IN(BB) (DF_LIVE_BB_INFO(BB)->in)
-#define DF_LIVE_OUT(BB) (DF_LIVE_BB_INFO(BB)->out)
+#define DF_LIVE_IN(BB) (&DF_LIVE_BB_INFO(BB)->in)
+#define DF_LIVE_OUT(BB) (&DF_LIVE_BB_INFO(BB)->out)
 
 /* These macros are used by passes that are not tolerant of
    uninitialized variables.  This intolerance should eventually
    be fixed.  */
-#define DF_LR_IN(BB) (DF_LR_BB_INFO(BB)->in)
-#define DF_LR_OUT(BB) (DF_LR_BB_INFO(BB)->out)
+#define DF_LR_IN(BB) (&DF_LR_BB_INFO(BB)->in)
+#define DF_LR_OUT(BB) (&DF_LR_BB_INFO(BB)->out)
 
 /* These macros are used by passes that are not tolerant of
    uninitialized variables.  This intolerance should eventually
    be fixed.  */
-#define DF_BYTE_LR_IN(BB) (DF_BYTE_LR_BB_INFO(BB)->in)
-#define DF_BYTE_LR_OUT(BB) (DF_BYTE_LR_BB_INFO(BB)->out)
+#define DF_BYTE_LR_IN(BB) (&DF_BYTE_LR_BB_INFO(BB)->in)
+#define DF_BYTE_LR_OUT(BB) (&DF_BYTE_LR_BB_INFO(BB)->out)
 
 /* Macros to access the elements within the ref structure.  */
 
@@ -796,13 +797,13 @@ struct df_scan_bb_info
 struct df_rd_bb_info
 {
   /* Local sets to describe the basic blocks.   */
-  bitmap kill;
-  bitmap sparse_kill;
-  bitmap gen;   /* The set of defs generated in this block.  */
+  bitmap_head kill;
+  bitmap_head sparse_kill;
+  bitmap_head gen;   /* The set of defs generated in this block.  */
 
   /* The results of the dataflow problem.  */
-  bitmap in;    /* At the top of the block.  */
-  bitmap out;   /* At the bottom of the block.  */
+  bitmap_head in;    /* At the top of the block.  */
+  bitmap_head out;   /* At the bottom of the block.  */
 };
 
 
@@ -812,13 +813,13 @@ struct df_rd_bb_info
 struct df_md_bb_info
 {
   /* Local sets to describe the basic blocks.  */
-  bitmap gen;    /* Partial/conditional definitions live at BB out.  */
-  bitmap kill;   /* Other definitions that are live at BB out.  */
-  bitmap init;   /* Definitions coming from dominance frontier edges. */
+  bitmap_head gen;    /* Partial/conditional definitions live at BB out.  */
+  bitmap_head kill;   /* Other definitions that are live at BB out.  */
+  bitmap_head init;   /* Definitions coming from dominance frontier edges. */
 
   /* The results of the dataflow problem.  */
-  bitmap in;    /* Just before the block itself. */
-  bitmap out;   /* At the bottom of the block.  */
+  bitmap_head in;    /* Just before the block itself. */
+  bitmap_head out;   /* At the bottom of the block.  */
 };
 
 
@@ -828,13 +829,13 @@ struct df_md_bb_info
 struct df_lr_bb_info
 {
   /* Local sets to describe the basic blocks.  */
-  bitmap def;   /* The set of registers set in this block
-                   - except artificial defs at the top.  */
-  bitmap use;   /* The set of registers used in this block.  */
+  bitmap_head def;   /* The set of registers set in this block
+                        - except artificial defs at the top.  */
+  bitmap_head use;   /* The set of registers used in this block.  */
 
   /* The results of the dataflow problem.  */
-  bitmap in;    /* Just before the block itself. */
-  bitmap out;   /* At the bottom of the block.  */
+  bitmap_head in;    /* Just before the block itself. */
+  bitmap_head out;   /* At the bottom of the block.  */
 };
 
 
@@ -845,13 +846,13 @@ struct df_lr_bb_info
 struct df_live_bb_info
 {
   /* Local sets to describe the basic blocks.  */
-  bitmap kill;  /* The set of registers unset in this block.  Calls,
-		   for instance, unset registers.  */
-  bitmap gen;   /* The set of registers set in this block.  */
+  bitmap_head kill;  /* The set of registers unset in this block.  Calls,
+		        for instance, unset registers.  */
+  bitmap_head gen;   /* The set of registers set in this block.  */
 
   /* The results of the dataflow problem.  */
-  bitmap in;    /* At the top of the block.  */
-  bitmap out;   /* At the bottom of the block.  */
+  bitmap_head in;    /* At the top of the block.  */
+  bitmap_head out;   /* At the bottom of the block.  */
 };
 
 
@@ -861,13 +862,13 @@ indexed by the df_byte_lr_offset array which is indexed by pseudo.  */
 struct df_byte_lr_bb_info
 {
   /* Local sets to describe the basic blocks.  */
-  bitmap def;   /* The set of registers set in this block
-                   - except artificial defs at the top.  */
-  bitmap use;   /* The set of registers used in this block.  */
+  bitmap_head def;   /* The set of registers set in this block
+                        - except artificial defs at the top.  */
+  bitmap_head use;   /* The set of registers used in this block.  */
 
   /* The results of the dataflow problem.  */
-  bitmap in;    /* Just before the block itself. */
-  bitmap out;   /* At the bottom of the block.  */
+  bitmap_head in;    /* Just before the block itself. */
+  bitmap_head out;   /* At the bottom of the block.  */
 };
 
 
@@ -1037,7 +1038,7 @@ static inline struct df_scan_bb_info *
 df_scan_get_bb_info (unsigned int index)
 {
   if (index < df_scan->block_info_size)
-    return (struct df_scan_bb_info *) df_scan->block_info[index];
+    return &((struct df_scan_bb_info *) df_scan->block_info)[index];
   else
     return NULL;
 }
@@ -1046,7 +1047,7 @@ static inline struct df_rd_bb_info *
 df_rd_get_bb_info (unsigned int index)
 {
   if (index < df_rd->block_info_size)
-    return (struct df_rd_bb_info *) df_rd->block_info[index];
+    return &((struct df_rd_bb_info *) df_rd->block_info)[index];
   else
     return NULL;
 }
@@ -1055,7 +1056,7 @@ static inline struct df_lr_bb_info *
 df_lr_get_bb_info (unsigned int index)
 {
   if (index < df_lr->block_info_size)
-    return (struct df_lr_bb_info *) df_lr->block_info[index];
+    return &((struct df_lr_bb_info *) df_lr->block_info)[index];
   else
     return NULL;
 }
@@ -1064,7 +1065,7 @@ static inline struct df_md_bb_info *
 df_md_get_bb_info (unsigned int index)
 {
   if (index < df_md->block_info_size)
-    return (struct df_md_bb_info *) df_md->block_info[index];
+    return &((struct df_md_bb_info *) df_md->block_info)[index];
   else
     return NULL;
 }
@@ -1073,7 +1074,7 @@ static inline struct df_live_bb_info *
 df_live_get_bb_info (unsigned int index)
 {
   if (index < df_live->block_info_size)
-    return (struct df_live_bb_info *) df_live->block_info[index];
+    return &((struct df_live_bb_info *) df_live->block_info)[index];
   else
     return NULL;
 }
@@ -1082,7 +1083,7 @@ static inline struct df_byte_lr_bb_info *
 df_byte_lr_get_bb_info (unsigned int index)
 {
   if (index < df_byte_lr->block_info_size)
-    return (struct df_byte_lr_bb_info *) df_byte_lr->block_info[index];
+    return &((struct df_byte_lr_bb_info *) df_byte_lr->block_info)[index];
   else
     return NULL;
 }

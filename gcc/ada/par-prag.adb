@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -150,8 +150,7 @@ function Prag (Pragma_Node : Node_Id; Semi : Source_Ptr) return Node_Id is
          Error_Msg_Name_2 := Name_On;
          Error_Msg_Name_3 := Name_Off;
 
-         Error_Msg
-           ("argument for pragma% must be% or%", Sloc (Argx));
+         Error_Msg ("argument for pragma% must be% or%", Sloc (Argx));
          raise Error_Resync;
       end if;
    end Check_Arg_Is_On_Or_Off;
@@ -943,7 +942,11 @@ begin
                OK := False;
 
             elsif Chars (A) = Name_All_Checks then
-               Stylesw.Set_Default_Style_Check_Options;
+               if GNAT_Mode then
+                  Stylesw.Set_GNAT_Style_Check_Options;
+               else
+                  Stylesw.Set_Default_Style_Check_Options;
+               end if;
 
             elsif Chars (A) = Name_On then
                Style_Check := True;

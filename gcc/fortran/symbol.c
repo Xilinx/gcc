@@ -545,7 +545,6 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (data, function);
   conf (data, result);
   conf (data, allocatable);
-  conf (data, use_assoc);
 
   conf (value, pointer)
   conf (value, allocatable)
@@ -567,7 +566,6 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
     }
 
   conf (is_protected, intrinsic)
-  conf (is_protected, external)
   conf (is_protected, in_common)
 
   conf (asynchronous, intrinsic)
@@ -587,7 +585,6 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (procedure, dimension)
   conf (procedure, codimension)
   conf (procedure, intrinsic)
-  conf (procedure, is_protected)
   conf (procedure, target)
   conf (procedure, value)
   conf (procedure, volatile_)
@@ -2515,6 +2512,7 @@ gfc_new_symbol (const char *name, gfc_namespace *ns)
   /* Clear the ptrs we may need.  */
   p->common_block = NULL;
   p->f2k_derived = NULL;
+  p->assoc = NULL;
   
   return p;
 }
@@ -4593,12 +4591,14 @@ gfc_check_symbol_typed (gfc_symbol* sym, gfc_namespace* ns,
    list and marked `error' until symbols are committed.  */
 
 gfc_typebound_proc*
-gfc_get_typebound_proc (void)
+gfc_get_typebound_proc (gfc_typebound_proc *tb0)
 {
   gfc_typebound_proc *result;
   tentative_tbp *list_node;
 
   result = XCNEW (gfc_typebound_proc);
+  if (tb0)
+    *result = *tb0;
   result->error = 1;
 
   list_node = XCNEW (tentative_tbp);
@@ -4661,8 +4661,6 @@ gfc_type_is_extension_of (gfc_symbol *t1, gfc_symbol *t2)
 bool
 gfc_type_compatible (gfc_typespec *ts1, gfc_typespec *ts2)
 {
-  gfc_component *cmp1, *cmp2;
-
   bool is_class1 = (ts1->type == BT_CLASS);
   bool is_class2 = (ts2->type == BT_CLASS);
   bool is_derived1 = (ts1->type == BT_DERIVED);
@@ -4674,28 +4672,12 @@ gfc_type_compatible (gfc_typespec *ts1, gfc_typespec *ts2)
   if (is_derived1 && is_derived2)
     return gfc_compare_derived_types (ts1->u.derived, ts2->u.derived);
 
-  cmp1 = cmp2 = NULL;
-
-  if (is_class1)
-    {
-      cmp1 = gfc_find_component (ts1->u.derived, "$data", true, false);
-      if (cmp1 == NULL)
-	return 0;
-    }
-
-  if (is_class2)
-    {
-      cmp2 = gfc_find_component (ts2->u.derived, "$data", true, false);
-      if (cmp2 == NULL)
-	return 0;
-    }
-
   if (is_class1 && is_derived2)
-    return gfc_type_is_extension_of (cmp1->ts.u.derived, ts2->u.derived);
-
+    return gfc_type_is_extension_of (ts1->u.derived->components->ts.u.derived,
+				     ts2->u.derived);
   else if (is_class1 && is_class2)
-    return gfc_type_is_extension_of (cmp1->ts.u.derived, cmp2->ts.u.derived);
-
+    return gfc_type_is_extension_of (ts1->u.derived->components->ts.u.derived,
+				     ts2->u.derived->components->ts.u.derived);
   else
     return 0;
 }
