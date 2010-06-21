@@ -261,7 +261,7 @@ TEXI2DVI = texi2dvi
 TEXI2PDF = texi2pdf
 TEXI2HTML = $(MAKEINFO) --html
 TEXI2POD = perl $(srcdir)/../contrib/texi2pod.pl
-POD2MAN = pod2man --center="GNU" --release="gcc-$(version)"
+POD2MAN = pod2man --center="GNU" --release="gcc-$(version)" --date=$(shell sed 's/\(....\)\(..\)\(..\)/\1-\2-\3/' <$(DATESTAMP))
 # Some versions of `touch' (such as the version on Solaris 2.8)
 # do not correctly set the timestamp due to buggy versions of `utime'
 # in the kernel.  So, we use `echo' instead.
@@ -3119,7 +3119,8 @@ tree-ssa-ccp.o : tree-ssa-ccp.c $(TREE_FLOW_H) $(CONFIG_H) \
 tree-sra.o : tree-sra.c $(CONFIG_H) $(SYSTEM_H) coretypes.h alloc-pool.h \
    $(TM_H) $(TREE_H) $(GIMPLE_H) $(CGRAPH_H) $(TREE_FLOW_H) $(IPA_PROP_H) \
    $(DIAGNOSTIC_H) statistics.h $(TREE_DUMP_H) $(TIMEVAR_H) $(PARAMS_H) \
-   $(TARGET_H) $(FLAGS_H) $(EXPR_H) tree-pretty-print.h $(DBGCNT_H)
+   $(TARGET_H) $(FLAGS_H) $(EXPR_H) tree-pretty-print.h $(DBGCNT_H) \
+   $(TREE_INLINE_H)
 tree-switch-conversion.o : tree-switch-conversion.c $(CONFIG_H) $(SYSTEM_H) \
     $(TREE_H) $(TM_P_H) $(TREE_FLOW_H) $(DIAGNOSTIC_H) $(TREE_INLINE_H) \
     $(TIMEVAR_H) $(TM_H) coretypes.h $(TREE_DUMP_H) $(GIMPLE_H) \

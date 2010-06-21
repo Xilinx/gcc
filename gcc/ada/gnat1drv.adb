@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -30,6 +30,7 @@ with Csets;    use Csets;
 with Debug;    use Debug;
 with Elists;
 with Errout;   use Errout;
+with Exp_CG;
 with Fmap;
 with Fname;    use Fname;
 with Fname.UF; use Fname.UF;
@@ -332,6 +333,53 @@ procedure Gnat1drv is
       else
          Suppress_Options (Overflow_Check) := True;
       end if;
+
+      --  Set switch indicating if we can use N_Expression_With_Actions
+
+      --  Debug flag -gnatd.X decisively sets usage on
+
+      if Debug_Flag_Dot_XX then
+         Use_Expression_With_Actions := True;
+
+      --  Debug flag -gnatd.Y decisively sets usage off
+
+      elsif Debug_Flag_Dot_YY then
+         Use_Expression_With_Actions := False;
+
+      --  If no debug flags, usage off for SCIL
+
+      elsif Generate_SCIL then
+         Use_Expression_With_Actions := False;
+
+      --  Otherwise this feature is implemented, so we allow its use
+
+      else
+         Use_Expression_With_Actions := True;
+      end if;
+
+      --  Set switch indicating if back end can handle limited types, and
+      --  guarantee that no incorrect copies are made (e.g. in the context
+      --  of a conditional expression).
+
+      --  Debug flag -gnatd.L decisively sets usage on
+
+      if Debug_Flag_Dot_LL then
+         Back_End_Handles_Limited_Types := True;
+
+      --  If no debug flag, usage off for AAMP, VM, SCIL cases
+
+      elsif AAMP_On_Target
+        or else VM_Target /= No_VM
+        or else Generate_SCIL
+      then
+         Back_End_Handles_Limited_Types := False;
+
+      --  Otherwise normal gcc back end, for now still turn flag off by
+      --  default, since there are unresolved problems in the front end.
+
+      else
+         Back_End_Handles_Limited_Types := False;
+      end if;
    end Adjust_Global_Switches;
 
    --------------------
@@ -549,6 +597,7 @@ begin
       Nlists.Initialize;
       Sinput.Initialize;
       Sem.Initialize;
+      Exp_CG.Initialize;
       Csets.Initialize;
       Uintp.Initialize;
       Urealp.Initialize;
@@ -937,6 +986,10 @@ begin
       --  the library file output.
 
       Namet.Unlock;
+
+      --  Generate the call-graph output of dispatching calls
+
+      Exp_CG.Generate_CG_Output;
 
       --  Validate unchecked conversions (using the values for size and
       --  alignment annotated by the backend where possible).

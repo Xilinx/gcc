@@ -1,3 +1,61 @@
+2010-06-17  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* name-lookup.c (struct arg_lookup): Convert namespaces and
+	classes fields to VEC.
+	(arg_assoc_namespace): Adjust for new type of namespaces.
+	(arg_assoc_class): Adjust for new type of classes.
+	(lookup_arg_dependent): Use make_tree_vector and
+	release_tree_vector.
+	* typeck2.c (build_x_arrow): Use vec_member.
+
+2010-06-17  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/44486
+	* error.c (dump_decl): Better wording for anonymous namespace.
+
+2010-06-16  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* class.c (build_vtbl_initializer): Adjust computation of new_position
+	and which entry to add padding for.
+
+2010-06-16  Jason Merrill  <jason@redhat.com>
+
+	* except.c (check_noexcept_r): Return the problematic function.
+	(finish_noexcept_expr): Give -Wnoexcept warning.  Add complain parm.
+	* pt.c (tsubst_copy_and_build): Pass it.
+	* parser.c (cp_parser_unary_expression): Likewise.
+	* cp-tree.h: Adjust prototype.
+
+	* method.c (defaulted_late_check): Give the defaulted method
+	the same exception specification as the implicit declaration.
+
+2010-06-15  Jason Merrill  <jason@redhat.com>
+
+	* class.c (add_implicitly_declared_members): Implicit assignment
+	operators can also be virtual overriders.
+	* method.c (lazily_declare_fn): Likewise.
+
+	* call.c (convert_like_real): Give "initializing argument of"
+	information for ambiguous conversion.  Give source position
+	of function.
+
+	* call.c (print_z_candidates): Do print viable deleted candidates.
+	(joust): Don't choose a deleted function just because its worst
+	conversion is better than another candidate's worst.
+
+	* call.c (convert_like_real): Don't complain about
+	list-value-initialization from an explicit constructor.
+
+	* decl.c (duplicate_decls): Use DECL_IS_BUILTIN rather than test
+	DECL_SOURCE_LOCATION directly.
+
+	* class.c (type_has_user_provided_default_constructor): Use
+	sufficient_parms_p.
+
+	* call.c (is_subseq): Handle ck_aggr, ck_list.
+	(compare_ics): Treat an aggregate or ambiguous conversion to the
+	same type as involving the same function.
+
 2010-06-13  Shujing Zhao  <pearly.zhao@oracle.com>
 
 	* typeck.c (convert_for_assignment): Fix comment. Change message

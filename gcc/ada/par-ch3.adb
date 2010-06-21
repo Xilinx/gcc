@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -111,7 +111,6 @@ package body Ch3 is
    --  current token, and if this is the first such message issued, saves
    --  the message id in Missing_Begin_Msg, for possible later replacement.
 
-
    ---------------------------------
    -- Check_Restricted_Expression --
    ---------------------------------
@@ -125,8 +124,7 @@ package body Ch3 is
       elsif Nkind_In (N, N_In, N_Not_In)
         and then Paren_Count (N) = 0
       then
-         Error_Msg_N
-           ("|this expression must be parenthesized!", N);
+         Error_Msg_N ("|this expression must be parenthesized!", N);
          Error_Msg_N
            ("\|since extensions (and set notation) are allowed", N);
       end if;
@@ -385,7 +383,8 @@ package body Ch3 is
          Scan; -- past = used in place of IS
 
       elsif Token = Tok_Renames then
-         Error_Msg_SC ("RENAMES should be IS");
+         Error_Msg_SC  -- CODEFIX
+           ("RENAMES should be IS");
          Scan; -- past RENAMES used in place of IS
 
       else
@@ -972,7 +971,8 @@ package body Ch3 is
       TF_Is;
 
       if Token = Tok_New then
-         Error_Msg_SC ("NEW ignored (only allowed in type declaration)");
+         Error_Msg_SC  -- CODEFIX
+           ("NEW ignored (only allowed in type declaration)");
          Scan; -- past NEW
       end if;
 
@@ -1358,8 +1358,9 @@ package body Ch3 is
       procedure No_List is
       begin
          if Num_Idents > 1 then
-            Error_Msg ("identifier list not allowed for RENAMES",
-                       Sloc (Idents (2)));
+            Error_Msg
+              ("identifier list not allowed for RENAMES",
+               Sloc (Idents (2)));
          end if;
 
          List_OK := False;
@@ -1379,7 +1380,8 @@ package body Ch3 is
             Check_Misspelling_Of (Tok_Renames);
 
             if Token = Tok_Renames then
-               Error_Msg_SP ("|extra "":"" ignored");
+               Error_Msg_SP -- CODEFIX
+                 ("|extra "":"" ignored");
                Scan; -- past RENAMES
                return True;
             else
@@ -1750,9 +1752,10 @@ package body Ch3 is
                   --  illegal
 
                   if Token_Is_Renames then
-                     Error_Msg_N ("constraint not allowed in object renaming "
-                                  & "declaration",
-                                  Constraint (Object_Definition (Decl_Node)));
+                     Error_Msg_N
+                       ("constraint not allowed in object renaming "
+                        & "declaration",
+                        Constraint (Object_Definition (Decl_Node)));
                      raise Error_Resync;
                   end if;
                end if;
@@ -1981,8 +1984,7 @@ package body Ch3 is
          T_With; -- past WITH or give error message
 
          if Token = Tok_Limited then
-            Error_Msg_SC
-              ("LIMITED keyword not allowed in private extension");
+            Error_Msg_SC ("LIMITED keyword not allowed in private extension");
             Scan; -- ignore LIMITED
          end if;
 
@@ -2107,7 +2109,6 @@ package body Ch3 is
       Range_Node : Node_Id;
       Save_Loc   : Source_Ptr;
 
-
    --  Start of processing for P_Range_Or_Subtype_Mark
 
    begin
@@ -2169,6 +2170,11 @@ package body Ch3 is
          else
             return Expr_Node;
          end if;
+
+      --  Simple expression case
+
+      elsif Expr_Form = EF_Simple and then Allow_Simple_Expression then
+         return Expr_Node;
 
       --  Here we have some kind of error situation. Check for junk parens
       --  then return what we have, caller will deal with other errors.
@@ -3434,8 +3440,7 @@ package body Ch3 is
                Set_Null_Exclusion_Present (CompDef_Node, Not_Null_Present);
 
                if Token = Tok_Array then
-                  Error_Msg_SC
-                    ("anonymous arrays not allowed as components");
+                  Error_Msg_SC ("anonymous arrays not allowed as components");
                   raise Error_Resync;
                end if;
 
@@ -3514,7 +3519,8 @@ package body Ch3 is
          Error_Msg ("discriminant name expected", Sloc (Case_Node));
 
       elsif Paren_Count (Case_Node) /= 0 then
-         Error_Msg ("|discriminant name may not be parenthesized",
+         Error_Msg
+           ("|discriminant name may not be parenthesized",
                     Sloc (Case_Node));
          Set_Paren_Count (Case_Node, 0);
       end if;
@@ -3698,7 +3704,8 @@ package body Ch3 is
          end if;
 
          if Token = Tok_Comma then
-            Error_Msg_SC (""","" should be ""'|""");
+            Error_Msg_SC -- CODEFIX
+              (""","" should be ""'|""");
          else
             exit when Token /= Tok_Vertical_Bar;
          end if;
@@ -3745,8 +3752,9 @@ package body Ch3 is
       end if;
 
       if Abstract_Present then
-         Error_Msg_SP ("ABSTRACT not allowed in interface type definition " &
-                       "(RM 3.9.4(2/2))");
+         Error_Msg_SP
+           ("ABSTRACT not allowed in interface type definition " &
+            "(RM 3.9.4(2/2))");
       end if;
 
       Scan; -- past INTERFACE
@@ -4284,7 +4292,8 @@ package body Ch3 is
                   --  Otherwise we saved the semicolon position, so complain
 
                   else
-                     Error_Msg ("|"";"" should be IS", SIS_Semicolon_Sloc);
+                     Error_Msg -- CODEFIX
+                       ("|"";"" should be IS", SIS_Semicolon_Sloc);
                   end if;
 
                   --  The next job is to fix up any declarations that occurred
@@ -4519,14 +4528,12 @@ package body Ch3 is
             Kind = N_Task_Body or else
             Kind = N_Protected_Body
          then
-            Error_Msg
-              ("proper body not allowed in package spec", Sloc (Decl));
+            Error_Msg ("proper body not allowed in package spec", Sloc (Decl));
 
          --  Test for body stub scanned, not acceptable as basic decl item
 
          elsif Kind in N_Body_Stub then
-            Error_Msg
-              ("body stub not allowed in package spec", Sloc (Decl));
+            Error_Msg ("body stub not allowed in package spec", Sloc (Decl));
 
          elsif Kind = N_Assignment_Statement then
             Error_Msg

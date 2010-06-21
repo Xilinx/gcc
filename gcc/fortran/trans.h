@@ -523,6 +523,7 @@ bool gfc_get_array_descr_info (const_tree, struct array_descr_info *);
 /* In trans-openmp.c */
 bool gfc_omp_privatize_by_reference (const_tree);
 enum omp_clause_default_kind gfc_omp_predetermined_sharing (tree);
+tree gfc_omp_report_decl (tree);
 tree gfc_omp_clause_default_ctor (tree, tree, tree);
 tree gfc_omp_clause_copy_ctor (tree, tree, tree);
 tree gfc_omp_clause_assign_op (tree, tree, tree);
@@ -619,14 +620,17 @@ extern GTY(()) tree gfor_fndecl_sr_kind;
 /* True if node is an integer constant.  */
 #define INTEGER_CST_P(node) (TREE_CODE(node) == INTEGER_CST)
 
-/* G95-specific declaration information.  */
+/* gfortran-specific declaration information, the _CONT versions denote
+   arrays with CONTIGUOUS attribute.  */
 
 enum gfc_array_kind
 {
   GFC_ARRAY_UNKNOWN,
   GFC_ARRAY_ASSUMED_SHAPE,
+  GFC_ARRAY_ASSUMED_SHAPE_CONT,
   GFC_ARRAY_ALLOCATABLE,
-  GFC_ARRAY_POINTER
+  GFC_ARRAY_POINTER,
+  GFC_ARRAY_POINTER_CONT
 };
 
 /* Array types only.  */

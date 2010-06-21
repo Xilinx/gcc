@@ -5498,7 +5498,8 @@ resolve_typebound_function (gfc_expr* e)
 
   /* Treat the call as if it is a typebound procedure, in order to roll
      out the correct name for the specific function.  */
-  resolve_compcall (e, &name);
+  if (resolve_compcall (e, &name) == FAILURE)
+    return FAILURE;
   ts = e->ts;
 
   /* Then convert the expression to a procedure pointer component call.  */
@@ -5571,7 +5572,8 @@ resolve_typebound_subroutine (gfc_code *code)
   if (code->expr1->value.compcall.tbp->is_generic)
     genname = code->expr1->value.compcall.name;
 
-  resolve_typebound_call (code, &name);
+  if (resolve_typebound_call (code, &name) == FAILURE)
+    return FAILURE;
   ts = code->expr1->ts;
 
   /* Then convert the expression to a procedure pointer component call.  */
@@ -6268,7 +6270,6 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
   gfc_symbol *sym = NULL;
   gfc_alloc *a;
   gfc_component *c;
-  gfc_expr *init_e;
 
   /* Check INTENT(IN), unless the object is a sub-component of a pointer.  */
   check_intent_in = 1;
@@ -6401,11 +6402,14 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 	  goto failure;
 	}
     }
-  else if (is_abstract&& code->ext.alloc.ts.type == BT_UNKNOWN)
+
+  /* Check F08:C629.  */
+  if (is_abstract && code->ext.alloc.ts.type == BT_UNKNOWN
+      && !code->expr3)
     {
       gcc_assert (e->ts.type == BT_CLASS);
       gfc_error ("Allocating %s of ABSTRACT base type at %L requires a "
-		 "type-spec or SOURCE=", sym->name, &e->where);
+		 "type-spec or source-expr", sym->name, &e->where);
       goto failure;
     }
 
@@ -6416,25 +6420,26 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
       goto failure;
     }
     
-  if (!code->expr3)
+  if (!code->expr3 || code->expr3->mold)
     {
       /* Add default initializer for those derived types that need them.  */
-      if (e->ts.type == BT_DERIVED
-	  && (init_e = gfc_default_initializer (&e->ts)))
-	{
-	  gfc_code *init_st = gfc_get_code ();
-	  init_st->loc = code->loc;
-	  init_st->op = EXEC_INIT_ASSIGN;
-	  init_st->expr1 = gfc_expr_to_initialize (e);
-	  init_st->expr2 = init_e;
-	  init_st->next = code->next;
-	  code->next = init_st;
-	}
-      else if (e->ts.type == BT_CLASS
-	       && ((code->ext.alloc.ts.type == BT_UNKNOWN
-		    && (init_e = gfc_default_initializer (&CLASS_DATA (e)->ts)))
-		   || (code->ext.alloc.ts.type == BT_DERIVED
-		       && (init_e = gfc_default_initializer (&code->ext.alloc.ts)))))
+      gfc_expr *init_e = NULL;
+      gfc_typespec ts;
+
+      if (code->ext.alloc.ts.type == BT_DERIVED)
+	ts = code->ext.alloc.ts;
+      else if (code->expr3)
+	ts = code->expr3->ts;
+      else
+	ts = e->ts;
+
+      if (ts.type == BT_DERIVED)
+	init_e = gfc_default_initializer (&ts);
+      /* FIXME: Use default init of dynamic type (cf. PR 44541).  */
+      else if (e->ts.type == BT_CLASS)
+	init_e = gfc_default_initializer (&ts.u.derived->components->ts);
+
+      if (init_e)
 	{
 	  gfc_code *init_st = gfc_get_code ();
 	  init_st->loc = code->loc;
@@ -6586,8 +6591,29 @@ resolve_allocate_deallocate (gfc_code *code, const char *fcn)
 
       for (p = code->ext.alloc.list; p; p = p->next)
 	if (p->expr->symtree->n.sym->name == stat->symtree->n.sym->name)
-	  gfc_error ("Stat-variable at %L shall not be %sd within "
-		     "the same %s statement", &stat->where, fcn, fcn);
+	  {
+	    gfc_ref *ref1, *ref2;
+	    bool found = true;
+
+	    for (ref1 = p->expr->ref, ref2 = stat->ref; ref1 && ref2;
+		 ref1 = ref1->next, ref2 = ref2->next)
+	      {
+		if (ref1->type != REF_COMPONENT || ref2->type != REF_COMPONENT)
+		  continue;
+		if (ref1->u.c.component->name != ref2->u.c.component->name)
+		  {
+		    found = false;
+		    break;
+		  }
+	      }
+
+	    if (found)
+	      {
+		gfc_error ("Stat-variable at %L shall not be %sd within "
+			   "the same %s statement", &stat->where, fcn, fcn);
+		break;
+	      }
+	  }
     }
 
   /* Check the errmsg variable.  */
@@ -6615,8 +6641,29 @@ resolve_allocate_deallocate (gfc_code *code, const char *fcn)
 
       for (p = code->ext.alloc.list; p; p = p->next)
 	if (p->expr->symtree->n.sym->name == errmsg->symtree->n.sym->name)
-	  gfc_error ("Errmsg-variable at %L shall not be %sd within "
-		     "the same %s statement", &errmsg->where, fcn, fcn);
+	  {
+	    gfc_ref *ref1, *ref2;
+	    bool found = true;
+
+	    for (ref1 = p->expr->ref, ref2 = errmsg->ref; ref1 && ref2;
+		 ref1 = ref1->next, ref2 = ref2->next)
+	      {
+		if (ref1->type != REF_COMPONENT || ref2->type != REF_COMPONENT)
+		  continue;
+		if (ref1->u.c.component->name != ref2->u.c.component->name)
+		  {
+		    found = false;
+		    break;
+		  }
+	      }
+
+	    if (found)
+	      {
+		gfc_error ("Errmsg-variable at %L shall not be %sd within "
+			   "the same %s statement", &errmsg->where, fcn, fcn);
+		break;
+	      }
+	  }
     }
 
   /* Check that an allocate-object appears only once in the statement.  
@@ -10779,6 +10826,14 @@ resolve_fl_derived (gfc_symbol *sym)
 	  return FAILURE;
 	}
 
+      /* F2008, C448.  */
+      if (c->attr.contiguous && (!c->attr.dimension || !c->attr.pointer))
+	{
+	  gfc_error ("Component '%s' at %L has the CONTIGUOUS attribute but "
+		     "is not an array pointer", c->name, &c->loc);
+	  return FAILURE;
+	}
+
       if (c->attr.proc_pointer && c->ts.interface)
 	{
 	  if (c->ts.interface->attr.procedure && !sym->attr.vtype)
@@ -10845,7 +10900,7 @@ resolve_fl_derived (gfc_symbol *sym)
 		  c->ts.u.cl = cl;
 		}
 	    }
-	  else if (c->ts.interface->name[0] != '\0' && !sym->attr.vtype)
+	  else if (!sym->attr.vtype && c->ts.interface->name[0] != '\0')
 	    {
 	      gfc_error ("Interface '%s' of procedure pointer component "
 			 "'%s' at %L must be explicit", c->ts.interface->name,
@@ -11350,6 +11405,7 @@ resolve_symbol (gfc_symbol *sym)
 	  sym->attr.pure = ifc->attr.pure;
 	  sym->attr.elemental = ifc->attr.elemental;
 	  sym->attr.dimension = ifc->attr.dimension;
+	  sym->attr.contiguous = ifc->attr.contiguous;
 	  sym->attr.recursive = ifc->attr.recursive;
 	  sym->attr.always_explicit = ifc->attr.always_explicit;
           sym->attr.ext_attr |= ifc->attr.ext_attr;
@@ -11392,6 +11448,18 @@ resolve_symbol (gfc_symbol *sym)
 	gfc_error ("PROCEDURE attribute conflicts with PROTECTED attribute "
 	           "at %L", &sym->declared_at);
 
+      return;
+    }
+
+
+  /* F2008, C530. */
+  if (sym->attr.contiguous
+      && (!sym->attr.dimension || (sym->as->type != AS_ASSUMED_SHAPE
+				   && !sym->attr.pointer)))
+    {
+      gfc_error ("'%s' at %L has the CONTIGUOUS attribute but is not an "
+		  "array pointer or an assumed-shape array", sym->name,
+		  &sym->declared_at);
       return;
     }
 
@@ -11453,6 +11521,7 @@ resolve_symbol (gfc_symbol *sym)
 		  sym->attr.dimension = sym->result->attr.dimension;
 		  sym->attr.pointer = sym->result->attr.pointer;
 		  sym->attr.allocatable = sym->result->attr.allocatable;
+		  sym->attr.contiguous = sym->result->attr.contiguous;
 		}
 	    }
 	}

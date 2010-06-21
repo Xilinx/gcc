@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -5209,7 +5209,7 @@ package Einfo is
    --    Spec_PPC_List                       (Node24)
    --    Interface_Alias                     (Node25)
    --    Static_Initialization               (Node26)   (init_proc only)
-   --    Overridden_Operation                (Node26)
+   --    Overridden_Operation                (Node26)   (never for init proc)
    --    Wrapped_Entity                      (Node27)   (non-generic case only)
    --    Extra_Formals                       (Node28)
    --    Body_Needed_For_SAL                 (Flag40)
@@ -6188,6 +6188,13 @@ package Einfo is
    --  value is always known static for discrete types (and no other types can
    --  have an RM_Size value of zero).
 
+   --  In two cases, Known_Static_Esize and Known_Static_RM_Size, there is one
+   --  more consideration, which is that we always return False for generic
+   --  types. Within a template, the size can look known, because of the fake
+   --  size values we put in template types, but they are not really known and
+   --  anyone testing if they are known within the template should get False as
+   --  a result to prevent incorrect assumptions.
+
    function Known_Alignment                       (E : Entity_Id) return B;
    function Known_Component_Bit_Offset            (E : Entity_Id) return B;
    function Known_Component_Size                  (E : Entity_Id) return B;
@@ -6766,6 +6773,11 @@ package Einfo is
    --  attribute definition clause with the given attribute Id. If found, the
    --  value returned is the N_Attribute_Definition_Clause node, otherwise
    --  Empty is returned.
+
+   function Get_Record_Representation_Clause (E : Entity_Id) return Node_Id;
+   --  Searches the Rep_Item chain for a given entyt E, for a record
+   --  representation clause, and if found, returns it. Returns Empty
+   --  if no such clause is found.
 
    function Get_Rep_Pragma (E : Entity_Id; Nam : Name_Id) return Node_Id;
    --  Searches the Rep_Item chain for the given entity E, for an instance

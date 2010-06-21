@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -403,7 +403,8 @@ package body Sprint is
    procedure pg (Arg : Union_Id) is
    begin
       Dump_Generated_Only := True;
-      Dump_Original_Only := False;
+      Dump_Original_Only  := False;
+      Dump_Freeze_Null    := True;
       Current_Source_File := No_Source_File;
 
       if Arg in List_Range then
@@ -1083,6 +1084,32 @@ package body Sprint is
 
             Write_Char (';');
 
+         when N_Case_Expression =>
+            declare
+               Alt : Node_Id;
+
+            begin
+               Write_Str_With_Col_Check_Sloc ("(case ");
+               Sprint_Node (Expression (Node));
+               Write_Str_With_Col_Check (" is");
+
+               Alt := First (Alternatives (Node));
+               loop
+                  Sprint_Node (Alt);
+                  Next (Alt);
+                  exit when No (Alt);
+                  Write_Char (',');
+               end loop;
+
+               Write_Char (')');
+            end;
+
+         when N_Case_Expression_Alternative =>
+            Write_Str_With_Col_Check (" when ");
+            Sprint_Bar_List (Discrete_Choices (Node));
+            Write_Str (" => ");
+            Sprint_Node (Expression (Node));
+
          when N_Case_Statement =>
             Write_Indent_Str_Sloc ("case ");
             Sprint_Node (Expression (Node));
@@ -1507,6 +1534,19 @@ package body Sprint is
             Sprint_Node (Prefix (Node));
             Write_Char_Sloc ('.');
             Write_Str_Sloc ("all");
+
+         when N_Expression_With_Actions =>
+            Indent_Begin;
+            Write_Indent_Str_Sloc ("do ");
+            Indent_Begin;
+            Sprint_Node_List (Actions (Node));
+            Indent_End;
+            Write_Indent;
+            Write_Str_With_Col_Check_Sloc ("in ");
+            Sprint_Node (Expression (Node));
+            Write_Str_With_Col_Check (" end");
+            Indent_End;
+            Write_Indent;
 
          when N_Extended_Return_Statement =>
             Write_Indent_Str_Sloc ("return ");

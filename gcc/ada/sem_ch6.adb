@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1850,9 +1850,10 @@ package body Sem_Ch6 is
             elsif not Is_Primitive (Spec_Id)
               and then Ekind (Scope (Spec_Id)) /= E_Protected_Type
             then
-               Error_Msg_N ("overriding indicator only allowed " &
-                "if subprogram is primitive",
-                Body_Spec);
+               Error_Msg_N
+                 ("overriding indicator only allowed " &
+                  "if subprogram is primitive",
+                  Body_Spec);
             end if;
 
          elsif Style_Check --  ??? incorrect use of Style_Check!
@@ -2634,8 +2635,7 @@ package body Sem_Ch6 is
          end loop;
 
          if Is_Protected_Type (Current_Scope) then
-            Error_Msg_N
-              ("protected operation cannot be a null procedure", N);
+            Error_Msg_N ("protected operation cannot be a null procedure", N);
          end if;
       end if;
 
@@ -3103,6 +3103,15 @@ package body Sem_Ch6 is
               and then Has_Excluded_Statement (Statements (S))
             then
                return True;
+
+            elsif Nkind (S) = N_Extended_Return_Statement then
+               if Has_Excluded_Statement
+                  (Statements (Handled_Statement_Sequence (S)))
+                 or else Present
+                   (Exception_Handlers (Handled_Statement_Sequence (S)))
+               then
+                  return True;
+               end if;
             end if;
 
             Next (S);
@@ -3125,6 +3134,7 @@ package body Sem_Ch6 is
               or else Is_Child_Unit (S)
             then
                return False;
+
             elsif Ekind (S) = E_Package
               and then Has_Forward_Instantiation (S)
             then
@@ -3169,9 +3179,30 @@ package body Sem_Ch6 is
                      return Abandon;
                   end if;
 
+               --  A return statement within an extended return is a noop
+               --  after inlining.
+
+               elsif No (Expression (N))
+                 and then Nkind (Parent (Parent (N))) =
+                 N_Extended_Return_Statement
+               then
+                  return OK;
+
                else
                   --  Expression has wrong form
 
+                  return Abandon;
+               end if;
+
+            --  We can only inline a build-in-place function if
+            --  it has a single extended return.
+
+            elsif Nkind (N) = N_Extended_Return_Statement then
+               if No (Return_Statement) then
+                  Return_Statement := N;
+                  return OK;
+
+               else
                   return Abandon;
                end if;
 
@@ -3185,11 +3216,18 @@ package body Sem_Ch6 is
       --  Start of processing for Has_Single_Return
 
       begin
-         return Check_All_Returns (N) = OK
-           and then Present (Declarations (N))
-           and then Present (First (Declarations (N)))
-           and then Chars (Expression (Return_Statement)) =
-                    Chars (Defining_Identifier (First (Declarations (N))));
+         if Check_All_Returns (N) /= OK then
+            return False;
+
+         elsif Nkind (Return_Statement) = N_Extended_Return_Statement then
+            return True;
+
+         else
+            return Present (Declarations (N))
+              and then Present (First (Declarations (N)))
+              and then Chars (Expression (Return_Statement)) =
+                 Chars (Defining_Identifier (First (Declarations (N))));
+         end if;
       end Has_Single_Return;
 
       --------------------
@@ -3478,21 +3516,21 @@ package body Sem_Ch6 is
 
                when Mode_Conformant =>
                   if Nkind (Parent (Old_Id)) = N_Full_Type_Declaration then
-                     Error_Msg_N -- CODEFIX???
+                     Error_Msg_N
                        ("not mode conformant with operation inherited#!",
                          Enode);
                   else
-                     Error_Msg_N -- CODEFIX???
+                     Error_Msg_N
                        ("not mode conformant with declaration#!", Enode);
                   end if;
 
                when Subtype_Conformant =>
                   if Nkind (Parent (Old_Id)) = N_Full_Type_Declaration then
-                     Error_Msg_N -- CODEFIX???
+                     Error_Msg_N
                        ("not subtype conformant with operation inherited#!",
                          Enode);
                   else
-                     Error_Msg_N -- CODEFIX???
+                     Error_Msg_N
                        ("not subtype conformant with declaration#!", Enode);
                   end if;
 
@@ -3976,22 +4014,25 @@ package body Sem_Ch6 is
                      if not Is_Overriding_Operation (Op) then
                         Error_Msg_N ("\\primitive % defined #", Typ);
                      else
-                        Error_Msg_N ("\\overriding operation % with " &
-                                     "convention % defined #", Typ);
+                        Error_Msg_N
+                          ("\\overriding operation % with " &
+                           "convention % defined #", Typ);
                      end if;
 
                   else pragma Assert (Present (Alias (Op)));
                      Error_Msg_Sloc := Sloc (Alias (Op));
-                     Error_Msg_N ("\\inherited operation % with " &
-                                  "convention % defined #", Typ);
+                     Error_Msg_N
+                       ("\\inherited operation % with " &
+                        "convention % defined #", Typ);
                   end if;
 
                   Error_Msg_Name_1 := Chars (Op);
                   Error_Msg_Name_2 :=
                     Get_Convention_Name (Convention (Iface_Prim));
                   Error_Msg_Sloc := Sloc (Iface_Prim);
-                  Error_Msg_N ("\\overridden operation % with " &
-                               "convention % defined #", Typ);
+                  Error_Msg_N
+                    ("\\overridden operation % with " &
+                     "convention % defined #", Typ);
 
                   --  Avoid cascading errors
 
@@ -4409,7 +4450,8 @@ package body Sem_Ch6 is
                then
                   Error_Msg_Node_2 := Alias (Overridden_Subp);
                   Error_Msg_Sloc := Sloc (Error_Msg_Node_2);
-                  Error_Msg_NE ("& does not match corresponding formal of&#",
+                  Error_Msg_NE
+                    ("& does not match corresponding formal of&#",
                      Form1, Form1);
                   exit;
                end if;
@@ -6033,8 +6075,9 @@ package body Sem_Ch6 is
             when N_Aggregate =>
                return
                  FCL (Expressions (E1), Expressions (E2))
-                   and then FCL (Component_Associations (E1),
-                                 Component_Associations (E2));
+                   and then
+                 FCL (Component_Associations (E1),
+                      Component_Associations (E2));
 
             when N_Allocator =>
                if Nkind (Expression (E1)) = N_Qualified_Expression
@@ -6104,6 +6147,38 @@ package body Sem_Ch6 is
                    and then
                  FCE (Right_Opnd (E1), Right_Opnd (E2));
 
+            when N_Case_Expression =>
+               declare
+                  Alt1 : Node_Id;
+                  Alt2 : Node_Id;
+
+               begin
+                  if not FCE (Expression (E1), Expression (E2)) then
+                     return False;
+
+                  else
+                     Alt1 := First (Alternatives (E1));
+                     Alt2 := First (Alternatives (E2));
+                     loop
+                        if Present (Alt1) /= Present (Alt2) then
+                           return False;
+                        elsif No (Alt1) then
+                           return True;
+                        end if;
+
+                        if not FCE (Expression (Alt1), Expression (Alt2))
+                          or else not FCL (Discrete_Choices (Alt1),
+                                           Discrete_Choices (Alt2))
+                        then
+                           return False;
+                        end if;
+
+                        Next (Alt1);
+                        Next (Alt2);
+                     end loop;
+                  end if;
+               end;
+
             when N_Character_Literal =>
                return
                  Char_Literal_Value (E1) = Char_Literal_Value (E2);
@@ -6111,7 +6186,8 @@ package body Sem_Ch6 is
             when N_Component_Association =>
                return
                  FCL (Choices (E1), Choices (E2))
-                   and then FCE (Expression (E1), Expression (E2));
+                   and then
+                 FCE (Expression (E1), Expression (E2));
 
             when N_Conditional_Expression =>
                return
@@ -6132,13 +6208,15 @@ package body Sem_Ch6 is
             when N_Function_Call =>
                return
                  FCE (Name (E1), Name (E2))
-                   and then FCL (Parameter_Associations (E1),
-                                 Parameter_Associations (E2));
+                   and then
+                 FCL (Parameter_Associations (E1),
+                      Parameter_Associations (E2));
 
             when N_Indexed_Component =>
                return
                  FCE (Prefix (E1), Prefix (E2))
-                   and then FCL (Expressions (E1), Expressions (E2));
+                   and then
+                 FCL (Expressions (E1), Expressions (E2));
 
             when N_Integer_Literal =>
                return (Intval (E1) = Intval (E2));
@@ -6162,12 +6240,14 @@ package body Sem_Ch6 is
             when N_Qualified_Expression =>
                return
                  FCE (Subtype_Mark (E1), Subtype_Mark (E2))
-                   and then FCE (Expression (E1), Expression (E2));
+                   and then
+                 FCE (Expression (E1), Expression (E2));
 
             when N_Range =>
                return
                  FCE (Low_Bound (E1), Low_Bound (E2))
-                   and then FCE (High_Bound (E1), High_Bound (E2));
+                   and then
+                 FCE (High_Bound (E1), High_Bound (E2));
 
             when N_Real_Literal =>
                return (Realval (E1) = Realval (E2));
@@ -6175,12 +6255,14 @@ package body Sem_Ch6 is
             when N_Selected_Component =>
                return
                  FCE (Prefix (E1), Prefix (E2))
-                   and then FCE (Selector_Name (E1), Selector_Name (E2));
+                   and then
+                 FCE (Selector_Name (E1), Selector_Name (E2));
 
             when N_Slice =>
                return
                  FCE (Prefix (E1), Prefix (E2))
-                   and then FCE (Discrete_Range (E1), Discrete_Range (E2));
+                   and then
+                 FCE (Discrete_Range (E1), Discrete_Range (E2));
 
             when N_String_Literal =>
                declare
@@ -6209,17 +6291,20 @@ package body Sem_Ch6 is
             when N_Type_Conversion =>
                return
                  FCE (Subtype_Mark (E1), Subtype_Mark (E2))
-                   and then FCE (Expression (E1), Expression (E2));
+                   and then
+                 FCE (Expression (E1), Expression (E2));
 
             when N_Unary_Op =>
                return
                  Entity (E1) = Entity (E2)
-                   and then FCE (Right_Opnd (E1), Right_Opnd (E2));
+                   and then
+                 FCE (Right_Opnd (E1), Right_Opnd (E2));
 
             when N_Unchecked_Type_Conversion =>
                return
                  FCE (Subtype_Mark (E1), Subtype_Mark (E2))
-                   and then FCE (Expression (E1), Expression (E2));
+                   and then
+                 FCE (Expression (E1), Expression (E2));
 
             --  All other node types cannot appear in this context. Strictly
             --  we should raise a fatal internal error. Instead we just ignore
@@ -6513,7 +6598,6 @@ package body Sem_Ch6 is
          --  instance of) a generic type.
 
          Formal := First_Formal (Prev_E);
-
          while Present (Formal) loop
             F_Typ := Base_Type (Etype (Formal));
 
@@ -6824,8 +6908,9 @@ package body Sem_Ch6 is
                  and then (not Is_Overriding
                             or else not Is_Abstract_Subprogram (E))
                then
-                  Error_Msg_N ("abstract subprograms must be visible "
-                                   & "(RM 3.9.3(10))!", S);
+                  Error_Msg_N
+                    ("abstract subprograms must be visible "
+                     & "(RM 3.9.3(10))!", S);
 
                elsif Ekind (S) = E_Function
                  and then Is_Tagged_Type (T)
@@ -7441,9 +7526,11 @@ package body Sem_Ch6 is
       --  E exists and is overloadable
 
       else
-         --  Ada 2005 (AI-251): Derivation of abstract interface primitives
-         --  need no check against the homonym chain. They are directly added
-         --  to the list of primitive operations of Derived_Type.
+         --  Ada 2005 (AI-251): Derivation of abstract interface primitives.
+         --  They are directly added to the list of primitive operations of
+         --  Derived_Type, unless this is a rederivation in the private part
+         --  of an operation that was already derived in the visible part of
+         --  the current package.
 
          if Ada_Version >= Ada_05
            and then Present (Derived_Type)
@@ -7451,7 +7538,16 @@ package body Sem_Ch6 is
            and then Present (Find_Dispatching_Type (Alias (S)))
            and then Is_Interface (Find_Dispatching_Type (Alias (S)))
          then
-            goto Add_New_Entity;
+            if Type_Conformant (E, S)
+              and then Is_Package_Or_Generic_Package (Current_Scope)
+              and then In_Private_Part (Current_Scope)
+              and then Parent (E) /= Parent (S)
+              and then Alias (E) = Alias (S)
+            then
+               Check_Operation_From_Private_View (S, E);
+            else
+               goto Add_New_Entity;
+            end if;
          end if;
 
          Check_Synchronized_Overriding (S, Overridden_Subp);

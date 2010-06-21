@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -693,10 +693,10 @@ package body Sem_Ch5 is
         and then Nkind (Original_Node (Rhs)) not in N_Op
       then
          if Nkind (Lhs) in N_Has_Entity then
-            Error_Msg_NE
+            Error_Msg_NE -- CODEFIX
               ("?useless assignment of & to itself!", N, Entity (Lhs));
          else
-            Error_Msg_N
+            Error_Msg_N -- CODEFIX
               ("?useless assignment of object to itself!", N);
          end if;
       end if;
@@ -948,7 +948,7 @@ package body Sem_Ch5 is
       --  the case statement has a non static choice.
 
       procedure Process_Statements (Alternative : Node_Id);
-      --  Analyzes all the statements associated to a case alternative.
+      --  Analyzes all the statements associated with a case alternative.
       --  Needed by the generic instantiation below.
 
       package Case_Choices_Processing is new
@@ -998,11 +998,9 @@ package body Sem_Ch5 is
          if Is_Entity_Name (Exp) then
             Ent := Entity (Exp);
 
-            if Ekind (Ent) = E_Variable
-                 or else
-               Ekind (Ent) = E_In_Out_Parameter
-                 or else
-               Ekind (Ent) = E_Out_Parameter
+            if Ekind_In (Ent, E_Variable,
+                              E_In_Out_Parameter,
+                              E_Out_Parameter)
             then
                if List_Length (Choices) = 1
                  and then Nkind (First (Choices)) in N_Subexpr
@@ -1198,7 +1196,7 @@ package body Sem_Ch5 is
          else
             Error_Msg_N
               ("cannot exit from program unit or accept statement", N);
-            exit;
+            return;
          end if;
       end loop;
 
@@ -1522,9 +1520,7 @@ package body Sem_Ch5 is
 
             Analyze_And_Resolve (Original_Bound, Typ);
 
-            Id :=
-              Make_Defining_Identifier (Loc,
-                Chars => New_Internal_Name ('S'));
+            Id := Make_Temporary (Loc, 'S', Original_Bound);
 
             --  Normally, the best approach is simply to generate a constant
             --  declaration that captures the bound. However, there is a nasty
@@ -1723,13 +1719,10 @@ package body Sem_Ch5 is
          then
             declare
                Loc  : constant Source_Ptr := Sloc (N);
-               Arr  : constant Entity_Id :=
-                        Etype (Entity (Prefix (DS)));
+               Arr  : constant Entity_Id := Etype (Entity (Prefix (DS)));
                Indx : constant Entity_Id :=
                         Base_Type (Etype (First_Index (Arr)));
-               Subt : constant Entity_Id :=
-                        Make_Defining_Identifier
-                          (Loc, New_Internal_Name ('S'));
+               Subt : constant Entity_Id := Make_Temporary (Loc, 'S');
                Decl : Node_Id;
 
             begin

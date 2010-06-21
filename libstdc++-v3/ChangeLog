@@ -1,3 +1,172 @@
+2010-06-20  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Kai-Uwe Bux  <bux@kubux.net>
+
+	* include/bits/random.tcc (uniform_int_distribution<>::operator()):
+	Fix to work well for arbitrary urng.max() and urng.min().
+
+2010-06-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/32618
+	* include/bits/stl_list.h (vector<>::_M_default_initialize,
+	_M_default_append): Declare.
+	(list<>::list(size_type), resize(size_type)): Add in C++0x mode,
+	use the latter.
+	* include/bits/list.tcc (list<>::resize, _M_default_append): Define.
+	* include/bits/stl_vector.h (vector<>::_M_default_initialize,
+	_M_default_append): Declare.
+	(vector<>::vector(size_type), resize(size_type)): Add in C++0x mode,
+	use the latter.
+	* include/bits/vector.tcc (vector<>::_M_default_append): Define.
+	* include/bits/stl_deque.h (deque<>::_M_default_initialize,
+	_M_default_append): Declare.
+	(deque<>::deque(size_type), resize(size_type)): Add in C++0x mode,
+	use the latter.
+	* include/bits/deque.tcc (deque<>::_M_default_append): Define.
+	* include/debug/vector: Update.
+	* include/debug/deque: Likewise.
+	* include/debug/list: Likewise.
+	* include/profile/vector: Likewise.
+	* include/profile/deque: Likewise.
+	* include/profile/list: Likewise.
+	* include/bits/forward_list.h (_M_default_initialize,
+	_M_default_insert_after): Declare.
+	(forward_list<>::forward_list(size_type), resize(size_type)): Fix,
+	use the latter.
+	* include/bits/forward_list.tcc (forward_list<>::_M_default_append,
+	_M_default_insert_after): Define.
+	* testsuite/util/testsuite_api.h (NonCopyConstructible): Add.
+	* testsuite/23_containers/forward_list/modifiers/6.cc: Move to...
+	* testsuite/23_containers/forward_list/capacity/resize_size.cc:
+	... here.
+	* testsuite/23_containers/forward_list/cons/10.cc: Move to...
+	* testsuite/23_containers/forward_list/cons/cons_size.cc: ... here.
+	* testsuite/23_containers/vector/resize/1.cc: Move to...
+	* testsuite/23_containers/vector/capacity/resize/1.cc: ... here.
+	* testsuite/23_containers/vector/resize/moveable.cc: Move to...
+	* testsuite/23_containers/vector/resize/capacity/moveable.cc: ... here.
+	* testsuite/23_containers/vector/cons/cons_size.cc: New.
+	* testsuite/23_containers/vector/capacity/resize/resize_size.cc:
+	Likewise.
+	* testsuite/23_containers/deque/cons/cons_size.cc: Likewise.
+	* testsuite/23_containers/deque/capacity/resize_size.cc: Likewise.
+	* testsuite/23_containers/list/cons/cons_size.cc: Likewise.
+	* testsuite/23_containers/list/capacity/resize_size.cc: Likewise.
+	* testsuite/23_containers/vector/capacity/resize/moveable.cc: Adjust.
+	* testsuite/23_containers/deque/capacity/moveable.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Adjust dg-error line numbers.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2010-06-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_uninitialized.h (__uninitialized_default,
+	__uninitialized_default_n, __uninitialized_default_a,
+	__uninitialized_default_n_a): Add.
+
+	* include/bits/stl_uninitialized.h (uninitialized_copy,
+	uninitialized_fill, uninitialized_fill_n): Use __is_trivial
+	instead of __is_pod.
+	* include/bits/valarray_array.h: Likewise.
+	* include/bits/stl_algobase.h (__copy_move_backward_a,
+	__copy_move_a): Likewise.
+
+2010-06-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_construct.h (_Construct): Change to variadic in
+	C++0x mode, consistently with allocator::construct.
+	* include/bits/stl_uninitialized.h (__uninitialized_copy_n): Use
+	_Construct.
+	(__uninitialized_construct_range): Move to...
+	* include/bits/stl_tempbuf.h (__uninitialized_construct_buf): ... here.
+
+2010-06-16  Matthias Klose  <doko@ubuntu.com>
+
+	* src/compatibility.cc: Export long double versions of "C" math
+	library for arm-linux-gnueabi, m68k-linux-gnu (ColdFire),
+	mips*-linux-gnu (o32 ABI), sh*-linux-gnu (32 bit).
+
+2010-06-15  Jason Merrill  <jason@redhat.com>
+
+	* testsuite/lib/libstdc++.exp: Set additional_prunes.
+	(libstdc++-dg-test): Don't prune here.
+	* testsuite/lib/prune.exp (dg-prune-output): New.
+	(libstdc++-dg-prune): Rename from prune_g++_output.
+	Add a bunch of prunes from gcc's prune.exp.
+	* testsuite/18_support/headers/cstdbool/std_c++0x_neg.cc:
+	Remove dg-excess-errors.
+	* testsuite/18_support/headers/cstdint/std_c++0x_neg.cc: Likewise.
+	* testsuite/19_diagnostics/error_category/cons/copy_neg.cc: Likewise.
+	* testsuite/19_diagnostics/headers/system_error/std_c++0x_neg.cc:
+	Likewise.
+	* testsuite/20_util/declval/requirements/1_neg.cc: Likewise.
+	* testsuite/20_util/duration/requirements/typedefs_neg1.cc: Likewise.
+	* testsuite/20_util/duration/requirements/typedefs_neg3.cc: Likewise.
+	* testsuite/20_util/headers/type_traits/std_c++0x_neg.cc: Likewise.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Likewise.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Likewise.
+	* testsuite/20_util/ratio/cons/cons_overflow_neg.cc: Likewise.
+	* testsuite/20_util/shared_ptr/assign/shared_ptr_neg.cc: Likewise.
+	* testsuite/20_util/shared_ptr/cons/43820.cc: Likewise.
+	* testsuite/23_containers/headers/array/std_c++0x_neg.cc: Likewise.
+	* testsuite/23_containers/headers/tuple/std_c++0x_neg.cc: Likewise.
+	* testsuite/23_containers/headers/unordered_map/std_c++0x_neg.cc:
+	Likewise.
+	* testsuite/23_containers/headers/unordered_set/std_c++0x_neg.cc:
+	Likewise.
+	* testsuite/26_numerics/headers/ccomplex/std_c++0x_neg.cc: Likewise.
+	* testsuite/26_numerics/headers/cfenv/std_c++0x_neg.cc: Likewise.
+	* testsuite/26_numerics/headers/ctgmath/std_c++0x_neg.cc: Likewise.
+	* testsuite/26_numerics/headers/random/std_c++0x_neg.cc: Likewise.
+	* testsuite/27_io/headers/cinttypes/std_c++0x_neg.cc: Likewise.
+	* testsuite/28_regex/headers/regex/std_c++0x_neg.cc: Likewise.
+	* testsuite/29_atomics/atomic/cons/copy_neg.cc: Likewise.
+	* testsuite/29_atomics/atomic_integral/operators/decrement_neg.cc:
+	Likewise.
+	* testsuite/29_atomics/atomic_integral/operators/increment_neg.cc:
+	Likewise.
+	* testsuite/30_threads/headers/condition_variable/std_c++0x_neg.cc:
+	Likewise.
+	* testsuite/30_threads/headers/future/std_c++0x_neg.cc: Likewise.
+	* testsuite/30_threads/headers/mutex/std_c++0x_neg.cc: Likewise.
+	* testsuite/30_threads/headers/thread/std_c++0x_neg.cc: Likewise.
+	* testsuite/ext/pb_ds/example/hash_resize_neg.cc: Likewise.
+	* testsuite/ext/profile/mutex_extensions.cc: Likewise.
+	* testsuite/ext/type_traits/add_unsigned_floating_neg.cc: Likewise.
+	* testsuite/ext/type_traits/remove_unsigned_floating_neg.cc: Likewise.
+	* testsuite/tr1/2_general_utilities/shared_ptr/assign/
+	shared_ptr_neg.cc: Likewise.
+	* testsuite/tr1/2_general_utilities/shared_ptr/cons/43820.cc: Likewise.
+
 2010-06-13  Paolo Carlini <paolo.carlini@oracle.com>
 
 	* include/parallel/base.h (min, max): Mark inline.

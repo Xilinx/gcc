@@ -1,3 +1,171 @@
+2010-06-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40632
+	* gfortran.dg/contiguous_1.f90: New.
+	* gfortran.dg/contiguous_2.f90: New.
+	* gfortran.dg/contiguous_3.f90: New.
+
+2010-06-21  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.target/x86_64/abi/callabi/leaf-1.c: New.
+	* gcc.target/x86_64/abi/callabi/leaf-2.c: New.
+
+2010-06-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/44546
+	* gcc.target/i386/pr44546.c: New test.
+
+2010-06-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/opts-2.c: New test.
+
+2010-06-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44584
+	* gfortran.dg/typebound_proc_15.f03: Modified.
+
+2010-06-19  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/44072
+	* gcc.target/arm/thumb2-cmpneg2add-1.c: New test.
+	* gcc.target/arm/thumb2-cmpneg2add-2.c: New test.
+
+2010-06-19  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* g++.dg/ext/label13.C: Fix typo in last change.
+
+2010-06-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/44477
+	* gfortran.dg/eof_3.f90
+	* gfortran.dg/endfile_2.f90
+	* gfortran.dg/endfile_4.f90
+	* gfortran.dg/endfile_3.f90
+
+2010-06-18  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR c++/41090
+	* g++.dg/ext/label13.C: xfail on 32-bit hppa*-*-hpux*.
+
+2010-06-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44556
+	* gfortran.dg/allocate_alloc_opt_11.f90: New.
+
+2010-06-18  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* gcc.target/arm/pr40900.c: New test.
+
+2010-06-18  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/class_wide2.adb: Remove bogus message, no longer generated.
+
+2010-06-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44558
+	* gfortran.dg/typebound_call_15.f03: New.
+
+2010-06-17  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/44486
+	* g++.dg/pr44486.C: New.
+
+2010-06-16  DJ Delorie  <dj@redhat.com>
+
+	* gcc.target/i386/volatile-bitfields-1.c: New.
+	* gcc.target/i386/volatile-bitfields-2.c: New.
+
+2010-06-16  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/noexcept03.C: Test -Wnoexcept.
+
+	* g++.dg/cpp0x/noexcept01.C: Test defaulted fns.
+
+2010-06-16  Richard Guenther  <rguenther@suse.de>
+
+	PR c/44555
+	* gcc.c-torture/execute/pr44555.c: New testcase.
+
+2010-06-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44549
+	* gfortran.dg/typebound_proc_16.f03: New.
+
+2010-06-16  Martin Jambor  <mjambor@suse.cz>
+
+	* g++.dg/torture/pr43905.C: New test.
+
+2010-06-16  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR testsuite/44538
+	* gcc.dg/vect/slp-perm-5.c (main): Prevent
+	initialization loop from being vectorized.
+	* gcc.dg/vect/slp-perm-6.c (main): Likewise.
+
+2010-06-16  Alan Modra  <amodra@gmail.com>
+
+	PR tree-optimization/44507
+	* gcc.dg/vect/pr44507.c (seeIf256ByteArrayIsConstant): Correct cast.
+
+2010-06-15  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/overload/arg3.C: Adjust error locations.
+	* g++.dg/overload/copy1.C: Likewise.
+	* g++.dg/tc1/dr152.C: Likewise.
+	* g++.dg/template/incomplete4.C: Likewise.
+	* g++.dg/template/incomplete5.C: Likewise.
+	* g++.old-deja/g++.bob/inherit2.C: Likewise.
+	* g++.old-deja/g++.pt/auto_ptr.C: Likewise.
+	* g++.old-deja/g++.pt/crash9.C: Likewise.
+
+	* g++.dg/inherit/virtual5.C: New.
+
+	* g++.dg/cpp0x/defaulted18.C: New.
+
+	* g++.dg/cpp0x/initlist40.C: New.
+
+	* g++.dg/cpp0x/initlist39.C: New.
+
+2010-06-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/44391
+	* gcc.dg/graphite/pr44391.c: New.
+
+2010-06-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/43388
+	* gfortran.dg/allocate_alloc_opt_8.f90: New.
+	* gfortran.dg/allocate_alloc_opt_9.f90: New.
+	* gfortran.dg/allocate_alloc_opt_10.f90: New.
+	* gfortran.dg/class_allocate_2.f03: Modified an error message.
+
+2010-06-15  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ssa-sccvn-4.c: Adjust.
+
+2010-06-15  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/vect/bb-slp-21.c: Adjust.
+	* gcc.dg/vect/bb-slp-13.c: Likewise
+	* gcc.dg/vect/bb-slp-4.c: Likewise
+	* gcc.dg/vect/bb-slp-22.c: Likewise
+	* gcc.dg/vect/bb-slp-14.c: Likewise
+	* gcc.dg/vect/bb-slp-23.c: Likewise
+	* gcc.dg/vect/bb-slp-15.c: Likewise
+	* gcc.dg/vect/bb-slp-17.c: Likewise
+	* gcc.dg/vect/bb-slp-18.c: Likewise
+	* gcc.dg/vect/bb-slp-19.c: Likewise
+	* gcc.dg/vect/bb-slp-10.c: Likewise
+	* gcc.dg/vect/bb-slp-11.c: Likewise
+	* gcc.dg/vect/bb-slp-20.c: Likewise
+	* gcc.dg/vect/bb-slp-3.c: Likewise
+
+2010-06-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/44536
+	* gfortran.dg/gomp/pr44536.f90: New test.
+	* gfortran.dg/gomp/sharing-3.f90: Remove xfail.
+
 2010-06-14  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/44534
@@ -14,7 +182,7 @@
 
 2010-06-14  Ira Rosen  <irar@il.ibm.com>
 
-	PR tree-optimization/44507 
+	PR tree-optimization/44507
 	* gcc.dg/vect/pr44507.c: New test.
 
 2010-06-13  H.J. Lu  <hongjiu.lu@intel.com>
@@ -30,7 +198,7 @@
 
 2010-06-12  Daniel Franke  <franke.daniel@gmail.com>
 
-        * gfortran.dg/whole_file_20.f03: New.
+	* gfortran.dg/whole_file_20.f03: New.
 
 2010-06-12  Jan Hubicka  <jh@suse.cz>
 

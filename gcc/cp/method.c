@@ -1022,6 +1022,15 @@ defaulted_late_check (tree fn)
       error_at (DECL_SOURCE_LOCATION (fn),
 		"does not match expected signature %qD", implicit_fn);
     }
+
+  /* 8.4.2/2: If it is explicitly defaulted on its first declaration, it is
+     implicitly considered to have the same exception-specification as if
+     it had been implicitly declared.  */
+  if (DECL_DEFAULTED_IN_CLASS_P (fn))
+    {
+      tree eh_spec = TYPE_RAISES_EXCEPTIONS (TREE_TYPE (implicit_fn));
+      TREE_TYPE (fn) = build_exception_variant (TREE_TYPE (fn), eh_spec);
+    }
 }
 
 /* Returns true iff FN can be explicitly defaulted, and gives any
@@ -1108,7 +1117,8 @@ lazily_declare_fn (special_function_kind sfk, tree type)
   /* Declare the function.  */
   fn = implicitly_declare_fn (sfk, type, const_p);
   /* A destructor may be virtual.  */
-  if (sfk == sfk_destructor)
+  if (sfk == sfk_destructor
+      || sfk == sfk_assignment_operator)
     check_for_override (fn, type);
   /* Add it to CLASSTYPE_METHOD_VEC.  */
   add_method (type, fn, NULL_TREE);
