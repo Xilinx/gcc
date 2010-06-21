@@ -409,6 +409,10 @@ an integer $I if $I is greater than $N.}#
   :doc #{Debug cstring $MSG $STR.}#
   #{debugeprintf("debugcstring %s '%s'", $msg, $str)}#)
 
+(defprimitive debuglong (:cstring msg :long num) :void
+  :doc #{Debug long stuff with $MSG and number $NUM.}#
+  #{debugeprintf("debuglong %s %ld", $msg, $num)}#)
+
 ;;;;;; STRBUF primitives
 ;; primitive to make a strbuf
 (defprimitive make_strbuf (discr) :value
@@ -1025,6 +1029,7 @@ significant iff ENABLE_CHECKING.}# #{(melt_application_depth() <
  longbacktrace_dbg
  checkval_dbg
  debugcstring
+ debuglong
  make_strbuf
  strbuf_usedlength
  is_strbuf

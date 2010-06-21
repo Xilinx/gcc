@@ -693,7 +693,7 @@
   #{/*$gimpcondtredges ?*/  ($gc && gimple_code($gc)==GIMPLE_COND)}#
   ;;fill
   #{ /*$gimpcondtredges !*/
-  extract_cond_bb_edges (($gc), &($truedge), &($falsedge));
+  extract_cond_bb_edges ((gimple_bb ($gc)), &($truedge), &($falsedge));
   }#)
 
 
@@ -1194,6 +1194,17 @@
   $numlabels = gimple_switch_num_labels ($gr);
   }#
 )
+
+;;; return the index of a switch
+(defprimitive gimple_switch_index (:gimple gs) :tree
+  #{ (($gs) && gimple_code($gs) == GIMPLE_SWITCH) ? 
+  gimple_switch_index_ptr($gs) : NULL }#)
+
+;;; return a tree label
+(defprimitive gimple_switch_label (:gimple gs :long n) :tree
+  #{ (($gs) && gimple_code($gs) == GIMPLE_SWITCH) ? 
+  gimple_switch_label($gs, $n) : NULL }#)
+
 
 
 ;;;;;;;;;;;;;;;;
@@ -2401,6 +2412,9 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_phi_nth_arg_edge
  gimple_return
  gimple_seq_of_basic_block 
+ gimple_switch
+ gimple_switch_index
+ gimple_switch_label
  gimpleseq_content 
  gimpleval
  has_cfun

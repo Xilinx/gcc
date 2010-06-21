@@ -4597,16 +4597,22 @@ normalized expression.}#
 	 (msteptup)
 	 (curstep :long curix)
 	 (debug_msg curstep "match_step_index curstep")
+	 (debuglong "match_step_index curix" curix)
 	 (assert_msg "check curstep" (is_a curstep class_match_step))
 	 (assert_msg "check samedata curstep"
 		     (== matdata (unsafe_get_field :mstep_data curstep)))
-	 (assert_msg "check noindex curstep"
-		     (null (unsafe_get_field :mstep_index curstep)))
-	 (let ( (curboxindex (make_integerbox discr_constant_integer (+i curix 1))) 
+	 (let ( (oldboxindex (unsafe_get_field :mstep_index curstep))
 		)
-	   (put_fields curstep :mstep_index curboxindex)
-	   ))
+	   (debug_msg oldboxindex "match_step_index oldboxindex")
+	   (if oldboxindex
+	       (assert_msg "check sameindex curstep"
+			   (==i (get_int oldboxindex) (+i curix 1)))
+	     (let ( (curboxindex (make_integerbox discr_constant_integer (+i curix 1))) 
+		    )
+	       (put_fields curstep :mstep_index curboxindex)
+	       ))))
 	(setq matindex  (unsafe_get_field :mstep_index mstep))
+	(debug_msg matindex "match_step_index final matindex")
 	(return matindex)
 	))))
 

@@ -1,5 +1,15 @@
 
 2010-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Jeremie Salvucci  <jeremie.salvucci@free.fr>
+
+	* melt/warmelt-base.melt: Added debuglong.
+
+	* melt/warmelt-normatch.melt: Added more debug in match_step_index.
+
+	* melt/xtramelt-ana-base.melt: Added gimple_switch,
+	gimple_switch_index, gimple_label.
+
+2010-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	 added copyright notice (same as ChangeLog) to ChangeLog.MELT
 
 2010-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
