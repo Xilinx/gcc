@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -158,6 +158,9 @@ package body Sem is
          when N_Block_Statement =>
             Analyze_Block_Statement (N);
 
+         when N_Case_Expression =>
+            Analyze_Case_Expression (N);
+
          when N_Case_Statement =>
             Analyze_Case_Statement (N);
 
@@ -220,6 +223,9 @@ package body Sem is
 
          when N_Explicit_Dereference =>
             Analyze_Explicit_Dereference (N);
+
+         when N_Expression_With_Actions =>
+            Analyze_Expression_With_Actions (N);
 
          when N_Extended_Return_Statement =>
             Analyze_Extended_Return_Statement (N);
@@ -629,6 +635,7 @@ package body Sem is
            N_Access_Function_Definition             |
            N_Access_Procedure_Definition            |
            N_Access_To_Object_Definition            |
+           N_Case_Expression_Alternative            |
            N_Case_Statement_Alternative             |
            N_Compilation_Unit_Aux                   |
            N_Component_Association                  |
@@ -1701,6 +1708,18 @@ package body Sem is
       procedure Do_Withed_Unit (Withed_Unit : Node_Id) is
       begin
          Do_Unit_And_Dependents (Withed_Unit, Unit (Withed_Unit));
+
+         --  If the unit in the with_clause is a generic instance, the clause
+         --  now denotes the instance body. Traverse the corresponding spec
+         --  because there may be no other dependence that will force the
+         --  traversal of its own context.
+
+         if Nkind (Unit (Withed_Unit)) = N_Package_Body
+           and then Is_Generic_Instance
+                      (Defining_Entity (Unit (Library_Unit (Withed_Unit))))
+         then
+            Do_Withed_Unit (Library_Unit (Withed_Unit));
+         end if;
       end Do_Withed_Unit;
 
       ----------------------------

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1998-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1998-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -666,7 +666,7 @@ package body Lib.Xref is
          --  Check for pragma Unreferenced given and reference is within
          --  this source unit (occasion for possible warning to be issued).
 
-         if Has_Pragma_Unreferenced (E)
+         if Has_Unreferenced (E)
            and then In_Same_Extended_Unit (E, N)
          then
             --  A reference as a named parameter in a call does not count
@@ -699,7 +699,7 @@ package body Lib.Xref is
                   BE := First_Entity (Current_Scope);
                   while Present (BE) loop
                      if Chars (BE) = Chars (E) then
-                        Error_Msg_NE
+                        Error_Msg_NE -- CODEFIX
                           ("?pragma Unreferenced given for&!", N, BE);
                         exit;
                      end if;
@@ -711,7 +711,8 @@ package body Lib.Xref is
             --  Here we issue the warning, since this is a real reference
 
             else
-               Error_Msg_NE ("?pragma Unreferenced given for&!", N, E);
+               Error_Msg_NE -- CODEFIX
+                 ("?pragma Unreferenced given for&!", N, E);
             end if;
          end if;
 

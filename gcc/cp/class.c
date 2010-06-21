@@ -2618,47 +2618,13 @@ add_implicitly_declared_members (tree t,
     {
       /* In general, we create destructors lazily.  */
       CLASSTYPE_LAZY_DESTRUCTOR (t) = 1;
-      /* However, if the implicit destructor is non-trivial
-	 destructor, we sometimes have to create it at this point.  */
-      if (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t))
-	{
-	  bool lazy_p = true;
 
-	  if (TYPE_FOR_JAVA (t))
-	    /* If this a Java class, any non-trivial destructor is
-	       invalid, even if compiler-generated.  Therefore, if the
-	       destructor is non-trivial we create it now.  */
-	    lazy_p = false;
-	  else
-	    {
-	      tree binfo;
-	      tree base_binfo;
-	      int ix;
-
-	      /* If the implicit destructor will be virtual, then we must
-		 generate it now because (unfortunately) we do not
-		 generate virtual tables lazily.  */
-	      binfo = TYPE_BINFO (t);
-	      for (ix = 0; BINFO_BASE_ITERATE (binfo, ix, base_binfo); ix++)
-		{
-		  tree base_type;
-		  tree dtor;
-
-		  base_type = BINFO_TYPE (base_binfo);
-		  dtor = CLASSTYPE_DESTRUCTORS (base_type);
-		  if (dtor && DECL_VIRTUAL_P (dtor))
-		    {
-		      lazy_p = false;
-		      break;
-		    }
-		}
-	    }
-
-	  /* If we can't get away with being lazy, generate the destructor
-	     now.  */
-	  if (!lazy_p)
-	    lazily_declare_fn (sfk_destructor, t);
-	}
+      if (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t)
+	  && TYPE_FOR_JAVA (t))
+	/* But if this is a Java class, any non-trivial destructor is
+	   invalid, even if compiler-generated.  Therefore, if the
+	   destructor is non-trivial we create it now.  */
+	lazily_declare_fn (sfk_destructor, t);
     }
 
   /* [class.ctor]
@@ -2696,6 +2662,34 @@ add_implicitly_declared_members (tree t,
       TYPE_HAS_ASSIGN_REF (t) = 1;
       TYPE_HAS_CONST_ASSIGN_REF (t) = !cant_have_const_assignment;
       CLASSTYPE_LAZY_ASSIGNMENT_OP (t) = 1;
+    }
+
+  /* We can't be lazy about declaring functions that might override
+     a virtual function from a base class.  */
+  if (TYPE_POLYMORPHIC_P (t)
+      && (CLASSTYPE_LAZY_ASSIGNMENT_OP (t)
+	  || CLASSTYPE_LAZY_DESTRUCTOR (t)))
+    {
+      tree binfo = TYPE_BINFO (t);
+      tree base_binfo;
+      int ix;
+      tree opname = ansi_assopname (NOP_EXPR);
+      for (ix = 0; BINFO_BASE_ITERATE (binfo, ix, base_binfo); ++ix)
+	{
+	  tree bv;
+	  for (bv = BINFO_VIRTUALS (base_binfo); bv; bv = TREE_CHAIN (bv))
+	    {
+	      tree fn = BV_FN (bv);
+	      if (DECL_NAME (fn) == opname)
+		{
+		  if (CLASSTYPE_LAZY_ASSIGNMENT_OP (t))
+		    lazily_declare_fn (sfk_assignment_operator, t);
+		}
+	      else if (DECL_DESTRUCTOR_P (fn)
+		       && CLASSTYPE_LAZY_DESTRUCTOR (t))
+		lazily_declare_fn (sfk_destructor, t);
+	    }
+	}
     }
 }
 
@@ -4247,7 +4241,7 @@ type_has_user_provided_constructor (tree t)
 bool
 type_has_user_provided_default_constructor (tree t)
 {
-  tree fns, args;
+  tree fns;
 
   if (!TYPE_HAS_USER_CONSTRUCTOR (t))
     return false;
@@ -4256,14 +4250,9 @@ type_has_user_provided_default_constructor (tree t)
     {
       tree fn = OVL_CURRENT (fns);
       if (TREE_CODE (fn) == FUNCTION_DECL
-	  && user_provided_p (fn))
-	{
-	  args = FUNCTION_FIRST_USER_PARMTYPE (fn);
-	  while (args && TREE_PURPOSE (args))
-	    args = TREE_CHAIN (args);
-	  if (!args || args == void_list_node)
-	    return true;
-	}
+	  && user_provided_p (fn)
+	  && sufficient_parms_p (FUNCTION_FIRST_USER_PARMTYPE (fn)))
+	return true;
     }
 
   return false;
@@ -7618,14 +7607,15 @@ build_vtbl_initializer (tree binfo,
 	   ix--)
 	{
 	  int j;
-	  int new_position = TARGET_VTABLE_DATA_ENTRY_DISTANCE * ix;
+	  int new_position = (TARGET_VTABLE_DATA_ENTRY_DISTANCE * ix
+			      + (TARGET_VTABLE_DATA_ENTRY_DISTANCE - 1));
 
 	  VEC_replace (constructor_elt, vid.inits, new_position, e);
 
 	  for (j = 1; j < TARGET_VTABLE_DATA_ENTRY_DISTANCE; ++j)
 	    {
-	      constructor_elt *f = VEC_index (constructor_elt, *inits,
-					      new_position + j);
+	      constructor_elt *f = VEC_index (constructor_elt, vid.inits,
+					      new_position - j);
 	      f->index = NULL_TREE;
 	      f->value = build1 (NOP_EXPR, vtable_entry_type,
 				 null_pointer_node);

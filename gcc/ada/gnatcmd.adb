@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1996-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -122,6 +122,7 @@ procedure GNATCmd is
 
    Naming_String      : constant SA := new String'("naming");
    Binder_String      : constant SA := new String'("binder");
+   Builder_String     : constant SA := new String'("builder");
    Compiler_String    : constant SA := new String'("compiler");
    Check_String       : constant SA := new String'("check");
    Synchronize_String : constant SA := new String'("synchronize");
@@ -139,7 +140,8 @@ procedure GNATCmd is
      new String_List'((Naming_String, Binder_String));
 
    Packages_To_Check_By_Check : constant String_List_Access :=
-     new String_List'((Naming_String, Check_String, Compiler_String));
+     new String_List'
+          ((Naming_String, Builder_String, Check_String, Compiler_String));
 
    Packages_To_Check_By_Sync : constant String_List_Access :=
      new String_List'((Naming_String, Synchronize_String, Compiler_String));
@@ -333,13 +335,11 @@ procedure GNATCmd is
             if Index = 1
               or else
                 (The_Command = Check
-                   and then
-                     Last_Switches.Table (Index - 1).all /= "-o")
+                   and then Last_Switches.Table (Index - 1).all /= "-o")
               or else
                 (The_Command = Pretty
-                   and then
-                     Last_Switches.Table (Index - 1).all /= "-o"  and then
-                     Last_Switches.Table (Index - 1).all /= "-of")
+                   and then Last_Switches.Table (Index - 1).all /= "-o"
+                   and then Last_Switches.Table (Index - 1).all /= "-of")
               or else
                 (The_Command = Metric
                    and then
@@ -363,7 +363,7 @@ procedure GNATCmd is
 
       if Add_Sources then
 
-         --  For gnatcheck, gnatpp and gnatmetric , create a temporary file
+         --  For gnatcheck, gnatpp, and gnatmetric, create a temporary file
          --  and put the list of sources in it.
 
          if The_Command = Check  or else
@@ -455,8 +455,8 @@ procedure GNATCmd is
                   then
                      --  There is a body, check if it is for this project
 
-                     if All_Projects or else
-                        Unit.File_Names (Impl).Project = Project
+                     if All_Projects
+                       or else Unit.File_Names (Impl).Project = Project
                      then
                         Subunit := False;
 
@@ -1083,8 +1083,7 @@ procedure GNATCmd is
                   --  Append ".ali" if file name does not end with it
 
                   if Switch'Length <= 4
-                    or else Switch (Switch'Last - 3 .. Switch'Last)
-                    /= ".ali"
+                    or else Switch (Switch'Last - 3 .. Switch'Last) /= ".ali"
                   then
                      Last := ALI_File'Last;
                   end if;
@@ -1097,8 +1096,8 @@ procedure GNATCmd is
 
                   else
                      for K in Switch'Range loop
-                        if Switch (K) = '/' or else
-                          Switch (K) = Directory_Separator
+                        if Switch (K) = '/'
+                          or else Switch (K) = Directory_Separator
                         then
                            Test_Existence := True;
                            exit;
@@ -1272,7 +1271,10 @@ procedure GNATCmd is
       New_Line;
 
       for C in Command_List'Range loop
-         if not Command_List (C).VMS_Only then
+
+         --  No usage for VMS only command or for Sync
+
+         if not Command_List (C).VMS_Only and then C /= Sync then
             if Targparm.AAMP_On_Target then
                Put ("gnaampcmd ");
             else
@@ -1306,7 +1308,7 @@ procedure GNATCmd is
       end loop;
 
       New_Line;
-      Put_Line ("Commands find, list, metric, pretty, stack, stub and xref " &
+      Put_Line ("All commands except chop, krunch and preprocess " &
                 "accept project file switches -vPx, -Pprj and -Xnam=val");
       New_Line;
    end Non_VMS_Usage;
@@ -1638,11 +1640,12 @@ begin
 
                   --  --subdirs=... Specify Subdirs
 
-                  if Argv'Length > Makeutl.Subdirs_Option'Length and then
-                    Argv
-                     (Argv'First ..
-                      Argv'First + Makeutl.Subdirs_Option'Length - 1) =
-                        Makeutl.Subdirs_Option
+                  if Argv'Length > Makeutl.Subdirs_Option'Length
+                    and then
+                      Argv
+                       (Argv'First ..
+                        Argv'First + Makeutl.Subdirs_Option'Length - 1) =
+                          Makeutl.Subdirs_Option
                   then
                      Subdirs :=
                        new String'
@@ -1751,8 +1754,9 @@ begin
                                         ('=',
                                          Argv (Argv'First + 2 .. Argv'Last));
                      begin
-                        if Equal_Pos >= Argv'First + 3 and then
-                          Equal_Pos /= Argv'Last then
+                        if Equal_Pos >= Argv'First + 3
+                          and then Equal_Pos /= Argv'Last
+                        then
                            Add (Project_Node_Tree,
                                 External_Name =>
                                   Argv (Argv'First + 2 .. Equal_Pos - 1),
@@ -1954,7 +1958,7 @@ begin
             end if;
          end;
 
-         if The_Command = Bind
+         if        The_Command = Bind
            or else The_Command = Link
            or else The_Command = Elim
          then
@@ -1969,7 +1973,7 @@ begin
          --  For gnatcheck, gnatstub, gnatmetric, gnatpp and gnatelim, create
          --  a configuration pragmas file, if necessary.
 
-         if The_Command = Pretty
+         if        The_Command = Pretty
            or else The_Command = Metric
            or else The_Command = Stub
            or else The_Command = Elim
@@ -2107,7 +2111,7 @@ begin
                      while K <= First_Switches.Last
                        and then
                         (The_Command /= Check
-                           or else First_Switches.Table (K).all /= "-rules")
+                          or else First_Switches.Table (K).all /= "-rules")
                      loop
                         Add_To_Carg_Switches (First_Switches.Table (K));
                         K := K + 1;
@@ -2147,8 +2151,7 @@ begin
                      while K <= Last_Switches.Last
                        and then
                         (The_Command /= Check
-                         or else
-                         Last_Switches.Table (K).all /= "-rules")
+                          or else Last_Switches.Table (K).all /= "-rules")
                      loop
                         Add_To_Carg_Switches (Last_Switches.Table (K));
                         K := K + 1;
@@ -2194,6 +2197,90 @@ begin
                if M_File /= No_Path then
                   Add_To_Carg_Switches
                     (new String'("-gnatem=" & Get_Name_String (M_File)));
+               end if;
+
+               --  For gnatcheck, also indicate a global configuration pragmas
+               --  file and, if -U is not used, a local one.
+
+               if The_Command = Check then
+                  declare
+                     Pkg  : constant Prj.Package_Id :=
+                              Prj.Util.Value_Of
+                                (Name        => Name_Builder,
+                                 In_Packages => Project.Decl.Packages,
+                                 In_Tree     => Project_Tree);
+
+                     Variable : Variable_Value :=
+                                  Prj.Util.Value_Of
+                                    (Name                    => No_Name,
+                                     Attribute_Or_Array_Name =>
+                                       Name_Global_Configuration_Pragmas,
+                                     In_Package              => Pkg,
+                                     In_Tree                 => Project_Tree);
+
+                  begin
+                     if (Variable = Nil_Variable_Value
+                          or else Length_Of_Name (Variable.Value) = 0)
+                       and then Pkg /= No_Package
+                     then
+                        Variable :=
+                          Prj.Util.Value_Of
+                            (Name                    => Name_Ada,
+                             Attribute_Or_Array_Name =>
+                               Name_Global_Config_File,
+                             In_Package              => Pkg,
+                             In_Tree                 => Project_Tree);
+                     end if;
+
+                     if Variable /= Nil_Variable_Value
+                       and then Length_Of_Name (Variable.Value) /= 0
+                     then
+                        Add_To_Carg_Switches
+                          (new String'
+                             ("-gnatec=" & Get_Name_String (Variable.Value)));
+                     end if;
+                  end;
+
+                  if not All_Projects then
+                     declare
+                        Pkg : constant Prj.Package_Id :=
+                                Prj.Util.Value_Of
+                                  (Name        => Name_Compiler,
+                                   In_Packages => Project.Decl.Packages,
+                                   In_Tree     => Project_Tree);
+
+                        Variable : Variable_Value :=
+                                     Prj.Util.Value_Of
+                                       (Name        => No_Name,
+                                        Attribute_Or_Array_Name =>
+                                          Name_Local_Configuration_Pragmas,
+                                        In_Package  => Pkg,
+                                        In_Tree     => Project_Tree);
+
+                     begin
+                        if (Variable = Nil_Variable_Value
+                             or else Length_Of_Name (Variable.Value) = 0)
+                          and then Pkg /= No_Package
+                        then
+                           Variable :=
+                             Prj.Util.Value_Of
+                               (Name                    => Name_Ada,
+                                Attribute_Or_Array_Name =>
+                                  Name_Local_Config_File,
+                                In_Package              => Pkg,
+                                In_Tree                 => Project_Tree);
+                        end if;
+
+                        if Variable /= Nil_Variable_Value
+                          and then Length_Of_Name (Variable.Value) /= 0
+                        then
+                           Add_To_Carg_Switches
+                             (new String'
+                                ("-gnatec=" &
+                                 Get_Name_String (Variable.Value)));
+                        end if;
+                     end;
+                  end if;
                end if;
             end;
          end if;

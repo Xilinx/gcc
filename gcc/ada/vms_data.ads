@@ -1253,7 +1253,9 @@ package VMS_Data is
                                              "STACK "                      &
                                                 "-fstack-check "           &
                                              "SUPPRESS_ALL "               &
-                                                "-gnatp";
+                                                "-gnatp "                  &
+                                             "UNSUPPRESS_ALL "             &
+                                                "-gnat-p";
    --        /NOCHECKS
    --        /CHECKS[=(keyword[,...])]
    --
@@ -1267,47 +1269,50 @@ package VMS_Data is
    --   You may specify one or more of the following keywords to the /CHECKS
    --   qualifier to modify this behavior:
    --
-   --     DEFAULT       The behavior described above. This is the default
-   --                   if the /CHECKS qualifier is not present on the
-   --                   command line. Same as /NOCHECKS.
+   --     DEFAULT          The behavior described above. This is the default
+   --                      if the /CHECKS qualifier is not present on the
+   --                      command line. Same as /NOCHECKS.
    --
-   --     OVERFLOW      Enables overflow checking for integer operations and
-   --                   checks for access before elaboration on subprogram
-   --                   calls. This causes GNAT to generate slower and larger
-   --                   executable programs by adding code to check for both
-   --                   overflow and division by zero (resulting in raising
-   --                   "Constraint_Error" as required by Ada semantics).
-   --                   Similarly, GNAT does not generate elaboration check
-   --                   by default, and you must specify this keyword to
-   --                   enable them.
+   --     OVERFLOW        Enables overflow checking for integer operations and
+   --                     checks for access before elaboration on subprogram
+   --                     calls. This causes GNAT to generate slower and larger
+   --                     executable programs by adding code to check for both
+   --                     overflow and division by zero (resulting in raising
+   --                     "Constraint_Error" as required by Ada semantics).
+   --                     Similarly, GNAT does not generate elaboration check
+   --                     by default, and you must specify this keyword to
+   --                     enable them.
    --
-   --                   Note that this keyword does not affect the code
-   --                   generated for any floating-point operations; it
-   --                   applies only to integer operations. For floating-point,
-   --                   GNAT has the "Machine_Overflows" attribute set to
-   --                   "False" and the normal mode of operation is to generate
-   --                   IEEE NaN and infinite values on overflow or invalid
-   --                   operations (such as dividing 0.0 by 0.0).
+   --                     Note that this keyword does not affect the code
+   --                     generated for any floating-point operations; it
+   --                     applies only to integer operations. For the case of
+   --                     floating-point, GNAT has the "Machine_Overflows"
+   --                     attribute set to "False" and the normal mode of
+   --                     operation is to generate IEEE NaN and infinite values
+   --                     on overflow or invalid operations (such as dividing
+   --                     0.0 by 0.0).
    --
-   --     ELABORATION   Enables dynamic checks for access-before-elaboration
-   --                   on subprogram calls and generic instantiations.
+   --     ELABORATION     Enables dynamic checks for access-before-elaboration
+   --                     on subprogram calls and generic instantiations.
    --
-   --     ASSERTIONS    The pragmas "Assert" and "Debug" normally have no
-   --                   effect and are ignored. This keyword causes "Assert"
-   --                   and "Debug" pragmas to be activated, as well as
-   --                   "Check", "Precondition" and "Postcondition" pragmas.
+   --     ASSERTIONS      The pragmas "Assert" and "Debug" normally have no
+   --                     effect and are ignored. This keyword causes "Assert"
+   --                     and "Debug" pragmas to be activated, as well as
+   --                     "Check", "Precondition" and "Postcondition" pragmas.
    --
-   --     SUPPRESS_ALL  Suppress all runtime checks as though you have "pragma
-   --                   Suppress (all_checks)" in your source. Use this switch
-   --                   to improve the performance of the code at the expense
-   --                   of safety in the presence of invalid data or program
-   --                   bugs.
+   --     SUPPRESS_ALL    Suppress all runtime checks as though you have
+   --                     "pragma Suppress (all_checks)" in your source. Use
+   --                     this switch to improve the performance of the code at
+   --                     the expense of safety in the presence of invalid data
+   --                     or program bugs.
    --
-   --     DEFAULT       Suppress the effect of any option OVERFLOW or
-   --                   ASSERTIONS.
+   --     UNSUPPRESS_ALL  Cancels effect of previous SUPPRESS_ALL.
    --
-   --     FULL (D)      Similar to OVERFLOW, but suppress the effect of any
-   --                   option ELABORATION or SUPPRESS_ALL.
+   --     DEFAULT         Suppress the effect of any option OVERFLOW or
+   --                     ASSERTIONS.
+   --
+   --     FULL (D)        Similar to OVERFLOW, but suppress the effect of any
+   --                     option ELABORATION or SUPPRESS_ALL.
    --
    --   These keywords only control the default setting of the checks.  You
    --   may modify them using either "Suppress" (to remove checks) or
@@ -3592,6 +3597,13 @@ package VMS_Data is
    --      HIGH         A great number of messages are output, most of them not
    --                   being useful for the user.
 
+   S_Elim_Nodisp : aliased constant S := "/NO_DISPATCH "                   &
+                                          "--no-elim-dispatch";
+   --        /NONO_DISPATCH (D)
+   --        /NO_DISPATCH
+   --
+   --   Do not generate pragmas for dispatching operations.
+
    S_Elim_Project : aliased constant S := "/PROJECT_FILE=<"                &
                                              "-P>";
    --        /PROJECT_FILE=filename
@@ -3625,14 +3637,14 @@ package VMS_Data is
    --
    --   Duplicate all the output sent to Stderr into a default log file.
 
-   S_Elim_Logfile : aliased constant S := "/LOGFILE=@ "                    &
+   S_Elim_Logfile : aliased constant S := "/LOGFILE=@"                     &
                                           "-l@";
 
    --      /LOGFILE=logfilename
    --
    --   Duplicate all the output sent to Stderr into a specified log file.
 
-   S_Elim_Main    : aliased constant S := "/MAIN=@ "                       &
+   S_Elim_Main    : aliased constant S := "/MAIN=@"                        &
                                           "-main=@";
 
    --      /MAIN=filename
@@ -3704,6 +3716,7 @@ package VMS_Data is
                       S_Elim_Logfile 'Access,
                       S_Elim_Main    'Access,
                       S_Elim_Mess    'Access,
+                      S_Elim_Nodisp  'Access,
                       S_Elim_Out     'Access,
                       S_Elim_Project 'Access,
                       S_Elim_Quiet   'Access,

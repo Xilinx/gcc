@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -171,6 +171,15 @@ package Opt is
    --  (list representation information) or -gnatt (generate tree). It is
    --  also set true if certain Unchecked_Conversion instantiations require
    --  checking based on annotated values.
+
+   Back_End_Handles_Limited_Types : Boolean;
+   --  This flag is set true if the back end can properly handle limited or
+   --  other by reference types, and avoid copies. If this flag is False, then
+   --  the front end does special expansion for conditional expressions to make
+   --  sure that no copy occurs. If the flag is True, then the expansion for
+   --  conditional expressions relies on the back end properly handling things.
+   --  Currently the default is False for all cases (set in gnat1drv). The
+   --  default can be modified using -gnatd.L (sets the flag True).
 
    Bind_Alternate_Main_Name : Boolean := False;
    --  GNATBIND
@@ -453,8 +462,8 @@ package Opt is
                            Front_End_Setjmp_Longjmp_Exceptions;
    --  GNAT
    --  Set to the appropriate value depending on the default as given in
-   --  system.ads (ZCX_By_Default, GCC_ZCX_Support).
-   --  The C convention is there to make this variable accessible to gigi.
+   --  system.ads (ZCX_By_Default, GCC_ZCX_Support). The C convention is there
+   --  to make this variable accessible to gigi.
 
    Exception_Tracebacks : Boolean := False;
    --  GNATBIND
@@ -1229,10 +1238,22 @@ package Opt is
    --  set True, and upper half characters in the source indicate the start of
    --  a wide character sequence. Set by -gnatW or -W switches.
 
+   Use_Include_Path_File : Boolean := False;
+   --  GNATMAKE, GPRBUILD
+   --  When True, create a source search path file, even when a mapping file
+   --  is used.
+
    Usage_Requested : Boolean := False;
    --  GNAT, GNATBIND, GNATMAKE
    --  Set to True if -h (-gnath for the compiler) switch encountered
    --  requesting usage information
+
+   Use_Expression_With_Actions : Boolean;
+   --  The N_Expression_With_Actions node has been introduced relatively
+   --  recently, and not all back ends are prepared to handle it yet. So
+   --  we use this flag to suppress its use during a transitional period.
+   --  Currently the default is False for all cases (set in gnat1drv).
+   --  The default can be modified using -gnatd.X/-gnatd.Y.
 
    Use_Pragma_Linker_Constructor : Boolean := False;
    --  GNATBIND

@@ -3825,23 +3825,7 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 			inner);
 	    return truthvalue_true_node;
 	  }
-
-	/* If we still have a decl, it is possible for its address to
-	   be NULL, so we cannot optimize.  */
-	if (DECL_P (inner))
-	  {
-	    gcc_assert (DECL_WEAK (inner));
-	    break;
-	  }
-
-	if (TREE_SIDE_EFFECTS (inner))
-	  {
-	    expr = build2 (COMPOUND_EXPR, truthvalue_type_node,
-			   inner, truthvalue_true_node);
-	    goto ret;
-	  }
-	else
-	  return truthvalue_true_node;
+	break;
       }
 
     case COMPLEX_EXPR:
@@ -7640,6 +7624,8 @@ parse_optimize_options (tree args, bool attr_p)
   unsigned i;
   int saved_flag_strict_aliasing;
   const char **opt_argv;
+  struct cl_decoded_option *decoded_options;
+  unsigned int decoded_options_count;
   tree ap;
 
   /* Build up argv vector.  Just in case the string is stored away, use garbage
@@ -7732,7 +7718,8 @@ parse_optimize_options (tree args, bool attr_p)
   saved_flag_strict_aliasing = flag_strict_aliasing;
 
   /* Now parse the options.  */
-  decode_options (opt_argc, opt_argv);
+  decode_options (opt_argc, opt_argv, &decoded_options,
+		  &decoded_options_count);
 
   targetm.override_options_after_change();
 
@@ -9207,17 +9194,10 @@ record_types_used_by_current_var_decl (tree decl)
 {
   gcc_assert (decl && DECL_P (decl) && TREE_STATIC (decl));
 
-  if (types_used_by_cur_var_decl)
+  while (!VEC_empty (tree, types_used_by_cur_var_decl))
     {
-      tree node;
-      for (node = types_used_by_cur_var_decl;
-	   node;
-	   node = TREE_CHAIN (node))
-      {
-	tree type = TREE_PURPOSE (node);
-	types_used_by_var_decl_insert (type, decl);
-      }
-      types_used_by_cur_var_decl = NULL;
+      tree type = VEC_pop (tree, types_used_by_cur_var_decl);
+      types_used_by_var_decl_insert (type, decl);
     }
 }
 

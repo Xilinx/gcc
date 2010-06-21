@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---             Copyright (C) 2009, Free Software Foundation, Inc.           --
+--          Copyright (C) 2009-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -149,7 +149,6 @@ package body Sem_SCIL is
             when others =>
                pragma Assert (False);
                null;
-
          end case;
 
          return Skip;
@@ -312,6 +311,15 @@ package body Sem_SCIL is
             --  Actions associated with AND THEN or OR ELSE
 
             when N_Short_Circuit =>
+               if Present (Actions (P))
+                 and then Find_SCIL_Node (Actions (P))
+               then
+                  return Found_Node;
+               end if;
+
+            --  Actions of case expressions
+
+            when N_Case_Expression_Alternative =>
                if Present (Actions (P))
                  and then Find_SCIL_Node (Actions (P))
                then
@@ -484,7 +492,7 @@ package body Sem_SCIL is
                   then
                      return Found_Node;
 
-                  --  In the subexpression case, keep climbing
+                  --  In the subexpression case keep climbing
 
                   else
                      null;
@@ -514,6 +522,7 @@ package body Sem_SCIL is
                N_Access_To_Object_Definition            |
                N_Aggregate                              |
                N_Allocator                              |
+               N_Case_Expression                        |
                N_Case_Statement_Alternative             |
                N_Character_Literal                      |
                N_Compilation_Unit                       |
@@ -545,6 +554,7 @@ package body Sem_SCIL is
                N_Exception_Handler                      |
                N_Expanded_Name                          |
                N_Explicit_Dereference                   |
+               N_Expression_With_Actions                |
                N_Extension_Aggregate                    |
                N_Floating_Point_Definition              |
                N_Formal_Decimal_Fixed_Point_Definition  |
@@ -647,7 +657,7 @@ package body Sem_SCIL is
 
          end case;
 
-         --  If we fall through above tests, keep climbing tree
+         --  If we fall through above tests keep climbing tree
 
          if Nkind (Parent (P)) = N_Subunit then
 

@@ -2461,9 +2461,9 @@ assemble_external_libcall (rtx fun)
 /* Assemble a label named NAME.  */
 
 void
-assemble_label (const char *name)
+assemble_label (FILE *file, const char *name)
 {
-  ASM_OUTPUT_LABEL (asm_out_file, name);
+  ASM_OUTPUT_LABEL (file, name);
 }
 
 /* Set the symbol_referenced flag for ID.  */
@@ -3475,12 +3475,7 @@ assemble_constant_contents (tree exp, const char *label, unsigned int align)
   size = get_constant_size (exp);
 
   /* Do any machine/system dependent processing of the constant.  */
-#ifdef ASM_DECLARE_CONSTANT_NAME
-  ASM_DECLARE_CONSTANT_NAME (asm_out_file, label, exp, size);
-#else
-  /* Standard thing is just output label for the constant.  */
-  ASM_OUTPUT_LABEL (asm_out_file, label);
-#endif /* ASM_DECLARE_CONSTANT_NAME */
+  targetm.asm_out.declare_constant_name (asm_out_file, label, exp, size);
 
   /* Output the value of EXP.  */
   output_constant (exp, size, align);
@@ -6894,6 +6889,17 @@ default_internal_label (FILE *stream, const char *prefix,
   ASM_OUTPUT_INTERNAL_LABEL (stream, buf);
 }
 
+
+/* The default implementation of ASM_DECLARE_CONSTANT_NAME.  */
+
+void
+default_asm_declare_constant_name (FILE *file, const char *name,
+				   const_tree exp ATTRIBUTE_UNUSED,
+				   HOST_WIDE_INT size ATTRIBUTE_UNUSED)
+{
+  assemble_label (file, name);
+}
+
 /* This is the default behavior at the beginning of a file.  It's
    controlled by two other target-hook toggles.  */
 void
@@ -7193,50 +7199,11 @@ output_object_blocks (void)
 int
 elf_record_gcc_switches (print_switch_type type, const char * name)
 {
-  static char buffer[1024];
-
-  /* This variable is used as part of a simplistic heuristic to detect
-     command line switches which take an argument:
-
-       "If a command line option does not start with a dash then
-        it is an argument for the previous command line option."
-
-     This fails in the case of the command line option which is the name
-     of the file to compile, but otherwise it is pretty reasonable.  */
-  static bool previous_name_held_back = FALSE;
-
   switch (type)
     {
     case SWITCH_TYPE_PASSED:
-      if (* name != '-')
-	{
-	  if (previous_name_held_back)
-	    {
-	      unsigned int len = strlen (buffer);
-
-	      snprintf (buffer + len, sizeof buffer - len, " %s", name);
-	      ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-	      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-	      previous_name_held_back = FALSE;
-	    }
-	  else
-	    {
-	      strncpy (buffer, name, sizeof buffer);
-	      ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-	      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-	    }
-	}
-      else
-	{
-	  if (previous_name_held_back)
-	    {
-	      ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-	      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-	    }
-
-	  strncpy (buffer, name, sizeof buffer);
-	  previous_name_held_back = TRUE;
-	}
+      ASM_OUTPUT_ASCII (asm_out_file, name, strlen (name));
+      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
       break;
 
     case SWITCH_TYPE_DESCRIPTIVE:
@@ -7245,15 +7212,7 @@ elf_record_gcc_switches (print_switch_type type, const char * name)
 	  /* Distinguish between invocations where name is NULL.  */
 	  static bool started = false;
 
-	  if (started)
-	    {
-	      if (previous_name_held_back)
-		{
-		  ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-		  ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-		}
-	    }
-	  else
+	  if (!started)
 	    {
 	      section * sec;
 

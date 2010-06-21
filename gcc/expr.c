@@ -4229,6 +4229,13 @@ expand_assignment (tree to, tree from, bool nontemporal)
 
       to_rtx = expand_normal (tem);
 
+      /* If the bitfield is volatile, we want to access it in the
+	 field's mode, not the computed mode.  */
+      if (volatilep
+	  && GET_CODE (to_rtx) == MEM
+	  && flag_strict_volatile_bitfields > 0)
+	to_rtx = adjust_address (to_rtx, mode1, 0);
+ 
       if (offset != 0)
 	{
 	  enum machine_mode address_mode;
@@ -5977,7 +5984,7 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
   enum machine_mode mode = VOIDmode;
   bool blkmode_bitfield = false;
   tree offset = size_zero_node;
-  tree bit_offset = bitsize_zero_node;
+  double_int bit_offset = double_int_zero;
 
   /* First get the mode, signedness, and size.  We do this from just the
      outermost expression.  */
@@ -5990,6 +5997,12 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
 	mode = DECL_MODE (field);
       else if (DECL_MODE (field) == BLKmode)
 	blkmode_bitfield = true;
+      else if (TREE_THIS_VOLATILE (exp)
+	       && flag_strict_volatile_bitfields > 0)
+	/* Volatile bitfields should be accessed in the mode of the
+	     field's type, not the mode computed based on the bit
+	     size.  */
+	mode = TYPE_MODE (DECL_BIT_FIELD_TYPE (field));
 
       *punsignedp = DECL_UNSIGNED (field);
     }
@@ -6032,8 +6045,9 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
       switch (TREE_CODE (exp))
 	{
 	case BIT_FIELD_REF:
-	  bit_offset = size_binop (PLUS_EXPR, bit_offset,
-				   TREE_OPERAND (exp, 2));
+	  bit_offset
+	    = double_int_add (bit_offset,
+			      tree_to_double_int (TREE_OPERAND (exp, 2)));
 	  break;
 
 	case COMPONENT_REF:
@@ -6048,8 +6062,9 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
 	      break;
 
 	    offset = size_binop (PLUS_EXPR, offset, this_offset);
-	    bit_offset = size_binop (PLUS_EXPR, bit_offset,
-				     DECL_FIELD_BIT_OFFSET (field));
+	    bit_offset = double_int_add (bit_offset,
+					 tree_to_double_int
+					   (DECL_FIELD_BIT_OFFSET (field)));
 
 	    /* ??? Right now we don't do anything with DECL_OFFSET_ALIGN.  */
 	  }
@@ -6081,8 +6096,8 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
 	  break;
 
 	case IMAGPART_EXPR:
-	  bit_offset = size_binop (PLUS_EXPR, bit_offset,
-				   bitsize_int (*pbitsize));
+	  bit_offset = double_int_add (bit_offset,
+				       uhwi_to_double_int (*pbitsize));
 	  break;
 
 	case VIEW_CONVERT_EXPR:
@@ -6113,9 +6128,11 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
      this conversion.  */
   if (host_integerp (offset, 0))
     {
-      double_int tem = double_int_mul (tree_to_double_int (offset),
-				       uhwi_to_double_int (BITS_PER_UNIT));
-      tem = double_int_add (tem, tree_to_double_int (bit_offset));
+      double_int tem = double_int_lshift (tree_to_double_int (offset),
+					  BITS_PER_UNIT == 8
+					  ? 3 : exact_log2 (BITS_PER_UNIT),
+					  HOST_BITS_PER_DOUBLE_INT, true);
+      tem = double_int_add (tem, bit_offset);
       if (double_int_fits_in_shwi_p (tem))
 	{
 	  *pbitpos = double_int_to_shwi (tem);
@@ -6126,7 +6143,7 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
   /* Otherwise, split it up.  */
   if (offset)
     {
-      *pbitpos = tree_low_cst (bit_offset, 0);
+      *pbitpos = double_int_to_shwi (bit_offset);
       *poffset = offset;
     }
 
@@ -8284,6 +8301,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
   location_t loc = EXPR_LOCATION (exp);
   struct separate_ops ops;
   tree treeop0, treeop1, treeop2;
+  tree ssa_name = NULL_TREE;
+  gimple g;
 
   type = TREE_TYPE (exp);
   mode = TYPE_MODE (type);
@@ -8396,15 +8415,17 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	 base variable.  This unnecessarily allocates a pseudo, see how we can
 	 reuse it, if partition base vars have it set already.  */
       if (!currently_expanding_to_rtl)
-	return expand_expr_real_1 (SSA_NAME_VAR (exp), target, tmode, modifier, NULL);
-      {
-	gimple g = get_gimple_for_ssa_name (exp);
-	if (g)
-	  return expand_expr_real (gimple_assign_rhs_to_tree (g), target,
-				   tmode, modifier, NULL);
-      }
-      decl_rtl = get_rtx_for_ssa_name (exp);
-      exp = SSA_NAME_VAR (exp);
+	return expand_expr_real_1 (SSA_NAME_VAR (exp), target, tmode, modifier,
+				   NULL);
+
+      g = get_gimple_for_ssa_name (exp);
+      if (g)
+	return expand_expr_real (gimple_assign_rhs_to_tree (g), target, tmode,
+				 modifier, NULL);
+
+      ssa_name = exp;
+      decl_rtl = get_rtx_for_ssa_name (ssa_name);
+      exp = SSA_NAME_VAR (ssa_name);
       goto expand_decl_rtl;
 
     case PARM_DECL:
@@ -8506,15 +8527,21 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       /* If the mode of DECL_RTL does not match that of the decl, it
 	 must be a promoted value.  We return a SUBREG of the wanted mode,
 	 but mark it so that we know that it was already extended.  */
-
-      if (REG_P (decl_rtl)
-	  && GET_MODE (decl_rtl) != DECL_MODE (exp))
+      if (REG_P (decl_rtl) && GET_MODE (decl_rtl) != DECL_MODE (exp))
 	{
 	  enum machine_mode pmode;
 
-	  /* Get the signedness used for this variable.  Ensure we get the
-	     same mode we got when the variable was declared.  */
-	  pmode = promote_decl_mode (exp, &unsignedp);
+	  /* Get the signedness to be used for this variable.  Ensure we get
+	     the same mode we got when the variable was declared.  */
+	  if (code == SSA_NAME
+	      && (g = SSA_NAME_DEF_STMT (ssa_name))
+	      && gimple_code (g) == GIMPLE_CALL)
+	    pmode = promote_function_mode (type, mode, &unsignedp,
+					   TREE_TYPE
+					   (TREE_TYPE (gimple_call_fn (g))),
+					   2);
+	  else
+	    pmode = promote_decl_mode (exp, &unsignedp);
 	  gcc_assert (GET_MODE (decl_rtl) == pmode);
 
 	  temp = gen_lowpart_SUBREG (mode, decl_rtl);
@@ -8966,6 +8993,14 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 			  || modifier == EXPAND_STACK_PARM)
 			 ? modifier : EXPAND_NORMAL);
 
+
+	/* If the bitfield is volatile, we want to access it in the
+	   field's mode, not the computed mode.  */
+	if (volatilep
+	    && GET_CODE (op0) == MEM
+	    && flag_strict_volatile_bitfields > 0)
+	  op0 = adjust_address (op0, mode1, 0);
+
 	mode2
 	  = CONSTANT_P (op0) ? TYPE_MODE (TREE_TYPE (tem)) : GET_MODE (op0);
 
@@ -9091,6 +9126,9 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		&& GET_MODE_CLASS (mode) != MODE_COMPLEX_FLOAT
 		&& modifier != EXPAND_CONST_ADDRESS
 		&& modifier != EXPAND_INITIALIZER)
+	    /* If the field is volatile, we always want an aligned
+	       access.  */
+	    || (volatilep && flag_strict_volatile_bitfields > 0)
 	    /* If the field isn't aligned enough to fetch as a memref,
 	       fetch it as a bit field.  */
 	    || (mode1 != BLKmode

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -893,7 +893,7 @@ package body Sem_Ch8 is
                   Error_Msg_NE
                     ("\?function & will be called only once", Nam,
                      Entity (Name (Nam)));
-                  Error_Msg_N
+                  Error_Msg_N -- CODEFIX
                     ("\?suggest using an initialized constant object instead",
                      Nam);
                end if;
@@ -910,9 +910,7 @@ package body Sem_Ch8 is
                then
                   declare
                      Loc  : constant Source_Ptr := Sloc (N);
-                     Subt : constant Entity_Id :=
-                              Make_Defining_Identifier (Loc,
-                                Chars => New_Internal_Name ('T'));
+                     Subt : constant Entity_Id  := Make_Temporary (Loc, 'T');
                   begin
                      Remove_Side_Effects (Nam);
                      Insert_Action (N,
@@ -1315,7 +1313,8 @@ package body Sem_Ch8 is
    begin
       if not Is_Overloaded (P) then
          if Ekind (Etype (Nam)) /= E_Subprogram_Type
-           or else not Type_Conformant (Etype (Nam), New_S) then
+           or else not Type_Conformant (Etype (Nam), New_S)
+         then
             Error_Msg_N ("designated type does not match specification", P);
          else
             Resolve (P);
@@ -1330,8 +1329,8 @@ package body Sem_Ch8 is
          while Present (It.Nam) loop
 
             if Ekind (It.Nam) = E_Subprogram_Type
-              and then Type_Conformant (It.Nam, New_S) then
-
+              and then Type_Conformant (It.Nam, New_S)
+            then
                if Typ /= Any_Id then
                   Error_Msg_N ("ambiguous renaming", P);
                   return;
@@ -2149,9 +2148,7 @@ package body Sem_Ch8 is
          --  Guard against previous errors, and omit renamings of predefined
          --  operators.
 
-         elsif Ekind (Old_S) /= E_Function
-           and then Ekind (Old_S) /= E_Procedure
-         then
+         elsif not Ekind_In (Old_S, E_Function, E_Procedure) then
             null;
 
          elsif Requires_Overriding (Old_S)
@@ -2584,8 +2581,7 @@ package body Sem_Ch8 is
                    ("a generic package is not allowed in a use clause",
                       Pack_Name);
                else
-                  Error_Msg_N -- CODEFIX???
-                    ("& is not a usable package", Pack_Name);
+                  Error_Msg_N ("& is not a usable package", Pack_Name);
                end if;
 
             else
@@ -2706,7 +2702,7 @@ package body Sem_Ch8 is
          if Warn_On_Redundant_Constructs
            and then Pack = Current_Scope
          then
-            Error_Msg_NE
+            Error_Msg_NE -- CODEFIX
               ("& is already use-visible within itself?", Pack_Name, Pack);
          end if;
 
@@ -2838,19 +2834,17 @@ package body Sem_Ch8 is
 
       if Aname = Name_AST_Entry then
          declare
-            Ent  : Entity_Id;
+            Ent  : constant Entity_Id := Make_Temporary (Loc, 'R', Nam);
             Decl : Node_Id;
 
          begin
-            Ent := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
-
             Decl :=
               Make_Object_Declaration (Loc,
                 Defining_Identifier => Ent,
-                Object_Definition =>
+                Object_Definition   =>
                   New_Occurrence_Of (RTE (RE_AST_Handler), Loc),
-                Expression => Nam,
-                Constant_Present => True);
+                Expression          => Nam,
+                Constant_Present    => True);
 
             Set_Assignment_OK (Decl, True);
             Insert_Action (N, Decl);
@@ -3076,8 +3070,7 @@ package body Sem_Ch8 is
             end loop;
 
             if Is_Child_Unit (Entity (Original_Node (Par))) then
-               Error_Msg_NE
-                 ("& is not directly visible", Par, Entity (Par));
+               Error_Msg_NE ("& is not directly visible", Par, Entity (Par));
             else
                return;
             end if;
@@ -3841,8 +3834,19 @@ package body Sem_Ch8 is
                          Nkind (Parent (Parent (N))) = N_Use_Package_Clause
                      then
                         Error_Msg_Qual_Level := 99;
-                        Error_Msg_NE ("\\missing `WITH &;`", N, Ent);
+                        Error_Msg_NE -- CODEFIX
+                          ("\\missing `WITH &;`", N, Ent);
                         Error_Msg_Qual_Level := 0;
+                     end if;
+
+                     if Ekind (Ent) = E_Discriminant
+                       and then Present (Corresponding_Discriminant (Ent))
+                       and then Scope (Corresponding_Discriminant (Ent)) =
+                                                        Etype (Scope (Ent))
+                     then
+                        Error_Msg_N
+                          ("inherited discriminant not allowed here" &
+                            " (RM 3.8 (12), 3.8.1 (6))!", N);
                      end if;
                   end if;
 
@@ -3909,7 +3913,7 @@ package body Sem_Ch8 is
                   if Chars (Lit) /= Chars (N)
                     and then Is_Bad_Spelling_Of (Chars (N), Chars (Lit)) then
                      Error_Msg_Node_2 := Lit;
-                     Error_Msg_N
+                     Error_Msg_N -- CODEFIX
                        ("& is undefined, assume misspelling of &", N);
                      Rewrite (N, New_Occurrence_Of (Lit, Sloc (N)));
                      return;
@@ -3973,7 +3977,7 @@ package body Sem_Ch8 is
             --  this is a very common error for beginners to make).
 
             if Chars (N) = Name_Put or else Chars (N) = Name_Put_Line then
-               Error_Msg_N
+               Error_Msg_N -- CODEFIX
                  ("\\possible missing `WITH Ada.Text_'I'O; " &
                   "USE Ada.Text_'I'O`!", N);
 
@@ -3986,7 +3990,8 @@ package body Sem_Ch8 is
               and then Is_Known_Unit (Parent (N))
             then
                Error_Msg_Node_2 := Selector_Name (Parent (N));
-               Error_Msg_N ("\\missing `WITH &.&;`", Prefix (Parent (N)));
+               Error_Msg_N -- CODEFIX
+                 ("\\missing `WITH &.&;`", Prefix (Parent (N)));
             end if;
 
             --  Now check for possible misspellings
@@ -4724,7 +4729,8 @@ package body Sem_Ch8 is
 
                   else
                      Error_Msg_Qual_Level := 99;
-                     Error_Msg_NE ("missing `WITH &;`", Selector, Candidate);
+                     Error_Msg_NE -- CODEFIX
+                       ("missing `WITH &;`", Selector, Candidate);
                      Error_Msg_Qual_Level := 0;
                   end if;
 
@@ -4755,9 +4761,9 @@ package body Sem_Ch8 is
 
                         exit when S = Standard_Standard;
 
-                        if Ekind (S) = E_Function
-                          or else Ekind (S) = E_Package
-                          or else Ekind (S) = E_Procedure
+                        if Ekind_In (S, E_Function,
+                                        E_Package,
+                                        E_Procedure)
                         then
                            P := Generic_Parent (Specification
                                   (Unit_Declaration_Node (S)));
@@ -4781,7 +4787,8 @@ package body Sem_Ch8 is
                if Is_Known_Unit (N) then
                   if not Error_Posted (N) then
                      Error_Msg_Node_2 := Selector;
-                     Error_Msg_N ("missing `WITH &.&;`", Prefix (N));
+                     Error_Msg_N -- CODEFIX
+                       ("missing `WITH &.&;`", Prefix (N));
                   end if;
 
                --  If this is a selection from a dummy package, then suppress
@@ -4862,7 +4869,8 @@ package body Sem_Ch8 is
                                (Generic_Parent (Parent (Entity (Prefix (N)))))
                   then
                      Error_Msg_Node_2 := Selector;
-                     Error_Msg_N ("\missing `WITH &.&;`", Prefix (N));
+                     Error_Msg_N -- CODEFIX
+                       ("\missing `WITH &.&;`", Prefix (N));
                   end if;
                end if;
             end if;
@@ -5154,11 +5162,11 @@ package body Sem_Ch8 is
       function Report_Overload return Entity_Id is
       begin
          if Is_Actual then
-            Error_Msg_NE
+            Error_Msg_NE -- CODEFIX
               ("ambiguous actual subprogram&, " &
                  "possible interpretations:", N, Nam);
          else
-            Error_Msg_N
+            Error_Msg_N -- CODEFIX
               ("ambiguous subprogram, " &
                  "possible interpretations:", N);
          end if;
@@ -5738,7 +5746,7 @@ package body Sem_Ch8 is
                  and then Base_Type (Typ) = Typ
                  and then Warn_On_Redundant_Constructs
                then
-                  Error_Msg_NE
+                  Error_Msg_NE -- CODEFIX
                     ("?redundant attribute, & is its own base type", N, Typ);
                end if;
 
@@ -6223,9 +6231,7 @@ package body Sem_Ch8 is
             Next_Formal (Old_F);
          end loop;
 
-         if Ekind (Old_S) = E_Function
-           or else Ekind (Old_S) = E_Enumeration_Literal
-         then
+         if Ekind_In (Old_S, E_Function, E_Enumeration_Literal) then
             Set_Etype (New_S, Etype (Old_S));
          end if;
       end if;
@@ -6541,7 +6547,7 @@ package body Sem_Ch8 is
 
       if Present (Redundant) then
          Error_Msg_Sloc := Sloc (Prev_Use);
-         Error_Msg_NE
+         Error_Msg_NE -- CODEFIX
            ("& is already use-visible through previous use clause #?",
             Redundant, Pack_Name);
       end if;
@@ -7519,14 +7525,14 @@ package body Sem_Ch8 is
 
                      if Unit1 = Unit2 then
                         Error_Msg_Sloc := Sloc (Current_Use_Clause (T));
-                        Error_Msg_NE
+                        Error_Msg_NE -- CODEFIX
                           ("& is already use-visible through previous "
                            & "use_type_clause #?", Clause1, T);
                         return;
 
                      elsif Nkind (Unit1) = N_Subunit then
                         Error_Msg_Sloc := Sloc (Current_Use_Clause (T));
-                        Error_Msg_NE
+                        Error_Msg_NE -- CODEFIX
                           ("& is already use-visible through previous "
                            & "use_type_clause #?", Clause1, T);
                         return;
@@ -7536,7 +7542,7 @@ package body Sem_Ch8 is
                        and then Nkind (Unit1) /= N_Subunit
                      then
                         Error_Msg_Sloc := Sloc (Clause1);
-                        Error_Msg_NE
+                        Error_Msg_NE -- CODEFIX
                           ("& is already use-visible through previous "
                            & "use_type_clause #?", Current_Use_Clause (T), T);
                         return;
@@ -7587,7 +7593,7 @@ package body Sem_Ch8 is
                         end;
                      end if;
 
-                     Error_Msg_NE
+                     Error_Msg_NE -- CODEFIX
                        ("& is already use-visible through previous "
                         & "use_type_clause #?", Err_No, Id);
 
@@ -7596,7 +7602,7 @@ package body Sem_Ch8 is
                   --  level. In this case we don't have location information.
 
                   else
-                     Error_Msg_NE
+                     Error_Msg_NE -- CODEFIX
                        ("& is already use-visible through previous "
                         & "use type clause?", Id, T);
                   end if;
@@ -7606,7 +7612,7 @@ package body Sem_Ch8 is
             --  where we do not have the location information available.
 
             else
-               Error_Msg_NE
+               Error_Msg_NE -- CODEFIX
                  ("& is already use-visible through previous "
                   & "use type clause?", Id, T);
             end if;
@@ -7615,7 +7621,7 @@ package body Sem_Ch8 is
 
          elsif In_Use (Scope (T)) then
             Error_Msg_Sloc := Sloc (Current_Use_Clause (Scope (T)));
-            Error_Msg_NE
+            Error_Msg_NE -- CODEFIX
               ("& is already use-visible through package use clause #?",
                Id, T);
 
@@ -7623,7 +7629,7 @@ package body Sem_Ch8 is
 
          else
             Error_Msg_Node_2 := Scope (T);
-            Error_Msg_NE
+            Error_Msg_NE -- CODEFIX
               ("& is already use-visible inside package &?", Id, T);
          end if;
       end if;
