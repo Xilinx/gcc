@@ -1,3 +1,9 @@
+2010-06-21  Aldy Hernandez  <aldyh@redhat.com>
+
+	* cp/parser.c (cp_parser_unary_expression): Handle
+	RID_TRANSACTION.
+	(cp_parser_transaction_expression): New.
+
 2010-06-17  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (ipa_tm_insert_gettmclone_call): Always return true.

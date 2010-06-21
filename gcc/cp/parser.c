@@ -1893,6 +1893,8 @@ static void cp_parser_label_declaration
 
 static tree cp_parser_transaction
   (cp_parser *);
+static tree cp_parser_transaction_expression
+  (cp_parser *);
 static bool cp_parser_function_transaction
   (cp_parser *);
 static tree cp_parser_transaction_cancel
@@ -5581,6 +5583,9 @@ cp_parser_unary_expression (cp_parser *parser, bool address_p, bool cast_p,
                                      tf_warning_or_error);
 	  }
 	  break;
+
+	case RID_TRANSACTION:
+	  return cp_parser_transaction_expression (parser);
 
 	default:
 	  break;
@@ -23056,6 +23061,55 @@ cp_parser_transaction (cp_parser *parser)
   finish_transaction_stmt (stmt, NULL, this_in);
 
   return stmt;
+}
+
+/* Parse a __transaction expression.
+
+   transaction-expression:
+     __transaction txn-attribute[opt] txn-exception-spec[opt]
+	compound-statement
+
+   ??? The exception specification is not yet implemented.
+*/
+
+static tree
+cp_parser_transaction_expression (cp_parser *parser)
+{
+  unsigned char old_in = parser->in_transaction;
+  unsigned char this_in = 1;
+  cp_token *token;
+  tree ret, attrs;
+
+  token = cp_parser_require_keyword (parser, RID_TRANSACTION,
+				     "%<__transaction%>");
+  gcc_assert (token != NULL);
+
+  attrs = cp_parser_txn_attribute_opt (parser);
+  if (attrs)
+    {
+      this_in |= parse_tm_stmt_attr (attrs, (TM_STMT_ATTR_ATOMIC
+					     | TM_STMT_ATTR_RELAXED));
+      /* The [[ atomic ]] attribute is the same as no attribute.  */
+      this_in &= ~TM_STMT_ATTR_ATOMIC;
+    }
+
+  parser->in_transaction = this_in;
+  if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
+    {
+      tree expr = cp_parser_expression (parser, /*cast_p=*/false, NULL);
+      ret = build1 (TRANSACTION_EXPR, TREE_TYPE (expr), expr);
+      if (this_in & TM_STMT_ATTR_RELAXED)
+	TRANSACTION_EXPR_RELAXED (ret) = 1;
+      SET_EXPR_LOCATION (ret, token->location);
+    }
+  else
+    {
+      cp_parser_error (parser, "expected %<(%>");
+      ret = error_mark_node;
+    }
+  parser->in_transaction = old_in;
+
+  return ret;
 }
 
 /* Parse a function-transaction-block.
