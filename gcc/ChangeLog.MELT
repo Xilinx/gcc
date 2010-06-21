@@ -1,4 +1,7 @@
 
+2010-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	 added copyright notice (same as ChangeLog) to ChangeLog.MELT
+
 2010-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: Added normstep_mflagconj.
 
@@ -7787,16 +7790,24 @@ MELT bootstrapped, ie the generated warm-basilys-0.c is selfgenerated from warm-
 
 2008-02-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r132671
-        Merged revisions 132452-132671 via svnmerge from 
+        Merged revisions 132452-132671 via svnmerge from
         svn+ssh://bstarynk@gcc.gnu.org/svn/gcc/trunk
 	* toplev.c (toplev_main): comprobe_finish() called before the print_ignored_options()
 
 2008-02-19   Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk.
 	removed debug hack in basilys.c; added code to be able to init with a *.so in basilys.c.
-	added our (forgotten) Makefile.in and most of 
+	added our (forgotten) Makefile.in and most of
 	my (Basile Starynkevitch's) files
 	Created MELT branch. This gcc/ChangeLog.melt added afterwards.
+
+
+
+Copyright (C) 2010 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
 
 /// Local Variables:
 /// mode: change-log
