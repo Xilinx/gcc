@@ -1539,7 +1539,7 @@ a single mutable value. See also $CLASS_CONTAINER.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_BOX")
 
-;;; the discriminant for trees
+;;; the discriminant for tree-s
 (definstance discr_tree class_discriminant
   :doc #{The $DISCR_TREE is the discriminant of boxed GCC tree values. See also $CTYPE_TREE.}#
   :predef DISCR_TREE
@@ -1547,7 +1547,7 @@ a single mutable value. See also $CLASS_CONTAINER.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_TREE")
 
-;;; the discriminant for gimples
+;;; the discriminant for gimple-s
 (definstance discr_gimple class_discriminant
   :doc #{The $DISCR_GIMPLE is the discriminant of boxed GCC gimple values. See also $CTYPE_GIMPLE.}#
   :predef DISCR_GIMPLE
@@ -1555,13 +1555,22 @@ a single mutable value. See also $CLASS_CONTAINER.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_GIMPLE")
 
-;;; the discriminant for gimple_seqs
+;;; the discriminant for gimple_seq-s
 (definstance discr_gimple_seq class_discriminant
   :doc #{The $DISCR_GIMPLE_SEQ is the discriminant of boxed GCC gimple_seq values. See also $CTYPE_GIMPLE_SEQ.}#
   :predef DISCR_GIMPLE_SEQ
   :obj_num OBMAG_GIMPLESEQ
   :disc_super discr_any_receiver
   :named_name '"DISCR_GIMPLE_SEQ")
+
+;;; the discriminant for gimple_seq_node-s
+(definstance discr_gimple_seq_node class_discriminant
+  :doc #{The $DISCR_GIMPLE_SEQ_NODE is the discriminant of boxed GCC gimple_seq_node values. 
+See also $CTYPE_GIMPLE_SEQ_NODE.}#
+  :predef DISCR_GIMPLE_SEQ_NODE
+  :obj_num OBMAG_GIMPLESEQNODE
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_GIMPLE_SEQ_NODE")
 
 ;;; the discriminant for edges
 (definstance discr_edge class_discriminant
@@ -1590,6 +1599,35 @@ also $CTYPE_LOOP.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_LOOP")
 
+
+;;; the discriminant for boxed bitmap-s
+(definstance discr_bitmap class_discriminant
+  :doc #{The $DISCR_BITMAP is the discriminant of boxed GCC bitmap values. See
+also $CTYPE_BITMAP.}#
+  :predef DISCR_BITMAP
+  :obj_num OBMAG_BITMAP
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_BITMAP")
+
+
+;;; the discriminant for boxed rtx-s
+(definstance discr_rtx class_discriminant
+  :doc #{The $DISCR_RTX is the discriminant of boxed GCC rtx values. See
+also $CTYPE_RTX.}#
+  :predef DISCR_RTX
+  :obj_num OBMAG_RTX
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_RTX")
+
+;;; the discriminant for boxed rtvec-s
+(definstance discr_rtvec class_discriminant
+  :doc #{The $DISCR_RTVEC is the discriminant of boxed GCC rtvec values. See
+also $CTYPE_RTVEC.}#
+  :predef DISCR_RTVEC
+  :obj_num OBMAG_RTVEC
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_RTVEC")
+
 ;;; the discriminant for maps of objects
 (definstance discr_map_objects class_discriminant
   :doc #{The $DISCR_MAP_OBJECTS is the discriminant of hash-map values associating MELT objects to
@@ -1608,7 +1646,7 @@ non-nil value. See also $CTYPE_CSTRING.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_STRINGS")
 
-;;; the discriminant for maps of trees
+;;; the discriminant for maps of tree-s
 (definstance discr_map_trees class_discriminant
   :doc #{The $DISCR_MAP_TREES is the discriminant of hash-map values associating raw GCC tree-s
 to non-nil value. See also $CTYPE_TREE.}#
@@ -1617,7 +1655,7 @@ to non-nil value. See also $CTYPE_TREE.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_TREES")
 
-;;; the discriminant for maps of gimples
+;;; the discriminant for maps of gimple-s
 (definstance discr_map_gimples class_discriminant
   :doc #{The $DISCR_MAP_GIMPLES is the discriminant of hash-map values associating raw GCC gimple-s 
 to non-nil value. See also $CTYPE_GIMPLE.}#
@@ -1626,7 +1664,7 @@ to non-nil value. See also $CTYPE_GIMPLE.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_GIMPLES")
 
-;;; the discriminant for maps of gimple_seqs
+;;; the discriminant for maps of gimple_seq-s
 (definstance discr_map_gimple_seqs class_discriminant
   :doc #{The $DISCR_MAP_GIMPLE_SEQS is the discriminant of hash-map values associating raw GCC gimple_seq-s 
 to non-nil value. See also $CTYPE_GIMPLE_SEQ.}#
@@ -1634,6 +1672,15 @@ to non-nil value. See also $CTYPE_GIMPLE_SEQ.}#
   :obj_num OBMAG_MAPGIMPLESEQS
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_GIMPLE_SEQS")
+
+;;; the discriminant for maps of gimple_seq_node-s
+(definstance discr_map_gimple_seq_nodes class_discriminant
+  :doc #{The $DISCR_MAP_GIMPLE_SEQ_NODES is the discriminant of hash-map values associating raw GCC gimple_seq_node-s 
+to non-nil value. See also $CTYPE_GIMPLE_SEQ_NODE.}#
+  :predef DISCR_MAP_GIMPLE_SEQ_NODES
+  :obj_num OBMAG_MAPGIMPLESEQNODES
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_MAP_GIMPLE_SEQ_NODES")
 
 ;;; the discriminant for maps of edges
 (definstance discr_map_edges class_discriminant
@@ -1661,6 +1708,33 @@ to non-nil values. See also $CTYPE_LOOP.}#
   :obj_num OBMAG_MAPLOOPS
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_LOOPS")
+
+;;; the discriminant for maps of bitmap-s
+(definstance discr_map_bitmaps class_discriminant
+  :doc #{The $DISCR_MAP_BITMAPS is the discriminant of hash-map values associating raw GCC bitmap-s 
+to non-nil values. See also $CTYPE_BITMAP.}#
+  :predef DISCR_MAP_BITMAPS
+  :obj_num OBMAG_MAPBITMAPS
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_MAP_BITMAPS")
+
+;;; the discriminant for maps of rtx-s
+(definstance discr_map_rtxs class_discriminant
+  :doc #{The $DISCR_MAP_RTXS is the discriminant of hash-map values associating raw GCC rtx-s 
+to non-nil values. See also $CTYPE_RTX.}#
+  :predef DISCR_MAP_RTXS
+  :obj_num OBMAG_MAPRTXS
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_MAP_RTXS")
+
+;;; the discriminant for maps of rtvec-s
+(definstance discr_map_rtvecs class_discriminant
+  :doc #{The $DISCR_MAP_RTVECS is the discriminant of hash-map values associating raw GCC rtvec-s 
+to non-nil values. See also $CTYPE_RTVEC.}#
+  :predef DISCR_MAP_RTVECS
+  :obj_num OBMAG_MAPRTVECS
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_MAP_RTVECS")
 
 
 ;;; the discriminant for PPL constraint system (not predefined)
@@ -1868,7 +1942,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   )
 (install_ctype_descr ctype_gimple "GCC gimple pointer")
 
-;; the C type for gcc gimple_seqs
+;; the C type for gcc gimple_seq-s
 (definstance ctype_gimple_seq class_ctype
   :doc #{The $CTYPE_GIMPLE_SEQ is the c-type of raw GCC gimple_seq stuff. See also $DISCR_GIMPLE_SEQ. 
 Keyword is :gimple_seq.}#
@@ -1883,7 +1957,24 @@ Keyword is :gimple_seq.}#
   :ctype_resfield '"bp_gimpleseqptr"
   :ctype_marker '"gt_ggc_mx_gimple_seq_d"
   )
-(install_ctype_descr ctype_gimple_seq "GCC gimpleseq pointer")
+(install_ctype_descr ctype_gimple_seq "GCC gimple_seq pointer")
+
+;; the C type for gcc gimple_seq_node-s
+(definstance ctype_gimple_seq_node class_ctype
+  :doc #{The $CTYPE_GIMPLE_SEQ_NODE is the c-type of raw GCC gimple_seq_node stuff. See also $DISCR_GIMPLE_SEQ_NODE. 
+Keyword is :gimple_seq_node.}#
+  :predef CTYPE_GIMPLE_SEQ_NODE
+  :named_name  '"CTYPE_GIMPLE_SEQ_NODE"
+  :ctype_keyword ':gimple_seq_node
+  ; :ctype_altkeyword ':gimpleseq
+  :ctype_cname  '"gimple_seq_node"
+  :ctype_parchar '"BPAR_GIMPLESEQ"
+  :ctype_parstring '"BPARSTR_GIMPLESEQ"
+  :ctype_argfield '"bp_gimpleseq"
+  :ctype_resfield '"bp_gimpleseqptr"
+  :ctype_marker '"gt_ggc_mx_gimple_seq_node_d"
+  )
+(install_ctype_descr ctype_gimple_seq_node "GCC gimple_seq_node pointer")
 
 ;; the C type for gcc basic_blocks
 (definstance ctype_basic_block class_ctype
@@ -1933,6 +2024,54 @@ Keyword is :loop.}#
   :ctype_marker '"gt_ggc_mx_loop"
   )
 (install_ctype_descr ctype_loop "GCC loop")
+
+;; the C type for gcc rtx-s
+(definstance ctype_rtx class_ctype
+  :doc #{The $CTYPE_RTX is the c-type of raw GCC rtx stuff. See also $DISCR_RTX.
+Keyword is :rtx.}#
+  :predef CTYPE_RTX
+  :named_name  '"CTYPE_RTX"
+  :ctype_keyword ':rtx
+  :ctype_cname '"rtx"
+  :ctype_parchar '"BPAR_RTX"
+  :ctype_parstring '"BPARSTR_RTX"
+  :ctype_argfield '"bp_rtx"
+  :ctype_resfield '"bp_rtxptr"
+  :ctype_marker '"gt_ggc_mx_rtx"
+  )
+(install_ctype_descr ctype_rtx "GCC rtx")
+
+;; the C type for gcc bitmap-s
+(definstance ctype_bitmap class_ctype
+  :doc #{The $CTYPE_BITMAP is the c-type of raw GCC bitmap stuff. See also $DISCR_BITMAP.
+Keyword is :bitmap.}#
+  :predef CTYPE_BITMAP
+  :named_name  '"CTYPE_BITMAP"
+  :ctype_keyword ':bitmap
+  :ctype_cname '"bitmap"
+  :ctype_parchar '"BPAR_BITMAP"
+  :ctype_parstring '"BPARSTR_BITMAP"
+  :ctype_argfield '"bp_bitmap"
+  :ctype_resfield '"bp_bitmapptr"
+  :ctype_marker '"gt_ggc_mx_bitmap"
+  )
+(install_ctype_descr ctype_bitmap "GCC bitmap")
+
+;; the C type for gcc rtvec-s
+(definstance ctype_rtvec class_ctype
+  :doc #{The $CTYPE_RTVEC is the c-type of raw GCC rtvec stuff. See also $DISCR_RTVEC.
+Keyword is :rtvec.}#
+  :predef CTYPE_RTVEC
+  :named_name  '"CTYPE_RTVEC"
+  :ctype_keyword ':rtvec
+  :ctype_cname '"rtvec"
+  :ctype_parchar '"BPAR_RTVEC"
+  :ctype_parstring '"BPARSTR_RTVEC"
+  :ctype_argfield '"bp_rtvec"
+  :ctype_resfield '"bp_rtvecptr"
+  :ctype_marker '"gt_ggc_mx_rtvec"
+  )
+(install_ctype_descr ctype_rtvec "GCC rtvec")
 
 ;;; the ctype for PPL coefficients
 (definstance ctype_ppl_coefficient class_ctype
@@ -3544,21 +3683,26 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 ;; export the discriminants and instances and selectors defined above
 (export_values				;alphabetical order
  ctype_basic_block
+ ctype_bitmap
  ctype_cstring     
  ctype_edge                   
  ctype_gimple
  ctype_gimple_seq
+ ctype_gimple_seq_node
  ctype_long 
  ctype_loop
  ctype_ppl_coefficient
  ctype_ppl_constraint
  ctype_ppl_constraint_system
  ctype_ppl_linear_expression
+ ctype_rtvec
+ ctype_rtx
  ctype_tree                           
  ctype_value                          
  ctype_void  
  discr_any_receiver                        
  discr_basic_block   
+ discr_bitmap                       
  discr_box 
  discr_character_integer                    
  discr_class_sequence                       
@@ -3569,13 +3713,19 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discr_file
  discr_gimple
  discr_gimple_seq
+ discr_gimple_seq_node
  discr_integer                        
- discr_list                           
+ discr_list    
+ discr_loop
  discr_map_basic_blocks
+ discr_map_bitmaps
  discr_map_edges
- discr_map_gimples
+ discr_map_gimple_seq_nodes
  discr_map_gimple_seqs
+ discr_map_gimples
  discr_map_objects                     
+ discr_map_rtvecs
+ discr_map_rtxs
  discr_map_strings                     
  discr_map_trees
  discr_method_map 
@@ -3591,6 +3741,8 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discr_rawfile
  discr_real
  discr_routine                        
+ discr_rtvec
+ discr_rtx
  discr_strbuf                         
  discr_string                         
  discr_tree

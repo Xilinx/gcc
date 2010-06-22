@@ -235,11 +235,35 @@ union meltparam_un
 #define BPAR_PPL_POLYHEDRON            'E'
 #define BPARSTR_PPL_POLYHEDRON         "E"
 
+  /* bitmap-s */
+  bitmap bp_bitmap;			/* letter I */
+  bitmap *bp_bitmapptr;		/* for results */
+#define BPAR_BITMAP         'I'
+#define BPARSTR_BITMAP      "I"
+
   /* loop-s */
   struct loop *bp_loop;			/* letter L */
   struct loop **bp_loopptr;		/* for results */
 #define BPAR_LOOP         'L'
 #define BPARSTR_LOOP      "L"
+
+  /* rtx-s */
+  rtx bp_rtx;			/* letter X */
+  rtx* bp_rtxptr;
+#define BPAR_RTX         'X'
+#define BPARSTR_RTX      "X"
+
+  /* gimple_seq_node-s */
+  gimple_seq_node bp_gimple_seq_node;			/* letter N */
+  gimple_seq_node* bp_gimple_seq_nodeptr;
+#define BPAR_GIMPLE_SEQ_NODE         'N'
+#define BPARSTR_GIMPLE_SEQ_NODE      "N"
+
+  /* rtvec-s */
+  rtvec bp_rtvec;			/* letter Y */
+  rtvec* bp_rtvecptr;
+#define BPAR_RTVEC         'Y'
+#define BPARSTR_RTVEC      "Y"
 };
 
 /*** the closures contain routines which are called by applying
@@ -308,34 +332,46 @@ typedef VEC (melt_ptr_t, gc) melt_valvec_t;
 enum obmag_en    {
   OBMAG__NONE = 0,
   OBMAG_OBJECT = 30000,
+  
+  /* keep these in alphabetical order */
+  OBMAG_BASICBLOCK,
+  OBMAG_BITMAP,
   OBMAG_BOX,
-  OBMAG_MULTIPLE,
   OBMAG_CLOSURE,
-  OBMAG_ROUTINE,
-  OBMAG_LIST,
-  OBMAG_PAIR,
-  OBMAG_INT,
-  OBMAG_MIXINT,
-  OBMAG_MIXLOC,
-  OBMAG_MIXBIGINT,
-  OBMAG_REAL,
-  OBMAG_STRING,
-  OBMAG_STRBUF,
-  OBMAG_TREE,
+  OBMAG_DECAY,
+  OBMAG_EDGE,
   OBMAG_GIMPLE,
   OBMAG_GIMPLESEQ,
-  OBMAG_BASICBLOCK,
-  OBMAG_EDGE,
+  OBMAG_GIMPLESEQNODE,
+  OBMAG_INT,
+  OBMAG_LIST,
+  OBMAG_LOOP,
+  OBMAG_MAPBASICBLOCKS,
+  OBMAG_MAPBITMAPS,
+  OBMAG_MAPEDGES,
+  OBMAG_MAPGIMPLES,
+  OBMAG_MAPGIMPLESEQNODES,
+  OBMAG_MAPGIMPLESEQS,
+  OBMAG_MAPLOOPS,
   OBMAG_MAPOBJECTS,
+  OBMAG_MAPRTVECS,
+  OBMAG_MAPRTXS,
   OBMAG_MAPSTRINGS,
   OBMAG_MAPTREES,
-  OBMAG_MAPGIMPLES,
-  OBMAG_MAPGIMPLESEQS,
-  OBMAG_MAPBASICBLOCKS,
-  OBMAG_MAPEDGES,
-  OBMAG_DECAY,
-  OBMAG_LOOP,
-  OBMAG_MAPLOOPS,
+  OBMAG_MIXBIGINT,
+  OBMAG_MIXINT,
+  OBMAG_MIXLOC,
+  OBMAG_MULTIPLE,
+  OBMAG_PAIR,
+  OBMAG_REAL,
+  OBMAG_ROUTINE,
+  OBMAG_RTVEC,
+  OBMAG_RTX,
+  OBMAG_STRBUF,
+  OBMAG_STRING,
+  OBMAG_TREE,
+
+  /* extra spare slots */
   OBMAG__SPARE1,
   OBMAG__SPARE2,
   OBMAG__SPARE3,
@@ -367,10 +403,8 @@ enum obmag_en    {
   OBMAG__SPARE29,
   OBMAG__SPARE30,
   OBMAG__SPARE31,
-  OBMAG__SPARE32,
-  OBMAG__SPARE33,
-  OBMAG__SPARE34,
-  OBMAG__SPARE35,
+
+  /* special, explicitly destroyed */
   OBMAG_SPEC_FILE,		/* closed when deleted */
   OBMAG_SPEC_RAWFILE,		/* not closed when deleted */
   OBMAG_SPEC_MPFR,
@@ -381,6 +415,7 @@ enum obmag_en    {
   OBMAG_SPECPPL_GENERATOR,
   OBMAG_SPECPPL_GENERATOR_SYSTEM,
   OBMAG_SPECPPL_POLYHEDRON,
+ 
   OBMAG__LAST
 };
 
@@ -425,8 +460,8 @@ meltobject_st
 };
 
 
-#define MELT_OBJECT_STRUCT(N) {		\
-  meltobject_ptr_t obj_class;		\
+#define MELT_OBJECT_STRUCT(N) {			\
+  meltobject_ptr_t obj_class;			\
   unsigned obj_hash;				\
   unsigned short obj_num;			\
   unsigned short obj_len;			\
@@ -485,7 +520,7 @@ meltmultiple_st
 #define MELT_MULTIPLE_STRUCT(N) {		\
   meltobject_ptr_t discr;			\
   unsigned nbval;				\
-  melt_ptr_t tabval[N];			\
+  melt_ptr_t tabval[N];				\
   long _gap; }
 
 /* when OBMAG_CLOSURE */
@@ -732,13 +767,23 @@ meltgimple_st
 };
 
 
-/* when OBMAG_GIMPLESEQ - boxed gimpleseq-s */
+/* when OBMAG_GIMPLESEQ - boxed gimple_seq-s */
 struct 
 GTY (())
 meltgimpleseq_st
 {
   meltobject_ptr_t discr;
   gimple_seq val;
+};
+
+
+/* when OBMAG_GIMPLESEQNODE - boxed gimple_seq_node-s */
+struct 
+GTY (())
+  meltgimpleseqnode_st
+{
+  meltobject_ptr_t discr;
+  gimple_seq_node val;
 };
 
 /* when OBMAG_BASICBLOCK  - boxed basic_block-s */
@@ -767,6 +812,37 @@ meltloop_st
 {
   meltobject_ptr_t discr;
   loop_p val;
+};
+
+
+
+/* when OBMAG_RTX - boxed rtx-s */
+struct 
+GTY (())
+meltrtx_st
+{
+  meltobject_ptr_t discr;
+  rtx val;
+};
+
+
+/* when OBMAG_BITMAP - boxed bitmap-s */
+struct 
+GTY (())
+meltbitmap_st
+{
+  meltobject_ptr_t discr;
+  bitmap val;
+};
+
+
+/* when OBMAG_RTVEC - boxed rtvec-s */
+struct 
+GTY (())
+meltrtvec_st
+{
+  meltobject_ptr_t discr;
+  rtvec val;
 };
 
 
@@ -866,6 +942,29 @@ meltmapgimpleseqs_st
     entab;
 };
 
+
+/*** hashed maps of gimpleseqnodes to melt ***/
+struct
+GTY (()) 
+entrygimpleseqnodesmelt_st
+{
+  gimple_seq_node e_at;
+  melt_ptr_t e_va;
+};
+
+/* when OBMAG_MAPGIMPLESEQNODES */
+struct
+GTY (()) 
+meltmapgimpleseqnodes_st
+{
+  /* change meltmappointers_st when changing this structure */
+  meltobject_ptr_t discr;
+  unsigned count;
+  unsigned char lenix;
+  struct entrygimpleseqnodesmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
+    entab;
+};
+
 /*** hashed maps of loop_p-s to melt values ***/
 struct
 GTY (()) 
@@ -885,6 +984,79 @@ meltmaploops_st
   unsigned count;
   unsigned char lenix;
   struct entryloopsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
+    entab;
+};
+
+
+
+/*** hashed maps of bitmap-s to melt values ***/
+struct
+GTY (()) 
+entrybitmapsmelt_st
+{
+  bitmap e_at;
+  melt_ptr_t e_va;
+};
+
+/* when OBMAG_MAPBITMAPS */
+struct
+GTY (()) 
+meltmapbitmaps_st
+{
+  /* change meltmappointers_st when changing this structure */
+  meltobject_ptr_t discr;
+  unsigned count;
+  unsigned char lenix;
+  struct entrybitmapsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
+    entab;
+};
+
+
+
+
+/*** hashed maps of rtx-s to melt values ***/
+struct
+GTY (()) 
+entryrtxsmelt_st
+{
+  rtx e_at;
+  melt_ptr_t e_va;
+};
+
+/* when OBMAG_MAPRTXS */
+struct
+GTY (()) 
+meltmaprtxs_st
+{
+  /* change meltmappointers_st when changing this structure */
+  meltobject_ptr_t discr;
+  unsigned count;
+  unsigned char lenix;
+  struct entryrtxsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
+    entab;
+};
+
+
+
+/*** hashed maps of rtvec-s to melt values ***/
+struct
+GTY (()) 
+entryrtvecsmelt_st
+{
+  rtvec e_at;
+  melt_ptr_t e_va;
+};
+
+/* when OBMAG_MAPRTVECS */
+struct
+GTY (()) 
+meltmaprtvecs_st
+{
+  /* change meltmappointers_st when changing this structure */
+  meltobject_ptr_t discr;
+  unsigned count;
+  unsigned char lenix;
+  struct entryrtvecsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
     entab;
 };
 
@@ -995,18 +1167,26 @@ melt_un
   struct melttree_st GTY ((tag ("OBMAG_TREE"))) u_tree;
   struct meltgimple_st GTY ((tag ("OBMAG_GIMPLE"))) u_gimple;
   struct meltgimpleseq_st GTY ((tag ("OBMAG_GIMPLESEQ"))) u_gimpleseq;
+  struct meltgimpleseq_st GTY ((tag ("OBMAG_GIMPLESEQNODE"))) u_gimpleseqnode;
   struct meltbasicblock_st GTY ((tag ("OBMAG_BASICBLOCK"))) u_basicblock;
   struct meltedge_st GTY ((tag ("OBMAG_EDGE"))) u_edge;
   struct meltloop_st GTY ((tag ("OBMAG_LOOP"))) u_loop;
+  struct meltbitmap_st GTY ((tag ("OBMAG_BITMAP"))) u_bitmap;
+  struct meltrtx_st GTY ((tag ("OBMAG_RTX"))) u_rtx;
+  struct meltrtvec_st GTY ((tag ("OBMAG_RTVEC"))) u_rtvec;
   struct meltmapobjects_st GTY ((tag ("OBMAG_MAPOBJECTS"))) u_mapobjects;
   struct meltmapstrings_st GTY ((tag ("OBMAG_MAPSTRINGS"))) u_mapstrings;
   struct meltmaptrees_st GTY ((tag ("OBMAG_MAPTREES"))) u_maptrees;
   struct meltmapgimples_st GTY ((tag ("OBMAG_MAPGIMPLES"))) u_mapgimples;
   struct meltmapgimpleseqs_st GTY ((tag ("OBMAG_MAPGIMPLESEQS"))) u_mapgimpleseqs;
+  struct meltmapgimpleseqs_st GTY ((tag ("OBMAG_MAPGIMPLESEQNODES"))) u_mapgimpleseqnodes;
   struct meltmapbasicblocks_st GTY ((tag ("OBMAG_MAPBASICBLOCKS")))
     u_mapbasicblocks;
   struct meltmapedges_st GTY ((tag ("OBMAG_MAPEDGES"))) u_mapedges;
   struct meltmaploops_st GTY ((tag ("OBMAG_MAPLOOPS"))) u_maploops;
+  struct meltmapbitmaps_st GTY ((tag ("OBMAG_MAPBITMAPS"))) u_mapbitmaps;
+  struct meltmaprtxs_st GTY ((tag ("OBMAG_MAPRTXS"))) u_maprtxs;
+  struct meltmaprtvecs_st GTY ((tag ("OBMAG_MAPRTVECS"))) u_maprtvecs;
 } melt_un_t;
 
 /* return the magic of the discriminant or 0 */
@@ -1244,6 +1424,17 @@ MELT_DEFINE_MAPTR(OBMAG_MAPGIMPLESEQS, gimple_seq, meltmapgimpleseqs_st,
 		      melt_nthval_mapgimpleseqs)
 
 
+MELT_DEFINE_MAPTR(OBMAG_MAPGIMPLESEQNODES, gimple_seq_node, meltmapgimpleseqnodes_st,
+		      meltgc_new_mapgimpleseqnodes,
+		      melt_get_mapgimpleseqnodes,
+		      melt_put_mapgimpleseqnodes,
+		      melt_remove_mapgimpleseqnodes,
+		      melt_count_mapgimpleseqnodes,
+		      melt_size_mapgimpleseqnodes,
+		      melt_nthattr_mapgimpleseqnodes,
+		      melt_nthval_mapgimpleseqnodes)
+
+
 MELT_DEFINE_MAPTR(OBMAG_MAPEDGES, edge, meltmapedges_st,
 		      meltgc_new_mapedges,
 		      melt_get_mapedges,
@@ -1273,6 +1464,36 @@ MELT_DEFINE_MAPTR(OBMAG_MAPLOOPS, loop_p, meltmaploops_st,
 		      melt_size_maploops,
 		      melt_nthattr_maploops,
 		      melt_nthval_maploops)
+
+MELT_DEFINE_MAPTR(OBMAG_MAPRTXS, rtx, meltmaprtxs_st,
+		      meltgc_new_maprtxs,
+		      melt_get_maprtxs,
+		      melt_put_maprtxs,
+		      melt_remove_maprtxs,
+		      melt_count_maprtxs,
+		      melt_size_maprtxs,
+		      melt_nthattr_maprtxs,
+		      melt_nthval_maprtxs)
+
+MELT_DEFINE_MAPTR(OBMAG_MAPRTVECS, rtvec, meltmaprtvecs_st,
+		      meltgc_new_maprtvecs,
+		      melt_get_maprtvecs,
+		      melt_put_maprtvecs,
+		      melt_remove_maprtvecs,
+		      melt_count_maprtvecs,
+		      melt_size_maprtvecs,
+		      melt_nthattr_maprtvecs,
+		      melt_nthval_maprtvecs)
+
+MELT_DEFINE_MAPTR(OBMAG_MAPBITMAPS, bitmap, meltmapbitmaps_st,
+		      meltgc_new_mapbitmaps,
+		      melt_get_mapbitmaps,
+		      melt_put_mapbitmaps,
+		      melt_remove_mapbitmaps,
+		      melt_count_mapbitmaps,
+		      melt_size_mapbitmaps,
+		      melt_nthattr_mapbitmaps,
+		      melt_nthval_mapbitmaps)
 
 
 /* do not use MELT_DEFINE_MAPTR elsewhere */
@@ -1313,7 +1534,7 @@ melt_gimple_content (melt_ptr_t box)
 melt_ptr_t meltgc_new_gimpleseq (meltobject_ptr_t discr_p,
 				    gimple_seq val);
 
-/* return the content of a boxed gimple */
+/* return the content of a boxed gimple_seq */
 static inline gimple_seq
 melt_gimpleseq_content (melt_ptr_t box)
 {
@@ -1322,6 +1543,24 @@ melt_gimpleseq_content (melt_ptr_t box)
     return NULL;
   return g->val;
 }
+
+
+/* allocate a new boxed gimpleseqnode of given DISCR [DISCR_GIMPLESEQNODE if null] &
+   content VAL */
+melt_ptr_t meltgc_new_gimpleseqnode (meltobject_ptr_t discr_p,
+				    gimple_seq val);
+
+/* return the content of a boxed gimple_seq_node */
+static inline gimple_seq_node
+melt_gimpleseqnode_content (melt_ptr_t box)
+{
+  struct meltgimpleseqnode_st* g = (struct meltgimpleseqnode_st*)box;
+  if (!g || g->discr->object_magic != OBMAG_GIMPLESEQNODE)
+    return NULL;
+  return g->val;
+}
+
+
 
 /* allocate a new boxed basicblock of given DISCR [DISCR_BASICBLOCK if null] &
    content VAL */
@@ -1358,6 +1597,8 @@ melt_basicblock_phinodes(melt_ptr_t box)
   return phi_nodes(b->val);
 }
 
+
+/***** basic support of loops ****/
 /* allocate a new boxed loop of given DISCR [DISCR_LOOP if null] &
    content VAL */
 melt_ptr_t meltgc_new_loop (meltobject_ptr_t discr_p,
@@ -1372,6 +1613,62 @@ melt_loop_content (melt_ptr_t box)
     return NULL;
   return b->val;
 }
+
+
+/***** basic support of bitmaps ****/
+/* allocate a new boxed bitmap of given DISCR [DISCR_BITMAP if null] &
+   content VAL */
+melt_ptr_t meltgc_new_bitmap (meltobject_ptr_t discr_p,
+			      bitmap val);
+
+/* return the content of a boxed bitmap */
+static inline bitmap
+melt_bitmap_content (melt_ptr_t box)
+{
+  struct meltbitmap_st* b = (struct meltbitmap_st*)box;
+  if (!b || b->discr->object_magic != OBMAG_BITMAP)
+    return NULL;
+  return b->val;
+}
+
+
+
+/***** basic support of rtxs ****/
+/* allocate a new boxed rtx of given DISCR [DISCR_RTX if null] &
+   content VAL */
+melt_ptr_t meltgc_new_rtx (meltobject_ptr_t discr_p,
+			    rtx val);
+
+/* return the content of a boxed rtx */
+static inline rtx
+melt_rtx_content (melt_ptr_t box)
+{
+  struct meltrtx_st* b = (struct meltrtx_st*)box;
+  if (!b || b->discr->object_magic != OBMAG_RTX)
+    return NULL;
+  return b->val;
+}
+
+
+/***** basic support of rtvecs ****/
+/* allocate a new boxed rtvec of given DISCR [DISCR_RTVEC if null] &
+   content VAL */
+melt_ptr_t meltgc_new_rtvec (meltobject_ptr_t discr_p,
+			    rtvec val);
+
+/* return the content of a boxed rtvec */
+static inline rtvec
+melt_rtvec_content (melt_ptr_t box)
+{
+  struct meltrtvec_st* b = (struct meltrtvec_st*)box;
+  if (!b || b->discr->object_magic != OBMAG_RTVEC)
+    return NULL;
+  return b->val;
+}
+
+
+
+
 /*************************************************************
  * young generation copying garbage collector 
  *

@@ -539,11 +539,18 @@ check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
     case OBMAG_BASICBLOCK:
     case OBMAG_EDGE:
     case OBMAG_LOOP:
+    case OBMAG_RTX:
+    case OBMAG_RTVEC:
+    case OBMAG_BITMAP:
     case OBMAG_MAPOBJECTS:
     case OBMAG_MAPTREES:
     case OBMAG_MAPGIMPLES:
     case OBMAG_MAPGIMPLESEQS:
+    case OBMAG_MAPGIMPLESEQNODES:
     case OBMAG_MAPLOOPS:
+    case OBMAG_MAPRTXS:
+    case OBMAG_MAPRTVECS:
+    case OBMAG_MAPBITMAPS:
     case OBMAG_MAPSTRINGS:
     case OBMAG_MAPBASICBLOCKS:
     case OBMAG_MAPEDGES:
@@ -1173,6 +1180,15 @@ forwarded_copy (melt_ptr_t p)
 	n = (melt_ptr_t) dst;
 	break;
       }
+    case OBMAG_GIMPLESEQNODE:
+      {
+	struct meltgimpleseqnode_st *src = (struct meltgimpleseqnode_st *) p;
+	struct meltgimpleseqnode_st *dst = (struct meltgimpleseqnode_st *)
+	  ggc_alloc_cleared (sizeof (struct meltgimpleseqnode_st));
+	*dst = *src;
+	n = (melt_ptr_t) dst;
+	break;
+      }
     case OBMAG_BASICBLOCK:
       {
 	struct meltbasicblock_st *src = (struct meltbasicblock_st *) p;
@@ -1196,6 +1212,33 @@ forwarded_copy (melt_ptr_t p)
 	struct meltloop_st *src = (struct meltloop_st *) p;
 	struct meltloop_st *dst = (struct meltloop_st *)
 	  ggc_alloc_cleared (sizeof (struct meltloop_st));
+	*dst = *src;
+	n = (melt_ptr_t) dst;
+	break;
+      }
+    case OBMAG_RTX:
+      {
+	struct meltrtx_st *src = (struct meltrtx_st *) p;
+	struct meltrtx_st *dst = (struct meltrtx_st *)
+	  ggc_alloc_cleared (sizeof (struct meltrtx_st));
+	*dst = *src;
+	n = (melt_ptr_t) dst;
+	break;
+      }
+    case OBMAG_RTVEC:
+      {
+	struct meltrtvec_st *src = (struct meltrtvec_st *) p;
+	struct meltrtvec_st *dst = (struct meltrtvec_st *)
+	  ggc_alloc_cleared (sizeof (struct meltrtvec_st));
+	*dst = *src;
+	n = (melt_ptr_t) dst;
+	break;
+      }
+    case OBMAG_BITMAP:
+      {
+	struct meltbitmap_st *src = (struct meltbitmap_st *) p;
+	struct meltbitmap_st *dst = (struct meltbitmap_st *)
+	  ggc_alloc_cleared (sizeof (struct meltbitmap_st));
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1290,6 +1333,29 @@ forwarded_copy (melt_ptr_t p)
 	n = (melt_ptr_t) dst;
 	break;
       }
+    case OBMAG_MAPGIMPLESEQNODES:
+      {
+	struct meltmapgimpleseqnodes_st *src =
+	  (struct meltmapgimpleseqnodes_st *) p;
+	int siz = melt_primtab[src->lenix];
+	struct meltmapgimpleseqnodes_st *dst =
+	  (struct meltmapgimpleseqnodes_st *)
+	  ggc_alloc_cleared (sizeof (struct meltmapgimpleseqnodes_st));
+	dst->discr = src->discr;
+	dst->count = src->count;
+	dst->lenix = src->lenix;
+	if (siz > 0 && src->entab)
+	  {
+	    dst->entab =
+	      (struct entrygimpleseqnodesmelt_st *)
+	      ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
+	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
+	  }
+	else
+	  dst->entab = NULL;
+	n = (melt_ptr_t) dst;
+	break;
+      }
     case OBMAG_MAPSTRINGS:
       {
 	struct meltmapstrings_st *src = (struct meltmapstrings_st *) p;
@@ -1375,6 +1441,69 @@ forwarded_copy (melt_ptr_t p)
 	  {
 	    dst->entab =
 	      (struct entryloopsmelt_st *)
+	      ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
+	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
+	  }
+	else
+	  dst->entab = NULL;
+	n = (melt_ptr_t) dst;
+	break;
+      }
+    case OBMAG_MAPRTXS:
+      {
+	struct meltmaprtxs_st *src = (struct meltmaprtxs_st *) p;
+	int siz = melt_primtab[src->lenix];
+	struct meltmaprtxs_st *dst = (struct meltmaprtxs_st *)
+	  ggc_alloc_cleared (sizeof (struct meltmaprtxs_st));
+	dst->discr = src->discr;
+	dst->count = src->count;
+	dst->lenix = src->lenix;
+	if (siz > 0 && src->entab)
+	  {
+	    dst->entab =
+	      (struct entryrtxsmelt_st *)
+	      ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
+	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
+	  }
+	else
+	  dst->entab = NULL;
+	n = (melt_ptr_t) dst;
+	break;
+      }
+    case OBMAG_MAPRTVECS:
+      {
+	struct meltmaprtvecs_st *src = (struct meltmaprtvecs_st *) p;
+	int siz = melt_primtab[src->lenix];
+	struct meltmaprtvecs_st *dst = (struct meltmaprtvecs_st *)
+	  ggc_alloc_cleared (sizeof (struct meltmaprtvecs_st));
+	dst->discr = src->discr;
+	dst->count = src->count;
+	dst->lenix = src->lenix;
+	if (siz > 0 && src->entab)
+	  {
+	    dst->entab =
+	      (struct entryrtvecsmelt_st *)
+	      ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
+	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
+	  }
+	else
+	  dst->entab = NULL;
+	n = (melt_ptr_t) dst;
+	break;
+      }
+    case OBMAG_MAPBITMAPS:
+      {
+	struct meltmapbitmaps_st *src = (struct meltmapbitmaps_st *) p;
+	int siz = melt_primtab[src->lenix];
+	struct meltmapbitmaps_st *dst = (struct meltmapbitmaps_st *)
+	  ggc_alloc_cleared (sizeof (struct meltmapbitmaps_st));
+	dst->discr = src->discr;
+	dst->count = src->count;
+	dst->lenix = src->lenix;
+	if (siz > 0 && src->entab)
+	  {
+	    dst->entab =
+	      (struct entrybitmapsmelt_st *)
 	      ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
@@ -1623,6 +1752,37 @@ scanning (melt_ptr_t p)
 	  }
 	break;
       }
+    case OBMAG_MAPGIMPLESEQNODES:
+      {
+	struct meltmapgimpleseqnodes_st *src =
+	  (struct meltmapgimpleseqnodes_st *) p;
+	int ix, siz;
+	if (!src->entab)
+	  break;
+	siz = melt_primtab[src->lenix];
+	gcc_assert (siz > 0);
+	if (melt_is_young (src->entab))
+	  {
+	    struct entrygimpleseqnodesmelt_st *newtab =
+	      (struct entrygimpleseqnodesmelt_st *)
+	      ggc_alloc_cleared (siz *
+				 sizeof (struct entrygimpleseqnodesmelt_st));
+	    memcpy (newtab, src->entab,
+		    siz * sizeof (struct entrygimpleseqnodesmelt_st));
+	    src->entab = newtab;
+	  }
+	for (ix = 0; ix < siz; ix++)
+	  {
+	    gimple_seq_node at = src->entab[ix].e_at;
+	    if (!at || at == (void *) 1)
+	      {
+		src->entab[ix].e_va = NULL;
+		continue;
+	      }
+	    FORWARDED (src->entab[ix].e_va);
+	  }
+	break;
+      }
     case OBMAG_MAPSTRINGS:
       {
 	struct meltmapstrings_st *src = (struct meltmapstrings_st *) p;
@@ -1744,6 +1904,93 @@ scanning (melt_ptr_t p)
 	  }
 	break;
       }
+    case OBMAG_MAPRTXS:
+      {
+	struct meltmaprtxs_st *src = (struct meltmaprtxs_st *) p;
+	int siz, ix;
+	if (!src->entab)
+	  break;
+	siz = melt_primtab[src->lenix];
+	gcc_assert (siz > 0);
+	if (melt_is_young (src->entab))
+	  {
+	    struct entryrtxsmelt_st *newtab
+	      = (struct entryrtxsmelt_st *)
+	      ggc_alloc_cleared (siz * sizeof (struct entryrtxsmelt_st));
+	    memcpy (newtab, src->entab,
+		    siz * sizeof (struct entryrtxsmelt_st));
+	    src->entab = newtab;
+	  }
+	for (ix = 0; ix < siz; ix++)
+	  {
+	    rtx at = src->entab[ix].e_at;
+	    if (!at || at == (void *) 1)
+	      {
+		src->entab[ix].e_va = NULL;
+		continue;
+	      }
+	    FORWARDED (src->entab[ix].e_va);
+	  }
+	break;
+      }
+    case OBMAG_MAPRTVECS:
+      {
+	struct meltmaprtvecs_st *src = (struct meltmaprtvecs_st *) p;
+	int siz, ix;
+	if (!src->entab)
+	  break;
+	siz = melt_primtab[src->lenix];
+	gcc_assert (siz > 0);
+	if (melt_is_young (src->entab))
+	  {
+	    struct entryrtvecsmelt_st *newtab
+	      = (struct entryrtvecsmelt_st *)
+	      ggc_alloc_cleared (siz * sizeof (struct entryrtvecsmelt_st));
+	    memcpy (newtab, src->entab,
+		    siz * sizeof (struct entryrtvecsmelt_st));
+	    src->entab = newtab;
+	  }
+	for (ix = 0; ix < siz; ix++)
+	  {
+	    rtvec at = src->entab[ix].e_at;
+	    if (!at || at == (void *) 1)
+	      {
+		src->entab[ix].e_va = NULL;
+		continue;
+	      }
+	    FORWARDED (src->entab[ix].e_va);
+	  }
+	break;
+      }
+    case OBMAG_MAPBITMAPS:
+      {
+	struct meltmapbitmaps_st *src = (struct meltmapbitmaps_st *) p;
+	int siz, ix;
+	if (!src->entab)
+	  break;
+	siz = melt_primtab[src->lenix];
+	gcc_assert (siz > 0);
+	if (melt_is_young (src->entab))
+	  {
+	    struct entrybitmapsmelt_st *newtab
+	      = (struct entrybitmapsmelt_st *)
+	      ggc_alloc_cleared (siz * sizeof (struct entrybitmapsmelt_st));
+	    memcpy (newtab, src->entab,
+		    siz * sizeof (struct entrybitmapsmelt_st));
+	    src->entab = newtab;
+	  }
+	for (ix = 0; ix < siz; ix++)
+	  {
+	    bitmap at = src->entab[ix].e_at;
+	    if (!at || at == (void *) 1)
+	      {
+		src->entab[ix].e_va = NULL;
+		continue;
+	      }
+	    FORWARDED (src->entab[ix].e_va);
+	  }
+	break;
+      }
     case OBMAG_MIXINT:
       {
 	struct meltmixint_st *src = (struct meltmixint_st *) p;
@@ -1790,6 +2037,9 @@ scanning (melt_ptr_t p)
     case OBMAG_BASICBLOCK:
     case OBMAG_EDGE:
     case OBMAG_LOOP:
+    case OBMAG_RTX:
+    case OBMAG_RTVEC:
+    case OBMAG_BITMAP:
       break;
     default:
       /* gcc_unreachable (); */
@@ -3189,6 +3439,95 @@ end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) loopv;
 #undef loopv
+#undef discrv
+#undef object_discrv
+}
+
+
+/* allocate a new boxed rtx of given DISCR [or DISCR_RTX] & content
+   VAL */
+melt_ptr_t
+meltgc_new_rtx (meltobject_ptr_t discr_p, rtx data)
+{
+  MELT_ENTERFRAME (2, NULL);
+#define rtxv    meltfram__.varptr[0]
+#define discrv  meltfram__.varptr[1]
+#define object_discrv ((meltobject_ptr_t)(discrv))
+  discrv = (void *) discr_p;
+  if (!discrv)
+    discrv = MELT_PREDEF (DISCR_RTX);
+  if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_RTX)
+    goto end;
+  rtxv = meltgc_allocate (sizeof (struct meltrtx_st), 0);
+  ((struct meltrtx_st *) (rtxv))->discr =
+    (meltobject_ptr_t) discrv;
+  ((struct meltrtx_st *) (rtxv))->val = data;
+end:
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) rtxv;
+#undef rtxv
+#undef discrv
+#undef object_discrv
+}
+
+
+
+
+/* allocate a new boxed rtvec of given DISCR [or DISCR_RTVEC] & content
+   VAL */
+melt_ptr_t
+meltgc_new_rtvec (meltobject_ptr_t discr_p, rtvec data)
+{
+  MELT_ENTERFRAME (2, NULL);
+#define rtvecv    meltfram__.varptr[0]
+#define discrv  meltfram__.varptr[1]
+#define object_discrv ((meltobject_ptr_t)(discrv))
+  discrv = (void *) discr_p;
+  if (!discrv)
+    discrv = MELT_PREDEF (DISCR_RTVEC);
+  if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_RTVEC)
+    goto end;
+  rtvecv = meltgc_allocate (sizeof (struct meltrtvec_st), 0);
+  ((struct meltrtvec_st *) (rtvecv))->discr =
+    (meltobject_ptr_t) discrv;
+  ((struct meltrtvec_st *) (rtvecv))->val = data;
+end:
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) rtvecv;
+#undef rtvecv
+#undef discrv
+#undef object_discrv
+}
+
+
+/* allocate a new boxed bitmap of given DISCR [or DISCR_BITMAP] & content
+   VAL */
+melt_ptr_t
+meltgc_new_bitmap (meltobject_ptr_t discr_p, bitmap data)
+{
+  MELT_ENTERFRAME (2, NULL);
+#define bitmapv    meltfram__.varptr[0]
+#define discrv  meltfram__.varptr[1]
+#define object_discrv ((meltobject_ptr_t)(discrv))
+  discrv = (void *) discr_p;
+  if (!discrv)
+    discrv = MELT_PREDEF (DISCR_BITMAP);
+  if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_BITMAP)
+    goto end;
+  bitmapv = meltgc_allocate (sizeof (struct meltbitmap_st), 0);
+  ((struct meltbitmap_st *) (bitmapv))->discr =
+    (meltobject_ptr_t) discrv;
+  ((struct meltbitmap_st *) (bitmapv))->val = data;
+end:
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) bitmapv;
+#undef bitmapv
 #undef discrv
 #undef object_discrv
 }

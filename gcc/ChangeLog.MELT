@@ -1,6 +1,83 @@
 
+2010-06-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{adding allmost all coretypes, e.g. rtx, ... to MELT}}
+
+	* melt-predef.list: Sorted names alphabetically.
+	(CTYPE_BITMAP, CTYPE_GIMPLE_SEQ_NODE, CTYPE_RTVEC, CTYPE_RTX)
+	(DISCR_BITMAP, DISCR_GIMPLE_SEQ_NODE, DISCR_MAP_BITMAPS)
+	(DISCR_MAP_GIMPLE_SEQ_NODES, DISCR_MAP_RTVECS, DISCR_MAP_RTXS)
+	(DISCR_RTVEC, DISCR_RTX): Added.
+
+	* melt-runtime.h: Re-indented some macros. Added basic support of
+	new ctypes & boxed.
+	(BPAR_BITMAP, BPARSTR_BITMAP, bp_bitmap, bp_bitmapptr, bp_rtx)
+	(bp_rtxptr, BPAR_RTX, BPARSTR_RTX, bp_gimple_seq_node)
+	(bp_gimple_seq_nodeptr, BPAR_GIMPLE_SEQ_NODE)
+	(BPARSTR_GIMPLE_SEQ_NODE, bp_rtvec, bp_rtvecptr, BPAR_RTVEC)
+	(BPARSTR_RTVEC): Added for meltparam_un union.
+	(enum obmag_en): Sorted almost alphabetically.
+	(OBMAG_BITMAP, OBMAG_GIMPLESEQNODE, OBMAG_MAPBITMAPS)
+	(OBMAG_MAPGIMPLESEQNODES, OBMAG_MAPRTVECS, OBMAG_MAPRTXS)
+	(OBMAG_RTVEC, OBMAG_RTX): Added new obmagics inside obmag_en.
+	(meltgimpleseqnode_st, meltrtx_st, meltbitmap_st, meltrtvec_st)
+	(entrygimpleseqnodesmelt_st, meltmapgimpleseqnodes_st)
+	(entrybitmapsmelt_st, meltmapbitmaps_st, entryrtxsmelt_st)
+	(meltmaprtxs_st, entryrtvecsmelt_st, meltmaprtvecs_st): Added new
+	struct-s.
+	(u_bitmap, u_rtx, u_rtvec, u_mapbitmaps, u_maprtxs, u_maprtvecs)
+	(u_mapgimpleseqnodes): new union member in union melt_un.
+	(meltgc_new_mapgimpleseqnodes, melt_get_mapgimpleseqnodes)
+	(melt_put_mapgimpleseqnodes, melt_remove_mapgimpleseqnodes)
+	(melt_count_mapgimpleseqnodes, melt_size_mapgimpleseqnodes)
+	(melt_nthattr_mapgimpleseqnodes, melt_nthval_mapgimpleseqnodes):
+	new declarations.
+	(meltgc_new_maprtxs, melt_get_maprtxs, melt_put_maprtxs)
+	(melt_remove_maprtxs, melt_count_maprtxs, melt_size_maprtxs)
+	(melt_nthattr_maprtxs, melt_nthval_maprtxs): new declarations.
+	(meltgc_new_maprtvecs, melt_get_maprtvecs, melt_put_maprtvecs)
+	(melt_remove_maprtvecs, melt_count_maprtvecs, melt_size_maprtvecs)
+	(melt_nthattr_maprtvecs, melt_nthval_maprtvecs): new declarations.
+	(meltgc_new_mapbitmaps, melt_get_mapbitmaps, melt_put_mapbitmaps)
+	(melt_remove_mapbitmaps, melt_count_mapbitmaps, melt_size_mapbitmaps)
+	(melt_nthattr_mapbitmaps, melt_nthval_mapbitmaps): new declarations.
+	(meltgc_new_gimpleseqnode, meltgc_new_bitmap, meltgc_new_rtx)
+	(meltgc_new_rtvec): new declarations.
+	(melt_gimpleseqnode_content, melt_bitmap_content)
+	(melt_rtx_content, meltgc_new_rtvec): added new functions.
+
+	* melt-runtime.c: Added basic support of ctypes & boxed.
+	(check_pointer_at): updated for new OBMAG.
+	(forwarded_copy): likewise.
+	(meltgc_new_gimpleseqnode, meltgc_new_bitmap, meltgc_new_rtx)
+	(meltgc_new_rtvec): new functions.
+
+	* melt/warmelt-first.melt: Added basic support.
+	(ctype_bitmap, ctype_gimple_seq_node, ctype_rtvec, ctype_rtx)
+	(discr_bitmap, discr_gimple_seq_node, discr_loop)
+	(discr_map_bitmaps, discr_map_gimple_seq_nodes)
+	(discr_map_gimple_seqs, discr_map_rtvecs, discr_map_rtxs)
+	(discr_rtvec, discr_rtx): new.
+
+	{{regenerated all}}
+	* melt/generated/warmelt-normatch.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+03.c: regenerated.
+	* melt/generated/warmelt-macro.0.c: regenerated.
+	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-genobj.0.c: regenerated.
+	* melt/generated/warmelt-normal.0+01.c: regenerated.
+	* melt/generated/warmelt-normal.0+02.c: regenerated.
+	* melt/generated/warmelt-base.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0.c: regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: regenerated.
+	* melt/generated/warmelt-debug.0.c: regenerated.
+
 2010-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
-	    Jeremie Salvucci  <jeremie.salvucci@free.fr>
+	    Jeremie Salvucci <jeremie.salvucci@free.fr>
 
 	* melt/warmelt-base.melt: Added debuglong.
 
