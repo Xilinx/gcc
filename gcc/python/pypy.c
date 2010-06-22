@@ -44,10 +44,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "y.py.h"
 
 DEF_VEC_P( gpy_sym );
-
 DEF_VEC_ALLOC_P( gpy_sym,gc );
-
 static VEC( gpy_sym,gc ) * gpy_decls;
+
+VEC(gpy_ctx_t,gc) * gpy_ctx_table;
 
 inline
 void gpy_symbol_init_ctx( gpy_symbol_obj * const x )
@@ -82,7 +82,7 @@ void gpy_init_tbls( void )
     xmalloc( sizeof(gpy_context_branch) );
 
   o->var_decls = NULL;
-  o->var_decls = NULL;
+  o->fnc_decls = NULL;
   gpy_init_ctx_branch( &o );
 
   VEC_safe_push( gpy_ctx_t, gc, gpy_ctx_table, o );
@@ -112,8 +112,14 @@ bool gpy_ctx_lookup_var_decl( const char * s )
 
 bool gpy_ctx_push_decl( tree decl, const char * s, htab_t t )
 {
-  bool retval = false;
-  void ** slot = htab_find_slot_with_hash( t,);
+  bool retval = true;
+  void ** slot = htab_find_slot( t, s, INSERT );
+  if( slot )
+    {
+      (*slot) = decl;
+    }
+  else
+    retval = false;
 
   return retval;
 }
@@ -430,9 +436,14 @@ void gpy_write_globals( void )
   tree *vec;
   unsigned decl_len = 0;
   unsigned int idx = 0; gpy_symbol_obj *it = NULL;
+  
+  /*
+  gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
+			   (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
+  */
 
   decl_len = VEC_length( gpy_sym, gpy_decls );
-  vec = XNEWVEC( tree, decl_len );
+  vec = XNEWVEC( tree, decl_len ) + 2;
 
   debug("decl_len <%u>!\n", decl_len);
   for( ; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )

@@ -36,9 +36,13 @@ typedef struct GTY(()) gpy_symbol_table_t {
   struct gpy_symbol_table_t *next;
 } gpy_symbol_obj ;
 
+typedef char * gpy_ident;
+DEF_VEC_P( gpy_ident );
+DEF_VEC_ALLOC_P( gpy_ident,gc );
+
 typedef struct GTY(()) gpy_context_branch_t {
-  htab_t var_decls;
-  htab_t fnc_decls;
+  htab_t var_decls; VEC(gpy_ident,gc);
+  htab_t fnc_decls; VEC(gpy_ident,gc);
 } gpy_context_branch ;
 
 typedef gpy_symbol_obj *gpy_sym;
@@ -46,7 +50,7 @@ typedef gpy_context_branch *gpy_ctx_t;
 
 DEF_VEC_P( gpy_ctx_t );
 DEF_VEC_ALLOC_P( gpy_ctx_t,gc );
-extern VEC_gpy_ctx_t_gc * gpy_ctx_table;
+extern VEC(gpy_ctx_t,gc) * gpy_ctx_table;
 
 extern tree gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj ** );
 

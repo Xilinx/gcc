@@ -42,16 +42,10 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
-/* return the current top context table var_decl table */
-#define Gpy_Ctx_VAR_DEC_TABLE( x, y, z )			\
-  y = VEC_index( gpy_ctx_t, x,					\
-		 ( VEC_length( gpy_ctx_t,x ))-1 );		\
-  y->#z
-
 tree gpy_process_assign( gpy_symbol_obj ** op_a,
 			 gpy_symbol_obj ** op_b )
 {
-  gpy_symbol_obj *opa, *opb;
+  tree retval = NULL; gpy_symbol_obj *opa, *opb;
 
   if( op_a && op_b ) { opa= *op_a; opb= *op_b; }
   else {
@@ -63,15 +57,34 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
     {
       if( opb->type == SYMBOL_PRIMARY )
         {
-	  /* So we should have an x = 2 type expression! */
+	  /* Lookup to see if the reference has been declared! */
+	  bool decl_c = gpy_ctx_lookup_var_decl( opa->op_a.string );
 	  tree reference = gpy_process_expression( opa );
-	  tree initial_value = gpy_process_expression( opb );
+	  tree rhs_tree = gpy_process_expression( opb );
 
-	  retval = build_decl( UNKNOWN_LOCATION, VAR_DECL, reference,
-			       integer_type_node );
-	  DECL_INITIAL( retval ) = initial_value;
-	  debug("built the decl <%p>!\n", (void*)retval );
-        }
+	  if( !decl_c )
+	    {
+	      /* Then we need to declare it */
+	      tree decl = build_decl( UNKNOWN_LOCATION, VAR_DECL, reference,
+				      integer_type_node );
+
+	      gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
+				       (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
+
+	      if( !(gpy_ctx_lookup_var_decl( opa->op_a.string)) )
+		{
+		  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x->var_decls )) )
+		    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );
+		}
+
+	      debug( "built the decl <%p> for <%s>!\n", (void*)decl,
+		     opa->op_a.string );
+	    }
+
+	  retval = build2( MODIFY_EXPR, integer_type_node,
+			   reference, rhs_tree );
+	  debug("built assignment for <%s>!\n", opa->op_a.string );
+	}
       else
         {
 	  fatal_error("not implemented yet!\n");
@@ -101,14 +114,14 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a,
 	  tree t1 = gpy_process_expression( opa );
           tree t2 = gpy_process_expression( opb );
 
-          retval = build2( PLUS_EXPR, t1, t2, integer_type_node );
+          retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );
         }
       else
         {
 	  tree t1 = gpy_process_expression( opa );
           tree t2 = gpy_process_expression( opb );
 
-	  retval = build2( PLUS_EXPR, t1, t2, integer_type_node );
+	  retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );
         }
     }
   else
