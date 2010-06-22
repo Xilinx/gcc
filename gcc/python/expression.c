@@ -58,7 +58,7 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
       if( opb->type == SYMBOL_PRIMARY )
         {
 	  /* Lookup to see if the reference has been declared! */
-	  bool decl_c = gpy_ctx_lookup_var_decl( opa->op_a.string );
+	  tree decl_c = gpy_ctx_lookup_decl( opa->op_a.string, VAR );
 	  tree reference = gpy_process_expression( opa );
 	  tree rhs_tree = gpy_process_expression( opb );
 
@@ -71,9 +71,9 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 	      gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
 				       (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
 
-	      if( !(gpy_ctx_lookup_var_decl( opa->op_a.string)) )
+	      if( !(gpy_ctx_lookup_decl( opa->op_a.string, VAR )) )
 		{
-		  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x->var_decls )) )
+		  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x, VAR )) )
 		    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );
 		}
 
@@ -87,7 +87,33 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 	}
       else
         {
-	  fatal_error("not implemented yet!\n");
+	  /* Lookup to see if the reference has been declared! */
+	  tree decl_c = gpy_ctx_lookup_decl( opa->op_a.string, VAR );
+	  tree reference = gpy_process_expression( opa );
+	  tree rhs_tree = gpy_process_expression( opb );
+
+	  if( !decl_c )
+	    {
+	      /* Then we need to declare it */
+	      tree decl = build_decl( UNKNOWN_LOCATION, VAR_DECL, reference,
+				      integer_type_node );
+
+	      gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
+				       (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
+
+	      if( !(gpy_ctx_lookup_decl( opa->op_a.string, VAR )) )
+		{
+		  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x, VAR )) )
+		    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );
+		}
+
+	      debug( "built the decl <%p> for <%s>!\n", (void*)decl,
+		     opa->op_a.string );
+	    }
+
+	  retval = build2( MODIFY_EXPR, integer_type_node,
+			   reference, rhs_tree );
+	  debug("built assignment for <%s>!\n", opa->op_a.string );
         }
     }
   else
@@ -126,7 +152,20 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a,
     }
   else
     {
-      fatal_error("symbol undefined error!\n");
+      if( opb->type == SYMBOL_PRIMARY )
+	{
+	  tree t1 = gpy_process_expression( opa );
+          tree t2 = gpy_process_expression( opb );
+
+	  retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );
+	}
+      else
+	{
+	  tree t1 = gpy_process_expression( opa );
+          tree t2 = gpy_process_expression( opb );
+
+	  retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );
+	}
     }
 
   return retval;
