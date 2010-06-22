@@ -6385,20 +6385,27 @@ gimplify_omp_atomic (tree *expr_p, gimple_seq *pre_p)
 static enum gimplify_status
 gimplify_transaction (tree *expr_p, gimple_seq *pre_p)
 {
-  tree expr = *expr_p, temp;
+  tree expr = *expr_p, temp, tbody = TRANSACTION_EXPR_BODY (expr);
   gimple g;
   gimple_seq body = NULL;
   struct gimplify_ctx gctx;
   int subcode = 0;
 
+  /* Wrap the transaction body in a BIND_EXPR so we have a context
+     where to put decls for OpenMP.  */
+  if (TREE_CODE (tbody) != BIND_EXPR)
+    {
+      tree bind = build3 (BIND_EXPR, void_type_node, NULL, tbody, NULL);
+      TREE_SIDE_EFFECTS (bind) = 1;
+      SET_EXPR_LOCATION (bind, EXPR_LOCATION (tbody));
+      TRANSACTION_EXPR_BODY (expr) = bind;
+    }
+
   push_gimplify_context (&gctx);
   temp = voidify_wrapper_expr (*expr_p, NULL);
 
   g = gimplify_and_return_first (TRANSACTION_EXPR_BODY (expr), &body);
-  if (g && gimple_code (g) == GIMPLE_BIND)
-    pop_gimplify_context (g);
-  else
-    pop_gimplify_context (NULL);
+  pop_gimplify_context (g);
 
   g = gimple_build_transaction (body, NULL);
   if (TRANSACTION_EXPR_OUTER (expr))

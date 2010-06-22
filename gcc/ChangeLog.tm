@@ -1,3 +1,8 @@
+2010-06-22  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gimplify.c (gimplify_transaction): Wrap transaction body
+	in a BIND_EXPR.
+
 2010-06-21  Aldy Hernandez  <aldyh@redhat.com>
 
 	* cp/parser.c (cp_parser_unary_expression): Handle
