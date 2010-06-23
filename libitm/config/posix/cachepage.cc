@@ -136,6 +136,7 @@ init_alloc_page (void)
 #endif
 
 static gtm_cacheline_page *free_pages;
+static pthread_mutex_t free_page_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void *
 gtm_cacheline_page::operator new (size_t size)
@@ -143,19 +144,14 @@ gtm_cacheline_page::operator new (size_t size)
   assert (size == sizeof (gtm_cacheline_page));
   assert (size <= PAGE_SIZE);
 
+  pthread_mutex_lock(&free_page_lock);
+
   gtm_cacheline_page *r = free_pages;
- restart:
-  if (r)
-    {
-      gtm_cacheline_page *n, *p = r->prev;
-      n = __sync_val_compare_and_swap (&free_pages, r, p);
-      if (n != r)
-	{
-	  r = n;
-	  goto restart;
-	}
-    }
-  else
+  free_pages = r ? r->prev : NULL;
+
+  pthread_mutex_unlock(&free_page_lock);
+
+  if (r == NULL)
     r = alloc_page ();
 
   return r;
@@ -165,7 +161,7 @@ void
 gtm_cacheline_page::operator delete (void *xhead)
 {
   gtm_cacheline_page *head = static_cast<gtm_cacheline_page *>(xhead);
-  gtm_cacheline_page *tail, *n, *p;
+  gtm_cacheline_page *tail;
 
   if (head == 0)
     return;
@@ -175,15 +171,12 @@ gtm_cacheline_page::operator delete (void *xhead)
   for (tail = head; tail->prev != 0; tail = tail->prev)
     continue;
 
-  p = free_pages;
- restart:
-  tail->prev = p;
-  n = __sync_val_compare_and_swap (&free_pages, p, head);
-  if (n != p)
-    {
-      p = n;
-      goto restart;
-    }
+  pthread_mutex_lock(&free_page_lock);
+
+  tail->prev = free_pages;
+  free_pages = head;
+
+  pthread_mutex_unlock(&free_page_lock);
 }
 
 } // namespace GTM

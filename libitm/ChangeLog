@@ -1,5 +1,11 @@
 2010-06-16  Richard Henderson  <rth@redhat.com>
 
+	* config/posix/cachepage.cc (gtm_cacheline_page::operator new): Use
+	a mutex instead of trying a lock-free compare-and-swap on the list.
+	(gtm_cacheline_page::operator delete): Likewise.
+
+2010-06-16  Richard Henderson  <rth@redhat.com>
+
 	* method-wbetl.cc (wbetl_dispatch::trycommit): Discard changes
 	that overlap the libitm stack.
 	* barrier.tpl: Mark incoming stack.
