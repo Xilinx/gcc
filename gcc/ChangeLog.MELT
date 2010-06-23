@@ -1,4 +1,8 @@
 
+2010-06-23  Jeremie Salvucci  <jeremie.salvucci@free.fr>
+	* melt/xtramelt-ana-base.melt: Added
+	foreach_argument_of_gimple_call & foreach_case_of_gimple_switch
+
 2010-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{removed gimple_seq_node support}}
 	* melt-make.mk: added dependency to melt-runtime.h

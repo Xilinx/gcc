@@ -4,6 +4,7 @@
 (comment "***
     Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+                and Jeremie Salvucci  <jeremie.salvucci@free.fr>
 
     This file is part of GCC.
 
@@ -696,6 +697,33 @@
   extract_cond_bb_edges ((gimple_bb ($gc)), &($truedge), &($falsedge));
   }#)
 
+;;; iterate on each argument of a call function
+(defciterator foreach_argument_of_gimple_call
+  (:gimple function_call)
+  eaocf
+  (:tree argument)
+  #{
+       /* before $EAOCF */
+
+       int $EAOCF#_i = 0;
+
+       if ($function_call&&  gimple_code($function_call) == GIMPLE_CALL)
+       {
+           int $EAOCF#_n = gimple_call_num_args ($function_call);
+
+           for ($EAOCF#_i = 0; 
+		$EAOCF#_i < $EAOCF#_n; 
+                $EAOCF#_i++)
+           {
+               $argument = gimple_call_arg ($function_call, $EAOCF#_i);
+  }#
+
+  #{
+        /* after $EAOCF */
+           }
+        }
+  }#)
+
 
 ;;; match a gimple call to a direct function of any matched arity
 (defcmatcher gimple_call
@@ -1051,6 +1079,7 @@
 
 ;;;; fetch the nth argument inside a call
 (defprimitive gimple_call_nth_arg (:gimple gc :long n) :tree
+  :doc #{Safely retrieve in gimple call $GC its $N-th argument.}#
   #{(($gc && gimple_code($gc) == GIMPLE_CALL && ($n)>=0 
       && ($n) < gimple_call_num_args($gc)) 
      ? gimple_call_arg(($gc), ($n)) : (tree)0)}# )
@@ -1197,15 +1226,45 @@
 
 ;;; return the index of a switch
 (defprimitive gimple_switch_index (:gimple gs) :tree
+  :doc #{Retrieve the index of gimple switch $GS.}#
   #{ (($gs) && gimple_code($gs) == GIMPLE_SWITCH) ? 
   gimple_switch_index_ptr($gs) : NULL }#)
 
 ;;; return a tree label
 (defprimitive gimple_switch_label (:gimple gs :long n) :tree
-  #{ (($gs) && gimple_code($gs) == GIMPLE_SWITCH) ? 
+  :doc #{Safely retrieve the $N-th label in gimple switch $GS.}#
+  #{ (($gs) && gimple_code($gs) == GIMPLE_SWITCH
+      &&  $n>= 0&&  $n<  gimple_switch_num_labels($gs)) ?
   gimple_switch_label($gs, $n) : NULL }#)
 
 
+
+;;; iterator on switch cases
+(defciterator foreach_case_of_gimple_switch
+  (:gimple gs)
+  ecos
+  (:tree case)
+  #{
+      /* before $ECOS */
+      int $ECOS#_i = 0;
+
+      if ($gs&&  gimple_code($gs) == GIMPLE_SWITCH)
+      {
+          int $ECOS#_n = gimple_switch_num_labels($gs);
+
+          for ($ECOS#_i = 0; 
+	       $ECOS#_i < $ECOS#_n; 
+               $ECOS#_i++)
+          {
+              $case = gimple_switch_label ($gs, $ECOS#_i);
+  }#
+
+  #{
+      /* after $ECOS */
+          }
+      }
+  }#
+)
 
 ;;;;;;;;;;;;;;;;
 ;;; match a phi node
@@ -2350,7 +2409,9 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  edge_for_false_value
  edge_for_true_value 
  edge_src_bb
+ foreach_argument_of_gimple_call
  foreach_basicblock_succ_edge
+ foreach_case_of_gimple_switch
  foreach_mapbasicblock
  foreach_mapgimple
  foreach_maptree
