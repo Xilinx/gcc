@@ -1563,14 +1563,6 @@ a single mutable value. See also $CLASS_CONTAINER.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_GIMPLE_SEQ")
 
-;;; the discriminant for gimple_seq_node-s
-(definstance discr_gimple_seq_node class_discriminant
-  :doc #{The $DISCR_GIMPLE_SEQ_NODE is the discriminant of boxed GCC gimple_seq_node values. 
-See also $CTYPE_GIMPLE_SEQ_NODE.}#
-  :predef DISCR_GIMPLE_SEQ_NODE
-  :obj_num OBMAG_GIMPLESEQNODE
-  :disc_super discr_any_receiver
-  :named_name '"DISCR_GIMPLE_SEQ_NODE")
 
 ;;; the discriminant for edges
 (definstance discr_edge class_discriminant
@@ -1673,14 +1665,6 @@ to non-nil value. See also $CTYPE_GIMPLE_SEQ.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_GIMPLE_SEQS")
 
-;;; the discriminant for maps of gimple_seq_node-s
-(definstance discr_map_gimple_seq_nodes class_discriminant
-  :doc #{The $DISCR_MAP_GIMPLE_SEQ_NODES is the discriminant of hash-map values associating raw GCC gimple_seq_node-s 
-to non-nil value. See also $CTYPE_GIMPLE_SEQ_NODE.}#
-  :predef DISCR_MAP_GIMPLE_SEQ_NODES
-  :obj_num OBMAG_MAPGIMPLESEQNODES
-  :disc_super discr_any_receiver
-  :named_name '"DISCR_MAP_GIMPLE_SEQ_NODES")
 
 ;;; the discriminant for maps of edges
 (definstance discr_map_edges class_discriminant
@@ -1958,23 +1942,6 @@ Keyword is :gimple_seq.}#
   :ctype_marker '"gt_ggc_mx_gimple_seq_d"
   )
 (install_ctype_descr ctype_gimple_seq "GCC gimple_seq pointer")
-
-;; the C type for gcc gimple_seq_node-s
-(definstance ctype_gimple_seq_node class_ctype
-  :doc #{The $CTYPE_GIMPLE_SEQ_NODE is the c-type of raw GCC gimple_seq_node stuff. See also $DISCR_GIMPLE_SEQ_NODE. 
-Keyword is :gimple_seq_node.}#
-  :predef CTYPE_GIMPLE_SEQ_NODE
-  :named_name  '"CTYPE_GIMPLE_SEQ_NODE"
-  :ctype_keyword ':gimple_seq_node
-  ; :ctype_altkeyword ':gimpleseq
-  :ctype_cname  '"gimple_seq_node"
-  :ctype_parchar '"BPAR_GIMPLESEQ"
-  :ctype_parstring '"BPARSTR_GIMPLESEQ"
-  :ctype_argfield '"bp_gimpleseq"
-  :ctype_resfield '"bp_gimpleseqptr"
-  :ctype_marker '"gt_ggc_mx_gimple_seq_node_d"
-  )
-(install_ctype_descr ctype_gimple_seq_node "GCC gimple_seq_node pointer")
 
 ;; the C type for gcc basic_blocks
 (definstance ctype_basic_block class_ctype
@@ -3688,7 +3655,6 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  ctype_edge                   
  ctype_gimple
  ctype_gimple_seq
- ctype_gimple_seq_node
  ctype_long 
  ctype_loop
  ctype_ppl_coefficient
@@ -3713,14 +3679,12 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discr_file
  discr_gimple
  discr_gimple_seq
- discr_gimple_seq_node
  discr_integer                        
  discr_list    
  discr_loop
  discr_map_basic_blocks
  discr_map_bitmaps
  discr_map_edges
- discr_map_gimple_seq_nodes
  discr_map_gimple_seqs
  discr_map_gimples
  discr_map_objects                     

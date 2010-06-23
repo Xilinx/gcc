@@ -1,5 +1,39 @@
 
 2010-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{removed gimple_seq_node support}}
+	* melt-make.mk: added dependency to melt-runtime.h
+
+	* melt-predef.list: removed CTYPE_GIMPLE_SEQ_NODE
+	DISCR_GIMPLE_SEQ_NODE DISCR_MAP_GIMPLE_SEQ_NODES
+
+	* melt/warmelt-first.melt: Removed discr_gimple_seq_node
+	discr_map_gimple_seq_nodes ctype_gimple_seq_node
+
+	* melt-runtime.h: Removed everything related to
+	gimple_seq_node.. & their maps...
+
+	* melt-runtime.c (check_pointer_at, forwarded_copy, scanning):
+	likewise.
+
+	{{regenerated all twice}}
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+03.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
+
+2010-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{supporting gimple_seq_node as ctype is a probable mistake, see
 	http://gcc.gnu.org/ml/gcc-patches/2010-06/msg02226.html &
 	http://gcc.gnu.org/ml/gcc-patches/2010-06/msg02242.html }}

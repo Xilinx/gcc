@@ -253,11 +253,6 @@ union meltparam_un
 #define BPAR_RTX         'X'
 #define BPARSTR_RTX      "X"
 
-  /* gimple_seq_node-s */
-  gimple_seq_node bp_gimple_seq_node;			/* letter N */
-  gimple_seq_node* bp_gimple_seq_nodeptr;
-#define BPAR_GIMPLE_SEQ_NODE         'N'
-#define BPARSTR_GIMPLE_SEQ_NODE      "N"
 
   /* rtvec-s */
   rtvec bp_rtvec;			/* letter Y */
@@ -777,14 +772,6 @@ meltgimpleseq_st
 };
 
 
-/* when OBMAG_GIMPLESEQNODE - boxed gimple_seq_node-s */
-struct 
-GTY (())
-  meltgimpleseqnode_st
-{
-  meltobject_ptr_t discr;
-  gimple_seq_node val;
-};
 
 /* when OBMAG_BASICBLOCK  - boxed basic_block-s */
 struct
@@ -943,27 +930,6 @@ meltmapgimpleseqs_st
 };
 
 
-/*** hashed maps of gimpleseqnodes to melt ***/
-struct
-GTY (()) 
-entrygimpleseqnodesmelt_st
-{
-  gimple_seq_node e_at;
-  melt_ptr_t e_va;
-};
-
-/* when OBMAG_MAPGIMPLESEQNODES */
-struct
-GTY (()) 
-meltmapgimpleseqnodes_st
-{
-  /* change meltmappointers_st when changing this structure */
-  meltobject_ptr_t discr;
-  unsigned count;
-  unsigned char lenix;
-  struct entrygimpleseqnodesmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
-    entab;
-};
 
 /*** hashed maps of loop_p-s to melt values ***/
 struct
@@ -1424,17 +1390,6 @@ MELT_DEFINE_MAPTR(OBMAG_MAPGIMPLESEQS, gimple_seq, meltmapgimpleseqs_st,
 		      melt_nthval_mapgimpleseqs)
 
 
-MELT_DEFINE_MAPTR(OBMAG_MAPGIMPLESEQNODES, gimple_seq_node, meltmapgimpleseqnodes_st,
-		      meltgc_new_mapgimpleseqnodes,
-		      melt_get_mapgimpleseqnodes,
-		      melt_put_mapgimpleseqnodes,
-		      melt_remove_mapgimpleseqnodes,
-		      melt_count_mapgimpleseqnodes,
-		      melt_size_mapgimpleseqnodes,
-		      melt_nthattr_mapgimpleseqnodes,
-		      melt_nthval_mapgimpleseqnodes)
-
-
 MELT_DEFINE_MAPTR(OBMAG_MAPEDGES, edge, meltmapedges_st,
 		      meltgc_new_mapedges,
 		      melt_get_mapedges,
@@ -1544,21 +1499,6 @@ melt_gimpleseq_content (melt_ptr_t box)
   return g->val;
 }
 
-
-/* allocate a new boxed gimpleseqnode of given DISCR [DISCR_GIMPLESEQNODE if null] &
-   content VAL */
-melt_ptr_t meltgc_new_gimpleseqnode (meltobject_ptr_t discr_p,
-				    gimple_seq val);
-
-/* return the content of a boxed gimple_seq_node */
-static inline gimple_seq_node
-melt_gimpleseqnode_content (melt_ptr_t box)
-{
-  struct meltgimpleseqnode_st* g = (struct meltgimpleseqnode_st*)box;
-  if (!g || g->discr->object_magic != OBMAG_GIMPLESEQNODE)
-    return NULL;
-  return g->val;
-}
 
 
 

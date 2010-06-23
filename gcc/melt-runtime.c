@@ -546,7 +546,6 @@ check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
     case OBMAG_MAPTREES:
     case OBMAG_MAPGIMPLES:
     case OBMAG_MAPGIMPLESEQS:
-    case OBMAG_MAPGIMPLESEQNODES:
     case OBMAG_MAPLOOPS:
     case OBMAG_MAPRTXS:
     case OBMAG_MAPRTVECS:
@@ -1180,15 +1179,6 @@ forwarded_copy (melt_ptr_t p)
 	n = (melt_ptr_t) dst;
 	break;
       }
-    case OBMAG_GIMPLESEQNODE:
-      {
-	struct meltgimpleseqnode_st *src = (struct meltgimpleseqnode_st *) p;
-	struct meltgimpleseqnode_st *dst = (struct meltgimpleseqnode_st *)
-	  ggc_alloc_cleared (sizeof (struct meltgimpleseqnode_st));
-	*dst = *src;
-	n = (melt_ptr_t) dst;
-	break;
-      }
     case OBMAG_BASICBLOCK:
       {
 	struct meltbasicblock_st *src = (struct meltbasicblock_st *) p;
@@ -1310,52 +1300,7 @@ forwarded_copy (melt_ptr_t p)
 	n = (melt_ptr_t) dst;
 	break;
       }
-    case OBMAG_MAPGIMPLESEQS:
-      {
-	struct meltmapgimpleseqs_st *src =
-	  (struct meltmapgimpleseqs_st *) p;
-	int siz = melt_primtab[src->lenix];
-	struct meltmapgimpleseqs_st *dst =
-	  (struct meltmapgimpleseqs_st *)
-	  ggc_alloc_cleared (sizeof (struct meltmapgimpleseqs_st));
-	dst->discr = src->discr;
-	dst->count = src->count;
-	dst->lenix = src->lenix;
-	if (siz > 0 && src->entab)
-	  {
-	    dst->entab =
-	      (struct entrygimpleseqsmelt_st *)
-	      ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
-	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
-	  }
-	else
-	  dst->entab = NULL;
-	n = (melt_ptr_t) dst;
-	break;
-      }
-    case OBMAG_MAPGIMPLESEQNODES:
-      {
-	struct meltmapgimpleseqnodes_st *src =
-	  (struct meltmapgimpleseqnodes_st *) p;
-	int siz = melt_primtab[src->lenix];
-	struct meltmapgimpleseqnodes_st *dst =
-	  (struct meltmapgimpleseqnodes_st *)
-	  ggc_alloc_cleared (sizeof (struct meltmapgimpleseqnodes_st));
-	dst->discr = src->discr;
-	dst->count = src->count;
-	dst->lenix = src->lenix;
-	if (siz > 0 && src->entab)
-	  {
-	    dst->entab =
-	      (struct entrygimpleseqnodesmelt_st *)
-	      ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
-	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
-	  }
-	else
-	  dst->entab = NULL;
-	n = (melt_ptr_t) dst;
-	break;
-      }
+
     case OBMAG_MAPSTRINGS:
       {
 	struct meltmapstrings_st *src = (struct meltmapstrings_st *) p;
@@ -1743,37 +1688,6 @@ scanning (melt_ptr_t p)
 	for (ix = 0; ix < siz; ix++)
 	  {
 	    gimple_seq at = src->entab[ix].e_at;
-	    if (!at || at == (void *) 1)
-	      {
-		src->entab[ix].e_va = NULL;
-		continue;
-	      }
-	    FORWARDED (src->entab[ix].e_va);
-	  }
-	break;
-      }
-    case OBMAG_MAPGIMPLESEQNODES:
-      {
-	struct meltmapgimpleseqnodes_st *src =
-	  (struct meltmapgimpleseqnodes_st *) p;
-	int ix, siz;
-	if (!src->entab)
-	  break;
-	siz = melt_primtab[src->lenix];
-	gcc_assert (siz > 0);
-	if (melt_is_young (src->entab))
-	  {
-	    struct entrygimpleseqnodesmelt_st *newtab =
-	      (struct entrygimpleseqnodesmelt_st *)
-	      ggc_alloc_cleared (siz *
-				 sizeof (struct entrygimpleseqnodesmelt_st));
-	    memcpy (newtab, src->entab,
-		    siz * sizeof (struct entrygimpleseqnodesmelt_st));
-	    src->entab = newtab;
-	  }
-	for (ix = 0; ix < siz; ix++)
-	  {
-	    gimple_seq_node at = src->entab[ix].e_at;
 	    if (!at || at == (void *) 1)
 	      {
 		src->entab[ix].e_va = NULL;
