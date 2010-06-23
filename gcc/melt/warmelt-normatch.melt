@@ -2478,6 +2478,14 @@ $MATCHBIND_NBOCC is the number of occurrences.}#
     ))
 (install_method class_matched_binding  normalize_binding normbind_matchbind)
 
+(compile_warning "we might want to have steps without data or indexes
+to make complete_normstep_if_last & match_step_index happy...")
+;;;;; TODO ****************
+;;;;; we don't want to complete steps using
+;;;;; complete_normstep_if_last which are non testing steps, so we
+;;;;; might want to move the mstep_data & mstep_index fields to
+;;;;; class_match_step_test...
+
 (defclass class_match_step
   :super class_located
   :doc #{The $CLASS_MATCH_STEP describes an elementary step of pattern
@@ -4610,19 +4618,23 @@ normalized expression.}#
 	     (let ( (curboxindex (make_integerbox discr_constant_integer (+i curix 1))) 
 		    )
 	       (put_fields curstep :mstep_index curboxindex)
+	       (debug_msg curstep "match_step_index updated curstep")
 	       ))))
 	(setq matindex  (unsafe_get_field :mstep_index mstep))
 	(debug_msg matindex "match_step_index final matindex")
+	(assert_msg "match_step_index bad matindex" (is_integerbox matindex))
 	(return matindex)
 	))))
 
 ;; this utility function completes a normstep if the step is the last
 ;; in its data, or else return the normstep unchanged...
 (defun complete_normstep_if_last (step normstep nmctxt)
+  ;; TODO: June 2010 See comment before class_match_step! *****
   (debug_msg step "complete_normstep_if_last start step")
   (debug_msg normstep "complete_normstep_if_last start normstep")
   (assert_msg "check step" (is_a step class_match_step))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
+  (compile_warning "we might want to handle specially non-testing steps in complete_norrmstep_if_last..")
   (let ( (matdata (unsafe_get_field :mstep_data step))
 	 (matindex (match_step_index step))
 	 (datamap (unsafe_get_field :matnorx_datamap nmctxt))
@@ -4935,9 +4947,40 @@ normalized expression.}#
       (debug_msg ntestdata "normstep_mtestvar ntestdata")
       (debug_msg step "normstep_mtestvar step")
       (debug_msg ntestsame "normstep_mtestvar ntestsame")
-      ;; should complete the nif_then & nif_else of ntestsame using
-      ;; njthen & njelse
-      (assert_msg "$@$unimplemented normstep_mtestvar"))))
+      ;; update ntestsame using njthen
+      (debug_msg njthen "normstep_mtestvar njthen")
+      (cond ( (is_object njthen)
+	      (unsafe_put_fields ntestsame :nif_then njthen))
+	    ( (is_multiple njthen)
+	      (unsafe_put_fields ntestsame :nif_then 
+				 (instance class_nrep_progn
+					   :nrep_loc nsloc
+					   :nprogn_seq njthen
+					   :nprogn_last ()))
+	      )
+	    (:else
+		(debug_msg njthen "unexpected njelse")
+		(assert_msg "normstep_mtestvar unexpected njthen" ())
+	     ))
+      ;; update ntestsame using njelse
+      (debug_msg njelse "normstep_mtestvar njelse")
+      (cond ( (is_object njelse)
+	      (unsafe_put_fields ntestsame :nif_else njelse))
+	    ( (is_multiple njelse)
+	      (unsafe_put_fields ntestsame :nif_else 
+				 (instance class_nrep_progn
+					   :nrep_loc nsloc
+					   :nprogn_seq njelse
+					   :nprogn_last ()))
+	      )
+	    (:else
+		(debug_msg njelse "unexpected njelse")
+		(assert_msg "normstep_mtestvar unexpected njelse" ())
+	     ))
+      ;;
+      (debug_msg ntestsame "normstep_mtestvar final ntestsame")
+      (return ntestsame)
+      )))
 (install_method class_match_step_test_variable normalize_step normstep_mtestvar)
     
 ;;; utility to normalize a step with a match normalization context

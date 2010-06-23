@@ -1,4 +1,13 @@
 
+2010-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{supporting gimple_seq_node as ctype is a probable mistake, see
+	http://gcc.gnu.org/ml/gcc-patches/2010-06/msg02226.html &
+	http://gcc.gnu.org/ml/gcc-patches/2010-06/msg02242.html }}
+
+	* melt/warmelt-normatch.melt: We probably should separate testing
+	steps from non-testing ones w.r.t. complete_normstep_if_last &
+	match_step_index. Completed function normstep_mtestvar.
+
 2010-06-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{adding allmost all coretypes, e.g. rtx, ... to MELT}}
 
