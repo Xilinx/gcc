@@ -117,7 +117,6 @@ GTM::gtm_transaction::serialirr_mode ()
 void ITM_REGPARM
 _ITM_changeTransactionMode (_ITM_transactionState state)
 {
-  gtm_stack_marker marker;
   assert (state == modeSerialIrrevocable);
   gtm_tx()->serialirr_mode ();
 }

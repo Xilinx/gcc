@@ -40,10 +40,6 @@ struct gtm_thread
   // if the target provides some efficient mechanism for storing this.
   gtm_dispatch *disp;
 #endif
-#ifndef HAVE_ARCH_GTM_THREAD_STACK_TOP
-  // The top of stack on entry to the STM library.
-  void *stack_top;
-#endif
 
   // The maximum number of free gtm_transaction structs to be kept.
   // This number must be greater than 1 in order for transaction abort
@@ -88,17 +84,6 @@ static inline void set_gtm_tx(gtm_transaction *x) { gtm_thr()->tx = x; }
 static inline gtm_dispatch * gtm_disp() { return gtm_thr()->disp; }
 static inline void set_gtm_disp(gtm_dispatch *x) { gtm_thr()->disp = x; }
 #endif
-
-#ifndef HAVE_ARCH_GTM_THREAD_STACK_TOP
-static inline void *gtm_stack_top() { return gtm_thr()->stack_top; }
-static inline void set_gtm_stack_top(void *t) { gtm_thr()->stack_top = t; }
-#endif
-
-struct gtm_stack_marker
-{
-  gtm_stack_marker(void *t = __builtin_dwarf_cfa()) { set_gtm_stack_top (t); }
-  ~gtm_stack_marker() { set_gtm_stack_top (0); }
-};
 
 } // namespace GTM
 

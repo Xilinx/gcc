@@ -28,7 +28,7 @@ typedef struct gtm_jmpbuf
 {
   unsigned long pc;
   unsigned long s[7];
-  unsigned long cfa;
+  void *cfa;
   unsigned long f[8];
 } gtm_jmpbuf;
 

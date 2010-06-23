@@ -302,13 +302,11 @@ do_memmove (uintptr_t idst, uintptr_t isrc, size_t size,
 #define ITM_MEM_DEF(NAME, READ, WRITE) \
 void ITM_REGPARM _ITM_memcpy##NAME(void *dst, const void *src, size_t size)  \
 {									     \
-  gtm_stack_marker marker;						     \
   do_memcpy ((uintptr_t)dst, (uintptr_t)src, size,			     \
 	     gtm_dispatch::WRITE, gtm_dispatch::READ);			     \
 }									     \
 void ITM_REGPARM _ITM_memmove##NAME(void *dst, const void *src, size_t size) \
 {									     \
-  gtm_stack_marker marker;						     \
   do_memmove ((uintptr_t)dst, (uintptr_t)src, size,			     \
 	      gtm_dispatch::WRITE, gtm_dispatch::READ);			     \
 }

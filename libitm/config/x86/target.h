@@ -28,7 +28,7 @@ namespace GTM HIDDEN {
 /* ??? This doesn't work for Win64.  */
 typedef struct gtm_jmpbuf
 {
-  unsigned long cfa;
+  void *cfa;
   unsigned long rip;
   unsigned long rbx;
   unsigned long rbp;
@@ -40,7 +40,7 @@ typedef struct gtm_jmpbuf
 #else
 typedef struct gtm_jmpbuf
 {
-  unsigned long cfa;
+  void *cfa;
   unsigned long ebx;
   unsigned long esi;
   unsigned long edi;

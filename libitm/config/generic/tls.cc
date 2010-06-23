@@ -33,7 +33,7 @@ namespace GTM HIDDEN {
 gtm_cacheline_mask __attribute__((noinline))
 gtm_mask_stack(gtm_cacheline *line, gtm_cacheline_mask mask)
 {
-  void *top = gtm_stack_top();
+  void *top = gtm_tx()->jb.cfa;
   void *bot = __builtin_dwarf_cfa();
 
   // We must have come through an entry point that set TOP.

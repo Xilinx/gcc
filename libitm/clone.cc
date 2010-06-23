@@ -92,7 +92,6 @@ _ITM_getTMCloneOrIrrevocable (void *ptr)
   if (ret)
     return ret;
 
-  gtm_stack_marker marker;
   gtm_tx()->serialirr_mode ();
 
   return ptr;

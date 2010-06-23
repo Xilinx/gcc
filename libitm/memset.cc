@@ -70,7 +70,6 @@ do_memset(uintptr_t idst, int c, size_t size, gtm_dispatch::lock_type W)
 #define ITM_MEM_DEF(WRITE) \
 void ITM_REGPARM _ITM_memset##WRITE(void *dst, int c, size_t size)	\
 {									\
-  gtm_stack_marker marker;						\
   do_memset ((uintptr_t)dst, c, size, gtm_dispatch::WRITE);		\
 }
 

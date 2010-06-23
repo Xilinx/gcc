@@ -123,14 +123,12 @@ void do_write (T *ptr, T val, gtm_dispatch::lock_type lock)
 #define ITM_READ(T, LOCK)						\
   _ITM_TYPE_##T ITM_REGPARM _ITM_##LOCK##T (const _ITM_TYPE_##T *ptr)	\
   {									\
-    gtm_stack_marker marker;						\
     return do_read (ptr, gtm_dispatch::LOCK);				\
   }
 
 #define ITM_WRITE(T, LOCK)						\
   void ITM_REGPARM _ITM_##LOCK##T (_ITM_TYPE_##T *ptr, _ITM_TYPE_##T val) \
   {									\
-    gtm_stack_marker marker;						\
     do_write (ptr, val, gtm_dispatch::LOCK);				\
   }
 
