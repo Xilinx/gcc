@@ -1,5 +1,10 @@
 
 2010-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tbad-2.melt now correctly fails to be translated}}
+	* melt/warmelt-normal.melt: Added check of field w.r.t. class in normexp_instance.
+
+
+2010-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/gcc/melt/tbad-2.melt: Added new test which should fail
 	to get translated but MELT don't detect any error at translation
 	by mistake.
@@ -10,7 +15,7 @@
 	match_data_update_data_steps_index and call it from
 	match_step_index, complete_normstep_if_last,
 	altmatch_handle_normalized_mdata.
-	
+
 2010-06-23  Jeremie Salvucci  <jeremie.salvucci@free.fr>
 	* melt/xtramelt-ana-base.melt: Added
 	foreach_argument_of_gimple_call & foreach_case_of_gimple_switch

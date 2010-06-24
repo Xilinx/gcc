@@ -2815,19 +2815,54 @@ source location.}#
 		      (normal_exp sclasym env ncx sloc)))
 	 (bindlist (make_list discr_list))
 	 )
-    (if (not (is_a cladata class_nrep))
-	(progn
-	  (error_strv sloc "invalid class in (INSTANCE ..)" (unsafe_get_field :named_name sclass))
-	  (return ())))
+    ;; initial checks about class
+    (cond 
+     ( (is_not_a sclass class_class)
+       (debug_msg sclass "normexp_instance bad sclass")
+       (error_plain sloc "bad class in (INSTANCE <class> [:field1 <expr1> ...]) expression")
+       (return ())
+       )
+     ( (is_not_a cladata class_nrep)
+       (debug_msg cladata "normexp_instance bad cladata")
+       (error_strv sloc "invalid class in (INSTANCE <class> [:field1 <expr1> ...]) expression" 
+		   (get_field :named_name sclass))
+       (return ()))
+     )
+    ;; normalize the field assigments
     (let ( (nfields 
 	    (multiple_map 
 	     sfields 
 	     (lambda (curflda :long curk)
+	       (debug_msg curflda "normexp_instance.lambda curflda")
 	       (assert_msg "check curflda" (is_a curflda class_source_fieldassign))
 	       (let ( (curfloc (unsafe_get_field :loca_location curflda))
 		      (curfield (unsafe_get_field :sfla_field curflda))
 		      (curexp (unsafe_get_field :sfla_expr curflda)) )
 		 (if (null curfloc) (setq curfloc sloc))
+		 ;; check the curfield
+		 (cond
+		  ( (is_not_a curfield class_field)
+		    (debug_msg curflda "normexp_instance corrupted curflda")
+		    (debug_msg curfield "normexp_instance bad curfield")
+		    (error_strv sloc 
+				"invalid field in  (INSTANCE <class> [:field1 <expr1> ...]) expression"
+				(get_field :named_name sclass))
+		    (return))
+		  ( (not (subclass_or_eq sclass (unsafe_get_field :fld_ownclass curfield)))
+		    (debug_msg curflda "normexp_instance corrupted curflda")
+		    (debug_msg curfield "normexp_instance bad curfield")
+		    (error_strv sloc
+				"unexpected field in (INSTANCE <class> [:field1 <expr1> ...]) expression"
+				(get_field :named_name curfield))
+		    (inform_strv sloc
+				 "this field belongs to class "
+				 (get_field :named_name (unsafe_get_field :fld_ownclass curfield)))
+		    (inform_strv sloc
+				 "field misused in (INSTANCE <class> ...) of class"
+				 (get_field :named_name sclass))
+		    (return))
+		  )
+		 ;;
 		 (multicall
 		  (nexp nbind)
 		  (normal_exp curexp env ncx curfloc)
