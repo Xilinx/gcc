@@ -2478,25 +2478,7 @@ $MATCHBIND_NBOCC is the number of occurrences.}#
     ))
 (install_method class_matched_binding  normalize_binding normbind_matchbind)
 
-(compile_warning "we might want to have steps without data or indexes
-to make complete_normstep_if_last & match_step_index happy...")
-;;;;; TODO ****************
-;;;;; we don't want to complete steps using
-;;;;; complete_normstep_if_last which are non testing steps, so we
-;;;;; might want to move the mstep_data & mstep_index fields to
-;;;;; class_match_step_test...
-
-(defclass class_match_step
-  :super class_located
-  :doc #{The $CLASS_MATCH_STEP describes an elementary step of pattern
-matching, like tests, success, etc... The $MSTEP_DATA field is the
-matched data. The $MSTEP_INDEX field is the boxed integer index
-counting from 1 of this step within its data, it is lazily filled when
-all steps of the matched data have been made.}#
-  :fields ( mstep_data
-	    mstep_index 
-	    ))
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defclass class_match_flag
   :super class_located
   :doc #{The $CLASS_MATCH_FLAG describes a flag related to a source
@@ -2509,6 +2491,15 @@ else null. Match flags are initially cleared.}#
 	    mflag_string
 	    mflag_setstep
 ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defclass class_match_step
+  :super class_located
+  :doc #{The $CLASS_MATCH_STEP super-class describes an elementary step of pattern
+matching, like tests, success, flag settings, etc... }#
+  :fields ( ))
 
 (defclass class_match_step_then
   :super class_match_step
@@ -2527,6 +2518,18 @@ then edge $MSTEP_THEN.}#
   :doc #{The $CLASS_MATCH_STEP_WITH_FLAG super-class is for steps with a match
   flag $MSTEP_FLAG, in particular flag assignments and flagged successes.}#
   :fields (mstep_flag))
+
+(defclass class_match_step_with_data
+  :super class_match_step_then
+  :doc #{The $CLASS_MATCH_STEP_WITH_DATA super-class is for matching
+steps handling a data, such as matching tests. The inherited
+$MSTEP_THEN gives the next step. The $MSTEP_DATA field is the matched
+data. The $MSTEP_INDEX field is the boxed integer index counting from
+1 of this step within its data, it is lazily filled when all steps of
+the matched data have been made.}#
+  :fields ( mstep_data
+	    mstep_index 
+	    ))
 
 (defclass class_match_step_flag_set
   :super class_match_step_with_flag
@@ -2567,10 +2570,11 @@ binders, and $MSTEPSUCCESS_BODY is the normalized body tuple.}#
 	   mstepsuccess_body))
 
 (defclass class_match_step_test
-  :super class_match_step_then
+  :super class_match_step_with_data
   :doc #{The $CLASS_MATCH_STEP_TEST is the super-class of elementary
-tests of pattern matching. The $MSTEP_THEN is the then branch, the
-$MSTEP_ELSE is the else branch.}#
+tests of pattern matching. The inherited $MSTEP_THEN is the then
+branch, the $MSTEP_ELSE is the else branch. The inherited $MSTEP_DATA
+is the tested data, and the inherited $MSTEP_INDEX is its index.}#
   :fields (mstep_else))
 
 (defclass class_match_step_test_variable
@@ -3231,13 +3235,11 @@ the flags of the $STEP with an extra context $CTX.}#
 		 (if (list_first_element flaglist)
 		     (instance class_match_step_flag_conjonction
 			       :loca_location sloc
-			       :mstep_data mdata
 			       :mstep_then ()
 			       :mstep_flag mflag
 			       :mstep_flagargs (list_to_multiple flaglist discr_multiple))
 		   (instance class_match_step_flag_set
 			     :loca_location sloc
-			     :mstep_data mdata
 			     :mstep_then ()
 			     :mstep_flag mflag)))
 		(stepgroup (instance class_match_step_test_group
@@ -3279,7 +3281,6 @@ the flags of the $STEP with an extra context $CTX.}#
 	(mflag (make_match_flag recv mctxt (get_field :named_name symb)))
 	(flagstep (instance class_match_step_flag_set 
 			    :loca_location sloc
-			    :mstep_data mdata
 			    :mstep_then ()
 			    :mstep_flag mflag))
 	)
@@ -3308,8 +3309,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	 (curpair curteststep)
 	 (cond
 	  ( (and (is_a curteststep class_match_step_test_variable)
-		 (== (unsafe_get_field :msteptestvar_data curteststep) symbval)
-		 (== (unsafe_get_field :mstep_data curteststep) mdata))
+		 (== (unsafe_get_field :msteptestvar_data curteststep) symbval))
 	    (progn
 	      (debug_msg curteststep "translpat_varpat found curteststep")
 	      (put_then_match curteststep flagstep)
@@ -3376,7 +3376,6 @@ the flags of the $STEP with an extra context $CTX.}#
 	(mflag (make_match_flag recv mctxt '"and"))
 	(flagstep (instance class_match_step_flag_conjonction
 			    :loca_location sloc
-			    :mstep_data mdata
 			    :mstep_then ()
 			    :mstep_flag mflag
 			    ))
@@ -3459,7 +3458,6 @@ the flags of the $STEP with an extra context $CTX.}#
 	(mflag (make_match_flag recv mctxt '"or"))
 	(flagstep (instance class_match_step_flag_disjonction
 			    :loca_location sloc
-			    :mstep_data mdata
 			    :mstep_then ()
 			    :mstep_flag mflag
 			    ))
@@ -3634,7 +3632,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	    (setq laststeptest curdatastep))
 	(if (and
 	     (is_a curdatastep class_match_step_test_matcher)
-	     (== (unsafe_get_field :mstep_data curdatastep) mdata)
+	     (== (get_field :mstep_data curdatastep) mdata)
 	     (== (unsafe_get_field :mstma_matcher curdatastep) soper)
 	     (==i (list_length inbinds) 0)
 	     (==i (list_length (unsafe_get_field :mstma_binds curdatastep)) 0)
@@ -3746,14 +3744,12 @@ the flags of the $STEP with an extra context $CTX.}#
 		 (if (list_first_element flaglist)
 		     (instance class_match_step_flag_conjonction
 			       :loca_location sloc
-			       :mstep_data mdata
 			       :mstep_then ()
 			       :mstep_flag mflag
 			       :mstep_flagargs (list_to_multiple flaglist discr_multiple)
 			       )
 		   (instance class_match_step_flag_set
 			     :loca_location sloc
-			     :mstep_data mdata
 			     :mstep_then ()
 			     :mstep_flag mflag
 			     )
@@ -4391,7 +4387,6 @@ the flags of the $STEP with an extra context $CTX.}#
 	      (newbindmap (get_field :env_bind newenv))
 	      (stepsucc (instance class_match_step_success_when_flag
 				  :loca_location sloc
-				  :mstep_data mdata
 				  :mstep_then ()
 				  :mstep_flag mflag
 				  :mstepsuccess_varocc ()
@@ -4576,50 +4571,59 @@ normalized expression.}#
   :formals (step nmctxt sloc)
 )
 
+;; utility function to update each index of data steps in a data
+(defun match_data_update_data_steps_index (mdata)
+  (debug_msg mdata "match_data_update_steps_index mdata")
+  (assert_msg "check mdata" (is_a mdata class_matched_data))
+  (let ( (msteps (get_field :mdata_steps mdata))
+	 )
+    (cond ( (is_list_or_null msteps)
+	    (let ( (msteptup (list_to_multiple msteps))
+		   )
+	      (foreach_in_multiple 
+	       (msteptup)
+	       (curmstep :long stix)
+	       (debug_msg curmstep "match_data_update_data_steps_index curmstep")
+	       (if (is_a curmstep class_match_step_with_data)
+		   (let ( (oldixv (unsafe_get_field :mstep_index curmstep)) )
+		     (if oldixv 
+			 (assert_msg "check oldix" (==i (get_int oldixv) (+i stix 1)))
+		       (unsafe_put_fields curmstep 
+					  :mstep_index 
+					  (make_integerbox discr_constant_integer (+i stix 1))))))
+	       )
+	      (put_fields mdata :mdata_steps msteptup)
+	      (debug_msg msteptup "match_data_update_data_steps_index updated msteptup")
+	      )
+	    )
+	  ( (is_multiple msteps)
+	    (debug_msg msteps "match_data_update_data_steps_index msteps already tuple")
+	    )
+	  (:else
+	   (debug_msg msteps "match_data_update_data_steps_index unexpected msteps")
+	   (assert_msg "@$@unexpected msteps in match_data_update_data_steps_index" ())))))
+
+
 ;; utility function to compute the index of a match step and update
 ;; the mdata_steps of its data to a tuple
 (defun match_step_index (mstep)
   (debug_msg mstep "match_step_index mstep start")
   (assert_msg "check mstep" (is_a mstep class_match_step))
+  (if (is_not_a mstep class_match_step_with_data)
+      (progn
+	(debug_msg mstep "match_step_index mstep without data so return nil")
+	(return)))
   (let ( (matindex (unsafe_get_field :mstep_index mstep))
 	 )
     (if matindex
 	(progn
 	  (assert_msg "check matindex" (is_integerbox matindex))
 	  (return matindex))
-      (let ( (matdata (unsafe_get_field :mstep_data mstep))
-	     (msteps (get_field :mdata_steps matdata))
-	     (msteptup 
-	      (if (is_list msteps)
-		  (let ( (mtupsteps  (list_to_multiple msteps))
-			 )
-		    (put_fields matdata :mdata_steps mtupsteps)
-		    mtupsteps)
-		msteps))
+      (let ( (matdata (get_field :mstep_data mstep))
 	     )
-	(debug_msg mstep "match_step_index mstep")
-	(debug_msg msteps "match_step_index msteps")
-	(debug_msg matdata "match_step_index matdata")
-	(debug_msg msteptup "match_step_index msteptup")
-	(foreach_in_multiple
-	 (msteptup)
-	 (curstep :long curix)
-	 (debug_msg curstep "match_step_index curstep")
-	 (debuglong "match_step_index curix" curix)
-	 (assert_msg "check curstep" (is_a curstep class_match_step))
-	 (assert_msg "check samedata curstep"
-		     (== matdata (unsafe_get_field :mstep_data curstep)))
-	 (let ( (oldboxindex (unsafe_get_field :mstep_index curstep))
-		)
-	   (debug_msg oldboxindex "match_step_index oldboxindex")
-	   (if oldboxindex
-	       (assert_msg "check sameindex curstep"
-			   (==i (get_int oldboxindex) (+i curix 1)))
-	     (let ( (curboxindex (make_integerbox discr_constant_integer (+i curix 1))) 
-		    )
-	       (put_fields curstep :mstep_index curboxindex)
-	       (debug_msg curstep "match_step_index updated curstep")
-	       ))))
+	(debug_msg matdata "match_step_index matdata before match_data_update_data_steps_index")
+	(match_data_update_data_steps_index matdata)
+	(debug_msg matdata "match_step_index matdata after match_data_update_data_steps_index")
 	(setq matindex  (unsafe_get_field :mstep_index mstep))
 	(debug_msg matindex "match_step_index final matindex")
 	(assert_msg "match_step_index bad matindex" (is_integerbox matindex))
@@ -4629,75 +4633,83 @@ normalized expression.}#
 ;; this utility function completes a normstep if the step is the last
 ;; in its data, or else return the normstep unchanged...
 (defun complete_normstep_if_last (step normstep nmctxt)
-  ;; TODO: June 2010 See comment before class_match_step! *****
   (debug_msg step "complete_normstep_if_last start step")
   (debug_msg normstep "complete_normstep_if_last start normstep")
   (assert_msg "check step" (is_a step class_match_step))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
-  (compile_warning "we might want to handle specially non-testing steps in complete_norrmstep_if_last..")
-  (let ( (matdata (unsafe_get_field :mstep_data step))
-	 (matindex (match_step_index step))
-	 (datamap (unsafe_get_field :matnorx_datamap nmctxt))
-	 (ndata (mapobject_get datamap matdata))
+  (if (is_not_a step class_match_step_with_data)
+      (progn
+	(debug_msg step "complete_normstep_if_last step without data")
+	(debug_msg normstep "complete_normstep_if_last returning unchanged normstep without data")
+	(return normstep)))
+  (let ( (matdata (get_field :mstep_data step))
 	 )
+    (debug_msg matdata "complete_normstep_if_last matdata before match_data_update_data_steps_index")
     (assert_msg "check matdata" (is_a matdata class_matched_data))
-    (debug_msg matindex "complete_normstep_if_last matindex")
-    (assert_msg "check matindex" (is_integerbox matindex))
-    (let ( (:long numindex (get_int matindex))
-	   (datasteps (unsafe_get_field :mdata_steps matdata))
-	   (:long nbdatasteps (multiple_length datasteps))
-	   )
-      (assert_msg "check numindex" (>i numindex 0))
-      (assert_msg "check nbdatasteps" (>i nbdatasteps 0))
-      (assert_msg "good numindex" (<=i numindex nbdatasteps))
-      (if (<i numindex nbdatasteps)
+    (match_data_update_data_steps_index matdata)
+    (debug_msg matdata "complete_normstep_if_last matdata after match_data_update_data_steps_index")
+    (let (
+	  (matindex (match_step_index step))
+	  (datamap (unsafe_get_field :matnorx_datamap nmctxt))
+	  (ndata (mapobject_get datamap matdata))
+	  )
+      (debug_msg matindex "complete_normstep_if_last matindex")
+      (assert_msg "check matindex" (is_integerbox matindex))
+      (let ( (:long numindex (get_int matindex))
+	     (datasteps (unsafe_get_field :mdata_steps matdata))
+	     (:long nbdatasteps (multiple_length datasteps))
+	     )
+	(assert_msg "check numindex" (>i numindex 0))
+	(assert_msg "check nbdatasteps" (>i nbdatasteps 0))
+	(assert_msg "good numindex" (<=i numindex nbdatasteps))
+	(if (<i numindex nbdatasteps)
+	    (progn
+	      (debug_msg normstep "complete_normstep_if_last return non-last normstep")
+	      (return normstep)
+	      ))
+	(debug_msg step "complete_normstep_if_last last step")
+	(debug_msg ndata "complete_normstep_if_last ndata")
+	(assert_msg "check ndata" (is_a ndata class_nrep_simple))
+	(if (is_a ndata class_nrep_matched_data)
+	    (let ( (clearndata (instance class_nrep_match_data_clear
+					 :nmdac_data ndata))
+		   (finalndata (instance class_nrep_match_data_finalizer
+					 :nmdac_data ndata))
+		   )
+	      (debug_msg clearndata "complete_normstep_if_last clearndata")
+	      (debug_msg finalndata "complete_normstep_if_last finalndata")
+	      (debug_msg normstep "complete_normstep_if_last normstep")
+	      (cond ( (is_object normstep)
+		      (let ( (normsteptup (tuple normstep clearndata finalndata)) )
+			(debug_msg normsteptup "complete_normstep_if_last new normsteptup")
+			(return normsteptup)))
+		    ( (null normstep)
+		      (let ( (steptupn (tuple clearndata finalndata)) )
+			(debug_msg steptupn "complete_normstep_if_last new steptupn for nil")
+			(return steptupn)))
+		    ( (is_multiple normstep)
+		      (let ( (normsteplist (multiple_to_list normstep))
+			     )
+			(list_append normsteplist clearndata)
+			(list_append normsteplist finalndata)
+			(let ( (newnormstep (list_to_multiple normsteplist)) )
+			  (debug_msg newnormstep "complete_normstep_if_last newnormstep")
+			  (return newnormstep)
+			  )))
+		    ( (is_list normstep)
+		      (list_append normstep clearndata)
+		      (list_append normstep finalndata)
+		      (debug_msg normstep "complete_normstep_if_last extended normstep")
+		      (return normstep))
+		    (:else
+		     (debug_msg normstep "complete_normstep_if_last bad normstep")
+		     (assert_msg "complete_normstep_if_last unexpected normstep" ())
+		     )))
 	  (progn
-	    (debug_msg normstep "complete_normstep_if_last return non-last normstep")
-	    (return normstep)
-	    ))
-      (debug_msg step "complete_normstep_if_last last step")
-      (debug_msg ndata "complete_normstep_if_last ndata")
-      (assert_msg "check ndata" (is_a ndata class_nrep_simple))
-      (if (is_a ndata class_nrep_matched_data)
-	  (let ( (clearndata (instance class_nrep_match_data_clear
-				       :nmdac_data ndata))
-		 (finalndata (instance class_nrep_match_data_finalizer
-				       :nmdac_data ndata))
-		 )
-	    (debug_msg clearndata "complete_normstep_if_last clearndata")
-	    (debug_msg finalndata "complete_normstep_if_last finalndata")
-	    (debug_msg normstep "complete_normstep_if_last normstep")
-	    (cond ( (is_object normstep)
-		    (let ( (normsteptup (tuple normstep clearndata finalndata)) )
-		      (debug_msg normsteptup "complete_normstep_if_last new normsteptup")
-		      (return normsteptup)))
-		  ( (null normstep)
-		    (let ( (steptupn (tuple clearndata finalndata)) )
-		      (debug_msg steptupn "complete_normstep_if_last new steptupn for nil")
-		      (return steptupn)))
-		  ( (is_multiple normstep)
-		    (let ( (normsteplist (multiple_to_list normstep))
-			   )
-		      (list_append normsteplist clearndata)
-		      (list_append normsteplist finalndata)
-		      (let ( (newnormstep (list_to_multiple normsteplist)) )
-			(debug_msg newnormstep "complete_normstep_if_last newnormstep")
-			(return newnormstep)
-			)))
-		  ( (is_list normstep)
-		    (list_append normstep clearndata)
-		    (list_append normstep finalndata)
-		    (debug_msg normstep "complete_normstep_if_last extended normstep")
-		    (return normstep))
-		  (:else
-		   (debug_msg normstep "complete_normstep_if_last bad normstep")
-		   (assert_msg "complete_normstep_if_last unexpected normstep" ())
-		   )))
-	(progn
-	  (debug_msg ndata "complete_normstep_if_last ndata not a matched data")
-	  (debug_msg normstep "complete_normstep_if_last unchanged normstep")
-	  (return normstep))
-	))))
+	    (debug_msg ndata "complete_normstep_if_last ndata not a matched data")
+	    (debug_msg normstep "complete_normstep_if_last unchanged normstep")
+	    (return normstep))
+	  )))))
 
 (defun normstep_anyrecv (recv nmctxt sloc)
   (debug_msg recv "normstep_anyrecv recv")
@@ -5074,16 +5086,13 @@ normalized expression.}#
       (void))
      ((is_non_empty_list msteps)
       (debug_msg msteps "altmatch_handle_normalized_mdata msteps nonemptylist")
-      (let ( (firststep (list_first_element msteps))
-	     )
-	(assert_msg "check firststep" (is_a firststep class_match_step))
-	;; the call to match_step_index will as a side effect change
-	;; msteps to a list!
-	(debug_msg msteps "altmatch_handle_normalized_mdata msteps before match_step_index")
-	(match_step_index firststep)
-	(setq msteps  (unsafe_get_field :mdata_steps matdata))
-	(debug_msg msteps "altmatch_handle_normalized_mdata msteps after match_step_index")
-	))
+      (debug_msg matdata "altmatch_handle_normalized_mdata matdata before match_data_update_data_steps_index")
+      
+      (match_data_update_data_steps_index matdata)
+      (debug_msg matdata "altmatch_handle_normalized_mdata matdata after match_data_update_data_steps_index")
+      (setq msteps (unsafe_get_field :mdata_steps matdata))
+      (debug_msg msteps "altmatch_handle_normalized_mdata msteps after match_data_update_data_steps")
+      )
      (:else
       (setq msteps (make_multiple discr_multiple 0))
       (debug_msg msteps "altmatch_handle_normalized_mdata msteps emptytuple")))
@@ -5492,7 +5501,8 @@ nmctxt)
 	  (let ( (nambuf (make_strbuf discr_strbuf))
 		 (:long mapcnt (mapobject_count mapstep))
 		 (disnam (get_field :named_name (discrim step)))
-		 (sdata (unsafe_get_field :mstep_data step))
+		 ;; not every step has a data
+		 (sdata (get_field :mstep_data step))
 		 )
 	    (code_chunk chunkdisnam
 			#{ meltgc_add_strbuf ((melt_ptr_t)$nambuf,
@@ -5741,6 +5751,7 @@ nmctxt)
  class_match_flag
  class_match_step_then
  class_match_step_clear
+ class_match_step_with_data
  class_match_step_with_flag
  class_match_step_flag_set
  class_match_step_flag_operation 

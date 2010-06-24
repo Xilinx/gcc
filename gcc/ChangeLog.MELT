@@ -1,4 +1,16 @@
 
+2010-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/gcc/melt/tbad-2.melt: Added new test which should fail
+	to get translated but MELT don't detect any error at translation
+	by mistake.
+
+	* melt/warmelt-normal.melt: Added super-class
+	class_match_step_with_data, Reclassed class_match_step_test. Don't
+	put mdata_steps in step without data. Added
+	match_data_update_data_steps_index and call it from
+	match_step_index, complete_normstep_if_last,
+	altmatch_handle_normalized_mdata.
+	
 2010-06-23  Jeremie Salvucci  <jeremie.salvucci@free.fr>
 	* melt/xtramelt-ana-base.melt: Added
 	foreach_argument_of_gimple_call & foreach_case_of_gimple_switch
