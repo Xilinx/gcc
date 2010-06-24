@@ -226,6 +226,10 @@ struct gtm_transaction
   void commit_allocations (bool);
   void record_allocation (void *, void (*)(void *));
   void forget_allocation (void *, void (*)(void *));
+  void drop_references_allocations (const void *ptr)
+  {
+    this->alloc_actions.erase((uintptr_t) ptr);
+  }
 
   // In beginend.cc
   void rollback ();
@@ -247,6 +251,7 @@ struct gtm_transaction
   // In local.cc
   void commit_local (void);
   void rollback_local (void);
+  void drop_references_local (const void *, size_t);
 
   // In retry.cc
   void decide_retry_strategy (gtm_restart_reason);

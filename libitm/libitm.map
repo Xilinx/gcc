@@ -167,6 +167,7 @@ LIBITM_1.0 {
 	_ITM_malloc;
 	_ITM_calloc;
 	_ITM_free;
+	_ITM_dropReferences;
 
 	_ZGTtnwm;
 	_ZGTtnam;

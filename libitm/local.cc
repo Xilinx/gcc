@@ -65,10 +65,38 @@ gtm_transaction::rollback_local (void)
       for (i = n; i-- > 0; )
 	{
 	  gtm_local_undo *u = local_undo[i];
-	  memcpy (u->addr, u->saved, u->len);
-	  free (u);
+	  if (u)
+	    {
+	      memcpy (u->addr, u->saved, u->len);
+	      free (u);
+	    }
 	}
       this->n_local_undo = 0;
+    }
+}
+
+/* Forget any references to PTR in the local log.  */
+
+void
+gtm_transaction::drop_references_local (const void *ptr, size_t len)
+{
+  gtm_local_undo **local_undo = this->local_undo;
+  size_t i, n = this->n_local_undo;
+
+  if (n > 0)
+    {
+      for (i = n; i > 0; i--)
+	{
+	  gtm_local_undo *u = local_undo[i];
+	  /* ?? Do we need such granularity, or can we get away with
+	     just comparing PTR and LEN. ??  */
+	  if ((const char *)u->addr >= (const char *)ptr
+	      && ((const char *)u->addr + u->len <= (const char *)ptr + len))
+	    {
+	      free (u);
+	      local_undo[i] = NULL;
+	    }
+	}
     }
 }
 

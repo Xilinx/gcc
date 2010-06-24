@@ -57,4 +57,15 @@ _ITM_free (void *ptr)
     gtm_tx()->forget_allocation (ptr, free);
 }
 
+/* Forget any internal references to PTR.  */
+
+__attribute__((transaction_pure))
+void ITM_REGPARM
+_ITM_dropReferences (const void *ptr, size_t len)
+{
+  gtm_transaction *tx = gtm_tx();
+  tx->drop_references_local (ptr, len);
+  tx->drop_references_allocations (ptr);
+}
+
 } // extern "C"
