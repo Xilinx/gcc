@@ -76,7 +76,7 @@ vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 MELT_MAKE_MODULE=$(MAKE) -f $(melt_make_module_makefile) $(MELT_MAKE_MODULE_XTRAMAKEFLAGS) VPATH=$(VPATH):.
 
 warmelt-%.0.so: warmelt-%.0.c $(melt_make_module_makefile) melt-predef.h \
-                melt-runtime.h melt-runtime.c
+                melt-runtime.h melt-runtime.c $(wildcard cc1)
 	echo in melt-make.mk melt_cflags= $(melt_cflags) 
 	$(MELT_MAKE_MODULE) meltmodule \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \

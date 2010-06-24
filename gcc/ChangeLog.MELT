@@ -1,5 +1,11 @@
 
 2010-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-make.mk (warmelt*.0.so): added dependency to $(wildcard
+	cc1).
+
+2010-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/xtramelt-ana-base.melt: Added tree_any_float_type asked by
 	Marie Krumpe.
 
