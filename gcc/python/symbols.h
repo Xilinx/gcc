@@ -41,10 +41,16 @@ typedef struct gpy_vector_t {
   signed long size, length;
 } gpy_ident_vector_t;
 
+typedef unsigned long gpy_hashval_t;
 typedef struct gpy_hash_entry {
-  unsigned int hash;
+  gpy_hashval_t hash;
   void * data;
 } gpy_hash_entry_t ;
+
+typedef struct gpy_hash_table_t {
+  unsigned int size, length;
+  gpy_hash_entry_t * array;
+} gpy_hash_tab_t ;
 
 typedef struct gpy_id_t {
   char * ident;
@@ -55,8 +61,10 @@ DEF_VEC_P( gpy_ident );
 DEF_VEC_ALLOC_P( gpy_ident,gc );
 
 typedef struct GTY(()) gpy_context_branch_t {
-  htab_t var_decls; VEC(gpy_ident,gc) *var_decl_t;
-  htab_t fnc_decls; VEC(gpy_ident,gc) *fnc_decl_t;
+  gpy_hash_tab_t * var_decls;
+  VEC(gpy_ident,gc) *var_decl_t;
+  gpy_hash_tab_t * fnc_decls;
+  VEC(gpy_ident,gc) *fnc_decl_t;
 } gpy_context_branch ;
 
 typedef gpy_symbol_obj *gpy_sym;
@@ -74,6 +82,16 @@ extern void gpy_ident_vec_push( gpy_ident_vector_t * const v, void * s )
 
 extern void * gpy_ident_vec_pop( gpy_ident_vector_t * const v )
      __attribute__((nonnull));
+
+extern gpy_hashval_t gpy_dd_hash_string( const char * );
+
+extern gpy_hash_entry_t * gpy_dd_hash_lookup_table( gpy_hash_tab_t *, gpy_hashval_t );
+
+extern void ** gpy_dd_hash_insert( gpy_hashval_t, void *, gpy_hash_tab_t * );
+
+extern void gpy_dd_hash_grow_table( gpy_hash_tab_t * );
+
+extern void gpy_dd_hash_init_table( gpy_hash_tab_t ** );
 
 extern tree gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj ** );
 
