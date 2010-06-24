@@ -1543,6 +1543,29 @@
    }# )
 
 
+;;;;;;;;;;;;;;;;
+;;; pattern tree_any_float_type (any float type include real, double, complex, ...).
+;;; asked by Marie Krumpe.
+(defcmatcher tree_any_float_type 
+  (:tree tr)
+  (					;output
+   :cstring name
+   :long size
+  )
+  tranyfloaty
+  ;; test
+  #{ /* $tranyfloaty ? */ ( ($tr) && FLOAT_TYPE_P($tr) )
+  }#
+  ;; fill
+  #{ /* $tranyfloaty ! */
+   tree $tranyfloaty#_ty= TYPE_NAME($tr);
+   tree $tranyfloaty#_sizt= TYPE_SIZE($tr);
+   if ($tranyfloaty#_ty && TREE_CODE($tranyfloaty#_ty) == IDENTIFIER_NODE)
+     $name = IDENTIFIER_POINTER($tranyfloaty#_ty);
+   if ($tranyfloaty#_sizt && TREE_CODE($tranyfloaty#_sizt) == INTEGER_CST)
+     $size = tree_low_cst($tranyfloaty#_sizt,0);
+  }#
+)
 
 ;;; pattern tree_integer_cst
 (defcmatcher tree_integer_cst
@@ -2572,6 +2595,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  raw_new_ppl_empty_constraint_system
  raw_new_ppl_unsatisfiable_constraint_system
  reveach_in_gimpleseq
+ tree_any_float_type
  tree_block
  tree_content 
  tree_decl
