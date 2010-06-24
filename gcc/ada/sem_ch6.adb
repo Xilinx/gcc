@@ -98,7 +98,7 @@ package body Sem_Ch6 is
    -----------------------
 
    procedure Analyze_Return_Statement (N : Node_Id);
-   --  Common processing for simple_ and extended_return_statements
+   --  Common processing for simple and extended return statements
 
    procedure Analyze_Function_Return (N : Node_Id);
    --  Subsidiary to Analyze_Return_Statement. Called when the return statement
@@ -106,11 +106,12 @@ package body Sem_Ch6 is
 
    procedure Analyze_Return_Type (N : Node_Id);
    --  Subsidiary to Process_Formals: analyze subtype mark in function
-   --  specification, in a context where the formals are visible and hide
+   --  specification in a context where the formals are visible and hide
    --  outer homographs.
 
    procedure Analyze_Subprogram_Body_Helper (N : Node_Id);
-   --  Does all the real work of Analyze_Subprogram_Body
+   --  Does all the real work of Analyze_Subprogram_Body. This is split out so
+   --  that we can use RETURN but not skip the debug output at the end.
 
    procedure Analyze_Generic_Subprogram_Body (N : Node_Id; Gen_Id : Entity_Id);
    --  Analyze a generic subprogram body. N is the body to be analyzed, and
@@ -514,10 +515,10 @@ package body Sem_Ch6 is
       -------------------------------------
 
       procedure Check_Return_Subtype_Indication (Obj_Decl : Node_Id) is
-         Return_Obj  : constant Node_Id   := Defining_Identifier (Obj_Decl);
-         R_Stm_Type  : constant Entity_Id := Etype (Return_Obj);
-         --  Subtype given in the extended return statement;
-         --  this must match R_Type.
+         Return_Obj : constant Node_Id   := Defining_Identifier (Obj_Decl);
+
+         R_Stm_Type : constant Entity_Id := Etype (Return_Obj);
+         --  Subtype given in the extended return statement (must match R_Type)
 
          Subtype_Ind : constant Node_Id :=
                          Object_Definition (Original_Node (Obj_Decl));
@@ -542,7 +543,7 @@ package body Sem_Ch6 is
          --  True if type of the return object is an anonymous access type
 
       begin
-         --  First, avoid cascade errors:
+         --  First, avoid cascaded errors
 
          if Error_Posted (Obj_Decl) or else Error_Posted (Subtype_Ind) then
             return;
@@ -773,6 +774,11 @@ package body Sem_Ch6 is
                          & "null-excluding return?",
                Reason => CE_Null_Not_Allowed);
          end if;
+
+         --  Apply checks suggested by AI05-0144 (dangerous order dependence)
+         --  (Disabled for now)
+
+         --  Check_Order_Dependence;
       end if;
    end Analyze_Function_Return;
 
@@ -978,6 +984,7 @@ package body Sem_Ch6 is
       if Style_Check then
          Style.Check_Identifier (Body_Id, Gen_Id);
       end if;
+
       End_Generic;
    end Analyze_Generic_Subprogram_Body;
 
@@ -1037,6 +1044,7 @@ package body Sem_Ch6 is
 
       procedure Analyze_Call_And_Resolve;
       --  Do Analyze and Resolve calls for procedure call
+      --  At end, check illegal order dependence.
 
       ------------------------------
       -- Analyze_Call_And_Resolve --
@@ -1047,6 +1055,11 @@ package body Sem_Ch6 is
          if Nkind (N) = N_Procedure_Call_Statement then
             Analyze_Call (N);
             Resolve (N, Standard_Void_Type);
+
+            --  Apply checks suggested by AI05-0144 (Disabled for now)
+
+            --  Check_Order_Dependence;
+
          else
             Analyze (N);
          end if;
@@ -1428,7 +1441,6 @@ package body Sem_Ch6 is
       Prev_Id      : constant Entity_Id  := Current_Entity_In_Scope (Body_Id);
       Conformant   : Boolean;
       HSS          : Node_Id;
-      Missing_Ret  : Boolean;
       P_Ent        : Entity_Id;
       Prot_Typ     : Entity_Id := Empty;
       Spec_Id      : Entity_Id;
@@ -1469,6 +1481,10 @@ package body Sem_Ch6 is
       --  subprogram declaration for it, in order to attach the body to inline.
       --  If pragma does not appear after the body, check whether there is
       --  an inline pragma before any local declarations.
+
+      procedure Check_Missing_Return;
+      --  Checks for a function with a no return statements, and also performs
+      --  the warning checks implemented by Check_Returns.
 
       function Disambiguate_Spec return Entity_Id;
       --  When a primitive is declared between the private view and the full
@@ -1661,6 +1677,46 @@ package body Sem_Ch6 is
             end if;
          end if;
       end Check_Inline_Pragma;
+
+      --------------------------
+      -- Check_Missing_Return --
+      --------------------------
+
+      procedure Check_Missing_Return is
+         Id          : Entity_Id;
+         Missing_Ret : Boolean;
+
+      begin
+         if Nkind (Body_Spec) = N_Function_Specification then
+            if Present (Spec_Id) then
+               Id := Spec_Id;
+            else
+               Id := Body_Id;
+            end if;
+
+            if Return_Present (Id) then
+               Check_Returns (HSS, 'F', Missing_Ret);
+
+               if Missing_Ret then
+                  Set_Has_Missing_Return (Id);
+               end if;
+
+            elsif (Is_Generic_Subprogram (Id)
+                     or else not Is_Machine_Code_Subprogram (Id))
+              and then not Body_Deleted
+            then
+               Error_Msg_N ("missing RETURN statement in function body", N);
+            end if;
+
+         --  If procedure with No_Return, check returns
+
+         elsif Nkind (Body_Spec) = N_Procedure_Specification
+           and then Present (Spec_Id)
+           and then No_Return (Spec_Id)
+         then
+               Check_Returns (HSS, 'P', Missing_Ret, Spec_Id);
+         end if;
+      end Check_Missing_Return;
 
       -----------------------
       -- Disambiguate_Spec --
@@ -1886,6 +1942,12 @@ package body Sem_Ch6 is
             Set_Is_Child_Unit       (Body_Id, Is_Child_Unit       (Spec_Id));
 
             Analyze_Generic_Subprogram_Body (N, Spec_Id);
+
+            if Nkind (N) = N_Subprogram_Body then
+               HSS := Handled_Statement_Sequence (N);
+               Check_Missing_Return;
+            end if;
+
             return;
 
          else
@@ -2424,41 +2486,7 @@ package body Sem_Ch6 is
          end if;
       end if;
 
-      --  If function, check return statements
-
-      if Nkind (Body_Spec) = N_Function_Specification then
-         declare
-            Id : Entity_Id;
-
-         begin
-            if Present (Spec_Id) then
-               Id := Spec_Id;
-            else
-               Id := Body_Id;
-            end if;
-
-            if Return_Present (Id) then
-               Check_Returns (HSS, 'F', Missing_Ret);
-
-               if Missing_Ret then
-                  Set_Has_Missing_Return (Id);
-               end if;
-
-            elsif not Is_Machine_Code_Subprogram (Id)
-              and then not Body_Deleted
-            then
-               Error_Msg_N ("missing RETURN statement in function body", N);
-            end if;
-         end;
-
-      --  If procedure with No_Return, check returns
-
-      elsif Nkind (Body_Spec) = N_Procedure_Specification
-        and then Present (Spec_Id)
-        and then No_Return (Spec_Id)
-      then
-         Check_Returns (HSS, 'P', Missing_Ret, Spec_Id);
-      end if;
+      Check_Missing_Return;
 
       --  Now we are going to check for variables that are never modified in
       --  the body of the procedure. But first we deal with a special case
@@ -4551,7 +4579,7 @@ package body Sem_Ch6 is
 
             elsif Must_Override (Spec) then
                if Is_Overriding_Operation (Subp) then
-                  Set_Is_Overriding_Operation (Subp);
+                  null;
 
                elsif not Can_Override then
                   Error_Msg_NE ("subprogram & is not overriding", Spec, Subp);
@@ -5403,6 +5431,14 @@ package body Sem_Ch6 is
       --  and also returned as the result. These formals are always of mode IN.
       --  The new formal has the type Typ, is declared in Scope, and its name
       --  is given by a concatenation of the name of Assoc_Entity and Suffix.
+      --  The following suffixes are currently used. They should not be changed
+      --  without coordinating with CodePeer, which makes use of these to
+      --  provide better messages.
+
+      --  O denotes the Constrained bit.
+      --  L denotes the accessibility level.
+      --  BIP_xxx denotes an extra formal for a build-in-place function. See
+      --  the full list in exp_ch6.BIP_Formal_Kind.
 
       ----------------------
       -- Add_Extra_Formal --
@@ -5529,7 +5565,7 @@ package body Sem_Ch6 is
               and then not Is_Indefinite_Subtype (Formal_Type)
             then
                Set_Extra_Constrained
-                 (Formal, Add_Extra_Formal (Formal, Standard_Boolean, E, "F"));
+                 (Formal, Add_Extra_Formal (Formal, Standard_Boolean, E, "O"));
             end if;
          end if;
 
@@ -5562,7 +5598,7 @@ package body Sem_Ch6 is
                or else Present (Extra_Accessibility (P_Formal)))
          then
             Set_Extra_Accessibility
-              (Formal, Add_Extra_Formal (Formal, Standard_Natural, E, "F"));
+              (Formal, Add_Extra_Formal (Formal, Standard_Natural, E, "L"));
          end if;
 
          --  This label is required when skipping extra formal generation for
@@ -6460,8 +6496,8 @@ package body Sem_Ch6 is
         or else Etype (Prim) = Etype (Iface_Prim)
         or else not Has_Controlling_Result (Prim)
       then
-         return Type_Conformant (Prim, Iface_Prim,
-                  Skip_Controlling_Formals => True);
+         return Type_Conformant
+                  (Iface_Prim, Prim, Skip_Controlling_Formals => True);
 
       --  Case of a function returning an interface, or an access to one.
       --  Check that the return types correspond.
@@ -7526,9 +7562,11 @@ package body Sem_Ch6 is
       --  E exists and is overloadable
 
       else
-         --  Ada 2005 (AI-251): Derivation of abstract interface primitives
-         --  need no check against the homonym chain. They are directly added
-         --  to the list of primitive operations of Derived_Type.
+         --  Ada 2005 (AI-251): Derivation of abstract interface primitives.
+         --  They are directly added to the list of primitive operations of
+         --  Derived_Type, unless this is a rederivation in the private part
+         --  of an operation that was already derived in the visible part of
+         --  the current package.
 
          if Ada_Version >= Ada_05
            and then Present (Derived_Type)
@@ -7536,7 +7574,16 @@ package body Sem_Ch6 is
            and then Present (Find_Dispatching_Type (Alias (S)))
            and then Is_Interface (Find_Dispatching_Type (Alias (S)))
          then
-            goto Add_New_Entity;
+            if Type_Conformant (E, S)
+              and then Is_Package_Or_Generic_Package (Current_Scope)
+              and then In_Private_Part (Current_Scope)
+              and then Parent (E) /= Parent (S)
+              and then Alias (E) = Alias (S)
+            then
+               Check_Operation_From_Private_View (S, E);
+            else
+               goto Add_New_Entity;
+            end if;
          end if;
 
          Check_Synchronized_Overriding (S, Overridden_Subp);

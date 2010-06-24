@@ -1,3 +1,17 @@
+2010-06-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* c.opt (lang-objc): Remove.
+	* c-opts.c (c_common_handle_option): Don't handle OPT_lang_objc.
+
+2010-06-21  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* c-opts.c: Include "tm_p.h".
+
+2010-06-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (parse_optimize_options): Update call to
+	decode_options.
+
 2010-06-18  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* c-common.c (record_types_used_by_current_var_decl): Adjust for

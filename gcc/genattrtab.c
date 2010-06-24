@@ -1,6 +1,6 @@
 /* Generate code from machine description to compute values of attributes.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -113,6 +113,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "errors.h"
 #include "read-md.h"
 #include "gensupport.h"
+#include "vecprim.h"
 
 /* Flags for make_internal_attr's `special' parameter.  */
 #define ATTR_NONE		0
@@ -277,7 +278,7 @@ static void write_attr_valueq	   (struct attr_desc *, const char *);
 static struct attr_value *find_most_used  (struct attr_desc *);
 static void write_attr_set	   (struct attr_desc *, int, rtx,
 				    const char *, const char *, rtx,
-				    int, int);
+				    int, int, unsigned int);
 static void write_attr_case	   (struct attr_desc *, struct attr_value *,
 				    int, const char *, const char *, int, rtx);
 static void write_attr_value	   (struct attr_desc *, rtx);
@@ -3126,16 +3127,98 @@ gen_delay (rtx def, int lineno)
   delays = delay;
 }
 
-/* Given a piece of RTX, print a C expression to test its truth value.
-   We use AND and IOR both for logical and bit-wise operations, so
-   interpret them as logical unless they are inside a comparison expression.
-   The first bit of FLAGS will be nonzero in that case.
+/* Names of attributes that could be possibly cached.  */
+static const char *cached_attrs[32];
+/* Number of such attributes.  */
+static int cached_attr_count;
+/* Bitmasks of possibly cached attributes.  */
+static unsigned int attrs_seen_once, attrs_seen_more_than_once;
+static unsigned int attrs_to_cache;
+static unsigned int attrs_cached_inside, attrs_cached_after;
 
-   Set the second bit of FLAGS to make references to attribute values use
-   a cached local variable instead of calling a function.  */
+/* Finds non-const attributes that could be possibly cached.
+   When create is TRUE, fills in cached_attrs array.
+   Computes ATTRS_SEEN_ONCE and ATTRS_SEEN_MORE_THAN_ONCE
+   bitmasks.  */
 
 static void
-write_test_expr (rtx exp, int flags)
+find_attrs_to_cache (rtx exp, bool create)
+{
+  int i;
+  const char *name;
+  struct attr_desc *attr;
+
+  if (exp == NULL)
+    return;
+
+  switch (GET_CODE (exp))
+    {
+    case NOT:
+      if (GET_CODE (XEXP (exp, 0)) == EQ_ATTR)
+	find_attrs_to_cache (XEXP (exp, 0), create);
+      return;
+
+    case EQ_ATTR:
+      name = XSTR (exp, 0);
+      if (name == alternative_name)
+	return;
+      for (i = 0; i < cached_attr_count; i++)
+	if (name == cached_attrs[i])
+	  {
+	    if ((attrs_seen_once & (1U << i)) != 0)
+	      attrs_seen_more_than_once |= (1U << i);
+	    else
+	      attrs_seen_once |= (1U << i);
+	    return;
+	  }
+      if (!create)
+	return;
+      attr = find_attr (&name, 0);
+      gcc_assert (attr);
+      if (attr->is_const)
+	return;
+      if (cached_attr_count == 32)
+	return;
+      cached_attrs[cached_attr_count] = XSTR (exp, 0);
+      attrs_seen_once |= (1U << cached_attr_count);
+      cached_attr_count++;
+      return;
+
+    case AND:
+    case IOR:
+      find_attrs_to_cache (XEXP (exp, 0), create);
+      find_attrs_to_cache (XEXP (exp, 1), create);
+      return;
+
+    case COND:
+      for (i = 0; i < XVECLEN (exp, 0); i += 2)
+	find_attrs_to_cache (XVECEXP (exp, 0, i), create);
+      return;
+
+    default:
+      return;
+    }
+}
+
+/* Given a piece of RTX, print a C expression to test its truth value.
+   We use AND and IOR both for logical and bit-wise operations, so
+   interpret them as logical unless they are inside a comparison expression.  */
+
+/* Interpret AND/IOR as bit-wise operations instead of logical.  */
+#define FLG_BITWISE		1
+/* Set if cached attribute will be known initialized in else block after
+   this condition.  This is true for LHS of toplevel && and || and
+   even for RHS of ||, but not for RHS of &&.  */
+#define FLG_AFTER		2
+/* Set if cached attribute will be known initialized in then block after
+   this condition.  This is true for LHS of toplevel && and || and
+   even for RHS of &&, but not for RHS of ||.  */
+#define FLG_INSIDE		4
+/* Cleared when an operand of &&.  */
+#define FLG_OUTSIDE_AND		8
+
+static unsigned int
+write_test_expr (rtx exp, unsigned int attrs_cached, int flags)
 {
   int comparison_operator = 0;
   RTX_CODE code;
@@ -3157,12 +3240,30 @@ write_test_expr (rtx exp, int flags)
     case EQ: case NE:
     case GE: case GT:
     case LE: case LT:
-      comparison_operator = 1;
+      comparison_operator = FLG_BITWISE;
 
     case PLUS:   case MINUS:  case MULT:     case DIV:      case MOD:
     case AND:    case IOR:    case XOR:
     case ASHIFT: case LSHIFTRT: case ASHIFTRT:
-      write_test_expr (XEXP (exp, 0), flags | comparison_operator);
+      if ((code != AND && code != IOR) || (flags & FLG_BITWISE))
+	{
+	  flags &= ~(FLG_AFTER | FLG_INSIDE | FLG_OUTSIDE_AND);
+	  write_test_expr (XEXP (exp, 0), attrs_cached,
+			   flags | comparison_operator);
+	}
+      else
+	{
+	  if (code == AND)
+	    flags &= ~FLG_OUTSIDE_AND;
+	  if (GET_CODE (XEXP (exp, 0)) == code
+	      || GET_CODE (XEXP (exp, 0)) == EQ_ATTR
+	      || (GET_CODE (XEXP (exp, 0)) == NOT
+		  && GET_CODE (XEXP (XEXP (exp, 0), 0)) == EQ_ATTR))
+	    attrs_cached
+	      = write_test_expr (XEXP (exp, 0), attrs_cached, flags);
+	  else
+	    write_test_expr (XEXP (exp, 0), attrs_cached, flags);
+	}
       switch (code)
 	{
 	case EQ:
@@ -3211,13 +3312,13 @@ write_test_expr (rtx exp, int flags)
 	  printf (" %% ");
 	  break;
 	case AND:
-	  if (flags & 1)
+	  if (flags & FLG_BITWISE)
 	    printf (" & ");
 	  else
 	    printf (" && ");
 	  break;
 	case IOR:
-	  if (flags & 1)
+	  if (flags & FLG_BITWISE)
 	    printf (" | ");
 	  else
 	    printf (" || ");
@@ -3236,15 +3337,49 @@ write_test_expr (rtx exp, int flags)
 	  gcc_unreachable ();
 	}
 
-      write_test_expr (XEXP (exp, 1), flags | comparison_operator);
+      if (code == AND)
+	{
+	  /* For if (something && (cached_x = get_attr_x (insn)) == X)
+	     cached_x is only known to be initialized in then block.  */
+	  flags &= ~FLG_AFTER;
+	}
+      else if (code == IOR)
+	{
+	  if (flags & FLG_OUTSIDE_AND)
+	    /* For if (something || (cached_x = get_attr_x (insn)) == X)
+	       cached_x is only known to be initialized in else block
+	       and else if conditions.  */
+	    flags &= ~FLG_INSIDE;
+	  else
+	    /* For if ((something || (cached_x = get_attr_x (insn)) == X)
+		       && something_else)
+	       cached_x is not know to be initialized anywhere.  */
+	    flags &= ~(FLG_AFTER | FLG_INSIDE);
+	}
+      if ((code == AND || code == IOR)
+	  && (GET_CODE (XEXP (exp, 1)) == code
+	      || GET_CODE (XEXP (exp, 1)) == EQ_ATTR
+	      || (GET_CODE (XEXP (exp, 1)) == NOT
+		  && GET_CODE (XEXP (XEXP (exp, 1), 0)) == EQ_ATTR)))
+	attrs_cached
+	  = write_test_expr (XEXP (exp, 1), attrs_cached, flags);
+      else
+	write_test_expr (XEXP (exp, 1), attrs_cached,
+			 flags | comparison_operator);
       break;
 
     case NOT:
       /* Special-case (not (eq_attrq "alternative" "x")) */
-      if (! (flags & 1) && GET_CODE (XEXP (exp, 0)) == EQ_ATTR
-	  && XSTR (XEXP (exp, 0), 0) == alternative_name)
+      if (! (flags & FLG_BITWISE) && GET_CODE (XEXP (exp, 0)) == EQ_ATTR)
 	{
-	  printf ("which_alternative != %s", XSTR (XEXP (exp, 0), 1));
+	  if (XSTR (XEXP (exp, 0), 0) == alternative_name)
+	    {
+	      printf ("which_alternative != %s", XSTR (XEXP (exp, 0), 1));
+	      break;
+	    }
+
+	  printf ("! ");
+	  attrs_cached = write_test_expr (XEXP (exp, 0), attrs_cached, flags);
 	  break;
 	}
 
@@ -3255,7 +3390,7 @@ write_test_expr (rtx exp, int flags)
       switch (code)
 	{
 	case NOT:
-	  if (flags & 1)
+	  if (flags & FLG_BITWISE)
 	    printf ("~ ");
 	  else
 	    printf ("! ");
@@ -3270,14 +3405,15 @@ write_test_expr (rtx exp, int flags)
 	  gcc_unreachable ();
 	}
 
-      write_test_expr (XEXP (exp, 0), flags);
+      flags &= ~(FLG_AFTER | FLG_INSIDE | FLG_OUTSIDE_AND);
+      write_test_expr (XEXP (exp, 0), attrs_cached, flags);
       break;
 
     case EQ_ATTR_ALT:
 	{
 	  int set = XINT (exp, 0), bit = 0;
 
-	  if (flags & 1)
+	  if (flags & FLG_BITWISE)
 	    fatal ("EQ_ATTR_ALT not valid inside comparison");
 
 	  if (!set)
@@ -3323,7 +3459,7 @@ write_test_expr (rtx exp, int flags)
        have been removed by optimization.   Handle "alternative"
        specially and give error if EQ_ATTR present inside a comparison.  */
     case EQ_ATTR:
-      if (flags & 1)
+      if (flags & FLG_BITWISE)
 	fatal ("EQ_ATTR not valid inside comparison");
 
       if (XSTR (exp, 0) == alternative_name)
@@ -3340,12 +3476,26 @@ write_test_expr (rtx exp, int flags)
 	{
 	  write_test_expr (evaluate_eq_attr (exp, attr,
 					     attr->default_val->value, -2, -2),
-			   flags);
+			   attrs_cached, 0);
 	}
       else
 	{
-	  if (flags & 2)
-	    printf ("attr_%s", attr->name);
+	  int i;
+	  for (i = 0; i < cached_attr_count; i++)
+	    if (attr->name == cached_attrs[i])
+	      break;
+	  if (i < cached_attr_count && (attrs_cached & (1U << i)) != 0)
+	    printf ("cached_%s", attr->name);
+	  else if (i < cached_attr_count && (attrs_to_cache & (1U << i)) != 0)
+	    {
+	      printf ("(cached_%s = get_attr_%s (insn))",
+		      attr->name, attr->name);
+	      if (flags & FLG_AFTER)
+		attrs_cached_after |= (1U << i);
+	      if (flags & FLG_INSIDE)
+		attrs_cached_inside |= (1U << i);
+	      attrs_cached |= (1U << i);
+	    }
 	  else
 	    printf ("get_attr_%s (insn)", attr->name);
 	  printf (" == ");
@@ -3355,7 +3505,7 @@ write_test_expr (rtx exp, int flags)
 
     /* Comparison test of flags for define_delays.  */
     case ATTR_FLAG:
-      if (flags & 1)
+      if (flags & FLG_BITWISE)
 	fatal ("ATTR_FLAG not valid inside comparison");
       printf ("(flags & ATTR_FLAG_%s) != 0", XSTR (exp, 0));
       break;
@@ -3407,11 +3557,11 @@ write_test_expr (rtx exp, int flags)
       break;
 
     case IF_THEN_ELSE:
-      write_test_expr (XEXP (exp, 0), flags & 2);
+      write_test_expr (XEXP (exp, 0), attrs_cached, 0);
       printf (" ? ");
-      write_test_expr (XEXP (exp, 1), flags | 1);
+      write_test_expr (XEXP (exp, 1), attrs_cached, FLG_BITWISE);
       printf (" : ");
-      write_test_expr (XEXP (exp, 2), flags | 1);
+      write_test_expr (XEXP (exp, 2), attrs_cached, FLG_BITWISE);
       break;
 
     default:
@@ -3420,6 +3570,7 @@ write_test_expr (rtx exp, int flags)
     }
 
   printf (")");
+  return attrs_cached;
 }
 
 /* Given an attribute value, return the maximum CONST_STRING argument
@@ -3624,6 +3775,7 @@ static void
 write_attr_get (struct attr_desc *attr)
 {
   struct attr_value *av, *common_av;
+  int i, j;
 
   /* Find the most used attribute value.  Handle that as the `default' of the
      switch we will generate.  */
@@ -3653,16 +3805,48 @@ write_attr_get (struct attr_desc *attr)
 	if (av->num_insns == 1)
 	  write_attr_set (attr, 2, av->value, "return", ";",
 			  true_rtx, av->first_insn->def->insn_code,
-			  av->first_insn->def->insn_index);
+			  av->first_insn->def->insn_index, 0);
 	else if (av->num_insns != 0)
 	  write_attr_set (attr, 2, av->value, "return", ";",
-			  true_rtx, -2, 0);
+			  true_rtx, -2, 0, 0);
 
       printf ("}\n\n");
       return;
     }
 
   printf ("{\n");
+
+  /* Find attributes that are worth caching in the conditions.  */
+  cached_attr_count = 0;
+  attrs_seen_more_than_once = 0;
+  for (av = attr->first_value; av; av = av->next)
+    {
+      attrs_seen_once = 0;
+      find_attrs_to_cache (av->value, true);
+    }
+  /* Remove those that aren't worth caching from the array.  */
+  for (i = 0, j = 0; i < cached_attr_count; i++)
+    if ((attrs_seen_more_than_once & (1U << i)) != 0)
+      {
+	const char *name = cached_attrs[i];
+	struct attr_desc *cached_attr;
+	if (i != j)
+	  cached_attrs[j] = name;
+	cached_attr = find_attr (&name, 0);
+	gcc_assert (cached_attr && cached_attr->is_const == 0);
+	if (cached_attr->enum_name)
+	  printf ("  enum %s", cached_attr->enum_name);
+	else if (!cached_attr->is_numeric)
+	  printf ("  enum attr_%s", cached_attr->name);
+	else
+	  printf ("  int");
+	printf (" cached_%s ATTRIBUTE_UNUSED;\n", name);
+	j++;
+      }
+  cached_attr_count = j;
+  if (cached_attr_count)
+    printf ("\n");
+
   printf ("  switch (recog_memoized (insn))\n");
   printf ("    {\n");
 
@@ -3672,6 +3856,7 @@ write_attr_get (struct attr_desc *attr)
 
   write_attr_case (attr, common_av, 0, "return", ";", 4, true_rtx);
   printf ("    }\n}\n\n");
+  cached_attr_count = 0;
 }
 
 /* Given an AND tree of known true terms (because we are inside an `if' with
@@ -3710,7 +3895,7 @@ eliminate_known_true (rtx known_true, rtx exp, int insn_code, int insn_index)
 static void
 write_attr_set (struct attr_desc *attr, int indent, rtx value,
 		const char *prefix, const char *suffix, rtx known_true,
-		int insn_code, int insn_index)
+		int insn_code, int insn_index, unsigned int attrs_cached)
 {
   if (GET_CODE (value) == COND)
     {
@@ -3721,6 +3906,15 @@ write_attr_set (struct attr_desc *attr, int indent, rtx value,
       rtx newexp;
       int first_if = 1;
       int i;
+
+      if (cached_attr_count)
+	{
+	  attrs_seen_once = 0;
+	  attrs_seen_more_than_once = 0;
+	  for (i = 0; i < XVECLEN (value, 0); i += 2)
+	    find_attrs_to_cache (XVECEXP (value, 0, i), false);
+	  attrs_to_cache |= attrs_seen_more_than_once;
+	}
 
       for (i = 0; i < XVECLEN (value, 0); i += 2)
 	{
@@ -3752,17 +3946,22 @@ write_attr_set (struct attr_desc *attr, int indent, rtx value,
 	  if (inner_true == false_rtx)
 	    continue;
 
+	  attrs_cached_inside = attrs_cached;
+	  attrs_cached_after = attrs_cached;
 	  write_indent (indent);
 	  printf ("%sif ", first_if ? "" : "else ");
 	  first_if = 0;
-	  write_test_expr (testexp, 0);
+	  write_test_expr (testexp, attrs_cached,
+			   (FLG_AFTER | FLG_INSIDE | FLG_OUTSIDE_AND));
+	  attrs_cached = attrs_cached_after;
 	  printf ("\n");
 	  write_indent (indent + 2);
 	  printf ("{\n");
 
 	  write_attr_set (attr, indent + 4,
 			  XVECEXP (value, 0, i + 1), prefix, suffix,
-			  inner_true, insn_code, insn_index);
+			  inner_true, insn_code, insn_index,
+			  attrs_cached_inside);
 	  write_indent (indent + 2);
 	  printf ("}\n");
 	  our_known_true = newexp;
@@ -3777,7 +3976,8 @@ write_attr_set (struct attr_desc *attr, int indent, rtx value,
 	}
 
       write_attr_set (attr, first_if ? indent : indent + 4, default_val,
-		      prefix, suffix, our_known_true, insn_code, insn_index);
+		      prefix, suffix, our_known_true, insn_code, insn_index,
+		      attrs_cached);
 
       if (! first_if)
 	{
@@ -3858,13 +4058,14 @@ write_attr_case (struct attr_desc *attr, struct attr_value *av,
       printf ("extract_insn_cached (insn);\n");
     }
 
+  attrs_to_cache = 0;
   if (av->num_insns == 1)
     write_attr_set (attr, indent + 2, av->value, prefix, suffix,
 		    known_true, av->first_insn->def->insn_code,
-		    av->first_insn->def->insn_index);
+		    av->first_insn->def->insn_index, 0);
   else
     write_attr_set (attr, indent + 2, av->value, prefix, suffix,
-		    known_true, -2, 0);
+		    known_true, -2, 0, 0);
 
   if (strncmp (prefix, "return", 6))
     {
@@ -4372,6 +4573,69 @@ process_bypasses (void)
 	r->bypassed = true;
 }
 
+/* Check that attribute NAME is used in define_insn_reservation condition
+   EXP.  Return true if it is.  */
+static bool
+check_tune_attr (const char *name, rtx exp)
+{
+  switch (GET_CODE (exp))
+    {
+    case AND:
+      if (check_tune_attr (name, XEXP (exp, 0)))
+	return true;
+      return check_tune_attr (name, XEXP (exp, 1));
+
+    case IOR:
+      return (check_tune_attr (name, XEXP (exp, 0))
+	      && check_tune_attr (name, XEXP (exp, 1)));
+
+    case EQ_ATTR:
+      return XSTR (exp, 0) == name;
+
+    default:
+      return false;
+    }
+}
+
+/* Try to find a const attribute (usually cpu or tune) that is used
+   in all define_insn_reservation conditions.  */
+static struct attr_desc *
+find_tune_attr (rtx exp)
+{
+  struct attr_desc *attr;
+
+  switch (GET_CODE (exp))
+    {
+    case AND:
+    case IOR:
+      attr = find_tune_attr (XEXP (exp, 0));
+      if (attr)
+	return attr;
+      return find_tune_attr (XEXP (exp, 1));
+
+    case EQ_ATTR:
+      if (XSTR (exp, 0) == alternative_name)
+	return NULL;
+
+      attr = find_attr (&XSTR (exp, 0), 0);
+      gcc_assert (attr);
+
+      if (attr->is_const && !attr->is_special)
+	{
+	  struct insn_reserv *decl;
+
+	  for (decl = all_insn_reservs; decl; decl = decl->next)
+	    if (! check_tune_attr (attr->name, decl->condexp))
+	      return NULL;
+	  return attr;
+	}
+      return NULL;
+
+    default:
+      return NULL;
+    }
+}
+
 /* Create all of the attributes that describe automaton properties.  */
 static void
 make_automaton_attrs (void)
@@ -4379,28 +4643,154 @@ make_automaton_attrs (void)
   int i;
   struct insn_reserv *decl;
   rtx code_exp, lats_exp, byps_exp;
+  struct attr_desc *tune_attr;
 
   if (n_insn_reservs == 0)
     return;
 
-  code_exp = rtx_alloc (COND);
-  lats_exp = rtx_alloc (COND);
-
-  XVEC (code_exp, 0) = rtvec_alloc (n_insn_reservs * 2);
-  XVEC (lats_exp, 0) = rtvec_alloc (n_insn_reservs * 2);
-
-  XEXP (code_exp, 1) = make_numeric_value (n_insn_reservs + 1);
-  XEXP (lats_exp, 1) = make_numeric_value (0);
-
-  for (decl = all_insn_reservs, i = 0;
-       decl;
-       decl = decl->next, i += 2)
+  tune_attr = find_tune_attr (all_insn_reservs->condexp);
+  if (tune_attr != NULL)
     {
-      XVECEXP (code_exp, 0, i)   = decl->condexp;
-      XVECEXP (lats_exp, 0, i)   = decl->condexp;
+      rtx *condexps = XNEWVEC (rtx, n_insn_reservs * 3);
+      struct attr_value *val;
+      bool first = true;
 
-      XVECEXP (code_exp, 0, i+1) = make_numeric_value (decl->insn_num);
-      XVECEXP (lats_exp, 0, i+1) = make_numeric_value (decl->default_latency);
+      gcc_assert (tune_attr->is_const
+		  && !tune_attr->is_special
+		  && !tune_attr->is_numeric);
+      for (val = tune_attr->first_value; val; val = val->next)
+	{
+	  if (val == tune_attr->default_val)
+	    continue;
+	  gcc_assert (GET_CODE (val->value) == CONST_STRING);
+	  printf ("static int internal_dfa_insn_code_%s (rtx);\n"
+		  "static int insn_default_latency_%s (rtx);\n",
+		  XSTR (val->value, 0), XSTR (val->value, 0));
+	}
+
+      printf ("\n");
+      printf ("int (*internal_dfa_insn_code) (rtx);\n");
+      printf ("int (*insn_default_latency) (rtx);\n");
+      printf ("\n");
+      printf ("void\n");
+      printf ("init_sched_attrs (void)\n");
+      printf ("{\n");
+
+      for (val = tune_attr->first_value; val; val = val->next)
+	{
+	  int j;
+	  char *name;
+	  rtx test = attr_rtx (EQ_ATTR, tune_attr->name, XSTR (val->value, 0));
+
+	  if (val == tune_attr->default_val)
+	    continue;
+	  for (decl = all_insn_reservs, i = 0;
+	       decl;
+	       decl = decl->next)
+	    {
+	      rtx ctest = test;
+	      rtx condexp
+		= simplify_and_tree (decl->condexp, &ctest, -2, 0);
+	      if (condexp == false_rtx)
+		continue;
+	      if (condexp == true_rtx)
+		break;
+	      condexps[i] = condexp;
+	      condexps[i + 1] = make_numeric_value (decl->insn_num);
+	      condexps[i + 2] = make_numeric_value (decl->default_latency);
+	      i += 3;
+	    }
+
+	  code_exp = rtx_alloc (COND);
+	  lats_exp = rtx_alloc (COND);
+
+	  j = i / 3 * 2;
+	  XVEC (code_exp, 0) = rtvec_alloc (j);
+	  XVEC (lats_exp, 0) = rtvec_alloc (j);
+
+	  if (decl)
+	    {
+	      XEXP (code_exp, 1) = make_numeric_value (decl->insn_num);
+	      XEXP (lats_exp, 1) = make_numeric_value (decl->default_latency);
+	    }
+	  else
+	    {
+	      XEXP (code_exp, 1) = make_numeric_value (n_insn_reservs + 1);
+	      XEXP (lats_exp, 1) = make_numeric_value (0);
+	    }
+
+	  while (i > 0)
+	    {
+	      i -= 3;
+	      j -= 2;
+	      XVECEXP (code_exp, 0, j) = condexps[i];
+	      XVECEXP (lats_exp, 0, j) = condexps[i];
+
+	      XVECEXP (code_exp, 0, j + 1) = condexps[i + 1];
+	      XVECEXP (lats_exp, 0, j + 1) = condexps[i + 2];
+	    }
+
+	  name = XNEWVEC (char,
+			  sizeof ("*internal_dfa_insn_code_")
+			  + strlen (XSTR (val->value, 0)));
+	  strcpy (name, "*internal_dfa_insn_code_");
+	  strcat (name, XSTR (val->value, 0));
+	  make_internal_attr (name, code_exp, ATTR_NONE);
+	  strcpy (name, "*insn_default_latency_");
+	  strcat (name, XSTR (val->value, 0));
+	  make_internal_attr (name, lats_exp, ATTR_NONE);
+	  XDELETEVEC (name);
+
+	  if (first)
+	    {
+	      printf ("  if (");
+	      first = false;
+	    }
+	  else
+	    printf ("  else if (");
+	  write_test_expr (test, 0, 0);
+	  printf (")\n");
+	  printf ("    {\n");
+	  printf ("      internal_dfa_insn_code\n");
+	  printf ("        = internal_dfa_insn_code_%s;\n",
+		  XSTR (val->value, 0));
+	  printf ("      insn_default_latency\n");
+	  printf ("        = insn_default_latency_%s;\n",
+		  XSTR (val->value, 0));
+	  printf ("    }\n");
+	}
+
+      printf ("  else\n");
+      printf ("    gcc_unreachable ();\n");
+      printf ("}\n");
+      printf ("\n");
+
+      XDELETEVEC (condexps);
+    }
+  else
+    {
+      code_exp = rtx_alloc (COND);
+      lats_exp = rtx_alloc (COND);
+
+      XVEC (code_exp, 0) = rtvec_alloc (n_insn_reservs * 2);
+      XVEC (lats_exp, 0) = rtvec_alloc (n_insn_reservs * 2);
+
+      XEXP (code_exp, 1) = make_numeric_value (n_insn_reservs + 1);
+      XEXP (lats_exp, 1) = make_numeric_value (0);
+
+      for (decl = all_insn_reservs, i = 0;
+	   decl;
+	   decl = decl->next, i += 2)
+	{
+	  XVECEXP (code_exp, 0, i)   = decl->condexp;
+	  XVECEXP (lats_exp, 0, i)   = decl->condexp;
+
+	  XVECEXP (code_exp, 0, i+1) = make_numeric_value (decl->insn_num);
+	  XVECEXP (lats_exp, 0, i+1)
+	    = make_numeric_value (decl->default_latency);
+	}
+      make_internal_attr ("*internal_dfa_insn_code", code_exp, ATTR_NONE);
+      make_internal_attr ("*insn_default_latency",   lats_exp, ATTR_NONE);
     }
 
   if (n_bypasses == 0)
@@ -4423,8 +4813,6 @@ make_automaton_attrs (void)
 	  }
     }
 
-  make_internal_attr ("*internal_dfa_insn_code", code_exp, ATTR_NONE);
-  make_internal_attr ("*insn_default_latency",   lats_exp, ATTR_NONE);
   make_internal_attr ("*bypass_p",               byps_exp, ATTR_NONE);
 }
 

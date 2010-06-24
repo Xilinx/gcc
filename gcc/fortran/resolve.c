@@ -10826,6 +10826,14 @@ resolve_fl_derived (gfc_symbol *sym)
 	  return FAILURE;
 	}
 
+      /* F2008, C448.  */
+      if (c->attr.contiguous && (!c->attr.dimension || !c->attr.pointer))
+	{
+	  gfc_error ("Component '%s' at %L has the CONTIGUOUS attribute but "
+		     "is not an array pointer", c->name, &c->loc);
+	  return FAILURE;
+	}
+
       if (c->attr.proc_pointer && c->ts.interface)
 	{
 	  if (c->ts.interface->attr.procedure && !sym->attr.vtype)
@@ -10892,7 +10900,7 @@ resolve_fl_derived (gfc_symbol *sym)
 		  c->ts.u.cl = cl;
 		}
 	    }
-	  else if (c->ts.interface->name[0] != '\0' && !sym->attr.vtype)
+	  else if (!sym->attr.vtype && c->ts.interface->name[0] != '\0')
 	    {
 	      gfc_error ("Interface '%s' of procedure pointer component "
 			 "'%s' at %L must be explicit", c->ts.interface->name,
@@ -11136,6 +11144,7 @@ resolve_fl_derived (gfc_symbol *sym)
   /* If this is a non-ABSTRACT type extending an ABSTRACT one, ensure that
      all DEFERRED bindings are overridden.  */
   if (super_type && super_type->attr.abstract && !sym->attr.abstract
+      && !sym->attr.is_class
       && ensure_not_abstract (sym, super_type) == FAILURE)
     return FAILURE;
 
@@ -11397,6 +11406,7 @@ resolve_symbol (gfc_symbol *sym)
 	  sym->attr.pure = ifc->attr.pure;
 	  sym->attr.elemental = ifc->attr.elemental;
 	  sym->attr.dimension = ifc->attr.dimension;
+	  sym->attr.contiguous = ifc->attr.contiguous;
 	  sym->attr.recursive = ifc->attr.recursive;
 	  sym->attr.always_explicit = ifc->attr.always_explicit;
           sym->attr.ext_attr |= ifc->attr.ext_attr;
@@ -11439,6 +11449,18 @@ resolve_symbol (gfc_symbol *sym)
 	gfc_error ("PROCEDURE attribute conflicts with PROTECTED attribute "
 	           "at %L", &sym->declared_at);
 
+      return;
+    }
+
+
+  /* F2008, C530. */
+  if (sym->attr.contiguous
+      && (!sym->attr.dimension || (sym->as->type != AS_ASSUMED_SHAPE
+				   && !sym->attr.pointer)))
+    {
+      gfc_error ("'%s' at %L has the CONTIGUOUS attribute but is not an "
+		  "array pointer or an assumed-shape array", sym->name,
+		  &sym->declared_at);
       return;
     }
 
@@ -11500,6 +11522,7 @@ resolve_symbol (gfc_symbol *sym)
 		  sym->attr.dimension = sym->result->attr.dimension;
 		  sym->attr.pointer = sym->result->attr.pointer;
 		  sym->attr.allocatable = sym->result->attr.allocatable;
+		  sym->attr.contiguous = sym->result->attr.contiguous;
 		}
 	    }
 	}

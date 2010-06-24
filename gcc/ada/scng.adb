@@ -37,9 +37,12 @@ with Uintp;    use Uintp;
 with Urealp;   use Urealp;
 with Widechar; use Widechar;
 
+pragma Warnings (Off);
+--  This package is used also by gnatcoll
 with System.CRC32;
 with System.UTF_32;  use System.UTF_32;
 with System.WCh_Con; use System.WCh_Con;
+pragma Warnings (On);
 
 package body Scng is
 

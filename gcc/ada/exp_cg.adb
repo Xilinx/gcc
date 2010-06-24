@@ -28,11 +28,13 @@ with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
 with Exp_Disp; use Exp_Disp;
+with Exp_Dbug; use Exp_Dbug;
 with Exp_Tss;  use Exp_Tss;
 with Lib;      use Lib;
 with Namet;    use Namet;
 with Opt;      use Opt;
 with Output;   use Output;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Disp; use Sem_Disp;
 with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
@@ -132,6 +134,8 @@ package body Exp_CG is
             Write_Type_Info (N);
          end if;
       end loop;
+
+      Set_Special_Output (null);
    end Generate_CG_Output;
 
    ----------------
@@ -234,7 +238,7 @@ package body Exp_CG is
               or else Chars (E) = Name_uAlignment
               or else
                 (Chars (E) = Name_Op_Eq
-                   and then Etype (First_Entity (E)) = Etype (Last_Entity (E)))
+                   and then Etype (First_Formal (E)) = Etype (Last_Formal (E)))
               or else Chars (E) = Name_uAssign
               or else Is_Predefined_Interface_Primitive (E)
             then
@@ -279,7 +283,7 @@ package body Exp_CG is
 
                      return Predef_Names_95 (J) /= Name_Op_Eq
                        or else
-                         Etype (First_Entity (E)) = Etype (Last_Entity (E));
+                         Etype (First_Formal (E)) = Etype (Last_Formal (E));
                   end if;
                end loop;
 
@@ -390,7 +394,8 @@ package body Exp_CG is
 
       Write_Str ("edge: { sourcename: ");
       Write_Char ('"');
-      Write_Name (Chars (Defining_Entity (P)));
+      Get_External_Name (Defining_Entity (P), Has_Suffix => False);
+      Write_Str (Name_Buffer (1 .. Name_Len));
 
       if Nkind (P) = N_Package_Declaration then
          Write_Str ("___elabs");
@@ -567,7 +572,11 @@ package body Exp_CG is
                   Prim_Op := Node (Prim_Elmt);
                   Int_Alias := Interface_Alias (Prim_Op);
 
-                  if Present (Int_Alias) and then (Alias (Prim_Op)) = Prim then
+                  if Present (Int_Alias)
+                    and then not Is_Ancestor
+                                   (Find_Dispatching_Type (Int_Alias), Typ)
+                    and then (Alias (Prim_Op)) = Prim
+                  then
                      Write_Char (',');
                      Write_Int (UI_To_Int (Slot_Number (Int_Alias)));
                      Write_Char (':');

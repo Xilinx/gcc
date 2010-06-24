@@ -33,6 +33,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-operands.h"
 #include "tree-ssa-alias.h"
 
+struct gimple_seq_node_d;
+typedef struct gimple_seq_node_d *gimple_seq_node;
+typedef const struct gimple_seq_node_d *const_gimple_seq_node;
+
 /* For each block, the PHI nodes that need to be rewritten are stored into
    these vectors.  */
 typedef VEC(gimple, heap) *gimple_vec;
@@ -1464,10 +1468,11 @@ gimple_expr_code (const_gimple stmt)
   enum gimple_code code = gimple_code (stmt);
   if (code == GIMPLE_ASSIGN || code == GIMPLE_COND)
     return (enum tree_code) stmt->gsbase.subcode;
-  else if (code == GIMPLE_CALL)
-    return CALL_EXPR;
   else
-    gcc_unreachable ();
+    {
+      gcc_gimple_checking_assert (code == GIMPLE_CALL);
+      return CALL_EXPR;
+    }
 }
 
 

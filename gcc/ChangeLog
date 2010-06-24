@@ -1,7 +1,416 @@
+2010-06-24  Nick Clifton<nickc@redhat.com>
+
+	* loop-unswitch.c (compare_and_jump_seq): Assert that the last
+	insn in the sequence is a jump insn before setting its label.
+
+2010-06-24  Alan Modra  <amodra@gmail.com>
+
+	* collect2.c (main): Match exactly --version and --help.
+
+2010-06-24  DJ Delorie  <dj@redhat.com>
+
+	* config/m32c/m32c-pragma.c: Don't include rtl.h.
+
+2010-06-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386 (mov<mode>): Macroize expander from mov{sf,df,xf}
+	using X87MODEF mode iterator.
+	(pushsf splitter): Macroize splitter using P mode iterator.
+	(*swap<mode>): Macroize insn from *swap{sf,df} using MODEF
+	mode iterator.
+
+	(*movxf_internal): Rename from *movxf_integer.
+	(*movxf_internal_nointeger): Rename from *movxf_nointeger.
+	(*movdf_internal_rex64): Rename from *movdf_integer_rex64.
+	(*movdf_internal): Rename from *movdf_integer.
+	(*movdf_internal_nointeger): Rename from *movdf_nointeger.
+	(*movsf_internal): Rename from *movdf_1.
+
+2010-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* coretypes.h: (gimple_seq_node_d, gimple_seq_node)
+	(const_gimple_seq_node): Removed typedefs.
+
+	* gimple.h: (gimple_seq_node_d, gimple_seq_node)
+	(const_gimple_seq_node): Added typedefs moved from coretypes.h.
+
+2010-06-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (bdesc_args): Replace CODE_FOR_avx_si_si256,
+	CODE_FOR_avx_ps_ps256 and CODE_FOR_avx_pd_pd256 with
+	CODE_FOR_vec_extract_lo_v8si, CODE_FOR_vec_extract_lo_v8sf
+	and CODE_FOR_vec_extract_lo_v4df.
+
+	* config/i386/sse.md (vec_extract_lo_<AVX256MODE4P:mode>):
+	Changed to define_insn_and_split.
+	(vec_extract_lo_<AVX256MODE8P:mode>): Likewise.
+	(vec_extract_lo_v16hi): Likewise.
+	(vec_extract_lo_v32qi): Likewise.
+	(avx_<avxmodesuffixp><avxmodesuffix>_<avxmodesuffixp>): Likewise.
+	(avx_<avxmodesuffixp>_<avxmodesuffixp><avxmodesuffix>): Removed.
+
+2010-06-23  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR target/44640
+	* config/spu/spu-protos.h (spu_expand_epilogue) Use bool.
+	* config/spu/spu.c (spu_scalar_mode_supported_p): Declare with bool.
+	(spu_vector_mode_supported_p, spu_handle_fndecl_attribute): Likewise.
+	(spu_handle_vector_attribute, spu_pass_by_reference): Likewise.
+	(spu_rtx_costs, spu_function_ok_for_sibcall): Likewise.
+
+	PR target/44640
+	* config/spu/spu.c (ea_load_store_inline): Use add_reg_note.
+
+	PR other/44644
+	* df-core.c (struct df): Rename to df_d.
+	* df.h (struct df): Likewise.
+	* dse.h (struct df): Remove forward declaration.
+	* recog.h (struct insn_data): Rename to:
+	(struct_insn_data_d).  Adjusted all users.
+
+2010-06-23  Arnaud Charlet  <charlet@adacore.com
+
+	PR ada/22220
+	* doc/install.texi: Update requirements to build GNAT.
+
+2010-06-22  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* config/m68k/m68k.c (m68k_output_addr_const_extra): Add cast to
+	enum type.
+	(m68k_sched_attr_opx_type): Remove unreachable return.
+	(m68k_sched_attr_opy_type): Likewise.
+	(m68k_sched_attr_size): Likewise.
+	(sched_get_opxy_mem_type): Likewise.
+	(m68k_sched_attr_op_mem): Likewise.
+
+2010-06-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cgraphunit.c (cgraph_redirect_edge_call_stmt_to_callee): Chain the
+	new statement and adjust VDEF only if necessary.  Remove superfluous
+	call to maybe_clean_or_replace_eh_stmt.
+	* gimple.c (gimple_call_copy_skip_args): Use gimple_call_copy_flags to
+	copy the flags.
+	* gimple-iterator.c (gsi_replace): Clear BB of old statement here...
+	* tree-inline.c (copy_bb): ...and not there.
+
+2010-06-22  Cary Coutant  <ccoutant@google.com>
+
+	* dwarf2out.c (is_nested_in_subprogram): New function.
+	(should_move_die_to_comdat): Use it.
+	(copy_ancestor_tree): Don't mark DIEs here.
+	(copy_decls_walk): Start walk from root of newly-added tree;
+	mark DIEs here instead.
+
+2010-06-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md (unit): Also check sseishft1.
+
+2010-06-22  Jan Hubicka  <jh@suse.cz>
+
+	* gimple.h (gimple_expr_code): Do checking on when gimple checking is
+	enabled.
+
+2010-06-22  Jan Hubicka  <jh@suse.cz>
+
+	* df-problems.c (df_rd_confluence_n, df_lr_confluence_n,
+	df_live_confluence_n, df_byte_lr_confluence_n, df_md_confluence_n):
+	Return true if something changed.
+	* df.h (df_confluence_function_n): Return bool.
+	* df-core.c (df_worklist_propagate_forward,
+	df_worklist_propagate_backward): Track changes and ages.
+	(df_worklist_dataflow_doublequeue): Use bitmap iterator for main walk;
+	track ages.
+	* dse.c (dse_confluence_n): Return always true.
+
+2010-06-22  Jan Hubicka  <jh@suse.cz>
+
+	* bitmap.c (bitmap_clear_bit): Micro optimize.
+
+2010-06-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (SWI1248x): New mode iterator.
+	(SWI48x): Ditto.
+	(SWI12): Ditto.
+	(SWI24): Ditto.
+
+	(mov<mode>): Macroize expander from mov{qi,hi,si,di} using
+	SWI1248x mode iterator.
+	(*push<mode>2_rex64): Macroize insn from *push{qi,hi,si}_rex64
+	using SWI124 mode iterator.
+	(*push<mode>2): Macroize insn from *push{qi,hi} using SWI12
+	mode iterator.
+	(*push<mode>2_prologue): Macroize insn from  *pushsi2_prologue and
+	*pushdi2_prologue_rex64 using P mode iterator.
+	(*mov<mode>_xor): Macroize insn from *movsi_xor and *movdi_xor_rex64
+	using SWI48 mode iterator.
+	(*mov<mode>_or): Ditto from *movsi_or and *movdi_or_rex64.
+	(*movabs<mode>_1): Macroize insn from *movabs{qi,hi,si,di}_1_rex64
+	using SWI1248x mode iterator.
+	(*movabs<mode>_2): Ditto from *movabs{qi,hi,si,di}_1_rex64.
+	(*swap<mode>): Macroize insn from *swapsi and *swapdi_rex64 using
+	SWI48 mode iterator.
+	(*swap<mode>_1): Macroize insn from *swap{qi,hi}_1 using SWI12 mode
+	iterator.
+	(*swap<mode>_2): Ditto from *swap{qi,hi}_2.
+	(movstrict<mode>): Macroize expander from movstrict{qi,hi} using
+	SWI12 mode iterator.
+	(*movstrict<mode>_1): Macroize insn from *movstrict{qi,hi}_1 using
+	SWI12 mode iterator.
+	(*movstrict<mode>_xor): Ditto from *movstrict{qi,hi}_xor.
+	(*mov<mode>_extv_1): Macroize insn from *mov{hi,si}_extv_1 using
+	SWI24 mode iterator.
+	(*mov<mode>_extzv_1): Macroize insn from *mov{si,di}_extzv_1 using
+	SWI48 mode iterator.
+	(mov<mode>_insn_1): New expander.
+	(*mov<mode>_insv_1_rex64): Macroize insn from *mov{si,di}_insv_1_rex64
+	using SWI48x mode iterator.
+
+	(*movoi_internal_avx): Rename from *movoi_internal.
+	(*movti_internal_rex64): Rename from *movti_rex64.
+	(*movti_internal_sse): Rename from *movti_sse.
+	(*movdi_internal_rex64): Rename from *movdi_1_rex64.
+	(*movdi_internal): Rename from *movdi_2.
+	(*movsi_internal): Rename from *movsi_1.
+	(*movhi_internal): Rename from *movhi_1.
+	(*movqi_internal): Rename from *movqi_1.
+
+	(insv): Update the call to gen_movsi_insv_1 for rename.
+	* config/i386/i386.c (promote_duplicated_reg): Ditto.
+
+2010-06-22  Jan Hubicka  <jh@suse.cz>
+
+	* passes.c (execute_function_todo): Move call of statistics_fini_pass
+	to ...
+	(execute_todo) ... this one.
+
+2010-06-22  Alan Modra  <amodra@gmail.com>
+
+	PR target/44364
+	* config/rs6000/e500.h (HARD_REGNO_CALLER_SAVE_MODE): Define.
+	* caller-save.c (insert_restore, insert_save): Use non-validate
+	form of adjust_address.
+
+2010-06-21  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/39690
+	* config/pa/pa.c (override_options): Disable
+	-freorder-blocks-and-partition.
+
+2010-06-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44615
+	* config/i386/atom.md (atom_sseishft_2): Also check sseishft1.
+
+	* config/i386/i386.md (type): Add sseishft1
+
+	* config/i386/ppro_insn (ppro_insn): Also check sseishft1.
+	(ppro_insn_load): Likewise.
+	(ppro_insn_store): Likewise.
+	(ppro_insn_both): Likewise.
+
+	* config/i386/sse.md (sse2_lshrv1ti3): Add atom_unit.
+	(*vec_extractv2di_1_rex64_avx): Replace sseishft with sseishft1
+	for type.
+	(*vec_extractv2di_1_avx): Likewise.
+	(*vec_extractv2di_1_rex64): Replace sseishft with sseishft1 for
+	type.  Remove atom_unit.
+	(*vec_extractv2di_1_sse2): Likewise.
+
+2010-06-21  DJ Delorie  <dj@redhat.com>
+
+	* diagnostic.h (diagnostic_classification_change_t): New.
+	(diagnostic_context): Add history and push/pop list.
+	(diagnostic_push_diagnostics): Declare.
+	(diagnostic_pop_diagnostics): Declare.
+	* diagnostic.c (diagnostic_classify_diagnostic): Store changes
+	from pragmas in a history chain instead of the global table.
+	(diagnostic_push_diagnostics): New.
+	(diagnostic_pop_diagnostics): New.
+	(diagnostic_report_diagnostic): Scan history chain to find state
+	of diagnostics as of the diagnostic location.
+	* opts.c (set_option): Pass UNKNOWN_LOCATION to
+	diagnostic_classify_diagnostic.
+	(enable_warning_as_error): Likewise.
+	* diagnostic-core.h (DK_POP): Add after "real" diagnostics, for
+	use in the history chain.
+	* c-family/c-pragma.c (handle_pragma_diagnostic): Add push/pop,
+	allow these pragmas anywhere.
+	* doc/extend.texi: Document pragma GCC diagnostic changes.
+
+2010-06-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (add_linkage_name): New function.  Don't add
+	anything to DW_TAG_member DIEs.
+	(add_name_and_src_coords_attributes): Use it.
+	(gen_variable_die): Call it for C++ static data members if
+	specification is DW_TAG_member.
+
+	* dwarf2out.c (base_type_die): Use DW_ATE_UTF for
+	C++ char16_t and char32_t.
+
+	* Makefile.in (build/genattrtab.o): Depend on vecprim.h.
+	* genattrtab.c: Include vecprim.h.
+	(cached_attrs, cached_attr_count, attrs_seen_once,
+	attrs_seen_more_than_once, attrs_to_cache, attrs_cached_inside,
+	attrs_cached_after): New variables.
+	(find_attrs_to_cache): New function.
+	(FLG_BITWISE, FLG_AFTER, FLG_INSIDE, FLG_OUTSIDE_AND): Define.
+	(write_test_expr): Add attrs_cached argument, return it too,
+	attempt to cache non-const attributes used more than once in
+	a single case handling.
+	(write_attr_get): Use find_attrs_to_cache, for caching candidates
+	emit cached_* variables.  Adjust write_attr_set callers.
+	(write_attr_set): Add attrs_cached attribute, use find_attrs_to_cache
+	to find attributes that should be cached in this block.  Adjust
+	write_test_expr callers.
+	(write_attr_case): Clear attrs_to_cache.  Adjust write_attr_set
+	callers.
+	(make_automaton_attrs): Adjust write_test_expr caller.
+
+	* Makefile.in (cfgexpand.o): Depend on $(INSN_ATTR_H).
+	* genattrtab.c (check_tune_attr, find_tune_attr): New functions.
+	(make_automaton_attrs): If find_tune_attr returns non-NULL,
+	write separate internal_dfa_insn_code_* and insn_default_latency_*
+	functions for each attribute's value and emit init_sched_attrs
+	function and function pointers.
+	* genattr.c (const_attrs, reservations): New variables.
+	(gen_attr): Add const attributes to const_attrs vector.
+	(check_tune_attr, find_tune_attr): New functions.
+	(main): Add reservations to reservations vector.  If find_tune_attr
+	returns true, add prototype for init_sched_attrs and make
+	internal_dfa_insn_code and insn_default_latency function pointers,
+	otherwise define init_sched_attrs as dummy macro.
+	* cfgexpand.c: Include insn-attr.h.
+	(gimple_expand_cfg): Call init_sched_attrs.
+
+	* stmt.c (resolve_asm_operand_names): Fix handling of %%.
+
+	PR target/44575
+	* config/i386/i386.c (ix86_gimplify_va_arg): When copying
+	va_arg from a set of register save slots into a temporary,
+	if the container is bigger than type size, do the copying
+	using smaller mode or using memcpy.
+
+	PR bootstrap/44426
+	* sel-sched-dump.h (sel_prepare_string_for_dot_label): Remove
+	prototype.
+	(sel_print_to_dot): Remove macro.
+	(sel_print): Likewise.  New prototype.
+	* sel-sched-dump.c (sel_prepare_string_for_dot_label): Make static.
+	(sel_print): New function.
+
+2010-06-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/sol2.h (TARGET_OS_CPP_BUILTINS): Define
+	__STDC_VERSION__=199901L, _XOPEN_SOURCE=600 for C++.
+
+2010-06-21  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.h (PTRDIFF_TYPE): Define.
+	(SMALL_REGISTER_CLASS): Define (to zero).
+	(PRINT_OPERAND): Delete.
+	(PRINT_OPERAND_ADDRESS): Delete.
+	* config/rx/rx-protos.h (rx_print_operand): Delete prototype.
+	(rx_print_operand_address): Delete prototype.
+	* config/rx/rx.c (rx_print_operand): Make static.
+	Allow %H and %L to handle CONST_DOUBLEs.
+	(rx_print_operand_address): Make static.
+	(rx_gen_move_template): Rename local variable 'template' to
+	out_template.
+	(rx_function_arg): Do not pass unknown sized objects in registers.
+	(TARGET_PRINT_OPERAND): Define.
+	(TARGET_PRINT_OPERAND_ADDRESS): Define.
+
+2010-06-21  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* Makefile.in (POD2MAN): Provide --date from $(DATESTAMP).
+
+2010-06-21  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/i386.c (ix86_compute_frame_layout): Avoid
+	stack-alignment for simple leaf-functions.
+
+2010-06-20  Alexandre Oliva  <aoliva@redhat.com>
+
+	* doc/install.texi: Document bootstrap-lto.
+
+2010-06-20  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/44248
+	* lto-streamer-in.c (input_bb): Leave debug stmts alone.
+	(input_function): Drop them here, if VTA is disabled.
+
+2010-06-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/44546
+	* config/i386/predicates.md (ix86_swapped_fp_comparsion_operator):
+	New predicate.
+	* config/i386/i386.md (*fp_jcc_8<mode>_387 and splitters): Use
+	ix86_swapped_fp_comparsion_operator instead of
+	ix86_fp_comparison_operator.
+
+	(*fp_jcc_1_387): Rename from *fp_jcc_3_387.
+	(*fp_jcc_1r_387): Rename from *fp_jcc_4_387.
+	(*fp_jcc_2_387): Rename from *fp_jcc_5_387.
+	(*fp_jcc_2r_387): Rename from *fp_jcc_6_387.
+	(*fp_jcc_3_387): Rename from *fp_jcc_7_387.
+	(*fp_jcc_4_<mode>_387): Rename from *fp_jcc_8<mode>_387.
+
+2010-06-20  Joseph Myers  <joseph@codesourcery.com>
+
+	PR other/32998
+	* opth-gen.awk: Generate definitions of OPT_SPECIAL_unknown,
+	OPT_SPECIAL_program_name and OPT_SPECIAL_input_file.
+	* opts-common.c (find_opt): Return OPT_SPECIAL_unknown on failure.
+	(decode_cmdline_option): Update for this return value.  Set
+	orig_option_with_args_text field.  Set arg field for unknown
+	options.  Make static.
+	(decode_cmdline_options_to_array): New.
+	(prune_options): Update handling of find_opt return value.
+	* opts.c (read_cmdline_option): Take decoded option.  Return void.
+	(read_cmdline_options): Take decoded options.
+	(decode_options): Add parameters for decoded options.  Use
+	decode_cmdline_options_to_array.  Use decoded options for -O
+	scan.  Use integral_argument for -O parameters.  Update call to
+	read_cmdline_options.
+	(enable_warning_as_error): Update handling of find_opt return value.
+	* opts.h: Update comment on unknown options.
+	(struct cl_decoded_option): Update comments on opt_index and arg.
+	Add orig_option_with_args_text.
+	(decode_cmdline_option): Remove.
+	(decode_cmdline_options_to_array): Declare.
+	(decode_options): Update prototype.
+	* toplev.c (save_argv): Remove.
+	(save_decoded_options, save_decoded_options_count): New.
+	(read_integral_parameter): Remove.
+	(print_switch_values): Use decoded options.
+	(toplev_main): Don't set save_argv.  Update call to decode_options.
+	* toplev.h (read_integral_parameter): Remove.
+	* varasm.c (elf_record_gcc_switches): Don't handle holding back names.
+
+2010-06-19  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/44072
+	* arm.md (cmpsi2_addneg): Prefer emitting adds to subs with a negative
+	immediate.
+	* constraints.md (Pw, Px): New constraints.
+	* thumb2.md (cmpsi2_addneg peephole2): New peepholes.
+
+2010-06-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/sse.md (fma4modesuffixf4): Removed.
+	(ssemodesuffixf2s): Likewise.
+	(ssemodesuffixf4): Likewise.
+	(ssemodesuffixf2c): Likewise.
+	(ssescalarmodesuffix2s): Likewise.
+	(avxmodesuffixf2c): Likewise.
+	(ssemodesuffix): New.
+	(ssescalarmodesuffix): Likewise.
+	Update patterns with ssemodesuffix and ssescalarmodesuffix.
+
 2010-06-19  Philip Herron  <herron.philip@googlemail.com>
 
-	* c-decl.c (c_write_global_declarations): Don't check
-	flag_syntax_only.
+	* c-decl.c (c_write_global_declarations): Don't check flag_syntax_only.
 
 2010-06-18  H.J. Lu  <hongjiu.lu@intel.com>
 
@@ -38,8 +447,7 @@
 
 	* function.h (types_used_by_cur_var_decl): Change type to a VEC.
 	* function.c (types_used_by_cur_var_decl): Likewise.
-	(used_types_insert): Adjust for new type of
-	types_used_by_cur_var_decl.
+	(used_types_insert): Adjust for new type of types_used_by_cur_var_decl.
 
 2010-06-18  Nathan Froyd  <froydnj@codesourcery.com>
 
@@ -58,8 +466,8 @@
 2010-06-17  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	PR target/43740
-	config/pa/pa.c (emit_move_sequence): Don't infer REG_POINTER flag for
-	SET source operand from SET destination operand.
+	* config/pa/pa.c (emit_move_sequence): Don't infer REG_POINTER flag
+	for SET source operand from SET destination operand.
 
 2010-06-17  Bernd Schmidt  <bernds@codesourcery.com>
 
@@ -219,8 +627,7 @@
 
 2010-06-16  Richard Guenther  <rguenther@suse.de>
 
-	* tree-inline.c (remap_gimple_op_r): Recurse using
-	remap_gimple_op_r.
+	* tree-inline.c (remap_gimple_op_r): Recurse using remap_gimple_op_r.
 
 2010-06-16  Douglas B Rupp  <rupp@gnat.com>
 
@@ -247,7 +654,7 @@
 	(AT_vms_delta1, AT_vms_delta2, add_AT_vms_delta): Declare
 	new static functions.
 	(dwarf_attr_name): New cases DW_AT_HP_{prologue,epilogue}.
-	(AT_vms_delta1, AT_vms_delta2, add_AT_vms_delta): New 
+	(AT_vms_delta1, AT_vms_delta2, add_AT_vms_delta): New
 	static functions.
 	(print_die): New case dw_val_class_vms_delta.
 	(attr_checksum): Likewise.
@@ -282,8 +689,7 @@
 	(PRINT_OPERAND_PUNCT_VALID_P): Delete.
 	(PRINT_OPERAND_ADDRESS, ARM_PRINT_OPERAND_ADDRESS):
 	(THUMB_PRINT_OPERAND_ADDRESS): Delete and move code to...
-	* config/arm/arm.c (arm_print_operand_address): ...here.  New
-	function.
+	* config/arm/arm.c (arm_print_operand_address): ...here.  New function.
 	(arm_print_operand): Make static.
 	(arm_print_operand_punct_valid_p): New function.
 	(TARGET_PRINT_OPERAND, TARGET_PRINT_OPERAND_ADDRESS):
@@ -320,8 +726,7 @@
 	(bitset): Remove early clobber from destination.
 	(bitset_in_memory): Likewise.
 	(lrintsf2): Clobber the cc0 register.
-	* config/rx/rx.c (rx_notice_update_cc):
-	Handle CC_SET_ZSC.
+	* config/rx/rx.c (rx_notice_update_cc): Handle CC_SET_ZSC.
 	(rx_print_operand): Handle %N.
 
 2010-06-16  Jan Hubicka  <jh@suse.cz>
@@ -1545,7 +1950,7 @@
 	(analyze_access_subtree): Pass negative allow_replacements to children
 	if the current type is scalar.
 
-2010-06-09  Joern Rennecke  <amylaar@spamcop.net>
+2010-06-09  Joern Rennecke  <joern.rennecke@embecosm.com>
 
 	PR testsuite/42843
 	* gcc-plugin.h (int plugin_is_GPL_compatible): Declare as extern "C".
@@ -3560,8 +3965,7 @@
 2010-05-29  Jan Hubicka  <jh@suse.cz>
 
 	* cgraphunit.c (cgraph_materialize_clone): Only remove calles,
-	refs and body; not the whole node for masters of materialized
-	clones.
+	refs and body; not the whole node for masters of materialized clones.
 
 2010-05-29  Mike Stump  <mikestump@comcast.net>
 
@@ -3701,8 +4105,7 @@
 	* gcc.c (inform, warning, inform): New functions.
 	(fatal_ice): Rename to internal_error; change cmsgid parameter to
 	gmsgid.  All callers changed.
-	(notice): Rename to fnotice; add parameter fp.  All callers
-	changed.
+	(notice): Rename to fnotice; add parameter fp.  All callers changed.
 	(fatal_error): Rename to fatal_signal.  All users changed.
 	(fatal): Rename to fatal_error; change cmsgid parameter to
 	gmsgid.  All callers changed.
@@ -3717,8 +4120,7 @@
 	(warning): Declare.
 	* config/darwin-driver.c (darwin_default_min_version): Use warning
 	instead of fprintf for warnings.
-	* cppspec.c (lang_specific_driver): Use fatal_error instead of
-	fatal.
+	* cppspec.c (lang_specific_driver): Use fatal_error instead of fatal.
 
 2010-05-28  Julian Brown  <julian@codesourcery.com>
 

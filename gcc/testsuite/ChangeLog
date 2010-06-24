@@ -1,3 +1,92 @@
+2010-06-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44614
+	* gfortran.dg/import8.f90: New.
+
+2010-06-23  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/not_null.adb: Update test case.
+
+2010-06-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44619
+	* g++.dg/warn/Wunused-var-13.C: New test.
+
+	PR c++/44627
+	* g++.dg/diagnostic/method1.C: New test.
+
+2010-06-22  Cary Coutant  <ccoutant@google.com>
+
+	* g++.dg/debug/dwarf2/dwarf4-typedef.C: New test.
+
+2010-06-22  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44616
+	* gfortran.dg/abstract_type_8.f03: New.
+
+2010-06-21  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/noexcept08.C: New.
+
+	* g++.dg/ext/unary_trait_incomplete.C: Adjust.
+
+2010-06-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44615
+	* gcc.target/i386/sse2-vec-2a.c: New.
+
+2010-06-21  DJ Delorie  <dj@redhat.com>
+
+	* gcc.dg/pragma-diag-1.c: New.
+
+2010-06-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44615
+	* gcc.target/i386/amd64-abi-3.c: Add -mtune=k8.
+
+2010-06-21  Alan Modra  <amodra@gmail.com>
+
+	PR testsuite/44505
+	* gcc.c-torture/execute/frame-address.c (check_fa): Avoid
+	tail call to check_fa_mid.
+
+2010-06-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/44575
+	* gcc.c-torture/execute/pr44575.c: New test.
+
+2010-06-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40632
+	* gfortran.dg/contiguous_1.f90: New.
+	* gfortran.dg/contiguous_2.f90: New.
+	* gfortran.dg/contiguous_3.f90: New.
+
+2010-06-21  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.target/x86_64/abi/callabi/leaf-1.c: New.
+	* gcc.target/x86_64/abi/callabi/leaf-2.c: New.
+
+2010-06-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/44546
+	* gcc.target/i386/pr44546.c: New test.
+
+2010-06-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/opts-2.c: New test.
+
+2010-06-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44584
+	* gfortran.dg/typebound_proc_15.f03: Modified.
+
+2010-06-19  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/44072
+	* gcc.target/arm/thumb2-cmpneg2add-1.c: New test.
+	* gcc.target/arm/thumb2-cmpneg2add-2.c: New test.
+
 2010-06-19  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	* g++.dg/ext/label13.C: Fix typo in last change.
@@ -166,7 +255,7 @@
 
 2010-06-12  Daniel Franke  <franke.daniel@gmail.com>
 
-        * gfortran.dg/whole_file_20.f03: New.
+	* gfortran.dg/whole_file_20.f03: New.
 
 2010-06-12  Jan Hubicka  <jh@suse.cz>
 

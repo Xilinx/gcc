@@ -1,3 +1,20 @@
+2010-06-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44619
+	* typeck2.c (build_m_component_ref): Call mark_lvalue_use on
+	datum and mark_rvalue_use on component.
+
+	PR c++/44627
+	* error.c (dump_expr): Don't look at CALL_EXPR_ARG (t, 0) if
+	the CALL_EXPR has no arguments.
+
+2010-06-21  Jason Merrill  <jason@redhat.com>
+
+	* typeck.c (comp_except_specs): Fix ce_derived with noexcept.
+
+	* semantics.c (check_trait_type): Check COMPLETE_TYPE_P for array
+	element type.
+
 2010-06-17  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* name-lookup.c (struct arg_lookup): Convert namespaces and

@@ -46,7 +46,6 @@ with Sem_Disp; use Sem_Disp;
 with Sem_Elab; use Sem_Elab;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
-with Sem_SCIL; use Sem_SCIL;
 with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
 with Sem_Warn; use Sem_Warn;
@@ -448,14 +447,14 @@ package body Sem_Ch5 is
          end if;
          return;
 
-      --  Enforce RM 3.9.3 (8): left-hand side cannot be abstract
+      --  Enforce RM 3.9.3 (8): the target of an assignment operation cannot be
+      --  abstract. This is only checked when the assignment Comes_From_Source,
+      --  because in some cases the expander generates such assignments (such
+      --  in the _assign operation for an abstract type).
 
-      elsif Is_Interface (T1)
-        and then not Is_Class_Wide_Type (T1)
-      then
+      elsif Is_Abstract_Type (T1) and then Comes_From_Source (N) then
          Error_Msg_N
-           ("target of assignment operation may not be abstract", Lhs);
-         return;
+           ("target of assignment operation must not be abstract", Lhs);
       end if;
 
       --  Resolution may have updated the subtype, in case the left-hand
@@ -1475,8 +1474,8 @@ package body Sem_Ch5 is
          R_Copy       : constant Node_Id := New_Copy_Tree (R);
          Lo           : constant Node_Id := Low_Bound  (R);
          Hi           : constant Node_Id := High_Bound (R);
-         New_Lo_Bound : Node_Id := Empty;
-         New_Hi_Bound : Node_Id := Empty;
+         New_Lo_Bound : Node_Id;
+         New_Hi_Bound : Node_Id;
          Typ          : Entity_Id;
          Save_Analysis : Boolean;
 
@@ -1571,15 +1570,6 @@ package body Sem_Ch5 is
               Make_Assignment_Statement (Loc,
                 Name        => New_Occurrence_Of (Id, Loc),
                 Expression  => Relocate_Node (Original_Bound));
-
-            --  If the relocated node is a function call then check if some
-            --  SCIL node references it and needs readjustment.
-
-            if Generate_SCIL
-              and then Nkind (Original_Bound) = N_Function_Call
-            then
-               Adjust_SCIL_Node (Original_Bound, Expression (Assign));
-            end if;
 
             Insert_Before (Parent (N), Assign);
             Analyze (Assign);

@@ -50,6 +50,7 @@ with Par_SCO;
 with Prepcomp;
 with Repinfo;  use Repinfo;
 with Restrict;
+with Rident;   use Rident;
 with Rtsfind;
 with SCOs;
 with Sem;
@@ -169,12 +170,14 @@ procedure Gnat1drv is
 
          Optimization_Level := 0;
 
-         --  Disable specific expansions for Restrictions pragmas to avoid
-         --  tree inconsistencies between compilations with different pragmas
-         --  that will cause different SCIL files to be generated for the
-         --  same Ada spec.
+         --  Enable some restrictions systematically to simplify the generated
+         --  code (and ease analysis). Note that restriction checks are also
+         --  disabled in CodePeer_Mode, see Restrict.Check_Restriction
 
-         Treat_Restrictions_As_Warnings := True;
+         Restrict.Restrictions.Set (No_Task_Hierarchy) := True;
+         Restrict.Restrictions.Set (No_Abort_Statements) := True;
+         Restrict.Restrictions.Set (Max_Asynchronous_Select_Nesting) := True;
+         Restrict.Restrictions.Value (Max_Asynchronous_Select_Nesting) := 0;
 
          --  Suppress overflow, division by zero and access checks since they
          --  are handled implicitly by CodePeer.
@@ -861,42 +864,28 @@ begin
          if Subunits_Missing then
             Write_Str (" (missing subunits)");
             Write_Eol;
-            Write_Str ("to check parent unit");
 
          elsif Main_Kind = N_Subunit then
             Write_Str (" (subunit)");
             Write_Eol;
-            Write_Str ("to check subunit");
 
          elsif Main_Kind = N_Subprogram_Declaration then
             Write_Str (" (subprogram spec)");
             Write_Eol;
-            Write_Str ("to check subprogram spec");
 
          --  Generic package body in GNAT implementation mode
 
          elsif Main_Kind = N_Package_Body and then GNAT_Mode then
             Write_Str (" (predefined generic)");
             Write_Eol;
-            Write_Str ("to check predefined generic");
 
          --  Only other case is a package spec
 
          else
             Write_Str (" (package spec)");
             Write_Eol;
-            Write_Str ("to check package spec");
          end if;
 
-         Write_Str (" for errors, use ");
-
-         if Hostparm.OpenVMS then
-            Write_Str ("/NOLOAD");
-         else
-            Write_Str ("-gnatc");
-         end if;
-
-         Write_Eol;
          Set_Standard_Output;
 
          Sem_Ch13.Validate_Unchecked_Conversions;

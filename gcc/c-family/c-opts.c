@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "options.h"
 #include "mkdeps.h"
 #include "target.h"		/* For gcc_targetcm.  */
+#include "tm_p.h"		/* For C_COMMON_OVERRIDE_OPTIONS.  */
 
 #ifndef DOLLARS_IN_IDENTIFIERS
 # define DOLLARS_IN_IDENTIFIERS true
@@ -839,10 +840,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_lang_asm:
       cpp_set_lang (parse_in, CLK_ASM);
       cpp_opts->dollars_in_ident = false;
-      break;
-
-    case OPT_lang_objc:
-      cpp_opts->objc = 1;
       break;
 
     case OPT_nostdinc:

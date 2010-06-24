@@ -2150,6 +2150,11 @@ Removes any @option{-O}-started option from @code{BOOT_CFLAGS}, and adds
 @item @samp{bootstrap-O3}
 Analogous to @code{bootstrap-O1}.
 
+@item @samp{bootstrap-lto}
+Enables Link-Time Optimization for host tools during bootstrapping.
+@samp{BUILD_CONFIG=bootstrap-lto} is equivalent to adding
+@option{-flto} to @samp{BOOT_CFLAGS}.
+
 @item @samp{bootstrap-debug}
 Verifies that the compiler generates the same executable code, whether
 or not it is asked to emit debug information.  To this end, this
@@ -2301,7 +2306,7 @@ and network filesystems.
 @section Building the Ada compiler
 
 In order to build GNAT, the Ada compiler, you need a working GNAT
-compiler (GCC version 3.4 or later).
+compiler (GCC version 4.0 or later).
 This includes GNAT tools such as @command{gnatmake} and
 @command{gnatlink}, since the Ada front end is written in Ada and
 uses some GNAT-specific extensions.

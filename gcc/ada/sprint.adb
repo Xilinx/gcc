@@ -1251,14 +1251,20 @@ package body Sprint is
             declare
                Condition : constant Node_Id := First (Expressions (Node));
                Then_Expr : constant Node_Id := Next (Condition);
-               Else_Expr : constant Node_Id := Next (Then_Expr);
+
             begin
                Write_Str_With_Col_Check_Sloc ("(if ");
                Sprint_Node (Condition);
                Write_Str_With_Col_Check (" then ");
-               Sprint_Node (Then_Expr);
-               Write_Str_With_Col_Check (" else ");
-               Sprint_Node (Else_Expr);
+
+               --  Defense against junk here!
+
+               if Present (Then_Expr) then
+                  Sprint_Node (Then_Expr);
+                  Write_Str_With_Col_Check (" else ");
+                  Sprint_Node (Next (Then_Expr));
+               end if;
+
                Write_Char (')');
             end;
 
@@ -2683,9 +2689,6 @@ package body Sprint is
          --  Doc of this extended syntax belongs in sinfo.ads and/or
          --  sprint.ads ???
 
-         when N_SCIL_Dispatch_Table_Object_Init =>
-            Write_Indent_Str ("[N_SCIL_Dispatch_Table_Object_Init]");
-
          when N_SCIL_Dispatch_Table_Tag_Init =>
             Write_Indent_Str ("[N_SCIL_Dispatch_Table_Tag_Init]");
 
@@ -2694,9 +2697,6 @@ package body Sprint is
 
          when N_SCIL_Membership_Test =>
             Write_Indent_Str ("[N_SCIL_Membership_Test]");
-
-         when N_SCIL_Tag_Init =>
-            Write_Indent_Str ("[N_SCIL_Dispatch_Table_Tag_Init]");
 
          when N_Simple_Return_Statement =>
             if Present (Expression (Node)) then
