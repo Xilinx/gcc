@@ -55,66 +55,12 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 
   if( opa->type == SYMBOL_REFERENCE )
     {
-      if( opb->type == SYMBOL_PRIMARY )
-        {
-	  /* Lookup to see if the reference has been declared! */
-	  tree decl_c = gpy_ctx_lookup_decl( opa->op_a.string, VAR );
-	  tree reference = gpy_process_expression( opa );
-	  tree rhs_tree = gpy_process_expression( opb );
-
-	  if( !decl_c )
-	    {
-	      /* Then we need to declare it */
-	      tree decl = build_decl( UNKNOWN_LOCATION, VAR_DECL, reference,
-				      integer_type_node );
-
-	      gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
-				       (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
-
-	      if( !(gpy_ctx_lookup_decl( opa->op_a.string, VAR )) )
-		{
-		  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x, VAR )) )
-		    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );
-		}
-
-	      debug( "built the decl <%p> for <%s>!\n", (void*)decl,
-		     opa->op_a.string );
-	    }
-
-	  retval = build2( MODIFY_EXPR, integer_type_node,
-			   reference, rhs_tree );
-	  debug("built assignment for <%s>!\n", opa->op_a.string );
-	}
-      else
-        {
-	  /* Lookup to see if the reference has been declared! */
-	  tree decl_c = gpy_ctx_lookup_decl( opa->op_a.string, VAR );
-	  tree reference = gpy_process_expression( opa );
-	  tree rhs_tree = gpy_process_expression( opb );
-
-	  if( !decl_c )
-	    {
-	      /* Then we need to declare it */
-	      tree decl = build_decl( UNKNOWN_LOCATION, VAR_DECL, reference,
-				      integer_type_node );
-
-	      gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
-				       (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
-
-	      if( !(gpy_ctx_lookup_decl( opa->op_a.string, VAR )) )
-		{
-		  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x, VAR )) )
-		    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );
-		}
-
-	      debug( "built the decl <%p> for <%s>!\n", (void*)decl,
-		     opa->op_a.string );
-	    }
-
-	  retval = build2( MODIFY_EXPR, integer_type_node,
-			   reference, rhs_tree );
-	  debug("built assignment for <%s>!\n", opa->op_a.string );
-        }
+      tree reference = gpy_process_expression( opa );
+      tree rhs_tree = gpy_process_expression( opb );
+      
+      retval = build2( MODIFY_EXPR, integer_type_node,
+		       reference, rhs_tree );
+      debug("built assignment for <%s>!\n", opa->op_a.string );
     }
   else
     {

@@ -64,6 +64,7 @@ void gpy_symbol_init_ctx( gpy_symbol_obj * const x )
   x->next= NULL;
 }
 
+inline
 void gpy_init_ctx_branch( gpy_context_branch * const * o )
 {
   if( o )
@@ -138,7 +139,9 @@ bool gpy_ctx_push_decl( tree decl, const char * s,
       st = ctx->fnc_decl_t;
     }
 
-  slot = htab_find_slot( t, s, INSERT );
+  debug("trying to push decl <%s>!\n", s );
+
+  slot = htab_find_slot_with_hash( t, s, htab_hash_string( s ), INSERT );
   if( slot )
     {
       gpy_ident o = (gpy_ident) xmalloc( sizeof(gpy_ident_t) );
@@ -165,21 +168,22 @@ tree gpy_ctx_lookup_decl( const char * s, enum DECL_T T )
   unsigned int n_ctx = VEC_length( gpy_ctx_t,gpy_ctx_table );
   unsigned int idx = 0; gpy_context_branch * it = NULL;
 
-  debug("context table length = <%i>!\n", n_ctx );
+  debug( "trying to lookup <%s> : context table length = <%i>!\n",
+	 s, n_ctx );
 
   for( ; VEC_iterate(gpy_ctx_t,gpy_ctx_table,idx,it); ++idx )
     {
-      htab_t decl_table = NULL; void * o = NULL;
+      htab_t decl_table = NULL; void ** o = NULL;
       if( T == VAR )
 	decl_table = it->fnc_decls;
       else
 	decl_table = it->var_decls;
 
-      o = htab_find( decl_table, s );
+      o = htab_find_slot_with_hash( decl_table, s, htab_hash_string( s ), NO_INSERT );
       if( o )
 	{
 	  debug("found symbol <%s> in context <%p>!\n", s, (void*)it );
-	  retval = (tree)o ;
+	  retval = (tree)(*o) ;
 	}
     }
   return retval;
@@ -339,10 +343,28 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
     }
   else if( sym->type == SYMBOL_REFERENCE )
     {
+      tree decl = gpy_ctx_lookup_decl( sym->op_a.string, VAR );
+
       gcc_assert( sym->op_a_t == TYPE_STRING );
       debug("tree reference <%s>!\n", sym->op_a.string);
 
       retval = get_identifier( sym->op_a.string );
+
+      if( !decl )
+	{
+	  tree decl = build_decl( UNKNOWN_LOCATION, VAR_DECL,
+				  get_identifier( sym->op_a.string ),
+				  integer_type_node );
+
+	  gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
+				   (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
+	  
+	  if( !(gpy_ctx_push_decl( decl, sym->op_a.string, x, VAR )) )
+	    fatal_error("error pushing var decl <%s>!\n", sym->op_a.string );
+	  
+	  debug( "built the VAR_DECL <%p> for <%s>!\n", (void*)decl,
+		 sym->op_a.string );
+	}
     }
   else
     {
@@ -379,74 +401,12 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
   return retval;
 }
 
-/*
-          void foo()
-          {
-            int a;
-            {
-              int b;
-            }
-            int c;
-          }
-     
-
-you would get the following:
-
-          tree foo = FUNCTION_DECL;
-          tree decl_a = VAR_DECL;
-          tree decl_b = VAR_DECL;
-          tree decl_c = VAR_DECL;
-          tree block_a = BLOCK;
-          tree block_b = BLOCK;
-          tree block_c = BLOCK;
-          BLOCK_VARS(block_a) = decl_a;
-          BLOCK_SUBBLOCKS(block_a) = block_b;
-          BLOCK_CHAIN(block_a) = block_c;
-          BLOCK_SUPERCONTEXT(block_a) = foo;
-          BLOCK_VARS(block_b) = decl_b;
-          BLOCK_SUPERCONTEXT(block_b) = block_a;
-          BLOCK_VARS(block_c) = decl_c;
-          BLOCK_SUPERCONTEXT(block_c) = foo;
-          DECL_INITIAL(foo) = block_a;
-
-----------------------------------------------
-
-tree
-Gogo::initialization_function_decl()
-{
-  // The tedious details of building your own function.  There doesn't
-  // seem to be a helper function for this.
-  std::string name = this->package_name() + ".init";
-  tree fndecl = build_decl(BUILTINS_LOCATION, FUNCTION_DECL,
-			   get_identifier_from_string(name),
-			   build_function_type(void_type_node,
-					       void_list_node));
-  const std::string& asm_name(this->get_init_fn_name());
-  SET_DECL_ASSEMBLER_NAME(fndecl, get_identifier_from_string(asm_name));
-
-  tree resdecl = build_decl(BUILTINS_LOCATION, RESULT_DECL, NULL_TREE,
-			    void_type_node);
-  DECL_ARTIFICIAL(resdecl) = 1;
-  DECL_CONTEXT(resdecl) = fndecl;
-  DECL_RESULT(fndecl) = resdecl;
-
-  TREE_STATIC(fndecl) = 1;
-  TREE_USED(fndecl) = 1;
-  DECL_ARTIFICIAL(fndecl) = 1;
-  TREE_PUBLIC(fndecl) = 1;
-
-  DECL_INITIAL(fndecl) = make_node(BLOCK);
-  TREE_USED(DECL_INITIAL(fndecl)) = 1;
-
-  return fndecl;
-}
-
-*/
-
 tree gpy_process_functor( const gpy_symbol_obj * const  functor )
 {
   gpy_symbol_obj * o = functor->op_a.symbol_table;
   tree block = NULL; tree block_decl = NULL; tree t = NULL;
+
+
   tree fntype = build_function_type(void_type_node, void_list_node);
   tree retval = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
 			    get_identifier( functor->identifier ),
@@ -458,6 +418,8 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
 
   TREE_PUBLIC(retval) = 1;
   DECL_EXTERNAL(retval) = 1;
+
+  gpy_preserve_from_gc(retval);
 
   block = make_node( BLOCK );
   block_decl = make_node( BLOCK );
@@ -497,6 +459,7 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
 
   gimplify_function_tree(retval);
 
+  cgraph_add_new_function(retval, false);
   cgraph_finalize_function(retval, true);
     
   return retval;
@@ -533,47 +496,51 @@ tree gpy_get_tree( gpy_symbol_obj * sym )
 
 void gpy_write_globals( void )
 {
-  tree *vec; tree *vec_decl;  unsigned decl_len = 0, s = 0;
-  unsigned int idx = 0, i= 0; gpy_symbol_obj *it = NULL;
-  gpy_ident itt = NULL;
+  tree *vec; tree *decl_vec; unsigned long decl_len = 0, tmp = 0;
+  unsigned int idx, idy;
+
   gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
 			   (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
+
+  gpy_symbol_obj * it = NULL; gpy_ident i = NULL;
   
-  s = decl_len = VEC_length( gpy_sym, gpy_decls );
+  tmp = decl_len = VEC_length( gpy_sym, gpy_decls );
   vec = XNEWVEC( tree, decl_len );
 
-  debug("decl_len <%u>!\n", decl_len);
-
-  for( ; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )
+  debug("decl_len <%lu>!\n", decl_len);
+  for( idx=0; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )
     {
-      debug("decl <%p>!\n", (void*)it );
-      vec[ i ] = gpy_get_tree( it ); ++i;
-      debug("decl addr <%p>!\n", (void*) vec[idx] );
-      debug("decl <%p> processed!\n", (void*)it );
+      debug("decl AST <%p>!\n", (void*)it );
+      vec[ idx ] = gpy_get_tree( it ); 
+      gpy_preserve_from_gc( vec[idx] );
+      debug("finished processing <%p> got decl tree addr <%p>!\n",
+	    (void*)it, (void*) vec[idx] );
     }
 
   decl_len += VEC_length( gpy_ident, x->var_decl_t );
-  vec_decl = XNEWVEC( tree, decl_len ) ;
+  decl_vec = XNEWVEC( tree, decl_len );
 
-  idx = i = 0;
-  
-  for( ; VEC_iterate( gpy_ident, x->var_decl_t, idx, itt ); ++idx )
+  for( idx=0; VEC_iterate( gpy_ident,x->var_decl_t, idx, i); ++idx )
     {
-      vec_decl[ i ] = gpy_ctx_lookup_decl( itt->ident, VAR );
-      ++i;
+      decl_vec[ idx ] = gpy_ctx_lookup_decl( i->ident, VAR );
+      gpy_preserve_from_gc( decl_vec[idx] );
     }
-  for( idx=0; idx<s; ++idx )
+  for( idy=0; idy<tmp; ++idy )
     {
-      vec_decl[ i ] = vec[ idx ];
-      ++i;
+      decl_vec[ idx ] = vec[ idy ];
+      idx++;
     }
 
-  wrapup_global_declarations( vec_decl, decl_len );
+  debug("Finished processing!\n\n");
 
-  check_global_declarations( vec_decl, decl_len );
-  emit_debug_global_declarations( vec_decl, decl_len );
+  wrapup_global_declarations( decl_vec, decl_len );
+
+  check_global_declarations( decl_vec, decl_len );
+  emit_debug_global_declarations( decl_vec, decl_len );
 
   cgraph_finalize_compilation_unit( );
 
-  free( vec );
+  debug("finished passing to middle-end!\n\n");
+
+  free( vec ); free( decl_vec );
 }

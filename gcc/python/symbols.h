@@ -36,10 +36,15 @@ typedef struct GTY(()) gpy_symbol_table_t {
   struct gpy_symbol_table_t *next;
 } gpy_symbol_obj ;
 
-typedef struct gpy_ident_vector {
+typedef struct gpy_vector_t {
   void ** vector;
   signed long size, length;
 } gpy_ident_vector_t;
+
+typedef struct gpy_hash_entry {
+  unsigned int hash;
+  void * data;
+} gpy_hash_entry_t ;
 
 typedef struct gpy_id_t {
   char * ident;
