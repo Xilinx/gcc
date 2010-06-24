@@ -1,5 +1,11 @@
 2010-06-24  Aldy Hernandez  <aldyh@redhat.com>
 
+	* method-wbetl.cc (struct w_entry): Add comments.
+	(trycommit): Same.
+	(rollback): Same.
+
+2010-06-24  Aldy Hernandez  <aldyh@redhat.com>
+
 	* alloc_c.cc (_ITM_dropReferences): New.
 	* libitm.map (_ITM_dropReferences): Add.
 	* libitm.h (_ITM_dropReferences): Add transaction_pure attribute.
@@ -39,7 +45,7 @@
 	* Makefile.am (libitm_la_SOURCES): Add it.
 	(AM_CXXFLAGS): Turn off exceptions.
 	* Makefile.in: Rebuild.
-	
+
 2010-06-16  Richard Henderson  <rth@redhat.com>
 
 	* alloc.cc (struct gtm_alloc_action): Move definition ...

@@ -45,8 +45,15 @@ class wbetl_dispatch : public gtm_dispatch
 
   struct w_entry
   {
+    /* There's a hashtable where the locks are held, so multiple
+       cachelines can hash to a given bucket.  This link points to the
+       possible next cacheline that also hashes to this bucket.  */
     struct w_entry *next;
+
+    /* Every entry in this bucket (accessed by NEXT) has the same LOCK
+       address below.  */
     gtm_stmlock *lock;
+
     gtm_cacheline *addr;
     gtm_cacheline *value;
     gtm_version version;
@@ -442,6 +449,9 @@ wbetl_dispatch::trycommit ()
       for (size_t i = 0; i < n; ++i)
 	{
 	  w_entry *w = &m_wset_entries[i];
+
+	  /* Every link along the chain has the same lock, but only
+	     bother dropping the lock once per bucket (at the end).  */
 	  if (w->next == NULL)
 	    *w->lock = gtm_stmlock_set_version (t);
 	}
@@ -459,6 +469,9 @@ wbetl_dispatch::rollback ()
   for (size_t i = 0; i < n; ++i)
     {
       w_entry *w = &m_wset_entries[i];
+
+      /* Every link along the chain has the same lock, but only
+	 bother dropping the lock once per bucket (at the end).  */
       if (w->next == NULL)
 	*w->lock = gtm_stmlock_set_version (w->version);
     }
