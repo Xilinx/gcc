@@ -1,5 +1,9 @@
 
 2010-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt: Adding normstep_msuccwhenflag, which
+	is still incomplete.
+
+2010-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tbad-2.melt now correctly fails to be translated}}
 	* melt/warmelt-normal.melt: Added check of field w.r.t. class in normexp_instance.
 

@@ -4994,7 +4994,38 @@ normalized expression.}#
       (return ntestsame)
       )))
 (install_method class_match_step_test_variable normalize_step normstep_mtestvar)
-    
+
+;;;;;;;;;;;;;;;;
+
+
+(defun normstep_msuccwhenflag (step nmctxt sloc)
+  (debug_msg step "normstep_msuccwhenflag step")
+  (assert_msg "check step" (is_a step class_match_step_success_when_flag))
+  (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
+  (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
+	  (matflag (unsafe_get_field :mstep_flag step))
+	  (matthen (unsafe_get_field :mstep_then step))
+	  (matvarocc (unsafe_get_field :mstepsuccess_varocc step))
+	  (mbinds (unsafe_get_field :mstepsuccess_binds step))
+	  (matbody (unsafe_get_field :mstepsuccess_body step))
+	  )
+    (debug_msg matflag "normstep_msuccwhenflag mflag")
+    (debug_msg matvarocc "normstep_msuccwhenflag mvarocc")
+    (debug_msg mbinds "normstep_msuccwhenflag mbinds")
+    (debug_msg matbody "normstep_msuccwhenflag mbody")
+    (debug_msg matthen "normstep_msuccwhenflag mthen")
+    (let (
+	  (nthen (altmatch_normalize_step matthen nmctxt))
+	  (nflag (altmatch_normalize_flag matflag nmctxt))
+	  (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
+	  )
+      (debug_msg nthen "normstep_msuccwhenflag nthen")
+      (debug_msg nflag "normstep_msuccwhenflag nflag")
+      (assert_msg "@$@unimplemented normstep_msuccwhenflag")
+      )))
+(install_method class_match_step_success_when_flag normalize_step normstep_msuccwhenflag)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; utility to normalize a step with a match normalization context
 (defun altmatch_normalize_step (step nmctxt)
   (debug_msg step "altmatch_normalize_step step")
