@@ -7903,13 +7903,13 @@ readmacrostringsequence (struct reading_st *rd)
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
   for(;;) {
+    if (rdeof()) 
+      READ_ERROR("reached end of file in macrostring sequence started line %d; a }# is probably missing.", lineno);
     if (!rdcurc()) {
       /* reached end of line */
       skipspace_getc(rd, COMMENT_NO);
       continue;
     }
-    if (rdeof()) 
-      READ_ERROR("reached end of file in macrostring sequence started line %d", lineno);
     if (rdcurc()=='}' && rdfollowc(1)=='#') {
       rdnext(); 
       rdnext();

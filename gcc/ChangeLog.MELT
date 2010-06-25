@@ -1,4 +1,9 @@
 
+2010-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (readmacrostringsequence): Corrected detection of
+	premature end of file, and more user-friendly message.
+
 2010-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-make.mk (warmelt*.0.so): added dependency to $(wildcard
