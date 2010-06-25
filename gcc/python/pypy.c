@@ -201,26 +201,15 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
   else if( sym->type == SYMBOL_REFERENCE )
     {
       tree decl = gpy_ctx_lookup_decl( sym->op_a.string, VAR );
-
       gcc_assert( sym->op_a_t == TYPE_STRING );
-      debug("tree reference <%s>!\n", sym->op_a.string);
-
-      retval = get_identifier( sym->op_a.string );
-
-      if( !decl )
+      if( decl )
 	{
-	  tree decl = build_decl( UNKNOWN_LOCATION, VAR_DECL,
-				  get_identifier( sym->op_a.string ),
-				  integer_type_node );
-
-	  gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
-				   (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
-	  
-	  if( !(gpy_ctx_push_decl( decl, sym->op_a.string, x, VAR )) )
-	    fatal_error("error pushing var decl <%s>!\n", sym->op_a.string );
-	  
-	  debug( "built the VAR_DECL <%p> for <%s>!\n", (void*)decl,
-		 sym->op_a.string );
+	  debug("tree reference <%s>!\n", sym->op_a.string);
+	  retval = get_identifier( sym->op_a.string );
+	}
+      else
+	{
+	  error("undeclared symbol reference <%s>!\n", sym->op_a.string );
 	}
     }
   else
@@ -281,6 +270,7 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
   tree retval = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
 			    get_identifier( functor->identifier ),
 			    fntype );
+
   unsigned int idx = 0;
   gpy_context_branch *co = NULL; gpy_ident it = NULL;
 
@@ -290,8 +280,6 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
   DECL_EXTERNAL(retval) = 1;
   TREE_STATIC(retval) = 1;
 
-  declare_vars = make_node( BLOCK );
-  block = make_node( BLOCK );
   DECL_INITIAL(retval) = block;
 
   /* push a new context for local symbols */
@@ -305,6 +293,7 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
   while( o )
     {
       tree x = gpy_get_tree( o );
+      gcc_assert( x );
       append_to_statement_list( x, &block );
       o = o->next;
     }
@@ -312,9 +301,11 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
   for( ; VEC_iterate( gpy_ident,co->var_decl_t, idx, it ); ++idx )
     {
       tree x = gpy_ctx_lookup_decl( it->ident, VAR );
+      gcc_assert( x );
       append_to_statement_list( x, &declare_vars );
     }
   BLOCK_VARS( block ) = declare_vars;
+  BLOCK_SUPERCONTEXT(block) = retval;
  
   VEC_pop( gpy_ctx_t, gpy_ctx_table );
 
@@ -357,20 +348,21 @@ tree gpy_get_tree( gpy_symbol_obj * sym )
 
 void gpy_write_globals( void )
 {
-  tree *vec; tree *decl_vec;
+  tree *vec;
 
-  unsigned long decl_len = 0, tmp = 0;
-  unsigned int idx, idy;
+  unsigned long decl_len = 0;
+  unsigned int idx;
 
+  /*
   gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
 			   (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
-
-  gpy_symbol_obj * it = NULL; gpy_ident i = NULL;
+  */
+  gpy_symbol_obj * it = NULL;
   
-  tmp = decl_len = VEC_length( gpy_sym, gpy_decls );
+  decl_len = VEC_length( gpy_sym, gpy_decls );
   vec = XNEWVEC( tree, decl_len );
 
-  debug("decl_len <%lu>!\n", decl_len);
+  debug("decl_len <%lu>!\n", decl_len );
   for( idx=0; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )
     {
       debug("decl AST <%p>!\n", (void*)it );
@@ -380,37 +372,16 @@ void gpy_write_globals( void )
 	    (void*)it, (void*) vec[idx] );
     }
 
-  decl_len += VEC_length( gpy_ident, x->var_decl_t );
-  decl_vec = XNEWVEC( tree, decl_len );
-
-  for( idx=0; VEC_iterate( gpy_ident,x->var_decl_t, idx, i); ++idx )
-    {
-      decl_vec[ idx ] = gpy_ctx_lookup_decl( i->ident, VAR );
-      gpy_preserve_from_gc( decl_vec[idx] );
-    }
-  for( idy=0; idy<tmp; ++idy )
-    {
-      decl_vec[ idx ] = vec[ idy ];
-      idx++;
-    }
-
   debug("Finished processing!\n\n");
 
-  for( idx=0; idx<decl_len; ++idx )
-    {
-      tree x = decl_vec[idx];
-      if( TREE_CODE(x) == VAR_DECL )
-	debug("got var_decl <%i>:<%p>!\n", idx, (void*)x );
-    }
+  wrapup_global_declarations( vec, decl_len );
 
-  wrapup_global_declarations( decl_vec, decl_len );
-
-  check_global_declarations( decl_vec, decl_len );
-  emit_debug_global_declarations( decl_vec, decl_len );
+  check_global_declarations( vec, decl_len );
+  emit_debug_global_declarations( vec, decl_len );
 
   cgraph_finalize_compilation_unit( );
 
   debug("finished passing to middle-end!\n\n");
 
-  free( vec ); free( decl_vec );
+  free( vec );
 }

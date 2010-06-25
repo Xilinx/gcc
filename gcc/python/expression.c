@@ -55,8 +55,27 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 
   if( opa->type == SYMBOL_REFERENCE )
     {
-      tree reference = gpy_process_expression( opa );
-      tree rhs_tree = gpy_process_expression( opb );
+      tree reference = NULL_TREE;
+      tree rhs_tree = NULL_TREE;
+
+      tree decl = gpy_ctx_lookup_decl( opa->op_a.string, VAR );
+      if( !decl )
+	{
+	  tree decl = build_decl( UNKNOWN_LOCATION, VAR_DECL,
+				  get_identifier( opa->op_a.string ),
+				  integer_type_node );
+	  
+	  gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
+				   (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
+	  
+	  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x, VAR )) )
+	    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );
+	  
+	  debug( "built the VAR_DECL <%p> for <%s>!\n", (void*)decl,
+		 opa->op_a.string );
+	}
+      reference = gpy_process_expression( opa );
+      rhs_tree = gpy_process_expression( opb );
       
       retval = build2( MODIFY_EXPR, integer_type_node,
 		       reference, rhs_tree );
