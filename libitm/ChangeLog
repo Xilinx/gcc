@@ -1,3 +1,7 @@
+2010-06-25  Aldy Hernandez  <aldyh@redhat.com>
+
+	* barrier.tpl: Add comments throughout.
+
 2010-06-24  Aldy Hernandez  <aldyh@redhat.com>
 
 	* method-wbetl.cc (struct w_entry): Add comments.

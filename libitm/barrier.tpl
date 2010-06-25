@@ -32,15 +32,29 @@ using namespace GTM;
 template<typename T>
 T do_read (const T *ptr, gtm_dispatch::lock_type lock)
 {
+  //
+  // Find the cacheline that holds the current value of *PTR.
+  //
   gtm_dispatch *disp = gtm_disp();
   uintptr_t iptr = reinterpret_cast<uintptr_t>(ptr);
+  // Normalize PTR by chopping off the bottom bits so we can search
+  // for PTR in the cacheline hash.
   uintptr_t iline = iptr & -CACHELINE_SIZE;
+  // The position in the resulting cacheline where *PTR is actually stored.
   uintptr_t iofs = iptr & (CACHELINE_SIZE - 1);
   const gtm_cacheline *pline = reinterpret_cast<const gtm_cacheline *>(iline);
+  // Search for the actual cacheline that holds the current value of *PTR.
   const gtm_cacheline *line = disp->read_lock(pline, lock);
 
+  // Point to the position in the cacheline where *PTR is stored.
   ptr = reinterpret_cast<const T *>(&line->b[iofs]);
 
+  // Straight up loads, because we're either aligned, or we don't care
+  // about alignment.
+  //
+  // If we require alignment on type T, do a straight load if we're
+  // aligned.  Otherwise do a straight load IFF the load fits entirely
+  // in this cacheline.  That is, it won't span multiple cachelines.
   if (__builtin_expect (strict_alignment<T>::value
 			? (iofs & (sizeof (T) - 1)) == 0
 			: iofs + sizeof(T) <= CACHELINE_SIZE, 1))
@@ -48,16 +62,22 @@ T do_read (const T *ptr, gtm_dispatch::lock_type lock)
     do_normal_load:
       return *ptr;
     }
+  // If alignment on T is necessary, but we're unaligned, yet we fit
+  // entirely in this cacheline... do the unaligned load dance.
   else if (__builtin_expect (strict_alignment<T>::value
 			     && iofs + sizeof(T) <= CACHELINE_SIZE, 1))
     {
     do_unaligned_load:
       return unaligned_load<T>(ptr);
     }
+  // Otherwise, this load will span multiple cachelines.
   else
     {
+      // Get the following cacheline for the rest of the data.
       const gtm_cacheline *line2 = disp->read_lock(pline + 1, lock);
 
+      // If the two cachelines are adjacent, just load it all in one
+      // swoop.
       if (line2 == line + 1)
 	{
 	  if (!strict_alignment<T>::value)
@@ -66,13 +86,21 @@ T do_read (const T *ptr, gtm_dispatch::lock_type lock)
 	    goto do_unaligned_load;
 	}
       else
-	return unaligned_load2<T>(line, line2, iofs);
+	{
+	  // Otherwise, ask the backend to load from two different
+	  // cachelines.
+	  return unaligned_load2<T>(line, line2, iofs);
+	}
     }
 }
 
 template<typename T>
 void do_write (T *ptr, T val, gtm_dispatch::lock_type lock)
 {
+  // Note: See comments for do_read() above for hints on this
+  // function.  Ideally we should abstract out a lot out of these two
+  // functions, and avoid all this duplication.
+
   gtm_dispatch *disp = gtm_disp();
   uintptr_t iptr = reinterpret_cast<uintptr_t>(ptr);
   uintptr_t iline = iptr & -CACHELINE_SIZE;
