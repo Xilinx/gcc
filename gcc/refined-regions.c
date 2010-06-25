@@ -30,10 +30,80 @@ along with GCC; see the file COPYING3.  If not see
 #include "refined-regions.h"
 #include "domwalk.h"
 
+/* Auxiliary function for qsort () that compares two basic blocks
+   according to the values of their indices.  */
+
+static int
+bb_index_compare (const void *bbv1, const void *bbv2)
+{
+  basic_block bb1 = *(const basic_block *)bbv1;
+  basic_block bb2 = *(const basic_block *)bbv2;
+
+  gcc_assert (bbv1 && bbv2);
+
+  if (bb1->index < bb2->index)
+    return -1;
+  else
+    return bb1->index > bb2->index;
+}
+
+/* Put all the basic blocks contained in REGION into BBLIST
+   The order in which BBs are put is not defined.  */
+
+void
+get_bbs_in_region (refined_region_p region, VEC (basic_block, heap) **bblist)
+{
+  basic_block bb_iter;
+
+  VEC (basic_block, heap) *bbstack = VEC_alloc (basic_block, heap, 3);
+  VEC_safe_push (basic_block, heap, bbstack, region->entry);
+
+  while (VEC_length (basic_block, bbstack) != 0)
+    {
+      basic_block bb = VEC_pop (basic_block, bbstack);
+      VEC_safe_push (basic_block, heap, *bblist, bb);
+
+      /* Push to stack all BB's successors.  */
+      for (bb_iter = first_dom_son (CDI_DOMINATORS, bb);
+	   bb_iter != NULL;
+	   bb_iter = next_dom_son (CDI_DOMINATORS, bb_iter))
+	if (bb_iter != region->exit)
+	  VEC_safe_push (basic_block, heap, bbstack, bb_iter);
+    }
+
+  VEC_free (basic_block, heap, bbstack);
+}
+
+/* Print all basic block indices of REGION into FILE.  */
+
+static void
+print_bbs_in_region (FILE* file, refined_region_p region)
+{
+  VEC (basic_block, heap) *bblist = VEC_alloc (basic_block, heap, 3);
+  int i;
+  basic_block bb_iter;
+
+  get_bbs_in_region (region, &bblist);
+
+  /* Sort all BBs in the region.  */
+  qsort (VEC_address (basic_block, bblist), VEC_length (basic_block, bblist),
+	 sizeof (basic_block), bb_index_compare);
+
+  for (i = 0; VEC_iterate (basic_block, bblist, i, bb_iter); i++)
+    if (i == 0)
+      fprintf (file, "[%d", bb_iter->index);
+    else
+      fprintf (file, ", %d", bb_iter->index);
+
+  fprintf (file, "]\n");
+
+  VEC_free (basic_block, heap, bblist);
+}
+
 /* Print REGION to F with indention level INDENT.  */
 
 void
-print_refined_region (FILE *F, refined_region_p region, int indent)
+print_refined_region (FILE *F, refined_region_p region, int indent, bool print_bbs)
 {
   int ix, i;
   refined_region_p subregion;
@@ -42,13 +112,18 @@ print_refined_region (FILE *F, refined_region_p region, int indent)
     fprintf (F, " ");
 
   if (region->exit)
-    fprintf (F, "%d => %d \n", region->entry->index, region->exit->index);
+    fprintf (F, "%d => %d ", region->entry->index, region->exit->index);
   else
-    fprintf (F, "%d => End\n", region->entry->index);
+    fprintf (F, "%d => End ", region->entry->index);
+
+  if (print_bbs == true)
+    print_bbs_in_region (F, region);
+  else
+    fprintf (F, "\n");
 
   for (ix = 0; VEC_iterate (refined_region_p, region->children, ix, subregion);
        ix++)
-    print_refined_region (F, subregion, indent + 1);
+    print_refined_region (F, subregion, indent + 1, print_bbs);
 }
 
 /* Print REGION and all its subregions to stderr.  */
@@ -57,7 +132,7 @@ void
 debug_refined_region (refined_region_p region)
 {
   fprintf (stderr, "\n");
-  print_refined_region (stderr, region, 0);
+  print_refined_region (stderr, region, 0, true);
 }
 
 /* Check that BB is contained in REGION.  */

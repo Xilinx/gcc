@@ -1349,6 +1349,14 @@ build_scops_new (void)
   /* Build new region tree.  */
   refined_region_p new_region = calculate_region_tree ();
 
+  /* Print the region tree with all the basic blocks its regions contain.  */
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    {
+      fprintf (dump_file, "Refined region tree structure:\n\n");
+      print_refined_region (dump_file, new_region, 0, true);
+      fprintf (dump_file, "\n");
+    }
+
   /* Find the maximal valid regions.  */
   VEC_safe_push (refined_region_p, heap, check, new_region);
 
