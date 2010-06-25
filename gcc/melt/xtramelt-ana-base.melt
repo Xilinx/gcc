@@ -2181,15 +2181,18 @@
   ;;before expansion
   #{
    /* start $eachbbcfun */
-   basic_block  $eachbbcfun#_bb = NULL;
    if (cfun && cfun->cfg) {
+     basic_block  $eachbbcfun#_bb = NULL;
      $cfundecl  = cfun->decl;
     FOR_EACH_BB_FN($eachbbcfun#_bb, cfun) {
       if (!$eachbbcfun#_bb) continue;
       $cfunbb  = $eachbbcfun#_bb;
  }#
  ;;after expansion
- #{ }} /* end $eachbbcfun */  
+ #{ }} else 
+      melt_fatal_error ("each_bb_cfun used with invalid cfun=%p [$eachbbcfun]", 
+			cfun);
+  /* end $eachbbcfun */  
  }# )
 
 ;; debug_tree is ok even for nil trees

@@ -1,4 +1,13 @@
 
+2010-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/xtramelt-ana-base.melt: each_bb_cfun gives fatal error when
+	called without or with invalid cfun.
+
+	* melt-runtime.c (melt_startunit_callback)
+	(melt_finishunit_callback, melt_really_initialize)
+	(do_finalize_melt): always call minor MELT GC.
+
 2010-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-normatch.melt: adding normstep_mtestmatcher, still

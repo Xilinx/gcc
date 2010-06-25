@@ -9186,9 +9186,10 @@ melt_startunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
 	("melt_startunit_callback before applying start unit closure");
       (void) melt_apply ((meltclosure_ptr_t) staclosv,
 			 (melt_ptr_t) NULL, "", NULL, "", NULL);
-      /* force a minor GC to be sure nothing stays in young region */
-      melt_garbcoll (0, MELT_ONLY_MINOR);
     }
+  /* Always force a minor GC to be sure nothing stays in young region */
+  melt_garbcoll (0, MELT_ONLY_MINOR);
+  debugeprintf ("ending melt_startunit_callback meltnbgc%d", melt_nb_garbcoll);
   MELT_EXITFRAME ();
 #undef staclosv
 }
@@ -9208,9 +9209,10 @@ melt_finishunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
 	("melt_finishunit_callback before applying finish unit closure");
       (void) melt_apply ((meltclosure_ptr_t) finclosv,
 			 (melt_ptr_t) NULL, "", NULL, "", NULL);
-      /* force a minor GC to be sure nothing stays in young region */
-      melt_garbcoll (0, MELT_ONLY_MINOR);
     }
+  /* Always force a minor GC to be sure nothing stays in young region */
+  melt_garbcoll (0, MELT_ONLY_MINOR);
+  debugeprintf ("ending melt_finishunit_callback meltnbgc%d", melt_nb_garbcoll);
   MELT_EXITFRAME ();
 #undef finclosv
 }
@@ -9344,10 +9346,18 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   debugeprintf ("melt_really_initialize inistr=%s", inistr);
   if (ppl_set_error_handler(melt_ppl_error_handler))
     /* don't call melt_fatal_error since initializing! */
-    fatal_error ("failed to set PPL handler");
+    fatal_error ("MELT failed to set PPL handler");
   load_melt_modules_and_do_mode ();
+  /* force a minor GC */
+  melt_garbcoll (0, MELT_ONLY_MINOR);
   debugeprintf ("melt_really_initialize ended init=%s mode=%s",
 		inistr, modstr);
+  if (!quiet_flag) 
+    {
+      fprintf (stderr, "GCC MELT {%s} initialized for mode %s [%d modules]\n", 
+	       versionstr, modstr, melt_nb_modules);
+      fflush (stderr);
+    }
 }
 
 
@@ -9371,10 +9381,12 @@ do_finalize_melt (void)
       MELT_LOCATION_HERE
 	("do_finalize_melt before applying final closure");
       (void) melt_apply ((meltclosure_ptr_t) finclosv,
-			    (melt_ptr_t) NULL, "", NULL, "", NULL);
-      /* force a minor GC to be sure nothing stays in young region */
-      melt_garbcoll (0, MELT_ONLY_MINOR);
+			 (melt_ptr_t) NULL, "", NULL, "", NULL);
     }
+  /* Always force a minor GC to be sure nothing stays in young
+     region.  */
+  melt_garbcoll (0, MELT_ONLY_MINOR);
+  /* Clear the temporary directory if needed.  */
   if (tempdir_melt[0])
     {
       DIR *tdir = opendir (tempdir_melt);
@@ -9414,15 +9426,16 @@ do_finalize_melt (void)
 	warning (0, "failed to rmdir melt tempdir %s (%s)",
 		 tempdir_melt, strerror (errno));
     }
-  /* clear the vector of MELT file paths read */
-      while (parsedmeltfilevect && !VEC_empty (char_p, parsedmeltfilevect))
-	{
-	  char *parsedfilnam = VEC_pop (char_p, parsedmeltfilevect);
-	  if (parsedfilnam)
-	    *parsedfilnam = 0;
-	  free (parsedfilnam);
-	};
-      VEC_free (char_p, heap, parsedmeltfilevect);
+  /* Clear the vector of MELT file paths read */
+  while (parsedmeltfilevect && !VEC_empty (char_p, parsedmeltfilevect))
+    {
+      char *parsedfilnam = VEC_pop (char_p, parsedmeltfilevect);
+      if (parsedfilnam)
+	*parsedfilnam = 0;
+      free (parsedfilnam);
+    };
+  VEC_free (char_p, heap, parsedmeltfilevect);
+  dbgprintf ("do_finalize_melt ended");
  end:
   MELT_EXITFRAME ();
 #undef finclosv
