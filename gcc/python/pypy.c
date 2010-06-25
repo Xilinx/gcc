@@ -20,6 +20,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "opts.h"
 #include "tree.h"
+#include "tree-iterator.h"
 #include "gimple.h"
 #include "toplev.h"
 #include "debug.h"
@@ -43,10 +44,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "opcodes.def"
 #include "y.py.h"
 
-DEF_VEC_P( gpy_sym );
-DEF_VEC_ALLOC_P( gpy_sym,gc );
 static VEC( gpy_sym,gc ) * gpy_decls;
-
 VEC(gpy_ctx_t,gc) * gpy_ctx_table;
 
 /**
@@ -90,7 +88,7 @@ VEC(gpy_ctx_t,gc) * gpy_ctx_table;
                    2   2
  **/
 static
-gpy_symbol_obj * gpy_process_AST( gpy_symbol_obj **sym )
+gpy_symbol_obj * gpy_process_AST( gpy_symbol_obj ** sym )
 {
   gpy_symbol_obj *nn = NULL, *retval;
   if( (*sym)->next )
@@ -258,12 +256,27 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
   return retval;
 }
 
+/**
+ *      // Declare variables if necessary.
+      tree bind = NULL_TREE;
+      if (declare_vars != NULL_TREE)
+	{
+	  tree block = make_node(BLOCK);
+	  BLOCK_SUPERCONTEXT(block) = fndecl;
+	  DECL_INITIAL(fndecl) = block;
+	  BLOCK_VARS(block) = declare_vars;
+	  TREE_USED(block) = 1;
+	  bind = build3(BIND_EXPR, void_type_node, BLOCK_VARS(block),
+			NULL_TREE, block);
+	  TREE_SIDE_EFFECTS(bind) = 1;
+	}
+
+ **/
 tree gpy_process_functor( const gpy_symbol_obj * const  functor )
 {
+  /* Body .... */
   gpy_symbol_obj * o = functor->op_a.symbol_table;
-  tree block = NULL; tree block_decl = NULL; tree t = NULL;
-
-
+  tree block = NULL_TREE; tree declare_vars = NULL_TREE;
   tree fntype = build_function_type(void_type_node, void_list_node);
   tree retval = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
 			    get_identifier( functor->identifier ),
@@ -275,17 +288,15 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
 
   TREE_PUBLIC(retval) = 1;
   DECL_EXTERNAL(retval) = 1;
+  TREE_STATIC(retval) = 1;
 
-  gpy_preserve_from_gc(retval);
-
+  declare_vars = make_node( BLOCK );
   block = make_node( BLOCK );
-  block_decl = make_node( BLOCK );
-  DECL_INITIAL(retval) = block_decl;
+  DECL_INITIAL(retval) = block;
 
   /* push a new context for local symbols */
   co = (gpy_context_branch *)
     xmalloc( sizeof(gpy_context_branch) );
-
   co->var_decls = NULL;
   co->fnc_decls = NULL;
   gpy_init_ctx_branch( &co );
@@ -293,24 +304,17 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
 
   while( o )
     {
-      tree de = NULL;
- 
-      de = gpy_get_tree( o );
-      TREE_CHAIN( block ) = de;
-
+      tree x = gpy_get_tree( o );
+      append_to_statement_list( x, &block );
       o = o->next;
     }
   
   for( ; VEC_iterate( gpy_ident,co->var_decl_t, idx, it ); ++idx )
     {
-      t = gpy_ctx_lookup_decl( it->ident, VAR );
-      TREE_CHAIN( t ) = block_decl;
+      tree x = gpy_ctx_lookup_decl( it->ident, VAR );
+      append_to_statement_list( x, &declare_vars );
     }
-
-  TREE_CHAIN( block_decl ) = block;
-
-  TREE_USED(block_decl) = 1;
-  BLOCK_SUPERCONTEXT(block_decl) = retval;
+  BLOCK_VARS( block ) = declare_vars;
  
   VEC_pop( gpy_ctx_t, gpy_ctx_table );
 
@@ -353,7 +357,9 @@ tree gpy_get_tree( gpy_symbol_obj * sym )
 
 void gpy_write_globals( void )
 {
-  tree *vec; tree *decl_vec; unsigned long decl_len = 0, tmp = 0;
+  tree *vec; tree *decl_vec;
+
+  unsigned long decl_len = 0, tmp = 0;
   unsigned int idx, idy;
 
   gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
@@ -389,6 +395,13 @@ void gpy_write_globals( void )
     }
 
   debug("Finished processing!\n\n");
+
+  for( idx=0; idx<decl_len; ++idx )
+    {
+      tree x = decl_vec[idx];
+      if( TREE_CODE(x) == VAR_DECL )
+	debug("got var_decl <%i>:<%p>!\n", idx, (void*)x );
+    }
 
   wrapup_global_declarations( decl_vec, decl_len );
 

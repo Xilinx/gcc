@@ -70,9 +70,14 @@ typedef struct GTY(()) gpy_context_branch_t {
 typedef gpy_symbol_obj *gpy_sym;
 typedef gpy_context_branch *gpy_ctx_t;
 
+DEF_VEC_P( gpy_sym );
+DEF_VEC_ALLOC_P( gpy_sym,gc );
+
 DEF_VEC_P( gpy_ctx_t );
 DEF_VEC_ALLOC_P( gpy_ctx_t,gc );
+
 extern VEC(gpy_ctx_t,gc) * gpy_ctx_table;
+extern VEC(gpy_sym,gc) * gpy_garbage_decls;
 			 
 extern void gpy_ident_vec_init( gpy_ident_vector_t * const v )
      __attribute__((nonnull));
@@ -92,6 +97,10 @@ extern void ** gpy_dd_hash_insert( gpy_hashval_t, void *, gpy_hash_tab_t * );
 extern void gpy_dd_hash_grow_table( gpy_hash_tab_t * );
 
 extern void gpy_dd_hash_init_table( gpy_hash_tab_t ** );
+
+extern void gpy_gg_invoke_garbage( void );
+
+extern void gpy_garbage_free_obj( gpy_symbol_obj ** );
 
 extern tree gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj ** );
 
@@ -123,5 +132,9 @@ extern void gpy_init_ctx_branch( gpy_context_branch * const * )
     xmalloc( sizeof(gpy_symbol_obj) );			\
   debug("object created at <%p>!\n", (void*)x );	\
   gpy_symbol_init_ctx( x );
+
+#define Gpy_Mark_Garbage_obj( x )			\
+  debug("marking object <%p> as garbage!\n", x );	\
+  VEC_safe_push( gpy_sym,gc, gpy_garbage_decls, x );
 
 #endif /* __SYMBOLS_H_ */

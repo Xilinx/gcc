@@ -43,7 +43,76 @@ along with GCC; see the file COPYING3.  If not see
 #include "opcodes.def"
 #include "y.py.h"
 
+VEC( gpy_sym,gc ) * gpy_garbage_decls;
+
 #define threshold_alloc(x) (((x)+16)*3/2)
+
+void gpy_gg_invoke_garbage( void )
+{
+  int idx = 0; gpy_symbol_obj * it = NULL;
+  for( ; idx<VEC_iterate(gpy_sym,gpy_garbage_decls,idx,it ); ++idx )
+    {
+      gpy_garbage_free_obj( &it );
+      it = NULL;
+    }
+}
+
+void gpy_garbage_free_obj( gpy_symbol_obj ** sym )
+{
+  if( sym )
+    {
+      debug("deleting object <%p>!\n", (void *) (*sym) );
+
+      if( (*sym)->identifier )
+        {
+          debug("garbage symbol identifier '%s'\n", (*sym)->identifier );
+          free( (*sym)->identifier );
+        }
+
+      switch( (*sym)->op_a_t )
+	{
+	case TYPE_STRING:
+	  if( (*sym)->op_a.string )
+	    {
+	      char *xstr= (char*) (*sym)->op_a.string;
+	      free( xstr );
+	    }
+	  break;
+
+	case TYPE_SYMBOL:
+	  gpy_garbage_free_obj( &((*sym)->op_a.symbol_table) );
+	  break;
+
+	default:
+	  break;
+	}
+
+      switch( (*sym)->op_b_t )
+	{
+
+	case TYPE_STRING:
+	  if( (*sym)->op_b.string )
+	    {
+	      char *xstr= (char*) (*sym)->op_b.string;
+	      free( xstr );
+	    }
+	  break;
+
+	case TYPE_SYMBOL:
+	  gpy_garbage_free_obj( &((*sym)->op_b.symbol_table) );
+	  break;	
+
+	default:
+	  break;
+	}
+
+      if( (*sym)->next )
+        gpy_garbage_free_obj( &((*sym)->next) );
+
+      free( (*sym) );
+      (*sym) = NULL;
+    }
+}
 
 /**
  *  Hash function in use is a 32bit FNV-1
@@ -227,7 +296,7 @@ bool gpy_ctx_push_decl( tree decl, const char * s,
 			enum DECL_T T )
 {
   bool retval = true; gpy_hash_tab_t *t = NULL; gpy_hashval_t h = 0;
-  gpy_hash_entry_t * slot = NULL;  VEC(gpy_ident,gc) * st;
+  void ** slot = NULL;  VEC(gpy_ident,gc) * st;
   const char * type;
   gpy_ident o = (gpy_ident) xmalloc( sizeof(gpy_ident_t) );
   o->ident = xstrdup( s );
@@ -250,19 +319,18 @@ bool gpy_ctx_push_decl( tree decl, const char * s,
   debug("trying to push decl <%s>!\n", s );
 
   h = gpy_dd_hash_string( o->ident );
-  slot = gpy_dd_hash_lookup_table( t, h );
+  slot = gpy_dd_hash_insert( h, decl, t );
   if( !slot )
     {
-      void ** e = gpy_dd_hash_insert( h, (void*)decl, t );
-      if( e )
-	{
-	  fatal_error("error inserting table entry for decl <%s>:<%s>!\n",
-		      o->ident, type );
-	}
+      debug("successfully pushed DECL <%s>:<%s>!\n",
+	    s,type );
       VEC_safe_push( gpy_ident, gc, st, o );
     }
   else
-    retval = false;
+    {
+      debug("decl <%s> already pushed!\n", s );
+      retval = false;
+    }
 
   return retval;
 }
@@ -282,15 +350,18 @@ tree gpy_ctx_lookup_decl( const char * s, enum DECL_T T )
       gpy_hash_entry_t * o = NULL;
       gpy_hash_tab_t* decl_table = NULL;
       if( T == VAR )
-	decl_table = it->fnc_decls;
-      else
 	decl_table = it->var_decls;
+      else
+	decl_table = it->fnc_decls;
 
       o = gpy_dd_hash_lookup_table( decl_table, h );
       if( o )
 	{
-	  debug("found symbol <%s> in context <%p>!\n", s, (void*)it );
-	  retval = (tree) (o->data) ;
+	  if( o->data )
+	    {
+	      debug("found symbol <%s> in context <%p>!\n", s, (void*)it );
+	      retval = (tree) (o->data) ;
+	    }
 	}
     }
   return retval;
