@@ -5025,6 +5025,43 @@ normalized expression.}#
       )))
 (install_method class_match_step_success_when_flag normalize_step normstep_msuccwhenflag)
 
+;;;;;;;;;;;;;;;;
+(defun normstep_mtestmatcher (step nmctxt sloc)
+  (debug_msg step "normstep_mtestmatcher step")
+  (assert_msg "check step" (is_a step class_match_step_test_matcher))
+  (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
+  (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
+	  (matthen (unsafe_get_field :mstep_then step))
+	  (matelse (unsafe_get_field :mstep_else step))
+	  (matdata (unsafe_get_field :mstep_data step))
+	  (matindex (unsafe_get_field :mstep_index step))
+	  (matmatcher (unsafe_get_field :mstma_matcher step))
+	  (mins (unsafe_get_field :mstma_ins step))
+	  (mouts (unsafe_get_field :mstma_outs step))
+	  (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
+	  )
+    (debug_msg matdata "normstep_mtestmatcher matdata")
+    (debug_msg mins "normstep_mtestmatcher mins")
+    (debug_msg mouts "normstep_mtestmatcher mouts")
+    (debug_msg matmatcher "normstep_mtestmatcher matmatcher")
+    (assert_msg "check matmatcher" (is_a matmatcher class_any_matcher))
+    (let ( 
+	  (nthen (altmatch_normalize_step matthen nmctxt))
+	  (nelse (altmatch_normalize_step matthen nmctxt))
+	  (ndata (altmatch_normalize_mdata matdata nmctxt))
+	  (jumpthen (instance class_nrep_match_jump
+			      :nmjmp_label nthen))
+	  (jumpelse (instance class_nrep_match_jump
+			      :nmjmp_label nelse))
+	  (njthen (complete_normstep_if_last step jumpthen nmctxt))
+	  (njelse (complete_normstep_if_last step jumpelse nmctxt))
+	  )
+      (debug_msg njthen "normstep_mtestmatcher njthen")
+      (debug_msg njelse "normstep_mtestmatcher njelse")
+      (debug_msg ndata "normstep_mtestmatcher ndata")
+    (assert_msg "@$@unimplemented normstep_mtestmatcher")
+    )))
+(install_method class_match_step_test_matcher normalize_step normstep_mtestmatcher)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; utility to normalize a step with a match normalization context
 (defun altmatch_normalize_step (step nmctxt)

@@ -17,6 +17,10 @@
          ( ?(tree_integer_cst ?_)
             (f data 1000))
 ;;;
+	 (  ?(tree_var_decl_named "varname")
+	     (f data 1300))
+         )
+;;;
          (  ?(tree_of_type
                    ?(tree_var_decl 
                      ?(cstring_same "needle"))
@@ -26,7 +30,6 @@
          (  ?(tree_of_type
 	      ?_)
              (f data 2500))
-         )
   )
 
 

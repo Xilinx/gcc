@@ -1,6 +1,14 @@
 
 2010-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-normatch.melt: adding normstep_mtestmatcher, still
+	incomplete.
+
+	* testsuite/gcc/melt/tmatch-4.melt: added other case to test
+	cmatcher with input arg.
+
+2010-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (readmacrostringsequence): Corrected detection of
 	premature end of file, and more user-friendly message.
 
@@ -28,7 +36,7 @@
 	to get translated but MELT don't detect any error at translation
 	by mistake.
 
-	* melt/warmelt-normal.melt: Added super-class
+	* melt/warmelt-normatch.melt: Added super-class
 	class_match_step_with_data, Reclassed class_match_step_test. Don't
 	put mdata_steps in step without data. Added
 	match_data_update_data_steps_index and call it from
