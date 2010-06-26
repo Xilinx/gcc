@@ -1,0 +1,20 @@
+; -*- lisp -*-
+;; file thello.melt
+
+#| run in buildir/gcc, 
+ ./cc1 -fmelt=rundebug -fmelt-module-path=. -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt:$GCCMELTSOURCE/gcc/melt/generated -fmelt-module-makefile=$GCCMELTSOURCE/gcc/melt-module.mk \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 -fmelt-arg=thello.melt -fmelt-debug empty-file-for-melt.c
+
+|#
+
+(defun thello (x)
+  (debug_msg x "thello")
+  (code_chunk thello_chunk
+	      #{printf("Hello from $thello_chunk %s:%d\n",
+		       __FILE__, __LINE__);
+	      }#)
+  )
+
+(thello '"here")
+
+;; eof thello.melt

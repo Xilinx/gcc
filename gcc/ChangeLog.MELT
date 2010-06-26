@@ -1,4 +1,55 @@
 
+
+2010-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-module.mk (meltmodule, meltmoduledynamic)
+	(meltmodulerawdynamic, meltmodulewithoutline, meltclean): Phony
+	targets renamed as melt_module melt_module_dynamic
+	melt_module_rawdynamic melt_module_withoutline melt_clean, because
+	they are somehow wired in melt-runtime.c.
+	* melt-make.mk: Use new target names, see above!
+
+	* melt-runtime.h (meltgc_load_melt_module) Removed declaration, since
+	(meltgc_make_load_melt_module): Added declaration, with maketarget
+	argument.
+	(meltgc_generate_melt_module): Removed declaration, since
+	(meltgc_generate_melt_module): Added declaraton, with maketarget
+	argument.
+	(MELT_INITFRAME_AT): Increased static buffer size for location.
+	(MELT_LOCATION_HERE_AT): Ditto.
+
+	* melt-runtime.c (compile_gencsrc_to_binmodule): Got extra
+	topmaketarget argument and use it in the generated make
+	command. Changed notice message when sucessfully built a module.
+	(meltgc_load_melt_module): renamed as...
+	(meltgc_make_load_melt_module): with new maketarget
+	argument. Handle specially the .n .n.so .d .d.so suffixes.
+	(meltgc_generate_melt_module): renamed as...
+	(meltgc_make_melt_module): with new argument maketarget.
+
+	{{regenerated}}
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+03.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0+03.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
+
+	* testsuite/gcc/melt/thello.melt: Added new file.
+
 2010-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-ana-base.melt: each_bb_cfun gives fatal error when

@@ -2985,10 +2985,11 @@ void melt_initialize (void);
 void melt_finalize (void);
 
 /* find a symbol in all the loaded modules */
-void* melt_dlsym_all(const char*nam);
+void* melt_dlsym_all (const char*nam);
 
 /* returns malloc-ed path inside a temporary directory, with a given basename & suffix  */
-char* melt_tempdir_path(const char* basnam, const char* suffix);
+char* melt_tempdir_path (const char* basnam, const char* suffix);
+
 
 /***
     Load a MELT module by its name, which is only made of letters,
@@ -2996,20 +2997,25 @@ char* melt_tempdir_path(const char* basnam, const char* suffix);
    
     If the module does not exist in binary form (or if the binary form
     is not in sync with the C source code), find its C source and
-    compile it.
+    compile it, passing maketarget to the make utility. See file
+    melt-module.mk for the acceptable maketargets, often "melt_module".
 
     Then, load the module as a shared object and invoke its
     start_module_melt function with the given module data, usually
     an environment, which returns the new module environment.
 ***/
 melt_ptr_t
-meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam);
+meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, 
+			      const char*maketarget);
 
 
-/* generate a loadable module from a MELT generated C source file; the
-   out is the dynloaded module without any *.so suffix */
+
+/* Generate a loadable module from a MELT generated C source file; the
+   out is the dynloaded module without any *.so suffix. The maketarget
+   is for melt-module.mk and by default is "melt_module".  */
 void
-meltgc_generate_melt_module (melt_ptr_t src_p, melt_ptr_t out_p);
+meltgc_make_melt_module (melt_ptr_t src_p, melt_ptr_t out_p, const char*maketarget);
+
 
 /* load a list of modules from a file whose basename MODLISTBASE is
    given without its suffix '.modlis' */
@@ -3412,23 +3418,23 @@ extern melt_ptr_t melt_jmpval;
   void*  /* a melt_ptr_t */ varptr[NBVAR];	\
 } meltfram__
 /* initialize the current callframe and link it at top */
-#define MELT_INITFRAME_AT(NBVAR,CLOS,FIL,LIN) do {			\
-  static char locbuf_##LIN[64];						\
-  if (!locbuf_##LIN[0])							\
-    snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d",		\
-	     basename(FIL), (int)LIN);					\
-  memset(&meltfram__, 0, sizeof(meltfram__));				\
-  meltfram__.nbvar = (NBVAR);						\
-  meltfram__.flocs = locbuf_##LIN;					\
+#define MELT_INITFRAME_AT(NBVAR,CLOS,FIL,LIN) do {		\
+  static char locbuf_##LIN[84];					\
+  if (!locbuf_##LIN[0])						\
+    snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d",	\
+	     basename(FIL), (int)LIN);				\
+  memset(&meltfram__, 0, sizeof(meltfram__));			\
+  meltfram__.nbvar = (NBVAR);					\
+  meltfram__.flocs = locbuf_##LIN;				\
   meltfram__.prev = (struct callframe_melt_st*) melt_topframe;	\
-  meltfram__.clos = (CLOS);						\
+  meltfram__.clos = (CLOS);					\
   melt_topframe = ((struct callframe_melt_st*)&meltfram__);	\
 } while(0)
 #define MELT_INITFRAME(NBVAR,CLOS) MELT_INITFRAME_AT(NBVAR,CLOS,__FILE__,__LINE__)
 #define MELT_LOCATION(LOCS) do{meltfram__.flocs= LOCS;}while(0)
 
-#define MELT_LOCATION_HERE_AT(FIL,LIN,MSG) do {			\
-  static char locbuf_##LIN[72];						\
+#define MELT_LOCATION_HERE_AT(FIL,LIN,MSG) do {				\
+  static char locbuf_##LIN[85];						\
   if (!locbuf_##LIN[0])							\
     snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d <%s>",	\
 	     basename(FIL), (int)LIN, MSG);				\

@@ -3908,10 +3908,70 @@ number. Useful for running gdb on the module."
 (definstance runfile_mode
   class_melt_mode
   :named_name '"runfile"
-  :meltmode_help '"MELT 'runfile' mode: ARGUMENT= input file; [OUTPUT=generated C]"
+  :meltmode_help '"MELT 'runfile' mode: ARGUMENT= input file; 
+[OUTPUT=generated C]; translate and run an *.melt file."
   :meltmode_fun runfile_docmd
 )
 (install_melt_mode runfile_mode)
+
+;;;;;;;;;;;;;;;;
+;;;;;
+(defun rundebug_docmd (cmd moduldata)
+  (debug_msg cmd "start rundebug_docmd cmd")
+  (debug_msg moduldata "start rundebug_docmd moduldata")
+  (let ( 
+	(parmodenv (parent_module_environment))
+	(curenv (if moduldata moduldata initial_environment))
+	(inarg (make_stringconst discr_string (melt_argument "arg")))
+	(outarg (make_stringconst discr_string (melt_argument "output")))
+	)
+    (debug_msg parmodenv "before read rundebug_mode parmodenv")
+    (debug_msg initial_environment "before read rundebug_mode initial_environment")
+    (assert_msg "check curenv" (is_a curenv class_environment))
+    (let ( (modulnam ()) 
+	   (modsrcname
+	    (cond
+	     ( (is_string outarg) 
+	       (setq modulnam (make_string_nakedbasename discr_string outarg))
+	       outarg)
+	     ( (is_string inarg) 
+	       (setq modulnam (make_string_nakedbasename discr_string inarg))
+	       (make_string_tempname_suffixed discr_string inarg ".c"))
+	     (:else
+	      (errormsg_plain "invalid rundebug mode")
+	      (return)
+	      )))
+	   (basnam (cond
+		    ( (is_string outarg) (make_string_nakedbasename discr_string outarg))
+		    ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
+		    (:else
+		     (errormsg_plain "invalid rndebug mode")
+		     (return)
+		     )))
+	   (dbgmodulnam 
+	    (or outarg
+		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
+		  (add2sbuf_string dbgnambuf basnam)
+		  (add2sbuf_strconst dbgnambuf ".n.so")
+		  (strbuf2string discr_string dbgnambuf))))
+	   )
+      (compile_one_or_more_files inarg modsrcname curenv)
+      (debug_msg modsrcname "after compilation rundebug_mode modsrcname")
+      (debug_msg dbgmodulnam "before generate_debug_melt_module dbgmodulnam")
+      (generate_debug_melt_module modsrcname dbgmodulnam)
+      ;; the new environment is silently discarded
+      (debug_msg dbgmodulnam "before load_debug_melt_module rundebug_mode dbgmodulnam")
+      (ignore (load_debug_melt_module curenv dbgmodulnam))
+      )))
+;;;;
+(definstance rundebug_mode
+  class_melt_mode
+  :named_name '"rundebug"
+  :meltmode_help '"MELT 'rundebug' mode: ARGUMENT= input file; 
+[OUTPUT=generated C]; translate and run an *.melt file in debug mode."
+  :meltmode_fun rundebug_docmd
+)
+(install_melt_mode rundebug_mode)
 
 
 ;;;;;;;;;;;;;;;;

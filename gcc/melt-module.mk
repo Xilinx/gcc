@@ -41,8 +41,25 @@ endif
 MELTMODULE_BASENAME:=$(basename $(GCCMELT_MODULE_SOURCE))
 MELTMODULE_PLAIN:=$(notdir $(MELTMODULE_BASENAME))
 MELTMODULE_SRCDIR:=$(dir $(GCCMELT_MODULE_SOURCE))
-MELTMODULE_DYNAMIC:=$(patsubst %.so, %.d.so, $(GCCMELT_MODULE_BINARY))
-MELTMODULE_NOLINE:=$(patsubst %.so, %.n.so, $(GCCMELT_MODULE_BINARY))
+
+## Usually, when melt_module_withoutline is the sole target, the
+## GCCMELT_MODULE_BINARY already ends with .n.so, so we don"t have to
+## generate it. In some rare occasions, both melt_module &
+## melt_module_withoutline could be explicitly given targets, with
+## GCCMELT_MODULE_BINARY=foo.so
+##
+## so we need to patsubst only when the original suffix is just .so,
+## not when it is already .d.so or .n.so
+
+## The .d.so & .n.so suffixes are wired in melt-runtime.c!
+
+MELTMODULE_DYNAMIC:= \
+  $(patsubst %.so, %.d.so, $(filter-out %.d.so, $(GCCMELT_MODULE_BINARY))) \
+  $(filter %.d.so,  $(GCCMELT_MODULE_BINARY))
+
+MELTMODULE_NOLINE:= \
+  $(patsubst %.so, %.n.so, $(filter-out %.n.so, $(GCCMELT_MODULE_BINARY))) \
+  $(filter %.n.so,  $(GCCMELT_MODULE_BINARY))
 
 MELTSTAMP:=$(GCCMELT_MODULE_WORKSPACE)/$(MELTMODULE_PLAIN)-stamp.c
 
@@ -61,16 +78,16 @@ endif
 
 RM=rm -f
 MD5SUM=md5sum
-.PHONY: meltmodule meltmoduledynamic  meltmodulerawdynamic meltmodulewithoutline meltclean
+.PHONY: melt_module melt_module_dynamic  melt_module_rawdynamic melt_module_withoutline melt_clean
 
-meltmodule: $(GCCMELT_MODULE_BINARY)
+melt_module: $(GCCMELT_MODULE_BINARY)
 
-meltmoduledynamic: $(MELTMODULE_DYNAMIC)
-meltmodulerawdynamic: $(GCCMELT_MODULE_BINARY)
-# meltmodulerawdynamic: override GCCMELT_CFLAGS +=  -DMELTGCC_DYNAMIC_OBJSTRUCT
+melt_module_dynamic: $(MELTMODULE_DYNAMIC)
+melt_module_rawdynamic: $(GCCMELT_MODULE_BINARY)
+# melt_module_rawdynamic: override GCCMELT_CFLAGS +=  -DMELTGCC_DYNAMIC_OBJSTRUCT
 
-meltmodulewithoutline: $(MELTMODULE_NOLINE)
-meltmodulerawwithoutline: $(GCCMELT_MODULE_BINARY)
+melt_module_withoutline: $(MELTMODULE_NOLINE)
+melt_module_rawwithoutline: $(GCCMELT_MODULE_BINARY)
 
 $(GCCMELT_MODULE_BINARY): $(MELTMODULE_OBJPICFILES) $(MELTSTAMP)
 	$(GCCMELT_CC) $(GCCMELT_CFLAGS) -fPIC -shared \
@@ -106,7 +123,7 @@ $(MELTSTAMP): $(MELTMODULE_CFILES)
 	echo "const char melt_csource[]=\"$(MELTMODULE_CFILES)\";" >> $@-tmp
 	mv $@-tmp $@
 
-meltclean: 
+melt_clean: 
 	$(RM) $(MELTMODULE_OBJPICFILES) \
 	   $(MELTMODULE_OBJNOLPICFILES) \
 	   $(MELTMODULE_OBJDYNPICFILES) \

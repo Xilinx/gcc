@@ -78,50 +78,50 @@ MELT_MAKE_MODULE=$(MAKE) -f $(melt_make_module_makefile) $(MELT_MAKE_MODULE_XTRA
 warmelt-%.0.so: warmelt-%.0.c $(melt_make_module_makefile) melt-predef.h \
                 melt-runtime.h melt-runtime.c $(wildcard cc1)
 	echo in melt-make.mk melt_cflags= $(melt_cflags) 
-	$(MELT_MAKE_MODULE) meltmodule \
+	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 warmelt-%.0.d.so: warmelt-%.0.c $(melt_make_module_makefile) melt-predef.h
-	$(MELT_MAKE_MODULE) meltmoduledynamic \
+	$(MELT_MAKE_MODULE) melt_module_dynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$(shell basename $@ .d.so).so
 warmelt-%-h.d.so: warmelt-%-h.c $(melt_make_module_makefile)
-	$(MELT_MAKE_MODULE) meltmodulerawdynamic \
+	$(MELT_MAKE_MODULE) melt_module_rawdynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 warmelt-%-h2.d.so: warmelt-%-h2.c $(melt_make_module_makefile)
-	$(MELT_MAKE_MODULE) meltmodulerawdynamic \
+	$(MELT_MAKE_MODULE) melt_module_rawdynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
 warm%.n.so: warm%.c $(melt_make_module_makefile)
-	$(MELT_MAKE_MODULE) meltmodulerawwithoutline \
+	$(MELT_MAKE_MODULE) melt_module_rawwithoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 ## warmeltbig*.c is so big that it can only be compiled with -O0
 warmeltbig-%.so: warmeltbig-%.c $(melt_make_module_makefile) melt-predef.h
-	$(MELT_MAKE_MODULE) meltmodule \
+	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags) -O0"   \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 warm%.so: warm%.c  $(melt_make_module_makefile) melt-predef.h
-	$(MELT_MAKE_MODULE) meltmodule \
+	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(MELT_FINAL_CFLAGS)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
 ###
 
 xtra%.n.so: xtra%.c $(melt_make_module_makefile)
-	$(MELT_MAKE_MODULE) meltmodulerawwithoutline \
+	$(MELT_MAKE_MODULE) melt_module_rawwithoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(MELT_FINAL_CFLAGS)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
 xtra%.d.so: xtra%.c $(melt_make_module_makefile)
-	$(MELT_MAKE_MODULE) meltmodulerawdynamic \
+	$(MELT_MAKE_MODULE) melt_module_rawdynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(MELT_FINAL_CFLAGS)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
 xtra%.so: xtra%.c $(melt_make_module_makefile)
-	$(MELT_MAKE_MODULE) meltmodule \
+	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(MELT_FINAL_CFLAGS)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
