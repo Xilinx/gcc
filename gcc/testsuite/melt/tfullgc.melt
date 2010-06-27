@@ -1,0 +1,55 @@
+; -*- lisp -*-
+;; file tfullgc.melt
+
+
+;; test allocation of a lot of MELT values and then explicit full garbage collection.
+;; this apparently crashes MELT rev.161455
+
+#| run in buildir/gcc, 
+ ./cc1 -fmelt-mode=rundebug -fmelt-module-path=. -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt:$GCCMELTSOURCE/gcc/melt/generated -fmelt-module-makefile=$GCCMELTSOURCE/gcc/melt-module.mk \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 -fmelt-arg=tfullgc.melt -fmelt-debug empty-file-for-melt.c
+
+|#
+
+(defun allocgarb (c :long count height)
+  (if (<=i height 0) (return c)
+    (let ( (:long cm3 (%i count 3)) )
+      (cond ( (==i cm3 0)
+	      (tuple (allocgarb (list c (make_integerbox discr_constant_integer (+i count 1)))
+				(+i count 1) (-i height 1))
+		     c))
+	    ( (==i cm3 1)
+	      (list c (allocgarb c (+i count 1) (-i height 1))
+		    (allocgarb c (+i count 2) (-i height 2))
+		    (allocgarb c (+i count 3) (/i height 2))))
+	    (:else
+	     (tuple  (allocgarb c (+i count 2) (-i height 2))
+		     (instance class_container :container_value c)
+		     (allocgarb c (+i count 3) (-i height 3))
+		     (allocgarb c (+i count 4) (/i height 3))))))
+    ))
+
+(defun tfullgc (x)
+  (debug_msg x "tfullgc")
+  (code_chunk tfullgc_chunk
+	      #{printf("Start from $tfullgc_chunk %s:%d\n",
+		       lbasename(__FILE__), __LINE__);
+	      }#)
+  ;; the call to allocgarb allocates a lot of data
+  (let ( (g (allocgarb 'garb 0 11)) 
+	 )
+    ;; by assigning g, we make all the allocated data garbage!
+    (setq g :true)
+    (debug_msg g "before call to full_garbcoll")
+    (full_garbcoll 10000)
+    (debug_msg g "after call to full_garbcoll")
+  )
+  (code_chunk tfullgc_endchunk
+	      #{printf("End at $tfullgc_endchunk %s:%d melt_nb_full_garbcoll=%lu melt_nb_garbcoll=%lu\n",
+		       lbasename(__FILE__), __LINE__, melt_nb_full_garbcoll, melt_nb_garbcoll);
+	      }#)
+)
+
+(tfullgc '"here")
+
+;; eof tfullgc.melt
