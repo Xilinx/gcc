@@ -9399,8 +9399,13 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 		inistr, modstr);
   if (!quiet_flag) 
     {
-      fprintf (stderr, "GCC MELT {%s} initialized for mode %s [%d modules]\n", 
+#if MELT_IS_PLUGIN
+      fprintf (stderr, "MELT plugin {%s} initialized for mode %s [%d modules]\n", 
 	       versionstr, modstr, melt_nb_modules);
+#else
+      fprintf (stderr, "GCC-MELT {%s} initialized for mode %s [%d modules]\n", 
+	       versionstr, modstr, melt_nb_modules);
+#endif /*MELT_IS_PLUGIN*/
       fflush (stderr);
     }
 }
