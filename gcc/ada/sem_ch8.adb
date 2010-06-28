@@ -398,14 +398,19 @@ package body Sem_Ch8 is
    --  must be added to the list of actuals in any subsequent call.
 
    function Applicable_Use (Pack_Name : Node_Id) return Boolean;
-   --  Common code to Use_One_Package and Set_Use, to determine whether
-   --  use clause must be processed. Pack_Name is an entity name that
-   --  references the package in question.
+   --  Common code to Use_One_Package and Set_Use, to determine whether use
+   --  clause must be processed. Pack_Name is an entity name that references
+   --  the package in question.
 
    procedure Attribute_Renaming (N : Node_Id);
    --  Analyze renaming of attribute as subprogram. The renaming declaration N
    --  is rewritten as a subprogram body that returns the attribute reference
    --  applied to the formals of the function.
+
+   procedure Set_Entity_Or_Discriminal (N : Node_Id; E : Entity_Id);
+   --  Set Entity, with style check if need be. For a discriminant reference,
+   --  replace by the corresponding discriminal, i.e. the parameter of the
+   --  initialization procedure that corresponds to the discriminant.
 
    procedure Check_Frozen_Renaming (N : Node_Id; Subp : Entity_Id);
    --  A renaming_as_body may occur after the entity of the original decla-
@@ -3036,6 +3041,56 @@ package body Sem_Ch8 is
       end if;
    end Check_Frozen_Renaming;
 
+   -------------------------------
+   -- Set_Entity_Or_Discriminal --
+   -------------------------------
+
+   procedure Set_Entity_Or_Discriminal (N : Node_Id; E : Entity_Id) is
+      P : Node_Id;
+
+   begin
+      --  If the entity is not a discriminant, or else expansion is disabled,
+      --  simply set the entity.
+
+      if not In_Spec_Expression
+        or else Ekind (E) /= E_Discriminant
+        or else Inside_A_Generic
+      then
+         Set_Entity_With_Style_Check (N, E);
+
+      --  The replacement of a discriminant by the corresponding discriminal
+      --  is not done for a task discriminant that appears in a default
+      --  expression of an entry parameter. See Expand_Discriminant in exp_ch2
+      --  for details on their handling.
+
+      elsif Is_Concurrent_Type (Scope (E)) then
+
+         P := Parent (N);
+         while Present (P)
+           and then not Nkind_In (P, N_Parameter_Specification,
+                                  N_Component_Declaration)
+         loop
+            P := Parent (P);
+         end loop;
+
+         if Present (P)
+           and then Nkind (P) = N_Parameter_Specification
+         then
+            null;
+
+         else
+            Set_Entity (N, Discriminal (E));
+         end if;
+
+         --  Otherwise, this is a discriminant in a context in which
+         --  it is a reference to the corresponding parameter of the
+         --  init proc for the enclosing type.
+
+      else
+         Set_Entity (N, Discriminal (E));
+      end if;
+   end Set_Entity_Or_Discriminal;
+
    -----------------------------------
    -- Check_In_Previous_With_Clause --
    -----------------------------------
@@ -4377,8 +4432,18 @@ package body Sem_Ch8 is
             return;
          end if;
 
-         Set_Entity (N, E);
-         --  Why no Style_Check here???
+         --  Set the entity. Note that the reason we call Set_Entity for the
+         --  overloadable case, as opposed to Set_Entity_With_Style_Check is
+         --  that in the overloaded case, the initial call can set the wrong
+         --  homonym. The call that sets the right homonym is in Sem_Res and
+         --  that call does use Set_Entity_With_Style_Check, so we don't miss
+         --  a style check.
+
+         if Is_Overloadable (E) then
+            Set_Entity (N, E);
+         else
+            Set_Entity_With_Style_Check (N, E);
+         end if;
 
          if Is_Type (E) then
             Set_Etype (N, E);
@@ -4488,58 +4553,7 @@ package body Sem_Ch8 is
                Check_Nested_Access (E);
             end if;
 
-            --  Set Entity, with style check if need be. For a discriminant
-            --  reference, replace by the corresponding discriminal, i.e. the
-            --  parameter of the initialization procedure that corresponds to
-            --  the discriminant. If this replacement is being performed, there
-            --  is no style check to perform.
-
-            --  This replacement must not be done if we are currently
-            --  processing a generic spec or body, because the discriminal
-            --  has not been not generated in this case.
-
-            --  The replacement is also skipped if we are in special
-            --  spec-expression mode. Why is this skipped in this case ???
-
-            if not In_Spec_Expression
-              or else Ekind (E) /= E_Discriminant
-              or else Inside_A_Generic
-            then
-               Set_Entity_With_Style_Check (N, E);
-
-            --  The replacement is not done either for a task discriminant that
-            --  appears in a default expression of an entry parameter. See
-            --  Expand_Discriminant in exp_ch2 for details on their handling.
-
-            elsif Is_Concurrent_Type (Scope (E)) then
-               declare
-                  P : Node_Id;
-
-               begin
-                  P := Parent (N);
-                  while Present (P)
-                    and then not Nkind_In (P, N_Parameter_Specification,
-                                              N_Component_Declaration)
-                  loop
-                     P := Parent (P);
-                  end loop;
-
-                  if Present (P)
-                     and then Nkind (P) = N_Parameter_Specification
-                  then
-                     null;
-                  else
-                     Set_Entity (N, Discriminal (E));
-                  end if;
-               end;
-
-            --  Otherwise, this is a discriminant in a context in which
-            --  it is a reference to the corresponding parameter of the
-            --  init proc for the enclosing type.
-
-            else
-               Set_Entity (N, Discriminal (E));
-            end if;
+            Set_Entity_Or_Discriminal (N, E);
          end if;
       end;
    end Find_Direct_Name;
@@ -4935,7 +4949,7 @@ package body Sem_Ch8 is
       if Has_Homonym (Id) then
          Set_Entity (N, Id);
       else
-         Set_Entity_With_Style_Check (N, Id);
+         Set_Entity_Or_Discriminal (N, Id);
          Generate_Reference (Id, N);
       end if;
 
@@ -6029,12 +6043,45 @@ package body Sem_Ch8 is
             Change_Selected_Component_To_Expanded_Name (N);
          end if;
 
-         Add_One_Interp (N, Predef_Op, T);
+         --  If the context is an unanalyzed function call, determine whether
+         --  a binary or unary interpretation is required.
 
-         --  For operators with unary and binary interpretations, add both
+         if Nkind (Parent (N)) = N_Indexed_Component then
+            declare
+               Is_Binary_Call : constant Boolean :=
+                                  Present
+                                    (Next (First (Expressions (Parent (N)))));
+               Is_Binary_Op   : constant Boolean :=
+                                  First_Entity
+                                    (Predef_Op) /= Last_Entity (Predef_Op);
+               Predef_Op2     : constant Entity_Id := Homonym (Predef_Op);
 
-         if Present (Homonym (Predef_Op)) then
-            Add_One_Interp (N, Homonym (Predef_Op), T);
+            begin
+               if Is_Binary_Call then
+                  if Is_Binary_Op then
+                     Add_One_Interp (N, Predef_Op, T);
+                  else
+                     Add_One_Interp (N, Predef_Op2, T);
+                  end if;
+
+               else
+                  if not Is_Binary_Op then
+                     Add_One_Interp (N, Predef_Op, T);
+                  else
+                     Add_One_Interp (N, Predef_Op2, T);
+                  end if;
+               end if;
+            end;
+
+         else
+            Add_One_Interp (N, Predef_Op, T);
+
+            --  For operators with unary and binary interpretations, if
+            --  context is not a call, add both
+
+            if Present (Homonym (Predef_Op)) then
+               Add_One_Interp (N, Homonym (Predef_Op), T);
+            end if;
          end if;
 
          --  The node is a reference to a predefined operator, and

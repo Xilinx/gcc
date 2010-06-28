@@ -964,7 +964,7 @@ package body Exp_Ch6 is
             return;
          end if;
 
-         Temp := Make_Temporary (Loc, 'T');
+         Temp := Make_Temporary (Loc, 'T', Actual);
 
          --  Use formal type for temp, unless formal type is an unconstrained
          --  array, in which case we don't have to worry about bounds checks,
@@ -1216,7 +1216,7 @@ package body Exp_Ch6 is
 
          Reset_Packed_Prefix;
 
-         Temp := Make_Temporary (Loc, 'T');
+         Temp := Make_Temporary (Loc, 'T', Actual);
          Incod  := Relocate_Node (Actual);
          Outcod := New_Copy_Tree (Incod);
 
@@ -1381,7 +1381,7 @@ package body Exp_Ch6 is
             return Entity (Actual);
 
          else
-            Var := Make_Temporary (Loc, 'T');
+            Var := Make_Temporary (Loc, 'T', Actual);
 
             N_Node :=
               Make_Object_Renaming_Declaration (Loc,
@@ -2668,9 +2668,7 @@ package body Exp_Ch6 is
          if Present (Inherited_From_Formal (Subp)) then
             Parent_Subp := Inherited_From_Formal (Subp);
          else
-            while Present (Alias (Parent_Subp)) loop
-               Parent_Subp := Alias (Parent_Subp);
-            end loop;
+            Parent_Subp := Ultimate_Alias (Parent_Subp);
          end if;
 
          --  The below setting of Entity is suspect, see F109-018 discussion???
@@ -2770,20 +2768,6 @@ package body Exp_Ch6 is
                         Rewrite (Actual,
                           Unchecked_Convert_To (Parent_Typ,
                             Relocate_Node (Actual)));
-
-                        --  If the relocated node is a function call then it
-                        --  can be part of the expansion of the predefined
-                        --  equality operator of a tagged type and we may
-                        --  need to adjust its SCIL dispatching node.
-
-                        if Generate_SCIL
-                          and then Nkind (Actual) /= N_Null
-                          and then Nkind (Expression (Actual))
-                                     = N_Function_Call
-                        then
-                           Adjust_SCIL_Node (Actual, Expression (Actual));
-                        end if;
-
                         Analyze (Actual);
                         Resolve (Actual, Parent_Typ);
                      end if;
@@ -4766,6 +4750,14 @@ package body Exp_Ch6 is
 
    function Is_Build_In_Place_Function (E : Entity_Id) return Boolean is
    begin
+      --  This function is called from Expand_Subtype_From_Expr during
+      --  semantic analysis, even when expansion is off. In those cases
+      --  the build_in_place expansion will not take place.
+
+      if not Expander_Active then
+         return False;
+      end if;
+
       --  For now we test whether E denotes a function or access-to-function
       --  type whose result subtype is inherently limited. Later this test may
       --  be revised to allow composite nonlimited types. Functions with a

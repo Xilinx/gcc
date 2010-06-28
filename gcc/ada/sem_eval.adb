@@ -31,6 +31,7 @@ with Elists;   use Elists;
 with Errout;   use Errout;
 with Eval_Fat; use Eval_Fat;
 with Exp_Util; use Exp_Util;
+with Freeze;   use Freeze;
 with Lib;      use Lib;
 with Namet;    use Namet;
 with Nmake;    use Nmake;
@@ -179,6 +180,15 @@ package body Sem_Eval is
    --  corresponding to the value of Cond as a universal integer. It is
    --  used for producing the result of the static evaluation of the
    --  logical operators
+
+   function Find_Universal_Operator_Type (N : Node_Id) return Entity_Id;
+   --  Check whether an arithmetic operation with universal operands which
+   --  is a rewritten function call with an explicit scope indication is
+   --  ambiguous: P."+" (1, 2) will be ambiguous if there is more than one
+   --  visible numeric type declared in P and the context does not impose a
+   --  type on the result (e.g. in the expression of a type conversion).
+   --  If ambiguous, emit an error and return Empty, else return the result
+   --  type of the operator.
 
    procedure Test_Expression_Is_Foldable
      (N    : Node_Id;
@@ -1446,6 +1456,7 @@ package body Sem_Eval is
       Right : constant Node_Id   := Right_Opnd (N);
       Ltype : constant Entity_Id := Etype (Left);
       Rtype : constant Entity_Id := Etype (Right);
+      Otype : Entity_Id          := Empty;
       Stat  : Boolean;
       Fold  : Boolean;
 
@@ -1456,6 +1467,13 @@ package body Sem_Eval is
 
       if not Fold then
          return;
+      end if;
+
+      if Is_Universal_Numeric_Type (Etype (Left))
+           and then
+         Is_Universal_Numeric_Type (Etype (Right))
+      then
+         Otype := Find_Universal_Operator_Type (N);
       end if;
 
       --  Fold for cases where both operands are of integer type
@@ -1564,9 +1582,9 @@ package body Sem_Eval is
             Fold_Uint (N, Result, Stat);
          end;
 
-      --  Cases where at least one operand is a real. We handle the cases
-      --  of both reals, or mixed/real integer cases (the latter happen
-      --  only for divide and multiply, and the result is always real).
+      --  Cases where at least one operand is a real. We handle the cases of
+      --  both reals, or mixed/real integer cases (the latter happen only for
+      --  divide and multiply, and the result is always real).
 
       elsif Is_Real_Type (Ltype) or else Is_Real_Type (Rtype) then
          declare
@@ -1609,6 +1627,14 @@ package body Sem_Eval is
             Fold_Ureal (N, Result, Stat);
          end;
       end if;
+
+      --  If the operator was resolved to a specific type, make sure that type
+      --  is frozen even if the expression is folded into a literal (which has
+      --  a universal type).
+
+      if Present (Otype) then
+         Freeze_Before (N, Otype);
+      end if;
    end Eval_Arithmetic_Op;
 
    ----------------------------
@@ -1648,10 +1674,7 @@ package body Sem_Eval is
         and then Present (Alias (Entity (Name (N))))
         and then Is_Enumeration_Type (Base_Type (Typ))
       then
-         Lit := Alias (Entity (Name (N)));
-         while Present (Alias (Lit)) loop
-            Lit := Alias (Lit);
-         end loop;
+         Lit := Ultimate_Alias (Entity (Name (N)));
 
          if Ekind (Lit) = E_Enumeration_Literal then
             if Base_Type (Etype (Lit)) /= Base_Type (Typ) then
@@ -2353,6 +2376,7 @@ package body Sem_Eval is
       end if;
 
       Fold_Uint (N, Test (Result), True);
+
       Warn_On_Known_Condition (N);
    end Eval_Membership_Op;
 
@@ -2638,6 +2662,7 @@ package body Sem_Eval is
       Left   : constant Node_Id   := Left_Opnd (N);
       Right  : constant Node_Id   := Right_Opnd (N);
       Typ    : constant Entity_Id := Etype (Left);
+      Otype  : Entity_Id := Empty;
       Result : Boolean;
       Stat   : Boolean;
       Fold   : Boolean;
@@ -2869,6 +2894,17 @@ package body Sem_Eval is
          Set_Is_Static_Expression (N, False);
       end if;
 
+      --  For operators on universal numeric types called as functions with
+      --  an explicit scope, determine appropriate specific numeric type, and
+      --  diagnose possible ambiguity.
+
+      if Is_Universal_Numeric_Type (Etype (Left))
+           and then
+         Is_Universal_Numeric_Type (Etype (Right))
+      then
+         Otype := Find_Universal_Operator_Type (N);
+      end if;
+
       --  For static real type expressions, we cannot use Compile_Time_Compare
       --  since it worries about run-time results which are not exact.
 
@@ -2966,6 +3002,13 @@ package body Sem_Eval is
          end;
 
          Fold_Uint (N, Test (Result), Stat);
+      end if;
+
+      --  For the case of a folded relational operator on a specific numeric
+      --  type, freeze operand type now.
+
+      if Present (Otype) then
+         Freeze_Before (N, Otype);
       end if;
 
       Warn_On_Known_Condition (N);
@@ -3383,6 +3426,7 @@ package body Sem_Eval is
 
    procedure Eval_Unary_Op (N : Node_Id) is
       Right : constant Node_Id := Right_Opnd (N);
+      Otype : Entity_Id := Empty;
       Stat  : Boolean;
       Fold  : Boolean;
 
@@ -3393,6 +3437,13 @@ package body Sem_Eval is
 
       if not Fold then
          return;
+      end if;
+
+      if Etype (Right) = Universal_Integer
+           or else
+         Etype (Right) = Universal_Real
+      then
+         Otype := Find_Universal_Operator_Type (N);
       end if;
 
       --  Fold for integer case
@@ -3449,6 +3500,14 @@ package body Sem_Eval is
 
             Fold_Ureal (N, Result, Stat);
          end;
+      end if;
+
+      --  If the operator was resolved to a specific type, make sure that type
+      --  is frozen even if the expression is folded into a literal (which has
+      --  a universal type).
+
+      if Present (Otype) then
+         Freeze_Before (N, Otype);
       end if;
    end Eval_Unary_Op;
 
@@ -3700,6 +3759,144 @@ package body Sem_Eval is
          return Expr_Value_S (Constant_Value (Entity (N)));
       end if;
    end Expr_Value_S;
+
+   ----------------------------------
+   -- Find_Universal_Operator_Type --
+   ----------------------------------
+
+   function Find_Universal_Operator_Type (N : Node_Id) return Entity_Id is
+      PN     : constant Node_Id := Parent (N);
+      Call   : constant Node_Id := Original_Node (N);
+      Is_Int : constant Boolean := Is_Integer_Type (Etype (N));
+
+      Is_Fix : constant Boolean :=
+                 Nkind (N) in N_Binary_Op
+                   and then Nkind (Right_Opnd (N)) /= Nkind (Left_Opnd (N));
+      --  A mixed-mode operation in this context indicates the presence of
+      --  fixed-point type in the designated package.
+
+      Is_Relational : constant Boolean := Etype (N) = Standard_Boolean;
+      --  Case where N is a relational (or membership) operator (else it is an
+      --  arithmetic one).
+
+      In_Membership : constant Boolean :=
+                        Nkind (PN) in N_Membership_Test
+                          and then
+                        Nkind (Right_Opnd (PN)) = N_Range
+                          and then
+                        Is_Universal_Numeric_Type (Etype (Left_Opnd (PN)))
+                          and then
+                        Is_Universal_Numeric_Type
+                          (Etype (Low_Bound (Right_Opnd (PN))))
+                          and then
+                        Is_Universal_Numeric_Type
+                          (Etype (High_Bound (Right_Opnd (PN))));
+      --  Case where N is part of a membership test with a universal range
+
+      E      : Entity_Id;
+      Pack   : Entity_Id;
+      Typ1   : Entity_Id := Empty;
+      Priv_E : Entity_Id;
+
+      function Is_Mixed_Mode_Operand (Op : Node_Id) return Boolean;
+      --  Check whether one operand is a mixed-mode operation that requires the
+      --  presence of a fixed-point type. Given that all operands are universal
+      --  and have been constant-folded, retrieve the original function call.
+
+      ---------------------------
+      -- Is_Mixed_Mode_Operand --
+      ---------------------------
+
+      function Is_Mixed_Mode_Operand (Op : Node_Id) return Boolean is
+         Onod : constant Node_Id := Original_Node (Op);
+      begin
+         return Nkind (Onod) = N_Function_Call
+           and then Present (Next_Actual (First_Actual (Onod)))
+           and then Etype (First_Actual (Onod)) /=
+                    Etype (Next_Actual (First_Actual (Onod)));
+      end Is_Mixed_Mode_Operand;
+
+   --  Start of processing for Find_Universal_Operator_Type
+
+   begin
+      if Nkind (Call) /= N_Function_Call
+        or else Nkind (Name (Call)) /= N_Expanded_Name
+      then
+         return Empty;
+
+      --  There are several cases where the context does not imply the type of
+      --  the operands:
+      --     - the universal expression appears in a type conversion;
+      --     - the expression is a relational operator applied to universal
+      --       operands;
+      --     - the expression is a membership test with a universal operand
+      --       and a range with universal bounds.
+
+      elsif Nkind (Parent (N)) = N_Type_Conversion
+        or else Is_Relational
+        or else In_Membership
+      then
+         Pack := Entity (Prefix (Name (Call)));
+
+         --  If the prefix is a package declared elsewhere, iterate over its
+         --  visible entities, otherwise iterate over all declarations in the
+         --  designated scope.
+
+         if Ekind (Pack) = E_Package
+           and then not In_Open_Scopes (Pack)
+         then
+            Priv_E := First_Private_Entity (Pack);
+         else
+            Priv_E := Empty;
+         end if;
+
+         Typ1 := Empty;
+         E := First_Entity (Pack);
+         while Present (E) and then E /= Priv_E loop
+            if Is_Numeric_Type (E)
+              and then Nkind (Parent (E)) /= N_Subtype_Declaration
+              and then Comes_From_Source (E)
+              and then Is_Integer_Type (E) = Is_Int
+              and then
+                (Nkind (N) in N_Unary_Op
+                  or else Is_Relational
+                  or else Is_Fixed_Point_Type (E) = Is_Fix)
+            then
+               if No (Typ1) then
+                  Typ1 := E;
+
+                  --  Before emitting an error, check for the presence of a
+                  --  mixed-mode operation that specifies a fixed point type.
+
+               elsif Is_Relational
+                 and then
+                   (Is_Mixed_Mode_Operand (Left_Opnd (N))
+                    or else Is_Mixed_Mode_Operand (Right_Opnd (N)))
+                 and then Is_Fixed_Point_Type (E) /= Is_Fixed_Point_Type (Typ1)
+
+               then
+                  if Is_Fixed_Point_Type (E) then
+                     Typ1 := E;
+                  end if;
+
+               else
+                  --  More than one type of the proper class declared in P
+
+                  Error_Msg_N ("ambiguous operation", N);
+                  Error_Msg_Sloc := Sloc (Typ1);
+                  Error_Msg_N ("\possible interpretation (inherited)#", N);
+                  Error_Msg_Sloc := Sloc (E);
+                  Error_Msg_N ("\possible interpretation (inherited)#", N);
+                  return Empty;
+               end if;
+            end if;
+
+            Next_Entity (E);
+         end loop;
+      end if;
+
+      return Typ1;
+   end Find_Universal_Operator_Type;
 
    --------------------------
    -- Flag_Non_Static_Expr --

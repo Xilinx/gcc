@@ -60,6 +60,7 @@ with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with Stand;    use Stand;
 with Stringt;  use Stringt;
+with SCIL_LL;  use SCIL_LL;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 
@@ -578,8 +579,9 @@ package body Exp_Disp is
 
       --  Local variables
 
-      New_Node  : Node_Id;
-      SCIL_Node : Node_Id;
+      New_Node          : Node_Id;
+      SCIL_Node         : Node_Id;
+      SCIL_Related_Node : Node_Id := Call_Node;
 
    --  Start of processing for Expand_Dispatching_Call
 
@@ -647,19 +649,6 @@ package body Exp_Disp is
 
       if Ekind (Typ) = E_Incomplete_Type then
          Typ := Non_Limited_View (Typ);
-      end if;
-
-      --  Generate the SCIL node for this dispatching call. The SCIL node for a
-      --  dispatching call is inserted in the tree before the call is rewriten
-      --  and expanded because the SCIL node must be found by the SCIL backend
-      --  BEFORE the expanded nodes associated with the call node are found.
-
-      if Generate_SCIL then
-         SCIL_Node := Make_SCIL_Dispatching_Call (Sloc (Call_Node));
-         Set_SCIL_Related_Node (SCIL_Node, Call_Node);
-         Set_SCIL_Entity       (SCIL_Node, Typ);
-         Set_SCIL_Target_Prim  (SCIL_Node, Subp);
-         Insert_Action (Call_Node, SCIL_Node);
       end if;
 
       if not Is_Limited_Type (Typ) then
@@ -841,12 +830,16 @@ package body Exp_Disp is
       New_Call_Name :=
         Unchecked_Convert_To (Subp_Ptr_Typ, New_Node);
 
-      --  Complete decoration of SCIL dispatching node. It must be done after
-      --  the new call name is built to reference the nodes that will see the
-      --  SCIL backend (because Build_Get_Prim_Op_Address generates an
-      --  unchecked type conversion which relocates the controlling tag node).
+      --  Generate the SCIL node for this dispatching call. Done now because
+      --  attribute SCIL_Controlling_Tag must be set after the new call name
+      --  is built to reference the nodes that will see the SCIL backend
+      --  (because Build_Get_Prim_Op_Address generates an unchecked type
+      --  conversion which relocates the controlling tag node).
 
       if Generate_SCIL then
+         SCIL_Node := Make_SCIL_Dispatching_Call (Sloc (Call_Node));
+         Set_SCIL_Entity      (SCIL_Node, Typ);
+         Set_SCIL_Target_Prim (SCIL_Node, Subp);
 
          --  Common case: the controlling tag is the tag of an object
          --  (for example, obj.tag)
@@ -923,15 +916,6 @@ package body Exp_Disp is
          --  we generate: x.tag = y.tag and then x = y
 
          if Subp = Eq_Prim_Op then
-
-            --  Adjust the node referenced by the SCIL node to skip the tags
-            --  comparison because it is the information needed by the SCIL
-            --  backend to process this dispatching call
-
-            if Generate_SCIL then
-               Set_SCIL_Related_Node (SCIL_Node, New_Call);
-            end if;
-
             Param := First_Actual (Call_Node);
             New_Call :=
               Make_And_Then (Loc,
@@ -953,6 +937,8 @@ package body Exp_Disp is
                              New_Reference_To
                                (First_Tag_Component (Typ), Loc))),
                 Right_Opnd => New_Call);
+
+            SCIL_Related_Node := Right_Opnd (New_Call);
          end if;
 
       else
@@ -967,6 +953,12 @@ package body Exp_Disp is
       Register_CG_Node (Call_Node);
 
       Rewrite (Call_Node, New_Call);
+
+      --  Associate the SCIL node of this dispatching call
+
+      if Generate_SCIL then
+         Set_SCIL_Node (SCIL_Related_Node, SCIL_Node);
+      end if;
 
       --  Suppress all checks during the analysis of the expanded code
       --  to avoid the generation of spurious warnings under ZFP run-time.
@@ -1474,10 +1466,15 @@ package body Exp_Disp is
       Thunk_Id   := Empty;
       Thunk_Code := Empty;
 
+      --  No thunk needed if the primitive has been eliminated
+
+      if Is_Eliminated (Ultimate_Alias (Prim)) then
+         return;
+
       --  In case of primitives that are functions without formals and a
       --  controlling result there is no need to build the thunk.
 
-      if not Present (First_Formal (Target)) then
+      elsif not Present (First_Formal (Target)) then
          pragma Assert (Ekind (Target) = E_Function
            and then Has_Controlling_Result (Target));
          return;
@@ -1777,7 +1774,7 @@ package body Exp_Disp is
            or else TSS_Name  = TSS_Stream_Output
            or else
              (Chars (E) = Name_Op_Eq
-                and then Etype (First_Entity (E)) = Etype (Last_Entity (E)))
+                and then Etype (First_Formal (E)) = Etype (Last_Formal (E)))
            or else Chars (E) = Name_uAssign
            or else TSS_Name  = TSS_Deep_Adjust
            or else TSS_Name  = TSS_Deep_Finalize
@@ -1819,7 +1816,7 @@ package body Exp_Disp is
            or else Chars (E) = Name_uAlignment
            or else
              (Chars (E) = Name_Op_Eq
-                and then Etype (First_Entity (E)) = Etype (Last_Entity (E)))
+                and then Etype (First_Formal (E)) = Etype (Last_Formal (E)))
            or else Chars (E) = Name_uAssign
            or else TSS_Name  = TSS_Deep_Adjust
            or else TSS_Name  = TSS_Deep_Finalize
@@ -1838,23 +1835,10 @@ package body Exp_Disp is
 
    function Is_Predefined_Dispatching_Alias (Prim : Entity_Id) return Boolean
    is
-      E : Entity_Id;
-
    begin
-      if not Is_Predefined_Dispatching_Operation (Prim)
+      return not Is_Predefined_Dispatching_Operation (Prim)
         and then Present (Alias (Prim))
-      then
-         E := Prim;
-         while Present (Alias (E)) loop
-            E := Alias (E);
-         end loop;
-
-         if Is_Predefined_Dispatching_Operation (E) then
-            return True;
-         end if;
-      end if;
-
-      return False;
+        and then Is_Predefined_Dispatching_Operation (Ultimate_Alias (Prim));
    end Is_Predefined_Dispatching_Alias;
 
    ---------------------------------------
@@ -3689,6 +3673,7 @@ package body Exp_Disp is
 
                   if Is_Predefined_Dispatching_Operation (Prim)
                     and then not Is_Abstract_Subprogram (Prim)
+                    and then not Is_Eliminated (Prim)
                     and then not Present (Prim_Table
                                            (UI_To_Int (DT_Position (Prim))))
                   then
@@ -3697,11 +3682,8 @@ package body Exp_Disp is
                           Alias (Prim);
 
                      else
-                        while Present (Alias (Prim)) loop
-                           Prim := Alias (Prim);
-                        end loop;
-
-                        Expand_Interface_Thunk (Prim, Thunk_Id, Thunk_Code);
+                        Expand_Interface_Thunk
+                          (Ultimate_Alias (Prim), Thunk_Id, Thunk_Code);
 
                         if Present (Thunk_Id) then
                            Append_To (Result, Thunk_Code);
@@ -3868,12 +3850,7 @@ package body Exp_Disp is
                                (Interface_Alias (Prim)) = Iface
                   then
                      Prim_Alias := Interface_Alias (Prim);
-
-                     E := Prim;
-                     while Present (Alias (E)) loop
-                        E := Alias (E);
-                     end loop;
-
+                     E   := Ultimate_Alias (Prim);
                      Pos := UI_To_Int (DT_Position (Prim_Alias));
 
                      if Present (Prim_Table (Pos)) then
@@ -3979,10 +3956,14 @@ package body Exp_Disp is
                while Present (Prim_Elmt) loop
                   Prim := Node (Prim_Elmt);
 
+                  --  Do not reference predefined primitives because they
+                  --  are located in a separate dispatch table; skip also
+                  --  abstract and eliminated primitives.
+
                   if not Is_Predefined_Dispatching_Operation (Prim)
                     and then Present (Interface_Alias (Prim))
                     and then not Is_Abstract_Subprogram (Alias (Prim))
-                    and then not Is_Imported (Alias (Prim))
+                    and then not Is_Eliminated (Alias (Prim))
                     and then Find_Dispatching_Type
                                (Interface_Alias (Prim)) = Iface
 
@@ -4395,17 +4376,6 @@ package body Exp_Disp is
                   New_Reference_To
                     (RTE (RE_No_Dispatch_Table_Wrapper), Loc)));
 
-            --  Generate a SCIL node for the previous object declaration
-            --  because it has a null dispatch table.
-
-            if Generate_SCIL then
-               New_Node :=
-                 Make_SCIL_Dispatch_Table_Object_Init (Sloc (Last (Result)));
-               Set_SCIL_Related_Node (New_Node, Last (Result));
-               Set_SCIL_Entity (New_Node, Typ);
-               Insert_Before (Last (Result), New_Node);
-            end if;
-
             Append_To (Result,
               Make_Attribute_Definition_Clause (Loc,
                 Name       => New_Reference_To (DT, Loc),
@@ -4438,9 +4408,8 @@ package body Exp_Disp is
             if Generate_SCIL then
                New_Node :=
                  Make_SCIL_Dispatch_Table_Tag_Init (Sloc (Last (Result)));
-               Set_SCIL_Related_Node (New_Node, Last (Result));
                Set_SCIL_Entity (New_Node, Typ);
-               Insert_Before (Last (Result), New_Node);
+               Set_SCIL_Node (Last (Result), New_Node);
             end if;
 
          --  Generate:
@@ -4471,17 +4440,6 @@ package body Exp_Disp is
                       New_Reference_To (RTE (RE_Dispatch_Table_Wrapper), Loc),
                     Constraint => Make_Index_Or_Discriminant_Constraint (Loc,
                                     Constraints => DT_Constr_List))));
-
-            --  Generate the SCIL node for the previous object declaration
-            --  because it contains a dispatch table.
-
-            if Generate_SCIL then
-               New_Node :=
-                 Make_SCIL_Dispatch_Table_Object_Init (Sloc (Last (Result)));
-               Set_SCIL_Related_Node (New_Node, Last (Result));
-               Set_SCIL_Entity (New_Node, Typ);
-               Insert_Before (Last (Result), New_Node);
-            end if;
 
             Append_To (Result,
               Make_Attribute_Definition_Clause (Loc,
@@ -4515,9 +4473,8 @@ package body Exp_Disp is
             if Generate_SCIL then
                New_Node :=
                  Make_SCIL_Dispatch_Table_Tag_Init (Sloc (Last (Result)));
-               Set_SCIL_Related_Node (New_Node, Last (Result));
                Set_SCIL_Entity (New_Node, Typ);
-               Insert_Before (Last (Result), New_Node);
+               Set_SCIL_Node (Last (Result), New_Node);
             end if;
 
             Append_To (Result,
@@ -4902,9 +4859,14 @@ package body Exp_Disp is
       --  Size_Func
 
       if RTE_Record_Component_Available (RE_Size_Func) then
-         if not Building_Static_DT (Typ)
-           or else Is_Interface (Typ)
-         then
+
+         --  Initialize this field to Null_Address if we are not building
+         --  static dispatch tables static or if the size function is not
+         --  available. In the former case we cannot initialize this field
+         --  until the function is frozen and registered in the dispatch
+         --  table (see Register_Primitive).
+
+         if not Building_Static_DT (Typ) or else not Has_DT (Typ) then
             Append_To (TSD_Aggr_List,
               Unchecked_Convert_To (RTE (RE_Size_Ptr),
                 New_Reference_To (RTE (RE_Null_Address), Loc)));
@@ -4920,9 +4882,7 @@ package body Exp_Disp is
                   Prim := Node (Prim_Elmt);
 
                   if Chars (Prim) = Name_uSize then
-                     while Present (Alias (Prim)) loop
-                        Prim := Alias (Prim);
-                     end loop;
+                     Prim := Ultimate_Alias (Prim);
 
                      if Is_Abstract_Subprogram (Prim) then
                         Append_To (TSD_Aggr_List,
@@ -5287,17 +5247,6 @@ package body Exp_Disp is
                 Expression => Make_Aggregate (Loc,
                   Expressions => DT_Aggr_List)));
 
-            --  Generate the SCIL node for the previous object declaration
-            --  because it has a null dispatch table.
-
-            if Generate_SCIL then
-               New_Node :=
-                 Make_SCIL_Dispatch_Table_Object_Init (Sloc (Last (Result)));
-               Set_SCIL_Related_Node (New_Node, Last (Result));
-               Set_SCIL_Entity (New_Node, Typ);
-               Insert_Before (Last (Result), New_Node);
-            end if;
-
             Append_To (Result,
               Make_Attribute_Definition_Clause (Loc,
                 Name       => New_Reference_To (DT, Loc),
@@ -5379,14 +5328,11 @@ package body Exp_Disp is
 
                      if Is_Predefined_Dispatching_Operation (Prim)
                        and then not Is_Abstract_Subprogram (Prim)
+                       and then not Is_Eliminated (Prim)
                        and then not Present (Prim_Table
                                               (UI_To_Int (DT_Position (Prim))))
                      then
-                        E := Prim;
-                        while Present (Alias (E)) loop
-                           E := Alias (E);
-                        end loop;
-
+                        E := Ultimate_Alias (Prim);
                         pragma Assert (not Is_Abstract_Subprogram (E));
                         Prim_Table (UI_To_Int (DT_Position (Prim))) := E;
                      end if;
@@ -5525,23 +5471,22 @@ package body Exp_Disp is
 
                   E := Ultimate_Alias (Prim);
 
-                  if Is_Imported (Prim)
-                    or else Present (Interface_Alias (Prim))
-                    or else Is_Predefined_Dispatching_Operation (Prim)
-                    or else Is_Eliminated (E)
+                  --  Do not reference predefined primitives because they are
+                  --  located in a separate dispatch table; skip entities with
+                  --  attribute Interface_Alias because they are only required
+                  --  to build secondary dispatch tables; skip also abstract
+                  --  and eliminated primitives.
+
+                  if not Is_Predefined_Dispatching_Operation (Prim)
+                    and then not Is_Predefined_Dispatching_Operation (E)
+                    and then not Present (Interface_Alias (Prim))
+                    and then not Is_Abstract_Subprogram (E)
+                    and then not Is_Eliminated (E)
                   then
-                     null;
+                     pragma Assert
+                       (UI_To_Int (DT_Position (Prim)) <= Nb_Prim);
 
-                  else
-                     if not Is_Predefined_Dispatching_Operation (E)
-                       and then not Is_Abstract_Subprogram (E)
-                       and then not Present (Interface_Alias (E))
-                     then
-                        pragma Assert
-                          (UI_To_Int (DT_Position (Prim)) <= Nb_Prim);
-
-                        Prim_Table (UI_To_Int (DT_Position (Prim))) := E;
-                     end if;
+                     Prim_Table (UI_To_Int (DT_Position (Prim))) := E;
                   end if;
 
                   Next_Elmt (Prim_Elmt);
@@ -5601,17 +5546,6 @@ package body Exp_Disp is
                                       Constraints => DT_Constr_List)),
                 Expression => Make_Aggregate (Loc,
                   Expressions => DT_Aggr_List)));
-
-            --  Generate the SCIL node for the previous object declaration
-            --  because it contains a dispatch table.
-
-            if Generate_SCIL then
-               New_Node :=
-                 Make_SCIL_Dispatch_Table_Object_Init (Sloc (Last (Result)));
-               Set_SCIL_Related_Node (New_Node, Last (Result));
-               Set_SCIL_Entity (New_Node, Typ);
-               Insert_Before (Last (Result), New_Node);
-            end if;
 
             Append_To (Result,
               Make_Attribute_Definition_Clause (Loc,
@@ -5942,7 +5876,7 @@ package body Exp_Disp is
       --  Mark entities containing dispatch tables. Required by the backend to
       --  handle them properly.
 
-      if not Is_Interface (Typ) then
+      if Has_DT (Typ) then
          declare
             Elmt : Elmt_Id;
 
@@ -6085,6 +6019,9 @@ package body Exp_Disp is
             --  Look for primitive overriding an abstract interface subprogram
 
             if Present (Interface_Alias (Prim))
+              and then not
+                Is_Ancestor
+                  (Find_Dispatching_Type (Interface_Alias (Prim)), Typ)
               and then not Examined (UI_To_Int (DT_Position (Alias (Prim))))
             then
                Prim_Pos := DT_Position (Alias (Prim));
@@ -6105,10 +6042,7 @@ package body Exp_Disp is
 
                --  Retrieve the root of the alias chain
 
-               Prim_Als := Prim;
-               while Present (Alias (Prim_Als)) loop
-                  Prim_Als := Alias (Prim_Als);
-               end loop;
+               Prim_Als := Ultimate_Alias (Prim);
 
                --  In the case of an entry wrapper, set the entry index
 
@@ -6314,9 +6248,8 @@ package body Exp_Disp is
             if Generate_SCIL then
                New_Node :=
                  Make_SCIL_Dispatch_Table_Tag_Init (Sloc (Last (Result)));
-               Set_SCIL_Related_Node (New_Node, Last (Result));
                Set_SCIL_Entity (New_Node, Typ);
-               Insert_Before (Last (Result), New_Node);
+               Set_SCIL_Node (Last (Result), New_Node);
             end if;
 
             Append_To (Result,
@@ -6353,17 +6286,6 @@ package body Exp_Disp is
                           New_Occurrence_Of
                             (RTE_Record_Component (RE_NDT_Prims_Ptr), Loc)),
                       Attribute_Name => Name_Address))));
-
-            --  Generate the SCIL node for the previous object declaration
-            --  because it has a tag initialization.
-
-            if Generate_SCIL then
-               New_Node :=
-                 Make_SCIL_Dispatch_Table_Object_Init (Sloc (Last (Result)));
-               Set_SCIL_Related_Node (New_Node, Last (Result));
-               Set_SCIL_Entity (New_Node, Typ);
-               Insert_Before (Last (Result), New_Node);
-            end if;
          end if;
 
          Set_Is_True_Constant (DT_Ptr);
@@ -6640,10 +6562,7 @@ package body Exp_Disp is
    begin
       --  Retrieve the original primitive operation
 
-      Prim_Op := Prim;
-      while Present (Alias (Prim_Op)) loop
-         Prim_Op := Alias (Prim_Op);
-      end loop;
+      Prim_Op := Ultimate_Alias (Prim);
 
       if Ekind (Typ) = E_Record_Type
         and then Present (Corresponding_Concurrent_Type (Typ))
@@ -6741,7 +6660,11 @@ package body Exp_Disp is
    begin
       pragma Assert (not Restriction_Active (No_Dispatching_Calls));
 
-      if not RTE_Available (RE_Tag) then
+      --  Do not register in the dispatch table eliminated primitives
+
+      if not RTE_Available (RE_Tag)
+        or else Is_Eliminated (Ultimate_Alias (Prim))
+      then
          return L;
       end if;
 
@@ -6805,6 +6728,13 @@ package body Exp_Disp is
          Iface_Typ := Find_Dispatching_Type (Interface_Alias (Prim));
 
          pragma Assert (Is_Interface (Iface_Typ));
+
+         --  No action needed for interfaces that are ancestors of Typ because
+         --  their primitives are located in the primary dispatch table.
+
+         if Is_Ancestor (Iface_Typ, Tag_Typ) then
+            return L;
+         end if;
 
          Expand_Interface_Thunk (Prim, Thunk_Id, Thunk_Code);
 
@@ -7159,12 +7089,8 @@ package body Exp_Disp is
                Set_DT_Position (Prim, Default_Prim_Op_Position (Prim));
 
             elsif Is_Predefined_Dispatching_Alias (Prim) then
-               E := Alias (Prim);
-               while Present (Alias (E)) loop
-                  E := Alias (E);
-               end loop;
-
-               Set_DT_Position (Prim, Default_Prim_Op_Position (E));
+               Set_DT_Position (Prim,
+                 Default_Prim_Op_Position (Ultimate_Alias (Prim)));
 
             --  Overriding primitives of ancestor abstract interfaces
 
@@ -7206,7 +7132,7 @@ package body Exp_Disp is
             Next_Elmt (Prim_Elmt);
          end loop;
 
-         --  Third stage: Fix the position of all the new primitives
+         --  Third stage: Fix the position of all the new primitives.
          --  Entries associated with primitives covering interfaces
          --  are handled in a latter round.
 
@@ -7594,6 +7520,17 @@ package body Exp_Disp is
             Write_Str ("(predefined) ");
          end if;
 
+         --  Prefix the name of the primitive with its corresponding tagged
+         --  type to facilitate seeing inherited primitives.
+
+         if Present (Alias (Prim)) then
+            Write_Name
+              (Chars (Find_Dispatching_Type (Ultimate_Alias (Prim))));
+         else
+            Write_Name (Chars (Typ));
+         end if;
+
+         Write_Str (".");
          Write_Name (Chars (Prim));
 
          --  Indicate if this primitive has an aliased primitive

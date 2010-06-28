@@ -50,19 +50,20 @@ with Sem_Ch8;  use Sem_Ch8;
 with Sem_Disp; use Sem_Disp;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
-with Sem_SCIL; use Sem_SCIL;
 with Sem_Type; use Sem_Type;
 with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
 with Stand;    use Stand;
 with Style;
 with Stringt;  use Stringt;
+with Table;
 with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Ttypes;   use Ttypes;
 with Uname;    use Uname;
 
 with GNAT.HTable; use GNAT.HTable;
+
 package body Sem_Util is
 
    ----------------------------------------
@@ -93,6 +94,30 @@ package body Sem_Util is
 
    subtype NCT_Header_Num is Int range 0 .. 511;
    --  Defines range of headers in hash tables (512 headers)
+
+   ----------------------------------
+   -- Order Dependence (AI05-0144) --
+   ----------------------------------
+
+   --  Each actual in a call is entered into the table below. A flag indicates
+   --  whether the corresponding formal is OUT or IN OUT. Each top-level call
+   --  (procedure call, condition, assignment) examines all the actuals for a
+   --  possible order dependence. The table is reset after each such check.
+
+   type Actual_Name is record
+      Act         : Node_Id;
+      Is_Writable : Boolean;
+      --  Comments needed???
+
+   end record;
+
+   package Actuals_In_Call is new Table.Table (
+      Table_Component_Type => Actual_Name,
+      Table_Index_Type     => Int,
+      Table_Low_Bound      => 0,
+      Table_Initial        => 10,
+      Table_Increment      => 100,
+      Table_Name           => "Actuals");
 
    -----------------------
    -- Local Subprograms --
@@ -398,7 +423,7 @@ package body Sem_Util is
          end loop;
       end if;
 
-      Subt := Make_Temporary (Loc, 'S');
+      Subt := Make_Temporary (Loc, 'S', Related_Node => N);
       Set_Is_Internal (Subt);
 
       Decl :=
@@ -1144,6 +1169,53 @@ package body Sem_Util is
       end if;
    end Check_Nested_Access;
 
+   ----------------------------
+   -- Check_Order_Dependence --
+   ----------------------------
+
+   procedure Check_Order_Dependence is
+      Act1 : Node_Id;
+      Act2 : Node_Id;
+
+   begin
+      --  This could use comments ???
+
+      for J in 0 .. Actuals_In_Call.Last loop
+         if Actuals_In_Call.Table (J).Is_Writable then
+            Act1 := Actuals_In_Call.Table (J).Act;
+
+            if Nkind (Act1) = N_Attribute_Reference then
+               Act1 := Prefix (Act1);
+            end if;
+
+            for K in 0 .. Actuals_In_Call.Last loop
+               if K /= J then
+                  Act2 := Actuals_In_Call.Table (K).Act;
+
+                  if Nkind (Act2) = N_Attribute_Reference then
+                     Act2 := Prefix (Act2);
+                  end if;
+
+                  if Actuals_In_Call.Table (K).Is_Writable
+                    and then K < J
+                  then
+                     --  Already checked
+
+                     null;
+
+                  elsif Denotes_Same_Object (Act1, Act2)
+                    and then False
+                  then
+                     Error_Msg_N ("?,mighty suspicious!!!", Act1);
+                  end if;
+               end if;
+            end loop;
+         end if;
+      end loop;
+
+      Actuals_In_Call.Set_Last (0);
+   end Check_Order_Dependence;
+
    ------------------------------------------
    -- Check_Potentially_Blocking_Operation --
    ------------------------------------------
@@ -1703,8 +1775,7 @@ package body Sem_Util is
             --  appear in the target-specific extension to System.
 
             if No (Id)
-              and then Chars (B_Scope) = Name_System
-              and then Scope (B_Scope) = Standard_Standard
+              and then B_Scope = RTU_Entity (System)
               and then Present_System_Aux
             then
                B_Scope := System_Aux_Id;
@@ -2252,7 +2323,9 @@ package body Sem_Util is
 
    begin
       if Is_Entity_Name (A1) then
-         if Nkind_In (A2, N_Selected_Component, N_Indexed_Component) then
+         if Nkind_In (A2, N_Selected_Component, N_Indexed_Component)
+           and then not Is_Access_Type (Etype (A1))
+         then
             return Denotes_Same_Object (A1, Prefix (A2))
               or else Denotes_Same_Prefix (A1, Prefix (A2));
          else
@@ -3082,7 +3155,6 @@ package body Sem_Util is
       Disc := First_Discriminant (Tsk);
       while Present (Disc) loop
          if Chars (Disc) = Chars (Spec_Discriminant) then
-            Set_Scope (Discriminal (Disc), Tsk);
             return Discriminal (Disc);
          end if;
 
@@ -4499,15 +4571,13 @@ package body Sem_Util is
      (T             : Entity_Id;
       Use_Full_View : Boolean := True) return Boolean
    is
-      Typ : Entity_Id;
+      Typ : Entity_Id := Base_Type (T);
 
    begin
       --  Handle concurrent types
 
-      if Is_Concurrent_Type (T) then
-         Typ := Corresponding_Record_Type (T);
-      else
-         Typ := T;
+      if Is_Concurrent_Type (Typ) then
+         Typ := Corresponding_Record_Type (Typ);
       end if;
 
       if not Present (Typ)
@@ -5451,15 +5521,6 @@ package body Sem_Util is
    begin
       Save_Interps (N, New_Prefix);
 
-      --  Check if the node relocation requires readjustment of some SCIL
-      --  dispatching node.
-
-      if Generate_SCIL
-        and then Nkind (N) = N_Function_Call
-      then
-         Adjust_SCIL_Node (N, New_Prefix);
-      end if;
-
       Rewrite (N, Make_Explicit_Dereference (Sloc (N), Prefix => New_Prefix));
 
       Set_Etype (N, Designated_Type (Etype (New_Prefix)));
@@ -5848,6 +5909,54 @@ package body Sem_Util is
         and then Is_Constructor (Entity (Name (N)))
         and then Is_Imported (Entity (Name (N)));
    end Is_CPP_Constructor_Call;
+
+   -----------------
+   -- Is_Delegate --
+   -----------------
+
+   function Is_Delegate (T : Entity_Id) return Boolean is
+      Desig_Type : Entity_Id;
+
+   begin
+      if VM_Target /= CLI_Target then
+         return False;
+      end if;
+
+      --  Access-to-subprograms are delegates in CIL
+
+      if Ekind (T) = E_Access_Subprogram_Type then
+         return True;
+      end if;
+
+      if Ekind (T) not in Access_Kind then
+
+         --  A delegate is a managed pointer. If no designated type is defined
+         --  it means that it's not a delegate.
+
+         return False;
+      end if;
+
+      Desig_Type := Etype (Directly_Designated_Type (T));
+
+      if not Is_Tagged_Type (Desig_Type) then
+         return False;
+      end if;
+
+      --  Test if the type is inherited from [mscorlib]System.Delegate
+
+      while Etype (Desig_Type) /= Desig_Type loop
+         if Chars (Scope (Desig_Type)) /= No_Name
+           and then Is_Imported (Scope (Desig_Type))
+           and then Get_Name_String (Chars (Scope (Desig_Type))) = "delegate"
+         then
+            return True;
+         end if;
+
+         Desig_Type := Etype (Desig_Type);
+      end loop;
+
+      return False;
+   end Is_Delegate;
 
    ----------------------------------------------
    -- Is_Dependent_Component_Of_Mutable_Object --
@@ -7082,6 +7191,15 @@ package body Sem_Util is
       return (U /= 0);
    end Is_True;
 
+   -------------------------------
+   -- Is_Universal_Numeric_Type --
+   -------------------------------
+
+   function Is_Universal_Numeric_Type (T : Entity_Id) return Boolean is
+   begin
+      return T = Universal_Integer or else T = Universal_Real;
+   end Is_Universal_Numeric_Type;
+
    -------------------
    -- Is_Value_Type --
    -------------------
@@ -7100,59 +7218,19 @@ package body Sem_Util is
 
    function Is_VMS_Operator (Op : Entity_Id) return Boolean is
    begin
+      --  The VMS operators are declared in a child of System that is loaded
+      --  through pragma Extend_System. In some rare cases a program is run
+      --  with this extension but without indicating that the target is VMS.
+
       return Ekind (Op) = E_Function
         and then Is_Intrinsic_Subprogram (Op)
-        and then Chars (Scope (Scope (Op))) = Name_System
-        and then OpenVMS_On_Target;
+        and then
+          ((Present_System_Aux
+            and then Scope (Op) = System_Aux_Id)
+           or else
+           (True_VMS_Target
+             and then Scope (Scope (Op)) = RTU_Entity (System)));
    end Is_VMS_Operator;
-
-   -----------------
-   -- Is_Delegate --
-   -----------------
-
-   function Is_Delegate (T : Entity_Id) return Boolean is
-      Desig_Type : Entity_Id;
-
-   begin
-      if VM_Target /= CLI_Target then
-         return False;
-      end if;
-
-      --  Access-to-subprograms are delegates in CIL
-
-      if Ekind (T) = E_Access_Subprogram_Type then
-         return True;
-      end if;
-
-      if Ekind (T) not in Access_Kind then
-
-         --  A delegate is a managed pointer. If no designated type is defined
-         --  it means that it's not a delegate.
-
-         return False;
-      end if;
-
-      Desig_Type := Etype (Directly_Designated_Type (T));
-
-      if not Is_Tagged_Type (Desig_Type) then
-         return False;
-      end if;
-
-      --  Test if the type is inherited from [mscorlib]System.Delegate
-
-      while Etype (Desig_Type) /= Desig_Type loop
-         if Chars (Scope (Desig_Type)) /= No_Name
-           and then Is_Imported (Scope (Desig_Type))
-           and then Get_Name_String (Chars (Scope (Desig_Type))) = "delegate"
-         then
-            return True;
-         end if;
-
-         Desig_Type := Etype (Desig_Type);
-      end loop;
-
-      return False;
-   end Is_Delegate;
 
    -----------------
    -- Is_Variable --
@@ -7168,14 +7246,14 @@ package body Sem_Util is
       --  expansion.
 
       function In_Protected_Function (E : Entity_Id) return Boolean;
-      --  Within a protected function, the private components of the
-      --  enclosing protected type are constants. A function nested within
-      --  a (protected) procedure is not itself protected.
+      --  Within a protected function, the private components of the enclosing
+      --  protected type are constants. A function nested within a (protected)
+      --  procedure is not itself protected.
 
       function Is_Variable_Prefix (P : Node_Id) return Boolean;
-      --  Prefixes can involve implicit dereferences, in which case we
-      --  must test for the case of a reference of a constant access
-      --  type, which can never be a variable.
+      --  Prefixes can involve implicit dereferences, in which case we must
+      --  test for the case of a reference of a constant access type, which can
+      --  can never be a variable.
 
       ---------------------------
       -- In_Protected_Function --
@@ -7191,9 +7269,7 @@ package body Sem_Util is
          else
             S := Current_Scope;
             while Present (S) and then S /= Prot loop
-               if Ekind (S) = E_Function
-                 and then Scope (S) = Prot
-               then
+               if Ekind (S) = E_Function and then Scope (S) = Prot then
                   return True;
                end if;
 
@@ -7238,16 +7314,16 @@ package body Sem_Util is
       if Nkind (N) in N_Subexpr and then Assignment_OK (N) then
          return True;
 
-      --  Normally we go to the original node, but there is one exception
-      --  where we use the rewritten node, namely when it is an explicit
-      --  dereference. The generated code may rewrite a prefix which is an
-      --  access type with an explicit dereference. The dereference is a
-      --  variable, even though the original node may not be (since it could
-      --  be a constant of the access type).
+      --  Normally we go to the original node, but there is one exception where
+      --  we use the rewritten node, namely when it is an explicit dereference.
+      --  The generated code may rewrite a prefix which is an access type with
+      --  an explicit dereference. The dereference is a variable, even though
+      --  the original node may not be (since it could be a constant of the
+      --  access type).
 
-      --  In Ada 2005 we have a further case to consider: the prefix may be
-      --  a function call given in prefix notation. The original node appears
-      --  to be a selected component, but we need to examine the call.
+      --  In Ada 2005 we have a further case to consider: the prefix may be a
+      --  function call given in prefix notation. The original node appears to
+      --  be a selected component, but we need to examine the call.
 
       elsif Nkind (N) = N_Explicit_Dereference
         and then Nkind (Orig_Node) /= N_Explicit_Dereference
@@ -7866,6 +7942,17 @@ package body Sem_Util is
          if Nkind (N) = N_Allocator then
             if Is_Dynamic then
                Set_Is_Dynamic_Coextension (N);
+
+            --  If the allocator expression is potentially dynamic, it may
+            --  be expanded out of order and require dynamic allocation
+            --  anyway, so we treat the coextension itself as dynamic.
+            --  Potential optimization ???
+
+            elsif Nkind (Expression (N)) = N_Qualified_Expression
+              and then Nkind (Expression (Expression (N))) = N_Op_Concat
+            then
+               Set_Is_Dynamic_Coextension (N);
+
             else
                Set_Is_Static_Coextension (N);
             end if;
@@ -10491,6 +10578,32 @@ package body Sem_Util is
       end if;
    end Same_Value;
 
+   -----------------
+   -- Save_Actual --
+   -----------------
+
+   procedure Save_Actual (N : Node_Id;  Writable : Boolean := False) is
+   begin
+      if Is_Entity_Name (N)
+        or else
+          Nkind_In (N, N_Indexed_Component, N_Selected_Component, N_Slice)
+        or else
+          (Nkind (N) = N_Attribute_Reference
+            and then Attribute_Name (N) = Name_Access)
+
+      then
+         --  We are only interested in IN OUT parameters of inner calls
+
+         if not Writable
+           or else Nkind (Parent (N)) = N_Function_Call
+           or else Nkind (Parent (N)) in N_Op
+         then
+            Actuals_In_Call.Increment_Last;
+            Actuals_In_Call.Table (Actuals_In_Call.Last) := (N, Writable);
+         end if;
+      end if;
+   end Save_Actual;
+
    ------------------------
    -- Scope_Is_Transient --
    ------------------------
@@ -11116,22 +11229,6 @@ package body Sem_Util is
 
       return Scope_Depth (Enclosing_Dynamic_Scope (Btyp));
    end Type_Access_Level;
-
-   --------------------
-   -- Ultimate_Alias --
-   --------------------
-   --  To do: add occurrences calling this new subprogram
-
-   function Ultimate_Alias (Prim : Entity_Id) return Entity_Id is
-      E : Entity_Id := Prim;
-
-   begin
-      while Present (Alias (E)) loop
-         E := Alias (E);
-      end loop;
-
-      return E;
-   end Ultimate_Alias;
 
    --------------------------
    -- Unit_Declaration_Node --

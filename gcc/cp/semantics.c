@@ -33,7 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-family/c-common.h"
 #include "tree-inline.h"
 #include "tree-mudflap.h"
-#include "except.h"
 #include "toplev.h"
 #include "flags.h"
 #include "output.h"
@@ -5152,7 +5151,8 @@ check_trait_type (tree type)
   if (COMPLETE_TYPE_P (type))
     return true;
 
-  if (TREE_CODE (type) == ARRAY_TYPE && !TYPE_DOMAIN (type))
+  if (TREE_CODE (type) == ARRAY_TYPE && !TYPE_DOMAIN (type)
+      && COMPLETE_TYPE_P (TREE_TYPE (type)))
     return true;
 
   if (VOID_TYPE_P (type))

@@ -3361,9 +3361,8 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
 	  /* Convert primop1 to target type, but do not introduce
 	     additional overflow.  We know primop1 is an int_cst.  */
 	  primop1 = force_fit_type_double (*restype_ptr,
-					   TREE_INT_CST_LOW (primop1),
-					   TREE_INT_CST_HIGH (primop1), 0,
-					   TREE_OVERFLOW (primop1));
+					   tree_to_double_int (primop1),
+					   0, TREE_OVERFLOW (primop1));
 	}
       if (type != *restype_ptr)
 	{
@@ -8404,6 +8403,18 @@ fold_offsetof (tree expr, tree stop_ref)
   /* Convert back from the internal sizetype to size_t.  */
   return convert (size_type_node, fold_offsetof_1 (expr, stop_ref));
 }
+
+/* Warn for A ?: C expressions (with B omitted) where A is a boolean 
+   expression, because B will always be true. */
+
+void
+warn_for_omitted_condop (location_t location, tree cond) 
+{ 
+  if (truth_value_p (TREE_CODE (cond))) 
+      warning_at (location, OPT_Wparentheses, 
+		"the omitted middle operand in ?: will always be %<true%>, "
+		"suggest explicit middle operand");
+} 
 
 /* Print an error message for an invalid lvalue.  USE says
    how the lvalue is being used and so selects the error message.  */

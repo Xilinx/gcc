@@ -4014,6 +4014,7 @@ tree_to_double_int (const_tree cst)
 
 extern tree double_int_to_tree (tree, double_int);
 extern bool double_int_fits_to_tree_p (const_tree, double_int);
+extern tree force_fit_type_double (tree, double_int, int, bool);
 
 /* Create an INT_CST node with a CST value zero extended.  */
 
@@ -4820,6 +4821,7 @@ extern tree get_callee_fndecl (const_tree);
 extern int type_num_arguments (const_tree);
 extern bool associative_tree_code (enum tree_code);
 extern bool commutative_tree_code (enum tree_code);
+extern bool commutative_ternary_tree_code (enum tree_code);
 extern tree upper_bound_in_type (tree, tree);
 extern tree lower_bound_in_type (tree, tree);
 extern int operand_equal_for_phi_arg_p (const_tree, const_tree);

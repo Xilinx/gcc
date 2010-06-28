@@ -2598,7 +2598,7 @@ package body Sem_Ch12 is
          then
             Error_Msg_N ("premature usage of incomplete type", Def);
 
-         elsif Is_Internal (Designated_Type (T)) then
+         elsif not Is_Entity_Name (Subtype_Indication (Def)) then
             Error_Msg_N
               ("only a subtype mark is allowed in a formal", Def);
          end if;
@@ -3237,7 +3237,8 @@ package body Sem_Ch12 is
                   or else Enclosing_Body_Present
                   or else Present (Corresponding_Body (Gen_Decl)))
                 and then (Is_In_Main_Unit (N)
-                           or else Might_Inline_Subp)
+                           or else Might_Inline_Subp
+                           or else CodePeer_Mode)
                 and then not Is_Actual_Pack
                 and then not Inline_Now
                 and then (Operating_Mode = Generate_Code
@@ -3393,7 +3394,8 @@ package body Sem_Ch12 is
                    Expander_Status          => Expander_Active,
                    Current_Sem_Unit         => Current_Sem_Unit,
                    Scope_Suppress           => Scope_Suppress,
-                   Local_Suppress_Stack_Top => Local_Suppress_Stack_Top));
+                   Local_Suppress_Stack_Top => Local_Suppress_Stack_Top,
+                   Version                  => Ada_Version));
             end if;
          end if;
 
@@ -3700,7 +3702,8 @@ package body Sem_Ch12 is
                Expander_Status          => Expander_Active,
                Current_Sem_Unit         => Current_Sem_Unit,
                Scope_Suppress           => Scope_Suppress,
-               Local_Suppress_Stack_Top => Local_Suppress_Stack_Top)),
+               Local_Suppress_Stack_Top => Local_Suppress_Stack_Top,
+               Version                  => Ada_Version)),
             Inlined_Body => True);
 
          Pop_Scope;
@@ -3815,7 +3818,8 @@ package body Sem_Ch12 is
                Expander_Status          => Expander_Active,
                Current_Sem_Unit         => Current_Sem_Unit,
                Scope_Suppress           => Scope_Suppress,
-               Local_Suppress_Stack_Top => Local_Suppress_Stack_Top)),
+               Local_Suppress_Stack_Top => Local_Suppress_Stack_Top,
+               Version                  => Ada_Version)),
             Inlined_Body => True);
       end if;
    end Inline_Instance_Body;
@@ -3854,7 +3858,8 @@ package body Sem_Ch12 is
              Expander_Status          => Expander_Active,
              Current_Sem_Unit         => Current_Sem_Unit,
              Scope_Suppress           => Scope_Suppress,
-             Local_Suppress_Stack_Top => Local_Suppress_Stack_Top));
+             Local_Suppress_Stack_Top => Local_Suppress_Stack_Top,
+             Version                  => Ada_Version));
          return True;
       else
          return False;
@@ -8589,6 +8594,7 @@ package body Sem_Ch12 is
 
       Local_Suppress_Stack_Top := Body_Info.Local_Suppress_Stack_Top;
       Scope_Suppress           := Body_Info.Scope_Suppress;
+      Opt.Ada_Version          := Body_Info.Version;
 
       if No (Gen_Body_Id) then
          Load_Parent_Of_Generic
@@ -8747,11 +8753,16 @@ package body Sem_Ch12 is
       --  If we have no body, and the unit requires a body, then complain. This
       --  complaint is suppressed if we have detected other errors (since a
       --  common reason for missing the body is that it had errors).
+      --  In CodePeer mode, a warning has been emitted already, no need for
+      --  further messages.
 
       elsif Unit_Requires_Body (Gen_Unit)
         and then not Body_Optional
       then
-         if Serious_Errors_Detected = 0 then
+         if CodePeer_Mode then
+            null;
+
+         elsif Serious_Errors_Detected = 0 then
             Error_Msg_NE
               ("cannot find body of generic package &", Inst_Node, Gen_Unit);
 
@@ -8847,6 +8858,7 @@ package body Sem_Ch12 is
 
       Local_Suppress_Stack_Top := Body_Info.Local_Suppress_Stack_Top;
       Scope_Suppress           := Body_Info.Scope_Suppress;
+      Opt.Ada_Version          := Body_Info.Version;
 
       if No (Gen_Body_Id) then
 
@@ -10394,15 +10406,86 @@ package body Sem_Ch12 is
    ------------------
 
    procedure Mark_Context (Inst_Decl : Node_Id; Gen_Decl : Node_Id) is
-      Inst_CU : constant Unit_Number_Type := Get_Code_Unit   (Inst_Decl);
-      Gen_CU  : constant Unit_Number_Type := Get_Source_Unit (Gen_Decl);
-      Clause  : Node_Id;
+      Loc     : constant Source_Ptr := Sloc (Inst_Decl);
+      Inst_CU : constant Unit_Number_Type := Get_Code_Unit (Inst_Decl);
 
-   begin
       --  Note that we use Get_Code_Unit to determine the position of the
       --  instantiation, because it may itself appear within another instance
       --  and we need to mark the context of the enclosing unit, not that of
-      --  the unit that contains the corresponding generic.
+      --  the unit that contains the generic.
+
+      Gen_CU  : constant Unit_Number_Type := Get_Source_Unit (Gen_Decl);
+      Inst    : Entity_Id;
+      Clause  : Node_Id;
+      Scop    : Entity_Id;
+
+      procedure Add_Implicit_With (CU : Unit_Number_Type);
+      --  If a generic is instantiated in the direct or indirect context of
+      --  the current unit, but there is no with_clause for it in the current
+      --  context, add a with_clause for it to indicate that the body of the
+      --  generic should be examined before the current unit.
+
+      procedure Add_Implicit_With (CU : Unit_Number_Type) is
+         Withn : constant Node_Id :=
+           Make_With_Clause (Loc,
+              Name => New_Occurrence_Of (Cunit_Entity (CU), Loc));
+      begin
+         Set_Implicit_With (Withn);
+         Set_Library_Unit (Withn, Cunit (CU));
+         Set_Withed_Body (Withn, Cunit (CU));
+         Prepend (Withn, Context_Items (Cunit (Inst_CU)));
+      end Add_Implicit_With;
+
+   begin
+      --  This is only relevant when compiling for CodePeer. In what follows,
+      --  C is the current unit containing the instance body, and G is the
+      --  generic unit in that instance.
+
+      if not CodePeer_Mode then
+         return;
+      end if;
+
+      --  Nothing to do if G is local.
+
+      if Inst_CU = Gen_CU then
+         return;
+      end if;
+
+      --  If G is itself  declared within an instance, indicate that the
+      --  generic body of that instance is also needed by C. This must be
+      --  done recursively.
+
+      Scop := Scope (Defining_Entity (Gen_Decl));
+
+      while Is_Generic_Instance (Scop)
+        and then Ekind (Scop) = E_Package
+      loop
+         Mark_Context
+           (Inst_Decl,
+            Unit_Declaration_Node
+              (Generic_Parent
+                 (Specification (Unit_Declaration_Node (Scop)))));
+         Scop := Scope (Scop);
+      end loop;
+
+      --  Add references to other generic units in the context of G, because
+      --  they may be instantiated within G, and their bodies needed by C.
+
+      Clause := First (Context_Items (Cunit (Gen_CU)));
+
+      while Present (Clause) loop
+         if Nkind (Clause) = N_With_Clause
+           and then
+             Nkind (Unit (Library_Unit (Clause)))
+               = N_Generic_Package_Declaration
+         then
+            Add_Implicit_With (Get_Source_Unit (Library_Unit (Clause)));
+         end if;
+
+         Next (Clause);
+      end loop;
+
+      --  Now indicate that the body of G is needed by C
 
       Clause := First (Context_Items (Cunit (Inst_CU)));
       while Present (Clause) loop
@@ -10410,10 +10493,37 @@ package body Sem_Ch12 is
            and then  Library_Unit (Clause) = Cunit (Gen_CU)
          then
             Set_Withed_Body (Clause, Cunit (Gen_CU));
+            return;
          end if;
 
          Next (Clause);
       end loop;
+
+      --  If the with-clause for G is not in the context of C, it may appear in
+      --  some ancestor of C.
+
+      Inst := Cunit_Entity (Inst_CU);
+      while Is_Child_Unit (Inst) loop
+         Inst := Scope (Inst);
+
+         Clause :=
+           First (Context_Items (Parent (Unit_Declaration_Node (Inst))));
+         while Present (Clause) loop
+            if Nkind (Clause) = N_With_Clause
+              and then Library_Unit (Clause) = Cunit (Gen_CU)
+            then
+               Set_Withed_Body (Clause, Cunit (Gen_CU));
+               return;
+            end if;
+
+            Next (Clause);
+         end loop;
+      end loop;
+
+      --  If not found, G comes from an instance elsewhere in the context. Make
+      --  the dependence explicit in the context of C.
+
+      Add_Implicit_With (Gen_CU);
    end Mark_Context;
 
    ---------------------
@@ -10476,8 +10586,8 @@ package body Sem_Ch12 is
       --  instantiations are available, we must analyze them, to ensure that
       --  the public symbols generated are the same when the unit is compiled
       --  to generate code, and when it is compiled in the context of a unit
-      --  that needs a particular nested instance. This process is applied
-      --  to both package and subprogram instances.
+      --  that needs a particular nested instance. This process is applied to
+      --  both package and subprogram instances.
 
       --------------------------------
       -- Collect_Previous_Instances --
@@ -10627,9 +10737,8 @@ package body Sem_Ch12 is
                --  enclosing body. Because the generic body we need may use
                --  global entities declared in the enclosing package (including
                --  aggregates) it is in general necessary to compile this body
-               --  with expansion enabled. The exception is if we are within a
-               --  generic package, in which case the usual generic rule
-               --  applies.
+               --  with expansion enabled, except if we are within a generic
+               --  package, in which case the usual generic rule applies.
 
                declare
                   Exp_Status         : Boolean := True;
@@ -10698,7 +10807,8 @@ package body Sem_Ch12 is
                                 Get_Code_Unit (Sloc (Node (Decl))),
                               Scope_Suppress           => Scope_Suppress,
                               Local_Suppress_Stack_Top =>
-                                Local_Suppress_Stack_Top);
+                                Local_Suppress_Stack_Top,
+                              Version                  => Ada_Version);
 
                            --  Package instance
 
@@ -10738,7 +10848,8 @@ package body Sem_Ch12 is
                            Get_Code_Unit (Sloc (Inst_Node)),
                          Scope_Suppress           => Scope_Suppress,
                          Local_Suppress_Stack_Top =>
-                           Local_Suppress_Stack_Top)),
+                           Local_Suppress_Stack_Top,
+                           Version                => Ada_Version)),
                      Body_Optional => Body_Optional);
                end;
             end if;
@@ -10761,11 +10872,20 @@ package body Sem_Ch12 is
                             Get_Body_Name (Get_Unit_Name (Unit (Comp_Unit)));
 
                begin
-                  Error_Msg_Unit_1 := Bname;
-                  Error_Msg_N ("this instantiation requires$!", N);
-                  Error_Msg_File_1 := Get_File_Name (Bname, Subunit => False);
-                  Error_Msg_N ("\but file{ was not found!", N);
-                  raise Unrecoverable_Error;
+                  --  In CodePeer mode, the missing body may make the analysis
+                  --  incomplete, but we do not treat it as fatal.
+
+                  if CodePeer_Mode then
+                     return;
+
+                  else
+                     Error_Msg_Unit_1 := Bname;
+                     Error_Msg_N ("this instantiation requires$!", N);
+                     Error_Msg_File_1 :=
+                       Get_File_Name (Bname, Subunit => False);
+                     Error_Msg_N ("\but file{ was not found!", N);
+                     raise Unrecoverable_Error;
+                  end if;
                end;
             end if;
          end if;

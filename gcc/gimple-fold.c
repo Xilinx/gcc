@@ -986,6 +986,33 @@ fold_gimple_assign (gimple_stmt_iterator *si)
         }
       break;
 
+    case GIMPLE_TERNARY_RHS:
+      result = fold_ternary_loc (loc, subcode,
+				 TREE_TYPE (gimple_assign_lhs (stmt)),
+				 gimple_assign_rhs1 (stmt),
+				 gimple_assign_rhs2 (stmt),
+				 gimple_assign_rhs3 (stmt));
+
+      if (result)
+        {
+          STRIP_USELESS_TYPE_CONVERSION (result);
+          if (valid_gimple_rhs_p (result))
+	    return result;
+
+	  /* Fold might have produced non-GIMPLE, so if we trust it blindly
+	     we lose canonicalization opportunities.  Do not go again
+	     through fold here though, or the same non-GIMPLE will be
+	     produced.  */
+          if (commutative_ternary_tree_code (subcode)
+              && tree_swap_operands_p (gimple_assign_rhs1 (stmt),
+                                       gimple_assign_rhs2 (stmt), false))
+            return build3 (subcode, TREE_TYPE (gimple_assign_lhs (stmt)),
+			   gimple_assign_rhs2 (stmt),
+			   gimple_assign_rhs1 (stmt),
+			   gimple_assign_rhs3 (stmt));
+        }
+      break;
+
     case GIMPLE_INVALID_RHS:
       gcc_unreachable ();
     }
@@ -1026,7 +1053,9 @@ fold_gimple_cond (gimple stmt)
    is replaced.  If the call is expected to produces a result, then it
    is replaced by an assignment of the new RHS to the result variable.
    If the result is to be ignored, then the call is replaced by a
-   GIMPLE_NOP.  */
+   GIMPLE_NOP.  A proper VDEF chain is retained by making the first
+   VUSE and the last VDEF of the whole sequence be the same as the replaced
+   statement and using new SSA names for stores in between.  */
 
 void
 gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
@@ -1038,12 +1067,15 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
   gimple_seq stmts = gimple_seq_alloc();
   struct gimplify_ctx gctx;
   gimple last = NULL;
+  gimple laststore = NULL;
+  tree reaching_vuse;
 
   stmt = gsi_stmt (*si_p);
 
   gcc_assert (is_gimple_call (stmt));
 
   lhs = gimple_call_lhs (stmt);
+  reaching_vuse = gimple_vuse (stmt);
 
   push_gimplify_context (&gctx);
 
@@ -1068,13 +1100,47 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
       new_stmt = gsi_stmt (i);
       find_new_referenced_vars (new_stmt);
       mark_symbols_for_renaming (new_stmt);
+      /* If the new statement has a VUSE, update it with exact SSA name we
+         know will reach this one.  */
+      if (gimple_vuse (new_stmt))
+	{
+	  /* If we've also seen a previous store create a new VDEF for
+	     the latter one, and make that the new reaching VUSE.  */
+	  if (laststore)
+	    {
+	      reaching_vuse = make_ssa_name (gimple_vop (cfun), laststore);
+	      gimple_set_vdef (laststore, reaching_vuse);
+	      update_stmt (laststore);
+	      laststore = NULL;
+	    }
+	  gimple_set_vuse (new_stmt, reaching_vuse);
+	  gimple_set_modified (new_stmt, true);
+	}
+      if (gimple_assign_single_p (new_stmt)
+	  && !is_gimple_reg (gimple_assign_lhs (new_stmt)))
+	{
+	  laststore = new_stmt;
+	}
       last = new_stmt;
     }
 
   if (lhs == NULL_TREE)
     {
-      unlink_stmt_vdef (stmt);
-      release_defs (stmt);
+      /* If we replace a call without LHS that has a VDEF and our new
+         sequence ends with a store we must make that store have the same
+	 vdef in order not to break the sequencing.  This can happen
+	 for instance when folding memcpy calls into assignments.  */
+      if (gimple_vdef (stmt) && laststore)
+	{
+	  gimple_set_vdef (laststore, gimple_vdef (stmt));
+	  move_ssa_defining_stmt_for_defs (laststore, stmt);
+	  update_stmt (laststore);
+	}
+      else
+	{
+	  unlink_stmt_vdef (stmt);
+	  release_defs (stmt);
+	}
       new_stmt = last;
     }
   else
@@ -1084,8 +1150,15 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
 	  gsi_insert_before (si_p, last, GSI_NEW_STMT);
 	  gsi_next (si_p);
 	}
+      if (laststore)
+	{
+	  reaching_vuse = make_ssa_name (gimple_vop (cfun), laststore);
+	  gimple_set_vdef (laststore, reaching_vuse);
+	  update_stmt (laststore);
+	  laststore = NULL;
+	}
       new_stmt = gimple_build_assign (lhs, tmp);
-      gimple_set_vuse (new_stmt, gimple_vuse (stmt));
+      gimple_set_vuse (new_stmt, reaching_vuse);
       gimple_set_vdef (new_stmt, gimple_vdef (stmt));
       move_ssa_defining_stmt_for_defs (new_stmt, stmt);
     }
@@ -1403,6 +1476,22 @@ gimple_fold_builtin (gimple stmt)
   return result;
 }
 
+/* Return the first of the base binfos of BINFO that has virtual functions.  */
+
+static tree
+get_first_base_binfo_with_virtuals (tree binfo)
+{
+  int i;
+  tree base_binfo;
+
+  for (i = 0; BINFO_BASE_ITERATE (binfo, i, base_binfo); i++)
+    if (BINFO_VIRTUALS (base_binfo))
+      return base_binfo;
+
+  return NULL_TREE;
+}
+
+
 /* Search for a base binfo of BINFO that corresponds to TYPE and return it if
    it is found or NULL_TREE if it is not.  */
 
@@ -1458,8 +1547,8 @@ gimple_get_relevant_ref_binfo (tree ref, tree known_binfo)
 	      || BINFO_N_BASE_BINFOS (binfo) == 0)
 	    return NULL_TREE;
 
-	  base_binfo = BINFO_BASE_BINFO (binfo, 0);
-	  if (BINFO_TYPE (base_binfo) != TREE_TYPE (field))
+	  base_binfo = get_first_base_binfo_with_virtuals (binfo);
+	  if (base_binfo && BINFO_TYPE (base_binfo) != TREE_TYPE (field))
 	    {
 	      tree d_binfo;
 

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1465,8 +1465,8 @@ package body Exp_Ch3 is
       if Has_Task (Full_Type) then
          if Restriction_Active (No_Task_Hierarchy) then
 
-            --  See comments in System.Tasking.Initialization.Init_RTS
-            --  for the value 3 (should be rtsfindable constant ???)
+            --  3 is System.Tasking.Library_Task_Level
+            --  (should be rtsfindable constant ???)
 
             Append_To (Args, Make_Integer_Literal (Loc, 3));
 
@@ -2020,8 +2020,7 @@ package body Exp_Ch3 is
          if Has_Task (Rec_Type) then
             if Restriction_Active (No_Task_Hierarchy) then
 
-               --  See comments in System.Tasking.Initialization.Init_RTS
-               --  for the value 3.
+               --  3 is System.Tasking.Library_Task_Level
 
                Append_To (Args, Make_Integer_Literal (Loc, 3));
             else
@@ -2330,22 +2329,6 @@ package body Exp_Ch3 is
                 Expression =>
                   New_Reference_To
                     (Node (First_Elmt (Access_Disp_Table (Rec_Type))), Loc)));
-
-            --  Generate the SCIL node associated with the initialization of
-            --  the tag component.
-
-            if Generate_SCIL then
-               declare
-                  New_Node : Node_Id;
-
-               begin
-                  New_Node :=
-                    Make_SCIL_Tag_Init (Sloc (First (Init_Tags_List)));
-                  Set_SCIL_Related_Node (New_Node, First (Init_Tags_List));
-                  Set_SCIL_Entity (New_Node, Rec_Type);
-                  Prepend_To (Init_Tags_List, New_Node);
-               end;
-            end if;
 
             --  Ada 2005 (AI-251): Initialize the secondary tags components
             --  located at fixed positions (tags whose position depends on
@@ -5943,8 +5926,8 @@ package body Exp_Ch3 is
         and then Has_Discriminants (Def_Id)
       then
          declare
-            Ctyp : constant Entity_Id :=
-                     Corresponding_Concurrent_Type (Def_Id);
+            Ctyp       : constant Entity_Id :=
+                           Corresponding_Concurrent_Type (Def_Id);
             Conc_Discr : Entity_Id;
             Rec_Discr  : Entity_Id;
             Temp       : Entity_Id;
@@ -5952,7 +5935,6 @@ package body Exp_Ch3 is
          begin
             Conc_Discr := First_Discriminant (Ctyp);
             Rec_Discr  := First_Discriminant (Def_Id);
-
             while Present (Conc_Discr) loop
                Temp := Discriminal (Conc_Discr);
                Set_Discriminal (Conc_Discr, Discriminal (Rec_Discr));
@@ -7837,12 +7819,11 @@ package body Exp_Ch3 is
 
             --  If a primitive is encountered that renames the predefined
             --  equality operator before reaching any explicit equality
-            --  primitive, then we still need to create a predefined
-            --  equality function, because calls to it can occur via
-            --  the renaming. A new name is created for the equality
-            --  to avoid conflicting with any user-defined equality.
-            --  (Note that this doesn't account for renamings of
-            --  equality nested within subpackages???)
+            --  primitive, then we still need to create a predefined equality
+            --  function, because calls to it can occur via the renaming. A new
+            --  name is created for the equality to avoid conflicting with any
+            --  user-defined equality. (Note that this doesn't account for
+            --  renamings of equality nested within subpackages???)
 
             if Is_Predefined_Eq_Renaming (Node (Prim)) then
                Eq_Name := New_External_Name (Chars (Node (Prim)), 'E');

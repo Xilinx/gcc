@@ -968,7 +968,9 @@ add_new_edges_to_heap (fibheap_t heap, VEC (cgraph_edge_p, heap) *new_edges)
       struct cgraph_edge *edge = VEC_pop (cgraph_edge_p, new_edges);
 
       gcc_assert (!edge->aux);
-      edge->aux = fibheap_insert (heap, cgraph_edge_badness (edge, false), edge);
+      if (edge->callee->local.inlinable
+	  && cgraph_default_inline_p (edge->callee, &edge->inline_failed))
+        edge->aux = fibheap_insert (heap, cgraph_edge_badness (edge, false), edge);
     }
 }
 
@@ -2011,12 +2013,8 @@ struct gimple_opt_pass pass_inline_parameters =
 static void
 inline_indirect_intraprocedural_analysis (struct cgraph_node *node)
 {
-  ipa_initialize_node_params (node);
-  ipa_detect_param_modifications (node);
-  ipa_analyze_params_uses (node);
-  ipa_compute_jump_functions (node);
-
-  if (dump_file)
+  ipa_analyze_node (node);
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       ipa_print_node_params (dump_file, node);
       ipa_print_node_jump_functions (dump_file, node);

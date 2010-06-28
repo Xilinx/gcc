@@ -54,6 +54,7 @@ with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with Stringt;  use Stringt;
 with Stand;    use Stand;
+with Style;    use Style;
 with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
@@ -1799,8 +1800,8 @@ package body Sem_Aggr is
 
                elsif Is_Tagged_Type (Etype (Expression (Assoc))) then
                   Check_Dynamically_Tagged_Expression
-                    (Expr => Expression (Assoc),
-                     Typ  => Component_Type (Etype (N)),
+                    (Expr        => Expression (Assoc),
+                     Typ         => Component_Type (Etype (N)),
                      Related_Nod => N);
                end if;
 
@@ -3503,8 +3504,8 @@ package body Sem_Aggr is
                      --  subaggregate is needed.
 
                      Capture_Discriminants : declare
-                        Loc        : constant Source_Ptr := Sloc (N);
-                        Expr       : Node_Id;
+                        Loc  : constant Source_Ptr := Sloc (N);
+                        Expr : Node_Id;
 
                         procedure Add_Discriminant_Values
                           (New_Aggr   : Node_Id;
@@ -3610,7 +3611,6 @@ package body Sem_Aggr is
                            New_Aggr   : Node_Id;
 
                         begin
-
                            Inner_Comp := First_Component (Etype (Comp));
                            while Present (Inner_Comp) loop
                               Comp_Type := Etype (Inner_Comp);
@@ -3623,7 +3623,7 @@ package body Sem_Aggr is
                                  Set_Etype (New_Aggr, Comp_Type);
                                  Add_Association
                                    (Inner_Comp, New_Aggr,
-                                     Component_Associations (Aggr));
+                                    Component_Associations (Aggr));
 
                                  --  Collect discriminant values and recurse
 
@@ -3673,7 +3673,7 @@ package body Sem_Aggr is
 
                         else
                            declare
-                              Comp            : Entity_Id;
+                              Comp : Entity_Id;
 
                            begin
                               --  If the type has additional components, create
@@ -3780,7 +3780,15 @@ package body Sem_Aggr is
                New_Assoc := First (New_Assoc_List);
                while Present (New_Assoc) loop
                   Component := First (Choices (New_Assoc));
-                  exit when Chars (Selectr) = Chars (Component);
+
+                  if Chars (Selectr) = Chars (Component) then
+                     if Style_Check then
+                        Check_Identifier (Selectr, Entity (Component));
+                     end if;
+
+                     exit;
+                  end if;
+
                   Next (New_Assoc);
                end loop;
 

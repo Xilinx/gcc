@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1996-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -195,6 +195,14 @@ package VMS_Data is
    --        /ADD_PROJECT_SEARCH_PATH=(directory[,...])
    --
    --   Add directories to the project search path.
+
+   S_Bind_ALI     : aliased constant S := "/ALI_LIST "                     &
+                                            "-A";
+   --        /NOALI_LIST (D)
+   --        /ALI_LIST
+   --
+   --    Output full names of all the ALI files in the partition. The output is
+   --    written to SYS$OUTPUT.
 
    S_Bind_Bind    : aliased constant S := "/BIND_FILE="                    &
                                             "ADA "                         &
@@ -385,7 +393,7 @@ package VMS_Data is
    --        /NOOBJECT_LIST (D)
    --        /OBJECT_LIST
    --
-   --    Output full names of all the object files that must be linker to
+   --    Output full names of all the object files that must be linked to
    --    provide the Ada component of the program. The output is written to
    --    SYS$OUTPUT.
 
@@ -669,6 +677,7 @@ package VMS_Data is
 
    Bind_Switches : aliased constant Switches :=
                      (S_Bind_Add     'Access,
+                      S_Bind_ALI     'Access,
                       S_Bind_Bind    'Access,
                       S_Bind_Build   'Access,
                       S_Bind_Current 'Access,
@@ -1145,6 +1154,13 @@ package VMS_Data is
    --   of the directory specified in the project file. If the subdirectory
    --   does not exist, it is created automatically.
 
+   S_Clean_USL : aliased constant S :=  "/UNCHECKED_SHARED_LIB_IMPORTS " &
+                                           "--unchecked-shared-lib-imports";
+   --        /NOUNCHECKED_SHARED_LIB_IMPORTS (D)
+   --        /UNCHECKED_SHARED_LIB_IMPORTS
+   --
+   --   Allow shared library projects to import static library projects
+
    S_Clean_Verbose : aliased constant S := "/VERBOSE "                     &
                                             "-v";
    --        /NOVERBOSE (D)
@@ -1170,7 +1186,8 @@ package VMS_Data is
                        S_Clean_Recurs 'Access,
                        S_Clean_Search 'Access,
                        S_Clean_Subdirs'Access,
-                       S_Clean_Verbose'Access);
+                       S_Clean_Verbose'Access,
+                       S_Clean_USL    'Access);
 
    -------------------------------
    -- Switches for GNAT COMPILE --
@@ -1210,7 +1227,13 @@ package VMS_Data is
                                              "-gnat05";
    --        /05 (D)
    --
-   --   Allows GNAT to recognize all implemented proposed Ada 2005
+   --   Allows GNAT to recognize the full range of Ada 2005 constructs.
+
+   S_GCC_Ada_12 : aliased constant S := "/12 "                             &
+                                             "-gnat12";
+   --        /05 (D)
+   --
+   --   Allows GNAT to recognize all implemented proposed Ada 2012
    --   extensions. See features file for list of implemented features.
 
    S_GCC_Add     : aliased constant S := "/ADD_PROJECT_SEARCH_DIR=*"       &
@@ -4851,6 +4874,13 @@ package VMS_Data is
    --   For example, -O -O2 is different than -O2 -O, but -g -O is equivalent
    --   to -O -g.
 
+   S_Make_USL : aliased constant S := "/UNCHECKED_SHARED_LIB_IMPORTS " &
+                                         "--unchecked-shared-lib-imports";
+   --        /NOUNCHECKED_SHARED_LIB_IMPORTS (D)
+   --        /UNCHECKED_SHARED_LIB_IMPORTS
+   --
+   --   Allow shared library projects to import static library projects
+
    S_Make_Unique  : aliased constant S := "/UNIQUE "                       &
                                             "-u";
    --        /NOUNIQUE (D)
@@ -4928,6 +4958,7 @@ package VMS_Data is
                       S_Make_Stand   'Access,
                       S_Make_Subdirs 'Access,
                       S_Make_Switch  'Access,
+                      S_Make_USL     'Access,
                       S_Make_Unique  'Access,
                       S_Make_Use_Map 'Access,
                       S_Make_Verbose 'Access);

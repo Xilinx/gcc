@@ -769,7 +769,7 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	ASM_OUTPUT_SHARED_LOCAL ASM_MAKE_LABEL_LINKONCE			   \
 	STACK_CHECK_PROBE_INTERVAL STACK_CHECK_PROBE_LOAD		   \
 	ORDER_REGS_FOR_LOCAL_ALLOC FUNCTION_OUTGOING_VALUE		   \
-	ASM_DECLARE_CONSTANT_NAME
+	ASM_DECLARE_CONSTANT_NAME MODIFY_TARGET_NAME SWITCHES_NEED_SPACES
 
 /* Hooks that are no longer used.  */
  #pragma GCC poison LANG_HOOKS_FUNCTION_MARK LANG_HOOKS_FUNCTION_FREE	\
@@ -799,7 +799,7 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 /* Front ends should never have to include middle-end headers.  Enforce
    this by poisoning the header double-include protection defines.  */
 #ifdef IN_GCC_FRONTEND
-#pragma GCC poison GCC_RTL_H
+#pragma GCC poison GCC_RTL_H GCC_EXCEPT_H
 #endif
 
 /* Note: not all uses of the `index' token (e.g. variable names and

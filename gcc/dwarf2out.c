@@ -9630,6 +9630,18 @@ is_declaration_die (dw_die_ref die)
   return 0;
 }
 
+/* Return non-zero if this DIE is nested inside a subprogram.  */
+
+static int
+is_nested_in_subprogram (dw_die_ref die)
+{
+  dw_die_ref decl = get_AT_ref (die, DW_AT_specification);
+
+  if (decl == NULL)
+    decl = die;
+  return local_scope_p (decl);
+}
+
 /* Return non-zero if this is a type DIE that should be moved to a
    COMDAT .debug_types section.  */
 
@@ -9642,8 +9654,11 @@ should_move_die_to_comdat (dw_die_ref die)
     case DW_TAG_structure_type:
     case DW_TAG_enumeration_type:
     case DW_TAG_union_type:
-      /* Don't move declarations or inlined instances.  */
-      if (is_declaration_die (die) || get_AT (die, DW_AT_abstract_origin))
+      /* Don't move declarations, inlined instances, or types nested in a
+	 subprogram.  */
+      if (is_declaration_die (die)
+          || get_AT (die, DW_AT_abstract_origin)
+          || is_nested_in_subprogram (die))
         return 0;
       return 1;
     case DW_TAG_array_type:
@@ -10055,8 +10070,6 @@ copy_ancestor_tree (dw_die_ref unit, dw_die_ref die, htab_t decl_table)
 
   if (decl_table != NULL)
     {
-      /* Make sure the copy is marked as part of the type unit.  */
-      copy->die_mark = 1;
       /* Record the pointer to the copy.  */
       entry->copy = copy;
     }
@@ -10130,7 +10143,18 @@ copy_decls_walk (dw_die_ref unit, dw_die_ref die, htab_t decl_table)
                  installed in a previously-added context, it won't
                  get visited otherwise.  */
               if (parent != unit)
-                copy_decls_walk (unit, parent, decl_table);
+		{
+		  /* Find the highest point of the newly-added tree,
+		     mark each node along the way, and walk from there.  */
+		  parent->die_mark = 1;
+		  while (parent->die_parent
+		  	 && parent->die_parent->die_mark == 0)
+		    {
+		      parent = parent->die_parent;
+		      parent->die_mark = 1;
+		    }
+		  copy_decls_walk (unit, parent, decl_table);
+		}
             }
         }
     }
@@ -12377,6 +12401,20 @@ base_type_die (tree type)
   switch (TREE_CODE (type))
     {
     case INTEGER_TYPE:
+      if ((dwarf_version >= 4 || !dwarf_strict)
+	  && TYPE_NAME (type)
+	  && TREE_CODE (TYPE_NAME (type)) == TYPE_DECL
+	  && DECL_IS_BUILTIN (TYPE_NAME (type))
+	  && DECL_NAME (TYPE_NAME (type)))
+	{
+	  const char *name = IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (type)));
+	  if (strcmp (name, "char16_t") == 0
+	      || strcmp (name, "char32_t") == 0)
+	    {
+	      encoding = DW_ATE_UTF;
+	      break;
+	    }
+	}
       if (TYPE_STRING_FLAG (type))
 	{
 	  if (TYPE_UNSIGNED (type))
@@ -17316,6 +17354,34 @@ add_src_coords_attributes (dw_die_ref die, tree decl)
   add_AT_unsigned (die, DW_AT_decl_line, s.line);
 }
 
+/* Add DW_AT_{,MIPS_}linkage_name attribute for the given decl.  */
+
+static void
+add_linkage_name (dw_die_ref die, tree decl)
+{
+  if ((TREE_CODE (decl) == FUNCTION_DECL || TREE_CODE (decl) == VAR_DECL)
+       && TREE_PUBLIC (decl)
+       && !DECL_ABSTRACT (decl)
+       && !(TREE_CODE (decl) == VAR_DECL && DECL_REGISTER (decl))
+       && die->die_tag != DW_TAG_member)
+    {
+      /* Defer until we have an assembler name set.  */
+      if (!DECL_ASSEMBLER_NAME_SET_P (decl))
+	{
+	  limbo_die_node *asm_name;
+
+	  asm_name = ggc_alloc_cleared_limbo_die_node ();
+	  asm_name->die = die;
+	  asm_name->created_for = decl;
+	  asm_name->next = deferred_asm_name;
+	  deferred_asm_name = asm_name;
+	}
+      else if (DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl))
+	add_AT_string (die, AT_linkage_name,
+		       IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
+    }
+}
+
 /* Add a DW_AT_name attribute and source coordinate attribute for the
    given decl, but only if it actually has a name.  */
 
@@ -17333,26 +17399,7 @@ add_name_and_src_coords_attributes (dw_die_ref die, tree decl)
       if (! DECL_ARTIFICIAL (decl))
 	add_src_coords_attributes (die, decl);
 
-      if ((TREE_CODE (decl) == FUNCTION_DECL || TREE_CODE (decl) == VAR_DECL)
-	  && TREE_PUBLIC (decl)
-	  && !DECL_ABSTRACT (decl)
-	  && !(TREE_CODE (decl) == VAR_DECL && DECL_REGISTER (decl)))
-	{
-	  /* Defer until we have an assembler name set.  */
-	  if (!DECL_ASSEMBLER_NAME_SET_P (decl))
-	    {
-	      limbo_die_node *asm_name;
-
-	      asm_name = ggc_alloc_cleared_limbo_die_node ();
-	      asm_name->die = die;
-	      asm_name->created_for = decl;
-	      asm_name->next = deferred_asm_name;
-	      deferred_asm_name = asm_name;
-	    }
-	  else if (DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl))
-	    add_AT_string (die, AT_linkage_name,
-			   IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
-	}
+      add_linkage_name (die, decl);
     }
 
 #ifdef VMS_DEBUGGING_INFO
@@ -17366,6 +17413,39 @@ add_name_and_src_coords_attributes (dw_die_ref die, tree decl)
     }
 #endif
 }
+
+#ifdef VMS_DEBUGGING_INFO
+
+/* Output the debug main pointer die for VMS */
+
+void
+dwarf2out_vms_debug_main_pointer (void)
+{
+  char label[MAX_ARTIFICIAL_LABEL_BYTES];
+  dw_die_ref die;
+
+  /* Allocate the VMS debug main subprogram die.  */
+  die = ggc_alloc_cleared_die_node ();
+  die->die_tag = DW_TAG_subprogram;
+  add_name_attribute (die, VMS_DEBUG_MAIN_POINTER);
+  ASM_GENERATE_INTERNAL_LABEL (label, PROLOGUE_END_LABEL,
+			       current_function_funcdef_no);
+  add_AT_lbl_id (die, DW_AT_entry_pc, label);
+
+  /* Make it the first child of comp_unit_die.  */
+  die->die_parent = comp_unit_die;
+  if (comp_unit_die->die_child)
+    {
+      die->die_sib = comp_unit_die->die_child->die_sib;
+      comp_unit_die->die_child->die_sib = die;
+    }
+  else
+    {
+      die->die_sib = die;
+      comp_unit_die->die_child = die;
+    }
+}
+#endif
 
 /* Push a new declaration scope.  */
 
@@ -18970,6 +19050,9 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
 
 	  if (get_AT_unsigned (old_die, DW_AT_decl_line) != (unsigned) s.line)
 	    add_AT_unsigned (var_die, DW_AT_decl_line, s.line);
+
+	  if (old_die->die_tag == DW_TAG_member)
+	    add_linkage_name (var_die, decl);
 	}
     }
   else

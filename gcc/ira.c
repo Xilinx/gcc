@@ -331,9 +331,6 @@ int internal_flag_ira_verbose;
 /* Dump file of the allocator if it is not NULL.  */
 FILE *ira_dump_file;
 
-/* Pools for allocnos, copies, allocno live ranges.  */
-alloc_pool allocno_pool, copy_pool, allocno_live_range_pool;
-
 /* The number of elements in the following array.  */
 int ira_spilled_reg_stack_slots_num;
 
@@ -361,7 +358,7 @@ HARD_REG_SET ira_reg_mode_hard_regset[FIRST_PSEUDO_REGISTER][NUM_MACHINE_MODES];
 /* Array analogous to target hook TARGET_MEMORY_MOVE_COST.  */
 short int ira_memory_move_cost[MAX_MACHINE_MODE][N_REG_CLASSES][2];
 
-/* Array analogous to macro REGISTER_MOVE_COST.  */
+/* Array based on TARGET_REGISTER_MOVE_COST.  */
 move_table *ira_register_move_cost[MAX_MACHINE_MODE];
 
 /* Similar to may_move_in_cost but it is calculated in IRA instead of

@@ -43,7 +43,6 @@ with Rident;   use Rident;
 with Sem;      use Sem;
 with Sem_Aux;  use Sem_Aux;
 with Sem_Ch8;  use Sem_Ch8;
-with Sem_SCIL; use Sem_SCIL;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
 with Sem_Type; use Sem_Type;
@@ -306,11 +305,9 @@ package body Exp_Util is
       else
          if No (Actions (Fnode)) then
             Set_Actions (Fnode, L);
-
          else
             Append_List (L, Actions (Fnode));
          end if;
-
       end if;
    end Append_Freeze_Actions;
 
@@ -1487,7 +1484,7 @@ package body Exp_Util is
       --  Handle access types
 
       if Is_Access_Type (Typ) then
-         Typ := Directly_Designated_Type (Typ);
+         Typ := Designated_Type (Typ);
       end if;
 
       --  Handle task and protected types implementing interfaces
@@ -1594,7 +1591,7 @@ package body Exp_Util is
       --  Handle access types
 
       if Is_Access_Type (Typ) then
-         Typ := Directly_Designated_Type (Typ);
+         Typ := Designated_Type (Typ);
       end if;
 
       --  Handle class-wide types
@@ -1670,7 +1667,7 @@ package body Exp_Util is
          exit when Chars (Op) = Name
            and then
              (Name /= Name_Op_Eq
-                or else Etype (First_Entity (Op)) = Etype (Last_Entity (Op)));
+                or else Etype (First_Formal (Op)) = Etype (Last_Formal (Op)));
 
          Next_Elmt (Prim);
 
@@ -2007,6 +2004,17 @@ package body Exp_Util is
             --  unknown before the ELSE part or after the IF statement.
 
          elsif Nkind (CV) = N_Elsif_Part then
+
+            --  if the Elsif_Part had condition_actions, the elsif has been
+            --  rewritten as a nested if, and the original elsif_part is
+            --  detached from the tree, so there is no way to obtain useful
+            --  information on the current value of the variable.
+            --  Can this be improved ???
+
+            if No (Parent (CV)) then
+               return;
+            end if;
+
             Stm := Parent (CV);
 
             --  Before start of ELSIF part
@@ -2118,9 +2126,9 @@ package body Exp_Util is
 
             if Ekind (D_Typ) = E_Anonymous_Access_Type
               and then
-                (Is_Controlled (Directly_Designated_Type (D_Typ))
+                (Is_Controlled (Designated_Type (D_Typ))
                    or else
-                 Is_Concurrent_Type (Directly_Designated_Type (D_Typ)))
+                 Is_Concurrent_Type (Designated_Type (D_Typ)))
             then
                return True;
             end if;
@@ -2801,11 +2809,9 @@ package body Exp_Util is
                N_Real_Range_Specification               |
                N_Record_Definition                      |
                N_Reference                              |
-               N_SCIL_Dispatch_Table_Object_Init        |
                N_SCIL_Dispatch_Table_Tag_Init           |
                N_SCIL_Dispatching_Call                  |
                N_SCIL_Membership_Test                   |
-               N_SCIL_Tag_Init                          |
                N_Selected_Component                     |
                N_Signed_Integer_Type_Definition         |
                N_Single_Protected_Declaration           |
@@ -3136,16 +3142,23 @@ package body Exp_Util is
                end if;
             end if;
 
+            --  The following code is historical, it used to be present but it
+            --  is too cautious, because the front-end does not know the proper
+            --  default alignments for the target. Also, if the alignment is
+            --  not known, the front end can't know in any case! If a copy is
+            --  needed, the back-end will take care of it. This whole section
+            --  including this comment can be removed later ???
+
             --  If the component reference is for a record that has a specified
             --  alignment, and we either know it is too small, or cannot tell,
-            --  then the component may be unaligned
+            --  then the component may be unaligned.
 
-            if Known_Alignment (Etype (P))
-              and then Alignment (Etype (P)) < Ttypes.Maximum_Alignment
-              and then M > Alignment (Etype (P))
-            then
-               return True;
-            end if;
+            --  if Known_Alignment (Etype (P))
+            --    and then Alignment (Etype (P)) < Ttypes.Maximum_Alignment
+            --    and then M > Alignment (Etype (P))
+            --  then
+            --     return True;
+            --  end if;
 
             --  Case of component clause present which may specify an
             --  unaligned position.
@@ -4707,15 +4720,6 @@ package body Exp_Util is
              Constant_Present    => True,
              Expression          => Relocate_Node (Exp));
 
-         --  Check if the previous node relocation requires readjustment of
-         --  some SCIL Dispatching node.
-
-         if Generate_SCIL
-           and then Nkind (Exp) = N_Function_Call
-         then
-            Adjust_SCIL_Node (Exp, Expression (E));
-         end if;
-
          Set_Assignment_OK (E);
          Insert_Action (Exp, E);
 
@@ -4877,15 +4881,6 @@ package body Exp_Util is
                    Object_Definition   => New_Occurrence_Of (Exp_Type, Loc),
                    Expression          => Relocate_Node (Exp));
 
-               --  Check if the previous node relocation requires readjustment
-               --  of some SCIL Dispatching node.
-
-               if Generate_SCIL
-                 and then Nkind (Exp) = N_Function_Call
-               then
-                  Adjust_SCIL_Node (Exp, Expression (Decl));
-               end if;
-
                Insert_Action (Exp, Decl);
                Set_Etype (Obj, Exp_Type);
                Rewrite (Exp, New_Occurrence_Of (Obj, Loc));
@@ -4945,15 +4940,6 @@ package body Exp_Util is
              Defining_Identifier => Def_Id,
              Object_Definition   => New_Reference_To (Ref_Type, Loc),
              Expression          => New_Exp));
-
-         --  Check if the previous node relocation requires readjustment
-         --  of some SCIL Dispatching node.
-
-         if Generate_SCIL
-           and then Nkind (Exp) = N_Function_Call
-         then
-            Adjust_SCIL_Node (Exp, Prefix (New_Exp));
-         end if;
       end if;
 
       --  Preserve the Assignment_OK flag in all copies, since at least

@@ -1376,6 +1376,30 @@ compare_pointer (gfc_symbol *formal, gfc_expr *actual)
 }
 
 
+/* Emit clear error messages for rank mismatch.  */
+
+static void
+argument_rank_mismatch (const char *name, locus *where,
+			int rank1, int rank2)
+{
+  if (rank1 == 0)
+    {
+      gfc_error ("Rank mismatch in argument '%s' at %L "
+		 "(scalar and rank-%d)", name, where, rank2);
+    }
+  else if (rank2 == 0)
+    {
+      gfc_error ("Rank mismatch in argument '%s' at %L "
+		 "(rank-%d and scalar)", name, where, rank1);
+    }
+  else
+    {    
+      gfc_error ("Rank mismatch in argument '%s' at %L "
+		 "(rank-%d and rank-%d)", name, where, rank1, rank2);
+    }
+}
+
+
 /* Given a symbol of a formal argument list and an expression, see if
    the two are compatible as arguments.  Returns nonzero if
    compatible, zero if not compatible.  */
@@ -1433,6 +1457,16 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 			    &act_sym->declared_at);
 
       return 1;
+    }
+
+  /* F2008, C1241.  */
+  if (formal->attr.pointer && formal->attr.contiguous
+      && !gfc_is_simply_contiguous (actual, true))
+    {
+      if (where)
+	gfc_error ("Actual argument to contiguous pointer dummy '%s' at %L "
+		   "must be simply contigous", formal->name, &actual->where);
+      return 0;
     }
 
   if ((actual->expr_type != EXPR_NULL || actual->ts.type != BT_UNKNOWN)
@@ -1502,6 +1536,34 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 			: actual->symtree->n.sym->as->corank);
 	  return 0;
 	}
+
+      /* F2008, 12.5.2.8.  */
+      if (formal->attr.dimension
+	  && (formal->attr.contiguous || formal->as->type != AS_ASSUMED_SHAPE)
+	  && !gfc_is_simply_contiguous (actual, true))
+	{
+	  if (where)
+	    gfc_error ("Actual argument to '%s' at %L must be simply "
+		       "contiguous", formal->name, &actual->where);
+	  return 0;
+	}
+    }
+
+  /* F2008, C1239/C1240.  */
+  if (actual->expr_type == EXPR_VARIABLE
+      && (actual->symtree->n.sym->attr.asynchronous
+         || actual->symtree->n.sym->attr.volatile_)
+      &&  (formal->attr.asynchronous || formal->attr.volatile_)
+      && actual->rank && !gfc_is_simply_contiguous (actual, true)
+      && ((formal->as->type != AS_ASSUMED_SHAPE && !formal->attr.pointer)
+	  || formal->attr.contiguous))
+    {
+      if (where)
+	gfc_error ("Dummy argument '%s' has to be a pointer or assumed-shape "
+		   "array without CONTIGUOUS attribute - as actual argument at"
+		   " %L is not simply contiguous and both are ASYNCHRONOUS "
+		   "or VOLATILE", formal->name, &actual->where);
+      return 0;
     }
 
   if (symbol_rank (formal) == actual->rank)
@@ -1521,9 +1583,8 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 	  && gfc_is_coindexed (actual)))
     {
       if (where)
-	gfc_error ("Rank mismatch in argument '%s' at %L (%d and %d)",
-		   formal->name, &actual->where, symbol_rank (formal),
-		   actual->rank);
+	argument_rank_mismatch (formal->name, &actual->where,
+				symbol_rank (formal), actual->rank);
       return 0;
     }
   else if (actual->rank != 0 && (is_elemental || formal->attr.dimension))
@@ -1562,9 +1623,8 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
   else if (ref == NULL && actual->expr_type != EXPR_NULL)
     {
       if (where)
-	gfc_error ("Rank mismatch in argument '%s' at %L (%d and %d)",
-		   formal->name, &actual->where, symbol_rank (formal),
-		   actual->rank);
+	argument_rank_mismatch (formal->name, &actual->where,
+				symbol_rank (formal), actual->rank);
       return 0;
     }
 
