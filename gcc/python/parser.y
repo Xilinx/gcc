@@ -41,9 +41,6 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
-DEF_VEC_P( gpy_sym );
-DEF_VEC_ALLOC_P( gpy_sym,gc );
-
 static VEC( gpy_sym,gc ) * gpy_symbol_stack;
 
 extern int yylineno;
