@@ -1,6 +1,6 @@
 /* GCC MELT GENERATED FILE warmelt-macro.0+02.c - DO NOT EDIT */
 /* secondary MELT generated C file of rank #2 */
-#include "run-melt.h"
+#include "melt-run.h"
 
 /**** warmelt-macro.0+02.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1

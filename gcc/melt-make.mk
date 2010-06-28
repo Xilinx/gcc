@@ -173,6 +173,7 @@ WARMELT_BASE1C= $(patsubst %, %.1.c, $(WARMELT_BASE))
 WARMELT_BASE1ROW:=$(shell echo $(WARMELT_BASE1)|sed 's/ /:/g')
 ##
 WARMELT_BASE2= $(patsubst %, %.2, $(WARMELT_BASE))
+WARMELT_BASE2N= $(patsubst %, %.2.n, $(WARMELT_BASE))
 WARMELT_BASE2SO= $(patsubst %, %.2.so, $(WARMELT_BASE))
 WARMELT_BASE2NSO= $(patsubst %, %.2.n.so, $(WARMELT_BASE))
 WARMELT_BASE2C= $(patsubst %, %.2.c, $(WARMELT_BASE))
@@ -186,12 +187,14 @@ WARMELT_BASEROW:=$(shell echo $(WARMELT_BASE)|sed 's/ /:/g')
 ## force a dependency
 $(WARMELT_BASE0SO): empty-file-for-melt.c run-melt.h melt-runtime.h
 
-.PHONY: warmelt1 warmelt2 warmelt
+.PHONY: warmelt1 warmelt2 warmelt warmelt1n warmelt2n
 
 warmelt1: warmelt1.modlis $(WARMELT_BASE1SO)
 warmelt2: warmelt2.modlis $(WARMELT_BASE2SO)
 warmelt: warmelt.modlis $(WARMELT_BASESO)
 
+warmelt1n: warmelt1n.modlis $(WARMELT_BASE1NSO)
+warmelt2n: warmelt2n.modlis $(WARMELT_BASE2NSO)
 ################
 ## the extra MELT files. They are not needed to bootstrap the MELT
 ## translation, but they are useful when using MELT on a GCC
@@ -438,6 +441,12 @@ warmelt2.modlis: $(WARMELT_BASE2SO)
 	for f in  $(WARMELT_BASE2); do echo $$f >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
 
+warmelt2n.modlis: $(WARMELT_BASE2NSO)
+	date +"#$@ generated %F" > $@-tmp
+	for f in  $(WARMELT_BASE2N); do echo $$f >> $@-tmp; done
+	echo "# end $@" >> $@-tmp
+	$(melt_make_move) $@-tmp $@
+
 warmelt-first.2.c: $(melt_make_source_dir)/warmelt-first.melt warmelt1.modlis $(WARMELT_BASE1SO) $(melt_make_gencdeps) \
   empty-file-for-melt.c  warmelt-predef.melt melt-predef.h run-melt.h melt-runtime.h cc1$(exeext)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt1" \
@@ -485,10 +494,6 @@ warmelt-normal.c: warmelt-predef.melt
 warmelt-normatch.2.so: warmelt-normatch.2.c
 warmelt-outobj.so: warmelt-outobj.c 
 
-warmelt2n.modlis: $(WARMELT_BASE2NSO)
-	date +"#$@ generated %c" > $@-tmp
-	for f in  $(WARMELT_BASE2); do echo $$f.n >> $@-tmp; done
-	$(melt_make_move) $@-tmp $@
 
 ####
 warmelt-%.c: $(melt_make_source_dir)/warmelt-%.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_make_gencdeps) \

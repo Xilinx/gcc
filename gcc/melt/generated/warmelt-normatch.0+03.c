@@ -1,6 +1,6 @@
 /* GCC MELT GENERATED FILE warmelt-normatch.0+03.c - DO NOT EDIT */
 /* secondary MELT generated C file of rank #3 */
-#include "run-melt.h"
+#include "melt-run.h"
 
 /**** warmelt-normatch.0+03.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1

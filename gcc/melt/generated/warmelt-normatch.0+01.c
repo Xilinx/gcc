@@ -1,6 +1,6 @@
 /* GCC MELT GENERATED FILE warmelt-normatch.0+01.c - DO NOT EDIT */
 /* secondary MELT generated C file of rank #1 */
-#include "run-melt.h"
+#include "melt-run.h"
 
 /**** warmelt-normatch.0+01.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1
@@ -14324,7 +14324,7 @@ lab_endgetargs:;
     
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /16fceaaf checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V49*/ meltfptr[48]))== OBMAG_PAIR);
+    melt_assertmsg("putpairhead /11df6c6f checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V49*/ meltfptr[48]))== OBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.CBIND__V49*/ meltfptr[48]))->hd = (melt_ptr_t) (/*_.CBIND__V41*/ meltfptr[40]);
     ;
     /*^touch*/

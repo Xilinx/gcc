@@ -1,6 +1,6 @@
 /* GCC MELT GENERATED FILE warmelt-normal.0+01.c - DO NOT EDIT */
 /* secondary MELT generated C file of rank #1 */
-#include "run-melt.h"
+#include "melt-run.h"
 
 /**** warmelt-normal.0+01.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1
@@ -7081,7 +7081,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /18a6b85d checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))== OBMAG_PAIR);
+  melt_assertmsg("putpairhead /2f1d91da checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))== OBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))->hd = (melt_ptr_t) (/*_.CBIND__V30*/ meltfptr[29]);
   ;
   /*^touch*/
@@ -37174,7 +37174,7 @@ lab_endgetargs:;
   ;
   MELT_LOCATION("warmelt-normal.melt:3544:/ putpairhead");
   /*putpairhead*/
-  melt_assertmsg("putpairhead /6b2b959 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))== OBMAG_PAIR);
+  melt_assertmsg("putpairhead /39124052 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))== OBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))->hd = (melt_ptr_t) (/*_.CTUPBIND__V36*/ meltfptr[35]);
   ;
   /*^touch*/

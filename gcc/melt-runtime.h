@@ -3378,6 +3378,10 @@ melt_put_int (melt_ptr_t v, long x)
    for more */
 struct callframe_melt_st
 {
+  /* FIXME: nbvar should be an int, and when it is negative, clos
+     should really be a pointer to a marking routine. See comment in
+     melt_marking_callback & crash of testcase tfullgc.melt! */
+
   unsigned nbvar;
 #if ENABLE_CHECKING
   const char* flocs;
@@ -3677,6 +3681,8 @@ melt_get_file(melt_ptr_t file_p)
 
 /* strangely, gcc/input.h don't define yet that macro. */
 #define LOCATION_COLUMN(LOC) ((expand_location (LOC)).column)
+
+extern const char melt_run_preprocessed_md5[]; /* defined in generated file melt-run-md5.h */
 
 #endif /*MELT_INCLUDED_ */
 /* eof melt-runtime.h */

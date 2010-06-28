@@ -37,6 +37,8 @@ along with GCC; see the file COPYING3.   If not see
 #include "coretypes.h"
 #include "obstack.h"
 #include "tm.h"
+
+
 #include "tree.h"
 #include "gimple.h"
 #include "intl.h"
@@ -49,6 +51,7 @@ along with GCC; see the file COPYING3.   If not see
 #include "basic-block.h"
 #include "cfgloop.h"
 #include "timevar.h"
+
 
 
 #include "ggc.h"
@@ -155,6 +158,10 @@ typedef struct melt_module_info_st
 {
   void *dlh;			/* dlopen handle */
   char* modpath;		/* strdup-ed file path passed to dlopen */
+  /* FIXME: we really should remove the iniframp because it is so ugly
+     to have pointer from global data to local stack. We should handle
+     & generate initial frames specially, e.g. by making their nbvar
+     negative... */
   void **iniframp;		/* initial frame pointer adress */
   void (*marker_rout) (void *);	/* marking routine of initial frame */
   melt_ptr_t (*start_rout) (melt_ptr_t);	/* start routine */
@@ -714,14 +721,21 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
   melt_module_info_t *mi = 0;
   struct callframe_melt_st *cf = 0;
   meltmarkingcount++;
-  dbgprintf("start of melt_marking_callback %ld", meltmarkingcount);
+  dbgprintf ("start of melt_marking_callback %ld", meltmarkingcount);
   /* first, scan all the modules and mark their frame if it is non null */
   if (modinfvec) 
     for (ix = 0; VEC_iterate (melt_module_info_t, modinfvec, ix, mi); ix++)
       {
+	/* FIXME: this code is buggy and ugly; we really should handle
+	   the initial frame specially, e.g. because its nbvar is
+	   negative; this code crashes the tfullgc.melt testcase! */
         if ( !mi->marker_rout || !mi->iniframp || !*mi->iniframp) 
 	  continue;
+	dbgprintf ("melt_marking_callback before marker_rout ix=%d mi'%s' iniframp=%p -> %p", 
+		   ix, mi->modpath, (void*) mi->iniframp, *mi->iniframp);
         (mi->marker_rout) (*mi->iniframp);
+	dbgprintf ("melt_marking_callback after marker_rout ix=%d mi'%s' iniframp=%p -> %p",
+		   ix, mi->modpath, (void*) mi->iniframp, *mi->iniframp);
       };
   /* then scan all the MELT call frames */
   for (cf = (struct callframe_melt_st*) melt_topframe; cf != NULL;
@@ -5987,6 +6001,7 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   char* dypathdup = NULL; /* the strdup-ed path stored in the module info */
   void *dlh = NULL;
   char *dyncomptimstamp = NULL;
+  char *dynmd5prepromeltrun = NULL;
   typedef melt_ptr_t startroutine_t (melt_ptr_t);
   typedef void markroutine_t (void *);
   PTR_UNION_TYPE(startroutine_t*) startrout_uf = {0};
@@ -6049,6 +6064,17 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
       inform (UNKNOWN_LOCATION, "MELT module compiled for %s", dynversion);
       inform (UNKNOWN_LOCATION, "This GCC version is %s", melt_gccversionstr);
     };
+
+  /* we cannot use the executable_checksum from c-common.h because lto1 don't know it! */
+
+  /* check the expected hash of preprocessed melt-run.h; see generated file melt-run-md5.h */
+  dynmd5prepromeltrun = (char*) dlsym ((void *) dlh, "md5prepromeltrun_melt");
+  if (dynmd5prepromeltrun && strcmp(dynmd5prepromeltrun, melt_run_preprocessed_md5)) {
+    warning (0, "loaded MELT module %s built for a different MELT header", dypath);
+    inform (UNKNOWN_LOCATION, "Signature of melt-run.h header used at generation: %s", dynmd5prepromeltrun);
+    inform (UNKNOWN_LOCATION, "Current melt-run.h signature: %s", melt_run_preprocessed_md5);
+  }
+
   PTR_UNION_AS_VOID_PTR(startrout_uf) =
     dlsym ((void *) dlh, "start_module_melt");
   if (!PTR_UNION_AS_VOID_PTR(startrout_uf))
@@ -6062,18 +6088,12 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   PTR_UNION_AS_VOID_PTR(markrout_uf) =
     dlsym ((void *) dlh, "mark_module_melt");
   if (!PTR_UNION_AS_VOID_PTR(markrout_uf))
-   PTR_UNION_AS_VOID_PTR(markrout_uf) =
-     dlsym ((void *) dlh, "mark_module_melt");
-  if (!PTR_UNION_AS_VOID_PTR(markrout_uf))
     {
       warning (0, "missing mark_module_melt routine in MELT module %s", dypath);
       goto bad;
     };
   PTR_UNION_AS_VOID_PTR(iniframe_up) 
     = dlsym ((void *) dlh, "initial_frame_melt");
-  if (!PTR_UNION_AS_VOID_PTR(iniframe_up) )
-    PTR_UNION_AS_VOID_PTR(iniframe_up) =
-      dlsym ((void *) dlh, "initial_frame_melt");
   if (!PTR_UNION_AS_VOID_PTR(iniframe_up))
     {
       warning (0, "missing initial_frame_melt routine in MELT module %s", dypath);
@@ -10983,30 +11003,35 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
   if (filrank <= 0)
     {
       
-  /* we protect genversionstr_melt with MELTGCC_DYNAMIC_OBJSTRUCT since
-     for sure when compiling the warmelt*0.c it would mismatch, and we
-     want to avoid a useless warning */
-  fprintf (cfil, "\n#ifndef MELTGCC_DYNAMIC_OBJSTRUCT\n"
-	   "/* version string of the gcc executable generating this file: */\n"
-	   "const char genversionstr_melt[]=\n ");
-  {
-    const char* pc;
-    fputc ('\"', cfil);
-    for (pc = melt_gccversionstr; *pc; pc++)
+      /* we protect genversionstr_melt with MELTGCC_DYNAMIC_OBJSTRUCT since
+	 for sure when compiling the warmelt*0.c it would mismatch, and we
+	 want to avoid a useless warning */
+      fprintf (cfil, "\n#ifndef MELTGCC_DYNAMIC_OBJSTRUCT\n"
+	       "/* version string of the gcc executable generating this file: */\n"
+	       "const char genversionstr_melt[]=\n ");
       {
-	if (*pc == ' ' || ISALNUM(*pc) || strchr("(){}[]<>@.,+-*/", *pc))
-	  fputc (*pc, cfil);
-	else
-	  fprintf (cfil, "\\%03o", (int) 0xff & pc[0]);
-      };    
-    fputc ('\"', cfil);
-  };
-  fprintf (cfil, ";\n" "#endif\n" "\n");
+	const char* pc;
+	fputc ('\"', cfil);
+	for (pc = melt_gccversionstr; *pc; pc++)
+	  {
+	    if (*pc == ' ' || ISALNUM(*pc) || strchr("(){}[]<>@.,+-*/", *pc))
+	      fputc (*pc, cfil);
+	    else
+	      fprintf (cfil, "\\%03o", (int) 0xff & pc[0]);
+	  };    
+	fputc ('\"', cfil);
+      };
+      fprintf (cfil, ";\n" "\n");
+
+      fprintf (cfil, "\n/* hash of preprocessed melt-run.h generating this file: */\n");
+      fprintf (cfil, "const char md5prepromeltrun_melt[]=\"%s\";\n", melt_run_preprocessed_md5);
+
+      fprintf (cfil, "\n" "#endif /*MELTGCC_DYNAMIC_OBJSTRUCT*/\n" "\n");
     }
   else
     fprintf (cfil, "/* secondary MELT generated C file of rank #%d */\n",
 	     filrank);
-  fprintf (cfil, "#include \"run-melt.h\"\n");
+  fprintf (cfil, "#include \"melt-run.h\"\n");
   fprintf (cfil, "\n/**** %s declarations ****/\n",
 	   melt_string_str (unitnam));
   melt_putstrbuf (cfil, declbuf);
@@ -11055,14 +11080,14 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
     {
       /* Rare case when the generated file is the same as what existed
 	 in the filesystem, so discard the generated temporary file. */
-    if (remove (dotempnam))
-      melt_fatal_error ("failed to remove %s as melt generated file - %m",
-			dotempnam);
-    if (IS_ABSOLUTE_PATH(dotcnam))
-    inform (UNKNOWN_LOCATION, "MELT generated same file %s", dotcnam);
-    else
-    inform (UNKNOWN_LOCATION, "MELT generated same file %s in %s",
-	    dotcnam, mycwd);
+      if (remove (dotempnam))
+	melt_fatal_error ("failed to remove %s as melt generated file - %m",
+			  dotempnam);
+      if (IS_ABSOLUTE_PATH(dotcnam))
+	inform (UNKNOWN_LOCATION, "MELT generated same file %s", dotcnam);
+      else
+	inform (UNKNOWN_LOCATION, "MELT generated same file %s in %s",
+		dotcnam, mycwd);
     }
   else
     {
@@ -11072,7 +11097,7 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
       (void) rename (dotcnam, dotcpercentnam);
       if (rename (dotempnam, dotcnam))
 	melt_fatal_error ("failed to rename %s as %s melt generated file - %m",
-		     dotempnam, dotcnam);
+			  dotempnam, dotcnam);
       if (IS_ABSOLUTE_PATH (dotcnam))
 	inform (UNKNOWN_LOCATION, "MELT generated new file %s",	dotcnam);
       else
@@ -12001,5 +12026,12 @@ end:
 #undef atclov
 }
 
+/* the file gt-melt-runtime.h is generated by gengtype from
+   melt-runtime.c & melt-runtime.h */
 #include "gt-melt-runtime.h"
+
+/* the file melt-run-md5.h is generated by a shell command wrapping
+   md5sum of the preprocessed form of melt-run.h */
+#include "melt-run-md5.h"
+
 /* eof melt-runtime.c */

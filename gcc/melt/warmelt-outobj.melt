@@ -1362,7 +1362,7 @@
 ;;;
     (add2sbuf_strconst implbuf "/**initial routine prologue**/")
     (add2sbuf_indentnl implbuf 1)
-    (add2sbuf_strconst implbuf "initial_frame_melt = (void*) &meltfram__;")
+    (add2sbuf_strconst implbuf "MELT_SET_MODULE_INITIAL_FRAME(meltfram__);")
     (add2sbuf_indentnl implbuf 1)
     (list_every
      iprolog
@@ -1452,9 +1452,11 @@
 	(add2sbuf_indentnl implbuf 0)
 	(add2sbuf_strconst implbuf " goto labend_rout;")
 	(add2sbuf_indentnl implbuf 0)
-	(add2sbuf_strconst implbuf "labend_rout:  melt_topframe = (struct callframe_melt_st *) meltfram__.prev;")
+	(add2sbuf_strconst implbuf "labend_rout:;")
 	(add2sbuf_indentnl implbuf 0)
-	(add2sbuf_strconst implbuf "initial_frame_melt = (void*)0;")
+	(add2sbuf_strconst implbuf " melt_topframe = (struct callframe_melt_st *) meltfram__.prev;")
+	(add2sbuf_indentnl implbuf 0)
+	(add2sbuf_strconst implbuf " MELT_CLEAR_MODULE_INITIAL_FRAME();")
 	(add2sbuf_indentnl implbuf 0)
 	(add2sbuf_strconst implbuf " return ")
 	(if oretval 
