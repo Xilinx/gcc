@@ -64,6 +64,7 @@ class serial_dispatch : public gtm_dispatch
   virtual void rollback() { abort(); }
   virtual void reinit() { }
   virtual void fini() { }
+  virtual bool trydropreference (void *ptr, size_t size) { return true; }
 };
 
 } // anon namespace

@@ -1,5 +1,18 @@
 2010-06-28  Aldy Hernandez  <aldyh@redhat.com>
 
+	* method-wbetl.cc (class wbetl_dispatch): Add trydropreference.
+	(validate): Add comment.
+	(trydropreference): New.
+	* method-readonly.cc (class readonly_dispatch): Add
+	trydropreference.
+	* alloc_c.cc (_ITM_dropReferences): Remove const attribute.
+	Call trydropreference().
+	* libitm.h (_ITM_dropReferences): Remove const attribute.
+	* method-serial.cc (class serial_dispatch): Add trydropreference.
+	* libitm_i.h (struct gtm_dispatch): Add trydropreference.
+
+2010-06-28  Aldy Hernandez  <aldyh@redhat.com>
+
 	* memcpy.cc (do_memcpy): Comment.
 
 2010-06-25  Aldy Hernandez  <aldyh@redhat.com>

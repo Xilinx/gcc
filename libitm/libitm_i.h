@@ -114,6 +114,7 @@ struct gtm_dispatch
   virtual bool trycommit() = 0;
   virtual void rollback() = 0;
   virtual void reinit() = 0;
+  virtual bool trydropreference(void *, size_t) = 0;
 
   // Use fini instead of dtor to support a static subclasses that uses
   // a unique object and so we don't want to destroy it from common code.

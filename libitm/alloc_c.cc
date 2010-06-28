@@ -61,9 +61,11 @@ _ITM_free (void *ptr)
 
 __attribute__((transaction_pure))
 void ITM_REGPARM
-_ITM_dropReferences (const void *ptr, size_t len)
+_ITM_dropReferences (void *ptr, size_t len)
 {
   gtm_transaction *tx = gtm_tx();
+  if (!gtm_disp()->trydropreference (ptr, len))
+    tx->restart (RESTART_VALIDATE_READ);
   tx->drop_references_local (ptr, len);
   tx->drop_references_allocations (ptr);
 }

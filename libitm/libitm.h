@@ -153,7 +153,7 @@ extern void _ITM_addUserUndoAction(_ITM_userUndoFunction, void *) ITM_REGPARM;
 extern int _ITM_getThreadnum(void) ITM_REGPARM;
 
 __attribute__((transaction_pure))
-extern void _ITM_dropReferences (const void *, size_t) ITM_REGPARM;
+extern void _ITM_dropReferences (void *, size_t) ITM_REGPARM;
 
 
 /* The following typedefs exist to make the macro expansions below work

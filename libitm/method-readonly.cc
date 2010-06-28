@@ -42,6 +42,7 @@ class readonly_dispatch : public gtm_dispatch
   virtual void rollback();
   virtual void reinit();
   virtual void fini();
+  virtual bool trydropreference (void *ptr, size_t size) { return true; }
 };
 
 inline

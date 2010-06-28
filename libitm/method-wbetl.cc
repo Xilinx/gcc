@@ -90,6 +90,7 @@ class wbetl_dispatch : public gtm_dispatch
   virtual void rollback();
   virtual void reinit();
   virtual void fini();
+  virtual bool trydropreference (void *, size_t);
 };
 
 /* Check if W is one of our write locks.  */
@@ -131,6 +132,8 @@ wbetl_dispatch::validate ()
 	{
 	  w_entry *w = (w_entry *) gtm_stmlock_get_addr (l);
 
+	  // If someone has locked us, it better be by someone in the
+	  // current thread.
 	  if (!local_w_entry_p (w))
 	    return false;
 	}
@@ -520,6 +523,83 @@ wbetl_dispatch::fini ()
   free (m_wset_entries);
   delete this;
 }
+
+/* Attempt to drop any internal references to PTR.  Return TRUE if successful.
+
+   This is an adaptation of the transactional memcpy function.
+
+   What we do here is flush out the current transactional content of
+   PTR to real memory, and remove the write mask bits associated with
+   it so future commits will ignore this piece of memory.  */
+
+bool
+wbetl_dispatch::trydropreference (void *ptr, size_t size)
+{
+  if (size == 0)
+    return true;
+
+  if (!validate ())
+    return false;
+
+  uintptr_t isrc = (uintptr_t)ptr;
+  // The position in the source cacheline where *PTR starts.
+  uintptr_t sofs = isrc & (CACHELINE_SIZE - 1);
+  gtm_cacheline *src
+    = reinterpret_cast<gtm_cacheline *>(isrc & -CACHELINE_SIZE);
+  unsigned char *dst = (unsigned char *)ptr;
+  gtm_dispatch::mask_pair pair;
+
+  // If we're trying to drop a reference, we should already have a
+  // write lock on it.  If we don't have one, there's no work to do.
+  if (!gtm_stmlock_owned_p (*gtm_get_stmlock (src)))
+    return true;
+
+  // We copy the data in three stages:
+
+  // (a) Copy stray bytes at the beginning that are smaller than a
+  // cacheline.
+  if (sofs != 0)
+    {
+      size_t sleft = CACHELINE_SIZE - sofs;
+      size_t min = (size <= sleft ? size : sleft);
+
+      // WaW will give us the current locked entry.
+      pair = this->write_lock (src, WaW);
+
+      // *jedi mind wave*...these aren't the droids you're looking for.
+      *pair.mask &= ~((((gtm_cacheline_mask)1 << min) - 1) << sofs);
+
+      memcpy (dst, &pair.line->b[sofs], min);
+      dst += min;
+      src++;
+      size -= min;
+    }
+
+  // (b) Copy subsequent cacheline sized chunks.
+  while (size >= CACHELINE_SIZE)
+    {
+      pair = this->write_lock(src, WaW);
+      *pair.mask = 0;
+      memcpy (dst, src, CACHELINE_SIZE);
+      dst += CACHELINE_SIZE;
+      src++;
+      size -= CACHELINE_SIZE;
+    }
+
+  // (c) Copy anything left over.
+  if (size != 0)
+    {
+      pair = this->write_lock(src, WaW);
+      *pair.mask &= ~(((gtm_cacheline_mask)1 << size) - 1);
+      memcpy (dst, pair.line, size);
+    }
+
+  // No need to drop locks, since we're going to abort the transaction
+  // anyhow.
+
+  return true;
+}
+
 
 wbetl_dispatch::wbetl_dispatch ()
   : gtm_dispatch (false, false)
