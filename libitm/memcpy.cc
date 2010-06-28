@@ -31,7 +31,9 @@ do_memcpy (uintptr_t idst, uintptr_t isrc, size_t size,
 	   gtm_dispatch::lock_type W, gtm_dispatch::lock_type R)
 {
   gtm_dispatch *disp = gtm_disp();
+  // The position in the destination cacheline where *IDST starts.
   uintptr_t dofs = idst & (CACHELINE_SIZE - 1);
+  // The position in the source cacheline where *ISRC starts.
   uintptr_t sofs = isrc & (CACHELINE_SIZE - 1);
   const gtm_cacheline *src
     = reinterpret_cast<const gtm_cacheline *>(isrc & -CACHELINE_SIZE);
@@ -43,8 +45,14 @@ do_memcpy (uintptr_t idst, uintptr_t isrc, size_t size,
   if (size == 0)
     return;
 
+  // If both SRC and DST data start at the same position in the cachelines,
+  // we can easily copy the data in tandem, cacheline by cacheline...
   if (dofs == sofs)
     {
+      // We copy the data in three stages:
+
+      // (a) Copy stray bytes at the beginning that are smaller than a
+      // cacheline.
       if (sofs != 0)
 	{
 	  size_t sleft = CACHELINE_SIZE - sofs;
@@ -59,6 +67,7 @@ do_memcpy (uintptr_t idst, uintptr_t isrc, size_t size,
 	  size -= min;
 	}
 
+      // (b) Copy subsequent cacheline sized chunks.
       while (size >= CACHELINE_SIZE)
 	{
 	  dpair = disp->write_lock(dst, W);
@@ -70,6 +79,7 @@ do_memcpy (uintptr_t idst, uintptr_t isrc, size_t size,
 	  size -= CACHELINE_SIZE;
 	}
 
+      // (c) Copy anything left over.
       if (size != 0)
 	{
 	  dpair = disp->write_lock(dst, W);
@@ -78,12 +88,19 @@ do_memcpy (uintptr_t idst, uintptr_t isrc, size_t size,
 	  memcpy (dpair.line, sline, size);
 	}
     }
+  // ... otherwise, we must copy the data in disparate hunks using
+  // temporary storage.
   else
     {
       gtm_cacheline c;
       size_t sleft = CACHELINE_SIZE - sofs;
 
       sline = disp->read_lock(src, R);
+
+      // As above, we copy the data in three stages:
+
+      // (a) Copy stray bytes at the beginning that are smaller than a
+      // cacheline.
       if (dofs != 0)
 	{
 	  size_t dleft = CACHELINE_SIZE - dofs;
@@ -91,11 +108,18 @@ do_memcpy (uintptr_t idst, uintptr_t isrc, size_t size,
 
 	  dpair = disp->write_lock(dst, W);
 	  *dpair.mask |= (((gtm_cacheline_mask)1 << min) - 1) << dofs;
+
+	  // If what's left in the source cacheline will fit in the
+	  // rest of the destination cacheline, straight up copy it.
 	  if (min <= sleft)
 	    {
 	      memcpy (&dpair.line->b[dofs], &sline->b[sofs], min);
 	      sofs += min;
 	    }
+	  // Otherwise, we need more bits from the source cacheline
+	  // that are available.  Piece together what we need from
+	  // contiguous (source) cachelines, into temp space, and copy
+	  // it over.
 	  else
 	    {
 	      memcpy (&c, &sline->b[sofs], sleft);
@@ -110,8 +134,14 @@ do_memcpy (uintptr_t idst, uintptr_t isrc, size_t size,
 	  size -= min;
 	}
 
+      // (b) Copy subsequent cacheline sized chunks.
       while (size >= CACHELINE_SIZE)
 	{
+	  // We have a full (destination) cacheline where to put the
+	  // data, but to get to the corresponding cacheline sized
+	  // chunk in the source, we have to piece together two
+	  // contiguous source cachelines.
+
 	  memcpy (&c, &sline->b[sofs], sleft);
 	  sline = disp->read_lock(++src, R);
 	  memcpy (&c.b[sleft], sline, sofs);
@@ -124,12 +154,16 @@ do_memcpy (uintptr_t idst, uintptr_t isrc, size_t size,
 	  size -= CACHELINE_SIZE;
 	}
 
+      // (c) Copy anything left over.
       if (size != 0)
 	{
 	  dpair = disp->write_lock(dst, W);
 	  *dpair.mask |= ((gtm_cacheline_mask)1 << size) - 1;
+	  // If what's left to copy is entirely in the remaining
+	  // source cacheline, do it.
 	  if (size <= sleft)
 	    memcpy (dpair.line, &sline->b[sofs], size);
+	  // Otherwise, piece together the remaining bits, and copy.
 	  else
 	    {
 	      memcpy (&c, &sline->b[sofs], sleft);
