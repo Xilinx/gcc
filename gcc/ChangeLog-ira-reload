@@ -1,3 +1,8 @@
+2010-06-21  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (localize_pseudos): Use GGC_RESIZEVEC rather than
+	ggc_realloc_stat.
+
 2010-06-16  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (localize_pseudos): Use ggc_realloc_stat.
