@@ -738,16 +738,38 @@ begin
          Free (Text);
       end if;
 
-      --  Acquire all information in ALI files that have been read in
+      --  Load ALIs for all dependent units
 
       for Index in ALIs.First .. ALIs.Last loop
-         Read_ALI (Index);
+         Read_Withed_ALIs (Index);
       end loop;
 
       --  Quit if some file needs compiling
 
       if No_Object_Specified then
          raise Unrecoverable_Error;
+      end if;
+
+      --  Output list of ALI files in closure
+
+      if Output_ALI_List then
+         if ALI_List_Filename /= null then
+            Set_List_File (ALI_List_Filename.all);
+         end if;
+
+         for Index in ALIs.First .. ALIs.Last loop
+            declare
+               Full_Afile : constant File_Name_Type :=
+                              Find_File (ALIs.Table (Index).Afile, Library);
+            begin
+               Write_Name (Full_Afile);
+               Write_Eol;
+            end;
+         end loop;
+
+         if ALI_List_Filename /= null then
+            Close_List_File;
+         end if;
       end if;
 
       --  Build source file table from the ALI files we have read in
@@ -826,7 +848,7 @@ begin
             --  sources) if -R was used.
 
             if List_Closure then
-               declare
+               List_Closure_Display : declare
                   Source : File_Name_Type;
 
                   function Put_In_Sources (S : File_Name_Type) return Boolean;
@@ -852,6 +874,8 @@ begin
                      return True;
                   end Put_In_Sources;
 
+               --  Start of processing for List_Closure_Display
+
                begin
                   Closure_Sources.Init;
 
@@ -862,7 +886,6 @@ begin
                   end if;
 
                   for J in reverse Elab_Order.First .. Elab_Order.Last loop
-
                      Source := Units.Table (Elab_Order.Table (J)).Sfile;
 
                      --  Do not include the sources of the runtime and do not
@@ -875,7 +898,7 @@ begin
                            Write_Str ("   ");
                         end if;
 
-                        Write_Str (Get_Name_String  (Source));
+                        Write_Str (Get_Name_String (Source));
                         Write_Eol;
                      end if;
                   end loop;
@@ -908,7 +931,7 @@ begin
                   if not Zero_Formatting then
                      Write_Eol;
                   end if;
-               end;
+               end List_Closure_Display;
             end if;
          end if;
       end if;

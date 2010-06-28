@@ -44,6 +44,9 @@ with Tree_IO; use Tree_IO;
 
 package body Atree is
 
+   Reporting_Proc : Report_Proc := null;
+   --  Record argument to last call to Set_Reporting_Proc
+
    ---------------
    -- Debugging --
    ---------------
@@ -63,15 +66,15 @@ package body Atree is
 
    --  Either way, gnat1 will stop when node 12345 is created
 
-   --  The second method is faster
+   --  The second method is much faster
 
-   --  Similarly, rr and rrd allow breaking on rewriting of a given node.
+   --  Similarly, rr and rrd allow breaking on rewriting of a given node
 
    ww : Node_Id'Base := Node_Id'First - 1;
    pragma Export (Ada, ww); --  trick the optimizer
    Watch_Node : Node_Id'Base renames ww;
-   --  Node to "watch"; that is, whenever a node is created, we check if it is
-   --  equal to Watch_Node, and if so, call New_Node_Breakpoint. You have
+   --  Node to "watch"; that is, whenever a node is created, we check if it
+   --  is equal to Watch_Node, and if so, call New_Node_Breakpoint. You have
    --  presumably set a breakpoint on New_Node_Breakpoint. Note that the
    --  initial value of Node_Id'First - 1 ensures that by default, no node
    --  will be equal to Watch_Node.
@@ -108,7 +111,7 @@ package body Atree is
    --  calls Rewrite_Breakpoint. Otherwise, does nothing.
 
    procedure Node_Debug_Output (Op : String; N : Node_Id);
-   --  Common code for nnd and rrd. Write Op followed by information about N.
+   --  Common code for nnd and rrd, writes Op followed by information about N
 
    -----------------------------
    -- Local Objects and Types --
@@ -531,6 +534,13 @@ package body Atree is
 
       Orig_Nodes.Set_Last (Nodes.Last);
       Allocate_List_Tables (Nodes.Last);
+
+      --  Invoke the reporting procedure (if available)
+
+      if Reporting_Proc /= null then
+         Reporting_Proc.all (Target => New_Id, Source => Src);
+      end if;
+
       return New_Id;
    end Allocate_Initialize_Node;
 
@@ -915,6 +925,16 @@ package body Atree is
    begin
       return Ekind_In (Ekind (E), V1, V2, V3, V4, V5, V6);
    end Ekind_In;
+
+   ------------------------
+   -- Set_Reporting_Proc --
+   ------------------------
+
+   procedure Set_Reporting_Proc (P : Report_Proc) is
+   begin
+      pragma Assert (Reporting_Proc = null);
+      Reporting_Proc := P;
+   end Set_Reporting_Proc;
 
    ------------------
    -- Error_Posted --
@@ -1570,6 +1590,12 @@ package body Atree is
       --  to Rewrite if there were an intention to save the original node.
 
       Orig_Nodes.Table (Old_Node) := Old_Node;
+
+      --  Invoke the reporting procedure (if available)
+
+      if Reporting_Proc /= null then
+         Reporting_Proc.all (Target => Old_Node, Source => New_Node);
+      end if;
    end Replace;
 
    -------------
@@ -1628,6 +1654,12 @@ package body Atree is
       end if;
 
       Fix_Parents (Ref_Node => New_Node, Fix_Node => Old_Node);
+
+      --  Invoke the reporting procedure (if available)
+
+      if Reporting_Proc /= null then
+         Reporting_Proc.all (Target => Old_Node, Source => New_Node);
+      end if;
    end Rewrite;
 
    -------------------------

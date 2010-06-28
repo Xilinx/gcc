@@ -315,7 +315,7 @@ package body Sem_Ch13 is
          --  In AI-133. This involves gathering all components which start at
          --  the same byte offset and processing them together
 
-         when Ada_05 =>
+         when Ada_05 .. Ada_Version_Type'Last =>
             declare
                Max_Machine_Scalar_Size : constant Uint :=
                                            UI_From_Int
@@ -856,7 +856,8 @@ package body Sem_Ch13 is
                  Attribute_Write          =>
                null;
 
-            --  Other cases are errors, which will be caught below
+            --  Other cases are errors ("attribute& cannot be set with
+            --  definition clause"), which will be caught below.
 
             when others =>
                null;
@@ -2366,7 +2367,9 @@ package body Sem_Ch13 is
       --  code because their main purpose was to provide support to initialize
       --  the secondary dispatch tables. They are now generated also when
       --  compiling with no code generation to provide ASIS the relationship
-      --  between interface primitives and tagged type primitives.
+      --  between interface primitives and tagged type primitives. They are
+      --  also used to locate primitives covering interfaces when processing
+      --  generics (see Derive_Subprograms).
 
       if Ada_Version >= Ada_05
         and then Ekind (E) = E_Record_Type
@@ -2374,6 +2377,12 @@ package body Sem_Ch13 is
         and then not Is_Interface (E)
         and then Has_Interfaces (E)
       then
+         --  This would be a good common place to call the routine that checks
+         --  overriding of interface primitives (and thus factorize calls to
+         --  Check_Abstract_Overriding located at different contexts in the
+         --  compiler). However, this is not possible because it causes
+         --  spurious errors in case of late overriding.
+
          Add_Internal_Interface_Entities (E);
       end if;
    end Analyze_Freeze_Entity;
@@ -3129,7 +3138,14 @@ package body Sem_Ch13 is
    --  Start of processing for Check_Constant_Address_Clause
 
    begin
-      Check_Expr_Constants (Expr);
+      --  If rep_clauses are to be ignored, no need for legality checks. In
+      --  particular, no need to pester user about rep clauses that violate
+      --  the rule on constant addresses, given that these clauses will be
+      --  removed by Freeze before they reach the back end.
+
+      if not Ignore_Rep_Clauses then
+         Check_Expr_Constants (Expr);
+      end if;
    end Check_Constant_Address_Clause;
 
    ----------------------------------------

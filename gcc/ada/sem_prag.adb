@@ -3956,9 +3956,7 @@ package body Sem_Prag is
             --  entity (if declared in the same unit) is inlined.
 
             if Is_Subprogram (Subp) then
-               while Present (Alias (Inner_Subp)) loop
-                  Inner_Subp := Alias (Inner_Subp);
-               end loop;
+               Inner_Subp := Ultimate_Alias (Inner_Subp);
 
                if In_Same_Source_Unit (Subp, Inner_Subp) then
                   Set_Inline_Flags (Inner_Subp);
@@ -5259,8 +5257,9 @@ package body Sem_Prag is
             --  said this was a configuration pragma, but we did not check and
             --  are hesitant to add the check now.
 
-            --  However, we really cannot tolerate mixing Ada 2005 with Ada 83
-            --  or Ada 95, so we must check if we are in Ada 2005 mode.
+            --  However, we really cannot tolerate mixing Ada 2005 or Ada 2012
+            --  with Ada 83 or Ada 95, so we must check if we are in Ada 2005
+            --  or Ada 2012 mode.
 
             if Ada_Version >= Ada_05 then
                Check_Valid_Configuration_Pragma;
@@ -5348,6 +5347,33 @@ package body Sem_Prag is
                Ada_Version_Explicit := Ada_05;
             end if;
          end;
+
+         ---------------------
+         -- Ada_12/Ada_2012 --
+         ---------------------
+
+         --  pragma Ada_12;
+         --  pragma Ada_2012;
+
+         --  Note: these pragma also have some specific processing in Par.Prag
+         --  because we want to set the Ada 2012 version mode during parsing.
+
+         when Pragma_Ada_12 | Pragma_Ada_2012 =>
+            GNAT_Pragma;
+            Check_Arg_Count (0);
+
+            --  For Ada_2012 we unconditionally enforce the documented
+            --  configuration pragma placement, since we do not want to
+            --  tolerate mixed modes in a unit involving Ada 2012. That would
+            --  cause real difficulties for those cases where there are
+            --  incompatibilities between Ada 95 and Ada 2005/Ada 2012.
+
+            Check_Valid_Configuration_Pragma;
+
+            --  Now set Ada 2012 mode
+
+            Ada_Version := Ada_12;
+            Ada_Version_Explicit := Ada_12;
 
          ----------------------
          -- All_Calls_Remote --
@@ -7453,8 +7479,11 @@ package body Sem_Prag is
 
             if Chars (Expression (Arg1)) = Name_On then
                Extensions_Allowed := True;
+               Ada_Version := Ada_Version_Type'Last;
+
             else
                Extensions_Allowed := False;
+               Ada_Version := Ada_Version_Explicit;
             end if;
 
          --------------
@@ -10082,7 +10111,7 @@ package body Sem_Prag is
 
             --  This is one of the few cases where we need to test the value of
             --  Ada_Version_Explicit rather than Ada_Version (which is always
-            --  set to Ada_05 in a predefined unit), we need to know the
+            --  set to Ada_12 in a predefined unit), we need to know the
             --  explicit version set to know if this pragma is active.
 
             if Ada_Version_Explicit >= Ada_05 then
@@ -10582,7 +10611,7 @@ package body Sem_Prag is
 
             --  This is one of the few cases where we need to test the value of
             --  Ada_Version_Explicit rather than Ada_Version (which is always
-            --  set to Ada_05 in a predefined unit), we need to know the
+            --  set to Ada_12 in a predefined unit), we need to know the
             --  explicit version set to know if this pragma is active.
 
             if Ada_Version_Explicit >= Ada_05 then
@@ -12255,7 +12284,7 @@ package body Sem_Prag is
                   elsif not Is_Static_String_Expression (Arg1) then
                      Error_Pragma_Arg
                        ("argument of pragma% must be On/Off or " &
-                        "static string expression", Arg2);
+                        "static string expression", Arg1);
 
                   --  One argument string expression case
 
@@ -12475,6 +12504,11 @@ package body Sem_Prag is
             raise Program_Error;
       end case;
 
+      --  AI05-0144: detect dangerous order dependence. Disabled for now,
+      --  until AI is formally approved.
+
+      --  Check_Order_Dependence;
+
    exception
       when Pragma_Exit => null;
    end Analyze_Pragma;
@@ -12649,6 +12683,8 @@ package body Sem_Prag is
       Pragma_Ada_95                        => -1,
       Pragma_Ada_05                        => -1,
       Pragma_Ada_2005                      => -1,
+      Pragma_Ada_12                        => -1,
+      Pragma_Ada_2012                      => -1,
       Pragma_All_Calls_Remote              => -1,
       Pragma_Annotate                      => -1,
       Pragma_Assert                        => -1,

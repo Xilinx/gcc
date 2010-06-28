@@ -26,6 +26,7 @@
 with GNAT.Case_Util;             use GNAT.Case_Util;
 with GNAT.Directory_Operations;  use GNAT.Directory_Operations;
 with GNAT.Dynamic_HTables;
+with GNAT.Table;
 
 with Err_Vars; use Err_Vars;
 with Opt;      use Opt;
@@ -57,8 +58,14 @@ package body Prj.Nmsc is
       Listed   : Boolean := False;
       Found    : Boolean := False;
    end record;
+
    No_Name_Location : constant Name_Location :=
-     (No_File, No_Location, No_Source, False, False);
+                        (Name     => No_File,
+                         Location => No_Location,
+                         Source   => No_Source,
+                         Listed   => False,
+                         Found    => False);
+
    package Source_Names_Htable is new GNAT.Dynamic_HTables.Simple_HTable
      (Header_Num => Header_Num,
       Element    => Name_Location,
@@ -66,11 +73,10 @@ package body Prj.Nmsc is
       Key        => File_Name_Type,
       Hash       => Hash,
       Equal      => "=");
-   --  Information about file names found in string list attribute
-   --  (Source_Files or Source_List_File).
-   --  Except is set to True if source is a naming exception in the project.
-   --  This is used to check that all referenced files were indeed found on the
-   --  disk.
+   --  File name information found in string list attribute (Source_Files or
+   --  Source_List_File). Except is set to True if source is a naming exception
+   --  in the project. Used to check that all referenced files were indeed
+   --  found on the disk.
 
    type Unit_Exception is record
       Name : Name_Id;  --  ??? duplicates the key
@@ -151,6 +157,20 @@ package body Prj.Nmsc is
    --  necessary while performing consistency checks (duplicate sources,...)
    --  This data must be initialized before processing any project, and the
    --  same data is used for processing all projects in the tree.
+
+   type Lib_Data is record
+      Name : Name_Id;
+      Proj : Project_Id;
+   end record;
+
+   package Lib_Data_Table is new GNAT.Table
+     (Table_Component_Type => Lib_Data,
+      Table_Index_Type     => Natural,
+      Table_Low_Bound      => 1,
+      Table_Initial        => 10,
+      Table_Increment      => 100);
+   --  A table to record library names in order to check that two library
+   --  projects do not have the same library names.
 
    procedure Initialize
      (Data  : out Tree_Processing_Data;
@@ -446,6 +466,32 @@ package body Prj.Nmsc is
    procedure Write_Attr (Name, Value : String);
    --  Debug print a value for a specific property. Does nothing when not in
    --  debug mode
+
+   procedure Error_Or_Warning
+     (Flags    : Processing_Flags;
+      Kind     : Error_Warning;
+      Msg      : String;
+      Location : Source_Ptr;
+      Project  : Project_Id);
+   --  Emits either an error or warning message (or nothing), depending on Kind
+
+   ----------------------
+   -- Error_Or_Warning --
+   ----------------------
+
+   procedure Error_Or_Warning
+     (Flags    : Processing_Flags;
+      Kind     : Error_Warning;
+      Msg      : String;
+      Location : Source_Ptr;
+      Project  : Project_Id) is
+   begin
+      case Kind is
+         when Error   => Error_Msg (Flags, Msg, Location, Project);
+         when Warning => Error_Msg (Flags, "?" & Msg, Location, Project);
+         when Silent  => null;
+      end case;
+   end Error_Or_Warning;
 
    ------------------------------
    -- Replace_Into_Name_Buffer --
@@ -4078,8 +4124,45 @@ package body Prj.Nmsc is
          end;
       end if;
 
-      if Project.Extends /= No_Project then
+      if Project.Extends /= No_Project and then Project.Extends.Library then
+
+         --  Remove the library name from Lib_Data_Table
+
+         for J in 1 .. Lib_Data_Table.Last loop
+            if Lib_Data_Table.Table (J).Proj = Project.Extends then
+               Lib_Data_Table.Table (J) :=
+                 Lib_Data_Table.Table (Lib_Data_Table.Last);
+               Lib_Data_Table.Set_Last (Lib_Data_Table.Last - 1);
+               exit;
+            end if;
+         end loop;
+
          Project.Extends.Library := False;
+      end if;
+
+      if Project.Library and then not Lib_Name.Default then
+
+         --  Check if the same library name is used in an other library project
+
+         for J in 1 .. Lib_Data_Table.Last loop
+            if Lib_Data_Table.Table (J).Name = Project.Library_Name then
+               Error_Msg_Name_1 := Lib_Data_Table.Table (J).Proj.Name;
+               Error_Msg
+                 (Data.Flags,
+                  "Library name cannot be the same as in project %%",
+                  Lib_Name.Location, Project);
+               Project.Library := False;
+               exit;
+            end if;
+         end loop;
+      end if;
+
+      if Project.Library then
+
+         --  Record the library name
+
+         Lib_Data_Table.Append
+           ((Name => Project.Library_Name, Proj => Project));
       end if;
    end Check_Library_Attributes;
 
@@ -5113,8 +5196,8 @@ package body Prj.Nmsc is
             begin
                if Root_Dir'Length = 0 then
                   Err_Vars.Error_Msg_File_1 := Base_Dir;
-                  Error_Msg
-                    (Data.Flags,
+                  Error_Or_Warning
+                    (Data.Flags, Data.Flags.Missing_Source_Files,
                      "{ is not a valid directory.", Location, Project);
 
                else
@@ -5153,8 +5236,8 @@ package body Prj.Nmsc is
 
                if not Dir_Exists then
                   Err_Vars.Error_Msg_File_1 := From;
-                  Error_Msg
-                    (Data.Flags,
+                  Error_Or_Warning
+                    (Data.Flags, Data.Flags.Missing_Source_Files,
                      "{ is not a valid directory", Location, Project);
 
                else
@@ -5234,21 +5317,9 @@ package body Prj.Nmsc is
 
                Err_Vars.Error_Msg_File_1 :=
                  File_Name_Type (Object_Dir.Value);
-
-               case Data.Flags.Require_Obj_Dirs is
-                  when Error =>
-                     Error_Msg
-                       (Data.Flags,
-                        "object directory { not found",
-                        Project.Location, Project);
-                  when Warning =>
-                     Error_Msg
-                       (Data.Flags,
-                        "?object directory { not found",
-                        Project.Location, Project);
-                  when Silent =>
-                     null;
-               end case;
+               Error_Or_Warning
+                 (Data.Flags, Data.Flags.Require_Obj_Dirs,
+                  "object directory { not found", Project.Location, Project);
             end if;
          end if;
 
@@ -6405,6 +6476,8 @@ package body Prj.Nmsc is
       declare
          Source : Source_Id;
          Iter   : Source_Iterator;
+         Found  : Boolean := False;
+         Path   : Path_Information;
 
       begin
          Iter := For_Each_Source (Data.Tree, Project.Project);
@@ -6416,26 +6489,31 @@ package body Prj.Nmsc is
               and then Source.Path = No_Path_Information
             then
                if Source.Unit /= No_Unit_Index then
+                  Found := False;
 
                   --  For multi-unit source files, source_id gets duplicated
                   --  once for every unit. Only the first source_id got its
-                  --  full path set. So if it isn't set for that first one,
-                  --  the file wasn't found. Otherwise we need to update for
-                  --  units after the first one.
+                  --  full path set.
 
-                  if Source.Index = 0
-                    or else Source.Index = 1
-                  then
+                  if Source.Index /= 0 then
+                     Path := Files_Htable.Get
+                       (Data.File_To_Source, Source.File).Path;
+
+                     if Path /= No_Path_Information then
+                        Found := True;
+                     end if;
+                  end if;
+
+                  if not Found then
                      Error_Msg_Name_1 := Name_Id (Source.Display_File);
                      Error_Msg_Name_2 := Name_Id (Source.Unit.Name);
-                     Error_Msg
-                       (Data.Flags,
+                     Error_Or_Warning
+                       (Data.Flags, Data.Flags.Missing_Source_Files,
                         "source file %% for unit %% not found",
                         No_Location, Project.Project);
 
                   else
-                     Source.Path := Files_Htable.Get
-                       (Data.File_To_Source, Source.File).Path;
+                     Source.Path := Path;
 
                      if Current_Verbosity = High then
                         if Source.Path /= No_Path_Information then
@@ -6443,7 +6521,7 @@ package body Prj.Nmsc is
                                        & Get_Name_String (Source.File)
                                        & " at" & Source.Index'Img
                                        & " to "
-                                       & Get_Name_String (Source.Path.Name));
+                                       & Get_Name_String (Path.Name));
                         end if;
                      end if;
                   end if;
@@ -6472,17 +6550,15 @@ package body Prj.Nmsc is
             while NL /= No_Name_Location loop
                if not NL.Found then
                   Err_Vars.Error_Msg_File_1 := NL.Name;
-
                   if First_Error then
-                     Error_Msg
-                       (Data.Flags,
+                     Error_Or_Warning
+                       (Data.Flags, Data.Flags.Missing_Source_Files,
                         "source file { not found",
                         NL.Location, Project.Project);
                      First_Error := False;
-
                   else
-                     Error_Msg
-                       (Data.Flags,
+                     Error_Or_Warning
+                       (Data.Flags, Data.Flags.Missing_Source_Files,
                         "\source file { not found",
                         NL.Location, Project.Project);
                   end if;
@@ -7503,6 +7579,7 @@ package body Prj.Nmsc is
 
    --  Start of processing for Process_Naming_Scheme
    begin
+      Lib_Data_Table.Init;
       Initialize (Data, Tree => Tree, Flags => Flags);
       Check_All_Projects (Root_Project, Data, Imported_First => True);
       Free (Data);

@@ -2691,6 +2691,26 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
   return ret;
 }
 
+/* Return TRUE if software prefetching is beneficial for the
+   given CPU. */
+
+static bool
+software_prefetching_beneficial_p (void)
+{
+  switch (ix86_tune)
+    {
+    case PROCESSOR_GEODE:
+    case PROCESSOR_K6:
+    case PROCESSOR_ATHLON:
+    case PROCESSOR_K8:
+    case PROCESSOR_AMDFAM10:
+      return true;
+
+    default:
+      return false;
+    }
+}
+
 /* Function that is callable from the debugger to print the current
    options.  */
 void
@@ -3534,6 +3554,13 @@ override_options (bool main_args_p)
     set_param_value ("l1-cache-size", ix86_cost->l1_cache_size);
   if (!PARAM_SET_P (PARAM_L2_CACHE_SIZE))
     set_param_value ("l2-cache-size", ix86_cost->l2_cache_size);
+
+  /* Enable sw prefetching at -O3 for CPUS that prefetching is helpful.  */
+  if (flag_prefetch_loop_arrays < 0
+      && HAVE_prefetch
+      && optimize >= 3
+      && software_prefetching_beneficial_p ())
+    flag_prefetch_loop_arrays = 1;
 
   /* If using typedef char *va_list, signal that __builtin_va_start (&ap, 0)
      can be optimized to ap = __builtin_next_arg (0).  */
@@ -7267,7 +7294,7 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
 	}
       if (need_temp)
 	{
-	  int i;
+	  int i, prev_size = 0;
 	  tree temp = create_tmp_var (type, "va_arg_tmp");
 
 	  /* addr = &temp; */
@@ -7279,13 +7306,29 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
 	      rtx slot = XVECEXP (container, 0, i);
 	      rtx reg = XEXP (slot, 0);
 	      enum machine_mode mode = GET_MODE (reg);
-	      tree piece_type = lang_hooks.types.type_for_mode (mode, 1);
-	      tree addr_type = build_pointer_type (piece_type);
-	      tree daddr_type = build_pointer_type_for_mode (piece_type,
-							     ptr_mode, true);
+	      tree piece_type;
+	      tree addr_type;
+	      tree daddr_type;
 	      tree src_addr, src;
 	      int src_offset;
 	      tree dest_addr, dest;
+	      int cur_size = GET_MODE_SIZE (mode);
+
+	      if (prev_size + cur_size > size)
+		{
+		  cur_size = size - prev_size;
+		  mode = mode_for_size (cur_size * BITS_PER_UNIT, MODE_INT, 1);
+		  if (mode == BLKmode)
+		    mode = QImode;
+		}
+	      piece_type = lang_hooks.types.type_for_mode (mode, 1);
+	      if (mode == GET_MODE (reg))
+		addr_type = build_pointer_type (piece_type);
+	      else
+		addr_type = build_pointer_type_for_mode (piece_type, ptr_mode,
+							 true);
+	      daddr_type = build_pointer_type_for_mode (piece_type, ptr_mode,
+							true);
 
 	      if (SSE_REGNO_P (REGNO (reg)))
 		{
@@ -7300,14 +7343,26 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
 	      src_addr = fold_convert (addr_type, src_addr);
 	      src_addr = fold_build2 (POINTER_PLUS_EXPR, addr_type, src_addr,
 				      size_int (src_offset));
-	      src = build_va_arg_indirect_ref (src_addr);
 
 	      dest_addr = fold_convert (daddr_type, addr);
 	      dest_addr = fold_build2 (POINTER_PLUS_EXPR, daddr_type, dest_addr,
 				       size_int (INTVAL (XEXP (slot, 1))));
-	      dest = build_va_arg_indirect_ref (dest_addr);
+	      if (cur_size == GET_MODE_SIZE (mode))
+		{
+		  src = build_va_arg_indirect_ref (src_addr);
+		  dest = build_va_arg_indirect_ref (dest_addr);
 
-	      gimplify_assign (dest, src, pre_p);
+		  gimplify_assign (dest, src, pre_p);
+		}
+	      else
+		{
+		  tree copy
+		    = build_call_expr (implicit_built_in_decls[BUILT_IN_MEMCPY],
+				       3, dest_addr, src_addr,
+				       size_int (cur_size));
+		  gimplify_and_add (copy, pre_p);
+		}
+	      prev_size += cur_size;
 	    }
 	}
 
@@ -18810,7 +18865,7 @@ promote_duplicated_reg (enum machine_mode mode, rtx val)
 	if (mode == SImode)
 	  emit_insn (gen_movsi_insv_1 (reg, reg));
 	else
-	  emit_insn (gen_movdi_insv_1_rex64 (reg, reg));
+	  emit_insn (gen_movdi_insv_1 (reg, reg));
       else
 	{
 	  tmp = expand_simple_binop (mode, ASHIFT, reg, GEN_INT (8),
@@ -22429,9 +22484,9 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_si256_si, "__builtin_ia32_si256_si", IX86_BUILTIN_SI256_SI, UNKNOWN, (int) V8SI_FTYPE_V4SI },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_ps256_ps, "__builtin_ia32_ps256_ps", IX86_BUILTIN_PS256_PS, UNKNOWN, (int) V8SF_FTYPE_V4SF },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_pd256_pd, "__builtin_ia32_pd256_pd", IX86_BUILTIN_PD256_PD, UNKNOWN, (int) V4DF_FTYPE_V2DF },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_si_si256, "__builtin_ia32_si_si256", IX86_BUILTIN_SI_SI256, UNKNOWN, (int) V4SI_FTYPE_V8SI },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_ps_ps256, "__builtin_ia32_ps_ps256", IX86_BUILTIN_PS_PS256, UNKNOWN, (int) V4SF_FTYPE_V8SF },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_pd_pd256, "__builtin_ia32_pd_pd256", IX86_BUILTIN_PD_PD256, UNKNOWN, (int) V2DF_FTYPE_V4DF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_vec_extract_lo_v8si, "__builtin_ia32_si_si256", IX86_BUILTIN_SI_SI256, UNKNOWN, (int) V4SI_FTYPE_V8SI },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_vec_extract_lo_v8sf, "__builtin_ia32_ps_ps256", IX86_BUILTIN_PS_PS256, UNKNOWN, (int) V4SF_FTYPE_V8SF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_vec_extract_lo_v4df, "__builtin_ia32_pd_pd256", IX86_BUILTIN_PD_PD256, UNKNOWN, (int) V2DF_FTYPE_V4DF },
 
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vtestpd, "__builtin_ia32_vtestzpd", IX86_BUILTIN_VTESTZPD, EQ, (int) INT_FTYPE_V2DF_V2DF_PTEST },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vtestpd, "__builtin_ia32_vtestcpd", IX86_BUILTIN_VTESTCPD, LTU, (int) INT_FTYPE_V2DF_V2DF_PTEST },
@@ -23655,7 +23710,7 @@ ix86_expand_args_builtin (const struct builtin_description *d,
     } args[4];
   bool last_arg_count = false;
   enum insn_code icode = d->icode;
-  const struct insn_data *insn_p = &insn_data[icode];
+  const struct insn_data_d *insn_p = &insn_data[icode];
   enum machine_mode tmode = insn_p->operand[0].mode;
   enum machine_mode rmode = VOIDmode;
   bool swap = false;
@@ -24049,7 +24104,7 @@ ix86_expand_special_args_builtin (const struct builtin_description *d,
     } args[3];
   enum insn_code icode = d->icode;
   bool last_arg_constant = false;
-  const struct insn_data *insn_p = &insn_data[icode];
+  const struct insn_data_d *insn_p = &insn_data[icode];
   enum machine_mode tmode = insn_p->operand[0].mode;
   enum { load, store } klass;
 
@@ -25601,7 +25656,7 @@ ix86_memory_move_cost (enum machine_mode mode, enum reg_class regclass,
    on some machines it is expensive to move between registers if they are not
    general registers.  */
 
-int
+static int
 ix86_register_move_cost (enum machine_mode mode, enum reg_class class1,
 			 enum reg_class class2)
 {
@@ -30773,6 +30828,8 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION ix86_handle_option
 
+#undef TARGET_REGISTER_MOVE_COST
+#define TARGET_REGISTER_MOVE_COST ix86_register_move_cost
 #undef TARGET_MEMORY_MOVE_COST
 #define TARGET_MEMORY_MOVE_COST ix86_memory_move_cost
 #undef TARGET_RTX_COSTS

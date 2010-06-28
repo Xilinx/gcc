@@ -258,7 +258,7 @@ Objective-C and Objective-C++ Dialects}.
 -Wsign-compare  -Wsign-conversion  -Wstack-protector @gol
 -Wstrict-aliasing -Wstrict-aliasing=n @gol
 -Wstrict-overflow -Wstrict-overflow=@var{n} @gol
--Wsuggest-attribute=@r{[}const@r{|}pure@r{]} @gol
+-Wsuggest-attribute=@r{[}pure@r{|}const@r{|}noreturn@r{]} @gol
 -Wswitch  -Wswitch-default  -Wswitch-enum -Wsync-nand @gol
 -Wsystem-headers  -Wtrigraphs  -Wtype-limits  -Wundef  -Wuninitialized @gol
 -Wunknown-pragmas  -Wno-pragmas @gol
@@ -362,7 +362,7 @@ Objective-C and Objective-C++ Dialects}.
 -fno-sched-interblock -fno-sched-spec -fno-signed-zeros @gol
 -fno-toplevel-reorder -fno-trapping-math -fno-zero-initialized-in-bss @gol
 -fomit-frame-pointer -foptimize-register-move -foptimize-sibling-calls @gol
--fpeel-loops -fpredictive-commoning -fprefetch-loop-arrays @gol
+-fpartial-inlining -fpeel-loops -fpredictive-commoning -fprefetch-loop-arrays @gol
 -fprofile-correction -fprofile-dir=@var{path} -fprofile-generate @gol
 -fprofile-generate=@var{path} @gol
 -fprofile-use -fprofile-use=@var{path} -fprofile-values @gol
@@ -3275,6 +3275,12 @@ look like this:
 @end group
 @end smallexample
 
+Also warn for dangerous uses of the 
+?: with omitted middle operand GNU extension. When the condition
+in the ?: operator is a boolean expression the omitted value will
+be always 1. Often the user expects it to be a value computed
+inside the conditional expression instead. 
+
 This warning is enabled by @option{-Wall}.
 
 @item -Wsequence-point
@@ -3663,7 +3669,7 @@ comparisons, so this warning level will give a very large number of
 false positives.
 @end table
 
-@item -Wsuggest-attribute=@r{[}const@r{|}pure@r{]}
+@item -Wsuggest-attribute=@r{[}pure@r{|}const@r{|}noreturn@r{]}
 @opindex Wsuggest-attribute=
 @opindex Wno-suggest-attribute=
 Warn for cases where adding an attribute may be beneficial. The
@@ -3672,6 +3678,7 @@ attributes currently supported are listed below.
 @table @gcctabopt
 @item -Wsuggest-attribute=pure
 @itemx -Wsuggest-attribute=const
+@itemx -Wsuggest-attribute=noreturn
 @opindex Wsuggest-attribute=pure
 @opindex Wno-suggest-attribute=pure
 @opindex Wsuggest-attribute=const
@@ -5864,6 +5871,7 @@ also turns on the following optimization flags:
 -findirect-inlining @gol
 -fipa-sra @gol
 -foptimize-sibling-calls @gol
+-fpartial-inlining @gol
 -fpeephole2 @gol
 -fregmove @gol
 -freorder-blocks  -freorder-functions @gol
@@ -7021,6 +7029,14 @@ This optimization is enabled by default.
 With this option, the compiler will create multiple copies of some
 local variables when unrolling a loop which can result in superior code.
 
+@item -fpartial-inlining
+@opindex fpartial-inlining
+Inline parts of functions.  This option has any effect only
+when inlining itself is turned on by the @option{-finline-functions}
+or @option{-finline-small-functions} options.
+
+Enabled at level @option{-O2}.
+
 @item -fpredictive-commoning
 @opindex fpredictive-commoning
 Perform predictive commoning optimization, i.e., reusing computations
@@ -7294,7 +7310,7 @@ Enabled by default with @option{-funroll-loops}.
 Assume that the current compilation unit represents the whole program being
 compiled.  All public functions and variables with the exception of @code{main}
 and those merged by attribute @code{externally_visible} become static functions
-and in effect are optimized more aggressively by interprocedural optimizers.
+and in effect are optimized more aggressively by interprocedural optimizers. If @command{gold} is used as the linker plugin, @code{externally_visible} attributes are automatically added to functions (not variable yet due to a current @command{gold} issue) that are accessed outside of LTO objects according to resolution file produced by @command{gold}.  For other linkers that cannot generate resolution file, explicit @code{externally_visible} attributes are still necessary.
 While this option is equivalent to proper use of the @code{static} keyword for
 programs consisting of a single file, in combination with option
 @option{-combine}, @option{-flto} or @option{-fwhopr} this flag can be used to
@@ -8109,7 +8125,7 @@ a lot of functions that would otherwise not be considered for inlining
 by the compiler will be investigated.  To those functions, a different
 (more restrictive) limit compared to functions declared inline can
 be applied.
-The default value is 50.
+The default value is 40.
 
 @item large-function-insns
 The limit specifying really large functions.  For functions larger than this
@@ -14924,7 +14940,7 @@ Supported values for @var{cpu_type} are @samp{401}, @samp{403},
 @samp{7400}, @samp{7450}, @samp{750}, @samp{801}, @samp{821}, @samp{823},
 @samp{860}, @samp{970}, @samp{8540}, @samp{a2}, @samp{e300c2},
 @samp{e300c3}, @samp{e500mc}, @samp{e500mc64}, @samp{ec603e}, @samp{G3},
-@samp{G4}, @samp{G5}, @samp{power}, @samp{power2}, @samp{power3},
+@samp{G4}, @samp{G5}, @samp{titan}, @samp{power}, @samp{power2}, @samp{power3},
 @samp{power4}, @samp{power5}, @samp{power5+}, @samp{power6}, @samp{power6x},
 @samp{power7}, @samp{common}, @samp{powerpc}, @samp{powerpc64}, @samp{rios},
 @samp{rios1}, @samp{rios2}, @samp{rsc}, and @samp{rs64}.
@@ -14980,11 +14996,6 @@ scheduling parameters set by @option{-mtune}.
 @opindex mcmodel=small
 Generate PowerPC64 code for the small model: The TOC is limited to
 64k.
-
-@item -mcmodel=medium
-@opindex mcmodel=medium
-Generate PowerPC64 code for the medium model: The TOC and other static
-data may be up to a total of 4G in size.
 
 @item -mcmodel=large
 @opindex mcmodel=large

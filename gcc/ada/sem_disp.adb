@@ -677,18 +677,15 @@ package body Sem_Disp is
       Set_Is_Dispatching_Operation (Subp, False);
       Tagged_Type := Find_Dispatching_Type (Subp);
 
-      --  Ada 2005 (AI-345)
+      --  Ada 2005 (AI-345): Use the corresponding record (if available).
+      --  Required because primitives of concurrent types are be attached
+      --  to the corresponding record (not to the concurrent type).
 
-      if Ada_Version = Ada_05
+      if Ada_Version >= Ada_05
         and then Present (Tagged_Type)
         and then Is_Concurrent_Type (Tagged_Type)
+        and then Present (Corresponding_Record_Type (Tagged_Type))
       then
-         --  Protect the frontend against previously detected errors
-
-         if No (Corresponding_Record_Type (Tagged_Type)) then
-            return;
-         end if;
-
          Tagged_Type := Corresponding_Record_Type (Tagged_Type);
       end if;
 
@@ -787,7 +784,7 @@ package body Sem_Disp is
         and then not Comes_From_Source (Subp)
         and then not Has_Dispatching_Parent
       then
-         --  Complete decoration if internally built subprograms that override
+         --  Complete decoration of internally built subprograms that override
          --  a dispatching primitive. These entities correspond with the
          --  following cases:
 
@@ -1067,6 +1064,18 @@ package body Sem_Disp is
                end;
             end if;
          end if;
+
+      --  If the tagged type is a concurrent type then we must be compiling
+      --  with no code generation (we are either compiling a generic unit or
+      --  compiling under -gnatc mode) because we have previously tested that
+      --  no serious errors has been reported. In this case we do not add the
+      --  primitive to the list of primitives of Tagged_Type but we leave the
+      --  primitive decorated as a dispatching operation to be able to analyze
+      --  and report errors associated with the Object.Operation notation.
+
+      elsif Is_Concurrent_Type (Tagged_Type) then
+         pragma Assert (not Expander_Active);
+         null;
 
       --  If no old subprogram, then we add this as a dispatching operation,
       --  but we avoid doing this if an error was posted, to prevent annoying
@@ -1700,7 +1709,28 @@ package body Sem_Disp is
          return;
       end if;
 
-      Replace_Elmt (Elmt, New_Op);
+      --  The location of entities that come from source in the list of
+      --  primitives of the tagged type must follow their order of occurrence
+      --  in the sources to fulfill the C++ ABI. If the overriden entity is a
+      --  primitive of an interface that is not an ancestor of this tagged
+      --  type (that is, it is an entity added to the list of primitives by
+      --  Derive_Interface_Progenitors), then we must append the new entity
+      --  at the end of the list of primitives.
+
+      if Present (Alias (Prev_Op))
+        and then Is_Interface (Find_Dispatching_Type (Alias (Prev_Op)))
+        and then not Is_Ancestor (Find_Dispatching_Type (Alias (Prev_Op)),
+                                  Tagged_Type)
+      then
+         Remove_Elmt (Primitive_Operations (Tagged_Type), Elmt);
+         Append_Elmt (New_Op, Primitive_Operations (Tagged_Type));
+
+      --  The new primitive replaces the overriden entity. Required to ensure
+      --  that overriding primitive is assigned the same dispatch table slot.
+
+      else
+         Replace_Elmt (Elmt, New_Op);
+      end if;
 
       if Ada_Version >= Ada_05
         and then Has_Interfaces (Tagged_Type)

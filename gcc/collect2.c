@@ -1535,12 +1535,7 @@ main (int argc, char **argv)
 	    case 'o':
 	      if (arg[2] == '\0')
 		output_file = *ld1++ = *ld2++ = *++argv;
-	      else if (1
-#ifdef SWITCHES_NEED_SPACES
-		       && ! strchr (SWITCHES_NEED_SPACES, arg[1])
-#endif
-		       )
-
+	      else
 		output_file = &arg[2];
 	      break;
 
@@ -1593,9 +1588,9 @@ main (int argc, char **argv)
 		}
 	      else if (strncmp (arg, "--sysroot=", 10) == 0)
 		target_system_root = arg + 10;
-	      else if (strncmp (arg, "--version", 9) == 0)
+	      else if (strcmp (arg, "--version") == 0)
 		vflag = true;
-	      else if (strncmp (arg, "--help", 9) == 0)
+	      else if (strcmp (arg, "--help") == 0)
 		helpflag = true;
 	      break;
 	    }

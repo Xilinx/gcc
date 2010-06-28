@@ -6540,6 +6540,23 @@ commutative_tree_code (enum tree_code code)
   return false;
 }
 
+/* Return true if CODE represents a ternary tree code for which the
+   first two operands are commutative.  Otherwise return false.  */
+bool
+commutative_ternary_tree_code (enum tree_code code)
+{
+  switch (code)
+    {
+    case WIDEN_MULT_PLUS_EXPR:
+    case WIDEN_MULT_MINUS_EXPR:
+      return true;
+
+    default:
+      break;
+    }
+  return false;
+}
+
 /* Generate a hash value for an expression.  This can be used iteratively
    by passing a previous result as the VAL argument.
 
@@ -7286,6 +7303,13 @@ build_function_decl_skip_args (tree orig_decl, bitmap args_to_skip)
      we expect first argument to be THIS pointer.   */
   if (bitmap_bit_p (args_to_skip, 0))
     DECL_VINDEX (new_decl) = NULL_TREE;
+
+  /* When signature changes, we need to clear builtin info.  */
+  if (DECL_BUILT_IN (new_decl) && !bitmap_empty_p (args_to_skip))
+    {
+      DECL_BUILT_IN_CLASS (new_decl) = NOT_BUILT_IN;
+      DECL_FUNCTION_CODE (new_decl) = (enum built_in_function) 0;
+    }
   return new_decl;
 }
 

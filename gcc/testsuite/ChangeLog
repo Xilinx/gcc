@@ -1,3 +1,225 @@
+2010-06-28  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/44687
+	* gcc.c-torture/compile/pr44687.c
+
+2010-06-28  Martin Jambor  <mjambor@suse.cz>
+
+	PR c++/44535
+	* g++.dg/torture/pr44535.C: New test.
+
+2010-06-28  Michael Matz  <matz@suse.de>
+
+	PR middle-end/44592
+	* gfortran.dg/pr44592.f90: New test.
+
+2010-06-28  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/44357
+	* g++.dg/torture/pr44357.C: New testcase.
+
+2010-06-28  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/tree-ssa/ltrans-1.c: Add -march=i486 for i?86-*-* && ilp32.
+	* gcc.dg/tree-ssa/ltrans-3.c: Likewise.
+	* gcc.dg/tree-ssa/ltrans-4.c: Likewise.
+	* gcc.dg/tree-ssa/ltrans-5.c: Likewise.
+	* gcc.dg/tree-ssa/ltrans-6.c: Likewise.
+	* gcc.dg/tree-ssa/ltrans-8.c: Likewise.
+	* gcc.dg/tree-ssa/vrp47.c: Add -march=i586 for i?86-*-* && ilp32.
+	* gfortran.dg/ltrans-7.f90: Add -march=i486 for i?86-*-* && ilp32.
+
+2010-06-27  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.c-torture/compile/pr44686.c: New file.
+
+2010-06-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44683
+	* gcc.c-torture/execute/pr44683.c: New testcase.
+
+2010-06-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/noreturn3.ad[sb]: New test.
+
+2010-06-26  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/explicit5.C: New.
+
+2010-06-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44393
+	* gcc.dg/pr44393.c: New testcase.
+
+2010-06-26  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/ipa-split-2.c: New testcase.
+
+2010-06-26  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44674
+	* gcc.dg/pr44674.c: New testcase.
+
+2010-06-26  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/opts-3.c: New test.
+
+2010-06-26  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/type_decl_1.f90: New.
+	* gfortran.dg/type_decl_2.f90: New.
+
+2010-06-26  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/semicolon_fixed.f: Fix dg syntax..
+	* gfortran.dg/semicolon_fixed_2.f: Ditto.
+
+2010-06-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR testsuite/38946
+	* gfortran.dg/array_constructor_23.f: Update test to allow for small
+	error in comparing reals.
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* selected_real_kind_2.f90: New.
+	* selected_real_kind_3.f90: New.
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/entry_19.f90: New.
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/end_subroutine_1.f90: New.
+	* gfortran.dg/end_subroutine_2.f90: New.
+	* gfortran.dg/interface_proc_end.f90: Update.
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/semicolon_fixed.f: Update.
+	* gfortran.dg/semicolon_fixed_2.f: New.
+	* gfortran.dg/semicolon_free_2.f90: New.
+	* gfortran.dg/semicolon_free.f90: Update.
+
+2010-06-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/44448
+	* gfortran.dg/atan2_1.f90: Add -ffloat-store.
+
+2010-06-25  Martin Jambor  <mjambor@suse.cz>
+
+	* g++.dg/ipa/iinline-3.C: New test.
+	* gcc.dg/ipa/modif-1.c: Removed.
+
+2010-06-25  Jan Hubicka  <jh@suse.cz>
+
+	* testsuite/gcc.dg/tree-ssa/ipa-split-1.c
+
+2010-06-25  Martin Jambor  <mjambor@suse.cz>
+
+	* g++.dg/ipa/iinline-2.C: New test.
+
+2010-06-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/43866
+	* gfortran.dg/pr43866.f90: New test.
+
+	PR tree-optimization/44539
+	* gcc.dg/pr44539.c: New test.
+
+2010-06-25  Bernd Schmidt  <bernds@codesourcery.com>
+
+	From Jim Wilson:
+	PR target/43902
+	* gcc.target/mips/madd-9.c: New test.
+
+2010-06-25  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c/44517
+	* gcc.dg/noncompile/pr44517.c: New.
+	* gcc.dg/noncompile/990416-1.c: Adjust expected error.
+
+2010-06-24  Steve Ellcey  <sje@cup.hp.com>
+
+	PR testsuite/43283
+	* gcc.dg/lto/20091216-1_0.c: Use newline instead of semicolon
+	and add argument to nop for IA64.
+
+2010-06-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44588
+	* gcc.target/i386/mod-1.c: New.
+	* gcc.target/i386/umod-1.c: Likewise.
+	* gcc.target/i386/umod-2.c: Likewise.
+	* gcc.target/i386/umod-3.c: Likewise.
+
+2010-06-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/44492
+	* g++.dg/torture/pr44492.C: New test.
+
+2010-06-24  Andi Kleen  <ak@linux.intel.com>
+
+	* c-c++-common/warn-omitted-condop.c: New.
+
+2010-06-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44614
+	* gfortran.dg/import8.f90: New.
+
+2010-06-23  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat.dg/not_null.adb: Update test case.
+
+2010-06-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44619
+	* g++.dg/warn/Wunused-var-13.C: New test.
+
+	PR c++/44627
+	* g++.dg/diagnostic/method1.C: New test.
+
+2010-06-22  Cary Coutant  <ccoutant@google.com>
+
+	* g++.dg/debug/dwarf2/dwarf4-typedef.C: New test.
+
+2010-06-22  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44616
+	* gfortran.dg/abstract_type_8.f03: New.
+
+2010-06-21  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/noexcept08.C: New.
+
+	* g++.dg/ext/unary_trait_incomplete.C: Adjust.
+
+2010-06-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44615
+	* gcc.target/i386/sse2-vec-2a.c: New.
+
+2010-06-21  DJ Delorie  <dj@redhat.com>
+
+	* gcc.dg/pragma-diag-1.c: New.
+
+2010-06-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44615
+	* gcc.target/i386/amd64-abi-3.c: Add -mtune=k8.
+
+2010-06-21  Alan Modra  <amodra@gmail.com>
+
+	PR testsuite/44505
+	* gcc.c-torture/execute/frame-address.c (check_fa): Avoid
+	tail call to check_fa_mid.
+
+2010-06-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/44575
+	* gcc.c-torture/execute/pr44575.c: New test.
+
 2010-06-21  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/40632
