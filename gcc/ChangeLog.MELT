@@ -1,5 +1,8 @@
 
 2010-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-make.mk: replaced run-melt.h by melt-run.h everywhere.
+
+2010-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in (MELT_OBJ): removed definition, use melt-runtime.o.
 	(melt-run-md5.h): Added its generation.
