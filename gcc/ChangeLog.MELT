@@ -1,5 +1,8 @@
 
 2010-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_marking_callback): Made better debug print...
+
+2010-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h: mcfr_nbvar is a signed int.
 
