@@ -3474,6 +3474,8 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 	      (return ())))
 	(let ( (fld (unsafe_get_field :sfla_field flda))
 	       (exp (unsafe_get_field :sfla_expr flda)) )
+	  (if (null exp)
+	      (error_plain loc "missing object expression for (UNSAFE_GET_FIELD :field objexpr)"))
 	  (instance class_source_unsafe_get_field
 		    :loca_location loc
 		    :suget_obj exp
@@ -3513,6 +3515,8 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 	      (return ())))
 	(let ( (fld (unsafe_get_field :sfla_field flda))
 	       (exp (unsafe_get_field :sfla_expr flda)) )
+	  (if (null exp)
+	      (error_plain loc "missing object expression for (GET_FIELD :field objexpr)"))
 	  (instance class_source_get_field
 		    :loca_location loc
 		    :suget_obj exp

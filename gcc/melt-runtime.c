@@ -718,6 +718,7 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
   /* Scan all the MELT call frames */
   for (cf = (struct callframe_melt_st*) melt_topframe; cf != NULL;
        cf = cf->mcfr_prev) {
+    dbgprintf ("melt_marking_callback %ld cf=%p", meltmarkingcount, cf);
     if (cf->mcfr_closp && cf->mcfr_nbvar >= 0)
       {
 	/* Common case, we have a closure. */
@@ -737,8 +738,8 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	   routine.  This happens in particular for the initial frame
 	   of generated MELT modules;  their startup routine has a
 	   special marking routine.  */
-	dbgprintf ("melt_marking_callback %ld calling frame marking routine",
-		   meltmarkingcount);
+	dbgprintf ("melt_marking_callback %ld calling frame marking routine cf=%p",
+		   meltmarkingcount, cf);
 	cf->mcfr_markrout ((void*)cf);
 	dbgprintf ("melt_marking_callback %ld called frame marking routine",
 		   meltmarkingcount);

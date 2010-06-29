@@ -1,6 +1,21 @@
 
 2010-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h: mcfr_nbvar is a signed int.
+
+	* melt-runtime.c (melt_marking_callback): Added debug print...
+
+	* melt/warmelt-macro.melt: in macroexpanders of get_field &
+	unsafe_get_field added check that an object is given.
+
+	* melt/warmelt-outobj.melt: in the initial frame, the nbvar is set
+	to a small negative quasirandom magic, and checked in the
+	generated marking routine.
+
+	* melt/xtramelt-ana-base.melt: added gimple_copy.
+
+2010-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-run.h (MELT_SET_MODULE_INITIAL_FRAME)
 	(MELT_CLEAR_MODULE_INITIAL_FRAME): Removed.
 

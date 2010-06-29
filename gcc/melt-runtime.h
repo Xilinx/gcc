@@ -3449,7 +3449,7 @@ extern melt_ptr_t melt_jmpval;
 #define MELT_LOCATION_HERE(MSG)  MELT_LOCATION_HERE_AT(__FILE__,__LINE__,MSG)
 #else
 #define MELT_DECLFRAME(NBVAR) struct {		\
-  unsigned mcfr_nbvar;				\
+  int mcfr_nbvar;				\
   struct meltclosure_st* mcfr_clos;		\
   struct excepth_melt_st* mcfr_exh;		\
   struct callframe_melt_st* mcfr_prev;		\

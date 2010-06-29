@@ -58,6 +58,9 @@
 (defprimitive gimple_seq_of_basic_block (:basic_block bb) :gimple_seq
   #{(($bb)?bb_seq(($bb)):NULL)}#)
 
+;;; copy an unboxed gimple_copy
+(defprimitive gimple_copy (:gimple g) :gimple
+  #{ (($g)?gimple_copy($g):NULL) }#)
 
 ;;;;;;;;;;;;;;;; map associating GCC gimple-s to non-null MELT values
 (defprimitive is_mapgimple (map) :long
@@ -2488,6 +2491,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_cond_with_edges
  gimple_cond_with_true_false_labels
  gimple_content
+ gimple_copy
  gimple_debug
  gimple_debug_bind
  gimple_error_mark_or_nil
