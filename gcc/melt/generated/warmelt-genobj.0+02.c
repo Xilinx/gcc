@@ -848,8 +848,6 @@ melt_ptr_t MELT_MODULE_VISIBILITY meltrout_164_warmelt_genobj_LAMBDA_(meltclosur
 
 
 void* start_module_melt(void*);
-void mark_module_melt(void*);
-void* initial_frame_melt;
 
 struct frame_start_module_melt_st;
 void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_0 (struct frame_start_module_melt_st*, char*);
@@ -869,6 +867,7 @@ void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_13 (struct frame_sta
 void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_14 (struct frame_start_module_melt_st*, char*);
 void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_15 (struct frame_start_module_melt_st*, char*);
 void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_16 (struct frame_start_module_melt_st*, char*);
+static void mark_module_start_frame_warmelt_genobj (void*fp);
 
 
 /**** warmelt-genobj.0+02.c implementations ****/
@@ -890,17 +889,18 @@ meltrout_87_warmelt_genobj_COMPILOBJ_VALUE_BINDING(meltclosure_ptr_t closp_, mel
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_87_warmelt_genobj_COMPILOBJ_VALUE_BINDING_st { unsigned nbvar;
+ struct frame_meltrout_87_warmelt_genobj_COMPILOBJ_VALUE_BINDING_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 18
-  void* varptr[18];
+  void* mcfr_varptr[18];
 #define MELTFRAM_NBVARNUM 5
-  long varnum[5];
+  long mcfr_varnum[5];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -908,16 +908,16 @@ meltrout_87_warmelt_genobj_COMPILOBJ_VALUE_BINDING(meltclosure_ptr_t closp_, mel
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<18; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 18;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 18;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_VALUE_BINDING", meltcallcount);
 /*getargs*/
@@ -1207,7 +1207,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_VALUE_BINDING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_VALUE_BINDING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -1233,17 +1233,18 @@ meltrout_88_warmelt_genobj_COMPILOBJ_FIXED_BINDING(meltclosure_ptr_t closp_, mel
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_88_warmelt_genobj_COMPILOBJ_FIXED_BINDING_st { unsigned nbvar;
+ struct frame_meltrout_88_warmelt_genobj_COMPILOBJ_FIXED_BINDING_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 15
-  void* varptr[15];
+  void* mcfr_varptr[15];
 #define MELTFRAM_NBVARNUM 4
-  long varnum[4];
+  long mcfr_varnum[4];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -1251,16 +1252,16 @@ meltrout_88_warmelt_genobj_COMPILOBJ_FIXED_BINDING(meltclosure_ptr_t closp_, mel
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<15; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 15;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 15;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_FIXED_BINDING", meltcallcount);
 /*getargs*/
@@ -1502,7 +1503,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_FIXED_BINDING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_FIXED_BINDING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -1528,17 +1529,18 @@ meltrout_89_warmelt_genobj_COMPILOBJ_NORMAL_LET_BINDING(meltclosure_ptr_t closp_
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_89_warmelt_genobj_COMPILOBJ_NORMAL_LET_BINDING_st { unsigned nbvar;
+ struct frame_meltrout_89_warmelt_genobj_COMPILOBJ_NORMAL_LET_BINDING_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 19
-  void* varptr[19];
+  void* mcfr_varptr[19];
 #define MELTFRAM_NBVARNUM 4
-  long varnum[4];
+  long mcfr_varnum[4];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -1546,16 +1548,16 @@ meltrout_89_warmelt_genobj_COMPILOBJ_NORMAL_LET_BINDING(meltclosure_ptr_t closp_
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<19; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 19;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 19;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_NORMAL_LET_BINDING", meltcallcount);
 /*getargs*/
@@ -1854,7 +1856,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NORMAL_LET_BINDING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NORMAL_LET_BINDING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -1880,17 +1882,18 @@ meltrout_90_warmelt_genobj_COMPILOBJ_CONSLAMBDABIND(meltclosure_ptr_t closp_, me
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_90_warmelt_genobj_COMPILOBJ_CONSLAMBDABIND_st { unsigned nbvar;
+ struct frame_meltrout_90_warmelt_genobj_COMPILOBJ_CONSLAMBDABIND_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 44
-  void* varptr[44];
+  void* mcfr_varptr[44];
 #define MELTFRAM_NBVARNUM 14
-  long varnum[14];
+  long mcfr_varnum[14];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -1898,16 +1901,16 @@ meltrout_90_warmelt_genobj_COMPILOBJ_CONSLAMBDABIND(meltclosure_ptr_t closp_, me
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<44; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 44;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 44;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_CONSLAMBDABIND", meltcallcount);
 /*getargs*/
@@ -2598,7 +2601,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_CONSLAMBDABIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_CONSLAMBDABIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -2624,17 +2627,18 @@ meltrout_91_warmelt_genobj_COMPILOBJ_CONSTUPLEBIND(meltclosure_ptr_t closp_, mel
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_91_warmelt_genobj_COMPILOBJ_CONSTUPLEBIND_st { unsigned nbvar;
+ struct frame_meltrout_91_warmelt_genobj_COMPILOBJ_CONSTUPLEBIND_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 30
-  void* varptr[30];
+  void* mcfr_varptr[30];
 #define MELTFRAM_NBVARNUM 8
-  long varnum[8];
+  long mcfr_varnum[8];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -2642,16 +2646,16 @@ meltrout_91_warmelt_genobj_COMPILOBJ_CONSTUPLEBIND(meltclosure_ptr_t closp_, mel
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<30; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 30;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 30;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_CONSTUPLEBIND", meltcallcount);
 /*getargs*/
@@ -3096,7 +3100,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_CONSTUPLEBIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_CONSTUPLEBIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -3122,17 +3126,18 @@ meltrout_92_warmelt_genobj_COMPILOBJ_CONSPAIRBIND(meltclosure_ptr_t closp_, melt
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_92_warmelt_genobj_COMPILOBJ_CONSPAIRBIND_st { unsigned nbvar;
+ struct frame_meltrout_92_warmelt_genobj_COMPILOBJ_CONSPAIRBIND_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 40
-  void* varptr[40];
+  void* mcfr_varptr[40];
 #define MELTFRAM_NBVARNUM 11
-  long varnum[11];
+  long mcfr_varnum[11];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -3140,16 +3145,16 @@ meltrout_92_warmelt_genobj_COMPILOBJ_CONSPAIRBIND(meltclosure_ptr_t closp_, melt
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<40; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 40;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 40;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_CONSPAIRBIND", meltcallcount);
 /*getargs*/
@@ -3776,7 +3781,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_CONSPAIRBIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_CONSPAIRBIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -3802,17 +3807,18 @@ meltrout_93_warmelt_genobj_COMPILOBJ_CONSLISTBIND(meltclosure_ptr_t closp_, melt
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_93_warmelt_genobj_COMPILOBJ_CONSLISTBIND_st { unsigned nbvar;
+ struct frame_meltrout_93_warmelt_genobj_COMPILOBJ_CONSLISTBIND_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 31
-  void* varptr[31];
+  void* mcfr_varptr[31];
 #define MELTFRAM_NBVARNUM 6
-  long varnum[6];
+  long mcfr_varnum[6];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -3820,16 +3826,16 @@ meltrout_93_warmelt_genobj_COMPILOBJ_CONSLISTBIND(meltclosure_ptr_t closp_, melt
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<31; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 31;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 31;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_CONSLISTBIND", meltcallcount);
 /*getargs*/
@@ -4249,7 +4255,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_CONSLISTBIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_CONSLISTBIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -4275,17 +4281,18 @@ meltrout_94_warmelt_genobj_COMPILOBJ_CONSINSTANCEBIND(meltclosure_ptr_t closp_, 
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_94_warmelt_genobj_COMPILOBJ_CONSINSTANCEBIND_st { unsigned nbvar;
+ struct frame_meltrout_94_warmelt_genobj_COMPILOBJ_CONSINSTANCEBIND_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 41
-  void* varptr[41];
+  void* mcfr_varptr[41];
 #define MELTFRAM_NBVARNUM 10
-  long varnum[10];
+  long mcfr_varnum[10];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -4293,16 +4300,16 @@ meltrout_94_warmelt_genobj_COMPILOBJ_CONSINSTANCEBIND(meltclosure_ptr_t closp_, 
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<41; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 41;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 41;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_CONSINSTANCEBIND", meltcallcount);
 /*getargs*/
@@ -4917,7 +4924,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_CONSINSTANCEBIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_CONSINSTANCEBIND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -4943,17 +4950,18 @@ meltrout_95_warmelt_genobj_PUTOBJDEST_OBJVALUE(meltclosure_ptr_t closp_, melt_pt
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_95_warmelt_genobj_PUTOBJDEST_OBJVALUE_st { unsigned nbvar;
+ struct frame_meltrout_95_warmelt_genobj_PUTOBJDEST_OBJVALUE_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 46
-  void* varptr[46];
+  void* mcfr_varptr[46];
 #define MELTFRAM_NBVARNUM 10
-  long varnum[10];
+  long mcfr_varnum[10];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -4961,16 +4969,16 @@ meltrout_95_warmelt_genobj_PUTOBJDEST_OBJVALUE(meltclosure_ptr_t closp_, melt_pt
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<46; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 46;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 46;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("PUTOBJDEST_OBJVALUE", meltcallcount);
 /*getargs*/
@@ -5670,7 +5678,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJVALUE", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJVALUE", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -5696,17 +5704,18 @@ meltrout_96_warmelt_genobj_PUTOBJDEST_INTEGER(meltclosure_ptr_t closp_, melt_ptr
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_96_warmelt_genobj_PUTOBJDEST_INTEGER_st { unsigned nbvar;
+ struct frame_meltrout_96_warmelt_genobj_PUTOBJDEST_INTEGER_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 21
-  void* varptr[21];
+  void* mcfr_varptr[21];
 #define MELTFRAM_NBVARNUM 6
-  long varnum[6];
+  long mcfr_varnum[6];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -5714,16 +5723,16 @@ meltrout_96_warmelt_genobj_PUTOBJDEST_INTEGER(meltclosure_ptr_t closp_, melt_ptr
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<21; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 21;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 21;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("PUTOBJDEST_INTEGER", meltcallcount);
 /*getargs*/
@@ -6075,7 +6084,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_INTEGER", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_INTEGER", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -6101,17 +6110,18 @@ meltrout_97_warmelt_genobj_PUTOBJDEST_STRING(meltclosure_ptr_t closp_, melt_ptr_
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_97_warmelt_genobj_PUTOBJDEST_STRING_st { unsigned nbvar;
+ struct frame_meltrout_97_warmelt_genobj_PUTOBJDEST_STRING_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 21
-  void* varptr[21];
+  void* mcfr_varptr[21];
 #define MELTFRAM_NBVARNUM 6
-  long varnum[6];
+  long mcfr_varnum[6];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -6119,16 +6129,16 @@ meltrout_97_warmelt_genobj_PUTOBJDEST_STRING(meltclosure_ptr_t closp_, melt_ptr_
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<21; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 21;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 21;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("PUTOBJDEST_STRING", meltcallcount);
 /*getargs*/
@@ -6480,7 +6490,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_STRING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_STRING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -6506,17 +6516,18 @@ meltrout_98_warmelt_genobj_PUTOBJDEST_NULL(meltclosure_ptr_t closp_, melt_ptr_t 
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_98_warmelt_genobj_PUTOBJDEST_NULL_st { unsigned nbvar;
+ struct frame_meltrout_98_warmelt_genobj_PUTOBJDEST_NULL_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 20
-  void* varptr[20];
+  void* mcfr_varptr[20];
 #define MELTFRAM_NBVARNUM 7
-  long varnum[7];
+  long mcfr_varnum[7];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -6524,16 +6535,16 @@ meltrout_98_warmelt_genobj_PUTOBJDEST_NULL(meltclosure_ptr_t closp_, melt_ptr_t 
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<20; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 20;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 20;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("PUTOBJDEST_NULL", meltcallcount);
 /*getargs*/
@@ -6895,7 +6906,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_NULL", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_NULL", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -6921,17 +6932,18 @@ meltrout_99_warmelt_genobj_PUTOBJDEST_OBJANYBLOCK(meltclosure_ptr_t closp_, melt
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_99_warmelt_genobj_PUTOBJDEST_OBJANYBLOCK_st { unsigned nbvar;
+ struct frame_meltrout_99_warmelt_genobj_PUTOBJDEST_OBJANYBLOCK_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 17
-  void* varptr[17];
+  void* mcfr_varptr[17];
 #define MELTFRAM_NBVARNUM 4
-  long varnum[4];
+  long mcfr_varnum[4];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -6939,16 +6951,16 @@ meltrout_99_warmelt_genobj_PUTOBJDEST_OBJANYBLOCK(meltclosure_ptr_t closp_, melt
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<17; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 17;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 17;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("PUTOBJDEST_OBJANYBLOCK", meltcallcount);
 /*getargs*/
@@ -7245,7 +7257,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJANYBLOCK", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJANYBLOCK", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -7271,17 +7283,18 @@ meltrout_100_warmelt_genobj_PUTOBJDEST_OBJMULTIBLOCK(meltclosure_ptr_t closp_, m
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_100_warmelt_genobj_PUTOBJDEST_OBJMULTIBLOCK_st { unsigned nbvar;
+ struct frame_meltrout_100_warmelt_genobj_PUTOBJDEST_OBJMULTIBLOCK_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 19
-  void* varptr[19];
+  void* mcfr_varptr[19];
 #define MELTFRAM_NBVARNUM 7
-  long varnum[7];
+  long mcfr_varnum[7];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -7289,16 +7302,16 @@ meltrout_100_warmelt_genobj_PUTOBJDEST_OBJMULTIBLOCK(meltclosure_ptr_t closp_, m
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<19; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 19;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 19;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("PUTOBJDEST_OBJMULTIBLOCK", meltcallcount);
 /*getargs*/
@@ -7629,7 +7642,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJMULTIBLOCK", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJMULTIBLOCK", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -7655,17 +7668,18 @@ meltrout_101_warmelt_genobj_PUTOBJDEST_OBJLOOP(meltclosure_ptr_t closp_, melt_pt
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_101_warmelt_genobj_PUTOBJDEST_OBJLOOP_st { unsigned nbvar;
+ struct frame_meltrout_101_warmelt_genobj_PUTOBJDEST_OBJLOOP_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 18
-  void* varptr[18];
+  void* mcfr_varptr[18];
 #define MELTFRAM_NBVARNUM 5
-  long varnum[5];
+  long mcfr_varnum[5];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -7673,16 +7687,16 @@ meltrout_101_warmelt_genobj_PUTOBJDEST_OBJLOOP(meltclosure_ptr_t closp_, melt_pt
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<18; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 18;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 18;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("PUTOBJDEST_OBJLOOP", meltcallcount);
 /*getargs*/
@@ -8002,7 +8016,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJLOOP", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJLOOP", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -8028,17 +8042,18 @@ meltrout_102_warmelt_genobj_PUTOBJDEST_OBJEXIT(meltclosure_ptr_t closp_, melt_pt
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_102_warmelt_genobj_PUTOBJDEST_OBJEXIT_st { unsigned nbvar;
+ struct frame_meltrout_102_warmelt_genobj_PUTOBJDEST_OBJEXIT_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 7
-  void* varptr[7];
+  void* mcfr_varptr[7];
 #define MELTFRAM_NBVARNUM 2
-  long varnum[2];
+  long mcfr_varnum[2];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -8046,16 +8061,16 @@ meltrout_102_warmelt_genobj_PUTOBJDEST_OBJEXIT(meltclosure_ptr_t closp_, melt_pt
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<7; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 7;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 7;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("PUTOBJDEST_OBJEXIT", meltcallcount);
 /*getargs*/
@@ -8188,7 +8203,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJEXIT", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJEXIT", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -8214,17 +8229,18 @@ meltrout_103_warmelt_genobj_COMPILOBJ_NREP_IF(meltclosure_ptr_t closp_, melt_ptr
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_103_warmelt_genobj_COMPILOBJ_NREP_IF_st { unsigned nbvar;
+ struct frame_meltrout_103_warmelt_genobj_COMPILOBJ_NREP_IF_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 28
-  void* varptr[28];
+  void* mcfr_varptr[28];
 #define MELTFRAM_NBVARNUM 7
-  long varnum[7];
+  long mcfr_varnum[7];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -8232,16 +8248,16 @@ meltrout_103_warmelt_genobj_COMPILOBJ_NREP_IF(meltclosure_ptr_t closp_, melt_ptr
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<28; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 28;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 28;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_NREP_IF", meltcallcount);
 /*getargs*/
@@ -8679,7 +8695,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NREP_IF", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NREP_IF", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -8705,17 +8721,18 @@ meltrout_104_warmelt_genobj_COMPILOBJ_NREP_IFISA(meltclosure_ptr_t closp_, melt_
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_104_warmelt_genobj_COMPILOBJ_NREP_IFISA_st { unsigned nbvar;
+ struct frame_meltrout_104_warmelt_genobj_COMPILOBJ_NREP_IFISA_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 35
-  void* varptr[35];
+  void* mcfr_varptr[35];
 #define MELTFRAM_NBVARNUM 6
-  long varnum[6];
+  long mcfr_varnum[6];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -8723,16 +8740,16 @@ meltrout_104_warmelt_genobj_COMPILOBJ_NREP_IFISA(meltclosure_ptr_t closp_, melt_
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<35; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 35;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 35;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_NREP_IFISA", meltcallcount);
 /*getargs*/
@@ -9227,7 +9244,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NREP_IFISA", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NREP_IFISA", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -9253,17 +9270,18 @@ meltrout_105_warmelt_genobj_PUTOBJDEST_OBJCOND(meltclosure_ptr_t closp_, melt_pt
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_105_warmelt_genobj_PUTOBJDEST_OBJCOND_st { unsigned nbvar;
+ struct frame_meltrout_105_warmelt_genobj_PUTOBJDEST_OBJCOND_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 13
-  void* varptr[13];
+  void* mcfr_varptr[13];
 #define MELTFRAM_NBVARNUM 2
-  long varnum[2];
+  long mcfr_varnum[2];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -9271,16 +9289,16 @@ meltrout_105_warmelt_genobj_PUTOBJDEST_OBJCOND(meltclosure_ptr_t closp_, melt_pt
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<13; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 13;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 13;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("PUTOBJDEST_OBJCOND", meltcallcount);
 /*getargs*/
@@ -9478,7 +9496,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJCOND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJCOND", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -9504,17 +9522,18 @@ meltrout_106_warmelt_genobj_COMPILOBJ_NREP_CPPIF(meltclosure_ptr_t closp_, melt_
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_106_warmelt_genobj_COMPILOBJ_NREP_CPPIF_st { unsigned nbvar;
+ struct frame_meltrout_106_warmelt_genobj_COMPILOBJ_NREP_CPPIF_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 28
-  void* varptr[28];
+  void* mcfr_varptr[28];
 #define MELTFRAM_NBVARNUM 6
-  long varnum[6];
+  long mcfr_varnum[6];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -9522,16 +9541,16 @@ meltrout_106_warmelt_genobj_COMPILOBJ_NREP_CPPIF(meltclosure_ptr_t closp_, melt_
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<28; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 28;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 28;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_NREP_CPPIF", meltcallcount);
 /*getargs*/
@@ -9946,7 +9965,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NREP_CPPIF", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NREP_CPPIF", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -9972,17 +9991,18 @@ meltrout_107_warmelt_genobj_PUTOBJDEST_OBJCPPIF(meltclosure_ptr_t closp_, melt_p
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_107_warmelt_genobj_PUTOBJDEST_OBJCPPIF_st { unsigned nbvar;
+ struct frame_meltrout_107_warmelt_genobj_PUTOBJDEST_OBJCPPIF_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 13
-  void* varptr[13];
+  void* mcfr_varptr[13];
 #define MELTFRAM_NBVARNUM 2
-  long varnum[2];
+  long mcfr_varnum[2];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -9990,16 +10010,16 @@ meltrout_107_warmelt_genobj_PUTOBJDEST_OBJCPPIF(meltclosure_ptr_t closp_, melt_p
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<13; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 13;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 13;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("PUTOBJDEST_OBJCPPIF", meltcallcount);
 /*getargs*/
@@ -10197,7 +10217,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("PUTOBJDEST_OBJCPPIF", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("PUTOBJDEST_OBJCPPIF", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -10223,17 +10243,18 @@ meltrout_108_warmelt_genobj_COMPILOBJ_NREP_RETURN(meltclosure_ptr_t closp_, melt
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_108_warmelt_genobj_COMPILOBJ_NREP_RETURN_st { unsigned nbvar;
+ struct frame_meltrout_108_warmelt_genobj_COMPILOBJ_NREP_RETURN_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 34
-  void* varptr[34];
+  void* mcfr_varptr[34];
 #define MELTFRAM_NBVARNUM 8
-  long varnum[8];
+  long mcfr_varnum[8];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -10241,16 +10262,16 @@ meltrout_108_warmelt_genobj_COMPILOBJ_NREP_RETURN(meltclosure_ptr_t closp_, melt
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<34; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 34;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 34;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_NREP_RETURN", meltcallcount);
 /*getargs*/
@@ -10779,7 +10800,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NREP_RETURN", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NREP_RETURN", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -10805,17 +10826,18 @@ meltrout_109_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_109_warmelt_genobj_LAMBDA__st { unsigned nbvar;
+ struct frame_meltrout_109_warmelt_genobj_LAMBDA__st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 6
-  void* varptr[6];
+  void* mcfr_varptr[6];
 #define MELTFRAM_NBVARNUM 1
-  long varnum[1];
+  long mcfr_varnum[1];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -10823,16 +10845,16 @@ meltrout_109_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<6; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 6;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 6;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
@@ -10908,7 +10930,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -10934,15 +10956,16 @@ meltrout_110_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_110_warmelt_genobj_LAMBDA__st { unsigned nbvar;
+ struct frame_meltrout_110_warmelt_genobj_LAMBDA__st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 3
-  void* varptr[3];
+  void* mcfr_varptr[3];
 /*no varnum*/
 #define MELTFRAM_NBVARNUM /*none*/0
 /*others*/
@@ -10952,16 +10975,16 @@ meltrout_110_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<3; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 3;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 3;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
@@ -10996,7 +11019,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -11022,17 +11045,18 @@ meltrout_111_warmelt_genobj_COMPILOBJ_NREP_LAMBDA(meltclosure_ptr_t closp_, melt
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_111_warmelt_genobj_COMPILOBJ_NREP_LAMBDA_st { unsigned nbvar;
+ struct frame_meltrout_111_warmelt_genobj_COMPILOBJ_NREP_LAMBDA_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 44
-  void* varptr[44];
+  void* mcfr_varptr[44];
 #define MELTFRAM_NBVARNUM 10
-  long varnum[10];
+  long mcfr_varnum[10];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -11040,16 +11064,16 @@ meltrout_111_warmelt_genobj_COMPILOBJ_NREP_LAMBDA(meltclosure_ptr_t closp_, melt
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<44; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 44;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 44;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_NREP_LAMBDA", meltcallcount);
 /*getargs*/
@@ -11690,7 +11714,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NREP_LAMBDA", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NREP_LAMBDA", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -11716,17 +11740,18 @@ meltrout_112_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_112_warmelt_genobj_LAMBDA__st { unsigned nbvar;
+ struct frame_meltrout_112_warmelt_genobj_LAMBDA__st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 8
-  void* varptr[8];
+  void* mcfr_varptr[8];
 #define MELTFRAM_NBVARNUM 2
-  long varnum[2];
+  long mcfr_varnum[2];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -11734,16 +11759,16 @@ meltrout_112_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<8; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 8;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 8;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
@@ -11860,7 +11885,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -11886,17 +11911,18 @@ meltrout_113_warmelt_genobj_COMPILOBJ_NREP_MAKEINST(meltclosure_ptr_t closp_, me
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_113_warmelt_genobj_COMPILOBJ_NREP_MAKEINST_st { unsigned nbvar;
+ struct frame_meltrout_113_warmelt_genobj_COMPILOBJ_NREP_MAKEINST_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 33
-  void* varptr[33];
+  void* mcfr_varptr[33];
 #define MELTFRAM_NBVARNUM 6
-  long varnum[6];
+  long mcfr_varnum[6];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -11904,16 +11930,16 @@ meltrout_113_warmelt_genobj_COMPILOBJ_NREP_MAKEINST(meltclosure_ptr_t closp_, me
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<33; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 33;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 33;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_NREP_MAKEINST", meltcallcount);
 /*getargs*/
@@ -12382,7 +12408,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_NREP_MAKEINST", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_NREP_MAKEINST", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -12408,17 +12434,18 @@ meltrout_114_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_114_warmelt_genobj_LAMBDA__st { unsigned nbvar;
+ struct frame_meltrout_114_warmelt_genobj_LAMBDA__st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 17
-  void* varptr[17];
+  void* mcfr_varptr[17];
 #define MELTFRAM_NBVARNUM 6
-  long varnum[6];
+  long mcfr_varnum[6];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -12426,16 +12453,16 @@ meltrout_114_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<17; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 17;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 17;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
@@ -12720,7 +12747,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -12746,17 +12773,18 @@ meltrout_115_warmelt_genobj_COMPILOBJ_ROUTPROC(meltclosure_ptr_t closp_, melt_pt
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_115_warmelt_genobj_COMPILOBJ_ROUTPROC_st { unsigned nbvar;
+ struct frame_meltrout_115_warmelt_genobj_COMPILOBJ_ROUTPROC_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 13
-  void* varptr[13];
+  void* mcfr_varptr[13];
 #define MELTFRAM_NBVARNUM 4
-  long varnum[4];
+  long mcfr_varnum[4];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -12764,16 +12792,16 @@ meltrout_115_warmelt_genobj_COMPILOBJ_ROUTPROC(meltclosure_ptr_t closp_, melt_pt
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<13; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 13;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 13;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_ROUTPROC", meltcallcount);
 /*getargs*/
@@ -13027,7 +13055,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_ROUTPROC", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_ROUTPROC", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -13053,17 +13081,18 @@ meltrout_116_warmelt_genobj_COMPILOBJ_PREDEF(meltclosure_ptr_t closp_, melt_ptr_
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_116_warmelt_genobj_COMPILOBJ_PREDEF_st { unsigned nbvar;
+ struct frame_meltrout_116_warmelt_genobj_COMPILOBJ_PREDEF_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 9
-  void* varptr[9];
+  void* mcfr_varptr[9];
 #define MELTFRAM_NBVARNUM 1
-  long varnum[1];
+  long mcfr_varnum[1];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -13071,16 +13100,16 @@ meltrout_116_warmelt_genobj_COMPILOBJ_PREDEF(meltclosure_ptr_t closp_, melt_ptr_
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<9; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 9;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 9;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_PREDEF", meltcallcount);
 /*getargs*/
@@ -13200,7 +13229,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_PREDEF", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_PREDEF", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -13226,17 +13255,18 @@ meltrout_117_warmelt_genobj_COMPIL_DATA_AND_SLOTS_FILL(meltclosure_ptr_t closp_,
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_117_warmelt_genobj_COMPIL_DATA_AND_SLOTS_FILL_st { unsigned nbvar;
+ struct frame_meltrout_117_warmelt_genobj_COMPIL_DATA_AND_SLOTS_FILL_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 85
-  void* varptr[85];
+  void* mcfr_varptr[85];
 #define MELTFRAM_NBVARNUM 18
-  long varnum[18];
+  long mcfr_varnum[18];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -13244,16 +13274,16 @@ meltrout_117_warmelt_genobj_COMPIL_DATA_AND_SLOTS_FILL(meltclosure_ptr_t closp_,
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<85; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 85;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 85;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPIL_DATA_AND_SLOTS_FILL", meltcallcount);
 /*getargs*/
@@ -14543,7 +14573,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPIL_DATA_AND_SLOTS_FILL", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPIL_DATA_AND_SLOTS_FILL", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -14569,17 +14599,18 @@ meltrout_118_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_118_warmelt_genobj_LAMBDA__st { unsigned nbvar;
+ struct frame_meltrout_118_warmelt_genobj_LAMBDA__st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 11
-  void* varptr[11];
+  void* mcfr_varptr[11];
 #define MELTFRAM_NBVARNUM 2
-  long varnum[2];
+  long mcfr_varnum[2];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -14587,16 +14618,16 @@ meltrout_118_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<11; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 11;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 11;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
@@ -14788,7 +14819,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -14814,17 +14845,18 @@ meltrout_119_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_119_warmelt_genobj_LAMBDA__st { unsigned nbvar;
+ struct frame_meltrout_119_warmelt_genobj_LAMBDA__st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 8
-  void* varptr[8];
+  void* mcfr_varptr[8];
 #define MELTFRAM_NBVARNUM 3
-  long varnum[3];
+  long mcfr_varnum[3];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -14832,16 +14864,16 @@ meltrout_119_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<8; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 8;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 8;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
@@ -14992,7 +15024,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -15018,17 +15050,18 @@ meltrout_120_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_120_warmelt_genobj_LAMBDA__st { unsigned nbvar;
+ struct frame_meltrout_120_warmelt_genobj_LAMBDA__st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 4
-  void* varptr[4];
+  void* mcfr_varptr[4];
 #define MELTFRAM_NBVARNUM 1
-  long varnum[1];
+  long mcfr_varnum[1];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -15036,16 +15069,16 @@ meltrout_120_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<4; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 4;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 4;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
@@ -15111,7 +15144,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -15137,17 +15170,18 @@ meltrout_121_warmelt_genobj_DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL(meltclosu
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_121_warmelt_genobj_DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL_st { unsigned nbvar;
+ struct frame_meltrout_121_warmelt_genobj_DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 10
-  void* varptr[10];
+  void* mcfr_varptr[10];
 #define MELTFRAM_NBVARNUM 2
-  long varnum[2];
+  long mcfr_varnum[2];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -15155,16 +15189,16 @@ meltrout_121_warmelt_genobj_DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL(meltclosu
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<10; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 10;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 10;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL", meltcallcount);
 /*getargs*/
@@ -15313,7 +15347,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -15339,17 +15373,18 @@ meltrout_122_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_122_warmelt_genobj_LAMBDA__st { unsigned nbvar;
+ struct frame_meltrout_122_warmelt_genobj_LAMBDA__st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 3
-  void* varptr[3];
+  void* mcfr_varptr[3];
 #define MELTFRAM_NBVARNUM 1
-  long varnum[1];
+  long mcfr_varnum[1];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -15357,16 +15392,16 @@ meltrout_122_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<3; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 3;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 3;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
@@ -15410,7 +15445,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -15436,17 +15471,18 @@ meltrout_123_warmelt_genobj_COMPILOBJ_DATASYMBOL(meltclosure_ptr_t closp_, melt_
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_123_warmelt_genobj_COMPILOBJ_DATASYMBOL_st { unsigned nbvar;
+ struct frame_meltrout_123_warmelt_genobj_COMPILOBJ_DATASYMBOL_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 39
-  void* varptr[39];
+  void* mcfr_varptr[39];
 #define MELTFRAM_NBVARNUM 10
-  long varnum[10];
+  long mcfr_varnum[10];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -15454,16 +15490,16 @@ meltrout_123_warmelt_genobj_COMPILOBJ_DATASYMBOL(meltclosure_ptr_t closp_, melt_
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<39; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 39;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 39;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_DATASYMBOL", meltcallcount);
 /*getargs*/
@@ -16065,7 +16101,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_DATASYMBOL", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_DATASYMBOL", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -16091,17 +16127,18 @@ meltrout_124_warmelt_genobj_COMPILOBJ_DATAINSTANCE(meltclosure_ptr_t closp_, mel
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_124_warmelt_genobj_COMPILOBJ_DATAINSTANCE_st { unsigned nbvar;
+ struct frame_meltrout_124_warmelt_genobj_COMPILOBJ_DATAINSTANCE_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 62
-  void* varptr[62];
+  void* mcfr_varptr[62];
 #define MELTFRAM_NBVARNUM 16
-  long varnum[16];
+  long mcfr_varnum[16];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -16109,16 +16146,16 @@ meltrout_124_warmelt_genobj_COMPILOBJ_DATAINSTANCE(meltclosure_ptr_t closp_, mel
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<62; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 62;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 62;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_DATAINSTANCE", meltcallcount);
 /*getargs*/
@@ -17080,7 +17117,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_DATAINSTANCE", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_DATAINSTANCE", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -17106,17 +17143,18 @@ meltrout_125_warmelt_genobj_COMPILOBJ_DATATUPLE(meltclosure_ptr_t closp_, melt_p
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_125_warmelt_genobj_COMPILOBJ_DATATUPLE_st { unsigned nbvar;
+ struct frame_meltrout_125_warmelt_genobj_COMPILOBJ_DATATUPLE_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 46
-  void* varptr[46];
+  void* mcfr_varptr[46];
 #define MELTFRAM_NBVARNUM 8
-  long varnum[8];
+  long mcfr_varnum[8];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -17124,16 +17162,16 @@ meltrout_125_warmelt_genobj_COMPILOBJ_DATATUPLE(meltclosure_ptr_t closp_, melt_p
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<46; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 46;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 46;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_DATATUPLE", meltcallcount);
 /*getargs*/
@@ -17764,7 +17802,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_DATATUPLE", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_DATATUPLE", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -17790,17 +17828,18 @@ meltrout_126_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_126_warmelt_genobj_LAMBDA__st { unsigned nbvar;
+ struct frame_meltrout_126_warmelt_genobj_LAMBDA__st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 4
-  void* varptr[4];
+  void* mcfr_varptr[4];
 #define MELTFRAM_NBVARNUM 1
-  long varnum[1];
+  long mcfr_varnum[1];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -17808,16 +17847,16 @@ meltrout_126_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<4; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 4;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 4;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
@@ -17878,7 +17917,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -17904,17 +17943,18 @@ meltrout_127_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_127_warmelt_genobj_LAMBDA__st { unsigned nbvar;
+ struct frame_meltrout_127_warmelt_genobj_LAMBDA__st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 6
-  void* varptr[6];
+  void* mcfr_varptr[6];
 #define MELTFRAM_NBVARNUM 1
-  long varnum[1];
+  long mcfr_varnum[1];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -17922,16 +17962,16 @@ meltrout_127_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<6; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 6;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 6;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
@@ -18013,7 +18053,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -18039,17 +18079,18 @@ meltrout_128_warmelt_genobj_COMPILOBJ_DATASTRING(meltclosure_ptr_t closp_, melt_
 #define meltcallcount 0L
 #endif
 
- struct frame_meltrout_128_warmelt_genobj_COMPILOBJ_DATASTRING_st { unsigned nbvar;
+ struct frame_meltrout_128_warmelt_genobj_COMPILOBJ_DATASTRING_st {
+  unsigned mcfr_nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+  const char* mcfr_flocs;
 #endif
-  struct meltclosure_st *clos;
-  struct excepth_melt_st *exh;
-  struct callframe_melt_st *prev;
+  struct meltclosure_st *mcfr_clos;
+  struct excepth_melt_st *mcfr_exh;
+  struct callframe_melt_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 34
-  void* varptr[34];
+  void* mcfr_varptr[34];
 #define MELTFRAM_NBVARNUM 8
-  long varnum[8];
+  long mcfr_varnum[8];
 /*others*/
   long _spare_; }
     *framptr_=0,    meltframe;
@@ -18057,16 +18098,16 @@ meltrout_128_warmelt_genobj_COMPILOBJ_DATASTRING(meltclosure_ptr_t closp_, melt_
   if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
-   gt_ggc_mx_melt_un (framptr_->clos);
+   gt_ggc_mx_melt_un (framptr_->mcfr_clos);
    for(ix=0; ix<34; ix++)
-    if (framptr_->varptr[ix])
-     gt_ggc_mx_melt_un (framptr_->varptr[ix]);
+    if (framptr_->mcfr_varptr[ix])
+     gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&meltfram__, 0, sizeof(meltfram__));
- meltfram__.nbvar = 34;
-  meltfram__.clos = closp_;
- meltfram__.prev = (struct callframe_melt_st *) melt_topframe;
+ meltfram__.mcfr_nbvar = 34;
+  meltfram__.mcfr_clos = closp_;
+ meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 melt_trace_start("COMPILOBJ_DATASTRING", meltcallcount);
 /*getargs*/
@@ -18591,7 +18632,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILOBJ_DATASTRING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.prev;
+melt_trace_end("COMPILOBJ_DATASTRING", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__

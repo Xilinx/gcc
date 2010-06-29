@@ -158,12 +158,6 @@ typedef struct melt_module_info_st
 {
   void *dlh;			/* dlopen handle */
   char* modpath;		/* strdup-ed file path passed to dlopen */
-  /* FIXME: we really should remove the iniframp because it is so ugly
-     to have pointer from global data to local stack. We should handle
-     & generate initial frames specially, e.g. by making their nbvar
-     negative... */
-  void **iniframp;		/* initial frame pointer adress */
-  void (*marker_rout) (void *);	/* marking routine of initial frame */
   melt_ptr_t (*start_rout) (melt_ptr_t);	/* start routine */
 } melt_module_info_t;
 
@@ -579,8 +573,8 @@ struct meltspecial_st*
 meltgc_make_special(melt_ptr_t discr_p)
 {
   MELT_ENTERFRAME (2, NULL);
-#define discrv       meltfram__.varptr[0]
-#define specv      meltfram__.varptr[1]
+#define discrv     meltfram__.mcfr_varptr[0]
+#define specv      meltfram__.mcfr_varptr[1]
 #define sp_specv ((struct meltspecial_st*)(specv))
   discrv = discr_p;
   if (!discrv || melt_magic_discr((melt_ptr_t)discrv) != OBMAG_OBJECT)
@@ -622,40 +616,40 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
 	("start check_call_frames#%ld {%s} from %s:%d",
 	 nbcheckcallframes, msg, lbasename (filenam), lineno);
     }
-  for (cfram = melt_topframe; cfram != NULL; cfram = cfram->prev)
+  for (cfram = melt_topframe; cfram != NULL; cfram = cfram->mcfr_prev)
     {
       int varix = 0;
       nbfram++;
-      if (cfram->clos)
+      if (cfram->mcfr_closp != NULL && cfram->mcfr_nbvar >= 0)
 	{
-	  if (noyoungflag && melt_is_young (cfram->clos))
+	  if (noyoungflag && melt_is_young (cfram->mcfr_closp))
 	    fatal_error
 	      ("bad frame <%s#%ld> unexpected young closure %p in frame %p at %s:%d",
 	       msg, nbcheckcallframes,
-	       (void *) cfram->clos, (void *) cfram, lbasename (filenam),
+	       (void *) cfram->mcfr_closp, (void *) cfram, lbasename (filenam),
 	       lineno);
 
 	  check_pointer_at (msg, nbcheckcallframes,
-			    (melt_ptr_t *) (void *) &cfram->clos, filenam,
+			    (melt_ptr_t *) (void *) &cfram->mcfr_closp, filenam,
 			    lineno);
-	  if (cfram->clos->discr->object_magic != OBMAG_CLOSURE)
+	  if (cfram->mcfr_closp->discr->object_magic != OBMAG_CLOSURE)
 	    fatal_error
 	      ("bad frame <%s#%ld> invalid closure %p in frame %p at %s:%d",
 	       msg, nbcheckcallframes,
-	       (void *) cfram->clos, (void *) cfram, lbasename (filenam),
+	       (void *) cfram->mcfr_closp, (void *) cfram, lbasename (filenam),
 	       lineno);
 	}
-      for (varix = ((int) cfram->nbvar) - 1; varix >= 0; varix--)
+      for (varix = ((int) cfram->mcfr_nbvar) - 1; varix >= 0; varix--)
 	{
 	  nbvar++;
-	  if (noyoungflag && cfram->varptr[varix] != NULL
-	      && melt_is_young (cfram->varptr[varix]))
+	  if (noyoungflag && cfram->mcfr_varptr[varix] != NULL
+	      && melt_is_young (cfram->mcfr_varptr[varix]))
 	    fatal_error
 	      ("bad frame <%s#%ld> unexpected young pointer %p in frame %p at %s:%d",
-	       msg, nbcheckcallframes, (void *) cfram->varptr[varix],
+	       msg, nbcheckcallframes, (void *) cfram->mcfr_varptr[varix],
 	       (void *) cfram, lbasename (filenam), lineno);
 
-	  check_pointer_at (msg, nbcheckcallframes, &cfram->varptr[varix],
+	  check_pointer_at (msg, nbcheckcallframes, &cfram->mcfr_varptr[varix],
 			    filenam, lineno);
 	}
     }
@@ -718,47 +712,45 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 			  void* user_data ATTRIBUTE_UNUSED)
 {
   int ix = 0;
-  melt_module_info_t *mi = 0;
   struct callframe_melt_st *cf = 0;
   meltmarkingcount++;
   dbgprintf ("start of melt_marking_callback %ld", meltmarkingcount);
-  /* first, scan all the modules and mark their frame if it is non null */
-  if (modinfvec) 
-    for (ix = 0; VEC_iterate (melt_module_info_t, modinfvec, ix, mi); ix++)
-      {
-	/* FIXME: this code is buggy and ugly; we really should handle
-	   the initial frame specially, e.g. because its nbvar is
-	   negative; this code crashes the tfullgc.melt testcase! */
-        if ( !mi->marker_rout || !mi->iniframp || !*mi->iniframp) 
-	  continue;
-	dbgprintf ("melt_marking_callback before marker_rout ix=%d mi'%s' iniframp=%p -> %p", 
-		   ix, mi->modpath, (void*) mi->iniframp, *mi->iniframp);
-        (mi->marker_rout) (*mi->iniframp);
-	dbgprintf ("melt_marking_callback after marker_rout ix=%d mi'%s' iniframp=%p -> %p",
-		   ix, mi->modpath, (void*) mi->iniframp, *mi->iniframp);
-      };
-  /* then scan all the MELT call frames */
+  /* Scan all the MELT call frames */
   for (cf = (struct callframe_melt_st*) melt_topframe; cf != NULL;
-       cf = cf->prev) {
-    if (cf->clos) {
-      meltroutfun_t*funp = 0;
-      gcc_assert(cf->clos->rout);
-      funp = cf->clos->rout->routfunad;
-      gcc_assert(funp);
-      gt_ggc_mx_melt_un ((melt_ptr_t)(cf->clos));
-      /* call the function specially with the MARKGCC special
-	 parameter descriptor */
-      funp(cf->clos, (melt_ptr_t)cf, MELTPAR_MARKGGC, 
-	   (union meltparam_un*)0, (char*)0, (union meltparam_un*)0);
-      continue;
-    }
+       cf = cf->mcfr_prev) {
+    if (cf->mcfr_closp && cf->mcfr_nbvar >= 0)
+      {
+	/* Common case, we have a closure. */
+	meltroutfun_t*funp = 0;
+	gcc_assert(cf->mcfr_closp->rout);
+	funp = cf->mcfr_closp->rout->routfunad;
+	gcc_assert(funp);
+	gt_ggc_mx_melt_un ((melt_ptr_t)(cf->mcfr_closp));
+	/* call the function specially with the MARKGCC special
+	   parameter descriptor */
+	funp(cf->mcfr_closp, (melt_ptr_t)cf, MELTPAR_MARKGGC, 
+	     (union meltparam_un*)0, (char*)0, (union meltparam_un*)0);
+      }
+    else if (cf->mcfr_nbvar < 0 && cf->mcfr_markrout)
+      {
+	/* Rare case, the frame is special and has its own marking
+	   routine.  This happens in particular for the initial frame
+	   of generated MELT modules;  their startup routine has a
+	   special marking routine.  */
+	dbgprintf ("melt_marking_callback %ld calling frame marking routine",
+		   meltmarkingcount);
+	cf->mcfr_markrout ((void*)cf);
+	dbgprintf ("melt_marking_callback %ld called frame marking routine",
+		   meltmarkingcount);
+      }
     else
       {
+	/* no closure, e.g. a frame manually set with MELT_ENTERFRAME. */
 	extern void gt_ggc_mx_melt_un (void *);
 	/* if no closure, mark the local pointers */
-	for (ix= 0; ix<(int) cf->nbvar; ix++) 
-	  if (cf->varptr[ix]) 
-	    gt_ggc_mx_melt_un ((melt_ptr_t)(cf->varptr[ix]));
+	for (ix= 0; ix<(int) cf->mcfr_nbvar; ix++) 
+	  if (cf->mcfr_varptr[ix]) 
+	    gt_ggc_mx_melt_un ((melt_ptr_t)(cf->mcfr_varptr[ix]));
       } 
   }
   dbgprintf("end of melt_marking_callback %ld", meltmarkingcount);
@@ -814,18 +806,18 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
      melt_marking_callback */
   for (ix = 0; ix < MELTGLOB__LASTGLOB; ix++)
     FORWARDED (melt_globarr[ix]);
-  for (cfram = melt_topframe; cfram != NULL; cfram = cfram->prev)
+  for (cfram = melt_topframe; cfram != NULL; cfram = cfram->mcfr_prev)
     {
       int varix;
-      if (cfram->clos)
+      if (cfram->mcfr_closp && cfram->mcfr_nbvar >= 0)
 	{
-	  FORWARDED (cfram->clos);
+	  FORWARDED (cfram->mcfr_closp);
 	}
-      for (varix = ((int) cfram->nbvar) - 1; varix >= 0; varix--)
+      for (varix = ((int) cfram->mcfr_nbvar) - 1; varix >= 0; varix--)
 	{
-	  if (!cfram->varptr[varix])
+	  if (!cfram->mcfr_varptr[varix])
 	    continue;
-	  FORWARDED (cfram->varptr[varix]);
+	  FORWARDED (cfram->mcfr_varptr[varix]);
 	}
     };
   /* scan the store list */
@@ -2079,8 +2071,8 @@ melt_ptr_t
 meltgc_new_int (meltobject_ptr_t discr_p, long num)
 {
   MELT_ENTERFRAME (2, NULL);
-#define newintv meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
+#define newintv meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define int_newintv ((struct meltint_st*)(newintv))
   discrv = (void *) discr_p;
@@ -2106,9 +2098,9 @@ meltgc_new_mixint (meltobject_ptr_t discr_p,
 		      melt_ptr_t val_p, long num)
 {
   MELT_ENTERFRAME (3, NULL);
-#define newmix  meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
-#define valv    meltfram__.varptr[2]
+#define newmix  meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define valv    meltfram__.mcfr_varptr[2]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mix_newmix ((struct meltmixint_st*)(newmix))
   newmix = NULL;
@@ -2138,9 +2130,9 @@ meltgc_new_mixloc (meltobject_ptr_t discr_p,
 		      melt_ptr_t val_p, long num, location_t loc)
 {
   MELT_ENTERFRAME (3, NULL);
-#define newmix  meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
-#define valv    meltfram__.varptr[2]
+#define newmix  meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define valv    meltfram__.mcfr_varptr[2]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mix_newmix ((struct meltmixloc_st*)(newmix))
   newmix = NULL;
@@ -2173,9 +2165,9 @@ meltgc_new_mixbigint_mpz (meltobject_ptr_t discr_p,
   unsigned numb = 0, blen = 0;
   size_t wcnt = 0;
   MELT_ENTERFRAME (3, NULL);
-#define newbig  meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
-#define valv    meltfram__.varptr[2]
+#define newbig  meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define valv    meltfram__.mcfr_varptr[2]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mix_newbig ((struct meltmixbigint_st*)(newbig))
   newbig = NULL;
@@ -2219,8 +2211,8 @@ melt_ptr_t
 meltgc_new_real (meltobject_ptr_t discr_p, REAL_VALUE_TYPE r)
 {
     MELT_ENTERFRAME (2, NULL);
-#define resv   meltfram__.varptr[0]
-#define discrv meltfram__.varptr[1]
+#define resv   meltfram__.mcfr_varptr[0]
+#define discrv meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define real_resv ((struct meltreal_st*) resv)
     discrv = (void*) discr_p;
@@ -2248,8 +2240,8 @@ meltgc_new_routine (meltobject_ptr_t discr_p,
 		       meltroutfun_t * proc)
 {
   MELT_ENTERFRAME (2, NULL);
-#define newroutv meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
+#define newroutv meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
 #define obj_discrv ((meltobject_ptr_t)(discrv))
 #define rou_newroutv ((meltroutine_ptr_t)(newroutv))
   newroutv = NULL;
@@ -2279,8 +2271,8 @@ void
 meltgc_set_routine_data (melt_ptr_t rout_p, melt_ptr_t data_p)
 {
   MELT_ENTERFRAME (2, NULL);
-#define routv meltfram__.varptr[0]
-#define datav  meltfram__.varptr[1]
+#define routv meltfram__.mcfr_varptr[0]
+#define datav  meltfram__.mcfr_varptr[1]
   routv = rout_p;
   datav = data_p;
   if (melt_magic_discr ((melt_ptr_t) routv) == OBMAG_ROUTINE)
@@ -2298,9 +2290,9 @@ meltgc_new_closure (meltobject_ptr_t discr_p,
 		       meltroutine_ptr_t rout_p, unsigned len)
 {
   MELT_ENTERFRAME (3, NULL);
-#define newclosv  meltfram__.varptr[0]
-#define discrv    meltfram__.varptr[1]
-#define routv     meltfram__.varptr[2]
+#define newclosv  meltfram__.mcfr_varptr[0]
+#define discrv    meltfram__.mcfr_varptr[1]
+#define routv     meltfram__.mcfr_varptr[2]
 #define clo_newclosv ((meltclosure_ptr_t)(newclosv))
 #define obj_discrv   ((meltobject_ptr_t)(discrv))
 #define rou_routv    ((meltroutine_ptr_t)(routv))
@@ -2336,8 +2328,8 @@ meltgc_new_strbuf (meltobject_ptr_t discr_p, const char *str)
 {
   int slen = 0, blen = 0, ix = 0;
   MELT_ENTERFRAME (2, NULL);
-#define newbufv  meltfram__.varptr[0]
-#define discrv   meltfram__.varptr[1]
+#define newbufv  meltfram__.mcfr_varptr[0]
+#define discrv   meltfram__.mcfr_varptr[1]
 #define buf_newbufv ((struct meltstrbuf_st*)(newbufv))
   discrv = discr_p;
   newbufv = NULL;
@@ -2421,7 +2413,7 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 #endif
   int blen = 0;
   MELT_ENTERFRAME (2, NULL);
-#define outbufv  meltfram__.varptr[0]
+#define outbufv  meltfram__.mcfr_varptr[0]
 #define buf_outbufv  ((struct meltstrbuf_st*)(outbufv))
 #define spec_outbufv  ((struct meltspecial_st*)(outbufv))
   outbufv = outbuf_p;
@@ -2790,7 +2782,7 @@ meltgc_out_printf (melt_ptr_t outbuf_p,
   int l = 0;
   char tinybuf[120];
   MELT_ENTERFRAME (2, NULL);
-#define outbufv  meltfram__.varptr[0]
+#define outbufv  meltfram__.mcfr_varptr[0]
   outbufv = outbuf_p;
   if (!melt_is_out ((melt_ptr_t) outbufv))
     goto end;
@@ -2826,7 +2818,7 @@ meltgc_out_add_indent (melt_ptr_t outbuf_p, int depth, int linethresh)
   MELT_ENTERFRAME (2, NULL);
   /* we need a frame, because we have more than one call to
      meltgc_add_outbuf_raw */
-#define outbv   meltfram__.varptr[0]
+#define outbv   meltfram__.mcfr_varptr[0]
 #define outbufv ((struct meltstrbuf_st*)(outbv))
   outbv = outbuf_p;
   if (!outbv)
@@ -2912,8 +2904,8 @@ meltgc_new_raw_object (meltobject_ptr_t klass_p, unsigned len)
 {
   unsigned h = 0;
   MELT_ENTERFRAME (2, NULL);
-#define newobjv   meltfram__.varptr[0]
-#define klassv    meltfram__.varptr[1]
+#define newobjv   meltfram__.mcfr_varptr[0]
+#define klassv    meltfram__.mcfr_varptr[1]
 #define obj_newobjv  ((meltobject_ptr_t)(newobjv))
 #define obj_klassv   ((meltobject_ptr_t)(klassv))
   newobjv = NULL;
@@ -2949,8 +2941,8 @@ melt_ptr_t
 meltgc_new_multiple (meltobject_ptr_t discr_p, unsigned len)
 {
   MELT_ENTERFRAME (2, NULL);
-#define newmul meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
+#define newmul meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mult_newmul ((struct meltmultiple_st*)(newmul))
   discrv = (void *) discr_p;
@@ -2983,8 +2975,8 @@ meltgc_new_subseq_multiple (melt_ptr_t oldmul_p, int startix, int endix)
 {
   int oldlen=0, newlen=0, i=0;
   MELT_ENTERFRAME(3, NULL);
-#define oldmulv   meltfram__.varptr[0]
-#define newmulv   meltfram__.varptr[1]
+#define oldmulv   meltfram__.mcfr_varptr[0]
+#define newmulv   meltfram__.mcfr_varptr[1]
 #define mult_oldmulv   ((struct meltmultiple_st*)(oldmulv))
 #define mult_newmulv   ((struct meltmultiple_st*)(newmulv))
   oldmulv = oldmul_p;
@@ -3022,10 +3014,10 @@ meltgc_multiple_put_nth (melt_ptr_t mul_p, int n, melt_ptr_t val_p)
 {
   int ln = 0;
   MELT_ENTERFRAME (3, NULL);
-#define mulv    meltfram__.varptr[0]
+#define mulv    meltfram__.mcfr_varptr[0]
 #define mult_mulv ((struct meltmultiple_st*)(mulv))
-#define discrv  meltfram__.varptr[1]
-#define valv    meltfram__.varptr[2]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define valv    meltfram__.mcfr_varptr[2]
   mulv = mul_p;
   valv = val_p;
   if (melt_magic_discr ((melt_ptr_t) (mulv)) != OBMAG_MULTIPLE)
@@ -3063,11 +3055,11 @@ mulsort_cmp (const void *p1, const void *p2)
   int ix1 = -1, ix2 = -1;
   union meltparam_un argtab[2];
   MELT_ENTERFRAME (5, NULL);
-#define rescmpv meltfram__.varptr[0]
-#define val1v meltfram__.varptr[1]
-#define val2v meltfram__.varptr[2]
-#define clov  meltfram__.varptr[3]
-#define mulv  meltfram__.varptr[4]
+#define rescmpv meltfram__.mcfr_varptr[0]
+#define val1v meltfram__.mcfr_varptr[1]
+#define val2v meltfram__.mcfr_varptr[2]
+#define clov  meltfram__.mcfr_varptr[3]
+#define mulv  meltfram__.mcfr_varptr[4]
   mulv = *mulsort_mult_ad;
   clov = *mulsort_clos_ad;
   ix1 = *(const int *) p1;
@@ -3111,10 +3103,10 @@ meltgc_sort_multiple (melt_ptr_t mult_p, melt_ptr_t clo_p,
   int i = 0;
   unsigned mulen = 0;
   MELT_ENTERFRAME (5, NULL);
-#define multv      meltfram__.varptr[0]
-#define clov       meltfram__.varptr[1]
-#define discrmv    meltfram__.varptr[2]
-#define resv       meltfram__.varptr[3]
+#define multv      meltfram__.mcfr_varptr[0]
+#define clov       meltfram__.mcfr_varptr[1]
+#define discrmv    meltfram__.mcfr_varptr[2]
+#define resv       meltfram__.mcfr_varptr[3]
   multv = mult_p;
   clov = clo_p;
   discrmv = discrm_p;
@@ -3172,9 +3164,9 @@ melt_ptr_t
 meltgc_new_box (meltobject_ptr_t discr_p, melt_ptr_t val_p)
 {
   MELT_ENTERFRAME (3, NULL);
-#define boxv meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
-#define valv   meltfram__.varptr[2]
+#define boxv meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define valv   meltfram__.mcfr_varptr[2]
 #define object_discrv ((meltobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   valv = (void *) val_p;
@@ -3200,8 +3192,8 @@ void
 meltgc_box_put (melt_ptr_t box_p, melt_ptr_t val_p)
 {
   MELT_ENTERFRAME (2, NULL);
-#define boxv meltfram__.varptr[0]
-#define valv   meltfram__.varptr[1]
+#define boxv meltfram__.mcfr_varptr[0]
+#define valv   meltfram__.mcfr_varptr[1]
   boxv = box_p;
   valv = val_p;
   if (melt_magic_discr ((melt_ptr_t) boxv) != OBMAG_BOX)
@@ -3233,8 +3225,8 @@ melt_ptr_t
 meltgc_new_tree (meltobject_ptr_t discr_p, tree tr)
 {
   MELT_ENTERFRAME (2, NULL);
-#define btreev  meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
+#define btreev  meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
@@ -3262,8 +3254,8 @@ melt_ptr_t
 meltgc_new_gimple (meltobject_ptr_t discr_p, gimple g)
 {
   MELT_ENTERFRAME (2, NULL);
-#define bgimplev  meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
+#define bgimplev  meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
@@ -3291,8 +3283,8 @@ melt_ptr_t
 meltgc_new_gimpleseq (meltobject_ptr_t discr_p, gimple_seq g)
 {
   MELT_ENTERFRAME (2, NULL);
-#define bgimplev  meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
+#define bgimplev  meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
@@ -3320,8 +3312,8 @@ melt_ptr_t
 meltgc_new_basicblock (meltobject_ptr_t discr_p, basic_block bb)
 {
   MELT_ENTERFRAME (2, NULL);
-#define bbbv    meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
+#define bbbv    meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
@@ -3349,8 +3341,8 @@ melt_ptr_t
 meltgc_new_loop (meltobject_ptr_t discr_p, loop_p lo)
 {
   MELT_ENTERFRAME (2, NULL);
-#define loopv   meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
+#define loopv   meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
@@ -3378,8 +3370,8 @@ melt_ptr_t
 meltgc_new_rtx (meltobject_ptr_t discr_p, rtx data)
 {
   MELT_ENTERFRAME (2, NULL);
-#define rtxv    meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
+#define rtxv    meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
@@ -3409,8 +3401,8 @@ melt_ptr_t
 meltgc_new_rtvec (meltobject_ptr_t discr_p, rtvec data)
 {
   MELT_ENTERFRAME (2, NULL);
-#define rtvecv    meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
+#define rtvecv    meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
@@ -3438,8 +3430,8 @@ melt_ptr_t
 meltgc_new_bitmap (meltobject_ptr_t discr_p, bitmap data)
 {
   MELT_ENTERFRAME (2, NULL);
-#define bitmapv    meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
+#define bitmapv    meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
@@ -3470,9 +3462,9 @@ melt_ptr_t
 meltgc_new_mult1 (meltobject_ptr_t discr_p, melt_ptr_t v0_p)
 {
   MELT_ENTERFRAME (3, NULL);
-#define newmul meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
-#define v0   meltfram__.varptr[2]
+#define newmul meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define v0   meltfram__.mcfr_varptr[2]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mult_newmul ((struct meltmultiple_st*)(newmul))
   discrv = (void *) discr_p;
@@ -3503,10 +3495,10 @@ meltgc_new_mult2 (meltobject_ptr_t discr_p,
 		     melt_ptr_t v0_p, melt_ptr_t v1_p)
 {
   MELT_ENTERFRAME (4, NULL);
-#define newmul meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
-#define v0   meltfram__.varptr[2]
-#define v1   meltfram__.varptr[3]
+#define newmul meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define v0   meltfram__.mcfr_varptr[2]
+#define v1   meltfram__.mcfr_varptr[3]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mult_newmul ((struct meltmultiple_st*)(newmul))
   discrv = (void *) discr_p;
@@ -3541,11 +3533,11 @@ meltgc_new_mult3 (meltobject_ptr_t discr_p,
 		     melt_ptr_t v2_p)
 {
   MELT_ENTERFRAME (5, NULL);
-#define newmul meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
-#define v0   meltfram__.varptr[2]
-#define v1   meltfram__.varptr[3]
-#define v2   meltfram__.varptr[4]
+#define newmul meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define v0   meltfram__.mcfr_varptr[2]
+#define v1   meltfram__.mcfr_varptr[3]
+#define v2   meltfram__.mcfr_varptr[4]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mult_newmul ((struct meltmultiple_st*)(newmul))
   discrv = (void *) discr_p;
@@ -3583,12 +3575,12 @@ meltgc_new_mult4 (meltobject_ptr_t discr_p,
 		     melt_ptr_t v2_p, melt_ptr_t v3_p)
 {
   MELT_ENTERFRAME (6, NULL);
-#define newmul meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
-#define v0   meltfram__.varptr[2]
-#define v1   meltfram__.varptr[3]
-#define v2   meltfram__.varptr[4]
-#define v3   meltfram__.varptr[5]
+#define newmul meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define v0   meltfram__.mcfr_varptr[2]
+#define v1   meltfram__.mcfr_varptr[3]
+#define v2   meltfram__.mcfr_varptr[4]
+#define v3   meltfram__.mcfr_varptr[5]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mult_newmul ((struct meltmultiple_st*)(newmul))
   discrv = (void *) discr_p;
@@ -3631,13 +3623,13 @@ meltgc_new_mult5 (meltobject_ptr_t discr_p,
 		     melt_ptr_t v4_p)
 {
   MELT_ENTERFRAME (7, NULL);
-#define newmul meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
-#define v0   meltfram__.varptr[2]
-#define v1   meltfram__.varptr[3]
-#define v2   meltfram__.varptr[4]
-#define v3   meltfram__.varptr[5]
-#define v4   meltfram__.varptr[6]
+#define newmul meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define v0   meltfram__.mcfr_varptr[2]
+#define v1   meltfram__.mcfr_varptr[3]
+#define v2   meltfram__.mcfr_varptr[4]
+#define v3   meltfram__.mcfr_varptr[5]
+#define v4   meltfram__.mcfr_varptr[6]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mult_newmul ((struct meltmultiple_st*)(newmul))
   discrv = (void *) discr_p;
@@ -3683,14 +3675,14 @@ meltgc_new_mult6 (meltobject_ptr_t discr_p,
 		     melt_ptr_t v4_p, melt_ptr_t v5_p)
 {
   MELT_ENTERFRAME (8, NULL);
-#define newmul meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
-#define v0   meltfram__.varptr[2]
-#define v1   meltfram__.varptr[3]
-#define v2   meltfram__.varptr[4]
-#define v3   meltfram__.varptr[5]
-#define v4   meltfram__.varptr[6]
-#define v5   meltfram__.varptr[7]
+#define newmul meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define v0   meltfram__.mcfr_varptr[2]
+#define v1   meltfram__.mcfr_varptr[3]
+#define v2   meltfram__.mcfr_varptr[4]
+#define v3   meltfram__.mcfr_varptr[5]
+#define v4   meltfram__.mcfr_varptr[6]
+#define v5   meltfram__.mcfr_varptr[7]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mult_newmul ((struct meltmultiple_st*)(newmul))
   discrv = (void *) discr_p;
@@ -3739,15 +3731,15 @@ meltgc_new_mult7 (meltobject_ptr_t discr_p,
 		     melt_ptr_t v6_p)
 {
   MELT_ENTERFRAME (9, NULL);
-#define newmul meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
-#define v0   meltfram__.varptr[2]
-#define v1   meltfram__.varptr[3]
-#define v2   meltfram__.varptr[4]
-#define v3   meltfram__.varptr[5]
-#define v4   meltfram__.varptr[6]
-#define v5   meltfram__.varptr[7]
-#define v6   meltfram__.varptr[8]
+#define newmul meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define v0   meltfram__.mcfr_varptr[2]
+#define v1   meltfram__.mcfr_varptr[3]
+#define v2   meltfram__.mcfr_varptr[4]
+#define v3   meltfram__.mcfr_varptr[5]
+#define v4   meltfram__.mcfr_varptr[6]
+#define v5   meltfram__.mcfr_varptr[7]
+#define v6   meltfram__.mcfr_varptr[8]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mult_newmul ((struct meltmultiple_st*)(newmul))
   discrv = (void *) discr_p;
@@ -3796,8 +3788,8 @@ melt_ptr_t
 meltgc_new_list (meltobject_ptr_t discr_p)
 {
   MELT_ENTERFRAME (2, NULL);
-#define discrv meltfram__.varptr[0]
-#define newlist meltfram__.varptr[1]
+#define discrv meltfram__.mcfr_varptr[0]
+#define newlist meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define list_newlist ((struct meltlist_st*)(newlist))
   discrv = (void *) discr_p;
@@ -3824,10 +3816,10 @@ melt_ptr_t
 meltgc_new_pair (meltobject_ptr_t discr_p, void *head_p, void *tail_p)
 {
   MELT_ENTERFRAME (4, NULL);
-#define pairv   meltfram__.varptr[0]
-#define discrv  meltfram__.varptr[1]
-#define headv   meltfram__.varptr[2]
-#define tailv   meltfram__.varptr[3]
+#define pairv   meltfram__.mcfr_varptr[0]
+#define discrv  meltfram__.mcfr_varptr[1]
+#define headv   meltfram__.mcfr_varptr[2]
+#define tailv   meltfram__.mcfr_varptr[3]
   discrv = discr_p;
   headv = head_p;
   tailv = tail_p;
@@ -3854,8 +3846,8 @@ void
 meltgc_pair_set_head (melt_ptr_t pair_p, void *head_p)
 {
   MELT_ENTERFRAME (2, NULL);
-#define pairv   meltfram__.varptr[0]
-#define headv   meltfram__.varptr[1]
+#define pairv   meltfram__.mcfr_varptr[0]
+#define headv   meltfram__.mcfr_varptr[1]
   pairv = pair_p;
   headv = head_p;
   if (melt_magic_discr ((melt_ptr_t) pairv) != OBMAG_PAIR)
@@ -3873,10 +3865,10 @@ void
 meltgc_append_list (melt_ptr_t list_p, melt_ptr_t valu_p)
 {
   MELT_ENTERFRAME (4, NULL);
-#define list meltfram__.varptr[0]
-#define valu meltfram__.varptr[1]
-#define pairv meltfram__.varptr[2]
-#define lastv meltfram__.varptr[3]
+#define list meltfram__.mcfr_varptr[0]
+#define valu meltfram__.mcfr_varptr[1]
+#define pairv meltfram__.mcfr_varptr[2]
+#define lastv meltfram__.mcfr_varptr[3]
 #define pai_pairv ((struct meltpair_st*)(pairv))
 #define list_list ((struct meltlist_st*)(list))
   list = list_p;
@@ -3914,10 +3906,10 @@ void
 meltgc_prepend_list (melt_ptr_t list_p, melt_ptr_t valu_p)
 {
   MELT_ENTERFRAME (4, NULL);
-#define list meltfram__.varptr[0]
-#define valu meltfram__.varptr[1]
-#define pairv meltfram__.varptr[2]
-#define firstv meltfram__.varptr[3]
+#define list meltfram__.mcfr_varptr[0]
+#define valu meltfram__.mcfr_varptr[1]
+#define pairv meltfram__.mcfr_varptr[2]
+#define firstv meltfram__.mcfr_varptr[3]
 #define pai_pairv ((struct meltpair_st*)(pairv))
 #define list_list ((struct meltlist_st*)(list))
   list = list_p;
@@ -3954,9 +3946,9 @@ melt_ptr_t
 meltgc_popfirst_list (melt_ptr_t list_p)
 {
   MELT_ENTERFRAME (3, NULL);
-#define list meltfram__.varptr[0]
-#define valu meltfram__.varptr[1]
-#define pairv meltfram__.varptr[2]
+#define list meltfram__.mcfr_varptr[0]
+#define valu meltfram__.mcfr_varptr[1]
+#define pairv meltfram__.mcfr_varptr[2]
 #define pai_pairv ((struct meltpair_st*)(pairv))
 #define list_list ((struct meltlist_st*)(list))
   list = list_p;
@@ -4013,8 +4005,8 @@ meltgc_new_mapobjects (meltobject_ptr_t discr_p, unsigned len)
   int maplen = 0;
   int lenix = 0, primlen = 0;
   MELT_ENTERFRAME (2, NULL);
-#define discrv meltfram__.varptr[0]
-#define newmapv meltfram__.varptr[1]
+#define discrv meltfram__.mcfr_varptr[0]
+#define newmapv meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mapobject_newmapv ((struct meltmapobjects_st*)(newmapv))
   discrv = discr_p;
@@ -4084,10 +4076,10 @@ meltgc_put_mapobjects (meltmapobjects_ptr_t
   long curcount = ++callcount;
 #endif
   MELT_ENTERFRAME (4, NULL);
-#define discrv meltfram__.varptr[0]
-#define mapobjectv meltfram__.varptr[1]
-#define attrobjectv meltfram__.varptr[2]
-#define valuv meltfram__.varptr[3]
+#define discrv meltfram__.mcfr_varptr[0]
+#define mapobjectv meltfram__.mcfr_varptr[1]
+#define attrobjectv meltfram__.mcfr_varptr[2]
+#define valuv meltfram__.mcfr_varptr[3]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define object_attrobjectv ((meltobject_ptr_t)(attrobjectv))
 #define map_mapobjectv ((meltmapobjects_ptr_t)(mapobjectv))
@@ -4210,10 +4202,10 @@ meltgc_remove_mapobjects (meltmapobjects_ptr_t
 {
   long ix = 0, len = 0, cnt = 0;
   MELT_ENTERFRAME (4, NULL);
-#define discrv meltfram__.varptr[0]
-#define mapobjectv meltfram__.varptr[1]
-#define attrobjectv meltfram__.varptr[2]
-#define valuv meltfram__.varptr[3]
+#define discrv meltfram__.mcfr_varptr[0]
+#define mapobjectv meltfram__.mcfr_varptr[1]
+#define attrobjectv meltfram__.mcfr_varptr[2]
+#define valuv meltfram__.mcfr_varptr[3]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define object_attrobjectv ((meltobject_ptr_t)(attrobjectv))
 #define map_mapobjectv ((meltmapobjects_ptr_t)(mapobjectv))
@@ -4357,8 +4349,8 @@ melt_ptr_t
 meltgc_new_mapstrings (meltobject_ptr_t discr_p, unsigned len)
 {
   MELT_ENTERFRAME (2, NULL);
-#define discrv meltfram__.varptr[0]
-#define newmapv meltfram__.varptr[1]
+#define discrv meltfram__.mcfr_varptr[0]
+#define newmapv meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mapstring_newmapv ((struct meltmapstrings_st*)(newmapv))
   discrv = discr_p;
@@ -4401,9 +4393,9 @@ meltgc_put_mapstrings (struct meltmapstrings_st
   char *attrdup = 0;
   char tinybuf[130];
   MELT_ENTERFRAME (3, NULL);
-#define discrv meltfram__.varptr[0]
-#define mapstringv meltfram__.varptr[1]
-#define valuv meltfram__.varptr[2]
+#define discrv meltfram__.mcfr_varptr[0]
+#define mapstringv meltfram__.mcfr_varptr[1]
+#define valuv meltfram__.mcfr_varptr[2]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define map_mapstringv ((struct meltmapstrings_st*)(mapstringv))
   mapstringv = mapstring_p;
@@ -4546,9 +4538,9 @@ meltgc_remove_mapstrings (struct meltmapstrings_st *
   char *attrdup = 0;
   char tinybuf[130];
   MELT_ENTERFRAME (3, NULL);
-#define discrv meltfram__.varptr[0]
-#define mapstringv meltfram__.varptr[1]
-#define valuv meltfram__.varptr[2]
+#define discrv meltfram__.mcfr_varptr[0]
+#define mapstringv meltfram__.mcfr_varptr[1]
+#define valuv meltfram__.mcfr_varptr[2]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define map_mapstringv ((struct meltmapstrings_st*)(mapstringv))
   mapstringv = mapstring_p;
@@ -4719,8 +4711,8 @@ meltgc_raw_new_mappointers (meltobject_ptr_t discr_p, unsigned len)
 {
   int lenix = 0, primlen = 0;
   MELT_ENTERFRAME (2, NULL);
-#define discrv meltfram__.varptr[0]
-#define newmapv meltfram__.varptr[1]
+#define discrv meltfram__.mcfr_varptr[0]
+#define newmapv meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define map_newmapv ((struct meltmappointers_st*)(newmapv))
   discrv = discr_p;
@@ -4767,8 +4759,8 @@ meltgc_raw_put_mappointers (void *mappointer_p,
   long ix = 0, len = 0, cnt = 0;
   size_t lensiz = 0;
   MELT_ENTERFRAME (2, NULL);
-#define mappointerv meltfram__.varptr[0]
-#define valuv meltfram__.varptr[1]
+#define mappointerv meltfram__.mcfr_varptr[0]
+#define valuv meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define map_mappointerv ((struct meltmappointers_st*)(mappointerv))
   mappointerv = mappointer_p;
@@ -4885,9 +4877,9 @@ meltgc_raw_remove_mappointers (void *mappointer_p, const void *attr)
   long ix = 0, len = 0, cnt = 0;
   const char *oldat = NULL;
   MELT_ENTERFRAME (3, NULL);
-#define discrv meltfram__.varptr[0]
-#define mappointerv meltfram__.varptr[1]
-#define valuv meltfram__.varptr[2]
+#define discrv meltfram__.mcfr_varptr[0]
+#define mappointerv meltfram__.mcfr_varptr[1]
+#define valuv meltfram__.mcfr_varptr[2]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define map_mappointerv ((struct meltmappointers_st*)(mappointerv))
   mappointerv = mappointer_p;
@@ -5014,8 +5006,8 @@ melt_ptr_t
 meltgc_new_string_raw_len (meltobject_ptr_t discr_p, const char *str, int slen)
 {
   MELT_ENTERFRAME (2, NULL);
-#define discrv     meltfram__.varptr[0]
-#define strv       meltfram__.varptr[1]
+#define discrv     meltfram__.mcfr_varptr[0]
+#define strv       meltfram__.mcfr_varptr[1]
 #define obj_discrv  ((struct meltobject_st*)(discrv))
 #define str_strv  ((struct meltstring_st*)(strv))
   strv = 0;
@@ -5056,8 +5048,8 @@ meltgc_new_stringdup (meltobject_ptr_t discr_p, const char *str)
   char tinybuf[80];
   char *strcop = 0;
   MELT_ENTERFRAME (2, NULL);
-#define discrv     meltfram__.varptr[0]
-#define strv       meltfram__.varptr[1]
+#define discrv     meltfram__.mcfr_varptr[0]
+#define strv       meltfram__.mcfr_varptr[1]
 #define obj_discrv  ((struct meltobject_st*)(discrv))
 #define str_strv  ((struct meltstring_st*)(strv))
   strv = 0;
@@ -5106,8 +5098,8 @@ meltgc_new_string_generated_c_filename  (meltobject_ptr_t discr_p,
   char numbuf[16];
   char tinybuf[120];
   MELT_ENTERFRAME (2, NULL);
-#define discrv     meltfram__.varptr[0]
-#define strv       meltfram__.varptr[1]
+#define discrv     meltfram__.mcfr_varptr[0]
+#define strv       meltfram__.mcfr_varptr[1]
 #define obj_discrv  ((struct meltobject_st*)(discrv))
 #define str_strv  ((struct meltstring_st*)(strv))
   memset (numbuf, 0, sizeof(numbuf));
@@ -5198,8 +5190,8 @@ meltgc_new_string_nakedbasename (meltobject_ptr_t discr_p,
   const char *basestr = 0;
   char *dot = 0;
   MELT_ENTERFRAME (2, NULL);
-#define discrv     meltfram__.varptr[0]
-#define strv       meltfram__.varptr[1]
+#define discrv     meltfram__.mcfr_varptr[0]
+#define strv       meltfram__.mcfr_varptr[1]
 #define obj_discrv  ((struct meltobject_st*)(discrv))
 #define str_strv  ((struct meltstring_st*)(strv))
   strv = 0;
@@ -5252,8 +5244,8 @@ meltgc_new_string_tempname_suffixed (meltobject_ptr_t
   const char* tempnampath = 0;
   char *dot = 0;
   MELT_ENTERFRAME (2, NULL);
-#define discrv     meltfram__.varptr[0]
-#define strv       meltfram__.varptr[1]
+#define discrv     meltfram__.mcfr_varptr[0]
+#define strv       meltfram__.mcfr_varptr[1]
 #define obj_discrv  ((struct meltobject_st*)(discrv))
 #define str_strv  ((struct meltstring_st*)(strv))
   memset(suffix, 0, sizeof(suffix));
@@ -5301,9 +5293,9 @@ meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr_p)
   char *cursep = 0;
   char *pc = 0;
   MELT_ENTERFRAME (4, NULL);
-#define discrv     meltfram__.varptr[0]
-#define strv       meltfram__.varptr[1]
-#define lisv       meltfram__.varptr[2]
+#define discrv     meltfram__.mcfr_varptr[0]
+#define strv       meltfram__.mcfr_varptr[1]
+#define lisv       meltfram__.mcfr_varptr[2]
 #define obj_discrv  ((struct meltobject_st*)(discrv))
 #define str_strv  ((struct meltstring_st*)(strv))
   discrv = discr_p;
@@ -5421,15 +5413,15 @@ meltgc_send (melt_ptr_t recv_p,
   long sendnum = ++sendcount;
 #endif
   MELT_ENTERFRAME (9, NULL);
-#define recv    meltfram__.varptr[0]
-#define selv    meltfram__.varptr[1]
-#define argv    meltfram__.varptr[2]
-#define closv   meltfram__.varptr[3]
-#define discrv  meltfram__.varptr[4]
-#define mapv    meltfram__.varptr[5]
-#define superv  meltfram__.varptr[6]
-#define resv    meltfram__.varptr[7]
-#define ancv    meltfram__.varptr[8]
+#define recv    meltfram__.mcfr_varptr[0]
+#define selv    meltfram__.mcfr_varptr[1]
+#define argv    meltfram__.mcfr_varptr[2]
+#define closv   meltfram__.mcfr_varptr[3]
+#define discrv  meltfram__.mcfr_varptr[4]
+#define mapv    meltfram__.mcfr_varptr[5]
+#define superv  meltfram__.mcfr_varptr[6]
+#define resv    meltfram__.mcfr_varptr[7]
+#define ancv    meltfram__.mcfr_varptr[8]
 #define obj_discrv ((meltobject_ptr_t)(discrv))
 #define obj_selv ((meltobject_ptr_t)(selv))
 #define clo_closv ((meltclosure_ptr_t)(closv))
@@ -6005,8 +5997,6 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   typedef melt_ptr_t startroutine_t (melt_ptr_t);
   typedef void markroutine_t (void *);
   PTR_UNION_TYPE(startroutine_t*) startrout_uf = {0};
-  PTR_UNION_TYPE(markroutine_t*) markrout_uf = {0};
-  PTR_UNION_TYPE(void **) iniframe_up = {0};
   int i = 0, c = 0;
   char hbuf[4];
   dypathlen = dypath?strlen(dypath):0;
@@ -6085,20 +6075,6 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
       warning (0, "missing start_module_melt routine in MELT module %s", dypath);
       goto bad;
     };
-  PTR_UNION_AS_VOID_PTR(markrout_uf) =
-    dlsym ((void *) dlh, "mark_module_melt");
-  if (!PTR_UNION_AS_VOID_PTR(markrout_uf))
-    {
-      warning (0, "missing mark_module_melt routine in MELT module %s", dypath);
-      goto bad;
-    };
-  PTR_UNION_AS_VOID_PTR(iniframe_up) 
-    = dlsym ((void *) dlh, "initial_frame_melt");
-  if (!PTR_UNION_AS_VOID_PTR(iniframe_up))
-    {
-      warning (0, "missing initial_frame_melt routine in MELT module %s", dypath);
-      goto bad;
-    }
   if (md5src && dynmd5)
     {
       for (i = 0; i < 16; i++)
@@ -6135,11 +6111,9 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
 	}
     }
   {
-    melt_module_info_t minf = { 0, 0, 0, 0, 0 };
+    melt_module_info_t minf = { 0, 0, 0 };
     minf.dlh = dlh;
     minf.modpath = dypathdup;
-    minf.iniframp = PTR_UNION_AS_CAST_PTR (iniframe_up);
-    minf.marker_rout = PTR_UNION_AS_CAST_PTR (markrout_uf);
     minf.start_rout = PTR_UNION_AS_CAST_PTR (startrout_uf);
     ix = VEC_length (melt_module_info_t, modinfvec);
     VEC_safe_push (melt_module_info_t, heap, modinfvec, &minf);
@@ -6248,9 +6222,9 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
   const char* modpathstr = melt_argument ("module-path");
   const char* modsuf = NULL;
   MELT_ENTERFRAME (4, NULL);
-#define modulv meltfram__.varptr[0]
-#define mdatav meltfram__.varptr[1]
-#define dumpv  meltfram__.varptr[2]
+#define modulv meltfram__.mcfr_varptr[0]
+#define mdatav meltfram__.mcfr_varptr[1]
+#define dumpv  meltfram__.mcfr_varptr[2]
   mdatav = modata_p;
   if (!modulnam || !modulnam[0]) {
     error ("cannot load MELT module, no MELT module name given");
@@ -6536,7 +6510,6 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
   debugeprintf ("dylibfound moduptr=%p", (void *) moduptr);
   gcc_assert (moduptr != 0);
   startroutp = moduptr->start_rout;
-  gcc_assert (moduptr->iniframp != 0 && *moduptr->iniframp == (void *) 0);
   dumpv = melt_get_inisysdata (FSYSDAT_DUMPFILE);
   if (melt_magic_discr ((melt_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
     {
@@ -6550,11 +6523,10 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_make_load_melt_module before calling module %s",
 	      lbasename (__FILE__), __LINE__, dupmodulnam);
-    meltfram__.flocs = locbuf;
+    meltfram__.mcfr_flocs = locbuf;
   }
 #endif
   modulv = (*startroutp) ((melt_ptr_t) mdatav);
-  gcc_assert (moduptr->iniframp != 0 && *moduptr->iniframp == (void *) 0);
   melt_nb_modules ++;
   MELT_LOCATION_HERE ("meltgc_make_load_melt_module after calling module");
   if (melt_magic_discr ((melt_ptr_t) dumpv) == OBMAG_SPEC_RAWFILE) 
@@ -6589,8 +6561,8 @@ meltgc_make_melt_module (melt_ptr_t src_p, melt_ptr_t out_p, const char*maketarg
   char* mytmpdir = NULL;
   char* mycwd = getpwd ();
   MELT_ENTERFRAME (2, NULL);
-#define srcv   meltfram__.varptr[0]
-#define outv   meltfram__.varptr[1]
+#define srcv   meltfram__.mcfr_varptr[0]
+#define outv   meltfram__.mcfr_varptr[1]
   srcv = src_p;
   outv = out_p;
   if (melt_magic_discr((melt_ptr_t) srcv) != OBMAG_STRING 
@@ -6656,7 +6628,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
   char linbuf[1024];
   MELT_ENTERFRAME (1, NULL);
   memset (linbuf, 0, sizeof (linbuf));
-#define mdatav meltfram__.varptr[0]
+#define mdatav meltfram__.mcfr_varptr[0]
   mdatav = modata_p;
   debugeprintf ("meltgc_load_modulelist start modlistbase %s", modlistbase);
   /* first check directly for the file */
@@ -6764,7 +6736,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_load_modulelist before reading mod.list : %s",
 	      lbasename (__FILE__), __LINE__, modlistpath);
-    meltfram__.flocs = locbuf;
+    meltfram__.mcfr_flocs = locbuf;
   }
 #endif
   while (!feof (filmod))
@@ -7150,8 +7122,8 @@ readseqlist (struct reading_st *rd, int endc)
   int startlin = rd->rlineno;
   bool got = FALSE;
   MELT_ENTERFRAME (2, NULL);
-#define seqv meltfram__.varptr[0]
-#define compv meltfram__.varptr[1]
+#define seqv meltfram__.mcfr_varptr[0]
+#define compv meltfram__.mcfr_varptr[1]
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
 readagain:
   compv = NULL;
@@ -7184,10 +7156,10 @@ makesexpr (struct reading_st *rd, int lineno, melt_ptr_t contents_p,
 	   location_t loc, bool ismacrostring)
 {
   MELT_ENTERFRAME (4, NULL);
-#define sexprv  meltfram__.varptr[0]
-#define contsv   meltfram__.varptr[1]
-#define locmixv meltfram__.varptr[2]
-#define sexpclassv meltfram__.varptr[3]
+#define sexprv  meltfram__.mcfr_varptr[0]
+#define contsv   meltfram__.mcfr_varptr[1]
+#define locmixv meltfram__.mcfr_varptr[2]
+#define sexpclassv meltfram__.mcfr_varptr[3]
   contsv = contents_p;
   gcc_assert (melt_magic_discr ((melt_ptr_t) contsv) == OBMAG_LIST);
   if (loc == 0)
@@ -7224,10 +7196,10 @@ meltgc_named_symbol (const char *nam, int create)
   char *namdup = 0;
   char tinybuf[130];
   MELT_ENTERFRAME (4, NULL);
-#define symbv    meltfram__.varptr[0]
-#define dictv    meltfram__.varptr[1]
-#define closv    meltfram__.varptr[2]
-#define nstrv    meltfram__.varptr[3]
+#define symbv    meltfram__.mcfr_varptr[0]
+#define dictv    meltfram__.mcfr_varptr[1]
+#define closv    meltfram__.mcfr_varptr[2]
+#define nstrv    meltfram__.mcfr_varptr[3]
   symbv = NULL;
   dictv = NULL;
   closv = NULL;
@@ -7284,11 +7256,11 @@ melt_ptr_t
 meltgc_intern_symbol (melt_ptr_t symb_p)
 {
   MELT_ENTERFRAME (5, NULL);
-#define symbv    meltfram__.varptr[0]
-#define dictv    meltfram__.varptr[1]
-#define closv    meltfram__.varptr[2]
-#define nstrv    meltfram__.varptr[3]
-#define resv     meltfram__.varptr[4]
+#define symbv    meltfram__.mcfr_varptr[0]
+#define dictv    meltfram__.mcfr_varptr[1]
+#define closv    meltfram__.mcfr_varptr[2]
+#define nstrv    meltfram__.mcfr_varptr[3]
+#define resv     meltfram__.mcfr_varptr[4]
 #define obj_symbv    ((meltobject_ptr_t)(symbv))
   symbv = symb_p;
   if (melt_magic_discr ((melt_ptr_t) symbv) != OBMAG_OBJECT
@@ -7396,11 +7368,11 @@ meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimap_p)
   char* nam = 0;
   char delimbuf[4] = {0};
   MELT_ENTERFRAME (6, NULL);
-#define locnamv    meltfram__.varptr[0]
-#define lexv       meltfram__.varptr[1]
-#define delimapv   meltfram__.varptr[2]
-#define readv      meltfram__.varptr[3]
-#define locmixv    meltfram__.varptr[4]
+#define locnamv    meltfram__.mcfr_varptr[0]
+#define lexv       meltfram__.mcfr_varptr[1]
+#define delimapv   meltfram__.mcfr_varptr[2]
+#define readv      meltfram__.mcfr_varptr[3]
+#define locmixv    meltfram__.mcfr_varptr[4]
   locnamv = locnam_p;
   delimapv = delimap_p;
   if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
@@ -7653,11 +7625,11 @@ melt_ptr_t
 meltgc_intern_keyword (melt_ptr_t keyw_p)
 {
   MELT_ENTERFRAME (5, NULL);
-#define keywv    meltfram__.varptr[0]
-#define dictv    meltfram__.varptr[1]
-#define closv    meltfram__.varptr[2]
-#define nstrv    meltfram__.varptr[3]
-#define resv     meltfram__.varptr[4]
+#define keywv    meltfram__.mcfr_varptr[0]
+#define dictv    meltfram__.mcfr_varptr[1]
+#define closv    meltfram__.mcfr_varptr[2]
+#define nstrv    meltfram__.mcfr_varptr[3]
+#define resv     meltfram__.mcfr_varptr[4]
 #define obj_keywv    ((meltobject_ptr_t)(keywv))
   keywv = keyw_p;
   if (melt_magic_discr ((melt_ptr_t) keywv) != OBMAG_OBJECT
@@ -7708,10 +7680,10 @@ meltgc_named_keyword (const char *nam, int create)
   char *namdup = 0;
   char tinybuf[130];
   MELT_ENTERFRAME (4, NULL);
-#define keywv    meltfram__.varptr[0]
-#define dictv    meltfram__.varptr[1]
-#define closv    meltfram__.varptr[2]
-#define nstrv    meltfram__.varptr[3]
+#define keywv    meltfram__.mcfr_varptr[0]
+#define dictv    meltfram__.mcfr_varptr[1]
+#define closv    meltfram__.mcfr_varptr[2]
+#define nstrv    meltfram__.mcfr_varptr[3]
   keywv = NULL;
   dictv = NULL;
   closv = NULL;
@@ -7774,9 +7746,9 @@ readsexpr (struct reading_st *rd, int endc)
   int c = 0, lineno = rd->rlineno;
   location_t loc = 0;
   MELT_ENTERFRAME (3, NULL);
-#define sexprv  meltfram__.varptr[0]
-#define contv   meltfram__.varptr[1]
-#define locmixv meltfram__.varptr[2]
+#define sexprv  meltfram__.mcfr_varptr[0]
+#define contv   meltfram__.mcfr_varptr[1]
+#define locmixv meltfram__.mcfr_varptr[2]
   if (!endc || rdeof ())
     READ_ERROR ("MELT: eof in s-expr (lin%d)", lineno);
   c = skipspace_getc (rd, COMMENT_SKIP);
@@ -7803,7 +7775,7 @@ readstring (struct reading_st *rd)
   char *cstr = 0, *endc = 0;
   bool isintl = false;
   MELT_ENTERFRAME (1, NULL);
-#define strv   meltfram__.varptr[0]
+#define strv   meltfram__.mcfr_varptr[0]
 #define str_strv  ((struct meltstring_st*)(strv))
   obstack_init (&bstring_obstack);
   while ((c = rdcurc ()) != '"' && !rdeof ())
@@ -7959,11 +7931,11 @@ readmacrostringsequence (struct reading_st *rd)
   int escaped = 0;
   location_t loc = 0;
   MELT_ENTERFRAME (6, NULL);
-#define readv    meltfram__.varptr[0]
-#define strv     meltfram__.varptr[1]
-#define symbv    meltfram__.varptr[2]
-#define seqv     meltfram__.varptr[3]
-#define sbufv    meltfram__.varptr[4]
+#define readv    meltfram__.mcfr_varptr[0]
+#define strv     meltfram__.mcfr_varptr[1]
+#define symbv    meltfram__.mcfr_varptr[2]
+#define seqv     meltfram__.mcfr_varptr[3]
+#define sbufv    meltfram__.mcfr_varptr[4]
   LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
@@ -8091,10 +8063,10 @@ readhashescape (struct reading_st *rd)
   char *nam = NULL;
   int lineno = rd->rlineno;
   MELT_ENTERFRAME (4, NULL);
-#define readv  meltfram__.varptr[0]
-#define compv  meltfram__.varptr[1]
-#define listv  meltfram__.varptr[2]
-#define pairv  meltfram__.varptr[3]
+#define readv  meltfram__.mcfr_varptr[0]
+#define compv  meltfram__.mcfr_varptr[1]
+#define listv  meltfram__.mcfr_varptr[2]
+#define pairv  meltfram__.mcfr_varptr[3]
   readv = NULL;
   c = rdcurc ();
   if (!c || rdeof ())
@@ -8259,10 +8231,10 @@ readval (struct reading_st *rd, bool * pgot)
   char *nam = 0;
   int lineno = rd->rlineno;
   MELT_ENTERFRAME (4, NULL);
-#define readv   meltfram__.varptr[0]
-#define compv   meltfram__.varptr[1]
-#define seqv    meltfram__.varptr[2]
-#define altv    meltfram__.varptr[3]
+#define readv   meltfram__.mcfr_varptr[0]
+#define compv   meltfram__.mcfr_varptr[1]
+#define seqv    meltfram__.mcfr_varptr[2]
+#define altv    meltfram__.mcfr_varptr[3]
   readv = NULL;
   c = skipspace_getc (rd, COMMENT_SKIP);
   /*   debugeprintf ("start readval line %d col %d char %c", rd->rlineno, rd->rcol,
@@ -8437,9 +8409,9 @@ melt_error_str (melt_ptr_t mixloc_p, const char *msg,
   int lineno = 0;
   location_t loc = 0;
   MELT_ENTERFRAME (3, NULL);
-#define mixlocv    meltfram__.varptr[0]
-#define strv       meltfram__.varptr[1]
-#define finamv     meltfram__.varptr[2]
+#define mixlocv    meltfram__.mcfr_varptr[0]
+#define strv       meltfram__.mcfr_varptr[1]
+#define finamv     meltfram__.mcfr_varptr[2]
   gcc_assert (msg && msg[0]);
   melt_error_counter ++;
   mixlocv = mixloc_p;
@@ -8510,9 +8482,9 @@ melt_warning_str (int opt, melt_ptr_t mixloc_p, const char *msg,
   int lineno = 0;
   location_t loc = 0;
   MELT_ENTERFRAME (3, NULL);
-#define mixlocv    meltfram__.varptr[0]
-#define strv       meltfram__.varptr[1]
-#define finamv     meltfram__.varptr[2]
+#define mixlocv    meltfram__.mcfr_varptr[0]
+#define strv       meltfram__.mcfr_varptr[1]
+#define finamv     meltfram__.mcfr_varptr[2]
   gcc_assert (msg && msg[0]);
   mixlocv = mixloc_p;
   strv = str_p;
@@ -8585,9 +8557,9 @@ melt_inform_str (melt_ptr_t mixloc_p, const char *msg,
   int lineno = 0;
   location_t loc = 0;
   MELT_ENTERFRAME (3, NULL);
-#define mixlocv    meltfram__.varptr[0]
-#define strv       meltfram__.varptr[1]
-#define finamv     meltfram__.varptr[2]
+#define mixlocv    meltfram__.mcfr_varptr[0]
+#define strv       meltfram__.mcfr_varptr[1]
+#define finamv     meltfram__.mcfr_varptr[2]
   gcc_assert (msg && msg[0]);
   mixlocv = mixloc_p;
   strv = str_p;
@@ -8660,10 +8632,10 @@ meltgc_read_file (const char *filnam, const char *locnam)
   struct reading_st *rd = 0;
   char *filnamdup = 0;
   MELT_ENTERFRAME (4, NULL);
-#define genv      meltfram__.varptr[0]
-#define valv      meltfram__.varptr[1]
-#define locnamv   meltfram__.varptr[2]
-#define seqv      meltfram__.varptr[3]
+#define genv      meltfram__.mcfr_varptr[0]
+#define valv      meltfram__.mcfr_varptr[1]
+#define locnamv   meltfram__.mcfr_varptr[2]
+#define seqv      meltfram__.mcfr_varptr[3]
   memset (&rds, 0, sizeof (rds));
   debugeprintf ("meltgc_read_file filnam %s locnam %s", filnam, locnam);
   if (!filnam || !filnam[0])
@@ -8745,10 +8717,10 @@ meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
   char *rbuf = 0;
   struct reading_st *rd = 0;
   MELT_ENTERFRAME (4, NULL);
-#define genv      meltfram__.varptr[0]
-#define valv      meltfram__.varptr[1]
-#define locnamv   meltfram__.varptr[2]
-#define seqv      meltfram__.varptr[3]
+#define genv      meltfram__.mcfr_varptr[0]
+#define valv      meltfram__.mcfr_varptr[1]
+#define locnamv   meltfram__.mcfr_varptr[2]
+#define seqv      meltfram__.mcfr_varptr[3]
   memset (&rds, 0, sizeof (rds));
   if (!rawstr)
     goto end;
@@ -8794,11 +8766,11 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
   struct reading_st *rd = 0;
   int strmagic = 0;
   MELT_ENTERFRAME (5, NULL);
-#define genv      meltfram__.varptr[0]
-#define valv      meltfram__.varptr[1]
-#define locnamv   meltfram__.varptr[2]
-#define seqv      meltfram__.varptr[3]
-#define strv      meltfram__.varptr[4]
+#define genv      meltfram__.mcfr_varptr[0]
+#define valv      meltfram__.mcfr_varptr[1]
+#define locnamv   meltfram__.mcfr_varptr[2]
+#define seqv      meltfram__.mcfr_varptr[3]
+#define strv      meltfram__.mcfr_varptr[4]
   memset (&rds, 0, sizeof (rds));
   strv = strv_p;
   locnamv = locnam_p;
@@ -8866,15 +8838,15 @@ do_initial_mode (melt_ptr_t modata_p, const char* modstr)
   char* dupmodstr = NULL;
   char* comma = NULL;
   MELT_ENTERFRAME (10, NULL);
-#define dictv     meltfram__.varptr[0]
-#define closv     meltfram__.varptr[1]
-#define cstrv     meltfram__.varptr[2]
-#define arglv     meltfram__.varptr[3]
-#define csecstrv  meltfram__.varptr[4]
-#define modatav   meltfram__.varptr[5]
-#define curargv   meltfram__.varptr[6]
-#define resv      meltfram__.varptr[7]
-#define cmdv      meltfram__.varptr[8]
+#define dictv     meltfram__.mcfr_varptr[0]
+#define closv     meltfram__.mcfr_varptr[1]
+#define cstrv     meltfram__.mcfr_varptr[2]
+#define arglv     meltfram__.mcfr_varptr[3]
+#define csecstrv  meltfram__.mcfr_varptr[4]
+#define modatav   meltfram__.mcfr_varptr[5]
+#define curargv   meltfram__.mcfr_varptr[6]
+#define resv      meltfram__.mcfr_varptr[7]
+#define cmdv      meltfram__.mcfr_varptr[8]
   modatav = modata_p;
   modstr = melt_argument ("mode");
   debugeprintf ("do_initial_mode mode_string %s modatav %p",
@@ -8989,11 +8961,11 @@ load_melt_modules_and_do_mode (void)
   const char *inistr = 0;
   const char* dbgstr = melt_argument("debug");
   MELT_ENTERFRAME (7, NULL);
-#define modatv     meltfram__.varptr[0]
-#define dumpv      meltfram__.varptr[1]
-#define optsetv    meltfram__.varptr[2]
-#define optresv    meltfram__.varptr[3]
-#define optsymbv   meltfram__.varptr[4]
+#define modatv     meltfram__.mcfr_varptr[0]
+#define dumpv      meltfram__.mcfr_varptr[1]
+#define optsetv    meltfram__.mcfr_varptr[2]
+#define optresv    meltfram__.mcfr_varptr[3]
+#define optsymbv   meltfram__.mcfr_varptr[4]
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
   debugeprintf ("load_melt_modules_and_do_mode start init=%s mode=%s",
@@ -9243,7 +9215,7 @@ melt_startunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
 			void* user_data ATTRIBUTE_UNUSED) 
 {
   MELT_ENTERFRAME (1, NULL);
-#define staclosv meltfram__.varptr[0]
+#define staclosv meltfram__.mcfr_varptr[0]
   staclosv = melt_get_inisysdata (FSYSDAT_UNIT_STARTER);
   if (melt_magic_discr ((melt_ptr_t) staclosv) == OBMAG_CLOSURE)
     {
@@ -9266,7 +9238,7 @@ melt_finishunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
 			void* user_data ATTRIBUTE_UNUSED) 
 {
   MELT_ENTERFRAME (1, NULL);
-#define finclosv meltfram__.varptr[0]
+#define finclosv meltfram__.mcfr_varptr[0]
   finclosv = melt_get_inisysdata (FSYSDAT_UNIT_FINISHER);
   if (melt_magic_discr ((melt_ptr_t) finclosv) == OBMAG_CLOSURE)
     {
@@ -9444,7 +9416,7 @@ do_finalize_melt (void)
   modstr = melt_argument ("mode");
   if (!modstr)
     goto end;
-#define finclosv meltfram__.varptr[0]
+#define finclosv meltfram__.mcfr_varptr[0]
   finclosv = melt_get_inisysdata (FSYSDAT_EXIT_FINALIZER);
   if (melt_magic_discr ((melt_ptr_t) finclosv) == OBMAG_CLOSURE)
     {
@@ -10012,8 +9984,8 @@ melt_dbgeprint (void *p)
 void meltgc_debugmsgval(void* val_p, const char*msg, long count)
 { 
   MELT_ENTERFRAME(2,NULL);
-#define valv   meltfram__.varptr[0]
-#define dbgfv  meltfram__.varptr[1]
+#define valv   meltfram__.mcfr_varptr[0]
+#define dbgfv  meltfram__.mcfr_varptr[1]
   valv = val_p;
   dbgfv = melt_get_inisysdata (FSYSDAT_DEBUGMSG);
   {
@@ -10036,18 +10008,19 @@ melt_dbgbacktrace (int depth)
   struct callframe_melt_st *fr = 0;
   fprintf (stderr, "    <{\n");
   for (fr = melt_topframe; fr != NULL && curdepth < depth;
-       (fr = fr->prev), (curdepth++))
+       (fr = fr->mcfr_prev), (curdepth++))
     {
       fprintf (stderr, "frame#%d closure: ", curdepth);
 #if ENABLE_CHECKING
-      if (fr->flocs)
-	fprintf (stderr, "{%s} ", fr->flocs);
+      if (fr->mcfr_flocs)
+	fprintf (stderr, "{%s} ", fr->mcfr_flocs);
       else
 	fputs (" ", stderr);
 #endif
-      melt_dbgeprint (fr->clos);
+      if (fr->mcfr_nbvar >= 0 && fr->mcfr_closp)
+	melt_dbgeprint (fr->mcfr_closp);
     }
-  for (totdepth = curdepth; fr != NULL; fr = fr->prev);
+  for (totdepth = curdepth; fr != NULL; fr = fr->mcfr_prev);
   fprintf (stderr, "}> backtraced %d frames of %d\n", curdepth, totdepth);
   fflush (stderr);
 }
@@ -10063,13 +10036,14 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
   fprintf (stderr, "\nSHORT BACKTRACE[#%ld] %s;", melt_dbgcounter,
 	   msg ? msg : "/");
   for (fr = melt_topframe; fr != NULL && curdepth < maxdepth;
-       (fr = fr->prev), (curdepth++))
+       (fr = fr->mcfr_prev), (curdepth++))
     {
       fputs ("\n", stderr);
       fprintf (stderr, "#%d:", curdepth);
-      if (melt_magic_discr ((melt_ptr_t) fr->clos) == OBMAG_CLOSURE)
+      if (fr->mcfr_closp && fr->mcfr_nbvar >= 0
+	  && melt_magic_discr ((melt_ptr_t) fr->mcfr_closp) == OBMAG_CLOSURE)
 	{
-	  meltroutine_ptr_t curout = fr->clos->rout;
+	  meltroutine_ptr_t curout = fr->mcfr_closp->rout;
 	  if (melt_magic_discr ((melt_ptr_t) curout) == OBMAG_ROUTINE)
 	    fprintf (stderr, "<%s> ", curout->routdescr);
 	  else
@@ -10078,8 +10052,8 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
       else
 	fprintf (stderr, "_ ");
 #if ENABLE_CHECKING
-      if (fr->flocs)
-	fprintf (stderr, "{%s} ", fr->flocs);
+      if (fr->mcfr_flocs)
+	fprintf (stderr, "{%s} ", fr->mcfr_flocs);
       else
 	fputs (" ", stderr);
 #endif
@@ -10180,7 +10154,7 @@ void
 meltgc_ppout_gimple (melt_ptr_t out_p, int indentsp, gimple gstmt)
 {
   int outmagic = 0;
-#define outv meltfram__.varptr[0]
+#define outv meltfram__.mcfr_varptr[0]
   MELT_ENTERFRAME (2, NULL);
   outv = out_p;
   if (!outv) 
@@ -10231,7 +10205,7 @@ meltgc_ppout_gimple_seq (melt_ptr_t out_p, int indentsp,
 			       gimple_seq gseq)
 {
   int outmagic = 0;
-#define outv meltfram__.varptr[0]
+#define outv meltfram__.mcfr_varptr[0]
   MELT_ENTERFRAME (2, NULL);
   outv = out_p;
   if (!outv)
@@ -10281,7 +10255,7 @@ void
 meltgc_ppout_tree (melt_ptr_t out_p, int indentsp, tree tr)
 {
   int outmagic = 0;
-#define outv meltfram__.varptr[0]
+#define outv meltfram__.mcfr_varptr[0]
   MELT_ENTERFRAME (2, NULL);
   outv = out_p;
   if (!outv)
@@ -10330,7 +10304,7 @@ meltgc_ppout_basicblock (melt_ptr_t out_p, int indentsp,
 			       basic_block bb)
 {
   gimple_seq gsq = 0;
-#define outv meltfram__.varptr[0]
+#define outv meltfram__.mcfr_varptr[0]
   MELT_ENTERFRAME (2, NULL);
   outv = out_p;
   if (!outv)
@@ -10366,7 +10340,7 @@ meltgc_ppout_mpz (melt_ptr_t out_p, int indentsp, mpz_t mp)
   int len = 0;
   char* cbuf = 0;
   char tinybuf [64];
-#define outv meltfram__.varptr[0]
+#define outv meltfram__.mcfr_varptr[0]
   MELT_ENTERFRAME (2, NULL);
   outv = out_p;
   memset(tinybuf, 0, sizeof (tinybuf));
@@ -10401,8 +10375,8 @@ void
 meltgc_ppout_mixbigint (melt_ptr_t out_p, int indentsp,
 			      melt_ptr_t big_p)
 {
-#define outv meltfram__.varptr[0]
-#define bigv  meltfram__.varptr[1]
+#define outv meltfram__.mcfr_varptr[0]
+#define bigv  meltfram__.mcfr_varptr[1]
   MELT_ENTERFRAME (3, NULL);
   outv = out_p;
   bigv = big_p;
@@ -10428,9 +10402,9 @@ melt_ptr_t
 meltgc_new_file(melt_ptr_t discr_p, FILE* fil)
 {
   MELT_ENTERFRAME(2, NULL);
-#define discrv meltfram__.varptr[0]
+#define discrv meltfram__.mcfr_varptr[0]
 #define object_discrv ((meltobject_ptr_t)(discrv))
-#define resv   meltfram__.varptr[1]
+#define resv   meltfram__.mcfr_varptr[1]
 #define spec_resv ((struct meltspecial_st*)(resv))
   discrv = (void *) discr_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != OBMAG_OBJECT)
@@ -10505,9 +10479,9 @@ meltgc_new_ppl_constraint_system(melt_ptr_t discr_p, bool unsatisfiable)
 {
   int err = 0;
   MELT_ENTERFRAME(2, NULL);
-#define discrv meltfram__.varptr[0]
+#define discrv meltfram__.mcfr_varptr[0]
 #define object_discrv ((meltobject_ptr_t)(discrv))
-#define resv   meltfram__.varptr[1]
+#define resv   meltfram__.mcfr_varptr[1]
 #define spec_resv ((struct meltspecial_st*)(resv))
   discrv = (void *) discr_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != OBMAG_OBJECT)
@@ -10538,11 +10512,11 @@ meltgc_clone_ppl_constraint_system (melt_ptr_t ppl_p)
   int err = 0;
   ppl_Constraint_System_t oldconsys = NULL, newconsys = NULL;
   MELT_ENTERFRAME(3, NULL);
-#define pplv   meltfram__.varptr[0]
+#define pplv   meltfram__.mcfr_varptr[0]
 #define spec_pplv ((struct meltspecial_st*)(pplv))
-#define discrv meltfram__.varptr[1]
+#define discrv meltfram__.mcfr_varptr[1]
 #define object_discrv ((meltobject_ptr_t)(discrv))
-#define resv   meltfram__.varptr[2]
+#define resv   meltfram__.mcfr_varptr[2]
 #define spec_resv ((struct meltspecial_st*)(resv))
   pplv = ppl_p;
   resv = NULL;
@@ -10572,7 +10546,7 @@ melt_insert_ppl_constraint_in_boxed_system(ppl_Constraint_t cons, melt_ptr_t ppl
 {
   int err=0;
   MELT_ENTERFRAME(3, NULL);
-#define pplv   meltfram__.varptr[0]
+#define pplv   meltfram__.mcfr_varptr[0]
 #define spec_pplv ((struct meltspecial_st*)(pplv))
   pplv = ppl_p;
   if (!pplv || !cons 
@@ -10606,9 +10580,9 @@ melt_ptr_t
 meltgc_new_ppl_polyhedron(melt_ptr_t discr_p, ppl_Polyhedron_t poly, bool cloned)
 {
   MELT_ENTERFRAME(2, NULL);
-#define discrv meltfram__.varptr[0]
+#define discrv meltfram__.mcfr_varptr[0]
 #define object_discrv ((meltobject_ptr_t)(discrv))
-#define resv   meltfram__.varptr[1]
+#define resv   meltfram__.mcfr_varptr[1]
 #define spec_resv ((struct meltspecial_st*)(resv))
   discrv = (void *) discr_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != OBMAG_OBJECT)
@@ -10682,9 +10656,9 @@ meltgc_new_ppl_linear_expression(melt_ptr_t discr_p)
 {
   int err = 0;
   MELT_ENTERFRAME(2, NULL);
-#define discrv meltfram__.varptr[0]
+#define discrv meltfram__.mcfr_varptr[0]
 #define object_discrv ((meltobject_ptr_t)(discrv))
-#define resv   meltfram__.varptr[1]
+#define resv   meltfram__.mcfr_varptr[1]
 #define spec_resv ((struct meltspecial_st*)(resv))
   discrv = (void *) discr_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != OBMAG_OBJECT)
@@ -10709,7 +10683,7 @@ meltgc_new_ppl_linear_expression(melt_ptr_t discr_p)
 void melt_clear_special(melt_ptr_t val_p)
 {
   MELT_ENTERFRAME(1, NULL);
-#define valv meltfram__.varptr[0]
+#define valv meltfram__.mcfr_varptr[0]
 #define spec_valv ((struct meltspecial_st*)valv)
   valv = val_p;
   if (!valv) goto end;
@@ -10745,8 +10719,8 @@ ppl_melt_variable_output_function(ppl_dimension_type var)
   static char buf[80];
   const char *s = 0;
   MELT_ENTERFRAME(2, NULL);
-#define vectv  meltfram__.varptr[0]
-#define namv   meltfram__.varptr[1]
+#define vectv  meltfram__.mcfr_varptr[0]
+#define namv   meltfram__.mcfr_varptr[1]
   if (melt_pplcoefvectp)
     vectv =  *melt_pplcoefvectp;
   memset(buf, 0, sizeof(buf));
@@ -10803,9 +10777,9 @@ meltgc_ppstrbuf_ppl_varnamvect (melt_ptr_t sbuf_p, int indentsp, melt_ptr_t ppl_
   int mag = 0;
   char *ppstr = NULL;
   MELT_ENTERFRAME(4, NULL);
-#define sbufv    meltfram__.varptr[0]
-#define pplv     meltfram__.varptr[1]
-#define varvectv meltfram__.varptr[2]
+#define sbufv    meltfram__.mcfr_varptr[0]
+#define pplv     meltfram__.mcfr_varptr[1]
+#define varvectv meltfram__.mcfr_varptr[2]
 #define spec_pplv ((struct meltspecial_st*)(pplv))
   sbufv = sbuf_p;
   pplv = ppl_p;
@@ -11196,9 +11170,9 @@ melt_val2passflag(melt_ptr_t val_p)
   unsigned long res = 0;
   int valmag = 0;
   MELT_ENTERFRAME (3, NULL);
-#define valv    meltfram__.varptr[0]
-#define compv   meltfram__.varptr[1]
-#define pairv   meltfram__.varptr[2]
+#define valv    meltfram__.mcfr_varptr[0]
+#define compv   meltfram__.mcfr_varptr[1]
+#define pairv   meltfram__.mcfr_varptr[2]
   valv = val_p;
   if (!valv) goto end;
   valmag = melt_magic_discr((melt_ptr_t) valv);
@@ -11293,11 +11267,11 @@ meltgc_gimple_gate(void)
   static const char* modstr;
   FILE *oldf = NULL;
   MELT_ENTERFRAME(6, NULL);
-#define passv        meltfram__.varptr[0]
-#define passdictv    meltfram__.varptr[1]
-#define closv        meltfram__.varptr[2]
-#define resv         meltfram__.varptr[3]
-#define dumpv        meltfram__.varptr[4]
+#define passv        meltfram__.mcfr_varptr[0]
+#define passdictv    meltfram__.mcfr_varptr[1]
+#define closv        meltfram__.mcfr_varptr[2]
+#define resv         meltfram__.mcfr_varptr[3]
+#define dumpv        meltfram__.mcfr_varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr) 
@@ -11330,7 +11304,7 @@ meltgc_gimple_gate(void)
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_gimple_gate pass %s before apply",
 	      lbasename (__FILE__), __LINE__, current_pass->name);
-    meltfram__.flocs = locbuf;
+    meltfram__.mcfr_flocs = locbuf;
   }
 #endif
   resv = 
@@ -11369,11 +11343,11 @@ meltgc_gimple_execute(void)
   unsigned int res = 0;
   static const char* modstr;
   MELT_ENTERFRAME(6, NULL);
-#define passv        meltfram__.varptr[0]
-#define passdictv    meltfram__.varptr[1]
-#define closv        meltfram__.varptr[2]
-#define resvalv      meltfram__.varptr[3]
-#define dumpv        meltfram__.varptr[4]
+#define passv        meltfram__.mcfr_varptr[0]
+#define passdictv    meltfram__.mcfr_varptr[1]
+#define closv        meltfram__.mcfr_varptr[2]
+#define resvalv      meltfram__.mcfr_varptr[3]
+#define dumpv        meltfram__.mcfr_varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -11421,7 +11395,7 @@ meltgc_gimple_execute(void)
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_gimple_execute pass %s before apply",
 	      lbasename (__FILE__), __LINE__, current_pass->name);
-    meltfram__.flocs = locbuf;
+    meltfram__.mcfr_flocs = locbuf;
   }
 #endif
     restab[0].bp_longptr = &todol;
@@ -11465,11 +11439,11 @@ meltgc_rtl_gate(void)
   FILE* oldf = NULL;
   static const char* modstr;
   MELT_ENTERFRAME(6, NULL);
-#define passv        meltfram__.varptr[0]
-#define passdictv    meltfram__.varptr[1]
-#define closv        meltfram__.varptr[2]
-#define resv         meltfram__.varptr[3]
-#define dumpv        meltfram__.varptr[4]
+#define passv        meltfram__.mcfr_varptr[0]
+#define passdictv    meltfram__.mcfr_varptr[1]
+#define closv        meltfram__.mcfr_varptr[2]
+#define resv         meltfram__.mcfr_varptr[3]
+#define dumpv        meltfram__.mcfr_varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -11503,7 +11477,7 @@ meltgc_rtl_gate(void)
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_rtl_gate pass %s before apply",
 	      lbasename (__FILE__), __LINE__, current_pass->name);
-    meltfram__.flocs = locbuf;
+    meltfram__.mcfr_flocs = locbuf;
   }
 #endif
   resv = 
@@ -11536,11 +11510,11 @@ meltgc_rtl_execute(void)
   FILE* oldf = NULL;
   static const char*modstr;
   MELT_ENTERFRAME(6, NULL);
-#define passv        meltfram__.varptr[0]
-#define passdictv    meltfram__.varptr[1]
-#define closv        meltfram__.varptr[2]
-#define resvalv      meltfram__.varptr[3]
-#define dumpv        meltfram__.varptr[4]
+#define passv        meltfram__.mcfr_varptr[0]
+#define passdictv    meltfram__.mcfr_varptr[1]
+#define closv        meltfram__.mcfr_varptr[2]
+#define resvalv      meltfram__.mcfr_varptr[3]
+#define dumpv        meltfram__.mcfr_varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -11586,7 +11560,7 @@ meltgc_rtl_execute(void)
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_rtl_execute pass %s before apply",
 	      lbasename (__FILE__), __LINE__, current_pass->name);
-    meltfram__.flocs = locbuf;
+    meltfram__.mcfr_flocs = locbuf;
   }
 #endif
     resvalv =
@@ -11629,11 +11603,11 @@ meltgc_simple_ipa_gate(void)
   FILE* oldf = NULL;
   static const char*modstr;
   MELT_ENTERFRAME(6, NULL);
-#define passv        meltfram__.varptr[0]
-#define passdictv    meltfram__.varptr[1]
-#define closv        meltfram__.varptr[2]
-#define resv         meltfram__.varptr[3]
-#define dumpv        meltfram__.varptr[4]
+#define passv        meltfram__.mcfr_varptr[0]
+#define passdictv    meltfram__.mcfr_varptr[1]
+#define closv        meltfram__.mcfr_varptr[2]
+#define resv         meltfram__.mcfr_varptr[3]
+#define dumpv        meltfram__.mcfr_varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -11668,7 +11642,7 @@ meltgc_simple_ipa_gate(void)
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_simple_ipa_gate pass %s before apply",
 	      lbasename (__FILE__), __LINE__, current_pass->name);
-    meltfram__.flocs = locbuf;
+    meltfram__.mcfr_flocs = locbuf;
   }
 #endif
   resv = 
@@ -11708,11 +11682,11 @@ meltgc_simple_ipa_execute(void)
   FILE* oldf = NULL;
   unsigned int res = 0;
   MELT_ENTERFRAME(6, NULL);
-#define passv        meltfram__.varptr[0]
-#define passdictv    meltfram__.varptr[1]
-#define closv        meltfram__.varptr[2]
-#define resvalv      meltfram__.varptr[3]
-#define dumpv        meltfram__.varptr[4]
+#define passv        meltfram__.mcfr_varptr[0]
+#define passdictv    meltfram__.mcfr_varptr[1]
+#define closv        meltfram__.mcfr_varptr[2]
+#define resvalv      meltfram__.mcfr_varptr[3]
+#define dumpv        meltfram__.mcfr_varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -11758,7 +11732,7 @@ meltgc_simple_ipa_execute(void)
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_simple_ipa_execute pass %s before apply",
 	      lbasename (__FILE__), __LINE__, current_pass->name);
-    meltfram__.flocs = locbuf;
+    meltfram__.mcfr_flocs = locbuf;
   }
 #endif
     /* apply with one extra long result */
@@ -11811,10 +11785,10 @@ meltgc_register_pass (melt_ptr_t pass_p,
   enum pass_positioning_ops posop = PASS_POS_INSERT_AFTER;
   unsigned long propreq=0, propprov=0, propdest=0, todostart=0, todofinish=0;
   MELT_ENTERFRAME (7, NULL);
-#define passv        meltfram__.varptr[0]
-#define passdictv    meltfram__.varptr[1]
-#define compv        meltfram__.varptr[2]
-#define namev        meltfram__.varptr[3]
+#define passv        meltfram__.mcfr_varptr[0]
+#define passdictv    meltfram__.mcfr_varptr[1]
+#define compv        meltfram__.mcfr_varptr[2]
+#define namev        meltfram__.mcfr_varptr[3]
   passv = pass_p;
   debugeprintf ("meltgc_register_pass start passv %p refpassname %s positioning %s",
 		(void*)passv, refpassname, positioning);
@@ -11983,10 +11957,10 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
 			       location_t loch)
 {
   MELT_ENTERFRAME (4, NULL);
-#define seqv       meltfram__.varptr[0]
-#define declv      meltfram__.varptr[1]
-#define namev      meltfram__.varptr[2]
-#define atclov	   meltfram__.varptr[3]
+#define seqv       meltfram__.mcfr_varptr[0]
+#define declv      meltfram__.mcfr_varptr[1]
+#define namev      meltfram__.mcfr_varptr[2]
+#define atclov	   meltfram__.mcfr_varptr[3]
   if (!attrstr || !attrstr[0])
     goto end;
   seqv = meltgc_read_from_rawstring (attrstr, "*melt-attr*", loch);
@@ -12011,7 +11985,7 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:melt_handle_melt_attribute %s before apply",
 	      lbasename (__FILE__), __LINE__, attrstr);
-    meltfram__.flocs = locbuf;
+    meltfram__.mcfr_flocs = locbuf;
   }
 #endif
       (void) melt_apply ((meltclosure_ptr_t) atclov,
