@@ -1,3 +1,10 @@
+2010-06-28  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (create_new_allocno_for_spilling): Drop 'allocno'
+	from live_range_t.
+	* ira-build.c (remove_allocno_conflicts): Use CLEAR_MINMAX_SET_BIT
+	instead of CLEAR_ALLOCNO_SET_BIT.
+
 2010-06-21  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (localize_pseudos): Use GGC_RESIZEVEC rather than

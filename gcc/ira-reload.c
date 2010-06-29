@@ -442,7 +442,7 @@ create_new_allocno_for_spilling (int nreg, int oreg)
   ira_allocno_iterator ai;
   ira_allocno_conflict_iterator aci;
   unsigned int conflicts;
-  allocno_live_range_t prev, range, r;
+  live_range_t prev, range, r;
 
   /* Update IRA's datastructures.  */
 

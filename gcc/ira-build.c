@@ -617,7 +617,7 @@ remove_allocno_conflicts (ira_allocno_t a1, ira_allocno_t a2)
 	return;
 
       vec = (IRA_INT_TYPE *) ALLOCNO_CONFLICT_ALLOCNO_ARRAY (a1);
-      CLEAR_ALLOCNO_SET_BIT (vec, id, ALLOCNO_MIN (a1), ALLOCNO_MAX (a1));
+      CLEAR_MINMAX_SET_BIT (vec, id, ALLOCNO_MIN (a1), ALLOCNO_MAX (a1));
     }
 }
 
