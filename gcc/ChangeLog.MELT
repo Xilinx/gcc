@@ -1,5 +1,9 @@
 
 2010-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_marking_callback): Made better cast for call to
+	cf->mcfr_forwmarkrout.
+
+2010-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{hopefully corrected full GC bug: the initial module frames have
 	not being forwarded! So regenerated & redefined the generated
 	marking & forwarding routines in module start.}}

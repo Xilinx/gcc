@@ -717,7 +717,7 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	   special marking routine.  */
 	dbgprintf ("melt_marking_callback %ld calling frame marking routine cf=%p",
 		   meltmarkingcount, (void*) cf);
-	cf->mcfr_forwmarkrout ((void*)cf, 1);
+	cf->mcfr_forwmarkrout ((struct callframe_melt_st*)cf, 1);
 	dbgprintf ("melt_marking_callback %ld called frame marking routine",
 		   meltmarkingcount);
       }
