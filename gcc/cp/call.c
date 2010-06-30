@@ -5202,7 +5202,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	       OK.  */
 	    if ((lvalue & clk_packed)
 		&& CLASS_TYPE_P (type)
-		&& !TYPE_HAS_TRIVIAL_INIT_REF (type))
+		&& type_has_nontrivial_copy_init (type))
 	      {
 		if (complain & tf_error)
 		  error ("cannot bind packed field %qE to %qT",
@@ -5605,7 +5605,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
     }
 
   /* Give any warnings we noticed during overload resolution.  */
-  if (cand->warnings)
+  if (cand->warnings && (complain & tf_warning))
     {
       struct candidate_warning *w;
       for (w = cand->warnings; w; w = w->next)
@@ -5618,6 +5618,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 
   if (DECL_FUNCTION_MEMBER_P (fn))
     {
+      tree access_fn;
       /* If FN is a template function, two cases must be considered.
 	 For example:
 
@@ -5645,10 +5646,41 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	 different access.  */
       if (DECL_TEMPLATE_INFO (fn)
 	  && DECL_MEMBER_TEMPLATE_P (DECL_TI_TEMPLATE (fn)))
-	perform_or_defer_access_check (cand->access_path,
-				       DECL_TI_TEMPLATE (fn), fn);
+	access_fn = DECL_TI_TEMPLATE (fn);
       else
-	perform_or_defer_access_check (cand->access_path, fn, fn);
+	access_fn = fn;
+      if (flags & LOOKUP_SPECULATIVE)
+	{
+	  /* If we're checking for implicit delete, we don't want access
+	     control errors.  */
+	  if (!accessible_p (cand->access_path, access_fn, true))
+	    {
+	      /* Unless we're under maybe_explain_implicit_delete.  */
+	      if (flags & LOOKUP_COMPLAIN)
+		enforce_access (cand->access_path, access_fn, fn);
+	      return error_mark_node;
+	    }
+	}
+      else
+	perform_or_defer_access_check (cand->access_path, access_fn, fn);
+    }
+
+  /* If we're checking for implicit delete, don't bother with argument
+     conversions.  */
+  if (flags & LOOKUP_SPECULATIVE)
+    {
+      if (DECL_DELETED_FN (fn))
+	{
+	  if (flags & LOOKUP_COMPLAIN)
+	    mark_used (fn);
+	  return error_mark_node;
+	}
+      if (cand->viable == 1)
+	return fn;
+      else if (!(flags & LOOKUP_COMPLAIN))
+	/* Reject bad conversions now.  */
+	return error_mark_node;
+      /* else continue to get conversion error.  */
     }
 
   /* Find maximum size of vector to hold converted arguments.  */
@@ -5829,6 +5861,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       tree targ;
       tree arg = argarray[num_artificial_parms_for (fn)];
       tree fa;
+      bool trivial = trivial_fn_p (fn);
 
       /* Pull out the real argument, disregarding const-correctness.  */
       targ = arg;
@@ -5853,13 +5886,12 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       if (TREE_CODE (arg) == TARGET_EXPR
 	  && TARGET_EXPR_LIST_INIT_P (arg))
 	{
-	  /* Copy-list-initialization doesn't require the copy constructor
+	  /* Copy-list-initialization doesn't require the constructor
 	     to be defined.  */
 	}
       /* [class.copy]: the copy constructor is implicitly defined even if
 	 the implementation elided its use.  */
-      else if (TYPE_HAS_COMPLEX_INIT_REF (DECL_CONTEXT (fn))
-	       || move_fn_p (fn))
+      else if (!trivial)
 	{
 	  mark_used (fn);
 	  already_used = true;
@@ -5877,13 +5909,10 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	{
 	  if (TREE_CODE (arg) == TARGET_EXPR)
 	    return arg;
-	  else if (TYPE_HAS_TRIVIAL_INIT_REF (DECL_CONTEXT (fn))
-		   && !move_fn_p (fn))
-	    return build_target_expr_with_type (arg, DECL_CONTEXT (fn));
+	  else if (trivial)
+	    return force_target_expr (DECL_CONTEXT (fn), arg);
 	}
-      else if (TREE_CODE (arg) == TARGET_EXPR
-	       || (TYPE_HAS_TRIVIAL_INIT_REF (DECL_CONTEXT (fn))
-		   && !move_fn_p (fn)))
+      else if (TREE_CODE (arg) == TARGET_EXPR || trivial)
 	{
 	  tree to = stabilize_reference (cp_build_indirect_ref (fa, RO_NULL,
 								complain));
@@ -5893,8 +5922,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	}
     }
   else if (DECL_OVERLOADED_OPERATOR_P (fn) == NOP_EXPR
-	   && copy_fn_p (fn)
-	   && TYPE_HAS_TRIVIAL_ASSIGN_REF (DECL_CONTEXT (fn)))
+	   && trivial_fn_p (fn))
     {
       tree to = stabilize_reference
 	(cp_build_indirect_ref (argarray[0], RO_NULL, complain));

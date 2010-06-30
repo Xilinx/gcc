@@ -1,3 +1,86 @@
+2010-06-30  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/ipa-split-4.c: New testcase.
+
+2010-06-30  Michael Matz  <matz@suse.de>
+
+	PR bootstrap/44699
+	* gcc.dg/pr44699.c: New test.
+
+2010-06-30  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR tree-optimization/39799
+	* c-c++-common/uninit-17.c: New test.
+
+2010-06-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43298
+	* gfortran.dg/read_infnan_1.f90: New test.
+
+2010-06-29  Jason Merrill  <jason@redhat.com>
+
+	Enable implicitly declared move constructor/operator= (N3053).
+	* g++.dg/cpp0x/implicit3.C: New.
+	* g++.dg/cpp0x/implicit4.C: New.
+	* g++.dg/cpp0x/implicit5.C: New.
+	* g++.dg/cpp0x/implicit-copy.C: Adjust.
+	* g++.dg/cpp0x/not_special.C: Adjust.
+	* g++.dg/cpp0x/rv-trivial-bug.C: Adjust.
+	* g++.dg/cpp0x/rv1n.C: Adjust.
+	* g++.dg/cpp0x/rv1p.C: Adjust.
+	* g++.dg/cpp0x/rv2n.C: Adjust.
+	* g++.dg/cpp0x/rv2p.C: Adjust.
+	* g++.dg/cpp0x/rv3n.C: Adjust.
+	* g++.dg/cpp0x/rv3p.C: Adjust.
+	* g++.dg/cpp0x/rv4n.C: Adjust.
+	* g++.dg/cpp0x/rv4p.C: Adjust.
+	* g++.dg/cpp0x/rv5n.C: Adjust.
+	* g++.dg/cpp0x/rv5p.C: Adjust.
+	* g++.dg/cpp0x/rv6n.C: Adjust.
+	* g++.dg/cpp0x/rv6p.C: Adjust.
+	* g++.dg/cpp0x/rv7n.C: Adjust.
+	* g++.dg/cpp0x/rv7p.C: Adjust.
+	* g++.dg/cpp0x/rv8p.C: Adjust.
+	* g++.dg/gomp/pr26690-1.C: Adjust.
+	* g++.dg/other/error20.C: Adjust.
+	* g++.dg/other/error31.C: Adjust.
+	* g++.dg/parse/error19.C: Adjust.
+	* g++.dg/template/qualttp5.C: Adjust.
+	* g++.old-deja/g++.law/ctors5.C: Adjust.
+
+	Enable implicitly deleted functions (N2346)
+	* g++.dg/cpp0x/defaulted17.C: New.
+	* g++.dg/cpp0x/implicit1.C: New.
+	* g++.dg/cpp0x/implicit2.C: New.
+	* g++.dg/cpp0x/lambda/lambda-ctor-neg.C: Adjust.
+	* g++.dg/ext/has_virtual_destructor.C: Adjust.
+	* g++.dg/init/ctor4.C: Adjust.
+	* g++.dg/init/synth2.C: Adjust.
+	* g++.dg/lto/20081118_1.C: Adjust.
+	* g++.dg/other/error13.C: Adjust.
+	* g++.dg/other/unused1.C: Adjust.
+	* g++.old-deja/g++.bob/inherit2.C: Adjust.
+	* g++.old-deja/g++.bugs/900205_04.C: Adjust.
+	* g++.old-deja/g++.jason/opeq3.C: Adjust.
+	* g++.old-deja/g++.law/ctors17.C: Adjust.
+	* g++.old-deja/g++.oliva/delete1.C: Adjust.
+	* g++.old-deja/g++.pt/assign1.C: Adjust.
+	* g++.old-deja/g++.pt/crash20.C: Adjust.
+
+	* g++.dg/cpp0x/defaulted10.C: Adjust for new deleted message.
+	* g++.dg/cpp0x/defaulted13.C: Adjust.
+	* g++.dg/cpp0x/defaulted2.C: Adjust.
+	* g++.dg/cpp0x/defaulted3.C: Adjust.
+	* g++.dg/cpp0x/initlist9.C: Adjust.
+	* g++.dg/cpp0x/lambda/lambda-errloc.C: Adjust.
+	* g++.dg/cpp0x/lambda/lambda-errloc2.C: Adjust.
+	* g++.dg/init/synth2.C: Adjust.
+
+	* g++.dg/cpp0x/defaulted19.C: New.
+
+	* g++.dg/expr/string-1.C: Fix for -std=c++0x.
+	* g++.dg/template/error23.C: Fix for -std=c++0x.
+
 2010-06-29  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/44718

@@ -3931,7 +3931,7 @@ suppresses this behavior and causes the parameter to be passed on the
 stack in its natural location.
 @end defmac
 
-@deftypefn {Target Hook} TARGET_RETURN_POPS_ARGS (@var{fundecl}, @var{funtype}, @var{stack-size})
+@hook TARGET_RETURN_POPS_ARGS
 This target hook returns the number of bytes of its own arguments that
 a function pops on returning, or 0 if the function pops no arguments
 and the caller must therefore pop them all after the function returns.
@@ -3954,12 +3954,12 @@ by their names.  Note that ``library function'' in this context means
 a function used to perform arithmetic, whose name is known specially
 in the compiler and was not mentioned in the C code being compiled.
 
-@var{stack-size} is the number of bytes of arguments passed on the
+@var{size} is the number of bytes of arguments passed on the
 stack.  If a variable number of bytes is passed, it is zero, and
 argument popping will always be the responsibility of the calling function.
 
 On the VAX, all functions always pop their arguments, so the definition
-of this macro is @var{stack-size}.  On the 68000, using the standard
+of this macro is @var{size}.  On the 68000, using the standard
 calling convention, no functions pop their arguments, so the value of
 the macro is always 0 in this case.  But an alternative calling
 convention is available in which functions that take a fixed number of
@@ -4089,7 +4089,7 @@ register to be used by the caller for this argument; likewise
 @code{FUNCTION_INCOMING_ARG}, for the called function.
 @end deftypefn
 
-@deftypefn {Target Hook} bool TARGET_PASS_BY_REFERENCE (CUMULATIVE_ARGS *@var{cum}, enum machine_mode @var{mode}, tree @var{type}, bool @var{named})
+@hook TARGET_PASS_BY_REFERENCE
 This target hook should return @code{true} if an argument at the
 position indicated by @var{cum} should be passed by reference.  This
 predicate is queried after target independent reasons for being
@@ -4268,13 +4268,13 @@ This hook returns a type node for @code{va_list} for the target.
 The default version of the hook returns @code{void*}.
 @end deftypefn
 
-@deftypefn {Target Hook} int TARGET_ENUM_VA_LIST_P (int @var{idx}, const char ** @var{pname}, tree @var{ptype})
+@hook TARGET_ENUM_VA_LIST_P
 This target hook is used in function @code{c_common_nodes_and_builtins}
 to iterate through the target specific builtin types for va_list. The
 variable @var{idx} is used as iterator. @var{pname} has to be a pointer
-to a @code{const char *} and @var{ptype} a pointer to a @code{tree} typed
+to a @code{const char *} and @var{ptree} a pointer to a @code{tree} typed
 variable.
-The arguments @var{pname} and @var{ptype} are used to store the result of
+The arguments @var{pname} and @var{ptree} are used to store the result of
 this macro and are set to the name of the va_list builtin type and its
 internal type.
 If the return value of this macro is zero, then there is no more element.
@@ -5645,7 +5645,7 @@ of @var{x}.
 The default version returns false for all constants.
 @end deftypefn
 
-@deftypefn {Target Hook} tree TARGET_BUILTIN_RECIPROCAL (unsigned @var{fn}, bool @var{md_fn}, bool @var{sqrt})
+@hook TARGET_BUILTIN_RECIPROCAL
 This hook should return the DECL of a function that implements reciprocal of
 the builtin function with builtin function code @var{fn}, or
 @code{NULL_TREE} if such a function is not available.  @var{md_fn} is true
@@ -6170,9 +6170,9 @@ These macros are obsolete, new ports should use the target hook
 @code{TARGET_MEMORY_MOVE_COST} instead.
 @end defmac
 
-@deftypefn {Target Hook} int TARGET_MEMORY_MOVE_COST (enum machine_mode @var{mode}, enum reg_class @var{regclass}, bool @var{in})
+@hook TARGET_MEMORY_MOVE_COST
 This target hook should return the cost of moving data of mode @var{mode}
-between a register of class @var{class} and memory; @var{in} is @code{false}
+between a register of class @var{rclass} and memory; @var{in} is @code{false}
 if the value is to be written to memory, @code{true} if it is to be read in.
 This cost is relative to those in @code{TARGET_REGISTER_MOVE_COST}.
 If moving between registers and memory is more expensive than between two
@@ -6181,7 +6181,7 @@ registers, you should add this target hook to express the relative cost.
 If you do not add this target hook, GCC uses a default cost of 4 plus
 the cost of copying via a secondary reload register, if one is
 needed.  If your machine requires a secondary reload register to copy
-between memory and a register of @var{class} but the reload mechanism is
+between memory and a register of @var{rclass} but the reload mechanism is
 more complex than copying via an intermediate, use this target hook to
 reflect the actual cost of the move.
 
@@ -6644,8 +6644,7 @@ be issued.
 The default is that any ready insns can be chosen to be issued.
 @end deftypefn
 
-@deftypefn {Target Hook} int TARGET_SCHED_DFA_NEW_CYCLE (FILE *@var{dump}, int @var{verbose}, rtx @var{insn}, int @var{last_clock}, int @var{clock}, int *@var{sort_p})
-
+@hook TARGET_SCHED_DFA_NEW_CYCLE
 This hook is called by the insn scheduler before issuing @var{insn}
 on cycle @var{clock}.  If the hook returns nonzero,
 @var{insn} is not issued on this processor cycle.  Instead,
@@ -7779,7 +7778,7 @@ You may wish to use @code{ASM_OUTPUT_TYPE_DIRECTIVE} and/or
 @code{ASM_OUTPUT_SIZE_DIRECTIVE} in the definition of this macro.
 @end defmac
 
-@deftypefn {Target Hook} void TARGET_ASM_DECLARE_CONSTANT_NAME (FILE * @var{file}, const char * @var{name}, const_tree @var{expr}, HOST_WIDE_INT @var{size})
+@hook TARGET_ASM_DECLARE_CONSTANT_NAME
 A target hook to output to the stdio stream @var{file} any text necessary
 for declaring the name @var{name} of a constant which is being defined.  This
 target hook is responsible for outputting the label definition (perhaps using
@@ -9688,11 +9687,11 @@ information in the @var{struct cl_target_option} structure for
 function specific options.
 @end deftypefn
 
-@deftypefn {Target Hook} bool TARGET_OPTION_PRAGMA_PARSE (target @var{args})
+@hook TARGET_OPTION_PRAGMA_PARSE
 This target hook parses the options for @code{#pragma GCC option} to
 set the machine specific options for functions that occur later in the
 input stream.  The options should be the same as handled by the
-@code{TARGET_VALID_OPTION_ATTRIBUTE_P} hook.
+@code{TARGET_OPTION_VALID_ATTRIBUTE_P} hook.
 @end deftypefn
 
 @hook TARGET_OPTION_OVERRIDE
@@ -10782,8 +10781,7 @@ ignored.  This function should return the result of the call to the
 built-in function.
 @end deftypefn
 
-@deftypefn {Target Hook} tree TARGET_RESOLVE_OVERLOADED_BUILTIN (unsigned int @var{loc}, tree @var{fndecl}, void *@var{arglist})
-
+@hook TARGET_RESOLVE_OVERLOADED_BUILTIN
 Select a replacement for a machine specific built-in function that
 was set up by @samp{TARGET_INIT_BUILTINS}.  This is done
 @emph{before} regular type checking, and so allows the target to
@@ -10795,8 +10793,7 @@ another @code{CALL_EXPR}.
 @var{arglist} really has type @samp{VEC(tree,gc)*}
 @end deftypefn
 
-@deftypefn {Target Hook} tree TARGET_FOLD_BUILTIN (tree @var{fndecl}, int @var{n_args}, tree *@var{argp}, bool @var{ignore})
-
+@hook TARGET_FOLD_BUILTIN
 Fold a call to a machine specific built-in function that was set up by
 @samp{TARGET_INIT_BUILTINS}.  @var{fndecl} is the declaration of the
 built-in function.  @var{n_args} is the number of arguments passed to

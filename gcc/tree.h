@@ -1887,11 +1887,8 @@ struct GTY(()) tree_exp {
 #define SSA_NAME_PTR_INFO(N) \
     SSA_NAME_CHECK (N)->ssa_name.ptr_info
 
-#ifndef _TREE_FLOW_H
+/* Defined in tree-flow.h.  */
 struct ptr_info_def;
-#endif
-
-
 
 /* Immediate use linking structure.  This structure is used for maintaining
    a doubly linked list of uses of an SSA_NAME.  */
@@ -5587,5 +5584,8 @@ function_return_type (const_tree decl)
   else
     return TREE_TYPE (TREE_TYPE (decl));
 }
+
+/* In gimple-low.c.  */
+extern bool block_may_fallthru (const_tree);
 
 #endif  /* GCC_TREE_H  */
