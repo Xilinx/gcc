@@ -741,6 +741,7 @@ analyze_function (struct cgraph_node *fn, bool ipa)
     }
 
   old_decl = current_function_decl;
+
   push_cfun (DECL_STRUCT_FUNCTION (decl));
   current_function_decl = decl;
 
