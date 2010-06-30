@@ -17,7 +17,10 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-/* This file is machine generated.  Do not edit.  */
+/* This file was machine generated when MELT was still an early 4.6
+   compatible enough with GCC 4.5. It was copied from GCC MELT svn rev
+   161548.  Do not edit. It is here to ease building of MELT plugin
+   for GCC 4.5. See also the contrib/build-melt-plugin.sh script. */
 
 /* GC marker procedures.  */
 /* macros and declarations */

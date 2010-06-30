@@ -150,6 +150,7 @@ void* melt_startalz=NULL;
 void* melt_endalz=NULL;
 char* melt_curalz=NULL;
 void** melt_storalz=NULL;
+bool melt_is_forwarding=FALSE;
 
 static long melt_minorsizekilow = 0;
 static long melt_fullthresholdkilow = 0;
@@ -462,9 +463,6 @@ delete_special (struct meltspecial_st *sp)
     }
 }
 
-#define FORWARDED_DISCR (meltobject_ptr_t)1
-static melt_ptr_t forwarded_copy (melt_ptr_t);
-
 #ifdef ENABLE_CHECKING
 /* only for debugging, to be set from the debugger */
 
@@ -477,27 +475,6 @@ void *melt_checkedp_ptr2;
 
 
 
-static inline void *
-forwarded (void *ptr)
-{
-  melt_ptr_t p = (melt_ptr_t) ptr;
-  if (p && melt_is_young (p))
-    {
-      if (p->u_discr == FORWARDED_DISCR)
-	p = ((struct meltforward_st *) p)->forward;
-      else
-	p = forwarded_copy (p);
-    }
-  return p;
-}
-
-#if GCC_VERSION > 4000
-#define FORWARDED(P) do {if (P) { \
-  (P) = (__typeof__(P))forwarded((void*)(P));} } while(0)
-#else
-#define FORWARDED(P) do {if (P) { 		       		\
-       (P) = (melt_ptr_t)forwarded((melt_ptr_t)(P));} }  while(0)
-#endif
 static void scanning (melt_ptr_t);
 
 
@@ -732,7 +709,7 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	funp(cf->mcfr_closp, (melt_ptr_t)cf, MELTPAR_MARKGGC, 
 	     (union meltparam_un*)0, (char*)0, (union meltparam_un*)0);
       }
-    else if (cf->mcfr_nbvar < 0 && cf->mcfr_markrout)
+    else if (cf->mcfr_nbvar < 0 && cf->mcfr_forwmarkrout)
       {
 	/* Rare case, the frame is special and has its own marking
 	   routine.  This happens in particular for the initial frame
@@ -740,7 +717,7 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	   special marking routine.  */
 	dbgprintf ("melt_marking_callback %ld calling frame marking routine cf=%p",
 		   meltmarkingcount, (void*) cf);
-	cf->mcfr_markrout ((void*)cf);
+	cf->mcfr_forwmarkrout ((void*)cf, 1);
 	dbgprintf ("melt_marking_callback %ld called frame marking routine",
 		   meltmarkingcount);
       }
@@ -803,24 +780,30 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   wanted++;
   if (wanted < melt_minorsizekilow * sizeof (void *) * 1024)
     wanted = melt_minorsizekilow * sizeof (void *) * 1024;
+  melt_is_forwarding = TRUE;
   /* don't need anymore to allocate a local table, because of
      melt_marking_callback */
   for (ix = 0; ix < MELTGLOB__LASTGLOB; ix++)
-    FORWARDED (melt_globarr[ix]);
+    MELT_FORWARDED (melt_globarr[ix]);
   for (cfram = melt_topframe; cfram != NULL; cfram = cfram->mcfr_prev)
     {
       int varix;
-      if (cfram->mcfr_closp && cfram->mcfr_nbvar >= 0)
+      if (cfram->mcfr_nbvar >= 0 && cfram->mcfr_closp)
 	{
-	  FORWARDED (cfram->mcfr_closp);
+	  MELT_FORWARDED (cfram->mcfr_closp);
 	}
+      else if (cfram->mcfr_nbvar < 0 && cfram->mcfr_forwmarkrout) {
+	cfram->mcfr_forwmarkrout (cfram, 0);
+	continue;
+      }
       for (varix = ((int) cfram->mcfr_nbvar) - 1; varix >= 0; varix--)
 	{
 	  if (!cfram->mcfr_varptr[varix])
 	    continue;
-	  FORWARDED (cfram->mcfr_varptr[varix]);
+	  MELT_FORWARDED (cfram->mcfr_varptr[varix]);
 	}
     };
+  melt_is_forwarding = FALSE;
   /* scan the store list */
   for (storp = (melt_ptr_t *) melt_storalz;
        (char *) storp < (char *) melt_endalz; storp++)
@@ -887,8 +870,10 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 	specp->mark = 0;
       /* force major collection, with our callback */
       ggc_force_collect = true;
+      debugeprintf ("melt_garbcoll forcing fullgarbcoll #%ld", melt_nb_full_garbcoll);
       ggc_collect ();
       ggc_force_collect = wasforced;
+      debugeprintf ("melt_garbcoll forced fullgarbcoll #%ld", melt_nb_full_garbcoll);
       /* delete the unmarked spec */
       prevspecptr = &melt_oldspeclist;
       for (specp = melt_oldspeclist; specp; specp = nextspecp)
@@ -934,14 +919,13 @@ melt_reserved_allocation_failure (long siz)
 }
 
 /* cheney like forwarding */
-static melt_ptr_t
-forwarded_copy (melt_ptr_t p)
+melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 {
   melt_ptr_t n = 0;
   int mag = 0;
   gcc_assert (melt_is_young (p));
-  gcc_assert (p->u_discr && p->u_discr != FORWARDED_DISCR);
-  if (p->u_discr->obj_class == FORWARDED_DISCR)
+  gcc_assert (p->u_discr && p->u_discr != MELT_FORWARDED_DISCR);
+  if (p->u_discr->obj_class == MELT_FORWARDED_DISCR)
     mag =
       ((meltobject_ptr_t)
        (((struct meltforward_st *) p->u_discr)->forward))->object_magic;
@@ -1470,19 +1454,19 @@ forwarded_copy (melt_ptr_t p)
     }
   if (n)
     {
-      p->u_forward.discr = FORWARDED_DISCR;
+      p->u_forward.discr = MELT_FORWARDED_DISCR;
       p->u_forward.forward = n;
 #ifdef ENABLE_CHECKING
       if (debughack_file)
 	{
-	  fprintf (debughack_file, "forwarded pushing %p to scan\n",
+	  fprintf (debughack_file, "melt_forwarded pushing %p to scan\n",
 		   (void *) n);
 	}
 #endif
       VEC_safe_push (melt_ptr_t, gc, bscanvec, n);
     }
   return n;
-  /* end of forwarded_copy */
+  /* end of melt_forwarded_copy */
 }
 
 
@@ -1505,7 +1489,7 @@ scanning (melt_ptr_t p)
     }
 #endif
   gcc_assert (p->u_discr && p->u_discr != (meltobject_ptr_t) 1);
-  FORWARDED (p->u_discr);
+  MELT_FORWARDED (p->u_discr);
   gcc_assert (!melt_is_young (p));
   omagic = p->u_discr->object_magic;
   switch (omagic)
@@ -1515,19 +1499,19 @@ scanning (melt_ptr_t p)
 	int ix;
 	struct meltobject_st *src = (meltobject_ptr_t) p;
 	for (ix = (int) (src->obj_len) - 1; ix >= 0; ix--)
-	  FORWARDED (src->obj_vartab[ix]);
+	  MELT_FORWARDED (src->obj_vartab[ix]);
 	break;
       }
     case OBMAG_DECAY:
       {
 	struct meltdecay_st *src = (struct meltdecay_st *) p;
-	FORWARDED (src->val);
+	MELT_FORWARDED (src->val);
 	break;
       }
     case OBMAG_BOX:
       {
 	struct meltbox_st *src = (struct meltbox_st *) p;
-	FORWARDED (src->val);
+	MELT_FORWARDED (src->val);
 	break;
       }
     case OBMAG_MULTIPLE:
@@ -1536,7 +1520,7 @@ scanning (melt_ptr_t p)
 	unsigned nbval = src->nbval;
 	int ix;
 	for (ix = (int) nbval - 1; ix >= 0; ix--)
-	  FORWARDED (src->tabval[ix]);
+	  MELT_FORWARDED (src->tabval[ix]);
 	break;
       }
     case OBMAG_CLOSURE:
@@ -1544,9 +1528,9 @@ scanning (melt_ptr_t p)
 	struct meltclosure_st *src = (struct meltclosure_st *) p;
 	unsigned nbval = src->nbval;
 	int ix;
-	FORWARDED (src->rout);
+	MELT_FORWARDED (src->rout);
 	for (ix = (int) nbval - 1; ix >= 0; ix--)
-	  FORWARDED (src->tabval[ix]);
+	  MELT_FORWARDED (src->tabval[ix]);
 	break;
       }
     case OBMAG_ROUTINE:
@@ -1555,21 +1539,21 @@ scanning (melt_ptr_t p)
 	unsigned nbval = src->nbval;
 	int ix;
 	for (ix = (int) nbval - 1; ix >= 0; ix--)
-	  FORWARDED (src->tabval[ix]);
+	  MELT_FORWARDED (src->tabval[ix]);
 	break;
       }
     case OBMAG_LIST:
       {
 	struct meltlist_st *src = (struct meltlist_st *) p;
-	FORWARDED (src->first);
-	FORWARDED (src->last);
+	MELT_FORWARDED (src->first);
+	MELT_FORWARDED (src->last);
 	break;
       }
     case OBMAG_PAIR:
       {
 	struct meltpair_st *src = (struct meltpair_st *) p;
-	FORWARDED (src->hd);
-	FORWARDED (src->tl);
+	MELT_FORWARDED (src->hd);
+	MELT_FORWARDED (src->tl);
 	break;
       }
     case ALL_OBMAG_SPECIAL_CASES:
@@ -1605,9 +1589,9 @@ scanning (melt_ptr_t p)
 		src->entab[ix].e_va = NULL;
 		continue;
 	      }
-	    FORWARDED (at);
+	    MELT_FORWARDED (at);
 	    src->entab[ix].e_at = at;
-	    FORWARDED (src->entab[ix].e_va);
+	    MELT_FORWARDED (src->entab[ix].e_va);
 	  }
 	break;
       }
@@ -1638,7 +1622,7 @@ scanning (melt_ptr_t p)
 		src->entab[ix].e_va = NULL;
 		continue;
 	      }
-	    FORWARDED (src->entab[ix].e_va);
+	    MELT_FORWARDED (src->entab[ix].e_va);
 	  }
 	break;
       }
@@ -1669,7 +1653,7 @@ scanning (melt_ptr_t p)
 		src->entab[ix].e_va = NULL;
 		continue;
 	      }
-	    FORWARDED (src->entab[ix].e_va);
+	    MELT_FORWARDED (src->entab[ix].e_va);
 	  }
 	break;
       }
@@ -1700,7 +1684,7 @@ scanning (melt_ptr_t p)
 		src->entab[ix].e_va = NULL;
 		continue;
 	      }
-	    FORWARDED (src->entab[ix].e_va);
+	    MELT_FORWARDED (src->entab[ix].e_va);
 	  }
 	break;
       }
@@ -1732,7 +1716,7 @@ scanning (melt_ptr_t p)
 	      }
 	    if (melt_is_young ((const void *) at))
 	      src->entab[ix].e_at = (const char *) ggc_strdup (at);
-	    FORWARDED (src->entab[ix].e_va);
+	    MELT_FORWARDED (src->entab[ix].e_va);
 	  }
 	break;
       }
@@ -1763,7 +1747,7 @@ scanning (melt_ptr_t p)
 		src->entab[ix].e_va = NULL;
 		continue;
 	      }
-	    FORWARDED (src->entab[ix].e_va);
+	    MELT_FORWARDED (src->entab[ix].e_va);
 	  }
 	break;
       }
@@ -1792,7 +1776,7 @@ scanning (melt_ptr_t p)
 		src->entab[ix].e_va = NULL;
 		continue;
 	      }
-	    FORWARDED (src->entab[ix].e_va);
+	    MELT_FORWARDED (src->entab[ix].e_va);
 	  }
 	break;
       }
@@ -1821,7 +1805,7 @@ scanning (melt_ptr_t p)
 		src->entab[ix].e_va = NULL;
 		continue;
 	      }
-	    FORWARDED (src->entab[ix].e_va);
+	    MELT_FORWARDED (src->entab[ix].e_va);
 	  }
 	break;
       }
@@ -1850,7 +1834,7 @@ scanning (melt_ptr_t p)
 		src->entab[ix].e_va = NULL;
 		continue;
 	      }
-	    FORWARDED (src->entab[ix].e_va);
+	    MELT_FORWARDED (src->entab[ix].e_va);
 	  }
 	break;
       }
@@ -1879,7 +1863,7 @@ scanning (melt_ptr_t p)
 		src->entab[ix].e_va = NULL;
 		continue;
 	      }
-	    FORWARDED (src->entab[ix].e_va);
+	    MELT_FORWARDED (src->entab[ix].e_va);
 	  }
 	break;
       }
@@ -1908,26 +1892,26 @@ scanning (melt_ptr_t p)
 		src->entab[ix].e_va = NULL;
 		continue;
 	      }
-	    FORWARDED (src->entab[ix].e_va);
+	    MELT_FORWARDED (src->entab[ix].e_va);
 	  }
 	break;
       }
     case OBMAG_MIXINT:
       {
 	struct meltmixint_st *src = (struct meltmixint_st *) p;
-	FORWARDED (src->ptrval);
+	MELT_FORWARDED (src->ptrval);
 	break;
       }
     case OBMAG_MIXLOC:
       {
 	struct meltmixloc_st *src = (struct meltmixloc_st *) p;
-	FORWARDED (src->ptrval);
+	MELT_FORWARDED (src->ptrval);
 	break;
       }
     case OBMAG_MIXBIGINT:
       {
 	struct meltmixbigint_st *src = (struct meltmixbigint_st *) p;
-	FORWARDED (src->ptrval);
+	MELT_FORWARDED (src->ptrval);
 	break;
       }
     case OBMAG_STRBUF:
@@ -5561,7 +5545,7 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
   static const char* tmpdirstr = 0;
   time_t nowt = 0;
   basnam = srcnam?lbasename (CONST_CAST (char*,srcnam)):0;
-  debugeprintf ("melt_tempdir_path srcnam %s basnam %s suffix %s", srcnam, basnam, suffix);
+  debugeprintf ("melt_tempdir_path srcnam '%s' basnam '%s' suffix '%s'", srcnam, basnam, suffix);
   if (!tmpdirstr)
     tmpdirstr = melt_argument ("tempdir");
   gcc_assert (!basnam || (ISALNUM (basnam[0]) || basnam[0] == '_'));
@@ -6721,7 +6705,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
 	  "MELT tried to load module list %s from temporary directory %s",
 	  modlistbase, melt_tempdir_path("",""));
   /* at last make a fatal error, because loading a module list is so important! */
-  melt_fatal_error ("MELT failed to load module list %s with a suffix of %s", modlistbase, MODLIS_SUFFIX);
+  melt_fatal_error ("MELT failed to load module list '%s' with a suffix of '%s'", modlistbase, MODLIS_SUFFIX);
   goto end;
  loadit:
   debugeprintf ("meltgc_load_modulelist loadit modlistpath %s", modlistpath);

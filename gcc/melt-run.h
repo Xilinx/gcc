@@ -90,4 +90,6 @@ extern void gt_ggc_mx_melt_un (void*);
 #define MELT_MODULE_VISIBILITY
 #endif
 
-/* eof melt-run.h */
+/* It helps a lot to have an svn id here, since this file is really
+   important, and is installed.  */
+/* eof $Id$ */

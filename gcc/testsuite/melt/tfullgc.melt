@@ -6,7 +6,7 @@
 ;; this apparently crashes MELT rev.161455
 
 #| run in buildir/gcc, 
- ./cc1 -fmelt-mode=rundebug -fmelt-module-path=. -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt:$GCCMELTSOURCE/gcc/melt/generated -fmelt-module-makefile=$GCCMELTSOURCE/gcc/melt-module.mk \
+ ./cc1 -fmelt-mode=rundebug -fmelt-module-path=.:/tmp -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt:$GCCMELTSOURCE/gcc/melt/generated:/tmp -fmelt-module-makefile=$GCCMELTSOURCE/gcc/melt-module.mk \
     -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 -fmelt-arg=tfullgc.melt -fmelt-debug empty-file-for-melt.c
 
 |#

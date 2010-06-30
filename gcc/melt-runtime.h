@@ -1645,8 +1645,45 @@ extern unsigned long melt_nb_garbcoll;
 
 extern bool melt_prohibit_garbcoll;
 
+extern bool melt_is_forwarding;
 
-/* the melt copying garbage collector routine - moves all locals on the stack! */
+#define MELT_FORWARDED_DISCR (meltobject_ptr_t)1
+melt_ptr_t melt_forwarded_copy (melt_ptr_t);
+
+
+static inline bool
+melt_is_young (const void *const p)
+{
+  return (const char * const) p >= (const char * const) melt_startalz
+    && (const char * const) p < (const char * const) melt_endalz;
+}
+
+static inline void *
+melt_forwarded (void *ptr)
+{
+  melt_ptr_t p = (melt_ptr_t) ptr;
+  if (p && melt_is_young (p))
+    {
+      if (p->u_discr == MELT_FORWARDED_DISCR)
+	p = ((struct meltforward_st *) p)->forward;
+      else
+	p = melt_forwarded_copy (p);
+    }
+  return p;
+}
+
+#if GCC_VERSION > 4000
+#define MELT_FORWARDED(P) do {if (P) { \
+  (P) = (__typeof__(P))melt_forwarded((void*)(P));} } while(0)
+#else
+#define MELT_FORWARDED(P) do {if (P) { 		       		\
+       (P) = (melt_ptr_t)melt_forwarded((melt_ptr_t)(P));} }  while(0)
+#endif /*GCC_VERSION*/
+
+/* the MELT copying garbage collector routine - moves all locals on
+   the stack!  Minor GC is only moving, Minor or Full chooses either
+   minor or full appropriately, and Full GC is the minor one followed by
+   GCC garbage collector Ggc. */
 enum melt_gckind_en
   { MELT_ONLY_MINOR= 0, MELT_MINOR_OR_FULL = 1, MELT_NEED_FULL = 2};
 void melt_garbcoll (size_t wanted, enum melt_gckind_en gckd);
@@ -1662,12 +1699,6 @@ void melt_garbcoll (size_t wanted, enum melt_gckind_en gckd);
 #define MELT_UNLIKELY(P) (P)
 #endif
 
-static inline bool
-melt_is_young (const void *const p)
-{
-  return (const char * const) p >= (const char * const) melt_startalz
-    && (const char * const) p < (const char * const) melt_endalz;
-}
 
 
 #if ENABLE_CHECKING
@@ -3378,17 +3409,20 @@ melt_put_int (melt_ptr_t v, long x)
    for more */
 struct callframe_melt_st
 {
-  /* when mcfr_nbvar is positive or zero, it is the number of pointers in mcfr_varptr */
+  /* When mcfr_nbvar is positive or zero, it is the number of pointers
+     in mcfr_varptr; when it is negative, the mcfr_forwmarkrout should
+     be used for forwarding or marking the frame's pointers. */
   int mcfr_nbvar;
 #if ENABLE_CHECKING
   const char* mcfr_flocs;
 #endif
   union {
     struct meltclosure_st *mcfr_closp_; /* when mcfr_nbvar >= 0 */
-    void (*mcfr_markrout_) (void*); /* when mcfr_nbvar < 0 */
+    void (*mcfr_forwmarkrout_) (struct callframe_melt_st*, int); /* when mcfr_nbvar < 0 */
   } mcfr_un_;
 #define mcfr_closp mcfr_un_.mcfr_closp_
-#define mcfr_markrout mcfr_un_.mcfr_markrout_  
+#define mcfr_forwmarkrout mcfr_un_.mcfr_forwmarkrout_ 
+  /* Interface: void mcfr_forwmarkrout (void* frame, int marking) */
   struct excepth_melt_st *mcfr_exh;	/* for our exceptions - not implemented yet */
   struct callframe_melt_st *mcfr_prev;
   melt_ptr_t mcfr_varptr[FLEXIBLE_DIM];
@@ -3400,7 +3434,7 @@ struct callframe_melt_st
 /* the topmost call frame */
 extern struct callframe_melt_st *melt_topframe;
 
-static inline int melt_curframdepth(void) {
+static inline int melt_curframdepth (void) {
   int cnt = 0;
   struct callframe_melt_st* fr = melt_topframe;
   for (;fr;fr=fr->mcfr_prev) cnt++;
