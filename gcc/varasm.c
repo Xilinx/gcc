@@ -5979,7 +5979,7 @@ maybe_assemble_visibility (tree decl)
 
   if (vis != VISIBILITY_DEFAULT)
     {
-      targetm.asm_out.visibility (decl, vis);
+      targetm.asm_out.assemble_visibility (decl, vis);
       return 1;
     }
   else
@@ -6910,11 +6910,11 @@ default_asm_declare_constant_name (FILE *file, const char *name,
 void
 default_file_start (void)
 {
-  if (targetm.file_start_app_off
+  if (targetm.asm_file_start_app_off
       && !(flag_verbose_asm || flag_debug_asm || flag_dump_rtl_in_asm))
     fputs (ASM_APP_OFF, asm_out_file);
 
-  if (targetm.file_start_file_directive)
+  if (targetm.asm_file_start_file_directive)
     output_file_directive (asm_out_file, main_input_filename);
 }
 
@@ -7204,50 +7204,11 @@ output_object_blocks (void)
 int
 elf_record_gcc_switches (print_switch_type type, const char * name)
 {
-  static char buffer[1024];
-
-  /* This variable is used as part of a simplistic heuristic to detect
-     command line switches which take an argument:
-
-       "If a command line option does not start with a dash then
-        it is an argument for the previous command line option."
-
-     This fails in the case of the command line option which is the name
-     of the file to compile, but otherwise it is pretty reasonable.  */
-  static bool previous_name_held_back = FALSE;
-
   switch (type)
     {
     case SWITCH_TYPE_PASSED:
-      if (* name != '-')
-	{
-	  if (previous_name_held_back)
-	    {
-	      unsigned int len = strlen (buffer);
-
-	      snprintf (buffer + len, sizeof buffer - len, " %s", name);
-	      ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-	      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-	      previous_name_held_back = FALSE;
-	    }
-	  else
-	    {
-	      strncpy (buffer, name, sizeof buffer);
-	      ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-	      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-	    }
-	}
-      else
-	{
-	  if (previous_name_held_back)
-	    {
-	      ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-	      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-	    }
-
-	  strncpy (buffer, name, sizeof buffer);
-	  previous_name_held_back = TRUE;
-	}
+      ASM_OUTPUT_ASCII (asm_out_file, name, strlen (name));
+      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
       break;
 
     case SWITCH_TYPE_DESCRIPTIVE:
@@ -7256,15 +7217,7 @@ elf_record_gcc_switches (print_switch_type type, const char * name)
 	  /* Distinguish between invocations where name is NULL.  */
 	  static bool started = false;
 
-	  if (started)
-	    {
-	      if (previous_name_held_back)
-		{
-		  ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-		  ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-		}
-	    }
-	  else
+	  if (!started)
 	    {
 	      section * sec;
 

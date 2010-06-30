@@ -31,7 +31,6 @@ along with GCC; see the file COPYING3.  If not see
    (strncmp (whole, part, strlen (part)) ? NULL : whole + strlen (part))
 
 extern int toplev_main (int, char **);
-extern int read_integral_parameter (const char *, const char *, const int);
 extern void strip_off_ending (char *, int);
 extern void _fatal_insn_not_found (const_rtx, const char *, int, const char *)
      ATTRIBUTE_NORETURN;
@@ -49,6 +48,11 @@ extern void tree_rest_of_compilation (tree);
 extern void init_optimization_passes (void);
 extern void finish_optimization_passes (void);
 extern bool enable_rtl_dump_file (void);
+
+/* In except.c.  Initialize exception handling.  This is used by the Ada
+   and LTO front ends to initialize EH "on demand".  See lto-streamer-in.c
+   and ada/gcc-interface/misc.c.  */
+extern void init_eh (void);
 
 extern void announce_function (tree);
 

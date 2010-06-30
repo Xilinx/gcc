@@ -1,3 +1,117 @@
+2010-06-29  Jason Merrill  <jason@redhat.com>
+
+	* pt.c (dependent_scope_ref_p): Remove.
+	(value_dependent_expression_p): Don't call it.
+	(type_dependent_expression_p): Here either.
+	* init.c (build_offset_ref): Set TREE_TYPE on a qualified-id
+	if the scope isn't dependent.
+
+	* pt.c (convert_nontype_argument): Use mark_lvalue_use if we want
+	a reference.
+
+	PR c++/44587
+	* pt.c (has_value_dependent_address): New.
+	(value_dependent_expression_p): Check it.
+	(convert_nontype_argument): Likewise.  Call decay_conversion before
+	folding if we want a pointer.
+	* semantics.c (finish_id_expression): Don't add SCOPE_REF if the
+	scope is the current instantiation.
+
+2010-06-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44682
+	* class.c (build_base_path): If want_pointer, call mark_rvalue_use
+	on expr.
+
+2010-06-28  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* init.c: Do not include except.h.
+	* decl.c: Likewise.
+	* expr.c: Likewise.
+	* cp-lang.c: Likewise.
+	* pt.c: Likewise.
+	* semantics.c: Likewise.
+	* decl2.c: Likewise.
+	* except.c: Likewise.
+	(init_exception_processing): Do not set the removed
+	lang_protect_cleanup_actions here.
+	(cp_protect_cleanup_actions): Make non-static and remove prototype.
+	(doing_eh): New, moved from except.c but removed the do_warning flag.
+	(expand_start_catch_block): Update doing_eh call.
+	(expand_end_catch_block): Likewise.
+	(build_throw): Likewise.
+	* cp-tree.h: Prototype cp_protect_cleanup_actions.
+	* cp-objcp-common.h: Set LANG_HOOKS_EH_PROTECT_CLEANUP_ACTIONS to
+	cp_protect_cleanup_actions.
+	* Make-lang.in: Update dependencies.
+
+2010-06-26  Jason Merrill  <jason@redhat.com>
+
+	* call.c (add_function_candidate): Set LOOKUP_COPY_PARM for any
+	constructor called with a single argument that takes a reference
+	to the constructor's class.
+	(BAD_CONVERSION_RANK): New.
+	(compare_ics): Use it to compare bad ICSes.
+
+2010-06-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang-specs.h: Remove +e handling.
+
+2010-06-24  Andi Kleen  <ak@linux.intel.com>
+
+	* parser.c: (cp_parser_question_colon_clause):
+        Switch to use cp_lexer_peek_token.
+        Call warn_for_omitted_condop. Call pedwarn for omitted
+        middle operand.
+
+2010-06-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44619
+	* typeck2.c (build_m_component_ref): Call mark_lvalue_use on
+	datum and mark_rvalue_use on component.
+
+	PR c++/44627
+	* error.c (dump_expr): Don't look at CALL_EXPR_ARG (t, 0) if
+	the CALL_EXPR has no arguments.
+
+2010-06-21  Jason Merrill  <jason@redhat.com>
+
+	* typeck.c (comp_except_specs): Fix ce_derived with noexcept.
+
+	* semantics.c (check_trait_type): Check COMPLETE_TYPE_P for array
+	element type.
+
+2010-06-17  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* name-lookup.c (struct arg_lookup): Convert namespaces and
+	classes fields to VEC.
+	(arg_assoc_namespace): Adjust for new type of namespaces.
+	(arg_assoc_class): Adjust for new type of classes.
+	(lookup_arg_dependent): Use make_tree_vector and
+	release_tree_vector.
+	* typeck2.c (build_x_arrow): Use vec_member.
+
+2010-06-17  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/44486
+	* error.c (dump_decl): Better wording for anonymous namespace.
+
+2010-06-16  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* class.c (build_vtbl_initializer): Adjust computation of new_position
+	and which entry to add padding for.
+
+2010-06-16  Jason Merrill  <jason@redhat.com>
+
+	* except.c (check_noexcept_r): Return the problematic function.
+	(finish_noexcept_expr): Give -Wnoexcept warning.  Add complain parm.
+	* pt.c (tsubst_copy_and_build): Pass it.
+	* parser.c (cp_parser_unary_expression): Likewise.
+	* cp-tree.h: Adjust prototype.
+
+	* method.c (defaulted_late_check): Give the defaulted method
+	the same exception specification as the implicit declaration.
+
 2010-06-15  Jason Merrill  <jason@redhat.com>
 
 	* class.c (add_implicitly_declared_members): Implicit assignment

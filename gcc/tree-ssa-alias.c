@@ -800,18 +800,18 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
   bool var1_p, var2_p, ind1_p, ind2_p;
   alias_set_type set;
 
-  gcc_assert ((!ref1->ref
-	       || SSA_VAR_P (ref1->ref)
-	       || handled_component_p (ref1->ref)
-	       || INDIRECT_REF_P (ref1->ref)
-	       || TREE_CODE (ref1->ref) == TARGET_MEM_REF
-	       || TREE_CODE (ref1->ref) == CONST_DECL)
-	      && (!ref2->ref
-		  || SSA_VAR_P (ref2->ref)
-		  || handled_component_p (ref2->ref)
-		  || INDIRECT_REF_P (ref2->ref)
-		  || TREE_CODE (ref2->ref) == TARGET_MEM_REF
-		  || TREE_CODE (ref2->ref) == CONST_DECL));
+  gcc_checking_assert ((!ref1->ref
+			|| TREE_CODE (ref1->ref) == SSA_NAME
+			|| DECL_P (ref1->ref)
+			|| handled_component_p (ref1->ref)
+			|| INDIRECT_REF_P (ref1->ref)
+			|| TREE_CODE (ref1->ref) == TARGET_MEM_REF)
+		       && (!ref2->ref
+			   || TREE_CODE (ref2->ref) == SSA_NAME
+			   || DECL_P (ref2->ref)
+			   || handled_component_p (ref2->ref)
+			   || INDIRECT_REF_P (ref2->ref)
+			   || TREE_CODE (ref2->ref) == TARGET_MEM_REF));
 
   /* Decompose the references into their base objects and the access.  */
   base1 = ao_ref_base (ref1);
@@ -832,10 +832,13 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
       || is_gimple_min_invariant (base2))
     return false;
 
-  /* We can end up refering to code via function decls.  As we likely
-     do not properly track code aliases conservatively bail out.  */
+  /* We can end up refering to code via function and label decls.
+     As we likely do not properly track code aliases conservatively
+     bail out.  */
   if (TREE_CODE (base1) == FUNCTION_DECL
-      || TREE_CODE (base2) == FUNCTION_DECL)
+      || TREE_CODE (base2) == FUNCTION_DECL
+      || TREE_CODE (base1) == LABEL_DECL
+      || TREE_CODE (base2) == LABEL_DECL)
     return true;
 
   /* Defer to simple offset based disambiguation if we have
@@ -1408,11 +1411,15 @@ stmt_may_clobber_ref_p_1 (gimple stmt, ao_ref *ref)
 
       return call_may_clobber_ref_p_1 (stmt, ref);
     }
-  else if (is_gimple_assign (stmt))
+  else if (gimple_assign_single_p (stmt))
     {
-      ao_ref r;
-      ao_ref_init (&r, gimple_assign_lhs (stmt));
-      return refs_may_alias_p_1 (ref, &r, true);
+      tree lhs = gimple_assign_lhs (stmt);
+      if (!is_gimple_reg (lhs))
+	{
+	  ao_ref r;
+	  ao_ref_init (&r, gimple_assign_lhs (stmt));
+	  return refs_may_alias_p_1 (ref, &r, true);
+	}
     }
   else if (gimple_code (stmt) == GIMPLE_ASM)
     return true;

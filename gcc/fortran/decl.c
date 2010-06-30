@@ -1764,7 +1764,7 @@ variable_decl (int elem)
      specified in the procedure definition, except that the interface
      may specify a procedure that is not pure if the procedure is
      defined to be pure(12.3.2).  */
-  if (current_ts.type == BT_DERIVED
+  if ((current_ts.type == BT_DERIVED || current_ts.type == BT_CLASS)
       && gfc_current_ns->proc_name
       && gfc_current_ns->proc_name->attr.if_source == IFSRC_IFBODY
       && current_ts.u.derived->ns != gfc_current_ns)
@@ -2342,7 +2342,7 @@ gfc_match_decl_type_spec (gfc_typespec *ts, int implicit_flag)
   gfc_symbol *sym;
   match m;
   char c;
-  bool seen_deferred_kind;
+  bool seen_deferred_kind, matched_type;
 
   /* A belt and braces check that the typespec is correctly being treated
      as a deferred characteristic association.  */
@@ -2374,47 +2374,88 @@ gfc_match_decl_type_spec (gfc_typespec *ts, int implicit_flag)
       return MATCH_YES;
     }
 
-  if (gfc_match (" integer") == MATCH_YES)
+
+  m = gfc_match (" type ( %n", name);
+  matched_type = (m == MATCH_YES);
+  
+  if ((matched_type && strcmp ("integer", name) == 0)
+      || (!matched_type && gfc_match (" integer") == MATCH_YES))
     {
       ts->type = BT_INTEGER;
       ts->kind = gfc_default_integer_kind;
       goto get_kind;
     }
 
-  if (gfc_match (" character") == MATCH_YES)
+  if ((matched_type && strcmp ("character", name) == 0)
+      || (!matched_type && gfc_match (" character") == MATCH_YES))
     {
+      if (matched_type
+	  && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: TYPE with "
+			  "intrinsic-type-spec at %C") == FAILURE)
+	return MATCH_ERROR;
+
       ts->type = BT_CHARACTER;
       if (implicit_flag == 0)
-	return gfc_match_char_spec (ts);
+	m = gfc_match_char_spec (ts);
       else
-	return MATCH_YES;
+	m = MATCH_YES;
+
+      if (matched_type && m == MATCH_YES && gfc_match_char (')') != MATCH_YES)
+	m = MATCH_ERROR;
+
+      return m;
     }
 
-  if (gfc_match (" real") == MATCH_YES)
+  if ((matched_type && strcmp ("real", name) == 0)
+      || (!matched_type && gfc_match (" real") == MATCH_YES))
     {
       ts->type = BT_REAL;
       ts->kind = gfc_default_real_kind;
       goto get_kind;
     }
 
-  if (gfc_match (" double precision") == MATCH_YES)
+  if ((matched_type
+       && (strcmp ("doubleprecision", name) == 0
+	   || (strcmp ("double", name) == 0
+	       && gfc_match (" precision") == MATCH_YES)))
+      || (!matched_type && gfc_match (" double precision") == MATCH_YES))
     {
+      if (matched_type
+	  && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: TYPE with "
+			  "intrinsic-type-spec at %C") == FAILURE)
+	return MATCH_ERROR;
+      if (matched_type && gfc_match_char (')') != MATCH_YES)
+	return MATCH_ERROR;
+
       ts->type = BT_REAL;
       ts->kind = gfc_default_double_kind;
       return MATCH_YES;
     }
 
-  if (gfc_match (" complex") == MATCH_YES)
+  if ((matched_type && strcmp ("complex", name) == 0)
+      || (!matched_type && gfc_match (" complex") == MATCH_YES))
     {
       ts->type = BT_COMPLEX;
       ts->kind = gfc_default_complex_kind;
       goto get_kind;
     }
 
-  if (gfc_match (" double complex") == MATCH_YES)
+  if ((matched_type
+       && (strcmp ("doublecomplex", name) == 0
+	   || (strcmp ("double", name) == 0
+	       && gfc_match (" complex") == MATCH_YES)))
+      || (!matched_type && gfc_match (" double complex") == MATCH_YES))
     {
-      if (gfc_notify_std (GFC_STD_GNU, "DOUBLE COMPLEX at %C does not "
-			  "conform to the Fortran 95 standard") == FAILURE)
+      if (gfc_notify_std (GFC_STD_GNU, "Extension: DOUBLE COMPLEX at %C")
+	  == FAILURE)
+	return MATCH_ERROR;
+
+      if (matched_type
+	  && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: TYPE with "
+			  "intrinsic-type-spec at %C") == FAILURE)
+	return MATCH_ERROR;
+
+      if (matched_type && gfc_match_char (')') != MATCH_YES)
 	return MATCH_ERROR;
 
       ts->type = BT_COMPLEX;
@@ -2422,14 +2463,17 @@ gfc_match_decl_type_spec (gfc_typespec *ts, int implicit_flag)
       return MATCH_YES;
     }
 
-  if (gfc_match (" logical") == MATCH_YES)
+  if ((matched_type && strcmp ("logical", name) == 0)
+      || (!matched_type && gfc_match (" logical") == MATCH_YES))
     {
       ts->type = BT_LOGICAL;
       ts->kind = gfc_default_logical_kind;
       goto get_kind;
     }
 
-  m = gfc_match (" type ( %n )", name);
+  if (matched_type)
+    m = gfc_match_char (')');
+
   if (m == MATCH_YES)
     ts->type = BT_DERIVED;
   else
@@ -2490,22 +2534,42 @@ gfc_match_decl_type_spec (gfc_typespec *ts, int implicit_flag)
   return MATCH_YES;
 
 get_kind:
+  if (matched_type
+      && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: TYPE with "
+			 "intrinsic-type-spec at %C") == FAILURE)
+    return MATCH_ERROR;
+
   /* For all types except double, derived and character, look for an
      optional kind specifier.  MATCH_NO is actually OK at this point.  */
   if (implicit_flag == 1)
-    return MATCH_YES;
+    {
+	if (matched_type && gfc_match_char (')') != MATCH_YES)
+	  return MATCH_ERROR;
+
+	return MATCH_YES;
+    }
 
   if (gfc_current_form == FORM_FREE)
     {
       c = gfc_peek_ascii_char ();
       if (!gfc_is_whitespace (c) && c != '*' && c != '('
 	  && c != ':' && c != ',')
-       return MATCH_NO;
+        {
+	  if (matched_type && c == ')')
+	    {
+	      gfc_next_ascii_char ();
+	      return MATCH_YES;
+	    }
+	  return MATCH_NO;
+	}
     }
 
   m = gfc_match_kind_spec (ts, false);
   if (m == MATCH_NO && ts->type != BT_CHARACTER)
     m = gfc_match_old_kind_spec (ts);
+
+  if (matched_type && gfc_match_char (')') != MATCH_YES)
+    return MATCH_ERROR;
 
   /* Defer association of the KIND expression of function results
      until after USE and IMPORT statements.  */
@@ -2875,8 +2939,8 @@ match_attr_spec (void)
     DECL_IN, DECL_OUT, DECL_INOUT, DECL_INTRINSIC, DECL_OPTIONAL,
     DECL_PARAMETER, DECL_POINTER, DECL_PROTECTED, DECL_PRIVATE,
     DECL_PUBLIC, DECL_SAVE, DECL_TARGET, DECL_VALUE, DECL_VOLATILE,
-    DECL_IS_BIND_C, DECL_CODIMENSION, DECL_ASYNCHRONOUS, DECL_NONE,
-    GFC_DECL_END /* Sentinel */
+    DECL_IS_BIND_C, DECL_CODIMENSION, DECL_ASYNCHRONOUS, DECL_CONTIGUOUS,
+    DECL_NONE, GFC_DECL_END /* Sentinel */
   }
   decl_types;
 
@@ -2939,6 +3003,7 @@ match_attr_spec (void)
 		    }
 		  break;
 		}
+	      break;
 
 	    case 'b':
 	      /* Try and match the bind(c).  */
@@ -2950,8 +3015,24 @@ match_attr_spec (void)
 	      break;
 
 	    case 'c':
-	      if (match_string_p ("codimension"))
-		d = DECL_CODIMENSION;
+	      gfc_next_ascii_char ();
+	      if ('o' != gfc_next_ascii_char ())
+		break;
+	      switch (gfc_next_ascii_char ())
+		{
+		case 'd':
+		  if (match_string_p ("imension"))
+		    {
+		      d = DECL_CODIMENSION;
+		      break;
+		    }
+		case 'n':
+		  if (match_string_p ("tiguous"))
+		    {
+		      d = DECL_CONTIGUOUS;
+		      break;
+		    }
+		}
 	      break;
 
 	    case 'd':
@@ -3144,6 +3225,9 @@ match_attr_spec (void)
 	  case DECL_CODIMENSION:
 	    attr = "CODIMENSION";
 	    break;
+	  case DECL_CONTIGUOUS:
+	    attr = "CONTIGUOUS";
+	    break;
 	  case DECL_DIMENSION:
 	    attr = "DIMENSION";
 	    break;
@@ -3214,7 +3298,7 @@ match_attr_spec (void)
       if (gfc_current_state () == COMP_DERIVED
 	  && d != DECL_DIMENSION && d != DECL_CODIMENSION
 	  && d != DECL_POINTER   && d != DECL_PRIVATE
-	  && d != DECL_PUBLIC && d != DECL_NONE)
+	  && d != DECL_PUBLIC && d != DECL_CONTIGUOUS && d != DECL_NONE)
 	{
 	  if (d == DECL_ALLOCATABLE)
 	    {
@@ -3281,6 +3365,15 @@ match_attr_spec (void)
 
 	case DECL_CODIMENSION:
 	  t = gfc_add_codimension (&current_attr, NULL, &seen_at[d]);
+	  break;
+
+	case DECL_CONTIGUOUS:
+	  if (gfc_notify_std (GFC_STD_F2008,
+			      "Fortran 2008: CONTIGUOUS attribute at %C")
+	      == FAILURE)
+	    t = FAILURE;
+	  else
+	    t = gfc_add_contiguous (&current_attr, NULL, &seen_at[d]);
 	  break;
 
 	case DECL_DIMENSION:
@@ -4934,6 +5027,10 @@ gfc_match_entry (void)
   if (m != MATCH_YES)
     return m;
 
+  if (gfc_notify_std (GFC_STD_F2008_OBS, "Fortran 2008 obsolescent feature: "
+		      "ENTRY statement at %C") == FAILURE)
+    return MATCH_ERROR;
+
   state = gfc_current_state ();
   if (state != COMP_SUBROUTINE && state != COMP_FUNCTION)
     {
@@ -5613,7 +5710,14 @@ gfc_match_end (gfc_statement *st)
 
   if (gfc_match_eos () == MATCH_YES)
     {
-      if (!eos_ok)
+      if (!eos_ok && (*st == ST_END_SUBROUTINE || *st == ST_END_FUNCTION))
+	{
+	  if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: END statement "
+			      "instead of %s statement at %L",
+			      gfc_ascii_statement (*st), &old_loc) == FAILURE)
+	    goto cleanup;
+	}
+      else if (!eos_ok)
 	{
 	  /* We would have required END [something].  */
 	  gfc_error ("%s statement expected at %L",
@@ -6115,6 +6219,20 @@ gfc_match_codimension (void)
 {
   gfc_clear_attr (&current_attr);
   current_attr.codimension = 1;
+
+  return attr_decl ();
+}
+
+
+match
+gfc_match_contiguous (void)
+{
+  if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: CONTIGUOUS statement at %C")
+      == FAILURE)
+    return MATCH_ERROR;
+
+  gfc_clear_attr (&current_attr);
+  current_attr.contiguous = 1;
 
   return attr_decl ();
 }
@@ -7543,7 +7661,7 @@ match_procedure_in_type (void)
   char name[GFC_MAX_SYMBOL_LEN + 1];
   char target_buf[GFC_MAX_SYMBOL_LEN + 1];
   char* target = NULL, *ifc = NULL;
-  gfc_typebound_proc* tb;
+  gfc_typebound_proc tb;
   bool seen_colons;
   bool seen_attrs;
   match m;
@@ -7579,23 +7697,22 @@ match_procedure_in_type (void)
     }
 
   /* Construct the data structure.  */
-  tb = gfc_get_typebound_proc ();
-  tb->where = gfc_current_locus;
-  tb->is_generic = 0;
+  tb.where = gfc_current_locus;
+  tb.is_generic = 0;
 
   /* Match binding attributes.  */
-  m = match_binding_attributes (tb, false, false);
+  m = match_binding_attributes (&tb, false, false);
   if (m == MATCH_ERROR)
     return m;
   seen_attrs = (m == MATCH_YES);
 
   /* Check that attribute DEFERRED is given if an interface is specified.  */
-  if (tb->deferred && !ifc)
+  if (tb.deferred && !ifc)
     {
       gfc_error ("Interface must be specified for DEFERRED binding at %C");
       return MATCH_ERROR;
     }
-  if (ifc && !tb->deferred)
+  if (ifc && !tb.deferred)
     {
       gfc_error ("PROCEDURE(interface) at %C should be declared DEFERRED");
       return MATCH_ERROR;
@@ -7635,7 +7752,7 @@ match_procedure_in_type (void)
 	return m;
       if (m == MATCH_YES)
 	{
-	  if (tb->deferred)
+	  if (tb.deferred)
 	    {
 	      gfc_error ("'=> target' is invalid for DEFERRED binding at %C");
 	      return MATCH_ERROR;
@@ -7668,7 +7785,7 @@ match_procedure_in_type (void)
       gcc_assert (ns);
 
       /* If the binding is DEFERRED, check that the containing type is ABSTRACT.  */
-      if (tb->deferred && !block->attr.abstract)
+      if (tb.deferred && !block->attr.abstract)
 	{
 	  gfc_error ("Type '%s' containing DEFERRED binding at %C "
 		     "is not ABSTRACT", block->name);
@@ -7693,11 +7810,12 @@ match_procedure_in_type (void)
 	  stree = gfc_new_symtree (&ns->tb_sym_root, name);
 	  gcc_assert (stree);
 	}
-      stree->n.tb = tb;
+      stree->n.tb = gfc_get_typebound_proc (&tb);
 
-      if (gfc_get_sym_tree (target, gfc_current_ns, &tb->u.specific, false))
+      if (gfc_get_sym_tree (target, gfc_current_ns, &stree->n.tb->u.specific,
+			    false))
 	return MATCH_ERROR;
-      gfc_set_sym_referenced (tb->u.specific->n.sym);
+      gfc_set_sym_referenced (stree->n.tb->u.specific->n.sym);
   
       if (gfc_match_eos () == MATCH_YES)
 	return MATCH_YES;
@@ -7841,7 +7959,7 @@ gfc_match_generic (void)
     }
   else
     {
-      tb = gfc_get_typebound_proc ();
+      tb = gfc_get_typebound_proc (NULL);
       tb->where = gfc_current_locus;
       tb->access = tbattr.access;
       tb->is_generic = 1;

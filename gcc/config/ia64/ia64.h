@@ -1042,12 +1042,6 @@ enum reg_class
 
 #define ACCUMULATE_OUTGOING_ARGS 1
 
-/* A C expression that should indicate the number of bytes of its own arguments
-   that a function pops on returning, or 0 if the function pops no arguments
-   and the caller must therefore pop them all after the function returns.  */
-
-#define RETURN_POPS_ARGS(FUNDECL, FUNTYPE, STACK_SIZE) 0
-
 
 /* Function Arguments in Registers */
 
@@ -1309,11 +1303,6 @@ do {									\
 
 
 /* Describing Relative Costs of Operations */
-
-/* A C expression for the cost of moving data from a register in class FROM to
-   one in class TO, using MODE.  */
-
-#define REGISTER_MOVE_COST  ia64_register_move_cost
 
 /* A C expression for the cost of moving data of mode M between a
    register and memory.  */

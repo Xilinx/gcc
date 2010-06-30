@@ -331,9 +331,6 @@ int internal_flag_ira_verbose;
 /* Dump file of the allocator if it is not NULL.  */
 FILE *ira_dump_file;
 
-/* Pools for allocnos, copies, allocno live ranges.  */
-alloc_pool allocno_pool, copy_pool, allocno_live_range_pool;
-
 /* The number of elements in the following array.  */
 int ira_spilled_reg_stack_slots_num;
 
@@ -361,7 +358,7 @@ HARD_REG_SET ira_reg_mode_hard_regset[FIRST_PSEUDO_REGISTER][NUM_MACHINE_MODES];
 /* Array analogous to target hook TARGET_MEMORY_MOVE_COST.  */
 short int ira_memory_move_cost[MAX_MACHINE_MODE][N_REG_CLASSES][2];
 
-/* Array analogous to macro REGISTER_MOVE_COST.  */
+/* Array based on TARGET_REGISTER_MOVE_COST.  */
 move_table *ira_register_move_cost[MAX_MACHINE_MODE];
 
 /* Similar to may_move_in_cost but it is calculated in IRA instead of
@@ -1586,12 +1583,8 @@ find_reg_equiv_invariant_const (void)
 
 	  x = XEXP (note, 0);
 
-	  if (! function_invariant_p (x)
-	      || ! flag_pic
-	      /* A function invariant is often CONSTANT_P but may
-		 include a register.  We promise to only pass CONSTANT_P
-		 objects to LEGITIMATE_PIC_OPERAND_P.  */
-	      || (CONSTANT_P (x) && LEGITIMATE_PIC_OPERAND_P (x)))
+	  if (! CONSTANT_P (x)
+	      || ! flag_pic || LEGITIMATE_PIC_OPERAND_P (x))
 	    {
 	      /* It can happen that a REG_EQUIV note contains a MEM
 		 that is not a legitimate memory operand.  As later

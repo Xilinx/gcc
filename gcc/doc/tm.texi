@@ -141,13 +141,6 @@ should call @code{DEFAULT_SWITCH_CURTAILS_COMPILATION} and then check
 for additional options.
 @end defmac
 
-@defmac SWITCHES_NEED_SPACES
-A string-valued C expression which enumerates the options for which
-the linker needs a space between the option and its argument.
-
-If this macro is not defined, the default value is @code{""}.
-@end defmac
-
 @defmac TARGET_OPTION_TRANSLATE_TABLE
 If defined, a list of pairs of strings, the first of which is a
 potential command line target to the @file{gcc} driver program, and the
@@ -523,31 +516,6 @@ Cross compilers do not search either @file{/usr/local/include} or its
 replacement.
 @end defmac
 
-@defmac MODIFY_TARGET_NAME
-Define this macro if you wish to define command-line switches that
-modify the default target name.
-
-For each switch, you can include a string to be appended to the first
-part of the configuration name or a string to be deleted from the
-configuration name, if present.  The definition should be an initializer
-for an array of structures.  Each array element should have three
-elements: the switch name (a string constant, including the initial
-dash), one of the enumeration codes @code{ADD} or @code{DELETE} to
-indicate whether the string should be inserted or deleted, and the string
-to be inserted or deleted (a string constant).
-
-For example, on a machine where @samp{64} at the end of the
-configuration name denotes a 64-bit target and you want the @option{-32}
-and @option{-64} switches to select between 32- and 64-bit targets, you would
-code
-
-@smallexample
-#define MODIFY_TARGET_NAME \
-  @{ @{ "-32", DELETE, "64"@}, \
-     @{"-64", ADD, "64"@}@}
-@end smallexample
-@end defmac
-
 @defmac SYSTEM_INCLUDE_DIR
 Define this macro as a C string constant if you wish to specify a
 system-specific directory to search for header files before the standard
@@ -818,15 +786,18 @@ Don't use this macro to turn on various extra optimizations for
 If you need to do something whenever the optimization level is
 changed via the optimize attribute or pragma, see
 @code{TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE}
+
+This macros is obsolete, new ports should use the target hook
+@code{TARGET_OPTION_OVERRIDE} instead.
 @end defmac
 
 @deftypefn {Target Hook} void TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE (void)
-This target function is similar to the macro @code{OVERRIDE_OPTIONS}
+This target function is similar to the hook @code{TARGET_OPTION_OVERRIDE}
 but is called when the optimize level is changed via an attribute or
 pragma or when it is reset at the end of the code affected by the
 attribute or pragma.  It is not called at the beginning of compilation
-when @code{OVERRIDE_OPTIONS} is called so if you want to perform these
-actions then, you should have @code{OVERRIDE_OPTIONS} call
+when @code{TARGET_OPTION_OVERRIDE} is called so if you want to perform these
+actions then, you should have @code{TARGET_OPTION_OVERRIDE} call
 @code{TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE}.
 @end deftypefn
 
@@ -3960,11 +3931,10 @@ suppresses this behavior and causes the parameter to be passed on the
 stack in its natural location.
 @end defmac
 
-@defmac RETURN_POPS_ARGS (@var{fundecl}, @var{funtype}, @var{stack-size})
-A C expression that should indicate the number of bytes of its own
-arguments that a function pops on returning, or 0 if the
-function pops no arguments and the caller must therefore pop them all
-after the function returns.
+@deftypefn {Target Hook} TARGET_RETURN_POPS_ARGS (@var{fundecl}, @var{funtype}, @var{stack-size})
+This target hook returns the number of bytes of its own arguments that
+a function pops on returning, or 0 if the function pops no arguments
+and the caller must therefore pop them all after the function returns.
 
 @var{fundecl} is a C variable whose value is a tree node that describes
 the function in question.  Normally it is a node of type
@@ -3997,7 +3967,7 @@ arguments pop them but other functions (such as @code{printf}) pop
 nothing (the caller pops all).  When this convention is in use,
 @var{funtype} is examined to determine whether a function takes a fixed
 number of arguments.
-@end defmac
+@end deftypefn
 
 @defmac CALL_POPS_ARGS (@var{cum})
 A C expression that should indicate the number of bytes a call sequence
@@ -4455,8 +4425,7 @@ specially by the compiler and was not mentioned in the C code being
 compiled.
 @end defmac
 
-@deftypefn {Target Hook} rtx TARGET_LIBCALL_VALUE (enum machine_mode
-@var{mode}, const_rtx @var{fun})
+@deftypefn {Target Hook} rtx TARGET_LIBCALL_VALUE (enum machine_mode @var{mode}, const_rtx @var{fun})
 Define this hook if the back-end needs to know the name of the libcall
 function in order to determine where the result should be returned.  
 
@@ -5774,7 +5743,7 @@ return type of the vectorized function shall be of vector type
 @var{vec_type_out} and the argument types should be @var{vec_type_in}.
 @end deftypefn
 
-@deftypefn {Target Hook} bool TARGET_SUPPORT_VECTOR_MISALIGNMENT (enum machine_mode @var{mode}, const_tree @var{type}, int @var{misalignment}, bool @var{is_packed})
+@deftypefn {Target Hook} bool TARGET_VECTORIZE_SUPPORT_VECTOR_MISALIGNMENT (enum machine_mode @var{mode}, const_tree @var{type}, int @var{misalignment}, bool @var{is_packed})
 This hook should return true if the target supports misaligned vector
 store/load of a specific factor denoted in the @var{misalignment}
 parameter.  The vector store/load should be of machine mode @var{mode} and
@@ -6148,7 +6117,31 @@ classes returns a value of 2, reload does not check to ensure that the
 constraints of the insn are met.  Setting a cost of other than 2 will
 allow reload to verify that the constraints are met.  You should do this
 if the @samp{mov@var{m}} pattern's constraints do not allow such copying.
+
+These macros are obsolete, new ports should use the target hook
+@code{TARGET_REGISTER_MOVE_COST} instead.
 @end defmac
+
+@deftypefn {Target Hook} int TARGET_REGISTER_MOVE_COST (enum machine_mode @var{mode}, enum reg_class @var{from}, enum reg_class @var{to})
+This target hook should return the cost of moving data of mode @var{mode}
+from a register in class @var{from} to one in class @var{to}.  The classes
+are expressed using the enumeration values such as @code{GENERAL_REGS}.
+A value of 2 is the default; other values are interpreted relative to
+that.
+
+It is not required that the cost always equal 2 when @var{from} is the
+same as @var{to}; on some machines it is expensive to move between
+registers if they are not general registers.
+
+If reload sees an insn consisting of a single @code{set} between two
+hard registers, and if @code{TARGET_REGISTER_MOVE_COST} applied to their
+classes returns a value of 2, reload does not check to ensure that the
+constraints of the insn are met.  Setting a cost of other than 2 will
+allow reload to verify that the constraints are met.  You should do this
+if the @samp{mov@var{m}} pattern's constraints do not allow such copying.
+
+The default version of this function returns 2.
+@end deftypefn
 
 @defmac MEMORY_MOVE_COST (@var{mode}, @var{class}, @var{in})
 A C expression for the cost of moving data of mode @var{mode} between a
@@ -6181,9 +6174,9 @@ These macros are obsolete, new ports should use the target hook
 This target hook should return the cost of moving data of mode @var{mode}
 between a register of class @var{class} and memory; @var{in} is @code{false}
 if the value is to be written to memory, @code{true} if it is to be read in.
-This cost is relative to those in @code{REGISTER_MOVE_COST}.  If moving
-between registers and memory is more expensive than between two registers,
-you should add this target hook to express the relative cost.
+This cost is relative to those in @code{TARGET_REGISTER_MOVE_COST}.
+If moving between registers and memory is more expensive than between two
+registers, you should add this target hook to express the relative cost.
 
 If you do not add this target hook, GCC uses a default cost of 4 plus
 the cost of copying via a secondary reload register, if one is
@@ -8699,7 +8692,7 @@ to be broken up according to function.
 The default is that no label is emitted.
 @end deftypefn
 
-@deftypefn {Target Hook} void TARGET_UNWIND_EMIT (FILE *@var{stream}, rtx @var{insn})
+@deftypefn {Target Hook} void TARGET_ASM_UNWIND_EMIT (FILE *@var{stream}, rtx @var{insn})
 This target hook emits assembly directives required to unwind the
 given instruction.  This is only used when TARGET_UNWIND_INFO is set.
 @end deftypefn
@@ -8763,7 +8756,7 @@ default.
 
 @defmac TARGET_UNWIND_INFO
 Define this macro if your target has ABI specified unwind tables.  Usually
-these will be output by @code{TARGET_UNWIND_EMIT}.
+these will be output by @code{TARGET_ASM_UNWIND_EMIT}.
 @end defmac
 
 @deftypevr {Target Hook} bool TARGET_UNWIND_TABLES_DEFAULT
@@ -8848,7 +8841,7 @@ define the macro.
 
 Unless it's necessary to inspect the @var{label} parameter, it is better
 to set the variable @var{align_jumps} in the target's
-@code{OVERRIDE_OPTIONS}.  Otherwise, you should try to honor the user's
+@code{TARGET_OPTION_OVERRIDE}.  Otherwise, you should try to honor the user's
 selection in @var{align_jumps} in a @code{JUMP_ALIGN} implementation.
 @end defmac
 
@@ -8877,7 +8870,7 @@ define the macro.
 
 Unless it's necessary to inspect the @var{label} parameter, it is better
 to set the variable @code{align_loops} in the target's
-@code{OVERRIDE_OPTIONS}.  Otherwise, you should try to honor the user's
+@code{TARGET_OPTION_OVERRIDE}.  Otherwise, you should try to honor the user's
 selection in @code{align_loops} in a @code{LOOP_ALIGN} implementation.
 @end defmac
 
@@ -8893,7 +8886,7 @@ the maximum of the specified values is used.
 
 Unless it's necessary to inspect the @var{label} parameter, it is better
 to set the variable @code{align_labels} in the target's
-@code{OVERRIDE_OPTIONS}.  Otherwise, you should try to honor the user's
+@code{TARGET_OPTION_OVERRIDE}.  Otherwise, you should try to honor the user's
 selection in @code{align_labels} in a @code{LABEL_ALIGN} implementation.
 @end defmac
 
@@ -9289,6 +9282,12 @@ A C statement to issue assembly directives that create a difference
 @var{lab1} minus @var{lab2}, using an integer of the given @var{size}.
 @end defmac
 
+@defmac ASM_OUTPUT_DWARF_VMS_DELTA (@var{stream}, @var{size}, @var{label1}, @var{label2})
+A C statement to issue assembly directives that create a difference
+between the two given labels in system defined units, e.g. instruction
+slots on IA64 VMS, using an integer of the given size.
+@end defmac
+
 @defmac ASM_OUTPUT_DWARF_OFFSET (@var{stream}, @var{size}, @var{label}, @var{section})
 A C statement to issue assembly directives that create a
 section-relative reference to the given @var{label}, using an integer of the
@@ -9359,7 +9358,7 @@ in response to the @option{-g} option.  The default behavior for VMS
 is to generate minimal debug info for a traceback in the absence of
 @option{-g} unless explicitly overridden with @option{-g0}.  This
 behavior is controlled by @code{OPTIMIZATION_OPTIONS} and
-@code{OVERRIDE_OPTIONS}.
+@code{TARGET_OPTION_OVERRIDE}.
 @end defmac
 
 @node Floating Point
@@ -9628,9 +9627,7 @@ to perform initial processing of the @samp{dllimport} and
 @end deftypefn
 
 @deftypefn {Target Hook} bool TARGET_VALID_DLLIMPORT_ATTRIBUTE_P (const_tree @var{decl})
-@var{decl} is a variable or function with @code{__attribute__((dllimport))}
-specified. Use this hook if the target needs to add extra validation
-checks to @code{handle_dll_attribute}.
+@var{decl} is a variable or function with @code{__attribute__((dllimport))} specified.  Use this hook if the target needs to add extra validation checks to @code{handle_dll_attribute}.
 @end deftypefn
 
 @defmac TARGET_DECLSPEC
@@ -9699,6 +9696,20 @@ This target hook parses the options for @code{#pragma GCC option} to
 set the machine specific options for functions that occur later in the
 input stream.  The options should be the same as handled by the
 @code{TARGET_VALID_OPTION_ATTRIBUTE_P} hook.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_OPTION_OVERRIDE (void)
+Sometimes certain combinations of command options do not make sense on
+a particular target machine.  You can override the hook
+@code{TARGET_OPTION_OVERRIDE} to take account of this.  This hooks is called
+once just after all the command options have been parsed.
+
+Don't use this hook to turn on various extra optimizations for
+@option{-O}.  That is what @code{OPTIMIZATION_OPTIONS} is for.
+
+If you need to do something whenever the optimization level is
+changed via the optimize attribute or pragma, see
+@code{TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE}
 @end deftypefn
 
 @deftypefn {Target Hook} bool TARGET_CAN_INLINE_P (tree @var{caller}, tree @var{callee})
@@ -9888,7 +9899,7 @@ This hook should return @code{true} if the element size should be stored in
 array cookies.  The default is to return @code{false}.
 @end deftypefn
 
-@deftypefn {Target Hook} int TARGET_CXX_IMPORT_EXPORT_CLASS (tree  @var{type}, int @var{import_export})
+@deftypefn {Target Hook} int TARGET_CXX_IMPORT_EXPORT_CLASS (tree @var{type}, int @var{import_export})
 If defined by a backend this hook allows the decision made to export
 class @var{type} to be overruled.  Upon entry @var{import_export}
 will contain 1 if the class is going to be exported, @minus{}1 if it is going
@@ -9914,12 +9925,7 @@ method.  The default is to return @code{true}.
 @end deftypefn
 
 @deftypefn {Target Hook} void TARGET_CXX_DETERMINE_CLASS_DATA_VISIBILITY (tree @var{decl})
-@var{decl} is a virtual table, virtual table table, typeinfo object,
-or other similar implicit class data object that will be emitted with
-external linkage in this translation unit.  No ELF visibility has been
-explicitly specified.  If the target needs to specify a visibility
-other than that of the containing class, use this hook to set
-@code{DECL_VISIBILITY} and @code{DECL_VISIBILITY_SPECIFIED}.
+@var{decl} is a virtual table, virtual table table, typeinfo object, or other similar implicit class data object that will be emitted with external linkage in this translation unit.  No ELF visibility has been explicitly specified.  If the target needs to specify a visibility other than that of the containing class, use this hook to set @code{DECL_VISIBILITY} and @code{DECL_VISIBILITY_SPECIFIED}.
 @end deftypefn
 
 @deftypefn {Target Hook} bool TARGET_CXX_CLASS_DATA_ALWAYS_COMDAT (void)
@@ -9951,9 +9957,7 @@ unloaded. The default is to return false.
 @end deftypefn
 
 @deftypefn {Target Hook} void TARGET_CXX_ADJUST_CLASS_AT_DEFINITION (tree @var{type})
-@var{type} is a C++ class (i.e., RECORD_TYPE or UNION_TYPE) that has just been
-defined.  Use this hook to make adjustments to the class (eg, tweak
-visibility or perform any other required target modifications).
+@var{type} is a C++ class (i.e., RECORD_TYPE or UNION_TYPE) that has just been defined.  Use this hook to make adjustments to the class (eg, tweak visibility or perform any other required target modifications).
 @end deftypefn
 
 @node Named Address Spaces

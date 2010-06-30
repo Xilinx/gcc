@@ -1213,7 +1213,8 @@ gfc_get_symbol_decl (gfc_symbol * sym)
       /* Create variables to hold the non-constant bits of array info.  */
       gfc_build_qualified_array (decl, sym);
 
-      if ((sym->attr.allocatable || !sym->attr.dummy) && !sym->attr.pointer)
+      if (sym->attr.contiguous
+	  || ((sym->attr.allocatable || !sym->attr.dummy) && !sym->attr.pointer))
 	GFC_DECL_PACKED_ARRAY (decl) = 1;
     }
 
@@ -2611,9 +2612,10 @@ gfc_build_intrinsic_function_decls (void)
 
   gfor_fndecl_sr_kind =
     gfc_build_library_function_decl (get_identifier
-					(PREFIX("selected_real_kind")),
-                                     gfc_int4_type_node, 2,
-                                     pvoid_type_node, pvoid_type_node);
+					(PREFIX("selected_real_kind2008")),
+				     gfc_int4_type_node, 3,
+				     pvoid_type_node, pvoid_type_node,
+				     pvoid_type_node);
 
   /* Power functions.  */
   {

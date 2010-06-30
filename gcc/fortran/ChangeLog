@@ -1,3 +1,180 @@
+2010-06-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44718
+	* resolve.c (is_external_proc): Prevent procedure pointers from being
+	regarded as external procedures.
+
+2010-06-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44696
+	* trans-intrinsic.c (gfc_conv_associated): Handle polymorphic variables
+	passed as second argument of ASSOCIATED.
+
+2010-06-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/44582
+	* trans-expr.c (arrayfunc_assign_needs_temporary): New function
+	to determine if a function assignment can be made without a
+	temporary.
+	(gfc_trans_arrayfunc_assign): Move all the conditions that
+	suppress the direct function call to the above new functon and
+	call it.
+
+2010-06-28  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40158
+	* interface.c (argument_rank_mismatch): New function.
+	(compare_parameter): Call new function instead of generating
+	the error directly.
+
+2010-06-28  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* trans-openmp.c (dovar_init): Define.  Define VECs containing it.
+	(gfc_trans_omp_do): Use a VEC to accumulate variables and their
+	initializers.
+
+2010-06-28  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* Make-lang.in: Update dependencies.
+
+2010-06-27  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gfortran.h (gfc_code): Split backend_decl field into cycle_label
+	and exit_label fields.
+	* trans-openmp.c (gfc_trans_omp_do): Assign to new fields
+	individually.
+	* trans-stmt.c (gfc_trans_simple_do): Likewise.
+	(gfc_trans_do): Likewise.
+	(gfc_trans_do_while): Likewise.
+	(gfc_trans_cycle): Use cycle_label directly.
+	(gfc_trans_exit): Use exit_label directly.
+
+2010-06-27  Daniel Kraft  <d@domob.eu>
+
+	* dump-parse-tree.c (show_symbol): Dump target-expression for
+	associate names.
+	(show_code_node): Make distinction between BLOCK and ASSOCIATE.
+	(show_namespace): Use show_level for correct indentation of
+	"inner namespaces" (contained procedures or BLOCK).
+
+2010-06-27  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/44678
+	* dump-parse-tree.c (show_code_node):  Show namespace for
+	EXEC_BLOCK.
+
+2010-06-26  Tobias Burnus  <burnus@net-b.de>
+
+	* decl.c (gfc_match_decl_type_spec): Support
+	TYPE(intrinsic-type-spec).
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* intrinsic.h (gfc_check_selected_real_kind,
+	gfc_simplify_selected_real_kind): Update prototypes.
+	* intrinsic.c (add_functions): Add radix support to
+	selected_real_kind.
+	* check.c (gfc_check_selected_real_kind): Ditto.
+	* simplify.c (gfc_simplify_selected_real_kind): Ditto.
+	* trans-decl.c (gfc_build_intrinsic_function_decls):
+	Change call from selected_real_kind to selected_real_kind2008.
+	* intrinsic.texi (SELECTED_REAL_KIND): Update for radix.
+	(PRECISION, RANGE, RADIX): Add cross @refs.
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* decl.c (gfc_match_entry): Mark ENTRY as GFC_STD_F2008_OBS.
+	* gfortran.texi (_gfortran_set_options): Update for
+	GFC_STD_F2008_OBS addition.
+	* libgfortran.h: Add GFC_STD_F2008_OBS.
+	* options.c (set_default_std_flags, gfc_handle_option): Handle
+	GFC_STD_F2008_OBS.
+	io.c (check_format): Fix allow_std check.
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* decl.c (gfc_match_entry): Allow END besides
+	END SUBROUTINE/END FUNCTION for contained procedures.
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* parse.c (next_free, next_fixed): Allow ";" as first character.
+
+2010-06-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44614
+	* decl.c (variable_decl): Fix IMPORT diagnostic for CLASS.
+
+2010-06-22  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44616
+	* resolve.c (resolve_fl_derived): Avoid checking for abstract on class
+	containers.
+
+2010-06-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40632
+	* interface.c (compare_parameter): Add gfc_is_simply_contiguous
+	checks.
+	* symbol.c (gfc_add_contiguous): New function.
+	(gfc_copy_attr, check_conflict): Handle contiguous attribute.
+	* decl.c (match_attr_spec): Ditto.
+	(gfc_match_contiguous): New function.
+	* resolve.c (resolve_fl_derived, resolve_symbol): Handle
+	contiguous.
+	* gfortran.h (symbol_attribute): Add contiguous.
+	(gfc_is_simply_contiguous): Add prototype.
+	(gfc_add_contiguous): Add prototype.
+	* match.h (gfc_match_contiguous): Add prototype.
+	* parse.c (decode_specification_statement,
+	decode_statement): Handle contiguous attribute.
+	* expr.c (gfc_is_simply_contiguous): New function.
+	* dump-parse-tree.c (show_attr): Handle contiguous.
+	* module.c (ab_attribute, attr_bits, mio_symbol_attribute):
+	Ditto.
+	* trans-expr.c (gfc_add_interface_mapping): Copy
+	attr.contiguous.
+	* trans-array.c (gfc_conv_descriptor_stride_get,
+	gfc_conv_array_parameter): Handle contiguous arrays.
+	* trans-types.c (gfc_build_array_type, gfc_build_array_type,
+	gfc_sym_type, gfc_get_derived_type, gfc_get_array_descr_info):
+	Ditto.
+	* trans.h (gfc_array_kind): Ditto.
+	* trans-decl.c (gfc_get_symbol_decl): Ditto.
+
+2010-06-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* options.c (gfc_handle_option): Don't handle N_OPTS.
+
+2010-06-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44584
+	* resolve.c (resolve_fl_derived): Reverse ordering of conditions
+	to avoid ICE.
+
+2010-06-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44556
+	* resolve.c (resolve_allocate_deallocate): Properly check
+	part-refs in stat=/errmsg= for invalid use.
+
+2010-06-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44558
+	* resolve.c (resolve_typebound_function,resolve_typebound_subroutine):
+	Return directly in case of an error.
+
+2010-06-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44549
+	* gfortran.h (gfc_get_typebound_proc): Modified Prototype.
+	* decl.c (match_procedure_in_type): Give a unique gfc_typebound_proc
+	structure to each procedure in a procedure list.
+	* module.c (mio_typebound_proc): Add NULL argument to
+	'gfc_get_typebound_proc'.
+	* symbol.c (gfc_get_typebound_proc): Add a new argument, which is used
+	to initialize the new structure.
+
 2010-06-15  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/43388

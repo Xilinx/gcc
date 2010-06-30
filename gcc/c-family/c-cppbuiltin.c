@@ -28,7 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-common.h"
 #include "c-pragma.h"
 #include "output.h"
-#include "except.h"		/* For USING_SJLJ_EXCEPTIONS.  */
 #include "debug.h"		/* For dwarf2out_do_cfi_asm.  */
 #include "toplev.h"
 #include "tm_p.h"		/* For TARGET_CPU_CPP_BUILTINS & friends.  */
@@ -1022,7 +1021,8 @@ builtin_define_with_hex_fp_value (const char *macro,
       lazy_hex_fp_values[lazy_hex_fp_value_count].fp_suffix = fp_suffix;
       lazy_hex_fp_values[lazy_hex_fp_value_count].macro = node->value.macro;
       node->flags |= NODE_BUILTIN;
-      node->value.builtin = BT_FIRST_USER + lazy_hex_fp_value_count;
+      node->value.builtin
+	= (enum cpp_builtin_type) (BT_FIRST_USER + lazy_hex_fp_value_count);
       lazy_hex_fp_value_count++;
       return;
     }

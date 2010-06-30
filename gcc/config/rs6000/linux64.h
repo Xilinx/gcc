@@ -70,7 +70,7 @@ extern enum rs6000_cmodel cmodel;
 #define TARGET_CMODEL cmodel
 #define SET_CMODEL(opt) cmodel = opt
 #else
-#define SET_CMODEL(opt)
+#define SET_CMODEL(opt) do {} while (0)
 #endif
 
 #undef  PROCESSOR_DEFAULT
@@ -134,7 +134,7 @@ extern enum rs6000_cmodel cmodel;
 	  else							\
 	    {							\
 	      if (!rs6000_explicit_options.cmodel)		\
-		SET_CMODEL (CMODEL_MEDIUM);			\
+		SET_CMODEL (CMODEL_LARGE);			\
 	      if (cmodel != CMODEL_SMALL)			\
 		{						\
 		  TARGET_NO_FP_IN_TOC = 0;			\

@@ -3364,9 +3364,8 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
 	  /* Convert primop1 to target type, but do not introduce
 	     additional overflow.  We know primop1 is an int_cst.  */
 	  primop1 = force_fit_type_double (*restype_ptr,
-					   TREE_INT_CST_LOW (primop1),
-					   TREE_INT_CST_HIGH (primop1), 0,
-					   TREE_OVERFLOW (primop1));
+					   tree_to_double_int (primop1),
+					   0, TREE_OVERFLOW (primop1));
 	}
       if (type != *restype_ptr)
 	{
@@ -3828,23 +3827,7 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 			inner);
 	    return truthvalue_true_node;
 	  }
-
-	/* If we still have a decl, it is possible for its address to
-	   be NULL, so we cannot optimize.  */
-	if (DECL_P (inner))
-	  {
-	    gcc_assert (DECL_WEAK (inner));
-	    break;
-	  }
-
-	if (TREE_SIDE_EFFECTS (inner))
-	  {
-	    expr = build2 (COMPOUND_EXPR, truthvalue_type_node,
-			   inner, truthvalue_true_node);
-	    goto ret;
-	  }
-	else
-	  return truthvalue_true_node;
+	break;
       }
 
     case COMPLEX_EXPR:
@@ -4926,13 +4909,13 @@ c_common_nodes_and_builtins (void)
     (build_decl (UNKNOWN_LOCATION,
 		 TYPE_DECL, get_identifier ("__builtin_va_list"),
 		 va_list_type_node));
-  if (targetm.enum_va_list)
+  if (targetm.enum_va_list_p)
     {
       int l;
       const char *pname;
       tree ptype;
 
-      for (l = 0; targetm.enum_va_list (l, &pname, &ptype); ++l)
+      for (l = 0; targetm.enum_va_list_p (l, &pname, &ptype); ++l)
 	{
 	  lang_hooks.decls.pushdecl
 	    (build_decl (UNKNOWN_LOCATION,
@@ -7669,6 +7652,8 @@ parse_optimize_options (tree args, bool attr_p)
   unsigned i;
   int saved_flag_strict_aliasing;
   const char **opt_argv;
+  struct cl_decoded_option *decoded_options;
+  unsigned int decoded_options_count;
   tree ap;
 
   /* Build up argv vector.  Just in case the string is stored away, use garbage
@@ -7761,7 +7746,8 @@ parse_optimize_options (tree args, bool attr_p)
   saved_flag_strict_aliasing = flag_strict_aliasing;
 
   /* Now parse the options.  */
-  decode_options (opt_argc, opt_argv);
+  decode_options (opt_argc, opt_argv, &decoded_options,
+		  &decoded_options_count);
 
   targetm.override_options_after_change();
 
@@ -8446,6 +8432,18 @@ fold_offsetof (tree expr, tree stop_ref)
   /* Convert back from the internal sizetype to size_t.  */
   return convert (size_type_node, fold_offsetof_1 (expr, stop_ref));
 }
+
+/* Warn for A ?: C expressions (with B omitted) where A is a boolean 
+   expression, because B will always be true. */
+
+void
+warn_for_omitted_condop (location_t location, tree cond) 
+{ 
+  if (truth_value_p (TREE_CODE (cond))) 
+      warning_at (location, OPT_Wparentheses, 
+		"the omitted middle operand in ?: will always be %<true%>, "
+		"suggest explicit middle operand");
+} 
 
 /* Print an error message for an invalid lvalue.  USE says
    how the lvalue is being used and so selects the error message.  */
@@ -9236,17 +9234,10 @@ record_types_used_by_current_var_decl (tree decl)
 {
   gcc_assert (decl && DECL_P (decl) && TREE_STATIC (decl));
 
-  if (types_used_by_cur_var_decl)
+  while (!VEC_empty (tree, types_used_by_cur_var_decl))
     {
-      tree node;
-      for (node = types_used_by_cur_var_decl;
-	   node;
-	   node = TREE_CHAIN (node))
-      {
-	tree type = TREE_PURPOSE (node);
-	types_used_by_var_decl_insert (type, decl);
-      }
-      types_used_by_cur_var_decl = NULL;
+      tree type = VEC_pop (tree, types_used_by_cur_var_decl);
+      types_used_by_var_decl_insert (type, decl);
     }
 }
 

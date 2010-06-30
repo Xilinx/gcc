@@ -139,6 +139,7 @@ decode_specification_statement (void)
 
     case 'c':
       match ("codimension", gfc_match_codimension, ST_ATTR_DECL);
+      match ("contiguous", gfc_match_contiguous, ST_ATTR_DECL);
       break;
 
     case 'd':
@@ -346,6 +347,7 @@ decode_statement (void)
       match ("call", gfc_match_call, ST_CALL);
       match ("close", gfc_match_close, ST_CLOSE);
       match ("continue", gfc_match_continue, ST_CONTINUE);
+      match ("contiguous", gfc_match_contiguous, ST_ATTR_DECL);
       match ("cycle", gfc_match_cycle, ST_CYCLE);
       match ("case", gfc_match_case, ST_CASE);
       match ("common", gfc_match_common, ST_COMMON);
@@ -715,7 +717,9 @@ next_free (void)
  
   if (at_bol && c == ';')
     {
-      gfc_error_now ("Semicolon at %C needs to be preceded by statement");
+      if (!(gfc_option.allow_std & GFC_STD_F2008))
+	gfc_error_now ("Fortran 2008: Semicolon at %C without preceding "
+		       "statement");
       gfc_next_ascii_char (); /* Eat up the semicolon.  */
       return ST_NONE;
     }
@@ -851,7 +855,11 @@ next_fixed (void)
 
   if (c == ';')
     {
-      gfc_error_now ("Semicolon at %C needs to be preceded by statement");
+      if (digit_flag)
+	gfc_error_now ("Semicolon at %C needs to be preceded by statement");
+      else if (!(gfc_option.allow_std & GFC_STD_F2008))
+	gfc_error_now ("Fortran 2008: Semicolon at %C without preceding "
+		       "statement");
       return ST_NONE;
     }
 

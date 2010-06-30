@@ -154,13 +154,24 @@ static tree make_type_from_size (tree, tree, bool);
 static unsigned int validate_alignment (Uint, Entity_Id, unsigned int);
 static unsigned int ceil_alignment (unsigned HOST_WIDE_INT);
 static void check_ok_for_atomic (tree, Entity_Id, bool);
-static int compatible_signatures_p (tree, tree);
 static tree create_field_decl_from (tree, tree, tree, tree, tree, tree);
 static tree get_rep_part (tree);
 static tree get_variant_part (tree);
 static tree create_variant_part_from (tree, tree, tree, tree, tree);
 static void copy_and_substitute_in_size (tree, tree, tree);
 static void rest_of_type_decl_compilation_no_defer (tree);
+
+/* The relevant constituents of a subprogram binding to a GCC builtin.  Used
+   to pass around calls performing profile compatibilty checks.  */
+
+typedef struct {
+  Entity_Id gnat_entity;  /* The Ada subprogram entity.  */
+  tree ada_fntype;        /* The corresponding GCC type node.  */
+  tree btin_fntype;       /* The GCC builtin function type node.  */
+} intrin_binding_t;
+
+static bool intrin_profiles_compatible_p (intrin_binding_t *);
+
 
 /* Given GNAT_ENTITY, a GNAT defining identifier node, which denotes some Ada
    entity, return the equivalent GCC tree for that entity (a ..._DECL node)
@@ -1036,15 +1047,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      = TYPE_PADDING_P (gnu_type)
 		? TYPE_FIELDS (TREE_TYPE (TYPE_FIELDS (gnu_type)))
 		: TYPE_FIELDS (gnu_type);
-	    gnu_expr
-	      = gnat_build_constructor
-		(gnu_type,
-		 tree_cons
-		 (template_field,
-		  build_template (TREE_TYPE (template_field),
-				  TREE_TYPE (TREE_CHAIN (template_field)),
-				  NULL_TREE),
-		  NULL_TREE));
+	    VEC(constructor_elt,gc) *v = VEC_alloc (constructor_elt, gc, 1);
+	    tree t = build_template (TREE_TYPE (template_field),
+				     TREE_TYPE (TREE_CHAIN (template_field)),
+				     NULL_TREE);
+	    CONSTRUCTOR_APPEND_ELT (v, template_field, t);
+	    gnu_expr = gnat_build_constructor (gnu_type, v);
 	  }
 
 	/* Convert the expression to the type of the object except in the
@@ -3901,14 +3909,23 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	  }
 
 	/* If this subprogram is expectedly bound to a GCC builtin, fetch the
-	   corresponding DECL node.
+	   corresponding DECL node.  Proper generation of calls later on need
+	   proper parameter associations so we don't "break;" here.  */
+	if (Convention (gnat_entity) == Convention_Intrinsic
+	    && Present (Interface_Name (gnat_entity)))
+	  {
+	    gnu_builtin_decl = builtin_decl_for (gnu_ext_name);
 
-	   We still want the parameter associations to take place because the
-	   proper generation of calls depends on it (a GNAT parameter without
-	   a corresponding GCC tree has a very specific meaning), so we don't
-	   just break here.  */
-	if (Convention (gnat_entity) == Convention_Intrinsic)
-	  gnu_builtin_decl = builtin_decl_for (gnu_ext_name);
+	    /* Unability to find the builtin decl most often indicates a
+	       genuine mistake, but imports of unregistered intrinsics are
+	       sometimes issued on purpose to allow hooking in alternate
+	       bodies.  We post a warning conditioned on Wshadow in this case,
+	       to let developers be notified on demand without risking false
+	       positives with common default sets of options.  */
+
+	    if (gnu_builtin_decl == NULL_TREE && warn_shadow)
+	      post_error ("?gcc intrinsic not found for&!", gnat_entity);
+	  }
 
 	/* ??? What if we don't find the builtin node above ? warn ? err ?
 	   In the current state we neither warn nor err, and calls will just
@@ -4204,21 +4221,25 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 				    | (TYPE_QUAL_CONST * const_flag)
 				    | (TYPE_QUAL_VOLATILE * volatile_flag));
 
-	/* If we have a builtin decl for that function, check the signatures
-	   compatibilities.  If the signatures are compatible, use the builtin
-	   decl.  If they are not, we expect the checker predicate to have
-	   posted the appropriate errors, and just continue with what we have
-	   so far.  */
+	/* If we have a builtin decl for that function, use it.  Check if the
+	   profiles are compatible and warn if they are not.  The checker is
+	   expected to post extra diagnostics in this case.  */
 	if (gnu_builtin_decl)
 	  {
-	    tree gnu_builtin_type = TREE_TYPE (gnu_builtin_decl);
+	    intrin_binding_t inb;
 
-	    if (compatible_signatures_p (gnu_type, gnu_builtin_type))
-	      {
-		gnu_decl = gnu_builtin_decl;
-		gnu_type = gnu_builtin_type;
-		break;
-	      }
+	    inb.gnat_entity = gnat_entity;
+	    inb.ada_fntype = gnu_type;
+	    inb.btin_fntype = TREE_TYPE (gnu_builtin_decl);
+
+	    if (!intrin_profiles_compatible_p (&inb))
+	      post_error
+		("?profile of& doesn''t match the builtin it binds!",
+		 gnat_entity);
+
+	    gnu_decl = gnu_builtin_decl;
+	    gnu_type = TREE_TYPE (gnu_builtin_decl);
+	    break;
 	  }
 
 	/* If there was no specified Interface_Name and the external and
@@ -5239,6 +5260,12 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
   if (foreign && TREE_CODE (gnu_param_type) == UNCONSTRAINED_ARRAY_TYPE)
     gnu_param_type
       = TREE_TYPE (TREE_TYPE (TYPE_FIELDS (TREE_TYPE (gnu_param_type))));
+
+  /* For GCC builtins, pass Address integer types as (void *)  */
+  if (Convention (gnat_subprog) == Convention_Intrinsic
+      && Present (Interface_Name (gnat_subprog))
+      && Is_Descendent_Of_Address (Etype (gnat_param)))
+    gnu_param_type = ptr_void_type_node;
 
   /* VMS descriptors are themselves passed by reference.  */
   if (mech == By_Short_Descriptor ||
@@ -8036,32 +8063,154 @@ check_ok_for_atomic (tree object, Entity_Id gnat_entity, bool comp_p)
 		   gnat_error_point, gnat_entity);
 }
 
-/* Check if FTYPE1 and FTYPE2, two potentially different function type nodes,
-   have compatible signatures so that a call using one type may be safely
-   issued if the actual target function type is the other.  Return 1 if it is
-   the case, 0 otherwise, and post errors on the incompatibilities.
 
-   This is used when an Ada subprogram is mapped onto a GCC builtin, to ensure
-   that calls to the subprogram will have arguments suitable for the later
-   underlying builtin expansion.  */
+/* Helper for the intrin compatibility checks family.  Evaluate whether
+   two types are definitely incompatible.  */
 
-static int
-compatible_signatures_p (tree ftype1, tree ftype2)
+static bool
+intrin_types_incompatible_p (tree t1, tree t2)
 {
-  /* As of now, we only perform very trivial tests and consider it's the
-     programmer's responsibility to ensure the type correctness in the Ada
-     declaration, as in the regular Import cases.
+  enum tree_code code;
 
-     Mismatches typically result in either error messages from the builtin
-     expander, internal compiler errors, or in a real call sequence.  This
-     should be refined to issue diagnostics helping error detection and
-     correction.  */
+  if (TYPE_MAIN_VARIANT (t1) == TYPE_MAIN_VARIANT (t2))
+    return false;
 
-  /* Almost fake test, ensuring a use of each argument.  */
-  if (ftype1 == ftype2)
-    return 1;
+  if (TYPE_MODE (t1) != TYPE_MODE (t2))
+    return true;
 
-  return 1;
+  if (TREE_CODE (t1) != TREE_CODE (t2))
+    return true;
+
+  code = TREE_CODE (t1);
+
+  switch (code)
+    {
+    case INTEGER_TYPE:
+    case REAL_TYPE:
+      return TYPE_PRECISION (t1) != TYPE_PRECISION (t2);
+
+    case POINTER_TYPE:
+    case REFERENCE_TYPE:
+      /* Assume designated types are ok.  We'd need to account for char * and
+	 void * variants to do better, which could rapidly get messy and isn't
+	 clearly worth the effort.  */
+      return false;
+
+    default:
+      break;
+    }
+
+  return false;
+}
+
+/* Helper for intrin_profiles_compatible_p, to perform compatibility checks
+   on the Ada/builtin argument lists for the INB binding.  */
+
+static bool
+intrin_arglists_compatible_p (intrin_binding_t * inb)
+{
+  tree ada_args = TYPE_ARG_TYPES (inb->ada_fntype);
+  tree btin_args = TYPE_ARG_TYPES (inb->btin_fntype);
+
+  /* Sequence position of the last argument we checked.  */
+  int argpos = 0;
+
+  while (ada_args != 0 || btin_args != 0)
+    {
+      tree ada_type, btin_type;
+
+      /* If one list is shorter than the other, they fail to match.  */
+      if (ada_args == 0 || btin_args == 0)
+	return false;
+
+      ada_type = TREE_VALUE (ada_args);
+      btin_type = TREE_VALUE (btin_args);
+
+      /* If we're done with the Ada args and not with the internal builtin
+	 args, or the other way around, complain.  */
+      if (ada_type == void_type_node
+	  && btin_type != void_type_node)
+	{
+	  post_error ("?Ada arguments list too short!", inb->gnat_entity);
+	  return false;
+	}
+
+      if (btin_type == void_type_node
+	  && ada_type != void_type_node)
+	{
+	  post_error_ne_num ("?Ada arguments list too long ('> ^)!",
+			     inb->gnat_entity, inb->gnat_entity, argpos);
+	  return false;
+	}
+
+      /* Otherwise, check that types match for the current argument.  */
+      argpos ++;
+      if (intrin_types_incompatible_p (ada_type, btin_type))
+	{
+	  post_error_ne_num ("?intrinsic binding type mismatch on argument ^!",
+			     inb->gnat_entity, inb->gnat_entity, argpos);
+	  return false;
+	}
+
+      ada_args = TREE_CHAIN (ada_args);
+      btin_args = TREE_CHAIN (btin_args);
+    }
+
+  return true;
+}
+
+/* Helper for intrin_profiles_compatible_p, to perform compatibility checks
+   on the Ada/builtin return values for the INB binding.  */
+
+static bool
+intrin_return_compatible_p (intrin_binding_t * inb)
+{
+  tree ada_return_type = TREE_TYPE (inb->ada_fntype);
+  tree btin_return_type = TREE_TYPE (inb->btin_fntype);
+
+  /* Accept function imported as procedure, common and convenient.  */
+  if (VOID_TYPE_P (ada_return_type)
+      && !VOID_TYPE_P (btin_return_type))
+    return true;
+
+  /* Check return types compatibility otherwise.  Note that this
+     handles void/void as well.  */
+  if (intrin_types_incompatible_p (btin_return_type, ada_return_type))
+    {
+      post_error ("?intrinsic binding type mismatch on return value!",
+		  inb->gnat_entity);
+      return false;
+    }
+
+  return true;
+}
+
+/* Check and return whether the Ada and gcc builtin profiles bound by INB are
+   compatible.  Issue relevant warnings when they are not.
+
+   This is intended as a light check to diagnose the most obvious cases, not
+   as a full fledged type compatiblity predicate.  It is the programmer's
+   responsibility to ensure correctness of the Ada declarations in Imports,
+   especially when binding straight to a compiler internal.  */
+
+static bool
+intrin_profiles_compatible_p (intrin_binding_t * inb)
+{
+  /* Check compatibility on return values and argument lists, each responsible
+     for posting warnings as appropriate.  Ensure use of the proper sloc for
+     this purpose.  */
+
+  bool arglists_compatible_p, return_compatible_p;
+  location_t saved_location = input_location;
+
+  Sloc_to_locus (Sloc (inb->gnat_entity), &input_location);
+
+  return_compatible_p = intrin_return_compatible_p (inb);
+  arglists_compatible_p = intrin_arglists_compatible_p (inb);
+
+  input_location = saved_location;
+
+  return return_compatible_p && arglists_compatible_p;
 }
 
 /* Return a FIELD_DECL node modeled on OLD_FIELD.  FIELD_TYPE is its type

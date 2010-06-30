@@ -415,7 +415,7 @@ bitmap_obstack df_bitmap_obstack;
   Functions to create, destroy and manipulate an instance of df.
 ----------------------------------------------------------------------------*/
 
-struct df *df;
+struct df_d *df;
 
 /* Add PROBLEM (and any dependent problems) to the DF instance.  */
 
@@ -704,7 +704,7 @@ static unsigned int
 rest_of_handle_df_initialize (void)
 {
   gcc_assert (!df);
-  df = XCNEW (struct df);
+  df = XCNEW (struct df_d);
   df->changeable_flags = 0;
 
   bitmap_obstack_initialize (&df_bitmap_obstack);
@@ -851,35 +851,52 @@ struct rtl_opt_pass pass_df_finish =
    The general data flow analysis engine.
 ----------------------------------------------------------------------------*/
 
+/* Return time BB when it was visited for last time.  */
+#define BB_LAST_CHANGE_AGE(bb) ((ptrdiff_t)(bb)->aux)
 
 /* Helper function for df_worklist_dataflow.
    Propagate the dataflow forward.
    Given a BB_INDEX, do the dataflow propagation
    and set bits on for successors in PENDING
-   if the out set of the dataflow has changed. */
+   if the out set of the dataflow has changed.
 
-static void
+   AGE specify time when BB was visited last time.
+   AGE of 0 means we are visiting for first time and need to
+   compute transfer function to initialize datastructures.
+   Otherwise we re-do transfer function only if something change
+   while computing confluence functions.
+   We need to compute confluence only of basic block that are younger
+   then last visit of the BB.
+
+   Return true if BB info has changed.  This is always the case
+   in the first visit.  */
+
+static bool
 df_worklist_propagate_forward (struct dataflow *dataflow,
                                unsigned bb_index,
                                unsigned *bbindex_to_postorder,
                                bitmap pending,
-                               sbitmap considered)
+                               sbitmap considered,
+			       ptrdiff_t age)
 {
   edge e;
   edge_iterator ei;
   basic_block bb = BASIC_BLOCK (bb_index);
+  bool changed = !age;
 
   /*  Calculate <conf_op> of incoming edges.  */
   if (EDGE_COUNT (bb->preds) > 0)
     FOR_EACH_EDGE (e, ei, bb->preds)
       {
-        if (TEST_BIT (considered, e->src->index))
-          dataflow->problem->con_fun_n (e);
+        if (age <= BB_LAST_CHANGE_AGE (e->src)
+	    && TEST_BIT (considered, e->src->index))
+          changed |= dataflow->problem->con_fun_n (e);
       }
   else if (dataflow->problem->con_fun_0)
     dataflow->problem->con_fun_0 (bb);
 
-  if (dataflow->problem->trans_fun (bb_index))
+  if (changed
+      && dataflow->problem->trans_fun (bb_index))
     {
       /* The out set of this block has changed.
          Propagate to the outgoing blocks.  */
@@ -890,35 +907,41 @@ df_worklist_propagate_forward (struct dataflow *dataflow,
           if (TEST_BIT (considered, ob_index))
             bitmap_set_bit (pending, bbindex_to_postorder[ob_index]);
         }
+      return true;
     }
+  return false;
 }
 
 
 /* Helper function for df_worklist_dataflow.
    Propagate the dataflow backward.  */
 
-static void
+static bool
 df_worklist_propagate_backward (struct dataflow *dataflow,
                                 unsigned bb_index,
                                 unsigned *bbindex_to_postorder,
                                 bitmap pending,
-                                sbitmap considered)
+                                sbitmap considered,
+			        ptrdiff_t age)
 {
   edge e;
   edge_iterator ei;
   basic_block bb = BASIC_BLOCK (bb_index);
+  bool changed = !age;
 
   /*  Calculate <conf_op> of incoming edges.  */
   if (EDGE_COUNT (bb->succs) > 0)
     FOR_EACH_EDGE (e, ei, bb->succs)
       {
-        if (TEST_BIT (considered, e->dest->index))
-          dataflow->problem->con_fun_n (e);
+        if (age <= BB_LAST_CHANGE_AGE (e->dest)
+	    && TEST_BIT (considered, e->dest->index))
+          changed |= dataflow->problem->con_fun_n (e);
       }
   else if (dataflow->problem->con_fun_0)
     dataflow->problem->con_fun_0 (bb);
 
-  if (dataflow->problem->trans_fun (bb_index))
+  if (changed
+      && dataflow->problem->trans_fun (bb_index))
     {
       /* The out set of this block has changed.
          Propagate to the outgoing blocks.  */
@@ -929,58 +952,93 @@ df_worklist_propagate_backward (struct dataflow *dataflow,
           if (TEST_BIT (considered, ob_index))
             bitmap_set_bit (pending, bbindex_to_postorder[ob_index]);
         }
+      return true;
     }
+  return false;
 }
 
+/* Main dataflow solver loop.
 
+   DATAFLOW is problem we are solving, PENDING is worklist of basic blocks we
+   need to visit.
+   BLOCK_IN_POSTORDER is array of size N_BLOCKS specifying postorder in BBs and
+   BBINDEX_TO_POSTORDER is array mapping back BB->index to postorder possition.
+   PENDING will be freed.
 
-/* This will free "pending". */
+   The worklists are bitmaps indexed by postorder positions.  
+
+   The function implements standard algorithm for dataflow solving with two
+   worklists (we are processing WORKLIST and storing new BBs to visit in
+   PENDING).
+
+   As an optimization we maintain ages when BB was changed (stored in bb->aux)
+   and when it was last visited (stored in last_visit_age).  This avoids need
+   to re-do confluence function for edges to basic blocks whose source
+   did not change since destination was visited last time.  */
 
 static void
 df_worklist_dataflow_doublequeue (struct dataflow *dataflow,
 			  	  bitmap pending,
                                   sbitmap considered,
                                   int *blocks_in_postorder,
-				  unsigned *bbindex_to_postorder)
+				  unsigned *bbindex_to_postorder,
+				  int n_blocks)
 {
   enum df_flow_dir dir = dataflow->problem->dir;
   int dcount = 0;
   bitmap worklist = BITMAP_ALLOC (&df_bitmap_obstack);
+  int age = 0;
+  bool changed;
+  VEC(int, heap) *last_visit_age = NULL;
+  int prev_age;
+  basic_block bb;
+  int i;
+
+  VEC_safe_grow_cleared (int, heap, last_visit_age, n_blocks);
 
   /* Double-queueing. Worklist is for the current iteration,
      and pending is for the next. */
   while (!bitmap_empty_p (pending))
     {
+      bitmap_iterator bi;
+      unsigned int index;
+
       /* Swap pending and worklist. */
       bitmap temp = worklist;
       worklist = pending;
       pending = temp;
 
-      do
+      EXECUTE_IF_SET_IN_BITMAP (worklist, 0, index, bi)
 	{
-	  int index;
 	  unsigned bb_index;
 	  dcount++;
 
-	  index = bitmap_first_set_bit (worklist);
-	  bitmap_clear_bit (worklist, index);
-
+	  bitmap_clear_bit (pending, index);
 	  bb_index = blocks_in_postorder[index];
-
+	  bb = BASIC_BLOCK (bb_index);
+	  prev_age = VEC_index (int, last_visit_age, index);
 	  if (dir == DF_FORWARD)
-	    df_worklist_propagate_forward (dataflow, bb_index,
-					   bbindex_to_postorder,
-					   pending, considered);
+	    changed = df_worklist_propagate_forward (dataflow, bb_index,
+						     bbindex_to_postorder,
+						     pending, considered,
+						     prev_age);
 	  else
-	    df_worklist_propagate_backward (dataflow, bb_index,
-					    bbindex_to_postorder,
-					    pending, considered);
+	    changed = df_worklist_propagate_backward (dataflow, bb_index,
+						      bbindex_to_postorder,
+						      pending, considered,
+						      prev_age);
+	  VEC_replace (int, last_visit_age, index, ++age);
+	  if (changed)
+	    bb->aux = (void *)(ptrdiff_t)age;
 	}
-      while (!bitmap_empty_p (worklist));
+      bitmap_clear (worklist);
     }
+  for (i = 0; i < n_blocks; i++)
+    BASIC_BLOCK (blocks_in_postorder[i])->aux = NULL;
 
   BITMAP_FREE (worklist);
   BITMAP_FREE (pending);
+  VEC_free (int, heap, last_visit_age);
 
   /* Dump statistics. */
   if (dump_file)
@@ -1044,8 +1102,8 @@ df_worklist_dataflow (struct dataflow *dataflow,
   /* Solve it.  */
   df_worklist_dataflow_doublequeue (dataflow, pending, considered,
 				    blocks_in_postorder,
-				    bbindex_to_postorder);
-
+				    bbindex_to_postorder,
+				    n_blocks);
   sbitmap_free (considered);
   free (bbindex_to_postorder);
 }
@@ -1489,6 +1547,7 @@ df_compact_blocks (void)
 		  + i * dflow->problem->block_info_elt_size, 0,
 		  (last_basic_block - i)
 		  * dflow->problem->block_info_elt_size);
+	  free (problem_temps);
 	}
     }
 
