@@ -77,9 +77,7 @@ typedef struct vtbl_init_data_s
   tree rtti_binfo;
   /* The negative-index vtable initializers built up so far.  These
      are in order from least negative index to most negative index.  */
-  tree inits;
-  /* The last (i.e., most negative) entry in INITS.  */
-  tree* last_init;
+  VEC(constructor_elt,gc) *inits;
   /* The binfo for the virtual base for which we're building
      vcall offset initializers.  */
   tree vbase;
@@ -136,7 +134,8 @@ static void add_implicitly_declared_members (tree, int, int);
 static tree fixed_type_or_null (tree, int *, int *);
 static tree build_simple_base_path (tree expr, tree binfo);
 static tree build_vtbl_ref_1 (tree, tree);
-static tree build_vtbl_initializer (tree, tree, tree, tree, int *);
+static void build_vtbl_initializer (tree, tree, tree, tree, int *,
+				    VEC(constructor_elt,gc) **);
 static int count_fields (tree);
 static int add_fields_to_record_type (tree, struct sorted_fields_type*, int);
 static bool check_bitfield_decl (tree);
@@ -173,14 +172,15 @@ static void dump_vtable (tree, tree, tree);
 static void dump_vtt (tree, tree);
 static void dump_thunk (FILE *, int, tree);
 static tree build_vtable (tree, tree, tree);
-static void initialize_vtable (tree, tree);
+static void initialize_vtable (tree, VEC(constructor_elt,gc) *);
 static void layout_nonempty_base_or_field (record_layout_info,
 					   tree, tree, splay_tree);
 static tree end_of_class (tree, int);
 static bool layout_empty_base (record_layout_info, tree, tree, splay_tree);
-static void accumulate_vtbl_inits (tree, tree, tree, tree, tree);
-static tree dfs_accumulate_vtbl_inits (tree, tree, tree, tree,
-					       tree);
+static void accumulate_vtbl_inits (tree, tree, tree, tree, tree,
+				   VEC(constructor_elt,gc) **);
+static void dfs_accumulate_vtbl_inits (tree, tree, tree, tree, tree,
+				       VEC(constructor_elt,gc) **);
 static void build_rtti_vtbl_entries (tree, vtbl_init_data *);
 static void build_vcall_and_vbase_vtbl_entries (tree, vtbl_init_data *);
 static void clone_constructors_and_destructors (tree);
@@ -189,7 +189,7 @@ static void update_vtable_entry_for_fn (tree, tree, tree, tree *, unsigned);
 static void build_ctor_vtbl_group (tree, tree);
 static void build_vtt (tree);
 static tree binfo_ctor_vtable (tree);
-static tree *build_vtt_inits (tree, tree, tree *, tree *);
+static void build_vtt_inits (tree, tree, VEC(constructor_elt,gc) **, tree *);
 static tree dfs_build_secondary_vptr_vtt_inits (tree, void *);
 static tree dfs_fixup_binfo_vtbls (tree, void *);
 static int record_subobject_offset (tree, tree, splay_tree);
@@ -283,6 +283,8 @@ build_base_path (enum tree_code code,
   if (!want_pointer)
     /* This must happen before the call to save_expr.  */
     expr = cp_build_unary_op (ADDR_EXPR, expr, 0, tf_warning_or_error);
+  else
+    mark_rvalue_use (expr);
 
   offset = BINFO_OFFSET (binfo);
   fixed_type_p = resolves_to_fixed_type_p (expr, &nonnull);
@@ -1280,10 +1282,11 @@ check_bases (tree t,
 	 assignment operators that take const references, then the
 	 derived class cannot have such a member automatically
 	 generated.  */
-      if (! TYPE_HAS_CONST_INIT_REF (basetype))
+      if (TYPE_HAS_COPY_CTOR (basetype)
+	  && ! TYPE_HAS_CONST_COPY_CTOR (basetype))
 	*cant_have_const_ctor_p = 1;
-      if (TYPE_HAS_ASSIGN_REF (basetype)
-	  && !TYPE_HAS_CONST_ASSIGN_REF (basetype))
+      if (TYPE_HAS_COPY_ASSIGN (basetype)
+	  && !TYPE_HAS_CONST_COPY_ASSIGN (basetype))
 	*no_const_asn_ref_p = 1;
 
       if (BINFO_VIRTUAL_P (base_binfo))
@@ -1309,13 +1312,19 @@ check_bases (tree t,
       TYPE_NEEDS_CONSTRUCTING (t) |= TYPE_NEEDS_CONSTRUCTING (basetype);
       TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t)
 	|= TYPE_HAS_NONTRIVIAL_DESTRUCTOR (basetype);
-      TYPE_HAS_COMPLEX_ASSIGN_REF (t)
-	|= TYPE_HAS_COMPLEX_ASSIGN_REF (basetype);
-      TYPE_HAS_COMPLEX_INIT_REF (t) |= TYPE_HAS_COMPLEX_INIT_REF (basetype);
+      TYPE_HAS_COMPLEX_COPY_ASSIGN (t)
+	|= (TYPE_HAS_COMPLEX_COPY_ASSIGN (basetype)
+	    || !TYPE_HAS_COPY_ASSIGN (basetype));
+      TYPE_HAS_COMPLEX_COPY_CTOR (t) |= (TYPE_HAS_COMPLEX_COPY_CTOR (basetype)
+					 || !TYPE_HAS_COPY_CTOR (basetype));
+      TYPE_HAS_COMPLEX_MOVE_ASSIGN (t)
+	|= TYPE_HAS_COMPLEX_MOVE_ASSIGN (basetype);
+      TYPE_HAS_COMPLEX_MOVE_CTOR (t) |= TYPE_HAS_COMPLEX_MOVE_CTOR (basetype);
       TYPE_POLYMORPHIC_P (t) |= TYPE_POLYMORPHIC_P (basetype);
       CLASSTYPE_CONTAINS_EMPTY_CLASS_P (t)
 	|= CLASSTYPE_CONTAINS_EMPTY_CLASS_P (basetype);
-      TYPE_HAS_COMPLEX_DFLT (t) |= TYPE_HAS_COMPLEX_DFLT (basetype);      
+      TYPE_HAS_COMPLEX_DFLT (t) |= (!TYPE_HAS_DEFAULT_CONSTRUCTOR (basetype)
+				    || TYPE_HAS_COMPLEX_DFLT (basetype));
 
       /*  A standard-layout class is a class that:
 	  ...
@@ -1539,7 +1548,8 @@ finish_struct_bits (tree t)
      mode to be BLKmode, and force its TREE_ADDRESSABLE bit to be
      nonzero.  This will cause it to be passed by invisible reference
      and prevent it from being returned in a register.  */
-  if (! TYPE_HAS_TRIVIAL_INIT_REF (t) || TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t))
+  if (type_has_nontrivial_copy_init (t)
+      || TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t))
     {
       tree variants;
       DECL_MODE (TYPE_MAIN_DECL (t)) = BLKmode;
@@ -1666,10 +1676,10 @@ maybe_warn_about_overly_private_class (tree t)
 
 	   template <class T> class C { private: C(); };
 
-	 To avoid this asymmetry, we check TYPE_HAS_INIT_REF.  All
+	 To avoid this asymmetry, we check TYPE_HAS_COPY_CTOR.  All
 	 complete non-template or fully instantiated classes have this
 	 flag set.  */
-      if (!TYPE_HAS_INIT_REF (t))
+      if (!TYPE_HAS_COPY_CTOR (t))
 	nonprivate_ctor = 1;
       else
 	for (fn = CLASSTYPE_CONSTRUCTORS (t); fn; fn = OVL_NEXT (fn))
@@ -2618,47 +2628,13 @@ add_implicitly_declared_members (tree t,
     {
       /* In general, we create destructors lazily.  */
       CLASSTYPE_LAZY_DESTRUCTOR (t) = 1;
-      /* However, if the implicit destructor is non-trivial
-	 destructor, we sometimes have to create it at this point.  */
-      if (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t))
-	{
-	  bool lazy_p = true;
 
-	  if (TYPE_FOR_JAVA (t))
-	    /* If this a Java class, any non-trivial destructor is
-	       invalid, even if compiler-generated.  Therefore, if the
-	       destructor is non-trivial we create it now.  */
-	    lazy_p = false;
-	  else
-	    {
-	      tree binfo;
-	      tree base_binfo;
-	      int ix;
-
-	      /* If the implicit destructor will be virtual, then we must
-		 generate it now because (unfortunately) we do not
-		 generate virtual tables lazily.  */
-	      binfo = TYPE_BINFO (t);
-	      for (ix = 0; BINFO_BASE_ITERATE (binfo, ix, base_binfo); ix++)
-		{
-		  tree base_type;
-		  tree dtor;
-
-		  base_type = BINFO_TYPE (base_binfo);
-		  dtor = CLASSTYPE_DESTRUCTORS (base_type);
-		  if (dtor && DECL_VIRTUAL_P (dtor))
-		    {
-		      lazy_p = false;
-		      break;
-		    }
-		}
-	    }
-
-	  /* If we can't get away with being lazy, generate the destructor
-	     now.  */
-	  if (!lazy_p)
-	    lazily_declare_fn (sfk_destructor, t);
-	}
+      if (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t)
+	  && TYPE_FOR_JAVA (t))
+	/* But if this is a Java class, any non-trivial destructor is
+	   invalid, even if compiler-generated.  Therefore, if the
+	   destructor is non-trivial we create it now.  */
+	lazily_declare_fn (sfk_destructor, t);
     }
 
   /* [class.ctor]
@@ -2675,27 +2651,59 @@ add_implicitly_declared_members (tree t,
 
      If a class definition does not explicitly declare a copy
      constructor, one is declared implicitly.  */
-  if (! TYPE_HAS_INIT_REF (t) && ! TYPE_FOR_JAVA (t))
+  if (! TYPE_HAS_COPY_CTOR (t) && ! TYPE_FOR_JAVA (t)
+      && !type_has_move_constructor (t))
     {
-      TYPE_HAS_INIT_REF (t) = 1;
-      TYPE_HAS_CONST_INIT_REF (t) = !cant_have_const_cctor;
+      TYPE_HAS_COPY_CTOR (t) = 1;
+      TYPE_HAS_CONST_COPY_CTOR (t) = !cant_have_const_cctor;
       CLASSTYPE_LAZY_COPY_CTOR (t) = 1;
+      if (cxx_dialect >= cxx0x)
+	CLASSTYPE_LAZY_MOVE_CTOR (t) = 1;
     }
-
-  /* Currently only lambdas get a lazy move ctor, but N2987 adds them for
-     other classes.  */
-  if (LAMBDA_TYPE_P (t))
-    CLASSTYPE_LAZY_MOVE_CTOR (t) = 1;
 
   /* If there is no assignment operator, one will be created if and
      when it is needed.  For now, just record whether or not the type
      of the parameter to the assignment operator will be a const or
      non-const reference.  */
-  if (!TYPE_HAS_ASSIGN_REF (t) && !TYPE_FOR_JAVA (t))
+  if (!TYPE_HAS_COPY_ASSIGN (t) && !TYPE_FOR_JAVA (t)
+      && !type_has_move_assign (t))
     {
-      TYPE_HAS_ASSIGN_REF (t) = 1;
-      TYPE_HAS_CONST_ASSIGN_REF (t) = !cant_have_const_assignment;
-      CLASSTYPE_LAZY_ASSIGNMENT_OP (t) = 1;
+      TYPE_HAS_COPY_ASSIGN (t) = 1;
+      TYPE_HAS_CONST_COPY_ASSIGN (t) = !cant_have_const_assignment;
+      CLASSTYPE_LAZY_COPY_ASSIGN (t) = 1;
+      if (cxx_dialect >= cxx0x)
+	CLASSTYPE_LAZY_MOVE_ASSIGN (t) = 1;
+    }
+
+  /* We can't be lazy about declaring functions that might override
+     a virtual function from a base class.  */
+  if (TYPE_POLYMORPHIC_P (t)
+      && (CLASSTYPE_LAZY_COPY_ASSIGN (t)
+	  || CLASSTYPE_LAZY_MOVE_ASSIGN (t)
+	  || CLASSTYPE_LAZY_DESTRUCTOR (t)))
+    {
+      tree binfo = TYPE_BINFO (t);
+      tree base_binfo;
+      int ix;
+      tree opname = ansi_assopname (NOP_EXPR);
+      for (ix = 0; BINFO_BASE_ITERATE (binfo, ix, base_binfo); ++ix)
+	{
+	  tree bv;
+	  for (bv = BINFO_VIRTUALS (base_binfo); bv; bv = TREE_CHAIN (bv))
+	    {
+	      tree fn = BV_FN (bv);
+	      if (DECL_NAME (fn) == opname)
+		{
+		  if (CLASSTYPE_LAZY_COPY_ASSIGN (t))
+		    lazily_declare_fn (sfk_copy_assignment, t);
+		  if (CLASSTYPE_LAZY_MOVE_ASSIGN (t))
+		    lazily_declare_fn (sfk_move_assignment, t);
+		}
+	      else if (DECL_DESTRUCTOR_P (fn)
+		       && CLASSTYPE_LAZY_DESTRUCTOR (t))
+		lazily_declare_fn (sfk_destructor, t);
+	    }
+	}
     }
 }
 
@@ -2823,7 +2831,7 @@ check_field_decl (tree field,
      the settings of CANT_HAVE_CONST_CTOR and friends.  */
   if (ANON_UNION_TYPE_P (type))
     ;
-  /* And, we don't set TYPE_HAS_CONST_INIT_REF, etc., for anonymous
+  /* And, we don't set TYPE_HAS_CONST_COPY_CTOR, etc., for anonymous
      structs.  So, we recurse through their fields here.  */
   else if (ANON_AGGR_TYPE_P (type))
     {
@@ -2849,24 +2857,34 @@ check_field_decl (tree field,
 		   field);
 	  if (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (type))
 	    error ("member %q+#D with destructor not allowed in union", field);
-	  if (TYPE_HAS_COMPLEX_ASSIGN_REF (type))
+	  if (TYPE_HAS_COMPLEX_COPY_ASSIGN (type))
 	    error ("member %q+#D with copy assignment operator not allowed in union",
 		   field);
+	  /* Don't bother diagnosing move assop now; C++0x has more
+	     flexible unions.  */
 	}
       else
 	{
 	  TYPE_NEEDS_CONSTRUCTING (t) |= TYPE_NEEDS_CONSTRUCTING (type);
 	  TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t)
 	    |= TYPE_HAS_NONTRIVIAL_DESTRUCTOR (type);
-	  TYPE_HAS_COMPLEX_ASSIGN_REF (t) |= TYPE_HAS_COMPLEX_ASSIGN_REF (type);
-	  TYPE_HAS_COMPLEX_INIT_REF (t) |= TYPE_HAS_COMPLEX_INIT_REF (type);
-	  TYPE_HAS_COMPLEX_DFLT (t) |= TYPE_HAS_COMPLEX_DFLT (type);
+	  TYPE_HAS_COMPLEX_COPY_ASSIGN (t)
+	    |= (TYPE_HAS_COMPLEX_COPY_ASSIGN (type)
+		|| !TYPE_HAS_COPY_ASSIGN (type));
+	  TYPE_HAS_COMPLEX_COPY_CTOR (t) |= (TYPE_HAS_COMPLEX_COPY_CTOR (type)
+					     || !TYPE_HAS_COPY_CTOR (type));
+	  TYPE_HAS_COMPLEX_MOVE_ASSIGN (t) |= TYPE_HAS_COMPLEX_MOVE_ASSIGN (type);
+	  TYPE_HAS_COMPLEX_MOVE_CTOR (t) |= TYPE_HAS_COMPLEX_MOVE_CTOR (type);
+	  TYPE_HAS_COMPLEX_DFLT (t) |= (!TYPE_HAS_DEFAULT_CONSTRUCTOR (type)
+					|| TYPE_HAS_COMPLEX_DFLT (type));
 	}
 
-      if (!TYPE_HAS_CONST_INIT_REF (type))
+      if (TYPE_HAS_COPY_CTOR (type)
+	  && !TYPE_HAS_CONST_COPY_CTOR (type))
 	*cant_have_const_ctor = 1;
 
-      if (!TYPE_HAS_CONST_ASSIGN_REF (type))
+      if (TYPE_HAS_COPY_ASSIGN (type)
+	  && !TYPE_HAS_CONST_COPY_ASSIGN (type))
 	*no_const_asn_ref = 1;
     }
   if (DECL_INITIAL (field) != NULL_TREE)
@@ -3025,7 +3043,8 @@ check_field_decls (tree t, tree *access_decls,
 	     aggregate, initialization by a brace-enclosed list) is the
 	     only way to initialize nonstatic const and reference
 	     members.  */
-	  TYPE_HAS_COMPLEX_ASSIGN_REF (t) = 1;
+	  TYPE_HAS_COMPLEX_COPY_ASSIGN (t) = 1;
+	  TYPE_HAS_COMPLEX_MOVE_ASSIGN (t) = 1;
 	}
 
       type = strip_array_types (type);
@@ -3092,6 +3111,14 @@ check_field_decls (tree t, tree *access_decls,
       if (! zero_init_p (type))
 	CLASSTYPE_NON_ZERO_INIT_P (t) = 1;
 
+      /* We set DECL_C_BIT_FIELD in grokbitfield.
+	 If the type and width are valid, we'll also set DECL_BIT_FIELD.  */
+      if (! DECL_C_BIT_FIELD (x) || ! check_bitfield_decl (x))
+	check_field_decl (x, t,
+			  cant_have_const_ctor_p,
+			  no_const_asn_ref_p,
+			  &any_default_members);
+
       /* If any field is const, the structure type is pseudo-const.  */
       if (CP_TYPE_CONST_P (type))
 	{
@@ -3103,7 +3130,8 @@ check_field_decls (tree t, tree *access_decls,
 	     aggregate, initialization by a brace-enclosed list) is the
 	     only way to initialize nonstatic const and reference
 	     members.  */
-	  TYPE_HAS_COMPLEX_ASSIGN_REF (t) = 1;
+	  TYPE_HAS_COMPLEX_COPY_ASSIGN (t) = 1;
+	  TYPE_HAS_COMPLEX_MOVE_ASSIGN (t) = 1;
 	}
       /* A field that is pseudo-const makes the structure likewise.  */
       else if (CLASS_TYPE_P (type))
@@ -3120,14 +3148,6 @@ check_field_decls (tree t, tree *access_decls,
       if (constructor_name_p (DECL_NAME (x), t)
 	  && TYPE_HAS_USER_CONSTRUCTOR (t))
 	permerror (input_location, "field %q+#D with same name as class", x);
-
-      /* We set DECL_C_BIT_FIELD in grokbitfield.
-	 If the type and width are valid, we'll also set DECL_BIT_FIELD.  */
-      if (! DECL_C_BIT_FIELD (x) || ! check_bitfield_decl (x))
-	check_field_decl (x, t,
-			  cant_have_const_ctor_p,
-			  no_const_asn_ref_p,
-			  &any_default_members);
     }
 
   /* Effective C++ rule 11: if a class has dynamic memory held by pointers,
@@ -3148,18 +3168,18 @@ check_field_decls (tree t, tree *access_decls,
       && has_pointers
       && TYPE_HAS_USER_CONSTRUCTOR (t)
       && TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t)
-      && !(TYPE_HAS_INIT_REF (t) && TYPE_HAS_ASSIGN_REF (t)))
+      && !(TYPE_HAS_COPY_CTOR (t) && TYPE_HAS_COPY_ASSIGN (t)))
     {
       warning (OPT_Weffc__, "%q#T has pointer data members", t);
 
-      if (! TYPE_HAS_INIT_REF (t))
+      if (! TYPE_HAS_COPY_CTOR (t))
 	{
 	  warning (OPT_Weffc__,
 		   "  but does not override %<%T(const %T&)%>", t, t);
-	  if (!TYPE_HAS_ASSIGN_REF (t))
+	  if (!TYPE_HAS_COPY_ASSIGN (t))
 	    warning (OPT_Weffc__, "  or %<operator=(const %T&)%>", t);
 	}
-      else if (! TYPE_HAS_ASSIGN_REF (t))
+      else if (! TYPE_HAS_COPY_ASSIGN (t))
 	warning (OPT_Weffc__,
 		 "  but does not override %<operator=(const %T&)%>", t);
     }
@@ -3842,7 +3862,9 @@ check_methods (tree t)
 	  if (DECL_PURE_VIRTUAL_P (x))
 	    VEC_safe_push (tree, gc, CLASSTYPE_PURE_VIRTUALS (t), x);
 	}
-      /* All user-provided destructors are non-trivial.  */
+      /* All user-provided destructors are non-trivial.
+         Constructors and assignment ops are handled in
+	 grok_special_member_properties.  */
       if (DECL_DESTRUCTOR_P (x) && user_provided_p (x))
 	TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t) = 1;
     }
@@ -4247,7 +4269,7 @@ type_has_user_provided_constructor (tree t)
 bool
 type_has_user_provided_default_constructor (tree t)
 {
-  tree fns, args;
+  tree fns;
 
   if (!TYPE_HAS_USER_CONSTRUCTOR (t))
     return false;
@@ -4256,15 +4278,69 @@ type_has_user_provided_default_constructor (tree t)
     {
       tree fn = OVL_CURRENT (fns);
       if (TREE_CODE (fn) == FUNCTION_DECL
-	  && user_provided_p (fn))
-	{
-	  args = FUNCTION_FIRST_USER_PARMTYPE (fn);
-	  while (args && TREE_PURPOSE (args))
-	    args = TREE_CHAIN (args);
-	  if (!args || args == void_list_node)
-	    return true;
-	}
+	  && user_provided_p (fn)
+	  && sufficient_parms_p (FUNCTION_FIRST_USER_PARMTYPE (fn)))
+	return true;
     }
+
+  return false;
+}
+
+/* Returns true iff class TYPE has a virtual destructor.  */
+
+bool
+type_has_virtual_destructor (tree type)
+{
+  tree dtor;
+
+  if (!CLASS_TYPE_P (type))
+    return false;
+
+  gcc_assert (COMPLETE_TYPE_P (type));
+  dtor = CLASSTYPE_DESTRUCTORS (type);
+  return (dtor && DECL_VIRTUAL_P (dtor));
+}
+
+/* Returns true iff class T has a move constructor.  */
+
+bool
+type_has_move_constructor (tree t)
+{
+  tree fns;
+
+  if (CLASSTYPE_LAZY_MOVE_CTOR (t))
+    {
+      gcc_assert (COMPLETE_TYPE_P (t));
+      lazily_declare_fn (sfk_move_constructor, t);
+    }
+
+  if (!CLASSTYPE_METHOD_VEC (t))
+    return false;
+
+  for (fns = CLASSTYPE_CONSTRUCTORS (t); fns; fns = OVL_NEXT (fns))
+    if (move_fn_p (OVL_CURRENT (fns)))
+      return true;
+
+  return false;
+}
+
+/* Returns true iff class T has a move assignment operator.  */
+
+bool
+type_has_move_assign (tree t)
+{
+  tree fns;
+
+  if (CLASSTYPE_LAZY_MOVE_ASSIGN (t))
+    {
+      gcc_assert (COMPLETE_TYPE_P (t));
+      lazily_declare_fn (sfk_move_assignment, t);
+    }
+
+  for (fns = lookup_fnfields_slot (t, ansi_assopname (NOP_EXPR));
+       fns; fns = OVL_NEXT (fns))
+    if (move_fn_p (OVL_CURRENT (fns)))
+      return true;
 
   return false;
 }
@@ -4384,7 +4460,7 @@ check_bases_and_members (tree t)
   /* Save the initial values of these flags which only indicate whether
      or not the class has user-provided functions.  As we analyze the
      bases and members we can set these flags for other reasons.  */
-  saved_complex_asn_ref = TYPE_HAS_COMPLEX_ASSIGN_REF (t);
+  saved_complex_asn_ref = TYPE_HAS_COMPLEX_COPY_ASSIGN (t);
   saved_nontrivial_dtor = TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t);
 
   /* Check all the data member declarations.  We cannot call
@@ -4402,7 +4478,8 @@ check_bases_and_members (tree t)
 
   /* Do some bookkeeping that will guide the generation of implicitly
      declared member functions.  */
-  TYPE_HAS_COMPLEX_INIT_REF (t) |= TYPE_CONTAINS_VPTR_P (t);
+  TYPE_HAS_COMPLEX_COPY_CTOR (t) |= TYPE_CONTAINS_VPTR_P (t);
+  TYPE_HAS_COMPLEX_MOVE_CTOR (t) |= TYPE_CONTAINS_VPTR_P (t);
   /* We need to call a constructor for this class if it has a
      user-provided constructor, or if the default constructor is going
      to initialize the vptr.  (This is not an if-and-only-if;
@@ -4425,7 +4502,8 @@ check_bases_and_members (tree t)
     |= (CLASSTYPE_NON_AGGREGATE (t)
 	|| saved_nontrivial_dtor || saved_complex_asn_ref);
   CLASSTYPE_NON_STD_LAYOUT (t) |= TYPE_CONTAINS_VPTR_P (t);
-  TYPE_HAS_COMPLEX_ASSIGN_REF (t) |= TYPE_CONTAINS_VPTR_P (t);
+  TYPE_HAS_COMPLEX_COPY_ASSIGN (t) |= TYPE_CONTAINS_VPTR_P (t);
+  TYPE_HAS_COMPLEX_MOVE_ASSIGN (t) |= TYPE_CONTAINS_VPTR_P (t);
   TYPE_HAS_COMPLEX_DFLT (t) |= TYPE_CONTAINS_VPTR_P (t);
 
   /* If the class has no user-declared constructor, but does have
@@ -4495,10 +4573,9 @@ check_bases_and_members (tree t)
       /* "The closure type associated with a lambda-expression has a deleted
 	 default constructor and a deleted copy assignment operator."  */
       TYPE_NEEDS_CONSTRUCTING (t) = 1;
-      TYPE_HAS_DEFAULT_CONSTRUCTOR (t) = 0;
-      CLASSTYPE_LAZY_DEFAULT_CTOR (t) = 0;
-      TYPE_HAS_ASSIGN_REF (t) = 0;
-      CLASSTYPE_LAZY_ASSIGNMENT_OP (t) = 0;
+      TYPE_HAS_COMPLEX_DFLT (t) = 1;
+      TYPE_HAS_COMPLEX_COPY_ASSIGN (t) = 1;
+      CLASSTYPE_LAZY_MOVE_ASSIGN (t) = 0;
 
       /* "This class type is not an aggregate."  */
       CLASSTYPE_NON_AGGREGATE (t) = 1;
@@ -4976,8 +5053,10 @@ layout_class_type (tree t, tree *virtuals_p)
 	     bits as additional padding.  */
 	  for (itk = itk_char; itk != itk_none; ++itk)
 	    if (integer_types[itk] != NULL_TREE
-		&& INT_CST_LT (DECL_SIZE (field),
-			       TYPE_SIZE (integer_types[itk])))
+		&& (INT_CST_LT (size_int (MAX_FIXED_MODE_SIZE),
+				TYPE_SIZE (integer_types[itk]))
+		    || INT_CST_LT (DECL_SIZE (field),
+				   TYPE_SIZE (integer_types[itk]))))
 	      break;
 
 	  /* ITK now indicates a type that is too large for the
@@ -5435,9 +5514,8 @@ finish_struct_1 (tree t)
   n_fields = count_fields (TYPE_FIELDS (t));
   if (n_fields > 7)
     {
-      struct sorted_fields_type *field_vec = GGC_NEWVAR
-	 (struct sorted_fields_type,
-	  sizeof (struct sorted_fields_type) + n_fields * sizeof (tree));
+      struct sorted_fields_type *field_vec = ggc_alloc_sorted_fields_type
+	 (sizeof (struct sorted_fields_type) + n_fields * sizeof (tree));
       field_vec->len = n_fields;
       add_fields_to_record_type (TYPE_FIELDS (t), field_vec, 0);
       qsort (field_vec->elts, n_fields, sizeof (tree),
@@ -7040,36 +7118,36 @@ debug_thunks (tree fn)
 static void
 finish_vtbls (tree t)
 {
-  tree list;
   tree vbase;
+  VEC(constructor_elt,gc) *v = NULL;
+  tree vtable = BINFO_VTABLE (TYPE_BINFO (t));
 
   /* We lay out the primary and secondary vtables in one contiguous
      vtable.  The primary vtable is first, followed by the non-virtual
      secondary vtables in inheritance graph order.  */
-  list = build_tree_list (BINFO_VTABLE (TYPE_BINFO (t)), NULL_TREE);
-  accumulate_vtbl_inits (TYPE_BINFO (t), TYPE_BINFO (t),
-			 TYPE_BINFO (t), t, list);
+  accumulate_vtbl_inits (TYPE_BINFO (t), TYPE_BINFO (t), TYPE_BINFO (t),
+			 vtable, t, &v);
 
   /* Then come the virtual bases, also in inheritance graph order.  */
   for (vbase = TYPE_BINFO (t); vbase; vbase = TREE_CHAIN (vbase))
     {
       if (!BINFO_VIRTUAL_P (vbase))
 	continue;
-      accumulate_vtbl_inits (vbase, vbase, TYPE_BINFO (t), t, list);
+      accumulate_vtbl_inits (vbase, vbase, TYPE_BINFO (t), vtable, t, &v);
     }
 
   if (BINFO_VTABLE (TYPE_BINFO (t)))
-    initialize_vtable (TYPE_BINFO (t), TREE_VALUE (list));
+    initialize_vtable (TYPE_BINFO (t), v);
 }
 
 /* Initialize the vtable for BINFO with the INITS.  */
 
 static void
-initialize_vtable (tree binfo, tree inits)
+initialize_vtable (tree binfo, VEC(constructor_elt,gc) *inits)
 {
   tree decl;
 
-  layout_vtable_decl (binfo, list_length (inits));
+  layout_vtable_decl (binfo, VEC_length (constructor_elt, inits));
   decl = get_vtbl_decl_for_binfo (binfo);
   initialize_artificial_var (decl, inits);
   dump_vtable (BINFO_TYPE (binfo), binfo, decl);
@@ -7091,13 +7169,13 @@ initialize_vtable (tree binfo, tree inits)
 static void
 build_vtt (tree t)
 {
-  tree inits;
   tree type;
   tree vtt;
   tree index;
+  VEC(constructor_elt,gc) *inits;
 
   /* Build up the initializers for the VTT.  */
-  inits = NULL_TREE;
+  inits = NULL;
   index = size_zero_node;
   build_vtt_inits (TYPE_BINFO (t), t, &inits, &index);
 
@@ -7106,7 +7184,7 @@ build_vtt (tree t)
     return;
 
   /* Figure out the type of the VTT.  */
-  type = build_index_type (size_int (list_length (inits) - 1));
+  type = build_index_type (size_int (VEC_length (constructor_elt, inits) - 1));
   type = build_cplus_array_type (const_ptr_type_node, type);
 
   /* Now, build the VTT object itself.  */
@@ -7152,8 +7230,8 @@ typedef struct secondary_vptr_vtt_init_data_s
   /* Current index into the VTT.  */
   tree index;
 
-  /* TREE_LIST of initializers built up.  */
-  tree inits;
+  /* Vector of initializers built up.  */
+  VEC(constructor_elt,gc) *inits;
 
   /* The type being constructed by this secondary VTT.  */
   tree type_being_constructed;
@@ -7167,19 +7245,18 @@ typedef struct secondary_vptr_vtt_init_data_s
    for virtual bases of T. When it is not so, we build the constructor
    vtables for the BINFO-in-T variant.  */
 
-static tree *
-build_vtt_inits (tree binfo, tree t, tree *inits, tree *index)
+static void
+build_vtt_inits (tree binfo, tree t, VEC(constructor_elt,gc) **inits, tree *index)
 {
   int i;
   tree b;
   tree init;
-  tree secondary_vptrs;
   secondary_vptr_vtt_init_data data;
   int top_level_p = SAME_BINFO_TYPE_P (BINFO_TYPE (binfo), t);
 
   /* We only need VTTs for subobjects with virtual bases.  */
   if (!CLASSTYPE_VBASECLASSES (BINFO_TYPE (binfo)))
-    return inits;
+    return;
 
   /* We need to use a construction vtable if this is not the primary
      VTT.  */
@@ -7193,8 +7270,7 @@ build_vtt_inits (tree binfo, tree t, tree *inits, tree *index)
 
   /* Add the address of the primary vtable for the complete object.  */
   init = binfo_ctor_vtable (binfo);
-  *inits = build_tree_list (NULL_TREE, init);
-  inits = &TREE_CHAIN (*inits);
+  CONSTRUCTOR_APPEND_ELT (*inits, NULL_TREE, init);
   if (top_level_p)
     {
       gcc_assert (!BINFO_VPTR_INDEX (binfo));
@@ -7205,30 +7281,23 @@ build_vtt_inits (tree binfo, tree t, tree *inits, tree *index)
   /* Recursively add the secondary VTTs for non-virtual bases.  */
   for (i = 0; BINFO_BASE_ITERATE (binfo, i, b); ++i)
     if (!BINFO_VIRTUAL_P (b))
-      inits = build_vtt_inits (b, t, inits, index);
+      build_vtt_inits (b, t, inits, index);
 
   /* Add secondary virtual pointers for all subobjects of BINFO with
      either virtual bases or reachable along a virtual path, except
      subobjects that are non-virtual primary bases.  */
   data.top_level_p = top_level_p;
   data.index = *index;
-  data.inits = NULL;
+  data.inits = *inits;
   data.type_being_constructed = BINFO_TYPE (binfo);
 
   dfs_walk_once (binfo, dfs_build_secondary_vptr_vtt_inits, NULL, &data);
 
   *index = data.index;
 
-  /* The secondary vptrs come back in reverse order.  After we reverse
-     them, and add the INITS, the last init will be the first element
-     of the chain.  */
-  secondary_vptrs = data.inits;
-  if (secondary_vptrs)
-    {
-      *inits = nreverse (secondary_vptrs);
-      inits = &TREE_CHAIN (secondary_vptrs);
-      gcc_assert (*inits == NULL_TREE);
-    }
+  /* data.inits might have grown as we added secondary virtual pointers.
+     Make sure our caller knows about the new vector.  */
+  *inits = data.inits;
 
   if (top_level_p)
     /* Add the secondary VTTs for virtual bases in inheritance graph
@@ -7238,13 +7307,11 @@ build_vtt_inits (tree binfo, tree t, tree *inits, tree *index)
 	if (!BINFO_VIRTUAL_P (b))
 	  continue;
 
-	inits = build_vtt_inits (b, t, inits, index);
+	build_vtt_inits (b, t, inits, index);
       }
   else
     /* Remove the ctor vtables we created.  */
     dfs_walk_all (binfo, dfs_fixup_binfo_vtbls, NULL, binfo);
-
-  return inits;
 }
 
 /* Called from build_vtt_inits via dfs_walk.  BINFO is the binfo for the base
@@ -7292,7 +7359,7 @@ dfs_build_secondary_vptr_vtt_inits (tree binfo, void *data_)
     }
 
   /* Add the initializer for the secondary vptr itself.  */
-  data->inits = tree_cons (NULL_TREE, binfo_ctor_vtable (binfo), data->inits);
+  CONSTRUCTOR_APPEND_ELT (data->inits, NULL_TREE, binfo_ctor_vtable (binfo));
 
   /* Advance the vtt index.  */
   data->index = size_binop (PLUS_EXPR, data->index,
@@ -7335,12 +7402,11 @@ dfs_fixup_binfo_vtbls (tree binfo, void* data)
 static void
 build_ctor_vtbl_group (tree binfo, tree t)
 {
-  tree list;
   tree type;
   tree vtbl;
-  tree inits;
   tree id;
   tree vbase;
+  VEC(constructor_elt,gc) *v;
 
   /* See if we've already created this construction vtable group.  */
   id = mangle_ctor_vtbl_for_type (t, binfo);
@@ -7353,9 +7419,10 @@ build_ctor_vtbl_group (tree binfo, tree t)
      construction vtable group.  */
   vtbl = build_vtable (t, id, ptr_type_node);
   DECL_CONSTRUCTION_VTABLE_P (vtbl) = 1;
-  list = build_tree_list (vtbl, NULL_TREE);
+
+  v = NULL;
   accumulate_vtbl_inits (binfo, TYPE_BINFO (TREE_TYPE (binfo)),
-			 binfo, t, list);
+			 binfo, vtbl, t, &v);
 
   /* Add the vtables for each of our virtual bases using the vbase in T
      binfo.  */
@@ -7369,12 +7436,11 @@ build_ctor_vtbl_group (tree binfo, tree t)
 	continue;
       b = copied_binfo (vbase, binfo);
 
-      accumulate_vtbl_inits (b, vbase, binfo, t, list);
+      accumulate_vtbl_inits (b, vbase, binfo, vtbl, t, &v);
     }
-  inits = TREE_VALUE (list);
 
   /* Figure out the type of the construction vtable.  */
-  type = build_index_type (size_int (list_length (inits) - 1));
+  type = build_index_type (size_int (VEC_length (constructor_elt, v) - 1));
   type = build_cplus_array_type (vtable_entry_type, type);
   layout_type (type);
   TREE_TYPE (vtbl) = type;
@@ -7383,7 +7449,7 @@ build_ctor_vtbl_group (tree binfo, tree t)
 
   /* Initialize the construction vtable.  */
   CLASSTYPE_VTABLES (t) = chainon (CLASSTYPE_VTABLES (t), vtbl);
-  initialize_artificial_var (vtbl, inits);
+  initialize_artificial_var (vtbl, v);
   dump_vtable (t, binfo, vtbl);
 }
 
@@ -7401,8 +7467,9 @@ static void
 accumulate_vtbl_inits (tree binfo,
 		       tree orig_binfo,
 		       tree rtti_binfo,
+		       tree vtbl,
 		       tree t,
-		       tree inits)
+		       VEC(constructor_elt,gc) **inits)
 {
   int i;
   tree base_binfo;
@@ -7422,10 +7489,7 @@ accumulate_vtbl_inits (tree binfo,
     return;
 
   /* Build the initializers for the BINFO-in-T vtable.  */
-  TREE_VALUE (inits)
-    = chainon (TREE_VALUE (inits),
-	       dfs_accumulate_vtbl_inits (binfo, orig_binfo,
-					  rtti_binfo, t, inits));
+  dfs_accumulate_vtbl_inits (binfo, orig_binfo, rtti_binfo, vtbl, t, inits);
 
   /* Walk the BINFO and its bases.  We walk in preorder so that as we
      initialize each vtable we can figure out at what offset the
@@ -7439,24 +7503,25 @@ accumulate_vtbl_inits (tree binfo,
 	continue;
       accumulate_vtbl_inits (base_binfo,
 			     BINFO_BASE_BINFO (orig_binfo, i),
-			     rtti_binfo, t,
+			     rtti_binfo, vtbl, t,
 			     inits);
     }
 }
 
-/* Called from accumulate_vtbl_inits.  Returns the initializers for
-   the BINFO vtable.  */
+/* Called from accumulate_vtbl_inits.  Adds the initializers for the
+   BINFO vtable to L.  */
 
-static tree
+static void
 dfs_accumulate_vtbl_inits (tree binfo,
 			   tree orig_binfo,
 			   tree rtti_binfo,
+			   tree orig_vtbl,
 			   tree t,
-			   tree l)
+			   VEC(constructor_elt,gc) **l)
 {
-  tree inits = NULL_TREE;
   tree vtbl = NULL_TREE;
   int ctor_vtbl_p = !SAME_BINFO_TYPE_P (BINFO_TYPE (rtti_binfo), t);
+  int n_inits;
 
   if (ctor_vtbl_p
       && BINFO_VIRTUAL_P (orig_binfo) && BINFO_PRIMARY_P (orig_binfo))
@@ -7510,23 +7575,24 @@ dfs_accumulate_vtbl_inits (tree binfo,
       /* Otherwise, this is case 3 and we get our own.  */
     }
   else if (!BINFO_NEW_VTABLE_MARKED (orig_binfo))
-    return inits;
+    return;
+
+  n_inits = VEC_length (constructor_elt, *l);
 
   if (!vtbl)
     {
       tree index;
       int non_fn_entries;
 
-      /* Compute the initializer for this vtable.  */
-      inits = build_vtbl_initializer (binfo, orig_binfo, t, rtti_binfo,
-				      &non_fn_entries);
+      /* Add the initializer for this vtable.  */
+      build_vtbl_initializer (binfo, orig_binfo, t, rtti_binfo,
+                              &non_fn_entries, l);
 
       /* Figure out the position to which the VPTR should point.  */
-      vtbl = TREE_PURPOSE (l);
-      vtbl = build1 (ADDR_EXPR, vtbl_ptr_type_node, vtbl);
+      vtbl = build1 (ADDR_EXPR, vtbl_ptr_type_node, orig_vtbl);
       index = size_binop (PLUS_EXPR,
 			  size_int (non_fn_entries),
-			  size_int (list_length (TREE_VALUE (l))));
+			  size_int (n_inits));
       index = size_binop (MULT_EXPR,
 			  TYPE_SIZE_UNIT (vtable_entry_type),
 			  index);
@@ -7539,12 +7605,11 @@ dfs_accumulate_vtbl_inits (tree binfo,
        straighten this out.  */
     BINFO_VTABLE (binfo) = tree_cons (rtti_binfo, vtbl, BINFO_VTABLE (binfo));
   else if (BINFO_PRIMARY_P (binfo) && BINFO_VIRTUAL_P (binfo))
-    inits = NULL_TREE;
+    /* Throw away any unneeded intializers.  */
+    VEC_truncate (constructor_elt, *l, n_inits);
   else
      /* For an ordinary vtable, set BINFO_VTABLE.  */
     BINFO_VTABLE (binfo) = vtbl;
-
-  return inits;
 }
 
 static GTY(()) tree abort_fndecl_addr;
@@ -7572,26 +7637,26 @@ static GTY(()) tree abort_fndecl_addr;
    primary bases; we need these while the primary base is being
    constructed.  */
 
-static tree
+static void
 build_vtbl_initializer (tree binfo,
 			tree orig_binfo,
 			tree t,
 			tree rtti_binfo,
-			int* non_fn_entries_p)
+			int* non_fn_entries_p,
+			VEC(constructor_elt,gc) **inits)
 {
   tree v, b;
-  tree vfun_inits;
   vtbl_init_data vid;
-  unsigned ix;
+  unsigned ix, jx;
   tree vbinfo;
   VEC(tree,gc) *vbases;
+  constructor_elt *e;
 
   /* Initialize VID.  */
   memset (&vid, 0, sizeof (vid));
   vid.binfo = binfo;
   vid.derived = t;
   vid.rtti_binfo = rtti_binfo;
-  vid.last_init = &vid.inits;
   vid.primary_vtbl_p = SAME_BINFO_TYPE_P (BINFO_TYPE (binfo), t);
   vid.ctor_vtbl_p = !SAME_BINFO_TYPE_P (BINFO_TYPE (rtti_binfo), t);
   vid.generate_vcall_entries = true;
@@ -7617,28 +7682,52 @@ build_vtbl_initializer (tree binfo,
   /* If the target requires padding between data entries, add that now.  */
   if (TARGET_VTABLE_DATA_ENTRY_DISTANCE > 1)
     {
-      tree cur, *prev;
+      int n_entries = VEC_length (constructor_elt, vid.inits);
 
-      for (prev = &vid.inits; (cur = *prev); prev = &TREE_CHAIN (cur))
+      VEC_safe_grow (constructor_elt, gc, vid.inits,
+		     TARGET_VTABLE_DATA_ENTRY_DISTANCE * n_entries);
+
+      /* Move data entries into their new positions and add padding
+	 after the new positions.  Iterate backwards so we don't
+	 overwrite entries that we would need to process later.  */
+      for (ix = n_entries - 1;
+	   VEC_iterate (constructor_elt, vid.inits, ix, e);
+	   ix--)
 	{
-	  tree add = cur;
-	  int i;
+	  int j;
+	  int new_position = (TARGET_VTABLE_DATA_ENTRY_DISTANCE * ix
+			      + (TARGET_VTABLE_DATA_ENTRY_DISTANCE - 1));
 
-	  for (i = 1; i < TARGET_VTABLE_DATA_ENTRY_DISTANCE; ++i)
-	    add = tree_cons (NULL_TREE,
-			     build1 (NOP_EXPR, vtable_entry_type,
-				     null_pointer_node),
-			     add);
-	  *prev = add;
+	  VEC_replace (constructor_elt, vid.inits, new_position, e);
+
+	  for (j = 1; j < TARGET_VTABLE_DATA_ENTRY_DISTANCE; ++j)
+	    {
+	      constructor_elt *f = VEC_index (constructor_elt, vid.inits,
+					      new_position - j);
+	      f->index = NULL_TREE;
+	      f->value = build1 (NOP_EXPR, vtable_entry_type,
+				 null_pointer_node);
+	    }
 	}
     }
 
   if (non_fn_entries_p)
-    *non_fn_entries_p = list_length (vid.inits);
+    *non_fn_entries_p = VEC_length (constructor_elt, vid.inits);
+
+  /* The initializers for virtual functions were built up in reverse
+     order.  Straighten them out and add them to the running list in one
+     step.  */
+  jx = VEC_length (constructor_elt, *inits);
+  VEC_safe_grow (constructor_elt, gc, *inits,
+		 (jx + VEC_length (constructor_elt, vid.inits)));
+
+  for (ix = VEC_length (constructor_elt, vid.inits) - 1;
+       VEC_iterate (constructor_elt, vid.inits, ix, e);
+       ix--, jx++)
+    VEC_replace (constructor_elt, *inits, jx, e);
 
   /* Go through all the ordinary virtual functions, building up
      initializers.  */
-  vfun_inits = NULL_TREE;
   for (v = BINFO_VIRTUALS (orig_binfo); v; v = TREE_CHAIN (v))
     {
       tree delta;
@@ -7724,7 +7813,7 @@ build_vtbl_initializer (tree binfo,
 	  int i;
 	  if (init == size_zero_node)
 	    for (i = 0; i < TARGET_VTABLE_USES_DESCRIPTORS; ++i)
-	      vfun_inits = tree_cons (NULL_TREE, init, vfun_inits);
+	      CONSTRUCTOR_APPEND_ELT (*inits, NULL_TREE, init);
 	  else
 	    for (i = 0; i < TARGET_VTABLE_USES_DESCRIPTORS; ++i)
 	      {
@@ -7733,22 +7822,12 @@ build_vtbl_initializer (tree binfo,
 				     build_int_cst (NULL_TREE, i));
 		TREE_CONSTANT (fdesc) = 1;
 
-		vfun_inits = tree_cons (NULL_TREE, fdesc, vfun_inits);
+		CONSTRUCTOR_APPEND_ELT (*inits, NULL_TREE, fdesc);
 	      }
 	}
       else
-	vfun_inits = tree_cons (NULL_TREE, init, vfun_inits);
+	CONSTRUCTOR_APPEND_ELT (*inits, NULL_TREE, init);
     }
-
-  /* The initializers for virtual functions were built up in reverse
-     order; straighten them out now.  */
-  vfun_inits = nreverse (vfun_inits);
-
-  /* The negative offset initializers are also in reverse order.  */
-  vid.inits = nreverse (vid.inits);
-
-  /* Chain the two together.  */
-  return chainon (vid.inits, vfun_inits);
 }
 
 /* Adds to vid->inits the initializers for the vbase and vcall
@@ -7858,12 +7937,9 @@ build_vbase_offset_vtbl_entries (tree binfo, vtbl_init_data* vid)
       delta = size_diffop_loc (input_location,
 			   BINFO_OFFSET (b), BINFO_OFFSET (non_primary_binfo));
 
-      *vid->last_init
-	= build_tree_list (NULL_TREE,
-			   fold_build1_loc (input_location, NOP_EXPR,
-					vtable_entry_type,
-					delta));
-      vid->last_init = &TREE_CHAIN (*vid->last_init);
+      CONSTRUCTOR_APPEND_ELT (vid->inits, NULL_TREE,
+			      fold_build1_loc (input_location, NOP_EXPR,
+					       vtable_entry_type, delta));
     }
 }
 
@@ -8098,8 +8174,7 @@ add_vcall_offset (tree orig_fn, tree binfo, vtbl_init_data *vid)
 				      vcall_offset);
 	}
       /* Add the initializer to the vtable.  */
-      *vid->last_init = build_tree_list (NULL_TREE, vcall_offset);
-      vid->last_init = &TREE_CHAIN (*vid->last_init);
+      CONSTRUCTOR_APPEND_ELT (vid->inits, NULL_TREE, vcall_offset);
     }
 }
 
@@ -8143,15 +8218,13 @@ build_rtti_vtbl_entries (tree binfo, vtbl_init_data* vid)
   /* Convert the declaration to a type that can be stored in the
      vtable.  */
   init = build_nop (vfunc_ptr_type_node, decl);
-  *vid->last_init = build_tree_list (NULL_TREE, init);
-  vid->last_init = &TREE_CHAIN (*vid->last_init);
+  CONSTRUCTOR_APPEND_ELT (vid->inits, NULL_TREE, init);
 
   /* Add the offset-to-top entry.  It comes earlier in the vtable than
      the typeinfo entry.  Convert the offset to look like a
      function pointer, so that we can put it in the vtable.  */
   init = build_nop (vfunc_ptr_type_node, offset);
-  *vid->last_init = build_tree_list (NULL_TREE, init);
-  vid->last_init = &TREE_CHAIN (*vid->last_init);
+  CONSTRUCTOR_APPEND_ELT (vid->inits, NULL_TREE, init);
 }
 
 /* Fold a OBJ_TYPE_REF expression to the address of a function.

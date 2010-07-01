@@ -1199,6 +1199,21 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
       push_char (dtp, 'n');
       push_char (dtp, 'a');
       push_char (dtp, 'n');
+      
+      /* Match "NAN(alphanum)".  */
+      if (c == '(')
+	{
+	  for ( ; c != ')'; c = next_char (dtp))
+	    if (is_separator (c))
+	      goto bad;
+	    else
+	      push_char (dtp, c);
+
+	  push_char (dtp, ')');
+	  c = next_char (dtp);
+	  if (is_separator (c))
+	    unget_char (dtp, c);
+	}
       goto done;
     }
 
@@ -1576,6 +1591,20 @@ read_real (st_parameter_dt *dtp, void * dest, int length)
 	goto unwind;
       c = next_char (dtp);
       l_push_char (dtp, c);
+
+      /* Match NAN(alphanum).  */
+      if (c == '(')
+	{
+	  for (c = next_char (dtp); c != ')'; c = next_char (dtp))
+	    if (is_separator (c))
+	      goto unwind;
+	    else
+	      l_push_char (dtp, c);
+
+	  l_push_char (dtp, ')');
+	  c = next_char (dtp);
+	  l_push_char (dtp, c);
+	}
     }
 
   if (!is_separator (c))
@@ -2077,7 +2106,7 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 		  /*  If -std=f95/2003 or an array section is specified,
 		      do not allow excess data to be processed.  */
                   if (is_array_section == 1
-		      || compile_options.allow_std < GFC_STD_GNU)
+		      || !(compile_options.allow_std & GFC_STD_GNU))
 		    ls[dim].end = ls[dim].start;
 		  else
 		    dtp->u.p.expanded_read = 1;

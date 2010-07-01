@@ -382,6 +382,12 @@ make_class (void)
      loading works.  */
   TYPE_BINFO (type) = make_tree_binfo (0);
   MAYBE_CREATE_TYPE_TYPE_LANG_SPECIFIC (type);
+  TYPE_CATCH_CLASSES (type) = NULL;
+  /* Push a dummy entry; we can't call make_catch_class_record here
+     because other infrastructure may not be set up yet.  We'll come
+     back and fill it in later once said infrastructure is
+     initialized.  */
+  CONSTRUCTOR_APPEND_ELT (TYPE_CATCH_CLASSES (type), NULL_TREE, NULL_TREE);
 
   return type;
 }
@@ -763,13 +769,12 @@ add_method_1 (tree this_class, int access_flags, tree name, tree function_type)
   DECL_CONTEXT (fndecl) = this_class;
 
   DECL_LANG_SPECIFIC (fndecl)
-    = GGC_CNEW (struct lang_decl);
+    = ggc_alloc_cleared_lang_decl(sizeof (struct lang_decl));
   DECL_LANG_SPECIFIC (fndecl)->desc = LANG_DECL_FUNC;
 
   /* Initialize the static initializer test table.  */
-  
-  DECL_FUNCTION_INIT_TEST_TABLE (fndecl) = 
-    java_treetreehash_create (10, 1);
+
+  DECL_FUNCTION_INIT_TEST_TABLE (fndecl) = java_treetreehash_create (10);
 
   /* Initialize the initialized (static) class table. */
   if (access_flags & ACC_STATIC)
@@ -2961,18 +2966,17 @@ tree
 emit_catch_table (tree this_class)
 {
   tree table, table_size, array_type;
-  TYPE_CATCH_CLASSES (this_class) =
-    tree_cons (NULL,
-	       make_catch_class_record (null_pointer_node, null_pointer_node),
-	       TYPE_CATCH_CLASSES (this_class));
-  TYPE_CATCH_CLASSES (this_class) = nreverse (TYPE_CATCH_CLASSES (this_class));
-  TYPE_CATCH_CLASSES (this_class) = 
-    tree_cons (NULL,
-	       make_catch_class_record (null_pointer_node, null_pointer_node),
-	       TYPE_CATCH_CLASSES (this_class));
-  table_size = build_index_type
-    (build_int_cst (NULL_TREE,
-		    list_length (TYPE_CATCH_CLASSES (this_class))));
+  int n_catch_classes;
+  constructor_elt *e;
+  /* Fill in the dummy entry that make_class created.  */
+  e = VEC_index (constructor_elt, TYPE_CATCH_CLASSES (this_class), 0);
+  e->value = make_catch_class_record (null_pointer_node, null_pointer_node);
+  CONSTRUCTOR_APPEND_ELT (TYPE_CATCH_CLASSES (this_class), NULL_TREE,
+			  make_catch_class_record (null_pointer_node,
+						   null_pointer_node));
+  n_catch_classes = VEC_length (constructor_elt,
+				TYPE_CATCH_CLASSES (this_class));
+  table_size = build_index_type (build_int_cst (NULL_TREE, n_catch_classes));
   array_type 
     = build_array_type (TREE_TYPE (TREE_TYPE (TYPE_CTABLE_DECL (this_class))),
 			table_size);
@@ -2980,7 +2984,7 @@ emit_catch_table (tree this_class)
     build_decl (input_location,
 		VAR_DECL, DECL_NAME (TYPE_CTABLE_DECL (this_class)), array_type);
   DECL_INITIAL (table) = 
-    build_constructor_from_list (array_type, TYPE_CATCH_CLASSES (this_class));
+    build_constructor (array_type, TYPE_CATCH_CLASSES (this_class));
   TREE_STATIC (table) = 1;
   TREE_READONLY (table) = 1;  
   DECL_IGNORED_P (table) = 1;
@@ -3144,7 +3148,7 @@ java_treetreehash_new (htab_t ht, tree t)
   e = htab_find_slot_with_hash (ht, t, hv, INSERT);
   if (*e == NULL)
     {
-      tthe = (struct treetreehash_entry *) (*ht->alloc_f) (1, sizeof (*tthe));
+      tthe = ggc_alloc_cleared_treetreehash_entry ();
       tthe->key = t;
       *e = tthe;
     }
@@ -3154,14 +3158,10 @@ java_treetreehash_new (htab_t ht, tree t)
 }
 
 htab_t
-java_treetreehash_create (size_t size, int gc)
+java_treetreehash_create (size_t size)
 {
-  if (gc)
-    return htab_create_ggc (size, java_treetreehash_hash,
-			    java_treetreehash_compare, NULL);
-  else
-    return htab_create_alloc (size, java_treetreehash_hash,
-			      java_treetreehash_compare, free, xcalloc, free);
+  return htab_create_ggc (size, java_treetreehash_hash,
+			  java_treetreehash_compare, NULL);
 }
 
 /* Break down qualified IDENTIFIER into package and class-name components.

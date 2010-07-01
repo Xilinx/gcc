@@ -619,15 +619,9 @@ java_init_decl_processing (void)
 
   /* A few values used for range checking in the lexer.  */
   decimal_int_max = build_int_cstu (unsigned_int_type_node, 0x80000000);
-#if HOST_BITS_PER_WIDE_INT == 64
-  decimal_long_max = build_int_cstu (unsigned_long_type_node,
-				     0x8000000000000000LL);
-#elif HOST_BITS_PER_WIDE_INT == 32
-  decimal_long_max = build_int_cst_wide (unsigned_long_type_node,
-					 0, 0x80000000);
-#else
- #error "unsupported size"
-#endif
+  decimal_long_max
+    = double_int_to_tree (unsigned_long_type_node,
+			  double_int_setbit (double_int_zero, 64));
 
   size_zero_node = size_int (0);
   size_one_node = size_int (1);
@@ -1354,7 +1348,7 @@ static struct binding_level *
 make_binding_level (void)
 {
   /* NOSTRICT */
-  return GGC_CNEW (struct binding_level);
+  return ggc_alloc_cleared_binding_level ();
 }
 
 void
@@ -1696,7 +1690,7 @@ java_dup_lang_specific_decl (tree node)
     return;
 
   lang_decl_size = sizeof (struct lang_decl);
-  x = GGC_NEW (struct lang_decl);
+  x = ggc_alloc_lang_decl (lang_decl_size);
   memcpy (x, DECL_LANG_SPECIFIC (node), lang_decl_size);
   DECL_LANG_SPECIFIC (node) = x;
 }

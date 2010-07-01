@@ -1328,8 +1328,7 @@ add_condition_to_pbb (poly_bb_p pbb, gimple stmt, enum tree_code code)
 	(&right, left);
       add_condition_to_domain (left, stmt, pbb, LT_EXPR);
       add_condition_to_domain (right, stmt, pbb, GT_EXPR);
-      ppl_Pointset_Powerset_C_Polyhedron_upper_bound_assign (left,
-							       right);
+      ppl_Pointset_Powerset_C_Polyhedron_upper_bound_assign (left, right);
       ppl_delete_Pointset_Powerset_C_Polyhedron (right);
     }
   else
@@ -1344,12 +1343,11 @@ add_conditions_to_domain (poly_bb_p pbb)
   unsigned int i;
   gimple stmt;
   gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
-  VEC (gimple, heap) *conditions = GBB_CONDITIONS (gbb);
 
-  if (VEC_empty (gimple, conditions))
+  if (VEC_empty (gimple, GBB_CONDITIONS (gbb)))
     return;
 
-  for (i = 0; VEC_iterate (gimple, conditions, i, stmt); i++)
+  for (i = 0; VEC_iterate (gimple, GBB_CONDITIONS (gbb), i, stmt); i++)
     switch (gimple_code (stmt))
       {
       case GIMPLE_COND:
@@ -1357,7 +1355,7 @@ add_conditions_to_domain (poly_bb_p pbb)
 	    enum tree_code code = gimple_cond_code (stmt);
 
 	    /* The conditions for ELSE-branches are inverted.  */
-	    if (VEC_index (gimple, gbb->condition_cases, i) == NULL)
+	    if (!VEC_index (gimple, GBB_CONDITION_CASES (gbb), i))
 	      code = invert_tree_comparison (code, false);
 
 	    add_condition_to_pbb (pbb, stmt, code);
@@ -1381,21 +1379,28 @@ struct bsc
   sese region;
 };
 
-/* Returns non NULL when BB has a single predecessor and the last
-   statement of that predecessor is a COND_EXPR.  */
+/* Returns a COND_EXPR statement when BB has a single predecessor, the
+   edge between BB and its predecessor is not a loop exit edge, and
+   the last statement of the single predecessor is a COND_EXPR.  */
 
 static gimple
-single_pred_cond (basic_block bb)
+single_pred_cond_non_loop_exit (basic_block bb)
 {
   if (single_pred_p (bb))
     {
       edge e = single_pred_edge (bb);
       basic_block pred = e->src;
-      gimple stmt = last_stmt (pred);
+      gimple stmt;
+
+      if (loop_depth (pred->loop_father) > loop_depth (bb->loop_father))
+	return NULL;
+
+      stmt = last_stmt (pred);
 
       if (stmt && gimple_code (stmt) == GIMPLE_COND)
 	return stmt;
     }
+
   return NULL;
 }
 
@@ -1409,11 +1414,13 @@ build_sese_conditions_before (struct dom_walk_data *dw_data,
   struct bsc *data = (struct bsc *) dw_data->global_data;
   VEC (gimple, heap) **conditions = data->conditions;
   VEC (gimple, heap) **cases = data->cases;
-  gimple_bb_p gbb = gbb_from_bb (bb);
-  gimple stmt = single_pred_cond (bb);
+  gimple_bb_p gbb;
+  gimple stmt;
 
   if (!bb_in_sese_p (bb, data->region))
     return;
+
+  stmt = single_pred_cond_non_loop_exit (bb);
 
   if (stmt)
     {
@@ -1426,6 +1433,8 @@ build_sese_conditions_before (struct dom_walk_data *dw_data,
       else
 	VEC_safe_push (gimple, heap, *cases, NULL);
     }
+
+  gbb = gbb_from_bb (bb);
 
   if (gbb)
     {
@@ -1448,7 +1457,7 @@ build_sese_conditions_after (struct dom_walk_data *dw_data,
   if (!bb_in_sese_p (bb, data->region))
     return;
 
-  if (single_pred_cond (bb))
+  if (single_pred_cond_non_loop_exit (bb))
     {
       VEC_pop (gimple, *conditions);
       VEC_pop (gimple, *cases);
@@ -1769,10 +1778,11 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
 							    accesses);
   ppl_delete_Polyhedron (accesses);
 
-  if (dr->aux)
-    dr_base_object_set = ((base_alias_pair *)(dr->aux))->base_obj_set;
+  gcc_assert (dr->aux);
+  dr_base_object_set = ((base_alias_pair *)(dr->aux))->base_obj_set;
 
-  new_poly_dr (pbb, dr_base_object_set, accesses_ps, DR_IS_READ (dr) ? PDR_READ : PDR_WRITE,
+  new_poly_dr (pbb, dr_base_object_set, accesses_ps,
+	       DR_IS_READ (dr) ? PDR_READ : PDR_WRITE,
 	       dr, DR_NUM_DIMENSIONS (dr));
 }
 
@@ -1914,8 +1924,8 @@ build_alias_set_optimal_p (VEC (data_reference_p, heap) *drs)
       data_reference_p dr = VEC_index (data_reference_p, drs, i);
       base_alias_pair *bap;
 
-      if (dr->aux)
-	bap = (base_alias_pair *)(dr->aux);
+      gcc_assert (dr->aux);
+      bap = (base_alias_pair *)(dr->aux);
 
       bap->alias_set = XNEW (int);
       *(bap->alias_set) = g->vertices[i].component + 1;
@@ -1993,8 +2003,8 @@ build_base_obj_set_for_drs (VEC (data_reference_p, heap) *drs)
       data_reference_p dr = VEC_index (data_reference_p, drs, i);
       base_alias_pair *bap;
 
-      if (dr->aux)
-	bap = (base_alias_pair *)(dr->aux);
+      gcc_assert (dr->aux);
+      bap = (base_alias_pair *)(dr->aux);
 
       bap->base_obj_set = g->vertices[i].component + 1;
     }
@@ -2924,6 +2934,7 @@ scop_canonicalize_loops (scop_p scop)
 /* Can all ivs be represented by a signed integer?
    As CLooG might generate negative values in its expressions, signed loop ivs
    are required in the backend. */
+
 static bool
 scop_ivs_can_be_represented (scop_p scop)
 {
@@ -2941,7 +2952,7 @@ scop_ivs_can_be_represented (scop_p scop)
       if (!loop->single_iv)
 	continue;
 
-      type = TREE_TYPE(loop->single_iv);
+      type = TREE_TYPE (loop->single_iv);
       precision = TYPE_PRECISION (type);
 
       if (TYPE_UNSIGNED (type)

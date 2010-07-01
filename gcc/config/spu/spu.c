@@ -150,8 +150,8 @@ char regs_ever_allocated[FIRST_PSEUDO_REGISTER];
 /*  Prototypes and external defs.  */
 static void spu_init_builtins (void);
 static tree spu_builtin_decl (unsigned, bool);
-static unsigned char spu_scalar_mode_supported_p (enum machine_mode mode);
-static unsigned char spu_vector_mode_supported_p (enum machine_mode mode);
+static bool spu_scalar_mode_supported_p (enum machine_mode mode);
+static bool spu_vector_mode_supported_p (enum machine_mode mode);
 static bool spu_legitimate_address_p (enum machine_mode, rtx, bool);
 static bool spu_addr_space_legitimate_address_p (enum machine_mode, rtx,
 						 bool, addr_space_t);
@@ -180,13 +180,13 @@ static void spu_sched_init (FILE *, int, int);
 static int spu_sched_reorder (FILE *, int, rtx *, int *, int);
 static tree spu_handle_fndecl_attribute (tree * node, tree name, tree args,
 					 int flags,
-					 unsigned char *no_add_attrs);
+					 bool *no_add_attrs);
 static tree spu_handle_vector_attribute (tree * node, tree name, tree args,
 					 int flags,
-					 unsigned char *no_add_attrs);
+					 bool *no_add_attrs);
 static int spu_naked_function_p (tree func);
-static unsigned char spu_pass_by_reference (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-					    const_tree type, unsigned char named);
+static bool spu_pass_by_reference (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+				   const_tree type, bool named);
 static tree spu_build_builtin_va_list (void);
 static void spu_va_start (tree, rtx);
 static tree spu_gimplify_va_arg_expr (tree valist, tree type,
@@ -196,9 +196,9 @@ static int mem_is_padded_component_ref (rtx x);
 static int reg_aligned_for_addr (rtx x);
 static bool spu_assemble_integer (rtx x, unsigned int size, int aligned_p);
 static void spu_asm_globalize_label (FILE * file, const char *name);
-static unsigned char spu_rtx_costs (rtx x, int code, int outer_code,
-				    int *total, bool speed);
-static unsigned char spu_function_ok_for_sibcall (tree decl, tree exp);
+static bool spu_rtx_costs (rtx x, int code, int outer_code,
+			   int *total, bool speed);
+static bool spu_function_ok_for_sibcall (tree decl, tree exp);
 static void spu_init_libfuncs (void);
 static bool spu_return_in_memory (const_tree type, const_tree fntype);
 static void fix_range (const char *);
@@ -209,7 +209,7 @@ static rtx spu_addr_space_legitimize_address (rtx, rtx, enum machine_mode,
 static tree spu_builtin_mul_widen_even (tree);
 static tree spu_builtin_mul_widen_odd (tree);
 static tree spu_builtin_mask_for_load (void);
-static int spu_builtin_vectorization_cost (bool);
+static int spu_builtin_vectorization_cost (enum vect_cost_for_stmt);
 static bool spu_vector_alignment_reachable (const_tree, bool);
 static tree spu_builtin_vec_perm (tree, tree *);
 static enum machine_mode spu_addr_space_pointer_mode (addr_space_t);
@@ -432,8 +432,8 @@ static const struct attribute_spec spu_attribute_table[] =
 #undef TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST spu_builtin_vectorization_cost
 
-#undef TARGET_VECTOR_ALIGNMENT_REACHABLE
-#define TARGET_VECTOR_ALIGNMENT_REACHABLE spu_vector_alignment_reachable
+#undef TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE
+#define TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE spu_vector_alignment_reachable
 
 #undef TARGET_VECTORIZE_BUILTIN_VEC_PERM
 #define TARGET_VECTORIZE_BUILTIN_VEC_PERM spu_builtin_vec_perm
@@ -4171,7 +4171,7 @@ spu_gimplify_va_arg_expr (tree valist, tree type, gimple_seq * pre_p,
   f_args = TYPE_FIELDS (TREE_TYPE (va_list_type_node));
   f_skip = TREE_CHAIN (f_args);
 
-  valist = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (valist)), valist);
+  valist = build_simple_mem_ref (valist);
   args =
     build3 (COMPONENT_REF, TREE_TYPE (f_args), valist, f_args, NULL_TREE);
   skip =
@@ -4488,8 +4488,7 @@ ea_load_store_inline (rtx mem, bool is_store, rtx ea_addr, rtx data_addr)
 							    hit_ref, pc_rtx)));
   /* Say that this branch is very likely to happen.  */
   v = REG_BR_PROB_BASE - REG_BR_PROB_BASE / 100 - 1;
-  REG_NOTES (insn)
-    = gen_rtx_EXPR_LIST (REG_BR_PROB, GEN_INT (v), REG_NOTES (insn));
+  add_reg_note (insn, REG_BR_PROB, GEN_INT (v));
 
   ea_load_store (mem, is_store, ea_addr, data_addr);
   cont_label = gen_label_rtx ();
@@ -6695,17 +6694,36 @@ spu_builtin_mask_for_load (void)
 
 /* Implement targetm.vectorize.builtin_vectorization_cost.  */
 static int 
-spu_builtin_vectorization_cost (bool runtime_test)
+spu_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
 {
-  /* If the branch of the runtime test is taken - i.e. - the vectorized
-     version is skipped - this incurs a misprediction cost (because the
-     vectorized version is expected to be the fall-through).  So we subtract
-     the latency of a mispredicted branch from the costs that are incurred
-     when the vectorized version is executed.  */
-  if (runtime_test)
-    return -19;
-  else
-    return 0;
+  switch (type_of_cost)
+    {
+      case scalar_stmt:
+      case vector_stmt:
+      case vector_load:
+      case vector_store:
+      case vec_to_scalar:
+      case scalar_to_vec:
+      case cond_branch_not_taken:
+      case vec_perm:
+        return 1;
+
+      case scalar_store:
+        return 10;
+
+      case scalar_load:
+        /* Load + rotate.  */
+        return 2;
+
+      case unaligned_load:
+        return 2;
+
+      case cond_branch_taken:
+        return 6;
+
+      default:
+        gcc_unreachable ();
+    }
 }
 
 /* Return true iff, data reference of TYPE can reach vector alignment (16)

@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "flags.h"
 #include "output.h"
-#include "except.h"
 #include "toplev.h"
 #include "target.h"
 
@@ -526,7 +525,7 @@ perform_member_init (tree member, tree init)
       else if (TREE_CODE (init) == TREE_LIST)
 	/* There was an explicit member initialization.  Do some work
 	   in that case.  */
-	init = build_x_compound_expr_from_list (init, "member initializer");
+	init = build_x_compound_expr_from_list (init, ELK_MEM_INIT);
 
       if (init)
 	finish_expr_stmt (cp_build_modify_expr (decl, INIT_EXPR, init,
@@ -1509,8 +1508,17 @@ build_offset_ref (tree type, tree member, bool address_p)
     return member;
 
   if (dependent_type_p (type) || type_dependent_expression_p (member))
-    return build_qualified_name (NULL_TREE, type, member,
-				 /*template_p=*/false);
+    {
+      tree ref, mem_type = NULL_TREE;
+      if (!dependent_scope_p (type))
+	mem_type = TREE_TYPE (member);
+      ref = build_qualified_name (mem_type, type, member,
+				  /*template_p=*/false);
+      /* Undo convert_from_reference.  */
+      if (TREE_CODE (ref) == INDIRECT_REF)
+	ref = TREE_OPERAND (ref, 0);
+      return ref;
+    }
 
   gcc_assert (TYPE_P (type));
   if (! is_class_type (type, 1))
@@ -1520,8 +1528,7 @@ build_offset_ref (tree type, tree member, bool address_p)
   /* Callers should call mark_used before this point.  */
   gcc_assert (!DECL_P (member) || TREE_USED (member));
 
-  if (!COMPLETE_TYPE_P (complete_type (type))
-      && !TYPE_BEING_DEFINED (type))
+  if (!COMPLETE_OR_OPEN_TYPE_P (complete_type (type)))
     {
       error ("incomplete type %qT does not have member %qD", type, member);
       return error_mark_node;
@@ -2827,7 +2834,7 @@ build_vec_init (tree base, tree maxindex, tree init,
       && TREE_CODE (atype) == ARRAY_TYPE
       && (from_array == 2
 	  ? (!CLASS_TYPE_P (inner_elt_type)
-	     || !TYPE_HAS_COMPLEX_ASSIGN_REF (inner_elt_type))
+	     || !TYPE_HAS_COMPLEX_COPY_ASSIGN (inner_elt_type))
 	  : !TYPE_NEEDS_CONSTRUCTING (type))
       && ((TREE_CODE (init) == CONSTRUCTOR
 	   /* Don't do this if the CONSTRUCTOR might contain something

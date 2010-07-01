@@ -352,7 +352,7 @@ abstract_virtuals_error (tree decl, tree type)
       slot = htab_find_slot_with_hash (abstract_pending_vars, type,
 				      (hashval_t)TYPE_UID (type), INSERT);
 
-      pat = GGC_NEW (struct pending_abstract_type);
+      pat = ggc_alloc_pending_abstract_type ();
       pat->type = type;
       pat->decl = decl;
       pat->locus = ((decl && DECL_P (decl))
@@ -714,7 +714,7 @@ store_init_value (tree decl, tree init, int flags)
 
   if (MAYBE_CLASS_TYPE_P (type))
     {
-      gcc_assert (TYPE_HAS_TRIVIAL_INIT_REF (type)
+      gcc_assert (!type_has_nontrivial_copy_init (type)
 		  || TREE_CODE (init) == CONSTRUCTOR);
 
       if (TREE_CODE (init) == TREE_LIST)
@@ -727,10 +727,9 @@ store_init_value (tree decl, tree init, int flags)
   else if (TREE_CODE (init) == TREE_LIST
 	   && TREE_TYPE (init) != unknown_type_node)
     {
-      if (TREE_CODE (decl) == RESULT_DECL)
-	init = build_x_compound_expr_from_list (init,
-						"return value initializer");
-      else if (TREE_CODE (init) == TREE_LIST
+      gcc_assert (TREE_CODE (decl) != RESULT_DECL);
+
+      if (TREE_CODE (init) == TREE_LIST
 	       && TREE_CODE (TREE_TYPE (decl)) == ARRAY_TYPE)
 	{
 	  error ("cannot initialize arrays using this syntax");
@@ -738,7 +737,7 @@ store_init_value (tree decl, tree init, int flags)
 	}
       else
 	/* We get here with code like `int a (2);' */
-	init = build_x_compound_expr_from_list (init, "initializer");
+	init = build_x_compound_expr_from_list (init, ELK_INIT);
     }
 
   /* End of special C++ code.  */
@@ -909,7 +908,7 @@ digest_init_r (tree type, tree init, bool nested, int flags)
       if (cxx_dialect != cxx98 && nested)
 	check_narrowing (type, init);
       init = convert_for_initialization (0, type, init, flags,
-					 "initialization", NULL_TREE, 0,
+					 ICR_INIT, NULL_TREE, 0,
 					 tf_warning_or_error);
       exp = &init;
 
@@ -963,7 +962,7 @@ digest_init_r (tree type, tree init, bool nested, int flags)
 
       return convert_for_initialization (NULL_TREE, type, init,
 					 flags,
-					 "initialization", NULL_TREE, 0,
+					 ICR_INIT, NULL_TREE, 0,
                                          tf_warning_or_error);
     }
 }
@@ -1419,18 +1418,14 @@ build_x_arrow (tree expr)
 				   /*overloaded_p=*/NULL, 
 				   tf_warning_or_error)))
 	{
-	  tree t;
-	  unsigned ix;
-
 	  if (expr == error_mark_node)
 	    return error_mark_node;
 
-	  for (ix = 0; VEC_iterate (tree, types_memoized, ix, t); ix++)
-	    if (TREE_TYPE (expr) == t)
-	      {
-		error ("circular pointer delegation detected");
-		return error_mark_node;
-	      }
+	  if (vec_member (TREE_TYPE (expr), types_memoized))
+	    {
+	      error ("circular pointer delegation detected");
+	      return error_mark_node;
+	    }
 
 	  VEC_safe_push (tree, gc, types_memoized, TREE_TYPE (expr));
 	  last_rval = expr;
@@ -1482,6 +1477,9 @@ build_m_component_ref (tree datum, tree component)
 
   if (error_operand_p (datum) || error_operand_p (component))
     return error_mark_node;
+
+  mark_lvalue_use (datum);
+  mark_rvalue_use (component);
 
   ptrmem_type = TREE_TYPE (component);
   if (!TYPE_PTR_TO_MEMBER_P (ptrmem_type))
@@ -1596,7 +1594,7 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
 	return cp_convert (type, integer_zero_node);
 
       /* This must build a C cast.  */
-      parms = build_x_compound_expr_from_list (parms, "functional cast");
+      parms = build_x_compound_expr_from_list (parms, ELK_FUNC_CAST);
       return cp_build_c_cast (type, parms, complain);
     }
 
@@ -1721,10 +1719,14 @@ merge_exception_specifiers (tree list, tree add)
 {
   if (!list || !add)
     return NULL_TREE;
-  else if (!TREE_VALUE (list))
-    return add;
+  /* For merging noexcept(true) and throw(), take the more recent one (LIST).
+     A throw(type-list) spec takes precedence over a noexcept(false) spec.
+     Any other noexcept-spec should only be merged with an equivalent one.
+     So the !TREE_VALUE code below is correct for all cases.  */
   else if (!TREE_VALUE (add))
     return list;
+  else if (!TREE_VALUE (list))
+    return add;
   else
     {
       tree orig_list = list;

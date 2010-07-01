@@ -285,7 +285,9 @@ gfc_conv_descriptor_stride_get (tree desc, tree dim)
   tree type = TREE_TYPE (desc);
   gcc_assert (GFC_DESCRIPTOR_TYPE_P (type));
   if (integer_zerop (dim)
-      && GFC_TYPE_ARRAY_AKIND (type) == GFC_ARRAY_ALLOCATABLE)
+      && (GFC_TYPE_ARRAY_AKIND (type) == GFC_ARRAY_ALLOCATABLE
+	  ||GFC_TYPE_ARRAY_AKIND (type) == GFC_ARRAY_ASSUMED_SHAPE_CONT
+	  ||GFC_TYPE_ARRAY_AKIND (type) == GFC_ARRAY_POINTER_CONT))
     return gfc_index_one_node;
 
   return gfc_conv_descriptor_stride (desc, dim);
@@ -5522,6 +5524,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
 
   ultimate_ptr_comp = false;
   ultimate_alloc_comp = false;
+
   for (ref = expr->ref; ref; ref = ref->next)
     {
       if (ref->next == NULL)
@@ -5608,7 +5611,8 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
   contiguous = g77 && !this_array_result && contiguous;
 
   /* There is no need to pack and unpack the array, if it is contiguous
-     and not deferred or assumed shape.  */
+     and not a deferred- or assumed-shape array, or if it is simply
+     contiguous.  */
   no_pack = ((sym && sym->as
 		  && !sym->attr.pointer
 		  && sym->as->type != AS_DEFERRED
@@ -5616,7 +5620,9 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
 		      ||
 	     (ref && ref->u.ar.as
 		  && ref->u.ar.as->type != AS_DEFERRED
-		  && ref->u.ar.as->type != AS_ASSUMED_SHAPE));
+		  && ref->u.ar.as->type != AS_ASSUMED_SHAPE)
+		      ||
+	     gfc_is_simply_contiguous (expr, false));
 
   no_pack = contiguous && no_pack;
 
@@ -5680,9 +5686,24 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
       gfc_add_expr_to_block (&se->post, tmp);
     }
 
-  if (g77)
+  if (g77 || (fsym && fsym->attr.contiguous
+	      && !gfc_is_simply_contiguous (expr, false)))
     {
+      tree origptr = NULL_TREE;
+
       desc = se->expr;
+
+      /* For contiguous arrays, save the original value of the descriptor.  */
+      if (!g77)
+	{
+	  origptr = gfc_create_var (pvoid_type_node, "origptr");
+	  tmp = build_fold_indirect_ref_loc (input_location, desc);
+	  tmp = gfc_conv_array_data (tmp);
+	  tmp = fold_build2 (MODIFY_EXPR, TREE_TYPE (origptr), origptr,
+			     fold_convert (TREE_TYPE (origptr), tmp));
+	  gfc_add_expr_to_block (&se->pre, tmp);
+	}
+
       /* Repack the array.  */
       if (gfc_option.warn_array_temp)
 	{
@@ -5706,7 +5727,15 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
 
       ptr = gfc_evaluate_now (ptr, &se->pre);
 
-      se->expr = ptr;
+      /* Use the packed data for the actual argument, except for contiguous arrays,
+	 where the descriptor's data component is set.  */
+      if (g77)
+	se->expr = ptr;
+      else
+	{
+	  tmp = build_fold_indirect_ref_loc (input_location, desc);
+	  gfc_conv_descriptor_data_set (&se->pre, tmp, ptr);
+	}
 
       if (gfc_option.rtcheck & GFC_RTCHECK_ARRAY_TEMPS)
 	{
@@ -5768,6 +5797,14 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
       gfc_add_block_to_block (&block, &se->post);
 
       gfc_init_block (&se->post);
+
+      /* Reset the descriptor pointer.  */
+      if (!g77)
+        {
+          tmp = build_fold_indirect_ref_loc (input_location, desc);
+          gfc_conv_descriptor_data_set (&se->post, tmp, origptr);
+        }
+
       gfc_add_block_to_block (&se->post, &block);
     }
 }
@@ -5938,6 +5975,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
   gfc_loopinfo loop;
   stmtblock_t fnblock;
   stmtblock_t loopbody;
+  tree decl_type;
   tree tmp;
   tree comp;
   tree dcmp;
@@ -5951,21 +5989,28 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 
   gfc_init_block (&fnblock);
 
-  if (POINTER_TYPE_P (TREE_TYPE (decl)) && rank != 0)
+  decl_type = TREE_TYPE (decl);
+
+  if ((POINTER_TYPE_P (decl_type) && rank != 0)
+	|| (TREE_CODE (decl_type) == REFERENCE_TYPE && rank == 0))
+
     decl = build_fold_indirect_ref_loc (input_location,
 				    decl);
 
+  /* Just in case in gets dereferenced.  */
+  decl_type = TREE_TYPE (decl);
+
   /* If this an array of derived types with allocatable components
      build a loop and recursively call this function.  */
-  if (TREE_CODE (TREE_TYPE (decl)) == ARRAY_TYPE
-	|| GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (decl)))
+  if (TREE_CODE (decl_type) == ARRAY_TYPE
+	|| GFC_DESCRIPTOR_TYPE_P (decl_type))
     {
       tmp = gfc_conv_array_data (decl);
       var = build_fold_indirect_ref_loc (input_location,
 				     tmp);
 	
       /* Get the number of elements - 1 and set the counter.  */
-      if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (decl)))
+      if (GFC_DESCRIPTOR_TYPE_P (decl_type))
 	{
 	  /* Use the descriptor for an allocatable array.  Since this
 	     is a full array reference, we only need the descriptor
@@ -5981,7 +6026,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
       else
 	{
 	  /*  Otherwise use the TYPE_DOMAIN information.  */
-	  tmp =  array_type_nelts (TREE_TYPE (decl));
+	  tmp =  array_type_nelts (decl_type);
 	  tmp = fold_convert (gfc_array_index_type, tmp);
 	}
 
@@ -5998,7 +6043,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
         {
 	  if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (dest)))
 	    {
-	      tmp = gfc_duplicate_allocatable (dest, decl, TREE_TYPE(decl), rank);
+	      tmp = gfc_duplicate_allocatable (dest, decl, decl_type, rank);
 	      gfc_add_expr_to_block (&fnblock, tmp);
 	    }
 	  tmp = build_fold_indirect_ref_loc (input_location,

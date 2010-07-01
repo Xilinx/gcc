@@ -262,9 +262,9 @@ reload_cse_simplify_set (rtx set, rtx insn)
 
   /* If memory loads are cheaper than register copies, don't change them.  */
   if (MEM_P (src))
-    old_cost = MEMORY_MOVE_COST (GET_MODE (src), dclass, 1);
+    old_cost = memory_move_cost (GET_MODE (src), dclass, true);
   else if (REG_P (src))
-    old_cost = REGISTER_MOVE_COST (GET_MODE (src),
+    old_cost = register_move_cost (GET_MODE (src),
 				   REGNO_REG_CLASS (REGNO (src)), dclass);
   else
     old_cost = rtx_cost (src, SET, speed);
@@ -314,7 +314,7 @@ reload_cse_simplify_set (rtx set, rtx insn)
 	    }
 	  else
 #endif
-	    this_cost = REGISTER_MOVE_COST (GET_MODE (this_rtx),
+	    this_cost = register_move_cost (GET_MODE (this_rtx),
 					    REGNO_REG_CLASS (REGNO (this_rtx)),
 					    dclass);
 	}

@@ -24,7 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "tree.h"
 #include "gimple.h"
-#include "ggc.h"	/* lambda.h needs this */
+#include "ggc.h"
 #include "lambda.h"	/* gcd */
 #include "hashtab.h"
 #include "plugin-api.h"
@@ -152,7 +152,7 @@ lto_symtab_register_decl (tree decl,
   if (TREE_CODE (decl) == FUNCTION_DECL)
     gcc_assert (!DECL_ABSTRACT (decl));
 
-  new_entry = GGC_CNEW (struct lto_symtab_entry_def);
+  new_entry = ggc_alloc_cleared_lto_symtab_entry_def ();
   new_entry->id = DECL_ASSEMBLER_NAME (decl);
   new_entry->decl = decl;
   new_entry->resolution = resolution;
@@ -530,11 +530,20 @@ lto_symtab_resolve_symbols (void **slot)
     return;
 
 found:
-  if (TREE_CODE (prevailing->decl) == VAR_DECL
-      && TREE_READONLY (prevailing->decl))
+  /* If current lto files represent the whole program,
+    it is correct to use LDPR_PREVALING_DEF_IRONLY.
+    If current lto files are part of whole program, internal
+    resolver doesn't know if it is LDPR_PREVAILING_DEF
+    or LDPR_PREVAILING_DEF_IRONLY.  Use IRONLY conforms to
+    using -fwhole-program.  Otherwise, it doesn't
+    matter using either LDPR_PREVAILING_DEF or
+    LDPR_PREVAILING_DEF_IRONLY
+    
+    FIXME: above workaround due to gold plugin makes some
+    variables IRONLY, which are indeed PREVAILING_DEF in
+    resolution file.  These variables still need manual
+    externally_visible attribute.  */
     prevailing->resolution = LDPR_PREVAILING_DEF_IRONLY;
-  else
-    prevailing->resolution = LDPR_PREVAILING_DEF;
 }
 
 /* Merge all decls in the symbol table chain to the prevailing decl and
@@ -698,6 +707,24 @@ lto_symtab_merge_decls_1 (void **slot, void *data ATTRIBUTE_UNUSED)
       && TREE_CODE (prevailing->decl) != VAR_DECL)
     prevailing->next = NULL;
 
+  /* Set externally_visible flags for declaration of LDPR_PREVAILING_DEF */
+  if (flag_whole_program)
+    {
+      if (prevailing->resolution == LDPR_PREVAILING_DEF)
+        {
+          if (TREE_CODE (prevailing->decl) == FUNCTION_DECL)
+            prevailing->node->local.used_from_object_file = true;
+          else
+            prevailing->vnode->used_from_object_file = true;
+        }
+      else if (prevailing->resolution == LDPR_PREVAILING_DEF_IRONLY)
+        {
+          if (TREE_CODE (prevailing->decl) == FUNCTION_DECL)
+            prevailing->node->local.used_from_object_file = false;
+          else
+            prevailing->vnode->used_from_object_file = false;
+        }
+    }
   return 1;
 }
 

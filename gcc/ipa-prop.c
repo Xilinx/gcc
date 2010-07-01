@@ -39,6 +39,16 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple-pretty-print.h"
 #include "lto-streamer.h"
 
+
+/* Intermediate information about a parameter that is only useful during the
+   run of ipa_analyze_node and is not kept afterwards.  */
+
+struct param_analysis_info
+{
+  bool modified;
+  bitmap visited_statements;
+};
+
 /* Vector where the parameter infos are actually stored. */
 VEC (ipa_node_params_t, heap) *ipa_node_params_vector;
 /* Vector where the parameter infos are actually stored. */
@@ -196,101 +206,10 @@ ipa_initialize_node_params (struct cgraph_node *node)
     }
 }
 
-/* Callback of walk_stmt_load_store_addr_ops for the visit_store and visit_addr
-   parameters.  If OP is a parameter declaration, mark it as modified in the
-   info structure passed in DATA.  */
-
-static bool
-visit_store_addr_for_mod_analysis (gimple stmt ATTRIBUTE_UNUSED,
-				   tree op, void *data)
-{
-  struct ipa_node_params *info = (struct ipa_node_params *) data;
-
-  op = get_base_address (op);
-  if (op
-      && TREE_CODE (op) == PARM_DECL)
-    {
-      int index = ipa_get_param_decl_index (info, op);
-      gcc_assert (index >= 0);
-      info->params[index].modified = true;
-      info->params[index].used = true;
-    }
-
-  return false;
-}
-
-/* Callback of walk_stmt_load_store_addr_ops for the visit_load.
-   If OP is a parameter declaration, mark it as used in the info structure
-   passed in DATA.  */
-
-static bool
-visit_load_for_mod_analysis (gimple stmt ATTRIBUTE_UNUSED,
-			     tree op, void *data)
-{
-  struct ipa_node_params *info = (struct ipa_node_params *) data;
-
-  op = get_base_address (op);
-  if (op
-      && TREE_CODE (op) == PARM_DECL)
-    {
-      int index = ipa_get_param_decl_index (info, op);
-      gcc_assert (index >= 0);
-      info->params[index].used = true;
-    }
-
-  return false;
-}
-
-/* Compute which formal parameters of function associated with NODE are locally
-   modified or their address is taken.  Note that this does not apply on
-   parameters with SSA names but those can and should be analyzed
-   differently.  */
-
-void
-ipa_detect_param_modifications (struct cgraph_node *node)
-{
-  tree decl = node->decl;
-  basic_block bb;
-  struct function *func;
-  gimple_stmt_iterator gsi;
-  struct ipa_node_params *info = IPA_NODE_REF (node);
-  int i;
-
-  if (ipa_get_param_count (info) == 0 || info->modification_analysis_done)
-    return;
-
-  for (i = 0; i < ipa_get_param_count (info); i++)
-    {
-      tree parm = ipa_get_param (info, i);
-      /* For SSA regs see if parameter is used.  For non-SSA we compute
-	 the flag during modification analysis.  */
-      if (is_gimple_reg (parm)
-	  && gimple_default_def (DECL_STRUCT_FUNCTION (node->decl), parm))
-	info->params[i].used = true;
-    }
-
-  func = DECL_STRUCT_FUNCTION (decl);
-  FOR_EACH_BB_FN (bb, func)
-    {
-      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), info,
-				       visit_load_for_mod_analysis,
-				       visit_store_addr_for_mod_analysis,
-				       visit_store_addr_for_mod_analysis);
-      for (gsi = gsi_start (phi_nodes (bb)); !gsi_end_p (gsi); gsi_next (&gsi))
-	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), info,
-				       visit_load_for_mod_analysis,
-				       visit_store_addr_for_mod_analysis,
-				       visit_store_addr_for_mod_analysis);
-    }
-
-  info->modification_analysis_done = 1;
-}
-
 /* Count number of arguments callsite CS has and store it in
    ipa_edge_args structure corresponding to this callsite.  */
 
-void
+static void
 ipa_count_arguments (struct cgraph_edge *cs)
 {
   gimple stmt;
@@ -486,11 +405,12 @@ compute_complex_assign_jump_func (struct ipa_node_params *info,
   if (TREE_CODE (type) != RECORD_TYPE)
     return;
   op1 = get_ref_base_and_extent (op1, &offset, &size, &max_size);
-  if (TREE_CODE (op1) != INDIRECT_REF
+  if (TREE_CODE (op1) != MEM_REF
       /* If this is a varying address, punt.  */
       || max_size == -1
       || max_size != size)
     return;
+  offset += mem_ref_offset (op1).low * BITS_PER_UNIT;
   op1 = TREE_OPERAND (op1, 0);
   if (TREE_CODE (op1) != SSA_NAME
       || !SSA_NAME_IS_DEFAULT_DEF (op1))
@@ -562,11 +482,12 @@ compute_complex_ancestor_jump_func (struct ipa_node_params *info,
   expr = TREE_OPERAND (expr, 0);
   expr = get_ref_base_and_extent (expr, &offset, &size, &max_size);
 
-  if (TREE_CODE (expr) != INDIRECT_REF
+  if (TREE_CODE (expr) != MEM_REF
       /* If this is a varying address, punt.  */
       || max_size == -1
       || max_size != size)
     return;
+  offset += mem_ref_offset (expr).low * BITS_PER_UNIT;
   parm = TREE_OPERAND (expr, 0);
   if (TREE_CODE (parm) != SSA_NAME
       || !SSA_NAME_IS_DEFAULT_DEF (parm))
@@ -707,14 +628,53 @@ type_like_member_ptr_p (tree type, tree *method_ptr, tree *delta)
   return true;
 }
 
+/* Callback of walk_aliased_vdefs.  Flags that it has been invoked to the
+   boolean variable pointed to by DATA.  */
+
+static bool
+mark_modified (ao_ref *ao ATTRIBUTE_UNUSED, tree vdef ATTRIBUTE_UNUSED,
+		     void *data)
+{
+  bool *b = (bool *) data;
+  *b = true;
+  return true;
+}
+
+/* Return true if the formal parameter PARM might have been modified in this
+   function before reaching the statement CALL.  PARM_INFO is a pointer to a
+   structure containing intermediate information about PARM.  */
+
+static bool
+is_parm_modified_before_call (struct param_analysis_info *parm_info,
+			      gimple call, tree parm)
+{
+  bool modified = false;
+  ao_ref refd;
+
+  if (parm_info->modified)
+    return true;
+
+  ao_ref_init (&refd, parm);
+  walk_aliased_vdefs (&refd, gimple_vuse (call), mark_modified,
+		      &modified, &parm_info->visited_statements);
+  if (modified)
+    {
+      parm_info->modified = true;
+      return true;
+    }
+  return false;
+}
+
 /* Go through arguments of the CALL and for every one that looks like a member
    pointer, check whether it can be safely declared pass-through and if so,
    mark that to the corresponding item of jump FUNCTIONS.  Return true iff
    there are non-pass-through member pointers within the arguments.  INFO
-   describes formal parameters of the caller.  */
+   describes formal parameters of the caller.  PARMS_INFO is a pointer to a
+   vector containing intermediate information about each formal parameter.  */
 
 static bool
 compute_pass_through_member_ptrs (struct ipa_node_params *info,
+				  struct param_analysis_info *parms_info,
 				  struct ipa_jump_func *functions,
 				  gimple call)
 {
@@ -733,7 +693,7 @@ compute_pass_through_member_ptrs (struct ipa_node_params *info,
 	      int index = ipa_get_param_decl_index (info, arg);
 
 	      gcc_assert (index >=0);
-	      if (!ipa_is_param_modified (info, index))
+	      if (!is_parm_modified_before_call (&parms_info[index], call, arg))
 		{
 		  functions[num].type = IPA_JF_PASS_THROUGH;
 		  functions[num].value.pass_through.formal_id = index;
@@ -806,6 +766,8 @@ determine_cst_member_ptr (gimple call, tree arg, tree method_field,
       gimple stmt = gsi_stmt (gsi);
       tree lhs, rhs, fld;
 
+      if (!stmt_may_clobber_ref_p (stmt, arg))
+	continue;
       if (!gimple_assign_single_p (stmt))
 	return;
 
@@ -814,7 +776,7 @@ determine_cst_member_ptr (gimple call, tree arg, tree method_field,
 
       if (TREE_CODE (lhs) != COMPONENT_REF
 	  || TREE_OPERAND (lhs, 0) != arg)
-	continue;
+	return;
 
       fld = TREE_OPERAND (lhs, 1);
       if (!method && fld == method_field)
@@ -884,7 +846,8 @@ compute_cst_member_ptr_arguments (struct ipa_jump_func *functions,
    to this callsite.  */
 
 static void
-ipa_compute_jump_functions_for_edge (struct cgraph_edge *cs)
+ipa_compute_jump_functions_for_edge (struct param_analysis_info *parms_info,
+				     struct cgraph_edge *cs)
 {
   struct ipa_node_params *info = IPA_NODE_REF (cs->caller);
   struct ipa_edge_args *arguments = IPA_EDGE_REF (cs);
@@ -892,8 +855,8 @@ ipa_compute_jump_functions_for_edge (struct cgraph_edge *cs)
 
   if (ipa_get_cs_argument_count (arguments) == 0 || arguments->jump_functions)
     return;
-  arguments->jump_functions = GGC_CNEWVEC (struct ipa_jump_func,
-					   ipa_get_cs_argument_count (arguments));
+  arguments->jump_functions = ggc_alloc_cleared_vec_ipa_jump_func
+    (ipa_get_cs_argument_count (arguments));
 
   call = cs->call_stmt;
   gcc_assert (is_gimple_call (call));
@@ -903,7 +866,8 @@ ipa_compute_jump_functions_for_edge (struct cgraph_edge *cs)
 
   /* Let's check whether there are any potential member pointers and if so,
      whether we can determine their functions as pass_through.  */
-  if (!compute_pass_through_member_ptrs (info, arguments->jump_functions, call))
+  if (!compute_pass_through_member_ptrs (info, parms_info,
+					 arguments->jump_functions, call))
     return;
 
   /* Finally, let's check whether we actually pass a new constant member
@@ -914,8 +878,9 @@ ipa_compute_jump_functions_for_edge (struct cgraph_edge *cs)
 /* Compute jump functions for all edges - both direct and indirect - outgoing
    from NODE.  Also count the actual arguments in the process.  */
 
-void
-ipa_compute_jump_functions (struct cgraph_node *node)
+static void
+ipa_compute_jump_functions (struct cgraph_node *node,
+			    struct param_analysis_info *parms_info)
 {
   struct cgraph_edge *cs;
 
@@ -926,16 +891,20 @@ ipa_compute_jump_functions (struct cgraph_node *node)
       if (!cs->callee->analyzed && !flag_lto && !flag_whopr)
 	continue;
       ipa_count_arguments (cs);
+      /* If the descriptor of the callee is not initialized yet, we have to do
+	 it now. */
+      if (cs->callee->analyzed)
+	ipa_initialize_node_params (cs->callee);
       if (ipa_get_cs_argument_count (IPA_EDGE_REF (cs))
 	  != ipa_get_param_count (IPA_NODE_REF (cs->callee)))
 	ipa_set_called_with_variable_arg (IPA_NODE_REF (cs->callee));
-      ipa_compute_jump_functions_for_edge (cs);
+      ipa_compute_jump_functions_for_edge (parms_info, cs);
     }
 
   for (cs = node->indirect_calls; cs; cs = cs->next_callee)
     {
       ipa_count_arguments (cs);
-      ipa_compute_jump_functions_for_edge (cs);
+      ipa_compute_jump_functions_for_edge (parms_info, cs);
     }
 }
 
@@ -1019,17 +988,23 @@ ipa_note_param_call (struct cgraph_node *node, int param_index, gimple stmt,
 }
 
 /* Analyze the CALL and examine uses of formal parameters of the caller NODE
-   (described by INFO).  Currently it checks whether the call calls a pointer
-   that is a formal parameter and if so, the parameter is marked with the
-   called flag and an indirect call graph edge describing the call is created.
-   This is very simple for ordinary pointers represented in SSA but not-so-nice
-   when it comes to member pointers.  The ugly part of this function does
-   nothing more than trying to match the pattern of such a call.  An example of
-   such a pattern is the gimple dump below, the call is on the last line:
+   (described by INFO).  PARMS_INFO is a pointer to a vector containing
+   intermediate information about each formal parameter.  Currently it checks
+   whether the call calls a pointer that is a formal parameter and if so, the
+   parameter is marked with the called flag and an indirect call graph edge
+   describing the call is created.  This is very simple for ordinary pointers
+   represented in SSA but not-so-nice when it comes to member pointers.  The
+   ugly part of this function does nothing more than trying to match the
+   pattern of such a call.  An example of such a pattern is the gimple dump
+   below, the call is on the last line:
 
      <bb 2>:
        f$__delta_5 = f.__delta;
        f$__pfn_24 = f.__pfn;
+
+     ...
+
+     <bb 5>
        D.2496_3 = (int) f$__pfn_24;
        D.2497_4 = D.2496_3 & 1;
        if (D.2497_4 != 0)
@@ -1037,7 +1012,7 @@ ipa_note_param_call (struct cgraph_node *node, int param_index, gimple stmt,
        else
          goto <bb 4>;
 
-     <bb 3>:
+     <bb 6>:
        D.2500_7 = (unsigned int) f$__delta_5;
        D.2501_8 = &S + D.2500_7;
        D.2502_9 = (int (*__vtbl_ptr_type) (void) * *) D.2501_8;
@@ -1048,7 +1023,7 @@ ipa_note_param_call (struct cgraph_node *node, int param_index, gimple stmt,
        D.2507_15 = *D.2506_14;
        iftmp.11_16 = (String:: *) D.2507_15;
 
-     <bb 4>:
+     <bb 7>:
        # iftmp.11_1 = PHI <iftmp.11_16(3), f$__pfn_24(2)>
        D.2500_19 = (unsigned int) f$__delta_5;
        D.2508_20 = &S + D.2500_19;
@@ -1067,6 +1042,7 @@ ipa_note_param_call (struct cgraph_node *node, int param_index, gimple stmt,
 static void
 ipa_analyze_indirect_call_uses (struct cgraph_node *node,
 				struct ipa_node_params *info,
+				struct param_analysis_info *parms_info,
 				gimple call, tree target)
 {
   gimple def;
@@ -1109,17 +1085,18 @@ ipa_analyze_indirect_call_uses (struct cgraph_node *node,
   d1 = SSA_NAME_DEF_STMT (n1);
   d2 = SSA_NAME_DEF_STMT (n2);
 
+  join = gimple_bb (def);
   if ((rec = ipa_get_stmt_member_ptr_load_param (d1, false)))
     {
       if (ipa_get_stmt_member_ptr_load_param (d2, false))
 	return;
 
-      bb = gimple_bb (d1);
+      bb = EDGE_PRED (join, 0)->src;
       virt_bb = gimple_bb (d2);
     }
   else if ((rec = ipa_get_stmt_member_ptr_load_param (d2, false)))
     {
-      bb = gimple_bb (d2);
+      bb = EDGE_PRED (join, 1)->src;
       virt_bb = gimple_bb (d1);
     }
   else
@@ -1128,7 +1105,6 @@ ipa_analyze_indirect_call_uses (struct cgraph_node *node,
   /* Second, we need to check that the basic blocks are laid out in the way
      corresponding to the pattern. */
 
-  join = gimple_bb (def);
   if (!single_pred_p (virt_bb) || !single_succ_p (virt_bb)
       || single_pred (virt_bb) != bb
       || single_succ (virt_bb) != join)
@@ -1138,7 +1114,7 @@ ipa_analyze_indirect_call_uses (struct cgraph_node *node,
      significant bit of the pfn. */
 
   branch = last_stmt (bb);
-  if (gimple_code (branch) != GIMPLE_COND)
+  if (!branch || gimple_code (branch) != GIMPLE_COND)
     return;
 
   if (gimple_cond_code (branch) != NE_EXPR
@@ -1178,7 +1154,8 @@ ipa_analyze_indirect_call_uses (struct cgraph_node *node,
     return;
 
   index = ipa_get_param_decl_index (info, rec);
-  if (index >= 0 && !ipa_is_param_modified (info, index))
+  if (index >= 0 && !is_parm_modified_before_call (&parms_info[index],
+						   call, rec))
     ipa_note_param_call (node, index, call, false);
 
   return;
@@ -1204,7 +1181,7 @@ ipa_analyze_virtual_call_uses (struct cgraph_node *node,
 	  obj = TREE_OPERAND (obj, 0);
 	}
       while (TREE_CODE (obj) == COMPONENT_REF);
-      if (TREE_CODE (obj) != INDIRECT_REF)
+      if (TREE_CODE (obj) != MEM_REF)
 	return;
       obj = TREE_OPERAND (obj, 0);
     }
@@ -1221,16 +1198,18 @@ ipa_analyze_virtual_call_uses (struct cgraph_node *node,
 }
 
 /* Analyze a call statement CALL whether and how it utilizes formal parameters
-   of the caller (described by INFO). */
+   of the caller (described by INFO).  PARMS_INFO is a pointer to a vector
+   containing intermediate information about each formal parameter.  */
 
 static void
 ipa_analyze_call_uses (struct cgraph_node *node,
-		       struct ipa_node_params *info, gimple call)
+		       struct ipa_node_params *info,
+		       struct param_analysis_info *parms_info, gimple call)
 {
   tree target = gimple_call_fn (call);
 
   if (TREE_CODE (target) == SSA_NAME)
-    ipa_analyze_indirect_call_uses (node, info, call, target);
+    ipa_analyze_indirect_call_uses (node, info, parms_info, call, target);
   else if (TREE_CODE (target) == OBJ_TYPE_REF)
     ipa_analyze_virtual_call_uses (node, info, call, target);
 }
@@ -1238,31 +1217,67 @@ ipa_analyze_call_uses (struct cgraph_node *node,
 
 /* Analyze the call statement STMT with respect to formal parameters (described
    in INFO) of caller given by NODE.  Currently it only checks whether formal
-   parameters are called.  */
+   parameters are called.  PARMS_INFO is a pointer to a vector containing
+   intermediate information about each formal parameter.  */
 
 static void
 ipa_analyze_stmt_uses (struct cgraph_node *node, struct ipa_node_params *info,
-		       gimple stmt)
+		       struct param_analysis_info *parms_info, gimple stmt)
 {
   if (is_gimple_call (stmt))
-    ipa_analyze_call_uses (node, info, stmt);
+    ipa_analyze_call_uses (node, info, parms_info, stmt);
+}
+
+/* Callback of walk_stmt_load_store_addr_ops for the visit_load.
+   If OP is a parameter declaration, mark it as used in the info structure
+   passed in DATA.  */
+
+static bool
+visit_ref_for_mod_analysis (gimple stmt ATTRIBUTE_UNUSED,
+			     tree op, void *data)
+{
+  struct ipa_node_params *info = (struct ipa_node_params *) data;
+
+  op = get_base_address (op);
+  if (op
+      && TREE_CODE (op) == PARM_DECL)
+    {
+      int index = ipa_get_param_decl_index (info, op);
+      gcc_assert (index >= 0);
+      info->params[index].used = true;
+    }
+
+  return false;
 }
 
 /* Scan the function body of NODE and inspect the uses of formal parameters.
    Store the findings in various structures of the associated ipa_node_params
-   structure, such as parameter flags, notes etc.  */
+   structure, such as parameter flags, notes etc.  PARMS_INFO is a pointer to a
+   vector containing intermediate information about each formal parameter.   */
 
-void
-ipa_analyze_params_uses (struct cgraph_node *node)
+static void
+ipa_analyze_params_uses (struct cgraph_node *node,
+			 struct param_analysis_info *parms_info)
 {
   tree decl = node->decl;
   basic_block bb;
   struct function *func;
   gimple_stmt_iterator gsi;
   struct ipa_node_params *info = IPA_NODE_REF (node);
+  int i;
 
   if (ipa_get_param_count (info) == 0 || info->uses_analysis_done)
     return;
+
+  for (i = 0; i < ipa_get_param_count (info); i++)
+    {
+      tree parm = ipa_get_param (info, i);
+      /* For SSA regs see if parameter is used.  For non-SSA we compute
+	 the flag during modification analysis.  */
+      if (is_gimple_reg (parm)
+	  && gimple_default_def (DECL_STRUCT_FUNCTION (node->decl), parm))
+	info->params[i].used = true;
+    }
 
   func = DECL_STRUCT_FUNCTION (decl);
   FOR_EACH_BB_FN (bb, func)
@@ -1270,12 +1285,51 @@ ipa_analyze_params_uses (struct cgraph_node *node)
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	{
 	  gimple stmt = gsi_stmt (gsi);
-	  ipa_analyze_stmt_uses (node, info, stmt);
+
+	  if (is_gimple_debug (stmt))
+	    continue;
+
+	  ipa_analyze_stmt_uses (node, info, parms_info, stmt);
+	  walk_stmt_load_store_addr_ops (stmt, info,
+					 visit_ref_for_mod_analysis,
+					 visit_ref_for_mod_analysis,
+					 visit_ref_for_mod_analysis);
 	}
+      for (gsi = gsi_start (phi_nodes (bb)); !gsi_end_p (gsi); gsi_next (&gsi))
+	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), info,
+				       visit_ref_for_mod_analysis,
+				       visit_ref_for_mod_analysis,
+				       visit_ref_for_mod_analysis);
     }
 
   info->uses_analysis_done = 1;
 }
+
+/* Initialize the array describing properties of of formal parameters of NODE,
+   analyze their uses and and compute jump functions associated witu actual
+   arguments of calls from within NODE.  */
+
+void
+ipa_analyze_node (struct cgraph_node *node)
+{
+  struct ipa_node_params *info = IPA_NODE_REF (node);
+  struct param_analysis_info *parms_info;
+  int i, param_count;
+
+  ipa_initialize_node_params (node);
+
+  param_count = ipa_get_param_count (info);
+  parms_info = XALLOCAVEC (struct param_analysis_info, param_count);
+  memset (parms_info, 0, sizeof (struct param_analysis_info) * param_count);
+
+  ipa_analyze_params_uses (node, parms_info);
+  ipa_compute_jump_functions (node, parms_info);
+
+  for (i = 0; i < param_count; i++)
+    if (parms_info[i].visited_statements)
+      BITMAP_FREE (parms_info[i].visited_statements);
+}
+
 
 /* Update the jump function DST when the call graph edge correspondng to SRC is
    is being inlined, knowing that DST is of type ancestor and src of known
@@ -1696,18 +1750,16 @@ duplicate_array (void *src, size_t n)
   return p;
 }
 
-/* Like duplicate_array byt in GGC memory.  */
-
-static void *
-duplicate_ggc_array (void *src, size_t n)
+static struct ipa_jump_func *
+duplicate_ipa_jump_func_array (const struct ipa_jump_func * src, size_t n)
 {
-  void *p;
+  struct ipa_jump_func *p;
 
   if (!src)
     return NULL;
 
-  p = ggc_alloc (n);
-  memcpy (p, src, n);
+  p = ggc_alloc_vec_ipa_jump_func (n);
+  memcpy (p, src, n * sizeof (struct ipa_jump_func));
   return p;
 }
 
@@ -1727,9 +1779,8 @@ ipa_edge_duplication_hook (struct cgraph_edge *src, struct cgraph_edge *dst,
 
   arg_count = ipa_get_cs_argument_count (old_args);
   ipa_set_cs_argument_count (new_args, arg_count);
-  new_args->jump_functions = (struct ipa_jump_func *)
-    duplicate_ggc_array (old_args->jump_functions,
-		         sizeof (struct ipa_jump_func) * arg_count);
+  new_args->jump_functions =
+    duplicate_ipa_jump_func_array (old_args->jump_functions, arg_count);
 
   if (iinlining_processed_edges
       && bitmap_bit_p (iinlining_processed_edges, src->uid))
@@ -1851,8 +1902,6 @@ ipa_print_node_params (FILE * f, struct cgraph_node *node)
                  (DECL_NAME (temp)
                   ? (*lang_hooks.decl_printable_name) (temp, 2)
                   : "(unnamed)"));
-      if (ipa_is_param_modified (info, i))
-	fprintf (f, " modified");
       if (ipa_is_param_used (info, i))
 	fprintf (f, " used");
       fprintf (f, "\n");
@@ -2038,6 +2087,13 @@ ipa_modify_formal_parameters (tree fndecl, ipa_parm_adjustment_vec adjustments,
 							 new_reversed));
       TYPE_CONTEXT (new_type) = TYPE_CONTEXT (orig_type);
       DECL_VINDEX (fndecl) = NULL_TREE;
+    }
+
+  /* When signature changes, we need to clear builtin info.  */
+  if (DECL_BUILT_IN (fndecl))
+    {
+      DECL_BUILT_IN_CLASS (fndecl) = NOT_BUILT_IN;
+      DECL_FUNCTION_CODE (fndecl) = (enum built_in_function) 0;
     }
 
   /* This is a new type, not a copy of an old type.  Need to reassociate
@@ -2406,14 +2462,13 @@ ipa_write_indirect_edge_info (struct output_block *ob,
 			      struct cgraph_edge *cs)
 {
   struct cgraph_indirect_call_info *ii = cs->indirect_info;
-  struct bitpack_d *bp;
+  struct bitpack_d bp;
 
   lto_output_sleb128_stream (ob->main_stream, ii->param_index);
   lto_output_sleb128_stream (ob->main_stream, ii->anc_offset);
-  bp = bitpack_create ();
-  bp_pack_value (bp, ii->polymorphic, 1);
-  lto_output_bitpack (ob->main_stream, bp);
-  bitpack_delete (bp);
+  bp = bitpack_create (ob->main_stream);
+  bp_pack_value (&bp, ii->polymorphic, 1);
+  lto_output_bitpack (&bp);
 
   if (ii->polymorphic)
     {
@@ -2431,13 +2486,12 @@ ipa_read_indirect_edge_info (struct lto_input_block *ib,
 			     struct cgraph_edge *cs)
 {
   struct cgraph_indirect_call_info *ii = cs->indirect_info;
-  struct bitpack_d *bp;
+  struct bitpack_d bp;
 
   ii->param_index = (int) lto_input_sleb128 (ib);
   ii->anc_offset = (HOST_WIDE_INT) lto_input_sleb128 (ib);
   bp = lto_input_bitpack (ib);
-  ii->polymorphic = bp_unpack_value (bp, 1);
-  bitpack_delete (bp);
+  ii->polymorphic = bp_unpack_value (&bp, 1);
   if (ii->polymorphic)
     {
       ii->otr_token = (HOST_WIDE_INT) lto_input_sleb128 (ib);
@@ -2455,26 +2509,21 @@ ipa_write_node_info (struct output_block *ob, struct cgraph_node *node)
   struct ipa_node_params *info = IPA_NODE_REF (node);
   int j;
   struct cgraph_edge *e;
-  struct bitpack_d *bp;
+  struct bitpack_d bp;
 
   encoder = ob->decl_state->cgraph_node_encoder;
   node_ref = lto_cgraph_encoder_encode (encoder, node);
   lto_output_uleb128_stream (ob->main_stream, node_ref);
 
-  bp = bitpack_create ();
-  bp_pack_value (bp, info->called_with_var_arguments, 1);
-  bp_pack_value (bp, info->uses_analysis_done, 1);
-  gcc_assert (info->modification_analysis_done
+  bp = bitpack_create (ob->main_stream);
+  bp_pack_value (&bp, info->called_with_var_arguments, 1);
+  gcc_assert (info->uses_analysis_done
 	      || ipa_get_param_count (info) == 0);
   gcc_assert (!info->node_enqueued);
   gcc_assert (!info->ipcp_orig_node);
   for (j = 0; j < ipa_get_param_count (info); j++)
-    {
-      bp_pack_value (bp, info->params[j].modified, 1);
-      bp_pack_value (bp, info->params[j].used, 1);
-    }
-  lto_output_bitpack (ob->main_stream, bp);
-  bitpack_delete (bp);
+    bp_pack_value (&bp, info->params[j].used, 1);
+  lto_output_bitpack (&bp);
   for (e = node->callees; e; e = e->next_callee)
     {
       struct ipa_edge_args *args = IPA_EDGE_REF (e);
@@ -2497,25 +2546,17 @@ ipa_read_node_info (struct lto_input_block *ib, struct cgraph_node *node,
   struct ipa_node_params *info = IPA_NODE_REF (node);
   int k;
   struct cgraph_edge *e;
-  struct bitpack_d *bp;
+  struct bitpack_d bp;
 
   ipa_initialize_node_params (node);
 
   bp = lto_input_bitpack (ib);
-  info->called_with_var_arguments = bp_unpack_value (bp, 1);
-  info->uses_analysis_done = bp_unpack_value (bp, 1);
+  info->called_with_var_arguments = bp_unpack_value (&bp, 1);
   if (ipa_get_param_count (info) != 0)
-    {
-      info->modification_analysis_done = true;
-      info->uses_analysis_done = true;
-    }
+    info->uses_analysis_done = true;
   info->node_enqueued = false;
   for (k = 0; k < ipa_get_param_count (info); k++)
-    {
-      info->params[k].modified = bp_unpack_value (bp, 1);
-      info->params[k].used = bp_unpack_value (bp, 1);
-    }
-  bitpack_delete (bp);
+    info->params[k].used = bp_unpack_value (&bp, 1);
   for (e = node->callees; e; e = e->next_callee)
     {
       struct ipa_edge_args *args = IPA_EDGE_REF (e);
@@ -2525,8 +2566,8 @@ ipa_read_node_info (struct lto_input_block *ib, struct cgraph_node *node,
       if (!count)
 	continue;
 
-      args->jump_functions = GGC_CNEWVEC (struct ipa_jump_func,
-				          ipa_get_cs_argument_count (args));
+      args->jump_functions = ggc_alloc_cleared_vec_ipa_jump_func
+	(ipa_get_cs_argument_count (args));
       for (k = 0; k < ipa_get_cs_argument_count (args); k++)
 	ipa_read_jump_function (ib, ipa_get_ith_jump_func (args, k), data_in);
     }

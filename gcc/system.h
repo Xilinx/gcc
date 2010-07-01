@@ -1,7 +1,7 @@
 /* Get common system includes and various definitions and declarations based
    on autoconf macros.
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008,
-   2009
+   2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -601,6 +601,12 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 #define gcc_assert(EXPR) ((void)(0 && (EXPR)))
 #endif
 
+#ifdef ENABLE_CHECKING
+#define gcc_checking_assert(EXPR) gcc_assert (EXPR)
+#else
+#define gcc_checking_assert(EXPR) ((void)(0 && (EXPR)))
+#endif
+
 /* Use gcc_unreachable() to mark unreachable locations (like an
    unreachable default case of a switch.  Do not use gcc_assert(0).  */
 #if (GCC_VERSION >= 4005) && !ENABLE_ASSERT_CHECKING
@@ -708,7 +714,8 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	FUNCTION_ARG_PARTIAL_NREGS ASM_OUTPUT_DWARF_DTPREL		\
 	ALLOCATE_INITIAL_VALUE LEGITIMIZE_ADDRESS FRAME_POINTER_REQUIRED \
 	CAN_ELIMINATE TRAMPOLINE_TEMPLATE INITIALIZE_TRAMPOLINE		\
-	TRAMPOLINE_ADJUST_ADDRESS STATIC_CHAIN STATIC_CHAIN_INCOMING
+	TRAMPOLINE_ADJUST_ADDRESS STATIC_CHAIN STATIC_CHAIN_INCOMING	\
+	RETURN_POPS_ARGS
 
 /* Other obsolete target macros, or macros that used to be in target
    headers and were not used, and may be obsolete or may never have
@@ -762,7 +769,8 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	SMALL_ARG_MAX ASM_OUTPUT_SHARED_BSS ASM_OUTPUT_SHARED_COMMON	   \
 	ASM_OUTPUT_SHARED_LOCAL ASM_MAKE_LABEL_LINKONCE			   \
 	STACK_CHECK_PROBE_INTERVAL STACK_CHECK_PROBE_LOAD		   \
-	ORDER_REGS_FOR_LOCAL_ALLOC
+	ORDER_REGS_FOR_LOCAL_ALLOC FUNCTION_OUTGOING_VALUE		   \
+	ASM_DECLARE_CONSTANT_NAME MODIFY_TARGET_NAME SWITCHES_NEED_SPACES
 
 /* Hooks that are no longer used.  */
  #pragma GCC poison LANG_HOOKS_FUNCTION_MARK LANG_HOOKS_FUNCTION_FREE	\
@@ -792,7 +800,7 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 /* Front ends should never have to include middle-end headers.  Enforce
    this by poisoning the header double-include protection defines.  */
 #ifdef IN_GCC_FRONTEND
-#pragma GCC poison GCC_RTL_H
+#pragma GCC poison GCC_RTL_H GCC_EXCEPT_H
 #endif
 
 /* Note: not all uses of the `index' token (e.g. variable names and
@@ -828,6 +836,20 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 /* GCC 4.0.x has a bug where it may ICE on this expression,
    so does GCC 3.4.x (PR17436).  */
 #define CONST_CAST2(TOTYPE,FROMTYPE,X) ((__extension__(union {FROMTYPE _q; TOTYPE _nq;})(X))._nq)
+#elif defined(__GNUC__)
+static inline char *
+helper_const_non_const_cast (const char *p)
+{
+  union {
+    const char *const_c;
+    char *c;
+  } val;
+  val.const_c = p;
+  return val.c;
+}
+
+#define CONST_CAST2(TOTYPE,FROMTYPE,X) \
+	((TOTYPE) helper_const_non_const_cast ((const char *) (FROMTYPE) (X)))
 #else
 #define CONST_CAST2(TOTYPE,FROMTYPE,X) ((TOTYPE)(FROMTYPE)(X))
 #endif

@@ -25,7 +25,7 @@
 
 /* This file contains parts of the compiler that are required for interfacing
    with GCC but otherwise do nothing and parts of Gigi that need to know
-   about RTL.  */
+   about GIMPLE.  */
 
 #include "config.h"
 #include "system.h"
@@ -44,7 +44,6 @@
 #include "options.h"
 #include "plugin.h"
 #include "function.h"	/* For pass_by_reference.  */
-#include "except.h"	/* For USING_SJLJ_EXCEPTIONS.  */
 
 #include "ada.h"
 #include "adadecode.h"
@@ -134,6 +133,9 @@ static tree gnat_eh_personality		(void);
 #define LANG_HOOKS_DEEP_UNSHARING	true
 
 struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
+
+/* This symbol needs to be defined for the front-end.  */
+void *callgraph_info_file = NULL;
 
 /* How much we want of our DWARF extensions.  Some of our dwarf+ extensions
    are incompatible with regular GDB versions, so we must make sure to only
@@ -574,7 +576,7 @@ static const char *
 gnat_printable_name (tree decl, int verbosity)
 {
   const char *coded_name = IDENTIFIER_POINTER (DECL_NAME (decl));
-  char *ada_name = (char *) ggc_alloc (strlen (coded_name) * 2 + 60);
+  char *ada_name = (char *) ggc_alloc_atomic (strlen (coded_name) * 2 + 60);
 
   __gnat_decode (coded_name, ada_name, 0);
 

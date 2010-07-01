@@ -865,6 +865,8 @@ gimple_assign_nonnegative_warnv_p (gimple stmt, bool *strict_overflow_p)
 					      gimple_assign_rhs1 (stmt),
 					      gimple_assign_rhs2 (stmt),
 					      strict_overflow_p);
+    case GIMPLE_TERNARY_RHS:
+      return false;
     case GIMPLE_SINGLE_RHS:
       return tree_single_nonnegative_warnv_p (gimple_assign_rhs1 (stmt),
 					      strict_overflow_p);
@@ -936,6 +938,8 @@ gimple_assign_nonzero_warnv_p (gimple stmt, bool *strict_overflow_p)
 					  gimple_assign_rhs1 (stmt),
 					  gimple_assign_rhs2 (stmt),
 					  strict_overflow_p);
+    case GIMPLE_TERNARY_RHS:
+      return false;
     case GIMPLE_SINGLE_RHS:
       return tree_single_nonzero_warnv_p (gimple_assign_rhs1 (stmt),
 					  strict_overflow_p);
@@ -983,7 +987,7 @@ vrp_stmt_computes_nonzero (gimple stmt, bool *strict_overflow_p)
       tree base = get_base_address (TREE_OPERAND (expr, 0));
 
       if (base != NULL_TREE
-	  && TREE_CODE (base) == INDIRECT_REF
+	  && TREE_CODE (base) == MEM_REF
 	  && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
 	{
 	  value_range_t *vr = get_value_range (TREE_OPERAND (base, 0));
@@ -1507,10 +1511,10 @@ extract_range_from_assert (value_range_t *vr_p, tree expr)
       /* Make sure to not set TREE_OVERFLOW on the final type
 	 conversion.  We are willingly interpreting large positive
 	 unsigned values as negative singed values here.  */
-      min = force_fit_type_double (TREE_TYPE (var), TREE_INT_CST_LOW (min),
-				   TREE_INT_CST_HIGH (min), 0, false);
-      max = force_fit_type_double (TREE_TYPE (var), TREE_INT_CST_LOW (max),
-				   TREE_INT_CST_HIGH (max), 0, false);
+      min = force_fit_type_double (TREE_TYPE (var), tree_to_double_int (min),
+				   0, false);
+      max = force_fit_type_double (TREE_TYPE (var), tree_to_double_int (max),
+				   0, false);
 
       /* We can transform a max, min range to an anti-range or
          vice-versa.  Use set_and_canonicalize_value_range which does
@@ -2783,11 +2787,11 @@ extract_range_from_unary_expr (value_range_t *vr, enum tree_code code,
 	{
 	  tree new_min, new_max;
 	  new_min = force_fit_type_double (outer_type,
-					   TREE_INT_CST_LOW (vr0.min),
-					   TREE_INT_CST_HIGH (vr0.min), 0, 0);
+					   tree_to_double_int (vr0.min),
+					   0, false);
 	  new_max = force_fit_type_double (outer_type,
-					   TREE_INT_CST_LOW (vr0.max),
-					   TREE_INT_CST_HIGH (vr0.max), 0, 0);
+					   tree_to_double_int (vr0.max),
+					   0, false);
 	  if (is_overflow_infinity (vr0.min))
 	    new_min = negative_overflow_infinity (outer_type);
 	  if (is_overflow_infinity (vr0.max))
@@ -5071,8 +5075,7 @@ check_array_ref (location_t location, tree ref, bool ignore_off_by_one)
   /* Accesses to trailing arrays via pointers may access storage
      beyond the types array bounds.  */
   base = get_base_address (ref);
-  if (base
-      && INDIRECT_REF_P (base))
+  if (base && TREE_CODE (base) == MEM_REF)
     {
       tree cref, next = NULL_TREE;
 
@@ -5171,6 +5174,51 @@ search_for_addr_array (tree t, location_t location)
       t = TREE_OPERAND (t, 0);
     }
   while (handled_component_p (t));
+
+  if (TREE_CODE (t) == MEM_REF
+      && TREE_CODE (TREE_OPERAND (t, 0)) == ADDR_EXPR
+      && !TREE_NO_WARNING (t))
+    {
+      tree tem = TREE_OPERAND (TREE_OPERAND (t, 0), 0);
+      tree low_bound, up_bound, el_sz;
+      double_int idx;
+      if (TREE_CODE (TREE_TYPE (tem)) != ARRAY_TYPE
+	  || TREE_CODE (TREE_TYPE (TREE_TYPE (tem))) == ARRAY_TYPE
+	  || !TYPE_DOMAIN (TREE_TYPE (tem)))
+	return;
+
+      low_bound = TYPE_MIN_VALUE (TYPE_DOMAIN (TREE_TYPE (tem)));
+      up_bound = TYPE_MAX_VALUE (TYPE_DOMAIN (TREE_TYPE (tem)));
+      el_sz = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (tem)));
+      if (!low_bound
+	  || TREE_CODE (low_bound) != INTEGER_CST
+	  || !up_bound
+	  || TREE_CODE (up_bound) != INTEGER_CST
+	  || !el_sz
+	  || TREE_CODE (el_sz) != INTEGER_CST)
+	return;
+
+      idx = mem_ref_offset (t);
+      idx = double_int_sdiv (idx, tree_to_double_int (el_sz), TRUNC_DIV_EXPR);
+      if (double_int_scmp (idx, double_int_zero) < 0)
+	{
+	  warning_at (location, OPT_Warray_bounds,
+		      "array subscript is below array bounds");
+	  TREE_NO_WARNING (t) = 1;
+	}
+      else if (double_int_scmp (idx,
+				double_int_add
+				  (double_int_add
+				    (tree_to_double_int (up_bound),
+				     double_int_neg
+				       (tree_to_double_int (low_bound))),
+				    double_int_one)) > 0)
+	{
+	  warning_at (location, OPT_Warray_bounds,
+		      "array subscript is above array bounds");
+	  TREE_NO_WARNING (t) = 1;
+	}
+    }
 }
 
 /* walk_tree() callback that checks if *TP is
@@ -5199,7 +5247,7 @@ check_array_bounds (tree *tp, int *walk_subtree, void *data)
   if (TREE_CODE (t) == ARRAY_REF)
     check_array_ref (location, t, false /*ignore_off_by_one*/);
 
-  if (TREE_CODE (t) == INDIRECT_REF
+  if (TREE_CODE (t) == MEM_REF
       || (TREE_CODE (t) == RETURN_EXPR && TREE_OPERAND (t, 0)))
     search_for_addr_array (TREE_OPERAND (t, 0), location);
 
@@ -7311,6 +7359,7 @@ vrp_finalize (void)
   size_t i;
   prop_value_t *single_val_range;
   bool do_value_subst_p;
+  unsigned num = num_ssa_names;
 
   if (dump_file)
     {
@@ -7322,10 +7371,10 @@ vrp_finalize (void)
   /* We may have ended with ranges that have exactly one value.  Those
      values can be substituted as any other const propagated
      value using substitute_and_fold.  */
-  single_val_range = XCNEWVEC (prop_value_t, num_ssa_names);
+  single_val_range = XCNEWVEC (prop_value_t, num);
 
   do_value_subst_p = false;
-  for (i = 0; i < num_ssa_names; i++)
+  for (i = 0; i < num; i++)
     if (vr_value[i]
 	&& vr_value[i]->type == VR_RANGE
 	&& vr_value[i]->min == vr_value[i]->max
@@ -7343,7 +7392,7 @@ vrp_finalize (void)
       single_val_range = NULL;
     }
 
-  substitute_and_fold (single_val_range, vrp_fold_stmt);
+  substitute_and_fold (single_val_range, vrp_fold_stmt, false);
 
   if (warn_array_bounds)
     check_all_array_refs ();
@@ -7353,7 +7402,7 @@ vrp_finalize (void)
   identify_jump_threads ();
 
   /* Free allocated memory.  */
-  for (i = 0; i < num_ssa_names; i++)
+  for (i = 0; i < num; i++)
     if (vr_value[i])
       {
 	BITMAP_FREE (vr_value[i]->equiv);

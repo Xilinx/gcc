@@ -145,7 +145,7 @@ gimple_alloc_stat (enum gimple_code code, unsigned num_ops MEM_STAT_DECL)
   }
 #endif
 
-  stmt = (gimple) ggc_alloc_cleared_stat (size PASS_MEM_STAT);
+  stmt = ggc_alloc_cleared_gimple_statement_d_stat (size PASS_MEM_STAT);
   gimple_set_code (stmt, code);
   gimple_set_num_ops (stmt, num_ops);
 
@@ -305,31 +305,40 @@ gimple_build_call_from_tree (tree t)
 
 
 /* Extract the operands and code for expression EXPR into *SUBCODE_P,
-   *OP1_P and *OP2_P respectively.  */
+   *OP1_P, *OP2_P and *OP3_P respectively.  */
 
 void
-extract_ops_from_tree (tree expr, enum tree_code *subcode_p, tree *op1_p,
-		       tree *op2_p)
+extract_ops_from_tree_1 (tree expr, enum tree_code *subcode_p, tree *op1_p,
+			 tree *op2_p, tree *op3_p)
 {
   enum gimple_rhs_class grhs_class;
 
   *subcode_p = TREE_CODE (expr);
   grhs_class = get_gimple_rhs_class (*subcode_p);
 
-  if (grhs_class == GIMPLE_BINARY_RHS)
+  if (grhs_class == GIMPLE_TERNARY_RHS)
     {
       *op1_p = TREE_OPERAND (expr, 0);
       *op2_p = TREE_OPERAND (expr, 1);
+      *op3_p = TREE_OPERAND (expr, 2);
+    }
+  else if (grhs_class == GIMPLE_BINARY_RHS)
+    {
+      *op1_p = TREE_OPERAND (expr, 0);
+      *op2_p = TREE_OPERAND (expr, 1);
+      *op3_p = NULL_TREE;
     }
   else if (grhs_class == GIMPLE_UNARY_RHS)
     {
       *op1_p = TREE_OPERAND (expr, 0);
       *op2_p = NULL_TREE;
+      *op3_p = NULL_TREE;
     }
   else if (grhs_class == GIMPLE_SINGLE_RHS)
     {
       *op1_p = expr;
       *op2_p = NULL_TREE;
+      *op3_p = NULL_TREE;
     }
   else
     gcc_unreachable ();
@@ -345,10 +354,10 @@ gimple
 gimple_build_assign_stat (tree lhs, tree rhs MEM_STAT_DECL)
 {
   enum tree_code subcode;
-  tree op1, op2;
+  tree op1, op2, op3;
 
-  extract_ops_from_tree (rhs, &subcode, &op1, &op2);
-  return gimple_build_assign_with_ops_stat (subcode, lhs, op1, op2
+  extract_ops_from_tree_1 (rhs, &subcode, &op1, &op2, &op3);
+  return gimple_build_assign_with_ops_stat (subcode, lhs, op1, op2, op3
   					    PASS_MEM_STAT);
 }
 
@@ -359,7 +368,7 @@ gimple_build_assign_stat (tree lhs, tree rhs MEM_STAT_DECL)
 
 gimple
 gimple_build_assign_with_ops_stat (enum tree_code subcode, tree lhs, tree op1,
-                                   tree op2 MEM_STAT_DECL)
+                                   tree op2, tree op3 MEM_STAT_DECL)
 {
   unsigned num_ops;
   gimple p;
@@ -376,6 +385,12 @@ gimple_build_assign_with_ops_stat (enum tree_code subcode, tree lhs, tree op1,
     {
       gcc_assert (num_ops > 2);
       gimple_assign_set_rhs2 (p, op2);
+    }
+
+  if (op3)
+    {
+      gcc_assert (num_ops > 3);
+      gimple_assign_set_rhs3 (p, op3);
     }
 
   return p;
@@ -824,7 +839,8 @@ gimple_build_omp_for (gimple_seq body, tree clauses, size_t collapse,
     gimple_omp_set_body (p, body);
   gimple_omp_for_set_clauses (p, clauses);
   p->gimple_omp_for.collapse = collapse;
-  p->gimple_omp_for.iter = GGC_CNEWVEC (struct gimple_omp_for_iter, collapse);
+  p->gimple_omp_for.iter
+      = ggc_alloc_cleared_vec_gimple_omp_for_iter (collapse);
   if (pre_body)
     gimple_omp_for_set_pre_body (p, pre_body);
 
@@ -1074,7 +1090,7 @@ gimple_seq_alloc (void)
     }
   else
     {
-      seq = (gimple_seq) ggc_alloc_cleared (sizeof (*seq));
+      seq = ggc_alloc_cleared_gimple_seq_d ();
 #ifdef GATHER_STATISTICS
       gimple_alloc_counts[(int) gimple_alloc_kind_seq]++;
       gimple_alloc_sizes[(int) gimple_alloc_kind_seq] += sizeof (*seq);
@@ -1954,22 +1970,22 @@ void
 gimple_assign_set_rhs_from_tree (gimple_stmt_iterator *gsi, tree expr)
 {
   enum tree_code subcode;
-  tree op1, op2;
+  tree op1, op2, op3;
 
-  extract_ops_from_tree (expr, &subcode, &op1, &op2);
-  gimple_assign_set_rhs_with_ops (gsi, subcode, op1, op2);
+  extract_ops_from_tree_1 (expr, &subcode, &op1, &op2, &op3);
+  gimple_assign_set_rhs_with_ops_1 (gsi, subcode, op1, op2, op3);
 }
 
 
 /* Set the RHS of assignment statement pointed-to by GSI to CODE with
-   operands OP1 and OP2.
+   operands OP1, OP2 and OP3.
 
    NOTE: The statement pointed-to by GSI may be reallocated if it
    did not have enough operand slots.  */
 
 void
-gimple_assign_set_rhs_with_ops (gimple_stmt_iterator *gsi, enum tree_code code,
-				tree op1, tree op2)
+gimple_assign_set_rhs_with_ops_1 (gimple_stmt_iterator *gsi, enum tree_code code,
+				  tree op1, tree op2, tree op3)
 {
   unsigned new_rhs_ops = get_gimple_rhs_num_ops (code);
   gimple stmt = gsi_stmt (*gsi);
@@ -1993,6 +2009,8 @@ gimple_assign_set_rhs_with_ops (gimple_stmt_iterator *gsi, enum tree_code code,
   gimple_assign_set_rhs1 (stmt, op1);
   if (new_rhs_ops > 1)
     gimple_assign_set_rhs2 (stmt, op2);
+  if (new_rhs_ops > 2)
+    gimple_assign_set_rhs3 (stmt, op3);
 }
 
 
@@ -2122,8 +2140,8 @@ gimple_copy (gimple stmt)
 	  t = unshare_expr (gimple_omp_for_clauses (stmt));
 	  gimple_omp_for_set_clauses (copy, t);
 	  copy->gimple_omp_for.iter
-	    = GGC_NEWVEC (struct gimple_omp_for_iter,
-			  gimple_omp_for_collapse (stmt));
+	    = ggc_alloc_vec_gimple_omp_for_iter
+	    (gimple_omp_for_collapse (stmt));
 	  for (i = 0; i < gimple_omp_for_collapse (stmt); i++)
 	    {
 	      gimple_omp_for_set_cond (copy, i,
@@ -2472,6 +2490,8 @@ get_gimple_rhs_num_ops (enum tree_code code)
     return 1;
   else if (rhs_class == GIMPLE_BINARY_RHS)
     return 2;
+  else if (rhs_class == GIMPLE_TERNARY_RHS)
+    return 3;
   else
     gcc_unreachable ();
 }
@@ -2488,6 +2508,8 @@ get_gimple_rhs_num_ops (enum tree_code code)
       || (SYM) == TRUTH_OR_EXPR						    \
       || (SYM) == TRUTH_XOR_EXPR) ? GIMPLE_BINARY_RHS			    \
    : (SYM) == TRUTH_NOT_EXPR ? GIMPLE_UNARY_RHS				    \
+   : ((SYM) == WIDEN_MULT_PLUS_EXPR					    \
+      || (SYM) == WIDEN_MULT_MINUS_EXPR) ? GIMPLE_TERNARY_RHS		    \
    : ((SYM) == COND_EXPR						    \
       || (SYM) == CONSTRUCTOR						    \
       || (SYM) == OBJ_TYPE_REF						    \
@@ -2573,7 +2595,8 @@ is_gimple_condexpr (tree t)
 bool
 is_gimple_addressable (tree t)
 {
-  return (is_gimple_id (t) || handled_component_p (t) || INDIRECT_REF_P (t));
+  return (is_gimple_id (t) || handled_component_p (t)
+	  || TREE_CODE (t) == MEM_REF);
 }
 
 /* Return true if T is a valid gimple constant.  */
@@ -2624,7 +2647,7 @@ is_gimple_address (const_tree t)
       op = TREE_OPERAND (op, 0);
     }
 
-  if (CONSTANT_CLASS_P (op) || INDIRECT_REF_P (op))
+  if (CONSTANT_CLASS_P (op) || TREE_CODE (op) == MEM_REF)
     return true;
 
   switch (TREE_CODE (op))
@@ -2684,8 +2707,18 @@ is_gimple_invariant_address (const_tree t)
     return false;
 
   op = strip_invariant_refs (TREE_OPERAND (t, 0));
+  if (!op)
+    return false;
 
-  return op && (CONSTANT_CLASS_P (op) || decl_address_invariant_p (op));
+  if (TREE_CODE (op) == MEM_REF)
+    {
+      const_tree op0 = TREE_OPERAND (op, 0);
+      return (TREE_CODE (op0) == ADDR_EXPR
+	      && (CONSTANT_CLASS_P (TREE_OPERAND (op0, 0))
+		  || decl_address_invariant_p (TREE_OPERAND (op0, 0))));
+    }
+
+  return CONSTANT_CLASS_P (op) || decl_address_invariant_p (op);
 }
 
 /* Return true if T is a gimple invariant address at IPA level
@@ -2902,7 +2935,7 @@ is_gimple_min_lval (tree t)
 {
   if (!(t = CONST_CAST_TREE (strip_invariant_refs (t))))
     return false;
-  return (is_gimple_id (t) || TREE_CODE (t) == INDIRECT_REF);
+  return (is_gimple_id (t) || TREE_CODE (t) == MEM_REF);
 }
 
 /* Return true if T is a typecast operation.  */
@@ -2920,6 +2953,18 @@ bool
 is_gimple_call_addr (tree t)
 {
   return (TREE_CODE (t) == OBJ_TYPE_REF || is_gimple_val (t));
+}
+
+/* Return true if T is a valid address operand of a MEM_REF.  */
+
+bool
+is_gimple_mem_ref_addr (tree t)
+{
+  return (is_gimple_reg (t)
+	  || TREE_CODE (t) == INTEGER_CST
+	  || (TREE_CODE (t) == ADDR_EXPR
+	      && (CONSTANT_CLASS_P (TREE_OPERAND (t, 0))
+		  || decl_address_invariant_p (TREE_OPERAND (t, 0)))));
 }
 
 /* If T makes a function call, return the corresponding CALL_EXPR operand.
@@ -2953,10 +2998,15 @@ get_base_address (tree t)
   while (handled_component_p (t))
     t = TREE_OPERAND (t, 0);
 
+  if (TREE_CODE (t) == MEM_REF
+      && TREE_CODE (TREE_OPERAND (t, 0)) == ADDR_EXPR)
+    t = TREE_OPERAND (TREE_OPERAND (t, 0), 0);
+
   if (SSA_VAR_P (t)
       || TREE_CODE (t) == STRING_CST
       || TREE_CODE (t) == CONSTRUCTOR
-      || INDIRECT_REF_P (t))
+      || INDIRECT_REF_P (t)
+      || TREE_CODE (t) == MEM_REF)
     return t;
   else
     return NULL_TREE;
@@ -3084,14 +3134,8 @@ gimple_call_copy_skip_args (gimple stmt, bitmap args_to_skip)
   gimple_set_block (new_stmt, gimple_block (stmt));
   if (gimple_has_location (stmt))
     gimple_set_location (new_stmt, gimple_location (stmt));
-
-  /* Carry all the flags to the new GIMPLE_CALL.  */
+  gimple_call_copy_flags (new_stmt, stmt);
   gimple_call_set_chain (new_stmt, gimple_call_chain (stmt));
-  gimple_call_set_tail (new_stmt, gimple_call_tail_p (stmt));
-  gimple_call_set_cannot_inline (new_stmt, gimple_call_cannot_inline_p (stmt));
-  gimple_call_set_return_slot_opt (new_stmt, gimple_call_return_slot_opt_p (stmt));
-  gimple_call_set_from_thunk (new_stmt, gimple_call_from_thunk_p (stmt));
-  gimple_call_set_va_arg_pack (new_stmt, gimple_call_va_arg_pack_p (stmt));
 
   gimple_set_modified (new_stmt, true);
 
@@ -3592,12 +3636,6 @@ gimple_types_compatible_p (tree t1, tree t2)
       {
 	tree f1, f2;
 
-	/* If one type requires structural equality checks and the
-	   other doesn't, do not merge the types.  */
-	if (TYPE_STRUCTURAL_EQUALITY_P (t1)
-	    != TYPE_STRUCTURAL_EQUALITY_P (t2))
-	  goto different_types;
-
 	/* The struct tags shall compare equal.  */
 	if (!compare_type_names_p (TYPE_MAIN_VARIANT (t1),
 				   TYPE_MAIN_VARIANT (t2), false))
@@ -3954,6 +3992,11 @@ gimple_register_type (tree t)
 
   gcc_assert (TYPE_P (t));
 
+  /* In TYPE_CANONICAL we cache the result of gimple_register_type.
+     It is initially set to NULL during LTO streaming.  */
+  if (TYPE_CANONICAL (t))
+    return TYPE_CANONICAL (t);
+
   /* Always register the main variant first.  This is important so we
      pick up the non-typedef variants as canonical, otherwise we'll end
      up taking typedef ids for structure tags during comparison.  */
@@ -4017,10 +4060,14 @@ gimple_register_type (tree t)
 	  TYPE_NEXT_REF_TO (t) = NULL_TREE;
 	}
 
+      TYPE_CANONICAL (t) = new_type;
       t = new_type;
     }
   else
-    *slot = (void *) t;
+    {
+      TYPE_CANONICAL (t) = t;
+      *slot = (void *) t;
+    }
 
   return t;
 }
@@ -4399,7 +4446,7 @@ count_ptr_derefs (tree *tp, int *walk_subtrees, void *data)
       return NULL_TREE;
     }
 
-  if (INDIRECT_REF_P (*tp) && TREE_OPERAND (*tp, 0) == count_p->ptr)
+  if (TREE_CODE (*tp) == MEM_REF && TREE_OPERAND (*tp, 0) == count_p->ptr)
     {
       if (wi_p->is_lhs)
 	count_p->num_stores++;
@@ -4472,6 +4519,7 @@ get_base_loadstore (tree op)
     op = TREE_OPERAND (op, 0);
   if (DECL_P (op)
       || INDIRECT_REF_P (op)
+      || TREE_CODE (op) == MEM_REF
       || TREE_CODE (op) == TARGET_MEM_REF)
     return op;
   return NULL_TREE;

@@ -1,3 +1,12 @@
+2010-06-04  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* scripts/check_jni_methods.sh.in: Don't use diff -U.
+	Adapt grep regex, ignore file and problem message.
+
+2010-06-03  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
 2010-05-04  Andrew Haley  <aph@redhat.com>
 
 	* lib/gen-classlist.sh.in: Use absolute pathnames for all the

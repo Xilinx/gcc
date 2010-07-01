@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "cp-tree.h"
-#include "c-common.h"
+#include "c-family/c-common.h"
 #include "toplev.h"
 #include "tree-iterator.h"
 #include "gimple.h"
@@ -575,7 +575,7 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 	  TREE_OPERAND (*expr_p, 1) = build1 (VIEW_CONVERT_EXPR,
 					      TREE_TYPE (op0), op1);
 
-	else if ((rhs_predicate_for (op0)) (op1)
+	else if ((is_gimple_lvalue (op1) || INDIRECT_REF_P (op1))
 		 && !(TREE_CODE (op1) == CALL_EXPR
 		      && CALL_EXPR_RETURN_SLOT_OPT (op1))
 		 && is_really_empty_class (TREE_TYPE (op0)))
@@ -981,7 +981,7 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
     return NULL;
 
   nargs = list_length (DECL_ARGUMENTS (fn));
-  argarray = (tree *) alloca (nargs * sizeof (tree));
+  argarray = XALLOCAVEC (tree, nargs);
 
   defparm = TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (fn)));
   if (arg2)

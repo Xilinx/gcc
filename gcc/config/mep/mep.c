@@ -2369,11 +2369,7 @@ mep_register_move_cost (enum machine_mode mode, enum reg_class from, enum reg_cl
 static struct machine_function *
 mep_init_machine_status (void)
 {
-  struct machine_function *f;
-
-  f = (struct machine_function *) ggc_alloc_cleared (sizeof (struct machine_function));
-
-  return f;
+  return ggc_alloc_cleared_machine_function ();
 }
 
 static rtx
@@ -4234,7 +4230,7 @@ mep_note_pragma_flag (const char *funcname, int flag)
 
   if (!*slot)
     {
-      *slot = GGC_NEW (pragma_entry);
+      *slot = ggc_alloc_pragma_entry ();
       (*slot)->flag = 0;
       (*slot)->used = 0;
       (*slot)->funcname = ggc_strdup (funcname);
@@ -6333,7 +6329,7 @@ mep_expand_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
   unsigned int n_args;
   tree fnname;
   const struct cgen_insn *cgen_insn;
-  const struct insn_data *idata;
+  const struct insn_data_d *idata;
   unsigned int first_arg = 0;
   tree return_type = void_type_node;
   unsigned int builtin_n_args;
@@ -7213,7 +7209,7 @@ bool
 mep_emit_intrinsic (int intrinsic, const rtx *operands)
 {
   const struct cgen_insn *cgen_insn;
-  const struct insn_data *idata;
+  const struct insn_data_d *idata;
   rtx newop[10];
   int i;
 

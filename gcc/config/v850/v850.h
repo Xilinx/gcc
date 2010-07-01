@@ -556,15 +556,6 @@ enum reg_class
 /* Keep the stack pointer constant throughout the function.  */
 #define ACCUMULATE_OUTGOING_ARGS 1
 
-/* Value is the number of bytes of arguments automatically
-   popped when returning from a subroutine call.
-   FUNDECL is the declaration node of the function (as a tree),
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.
-   SIZE is the number of bytes of arguments passed on the stack.  */
-
-#define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
-
 #define RETURN_ADDR_RTX(COUNT, FP) v850_return_addr (COUNT)
 
 /* Define a data type for recording info about an argument list
@@ -914,19 +905,6 @@ typedef enum
   { "fp",	29 },							\
   { "r30",	30 },							\
   { "lp",	31} }
-
-/* Print an instruction operand X on file FILE.
-   look in v850.c for details */
-
-#define PRINT_OPERAND(FILE, X, CODE)  print_operand (FILE, X, CODE)
-
-#define PRINT_OPERAND_PUNCT_VALID_P(CODE) \
-  ((CODE) == '.')
-
-/* Print a memory operand whose address is X, on file FILE.
-   This uses a function in output-vax.c.  */
-
-#define PRINT_OPERAND_ADDRESS(FILE, ADDR) print_operand_address (FILE, ADDR)
 
 #define ASM_OUTPUT_REG_PUSH(FILE,REGNO)
 #define ASM_OUTPUT_REG_POP(FILE,REGNO)

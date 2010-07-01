@@ -196,7 +196,7 @@ cp_convert_to_pointer (tree type, tree expr)
       return error_mark_node;
     }
 
-  if (integer_zerop (expr))
+  if (null_ptr_cst_p (expr))
     {
       if (TYPE_PTRMEMFUNC_P (type))
 	return build_ptrmemfunc (TYPE_PTRMEMFUNC_FN_TYPE (type), expr, 0,
@@ -481,7 +481,7 @@ convert_to_reference (tree reftype, tree expr, int convtype,
   else
     {
       rval = convert_for_initialization (NULL_TREE, type, expr, flags,
-					 "converting", 0, 0,
+					 ICR_CONVERTING, 0, 0,
                                          tf_warning_or_error);
       if (rval == NULL_TREE || rval == error_mark_node)
 	return rval;
@@ -834,7 +834,9 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
 
       while (TREE_CODE (exprv) == COMPOUND_EXPR)
 	exprv = TREE_OPERAND (exprv, 1);
-      if (DECL_P (exprv) || handled_component_p (exprv))
+      if (DECL_P (exprv)
+	  || handled_component_p (exprv)
+	  || TREE_CODE (exprv) == INDIRECT_REF)
 	/* Expr is not being 'used' here, otherwise we whould have
 	   called mark_{rl}value_use use here, which would have in turn
 	   called mark_exp_read.  Rather, we call mark_exp_read directly

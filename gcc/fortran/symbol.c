@@ -372,7 +372,8 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
     *cray_pointee = "CRAY POINTEE", *data = "DATA", *value = "VALUE",
     *volatile_ = "VOLATILE", *is_protected = "PROTECTED",
     *is_bind_c = "BIND(C)", *procedure = "PROCEDURE",
-    *asynchronous = "ASYNCHRONOUS", *codimension = "CODIMENSION";
+    *asynchronous = "ASYNCHRONOUS", *codimension = "CODIMENSION",
+    *contiguous = "CONTIGUOUS";
   static const char *threadprivate = "THREADPRIVATE";
 
   const char *a1, *a2;
@@ -518,6 +519,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (cray_pointer, cray_pointee);
   conf (cray_pointer, dimension);
   conf (cray_pointer, codimension);
+  conf (cray_pointer, contiguous);
   conf (cray_pointer, pointer);
   conf (cray_pointer, target);
   conf (cray_pointer, allocatable);
@@ -529,6 +531,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (cray_pointer, entry);
 
   conf (cray_pointee, allocatable);
+  conf (cray_pointer, contiguous);
   conf (cray_pointer, codimension);
   conf (cray_pointee, intent);
   conf (cray_pointee, optional);
@@ -545,7 +548,6 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (data, function);
   conf (data, result);
   conf (data, allocatable);
-  conf (data, use_assoc);
 
   conf (value, pointer)
   conf (value, allocatable)
@@ -567,7 +569,6 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
     }
 
   conf (is_protected, intrinsic)
-  conf (is_protected, external)
   conf (is_protected, in_common)
 
   conf (asynchronous, intrinsic)
@@ -587,7 +588,6 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (procedure, dimension)
   conf (procedure, codimension)
   conf (procedure, intrinsic)
-  conf (procedure, is_protected)
   conf (procedure, target)
   conf (procedure, value)
   conf (procedure, volatile_)
@@ -616,6 +616,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       conf2 (dummy);
       conf2 (volatile_);
       conf2 (asynchronous);
+      conf2 (contiguous);
       conf2 (pointer);
       conf2 (is_protected);
       conf2 (target);
@@ -723,6 +724,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       conf2 (function);
       conf2 (subroutine);
       conf2 (entry);
+      conf2 (contiguous);
       conf2 (pointer);
       conf2 (is_protected);
       conf2 (target);
@@ -926,6 +928,18 @@ gfc_add_dimension (symbol_attribute *attr, const char *name, locus *where)
     }
 
   attr->dimension = 1;
+  return check_conflict (attr, name, where);
+}
+
+
+gfc_try
+gfc_add_contiguous (symbol_attribute *attr, const char *name, locus *where)
+{
+
+  if (check_used (attr, name, where))
+    return FAILURE;
+
+  attr->contiguous = 1;
   return check_conflict (attr, name, where);
 }
 
@@ -1717,6 +1731,8 @@ gfc_copy_attr (symbol_attribute *dest, symbol_attribute *src, locus *where)
   if (src->dimension && gfc_add_dimension (dest, NULL, where) == FAILURE)
     goto fail;
   if (src->codimension && gfc_add_codimension (dest, NULL, where) == FAILURE)
+    goto fail;
+  if (src->contiguous && gfc_add_contiguous (dest, NULL, where) == FAILURE)
     goto fail;
   if (src->optional && gfc_add_optional (dest, where) == FAILURE)
     goto fail;
@@ -2515,6 +2531,7 @@ gfc_new_symbol (const char *name, gfc_namespace *ns)
   /* Clear the ptrs we may need.  */
   p->common_block = NULL;
   p->f2k_derived = NULL;
+  p->assoc = NULL;
   
   return p;
 }
@@ -4593,12 +4610,14 @@ gfc_check_symbol_typed (gfc_symbol* sym, gfc_namespace* ns,
    list and marked `error' until symbols are committed.  */
 
 gfc_typebound_proc*
-gfc_get_typebound_proc (void)
+gfc_get_typebound_proc (gfc_typebound_proc *tb0)
 {
   gfc_typebound_proc *result;
   tentative_tbp *list_node;
 
   result = XCNEW (gfc_typebound_proc);
+  if (tb0)
+    *result = *tb0;
   result->error = 1;
 
   list_node = XCNEW (tentative_tbp);

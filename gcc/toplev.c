@@ -126,8 +126,9 @@ static bool no_backend;
 /* Length of line when printing switch values.  */
 #define MAX_LINE 75
 
-/* Copy of argument vector to toplev_main.  */
-static const char **save_argv;
+/* Decoded options, and number of such options.  */
+static struct cl_decoded_option *save_decoded_options;
+static unsigned int save_decoded_options_count;
 
 /* Name of top-level original source file (what was input to cpp).
    This comes from the #-command at the beginning of the actual input.
@@ -208,10 +209,6 @@ tree current_function_decl;
    if none.  */
 const char * current_function_func_begin_label;
 
-/* Nonzero means to collect statistics which might be expensive
-   and to print them when we are done.  */
-int flag_detailed_statistics = 0;
-
 /* A random sequence of characters, unless overridden by user.  */
 static const char *flag_random_seed;
 
@@ -221,28 +218,6 @@ static const char *flag_random_seed;
 unsigned local_tick;
 
 /* -f flags.  */
-
-/* Nonzero means `char' should be signed.  */
-
-int flag_signed_char;
-
-/* Nonzero means give an enum type only as many bytes as it needs.  A value
-   of 2 means it has not yet been initialized.  */
-
-int flag_short_enums;
-
-/* Nonzero if structures and unions should be returned in memory.
-
-   This should only be defined if compatibility with another compiler or
-   with an ABI is needed, because it results in slower code.  */
-
-#ifndef DEFAULT_PCC_STRUCT_RETURN
-#define DEFAULT_PCC_STRUCT_RETURN 1
-#endif
-
-/* Nonzero for -fpcc-struct-return: return values the same way PCC does.  */
-
-int flag_pcc_struct_return = DEFAULT_PCC_STRUCT_RETURN;
 
 /* 0 means straightforward implementation of complex divide acceptable.
    1 means wide ranges of inputs must work for complex divide.
@@ -280,10 +255,6 @@ enum tls_model flag_tls_default = TLS_MODEL_GLOBAL_DYNAMIC;
 
 enum ira_algorithm flag_ira_algorithm = IRA_ALGORITHM_CB;
 enum ira_region flag_ira_region = IRA_REGION_MIXED;
-
-/* Set the default value for -fira-verbose.  */
-
-unsigned int flag_ira_verbose = 5;
 
 /* Set the default for excess precision.  */
 
@@ -516,34 +487,6 @@ set_random_seed (const char *val)
   const char *old = flag_random_seed;
   flag_random_seed = val;
   return old;
-}
-
-/* Decode the string P as an integral parameter.
-   If the string is indeed an integer return its numeric value else
-   issue an Invalid Option error for the option PNAME and return DEFVAL.
-   If PNAME is zero just return DEFVAL, do not call error.  */
-
-int
-read_integral_parameter (const char *p, const char *pname, const int  defval)
-{
-  const char *endp = p;
-
-  while (*endp)
-    {
-      if (ISDIGIT (*endp))
-	endp++;
-      else
-	break;
-    }
-
-  if (*endp != 0)
-    {
-      if (pname != 0)
-	error ("invalid option argument %qs", pname);
-      return defval;
-    }
-
-  return atoi (p);
 }
 
 #if GCC_VERSION < 3004
@@ -1368,7 +1311,6 @@ print_switch_values (print_switch_fn_type print_fn)
 {
   int pos = 0;
   size_t j;
-  const char **p;
 
   /* Fill in the -frandom-seed option, if the user didn't pass it, so
      that it can be printed below.  This helps reproducibility.  */
@@ -1379,30 +1321,23 @@ print_switch_values (print_switch_fn_type print_fn)
   pos = print_single_switch (print_fn, pos,
 			     SWITCH_TYPE_DESCRIPTIVE, _("options passed: "));
 
-  for (p = &save_argv[1]; *p != NULL; p++)
+  for (j = 1; j < save_decoded_options_count; j++)
     {
-      if (**p == '-')
+      switch (save_decoded_options[j].opt_index)
 	{
+	case OPT_o:
+	case OPT_d:
+	case OPT_dumpbase:
+	case OPT_dumpdir:
+	case OPT_auxbase:
+	case OPT_quiet:
+	case OPT_version:
 	  /* Ignore these.  */
-	  if (strcmp (*p, "-o") == 0
-	      || strcmp (*p, "-dumpbase") == 0
-	      || strcmp (*p, "-dumpdir") == 0
-	      || strcmp (*p, "-auxbase") == 0)
-	    {
-	      if (p[1] != NULL)
-		p++;
-	      continue;
-	    }
-
-	  if (strcmp (*p, "-quiet") == 0
-	      || strcmp (*p, "-version") == 0)
-	    continue;
-
-	  if ((*p)[1] == 'd')
-	    continue;
+	  continue;
 	}
 
-      pos = print_single_switch (print_fn, pos, SWITCH_TYPE_PASSED, *p);
+      pos = print_single_switch (print_fn, pos, SWITCH_TYPE_PASSED,
+				 save_decoded_options[j].orig_option_with_args_text);
     }
 
   if (pos > 0)
@@ -1657,7 +1592,7 @@ default_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
 static void *
 realloc_for_line_map (void *ptr, size_t len)
 {
-  return ggc_realloc (ptr, len);
+  return GGC_RESIZEVAR (void, ptr, len);
 }
 
 /* A helper function: used as the allocator function for
@@ -1665,7 +1600,7 @@ realloc_for_line_map (void *ptr, size_t len)
 static void *
 alloc_for_identifier_to_locale (size_t len)
 {
-  return ggc_alloc (len);
+  return ggc_alloc_atomic (len);
 }
 
 /* Initialization of the front end environment, before command line
@@ -1733,7 +1668,7 @@ general_init (const char *argv0)
      table.  */
   init_ggc ();
   init_stringpool ();
-  line_table = GGC_NEW (struct line_maps);
+  line_table = ggc_alloc_line_maps ();
   linemap_init (line_table);
   line_table->reallocator = realloc_for_line_map;
   init_ttree ();
@@ -1826,10 +1761,8 @@ process_options (void)
      so we can correctly initialize debug output.  */
   no_backend = lang_hooks.post_options (&main_input_filename);
 
-#ifdef OVERRIDE_OPTIONS
   /* Some machines may reject certain combinations of options.  */
-  OVERRIDE_OPTIONS;
-#endif
+  targetm.target_option.override ();
 
   /* Avoid any informative notes in the second run of -fcompare-debug.  */
   if (flag_compare_debug) 
@@ -2078,13 +2011,13 @@ process_options (void)
     }
 
 #ifndef HAVE_prefetch
-  if (flag_prefetch_loop_arrays)
+  if (flag_prefetch_loop_arrays > 0)
     {
       warning (0, "-fprefetch-loop-arrays not supported for this target");
       flag_prefetch_loop_arrays = 0;
     }
 #else
-  if (flag_prefetch_loop_arrays && !HAVE_prefetch)
+  if (flag_prefetch_loop_arrays > 0 && !HAVE_prefetch)
     {
       warning (0, "-fprefetch-loop-arrays not supported for this target (try -march switches)");
       flag_prefetch_loop_arrays = 0;
@@ -2093,7 +2026,7 @@ process_options (void)
 
   /* This combination of options isn't handled for i386 targets and doesn't
      make much sense anyway, so don't allow it.  */
-  if (flag_prefetch_loop_arrays && optimize_size)
+  if (flag_prefetch_loop_arrays > 0 && optimize_size)
     {
       warning (0, "-fprefetch-loop-arrays is not supported with -Os");
       flag_prefetch_loop_arrays = 0;
@@ -2425,14 +2358,13 @@ toplev_main (int argc, char **argv)
 {
   expandargv (&argc, &argv);
 
-  save_argv = CONST_CAST2 (const char **, char **, argv);
-
   /* Initialization of GCC's environment, and diagnostics.  */
   general_init (argv[0]);
 
   /* Parse the options and do minimal processing; basically just
      enough to default flags appropriately.  */
-  decode_options (argc, CONST_CAST2 (const char **, char **, argv));
+  decode_options (argc, CONST_CAST2 (const char **, char **, argv),
+		  &save_decoded_options, &save_decoded_options_count);
 
   init_local_tick ();
 

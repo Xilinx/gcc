@@ -381,22 +381,6 @@ static void complain_wrong_lang (const char *, const struct cl_option *,
 static void set_debug_level (enum debug_info_type type, int extended,
 			     const char *arg);
 
-/* If ARG is a non-negative integer made up solely of digits, return its
-   value, otherwise return -1.  */
-static int
-integral_argument (const char *arg)
-{
-  const char *p = arg;
-
-  while (*p && ISDIGIT (*p))
-    p++;
-
-  if (*p == '\0')
-    return atoi (arg);
-
-  return -1;
-}
-
 /* Return a malloced slash-separated list of languages in MASK.  */
 static char *
 write_langs (unsigned int mask)
@@ -531,137 +515,63 @@ handle_option (int opt_index, int value, const char *arg,
   return true;
 }
 
-/* Handle the switch beginning at ARGV for the language indicated by
-   LANG_MASK.  Returns the number of switches consumed.  */
-static unsigned int
-read_cmdline_option (const char **argv, unsigned int lang_mask)
+/* Handle the switch DECODED for the language indicated by
+   LANG_MASK.  */
+static void
+read_cmdline_option (struct cl_decoded_option *decoded,
+		     unsigned int lang_mask)
 {
-  size_t opt_index;
-  const char *opt, *arg = 0;
-  char *dup = 0;
-  int value = 1;
-  unsigned int result = 0;
   const struct cl_option *option;
+  const char *opt;
 
-  opt = argv[0];
-
-  opt_index = find_opt (opt + 1, lang_mask | CL_COMMON | CL_TARGET);
-  if (opt_index == cl_options_count
-      && (opt[1] == 'W' || opt[1] == 'f' || opt[1] == 'm')
-      && opt[2] == 'n' && opt[3] == 'o' && opt[4] == '-')
+  if (decoded->opt_index == OPT_SPECIAL_unknown)
     {
-      /* Drop the "no-" from negative switches.  */
-      size_t len = strlen (opt) - 3;
+      opt = decoded->arg;
 
-      dup = XNEWVEC (char, len + 1);
-      dup[0] = '-';
-      dup[1] = opt[1];
-      memcpy (dup + 2, opt + 5, len - 2 + 1);
-      opt = dup;
-      value = 0;
-      opt_index = find_opt (opt + 1, lang_mask | CL_COMMON | CL_TARGET);
-      if (opt_index == cl_options_count && opt[1] == 'W')
-	{
-	  /* We don't generate warnings for unknown -Wno-* options
-             unless we issue diagnostics.  */
-	  postpone_unknown_option_warning (argv[0]);
-	  result = 1;
-	  goto done;
-	}
+      if (opt[1] == 'W' && opt[2] == 'n' && opt[3] == 'o' && opt[4] == '-')
+	/* We don't generate warnings for unknown -Wno-* options
+	   unless we issue diagnostics.  */
+	  postpone_unknown_option_warning (opt);
+      else
+	error ("unrecognized command line option %qs", opt);
+      return;
     }
 
-  if (opt_index == cl_options_count)
-    goto done;
+  option = &cl_options[decoded->opt_index];
+  opt = decoded->orig_option_with_args_text;
 
-  option = &cl_options[opt_index];
-
-  /* Reject negative form of switches that don't take negatives as
-     unrecognized.  */
-  if (!value && (option->flags & CL_REJECT_NEGATIVE))
-    goto done;
-
-  /* We've recognized this switch.  */
-  result = 1;
-
-  /* Check to see if the option is disabled for this configuration.  */
-  if (option->flags & CL_DISABLED)
+  if (decoded->errors & CL_ERR_DISABLED)
     {
       error ("command line option %qs"
 	     " is not supported by this configuration", opt);
-      goto done;
+      return;
     }
 
-  /* Sort out any argument the switch takes.  */
-  if (option->flags & CL_JOINED)
+  if (decoded->errors & CL_ERR_WRONG_LANG)
     {
-      /* Have arg point to the original switch.  This is because
-	 some code, such as disable_builtin_function, expects its
-	 argument to be persistent until the program exits.  */
-      arg = argv[0] + cl_options[opt_index].opt_len + 1;
-      if (!value)
-	arg += strlen ("no-");
-
-      if (*arg == '\0' && !(option->flags & CL_MISSING_OK))
-	{
-	  if (option->flags & CL_SEPARATE)
-	    {
-	      arg = argv[1];
-	      result = 2;
-	    }
-	  else
-	    /* Missing argument.  */
-	    arg = NULL;
-	}
+      complain_wrong_lang (opt, option, lang_mask);
+      return;
     }
-  else if (option->flags & CL_SEPARATE)
+
+  if (decoded->errors & CL_ERR_MISSING_ARG)
     {
-      arg = argv[1];
-      result = 2;
+      if (!lang_hooks.missing_argument (opt, decoded->opt_index))
+	error ("missing argument to %qs", opt);
+      return;
     }
 
-  /* Now we've swallowed any potential argument, complain if this
-     is a switch for a different front end.  */
-  if (!(option->flags & (lang_mask | CL_COMMON | CL_TARGET)))
+  if (decoded->errors & CL_ERR_UINT_ARG)
     {
-      complain_wrong_lang (argv[0], option, lang_mask);
-      goto done;
-    }
-  else if ((option->flags & CL_TARGET)
-	   && (option->flags & CL_LANG_ALL)
-	   && !(option->flags & lang_mask))
-    {
-      /* Complain for target flag language mismatches if any languages
-	 are specified.  */
-      complain_wrong_lang (argv[0], option, lang_mask);
-      goto done;
+      error ("argument to %qs should be a non-negative integer",
+	     option->opt_text);
+      return;
     }
 
-  if (arg == NULL && (option->flags & (CL_JOINED | CL_SEPARATE)))
-    {
-      if (!lang_hooks.missing_argument (opt, opt_index))
-	error ("missing argument to \"%s\"", opt);
-      goto done;
-    }
+  gcc_assert (!decoded->errors);
 
-  /* If the switch takes an integer, convert it.  */
-  if (arg && (option->flags & CL_UINTEGER))
-    {
-      value = integral_argument (arg);
-      if (value == -1)
-	{
-	  error ("argument to \"%s\" should be a non-negative integer",
-		 option->opt_text);
-	  goto done;
-	}
-    }
-
-  if (!handle_option (opt_index, value, arg, lang_mask, DK_UNSPECIFIED))
-    result = 0;
-
- done:
-  if (dup)
-    free (dup);
-  return result;
+  if (!handle_option (decoded->opt_index, decoded->value, decoded->arg,
+		      lang_mask, DK_UNSPECIFIED))
+    error ("unrecognized command line option %qs", opt);
 }
 
 /* Handle FILENAME from the command line.  */
@@ -753,46 +663,41 @@ flag_instrument_functions_exclude_p (tree fndecl)
 }
 
 
-/* Decode and handle the vector of command line options.  LANG_MASK
+/* Handle the vector of command line options.  LANG_MASK
    contains has a single bit set representing the current
    language.  */
 static void
-read_cmdline_options (unsigned int argc, const char **argv, unsigned int lang_mask)
+read_cmdline_options (struct cl_decoded_option *decoded_options,
+		      unsigned int decoded_options_count,
+		      unsigned int lang_mask)
 {
-  unsigned int n, i;
+  unsigned int i;
 
-  for (i = 1; i < argc; i += n)
+  for (i = 1; i < decoded_options_count; i++)
     {
-      const char *opt = argv[i];
-
-      /* Interpret "-" or a non-switch as a file name.  */
-      if (opt[0] != '-' || opt[1] == '\0')
+      if (decoded_options[i].opt_index == OPT_SPECIAL_input_file)
 	{
 	  if (main_input_filename == NULL)
 	    {
-	      main_input_filename = opt;
+	      main_input_filename = decoded_options[i].arg;
 	      main_input_baselength
 		= base_of_path (main_input_filename, &main_input_basename);
 	    }
-	  add_input_filename (opt);
-	  n = 1;
+	  add_input_filename (decoded_options[i].arg);
 	  continue;
 	}
 
-      n = read_cmdline_option (argv + i, lang_mask);
-
-      if (!n)
-	{
-	  n = 1;
-	  error ("unrecognized command line option \"%s\"", opt);
-	}
+      read_cmdline_option (decoded_options + i, lang_mask);
     }
 }
 
 /* Parse command line options and set default flag values.  Do minimal
-   options processing.  */
+   options processing.  The decoded options are placed in *DECODED_OPTIONS
+   and *DECODED_OPTIONS_COUNT.  */
 void
-decode_options (unsigned int argc, const char **argv)
+decode_options (unsigned int argc, const char **argv,
+		struct cl_decoded_option **decoded_options,
+		unsigned int *decoded_options_count)
 {
   static bool first_time_p = true;
   static int initial_min_crossjump_insns;
@@ -825,40 +730,30 @@ decode_options (unsigned int argc, const char **argv)
   else
     lang_mask = initial_lang_mask;
 
+  decode_cmdline_options_to_array (argc, argv, lang_mask,
+				   decoded_options, decoded_options_count);
+
   /* Scan to see what optimization level has been specified.  That will
      determine the default value of many flags.  */
-  for (i = 1; i < argc; i++)
+  for (i = 1; i < *decoded_options_count; i++)
     {
-      if (!strcmp (argv[i], "-O"))
+      struct cl_decoded_option *opt = &(*decoded_options)[i];
+      switch (opt->opt_index)
 	{
-	  optimize = 1;
-	  optimize_size = 0;
-	  ofast = 0;
-	}
-      else if (argv[i][0] == '-' && argv[i][1] == 'O')
-	{
-	  /* Handle -Os, -O2, -O3, -O69, ...  */
-	  const char *p = &argv[i][2];
-
-	  if ((p[0] == 's') && (p[1] == 0))
+	case OPT_O:
+	  if (*opt->arg == '\0')
 	    {
-	      optimize_size = 1;
-
-	      /* Optimizing for size forces optimize to be 2.  */
-	      optimize = 2;
-	      ofast = 0;
-	    }
-	  else if (strcmp (p, "fast") == 0)
-	    {
-	      /* -Ofast only adds flags to -O3.  */
+	      optimize = 1;
 	      optimize_size = 0;
-	      optimize = 3;
-	      ofast = 1;
+	      ofast = 0;
 	    }
 	  else
 	    {
-	      const int optimize_val = read_integral_parameter (p, p - 2, -1);
-	      if (optimize_val != -1)
+	      const int optimize_val = integral_argument (opt->arg);
+	      if (optimize_val == -1)
+		error ("argument to %qs should be a non-negative integer",
+		       "-O");
+	      else
 		{
 		  optimize = optimize_val;
 		  if ((unsigned int) optimize > 255)
@@ -867,6 +762,26 @@ decode_options (unsigned int argc, const char **argv)
 		  ofast = 0;
 		}
 	    }
+	  break;
+
+	case OPT_Os:
+	  optimize_size = 1;
+
+	  /* Optimizing for size forces optimize to be 2.  */
+	  optimize = 2;
+	  ofast = 0;
+	  break;
+
+	case OPT_Ofast:
+	  /* -Ofast only adds flags to -O3.  */
+	  optimize_size = 0;
+	  optimize = 3;
+	  ofast = 1;
+	  break;
+
+	default:
+	  /* Ignore other options in this prescan.  */
+	  break;
 	}
     }
 
@@ -910,6 +825,7 @@ decode_options (unsigned int argc, const char **argv)
   opt2 = (optimize >= 2);
   flag_inline_small_functions = opt2;
   flag_indirect_inlining = opt2;
+  flag_partial_inlining = opt2;
   flag_thread_jumps = opt2;
   flag_crossjumping = opt2;
   flag_optimize_sibling_calls = opt2;
@@ -1019,7 +935,7 @@ decode_options (unsigned int argc, const char **argv)
   OPTIMIZATION_OPTIONS (optimize, optimize_size);
 #endif
 
-  read_cmdline_options (argc, argv, lang_mask);
+  read_cmdline_options (*decoded_options, *decoded_options_count, lang_mask);
 
   if (dump_base_name && ! IS_ABSOLUTE_PATH (dump_base_name))
     {
@@ -1062,6 +978,11 @@ decode_options (unsigned int argc, const char **argv)
 	       "is disabled.");
       flag_toplevel_reorder = 0;
     }
+
+  /* -Wmissing-noreturn is alias for -Wsuggest-attribute=noreturn.  */
+  if (warn_missing_noreturn)
+    warn_suggest_attribute_noreturn = true;
+    
   /* Unless the user has asked for section anchors, we disable toplevel
      reordering at -O0 to disable transformations that might be surprising
      to end users and to get -fno-toplevel-reorder tested.  */
@@ -1552,8 +1473,8 @@ common_handle_option (size_t scode, const char *arg, int value,
       exit_after_options = true;
 
       /* Allow the target a chance to give the user some additional information.  */
-      if (targetm.target_help)
-	targetm.target_help ();
+      if (targetm.help)
+	targetm.help ();
       break;
 
     case OPT_fhelp_:
@@ -2476,7 +2397,8 @@ set_option (int opt_index, int value, const char *arg, int kind)
     }
 
   if ((diagnostic_t)kind != DK_UNSPECIFIED)
-    diagnostic_classify_diagnostic (global_dc, opt_index, (diagnostic_t)kind);
+    diagnostic_classify_diagnostic (global_dc, opt_index, (diagnostic_t)kind,
+				    UNKNOWN_LOCATION);
 }
 
 
@@ -2506,7 +2428,7 @@ enable_warning_as_error (const char *arg, int value, unsigned int lang_mask)
   new_option[0] = 'W';
   strcpy (new_option + 1, arg);
   option_index = find_opt (new_option, lang_mask);
-  if (option_index == N_OPTS)
+  if (option_index == OPT_SPECIAL_unknown)
     {
       error ("-Werror=%s: No option -%s", arg, new_option);
     }
@@ -2514,7 +2436,8 @@ enable_warning_as_error (const char *arg, int value, unsigned int lang_mask)
     {
       const diagnostic_t kind = value ? DK_ERROR : DK_WARNING;
 
-      diagnostic_classify_diagnostic (global_dc, option_index, kind);
+      diagnostic_classify_diagnostic (global_dc, option_index, kind,
+				      UNKNOWN_LOCATION);
       if (kind == DK_ERROR)
 	{
 	  const struct cl_option * const option = cl_options + option_index;

@@ -407,6 +407,20 @@ optab_for_tree_code (enum tree_code code, const_tree type,
     case DOT_PROD_EXPR:
       return TYPE_UNSIGNED (type) ? udot_prod_optab : sdot_prod_optab;
 
+    case WIDEN_MULT_PLUS_EXPR:
+      return (TYPE_UNSIGNED (type)
+	      ? (TYPE_SATURATING (type)
+		 ? usmadd_widen_optab : umadd_widen_optab)
+	      : (TYPE_SATURATING (type)
+		 ? ssmadd_widen_optab : smadd_widen_optab));
+
+    case WIDEN_MULT_MINUS_EXPR:
+      return (TYPE_UNSIGNED (type)
+	      ? (TYPE_SATURATING (type)
+		 ? usmsub_widen_optab : umsub_widen_optab)
+	      : (TYPE_SATURATING (type)
+		 ? ssmsub_widen_optab : smsub_widen_optab));
+
     case REDUC_MAX_EXPR:
       return TYPE_UNSIGNED (type) ? reduc_umax_optab : reduc_smax_optab;
 
@@ -546,7 +560,12 @@ expand_widen_pattern_expr (sepops ops, rtx op0, rtx op1, rtx wide_op,
   tmode0 = TYPE_MODE (TREE_TYPE (oprnd0));
   widen_pattern_optab =
     optab_for_tree_code (ops->code, TREE_TYPE (oprnd0), optab_default);
-  icode = (int) optab_handler (widen_pattern_optab, tmode0)->insn_code;
+  if (ops->code == WIDEN_MULT_PLUS_EXPR
+      || ops->code == WIDEN_MULT_MINUS_EXPR)
+    icode = (int) optab_handler (widen_pattern_optab,
+				 TYPE_MODE (TREE_TYPE (ops->op2)))->insn_code;
+  else
+    icode = (int) optab_handler (widen_pattern_optab, tmode0)->insn_code;
   gcc_assert (icode != CODE_FOR_nothing);
   xmode0 = insn_data[icode].operand[1].mode;
 
@@ -6083,7 +6102,7 @@ init_one_libfunc (const char *name)
 
   /* See if we have already created a libfunc decl for this function.  */
   id = get_identifier (name);
-  hash = htab_hash_string (name);
+  hash = IDENTIFIER_HASH_VALUE (id);
   slot = htab_find_slot_with_hash (libfunc_decls, id, hash, INSERT);
   decl = (tree) *slot;
   if (decl == NULL)
@@ -6106,7 +6125,7 @@ set_user_assembler_libfunc (const char *name, const char *asmspec)
   hashval_t hash;
 
   id = get_identifier (name);
-  hash = htab_hash_string (name);
+  hash = IDENTIFIER_HASH_VALUE (id);
   slot = htab_find_slot_with_hash (libfunc_decls, id, hash, NO_INSERT);
   gcc_assert (slot);
   decl = (tree) *slot;
@@ -6132,7 +6151,7 @@ set_optab_libfunc (optab optable, enum machine_mode mode, const char *name)
     val = 0;
   slot = (struct libfunc_entry **) htab_find_slot (libfunc_hash, &e, INSERT);
   if (*slot == NULL)
-    *slot = GGC_NEW (struct libfunc_entry);
+    *slot = ggc_alloc_libfunc_entry ();
   (*slot)->optab = (size_t) (optable - &optab_table[0]);
   (*slot)->mode1 = mode;
   (*slot)->mode2 = VOIDmode;
@@ -6159,7 +6178,7 @@ set_conv_libfunc (convert_optab optable, enum machine_mode tmode,
     val = 0;
   slot = (struct libfunc_entry **) htab_find_slot (libfunc_hash, &e, INSERT);
   if (*slot == NULL)
-    *slot = GGC_NEW (struct libfunc_entry);
+    *slot = ggc_alloc_libfunc_entry ();
   (*slot)->optab = (size_t) (optable - &convert_optab_table[0]);
   (*slot)->mode1 = tmode;
   (*slot)->mode2 = fmode;

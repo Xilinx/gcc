@@ -293,6 +293,18 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define TARGET_SECURE_PLT 0
 #endif
 
+/* Code model for 64-bit linux.
+   small: 16-bit toc offsets.
+   large: 32-bit toc offsets.  */
+enum rs6000_cmodel {
+  CMODEL_SMALL,
+  CMODEL_LARGE
+};
+
+#ifndef TARGET_CMODEL
+#define TARGET_CMODEL CMODEL_SMALL
+#endif
+
 #define TARGET_32BIT		(! TARGET_64BIT)
 
 #ifndef HAVE_AS_TLS
@@ -348,7 +360,8 @@ enum processor_type
    PROCESSOR_POWER6,
    PROCESSOR_POWER7,
    PROCESSOR_CELL,
-   PROCESSOR_PPCA2
+   PROCESSOR_PPCA2,
+   PROCESSOR_TITAN
 };
 
 /* FPU operations supported. 
@@ -542,6 +555,46 @@ extern int rs6000_vector_align[];
 
 /* E500 processors only support plain "sync", not lwsync.  */
 #define TARGET_NO_LWSYNC TARGET_E500
+
+/* Which machine supports the various reciprocal estimate instructions.  */
+#define TARGET_FRES	(TARGET_HARD_FLOAT && TARGET_PPC_GFXOPT \
+			 && TARGET_FPRS && TARGET_SINGLE_FLOAT)
+
+#define TARGET_FRE	(TARGET_HARD_FLOAT && TARGET_FPRS \
+			 && TARGET_DOUBLE_FLOAT \
+			 && (TARGET_POPCNTB || VECTOR_UNIT_VSX_P (DFmode)))
+
+#define TARGET_FRSQRTES	(TARGET_HARD_FLOAT && TARGET_POPCNTB \
+			 && TARGET_FPRS && TARGET_SINGLE_FLOAT)
+
+#define TARGET_FRSQRTE	(TARGET_HARD_FLOAT && TARGET_FPRS \
+			 && TARGET_DOUBLE_FLOAT \
+			 && (TARGET_PPC_GFXOPT || VECTOR_UNIT_VSX_P (DFmode)))
+
+/* Whether the various reciprocal divide/square root estimate instructions
+   exist, and whether we should automatically generate code for the instruction
+   by default.  */
+#define RS6000_RECIP_MASK_HAVE_RE	0x1	/* have RE instruction.  */
+#define RS6000_RECIP_MASK_AUTO_RE	0x2	/* generate RE by default.  */
+#define RS6000_RECIP_MASK_HAVE_RSQRTE	0x4	/* have RSQRTE instruction.  */
+#define RS6000_RECIP_MASK_AUTO_RSQRTE	0x8	/* gen. RSQRTE by default.  */
+
+extern unsigned char rs6000_recip_bits[];
+
+#define RS6000_RECIP_HAVE_RE_P(MODE) \
+  (rs6000_recip_bits[(int)(MODE)] & RS6000_RECIP_MASK_HAVE_RE)
+
+#define RS6000_RECIP_AUTO_RE_P(MODE) \
+  (rs6000_recip_bits[(int)(MODE)] & RS6000_RECIP_MASK_AUTO_RE)
+
+#define RS6000_RECIP_HAVE_RSQRTE_P(MODE) \
+  (rs6000_recip_bits[(int)(MODE)] & RS6000_RECIP_MASK_HAVE_RSQRTE)
+
+#define RS6000_RECIP_AUTO_RSQRTE_P(MODE) \
+  (rs6000_recip_bits[(int)(MODE)] & RS6000_RECIP_MASK_AUTO_RSQRTE)
+
+#define RS6000_RECIP_HIGH_PRECISION_P(MODE) \
+  ((MODE) == SFmode || (MODE) == V4SFmode || TARGET_RECIP_PRECISION)
 
 /* Sometimes certain combinations of command options do not make sense
    on a particular target machine.  You can define a macro
@@ -1524,15 +1577,6 @@ extern enum rs6000_abi rs6000_current_abi;	/* available for use by subtarget */
    accumulated and pushed during the prologue.  The amount can be
    found in the variable crtl->outgoing_args_size.  */
 #define ACCUMULATE_OUTGOING_ARGS 1
-
-/* Value is the number of bytes of arguments automatically
-   popped when returning from a subroutine call.
-   FUNDECL is the declaration node of the function (as a tree),
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.
-   SIZE is the number of bytes of arguments passed on the stack.  */
-
-#define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
 
 /* Define how to find the value returned by a library function
    assuming the value has mode MODE.  */

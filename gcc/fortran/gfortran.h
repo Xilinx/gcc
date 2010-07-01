@@ -205,11 +205,12 @@ arith;
 /* Statements.  */
 typedef enum
 {
-  ST_ARITHMETIC_IF, ST_ALLOCATE, ST_ATTR_DECL, ST_BACKSPACE,
-  ST_BLOCK, ST_BLOCK_DATA,
+  ST_ARITHMETIC_IF, ST_ALLOCATE, ST_ATTR_DECL, ST_ASSOCIATE,
+  ST_BACKSPACE, ST_BLOCK, ST_BLOCK_DATA,
   ST_CALL, ST_CASE, ST_CLOSE, ST_COMMON, ST_CONTINUE, ST_CONTAINS, ST_CYCLE,
   ST_DATA, ST_DATA_DECL, ST_DEALLOCATE, ST_DO, ST_ELSE, ST_ELSEIF,
-  ST_ELSEWHERE, ST_END_BLOCK, ST_END_BLOCK_DATA, ST_ENDDO, ST_IMPLIED_ENDDO,
+  ST_ELSEWHERE, ST_END_ASSOCIATE, ST_END_BLOCK, ST_END_BLOCK_DATA,
+  ST_ENDDO, ST_IMPLIED_ENDDO,
   ST_END_FILE, ST_FINAL, ST_FLUSH, ST_END_FORALL, ST_END_FUNCTION, ST_ENDIF,
   ST_END_INTERFACE, ST_END_MODULE, ST_END_PROGRAM, ST_END_SELECT,
   ST_END_SUBROUTINE, ST_END_WHERE, ST_END_TYPE, ST_ENTRY, ST_EQUIVALENCE,
@@ -664,7 +665,8 @@ typedef struct
   unsigned allocatable:1, dimension:1, codimension:1, external:1, intrinsic:1,
     optional:1, pointer:1, target:1, value:1, volatile_:1, temporary:1,
     dummy:1, result:1, assign:1, threadprivate:1, not_always_present:1,
-    implied_index:1, subref_array_pointer:1, proc_pointer:1, asynchronous:1;
+    implied_index:1, subref_array_pointer:1, proc_pointer:1, asynchronous:1,
+    contiguous:1;
 
   /* For CLASS containers, the pointer attribute is sometimes set internally
      even though it was not directly specified.  In this case, keep the
@@ -1201,6 +1203,9 @@ typedef struct gfc_symbol
   char binding_label[GFC_MAX_BINDING_LABEL_LEN + 1];
   /* Store a reference to the common_block, if this symbol is in one.  */
   struct gfc_common_head *common_block;
+
+  /* Link to corresponding association-list if this is an associate name.  */
+  struct gfc_association_list *assoc;
 }
 gfc_symbol;
 
@@ -1665,10 +1670,13 @@ typedef struct gfc_expr
       it from recurring.  */
   unsigned int error : 1;
   
-  /* Mark and expression where a user operator has been substituted by
+  /* Mark an expression where a user operator has been substituted by
      a function call in interface.c(gfc_extend_expr).  */
   unsigned int user_operator : 1;
 
+  /* Mark an expression as being a MOLD argument of ALLOCATE.  */
+  unsigned int mold : 1;
+  
   /* If an expression comes from a Hollerith constant or compile-time
      evaluation of a transfer statement, it may have a prescribed target-
      memory representation, and these cannot always be backformed from
@@ -1974,6 +1982,25 @@ typedef struct gfc_forall_iterator
 gfc_forall_iterator;
 
 
+/* Linked list to store associations in an ASSOCIATE statement.  */
+
+typedef struct gfc_association_list
+{
+  struct gfc_association_list *next; 
+
+  /* Whether this is association to a variable that can be changed; otherwise,
+     it's association to an expression and the name may not be used as
+     lvalue.  */
+  unsigned variable:1;
+
+  char name[GFC_MAX_SYMBOL_LEN + 1];
+  gfc_symtree *st; /* Symtree corresponding to name.  */
+  gfc_expr *target;
+}
+gfc_association_list;
+#define gfc_get_association_list() XCNEW (gfc_association_list)
+
+
 /* Executable statements that fill gfc_code structures.  */
 typedef enum
 {
@@ -2026,6 +2053,13 @@ typedef struct gfc_code
     }
     alloc;
 
+    struct
+    {
+      gfc_namespace *ns;
+      gfc_association_list *assoc;
+    }
+    block;
+
     gfc_open *open;
     gfc_close *close;
     gfc_filepos *filepos;
@@ -2040,13 +2074,12 @@ typedef struct gfc_code
     const char *omp_name;
     gfc_namelist *omp_namelist;
     bool omp_bool;
-    gfc_namespace *ns;
   }
   ext;		/* Points to additional structures required by statement */
 
-  /* Backend_decl is used for cycle and break labels in do loops, and
-     probably for other constructs as well, once we translate them.  */
-  tree backend_decl;
+  /* Cycle and break labels in do loops.  */
+  tree cycle_label;
+  tree exit_label;
 }
 gfc_code;
 
@@ -2405,6 +2438,7 @@ gfc_try gfc_add_attribute (symbol_attribute *, locus *);
 gfc_try gfc_add_ext_attribute (symbol_attribute *, ext_attr_id_t, locus *);
 gfc_try gfc_add_allocatable (symbol_attribute *, locus *);
 gfc_try gfc_add_codimension (symbol_attribute *, const char *, locus *);
+gfc_try gfc_add_contiguous (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_dimension (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_external (symbol_attribute *, locus *);
 gfc_try gfc_add_intrinsic (symbol_attribute *, locus *);
@@ -2513,7 +2547,7 @@ void gfc_free_dt_list (void);
 gfc_gsymbol *gfc_get_gsymbol (const char *);
 gfc_gsymbol *gfc_find_gsymbol (gfc_gsymbol *, const char *);
 
-gfc_typebound_proc* gfc_get_typebound_proc (void);
+gfc_typebound_proc* gfc_get_typebound_proc (gfc_typebound_proc*);
 gfc_symbol* gfc_get_derived_super_type (gfc_symbol*);
 gfc_symbol* gfc_get_ultimate_derived_super_type (gfc_symbol*);
 bool gfc_type_is_extension_of (gfc_symbol *, gfc_symbol *);
@@ -2582,6 +2616,7 @@ void gfc_free_actual_arglist (gfc_actual_arglist *);
 gfc_actual_arglist *gfc_copy_actual_arglist (gfc_actual_arglist *);
 const char *gfc_extract_int (gfc_expr *, int *);
 bool is_subref_array (gfc_expr *);
+bool gfc_is_simply_contiguous (gfc_expr *, bool);
 
 gfc_expr *gfc_build_conversion (gfc_expr *);
 void gfc_free_ref_list (gfc_ref *);
@@ -2647,6 +2682,7 @@ gfc_code *gfc_get_code (void);
 gfc_code *gfc_append_code (gfc_code *, gfc_code *);
 void gfc_free_statement (gfc_code *);
 void gfc_free_statements (gfc_code *);
+void gfc_free_association_list (gfc_association_list *);
 
 /* resolve.c */
 gfc_try gfc_resolve_expr (gfc_expr *);
@@ -2719,6 +2755,7 @@ void gfc_set_current_interface_head (gfc_interface *);
 gfc_symtree* gfc_find_sym_in_symtree (gfc_symbol*);
 bool gfc_arglist_matches_symbol (gfc_actual_arglist**, gfc_symbol*);
 bool gfc_check_operator_interface (gfc_symbol*, gfc_intrinsic_op, locus);
+int gfc_has_vector_subscript (gfc_expr*);
 
 /* io.c */
 extern gfc_st_label format_asterisk;

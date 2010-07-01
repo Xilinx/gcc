@@ -233,7 +233,7 @@ struct GTY(()) object_block {
 /* RTL expression ("rtx").  */
 
 struct GTY((chain_next ("RTX_NEXT (&%h)"),
-		    chain_prev ("RTX_PREV (&%h)"))) rtx_def {
+	    chain_prev ("RTX_PREV (&%h)"), variable_size)) rtx_def {
   /* The kind of expression this is.  */
   ENUM_BITFIELD(rtx_code) code: 16;
 
@@ -352,7 +352,7 @@ struct GTY((chain_next ("RTX_NEXT (&%h)"),
    for a variable number of things.  The principle use is inside
    PARALLEL expressions.  */
 
-struct GTY(()) rtvec_def {
+struct GTY((variable_size)) rtvec_def {
   int num_elem;		/* number of elements */
   rtx GTY ((length ("%h.num_elem"))) elem[1];
 };
@@ -2356,19 +2356,8 @@ extern void init_varasm_once (void);
 
 extern rtx make_debug_expr_from_rtl (const_rtx);
 
-/* In rtl.c */
-extern void traverse_md_constants (int (*) (void **, void *), void *);
-struct md_constant { char *name, *value; };
-
 /* In read-rtl.c */
-extern int read_skip_spaces (FILE *);
-extern bool read_rtx (FILE *, rtx *, int *);
-extern void copy_rtx_ptr_loc (const void *, const void *);
-extern void print_rtx_ptr_loc (const void *);
-extern const char *join_c_conditions (const char *, const char *);
-extern void print_c_condition (const char *);
-extern const char *read_rtx_filename;
-extern int read_rtx_lineno;
+extern bool read_rtx (const char *, rtx *);
 
 /* In alias.c */
 extern rtx canon_rtx (rtx);
@@ -2450,5 +2439,18 @@ extern tree get_curr_insn_block (void);
 extern int curr_insn_locator (void);
 extern bool optimize_insn_for_size_p (void);
 extern bool optimize_insn_for_speed_p (void);
+
+/* rtl-error.c */
+extern void _fatal_insn_not_found (const_rtx, const char *, int, const char *)
+     ATTRIBUTE_NORETURN;
+extern void _fatal_insn (const char *, const_rtx, const char *, int, const char *)
+     ATTRIBUTE_NORETURN;
+
+#define fatal_insn(msgid, insn) \
+	_fatal_insn (msgid, insn, __FILE__, __LINE__, __FUNCTION__)
+#define fatal_insn_not_found(insn) \
+	_fatal_insn_not_found (insn, __FILE__, __LINE__, __FUNCTION__)
+
+
 
 #endif /* ! GCC_RTL_H */

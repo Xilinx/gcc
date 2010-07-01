@@ -64,8 +64,6 @@ extern rtx legitimize_pic_address (rtx, enum machine_mode, rtx);
 extern int nonpic_symbol_mentioned_p (rtx);
 extern void emit_sf_insn (rtx);
 extern void emit_df_insn (rtx);
-extern void print_operand_address (FILE *, rtx);
-extern void print_operand (FILE *, rtx, int);
 extern void output_pic_addr_const (FILE *, rtx);
 extern int expand_block_move (rtx *);
 extern int prepare_move_operands (rtx[], enum machine_mode mode);
@@ -175,9 +173,9 @@ extern int sh_contains_memref_p (rtx);
 extern int sh_loads_bankedreg_p (rtx);
 extern rtx shmedia_prepare_call_address (rtx fnaddr, int is_sibcall);
 struct secondary_reload_info;
-extern enum reg_class sh_secondary_reload (bool, rtx, enum reg_class,
-					   enum machine_mode,
-					   struct secondary_reload_info *);
+extern reg_class_t sh_secondary_reload (bool, rtx, reg_class_t,
+					enum machine_mode,
+					struct secondary_reload_info *);
 extern int sh2a_get_function_vector_number (rtx);
 extern int sh2a_is_function_vector_call (rtx);
 extern void sh_fix_range (const char *);

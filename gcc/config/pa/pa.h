@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for the HP Spectrum.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) of Cygnus Support
    and Tim Moore (moore@defmacro.cs.utah.edu) of the Center for
@@ -221,15 +221,6 @@ do {								\
 #ifndef LIB_SPEC
 #define LIB_SPEC "%{!p:%{!pg:-lc}}%{p:-lc_p}%{pg:-lc_p}"
 #endif
-
-/* This macro defines command-line switches that modify the default
-   target name.
-
-   The definition is be an initializer for an array of structures.  Each
-   array element has have three elements: the switch name, one of the
-   enumeration codes ADD or DELETE to indicate whether the string should be
-   inserted or deleted, and the string to be inserted or deleted.  */
-#define MODIFY_TARGET_NAME {{"-32", DELETE, "64"}, {"-64", ADD, "64"}}
 
 /* Make gcc agree with <machine/ansi.h> */
 
@@ -561,14 +552,6 @@ extern struct rtx_def *hppa_pic_save_rtx (void);
   (TARGET_64BIT				\
    ? (STACK_POINTER_OFFSET)		\
    : ((STACK_POINTER_OFFSET) - crtl->outgoing_args_size))
-
-/* Value is 1 if returning from a function call automatically
-   pops the arguments described by the number-of-args field in the call.
-   FUNDECL is the declaration node of the function (as a tree),
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.  */
-
-#define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
 
 /* Define how to find the value returned by a library function
    assuming the value has mode MODE.  */

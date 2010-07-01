@@ -24,7 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "cp-tree.h"
-#include "c-common.h"
+#include "c-family/c-common.h"
 #include "toplev.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
@@ -203,7 +203,7 @@ decl_shadowed_for_var_insert (tree from, tree to)
   struct tree_decl_map *h;
   void **loc;
 
-  h = GGC_NEW (struct tree_decl_map);
+  h = ggc_alloc_tree_decl_map ();
   h->base.from = from;
   h->to = to;
   loc = htab_find_slot_with_hash (shadowed_var_for_decl, h, DECL_UID (from),

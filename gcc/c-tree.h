@@ -22,7 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_C_TREE_H
 #define GCC_C_TREE_H
 
-#include "c-common.h"
+#include "c-family/c-common.h"
 #include "toplev.h"
 #include "diagnostic.h"
 
@@ -489,11 +489,6 @@ extern bool c_missing_noreturn_ok_p (tree);
 extern bool c_warn_unused_global_decl (const_tree);
 extern void c_initialize_diagnostics (diagnostic_context *);
 extern bool c_vla_unspec_p (tree x, tree fn);
-
-#define c_build_type_variant(TYPE, CONST_P, VOLATILE_P)		  \
-  c_build_qualified_type ((TYPE),				  \
-			  ((CONST_P) ? TYPE_QUAL_CONST : 0) |	  \
-			  ((VOLATILE_P) ? TYPE_QUAL_VOLATILE : 0))
 
 /* in c-typeck.c */
 extern bool in_late_binary_op;

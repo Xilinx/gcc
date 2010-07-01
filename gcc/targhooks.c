@@ -325,6 +325,46 @@ default_unwind_emit (FILE * stream ATTRIBUTE_UNUSED,
   gcc_unreachable ();
 }
 
+/* Emit to STREAM the assembler syntax for insn operand X.  */
+
+void
+default_print_operand (FILE *stream ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
+		       int code ATTRIBUTE_UNUSED)
+{
+#ifdef PRINT_OPERAND
+  PRINT_OPERAND (stream, x, code);
+#else
+  gcc_unreachable ();
+#endif
+}
+
+/* Emit to STREAM the assembler syntax for an insn operand whose memory
+   address is X.  */
+
+void
+default_print_operand_address (FILE *stream ATTRIBUTE_UNUSED,
+			       rtx x ATTRIBUTE_UNUSED)
+{
+#ifdef PRINT_OPERAND_ADDRESS
+  PRINT_OPERAND_ADDRESS (stream, x);
+#else
+  gcc_unreachable ();
+#endif
+}
+
+/* Return true if CODE is a valid punctuation character for the
+   `print_operand' hook.  */
+
+bool
+default_print_operand_punct_valid_p (unsigned char code ATTRIBUTE_UNUSED)
+{
+#ifdef PRINT_OPERAND_PUNCT_VALID_P
+  return PRINT_OPERAND_PUNCT_VALID_P (code);
+#else
+  return false;
+#endif
+}
+
 /* True if MODE is valid for the target.  By "valid", we mean able to
    be manipulated in non-trivial ways.  In particular, this means all
    the arithmetic is supported.
@@ -436,6 +476,36 @@ default_builtin_vectorized_conversion (unsigned int code ATTRIBUTE_UNUSED,
   return NULL_TREE;
 }
 
+/* Default vectorizer cost model values.  */
+
+int
+default_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
+{
+  switch (type_of_cost)
+    {
+      case scalar_stmt:
+      case scalar_load:
+      case scalar_store:
+      case vector_stmt:
+      case vector_load:
+      case vector_store:
+      case vec_to_scalar:
+      case scalar_to_vec:
+      case cond_branch_not_taken:
+      case vec_perm:
+        return 1;
+
+      case unaligned_load:
+        return 2;
+
+      case cond_branch_taken:
+        return 3;
+
+      default:
+        gcc_unreachable ();
+    }
+}
+
 /* Reciprocal.  */
 
 tree
@@ -471,6 +541,49 @@ hook_int_CUMULATIVE_ARGS_mode_tree_bool_0 (
 	tree type ATTRIBUTE_UNUSED, bool named ATTRIBUTE_UNUSED)
 {
   return 0;
+}
+
+void
+default_function_arg_advance (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+			      enum machine_mode mode ATTRIBUTE_UNUSED,
+			      const_tree type ATTRIBUTE_UNUSED,
+			      bool named ATTRIBUTE_UNUSED)
+{
+#ifdef FUNCTION_ARG_ADVANCE
+  CUMULATIVE_ARGS args = *ca;
+  FUNCTION_ARG_ADVANCE (args, mode, CONST_CAST_TREE (type), named);
+  *ca = args;
+#else
+  gcc_unreachable ();
+#endif
+}
+
+rtx
+default_function_arg (const CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+		      enum machine_mode mode ATTRIBUTE_UNUSED,
+		      const_tree type ATTRIBUTE_UNUSED,
+		      bool named ATTRIBUTE_UNUSED)
+{
+#ifdef FUNCTION_ARG
+  return FUNCTION_ARG (*(CONST_CAST (CUMULATIVE_ARGS *, ca)), mode,
+		       CONST_CAST_TREE (type), named);
+#else
+  gcc_unreachable ();
+#endif
+}
+
+rtx
+default_function_incoming_arg (const CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+			       enum machine_mode mode ATTRIBUTE_UNUSED,
+			       const_tree type ATTRIBUTE_UNUSED,
+			       bool named ATTRIBUTE_UNUSED)
+{
+#ifdef FUNCTION_INCOMING_ARG
+  return FUNCTION_INCOMING_ARG (*(CONST_CAST (CUMULATIVE_ARGS *, ca)), mode,
+				CONST_CAST_TREE (type), named);
+#else
+  gcc_unreachable ();
+#endif
 }
 
 void
@@ -603,11 +716,6 @@ default_function_value (const_tree ret_type ATTRIBUTE_UNUSED,
       && !DECL_P (fn_decl_or_type))
     fn_decl_or_type = NULL;
 
-#ifdef FUNCTION_OUTGOING_VALUE
-  if (outgoing)
-    return FUNCTION_OUTGOING_VALUE (ret_type, fn_decl_or_type);
-#endif
-
 #ifdef FUNCTION_VALUE
   return FUNCTION_VALUE (ret_type, fn_decl_or_type);
 #else
@@ -691,28 +799,37 @@ default_trampoline_init (rtx ARG_UNUSED (m_tramp), tree ARG_UNUSED (t_func),
   sorry ("nested function trampolines not supported on this target");
 }
 
-enum reg_class
+int
+default_return_pops_args (tree fundecl ATTRIBUTE_UNUSED,
+			  tree funtype ATTRIBUTE_UNUSED,
+			  int size ATTRIBUTE_UNUSED)
+{
+  return 0;
+}
+
+reg_class_t
 default_branch_target_register_class (void)
 {
   return NO_REGS;
 }
 
 #ifdef IRA_COVER_CLASSES
-const enum reg_class *
+const reg_class_t *
 default_ira_cover_classes (void)
 {
-  static enum reg_class classes[] = IRA_COVER_CLASSES;
+  static reg_class_t classes[] = IRA_COVER_CLASSES;
   return classes;
 }
 #endif
 
-enum reg_class
+reg_class_t
 default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
-			  enum reg_class reload_class ATTRIBUTE_UNUSED,
+			  reg_class_t reload_class_i ATTRIBUTE_UNUSED,
 			  enum machine_mode reload_mode ATTRIBUTE_UNUSED,
 			  secondary_reload_info *sri)
 {
   enum reg_class rclass = NO_REGS;
+  enum reg_class reload_class = (enum reg_class) reload_class_i;
 
   if (sri->prev_sri && sri->prev_sri->t_icode != CODE_FOR_nothing)
     {
@@ -792,6 +909,14 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 	sri->t_icode = icode;
     }
   return rclass;
+}
+
+void
+default_target_option_override (void)
+{
+#ifdef OVERRIDE_OPTIONS
+  OVERRIDE_OPTIONS;
+#endif
 }
 
 bool
@@ -1045,6 +1170,35 @@ default_have_conditional_execution (void)
   return HAVE_conditional_execution;
 #else
   return false;
+#endif
+}
+
+/* Compute cost of moving registers to/from memory.  */
+
+int
+default_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
+			  reg_class_t rclass ATTRIBUTE_UNUSED,
+			  bool in ATTRIBUTE_UNUSED)
+{
+#ifndef MEMORY_MOVE_COST
+    return (4 + memory_move_secondary_cost (mode, (enum reg_class) rclass, in));
+#else
+    return MEMORY_MOVE_COST (mode, (enum reg_class) rclass, in);
+#endif
+}
+
+/* Compute cost of moving data from a register of class FROM to one of
+   TO, using MODE.  */
+
+int
+default_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
+                            reg_class_t from ATTRIBUTE_UNUSED,
+                            reg_class_t to ATTRIBUTE_UNUSED)
+{
+#ifndef REGISTER_MOVE_COST
+  return 2;
+#else
+  return REGISTER_MOVE_COST (mode, (enum reg_class) from, (enum reg_class) to);
 #endif
 }
 

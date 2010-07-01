@@ -244,7 +244,7 @@ append_arg (const char *arg)
     }
 
   if (g77_newargc == newargsize)
-    fatal_error ("overflowed output arg list for '%s'", arg);
+    fatal_error ("overflowed output arg list for %qs", arg);
 
   g77_newargv[g77_newargc++] = arg;
 }
@@ -402,7 +402,7 @@ For more information about these matters, see the file named COPYING\n\n"));
       if (i + skip < argc)
 	i += skip;
       else
-	fatal_error ("argument to '%s' missing", argv[i]);
+	fatal_error ("argument to %qs missing", argv[i]);
     }
 
   if ((n_outfiles != 0) && (n_infiles == 0))
@@ -421,35 +421,6 @@ For more information about these matters, see the file named COPYING\n\n"));
       if (argv[i][0] == '\0')
 	{
 	  append_arg (argv[i]);	/* Interesting.  Just append as is.  */
-	  continue;
-	}
-
-      if ((argv[i][0] == '-') && (argv[i][1] == 'M'))
-	{
-	  char *p;
-
-	  warning (0, "using -M <directory> is deprecated, use -J instead");
-	  if (argv[i][2] == '\0')
-	    {
-	      if (i+1 < argc)
-		{
-		  p = XNEWVEC (char, strlen (argv[i + 1]) + 3);
-		  p[0] = '-';
-		  p[1] = 'J';
-		  strcpy (&p[2], argv[i + 1]);
-		  i++;
-		}
-	      else
-		fatal_error ("argument to '%s' missing", argv[i]);
-	    }
-	  else
-	    {
-	      p = XNEWVEC (char, strlen (argv[i]) + 1);
-	      p[0] = '-';
-	      p[1] = 'J';
-	      strcpy (&p[2], argv[i] + 2);
-	    }
-	  append_arg (p);
 	  continue;
 	}
 

@@ -173,7 +173,7 @@ Common Warning
 Warn about code which might break strict aliasing rules
 
 Wstrict-aliasing=
-Common Joined UInteger Var(warn_strict_aliasing) Init(-1) Warning
+Common Joined RejectNegative UInteger Var(warn_strict_aliasing) Init(-1) Warning
 Warn about code which might break strict aliasing rules
 
 Wstrict-overflow
@@ -181,7 +181,7 @@ Common Warning
 Warn about optimizations that assume that signed overflow is undefined
 
 Wstrict-overflow=
-Common Joined UInteger Var(warn_strict_overflow) Init(-1) Warning
+Common Joined RejectNegative UInteger Var(warn_strict_overflow) Init(-1) Warning
 Warn about optimizations that assume that signed overflow is undefined
 
 Wsuggest-attribute=const
@@ -191,6 +191,10 @@ Warn about functions which might be candidates for __attribute__((const))
 Wsuggest-attribute=pure
 Common Var(warn_suggest_attribute_pure) Warning
 Warn about functions which might be candidates for __attribute__((pure))
+
+Wsuggest-attribute=noreturn
+Common Var(warn_suggest_attribute_noreturn) Warning
+Warn about functions which might be candidates for __attribute__((noreturn))
 
 Wswitch
 Common Var(warn_switch) Warning
@@ -301,7 +305,7 @@ Common Separate
 ; Additional positive integers will be assigned as new versions of
 ; the ABI become the default version of the ABI.
 fabi-version=
-Common Joined UInteger Var(flag_abi_version) Init(2)
+Common Joined RejectNegative UInteger Var(flag_abi_version) Init(2)
 
 falign-functions
 Common Report Var(align_functions,0) Optimization UInteger
@@ -625,6 +629,10 @@ floop-block
 Common Report Var(flag_loop_block) Optimization
 Enable Loop Blocking transformation
 
+fstrict-volatile-bitfields
+Common Report Var(flag_strict_volatile_bitfields) Init(-1)
+Force bitfield accesses to match their type width
+
 fguess-branch-probability
 Common Report Var(flag_guess_branch_prob) Optimization
 Enable guessing of branch probabilities
@@ -757,7 +765,7 @@ Common Report Var(flag_ira_share_spill_slots) Init(1)
 Share stack slots for spilled pseudo-registers.
 
 fira-verbose=
-Common RejectNegative Joined UInteger
+Common RejectNegative Joined UInteger Var(flag_ira_verbose) Init(5)
 -fira-verbose=<number>	Control IRA's level of diagnostic messages.
 
 fivopts
@@ -790,7 +798,7 @@ Enable link-time optimization.
 
 ; The initial value of -1 comes from Z_DEFAULT_COMPRESSION in zlib.h.
 flto-compression-level=
-Common Joined UInteger Var(flag_lto_compression_level) Init(-1)
+Common Joined RejectNegative UInteger Var(flag_lto_compression_level) Init(-1)
 -flto-compression-level=<number>	Use zlib compression level <number> for IL
 
 flto-report
@@ -876,6 +884,10 @@ foptimize-sibling-calls
 Common Report Var(flag_optimize_sibling_calls) Optimization
 Optimize sibling and tail recursive calls
 
+fpartial-inlining
+Common Report Var(flag_partial_inlining)
+Perform partial inlining
+
 fpre-ipa-mem-report
 Common Report Var(pre_ipa_mem_report)
 Report on memory allocation before interprocedural optimization
@@ -893,7 +905,7 @@ Common RejectNegative Joined UInteger Optimization
 -fpack-struct=<number>	Set initial maximum structure member alignment
 
 fpcc-struct-return
-Common Report Var(flag_pcc_struct_return,1) VarExists
+Common Report Var(flag_pcc_struct_return,1) Init(DEFAULT_PCC_STRUCT_RETURN)
 Return small aggregates in memory, not registers
 
 fpeel-loops
@@ -937,7 +949,7 @@ Common Report Var(flag_predictive_commoning) Optimization
 Run predictive commoning optimization.
 
 fprefetch-loop-arrays
-Common Report Var(flag_prefetch_loop_arrays) Optimization
+Common Report Var(flag_prefetch_loop_arrays) Init(-1) Optimization
 Generate prefetch instructions, if available, for arrays in loops
 
 fprofile
@@ -1152,7 +1164,7 @@ Common Report Var(flag_zee) Init(0)
 Eliminate redundant zero extensions on targets that support implicit extensions.
 
 fshow-column
-Common C ObjC C++ ObjC++ Report Var(flag_show_column) Init(1)
+Common Report Var(flag_show_column) Init(1)
 Show column numbers in diagnostics, when available.  Default on
 
 fsignaling-nans
@@ -1334,7 +1346,7 @@ Common Report Var(flag_tree_loop_optimize) Init(1) Optimization
 Enable loop optimizations on tree level
 
 ftree-parallelize-loops=
-Common Report Joined UInteger Var(flag_tree_parallelize_loops) Init(1)
+Common Report Joined RejectNegative UInteger Var(flag_tree_parallelize_loops) Init(1)
 Enable automatic parallelization of loops
 
 ftree-phiprop

@@ -228,13 +228,13 @@ struct mem_ref_group
 
 /* Do not generate a prefetch if the unroll factor is significantly less
    than what is required by the prefetch.  This is to avoid redundant
-   prefetches.  For example, if prefetch_mod is 16 and unroll_factor is
-   1, this means prefetching requires unrolling the loop 16 times, but
-   the loop is not going to be unrolled.  In this case (ratio = 16),
+   prefetches.  For example, when prefetch_mod is 16 and unroll_factor is
+   2, prefetching requires unrolling the loop 16 times, but
+   the loop is actually unrolled twice.  In this case (ratio = 8),
    prefetching is not likely to be beneficial.  */
 
 #ifndef PREFETCH_MOD_TO_UNROLL_FACTOR_RATIO
-#define PREFETCH_MOD_TO_UNROLL_FACTOR_RATIO 8
+#define PREFETCH_MOD_TO_UNROLL_FACTOR_RATIO 4
 #endif
 
 /* The memory reference.  */
@@ -511,6 +511,10 @@ gather_memory_references_ref (struct loop *loop, struct mem_ref_group **refs,
     return false;
   /* If analyze_ref fails the default is a NULL_TREE.  We can stop here.  */
   if (step == NULL_TREE)
+    return false;
+
+  /* Limit non-constant step prefetching only to the innermost loops.  */
+  if (!cst_and_fits_in_hwi (step) && loop->inner != NULL)
     return false;
 
   /* Now we know that REF = &BASE + STEP * iter + DELTA, where DELTA and STEP
@@ -990,18 +994,40 @@ schedule_prefetches (struct mem_ref_group *groups, unsigned unroll_factor,
   return any;
 }
 
-/* Estimate the number of prefetches in the given GROUPS.  */
+/* Return TRUE if no prefetch is going to be generated in the given
+   GROUPS.  */
 
-static int
-estimate_prefetch_count (struct mem_ref_group *groups)
+static bool
+nothing_to_prefetch_p (struct mem_ref_group *groups)
 {
   struct mem_ref *ref;
+
+  for (; groups; groups = groups->next)
+    for (ref = groups->refs; ref; ref = ref->next)
+      if (should_issue_prefetch_p (ref))
+	return false;
+
+  return true;
+}
+
+/* Estimate the number of prefetches in the given GROUPS.
+   UNROLL_FACTOR is the factor by which LOOP was unrolled.  */
+
+static int
+estimate_prefetch_count (struct mem_ref_group *groups, unsigned unroll_factor)
+{
+  struct mem_ref *ref;
+  unsigned n_prefetches;
   int prefetch_count = 0;
 
   for (; groups; groups = groups->next)
     for (ref = groups->refs; ref; ref = ref->next)
       if (should_issue_prefetch_p (ref))
-	  prefetch_count++;
+	{
+	  n_prefetches = ((unroll_factor + ref->prefetch_mod - 1)
+			  / ref->prefetch_mod);
+	  prefetch_count += n_prefetches;
+	}
 
   return prefetch_count;
 }
@@ -1712,8 +1738,7 @@ loop_prefetch_arrays (struct loop *loop)
   /* Step 2: estimate the reuse effects.  */
   prune_by_reuse (refs);
 
-  prefetch_count = estimate_prefetch_count (refs);
-  if (prefetch_count == 0)
+  if (nothing_to_prefetch_p (refs))
     goto fail;
 
   determine_loop_nest_reuse (loop, refs, no_other_refs);
@@ -1729,6 +1754,12 @@ loop_prefetch_arrays (struct loop *loop)
   ninsns = tree_num_loop_insns (loop, &eni_size_weights);
   unroll_factor = determine_unroll_factor (loop, refs, ninsns, &desc,
 					   est_niter);
+
+  /* Estimate prefetch count for the unrolled loop.  */
+  prefetch_count = estimate_prefetch_count (refs, unroll_factor);
+  if (prefetch_count == 0)
+    goto fail;
+
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "Ahead %d, unroll factor %d, trip count "
 	     HOST_WIDE_INT_PRINT_DEC "\n"

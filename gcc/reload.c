@@ -94,7 +94,7 @@ a register with any other reload.  */
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "rtl.h"
+#include "rtl-error.h"
 #include "tm_p.h"
 #include "insn-config.h"
 #include "expr.h"
@@ -108,10 +108,10 @@ a register with any other reload.  */
 #include "flags.h"
 #include "output.h"
 #include "function.h"
-#include "toplev.h"
 #include "params.h"
 #include "target.h"
 #include "ira.h"
+#include "toplev.h" /* exact_log2 may be used by targets */
 
 /* True if X is a constant that can be forced into the constant pool.  */
 #define CONST_POOL_OK_P(X)			\
@@ -363,7 +363,8 @@ push_secondary_reload (int in_p, rtx x, int opnum, int optional,
 
   sri.icode = CODE_FOR_nothing;
   sri.prev_sri = prev_sri;
-  rclass = targetm.secondary_reload (in_p, x, reload_class, reload_mode, &sri);
+  rclass = (enum reg_class) targetm.secondary_reload (in_p, x, reload_class,
+						      reload_mode, &sri);
   icode = (enum insn_code) sri.icode;
 
   /* If we don't need any secondary registers, done.  */
@@ -526,7 +527,8 @@ secondary_reload_class (bool in_p, enum reg_class rclass,
 
   sri.icode = CODE_FOR_nothing;
   sri.prev_sri = NULL;
-  rclass = targetm.secondary_reload (in_p, x, rclass, mode, &sri);
+  rclass
+    = (enum reg_class) targetm.secondary_reload (in_p, x, rclass, mode, &sri);
   icode = (enum insn_code) sri.icode;
 
   /* If there are no secondary reloads at all, we return NO_REGS.
@@ -688,7 +690,7 @@ find_valid_class (enum machine_mode outer ATTRIBUTE_UNUSED,
 
       if (bad || !good)
 	continue;
-      cost = REGISTER_MOVE_COST (outer, (enum reg_class) rclass, dest_class);
+      cost = register_move_cost (outer, (enum reg_class) rclass, dest_class);
 
       if ((reg_class_size[rclass] > best_size
 	   && (best_cost < 0 || best_cost >= cost))
@@ -696,7 +698,7 @@ find_valid_class (enum machine_mode outer ATTRIBUTE_UNUSED,
 	{
 	  best_class = (enum reg_class) rclass;
 	  best_size = reg_class_size[rclass];
-	  best_cost = REGISTER_MOVE_COST (outer, (enum reg_class) rclass,
+	  best_cost = register_move_cost (outer, (enum reg_class) rclass,
 					  dest_class);
 	}
     }
@@ -2651,7 +2653,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
       && REGNO (SET_DEST (body)) < FIRST_PSEUDO_REGISTER
       && REG_P (SET_SRC (body))
       && REGNO (SET_SRC (body)) < FIRST_PSEUDO_REGISTER
-      && REGISTER_MOVE_COST (GET_MODE (SET_SRC (body)),
+      && register_move_cost (GET_MODE (SET_SRC (body)),
 			     REGNO_REG_CLASS (REGNO (SET_SRC (body))),
 			     REGNO_REG_CLASS (REGNO (SET_DEST (body)))) == 2)
     return 0;

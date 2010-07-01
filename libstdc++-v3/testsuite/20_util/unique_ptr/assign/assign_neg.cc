@@ -39,24 +39,14 @@ void
 test02()
 {
   std::unique_ptr<int[]> p1(new int(420));
-  std::unique_ptr<int[]> p2 = p1;
+  std::unique_ptr<int[]> p2 = p1; // { dg-error "deleted" }
 }
 
 void
 test03()
 {
-  std::unique_ptr<int[2]> p1(new int[3]);
-  std::unique_ptr<int[2]> p2 = p1;
+  std::unique_ptr<int[2]> p1(new int[3]); // { dg-error "no match" }
+  std::unique_ptr<int[2]> p2 = p1; // { dg-error "deleted" }
 }
 
-// { dg-error "deleted function" "" { target *-*-* } 357 }
-// { dg-error "used here" "" { target *-*-* } 42 }
-// { dg-error "no matching" "" { target *-*-* } 48 }
-// { dg-warning "note" "" { target *-*-* } 130 }
-// { dg-warning "note" "" { target *-*-* } 134 }
-// { dg-warning "note" "" { target *-*-* } 123 }
-// { dg-warning "note" "" { target *-*-* } 118 }
-// { dg-warning "note" "" { target *-*-* } 113 }
-// { dg-warning "note" "" { target *-*-* } 107 }
-// { dg-error "deleted function" "" { target *-*-* } 222 }
-// { dg-error "used here" "" { target *-*-* } 49 }
+// { dg-prune-output "include" }

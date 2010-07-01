@@ -102,6 +102,9 @@ struct GTY(()) cgraph_local_info {
   /* Set when function is visible by other units.  */
   unsigned externally_visible : 1;
 
+  /* Set when resolver determines that function is visible by other units.  */
+  unsigned used_from_object_file : 1;
+  
   /* Set once it has been finalized so we consider it to be output.  */
   unsigned finalized : 1;
 
@@ -466,6 +469,8 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) varpool_node {
   /* Circular list of nodes in the same comdat group if non-NULL.  */
   struct varpool_node *same_comdat_group;
   struct ipa_ref_list ref_list;
+  /* File stream where this node is being written to.  */
+  struct lto_file_decl_data * lto_file_data;
   PTR GTY ((skip)) aux;
   /* Ordering of all cgraph nodes.  */
   int order;
@@ -485,6 +490,8 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) varpool_node {
   unsigned output : 1;
   /* Set when function is visible by other units.  */
   unsigned externally_visible : 1;
+  /* Set when resolver determines that variable is visible by other units.  */
+  unsigned used_from_object_file : 1;
   /* Set for aliases once they got through assemble_alias.  Also set for
      extra name aliases in varpool_extra_name_alias.  */
   unsigned alias : 1;
@@ -722,7 +729,7 @@ varpool_first_static_initializer (void)
   struct varpool_node *node;
   for (node = varpool_nodes_queue; node; node = node->next_needed)
     {
-      gcc_assert (TREE_CODE (node->decl) == VAR_DECL);
+      gcc_checking_assert (TREE_CODE (node->decl) == VAR_DECL);
       if (DECL_INITIAL (node->decl))
 	return node;
     }
@@ -735,7 +742,7 @@ varpool_next_static_initializer (struct varpool_node *node)
 {
   for (node = node->next_needed; node; node = node->next_needed)
     {
-      gcc_assert (TREE_CODE (node->decl) == VAR_DECL);
+      gcc_checking_assert (TREE_CODE (node->decl) == VAR_DECL);
       if (DECL_INITIAL (node->decl))
 	return node;
     }

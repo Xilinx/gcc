@@ -31,18 +31,7 @@ along with GCC; see the file COPYING3.  If not see
    (strncmp (whole, part, strlen (part)) ? NULL : whole + strlen (part))
 
 extern int toplev_main (int, char **);
-extern int read_integral_parameter (const char *, const char *, const int);
 extern void strip_off_ending (char *, int);
-extern void _fatal_insn_not_found (const_rtx, const char *, int, const char *)
-     ATTRIBUTE_NORETURN;
-extern void _fatal_insn (const char *, const_rtx, const char *, int, const char *)
-     ATTRIBUTE_NORETURN;
-
-#define fatal_insn(msgid, insn) \
-	_fatal_insn (msgid, insn, __FILE__, __LINE__, __FUNCTION__)
-#define fatal_insn_not_found(insn) \
-	_fatal_insn_not_found (insn, __FILE__, __LINE__, __FUNCTION__)
-
 extern void rest_of_decl_compilation (tree, int, int);
 extern void rest_of_type_compilation (tree, int);
 extern void tree_rest_of_compilation (tree);
@@ -50,10 +39,13 @@ extern void init_optimization_passes (void);
 extern void finish_optimization_passes (void);
 extern bool enable_rtl_dump_file (void);
 
+/* In except.c.  Initialize exception handling.  This is used by the Ada
+   and LTO front ends to initialize EH "on demand".  See lto-streamer-in.c
+   and ada/gcc-interface/misc.c.  */
+extern void init_eh (void);
+
 extern void announce_function (tree);
 
-extern void error_for_asm (const_rtx, const char *, ...) ATTRIBUTE_GCC_DIAG(2,3);
-extern void warning_for_asm (const_rtx, const char *, ...) ATTRIBUTE_GCC_DIAG(2,3);
 extern void warn_deprecated_use (tree, tree);
 extern bool parse_optimize_options (tree, bool);
 
@@ -94,25 +86,7 @@ extern bool exit_after_options;
 extern bool user_defined_section_attribute;
 
 /* See toplev.c.  */
-extern int flag_crossjumping;
-extern int flag_if_conversion;
-extern int flag_if_conversion2;
-extern int flag_keep_static_consts;
-extern int flag_peel_loops;
 extern int flag_rerun_cse_after_global_opts;
-extern int flag_rerun_cse_after_loop;
-extern int flag_thread_jumps;
-extern int flag_tracer;
-extern int flag_unroll_loops;
-extern int flag_unroll_all_loops;
-extern int flag_unswitch_loops;
-extern int flag_cprop_registers;
-extern int time_report;
-extern int flag_ira_loop_pressure;
-extern int flag_ira_coalesce;
-extern int flag_ira_move_spills;
-extern int flag_ira_share_save_slots;
-extern int flag_ira_share_spill_slots;
 
 /* Things to do with target switches.  */
 extern void print_version (FILE *, const char *);

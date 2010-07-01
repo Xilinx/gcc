@@ -378,7 +378,7 @@ emutls_decl (tree decl)
 		       VAR_DECL, get_emutls_object_name (name),
 		       get_emutls_object_type ());
 
-      h = GGC_NEW (struct tree_map);
+      h = ggc_alloc_tree_map ();
       h->hash = in.hash;
       h->base.from = decl;
       h->to = to;
@@ -553,7 +553,7 @@ get_unnamed_section (unsigned int flags, void (*callback) (const void *),
 {
   section *sect;
 
-  sect = GGC_NEW (section);
+  sect = ggc_alloc_section ();
   sect->unnamed.common.flags = flags | SECTION_UNNAMED;
   sect->unnamed.callback = callback;
   sect->unnamed.data = data;
@@ -570,7 +570,7 @@ get_noswitch_section (unsigned int flags, noswitch_section_callback callback)
 {
   section *sect;
 
-  sect = GGC_NEW (section);
+  sect = ggc_alloc_section ();
   sect->noswitch.common.flags = flags | SECTION_NOSWITCH;
   sect->noswitch.callback = callback;
 
@@ -591,7 +591,7 @@ get_section (const char *name, unsigned int flags, tree decl)
   flags |= SECTION_NAMED;
   if (*slot == NULL)
     {
-      sect = GGC_NEW (section);
+      sect = ggc_alloc_section ();
       sect->named.common.flags = flags;
       sect->named.name = ggc_strdup (name);
       sect->named.decl = decl;
@@ -640,8 +640,7 @@ get_block_for_section (section *sect)
   block = (struct object_block *) *slot;
   if (block == NULL)
     {
-      block = (struct object_block *)
-	ggc_alloc_cleared (sizeof (struct object_block));
+      block = ggc_alloc_cleared_object_block ();
       block->sect = sect;
       *slot = block;
     }
@@ -661,7 +660,7 @@ create_block_symbol (const char *label, struct object_block *block,
 
   /* Create the extended SYMBOL_REF.  */
   size = RTX_HDR_SIZE + sizeof (struct block_symbol);
-  symbol = (rtx) ggc_alloc_zone (size, &rtl_zone);
+  symbol = ggc_alloc_zone_rtx_def (size, &rtl_zone);
 
   /* Initialize the normal SYMBOL_REF fields.  */
   memset (symbol, 0, size);
@@ -2462,9 +2461,9 @@ assemble_external_libcall (rtx fun)
 /* Assemble a label named NAME.  */
 
 void
-assemble_label (const char *name)
+assemble_label (FILE *file, const char *name)
 {
-  ASM_OUTPUT_LABEL (asm_out_file, name);
+  ASM_OUTPUT_LABEL (file, name);
 }
 
 /* Set the symbol_referenced flag for ID.  */
@@ -3324,7 +3323,7 @@ build_constant_desc (tree exp)
   int labelno;
   tree decl;
 
-  desc = GGC_NEW (struct constant_descriptor_tree);
+  desc = ggc_alloc_constant_descriptor_tree ();
   desc->value = copy_constant (exp);
 
   /* Propagate marked-ness to copied constant.  */
@@ -3476,12 +3475,7 @@ assemble_constant_contents (tree exp, const char *label, unsigned int align)
   size = get_constant_size (exp);
 
   /* Do any machine/system dependent processing of the constant.  */
-#ifdef ASM_DECLARE_CONSTANT_NAME
-  ASM_DECLARE_CONSTANT_NAME (asm_out_file, label, exp, size);
-#else
-  /* Standard thing is just output label for the constant.  */
-  ASM_OUTPUT_LABEL (asm_out_file, label);
-#endif /* ASM_DECLARE_CONSTANT_NAME */
+  targetm.asm_out.declare_constant_name (asm_out_file, label, exp, size);
 
   /* Output the value of EXP.  */
   output_constant (exp, size, align);
@@ -3724,7 +3718,7 @@ create_constant_pool (void)
 {
   struct rtx_constant_pool *pool;
 
-  pool = GGC_NEW (struct rtx_constant_pool);
+  pool = ggc_alloc_rtx_constant_pool ();
   pool->const_rtx_htab = htab_create_ggc (31, const_desc_rtx_hash,
 					  const_desc_rtx_eq, NULL);
   pool->first = NULL;
@@ -3790,7 +3784,7 @@ force_const_mem (enum machine_mode mode, rtx x)
     return copy_rtx (desc->mem);
 
   /* Otherwise, create a new descriptor.  */
-  desc = GGC_NEW (struct constant_descriptor_rtx);
+  desc = ggc_alloc_constant_descriptor_rtx ();
   *slot = desc;
 
   /* Align the location counter as required by EXP's data type.  */
@@ -5985,7 +5979,7 @@ maybe_assemble_visibility (tree decl)
 
   if (vis != VISIBILITY_DEFAULT)
     {
-      targetm.asm_out.visibility (decl, vis);
+      targetm.asm_out.assemble_visibility (decl, vis);
       return 1;
     }
   else
@@ -6895,16 +6889,27 @@ default_internal_label (FILE *stream, const char *prefix,
   ASM_OUTPUT_INTERNAL_LABEL (stream, buf);
 }
 
+
+/* The default implementation of ASM_DECLARE_CONSTANT_NAME.  */
+
+void
+default_asm_declare_constant_name (FILE *file, const char *name,
+				   const_tree exp ATTRIBUTE_UNUSED,
+				   HOST_WIDE_INT size ATTRIBUTE_UNUSED)
+{
+  assemble_label (file, name);
+}
+
 /* This is the default behavior at the beginning of a file.  It's
    controlled by two other target-hook toggles.  */
 void
 default_file_start (void)
 {
-  if (targetm.file_start_app_off
+  if (targetm.asm_file_start_app_off
       && !(flag_verbose_asm || flag_debug_asm || flag_dump_rtl_in_asm))
     fputs (ASM_APP_OFF, asm_out_file);
 
-  if (targetm.file_start_file_directive)
+  if (targetm.asm_file_start_file_directive)
     output_file_directive (asm_out_file, main_input_filename);
 }
 
@@ -7194,50 +7199,11 @@ output_object_blocks (void)
 int
 elf_record_gcc_switches (print_switch_type type, const char * name)
 {
-  static char buffer[1024];
-
-  /* This variable is used as part of a simplistic heuristic to detect
-     command line switches which take an argument:
-
-       "If a command line option does not start with a dash then
-        it is an argument for the previous command line option."
-
-     This fails in the case of the command line option which is the name
-     of the file to compile, but otherwise it is pretty reasonable.  */
-  static bool previous_name_held_back = FALSE;
-
   switch (type)
     {
     case SWITCH_TYPE_PASSED:
-      if (* name != '-')
-	{
-	  if (previous_name_held_back)
-	    {
-	      unsigned int len = strlen (buffer);
-
-	      snprintf (buffer + len, sizeof buffer - len, " %s", name);
-	      ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-	      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-	      previous_name_held_back = FALSE;
-	    }
-	  else
-	    {
-	      strncpy (buffer, name, sizeof buffer);
-	      ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-	      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-	    }
-	}
-      else
-	{
-	  if (previous_name_held_back)
-	    {
-	      ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-	      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-	    }
-
-	  strncpy (buffer, name, sizeof buffer);
-	  previous_name_held_back = TRUE;
-	}
+      ASM_OUTPUT_ASCII (asm_out_file, name, strlen (name));
+      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
       break;
 
     case SWITCH_TYPE_DESCRIPTIVE:
@@ -7246,15 +7212,7 @@ elf_record_gcc_switches (print_switch_type type, const char * name)
 	  /* Distinguish between invocations where name is NULL.  */
 	  static bool started = false;
 
-	  if (started)
-	    {
-	      if (previous_name_held_back)
-		{
-		  ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-		  ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-		}
-	    }
-	  else
+	  if (!started)
 	    {
 	      section * sec;
 

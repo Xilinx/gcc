@@ -612,8 +612,8 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
 void
 gfc_allocate_lang_decl (tree decl)
 {
-  DECL_LANG_SPECIFIC (decl) = (struct lang_decl *)
-    ggc_alloc_cleared (sizeof (struct lang_decl));
+  DECL_LANG_SPECIFIC (decl) = ggc_alloc_cleared_lang_decl(sizeof
+							  (struct lang_decl));
 }
 
 /* Remember a symbol to generate initialization/cleanup code at function
@@ -1213,7 +1213,8 @@ gfc_get_symbol_decl (gfc_symbol * sym)
       /* Create variables to hold the non-constant bits of array info.  */
       gfc_build_qualified_array (decl, sym);
 
-      if ((sym->attr.allocatable || !sym->attr.dummy) && !sym->attr.pointer)
+      if (sym->attr.contiguous
+	  || ((sym->attr.allocatable || !sym->attr.dummy) && !sym->attr.pointer))
 	GFC_DECL_PACKED_ARRAY (decl) = 1;
     }
 
@@ -2424,26 +2425,26 @@ gfc_build_intrinsic_function_decls (void)
 
   gfor_fndecl_string_len_trim =
     gfc_build_library_function_decl (get_identifier (PREFIX("string_len_trim")),
-				     gfc_int4_type_node, 2,
+				     gfc_charlen_type_node, 2,
 				     gfc_charlen_type_node, pchar1_type_node);
 
   gfor_fndecl_string_index =
     gfc_build_library_function_decl (get_identifier (PREFIX("string_index")),
-				     gfc_int4_type_node, 5,
+				     gfc_charlen_type_node, 5,
 				     gfc_charlen_type_node, pchar1_type_node,
 				     gfc_charlen_type_node, pchar1_type_node,
 				     gfc_logical4_type_node);
 
   gfor_fndecl_string_scan =
     gfc_build_library_function_decl (get_identifier (PREFIX("string_scan")),
-				     gfc_int4_type_node, 5,
+				     gfc_charlen_type_node, 5,
 				     gfc_charlen_type_node, pchar1_type_node,
 				     gfc_charlen_type_node, pchar1_type_node,
 				     gfc_logical4_type_node);
 
   gfor_fndecl_string_verify =
     gfc_build_library_function_decl (get_identifier (PREFIX("string_verify")),
-				     gfc_int4_type_node, 5,
+				     gfc_charlen_type_node, 5,
 				     gfc_charlen_type_node, pchar1_type_node,
 				     gfc_charlen_type_node, pchar1_type_node,
 				     gfc_logical4_type_node);
@@ -2611,9 +2612,10 @@ gfc_build_intrinsic_function_decls (void)
 
   gfor_fndecl_sr_kind =
     gfc_build_library_function_decl (get_identifier
-					(PREFIX("selected_real_kind")),
-                                     gfc_int4_type_node, 2,
-                                     pvoid_type_node, pvoid_type_node);
+					(PREFIX("selected_real_kind2008")),
+				     gfc_int4_type_node, 3,
+				     pvoid_type_node, pvoid_type_node,
+				     pvoid_type_node);
 
   /* Power functions.  */
   {
@@ -3410,7 +3412,7 @@ gfc_find_module (const char *name)
 				   htab_hash_string (name), INSERT);
   if (*slot == NULL)
     {
-      struct module_htab_entry *entry = GGC_CNEW (struct module_htab_entry);
+      struct module_htab_entry *entry = ggc_alloc_cleared_module_htab_entry ();
 
       entry->name = gfc_get_string (name);
       entry->decls = htab_create_ggc (10, module_htab_decls_hash,

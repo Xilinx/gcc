@@ -279,7 +279,8 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
 
   /* If this is a pointer dereference of a non-SSA_NAME punt.
      ???  We could replace it with a pointer to anything.  */
-  if (INDIRECT_REF_P (base)
+  if ((INDIRECT_REF_P (base)
+       || TREE_CODE (base) == MEM_REF)
       && TREE_CODE (TREE_OPERAND (base, 0)) != SSA_NAME)
     return false;
 
@@ -293,10 +294,7 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
       void *namep;
       namep = pointer_map_contains (cfun->gimple_df->decls_to_pointers, base);
       if (namep)
-	{
-	  ref->base_alias_set = get_alias_set (base);
-	  ref->base = build1 (INDIRECT_REF, TREE_TYPE (base), *(tree *)namep);
-	}
+	ref->base = build_simple_mem_ref (*(tree *)namep);
     }
 
   ref->ref_alias_set = MEM_ALIAS_SET (mem);
@@ -648,8 +646,8 @@ get_alias_set (tree t)
     {
       tree inner;
 
-      /* Remove any nops, then give the language a chance to do
-	 something with this tree before we look at it.  */
+      /* Give the language a chance to do something with this tree
+	 before we look at it.  */
       STRIP_NOPS (t);
       set = lang_hooks.get_alias_set (t);
       if (set != -1)
@@ -659,21 +657,41 @@ get_alias_set (tree t)
       if (TREE_CODE (t) == TARGET_MEM_REF)
 	t = TMR_ORIGINAL (t);
 
-      /* First see if the actual object referenced is an INDIRECT_REF from a
-	 restrict-qualified pointer or a "void *".  */
+      /* Get the base object of the reference.  */
       inner = t;
       while (handled_component_p (inner))
 	{
+	  /* If there is a VIEW_CONVERT_EXPR in the chain we cannot use
+	     the type of any component references that wrap it to
+	     determine the alias-set.  */
+	  if (TREE_CODE (inner) == VIEW_CONVERT_EXPR)
+	    t = TREE_OPERAND (inner, 0);
 	  inner = TREE_OPERAND (inner, 0);
-	  STRIP_NOPS (inner);
 	}
 
+      /* Handle pointer dereferences here, they can override the
+	 alias-set.  */
       if (INDIRECT_REF_P (inner))
 	{
 	  set = get_deref_alias_set_1 (TREE_OPERAND (inner, 0));
 	  if (set != -1)
 	    return set;
 	}
+      else if (TREE_CODE (inner) == MEM_REF)
+	{
+	  set = get_deref_alias_set_1 (TREE_OPERAND (inner, 1));
+	  if (set != -1)
+	    return set;
+	}
+
+      /* If the innermost reference is a MEM_REF that has a
+	 conversion embedded treat it like a VIEW_CONVERT_EXPR above,
+	 using the memory access type for determining the alias-set.  */
+     if (TREE_CODE (inner) == MEM_REF
+	 && (TYPE_MAIN_VARIANT (TREE_TYPE (inner))
+	     != TYPE_MAIN_VARIANT
+	          (TREE_TYPE (TREE_TYPE (TREE_OPERAND (inner, 1))))))
+       return get_deref_alias_set (TREE_OPERAND (inner, 1));
 
       /* Otherwise, pick up the outermost object that we could have a pointer
 	 to, processing conversions as above.  */
@@ -713,7 +731,7 @@ get_alias_set (tree t)
   t = TYPE_CANONICAL (t);
   /* Canonical types shouldn't form a tree nor should the canonical
      type require structural equality checks.  */
-  gcc_assert (!TYPE_STRUCTURAL_EQUALITY_P (t) && TYPE_CANONICAL (t) == t);
+  gcc_checking_assert (!TYPE_STRUCTURAL_EQUALITY_P (t) && TYPE_CANONICAL (t) == t);
 
   /* If this is a type with a known alias set, return it.  */
   if (TYPE_ALIAS_SET_KNOWN_P (t))
@@ -823,10 +841,12 @@ record_alias_subset (alias_set_type superset, alias_set_type subset)
     {
       /* Create an entry for the SUPERSET, so that we have a place to
 	 attach the SUBSET.  */
-      superset_entry = GGC_NEW (struct alias_set_entry_d);
+      superset_entry = ggc_alloc_cleared_alias_set_entry_d ();
       superset_entry->alias_set = superset;
       superset_entry->children
-	= splay_tree_new_ggc (splay_tree_compare_ints);
+	= splay_tree_new_ggc (splay_tree_compare_ints,
+			      ggc_alloc_splay_tree_scalar_scalar_splay_tree_s,
+			      ggc_alloc_splay_tree_scalar_scalar_splay_tree_node_s);
       superset_entry->has_zero_child = 0;
       VEC_replace (alias_set_entry, alias_sets, superset, superset_entry);
     }
@@ -1134,7 +1154,7 @@ record_set (rtx dest, const_rtx set, void *data ATTRIBUTE_UNUSED)
 
   regno = REGNO (dest);
 
-  gcc_assert (regno < VEC_length (rtx, reg_base_value));
+  gcc_checking_assert (regno < VEC_length (rtx, reg_base_value));
 
   /* If this spans multiple hard registers, then we must indicate that every
      register has an unusable value.  */
@@ -2639,7 +2659,7 @@ init_alias_analysis (void)
   timevar_push (TV_ALIAS_ANALYSIS);
 
   reg_known_value_size = maxreg - FIRST_PSEUDO_REGISTER;
-  reg_known_value = GGC_CNEWVEC (rtx, reg_known_value_size);
+  reg_known_value = ggc_alloc_cleared_vec_rtx (reg_known_value_size);
   reg_known_equiv_p = XCNEWVEC (bool, reg_known_value_size);
 
   /* If we have memory allocated from the previous run, use it.  */

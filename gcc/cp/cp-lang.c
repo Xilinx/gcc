@@ -25,14 +25,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "cp-tree.h"
-#include "c-common.h"
+#include "c-family/c-common.h"
 #include "toplev.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "debug.h"
 #include "cp-objcp-common.h"
 #include "hashtab.h"
-#include "except.h"
 
 enum c_language_kind c_language = clk_cxx;
 static void cp_init_ts (void);

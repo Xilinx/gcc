@@ -1,3 +1,67 @@
+2010-06-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43298
+	* io/read.c: Add code to parse and read Inf, Infinity, NaN, and Nan with
+	optional parenthesis.
+
+2010-06-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43298
+	* list_read.c (parse_real, read_real): Support NAN(alphanum).
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* intrinsics/selected_real_kind.f90
+	(_gfortran_selected_real_kind2008): Add function.
+	(_gfortran_selected_real_kind): Stub which calls
+	_gfortran_selected_real_kind2008.
+	* gfortran.map (GFORTRAN_1.4): Add
+	_gfortran_selected_real_kind2008.
+	* mk-srk-inc.sh: Save also RADIX.
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* runtime/compile_options.c (init_compile_options): Update
+	compile_options.allow_std for GFC_STD_F2008_OBS.
+	* io/transfer.c (formatted_transfer_scalar_read,
+	formatted_transfer_scalar_write): Fix allow_std check.
+	* io/list_read.c (nml_parse_qualifier): Ditto.
+
+2010-06-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/44477
+	* io/file_pos.c (st_endfile): Add check for ENDFILE when file is
+	already positioned after the EOF marker. Use find_or_create_unit
+	instead of find_unit. If unit is not connected, connect it and create 
+	the file with default settings.
+	* io/transfer.c (data_transfer_init):  Add check for attempted READ or
+	WRITE when file is already positioned after the EOF marker.
+
+2010-06-10  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* intrinsics/selected_char_kind.c (selected_char_kind): Fix
+	return value for ISO_10646.
+
+2010-06-09  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* mk-kinds-h.sh: Define GFC_REAL_*_LITERAL_SUFFIX and
+	GFC_REAL_*_LITERAL macros for each kind.
+	* intrinsics/cpu_time.c (cpu_time_4, cpu_time_8, cpu_time_10,
+	cpu_time_16): Use them.
+	* intrinsics/random.c (rnumber_4, rnumber_8, rnumber_10,
+	rnumber_16): Likewise.
+
+2010-06-09  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* intrinsics/system_clock.c (system_clock_4, system_clock_8):
+	Undefine TCK.
+
+2010-06-04  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34670
+	* intrinsics/date_and_time.c:  Replace assert with runtime_error
+	when VALUE is too small.
+
 2010-05-20 Jerry DeLisle <jvdelisle@gcc.gnu.org>
 
 	PR fortran/43851
@@ -23,31 +87,31 @@
 
 2010-05-07  Janne Blomqvist  <jb@gcc.gnu.org>
 
-        * libgfortran.h (free_mem): Remove prototype.
-        * runtime/memory.c (free_mem): Remove function.
-        * intrinsics/date_and_time.c (secnds): Replace free_mem() with
-        free().
-        * io/fbuf.c (fbuf_destroy): Likewise.
-        * io/format.c (free_format_hash_table): Likewise.
-        (save_parsed_format): Likewise.
-        (free_format_data): Likewise.
-        * io/list_read.c (free_saved): Likewise.
-        (free_line): Likewise.
-        (nml_touch_nodes): Likewise.
-        (nml_read_obj): Likewise
-        * io/lock.c (free_ionml): Likewise.
-        * io/open.c (new_unit): Likewise.
-        (already_open): Likewise.
-        * io/unit.c (destroy_unit_mutex): Likewise.
-        (free_internal_unit): Likewise.
-        (close_unit_1): Likewise.
-        * io/unix.c (raw_close): Likewise.
-        (buf_close): Likewise.
-        (mem_close): Likewise.
-        (tempfile): Likewise.
-        * io/write.c (nml_write_obj): Likewise.
-        * io/write_float.def (output_float_FMT_G_##): Likewise.
-        * runtime/error.c (show_locus): Likewise.
+	* libgfortran.h (free_mem): Remove prototype.
+	* runtime/memory.c (free_mem): Remove function.
+	* intrinsics/date_and_time.c (secnds): Replace free_mem() with
+	free().
+	* io/fbuf.c (fbuf_destroy): Likewise.
+	* io/format.c (free_format_hash_table): Likewise.
+	(save_parsed_format): Likewise.
+	(free_format_data): Likewise.
+	* io/list_read.c (free_saved): Likewise.
+	(free_line): Likewise.
+	(nml_touch_nodes): Likewise.
+	(nml_read_obj): Likewise
+	* io/lock.c (free_ionml): Likewise.
+	* io/open.c (new_unit): Likewise.
+	(already_open): Likewise.
+	* io/unit.c (destroy_unit_mutex): Likewise.
+	(free_internal_unit): Likewise.
+	(close_unit_1): Likewise.
+	* io/unix.c (raw_close): Likewise.
+	(buf_close): Likewise.
+	(mem_close): Likewise.
+	(tempfile): Likewise.
+	* io/write.c (nml_write_obj): Likewise.
+	* io/write_float.def (output_float_FMT_G_##): Likewise.
+	* runtime/error.c (show_locus): Likewise.
 
 2010-05-04  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 

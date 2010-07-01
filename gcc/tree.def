@@ -970,6 +970,16 @@ DEFTREECODE (REALIGN_LOAD_EXPR, "realign_load", tcc_expression, 3)
 
 DEFTREECODE (TARGET_MEM_REF, "target_mem_ref", tcc_reference, 6)
 
+/* Memory addressing.  Operands are a pointer and a tree constant integer
+   byte offset of the pointer type that when dereferenced yields the
+   type of the base object the pointer points into and which is used for
+   TBAA purposes.
+   The type of the MEM_REF is the type the bytes at the memory location
+   are interpreted as.
+   MEM_REF <p, c> is equivalent to ((typeof(c))p)->x... where x... is a
+   chain of component references offsetting p by c.  */
+DEFTREECODE (MEM_REF, "mem_ref", tcc_reference, 2)
+
 /* The ordering of the codes between OMP_PARALLEL and OMP_CRITICAL is
    exposed to TREE_RANGE_CHECK.  */
 /* OpenMP - #pragma omp parallel [clause1 ... clauseN]
@@ -1079,6 +1089,18 @@ DEFTREECODE (WIDEN_SUM_EXPR, "widen_sum_expr", tcc_binary, 2)
    the size of t1. WIDEN_MULT_EXPR is equivalent to first widening (promoting)
    the arguments from type t1 to type t2, and then multiplying them.  */
 DEFTREECODE (WIDEN_MULT_EXPR, "widen_mult_expr", tcc_binary, 2)
+
+/* Widening multiply-accumulate.
+   The first two arguments are of type t1.
+   The third argument and the result are of type t2, such as t2 is at least
+   twice the size of t1.  t1 and t2 must be integral or fixed-point types.
+   The expression is equivalent to a WIDEN_MULT_EXPR operation
+   of the first two operands followed by an add or subtract of the third
+   operand.  */
+DEFTREECODE (WIDEN_MULT_PLUS_EXPR, "widen_mult_plus_expr", tcc_expression, 3)
+/* This is like the above, except in the final expression the multiply result
+   is subtracted from t3.  */
+DEFTREECODE (WIDEN_MULT_MINUS_EXPR, "widen_mult_plus_expr", tcc_expression, 3)
 
 /* Whole vector left/right shift in bits.
    Operand 0 is a vector to be shifted.

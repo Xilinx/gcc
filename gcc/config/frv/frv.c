@@ -1,5 +1,5 @@
 /* Copyright (C) 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009  Free Software Foundation, Inc.
+   2008, 2009, 2010  Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
 This file is part of GCC.
@@ -267,6 +267,9 @@ static bool frv_legitimate_address_p		(enum machine_mode, rtx, bool);
 static int frv_default_flags_for_cpu		(void);
 static int frv_string_begins_with		(const_tree, const char *);
 static FRV_INLINE bool frv_small_data_reloc_p	(rtx, int);
+static void frv_print_operand			(FILE *, rtx, int);
+static void frv_print_operand_address		(FILE *, rtx);
+static bool frv_print_operand_punct_valid_p	(unsigned char code);
 static void frv_print_operand_memory_reference_reg
 						(FILE *, rtx);
 static void frv_print_operand_memory_reference	(FILE *, rtx, int);
@@ -381,7 +384,7 @@ static int frv_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				  tree, bool);
 static void frv_output_dwarf_dtprel		(FILE *, int, rtx)
   ATTRIBUTE_UNUSED;
-static bool frv_secondary_reload                (bool, rtx, enum reg_class,
+static reg_class_t frv_secondary_reload		(bool, rtx, reg_class_t,
 						 enum machine_mode,
 						 secondary_reload_info *);
 static bool frv_frame_pointer_required		(void);
@@ -396,6 +399,12 @@ static void frv_trampoline_init			(rtx, tree, rtx);
 #endif
 
 /* Initialize the GCC target structure.  */
+#undef TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND frv_print_operand
+#undef TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS frv_print_operand_address
+#undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P frv_print_operand_punct_valid_p
 #undef  TARGET_ASM_FUNCTION_PROLOGUE
 #define TARGET_ASM_FUNCTION_PROLOGUE frv_function_prologue
 #undef  TARGET_ASM_FUNCTION_EPILOGUE
@@ -2562,7 +2571,7 @@ frv_index_memory (rtx memref, enum machine_mode mode, int index)
 
 
 /* Print a memory address as an operand to reference that memory location.  */
-void
+static void
 frv_print_operand_address (FILE * stream, rtx x)
 {
   if (GET_CODE (x) == MEM)
@@ -2795,9 +2804,9 @@ comparison_string (enum rtx_code code, rtx op0)
 /* Print an operand to an assembler instruction.
 
    `%' followed by a letter and a digit says to output an operand in an
-   alternate fashion.  Four letters have standard, built-in meanings described
-   below.  The machine description macro `PRINT_OPERAND' can define additional
-   letters with nonstandard meanings.
+   alternate fashion.  Four letters have standard, built-in meanings
+   described below.  The hook `TARGET_PRINT_OPERAND' can define
+   additional letters with nonstandard meanings.
 
    `%cDIGIT' can be used to substitute an operand that is a constant value
    without the syntax that normally indicates an immediate operand.
@@ -2818,13 +2827,14 @@ comparison_string (enum rtx_code code, rtx op0)
    than once in a single template that generates multiple assembler
    instructions.
 
-   `%' followed by a punctuation character specifies a substitution that does
-   not use an operand.  Only one case is standard: `%%' outputs a `%' into the
-   assembler code.  Other nonstandard cases can be defined in the
-   `PRINT_OPERAND' macro.  You must also define which punctuation characters
-   are valid with the `PRINT_OPERAND_PUNCT_VALID_P' macro.  */
+   `%' followed by a punctuation character specifies a substitution that
+   does not use an operand.  Only one case is standard: `%%' outputs a
+   `%' into the assembler code.  Other nonstandard cases can be defined
+   in the `TARGET_PRINT_OPERAND' hook.  You must also define which
+   punctuation characters are valid with the
+   `TARGET_PRINT_OPERAND_PUNCT_VALID_P' hook.  */
 
-void
+static void
 frv_print_operand (FILE * file, rtx x, int code)
 {
   struct frv_unspec unspec;
@@ -3115,6 +3125,13 @@ frv_print_operand (FILE * file, rtx x, int code)
   return;
 }
 
+static bool
+frv_print_operand_punct_valid_p (unsigned char code)
+{
+  return (code == '.' || code == '#' || code == '@' || code == '~'
+	  || code == '*' || code == '&');
+}
+
 
 /* A C statement (sans semicolon) for initializing the variable CUM for the
    state at the beginning of the argument list.  The variable has type
@@ -3374,11 +3391,11 @@ frv_regno_ok_for_base_p (int regno, int strict_p)
    legitimate addresses.  Normally you would simply recognize any `const' as
    legitimate.
 
-   Usually `PRINT_OPERAND_ADDRESS' is not prepared to handle constant sums that
-   are not marked with `const'.  It assumes that a naked `plus' indicates
-   indexing.  If so, then you *must* reject such naked constant sums as
-   illegitimate addresses, so that none of them will be given to
-   `PRINT_OPERAND_ADDRESS'.  */
+   Usually `TARGET_PRINT_OPERAND_ADDRESS' is not prepared to handle
+   constant sums that are not marked with `const'.  It assumes that a
+   naked `plus' indicates indexing.  If so, then you *must* reject such
+   naked constant sums as illegitimate addresses, so that none of them
+   will be given to `TARGET_PRINT_OPERAND_ADDRESS'.  */
 
 int
 frv_legitimate_address_p_1 (enum machine_mode mode,
@@ -6475,12 +6492,13 @@ frv_secondary_reload_class (enum reg_class rclass,
    called from init_reg_autoinc() in regclass.c - before the reload optabs
    have been initialised.  */
    
-static bool
-frv_secondary_reload (bool in_p, rtx x, enum reg_class reload_class,
+static reg_class_t
+frv_secondary_reload (bool in_p, rtx x, reg_class_t reload_class_i,
 		      enum machine_mode reload_mode,
 		      secondary_reload_info * sri)
 {
   enum reg_class rclass = NO_REGS;
+  enum reg_class reload_class = (enum reg_class) reload_class_i;
 
   if (sri->prev_sri && sri->prev_sri->t_icode != CODE_FOR_nothing)
     {
@@ -7054,7 +7072,7 @@ frv_assemble_integer (rtx value, unsigned int size, int aligned_p)
 static struct machine_function *
 frv_init_machine_status (void)
 {
-  return GGC_CNEW (struct machine_function);
+  return ggc_alloc_cleared_machine_function ();
 }
 
 /* Implement TARGET_SCHED_ISSUE_RATE.  */

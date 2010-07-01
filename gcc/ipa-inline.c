@@ -968,7 +968,9 @@ add_new_edges_to_heap (fibheap_t heap, VEC (cgraph_edge_p, heap) *new_edges)
       struct cgraph_edge *edge = VEC_pop (cgraph_edge_p, new_edges);
 
       gcc_assert (!edge->aux);
-      edge->aux = fibheap_insert (heap, cgraph_edge_badness (edge, false), edge);
+      if (edge->callee->local.inlinable
+	  && cgraph_default_inline_p (edge->callee, &edge->inline_failed))
+        edge->aux = fibheap_insert (heap, cgraph_edge_badness (edge, false), edge);
     }
 }
 
@@ -1830,10 +1832,12 @@ likely_eliminated_by_inlining_p (gimple stmt)
 	    bool rhs_free = false;
 	    bool lhs_free = false;
 
- 	    while (handled_component_p (inner_lhs) || TREE_CODE (inner_lhs) == INDIRECT_REF)
+ 	    while (handled_component_p (inner_lhs)
+		   || TREE_CODE (inner_lhs) == MEM_REF)
 	      inner_lhs = TREE_OPERAND (inner_lhs, 0);
  	    while (handled_component_p (inner_rhs)
-	           || TREE_CODE (inner_rhs) == ADDR_EXPR || TREE_CODE (inner_rhs) == INDIRECT_REF)
+	           || TREE_CODE (inner_rhs) == ADDR_EXPR
+		   || TREE_CODE (inner_rhs) == MEM_REF)
 	      inner_rhs = TREE_OPERAND (inner_rhs, 0);
 
 
@@ -1853,7 +1857,8 @@ likely_eliminated_by_inlining_p (gimple stmt)
 	        || (TREE_CODE (inner_lhs) == SSA_NAME
 		    && TREE_CODE (SSA_NAME_VAR (inner_lhs)) == RESULT_DECL))
 	      lhs_free = true;
-	    if (lhs_free && (is_gimple_reg (rhs) || is_gimple_min_invariant (rhs)))
+	    if (lhs_free
+		&& (is_gimple_reg (rhs) || is_gimple_min_invariant (rhs)))
 	      rhs_free = true;
 	    if (lhs_free && rhs_free)
 	      return true;
@@ -2011,12 +2016,8 @@ struct gimple_opt_pass pass_inline_parameters =
 static void
 inline_indirect_intraprocedural_analysis (struct cgraph_node *node)
 {
-  ipa_initialize_node_params (node);
-  ipa_detect_param_modifications (node);
-  ipa_analyze_params_uses (node);
-  ipa_compute_jump_functions (node);
-
-  if (dump_file)
+  ipa_analyze_node (node);
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       ipa_print_node_params (dump_file, node);
       ipa_print_node_jump_functions (dump_file, node);

@@ -389,7 +389,7 @@ lto_input_eh_catch_list (struct lto_input_block *ib, struct data_in *data_in,
       lto_tag_check_range (tag, LTO_eh_catch, LTO_eh_catch);
 
       /* Read the catch node.  */
-      n = GGC_CNEW (struct eh_catch_d);
+      n = ggc_alloc_cleared_eh_catch_d ();
       n->type_list = lto_input_tree (ib, data_in);
       n->filter_list = lto_input_tree (ib, data_in);
       n->label = lto_input_tree (ib, data_in);
@@ -429,7 +429,7 @@ input_eh_region (struct lto_input_block *ib, struct data_in *data_in, int ix)
   if (tag == LTO_null)
     return NULL;
 
-  r = GGC_CNEW (struct eh_region_d);
+  r = ggc_alloc_cleared_eh_region_d ();
   r->index = lto_input_sleb128 (ib);
 
   gcc_assert (r->index == ix);
@@ -502,7 +502,7 @@ input_eh_lp (struct lto_input_block *ib, struct data_in *data_in, int ix)
 
   lto_tag_check_range (tag, LTO_eh_landing_pad, LTO_eh_landing_pad);
 
-  lp = GGC_CNEW (struct eh_landing_pad_d);
+  lp = ggc_alloc_cleared_eh_landing_pad_d ();
   lp->index = lto_input_sleb128 (ib);
   gcc_assert (lp->index == ix);
   lp->next_lp = (eh_landing_pad) (intptr_t) lto_input_sleb128 (ib);
@@ -707,7 +707,7 @@ make_new_block (struct function *fn, unsigned int index)
   basic_block bb = alloc_block ();
   bb->index = index;
   SET_BASIC_BLOCK_FOR_FUNCTION (fn, index, bb);
-  bb->il.gimple = GGC_CNEW (struct gimple_bb_info);
+  bb->il.gimple = ggc_alloc_cleared_gimple_bb_info ();
   n_basic_blocks_for_function (fn)++;
   bb->flags = 0;
   set_bb_seq (bb, gimple_seq_alloc ());
@@ -1001,20 +1001,19 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
   enum gimple_code code;
   unsigned HOST_WIDE_INT num_ops;
   size_t i;
-  struct bitpack_d *bp;
+  struct bitpack_d bp;
 
   code = lto_tag_to_gimple_code (tag);
 
   /* Read the tuple header.  */
   bp = lto_input_bitpack (ib);
-  num_ops = bp_unpack_value (bp, sizeof (unsigned) * 8);
+  num_ops = bp_unpack_value (&bp, sizeof (unsigned) * 8);
   stmt = gimple_alloc (code, num_ops);
-  stmt->gsbase.no_warning = bp_unpack_value (bp, 1);
+  stmt->gsbase.no_warning = bp_unpack_value (&bp, 1);
   if (is_gimple_assign (stmt))
-    stmt->gsbase.nontemporal_move = bp_unpack_value (bp, 1);
-  stmt->gsbase.has_volatile_ops = bp_unpack_value (bp, 1);
-  stmt->gsbase.subcode = bp_unpack_value (bp, 16);
-  bitpack_delete (bp);
+    stmt->gsbase.nontemporal_move = bp_unpack_value (&bp, 1);
+  stmt->gsbase.has_volatile_ops = bp_unpack_value (&bp, 1);
+  stmt->gsbase.subcode = bp_unpack_value (&bp, 16);
 
   /* Read location information.  */
   gimple_set_location (stmt, lto_input_location (ib, data_in));
@@ -1205,13 +1204,6 @@ input_bb (struct lto_input_block *ib, enum LTO_tags tag,
     {
       gimple stmt = input_gimple_stmt (ib, data_in, fn, tag);
 
-      /* Change debug stmts to nops on-the-fly if we do not have VTA enabled.
-	 This allows us to build for example static libs with debugging
-	 enabled and do the final link without.  */
-      if (!MAY_HAVE_DEBUG_STMTS
-	  && is_gimple_debug (stmt))
-	stmt = gimple_build_nop ();
-
       find_referenced_vars_in (stmt);
       gsi_insert_after (&bsi, stmt, GSI_NEW_STMT);
 
@@ -1291,7 +1283,7 @@ input_function (tree fn_decl, struct data_in *data_in,
   enum LTO_tags tag;
   gimple *stmts;
   basic_block bb;
-  struct bitpack_d *bp;
+  struct bitpack_d bp;
   struct cgraph_node *node;
   tree args, narg, oarg;
 
@@ -1304,22 +1296,21 @@ input_function (tree fn_decl, struct data_in *data_in,
 
   /* Read all the attributes for FN.  */
   bp = lto_input_bitpack (ib);
-  fn->is_thunk = bp_unpack_value (bp, 1);
-  fn->has_local_explicit_reg_vars = bp_unpack_value (bp, 1);
-  fn->after_tree_profile = bp_unpack_value (bp, 1);
-  fn->returns_pcc_struct = bp_unpack_value (bp, 1);
-  fn->returns_struct = bp_unpack_value (bp, 1);
-  fn->can_throw_non_call_exceptions = bp_unpack_value (bp, 1);
-  fn->always_inline_functions_inlined = bp_unpack_value (bp, 1);
-  fn->after_inlining = bp_unpack_value (bp, 1);
-  fn->dont_save_pending_sizes_p = bp_unpack_value (bp, 1);
-  fn->stdarg = bp_unpack_value (bp, 1);
-  fn->has_nonlocal_label = bp_unpack_value (bp, 1);
-  fn->calls_alloca = bp_unpack_value (bp, 1);
-  fn->calls_setjmp = bp_unpack_value (bp, 1);
-  fn->va_list_fpr_size = bp_unpack_value (bp, 8);
-  fn->va_list_gpr_size = bp_unpack_value (bp, 8);
-  bitpack_delete (bp);
+  fn->is_thunk = bp_unpack_value (&bp, 1);
+  fn->has_local_explicit_reg_vars = bp_unpack_value (&bp, 1);
+  fn->after_tree_profile = bp_unpack_value (&bp, 1);
+  fn->returns_pcc_struct = bp_unpack_value (&bp, 1);
+  fn->returns_struct = bp_unpack_value (&bp, 1);
+  fn->can_throw_non_call_exceptions = bp_unpack_value (&bp, 1);
+  fn->always_inline_functions_inlined = bp_unpack_value (&bp, 1);
+  fn->after_inlining = bp_unpack_value (&bp, 1);
+  fn->dont_save_pending_sizes_p = bp_unpack_value (&bp, 1);
+  fn->stdarg = bp_unpack_value (&bp, 1);
+  fn->has_nonlocal_label = bp_unpack_value (&bp, 1);
+  fn->calls_alloca = bp_unpack_value (&bp, 1);
+  fn->calls_setjmp = bp_unpack_value (&bp, 1);
+  fn->va_list_fpr_size = bp_unpack_value (&bp, 8);
+  fn->va_list_gpr_size = bp_unpack_value (&bp, 8);
 
   /* Input the current IL state of the function.  */
   fn->curr_properties = lto_input_uleb128 (ib);
@@ -1372,11 +1363,26 @@ input_function (tree fn_decl, struct data_in *data_in,
   stmts = (gimple *) xcalloc (gimple_stmt_max_uid (fn), sizeof (gimple));
   FOR_ALL_BB (bb)
     {
-      gimple_stmt_iterator bsi;
-      for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
+      gimple_stmt_iterator bsi = gsi_start_bb (bb);
+      while (!gsi_end_p (bsi))
 	{
 	  gimple stmt = gsi_stmt (bsi);
-	  stmts[gimple_uid (stmt)] = stmt;
+	  /* If we're recompiling LTO objects with debug stmts but
+	     we're not supposed to have debug stmts, remove them now.
+	     We can't remove them earlier because this would cause uid
+	     mismatches in fixups, but we can do it at this point, as
+	     long as debug stmts don't require fixups.  */
+	  if (!MAY_HAVE_DEBUG_STMTS && is_gimple_debug (stmt))
+	    {
+	      gimple_stmt_iterator gsi = bsi;
+	      gsi_next (&bsi);
+	      gsi_remove (&gsi, true);
+	    }
+	  else
+	    {
+	      gsi_next (&bsi);
+	      stmts[gimple_uid (stmt)] = stmt;
+	    }
 	}
     }
 
@@ -1581,12 +1587,16 @@ unpack_ts_base_value_fields (struct bitpack_d *bp, tree expr)
 	 so we skip it here.  */
       TREE_PUBLIC (expr) = (unsigned) bp_unpack_value (bp, 1);
     }
+  else
+    bp_unpack_value (bp, 4);
   TREE_ADDRESSABLE (expr) = (unsigned) bp_unpack_value (bp, 1);
   TREE_THIS_VOLATILE (expr) = (unsigned) bp_unpack_value (bp, 1);
   if (DECL_P (expr))
     DECL_UNSIGNED (expr) = (unsigned) bp_unpack_value (bp, 1);
   else if (TYPE_P (expr))
     TYPE_UNSIGNED (expr) = (unsigned) bp_unpack_value (bp, 1);
+  else
+    bp_unpack_value (bp, 1);
   TREE_ASM_WRITTEN (expr) = (unsigned) bp_unpack_value (bp, 1);
   TREE_NO_WARNING (expr) = (unsigned) bp_unpack_value (bp, 1);
   TREE_USED (expr) = (unsigned) bp_unpack_value (bp, 1);
@@ -1597,8 +1607,10 @@ unpack_ts_base_value_fields (struct bitpack_d *bp, tree expr)
   TREE_DEPRECATED (expr) = (unsigned) bp_unpack_value (bp, 1);
   if (TYPE_P (expr))
     TYPE_SATURATING (expr) = (unsigned) bp_unpack_value (bp, 1);
-  if (TREE_CODE (expr) == SSA_NAME)
+  else if (TREE_CODE (expr) == SSA_NAME)
     SSA_NAME_IS_DEFAULT_DEF (expr) = (unsigned) bp_unpack_value (bp, 1);
+  else
+    bp_unpack_value (bp, 1);
 }
 
 
@@ -1621,7 +1633,7 @@ unpack_ts_real_cst_value_fields (struct bitpack_d *bp, tree expr)
   for (i = 0; i < SIGSZ; i++)
     r.sig[i] = (unsigned long) bp_unpack_value (bp, HOST_BITS_PER_LONG);
 
-  rp = GGC_NEW (REAL_VALUE_TYPE);
+  rp = ggc_alloc_real_value ();
   memcpy (rp, &r, sizeof (REAL_VALUE_TYPE));
   TREE_REAL_CST_PTR (expr) = rp;
 }
@@ -1858,32 +1870,6 @@ unpack_value_fields (struct bitpack_d *bp, tree expr)
 }
 
 
-/* Read a bitpack from input block IB.  */
-
-struct bitpack_d *
-lto_input_bitpack (struct lto_input_block *ib)
-{
-  unsigned i, num_words;
-  struct bitpack_d *bp;
-
-  bp = bitpack_create ();
-
-  /* If we are about to read more than a handful of words, something
-     is wrong.  This check is overly strict, but it acts as an early
-     warning.  No streamed object has hundreds of bits in its fields.  */
-  num_words = lto_input_uleb128 (ib);
-  gcc_assert (num_words < 20);
-
-  for (i = 0; i < num_words; i++)
-    {
-      bitpack_word_t w = lto_input_uleb128 (ib);
-      VEC_safe_push (bitpack_word_t, heap, bp->values, w);
-    }
-
-  return bp;
-}
-
-
 /* Materialize a new tree from input block IB using descriptors in
    DATA_IN.  The code for the new tree should match TAG.  Store in
    *IX_P the index into the reader cache where the new tree is stored.  */
@@ -1892,7 +1878,7 @@ static tree
 lto_materialize_tree (struct lto_input_block *ib, struct data_in *data_in,
 		      enum LTO_tags tag, int *ix_p)
 {
-  struct bitpack_d *bp;
+  struct bitpack_d bp;
   enum tree_code code;
   tree result;
 #ifdef LTO_STREAMER_DEBUG
@@ -1957,12 +1943,11 @@ lto_materialize_tree (struct lto_input_block *ib, struct data_in *data_in,
 
   /* The first word in BP contains the code of the tree that we
      are about to read.  */
-  code = (enum tree_code) bp_unpack_value (bp, 16);
+  code = (enum tree_code) bp_unpack_value (&bp, 16);
   lto_tag_check (lto_tree_code_to_tag (code), tag);
 
   /* Unpack all the value fields from BP.  */
-  unpack_value_fields (bp, result);
-  bitpack_delete (bp);
+  unpack_value_fields (&bp, result);
 
   /* Enter RESULT in the reader cache.  This will make RESULT
      available so that circular references in the rest of the tree
@@ -2192,7 +2177,8 @@ lto_input_ts_type_tree_pointers (struct lto_input_block *ib,
   if (RECORD_OR_UNION_TYPE_P (expr))
     TYPE_BINFO (expr) = lto_input_tree (ib, data_in);
   TYPE_CONTEXT (expr) = lto_input_tree (ib, data_in);
-  TYPE_CANONICAL (expr) = lto_input_tree (ib, data_in);
+  /* TYPE_CANONICAL gets re-computed during type merging.  */
+  TYPE_CANONICAL (expr) = NULL_TREE;
   TYPE_STUB_DECL (expr) = lto_input_tree (ib, data_in);
 }
 
