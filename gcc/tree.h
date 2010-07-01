@@ -1887,11 +1887,8 @@ struct GTY(()) tree_exp {
 #define SSA_NAME_PTR_INFO(N) \
     SSA_NAME_CHECK (N)->ssa_name.ptr_info
 
-#ifndef _TREE_FLOW_H
+/* Defined in tree-flow.h.  */
 struct ptr_info_def;
-#endif
-
-
 
 /* Immediate use linking structure.  This structure is used for maintaining
    a doubly linked list of uses of an SSA_NAME.  */
@@ -4014,6 +4011,7 @@ tree_to_double_int (const_tree cst)
 
 extern tree double_int_to_tree (tree, double_int);
 extern bool double_int_fits_to_tree_p (const_tree, double_int);
+extern tree force_fit_type_double (tree, double_int, int, bool);
 
 /* Create an INT_CST node with a CST value zero extended.  */
 
@@ -4820,6 +4818,7 @@ extern tree get_callee_fndecl (const_tree);
 extern int type_num_arguments (const_tree);
 extern bool associative_tree_code (enum tree_code);
 extern bool commutative_tree_code (enum tree_code);
+extern bool commutative_ternary_tree_code (enum tree_code);
 extern tree upper_bound_in_type (tree, tree);
 extern tree lower_bound_in_type (tree, tree);
 extern int operand_equal_for_phi_arg_p (const_tree, const_tree);
@@ -4964,6 +4963,10 @@ extern tree build_fold_indirect_ref_loc (location_t, tree);
 #define fold_indirect_ref(T)\
         fold_indirect_ref_loc (UNKNOWN_LOCATION, T)
 extern tree fold_indirect_ref_loc (location_t, tree);
+extern tree build_simple_mem_ref_loc (location_t, tree);
+#define build_simple_mem_ref(T)\
+	build_simple_mem_ref_loc (UNKNOWN_LOCATION, T)
+extern double_int mem_ref_offset (const_tree);
 extern tree constant_boolean_node (int, tree);
 extern tree div_if_zero_remainder (enum tree_code, const_tree, const_tree);
 
@@ -5568,5 +5571,8 @@ is_lang_specific (tree t)
 {
   return TREE_CODE (t) == LANG_TYPE || TREE_CODE (t) >= NUM_TREE_CODES;
 }
+
+/* In gimple-low.c.  */
+extern bool block_may_fallthru (const_tree);
 
 #endif  /* GCC_TREE_H  */

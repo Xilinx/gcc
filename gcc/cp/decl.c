@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "decl.h"
 #include "intl.h"
 #include "output.h"
-#include "except.h"
 #include "toplev.h"
 #include "hashtab.h"
 #include "tm_p.h"
@@ -51,7 +50,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "debug.h"
 #include "timevar.h"
-#include "tree-flow.h"
 #include "pointer-set.h"
 #include "splay-tree.h"
 #include "plugin.h"
@@ -212,9 +210,9 @@ struct GTY(()) named_label_entry {
      defined, or the inner scope popped.  These are the decls that will
      be skipped when jumping to the label.  */
   tree names_in_scope;
-  /* A tree list of all decls from all binding levels that would be
+  /* A vector of all decls from all binding levels that would be
      crossed by a backward branch to the label.  */
-  tree bad_decls;
+  VEC(tree,gc) *bad_decls;
 
   /* A list of uses of the label, before the label is defined.  */
   struct named_label_use_entry *uses;
@@ -246,11 +244,18 @@ VEC(tree, gc) *deferred_mark_used_calls;
 enum deprecated_states deprecated_state = DEPRECATED_NORMAL;
 
 
-/* A TREE_LIST of VAR_DECLs.  The TREE_PURPOSE is a RECORD_TYPE or
-   UNION_TYPE; the TREE_VALUE is a VAR_DECL with that type.  At the
-   time the VAR_DECL was declared, the type was incomplete.  */
+/* A list of VAR_DECLs whose type was incomplete at the time the
+   variable was declared.  */
 
-static GTY(()) tree incomplete_vars;
+typedef struct GTY(()) incomplete_var_d {
+  tree decl;
+  tree incomplete_type;
+} incomplete_var;
+
+DEF_VEC_O(incomplete_var);
+DEF_VEC_ALLOC_O(incomplete_var,gc);
+
+static GTY(()) VEC(incomplete_var,gc) *incomplete_vars;
 
 /* Returns the kind of template specialization we are currently
    processing, given that it's declaration contained N_CLASS_SCOPES
@@ -471,7 +476,7 @@ poplevel_named_label_1 (void **slot, void *data)
 
       for (decl = ent->names_in_scope; decl; decl = TREE_CHAIN (decl))
 	if (decl_jump_unsafe (decl))
-	  ent->bad_decls = tree_cons (NULL, decl, ent->bad_decls);
+	  VEC_safe_push (tree, gc, ent->bad_decls, decl);
 
       ent->binding_level = obl;
       ent->names_in_scope = obl->names;
@@ -2652,6 +2657,7 @@ check_goto (tree decl)
   struct named_label_entry *ent, dummy;
   bool saw_catch = false, identified = false;
   tree bad;
+  unsigned ix;
 
   /* We can't know where a computed goto is jumping.
      So we assume that it's OK.  */
@@ -2690,29 +2696,28 @@ check_goto (tree decl)
     }
 
   if (ent->in_try_scope || ent->in_catch_scope
-      || ent->in_omp_scope || ent->bad_decls)
+      || ent->in_omp_scope || !VEC_empty (tree, ent->bad_decls))
     {
       permerror (input_location, "jump to label %q+D", decl);
       permerror (input_location, "  from here");
       identified = true;
     }
 
-  for (bad = ent->bad_decls; bad; bad = TREE_CHAIN (bad))
+  for (ix = 0; VEC_iterate (tree, ent->bad_decls, ix, bad); ix++)
     {
-      tree b = TREE_VALUE (bad);
-      int u = decl_jump_unsafe (b);
+      int u = decl_jump_unsafe (bad);
 
-      if (u > 1 && DECL_ARTIFICIAL (b))
+      if (u > 1 && DECL_ARTIFICIAL (bad))
 	{
 	  /* Can't skip init of __exception_info.  */
-	  error_at (DECL_SOURCE_LOCATION (b), "  enters catch block");
+	  error_at (DECL_SOURCE_LOCATION (bad), "  enters catch block");
 	  saw_catch = true;
 	}
       else if (u > 1)
-	error ("  skips initialization of %q+#D", b);
+	error ("  skips initialization of %q+#D", bad);
       else
 	permerror (input_location, "  enters scope of %q+#D which has "
-		   "non-trivial destructor", b);
+		   "non-trivial destructor", bad);
     }
 
   if (ent->in_try_scope)
@@ -3867,10 +3872,10 @@ fixup_anonymous_aggr (tree t)
   /* Wipe out memory of synthesized methods.  */
   TYPE_HAS_USER_CONSTRUCTOR (t) = 0;
   TYPE_HAS_DEFAULT_CONSTRUCTOR (t) = 0;
-  TYPE_HAS_INIT_REF (t) = 0;
-  TYPE_HAS_CONST_INIT_REF (t) = 0;
-  TYPE_HAS_ASSIGN_REF (t) = 0;
-  TYPE_HAS_CONST_ASSIGN_REF (t) = 0;
+  TYPE_HAS_COPY_CTOR (t) = 0;
+  TYPE_HAS_CONST_COPY_CTOR (t) = 0;
+  TYPE_HAS_COPY_ASSIGN (t) = 0;
+  TYPE_HAS_CONST_COPY_ASSIGN (t) = 0;
 
   /* Splice the implicitly generated functions out of the TYPE_METHODS
      list.  */
@@ -3916,7 +3921,7 @@ fixup_anonymous_aggr (tree t)
 		if (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (type))
 		  error ("member %q+#D with destructor not allowed "
 			 "in anonymous aggregate", field);
-		if (TYPE_HAS_COMPLEX_ASSIGN_REF (type))
+		if (TYPE_HAS_COMPLEX_COPY_ASSIGN (type))
 		  error ("member %q+#D with copy assignment operator "
 			 "not allowed in anonymous aggregate", field);
 	      }
@@ -10262,11 +10267,11 @@ grok_special_member_properties (tree decl)
 	     X&, volatile X& or const volatile X&, and either there
 	     are no other parameters or else all other parameters have
 	     default arguments.  */
-	  TYPE_HAS_INIT_REF (class_type) = 1;
+	  TYPE_HAS_COPY_CTOR (class_type) = 1;
 	  if (user_provided_p (decl))
-	    TYPE_HAS_COMPLEX_INIT_REF (class_type) = 1;
+	    TYPE_HAS_COMPLEX_COPY_CTOR (class_type) = 1;
 	  if (ctor > 1)
-	    TYPE_HAS_CONST_INIT_REF (class_type) = 1;
+	    TYPE_HAS_CONST_COPY_CTOR (class_type) = 1;
 	}
       else if (sufficient_parms_p (FUNCTION_FIRST_USER_PARMTYPE (decl)))
 	{
@@ -10274,6 +10279,8 @@ grok_special_member_properties (tree decl)
 	  if (user_provided_p (decl))
 	    TYPE_HAS_COMPLEX_DFLT (class_type) = 1;
 	}
+      else if (move_fn_p (decl) && user_provided_p (decl))
+	TYPE_HAS_COMPLEX_MOVE_CTOR (class_type) = 1;
       else if (is_list_ctor (decl))
 	TYPE_HAS_LIST_CTOR (class_type) = 1;
     }
@@ -10289,13 +10296,16 @@ grok_special_member_properties (tree decl)
 
       if (assop)
 	{
-	  TYPE_HAS_ASSIGN_REF (class_type) = 1;
+	  TYPE_HAS_COPY_ASSIGN (class_type) = 1;
 	  if (user_provided_p (decl))
-	    TYPE_HAS_COMPLEX_ASSIGN_REF (class_type) = 1;
+	    TYPE_HAS_COMPLEX_COPY_ASSIGN (class_type) = 1;
 	  if (assop != 1)
-	    TYPE_HAS_CONST_ASSIGN_REF (class_type) = 1;
+	    TYPE_HAS_CONST_COPY_ASSIGN (class_type) = 1;
 	}
+      else if (move_fn_p (decl) && user_provided_p (decl))
+	TYPE_HAS_COMPLEX_MOVE_ASSIGN (class_type) = 1;
     }
+  /* Destructors are handled in check_methods.  */
 }
 
 /* Check a constructor DECL has the correct form.  Complains
@@ -12930,7 +12940,12 @@ maybe_register_incomplete_var (tree var)
 	  /* RTTI TD entries are created while defining the type_info.  */
 	  || (TYPE_LANG_SPECIFIC (inner_type)
 	      && TYPE_BEING_DEFINED (inner_type)))
-	incomplete_vars = tree_cons (inner_type, var, incomplete_vars);
+	{
+	  incomplete_var *iv
+	    = VEC_safe_push (incomplete_var, gc, incomplete_vars, NULL);
+	  iv->decl = var;
+	  iv->incomplete_type = inner_type;
+	}
     }
 }
 
@@ -12941,24 +12956,24 @@ maybe_register_incomplete_var (tree var)
 void
 complete_vars (tree type)
 {
-  tree *list = &incomplete_vars;
+  unsigned ix;
+  incomplete_var *iv;
 
-  gcc_assert (CLASS_TYPE_P (type));
-  while (*list)
+  for (ix = 0; VEC_iterate (incomplete_var, incomplete_vars, ix, iv); )
     {
-      if (same_type_p (type, TREE_PURPOSE (*list)))
+      if (same_type_p (type, iv->incomplete_type))
 	{
-	  tree var = TREE_VALUE (*list);
+	  tree var = iv->decl;
 	  tree type = TREE_TYPE (var);
 	  /* Complete the type of the variable.  The VAR_DECL itself
 	     will be laid out in expand_expr.  */
 	  complete_type (type);
 	  cp_apply_type_quals_to_decl (cp_type_quals (type), var);
 	  /* Remove this entry from the list.  */
-	  *list = TREE_CHAIN (*list);
+	  VEC_unordered_remove (incomplete_var, incomplete_vars, ix);
 	}
       else
-	list = &TREE_CHAIN (*list);
+	ix++;
     }
 
   /* Check for pending declarations which may have abstract type.  */

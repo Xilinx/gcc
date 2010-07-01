@@ -149,8 +149,6 @@ extern void ix86_split_fp_branch (enum rtx_code code, rtx, rtx,
 				  rtx, rtx, rtx, rtx);
 extern bool ix86_hard_regno_mode_ok (int, enum machine_mode);
 extern bool ix86_modes_tieable_p (enum machine_mode, enum machine_mode);
-extern int ix86_register_move_cost (enum machine_mode, enum reg_class,
-				    enum reg_class);
 extern int ix86_secondary_memory_needed (enum reg_class, enum reg_class,
 					 enum machine_mode, int);
 extern bool ix86_cannot_change_mode_class (enum machine_mode,
@@ -182,16 +180,11 @@ extern void ix86_expand_truncdf_32 (rtx, rtx);
 
 #ifdef TREE_CODE
 extern void init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree);
-extern rtx function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
-extern void function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
-				  tree, int);
 #endif	/* TREE_CODE  */
 
 #endif	/* RTX_CODE  */
 
 #ifdef TREE_CODE
-extern int ix86_return_pops_args (tree, tree, int);
-
 extern int ix86_data_alignment (tree, int);
 extern unsigned int ix86_local_alignment (tree, enum machine_mode,
 					  unsigned int);

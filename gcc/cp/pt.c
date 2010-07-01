@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-inline.h"
 #include "decl.h"
 #include "output.h"
-#include "except.h"
 #include "toplev.h"
 #include "timevar.h"
 #include "tree-iterator.h"
@@ -4881,6 +4880,36 @@ check_valid_ptrmem_cst_expr (tree type, tree expr)
   return false;
 }
 
+/* Returns TRUE iff the address of OP is value-dependent.
+
+   14.6.2.4 [temp.dep.temp]:
+   A non-integral non-type template-argument is dependent if its type is
+   dependent or it has either of the following forms
+     qualified-id
+     & qualified-id
+   and contains a nested-name-specifier which specifies a class-name that
+   names a dependent type.
+
+   We generalize this to just say that the address of a member of a
+   dependent class is value-dependent; the above doesn't cover the
+   address of a static data member named with an unqualified-id.  */
+
+static bool
+has_value_dependent_address (tree op)
+{
+  /* We could use get_inner_reference here, but there's no need;
+     this is only relevant for template non-type arguments, which
+     can only be expressed as &id-expression.  */
+  if (DECL_P (op))
+    {
+      tree ctx = CP_DECL_CONTEXT (op);
+      if (TYPE_P (ctx) && dependent_type_p (ctx))
+	return true;
+    }
+
+  return false;
+}
+
 /* Attempt to convert the non-type template parameter EXPR to the
    indicated TYPE.  If the conversion is successful, return the
    converted value.  If the conversion is unsuccessful, return
@@ -4919,6 +4948,11 @@ convert_nontype_argument (tree type, tree expr)
       return NULL_TREE;
     }
 
+  /* Add the ADDR_EXPR now for the benefit of
+     value_dependent_expression_p.  */
+  if (TYPE_PTROBV_P (type))
+    expr = decay_conversion (expr);
+
   /* If we are in a template, EXPR may be non-dependent, but still
      have a syntactic, rather than semantic, form.  For example, EXPR
      might be a SCOPE_REF, rather than the VAR_DECL to which the
@@ -4926,11 +4960,18 @@ convert_nontype_argument (tree type, tree expr)
      so that access checking can be performed when the template is
      instantiated -- but here we need the resolved form so that we can
      convert the argument.  */
-  expr = fold_non_dependent_expr (expr);
+  if (TYPE_REF_OBJ_P (type)
+      && has_value_dependent_address (expr))
+    /* If we want the address and it's value-dependent, don't fold.  */;
+  else
+    expr = fold_non_dependent_expr (expr);
   if (error_operand_p (expr))
     return error_mark_node;
   expr_type = TREE_TYPE (expr);
-  expr = mark_rvalue_use (expr);
+  if (TREE_CODE (type) == REFERENCE_TYPE)
+    expr = mark_lvalue_use (expr);
+  else
+    expr = mark_rvalue_use (expr);
 
   /* HACK: Due to double coercion, we can get a
      NOP_EXPR<REFERENCE_TYPE>(ADDR_EXPR<POINTER_TYPE> (arg)) here,
@@ -7768,10 +7809,10 @@ instantiate_class_template (tree type)
   TYPE_HAS_NEW_OPERATOR (type) = TYPE_HAS_NEW_OPERATOR (pattern);
   TYPE_HAS_ARRAY_NEW_OPERATOR (type) = TYPE_HAS_ARRAY_NEW_OPERATOR (pattern);
   TYPE_GETS_DELETE (type) = TYPE_GETS_DELETE (pattern);
-  TYPE_HAS_ASSIGN_REF (type) = TYPE_HAS_ASSIGN_REF (pattern);
-  TYPE_HAS_CONST_ASSIGN_REF (type) = TYPE_HAS_CONST_ASSIGN_REF (pattern);
-  TYPE_HAS_INIT_REF (type) = TYPE_HAS_INIT_REF (pattern);
-  TYPE_HAS_CONST_INIT_REF (type) = TYPE_HAS_CONST_INIT_REF (pattern);
+  TYPE_HAS_COPY_ASSIGN (type) = TYPE_HAS_COPY_ASSIGN (pattern);
+  TYPE_HAS_CONST_COPY_ASSIGN (type) = TYPE_HAS_CONST_COPY_ASSIGN (pattern);
+  TYPE_HAS_COPY_CTOR (type) = TYPE_HAS_COPY_CTOR (pattern);
+  TYPE_HAS_CONST_COPY_CTOR (type) = TYPE_HAS_CONST_COPY_CTOR (pattern);
   TYPE_HAS_DEFAULT_CONSTRUCTOR (type) = TYPE_HAS_DEFAULT_CONSTRUCTOR (pattern);
   TYPE_HAS_CONVERSION (type) = TYPE_HAS_CONVERSION (pattern);
   TYPE_PACKED (type) = TYPE_PACKED (pattern);
@@ -17479,40 +17520,6 @@ dependent_scope_p (tree scope)
 	  && !currently_open_class (scope));
 }
 
-/* Returns TRUE if EXPRESSION is dependent, according to CRITERION.  */
-
-static bool
-dependent_scope_ref_p (tree expression, bool criterion (tree))
-{
-  tree scope;
-  tree name;
-
-  gcc_assert (TREE_CODE (expression) == SCOPE_REF);
-
-  if (!TYPE_P (TREE_OPERAND (expression, 0)))
-    return true;
-
-  scope = TREE_OPERAND (expression, 0);
-  name = TREE_OPERAND (expression, 1);
-
-  /* [temp.dep.expr]
-
-     An id-expression is type-dependent if it contains a
-     nested-name-specifier that contains a class-name that names a
-     dependent type.  */
-  /* The suggested resolution to Core Issue 224 implies that if the
-     qualifying type is the current class, then we must peek
-     inside it.  */
-  if (DECL_P (name)
-      && currently_open_class (scope)
-      && !criterion (name))
-    return false;
-  if (dependent_type_p (scope))
-    return true;
-
-  return false;
-}
-
 /* Returns TRUE if the EXPRESSION is value-dependent, in the sense of
    [temp.dep.constexpr].  EXPRESSION is already known to be a constant
    expression.  */
@@ -17602,7 +17609,10 @@ value_dependent_expression_p (tree expression)
 	      || value_dependent_expression_p (expression));
 
     case SCOPE_REF:
-      return dependent_scope_ref_p (expression, value_dependent_expression_p);
+      {
+	tree name = TREE_OPERAND (expression, 1);
+	return value_dependent_expression_p (name);
+      }
 
     case COMPONENT_REF:
       return (value_dependent_expression_p (TREE_OPERAND (expression, 0))
@@ -17638,6 +17648,13 @@ value_dependent_expression_p (tree expression)
     case MODOP_EXPR:
       return ((value_dependent_expression_p (TREE_OPERAND (expression, 0)))
 	      || (value_dependent_expression_p (TREE_OPERAND (expression, 2))));
+
+    case ADDR_EXPR:
+      {
+	tree op = TREE_OPERAND (expression, 0);
+	return (value_dependent_expression_p (op)
+		|| has_value_dependent_address (op));
+      }
 
     default:
       /* A constant expression is value-dependent if any subexpression is
@@ -17738,10 +17755,19 @@ type_dependent_expression_p (tree expression)
 	return dependent_type_p (type);
     }
 
-  if (TREE_CODE (expression) == SCOPE_REF
-      && dependent_scope_ref_p (expression,
-				type_dependent_expression_p))
-    return true;
+  if (TREE_CODE (expression) == SCOPE_REF)
+    {
+      tree scope = TREE_OPERAND (expression, 0);
+      tree name = TREE_OPERAND (expression, 1);
+
+      /* 14.6.2.2 [temp.dep.expr]: An id-expression is type-dependent if it
+	 contains an identifier associated by name lookup with one or more
+	 declarations declared with a dependent type, or...a
+	 nested-name-specifier or qualified-id that names a member of an
+	 unknown specialization.  */
+      return (type_dependent_expression_p (name)
+	      || dependent_scope_p (scope));
+    }
 
   if (TREE_CODE (expression) == FUNCTION_DECL
       && DECL_LANG_SPECIFIC (expression)

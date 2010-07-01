@@ -1092,6 +1092,52 @@ double_int_fits_to_tree_p (const_tree type, double_int cst)
   return double_int_equal_p (cst, ext);
 }
 
+/* We force the double_int CST to the range of the type TYPE by sign or
+   zero extending it.  OVERFLOWABLE indicates if we are interested in
+   overflow of the value, when >0 we are only interested in signed
+   overflow, for <0 we are interested in any overflow.  OVERFLOWED
+   indicates whether overflow has already occurred.  CONST_OVERFLOWED
+   indicates whether constant overflow has already occurred.  We force
+   T's value to be within range of T's type (by setting to 0 or 1 all
+   the bits outside the type's range).  We set TREE_OVERFLOWED if,
+        OVERFLOWED is nonzero,
+        or OVERFLOWABLE is >0 and signed overflow occurs
+        or OVERFLOWABLE is <0 and any overflow occurs
+   We return a new tree node for the extended double_int.  The node
+   is shared if no overflow flags are set.  */
+
+
+tree
+force_fit_type_double (tree type, double_int cst, int overflowable,
+		       bool overflowed)
+{
+  bool sign_extended_type;
+
+  /* Size types *are* sign extended.  */
+  sign_extended_type = (!TYPE_UNSIGNED (type)
+                        || (TREE_CODE (type) == INTEGER_TYPE
+                            && TYPE_IS_SIZETYPE (type)));
+
+  /* If we need to set overflow flags, return a new unshared node.  */
+  if (overflowed || !double_int_fits_to_tree_p(type, cst))
+    {
+      if (overflowed
+	  || overflowable < 0
+	  || (overflowable > 0 && sign_extended_type))
+	{
+	  tree t = make_node (INTEGER_CST);
+	  TREE_INT_CST (t) = double_int_ext (cst, TYPE_PRECISION (type),
+					     !sign_extended_type);
+	  TREE_TYPE (t) = type;
+	  TREE_OVERFLOW (t) = 1;
+	  return t;
+	}
+    }
+
+  /* Else build a shared node.  */
+  return double_int_to_tree (type, cst);
+}
+
 /* These are the hash table functions for the hash table of INTEGER_CST
    nodes of a sizetype.  */
 
@@ -3518,7 +3564,8 @@ do { tree _node = (NODE); \
      address is constant too.  If it's a decl, its address is constant if the
      decl is static.  Everything else is not constant and, furthermore,
      taking the address of a volatile variable is not volatile.  */
-  if (TREE_CODE (node) == INDIRECT_REF)
+  if (TREE_CODE (node) == INDIRECT_REF
+      || TREE_CODE (node) == MEM_REF)
     UPDATE_FLAGS (TREE_OPERAND (node, 0));
   else if (CONSTANT_CLASS_P (node))
     ;
@@ -3830,6 +3877,42 @@ build6_stat (enum tree_code code, tree tt, tree arg0, tree arg1,
        && arg5 && TREE_THIS_VOLATILE (arg5));
 
   return t;
+}
+
+/* Build a simple MEM_REF tree with the sematics of a plain INDIRECT_REF
+   on the pointer PTR.  */
+
+tree
+build_simple_mem_ref_loc (location_t loc, tree ptr)
+{
+  HOST_WIDE_INT offset = 0;
+  tree ptype = TREE_TYPE (ptr);
+  tree tem;
+  /* For convenience allow addresses that collapse to a simple base
+     and offset.  */
+  if (TREE_CODE (ptr) == ADDR_EXPR
+      && (handled_component_p (TREE_OPERAND (ptr, 0))
+	  || TREE_CODE (TREE_OPERAND (ptr, 0)) == MEM_REF))
+    {
+      ptr = get_addr_base_and_unit_offset (TREE_OPERAND (ptr, 0), &offset);
+      gcc_assert (ptr);
+      ptr = build_fold_addr_expr (ptr);
+      gcc_assert (is_gimple_reg (ptr) || is_gimple_min_invariant (ptr));
+    }
+  tem = build2 (MEM_REF, TREE_TYPE (ptype),
+		ptr, build_int_cst (ptype, offset));
+  SET_EXPR_LOCATION (tem, loc);
+  return tem;
+}
+
+/* Return the constant offset of a MEM_REF tree T.  */
+
+double_int
+mem_ref_offset (const_tree t)
+{
+  tree toff = TREE_OPERAND (t, 1);
+  return double_int_sext (tree_to_double_int (toff),
+			  TYPE_PRECISION (TREE_TYPE (toff)));
 }
 
 /* Similar except don't specify the TREE_TYPE
@@ -6540,6 +6623,23 @@ commutative_tree_code (enum tree_code code)
   return false;
 }
 
+/* Return true if CODE represents a ternary tree code for which the
+   first two operands are commutative.  Otherwise return false.  */
+bool
+commutative_ternary_tree_code (enum tree_code code)
+{
+  switch (code)
+    {
+    case WIDEN_MULT_PLUS_EXPR:
+    case WIDEN_MULT_MINUS_EXPR:
+      return true;
+
+    default:
+      break;
+    }
+  return false;
+}
+
 /* Generate a hash value for an expression.  This can be used iteratively
    by passing a previous result as the VAL argument.
 
@@ -7286,6 +7386,13 @@ build_function_decl_skip_args (tree orig_decl, bitmap args_to_skip)
      we expect first argument to be THIS pointer.   */
   if (bitmap_bit_p (args_to_skip, 0))
     DECL_VINDEX (new_decl) = NULL_TREE;
+
+  /* When signature changes, we need to clear builtin info.  */
+  if (DECL_BUILT_IN (new_decl) && !bitmap_empty_p (args_to_skip))
+    {
+      DECL_BUILT_IN_CLASS (new_decl) = NOT_BUILT_IN;
+      DECL_FUNCTION_CODE (new_decl) = (enum built_in_function) 0;
+    }
   return new_decl;
 }
 

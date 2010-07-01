@@ -168,9 +168,6 @@ static GTY(()) VEC(tree,gc) *gnu_return_label_stack;
 /* Stack of LOOP_STMT nodes.  */
 static GTY(()) VEC(tree,gc) *gnu_loop_label_stack;
 
-/* Stack of labels for switch statements.  */
-static GTY(()) VEC(tree,gc) *gnu_switch_label_stack;
-
 /* The stacks for N_{Push,Pop}_*_Label.  */
 static GTY(()) VEC(tree,gc) *gnu_constraint_error_label_stack;
 static GTY(()) VEC(tree,gc) *gnu_storage_error_label_stack;
@@ -547,10 +544,16 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
   if (TARGET_VTABLE_USES_DESCRIPTORS)
     {
       tree null_node = fold_convert (ptr_void_ftype, null_pointer_node);
-      tree field_list = NULL_TREE, null_list = NULL_TREE;
+      tree field_list = NULL_TREE;
       int j;
+      VEC(constructor_elt,gc) *null_vec = NULL;
+      constructor_elt *elt;
 
       fdesc_type_node = make_node (RECORD_TYPE);
+      VEC_safe_grow (constructor_elt, gc, null_vec,
+		     TARGET_VTABLE_USES_DESCRIPTORS);
+      elt = (VEC_address (constructor_elt,null_vec)
+	     + TARGET_VTABLE_USES_DESCRIPTORS - 1);
 
       for (j = 0; j < TARGET_VTABLE_USES_DESCRIPTORS; j++)
 	{
@@ -559,12 +562,14 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 				 NULL_TREE, NULL_TREE, 0, 1);
 	  TREE_CHAIN (field) = field_list;
 	  field_list = field;
-	  null_list = tree_cons (field, null_node, null_list);
+	  elt->index = field;
+	  elt->value = null_node;
+	  elt--;
 	}
 
       finish_record_type (fdesc_type_node, nreverse (field_list), 0, false);
       record_builtin_type ("descriptor", fdesc_type_node);
-      null_fdesc_node = gnat_build_constructor (fdesc_type_node, null_list);
+      null_fdesc_node = gnat_build_constructor (fdesc_type_node, null_vec);
     }
 
   long_long_float_type
@@ -1233,10 +1238,12 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
       else if (TARGET_VTABLE_USES_DESCRIPTORS
 	       && Is_Dispatch_Table_Entity (Etype (gnat_node)))
 	{
-	  tree gnu_field, gnu_list = NULL_TREE, t;
+	  tree gnu_field, t;
 	  /* Descriptors can only be built here for top-level functions.  */
 	  bool build_descriptor = (global_bindings_p () != 0);
 	  int i;
+	  VEC(constructor_elt,gc) *gnu_vec = NULL;
+	  constructor_elt *elt;
 
 	  gnu_result_type = get_unpadded_type (Etype (gnat_node));
 
@@ -1251,6 +1258,10 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	      gnu_result = build1 (INDIRECT_REF, gnu_result_type, gnu_result);
 	    }
 
+	  VEC_safe_grow (constructor_elt, gc, gnu_vec,
+			 TARGET_VTABLE_USES_DESCRIPTORS);
+	  elt = (VEC_address (constructor_elt, gnu_vec)
+		 + TARGET_VTABLE_USES_DESCRIPTORS - 1);
 	  for (gnu_field = TYPE_FIELDS (gnu_result_type), i = 0;
 	       i < TARGET_VTABLE_USES_DESCRIPTORS;
 	       gnu_field = TREE_CHAIN (gnu_field), i++)
@@ -1265,10 +1276,12 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 		t = build3 (COMPONENT_REF, ptr_void_ftype, gnu_result,
 			    gnu_field, NULL_TREE);
 
-	      gnu_list = tree_cons (gnu_field, t, gnu_list);
+	      elt->index = gnu_field;
+	      elt->value = t;
+	      elt--;
 	    }
 
-	  gnu_result = gnat_build_constructor (gnu_result_type, gnu_list);
+	  gnu_result = gnat_build_constructor (gnu_result_type, gnu_vec);
 	  break;
 	}
 
@@ -1908,9 +1921,9 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 static tree
 Case_Statement_to_gnu (Node_Id gnat_node)
 {
-  tree gnu_result;
-  tree gnu_expr;
+  tree gnu_result, gnu_expr, gnu_label;
   Node_Id gnat_when;
+  bool may_fallthru = false;
 
   gnu_expr = gnat_to_gnu (Expression (gnat_node));
   gnu_expr = convert (get_base_type (TREE_TYPE (gnu_expr)), gnu_expr);
@@ -1933,8 +1946,7 @@ Case_Statement_to_gnu (Node_Id gnat_node)
 
   /* We build a SWITCH_EXPR that contains the code with interspersed
      CASE_LABEL_EXPRs for each label.  */
-  VEC_safe_push (tree, gc, gnu_switch_label_stack,
-		 create_artificial_label (input_location));
+  gnu_label = create_artificial_label (input_location);
   start_stmt_group ();
 
   for (gnat_when = First_Non_Pragma (Alternatives (gnat_node));
@@ -2014,18 +2026,22 @@ Case_Statement_to_gnu (Node_Id gnat_node)
 	 containing the Case statement.  */
       if (choices_added_p)
 	{
-	  add_stmt (build_stmt_group (Statements (gnat_when), true));
-	  add_stmt (build1 (GOTO_EXPR, void_type_node,
-			    VEC_last (tree, gnu_switch_label_stack)));
+	  tree group = build_stmt_group (Statements (gnat_when), true);
+	  bool group_may_fallthru = block_may_fallthru (group);
+	  add_stmt (group);
+	  if (group_may_fallthru)
+	    {
+	      add_stmt (build1 (GOTO_EXPR, void_type_node, gnu_label));
+	      may_fallthru = true;
+	    }
 	}
     }
 
-  /* Now emit a definition of the label all the cases branched to.  */
-  add_stmt (build1 (LABEL_EXPR, void_type_node,
-		    VEC_last (tree, gnu_switch_label_stack)));
+  /* Now emit a definition of the label the cases branch to, if any.  */
+  if (may_fallthru)
+    add_stmt (build1 (LABEL_EXPR, void_type_node, gnu_label));
   gnu_result = build3 (SWITCH_EXPR, TREE_TYPE (gnu_expr), gnu_expr,
 		       end_stmt_group (), NULL_TREE);
-  VEC_pop (tree, gnu_switch_label_stack);
 
   return gnu_result;
 }
@@ -3911,24 +3927,21 @@ gnat_to_gnu (Node_Id gnat_node)
 	  String_Id gnat_string = Strval (gnat_node);
 	  int length = String_Length (gnat_string);
 	  int i;
-	  tree gnu_list = NULL_TREE;
 	  tree gnu_idx = TYPE_MIN_VALUE (TYPE_DOMAIN (gnu_result_type));
+	  VEC(constructor_elt,gc) *gnu_vec
+	    = VEC_alloc (constructor_elt, gc, length);
 
 	  for (i = 0; i < length; i++)
 	    {
-	      gnu_list
-		= tree_cons (gnu_idx,
-			     build_int_cst (TREE_TYPE (gnu_result_type),
-					    Get_String_Char (gnat_string,
-							     i + 1)),
-			     gnu_list);
+	      tree t = build_int_cst (TREE_TYPE (gnu_result_type),
+				      Get_String_Char (gnat_string, i + 1));
 
+	      CONSTRUCTOR_APPEND_ELT (gnu_vec, gnu_idx, t);
 	      gnu_idx = int_const_binop (PLUS_EXPR, gnu_idx, integer_one_node,
 					 0);
 	    }
 
-	  gnu_result
-	    = gnat_build_constructor (gnu_result_type, nreverse (gnu_list));
+	  gnu_result = gnat_build_constructor (gnu_result_type, gnu_vec);
 	}
       break;
 
@@ -4316,7 +4329,7 @@ gnat_to_gnu (Node_Id gnat_node)
 	  gnu_aggr_type = TYPE_REPRESENTATIVE_ARRAY (gnu_result_type);
 
 	if (Null_Record_Present (gnat_node))
-	  gnu_result = gnat_build_constructor (gnu_aggr_type, NULL_TREE);
+	  gnu_result = gnat_build_constructor (gnu_aggr_type, NULL);
 
 	else if (TREE_CODE (gnu_aggr_type) == RECORD_TYPE
 		 || TREE_CODE (gnu_aggr_type) == UNION_TYPE)
@@ -7306,9 +7319,9 @@ static tree
 pos_to_constructor (Node_Id gnat_expr, tree gnu_array_type,
 		    Entity_Id gnat_component_type)
 {
-  tree gnu_expr_list = NULL_TREE;
   tree gnu_index = TYPE_MIN_VALUE (TYPE_DOMAIN (gnu_array_type));
   tree gnu_expr;
+  VEC(constructor_elt,gc) *gnu_expr_vec = NULL;
 
   for ( ; Present (gnat_expr); gnat_expr = Next (gnat_expr))
     {
@@ -7331,14 +7344,13 @@ pos_to_constructor (Node_Id gnat_expr, tree gnu_array_type,
 	    gnu_expr = emit_range_check (gnu_expr, gnat_component_type, Empty);
 	}
 
-      gnu_expr_list
-	= tree_cons (gnu_index, convert (TREE_TYPE (gnu_array_type), gnu_expr),
-		     gnu_expr_list);
+      CONSTRUCTOR_APPEND_ELT (gnu_expr_vec, gnu_index,
+			      convert (TREE_TYPE (gnu_array_type), gnu_expr));
 
       gnu_index = int_const_binop (PLUS_EXPR, gnu_index, integer_one_node, 0);
     }
 
-  return gnat_build_constructor (gnu_array_type, nreverse (gnu_expr_list));
+  return gnat_build_constructor (gnu_array_type, gnu_expr_vec);
 }
 
 /* Subroutine of assoc_to_constructor: VALUES is a list of field associations,
@@ -7349,8 +7361,8 @@ pos_to_constructor (Node_Id gnat_expr, tree gnu_array_type,
 static tree
 extract_values (tree values, tree record_type)
 {
-  tree result = NULL_TREE;
   tree field, tem;
+  VEC(constructor_elt,gc) *v = NULL;
 
   for (field = TYPE_FIELDS (record_type); field; field = TREE_CHAIN (field))
     {
@@ -7384,10 +7396,10 @@ extract_values (tree values, tree record_type)
       if (!value)
 	continue;
 
-      result = tree_cons (field, value, result);
+      CONSTRUCTOR_APPEND_ELT (v, field, value);
     }
 
-  return gnat_build_constructor (record_type, nreverse (result));
+  return gnat_build_constructor (record_type, v);
 }
 
 /* EXP is to be treated as an array or record.  Handle the cases when it is

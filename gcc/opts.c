@@ -825,6 +825,7 @@ decode_options (unsigned int argc, const char **argv,
   opt2 = (optimize >= 2);
   flag_inline_small_functions = opt2;
   flag_indirect_inlining = opt2;
+  flag_partial_inlining = opt2;
   flag_thread_jumps = opt2;
   flag_crossjumping = opt2;
   flag_optimize_sibling_calls = opt2;
@@ -1472,8 +1473,8 @@ common_handle_option (size_t scode, const char *arg, int value,
       exit_after_options = true;
 
       /* Allow the target a chance to give the user some additional information.  */
-      if (targetm.target_help)
-	targetm.target_help ();
+      if (targetm.help)
+	targetm.help ();
       break;
 
     case OPT_fhelp_:

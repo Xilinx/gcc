@@ -2706,7 +2706,7 @@ c_parser_parms_declarator (c_parser *parser, bool id_list_ok, tree attrs)
 static struct c_arg_info *
 c_parser_parms_list_declarator (c_parser *parser, tree attrs)
 {
-  bool good_parm = false;
+  bool bad_parm = false;
   /* ??? Following the old parser, forward parameter declarations may
      use abstract declarators, and if no real parameter declarations
      follow the forward declarations then this is not diagnosed.  Also
@@ -2758,11 +2758,10 @@ c_parser_parms_list_declarator (c_parser *parser, tree attrs)
       /* Parse a parameter.  */
       struct c_parm *parm = c_parser_parameter_declaration (parser, attrs);
       attrs = NULL_TREE;
-      if (parm != NULL)
-	{
-	  good_parm = true;
-	  push_parm_decl (parm);
-	}
+      if (parm == NULL)
+	bad_parm = true;
+      else
+	push_parm_decl (parm);
       if (c_parser_next_token_is (parser, CPP_SEMICOLON))
 	{
 	  tree new_attrs;
@@ -2774,20 +2773,13 @@ c_parser_parms_list_declarator (c_parser *parser, tree attrs)
       if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
 	{
 	  c_parser_consume_token (parser);
-	  if (good_parm)
-	    return get_parm_info (false);
-	  else
+	  if (bad_parm)
 	    {
-	      struct c_arg_info *ret
-		= XOBNEW (&parser_obstack, struct c_arg_info);
-	      ret->parms = 0;
-	      ret->tags = 0;
-	      ret->types = 0;
-	      ret->others = 0;
-	      ret->pending_sizes = 0;
-	      ret->had_vla_unspec = 0;
-	      return ret;
+	      get_pending_sizes ();
+	      return NULL;
 	    }
+	  else
+	    return get_parm_info (false);
 	}
       if (!c_parser_require (parser, CPP_COMMA,
 			     "expected %<;%>, %<,%> or %<)%>"))
@@ -2802,20 +2794,13 @@ c_parser_parms_list_declarator (c_parser *parser, tree attrs)
 	  if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
 	    {
 	      c_parser_consume_token (parser);
-	      if (good_parm)
-		return get_parm_info (true);
-	      else
+	      if (bad_parm)
 		{
-		  struct c_arg_info *ret
-		    = XOBNEW (&parser_obstack, struct c_arg_info);
-		  ret->parms = 0;
-		  ret->tags = 0;
-		  ret->types = 0;
-		  ret->others = 0;
-		  ret->pending_sizes = 0;
-		  ret->had_vla_unspec = 0;
-		  return ret;
+		  get_pending_sizes ();
+		  return NULL;
 		}
+	      else
+		return get_parm_info (true);
 	    }
 	  else
 	    {
@@ -2841,10 +2826,22 @@ c_parser_parameter_declaration (c_parser *parser, tree attrs)
   bool dummy = false;
   if (!c_parser_next_token_starts_declspecs (parser))
     {
+      c_token *token = c_parser_peek_token (parser);
+      if (parser->error)
+	return NULL;
+      c_parser_set_source_position_from_token (token);
+      if (token->type == CPP_NAME
+	  && c_parser_peek_2nd_token (parser)->type != CPP_COMMA
+	  && c_parser_peek_2nd_token (parser)->type != CPP_CLOSE_PAREN)
+	{
+	  error ("unknown type name %qE", token->value);
+	  parser->error = true;
+	}
       /* ??? In some Objective-C cases '...' isn't applicable so there
 	 should be a different message.  */
-      c_parser_error (parser,
-		      "expected declaration specifiers or %<...%>");
+      else
+	c_parser_error (parser,
+			"expected declaration specifiers or %<...%>");
       c_parser_skip_to_end_of_parameter (parser);
       return NULL;
     }
@@ -4795,7 +4792,7 @@ static struct c_expr
 c_parser_conditional_expression (c_parser *parser, struct c_expr *after)
 {
   struct c_expr cond, exp1, exp2, ret;
-  location_t cond_loc, colon_loc;
+  location_t cond_loc, colon_loc, middle_loc;
 
   gcc_assert (!after || c_dialect_objc ());
 
@@ -4809,8 +4806,11 @@ c_parser_conditional_expression (c_parser *parser, struct c_expr *after)
   if (c_parser_next_token_is (parser, CPP_COLON))
     {
       tree eptype = NULL_TREE;
-      pedwarn (c_parser_peek_token (parser)->location, OPT_pedantic,
+
+      middle_loc = c_parser_peek_token (parser)->location;
+      pedwarn (middle_loc, OPT_pedantic, 
 	       "ISO C forbids omitting the middle term of a ?: expression");
+      warn_for_omitted_condop (middle_loc, cond.value);
       if (TREE_CODE (cond.value) == EXCESS_PRECISION_EXPR)
 	{
 	  eptype = TREE_TYPE (cond.value);
@@ -8150,10 +8150,11 @@ c_parser_omp_for_loop (location_t loc,
 		       c_parser *parser, tree clauses, tree *par_clauses)
 {
   tree decl, cond, incr, save_break, save_cont, body, init, stmt, cl;
-  tree declv, condv, incrv, initv, for_block = NULL, ret = NULL;
+  tree declv, condv, incrv, initv, ret = NULL;
   bool fail = false, open_brace_parsed = false;
   int i, collapse = 1, nbraces = 0;
   location_t for_loc;
+  VEC(tree,gc) *for_block = make_tree_vector ();
 
   for (cl = clauses; cl; cl = OMP_CLAUSE_CHAIN (cl))
     if (OMP_CLAUSE_CODE (cl) == OMP_CLAUSE_COLLAPSE)
@@ -8185,8 +8186,7 @@ c_parser_omp_for_loop (location_t loc,
       if (c_parser_next_token_starts_declaration (parser))
 	{
 	  if (i > 0)
-	    for_block
-	      = tree_cons (NULL, c_begin_compound_stmt (true), for_block);
+	    VEC_safe_push (tree, gc, for_block, c_begin_compound_stmt (true));
 	  c_parser_declaration_or_fndef (parser, true, true, true, true, true);
 	  decl = check_for_loop_decls (for_loc);
 	  if (decl == NULL)
@@ -8416,15 +8416,15 @@ c_parser_omp_for_loop (location_t loc,
       ret = stmt;
     }
 pop_scopes:
-  while (for_block)
+  while (!VEC_empty (tree, for_block))
     {
       /* FIXME diagnostics: LOC below should be the actual location of
 	 this particular for block.  We need to build a list of
 	 locations to go along with FOR_BLOCK.  */
-      stmt = c_end_compound_stmt (loc, TREE_VALUE (for_block), true);
+      stmt = c_end_compound_stmt (loc, VEC_pop (tree, for_block), true);
       add_stmt (stmt);
-      for_block = TREE_CHAIN (for_block);
     }
+  release_tree_vector (for_block);
   return ret;
 }
 

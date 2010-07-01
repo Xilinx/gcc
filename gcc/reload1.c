@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "machmode.h"
 #include "hard-reg-set.h"
-#include "rtl.h"
+#include "rtl-error.h"
 #include "tm_p.h"
 #include "obstack.h"
 #include "insn-config.h"
@@ -41,7 +41,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "reload.h"
 #include "recog.h"
 #include "output.h"
-#include "toplev.h"
 #include "except.h"
 #include "tree.h"
 #include "ira.h"
@@ -6496,7 +6495,7 @@ choose_reload_regs (struct insn_chain *chain)
 			     register, we might use it for reload_override_in,
 			     if copying it to the desired class is cheap
 			     enough.  */
-			  || ((REGISTER_MOVE_COST (mode, last_class, rclass)
+			  || ((register_move_cost (mode, last_class, rclass)
 			       < memory_move_cost (mode, rclass, true))
 			      && (secondary_reload_class (1, rclass, mode,
 							  last_reg)
@@ -7507,8 +7506,10 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 
 	  sri.icode = CODE_FOR_nothing;
 	  sri.prev_sri = NULL;
-	  new_class = targetm.secondary_reload (1, real_oldequiv, rl->rclass,
-						mode, &sri);
+	  new_class
+	    = (enum reg_class) targetm.secondary_reload (1, real_oldequiv,
+							 rl->rclass, mode,
+							 &sri);
 
 	  if (new_class == NO_REGS && sri.icode == CODE_FOR_nothing)
 	    second_reload_reg = 0;
@@ -7534,8 +7535,10 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 	    {
 	      sri2.icode = CODE_FOR_nothing;
 	      sri2.prev_sri = &sri;
-	      new_t_class = targetm.secondary_reload (1, real_oldequiv,
-						      new_class, mode, &sri);
+	      new_t_class
+		= (enum reg_class) targetm.secondary_reload (1, real_oldequiv,
+							     new_class, mode,
+							     &sri);
 	      if (new_t_class == NO_REGS && sri2.icode == CODE_FOR_nothing)
 		{
 		  if (reload_adjust_reg_for_temp (&second_reload_reg,

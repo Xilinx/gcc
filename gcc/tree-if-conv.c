@@ -98,6 +98,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-data-ref.h"
 #include "tree-scalar-evolution.h"
 #include "tree-pass.h"
+#include "dbgcnt.h"
 
 /* List of basic blocks in if-conversion-suitable order.  */
 static basic_block *ifc_bbs;
@@ -174,7 +175,7 @@ init_bb_predicate (basic_block bb)
 {
   bb->aux = XNEW (struct bb_predicate_s);
   set_bb_predicate_gimplified_stmts (bb, NULL);
-  set_bb_predicate (bb, NULL_TREE);
+  set_bb_predicate (bb, boolean_true_node);
 }
 
 /* Free the predicate of basic block BB.  */
@@ -200,6 +201,16 @@ free_bb_predicate (basic_block bb)
 
   free (bb->aux);
   bb->aux = NULL;
+}
+
+/* Free the predicate of BB and reinitialize it with the true
+   predicate.  */
+
+static inline void
+reset_bb_predicate (basic_block bb)
+{
+  free_bb_predicate (bb);
+  init_bb_predicate (bb);
 }
 
 /* Create a new temp variable of type TYPE.  Add GIMPLE_ASSIGN to assign EXP
@@ -604,8 +615,7 @@ predicate_bbs (loop_p loop)
 	 to be processed: skip it.  */
       if (bb == loop->latch)
 	{
-	  set_bb_predicate (loop->latch, boolean_true_node);
-	  set_bb_predicate_gimplified_stmts (loop->latch, NULL);
+	  reset_bb_predicate (loop->latch);
 	  continue;
 	}
 
@@ -679,7 +689,7 @@ predicate_bbs (loop_p loop)
     }
 
   /* The loop header is always executed.  */
-  set_bb_predicate (loop->header, boolean_true_node);
+  reset_bb_predicate (loop->header);
   gcc_assert (bb_predicate_gimplified_stmts (loop->header) == NULL
 	      && bb_predicate_gimplified_stmts (loop->latch) == NULL);
 
@@ -1011,6 +1021,15 @@ insert_gimplified_predicates (loop_p loop)
       basic_block bb = ifc_bbs[i];
       gimple_seq stmts = bb_predicate_gimplified_stmts (bb);
 
+      if (!is_predicated (bb))
+	{
+	  /* Do not insert statements for a basic block that is not
+	     predicated.  Also make sure that the predicate of the
+	     basic block is set to true.  */
+	  reset_bb_predicate (bb);
+	  continue;
+	}
+
       if (stmts)
 	{
 	  gimple_stmt_iterator gsi = gsi_last_bb (bb);
@@ -1161,9 +1180,7 @@ combine_blocks (struct loop *loop)
 
   /* If possible, merge loop header to the block with the exit edge.
      This reduces the number of basic blocks to two, to please the
-     vectorizer that handles only loops with two nodes.
-
-     FIXME: Call cleanup_tree_cfg.  */
+     vectorizer that handles only loops with two nodes.  */
   if (exit_bb
       && exit_bb != loop->header
       && can_merge_blocks_p (loop->header, exit_bb))
@@ -1171,20 +1188,23 @@ combine_blocks (struct loop *loop)
 }
 
 /* If-convert LOOP when it is legal.  For the moment this pass has no
-   profitability analysis.  */
+   profitability analysis.  Returns true when something changed.  */
 
-static void
+static bool
 tree_if_conversion (struct loop *loop)
 {
+  bool changed = false;
   ifc_bbs = NULL;
 
-  if (!if_convertible_loop_p (loop))
+  if (!if_convertible_loop_p (loop)
+      || !dbg_cnt (if_conversion_tree))
     goto cleanup;
 
   /* Now all statements are if-convertible.  Combine all the basic
      blocks into one huge basic block doing the if-conversion
      on-the-fly.  */
   combine_blocks (loop);
+  changed = true;
 
  cleanup:
   if (ifc_bbs)
@@ -1197,6 +1217,8 @@ tree_if_conversion (struct loop *loop)
       free (ifc_bbs);
       ifc_bbs = NULL;
     }
+
+  return changed;
 }
 
 /* Tree if-conversion pass management.  */
@@ -1206,14 +1228,15 @@ main_tree_if_conversion (void)
 {
   loop_iterator li;
   struct loop *loop;
+  bool changed = false;
 
   if (number_of_loops () <= 1)
     return 0;
 
   FOR_EACH_LOOP (li, loop, 0)
-    tree_if_conversion (loop);
+    changed |= tree_if_conversion (loop);
 
-  return 0;
+  return changed ? TODO_cleanup_cfg : 0;
 }
 
 static bool

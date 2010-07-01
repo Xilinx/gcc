@@ -795,6 +795,10 @@ init_optimization_passes (void)
           NEXT_PASS (pass_cleanup_eh);
           NEXT_PASS (pass_profile);
           NEXT_PASS (pass_local_pure_const);
+	  /* Split functions creates parts that are not run through
+	     early optimizations again.  It is thus good idea to do this
+	     late.  */
+          NEXT_PASS (pass_split_functions);
 	}
       NEXT_PASS (pass_release_ssa_names);
       NEXT_PASS (pass_rebuild_cgraph_edges);
@@ -1239,22 +1243,7 @@ execute_function_todo (void *data)
     }
 
   if (flags & TODO_rebuild_frequencies)
-    {
-      if (profile_status == PROFILE_GUESSED)
-	{
-	  loop_optimizer_init (0);
-	  add_noreturn_fake_exit_edges ();
-	  mark_irreducible_loops ();
-	  connect_infinite_loops_to_exit ();
-	  estimate_bb_frequencies ();
-	  remove_fake_exit_edges ();
-	  loop_optimizer_finalize ();
-	}
-      else if (profile_status == PROFILE_READ)
-	counts_to_freqs ();
-      else
-	gcc_unreachable ();
-    }
+    rebuild_frequencies ();
 
 #if defined ENABLE_CHECKING
   if (flags & TODO_verify_ssa

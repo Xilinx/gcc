@@ -37,7 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "decl.h"
 #include "output.h"
-#include "except.h"
 #include "toplev.h"
 #include "timevar.h"
 #include "cpplib.h"
@@ -4111,8 +4110,9 @@ mark_used (tree decl)
 	      return;
 	    }
 	}
-      error ("deleted function %q+D", decl);
-      error ("used here");
+      error ("use of deleted function %qD", decl);
+      if (!maybe_explain_implicit_delete (decl))
+	error_at (DECL_SOURCE_LOCATION (decl), "declared here");
       return;
     }
   /* If we don't need a value, then we don't need to synthesize DECL.  */

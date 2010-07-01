@@ -3463,8 +3463,8 @@ output_fde (dw_fde_ref fde, bool for_eh, bool second,
   char l1[20], l2[20];
   dw_cfi_ref cfi;
 
-  targetm.asm_out.unwind_label (asm_out_file, fde->decl, for_eh,
-				/* empty */ 0);
+  targetm.asm_out.emit_unwind_label (asm_out_file, fde->decl, for_eh,
+				     /* empty */ 0);
   targetm.asm_out.internal_label (asm_out_file, FDE_LABEL,
 				  for_eh + j);
   ASM_GENERATE_INTERNAL_LABEL (l1, FDE_AFTER_SIZE_LABEL, for_eh + j);
@@ -3680,7 +3680,8 @@ output_call_frame_info (int for_eh)
 	else if (fde_needed_for_eh_p (&fde_table[i]))
 	  any_eh_needed = true;
 	else if (TARGET_USES_WEAK_UNWIND_INFO)
-	  targetm.asm_out.unwind_label (asm_out_file, fde_table[i].decl, 1, 1);
+	  targetm.asm_out.emit_unwind_label (asm_out_file, fde_table[i].decl,
+					     1, 1);
 
       if (!any_eh_needed)
 	return;
@@ -15159,6 +15160,11 @@ loc_list_from_tree (tree loc, int want_address)
       }
       break;
 
+    case MEM_REF:
+      /* ??? FIXME.  */
+      if (!integer_zerop (TREE_OPERAND (loc, 1)))
+	return 0;
+      /* Fallthru.  */
     case INDIRECT_REF:
     case ALIGN_INDIRECT_REF:
     case MISALIGNED_INDIRECT_REF:
@@ -15768,6 +15774,17 @@ add_AT_location_description (dw_die_ref die, enum dwarf_attribute attr_kind,
     add_AT_loc (die, attr_kind, descr->expr);
   else
     add_AT_loc_list (die, attr_kind, descr);
+}
+
+/* Add DW_AT_accessibility attribute to DIE if needed.  */
+
+static void
+add_accessibility_attribute (dw_die_ref die, tree decl)
+{
+  if (TREE_PROTECTED (decl))
+    add_AT_unsigned (die, DW_AT_accessibility, DW_ACCESS_protected);
+  else if (TREE_PRIVATE (decl))
+    add_AT_unsigned (die, DW_AT_accessibility, DW_ACCESS_private);
 }
 
 /* Attach the specialized form of location attribute used for data members of
@@ -17414,6 +17431,39 @@ add_name_and_src_coords_attributes (dw_die_ref die, tree decl)
 #endif
 }
 
+#ifdef VMS_DEBUGGING_INFO
+
+/* Output the debug main pointer die for VMS */
+
+void
+dwarf2out_vms_debug_main_pointer (void)
+{
+  char label[MAX_ARTIFICIAL_LABEL_BYTES];
+  dw_die_ref die;
+
+  /* Allocate the VMS debug main subprogram die.  */
+  die = ggc_alloc_cleared_die_node ();
+  die->die_tag = DW_TAG_subprogram;
+  add_name_attribute (die, VMS_DEBUG_MAIN_POINTER);
+  ASM_GENERATE_INTERNAL_LABEL (label, PROLOGUE_END_LABEL,
+			       current_function_funcdef_no);
+  add_AT_lbl_id (die, DW_AT_entry_pc, label);
+
+  /* Make it the first child of comp_unit_die.  */
+  die->die_parent = comp_unit_die;
+  if (comp_unit_die->die_child)
+    {
+      die->die_sib = comp_unit_die->die_child->die_sib;
+      comp_unit_die->die_child->die_sib = die;
+    }
+  else
+    {
+      die->die_sib = die;
+      comp_unit_die->die_child = die;
+    }
+}
+#endif
+
 /* Push a new declaration scope.  */
 
 static void
@@ -18041,7 +18091,10 @@ gen_enumeration_type_die (tree type, dw_die_ref context_die)
       TREE_ASM_WRITTEN (type) = 1;
       add_byte_size_attribute (type_die, type);
       if (TYPE_STUB_DECL (type) != NULL_TREE)
-	add_src_coords_attributes (type_die, TYPE_STUB_DECL (type));
+	{
+	  add_src_coords_attributes (type_die, TYPE_STUB_DECL (type));
+	  add_accessibility_attribute (type_die, TYPE_STUB_DECL (type));
+	}
 
       /* If the first reference to this type was as the return type of an
 	 inline function, then it may not have a parent.  Fix this now.  */
@@ -18548,10 +18601,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
       if (DECL_ARTIFICIAL (decl))
 	add_AT_flag (subr_die, DW_AT_artificial, 1);
 
-      if (TREE_PROTECTED (decl))
-	add_AT_unsigned (subr_die, DW_AT_accessibility, DW_ACCESS_protected);
-      else if (TREE_PRIVATE (decl))
-	add_AT_unsigned (subr_die, DW_AT_accessibility, DW_ACCESS_private);
+      add_accessibility_attribute (subr_die, decl);
     }
 
   if (declaration)
@@ -19049,10 +19099,7 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
       if (DECL_ARTIFICIAL (decl))
 	add_AT_flag (var_die, DW_AT_artificial, 1);
 
-      if (TREE_PROTECTED (decl))
-	add_AT_unsigned (var_die, DW_AT_accessibility, DW_ACCESS_protected);
-      else if (TREE_PRIVATE (decl))
-	add_AT_unsigned (var_die, DW_AT_accessibility, DW_ACCESS_private);
+      add_accessibility_attribute (var_die, decl);
     }
 
   if (declaration)
@@ -19281,10 +19328,7 @@ gen_field_die (tree decl, dw_die_ref context_die)
   if (DECL_ARTIFICIAL (decl))
     add_AT_flag (decl_die, DW_AT_artificial, 1);
 
-  if (TREE_PROTECTED (decl))
-    add_AT_unsigned (decl_die, DW_AT_accessibility, DW_ACCESS_protected);
-  else if (TREE_PRIVATE (decl))
-    add_AT_unsigned (decl_die, DW_AT_accessibility, DW_ACCESS_private);
+  add_accessibility_attribute (decl_die, decl);
 
   /* Equate decl number to die, so that we can look up this decl later on.  */
   equate_decl_number_to_die (decl, decl_die);
@@ -19558,7 +19602,10 @@ gen_struct_or_union_type_die (tree type, dw_die_ref context_die,
       TREE_ASM_WRITTEN (type) = 1;
       add_byte_size_attribute (type_die, type);
       if (TYPE_STUB_DECL (type) != NULL_TREE)
-	add_src_coords_attributes (type_die, TYPE_STUB_DECL (type));
+	{
+	  add_src_coords_attributes (type_die, TYPE_STUB_DECL (type));
+	  add_accessibility_attribute (type_die, TYPE_STUB_DECL (type));
+	}
 
       /* If the first reference to this type was as the return type of an
 	 inline function, then it may not have a parent.  Fix this now.  */
@@ -19671,6 +19718,8 @@ gen_typedef_die (tree decl, dw_die_ref context_die)
 	   TYPE in argument yield the DW_TAG_typedef we have just
 	   created.  */
 	equate_type_number_to_die (type, type_die);
+
+      add_accessibility_attribute (type_die, decl);
     }
 
   if (DECL_ABSTRACT (decl))

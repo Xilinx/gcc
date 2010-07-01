@@ -210,6 +210,8 @@ static bool ia64_return_in_memory (const_tree, const_tree);
 static rtx ia64_function_value (const_tree, const_tree, bool);
 static rtx ia64_libcall_value (enum machine_mode, const_rtx);
 static bool ia64_function_value_regno_p (const unsigned int);
+static int ia64_register_move_cost (enum machine_mode, enum reg_class,
+                                    enum reg_class);
 static bool ia64_rtx_costs (rtx, int, int, int *, bool);
 static int ia64_unspec_may_trap_p (const_rtx, unsigned);
 static void fix_range (const char *);
@@ -454,6 +456,8 @@ static const struct attribute_spec ia64_attribute_table[] =
 #undef TARGET_ASM_GLOBALIZE_DECL_NAME
 #define TARGET_ASM_GLOBALIZE_DECL_NAME ia64_globalize_decl_name
 
+#undef TARGET_REGISTER_MOVE_COST
+#define TARGET_REGISTER_MOVE_COST ia64_register_move_cost
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS ia64_rtx_costs
 #undef TARGET_ADDRESS_COST
@@ -506,8 +510,8 @@ static const struct attribute_spec ia64_attribute_table[] =
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR ia64_gimplify_va_arg
 
-#undef TARGET_UNWIND_EMIT
-#define TARGET_UNWIND_EMIT process_for_unwind_directive
+#undef TARGET_ASM_UNWIND_EMIT
+#define TARGET_ASM_UNWIND_EMIT process_for_unwind_directive
 
 #undef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P ia64_scalar_mode_supported_p
@@ -3423,6 +3427,29 @@ ia64_expand_prologue (void)
   finish_spill_pointers ();
 }
 
+/* Output the textual info surrounding the prologue.  */
+
+void
+ia64_start_function (FILE *file, const char *fnname,
+		     tree decl ATTRIBUTE_UNUSED)
+{
+#if VMS_DEBUGGING_INFO
+  if (vms_debug_main
+      && strncmp (vms_debug_main, fnname, strlen (vms_debug_main)) == 0)
+    {
+      targetm.asm_out.globalize_label (asm_out_file, VMS_DEBUG_MAIN_POINTER);
+      ASM_OUTPUT_DEF (asm_out_file, VMS_DEBUG_MAIN_POINTER, fnname);
+      dwarf2out_vms_debug_main_pointer ();
+      vms_debug_main = 0;
+    }
+#endif
+
+  fputs ("\t.proc ", file);
+  assemble_name (file, fnname);
+  fputc ('\n', file);
+  ASM_OUTPUT_LABEL (file, fnname);
+}
+
 /* Called after register allocation to add any instructions needed for the
    epilogue.  Using an epilogue insn is favored compared to putting all of the
    instructions in output_function_prologue(), since it allows the scheduler
@@ -5179,9 +5206,12 @@ ia64_rtx_costs (rtx x, int code, int outer_code, int *total,
 /* Calculate the cost of moving data from a register in class FROM to
    one in class TO, using MODE.  */
 
-int
-ia64_register_move_cost (enum machine_mode mode, enum reg_class from,
-			 enum reg_class to)
+static int
+ia64_register_move_cost (enum machine_mode mode, enum reg_class from_i,
+			 enum reg_class to_i)
+{
+  enum reg_class from = (enum reg_class) from_i;
+  enum reg_class to = (enum reg_class) to_i;
 {
   /* ADDL_REGS is the same as GR_REGS for movement purposes.  */
   if (to == ADDL_REGS)

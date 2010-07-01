@@ -1,3 +1,21 @@
+2010-06-28  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* java-tree.h (struct lang_type) [catch_classes]: Change type to a
+	VEC.
+	* except.c (prepare_eh_table_type): Call CONSTRUCTOR_APPEND_ELT
+	instead of tree_cons.
+	* class.c (make_class): Add dummy entry to TYPE_CATCH_CLASSES.
+	(emit_catch_table): Adjust for new type of TYPE_CATCH_CLASSES.
+
+2010-06-28  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* lang.c: Do not include except.h
+	* except.c: Likewise.
+	(doing_eh): New, moved from except.c (in gcc/) but removed the
+	do_warning flag.
+	(maybe_start_try): Update doing_eh call.
+	* Make-lang.in: Update dependencies.
+
 2010-06-23  Anatoly Sokolov  <aesok@post.ru>
 
 	* decl.c (java_init_decl_processing): Use double_int_to_tree instead

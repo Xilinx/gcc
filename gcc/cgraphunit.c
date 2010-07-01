@@ -1364,8 +1364,7 @@ thunk_adjust (gimple_stmt_iterator * bsi,
       vtabletmp2 = create_tmp_var (TREE_TYPE (TREE_TYPE (vtabletmp)),
 				   "vtableaddr");
       stmt = gimple_build_assign (vtabletmp2,
-				  build1 (INDIRECT_REF,
-					  TREE_TYPE (vtabletmp2), vtabletmp));
+				  build_simple_mem_ref (vtabletmp));
       gsi_insert_after (bsi, stmt, GSI_NEW_STMT);
       mark_symbols_for_renaming (stmt);
       find_referenced_vars_in (stmt);
@@ -1384,9 +1383,7 @@ thunk_adjust (gimple_stmt_iterator * bsi,
       vtabletmp3 = create_tmp_var (TREE_TYPE (TREE_TYPE (vtabletmp2)),
 				   "vcalloffset");
       stmt = gimple_build_assign (vtabletmp3,
-				  build1 (INDIRECT_REF,
-					  TREE_TYPE (vtabletmp3),
-					  vtabletmp2));
+				  build_simple_mem_ref (vtabletmp2));
       gsi_insert_after (bsi, stmt, GSI_NEW_STMT);
       mark_symbols_for_renaming (stmt);
       find_referenced_vars_in (stmt);
@@ -2128,7 +2125,7 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
    new_version->local.local = true;
    new_version->local.vtable_method = false;
    new_version->global = old_version->global;
-   new_version->rtl = new_version->rtl;
+   new_version->rtl = old_version->rtl;
    new_version->reachable = true;
    new_version->count = old_version->count;
 
@@ -2196,7 +2193,6 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
   else
     new_decl = build_function_decl_skip_args (old_decl, args_to_skip);
 
-  cgraph_make_decl_local (new_decl);
   /* Generate a new name for the new version. */
   DECL_NAME (new_decl) = clone_function_name (old_decl, clone_name);
   SET_DECL_ASSEMBLER_NAME (new_decl, DECL_NAME (new_decl));

@@ -796,6 +796,15 @@ show_symbol (gfc_symbol *sym)
 
   fprintf (dumpfile, "symbol %s ", sym->name);
   show_typespec (&sym->ts);
+
+  /* If this symbol is an associate-name, show its target expression.  */
+  if (sym->assoc)
+    {
+      fputs (" => ", dumpfile);
+      show_expr (sym->assoc->target);
+      fputs (" ", dumpfile);
+    }
+
   show_attr (&sym->attr);
 
   if (sym->value)
@@ -1177,6 +1186,7 @@ show_code_node (int level, gfc_code *c)
   gfc_filepos *fp;
   gfc_inquire *i;
   gfc_dt *dt;
+  gfc_namespace *ns;
 
   code_indent (level, c->here);
 
@@ -1375,6 +1385,22 @@ show_code_node (int level, gfc_code *c)
 
       fputs ("ENDIF", dumpfile);
       break;
+
+    case EXEC_BLOCK:
+      {
+	const char* blocktype;
+	if (c->ext.block.assoc)
+	  blocktype = "ASSOCIATE";
+	else
+	  blocktype = "BLOCK";
+	show_indent ();
+	fprintf (dumpfile, "%s ", blocktype);
+	ns = c->ext.block.ns;
+	show_namespace (ns);
+	show_indent ();
+	fprintf (dumpfile, "END %s ", blocktype);
+	break;
+      }
 
     case EXEC_SELECT:
       d = c->block;
@@ -2146,7 +2172,7 @@ show_namespace (gfc_namespace *ns)
   fputc ('\n', dumpfile);
   fputc ('\n', dumpfile);
 
-  show_code (0, ns->code);
+  show_code (show_level, ns->code);
 
   for (ns = ns->contained; ns; ns = ns->sibling)
     {

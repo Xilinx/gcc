@@ -1,3 +1,401 @@
+2010-07-01  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42834
+	PR middle-end/44468
+	* gcc.c-torture/execute/20100316-1.c: New testcase.
+	* gcc.c-torture/execute/pr44468.c: Likewise.
+	* gcc.c-torture/compile/20100609-1.c: Likewise.
+	* gcc.dg/volatile2.c: Adjust.
+	* gcc.dg/plugin/selfassign.c: Likewise.
+	* gcc.dg/pr36902.c: Likewise.
+	* gcc.dg/tree-ssa/foldaddr-2.c: Remove.
+	* gcc.dg/tree-ssa/foldaddr-3.c: Likewise.
+	* gcc.dg/tree-ssa/forwprop-8.c: Adjust.
+	* gcc.dg/tree-ssa/pr17141-1.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-13.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-14.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-ccp-21.c: Likewise.
+	* gcc.dg/tree-ssa/pta-ptrarith-1.c: Likewise.
+	* gcc.dg/tree-ssa/20030807-7.c: Likewise.
+	* gcc.dg/tree-ssa/forwprop-10.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-1.c: Likewise.
+	* gcc.dg/tree-ssa/pta-ptrarith-2.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-ccp-23.c: Likewise.
+	* gcc.dg/tree-ssa/forwprop-1.c: Likewise.
+	* gcc.dg/tree-ssa/forwprop-2.c: Likewise.
+	* gcc.dg/tree-ssa/struct-aliasing-1.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-ccp-25.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-pre-26.c: Likewise.
+	* gcc.dg/tree-ssa/struct-aliasing-2.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-ccp-26.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-sccvn-4.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-pre-7.c: Likewise.
+	* gcc.dg/tree-ssa/forwprop-5.c: Likewise.
+	* gcc.dg/struct/w_prof_two_strs.c: XFAIL.
+	* gcc.dg/struct/wo_prof_escape_arg_to_local.c: Likewise.
+	* gcc.dg/struct/wo_prof_global_var.c: Likewise.
+	* gcc.dg/struct/wo_prof_malloc_size_var.c: Likewise.
+	* gcc.dg/struct/w_prof_local_array.c: Likewise.
+	* gcc.dg/struct/w_prof_single_str_global.c: Likewise.
+	* gcc.dg/struct/wo_prof_escape_str_init.c: Likewise.
+	* gcc.dg/struct/wo_prof_array_through_pointer.c: Likewise.
+	* gcc.dg/struct/w_prof_global_array.c: Likewise.
+	* gcc.dg/struct/wo_prof_array_field.c: Likewise.
+	* gcc.dg/struct/wo_prof_single_str_local.c: Likewise.
+	* gcc.dg/struct/w_prof_local_var.c: Likewise.
+	* gcc.dg/struct/wo_prof_two_strs.c: Likewise.
+	* gcc.dg/struct/wo_prof_empty_str.c: Likewise.
+	* gcc.dg/struct/wo_prof_local_array.c: Likewise.
+	* gcc.dg/struct/w_prof_global_var.c: Likewise.
+	* gcc.dg/struct/wo_prof_single_str_global.c: Likewise.
+	* gcc.dg/struct/wo_prof_escape_substr_value.c: Likewise.
+	* gcc.dg/struct/wo_prof_global_array.c: Likewise.
+	* gcc.dg/struct/wo_prof_escape_return.c: Likewise.
+	* gcc.dg/struct/wo_prof_escape_substr_array.c: Likewise.
+	* gcc.dg/struct/wo_prof_double_malloc.c: Likewise.
+	* gcc.dg/struct/w_ratio_cold_str.c: Likewise.
+	* gcc.dg/struct/wo_prof_escape_substr_pointer.c: Likewise.
+	* gcc.dg/struct/wo_prof_local_var.c: Likewise.
+	* gcc.dg/tree-prof/stringop-1.c: Adjust.
+	* g++.dg/tree-ssa/pr31146.C: Likewise.
+	* g++.dg/tree-ssa/copyprop-1.C: Likewise.
+	* g++.dg/tree-ssa/pr33604.C: Likewise.
+	* g++.dg/plugin/selfassign.c: Likewise.
+	* gfortran.dg/array_memcpy_3.f90: Likewise.
+	* gfortran.dg/array_memcpy_4.f90: Likewise.
+	* c-c++-common/torture/pr42834.c: New testcase.
+
+2010-06-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44628
+	* g++.dg/template/crash100.C: New.
+
+2010-06-30  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/ipa-split-4.c: New testcase.
+
+2010-06-30  Michael Matz  <matz@suse.de>
+
+	PR bootstrap/44699
+	* gcc.dg/pr44699.c: New test.
+
+2010-06-30  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR tree-optimization/39799
+	* c-c++-common/uninit-17.c: New test.
+
+2010-06-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43298
+	* gfortran.dg/read_infnan_1.f90: New test.
+
+2010-06-29  Jason Merrill  <jason@redhat.com>
+
+	Enable implicitly declared move constructor/operator= (N3053).
+	* g++.dg/cpp0x/implicit3.C: New.
+	* g++.dg/cpp0x/implicit4.C: New.
+	* g++.dg/cpp0x/implicit5.C: New.
+	* g++.dg/cpp0x/implicit-copy.C: Adjust.
+	* g++.dg/cpp0x/not_special.C: Adjust.
+	* g++.dg/cpp0x/rv-trivial-bug.C: Adjust.
+	* g++.dg/cpp0x/rv1n.C: Adjust.
+	* g++.dg/cpp0x/rv1p.C: Adjust.
+	* g++.dg/cpp0x/rv2n.C: Adjust.
+	* g++.dg/cpp0x/rv2p.C: Adjust.
+	* g++.dg/cpp0x/rv3n.C: Adjust.
+	* g++.dg/cpp0x/rv3p.C: Adjust.
+	* g++.dg/cpp0x/rv4n.C: Adjust.
+	* g++.dg/cpp0x/rv4p.C: Adjust.
+	* g++.dg/cpp0x/rv5n.C: Adjust.
+	* g++.dg/cpp0x/rv5p.C: Adjust.
+	* g++.dg/cpp0x/rv6n.C: Adjust.
+	* g++.dg/cpp0x/rv6p.C: Adjust.
+	* g++.dg/cpp0x/rv7n.C: Adjust.
+	* g++.dg/cpp0x/rv7p.C: Adjust.
+	* g++.dg/cpp0x/rv8p.C: Adjust.
+	* g++.dg/gomp/pr26690-1.C: Adjust.
+	* g++.dg/other/error20.C: Adjust.
+	* g++.dg/other/error31.C: Adjust.
+	* g++.dg/parse/error19.C: Adjust.
+	* g++.dg/template/qualttp5.C: Adjust.
+	* g++.old-deja/g++.law/ctors5.C: Adjust.
+
+	Enable implicitly deleted functions (N2346)
+	* g++.dg/cpp0x/defaulted17.C: New.
+	* g++.dg/cpp0x/implicit1.C: New.
+	* g++.dg/cpp0x/implicit2.C: New.
+	* g++.dg/cpp0x/lambda/lambda-ctor-neg.C: Adjust.
+	* g++.dg/ext/has_virtual_destructor.C: Adjust.
+	* g++.dg/init/ctor4.C: Adjust.
+	* g++.dg/init/synth2.C: Adjust.
+	* g++.dg/lto/20081118_1.C: Adjust.
+	* g++.dg/other/error13.C: Adjust.
+	* g++.dg/other/unused1.C: Adjust.
+	* g++.old-deja/g++.bob/inherit2.C: Adjust.
+	* g++.old-deja/g++.bugs/900205_04.C: Adjust.
+	* g++.old-deja/g++.jason/opeq3.C: Adjust.
+	* g++.old-deja/g++.law/ctors17.C: Adjust.
+	* g++.old-deja/g++.oliva/delete1.C: Adjust.
+	* g++.old-deja/g++.pt/assign1.C: Adjust.
+	* g++.old-deja/g++.pt/crash20.C: Adjust.
+
+	* g++.dg/cpp0x/defaulted10.C: Adjust for new deleted message.
+	* g++.dg/cpp0x/defaulted13.C: Adjust.
+	* g++.dg/cpp0x/defaulted2.C: Adjust.
+	* g++.dg/cpp0x/defaulted3.C: Adjust.
+	* g++.dg/cpp0x/initlist9.C: Adjust.
+	* g++.dg/cpp0x/lambda/lambda-errloc.C: Adjust.
+	* g++.dg/cpp0x/lambda/lambda-errloc2.C: Adjust.
+	* g++.dg/init/synth2.C: Adjust.
+
+	* g++.dg/cpp0x/defaulted19.C: New.
+
+	* g++.dg/expr/string-1.C: Fix for -std=c++0x.
+	* g++.dg/template/error23.C: Fix for -std=c++0x.
+
+2010-06-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44718
+	* gfortran.dg/proc_ptr_28.f90: New.
+
+2010-06-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/43801
+	* g++.dg/torture/pr43801.C: New test.
+
+	PR debug/44668
+	* g++.dg/debug/dwarf2/accessibility1.C: New test.
+
+2010-06-29  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44587
+	* g++.dg/template/qualified-id2.C: New.
+	* g++.dg/template/qualified-id3.C: New.
+
+2010-06-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44696
+	* gfortran.dg/associated_target_4.f90: New.
+
+2010-06-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/44582
+	* gfortran.dg/aliasing_array_result_1.f90 : New test.
+
+2010-06-29  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/lto.exp (lto_prune_warns): Also accept leading single quote.
+
+2010-06-29  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/ipa-split-3.c: New testcase.
+
+2010-06-29  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/43902
+	* gcc.target/arm/wmul-1.c: Test for smlabb instead of smulbb.
+	* gcc.target/arm/wmul-3.c: New test.
+	* gcc.target/arm/wmul-4.c: New test.
+
+2010-06-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/44659
+	* gcc.target/i386/extract-1.c: New.
+	* gcc.target/i386/extract-2.c: Likewise.
+	* gcc.target/i386/extract-3.c: Likewise.
+	* gcc.target/i386/extract-4.c: Likewise.
+	* gcc.target/i386/extract-5.c: Likewise.
+	* gcc.target/i386/extract-6.c: Likewise.
+
+2010-06-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44682
+	* g++.dg/warn/Wunused-var-14.C: New test.
+
+2010-06-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43298
+	* gfortran.dg/nan_6.f90: New.
+
+2010-06-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR tree-optimization/43781
+	* gcc.dg/torture/pr43781.c: New.
+
+2010-06-28  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40158
+	* gfortran.dg/actual_rank_check_1.f90: New test.
+
+2010-06-28  Martin Jambor  <mjambor@suse.cz>
+
+	* testsuite/gcc.dg/ipa/ipa-sra-6.c: New test.
+
+2010-06-28  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/44687
+	* gcc.c-torture/compile/pr44687.c
+
+2010-06-28  Martin Jambor  <mjambor@suse.cz>
+
+	PR c++/44535
+	* g++.dg/torture/pr44535.C: New test.
+
+2010-06-28  Michael Matz  <matz@suse.de>
+
+	PR middle-end/44592
+	* gfortran.dg/pr44592.f90: New test.
+
+2010-06-28  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/44357
+	* g++.dg/torture/pr44357.C: New testcase.
+
+2010-06-28  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/tree-ssa/ltrans-1.c: Add -march=i486 for i?86-*-* && ilp32.
+	* gcc.dg/tree-ssa/ltrans-3.c: Likewise.
+	* gcc.dg/tree-ssa/ltrans-4.c: Likewise.
+	* gcc.dg/tree-ssa/ltrans-5.c: Likewise.
+	* gcc.dg/tree-ssa/ltrans-6.c: Likewise.
+	* gcc.dg/tree-ssa/ltrans-8.c: Likewise.
+	* gcc.dg/tree-ssa/vrp47.c: Add -march=i586 for i?86-*-* && ilp32.
+	* gfortran.dg/ltrans-7.f90: Add -march=i486 for i?86-*-* && ilp32.
+
+2010-06-27  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.c-torture/compile/pr44686.c: New file.
+
+2010-06-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44683
+	* gcc.c-torture/execute/pr44683.c: New testcase.
+
+2010-06-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/noreturn3.ad[sb]: New test.
+
+2010-06-26  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/explicit5.C: New.
+
+2010-06-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44393
+	* gcc.dg/pr44393.c: New testcase.
+
+2010-06-26  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/ipa-split-2.c: New testcase.
+
+2010-06-26  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44674
+	* gcc.dg/pr44674.c: New testcase.
+
+2010-06-26  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/opts-3.c: New test.
+
+2010-06-26  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/type_decl_1.f90: New.
+	* gfortran.dg/type_decl_2.f90: New.
+
+2010-06-26  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/semicolon_fixed.f: Fix dg syntax..
+	* gfortran.dg/semicolon_fixed_2.f: Ditto.
+
+2010-06-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR testsuite/38946
+	* gfortran.dg/array_constructor_23.f: Update test to allow for small
+	error in comparing reals.
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* selected_real_kind_2.f90: New.
+	* selected_real_kind_3.f90: New.
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/entry_19.f90: New.
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/end_subroutine_1.f90: New.
+	* gfortran.dg/end_subroutine_2.f90: New.
+	* gfortran.dg/interface_proc_end.f90: Update.
+
+2010-06-25  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/semicolon_fixed.f: Update.
+	* gfortran.dg/semicolon_fixed_2.f: New.
+	* gfortran.dg/semicolon_free_2.f90: New.
+	* gfortran.dg/semicolon_free.f90: Update.
+
+2010-06-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/44448
+	* gfortran.dg/atan2_1.f90: Add -ffloat-store.
+
+2010-06-25  Martin Jambor  <mjambor@suse.cz>
+
+	* g++.dg/ipa/iinline-3.C: New test.
+	* gcc.dg/ipa/modif-1.c: Removed.
+
+2010-06-25  Jan Hubicka  <jh@suse.cz>
+
+	* testsuite/gcc.dg/tree-ssa/ipa-split-1.c
+
+2010-06-25  Martin Jambor  <mjambor@suse.cz>
+
+	* g++.dg/ipa/iinline-2.C: New test.
+
+2010-06-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/43866
+	* gfortran.dg/pr43866.f90: New test.
+
+	PR tree-optimization/44539
+	* gcc.dg/pr44539.c: New test.
+
+2010-06-25  Bernd Schmidt  <bernds@codesourcery.com>
+
+	From Jim Wilson:
+	PR target/43902
+	* gcc.target/mips/madd-9.c: New test.
+
+2010-06-25  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c/44517
+	* gcc.dg/noncompile/pr44517.c: New.
+	* gcc.dg/noncompile/990416-1.c: Adjust expected error.
+
+2010-06-24  Steve Ellcey  <sje@cup.hp.com>
+
+	PR testsuite/43283
+	* gcc.dg/lto/20091216-1_0.c: Use newline instead of semicolon
+	and add argument to nop for IA64.
+
+2010-06-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44588
+	* gcc.target/i386/mod-1.c: New.
+	* gcc.target/i386/umod-1.c: Likewise.
+	* gcc.target/i386/umod-2.c: Likewise.
+	* gcc.target/i386/umod-3.c: Likewise.
+
+2010-06-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/44492
+	* g++.dg/torture/pr44492.C: New test.
+
+2010-06-24  Andi Kleen  <ak@linux.intel.com>
+
+	* c-c++-common/warn-omitted-condop.c: New.
+
 2010-06-24  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/44614

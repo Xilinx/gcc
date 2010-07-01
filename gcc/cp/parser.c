@@ -6815,15 +6815,20 @@ cp_parser_question_colon_clause (cp_parser* parser, tree logical_or_expr)
 {
   tree expr;
   tree assignment_expr;
+  struct cp_token *token;
 
   /* Consume the `?' token.  */
   cp_lexer_consume_token (parser->lexer);
+  token = cp_lexer_peek_token (parser->lexer);
   if (cp_parser_allow_gnu_extensions_p (parser)
-      && cp_lexer_next_token_is (parser->lexer, CPP_COLON))
+      && token->type == CPP_COLON)
     {
+      pedwarn (token->location, OPT_pedantic, 
+               "ISO C++ does not allow ?: with omitted middle operand");
       /* Implicit true clause.  */
       expr = NULL_TREE;
       c_inhibit_evaluation_warnings += logical_or_expr == truthvalue_true_node;
+      warn_for_omitted_condop (token->location, logical_or_expr);
     }
   else
     {
@@ -22700,11 +22705,12 @@ static tree
 cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 {
   tree init, cond, incr, body, decl, pre_body = NULL_TREE, ret;
-  tree for_block = NULL_TREE, real_decl, initv, condv, incrv, declv;
+  tree real_decl, initv, condv, incrv, declv;
   tree this_pre_body, cl;
   location_t loc_first;
   bool collapse_err = false;
   int i, collapse = 1, nbraces = 0;
+  VEC(tree,gc) *for_block = make_tree_vector ();
 
   for (cl = clauses; cl; cl = OMP_CLAUSE_CHAIN (cl))
     if (OMP_CLAUSE_CODE (cl) == OMP_CLAUSE_COLLAPSE)
@@ -22823,8 +22829,7 @@ cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 				      LOOKUP_ONLYCONVERTING);
 		      if (CLASS_TYPE_P (TREE_TYPE (decl)))
 			{
-			  for_block
-			    = tree_cons (NULL, this_pre_body, for_block);
+			  VEC_safe_push (tree, gc, for_block, this_pre_body);
 			  init = NULL_TREE;
 			}
 		      else
@@ -23078,11 +23083,9 @@ cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 	}
     }
 
-  while (for_block)
-    {
-      add_stmt (pop_stmt_list (TREE_VALUE (for_block)));
-      for_block = TREE_CHAIN (for_block);
-    }
+  while (!VEC_empty (tree, for_block))
+    add_stmt (pop_stmt_list (VEC_pop (tree, for_block)));
+  release_tree_vector (for_block);
 
   return ret;
 }

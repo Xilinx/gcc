@@ -1,3 +1,26 @@
+2010-06-30  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c-gimplify.c: Do not include tree-flow.h
+
+2010-06-29  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR other/44034
+	* c-common.c: Rename targetm member:
+	targetm.enum_va_list -> targetm.enum_va_list_p
+
+2010-06-28  Anatoly Sokolov  <aesok@post.ru>
+
+	* c-common.c (shorten_compare): Adjust call to force_fit_type_double.
+
+2010-06-28  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c-cppbuiltin.c: Do not include except.h.
+
+2010-06-24  Andi Kleen  <ak@linux.intel.com>
+
+        * c-common.c (warn_for_omitted_condop): New.
+        * c-common.h (warn_for_omitted_condop): Add prototype.
+
 2010-06-21  Joseph Myers  <joseph@codesourcery.com>
 
 	* c.opt (lang-objc): Remove.

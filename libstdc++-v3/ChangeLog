@@ -1,3 +1,305 @@
+2010-06-29  Jason Merrill  <jason@redhat.com>
+
+	Enable implicitly declared move constructor/operator= (N3053).
+	* include/bits/unordered_map.h: Explicitly default copy constructors.
+	* include/bits/unordered_set.h: Likewise.
+
+	* 19_diagnostics/error_category/cons/copy_neg.cc: Adjust expected
+	errors, use dg-prune-output.
+	* 20_util/function/cmp/cmp_neg.cc: Likewise.
+	* 20_util/unique_ptr/assign/assign_neg.cc: Likewise.
+	* 20_util/unique_ptr/cons/pointer_array_convertible.cc: Likewise.
+	* 20_util/unique_ptr/modifiers/reset_neg.cc: Likewise.
+	* 29_atomics/atomic/cons/assign_neg.cc: Likewise.
+	* 29_atomics/atomic/cons/copy_neg.cc: Likewise.
+	* 29_atomics/atomic_address/cons/assign_neg.cc: Likewise.
+	* 29_atomics/atomic_address/cons/copy_neg.cc: Likewise.
+	* 29_atomics/atomic_flag/cons/assign_neg.cc: Likewise.
+	* 29_atomics/atomic_flag/cons/copy_neg.cc: Likewise.
+	* 29_atomics/atomic_integral/cons/assign_neg.cc: Likewise.
+	* 29_atomics/atomic_integral/cons/copy_neg.cc: Likewise.
+	* 29_atomics/condition_variable/cons/assign_neg.cc: Likewise.
+	* 30_threads/condition_variable/cons/copy_neg.cc: Likewise.
+	* 30_threads/condition_variable_any/cons/assign_neg.cc: Likewise.
+	* 30_threads/condition_variable_any/cons/copy_neg.cc: Likewise.
+	* 30_threads/future/cons/assign_neg.cc: Likewise.
+	* 30_threads/future/cons/copy_neg.cc: Likewise.
+	* 30_threads/mutex/cons/assign_neg.cc: Likewise.
+	* 30_threads/mutex/cons/copy_neg.cc: Likewise.
+	* 30_threads/packaged_task/cons/assign_neg.cc: Likewise.
+	* 30_threads/packaged_task/cons/copy_neg.cc: Likewise.
+	* 30_threads/promise/cons/assign_neg.cc: Likewise.
+	* 30_threads/promise/cons/copy_neg.cc: Likewise.
+	* 30_threads/recursive_mutex/cons/assign_neg.cc: Likewise.
+	* 30_threads/recursive_mutex/cons/copy_neg.cc: Likewise.
+	* 30_threads/recursive_timed_mutex/cons/assign_neg.cc: Likewise.
+	* 30_threads/recursive_timed_mutex/cons/copy_neg.cc: Likewise.
+	* 30_threads/thread/cons/assign_neg.cc: Likewise.
+	* 30_threads/thread/cons/copy_neg.cc: Likewise.
+	* 30_threads/timed_mutex/cons/assign_neg.cc: Likewise.
+	* 30_threads/timed_mutex/cons/copy_neg.cc: Likewise.
+	* ext/ext_pointer/1_neg.cc: Likewise.
+
+2010-06-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/44708
+	* include/ext/algorithm (copy_n): Qualify __copy_n call with
+	__gnu_cxx::
+	* testsuite/ext/rope/44708.cc: New.
+
+2010-06-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/regex_compiler.h: Trivial formatting / stylistic fixes.
+	* include/bits/regex_grep_matcher.tcc: Likewise.
+	* include/bits/regex_cursor.h: Likewise.
+	* include/bits/regex.h: Likewise.
+
+2010-06-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/util/testsuite_hooks.h: Cast fn to bool.
+
+2010-06-26  Kees Cook  <kees.cook@canonical.com>
+
+	* testsuite/27_io/ios_base/sync_with_stdio/1.cc: Verify freopen.
+	* testsuite/27_io/objects/wchar_t/9520.cc: Likewise.
+	* testsuite/27_io/objects/wchar_t/9661-1.cc: Likewise.
+	* testsuite/27_io/objects/wchar_t/12048-2.cc: Likewise.
+	* testsuite/27_io/objects/wchar_t/12048-4.cc: Likewise.
+	* testsuite/27_io/objects/wchar_t/11.cc: Likewise.
+	* testsuite/27_io/objects/wchar_t/12048-1.cc: Likewise.
+	* testsuite/27_io/objects/wchar_t/12048-3.cc: Likewise.
+	* testsuite/27_io/objects/wchar_t/10.cc: Likewise.
+	* testsuite/27_io/objects/wchar_t/12048-5.cc: Likewise.
+	* testsuite/27_io/objects/char/9661-1.cc: Likewise.
+	* testsuite/27_io/objects/char/12048-2.cc: Likewise.
+	* testsuite/27_io/objects/char/12048-4.cc: Likewise.
+	* testsuite/27_io/objects/char/9.cc: Likewise.
+	* testsuite/27_io/objects/char/12048-1.cc: Likewise.
+	* testsuite/27_io/objects/char/12048-3.cc: Likewise.
+	* testsuite/27_io/objects/char/12048-5.cc: Likewise.
+	* testsuite/ext/stdio_sync_filebuf/wchar_t/12077.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/setbuf/char/12875-2.cc: Verify fgets.
+	* testsuite/27_io/basic_filebuf/underflow/wchar_t/11544-2.cc: Verify
+	fwrite.
+	* testsuite/ext/stdio_sync_filebuf/wchar_t/1.cc: Likewise.
+	* testsuite/ext/stdio_sync_filebuf/char/1.cc: Likewise.
+
+2010-06-26  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/faq.xml: Fix typo.
+	* doc/html/faq.xml: Likewise.
+
+2010-06-25  Stephen M. Webb  <stephen.webb@bregmasoft.ca>
+
+	Initial regex implementation.
+	* include/std/regex: Modified to use bits/regex_* headers.
+	* include/bits/regex_compiler.h: New.
+	* include/bits/regex_constants.h: Likewise.
+	* include/bits/regex_cursor.h: Likewise.
+	* include/bits/regex_error.h: Likewise.
+	* include/bits/regex_grep_matcher.h: Likewise.
+	* include/bits/regex_grep_matcher.tcc: Likewise.
+	* include/bits/regex.h: Likewise.
+	* include/bits/regex_nfa.h: Likewise.
+	* include/bits/regex_nfa.tcc: Likewise.
+	* include/Makefile.am: Add.
+	* include/Makefile.in: Regenerated.
+	* testsuite/28_regex/02_definitions: New.
+	* testsuite/28_regex/03_requirements: Likewise.
+	* testsuite/28_regex/03_requirements/typedefs.cc: Likewise.
+	* testsuite/28_regex/04_header: Likewise.
+	* testsuite/28_regex/04_header/regex: Likewise.
+	* testsuite/28_regex/04_header/regex/std_c++0x_neg.cc: Likewise.
+	* testsuite/28_regex/05_constants: Likewise.
+	* testsuite/28_regex/05_constants/error_type.cc: Likewise.
+	* testsuite/28_regex/05_constants/match_flag_type.cc: Likewise.
+	* testsuite/28_regex/05_constants/syntax_option_type.cc: Likewise.
+	* testsuite/28_regex/06_exception_type: Likewise.
+	* testsuite/28_regex/06_exception_type/regex_error.cc: Likewise.
+	* testsuite/28_regex/07_traits: Likewise.
+	* testsuite/28_regex/07_traits/char: Likewise.
+	* testsuite/28_regex/07_traits/char/ctor.cc: Likewise.
+	* testsuite/28_regex/07_traits/char/isctype.cc: Likewise.
+	* testsuite/28_regex/07_traits/char/length.cc: Likewise.
+	* testsuite/28_regex/07_traits/char/lookup_classname.cc: Likewise.
+	* testsuite/28_regex/07_traits/char/lookup_collatename.cc: Likewise.
+	* testsuite/28_regex/07_traits/char/transform.cc: Likewise.
+	* testsuite/28_regex/07_traits/char/transform_primary.cc: Likewise.
+	* testsuite/28_regex/07_traits/char/translate.cc: Likewise.
+	* testsuite/28_regex/07_traits/char/translate_nocase.cc: Likewise.
+	* testsuite/28_regex/07_traits/char/value.cc: Likewise.
+	* testsuite/28_regex/07_traits/wchar_t: Likewise.
+	* testsuite/28_regex/07_traits/wchar_t/ctor.cc: Likewise.
+	* testsuite/28_regex/07_traits/wchar_t/length.cc: Likewise.
+	* testsuite/28_regex/07_traits/wchar_t/transform.cc: Likewise.
+	* testsuite/28_regex/07_traits/wchar_t/translate.cc: Likewise.
+	* testsuite/28_regex/07_traits/wchar_t/translate_nocase.cc: Likewise.
+	* testsuite/28_regex/07_traits/wchar_t/value.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/char: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/char/cstring.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/char/cstring_op.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/char/moveable.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/char/pstring.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/char/range.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/char/string.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/char/string_op.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/wchar_t: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/wchar_t/cstring.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/wchar_t/cstring_op.cc:
+	Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/wchar_t/pstring.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/wchar_t/range.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/wchar_t/string.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/assign/wchar_t/string_op.cc:
+	Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/basic: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/basic/cstring.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/basic/pstring_char.cc:
+	Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/basic/pstring_wchar_t.cc:
+	Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/basic/
+	string_range_01_02_03.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/char: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/char/cstring_awk.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/char/cstring.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/char/cstring_ecma.cc:
+	Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/char/cstring_egrep.cc:
+	Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/char/cstring_grep.cc:
+	Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/char/default.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/char/range.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/copy_char.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/extended: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/extended/cstring.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/extended/
+	string_range_01_02_03.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/move_char.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/string_char.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/string_wchar_t.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/wchar_t: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/wchar_t/cstring.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/wchar_t/default.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/ctors/wchar_t/range.cc: Likewise.
+	* testsuite/28_regex/08_basic_regex/regex.cc: Likewise.
+	* testsuite/28_regex/09_sub_match: Likewise.
+	* testsuite/28_regex/09_sub_match/cast_char.cc: Likewise.
+	* testsuite/28_regex/09_sub_match/cast_wchar_t.cc: Likewise.
+	* testsuite/28_regex/09_sub_match/length.cc: Likewise.
+	* testsuite/28_regex/09_sub_match/typedefs.cc: Likewise.
+	* testsuite/28_regex/10_match_results: Likewise.
+	* testsuite/28_regex/10_match_results/ctors: Likewise.
+	* testsuite/28_regex/10_match_results/ctors/char: Likewise.
+	* testsuite/28_regex/10_match_results/ctors/char/default.cc: Likewise.
+	* testsuite/28_regex/10_match_results/ctors/wchar_t: Likewise.
+	* testsuite/28_regex/10_match_results/ctors/wchar_t/default.cc:
+	Likewise.
+	* testsuite/28_regex/10_match_results/typedefs.cc: Likewise.
+	* testsuite/28_regex/11_algorithms: Likewise.
+	* testsuite/28_regex/11_algorithms/02_match: Likewise.
+	* testsuite/28_regex/11_algorithms/02_match/basic: Likewise.
+	* testsuite/28_regex/11_algorithms/02_match/basic/string_01.cc:
+	Likewise.
+	* testsuite/28_regex/11_algorithms/02_match/basic/
+	string_range_00_03.cc: Likewise.
+	* testsuite/28_regex/11_algorithms/02_match/basic/
+	string_range_01_03.cc: Likewise.
+	* testsuite/28_regex/11_algorithms/02_match/basic/
+	string_range_02_03.cc: Likewise.
+	* testsuite/28_regex/11_algorithms/02_match/extended: Likewise.
+	* testsuite/28_regex/11_algorithms/02_match/extended/cstring_plus.cc:
+	Likewise.
+	* testsuite/28_regex/11_algorithms/02_match/extended/
+	cstring_questionmark.cc: Likewise.
+	* testsuite/28_regex/11_algorithms/02_match/extended/string_any.cc:
+	Likewise.
+	* testsuite/28_regex/11_algorithms/02_match/extended/
+	string_range_00_03.cc: Likewise.
+	* testsuite/28_regex/11_algorithms/02_match/extended/
+	string_range_01_03.cc: Likewise.
+	* testsuite/28_regex/11_algorithms/02_match/extended/
+	string_range_02_03.cc: Likewise.
+	* testsuite/28_regex/12_iterators: Likewise.
+	* testsuite/28_regex/12_iterators/regex_iterator: Likewise.
+	* testsuite/28_regex/12_iterators/regex_iterator/ctors: Likewise.
+	* testsuite/28_regex/12_iterators/regex_iterator/ctors/char: Likewise.
+	* testsuite/28_regex/12_iterators/regex_iterator/ctors/char/
+	default.cc: Likewise.
+	* testsuite/28_regex/12_iterators/regex_iterator/ctors/wchar_t:
+	Likewise.
+	* testsuite/28_regex/12_iterators/regex_iterator/ctors/wchar_t/
+	default.cc: Likewise.
+	* testsuite/28_regex/12_iterators/regex_iterator/typedefs.cc: Likewise.
+	* testsuite/28_regex/12_iterators/regex_token_iterator: Likewise.
+	* testsuite/28_regex/12_iterators/regex_token_iterator/ctors: Likewise.
+	* testsuite/28_regex/12_iterators/regex_token_iterator/ctors/char:
+	Likewise.
+	* testsuite/28_regex/12_iterators/regex_token_iterator/ctors/char/
+	default.cc: Likewise.
+	* testsuite/28_regex/12_iterators/regex_token_iterator/ctors/
+	wchar_t: Likewise.
+	* testsuite/28_regex/12_iterators/regex_token_iterator/ctors/
+	wchar_t/default.cc: Likewise.
+	* testsuite/28_regex/12_iterators/regex_token_iterator/
+	typedefs.cc: Likewise.
+	* testsuite/28_regex/13_ecmascript: Likewise.
+
+2010-06-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/profile/impl/profiler_list_to_slist.h: Remove spurious
+	semicolon; prefer pre-increment.
+	* include/profile/impl/profiler_container_size.h: Use everywhere
+	qualified std::size_t.
+	* include/profile/impl/profiler_trace.h (__trace_base<>::
+	__collect_warnings): Tidy loop.
+	* include/profile/impl/profiler_vector_to_list.h: Minor formatting
+	changes.
+
+2010-06-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/profile/impl/profiler_trace.h: Uglify it to __it, use
+	everywhere std::size_t instead of size_t.
+
+2010-06-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/profile/impl/profiler_trace.h (__trace_base<>::
+	__trace_base()): Move inline, simplify; formatting tweaks.
+	* include/profile/impl/profiler_hash_func.h: Formatting tweaks.
+
+2010-06-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/profile/impl/profiler_trace.h (__warning_data::
+	__warning_message): Change to std::string; clean-up includes,
+	qualify size_t, fprintf, etc, with std everywhere.
+	(struct __warn::operator()): Adjust.
+	* include/profile/impl/profiler_list_to_slist.h
+	(__list2slist_info::__advice): Change to return a std::string;
+	clean-up includes, qualify size_t, fprintf, etc, with std.
+	* include/profile/impl/profiler_container_size.h
+	(__container_size_info::__advice): Likewise.
+	* include/profile/impl/profiler_hash_func.h (__hashfunc_info::
+	__advice): Likewise.
+	* include/profile/impl/profiler_list_to_vector.h
+	(__list2vector_info::__advice): Likewise.
+	* include/profile/impl/profiler_vector_to_list.h
+	(__vector2list_info::__advice): Likewise.
+	* include/profile/impl/profiler_map_to_unordered_map.h
+	(__map2umap_info::__advice): Likewise.
+	* include/profile/impl/profiler.h: Likewise.
+	* include/profile/impl/profiler_hashtable_size.h: Likewise.
+	* include/profile/impl/profiler_node.h: Likewise.
+	* include/profile/impl/profiler_vector_size.h: Likewise.
+
+	* include/profile/iterator_tracker.h: Formatting and stylistic
+	tweaks.
+	* include/profile/base.h: Likewise.
+	* include/profile/map.h: Likewise.
+
 2010-06-23  Paolo Carlini <paolo.carlini@oracle.com>
 
 	* include/bits/stl_tree.h (erase(iterator), erase(const_iterator)):
