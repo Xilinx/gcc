@@ -1376,6 +1376,17 @@
   }#
 )
 
+;; pattern (tree_function_type <return type>) match a tree function type.
+(defcmatcher tree_function_type
+  (:tree tr)
+  (:tree ret_tr)
+  tfunt
+  ;; test expansion
+  #{ /* $tfunt ? */ (($tr) && TREE_CODE($tr) == FUNCTION_TYPE) }#
+  ;; fill expansion
+  #{ /* $tfunt ! */
+      $ret_tr = TREE_TYPE($tr);
+  }#)
 
 ;;;;;;;;;;;;;;;;
 (defcmatcher tree_of_type 
@@ -1522,14 +1533,14 @@
    #{ /*$treeinty ?*/ (($tr) && TREE_CODE($tr) == INTEGER_TYPE) }#
   ;; fill expander
    #{ /*$treeinty !*/
-   tree $treeinty#_ty= TYPE_NAME($tr);
-   tree $treeinty#_sizt= TYPE_SIZE($tr);
+   tree $treeinty#_tyna = TYPE_NAME($tr);
+   tree $treeinty#_sizt = TYPE_SIZE($tr);
    mpz_t $treeinty#_minz, $treeinty#_maxz;
    $size = 0L;
    $minbig = NULL; 
    $maxbig = NULL;
-   if ($treeinty#_ty && TREE_CODE($treeinty#_ty) == IDENTIFIER_NODE)
-   $name = IDENTIFIER_POINTER($treeinty#_ty);
+   if ($treeinty#_tyna && DECL_P ($treeinty#_tyna))
+     $name = IDENTIFIER_POINTER($treeinty#_tyna);
    mpz_init ($treeinty#_minz);
    mpz_init ($treeinty#_maxz);
    get_type_static_bounds($tr, $treeinty#_minz, $treeinty#_maxz);
@@ -1561,6 +1572,7 @@
   }#
   ;; fill
   #{ /* $tranyfloaty ! */
+   dbgprintf("$tranyfloaty : %p", $tr);
    tree $tranyfloaty#_ty= TYPE_NAME($tr);
    tree $tranyfloaty#_sizt= TYPE_SIZE($tr);
    if ($tranyfloaty#_ty && TREE_CODE($tranyfloaty#_ty) == IDENTIFIER_NODE)
@@ -1748,6 +1760,29 @@
    }#
    #{  /* $eachbbsucc end */ }  }#
 )
+
+;; Iterator on function argument 
+(defciterator foreach_argument_in_function_tree
+  (:tree tr_fun)
+  eachtrfun
+  (:tree tr_arg)
+  #{
+      /* $eachtrfun start */
+      function_args_iterator $eachtrfun#_args_iter;
+      tree $eachtrfun#_t = NULL;
+
+      if ($tr_fun && TREE_CODE($tr_fun) == FUNCTION_TYPE)
+      {
+          FOREACH_FUNCTION_ARGS($tr_fun, $eachtrfun#_t, $eachtrfun#_args_iter)
+          {
+   }#
+              
+   #{
+              $tr_arg = $eachtrfun#_t;
+          } 
+      }
+      /* $eachtrfun end */
+   }#)
 
 ;;;;;;;;;;;;;;;;
 
@@ -2438,6 +2473,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  edge_for_false_value
  edge_for_true_value 
  edge_src_bb
+ foreach_argument_in_function_tree
  foreach_argument_of_gimple_call
  foreach_basicblock_succ_edge
  foreach_case_of_gimple_switch
@@ -2607,6 +2643,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_content 
  tree_decl
  tree_function_decl 
+ tree_function_type
  tree_identifier
  tree_integer_cst
  tree_integer_type

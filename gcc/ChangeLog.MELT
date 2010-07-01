@@ -1,4 +1,10 @@
 
+
+2010-07-01  Jeremie Salvucci  <jeremie.salvucci@free.fr>
+	* melt/xtramelt-ana-base.melt: Added
+	foreach_argument_in_function_tree & tree_function_type. Updated
+	tree_integer_type.
+
 2010-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{try hard to detect that the melt-run.h is the good one by
 	generating it with a unique hash}}
