@@ -1,5 +1,32 @@
 
-2010-07-01  Basile Starynkevitch  <basile@starynkevitch.net>:
+2010-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{try hard to detect that the melt-run.h is the good one by
+	generating it with a unique hash}}
+
+	* Makefile.in (melt-run.h): is generated from melt-run.proto.h and
+	contains a generated #define MELT_RUN_HASHCMD5
+
+	* melt-run.h: removed file, since renamed to melt-run.proto.h & generated.
+
+	* melt-run.proto.h: added file, was melt-run.h before. Got $Id$ inside.
+
+	* melt-runtime.h (meltgc_output_file, melt_sparebreakpoint_1)
+	(melt_sparebreakpoint_2): Added declarations
+
+	* melt-runtime.c (load_checked_dynamic_module_index): Uses &
+	checks the used_meltrun_md5_melt.
+	(melt_output_cfile_decl_impl_secondary): Generates used_meltrun_md5_melt.
+	(meltgc_output_file, melt_sparebreakpoint_1_at)
+	(melt_sparebreakpoint_2_at): Added new functions.
+
+	* melt/warmelt-outobj.melt: Generates clearing of initial frame in
+	startup routine.
+
+	* testsuite/gcc/melt/tfullgc.melt: added calls to
+	melt_sparebreakpoint_[12] to ease debugging.
+
+2010-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{tfullgc.melt still crashes!}}
 
 	* melt-runtime.h: Added $Id$ comment & svn:keywords property.

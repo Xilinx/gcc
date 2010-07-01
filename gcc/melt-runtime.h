@@ -3603,6 +3603,10 @@ melt_output_cfile_decl_impl(melt_ptr_t cfilnam, melt_ptr_t declbuf, melt_ptr_t i
   melt_output_cfile_decl_impl_secondary (cfilnam, declbuf, implbuf, 0);
 }
 
+/* recursive function to output to a file.  Handle boxed integers,
+   lists, tuples, strings, strbufs, but don't handle objects! */
+void meltgc_output_file (FILE* fil, melt_ptr_t val_p);
+
 #ifdef ENABLE_CHECKING
 static inline void
 debugeputs_at (const char *fil, int lin, const char *msg)
@@ -3714,6 +3718,17 @@ melt_get_file(melt_ptr_t file_p)
     return ((struct meltspecial_st*)file_p)->val.sp_file;
   return NULL;
 }
+
+#if ENABLE_CHECKING
+/* two useless routines in wich we can add a breakpoint from gdb. */
+void melt_sparebreakpoint_1_at (const char*fil, int lin, void*ptr, const char*msg);
+void melt_sparebreakpoint_2_at (const char*fil, int lin, void*ptr, const char*msg);
+#define melt_sparebreakpoint_1(P,Msg) melt_sparebreakpoint_1_at(__FILE__,__LINE__,(void*)(P),(Msg))
+#define melt_sparebreakpoint_2(P,Msg) melt_sparebreakpoint_2_at(__FILE__,__LINE__,(void*)(P),(Msg))
+#else /*no ENABLE_CHECKING*/
+#define melt_sparebreakpoint_1(P,Msg) do{(void)(0 && (P));}while(0)
+#define melt_sparebreakpoint_2(P,Msg) do{(void)(0 && (P));}while(0)
+#endif /*ENABLE_CHECKING*/
 
 /* strangely, gcc/input.h don't define yet that macro. */
 #define LOCATION_COLUMN(LOC) ((expand_location (LOC)).column)

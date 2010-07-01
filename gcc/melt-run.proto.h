@@ -1,10 +1,11 @@
-/*  MELT file melt-run.h included in every generated file.
+/*  -*- C -*-  
+  MELT file melt-run.h included in every generated file.
    all include files for generated code
    
    Copyright (C) 2008,2009 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
-This file is part of GCC.
+This file is part of GCC. It is produced from melt-run.proto.h
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -90,6 +91,9 @@ extern void gt_ggc_mx_melt_un (void*);
 #define MELT_MODULE_VISIBILITY
 #endif
 
+/* actually, the generated melt-run.h contains a MD5 string hash, same
+   as melt_run_preprocessed_md5 */
+#define MELT_RUN_HASHMD5 XX
 /* It helps a lot to have an svn id here, since this file is really
    important, and is installed.  */
 /* eof $Id$ */

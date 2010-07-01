@@ -33,23 +33,35 @@
   (debug_msg x "tfullgc")
   (code_chunk tfullgc_chunk
 	      #{printf("Start from $tfullgc_chunk %s:%d\n",
-		       lbasename(__FILE__), __LINE__);
+		       lbasename(__FILE__), __LINE__) ;
 	      }#)
   ;; the call to allocgarb allocates a lot of data
   (let ( (g (allocgarb 'garb 0 11)) 
 	 )
+    (code_chunk tfullgc_before_gc_chunk
+		#{melt_sparebreakpoint_1($g, "$tfullgc_before_gc_chunk") ;
+		}#)
     ;; by assigning g, we make all the allocated data garbage!
     (setq g :true)
     (debug_msg g "before call to full_garbcoll")
-    (full_garbcoll 10000)
+    (full_garbcoll 23000)
+    (code_chunk tfullgc_after_gc_chunk
+		#{melt_sparebreakpoint_1($g, "$tfullgc_after_gc_chunk")	;
+		}#)
     (debug_msg g "after call to full_garbcoll")
-  )
+    )
   (code_chunk tfullgc_endchunk
 	      #{printf("End at $tfullgc_endchunk %s:%d melt_nb_full_garbcoll=%lu melt_nb_garbcoll=%lu\n",
-		       lbasename(__FILE__), __LINE__, melt_nb_full_garbcoll, melt_nb_garbcoll);
+		       lbasename(__FILE__), __LINE__, melt_nb_full_garbcoll, melt_nb_garbcoll) ;
 	      }#)
-)
+  )
 
+(code_chunk tfullgc_before_tfullgc_call_chunk
+	    #{melt_sparebreakpoint_2(meltfram__, "module $tfullgc_before_tfullgc_call_chunk meltfram__") ;
+	    }#)
 (tfullgc '"here")
+(code_chunk tfullgc_after_tfullgc_call_chunk
+	    #{melt_sparebreakpoint_2(meltfram__, "module $tfullgc_after_tfullgc_call_chunk meltfram__") ;
+	    }#)
 
 ;; eof tfullgc.melt

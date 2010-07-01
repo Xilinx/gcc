@@ -2741,13 +2741,18 @@ melt-runtime.o:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h  $(C_COMMON_H) \
 
 
 ## file melt-run-md5.h contains only the md5 string of preprocessing
-## of melt-run.h and is used to ensure that the melt-run.h is the one
-## expected. It is included in melt-runtime.c
-melt-run-md5.h: Makefile  $(srcdir)/melt-run.h $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H) \
+## of melt-run.proto.h and is used to ensure that the melt-run.h is
+## the one expected. It is included in melt-runtime.c and melt-run.h
+## is generated to contain it.
+melt-run-md5.h melt-run.h: Makefile  $(srcdir)/melt-run.proto.h $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H) \
    $(TREE_H)  $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H)  \
    tree-pass.h $(MELT_H) gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
-	melt_run_md5=`$(CC) -C -E $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(srcdir)/melt-run.h | md5sum | cut -c 1-32`; echo  "const char melt_run_preprocessed_md5[]=\"$$melt_run_md5\";" > $@-tmp
-	$(SHELL) $(srcdir)/../move-if-change  $@-tmp $@
+	melt_run_md5=`$(CC) -C -E $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(srcdir)/melt-run.proto.h | grep -v '^#' | md5sum | cut -c 1-32`; \
+   ( echo  "const char melt_run_preprocessed_md5[]=\"$$melt_run_md5\";" > melt-run-md5.h-tmp ; \
+   sed -e "s,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$$melt_run_md5\"," <  $(srcdir)/melt-run.proto.h > melt-run.h-tmp )
+	$(SHELL) $(srcdir)/../move-if-change melt-run-md5.h-tmp melt-run-md5.h
+	$(SHELL) $(srcdir)/../move-if-change melt-run.h-tmp melt-run.h
+
 
 melt-predef.h: $(srcdir)/make-melt-predefh.awk $(srcdir)/melt-predef.list
 	$(AWK) -f $(srcdir)/make-melt-predefh.awk $(srcdir)/melt-predef.list > $@-tmp
