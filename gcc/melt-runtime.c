@@ -1,8 +1,8 @@
 /*** file melt-runtime.c
-   Middle End Lisp Translator = MELT
-   Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
-   Contributed by Basile Starynkevitch <basile@starynkevitch.net>
-   Indented with GNU indent.
+     Middle End Lisp Translator
+     MELT Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+     Indented with GNU indent.
 
 This file is part of GCC.
 
@@ -11993,4 +11993,4 @@ end:
    md5sum of the preprocessed form of melt-run.h */
 #include "melt-run-md5.h"
 
-/* eof melt-runtime.c */
+/* eof $Id$ */

@@ -1,4 +1,14 @@
 
+2010-07-01  Basile Starynkevitch  <basile@starynkevitch.net>:
+	{{tfullgc.melt still crashes!}}
+
+	* melt-runtime.h: Added $Id$ comment & svn:keywords property.
+
+	* melt-runtime.c: ditto.
+
+	* melt/warmelt-outobj.melt: Generating dbgprintf in the
+	forward_or_mark_module_start_frame_* generated routines.
+
 2010-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_marking_callback): Made better cast for call to
 	cf->mcfr_forwmarkrout.

@@ -3721,4 +3721,5 @@ melt_get_file(melt_ptr_t file_p)
 extern const char melt_run_preprocessed_md5[]; /* defined in generated file melt-run-md5.h */
 
 #endif /*MELT_INCLUDED_ */
-/* eof melt-runtime.h */
+
+/* eof $Id$ */
