@@ -15,9 +15,6 @@
 2009-06-28  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR c/40528
-	* c-common.c (handle_ifunc_attribute): New.
-	(c_common_attribute_table): Add "ifunc".
-
 	* c-decl.c (merge_decls): Only allow IFUNC attribute on
 	definition.  Merge the IFUNC information.
 	(start_function): Use function_return_type to get function
