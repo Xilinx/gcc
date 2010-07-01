@@ -1,3 +1,25 @@
+2010-07-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/44694
+	* dwarf2out.c (reg_loc_descriptor): For eliminated arg_pointer_rtx
+	or frame_pointer_rtx use DW_OP_fbreg offset DW_OP_stack_value.
+
+2010-07-01  Richard Guenther  <rguenther@suse.de>
+
+	* emit-rtl.c (set_mem_attributes_minus_bitpos): Use unsigned
+	types for offsets.
+
+2010-07-01  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR target/44732
+	* config/ia64/ia64.c (ia64_register_move_cost): Remove stray '{'.
+
+2010-07-01  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/44727
+	* config/i386/i386.md (peephole2 for arithmetic ops with memory):
+	Make sure operand 0 dies.
+
 2010-07-01  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/42834
