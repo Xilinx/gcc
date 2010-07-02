@@ -1,5 +1,13 @@
 
 2010-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_un_t): Recoded the special cases as
+	u_special_file, u_special_rawfile, u_special_mpfr,
+	u_special_ppl_coefficient, u_special_ppl_linear_expression,
+	u_special_ppl_constraint, u_special_ppl_constraint_system,
+	u_special_ppl_generator, u_special_ppl_generator_system,
+	u_special_ppl_polyhedron.
+
+2010-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (clean): Cleaning better the MELT generated files.
 
 2010-07-02  Jeremie Salvucci  <jeremie.salvucci@free.fr>

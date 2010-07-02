@@ -1117,18 +1117,21 @@ melt_un
   struct meltmixbigint_st GTY ((tag ("OBMAG_MIXBIGINT"))) u_mixbigint;
   struct meltreal_st GTY ((tag ("OBMAG_REAL"))) u_real;
   struct meltpair_st GTY ((tag ("OBMAG_PAIR"))) u_pair;
-  struct meltspecial_st
-    GTY ((tag ("OBMAG_SPEC_FILE"),
-          tag ("OBMAG_SPEC_RAWFILE"),
-          tag ("OBMAG_SPEC_MPFR"),
-          tag ("OBMAG_SPECPPL_COEFFICIENT"),
-          tag ("OBMAG_SPECPPL_LINEAR_EXPRESSION"),
-          tag ("OBMAG_SPECPPL_CONSTRAINT"),
-          tag ("OBMAG_SPECPPL_CONSTRAINT_SYSTEM"),
-          tag ("OBMAG_SPECPPL_GENERATOR"),
-          tag ("OBMAG_SPECPPL_GENERATOR_SYSTEM"),
-          tag ("OBMAG_SPECPPL_POLYHEDRON"))
-    ) u_special;
+  /* The struct meltspecial_st share several GTY tag-s, but gengtype
+     need to have one case per tag!  See
+     http://gcc.gnu.org/ml/gcc/2010-07/msg00061.html for more. */
+  struct meltspecial_st GTY ((tag ("OBMAG_SPEC_FILE"))) u_special_file;
+  struct meltspecial_st GTY ((tag ("OBMAG_SPEC_RAWFILE"))) u_special_rawfile;
+  struct meltspecial_st GTY ((tag ("OBMAG_SPEC_MPFR"))) u_special_mpfr;
+  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_COEFFICIENT"))) u_special_ppl_coefficient;
+  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_LINEAR_EXPRESSION"))) u_special_ppl_linear_expression;
+  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_CONSTRAINT"))) u_special_ppl_constraint;
+  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_CONSTRAINT_SYSTEM"))) u_special_ppl_constraint_system;
+  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_GENERATOR"))) u_special_ppl_generator;
+  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_GENERATOR_SYSTEM"))) u_special_ppl_generator_system;
+  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_POLYHEDRON"))) u_special_ppl_polyhedron;
+  /* for simplicity and compatibility with previous code, we can just write u_special! */
+  struct meltspecial_st  GTY ((skip)) u_special;
   struct meltstring_st GTY ((tag ("OBMAG_STRING"))) u_string;
   struct meltstrbuf_st GTY ((tag ("OBMAG_STRBUF"))) u_strbuf;
   struct melttree_st GTY ((tag ("OBMAG_TREE"))) u_tree;
@@ -1147,8 +1150,7 @@ melt_un
   struct meltmapgimples_st GTY ((tag ("OBMAG_MAPGIMPLES"))) u_mapgimples;
   struct meltmapgimpleseqs_st GTY ((tag ("OBMAG_MAPGIMPLESEQS"))) u_mapgimpleseqs;
   struct meltmapgimpleseqs_st GTY ((tag ("OBMAG_MAPGIMPLESEQNODES"))) u_mapgimpleseqnodes;
-  struct meltmapbasicblocks_st GTY ((tag ("OBMAG_MAPBASICBLOCKS")))
-    u_mapbasicblocks;
+  struct meltmapbasicblocks_st GTY ((tag ("OBMAG_MAPBASICBLOCKS"))) u_mapbasicblocks;
   struct meltmapedges_st GTY ((tag ("OBMAG_MAPEDGES"))) u_mapedges;
   struct meltmaploops_st GTY ((tag ("OBMAG_MAPLOOPS"))) u_maploops;
   struct meltmapbitmaps_st GTY ((tag ("OBMAG_MAPBITMAPS"))) u_mapbitmaps;
