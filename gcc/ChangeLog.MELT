@@ -1,3 +1,7 @@
+
+2010-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (clean): Cleaning better the MELT generated files.
+
 2010-07-02  Jeremie Salvucci  <jeremie.salvucci@free.fr>
 
 	* melt/xtramelt-ana-base.melt: The matcher tree_integer_type has been
