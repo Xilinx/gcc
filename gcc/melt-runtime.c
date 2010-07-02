@@ -78,6 +78,8 @@ along with GCC; see the file COPYING3.   If not see
 
 const char melt_runtime_build_date[] = __DATE__;
 
+int melt_debug_garbcoll; /* can be set in GDB */
+
 /* the generating GGC marking routine */
 extern void gt_ggc_mx_melt_un (void *);
 
@@ -684,6 +686,7 @@ melt_cbreak_at (const char *msg, const char *fil, int lin)
  **/
 static long meltmarkingcount;
 
+
 static void
 melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 			  void* user_data ATTRIBUTE_UNUSED)
@@ -703,6 +706,9 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	gcc_assert(cf->mcfr_closp->rout);
 	funp = cf->mcfr_closp->rout->routfunad;
 	gcc_assert(funp);
+	if (melt_debug_garbcoll)
+	  debugeprintf ("melt_marking_callback %ld marking*frame %p with closure & %d vars",
+			meltmarkingcount, (void*) cf, cf->mcfr_nbvar);
 	gt_ggc_mx_melt_un ((melt_ptr_t)(cf->mcfr_closp));
 	/* call the function specially with the MARKGCC special
 	   parameter descriptor */
@@ -715,16 +721,21 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	   routine.  This happens in particular for the initial frame
 	   of generated MELT modules;  their startup routine has a
 	   special marking routine.  */
-	dbgprintf ("melt_marking_callback %ld calling frame marking routine cf=%p",
-		   meltmarkingcount, (void*) cf);
+	if (melt_debug_garbcoll)
+	  debugeprintf ("melt_marking_callback %ld marking*frame thru routine frame %p",
+			meltmarkingcount, (void*) cf);
 	cf->mcfr_forwmarkrout ((struct callframe_melt_st*)cf, 1);
-	dbgprintf ("melt_marking_callback %ld called frame marking routine",
-		   meltmarkingcount);
+	if (melt_debug_garbcoll)
+	  debugeprintf ("melt_marking_callback %ld called frame %p marking routine",
+			meltmarkingcount, (void*)cf);
       }
     else
       {
 	/* no closure, e.g. a frame manually set with MELT_ENTERFRAME. */
 	extern void gt_ggc_mx_melt_un (void *);
+	if (melt_debug_garbcoll)
+	  debugeprintf ("melt_marking_callback %ld marking*frame no closure frame %p of %d vars", 
+			meltmarkingcount, (void*)cf, cf->mcfr_nbvar);
 	/* if no closure, mark the local pointers */
 	for (ix= 0; ix<(int) cf->mcfr_nbvar; ix++) 
 	  if (cf->mcfr_varptr[ix]) 
@@ -740,7 +751,6 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 void
 melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 {
-
   int ix = 0;
   struct callframe_melt_st *cfram = NULL;
   melt_ptr_t *storp = NULL;
@@ -770,6 +780,9 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
       else if (melt_fullthresholdkilow>65536) melt_fullthresholdkilow=65536;
     }
   melt_check_call_frames (MELT_ANYWHERE, "before garbage collection");
+  if (melt_debug_garbcoll) 
+    debugeprintf ("melt_garbcoll %ld begin alz=%p-%p", 
+		  melt_nb_garbcoll, melt_startalz, melt_endalz);
   gcc_assert ((char *) melt_startalz < (char *) melt_endalz);
   gcc_assert ((char *) melt_curalz >= (char *) melt_startalz
 	      && (char *) melt_curalz < (char *) melt_storalz);
@@ -787,23 +800,31 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
     MELT_FORWARDED (melt_globarr[ix]);
   for (cfram = melt_topframe; cfram != NULL; cfram = cfram->mcfr_prev)
     {
-      int varix;
-      if (cfram->mcfr_nbvar >= 0 && cfram->mcfr_closp)
-	{
-	  MELT_FORWARDED (cfram->mcfr_closp);
-	}
-      else if (cfram->mcfr_nbvar < 0 && cfram->mcfr_forwmarkrout) {
+      int varix = 0;
+      if (cfram->mcfr_nbvar < 0 && cfram->mcfr_forwmarkrout) {
+	if (melt_debug_garbcoll)
+	  debugeprintf ("melt_garbcoll forwarding*frame %p thru routine", 
+			(void*) cfram);
 	cfram->mcfr_forwmarkrout (cfram, 0);
 	continue;
       }
-      for (varix = ((int) cfram->mcfr_nbvar) - 1; varix >= 0; varix--)
+      else if (cfram->mcfr_nbvar >= 0) 
 	{
-	  if (!cfram->mcfr_varptr[varix])
-	    continue;
-	  MELT_FORWARDED (cfram->mcfr_varptr[varix]);
+	  if (melt_debug_garbcoll)
+	    debugeprintf ("melt_garbcoll forwarding*frame %p of %d nbvars", 
+			  (void*) cfram, cfram->mcfr_nbvar);
+	  MELT_FORWARDED (cfram->mcfr_closp);
+	  for (varix = 0; varix < cfram->mcfr_nbvar; varix ++)
+	    MELT_FORWARDED (cfram->mcfr_varptr[varix]);
 	}
+      if (melt_debug_garbcoll)
+	debugeprintf ("melt_garbcoll forwarding*frame %p done", 
+		      (void*)cfram);
     };
   melt_is_forwarding = FALSE;
+  if (melt_debug_garbcoll) 
+    debugeprintf ("melt_garbcoll %ld done forwarding", 
+		  melt_nb_garbcoll);
   /* scan the store list */
   for (storp = (melt_ptr_t *) melt_storalz;
        (char *) storp < (char *) melt_endalz; storp++)
@@ -849,6 +870,9 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 	  (char *) melt_endalz - (char *) melt_startalz);
 #endif
   free (melt_startalz);
+  if (melt_debug_garbcoll) 
+    debugeprintf ("melt_garbcoll %ld freed alz=%p-%p", 
+		  melt_nb_garbcoll, melt_startalz, melt_endalz);
   melt_startalz = melt_endalz = melt_curalz = NULL;
   melt_storalz = NULL;
   melt_kilowords_sincefull += wanted / (1024 * sizeof (void *));
@@ -859,6 +883,9 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
     (char *) xcalloc (sizeof (void *), wanted / sizeof (void *));
   melt_endalz = (char *) melt_curalz + wanted;
   melt_storalz = ((void **) melt_endalz) - 2;
+  if (melt_debug_garbcoll) 
+    debugeprintf ("melt_garbcoll %ld allocated alz=%p-%p", 
+		  melt_nb_garbcoll, melt_startalz, melt_endalz);
   if (needfull)
     {
       bool wasforced = ggc_force_collect;
@@ -9350,7 +9377,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     melt_storalz = ((void **) melt_endalz) - 2;
     melt_newspeclist = NULL;
     melt_oldspeclist = NULL;
-    debugeprintf ("melt_really_initialize alloczon %p - %p (%ld Kw)",
+    debugeprintf ("melt_really_initialize alz %p-%p (%ld Kw)",
 		  melt_startalz, melt_endalz, (long) wantedwords >> 10);
   }
   /* we are using register_callback here, even if MELT is not compiled as a plugin. */

@@ -57,11 +57,11 @@
   )
 
 (code_chunk tfullgc_before_tfullgc_call_chunk
-	    #{melt_sparebreakpoint_2(meltfram__, "module $tfullgc_before_tfullgc_call_chunk meltfram__") ;
+	    #{melt_sparebreakpoint_2(&meltfram__, "module $tfullgc_before_tfullgc_call_chunk meltfram__") ;
 	    }#)
 (tfullgc '"here")
 (code_chunk tfullgc_after_tfullgc_call_chunk
-	    #{melt_sparebreakpoint_2(meltfram__, "module $tfullgc_after_tfullgc_call_chunk meltfram__") ;
+	    #{melt_sparebreakpoint_2(&meltfram__, "module $tfullgc_after_tfullgc_call_chunk meltfram__") ;
 	    }#)
 
 ;; eof tfullgc.melt

@@ -1,4 +1,12 @@
 
+2010-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_debug_garbcoll): added variable.
+	(melt_marking_callback): more debug messages when
+	melt_debug_garbcoll.
+	(melt_garbcoll): Added debug messages and simplified code.
+
+	* testsuite/gcc/melt/tfullgc.melt: (*toplevel*)
+	corrected melt_sparebreakpoint_[12].
 
 2010-07-01  Jeremie Salvucci  <jeremie.salvucci@free.fr>
 	* melt/xtramelt-ana-base.melt: Added
