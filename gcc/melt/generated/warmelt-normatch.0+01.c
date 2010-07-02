@@ -2,6 +2,11 @@
 /* secondary MELT generated C file of rank #1 */
 #include "melt-run.h"
 
+
+/* used hash from melt-run.h when compiling this file: */
+const char used_meltrun_md5_melt_f1[] = MELT_RUN_HASHMD5 /* from melt-run.h */;
+
+
 /**** warmelt-normatch.0+01.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1
 
@@ -686,7 +691,7 @@ lab_endgetargs:;
    
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)((/*~TSTUFF*/ meltfclos->tabval[0]))) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)((/*~TSTUFF*/ meltfclos->tabval[0]))) == MELTOBMAG_OBJECT);
    melt_putfield_object(((/*~TSTUFF*/ meltfclos->tabval[0])), (3), (/*_.TESTER__V2*/ meltfptr[1]), "NTEST_ELSE");
    ;
    /*^touch*/
@@ -1422,13 +1427,13 @@ lab_endgetargs:;
  ;
  /*^putclosedv*/
  /*putclosv*/
- melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V22*/ meltfptr[21])) == OBMAG_CLOSURE);
+ melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V22*/ meltfptr[21])) == MELTOBMAG_CLOSURE);
  melt_assertmsg("putclosv checkoff", 0>= 0 && 0< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V22*/ meltfptr[21])));
  ((meltclosure_ptr_t)/*_.LAMBDA___V22*/ meltfptr[21])->tabval[0] = (melt_ptr_t)(/*_.TESTERCONT__V19*/ meltfptr[18]);
  ;
  /*^putclosedv*/
  /*putclosv*/
- melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V22*/ meltfptr[21])) == OBMAG_CLOSURE);
+ melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V22*/ meltfptr[21])) == MELTOBMAG_CLOSURE);
  melt_assertmsg("putclosv checkoff", 1>= 0 && 1< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V22*/ meltfptr[21])));
  ((meltclosure_ptr_t)/*_.LAMBDA___V22*/ meltfptr[21])->tabval[1] = (melt_ptr_t)(/*_.HDLER__V4*/ meltfptr[3]);
  ;
@@ -1976,7 +1981,7 @@ lab_endgetargs:;
      
      /*^putslot*/
      /*putslot*/
-     melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)((/*~TESTERCONT*/ meltfclos->tabval[0]))) == OBMAG_OBJECT);
+     melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)((/*~TESTERCONT*/ meltfclos->tabval[0]))) == MELTOBMAG_OBJECT);
      melt_putfield_object(((/*~TESTERCONT*/ meltfclos->tabval[0])), (0), (/*_.NEWTESTER__V2*/ meltfptr[1]), "CONTAINER_VALUE");
      ;
      /*^touch*/
@@ -2524,42 +2529,42 @@ lab_endgetargs:;
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V29*/ meltfptr[28]), (0), (/*_.SLOC__V17*/ meltfptr[16]), "NREP_LOC");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NTEST_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NTEST_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V29*/ meltfptr[28]), (1), (/*_.NMATCH__V3*/ meltfptr[2]), "NTEST_MATCHED");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NTEST_THEN", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NTEST_THEN", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V29*/ meltfptr[28]), (2), ((/*nil*/NULL)), "NTEST_THEN");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V29*/ meltfptr[28]), (3), ((/*nil*/NULL)), "NTEST_ELSE");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NTEST_COMEFROM", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NTEST_COMEFROM", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V29*/ meltfptr[28]), (6), (/*_.MAKE_LIST__V27*/ meltfptr[26]), "NTEST_COMEFROM");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NTDISJUNCTS", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NTDISJUNCTS", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V29*/ meltfptr[28]), (7), ((/*nil*/NULL)), "NTDISJUNCTS");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NTDISJ_FRESHORVAR", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NTDISJ_FRESHORVAR", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V29*/ meltfptr[28]), (8), ((/*nil*/NULL)), "NTDISJ_FRESHORVAR");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NTDISJ_SETORVAR", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NTDISJ_SETORVAR", melt_magic_discr((melt_ptr_t)(/*_.INST__V29*/ meltfptr[28])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V29*/ meltfptr[28]), (9), ((/*nil*/NULL)), "NTDISJ_SETORVAR");
  ;
  /*_.DISJTESTER__V28*/ meltfptr[27] = /*_.INST__V29*/ meltfptr[28];;
@@ -2572,19 +2577,19 @@ lab_endgetargs:;
  ;
  /*^putclosedv*/
  /*putclosv*/
- melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V31*/ meltfptr[30])) == OBMAG_CLOSURE);
+ melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V31*/ meltfptr[30])) == MELTOBMAG_CLOSURE);
  melt_assertmsg("putclosv checkoff", 0>= 0 && 0< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V31*/ meltfptr[30])));
  ((meltclosure_ptr_t)/*_.LAMBDA___V31*/ meltfptr[30])->tabval[0] = (melt_ptr_t)(/*_.ORVARMAP__V25*/ meltfptr[24]);
  ;
  /*^putclosedv*/
  /*putclosv*/
- melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V31*/ meltfptr[30])) == OBMAG_CLOSURE);
+ melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V31*/ meltfptr[30])) == MELTOBMAG_CLOSURE);
  melt_assertmsg("putclosv checkoff", 1>= 0 && 1< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V31*/ meltfptr[30])));
  ((meltclosure_ptr_t)/*_.LAMBDA___V31*/ meltfptr[30])->tabval[1] = (melt_ptr_t)(/*_.DISJTESTER__V28*/ meltfptr[27]);
  ;
  /*^putclosedv*/
  /*putclosv*/
- melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V31*/ meltfptr[30])) == OBMAG_CLOSURE);
+ melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V31*/ meltfptr[30])) == MELTOBMAG_CLOSURE);
  melt_assertmsg("putclosv checkoff", 2>= 0 && 2< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V31*/ meltfptr[30])));
  ((meltclosure_ptr_t)/*_.LAMBDA___V31*/ meltfptr[30])->tabval[2] = (melt_ptr_t)(/*_.PVARLOCMAP__V22*/ meltfptr[21]);
  ;
@@ -2608,7 +2613,7 @@ lab_endgetargs:;
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)(/*_.INST__V34*/ meltfptr[33])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)(/*_.INST__V34*/ meltfptr[33])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V34*/ meltfptr[33]), (0), (/*_.DISJTESTER__V28*/ meltfptr[27]), "CONTAINER_VALUE");
  ;
  /*_.PREVCONT__V33*/ meltfptr[32] = /*_.INST__V34*/ meltfptr[33];;
@@ -2727,7 +2732,7 @@ lab_endgetargs:;
   /*anyblock*/{
    
    /*_#IS_MAPOBJECT__L9*/ meltfnum[0] = 
-    (melt_magic_discr((melt_ptr_t)(/*_.ORVARMAP__V25*/ meltfptr[24])) == OBMAG_MAPOBJECTS);;
+    (melt_magic_discr((melt_ptr_t)(/*_.ORVARMAP__V25*/ meltfptr[24])) == MELTOBMAG_MAPOBJECTS);;
    MELT_LOCATION("warmelt-normatch.melt:1220:/ cond");
    /*cond*/ if (/*_#IS_MAPOBJECT__L9*/ meltfnum[0]) /*then*/ {
    /*^cond.then*/
@@ -3030,7 +3035,7 @@ lab_endgetargs:;
        
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NORVAR_LOCSYM", melt_magic_discr((melt_ptr_t)(/*_.CURORVAR__V56*/ meltfptr[55])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NORVAR_LOCSYM", melt_magic_discr((melt_ptr_t)(/*_.CURORVAR__V56*/ meltfptr[55])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.CURORVAR__V56*/ meltfptr[55]), (1), (/*_.ORVARBOX__V60*/ meltfptr[59]), "NORVAR_LOCSYM");
        ;
        /*^touch*/
@@ -3095,32 +3100,32 @@ lab_endgetargs:;
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V65*/ meltfptr[64])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V65*/ meltfptr[64])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V65*/ meltfptr[64]), (0), (/*_.SLOC__V17*/ meltfptr[16]), "NREP_LOC");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTEST_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V65*/ meltfptr[64])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTEST_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V65*/ meltfptr[64])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V65*/ meltfptr[64]), (1), (/*_.NMATCH__V3*/ meltfptr[2]), "NTEST_MATCHED");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTEST_THEN", melt_magic_discr((melt_ptr_t)(/*_.INST__V65*/ meltfptr[64])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTEST_THEN", melt_magic_discr((melt_ptr_t)(/*_.INST__V65*/ meltfptr[64])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V65*/ meltfptr[64]), (2), ((/*nil*/NULL)), "NTEST_THEN");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)(/*_.INST__V65*/ meltfptr[64])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)(/*_.INST__V65*/ meltfptr[64])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V65*/ meltfptr[64]), (3), ((/*nil*/NULL)), "NTEST_ELSE");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTEST_COMEFROM", melt_magic_discr((melt_ptr_t)(/*_.INST__V65*/ meltfptr[64])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTEST_COMEFROM", melt_magic_discr((melt_ptr_t)(/*_.INST__V65*/ meltfptr[64])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V65*/ meltfptr[64]), (6), (/*_.MAKE_LIST__V62*/ meltfptr[57]), "NTEST_COMEFROM");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTORCLEAR_LOCSYM", melt_magic_discr((melt_ptr_t)(/*_.INST__V65*/ meltfptr[64])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTORCLEAR_LOCSYM", melt_magic_discr((melt_ptr_t)(/*_.INST__V65*/ meltfptr[64])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V65*/ meltfptr[64]), (7), (/*_.LIST_TO_MULTIPLE__V63*/ meltfptr[62]), "NTORCLEAR_LOCSYM");
   ;
   /*_.NORCLEAR__V64*/ meltfptr[63] = /*_.INST__V65*/ meltfptr[64];;
@@ -3353,7 +3358,7 @@ lab_endgetargs:;
     
     /*^putslot*/
     /*putslot*/
-    melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)(/*_.PREVCONT__V33*/ meltfptr[32])) == OBMAG_OBJECT);
+    melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)(/*_.PREVCONT__V33*/ meltfptr[32])) == MELTOBMAG_OBJECT);
     melt_putfield_object((/*_.PREVCONT__V33*/ meltfptr[32]), (0), (/*_.NORCLEAR__V64*/ meltfptr[63]), "CONTAINER_VALUE");
     ;
     /*^touch*/
@@ -3414,19 +3419,19 @@ lab_endgetargs:;
   ;
   /*^putclosedv*/
   /*putclosv*/
-  melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V83*/ meltfptr[82])) == OBMAG_CLOSURE);
+  melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V83*/ meltfptr[82])) == MELTOBMAG_CLOSURE);
   melt_assertmsg("putclosv checkoff", 0>= 0 && 0< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V83*/ meltfptr[82])));
   ((meltclosure_ptr_t)/*_.LAMBDA___V83*/ meltfptr[82])->tabval[0] = (melt_ptr_t)(/*_.SUBDISJBOX__V81*/ meltfptr[79]);
   ;
   /*^putclosedv*/
   /*putclosv*/
-  melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V83*/ meltfptr[82])) == OBMAG_CLOSURE);
+  melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V83*/ meltfptr[82])) == MELTOBMAG_CLOSURE);
   melt_assertmsg("putclosv checkoff", 1>= 0 && 1< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V83*/ meltfptr[82])));
   ((meltclosure_ptr_t)/*_.LAMBDA___V83*/ meltfptr[82])->tabval[1] = (melt_ptr_t)(/*_.PREVCONT__V33*/ meltfptr[32]);
   ;
   /*^putclosedv*/
   /*putclosv*/
-  melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V83*/ meltfptr[82])) == OBMAG_CLOSURE);
+  melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V83*/ meltfptr[82])) == MELTOBMAG_CLOSURE);
   melt_assertmsg("putclosv checkoff", 2>= 0 && 2< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V83*/ meltfptr[82])));
   ((meltclosure_ptr_t)/*_.LAMBDA___V83*/ meltfptr[82])->tabval[2] = (melt_ptr_t)(/*_.SUBTESTLIST__V20*/ meltfptr[19]);
   ;
@@ -3501,37 +3506,37 @@ lab_endgetargs:;
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V91*/ meltfptr[90]), (0), (/*_.SLOC__V17*/ meltfptr[16]), "NREP_LOC");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTEST_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTEST_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V91*/ meltfptr[90]), (1), (/*_.NMATCH__V3*/ meltfptr[2]), "NTEST_MATCHED");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTEST_THEN", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTEST_THEN", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V91*/ meltfptr[90]), (2), ((/*nil*/NULL)), "NTEST_THEN");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V91*/ meltfptr[90]), (3), ((/*nil*/NULL)), "NTEST_ELSE");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTEST_COMEFROM", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTEST_COMEFROM", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V91*/ meltfptr[90]), (6), (/*_.MAKE_LIST__V89*/ meltfptr[88]), "NTEST_COMEFROM");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTORTRANSMIT_DST", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTORTRANSMIT_DST", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V91*/ meltfptr[90]), (7), ((/*nil*/NULL)), "NTORTRANSMIT_DST");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTORTRANSMIT_SRC", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTORTRANSMIT_SRC", melt_magic_discr((melt_ptr_t)(/*_.INST__V91*/ meltfptr[90])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V91*/ meltfptr[90]), (8), ((/*nil*/NULL)), "NTORTRANSMIT_SRC");
   ;
   /*_.NORTRANSM__V90*/ meltfptr[89] = /*_.INST__V91*/ meltfptr[90];;
@@ -3933,12 +3938,12 @@ lab_endgetargs:;
    
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @NTDISJUNCTS", melt_magic_discr((melt_ptr_t)(/*_.DISJTESTER__V28*/ meltfptr[27])) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @NTDISJUNCTS", melt_magic_discr((melt_ptr_t)(/*_.DISJTESTER__V28*/ meltfptr[27])) == MELTOBMAG_OBJECT);
    melt_putfield_object((/*_.DISJTESTER__V28*/ meltfptr[27]), (7), (/*_.LIST_TO_MULTIPLE__V111*/ meltfptr[66]), "NTDISJUNCTS");
    ;
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @NTDISJ_FRESHORVAR", melt_magic_discr((melt_ptr_t)(/*_.DISJTESTER__V28*/ meltfptr[27])) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @NTDISJ_FRESHORVAR", melt_magic_discr((melt_ptr_t)(/*_.DISJTESTER__V28*/ meltfptr[27])) == MELTOBMAG_OBJECT);
    melt_putfield_object((/*_.DISJTESTER__V28*/ meltfptr[27]), (8), (/*_.FRESHORVAR__V108*/ meltfptr[81]), "NTDISJ_FRESHORVAR");
    ;
    /*^touch*/
@@ -4211,22 +4216,22 @@ lab_endgetargs:;
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NORVAR_PATVAR", melt_magic_discr((melt_ptr_t)(/*_.INST__V6*/ meltfptr[5])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NORVAR_PATVAR", melt_magic_discr((melt_ptr_t)(/*_.INST__V6*/ meltfptr[5])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V6*/ meltfptr[5]), (2), (/*_.CURVARPAT__V4*/ meltfptr[3]), "NORVAR_PATVAR");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NORVAR_NREPOR", melt_magic_discr((melt_ptr_t)(/*_.INST__V6*/ meltfptr[5])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NORVAR_NREPOR", melt_magic_discr((melt_ptr_t)(/*_.INST__V6*/ meltfptr[5])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V6*/ meltfptr[5]), (3), ((/*~DISJTESTER*/ meltfclos->tabval[1])), "NORVAR_NREPOR");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NORVAR_NOREXP", melt_magic_discr((melt_ptr_t)(/*_.INST__V6*/ meltfptr[5])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NORVAR_NOREXP", melt_magic_discr((melt_ptr_t)(/*_.INST__V6*/ meltfptr[5])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V6*/ meltfptr[5]), (0), ((/*nil*/NULL)), "NORVAR_NOREXP");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NORVAR_LOCSYM", melt_magic_discr((melt_ptr_t)(/*_.INST__V6*/ meltfptr[5])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NORVAR_LOCSYM", melt_magic_discr((melt_ptr_t)(/*_.INST__V6*/ meltfptr[5])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V6*/ meltfptr[5]), (1), ((/*nil*/NULL)), "NORVAR_LOCSYM");
  ;
  /*_.CURORVAR__V5*/ meltfptr[4] = /*_.INST__V6*/ meltfptr[5];;
@@ -4720,7 +4725,7 @@ lab_endgetargs:;
    
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)((/*~PREVCONT*/ meltfclos->tabval[1]))) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)((/*~PREVCONT*/ meltfclos->tabval[1]))) == MELTOBMAG_OBJECT);
    melt_putfield_object(((/*~PREVCONT*/ meltfclos->tabval[1])), (0), (/*_.SUBTESTER__V2*/ meltfptr[1]), "CONTAINER_VALUE");
    ;
    /*^touch*/
@@ -4947,7 +4952,7 @@ lab_endgetargs:;
  /*^compute*/
 
  /*_#IS_BOX__L3*/ meltfnum[1] = 
-  (melt_magic_discr((melt_ptr_t)(/*_.ORLOCSY__V6*/ meltfptr[5])) == OBMAG_BOX);;
+  (melt_magic_discr((melt_ptr_t)(/*_.ORLOCSY__V6*/ meltfptr[5])) == MELTOBMAG_BOX);;
  MELT_LOCATION("warmelt-normatch.melt:1339:/ cond");
  /*cond*/ if (/*_#IS_BOX__L3*/ meltfnum[1]) /*then*/ {
  /*^cond.then*/
@@ -6604,22 +6609,22 @@ lab_endgetargs:;
       ;
       /*^putslot*/
       /*putslot*/
-      melt_assertmsg("putslot checkobj @LETBIND_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V99*/ meltfptr[93])) == OBMAG_OBJECT);
+      melt_assertmsg("putslot checkobj @LETBIND_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V99*/ meltfptr[93])) == MELTOBMAG_OBJECT);
       melt_putfield_object((/*_.INST__V99*/ meltfptr[93]), (3), (/*_.SLOC__V16*/ meltfptr[14]), "LETBIND_LOC");
       ;
       /*^putslot*/
       /*putslot*/
-      melt_assertmsg("putslot checkobj @BINDER", melt_magic_discr((melt_ptr_t)(/*_.INST__V99*/ meltfptr[93])) == OBMAG_OBJECT);
+      melt_assertmsg("putslot checkobj @BINDER", melt_magic_discr((melt_ptr_t)(/*_.INST__V99*/ meltfptr[93])) == MELTOBMAG_OBJECT);
       melt_putfield_object((/*_.INST__V99*/ meltfptr[93]), (0), (/*_.BINDER__V97*/ meltfptr[91]), "BINDER");
       ;
       /*^putslot*/
       /*putslot*/
-      melt_assertmsg("putslot checkobj @LETBIND_TYPE", melt_magic_discr((melt_ptr_t)(/*_.INST__V99*/ meltfptr[93])) == OBMAG_OBJECT);
+      melt_assertmsg("putslot checkobj @LETBIND_TYPE", melt_magic_discr((melt_ptr_t)(/*_.INST__V99*/ meltfptr[93])) == MELTOBMAG_OBJECT);
       melt_putfield_object((/*_.INST__V99*/ meltfptr[93]), (1), (/*_.CURCTYPE__V80*/ meltfptr[79]), "LETBIND_TYPE");
       ;
       /*^putslot*/
       /*putslot*/
-      melt_assertmsg("putslot checkobj @LETBIND_EXPR", melt_magic_discr((melt_ptr_t)(/*_.INST__V99*/ meltfptr[93])) == OBMAG_OBJECT);
+      melt_assertmsg("putslot checkobj @LETBIND_EXPR", melt_magic_discr((melt_ptr_t)(/*_.INST__V99*/ meltfptr[93])) == MELTOBMAG_OBJECT);
       melt_putfield_object((/*_.INST__V99*/ meltfptr[93]), (2), (/*_.NCURIN__V75*/ meltfptr[74]), "LETBIND_EXPR");
       ;
       /*_.NEWB__V98*/ meltfptr[92] = /*_.INST__V99*/ meltfptr[93];;
@@ -6730,7 +6735,7 @@ lab_endgetargs:;
      
      /*^putslot*/
      /*putslot*/
-     melt_assertmsg("putslot checkobj @PCTN_ENV", melt_magic_discr((melt_ptr_t)(/*_.PCN__V5*/ meltfptr[4])) == OBMAG_OBJECT);
+     melt_assertmsg("putslot checkobj @PCTN_ENV", melt_magic_discr((melt_ptr_t)(/*_.PCN__V5*/ meltfptr[4])) == MELTOBMAG_OBJECT);
      melt_putfield_object((/*_.PCN__V5*/ meltfptr[4]), (2), (/*_.NEWENV__V74*/ meltfptr[66]), "PCTN_ENV");
      ;
      /*^touch*/
@@ -7142,7 +7147,7 @@ lab_endgetargs:;
        ;
        /*^putclosedv*/
        /*putclosv*/
-       melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V130*/ meltfptr[129])) == OBMAG_CLOSURE);
+       melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V130*/ meltfptr[129])) == MELTOBMAG_CLOSURE);
        melt_assertmsg("putclosv checkoff", 0>= 0 && 0< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V130*/ meltfptr[129])));
        ((meltclosure_ptr_t)/*_.LAMBDA___V130*/ meltfptr[129])->tabval[0] = (melt_ptr_t)(/*_.TSTUFF__V111*/ meltfptr[81]);
        ;
@@ -7274,7 +7279,7 @@ lab_endgetargs:;
        ;
        /*^putclosedv*/
        /*putclosv*/
-       melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V140*/ meltfptr[124])) == OBMAG_CLOSURE);
+       melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V140*/ meltfptr[124])) == MELTOBMAG_CLOSURE);
        melt_assertmsg("putclosv checkoff", 0>= 0 && 0< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V140*/ meltfptr[124])));
        ((meltclosure_ptr_t)/*_.LAMBDA___V140*/ meltfptr[124])->tabval[0] = (melt_ptr_t)(/*_.TSTUFF__V111*/ meltfptr[81]);
        ;
@@ -7318,13 +7323,13 @@ lab_endgetargs:;
        ;
        /*^putclosedv*/
        /*putclosv*/
-       melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V144*/ meltfptr[131])) == OBMAG_CLOSURE);
+       melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V144*/ meltfptr[131])) == MELTOBMAG_CLOSURE);
        melt_assertmsg("putclosv checkoff", 0>= 0 && 0< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V144*/ meltfptr[131])));
        ((meltclosure_ptr_t)/*_.LAMBDA___V144*/ meltfptr[131])->tabval[0] = (melt_ptr_t)(/*_.SLOC__V16*/ meltfptr[14]);
        ;
        /*^putclosedv*/
        /*putclosv*/
-       melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V144*/ meltfptr[131])) == OBMAG_CLOSURE);
+       melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V144*/ meltfptr[131])) == MELTOBMAG_CLOSURE);
        melt_assertmsg("putclosv checkoff", 1>= 0 && 1< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V144*/ meltfptr[131])));
        ((meltclosure_ptr_t)/*_.LAMBDA___V144*/ meltfptr[131])->tabval[1] = (melt_ptr_t)(/*_.NCX__V23*/ meltfptr[22]);
        ;
@@ -7355,52 +7360,52 @@ lab_endgetargs:;
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V149*/ meltfptr[148]), (0), (/*_.SLOC__V16*/ meltfptr[14]), "NREP_LOC");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTEST_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTEST_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V149*/ meltfptr[148]), (1), (/*_.NMATCH__V3*/ meltfptr[2]), "NTEST_MATCHED");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTEST_THEN", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTEST_THEN", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V149*/ meltfptr[148]), (2), ((/*nil*/NULL)), "NTEST_THEN");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V149*/ meltfptr[148]), (3), ((/*nil*/NULL)), "NTEST_ELSE");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTEST_LOCCLIST", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTEST_LOCCLIST", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V149*/ meltfptr[148]), (5), (/*_.MULTIPLE_TO_LIST__V146*/ meltfptr[91]), "NTEST_LOCCLIST");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTEST_COMEFROM", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTEST_COMEFROM", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V149*/ meltfptr[148]), (6), (/*_.MAKE_LIST__V147*/ meltfptr[90]), "NTEST_COMEFROM");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTMATCH_MATCHER", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTMATCH_MATCHER", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V149*/ meltfptr[148]), (7), (/*_.MAT__V17*/ meltfptr[16]), "NTMATCH_MATCHER");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTMATCH_MATNDATA", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTMATCH_MATNDATA", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V149*/ meltfptr[148]), (8), (/*_.MATNDATA__V47*/ meltfptr[44]), "NTMATCH_MATNDATA");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTMATCH_INARGS", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTMATCH_INARGS", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V149*/ meltfptr[148]), (9), (/*_.NINS__V51*/ meltfptr[40]), "NTMATCH_INARGS");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTMATCH_OUTLOCS", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTMATCH_OUTLOCS", melt_magic_discr((melt_ptr_t)(/*_.INST__V149*/ meltfptr[148])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V149*/ meltfptr[148]), (10), (/*_.OUTLOCS__V145*/ meltfptr[79]), "NTMATCH_OUTLOCS");
        ;
        /*_.NEWTESTER__V148*/ meltfptr[123] = /*_.INST__V149*/ meltfptr[148];;
@@ -7832,7 +7837,7 @@ lab_endgetargs:;
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)(/*_.INST__V173*/ meltfptr[150])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)(/*_.INST__V173*/ meltfptr[150])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V173*/ meltfptr[150]), (0), (/*_.TESTER__V64*/ meltfptr[63]), "CONTAINER_VALUE");
   ;
   /*_.TESTERCONT__V172*/ meltfptr[90] = /*_.INST__V173*/ meltfptr[150];;
@@ -7845,7 +7850,7 @@ lab_endgetargs:;
   ;
   /*^putclosedv*/
   /*putclosv*/
-  melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V175*/ meltfptr[88])) == OBMAG_CLOSURE);
+  melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V175*/ meltfptr[88])) == MELTOBMAG_CLOSURE);
   melt_assertmsg("putclosv checkoff", 0>= 0 && 0< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V175*/ meltfptr[88])));
   ((meltclosure_ptr_t)/*_.LAMBDA___V175*/ meltfptr[88])->tabval[0] = (melt_ptr_t)(/*_.TESTERCONT__V172*/ meltfptr[90]);
   ;
@@ -8135,7 +8140,7 @@ lab_endgetargs:;
      
      /*^putslot*/
      /*putslot*/
-     melt_assertmsg("putslot checkobj @PCTN_ENV", melt_magic_discr((melt_ptr_t)(/*_.PCN__V5*/ meltfptr[4])) == OBMAG_OBJECT);
+     melt_assertmsg("putslot checkobj @PCTN_ENV", melt_magic_discr((melt_ptr_t)(/*_.PCN__V5*/ meltfptr[4])) == MELTOBMAG_OBJECT);
      melt_putfield_object((/*_.PCN__V5*/ meltfptr[4]), (2), (/*_.OLDENV__V22*/ meltfptr[21]), "PCTN_ENV");
      ;
      /*^touch*/
@@ -8293,7 +8298,7 @@ lab_endgetargs:;
    
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)((/*~TSTUFF*/ meltfclos->tabval[0]))) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)((/*~TSTUFF*/ meltfclos->tabval[0]))) == MELTOBMAG_OBJECT);
    melt_putfield_object(((/*~TSTUFF*/ meltfclos->tabval[0])), (3), (/*_.TESTER__V2*/ meltfptr[1]), "NTEST_ELSE");
    ;
    /*^touch*/
@@ -8444,7 +8449,7 @@ lab_endgetargs:;
    
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)((/*~TSTUFF*/ meltfclos->tabval[0]))) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)((/*~TSTUFF*/ meltfclos->tabval[0]))) == MELTOBMAG_OBJECT);
    melt_putfield_object(((/*~TSTUFF*/ meltfclos->tabval[0])), (3), (/*_.TESTER__V2*/ meltfptr[1]), "NTEST_ELSE");
    ;
    /*^touch*/
@@ -8727,22 +8732,22 @@ lab_endgetargs:;
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @LETBIND_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V12*/ meltfptr[11])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @LETBIND_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V12*/ meltfptr[11])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V12*/ meltfptr[11]), (3), ((/*~SLOC*/ meltfclos->tabval[0])), "LETBIND_LOC");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @BINDER", melt_magic_discr((melt_ptr_t)(/*_.INST__V12*/ meltfptr[11])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @BINDER", melt_magic_discr((melt_ptr_t)(/*_.INST__V12*/ meltfptr[11])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V12*/ meltfptr[11]), (0), (/*_.CSYM__V9*/ meltfptr[8]), "BINDER");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @LETBIND_TYPE", melt_magic_discr((melt_ptr_t)(/*_.INST__V12*/ meltfptr[11])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @LETBIND_TYPE", melt_magic_discr((melt_ptr_t)(/*_.INST__V12*/ meltfptr[11])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V12*/ meltfptr[11]), (1), (/*_.CURTYP__V10*/ meltfptr[9]), "LETBIND_TYPE");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @LETBIND_EXPR", melt_magic_discr((melt_ptr_t)(/*_.INST__V12*/ meltfptr[11])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @LETBIND_EXPR", melt_magic_discr((melt_ptr_t)(/*_.INST__V12*/ meltfptr[11])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V12*/ meltfptr[11]), (2), ((/*nil*/NULL)), "LETBIND_EXPR");
  ;
  /*_.CBIND__V11*/ meltfptr[10] = /*_.INST__V12*/ meltfptr[11];;
@@ -8756,22 +8761,22 @@ lab_endgetargs:;
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V14*/ meltfptr[13])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V14*/ meltfptr[13])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V14*/ meltfptr[13]), (0), ((/*~SLOC*/ meltfclos->tabval[0])), "NREP_LOC");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NOCC_CTYP", melt_magic_discr((melt_ptr_t)(/*_.INST__V14*/ meltfptr[13])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NOCC_CTYP", melt_magic_discr((melt_ptr_t)(/*_.INST__V14*/ meltfptr[13])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V14*/ meltfptr[13]), (2), (/*_.CURTYP__V10*/ meltfptr[9]), "NOCC_CTYP");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NOCC_SYMB", melt_magic_discr((melt_ptr_t)(/*_.INST__V14*/ meltfptr[13])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NOCC_SYMB", melt_magic_discr((melt_ptr_t)(/*_.INST__V14*/ meltfptr[13])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V14*/ meltfptr[13]), (1), (/*_.CSYM__V9*/ meltfptr[8]), "NOCC_SYMB");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NOCC_BIND", melt_magic_discr((melt_ptr_t)(/*_.INST__V14*/ meltfptr[13])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NOCC_BIND", melt_magic_discr((melt_ptr_t)(/*_.INST__V14*/ meltfptr[13])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V14*/ meltfptr[13]), (3), (/*_.CBIND__V11*/ meltfptr[10]), "NOCC_BIND");
  ;
  /*_.CLOCC__V13*/ meltfptr[12] = /*_.INST__V14*/ meltfptr[13];;
@@ -9433,7 +9438,7 @@ lab_endgetargs:;
  /*^compute*/
 
  /*_#IS_OBJECT__L7*/ meltfnum[0] = 
-  (melt_magic_discr((melt_ptr_t)(/*_.SCONST__V18*/ meltfptr[17])) == OBMAG_OBJECT);;
+  (melt_magic_discr((melt_ptr_t)(/*_.SCONST__V18*/ meltfptr[17])) == MELTOBMAG_OBJECT);;
  MELT_LOCATION("warmelt-normatch.melt:1657:/ cond");
  /*cond*/ if (/*_#IS_OBJECT__L7*/ meltfnum[0]) /*then*/ {
  /*^cond.then*/
@@ -9611,7 +9616,7 @@ lab_endgetargs:;
        ;
        /*^putclosedv*/
        /*putclosv*/
-       melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V48*/ meltfptr[47])) == OBMAG_CLOSURE);
+       melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V48*/ meltfptr[47])) == MELTOBMAG_CLOSURE);
        melt_assertmsg("putclosv checkoff", 0>= 0 && 0< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V48*/ meltfptr[47])));
        ((meltclosure_ptr_t)/*_.LAMBDA___V48*/ meltfptr[47])->tabval[0] = (melt_ptr_t)(/*_.TSTUFF__V23*/ meltfptr[22]);
        ;
@@ -9658,37 +9663,37 @@ lab_endgetargs:;
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V53*/ meltfptr[46]), (0), (/*_.PSLOC__V22*/ meltfptr[21]), "NREP_LOC");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTEST_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTEST_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V53*/ meltfptr[46]), (1), (/*_.NMATCH__V3*/ meltfptr[2]), "NTEST_MATCHED");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTEST_THEN", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTEST_THEN", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V53*/ meltfptr[46]), (2), ((/*nil*/NULL)), "NTEST_THEN");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V53*/ meltfptr[46]), (3), ((/*nil*/NULL)), "NTEST_ELSE");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTEST_LOCCLIST", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTEST_LOCCLIST", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V53*/ meltfptr[46]), (5), ((/*nil*/NULL)), "NTEST_LOCCLIST");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTEST_COMEFROM", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTEST_COMEFROM", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V53*/ meltfptr[46]), (6), (/*_.MAKE_LIST__V51*/ meltfptr[44]), "NTEST_COMEFROM");
        ;
        /*^putslot*/
        /*putslot*/
-       melt_assertmsg("putslot checkobj @NTSAME_IDENTICAL", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == OBMAG_OBJECT);
+       melt_assertmsg("putslot checkobj @NTSAME_IDENTICAL", melt_magic_discr((melt_ptr_t)(/*_.INST__V53*/ meltfptr[46])) == MELTOBMAG_OBJECT);
        melt_putfield_object((/*_.INST__V53*/ meltfptr[46]), (7), (/*_.NCONST__V33*/ meltfptr[32]), "NTSAME_IDENTICAL");
        ;
        /*_.NEWTESTER__V52*/ meltfptr[45] = /*_.INST__V53*/ meltfptr[46];;
@@ -10002,7 +10007,7 @@ lab_endgetargs:;
    
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)((/*~TSTUFF*/ meltfclos->tabval[0]))) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)((/*~TSTUFF*/ meltfclos->tabval[0]))) == MELTOBMAG_OBJECT);
    melt_putfield_object(((/*~TSTUFF*/ meltfclos->tabval[0])), (3), (/*_.TESTER__V2*/ meltfptr[1]), "NTEST_ELSE");
    ;
    /*^touch*/
@@ -10210,7 +10215,7 @@ lab_endgetargs:;
    
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)((/*!MATCH_GRAPHIC_DOT_PREFIX*/ meltfrout->tabval[2]))) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)((/*!MATCH_GRAPHIC_DOT_PREFIX*/ meltfrout->tabval[2]))) == MELTOBMAG_OBJECT);
    melt_putfield_object(((/*!MATCH_GRAPHIC_DOT_PREFIX*/ meltfrout->tabval[2])), (0), (/*_.PREFSTR__V6*/ meltfptr[5]), "CONTAINER_VALUE");
    ;
    /*^touch*/
@@ -11005,7 +11010,7 @@ lab_endgetargs:;
  meltgc_out_add_indent((melt_ptr_t)(/*_.NODOUT__V13*/ meltfptr[12]), (2), 0);;}
  ;
  /*_#IS_MIXLOC__L9*/ meltfnum[8] = 
-  (melt_magic_discr((melt_ptr_t)(/*_.NLOC__V11*/ meltfptr[10])) == OBMAG_MIXLOC);;
+  (melt_magic_discr((melt_ptr_t)(/*_.NLOC__V11*/ meltfptr[10])) == MELTOBMAG_MIXLOC);;
  MELT_LOCATION("warmelt-normatch.melt:1797:/ cond");
  /*cond*/ if (/*_#IS_MIXLOC__L9*/ meltfnum[8]) /*then*/ {
  /*^cond.then*/
@@ -11025,7 +11030,7 @@ lab_endgetargs:;
    
    {
    MELT_LOCATION("warmelt-normatch.melt:1800:/ locexp");
-   /*add2outmixloc*/ if (melt_magic_discr((melt_ptr_t)(/*_.NLOC__V11*/ meltfptr[10])) == OBMAG_MIXLOC) {
+   /*add2outmixloc*/ if (melt_magic_discr((melt_ptr_t)(/*_.NLOC__V11*/ meltfptr[10])) == MELTOBMAG_MIXLOC) {
   char locbuf[128];
   location_t tloc = melt_location_mixloc((melt_ptr_t)/*_.NLOC__V11*/ meltfptr[10]);
   memset (locbuf, 0, sizeof(locbuf));
@@ -11778,7 +11783,7 @@ lab_endgetargs:;
  meltgc_out_add_indent((melt_ptr_t)(/*_.NODOUT__V13*/ meltfptr[12]), (2), 0);;}
  ;
  /*_#IS_MIXLOC__L9*/ meltfnum[8] = 
-  (melt_magic_discr((melt_ptr_t)(/*_.NLOC__V11*/ meltfptr[10])) == OBMAG_MIXLOC);;
+  (melt_magic_discr((melt_ptr_t)(/*_.NLOC__V11*/ meltfptr[10])) == MELTOBMAG_MIXLOC);;
  MELT_LOCATION("warmelt-normatch.melt:1863:/ cond");
  /*cond*/ if (/*_#IS_MIXLOC__L9*/ meltfnum[8]) /*then*/ {
  /*^cond.then*/
@@ -11798,7 +11803,7 @@ lab_endgetargs:;
    
    {
    MELT_LOCATION("warmelt-normatch.melt:1866:/ locexp");
-   /*add2outmixloc*/ if (melt_magic_discr((melt_ptr_t)(/*_.NLOC__V11*/ meltfptr[10])) == OBMAG_MIXLOC) {
+   /*add2outmixloc*/ if (melt_magic_discr((melt_ptr_t)(/*_.NLOC__V11*/ meltfptr[10])) == MELTOBMAG_MIXLOC) {
   char locbuf[128];
   location_t tloc = melt_location_mixloc((melt_ptr_t)/*_.NLOC__V11*/ meltfptr[10]);
   memset (locbuf, 0, sizeof(locbuf));
@@ -12506,7 +12511,7 @@ lab_endgetargs:;
  meltgc_out_add_indent((melt_ptr_t)(/*_.NODOUT__V13*/ meltfptr[12]), (2), 0);;}
  ;
  /*_#IS_MIXLOC__L9*/ meltfnum[8] = 
-  (melt_magic_discr((melt_ptr_t)(/*_.NLOC__V11*/ meltfptr[10])) == OBMAG_MIXLOC);;
+  (melt_magic_discr((melt_ptr_t)(/*_.NLOC__V11*/ meltfptr[10])) == MELTOBMAG_MIXLOC);;
  MELT_LOCATION("warmelt-normatch.melt:1924:/ cond");
  /*cond*/ if (/*_#IS_MIXLOC__L9*/ meltfnum[8]) /*then*/ {
  /*^cond.then*/
@@ -12526,7 +12531,7 @@ lab_endgetargs:;
    
    {
    MELT_LOCATION("warmelt-normatch.melt:1927:/ locexp");
-   /*add2outmixloc*/ if (melt_magic_discr((melt_ptr_t)(/*_.NLOC__V11*/ meltfptr[10])) == OBMAG_MIXLOC) {
+   /*add2outmixloc*/ if (melt_magic_discr((melt_ptr_t)(/*_.NLOC__V11*/ meltfptr[10])) == MELTOBMAG_MIXLOC) {
   char locbuf[128];
   location_t tloc = melt_location_mixloc((melt_ptr_t)/*_.NLOC__V11*/ meltfptr[10]);
   memset (locbuf, 0, sizeof(locbuf));
@@ -12801,7 +12806,7 @@ lab_endgetargs:;
   /*anyblock*/{
    
    /*_#IS_MULTIPLE__L3*/ meltfnum[0] = 
-    (melt_magic_discr((melt_ptr_t)(/*_.TESTUP__V2*/ meltfptr[1])) == OBMAG_MULTIPLE);;
+    (melt_magic_discr((melt_ptr_t)(/*_.TESTUP__V2*/ meltfptr[1])) == MELTOBMAG_MULTIPLE);;
    MELT_LOCATION("warmelt-normatch.melt:1942:/ cond");
    /*cond*/ if (/*_#IS_MULTIPLE__L3*/ meltfnum[0]) /*then*/ {
    /*^cond.then*/
@@ -13358,7 +13363,7 @@ lab_endgetargs:;
   /*anyblock*/{
    
    /*_#IS_STRBUF__L4*/ meltfnum[3] = 
-    (melt_magic_discr((melt_ptr_t)(/*_.PATHSBUF__V5*/ meltfptr[4])) == OBMAG_STRBUF);;
+    (melt_magic_discr((melt_ptr_t)(/*_.PATHSBUF__V5*/ meltfptr[4])) == MELTOBMAG_STRBUF);;
    MELT_LOCATION("warmelt-normatch.melt:2008:/ cond");
    /*cond*/ if (/*_#IS_STRBUF__L4*/ meltfnum[3]) /*then*/ {
    /*^cond.then*/
@@ -13475,17 +13480,17 @@ lab_endgetargs:;
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @MCHGX_FILENAME", melt_magic_discr((melt_ptr_t)(/*_.INST__V15*/ meltfptr[14])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @MCHGX_FILENAME", melt_magic_discr((melt_ptr_t)(/*_.INST__V15*/ meltfptr[14])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V15*/ meltfptr[14]), (1), (/*_.DOTFILENAME__V11*/ meltfptr[10]), "MCHGX_FILENAME");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @MCHGX_NODOUT", melt_magic_discr((melt_ptr_t)(/*_.INST__V15*/ meltfptr[14])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @MCHGX_NODOUT", melt_magic_discr((melt_ptr_t)(/*_.INST__V15*/ meltfptr[14])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V15*/ meltfptr[14]), (2), (/*_.NODBUF__V12*/ meltfptr[11]), "MCHGX_NODOUT");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @MCHGX_EDGOUT", melt_magic_discr((melt_ptr_t)(/*_.INST__V15*/ meltfptr[14])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @MCHGX_EDGOUT", melt_magic_discr((melt_ptr_t)(/*_.INST__V15*/ meltfptr[14])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V15*/ meltfptr[14]), (3), (/*_.EDGBUF__V13*/ meltfptr[12]), "MCHGX_EDGOUT");
  ;
  /*_.MG__V14*/ meltfptr[13] = /*_.INST__V15*/ meltfptr[14];;
@@ -13577,7 +13582,7 @@ lab_endgetargs:;
   /*anyblock*/{
    
    /*_#IS_STRING__L8*/ meltfnum[3] = 
-    (melt_magic_discr((melt_ptr_t)(/*_.DOTFILENAME__V11*/ meltfptr[10])) == OBMAG_STRING);;
+    (melt_magic_discr((melt_ptr_t)(/*_.DOTFILENAME__V11*/ meltfptr[10])) == MELTOBMAG_STRING);;
    MELT_LOCATION("warmelt-normatch.melt:2025:/ cond");
    /*cond*/ if (/*_#IS_STRING__L8*/ meltfnum[3]) /*then*/ {
    /*^cond.then*/
@@ -14184,7 +14189,7 @@ lab_endgetargs:;
  /*^compute*/
 
  /*_#IS_OBJECT__L12*/ meltfnum[7] = 
-  (melt_magic_discr((melt_ptr_t)(/*_.NMATX__V28*/ meltfptr[27])) == OBMAG_OBJECT);;
+  (melt_magic_discr((melt_ptr_t)(/*_.NMATX__V28*/ meltfptr[27])) == MELTOBMAG_OBJECT);;
  /*^compute*/
 
  /*_#NOT__L13*/ meltfnum[12] = 
@@ -14213,22 +14218,22 @@ lab_endgetargs:;
    ;
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @LETBIND_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V42*/ meltfptr[41])) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @LETBIND_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V42*/ meltfptr[41])) == MELTOBMAG_OBJECT);
    melt_putfield_object((/*_.INST__V42*/ meltfptr[41]), (3), (/*_.SLOC__V15*/ meltfptr[14]), "LETBIND_LOC");
    ;
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @BINDER", melt_magic_discr((melt_ptr_t)(/*_.INST__V42*/ meltfptr[41])) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @BINDER", melt_magic_discr((melt_ptr_t)(/*_.INST__V42*/ meltfptr[41])) == MELTOBMAG_OBJECT);
    melt_putfield_object((/*_.INST__V42*/ meltfptr[41]), (0), (/*_.CSYM__V40*/ meltfptr[39]), "BINDER");
    ;
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @LETBIND_TYPE", melt_magic_discr((melt_ptr_t)(/*_.INST__V42*/ meltfptr[41])) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @LETBIND_TYPE", melt_magic_discr((melt_ptr_t)(/*_.INST__V42*/ meltfptr[41])) == MELTOBMAG_OBJECT);
    melt_putfield_object((/*_.INST__V42*/ meltfptr[41]), (1), (/*_.CTYP__V35*/ meltfptr[34]), "LETBIND_TYPE");
    ;
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @LETBIND_EXPR", melt_magic_discr((melt_ptr_t)(/*_.INST__V42*/ meltfptr[41])) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @LETBIND_EXPR", melt_magic_discr((melt_ptr_t)(/*_.INST__V42*/ meltfptr[41])) == MELTOBMAG_OBJECT);
    melt_putfield_object((/*_.INST__V42*/ meltfptr[41]), (2), (/*_.NMATX__V28*/ meltfptr[27]), "LETBIND_EXPR");
    ;
    /*_.CBIND__V41*/ meltfptr[40] = /*_.INST__V42*/ meltfptr[41];;
@@ -14242,22 +14247,22 @@ lab_endgetargs:;
    ;
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V44*/ meltfptr[43])) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V44*/ meltfptr[43])) == MELTOBMAG_OBJECT);
    melt_putfield_object((/*_.INST__V44*/ meltfptr[43]), (0), (/*_.SLOC__V15*/ meltfptr[14]), "NREP_LOC");
    ;
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @NOCC_CTYP", melt_magic_discr((melt_ptr_t)(/*_.INST__V44*/ meltfptr[43])) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @NOCC_CTYP", melt_magic_discr((melt_ptr_t)(/*_.INST__V44*/ meltfptr[43])) == MELTOBMAG_OBJECT);
    melt_putfield_object((/*_.INST__V44*/ meltfptr[43]), (2), (/*_.CTYP__V35*/ meltfptr[34]), "NOCC_CTYP");
    ;
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @NOCC_SYMB", melt_magic_discr((melt_ptr_t)(/*_.INST__V44*/ meltfptr[43])) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @NOCC_SYMB", melt_magic_discr((melt_ptr_t)(/*_.INST__V44*/ meltfptr[43])) == MELTOBMAG_OBJECT);
    melt_putfield_object((/*_.INST__V44*/ meltfptr[43]), (1), (/*_.CSYM__V40*/ meltfptr[39]), "NOCC_SYMB");
    ;
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @NOCC_BIND", melt_magic_discr((melt_ptr_t)(/*_.INST__V44*/ meltfptr[43])) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @NOCC_BIND", melt_magic_discr((melt_ptr_t)(/*_.INST__V44*/ meltfptr[43])) == MELTOBMAG_OBJECT);
    melt_putfield_object((/*_.INST__V44*/ meltfptr[43]), (3), (/*_.CBIND__V41*/ meltfptr[40]), "NOCC_BIND");
    ;
    /*_.CLOCC__V43*/ meltfptr[42] = /*_.INST__V44*/ meltfptr[43];;
@@ -14346,7 +14351,7 @@ lab_endgetargs:;
     
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /2fa85bac checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V49*/ meltfptr[48]))== OBMAG_PAIR);
+    melt_assertmsg("putpairhead /e78a5db checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V49*/ meltfptr[48]))== MELTOBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.CBIND__V49*/ meltfptr[48]))->hd = (melt_ptr_t) (/*_.CBIND__V41*/ meltfptr[40]);
     ;
     /*^touch*/
@@ -14354,7 +14359,7 @@ lab_endgetargs:;
     ;
     /*^putlist*/
     /*putlist*/
-    melt_assertmsg("putlist checklist", melt_magic_discr((melt_ptr_t)(/*_.LIST___V50*/ meltfptr[49]))== OBMAG_LIST);
+    melt_assertmsg("putlist checklist", melt_magic_discr((melt_ptr_t)(/*_.LIST___V50*/ meltfptr[49]))== MELTOBMAG_LIST);
     ((meltlist_ptr_t)(/*_.LIST___V50*/ meltfptr[49]))->first = (meltpair_ptr_t) (/*_.CBIND__V49*/ meltfptr[48]);
     ((meltlist_ptr_t)(/*_.LIST___V50*/ meltfptr[49]))->last = (meltpair_ptr_t) (/*_.CBIND__V49*/ meltfptr[48]);
     ;
@@ -14569,57 +14574,57 @@ lab_endgetargs:;
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @PCTN_NORMCTXT", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @PCTN_NORMCTXT", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V71*/ meltfptr[70]), (0), (/*_.NCX__V4*/ meltfptr[3]), "PCTN_NORMCTXT");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @PCTN_SRC", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @PCTN_SRC", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V71*/ meltfptr[70]), (1), (/*_.RECV__V2*/ meltfptr[1]), "PCTN_SRC");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @PCTN_ENV", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @PCTN_ENV", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V71*/ meltfptr[70]), (2), (/*_.ENV__V3*/ meltfptr[2]), "PCTN_ENV");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @PCTN_MAPATVAR", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @PCTN_MAPATVAR", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V71*/ meltfptr[70]), (3), (/*_.MAPVAR__V65*/ meltfptr[49]), "PCTN_MAPATVAR");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @PCTN_MAPATCST", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @PCTN_MAPATCST", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V71*/ meltfptr[70]), (4), (/*_.MAPCST__V66*/ meltfptr[65]), "PCTN_MAPATCST");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @PCTN_MAPOR", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @PCTN_MAPOR", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V71*/ meltfptr[70]), (5), (/*_.MAPOR__V67*/ meltfptr[66]), "PCTN_MAPOR");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @PCTN_BINDLIST", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @PCTN_BINDLIST", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V71*/ meltfptr[70]), (6), (/*_.SHABINDLIST__V21*/ meltfptr[20]), "PCTN_BINDLIST");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @PCTN_STUFFMAP", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @PCTN_STUFFMAP", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V71*/ meltfptr[70]), (7), (/*_.STUFFMAP__V20*/ meltfptr[19]), "PCTN_STUFFMAP");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @PCTN_PVARLOCMAP", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @PCTN_PVARLOCMAP", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V71*/ meltfptr[70]), (8), (/*_.PVARLOCMAP__V68*/ meltfptr[67]), "PCTN_PVARLOCMAP");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @PCTN_TESTS", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @PCTN_TESTS", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V71*/ meltfptr[70]), (9), (/*_.TESTLIST__V22*/ meltfptr[21]), "PCTN_TESTS");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @PCTN_VARHANDLERS", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @PCTN_VARHANDLERS", melt_magic_discr((melt_ptr_t)(/*_.INST__V71*/ meltfptr[70])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V71*/ meltfptr[70]), (10), (/*_.VARHDLERLIST__V69*/ meltfptr[68]), "PCTN_VARHANDLERS");
   ;
   /*_.PCN__V70*/ meltfptr[69] = /*_.INST__V71*/ meltfptr[70];;
@@ -14959,7 +14964,7 @@ lab_endgetargs:;
   ;
   /*^putclosedv*/
   /*putclosv*/
-  melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V92*/ meltfptr[91])) == OBMAG_CLOSURE);
+  melt_assertmsg("putclosv checkclo", melt_magic_discr((melt_ptr_t)(/*_.LAMBDA___V92*/ meltfptr[91])) == MELTOBMAG_CLOSURE);
   melt_assertmsg("putclosv checkoff", 0>= 0 && 0< melt_closure_size((melt_ptr_t) (/*_.LAMBDA___V92*/ meltfptr[91])));
   ((meltclosure_ptr_t)/*_.LAMBDA___V92*/ meltfptr[91])->tabval[0] = (melt_ptr_t)(/*_.NTESTCONT__V72*/ meltfptr[71]);
   ;
@@ -15162,32 +15167,32 @@ lab_endgetargs:;
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V107*/ meltfptr[106])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V107*/ meltfptr[106])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V107*/ meltfptr[106]), (0), (/*_.CURLOC__V62*/ meltfptr[40]), "NREP_LOC");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTEST_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V107*/ meltfptr[106])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTEST_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V107*/ meltfptr[106])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V107*/ meltfptr[106]), (1), ((/*nil*/NULL)), "NTEST_MATCHED");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTEST_THEN", melt_magic_discr((melt_ptr_t)(/*_.INST__V107*/ meltfptr[106])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTEST_THEN", melt_magic_discr((melt_ptr_t)(/*_.INST__V107*/ meltfptr[106])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V107*/ meltfptr[106]), (2), ((/*nil*/NULL)), "NTEST_THEN");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)(/*_.INST__V107*/ meltfptr[106])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTEST_ELSE", melt_magic_discr((melt_ptr_t)(/*_.INST__V107*/ meltfptr[106])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V107*/ meltfptr[106]), (3), ((/*nil*/NULL)), "NTEST_ELSE");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTEST_COMEFROM", melt_magic_discr((melt_ptr_t)(/*_.INST__V107*/ meltfptr[106])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTEST_COMEFROM", melt_magic_discr((melt_ptr_t)(/*_.INST__V107*/ meltfptr[106])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V107*/ meltfptr[106]), (6), (/*_.MAKE_LIST__V105*/ meltfptr[104]), "NTEST_COMEFROM");
   ;
   /*^putslot*/
   /*putslot*/
-  melt_assertmsg("putslot checkobj @NTSUCCESS_DO", melt_magic_discr((melt_ptr_t)(/*_.INST__V107*/ meltfptr[106])) == OBMAG_OBJECT);
+  melt_assertmsg("putslot checkobj @NTSUCCESS_DO", melt_magic_discr((melt_ptr_t)(/*_.INST__V107*/ meltfptr[106])) == MELTOBMAG_OBJECT);
   melt_putfield_object((/*_.INST__V107*/ meltfptr[106]), (7), ((/*nil*/NULL)), "NTSUCCESS_DO");
   ;
   /*_.NEWSUCTESTER__V106*/ meltfptr[105] = /*_.INST__V107*/ meltfptr[106];;
@@ -15611,7 +15616,7 @@ lab_endgetargs:;
     ;
     /*^putslot*/
     /*putslot*/
-    melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)(/*_.INST__V131*/ meltfptr[121])) == OBMAG_OBJECT);
+    melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)(/*_.INST__V131*/ meltfptr[121])) == MELTOBMAG_OBJECT);
     melt_putfield_object((/*_.INST__V131*/ meltfptr[121]), (0), (/*_.CURTESTER__V104*/ meltfptr[103]), "CONTAINER_VALUE");
     ;
     /*_.CURTESTCONT__V130*/ meltfptr[124] = /*_.INST__V131*/ meltfptr[121];;
@@ -16392,7 +16397,7 @@ lab_endgetargs:;
    /*anyblock*/{
     
     /*_#IS_MULTIPLE__L62*/ meltfnum[36] = 
-     (melt_magic_discr((melt_ptr_t)(/*_.SORTEDBINDINGS__V158*/ meltfptr[157])) == OBMAG_MULTIPLE);;
+     (melt_magic_discr((melt_ptr_t)(/*_.SORTEDBINDINGS__V158*/ meltfptr[157])) == MELTOBMAG_MULTIPLE);;
     MELT_LOCATION("warmelt-normatch.melt:2260:/ cond");
     /*cond*/ if (/*_#IS_MULTIPLE__L62*/ meltfnum[36]) /*then*/ {
     /*^cond.then*/
@@ -16724,7 +16729,7 @@ lab_endgetargs:;
     
     /*_#IS_LIST_OR_NULL__L70*/ meltfnum[63] = 
      ((/*_.BINDSBODY__V193*/ meltfptr[192]) == NULL 
-     || (melt_unsafe_magic_discr((melt_ptr_t)(/*_.BINDSBODY__V193*/ meltfptr[192])) == OBMAG_LIST));;
+     || (melt_unsafe_magic_discr((melt_ptr_t)(/*_.BINDSBODY__V193*/ meltfptr[192])) == MELTOBMAG_LIST));;
     MELT_LOCATION("warmelt-normatch.melt:2278:/ cond");
     /*cond*/ if (/*_#IS_LIST_OR_NULL__L70*/ meltfnum[63]) /*then*/ {
     /*^cond.then*/
@@ -16767,7 +16772,7 @@ lab_endgetargs:;
   /*citerblock FOREACH_IN_LIST*/ {
   /* start cit4__EACHLIST */
    for (/*_.BINDBODYPAIR__V202*/ meltfptr[200] = melt_list_first(/*_.BINDSBODY__V193*/ meltfptr[192]);
-	melt_magic_discr(/*_.BINDBODYPAIR__V202*/ meltfptr[200]) == OBMAG_PAIR;
+	melt_magic_discr(/*_.BINDBODYPAIR__V202*/ meltfptr[200]) == MELTOBMAG_PAIR;
         /*_.BINDBODYPAIR__V202*/ meltfptr[200] = melt_pair_tail(/*_.BINDBODYPAIR__V202*/ meltfptr[200])) {
 	/*_.CURBINDBODY__V203*/ meltfptr[202] = melt_pair_head(/*_.BINDBODYPAIR__V202*/ meltfptr[200]); 
   
@@ -17001,7 +17006,7 @@ lab_endgetargs:;
     
     /*^putslot*/
     /*putslot*/
-    melt_assertmsg("putslot checkobj @NTSUCCESS_DO", melt_magic_discr((melt_ptr_t)(/*_.NEWSUCTESTER__V106*/ meltfptr[105])) == OBMAG_OBJECT);
+    melt_assertmsg("putslot checkobj @NTSUCCESS_DO", melt_magic_discr((melt_ptr_t)(/*_.NEWSUCTESTER__V106*/ meltfptr[105])) == MELTOBMAG_OBJECT);
     melt_putfield_object((/*_.NEWSUCTESTER__V106*/ meltfptr[105]), (7), (/*_.WNLET__V209*/ meltfptr[208]), "NTSUCCESS_DO");
     ;
     /*^touch*/
@@ -17666,27 +17671,27 @@ lab_endgetargs:;
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V249*/ meltfptr[187])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V249*/ meltfptr[187])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V249*/ meltfptr[187]), (0), (/*_.SLOC__V15*/ meltfptr[14]), "NREP_LOC");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NEXPR_CTYP", melt_magic_discr((melt_ptr_t)(/*_.INST__V249*/ meltfptr[187])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NEXPR_CTYP", melt_magic_discr((melt_ptr_t)(/*_.INST__V249*/ meltfptr[187])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V249*/ meltfptr[187]), (1), (/*_.WHOLECTYPE__V23*/ meltfptr[22]), "NEXPR_CTYP");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NMATCH_TESTS", melt_magic_discr((melt_ptr_t)(/*_.INST__V249*/ meltfptr[187])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NMATCH_TESTS", melt_magic_discr((melt_ptr_t)(/*_.INST__V249*/ meltfptr[187])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V249*/ meltfptr[187]), (2), (/*_.TESTSTUPL__V247*/ meltfptr[192]), "NMATCH_TESTS");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NMATCH_STUFFMAP", melt_magic_discr((melt_ptr_t)(/*_.INST__V249*/ meltfptr[187])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NMATCH_STUFFMAP", melt_magic_discr((melt_ptr_t)(/*_.INST__V249*/ meltfptr[187])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V249*/ meltfptr[187]), (3), (/*_.STUFFMAP__V20*/ meltfptr[19]), "NMATCH_STUFFMAP");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NMATCH_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V249*/ meltfptr[187])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NMATCH_MATCHED", melt_magic_discr((melt_ptr_t)(/*_.INST__V249*/ meltfptr[187])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V249*/ meltfptr[187]), (4), (/*_.NMATX__V28*/ meltfptr[27]), "NMATCH_MATCHED");
  ;
  /*_.NMATCH__V248*/ meltfptr[172] = /*_.INST__V249*/ meltfptr[187];;
@@ -17705,17 +17710,17 @@ lab_endgetargs:;
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V252*/ meltfptr[157])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V252*/ meltfptr[157])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V252*/ meltfptr[157]), (0), (/*_.SLOC__V15*/ meltfptr[14]), "NREP_LOC");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NOCC_CTYP", melt_magic_discr((melt_ptr_t)(/*_.INST__V252*/ meltfptr[157])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NOCC_CTYP", melt_magic_discr((melt_ptr_t)(/*_.INST__V252*/ meltfptr[157])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V252*/ meltfptr[157]), (2), (/*_.WHOLECTYPE__V23*/ meltfptr[22]), "NOCC_CTYP");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NOCC_SYMB", melt_magic_discr((melt_ptr_t)(/*_.INST__V252*/ meltfptr[157])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NOCC_SYMB", melt_magic_discr((melt_ptr_t)(/*_.INST__V252*/ meltfptr[157])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V252*/ meltfptr[157]), (1), (/*_.CSYM__V250*/ meltfptr[189]), "NOCC_SYMB");
  ;
  /*_.CLOCC__V251*/ meltfptr[123] = /*_.INST__V252*/ meltfptr[157];;
@@ -17729,22 +17734,22 @@ lab_endgetargs:;
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @LETBIND_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V254*/ meltfptr[159])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @LETBIND_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V254*/ meltfptr[159])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V254*/ meltfptr[159]), (3), (/*_.SLOC__V15*/ meltfptr[14]), "LETBIND_LOC");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @BINDER", melt_magic_discr((melt_ptr_t)(/*_.INST__V254*/ meltfptr[159])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @BINDER", melt_magic_discr((melt_ptr_t)(/*_.INST__V254*/ meltfptr[159])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V254*/ meltfptr[159]), (0), (/*_.CSYM__V250*/ meltfptr[189]), "BINDER");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @LETBIND_TYPE", melt_magic_discr((melt_ptr_t)(/*_.INST__V254*/ meltfptr[159])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @LETBIND_TYPE", melt_magic_discr((melt_ptr_t)(/*_.INST__V254*/ meltfptr[159])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V254*/ meltfptr[159]), (1), (/*_.WHOLECTYPE__V23*/ meltfptr[22]), "LETBIND_TYPE");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @LETBIND_EXPR", melt_magic_discr((melt_ptr_t)(/*_.INST__V254*/ meltfptr[159])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @LETBIND_EXPR", melt_magic_discr((melt_ptr_t)(/*_.INST__V254*/ meltfptr[159])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V254*/ meltfptr[159]), (2), (/*_.NMATCH__V248*/ meltfptr[172]), "LETBIND_EXPR");
  ;
  /*_.CBIND__V253*/ meltfptr[158] = /*_.INST__V254*/ meltfptr[159];;
@@ -17792,7 +17797,7 @@ lab_endgetargs:;
    
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @NOCC_BIND", melt_magic_discr((melt_ptr_t)(/*_.CLOCC__V251*/ meltfptr[123])) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @NOCC_BIND", melt_magic_discr((melt_ptr_t)(/*_.CLOCC__V251*/ meltfptr[123])) == MELTOBMAG_OBJECT);
    melt_putfield_object((/*_.CLOCC__V251*/ meltfptr[123]), (3), (/*_.CBIND__V253*/ meltfptr[158]), "NOCC_BIND");
    ;
    /*^touch*/
@@ -18063,7 +18068,7 @@ lab_endgetargs:;
     
     /*^putslot*/
     /*putslot*/
-    melt_assertmsg("putslot checkobj @NTEST_NORMATCH", melt_magic_discr((melt_ptr_t)(/*_.CURTEST__V260*/ meltfptr[103])) == OBMAG_OBJECT);
+    melt_assertmsg("putslot checkobj @NTEST_NORMATCH", melt_magic_discr((melt_ptr_t)(/*_.CURTEST__V260*/ meltfptr[103])) == MELTOBMAG_OBJECT);
     melt_putfield_object((/*_.CURTEST__V260*/ meltfptr[103]), (4), (/*_.NMATCH__V248*/ meltfptr[172]), "NTEST_NORMATCH");
     ;
     /*^touch*/
@@ -18228,7 +18233,7 @@ lab_endgetargs:;
    /*^compute*/
 
    /*_#IS_STRING__L98*/ meltfnum[40] = 
-    (melt_magic_discr((melt_ptr_t)(/*_.DOTPREFIX__V273*/ meltfptr[134])) == OBMAG_STRING);;
+    (melt_magic_discr((melt_ptr_t)(/*_.DOTPREFIX__V273*/ meltfptr[134])) == MELTOBMAG_STRING);;
    MELT_LOCATION("warmelt-normatch.melt:2367:/ cond");
    /*cond*/ if (/*_#IS_STRING__L98*/ meltfnum[40]) /*then*/ {
    /*^cond.then*/
@@ -18287,7 +18292,7 @@ lab_endgetargs:;
  
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NOCC_BIND", melt_magic_discr((melt_ptr_t)(/*_.CLOCC__V251*/ meltfptr[123])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NOCC_BIND", melt_magic_discr((melt_ptr_t)(/*_.CLOCC__V251*/ meltfptr[123])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.CLOCC__V251*/ meltfptr[123]), (3), (/*_.CBIND__V253*/ meltfptr[158]), "NOCC_BIND");
  ;
  /*^touch*/
@@ -18373,7 +18378,7 @@ lab_endgetargs:;
   /*anyblock*/{
    
    /*_#IS_LIST__L101*/ meltfnum[78] = 
-    (melt_magic_discr((melt_ptr_t)(/*_.NBINDMATX__V29*/ meltfptr[28])) == OBMAG_LIST);;
+    (melt_magic_discr((melt_ptr_t)(/*_.NBINDMATX__V29*/ meltfptr[28])) == MELTOBMAG_LIST);;
    MELT_LOCATION("warmelt-normatch.melt:2373:/ cond");
    /*cond*/ if (/*_#IS_LIST__L101*/ meltfnum[78]) /*then*/ {
    /*^cond.then*/
@@ -18884,7 +18889,7 @@ lab_endgetargs:;
    
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)((/*~NTESTCONT*/ meltfclos->tabval[0]))) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @CONTAINER_VALUE", melt_magic_discr((melt_ptr_t)((/*~NTESTCONT*/ meltfclos->tabval[0]))) == MELTOBMAG_OBJECT);
    melt_putfield_object(((/*~NTESTCONT*/ meltfclos->tabval[0])), (0), (/*_.TESTER__V2*/ meltfptr[1]), "CONTAINER_VALUE");
    ;
    /*^touch*/
@@ -19186,22 +19191,22 @@ lab_endgetargs:;
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V20*/ meltfptr[19])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NREP_LOC", melt_magic_discr((melt_ptr_t)(/*_.INST__V20*/ meltfptr[19])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V20*/ meltfptr[19]), (0), (/*_.PSLOC__V6*/ meltfptr[5]), "NREP_LOC");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NOCC_CTYP", melt_magic_discr((melt_ptr_t)(/*_.INST__V20*/ meltfptr[19])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NOCC_CTYP", melt_magic_discr((melt_ptr_t)(/*_.INST__V20*/ meltfptr[19])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V20*/ meltfptr[19]), (2), (/*_.MDATA_CTYPE__V18*/ meltfptr[17]), "NOCC_CTYP");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NOCC_SYMB", melt_magic_discr((melt_ptr_t)(/*_.INST__V20*/ meltfptr[19])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NOCC_SYMB", melt_magic_discr((melt_ptr_t)(/*_.INST__V20*/ meltfptr[19])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V20*/ meltfptr[19]), (1), (/*_.SYMB__V15*/ meltfptr[14]), "NOCC_SYMB");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @NOCC_BIND", melt_magic_discr((melt_ptr_t)(/*_.INST__V20*/ meltfptr[19])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @NOCC_BIND", melt_magic_discr((melt_ptr_t)(/*_.INST__V20*/ meltfptr[19])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V20*/ meltfptr[19]), (3), (/*_.BIND__V2*/ meltfptr[1]), "NOCC_BIND");
  ;
  /*_.SYOCC__V19*/ meltfptr[18] = /*_.INST__V20*/ meltfptr[19];;
@@ -19516,7 +19521,7 @@ lab_endgetargs:;
   /*anyblock*/{
    
    /*_#IS_STRING__L5*/ meltfnum[0] = 
-    (melt_magic_discr((melt_ptr_t)(/*_.STR__V4*/ meltfptr[3])) == OBMAG_STRING);;
+    (melt_magic_discr((melt_ptr_t)(/*_.STR__V4*/ meltfptr[3])) == MELTOBMAG_STRING);;
    MELT_LOCATION("warmelt-normatch.melt:2645:/ cond");
    /*cond*/ if (/*_#IS_STRING__L5*/ meltfnum[0]) /*then*/ {
    /*^cond.then*/
@@ -19596,7 +19601,7 @@ lab_endgetargs:;
   /*anyblock*/{
    
    /*_#IS_LIST__L7*/ meltfnum[6] = 
-    (melt_magic_discr((melt_ptr_t)(/*_.FLAGLIST__V17*/ meltfptr[16])) == OBMAG_LIST);;
+    (melt_magic_discr((melt_ptr_t)(/*_.FLAGLIST__V17*/ meltfptr[16])) == MELTOBMAG_LIST);;
    MELT_LOCATION("warmelt-normatch.melt:2651:/ cond");
    /*cond*/ if (/*_#IS_LIST__L7*/ meltfnum[6]) /*then*/ {
    /*^cond.then*/
@@ -19725,22 +19730,22 @@ lab_endgetargs:;
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @LOCA_LOCATION", melt_magic_discr((melt_ptr_t)(/*_.INST__V28*/ meltfptr[27])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @LOCA_LOCATION", melt_magic_discr((melt_ptr_t)(/*_.INST__V28*/ meltfptr[27])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V28*/ meltfptr[27]), (1), (/*_.SLOC__V16*/ meltfptr[15]), "LOCA_LOCATION");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @MFLAG_SPAT", melt_magic_discr((melt_ptr_t)(/*_.INST__V28*/ meltfptr[27])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @MFLAG_SPAT", melt_magic_discr((melt_ptr_t)(/*_.INST__V28*/ meltfptr[27])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V28*/ meltfptr[27]), (2), (/*_.SPAT__V2*/ meltfptr[1]), "MFLAG_SPAT");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @MFLAG_RANK", melt_magic_discr((melt_ptr_t)(/*_.INST__V28*/ meltfptr[27])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @MFLAG_RANK", melt_magic_discr((melt_ptr_t)(/*_.INST__V28*/ meltfptr[27])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V28*/ meltfptr[27]), (3), (/*_.MAKE_INTEGERBOX__V26*/ meltfptr[25]), "MFLAG_RANK");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @MFLAG_STRING", melt_magic_discr((melt_ptr_t)(/*_.INST__V28*/ meltfptr[27])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @MFLAG_STRING", melt_magic_discr((melt_ptr_t)(/*_.INST__V28*/ meltfptr[27])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V28*/ meltfptr[27]), (4), (/*_.STR__V4*/ meltfptr[3]), "MFLAG_STRING");
  ;
  /*_.MFLAG__V27*/ meltfptr[26] = /*_.INST__V28*/ meltfptr[27];;
@@ -21014,8 +21019,8 @@ lab_endgetargs:;
   
   MELT_LOCATION("warmelt-normatch.melt:2753:/ putclosurout");
   /*putclosurout*/
-  melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VARPATSCANNER__V12*/ meltfptr[11])) == OBMAG_CLOSURE);
-  melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)((/*!konst_6*/ meltfrout->tabval[6]))) == OBMAG_ROUTINE);
+  melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VARPATSCANNER__V12*/ meltfptr[11])) == MELTOBMAG_CLOSURE);
+  melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)((/*!konst_6*/ meltfrout->tabval[6]))) == MELTOBMAG_ROUTINE);
   ((meltclosure_ptr_t)/*_.VARPATSCANNER__V12*/ meltfptr[11])->rout = (meltroutine_ptr_t) ((/*!konst_6*/ meltfrout->tabval[6]));
   ;
   /*^touch*/
@@ -21094,7 +21099,7 @@ lab_endgetargs:;
  
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @MCASE_VARMAP", melt_magic_discr((melt_ptr_t)(/*_.CURMCASE__V2*/ meltfptr[1])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @MCASE_VARMAP", melt_magic_discr((melt_ptr_t)(/*_.CURMCASE__V2*/ meltfptr[1])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.CURMCASE__V2*/ meltfptr[1]), (4), (/*_.OURPATVARMAP__V8*/ meltfptr[6]), "MCASE_VARMAP");
  ;
  /*^touch*/
@@ -22244,7 +22249,7 @@ lab_endgetargs:;
    
    /*^putslot*/
    /*putslot*/
-   melt_assertmsg("putslot checkobj @MSTEP_THEN", melt_magic_discr((melt_ptr_t)(/*_.RECV__V2*/ meltfptr[1])) == OBMAG_OBJECT);
+   melt_assertmsg("putslot checkobj @MSTEP_THEN", melt_magic_discr((melt_ptr_t)(/*_.RECV__V2*/ meltfptr[1])) == MELTOBMAG_OBJECT);
    melt_putfield_object((/*_.RECV__V2*/ meltfptr[1]), (2), (/*_.STARTHEN__V18*/ meltfptr[17]), "MSTEP_THEN");
    ;
    /*^touch*/
@@ -22809,7 +22814,7 @@ lab_endgetargs:;
     /*anyblock*/{
      
      /*_#IS_LIST__L7*/ meltfnum[6] = 
-      (melt_magic_discr((melt_ptr_t)(/*_.THENGROUP__V14*/ meltfptr[13])) == OBMAG_LIST);;
+      (melt_magic_discr((melt_ptr_t)(/*_.THENGROUP__V14*/ meltfptr[13])) == MELTOBMAG_LIST);;
      MELT_LOCATION("warmelt-normatch.melt:2853:/ cond");
      /*cond*/ if (/*_#IS_LIST__L7*/ meltfnum[6]) /*then*/ {
      /*^cond.then*/
@@ -22819,7 +22824,7 @@ lab_endgetargs:;
        /*citerblock FOREACH_IN_LIST*/ {
        /* start cit1__EACHLIST */
    for (/*_.CURPAIR__V20*/ meltfptr[19] = melt_list_first(/*_.THENGROUP__V14*/ meltfptr[13]);
-	melt_magic_discr(/*_.CURPAIR__V20*/ meltfptr[19]) == OBMAG_PAIR;
+	melt_magic_discr(/*_.CURPAIR__V20*/ meltfptr[19]) == MELTOBMAG_PAIR;
         /*_.CURPAIR__V20*/ meltfptr[19] = melt_pair_tail(/*_.CURPAIR__V20*/ meltfptr[19])) {
 	/*_.CURTHEN__V21*/ meltfptr[20] = melt_pair_head(/*_.CURPAIR__V20*/ meltfptr[19]); 
        
@@ -22854,7 +22859,7 @@ lab_endgetargs:;
       /*anyblock*/{
        
        /*_#IS_MULTIPLE__L8*/ meltfnum[7] = 
-        (melt_magic_discr((melt_ptr_t)(/*_.THENGROUP__V14*/ meltfptr[13])) == OBMAG_MULTIPLE);;
+        (melt_magic_discr((melt_ptr_t)(/*_.THENGROUP__V14*/ meltfptr[13])) == MELTOBMAG_MULTIPLE);;
        MELT_LOCATION("warmelt-normatch.melt:2858:/ cond");
        /*cond*/ if (/*_#IS_MULTIPLE__L8*/ meltfnum[7]) /*then*/ {
        /*^cond.then*/
@@ -24621,7 +24626,7 @@ lab_endgetargs:;
                
                /*^putslot*/
                /*putslot*/
-               melt_assertmsg("putslot checkobj @MSTEP_ELSE", melt_magic_discr((melt_ptr_t)(/*_.RECV__V2*/ meltfptr[1])) == OBMAG_OBJECT);
+               melt_assertmsg("putslot checkobj @MSTEP_ELSE", melt_magic_discr((melt_ptr_t)(/*_.RECV__V2*/ meltfptr[1])) == MELTOBMAG_OBJECT);
                melt_putfield_object((/*_.RECV__V2*/ meltfptr[1]), (5), (/*_.ELSESTART__V17*/ meltfptr[16]), "MSTEP_ELSE");
                ;
                /*^touch*/
@@ -25489,7 +25494,7 @@ lab_endgetargs:;
     /*anyblock*/{
      
      /*_#IS_LIST__L11*/ meltfnum[9] = 
-      (melt_magic_discr((melt_ptr_t)(/*_.ELSEGROUP__V13*/ meltfptr[12])) == OBMAG_LIST);;
+      (melt_magic_discr((melt_ptr_t)(/*_.ELSEGROUP__V13*/ meltfptr[12])) == MELTOBMAG_LIST);;
      MELT_LOCATION("warmelt-normatch.melt:2986:/ cond");
      /*cond*/ if (/*_#IS_LIST__L11*/ meltfnum[9]) /*then*/ {
      /*^cond.then*/
@@ -25499,7 +25504,7 @@ lab_endgetargs:;
        /*citerblock FOREACH_IN_LIST*/ {
        /* start cit1__EACHLIST */
    for (/*_.CURPAIR__V32*/ meltfptr[27] = melt_list_first(/*_.ELSEGROUP__V13*/ meltfptr[12]);
-	melt_magic_discr(/*_.CURPAIR__V32*/ meltfptr[27]) == OBMAG_PAIR;
+	melt_magic_discr(/*_.CURPAIR__V32*/ meltfptr[27]) == MELTOBMAG_PAIR;
         /*_.CURPAIR__V32*/ meltfptr[27] = melt_pair_tail(/*_.CURPAIR__V32*/ meltfptr[27])) {
 	/*_.CURELSE__V33*/ meltfptr[29] = melt_pair_head(/*_.CURPAIR__V32*/ meltfptr[27]); 
        
@@ -25572,7 +25577,7 @@ lab_endgetargs:;
       /*anyblock*/{
        
        /*_#IS_MULTIPLE__L13*/ meltfnum[11] = 
-        (melt_magic_discr((melt_ptr_t)(/*_.ELSEGROUP__V13*/ meltfptr[12])) == OBMAG_MULTIPLE);;
+        (melt_magic_discr((melt_ptr_t)(/*_.ELSEGROUP__V13*/ meltfptr[12])) == MELTOBMAG_MULTIPLE);;
        MELT_LOCATION("warmelt-normatch.melt:2992:/ cond");
        /*cond*/ if (/*_#IS_MULTIPLE__L13*/ meltfnum[11]) /*then*/ {
        /*^cond.then*/

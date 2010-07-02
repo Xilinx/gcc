@@ -874,7 +874,7 @@ compiled C abstract syntax trees (that is @code{:tree} and
 ;; primitive for testing objectness
 (defprimitive is_object (obj) :long
   :doc #{Test if $OBJ is indeed an object. See also $IS_NOT_OBJECT.}#
-  #{(melt_magic_discr((melt_ptr_t)($obj)) == OBMAG_OBJECT)}#)
+  #{(melt_magic_discr((melt_ptr_t)($obj)) == MELTOBMAG_OBJECT)}#)
 
 
 ;; primitive to get the discriminant of a value
@@ -1024,7 +1024,7 @@ an integer $I if $I is greater than $N.}#
 ;; primitive for testing if a value is a string
 (defprimitive is_string (str) :long
   :doc #{Test that $STR is a string values.}#
-  #{(melt_magic_discr((melt_ptr_t)($str)) == OBMAG_STRING)}#)
+  #{(melt_magic_discr((melt_ptr_t)($str)) == MELTOBMAG_STRING)}#)
 ;; string equal
 (defprimitive ==s (s1 s2) :long
   :doc #{Test that $S1 and $S2 are both string values and are equal.}#
@@ -1051,7 +1051,7 @@ an integer $I if $I is greater than $N.}#
 ;;;; test
 (defprimitive is_multiple (mul) :long
   :doc #{Safely test if $MUL is a tuple.}#
-  #{(melt_magic_discr((melt_ptr_t)($mul)) == OBMAG_MULTIPLE)}#)
+  #{(melt_magic_discr((melt_ptr_t)($mul)) == MELTOBMAG_MULTIPLE)}#)
 ;;; make
 (defprimitive make_multiple (discr :long ln) :value
   :doc #{Make a tuple of given discriminant $DISCR and length $LN - gives null otherwise.}#
@@ -1086,7 +1086,7 @@ an integer $I if $I is greater than $N.}#
 ;;;; test
 (defprimitive is_mapobject (map) :long
   :doc #{Test if given $MAP is an object map.}#
-  #{(melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPOBJECTS)}#)
+  #{(melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPOBJECTS)}#)
 ;; primitive to get the allocated size of a mapobject
 (defprimitive mapobject_size (map) :long
   :doc #{Safely retrieve the allocated size of given object-map $MAP or else 0.}#
@@ -1158,7 +1158,7 @@ an integer $I if $I is greater than $N.}#
 ;; test
 (defprimitive is_mapstring (map) :long
   :doc #{Safely test if $MAP is a string-map.}#
-  #{(melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPSTRINGS)}#)
+  #{(melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPSTRINGS)}#)
 ;; primitive for making a new map of strings
 (defprimitive make_mapstring (discr :long len) :value
   :doc #{Make a new string-map of discriminant $DISCR and initial length $LEN - or null if failed.}#
@@ -1234,7 +1234,7 @@ make a $CURAT string.}#
 ;; test
 (defprimitive is_routine (rou) :long
   :doc #{Test if value $ROU is a routine.}#
-  #{(melt_magic_discr((melt_ptr_t)($rou)) == OBMAG_ROUTINE)}#)
+  #{(melt_magic_discr((melt_ptr_t)($rou)) == MELTOBMAG_ROUTINE)}#)
 ;;; descriptive string of a routine
 (defprimitive routine_descr (rou) :value
   :doc #{Retrieve the descriptive value string of a routine $ROU or else null.}#
@@ -1253,7 +1253,7 @@ make a $CURAT string.}#
 ;; test
 (defprimitive is_closure (clo) :long
   :doc #{Test if value $CLO is a closure, i.e. a functional value.}#
-  #{(melt_magic_discr((melt_ptr_t)($clo)) == OBMAG_CLOSURE)}#)
+  #{(melt_magic_discr((melt_ptr_t)($clo)) == MELTOBMAG_CLOSURE)}#)
 (defprimitive closure_size (clo) :long
   :doc #{Give the size of a closure value $CLO, i.e. the number of closed values.}#
   #{(melt_closure_size((melt_ptr_t)($clo)))}#)
@@ -1269,7 +1269,7 @@ make a $CURAT string.}#
   ()
   closurematch
   :doc #{The $CLOSURE patterns matches a closure.}#
-  #{ /* $closurematch ? */ $clo && melt_magic_discr($clo) == OBMAG_CLOSURE }#
+  #{ /* $closurematch ? */ $clo && melt_magic_discr($clo) == MELTOBMAG_CLOSURE }#
   #{ /* $closurematch ! */ }#
 )
 
@@ -1278,7 +1278,7 @@ make a $CURAT string.}#
 ;; test
 (defprimitive is_integerbox (ib) :long
   :doc #{Test if a value $IB is a boxed integer.}#
-  #{(melt_magic_discr((melt_ptr_t)($ib)) == OBMAG_INT)}#)
+  #{(melt_magic_discr((melt_ptr_t)($ib)) == MELTOBMAG_INT)}#)
 ;; to get the boxed integer use get_int
 ;; make
 (defprimitive make_integerbox (discr :long n) :value
@@ -1295,7 +1295,7 @@ make a $CURAT string.}#
   fails if $BX is not a boxed integer (e.g. is the null value or non
   boxed-integer). See also $MAKE_INTEGERBOX $IS_INTEGERBOX.}#
   ;; test
-  #{ /* $iboxof ?*/ $bx && melt_magic_discr($bx) == OBMAG_INT }#
+  #{ /* $iboxof ?*/ $bx && melt_magic_discr($bx) == MELTOBMAG_INT }#
   ;; fill
   #{ /* $iboxof !*/ $ict = ((struct meltint_st*)$bx)->val; }#
 )
@@ -1305,7 +1305,7 @@ make a $CURAT string.}#
 ;; test
 (defprimitive is_box (box) :long
   :doc #{Test if value $BOX is a box, ie a reference.}#
-  #{(melt_magic_discr((melt_ptr_t)($box)) == OBMAG_BOX)}#)
+  #{(melt_magic_discr((melt_ptr_t)($box)) == MELTOBMAG_BOX)}#)
 ;; safe fetch content
 (defprimitive box_content (box) :value
   :doc #{Safely retrieve the content of a box value $BOX or else null.}#
@@ -1327,7 +1327,7 @@ make a $CURAT string.}#
   is a box, its content should match the subpattern $V.
   It fails if $BX is not a boxed integer. See also $MAKE_BOX $BOX_CONTENT.}#
   ;; test
-  #{ /* $BOXOF ?*/ $BX && melt_magic_discr($bx) == OBMAG_BOX }#
+  #{ /* $BOXOF ?*/ $BX && melt_magic_discr($bx) == MELTOBMAG_BOX }#
   ;; fill
   #{ /* $BOXOF !*/ $V = ((struct meltbox_st*)$bx)->val; }#
 )
@@ -1336,15 +1336,15 @@ make a $CURAT string.}#
 ;; test
 (defprimitive is_list (li) :long
   :doc #{Test if value $LI is a list.}#
-  #{(melt_magic_discr((melt_ptr_t)($li)) == OBMAG_LIST)}#)
+  #{(melt_magic_discr((melt_ptr_t)($li)) == MELTOBMAG_LIST)}#)
 (defprimitive is_list_or_null (li) :long
   :doc #{Test iv value $LI is null or a list.}#
   #{(($li) == NULL 
-     || (melt_unsafe_magic_discr((melt_ptr_t)($li)) == OBMAG_LIST))}#)
+     || (melt_unsafe_magic_discr((melt_ptr_t)($li)) == MELTOBMAG_LIST))}#)
 ;; test if a list is non-empty
 (defprimitive is_non_empty_list (li) :long
   :doc #{Test if value $LI is a non-empty list.}#
-  #{(melt_magic_discr((melt_ptr_t)($li)) == OBMAG_LIST && NULL != melt_list_first((melt_ptr_t)($li)))}#)
+  #{(melt_magic_discr((melt_ptr_t)($li)) == MELTOBMAG_LIST && NULL != melt_list_first((melt_ptr_t)($li)))}#)
 ;; first pair of list
 (defprimitive list_first (li) :value
   :doc #{Safely retrieve the first pair of list value $LI, or null.}#
@@ -1386,7 +1386,7 @@ make a $CURAT string.}#
 ;; test
 (defprimitive is_pair (pa) :long
   :doc #{Test if a value $PA is a pair.}#
-  #{(melt_magic_discr((melt_ptr_t)($pa)) == OBMAG_PAIR)}#)
+  #{(melt_magic_discr((melt_ptr_t)($pa)) == MELTOBMAG_PAIR)}#)
 ;; head
 (defprimitive pair_head (pa) :value
   :doc #{Safely retrieve the head of pair value $PA or else null.}#
@@ -1417,7 +1417,7 @@ make a $CURAT string.}#
 ;;; the discriminant for name strings
 (definstance discr_name_string class_discriminant
   :predef DISCR_NAME_STRING
-  :obj_num OBMAG_STRING
+  :obj_num MELTOBMAG_STRING
   :doc #{The $DISCR_NAME_STRING is the discriminant of name strings, such as the $NAMED_NAME of symbols.}#
 ;;; :named_name '"DISCR_NAME_STRING"
 ;;; :disc_super discr_string   ;; forward reference not allowed
@@ -1426,7 +1426,7 @@ make a $CURAT string.}#
 ;;; the discriminant for strings
 (definstance discr_string class_discriminant
   :predef DISCR_STRING
-  :obj_num OBMAG_STRING
+  :obj_num MELTOBMAG_STRING
   :doc #{The $DISCR_STRING is the discriminant of strings. See also
 $DISCR_NAME_STRING and $DISCR_VERBATIM_STRING.}#
   :named_name '"DISCR_STRING")
@@ -1436,7 +1436,7 @@ $DISCR_NAME_STRING and $DISCR_VERBATIM_STRING.}#
 		   '"DISCR_NAME_STRING")
 ;;; the discriminant for verbatim strings (used for defprimitive)
 (definstance discr_verbatim_string class_discriminant
-  :obj_num OBMAG_STRING
+  :obj_num MELTOBMAG_STRING
   :predef DISCR_VERBATIM_STRING
   :doc #{The $DISCR_VERBATIM_STRING is the discriminant of verbatim strings. See also $DISCR_STRING.}#
   :named_name '"DISCR_VERBATIM_STRING"
@@ -1463,7 +1463,7 @@ $DISCR_NAME_STRING and $DISCR_VERBATIM_STRING.}#
 (definstance discr_strbuf class_discriminant
   :doc #{The $DISCR_STRBUF is the discriminant of string buffer values.}#
   :predef DISCR_STRBUF
-  :obj_num OBMAG_STRBUF  
+  :obj_num MELTOBMAG_STRBUF  
   :disc_super discr_any_receiver
   :named_name '"DISCR_STRBUF")
 
@@ -1471,7 +1471,7 @@ $DISCR_NAME_STRING and $DISCR_VERBATIM_STRING.}#
 (definstance discr_integer class_discriminant
   :doc #{The $DISCR_INTEGER is the discriminant of boxed integers. See also $CTYPE_LONG.}#
   :predef DISCR_INTEGER
-  :obj_num OBMAG_INT 
+  :obj_num MELTOBMAG_INT 
   :disc_super discr_any_receiver
   :named_name '"DISCR_INTEGER")
 
@@ -1479,14 +1479,14 @@ $DISCR_NAME_STRING and $DISCR_VERBATIM_STRING.}#
 (definstance discr_real class_discriminant
   :doc #{The $DISCR_REAL is the discriminant of boxed reals. }#
   :predef DISCR_REAL
-  :obj_num OBMAG_REAL
+  :obj_num MELTOBMAG_REAL
   :disc_super discr_any_receiver
   :named_name '"DISCR_REAL")
 
 ;;; the discriminant for constant integers, like '123
 (definstance discr_constant_integer class_discriminant
   :predef DISCR_CONSTANT_INTEGER
-  :obj_num OBMAG_INT
+  :obj_num MELTOBMAG_INT
   :disc_super discr_integer
   :named_name '"DISCR_CONSTANT_INTEGER"
   :doc #{The $DISCR_CONSTANT_INTEGER is the discriminant for constant
@@ -1498,7 +1498,7 @@ $PUT_INT. See also $DISCR_INTEGER.}# )
 (definstance discr_list class_discriminant
   :doc #{The $DISCR_LIST is the discriminant of list values, made of pairs. See also $DISCR_PAIR.}#
   :predef DISCR_LIST
-  :obj_num OBMAG_LIST 
+  :obj_num MELTOBMAG_LIST 
   :disc_super discr_any_receiver
   :named_name '"DISCR_LIST")
 
@@ -1506,7 +1506,7 @@ $PUT_INT. See also $DISCR_INTEGER.}# )
 (definstance discr_pair class_discriminant
   :doc #{The $DISCR_PAIR is the discriminant of pairs, notably inside lists. See also $DISCR_LIST.}#
   :predef DISCR_PAIR
-  :obj_num OBMAG_PAIR 
+  :obj_num MELTOBMAG_PAIR 
   :disc_super discr_any_receiver
   :named_name '"DISCR_PAIR")
 
@@ -1515,7 +1515,7 @@ $PUT_INT. See also $DISCR_INTEGER.}# )
   :doc #{The $DISCR_MULTIPLE is the discriminant of multiple values, i.e. tuples. 
 See also $DISCR_FIELD_SEQUENCE and $DISCR_CLASS_SEQUENCE.}#
   :predef DISCR_MULTIPLE
-  :obj_num OBMAG_MULTIPLE
+  :obj_num MELTOBMAG_MULTIPLE
   :disc_super discr_any_receiver
   :named_name '"DISCR_MULTIPLE")
 
@@ -1525,7 +1525,7 @@ See also $DISCR_FIELD_SEQUENCE and $DISCR_CLASS_SEQUENCE.}#
 sequence tuple values, e.g. within classes. See also $DISCR_MULTIPLE
 and $CLASS_CLASS.}#
   :predef DISCR_FIELD_SEQUENCE
-  :obj_num OBMAG_MULTIPLE
+  :obj_num MELTOBMAG_MULTIPLE
   :named_name '"DISCR_FIELD_SEQUENCE"
   :disc_super discr_multiple
   )
@@ -1535,7 +1535,7 @@ and $CLASS_CLASS.}#
   :doc #{The $DISCR_BOX is the discriminant of box values, containing
 a single mutable value. See also $CLASS_CONTAINER.}#
   :predef DISCR_BOX
-  :obj_num OBMAG_BOX
+  :obj_num MELTOBMAG_BOX
   :disc_super discr_any_receiver
   :named_name '"DISCR_BOX")
 
@@ -1543,7 +1543,7 @@ a single mutable value. See also $CLASS_CONTAINER.}#
 (definstance discr_tree class_discriminant
   :doc #{The $DISCR_TREE is the discriminant of boxed GCC tree values. See also $CTYPE_TREE.}#
   :predef DISCR_TREE
-  :obj_num OBMAG_TREE
+  :obj_num MELTOBMAG_TREE
   :disc_super discr_any_receiver
   :named_name '"DISCR_TREE")
 
@@ -1551,7 +1551,7 @@ a single mutable value. See also $CLASS_CONTAINER.}#
 (definstance discr_gimple class_discriminant
   :doc #{The $DISCR_GIMPLE is the discriminant of boxed GCC gimple values. See also $CTYPE_GIMPLE.}#
   :predef DISCR_GIMPLE
-  :obj_num OBMAG_GIMPLE
+  :obj_num MELTOBMAG_GIMPLE
   :disc_super discr_any_receiver
   :named_name '"DISCR_GIMPLE")
 
@@ -1559,7 +1559,7 @@ a single mutable value. See also $CLASS_CONTAINER.}#
 (definstance discr_gimple_seq class_discriminant
   :doc #{The $DISCR_GIMPLE_SEQ is the discriminant of boxed GCC gimple_seq values. See also $CTYPE_GIMPLE_SEQ.}#
   :predef DISCR_GIMPLE_SEQ
-  :obj_num OBMAG_GIMPLESEQ
+  :obj_num MELTOBMAG_GIMPLESEQ
   :disc_super discr_any_receiver
   :named_name '"DISCR_GIMPLE_SEQ")
 
@@ -1568,7 +1568,7 @@ a single mutable value. See also $CLASS_CONTAINER.}#
 (definstance discr_edge class_discriminant
   :doc #{The $DISCR_EDGE is the discriminant of boxed GCC edge values. See also $CTYPE_EDGE.}#
   :predef DISCR_EDGE
-  :obj_num OBMAG_EDGE
+  :obj_num MELTOBMAG_EDGE
   :disc_super discr_any_receiver
   :named_name '"DISCR_EDGE")
 
@@ -1577,7 +1577,7 @@ a single mutable value. See also $CLASS_CONTAINER.}#
   :doc #{The $DISCR_BASIC_BLOCK is the discriminant of boxed GCC basic_block values. See
 also $CTYPE_BASIC_BLOCK.}#
   :predef DISCR_BASIC_BLOCK
-  :obj_num OBMAG_BASICBLOCK
+  :obj_num MELTOBMAG_BASICBLOCK
   :disc_super discr_any_receiver
   :named_name '"DISCR_BASIC_BLOCK")
 
@@ -1587,7 +1587,7 @@ also $CTYPE_BASIC_BLOCK.}#
   :doc #{The $DISCR_LOOP is the discriminant of boxed GCC loop_p values. See
 also $CTYPE_LOOP.}#
   :predef DISCR_LOOP
-  :obj_num OBMAG_LOOP
+  :obj_num MELTOBMAG_LOOP
   :disc_super discr_any_receiver
   :named_name '"DISCR_LOOP")
 
@@ -1597,7 +1597,7 @@ also $CTYPE_LOOP.}#
   :doc #{The $DISCR_BITMAP is the discriminant of boxed GCC bitmap values. See
 also $CTYPE_BITMAP.}#
   :predef DISCR_BITMAP
-  :obj_num OBMAG_BITMAP
+  :obj_num MELTOBMAG_BITMAP
   :disc_super discr_any_receiver
   :named_name '"DISCR_BITMAP")
 
@@ -1607,7 +1607,7 @@ also $CTYPE_BITMAP.}#
   :doc #{The $DISCR_RTX is the discriminant of boxed GCC rtx values. See
 also $CTYPE_RTX.}#
   :predef DISCR_RTX
-  :obj_num OBMAG_RTX
+  :obj_num MELTOBMAG_RTX
   :disc_super discr_any_receiver
   :named_name '"DISCR_RTX")
 
@@ -1616,7 +1616,7 @@ also $CTYPE_RTX.}#
   :doc #{The $DISCR_RTVEC is the discriminant of boxed GCC rtvec values. See
 also $CTYPE_RTVEC.}#
   :predef DISCR_RTVEC
-  :obj_num OBMAG_RTVEC
+  :obj_num MELTOBMAG_RTVEC
   :disc_super discr_any_receiver
   :named_name '"DISCR_RTVEC")
 
@@ -1625,7 +1625,7 @@ also $CTYPE_RTVEC.}#
   :doc #{The $DISCR_MAP_OBJECTS is the discriminant of hash-map values associating MELT objects to
 non-nil value.}#
   :predef DISCR_MAP_OBJECTS
-  :obj_num OBMAG_MAPOBJECTS
+  :obj_num MELTOBMAG_MAPOBJECTS
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_OBJECTS")
 
@@ -1634,7 +1634,7 @@ non-nil value.}#
   :doc #{The $DISCR_MAP_STRINGS is the discriminant of hash-map values associating raw strings to 
 non-nil value. See also $CTYPE_CSTRING.}#
   :predef DISCR_MAP_STRINGS
-  :obj_num OBMAG_MAPSTRINGS
+  :obj_num MELTOBMAG_MAPSTRINGS
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_STRINGS")
 
@@ -1643,7 +1643,7 @@ non-nil value. See also $CTYPE_CSTRING.}#
   :doc #{The $DISCR_MAP_TREES is the discriminant of hash-map values associating raw GCC tree-s
 to non-nil value. See also $CTYPE_TREE.}#
   :predef DISCR_MAP_TREES
-  :obj_num OBMAG_MAPTREES
+  :obj_num MELTOBMAG_MAPTREES
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_TREES")
 
@@ -1652,7 +1652,7 @@ to non-nil value. See also $CTYPE_TREE.}#
   :doc #{The $DISCR_MAP_GIMPLES is the discriminant of hash-map values associating raw GCC gimple-s 
 to non-nil value. See also $CTYPE_GIMPLE.}#
   :predef DISCR_MAP_GIMPLES
-  :obj_num OBMAG_MAPGIMPLES
+  :obj_num MELTOBMAG_MAPGIMPLES
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_GIMPLES")
 
@@ -1661,7 +1661,7 @@ to non-nil value. See also $CTYPE_GIMPLE.}#
   :doc #{The $DISCR_MAP_GIMPLE_SEQS is the discriminant of hash-map values associating raw GCC gimple_seq-s 
 to non-nil value. See also $CTYPE_GIMPLE_SEQ.}#
   :predef DISCR_MAP_GIMPLE_SEQS
-  :obj_num OBMAG_MAPGIMPLESEQS
+  :obj_num MELTOBMAG_MAPGIMPLESEQS
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_GIMPLE_SEQS")
 
@@ -1671,7 +1671,7 @@ to non-nil value. See also $CTYPE_GIMPLE_SEQ.}#
   :doc #{The $DISCR_MAP_EDGES is the discriminant of hash-map values associating raw GCC edge-s 
 to non-nil values. See also $CTYPE_EDGE.}#
   :predef DISCR_MAP_EDGES
-  :obj_num OBMAG_MAPEDGES
+  :obj_num MELTOBMAG_MAPEDGES
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_EDGES")
 
@@ -1680,7 +1680,7 @@ to non-nil values. See also $CTYPE_EDGE.}#
   :doc #{The $DISCR_MAP_BASIC_BLOCKS is the discriminant of hash-map values associating raw GCC basic_block-s 
 to non-nil values. See also $CTYPE_BASIC_BLOCK.}#
   :predef DISCR_MAP_BASIC_BLOCKS
-  :obj_num OBMAG_MAPBASICBLOCKS
+  :obj_num MELTOBMAG_MAPBASICBLOCKS
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_BASIC_BLOCKS")
 
@@ -1689,7 +1689,7 @@ to non-nil values. See also $CTYPE_BASIC_BLOCK.}#
   :doc #{The $DISCR_MAP_LOOPS is the discriminant of hash-map values associating raw GCC loop-s 
 to non-nil values. See also $CTYPE_LOOP.}#
   :predef DISCR_MAP_LOOPS
-  :obj_num OBMAG_MAPLOOPS
+  :obj_num MELTOBMAG_MAPLOOPS
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_LOOPS")
 
@@ -1698,7 +1698,7 @@ to non-nil values. See also $CTYPE_LOOP.}#
   :doc #{The $DISCR_MAP_BITMAPS is the discriminant of hash-map values associating raw GCC bitmap-s 
 to non-nil values. See also $CTYPE_BITMAP.}#
   :predef DISCR_MAP_BITMAPS
-  :obj_num OBMAG_MAPBITMAPS
+  :obj_num MELTOBMAG_MAPBITMAPS
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_BITMAPS")
 
@@ -1707,7 +1707,7 @@ to non-nil values. See also $CTYPE_BITMAP.}#
   :doc #{The $DISCR_MAP_RTXS is the discriminant of hash-map values associating raw GCC rtx-s 
 to non-nil values. See also $CTYPE_RTX.}#
   :predef DISCR_MAP_RTXS
-  :obj_num OBMAG_MAPRTXS
+  :obj_num MELTOBMAG_MAPRTXS
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_RTXS")
 
@@ -1716,14 +1716,14 @@ to non-nil values. See also $CTYPE_RTX.}#
   :doc #{The $DISCR_MAP_RTVECS is the discriminant of hash-map values associating raw GCC rtvec-s 
 to non-nil values. See also $CTYPE_RTVEC.}#
   :predef DISCR_MAP_RTVECS
-  :obj_num OBMAG_MAPRTVECS
+  :obj_num MELTOBMAG_MAPRTVECS
   :disc_super discr_any_receiver
   :named_name '"DISCR_MAP_RTVECS")
 
 
 ;;; the discriminant for PPL constraint system (not predefined)
 (definstance discr_ppl_constraint_system class_discriminant
-  :obj_num OBMAG_SPECPPL_CONSTRAINT_SYSTEM
+  :obj_num MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM
   :doc #{The $DISCR_PPL_CONSTRAINT_SYSTEM is the discriminant of boxed PPL constraint systems.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_PPL_CONSTRAINT_SYSTEM"
@@ -1731,7 +1731,7 @@ to non-nil values. See also $CTYPE_RTVEC.}#
 
 ;;; the discriminant for PPL polyhedron
 (definstance discr_ppl_polyhedron class_discriminant
-  :obj_num OBMAG_SPECPPL_POLYHEDRON
+  :obj_num MELTOBMAG_SPECPPL_POLYHEDRON
   :doc #{The $DISCR_PPL_POLYHEDRON is the discriminant of boxed PPL polyhedra.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_PPL_POLYHEDRON"
@@ -1740,7 +1740,7 @@ to non-nil values. See also $CTYPE_RTVEC.}#
 ;;; the discriminant for files [closed by the garbage collector] (not
 ;;; predefined)
 (definstance discr_file class_discriminant
-  :obj_num OBMAG_SPEC_FILE
+  :obj_num MELTOBMAG_SPEC_FILE
   :doc #{The $DISCR_FILE is the discriminant of boxed FILE*, which are fclose-d when the 
 boxed value is inaccessible. See also $DISCR_RAWFILE.}#
   :disc_super discr_any_receiver
@@ -1752,7 +1752,7 @@ boxed value is inaccessible. See also $DISCR_RAWFILE.}#
 (definstance discr_rawfile class_discriminant
   :doc #{The $DISCR_RAWFILE is the discriminant of boxed FILE*, The MELT garbage collector dont
 fclose them. See also $DISCR_FILE.}#
-  :obj_num OBMAG_SPEC_RAWFILE
+  :obj_num MELTOBMAG_SPEC_RAWFILE
   :disc_super discr_file
   :named_name '"DISCR_RAWFILE"
   )
@@ -1763,7 +1763,7 @@ fclose them. See also $DISCR_FILE.}#
   :doc #{The $DISCR_CLASS_SEQUENCE is the discriminant of class sequence tuple values, e.g. inside classes. 
 See also $CLASS_CLASS and $DISCR_MULTIPLE.}#
   :predef DISCR_CLASS_SEQUENCE
-  :obj_num OBMAG_MULTIPLE
+  :obj_num MELTOBMAG_MULTIPLE
   :named_name '"DISCR_CLASS_SEQUENCE"
   :disc_super discr_multiple
   )
@@ -1776,7 +1776,7 @@ dictionnary maps, associating selector values to closure value. See
 also $CLASS_CLASS, $CLASS_SELECTOR, $DISCR_CLOSURE and
 $DISCR_MAP_OBJECTS.}#
   :predef DISCR_METHOD_MAP
-  :obj_num OBMAG_MAPOBJECTS
+  :obj_num MELTOBMAG_MAPOBJECTS
   :disc_super discr_map_objects
   :named_name '"DISCR_METHOD_MAP")
 
@@ -1785,7 +1785,7 @@ $DISCR_MAP_OBJECTS.}#
   :doc #{The $DISCR_CHARACTER_INTEGER is the discriminant of 'character' boxed integer values. 
 See also $DISCR_INTEGER.}#
   :predef DISCR_CHARACTER_INTEGER
-  :obj_num OBMAG_INT
+  :obj_num MELTOBMAG_INT
   :named_name '"DISCR_CHARACTER_INTEGER"
   :disc_super discr_integer
   )
@@ -1796,7 +1796,7 @@ See also $DISCR_INTEGER.}#
   :doc #{The $DISCR_MIXED_INTEGER is the discriminant of mixed integer values, 
 containing both a number and a value component.}#
   :predef DISCR_MIXED_INTEGER
-  :obj_num OBMAG_MIXINT
+  :obj_num MELTOBMAG_MIXINT
   :disc_super discr_any_receiver
   :named_name '"DISCR_MIXED_INTEGER")
 
@@ -1806,7 +1806,7 @@ containing both a number and a value component.}#
   :doc #{The $DISCR_MIXED_BIGINT is the discriminant of mixed bigint values, 
 containing both a GMP number and a value component.}#
   :predef DISCR_MIXED_BIGINT
-  :obj_num OBMAG_MIXBIGINT
+  :obj_num MELTOBMAG_MIXBIGINT
   :disc_super discr_any_receiver
   :named_name '"DISCR_MIXED_BIGINT")
 
@@ -1817,7 +1817,7 @@ containing both a GMP number and a value component.}#
   :doc #{The $DISCR_MIXED_LOCATION is the discriminant of mixed location values, 
 containing both a GCC location and a value component.}#
   :predef DISCR_MIXED_LOCATION
-  :obj_num OBMAG_MIXLOC
+  :obj_num MELTOBMAG_MIXLOC
   :disc_super discr_any_receiver
   :named_name '"DISCR_MIXED_LOCATION")
 
@@ -1827,7 +1827,7 @@ containing both a GCC location and a value component.}#
   :doc #{The $DISCR_CLOSURE is the discriminant of MELT function closures, i.e. functional values. 
 See also $DISCR_ROUTINE.}#
   :predef DISCR_CLOSURE
-  :obj_num OBMAG_CLOSURE
+  :obj_num MELTOBMAG_CLOSURE
   :disc_super discr_any_receiver
   :named_name '"DISCR_CLOSURE")
 
@@ -1836,7 +1836,7 @@ See also $DISCR_ROUTINE.}#
   :doc #{The $DISCR_ROUTINE is the discriminant of MELT routine values, which boxes 
 the routine pointer and the constants inside MELT function closure values. See also $DISCR_CLOSURE.}#
   :predef DISCR_ROUTINE
-  :obj_num OBMAG_ROUTINE
+  :obj_num MELTOBMAG_ROUTINE
   :disc_super discr_any_receiver
   :named_name '"DISCR_ROUTINE")
 
@@ -2830,7 +2830,7 @@ current pair, and $CURCOMP, bound to the current component within the
 list.}#
    #{/* start $eachlist */
    for ($curpair = melt_list_first($lis);
-	melt_magic_discr($curpair) == OBMAG_PAIR;
+	melt_magic_discr($curpair) == MELTOBMAG_PAIR;
         $curpair = melt_pair_tail($curpair)) {
 	$curcomp = melt_pair_head($curpair); }#
    #{ } /* end $eachlist */}#

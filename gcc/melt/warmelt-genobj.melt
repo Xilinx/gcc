@@ -1016,7 +1016,7 @@ $SBUF.}#
 						       ") && melt_magic_discr((melt_ptr_t)(")
 				     ofreshenv
 				     (make_stringconst discr_verbatim_string 
-						       ")) != OBMAG_CLOSURE) warning(0, \"bad MELT fresh_env @%p in system data <%s:%d>\", ")
+						       ")) != MELTOBMAG_CLOSURE) warning(0, \"bad MELT fresh_env @%p in system data <%s:%d>\", ")
 				     ofreshenv
 				     (make_stringconst discr_verbatim_string ", __FILE__, __LINE__);"))))
 	     ;; generate the apply of ofreshenv

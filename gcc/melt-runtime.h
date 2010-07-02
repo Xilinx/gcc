@@ -324,94 +324,94 @@ VEC (meltobject_ptr_t, gc)
      
 typedef VEC (melt_ptr_t, gc) melt_valvec_t;
 
-enum obmag_en    {
-  OBMAG__NONE = 0,
-  OBMAG_OBJECT = 30000,
+enum meltobmag_en    {
+  MELTOBMAG__NONE = 0,
+  MELTOBMAG_OBJECT = 30000,
   
   /* keep these in alphabetical order */
-  OBMAG_BASICBLOCK,
-  OBMAG_BITMAP,
-  OBMAG_BOX,
-  OBMAG_CLOSURE,
-  OBMAG_DECAY,
-  OBMAG_EDGE,
-  OBMAG_GIMPLE,
-  OBMAG_GIMPLESEQ,
-  OBMAG_GIMPLESEQNODE,
-  OBMAG_INT,
-  OBMAG_LIST,
-  OBMAG_LOOP,
-  OBMAG_MAPBASICBLOCKS,
-  OBMAG_MAPBITMAPS,
-  OBMAG_MAPEDGES,
-  OBMAG_MAPGIMPLES,
-  OBMAG_MAPGIMPLESEQNODES,
-  OBMAG_MAPGIMPLESEQS,
-  OBMAG_MAPLOOPS,
-  OBMAG_MAPOBJECTS,
-  OBMAG_MAPRTVECS,
-  OBMAG_MAPRTXS,
-  OBMAG_MAPSTRINGS,
-  OBMAG_MAPTREES,
-  OBMAG_MIXBIGINT,
-  OBMAG_MIXINT,
-  OBMAG_MIXLOC,
-  OBMAG_MULTIPLE,
-  OBMAG_PAIR,
-  OBMAG_REAL,
-  OBMAG_ROUTINE,
-  OBMAG_RTVEC,
-  OBMAG_RTX,
-  OBMAG_STRBUF,
-  OBMAG_STRING,
-  OBMAG_TREE,
+  MELTOBMAG_BASICBLOCK,
+  MELTOBMAG_BITMAP,
+  MELTOBMAG_BOX,
+  MELTOBMAG_CLOSURE,
+  MELTOBMAG_DECAY,
+  MELTOBMAG_EDGE,
+  MELTOBMAG_GIMPLE,
+  MELTOBMAG_GIMPLESEQ,
+  MELTOBMAG_GIMPLESEQNODE,
+  MELTOBMAG_INT,
+  MELTOBMAG_LIST,
+  MELTOBMAG_LOOP,
+  MELTOBMAG_MAPBASICBLOCKS,
+  MELTOBMAG_MAPBITMAPS,
+  MELTOBMAG_MAPEDGES,
+  MELTOBMAG_MAPGIMPLES,
+  MELTOBMAG_MAPGIMPLESEQNODES,
+  MELTOBMAG_MAPGIMPLESEQS,
+  MELTOBMAG_MAPLOOPS,
+  MELTOBMAG_MAPOBJECTS,
+  MELTOBMAG_MAPRTVECS,
+  MELTOBMAG_MAPRTXS,
+  MELTOBMAG_MAPSTRINGS,
+  MELTOBMAG_MAPTREES,
+  MELTOBMAG_MIXBIGINT,
+  MELTOBMAG_MIXINT,
+  MELTOBMAG_MIXLOC,
+  MELTOBMAG_MULTIPLE,
+  MELTOBMAG_PAIR,
+  MELTOBMAG_REAL,
+  MELTOBMAG_ROUTINE,
+  MELTOBMAG_RTVEC,
+  MELTOBMAG_RTX,
+  MELTOBMAG_STRBUF,
+  MELTOBMAG_STRING,
+  MELTOBMAG_TREE,
 
   /* extra spare slots */
-  OBMAG__SPARE1,
-  OBMAG__SPARE2,
-  OBMAG__SPARE3,
-  OBMAG__SPARE4,
-  OBMAG__SPARE5,
-  OBMAG__SPARE6,
-  OBMAG__SPARE7,
-  OBMAG__SPARE8,
-  OBMAG__SPARE9,
-  OBMAG__SPARE10,
-  OBMAG__SPARE11,
-  OBMAG__SPARE12,
-  OBMAG__SPARE13,
-  OBMAG__SPARE14,
-  OBMAG__SPARE15,
-  OBMAG__SPARE16,
-  OBMAG__SPARE17,
-  OBMAG__SPARE18,
-  OBMAG__SPARE19,
-  OBMAG__SPARE20,
-  OBMAG__SPARE21,
-  OBMAG__SPARE22,
-  OBMAG__SPARE23,
-  OBMAG__SPARE24,
-  OBMAG__SPARE25,
-  OBMAG__SPARE26,
-  OBMAG__SPARE27,
-  OBMAG__SPARE28,
-  OBMAG__SPARE29,
-  OBMAG__SPARE30,
-  OBMAG__SPARE31,
+  MELTOBMAG__SPARE1,
+  MELTOBMAG__SPARE2,
+  MELTOBMAG__SPARE3,
+  MELTOBMAG__SPARE4,
+  MELTOBMAG__SPARE5,
+  MELTOBMAG__SPARE6,
+  MELTOBMAG__SPARE7,
+  MELTOBMAG__SPARE8,
+  MELTOBMAG__SPARE9,
+  MELTOBMAG__SPARE10,
+  MELTOBMAG__SPARE11,
+  MELTOBMAG__SPARE12,
+  MELTOBMAG__SPARE13,
+  MELTOBMAG__SPARE14,
+  MELTOBMAG__SPARE15,
+  MELTOBMAG__SPARE16,
+  MELTOBMAG__SPARE17,
+  MELTOBMAG__SPARE18,
+  MELTOBMAG__SPARE19,
+  MELTOBMAG__SPARE20,
+  MELTOBMAG__SPARE21,
+  MELTOBMAG__SPARE22,
+  MELTOBMAG__SPARE23,
+  MELTOBMAG__SPARE24,
+  MELTOBMAG__SPARE25,
+  MELTOBMAG__SPARE26,
+  MELTOBMAG__SPARE27,
+  MELTOBMAG__SPARE28,
+  MELTOBMAG__SPARE29,
+  MELTOBMAG__SPARE30,
+  MELTOBMAG__SPARE31,
 
   /* special, explicitly destroyed */
-  OBMAG_SPEC_FILE,		/* closed when deleted */
-  OBMAG_SPEC_RAWFILE,		/* not closed when deleted */
-  OBMAG_SPEC_MPFR,
-  OBMAG_SPECPPL_COEFFICIENT,
-  OBMAG_SPECPPL_LINEAR_EXPRESSION,
-  OBMAG_SPECPPL_CONSTRAINT,
-  OBMAG_SPECPPL_CONSTRAINT_SYSTEM,
-  OBMAG_SPECPPL_GENERATOR,
-  OBMAG_SPECPPL_GENERATOR_SYSTEM,
-  OBMAG_SPECPPL_POLYHEDRON,
+  MELTOBMAG_SPEC_FILE,		/* closed when deleted */
+  MELTOBMAG_SPEC_RAWFILE,		/* not closed when deleted */
+  MELTOBMAG_SPEC_MPFR,
+  MELTOBMAG_SPECPPL_COEFFICIENT,
+  MELTOBMAG_SPECPPL_LINEAR_EXPRESSION,
+  MELTOBMAG_SPECPPL_CONSTRAINT,
+  MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM,
+  MELTOBMAG_SPECPPL_GENERATOR,
+  MELTOBMAG_SPECPPL_GENERATOR_SYSTEM,
+  MELTOBMAG_SPECPPL_POLYHEDRON,
  
-  OBMAG__LAST
+  MELTOBMAG__LAST
 };
 
 
@@ -437,7 +437,7 @@ enum obmag_en    {
 
 /* *INDENT-ON* */
 
-/* when OBMAG_OBJECT -- */
+/* when MELTOBMAG_OBJECT -- */
 
 
 struct 
@@ -482,7 +482,7 @@ meltforward_st
   melt_ptr_t forward;
 };
 
-/* when OBMAG_DECAY  */
+/* when MELTOBMAG_DECAY  */
 struct 
 GTY ((mark_hook ("melt_mark_decay")))
 meltdecay_st
@@ -493,7 +493,7 @@ meltdecay_st
 };
 
 
-/* when OBMAG_BOX  */
+/* when MELTOBMAG_BOX  */
 struct 
 GTY (())
 meltbox_st
@@ -502,7 +502,7 @@ meltbox_st
   melt_ptr_t val;
 };
 
-/* when OBMAG_MULTIPLE  */
+/* when MELTOBMAG_MULTIPLE  */
 struct 
 GTY (())
 meltmultiple_st
@@ -518,7 +518,7 @@ meltmultiple_st
   melt_ptr_t tabval[N];				\
   long _gap; }
 
-/* when OBMAG_CLOSURE */
+/* when MELTOBMAG_CLOSURE */
 struct 
 GTY (())
 meltclosure_st
@@ -536,7 +536,7 @@ meltclosure_st
   melt_ptr_t tabval[N];				\
   long _gap; }
 
-/* when OBMAG_ROUTINE */
+/* when MELTOBMAG_ROUTINE */
 #define MELT_ROUTDESCR_LEN 96
 
 struct 
@@ -571,7 +571,7 @@ meltroutine_st
   long _gap; }
 
 
-/* when OBMAG_PAIR */
+/* when MELTOBMAG_PAIR */
 struct 
 GTY ((chain_next ("%h.tl")))
 meltpair_st
@@ -582,7 +582,7 @@ meltpair_st
 };
 
 
-/* when OBMAG_LIST   */
+/* when MELTOBMAG_LIST   */
 struct 
 GTY (())
 meltlist_st
@@ -596,7 +596,7 @@ meltlist_st
 
 
 
-/* when OBMAG_INT -  */
+/* when MELTOBMAG_INT -  */
 struct 
 GTY (())
 meltint_st
@@ -605,7 +605,7 @@ meltint_st
   long val;
 };
 
-/* when OBMAG_MIXINT -  */
+/* when MELTOBMAG_MIXINT -  */
 struct 
 GTY (())
 meltmixint_st
@@ -615,7 +615,7 @@ meltmixint_st
   long intval;
 };
 
-/* when OBMAG_MIXLOC -  */
+/* when MELTOBMAG_MIXLOC -  */
 struct 
 GTY (())
 meltmixloc_st
@@ -627,7 +627,7 @@ meltmixloc_st
 };
 
 
-/* when OBMAG_MIXBIGINT - an exported array mpz compatible; since we
+/* when MELTOBMAG_MIXBIGINT - an exported array mpz compatible; since we
    use an exported mpz format, the value can be copied and trashed by
    MELT garbage collector without harm. */
 struct
@@ -642,7 +642,7 @@ meltmixbigint_st
 };
 
 
-/* when OBMAG_REAL   */
+/* when MELTOBMAG_REAL   */
 struct 
 GTY (())
 meltreal_st
@@ -675,7 +675,7 @@ union special_melt_un
    to mark them, an inside mark, and to maintain lists of existing
    such PPL special boxes -which we scan to delete the unmarked
    ones */
-/* when OBMAG_SPEC* eg OBMAG_SPEC_MPFR, OBMAG_SPECPPL_COEFFICIENT; etc.
+/* when MELTOBMAG_SPEC* eg MELTOBMAG_SPEC_MPFR, MELTOBMAG_SPECPPL_COEFFICIENT; etc.
     */
 struct 
 GTY ((mark_hook ("melt_mark_special")))
@@ -709,7 +709,7 @@ melt_mark_decay (struct meltdecay_st *p)
 struct meltspecial_st* meltgc_make_special(melt_ptr_t discr);
 
 
-/* when OBMAG_STRING -  */
+/* when MELTOBMAG_STRING -  */
 struct 
 GTY (())
 meltstring_st
@@ -725,7 +725,7 @@ meltstring_st
 
 
 
-/* when OBMAG_STRBUF - string buffers  */
+/* when MELTOBMAG_STRBUF - string buffers  */
 struct 
 GTY (())
 meltstrbuf_st
@@ -742,7 +742,7 @@ meltstrbuf_st
   char GTY ((length ("0"))) buf_space[FLEXIBLE_DIM];
 };
 
-/* when OBMAG_TREE - boxed tree-s  */
+/* when MELTOBMAG_TREE - boxed tree-s  */
 struct 
 GTY (())
 melttree_st
@@ -752,7 +752,7 @@ melttree_st
 };
 
 
-/* when OBMAG_GIMPLE - boxed gimple-s */
+/* when MELTOBMAG_GIMPLE - boxed gimple-s */
 struct 
 GTY (())
 meltgimple_st
@@ -762,7 +762,7 @@ meltgimple_st
 };
 
 
-/* when OBMAG_GIMPLESEQ - boxed gimple_seq-s */
+/* when MELTOBMAG_GIMPLESEQ - boxed gimple_seq-s */
 struct 
 GTY (())
 meltgimpleseq_st
@@ -773,7 +773,7 @@ meltgimpleseq_st
 
 
 
-/* when OBMAG_BASICBLOCK  - boxed basic_block-s */
+/* when MELTOBMAG_BASICBLOCK  - boxed basic_block-s */
 struct
 GTY (())
 meltbasicblock_st
@@ -782,7 +782,7 @@ meltbasicblock_st
   basic_block val;
 };
 
-/* when OBMAG_EDGE   */
+/* when MELTOBMAG_EDGE   */
 struct
 GTY (())
 meltedge_st
@@ -792,7 +792,7 @@ meltedge_st
 };
 
 
-/* when OBMAG_LOOP - boxed loop-s */
+/* when MELTOBMAG_LOOP - boxed loop-s */
 struct 
 GTY (())
 meltloop_st
@@ -803,7 +803,7 @@ meltloop_st
 
 
 
-/* when OBMAG_RTX - boxed rtx-s */
+/* when MELTOBMAG_RTX - boxed rtx-s */
 struct 
 GTY (())
 meltrtx_st
@@ -813,7 +813,7 @@ meltrtx_st
 };
 
 
-/* when OBMAG_BITMAP - boxed bitmap-s */
+/* when MELTOBMAG_BITMAP - boxed bitmap-s */
 struct 
 GTY (())
 meltbitmap_st
@@ -823,7 +823,7 @@ meltbitmap_st
 };
 
 
-/* when OBMAG_RTVEC - boxed rtvec-s */
+/* when MELTOBMAG_RTVEC - boxed rtvec-s */
 struct 
 GTY (())
 meltrtvec_st
@@ -844,7 +844,7 @@ entryobjectsmelt_st
   melt_ptr_t e_va;
 };
 
-/* when OBMAG_MAPOBJECTS */
+/* when MELTOBMAG_MAPOBJECTS */
 struct 
 GTY (())
 meltmapobjects_st
@@ -869,7 +869,7 @@ entrytreesmelt_st
   melt_ptr_t e_va;
 };
 
-/* when OBMAG_MAPTREES */
+/* when MELTOBMAG_MAPTREES */
 struct
 GTY (())
 meltmaptrees_st
@@ -893,7 +893,7 @@ entrygimplesmelt_st
   melt_ptr_t e_va;
 };
 
-/* when OBMAG_MAPGIMPLES */
+/* when MELTOBMAG_MAPGIMPLES */
 struct
 GTY (())
 meltmapgimples_st
@@ -916,7 +916,7 @@ entrygimpleseqsmelt_st
   melt_ptr_t e_va;
 };
 
-/* when OBMAG_MAPGIMPLESEQS */
+/* when MELTOBMAG_MAPGIMPLESEQS */
 struct
 GTY (()) 
 meltmapgimpleseqs_st
@@ -940,7 +940,7 @@ entryloopsmelt_st
   melt_ptr_t e_va;
 };
 
-/* when OBMAG_MAPLOOPS */
+/* when MELTOBMAG_MAPLOOPS */
 struct
 GTY (()) 
 meltmaploops_st
@@ -964,7 +964,7 @@ entrybitmapsmelt_st
   melt_ptr_t e_va;
 };
 
-/* when OBMAG_MAPBITMAPS */
+/* when MELTOBMAG_MAPBITMAPS */
 struct
 GTY (()) 
 meltmapbitmaps_st
@@ -989,7 +989,7 @@ entryrtxsmelt_st
   melt_ptr_t e_va;
 };
 
-/* when OBMAG_MAPRTXS */
+/* when MELTOBMAG_MAPRTXS */
 struct
 GTY (()) 
 meltmaprtxs_st
@@ -1013,7 +1013,7 @@ entryrtvecsmelt_st
   melt_ptr_t e_va;
 };
 
-/* when OBMAG_MAPRTVECS */
+/* when MELTOBMAG_MAPRTVECS */
 struct
 GTY (()) 
 meltmaprtvecs_st
@@ -1037,7 +1037,7 @@ entrystringsmelt_st
   melt_ptr_t e_va;
 };
 
-/* when OBMAG_MAPSTRINGS */
+/* when MELTOBMAG_MAPSTRINGS */
 struct
 GTY (()) 
 meltmapstrings_st
@@ -1060,7 +1060,7 @@ entrybasicblocksmelt_st
   melt_ptr_t e_va;
 };
 
-/* when OBMAG_MAPBASICBLOCKS */
+/* when MELTOBMAG_MAPBASICBLOCKS */
 struct
 GTY (())
 meltmapbasicblocks_st
@@ -1082,7 +1082,7 @@ entryedgesmelt_st
   melt_ptr_t e_va;
 };
 
-/* when OBMAG_MAPEDGES */
+/* when MELTOBMAG_MAPEDGES */
 struct
 GTY (()) 
 meltmapedges_st
@@ -1104,58 +1104,58 @@ melt_un
 {
   meltobject_ptr_t GTY ((skip)) u_discr;
   struct meltforward_st GTY ((skip)) u_forward;
-  struct meltobject_st GTY ((tag ("OBMAG_OBJECT"))) u_object;
-  struct meltbox_st GTY ((tag ("OBMAG_BOX"))) u_box;
-  struct meltdecay_st GTY ((tag ("OBMAG_DECAY"))) u_decay;
-  struct meltmultiple_st GTY ((tag ("OBMAG_MULTIPLE"))) u_multiple;
-  struct meltclosure_st GTY ((tag ("OBMAG_CLOSURE"))) u_closure;
-  struct meltroutine_st GTY ((tag ("OBMAG_ROUTINE"))) u_routine;
-  struct meltlist_st GTY ((tag ("OBMAG_LIST"))) u_list;
-  struct meltint_st GTY ((tag ("OBMAG_INT"))) u_int;
-  struct meltmixint_st GTY ((tag ("OBMAG_MIXINT"))) u_mixint;
-  struct meltmixloc_st GTY ((tag ("OBMAG_MIXLOC"))) u_mixloc;
-  struct meltmixbigint_st GTY ((tag ("OBMAG_MIXBIGINT"))) u_mixbigint;
-  struct meltreal_st GTY ((tag ("OBMAG_REAL"))) u_real;
-  struct meltpair_st GTY ((tag ("OBMAG_PAIR"))) u_pair;
+  struct meltobject_st GTY ((tag ("MELTOBMAG_OBJECT"))) u_object;
+  struct meltbox_st GTY ((tag ("MELTOBMAG_BOX"))) u_box;
+  struct meltdecay_st GTY ((tag ("MELTOBMAG_DECAY"))) u_decay;
+  struct meltmultiple_st GTY ((tag ("MELTOBMAG_MULTIPLE"))) u_multiple;
+  struct meltclosure_st GTY ((tag ("MELTOBMAG_CLOSURE"))) u_closure;
+  struct meltroutine_st GTY ((tag ("MELTOBMAG_ROUTINE"))) u_routine;
+  struct meltlist_st GTY ((tag ("MELTOBMAG_LIST"))) u_list;
+  struct meltint_st GTY ((tag ("MELTOBMAG_INT"))) u_int;
+  struct meltmixint_st GTY ((tag ("MELTOBMAG_MIXINT"))) u_mixint;
+  struct meltmixloc_st GTY ((tag ("MELTOBMAG_MIXLOC"))) u_mixloc;
+  struct meltmixbigint_st GTY ((tag ("MELTOBMAG_MIXBIGINT"))) u_mixbigint;
+  struct meltreal_st GTY ((tag ("MELTOBMAG_REAL"))) u_real;
+  struct meltpair_st GTY ((tag ("MELTOBMAG_PAIR"))) u_pair;
   /* The struct meltspecial_st share several GTY tag-s, but gengtype
      need to have one case per tag!  See
      http://gcc.gnu.org/ml/gcc/2010-07/msg00061.html for more. */
-  struct meltspecial_st GTY ((tag ("OBMAG_SPEC_FILE"))) u_special_file;
-  struct meltspecial_st GTY ((tag ("OBMAG_SPEC_RAWFILE"))) u_special_rawfile;
-  struct meltspecial_st GTY ((tag ("OBMAG_SPEC_MPFR"))) u_special_mpfr;
-  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_COEFFICIENT"))) u_special_ppl_coefficient;
-  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_LINEAR_EXPRESSION"))) u_special_ppl_linear_expression;
-  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_CONSTRAINT"))) u_special_ppl_constraint;
-  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_CONSTRAINT_SYSTEM"))) u_special_ppl_constraint_system;
-  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_GENERATOR"))) u_special_ppl_generator;
-  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_GENERATOR_SYSTEM"))) u_special_ppl_generator_system;
-  struct meltspecial_st GTY ((tag ("OBMAG_SPECPPL_POLYHEDRON"))) u_special_ppl_polyhedron;
+  struct meltspecial_st GTY ((tag ("MELTOBMAG_SPEC_FILE"))) u_special_file;
+  struct meltspecial_st GTY ((tag ("MELTOBMAG_SPEC_RAWFILE"))) u_special_rawfile;
+  struct meltspecial_st GTY ((tag ("MELTOBMAG_SPEC_MPFR"))) u_special_mpfr;
+  struct meltspecial_st GTY ((tag ("MELTOBMAG_SPECPPL_COEFFICIENT"))) u_special_ppl_coefficient;
+  struct meltspecial_st GTY ((tag ("MELTOBMAG_SPECPPL_LINEAR_EXPRESSION"))) u_special_ppl_linear_expression;
+  struct meltspecial_st GTY ((tag ("MELTOBMAG_SPECPPL_CONSTRAINT"))) u_special_ppl_constraint;
+  struct meltspecial_st GTY ((tag ("MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM"))) u_special_ppl_constraint_system;
+  struct meltspecial_st GTY ((tag ("MELTOBMAG_SPECPPL_GENERATOR"))) u_special_ppl_generator;
+  struct meltspecial_st GTY ((tag ("MELTOBMAG_SPECPPL_GENERATOR_SYSTEM"))) u_special_ppl_generator_system;
+  struct meltspecial_st GTY ((tag ("MELTOBMAG_SPECPPL_POLYHEDRON"))) u_special_ppl_polyhedron;
   /* for simplicity and compatibility with previous code, we can just write u_special! */
   struct meltspecial_st  GTY ((skip)) u_special;
-  struct meltstring_st GTY ((tag ("OBMAG_STRING"))) u_string;
-  struct meltstrbuf_st GTY ((tag ("OBMAG_STRBUF"))) u_strbuf;
-  struct melttree_st GTY ((tag ("OBMAG_TREE"))) u_tree;
-  struct meltgimple_st GTY ((tag ("OBMAG_GIMPLE"))) u_gimple;
-  struct meltgimpleseq_st GTY ((tag ("OBMAG_GIMPLESEQ"))) u_gimpleseq;
-  struct meltgimpleseq_st GTY ((tag ("OBMAG_GIMPLESEQNODE"))) u_gimpleseqnode;
-  struct meltbasicblock_st GTY ((tag ("OBMAG_BASICBLOCK"))) u_basicblock;
-  struct meltedge_st GTY ((tag ("OBMAG_EDGE"))) u_edge;
-  struct meltloop_st GTY ((tag ("OBMAG_LOOP"))) u_loop;
-  struct meltbitmap_st GTY ((tag ("OBMAG_BITMAP"))) u_bitmap;
-  struct meltrtx_st GTY ((tag ("OBMAG_RTX"))) u_rtx;
-  struct meltrtvec_st GTY ((tag ("OBMAG_RTVEC"))) u_rtvec;
-  struct meltmapobjects_st GTY ((tag ("OBMAG_MAPOBJECTS"))) u_mapobjects;
-  struct meltmapstrings_st GTY ((tag ("OBMAG_MAPSTRINGS"))) u_mapstrings;
-  struct meltmaptrees_st GTY ((tag ("OBMAG_MAPTREES"))) u_maptrees;
-  struct meltmapgimples_st GTY ((tag ("OBMAG_MAPGIMPLES"))) u_mapgimples;
-  struct meltmapgimpleseqs_st GTY ((tag ("OBMAG_MAPGIMPLESEQS"))) u_mapgimpleseqs;
-  struct meltmapgimpleseqs_st GTY ((tag ("OBMAG_MAPGIMPLESEQNODES"))) u_mapgimpleseqnodes;
-  struct meltmapbasicblocks_st GTY ((tag ("OBMAG_MAPBASICBLOCKS"))) u_mapbasicblocks;
-  struct meltmapedges_st GTY ((tag ("OBMAG_MAPEDGES"))) u_mapedges;
-  struct meltmaploops_st GTY ((tag ("OBMAG_MAPLOOPS"))) u_maploops;
-  struct meltmapbitmaps_st GTY ((tag ("OBMAG_MAPBITMAPS"))) u_mapbitmaps;
-  struct meltmaprtxs_st GTY ((tag ("OBMAG_MAPRTXS"))) u_maprtxs;
-  struct meltmaprtvecs_st GTY ((tag ("OBMAG_MAPRTVECS"))) u_maprtvecs;
+  struct meltstring_st GTY ((tag ("MELTOBMAG_STRING"))) u_string;
+  struct meltstrbuf_st GTY ((tag ("MELTOBMAG_STRBUF"))) u_strbuf;
+  struct melttree_st GTY ((tag ("MELTOBMAG_TREE"))) u_tree;
+  struct meltgimple_st GTY ((tag ("MELTOBMAG_GIMPLE"))) u_gimple;
+  struct meltgimpleseq_st GTY ((tag ("MELTOBMAG_GIMPLESEQ"))) u_gimpleseq;
+  struct meltgimpleseq_st GTY ((tag ("MELTOBMAG_GIMPLESEQNODE"))) u_gimpleseqnode;
+  struct meltbasicblock_st GTY ((tag ("MELTOBMAG_BASICBLOCK"))) u_basicblock;
+  struct meltedge_st GTY ((tag ("MELTOBMAG_EDGE"))) u_edge;
+  struct meltloop_st GTY ((tag ("MELTOBMAG_LOOP"))) u_loop;
+  struct meltbitmap_st GTY ((tag ("MELTOBMAG_BITMAP"))) u_bitmap;
+  struct meltrtx_st GTY ((tag ("MELTOBMAG_RTX"))) u_rtx;
+  struct meltrtvec_st GTY ((tag ("MELTOBMAG_RTVEC"))) u_rtvec;
+  struct meltmapobjects_st GTY ((tag ("MELTOBMAG_MAPOBJECTS"))) u_mapobjects;
+  struct meltmapstrings_st GTY ((tag ("MELTOBMAG_MAPSTRINGS"))) u_mapstrings;
+  struct meltmaptrees_st GTY ((tag ("MELTOBMAG_MAPTREES"))) u_maptrees;
+  struct meltmapgimples_st GTY ((tag ("MELTOBMAG_MAPGIMPLES"))) u_mapgimples;
+  struct meltmapgimpleseqs_st GTY ((tag ("MELTOBMAG_MAPGIMPLESEQS"))) u_mapgimpleseqs;
+  struct meltmapgimpleseqs_st GTY ((tag ("MELTOBMAG_MAPGIMPLESEQNODES"))) u_mapgimpleseqnodes;
+  struct meltmapbasicblocks_st GTY ((tag ("MELTOBMAG_MAPBASICBLOCKS"))) u_mapbasicblocks;
+  struct meltmapedges_st GTY ((tag ("MELTOBMAG_MAPEDGES"))) u_mapedges;
+  struct meltmaploops_st GTY ((tag ("MELTOBMAG_MAPLOOPS"))) u_maploops;
+  struct meltmapbitmaps_st GTY ((tag ("MELTOBMAG_MAPBITMAPS"))) u_mapbitmaps;
+  struct meltmaprtxs_st GTY ((tag ("MELTOBMAG_MAPRTXS"))) u_maprtxs;
+  struct meltmaprtvecs_st GTY ((tag ("MELTOBMAG_MAPRTVECS"))) u_maprtvecs;
 } melt_un_t;
 
 /* return the magic of the discriminant or 0 */
@@ -1179,7 +1179,7 @@ static inline bool
 melt_is_out (melt_ptr_t p)
 {
   int d = melt_magic_discr(p);
-  return d == OBMAG_STRBUF || d == OBMAG_SPEC_FILE || d == OBMAG_SPEC_RAWFILE;
+  return d == MELTOBMAG_STRBUF || d == MELTOBMAG_SPEC_FILE || d == MELTOBMAG_SPEC_RAWFILE;
 }
 
 /* test if a pointer is a file */
@@ -1187,7 +1187,7 @@ static inline bool
 melt_is_file (melt_ptr_t p)
 {
   int d = melt_magic_discr(p);
-  return d == OBMAG_SPEC_FILE || d == OBMAG_SPEC_RAWFILE;
+  return d == MELTOBMAG_SPEC_FILE || d == MELTOBMAG_SPEC_RAWFILE;
 }
 
 
@@ -1195,7 +1195,7 @@ melt_is_file (melt_ptr_t p)
 static inline melt_ptr_t
 melt_multiple_nth (melt_ptr_t mul, int n)
 {
-  if (!mul || ((meltmultiple_ptr_t)mul)->discr->object_magic != OBMAG_MULTIPLE)
+  if (!mul || ((meltmultiple_ptr_t)mul)->discr->object_magic != MELTOBMAG_MULTIPLE)
     return NULL;
   if (n >= 0 && n < (int) ((meltmultiple_ptr_t)mul)->nbval)
     return ((meltmultiple_ptr_t)mul)->tabval[n];
@@ -1212,7 +1212,7 @@ void meltgc_multiple_put_nth (melt_ptr_t mul, int n,
 static inline int
 melt_multiple_length (melt_ptr_t mul)
 {
-  if (!mul || ((meltmultiple_ptr_t)mul)->discr->object_magic != OBMAG_MULTIPLE)
+  if (!mul || ((meltmultiple_ptr_t)mul)->discr->object_magic != MELTOBMAG_MULTIPLE)
     return 0;
   return ((meltmultiple_ptr_t)mul)->nbval;
 }
@@ -1221,7 +1221,7 @@ melt_multiple_length (melt_ptr_t mul)
 static inline bool
 melt_is_multiple_at_least(melt_ptr_t mul, int ln)
 {
-  if (!mul || ln<0 || ((meltmultiple_ptr_t)mul)->discr->object_magic != OBMAG_MULTIPLE) return 0;
+  if (!mul || ln<0 || ((meltmultiple_ptr_t)mul)->discr->object_magic != MELTOBMAG_MULTIPLE) return 0;
   return  (int)((meltmultiple_ptr_t)mul)->nbval >= (int)ln;
 }
 
@@ -1229,7 +1229,7 @@ melt_is_multiple_at_least(melt_ptr_t mul, int ln)
 static inline bool
 melt_is_multiple_of_length(melt_ptr_t mul, int ln)
 {
-  if (!mul || ln<0 || ((meltmultiple_ptr_t)mul)->discr->object_magic != OBMAG_MULTIPLE) return 0;
+  if (!mul || ln<0 || ((meltmultiple_ptr_t)mul)->discr->object_magic != MELTOBMAG_MULTIPLE) return 0;
   return  (int)((meltmultiple_ptr_t)mul)->nbval == (int)ln;
 }
 
@@ -1251,7 +1251,7 @@ melt_ptr_t meltgc_new_box (meltobject_ptr_t discr_p,
 static inline melt_ptr_t
 melt_box_content (meltbox_ptr_t box)
 {
-  if (!box || box->discr->object_magic != OBMAG_BOX)
+  if (!box || box->discr->object_magic != MELTOBMAG_BOX)
     return NULL;
   return box->val;
 }
@@ -1278,14 +1278,14 @@ meltgc_raw_remove_mappointers (void *mappointer_p, const void *attr);
 
 
 /* big macro to implement a mapFOOs */
-#define MELT_DEFINE_MAPTR(Obmag,Ptyp,Mapstruct,Newf,Getf,Putf,Removef,Countf,Sizef,Nthattrf,Nthvalf) \
+#define MELT_DEFINE_MAPTR(Meltobmag,Ptyp,Mapstruct,Newf,Getf,Putf,Removef,Countf,Sizef,Nthattrf,Nthvalf) \
 									\
 static inline melt_ptr_t						\
 Newf (meltobject_ptr_t discr, unsigned len)				\
 {									\
-  if (melt_magic_discr ((melt_ptr_t) discr) != OBMAG_OBJECT)		\
+  if (melt_magic_discr ((melt_ptr_t) discr) != MELTOBMAG_OBJECT)		\
     return NULL;							\
-  if (discr->object_magic != Obmag)					\
+  if (discr->object_magic != Meltobmag)					\
     return NULL;							\
   return (melt_ptr_t) meltgc_raw_new_mappointers (discr, len);		\
 }									\
@@ -1293,7 +1293,7 @@ Newf (meltobject_ptr_t discr, unsigned len)				\
 static inline melt_ptr_t						\
 Getf (melt_ptr_t map_p, Ptyp attr)					\
 {									\
-  if (melt_magic_discr ((melt_ptr_t) map_p) != Obmag || !attr)		\
+  if (melt_magic_discr ((melt_ptr_t) map_p) != Meltobmag || !attr)		\
     return NULL;							\
   return melt_raw_get_mappointers (map_p, attr);			\
 }									\
@@ -1302,7 +1302,7 @@ static inline void							\
 Putf (struct Mapstruct *map_p,						\
 	Ptyp attr, melt_ptr_t valu_p)					\
 {									\
-  if (melt_magic_discr ((melt_ptr_t) map_p) != Obmag			\
+  if (melt_magic_discr ((melt_ptr_t) map_p) != Meltobmag			\
       || !attr || !valu_p)						\
     return;								\
   meltgc_raw_put_mappointers (map_p, attr, valu_p);			\
@@ -1311,7 +1311,7 @@ Putf (struct Mapstruct *map_p,						\
 static inline melt_ptr_t						\
 Removef (struct Mapstruct *map, Ptyp attr)				\
 {									\
-  if (melt_magic_discr ((melt_ptr_t) map) != Obmag || !attr)		\
+  if (melt_magic_discr ((melt_ptr_t) map) != Meltobmag || !attr)		\
     return NULL;							\
   return meltgc_raw_remove_mappointers (map, attr);			\
 }									\
@@ -1319,7 +1319,7 @@ Removef (struct Mapstruct *map, Ptyp attr)				\
 static inline unsigned							\
 Countf (struct Mapstruct* map_p)					\
 {									\
-  if (!map_p || map_p->discr->obj_num != Obmag)				\
+  if (!map_p || map_p->discr->obj_num != Meltobmag)				\
     return 0;								\
   return map_p->count;							\
 }									\
@@ -1327,7 +1327,7 @@ Countf (struct Mapstruct* map_p)					\
 static inline int							\
 Sizef (struct Mapstruct* map_p)						\
 {									\
-  if (!map_p || map_p->discr->obj_num != Obmag)				\
+  if (!map_p || map_p->discr->obj_num != Meltobmag)				\
     return 0;								\
   return melt_primtab[map_p->lenix];					\
 }									\
@@ -1336,7 +1336,7 @@ static inline Ptyp							\
 Nthattrf(struct Mapstruct* map_p, int ix)				\
 {									\
   Ptyp at = 0;								\
-  if (!map_p || map_p->discr->obj_num != Obmag)				\
+  if (!map_p || map_p->discr->obj_num != Meltobmag)				\
     return 0;								\
   if (ix < 0 || ix >= melt_primtab[map_p->lenix])			\
     return 0;								\
@@ -1350,7 +1350,7 @@ static inline melt_ptr_t						\
 Nthvalf(struct Mapstruct* map_p, int ix)				\
 {									\
   Ptyp at = 0;								\
-  if (!map_p || map_p->discr->obj_num != Obmag)				\
+  if (!map_p || map_p->discr->obj_num != Meltobmag)				\
     return 0;								\
   if (ix < 0 || ix >= melt_primtab[map_p->lenix])			\
     return 0;								\
@@ -1362,7 +1362,7 @@ Nthvalf(struct Mapstruct* map_p, int ix)				\
 
 /* end of MELT_DEFINE_MAPTR macro */
 
-MELT_DEFINE_MAPTR(OBMAG_MAPTREES, tree, meltmaptrees_st,
+MELT_DEFINE_MAPTR(MELTOBMAG_MAPTREES, tree, meltmaptrees_st,
 		      meltgc_new_maptrees,
 		      melt_get_maptrees,
 		      melt_put_maptrees,
@@ -1372,7 +1372,7 @@ MELT_DEFINE_MAPTR(OBMAG_MAPTREES, tree, meltmaptrees_st,
 		      melt_nthattr_maptrees,
 		      melt_nthval_maptrees)
 
-MELT_DEFINE_MAPTR(OBMAG_MAPGIMPLES, gimple, meltmapgimples_st,
+MELT_DEFINE_MAPTR(MELTOBMAG_MAPGIMPLES, gimple, meltmapgimples_st,
 		      meltgc_new_mapgimples,
 		      melt_get_mapgimples,
 		      melt_put_mapgimples,
@@ -1382,7 +1382,7 @@ MELT_DEFINE_MAPTR(OBMAG_MAPGIMPLES, gimple, meltmapgimples_st,
 		      melt_nthattr_mapgimples,
 		      melt_nthval_mapgimples)
 
-MELT_DEFINE_MAPTR(OBMAG_MAPGIMPLESEQS, gimple_seq, meltmapgimpleseqs_st,
+MELT_DEFINE_MAPTR(MELTOBMAG_MAPGIMPLESEQS, gimple_seq, meltmapgimpleseqs_st,
 		      meltgc_new_mapgimpleseqs,
 		      melt_get_mapgimpleseqs,
 		      melt_put_mapgimpleseqs,
@@ -1393,7 +1393,7 @@ MELT_DEFINE_MAPTR(OBMAG_MAPGIMPLESEQS, gimple_seq, meltmapgimpleseqs_st,
 		      melt_nthval_mapgimpleseqs)
 
 
-MELT_DEFINE_MAPTR(OBMAG_MAPEDGES, edge, meltmapedges_st,
+MELT_DEFINE_MAPTR(MELTOBMAG_MAPEDGES, edge, meltmapedges_st,
 		      meltgc_new_mapedges,
 		      melt_get_mapedges,
 		      melt_put_mapedges,
@@ -1403,7 +1403,7 @@ MELT_DEFINE_MAPTR(OBMAG_MAPEDGES, edge, meltmapedges_st,
 		      melt_nthattr_mapedges,
 		      melt_nthval_mapedges)
 
-MELT_DEFINE_MAPTR(OBMAG_MAPBASICBLOCKS, basic_block, meltmapbasicblocks_st,
+MELT_DEFINE_MAPTR(MELTOBMAG_MAPBASICBLOCKS, basic_block, meltmapbasicblocks_st,
 		      meltgc_new_mapbasicblocks,
 		      melt_get_mapbasicblocks,
 		      melt_put_mapbasicblocks,
@@ -1413,7 +1413,7 @@ MELT_DEFINE_MAPTR(OBMAG_MAPBASICBLOCKS, basic_block, meltmapbasicblocks_st,
 		      melt_nthattr_mapbasicblocks,
 		      melt_nthval_mapbasicblocks)
 
-MELT_DEFINE_MAPTR(OBMAG_MAPLOOPS, loop_p, meltmaploops_st,
+MELT_DEFINE_MAPTR(MELTOBMAG_MAPLOOPS, loop_p, meltmaploops_st,
 		      meltgc_new_maploops,
 		      melt_get_maploops,
 		      melt_put_maploops,
@@ -1423,7 +1423,7 @@ MELT_DEFINE_MAPTR(OBMAG_MAPLOOPS, loop_p, meltmaploops_st,
 		      melt_nthattr_maploops,
 		      melt_nthval_maploops)
 
-MELT_DEFINE_MAPTR(OBMAG_MAPRTXS, rtx, meltmaprtxs_st,
+MELT_DEFINE_MAPTR(MELTOBMAG_MAPRTXS, rtx, meltmaprtxs_st,
 		      meltgc_new_maprtxs,
 		      melt_get_maprtxs,
 		      melt_put_maprtxs,
@@ -1433,7 +1433,7 @@ MELT_DEFINE_MAPTR(OBMAG_MAPRTXS, rtx, meltmaprtxs_st,
 		      melt_nthattr_maprtxs,
 		      melt_nthval_maprtxs)
 
-MELT_DEFINE_MAPTR(OBMAG_MAPRTVECS, rtvec, meltmaprtvecs_st,
+MELT_DEFINE_MAPTR(MELTOBMAG_MAPRTVECS, rtvec, meltmaprtvecs_st,
 		      meltgc_new_maprtvecs,
 		      melt_get_maprtvecs,
 		      melt_put_maprtvecs,
@@ -1443,7 +1443,7 @@ MELT_DEFINE_MAPTR(OBMAG_MAPRTVECS, rtvec, meltmaprtvecs_st,
 		      melt_nthattr_maprtvecs,
 		      melt_nthval_maprtvecs)
 
-MELT_DEFINE_MAPTR(OBMAG_MAPBITMAPS, bitmap, meltmapbitmaps_st,
+MELT_DEFINE_MAPTR(MELTOBMAG_MAPBITMAPS, bitmap, meltmapbitmaps_st,
 		      meltgc_new_mapbitmaps,
 		      melt_get_mapbitmaps,
 		      melt_put_mapbitmaps,
@@ -1467,7 +1467,7 @@ static inline tree
 melt_tree_content (melt_ptr_t box)
 {
   struct melttree_st* tr = (struct melttree_st*)box;
-  if (!tr || tr->discr->object_magic != OBMAG_TREE)
+  if (!tr || tr->discr->object_magic != MELTOBMAG_TREE)
     return NULL;
   return tr->val;
 }
@@ -1482,7 +1482,7 @@ static inline gimple
 melt_gimple_content (melt_ptr_t box)
 {
   struct meltgimple_st* g = (struct meltgimple_st*)box;
-  if (!g || g->discr->object_magic != OBMAG_GIMPLE)
+  if (!g || g->discr->object_magic != MELTOBMAG_GIMPLE)
     return NULL;
   return g->val;
 }
@@ -1497,7 +1497,7 @@ static inline gimple_seq
 melt_gimpleseq_content (melt_ptr_t box)
 {
   struct meltgimpleseq_st* g = (struct meltgimpleseq_st*)box;
-  if (!g || g->discr->object_magic != OBMAG_GIMPLESEQ)
+  if (!g || g->discr->object_magic != MELTOBMAG_GIMPLESEQ)
     return NULL;
   return g->val;
 }
@@ -1515,7 +1515,7 @@ static inline basic_block
 melt_basicblock_content (melt_ptr_t box)
 {
   struct meltbasicblock_st* b = (struct meltbasicblock_st*)box;
-  if (!b || b->discr->object_magic != OBMAG_BASICBLOCK)
+  if (!b || b->discr->object_magic != MELTOBMAG_BASICBLOCK)
     return NULL;
   return b->val;
 }
@@ -1525,7 +1525,7 @@ static inline gimple_seq
 melt_basicblock_gimpleseq(melt_ptr_t box)
 {
   struct meltbasicblock_st* b = (struct meltbasicblock_st*)box;
-  if (!b || b->discr->object_magic != OBMAG_BASICBLOCK || !b->val)
+  if (!b || b->discr->object_magic != MELTOBMAG_BASICBLOCK || !b->val)
     return NULL;
   return bb_seq(b->val);
 }
@@ -1535,7 +1535,7 @@ static inline gimple_seq
 melt_basicblock_phinodes(melt_ptr_t box)
 {
   struct meltbasicblock_st* b = (struct meltbasicblock_st*)box;
-  if (!b || b->discr->object_magic != OBMAG_BASICBLOCK || !b->val)
+  if (!b || b->discr->object_magic != MELTOBMAG_BASICBLOCK || !b->val)
     return NULL;
   return phi_nodes(b->val);
 }
@@ -1552,7 +1552,7 @@ static inline loop_p
 melt_loop_content (melt_ptr_t box)
 {
   struct meltloop_st* b = (struct meltloop_st*)box;
-  if (!b || b->discr->object_magic != OBMAG_LOOP)
+  if (!b || b->discr->object_magic != MELTOBMAG_LOOP)
     return NULL;
   return b->val;
 }
@@ -1569,7 +1569,7 @@ static inline bitmap
 melt_bitmap_content (melt_ptr_t box)
 {
   struct meltbitmap_st* b = (struct meltbitmap_st*)box;
-  if (!b || b->discr->object_magic != OBMAG_BITMAP)
+  if (!b || b->discr->object_magic != MELTOBMAG_BITMAP)
     return NULL;
   return b->val;
 }
@@ -1587,7 +1587,7 @@ static inline rtx
 melt_rtx_content (melt_ptr_t box)
 {
   struct meltrtx_st* b = (struct meltrtx_st*)box;
-  if (!b || b->discr->object_magic != OBMAG_RTX)
+  if (!b || b->discr->object_magic != MELTOBMAG_RTX)
     return NULL;
   return b->val;
 }
@@ -1604,7 +1604,7 @@ static inline rtvec
 melt_rtvec_content (melt_ptr_t box)
 {
   struct meltrtvec_st* b = (struct meltrtvec_st*)box;
-  if (!b || b->discr->object_magic != OBMAG_RTVEC)
+  if (!b || b->discr->object_magic != MELTOBMAG_RTVEC)
     return NULL;
   return b->val;
 }
@@ -1862,13 +1862,13 @@ melt_get_int (melt_ptr_t v)
 {
   switch (melt_magic_discr (v))
     {
-    case OBMAG_INT:
+    case MELTOBMAG_INT:
       return ((struct meltint_st *) (v))->val;
-    case OBMAG_MIXINT:
+    case MELTOBMAG_MIXINT:
       return ((struct meltmixint_st *) (v))->intval;
-    case OBMAG_MIXLOC:
+    case MELTOBMAG_MIXLOC:
       return ((struct meltmixloc_st *) (v))->intval;
-    case OBMAG_OBJECT:
+    case MELTOBMAG_OBJECT:
       return ((meltobject_ptr_t) (v))->obj_num;
     default:
       return 0;
@@ -1883,7 +1883,7 @@ melt_ptr_t meltgc_new_real(meltobject_ptr_t discr, REAL_VALUE_TYPE r);
 static inline REAL_VALUE_TYPE
 melt_get_real (melt_ptr_t v)
 {
-    if (melt_magic_discr (v) == OBMAG_REAL)
+    if (melt_magic_discr (v) == MELTOBMAG_REAL)
        return ((struct meltreal_st*) v)->val;
     return dconst0;
 }
@@ -1892,7 +1892,7 @@ melt_get_real (melt_ptr_t v)
 static inline long
 melt_obj_hash (melt_ptr_t v)
 {
-  if (melt_magic_discr (v) == OBMAG_OBJECT)
+  if (melt_magic_discr (v) == MELTOBMAG_OBJECT)
     return ((meltobject_ptr_t) (v))->obj_hash;
   return 0;
 }
@@ -1908,7 +1908,7 @@ melt_obj_serial (melt_ptr_t v ATTRIBUTE_UNUSED)
 static inline long
 melt_obj_len (melt_ptr_t v)
 {
-  if (melt_magic_discr (v) == OBMAG_OBJECT)
+  if (melt_magic_discr (v) == MELTOBMAG_OBJECT)
     return ((meltobject_ptr_t) (v))->obj_len;
   return 0;
 }
@@ -1916,7 +1916,7 @@ melt_obj_len (melt_ptr_t v)
 static inline long
 melt_obj_num (melt_ptr_t v)
 {
-  if (melt_magic_discr (v) == OBMAG_OBJECT)
+  if (melt_magic_discr (v) == MELTOBMAG_OBJECT)
     return ((meltobject_ptr_t) (v))->obj_num;
   return 0;
 }
@@ -1949,7 +1949,7 @@ static inline melt_ptr_t
 melt_val_mixint (melt_ptr_t mix)
 {
   struct meltmixint_st *smix = (struct meltmixint_st *) mix;
-  if (melt_magic_discr (mix) == OBMAG_MIXINT)
+  if (melt_magic_discr (mix) == MELTOBMAG_MIXINT)
     return smix->ptrval;
   return NULL;
 }
@@ -1958,7 +1958,7 @@ static inline melt_ptr_t
 melt_val_mixbigint (melt_ptr_t mix)
 {
   struct meltmixbigint_st *smix = (struct meltmixbigint_st *) mix;
-  if (melt_magic_discr (mix) == OBMAG_MIXBIGINT)
+  if (melt_magic_discr (mix) == MELTOBMAG_MIXBIGINT)
     return smix->ptrval;
   return NULL;
 }
@@ -1967,7 +1967,7 @@ static inline long
 melt_num_mixint (melt_ptr_t mix)
 {
   struct meltmixint_st *smix = (struct meltmixint_st *) mix;
-  if (melt_magic_discr (mix) == OBMAG_MIXINT)
+  if (melt_magic_discr (mix) == MELTOBMAG_MIXINT)
     return smix->intval;
   return 0;
 }
@@ -1976,7 +1976,7 @@ static inline long
 melt_num_mixloc (melt_ptr_t mix)
 {
   struct meltmixloc_st *smix = (struct meltmixloc_st *) mix;
-  if (melt_magic_discr (mix) == OBMAG_MIXLOC)
+  if (melt_magic_discr (mix) == MELTOBMAG_MIXLOC)
     return smix->intval;
   return 0;
 }
@@ -1985,7 +1985,7 @@ static inline melt_ptr_t
 melt_val_mixloc (melt_ptr_t mix)
 {
   struct meltmixloc_st *smix = (struct meltmixloc_st *) mix;
-  if (melt_magic_discr (mix) == OBMAG_MIXLOC)
+  if (melt_magic_discr (mix) == MELTOBMAG_MIXLOC)
     return smix->ptrval;
   return NULL;
 }
@@ -1995,7 +1995,7 @@ static inline location_t
 melt_location_mixloc (melt_ptr_t mix)
 {
   struct meltmixloc_st *smix = (struct meltmixloc_st *) mix;
-  if (melt_magic_discr (mix) == OBMAG_MIXLOC)
+  if (melt_magic_discr (mix) == MELTOBMAG_MIXLOC)
     return smix->locval;
   return (location_t)UNKNOWN_LOCATION;
 }
@@ -2009,7 +2009,7 @@ static inline bool
 melt_fill_mpz_from_mixbigint(melt_ptr_t mix, mpz_t mp)
 {
   struct meltmixbigint_st *bmix = (struct meltmixbigint_st *) mix;
-  if (!bmix || !mp || melt_magic_discr (mix) != OBMAG_MIXBIGINT)
+  if (!bmix || !mp || melt_magic_discr (mix) != MELTOBMAG_MIXBIGINT)
     return false;
   mpz_import (mp, bmix->biglen,
 	      /*most significant word first*/ 1, 
@@ -2024,7 +2024,7 @@ melt_fill_mpz_from_mixbigint(melt_ptr_t mix, mpz_t mp)
 static inline melt_ptr_t
 melt_field_object (melt_ptr_t ob, unsigned off)
 {
-  if (melt_magic_discr (ob) == OBMAG_OBJECT)
+  if (melt_magic_discr (ob) == MELTOBMAG_OBJECT)
     {
       meltobject_ptr_t pob = (meltobject_ptr_t) ob;
       if (off < pob->obj_len)
@@ -2054,7 +2054,7 @@ melt_dynobjstruct_getfield_object_at (melt_ptr_t ob, unsigned off, const char*fl
   unsigned origoff = off;
   if (poff && !*poff) 
     *poff = melt_dynobjstruct_fieldoffset_at(fldnam, fil, lin);
-  if (melt_magic_discr (ob) == OBMAG_OBJECT)
+  if (melt_magic_discr (ob) == MELTOBMAG_OBJECT)
     {
       meltobject_ptr_t pob = (meltobject_ptr_t) ob;
       if (poff && *poff) off = **poff;
@@ -2090,7 +2090,7 @@ melt_dynobjstruct_putfield_object_at(melt_ptr_t ob, unsigned off, melt_ptr_t val
   unsigned origoff = off;
   if (poff && !*poff) 
     *poff = melt_dynobjstruct_fieldoffset_at(fldnam, fil, lin);
-  if (melt_magic_discr (ob) == OBMAG_OBJECT)
+  if (melt_magic_discr (ob) == MELTOBMAG_OBJECT)
     {
       meltobject_ptr_t pob = (meltobject_ptr_t) ob;
       if (poff && *poff) off = **poff;
@@ -2146,7 +2146,7 @@ static inline melt_ptr_t
 melt_getfield_object_at (melt_ptr_t ob, unsigned off, const char*msg, const char*fil, int lin)
 {
   unsigned origoff = off;
-  if (melt_magic_discr (ob) == OBMAG_OBJECT)
+  if (melt_magic_discr (ob) == MELTOBMAG_OBJECT)
     {
       meltobject_ptr_t pob = (meltobject_ptr_t) ob;
       if (off < pob->obj_len)
@@ -2161,7 +2161,7 @@ melt_getfield_object_at (melt_ptr_t ob, unsigned off, const char*msg, const char
 static inline void
 melt_putfield_object_at(melt_ptr_t ob, unsigned off, melt_ptr_t val, const char*msg, const char*fil, int lin)
 {
-  if (melt_magic_discr (ob) == OBMAG_OBJECT)
+  if (melt_magic_discr (ob) == MELTOBMAG_OBJECT)
     {
       meltobject_ptr_t pob = (meltobject_ptr_t) ob;
       if (off < pob->obj_len) {
@@ -2202,7 +2202,7 @@ melt_make_raw_object(melt_ptr_t klas, int len, const char*clanam) {
 static inline int
 melt_object_length (melt_ptr_t ob)
 {
-  if (melt_magic_discr (ob) == OBMAG_OBJECT)
+  if (melt_magic_discr (ob) == MELTOBMAG_OBJECT)
     {
       meltobject_ptr_t pob = (meltobject_ptr_t) ob;
       return pob->obj_len;
@@ -2214,7 +2214,7 @@ melt_object_length (melt_ptr_t ob)
 static inline melt_ptr_t
 melt_object_nth_field(melt_ptr_t ob, int rk) 
 {
-  if (melt_magic_discr (ob) == OBMAG_OBJECT)
+  if (melt_magic_discr (ob) == MELTOBMAG_OBJECT)
     {
       meltobject_ptr_t pob = (meltobject_ptr_t) ob;
       if (rk<0) 
@@ -2272,7 +2272,7 @@ melt_ptr_t meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr);
 static inline const char *
 melt_string_str (melt_ptr_t v)
 {
-  if (melt_magic_discr (v) == OBMAG_STRING)
+  if (melt_magic_discr (v) == MELTOBMAG_STRING)
     return ((struct meltstring_st *) v)->val;
   return 0;
 }
@@ -2280,7 +2280,7 @@ melt_string_str (melt_ptr_t v)
 static inline int
 melt_string_length (melt_ptr_t v)
 {
-  if (melt_magic_discr (v) == OBMAG_STRING)
+  if (melt_magic_discr (v) == MELTOBMAG_STRING)
     return strlen(((struct meltstring_st *) v)->val);
   return 0;
 }
@@ -2288,8 +2288,8 @@ melt_string_length (melt_ptr_t v)
 static inline bool
 melt_string_same (melt_ptr_t v1, melt_ptr_t v2)
 {
-  if (melt_magic_discr (v1) == OBMAG_STRING
-      && melt_magic_discr (v2) == OBMAG_STRING)
+  if (melt_magic_discr (v1) == MELTOBMAG_STRING
+      && melt_magic_discr (v2) == MELTOBMAG_STRING)
     {
       return 0 == strcmp (((struct meltstring_st *) v1)->val,
 			  ((struct meltstring_st *) v2)->val);
@@ -2300,8 +2300,8 @@ melt_string_same (melt_ptr_t v1, melt_ptr_t v2)
 static inline bool
 melt_string_less (melt_ptr_t v1, melt_ptr_t v2)
 {
-  if (melt_magic_discr (v1) == OBMAG_STRING
-      && melt_magic_discr (v2) == OBMAG_STRING)
+  if (melt_magic_discr (v1) == MELTOBMAG_STRING
+      && melt_magic_discr (v2) == MELTOBMAG_STRING)
     {
       return strcmp (((struct meltstring_st *) v1)->val,
 		     ((struct meltstring_st *) v2)->val) < 0;
@@ -2311,7 +2311,7 @@ melt_string_less (melt_ptr_t v1, melt_ptr_t v2)
 
 static inline bool
 melt_is_string_const (melt_ptr_t v, const char *s) {
-  if (s && melt_magic_discr (v) == OBMAG_STRING)
+  if (s && melt_magic_discr (v) == MELTOBMAG_STRING)
     return 0 == strcmp (((struct meltstring_st *) v)->val, s);
   return 0;
 }
@@ -2319,7 +2319,7 @@ melt_is_string_const (melt_ptr_t v, const char *s) {
 static inline const char *
 melt_strbuf_str (melt_ptr_t v)
 {
-  if (melt_magic_discr (v) == OBMAG_STRBUF)
+  if (melt_magic_discr (v) == MELTOBMAG_STRBUF)
     {
       struct meltstrbuf_st *sb = (struct meltstrbuf_st*) v;
       if (sb->bufend >= sb->bufstart)
@@ -2331,7 +2331,7 @@ melt_strbuf_str (melt_ptr_t v)
 static inline int
 melt_strbuf_usedlength(melt_ptr_t v)
 {
-  if (melt_magic_discr (v) == OBMAG_STRBUF)
+  if (melt_magic_discr (v) == MELTOBMAG_STRBUF)
     {
       struct meltstrbuf_st *sb = (struct meltstrbuf_st *) v;
       if (sb->bufend >= sb->bufstart)
@@ -2431,7 +2431,7 @@ melt_ptr_t meltgc_remove_mapobjects (meltmapobjects_ptr_t
 static inline int
 melt_size_mapobjects (meltmapobjects_ptr_t mapobject_p)
 {
-  if (!mapobject_p || mapobject_p->discr->obj_num != OBMAG_MAPOBJECTS)
+  if (!mapobject_p || mapobject_p->discr->obj_num != MELTOBMAG_MAPOBJECTS)
     return 0;
   return melt_primtab[mapobject_p->lenix];
 }
@@ -2439,7 +2439,7 @@ melt_size_mapobjects (meltmapobjects_ptr_t mapobject_p)
 static inline unsigned
 melt_count_mapobjects (meltmapobjects_ptr_t mapobject_p)
 {
-  if (!mapobject_p || mapobject_p->discr->obj_num != OBMAG_MAPOBJECTS)
+  if (!mapobject_p || mapobject_p->discr->obj_num != MELTOBMAG_MAPOBJECTS)
     return 0;
   return mapobject_p->count;
 }
@@ -2448,7 +2448,7 @@ static inline meltobject_ptr_t
 melt_nthattr_mapobjects (meltmapobjects_ptr_t mapobject_p, int ix)
 {
   meltobject_ptr_t at = 0;
-  if (!mapobject_p || mapobject_p->discr->obj_num != OBMAG_MAPOBJECTS)
+  if (!mapobject_p || mapobject_p->discr->obj_num != MELTOBMAG_MAPOBJECTS)
     return 0;
   if (ix < 0 || ix >= melt_primtab[mapobject_p->lenix])
     return 0;
@@ -2462,7 +2462,7 @@ static inline melt_ptr_t
 melt_nthval_mapobjects (meltmapobjects_ptr_t mapobject_p, int ix)
 {
   meltobject_ptr_t at = 0;
-  if (!mapobject_p || mapobject_p->discr->obj_num != OBMAG_MAPOBJECTS)
+  if (!mapobject_p || mapobject_p->discr->obj_num != MELTOBMAG_MAPOBJECTS)
     return 0;
   if (ix < 0 || ix >= melt_primtab[mapobject_p->lenix])
     return 0;
@@ -2492,7 +2492,7 @@ melt_ptr_t meltgc_remove_mapstrings (struct meltmapstrings_st
 static inline int
 melt_size_mapstrings (struct meltmapstrings_st *mapstring_p)
 {
-  if (!mapstring_p || mapstring_p->discr->obj_num != OBMAG_MAPSTRINGS)
+  if (!mapstring_p || mapstring_p->discr->obj_num != MELTOBMAG_MAPSTRINGS)
     return 0;
   return melt_primtab[mapstring_p->lenix];
 }
@@ -2500,7 +2500,7 @@ melt_size_mapstrings (struct meltmapstrings_st *mapstring_p)
 static inline unsigned
 melt_count_mapstrings (struct meltmapstrings_st *mapstring_p)
 {
-  if (!mapstring_p || mapstring_p->discr->obj_num != OBMAG_MAPSTRINGS)
+  if (!mapstring_p || mapstring_p->discr->obj_num != MELTOBMAG_MAPSTRINGS)
     return 0;
   return mapstring_p->count;
 }
@@ -2510,7 +2510,7 @@ melt_nthattrraw_mapstrings (struct meltmapstrings_st *mapstring_p,
 			       int ix)
 {
   const char *at = 0;
-  if (!mapstring_p || mapstring_p->discr->obj_num != OBMAG_MAPSTRINGS)
+  if (!mapstring_p || mapstring_p->discr->obj_num != MELTOBMAG_MAPSTRINGS)
     return 0;
   if (ix < 0 || ix >= melt_primtab[mapstring_p->lenix])
     return 0;
@@ -2524,7 +2524,7 @@ static inline melt_ptr_t
 melt_nthval_mapstrings (struct meltmapstrings_st *mapstring_p, int ix)
 {
   const char *at = 0;
-  if (!mapstring_p || mapstring_p->discr->obj_num != OBMAG_MAPSTRINGS)
+  if (!mapstring_p || mapstring_p->discr->obj_num != MELTOBMAG_MAPSTRINGS)
     return 0;
   if (ix < 0 || ix >= melt_primtab[mapstring_p->lenix])
     return 0;
@@ -2546,7 +2546,7 @@ void meltgc_set_routine_data(melt_ptr_t rout_p, melt_ptr_t data_p);
 static inline melt_ptr_t 
 melt_routine_data(melt_ptr_t rout)
 {
-  if (rout && ((meltroutine_ptr_t) rout)->discr->obj_num == OBMAG_ROUTINE)
+  if (rout && ((meltroutine_ptr_t) rout)->discr->obj_num == MELTOBMAG_ROUTINE)
     return ((meltroutine_ptr_t) rout)->routdata;
   return NULL;
 }
@@ -2554,7 +2554,7 @@ melt_routine_data(melt_ptr_t rout)
 static inline char *
 melt_routine_descrstr (melt_ptr_t rout)
 {
-  if (rout && ((meltroutine_ptr_t) rout)->discr->obj_num == OBMAG_ROUTINE)
+  if (rout && ((meltroutine_ptr_t) rout)->discr->obj_num == MELTOBMAG_ROUTINE)
     return ((meltroutine_ptr_t) rout)->routdescr;
   return (char *) 0;
 }
@@ -2562,7 +2562,7 @@ melt_routine_descrstr (melt_ptr_t rout)
 static inline int
 melt_routine_size (melt_ptr_t rout)
 {
-  if (rout && ((meltroutine_ptr_t) rout)->discr->obj_num == OBMAG_ROUTINE)
+  if (rout && ((meltroutine_ptr_t) rout)->discr->obj_num == MELTOBMAG_ROUTINE)
     return ((meltroutine_ptr_t) rout)->nbval;
   return 0;
 }
@@ -2570,7 +2570,7 @@ melt_routine_size (melt_ptr_t rout)
 static inline melt_ptr_t
 melt_routine_nth (melt_ptr_t rout, int ix)
 {
-  if (rout && ((meltroutine_ptr_t) rout)->discr->obj_num == OBMAG_ROUTINE)
+  if (rout && ((meltroutine_ptr_t) rout)->discr->obj_num == MELTOBMAG_ROUTINE)
     if (ix >= 0 && ix < (int) ((meltroutine_ptr_t) rout)->nbval)
       return ((meltroutine_ptr_t) rout)->tabval[ix];
   return 0;
@@ -2586,7 +2586,7 @@ meltclosure_ptr_t meltgc_new_closure (meltobject_ptr_t discr_p,
 static inline int
 melt_closure_size (melt_ptr_t clo)
 {
-  if (clo && ((meltclosure_ptr_t) clo)->discr->obj_num == OBMAG_CLOSURE)
+  if (clo && ((meltclosure_ptr_t) clo)->discr->obj_num == MELTOBMAG_CLOSURE)
     return ((meltclosure_ptr_t) clo)->nbval;
   return 0;
 }
@@ -2594,7 +2594,7 @@ melt_closure_size (melt_ptr_t clo)
 static inline melt_ptr_t
 melt_closure_routine (melt_ptr_t clo)
 {
-  if (clo && ((meltclosure_ptr_t) clo)->discr->obj_num == OBMAG_CLOSURE)
+  if (clo && ((meltclosure_ptr_t) clo)->discr->obj_num == MELTOBMAG_CLOSURE)
     return (melt_ptr_t) (((meltclosure_ptr_t) clo)->rout);
   return 0;
 }
@@ -2602,7 +2602,7 @@ melt_closure_routine (melt_ptr_t clo)
 static inline melt_ptr_t
 melt_closure_nth (melt_ptr_t clo, int ix)
 {
-  if (clo && ((meltclosure_ptr_t) clo)->discr->obj_num == OBMAG_CLOSURE
+  if (clo && ((meltclosure_ptr_t) clo)->discr->obj_num == MELTOBMAG_CLOSURE
       && ix >= 0 && ix < (int) (((meltclosure_ptr_t) clo)->nbval))
     return (melt_ptr_t) (((meltclosure_ptr_t) clo)->tabval[ix]);
   return 0;
@@ -2614,7 +2614,7 @@ melt_closure_nth (melt_ptr_t clo, int ix)
 static inline melt_ptr_t
 melt_pair_head (melt_ptr_t pair)
 {
-  if (pair && ((struct meltpair_st *) pair)->discr->obj_num == OBMAG_PAIR)
+  if (pair && ((struct meltpair_st *) pair)->discr->obj_num == MELTOBMAG_PAIR)
     return ((struct meltpair_st *) pair)->hd;
   return 0;
 }
@@ -2622,7 +2622,7 @@ melt_pair_head (melt_ptr_t pair)
 static inline melt_ptr_t
 melt_pair_tail (melt_ptr_t pair)
 {
-  if (pair && ((struct meltpair_st *) pair)->discr->obj_num == OBMAG_PAIR)
+  if (pair && ((struct meltpair_st *) pair)->discr->obj_num == MELTOBMAG_PAIR)
     return (melt_ptr_t) (((struct meltpair_st *) pair)->tl);
   return 0;
 }
@@ -2633,7 +2633,7 @@ melt_pair_listlength (melt_ptr_t pair)
 {
   long l = 0;
   while (pair
-	 && ((struct meltpair_st *) pair)->discr->obj_num == OBMAG_PAIR)
+	 && ((struct meltpair_st *) pair)->discr->obj_num == MELTOBMAG_PAIR)
     {
       l++;
       pair = (melt_ptr_t) (((struct meltpair_st *) pair)->tl);
@@ -2644,7 +2644,7 @@ melt_pair_listlength (melt_ptr_t pair)
 static inline melt_ptr_t
 melt_list_first (melt_ptr_t lis)
 {
-  if (lis && ((struct meltlist_st *) lis)->discr->obj_num == OBMAG_LIST)
+  if (lis && ((struct meltlist_st *) lis)->discr->obj_num == MELTOBMAG_LIST)
     return (melt_ptr_t) (((struct meltlist_st *) lis)->first);
   return NULL;
 }
@@ -2652,7 +2652,7 @@ melt_list_first (melt_ptr_t lis)
 static inline melt_ptr_t
 melt_list_last (melt_ptr_t lis)
 {
-  if (lis && ((struct meltlist_st *) lis)->discr->obj_num == OBMAG_LIST)
+  if (lis && ((struct meltlist_st *) lis)->discr->obj_num == MELTOBMAG_LIST)
     return (melt_ptr_t) (((struct meltlist_st *) lis)->last);
   return NULL;
 }
@@ -2865,7 +2865,7 @@ enum { SAME_PPL_POLHYEDRON=0, CLONED_PPL_POLHYEDRON=1 };
 static inline ppl_Coefficient_t 
 melt_ppl_coefficient_content (melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_COEFFICIENT) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_COEFFICIENT) 
     return NULL;
   return ((struct meltspecial_st *)ppl_p)->val.sp_coefficient;
 }
@@ -2874,7 +2874,7 @@ melt_ppl_coefficient_content (melt_ptr_t ppl_p)
 static inline void
 melt_ppl_coefficient_put_content(melt_ptr_t ppl_p, ppl_Coefficient_t coef)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_COEFFICIENT) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_COEFFICIENT) 
     return;
   ((struct meltspecial_st *)ppl_p)->val.sp_coefficient = coef;
 }
@@ -2883,7 +2883,7 @@ melt_ppl_coefficient_put_content(melt_ptr_t ppl_p, ppl_Coefficient_t coef)
 static inline ppl_Linear_Expression_t 
 melt_ppl_linear_expression_content(melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_LINEAR_EXPRESSION) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_LINEAR_EXPRESSION) 
     return NULL;
   return ((struct meltspecial_st *)ppl_p)->val.sp_linear_expression;
 }
@@ -2892,7 +2892,7 @@ melt_ppl_linear_expression_content(melt_ptr_t ppl_p)
 static inline void 
 melt_ppl_linear_expression_put_content(melt_ptr_t ppl_p, ppl_Linear_Expression_t liex)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_LINEAR_EXPRESSION) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_LINEAR_EXPRESSION) 
     return;
   ((struct meltspecial_st *)ppl_p)->val.sp_linear_expression = liex;
 }
@@ -2901,7 +2901,7 @@ melt_ppl_linear_expression_put_content(melt_ptr_t ppl_p, ppl_Linear_Expression_t
 static inline ppl_Constraint_t 
 melt_ppl_constraint_content(melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_CONSTRAINT) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_CONSTRAINT) 
     return NULL;
   return ((struct meltspecial_st *)ppl_p)->val.sp_constraint;
 }
@@ -2910,7 +2910,7 @@ melt_ppl_constraint_content(melt_ptr_t ppl_p)
 static inline void
 melt_ppl_constraint_put_content(melt_ptr_t ppl_p, ppl_Constraint_t cons)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_CONSTRAINT) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_CONSTRAINT) 
     return;
   ((struct meltspecial_st *)ppl_p)->val.sp_constraint = cons;
 }
@@ -2919,7 +2919,7 @@ melt_ppl_constraint_put_content(melt_ptr_t ppl_p, ppl_Constraint_t cons)
 static inline ppl_Constraint_System_t 
 melt_ppl_constraint_system_content(melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_CONSTRAINT_SYSTEM) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM) 
     return NULL;
   return ((struct meltspecial_st *)ppl_p)->val.sp_constraint_system;
 }
@@ -2928,7 +2928,7 @@ melt_ppl_constraint_system_content(melt_ptr_t ppl_p)
 static inline void
 melt_ppl_constraint_system_put_content(melt_ptr_t ppl_p, ppl_Constraint_System_t consys)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_CONSTRAINT_SYSTEM) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM) 
     return;
   ((struct meltspecial_st *)ppl_p)->val.sp_constraint_system = consys;
 }
@@ -2938,7 +2938,7 @@ melt_ppl_constraint_system_put_content(melt_ptr_t ppl_p, ppl_Constraint_System_t
 static inline ppl_Generator_t 
 melt_ppl_generator_content(melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_GENERATOR) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_GENERATOR) 
     return NULL;
   return ((struct meltspecial_st *)ppl_p)->val.sp_generator;
 }
@@ -2948,7 +2948,7 @@ melt_ppl_generator_content(melt_ptr_t ppl_p)
 static inline void 
 melt_ppl_generator_put_content(melt_ptr_t ppl_p,  ppl_Generator_t gen)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_GENERATOR) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_GENERATOR) 
     return;
   ((struct meltspecial_st *)ppl_p)->val.sp_generator = gen;
 }
@@ -2958,7 +2958,7 @@ melt_ppl_generator_put_content(melt_ptr_t ppl_p,  ppl_Generator_t gen)
 static inline ppl_Generator_System_t 
 melt_ppl_generator_system_content(melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_GENERATOR_SYSTEM) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_GENERATOR_SYSTEM) 
     return NULL;
   return ((struct meltspecial_st *)ppl_p)->val.sp_generator_system;
 }
@@ -2967,7 +2967,7 @@ melt_ppl_generator_system_content(melt_ptr_t ppl_p)
 static inline void
 melt_ppl_generator_system_put_content(melt_ptr_t ppl_p, ppl_Generator_System_t gensys)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_GENERATOR_SYSTEM) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_GENERATOR_SYSTEM) 
     return;
   ((struct meltspecial_st *)ppl_p)->val.sp_generator_system = gensys;
 }
@@ -2977,7 +2977,7 @@ melt_ppl_generator_system_put_content(melt_ptr_t ppl_p, ppl_Generator_System_t g
 static inline ppl_Polyhedron_t
 melt_ppl_polyhedron_content(melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_POLYHEDRON) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_POLYHEDRON) 
     return NULL;
   return ((struct meltspecial_st *)ppl_p)->val.sp_polyhedron;
 }
@@ -2986,7 +2986,7 @@ melt_ppl_polyhedron_content(melt_ptr_t ppl_p)
 static inline void
 melt_ppl_polyhedron_put_content(melt_ptr_t ppl_p, ppl_Polyhedron_t poly)
 {
-  if (melt_magic_discr(ppl_p) != OBMAG_SPECPPL_POLYHEDRON) 
+  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_POLYHEDRON) 
     return;
   ((struct meltspecial_st *)ppl_p)->val.sp_polyhedron = poly;
 }
@@ -3353,14 +3353,14 @@ melt_is_instance_of (melt_ptr_t inst_p, melt_ptr_t class_p)
   gcc_assert(inst_p->u_discr != NULL);
   mag_class = class_p->u_discr->obj_num;
   mag_inst = inst_p->u_discr->obj_num;
-  if (mag_class != OBMAG_OBJECT || !mag_inst)
+  if (mag_class != MELTOBMAG_OBJECT || !mag_inst)
     return FALSE;
   if (((meltobject_ptr_t) inst_p)->obj_class ==
       (meltobject_ptr_t) class_p)
     return TRUE;
   if (mag_inst != ((meltobject_ptr_t) class_p)->object_magic)
     return FALSE;
-  if (mag_inst == OBMAG_OBJECT)
+  if (mag_inst == MELTOBMAG_OBJECT)
     return melt_is_subclass_of (((meltobject_ptr_t) inst_p)->obj_class,
 				   ((meltobject_ptr_t) class_p));
   /* the instance is not an object but something else and it has the
@@ -3378,18 +3378,18 @@ melt_put_int (melt_ptr_t v, long x)
     return FALSE;
   switch (melt_magic_discr (v))
     {
-    case OBMAG_INT:
+    case MELTOBMAG_INT:
       if (v->u_discr == (meltobject_ptr_t)MELT_PREDEF(DISCR_CONSTANT_INTEGER))
 	return FALSE;
       ((struct meltint_st *) (v))->val = x;
       return TRUE;
-    case OBMAG_MIXINT:
+    case MELTOBMAG_MIXINT:
       ((struct meltmixint_st *) (v))->intval = x;
       return TRUE;
-    case OBMAG_MIXLOC:
+    case MELTOBMAG_MIXLOC:
       ((struct meltmixloc_st *) (v))->intval = x;
       return TRUE;
-    case OBMAG_OBJECT:
+    case MELTOBMAG_OBJECT:
       if (((meltobject_ptr_t) (v))->obj_num != 0)
 	return FALSE;
       ((meltobject_ptr_t) (v))->obj_num = (unsigned short) x;
@@ -3574,7 +3574,7 @@ melt_newlineflush (FILE * f)
 static inline void
 melt_putstr (FILE * f, melt_ptr_t sv)
 {
-  if (f && sv && melt_magic_discr (sv) == OBMAG_STRING)
+  if (f && sv && melt_magic_discr (sv) == MELTOBMAG_STRING)
     fputs (((struct meltstring_st *) sv)->val, f);
 }
 
@@ -3583,7 +3583,7 @@ static inline void
 melt_putstrbuf (FILE * f, melt_ptr_t sb)
 {
   struct meltstrbuf_st *sbuf = (struct meltstrbuf_st *) sb;
-  if (f && sbuf && melt_magic_discr ((melt_ptr_t) sbuf) == OBMAG_STRBUF)
+  if (f && sbuf && melt_magic_discr ((melt_ptr_t) sbuf) == MELTOBMAG_STRBUF)
     {
       gcc_assert (sbuf->bufzn);
       if (!sbuf->bufzn || sbuf->bufend <= sbuf->bufstart)
@@ -3717,7 +3717,7 @@ melt_get_file(melt_ptr_t file_p)
   if (!file_p)
     return NULL;
   magic = melt_magic_discr (file_p);
-  if (magic == OBMAG_SPEC_FILE || magic == OBMAG_SPEC_RAWFILE)
+  if (magic == MELTOBMAG_SPEC_FILE || magic == MELTOBMAG_SPEC_RAWFILE)
     return ((struct meltspecial_st*)file_p)->val.sp_file;
   return NULL;
 }

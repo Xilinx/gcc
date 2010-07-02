@@ -2612,9 +2612,9 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	    ))))
      (unsafe_put_fields newclass
 			:class_fields fieldtup)
-     ;; we need to put the object magic to OBMAG_OBJECT now
+     ;; we need to put the object magic to MELTOBMAG_OBJECT now
      (code_chunk setobjmagic
-		 #{((meltobject_ptr_t)$newclass)->obj_num = OBMAG_OBJECT;
+		 #{((meltobject_ptr_t)$newclass)->obj_num = MELTOBMAG_OBJECT;
 		 }#)
      (debug_msg newclass "mexp.defclass newclass" )
      (instance class_source_defclass

@@ -42,7 +42,7 @@
 ;;;;; gimple & tree related primitives
 
 (defprimitive is_gimple (v) :long
-   #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_GIMPLE)}# )
+   #{(melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_GIMPLE)}# )
 
 (defprimitive make_gimple (discr :gimple g) :value
   #{(meltgc_new_gimple((meltobject_ptr_t)($discr),($g)))}# )
@@ -64,7 +64,7 @@
 
 ;;;;;;;;;;;;;;;; map associating GCC gimple-s to non-null MELT values
 (defprimitive is_mapgimple (map) :long
-  #{ (melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPGIMPLES) }#)
+  #{ (melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPGIMPLES) }#)
 (defprimitive mapgimple_size (map) :long
  #{ (melt_size_mapgimples((struct meltmapgimples_st*)($map))) }#)
 ;; primitive to get the attribute count of a mapgimple
@@ -118,7 +118,7 @@
 
 ;;;;;;;;;;;;;;;; map associating GCC edge-s to non-null MELT values
 (defprimitive is_mapedge (map) :long
-  #{ (melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPEDGES) }#)
+  #{ (melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPEDGES) }#)
 (defprimitive mapedge_size (map) :long
  #{ (melt_size_mapedges((struct meltmapedges_st*)($map))) }#)
 ;; primitive to get the attribute count of a mapedge
@@ -169,7 +169,7 @@
 
 ;;;;;;;;;;;;;;;; map associating GCC loop-s to non-null MELT values
 (defprimitive is_maploop (map) :long
-  #{ (melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPLOOPS) }#)
+  #{ (melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPLOOPS) }#)
 (defprimitive maploop_size (map) :long
  #{ (melt_size_maploops((struct meltmaploops_st*)($map))) }#)
 ;; primitive to get the attribute count of a maploop
@@ -224,7 +224,7 @@
   (:gimple g) 				;outs
   gimpsta				;statesymb
   ;; test expansion
-  #{ (melt_magic_discr((melt_ptr_t)($gv)) == OBMAG_GIMPLE) }#
+  #{ (melt_magic_discr((melt_ptr_t)($gv)) == MELTOBMAG_GIMPLE) }#
   ;; fill expansion
   #{ $g = melt_gimple_content(((melt_ptr_t)($gv)));
   }#
@@ -1306,7 +1306,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defprimitive is_gimpleseq (v) :long
-  #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_GIMPLESEQ)}# )
+  #{(melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_GIMPLESEQ)}# )
 
 (defprimitive make_gimpleseq (discr :gimple_seq g) :value
   #{(meltgc_new_gimpleseq((meltobject_ptr_t)($discr),($g)))}# )
@@ -1317,7 +1317,7 @@
 
 
 (defprimitive is_tree (v) :long
-  #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_TREE)}# )
+  #{(melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_TREE)}# )
 
 (defprimitive make_tree (discr :tree g) :value
   #{(meltgc_new_tree((meltobject_ptr_t)($discr),($g)))}# )
@@ -1643,7 +1643,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
 (defprimitive is_basicblock (v) :long
- #{ (melt_magic_discr((melt_ptr_t)($v)) == OBMAG_BASICBLOCK)}# )
+ #{ (melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_BASICBLOCK)}# )
 
 (defprimitive isnull_basicblock (:basic_block bb) :long
  #{($bb == (basic_block)0)}# )
@@ -1696,7 +1696,7 @@
 ;;;;;;;;;;;;;;;;
 
 (defprimitive is_mapbasicblock (map) :long
-  #{(melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPBASICBLOCKS)}# )
+  #{(melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPBASICBLOCKS)}# )
 (defprimitive mapbasicblock_size (map) :long
   #{(melt_size_mapbasicblocks((struct meltmapbasicblocks_st*)($map)))}#)
 ;; primitive to get the attribute count of a mapbasicblock
@@ -1790,7 +1790,7 @@
 ;;;;;;;;;;;;;;;;
 
 (defprimitive is_maptree (map) :long
-  #{ (melt_magic_discr((melt_ptr_t)($map)) == OBMAG_MAPTREES) }#)
+  #{ (melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPTREES) }#)
 (defprimitive maptree_size (map) :long
  #{ (melt_size_maptrees((struct meltmaptrees_st*)($map))) }#)
 ;; primitive to get the attribute count of a maptree
@@ -2408,7 +2408,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 ;;;;; loop related operations
 
 (defprimitive is_loop (v) :long
-   #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_LOOP)}# )
+   #{(melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_LOOP)}# )
 
 (defprimitive make_loop (discr :loop l) :value
   #{(meltgc_new_loop((meltobject_ptr_t)($discr),($l)))}# )

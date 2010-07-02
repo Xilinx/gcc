@@ -2,6 +2,11 @@
 /* secondary MELT generated C file of rank #1 */
 #include "melt-run.h"
 
+
+/* used hash from melt-run.h when compiling this file: */
+const char used_meltrun_md5_melt_f1[] = MELT_RUN_HASHMD5 /* from melt-run.h */;
+
+
 /**** warmelt-debug.0+01.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1
 
@@ -342,19 +347,19 @@ lab_endgetargs:;
   
   /*^putuple*/
   /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V6*/ meltfptr[5]))== OBMAG_MULTIPLE);
+  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V6*/ meltfptr[5]))== MELTOBMAG_MULTIPLE);
   melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V6*/ meltfptr[5]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V6*/ meltfptr[5]))->tabval[0] = (melt_ptr_t)(/*_.STR__V2*/ meltfptr[1]);
   ;
   /*^putuple*/
   /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V6*/ meltfptr[5]))== OBMAG_MULTIPLE);
+  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V6*/ meltfptr[5]))== MELTOBMAG_MULTIPLE);
   melt_assertmsg("putupl checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V6*/ meltfptr[5]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V6*/ meltfptr[5]))->tabval[1] = (melt_ptr_t)(/*_.VAL__V3*/ meltfptr[2]);
   ;
   /*^putuple*/
   /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V6*/ meltfptr[5]))== OBMAG_MULTIPLE);
+  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V6*/ meltfptr[5]))== MELTOBMAG_MULTIPLE);
   melt_assertmsg("putupl checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V6*/ meltfptr[5]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V6*/ meltfptr[5]))->tabval[2] = (melt_ptr_t)(/*_.MAKE_INTEGERBOX__V4*/ meltfptr[3]);
   ;
@@ -637,7 +642,7 @@ lab_endgetargs:;
  /*^compute*/
 
  /*_#IS_STRING__L3*/ meltfnum[2] = 
-  (melt_magic_discr((melt_ptr_t)(/*_.CURSTR__V4*/ meltfptr[3])) == OBMAG_STRING);;
+  (melt_magic_discr((melt_ptr_t)(/*_.CURSTR__V4*/ meltfptr[3])) == MELTOBMAG_STRING);;
  MELT_LOCATION("warmelt-debug.melt:727:/ cond");
  /*cond*/ if (/*_#IS_STRING__L3*/ meltfnum[2]) /*then*/ {
  /*^cond.then*/
@@ -4999,17 +5004,17 @@ lab_endgetargs:;
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @DBGI_OUT", melt_magic_discr((melt_ptr_t)(/*_.INST__V7*/ meltfptr[6])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @DBGI_OUT", melt_magic_discr((melt_ptr_t)(/*_.INST__V7*/ meltfptr[6])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V7*/ meltfptr[6]), (0), (/*_.SBUF__V3*/ meltfptr[2]), "DBGI_OUT");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @DBGI_OCCMAP", melt_magic_discr((melt_ptr_t)(/*_.INST__V7*/ meltfptr[6])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @DBGI_OCCMAP", melt_magic_discr((melt_ptr_t)(/*_.INST__V7*/ meltfptr[6])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V7*/ meltfptr[6]), (1), (/*_.OCCMAP__V4*/ meltfptr[3]), "DBGI_OCCMAP");
  ;
  /*^putslot*/
  /*putslot*/
- melt_assertmsg("putslot checkobj @DBGI_MAXDEPTH", melt_magic_discr((melt_ptr_t)(/*_.INST__V7*/ meltfptr[6])) == OBMAG_OBJECT);
+ melt_assertmsg("putslot checkobj @DBGI_MAXDEPTH", melt_magic_discr((melt_ptr_t)(/*_.INST__V7*/ meltfptr[6])) == MELTOBMAG_OBJECT);
  melt_putfield_object((/*_.INST__V7*/ meltfptr[6]), (2), (/*_.BOXEDMAXDEPTH__V5*/ meltfptr[4]), "DBGI_MAXDEPTH");
  ;
  /*_.DBGI__V6*/ meltfptr[5] = /*_.INST__V7*/ meltfptr[6];;

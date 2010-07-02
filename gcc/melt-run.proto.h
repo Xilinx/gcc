@@ -65,7 +65,6 @@ along with GCC; see the file COPYING3.   If not see
 
 /* MELT specific includes */
 
-
 #include "ppl_c.h"
 #include "melt-runtime.h"
 
@@ -90,6 +89,7 @@ extern void gt_ggc_mx_melt_un (void*);
 #else
 #define MELT_MODULE_VISIBILITY
 #endif
+
 
 /* actually, the generated melt-run.h contains a MD5 string hash, same
    as melt_run_preprocessed_md5 */

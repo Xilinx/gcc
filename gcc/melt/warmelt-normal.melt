@@ -5272,7 +5272,7 @@ source location.}#
 		      :ninst_hash  (make_integerbox discr_integer (obj_hash claobj))
 		      :ninst_predef spredef
 		      :ninst_slots claslots
-		      :ninst_objnum 'OBMAG_OBJECT
+		      :ninst_objnum 'MELTOBMAG_OBJECT
 		      )) 
 	   (ancseq (unsafe_get_field :class_ancestors claobj))
 	   (:long nbanc (multiple_length ancseq))

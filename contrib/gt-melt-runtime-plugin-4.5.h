@@ -1,5 +1,5 @@
 /* Type information for GCC.
-   Copyright (C) 2004, 2007, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2007, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -18,9 +18,11 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 /* This file was machine generated when MELT was still an early 4.6
-   compatible enough with GCC 4.5. It was copied from GCC MELT svn rev
-   161548.  Do not edit. It is here to ease building of MELT plugin
-   for GCC 4.5. See also the contrib/build-melt-plugin.sh script. */
+   compatible enough with GCC 4.5. It was copied from build tree of
+   GCC MELT svn rev 161750.  Do not edit. It is here to ease building
+   of MELT plugin for GCC 4.5. See also the
+   contrib/build-melt-plugin.sh script.  DON'T EDIT! */
+
 
 /* GC marker procedures.  */
 /* macros and declarations */
@@ -852,7 +854,7 @@ gt_ggc_mx_melt_un (void *x_p)
     {
       switch ((*x).u_discr->object_magic)
         {
-        case OBMAG_OBJECT:
+        case MELTOBMAG_OBJECT:
           gt_ggc_m_13meltobject_st ((*x).u_object.obj_class);
           {
             size_t i0;
@@ -862,15 +864,15 @@ gt_ggc_mx_melt_un (void *x_p)
             }
           }
           break;
-        case OBMAG_BOX:
+        case MELTOBMAG_BOX:
           gt_ggc_m_13meltobject_st ((*x).u_box.discr);
           gt_ggc_m_7melt_un ((*x).u_box.val);
           break;
-        case OBMAG_DECAY:
+        case MELTOBMAG_DECAY:
           gt_ggc_m_13meltobject_st ((*x).u_decay.discr);
           gt_ggc_m_7melt_un ((*x).u_decay.val);
           break;
-        case OBMAG_MULTIPLE:
+        case MELTOBMAG_MULTIPLE:
           gt_ggc_m_13meltobject_st ((*x).u_multiple.discr);
           {
             size_t i1;
@@ -880,7 +882,7 @@ gt_ggc_mx_melt_un (void *x_p)
             }
           }
           break;
-        case OBMAG_CLOSURE:
+        case MELTOBMAG_CLOSURE:
           gt_ggc_m_13meltobject_st ((*x).u_closure.discr);
           gt_ggc_m_14meltroutine_st ((*x).u_closure.rout);
           {
@@ -891,7 +893,7 @@ gt_ggc_mx_melt_un (void *x_p)
             }
           }
           break;
-        case OBMAG_ROUTINE:
+        case MELTOBMAG_ROUTINE:
           gt_ggc_m_13meltobject_st ((*x).u_routine.discr);
           gt_ggc_m_7melt_un ((*x).u_routine.routdata);
           {
@@ -902,41 +904,68 @@ gt_ggc_mx_melt_un (void *x_p)
             }
           }
           break;
-        case OBMAG_LIST:
+        case MELTOBMAG_LIST:
           gt_ggc_m_13meltobject_st ((*x).u_list.discr);
           gt_ggc_m_11meltpair_st ((*x).u_list.first);
           gt_ggc_m_11meltpair_st ((*x).u_list.last);
           break;
-        case OBMAG_INT:
+        case MELTOBMAG_INT:
           gt_ggc_m_13meltobject_st ((*x).u_int.discr);
           break;
-        case OBMAG_MIXINT:
+        case MELTOBMAG_MIXINT:
           gt_ggc_m_13meltobject_st ((*x).u_mixint.discr);
           gt_ggc_m_7melt_un ((*x).u_mixint.ptrval);
           break;
-        case OBMAG_MIXLOC:
+        case MELTOBMAG_MIXLOC:
           gt_ggc_m_13meltobject_st ((*x).u_mixloc.discr);
           gt_ggc_m_7melt_un ((*x).u_mixloc.ptrval);
           break;
-        case OBMAG_MIXBIGINT:
+        case MELTOBMAG_MIXBIGINT:
           gt_ggc_m_13meltobject_st ((*x).u_mixbigint.discr);
           gt_ggc_m_7melt_un ((*x).u_mixbigint.ptrval);
           break;
-        case OBMAG_REAL:
+        case MELTOBMAG_REAL:
           gt_ggc_m_13meltobject_st ((*x).u_real.discr);
           break;
-        case OBMAG_PAIR:
+        case MELTOBMAG_PAIR:
           gt_ggc_m_13meltobject_st ((*x).u_pair.discr);
           gt_ggc_m_7melt_un ((*x).u_pair.hd);
           gt_ggc_m_11meltpair_st ((*x).u_pair.tl);
           break;
-        case OBMAG_SPEC_FILE:
-          gt_ggc_m_13meltobject_st ((*x).u_special.discr);
+        case MELTOBMAG_SPEC_FILE:
+          gt_ggc_m_13meltobject_st ((*x).u_special_file.discr);
           break;
-        case OBMAG_STRING:
+        case MELTOBMAG_SPEC_RAWFILE:
+          gt_ggc_m_13meltobject_st ((*x).u_special_rawfile.discr);
+          break;
+        case MELTOBMAG_SPEC_MPFR:
+          gt_ggc_m_13meltobject_st ((*x).u_special_mpfr.discr);
+          break;
+        case MELTOBMAG_SPECPPL_COEFFICIENT:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_coefficient.discr);
+          break;
+        case MELTOBMAG_SPECPPL_LINEAR_EXPRESSION:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_linear_expression.discr);
+          break;
+        case MELTOBMAG_SPECPPL_CONSTRAINT:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_constraint.discr);
+          break;
+        case MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_constraint_system.discr);
+          break;
+        case MELTOBMAG_SPECPPL_GENERATOR:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_generator.discr);
+          break;
+        case MELTOBMAG_SPECPPL_GENERATOR_SYSTEM:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_generator_system.discr);
+          break;
+        case MELTOBMAG_SPECPPL_POLYHEDRON:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_polyhedron.discr);
+          break;
+        case MELTOBMAG_STRING:
           gt_ggc_m_13meltobject_st ((*x).u_string.discr);
           break;
-        case OBMAG_STRBUF:
+        case MELTOBMAG_STRBUF:
           gt_ggc_m_13meltobject_st ((*x).u_strbuf.discr);
           if ((*x).u_strbuf.bufzn != NULL) {
             size_t i7;
@@ -945,47 +974,47 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_strbuf.bufzn);
           }
           break;
-        case OBMAG_TREE:
+        case MELTOBMAG_TREE:
           gt_ggc_m_13meltobject_st ((*x).u_tree.discr);
           gt_ggc_m_9tree_node ((*x).u_tree.val);
           break;
-        case OBMAG_GIMPLE:
+        case MELTOBMAG_GIMPLE:
           gt_ggc_m_13meltobject_st ((*x).u_gimple.discr);
           gt_ggc_m_18gimple_statement_d ((*x).u_gimple.val);
           break;
-        case OBMAG_GIMPLESEQ:
+        case MELTOBMAG_GIMPLESEQ:
           gt_ggc_m_13meltobject_st ((*x).u_gimpleseq.discr);
           gt_ggc_m_12gimple_seq_d ((*x).u_gimpleseq.val);
           break;
-        case OBMAG_GIMPLESEQNODE:
+        case MELTOBMAG_GIMPLESEQNODE:
           gt_ggc_m_13meltobject_st ((*x).u_gimpleseqnode.discr);
           gt_ggc_m_12gimple_seq_d ((*x).u_gimpleseqnode.val);
           break;
-        case OBMAG_BASICBLOCK:
+        case MELTOBMAG_BASICBLOCK:
           gt_ggc_m_13meltobject_st ((*x).u_basicblock.discr);
           gt_ggc_m_15basic_block_def ((*x).u_basicblock.val);
           break;
-        case OBMAG_EDGE:
+        case MELTOBMAG_EDGE:
           gt_ggc_m_13meltobject_st ((*x).u_edge.discr);
           gt_ggc_m_8edge_def ((*x).u_edge.val);
           break;
-        case OBMAG_LOOP:
+        case MELTOBMAG_LOOP:
           gt_ggc_m_13meltobject_st ((*x).u_loop.discr);
           gt_ggc_m_4loop ((*x).u_loop.val);
           break;
-        case OBMAG_BITMAP:
+        case MELTOBMAG_BITMAP:
           gt_ggc_m_13meltobject_st ((*x).u_bitmap.discr);
           gt_ggc_m_15bitmap_head_def ((*x).u_bitmap.val);
           break;
-        case OBMAG_RTX:
+        case MELTOBMAG_RTX:
           gt_ggc_m_13meltobject_st ((*x).u_rtx.discr);
           gt_ggc_m_7rtx_def ((*x).u_rtx.val);
           break;
-        case OBMAG_RTVEC:
+        case MELTOBMAG_RTVEC:
           gt_ggc_m_13meltobject_st ((*x).u_rtvec.discr);
           gt_ggc_m_9rtvec_def ((*x).u_rtvec.val);
           break;
-        case OBMAG_MAPOBJECTS:
+        case MELTOBMAG_MAPOBJECTS:
           gt_ggc_m_13meltobject_st ((*x).u_mapobjects.discr);
           if ((*x).u_mapobjects.entab != NULL) {
             size_t i9;
@@ -1004,7 +1033,7 @@ gt_ggc_mx_melt_un (void *x_p)
             }
           }
           break;
-        case OBMAG_MAPSTRINGS:
+        case MELTOBMAG_MAPSTRINGS:
           gt_ggc_m_13meltobject_st ((*x).u_mapstrings.discr);
           if ((*x).u_mapstrings.entab != NULL) {
             size_t i11;
@@ -1015,7 +1044,7 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_mapstrings.entab);
           }
           break;
-        case OBMAG_MAPTREES:
+        case MELTOBMAG_MAPTREES:
           gt_ggc_m_13meltobject_st ((*x).u_maptrees.discr);
           if ((*x).u_maptrees.entab != NULL) {
             size_t i12;
@@ -1026,7 +1055,7 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_maptrees.entab);
           }
           break;
-        case OBMAG_MAPGIMPLES:
+        case MELTOBMAG_MAPGIMPLES:
           gt_ggc_m_13meltobject_st ((*x).u_mapgimples.discr);
           if ((*x).u_mapgimples.entab != NULL) {
             size_t i13;
@@ -1037,7 +1066,7 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_mapgimples.entab);
           }
           break;
-        case OBMAG_MAPGIMPLESEQS:
+        case MELTOBMAG_MAPGIMPLESEQS:
           gt_ggc_m_13meltobject_st ((*x).u_mapgimpleseqs.discr);
           if ((*x).u_mapgimpleseqs.entab != NULL) {
             size_t i14;
@@ -1048,7 +1077,7 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_mapgimpleseqs.entab);
           }
           break;
-        case OBMAG_MAPGIMPLESEQNODES:
+        case MELTOBMAG_MAPGIMPLESEQNODES:
           gt_ggc_m_13meltobject_st ((*x).u_mapgimpleseqnodes.discr);
           if ((*x).u_mapgimpleseqnodes.entab != NULL) {
             size_t i15;
@@ -1059,7 +1088,7 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_mapgimpleseqnodes.entab);
           }
           break;
-        case OBMAG_MAPBASICBLOCKS:
+        case MELTOBMAG_MAPBASICBLOCKS:
           gt_ggc_m_13meltobject_st ((*x).u_mapbasicblocks.discr);
           if ((*x).u_mapbasicblocks.entab != NULL) {
             size_t i16;
@@ -1070,7 +1099,7 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_mapbasicblocks.entab);
           }
           break;
-        case OBMAG_MAPEDGES:
+        case MELTOBMAG_MAPEDGES:
           gt_ggc_m_13meltobject_st ((*x).u_mapedges.discr);
           if ((*x).u_mapedges.entab != NULL) {
             size_t i17;
@@ -1081,7 +1110,7 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_mapedges.entab);
           }
           break;
-        case OBMAG_MAPLOOPS:
+        case MELTOBMAG_MAPLOOPS:
           gt_ggc_m_13meltobject_st ((*x).u_maploops.discr);
           if ((*x).u_maploops.entab != NULL) {
             size_t i18;
@@ -1092,7 +1121,7 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_maploops.entab);
           }
           break;
-        case OBMAG_MAPBITMAPS:
+        case MELTOBMAG_MAPBITMAPS:
           gt_ggc_m_13meltobject_st ((*x).u_mapbitmaps.discr);
           if ((*x).u_mapbitmaps.entab != NULL) {
             size_t i19;
@@ -1103,7 +1132,7 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_mapbitmaps.entab);
           }
           break;
-        case OBMAG_MAPRTXS:
+        case MELTOBMAG_MAPRTXS:
           gt_ggc_m_13meltobject_st ((*x).u_maprtxs.discr);
           if ((*x).u_maprtxs.entab != NULL) {
             size_t i20;
@@ -1114,7 +1143,7 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_maprtxs.entab);
           }
           break;
-        case OBMAG_MAPRTVECS:
+        case MELTOBMAG_MAPRTVECS:
           gt_ggc_m_13meltobject_st ((*x).u_maprtvecs.discr);
           if ((*x).u_maprtvecs.entab != NULL) {
             size_t i21;
@@ -1151,8 +1180,8 @@ EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
-/* gt-melt-runtime-plugin.h file generated Wed 30 Jun 2010 09:54:37 PM CEST
+/* gt-melt-runtime-plugin.h file generated Fri Jul  2 23:58:34 2010
 
-dc0ad2ba39bb8a3664997a4980aa14ef  melt-runtime.h
-5230df64186137fc17c6de05ab70c85a  melt-runtime.c
+6bff4220e4608e53ba14da00fc979869  melt-runtime.h
+0cb5a02c6a0c4b2bca2c0a72550f4f8b  melt-runtime.c
 */

@@ -47,7 +47,7 @@
 ;; negation of is_object
 (defprimitive is_not_object (obj) :long
   :doc #{Test if $OBJ is not an object. Negation of $IS_OBJECT.}#
-  #{(melt_magic_discr((melt_ptr_t)($obj)) != OBMAG_OBJECT)}#)
+  #{(melt_magic_discr((melt_ptr_t)($obj)) != MELTOBMAG_OBJECT)}#)
 
 
 ;; primitive to safely return a global predef by its index
@@ -200,7 +200,7 @@ tail $TL or else null.}#
 ;;;;;; MIXINT primitives (use get_int to get the integer)
 (defprimitive is_mixint (mi) :long
   :doc #{Test if value $MI is a mixedint value.}#
-  #{(melt_magic_discr((melt_ptr_t)($mi)) == OBMAG_MIXINT)}#)
+  #{(melt_magic_discr((melt_ptr_t)($mi)) == MELTOBMAG_MIXINT)}#)
 ;; get the value
 (defprimitive mixint_val (mi) :value
   :doc #{Get the value inside a mixedint value $MI. The integer can be retrieved using $GET_INT.}#
@@ -215,7 +215,7 @@ tail $TL or else null.}#
 ;; test
 (defprimitive is_mixloc (mi) :long
   :doc #{Test if value $MI is a mixed location value.}#
-  #{(melt_magic_discr((melt_ptr_t)($mi)) == OBMAG_MIXLOC)}#)
+  #{(melt_magic_discr((melt_ptr_t)($mi)) == MELTOBMAG_MIXLOC)}#)
 ;; get the value
 (defprimitive mixloc_val (mi) :value
   :doc #{Safely retrieve the value inside a mixed location value $MI.}#
@@ -242,7 +242,7 @@ number $NUM opaque location number $LOC.}#
 ;; test for mixbigint
 (defprimitive is_mixbigint (mb) :long
   :doc #{Test if value $MB is a mixed bigint.}#
-  "(melt_magic_discr((melt_ptr_t)(" mb ")) == OBMAG_MIXBIGINT)")
+  "(melt_magic_discr((melt_ptr_t)(" mb ")) == MELTOBMAG_MIXBIGINT)")
 (defprimitive mixbigint_val (mb) :value
   :doc #{Retrieve the value inside a mixed bigint $MB.}#
   #{melt_val_mixbigint($mb)}#)
@@ -429,7 +429,7 @@ an integer $I if $I is greater than $N.}#
 
 (defprimitive is_strbuf (v) :long
   :doc #{Test if value $V is a stringbuffer.}# 
-  #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_STRBUF)}#)
+  #{(melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_STRBUF)}#)
 
 ;;; make a string
 (defprimitive make_string (dis str) :value
@@ -537,7 +537,7 @@ and whose binary is named after $OUTNAM without any '.so' suffix.}#
 
 (defprimitive is_multiple_or_null (mul) :long
   :doc #{Safely test if $MUL is a tuple or null.}#
-  #{(($mul) == NULL || (melt_unsafe_magic_discr((melt_ptr_t)($mul)) == OBMAG_MULTIPLE))}#)
+  #{(($mul) == NULL || (melt_unsafe_magic_discr((melt_ptr_t)($mul)) == MELTOBMAG_MULTIPLE))}#)
 ;; primitive to build the subsequence of a multiple
 (defprimitive subseq_multiple (mul :long startix endix) :value
   :doc #{Make a tuple from as subsequence of $MUL from indexes $STARTIX to $ENDIX.}#
@@ -617,7 +617,7 @@ Returns a boxed integer.}#
 ;; GC is called...
 (defprimitive add2sbuf_mixloc (sbuf mixl) :void
   :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL.}#
-  #{/*add2sbufmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) {
+  #{/*add2sbufmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == MELTOBMAG_MIXLOC) {
     char smallbuf[128];
     location_t loc = melt_location_mixloc ((melt_ptr_t)$mixl);
     memset (smallbuf, 0, sizeof(smallbuf));
@@ -629,7 +629,7 @@ Returns a boxed integer.}#
 ;; primitive to add the short location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_short_mixloc (sbuf mixl) :void
   :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL in short form.}#
-  #{/*add2sbufshortmixloc*/  if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) {
+  #{/*add2sbufshortmixloc*/  if (melt_magic_discr((melt_ptr_t)($mixl)) == MELTOBMAG_MIXLOC) {
   location_t loc = melt_location_mixloc((melt_ptr_t)$mixl);
   meltgc_strbuf_printf((melt_ptr_t)($sbuf), "{%s:%d:%d}", 
 		       lbasename(LOCATION_FILE (loc)), 
@@ -638,7 +638,7 @@ Returns a boxed integer.}#
 ;; primitive to add the texi location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_texi_mixloc (sbuf mixl) :void
   :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL in texinfo form.}#
-  #{/*add2sbufteximixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) {
+  #{/*add2sbufteximixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == MELTOBMAG_MIXLOC) {
   location_t loc = melt_location_mixloc((melt_ptr_t)$mixl);
   meltgc_strbuf_printf((melt_ptr_t)($sbuf), "file @file{%s}, line %d", 
 		       lbasename (LOCATION_FILE (loc)), 
@@ -744,7 +744,7 @@ Returns a boxed integer.}#
 ;; primitive to add the location info of a mixedloc into a outbuf
 (defprimitive add2out_mixloc (out mixl) :void
   :doc #{Add to output $OUT the mixed location $MIXL.}#
-  #{/*add2outmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == OBMAG_MIXLOC) {
+  #{/*add2outmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == MELTOBMAG_MIXLOC) {
   char locbuf[128];
   location_t tloc = melt_location_mixloc((melt_ptr_t)$MIXL);
   memset (locbuf, 0, sizeof(locbuf));
