@@ -1524,61 +1524,64 @@
 (defcmatcher tree_integer_type 
   (:tree tr)
   (					;output
-   :cstring name
+   :tree type
    :value minbig maxbig 
-   :long size
+   :tree size
    )
   treeinty				;statesym
   ;; test expander
    #{ /*$treeinty ?*/ (($tr) && TREE_CODE($tr) == INTEGER_TYPE) }#
   ;; fill expander
    #{ /*$treeinty !*/
-   tree $treeinty#_tyna = TYPE_NAME($tr);
-   tree $treeinty#_sizt = TYPE_SIZE($tr);
-   mpz_t $treeinty#_minz, $treeinty#_maxz;
-   $size = 0L;
-   $minbig = NULL; 
-   $maxbig = NULL;
-   if ($treeinty#_tyna && DECL_P ($treeinty#_tyna))
-     $name = IDENTIFIER_POINTER($treeinty#_tyna);
-   mpz_init ($treeinty#_minz);
-   mpz_init ($treeinty#_maxz);
-   get_type_static_bounds($tr, $treeinty#_minz, $treeinty#_maxz);
-   $minbig = meltgc_new_mixbigint_mpz((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_BIGINT), 
+      mpz_t $treeinty#_minz;
+      mpz_t $treeinty#_maxz;
+
+      $type = TYPE_NAME($tr);
+      $size = TYPE_SIZE($tr);
+
+      mpz_init ($treeinty#_minz);
+      mpz_init ($treeinty#_maxz);
+      get_type_static_bounds($tr, $treeinty#_minz, $treeinty#_maxz);
+      $minbig = meltgc_new_mixbigint_mpz((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_BIGINT), 
 					 NULL, 
 					 $treeinty#_minz);
-   $maxbig =  meltgc_new_mixbigint_mpz((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_BIGINT), 
+      $maxbig =  meltgc_new_mixbigint_mpz((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_BIGINT), 
 					 NULL, 
 					 $treeinty#_maxz);
-   mpz_clear ($treeinty#_minz);
-   mpz_clear ($treeinty#_maxz);
-   if ($treeinty#_sizt && TREE_CODE($treeinty#_sizt) == INTEGER_CST)
-     $size = tree_low_cst($treeinty#_sizt,0);
-   }# )
+      mpz_clear ($treeinty#_minz);
+      mpz_clear ($treeinty#_maxz);
+    }#)
 
+;; Pattern tree_type_declaration. 
+(defcmatcher tree_type_declaration
+  (:tree tr)
+  (:tree declaration)
+  titd
+  #{
+      (($tr) && TREE_CODE($tr) == TYPE_DECL)
+  }#
 
-;;;;;;;;;;;;;;;;
-;;; pattern tree_any_float_type (any float type include real, double, complex, ...).
+  #{
+      $declaration = DECL_NAME($tr);
+  }#)
+
+;;; pattern tree_real_type. It matches any real type.
 ;;; asked by Marie Krumpe.
-(defcmatcher tree_any_float_type 
+(defcmatcher tree_real_type 
   (:tree tr)
   (					;output
-   :cstring name
+   :tree type
    :long size
   )
   tranyfloaty
-  ;; test
-  #{ /* $tranyfloaty ? */ ( ($tr) && FLOAT_TYPE_P($tr) )
+
+  #{ /* $tranyfloaty ? */ 
+      (($tr) && TREE_CODE($tr) == REAL_TYPE)
   }#
-  ;; fill
+
   #{ /* $tranyfloaty ! */
-   dbgprintf("$tranyfloaty : %p", $tr);
-   tree $tranyfloaty#_ty= TYPE_NAME($tr);
-   tree $tranyfloaty#_sizt= TYPE_SIZE($tr);
-   if ($tranyfloaty#_ty && TREE_CODE($tranyfloaty#_ty) == IDENTIFIER_NODE)
-     $name = IDENTIFIER_POINTER($tranyfloaty#_ty);
-   if ($tranyfloaty#_sizt && TREE_CODE($tranyfloaty#_sizt) == INTEGER_CST)
-     $size = tree_low_cst($tranyfloaty#_sizt,0);
+      $type = TYPE_NAME($tr);
+      $size = TYPE_SIZE($tr);
   }#
 )
 
@@ -2638,7 +2641,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  raw_new_ppl_empty_constraint_system
  raw_new_ppl_unsatisfiable_constraint_system
  reveach_in_gimpleseq
- tree_any_float_type
+ tree_real_type
  tree_block
  tree_content 
  tree_decl
@@ -2653,6 +2656,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_parm_decl
  tree_ssa_name 
  tree_type
+ tree_type_declaration
  tree_var_decl
  tree_var_decl_named
  tree_vec

@@ -324,12 +324,13 @@
 	argdtree
 	( ?(tree_parm_decl
 	    ?(and ?argdtype 
-		  ?(tree_integer_type ?typname ?bigmin ?bigmax ?isiz)) ?argdcl ?argname)
-	   (debugtree "smallana_cfun_entbb integer argdtype" argdtype)
-	   (debugcstring "smallana_cfun_entbb integer argname" argname)
-	   (debugcstring "smallana_cfun_entbb integer typname" typname)
-	   (debug_msg bigmin "smallana_cfun_entbb integer bigmin")
-	   (debug_msg bigmax "smallana_cfun_entbb integer bigmax")
+;		  ?(tree_integer_type ?typname ?bigmin ?bigmax ?isiz)) ?argdcl ?argname)
+                  ?_) ?_ ?_)
+	   ;; (debugtree "smallana_cfun_entbb integer argdtype" argdtype)
+	   ;; (debugcstring "smallana_cfun_entbb integer argname" argname)
+	   ;; (debugcstring "smallana_cfun_entbb integer typname" typname)
+	   ;; (debug_msg bigmin "smallana_cfun_entbb integer bigmin")
+	   ;; (debug_msg bigmax "smallana_cfun_entbb integer bigmax")
 	   )
 	( ?(tree_parm_decl ?argdtype ?argdcl ?argname)
 	   (debugtree "smallana_cfun_entbb argdtype" argdtype)

@@ -1,3 +1,9 @@
+2010-07-02  Jeremie Salvucci  <jeremie.salvucci@free.fr>
+
+	* melt/xtramelt-ana-base.melt: The matcher tree_integer_type has been
+	splitted into several submatchers to be closer to the tree type. We now
+	have tree_integer_type and tree_declaration to traverse a function_type tree.
+	Matcher tree_any_type_float renamed in tree_real_type.
 
 2010-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_un_t): Added missing tag
