@@ -1,5 +1,13 @@
 
 2010-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_un_t): Added missing tag
+	("OBMAG_SPEC_RAWFILE")!!
+
+	* melt-runtime.c (melt_forwarded_copy): Added debug message when
+	melt_debug_garbcoll > 1.
+	(meltgc_make_load_melt_module): Added debug message.
+
+2010-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_debug_garbcoll): added variable.
 	(melt_marking_callback): more debug messages when
 	melt_debug_garbcoll.

@@ -1119,14 +1119,15 @@ melt_un
   struct meltpair_st GTY ((tag ("OBMAG_PAIR"))) u_pair;
   struct meltspecial_st
     GTY ((tag ("OBMAG_SPEC_FILE"),
-	  tag ("OBMAG_SPEC_MPFR"),
-	  tag ("OBMAG_SPECPPL_COEFFICIENT"),
-	  tag ("OBMAG_SPECPPL_LINEAR_EXPRESSION"),
-	  tag ("OBMAG_SPECPPL_CONSTRAINT"),
-	  tag ("OBMAG_SPECPPL_CONSTRAINT_SYSTEM"),
-	  tag ("OBMAG_SPECPPL_GENERATOR"),
-	  tag ("OBMAG_SPECPPL_GENERATOR_SYSTEM"),
-	  tag ("OBMAG_SPECPPL_POLYHEDRON"))
+          tag ("OBMAG_SPEC_RAWFILE"),
+          tag ("OBMAG_SPEC_MPFR"),
+          tag ("OBMAG_SPECPPL_COEFFICIENT"),
+          tag ("OBMAG_SPECPPL_LINEAR_EXPRESSION"),
+          tag ("OBMAG_SPECPPL_CONSTRAINT"),
+          tag ("OBMAG_SPECPPL_CONSTRAINT_SYSTEM"),
+          tag ("OBMAG_SPECPPL_GENERATOR"),
+          tag ("OBMAG_SPECPPL_GENERATOR_SYSTEM"),
+          tag ("OBMAG_SPECPPL_POLYHEDRON"))
     ) u_special;
   struct meltstring_st GTY ((tag ("OBMAG_STRING"))) u_string;
   struct meltstrbuf_st GTY ((tag ("OBMAG_STRBUF"))) u_strbuf;
@@ -1677,7 +1678,7 @@ melt_forwarded (void *ptr)
   (P) = (__typeof__(P))melt_forwarded((void*)(P));} } while(0)
 #else
 #define MELT_FORWARDED(P) do {if (P) { 		       		\
-       (P) = (melt_ptr_t)melt_forwarded((melt_ptr_t)(P));} }  while(0)
+  (P) = (melt_ptr_t)melt_forwarded((melt_ptr_t)(P));} }  while(0)
 #endif /*GCC_VERSION*/
 
 /* the MELT copying garbage collector routine - moves all locals on

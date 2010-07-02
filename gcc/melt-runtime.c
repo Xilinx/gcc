@@ -708,7 +708,8 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	gcc_assert(funp);
 	if (melt_debug_garbcoll)
 	  debugeprintf ("melt_marking_callback %ld marking*frame %p with closure & %d vars",
-			meltmarkingcount, (void*) cf, cf->mcfr_nbvar);
+			meltmarkingcount, (void*) cf, 
+			cf->mcfr_nbvar);
 	gt_ggc_mx_melt_un ((melt_ptr_t)(cf->mcfr_closp));
 	/* call the function specially with the MARKGCC special
 	   parameter descriptor */
@@ -734,8 +735,10 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	/* no closure, e.g. a frame manually set with MELT_ENTERFRAME. */
 	extern void gt_ggc_mx_melt_un (void *);
 	if (melt_debug_garbcoll)
-	  debugeprintf ("melt_marking_callback %ld marking*frame no closure frame %p of %d vars", 
-			meltmarkingcount, (void*)cf, cf->mcfr_nbvar);
+	  debugeprintf ("melt_marking_callback %ld marking*frame no closure frame %p-%p of %d vars", 
+			meltmarkingcount, (void*)cf, 
+			(void*)(cf->mcfr_varptr + cf->mcfr_nbvar),
+			cf->mcfr_nbvar);
 	/* if no closure, mark the local pointers */
 	for (ix= 0; ix<(int) cf->mcfr_nbvar; ix++) 
 	  if (cf->mcfr_varptr[ix]) 
@@ -806,17 +809,18 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 	  debugeprintf ("melt_garbcoll forwarding*frame %p thru routine", 
 			(void*) cfram);
 	cfram->mcfr_forwmarkrout (cfram, 0);
-	continue;
       }
       else if (cfram->mcfr_nbvar >= 0) 
 	{
 	  if (melt_debug_garbcoll)
-	    debugeprintf ("melt_garbcoll forwarding*frame %p of %d nbvars", 
-			  (void*) cfram, cfram->mcfr_nbvar);
+	    debugeprintf ("melt_garbcoll forwarding*frame %p-%p of %d nbvars", 
+			  (void*) cfram, 
+			  (void*) (cfram->mcfr_varptr + cfram->mcfr_nbvar),
+			  cfram->mcfr_nbvar);
 	  MELT_FORWARDED (cfram->mcfr_closp);
 	  for (varix = 0; varix < cfram->mcfr_nbvar; varix ++)
 	    MELT_FORWARDED (cfram->mcfr_varptr[varix]);
-	}
+	};
       if (melt_debug_garbcoll)
 	debugeprintf ("melt_garbcoll forwarding*frame %p done", 
 		      (void*)cfram);
@@ -1479,6 +1483,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       fatal_error ("corruption: forward invalid p=%p discr=%p magic=%d",
 		   (void *) p, (void *) p->u_discr, mag);
     }
+  if (melt_debug_garbcoll > 1)
+    debugeprintf("melt_forwarded_copy p=%p => n=%p mag %d", (void*)p, (void*)n, mag);
   if (n)
     {
       p->u_forward.discr = MELT_FORWARDED_DISCR;
@@ -6247,6 +6253,9 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 #define mdatav meltfram__.mcfr_varptr[1]
 #define dumpv  meltfram__.mcfr_varptr[2]
   mdatav = modata_p;
+  if (melt_debug_garbcoll)
+    debugeprintf ("meltgc_make_load_melt_module start frame %p - %p", 
+		  (void*) &meltfram__, (void*)((&meltfram__)+1));
   if (!modulnam || !modulnam[0]) {
     error ("cannot load MELT module, no MELT module name given");
     goto end;
