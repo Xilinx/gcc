@@ -55,6 +55,9 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 
   if( opa->type == SYMBOL_REFERENCE )
     {
+      int l = (VEC_length( gpy_ctx_t, gpy_ctx_table));
+      debug("l = <%i>!\n", l);
+
       tree reference = NULL_TREE;
       tree rhs_tree = NULL_TREE;
 
@@ -66,7 +69,7 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 				  integer_type_node );
 	  
 	  gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
-				   (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
+				   (l-1) );
 	  
 	  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x, VAR )) )
 	    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );

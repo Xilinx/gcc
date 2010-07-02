@@ -265,14 +265,18 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
 {
   /* Body .... */
   gpy_symbol_obj * o = functor->op_a.symbol_table;
-  tree block = NULL_TREE; tree declare_vars = NULL_TREE;
   tree fntype = build_function_type(void_type_node, void_list_node);
   tree retval = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
 			    get_identifier( functor->identifier ),
 			    fntype );
 
+  tree declare_vars = NULL_TREE;
+  tree bind = NULL_TREE;
+  tree block = NULL_TREE; 
+
   unsigned int idx = 0;
-  gpy_context_branch *co = NULL; gpy_ident it = NULL;
+  gpy_context_branch *co = NULL;
+  gpy_ident it = NULL;
 
   SET_DECL_ASSEMBLER_NAME(retval, get_identifier(functor->identifier));
 
@@ -298,18 +302,38 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
       o = o->next;
     }
   
+  debug("VEC_length(gpy_ident,co->var_decl_t) = <%i>!\n\n",
+	VEC_length(gpy_ident,co->var_decl_t) );
   for( ; VEC_iterate( gpy_ident,co->var_decl_t, idx, it ); ++idx )
     {
+      printf("BEEEEG!\n\n\n");
       tree x = gpy_ctx_lookup_decl( it->ident, VAR );
-      gcc_assert( x );
-      append_to_statement_list( x, &declare_vars );
+      gcc_assert(TREE_CODE( x ) == VAR_DECL);
+      debug("got var decl <%p>:<%s> within func <%s>!\n", (void*)x,
+	    it->ident, functor->identifier );
+      TREE_CHAIN( x ) = declare_vars;
+      declare_vars = x;
     }
-  BLOCK_VARS( block ) = declare_vars;
-  BLOCK_SUPERCONTEXT(block) = retval;
+ 
+  if( declare_vars != NULL_TREE )
+    {
+      tree bl = make_node(BLOCK);
+      BLOCK_SUPERCONTEXT(bl) = retval;
+      DECL_INITIAL(retval) = bl;
+      BLOCK_VARS(bl) = declare_vars;
+      TREE_USED(bl) = 1;
+      bind = build3(BIND_EXPR, void_type_node, BLOCK_VARS(bl),
+		    NULL_TREE, bl);
+      TREE_SIDE_EFFECTS(bind) = 1;
+    }
+  BIND_EXPR_BODY(bind) = block;
+  block = bind;
+
+  DECL_SAVED_TREE(retval) = block;
  
   VEC_pop( gpy_ctx_t, gpy_ctx_table );
 
-  gimplify_function_tree(retval);
+  /* gimplify_function_tree(retval); */
 
   cgraph_add_new_function(retval, false);
   cgraph_finalize_function(retval, true);

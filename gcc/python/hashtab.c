@@ -295,8 +295,10 @@ bool gpy_ctx_push_decl( tree decl, const char * s,
 			gpy_context_branch * ctx,
 			enum DECL_T T )
 {
-  bool retval = true; gpy_hash_tab_t *t = NULL; gpy_hashval_t h = 0;
-  void ** slot = NULL;  VEC(gpy_ident,gc) * st;
+  bool retval = true; gpy_hash_tab_t *t = NULL;
+  gpy_hashval_t h = 0;
+
+  void ** slot = NULL;
   const char * type;
   gpy_ident o = (gpy_ident) xmalloc( sizeof(gpy_ident_t) );
   o->ident = xstrdup( s );
@@ -306,13 +308,11 @@ bool gpy_ctx_push_decl( tree decl, const char * s,
   if( T == VAR )
     {
       t = ctx->var_decls;
-      st = ctx->var_decl_t;
       type = "VAR";
     }
   else
     {
       t = ctx->fnc_decls;
-      st = ctx->fnc_decl_t;
       type = "FNC";
     }
 
@@ -322,9 +322,15 @@ bool gpy_ctx_push_decl( tree decl, const char * s,
   slot = gpy_dd_hash_insert( h, decl, t );
   if( !slot )
     {
-      debug("successfully pushed DECL <%s>:<%s>!\n",
-	    s,type );
-      VEC_safe_push( gpy_ident, gc, st, o );
+      debug("successfully pushed DECL <%s>:<%s>!\n", s,type );
+      if( T == VAR )
+	{
+	  VEC_safe_push( gpy_ident, gc, ctx->var_decl_t, o );
+	}
+      else
+	{
+	  VEC_safe_push( gpy_ident, gc, ctx->fnc_decl_t, o );
+	}
     }
   else
     {
