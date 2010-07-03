@@ -251,19 +251,6 @@ void * gpy_ident_vec_pop( gpy_ident_vector_t * const v )
 }
 
 inline
-void gpy_symbol_init_ctx( gpy_symbol_obj * const x )
-{
-  x->identifier= NULL;
-  x->exp = TYPE_SYMBOL_NIL;
-  x->type= SYMBOL_PRIMARY;
-  x->op_a_t= TYPE_SYMBOL_NIL;
-  x->op_b_t= TYPE_SYMBOL_NIL;
-  x->op_a.symbol_table= NULL;
-  x->op_b.symbol_table= NULL;
-  x->next= NULL;
-}
-
-inline
 void gpy_init_ctx_branch( gpy_context_branch * const * o )
 {
   if( o )

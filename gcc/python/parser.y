@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gpy.h"
 #include "symbols.h"
 #include "opcodes.def"
+#include "line-map.h"
 
 #include <gmp.h>
 #include <mpfr.h>
@@ -252,7 +253,7 @@ expr: symbol_accessor '=' expr
 
 symbol_accessor: IDENTIFIER
                {
-		 gpy_symbol_obj *sym;
+		 gpy_symbol_obj * sym;
 		 Gpy_Symbol_Init( sym );
 
 		 sym->type= SYMBOL_REFERENCE;

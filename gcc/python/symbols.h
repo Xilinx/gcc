@@ -22,6 +22,7 @@ typedef unsigned short gpy_opcode_t;
 typedef struct GTY(()) gpy_symbol_table_t {
   char * identifier; gpy_opcode_t exp;
   gpy_opcode_t type, op_a_t, op_b_t;
+  location_t loc;
   union {
     /* literal primitive semantic types! */
     long int integer;
@@ -127,11 +128,22 @@ extern void gpy_symbol_init_ctx( gpy_symbol_obj * const )
 extern void gpy_init_ctx_branch( gpy_context_branch * const * )
   __attribute__((nonnull));
 
+#define Gpy_Symbol_Init_Ctx( x )		\
+  x->identifier = NULL;				\
+  x->exp = TYPE_SYMBOL_NIL;			\
+  x->type = SYMBOL_PRIMARY;			\
+  x->loc = UNKNOWN_LOCATION;			\
+  x->op_a_t = TYPE_SYMBOL_NIL;			\
+  x->op_b_t = TYPE_SYMBOL_NIL;			\
+  x->op_a.symbol_table = NULL;			\
+  x->op_b.symbol_table = NULL;			\
+  x->next = NULL;
+
 #define Gpy_Symbol_Init( x )				\
   x = (gpy_symbol_obj*)					\
     xmalloc( sizeof(gpy_symbol_obj) );			\
   debug("object created at <%p>!\n", (void*)x );	\
-  gpy_symbol_init_ctx( x );
+  Gpy_Symbol_Init_Ctx( x );
 
 #define Gpy_Mark_Garbage_obj( x )			\
   debug("marking object <%p> as garbage!\n", x );	\
