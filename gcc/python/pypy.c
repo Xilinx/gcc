@@ -205,7 +205,7 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
       if( decl )
 	{
 	  debug("tree reference <%s>!\n", sym->op_a.string);
-	  retval = get_identifier( sym->op_a.string );
+	  retval = decl;
 	}
       else
 	{

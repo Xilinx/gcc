@@ -77,6 +77,12 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 		 opa->op_a.string );
 	}
       rhs_tree = gpy_process_expression( opb );
+
+      printf("opb->type = <0x%X>!\n", opb->type );
+
+      printf("RHS Tree!\n");
+      debug_tree( rhs_tree );
+      
       
       retval = build2( MODIFY_EXPR, integer_type_node,
 		       decl, rhs_tree );
@@ -133,6 +139,9 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a,
 	  retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );
 	}
     }
+
+  printf("PLUS_EXPR?!......!\n");
+  debug_tree( retval );
 
   return retval;
 }
