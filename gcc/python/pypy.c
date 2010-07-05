@@ -90,7 +90,8 @@ VEC(gpy_ctx_t,gc) * gpy_ctx_table;
 static
 gpy_symbol_obj * gpy_process_AST( gpy_symbol_obj ** sym )
 {
-  gpy_symbol_obj *nn = NULL, *retval;
+  gpy_symbol_obj *nn = NULL;
+  gpy_symbol_obj *retval = NULL;
   if( (*sym)->next )
     {
       nn = (*sym)->next;
@@ -150,7 +151,7 @@ gpy_symbol_obj * gpy_process_AST( gpy_symbol_obj ** sym )
 		    }
 		  else
 		    {
-		      error("error processing the expression AST!\n");
+		      fatal_error("error processing the expression AST!\n");
 		    }
 		}
 	      else

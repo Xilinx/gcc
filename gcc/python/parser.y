@@ -58,33 +58,34 @@ extern void yyerror( const char * );
 
 %error-verbose
 
-%token CLASS
-%token DEF
-%token BREAK
-%token CONTINUE
-%token RETURN
-%token FOR
-%token WHILE
-%token PRINT
+%token CLASS "class"
+%token DEF "def"
+%token BREAK "break"
+%token CONTINUE "continue"
+%token RETURN "return"
+%token FOR "for"
+%token WHILE "while"
+%token IN "in"
+%token PRINT "print"
 
-%token IF
-%token ELIF
-%token ELSE
+%token IF "if"
+%token ELIF "elif"
+%token ELSE "else"
 
-%token EQUAL
-%token NOT_EQUAL
-%token LESS
-%token LESS_EQUAL
-%token GREATER
-%token GREATER_EQUAL
-%token OR
-%token AND
+%token EQUAL "=="
+%token NOT_EQUAL "!="
+%token LESS "<"
+%token LESS_EQUAL "<="
+%token GREATER ">"
+%token GREATER_EQUAL ">="
+%token OR "or"
+%token AND "and"
 
 %token DELIMITER
 %token NONE
 %token<string> IDENTIFIER
+%token<string> STRING
 %token<integer> INTEGER
-%token STRING
 
 %type<symbol> expr
 %type<symbol> expression
@@ -103,6 +104,7 @@ extern void yyerror( const char * );
 %type<symbol> arguments
 %type<symbol> argument_list
 %type<symbol> arbitrary_call
+%type<symbol> list_symbol
 
 %left '-' '+'
 %left '*' '/'
@@ -234,8 +236,47 @@ expr: symbol_accessor '=' expr
       debug("expr + expr!\n");
     }
     | expr '-' expr
+    {
+      gpy_symbol_obj* sym;
+      Gpy_Symbol_Init( sym );
+
+      sym->exp= OP_EXPRESS;
+      sym->type= OP_BIN_SUBTRACTION;
+      sym->op_a_t= TYPE_SYMBOL;
+      sym->op_b_t= TYPE_SYMBOL;
+
+      sym->op_a.symbol_table= $1;
+      sym->op_b.symbol_table= $3;
+      $$= sym;
+    }
     | expr '*' expr
+    {
+      gpy_symbol_obj* sym;
+      Gpy_Symbol_Init( sym );
+
+      sym->exp= OP_EXPRESS;
+      sym->type= OP_BIN_MULTIPLY;
+      sym->op_a_t= TYPE_SYMBOL;
+      sym->op_b_t= TYPE_SYMBOL;
+
+      sym->op_a.symbol_table= $1;
+      sym->op_b.symbol_table= $3;
+      $$= sym;
+    }
     | expr '/' expr
+    {
+      gpy_symbol_obj* sym;
+      Gpy_Symbol_Init( sym );
+
+      sym->exp= OP_EXPRESS;
+      sym->type= OP_BIN_DIVIDE;
+      sym->op_a_t= TYPE_SYMBOL;
+      sym->op_b_t= TYPE_SYMBOL;
+
+      sym->op_a.symbol_table= $1;
+      sym->op_b.symbol_table= $3;
+      $$= sym;
+    }
     | expr EQUAL expr
     | expr NOT_EQUAL expr
     | expr LESS expr
@@ -347,7 +388,14 @@ argument_list: argument_list ',' expression
 	     }
              ;
 
+list_symbol: '[' argument_list ']'
+           {
+	     $$ = NULL;
+	   }
+           ;
+
 primary: accessor
+       | list_symbol
        | INTEGER
        {
 	 gpy_symbol_obj *sym;

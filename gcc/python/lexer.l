@@ -69,6 +69,7 @@ continue                {  return CONTINUE; }
 return                  {  return RETURN; }
 for                     {  return FOR; }
 while                   {  return WHILE; }
+in                      {  return IN; }
 print                   {  return PRINT; }
 
 if                      {  return IF; }
@@ -92,7 +93,6 @@ else                    {  return ELSE; }
 "-"                     { return '-'; }
 "/"                     { return '/'; }
 "*"                     { return '*'; }
-"^"                     { return '^'; }
 
 "=="                    { return EQUAL; }
 
