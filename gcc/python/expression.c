@@ -95,52 +95,37 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
   return retval;
 }
 
-tree gpy_process_bin_expression( gpy_symbol_obj ** op_a,
-				 gpy_symbol_obj ** op_b )
+tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
+				 gpy_opcode_t operation )
 {
   gpy_symbol_obj *opa, *opb; tree retval = NULL;
+  tree t1 = NULL_TREE, t2 = NULL_TREE;
+
   if( op_a && op_b ) { opa= *op_a; opb= *op_b; }
   else {
     fatal_error("operands A or B are undefined!\n");
     return NULL;
   }
+  
+  t1 = gpy_process_expression( opa );
+  t2 = gpy_process_expression( opb );
 
-  if( opa->type == SYMBOL_PRIMARY )
+  switch( operation )
     {
-      if( opb->type == SYMBOL_PRIMARY )
-        {
-	  tree t1 = gpy_process_expression( opa );
-          tree t2 = gpy_process_expression( opb );
+    case OP_BIN_ADDITION:
+      retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );
+      break;
 
-          retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );
-        }
-      else
-        {
-	  tree t1 = gpy_process_expression( opa );
-          tree t2 = gpy_process_expression( opb );
+    case OP_BIN_SUBTRACTION:
+      retval = build2( MINUS_EXPR, integer_type_node, t1, t2 );
+      break;
 
-	  retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );
-        }
-    }
-  else
-    {
-      if( opb->type == SYMBOL_PRIMARY )
-	{
-	  tree t1 = gpy_process_expression( opa );
-          tree t2 = gpy_process_expression( opb );
-
-	  retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );
-	}
-      else
-	{
-	  tree t1 = gpy_process_expression( opa );
-          tree t2 = gpy_process_expression( opb );
-
-	  retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );
-	}
+    default:
+      error("unhandled symbol type <0x%x>!\n", operation);
+      retval = NULL;
+      break;
     }
 
-  printf("PLUS_EXPR?!......!\n");
   debug_tree( retval );
 
   return retval;

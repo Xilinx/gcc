@@ -105,7 +105,8 @@ extern void gpy_garbage_free_obj( gpy_symbol_obj ** );
 
 extern tree gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj ** );
 
-extern tree gpy_process_bin_expression( gpy_symbol_obj ** , gpy_symbol_obj ** );
+extern tree gpy_process_bin_expression( gpy_symbol_obj ** , gpy_symbol_obj **,
+					gpy_opcode_t );
 
 extern tree gpy_process_expression( const gpy_symbol_obj * const );
 

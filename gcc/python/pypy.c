@@ -175,14 +175,6 @@ gpy_symbol_obj * gpy_process_AST( gpy_symbol_obj ** sym )
 
 void gpy_process_decl( gpy_symbol_obj * sym )
 {
-  debug( "processing declaration <%p> of type: '0x%X'\n",
-	 (void*)sym, sym->type );
-
-  if( sym->exp == OP_EXPRESS )
-    {
-      sym = gpy_process_AST( &sym );
-    }
-
   /* Push the declaration! */
   VEC_safe_push( gpy_sym, gc, gpy_decls, sym );
   debug("decl <%p> was pushed!\n", (void*)sym );
@@ -191,7 +183,6 @@ void gpy_process_decl( gpy_symbol_obj * sym )
 tree gpy_process_expression( const gpy_symbol_obj * const sym )
 {
   tree retval = NULL;
-
   if( sym->type == SYMBOL_PRIMARY )
     {
       debug("tree primary!\n");
@@ -231,7 +222,7 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
 	  break;
 
 	case OP_BIN_ADDITION:
-	  res = gpy_process_bin_expression( &opa, &opb );
+	  res = gpy_process_bin_expression( &opa, &opb, sym->type );
 	  break;
 
 	default:
@@ -246,25 +237,8 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
   return retval;
 }
 
-/**
- *      // Declare variables if necessary.
-      tree bind = NULL_TREE;
-      if (declare_vars != NULL_TREE)
-	{
-	  tree block = make_node(BLOCK);
-	  BLOCK_SUPERCONTEXT(block) = fndecl;
-	  DECL_INITIAL(fndecl) = block;
-	  BLOCK_VARS(block) = declare_vars;
-	  TREE_USED(block) = 1;
-	  bind = build3(BIND_EXPR, void_type_node, BLOCK_VARS(block),
-			NULL_TREE, block);
-	  TREE_SIDE_EFFECTS(bind) = 1;
-	}
-
- **/
 tree gpy_process_functor( const gpy_symbol_obj * const  functor )
 {
-  /* Body .... */
   gpy_symbol_obj * o = functor->op_a.symbol_table;
   tree fntype = build_function_type(void_type_node, void_list_node);
   tree retval = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
@@ -351,26 +325,26 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
 
 tree gpy_get_tree( gpy_symbol_obj * sym )
 {
-  tree retval_decl = NULL; gpy_symbol_obj * o = sym;
+  tree retval_decl = NULL;
   
   debug( "processing decl of type <0x%X> object <%p>\n",
-	 o->type, (void*) o );
+	 sym->type, (void*) sym );
 
-  if( o->exp == OP_EXPRESS )
+  if( sym->exp == OP_EXPRESS )
     {
-      /* Should already be pre-processed ... */
-      retval_decl = gpy_process_expression( o );
+      sym = gpy_process_AST( &sym );
+      retval_decl = gpy_process_expression( sym );
     }
   else
     {
-      switch( o->type )
+      switch( sym->type )
 	{
 	case STRUCTURE_FUNCTION_DEF:
-	  retval_decl = gpy_process_functor( o );
+	  retval_decl = gpy_process_functor( sym );
 	  break;
 	  
 	default:
-	  fatal_error("unhandled symbol type <0x%x>\n", o->type );
+	  fatal_error("unhandled symbol type <0x%x>\n", sym->type );
 	  break;
 	}
     }
@@ -385,17 +359,13 @@ void gpy_write_globals( void )
   unsigned long decl_len = 0;
   unsigned int idx;
 
-  /*
-  gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
-			   (VEC_length( gpy_ctx_t, gpy_ctx_table)-1) );
-  */
   gpy_symbol_obj * it = NULL;
   
   decl_len = VEC_length( gpy_sym, gpy_decls );
   vec = XNEWVEC( tree, decl_len );
 
   debug("decl_len <%lu>!\n", decl_len );
-  for( idx=0; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )
+  for( idx= 0; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )
     {
       debug("decl AST <%p>!\n", (void*)it );
       vec[ idx ] = gpy_get_tree( it ); 
