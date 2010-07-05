@@ -39,7 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 #ifndef LIBPY
-#define LIBPY "-lpy"
+#define LIBPY "-lgpython"
 #endif
 
 void lang_specific_driver( int *in_argc , const char *const ** in_argv,

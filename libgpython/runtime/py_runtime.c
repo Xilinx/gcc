@@ -18,7 +18,7 @@ along with GCC; see the file COPYING3.  If not see
 #include <stdlib.h>
 #include <string.h>
 
-void foobar ( int x ) 
+int foobar ( int x ) 
 {
   return x+1;
 }

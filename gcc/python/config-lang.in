@@ -16,5 +16,5 @@
 
 language="python"
 compilers="gpy1\$(exeext)"
-target_libs="target-libpy"
+target_libs="target-libgpython"
 gtfiles="\$(srcdir)/python/py-lang.c \$(srcdir)/python/expression.c \$(srcdir)/python/symbols.h"
