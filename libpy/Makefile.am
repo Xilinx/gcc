@@ -1,9 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
-ACLOCAL_AMFLAGS = -I .. -I ../config
-
 ## May be used by toolexeclibdir.
-gcc_version := $(shell cat $(top_srcdir)/../gcc/BASE-VER)
+gcc_version = $(shell cat $(top_srcdir)/../gcc/BASE-VER)
 
 lib_LTLIBRARIES = libgpython.la
 
