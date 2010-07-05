@@ -155,9 +155,9 @@ static bool pa_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 static int pa_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				 tree, bool);
 static struct machine_function * pa_init_machine_status (void);
-static enum reg_class pa_secondary_reload (bool, rtx, enum reg_class,
-					   enum machine_mode,
-					   secondary_reload_info *);
+static reg_class_t pa_secondary_reload (bool, rtx, reg_class_t,
+					enum machine_mode,
+					secondary_reload_info *);
 static void pa_extra_live_on_entry (bitmap);
 static enum machine_mode pa_promote_function_mode (const_tree,
 						   enum machine_mode, int *,
@@ -5688,11 +5688,12 @@ output_arg_descriptor (rtx call_insn)
   fputc ('\n', asm_out_file);
 }
 
-static enum reg_class
-pa_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
+static reg_class_t
+pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 		     enum machine_mode mode, secondary_reload_info *sri)
 {
   int is_symbolic, regno;
+  enum reg_class rclass = (enum reg_class) rclass_i;
 
   /* Handle the easy stuff first.  */
   if (rclass == R1_REGS)
@@ -5766,7 +5767,9 @@ pa_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
       /* Request a secondary reload with a general scratch register
 	 for everthing else.  ??? Could symbolic operands be handled
 	 directly when generating non-pic PA 2.0 code?  */
-      sri->icode = in_p ? reload_in_optab[mode] : reload_out_optab[mode];
+      sri->icode = (in_p
+		    ? direct_optab_handler (reload_in_optab, mode)
+		    : direct_optab_handler (reload_out_optab, mode));
       return NO_REGS;
     }
 
@@ -5774,7 +5777,9 @@ pa_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
      and anything other than a general register.  */
   if (rclass == SHIFT_REGS && (regno <= 0 || regno >= 32))
     {
-      sri->icode = in_p ? reload_in_optab[mode] : reload_out_optab[mode];
+      sri->icode = (in_p
+		    ? direct_optab_handler (reload_in_optab, mode)
+		    : direct_optab_handler (reload_out_optab, mode));
       return NO_REGS;
     }
 
@@ -5784,7 +5789,9 @@ pa_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
       && (REGNO_REG_CLASS (regno) == SHIFT_REGS
       && FP_REG_CLASS_P (rclass)))
     {
-      sri->icode = in_p ? reload_in_optab[mode] : reload_out_optab[mode];
+      sri->icode = (in_p
+		    ? direct_optab_handler (reload_in_optab, mode)
+		    : direct_optab_handler (reload_out_optab, mode));
       return NO_REGS;
     }
 
@@ -6039,11 +6046,10 @@ hppa_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
       u = fold_build1 (NEGATE_EXPR, sizetype, u);
       t = build2 (POINTER_PLUS_EXPR, valist_type, valist, u);
 
-      /* Copied from va-pa.h, but we probably don't need to align to
-	 word size, since we generate and preserve that invariant.  */
-      u = size_int (size > 4 ? -8 : -4);
-      t = fold_convert (sizetype, t);
-      t = build2 (BIT_AND_EXPR, sizetype, t, u);
+      /* Align to 4 or 8 byte boundary depending on argument size.  */
+
+      u = build_int_cst (TREE_TYPE (t), (HOST_WIDE_INT)(size > 4 ? -8 : -4));
+      t = build2 (BIT_AND_EXPR, TREE_TYPE (t), t, u);
       t = fold_convert (valist_type, t);
 
       t = build2 (MODIFY_EXPR, valist_type, valist, t);

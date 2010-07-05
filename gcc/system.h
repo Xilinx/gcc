@@ -714,7 +714,8 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	FUNCTION_ARG_PARTIAL_NREGS ASM_OUTPUT_DWARF_DTPREL		\
 	ALLOCATE_INITIAL_VALUE LEGITIMIZE_ADDRESS FRAME_POINTER_REQUIRED \
 	CAN_ELIMINATE TRAMPOLINE_TEMPLATE INITIALIZE_TRAMPOLINE		\
-	TRAMPOLINE_ADJUST_ADDRESS STATIC_CHAIN STATIC_CHAIN_INCOMING
+	TRAMPOLINE_ADJUST_ADDRESS STATIC_CHAIN STATIC_CHAIN_INCOMING	\
+	RETURN_POPS_ARGS
 
 /* Other obsolete target macros, or macros that used to be in target
    headers and were not used, and may be obsolete or may never have
@@ -799,7 +800,7 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 /* Front ends should never have to include middle-end headers.  Enforce
    this by poisoning the header double-include protection defines.  */
 #ifdef IN_GCC_FRONTEND
-#pragma GCC poison GCC_RTL_H GCC_EXCEPT_H
+#pragma GCC poison GCC_RTL_H GCC_EXCEPT_H GCC_EXPR_H
 #endif
 
 /* Note: not all uses of the `index' token (e.g. variable names and

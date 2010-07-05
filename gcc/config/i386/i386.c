@@ -4865,7 +4865,7 @@ ix86_eax_live_at_start_p (void)
 
    The attribute stdcall is equivalent to RTD on a per module basis.  */
 
-int
+static int
 ix86_return_pops_args (tree fundecl, tree funtype, int size)
 {
   int rtd;
@@ -5180,7 +5180,7 @@ init_cumulative_args (CUMULATIVE_ARGS *cum,  /* Argument info to initialize */
    NULL.  */
 
 static enum machine_mode
-type_natural_mode (const_tree type, CUMULATIVE_ARGS *cum)
+type_natural_mode (const_tree type, const CUMULATIVE_ARGS *cum)
 {
   enum machine_mode mode = TYPE_MODE (type);
 
@@ -5937,7 +5937,8 @@ construct_container (enum machine_mode mode, enum machine_mode orig_mode,
 
 static void
 function_arg_advance_32 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-			 tree type, HOST_WIDE_INT bytes, HOST_WIDE_INT words)
+			 const_tree type, HOST_WIDE_INT bytes,
+			 HOST_WIDE_INT words)
 {
   switch (mode)
     {
@@ -6025,7 +6026,7 @@ function_arg_advance_32 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 
 static void
 function_arg_advance_64 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-			 tree type, HOST_WIDE_INT words, int named)
+			 const_tree type, HOST_WIDE_INT words, bool named)
 {
   int int_nregs, sse_nregs;
 
@@ -6061,9 +6062,13 @@ function_arg_advance_ms_64 (CUMULATIVE_ARGS *cum, HOST_WIDE_INT bytes,
     }
 }
 
-void
-function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-		      tree type, int named)
+/* Update the data in CUM to advance over an argument of mode MODE and
+   data type TYPE.  (TYPE is null for libcalls where that information
+   may not be available.)  */
+
+static void
+ix86_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			   const_tree type, bool named)
 {
   HOST_WIDE_INT bytes, words;
 
@@ -6098,8 +6103,8 @@ function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
     (otherwise it is an extra parameter matching an ellipsis).  */
 
 static rtx
-function_arg_32 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-		 enum machine_mode orig_mode, tree type,
+function_arg_32 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		 enum machine_mode orig_mode, const_tree type,
 		 HOST_WIDE_INT bytes, HOST_WIDE_INT words)
 {
   static bool warnedsse, warnedmmx;
@@ -6215,8 +6220,8 @@ function_arg_32 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 }
 
 static rtx
-function_arg_64 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-		 enum machine_mode orig_mode, tree type, int named)
+function_arg_64 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		 enum machine_mode orig_mode, const_tree type, bool named)
 {
   /* Handle a hidden AL argument containing number of registers
      for varargs x86-64 functions.  */
@@ -6251,8 +6256,8 @@ function_arg_64 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 }
 
 static rtx
-function_arg_ms_64 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-		    enum machine_mode orig_mode, int named,
+function_arg_ms_64 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		    enum machine_mode orig_mode, bool named,
 		    HOST_WIDE_INT bytes)
 {
   unsigned int regno;
@@ -6298,9 +6303,19 @@ function_arg_ms_64 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
   return gen_reg_or_parallel (mode, orig_mode, regno);
 }
 
-rtx
-function_arg (CUMULATIVE_ARGS *cum, enum machine_mode omode,
-	      tree type, int named)
+/* Return where to put the arguments to a function.
+   Return zero to push the argument on the stack, or a hard register in which to store the argument.
+
+   MODE is the argument's machine mode.  TYPE is the data type of the
+   argument.  It is null for libcalls where that information may not be
+   available.  CUM gives information about the preceding args and about
+   the function being called.  NAMED is nonzero if this argument is a
+   named parameter (otherwise it is an extra parameter matching an
+   ellipsis).  */
+
+static rtx
+ix86_function_arg (const CUMULATIVE_ARGS *cum, enum machine_mode omode,
+		   const_tree type, bool named)
 {
   enum machine_mode mode = omode;
   HOST_WIDE_INT bytes, words;
@@ -7033,7 +7048,7 @@ ix86_setup_incoming_varargs (CUMULATIVE_ARGS *cum, enum machine_mode mode,
      For stdargs, we do want to skip the last named argument.  */
   next_cum = *cum;
   if (stdarg_p (fntype))
-    function_arg_advance (&next_cum, mode, type, 1);
+    ix86_function_arg_advance (&next_cum, mode, type, true);
 
   if (cum->call_abi == MS_ABI)
     setup_incoming_varargs_ms_64 (&next_cum);
@@ -7078,11 +7093,17 @@ ix86_va_start (tree valist, rtx nextarg)
   f_ovf = TREE_CHAIN (f_fpr);
   f_sav = TREE_CHAIN (f_ovf);
 
-  valist = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (valist)), valist);
-  gpr = build3 (COMPONENT_REF, TREE_TYPE (f_gpr), valist, f_gpr, NULL_TREE);
-  fpr = build3 (COMPONENT_REF, TREE_TYPE (f_fpr), valist, f_fpr, NULL_TREE);
-  ovf = build3 (COMPONENT_REF, TREE_TYPE (f_ovf), valist, f_ovf, NULL_TREE);
-  sav = build3 (COMPONENT_REF, TREE_TYPE (f_sav), valist, f_sav, NULL_TREE);
+  valist = build_simple_mem_ref (valist);
+  TREE_TYPE (valist) = TREE_TYPE (sysv_va_list_type_node);
+  /* The following should be folded into the MEM_REF offset.  */
+  gpr = build3 (COMPONENT_REF, TREE_TYPE (f_gpr), unshare_expr (valist),
+		f_gpr, NULL_TREE);
+  fpr = build3 (COMPONENT_REF, TREE_TYPE (f_fpr), unshare_expr (valist),
+		f_fpr, NULL_TREE);
+  ovf = build3 (COMPONENT_REF, TREE_TYPE (f_ovf), unshare_expr (valist),
+		f_ovf, NULL_TREE);
+  sav = build3 (COMPONENT_REF, TREE_TYPE (f_sav), unshare_expr (valist),
+		f_sav, NULL_TREE);
 
   /* Count number of gp and fp argument registers used.  */
   words = crtl->args.info.words;
@@ -25272,13 +25293,13 @@ ix86_free_from_memory (enum machine_mode mode)
 /* Implement TARGET_IRA_COVER_CLASSES.  If -mfpmath=sse, we prefer
    SSE_REGS to FLOAT_REGS if their costs for a pseudo are the
    same.  */
-static const enum reg_class *
+static const reg_class_t *
 i386_ira_cover_classes (void)
 {
-  static const enum reg_class sse_fpmath_classes[] = {
+  static const reg_class_t sse_fpmath_classes[] = {
     GENERAL_REGS, SSE_REGS, MMX_REGS, FLOAT_REGS, LIM_REG_CLASSES
   };
-  static const enum reg_class no_sse_fpmath_classes[] = {
+  static const reg_class_t no_sse_fpmath_classes[] = {
     GENERAL_REGS, FLOAT_REGS, MMX_REGS, SSE_REGS, LIM_REG_CLASSES
   };
 
@@ -25388,8 +25409,8 @@ ix86_preferred_output_reload_class (rtx x, enum reg_class regclass)
   return regclass;
 }
 
-static enum reg_class
-ix86_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
+static reg_class_t
+ix86_secondary_reload (bool in_p, rtx x, reg_class_t rclass,
 		       enum machine_mode mode,
 		       secondary_reload_info *sri ATTRIBUTE_UNUSED)
 {
@@ -25642,10 +25663,10 @@ inline_memory_move_cost (enum machine_mode mode, enum reg_class regclass,
 }
 
 static int
-ix86_memory_move_cost (enum machine_mode mode, enum reg_class regclass,
+ix86_memory_move_cost (enum machine_mode mode, reg_class_t regclass,
 		       bool in)
 {
-  return inline_memory_move_cost (mode, regclass, in ? 1 : 0);
+  return inline_memory_move_cost (mode, (enum reg_class) regclass, in ? 1 : 0);
 }
 
 
@@ -25657,9 +25678,12 @@ ix86_memory_move_cost (enum machine_mode mode, enum reg_class regclass,
    general registers.  */
 
 static int
-ix86_register_move_cost (enum machine_mode mode, enum reg_class class1,
-			 enum reg_class class2)
+ix86_register_move_cost (enum machine_mode mode, reg_class_t class1_i,
+			 reg_class_t class2_i)
 {
+  enum reg_class class1 = (enum reg_class) class1_i;
+  enum reg_class class2 = (enum reg_class) class2_i;
+
   /* In case we require secondary memory, compute cost of the store followed
      by load.  In order to avoid bad register allocation choices, we need
      for this to be *at least* as high as the symmetric MEMORY_MOVE_COST.  */
@@ -29352,7 +29376,9 @@ static const struct attribute_spec ix86_attribute_table[] =
 
 /* Implement targetm.vectorize.builtin_vectorization_cost.  */
 static int
-ix86_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
+ix86_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
+                                 tree vectype ATTRIBUTE_UNUSED,
+                                 int misalign ATTRIBUTE_UNUSED)
 {
   switch (type_of_cost)
     {
@@ -29381,6 +29407,7 @@ ix86_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
         return ix86_cost->scalar_to_vec_cost;
 
       case unaligned_load:
+      case unaligned_store:
         return ix86_cost->vec_unalign_load_cost;
 
       case cond_branch_taken:
@@ -30601,9 +30628,11 @@ ix86_canonical_va_list_type (tree type)
   tree wtype, htype;
 
   /* Resolve references and pointers to va_list type.  */
-  if (INDIRECT_REF_P (type))
+  if (TREE_CODE (type) == MEM_REF)
     type = TREE_TYPE (type);
   else if (POINTER_TYPE_P (type) && POINTER_TYPE_P (TREE_TYPE(type)))
+    type = TREE_TYPE (type);
+  else if (POINTER_TYPE_P (type) && TREE_CODE (TREE_TYPE (type)) == ARRAY_TYPE)
     type = TREE_TYPE (type);
 
   if (TARGET_64BIT)
@@ -30874,6 +30903,10 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 #define TARGET_SETUP_INCOMING_VARARGS ix86_setup_incoming_varargs
 #undef TARGET_MUST_PASS_IN_STACK
 #define TARGET_MUST_PASS_IN_STACK ix86_must_pass_in_stack
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE ix86_function_arg_advance
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG ix86_function_arg
 #undef TARGET_PASS_BY_REFERENCE
 #define TARGET_PASS_BY_REFERENCE ix86_pass_by_reference
 #undef TARGET_INTERNAL_ARG_POINTER
@@ -30888,6 +30921,8 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 #define TARGET_STATIC_CHAIN ix86_static_chain
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT ix86_trampoline_init
+#undef TARGET_RETURN_POPS_ARGS
+#define TARGET_RETURN_POPS_ARGS ix86_return_pops_args
 
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR ix86_gimplify_va_arg

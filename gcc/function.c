@@ -37,7 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "rtl.h"
+#include "rtl-error.h"
 #include "tree.h"
 #include "flags.h"
 #include "except.h"
@@ -51,7 +51,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "output.h"
 #include "basic-block.h"
-#include "toplev.h"
 #include "hashtab.h"
 #include "ggc.h"
 #include "tm_p.h"
@@ -2374,13 +2373,10 @@ assign_parm_find_entry_rtl (struct assign_parm_data_all *all,
       return;
     }
 
-#ifdef FUNCTION_INCOMING_ARG
-  entry_parm = FUNCTION_INCOMING_ARG (all->args_so_far, data->promoted_mode,
-				      data->passed_type, data->named_arg);
-#else
-  entry_parm = FUNCTION_ARG (all->args_so_far, data->promoted_mode,
-			     data->passed_type, data->named_arg);
-#endif
+  entry_parm = targetm.calls.function_incoming_arg (&all->args_so_far,
+						    data->promoted_mode,
+						    data->passed_type,
+						    data->named_arg);
 
   if (entry_parm == 0)
     data->promoted_mode = data->passed_mode;
@@ -2404,13 +2400,9 @@ assign_parm_find_entry_rtl (struct assign_parm_data_all *all,
       if (targetm.calls.pretend_outgoing_varargs_named (&all->args_so_far))
 	{
 	  rtx tem;
-#ifdef FUNCTION_INCOMING_ARG
-	  tem = FUNCTION_INCOMING_ARG (all->args_so_far, data->promoted_mode,
-				       data->passed_type, true);
-#else
-	  tem = FUNCTION_ARG (all->args_so_far, data->promoted_mode,
-			      data->passed_type, true);
-#endif
+	  tem = targetm.calls.function_incoming_arg (&all->args_so_far,
+						     data->promoted_mode,
+						     data->passed_type, true);
 	  in_regs = tem != NULL;
 	}
     }
@@ -3275,8 +3267,8 @@ assign_parms (tree fndecl)
       set_decl_incoming_rtl (parm, data.entry_parm, data.passed_pointer);
 
       /* Update info on where next arg arrives in registers.  */
-      FUNCTION_ARG_ADVANCE (all.args_so_far, data.promoted_mode,
-			    data.passed_type, data.named_arg);
+      targetm.calls.function_arg_advance (&all.args_so_far, data.promoted_mode,
+					  data.passed_type, data.named_arg);
 
       assign_parm_adjust_stack_rtl (&data);
 
@@ -3369,8 +3361,9 @@ assign_parms (tree fndecl)
   /* See how many bytes, if any, of its args a function should try to pop
      on return.  */
 
-  crtl->args.pops_args = RETURN_POPS_ARGS (fndecl, TREE_TYPE (fndecl),
-						 crtl->args.size);
+  crtl->args.pops_args = targetm.calls.return_pops_args (fndecl,
+							 TREE_TYPE (fndecl),
+							 crtl->args.size);
 
   /* For stdarg.h function, save info about
      regs and stack space used by the named args.  */
@@ -3464,8 +3457,8 @@ gimplify_parameters (void)
 	continue;
 
       /* Update info on where next arg arrives in registers.  */
-      FUNCTION_ARG_ADVANCE (all.args_so_far, data.promoted_mode,
-			    data.passed_type, data.named_arg);
+      targetm.calls.function_arg_advance (&all.args_so_far, data.promoted_mode,
+					  data.passed_type, data.named_arg);
 
       /* ??? Once upon a time variable_size stuffed parameter list
 	 SAVE_EXPRs (amongst others) onto a pending sizes list.  This

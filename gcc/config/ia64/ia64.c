@@ -210,8 +210,8 @@ static bool ia64_return_in_memory (const_tree, const_tree);
 static rtx ia64_function_value (const_tree, const_tree, bool);
 static rtx ia64_libcall_value (enum machine_mode, const_rtx);
 static bool ia64_function_value_regno_p (const unsigned int);
-static int ia64_register_move_cost (enum machine_mode, enum reg_class,
-                                    enum reg_class);
+static int ia64_register_move_cost (enum machine_mode, reg_class_t,
+                                    reg_class_t);
 static bool ia64_rtx_costs (rtx, int, int, int *, bool);
 static int ia64_unspec_may_trap_p (const_rtx, unsigned);
 static void fix_range (const char *);
@@ -510,8 +510,8 @@ static const struct attribute_spec ia64_attribute_table[] =
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR ia64_gimplify_va_arg
 
-#undef TARGET_UNWIND_EMIT
-#define TARGET_UNWIND_EMIT process_for_unwind_directive
+#undef TARGET_ASM_UNWIND_EMIT
+#define TARGET_ASM_UNWIND_EMIT process_for_unwind_directive
 
 #undef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P ia64_scalar_mode_supported_p
@@ -5207,9 +5207,12 @@ ia64_rtx_costs (rtx x, int code, int outer_code, int *total,
    one in class TO, using MODE.  */
 
 static int
-ia64_register_move_cost (enum machine_mode mode, enum reg_class from,
-			 enum reg_class to)
+ia64_register_move_cost (enum machine_mode mode, reg_class_t from_i,
+			 reg_class_t to_i)
 {
+  enum reg_class from = (enum reg_class) from_i;
+  enum reg_class to = (enum reg_class) to_i;
+
   /* ADDL_REGS is the same as GR_REGS for movement purposes.  */
   if (to == ADDL_REGS)
     to = GR_REGS;

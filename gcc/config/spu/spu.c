@@ -209,7 +209,7 @@ static rtx spu_addr_space_legitimize_address (rtx, rtx, enum machine_mode,
 static tree spu_builtin_mul_widen_even (tree);
 static tree spu_builtin_mul_widen_odd (tree);
 static tree spu_builtin_mask_for_load (void);
-static int spu_builtin_vectorization_cost (enum vect_cost_for_stmt);
+static int spu_builtin_vectorization_cost (enum vect_cost_for_stmt, tree, int);
 static bool spu_vector_alignment_reachable (const_tree, bool);
 static tree spu_builtin_vec_perm (tree, tree *);
 static enum machine_mode spu_addr_space_pointer_mode (addr_space_t);
@@ -432,8 +432,8 @@ static const struct attribute_spec spu_attribute_table[] =
 #undef TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST spu_builtin_vectorization_cost
 
-#undef TARGET_VECTOR_ALIGNMENT_REACHABLE
-#define TARGET_VECTOR_ALIGNMENT_REACHABLE spu_vector_alignment_reachable
+#undef TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE
+#define TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE spu_vector_alignment_reachable
 
 #undef TARGET_VECTORIZE_BUILTIN_VEC_PERM
 #define TARGET_VECTORIZE_BUILTIN_VEC_PERM spu_builtin_vec_perm
@@ -1139,7 +1139,7 @@ spu_emit_branch_or_set (int is_set, rtx cmp, rtx operands[])
           if (eq_rtx == 0)
 	    abort ();
           emit_insn (eq_rtx);
-          ior_code = ior_optab->handlers[(int)comp_mode].insn_code;
+          ior_code = optab_handler (ior_optab, comp_mode);
           gcc_assert (ior_code != CODE_FOR_nothing);
           emit_insn (GEN_FCN (ior_code)
 		     (compare_result, compare_result, eq_result));
@@ -4171,7 +4171,7 @@ spu_gimplify_va_arg_expr (tree valist, tree type, gimple_seq * pre_p,
   f_args = TYPE_FIELDS (TREE_TYPE (va_list_type_node));
   f_skip = TREE_CHAIN (f_args);
 
-  valist = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (valist)), valist);
+  valist = build_simple_mem_ref (valist);
   args =
     build3 (COMPONENT_REF, TREE_TYPE (f_args), valist, f_args, NULL_TREE);
   skip =
@@ -4588,7 +4588,8 @@ spu_expand_mov (rtx * ops, enum machine_mode mode)
 
       if (GET_MODE_SIZE (mode) < GET_MODE_SIZE (imode))
 	{
-	  enum insn_code icode = convert_optab_handler (trunc_optab, mode, imode)->insn_code;
+	  enum insn_code icode = convert_optab_handler (trunc_optab,
+							mode, imode);
 	  emit_insn (GEN_FCN (icode) (ops[0], from));
 	}
       else
@@ -6251,7 +6252,7 @@ spu_emit_vector_compare (enum rtx_code rcode,
           {
             enum insn_code nor_code;
             rtx eq_rtx = spu_emit_vector_compare (EQ, op0, op1, dest_mode);
-            nor_code = optab_handler (one_cmpl_optab, (int)dest_mode)->insn_code;
+            nor_code = optab_handler (one_cmpl_optab, dest_mode);
             gcc_assert (nor_code != CODE_FOR_nothing);
             emit_insn (GEN_FCN (nor_code) (mask, eq_rtx));
             if (dmode != dest_mode)
@@ -6286,7 +6287,7 @@ spu_emit_vector_compare (enum rtx_code rcode,
             c_rtx = spu_emit_vector_compare (new_code, op0, op1, dest_mode);
             eq_rtx = spu_emit_vector_compare (EQ, op0, op1, dest_mode);
 
-            ior_code = optab_handler (ior_optab, (int)dest_mode)->insn_code;
+            ior_code = optab_handler (ior_optab, dest_mode);
             gcc_assert (ior_code != CODE_FOR_nothing);
             emit_insn (GEN_FCN (ior_code) (mask, c_rtx, eq_rtx));
             if (dmode != dest_mode)
@@ -6694,7 +6695,9 @@ spu_builtin_mask_for_load (void)
 
 /* Implement targetm.vectorize.builtin_vectorization_cost.  */
 static int 
-spu_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
+spu_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
+                                tree vectype ATTRIBUTE_UNUSED,
+                                int misalign ATTRIBUTE_UNUSED)
 {
   switch (type_of_cost)
     {

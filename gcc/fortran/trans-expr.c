@@ -2653,7 +2653,6 @@ conv_isocbinding_procedure (gfc_se * se, gfc_symbol * sym,
   return 0;
 }
 
-
 /* Generate code for a procedure call.  Note can return se->post != NULL.
    If se->direct_byref is set then se->expr contains the return parameter.
    Return nonzero, if the call has alternate specifiers.
@@ -2662,11 +2661,11 @@ conv_isocbinding_procedure (gfc_se * se, gfc_symbol * sym,
 int
 gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 			 gfc_actual_arglist * arg, gfc_expr * expr,
-			 tree append_args)
+			 VEC(tree,gc) *append_args)
 {
   gfc_interface_mapping mapping;
-  tree arglist;
-  tree retargs;
+  VEC(tree,gc) *arglist;
+  VEC(tree,gc) *retargs;
   tree tmp;
   tree fntype;
   gfc_se parmse;
@@ -2677,7 +2676,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
   tree type;
   tree var;
   tree len;
-  tree stringargs;
+  VEC(tree,gc) *stringargs;
   tree result = NULL;
   gfc_formal_arglist *formal;
   int has_alternate_specifier = 0;
@@ -2690,10 +2689,11 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
   stmtblock_t post;
   enum {MISSING = 0, ELEMENTAL, SCALAR, SCALAR_POINTER, ARRAY};
   gfc_component *comp = NULL;
+  int arglen;
 
-  arglist = NULL_TREE;
-  retargs = NULL_TREE;
-  stringargs = NULL_TREE;
+  arglist = NULL;
+  retargs = NULL;
+  stringargs = NULL;
   var = NULL_TREE;
   len = NULL_TREE;
   gfc_clear_ts (&ts);
@@ -3136,9 +3136,9 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
       /* Character strings are passed as two parameters, a length and a
          pointer - except for Bind(c) which only passes the pointer.  */
       if (parmse.string_length != NULL_TREE && !sym->attr.is_bind_c)
-        stringargs = gfc_chainon_list (stringargs, parmse.string_length);
+	VEC_safe_push (tree, gc, stringargs, parmse.string_length);
 
-      arglist = gfc_chainon_list (arglist, parmse.expr);
+      VEC_safe_push (tree, gc, arglist, parmse.expr);
     }
   gfc_finish_interface_mapping (&mapping, &se->pre, &se->post);
 
@@ -3160,7 +3160,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	     For dummies, we have to look through the formal argument list for
 	     this function and use the character length found there.*/
 	  if (!sym->attr.dummy)
-	    cl.backend_decl = TREE_VALUE (stringargs);
+	    cl.backend_decl = VEC_index (tree, stringargs, 0);
 	  else
 	    {
 	      formal = sym->ns->proc_name->formal;
@@ -3213,7 +3213,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
 	  result = build_fold_indirect_ref_loc (input_location,
 						se->expr);
-	  retargs = gfc_chainon_list (retargs, se->expr);
+	  VEC_safe_push (tree, gc, retargs, se->expr);
 	}
       else if (comp && comp->attr.dimension)
 	{
@@ -3237,7 +3237,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	  /* Pass the temporary as the first argument.  */
 	  result = info->descriptor;
 	  tmp = gfc_build_addr_expr (NULL_TREE, result);
-	  retargs = gfc_chainon_list (retargs, tmp);
+	  VEC_safe_push (tree, gc, retargs, tmp);
 	}
       else if (!comp && sym->result->attr.dimension)
 	{
@@ -3261,7 +3261,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	  /* Pass the temporary as the first argument.  */
 	  result = info->descriptor;
 	  tmp = gfc_build_addr_expr (NULL_TREE, result);
-	  retargs = gfc_chainon_list (retargs, tmp);
+	  VEC_safe_push (tree, gc, retargs, tmp);
 	}
       else if (ts.type == BT_CHARACTER)
 	{
@@ -3288,7 +3288,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	  else
 	    var = gfc_conv_string_tmp (se, type, len);
 
-	  retargs = gfc_chainon_list (retargs, var);
+	  VEC_safe_push (tree, gc, retargs, var);
 	}
       else
 	{
@@ -3296,25 +3296,31 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
 	  type = gfc_get_complex_type (ts.kind);
 	  var = gfc_build_addr_expr (NULL_TREE, gfc_create_var (type, "cmplx"));
-	  retargs = gfc_chainon_list (retargs, var);
+	  VEC_safe_push (tree, gc, retargs, var);
 	}
 
       /* Add the string length to the argument list.  */
       if (ts.type == BT_CHARACTER)
-	retargs = gfc_chainon_list (retargs, len);
+	VEC_safe_push (tree, gc, retargs, len);
     }
   gfc_free_interface_mapping (&mapping);
 
+  /* We need to glom RETARGS + ARGLIST + STRINGARGS + APPEND_ARGS.  */
+  arglen = (VEC_length (tree, arglist)
+	    + VEC_length (tree, stringargs) + VEC_length (tree, append_args));
+  VEC_reserve_exact (tree, gc, retargs, arglen);
+
   /* Add the return arguments.  */
-  arglist = chainon (retargs, arglist);
+  VEC_splice (tree, retargs, arglist);
 
   /* Add the hidden string length parameters to the arguments.  */
-  arglist = chainon (arglist, stringargs);
+  VEC_splice (tree, retargs, stringargs);
 
   /* We may want to append extra arguments here.  This is used e.g. for
      calls to libgfortran_matmul_??, which need extra information.  */
-  if (append_args != NULL_TREE)
-    arglist = chainon (arglist, append_args);
+  if (!VEC_empty (tree, append_args))
+    VEC_splice (tree, retargs, append_args);
+  arglist = retargs;
 
   /* Generate the actual call.  */
   conv_function_val (se, sym, expr);
@@ -3338,7 +3344,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
     }
 
   fntype = TREE_TYPE (TREE_TYPE (se->expr));
-  se->expr = build_call_list (TREE_TYPE (fntype), se->expr, arglist);
+  se->expr = build_call_vec (TREE_TYPE (fntype), se->expr, arglist);
 
   /* If we have a pointer function, but we don't want a pointer, e.g.
      something like
@@ -3786,8 +3792,7 @@ gfc_conv_function_expr (gfc_se * se, gfc_expr * expr)
   if (!sym)
     sym = expr->symtree->n.sym;
 
-  gfc_conv_procedure_call (se, sym, expr->value.function.actual, expr,
-			  NULL_TREE);
+  gfc_conv_procedure_call (se, sym, expr->value.function.actual, expr, NULL);
 }
 
 
@@ -4870,41 +4875,40 @@ gfc_trans_scalar_assign (gfc_se * lse, gfc_se * rse, gfc_typespec ts,
 }
 
 
-/* Try to translate array(:) = func (...), where func is a transformational
-   array function, without using a temporary.  Returns NULL is this isn't the
-   case.  */
+/* There are quite a lot of restrictions on the optimisation in using an
+   array function assign without a temporary.  */
 
-static tree
-gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
+static bool
+arrayfunc_assign_needs_temporary (gfc_expr * expr1, gfc_expr * expr2)
 {
-  gfc_se se;
-  gfc_ss *ss;
   gfc_ref * ref;
   bool seen_array_ref;
   bool c = false;
-  gfc_component *comp = NULL;
+  gfc_symbol *sym = expr1->symtree->n.sym;
 
   /* The caller has already checked rank>0 and expr_type == EXPR_FUNCTION.  */
   if (expr2->value.function.isym && !gfc_is_intrinsic_libcall (expr2))
-    return NULL;
+    return true;
 
-  /* Elemental functions don't need a temporary anyway.  */
+  /* Elemental functions are scalarized so that they don't need a
+     temporary in gfc_trans_assignment_1, so return a true.  Otherwise,
+     they would need special treatment in gfc_trans_arrayfunc_assign.  */
   if (expr2->value.function.esym != NULL
       && expr2->value.function.esym->attr.elemental)
-    return NULL;
+    return true;
 
-  /* Fail if rhs is not FULL or a contiguous section.  */
+  /* Need a temporary if rhs is not FULL or a contiguous section.  */
   if (expr1->ref && !(gfc_full_array_ref_p (expr1->ref, &c) || c))
-    return NULL;
+    return true;
 
-  /* Fail if EXPR1 can't be expressed as a descriptor.  */
+  /* Need a temporary if EXPR1 can't be expressed as a descriptor.  */
   if (gfc_ref_needs_temporary_p (expr1->ref))
-    return NULL;
+    return true;
 
   /* Functions returning pointers need temporaries.  */
   if (expr2->symtree->n.sym->attr.pointer 
       || expr2->symtree->n.sym->attr.allocatable)
-    return NULL;
+    return true;
 
   /* Character array functions need temporaries unless the
      character lengths are the same.  */
@@ -4912,15 +4916,15 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
     {
       if (expr1->ts.u.cl->length == NULL
 	    || expr1->ts.u.cl->length->expr_type != EXPR_CONSTANT)
-	return NULL;
+	return true;
 
       if (expr2->ts.u.cl->length == NULL
 	    || expr2->ts.u.cl->length->expr_type != EXPR_CONSTANT)
-	return NULL;
+	return true;
 
       if (mpz_cmp (expr1->ts.u.cl->length->value.integer,
 		     expr2->ts.u.cl->length->value.integer) != 0)
-	return NULL;
+	return true;
     }
 
   /* Check that no LHS component references appear during an array
@@ -4934,7 +4938,7 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
       if (ref->type == REF_ARRAY)
 	seen_array_ref= true;
       else if (ref->type == REF_COMPONENT && seen_array_ref)
-	return NULL;
+	return true;
     }
 
   /* Check for a dependency.  */
@@ -4942,6 +4946,62 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
 				   expr2->value.function.esym,
 				   expr2->value.function.actual,
 				   NOT_ELEMENTAL))
+    return true;
+
+  /* If we have reached here with an intrinsic function, we do not
+     need a temporary.  */
+  if (expr2->value.function.isym)
+    return false;
+
+  /* If the LHS is a dummy, we need a temporary if it is not
+     INTENT(OUT).  */
+  if (sym->attr.dummy && sym->attr.intent != INTENT_OUT)
+    return true;
+
+  /* A PURE function can unconditionally be called without a temporary.  */
+  if (expr2->value.function.esym != NULL
+      && expr2->value.function.esym->attr.pure)
+    return false;
+
+  /* TODO a function that could correctly be declared PURE but is not
+     could do with returning false as well.  */
+
+  if (!sym->attr.use_assoc
+	&& !sym->attr.in_common
+	&& !sym->attr.pointer
+	&& !sym->attr.target
+	&& expr2->value.function.esym)
+    {
+      /* A temporary is not needed if the function is not contained and
+	 the variable is local or host associated and not a pointer or
+	 a target. */
+      if (!expr2->value.function.esym->attr.contained)
+	return false;
+
+      /* A temporary is not needed if the variable is local and not
+	 a pointer, a target or a result.  */
+      if (sym->ns->parent
+	    && expr2->value.function.esym->ns == sym->ns->parent)
+	return false;
+    }
+
+  /* Default to temporary use.  */
+  return true;
+}
+
+
+/* Try to translate array(:) = func (...), where func is a transformational
+   array function, without using a temporary.  Returns NULL if this isn't the
+   case.  */
+
+static tree
+gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
+{
+  gfc_se se;
+  gfc_ss *ss;
+  gfc_component *comp = NULL;
+
+  if (arrayfunc_assign_needs_temporary (expr1, expr2))
     return NULL;
 
   /* The frontend doesn't seem to bother filling in expr->symtree for intrinsic

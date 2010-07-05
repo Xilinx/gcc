@@ -479,7 +479,9 @@ default_builtin_vectorized_conversion (unsigned int code ATTRIBUTE_UNUSED,
 /* Default vectorizer cost model values.  */
 
 int
-default_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
+default_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
+                                    tree vectype ATTRIBUTE_UNUSED,
+                                    int misalign ATTRIBUTE_UNUSED)
 {
   switch (type_of_cost)
     {
@@ -496,6 +498,7 @@ default_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
         return 1;
 
       case unaligned_load:
+      case unaligned_store:
         return 2;
 
       case cond_branch_taken:
@@ -541,6 +544,49 @@ hook_int_CUMULATIVE_ARGS_mode_tree_bool_0 (
 	tree type ATTRIBUTE_UNUSED, bool named ATTRIBUTE_UNUSED)
 {
   return 0;
+}
+
+void
+default_function_arg_advance (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+			      enum machine_mode mode ATTRIBUTE_UNUSED,
+			      const_tree type ATTRIBUTE_UNUSED,
+			      bool named ATTRIBUTE_UNUSED)
+{
+#ifdef FUNCTION_ARG_ADVANCE
+  CUMULATIVE_ARGS args = *ca;
+  FUNCTION_ARG_ADVANCE (args, mode, CONST_CAST_TREE (type), named);
+  *ca = args;
+#else
+  gcc_unreachable ();
+#endif
+}
+
+rtx
+default_function_arg (const CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+		      enum machine_mode mode ATTRIBUTE_UNUSED,
+		      const_tree type ATTRIBUTE_UNUSED,
+		      bool named ATTRIBUTE_UNUSED)
+{
+#ifdef FUNCTION_ARG
+  return FUNCTION_ARG (*(CONST_CAST (CUMULATIVE_ARGS *, ca)), mode,
+		       CONST_CAST_TREE (type), named);
+#else
+  gcc_unreachable ();
+#endif
+}
+
+rtx
+default_function_incoming_arg (const CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+			       enum machine_mode mode ATTRIBUTE_UNUSED,
+			       const_tree type ATTRIBUTE_UNUSED,
+			       bool named ATTRIBUTE_UNUSED)
+{
+#ifdef FUNCTION_INCOMING_ARG
+  return FUNCTION_INCOMING_ARG (*(CONST_CAST (CUMULATIVE_ARGS *, ca)), mode,
+				CONST_CAST_TREE (type), named);
+#else
+  gcc_unreachable ();
+#endif
 }
 
 void
@@ -756,28 +802,37 @@ default_trampoline_init (rtx ARG_UNUSED (m_tramp), tree ARG_UNUSED (t_func),
   sorry ("nested function trampolines not supported on this target");
 }
 
-enum reg_class
+int
+default_return_pops_args (tree fundecl ATTRIBUTE_UNUSED,
+			  tree funtype ATTRIBUTE_UNUSED,
+			  int size ATTRIBUTE_UNUSED)
+{
+  return 0;
+}
+
+reg_class_t
 default_branch_target_register_class (void)
 {
   return NO_REGS;
 }
 
 #ifdef IRA_COVER_CLASSES
-const enum reg_class *
+const reg_class_t *
 default_ira_cover_classes (void)
 {
-  static enum reg_class classes[] = IRA_COVER_CLASSES;
+  static reg_class_t classes[] = IRA_COVER_CLASSES;
   return classes;
 }
 #endif
 
-enum reg_class
+reg_class_t
 default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
-			  enum reg_class reload_class ATTRIBUTE_UNUSED,
+			  reg_class_t reload_class_i ATTRIBUTE_UNUSED,
 			  enum machine_mode reload_mode ATTRIBUTE_UNUSED,
 			  secondary_reload_info *sri)
 {
   enum reg_class rclass = NO_REGS;
+  enum reg_class reload_class = (enum reg_class) reload_class_i;
 
   if (sri->prev_sri && sri->prev_sri->t_icode != CODE_FOR_nothing)
     {
@@ -794,8 +849,9 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 #endif
   if (rclass != NO_REGS)
     {
-      enum insn_code icode = (in_p ? reload_in_optab[(int) reload_mode]
-			      : reload_out_optab[(int) reload_mode]);
+      enum insn_code icode
+	= direct_optab_handler (in_p ? reload_in_optab : reload_out_optab,
+				reload_mode);
 
       if (icode != CODE_FOR_nothing
 	  && insn_data[(int) icode].operand[in_p].predicate
@@ -859,6 +915,14 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
   return rclass;
 }
 
+void
+default_target_option_override (void)
+{
+#ifdef OVERRIDE_OPTIONS
+  OVERRIDE_OPTIONS;
+#endif
+}
+
 bool
 default_handle_c_option (size_t code ATTRIBUTE_UNUSED,
 			 const char *arg ATTRIBUTE_UNUSED,
@@ -911,7 +975,7 @@ default_builtin_support_vector_misalignment (enum machine_mode mode,
 					     bool is_packed
 					     ATTRIBUTE_UNUSED)
 {
-  if (optab_handler (movmisalign_optab, mode)->insn_code != CODE_FOR_nothing)
+  if (optab_handler (movmisalign_optab, mode) != CODE_FOR_nothing)
     return true;
   return false;
 }
@@ -1117,13 +1181,13 @@ default_have_conditional_execution (void)
 
 int
 default_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
-			  enum reg_class rclass ATTRIBUTE_UNUSED,
+			  reg_class_t rclass ATTRIBUTE_UNUSED,
 			  bool in ATTRIBUTE_UNUSED)
 {
 #ifndef MEMORY_MOVE_COST
-    return (4 + memory_move_secondary_cost (mode, rclass, in));
+    return (4 + memory_move_secondary_cost (mode, (enum reg_class) rclass, in));
 #else
-    return MEMORY_MOVE_COST (mode, rclass, in);
+    return MEMORY_MOVE_COST (mode, (enum reg_class) rclass, in);
 #endif
 }
 
@@ -1132,13 +1196,13 @@ default_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
 
 int
 default_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
-                            enum reg_class from ATTRIBUTE_UNUSED,
-                            enum reg_class to ATTRIBUTE_UNUSED)
+                            reg_class_t from ATTRIBUTE_UNUSED,
+                            reg_class_t to ATTRIBUTE_UNUSED)
 {
 #ifndef REGISTER_MOVE_COST
   return 2;
 #else
-  return REGISTER_MOVE_COST (mode, from, to);
+  return REGISTER_MOVE_COST (mode, (enum reg_class) from, (enum reg_class) to);
 #endif
 }
 

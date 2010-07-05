@@ -2397,7 +2397,7 @@ derive_constant_upper_bound_ops (tree type, tree op0,
 	  /* OP0 + CST.  We need to check that
 	     BND <= MAX (type) - CST.  */
 
-	  mmax = double_int_add (max, double_int_neg (cst));
+	  mmax = double_int_sub (max, cst);
 	  if (double_int_ucmp (bnd, mmax) > 0)
 	    return max;
 
@@ -2429,7 +2429,7 @@ derive_constant_upper_bound_ops (tree type, tree op0,
 		return max;
 	    }
 
-	  bnd = double_int_add (bnd, double_int_neg (cst));
+	  bnd = double_int_sub (bnd, cst);
 	}
 
       return bnd;
@@ -2625,7 +2625,7 @@ array_at_struct_end_p (tree ref)
 
   /* Unless the reference is through a pointer, the size of the array matches
      its declaration.  */
-  if (!base || !INDIRECT_REF_P (base))
+  if (!base || (!INDIRECT_REF_P (base) && TREE_CODE (base) != MEM_REF))
     return false;
 
   for (;handled_component_p (ref); ref = parent)
@@ -2651,7 +2651,6 @@ array_at_struct_end_p (tree ref)
 	 Therefore, continue checking.  */
     }
 
-  gcc_assert (INDIRECT_REF_P (ref));
   return true;
 }
 

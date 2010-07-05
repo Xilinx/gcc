@@ -1435,8 +1435,9 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
   struct cgraph_node *node;
 
   lto_stats.num_input_files = nfiles;
+  init_cgraph ();
 
-  timevar_push (TV_IPA_LTO_DECL_IO);
+  timevar_push (TV_IPA_LTO_DECL_IN);
 
   /* Set the hooks so that all of the ipa passes can read in their data.  */
   all_file_decl_data
@@ -1498,7 +1499,7 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
   /* Set the hooks so that all of the ipa passes can read in their data.  */
   lto_set_in_hooks (all_file_decl_data, get_section_data, free_section_data);
 
-  timevar_pop (TV_IPA_LTO_DECL_IO);
+  timevar_pop (TV_IPA_LTO_DECL_IN);
 
   if (!quiet_flag)
     fprintf (stderr, "\nReading the callgraph\n");
@@ -1534,6 +1535,12 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
 
   /* Finally merge the cgraph according to the decl merging decisions.  */
   timevar_push (TV_IPA_LTO_CGRAPH_MERGE);
+  if (cgraph_dump_file)
+    {
+      fprintf (cgraph_dump_file, "Before merging:\n");
+      dump_cgraph (cgraph_dump_file);
+      dump_varpool (cgraph_dump_file);
+    }
   lto_symtab_merge_cgraph_nodes ();
   ggc_collect ();
 
@@ -1590,7 +1597,7 @@ materialize_cgraph (void)
 
   /* Now that we have input the cgraph, we need to clear all of the aux
      nodes and read the functions if we are not running in WPA mode.  */
-  timevar_push (TV_IPA_LTO_GIMPLE_IO);
+  timevar_push (TV_IPA_LTO_GIMPLE_IN);
 
   for (node = cgraph_nodes; node; node = node->next)
     {
@@ -1611,7 +1618,7 @@ materialize_cgraph (void)
 	}
     }
 
-  timevar_pop (TV_IPA_LTO_GIMPLE_IO);
+  timevar_pop (TV_IPA_LTO_GIMPLE_IN);
 
   /* Start the appropriate timer depending on the mode that we are
      operating in.  */

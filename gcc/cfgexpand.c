@@ -2239,7 +2239,6 @@ expand_debug_expr (tree exp)
   enum machine_mode mode = TYPE_MODE (TREE_TYPE (exp));
   int unsignedp = TYPE_UNSIGNED (TREE_TYPE (exp));
   addr_space_t as;
-  enum machine_mode address_mode;
 
   switch (TREE_CODE_CLASS (TREE_CODE (exp)))
     {
@@ -2438,29 +2437,21 @@ expand_debug_expr (tree exp)
 	return op0;
       }
 
+    case MEM_REF:
+      /* ??? FIXME.  */
+      if (!integer_zerop (TREE_OPERAND (exp, 1)))
+	return NULL;
+      /* Fallthru.  */
     case INDIRECT_REF:
-    case ALIGN_INDIRECT_REF:
     case MISALIGNED_INDIRECT_REF:
       op0 = expand_debug_expr (TREE_OPERAND (exp, 0));
       if (!op0)
 	return NULL;
 
       if (POINTER_TYPE_P (TREE_TYPE (exp)))
-	{
-	  as = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (exp)));
-	  address_mode = targetm.addr_space.address_mode (as);
-	}
+	as = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (exp)));
       else
-	{
-	  as = ADDR_SPACE_GENERIC;
-	  address_mode = Pmode;
-	}
-
-      if (TREE_CODE (exp) == ALIGN_INDIRECT_REF)
-	{
-	  int align = TYPE_ALIGN_UNIT (TREE_TYPE (exp));
-	  op0 = gen_rtx_AND (address_mode, op0, GEN_INT (-align));
-	}
+	as = ADDR_SPACE_GENERIC;
 
       op0 = gen_rtx_MEM (mode, op0);
 
@@ -3759,7 +3750,9 @@ gimple_expand_cfg (void)
   edge e;
   unsigned i;
 
+  timevar_push (TV_OUT_OF_SSA);
   rewrite_out_of_ssa (&SA);
+  timevar_pop (TV_OUT_OF_SSA);
   SA.partition_to_pseudo = (rtx *)xcalloc (SA.map->num_partitions,
 					   sizeof (rtx));
 
@@ -3802,7 +3795,9 @@ gimple_expand_cfg (void)
 
 
   /* Expand the variables recorded during gimple lowering.  */
+  timevar_push (TV_VAR_EXPAND);
   expand_used_vars ();
+  timevar_pop (TV_VAR_EXPAND);
 
   /* Honor stack protection warnings.  */
   if (warn_stack_protect)
@@ -3882,8 +3877,11 @@ gimple_expand_cfg (void)
     expand_debug_locations ();
 
   execute_free_datastructures ();
+  timevar_push (TV_OUT_OF_SSA);
   finish_out_of_ssa (&SA);
+  timevar_pop (TV_OUT_OF_SSA);
 
+  timevar_push (TV_POST_EXPAND);
   /* We are no longer in SSA form.  */
   cfun->gimple_df->in_ssa_p = false;
 
@@ -3993,6 +3991,7 @@ gimple_expand_cfg (void)
      the common parent easily.  */
   set_block_levels (DECL_INITIAL (cfun->decl), 0);
   default_rtl_profile ();
+  timevar_pop (TV_POST_EXPAND);
   return 0;
 }
 

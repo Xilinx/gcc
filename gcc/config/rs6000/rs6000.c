@@ -1075,6 +1075,8 @@ static bool rs6000_builtin_support_vector_misalignment (enum
 							machine_mode,
 							const_tree,
 							int, bool);
+static int rs6000_builtin_vectorization_cost (enum vect_cost_for_stmt,
+                                              tree, int);
 
 static void def_builtin (int, const char *, tree, int);
 static bool rs6000_vector_alignment_reachable (const_tree, bool);
@@ -1240,11 +1242,11 @@ bool (*rs6000_cannot_change_mode_class_ptr) (enum machine_mode,
 					     enum reg_class)
   = rs6000_cannot_change_mode_class;
 
-static enum reg_class rs6000_secondary_reload (bool, rtx, enum reg_class,
-					       enum machine_mode,
-					       struct secondary_reload_info *);
+static reg_class_t rs6000_secondary_reload (bool, rtx, reg_class_t,
+					    enum machine_mode,
+					    struct secondary_reload_info *);
 
-static const enum reg_class *rs6000_ira_cover_classes (void);
+static const reg_class_t *rs6000_ira_cover_classes (void);
 
 const int INSN_NOT_AVAILABLE = -1;
 static enum machine_mode rs6000_eh_return_filter_mode (void);
@@ -1462,11 +1464,14 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #define TARGET_VECTORIZE_BUILTIN_CONVERSION rs6000_builtin_conversion
 #undef TARGET_VECTORIZE_BUILTIN_VEC_PERM
 #define TARGET_VECTORIZE_BUILTIN_VEC_PERM rs6000_builtin_vec_perm
-#undef TARGET_SUPPORT_VECTOR_MISALIGNMENT
-#define TARGET_SUPPORT_VECTOR_MISALIGNMENT		\
+#undef TARGET_VECTORIZE_SUPPORT_VECTOR_MISALIGNMENT
+#define TARGET_VECTORIZE_SUPPORT_VECTOR_MISALIGNMENT		\
   rs6000_builtin_support_vector_misalignment
-#undef TARGET_VECTOR_ALIGNMENT_REACHABLE
-#define TARGET_VECTOR_ALIGNMENT_REACHABLE rs6000_vector_alignment_reachable
+#undef TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE
+#define TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE rs6000_vector_alignment_reachable
+#undef TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST
+#define TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST \
+  rs6000_builtin_vectorization_cost
 
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS rs6000_init_builtins
@@ -3327,18 +3332,24 @@ rs6000_builtin_support_vector_misalignment (enum machine_mode mode,
   if (TARGET_VSX)
     {
       /* Return if movmisalign pattern is not supported for this mode.  */
-      if (optab_handler (movmisalign_optab, mode)->insn_code ==
-          CODE_FOR_nothing)
+      if (optab_handler (movmisalign_optab, mode) == CODE_FOR_nothing)
         return false;
 
       if (misalignment == -1)
 	{
-	  /* misalignment factor is unknown at compile time but we know
+	  /* Misalignment factor is unknown at compile time but we know
 	     it's word aligned.  */
 	  if (rs6000_vector_alignment_reachable (type, is_packed))
-	    return true;
+            {
+              int element_size = TREE_INT_CST_LOW (TYPE_SIZE (type));
+
+              if (element_size == 64 || element_size == 32)
+               return true;
+            }
+
 	  return false;
 	}
+
       /* VSX supports word-aligned vector.  */
       if (misalignment % 4 == 0)
 	return true;
@@ -3402,6 +3413,106 @@ rs6000_builtin_vec_perm (tree type, tree *mask_element_type)
 
   gcc_assert (d);
   return d;
+}
+
+
+/* Implement targetm.vectorize.builtin_vectorization_cost.  */
+static int
+rs6000_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
+                                   tree vectype, int misalign)
+{
+  unsigned elements;
+
+  switch (type_of_cost)
+    {
+      case scalar_stmt:
+      case scalar_load:
+      case scalar_store:
+      case vector_stmt:
+      case vector_load:
+      case vector_store:
+      case vec_to_scalar:
+      case scalar_to_vec:
+      case cond_branch_not_taken:
+      case vec_perm:
+        return 1;
+
+      case cond_branch_taken:
+        return 3;
+
+      case unaligned_load:
+        if (TARGET_VSX && TARGET_ALLOW_MOVMISALIGN)
+          {
+            elements = TYPE_VECTOR_SUBPARTS (vectype);
+            if (elements == 2)
+              /* Double word aligned.  */
+              return 2;
+
+            if (elements == 4)
+              {
+                switch (misalign)
+                  {
+                    case 8:
+                      /* Double word aligned.  */
+                      return 2;
+
+                    case -1:
+                      /* Unknown misalignment.  */
+                    case 4:
+                    case 12:
+                      /* Word aligned.  */
+                      return 22;
+
+                    default:
+                      gcc_unreachable ();
+                  }
+              }
+          }
+
+        if (TARGET_ALTIVEC)
+          /* Misaligned loads are not supported.  */
+          gcc_unreachable ();
+
+        return 2;
+
+      case unaligned_store:
+        if (TARGET_VSX && TARGET_ALLOW_MOVMISALIGN)
+          {
+            elements = TYPE_VECTOR_SUBPARTS (vectype);
+            if (elements == 2)
+              /* Double word aligned.  */
+              return 2;
+
+            if (elements == 4)
+              {
+                switch (misalign)
+                  {
+                    case 8:
+                      /* Double word aligned.  */
+                      return 2;
+
+                    case -1:
+                      /* Unknown misalignment.  */
+                    case 4:
+                    case 12:
+                      /* Word aligned.  */
+                      return 23;
+
+                    default:
+                      gcc_unreachable ();
+                  }
+              }
+          }
+
+        if (TARGET_ALTIVEC)
+          /* Misaligned stores are not supported.  */
+          gcc_unreachable ();
+
+        return 2;
+
+      default:
+        gcc_unreachable ();
+    }
 }
 
 /* Handle generic options of the form -mfoo=yes/no.
@@ -5929,6 +6040,17 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
     {
       push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
 		   BASE_REG_CLASS, GET_MODE (x), VOIDmode, 0, 0,
+		   opnum, (enum reload_type)type);
+      *win = 1;
+      return x;
+    }
+
+  /* Likewise for (lo_sum (high ...) ...) output we have generated.  */
+  if (GET_CODE (x) == LO_SUM
+      && GET_CODE (XEXP (x, 0)) == HIGH)
+    {
+      push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
+		   BASE_REG_CLASS, Pmode, VOIDmode, 0, 0,
 		   opnum, (enum reload_type)type);
       *win = 1;
       return x;
@@ -13682,8 +13804,7 @@ rs6000_check_sdmode (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
     case RESULT_DECL:
     case SSA_NAME:
     case REAL_CST:
-    case INDIRECT_REF:
-    case ALIGN_INDIRECT_REF:
+    case MEM_REF:
     case MISALIGNED_INDIRECT_REF:
     case VIEW_CONVERT_EXPR:
       if (TYPE_MODE (TREE_TYPE (*tp)) == SDmode)
@@ -13728,14 +13849,15 @@ rs6000_reload_register_type (enum reg_class rclass)
    For VSX and Altivec, we may need a register to convert sp+offset into
    reg+sp.  */
 
-static enum reg_class
+static reg_class_t
 rs6000_secondary_reload (bool in_p,
 			 rtx x,
-			 enum reg_class rclass,
+			 reg_class_t rclass_i,
 			 enum machine_mode mode,
 			 secondary_reload_info *sri)
 {
-  enum reg_class ret = ALL_REGS;
+  enum reg_class rclass = (enum reg_class) rclass_i;
+  reg_class_t ret = ALL_REGS;
   enum insn_code icode;
   bool default_p = false;
 
@@ -14127,11 +14249,11 @@ rs6000_secondary_reload_inner (rtx reg, rtx mem, rtx scratch, bool store_p)
    account for the Altivec and Floating registers being subsets of the VSX
    register set under VSX, but distinct register sets on pre-VSX machines.  */
 
-static const enum reg_class *
+static const reg_class_t *
 rs6000_ira_cover_classes (void)
 {
-  static const enum reg_class cover_pre_vsx[] = IRA_COVER_CLASSES_PRE_VSX;
-  static const enum reg_class cover_vsx[]     = IRA_COVER_CLASSES_VSX;
+  static const reg_class_t cover_pre_vsx[] = IRA_COVER_CLASSES_PRE_VSX;
+  static const reg_class_t cover_vsx[]     = IRA_COVER_CLASSES_VSX;
 
   return (TARGET_VSX) ? cover_vsx : cover_pre_vsx;
 }
@@ -16231,7 +16353,7 @@ rs6000_emit_vector_compare (enum rtx_code rcode,
 	if (rev_code == UNKNOWN)
 	  return NULL_RTX;
 
-	nor_code = optab_handler (one_cmpl_optab, (int)dmode)->insn_code;
+	nor_code = optab_handler (one_cmpl_optab, dmode);
 	if (nor_code == CODE_FOR_nothing)
 	  return NULL_RTX;
 
@@ -16276,7 +16398,7 @@ rs6000_emit_vector_compare (enum rtx_code rcode,
 	    gcc_unreachable ();
 	  }
 
-	ior_code = optab_handler (ior_optab, (int)dmode)->insn_code;
+	ior_code = optab_handler (ior_optab, dmode);
 	if (ior_code == CODE_FOR_nothing)
 	  return NULL_RTX;
 
@@ -25629,8 +25751,8 @@ rs6000_emit_madd (rtx dst, rtx m1, rtx m2, rtx a)
     {
       /* For the simple ops, use the generator function, rather than assuming
 	 that the RTL is standard.  */
-      enum insn_code mcode = optab_handler (smul_optab, mode)->insn_code;
-      enum insn_code acode = optab_handler (add_optab, mode)->insn_code;
+      enum insn_code mcode = optab_handler (smul_optab, mode);
+      enum insn_code acode = optab_handler (add_optab, mode);
       gen_2arg_fn_t gen_mul = (gen_2arg_fn_t) GEN_FCN (mcode);
       gen_2arg_fn_t gen_add = (gen_2arg_fn_t) GEN_FCN (acode);
       rtx mreg = gen_reg_rtx (mode);
@@ -25662,8 +25784,8 @@ rs6000_emit_msub (rtx dst, rtx m1, rtx m2, rtx a)
     {
       /* For the simple ops, use the generator function, rather than assuming
 	 that the RTL is standard.  */
-      enum insn_code mcode = optab_handler (smul_optab, mode)->insn_code;
-      enum insn_code scode = optab_handler (add_optab, mode)->insn_code;
+      enum insn_code mcode = optab_handler (smul_optab, mode);
+      enum insn_code scode = optab_handler (add_optab, mode);
       gen_2arg_fn_t gen_mul = (gen_2arg_fn_t) GEN_FCN (mcode);
       gen_2arg_fn_t gen_sub = (gen_2arg_fn_t) GEN_FCN (scode);
       rtx mreg = gen_reg_rtx (mode);
@@ -25698,8 +25820,8 @@ rs6000_emit_nmsub (rtx dst, rtx m1, rtx m2, rtx a)
     {
       /* For the simple ops, use the generator function, rather than assuming
 	 that the RTL is standard.  */
-      enum insn_code mcode = optab_handler (smul_optab, mode)->insn_code;
-      enum insn_code scode = optab_handler (sub_optab, mode)->insn_code;
+      enum insn_code mcode = optab_handler (smul_optab, mode);
+      enum insn_code scode = optab_handler (sub_optab, mode);
       gen_2arg_fn_t gen_mul = (gen_2arg_fn_t) GEN_FCN (mcode);
       gen_2arg_fn_t gen_sub = (gen_2arg_fn_t) GEN_FCN (scode);
       rtx mreg = gen_reg_rtx (mode);
@@ -25733,7 +25855,7 @@ rs6000_emit_swdiv_high_precision (rtx dst, rtx n, rtx d)
 {
   enum machine_mode mode = GET_MODE (dst);
   rtx x0, e0, e1, y1, u0, v0;
-  enum insn_code code = optab_handler (smul_optab, mode)->insn_code;
+  enum insn_code code = optab_handler (smul_optab, mode);
   gen_2arg_fn_t gen_mul = (gen_2arg_fn_t) GEN_FCN (code);
   rtx one = rs6000_load_constant_and_splat (mode, dconst1);
 
@@ -25771,7 +25893,7 @@ rs6000_emit_swdiv_low_precision (rtx dst, rtx n, rtx d)
 {
   enum machine_mode mode = GET_MODE (dst);
   rtx x0, e0, e1, e2, y1, y2, y3, u0, v0, one;
-  enum insn_code code = optab_handler (smul_optab, mode)->insn_code;
+  enum insn_code code = optab_handler (smul_optab, mode);
   gen_2arg_fn_t gen_mul = (gen_2arg_fn_t) GEN_FCN (code);
 
   gcc_assert (code != CODE_FOR_nothing);
@@ -25842,7 +25964,7 @@ rs6000_emit_swrsqrt (rtx dst, rtx src)
   REAL_VALUE_TYPE dconst3_2;
   int i;
   rtx halfthree;
-  enum insn_code code = optab_handler (smul_optab, mode)->insn_code;
+  enum insn_code code = optab_handler (smul_optab, mode);
   gen_2arg_fn_t gen_mul = (gen_2arg_fn_t) GEN_FCN (code);
 
   gcc_assert (code != CODE_FOR_nothing);

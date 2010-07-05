@@ -89,6 +89,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "tree-affine.h"
 #include "target.h"
+#include "tree-ssa-propagate.h"
 
 /* FIXME: Expressions are expanded to RTL in this pass to determine the
    cost of different addressing modes.  This should be moved to a TBD
@@ -813,7 +814,7 @@ determine_base_object (tree expr)
       if (!base)
 	return expr;
 
-      if (TREE_CODE (base) == INDIRECT_REF)
+      if (TREE_CODE (base) == MEM_REF)
 	return determine_base_object (TREE_OPERAND (base, 0));
 
       return fold_convert (ptr_type_node,
@@ -1359,8 +1360,7 @@ idx_find_step (tree base, tree *idx, void *data)
   tree step, iv_base, iv_step, lbound, off;
   struct loop *loop = dta->ivopts_data->current_loop;
 
-  if (TREE_CODE (base) == MISALIGNED_INDIRECT_REF
-      || TREE_CODE (base) == ALIGN_INDIRECT_REF)
+  if (TREE_CODE (base) == MISALIGNED_INDIRECT_REF)
     return false;
 
   /* If base is a component ref, require that the offset of the reference
@@ -1672,7 +1672,6 @@ find_interesting_uses_address (struct ivopts_data *data, gimple stmt, tree *op_p
 	goto fail;
       step = ifs_ivopts_data.step;
 
-      gcc_assert (TREE_CODE (base) != ALIGN_INDIRECT_REF);
       gcc_assert (TREE_CODE (base) != MISALIGNED_INDIRECT_REF);
 
       /* Check that the base expression is addressable.  This needs
@@ -1694,9 +1693,11 @@ find_interesting_uses_address (struct ivopts_data *data, gimple stmt, tree *op_p
 	  tree *ref = &TREE_OPERAND (base, 0);
 	  while (handled_component_p (*ref))
 	    ref = &TREE_OPERAND (*ref, 0);
-	  if (TREE_CODE (*ref) == INDIRECT_REF)
+	  if (TREE_CODE (*ref) == MEM_REF)
 	    {
-	      tree tem = gimple_fold_indirect_ref (TREE_OPERAND (*ref, 0));
+	      tree tem = fold_binary (MEM_REF, TREE_TYPE (*ref),
+				      TREE_OPERAND (*ref, 0),
+				      TREE_OPERAND (*ref, 1));
 	      if (tem)
 		*ref = tem;
 	    }
@@ -2018,7 +2019,8 @@ strip_offset_1 (tree expr, bool inside_addr, bool top_compref,
       expr = build_fold_addr_expr (op0);
       return fold_convert (orig_type, expr);
 
-    case INDIRECT_REF:
+    case MEM_REF:
+      /* ???  Offset operand?  */
       inside_addr = false;
       break;
 
@@ -3889,7 +3891,7 @@ fallback:
       return infinite_cost;
 
     if (address_p)
-      comp = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (comp)), comp);
+      comp = build_simple_mem_ref (comp);
 
     return new_cost (computation_cost (comp, speed), 0);
   }
@@ -5478,12 +5480,18 @@ rewrite_use_nonlinear_expr (struct ivopts_data *data,
       gcc_unreachable ();
     }
 
-  op = force_gimple_operand_gsi (&bsi, comp, false, SSA_NAME_VAR (tgt),
-				 true, GSI_SAME_STMT);
+  if (!valid_gimple_rhs_p (comp)
+      || (gimple_code (use->stmt) != GIMPLE_PHI
+	  /* We can't allow re-allocating the stmt as it might be pointed
+	     to still.  */
+	  && (get_gimple_rhs_num_ops (TREE_CODE (comp))
+	      >= gimple_num_ops (gsi_stmt (bsi)))))
+    comp = force_gimple_operand_gsi (&bsi, comp, false, SSA_NAME_VAR (tgt),
+				     true, GSI_SAME_STMT);
 
   if (gimple_code (use->stmt) == GIMPLE_PHI)
     {
-      ass = gimple_build_assign (tgt, op);
+      ass = gimple_build_assign (tgt, comp);
       gsi_insert_before (&bsi, ass, GSI_SAME_STMT);
 
       bsi = gsi_for_stmt (use->stmt);
@@ -5491,7 +5499,7 @@ rewrite_use_nonlinear_expr (struct ivopts_data *data,
     }
   else
     {
-      gimple_assign_set_rhs_from_tree (&bsi, op);
+      gimple_assign_set_rhs_from_tree (&bsi, comp);
       use->stmt = gsi_stmt (bsi);
     }
 }
@@ -5539,13 +5547,42 @@ unshare_and_remove_ssa_names (tree ref)
 static void
 copy_ref_info (tree new_ref, tree old_ref)
 {
-  if (TREE_CODE (old_ref) == TARGET_MEM_REF)
-    copy_mem_ref_info (new_ref, old_ref);
-  else
+  tree new_ptr_base = NULL_TREE;
+
+  if (TREE_CODE (old_ref) == TARGET_MEM_REF
+      && TREE_CODE (new_ref) == TARGET_MEM_REF)
+    TMR_ORIGINAL (new_ref) = TMR_ORIGINAL (old_ref);
+  else if (TREE_CODE (new_ref) == TARGET_MEM_REF)
+    TMR_ORIGINAL (new_ref) = unshare_and_remove_ssa_names (old_ref);
+
+  TREE_SIDE_EFFECTS (new_ref) = TREE_SIDE_EFFECTS (old_ref);
+  TREE_THIS_VOLATILE (new_ref) = TREE_THIS_VOLATILE (old_ref);
+
+  if (TREE_CODE (new_ref) == TARGET_MEM_REF)
+    new_ptr_base = TMR_BASE (new_ref);
+  else if (TREE_CODE (new_ref) == MEM_REF)
+    new_ptr_base = TREE_OPERAND (new_ref, 0);
+
+  /* We can transfer points-to information from an old pointer
+     or decl base to the new one.  */
+  if (new_ptr_base
+      && TREE_CODE (new_ptr_base) == SSA_NAME
+      && POINTER_TYPE_P (TREE_TYPE (new_ptr_base))
+      && !SSA_NAME_PTR_INFO (new_ptr_base))
     {
-      TMR_ORIGINAL (new_ref) = unshare_and_remove_ssa_names (old_ref);
-      TREE_SIDE_EFFECTS (new_ref) = TREE_SIDE_EFFECTS (old_ref);
-      TREE_THIS_VOLATILE (new_ref) = TREE_THIS_VOLATILE (old_ref);
+      tree base = get_base_address (old_ref);
+      if ((INDIRECT_REF_P (base)
+	   || TREE_CODE (base) == MEM_REF)
+	  && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
+	duplicate_ssa_name_ptr_info
+	    (new_ptr_base, SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0)));
+      else if (TREE_CODE (base) == VAR_DECL
+	       || TREE_CODE (base) == PARM_DECL
+	       || TREE_CODE (base) == RESULT_DECL)
+	{
+	  struct ptr_info_def *pi = get_ptr_info (new_ptr_base);
+	  pt_solution_set_var (&pi->pt, base);
+	}
     }
 }
 
@@ -5579,8 +5616,9 @@ rewrite_use_address (struct ivopts_data *data,
   if (cand->iv->base_object)
     base_hint = var_at_stmt (data->current_loop, cand, use->stmt);
 
-  ref = create_mem_ref (&bsi, TREE_TYPE (*use->op_p), &aff, base_hint,
-			data->speed);
+  ref = create_mem_ref (&bsi, TREE_TYPE (*use->op_p),
+			reference_alias_ptr_type (*use->op_p),
+			&aff, base_hint, data->speed);
   copy_ref_info (ref, *use->op_p);
   *use->op_p = ref;
 }

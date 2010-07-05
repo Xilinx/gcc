@@ -2432,7 +2432,6 @@ staticp (tree arg)
       return NULL;
 
     case MISALIGNED_INDIRECT_REF:
-    case ALIGN_INDIRECT_REF:
     case INDIRECT_REF:
       return TREE_CONSTANT (TREE_OPERAND (arg, 0)) ? arg : NULL;
 
@@ -3564,7 +3563,8 @@ do { tree _node = (NODE); \
      address is constant too.  If it's a decl, its address is constant if the
      decl is static.  Everything else is not constant and, furthermore,
      taking the address of a volatile variable is not volatile.  */
-  if (TREE_CODE (node) == INDIRECT_REF)
+  if (TREE_CODE (node) == INDIRECT_REF
+      || TREE_CODE (node) == MEM_REF)
     UPDATE_FLAGS (TREE_OPERAND (node, 0));
   else if (CONSTANT_CLASS_P (node))
     ;
@@ -3659,7 +3659,6 @@ build1_stat (enum tree_code code, tree type, tree node MEM_STAT_DECL)
       break;
 
     case MISALIGNED_INDIRECT_REF:
-    case ALIGN_INDIRECT_REF:
     case INDIRECT_REF:
       /* Whether a dereference is readonly has nothing to do with whether
 	 its operand is readonly.  */
@@ -3876,6 +3875,61 @@ build6_stat (enum tree_code code, tree tt, tree arg0, tree arg1,
        && arg5 && TREE_THIS_VOLATILE (arg5));
 
   return t;
+}
+
+/* Build a simple MEM_REF tree with the sematics of a plain INDIRECT_REF
+   on the pointer PTR.  */
+
+tree
+build_simple_mem_ref_loc (location_t loc, tree ptr)
+{
+  HOST_WIDE_INT offset = 0;
+  tree ptype = TREE_TYPE (ptr);
+  tree tem;
+  /* For convenience allow addresses that collapse to a simple base
+     and offset.  */
+  if (TREE_CODE (ptr) == ADDR_EXPR
+      && (handled_component_p (TREE_OPERAND (ptr, 0))
+	  || TREE_CODE (TREE_OPERAND (ptr, 0)) == MEM_REF))
+    {
+      ptr = get_addr_base_and_unit_offset (TREE_OPERAND (ptr, 0), &offset);
+      gcc_assert (ptr);
+      ptr = build_fold_addr_expr (ptr);
+      gcc_assert (is_gimple_reg (ptr) || is_gimple_min_invariant (ptr));
+    }
+  tem = build2 (MEM_REF, TREE_TYPE (ptype),
+		ptr, build_int_cst (ptype, offset));
+  SET_EXPR_LOCATION (tem, loc);
+  return tem;
+}
+
+/* Return the constant offset of a MEM_REF tree T.  */
+
+double_int
+mem_ref_offset (const_tree t)
+{
+  tree toff = TREE_OPERAND (t, 1);
+  return double_int_sext (tree_to_double_int (toff),
+			  TYPE_PRECISION (TREE_TYPE (toff)));
+}
+
+/* Return the pointer-type relevant for TBAA purposes from the
+   gimple memory reference tree T.  This is the type to be used for
+   the offset operand of MEM_REF or TARGET_MEM_REF replacements of T.  */
+
+tree
+reference_alias_ptr_type (const_tree t)
+{
+  const_tree base = t;
+  while (handled_component_p (base))
+    base = TREE_OPERAND (base, 0);
+  if (TREE_CODE (base) == MEM_REF)
+    return TREE_TYPE (TREE_OPERAND (base, 1));
+  else if (TREE_CODE (base) == TARGET_MEM_REF
+	   || TREE_CODE (base) == MISALIGNED_INDIRECT_REF)
+    return NULL_TREE;
+  else
+    return build_pointer_type (TYPE_MAIN_VARIANT (TREE_TYPE (base)));
 }
 
 /* Similar except don't specify the TREE_TYPE
@@ -9540,27 +9594,6 @@ build_vl_exp_stat (enum tree_code code, int len MEM_STAT_DECL)
      enabled, it will try to check the length before we store it.  :-P  */
   t->exp.operands[0] = build_int_cst (sizetype, len);
 
-  return t;
-}
-
-
-/* Build a CALL_EXPR of class tcc_vl_exp with the indicated RETURN_TYPE
-   and FN and a null static chain slot.  ARGLIST is a TREE_LIST of the
-   arguments.  */
-
-tree
-build_call_list (tree return_type, tree fn, tree arglist)
-{
-  tree t;
-  int i;
-
-  t = build_vl_exp (CALL_EXPR, list_length (arglist) + 3);
-  TREE_TYPE (t) = return_type;
-  CALL_EXPR_FN (t) = fn;
-  CALL_EXPR_STATIC_CHAIN (t) = NULL_TREE;
-  for (i = 0; arglist; arglist = TREE_CHAIN (arglist), i++)
-    CALL_EXPR_ARG (t, i) = TREE_VALUE (arglist);
-  process_call_operands (t);
   return t;
 }
 
