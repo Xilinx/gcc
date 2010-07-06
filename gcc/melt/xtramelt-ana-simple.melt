@@ -71,7 +71,7 @@
 	  (?(gimple_assign_single  ?lhs 
 				   ?(and ?rhs
 					 ?(tree_var_decl 
-					   ?(cstring_same "stdout"))))
+					   ?_ ?(cstring_same "stdout") ?_)))
 	    (debugtree "makegreen_transform assign single stdout lhs" lhs)
 	    (debugtree "makegreen_transform assign single stdout rhs" rhs)
 	    (maptree_put (get_field :mkgreen_stdout_ssa	grdata) 
@@ -358,7 +358,7 @@
 	)
       (pop_cfun)
       )
-   ( ?(tree_var_decl ?_)
+   ( ?(tree_var_decl ?_ ?_ ?_)
       (debugtree  "smallana_cfun_entbb decl of variable" decltree)
       (inform_at_tree decltree "smallana: global variable not analyzed")
       )
@@ -1127,7 +1127,7 @@
 	 (if tfinit (justscan_tree jsdata tfinit)))
        (?(tree_of_type ?ttyp)
 	 (if ttyp (justscan_tree jsdata ttyp)))
-       (?(tree_var_decl ?_)
+       (?(tree_var_decl ?_ ?_ ?_)
 	 )
        (?(tree_block ?tvars ?tsublocks)
 	 (if tvars (justscan_tree jsdata tvars))

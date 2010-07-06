@@ -1,3 +1,10 @@
+2010-07-02  Jeremie salvucci  <jeremie.salvucci@free.fr>
+	* xtramelt-ana-base.melt (tree_var_decl) : Now we have an access
+	to the type of a variable declaration and to its uid.
+
+	* xtramelt-ana-base.melt (tree_uid) : Useful to get the uid of a tree.
+
+	* xtramelt-ana-simple.melt : modifications of tree_var_decl calls.
 
 2010-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h:  Replaced OBMAG_... by MELTOBMAG_... everywhere,
