@@ -1,3 +1,8 @@
+2010-07-06  Aldy Hernandez  <aldyh@redhat.com>
+
+	* libitm.h (ITM_PURE): Define.
+	Declare _ITM_malloc, _ITM_calloc, and _ITM_free.
+
 2010-06-28  Aldy Hernandez  <aldyh@redhat.com>
 
 	* method-wbetl.cc (class wbetl_dispatch): Add trydropreference.

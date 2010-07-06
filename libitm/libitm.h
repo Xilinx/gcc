@@ -43,6 +43,7 @@ extern "C" {
 #endif
 
 #define ITM_NORETURN	__attribute__((noreturn))
+#define ITM_PURE __attribute__((transaction_pure))
 
 /* The following are externally visible definitions and functions, though
    only very few of these should be called by user code.  */
@@ -152,8 +153,15 @@ extern void _ITM_addUserUndoAction(_ITM_userUndoFunction, void *) ITM_REGPARM;
 
 extern int _ITM_getThreadnum(void) ITM_REGPARM;
 
-__attribute__((transaction_pure))
-extern void _ITM_dropReferences (void *, size_t) ITM_REGPARM;
+extern void _ITM_dropReferences (void *, size_t) ITM_REGPARM ITM_PURE;
+
+extern void *_ITM_malloc (size_t)
+       __attribute__((__malloc__)) ITM_PURE;
+
+extern void *_ITM_calloc (size_t, size_t)
+       __attribute__((__malloc__)) ITM_PURE;
+
+extern  void _ITM_free (void *) ITM_PURE;
 
 
 /* The following typedefs exist to make the macro expansions below work
