@@ -1786,8 +1786,33 @@ predict_paths_for_bb (basic_block cur, basic_block bb,
     if (e->src->index >= NUM_FIXED_BLOCKS
 	&& !dominated_by_p (CDI_POST_DOMINATORS, e->src, bb))
     {
+      edge e2;
+      edge_iterator ei2;
+      bool found = false;
+
+      /* Ignore abnormals, we predict them as not taken anyway.  */
+      if (e->flags & (EDGE_EH | EDGE_FAKE | EDGE_ABNORMAL))
+	continue;
       gcc_assert (bb == cur || dominated_by_p (CDI_POST_DOMINATORS, cur, bb));
-      predict_edge_def (e, pred, taken);
+
+      /* See if there is how many edge from e->src that is not abnormal
+	 and does not lead to BB.  */
+      FOR_EACH_EDGE (e2, ei2, e->src->succs)
+	if (e2 != e
+	    && !(e2->flags & (EDGE_EH | EDGE_FAKE | EDGE_ABNORMAL))
+	    && !dominated_by_p (CDI_POST_DOMINATORS, e2->dest, bb))
+	  {
+	    found = true;
+	    break;
+	  }
+
+      /* If there is non-abnormal path leaving e->src, predict edge
+	 using predictor.  Otherwise we need to look for paths
+	 leading to e->src.  */
+      if (found)
+        predict_edge_def (e, pred, taken);
+      else
+	predict_paths_for_bb (e->src, e->src, pred, taken);
     }
   for (son = first_dom_son (CDI_POST_DOMINATORS, cur);
        son;
@@ -1855,9 +1880,6 @@ propagate_freq (basic_block head, bitmap tovisit)
       edge_iterator ei;
       int count = 0;
 
-       /* The outermost "loop" includes the exit block, which we can not
-	  look up via BASIC_BLOCK.  Detect this and use EXIT_BLOCK_PTR
-	  directly.  Do the same for the entry block.  */
       bb = BASIC_BLOCK (i);
 
       FOR_EACH_EDGE (e, ei, bb->preds)
@@ -1872,6 +1894,9 @@ propagate_freq (basic_block head, bitmap tovisit)
 		     e->src->index, bb->index);
 	}
       BLOCK_INFO (bb)->npredecessors = count;
+      /* When function never returns, we will never process exit block.  */
+      if (!count && bb == EXIT_BLOCK_PTR)
+	bb->count = bb->frequency = 0;
     }
 
   memcpy (&BLOCK_INFO (head)->frequency, &real_one, sizeof (real_one));
@@ -2282,3 +2307,27 @@ struct gimple_opt_pass pass_strip_predict_hints =
   TODO_ggc_collect | TODO_verify_ssa			/* todo_flags_finish */
  }
 };
+
+/* Rebuild function frequencies.  Passes are in general expected to
+   maintain profile by hand, however in some cases this is not possible:
+   for example when inlining several functions with loops freuqencies might run
+   out of scale and thus needs to be recomputed.  */
+
+void
+rebuild_frequencies (void)
+{
+  if (profile_status == PROFILE_GUESSED)
+    {
+      loop_optimizer_init (0);
+      add_noreturn_fake_exit_edges ();
+      mark_irreducible_loops ();
+      connect_infinite_loops_to_exit ();
+      estimate_bb_frequencies ();
+      remove_fake_exit_edges ();
+      loop_optimizer_finalize ();
+    }
+  else if (profile_status == PROFILE_READ)
+    counts_to_freqs ();
+  else
+    gcc_unreachable ();
+}

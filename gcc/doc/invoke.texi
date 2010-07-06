@@ -591,7 +591,7 @@ Objective-C and Objective-C++ Dialects}.
 -mincoming-stack-boundary=@var{num}
 -mcld -mcx16 -msahf -mmovbe -mcrc32 -mrecip @gol
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
--maes -mpclmul -mfused-madd @gol
+-maes -mpclmul -mfsgsbase -mrdrnd -mf16c -mfused-madd @gol
 -msse4a -m3dnow -mpopcnt -mabm -mfma4 -mxop -mlwp @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
 -minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
@@ -3859,8 +3859,10 @@ Do not warn whenever an @samp{#else} or an @samp{#endif} are followed by text.
 @item -Wshadow
 @opindex Wshadow
 @opindex Wno-shadow
-Warn whenever a local variable shadows another local variable, parameter or
-global variable or whenever a built-in function is shadowed.
+Warn whenever a local variable or type declaration shadows another variable,
+parameter, type, or class member (in C++), or whenever a built-in function
+is shadowed. Note that in C++, the compiler will not warn if a local variable
+shadows a struct/class/enum, but will warn if it shadows an explicit typedef.
 
 @item -Wlarger-than=@var{len}
 @opindex Wlarger-than=@var{len}
@@ -9976,6 +9978,14 @@ of GCC@.
 If @option{-msoft-float} is specified this specifies the format of
 floating point values.
 
+If the selected floating-point hardware includes the NEON extension
+(e.g. @option{-mfpu}=@samp{neon}), note that floating-point
+operations will not be used by GCC's auto-vectorization pass unless
+@option{-funsafe-math-optimizations} is also specified.  This is
+because NEON hardware does not fully implement the IEEE 754 standard for
+floating-point arithmetic (in particular denormal values are treated as
+zero), so the use of NEON instructions may lead to a loss of precision.
+
 @item -mfp16-format=@var{name}
 @opindex mfp16-format
 Specify the format of the @code{__fp16} half-precision floating-point type.
@@ -12216,6 +12226,12 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-aes
 @itemx -mpclmul
 @itemx -mno-pclmul
+@itemx -mfsgsbase
+@itemx -mno-fsgsbase
+@itemx -mrdrnd
+@itemx -mno-rdrnd
+@itemx -mf16c
+@itemx -mno-f16c
 @itemx -msse4a
 @itemx -mno-sse4a
 @itemx -mfma4
@@ -12237,8 +12253,8 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex m3dnow
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX,
-SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, FMA4, XOP,
-LWP, ABM or 3DNow!@: extended instruction sets.
+SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, FSGSBASE, RDRND,
+F16C, SSE4A, FMA4, XOP, LWP, ABM or 3DNow!@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
 disabled by these switches.

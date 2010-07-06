@@ -66,6 +66,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_AES	OPTION_ISA_AES
 #define TARGET_PCLMUL	OPTION_ISA_PCLMUL
 #define TARGET_CMPXCHG16B OPTION_ISA_CX16
+#define TARGET_FSGSBASE	OPTION_ISA_FSGSBASE
+#define TARGET_RDRND	OPTION_ISA_RDRND
+#define TARGET_F16C	OPTION_ISA_F16C
 
 
 /* SSE4.1 defines round instructions */
@@ -1542,26 +1545,6 @@ enum reg_class
 #define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) \
   (ix86_function_type_abi (FNTYPE) == MS_ABI)
 
-/* Value is the number of bytes of arguments automatically
-   popped when returning from a subroutine call.
-   FUNDECL is the declaration node of the function (as a tree),
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.
-   SIZE is the number of bytes of arguments passed on the stack.
-
-   On the 80386, the RTD insn may be used to pop them if the number
-     of args is fixed, but if the number is variable then the caller
-     must pop them all.  RTD can't be used for library calls now
-     because the library is compiled with the Unix compiler.
-   Use of RTD is a selectable option, since it is incompatible with
-   standard Unix calling sequences.  If the option is not selected,
-   the caller must always pop the args.
-
-   The attribute stdcall is equivalent to RTD on a per module basis.  */
-
-#define RETURN_POPS_ARGS(FUNDECL, FUNTYPE, SIZE) \
-  ix86_return_pops_args ((FUNDECL), (FUNTYPE), (SIZE))
-
 /* Define how to find the value returned by a library function
    assuming the value has mode MODE.  */
 
@@ -1610,29 +1593,6 @@ typedef struct ix86_args {
 
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, FNDECL, N_NAMED_ARGS) \
   init_cumulative_args (&(CUM), (FNTYPE), (LIBNAME), (FNDECL))
-
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  */
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED) \
-  function_arg_advance (&(CUM), (MODE), (TYPE), (NAMED))
-
-/* Define where to put the arguments to a function.
-   Value is zero to push the argument on the stack,
-   or a hard register in which to store the argument.
-
-   MODE is the argument's machine mode.
-   TYPE is the data type of the argument (as a tree).
-    This is null for libcalls where that information may
-    not be available.
-   CUM is a variable of type CUMULATIVE_ARGS which gives info about
-    the preceding args and about the function being called.
-   NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).  */
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  function_arg (&(CUM), (MODE), (TYPE), (NAMED))
 
 /* Output assembler code to FILE to increment profiler label # LABELNO
    for profiling a function entry.  */

@@ -147,29 +147,6 @@ enum need_phi_state {
 };
 
 
-/* The "no alias" attribute allows alias analysis to make more
-   aggressive assumptions when assigning alias sets, computing
-   points-to information and memory partitions.  These attributes
-   are the result of user annotations or flags (e.g.,
-   -fargument-noalias).  */
-enum noalias_state {
-    /* Default state.  No special assumptions can be made about this
-       symbol.  */
-    MAY_ALIAS = 0,
-
-    /* The symbol does not alias with other symbols that have a
-       NO_ALIAS* attribute.  */
-    NO_ALIAS,
-
-    /* The symbol does not alias with other symbols that have a
-       NO_ALIAS*, and it may not alias with global symbols.  */
-    NO_ALIAS_GLOBAL,
-
-    /* The symbol does not alias with any other symbols.  */
-    NO_ALIAS_ANYTHING
-};
-
-
 struct GTY(()) var_ann_d {
   /* Used when building base variable structures in a var_map.  */
   unsigned base_var_processed : 1;
@@ -186,11 +163,6 @@ struct GTY(()) var_ann_d {
   /* True for HEAP artificial variables.  These variables represent
      the memory area allocated by a call to malloc.  */
   unsigned is_heapvar : 1;
-
-  /* This field describes several "no alias" attributes that some
-     symbols are known to have.  See the enum's definition for more
-     information on each attribute.  */
-  ENUM_BITFIELD (noalias_state) noalias_state : 2;
 
   /* Used by var_map for the base index of ssa base variables.  */
   unsigned base_index;
@@ -519,6 +491,7 @@ extern tree gimple_default_def (struct function *, tree);
 extern bool stmt_references_abnormal_ssa_name (gimple);
 extern tree get_ref_base_and_extent (tree, HOST_WIDE_INT *,
 				     HOST_WIDE_INT *, HOST_WIDE_INT *);
+extern tree get_addr_base_and_unit_offset (tree, HOST_WIDE_INT *);
 extern void find_referenced_vars_in (gimple);
 
 /* In tree-phinodes.c  */
@@ -540,7 +513,6 @@ extern void phinodes_print_statistics (void);
 /* In gimple-low.c  */
 extern void record_vars_into (tree, tree);
 extern void record_vars (tree);
-extern bool block_may_fallthru (const_tree);
 extern bool gimple_seq_may_fallthru (gimple_seq);
 extern bool gimple_stmt_may_fallthru (gimple);
 extern bool gimple_check_call_args (gimple);
@@ -601,6 +573,7 @@ void release_ssa_name_after_update_ssa (tree);
 void compute_global_livein (bitmap, bitmap);
 void mark_sym_for_renaming (tree);
 void mark_set_for_renaming (bitmap);
+bool symbol_marked_for_renaming (tree);
 tree get_current_def (tree);
 void set_current_def (tree, tree);
 
@@ -860,7 +833,7 @@ struct mem_address
 };
 
 struct affine_tree_combination;
-tree create_mem_ref (gimple_stmt_iterator *, tree,
+tree create_mem_ref (gimple_stmt_iterator *, tree, tree,
 		     struct affine_tree_combination *, tree, bool);
 rtx addr_for_mem_ref (struct mem_address *, addr_space_t, bool);
 void get_address_description (tree, struct mem_address *);

@@ -714,7 +714,7 @@ store_init_value (tree decl, tree init, int flags)
 
   if (MAYBE_CLASS_TYPE_P (type))
     {
-      gcc_assert (TYPE_HAS_TRIVIAL_INIT_REF (type)
+      gcc_assert (!type_has_nontrivial_copy_init (type)
 		  || TREE_CODE (init) == CONSTRUCTOR);
 
       if (TREE_CODE (init) == TREE_LIST)
@@ -1478,8 +1478,8 @@ build_m_component_ref (tree datum, tree component)
   if (error_operand_p (datum) || error_operand_p (component))
     return error_mark_node;
 
-  mark_lvalue_use (datum);
-  mark_rvalue_use (component);
+  datum = mark_lvalue_use (datum);
+  component = mark_rvalue_use (component);
 
   ptrmem_type = TREE_TYPE (component);
   if (!TYPE_PTR_TO_MEMBER_P (ptrmem_type))

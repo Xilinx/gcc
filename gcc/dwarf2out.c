@@ -3463,8 +3463,8 @@ output_fde (dw_fde_ref fde, bool for_eh, bool second,
   char l1[20], l2[20];
   dw_cfi_ref cfi;
 
-  targetm.asm_out.unwind_label (asm_out_file, fde->decl, for_eh,
-				/* empty */ 0);
+  targetm.asm_out.emit_unwind_label (asm_out_file, fde->decl, for_eh,
+				     /* empty */ 0);
   targetm.asm_out.internal_label (asm_out_file, FDE_LABEL,
 				  for_eh + j);
   ASM_GENERATE_INTERNAL_LABEL (l1, FDE_AFTER_SIZE_LABEL, for_eh + j);
@@ -3680,7 +3680,8 @@ output_call_frame_info (int for_eh)
 	else if (fde_needed_for_eh_p (&fde_table[i]))
 	  any_eh_needed = true;
 	else if (TARGET_USES_WEAK_UNWIND_INFO)
-	  targetm.asm_out.unwind_label (asm_out_file, fde_table[i].decl, 1, 1);
+	  targetm.asm_out.emit_unwind_label (asm_out_file, fde_table[i].decl,
+					     1, 1);
 
       if (!any_eh_needed)
 	return;
@@ -12998,6 +12999,26 @@ reg_loc_descriptor (rtx rtl, enum var_init_status initialized)
   if (REGNO (rtl) >= FIRST_PSEUDO_REGISTER)
     return 0;
 
+  /* We only use "frame base" when we're sure we're talking about the
+     post-prologue local stack frame.  We do this by *not* running
+     register elimination until this point, and recognizing the special
+     argument pointer and soft frame pointer rtx's.
+     Use DW_OP_fbreg offset DW_OP_stack_value in this case.  */
+  if ((rtl == arg_pointer_rtx || rtl == frame_pointer_rtx)
+      && eliminate_regs (rtl, VOIDmode, NULL_RTX) != rtl)
+    {
+      dw_loc_descr_ref result = NULL;
+
+      if (dwarf_version >= 4 || !dwarf_strict)
+	{
+	  result = mem_loc_descriptor (rtl, VOIDmode, initialized);
+	  if (result)
+	    add_loc_descr (&result,
+			   new_loc_descr (DW_OP_stack_value, 0, 0));
+	}
+      return result;
+    }
+
   regs = targetm.dwarf_register_span (rtl);
 
   if (hard_regno_nregs[REGNO (rtl)][GET_MODE (rtl)] > 1 || regs)
@@ -15159,8 +15180,12 @@ loc_list_from_tree (tree loc, int want_address)
       }
       break;
 
+    case MEM_REF:
+      /* ??? FIXME.  */
+      if (!integer_zerop (TREE_OPERAND (loc, 1)))
+	return 0;
+      /* Fallthru.  */
     case INDIRECT_REF:
-    case ALIGN_INDIRECT_REF:
     case MISALIGNED_INDIRECT_REF:
       list_ret = loc_list_from_tree (TREE_OPERAND (loc, 0), 0);
       have_address = 1;
@@ -15720,7 +15745,7 @@ field_byte_offset (const_tree decl)
 	 where the lowest addressed bit of the containing object must
 	 be.  */
       object_offset_in_bits
-	= double_int_add (deepest_bitpos, double_int_neg (type_size_in_bits));
+	= double_int_sub (deepest_bitpos, type_size_in_bits);
 
       /* Round up to type_align by default.  This works best for
 	 bitfields.  */
@@ -15730,8 +15755,7 @@ field_byte_offset (const_tree decl)
       if (double_int_ucmp (object_offset_in_bits, bitpos_int) > 0)
 	{
 	  object_offset_in_bits
-	    = double_int_add (deepest_bitpos,
-			      double_int_neg (type_size_in_bits));
+	    = double_int_sub (deepest_bitpos, type_size_in_bits);
 
 	  /* Round up to decl_align instead.  */
 	  object_offset_in_bits
@@ -15768,6 +15792,17 @@ add_AT_location_description (dw_die_ref die, enum dwarf_attribute attr_kind,
     add_AT_loc (die, attr_kind, descr->expr);
   else
     add_AT_loc_list (die, attr_kind, descr);
+}
+
+/* Add DW_AT_accessibility attribute to DIE if needed.  */
+
+static void
+add_accessibility_attribute (dw_die_ref die, tree decl)
+{
+  if (TREE_PROTECTED (decl))
+    add_AT_unsigned (die, DW_AT_accessibility, DW_ACCESS_protected);
+  else if (TREE_PRIVATE (decl))
+    add_AT_unsigned (die, DW_AT_accessibility, DW_ACCESS_private);
 }
 
 /* Attach the specialized form of location attribute used for data members of
@@ -18074,7 +18109,10 @@ gen_enumeration_type_die (tree type, dw_die_ref context_die)
       TREE_ASM_WRITTEN (type) = 1;
       add_byte_size_attribute (type_die, type);
       if (TYPE_STUB_DECL (type) != NULL_TREE)
-	add_src_coords_attributes (type_die, TYPE_STUB_DECL (type));
+	{
+	  add_src_coords_attributes (type_die, TYPE_STUB_DECL (type));
+	  add_accessibility_attribute (type_die, TYPE_STUB_DECL (type));
+	}
 
       /* If the first reference to this type was as the return type of an
 	 inline function, then it may not have a parent.  Fix this now.  */
@@ -18581,10 +18619,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
       if (DECL_ARTIFICIAL (decl))
 	add_AT_flag (subr_die, DW_AT_artificial, 1);
 
-      if (TREE_PROTECTED (decl))
-	add_AT_unsigned (subr_die, DW_AT_accessibility, DW_ACCESS_protected);
-      else if (TREE_PRIVATE (decl))
-	add_AT_unsigned (subr_die, DW_AT_accessibility, DW_ACCESS_private);
+      add_accessibility_attribute (subr_die, decl);
     }
 
   if (declaration)
@@ -19082,10 +19117,7 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
       if (DECL_ARTIFICIAL (decl))
 	add_AT_flag (var_die, DW_AT_artificial, 1);
 
-      if (TREE_PROTECTED (decl))
-	add_AT_unsigned (var_die, DW_AT_accessibility, DW_ACCESS_protected);
-      else if (TREE_PRIVATE (decl))
-	add_AT_unsigned (var_die, DW_AT_accessibility, DW_ACCESS_private);
+      add_accessibility_attribute (var_die, decl);
     }
 
   if (declaration)
@@ -19314,10 +19346,7 @@ gen_field_die (tree decl, dw_die_ref context_die)
   if (DECL_ARTIFICIAL (decl))
     add_AT_flag (decl_die, DW_AT_artificial, 1);
 
-  if (TREE_PROTECTED (decl))
-    add_AT_unsigned (decl_die, DW_AT_accessibility, DW_ACCESS_protected);
-  else if (TREE_PRIVATE (decl))
-    add_AT_unsigned (decl_die, DW_AT_accessibility, DW_ACCESS_private);
+  add_accessibility_attribute (decl_die, decl);
 
   /* Equate decl number to die, so that we can look up this decl later on.  */
   equate_decl_number_to_die (decl, decl_die);
@@ -19591,7 +19620,10 @@ gen_struct_or_union_type_die (tree type, dw_die_ref context_die,
       TREE_ASM_WRITTEN (type) = 1;
       add_byte_size_attribute (type_die, type);
       if (TYPE_STUB_DECL (type) != NULL_TREE)
-	add_src_coords_attributes (type_die, TYPE_STUB_DECL (type));
+	{
+	  add_src_coords_attributes (type_die, TYPE_STUB_DECL (type));
+	  add_accessibility_attribute (type_die, TYPE_STUB_DECL (type));
+	}
 
       /* If the first reference to this type was as the return type of an
 	 inline function, then it may not have a parent.  Fix this now.  */
@@ -19704,6 +19736,8 @@ gen_typedef_die (tree decl, dw_die_ref context_die)
 	   TYPE in argument yield the DW_TAG_typedef we have just
 	   created.  */
 	equate_type_number_to_die (type, type_die);
+
+      add_accessibility_attribute (type_die, decl);
     }
 
   if (DECL_ABSTRACT (decl))

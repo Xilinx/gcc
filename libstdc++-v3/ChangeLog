@@ -1,3 +1,122 @@
+2010-07-03  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/regex_compiler.h: Fix filename in doxygen comment.
+	* include/bits/regex_constants.h: Likewise.
+	* include/bits/regex_error.h: Likewise.
+	* include/bits/regex_grep_matcher.h: Likewise.
+	* include/bits/regex_grep_matcher.tcc: Likewise.
+	* include/bits/regex_nfa.tcc: Likewise.
+
+2010-07-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* acinclude.m4 (symvers_renaming): Define
+	HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT instead of
+	_GLIBCXX_HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT.
+	Fix syntax error.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+
+2010-07-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* acinclude.m4 (GLIBCXX_ENABLE_SYMVERS): Handle sun style.
+	Require GCC_PROG_GNU_CXXFILT.
+	(_GLIBCXX_HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT): Define
+	unless targetting solaris2*.
+	Include ../config/gc++filt.m4.
+	* configure.host (i?86-*-solaris2*): Set abi_baseline_pair.
+	(sparc-*-solaris2*): Likewise.
+	* src/Makefile.am [ENABLE_SYMVERS_SUN] (version_dep, version_arg):
+	New variables.
+	(libstdc++-symbols.ver-sun): New target.
+	* configure: Regenerate.
+	* config.h.in: Regenerate.
+	* Makefile.in: Likewise.
+	* doc/Makefile.in: Likewise.
+	* include/Makefile.in: Likewise.
+	* libsupc++/Makefile.in: Likewise.
+	* po/Makefile.in: Likewise.
+	* python/Makefile.in: Likewise.
+	* src/Makefile.in: Likewise.
+	* src/atomic.cc: Only define/use _GLIBCXX_ASM_SYMVER if
+	_GLIBCXX_HAVE_SYMVER_RENAMING_RUNTIME_SUPPORT.
+	* src/compatibility.cc: Likewise.
+	* testsuite/Makefile.am (baseline_subdir): Define.
+	(baseline_symbols): Use it.
+	(new-abi-baseline): Likewise.
+	* testsuite/Makefile.in: Regenerate.
+
+	* config/abi/pre/gnu.ver (GLIBCXX_3.4.5): Enclose duplicates in
+	#ifdef HAVE_SYMVER_RENAMING_RUNTIME_SUPPORT.
+	(GLIBCXX_3.4.6): Likewise.
+
+	* doc/xml/manual/configure.xml (--enable-symvers): Document sun
+	style.
+
+	* doc/xml/manual/abi.xml: Fix grammar.
+	(Symbol versioning on the libstdc++.so binary): Fix mapfile path.
+	(Incremental bumping of a library pre-defined macro): Fix
+	c++config path.
+	(Incremental bumping of a library pre-defined macro,
+	_GLIBCPP_VERSION): Likewise.
+	(Matching each specific C++ compiler release to a specific set of
+	C++ include files): Fix acinclude.m4 path.
+	(Prerequisites): Allow for Sun linker on Solaris 2.5+.
+	Use proper link to Configuring.
+	Fix acinclude.m4 path.
+	(Checking Active): Allow for additional symbol versioning styles.
+	Provide Solaris 2 example with pvs -r.
+	(Bibliography): Update Linker and Libraries Guide, C++ Migration
+	Guide entries.
+
+2010-06-29  Jason Merrill  <jason@redhat.com>
+
+	Enable implicitly declared move constructor/operator= (N3053).
+	* include/bits/unordered_map.h: Explicitly default copy constructors.
+	* include/bits/unordered_set.h: Likewise.
+
+	* 19_diagnostics/error_category/cons/copy_neg.cc: Adjust expected
+	errors, use dg-prune-output.
+	* 20_util/function/cmp/cmp_neg.cc: Likewise.
+	* 20_util/unique_ptr/assign/assign_neg.cc: Likewise.
+	* 20_util/unique_ptr/cons/pointer_array_convertible.cc: Likewise.
+	* 20_util/unique_ptr/modifiers/reset_neg.cc: Likewise.
+	* 29_atomics/atomic/cons/assign_neg.cc: Likewise.
+	* 29_atomics/atomic/cons/copy_neg.cc: Likewise.
+	* 29_atomics/atomic_address/cons/assign_neg.cc: Likewise.
+	* 29_atomics/atomic_address/cons/copy_neg.cc: Likewise.
+	* 29_atomics/atomic_flag/cons/assign_neg.cc: Likewise.
+	* 29_atomics/atomic_flag/cons/copy_neg.cc: Likewise.
+	* 29_atomics/atomic_integral/cons/assign_neg.cc: Likewise.
+	* 29_atomics/atomic_integral/cons/copy_neg.cc: Likewise.
+	* 29_atomics/condition_variable/cons/assign_neg.cc: Likewise.
+	* 30_threads/condition_variable/cons/copy_neg.cc: Likewise.
+	* 30_threads/condition_variable_any/cons/assign_neg.cc: Likewise.
+	* 30_threads/condition_variable_any/cons/copy_neg.cc: Likewise.
+	* 30_threads/future/cons/assign_neg.cc: Likewise.
+	* 30_threads/future/cons/copy_neg.cc: Likewise.
+	* 30_threads/mutex/cons/assign_neg.cc: Likewise.
+	* 30_threads/mutex/cons/copy_neg.cc: Likewise.
+	* 30_threads/packaged_task/cons/assign_neg.cc: Likewise.
+	* 30_threads/packaged_task/cons/copy_neg.cc: Likewise.
+	* 30_threads/promise/cons/assign_neg.cc: Likewise.
+	* 30_threads/promise/cons/copy_neg.cc: Likewise.
+	* 30_threads/recursive_mutex/cons/assign_neg.cc: Likewise.
+	* 30_threads/recursive_mutex/cons/copy_neg.cc: Likewise.
+	* 30_threads/recursive_timed_mutex/cons/assign_neg.cc: Likewise.
+	* 30_threads/recursive_timed_mutex/cons/copy_neg.cc: Likewise.
+	* 30_threads/thread/cons/assign_neg.cc: Likewise.
+	* 30_threads/thread/cons/copy_neg.cc: Likewise.
+	* 30_threads/timed_mutex/cons/assign_neg.cc: Likewise.
+	* 30_threads/timed_mutex/cons/copy_neg.cc: Likewise.
+	* ext/ext_pointer/1_neg.cc: Likewise.
+
+2010-06-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/44708
+	* include/ext/algorithm (copy_n): Qualify __copy_n call with
+	__gnu_cxx::
+	* testsuite/ext/rope/44708.cc: New.
+
 2010-06-27  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/bits/regex_compiler.h: Trivial formatting / stylistic fixes.

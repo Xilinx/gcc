@@ -133,6 +133,7 @@ double_int_fits_in_uhwi_p (double_int cst)
 
 double_int double_int_mul (double_int, double_int);
 double_int double_int_add (double_int, double_int);
+double_int double_int_sub (double_int, double_int);
 double_int double_int_neg (double_int);
 
 /* You must ensure that double_int_ext is called on the operands
@@ -269,11 +270,6 @@ double_int_equal_p (double_int cst1, double_int cst2)
 
 /* Legacy interface with decomposed high/low parts.  */
 
-extern tree force_fit_type_double (tree, unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-				   int, bool);
-extern int fit_double_type (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
-			    unsigned HOST_WIDE_INT *, HOST_WIDE_INT *,
-			    const_tree);
 extern int add_double_with_sign (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
 				 unsigned HOST_WIDE_INT, HOST_WIDE_INT,
 				 unsigned HOST_WIDE_INT *, HOST_WIDE_INT *,

@@ -434,8 +434,8 @@ static const struct attribute_spec arm_attribute_table[] =
 #define TARGET_MUST_PASS_IN_STACK arm_must_pass_in_stack
 
 #ifdef TARGET_UNWIND_INFO
-#undef TARGET_UNWIND_EMIT
-#define TARGET_UNWIND_EMIT arm_unwind_emit
+#undef TARGET_ASM_UNWIND_EMIT
+#define TARGET_ASM_UNWIND_EMIT arm_unwind_emit
 
 /* EABI unwinding tables use a different format for the typeinfo tables.  */
 #undef TARGET_ASM_TTYPE
@@ -3183,12 +3183,81 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
    immediate value easier to load.  */
 
 enum rtx_code
-arm_canonicalize_comparison (enum rtx_code code, enum machine_mode mode,
-			     rtx * op1)
+arm_canonicalize_comparison (enum rtx_code code, rtx *op0, rtx *op1)
 {
-  unsigned HOST_WIDE_INT i = INTVAL (*op1);
-  unsigned HOST_WIDE_INT maxval;
+  enum machine_mode mode;
+  unsigned HOST_WIDE_INT i, maxval;
+
+  mode = GET_MODE (*op0);
+  if (mode == VOIDmode)
+    mode = GET_MODE (*op1);
+
   maxval = (((unsigned HOST_WIDE_INT) 1) << (GET_MODE_BITSIZE(mode) - 1)) - 1;
+
+  /* For DImode, we have GE/LT/GEU/LTU comparisons.  In ARM mode
+     we can also use cmp/cmpeq for GTU/LEU.  GT/LE must be either
+     reversed or (for constant OP1) adjusted to GE/LT.  Similarly
+     for GTU/LEU in Thumb mode.  */
+  if (mode == DImode)
+    {
+      rtx tem;
+
+      /* To keep things simple, always use the Cirrus cfcmp64 if it is
+	 available.  */
+      if (TARGET_ARM && TARGET_HARD_FLOAT && TARGET_MAVERICK)
+	return code;
+
+      if (code == GT || code == LE
+	  || (!TARGET_ARM && (code == GTU || code == LEU)))
+	{
+	  /* Missing comparison.  First try to use an available
+	     comparison.  */
+	  if (GET_CODE (*op1) == CONST_INT)
+	    {
+	      i = INTVAL (*op1);
+	      switch (code)
+		{
+		case GT:
+		case LE:
+		  if (i != maxval
+		      && arm_const_double_by_immediates (GEN_INT (i + 1)))
+		    {
+		      *op1 = GEN_INT (i + 1);
+		      return code == GT ? GE : LT;
+		    }
+		  break;
+		case GTU:
+		case LEU:
+		  if (i != ~((unsigned HOST_WIDE_INT) 0)
+		      && arm_const_double_by_immediates (GEN_INT (i + 1)))
+		    {
+		      *op1 = GEN_INT (i + 1);
+		      return code == GTU ? GEU : LTU;
+		    }
+		  break;
+		default:
+		  gcc_unreachable ();
+		}
+	    }
+
+	  /* If that did not work, reverse the condition.  */
+	  tem = *op0;
+	  *op0 = *op1;
+	  *op1 = tem;
+	  return swap_condition (code);
+	}
+
+      return code;
+    }
+
+  /* Comparisons smaller than DImode.  Only adjust comparisons against
+     an out-of-range constant.  */
+  if (GET_CODE (*op1) != CONST_INT
+      || const_ok_for_arm (INTVAL (*op1))
+      || const_ok_for_arm (- INTVAL (*op1)))
+    return code;
+
+  i = INTVAL (*op1);
 
   switch (code)
     {
@@ -6214,6 +6283,7 @@ static inline int
 thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
 {
   enum machine_mode mode = GET_MODE (x);
+  int total;
 
   switch (code)
     {
@@ -6312,24 +6382,20 @@ thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
 	return 14;
       return 2;
 
+    case SIGN_EXTEND:
     case ZERO_EXTEND:
-      /* XXX still guessing.  */
-      switch (GET_MODE (XEXP (x, 0)))
-	{
-	case QImode:
-	  return (1 + (mode == DImode ? 4 : 0)
-		  + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
+      total = mode == DImode ? COSTS_N_INSNS (1) : 0;
+      total += thumb1_rtx_costs (XEXP (x, 0), GET_CODE (XEXP (x, 0)), code);
 
-	case HImode:
-	  return (4 + (mode == DImode ? 4 : 0)
-		  + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
+      if (mode == SImode)
+	return total;
 
-	case SImode:
-	  return (1 + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
+      if (arm_arch6)
+	return total + COSTS_N_INSNS (1);
 
-	default:
-	  return 99;
-	}
+      /* Assume a two-shift sequence.  Increase the cost slightly so
+	 we prefer actual shifts over an extend operation.  */
+      return total + 1 + COSTS_N_INSNS (2);
 
     default:
       return 99;
@@ -6798,44 +6864,39 @@ arm_rtx_costs_1 (rtx x, enum rtx_code outer, int* total, bool speed)
       return false;
 
     case SIGN_EXTEND:
-      if (GET_MODE_CLASS (mode) == MODE_INT)
-	{
-	  *total = 0;
-	  if (mode == DImode)
-	    *total += COSTS_N_INSNS (1);
-
-	  if (GET_MODE (XEXP (x, 0)) != SImode)
-	    {
-	      if (arm_arch6)
-		{
-		  if (GET_CODE (XEXP (x, 0)) != MEM)
-		    *total += COSTS_N_INSNS (1);
-		}
-	      else if (!arm_arch4 || GET_CODE (XEXP (x, 0)) != MEM)
-		*total += COSTS_N_INSNS (2);
-	    }
-
-	  return false;
-	}
-
-      /* Fall through */
     case ZERO_EXTEND:
       *total = 0;
       if (GET_MODE_CLASS (mode) == MODE_INT)
 	{
+	  rtx op = XEXP (x, 0);
+	  enum machine_mode opmode = GET_MODE (op);
+
 	  if (mode == DImode)
 	    *total += COSTS_N_INSNS (1);
 
-	  if (GET_MODE (XEXP (x, 0)) != SImode)
+	  if (opmode != SImode)
 	    {
-	      if (arm_arch6)
+	      if (MEM_P (op))
 		{
-		  if (GET_CODE (XEXP (x, 0)) != MEM)
-		    *total += COSTS_N_INSNS (1);
+		  /* If !arm_arch4, we use one of the extendhisi2_mem
+		     or movhi_bytes patterns for HImode.  For a QImode
+		     sign extension, we first zero-extend from memory
+		     and then perform a shift sequence.  */
+		  if (!arm_arch4 && (opmode != QImode || code == SIGN_EXTEND))
+		    *total += COSTS_N_INSNS (2);
 		}
-	      else if (!arm_arch4 || GET_CODE (XEXP (x, 0)) != MEM)
-		*total += COSTS_N_INSNS (GET_MODE (XEXP (x, 0)) == QImode ?
-					 1 : 2);
+	      else if (arm_arch6)
+		*total += COSTS_N_INSNS (1);
+
+	      /* We don't have the necessary insn, so we need to perform some
+		 other operation.  */
+	      else if (TARGET_ARM && code == ZERO_EXTEND && mode == QImode)
+		/* An and with constant 255.  */
+		*total += COSTS_N_INSNS (1);
+	      else
+		/* A shift sequence.  Increase costs slightly to avoid
+		   combining two shifts into an extend operation.  */
+		*total += COSTS_N_INSNS (2) + 1;
 	    }
 
 	  return false;
@@ -7191,41 +7252,8 @@ arm_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code,
       return false;
 
     case SIGN_EXTEND:
-      *total = 0;
-      if (GET_MODE_SIZE (GET_MODE (XEXP (x, 0))) < 4)
-	{
-	  if (!(arm_arch4 && MEM_P (XEXP (x, 0))))
-	    *total += COSTS_N_INSNS (arm_arch6 ? 1 : 2);
-	}
-      if (mode == DImode)
-	*total += COSTS_N_INSNS (1);
-      return false;
-
     case ZERO_EXTEND:
-      *total = 0;
-      if (!(arm_arch4 && MEM_P (XEXP (x, 0))))
-	{
-	  switch (GET_MODE (XEXP (x, 0)))
-	    {
-	    case QImode:
-	      *total += COSTS_N_INSNS (1);
-	      break;
-
-	    case HImode:
-	      *total += COSTS_N_INSNS (arm_arch6 ? 1 : 2);
-
-	    case SImode:
-	      break;
-
-	    default:
-	      *total += COSTS_N_INSNS (2);
-	    }
-	}
-
-      if (mode == DImode)
-	*total += COSTS_N_INSNS (1);
-
-      return false;
+      return arm_rtx_costs_1 (x, outer_code, total, 0);
 
     case CONST_INT:
       if (const_ok_for_arm (INTVAL (x)))
@@ -8250,8 +8278,7 @@ neon_vdup_constant (rtx vals)
      load.  */
 
   x = copy_to_mode_reg (inner_mode, XVECEXP (vals, 0, 0));
-  return gen_rtx_UNSPEC (mode, gen_rtvec (1, x),
-			 UNSPEC_VDUP_N);
+  return gen_rtx_VEC_DUPLICATE (mode, x);
 }
 
 /* Generate code to load VALS, which is a PARALLEL containing only
@@ -8347,8 +8374,7 @@ neon_expand_vector_init (rtx target, rtx vals)
     {
       x = copy_to_mode_reg (inner_mode, XVECEXP (vals, 0, 0));
       emit_insn (gen_rtx_SET (VOIDmode, target,
-			      gen_rtx_UNSPEC (mode, gen_rtvec (1, x),
-					      UNSPEC_VDUP_N)));
+			      gen_rtx_VEC_DUPLICATE (mode, x)));
       return;
     }
 
@@ -8357,7 +8383,7 @@ neon_expand_vector_init (rtx target, rtx vals)
   if (n_var == 1)
     {
       rtx copy = copy_rtx (vals);
-      rtvec ops;
+      rtx index = GEN_INT (one_var);
 
       /* Load constant part of vector, substitute neighboring value for
 	 varying element.  */
@@ -8366,9 +8392,38 @@ neon_expand_vector_init (rtx target, rtx vals)
 
       /* Insert variable.  */
       x = copy_to_mode_reg (inner_mode, XVECEXP (vals, 0, one_var));
-      ops = gen_rtvec (3, x, target, GEN_INT (one_var));
-      emit_insn (gen_rtx_SET (VOIDmode, target,
-			      gen_rtx_UNSPEC (mode, ops, UNSPEC_VSET_LANE)));
+      switch (mode)
+	{
+	case V8QImode:
+	  emit_insn (gen_neon_vset_lanev8qi (target, x, target, index));
+	  break;
+	case V16QImode:
+	  emit_insn (gen_neon_vset_lanev16qi (target, x, target, index));
+	  break;
+	case V4HImode:
+	  emit_insn (gen_neon_vset_lanev4hi (target, x, target, index));
+	  break;
+	case V8HImode:
+	  emit_insn (gen_neon_vset_lanev8hi (target, x, target, index));
+	  break;
+	case V2SImode:
+	  emit_insn (gen_neon_vset_lanev2si (target, x, target, index));
+	  break;
+	case V4SImode:
+	  emit_insn (gen_neon_vset_lanev4si (target, x, target, index));
+	  break;
+	case V2SFmode:
+	  emit_insn (gen_neon_vset_lanev2sf (target, x, target, index));
+	  break;
+	case V4SFmode:
+	  emit_insn (gen_neon_vset_lanev4sf (target, x, target, index));
+	  break;
+	case V2DImode:
+	  emit_insn (gen_neon_vset_lanev2di (target, x, target, index));
+	  break;
+	default:
+	  gcc_unreachable ();
+	}
       return;
     }
 
@@ -10028,6 +10083,55 @@ arm_select_cc_mode (enum rtx_code op, rtx x, rtx y)
       && (rtx_equal_p (XEXP (x, 0), y) || rtx_equal_p (XEXP (x, 1), y)))
     return CC_Cmode;
 
+  if (GET_MODE (x) == DImode || GET_MODE (y) == DImode)
+    {
+      /* To keep things simple, always use the Cirrus cfcmp64 if it is
+	 available.  */
+      if (TARGET_ARM && TARGET_HARD_FLOAT && TARGET_MAVERICK)
+	return CCmode;
+
+      switch (op)
+	{
+	case EQ:
+	case NE:
+	  /* A DImode comparison against zero can be implemented by
+	     or'ing the two halves together.  */
+	  if (y == const0_rtx)
+	    return CC_Zmode;
+
+	  /* We can do an equality test in three Thumb instructions.  */
+	  if (!TARGET_ARM)
+	    return CC_Zmode;
+
+	  /* FALLTHROUGH */
+
+	case LTU:
+	case LEU:
+	case GTU:
+	case GEU:
+	  /* DImode unsigned comparisons can be implemented by cmp +
+	     cmpeq without a scratch register.  Not worth doing in
+	     Thumb-2.  */
+	  if (TARGET_ARM)
+	    return CC_CZmode;
+
+	  /* FALLTHROUGH */
+
+	case LT:
+	case LE:
+	case GT:
+	case GE:
+	  /* DImode signed and unsigned comparisons can be implemented
+	     by cmp + sbcs with a scratch register, but that does not
+	     set the Z flag - we must reverse GT/LE/GTU/LEU.  */
+	  gcc_assert (op != EQ && op != NE);
+	  return CC_NCVmode;
+
+	default:
+	  gcc_unreachable ();
+	}
+    }
+
   return CCmode;
 }
 
@@ -10037,10 +10141,39 @@ arm_select_cc_mode (enum rtx_code op, rtx x, rtx y)
 rtx
 arm_gen_compare_reg (enum rtx_code code, rtx x, rtx y)
 {
-  enum machine_mode mode = SELECT_CC_MODE (code, x, y);
-  rtx cc_reg = gen_rtx_REG (mode, CC_REGNUM);
+  enum machine_mode mode;
+  rtx cc_reg;
+  int dimode_comparison = GET_MODE (x) == DImode || GET_MODE (y) == DImode;
 
-  emit_set_insn (cc_reg, gen_rtx_COMPARE (mode, x, y));
+  /* We might have X as a constant, Y as a register because of the predicates
+     used for cmpdi.  If so, force X to a register here.  */
+  if (dimode_comparison && !REG_P (x))
+    x = force_reg (DImode, x);
+
+  mode = SELECT_CC_MODE (code, x, y);
+  cc_reg = gen_rtx_REG (mode, CC_REGNUM);
+
+  if (dimode_comparison
+      && !(TARGET_HARD_FLOAT && TARGET_MAVERICK)
+      && mode != CC_CZmode)
+    {
+      rtx clobber, set;
+
+      /* To compare two non-zero values for equality, XOR them and
+	 then compare against zero.  Not used for ARM mode; there
+	 CC_CZmode is cheaper.  */
+      if (mode == CC_Zmode && y != const0_rtx)
+	{
+	  x = expand_binop (DImode, xor_optab, x, y, NULL_RTX, 0, OPTAB_WIDEN);
+	  y = const0_rtx;
+	}
+      /* A scratch register is required.  */
+      clobber = gen_rtx_CLOBBER (VOIDmode, gen_rtx_SCRATCH (SImode));
+      set = gen_rtx_SET (VOIDmode, cc_reg, gen_rtx_COMPARE (mode, x, y));
+      emit_insn (gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, set, clobber)));
+    }
+  else
+    emit_set_insn (cc_reg, gen_rtx_COMPARE (mode, x, y));
 
   return cc_reg;
 }
@@ -11367,6 +11500,34 @@ arm_const_double_by_parts (rtx val)
     return true;
 
   return false;
+}
+
+/* Return true if it is possible to inline both the high and low parts
+   of a 64-bit constant into 32-bit data processing instructions.  */
+bool
+arm_const_double_by_immediates (rtx val)
+{
+  enum machine_mode mode = GET_MODE (val);
+  rtx part;
+
+  if (mode == VOIDmode)
+    mode = DImode;
+
+  part = gen_highpart_mode (SImode, mode, val);
+
+  gcc_assert (GET_CODE (part) == CONST_INT);
+
+  if (!const_ok_for_arm (INTVAL (part)))
+    return false;
+
+  part = gen_lowpart (SImode, val);
+
+  gcc_assert (GET_CODE (part) == CONST_INT);
+
+  if (!const_ok_for_arm (INTVAL (part)))
+    return false;
+
+  return true;
 }
 
 /* Scan INSN and note any of its operands that need fixing.
@@ -12696,6 +12857,56 @@ output_move_neon (rtx *operands)
   output_asm_insn (buff, ops);
 
   return "";
+}
+
+/* Compute and return the length of neon_mov<mode>, where <mode> is
+   one of VSTRUCT modes: EI, OI, CI or XI.  */
+int
+arm_attr_length_move_neon (rtx insn)
+{
+  rtx reg, mem, addr;
+  int load;
+  enum machine_mode mode;
+
+  extract_insn_cached (insn);
+
+  if (REG_P (recog_data.operand[0]) && REG_P (recog_data.operand[1]))
+    {
+      mode = GET_MODE (recog_data.operand[0]);
+      switch (mode)
+	{
+	case EImode:
+	case OImode:
+	  return 8;
+	case CImode:
+	  return 12;
+	case XImode:
+	  return 16;
+	default:
+	  gcc_unreachable ();
+	}
+    }
+
+  load = REG_P (recog_data.operand[0]);
+  reg = recog_data.operand[!load];
+  mem = recog_data.operand[load];
+
+  gcc_assert (MEM_P (mem));
+
+  mode = GET_MODE (reg);
+  addr = XEXP (mem, 0);
+
+  /* Strip off const from addresses like (const (plus (...))).  */
+  if (GET_CODE (addr) == CONST && GET_CODE (XEXP (addr, 0)) == PLUS)
+    addr = XEXP (addr, 0);
+
+  if (GET_CODE (addr) == LABEL_REF || GET_CODE (addr) == PLUS)
+    {
+      int insns = HARD_REGNO_NREGS (REGNO (reg), mode) / 2;
+      return insns * 4;
+    }
+  else
+    return 4;
 }
 
 /* Output an ADD r, s, #n where n may be too big for one instruction.
@@ -15270,8 +15481,18 @@ arm_print_operand (FILE *stream, rtx x, int code)
 	 the value being loaded is big-wordian or little-wordian.  The
 	 order of the two register loads can matter however, if the address
 	 of the memory location is actually held in one of the registers
-	 being overwritten by the load.  */
+	 being overwritten by the load.
+
+	 The 'Q' and 'R' constraints are also available for 64-bit
+	 constants.  */
     case 'Q':
+      if (GET_CODE (x) == CONST_INT || GET_CODE (x) == CONST_DOUBLE)
+	{
+	  rtx part = gen_lowpart (SImode, x);
+	  fprintf (stream, "#" HOST_WIDE_INT_PRINT_DEC, INTVAL (part));
+	  return;
+	}
+
       if (GET_CODE (x) != REG || REGNO (x) > LAST_ARM_REGNUM)
 	{
 	  output_operand_lossage ("invalid operand for code '%c'", code);
@@ -15282,6 +15503,18 @@ arm_print_operand (FILE *stream, rtx x, int code)
       return;
 
     case 'R':
+      if (GET_CODE (x) == CONST_INT || GET_CODE (x) == CONST_DOUBLE)
+	{
+	  enum machine_mode mode = GET_MODE (x);
+	  rtx part;
+
+	  if (mode == VOIDmode)
+	    mode = DImode;
+	  part = gen_highpart_mode (SImode, mode, x);
+	  fprintf (stream, "#" HOST_WIDE_INT_PRINT_DEC, INTVAL (part));
+	  return;
+	}
+
       if (GET_CODE (x) != REG || REGNO (x) > LAST_ARM_REGNUM)
 	{
 	  output_operand_lossage ("invalid operand for code '%c'", code);
@@ -16102,11 +16335,33 @@ get_arm_condition_code (rtx comparison)
 
     case CC_Cmode:
       switch (comp_code)
-      {
-      case LTU: return ARM_CS;
-      case GEU: return ARM_CC;
-      default: gcc_unreachable ();
-      }
+	{
+	case LTU: return ARM_CS;
+	case GEU: return ARM_CC;
+	default: gcc_unreachable ();
+	}
+
+    case CC_CZmode:
+      switch (comp_code)
+	{
+	case NE: return ARM_NE;
+	case EQ: return ARM_EQ;
+	case GEU: return ARM_CS;
+	case GTU: return ARM_HI;
+	case LEU: return ARM_LS;
+	case LTU: return ARM_CC;
+	default: gcc_unreachable ();
+	}
+
+    case CC_NCVmode:
+      switch (comp_code)
+	{
+	case GE: return ARM_GE;
+	case LT: return ARM_LT;
+	case GEU: return ARM_CS;
+	case LTU: return ARM_CC;
+	default: gcc_unreachable ();
+	}
 
     case CCmode:
       switch (comp_code)

@@ -3107,7 +3107,8 @@ get_constraint_for_component_ref (tree t, VEC(ce_s, heap) **results,
      &0->a.b */
   forzero = t;
   while (handled_component_p (forzero)
-	 || INDIRECT_REF_P (forzero))
+	 || INDIRECT_REF_P (forzero)
+	 || TREE_CODE (forzero) == MEM_REF)
     forzero = TREE_OPERAND (forzero, 0);
 
   if (CONSTANT_CLASS_P (forzero) && integer_zerop (forzero))
@@ -3334,9 +3335,10 @@ get_constraint_for_1 (tree t, VEC (ce_s, heap) **results, bool address_p)
       {
 	switch (TREE_CODE (t))
 	  {
-	  case INDIRECT_REF:
+	  case MEM_REF:
 	    {
-	      get_constraint_for_1 (TREE_OPERAND (t, 0), results, address_p);
+	      get_constraint_for_ptr_offset (TREE_OPERAND (t, 0),
+					     TREE_OPERAND (t, 1), results);
 	      do_deref (results);
 	      return;
 	    }
@@ -4393,6 +4395,14 @@ find_func_aliases (gimple origt)
 	  if (gimple_assign_rhs_code (t) == POINTER_PLUS_EXPR)
 	    get_constraint_for_ptr_offset (gimple_assign_rhs1 (t),
 					   gimple_assign_rhs2 (t), &rhsc);
+	  else if (gimple_assign_rhs_code (t) == BIT_AND_EXPR
+		   && TREE_CODE (gimple_assign_rhs2 (t)) == INTEGER_CST)
+	    {
+	      /* Aligning a pointer via a BIT_AND_EXPR is offsetting
+		 the pointer.  Handle it by offsetting it by UNKNOWN.  */
+	      get_constraint_for_ptr_offset (gimple_assign_rhs1 (t),
+					     NULL_TREE, &rhsc);
+	    }
 	  else if ((CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (t))
 		    && !(POINTER_TYPE_P (gimple_expr_type (t))
 			 && !POINTER_TYPE_P (TREE_TYPE (rhsop))))
@@ -4572,7 +4582,11 @@ find_func_clobbers (gimple origt)
 	tem = TREE_OPERAND (tem, 0);
       if ((DECL_P (tem)
 	   && !auto_var_in_fn_p (tem, cfun->decl))
-	  || INDIRECT_REF_P (tem))
+	  || INDIRECT_REF_P (tem)
+	  || (TREE_CODE (tem) == MEM_REF
+	      && !(TREE_CODE (TREE_OPERAND (tem, 0)) == ADDR_EXPR
+		   && auto_var_in_fn_p
+		        (TREE_OPERAND (TREE_OPERAND (tem, 0), 0), cfun->decl))))
 	{
 	  struct constraint_expr lhsc, *rhsp;
 	  unsigned i;
@@ -4596,7 +4610,11 @@ find_func_clobbers (gimple origt)
 	tem = TREE_OPERAND (tem, 0);
       if ((DECL_P (tem)
 	   && !auto_var_in_fn_p (tem, cfun->decl))
-	  || INDIRECT_REF_P (tem))
+	  || INDIRECT_REF_P (tem)
+	  || (TREE_CODE (tem) == MEM_REF
+	      && !(TREE_CODE (TREE_OPERAND (tem, 0)) == ADDR_EXPR
+		   && auto_var_in_fn_p
+		        (TREE_OPERAND (TREE_OPERAND (tem, 0), 0), cfun->decl))))
 	{
 	  struct constraint_expr lhs, *rhsp;
 	  unsigned i;
@@ -5797,6 +5815,17 @@ pt_solution_set (struct pt_solution *pt, bitmap vars,
   pt->vars = vars;
   pt->vars_contains_global = vars_contains_global;
   pt->vars_contains_restrict = vars_contains_restrict;
+}
+
+/* Set the points-to solution *PT to point only to the variable VAR.  */
+
+void
+pt_solution_set_var (struct pt_solution *pt, tree var)
+{
+  memset (pt, 0, sizeof (struct pt_solution));
+  pt->vars = BITMAP_GGC_ALLOC ();
+  bitmap_set_bit (pt->vars, DECL_UID (var));
+  pt->vars_contains_global = is_global_var (var);
 }
 
 /* Computes the union of the points-to solutions *DEST and *SRC and

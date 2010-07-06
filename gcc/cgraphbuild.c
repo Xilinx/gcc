@@ -275,7 +275,7 @@ mark_load (gimple stmt ATTRIBUTE_UNUSED, tree t,
 	   void *data ATTRIBUTE_UNUSED)
 {
   t = get_base_address (t);
-  if (TREE_CODE (t) == VAR_DECL
+  if (t && TREE_CODE (t) == VAR_DECL
       && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
     {
       struct varpool_node *vnode = varpool_node (t);
@@ -300,7 +300,7 @@ mark_store (gimple stmt ATTRIBUTE_UNUSED, tree t,
 	    void *data ATTRIBUTE_UNUSED)
 {
   t = get_base_address (t);
-  if (TREE_CODE (t) == VAR_DECL
+  if (t && TREE_CODE (t) == VAR_DECL
       && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
     {
       struct varpool_node *vnode = varpool_node (t);
@@ -328,7 +328,8 @@ build_cgraph_edges (void)
   struct cgraph_node *node = cgraph_node (current_function_decl);
   struct pointer_set_t *visited_nodes = pointer_set_create ();
   gimple_stmt_iterator gsi;
-  tree step;
+  tree decl;
+  unsigned ix;
 
   /* Create the callgraph edges and record the nodes referenced by the function.
      body.  */
@@ -378,15 +379,10 @@ build_cgraph_edges (void)
    }
 
   /* Look for initializers of constant variables and private statics.  */
-  for (step = cfun->local_decls;
-       step;
-       step = TREE_CHAIN (step))
-    {
-      tree decl = TREE_VALUE (step);
-      if (TREE_CODE (decl) == VAR_DECL
-	  && (TREE_STATIC (decl) && !DECL_EXTERNAL (decl)))
-	varpool_finalize_decl (decl);
-    }
+  FOR_EACH_LOCAL_DECL (cfun, ix, decl)
+    if (TREE_CODE (decl) == VAR_DECL
+	&& (TREE_STATIC (decl) && !DECL_EXTERNAL (decl)))
+      varpool_finalize_decl (decl);
   record_eh_tables (node, cfun);
 
   pointer_set_destroy (visited_nodes);

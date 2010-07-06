@@ -1049,14 +1049,9 @@ build_int_cst (tree type, HOST_WIDE_INT low)
 tree
 build_int_cst_type (tree type, HOST_WIDE_INT low)
 {
-  unsigned HOST_WIDE_INT low1;
-  HOST_WIDE_INT hi;
-
   gcc_assert (type);
 
-  fit_double_type (low, low < 0 ? -1 : 0, &low1, &hi, type);
-
-  return build_int_cst_wide (type, low1, hi);
+  return double_int_to_tree (type, shwi_to_double_int (low));
 }
 
 /* Constructs tree in type TYPE from with value given by CST.  Signedness
@@ -1090,6 +1085,52 @@ double_int_fits_to_tree_p (const_tree type, double_int cst)
     = double_int_ext (cst, TYPE_PRECISION (type), !sign_extended_type);
 
   return double_int_equal_p (cst, ext);
+}
+
+/* We force the double_int CST to the range of the type TYPE by sign or
+   zero extending it.  OVERFLOWABLE indicates if we are interested in
+   overflow of the value, when >0 we are only interested in signed
+   overflow, for <0 we are interested in any overflow.  OVERFLOWED
+   indicates whether overflow has already occurred.  CONST_OVERFLOWED
+   indicates whether constant overflow has already occurred.  We force
+   T's value to be within range of T's type (by setting to 0 or 1 all
+   the bits outside the type's range).  We set TREE_OVERFLOWED if,
+        OVERFLOWED is nonzero,
+        or OVERFLOWABLE is >0 and signed overflow occurs
+        or OVERFLOWABLE is <0 and any overflow occurs
+   We return a new tree node for the extended double_int.  The node
+   is shared if no overflow flags are set.  */
+
+
+tree
+force_fit_type_double (tree type, double_int cst, int overflowable,
+		       bool overflowed)
+{
+  bool sign_extended_type;
+
+  /* Size types *are* sign extended.  */
+  sign_extended_type = (!TYPE_UNSIGNED (type)
+                        || (TREE_CODE (type) == INTEGER_TYPE
+                            && TYPE_IS_SIZETYPE (type)));
+
+  /* If we need to set overflow flags, return a new unshared node.  */
+  if (overflowed || !double_int_fits_to_tree_p(type, cst))
+    {
+      if (overflowed
+	  || overflowable < 0
+	  || (overflowable > 0 && sign_extended_type))
+	{
+	  tree t = make_node (INTEGER_CST);
+	  TREE_INT_CST (t) = double_int_ext (cst, TYPE_PRECISION (type),
+					     !sign_extended_type);
+	  TREE_TYPE (t) = type;
+	  TREE_OVERFLOW (t) = 1;
+	  return t;
+	}
+    }
+
+  /* Else build a shared node.  */
+  return double_int_to_tree (type, cst);
 }
 
 /* These are the hash table functions for the hash table of INTEGER_CST
@@ -2386,7 +2427,6 @@ staticp (tree arg)
       return NULL;
 
     case MISALIGNED_INDIRECT_REF:
-    case ALIGN_INDIRECT_REF:
     case INDIRECT_REF:
       return TREE_CONSTANT (TREE_OPERAND (arg, 0)) ? arg : NULL;
 
@@ -3518,7 +3558,8 @@ do { tree _node = (NODE); \
      address is constant too.  If it's a decl, its address is constant if the
      decl is static.  Everything else is not constant and, furthermore,
      taking the address of a volatile variable is not volatile.  */
-  if (TREE_CODE (node) == INDIRECT_REF)
+  if (TREE_CODE (node) == INDIRECT_REF
+      || TREE_CODE (node) == MEM_REF)
     UPDATE_FLAGS (TREE_OPERAND (node, 0));
   else if (CONSTANT_CLASS_P (node))
     ;
@@ -3613,7 +3654,6 @@ build1_stat (enum tree_code code, tree type, tree node MEM_STAT_DECL)
       break;
 
     case MISALIGNED_INDIRECT_REF:
-    case ALIGN_INDIRECT_REF:
     case INDIRECT_REF:
       /* Whether a dereference is readonly has nothing to do with whether
 	 its operand is readonly.  */
@@ -3830,6 +3870,61 @@ build6_stat (enum tree_code code, tree tt, tree arg0, tree arg1,
        && arg5 && TREE_THIS_VOLATILE (arg5));
 
   return t;
+}
+
+/* Build a simple MEM_REF tree with the sematics of a plain INDIRECT_REF
+   on the pointer PTR.  */
+
+tree
+build_simple_mem_ref_loc (location_t loc, tree ptr)
+{
+  HOST_WIDE_INT offset = 0;
+  tree ptype = TREE_TYPE (ptr);
+  tree tem;
+  /* For convenience allow addresses that collapse to a simple base
+     and offset.  */
+  if (TREE_CODE (ptr) == ADDR_EXPR
+      && (handled_component_p (TREE_OPERAND (ptr, 0))
+	  || TREE_CODE (TREE_OPERAND (ptr, 0)) == MEM_REF))
+    {
+      ptr = get_addr_base_and_unit_offset (TREE_OPERAND (ptr, 0), &offset);
+      gcc_assert (ptr);
+      ptr = build_fold_addr_expr (ptr);
+      gcc_assert (is_gimple_reg (ptr) || is_gimple_min_invariant (ptr));
+    }
+  tem = build2 (MEM_REF, TREE_TYPE (ptype),
+		ptr, build_int_cst (ptype, offset));
+  SET_EXPR_LOCATION (tem, loc);
+  return tem;
+}
+
+/* Return the constant offset of a MEM_REF tree T.  */
+
+double_int
+mem_ref_offset (const_tree t)
+{
+  tree toff = TREE_OPERAND (t, 1);
+  return double_int_sext (tree_to_double_int (toff),
+			  TYPE_PRECISION (TREE_TYPE (toff)));
+}
+
+/* Return the pointer-type relevant for TBAA purposes from the
+   gimple memory reference tree T.  This is the type to be used for
+   the offset operand of MEM_REF or TARGET_MEM_REF replacements of T.  */
+
+tree
+reference_alias_ptr_type (const_tree t)
+{
+  const_tree base = t;
+  while (handled_component_p (base))
+    base = TREE_OPERAND (base, 0);
+  if (TREE_CODE (base) == MEM_REF)
+    return TREE_TYPE (TREE_OPERAND (base, 1));
+  else if (TREE_CODE (base) == TARGET_MEM_REF
+	   || TREE_CODE (base) == MISALIGNED_INDIRECT_REF)
+    return NULL_TREE;
+  else
+    return build_pointer_type (TYPE_MAIN_VARIANT (TREE_TYPE (base)));
 }
 
 /* Similar except don't specify the TREE_TYPE
@@ -4403,6 +4498,7 @@ free_lang_data_in_decl (tree decl)
       if (gimple_has_body_p (decl))
 	{
 	  tree t;
+	  unsigned ix;
 	  struct pointer_set_t *locals;
 
 	  /* If DECL has a gimple body, then the context for its
@@ -4419,14 +4515,13 @@ free_lang_data_in_decl (tree decl)
 
 	  /* Collect all the symbols declared in DECL.  */
 	  locals = pointer_set_create ();
-	  t = DECL_STRUCT_FUNCTION (decl)->local_decls;
-	  for (; t; t = TREE_CHAIN (t))
+	  FOR_EACH_LOCAL_DECL (DECL_STRUCT_FUNCTION (decl), ix, t)
 	    {
-	      pointer_set_insert (locals, TREE_VALUE (t));
+	      pointer_set_insert (locals, t);
 
 	      /* All the local symbols should have DECL as their
 		 context.  */
-	      DECL_CONTEXT (TREE_VALUE (t)) = decl;
+	      DECL_CONTEXT (t) = decl;
 	    }
 
 	  /* Get rid of any decl not in local_decls.  */
@@ -4778,6 +4873,7 @@ find_decls_types_in_node (struct cgraph_node *n, struct free_lang_data_d *fld)
 {
   basic_block bb;
   struct function *fn;
+  unsigned ix;
   tree t;
 
   find_decls_types (n->decl, fld);
@@ -4790,8 +4886,8 @@ find_decls_types_in_node (struct cgraph_node *n, struct free_lang_data_d *fld)
   fn = DECL_STRUCT_FUNCTION (n->decl);
 
   /* Traverse locals. */
-  for (t = fn->local_decls; t; t = TREE_CHAIN (t))
-    find_decls_types (TREE_VALUE (t), fld);
+  FOR_EACH_LOCAL_DECL (fn, ix, t)
+    find_decls_types (t, fld);
 
   /* Traverse EH regions in FN.  */
   {
@@ -7800,10 +7896,10 @@ get_narrower (tree op, int *unsignedp_ptr)
   return win;
 }
 
-/* Nonzero if integer constant C has a value that is permissible
+/* Returns true if integer constant C has a value that is permissible
    for type TYPE (an INTEGER_TYPE).  */
 
-int
+bool
 int_fits_type_p (const_tree c, const_tree type)
 {
   tree type_low_bound, type_high_bound;
@@ -7832,7 +7928,7 @@ retry:
   /* If at least one bound of the type is a constant integer, we can check
      ourselves and maybe make a decision. If no such decision is possible, but
      this type is a subtype, try checking against that.  Otherwise, use
-     fit_double_type, which checks against the precision.
+     double_int_fits_to_tree_p, which checks against the precision.
 
      Compute the status for each possibly constant bound, and return if we see
      one does not match. Use ok_for_xxx_bound for this purpose, assigning -1
@@ -7853,12 +7949,12 @@ retry:
 	  int t_neg = (unsc && double_int_negative_p (dd));
 
 	  if (c_neg && !t_neg)
-	    return 0;
+	    return false;
 	  if ((c_neg || !t_neg) && double_int_ucmp (dc, dd) < 0)
-	    return 0;
+	    return false;
 	}
       else if (double_int_cmp (dc, dd, unsc) < 0)
-	return 0;
+	return false;
       ok_for_low_bound = true;
     }
   else
@@ -7878,12 +7974,12 @@ retry:
 	  int t_neg = (unsc && double_int_negative_p (dd));
 
 	  if (t_neg && !c_neg)
-	    return 0;
+	    return false;
 	  if ((t_neg || !c_neg) && double_int_ucmp (dc, dd) > 0)
-	    return 0;
+	    return false;
 	}
       else if (double_int_cmp (dc, dd, unsc) > 0)
-	return 0;
+	return false;
       ok_for_high_bound = true;
     }
   else
@@ -7891,17 +7987,17 @@ retry:
 
   /* If the constant fits both bounds, the result is known.  */
   if (ok_for_low_bound && ok_for_high_bound)
-    return 1;
+    return true;
 
   /* Perform some generic filtering which may allow making a decision
      even if the bounds are not constant.  First, negative integers
      never fit in unsigned types, */
   if (TYPE_UNSIGNED (type) && !unsc && double_int_negative_p (dc))
-    return 0;
+    return false;
 
   /* Second, narrower types always fit in wider ones.  */
   if (TYPE_PRECISION (type) > TYPE_PRECISION (TREE_TYPE (c)))
-    return 1;
+    return true;
 
   /* Third, unsigned integers with top bit set never fit signed types.  */
   if (! TYPE_UNSIGNED (type) && unsc)
@@ -7910,11 +8006,11 @@ retry:
       if (prec < HOST_BITS_PER_WIDE_INT)
 	{
 	  if (((((unsigned HOST_WIDE_INT) 1) << prec) & dc.low) != 0)
-	    return 0;
+	    return false;
         }
       else if (((((unsigned HOST_WIDE_INT) 1)
 		 << (prec - HOST_BITS_PER_WIDE_INT)) & dc.high) != 0)
-	return 0;
+	return false;
     }
 
   /* If we haven't been able to decide at this point, there nothing more we
@@ -7928,8 +8024,8 @@ retry:
       goto retry;
     }
 
-  /* Or to fit_double_type, if nothing else.  */
-  return !fit_double_type (dc.low, dc.high, &dc.low, &dc.high, type);
+  /* Or to double_int_fits_to_tree_p, if nothing else.  */
+  return double_int_fits_to_tree_p (type, dc);
 }
 
 /* Stores bounds of an integer TYPE in MIN and MAX.  If TYPE has non-constant
@@ -9494,27 +9590,6 @@ build_vl_exp_stat (enum tree_code code, int len MEM_STAT_DECL)
      enabled, it will try to check the length before we store it.  :-P  */
   t->exp.operands[0] = build_int_cst (sizetype, len);
 
-  return t;
-}
-
-
-/* Build a CALL_EXPR of class tcc_vl_exp with the indicated RETURN_TYPE
-   and FN and a null static chain slot.  ARGLIST is a TREE_LIST of the
-   arguments.  */
-
-tree
-build_call_list (tree return_type, tree fn, tree arglist)
-{
-  tree t;
-  int i;
-
-  t = build_vl_exp (CALL_EXPR, list_length (arglist) + 3);
-  TREE_TYPE (t) = return_type;
-  CALL_EXPR_FN (t) = fn;
-  CALL_EXPR_STATIC_CHAIN (t) = NULL_TREE;
-  for (i = 0; arglist; arglist = TREE_CHAIN (arglist), i++)
-    CALL_EXPR_ARG (t, i) = TREE_VALUE (arglist);
-  process_call_operands (t);
   return t;
 }
 

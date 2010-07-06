@@ -553,14 +553,6 @@ extern struct rtx_def *hppa_pic_save_rtx (void);
    ? (STACK_POINTER_OFFSET)		\
    : ((STACK_POINTER_OFFSET) - crtl->outgoing_args_size))
 
-/* Value is 1 if returning from a function call automatically
-   pops the arguments described by the number-of-args field in the call.
-   FUNDECL is the declaration node of the function (as a tree),
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.  */
-
-#define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
-
 /* Define how to find the value returned by a library function
    assuming the value has mode MODE.  */
 
@@ -1150,9 +1142,7 @@ extern int may_call_alloca;
 	       || ((MODE) != SFmode					\
 		   && (MODE) != DFmode)))				\
     goto ADDR;								\
-  else if (GET_CODE (X) == LABEL_REF					\
-	   || (GET_CODE (X) == CONST_INT				\
-	       && INT_5_BITS (X)))					\
+  else if (GET_CODE (X) == CONST_INT && INT_5_BITS (X))			\
     goto ADDR;								\
   /* Needed for -fPIC */						\
   else if (GET_CODE (X) == LO_SUM					\

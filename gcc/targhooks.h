@@ -77,7 +77,7 @@ extern tree default_builtin_vectorized_function (tree, tree, tree);
 
 extern tree default_builtin_vectorized_conversion (unsigned int, tree, tree);
 
-extern int default_builtin_vectorization_cost (enum vect_cost_for_stmt);
+extern int default_builtin_vectorization_cost (enum vect_cost_for_stmt, tree, int);
 
 extern tree default_builtin_reciprocal (unsigned int, bool, bool);
 
@@ -101,6 +101,12 @@ extern int hook_int_CUMULATIVE_ARGS_mode_tree_bool_0
   (CUMULATIVE_ARGS *, enum machine_mode, tree, bool);
 extern const char *hook_invalid_arg_for_unprototyped_fn
   (const_tree, const_tree, const_tree);
+extern void default_function_arg_advance
+  (CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
+extern rtx default_function_arg
+  (const CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
+extern rtx default_function_incoming_arg
+  (const CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
 extern bool hook_bool_const_rtx_commutative_p (const_rtx, int);
 extern rtx default_function_value (const_tree, const_tree, bool);
 extern rtx default_libcall_value (enum machine_mode, const_rtx);
@@ -108,13 +114,15 @@ extern bool default_function_value_regno_p (const unsigned int);
 extern rtx default_internal_arg_pointer (void);
 extern rtx default_static_chain (const_tree, bool);
 extern void default_trampoline_init (rtx, tree, rtx);
-extern enum reg_class default_branch_target_register_class (void);
+extern int default_return_pops_args (tree, tree, int);
+extern reg_class_t default_branch_target_register_class (void);
 #ifdef IRA_COVER_CLASSES
-extern const enum reg_class *default_ira_cover_classes (void);
+extern const reg_class_t *default_ira_cover_classes (void);
 #endif
-extern enum reg_class default_secondary_reload (bool, rtx, enum reg_class,
-						enum machine_mode,
-						secondary_reload_info *);
+extern reg_class_t default_secondary_reload (bool, rtx, reg_class_t,
+					     enum machine_mode,
+					     secondary_reload_info *);
+extern void default_target_option_override (void);
 extern void hook_void_bitmap (bitmap);
 extern bool default_handle_c_option (size_t, const char *, int);
 extern int default_reloc_rw_mask (void);
@@ -139,7 +147,7 @@ extern bool default_addr_space_subset_p (addr_space_t, addr_space_t);
 extern rtx default_addr_space_convert (rtx, tree, tree);
 extern unsigned int default_case_values_threshold (void);
 extern bool default_have_conditional_execution (void);
-extern int default_memory_move_cost (enum machine_mode, enum reg_class, bool);
-extern int default_register_move_cost (enum machine_mode, enum reg_class,
-				       enum reg_class);
+extern int default_memory_move_cost (enum machine_mode, reg_class_t, bool);
+extern int default_register_move_cost (enum machine_mode, reg_class_t,
+				       reg_class_t);
 

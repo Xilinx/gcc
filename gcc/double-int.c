@@ -69,121 +69,6 @@ decode (HOST_WIDE_INT *words, unsigned HOST_WIDE_INT *low,
   *hi = words[2] + words[3] * BASE;
 }
 
-/* Force the double-word integer L1, H1 to be within the range of the
-   integer type TYPE.  Stores the properly truncated and sign-extended
-   double-word integer in *LV, *HV.  Returns true if the operation
-   overflows, that is, argument and result are different.  */
-
-int
-fit_double_type (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
-		 unsigned HOST_WIDE_INT *lv, HOST_WIDE_INT *hv, const_tree type)
-{
-  unsigned HOST_WIDE_INT low0 = l1;
-  HOST_WIDE_INT high0 = h1;
-  unsigned int prec = TYPE_PRECISION (type);
-  int sign_extended_type;
-
-  /* Size types *are* sign extended.  */
-  sign_extended_type = (!TYPE_UNSIGNED (type)
-			|| (TREE_CODE (type) == INTEGER_TYPE
-			    && TYPE_IS_SIZETYPE (type)));
-
-  /* First clear all bits that are beyond the type's precision.  */
-  if (prec >= 2 * HOST_BITS_PER_WIDE_INT)
-    ;
-  else if (prec > HOST_BITS_PER_WIDE_INT)
-    h1 &= ~((HOST_WIDE_INT) (-1) << (prec - HOST_BITS_PER_WIDE_INT));
-  else
-    {
-      h1 = 0;
-      if (prec < HOST_BITS_PER_WIDE_INT)
-	l1 &= ~((HOST_WIDE_INT) (-1) << prec);
-    }
-
-  /* Then do sign extension if necessary.  */
-  if (!sign_extended_type)
-    /* No sign extension */;
-  else if (prec >= 2 * HOST_BITS_PER_WIDE_INT)
-    /* Correct width already.  */;
-  else if (prec > HOST_BITS_PER_WIDE_INT)
-    {
-      /* Sign extend top half? */
-      if (h1 & ((unsigned HOST_WIDE_INT)1
-		<< (prec - HOST_BITS_PER_WIDE_INT - 1)))
-	h1 |= (HOST_WIDE_INT) (-1) << (prec - HOST_BITS_PER_WIDE_INT);
-    }
-  else if (prec == HOST_BITS_PER_WIDE_INT)
-    {
-      if ((HOST_WIDE_INT)l1 < 0)
-	h1 = -1;
-    }
-  else
-    {
-      /* Sign extend bottom half? */
-      if (l1 & ((unsigned HOST_WIDE_INT)1 << (prec - 1)))
-	{
-	  h1 = -1;
-	  l1 |= (HOST_WIDE_INT)(-1) << prec;
-	}
-    }
-
-  *lv = l1;
-  *hv = h1;
-
-  /* If the value didn't fit, signal overflow.  */
-  return l1 != low0 || h1 != high0;
-}
-
-/* We force the double-int HIGH:LOW to the range of the type TYPE by
-   sign or zero extending it.
-   OVERFLOWABLE indicates if we are interested
-   in overflow of the value, when >0 we are only interested in signed
-   overflow, for <0 we are interested in any overflow.  OVERFLOWED
-   indicates whether overflow has already occurred.  CONST_OVERFLOWED
-   indicates whether constant overflow has already occurred.  We force
-   T's value to be within range of T's type (by setting to 0 or 1 all
-   the bits outside the type's range).  We set TREE_OVERFLOWED if,
-  	OVERFLOWED is nonzero,
-	or OVERFLOWABLE is >0 and signed overflow occurs
-	or OVERFLOWABLE is <0 and any overflow occurs
-   We return a new tree node for the extended double-int.  The node
-   is shared if no overflow flags are set.  */
-
-tree
-force_fit_type_double (tree type, unsigned HOST_WIDE_INT low,
-		       HOST_WIDE_INT high, int overflowable,
-		       bool overflowed)
-{
-  int sign_extended_type;
-  bool overflow;
-
-  /* Size types *are* sign extended.  */
-  sign_extended_type = (!TYPE_UNSIGNED (type)
-			|| (TREE_CODE (type) == INTEGER_TYPE
-			    && TYPE_IS_SIZETYPE (type)));
-
-  overflow = fit_double_type (low, high, &low, &high, type);
-
-  /* If we need to set overflow flags, return a new unshared node.  */
-  if (overflowed || overflow)
-    {
-      if (overflowed
-	  || overflowable < 0
-	  || (overflowable > 0 && sign_extended_type))
-	{
-          tree t = make_node (INTEGER_CST);
-          TREE_INT_CST_LOW (t) = low;
-          TREE_INT_CST_HIGH (t) = high;
-          TREE_TYPE (t) = type;
-	  TREE_OVERFLOW (t) = 1;
-	  return t;
-	}
-    }
-
-  /* Else build a shared node.  */
-  return build_int_cst_wide (type, low, high);
-}
-
 /* Add two doubleword integers with doubleword result.
    Return nonzero if the operation overflows according to UNSIGNED_P.
    Each argument is given as two `HOST_WIDE_INT' pieces.
@@ -838,6 +723,17 @@ double_int
 double_int_add (double_int a, double_int b)
 {
   double_int ret;
+  add_double (a.low, a.high, b.low, b.high, &ret.low, &ret.high);
+  return ret;
+}
+
+/* Returns A - B.  */
+
+double_int
+double_int_sub (double_int a, double_int b)
+{
+  double_int ret;
+  neg_double (b.low, b.high, &b.low, &b.high);
   add_double (a.low, a.high, b.low, b.high, &ret.low, &ret.high);
   return ret;
 }

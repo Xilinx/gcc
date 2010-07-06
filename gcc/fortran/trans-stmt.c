@@ -373,7 +373,7 @@ gfc_trans_call (gfc_code * code, bool dependency_check,
       /* Translate the call.  */
       has_alternate_specifier
 	= gfc_conv_procedure_call (&se, code->resolved_sym, code->ext.actual,
-				  code->expr1, NULL_TREE);
+				  code->expr1, NULL);
 
       /* A subroutine without side-effect, by definition, does nothing!  */
       TREE_SIDE_EFFECTS (se.expr) = 1;
@@ -457,8 +457,7 @@ gfc_trans_call (gfc_code * code, bool dependency_check,
 
       /* Add the subroutine call to the block.  */
       gfc_conv_procedure_call (&loopse, code->resolved_sym,
-			       code->ext.actual, code->expr1,
-			       NULL_TREE);
+			       code->ext.actual, code->expr1, NULL);
 
       if (mask && count1)
 	{
@@ -1633,6 +1632,7 @@ gfc_trans_character_select (gfc_code *code)
 
   if (select_struct[k] == NULL)
     {
+      tree *chain = NULL;
       select_struct[k] = make_node (RECORD_TYPE);
 
       if (code->expr1->ts.kind == 1)
@@ -1646,7 +1646,7 @@ gfc_trans_character_select (gfc_code *code)
 #define ADD_FIELD(NAME, TYPE)					\
   ss_##NAME[k] = gfc_add_field_to_struct				\
      (&(TYPE_FIELDS (select_struct[k])), select_struct[k],	\
-      get_identifier (stringize(NAME)), TYPE)
+      get_identifier (stringize(NAME)), TYPE, &chain)
 
       ADD_FIELD (string1, pchartype);
       ADD_FIELD (string1_len, gfc_charlen_type_node);

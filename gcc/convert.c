@@ -46,7 +46,8 @@ convert_to_pointer (tree type, tree expr)
 
   /* Propagate overflow to the NULL pointer.  */
   if (integer_zerop (expr))
-    return force_fit_type_double (type, 0, 0, 0, TREE_OVERFLOW (expr));
+    return force_fit_type_double (type, double_int_zero, 0,
+				  TREE_OVERFLOW (expr));
 
   switch (TREE_CODE (TREE_TYPE (expr)))
     {
@@ -767,13 +768,19 @@ convert_to_integer (tree type, tree expr)
 			|| ex_form == LSHIFT_EXPR
 			/* If we have !flag_wrapv, and either ARG0 or
 			   ARG1 is of a signed type, we have to do
-			   PLUS_EXPR or MINUS_EXPR in an unsigned
-			   type.  Otherwise, we would introduce
+			   PLUS_EXPR, MINUS_EXPR or MULT_EXPR in an unsigned
+			   type in case the operation in outprec precision
+			   could overflow.  Otherwise, we would introduce
 			   signed-overflow undefinedness.  */
 			|| ((!TYPE_OVERFLOW_WRAPS (TREE_TYPE (arg0))
 			     || !TYPE_OVERFLOW_WRAPS (TREE_TYPE (arg1)))
+			    && ((TYPE_PRECISION (TREE_TYPE (arg0)) * 2u
+				 > outprec)
+				|| (TYPE_PRECISION (TREE_TYPE (arg1)) * 2u
+				    > outprec))
 			    && (ex_form == PLUS_EXPR
-				|| ex_form == MINUS_EXPR)))
+				|| ex_form == MINUS_EXPR
+				|| ex_form == MULT_EXPR)))
 		      typex = unsigned_type_for (typex);
 		    else
 		      typex = signed_type_for (typex);

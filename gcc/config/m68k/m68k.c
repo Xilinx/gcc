@@ -153,6 +153,7 @@ static bool m68k_return_in_memory (const_tree, const_tree);
 #endif
 static void m68k_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static void m68k_trampoline_init (rtx, tree, rtx);
+static int m68k_return_pops_args (tree, tree, int);
 static rtx m68k_delegitimize_address (rtx);
 
 
@@ -270,6 +271,9 @@ const char *m68k_library_id_string = "_current_shared_library_a5_offset_";
 
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT m68k_trampoline_init
+
+#undef TARGET_RETURN_POPS_ARGS
+#define TARGET_RETURN_POPS_ARGS m68k_return_pops_args
 
 #undef TARGET_DELEGITIMIZE_ADDRESS
 #define TARGET_DELEGITIMIZE_ADDRESS m68k_delegitimize_address
@@ -1038,7 +1042,7 @@ void
 m68k_expand_prologue (void)
 {
   HOST_WIDE_INT fsize_with_regs;
-  rtx limit, src, dest, insn;
+  rtx limit, src, dest;
 
   m68k_compute_frame_layout ();
 
@@ -1181,7 +1185,7 @@ m68k_expand_prologue (void)
 
   if (!TARGET_SEP_DATA
       && crtl->uses_pic_offset_table)
-    insn = emit_insn (gen_load_got (pic_offset_table_rtx));
+    emit_insn (gen_load_got (pic_offset_table_rtx));
 }
 
 /* Return true if a simple (return) instruction is sufficient for this
@@ -6145,7 +6149,7 @@ m68k_sched_first_cycle_multipass_dfa_lookahead (void)
   return m68k_sched_issue_rate () - 1;
 }
 
-/* Implementation of targetm.sched.md_init_global () hook.
+/* Implementation of targetm.sched.init_global () hook.
    It is invoked once per scheduling pass and is used here
    to initialize scheduler constants.  */
 static void
@@ -6253,7 +6257,7 @@ m68k_sched_md_finish_global (FILE *dump ATTRIBUTE_UNUSED,
   sched_branch_type = NULL;
 }
 
-/* Implementation of targetm.sched.md_init () hook.
+/* Implementation of targetm.sched.init () hook.
    It is invoked each time scheduler starts on the new block (basic block or
    extended basic block).  */
 static void
@@ -6518,6 +6522,27 @@ m68k_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
   emit_move_insn (mem, fnaddr);
 
   FINALIZE_TRAMPOLINE (XEXP (m_tramp, 0));
+}
+
+/* On the 68000, the RTS insn cannot pop anything.
+   On the 68010, the RTD insn may be used to pop them if the number
+     of args is fixed, but if the number is variable then the caller
+     must pop them all.  RTD can't be used for library calls now
+     because the library is compiled with the Unix compiler.
+   Use of RTD is a selectable option, since it is incompatible with
+   standard Unix calling sequences.  If the option is not selected,
+   the caller must always pop the args.  */
+
+static int
+m68k_return_pops_args (tree fundecl, tree funtype, int size)
+{
+  return ((TARGET_RTD
+	   && (!fundecl
+	       || TREE_CODE (fundecl) != IDENTIFIER_NODE)
+	   && (TYPE_ARG_TYPES (funtype) == 0
+	       || (TREE_VALUE (tree_last (TYPE_ARG_TYPES (funtype)))
+		   == void_type_node)))
+	  ? size : 0);
 }
 
 #include "gt-m68k.h"

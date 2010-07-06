@@ -1,3 +1,87 @@
+2010-07-05  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/44797
+	* fortran/io.c (resolve_tag): Check EXIST tag is a default logical.
+
+2010-07-05  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/44596
+	* trans-types.c (gfc_get_derived_type): Derived type fields
+	with the vtype attribute must have TYPE_REF_CAN_ALIAS_ALL set
+	but build_pointer_type_for_mode must be used for this.
+
+2010-07-05  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* trans.h (gfc_conv_procedure_call): Take a VEC instead of a tree.
+	* trans-intrinsic.c (gfc_conv_intrinsic_funcall): Adjust for new
+	type of gfc_conv_procedure_call.
+	(conv_generic_with_optional_char_arg): Likewise.
+	* trans-stmt.c (gfc_trans_call): Likewise.
+	* trans-expr.c (gfc_conv_function_expr): Likewise.
+	(gfc_conv_procedure_call): Use build_call_vec instead of
+	build_call_list.
+
+2010-07-04  Daniel Kraft  <d@domob.eu>
+
+	* gfc-internals.texi (gfc_code): Document BLOCK and ASSOCIATE.
+
+2010-07-04  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/44596
+	PR fortran/44745
+	* trans-types.c (gfc_get_derived_type): Derived type fields
+	with the vtype attribute must have TYPE_REF_CAN_ALIAS_ALL set.
+
+2010-07-02  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/44662
+	* decl.c (match_procedure_in_type): Clear structure before using.
+	(gfc_match_generic): Ditto.
+
+2010-07-02  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* trans-types.h (gfc_add_field_to_struct): Add tree ** parameter.
+	* trans-types.c (gfc_add_field_to_struct_1): New function, most
+	of which comes from...
+	(gfc_add_field_to_struct): ...here.  Call it.  Add new parameter.
+	(gfc_get_desc_dim_type): Call gfc_add_field_to_struct_1 for
+	building fields.
+	(gfc_get_array_descriptor_base): Likewise.
+	(gfc_get_mixed_entry_union): Likewise.
+	(gfc_get_derived_type): Add extra chain parameter for
+	gfc_add_field_to_struct.
+	* trans-stmt.c (gfc_trans_character_select): Likewise.
+	* trans-io.c (gfc_build_st_parameter): Likewise.
+
+2010-06-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44718
+	* resolve.c (is_external_proc): Prevent procedure pointers from being
+	regarded as external procedures.
+
+2010-06-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44696
+	* trans-intrinsic.c (gfc_conv_associated): Handle polymorphic variables
+	passed as second argument of ASSOCIATED.
+
+2010-06-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/44582
+	* trans-expr.c (arrayfunc_assign_needs_temporary): New function
+	to determine if a function assignment can be made without a
+	temporary.
+	(gfc_trans_arrayfunc_assign): Move all the conditions that
+	suppress the direct function call to the above new functon and
+	call it.
+
+2010-06-28  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40158
+	* interface.c (argument_rank_mismatch): New function.
+	(compare_parameter): Call new function instead of generating
+	the error directly.
+
 2010-06-28  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* trans-openmp.c (dovar_init): Define.  Define VECs containing it.

@@ -1498,17 +1498,6 @@ do {									      \
 /* Offset of first parameter from the argument pointer register value.  */
 #define FIRST_PARM_OFFSET(FNDECL)  (TARGET_ARM ? 4 : 0)
 
-/* Value is the number of byte of arguments automatically
-   popped when returning from a subroutine call.
-   FUNDECL is the declaration node of the function (as a tree),
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.
-   SIZE is the number of bytes of arguments passed on the stack.
-
-   On the ARM, the caller does not pop any of its arguments that were passed
-   on the stack.  */
-#define RETURN_POPS_ARGS(FUNDECL, FUNTYPE, SIZE)  0
-
 /* Define how to find the value returned by a library function
    assuming the value has mode MODE.  */
 #define LIBCALL_VALUE(MODE)  						\
@@ -2255,19 +2244,7 @@ extern int making_const_table;
    : reverse_condition (code))
 
 #define CANONICALIZE_COMPARISON(CODE, OP0, OP1)				\
-  do									\
-    {									\
-      if (GET_CODE (OP1) == CONST_INT					\
-          && ! (const_ok_for_arm (INTVAL (OP1))				\
-	        || (const_ok_for_arm (- INTVAL (OP1)))))		\
-        {								\
-          rtx const_op = OP1;						\
-          CODE = arm_canonicalize_comparison ((CODE), GET_MODE (OP0),	\
-					      &const_op);		\
-          OP1 = const_op;						\
-        }								\
-    }									\
-  while (0)
+  (CODE) = arm_canonicalize_comparison (CODE, &(OP0), &(OP1))
 
 /* The arm5 clz instruction returns 32.  */
 #define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE)  ((VALUE) = 32, 1)

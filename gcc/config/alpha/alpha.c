@@ -1569,10 +1569,12 @@ alpha_preferred_reload_class(rtx x, enum reg_class rclass)
    RCLASS requires an extra scratch or immediate register.  Return the class
    needed for the immediate register.  */
 
-static enum reg_class
-alpha_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
+static reg_class_t
+alpha_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 			enum machine_mode mode, secondary_reload_info *sri)
 {
+  enum reg_class rclass = (enum reg_class) rclass_i;
+
   /* Loading and storing HImode or QImode values to and from memory
      usually requires a scratch register.  */
   if (!TARGET_BWX && (mode == QImode || mode == HImode || mode == CQImode))
@@ -1582,10 +1584,10 @@ alpha_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
 	  if (in_p)
 	    {
 	      if (!aligned_memory_operand (x, mode))
-		sri->icode = reload_in_optab[mode];
+		sri->icode = direct_optab_handler (reload_in_optab, mode);
 	    }
 	  else
-	    sri->icode = reload_out_optab[mode];
+	    sri->icode = direct_optab_handler (reload_out_optab, mode);
 	  return NO_REGS;
 	}
     }
@@ -6023,7 +6025,7 @@ alpha_stdarg_optimize_hook (struct stdarg_info *si, const_gimple stmt)
   rhs = gimple_assign_rhs1 (stmt);
   while (handled_component_p (rhs))
     rhs = TREE_OPERAND (rhs, 0);
-  if (TREE_CODE (rhs) != INDIRECT_REF
+  if (TREE_CODE (rhs) != MEM_REF
       || TREE_CODE (TREE_OPERAND (rhs, 0)) != SSA_NAME)
     return false;
 
@@ -9742,7 +9744,7 @@ alpha_file_start (void)
   /* If emitting dwarf2 debug information, we cannot generate a .file
      directive to start the file, as it will conflict with dwarf2out
      file numbers.  So it's only useful when emitting mdebug output.  */
-  targetm.file_start_file_directive = (write_symbols == DBX_DEBUG);
+  targetm.asm_file_start_file_directive = (write_symbols == DBX_DEBUG);
 #endif
 
   default_file_start ();

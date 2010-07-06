@@ -4781,7 +4781,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
   tree val;
   const char *invalid_op_diag;
 
-  if (error_operand_p (arg))
+  if (!arg || error_operand_p (arg))
     return error_mark_node;
 
   if ((invalid_op_diag
@@ -5591,7 +5591,7 @@ build_compound_expr (location_t loc ATTRIBUTE_UNUSED, tree lhs, tree rhs)
 tree
 cp_build_compound_expr (tree lhs, tree rhs, tsubst_flags_t complain)
 {
-  lhs = convert_to_void (lhs, "left-hand operand of comma", complain);
+  lhs = convert_to_void (lhs, ICV_LEFT_OF_COMMA, complain);
 
   if (lhs == error_mark_node || rhs == error_mark_node)
     return error_mark_node;
@@ -5858,7 +5858,7 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
 
      Any expression can be explicitly converted to type cv void.  */
   if (TREE_CODE (type) == VOID_TYPE)
-    return convert_to_void (expr, /*implicit=*/NULL, complain);
+    return convert_to_void (expr, ICV_CAST, complain);
 
   /* [expr.static.cast]
 
@@ -7211,7 +7211,10 @@ convert_for_assignment (tree type, tree rhs,
 
   if (TREE_CODE (type) == VECTOR_TYPE && coder == VECTOR_TYPE
       && vector_types_convertible_p (type, rhstype, true))
-    return convert (type, rhs);
+    {
+      rhs = mark_rvalue_use (rhs);
+      return convert (type, rhs);
+    }
 
   if (rhs == error_mark_node || rhstype == error_mark_node)
     return error_mark_node;
@@ -7255,7 +7258,10 @@ convert_for_assignment (tree type, tree rhs,
 	}
 
       if (objc_compare_types (type, rhstype, parmno, rname))
-	return convert (type, rhs);
+	{
+	  rhs = mark_rvalue_use (rhs);
+	  return convert (type, rhs);
+	}
     }
 
   /* [expr.ass]

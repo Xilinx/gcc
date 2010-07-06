@@ -1,3 +1,39 @@
+2010-06-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43298
+	* list_read.c (parse_real): Do not pass (..) on for NAN(..).
+	* read.c (convert_real): Fix comment about NAN/INF.
+
+2010-07-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gfortran_use_symver): Only check for Sun-style symbol
+	versioning on Solaris 2.
+	* configure: Regenerate.
+
+2010-07-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac: Check for Sun symbol versioning.
+	* configure: Regenerate.
+
+	* Makefile.am [LIBGFOR_USE_SYMVER]: Protect version_arg with
+	LIBGFOR_USE_SYMVER_GNU.
+	Add version_dep.
+	[LIBGFOR_USE_SYMVER_SUN]: Handle Sun symbol versioning.
+	[!LIBGFOR_USE_SYMVER]: Add version_dep.
+	(libgfortran_la_DEPENDENCIES): Set to $(version_dep).
+	* Makefile.in: Regenerate.
+
+2010-06-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43298
+	* io/read.c: Add code to parse and read Inf, Infinity, NaN, and Nan with
+	optional parenthesis.
+
+2010-06-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43298
+	* list_read.c (parse_real, read_real): Support NAN(alphanum).
+
 2010-06-25  Tobias Burnus  <burnus@net-b.de>
 
 	* intrinsics/selected_real_kind.f90

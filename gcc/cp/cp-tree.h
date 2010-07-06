@@ -435,6 +435,17 @@ typedef enum impl_conv_rhs {
   ICR_ASSIGN            /* assignment */
 } impl_conv_rhs;
 
+/* Possible cases of implicit or explicit bad conversions to void. */
+typedef enum impl_conv_void {
+  ICV_CAST,            /* (explicit) conversion to void */
+  ICV_SECOND_OF_COND,  /* second operand of conditional expression */
+  ICV_THIRD_OF_COND,   /* third operand of conditional expression */
+  ICV_RIGHT_OF_COMMA,  /* right operand of comma operator */
+  ICV_LEFT_OF_COMMA,   /* left operand of comma operator */
+  ICV_STATEMENT,       /* statement */
+  ICV_THIRD_IN_FOR     /* for increment expression */
+} impl_conv_void;
+
 /* Macros for access to language-specific slots in an identifier.  */
 
 #define IDENTIFIER_NAMESPACE_BINDINGS(NODE)	\
@@ -1239,11 +1250,11 @@ struct GTY(()) lang_type_header {
   BOOL_BITFIELD is_lang_type_class : 1;
 
   BOOL_BITFIELD has_type_conversion : 1;
-  BOOL_BITFIELD has_init_ref : 1;
+  BOOL_BITFIELD has_copy_ctor : 1;
   BOOL_BITFIELD has_default_ctor : 1;
   BOOL_BITFIELD const_needs_init : 1;
   BOOL_BITFIELD ref_needs_init : 1;
-  BOOL_BITFIELD has_const_assign_ref : 1;
+  BOOL_BITFIELD has_const_copy_assign : 1;
 
   BOOL_BITFIELD spare : 1;
 };
@@ -1271,7 +1282,7 @@ struct GTY(()) lang_type_class {
   unsigned non_pod_class : 1;
   unsigned nearly_empty_p : 1;
   unsigned user_align : 1;
-  unsigned has_assign_ref : 1;
+  unsigned has_copy_assign : 1;
   unsigned has_new : 1;
   unsigned has_array_new : 1;
 
@@ -1297,18 +1308,22 @@ struct GTY(()) lang_type_class {
   unsigned was_anonymous : 1;
   unsigned lazy_default_ctor : 1;
   unsigned lazy_copy_ctor : 1;
-  unsigned lazy_assignment_op : 1;
+  unsigned lazy_copy_assign : 1;
   unsigned lazy_destructor : 1;
 
-  unsigned has_const_init_ref : 1;
-  unsigned has_complex_init_ref : 1;
-  unsigned has_complex_assign_ref : 1;
+  unsigned has_const_copy_ctor : 1;
+  unsigned has_complex_copy_ctor : 1;
+  unsigned has_complex_copy_assign : 1;
   unsigned non_aggregate : 1;
   unsigned has_complex_dflt : 1;
   unsigned has_list_ctor : 1;
   unsigned non_std_layout : 1;
-  unsigned lazy_move_ctor : 1;
   unsigned is_literal : 1;
+
+  unsigned lazy_move_ctor : 1;
+  unsigned lazy_move_assign : 1;
+  unsigned has_complex_move_ctor : 1;
+  unsigned has_complex_move_assign : 1;
 
   /* When adding a flag here, consider whether or not it ought to
      apply to a template instance if it applies to the template.  If
@@ -1317,7 +1332,7 @@ struct GTY(()) lang_type_class {
   /* There are some bits left to fill out a 32-bit word.  Keep track
      of this by updating the size of this bitfield whenever you add or
      remove a flag.  */
-  unsigned dummy : 7;
+  unsigned dummy : 4;
 
   tree primary_base;
   VEC(tree_pair_s,gc) *vcall_indices;
@@ -1412,8 +1427,13 @@ struct GTY((variable_size)) lang_type {
 
 /* Nonzero means that NODE (a class type) has an assignment operator
    -- but that it has not yet been declared.  */
-#define CLASSTYPE_LAZY_ASSIGNMENT_OP(NODE) \
-  (LANG_TYPE_CLASS_CHECK (NODE)->lazy_assignment_op)
+#define CLASSTYPE_LAZY_COPY_ASSIGN(NODE) \
+  (LANG_TYPE_CLASS_CHECK (NODE)->lazy_copy_assign)
+
+/* Nonzero means that NODE (a class type) has an assignment operator
+   -- but that it has not yet been declared.  */
+#define CLASSTYPE_LAZY_MOVE_ASSIGN(NODE) \
+  (LANG_TYPE_CLASS_CHECK (NODE)->lazy_move_assign)
 
 /* Nonzero means that NODE (a class type) has a destructor -- but that
    it has not yet been declared.  */
@@ -1421,17 +1441,17 @@ struct GTY((variable_size)) lang_type {
   (LANG_TYPE_CLASS_CHECK (NODE)->lazy_destructor)
 
 /* Nonzero means that this _CLASSTYPE node overloads operator=(X&).  */
-#define TYPE_HAS_ASSIGN_REF(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->has_assign_ref)
+#define TYPE_HAS_COPY_ASSIGN(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->has_copy_assign)
 
 /* True iff the class type NODE has an "operator =" whose parameter
    has a parameter of type "const X&".  */
-#define TYPE_HAS_CONST_ASSIGN_REF(NODE) \
-  (LANG_TYPE_CLASS_CHECK (NODE)->h.has_const_assign_ref)
+#define TYPE_HAS_CONST_COPY_ASSIGN(NODE) \
+  (LANG_TYPE_CLASS_CHECK (NODE)->h.has_const_copy_assign)
 
 /* Nonzero means that this _CLASSTYPE node has an X(X&) constructor.  */
-#define TYPE_HAS_INIT_REF(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->h.has_init_ref)
-#define TYPE_HAS_CONST_INIT_REF(NODE) \
-  (LANG_TYPE_CLASS_CHECK (NODE)->has_const_init_ref)
+#define TYPE_HAS_COPY_CTOR(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->h.has_copy_ctor)
+#define TYPE_HAS_CONST_COPY_CTOR(NODE) \
+  (LANG_TYPE_CLASS_CHECK (NODE)->has_const_copy_ctor)
 
 /* Nonzero if this class has an X(initializer_list<T>) constructor.  */
 #define TYPE_HAS_LIST_CTOR(NODE) \
@@ -3159,13 +3179,19 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define TYPE_NON_AGGREGATE_CLASS(NODE) \
   (CLASS_TYPE_P (NODE) && CLASSTYPE_NON_AGGREGATE (NODE))
 
-/* Nonzero if there is a user-defined X::op=(x&) for this class.  */
-#define TYPE_HAS_COMPLEX_ASSIGN_REF(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->has_complex_assign_ref)
+/* Nonzero if there is a non-trivial X::op=(cv X&) for this class.  */
+#define TYPE_HAS_COMPLEX_COPY_ASSIGN(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->has_complex_copy_assign)
 
-/* Nonzero if there is a user-defined X::X(x&) for this class.  */
-#define TYPE_HAS_COMPLEX_INIT_REF(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->has_complex_init_ref)
+/* Nonzero if there is a non-trivial X::X(cv X&) for this class.  */
+#define TYPE_HAS_COMPLEX_COPY_CTOR(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->has_complex_copy_ctor)
 
-/* Nonzero if there is a user-defined default constructor for this class.  */
+/* Nonzero if there is a non-trivial X::op=(X&&) for this class.  */
+#define TYPE_HAS_COMPLEX_MOVE_ASSIGN(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->has_complex_move_assign)
+
+/* Nonzero if there is a non-trivial X::X(X&&) for this class.  */
+#define TYPE_HAS_COMPLEX_MOVE_CTOR(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->has_complex_move_ctor)
+
+/* Nonzero if there is a non-trivial default constructor for this class.  */
 #define TYPE_HAS_COMPLEX_DFLT(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->has_complex_dflt)
 
 /* Nonzero if TYPE has a trivial destructor.  From [class.dtor]:
@@ -3195,13 +3221,13 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 
 /* Nonzero for class type means that copy initialization of this type can use
    a bitwise copy.  */
-#define TYPE_HAS_TRIVIAL_INIT_REF(NODE) \
-  (TYPE_HAS_INIT_REF (NODE) && ! TYPE_HAS_COMPLEX_INIT_REF (NODE))
+#define TYPE_HAS_TRIVIAL_COPY_CTOR(NODE) \
+  (TYPE_HAS_COPY_CTOR (NODE) && ! TYPE_HAS_COMPLEX_COPY_CTOR (NODE))
 
 /* Nonzero for class type means that assignment of this type can use
    a bitwise copy.  */
-#define TYPE_HAS_TRIVIAL_ASSIGN_REF(NODE) \
-  (TYPE_HAS_ASSIGN_REF (NODE) && ! TYPE_HAS_COMPLEX_ASSIGN_REF (NODE))
+#define TYPE_HAS_TRIVIAL_COPY_ASSIGN(NODE) \
+  (TYPE_HAS_COPY_ASSIGN (NODE) && ! TYPE_HAS_COMPLEX_COPY_ASSIGN (NODE))
 
 /* Returns true if NODE is a pointer-to-data-member.  */
 #define TYPE_PTRMEM_P(NODE)			\
@@ -3867,7 +3893,8 @@ typedef enum special_function_kind {
   sfk_constructor,	   /* A constructor.  */
   sfk_copy_constructor,    /* A copy constructor.  */
   sfk_move_constructor,    /* A move constructor.  */
-  sfk_assignment_operator, /* An assignment operator.  */
+  sfk_copy_assignment,     /* A copy assignment operator.  */
+  sfk_move_assignment,     /* A move assignment operator.  */
   sfk_destructor,	   /* A destructor.  */
   sfk_complete_destructor, /* A destructor for complete objects.  */
   sfk_base_destructor,     /* A destructor for base subobjects.  */
@@ -4162,12 +4189,21 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 /* We're inside an init-list, so narrowing conversions are ill-formed.  */
 #define LOOKUP_NO_NARROWING (LOOKUP_PREFER_RVALUE << 1)
 /* Avoid user-defined conversions for the first parameter of a copy
-   constructor.  */
+   constructor (or move constructor).  */
 #define LOOKUP_NO_COPY_CTOR_CONVERSION (LOOKUP_NO_NARROWING << 1)
 /* This is the first parameter of a copy constructor.  */
 #define LOOKUP_COPY_PARM (LOOKUP_NO_COPY_CTOR_CONVERSION << 1)
 /* We only want to consider list constructors.  */
 #define LOOKUP_LIST_ONLY (LOOKUP_COPY_PARM << 1)
+/* Return after determining which function to call and checking access.
+   Used by sythesized_method_walk to determine which functions will
+   be called to initialize subobjects, in order to determine exception
+   specification and possible implicit delete.
+   This is kind of a hack, but since access control doesn't respect SFINAE
+   we can't just use tf_none to avoid access control errors, we need
+   another mechanism.  Exiting early also avoids problems with trying
+   to perform argument conversions when the class isn't complete yet.  */
+#define LOOKUP_SPECULATIVE (LOOKUP_LIST_ONLY << 1)
 
 #define LOOKUP_NAMESPACES_ONLY(F)  \
   (((F) & LOOKUP_PREFER_NAMESPACES) && !((F) & LOOKUP_PREFER_TYPES))
@@ -4654,6 +4690,9 @@ extern tree in_class_defaulted_default_constructor (tree);
 extern bool user_provided_p			(tree);
 extern bool type_has_user_provided_constructor  (tree);
 extern bool type_has_user_provided_default_constructor (tree);
+extern bool type_has_virtual_destructor		(tree);
+extern bool type_has_move_constructor		(tree);
+extern bool type_has_move_assign		(tree);
 extern void defaulted_late_check		(tree);
 extern bool defaultable_fn_check		(tree);
 extern void fixup_type_variants			(tree);
@@ -4669,8 +4708,8 @@ extern tree ocp_convert				(tree, tree, int, int);
 extern tree cp_convert				(tree, tree);
 extern tree cp_convert_and_check                (tree, tree);
 extern tree cp_fold_convert			(tree, tree);
-extern tree convert_to_void	(tree, const char */*implicit context*/,
-                                 tsubst_flags_t);
+extern tree convert_to_void			(tree, impl_conv_void,
+                                 		 tsubst_flags_t);
 extern tree convert_force			(tree, tree, int);
 extern tree build_expr_type_conversion		(int, tree, bool);
 extern tree type_promotes_to			(tree);
@@ -4919,15 +4958,19 @@ extern void init_method				(void);
 extern tree make_thunk				(tree, bool, tree, tree);
 extern void finish_thunk			(tree);
 extern void use_thunk				(tree, bool);
+extern bool trivial_fn_p			(tree);
+extern bool maybe_explain_implicit_delete	(tree);
 extern void synthesize_method			(tree);
 extern tree lazily_declare_fn			(special_function_kind,
 						 tree);
 extern tree skip_artificial_parms_for		(const_tree, tree);
 extern int num_artificial_parms_for		(const_tree);
 extern tree make_alias_for			(tree, tree);
-extern tree locate_copy				(tree, void *);
-extern tree locate_ctor				(tree, void *);
-extern tree locate_dtor				(tree, void *);
+extern tree get_copy_ctor			(tree);
+extern tree get_copy_assign			(tree);
+extern tree get_default_ctor			(tree);
+extern tree get_dtor				(tree);
+extern tree locate_ctor				(tree);
 
 /* In optimize.c */
 extern bool maybe_clone_body			(tree);
@@ -5068,6 +5111,7 @@ extern int accessible_p				(tree, tree, bool);
 extern tree lookup_field_1			(tree, tree, bool);
 extern tree lookup_field			(tree, tree, int, bool);
 extern int lookup_fnfields_1			(tree, tree);
+extern tree lookup_fnfields_slot		(tree, tree);
 extern int class_method_index_for_fn		(tree, tree);
 extern tree lookup_fnfields			(tree, tree, int);
 extern tree lookup_member			(tree, tree, int, bool);
@@ -5279,6 +5323,7 @@ extern bool pod_type_p				(const_tree);
 extern bool layout_pod_type_p			(const_tree);
 extern bool std_layout_type_p			(const_tree);
 extern bool trivial_type_p			(const_tree);
+extern bool trivially_copyable_p		(const_tree);
 extern bool type_has_nontrivial_default_init	(const_tree);
 extern bool type_has_nontrivial_copy_init	(const_tree);
 extern bool class_tmpl_impl_spec_p		(const_tree);

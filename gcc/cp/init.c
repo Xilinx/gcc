@@ -1374,7 +1374,7 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
     release_tree_vector (parms);
 
   if (TREE_SIDE_EFFECTS (rval))
-    finish_expr_stmt (convert_to_void (rval, NULL, complain));
+    finish_expr_stmt (convert_to_void (rval, ICV_CAST, complain));
 }
 
 /* This function is responsible for initializing EXP with INIT
@@ -1508,8 +1508,17 @@ build_offset_ref (tree type, tree member, bool address_p)
     return member;
 
   if (dependent_type_p (type) || type_dependent_expression_p (member))
-    return build_qualified_name (NULL_TREE, type, member,
-				 /*template_p=*/false);
+    {
+      tree ref, mem_type = NULL_TREE;
+      if (!dependent_scope_p (type))
+	mem_type = TREE_TYPE (member);
+      ref = build_qualified_name (mem_type, type, member,
+				  /*template_p=*/false);
+      /* Undo convert_from_reference.  */
+      if (TREE_CODE (ref) == INDIRECT_REF)
+	ref = TREE_OPERAND (ref, 0);
+      return ref;
+    }
 
   gcc_assert (TYPE_P (type));
   if (! is_class_type (type, 1))
@@ -2717,7 +2726,7 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
     /* Pre-evaluate the SAVE_EXPR outside of the BIND_EXPR.  */
     body = build2 (COMPOUND_EXPR, void_type_node, base, body);
 
-  return convert_to_void (body, /*implicit=*/NULL, tf_warning_or_error);
+  return convert_to_void (body, ICV_CAST, tf_warning_or_error);
 }
 
 /* Create an unnamed variable of the indicated TYPE.  */
@@ -2825,7 +2834,7 @@ build_vec_init (tree base, tree maxindex, tree init,
       && TREE_CODE (atype) == ARRAY_TYPE
       && (from_array == 2
 	  ? (!CLASS_TYPE_P (inner_elt_type)
-	     || !TYPE_HAS_COMPLEX_ASSIGN_REF (inner_elt_type))
+	     || !TYPE_HAS_COMPLEX_COPY_ASSIGN (inner_elt_type))
 	  : !TYPE_NEEDS_CONSTRUCTING (type))
       && ((TREE_CODE (init) == CONSTRUCTOR
 	   /* Don't do this if the CONSTRUCTOR might contain something

@@ -1,3 +1,208 @@
+2010-07-06  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* cp-tree.h (impl_conv_void): New type.
+	(convert_to_void): Adjust prototype.
+	* cvt.c (convert_to_void): Use impl_conv_void, emit and adjust the
+	diagnostic for easy translation. Change caller.
+	* typeck.c: Update call to convert_to_void.
+	* semantics.c: Likewise.
+	* init.c: Likewise.
+
+2010-07-05  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* decl.c (cp_finish_decl): Call add_local_decl.
+	* optimize.c (clone_body): Adjust for new type of cfun->local_decls.
+
+2010-07-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* pt.c (tsubst): Early declare code = TREE_CODE (t) and use it
+	throughout.
+
+2010-07-05  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c++/22138
+	* parser.c (cp_parser_primary_expression): Error if local template is
+	declared.
+
+2010-07-02  Le-Chun Wu  <lcwu@google.com>
+
+	PR/44128
+	* name-lookup.c (pushdecl_maybe_friend): Warn when a local decl
+	(variable or type) shadows another type.
+
+2010-07-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44780
+	* typeck.c (convert_for_assignment): When converting a convertible
+	vector type or objc++ types, call mark_rvalue_use.
+	* typeck2.c (build_m_component_ref): Use return values from
+	mark_rvalue_use or mark_lvalue_use.
+	* class.c (build_base_path): Likewise.
+	* call.c (build_conditional_expr): Likewise.
+
+2010-07-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44039
+	* pt.c (tsubst_baselink): Return error_mark_node if lookup_fnfields
+	returns NULL_TREE.
+
+2010-07-01  Richard Guenther  <rguenther@suse.de>
+
+	* cp-gimplify.c (cp_gimplify_expr): Open-code the rhs
+	predicate we are looking for, allow non-gimplified
+	INDIRECT_REFs.
+
+2010-06-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44628
+	* typeck.c (cp_build_unary_op): Early return error_mark_node when
+	arg is NULL_TREE too.
+	* call.c (convert_class_to_reference): Return error_mark_node when
+	expr is NULL_TREE.
+
+2010-06-30  Michael Matz  <matz@suse.de>
+
+	* repo.c (finish_repo): Fix typo.
+
+2010-06-30  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* parser.c (cp_parser_omp_for_loop): Use a VEC for for_block.
+
+2010-06-30  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* repo.c (pending_repo): Change type to a VEC.
+	(finish_repo): Adjust for new type of pending_repo.
+	(repo_emit_p): Likewise.
+
+2010-06-30  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* tree.c: Include gimple.h. Do not include tree-flow.h
+	* decl.c: Do not include tree-flow.h
+	* Make-lang.in: Adjust dependencies.
+
+2010-06-29  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* decl.c (incomplete_var): Declare.  Declare VECs containing them.
+	(incomplete_vars): Adjust comment.  Change type to a VEC.
+	(maybe_register_incomplete_var): Adjust for new type.
+	(complete_vars): Adjust iteration over incomplete_vars.
+
+2010-06-29  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* decl.c (struct named_label_entry): Change type of bad_decls field
+	to a VEC.
+	(poplevel_named_label_1): Adjust for new type of bad_decls.
+	(check_goto): Likewise.
+
+2010-06-29  Jason Merrill  <jason@redhat.com>
+
+	Enable implicitly declared move constructor/operator= (N3053).
+	* class.c (add_implicitly_declared_members): A class with no
+	explicitly declared copy or move constructor gets both declared
+	implicitly, and similarly for operator=.
+	(check_bases): A type with no copy ctor does not inhibit
+	a const copy ctor in a derived class.  It does mean the derived
+	one is non-trivial.
+	(check_field_decl): Likewise.
+	(check_bases_and_members): A nonexistent copy ctor/op= is non-trivial.
+	* tree.c (type_has_nontrivial_copy_init): Adjust semantics.
+	(trivially_copyable_p): Likewise.
+	* call.c (convert_like_real): Use type_has_nontrivial_copy_init.
+	* class.c (finish_struct_bits): Likewise.
+	* tree.c (build_target_expr_with_type): Likewise.
+	* typeck2.c (store_init_value): Likewise.
+
+	Enable implicitly deleted functions (N2346)
+	* class.c (check_bases_and_members): Adjust lambda flags.
+	* method.c (implicitly_declare_fn): Set DECL_DELETED_FN if appropriate.
+
+	* decl2.c (mark_used): Adjust error for use of deleted function.
+
+	Machinery to support implicit delete/move.
+	* cp-tree.h: (struct lang_type_class): Add lazy_move_assign,
+	has_complex_move_ctor, has_complex_move_assign bitfields.
+	(CLASSTYPE_LAZY_MOVE_ASSIGN): New.
+	(TYPE_HAS_COMPLEX_MOVE_ASSIGN): New.
+	(TYPE_HAS_COMPLEX_MOVE_CTOR): New.
+	(enum special_function_kind): Add sfk_move_assignment.
+	(LOOKUP_SPECULATIVE): New.
+	* call.c (build_over_call): Return early if it's set.
+	(build_over_call): Use trivial_fn_p.
+	* class.c (check_bases): If the base has no default constructor,
+	the derived one is non-trivial.  Handle move ctor/op=.
+	(check_field_decl): Likewise.
+	(check_bases_and_members): Handle move ctor/op=.
+	(add_implicitly_declared_members): Handle CLASSTYPE_LAZY_MOVE_ASSIGN.
+	(type_has_move_constructor, type_has_move_assign): New.
+	* decl.c (grok_special_member_properties): Handle move ctor/op=.
+	* method.c (type_has_trivial_fn, type_set_nontrivial_flag): New.
+	(trivial_fn_p): New.
+	(do_build_copy_constructor): Use it.
+	(do_build_assign_ref): Likewise.  Handle move assignment.
+	(build_stub_type, build_stub_object, locate_fn_flags): New.
+	(locate_ctor): Use locate_fn_flags.
+	(locate_copy, locate_dtor): Remove.
+	(get_dtor, get_default_ctor, get_copy_ctor, get_copy_assign): New.
+	(process_subob_fn, synthesized_method_walk): New.
+	(maybe_explain_implicit_delete): New.
+	(implicitly_declare_fn): Use synthesized_method_walk,
+	type_has_trivial_fn, and type_set_nontrivial_flag.
+	(defaulted_late_check): Set DECL_DELETED_FN.
+	(defaultable_fn_check): Handle sfk_move_assignment.
+	(lazily_declare_fn): Clear CLASSTYPE_LAZY_* early.  Don't declare
+	implicitly deleted move ctor/op=.
+	* search.c (lookup_fnfields_1): Handle sfk_move_assignment.
+	(lookup_fnfields_slot): New.
+	* semantics.c (omp_clause_info_fndecl): Remove.
+	(cxx_omp_create_clause_info): Use get_default_ctor, get_copy_ctor,
+	get_copy_assign, trivial_fn_p.
+	(trait_expr_value): Adjust call to locate_ctor.
+	* tree.c (special_function_p): Handle sfk_move_assignment.
+
+	* class.c (type_has_virtual_destructor): New.
+	* cp-tree.h: Declare it.
+	* semantics.c (trait_expr_value): Use it.
+
+	* call.c (build_over_call): Only give warnings with tf_warning.
+
+	* name-lookup.c (pop_scope): Handle NULL_TREE.
+
+	* cp-tree.h (TYPE_HAS_ASSIGN_REF): Rename to TYPE_HAS_COPY_ASSIGN.
+	(TYPE_HAS_CONST_ASSIGN_REF): Rename to TYPE_HAS_CONST_COPY_ASSIGN.
+	(TYPE_HAS_INIT_REF): Rename to TYPE_HAS_COPY_CTOR.
+	(TYPE_HAS_CONST_INIT_REF): Rename to TYPE_HAS_CONST_COPY_CTOR.
+	(TYPE_HAS_COMPLEX_ASSIGN_REF): Rename to TYPE_HAS_COMPLEX_COPY_ASSIGN.
+	(TYPE_HAS_COMPLEX_INIT_REF): Rename to TYPE_HAS_COMPLEX_COPY_CTOR.
+	(TYPE_HAS_TRIVIAL_ASSIGN_REF): Rename to TYPE_HAS_TRIVIAL_COPY_ASSIGN.
+	(TYPE_HAS_TRIVIAL_INIT_REF): Rename to TYPE_HAS_TRIVIAL_COPY_CTOR.
+	(CLASSTYPE_LAZY_ASSIGNMENT_OP): Rename to CLASSTYPE_LAZY_COPY_ASSIGN.
+	(sfk_assignment_operator): Rename to sfk_copy_assignment.
+	* decl.c, call.c, class.c, init.c, method.c, pt.c, ptree.c: Adjust.
+	* search.c, semantics.c, tree.c: Adjust.
+
+	* pt.c (dependent_scope_ref_p): Remove.
+	(value_dependent_expression_p): Don't call it.
+	(type_dependent_expression_p): Here either.
+	* init.c (build_offset_ref): Set TREE_TYPE on a qualified-id
+	if the scope isn't dependent.
+
+	* pt.c (convert_nontype_argument): Use mark_lvalue_use if we want
+	a reference.
+
+	PR c++/44587
+	* pt.c (has_value_dependent_address): New.
+	(value_dependent_expression_p): Check it.
+	(convert_nontype_argument): Likewise.  Call decay_conversion before
+	folding if we want a pointer.
+	* semantics.c (finish_id_expression): Don't add SCOPE_REF if the
+	scope is the current instantiation.
+
+2010-06-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44682
+	* class.c (build_base_path): If want_pointer, call mark_rvalue_use
+	on expr.
+
 2010-06-28  Steven Bosscher  <steven@gcc.gnu.org>
 
 	* init.c: Do not include except.h.

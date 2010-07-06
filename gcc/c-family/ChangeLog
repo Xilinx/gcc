@@ -1,3 +1,43 @@
+2010-07-03  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c-family/c-common.c (IN_GCC_FRONTEND): Do not undef.
+	Do not include expr.h
+	(vector_mode_valid_p): Move here.
+
+2010-06-21  DJ Delorie  <dj@redhat.com>
+
+	* c-pragma.c (handle_pragma_diagnostic): Add push/pop,
+	allow these pragmas anywhere.
+
+2010-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/44509
+	* c-cppbuiltin.c: Include gt-c-family-c-cppbuiltin.h.
+	(lazy_hex_fp_values, lazy_hex_fp_value_count): Add GTY(()) markers.
+	(lazy_hex_fp_value, builtin_define_with_hex_fp_value): Use
+	ggc_strdup instead of xstrdup.
+
+2010-06-10  Jakub Jelinek  <jakub@redhat.com>
+
+	* c-cppbuiltin.c: Include cpp-id-data.h.
+	(lazy_hex_fp_values, lazy_hex_fp_value_count): New variables.
+	(lazy_hex_fp_value): New function.
+	(builtin_define_with_hex_fp_value): Provide definitions lazily.
+
+2010-06-30  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c-gimplify.c: Do not include tree-flow.h
+
+2010-06-29  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR other/44034
+	* c-common.c: Rename targetm member:
+	targetm.enum_va_list -> targetm.enum_va_list_p
+
+2010-06-28  Anatoly Sokolov  <aesok@post.ru>
+
+	* c-common.c (shorten_compare): Adjust call to force_fit_type_double.
+
 2010-06-28  Steven Bosscher  <steven@gcc.gnu.org>
 
 	* c-cppbuiltin.c: Do not include except.h.
