@@ -24,12 +24,4 @@ along with GCC; see the file COPYING3.  If not see
 
 #include <gpython/gpython.h>
 
-void gpy_rr_init_runtime ( void ) 
-{
-  return;
-}
 
-gpy_rr_object_state_t * gpy_rr_fold_integer( int x )
-{
-  return NULL;
-}
