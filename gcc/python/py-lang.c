@@ -95,11 +95,9 @@ bool gpy_langhook_init( void )
   set_sizetype( size_type_node );
   build_common_tree_nodes_2( 0 );
 
-  /* build_common_builtin_nodes( ); */
+  build_common_builtin_nodes( );
 
   void_list_node = build_tree_list( NULL_TREE, void_type_node );
-
-  debug("init!\n");
 
   return true;
 }
