@@ -1,3 +1,8 @@
+2010-07-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* automatic_tester/run_build.sh (mail_success): Print a summary of
+	CPU2006 results in the email body.
+
 2010-01-20  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* automatic_tester/run_build.sh: Do not re-exec the script after

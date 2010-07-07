@@ -69,6 +69,16 @@ echo 'LD_LIBRARY_PATH='${INSTALL_DIR_CURRENT}'/lib64:${LD_LIBRARY_PATH}' \
 	>> ${LOG_DIR_CURRENT}/gcc_env.sh
 
 mail_success () {
+  echo "BUILD SUCCESSFUL" >> ${LOG_DIR_CURRENT}/info.log
+
+  if [ -e ${EXTRA_TESTS_OUTPUT}/cpu2006 ]; then
+      echo "CPU2006 built with" >> ${LOG_DIR_CURRENT}/info.log
+      grep "base:" ${EXTRA_TESTS_OUTPUT}/cpu2006 >> ${LOG_DIR_CURRENT}/info.log
+      grep "peak:" ${EXTRA_TESTS_OUTPUT}/cpu2006 >> ${LOG_DIR_CURRENT}/info.log
+      grep "Build errors:" ${LOG_DIR_CURRENT}/extra_test.log >> ${LOG_DIR_CURRENT}/info.log
+      grep "Error:" ${LOG_DIR_CURRENT}/extra_test.log >> ${LOG_DIR_CURRENT}/info.log
+  fi
+
   ATTACHMENTS=""
   for file in `ls ${LOG_DIR_CURRENT}/*.compare \
       ${EXTRA_TESTS_OUTPUT}/*`; do
@@ -76,10 +86,11 @@ mail_success () {
       ATTACHMENTS="${ATTACHMENTS} -a ${file}"
     fi
   done
+
   if [ -e ${EXTRA_TEST_DIR}/report/${DATE} ]; then
       ATTACHMENTS="${ATTACHMENTS} -a ${EXTRA_TEST_DIR}/report/${DATE}"
   fi
-  echo "BUILD SUCCESSFUL" >> ${LOG_DIR_CURRENT}/info.log
+
   ${MUTT_CMD} $EMAIL -s "Re: ${MAIL_SUBJECT}" -i ${LOG_DIR_CURRENT}/info.log \
     $ATTACHMENTS </dev/null
 }
