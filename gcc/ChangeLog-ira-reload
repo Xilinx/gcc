@@ -1,5 +1,8 @@
 2010-07-07  Jeff Law <law@redhat.com>
 
+	* ira-reload.c: Revert change from Jan 14.  It is not safe due to
+	assumptions in reload.
+
 	* ira-reload.c (create_new_allocno_for_spilling): Add some debug dump
 	support.
 

@@ -584,7 +584,7 @@ maybe_add_conflict (int reg1, int reg2, int limit)
 }
 
 static void
-mark_conflicts (rtx reg, unsigned int limit, rtx ignore_reg)
+mark_conflicts (rtx reg, unsigned int limit)
 {
   bitmap_iterator bi;
   unsigned int i;
@@ -616,11 +616,7 @@ mark_conflicts (rtx reg, unsigned int limit, rtx ignore_reg)
 	  bitmap_clear_bit (live, REGNO (reg) + j);
 	}
       EXECUTE_IF_SET_IN_BITMAP (live, 0, i, bi)
-	{
-	  if (ignore_reg && REGNO (ignore_reg) == i)
-	    continue;
-	  maybe_add_conflict (i, REGNO (reg) + j, limit);
-	}
+	maybe_add_conflict (i, REGNO (reg) + j, limit);
     }
 }
 
@@ -703,18 +699,17 @@ build_conflicts_for_new_allocnos (rtx head, rtx tail,
 	    }
 	}
 
-      /* Mark conflicts for any values defined in this insn.  */
+      /* Mark conflicts for any values defined in this insn. 
+ 	 Ideally we'd like to ignore conflicts resulting from simple
+	 copies.  Unfortunately that confuses reload because we can have
+	 two pseudos assigned the same hard reg with overlapping lifetimes.
+	 If the insn where one pseudo dies needs an output reload, then
+	 reload (via combine_reloads) may select the dying pseudo's hard reg
+	 to hold the output reload, which clobbers the value in the hard
+	 reg which is still live.  */
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
 	if (!call_p || !DF_REF_FLAGS_IS_SET (*def_rec, DF_REF_MAY_CLOBBER))
-	  {
-	    rtx ignore = NULL_RTX;
-	    rtx set = single_set (insn);
-	    if (set
-		&& GET_CODE (SET_SRC (set)) == REG
-		&& GET_CODE (SET_DEST (set)) == REG)
-	     ignore = SET_SRC (set);
-	    mark_conflicts (DF_REF_REG (*def_rec), orig_max_reg_num, ignore);
-	  }
+	  mark_conflicts (DF_REF_REG (*def_rec), orig_max_reg_num);
 
       /* Mark each used value as live.  */
       for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
