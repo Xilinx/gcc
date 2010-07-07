@@ -444,6 +444,10 @@ create_new_allocno_for_spilling (int nreg, int oreg)
   unsigned int conflicts;
   live_range_t prev, range, r;
 
+  if (ira_dump_file != NULL)
+    fprintf (ira_dump_file, "Splitting range for %d using new reg %d.\n",
+	     oreg, nreg);
+
   /* Update IRA's datastructures.  */
 
   /* First create the allocno.  */

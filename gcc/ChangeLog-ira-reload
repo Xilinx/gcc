@@ -1,3 +1,8 @@
+2010-07-07  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (create_new_allocno_for_spilling): Add some debug dump
+	support.
+
 2010-06-28  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (create_new_allocno_for_spilling): Drop 'allocno'
