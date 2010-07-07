@@ -216,6 +216,7 @@ CFLAGS="$save_CFLAGS $XCFLAGS"
 # Check for __sync_val_compare_and_swap, but only after the target has
 # had a chance to set XCFLAGS.
 LIBITM_CHECK_SYNC_BUILTINS
+LIBITM_CHECK_64BIT_SYNC_BUILTINS
 
 # Cleanup and exit.
 CFLAGS="$save_CFLAGS"

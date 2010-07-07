@@ -1,3 +1,12 @@
+2010-07-07  Aldy Hernandez  <aldyh@redhat.com>
+
+	* configure.ac: Call LIBITM_CHECK_64BIT_SYNC_BUILTINS.
+	* beginend.cc (begin_transaction): If 64-bit sync builtins are not
+	available, use pthread mutexes.
+	* acinclude.m4 (LIBITM_CHECK_64BIT_SYNC_BUILTINS): New.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+
 2010-07-06  Aldy Hernandez  <aldyh@redhat.com>
 
 	* libitm.h (ITM_PURE): Define.

@@ -12,6 +12,20 @@ AC_DEFUN([LIBITM_CHECK_SYNC_BUILTINS], [
 	      [Define to 1 if the target supports __sync_*_compare_and_swap])
   fi])
 
+dnl Check whether the target supports 64-bit __sync_*_compare_and_swap.
+AC_DEFUN([LIBITM_CHECK_64BIT_SYNC_BUILTINS], [
+  AC_CACHE_CHECK([whether the target supports 64-bit __sync_*_compare_and_swap],
+		 libitm_cv_have_64bit_sync_builtins, [
+  AC_TRY_LINK([#include <stdint.h>],
+    [uint64_t foo, bar;
+     bar = __sync_val_compare_and_swap(&foo, 0, 1);],
+    libitm_cv_have_64bit_sync_builtins=yes,
+    libitm_cv_have_64bit_sync_builtins=no)])
+    if test $libitm_cv_have_64bit_sync_builtins = yes; then
+      AC_DEFINE(HAVE_64BIT_SYNC_BUILTINS, 1,
+	        [Define to 1 if the target supports 64-bit __sync_*_compare_and_swap])
+  fi])
+
 dnl Check whether the target supports hidden visibility.
 AC_DEFUN([LIBITM_CHECK_ATTRIBUTE_VISIBILITY], [
   AC_CACHE_CHECK([whether the target supports hidden visibility],

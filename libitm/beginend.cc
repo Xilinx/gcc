@@ -84,6 +84,10 @@ GTM::gtm_transaction::operator delete(void *tx)
   thr->free_tx[idx] = tx;
 }
 
+#ifndef HAVE_64BIT_SYNC_BUILTINS
+static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 uint32_t
 GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 {
@@ -99,7 +103,13 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
   tx->prev = gtm_tx();
   if (tx->prev)
     tx->nesting = tx->prev->nesting + 1;
+#ifdef HAVE_64BIT_SYNC_BUILTINS
   tx->id = __sync_add_and_fetch (&global_tid, 1);
+#else
+  pthread_mutex_lock (&global_tid_lock);
+  tx->id = ++global_tid;
+  pthread_mutex_unlock (&global_tid_lock);
+#endif
   tx->jb = *jb;
 
   set_gtm_tx (tx);
