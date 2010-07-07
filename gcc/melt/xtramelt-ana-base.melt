@@ -575,7 +575,7 @@
    )
   gasplus
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_num_ops($ga)>3)}#
+  #{($ga && is_gimple_assign($ga) && gimple_num_ops($ga) >= 3)}#
   ;; fill
   #{
    $lhs = gimple_assign_lhs($ga);

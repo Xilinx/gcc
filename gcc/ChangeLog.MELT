@@ -1,4 +1,8 @@
-2010-07-02  Jeremie salvucci  <jeremie.salvucci@free.fr>
+2010-07-07  jeremie Salvucci  <jeremie.salvucci@free.fr>
+	* xtramelt-ana-base.melt (gimple_assign_binaryop) : I changed the
+	test which didn't work on the number of ops.
+
+2010-07-06  Jeremie Salvucci  <jeremie.salvucci@free.fr>
 	* xtramelt-ana-base.melt (tree_var_decl) : Now we have an access
 	to the type of a variable declaration and to its uid.
 
