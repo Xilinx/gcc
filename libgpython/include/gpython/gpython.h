@@ -14,8 +14,39 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-#ifndef __GCC_GPYTHON__
-#define __GCC_GPYTHON__
+#ifndef __GCC_GPYTHON_H__
+#define __GCC_GPYTHON_H__
+
+#if __STDC_VERSION__ < 199901L
+# if __GNUC__ >= 2
+#  define __func__ __FUNCTION__
+# else
+#  define __func__ "<unknown>"
+# endif
+#endif
+
+/* Abstract out some useful compiler attributes from GCC */
+#if defined( GUNC )
+# define __gpy_fmt_check( x, y )		\
+  __attribute__ ((format (printf, x, y)))
+# define __gpy_no_return			\
+  __attribute__ ((noreturn))
+# define __gpy_malloc				\
+  __attribute__ ((malloc))
+# define __gpy_pure				\
+  __attribute__ ((pure))
+# define __gpy_unused				\
+  __attribute__ ((unused))
+# define __gpy_nonnull				\
+  __attribute__((nonnull)) 
+#else
+# define __gpy_fmt_check( x, y )
+# define __gpy_no_return
+# define __gpy_malloc
+# define __gpy_pure
+# define __gpy_unused
+# define __gpy_nonnull
+#endif
 
 typedef struct gpy_rr_object_state_t {
   char * obj_t_ident;
@@ -25,7 +56,19 @@ typedef struct gpy_rr_object_state_t {
 
 typedef gpy_rr_object_state_t * gpy_object_state_t;
 
-typedef gpy_object_state_t (*binary_op)( gpy_object_state_t, gpy_object_state_t );
+typedef gpy_object_state_t (*binary_op)( gpy_object_state_t,
+					 gpy_object_state_t );
+
+enum GPY_LIT_T { TYPE_INTEGER, TYPE_STRING };
+
+typedef struct gpy_rr_literal_t {
+  enum GPY_LIT_T;
+  union {
+    int integer;
+    char * string;
+    /* ... */
+  }
+} gpy_literal_t ;
 
 typedef struct gpy_number_prot_t
 {
@@ -66,6 +109,37 @@ typedef struct gpy_type_obj_def_t {
   free( x );	      \
   x = NULL;
 
+#ifdef DEBUG
+extern void
+__gpy_debug__( const char *, unsigned ,
+               const char *, const char *, ... )
+  __gpy_fmt_check(4,5) ;
+#endif
+
+extern void
+__gpy_error__( const char *, unsigned ,
+               const char *, const char *, ... )
+  __gpy_fmt_check(4,5) ;
+
+extern void
+__gpy_fatal__( const char *, unsigned ,
+               const char *, const char *, ... )
+  __gpy_fmt_check(4,5) ;
+
+#ifdef DEBUG
+# define debug( ... )						\
+  __gpy_debug__( __FILE__, __LINE__, __func__, __VA_ARGS__ );
+#else
+# define debug( ... )
+#endif
+
+#define fatal( ... )						\
+  __gpy_fatal__( __FILE__, __LINE__, __func__, __VA_ARGS__ );
+
+#define error( ... )						\
+  __gpy_error__( __FILE__, __LINE__, __func__, __VA_ARGS__ );
+
+
 extern void gpy_assertion_failed( const char * , unsigned , const char * ,
 				  const char * );
 
@@ -74,4 +148,4 @@ extern gpy_object_state_t gpy_rr_fold_integer( int );
 
 extern void gpy_obj_integer_mod_init( void );
 
-#endif //__GCC_GPYTHON__
+#endif //__GCC_GPYTHON_H__
