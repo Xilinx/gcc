@@ -62,12 +62,12 @@ typedef gpy_object_state_t (*binary_op)( gpy_object_state_t,
 enum GPY_LIT_T { TYPE_INTEGER, TYPE_STRING };
 
 typedef struct gpy_rr_literal_t {
-  enum GPY_LIT_T;
+  enum GPY_LIT_T type;
   union {
     int integer;
     char * string;
     /* ... */
-  }
+  } literal ;
 } gpy_literal_t ;
 
 typedef struct gpy_number_prot_t
@@ -103,6 +103,12 @@ typedef struct gpy_type_obj_def_t {
 #define gpy_assert( expr )						\
   ((expr) ? (void) 0 : gpy_assertion_failed( #expr, __LINE__,		\
 					     __FILE__, __func__ ));
+
+extern void * gpy_malloc( size_t );
+
+extern void * gpy_realloc( void * , size_t );
+
+extern void * gpy_calloc( size_t , size_t );
 
 #define gpy_free( x ) \
   gpy_assert( x );    \

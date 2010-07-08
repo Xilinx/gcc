@@ -22,7 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 typedef struct gpy_vector_t {
   void ** vector;
   signed long size, length;
-} gpy_ident_vector_t;
+} gpy_vector_t;
 
 typedef unsigned long gpy_hashval_t;
 

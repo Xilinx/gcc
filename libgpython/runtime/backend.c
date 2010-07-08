@@ -21,6 +21,8 @@ along with GCC; see the file COPYING3.  If not see
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <stdarg.h>
 #include <stdbool.h>
 
 #include <gpython/gpython.h>
@@ -91,8 +93,8 @@ void ** gpy_dd_hash_insert( gpy_hashval_t h, void * obj,
     retval= &( entry->data );
   else
     {
-      entry->data= obj;
-      entry->hash= h;
+      entry->data = obj;
+      entry->hash = h;
       tbl->length++;
     }
   return retval;
@@ -103,9 +105,9 @@ void gpy_dd_hash_grow_table( gpy_hash_tab_t * tbl )
   unsigned int prev_size= tbl->size, size= 0, i= 0;
   gpy_hash_entry_t *prev_array= tbl->array, *array;
 
-  size = threshold_alloc( prev_size );
+  size = gpy_threshold_alloc( prev_size );
   array = (gpy_hash_entry_t*)
-    xcalloc( size, sizeof(gpy_hash_entry_t) );
+    gpy_calloc( size, sizeof(gpy_hash_entry_t) );
 
   tbl->length = 0; tbl->size= size;
   tbl->array= array;
@@ -119,7 +121,7 @@ void gpy_dd_hash_grow_table( gpy_hash_tab_t * tbl )
         gpy_dd_hash_insert( h, s, tbl );
     }
   if( prev_array )
-    free( prev_array );
+    gpy_free( prev_array );
 }
 
 inline
@@ -133,11 +135,34 @@ void gpy_dd_hash_init_table( gpy_hash_tab_t ** tbl )
     }
 }
 
-void gpy_ident_vec_init( gpy_ident_vector_t * const v )
+void gpy_vec_init( gpy_vector_t * const v )
 {
-  v->size = threshold_alloc( 0 );
-  v->vector = (void**) xcalloc( v->size, sizeof(void*) );
+  v->size = gpy_threshold_alloc( 0 );
+  v->vector = (void **) gpy_calloc( v->size, sizeof(void *) );
   v->length = 0;
+}
+
+void gpy_vec_push( gpy_vector_t * const v, void * const s )
+{
+  if( s )
+    {
+      if( v->length >= v->size )
+	{
+	  signed long size = gpy_threshold_alloc( v->size );
+	  v->vector = (void**) gpy_realloc( v->vector, size*sizeof(void*) );
+	  v->size = size;
+	}
+      v->vector[ v->length ] = s;
+      v->length++;
+    }
+}
+
+inline
+void * gpy_ident_vec_pop( gpy_vector_t * const v )
+{
+  register void * retval = v->vector[ v->length-1 ];
+  v->length--;
+  return retval;
 }
 
 /* --- DIAGNOSTIC'S --- */
@@ -181,7 +206,7 @@ void __gpy_error__( const char * file, unsigned line,
 
 inline
 void __gpy_fatal__( const char * file, unsigned line,
-		    const char * func, const char * fmt, ... )
+		    const char * functor, const char * fmt, ... )
 {
   fprintf( stderr, "fatal: <%s:%s:%u> -> ",
            file, functor, line );
@@ -193,4 +218,36 @@ void __gpy_fatal__( const char * file, unsigned line,
   /* Call cleanups .... */
 
   exit( EXIT_FAILURE );
+}
+
+/* --- memory allocators --- */
+
+inline
+void * gpy_malloc( size_t s )
+{
+  register void * retval = malloc( s );
+  if( !retval )
+    fatal("virtual memory exhausted!\n");
+
+  return retval;
+}
+
+inline
+void * gpy_realloc( void * p, size_t s )
+{
+  register void * retval = realloc( p, s );
+  if( !retval )
+    fatal("virtual memory exhausted!\n");
+
+  return retval;
+}
+
+inline
+void * gpy_calloc( size_t n, size_t s )
+{
+  register void * retval = calloc( n , s );
+  if( !retval )
+    fatal("virtual memory exhausted!\n");
+
+  return retval;
 }

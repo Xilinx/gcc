@@ -6,7 +6,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 AM_YFLAGS = -d --verbose
 
 library_includedir=$(includedir)/gpython
-library_include_HEADERS = include/gpython/gpython.h
+library_include_HEADERS = include/gpython/gpython.h \
+include/gpython/vectors.h
 
 libgpython_la_CFLAGS = -DPYHON -DSHARED
 libgpython_la_LDFLAGS = -release 0.0.1
