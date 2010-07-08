@@ -23,10 +23,11 @@ typedef struct gpy_rr_object_state_t {
   void * self;
 } gpy_rr_object_state_t ;
 
-typedef crl_symbol_obj * (*binary_op)( crl_symbol_obj * , crl_symbol_obj *,
-				       crl_context_table * )
+typedef gpy_rr_object_state_t * gpy_object_state_t;
 
-typedef struct crl_number_prot_t
+typedef gpy_object_state_t (*binary_op)( gpy_object_state_t, gpy_object_state_t );
+
+typedef struct gpy_number_prot_t
 {
   bool init;
 
@@ -45,19 +46,32 @@ typedef struct crl_number_prot_t
   binary_op n_orr;
   binary_op n_and;
 
-} crl_num_prot_t ;
+} gpy_num_prot_t ;
 
-typedef struct crl_type_obj_def_t {
+typedef struct gpy_type_obj_def_t {
   char * identifier;
   size_t builtin_type_size;
-  void * (*init_hook)( crl_symbol_obj * ,
-		       struct crl_type_obj_def_t **  );
+  void * (*init_hook)( gpy_object_state_t );
   void (*destroy_hook)( void * );
-  bool (*print_hook)( void * , FILE * , bool );
-  const struct crl_number_prot_t * binary_protocol;
-  const struct crl_builtin_member_def_t * member_fields;
-  const struct crl_builtin_function_def_t * member_functions;
-  bool builtin;
-} crl_type_obj_def_t ;
+  void (*print_hook)( void * , FILE * , bool );
+  const struct gpy_number_prot_t * binary_protocol;
+} gpy_type_obj_def_t ;
+
+#define gpy_assert( expr )						\
+  ((expr) ? (void) 0 : gpy_assertion_failed( #expr, __LINE__,		\
+					     __FILE__, __func__ ));
+
+#define gpy_free( x ) \
+  gpy_assert( x );    \
+  free( x );	      \
+  x = NULL;
+
+extern void gpy_assertion_failed( const char * , unsigned , const char * ,
+				  const char * );
+
+extern void gpy_rr_init_runtime( void );
+extern gpy_object_state_t gpy_rr_fold_integer( int );
+
+extern void gpy_obj_integer_mod_init( void );
 
 #endif //__GCC_GPYTHON__
