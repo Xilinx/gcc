@@ -2589,9 +2589,34 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	(messagenum_dbg "expdefclafldnam ix" ix)
 	(assert_msg "check fldnam" (is_a fldnam class_symbol))
 	(let ( (fldstr (unsafe_get_field :named_name fldnam)) 
+	       (fldprevbind (find_env env fldnam))
 	       )
 	  (if (mapstring_getstr fieldstrmap fldstr)
 	      (error_strv fieldsloc "duplicate field in DEFLCLASS"_ fldstr))
+	  (cond
+	   ( (null fldprevbind)
+	     (void)
+	     )
+	   ( (is_a fldprevbind class_field_binding)
+	     (debug_msg fldprevbind "mexpand_defclass fldprevbind !field")
+	     (error_strv fieldsloc "field name already defined in DEFCLASS"_ fldstr)
+	     )
+	   ( (is_a fldprevbind class_value_binding)
+	     (debug_msg fldprevbind "mexpand_defclass fldprevbind !value")
+	     (debug_msg symb "mexpand_defclass symb !value")
+	     (let ( (prevalue (get_field :vbind_value fldprevbind))
+		    )
+	       ;; this test avoids warnings when recompiling
+	       ;; warmelt-*.melt files
+	       (if (or (is_not_a prevalue class_field)
+		       (string!= (get_field :named_name (get_field :fld_ownclass prevalue))
+				 (get_field :named_name symb)))
+		   (warning_strv fieldsloc "field name already bound to a value in DEFCLASS"_ fldstr)
+		 )))
+	   (:else
+	    (debug_msg fldprevbind "mexpand_defclass fldprevbind !other")
+	    (warning_strv  fieldsloc "field name previously bound in DEFCLASS"_ fldstr))
+	   )
 	  (let ( (:long fldoff (+i ix (get_int boxnbsuperfields))) 
 		 (newfld (instance class_field
 				   :named_name fldstr
@@ -2614,7 +2639,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 			:class_fields fieldtup)
      ;; we need to put the object magic to MELTOBMAG_OBJECT now
      (code_chunk setobjmagic
-		 #{((meltobject_ptr_t)$newclass)->obj_num = MELTOBMAG_OBJECT;
+		 #{((meltobject_ptr_t)$newclass)->obj_num = MELTOBMAG_OBJECT ;
 		 }#)
      (debug_msg newclass "mexp.defclass newclass" )
      (instance class_source_defclass

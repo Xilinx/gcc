@@ -1,6 +1,14 @@
 
 2010-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
-	{{added tbad-3.melt which should fail bud don't}}
+	{{tbad-3.melt correctly failing}}
+	* melt/warmelt-base.melt: Added string!=
+	* melt/warmelt-macro.melt: Added check in mexpand_defclass to
+	catch redefinition of fields!
+	* testsuite/melt/tbad-3.melt: Typo.
+
+
+2010-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{added tbad-3.melt which should fail but don't}}
 	* testsuite/melt/tfullgc.melt: Updated comment.
 	* testsuite/melt/tbad-3.melt: New file.
 

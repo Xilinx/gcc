@@ -450,6 +450,11 @@ an integer $I if $I is greater than $N.}#
   #{melt_string_same(($s1), ($s2))}#)
 
 
+(defprimitive string!= (s1 s2) :long 
+  :doc #{Test that value strings $S1 and $S2 are not equal as strings.}#
+  #{!melt_string_same(($s1), ($s2))}#)
+
+
 (defprimitive split_string_space (dis :cstring cs) :value
   :doc #{Split a cstring $CS into a list of space separated strings of
 discriminant $DIS.}#
@@ -1056,6 +1061,7 @@ significant iff ENABLE_CHECKING.}# #{(melt_application_depth() <
  is_stringconst
  string_length
  string=
+ string!=
  split_string_space
  split_string_comma
  split_string_colon

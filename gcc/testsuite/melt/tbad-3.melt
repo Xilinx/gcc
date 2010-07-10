@@ -1,5 +1,5 @@
 ; -*- lisp -*-
-;; file tbad-2.melt
+;; file tbad-3.melt
 ;; this program should get a MELT error.
 
 #| run in buildir/gcc
