@@ -56,7 +56,7 @@ extern void gpy_vec_init( gpy_vector_t * const );
 
 extern void gpy_vec_push( gpy_vector_t * const, void * const );
 
-extern void * gpy_vev_pop( gpy_vector_t * const );
+extern void * gpy_vec_pop( gpy_vector_t * const );
 
 extern void gpy_vec_free( gpy_vector_t * );
 

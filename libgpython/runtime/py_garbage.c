@@ -41,7 +41,8 @@ void gpy_garbage_invoke( void )
       debug("garbage collector running...\n");
       gpy_object_state_t p_obj = NULL_OBJ_STATE;
 
-      while( (p_obj= gpy_vec_pop( gpy_garbage_vec )) )
+      while( (p_obj= (gpy_object_state_t)
+	      gpy_vec_pop( gpy_garbage_vec )) )
 	{
 	  gpy_garbage_free_obj( p_obj );
 	}
@@ -71,31 +72,31 @@ void gpy_garbage_mark_obj__( gpy_object_state_t const sym )
 
 void gpy_garbage_invoke_sweep( gpy_vector_t * const context )
 {
-  unsigned int ctx_l = gpy_rr_context_get_table_size( context );
+  signed long ctx_l = context->length;
   if( context )
     {
       debug("sweeping context table for garbage length <%u>...\n", ctx_l);
-      gpy_branch_context* ctx_idx = NULL; signed int idx = (ctx_l - 1);
+      gpy_context_t * ctx_idx = NULL; signed long idx = (ctx_l - 1);
 
       while( idx >= 0 )
 	{
-	  ctx_idx = context->array[ idx ];
-	  void ** s_arr = ctx_idx->symbol_stack->array;
+	  ctx_idx = context->vector[ idx ];
+	  void ** s_arr = ctx_idx->symbols->vector;
 
-	  int i = 0; unsigned int len = (ctx_idx->symbol_stack->length);
-	  debug("stack length = <%u>!\n", len );
+	  int i = 0; long len = (ctx_idx->symbols->length);
+	  debug("stack length = <%l>!\n", len );
 	  for( ; i<len; ++i )
 	    {
-	      gpy_symbol_obj * o = (gpy_symbol_obj *) s_arr[ i ];
+	      gpy_object_state_t o = (gpy_object_state_t) s_arr[ i ];
 	      if( o )
 		{
-		  debug( "object <%p> has ref count <%u>!\n",
-			 (void *) o, o->n_ref );
+		  debug( "object <%p> has ref count <%l>!\n",
+			 (void *) o, o->ref_count );
 
 		  // If no references remain
-		  if( o->n_ref <= 0 )
+		  if( o->ref_count <= 0 )
 		    {
-		      gpy_garbage_mark_obj( &o );
+		      gpy_garbage_mark_obj( o );
 		      s_arr[ i ] = NULL;
 		    }
 		}
