@@ -12,5 +12,6 @@ include/gpython/vectors.h
 libgpython_la_CFLAGS = -DPYHON -DSHARED
 libgpython_la_LDFLAGS = -release 0.0.1
 libgpython_la_SOURCES = runtime/py_runtime.c \
+runtime/py_garbage.c \
 runtime/obj_integer.c \
 runtime/backend.c

@@ -36,6 +36,13 @@ typedef struct gpy_hash_table_t {
   gpy_hash_entry_t * array;
 } gpy_hash_tab_t ;
 
+typedef struct gpy_rr_context_t {
+  gpy_vector_t * symbols;
+  /* ... maybe more things later date! */
+} gpy_context_t ;
+
+extern gpy_hash_tab_t * gpy_primitives;
+
 extern gpy_hashval_t gpy_dd_hash_string( const char * );
 
 extern gpy_hash_entry_t * gpy_dd_hash_lookup_table( gpy_hash_tab_t *, gpy_hashval_t );
