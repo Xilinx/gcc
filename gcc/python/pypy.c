@@ -354,25 +354,96 @@ tree gpy_get_tree( gpy_symbol_obj * sym )
 
 void gpy_write_globals( void )
 {
-  tree *vec;
+  tree *vec; 
 
-  unsigned long decl_len = 0;
+  tree fntype = build_function_type(void_type_node, void_list_node);
+  tree retval = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
+			    get_identifier( "main" ),
+			    fntype );
+  tree declare_vars = NULL_TREE;
+  tree bind = NULL_TREE;
+  tree block = NULL_TREE;
+  tree resdecl = NULL_TREE;
+  tree restype = TREE_TYPE(retval);
+
+  unsigned long decl_len = 0, vec_len = 0;
   unsigned int idx;
 
+  gpy_context_branch *co = NULL;
   gpy_symbol_obj * it = NULL;
+  gpy_ident itg = NULL;
+
+   /* push a new context for local symbols */
+  co = (gpy_context_branch *)
+    xmalloc( sizeof(gpy_context_branch) );
+  co->var_decls = NULL;
+  co->fnc_decls = NULL;
+  gpy_init_ctx_branch( &co );
+  VEC_safe_push( gpy_ctx_t, gc, gpy_ctx_table, co );
   
   decl_len = VEC_length( gpy_sym, gpy_decls );
   vec = XNEWVEC( tree, decl_len );
 
+  SET_DECL_ASSEMBLER_NAME(retval, get_identifier("main"));
+
+  TREE_PUBLIC(retval) = 1;
+  TREE_STATIC(retval) = 1;
+
+  resdecl = build_decl( UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
+			restype );
+  DECL_CONTEXT(resdecl) = retval;
+  DECL_RESULT(retval) = resdecl;
+
+  DECL_INITIAL(retval) = block;
+
   debug("decl_len <%lu>!\n", decl_len );
   for( idx= 0; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )
     {
-      debug("decl AST <%p>!\n", (void*)it );
-      vec[ idx ] = gpy_get_tree( it ); 
+      tree x = gpy_get_tree( it );
       gpy_preserve_from_gc( vec[idx] );
-      debug("finished processing <%p> got decl tree addr <%p>!\n",
-	    (void*)it, (void*) vec[idx] );
+      if( TREE_CODE( x ) != FUNCTION_DECL )
+	{
+	  append_to_statement_list( x, &block );
+	}
+      else
+	{
+	  vec[ vec_len ] = x;
+	  vec_len++;
+	}
     }
+
+  for( ; VEC_iterate( gpy_ident,co->var_decl_t, idx, itg ); ++idx )
+    {
+      /* get all block var_decls */
+      tree x = gpy_ctx_lookup_decl( itg->ident, VAR );
+      gcc_assert( TREE_CODE( x ) == VAR_DECL );
+      debug("got var decl <%p>:<%s> within func <%s>!\n", (void*)x,
+	    itg->ident, "main" );
+      debug_tree( x );
+      TREE_CHAIN( x ) = declare_vars;
+      declare_vars = x;
+    }
+  if( declare_vars != NULL_TREE )
+    {
+      tree bl = make_node(BLOCK);
+      BLOCK_SUPERCONTEXT(bl) = retval;
+      DECL_INITIAL(retval) = bl;
+      BLOCK_VARS(bl) = declare_vars;
+      TREE_USED(bl) = 1;
+      bind = build3(BIND_EXPR, void_type_node, BLOCK_VARS(bl),
+		    NULL_TREE, bl);
+      TREE_SIDE_EFFECTS(bind) = 1;
+    }
+  BIND_EXPR_BODY(bind) = block;
+  block = bind;
+  DECL_SAVED_TREE(retval) = block;
+
+  VEC_pop( gpy_ctx_t, gpy_ctx_table );
+
+  gimplify_function_tree( retval );
+
+  cgraph_add_new_function(retval, false);
+  cgraph_finalize_function(retval, true);
 
   debug("Finished processing!\n\n");
 

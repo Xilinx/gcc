@@ -42,6 +42,8 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
+tree void_ptr_node = build_pointer_type( void_type_node );
+
 tree gpy_process_assign( gpy_symbol_obj ** op_a,
 			 gpy_symbol_obj ** op_b )
 {
@@ -68,7 +70,7 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 	  
 	  decl = build_decl( UNKNOWN_LOCATION, VAR_DECL,
 			     get_identifier( opa->op_a.string ),
-			     integer_type_node );
+			     void_ptr_node );
 	  
 	  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x, VAR )) )
 	    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );
