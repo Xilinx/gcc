@@ -123,5 +123,10 @@ void gpy_cleanup( void )
 {
   debug("cleanup.......\n");
 
+  gpy_garbage_invoke( );
+
+  gpy_vec_free( gpy_primitives);
+  gpy_vec_free( gpy_namespace_vec );
+
   mpfr_free_cache( );
 }

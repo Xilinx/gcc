@@ -76,7 +76,7 @@ gpy_object_state_t gpy_rr_fold_integer( int x )
   gpy_assert( Int_def );
   retval->obj_t_ident = gpy_strdup( Int_def->identifier );
   retval->ref_count++;
-  retval->self = Int_def->init_hook( i );
+  retval->self = Int_def->init_hook( &i );
 
   return retval;
 }

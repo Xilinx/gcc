@@ -24,6 +24,7 @@ typedef struct gpy_vector_t {
   signed long size, length;
 } gpy_vector_t;
 
+typedef gpy_vector_t * gpy_vec_t;
 typedef unsigned long gpy_hashval_t;
 
 typedef struct gpy_hash_entry {
@@ -59,6 +60,8 @@ extern void gpy_vec_push( gpy_vector_t * const, void * const );
 extern void * gpy_vec_pop( gpy_vector_t * const );
 
 extern void gpy_vec_free( gpy_vector_t * );
+
+extern void gpy_vec_frees( gpy_vector_t *, ... );
 
 extern void gpy_obj_integer_mod_init( gpy_vector_t * const );
 
