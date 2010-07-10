@@ -56,9 +56,17 @@ typedef struct gpy_rr_object_state_t {
 
 #define Gpy_Object_State_Init( x )			\
   x = gpy_malloc( sizeof(gpy_rr_object_state_t) );	\
-  x->obj_t_ident = NULL;				\
-  x->ref_count = 0;					\
+  debug("object created at <%p>!\n", (void*)x );	\
+  x->obj_t_ident = NULL; x->ref_count = 0;		\
   x->self = NULL;
+
+#define Gpy_Object_State_Init_Ctx( x,y )		\
+  x = gpy_malloc( sizeof(gpy_rr_object_state_t) );	\
+  x->obj_t_ident = NULL; x->ref_count = 0;		\
+  x->self = NULL;					\
+  gpy_vec_push( y->vector[y->length-1]->symbols, x );	\
+  debug("object created at <%p> within conext <%p>!",	\
+	(void *)x, (void*)y->vector[y->length-1]->symbols );
 
 typedef gpy_rr_object_state_t * gpy_object_state_t;
 #define NULL_OBJ_STATE  NULL
@@ -112,9 +120,13 @@ typedef struct gpy_type_obj_def_t {
   const struct gpy_number_prot_t * binary_protocol;
 } gpy_type_obj_def_t ;
 
-#define gpy_assert( expr )						\
+#ifdef DEBUG
+# define gpy_assert( expr )						\
   ((expr) ? (void) 0 : gpy_assertion_failed( #expr, __LINE__,		\
 					     __FILE__, __func__ ));
+#else
+# define gpy_assert( expr )
+#endif
 
 extern void * gpy_malloc( size_t );
 

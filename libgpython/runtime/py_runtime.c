@@ -25,15 +25,22 @@ along with GCC; see the file COPYING3.  If not see
 
 #include <gpython/gpython.h>
 #include <gpython/vectors.h>
+#include <gpython/garbage.h>
 
 gpy_hash_tab_t * gpy_primitives;
+
+void gpy_rr_init_primitives( gpy_hash_tab_t * const p )
+{
+  return;
+}
 
 void gpy_rr_init_runtime ( void ) 
 {
   /* Setup runtime namespace */   
   /* Init builtin's */
-  gpy_runtime_init_primitives( gpy_primitives );
+  gpy_rr_init_primitives( gpy_primitives );
 
+  
   
 }
 
@@ -46,7 +53,6 @@ gpy_object_state_t gpy_rr_fold_integer( int x )
   i.type = TYPE_INTEGER;
   i.literal.integer = x;
 
-  retval = 
-
+  
   return retval;
 }

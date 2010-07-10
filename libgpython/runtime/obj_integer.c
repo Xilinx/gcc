@@ -28,6 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include <gpython/gpython.h>
 #include <gpython/vectors.h>
+#include <gpython/garbage.h>
 
 struct gpy_obj_integer_t {
   long int Int;

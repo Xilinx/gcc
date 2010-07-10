@@ -41,8 +41,6 @@ typedef struct gpy_rr_context_t {
   /* ... maybe more things later date! */
 } gpy_context_t ;
 
-extern gpy_hash_tab_t * gpy_primitives;
-
 extern gpy_hashval_t gpy_dd_hash_string( const char * );
 
 extern gpy_hash_entry_t * gpy_dd_hash_lookup_table( gpy_hash_tab_t *, gpy_hashval_t );
@@ -59,5 +57,7 @@ extern void gpy_vec_init( gpy_vector_t * const );
 extern void gpy_vec_push( gpy_vector_t * const, void * const );
 
 extern void * gpy_vev_pop( gpy_vector_t * const );
+
+extern void gpy_vec_free( gpy_vector_t * );
 
 #endif //__GCC_VECTORS_H__

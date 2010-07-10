@@ -27,6 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include <gpython/gpython.h>
 #include <gpython/vectors.h>
+#include <gpython/garbage.h>
 
 /**
  *  Hash function in use is a 32bit FNV-1
@@ -163,6 +164,17 @@ void * gpy_vec_pop( gpy_vector_t * const v )
   register void * retval = v->vector[ v->length-1 ];
   v->length--;
   return retval;
+}
+
+void gpy_vec_free( gpy_vector_t * v )
+{
+  if( v )
+    {
+      if( v->vector)
+	gpy_free( v->vector );
+      gpy_free( v );
+    }
+  v = NULL;
 }
 
 #ifndef HAVE_STRDUP
