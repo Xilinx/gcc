@@ -37,7 +37,6 @@ along with GCC; see the file COPYING3.  If not see
  *  Eventualy look at using a sha1 may work better but may be too big
  *  a Digest.., but should avoid conflicts better
  **/
-inline
 gpy_hashval_t gpy_dd_hash_string( const char * s )
 {
   gpy_hashval_t hash =  0x811C9DC5;
@@ -80,8 +79,8 @@ gpy_dd_hash_lookup_table( gpy_hash_tab_t * tbl, gpy_hashval_t h )
   return retval;
 }
 
-void ** gpy_dd_hash_insert( gpy_hashval_t h, void * obj,
-			    gpy_hash_tab_t * tbl )
+void ** gpy_dd_hash_insert( const gpy_hashval_t h, void * const obj,
+			    gpy_hash_tab_t * const tbl )
 {
   void **retval = NULL;
   gpy_hash_entry_t *entry = NULL;
@@ -135,6 +134,7 @@ void gpy_dd_hash_init_table( gpy_hash_tab_t ** tbl )
     }
 }
 
+inline
 void gpy_vec_init( gpy_vector_t * const v )
 {
   v->size = gpy_threshold_alloc( 0 );
@@ -158,12 +158,22 @@ void gpy_vec_push( gpy_vector_t * const v, void * const s )
 }
 
 inline
-void * gpy_ident_vec_pop( gpy_vector_t * const v )
+void * gpy_vec_pop( gpy_vector_t * const v )
 {
   register void * retval = v->vector[ v->length-1 ];
   v->length--;
   return retval;
 }
+
+#ifndef HAVE_STRDUP
+char * gpy_strdup( const char * str )
+{
+  register size_t len= (gpy_strlen( str )+1);
+  register char *ret= gpy_malloc( len );
+  memcpy(ret, str, len);
+  return ret;
+}
+#endif
 
 /* --- DIAGNOSTIC'S --- */
 

@@ -40,10 +40,17 @@ extern gpy_hashval_t gpy_dd_hash_string( const char * );
 
 extern gpy_hash_entry_t * gpy_dd_hash_lookup_table( gpy_hash_tab_t *, gpy_hashval_t );
 
-extern void ** gpy_dd_hash_insert( gpy_hashval_t, void *, gpy_hash_tab_t * );
+extern void ** gpy_dd_hash_insert( const gpy_hashval_t , void * const ,
+				   gpy_hash_tab_t * const );
 
 extern void gpy_dd_hash_grow_table( gpy_hash_tab_t * );
 
 extern void gpy_dd_hash_init_table( gpy_hash_tab_t ** );
+
+extern void gpy_vec_init( gpy_vector_t * const );
+
+extern void gpy_vec_push( gpy_vector_t * const, void * const );
+
+extern void * gpy_vev_pop( gpy_vector_t * const );
 
 #endif //__GCC_VECTORS_H__

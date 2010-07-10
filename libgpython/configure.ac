@@ -34,6 +34,20 @@ AC_C_VOLATILE
 
 AC_CANONICAL_HOST
 
+# Just to make sure we dont do debug on default!
+debug=no
+AC_ARG_WITH(debug,
+  [AS_HELP_STRING([--with-debug=yes/no],
+    [With Debug symbols, default no.])],
+  [debug="$withval"])
+if test "x$debug" == "xyes"; then
+  AC_DEFINE([DEBUG], 1, [Debug Symbols Flag])
+  #turn on extra debug compiler options :)
+  if test "x$CC" == "xgcc -std=gnu99"; then
+     CFLAGS="$CFLAGS -g -O2 -D_DEBUG -ggdb3 -pedantic -Wall -Wextra -fstrict-aliasing"
+  fi   
+fi
+
 # a lang needs math functions...
 AC_CHECK_LIB([m], [pow], , 
   [AC_MSG_ERROR([System Math library is required!])])
@@ -86,7 +100,7 @@ AC_CHECK_HEADERS([stdlib.h string.h stdarg.h unistd.h \
 		  stdint.h stdio.h getopt.h \
 		  assert.h sys/types.h signal.h \
 		  fcntl.h pthread.h sys/wait.h \
-		  gmp.h mpfr.h pcre.h])
+		  gmp.h mpfr.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

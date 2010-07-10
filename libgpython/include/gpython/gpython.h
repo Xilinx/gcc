@@ -54,12 +54,19 @@ typedef struct gpy_rr_object_state_t {
   void * self;
 } gpy_rr_object_state_t ;
 
+#define Gpy_Object_State_Init( x )			\
+  x = gpy_malloc( sizeof(gpy_rr_object_state_t) );	\
+  x->obj_t_ident = NULL;				\
+  x->ref_count = 0;					\
+  x->self = NULL;
+
 typedef gpy_rr_object_state_t * gpy_object_state_t;
+#define NULL_OBJ_STATE  NULL
 
 typedef gpy_object_state_t (*binary_op)( gpy_object_state_t,
 					 gpy_object_state_t );
 
-enum GPY_LIT_T { TYPE_INTEGER, TYPE_STRING };
+enum GPY_LIT_T { TYPE_INTEGER, TYPE_STRING, TYPE_NONE };
 
 typedef struct gpy_rr_literal_t {
   enum GPY_LIT_T type;
@@ -69,6 +76,11 @@ typedef struct gpy_rr_literal_t {
     /* ... */
   } literal ;
 } gpy_literal_t ;
+
+#define Gpy_Lit_Init( x )			\
+  x = gpy_malloc( sizeof(gpy_literal_t) );	\
+  x->type = TYPE_NONE;				\
+  x->literal.integer = 0;
 
 typedef struct gpy_number_prot_t
 {
@@ -94,7 +106,7 @@ typedef struct gpy_number_prot_t
 typedef struct gpy_type_obj_def_t {
   char * identifier;
   size_t builtin_type_size;
-  void * (*init_hook)( gpy_object_state_t );
+  void * (*init_hook)( gpy_literal_t * );
   void (*destroy_hook)( void * );
   void (*print_hook)( void * , FILE * , bool );
   const struct gpy_number_prot_t * binary_protocol;
@@ -114,6 +126,11 @@ extern void * gpy_calloc( size_t , size_t );
   gpy_assert( x );    \
   free( x );	      \
   x = NULL;
+
+#ifdef HAVE_STRDUP
+# define gpy_strdup( x )			\
+  strdup( x )
+#endif
 
 #ifdef DEBUG
 extern void

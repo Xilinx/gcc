@@ -3,6 +3,9 @@
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
+/* Debug Symbols Flag */
+#undef DEBUG
+
 /* Define to 1 if you have the <assert.h> header file. */
 #undef HAVE_ASSERT_H
 
@@ -93,9 +96,6 @@
 
 /* Define to 1 if you have the <mpfr.h> header file. */
 #undef HAVE_MPFR_H
-
-/* Define to 1 if you have the <pcre.h> header file. */
-#undef HAVE_PCRE_H
 
 /* Define to 1 if you have the `pipe' function. */
 #undef HAVE_PIPE

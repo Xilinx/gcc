@@ -36,5 +36,14 @@ void gpy_rr_init_runtime ( void )
 
 gpy_object_state_t gpy_rr_fold_integer( int x )
 {
-  return NULL;
+  gpy_object_state_t retval = NULL_OBJ_STATE;
+  Gpy_Object_State_Init( retval );
+
+  gpy_literal_t i;
+  i.type = TYPE_INTEGER;
+  i.literal.integer = x;
+
+  
+
+  return retval;
 }
