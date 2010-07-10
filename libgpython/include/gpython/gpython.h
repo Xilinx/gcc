@@ -182,5 +182,6 @@ extern void gpy_rr_init_runtime( void );
 extern gpy_object_state_t gpy_rr_fold_integer( int );
 
 extern void gpy_obj_integer_mod_init( void );
+extern void gpy_rr_init_primitives( void );
 
 #endif //__GCC_GPYTHON_H__

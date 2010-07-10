@@ -84,7 +84,7 @@ void gpy_garbage_invoke_sweep( gpy_vector_t * const context )
 	  void ** s_arr = ctx_idx->symbols->vector;
 
 	  int i = 0; long len = (ctx_idx->symbols->length);
-	  debug("stack length = <%l>!\n", len );
+	  debug("vector length <%l>!\n", len );
 	  for( ; i<len; ++i )
 	    {
 	      gpy_object_state_t o = (gpy_object_state_t) s_arr[ i ];
@@ -105,6 +105,16 @@ void gpy_garbage_invoke_sweep( gpy_vector_t * const context )
 	}
     }
   gpy_garbage_invoke( );
+}
+
+void gpy_garbage_free_obj( gpy_object_state_t x )
+{
+  debug("deleting garbage object <%p>!\n", (void*)x );
+  if( x )
+    {
+      gpy_free( x );
+    }
+  return;
 }
 
 /* Cleanup the program for exit! */

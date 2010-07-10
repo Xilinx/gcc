@@ -27,21 +27,37 @@ along with GCC; see the file COPYING3.  If not see
 #include <gpython/vectors.h>
 #include <gpython/garbage.h>
 
-gpy_hash_tab_t * gpy_primitives;
+gpy_vector_t * gpy_primitives;
+gpy_vector_t * gpy_namespace_vec;
 
-void gpy_rr_init_primitives( gpy_hash_tab_t * const p )
+void gpy_rr_init_primitives( void )
 {
-  return;
+  gpy_primitives = (gpy_vector_t*)
+    gpy_malloc( sizeof(gpy_vector_t) );
+  gpy_vec_init( gpy_primitives );
+
+  gpy_obj_integer_mod_init( gpy_primitives );
 }
 
 void gpy_rr_init_runtime ( void ) 
 {
-  /* Setup runtime namespace */   
-  /* Init builtin's */
-  gpy_rr_init_primitives( gpy_primitives );
+  /*
+    Setup runtime namespace
+    Init builtin's
+  */
+  gpy_rr_init_primitives( );
 
-  
-  
+  gpy_namespace_vec = (gpy_vector_t*)
+    gpy_malloc( sizeof(gpy_vector_t) );
+  gpy_vec_init( gpy_namespace_vec );
+
+  gpy_context_t * head = (gpy_context_t *)
+    gpy_malloc( sizeof(gpy_context_t) );
+  head->symbols = (gpy_vector_t*)
+    gpy_malloc( sizeof(gpy_vector_t) );
+  gpy_vec_init( head->symbols );
+
+  gpy_vec_push( gpy_namespace_vec, head );
 }
 
 gpy_object_state_t gpy_rr_fold_integer( int x )
@@ -54,5 +70,6 @@ gpy_object_state_t gpy_rr_fold_integer( int x )
   i.literal.integer = x;
 
   
+
   return retval;
 }

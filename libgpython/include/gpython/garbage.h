@@ -17,8 +17,8 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef __GCC_GARBAGE_H__
 #define __GCC_GARBAGE_H__
 
-extern gpy_hash_tab_t * gpy_primitives;
-extern gpy_vector_t * gpy_namesapce_stack;
+extern gpy_vector_t * gpy_primitives;
+extern gpy_vector_t * gpy_namespace_vec;
 extern gpy_vector_t * gpy_garbage_vec;
 
 extern void gpy_rr_init_primitives( gpy_hash_tab_t * const );

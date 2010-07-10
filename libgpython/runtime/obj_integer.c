@@ -125,7 +125,7 @@ const struct gpy_type_obj_def_t integer_obj = {
   &integer_binary_ops,
 };
 
-void gpy_obj_integer_mod_init( void )
+void gpy_obj_integer_mod_init( gpy_vector_t * vec )
 {
-  
+  gpy_vec_push( vec, &integer_obj );
 }
