@@ -48,6 +48,23 @@ along with GCC; see the file COPYING3.  If not see
 # define __gpy_nonnull
 #endif
 
+typedef unsigned short gpy_opcode_t;
+
+#define OP_BIN_ACCESSOR        0xF001
+#define OP_BIN_ADDITION        0xF002
+#define OP_BIN_SUBTRACTION     0xF003
+#define OP_BIN_MULTIPLY        0xF004
+#define OP_BIN_DIVIDE          0xF005
+#define OP_BIN_POWER           0xF006
+#define OP_BIN_AND             0xF007
+#define OP_BIN_OR              0xF008
+#define OP_BIN_LESS            0xF009
+#define OP_BIN_LESS_EQ         0xF01A
+#define OP_BIN_GREATER         0xF01B
+#define OP_BIN_GREATER_EQ      0xF01C
+#define OP_BIN_EQ_EQ           0xF01D
+#define OP_BIN_NOT_EQ          0xF01E
+
 #ifdef DEBUG
 # define gpy_assert( expr )						\
   ((expr) ? (void) 0 : gpy_assertion_failed( #expr, __LINE__,		\

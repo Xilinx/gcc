@@ -84,3 +84,10 @@ gpy_object_state_t * gpy_rr_fold_integer( int x )
   return retval;
 }
 
+gpy_object_state_t *
+gpy_rr_eval_expression( gpy_object_state_t * x,
+			gpy_object_state_t * y,
+			gpy_opcode_t op )
+{
+  return NULL;
+}
