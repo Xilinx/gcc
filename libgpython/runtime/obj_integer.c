@@ -117,7 +117,7 @@ struct gpy_number_prot_t integer_binary_ops = {
   NULL,
 };
 
-const struct gpy_type_obj_def_t integer_obj = {
+struct gpy_type_obj_def_t integer_obj = {
   "Int",
   sizeof(struct gpy_obj_integer_t),
   &gpy_obj_integer_init,

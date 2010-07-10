@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include <stdbool.h>
 
 #include <gpython/gpython.h>
+#include <gpython/objects.h>
 #include <gpython/vectors.h>
 #include <gpython/garbage.h>
 
@@ -69,7 +70,14 @@ gpy_object_state_t gpy_rr_fold_integer( int x )
   i.type = TYPE_INTEGER;
   i.literal.integer = x;
 
+  gpy_type_obj_def_t * Int_def = (gpy_type_obj_def_t *)
+    gpy_primitives->vector[ 0 ];
   
+  gpy_assert( Int_def );
+  retval->obj_t_ident = gpy_strdup( Int_def->identifier );
+  retval->ref_count++;
+  retval->self = Int_def->init_hook( i );
 
   return retval;
 }
+

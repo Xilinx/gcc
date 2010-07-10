@@ -94,6 +94,4 @@ extern gpy_object_state_t gpy_rr_fold_integer( int );
 
 extern void gpy_rr_init_primitives( void );
 
-extern void gpy_obj_integer_mod_init( gpy_vector_t * const );
-
 #endif //__GCC_OBJECTS_H__

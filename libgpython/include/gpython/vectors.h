@@ -60,4 +60,6 @@ extern void * gpy_vec_pop( gpy_vector_t * const );
 
 extern void gpy_vec_free( gpy_vector_t * );
 
+extern void gpy_obj_integer_mod_init( gpy_vector_t * const );
+
 #endif //__GCC_VECTORS_H__
