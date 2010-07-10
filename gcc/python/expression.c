@@ -42,7 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
-tree void_ptr_node = build_pointer_type( void_type_node );
+static tree void_ptr_node = build_pointer_type( void_type_node );
 
 tree gpy_process_assign( gpy_symbol_obj ** op_a,
 			 gpy_symbol_obj ** op_b )
@@ -68,7 +68,7 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 	  gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
 				   (l-1) );
 	  
-	  decl = build_decl( UNKNOWN_LOCATION, VAR_DECL,
+	  decl = build_decl( opa->loc, VAR_DECL,
 			     get_identifier( opa->op_a.string ),
 			     void_ptr_node );
 	  
@@ -81,12 +81,10 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
       rhs_tree = gpy_process_expression( opb );
 
       printf("opb->type = <0x%X>!\n", opb->type );
-
       printf("RHS Tree!\n");
       debug_tree( rhs_tree );
       
-      
-      retval = build2( MODIFY_EXPR, integer_type_node,
+      retval = build2( MODIFY_EXPR, void_ptr_node,
 		       decl, rhs_tree );
       debug("built assignment for <%s>!\n", opa->op_a.string );
     }
@@ -116,10 +114,6 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
     {
     case OP_BIN_ADDITION:
       retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );
-      break;
-
-    case OP_BIN_SUBTRACTION:
-      retval = build2( MINUS_EXPR, integer_type_node, t1, t2 );
       break;
 
     default:
