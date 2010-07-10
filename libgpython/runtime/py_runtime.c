@@ -61,10 +61,10 @@ void gpy_rr_init_runtime ( void )
   gpy_vec_push( gpy_namespace_vec, head );
 }
 
-gpy_object_state_t gpy_rr_fold_integer( int x )
+gpy_object_state_t * gpy_rr_fold_integer( int x )
 {
-  gpy_object_state_t retval = NULL_OBJ_STATE;
-  Gpy_Object_State_Init( retval );
+  gpy_object_state_t * retval = NULL_OBJ_STATE;
+  Gpy_Object_State_Init_Ctx( retval, gpy_namespace_vec );
 
   gpy_literal_t i;
   i.type = TYPE_INTEGER;
@@ -77,6 +77,9 @@ gpy_object_state_t gpy_rr_fold_integer( int x )
   retval->obj_t_ident = gpy_strdup( Int_def->identifier );
   retval->ref_count++;
   retval->self = Int_def->init_hook( &i );
+
+  debug("initilized integer object <%p> to <%i>!\n",
+	(void*)retval, x );
 
   return retval;
 }

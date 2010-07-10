@@ -23,11 +23,11 @@ extern gpy_vector_t * gpy_garbage_vec;
 
 extern void gpy_garbage_inoke( void );
 
-extern void gpy_garbage_mark_obj__( gpy_object_state_t const );
+extern void gpy_garbage_mark_obj__( gpy_object_state_t * const );
 
 extern void gpy_garbage_invoke_sweep( gpy_vector_t * const );
 
-extern void gpy_garbage_free_obj( gpy_object_state_t );
+extern void gpy_garbage_free_obj( gpy_object_state_t * );
 
 #define gpy_garbage_mark_obj( x )			\
   gpy_assert( x );					\

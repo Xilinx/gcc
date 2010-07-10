@@ -40,9 +40,9 @@ void gpy_garbage_invoke( void )
   if( gpy_garbage_vec )
     {
       debug("garbage collector running...\n");
-      gpy_object_state_t p_obj = NULL_OBJ_STATE;
+      gpy_object_state_t * p_obj = NULL_OBJ_STATE;
 
-      while( (p_obj= (gpy_object_state_t)
+      while( (p_obj= (gpy_object_state_t *)
 	      gpy_vec_pop( gpy_garbage_vec )) )
 	{
 	  gpy_garbage_free_obj( p_obj );
@@ -52,7 +52,7 @@ void gpy_garbage_invoke( void )
     }
 }
 
-void gpy_garbage_mark_obj__( gpy_object_state_t const sym )
+void gpy_garbage_mark_obj__( gpy_object_state_t * const sym )
 {
   if( sym )
     {
@@ -88,7 +88,7 @@ void gpy_garbage_invoke_sweep( gpy_vector_t * const context )
 	  debug("vector length <%l>!\n", len );
 	  for( ; i<len; ++i )
 	    {
-	      gpy_object_state_t o = (gpy_object_state_t) s_arr[ i ];
+	      gpy_object_state_t * o = (gpy_object_state_t *) s_arr[ i ];
 	      if( o )
 		{
 		  debug( "object <%p> has ref count <%l>!\n",
@@ -108,7 +108,7 @@ void gpy_garbage_invoke_sweep( gpy_vector_t * const context )
   gpy_garbage_invoke( );
 }
 
-void gpy_garbage_free_obj( gpy_object_state_t x )
+void gpy_garbage_free_obj( gpy_object_state_t * x )
 {
   debug("deleting garbage object <%p>!\n", (void*)x );
   if( x )

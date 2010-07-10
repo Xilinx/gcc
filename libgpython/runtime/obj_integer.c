@@ -60,11 +60,11 @@ void gpy_obj_integer_print( void * self, FILE * fd, bool newline )
     fprintf( fd, "\n" );
 }
 
-gpy_object_state_t
-gpy_obj_integer_add( gpy_object_state_t o1, gpy_object_state_t o2 )
+gpy_object_state_t *
+gpy_obj_integer_add( gpy_object_state_t * o1, gpy_object_state_t * o2 )
 {
 
-  gpy_object_state_t retval = NULL_OBJ_STATE;
+  gpy_object_state_t * retval = NULL_OBJ_STATE;
   debug("Integer addition!\n");
 
   if( !strcmp( o1->obj_t_ident, "Int" ) )
