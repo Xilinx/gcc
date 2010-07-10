@@ -1,3 +1,23 @@
+
+2010-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{full GC works again!}}
+	* melt-runtime.c (melt_debuggc_eprintf): Added macro.
+	(melt_fullperiod): Declared static variable.
+	(melt_argument): Handle "full-period".
+	(delete_special): Added debug print.
+	(debughack_file): Removed definition.
+	(melt_check_call_frames_at): No more debughack_file.
+	(melt_caught_assign_at, melt_cbreak_at): Ditto.
+	(melt_marking_callback): Updated comments & debug prints.
+	(melt_garbcoll): Added debug prints.  Use and initialize if needed
+	melt_fullperiod.  The clearing of marks on the old special list is
+	moved to avoid crashing.  Updated comments.  Removed
+	debughack_file use.
+	(scanning): For ALL_MELTOBMAG_SPECIAL_CASES set the mark.
+	(meltgc_make_load_melt_module): Better debugprint.
+
+	* params.def (PARAM_MELT_FULL_PERIOD): Added parameter.
+
 2010-07-07  jeremie Salvucci  <jeremie.salvucci@free.fr>
 	* xtramelt-ana-base.melt (gimple_assign_binaryop) : I changed the
 	test which didn't work on the number of ops.

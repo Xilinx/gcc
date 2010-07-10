@@ -80,6 +80,13 @@ const char melt_runtime_build_date[] = __DATE__;
 
 int melt_debug_garbcoll; /* can be set in GDB */
 
+#ifdef ENABLE_CHECKING
+#define melt_debuggc_eprintf(Fmt,...) do {if (melt_debug_garbcoll > 0) \
+      debugeprintf("@$*" Fmt, ##__VA_ARGS__);} while(0)
+#else
+#define melt_debuggc_eprintf(Fmt,...) do{}while(0)
+#endif
+
 /* the generating GGC marking routine */
 extern void gt_ggc_mx_melt_un (void *);
 
@@ -156,6 +163,7 @@ bool melt_is_forwarding=FALSE;
 
 static long melt_minorsizekilow = 0;
 static long melt_fullthresholdkilow = 0;
+static int melt_fullperiod = 0;
 
 typedef struct melt_module_info_st
 {
@@ -349,6 +357,14 @@ melt_argument (const char* argname)
 		 PARAM_VALUE(PARAM_MELT_FULL_THRESHOLD));
       return fullthrstr;
     }
+  else if (!strcmp (argname, "full-period"))
+    {
+      static char fullperstr[40];
+      if (!fullperstr[0])
+	snprintf(fullperstr, sizeof (fullperstr) - 1, "%d",
+		 PARAM_VALUE(PARAM_MELT_FULL_PERIOD));
+      return fullperstr;
+    }
   return NULL;
 }
 #endif /*MELT_IS_PLUGIN*/
@@ -401,6 +417,8 @@ int melt_debug_depth (void)
 static inline void
 delete_special (struct meltspecial_st *sp)
 {
+  melt_debuggc_eprintf ("delete_special deleting sp %p magic %d", 
+			(void*) sp, sp->discr->object_magic);
   switch (sp->discr->object_magic)
     {
     case MELTOBMAG_SPEC_FILE:
@@ -463,13 +481,14 @@ delete_special (struct meltspecial_st *sp)
     default:
       break;
     }
+  /* Don't ggc_free sp, it is the responsability of the caller!  */
 }
 
 #ifdef ENABLE_CHECKING
 /* only for debugging, to be set from the debugger */
 
 
-static FILE *debughack_file;
+
 FILE *melt_dbgtracefile;
 void *melt_checkedp_ptr1;
 void *melt_checkedp_ptr2;
@@ -637,26 +656,12 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
     debugeprintf ("end check_call_frames#%ld {%s} %d frames/%d vars %s:%d",
 		  nbcheckcallframes, msg, nbfram, nbvar, lbasename (filenam),
 		  lineno);
-  if (debughack_file)
-    {
-      fprintf (debughack_file,
-	       "check_call_frames#%ld {%s} %d frames/%d vars %s:%d\n",
-	       nbcheckcallframes, msg, nbfram, nbvar, lbasename (filenam),
-	       lineno);
-      fflush (debughack_file);
-    }
 }
 
 void
 melt_caught_assign_at (void *ptr, const char *fil, int lin,
 			  const char *msg)
 {
-  if (debughack_file)
-    {
-      fprintf (debughack_file, "caught assign %p at %s:%d /// %s\n", ptr,
-	       lbasename (fil), lin, msg);
-      fflush (debughack_file);
-    }
   debugeprintf ("caught assign %p at %s:%d /// %s", ptr, lbasename (fil), lin,
 		msg);
 }
@@ -667,12 +672,6 @@ void
 melt_cbreak_at (const char *msg, const char *fil, int lin)
 {
   nbcbreak++;
-  if (debughack_file)
-    {
-      fprintf (debughack_file, "CBREAK#%ld AT %s:%d - %s\n", nbcbreak,
-	       lbasename (fil), lin, msg);
-      fflush (debughack_file);
-    };
   debugeprintf_raw ("%s:%d: CBREAK#%ld %s\n", lbasename (fil), lin, nbcbreak,
 		    msg);
 }
@@ -706,10 +705,9 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	gcc_assert(cf->mcfr_closp->rout);
 	funp = cf->mcfr_closp->rout->routfunad;
 	gcc_assert(funp);
-	if (melt_debug_garbcoll)
-	  debugeprintf ("melt_marking_callback %ld marking*frame %p with closure & %d vars",
-			meltmarkingcount, (void*) cf, 
-			cf->mcfr_nbvar);
+	melt_debuggc_eprintf ("melt_marking_callback %ld marking*frame %p with closure & %d vars",
+			      meltmarkingcount, (void*) cf, 
+			      cf->mcfr_nbvar);
 	gt_ggc_mx_melt_un ((melt_ptr_t)(cf->mcfr_closp));
 	/* call the function specially with the MARKGCC special
 	   parameter descriptor */
@@ -722,20 +720,17 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	   routine.  This happens in particular for the initial frame
 	   of generated MELT modules;  their startup routine has a
 	   special marking routine.  */
-	if (melt_debug_garbcoll)
-	  debugeprintf ("melt_marking_callback %ld marking*frame thru routine frame %p",
+	  melt_debuggc_eprintf ("melt_marking_callback %ld marking*frame thru routine frame %p",
 			meltmarkingcount, (void*) cf);
 	cf->mcfr_forwmarkrout ((struct callframe_melt_st*)cf, 1);
-	if (melt_debug_garbcoll)
-	  debugeprintf ("melt_marking_callback %ld called frame %p marking routine",
-			meltmarkingcount, (void*)cf);
+	melt_debuggc_eprintf ("melt_marking_callback %ld called frame %p marking routine",
+			      meltmarkingcount, (void*)cf);
       }
     else
       {
 	/* no closure, e.g. a frame manually set with MELT_ENTERFRAME. */
 	extern void gt_ggc_mx_melt_un (void *);
-	if (melt_debug_garbcoll)
-	  debugeprintf ("melt_marking_callback %ld marking*frame no closure frame %p-%p of %d vars", 
+	melt_debuggc_eprintf ("melt_marking_callback %ld marking*frame no closure frame %p-%p of %d vars", 
 			meltmarkingcount, (void*)cf, 
 			(void*)(cf->mcfr_varptr + cf->mcfr_nbvar),
 			cf->mcfr_nbvar);
@@ -765,7 +760,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
     fatal_error ("melt garbage collection prohibited");
   melt_nb_garbcoll++;
   if (gckd == MELT_NEED_FULL)
-    needfull = true;
+    needfull = TRUE;
   if (melt_minorsizekilow == 0)
     {
       const char* minzstr = melt_argument ("minor-zone");
@@ -782,9 +777,15 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 	melt_fullthresholdkilow = 2*melt_minorsizekilow;
       else if (melt_fullthresholdkilow>65536) melt_fullthresholdkilow=65536;
     }
+  if (melt_fullperiod == 0)
+    {
+      const char* fullperstr = melt_argument ("full-period");
+      melt_fullperiod = fullperstr ? (atoi (fullperstr)) : 0;
+      if (melt_fullperiod < 16) melt_fullperiod = 16;
+      else if (melt_fullperiod > 256) melt_fullperiod = 256;
+    }
   melt_check_call_frames (MELT_ANYWHERE, "before garbage collection");
-  if (melt_debug_garbcoll) 
-    debugeprintf ("melt_garbcoll %ld begin alz=%p-%p", 
+  melt_debuggc_eprintf ("melt_garbcoll %ld begin alz=%p-%p", 
 		  melt_nb_garbcoll, melt_startalz, melt_endalz);
   gcc_assert ((char *) melt_startalz < (char *) melt_endalz);
   gcc_assert ((char *) melt_curalz >= (char *) melt_startalz
@@ -796,24 +797,24 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   wanted++;
   if (wanted < melt_minorsizekilow * sizeof (void *) * 1024)
     wanted = melt_minorsizekilow * sizeof (void *) * 1024;
+
+  if (melt_nb_garbcoll % melt_fullperiod == 0) 
+    needfull = TRUE;
+
   melt_is_forwarding = TRUE;
-  /* don't need anymore to allocate a local table, because of
-     melt_marking_callback */
   for (ix = 0; ix < MELTGLOB__LASTGLOB; ix++)
     MELT_FORWARDED (melt_globarr[ix]);
   for (cfram = melt_topframe; cfram != NULL; cfram = cfram->mcfr_prev)
     {
       int varix = 0;
       if (cfram->mcfr_nbvar < 0 && cfram->mcfr_forwmarkrout) {
-	if (melt_debug_garbcoll)
-	  debugeprintf ("melt_garbcoll forwarding*frame %p thru routine", 
-			(void*) cfram);
+	melt_debuggc_eprintf ("melt_garbcoll forwarding*frame %p thru routine", 
+			       (void*) cfram);
 	cfram->mcfr_forwmarkrout (cfram, 0);
       }
       else if (cfram->mcfr_nbvar >= 0) 
 	{
-	  if (melt_debug_garbcoll)
-	    debugeprintf ("melt_garbcoll forwarding*frame %p-%p of %d nbvars", 
+	  melt_debuggc_eprintf ("melt_garbcoll forwarding*frame %p-%p of %d nbvars", 
 			  (void*) cfram, 
 			  (void*) (cfram->mcfr_varptr + cfram->mcfr_nbvar),
 			  cfram->mcfr_nbvar);
@@ -821,62 +822,67 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 	  for (varix = 0; varix < cfram->mcfr_nbvar; varix ++)
 	    MELT_FORWARDED (cfram->mcfr_varptr[varix]);
 	};
-      if (melt_debug_garbcoll)
-	debugeprintf ("melt_garbcoll forwarding*frame %p done", 
-		      (void*)cfram);
+      melt_debuggc_eprintf ("melt_garbcoll forwarding*frame %p done", 
+			    (void*)cfram);
     };
+  melt_debuggc_eprintf ("melt_garbcoll %ld done forwarding", 
+			melt_nb_garbcoll);
   melt_is_forwarding = FALSE;
-  if (melt_debug_garbcoll) 
-    debugeprintf ("melt_garbcoll %ld done forwarding", 
-		  melt_nb_garbcoll);
-  /* scan the store list */
+
+  /* Clear marks on the old spec list. It should be done before the
+     Cheney loop! */
+  if (needfull) 
+    {
+      melt_debuggc_eprintf ("melt_garbcoll %ld clearing old special marks",
+			    melt_nb_garbcoll);
+      for (specp = melt_oldspeclist; specp; specp = specp->nextspec)
+	specp->mark = 0;
+    }
+
+  /* Scan the store list.  */
   for (storp = (melt_ptr_t *) melt_storalz;
        (char *) storp < (char *) melt_endalz; storp++)
     {
       if (*storp)
 	scanning (*storp);
     }
+  melt_debuggc_eprintf ("melt_garbcoll %ld scanned store list", 
+			melt_nb_garbcoll);
+
   memset (melt_touched_cache, 0, sizeof (melt_touched_cache));
-  /* sort of Cheney loop; http://en.wikipedia.org/wiki/Cheney%27s_algorithm */
+
+
+
+  /* Sort of Cheney loop; http://en.wikipedia.org/wiki/Cheney%27s_algorithm */
   while (!VEC_empty (melt_ptr_t, bscanvec))
     {
       melt_ptr_t p = VEC_pop (melt_ptr_t, bscanvec);
       if (!p)
 	continue;
-#if ENABLE_CHECKING
-      if (debughack_file)
-	fprintf (debughack_file, "cheney scan %p\n", (void *) p);
-#endif
       scanning (p);
     }
-  /* delete every unmarked special on the new list and clear it */
+  VEC_free (melt_ptr_t, gc, bscanvec);
+  bscanvec = NULL;
+
+  /* Delete every unmarked special on the new list and clear it */
   for (specp = melt_newspeclist; specp; specp = specp->nextspec)
     {
       gcc_assert (melt_is_young (specp));
-      if (specp->mark)
-	continue;
-      delete_special (specp);
+      melt_debuggc_eprintf ("melt_garbcoll specp %p has mark %d", 
+			    (void*) specp, specp->mark);
+      if (!specp->mark)
+	{
+	  melt_debuggc_eprintf ("melt_garbcoll deleting %p", (void*)specp);
+	  delete_special (specp);
+	}
     }
+
   melt_newspeclist = NULL;
-  VEC_free (melt_ptr_t, gc, bscanvec);
-  bscanvec = NULL;
-  /* free the previous young zone and allocate a new one */
-#if ENABLE_CHECKING
-  if (debughack_file)
-    {
-      fprintf (debughack_file,
-	       "%s:%d free previous young %p - %p GC#%ld\n",
-	       lbasename (__FILE__), __LINE__, melt_startalz,
-	       melt_endalz, melt_nb_garbcoll);
-      fflush (debughack_file);
-    }
-  memset (melt_startalz, 0,
-	  (char *) melt_endalz - (char *) melt_startalz);
-#endif
+
+  /* Free the previous young zone and allocate a new one.  */
   free (melt_startalz);
-  if (melt_debug_garbcoll) 
-    debugeprintf ("melt_garbcoll %ld freed alz=%p-%p", 
-		  melt_nb_garbcoll, melt_startalz, melt_endalz);
+  melt_debuggc_eprintf ("melt_garbcoll %ld freed alz=%p-%p", 
+			melt_nb_garbcoll, melt_startalz, melt_endalz);
   melt_startalz = melt_endalz = melt_curalz = NULL;
   melt_storalz = NULL;
   melt_kilowords_sincefull += wanted / (1024 * sizeof (void *));
@@ -887,34 +893,35 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
     (char *) xcalloc (sizeof (void *), wanted / sizeof (void *));
   melt_endalz = (char *) melt_curalz + wanted;
   melt_storalz = ((void **) melt_endalz) - 2;
-  if (melt_debug_garbcoll) 
-    debugeprintf ("melt_garbcoll %ld allocated alz=%p-%p", 
-		  melt_nb_garbcoll, melt_startalz, melt_endalz);
+  melt_debuggc_eprintf ("melt_garbcoll %ld allocated alz=%p-%p", 
+			melt_nb_garbcoll, melt_startalz, melt_endalz);
   if (needfull)
     {
       bool wasforced = ggc_force_collect;
       melt_nb_full_garbcoll++;
       debugeprintf ("melt_garbcoll #%ld fullgarbcoll #%ld",
 		    melt_nb_garbcoll, melt_nb_full_garbcoll);
-      /* clear marks on the old spec list */
-      for (specp = melt_oldspeclist; specp; specp = specp->nextspec)
-	specp->mark = 0;
       /* force major collection, with our callback */
       ggc_force_collect = true;
       debugeprintf ("melt_garbcoll forcing fullgarbcoll #%ld", melt_nb_full_garbcoll);
       ggc_collect ();
       ggc_force_collect = wasforced;
       debugeprintf ("melt_garbcoll forced fullgarbcoll #%ld", melt_nb_full_garbcoll);
-      /* delete the unmarked spec */
+      /* Delete the unmarked specials.  */
       prevspecptr = &melt_oldspeclist;
       for (specp = melt_oldspeclist; specp; specp = nextspecp)
 	{
 	  nextspecp = specp->nextspec;
+	  
+	  melt_debuggc_eprintf ("melt_garbcoll deletespecloop specp %p mark %d",
+				(void*)specp, specp->mark);
 	  if (specp->mark)
 	    {
 	      prevspecptr = &specp->nextspec;
 	      continue;
 	    }
+	  melt_debuggc_eprintf ("melt_garbcoll deletespecloop deleting specp %p",
+				(void*)specp);
 	  delete_special (specp);
 	  memset (specp, 0, sizeof (*specp));
 	  ggc_free (specp);
@@ -1137,6 +1144,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	struct meltspecial_st *dst = (struct meltspecial_st *)
 	  ggc_alloc_cleared (sizeof (struct meltspecial_st));
 	*dst = *src;
+	/* mark the new copy! */
+	dst->mark = 1;
 	/* add the new copy to the old (major) special list */
 	dst->nextspec = melt_oldspeclist;
 	melt_oldspeclist = dst;
@@ -1483,19 +1492,11 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       fatal_error ("corruption: forward invalid p=%p discr=%p magic=%d",
 		   (void *) p, (void *) p->u_discr, mag);
     }
-  if (melt_debug_garbcoll > 1)
-    debugeprintf("melt_forwarded_copy p=%p => n=%p mag %d", (void*)p, (void*)n, mag);
+    melt_debuggc_eprintf("melt_forwarded_copy p=%p => n=%p mag %d", (void*)p, (void*)n, mag);
   if (n)
     {
       p->u_forward.discr = MELT_FORWARDED_DISCR;
       p->u_forward.forward = n;
-#ifdef ENABLE_CHECKING
-      if (debughack_file)
-	{
-	  fprintf (debughack_file, "melt_forwarded pushing %p to scan\n",
-		   (void *) n);
-	}
-#endif
       VEC_safe_push (melt_ptr_t, gc, bscanvec, n);
     }
   return n;
@@ -1515,12 +1516,6 @@ scanning (melt_ptr_t p)
   if (!p)
     return;
   gcc_assert (p != (void *) 1);
-#if ENABLE_CHECKING
-  if (debughack_file)
-    {
-      fprintf (debughack_file, "scanning %p\n", (void *) p);
-    }
-#endif
   gcc_assert (p->u_discr && p->u_discr != (meltobject_ptr_t) 1);
   MELT_FORWARDED (p->u_discr);
   gcc_assert (!melt_is_young (p));
@@ -1592,6 +1587,8 @@ scanning (melt_ptr_t p)
     case ALL_MELTOBMAG_SPECIAL_CASES:
       {
 	struct meltspecial_st *src = (struct meltspecial_st *) p;
+	melt_debuggc_eprintf ("scanning & marking special case src %p magic %d", 
+			      (void*)src, omagic);
 	src->mark = 1;
 	break;
       }
@@ -6253,9 +6250,8 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 #define mdatav meltfram__.mcfr_varptr[1]
 #define dumpv  meltfram__.mcfr_varptr[2]
   mdatav = modata_p;
-  if (melt_debug_garbcoll)
-    debugeprintf ("meltgc_make_load_melt_module start frame %p - %p", 
-		  (void*) &meltfram__, (void*)((&meltfram__)+1));
+  melt_debuggc_eprintf ("meltgc_make_load_melt_module start frame %p - %p", 
+			(void*) &meltfram__, (void*)((&meltfram__)+1));
   if (!modulnam || !modulnam[0]) {
     error ("cannot load MELT module, no MELT module name given");
     goto end;

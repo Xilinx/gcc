@@ -707,12 +707,19 @@ DEFPARAM (PARAM_MELT_MINOR_ZONE,
 	 "size in kilowords (one word = one pointer) of the minor zone for the specialized copying melt collector",
 	 512, 256, 32768)
 
-/* paramater tuning the frequency of full garbage collection in
-   Melt - it is a threshold in kilowords */
+/* Parameter tuning the frequency of full garbage collection in
+   Melt - it is a threshold in kilowords.  */
 DEFPARAM (PARAM_MELT_FULL_THRESHOLD,
 	 "melt-full-threshold",
 	 "tuning the frequency of full garbage collection in the specialized melt collector (threshold in kilowords)",
 	  4096, 1024, 65536)
+
+/* Parameter tuning the period of full garbage collection in
+   Melt - it is the maximal number of minor GCs between full GCs.  */
+DEFPARAM (PARAM_MELT_FULL_PERIOD,
+	 "melt-full-period",
+	 "period of full garbage collection in the specialized melt collector",
+	  16, 32, 128)
 /**** end of Melt stuff */
 
 
