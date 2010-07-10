@@ -27,6 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 #include <mpfr.h>
 
 #include <gpython/gpython.h>
+#include <gpython/objects.h>
 #include <gpython/vectors.h>
 #include <gpython/garbage.h>
 
@@ -125,7 +126,7 @@ const struct gpy_type_obj_def_t integer_obj = {
   &integer_binary_ops,
 };
 
-void gpy_obj_integer_mod_init( gpy_vector_t * vec )
+void gpy_obj_integer_mod_init( gpy_vector_t * const vec )
 {
   gpy_vec_push( vec, &integer_obj );
 }

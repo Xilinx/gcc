@@ -81,8 +81,8 @@ am__installdirs = "$(DESTDIR)$(libdir)" \
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libgpython_la_LIBADD =
 am_libgpython_la_OBJECTS = libgpython_la-py_runtime.lo \
-	libgpython_la-py_garbage.lo libgpython_la-obj_integer.lo \
-	libgpython_la-backend.lo
+	libgpython_la-py_garbage.lo libgpython_la-vectors.lo \
+	libgpython_la-obj_integer.lo libgpython_la-backend.lo
 libgpython_la_OBJECTS = $(am_libgpython_la_OBJECTS)
 libgpython_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libgpython_la_CFLAGS) \
@@ -252,6 +252,7 @@ libgpython_la_CFLAGS = -DPYHON -DSHARED
 libgpython_la_LDFLAGS = -release 0.0.1
 libgpython_la_SOURCES = runtime/py_runtime.c \
 runtime/py_garbage.c \
+runtime/vectors.c \
 runtime/obj_integer.c \
 runtime/backend.c
 
@@ -355,6 +356,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-obj_integer.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-py_garbage.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-py_runtime.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-vectors.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -390,6 +392,13 @@ libgpython_la-py_garbage.lo: runtime/py_garbage.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/py_garbage.c' object='libgpython_la-py_garbage.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -c -o libgpython_la-py_garbage.lo `test -f 'runtime/py_garbage.c' || echo '$(srcdir)/'`runtime/py_garbage.c
+
+libgpython_la-vectors.lo: runtime/vectors.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -MT libgpython_la-vectors.lo -MD -MP -MF $(DEPDIR)/libgpython_la-vectors.Tpo -c -o libgpython_la-vectors.lo `test -f 'runtime/vectors.c' || echo '$(srcdir)/'`runtime/vectors.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libgpython_la-vectors.Tpo $(DEPDIR)/libgpython_la-vectors.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/vectors.c' object='libgpython_la-vectors.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -c -o libgpython_la-vectors.lo `test -f 'runtime/vectors.c' || echo '$(srcdir)/'`runtime/vectors.c
 
 libgpython_la-obj_integer.lo: runtime/obj_integer.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -MT libgpython_la-obj_integer.lo -MD -MP -MF $(DEPDIR)/libgpython_la-obj_integer.Tpo -c -o libgpython_la-obj_integer.lo `test -f 'runtime/obj_integer.c' || echo '$(srcdir)/'`runtime/obj_integer.c

@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include <stdbool.h>
 
 #include <gpython/gpython.h>
+#include <gpython/objects.h>
 #include <gpython/vectors.h>
 #include <gpython/garbage.h>
 
