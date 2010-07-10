@@ -1,5 +1,10 @@
 
 2010-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{added tbad-3.melt which should fail bud don't}}
+	* testsuite/melt/tfullgc.melt: Updated comment.
+	* testsuite/melt/tbad-3.melt: New file.
+
+2010-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{full GC works again!}}
 	* melt-runtime.c (melt_debuggc_eprintf): Added macro.
 	(melt_fullperiod): Declared static variable.

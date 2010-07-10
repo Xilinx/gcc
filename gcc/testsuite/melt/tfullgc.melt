@@ -2,8 +2,9 @@
 ;; file tfullgc.melt
 
 
-;; test allocation of a lot of MELT values and then explicit full garbage collection.
-;; this apparently crashes MELT rev.161455
+;; test allocation of a lot of MELT values and then explicit full
+;; garbage collection.  this apparently crashes MELT rev.161455; bug
+;; repaired in MELT rev.162033.
 
 #| run in buildir/gcc, 
  ./cc1 -fmelt-mode=rundebug -fmelt-module-path=.:/tmp -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt:$GCCMELTSOURCE/gcc/melt/generated:/tmp -fmelt-module-makefile=$GCCMELTSOURCE/gcc/melt-module.mk \
