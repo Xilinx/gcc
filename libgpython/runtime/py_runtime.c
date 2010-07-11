@@ -90,19 +90,46 @@ gpy_rr_eval_expression( gpy_object_state_t * x,
 			gpy_opcode_t op )
 {
   debug("within evaluate epxression!\n");
+  char * op_str = NULL;
+  gpy_object_state_t * retval = NULL;
 
-  x->definition->print_hook( x->self, stdout, false );
-  switch( op )
+  if( x->definition->binary_protocol->init )
     {
-    case OP_BIN_ADDITION:
-      fprintf( stdout, " + " );
-      break;
+      binary_op o = NULL;
+      switch( op )
+	{
+	case OP_BIN_ADDITION:
+	  o = x->definition->binary_protocol->n_add;
+	  op_str = " + ";
+	  break;
 
-    default:
-      fatal("unhandled binary operation <%x>!\n", op );
-      break;
+	default:
+	  fatal("unhandled binary operation <%x>!\n", op );
+	  break;
+	}
+
+#ifdef DEBUG
+      x->definition->print_hook( x->self, stdout, false );
+      fprintf(stdout, "%s", op_str );
+      y->definition->print_hook( y->self, stdout, true );
+#endif
+      
+      retval = o( x,y );
+      
+#ifdef DEBUG
+      if( retval )
+	{
+	  fprintf(stdout, "evaluated to: ");
+	  retval->definition->print_hook( retval->self );
+	  fprintf(stdout, "!\n");
+	}
+#endif
     }
-  y->definition->print_hook( y->self, stdout, true );
+  else
+    {
+      fatal("object type <%s> has no binary protocol!\n",
+	    x->identifier );
+    }
  
-  return NULL;
+  return retval;
 }
