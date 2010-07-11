@@ -17,27 +17,6 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef __GCC_OBJECTS_H__
 #define __GCC_OBJECTS_H__
 
-typedef struct gpy_rr_object_state_t {
-  char * obj_t_ident;
-  signed long ref_count;
-  void * self;
-} gpy_object_state_t ;
-
-#define Gpy_Object_State_Init( x )				\
-  x = gpy_malloc( sizeof(struct gpy_rr_object_state_t) );	\
-  debug("object created at <%p>!\n", (void*)x );		\
-  x->obj_t_ident = NULL; x->ref_count = 0;			\
-  x->self = NULL;
-
-#define Gpy_Object_State_Init_Ctx( x,y )			\
-  Gpy_Object_State_Init( x );					\
-  gpy_vec_push( ((gpy_context_t*)(y->vector[y->length-1]))->symbols, x );
-
-#define NULL_OBJ_STATE  NULL
-
-typedef gpy_object_state_t * (*binary_op)( gpy_object_state_t *,
-					   gpy_object_state_t * );
-
 enum GPY_LIT_T { TYPE_INTEGER, TYPE_STRING, TYPE_NONE };
 
 typedef struct gpy_rr_literal_t {
@@ -53,6 +32,16 @@ typedef struct gpy_rr_literal_t {
   x = gpy_malloc( sizeof(gpy_literal_t) );	\
   x->type = TYPE_NONE;				\
   x->literal.integer = 0;
+
+typedef struct gpy_rr_object_state_t {
+  char * obj_t_ident;
+  signed long ref_count;
+  void * self;
+  struct gpy_type_obj_def_t * definition;
+} gpy_object_state_t ;
+
+typedef gpy_object_state_t * (*binary_op)( gpy_object_state_t *,
+					   gpy_object_state_t * );
 
 typedef struct gpy_number_prot_t
 {
@@ -83,6 +72,19 @@ typedef struct gpy_type_obj_def_t {
   void (*print_hook)( void * , FILE * , bool );
   const struct gpy_number_prot_t * binary_protocol;
 } gpy_type_obj_def_t ;
+
+
+#define Gpy_Object_State_Init( x )				\
+  x = gpy_malloc( sizeof(struct gpy_rr_object_state_t) );	\
+  debug("object created at <%p>!\n", (void*)x );		\
+  x->obj_t_ident = NULL; x->ref_count = 0;			\
+  x->self = NULL; x->definition = NULL;
+
+#define Gpy_Object_State_Init_Ctx( x,y )			\
+  Gpy_Object_State_Init( x );					\
+  gpy_vec_push( ((gpy_context_t*)(y->vector[y->length-1]))->symbols, x );
+
+#define NULL_OBJ_STATE  NULL
 
 extern void gpy_rr_init_runtime( void );
 extern gpy_object_state_t * gpy_rr_fold_integer( int );

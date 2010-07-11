@@ -42,8 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
-static tree void_ptr_node = build_pointer_type( void_type_node );
-
 tree gpy_process_assign( gpy_symbol_obj ** op_a,
 			 gpy_symbol_obj ** op_b )
 {
@@ -70,7 +68,7 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 	  
 	  decl = build_decl( opa->loc, VAR_DECL,
 			     get_identifier( opa->op_a.string ),
-			     void_ptr_node );
+			     build_pointer_type( void_type_node ) );
 	  
 	  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x, VAR )) )
 	    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );
@@ -84,7 +82,8 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
       printf("RHS Tree!\n");
       debug_tree( rhs_tree );
       
-      retval = build2( MODIFY_EXPR, void_ptr_node,
+      retval = build2( MODIFY_EXPR,
+		       build_pointer_type( void_type_node ),
 		       decl, rhs_tree );
       debug("built assignment for <%s>!\n", opa->op_a.string );
     }
@@ -107,13 +106,19 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
     return NULL;
   }
   
+  tree fntype = build_function_type(void_type_node, void_list_node);
+  tree gpy_eval_expr_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
+			    get_identifier(""),
+			    fntype );
+
   t1 = gpy_process_expression( opa );
   t2 = gpy_process_expression( opb );
 
   switch( operation )
     {
     case OP_BIN_ADDITION:
-      retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );
+      /*retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );*/
+      retval = build_call_expr( gpy_eval_expr_decl, 2, t1, t2 );
       break;
 
     default:

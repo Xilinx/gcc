@@ -89,5 +89,20 @@ gpy_rr_eval_expression( gpy_object_state_t * x,
 			gpy_object_state_t * y,
 			gpy_opcode_t op )
 {
+  debug("within evaluate epxression!\n");
+
+  x->definition->print_hook( x->self, stdout, false );
+  switch( op )
+    {
+    case OP_BIN_ADDITION:
+      fprintf( stdout, " + " );
+      break;
+
+    default:
+      fatal("unhandled binary operation <%x>!\n", op );
+      break;
+    }
+  y->definition->print_hook( y->self, stdout, true );
+ 
   return NULL;
 }
