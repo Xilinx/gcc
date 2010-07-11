@@ -48,7 +48,7 @@ along with GCC; see the file COPYING3.  If not see
 # define __gpy_nonnull
 #endif
 
-typedef unsigned short gpy_opcode_t;
+typedef unsigned int gpy_opcode_t;
 
 #define OP_BIN_ACCESSOR        0xF001
 #define OP_BIN_ADDITION        0xF002

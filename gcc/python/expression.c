@@ -117,8 +117,10 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
   switch( operation )
     {
     case OP_BIN_ADDITION:
-      /*retval = build2( PLUS_EXPR, integer_type_node, t1, t2 );*/
-      retval = build_call_expr( gpy_eval_expr_decl, 2, t1, t2 );
+      retval = build_call_expr( gpy_eval_expr_decl, 3, t1, t2,
+				build_int_cst( integer_type_node,
+					       OP_BIN_ADDITION )
+				);
       break;
 
     default:

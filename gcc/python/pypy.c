@@ -185,10 +185,18 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
   tree retval = NULL;
   if( sym->type == SYMBOL_PRIMARY )
     {
+      tree fntype = build_function_type(void_type_node, void_list_node);
+      tree gpy_eval_expr_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
+					    get_identifier("gpy_rr_fold_integer"),
+					    fntype );
+
       debug("tree primary!\n");
       gcc_assert( sym->op_a_t == TYPE_INTEGER );
 
-      retval = build_int_cst( integer_type_node, sym->op_a.integer );
+      retval = build_call_expr( gpy_eval_expr_decl, 1
+				build_int_cst( integer_type_node,
+					       sym->op_a.integer )
+				);
     }
   else if( sym->type == SYMBOL_REFERENCE )
     {
@@ -201,7 +209,8 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym )
 	}
       else
 	{
-	  error("undeclared symbol reference <%s>!\n", sym->op_a.string );
+	  error("undeclared symbol reference <%s>!\n",
+		sym->op_a.string );
 	}
     }
   else
