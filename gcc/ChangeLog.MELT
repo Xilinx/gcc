@@ -1,4 +1,18 @@
 
+2010-07-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{preparing for merge with better 4.6 trunk with typed GGC}}
+	* melt-make.mk (warmelt-*0.so, warmelt-first.1.c): added
+	dependencies on melt-runtime.h & melt-runtime.c.
+
+	* melt-runtime.h: improved typos, and removed mapgimpleseqnodes
+	useless dirt like u_mapgimpleseqnodes...
+
+	* melt-runtime.c (ggc_alloc_cleared_melt*)
+	(ggc_alloc_cleared_vec_*melt*): added macros for 4.5 compatibility
+	& future 4.6 compatibility.
+	(melt_forwarded_copy): Use them.
+
+
 2010-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tbad-3.melt correctly failing}}
 	* melt/warmelt-base.melt: Added string!=

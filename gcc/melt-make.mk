@@ -76,12 +76,13 @@ vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 MELT_MAKE_MODULE=$(MAKE) -f $(melt_make_module_makefile) $(MELT_MAKE_MODULE_XTRAMAKEFLAGS) VPATH=$(VPATH):.
 
 warmelt-%.0.so: warmelt-%.0.c $(melt_make_module_makefile) melt-predef.h melt-run.h \
-                melt-runtime.h melt-runtime.c cc1$(exeext)
+                melt-runtime.h melt-runtime.c melt-runtime.o cc1$(exeext)
 	echo in melt-make.mk melt_cflags= $(melt_cflags) 
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
-warmelt-%.0.d.so: warmelt-%.0.c $(melt_make_module_makefile) melt-predef.h  melt-run.h cc1$(exeext)
+warmelt-%.0.d.so: warmelt-%.0.c $(melt_make_module_makefile) melt-predef.h  melt-run.h \
+                melt-runtime.h melt-runtime.c melt-runtime.o cc1$(exeext)
 	$(MELT_MAKE_MODULE) melt_module_dynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$(shell basename $@ .d.so).so
@@ -239,7 +240,7 @@ empty-file-for-melt.c:
 	date +"/* empty-file-for-melt.c %c */" > $@-tmp
 	$(melt_make_move) $@-tmp $@
 
-warmelt-first.1.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(melt_make_gencdeps)  $(WARMELT_BASE0SO) empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+warmelt-first.1.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(melt_make_gencdeps)  $(WARMELT_BASE0SO) empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h melt-runtime.c cc1$(exeext)
 	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0ROW) \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c

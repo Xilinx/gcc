@@ -100,7 +100,7 @@ extern int flag_melt_debug;
 #define debugebacktrace(Msg,Depth)  do{if (flag_melt_debug){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d: %s **backtrace** ",		\
-              basename(__FILE__), __LINE__, (Msg));	\
+              basename(__FILE__), __LINE__, (Msg));		\
       melt_dbgbacktrace((Depth)); }} while(0)
 /* the maximal debug depth - should be a parameter */
 #define MELTDBG_MAXDEPTH 7
@@ -337,7 +337,6 @@ enum meltobmag_en    {
   MELTOBMAG_EDGE,
   MELTOBMAG_GIMPLE,
   MELTOBMAG_GIMPLESEQ,
-  MELTOBMAG_GIMPLESEQNODE,
   MELTOBMAG_INT,
   MELTOBMAG_LIST,
   MELTOBMAG_LOOP,
@@ -345,7 +344,6 @@ enum meltobmag_en    {
   MELTOBMAG_MAPBITMAPS,
   MELTOBMAG_MAPEDGES,
   MELTOBMAG_MAPGIMPLES,
-  MELTOBMAG_MAPGIMPLESEQNODES,
   MELTOBMAG_MAPGIMPLESEQS,
   MELTOBMAG_MAPLOOPS,
   MELTOBMAG_MAPOBJECTS,
@@ -718,7 +716,7 @@ meltstring_st
   char val[FLEXIBLE_DIM];	/* null terminated */
 };
 
-#define MELT_STRING_STRUCT(N) {		\
+#define MELT_STRING_STRUCT(N) {			\
   meltobject_ptr_t discr;			\
   char val[(N)+1];	/* null terminated */	\
   long _gap; }
@@ -1137,7 +1135,6 @@ melt_un
   struct melttree_st GTY ((tag ("MELTOBMAG_TREE"))) u_tree;
   struct meltgimple_st GTY ((tag ("MELTOBMAG_GIMPLE"))) u_gimple;
   struct meltgimpleseq_st GTY ((tag ("MELTOBMAG_GIMPLESEQ"))) u_gimpleseq;
-  struct meltgimpleseq_st GTY ((tag ("MELTOBMAG_GIMPLESEQNODE"))) u_gimpleseqnode;
   struct meltbasicblock_st GTY ((tag ("MELTOBMAG_BASICBLOCK"))) u_basicblock;
   struct meltedge_st GTY ((tag ("MELTOBMAG_EDGE"))) u_edge;
   struct meltloop_st GTY ((tag ("MELTOBMAG_LOOP"))) u_loop;
@@ -1149,7 +1146,6 @@ melt_un
   struct meltmaptrees_st GTY ((tag ("MELTOBMAG_MAPTREES"))) u_maptrees;
   struct meltmapgimples_st GTY ((tag ("MELTOBMAG_MAPGIMPLES"))) u_mapgimples;
   struct meltmapgimpleseqs_st GTY ((tag ("MELTOBMAG_MAPGIMPLESEQS"))) u_mapgimpleseqs;
-  struct meltmapgimpleseqs_st GTY ((tag ("MELTOBMAG_MAPGIMPLESEQNODES"))) u_mapgimpleseqnodes;
   struct meltmapbasicblocks_st GTY ((tag ("MELTOBMAG_MAPBASICBLOCKS"))) u_mapbasicblocks;
   struct meltmapedges_st GTY ((tag ("MELTOBMAG_MAPEDGES"))) u_mapedges;
   struct meltmaploops_st GTY ((tag ("MELTOBMAG_MAPLOOPS"))) u_maploops;
