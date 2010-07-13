@@ -53,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "df.h"
 #include "diagnostic.h"
 #include "ssaexpand.h"
+#include "target-globals.h"
 
 /* Decide whether a function's arguments should be processed
    from first to last or from last to first.
@@ -157,17 +158,6 @@ static void emit_single_push_insn (enum machine_mode, rtx, tree);
 static void do_tablejump (rtx, enum machine_mode, rtx, rtx, rtx);
 static rtx const_vector_from_tree (tree);
 static void write_complex_part (rtx, rtx, bool);
-
-/* Record for each mode whether we can move a register directly to or
-   from an object of that mode in memory.  If we can't, we won't try
-   to use that mode directly when accessing a field of that mode.  */
-
-static char direct_load[NUM_MACHINE_MODES];
-static char direct_store[NUM_MACHINE_MODES];
-
-/* Record for each mode whether we can float-extend from memory.  */
-
-static bool float_extend_from_mem[NUM_MACHINE_MODES][NUM_MACHINE_MODES];
 
 /* This macro is used to determine whether move_by_pieces should be called
    to perform a structure copy.  */
@@ -8777,13 +8767,11 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  base = build2 (BIT_AND_EXPR, TREE_TYPE (base),
 			 gimple_assign_rhs1 (def_stmt),
 			 gimple_assign_rhs2 (def_stmt));
-	op0 = expand_expr (base, NULL_RTX, address_mode, EXPAND_NORMAL);
 	if (!integer_zerop (TREE_OPERAND (exp, 1)))
-	  {
-	    rtx off;
-	    off = immed_double_int_const (mem_ref_offset (exp), address_mode);
-	    op0 = simplify_gen_binary (PLUS, address_mode, op0, off);
-	  }
+	  base = build2 (POINTER_PLUS_EXPR, TREE_TYPE (base),
+			 base, double_int_to_tree (sizetype,
+						   mem_ref_offset (exp)));
+	op0 = expand_expr (base, NULL_RTX, address_mode, EXPAND_SUM);
 	op0 = memory_address_addr_space (mode, op0, as);
 	temp = gen_rtx_MEM (mode, op0);
 	set_mem_attributes (temp, exp, 0);

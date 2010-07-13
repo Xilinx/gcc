@@ -42,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "basic-block.h"
 #include "libfuncs.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "sched-int.h"
 #include "timevar.h"
@@ -200,6 +201,7 @@ static rtx gen_movdi_x (rtx, rtx, rtx);
 static rtx gen_fr_spill_x (rtx, rtx, rtx);
 static rtx gen_fr_restore_x (rtx, rtx, rtx);
 
+static void ia64_option_override (void);
 static bool ia64_can_eliminate (const int, const int);
 static enum machine_mode hfa_element_mode (const_tree, bool);
 static void ia64_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode,
@@ -352,6 +354,9 @@ static const struct attribute_spec ia64_attribute_table[] =
 #define TARGET_ASM_UNALIGNED_DI_OP "\tdata8.ua\t"
 #undef TARGET_ASM_INTEGER
 #define TARGET_ASM_INTEGER ia64_assemble_integer
+
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE ia64_option_override
 
 #undef TARGET_ASM_FUNCTION_PROLOGUE
 #define TARGET_ASM_FUNCTION_PROLOGUE ia64_output_function_prologue
@@ -5563,10 +5568,10 @@ ia64_handle_option (size_t code, const char *arg, int value)
     }
 }
 
-/* Implement OVERRIDE_OPTIONS.  */
+/* Implement TARGET_OPTION_OVERRIDE.  */
 
-void
-ia64_override_options (void)
+static void
+ia64_option_override (void)
 {
   if (TARGET_AUTO_PIC)
     target_flags |= MASK_CONST_GP;

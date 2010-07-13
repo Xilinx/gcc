@@ -842,6 +842,25 @@ pointer.  If this macro is defined, GCC will turn on the
 @option{-fomit-frame-pointer} option whenever @option{-O} is specified.
 @end defmac
 
+@defmac SWITCHABLE_TARGET
+Some targets need to switch between substantially different subtargets
+during compilation.  For example, the MIPS target has one subtarget for
+the traditional MIPS architecture and another for MIPS16.  Source code
+can switch between these two subarchitectures using the @code{mips16}
+and @code{nomips16} attributes.
+
+Such subtargets can differ in things like the set of available
+registers, the set of available instructions, the costs of various
+operations, and so on.  GCC caches a lot of this type of information
+in global variables, and recomputing them for each subtarget takes a
+significant amount of time.  The compiler therefore provides a facility
+for maintaining several versions of the global variables and quickly
+switching between them; see @file{target-globals.h} for details.
+
+Define this macro to 1 if your target needs this facility.  The default
+is 0.
+@end defmac
+
 @node Per-Function Data
 @section Defining data structures for per-function information.
 @cindex per-function data
@@ -7660,6 +7679,19 @@ assembler syntax for defining the name, and a newline.  A default
 definition of this macro is provided which is correct for most systems.
 @end defmac
 
+@defmac ASM_OUTPUT_FUNCTION_LABEL (@var{stream}, @var{name}, @var{decl})
+A C statement (sans semicolon) to output to the stdio stream
+@var{stream} the assembler definition of a label named @var{name} of
+a function.
+Use the expression @code{assemble_name (@var{stream}, @var{name})} to
+output the name itself; before and after that, output the additional
+assembler syntax for defining the name, and a newline.  A default
+definition of this macro is provided which is correct for most systems.
+
+If this macro is not defined, then the function name is defined in the
+usual manner as a label (by means of @code{ASM_OUTPUT_LABEL}).
+@end defmac
+
 @findex assemble_name_raw
 @defmac ASM_OUTPUT_INTERNAL_LABEL (@var{stream}, @var{name})
 Identical to @code{ASM_OUTPUT_LABEL}, except that @var{name} is known
@@ -7743,11 +7775,11 @@ A C statement (sans semicolon) to output to the stdio stream
 @var{stream} any text necessary for declaring the name @var{name} of a
 function which is being defined.  This macro is responsible for
 outputting the label definition (perhaps using
-@code{ASM_OUTPUT_LABEL}).  The argument @var{decl} is the
+@code{ASM_OUTPUT_FUNCTION_LABEL}).  The argument @var{decl} is the
 @code{FUNCTION_DECL} tree node representing the function.
 
 If this macro is not defined, then the function name is defined in the
-usual manner as a label (by means of @code{ASM_OUTPUT_LABEL}).
+usual manner as a label (by means of @code{ASM_OUTPUT_FUNCTION_LABEL}).
 
 You may wish to use @code{ASM_OUTPUT_TYPE_DIRECTIVE} in the definition
 of this macro.
@@ -9276,6 +9308,8 @@ Define this macro to be a nonzero value if the assembler can generate Dwarf 2
 line debug info sections.  This will result in much more compact line number
 tables, and hence is desirable if it works.
 @end defmac
+
+@hook TARGET_WANT_DEBUG_PUB_SECTIONS
 
 @defmac ASM_OUTPUT_DWARF_DELTA (@var{stream}, @var{size}, @var{label1}, @var{label2})
 A C statement to issue assembly directives that create a difference

@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 
 /* Include insn-config.h before expr.h so that HAVE_conditional_move
@@ -44,25 +45,15 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "target.h"
 
-/* Each optab contains info on how this target machine
-   can perform a particular operation
-   for all sizes and kinds of operands.
+struct target_optabs default_target_optabs;
+struct target_libfuncs default_target_libfuncs;
+#if SWITCHABLE_TARGET
+struct target_optabs *this_target_optabs = &default_target_optabs;
+struct target_libfuncs *this_target_libfuncs = &default_target_libfuncs;
+#endif
 
-   The operation to be performed is often specified
-   by passing one of these optabs as an argument.
-
-   See expr.h for documentation of these optabs.  */
-
-struct optab_d optab_table[OTI_MAX];
-
-rtx libfunc_table[LTI_MAX];
-
-/* Tables of patterns for converting one mode to another.  */
-struct convert_optab_d convert_optab_table[COI_MAX];
-
-/* Tables of patterns for direct optabs (i.e. those which cannot be
-   implemented using a libcall).  */
-struct direct_optab_d direct_optab_table[(int) DOI_MAX];
+#define libfunc_hash \
+  (this_target_libfuncs->x_libfunc_hash)
 
 /* Contains the optab used for each rtx code.  */
 optab code_to_optab[NUM_RTX_CODE + 1];
@@ -81,19 +72,7 @@ void debug_optab_libfuncs (void);
 #define DECIMAL_PREFIX "dpd_"
 #endif
 
-
-/* Info about libfunc.  We use same hashtable for normal optabs and conversion
-   optab.  In the first case mode2 is unused.  */
-struct GTY(()) libfunc_entry {
-  size_t optab;
-  enum machine_mode mode1, mode2;
-  rtx libfunc;
-};
-
-/* Hash table used to convert declarations into nodes.  */
-static GTY((param_is (struct libfunc_entry))) htab_t libfunc_hash;
-
-/* Used for attribute_hash.  */
+/* Used for libfunc_hash.  */
 
 static hashval_t
 hash_libfunc (const void *p)
@@ -104,7 +83,7 @@ hash_libfunc (const void *p)
 	  ^ e->optab);
 }
 
-/* Used for optab_hash.  */
+/* Used for libfunc_hash.  */
 
 static int
 eq_libfunc (const void *p, const void *q)
@@ -6136,14 +6115,15 @@ set_conv_libfunc (convert_optab optable, enum machine_mode tmode,
 void
 init_optabs (void)
 {
-  static bool reinit;
-
-  libfunc_hash = htab_create_ggc (10, hash_libfunc, eq_libfunc, NULL);
-
-  /* We statically initialize the insn_codes with the equivalent of
-     CODE_FOR_nothing.  Repeat the process if reinitialising.  */
-  if (reinit)
-    init_insn_codes ();
+  if (libfunc_hash)
+    {
+      htab_empty (libfunc_hash);
+      /* We statically initialize the insn_codes with the equivalent of
+	 CODE_FOR_nothing.  Repeat the process if reinitialising.  */
+      init_insn_codes ();
+    }
+  else
+    libfunc_hash = htab_create_ggc (10, hash_libfunc, eq_libfunc, NULL);
 
   init_optab (add_optab, PLUS);
   init_optabv (addv_optab, PLUS);
@@ -6584,8 +6564,6 @@ init_optabs (void)
 
   /* Allow the target to add more libcalls or rename some, etc.  */
   targetm.init_libfuncs ();
-
-  reinit = true;
 }
 
 /* Print information about the current contents of the optabs on

@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hard-reg-set.h"
 #include "regs.h"
 #include "output.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "hashtab.h"
 #include "ggc.h"
@@ -1864,7 +1865,7 @@ assemble_start_function (tree decl, const char *fnname)
   ASM_DECLARE_FUNCTION_NAME (asm_out_file, fnname, current_function_decl);
 #else
   /* Standard thing is just output label for the function.  */
-  ASM_OUTPUT_LABEL (asm_out_file, fnname);
+  ASM_OUTPUT_FUNCTION_LABEL (asm_out_file, fnname, current_function_decl);
 #endif /* ASM_DECLARE_FUNCTION_NAME */
 }
 

@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "tree-dump.h"
 #include "tree-pass.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "except.h"
 #include "cfgloop.h"
@@ -2609,7 +2610,8 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 
     case MEM_REF:
       x = TREE_OPERAND (t, 0);
-      if (!is_gimple_mem_ref_addr (x))
+      if (!POINTER_TYPE_P (TREE_TYPE (x))
+	  || !is_gimple_mem_ref_addr (x))
 	{
 	  error ("Invalid first operand of MEM_REF.");
 	  return x;
@@ -3114,7 +3116,10 @@ verify_gimple_call (gimple stmt)
   for (i = 0; i < gimple_call_num_args (stmt); ++i)
     {
       tree arg = gimple_call_arg (stmt, i);
-      if (!is_gimple_operand (arg))
+      if ((is_gimple_reg_type (TREE_TYPE (arg))
+	   && !is_gimple_val (arg))
+	  || (!is_gimple_reg_type (TREE_TYPE (arg))
+	      && !is_gimple_lvalue (arg)))
 	{
 	  error ("invalid argument to gimple call");
 	  debug_generic_expr (arg);

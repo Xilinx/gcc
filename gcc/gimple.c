@@ -1383,7 +1383,10 @@ walk_gimple_op (gimple stmt, walk_tree_fn callback_op,
 
     case GIMPLE_CALL:
       if (wi)
-	wi->is_lhs = false;
+	{
+	  wi->is_lhs = false;
+	  wi->val_only = true;
+	}
 
       ret = walk_tree (gimple_call_chain_ptr (stmt), callback_op, wi, pset);
       if (ret)
@@ -1395,21 +1398,32 @@ walk_gimple_op (gimple stmt, walk_tree_fn callback_op,
 
       for (i = 0; i < gimple_call_num_args (stmt); i++)
 	{
+	  if (wi)
+	    wi->val_only = is_gimple_reg_type (gimple_call_arg (stmt, i));
 	  ret = walk_tree (gimple_call_arg_ptr (stmt, i), callback_op, wi,
 			   pset);
 	  if (ret)
 	    return ret;
 	}
 
-      if (wi)
-	wi->is_lhs = true;
+      if (gimple_call_lhs (stmt))
+	{
+	  if (wi)
+	    {
+	      wi->is_lhs = true;
+	      wi->val_only = is_gimple_reg_type (gimple_call_lhs (stmt));
+	    }
 
-      ret = walk_tree (gimple_call_lhs_ptr (stmt), callback_op, wi, pset);
-      if (ret)
-	return ret;
+	  ret = walk_tree (gimple_call_lhs_ptr (stmt), callback_op, wi, pset);
+	  if (ret)
+	    return ret;
+	}
 
       if (wi)
-	wi->is_lhs = false;
+	{
+	  wi->is_lhs = false;
+	  wi->val_only = true;
+	}
       break;
 
     case GIMPLE_CATCH:
@@ -2538,15 +2552,6 @@ const unsigned char gimple_rhs_class_table[] = {
 
 /* Validation of GIMPLE expressions.  */
 
-/* Return true if OP is an acceptable tree node to be used as a GIMPLE
-   operand.  */
-
-bool
-is_gimple_operand (const_tree op)
-{
-  return op && get_gimple_rhs_class (TREE_CODE (op)) == GIMPLE_SINGLE_RHS;
-}
-
 /* Returns true iff T is a valid RHS for an assignment to a renamed
    user -- or front-end generated artificial -- variable.  */
 
@@ -3318,6 +3323,65 @@ gimple_compare_field_offset (tree f1, tree f2)
   return false;
 }
 
+typedef struct type_fixup_s {
+    tree context;
+    tree *incomplete;
+    tree complete;
+} type_fixup;
+DEF_VEC_O(type_fixup);
+DEF_VEC_ALLOC_O(type_fixup,heap);
+
+static VEC(type_fixup, heap) *gimple_register_type_fixups = NULL;
+
+static void
+gimple_queue_type_fixup (tree context, tree *incomplete, tree complete)
+{
+  type_fixup f;
+  f.context = context;
+  f.incomplete = incomplete;
+  f.complete = complete;
+  VEC_safe_push (type_fixup, heap, gimple_register_type_fixups, &f);
+}
+
+/* If the type *T1P and the type *T2P are a complete and an incomplete
+   variant of the same type return true and queue a fixup for the
+   incomplete one and its CONTEXT.  Return false otherwise.  */
+
+static bool
+gimple_fixup_complete_and_incomplete_subtype_p (tree context1, tree *t1p,
+						tree context2, tree *t2p)
+{
+  tree t1 = *t1p;
+  tree t2 = *t2p;
+
+  /* If one pointer points to an incomplete type variant of
+     the other pointed-to type they are the same.  */
+  if (TREE_CODE (t1) == TREE_CODE (t2)
+      && RECORD_OR_UNION_TYPE_P (t1)
+      && (!COMPLETE_TYPE_P (t1)
+	  || !COMPLETE_TYPE_P (t2))
+      && TYPE_QUALS (t1) == TYPE_QUALS (t2)
+      && compare_type_names_p (TYPE_MAIN_VARIANT (t1),
+			       TYPE_MAIN_VARIANT (t2), true))
+    {
+      /* Replace the pointed-to incomplete type with the complete one.
+	 ???  This simple name-based merging causes at least some
+	 of the ICEs in canonicalizing FIELD_DECLs during stmt
+	 read.  For example in GCC we have two different struct deps
+	 and we mismatch the use in struct cpp_reader in sched-int.h
+	 vs. mkdeps.c.  Of course the whole exercise is for TBAA
+	 with structs which contain pointers to incomplete types
+	 in one unit and to complete ones in another.  So we
+	 probably should merge these types only with more context.  */
+      if (COMPLETE_TYPE_P (t2))
+	gimple_queue_type_fixup (context1, t1p, t2);
+      else
+	gimple_queue_type_fixup (context2, t2p, t1);
+      return true;
+    }
+  return false;
+}
+
 /* Return 1 iff T1 and T2 are structurally identical.
    Otherwise, return 0.  */
 
@@ -3482,33 +3546,35 @@ gimple_types_compatible_p (tree t1, tree t2)
     case FUNCTION_TYPE:
       /* Function types are the same if the return type and arguments types
 	 are the same.  */
-      if (!gimple_types_compatible_p (TREE_TYPE (t1), TREE_TYPE (t2)))
+      if (!gimple_fixup_complete_and_incomplete_subtype_p
+	     (t1, &TREE_TYPE (t1), t2, &TREE_TYPE (t2))
+	  && !gimple_types_compatible_p (TREE_TYPE (t1), TREE_TYPE (t2)))
 	goto different_types;
+
+      if (!targetm.comp_type_attributes (t1, t2))
+	goto different_types;
+
+      if (TYPE_ARG_TYPES (t1) == TYPE_ARG_TYPES (t2))
+	goto same_types;
       else
 	{
-	  if (!targetm.comp_type_attributes (t1, t2))
+	  tree parms1, parms2;
+
+	  for (parms1 = TYPE_ARG_TYPES (t1), parms2 = TYPE_ARG_TYPES (t2);
+	       parms1 && parms2;
+	       parms1 = TREE_CHAIN (parms1), parms2 = TREE_CHAIN (parms2))
+	    {
+	      if (!gimple_fixup_complete_and_incomplete_subtype_p
+		    (t1, &TREE_VALUE (parms1), t2, &TREE_VALUE (parms2))
+		  && !gimple_types_compatible_p (TREE_VALUE (parms1),
+						 TREE_VALUE (parms2)))
+		goto different_types;
+	    }
+
+	  if (parms1 || parms2)
 	    goto different_types;
 
-	  if (TYPE_ARG_TYPES (t1) == TYPE_ARG_TYPES (t2))
-	    goto same_types;
-	  else
-	    {
-	      tree parms1, parms2;
-
-	      for (parms1 = TYPE_ARG_TYPES (t1), parms2 = TYPE_ARG_TYPES (t2);
-		   parms1 && parms2;
-		   parms1 = TREE_CHAIN (parms1), parms2 = TREE_CHAIN (parms2))
-		{
-		  if (!gimple_types_compatible_p (TREE_VALUE (parms1),
-					     TREE_VALUE (parms2)))
-		    goto different_types;
-		}
-
-	      if (parms1 || parms2)
-		goto different_types;
-
-	      goto same_types;
-	    }
+	  goto same_types;
 	}
 
     case OFFSET_TYPE:
@@ -3531,30 +3597,9 @@ gimple_types_compatible_p (tree t1, tree t2)
 
 	/* If one pointer points to an incomplete type variant of
 	   the other pointed-to type they are the same.  */
-	if (TREE_CODE (TREE_TYPE (t1)) == TREE_CODE (TREE_TYPE (t2))
-	    && RECORD_OR_UNION_TYPE_P (TREE_TYPE (t1))
-	    && (!COMPLETE_TYPE_P (TREE_TYPE (t1))
-		|| !COMPLETE_TYPE_P (TREE_TYPE (t2)))
-	    && TYPE_QUALS (TREE_TYPE (t1)) == TYPE_QUALS (TREE_TYPE (t2))
-	    && compare_type_names_p (TYPE_MAIN_VARIANT (TREE_TYPE (t1)),
-				     TYPE_MAIN_VARIANT (TREE_TYPE (t2)), true))
-	  {
-	    /* Replace the pointed-to incomplete type with the
-	       complete one.
-	       ???  This simple name-based merging causes at least some
-	       of the ICEs in canonicalizing FIELD_DECLs during stmt
-	       read.  For example in GCC we have two different struct deps
-	       and we mismatch the use in struct cpp_reader in sched-int.h
-	       vs. mkdeps.c.  Of course the whole exercise is for TBAA
-	       with structs which contain pointers to incomplete types
-	       in one unit and to complete ones in another.  So we
-	       probably should merge these types only with more context.  */
-	    if (COMPLETE_TYPE_P (TREE_TYPE (t2)))
-	      TREE_TYPE (t1) = TREE_TYPE (t2);
-	    else
-	      TREE_TYPE (t2) = TREE_TYPE (t1);
-	    goto same_types;
-	  }
+	if (gimple_fixup_complete_and_incomplete_subtype_p
+	      (t1, &TREE_TYPE (t1), t2, &TREE_TYPE (t2)))
+	  goto same_types;
 
 	/* Otherwise, pointer and reference types are the same if the
 	   pointed-to types are the same.  */
@@ -3875,13 +3920,29 @@ iterative_hash_gimple_type (tree type, hashval_t val,
 	v = visit (TYPE_METHOD_BASETYPE (type), state, v,
 		   sccstack, sccstate, sccstate_obstack);
 
-      v = visit (TREE_TYPE (type), state, v,
-		 sccstack, sccstate, sccstate_obstack);
+      /* For result types allow mismatch in completeness.  */
+      if (RECORD_OR_UNION_TYPE_P (TREE_TYPE (type)))
+	{
+	  v = iterative_hash_hashval_t (TREE_CODE (TREE_TYPE (type)), v);
+	  v = iterative_hash_name
+	      (TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (type))), v);
+	}
+      else
+	v = visit (TREE_TYPE (type), state, v,
+		   sccstack, sccstate, sccstate_obstack);
 
       for (p = TYPE_ARG_TYPES (type), na = 0; p; p = TREE_CHAIN (p))
 	{
-	  v = visit (TREE_VALUE (p), state, v,
-		     sccstack, sccstate, sccstate_obstack);
+	  /* For argument types allow mismatch in completeness.  */
+	  if (RECORD_OR_UNION_TYPE_P (TREE_VALUE (p)))
+	    {
+	      v = iterative_hash_hashval_t (TREE_CODE (TREE_VALUE (p)), v);
+	      v = iterative_hash_name
+		  (TYPE_NAME (TYPE_MAIN_VARIANT (TREE_VALUE (p))), v);
+	    }
+	  else
+	    v = visit (TREE_VALUE (p), state, v,
+		       sccstack, sccstate, sccstate_obstack);
 	  na++;
 	}
 
@@ -4009,11 +4070,14 @@ gimple_register_type (tree t)
   if (gimple_types == NULL)
     gimple_types = htab_create (16381, gimple_type_hash, gimple_type_eq, 0);
 
+  gcc_assert (VEC_empty (type_fixup, gimple_register_type_fixups));
   slot = htab_find_slot (gimple_types, t, INSERT);
   if (*slot
       && *(tree *)slot != t)
     {
       tree new_type = (tree) *((tree *) slot);
+      unsigned i;
+      type_fixup *f;
 
       /* Do not merge types with different addressability.  */
       gcc_assert (TREE_ADDRESSABLE (t) == TREE_ADDRESSABLE (new_type));
@@ -4065,6 +4129,11 @@ gimple_register_type (tree t)
 
       TYPE_CANONICAL (t) = new_type;
       t = new_type;
+
+      for (i = 0;
+	   VEC_iterate (type_fixup, gimple_register_type_fixups, i, f); ++i)
+	if (f->context == t)
+	  *(f->incomplete) = f->complete;
     }
   else
     {
@@ -4072,6 +4141,7 @@ gimple_register_type (tree t)
       *slot = (void *) t;
     }
 
+  VEC_truncate (type_fixup, gimple_register_type_fixups, 0);
   return t;
 }
 

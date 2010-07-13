@@ -56,6 +56,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "expr.h"
 #include "output.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "function.h"
 #include "target.h"
@@ -313,16 +314,6 @@ hook_callee_copies_named (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 			  const_tree type ATTRIBUTE_UNUSED, bool named)
 {
   return named;
-}
-
-/* Emit any directives required to unwind this instruction.  */
-
-void
-default_unwind_emit (FILE * stream ATTRIBUTE_UNUSED,
-		     rtx insn ATTRIBUTE_UNUSED)
-{
-  /* Should never happen.  */
-  gcc_unreachable ();
 }
 
 /* Emit to STREAM the assembler syntax for insn operand X.  */

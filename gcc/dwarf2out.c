@@ -4928,10 +4928,28 @@ output_loc_operands (dw_loc_descr_ref loc)
       dw2_asm_output_data (2, val1->v.val_int, NULL);
       break;
     case DW_OP_const4u:
+      if (loc->dtprel)
+	{
+	  gcc_assert (targetm.asm_out.output_dwarf_dtprel);
+	  targetm.asm_out.output_dwarf_dtprel (asm_out_file, 4,
+					       val1->v.val_addr);
+	  fputc ('\n', asm_out_file);
+	  break;
+	}
+      /* FALLTHRU */
     case DW_OP_const4s:
       dw2_asm_output_data (4, val1->v.val_int, NULL);
       break;
     case DW_OP_const8u:
+      if (loc->dtprel)
+	{
+	  gcc_assert (targetm.asm_out.output_dwarf_dtprel);
+	  targetm.asm_out.output_dwarf_dtprel (asm_out_file, 8,
+					       val1->v.val_addr);
+	  fputc ('\n', asm_out_file);
+	  break;
+	}
+      /* FALLTHRU */
     case DW_OP_const8s:
       gcc_assert (HOST_BITS_PER_WIDE_INT >= 64);
       dw2_asm_output_data (8, val1->v.val_int, NULL);
@@ -6384,11 +6402,6 @@ static void gen_remaining_tmpl_value_param_die_attribute (void);
 #ifndef DEBUG_MACINFO_SECTION_LABEL
 #define DEBUG_MACINFO_SECTION_LABEL     "Ldebug_macinfo"
 #endif
-
-/* Mangled name attribute to use.  This used to be a vendor extension
-   until DWARF 4 standardized it.  */
-#define AT_linkage_name \
-  (dwarf_version >= 4 ? DW_AT_linkage_name : DW_AT_MIPS_linkage_name)
 
 
 /* Definitions of defaults for formats and names of various special
@@ -11238,17 +11251,20 @@ dwarf2_name (tree decl, int scope)
 static void
 add_pubname_string (const char *str, dw_die_ref die)
 {
-  pubname_entry e;
+  if (targetm.want_debug_pub_sections)
+    {
+      pubname_entry e;
 
-  e.die = die;
-  e.name = xstrdup (str);
-  VEC_safe_push (pubname_entry, gc, pubname_table, &e);
+      e.die = die;
+      e.name = xstrdup (str);
+      VEC_safe_push (pubname_entry, gc, pubname_table, &e);
+    }
 }
 
 static void
 add_pubname (tree decl, dw_die_ref die)
 {
-  if (TREE_PUBLIC (decl))
+  if (targetm.want_debug_pub_sections && TREE_PUBLIC (decl))
     {
       const char *name = dwarf2_name (decl, 1);
       if (name)
@@ -11262,6 +11278,9 @@ static void
 add_pubtype (tree decl, dw_die_ref die)
 {
   pubname_entry e;
+
+  if (!targetm.want_debug_pub_sections)
+    return;
 
   e.name = NULL;
   if ((TREE_PUBLIC (decl)
@@ -13585,7 +13604,11 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	  if (!targetm.have_tls || !targetm.asm_out.output_dwarf_dtprel)
 	    break;
 
-	  temp = new_loc_descr (DW_OP_addr, 0, 0);
+	  /* We used to emit DW_OP_addr here, but that's wrong, since
+	     DW_OP_addr should be relocated by the debug info consumer,
+	     while DW_OP_GNU_push_tls_address operand should not.  */
+	  temp = new_loc_descr (DWARF2_ADDR_SIZE == 4
+				? DW_OP_const4u : DW_OP_const8u, 0, 0);
 	  temp->dw_loc_oprnd1.val_class = dw_val_class_addr;
 	  temp->dw_loc_oprnd1.v.val_addr = rtl;
 	  temp->dtprel = true;
@@ -15070,10 +15093,13 @@ loc_list_from_tree (tree loc, int want_address)
 
 	       /* The way DW_OP_GNU_push_tls_address is specified, we
 	     	  can only look up addresses of objects in the current
-	     	  module.  */
+	     	  module.  We used DW_OP_addr as first op, but that's
+		  wrong, because DW_OP_addr is relocated by the debug
+		  info consumer, while DW_OP_GNU_push_tls_address
+		  operand shouldn't be.  */
 	      if (DECL_EXTERNAL (loc) && !targetm.binds_local_p (loc))
 		return 0;
-	      first_op = DW_OP_addr;
+	      first_op = DWARF2_ADDR_SIZE == 4 ? DW_OP_const4u : DW_OP_const8u;
 	      dtprel = true;
 	      second_op = DW_OP_GNU_push_tls_address;
 	    }
@@ -17378,6 +17404,25 @@ add_pure_or_virtual_attribute (dw_die_ref die, tree func_decl)
     }
 }
 
+/* Add a DW_AT_linkage_name or DW_AT_MIPS_linkage_name attribute for the
+   given decl.  This used to be a vendor extension until after DWARF 4
+   standardized it.  */
+
+static void
+add_linkage_attr (dw_die_ref die, tree decl)
+{
+  const char *name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+
+  /* Mimic what assemble_name_raw does with a leading '*'.  */
+  if (name[0] == '*')
+    name = &name[1];
+
+  if (dwarf_version >= 4)
+    add_AT_string (die, DW_AT_linkage_name, name);
+  else
+    add_AT_string (die, DW_AT_MIPS_linkage_name, name);
+}
+
 /* Add source coordinate attributes for the given decl.  */
 
 static void
@@ -17412,8 +17457,7 @@ add_linkage_name (dw_die_ref die, tree decl)
 	  deferred_asm_name = asm_name;
 	}
       else if (DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl))
-	add_AT_string (die, AT_linkage_name,
-		       IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
+	add_linkage_attr (die, decl);
     }
 }
 
@@ -22011,7 +22055,8 @@ move_linkage_attr (dw_die_ref die)
   unsigned ix = VEC_length (dw_attr_node, die->die_attr);
   dw_attr_node linkage = *VEC_index (dw_attr_node, die->die_attr, ix - 1);
 
-  gcc_assert (linkage.dw_attr == AT_linkage_name);
+  gcc_assert (linkage.dw_attr == DW_AT_linkage_name
+	      || linkage.dw_attr == DW_AT_MIPS_linkage_name);
 
   while (--ix > 0)
     {
@@ -22073,7 +22118,7 @@ static bool
 resolve_addr_in_expr (dw_loc_descr_ref loc)
 {
   for (; loc; loc = loc->dw_loc_next)
-    if ((loc->dw_loc_opc == DW_OP_addr
+    if (((loc->dw_loc_opc == DW_OP_addr || loc->dtprel)
 	 && resolve_one_addr (&loc->dw_loc_oprnd1.v.val_addr, NULL))
 	|| (loc->dw_loc_opc == DW_OP_implicit_value
 	    && loc->dw_loc_oprnd2.val_class == dw_val_class_addr
@@ -22244,8 +22289,7 @@ dwarf2out_finish (const char *filename)
       tree decl = node->created_for;
       if (DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl))
 	{
-	  add_AT_string (node->die, AT_linkage_name,
-			 IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
+	  add_linkage_attr (node->die, decl);
 	  move_linkage_attr (node->die);
 	}
     }

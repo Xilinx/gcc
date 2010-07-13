@@ -23,7 +23,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "toplev.h"
+#include "toplev.h" /* floor_log2 */
+#include "diagnostic-core.h"
 #include "tree.h"
 #include "tree-inline.h"
 #include "flags.h"
@@ -113,7 +114,7 @@ eni_weights eni_time_weights;
 
 /* Prototypes.  */
 
-static tree declare_return_variable (copy_body_data *, tree, tree);
+static tree declare_return_variable (copy_body_data *, tree, tree, basic_block);
 static void remap_block (tree *, copy_body_data *);
 static void copy_bind_expr (tree *, int *, copy_body_data *);
 static tree mark_local_for_remap_r (tree *, int *, void *);
@@ -817,6 +818,12 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 	  tree decl = TREE_OPERAND (*tp, 0);
 	  tree *n;
 
+          /* See remap_ssa_name.  */
+          if (TREE_CODE (decl) == SSA_NAME
+              && TREE_CODE (SSA_NAME_VAR (decl)) == RESULT_DECL
+              && id->transform_return_to_modify)
+            decl = SSA_NAME_VAR (decl);
+
 	  n = (tree *) pointer_map_contains (id->decl_map, decl);
 	  if (n)
 	    {
@@ -1235,7 +1242,10 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 	 If RETVAL is just the result decl, the result decl has
 	 already been set (e.g. a recent "foo (&result_decl, ...)");
 	 just toss the entire GIMPLE_RETURN.  */
-      if (retval && TREE_CODE (retval) != RESULT_DECL)
+      if (retval
+	  && (TREE_CODE (retval) != RESULT_DECL
+	      && (TREE_CODE (retval) != SSA_NAME
+		  || TREE_CODE (SSA_NAME_VAR (retval)) != RESULT_DECL)))
         {
 	  copy = gimple_build_assign (id->retvar, retval);
 	  /* id->retvar is already substituted.  Skip it on later remapping.  */
@@ -2735,7 +2745,8 @@ initialize_inlined_parameters (copy_body_data *id, gimple stmt,
    as seen by the caller.  */
 
 static tree
-declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest)
+declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
+			 basic_block entry_bb)
 {
   tree callee = id->src_fn;
   tree caller = id->dst_fn;
@@ -2878,8 +2889,28 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest)
  done:
   /* Register the VAR_DECL as the equivalent for the RESULT_DECL; that
      way, when the RESULT_DECL is encountered, it will be
-     automatically replaced by the VAR_DECL.  */
-  insert_decl_map (id, result, var);
+     automatically replaced by the VAR_DECL.  
+
+     When returning by reference, ensure that RESULT_DECL remaps to
+     gimple_val.  */
+  if (DECL_BY_REFERENCE (result)
+      && !is_gimple_val (var))
+    {
+      tree temp = create_tmp_var (TREE_TYPE (result), "retvalptr");
+      if (gimple_in_ssa_p (id->src_cfun))
+	{
+	  get_var_ann (temp);
+	  add_referenced_var (temp);
+	}
+      insert_decl_map (id, result, temp);
+      /* When RESULT_DECL is in SSA form, we need to use it's default_def
+	 SSA_NAME.  */
+      if (gimple_in_ssa_p (id->src_cfun) && gimple_default_def (id->src_cfun, result))
+        temp = remap_ssa_name (gimple_default_def (id->src_cfun, result), id);
+      insert_init_stmt (id, entry_bb, gimple_build_assign (temp, var));
+    }
+  else
+    insert_decl_map (id, result, var);
 
   /* Remember this so we can ignore it in remap_decls.  */
   id->retvar = var;
@@ -3447,104 +3478,12 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
 	if (POINTER_TYPE_P (funtype))
 	  funtype = TREE_TYPE (funtype);
 
-	if (decl && DECL_BUILT_IN_CLASS (decl) == BUILT_IN_MD)
+	if (is_simple_builtin (decl))
+	  return 0;
+	else if (is_inexpensive_builtin (decl))
 	  cost = weights->target_builtin_call_cost;
 	else
 	  cost = weights->call_cost;
-
-	if (decl && DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL)
-	  switch (DECL_FUNCTION_CODE (decl))
-	    {
-	    /* Builtins that expand to constants.  */
-	    case BUILT_IN_CONSTANT_P:
-	    case BUILT_IN_EXPECT:
-	    case BUILT_IN_OBJECT_SIZE:
-	    case BUILT_IN_UNREACHABLE:
-	    /* Simple register moves or loads from stack.  */
-	    case BUILT_IN_RETURN_ADDRESS:
-	    case BUILT_IN_EXTRACT_RETURN_ADDR:
-	    case BUILT_IN_FROB_RETURN_ADDR:
-	    case BUILT_IN_RETURN:
-	    case BUILT_IN_AGGREGATE_INCOMING_ADDRESS:
-	    case BUILT_IN_FRAME_ADDRESS:
-	    case BUILT_IN_VA_END:
-	    case BUILT_IN_STACK_SAVE:
-	    case BUILT_IN_STACK_RESTORE:
-	    /* Exception state returns or moves registers around.  */
-	    case BUILT_IN_EH_FILTER:
-	    case BUILT_IN_EH_POINTER:
-	    case BUILT_IN_EH_COPY_VALUES:
-	      return 0;
-
-	    /* builtins that are not expensive (that is they are most probably
-	       expanded inline into resonably simple code).  */
-	    case BUILT_IN_ABS:
-	    case BUILT_IN_ALLOCA:
-	    case BUILT_IN_BSWAP32:
-	    case BUILT_IN_BSWAP64:
-	    case BUILT_IN_CLZ:
-	    case BUILT_IN_CLZIMAX:
-	    case BUILT_IN_CLZL:
-	    case BUILT_IN_CLZLL:
-	    case BUILT_IN_CTZ:
-	    case BUILT_IN_CTZIMAX:
-	    case BUILT_IN_CTZL:
-	    case BUILT_IN_CTZLL:
-	    case BUILT_IN_FFS:
-	    case BUILT_IN_FFSIMAX:
-	    case BUILT_IN_FFSL:
-	    case BUILT_IN_FFSLL:
-	    case BUILT_IN_IMAXABS:
-	    case BUILT_IN_FINITE:
-	    case BUILT_IN_FINITEF:
-	    case BUILT_IN_FINITEL:
-	    case BUILT_IN_FINITED32:
-	    case BUILT_IN_FINITED64:
-	    case BUILT_IN_FINITED128:
-	    case BUILT_IN_FPCLASSIFY:
-	    case BUILT_IN_ISFINITE:
-	    case BUILT_IN_ISINF_SIGN:
-	    case BUILT_IN_ISINF:
-	    case BUILT_IN_ISINFF:
-	    case BUILT_IN_ISINFL:
-	    case BUILT_IN_ISINFD32:
-	    case BUILT_IN_ISINFD64:
-	    case BUILT_IN_ISINFD128:
-	    case BUILT_IN_ISNAN:
-	    case BUILT_IN_ISNANF:
-	    case BUILT_IN_ISNANL:
-	    case BUILT_IN_ISNAND32:
-	    case BUILT_IN_ISNAND64:
-	    case BUILT_IN_ISNAND128:
-	    case BUILT_IN_ISNORMAL:
-	    case BUILT_IN_ISGREATER:
-	    case BUILT_IN_ISGREATEREQUAL:
-	    case BUILT_IN_ISLESS:
-	    case BUILT_IN_ISLESSEQUAL:
-	    case BUILT_IN_ISLESSGREATER:
-	    case BUILT_IN_ISUNORDERED:
-	    case BUILT_IN_VA_ARG_PACK:
-	    case BUILT_IN_VA_ARG_PACK_LEN:
-	    case BUILT_IN_VA_COPY:
-	    case BUILT_IN_TRAP:
-	    case BUILT_IN_SAVEREGS:
-	    case BUILT_IN_POPCOUNTL:
-	    case BUILT_IN_POPCOUNTLL:
-	    case BUILT_IN_POPCOUNTIMAX:
-	    case BUILT_IN_POPCOUNT:
-	    case BUILT_IN_PARITYL:
-	    case BUILT_IN_PARITYLL:
-	    case BUILT_IN_PARITYIMAX:
-	    case BUILT_IN_PARITY:
-	    case BUILT_IN_LABS:
-	    case BUILT_IN_LLABS:
-	    case BUILT_IN_PREFETCH:
-	      cost = weights->target_builtin_call_cost;
-	      break;
-
-	    default:
-	      break;
-	    }
 
 	if (decl)
 	  funtype = TREE_TYPE (decl);
@@ -3983,7 +3922,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
     }
 
   /* Declare the return variable for the function.  */
-  use_retvar = declare_return_variable (id, return_slot, modify_dest);
+  use_retvar = declare_return_variable (id, return_slot, modify_dest, bb);
 
   /* Add local vars in this inlined callee to caller.  */
   add_local_variables (id->src_cfun, cfun, id, true);

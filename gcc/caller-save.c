@@ -34,36 +34,21 @@ along with GCC; see the file COPYING3.  If not see
 #include "reload.h"
 #include "function.h"
 #include "expr.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "tm_p.h"
 #include "addresses.h"
 #include "output.h"
 #include "ggc.h"
 
-/* True if caller-save has been initialized.  */
-bool caller_save_initialized_p;
-
-/* Call used hard registers which can not be saved because there is no
-   insn for this.  */
-HARD_REG_SET no_caller_save_reg_set;
-
-#ifndef MAX_MOVE_MAX
-#define MAX_MOVE_MAX MOVE_MAX
-#endif
-
-#ifndef MIN_UNITS_PER_WORD
-#define MIN_UNITS_PER_WORD UNITS_PER_WORD
-#endif
-
 #define MOVE_MAX_WORDS (MOVE_MAX / UNITS_PER_WORD)
 
-/* Modes for each hard register that we can save.  The smallest mode is wide
-   enough to save the entire contents of the register.  When saving the
-   register because it is live we first try to save in multi-register modes.
-   If that is not possible the save is done one register at a time.  */
-
-static enum machine_mode
-  regno_save_mode[FIRST_PSEUDO_REGISTER][MAX_MOVE_MAX / MIN_UNITS_PER_WORD + 1];
+#define regno_save_mode \
+  (this_target_reload->x_regno_save_mode)
+#define cached_reg_save_code \
+  (this_target_reload->x_cached_reg_save_code)
+#define cached_reg_restore_code \
+  (this_target_reload->x_cached_reg_restore_code)
 
 /* For each hard register, a place on the stack where it can be saved,
    if needed.  */
@@ -76,17 +61,6 @@ static int save_slots_num;
 
 /* Allocated slots so far.  */
 static rtx save_slots[FIRST_PSEUDO_REGISTER];
-
-/* We will only make a register eligible for caller-save if it can be
-   saved in its widest mode with a simple SET insn as long as the memory
-   address is valid.  We record the INSN_CODE is those insns here since
-   when we emit them, the addresses might not be valid, so they might not
-   be recognized.  */
-
-static int
-  cached_reg_save_code[FIRST_PSEUDO_REGISTER][MAX_MACHINE_MODE];
-static int
-  cached_reg_restore_code[FIRST_PSEUDO_REGISTER][MAX_MACHINE_MODE];
 
 /* Set of hard regs currently residing in save area (during insn scan).  */
 

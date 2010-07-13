@@ -91,7 +91,9 @@ match_subscript (gfc_array_ref *ar, int init, bool match_star)
   else if (!star)
     m = gfc_match_expr (&ar->start[i]);
 
-  if (m == MATCH_NO)
+  if (m == MATCH_NO && gfc_match_char ('*') == MATCH_YES)
+    return MATCH_NO;
+  else if (m == MATCH_NO)
     gfc_error ("Expected array subscript at %C");
   if (m != MATCH_YES)
     return MATCH_ERROR;
@@ -229,12 +231,28 @@ coarray:
       if (gfc_match_char (']') == MATCH_YES)
 	{
 	  ar->codimen++;
+	  if (ar->codimen < corank)
+	    {
+	      gfc_error ("Too few codimensions at %C, expected %d not %d",
+			 corank, ar->codimen);
+	      return MATCH_ERROR;
+	    }
 	  return MATCH_YES;
 	}
 
       if (gfc_match_char (',') != MATCH_YES)
 	{
-	  gfc_error ("Invalid form of coarray reference at %C");
+	  if (gfc_match_char ('*') == MATCH_YES)
+	    gfc_error ("Unexpected '*' for codimension %d of %d at %C",
+		       ar->codimen + 1, corank);
+	  else
+	    gfc_error ("Invalid form of coarray reference at %C");
+	  return MATCH_ERROR;
+	}
+      if (ar->codimen >= corank)
+	{
+	  gfc_error ("Invalid codimension %d at %C, only %d codimensions exist",
+		     ar->codimen + 1, corank);
 	  return MATCH_ERROR;
 	}
     }
@@ -1545,7 +1563,7 @@ gfc_get_array_element (gfc_expr *array, int element)
    constructor if they are small enough.  */
 
 gfc_try
-gfc_expand_constructor (gfc_expr *e)
+gfc_expand_constructor (gfc_expr *e, bool fatal)
 {
   expand_info expand_save;
   gfc_expr *f;
@@ -1557,6 +1575,15 @@ gfc_expand_constructor (gfc_expr *e)
   if (f != NULL)
     {
       gfc_free_expr (f);
+      if (fatal)
+	{
+	  gfc_error ("The number of elements in the array constructor "
+		     "at %L requires an increase of the allowed %d "
+		     "upper limit.   See -fmax-array-constructor "
+		     "option", &e->where,
+		     gfc_option.flag_max_array_constructor);
+	  return FAILURE;
+	}
       return SUCCESS;
     }
 

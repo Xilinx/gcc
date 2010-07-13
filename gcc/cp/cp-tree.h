@@ -30,19 +30,18 @@ along with GCC; see the file COPYING3.  If not see
 
 /* In order for the format checking to accept the C++ front end
    diagnostic framework extensions, you must include this file before
-   toplev.h, not after.  We override the definition of GCC_DIAG_STYLE
+   diagnostic-core.h, not after.  We override the definition of GCC_DIAG_STYLE
    in c-common.h.  */
 #undef GCC_DIAG_STYLE
 #define GCC_DIAG_STYLE __gcc_cxxdiag__
-#if defined(GCC_TOPLEV_H) || defined (GCC_C_COMMON_H)
+#if defined(GCC_DIAGNOSTIC_CORE_H) || defined (GCC_C_COMMON_H)
 #error \
 In order for the format checking to accept the C++ front end diagnostic \
-framework extensions, you must include this file before toplev.h and \
+framework extensions, you must include this file before diagnostic-core.h and \
 c-common.h, not after.
 #endif
-#include "toplev.h"
-#include "diagnostic.h"
 #include "c-family/c-common.h"
+#include "diagnostic.h"
 
 #include "name-lookup.h"
 
@@ -168,6 +167,9 @@ c-common.h, not after.
      index of the vcall offset for this entry.
 
      The BV_FN is the declaration for the virtual function itself.
+
+     If BV_LOST_PRIMARY is set, it means that this entry is for a lost
+     primary virtual base and can be left null in the vtable.
 
    BINFO_VTABLE
      This is an expression with POINTER_TYPE that gives the value
@@ -1768,6 +1770,8 @@ struct GTY((variable_size)) lang_type {
 /* The function to call.  */
 #define BV_FN(NODE) (TREE_VALUE (NODE))
 
+/* Whether or not this entry is for a lost primary virtual base.  */
+#define BV_LOST_PRIMARY(NODE) (TREE_LANG_FLAG_0 (NODE))
 
 /* For FUNCTION_TYPE or METHOD_TYPE, a list of the exceptions that
    this type can raise.  Each TREE_VALUE is a _TYPE.  The TREE_VALUE

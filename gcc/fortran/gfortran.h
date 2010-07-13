@@ -348,6 +348,7 @@ enum gfc_isym_id
   GFC_ISYM_CPU_TIME,
   GFC_ISYM_CSHIFT,
   GFC_ISYM_CTIME,
+  GFC_ISYM_C_SIZEOF,
   GFC_ISYM_DATE_AND_TIME,
   GFC_ISYM_DBLE,
   GFC_ISYM_DIGITS,
@@ -504,6 +505,7 @@ enum gfc_isym_id
   GFC_ISYM_SRAND,
   GFC_ISYM_SR_KIND,
   GFC_ISYM_STAT,
+  GFC_ISYM_STORAGE_SIZE,
   GFC_ISYM_SUM,
   GFC_ISYM_SYMLINK,
   GFC_ISYM_SYMLNK,
@@ -680,7 +682,8 @@ typedef struct
     use_assoc:1,		/* Symbol has been use-associated.  */
     use_only:1,			/* Symbol has been use-associated, with ONLY.  */
     use_rename:1,		/* Symbol has been use-associated and renamed.  */
-    imported:1;			/* Symbol has been associated by IMPORT.  */
+    imported:1,			/* Symbol has been associated by IMPORT.  */
+    host_assoc:1;		/* Symbol has been host associated.  */ 
 
   unsigned in_namelist:1, in_common:1, in_equivalence:1;
   unsigned function:1, subroutine:1, procedure:1;
@@ -2670,6 +2673,7 @@ void gfc_expr_replace_comp (gfc_expr *, gfc_component *);
 bool gfc_is_proc_ptr_comp (gfc_expr *, gfc_component **);
 
 bool gfc_is_coindexed (gfc_expr *);
+bool gfc_get_corank (gfc_expr *);
 bool gfc_has_ultimate_allocatable (gfc_expr *);
 bool gfc_has_ultimate_pointer (gfc_expr *);
 
@@ -2715,7 +2719,7 @@ gfc_try gfc_resolve_array_spec (gfc_array_spec *, int);
 int gfc_compare_array_spec (gfc_array_spec *, gfc_array_spec *);
 
 void gfc_simplify_iterator_var (gfc_expr *);
-gfc_try gfc_expand_constructor (gfc_expr *);
+gfc_try gfc_expand_constructor (gfc_expr *, bool);
 int gfc_constant_ac (gfc_expr *);
 int gfc_expanded_ac (gfc_expr *);
 gfc_try gfc_resolve_character_array_constructor (gfc_expr *);

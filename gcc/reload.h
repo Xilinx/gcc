@@ -154,6 +154,58 @@ extern struct reload rld[MAX_RELOADS];
 extern int n_reloads;
 #endif
 
+/* Target-dependent globals.  */
+struct target_reload {
+  /* Nonzero if indirect addressing is supported when the innermost MEM is
+     of the form (MEM (SYMBOL_REF sym)).  It is assumed that the level to
+     which these are valid is the same as spill_indirect_levels, above.  */
+  bool x_indirect_symref_ok;
+
+  /* Nonzero if an address (plus (reg frame_pointer) (reg ...)) is valid.  */
+  bool x_double_reg_address_ok;
+
+  /* Nonzero if indirect addressing is supported on the machine; this means
+     that spilling (REG n) does not require reloading it into a register in
+     order to do (MEM (REG n)) or (MEM (PLUS (REG n) (CONST_INT c))).  The
+     value indicates the level of indirect addressing supported, e.g., two
+     means that (MEM (MEM (REG n))) is also valid if (REG n) does not get
+     a hard register.  */
+  bool x_spill_indirect_levels;
+
+  /* True if caller-save has been reinitialized.  */
+  bool x_caller_save_initialized_p;
+
+  /* Modes for each hard register that we can save.  The smallest mode is wide
+     enough to save the entire contents of the register.  When saving the
+     register because it is live we first try to save in multi-register modes.
+     If that is not possible the save is done one register at a time.  */
+  enum machine_mode (x_regno_save_mode
+		     [FIRST_PSEUDO_REGISTER]
+		     [MAX_MOVE_MAX / MIN_UNITS_PER_WORD + 1]);
+
+  /* We will only make a register eligible for caller-save if it can be
+     saved in its widest mode with a simple SET insn as long as the memory
+     address is valid.  We record the INSN_CODE is those insns here since
+     when we emit them, the addresses might not be valid, so they might not
+     be recognized.  */
+  int x_cached_reg_save_code[FIRST_PSEUDO_REGISTER][MAX_MACHINE_MODE];
+  int x_cached_reg_restore_code[FIRST_PSEUDO_REGISTER][MAX_MACHINE_MODE];
+};
+
+extern struct target_reload default_target_reload;
+#if SWITCHABLE_TARGET
+extern struct target_reload *this_target_reload;
+#else
+#define this_target_reload (&default_target_reload)
+#endif
+
+#define indirect_symref_ok \
+  (this_target_reload->x_indirect_symref_ok)
+#define double_reg_address_ok \
+  (this_target_reload->x_double_reg_address_ok)
+#define caller_save_initialized_p \
+  (this_target_reload->x_caller_save_initialized_p)
+
 extern GTY (()) VEC(rtx,gc) *reg_equiv_memory_loc_vec;
 extern rtx *reg_equiv_constant;
 extern rtx *reg_equiv_invariant;
@@ -181,15 +233,6 @@ extern int reload_n_operands;
 /* First uid used by insns created by reload in this function.
    Used in find_equiv_reg.  */
 extern int reload_first_uid;
-
-/* Nonzero if indirect addressing is supported when the innermost MEM is
-   of the form (MEM (SYMBOL_REF sym)).  It is assumed that the level to
-   which these are valid is the same as spill_indirect_levels, above.  */
-
-extern char indirect_symref_ok;
-
-/* Nonzero if an address (plus (reg frame_pointer) (reg ...)) is valid.  */
-extern char double_reg_address_ok;
 
 extern int num_not_at_initial_offset;
 
@@ -355,9 +398,6 @@ extern void calculate_elim_costs_all_insns (void);
 
 /* Deallocate the reload register used by reload number R.  */
 extern void deallocate_reload_reg (int r);
-
-/* True if caller-save has been reinitialized.  */
-extern bool caller_save_initialized_p;
 
 /* Functions in caller-save.c:  */
 

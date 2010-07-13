@@ -32,6 +32,7 @@
 #include "tree.h"
 #include "tree-flow.h"
 #include "tree-inline.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "gimple.h"
 #include "hashtab.h"
@@ -2836,7 +2837,8 @@ get_constraint_for_ssa_var (tree t, VEC(ce_s, heap) **results, bool address_p)
   /* For parameters, get at the points-to set for the actual parm
      decl.  */
   if (TREE_CODE (t) == SSA_NAME
-      && TREE_CODE (SSA_NAME_VAR (t)) == PARM_DECL
+      && (TREE_CODE (SSA_NAME_VAR (t)) == PARM_DECL
+	  || TREE_CODE (SSA_NAME_VAR (t)) == RESULT_DECL)
       && SSA_NAME_IS_DEFAULT_DEF (t))
     {
       get_constraint_for_ssa_var (SSA_NAME_VAR (t), results, address_p);
@@ -3982,7 +3984,8 @@ get_fi_for_callee (gimple call)
   if (TREE_CODE (decl) == SSA_NAME)
     {
       if (TREE_CODE (decl) == SSA_NAME
-	  && TREE_CODE (SSA_NAME_VAR (decl)) == PARM_DECL
+	  && (TREE_CODE (SSA_NAME_VAR (decl)) == PARM_DECL
+	      || TREE_CODE (SSA_NAME_VAR (decl)) == RESULT_DECL)
 	  && SSA_NAME_IS_DEFAULT_DEF (decl))
 	decl = SSA_NAME_VAR (decl);
       return get_vi_for_tree (decl);
@@ -5751,7 +5754,8 @@ find_what_p_points_to (tree p)
   /* For parameters, get at the points-to set for the actual parm
      decl.  */
   if (TREE_CODE (p) == SSA_NAME
-      && TREE_CODE (SSA_NAME_VAR (p)) == PARM_DECL
+      && (TREE_CODE (SSA_NAME_VAR (p)) == PARM_DECL
+	  || TREE_CODE (SSA_NAME_VAR (p)) == RESULT_DECL)
       && SSA_NAME_IS_DEFAULT_DEF (p))
     lookup_p = SSA_NAME_VAR (p);
 
