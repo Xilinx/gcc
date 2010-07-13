@@ -100,16 +100,16 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
   gpy_symbol_obj *opa, *opb; tree retval = NULL;
   tree t1 = NULL_TREE, t2 = NULL_TREE;
 
+  tree fntype = build_function_type(void_type_node, void_list_node);
+  tree gpy_eval_expr_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
+					get_identifier("gpy_rr_eval_expression"),
+					fntype );
+
   if( op_a && op_b ) { opa= *op_a; opb= *op_b; }
   else {
     fatal_error("operands A or B are undefined!\n");
     return NULL;
   }
-  
-  tree fntype = build_function_type(void_type_node, void_list_node);
-  tree gpy_eval_expr_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
-			    get_identifier(""),
-			    fntype );
 
   t1 = gpy_process_expression( opa );
   t2 = gpy_process_expression( opb );
