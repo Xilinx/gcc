@@ -24,6 +24,7 @@ extern void override_options (bool);
 extern void optimization_options (int, int);
 extern void ix86_conditional_register_usage (void);
 
+extern bool ix86_target_stack_probe (void);
 extern int ix86_can_use_return_insn_p (void);
 extern void ix86_setup_frame_addresses (void);
 
@@ -71,6 +72,8 @@ extern const char *output_387_binary_op (rtx, rtx*);
 extern const char *output_387_reg_move (rtx, rtx*);
 extern const char *output_fix_trunc (rtx, rtx*, int);
 extern const char *output_fp_compare (rtx, rtx*, int, int);
+extern const char *output_adjust_stack_and_probe (rtx);
+extern const char *output_probe_stack_range (rtx, rtx);
 
 extern void ix86_expand_clear (rtx);
 extern void ix86_expand_move (enum machine_mode, rtx[]);
@@ -136,8 +139,9 @@ extern enum machine_mode ix86_fp_compare_mode (enum rtx_code);
 
 extern rtx ix86_libcall_value (enum machine_mode);
 extern bool ix86_function_arg_regno_p (int);
+extern void ix86_asm_output_function_label (FILE *, const char *, tree);
 extern int ix86_function_arg_boundary (enum machine_mode, tree);
-extern bool ix86_sol10_return_in_memory (const_tree,const_tree);
+extern bool ix86_solaris_return_in_memory (const_tree,const_tree);
 extern rtx ix86_force_to_memory (enum machine_mode, rtx);
 extern void ix86_free_from_memory (enum machine_mode);
 extern enum calling_abi ix86_cfun_abi (void);

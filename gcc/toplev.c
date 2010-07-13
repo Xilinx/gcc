@@ -259,7 +259,6 @@ enum ira_region flag_ira_region = IRA_REGION_MIXED;
 /* Set the default for excess precision.  */
 
 enum excess_precision flag_excess_precision_cmdline = EXCESS_PRECISION_DEFAULT;
-enum excess_precision flag_excess_precision = EXCESS_PRECISION_DEFAULT;
 
 /* Nonzero means change certain warnings into errors.
    Usually these are warnings about failure to conform to some standard.  */
@@ -317,18 +316,12 @@ enum stack_check_type flag_stack_check = NO_STACK_CHECK;
 
 bool user_defined_section_attribute = false;
 
-/* Values of the -falign-* flags: how much to align labels in code.
-   0 means `use default', 1 means `don't align'.
-   For each variable, there is an _log variant which is the power
-   of two not less than the variable, for .align output.  */
-
-int align_loops_log;
-int align_loops_max_skip;
-int align_jumps_log;
-int align_jumps_max_skip;
-int align_labels_log;
-int align_labels_max_skip;
-int align_functions_log;
+struct target_flag_state default_target_flag_state;
+#if SWITCHABLE_TARGET
+struct target_flag_state *this_target_flag_state = &default_target_flag_state;
+#else
+#define this_target_flag_state (&default_target_flag_state)
+#endif
 
 typedef struct
 {

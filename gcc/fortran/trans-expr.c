@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "toplev.h"	/* For fatal_error.  */
+#include "diagnostic-core.h"	/* For fatal_error.  */
 #include "langhooks.h"
 #include "flags.h"
 #include "gfortran.h"
@@ -4976,6 +4976,11 @@ arrayfunc_assign_needs_temporary (gfc_expr * expr1, gfc_expr * expr2)
 	 the variable is local or host associated and not a pointer or
 	 a target. */
       if (!expr2->value.function.esym->attr.contained)
+	return false;
+
+      /* A temporary is not needed if the lhs has never been host
+	 associated and the procedure is contained.  */
+      else if (!sym->attr.host_assoc)
 	return false;
 
       /* A temporary is not needed if the variable is local and not

@@ -7854,12 +7854,15 @@ output_automata_list_min_issue_delay_code (automata_list_el_t automata_list)
 	{
 	  fprintf (output_file, ") / %d];\n",
 		   automaton->min_issue_delay_table_compression_factor);
-	  fprintf (output_file, "      %s = (%s >> (8 - (",
+	  fprintf (output_file, "      %s = (%s >> (8 - ((",
 		   TEMPORARY_VARIABLE_NAME, TEMPORARY_VARIABLE_NAME);
 	  output_translate_vect_name (output_file, automaton);
+	  fprintf (output_file, " [%s] + ", INTERNAL_INSN_CODE_NAME);
+	  fprintf (output_file, "%s->", CHIP_PARAMETER_NAME);
+	  output_chip_member_name (output_file, automaton);
+	  fprintf (output_file, " * %d)", automaton->insn_equiv_classes_num);
 	  fprintf
-	    (output_file, " [%s] %% %d + 1) * %d)) & %d;\n",
-	     INTERNAL_INSN_CODE_NAME,
+	    (output_file, " %% %d + 1) * %d)) & %d;\n",
 	     automaton->min_issue_delay_table_compression_factor,
 	     8 / automaton->min_issue_delay_table_compression_factor,
 	     (1 << (8 / automaton->min_issue_delay_table_compression_factor))
@@ -9556,7 +9559,7 @@ main (int argc, char **argv)
 		"#include \"regs.h\"\n"
 		"#include \"output.h\"\n"
 		"#include \"insn-attr.h\"\n"
-		"#include \"toplev.h\"\n"
+                "#include \"diagnostic-core.h\"\n"
 		"#include \"flags.h\"\n"
 		"#include \"function.h\"\n"
 		"#include \"emit-rtl.h\"\n");
@@ -9564,6 +9567,16 @@ main (int argc, char **argv)
 
 	  write_automata ();
 	}
+    }
+  else
+    {
+      puts ("/* Generated automatically by the program `genautomata'\n"
+	    "   from the machine description file `md'.  */\n\n"
+	    "/* There is no automaton, but ISO C forbids empty\n"
+	    "   translation units, so include a header file with some\n"
+	    "   declarations, and its pre-requisite header file.  */\n"
+	    "#include \"config.h\"\n"
+	    "#include \"system.h\"\n");
     }
 
   fflush (stdout);

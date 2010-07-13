@@ -50,6 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "value-prof.h"
 #include "diagnostic-core.h"
+#include "builtins.h"
 
 #ifndef SLOW_UNALIGNED_ACCESS
 #define SLOW_UNALIGNED_ACCESS(MODE, ALIGN) STRICT_ALIGNMENT
@@ -59,6 +60,11 @@ along with GCC; see the file COPYING3.  If not see
 #define PAD_VARARGS_DOWN BYTES_BIG_ENDIAN
 #endif
 static tree do_mpc_arg1 (tree, tree, int (*)(mpc_ptr, mpc_srcptr, mpc_rnd_t));
+
+struct target_builtins default_target_builtins;
+#if SWITCHABLE_TARGET
+struct target_builtins *this_target_builtins = &default_target_builtins;
+#endif
 
 /* Define the names of the builtin function types and codes.  */
 const char *const built_in_class_names[4]
@@ -1249,19 +1255,10 @@ get_memory_rtx (tree exp, tree len)
 
 /* Built-in functions to perform an untyped call and return.  */
 
-/* For each register that may be used for calling a function, this
-   gives a mode used to copy the register's value.  VOIDmode indicates
-   the register is not used for calling a function.  If the machine
-   has register windows, this gives only the outbound registers.
-   INCOMING_REGNO gives the corresponding inbound register.  */
-static enum machine_mode apply_args_mode[FIRST_PSEUDO_REGISTER];
-
-/* For each register that may be used for returning values, this gives
-   a mode used to copy the register's value.  VOIDmode indicates the
-   register is not used for returning values.  If the machine has
-   register windows, this gives only the outbound registers.
-   INCOMING_REGNO gives the corresponding inbound register.  */
-static enum machine_mode apply_result_mode[FIRST_PSEUDO_REGISTER];
+#define apply_args_mode \
+  (this_target_builtins->x_apply_args_mode)
+#define apply_result_mode \
+  (this_target_builtins->x_apply_result_mode)
 
 /* Return the size required for the block returned by __builtin_apply_args,
    and initialize apply_args_mode.  */
@@ -13753,3 +13750,123 @@ set_builtin_user_assembler_name (tree decl, const char *asmspec)
       break;
     }
 }
+
+/* Return true if DECL is a builtin that expands to a constant or similarly
+   simple code.  */
+bool
+is_simple_builtin (tree decl)
+{
+  if (decl && DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL)
+    switch (DECL_FUNCTION_CODE (decl))
+      {
+	/* Builtins that expand to constants.  */
+      case BUILT_IN_CONSTANT_P:
+      case BUILT_IN_EXPECT:
+      case BUILT_IN_OBJECT_SIZE:
+      case BUILT_IN_UNREACHABLE:
+	/* Simple register moves or loads from stack.  */
+      case BUILT_IN_RETURN_ADDRESS:
+      case BUILT_IN_EXTRACT_RETURN_ADDR:
+      case BUILT_IN_FROB_RETURN_ADDR:
+      case BUILT_IN_RETURN:
+      case BUILT_IN_AGGREGATE_INCOMING_ADDRESS:
+      case BUILT_IN_FRAME_ADDRESS:
+      case BUILT_IN_VA_END:
+      case BUILT_IN_STACK_SAVE:
+      case BUILT_IN_STACK_RESTORE:
+	/* Exception state returns or moves registers around.  */
+      case BUILT_IN_EH_FILTER:
+      case BUILT_IN_EH_POINTER:
+      case BUILT_IN_EH_COPY_VALUES:
+	return true;
+
+      default:
+	return false;
+      }
+
+  return false;
+}
+
+/* Return true if DECL is a builtin that is not expensive, i.e., they are
+   most probably expanded inline into reasonably simple code.  This is a
+   superset of is_simple_builtin.  */
+bool
+is_inexpensive_builtin (tree decl)
+{
+  if (!decl)
+    return false;
+  else if (DECL_BUILT_IN_CLASS (decl) == BUILT_IN_MD)
+    return true;
+  else if (DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL)
+    switch (DECL_FUNCTION_CODE (decl))
+      {
+      case BUILT_IN_ABS:
+      case BUILT_IN_ALLOCA:
+      case BUILT_IN_BSWAP32:
+      case BUILT_IN_BSWAP64:
+      case BUILT_IN_CLZ:
+      case BUILT_IN_CLZIMAX:
+      case BUILT_IN_CLZL:
+      case BUILT_IN_CLZLL:
+      case BUILT_IN_CTZ:
+      case BUILT_IN_CTZIMAX:
+      case BUILT_IN_CTZL:
+      case BUILT_IN_CTZLL:
+      case BUILT_IN_FFS:
+      case BUILT_IN_FFSIMAX:
+      case BUILT_IN_FFSL:
+      case BUILT_IN_FFSLL:
+      case BUILT_IN_IMAXABS:
+      case BUILT_IN_FINITE:
+      case BUILT_IN_FINITEF:
+      case BUILT_IN_FINITEL:
+      case BUILT_IN_FINITED32:
+      case BUILT_IN_FINITED64:
+      case BUILT_IN_FINITED128:
+      case BUILT_IN_FPCLASSIFY:
+      case BUILT_IN_ISFINITE:
+      case BUILT_IN_ISINF_SIGN:
+      case BUILT_IN_ISINF:
+      case BUILT_IN_ISINFF:
+      case BUILT_IN_ISINFL:
+      case BUILT_IN_ISINFD32:
+      case BUILT_IN_ISINFD64:
+      case BUILT_IN_ISINFD128:
+      case BUILT_IN_ISNAN:
+      case BUILT_IN_ISNANF:
+      case BUILT_IN_ISNANL:
+      case BUILT_IN_ISNAND32:
+      case BUILT_IN_ISNAND64:
+      case BUILT_IN_ISNAND128:
+      case BUILT_IN_ISNORMAL:
+      case BUILT_IN_ISGREATER:
+      case BUILT_IN_ISGREATEREQUAL:
+      case BUILT_IN_ISLESS:
+      case BUILT_IN_ISLESSEQUAL:
+      case BUILT_IN_ISLESSGREATER:
+      case BUILT_IN_ISUNORDERED:
+      case BUILT_IN_VA_ARG_PACK:
+      case BUILT_IN_VA_ARG_PACK_LEN:
+      case BUILT_IN_VA_COPY:
+      case BUILT_IN_TRAP:
+      case BUILT_IN_SAVEREGS:
+      case BUILT_IN_POPCOUNTL:
+      case BUILT_IN_POPCOUNTLL:
+      case BUILT_IN_POPCOUNTIMAX:
+      case BUILT_IN_POPCOUNT:
+      case BUILT_IN_PARITYL:
+      case BUILT_IN_PARITYLL:
+      case BUILT_IN_PARITYIMAX:
+      case BUILT_IN_PARITY:
+      case BUILT_IN_LABS:
+      case BUILT_IN_LLABS:
+      case BUILT_IN_PREFETCH:
+	return true;
+
+      default:
+	return is_simple_builtin (decl);
+      }
+
+  return false;
+}
+

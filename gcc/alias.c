@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "flags.h"
 #include "output.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "cselib.h"
 #include "splay-tree.h"
@@ -211,9 +212,8 @@ static rtx *new_reg_base_value;
    array.  */
 static GTY((deletable)) VEC(rtx,gc) *old_reg_base_value;
 
-/* Static hunks of RTL used by the aliasing code; these are initialized
-   once per function to avoid unnecessary RTL allocations.  */
-static GTY (()) rtx static_reg_base_value[FIRST_PSEUDO_REGISTER];
+#define static_reg_base_value \
+  (this_target_rtl->x_static_reg_base_value)
 
 #define REG_BASE_VALUE(X)				\
   (REGNO (X) < VEC_length (rtx, reg_base_value)		\

@@ -4498,6 +4498,7 @@ free_lang_data_in_decl (tree decl)
       if (gimple_has_body_p (decl))
 	{
 	  tree t;
+	  unsigned ix;
 	  struct pointer_set_t *locals;
 
 	  /* If DECL has a gimple body, then the context for its
@@ -4514,14 +4515,13 @@ free_lang_data_in_decl (tree decl)
 
 	  /* Collect all the symbols declared in DECL.  */
 	  locals = pointer_set_create ();
-	  t = DECL_STRUCT_FUNCTION (decl)->local_decls;
-	  for (; t; t = TREE_CHAIN (t))
+	  FOR_EACH_LOCAL_DECL (DECL_STRUCT_FUNCTION (decl), ix, t)
 	    {
-	      pointer_set_insert (locals, TREE_VALUE (t));
+	      pointer_set_insert (locals, t);
 
 	      /* All the local symbols should have DECL as their
 		 context.  */
-	      DECL_CONTEXT (TREE_VALUE (t)) = decl;
+	      DECL_CONTEXT (t) = decl;
 	    }
 
 	  /* Get rid of any decl not in local_decls.  */
@@ -4873,6 +4873,7 @@ find_decls_types_in_node (struct cgraph_node *n, struct free_lang_data_d *fld)
 {
   basic_block bb;
   struct function *fn;
+  unsigned ix;
   tree t;
 
   find_decls_types (n->decl, fld);
@@ -4885,8 +4886,8 @@ find_decls_types_in_node (struct cgraph_node *n, struct free_lang_data_d *fld)
   fn = DECL_STRUCT_FUNCTION (n->decl);
 
   /* Traverse locals. */
-  for (t = fn->local_decls; t; t = TREE_CHAIN (t))
-    find_decls_types (TREE_VALUE (t), fld);
+  FOR_EACH_LOCAL_DECL (fn, ix, t)
+    find_decls_types (t, fld);
 
   /* Traverse EH regions in FN.  */
   {
@@ -6071,16 +6072,14 @@ type_hash_canon (unsigned int hashcode, tree type)
 
 /* See if the data pointed to by the type hash table is marked.  We consider
    it marked if the type is marked or if a debug type number or symbol
-   table entry has been made for the type.  This reduces the amount of
-   debugging output and eliminates that dependency of the debug output on
-   the number of garbage collections.  */
+   table entry has been made for the type.  */
 
 static int
 type_hash_marked_p (const void *p)
 {
   const_tree const type = ((const struct type_hash *) p)->type;
 
-  return ggc_marked_p (type) || TYPE_SYMTAB_POINTER (type);
+  return ggc_marked_p (type);
 }
 
 static void
@@ -7349,7 +7348,7 @@ build_function_type_skip_args (tree orig_type, bitmap args_to_skip)
   if (TREE_CODE (orig_type) != METHOD_TYPE
       || !bitmap_bit_p (args_to_skip, 0))
     {
-      new_type = copy_node (orig_type);
+      new_type = build_distinct_type_copy (orig_type);
       TYPE_ARG_TYPES (new_type) = new_reversed;
     }
   else
@@ -9741,6 +9740,7 @@ needs_to_live_in_memory (const_tree t)
   return (TREE_ADDRESSABLE (t)
 	  || is_global_var (t)
 	  || (TREE_CODE (t) == RESULT_DECL
+	      && !DECL_BY_REFERENCE (t)
 	      && aggregate_value_p (t, current_function_decl)));
 }
 

@@ -30,6 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "flags.h"
 #include "function.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "tree-pass.h"
 
@@ -907,8 +908,7 @@ record_vars_into (tree vars, tree fn)
 	continue;
 
       /* Record the variable.  */
-      cfun->local_decls = tree_cons (NULL_TREE, var,
-					     cfun->local_decls);
+      add_local_decl (cfun, var);
     }
 
   if (fn != current_function_decl)

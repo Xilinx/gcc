@@ -133,11 +133,19 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #endif
 
 /* This is how to output the definition of a user-level label named
-   NAME, such as the label on a static function or variable NAME.  */
+   NAME, such as the label on variable NAME.  */
 
 #ifndef ASM_OUTPUT_LABEL
 #define ASM_OUTPUT_LABEL(FILE,NAME) \
   do { assemble_name ((FILE), (NAME)); fputs (":\n", (FILE)); } while (0)
+#endif
+
+/* This is how to output the definition of a user-level label named
+   NAME, such as the label on a function.  */
+
+#ifndef ASM_OUTPUT_FUNCTION_LABEL
+#define ASM_OUTPUT_FUNCTION_LABEL(FILE, NAME, DECL) \
+  ASM_OUTPUT_LABEL ((FILE), (NAME))
 #endif
 
 /* Output the definition of a compiler-generated label named NAME.  */
@@ -1017,6 +1025,14 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define MOVE_MAX_PIECES   MOVE_MAX
 #endif
 
+#ifndef MAX_MOVE_MAX
+#define MAX_MOVE_MAX MOVE_MAX
+#endif
+
+#ifndef MIN_UNITS_PER_WORD
+#define MIN_UNITS_PER_WORD UNITS_PER_WORD
+#endif
+
 #ifndef STACK_POINTER_OFFSET
 #define STACK_POINTER_OFFSET    0
 #endif
@@ -1362,6 +1378,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    controllable by the user at some point.  */
 #ifndef STACK_CHECK_MAX_VAR_SIZE
 #define STACK_CHECK_MAX_VAR_SIZE (STACK_CHECK_MAX_FRAME_SIZE / 100)
+#endif
+
+#ifndef SWITCHABLE_TARGET
+#define SWITCHABLE_TARGET 0
 #endif
 
 #endif /* GCC_INSN_FLAGS_H  */

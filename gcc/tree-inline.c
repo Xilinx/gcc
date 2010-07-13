@@ -23,7 +23,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "toplev.h"
+#include "toplev.h" /* floor_log2 */
+#include "diagnostic-core.h"
 #include "tree.h"
 #include "tree-inline.h"
 #include "flags.h"
@@ -113,7 +114,7 @@ eni_weights eni_time_weights;
 
 /* Prototypes.  */
 
-static tree declare_return_variable (copy_body_data *, tree, tree);
+static tree declare_return_variable (copy_body_data *, tree, tree, basic_block);
 static void remap_block (tree *, copy_body_data *);
 static void copy_bind_expr (tree *, int *, copy_body_data *);
 static tree mark_local_for_remap_r (tree *, int *, void *);
@@ -545,8 +546,7 @@ remap_decls (tree decls, VEC(tree,gc) **nonlocalized_list, copy_body_data *id)
 	  if (TREE_CODE (old_var) == VAR_DECL
 	      && ! DECL_EXTERNAL (old_var)
 	      && (var_ann (old_var) || !gimple_in_ssa_p (cfun)))
-	    cfun->local_decls = tree_cons (NULL_TREE, old_var,
-						   cfun->local_decls);
+	    add_local_decl (cfun, old_var);
 	  if ((!optimize || debug_info_level > DINFO_LEVEL_TERSE)
 	      && !DECL_IGNORED_P (old_var)
 	      && nonlocalized_list)
@@ -817,6 +817,12 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 	     that can happen when a pointer argument is an ADDR_EXPR.  */
 	  tree decl = TREE_OPERAND (*tp, 0);
 	  tree *n;
+
+          /* See remap_ssa_name.  */
+          if (TREE_CODE (decl) == SSA_NAME
+              && TREE_CODE (SSA_NAME_VAR (decl)) == RESULT_DECL
+              && id->transform_return_to_modify)
+            decl = SSA_NAME_VAR (decl);
 
 	  n = (tree *) pointer_map_contains (id->decl_map, decl);
 	  if (n)
@@ -1236,7 +1242,10 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 	 If RETVAL is just the result decl, the result decl has
 	 already been set (e.g. a recent "foo (&result_decl, ...)");
 	 just toss the entire GIMPLE_RETURN.  */
-      if (retval && TREE_CODE (retval) != RESULT_DECL)
+      if (retval
+	  && (TREE_CODE (retval) != RESULT_DECL
+	      && (TREE_CODE (retval) != SSA_NAME
+		  || TREE_CODE (SSA_NAME_VAR (retval)) != RESULT_DECL)))
         {
 	  copy = gimple_build_assign (id->retvar, retval);
 	  /* id->retvar is already substituted.  Skip it on later remapping.  */
@@ -2736,7 +2745,8 @@ initialize_inlined_parameters (copy_body_data *id, gimple stmt,
    as seen by the caller.  */
 
 static tree
-declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest)
+declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
+			 basic_block entry_bb)
 {
   tree callee = id->src_fn;
   tree caller = id->dst_fn;
@@ -2854,9 +2864,7 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest)
     }
 
   DECL_SEEN_IN_BIND_EXPR_P (var) = 1;
-  DECL_STRUCT_FUNCTION (caller)->local_decls
-    = tree_cons (NULL_TREE, var,
-		 DECL_STRUCT_FUNCTION (caller)->local_decls);
+  add_local_decl (DECL_STRUCT_FUNCTION (caller), var);
 
   /* Do not have the rest of GCC warn about this variable as it should
      not be visible to the user.  */
@@ -2881,8 +2889,28 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest)
  done:
   /* Register the VAR_DECL as the equivalent for the RESULT_DECL; that
      way, when the RESULT_DECL is encountered, it will be
-     automatically replaced by the VAR_DECL.  */
-  insert_decl_map (id, result, var);
+     automatically replaced by the VAR_DECL.  
+
+     When returning by reference, ensure that RESULT_DECL remaps to
+     gimple_val.  */
+  if (DECL_BY_REFERENCE (result)
+      && !is_gimple_val (var))
+    {
+      tree temp = create_tmp_var (TREE_TYPE (result), "retvalptr");
+      if (gimple_in_ssa_p (id->src_cfun))
+	{
+	  get_var_ann (temp);
+	  add_referenced_var (temp);
+	}
+      insert_decl_map (id, result, temp);
+      /* When RESULT_DECL is in SSA form, we need to use it's default_def
+	 SSA_NAME.  */
+      if (gimple_in_ssa_p (id->src_cfun) && gimple_default_def (id->src_cfun, result))
+        temp = remap_ssa_name (gimple_default_def (id->src_cfun, result), id);
+      insert_init_stmt (id, entry_bb, gimple_build_assign (temp, var));
+    }
+  else
+    insert_decl_map (id, result, var);
 
   /* Remember this so we can ignore it in remap_decls.  */
   id->retvar = var;
@@ -2915,7 +2943,8 @@ static const char *
 copy_forbidden (struct function *fun, tree fndecl)
 {
   const char *reason = fun->cannot_be_copied_reason;
-  tree step;
+  tree decl;
+  unsigned ix;
 
   /* Only examine the function once.  */
   if (fun->cannot_be_copied_set)
@@ -2934,23 +2963,19 @@ copy_forbidden (struct function *fun, tree fndecl)
       goto fail;
     }
 
-  for (step = fun->local_decls; step; step = TREE_CHAIN (step))
-    {
-      tree decl = TREE_VALUE (step);
-
-      if (TREE_CODE (decl) == VAR_DECL
-	  && TREE_STATIC (decl)
-	  && !DECL_EXTERNAL (decl)
-	  && DECL_INITIAL (decl)
-	  && walk_tree_without_duplicates (&DECL_INITIAL (decl),
-					   has_label_address_in_static_1,
-					   fndecl))
-	{
-	  reason = G_("function %q+F can never be copied because it saves "
-		      "address of local label in a static variable");
-	  goto fail;
-	}
-    }
+  FOR_EACH_LOCAL_DECL (fun, ix, decl)
+    if (TREE_CODE (decl) == VAR_DECL
+	&& TREE_STATIC (decl)
+	&& !DECL_EXTERNAL (decl)
+	&& DECL_INITIAL (decl)
+	&& walk_tree_without_duplicates (&DECL_INITIAL (decl),
+					 has_label_address_in_static_1,
+					 fndecl))
+      {
+	reason = G_("function %q+F can never be copied because it saves "
+		    "address of local label in a static variable");
+	goto fail;
+      }
 
  fail:
   fun->cannot_be_copied_reason = reason;
@@ -3453,104 +3478,12 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
 	if (POINTER_TYPE_P (funtype))
 	  funtype = TREE_TYPE (funtype);
 
-	if (decl && DECL_BUILT_IN_CLASS (decl) == BUILT_IN_MD)
+	if (is_simple_builtin (decl))
+	  return 0;
+	else if (is_inexpensive_builtin (decl))
 	  cost = weights->target_builtin_call_cost;
 	else
 	  cost = weights->call_cost;
-
-	if (decl && DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL)
-	  switch (DECL_FUNCTION_CODE (decl))
-	    {
-	    /* Builtins that expand to constants.  */
-	    case BUILT_IN_CONSTANT_P:
-	    case BUILT_IN_EXPECT:
-	    case BUILT_IN_OBJECT_SIZE:
-	    case BUILT_IN_UNREACHABLE:
-	    /* Simple register moves or loads from stack.  */
-	    case BUILT_IN_RETURN_ADDRESS:
-	    case BUILT_IN_EXTRACT_RETURN_ADDR:
-	    case BUILT_IN_FROB_RETURN_ADDR:
-	    case BUILT_IN_RETURN:
-	    case BUILT_IN_AGGREGATE_INCOMING_ADDRESS:
-	    case BUILT_IN_FRAME_ADDRESS:
-	    case BUILT_IN_VA_END:
-	    case BUILT_IN_STACK_SAVE:
-	    case BUILT_IN_STACK_RESTORE:
-	    /* Exception state returns or moves registers around.  */
-	    case BUILT_IN_EH_FILTER:
-	    case BUILT_IN_EH_POINTER:
-	    case BUILT_IN_EH_COPY_VALUES:
-	      return 0;
-
-	    /* builtins that are not expensive (that is they are most probably
-	       expanded inline into resonably simple code).  */
-	    case BUILT_IN_ABS:
-	    case BUILT_IN_ALLOCA:
-	    case BUILT_IN_BSWAP32:
-	    case BUILT_IN_BSWAP64:
-	    case BUILT_IN_CLZ:
-	    case BUILT_IN_CLZIMAX:
-	    case BUILT_IN_CLZL:
-	    case BUILT_IN_CLZLL:
-	    case BUILT_IN_CTZ:
-	    case BUILT_IN_CTZIMAX:
-	    case BUILT_IN_CTZL:
-	    case BUILT_IN_CTZLL:
-	    case BUILT_IN_FFS:
-	    case BUILT_IN_FFSIMAX:
-	    case BUILT_IN_FFSL:
-	    case BUILT_IN_FFSLL:
-	    case BUILT_IN_IMAXABS:
-	    case BUILT_IN_FINITE:
-	    case BUILT_IN_FINITEF:
-	    case BUILT_IN_FINITEL:
-	    case BUILT_IN_FINITED32:
-	    case BUILT_IN_FINITED64:
-	    case BUILT_IN_FINITED128:
-	    case BUILT_IN_FPCLASSIFY:
-	    case BUILT_IN_ISFINITE:
-	    case BUILT_IN_ISINF_SIGN:
-	    case BUILT_IN_ISINF:
-	    case BUILT_IN_ISINFF:
-	    case BUILT_IN_ISINFL:
-	    case BUILT_IN_ISINFD32:
-	    case BUILT_IN_ISINFD64:
-	    case BUILT_IN_ISINFD128:
-	    case BUILT_IN_ISNAN:
-	    case BUILT_IN_ISNANF:
-	    case BUILT_IN_ISNANL:
-	    case BUILT_IN_ISNAND32:
-	    case BUILT_IN_ISNAND64:
-	    case BUILT_IN_ISNAND128:
-	    case BUILT_IN_ISNORMAL:
-	    case BUILT_IN_ISGREATER:
-	    case BUILT_IN_ISGREATEREQUAL:
-	    case BUILT_IN_ISLESS:
-	    case BUILT_IN_ISLESSEQUAL:
-	    case BUILT_IN_ISLESSGREATER:
-	    case BUILT_IN_ISUNORDERED:
-	    case BUILT_IN_VA_ARG_PACK:
-	    case BUILT_IN_VA_ARG_PACK_LEN:
-	    case BUILT_IN_VA_COPY:
-	    case BUILT_IN_TRAP:
-	    case BUILT_IN_SAVEREGS:
-	    case BUILT_IN_POPCOUNTL:
-	    case BUILT_IN_POPCOUNTLL:
-	    case BUILT_IN_POPCOUNTIMAX:
-	    case BUILT_IN_POPCOUNT:
-	    case BUILT_IN_PARITYL:
-	    case BUILT_IN_PARITYLL:
-	    case BUILT_IN_PARITYIMAX:
-	    case BUILT_IN_PARITY:
-	    case BUILT_IN_LABS:
-	    case BUILT_IN_LLABS:
-	    case BUILT_IN_PREFETCH:
-	      cost = weights->target_builtin_call_cost;
-	      break;
-
-	    default:
-	      break;
-	    }
 
 	if (decl)
 	  funtype = TREE_TYPE (decl);
@@ -3737,6 +3670,26 @@ prepend_lexical_block (tree current_block, tree new_block)
   BLOCK_SUPERCONTEXT (new_block) = current_block;
 }
 
+/* Add local variables from CALLEE to CALLER.  */
+
+static inline void
+add_local_variables (struct function *callee, struct function *caller,
+		     copy_body_data *id, bool check_var_ann)
+{
+  tree var;
+  unsigned ix;
+
+  FOR_EACH_LOCAL_DECL (callee, ix, var)
+    if (TREE_STATIC (var) && !TREE_ASM_WRITTEN (var))
+      {
+	if (!check_var_ann
+	    || (var_ann (var) && add_referenced_var (var)))
+	  add_local_decl (caller, var);
+      }
+    else if (!can_be_nonlocal (var, id))
+      add_local_decl (caller, remap_decl (var, id));
+}
+
 /* Fetch callee declaration from the call graph edge going from NODE and
    associated with STMR call statement.  Return NULL_TREE if not found.  */
 static tree
@@ -3769,8 +3722,6 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   gimple_stmt_iterator gsi, stmt_gsi;
   bool successfully_inlined = FALSE;
   bool purge_dead_abnormal_edges;
-  tree t_step;
-  tree var;
 
   /* Set input_location here so we get the right instantiation context
      if we call instantiate_decl from inlinable_function_p.  */
@@ -3971,23 +3922,10 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
     }
 
   /* Declare the return variable for the function.  */
-  use_retvar = declare_return_variable (id, return_slot, modify_dest);
+  use_retvar = declare_return_variable (id, return_slot, modify_dest, bb);
 
   /* Add local vars in this inlined callee to caller.  */
-  t_step = id->src_cfun->local_decls;
-  for (; t_step; t_step = TREE_CHAIN (t_step))
-    {
-      var = TREE_VALUE (t_step);
-      if (TREE_STATIC (var) && !TREE_ASM_WRITTEN (var))
-	{
-	  if (var_ann (var) && add_referenced_var (var))
-	    cfun->local_decls = tree_cons (NULL_TREE, var,
-					   cfun->local_decls);
-	}
-      else if (!can_be_nonlocal (var, id))
-	cfun->local_decls = tree_cons (NULL_TREE, remap_decl (var, id),
-				       cfun->local_decls);
-    }
+  add_local_variables (id->src_cfun, cfun, id, true);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -4729,7 +4667,7 @@ declare_inline_vars (tree block, tree vars)
     {
       DECL_SEEN_IN_BIND_EXPR_P (t) = 1;
       gcc_assert (!TREE_STATIC (t) && !TREE_ASM_WRITTEN (t));
-      cfun->local_decls = tree_cons (NULL_TREE, t, cfun->local_decls);
+      add_local_decl (cfun, t);
     }
 
   if (block)
@@ -5060,7 +4998,6 @@ tree_function_versioning (tree old_decl, tree new_decl,
   basic_block old_entry_block, bb;
   VEC (gimple, heap) *init_stmts = VEC_alloc (gimple, heap, 10);
 
-  tree t_step;
   tree old_current_function_decl = current_function_decl;
   tree vars = NULL_TREE;
 
@@ -5185,19 +5122,9 @@ tree_function_versioning (tree old_decl, tree new_decl,
 
   declare_inline_vars (DECL_INITIAL (new_decl), vars);
 
-  if (DECL_STRUCT_FUNCTION (old_decl)->local_decls != NULL_TREE)
+  if (!VEC_empty (tree, DECL_STRUCT_FUNCTION (old_decl)->local_decls))
     /* Add local vars.  */
-    for (t_step = DECL_STRUCT_FUNCTION (old_decl)->local_decls;
-	 t_step; t_step = TREE_CHAIN (t_step))
-      {
-	tree var = TREE_VALUE (t_step);
-	if (TREE_STATIC (var) && !TREE_ASM_WRITTEN (var))
-	  cfun->local_decls = tree_cons (NULL_TREE, var, cfun->local_decls);
-	else if (!can_be_nonlocal (var, &id))
-	  cfun->local_decls =
-	    tree_cons (NULL_TREE, remap_decl (var, &id),
-		       cfun->local_decls);
-      }
+    add_local_variables (DECL_STRUCT_FUNCTION (old_decl), cfun, &id, false);
 
   /* Copy the Function's body.  */
   copy_body (&id, old_entry_block->count, REG_BR_PROB_BASE,

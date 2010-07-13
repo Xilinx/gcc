@@ -259,17 +259,96 @@ is_predicated (basic_block bb)
   return !is_true_predicate (bb_predicate (bb));
 }
 
-/* Add condition NEW_COND to the predicate list of basic block BB.  */
+/* Parses the predicate COND and returns its comparison code and
+   operands OP0 and OP1.  */
+
+static enum tree_code
+parse_predicate (tree cond, tree *op0, tree *op1)
+{
+  gimple s;
+
+  if (TREE_CODE (cond) == SSA_NAME
+      && is_gimple_assign (s = SSA_NAME_DEF_STMT (cond)))
+    {
+      if (TREE_CODE_CLASS (gimple_assign_rhs_code (s)) == tcc_comparison)
+	{
+	  *op0 = gimple_assign_rhs1 (s);
+	  *op1 = gimple_assign_rhs2 (s);
+	  return gimple_assign_rhs_code (s);
+	}
+
+      else if (gimple_assign_rhs_code (s) == TRUTH_NOT_EXPR)
+	{
+	  tree op = gimple_assign_rhs1 (s);
+	  tree type = TREE_TYPE (op);
+	  enum tree_code code = parse_predicate (op, op0, op1);
+
+	  return code == ERROR_MARK ? ERROR_MARK
+	    : invert_tree_comparison (code, HONOR_NANS (TYPE_MODE (type)));
+	}
+
+      return ERROR_MARK;
+    }
+
+  if (TREE_CODE_CLASS (TREE_CODE (cond)) == tcc_comparison)
+    {
+      *op0 = TREE_OPERAND (cond, 0);
+      *op1 = TREE_OPERAND (cond, 1);
+      return TREE_CODE (cond);
+    }
+
+  return ERROR_MARK;
+}
+
+/* Returns the fold of predicate C1 OR C2 at location LOC.  */
+
+static tree
+fold_or_predicates (location_t loc, tree c1, tree c2)
+{
+  tree op1a, op1b, op2a, op2b;
+  enum tree_code code1 = parse_predicate (c1, &op1a, &op1b);
+  enum tree_code code2 = parse_predicate (c2, &op2a, &op2b);
+
+  if (code1 != ERROR_MARK && code2 != ERROR_MARK)
+    {
+      tree t = maybe_fold_or_comparisons (code1, op1a, op1b,
+					  code2, op2a, op2b);
+      if (t)
+	return t;
+    }
+
+  return fold_build2_loc (loc, TRUTH_OR_EXPR, boolean_type_node, c1, c2);
+}
+
+/* Add condition NC to the predicate list of basic block BB.  */
 
 static inline void
-add_to_predicate_list (basic_block bb, tree new_cond)
+add_to_predicate_list (basic_block bb, tree nc)
 {
-  tree cond = bb_predicate (bb);
+  tree bc;
 
-  set_bb_predicate (bb, is_true_predicate (cond) ? new_cond :
-		    fold_build2_loc (EXPR_LOCATION (cond),
-				     TRUTH_OR_EXPR, boolean_type_node,
-				     cond, new_cond));
+  if (is_true_predicate (nc))
+    return;
+
+  if (!is_predicated (bb))
+    bc = nc;
+  else
+    {
+      bc = bb_predicate (bb);
+      bc = fold_or_predicates (EXPR_LOCATION (bc), nc, bc);
+    }
+
+  if (!is_gimple_condexpr (bc))
+    {
+      gimple_seq stmts;
+      bc = force_gimple_operand (bc, &stmts, true, NULL_TREE);
+      add_bb_predicate_gimplified_stmts (bb, stmts);
+    }
+
+  if (is_true_predicate (bc))
+    reset_bb_predicate (bb);
+  else
+    set_bb_predicate (bb, bc);
 }
 
 /* Add the condition COND to the previous condition PREV_COND, and add
@@ -1239,10 +1318,13 @@ main_tree_if_conversion (void)
   return changed ? TODO_cleanup_cfg : 0;
 }
 
+/* Returns true when the if-conversion pass is enabled.  */
+
 static bool
 gate_tree_if_conversion (void)
 {
-  return flag_tree_vectorize != 0;
+  return ((flag_tree_vectorize && flag_tree_loop_if_convert != 0)
+	  || flag_tree_loop_if_convert == 1);
 }
 
 struct gimple_opt_pass pass_if_conversion =

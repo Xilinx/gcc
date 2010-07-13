@@ -610,9 +610,9 @@
 ;;  (plus (reg rN) (reg sp)) into (reg rN).  In this case reload will
 ;; put the duplicated register first, and not try the commutative version.
 (define_insn_and_split "*arm_addsi3"
-  [(set (match_operand:SI          0 "s_register_operand" "=r, !k, r,r, !k,r")
-	(plus:SI (match_operand:SI 1 "s_register_operand" "%rk,!k, r,rk,!k,rk")
-		 (match_operand:SI 2 "reg_or_int_operand" "rI, rI,!k,L, L,?n")))]
+  [(set (match_operand:SI          0 "s_register_operand" "=r, k,r,r, k,r")
+	(plus:SI (match_operand:SI 1 "s_register_operand" "%rk,k,r,rk,k,rk")
+		 (match_operand:SI 2 "reg_or_int_operand" "rI,rI,k,L, L,?n")))]
   "TARGET_32BIT"
   "@
    add%?\\t%0, %1, %2
@@ -637,14 +637,10 @@
    (set_attr "predicable" "yes")]
 )
 
-;; Register group 'k' is a single register group containing only the stack
-;; register.  Trying to reload it will always fail catastrophically,
-;; so never allow those alternatives to match if reloading is needed.
-
 (define_insn_and_split "*thumb1_addsi3"
-  [(set (match_operand:SI          0 "register_operand" "=l,l,l,*rk,*hk,l,!k,l,l")
-	(plus:SI (match_operand:SI 1 "register_operand" "%0,0,l,*0,*0,!k,!k,0,l")
-		 (match_operand:SI 2 "nonmemory_operand" "I,J,lL,*hk,*rk,!M,!O,Pa,Pb")))]
+  [(set (match_operand:SI          0 "register_operand" "=l,l,l,*rk,*hk,l,k,l,l")
+	(plus:SI (match_operand:SI 1 "register_operand" "%0,0,l,*0,*0,k,k,0,l")
+		 (match_operand:SI 2 "nonmemory_operand" "I,J,lL,*hk,*rk,M,O,Pa,Pb")))]
   "TARGET_THUMB1"
   "*
    static const char * const asms[] = 
@@ -1089,8 +1085,8 @@
 ; ??? Check Thumb-2 split length
 (define_insn_and_split "*arm_subsi3_insn"
   [(set (match_operand:SI           0 "s_register_operand" "=r,r,rk,r,r")
-	(minus:SI (match_operand:SI 1 "reg_or_int_operand" "rI,r,!k,?n,r")
-		  (match_operand:SI 2 "reg_or_int_operand" "r,rI, r, r,?n")))]
+	(minus:SI (match_operand:SI 1 "reg_or_int_operand" "rI,r,k,?n,r")
+		  (match_operand:SI 2 "reg_or_int_operand" "r,rI,r, r,?n")))]
   "TARGET_32BIT"
   "@
    rsb%?\\t%0, %2, %1
@@ -4619,6 +4615,27 @@
   operands[3] = change_address (operands[1], QImode, addr);
 })
 
+(define_peephole2
+  [(set (match_operand:SI 0 "register_operand" "")
+	(plus:SI (match_dup 0) (match_operand 1 "const_int_operand")))
+   (set (match_operand:SI 2 "register_operand" "") (const_int 0))
+   (set (match_operand:SI 3 "register_operand" "")
+	(sign_extend:SI (match_operand:QI 4 "memory_operand" "")))]
+  "TARGET_THUMB1
+   && GET_CODE (XEXP (operands[4], 0)) == PLUS
+   && rtx_equal_p (operands[0], XEXP (XEXP (operands[4], 0), 0))
+   && rtx_equal_p (operands[2], XEXP (XEXP (operands[4], 0), 1))
+   && (peep2_reg_dead_p (3, operands[0])
+       || rtx_equal_p (operands[0], operands[3]))
+   && (peep2_reg_dead_p (3, operands[2])
+       || rtx_equal_p (operands[2], operands[3]))"
+  [(set (match_dup 2) (match_dup 1))
+   (set (match_dup 3) (sign_extend:SI (match_dup 4)))]
+{
+  rtx addr = gen_rtx_PLUS (Pmode, operands[0], operands[2]);
+  operands[4] = change_address (operands[4], QImode, addr);
+})
+
 (define_insn "thumb1_extendqisi2"
   [(set (match_operand:SI 0 "register_operand" "=l,l,l")
 	(sign_extend:SI (match_operand:QI 1 "nonimmediate_operand" "l,V,m")))]
@@ -6545,7 +6562,7 @@
 	      (pc)))]
   "TARGET_THUMB1"
 {
-  rtx xops[3];
+  rtx xops[4];
   xops[1] = gen_reg_rtx (SImode);
   emit_insn (gen_zero_extendqisi2 (xops[1], operands[1]));
   xops[2] = GEN_INT (127);
@@ -7459,8 +7476,8 @@
 	(if_then_else
 	 (match_operator 4 "arm_comparison_operator"
 	  [(plus:SI
-	    (match_operand:SI 2 "s_register_operand" "%l,0,*l,1,1,1")
-	    (match_operand:SI 3 "reg_or_int_operand" "lL,IJ,*l,lIJ,lIJ,lIJ"))
+	    (match_operand:SI 2 "s_register_operand" "%0,l,*l,1,1,1")
+	    (match_operand:SI 3 "reg_or_int_operand" "IJ,lL,*l,lIJ,lIJ,lIJ"))
 	   (const_int 0)])
 	 (label_ref (match_operand 5 "" ""))
 	 (pc)))
@@ -7492,7 +7509,7 @@
      else if (which_alternative >= 4)
        output_asm_insn (\"str\\t%1, %0\", operands);
 
-     switch (get_attr_length (insn) - ((which_alternative >= 3) ? 2 : 0))
+     switch (get_attr_length (insn) - ((which_alternative >= 2) ? 2 : 0))
        {
 	 case 4:
 	   return \"b%d4\\t%l5\";
@@ -7506,7 +7523,7 @@
   [(set (attr "far_jump")
         (if_then_else
 	    (ior (and (lt (symbol_ref ("which_alternative"))
-	                  (const_int 3))
+	                  (const_int 2))
 		      (eq_attr "length" "8"))
 		 (eq_attr "length" "10"))
 	    (const_string "yes")
@@ -7514,7 +7531,7 @@
    (set (attr "length")
      (if_then_else
        (lt (symbol_ref ("which_alternative"))
-		       (const_int 3))
+		       (const_int 2))
        (if_then_else
 	 (and (ge (minus (match_dup 5) (pc)) (const_int -250))
 	      (le (minus (match_dup 5) (pc)) (const_int 256)))
@@ -9122,7 +9139,7 @@
           [(match_operator:SI 3 "shift_operator"
              [(match_operand:SI 4 "s_register_operand" "r")
               (match_operand:SI 5 "reg_or_int_operand" "rI")])
-           (match_operand:SI 2 "s_register_operand" "r")]))]
+           (match_operand:SI 2 "s_register_operand" "rk")]))]
   "TARGET_ARM"
   "%i1%?\\t%0, %2, %4%S3"
   [(set_attr "predicable" "yes")

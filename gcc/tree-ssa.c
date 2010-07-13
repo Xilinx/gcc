@@ -42,7 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "tree-dump.h"
 #include "tree-pass.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 
 /* Pointer map of variable mappings, keyed by edge.  */
 static struct pointer_map_t *edge_var_maps;
@@ -637,6 +637,13 @@ verify_def (basic_block bb, basic_block *definition_block, tree ssa_name,
 {
   if (verify_ssa_name (ssa_name, is_virtual))
     goto err;
+
+  if (TREE_CODE (SSA_NAME_VAR (ssa_name)) == RESULT_DECL
+      && DECL_BY_REFERENCE (SSA_NAME_VAR (ssa_name)))
+    {
+      error ("RESULT_DECL should be read only when DECL_BY_REFERENCE is set.");
+      goto err;
+    }
 
   if (definition_block[SSA_NAME_VERSION (ssa_name)])
     {

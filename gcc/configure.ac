@@ -3327,10 +3327,10 @@ foo:	nop
     gcc_GAS_CHECK_FEATURE([rep and lock prefix],
         gcc_cv_as_ix86_rep_lock_prefix,,,
 	[rep movsl
-	 lock orl $0, (%esp)])
-    AC_DEFINE_UNQUOTED(HAVE_AS_IX86_REP_LOCK_PREFIX,
-      [`if test $gcc_cv_as_ix86_rep_lock_prefix = yes; then echo 1; else echo 0; fi`],
-      [Define true if the assembler supports 'rep <insn>, lock <insn>'.])
+	 lock addl %edi, (%eax,%esi)
+	 lock orl $0, (%esp)],,
+        [AC_DEFINE(HAVE_AS_IX86_REP_LOCK_PREFIX, 1,
+          [Define if the assembler supports 'rep <insn>, lock <insn>'.])])
 
     ;;
 

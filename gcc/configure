@@ -23337,6 +23337,7 @@ else
   gcc_cv_as_ix86_rep_lock_prefix=no
   if test x$gcc_cv_as != x; then
     echo 'rep movsl
+	 lock addl %edi, (%eax,%esi)
 	 lock orl $0, (%esp)' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
@@ -23355,12 +23356,11 @@ else
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_as_ix86_rep_lock_prefix" >&5
 $as_echo "$gcc_cv_as_ix86_rep_lock_prefix" >&6; }
+if test $gcc_cv_as_ix86_rep_lock_prefix = yes; then
 
+$as_echo "#define HAVE_AS_IX86_REP_LOCK_PREFIX 1" >>confdefs.h
 
-cat >>confdefs.h <<_ACEOF
-#define HAVE_AS_IX86_REP_LOCK_PREFIX `if test $gcc_cv_as_ix86_rep_lock_prefix = yes; then echo 1; else echo 0; fi`
-_ACEOF
-
+fi
 
     ;;
 

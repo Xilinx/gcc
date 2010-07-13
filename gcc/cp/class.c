@@ -2058,8 +2058,9 @@ get_vcall_index (tree fn, tree type)
 }
 
 /* Update an entry in the vtable for BINFO, which is in the hierarchy
-   dominated by T.  FN has been overridden in BINFO; VIRTUALS points to the
-   corresponding position in the BINFO_VIRTUALS list.  */
+   dominated by T.  FN is the old function; VIRTUALS points to the
+   corresponding position in the new BINFO_VIRTUALS list.  IX is the index
+   of that entry in the list.  */
 
 static void
 update_vtable_entry_for_fn (tree t, tree binfo, tree fn, tree* virtuals,
@@ -2204,6 +2205,40 @@ update_vtable_entry_for_fn (tree t, tree binfo, tree fn, tree* virtuals,
     gcc_assert (DECL_INVALID_OVERRIDER_P (overrider_target) ||
 		!DECL_THUNK_P (fn));
 
+  /* If we need a covariant thunk, then we may need to adjust first_defn.
+     The ABI specifies that the thunks emitted with a function are
+     determined by which bases the function overrides, so we need to be
+     sure that we're using a thunk for some overridden base; even if we
+     know that the necessary this adjustment is zero, there may not be an
+     appropriate zero-this-adjusment thunk for us to use since thunks for
+     overriding virtual bases always use the vcall offset.
+
+     Furthermore, just choosing any base that overrides this function isn't
+     quite right, as this slot won't be used for calls through a type that
+     puts a covariant thunk here.  Calling the function through such a type
+     will use a different slot, and that slot is the one that determines
+     the thunk emitted for that base.
+
+     So, keep looking until we find the base that we're really overriding
+     in this slot: the nearest primary base that doesn't use a covariant
+     thunk in this slot.  */
+  if (overrider_target != overrider_fn)
+    {
+      if (BINFO_TYPE (b) == DECL_CONTEXT (overrider_target))
+	/* We already know that the overrider needs a covariant thunk.  */
+	b = get_primary_binfo (b);
+      for (; ; b = get_primary_binfo (b))
+	{
+	  tree main_binfo = TYPE_BINFO (BINFO_TYPE (b));
+	  tree bv = chain_index (ix, BINFO_VIRTUALS (main_binfo));
+	  if (BINFO_LOST_PRIMARY_P (b))
+	    lost = true;
+	  if (!DECL_THUNK_P (TREE_VALUE (bv)))
+	    break;
+	}
+      first_defn = b;
+    }
+
   /* Assume that we will produce a thunk that convert all the way to
      the final overrider, and not to an intermediate virtual base.  */
   virtual_base = NULL_TREE;
@@ -2228,36 +2263,6 @@ update_vtable_entry_for_fn (tree t, tree binfo, tree fn, tree* virtuals,
 	}
     }
 
-  if (overrider_fn != overrider_target && !virtual_base)
-    {
-      /* The ABI specifies that a covariant thunk includes a mangling
-	 for a this pointer adjustment.  This-adjusting thunks that
-	 override a function from a virtual base have a vcall
-	 adjustment.  When the virtual base in question is a primary
-	 virtual base, we know the adjustments are zero, (and in the
-	 non-covariant case, we would not use the thunk).
-	 Unfortunately we didn't notice this could happen, when
-	 designing the ABI and so never mandated that such a covariant
-	 thunk should be emitted.  Because we must use the ABI mandated
-	 name, we must continue searching from the binfo where we
-	 found the most recent definition of the function, towards the
-	 primary binfo which first introduced the function into the
-	 vtable.  If that enters a virtual base, we must use a vcall
-	 this-adjusting thunk.  Bleah! */
-      tree probe = first_defn;
-
-      while ((probe = get_primary_binfo (probe))
-	     && (unsigned) list_length (BINFO_VIRTUALS (probe)) > ix)
-	if (BINFO_VIRTUAL_P (probe))
-	  virtual_base = probe;
-
-      if (virtual_base)
-	/* Even if we find a virtual base, the correct delta is
-	   between the overrider and the binfo we're building a vtable
-	   for.  */
-	goto virtual_covariant;
-    }
-
   /* Compute the constant adjustment to the `this' pointer.  The
      `this' pointer, when this function is called, will point at BINFO
      (or one of its primary bases, which are at the same offset).  */
@@ -2277,7 +2282,6 @@ update_vtable_entry_for_fn (tree t, tree binfo, tree fn, tree* virtuals,
     /* The `this' pointer needs to be adjusted from pointing to
        BINFO to pointing at the base where the final overrider
        appears.  */
-    virtual_covariant:
     delta = size_diffop_loc (input_location,
 			 convert (ssizetype,
 				  BINFO_OFFSET (TREE_VALUE (overrider))),
@@ -2290,6 +2294,9 @@ update_vtable_entry_for_fn (tree t, tree binfo, tree fn, tree* virtuals,
       = get_vcall_index (overrider_target, BINFO_TYPE (virtual_base));
   else
     BV_VCALL_INDEX (*virtuals) = NULL_TREE;
+
+  if (lost)
+    BV_LOST_PRIMARY (*virtuals) = true;
 }
 
 /* Called from modify_all_vtables via dfs_walk.  */
@@ -7645,7 +7652,7 @@ build_vtbl_initializer (tree binfo,
 			int* non_fn_entries_p,
 			VEC(constructor_elt,gc) **inits)
 {
-  tree v, b;
+  tree v;
   vtbl_init_data vid;
   unsigned ix, jx;
   tree vbinfo;
@@ -7759,20 +7766,8 @@ build_vtbl_initializer (tree binfo,
 	 zero out unused slots in ctor vtables, rather than filling them
 	 with erroneous values (though harmless, apart from relocation
 	 costs).  */
-      for (b = binfo; ; b = get_primary_binfo (b))
-	{
-	  /* We found a defn before a lost primary; go ahead as normal.  */
-	  if (look_for_overrides_here (BINFO_TYPE (b), fn_original))
-	    break;
-
-	  /* The nearest definition is from a lost primary; clear the
-	     slot.  */
-	  if (BINFO_LOST_PRIMARY_P (b))
-	    {
-	      init = size_zero_node;
-	      break;
-	    }
-	}
+      if (BV_LOST_PRIMARY (v))
+	init = size_zero_node;
 
       if (! init)
 	{

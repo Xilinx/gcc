@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "recog.h"
 #include "optabs.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "tree-vectorizer.h"
 #include "langhooks.h"
@@ -3359,7 +3360,10 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	    vec_oprnd = VEC_index (tree, result_chain, i);
 
           if (aligned_access_p (first_dr))
-	    data_ref = build_simple_mem_ref (dataref_ptr);
+	    data_ref
+	      = build2 (MEM_REF, TREE_TYPE (vec_oprnd), dataref_ptr,
+			build_int_cst (reference_alias_ptr_type
+				         (DR_REF (first_dr)), 0));
           else
           {
             int mis = DR_MISALIGNMENT (first_dr);
@@ -3367,11 +3371,6 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
             tmis = size_binop (MULT_EXPR, tmis, size_int (BITS_PER_UNIT));
             data_ref = build2 (MISALIGNED_INDIRECT_REF, vectype, dataref_ptr, tmis);
            }
-
-	  /* If accesses through a pointer to vectype do not alias the original
-	     memory reference we have a problem.  This should never happen.  */
-	  gcc_assert (alias_sets_conflict_p (get_alias_set (data_ref),
-		      get_alias_set (gimple_assign_lhs (stmt))));
 
 	  /* Arguments are ready. Create the new vector stmt.  */
 	  new_stmt = gimple_build_assign (data_ref, vec_oprnd);
@@ -3737,7 +3736,10 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	    {
 	    case dr_aligned:
 	      gcc_assert (aligned_access_p (first_dr));
-	      data_ref = build_simple_mem_ref (dataref_ptr);
+	      data_ref
+		= build2 (MEM_REF, vectype, dataref_ptr,
+			  build_int_cst (reference_alias_ptr_type
+					   (DR_REF (first_dr)), 0));
 	      break;
 	    case dr_unaligned_supported:
 	      {
@@ -3768,7 +3770,10 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 		ptr = make_ssa_name (SSA_NAME_VAR (dataref_ptr), new_stmt);
 		gimple_assign_set_lhs (new_stmt, ptr);
 		vect_finish_stmt_generation (stmt, new_stmt, gsi);
-		data_ref = build_simple_mem_ref (ptr);
+		data_ref
+		  = build2 (MEM_REF, vectype, ptr,
+			    build_int_cst (reference_alias_ptr_type
+					     (DR_REF (first_dr)), 0));
 		vec_dest = vect_create_destination_var (scalar_dest, vectype);
 		new_stmt = gimple_build_assign (vec_dest, data_ref);
 		new_temp = make_ssa_name (vec_dest, new_stmt);
@@ -3789,7 +3794,10 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 		ptr = make_ssa_name (SSA_NAME_VAR (dataref_ptr), new_stmt);
 		gimple_assign_set_lhs (new_stmt, ptr);
 		vect_finish_stmt_generation (stmt, new_stmt, gsi);
-	        data_ref = build_simple_mem_ref (ptr);
+		data_ref
+		  = build2 (MEM_REF, vectype, ptr,
+			    build_int_cst (reference_alias_ptr_type
+					     (DR_REF (first_dr)), 0));
 	        break;
 	      }
 	    case dr_explicit_realign_optimized:
@@ -3801,15 +3809,14 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	      new_temp = make_ssa_name (SSA_NAME_VAR (dataref_ptr), new_stmt);
 	      gimple_assign_set_lhs (new_stmt, new_temp);
 	      vect_finish_stmt_generation (stmt, new_stmt, gsi);
-	      data_ref = build_simple_mem_ref (new_temp);
+	      data_ref
+		= build2 (MEM_REF, vectype, new_temp,
+			  build_int_cst (reference_alias_ptr_type
+					   (DR_REF (first_dr)), 0));
 	      break;
 	    default:
 	      gcc_unreachable ();
 	    }
-	  /* If accesses through a pointer to vectype do not alias the original
-	     memory reference we have a problem.  This should never happen. */
-	  gcc_assert (alias_sets_conflict_p (get_alias_set (data_ref),
-		      get_alias_set (gimple_assign_rhs1 (stmt))));
 	  vec_dest = vect_create_destination_var (scalar_dest, vectype);
 	  new_stmt = gimple_build_assign (vec_dest, data_ref);
 	  new_temp = make_ssa_name (vec_dest, new_stmt);
