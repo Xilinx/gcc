@@ -580,7 +580,7 @@ wbetl_dispatch::trydropreference (void *ptr, size_t size)
     {
       pair = this->write_lock(src, WaW);
       *pair.mask = 0;
-      memcpy (dst, src, CACHELINE_SIZE);
+      memcpy (dst, pair.line, CACHELINE_SIZE);
       dst += CACHELINE_SIZE;
       src++;
       size -= CACHELINE_SIZE;
