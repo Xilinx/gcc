@@ -1,5 +1,9 @@
 
 2010-07-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_defselector):
+	check the class in defselector & improved messages...
+
+2010-07-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{preparing for merge with better 4.6 trunk with typed GGC}}
 	* melt-make.mk (warmelt-*0.so, warmelt-first.1.c): added
 	dependencies on melt-runtime.h & melt-runtime.c.

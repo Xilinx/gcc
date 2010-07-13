@@ -2886,11 +2886,11 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 	 (formals ())
 	 )
     (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for DEFSELECTOR"_))
+	(error_plain loc "missing symbol for (DEFSELECTOR <name> <class> ...)"_))
     (setq curpair (pair_tail curpair))
     (let ( (nam (pair_head curpair)) )
       (if (is_not_a nam class_symbol)
-	  (error_plain loc "missing class name for DEFSELECTOR"_))
+	  (error_plain loc "missing class name for (DEFSELECTOR <name> <class> ...)"_))
       (let ( (bnd (find_env env nam)) 
 	     (fldlist (make_list discr_list))
 	     )
@@ -2903,11 +2903,17 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 	   (setq clabind bnd)
 	   (setq cla (unsafe_get_field :vbind_value bnd)))
 	 (:else
-	  (error_strv loc "invalid class name for DEFSELECTOR"_
+	  (error_strv loc "invalid class name for (DEFSELECTOR <name> <class> ...)"_
 		      (unsafe_get_field :named_name nam))
 	  (return ())
 	  ))
+	;;
 	(setq claname nam)
+	(if (not (subclass_or_eq cla class_selector))
+	    (progn
+	      (error_strv loc "invalid class in (DEFSELECTOR <name> <class>); expecting CLASS_SELECTOR or its subclass"  (unsafe_get_field :named_name claname))
+	      (return)))
+	;;
 	(assert_msg "check cla" (is_a cla class_class))
 	(setq curpair (pair_tail curpair))
 	(forever insloop
