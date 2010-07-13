@@ -1,3 +1,45 @@
+2010-07-13  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR objc/44488
+	* lib/objc-torture.exp (objc-set-runtime-options): Base runtime list
+	on the target.  Make sure that we can assemble the emitted asm when 
+	the test type is 'compile'.
+	
+2010-07-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36960
+	* g++.dg/torture/pr36960.C: New testcase.
+
+2010-07-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44908
+	* g++.dg/template/sfinae21.C: New.
+	* g++.dg/template/sfinae22.C: Likewise.
+
+2010-07-13  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gcc.c-torture/execute/pr44683.x: New.
+	* gcc.dg/torture/builtin-cproj-1.c: Add dg-add-options ieee.
+
+2010-07-13  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44434
+	PR fortran/44565
+	PR fortran/43945
+	PR fortran/44869
+	* gfortran.dg/dynamic_dispatch_1.f03: Fixed invalid test case.
+	* gfortran.dg/dynamic_dispatch_2.f03: Ditto.
+	* gfortran.dg/dynamic_dispatch_3.f03: Ditto.
+	* gfortran.dh/typebound_call_16.f03: New.
+	* gfortran.dg/typebound_generic_6.f03: New.
+	* gfortran.dg/typebound_generic_7.f03: New.
+	* gfortran.dg/typebound_generic_8.f03: New.
+
+2010-07-12  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/37077
+	* gfortran.dg/char4_iunit_1.f03: New test.
+
 2010-07-12  Jakub Jelinek  <jakub@redhat.com>
 
 	* gcc.dg/tree-ssa/vrp53.c: New test.
