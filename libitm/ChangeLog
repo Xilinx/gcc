@@ -1,3 +1,8 @@
+2010-07-13  Aldy Hernandez  <aldyh@redhat.com>
+
+	* libitm.h: Add comment.
+	* libitm_i.h (begin_transaction): Add ITM_REGPARM.
+
 2010-07-07  Aldy Hernandez  <aldyh@redhat.com>
 
 	* configure.ac: Call LIBITM_CHECK_64BIT_SYNC_BUILTINS.

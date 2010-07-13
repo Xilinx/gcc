@@ -37,6 +37,7 @@ extern "C" {
 #endif
 
 #ifdef __i386__
+/* Only for 32-bit x86.  */
 # define ITM_REGPARM	__attribute__((regparm(2)))
 #else
 # define ITM_REGPARM
