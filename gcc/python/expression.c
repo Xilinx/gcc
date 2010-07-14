@@ -20,6 +20,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "opts.h"
 #include "tree.h"
+#include "tree-iterator.h"
 #include "gimple.h"
 #include "toplev.h"
 #include "debug.h"
@@ -32,18 +33,19 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "cgraph.h"
 
+#include <gmp.h>
+#include <mpfr.h>
+
 #include "vec.h"
+#include "hashtab.h"
 
 #include "gpy.h"
 #include "symbols.h"
 #include "opcodes.def"
 #include "y.py.h"
 
-#include <gmp.h>
-#include <mpfr.h>
-
-tree gpy_process_assign( gpy_symbol_obj ** op_a,
-			 gpy_symbol_obj ** op_b )
+tree gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
+			 tree * block)
 {
   tree retval = NULL; gpy_symbol_obj *opa, *opb;
 
@@ -76,7 +78,7 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 	  debug( "built the VAR_DECL <%p> for <%s>!\n", (void*)decl,
 		 opa->op_a.string );
 	}
-      rhs_tree = gpy_process_expression( opb );
+      rhs_tree = gpy_process_expression( opb, block );
 
       printf("opb->type = <0x%X>!\n", opb->type );
       printf("RHS Tree!\n");
@@ -95,15 +97,21 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a,
 }
 
 tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
-				 gpy_opcode_t operation )
+				 gpy_opcode_t operation, tree * block )
 {
   gpy_symbol_obj *opa, *opb; tree retval = NULL;
   tree t1 = NULL_TREE, t2 = NULL_TREE;
 
-  tree fntype = build_function_type(void_type_node, void_list_node);
+  tree fntype = build_function_type( build_pointer_type( void_type_node ),
+				     void_list_node);
   tree gpy_eval_expr_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
 					get_identifier("gpy_rr_eval_expression"),
 					fntype );
+  tree restype = TREE_TYPE(gpy_eval_expr_decl);
+  tree resdecl = build_decl( UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
+			     restype );
+  DECL_CONTEXT(resdecl) = gpy_eval_expr_decl;
+  DECL_RESULT(retval) = resdecl;
 
   if( op_a && op_b ) { opa= *op_a; opb= *op_b; }
   else {
@@ -111,15 +119,17 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
     return NULL;
   }
 
-  t1 = gpy_process_expression( opa );
-  t2 = gpy_process_expression( opb );
+  t1 = gpy_process_expression( opa, block );
+  t2 = gpy_process_expression( opb, block );
 
   switch( operation )
     {
     case OP_BIN_ADDITION:
-      retval = build_call_expr( gpy_eval_expr_decl, 3, t1, t2,
-				build_int_cst( integer_type_node,
-					       OP_BIN_ADDITION )
+      append_to_statement_list( build_call_expr( gpy_eval_expr_decl, 3, t1, t2,
+						 build_int_cst( integer_type_node,
+								OP_BIN_ADDITION )
+						 ),
+				block
 				);
       break;
 
@@ -128,6 +138,8 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
       retval = NULL;
       break;
     }
+
+  retval = resdecl;
 
   debug_tree( retval );
 

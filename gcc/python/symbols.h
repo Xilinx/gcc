@@ -66,6 +66,7 @@ typedef struct GTY(()) gpy_context_branch_t {
   VEC(gpy_ident,gc) *var_decl_t;
   gpy_hash_tab_t * fnc_decls;
   VEC(gpy_ident,gc) *fnc_decl_t;
+  VEC(tree,gc) * ctx_init;
 } gpy_context_branch ;
 
 typedef gpy_symbol_obj *gpy_sym;
@@ -103,16 +104,16 @@ extern void gpy_gg_invoke_garbage( void );
 
 extern void gpy_garbage_free_obj( gpy_symbol_obj ** );
 
-extern tree gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj ** );
+extern tree gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj **, tree * );
 
 extern tree gpy_process_bin_expression( gpy_symbol_obj ** , gpy_symbol_obj **,
-					gpy_opcode_t );
+					gpy_opcode_t, tree * );
 
-extern tree gpy_process_expression( const gpy_symbol_obj * const );
+extern tree gpy_process_expression( const gpy_symbol_obj * const, tree * );
 
 extern tree gpy_process_functor( const gpy_symbol_obj * const );
 
-extern tree gpy_get_tree( gpy_symbol_obj * );
+extern tree gpy_get_tree( gpy_symbol_obj * , tree * );
 
 extern void gpy_process_decl( gpy_symbol_obj * );
 
@@ -122,6 +123,8 @@ extern tree gpy_ctx_lookup_decl( const char *, enum DECL_T );
 
 extern bool gpy_ctx_push_decl( tree, const char *, gpy_context_branch *,
 			       enum DECL_T );
+
+extern gpy_symbol_obj * gpy_symbol_obj_clone( gpy_symbol_obj *, bool );
 
 extern void gpy_symbol_init_ctx( gpy_symbol_obj * const )
   __attribute__((nonnull));

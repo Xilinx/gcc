@@ -265,6 +265,7 @@ void gpy_init_ctx_branch( gpy_context_branch * const * o )
 
       (*o)->var_decl_t = VEC_alloc(gpy_ident,gc,0);
       (*o)->fnc_decl_t = VEC_alloc(gpy_ident,gc,0);
+      (*o)->ctx_init = VEC_alloc(tree,gc,0);
     }
 }
 
