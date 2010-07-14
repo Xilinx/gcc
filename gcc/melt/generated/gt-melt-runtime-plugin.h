@@ -981,10 +981,6 @@ gt_ggc_mx_melt_un (void *x_p)
           gt_ggc_m_13meltobject_st ((*x).u_gimpleseq.discr);
           gt_ggc_m_12gimple_seq_d ((*x).u_gimpleseq.val);
           break;
-        case MELTOBMAG_GIMPLESEQNODE:
-          gt_ggc_m_13meltobject_st ((*x).u_gimpleseqnode.discr);
-          gt_ggc_m_12gimple_seq_d ((*x).u_gimpleseqnode.val);
-          break;
         case MELTOBMAG_BASICBLOCK:
           gt_ggc_m_13meltobject_st ((*x).u_basicblock.discr);
           gt_ggc_m_15basic_block_def ((*x).u_basicblock.val);
@@ -1072,24 +1068,13 @@ gt_ggc_mx_melt_un (void *x_p)
             ggc_mark ((*x).u_mapgimpleseqs.entab);
           }
           break;
-        case MELTOBMAG_MAPGIMPLESEQNODES:
-          gt_ggc_m_13meltobject_st ((*x).u_mapgimpleseqnodes.discr);
-          if ((*x).u_mapgimpleseqnodes.entab != NULL) {
-            size_t i15;
-            for (i15 = 0; i15 != (size_t)(melt_primtab[((*x).u_mapgimpleseqnodes).lenix]); i15++) {
-              gt_ggc_m_12gimple_seq_d ((*x).u_mapgimpleseqnodes.entab[i15].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapgimpleseqnodes.entab[i15].e_va);
-            }
-            ggc_mark ((*x).u_mapgimpleseqnodes.entab);
-          }
-          break;
         case MELTOBMAG_MAPBASICBLOCKS:
           gt_ggc_m_13meltobject_st ((*x).u_mapbasicblocks.discr);
           if ((*x).u_mapbasicblocks.entab != NULL) {
-            size_t i16;
-            for (i16 = 0; i16 != (size_t)(melt_primtab[((*x).u_mapbasicblocks).lenix]); i16++) {
-              gt_ggc_m_15basic_block_def ((*x).u_mapbasicblocks.entab[i16].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapbasicblocks.entab[i16].e_va);
+            size_t i15;
+            for (i15 = 0; i15 != (size_t)(melt_primtab[((*x).u_mapbasicblocks).lenix]); i15++) {
+              gt_ggc_m_15basic_block_def ((*x).u_mapbasicblocks.entab[i15].e_at);
+              gt_ggc_m_7melt_un ((*x).u_mapbasicblocks.entab[i15].e_va);
             }
             ggc_mark ((*x).u_mapbasicblocks.entab);
           }
@@ -1097,10 +1082,10 @@ gt_ggc_mx_melt_un (void *x_p)
         case MELTOBMAG_MAPEDGES:
           gt_ggc_m_13meltobject_st ((*x).u_mapedges.discr);
           if ((*x).u_mapedges.entab != NULL) {
-            size_t i17;
-            for (i17 = 0; i17 != (size_t)(melt_primtab[((*x).u_mapedges).lenix]); i17++) {
-              gt_ggc_m_8edge_def ((*x).u_mapedges.entab[i17].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapedges.entab[i17].e_va);
+            size_t i16;
+            for (i16 = 0; i16 != (size_t)(melt_primtab[((*x).u_mapedges).lenix]); i16++) {
+              gt_ggc_m_8edge_def ((*x).u_mapedges.entab[i16].e_at);
+              gt_ggc_m_7melt_un ((*x).u_mapedges.entab[i16].e_va);
             }
             ggc_mark ((*x).u_mapedges.entab);
           }
@@ -1108,10 +1093,10 @@ gt_ggc_mx_melt_un (void *x_p)
         case MELTOBMAG_MAPLOOPS:
           gt_ggc_m_13meltobject_st ((*x).u_maploops.discr);
           if ((*x).u_maploops.entab != NULL) {
-            size_t i18;
-            for (i18 = 0; i18 != (size_t)(melt_primtab[((*x).u_maploops).lenix]); i18++) {
-              gt_ggc_m_4loop ((*x).u_maploops.entab[i18].e_at);
-              gt_ggc_m_7melt_un ((*x).u_maploops.entab[i18].e_va);
+            size_t i17;
+            for (i17 = 0; i17 != (size_t)(melt_primtab[((*x).u_maploops).lenix]); i17++) {
+              gt_ggc_m_4loop ((*x).u_maploops.entab[i17].e_at);
+              gt_ggc_m_7melt_un ((*x).u_maploops.entab[i17].e_va);
             }
             ggc_mark ((*x).u_maploops.entab);
           }
@@ -1119,10 +1104,10 @@ gt_ggc_mx_melt_un (void *x_p)
         case MELTOBMAG_MAPBITMAPS:
           gt_ggc_m_13meltobject_st ((*x).u_mapbitmaps.discr);
           if ((*x).u_mapbitmaps.entab != NULL) {
-            size_t i19;
-            for (i19 = 0; i19 != (size_t)(melt_primtab[((*x).u_mapbitmaps).lenix]); i19++) {
-              gt_ggc_m_15bitmap_head_def ((*x).u_mapbitmaps.entab[i19].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapbitmaps.entab[i19].e_va);
+            size_t i18;
+            for (i18 = 0; i18 != (size_t)(melt_primtab[((*x).u_mapbitmaps).lenix]); i18++) {
+              gt_ggc_m_15bitmap_head_def ((*x).u_mapbitmaps.entab[i18].e_at);
+              gt_ggc_m_7melt_un ((*x).u_mapbitmaps.entab[i18].e_va);
             }
             ggc_mark ((*x).u_mapbitmaps.entab);
           }
@@ -1130,10 +1115,10 @@ gt_ggc_mx_melt_un (void *x_p)
         case MELTOBMAG_MAPRTXS:
           gt_ggc_m_13meltobject_st ((*x).u_maprtxs.discr);
           if ((*x).u_maprtxs.entab != NULL) {
-            size_t i20;
-            for (i20 = 0; i20 != (size_t)(melt_primtab[((*x).u_maprtxs).lenix]); i20++) {
-              gt_ggc_m_7rtx_def ((*x).u_maprtxs.entab[i20].e_at);
-              gt_ggc_m_7melt_un ((*x).u_maprtxs.entab[i20].e_va);
+            size_t i19;
+            for (i19 = 0; i19 != (size_t)(melt_primtab[((*x).u_maprtxs).lenix]); i19++) {
+              gt_ggc_m_7rtx_def ((*x).u_maprtxs.entab[i19].e_at);
+              gt_ggc_m_7melt_un ((*x).u_maprtxs.entab[i19].e_va);
             }
             ggc_mark ((*x).u_maprtxs.entab);
           }
@@ -1141,10 +1126,10 @@ gt_ggc_mx_melt_un (void *x_p)
         case MELTOBMAG_MAPRTVECS:
           gt_ggc_m_13meltobject_st ((*x).u_maprtvecs.discr);
           if ((*x).u_maprtvecs.entab != NULL) {
-            size_t i21;
-            for (i21 = 0; i21 != (size_t)(melt_primtab[((*x).u_maprtvecs).lenix]); i21++) {
-              gt_ggc_m_9rtvec_def ((*x).u_maprtvecs.entab[i21].e_at);
-              gt_ggc_m_7melt_un ((*x).u_maprtvecs.entab[i21].e_va);
+            size_t i20;
+            for (i20 = 0; i20 != (size_t)(melt_primtab[((*x).u_maprtvecs).lenix]); i20++) {
+              gt_ggc_m_9rtvec_def ((*x).u_maprtvecs.entab[i20].e_at);
+              gt_ggc_m_7melt_un ((*x).u_maprtvecs.entab[i20].e_va);
             }
             ggc_mark ((*x).u_maprtvecs.entab);
           }
@@ -1175,8 +1160,8 @@ EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
-/* gt-melt-runtime-plugin.h file generated Fri Jul  2 23:58:34 2010
+/* gt-melt-runtime-plugin.h file generated Wed Jul 14 14:53:16 2010
 
-6bff4220e4608e53ba14da00fc979869  melt-runtime.h
-0cb5a02c6a0c4b2bca2c0a72550f4f8b  melt-runtime.c
+f7dc292e5dfada593a15402f0dc982ba  melt-runtime.h
+d24b39b28a85c86681a679e154b0573c  melt-runtime.c
 */
