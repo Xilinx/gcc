@@ -2911,7 +2911,10 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 	(setq claname nam)
 	(if (not (subclass_or_eq cla class_selector))
 	    (progn
-	      (error_strv loc "invalid class in (DEFSELECTOR <name> <class>); expecting CLASS_SELECTOR or its subclass"  (unsafe_get_field :named_name claname))
+	      ;; strangely, this error happens in makedoc mode all the
+	      ;; times. We disable it in that case...
+	      (if (null (get_field :container_value melt_mode_container))
+		  (error_strv loc "invalid class in (DEFSELECTOR <name> <class>); expecting CLASS_SELECTOR or its subclass"  (unsafe_get_field :named_name claname)))
 	      (return)))
 	;;
 	(assert_msg "check cla" (is_a cla class_class))

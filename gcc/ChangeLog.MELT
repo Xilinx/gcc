@@ -1,4 +1,11 @@
 
+2010-07-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt: added melt_mode_container.
+	* melt/warmelt-macro.melt: check for CLASS_SELECTOR in defselector
+	disabled when the melt_mode_container contains something.
+	* melt/warmelt-outobj.melt: disable defselector warning above in
+	makedoc mode thru melt_mode_container.
+
 2010-07-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (mexpand_defselector):
 	check the class in defselector & improved messages...

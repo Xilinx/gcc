@@ -5158,6 +5158,7 @@ number. Useful for running gdb on the module."
 		   :mkdoc_subclassmap (make_mapobject discr_map_objects 400)
 		   ))
 	)
+    (put_fields melt_mode_container :container_value mdinfo)
     (debug_msg arglist "makedoc_docmd arglist")
     (debug_msg outarg "makedoc_docmd outarg")
     ;; read into rlist all the stuff
