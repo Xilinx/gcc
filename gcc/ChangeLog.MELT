@@ -1,5 +1,24 @@
 
 2010-07-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: force full GC in translateinit mode.
+
+	{{regenerated all}}
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
+
+2010-07-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated all}}
 	* melt/generated/warmelt-first.0.c: Regenerated.
 	* melt/generated/warmelt-normatch.0+01.c: Regenerated.

@@ -4080,6 +4080,9 @@ number. Useful for running gdb on the module."
      )
     (debug_msg rlist "after read translateinit_mode rlist")
     (compile_list_sexpr rlist initial_environment basnam)
+    ;; we trigger explicitly a full GC to stress the runtime. The
+    ;; translateinit mode is not useful to the casual user.
+    (full_garbcoll 10000)
     (return)
     ))
 
