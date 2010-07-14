@@ -1,3 +1,8 @@
+2010-07-14  jeremie Salvucci  <jeremie.salvucci@free.fr>
+	* xtramelt-ana-base.melt (gimple_assign_unary_minus) : Added unary
+	minus matcher.
+	(gimple_cond_equal) : Added matcher on logical operator greater or
+	equal.
 
 2010-07-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: force full GC in translateinit mode.
@@ -39,7 +44,7 @@
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerated.
 	* melt/generated/warmelt-debug.0.c: Regenerated.
 
-	
+
 2010-07-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt: added melt_mode_container.
 	* melt/warmelt-macro.melt: check for CLASS_SELECTOR in defselector

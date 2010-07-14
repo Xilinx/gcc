@@ -314,6 +314,21 @@
   }#
 )
 
+;;; match a gimple assign with unary minus X = -Y
+(defcmatcher gimple_assign_unary_minus
+  (:gimple ga)
+  (:tree lhs
+   :tree rhs)
+  gaum
+  ;; test
+  #{
+       ($ga && gimple_expr_code ($ga) == NEGATE_EXPR)
+  }#
+  ;; fill
+  #{
+       $lhs = gimple_assign_lhs ($ga);
+       $rhs = gimple_assign_rhs1 ($ga);
+  }#)
 
 ;;;; match a gimple assign with addition ie X = Y + Z
 
@@ -632,7 +647,25 @@
   #{
    $lhs = gimple_cond_lhs($gc);
    $rhs = gimple_cond_rhs($gc);
-  }# )
+  }#)
+
+;;; match a gimple_cond equal
+(defcmatcher gimple_cond_equal
+  (:gimple gc)
+  (:tree lhs
+   :tree rhs)
+  gce
+
+  #{
+       ($gc &&
+	gimple_code ($gc) == GIMPLE_COND &&
+	gimple_cond_code ($gc) == EQ_EXPR)
+  }#
+
+  #{
+       $lhs = gimple_cond_lhs ($gc);
+       $rhs = gimple_cond_rhs ($gc);
+  }#)
 
 ;;; match a gimple cond greater
 (defcmatcher gimple_cond_greater
@@ -649,6 +682,24 @@
    $lhs = gimple_cond_lhs($gc);
    $rhs = gimple_cond_rhs($gc);
   }# )
+
+;;; match a gimple_cond greater or equal
+(defcmatcher gimple_cond_greater_or_equal
+  (:gimple gc)
+  (:tree lhs
+   :tree rhs)
+  gcgoe
+  ;; test
+  #{
+       ($gc && 
+        gimple_code ($gc) == GIMPLE_COND && 
+        gimple_cond_code ($gc) == GE_EXPR)
+  }#
+  ;; fill
+  #{
+       $lhs = gimple_cond_lhs ($gc);
+       $rhs = gimple_cond_rhs ($gc);
+  }#)
 
 ;; match a gimple cond true
 (defcmatcher gimple_cond_true
@@ -1375,7 +1426,7 @@
    $initialdcl = NULL; 
    if (DECL_NAME($tr))
      $funame = IDENTIFIER_POINTER(DECL_NAME($tr)); 
-   $initialdcl = DECL_INITIAL($tr); 
+   $initialdcl = DECL_RESULT($tr); 
   }#
 )
 
@@ -2507,6 +2558,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_assign_ssa_name_copy 
  gimple_assign_trunc_div
  gimple_assign_trunc_mod
+ gimple_assign_unary_minus
  gimple_assign_unary_nop
  gimple_bind
  gimple_call
@@ -2524,9 +2576,11 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_call_6_more
  gimple_call_7
  gimple_call_7_more
- gimple_call_nth_arg  
+ gimple_call_nth_arg
+ gimple_cond_equal  
  gimple_cond_false
  gimple_cond_greater
+ gimple_cond_greater_or_equal
  gimple_cond_less  
  gimple_cond_lessequal
  gimple_cond_notequal
