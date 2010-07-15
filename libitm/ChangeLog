@@ -1,3 +1,8 @@
+2010-07-15  Richard Henderson  <rth@redhat.com>
+
+	* Makefile.am (AM_CXXFLAGS): Add -funwind-tables.
+	* Makefile.in: Rebuild.
+
 2010-07-13  Aldy Hernandez  <aldyh@redhat.com>
 
 	* method-wbetl.cc (trydropreference): Fix source line.
