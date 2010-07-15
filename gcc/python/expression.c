@@ -102,8 +102,14 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
   gpy_symbol_obj *opa, *opb; tree retval = NULL;
   tree t1 = NULL_TREE, t2 = NULL_TREE;
 
-  tree fntype = build_function_type( build_pointer_type( void_type_node ),
-				     void_list_node);
+  tree params = NULL_TREE;
+
+  chainon( params, tree_cons (NULL_TREE, ptr_type_node, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, ptr_type_node, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, integer_type_node, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
+
+  tree fntype = build_function_type( ptr_type_node, params );
   tree gpy_eval_expr_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
 					get_identifier("gpy_rr_eval_expression"),
 					fntype );
@@ -111,7 +117,9 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
   tree resdecl = build_decl( UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
 			     restype );
   DECL_CONTEXT(resdecl) = gpy_eval_expr_decl;
-  DECL_RESULT(retval) = resdecl;
+  DECL_RESULT(gpy_eval_expr_decl) = resdecl;
+  DECL_EXTERNAL( gpy_eval_expr_decl ) = 1;
+  TREE_PUBLIC( gpy_eval_expr_decl ) = 1;
 
   if( op_a && op_b ) { opa= *op_a; opb= *op_b; }
   else {

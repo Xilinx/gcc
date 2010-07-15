@@ -121,10 +121,13 @@ gpy_symbol_obj * gpy_process_AST_Split_Asigns( gpy_symbol_obj ** sym )
       retval = it;
     }
   
-  while( (i = VEC_pop(gpy_sym,operations)) )
+  if( VEC_length(gpy_sym,operations) > 0 )
     {
-      it->next = i;
-      it = i;
+      while( (i = VEC_pop(gpy_sym,operations)) )
+	{
+	  it->next = i;
+	  it = i;
+	}
     }
 
   if( nn )
@@ -337,8 +340,13 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym, tree * block )
   tree retval = NULL;
   if( sym->type == SYMBOL_PRIMARY )
     {
-      tree fntype = build_function_type( build_pointer_type( void_type_node ),
-					 void_list_node);
+      debug("tree primary!\n");
+      tree params = NULL_TREE;
+
+      chainon( params, tree_cons (NULL_TREE, integer_type_node, NULL_TREE) );
+      chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
+
+      tree fntype = build_function_type( ptr_type_node, params );
       tree gpy_eval_expr_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
 					    get_identifier("gpy_rr_fold_integer"),
 					    fntype );
@@ -346,9 +354,10 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym, tree * block )
       tree resdecl = build_decl( UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
 				 restype );
       DECL_CONTEXT(resdecl) = gpy_eval_expr_decl;
-      DECL_RESULT(retval) = resdecl;
+      DECL_RESULT(gpy_eval_expr_decl) = resdecl;
+      DECL_EXTERNAL( gpy_eval_expr_decl ) = 1;
+      TREE_PUBLIC( gpy_eval_expr_decl ) = 1;
       
-      debug("tree primary!\n");
       gcc_assert( sym->op_a_t == TYPE_INTEGER );
       append_to_statement_list( build_call_expr( gpy_eval_expr_decl, 1,
 						 build_int_cst( integer_type_node,
@@ -503,7 +512,7 @@ tree gpy_get_tree( gpy_symbol_obj * sym, tree * block )
   if( sym->exp == OP_EXPRESS )
     {
       sym = gpy_process_AST_Align( &sym );
-      sym = gpy_process_AST_Split_Asigns( &sym );
+      /* sym = gpy_process_AST_Split_Asigns( &sym ); */
       retval_decl = gpy_process_expression( sym, block );
     }
   else
@@ -552,6 +561,8 @@ void gpy_write_globals( void )
       vec[ vec_len ] = x;
       vec_len++;
     }
+
+  printf("whoop!\n");
 
   VEC_pop( gpy_ctx_t, gpy_ctx_table );
 
