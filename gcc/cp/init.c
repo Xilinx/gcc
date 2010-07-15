@@ -1714,6 +1714,9 @@ constant_value_1 (tree decl, bool integral_p)
 	  && TREE_CODE (init) == TREE_LIST
 	  && TREE_CHAIN (init) == NULL_TREE)
 	init = TREE_VALUE (init);
+      if (generalized_constant_expression_allowed ()
+          && !processing_template_decl && init != NULL)
+        init = cxx_constant_value (init);
       if (!init
 	  || !TREE_TYPE (init)
 	  || (integral_p

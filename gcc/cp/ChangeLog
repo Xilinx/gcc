@@ -1298,6 +1298,72 @@
 	* cp-tree.h (diagnose_uninitialized_cst_or_ref_member): Change the
 	prototype.
 
+2010-03-10  Gabriel Dos Reis  <gdr@cse.tamu.edu>
+
+	* parser.c (cp_parser_ctor_initializer_opt_and_function_body):
+	Check body of constexpr constructors.
+	* cp-tree.h (TYPE_ARRAY_P): New.
+	(hash_constexpr_args): Declare.
+	(register_constexpr_fundef): Likewise.
+	(cxx_constant_value): Likewise.
+	(generalized_constant_expression_allowed): New.
+	* decl.c (validate_constexpr_redeclaration): New.
+	(duplicate_decls): Use it.
+	(cp_finish_decl): Validate constexpr bit.
+	(grokdeclarator): Check uses of constexpr specifier.
+	(maybe_save_function_definition): New.
+	(finish_function): Use it.
+	* class.c (check_bases): Accumulate literal type property from
+	base classes.
+	(check_field_decls): Same for non-static data members.
+	(finalize_literal_type_property): New.
+	(check_bases_and_members): Use it.
+	(finish_struct_1): Assume the class being processed is literal.
+	* typeck2.c (store_init_value): Fold initializers of 
+	constexpr variables.
+	* pt.c (hash_constexpr_args): Define.
+	* semantics.c (ensure_literal_type_for_constexpr_object): Tidy.
+	(constexpr_fundef): New datatype.
+	(constexpr_fundef_table): New global table.
+	(constexpr_fundef_equal): New.
+	(constexpr_fundef_hash): Likewise.
+	(retrieve_constexpr_fundef): Likewise.
+	(validate_constexpr_fundecl): Tidy.  Allow constexpr function
+	declarations that are not definitions.
+	(build_constexpr_constructor_member_initializers): New.
+	(register_constexpr_fundef): Define.
+	(constexpr_call): New datatype.
+	(constexpr_call_table): New global table.
+	(constexpr_call_hash): New.
+	(constexpr_call_equal): Likewise.
+	(maybe_initialize_constexpr_call_table): Likewise.
+	(is_this_parameter): Likewise.
+	(get_function_named_in_call): Likewise.
+	(get_nth_callarg): Likewise.
+	(lookup_parameter_binding): Likewise.
+	(cxx_eval_builtin_function_call): Likewise.
+	(cxx_bind_parameters_in_call): Likewise.
+	(cxx_eval_call_expression): Likewise.
+	(cxx_eval_unary_expression): Likewise.
+	(cxx_eval_binary_expression): Likewise.
+	(cxx_eval_conditional_expression): Likewise.
+	(cxx_eval_array_reference): Likewise.
+	(cxx_eval_component_reference): Likewise.
+	(cxx_eval_logical_expression): Likewise.
+	(cxx_eval_object_construction): Likewise.
+	(cxx_eval_constant_expression): Likewise.
+	(cxx_constant_value): Define.
+	(has_automatic_or_tls): New.
+	(morally_constexpr_builtin_function_p): Likewise.
+	(potential_constant_expression): Likewise.
+	(valid_type_in_constexpr_fundecl_p): New.
+	(validate_constexpr_fundecl): Use it.
+	(valid_for_static_initialization_p): New.
+	(cxx_eval_bare_aggregate): Likewise.
+	(implicit_dereference_p): Likewise.
+	(implicit_address_p): Likewise.
+	(cxx_eval_constant_expression): Use them.
+
 2010-05-06  Magnus Fromreide  <magfr@lysator.liu.se>
 	    Jason Merrill  <jason@redhat.com>
 

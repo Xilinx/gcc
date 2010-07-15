@@ -15736,13 +15736,33 @@ cp_parser_ctor_initializer_opt_and_function_body (cp_parser *parser)
 {
   tree body;
   bool ctor_initializer_p;
+  const bool check_body_p =
+     DECL_CONSTRUCTOR_P (current_function_decl)
+     && DECL_DECLARED_CONSTEXPR_P (current_function_decl);
+  tree last = NULL;
 
   /* Begin the function body.  */
   body = begin_function_body ();
   /* Parse the optional ctor-initializer.  */
   ctor_initializer_p = cp_parser_ctor_initializer_opt (parser);
+
+  /* If we're parsing a constexpr constructor definition, we need
+     to check that the constructor body is indeed empty.  However,
+     before we get to cp_parser_function_body lot of junk has been
+     generated, so we can't just check that we have an empty block.
+     Rather we take a snapshot of the outermost block, and check whether
+     cp_parser_function_body changed its state.  */
+  if (check_body_p && TREE_CODE (body) == STATEMENT_LIST)
+    last = STATEMENT_LIST_TAIL (body)->stmt;
   /* Parse the function-body.  */
   cp_parser_function_body (parser);
+  if (check_body_p
+      && (TREE_CODE (body) != STATEMENT_LIST
+          || last != STATEMENT_LIST_TAIL (body)->stmt))
+    {
+      error ("constexpr constructor does not have empty body");
+      DECL_DECLARED_CONSTEXPR_P (current_function_decl) = false;
+    }
   /* Finish the function body.  */
   finish_function_body (body);
 

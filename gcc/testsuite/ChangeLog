@@ -3342,6 +3342,19 @@
 	* gcc.dg/ordered-comparison-3.c: New test.
 	* gcc.dg/ordered-comparison-4.c: New test.
 
+2009-12-03  Benjamin Kosnik  <bkoz@redhat.com>
+	    Gabriel Dos Reis  <gdr@cs.tamu.edu>
+
+	* constexpr-data1.C: New.
+	* constexpr-data2.C: New.
+	* constexpr-ex1.C: New.
+	* constexpr-ex2.C: New.
+	* constexpr-function1.C: New.
+	* constexpr-function2.C: New.
+	* constexpr-function3.C: New.
+	* constexpr-object1.C: New.
+	* constexpr-object2.C: New.
+
 2010-05-06  Mike Stump  <mikestump@comcast.net>
 
 	PR objc/35165

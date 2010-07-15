@@ -744,6 +744,11 @@ store_init_value (tree decl, tree init, int flags)
 
   /* Digest the specified initializer into an expression.  */
   value = digest_init_flags (type, init, flags);
+
+  /* constexpr variables need to have their initializers reduced.  */
+  if (DECL_DECLARED_CONSTEXPR_P (decl) && value != error_mark_node)
+    value = cxx_constant_value (value);
+
   /* If the initializer is not a constant, fill in DECL_INITIAL with
      the bits that are constant, and then return an expression that
      will perform the dynamic initialization.  */

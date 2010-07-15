@@ -11345,6 +11345,14 @@
 	with null pointer and also warn about ordered comparison of zero with
 	pointer if -Wextra.
 
+2009-12-15  Gabriel Dos Reis  <gdr@cse.tamu.edu>
+
+	* tree.h (VAR_DECL_P): New predicate macro.
+	(FUNCTION_DECL_P): Likewise.
+	(tree_base::lang_flag_7): New language flag.
+	(tree_base::spare): Decrease precision by one.
+	(TREE_LANG_FLAG_7): New.
+
 2010-05-05  Andreas Simbuerger  <simbuerg@fim.uni-passau.de>
 
 	* graphite-blocking.c

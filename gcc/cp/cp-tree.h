@@ -3235,6 +3235,10 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define TYPE_PTR_P(NODE)			\
   (TREE_CODE (NODE) == POINTER_TYPE)
 
+/* Return true if NODE is an array type.  */
+#define TYPE_ARRAY_P(NODE)                      \
+  (TREE_CODE (NODE) == ARRAY_TYPE)
+
 /* Returns true if NODE is an object type:
 
      [basic.types]
@@ -5081,6 +5085,8 @@ extern tree get_template_argument_pack_elems	(const_tree);
 extern tree get_function_template_decl		(const_tree);
 extern tree resolve_nondeduced_context		(tree);
 
+extern hashval_t hash_constexpr_args (tree, hashval_t);
+
 /* in repo.c */
 extern void init_repo				(void);
 extern int repo_emit_p				(tree);
@@ -5207,7 +5213,13 @@ extern void finish_handler			(tree);
 extern void finish_cleanup			(tree, tree);
 extern bool literal_type_p (tree);
 extern tree validate_constexpr_fundecl (tree);
+extern tree register_constexpr_fundef (tree, tree);
 extern tree ensure_literal_type_for_constexpr_object (tree);
+extern tree cxx_constant_value (tree);
+
+/* True if C++0x-style conctant expresions are allowed.  */
+#define generalized_constant_expression_allowed() \
+  ((cxx_dialect != cxx98) || in_system_header)
 
 enum {
   BCS_NO_SCOPE = 1,

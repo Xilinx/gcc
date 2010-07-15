@@ -1596,6 +1596,15 @@ iterative_hash_template_arg (tree arg, hashval_t val)
   return 0;
 }
 
+/* Return a hash value for arguments ARGS in a call to a constexpr
+   function.  INIT is an initial hash value to combine with.  */
+
+hashval_t
+hash_constexpr_args (tree arg, hashval_t init)
+{
+   return iterative_hash_template_arg (arg, init);
+}
+
 /* Unregister the specialization SPEC as a specialization of TMPL.
    Replace it with NEW_SPEC, if NEW_SPEC is non-NULL.  Returns true
    if the SPEC was listed as a specialization of TMPL.

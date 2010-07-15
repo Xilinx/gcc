@@ -1271,6 +1271,11 @@ check_bases (tree t,
 
       gcc_assert (COMPLETE_TYPE_P (basetype));
 
+      /* If any of the base class is non-literal, the whole class
+         becomes non-literal.  */
+      if (!CLASSTYPE_LITERAL_P (basetype))
+        CLASSTYPE_LITERAL_P (t) = false;
+
       /* Effective C++ rule 14.  We only need to check TYPE_POLYMORPHIC_P
 	 here because the case of virtual functions but non-virtual
 	 dtor is handled in finish_struct_1.  */
@@ -3034,6 +3039,11 @@ check_field_decls (tree t, tree *access_decls,
       if (TREE_PRIVATE (x) || TREE_PROTECTED (x))
 	CLASSTYPE_NON_AGGREGATE (t) = 1;
 
+      /* If at least one non-static data member is non-literal, the whole
+         class becomes non-literal.  */
+      if (!literal_type_p (type))
+        CLASSTYPE_LITERAL_P (t) = false;
+
       /* A standard-layout class is a class that:
 	 ...
 	 has the same access control (Clause 11) for all non-static data members,
@@ -4438,6 +4448,45 @@ type_requires_array_cookie (tree type)
   return has_two_argument_delete_p;
 }
 
+
+/* Finish computing the `literal type' property of class type T.
+
+   At this point, we have already processed base classes and
+   non-static data members.  We need to check whether the copy
+   constructor is trivial, the destructor is trivial, and there
+   is a trivial default constructor or at least one constexpr
+   constructor other than the copy constructor.  */
+
+static void
+finalize_literal_type_property (tree t)
+{
+  if (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t))
+    CLASSTYPE_LITERAL_P (t) = false;
+  if (!TYPE_HAS_TRIVIAL_INIT_REF (t))
+    CLASSTYPE_LITERAL_P (t) = false;
+  if (CLASSTYPE_LITERAL_P (t) && !TYPE_HAS_TRIVIAL_DFLT (t)
+      && CLASSTYPE_METHOD_VEC (t) != NULL)
+    {
+      tree ctors = CLASSTYPE_CONSTRUCTORS (t);
+      bool found_one = false;
+      for (; !found_one && ctors != NULL; ctors = OVL_NEXT (ctors))
+        {
+          tree ctor = OVL_CURRENT (ctors);
+          /* If this class a constexpr constructor template, then the class
+             is literal if at least one instantiation is 'constexpr'.
+             If no such instantiation exists, there is no way to use
+             the literalness of the class.  Consequently, we can accept
+             constexpr constructor template.  */
+          if (DECL_COPY_CONSTRUCTOR_P (ctor)
+              || DECL_CLONED_FUNCTION_P (ctor))
+            continue;
+          if (DECL_DECLARED_CONSTEXPR_P (STRIP_TEMPLATE (ctor)))
+            found_one = true;
+        }
+      CLASSTYPE_LITERAL_P (t) = found_one;
+    }
+}
+
 /* Check the validity of the bases and members declared in T.  Add any
    implicitly-generated functions (like copy-constructors and
    assignment operators).  Compute various flag bits (like
@@ -4593,6 +4642,10 @@ check_bases_and_members (tree t)
       /* "This class type is not an aggregate."  */
       CLASSTYPE_NON_AGGREGATE (t) = 1;
     }
+
+  /* Compute the `literal type' property before we get to
+     do anything with non-static member functions.  */
+  finalize_literal_type_property (t);
 
   /* Create the in-charge and not-in-charge variants of constructors
      and destructors.  */
@@ -5428,6 +5481,7 @@ finish_struct_1 (tree t)
   CLASSTYPE_EMPTY_P (t) = 1;
   CLASSTYPE_NEARLY_EMPTY_P (t) = 1;
   CLASSTYPE_CONTAINS_EMPTY_CLASS_P (t) = 0;
+  CLASSTYPE_LITERAL_P (t) = true;
 
   /* Do end-of-class semantic processing: checking the validity of the
      bases and members and add implicitly generated methods.  */
