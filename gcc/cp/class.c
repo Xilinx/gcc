@@ -4462,7 +4462,7 @@ finalize_literal_type_property (tree t)
 {
   if (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t))
     CLASSTYPE_LITERAL_P (t) = false;
-  if (!TYPE_HAS_TRIVIAL_INIT_REF (t))
+  if (!TYPE_HAS_TRIVIAL_COPY_CTOR (t))
     CLASSTYPE_LITERAL_P (t) = false;
   if (CLASSTYPE_LITERAL_P (t) && !TYPE_HAS_TRIVIAL_DFLT (t)
       && CLASSTYPE_METHOD_VEC (t) != NULL)

@@ -5356,7 +5356,7 @@ validate_constexpr_fundecl (tree fun)
     htab_find_slot (constexpr_fundef_table, &entry, INSERT);
   if (*slot == NULL)
     {
-      *slot = GGC_NEW (constexpr_fundef);
+      *slot = ggc_alloc_constexpr_fundef ();
       **slot = entry;
     }
   return fun;
@@ -5731,7 +5731,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t)
     }
   new_call.result =
     cxx_eval_constant_expression (&new_call, new_call.fundef->body);
-  *slot = GGC_NEW (constexpr_call);
+  *slot = ggc_alloc_constexpr_call ();
   **slot = new_call;
   return new_call.result;
 }
