@@ -1,3 +1,6 @@
+2010-07-15  jeremie Salvucci  <jeremie.salvucci@free.fr>
+	* xtramelt-ana-base.melt (gimple_nb_succ) : Exported.
+
 2010-07-14  jeremie Salvucci  <jeremie.salvucci@free.fr>
 	* xtramelt-ana-base.melt (gimple_assign_unary_minus) : Added unary
 	minus matcher.

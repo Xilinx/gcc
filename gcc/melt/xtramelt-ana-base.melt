@@ -2501,6 +2501,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  ==t
  basicblock_content
  basicblock_gimpleseq
+ basicblock_nb_succ
  basicblock_phinodes
  basicblock_single_succ 
  cfun_decl
