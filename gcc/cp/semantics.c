@@ -5817,7 +5817,8 @@ cxx_eval_array_reference (const constexpr_call *call, tree t)
       error ("array subscript too big");
       return error_mark_node;
     }
-  if (tree_low_cst (index, 0) >= CONSTRUCTOR_NELTS (ary))
+  if ((unsigned HOST_WIDE_INT) tree_low_cst (index, 0)
+      >= CONSTRUCTOR_NELTS (ary))
     {
       error ("array subscript out of bound");
       return error_mark_node;
