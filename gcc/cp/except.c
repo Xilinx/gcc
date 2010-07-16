@@ -210,6 +210,7 @@ do_begin_catch (void)
 	{
 	  tree fn2 = get_identifier ("_ITM_cxa_begin_catch");
 	  fn2 = declare_nothrow_library_fn (fn2, ptr_type_node, ptr_type_node);
+	  apply_tm_attr (fn2, get_identifier ("transaction_pure"));
 	  record_tm_replacement (fn, fn2);
 	}
     }
@@ -259,6 +260,7 @@ do_end_catch (tree type)
 	  tree fn2 = get_identifier ("_ITM_cxa_end_catch");
 	  fn2 = push_void_library_fn (fn2, void_list_node);
 	  TREE_NOTHROW (fn2) = 0;
+	  apply_tm_attr (fn2, get_identifier ("transaction_pure"));
 	  record_tm_replacement (fn, fn2);
 	}
     }

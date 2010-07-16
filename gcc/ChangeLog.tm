@@ -1,3 +1,8 @@
+2010-07-16  Richard Henderson  <rth@redhat.com>
+
+	* cp/except.c (do_begin_catch): Mark _ITM_cxa_begin_catch tm_pure.
+	(do_end_catch): Similarly for _ITM_cxa_end_catch.
+
 2010-06-22  Aldy Hernandez  <aldyh@redhat.com>
 
 	* gimplify.c (gimplify_transaction): Wrap transaction body
