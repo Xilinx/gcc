@@ -5930,24 +5930,25 @@ implicit_dereference_p (tree t)
 static bool
 implicit_address_p (tree t)
 {
-  if (TREE_CODE (t) == NOP_EXPR)
-    switch (TREE_CODE (TREE_OPERAND (t, 0)))
+  if (TREE_CODE (t) != NOP_EXPR
+      || TREE_CODE (TREE_TYPE (t)) != REFERENCE_TYPE)
+    return false;
+  switch (TREE_CODE (TREE_OPERAND (t, 0)))
+    {
+    case ADDR_EXPR:
+      return true;
+        
+    case CONVERT_EXPR:
       {
-      case ADDR_EXPR:
-        return true;
-        
-      case CONVERT_EXPR:
-        {
-          tree x = TREE_OPERAND (TREE_OPERAND (t, 0), 0);
-          return TREE_CODE (TREE_TYPE (t)) == POINTER_TYPE
-            && TREE_CODE (TREE_TYPE (x)) == REFERENCE_TYPE
-            && TREE_TYPE (TREE_TYPE (t)) == TREE_TYPE (TREE_TYPE (x));
-        }
-        
-      default:
-        return false;
+	tree x = TREE_OPERAND (TREE_OPERAND (t, 0), 0);
+	return TREE_CODE (TREE_TYPE (t)) == POINTER_TYPE
+	  && TREE_CODE (TREE_TYPE (x)) == REFERENCE_TYPE
+	  && TREE_TYPE (TREE_TYPE (t)) == TREE_TYPE (TREE_TYPE (x));
       }
-  return false;
+
+    default:
+      return false;
+    }
 }
 
 
@@ -5984,7 +5985,8 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
       return cxx_eval_constant_expression (call, TREE_OPERAND (t, 0));
 
     case ADDR_EXPR:
-      if (TREE_STATIC (TREE_OPERAND (t, 0)))
+      if (TREE_STATIC (TREE_OPERAND (t, 0))
+	  || DECL_EXTERNAL (TREE_OPERAND (t, 0)))
         return t;
       error ("address of object %qE with non-static storage is "
              " not a constant expression", t);
@@ -6097,10 +6099,9 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
               }
             return cxx_eval_constant_expression (call, t);
           }
-        t =  cp_convert
+        return cp_convert
           (TREE_TYPE (t),
            cxx_eval_constant_expression (call, TREE_OPERAND (t, 0)));
-        return cxx_eval_constant_expression (call, t);
       }
       
     case CONVERT_EXPR:
