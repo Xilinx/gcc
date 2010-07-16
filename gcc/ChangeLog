@@ -1,3 +1,29 @@
+2010-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/44942
+	* config/i386/i386-protos.h (ix86_function_arg_boundary): Change second
+	argument to const_tree.
+	* config/i386/i386.c (function_arg_advance): If padding needs to be
+	inserted before argument, increment cum->words by number of padding
+	words as well.
+	(contains_aligned_value_p): Change argument to const_tree.
+	(ix86_function_arg_boundary): Change second argument to const_tree.
+
+2010-07-16  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/42235
+	* function.c (record_hard_reg_sets): New static function.
+	(assign_parm_setup_reg): If an optab for extending exists and the
+	generated code clobbbers no hard regs, emit the insn directly and
+	create a REG_EQUIV note.
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-decl.c (detect_field_duplicates): Use DECL_CHAIN insted of
+	TREE_CHAIN.
+	* c-typeck.c (push_init_level): Likewise.
+	(process_init_element): Likewise.
+
 2010-07-15  Anatoly Sokolov  <aesok@post.ru>
 
 	* tree.h (enum tree_index): Add TI_INTEGER_THREE.
