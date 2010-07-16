@@ -84,8 +84,7 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
       printf("RHS Tree!\n");
       debug_tree( rhs_tree );
       
-      retval = build2( MODIFY_EXPR,
-		       build_pointer_type( void_type_node ),
+      retval = build2( MODIFY_EXPR, ptr_type_node,
 		       decl, rhs_tree );
       debug("built assignment for <%s>!\n", opa->op_a.string );
     }
